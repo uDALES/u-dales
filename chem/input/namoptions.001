@@ -1,0 +1,137 @@
+&RUN
+iexpnr     =  001
+lwarmstart =  .false.
+startfile  =  'initd05h00m000.008'
+runtime    =  50400
+trestart   =  3600
+dtmax      =  3
+irandom    =  43
+randthl    =  0.1
+randqt     =  2.5e-5
+nsv        =  16
+timeav_glob= 300
+/
+
+&DOMAIN
+imax       =  96
+jtot       =  96
+kmax       =  112
+
+xsize      =  6400.
+ysize      =  6400.
+
+xlat       =  36.6
+xlon       =  0.
+xday       =  172.
+xtime      =  3.75
+
+/
+&NAMSURFACE
+z0mav      = 0.035
+z0hav      = 0.035
+/
+
+&PHYSICS
+z0         =  0.035
+ustin      =  0.1
+ps         =  097000.00
+thls       =  300.00
+wtsurf     =  0.0001
+wqsurf     =  0.0001
+wsvsurf(1) =  0.0
+wsvsurf(2) =  0.005
+wsvsurf(3) =  0.0
+wsvsurf(4) =  0.0
+wsvsurf(5) =  0.0
+wsvsurf(6) =  0.0
+wsvsurf(7) =  0.35
+wsvsurf(8) =  0.0
+wsvsurf(9) =  0.0
+wsvsurf(10) = 0.0
+wsvsurf(11) = 0.0
+wsvsurf(12) = 0.0
+wsvsurf(13) = 0.0
+wsvsurf(14) = 0.0
+wsvsurf(15) = 1.0
+wsvsurf(16) = 1.0
+
+lmoist     =  .true.
+isurf      =  4
+irad       =  0
+timerad    =  3600
+lcoriol    =  .true.
+/
+
+&DYNAMICS
+llsadv     =  .false.
+lqlnr      =  .false.
+cu         =   10.
+cv         =   0.
+
+iadv_mom    =  5
+iadv_tke    =  5
+iadv_thl    =  5
+iadv_qt     =  5
+iadv_sv     =  100*5
+/
+
+&NAMCHECKSIM
+tcheck      =  60
+/
+&NAMSAMPLING
+lsampup     = .false.
+dtav        = 60
+timeav      = 120
+/
+&NAMTIMESTAT
+ltimestat   = .true.
+iblh_meth   = 1
+iblh_var    = -2
+/
+&NAMCROSSSECTION
+lcross      = .false.
+dtav        = 60
+/
+&NAMGENSTAT
+lstat       = .true.
+dtav        = 300.
+/
+&NAMFIELDDUMP
+lfielddump  = .false.
+dtav        = 60
+ldiracc     = .true.
+/
+&NAMSTATTEND
+dtav        = 60
+ltend       = .false.
+/
+&NAMNETCDFSTATS
+lnetcdf     = .false.
+dtav        = 5
+ncklimit    = 60
+/
+&NAMNETCDFMOVIE
+lnetcdfmovie = .false.
+dtmovie      = 5
+ncklimit     = 60
+lmoviez      = .true.
+slicex       = 5
+slicez       = 5
+/
+&NAMCHEM
+lchem       = .true.
+tnor        = 17
+firstchem   = 1
+lastchem    = 15
+lremoveneg  = .false.
+ldiuvar     = .true.
+h_ref       = 12.
+lchconst    = .false.
+t_ref	    = 298.
+p_ref	    = 100000.
+q_ref	    = 5.e-3
+lchmovie    = .false.
+dtchmovie   = 60. 
+itermin     = 1.e-6
+/
+

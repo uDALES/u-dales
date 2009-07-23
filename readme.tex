@@ -1,0 +1,334 @@
+%----------------------------------------------------------------------------
+% This file is part of DALES.
+%
+% DALES is free software; you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation; either version 3 of the License, or
+% (at your option) any later version.
+%
+% DALES is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+%
+% You should have received a copy of the GNU General Public License
+% along with this program.  If not, see <http://www.gnu.org/licenses/>.
+%
+% Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
+%----------------------------------------------------------------------------
+%
+%
+\documentclass[a4paper,10pt]{article}
+\usepackage{natbib}
+
+%opening
+\title{Dutch Atmospheric Large Eddy Simulation\\
+version 3.1, 'Kronenbourg'
+}
+\author{Chiel van Heerwaarden (WUR)\\ Thijs Heus (KNMI)\\ Stephan de Roode (TU Delft)\\www.ablresearch.org/dales\\
+dales@ablresearch.org}
+
+\begin{document}
+\bibliographystyle{plainnat}
+\maketitle
+\tableofcontents
+\section{Introduction}
+The incentive for this new version of DALES came from the need for a faster code, plus a less diffusive advection scheme than the Leap-frog/kappa scheme could provide. This is now achieved due to implementation of a third order Runge Kutta time integration scheme and (a.o.) a 5th order advection scheme. The time scheme is rather rigidly set throughout DALES, but another advection scheme can be easily added (should be clear by looking in advection.f90). The same goes for the surface handling scheme, the radiation scheme or the moisture handling.
+RK3 requires 3 intermediate time steps, but the increased stability allows increased timestepping. The first tests showed a decrease in runtime of up to 50\%.\\
+Another aspect of this version is the modular setup. The increasing amount of specialized code (e.g. chemistry, microphysics, statistics, katabatic flow) makes it more difficult to share the core of the code. In the way the code is set up now, it should be possible to keep the core cleaner and the use and the sharing of additional forcings easier.
+
+
+\paragraph{Known Issues}
+\begin{itemize}
+ \item When using OpenMPI, the MPI\_CART\_CREATE statement in modmpi.f90 at line 74/75 needs to be commented out, and line 78-79 needs to be activated - Issue found by Pedro Soares
+\item Microphysics may become unstable, in combination with a non-equidistant grid that increases the allowed time step. Workaround: Limit the peclet and/or courant numbers in the namelist.
+\end{itemize}
+
+\paragraph{Major Changes - Version 3.1}
+\begin{itemize}
+ \item Non-equidistant grid for 5th order, particles
+\item Mixed buoyancy mixing over the wet/dry interface
+\item Bulk microphysics implemented
+\item Revised radiation, subgrid and surface routines
+\item Adaptive timestepping
+\item More reliable statistical routines
+\end{itemize}
+
+\paragraph{Major Changes - Version 3.0}
+\begin{itemize}
+\item 3rd order Runge Kutta integration
+\item Several advection schemes: 2nd, 4th and 6th order central as well as 3rd and 5th order schemes that are slightly diffusive and therefore nearly positive. The kappa scheme is also implemented.
+\item Allocatable arrays, meaning that new compilation is only necessary for real code changes, and not anymore for changes in resolution or number of processors. The number of processors is now not an input parameter anymore; it is read from MPI.
+\item New setup of the namelists; only one namelist (namoptions) file is now necessary. See section \ref{input}
+\item Major cleanup of the main program; most subroutines are now sorted into modules.
+\item The modular setup also allows for statistical routines and add-ons. See section \ref{addon} for a description of those.
+\item To keep bookkeeping of open files easy, files are always directly closed after use; as an added bonus, results are directly flushed into the files upon closing.
+\item guard constructions are replaced; thermodynamical 'constants' 0.622, 0.61, 1.61 and 0.378 are replaced with combinations of 1, rv and rd.
+\end{itemize}
+
+\section{Roadmap / Wish List}
+\begin{itemize}
+\item Chemistry addon
+\item Land surface scheme
+\item Full radiation scheme
+\item Non-periodic boundary conditions
+\item Optimized microphysics
+\item Deep convection / anelastic Navier Stokes solver
+\item Block instead of stripe parallelization
+\end{itemize}
+
+DALES has been tested (although not always thoroughly) on the following platforms:
+\begin{itemize}
+\item x86 with gcc 4.1.2, ifort 9.1 and ifort 10.0
+\item x86\_64 with ifort 10.0
+\item itanium2 with ifort 9.1
+\end{itemize}
+
+\section{Installation}
+To set the dependencies correctly, make sure you have \verb"makedepf90" somewhere in your path. The source code as well as a binary for IBM p5 and one for x86 machines is available in the subdir makedepf90.
+
+The makefile switches between various systems using the \verb"\$SYST" variable that can be set outside the Makefile, for instance in your .bashrc or .cshrc script.
+
+The makefile switches into debug mode with the debug flag set to true in the header of the Makefile.
+
+\section{Use}
+Please check the directories `example' and `exampleplugin' for working examples that illustrate the capabilities of DALES and give a sample set of input files.
+\label{input}
+\subsubsection*{namoptions}
+The general options file is called namoptions, but can be replaced by any other file using a command line option at the invocation of DALES:
+\begin{verbatim}
+ dales3 namoptions.001
+\end{verbatim}
+
+Namoptions consists by default of the namelists run, domain, physics and dynamics.
+
+Namelist \textbf{run} contains:
+\begin{itemize}
+ \item \textit{iexpnr} number of the experiment
+\item \textit{lwarmstart}  flag for "cold"  or "warm" start
+\item \textit{startfile} name of the restart file
+\item \textit{runtime} simulation time in secs
+\item \textit{dtmax} time integration interval
+\item \textit{ladaptive} flag for adaptive time stepping; supercedes dtmax
+\item \textit{courant} maximum courant number in adaptive timestepping; optional
+\item \textit{peclet} maximum peclet number in adaptive timestepping; optional.
+\item \textit{trestart} each trestart sec. a restart file is written to disk
+\item \textit{dtav\_glob} default value for sampling of statistiscs
+\item \textit{timeav\_glob} default value for write interval of statistics
+\item \textit{irandom} number to seed the randomnizer with
+\item \textit{randqt} amplitude of the qt randomnization
+\item \textit{randthl} amplitude of the thl randomnization
+\item \textit{krand} top-height of randomnization
+\item \textit{nsv} number of additional scalar fields. Maximum 999.
+\end{itemize}
+namelist \textbf{domain} contains:
+\begin{itemize}
+ \item \textit{imax jtot kmax} domain size in grid points
+\item \textit{xsize ysize} domain size in meters
+\item \textit{xlat xlon} latitude/longitude in degrees
+\item \textit{xday} day of the year
+\item \textit{xtime} GMT time
+\item \textit{ksp} lower height of the sponge layer
+\item \textit{chi\_half} coefficient to determine wet (0) dry (1) or mixed (0.5) mixing over the cloud interface. Default 0.5
+\item \textit{lneutraldrag}
+\end{itemize}
+namelist \textbf{physics} contains:
+\begin{itemize}
+ \item \textit{z0} surface roughness
+\item \textit{ustin} prescribed friction velocity
+\item \textit{wtsurf} prescribed surface thl-flux
+\item \textit{wqsurf} prescribed surface qt-flux
+\item \textit{wsvsurf} prescribed surface scalar-flux
+\item \textit{ps} surface pressure
+\item \textit{thls} surface liq. water pot. temperature
+\item \textit{lmoist} switch to calculate moisture fields
+\item \textit{isurf} flag for surface parametrization
+\item \textit{iradiation} flag for radiation scheme, with 0 for no radiation, 1 for full radiation, 2 for parameterized radiation, 10 for user defined in the file rad\_user.f90. If iradiation=2:
+ \begin{itemize}
+ \item \textit{rad\_ls} switches directly imposed large scale radiative forcing from lscale.inp
+\item \textit{rad\_longw} switches parameterized longwave radiation.
+\item \textit{rad\_shortw} switches parameterized shortwave radiation.
+\item \textit{rad\_smoke} switches parameterized for smoke-like radiation.
+\item \textit{isvssmoke} chooses the scalar used for the smoke calculations
+\item \textit{rka}
+\item \textit{gca}
+\item \textit{dlwtop} top of the domain radiative flux
+\item \textit{dlwbot} surface radiatve flux
+\item \textit{sw0}
+\item \textit{sfc\_albedo} planetary albedo
+\item \textit{reff}
+\end{itemize}
+\item \textit{timerad} timescale of the radiation scheme. Defaults to every time step
+\item \textit{lcoriol} switch for coriolis force
+\item \textit{ltimedep} switch for timedependent fluxes and large scale forcings
+\end{itemize}
+namelist \textbf{dynamics} contains:
+\begin{itemize}
+ \item     \textit{llsadv} switch for large scale forcings
+\item   \textit{lqlnr} Switch for Newton Raphson approximation of the liquid water content.
+\item \textit{cu, cv}  Transformation velocity of the Galilei transform.
+\item\textit{iadv\_mom  iadv\_tke  iadv\_thl  iadv\_qt  iadv\_sv(:)}. Chooses the advection scheme for momentum, tke, thl, qt, and the scalars. Can be set to:
+\begin{itemize}
+ \item 1 = 1st order upwind (ONLY FOR SCALARS)
+ \item 2 = 2nd order central
+ \item 4 = 4th order central
+ \item 5 = 5th order
+ \item 6 = 6th order central
+ \item 7 = kappa (ONLY FOR SCALARS)
+\end{itemize}
+\end{itemize}
+namelist \textbf{subgrid}
+\begin{itemize}
+ \item \textit{ldelta} switch for diminshed sfs in stable flow
+\item \textit{lmason} reduced length scale near the surface
+\item \textit{cf,cn,Rigc,Prandtl} sfs-parameters
+\end{itemize}
+namelist \textbf{microphysics}
+\begin{itemize}
+ \item \textit{imicro} flag for microphysical scheme. 0 for none, 1 for cloud water sedimentation only, 2 for bulk microphysics
+\item \textit{l\_sb} switch between SeifertBeheng parameterization (default) and KhairoutdinovKogan
+\item \textit{l\_rain,l\_sedc} switches rain and cloud water sedimentation
+\item \textit{l\_mur\_cst, mur\_cst, Nc0, sig\_g, sig\_gr}
+\end{itemize}
+
+\subsubsection*{prof.inp.\$iexp}
+Used to generate the initial values of the variables in case of a cold start. The first two lines are unimportant header lines. From there onwards, \textit{kmax} rows give in 6 columns the initial profile of height (used to check whether the grid is equidistant), $\theta_l$, $q_t$ u, v, and subfilter scale TKE.
+\subsubsection*{lscale.inp.\$iexp}
+Gives the large scale forcings. The first two lines are unimportant header lines. The third and onwards show 8 columns: height, geostrophic wind in the x-direction, geostrophic wind in the y-direction, large scale subsidence, large scale inflow of moisture in the x-direction and in the y-direction, additional large scale moisture change in time and the radiation tenency of $\theta_l$.
+\subsubsection*{ls\_flux.inp.\$iexp}
+Gives timedependent forcings and fluxes, if \textit{ltimedep =.true.} The first block starts with three header lines, followed by lines reading the time, surface heat flux and surface moisture flux at those times, this goes on until at least runtime.
+
+The second block and onwards always starts with a header line that starts with a \#, followed by a time. The next row and onwards of the block contains the large scale forcings in a lineup identical to lscale.inp. These blocks are followed upto at least runtime has passed.
+
+The file \textbf{ls\_fluxsv.inp.\$iexp} has a similar set up for scalar treatment.
+
+\subsubsection*{scalar.inp.\$iexp}
+Gives the initial scalar profiles. First two rows are unimportant header. Then onwards in \textit{nsv+1} columns is the height versus the respective scalar profiles.
+\section{Add-Ons and Statistical Routines}
+\label{addon}
+To keep DALES fast and tidy, add-ons and statistical routines are now moved to seperate modules. The difference between an add-on and a statistical routine is that the former may alter the prognostics of the code; this is also expressed in their respective places in program.f90
+
+The idea is to keep the impact of these routines minimal: if possible (and this should be nearly always the case) only a use statement (sec. 0.1 of program.f90) an init statement (sec 2), execution (sec 3.4 resp. 3.9) and if necessary finalization (sec. 4). To ensure that variable or subroutine names are not interfering, a 'private' statement should be included.
+
+Each add-on may have it's own switches and options; for example the sampling and output timestep of the statistical routines (used to be the globally set dtav and timeav). These are set by adding an additional namelist to namoptions; it should at least contain a switch on when to enter the module; that should be set to .false. by default. This way, one could omit namelists that one doesn't use.
+\paragraph{Short description of available add-ons}
+\begin{description}
+ \item [modnudge] $\theta_l$ and $q_t$ are kept at their initial profiles by exertion of a source term $-\frac{<{\phi}> - <{\phi}_{init}>}{\tau}$. Namelist namnudge contains:
+\begin{itemize}
+ \item\textit{tnudge}, the timescale of the source term. tnudge = 0 (default) disables nudging.
+\end{itemize}
+ \item [modparticles] Calculates Lagrangian tracks of massless tracer particles. Namelist namparticles contains: \begin{itemize}
+ \item \textit{lpartic}        switches the routine on/off
+\item  \textit{lpartsgs}       switches the subgrid diffusion on/off
+\item  \textit{intmeth}        time integeration scheme; 0 = particles stand still;  2 = runge kutta
+\item  \textit{dtpart}         integration time step
+\item  \textit{startfile}      name of the particle start-up file this text file has the number of particles on the first line and then for every particle a line with initial t x y z in physical coordinates
+\item \textit{lstat}         switches the particle statistics on/off
+\item  \textit{dtav}           time interval for sampling of statistics
+\item  \textit{timeav}         time interval for writing of statistics
+\item \textit{ldump}         switches the dump of the particle field on/off
+\item  \textit{timedump}       time interval for dump of particle field
+\item  \textit{npartdump}      number of variables written at timedump in order:x, y, z, u, v, w, thl, thv, qt, ql
+\end{itemize}
+\item [modnetcdfstats] Statistical output in NetCDF format stored in $x,z,t$ format
+\begin{itemize}
+\item \textit{lnetcdfstats}    switches the routine on/off
+\item \textit{dtav}            time interval for writing of statistics
+\item \textit{ncklimit}        number of vertical levels to save
+\end{itemize}
+
+\item [modnetcdfmovie] $xy$- or $yz$-slices in NetCDF format
+\begin{itemize}
+\item \textit{lnetcdfmovie}    switches the routine on/off
+\item \textit{dtmovie}         time interval for writing slices
+\item \textit{ncklimit}        number of vertical levels to save
+\item \textit{lmoviez}         $.true.$ creates $yz$-slice, $.false.$ creates $xy$ slice
+\item \textit{slicex}          $x$-coordinate for $yz$ slice
+\item \textit{slicez}          $z$-coordinate for $xy$ slice
+\end{itemize}
+
+\item [modtilt] manages a tilted boundaryy layer for katabatic flow
+\end{description}
+
+
+\paragraph{Short description of available statistics}
+\begin{description}
+\item [modchecksim]Calculates divergence and Courant number. Namelist namchecksim contains:
+\begin{itemize}
+ \item \textit{tcheck}  interval between checks. Default is every timestep.
+\end{itemize}
+\item [modgenstat]calculates generic slabaveraged statistics. Namelist namgenfield contains:
+\begin{itemize}
+ \item\textit{dtav}           sampling interval
+\item \textit{timeav}         interval of writing
+\item \textit{lstat}      switch to enable timeseries
+\end{itemize}
+\item [modsampling]calculates conditional sampled fields. Namelist namsampling contains:
+\begin{itemize}
+ \item \textit{dtav}           sampling interval
+\item \textit{timeav}         interval of writing
+\item \textit{lsampco}        switch to sample cloud ($q_l>0$)
+\item \textit{lsampcl}        switch to sample cloud core ($q_l>0$,$\theta_v>0$)
+\item \textit{lsampupd}       switch to sample updrafts ($w>0$)
+\end{itemize}
+\item [modtimestat]calculates timeseries of several variables. Namelist namtimestat contains:
+\begin{itemize}
+ \item \textit{dtav}           sampling interval
+\item \textit{ltimestat}      switch to enable timeseries
+\end{itemize}
+\item [modcrosssection] dumps an instantenous crosssection of the field. Namelist namcrosssection contains:
+\begin{itemize}
+ \item \textit{dtav}        sampling interval
+\item \textit{lcross}      switch to enable crosssection
+\item \textit{crossheight} height of the xy-crosssection
+\item \textit{crossplane}  location of the yz-plane on every processor
+\end{itemize}
+\item [modcloudfield] dumps all the wet points in the field. Namelist namcloudfield contains:
+\begin{itemize}
+ \item \textit{dtav}           sampling interval
+\item \textit{timeav}  interval of writing
+\item \textit{lcloudfield}    switch to enable cloudfield dumps
+\item\textit{laddinfo}       switch to write ql and w values
+\end{itemize}
+
+\item [modfielddump] dumps complete 3d-fields of u,v,w, thl, qt and ql in 2-byte integers. Namelist namfielddump contains:
+\begin{itemize}
+ \item \textit{dtav} sampling interval
+\item \textit{lfielddump} switch to enable fielddump
+\item \textit{ldiracc} switch to dump in direct access files instead of Fortran unformatted files.
+\end{itemize}
+
+\end{description}
+
+\section{Coding Principles in DALES3}
+\begin{itemize}
+ \item Instead of tab, use a double space as indention
+\item Try to avoid 0.61, 1.61 and friends, but use combinations of Rd and Rv. In general, use constants instead of numbers.
+\item Don't add anything case specific to the core modules. If you need to change a hard coded constant, consider adding it to a namelist.
+\item Make an attempt to include some documentiation of new and improved features. A lot of features risk of never being used, and even being re-implemented once in a while, just because nobody knows they're there.
+\end{itemize}
+\section{Code description}
+For a comprehensive description of the code, \cite{heus2009} is in preparation.
+\section{Contact}
+If you have a bug report, please submit it at the wiki of www.ablresearch.org/dales , preferably including a bug fix. If you want to contact the developers, please mail to dales@ablresearch.org . A mailinglist for users is available as dales-users@ablresearch.org .
+\section{Terms of use}
+DALES is being released under the GPLv3 license; see the file COPYING in the package. DALES is free to use, modify or redistribute. It is regarded common courtesy to report bugs, bug fixes, and appreciated if code that could be of use for other users is contributed to the main code.  In case of a (first) publication based on DALES results, please contact the development group to discuss co-authorship. In any case, always refer to this code using the name DALES (so no IMAU-LES, KNMI-LES or WUR-LES defining the same code), and cite \cite{heus2009} as the reference.
+\begin{thebibliography}{1}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Heus et~al.(2009)Heus, van Heerwaarden, Jonker, Siebesma, Axelsen,
+  Geoffroy, Moene, Pino, de~Roode, and Vil\`{a}-Guerau~de Arellano]{heus2009}
+Thijs Heus, Chiel~C. van Heerwaarden, Harm J.~J. Jonker, A.~Pier Siebesma,
+  Simon Axelsen, Olivier Geoffroy, Arnold Moene, David Pino, Stephan~R.
+  de~Roode, and Jordi Vil\`{a}-Guerau~de Arellano.
+\newblock {A}n overview of the {D}utch {A}tmospheric {LES}.
+\newblock \emph{Geoscientific Model Development}, 2009.
+\newblock In preparation.
+
+\end{thebibliography}
+
+\end{document}
