@@ -724,7 +724,6 @@ contains
   end do
   end do
 
-
 ! Mathieu MPI communication
 
   call MPI_ALLREDUCE(sigul, sigu, 1,  MY_REAL, &
