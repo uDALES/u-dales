@@ -150,6 +150,11 @@ subroutine tstep_integrate
   qtp=0.
   svp=0.
   e12p=0.
+<<<<<<< HEAD:tstep.f90
+=======
+
+
+>>>>>>> f30ba46755df313cccab848d1686df5908fcac63:tstep.f90
   if(rk3step == 3) then
     um = u0
     vm = v0
