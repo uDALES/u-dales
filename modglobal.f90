@@ -87,6 +87,8 @@ save
       logical :: lcoriol  = .true.  ! switch for coriolis force
       real    :: om22                       !   *2.*omega_earth*cos(lat)
       real    :: om23                       !   *2.*omega_earth*sin(lat)
+      real    :: om22_gs                       !   *2.*omega_earth*cos(lat)
+      real    :: om23_gs                       !   *2.*omega_earth*sin(lat)
       real    :: xlat    = 52.              !   *latitude  in degrees.
       real    :: xlon    = 0.               !   *longitude in degrees.
 
@@ -175,7 +177,7 @@ contains
     implicit none
 
     integer :: advarr(4)
-    real phi, colat, silat, omega
+    real phi, colat, silat, omega, omega_gs
     integer k
     character(80) chmess
 
@@ -240,11 +242,15 @@ contains
     silat  = sin(phi)
     if (lcoriol) then
       omega = 7.292e-5
+      omega_gs = 7.292e-5
     else
       omega = 0.
+      omega_gs = 7.292e-5
     end if
     om22   = 2.*omega*colat
     om23   = 2.*omega*silat
+    om22_gs   = 2.*omega_gs*colat
+    om23_gs   = 2.*omega_gs*silat
 
     ! Variables
     allocate(dsv(nsv))

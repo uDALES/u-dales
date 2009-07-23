@@ -1,11 +1,11 @@
 # Loadleveler directives start with # @
 # @ node = 1
-# @ tasks_per_node = 2
+# @ tasks_per_node = 8
 # @ notification = never
 # @ input = /dev/null
 # @ output = errorfile.001
 # @ error = errorfile.001
-# @ wall_clock_limit = 20:00:00
+# @ wall_clock_limit = 1:00:00
 # @ job_type = parallel
 # @ network.MPI = sn_all,not_shared,US
 # @ queue
@@ -14,7 +14,7 @@
 # go to the working directory:
 #
 iexpnr=001
-cd $HOME/dales3.2beta1/example
+cd $HOME/dales3.1.1/example
 
 workdir=`pwd`
 partition=`uname -n`
@@ -24,7 +24,6 @@ ln -fs $tmpdir tmpdir.$iexpnr
 
 cp dales3 *inp.$iexpnr namoptions.$iexpnr $TMPDIR
 cd $TMPDIR
-mkdir data
 ./dales3 namoptions.$iexpnr >output.$iexpnr
 
 mv * $workdir

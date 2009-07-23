@@ -293,8 +293,8 @@ contains
                                   v0av,u0av,qt0av,ql0av,thl0av,sv0av,exnf,exnh,presf,presh,rhof,&
                                   thlpcar
     use modglobal,         only : i1,i2,ih,j1,j2,jh,kmax,k1,dtmax,dt,timee,ntimee,ntrun,btime,nsv,&
-                                  zf,dzf,dzh,rv,rd,grav,cp,rlv,pref0,om23,llsadv,&
-                                  rslabs,cu,cv,e12min,dzh,dtheta,dqt,dsv,cexpnr,ifinput,lwarmstart,trestart,ladaptive,tnextrestart
+                                  zf,dzf,dzh,rv,rd,grav,cp,rlv,pref0,om23_gs,&
+                                  rslabs,cu,cv,e12min,dzh,dtheta,dqt,dsv,cexpnr,ifinput,lwarmstart,trestart, ladaptive,llsadv
     use modsubgrid,        only : ekm,ekh
     use modsurface,        only : wtsurf,wqsurf,wsvsurf, &
                                   thls,tskin,tskinm,thvs,ustin,ps,qts,isurf,svs,obl,oblav, &

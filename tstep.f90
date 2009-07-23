@@ -109,13 +109,10 @@ subroutine tstep_integrate
 ! Chiel van Heerwaarden, 14 June 2007
 ! Following Wicker and Skamarock, 2002
 
-  use modglobal, only : i1,j1,kmax,nsv,dt,rk3step,e12min,lmoist,timee
+  use modglobal, only : i1,j1,kmax,nsv,dt,rk3step,e12min,lmoist
   use modfields, only : u0,um,up,v0,vm,vp,w0,wm,wp,&
                         thl0,thlm,thlp,qt0,qtm,qtp,&
                         e120,e12m,e12p,sv0,svm,svp
-  !CvH REMOVE LATER
-  use modsurface, only: ustar, tstar, thvs
-  use modglobal,  only: grav, zf
 
   implicit none
 
@@ -153,14 +150,6 @@ subroutine tstep_integrate
   qtp=0.
   svp=0.
   e12p=0.
-
-  !CvH TKE test
-  if(rk3step == 3) then
-    i = 2
-    j = 2
-    !write(6,*) "CvH TKE: ", 0.5/ dt *((u0(i,j,1)**2. + v0(i,j,1) ** 2. + w0(i,j,1) ** 2.+ e120(i,j,1)**2.) - (um(i,j,1)**2. + vm(i,j,1) **2. + wm(i,j,1) **2.+ e12m(i,j,1)**2.)), grav/thvs * ustar(i,j) * tstar(i,j), ustar(i,j) * ustar(i,j) * sqrt(u0(i,j,1)**2.+v0(i,j,1)**2.) / zf(1) 
-  end if
-
   if(rk3step == 3) then
     um = u0
     vm = v0
@@ -169,6 +158,5 @@ subroutine tstep_integrate
     qtm  = qt0
     e12m = e120
     svm = sv0
-
   end if
 end subroutine tstep_integrate

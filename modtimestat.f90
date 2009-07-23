@@ -40,8 +40,8 @@ module modtimestat
 
 
 implicit none
-private
-PUBLIC :: inittimestat, timestat
+! private
+! PUBLIC :: inittimestat, timestat
 save
 
   real    :: dtav,tnext
@@ -52,6 +52,10 @@ save
   integer :: iblh_meth = iblh_grad, iblh_var = iblh_thv
   integer :: blh_nsamp = 4
   real    :: blh_thres=-1 ,blh_sign=1.0
+  real   :: zbaseav, ztopav, ztopmax,zbasemin
+  real   :: qlintav, qlintmax, tke_tot
+  real   :: cc, wmax, qlmax
+  real   :: qlint
 
 contains
 
@@ -162,16 +166,12 @@ contains
     use modfields,  only : um,vm,wm,e12m,ql0,u0av,v0av,rhof
     use modsurface, only : wtsurf, wqsurf, isurf,ustar,tstar,qstar,z0,oblav,qts,thls,&
                            Qnet, H, LE, G0, rs, ra, tskin, tendskin
-    use modmpi,     only : my_real,mpi_sum,mpi_max,comm3d,mpierr,myid
+    use modmpi,     only : my_real,mpi_sum,mpi_max,mpi_min,comm3d,mpierr,myid
     implicit none
 
-    real   :: zbaseavl, ztopavl, ztopmaxl, ztop
+    real   :: zbaseavl, ztopavl, ztopmaxl, ztop,zbaseminl
     real   :: qlintavl, qlintmaxl, tke_totl
     real   :: ccl, wmaxl, qlmaxl
-    real   :: zbaseav, ztopav, ztopmax
-    real   :: qlintav, qlintmax, tke_tot
-    real   :: cc, wmax, qlmax
-    real   :: qlint
     real   :: ust,tst,qst,ustl,tstl,qstl
     real   :: usttst, ustqst, usttstl, ustqstl
     real   :: wts, wqls,wtvs
@@ -202,6 +202,7 @@ contains
 
     zbaseavl = 0.0
     ztopavl = 0.0
+    zbaseminl = zf(kmax)
 
     call calcblheight
 
@@ -229,6 +230,7 @@ contains
       do k=1,kmax
         if (ql0(i,j,k) > 0.) then
         zbaseavl = zbaseavl + zf(k)
+        zbaseminl = min(zf(k),zbaseminl)
         exit
         end if
       end do
@@ -244,7 +246,8 @@ contains
                           MPI_MAX, comm3d,mpierr)
     call MPI_ALLREDUCE(zbaseavl, zbaseav, 1,    MY_REAL, &
                           MPI_SUM, comm3d,mpierr)
-
+    call MPI_ALLREDUCE(zbaseminl, zbasemin, 1,    MY_REAL, &
+                          MPI_MIN, comm3d,mpierr)
   !     ---------------------------------------
   !     9.3  determine maximum ql_max and w_max
   !     ---------------------------------------
@@ -257,6 +260,7 @@ contains
     do  i=2,i1
     do  j=2,j1
       ztop  = 0.0
+      
       do  k=1,kmax
         if (ql0(i,j,k) > 0) ztop = zf(k)
         wmaxl = max(wm(i,j,k),wmaxl)

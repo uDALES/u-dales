@@ -141,6 +141,7 @@ contains
           case (irad_none)
           case (irad_full)
             stop 'full scheme not yet implemented'
+            call rad_full
           case (irad_par)
             if (rad_ls) then
                 call radprof
@@ -171,6 +172,35 @@ contains
   end subroutine exitradiation
 !
 !
+  subroutine radfull
+  use radiation, only : d4stream
+  use modglobal, only : i1,j1,k1
+  use modsurface, only : thls
+    implicit none
+!       integer,parameter :: nzp=k1, nxp=1, nyp=1
+      real    :: cntlat, time_in, sst,  CCN
+      real, dimension (k1)                 :: dn0, pi0, pi1, dzt
+      real, dimension (k1,i1,j1)          :: a_pexnr, a_scr1, a_rv, a_rc
+      real, dimension (k1,i1,j1)        :: a_tt, a_rflx, a_sflx, albedo, a_rpp
+!convert our variables into bjorn variables, including switching column order
+
+!run radiation
+!         if (present(time_in) .and. present(cntlat) .and. present(thls)) then
+!           if (level == 3) then
+!                       d4stream(n1, n2, n3, alat, time, sknt, sfc_albedo, CCN, dn0, &
+!          pi0, pi1, dzm, pip, tk, rv, rc, tt, rflx, sflx, albedo, rr)
+                 call d4stream(k1,i1,j1, cntlat, time_in, sst, 0.05, CCN,&
+                  dn0, pi0, pi1, dzt, a_pexnr, a_scr1, a_rv, a_rc, a_tt,  &
+                  a_rflx, a_sflx, albedo, rr=a_rpp)
+!           else
+!              call d4stream(nzp, nxp, nyp, cntlat, time_in, sst, 0.05, CCN,&
+!                   dn0, pi0, pi1, dzt, a_pexnr, a_scr1, a_rv, a_rc, a_tt,  &
+!                   a_rflx, a_sflx, albedo)
+!           end if
+!         end if
+!convert back
+
+end subroutine radfull
 
 
  subroutine radpar

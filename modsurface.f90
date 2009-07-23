@@ -436,6 +436,10 @@ contains
     real     :: ustl, qstl, tstl
     !real     :: SWin
 
+    if (isurf==10) then
+      call surf_user
+      return
+    end if
     ! 1     -   Calculate the surface temperature
     if(isurf == 1) then 
       thlsl = 0.0
