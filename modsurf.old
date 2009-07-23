@@ -767,7 +767,6 @@ contains
 
   stop 'Bad convergence in iteration procedure'
 
-
   end subroutine stopsurf
 
   !----------------------------------------------------------------
