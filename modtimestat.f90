@@ -521,7 +521,6 @@ contains
           dgrad(2:kmax)    = (gradient(3:k1) - gradient(2:kmax))/dzf(2:kmax)
           location = maxloc(gradient,1)
           zil  = zil + nsamp*(zh(location-1) - dzh(location)*dgrad(location-1)/(dgrad(location)-dgrad(location-1)))
-          write(6,*) "CvH blhgt",i,j, (zh(location-1) - dzh(location)*dgrad(location-1)/(dgrad(location)-dgrad(location-1)))
         enddo
       enddo
     case (iblh_thres)
