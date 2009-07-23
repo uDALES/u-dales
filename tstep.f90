@@ -158,7 +158,7 @@ subroutine tstep_integrate
   if(rk3step == 3) then
     i = 2
     j = 2
-    !write(6,*) "CvH TKE: ", 0.5/ dt *((u0(i,j,1)**2. + v0(i,j,1) ** 2. + w0(i,j,1) ** 2.+ e120(i,j,1)**2.) - (um(i,j,1)**2. + vm(i,j,1) **2. + wm(i,j,1) **2.+ e12m(i,j,1)**2.)), grav/thvs * ustar(i,j) * tstar(i,j), ustar(i,j) * ustar(i,j) * sqrt(u0(i,j,1)**2.+v0(i,j,1)**2.) / zf(1) 
+    !write(6,*) "CvH TKE: ", 0.5/ dt *((u0(i,j,1)**2. + v0(i,j,1) ** 2. + w0(i,j,1) ** 2.+ e120(i,j,1)**2.) - (um(i,j,1)**2. + vm(i,j,1) **2. + wm(i,j,1) **2.+ e12m(i,j,1)**2.)), grav/thvs * ustar(i,j) * tstar(i,j), ustar(i,j) * ustar(i,j) * sqrt(u0(i,j,1)**2.+v0(i,j,1)**2.) / zf(1) REMOVE THIS!
   end if
 
   if(rk3step == 3) then
