@@ -19,7 +19,6 @@
 !
 ! Surface routine, replacing the old modsurf.f90 and including a land-surface scheme
 ! Chiel van Heerwaarden, 2009
-! Last change: 31 March 2009
 
 module modsurface
   implicit none
@@ -720,7 +719,7 @@ contains
       tsurf = thls*exner
       es    = es0*exp(at*(tsurf-tmelt)/(tsurf-bt))
       qts   = rd/rv*es/(ps-(1-rd/rv)*es)
-      ! CvH Check to prevent collapse of spinup u* = 0 u = 0 free convection case
+      ! CvH Check to prevent collapse of spinup u* = 0 and  u = 0 free convection case
       qts   = max(qts, 0.)
     end if
 
