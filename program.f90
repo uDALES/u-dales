@@ -86,7 +86,7 @@ program DALES      !Version 3.2 Beta 1
   use modparticles,    only : initparticles, particles, exitparticles
   use modnudge,        only : initnudge, nudge, exitnudge
 !   use modnetcdfstats,  only : initnetcdfstats, netcdfstats, exitnetcdfstats
-!    use modnetcdfmovie,  only : initnetcdfmovie, netcdfmovie, exitnetcdfmovie
+!   use modnetcdfmovie,  only : initnetcdfmovie, netcdfmovie, exitnetcdfmovie
   use modchem,         only : initchem,inputchem, twostep
 
   implicit none
