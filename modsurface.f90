@@ -19,7 +19,6 @@
 !
 ! Surface routine, replacing the old modsurf.f90 and including a land-surface scheme
 ! Chiel van Heerwaarden, 2009
-! Last change: 31 March 2009
 
 module modsurface
   implicit none
