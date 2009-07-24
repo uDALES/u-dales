@@ -724,7 +724,6 @@ contains
   end do
   end do
 
-
 ! Mathieu MPI communication
 
   call MPI_ALLREDUCE(sigul, sigu, 1,  MY_REAL, &
@@ -766,7 +765,6 @@ contains
   endif ! end if(myid==0)
 
   stop 'Bad convergence in iteration procedure'
-
 
   end subroutine stopsurf
 

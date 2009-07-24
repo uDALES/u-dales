@@ -653,7 +653,7 @@ contains
 
   subroutine readrestartfiles
 
-    use modsurface, only : ustar,tstar,qstar,svstar,dudz,dvdz,dthldz,dqtdz,ps,thls,qts,thvs,obl,&
+    use modsurface, only : ustar,tstar,qstar,svstar,dudz,dvdz,dthldz,dqtdz,ps,thls,qts,thvs,oblav,&
                            tsoil,tskin,isurf,ksoilmax
     use modfields,  only : u0,v0,w0,thl0,qt0,ql0,ql0h,e120,dthvdz,presf,presh,sv0
     use modglobal,  only : i1,i2,ih,j1,j2,jh,k1,dtheta,dqt,dsv,startfile,timee,&
@@ -691,7 +691,7 @@ contains
       read(ifinput)   ((dqtdz (i,j  ),i=1,i2      ),j=1,j2      )
       read(ifinput)  (  presf (    k)                            ,k=1,k1)
       read(ifinput)  (  presh (    k)                            ,k=1,k1)
-      read(ifinput)  ps,thls,qts,thvs,obl
+      read(ifinput)  ps,thls,qts,thvs,oblav
       read(ifinput)  dtheta,dqt,timee,dt
 
     close(ifinput)
@@ -720,7 +720,7 @@ contains
   end subroutine readrestartfiles
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine writerestartfiles
-    use modsurface,only : ustar,tstar,qstar,svstar,dudz,dvdz,dthldz,dqtdz,ps,thls,qts,thvs,obl,&
+    use modsurface,only : ustar,tstar,qstar,svstar,dudz,dvdz,dthldz,dqtdz,ps,thls,qts,thvs,oblav,&
                           tsoil,tskin,ksoilmax,isurf,ksoilmax
     use modfields, only : u0,v0,w0,thl0,qt0,ql0,ql0h,e120,dthvdz,presf,presh,sv0
     use modglobal, only : i1,i2,ih,j1,j2,jh,k1,dsv,trestart,tnextrestart,dt_lim,timee,cexpnr,&
@@ -773,7 +773,7 @@ contains
       write(ifoutput)   ((dqtdz (i,j  ),i=1,i2      ),j=1,j2      )
       write(ifoutput)  (  presf (    k)                            ,k=1,k1)
       write(ifoutput)  (  presh (    k)                            ,k=1,k1)
-      write(ifoutput)  ps,thls,qts,thvs,obl
+      write(ifoutput)  ps,thls,qts,thvs,oblav
       write(ifoutput)  dtheta,dqt,timee,dt
 
       close (ifoutput)
