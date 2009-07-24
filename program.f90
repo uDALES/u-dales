@@ -19,7 +19,8 @@
 !
 !
 
-program DALES      !Version 3.1RC1 'Kronenbourg'
+program DALES      !Version 3.1.1
+
 !January 2008
 !Stephan de Roode      - TU Delft
 !Chiel van Heerwaarden - Wageningen
