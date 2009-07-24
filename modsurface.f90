@@ -731,7 +731,7 @@ contains
   end subroutine qtsurf
 
   subroutine getobl
-    use modglobal, only : zf, rv, rd, grav, rslabs, i1, j1, i2, j2, timee
+    use modglobal, only : zf, rv, rd, grav, rslabs, i1, j1, i2, j2, timee, cu, cv
     use modfields, only : thl0av, qt0av, u0, v0, thl0, qt0 
     use modmpi,    only : my_real,mpierr,comm3d,mpi_sum,myid,excj
     implicit none
@@ -793,7 +793,7 @@ contains
     else
 
       thv    = thl0av(1) * (1. + (rv/rd - 1.) * qt0av(1))
-      horv2l = sum(u0(2:i1,2:j1,1)*u0(2:i1,2:j1,1) + v0(2:i1,2:j1,1)*v0(2:i1,2:j1,1))
+      horv2l = sum( (u0(2:i1,2:j1,1) + cu ) ** 2.)  +  sum( (v0(2:i1,2:j1,1) + cv ) ** 2.)
       horv2l = max(horv2l, 1.e-2)
       
       call MPI_ALLREDUCE(horv2l, horv2, 1,  MY_REAL, MPI_SUM, comm3d,mpierr)
@@ -801,13 +801,13 @@ contains
     
       Rib   = grav / thvs * zf(1) * (thv - thvs) / horv2
 
-      iter = 4
+      iter = 3
       L = oblav
 
       if(Rib * L < 0. .or. abs(L) == 1e5) then
         if(Rib > 0) L = 0.01
         if(Rib < 0) L = -0.01
-        iter = 8
+        iter = 6
       end if
 
       do i = 0, iter
@@ -827,7 +827,7 @@ contains
       oblav = L
 
     end if
-    
+
     return
 
   end subroutine getobl
