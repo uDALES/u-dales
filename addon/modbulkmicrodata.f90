@@ -31,7 +31,7 @@
              l_rain      = .true. , & ! rain formation / evolution flag              (in namelist NAMMICROPHYSICS)
              l_mur_cst   = .false.    ! false = no constant value of mur (mur=f(Dv)) (in namelist NAMMICROPHYSICS)
   real    :: mur_cst     = 5        & ! mur value if l_mur_cst=T                     (in namelist NAMMICROPHYSICS)
-                 ,Nc_0 = 55e6       & ! initial cloud droplet number
+                 ,Nc_0 = 100e6       & ! initial cloud droplet number
                  ,sig_g = 1.5       & ! geom. std dev of cloud droplet DSD
                  ,sig_gr = 1.5        ! geometric std dev of rain drop DSD
 

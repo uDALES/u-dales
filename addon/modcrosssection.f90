@@ -146,11 +146,11 @@ contains
     close(ifoutput)
 
     open(ifoutput,file='movv_thl.'//cexpnr,position='append',action='write')
-    write(ifoutput,'(es11.4)') ((thlm(i,crossplane,k)-300.0,i=2,i1),k=1,kmax)
+    write(ifoutput,'(es11.4)') ((thlm(i,crossplane,k),i=2,i1),k=1,kmax)
     close(ifoutput)
 
     open(ifoutput,file='movv_thv.'//cexpnr,position='append',action='write')
-    write(ifoutput,'(es11.4)') ((thv0(i,crossplane,k)-300.0,i=2,i1),k=1,kmax)
+    write(ifoutput,'(es11.4)') ((thv0(i,crossplane,k),i=2,i1),k=1,kmax)
     close(ifoutput)
 
     open(ifoutput,file='movv_qt.'//cexpnr,position='append',action='write')
@@ -211,19 +211,11 @@ contains
     close(ifoutput)
 
     open(ifoutput,file='movh_thl.'//cmyid//'.'//cexpnr,position='append',action='write')
-    write(ifoutput,'(es12.5)') ((thlm(i,j,crossheight)-300.,i=2,i1),j=2,j1)
+    write(ifoutput,'(es12.5)') ((thlm(i,j,crossheight),i=2,i1),j=2,j1)
     close(ifoutput)
 
     open(ifoutput,file='movh_thv.'//cmyid//'.'//cexpnr,position='append',action='write')
     write(ifoutput,'(es12.5)') ((thv0(i,j),i=2,i1),j=2,j1)
-    close(ifoutput)
-
-    open(ifoutput,file='movh_thv.'//cmyid//'.'//cexpnr,position='append',action='write')
-    write(ifoutput,'(es12.5)') ((thv0(i,j)-300.,i=2,i1),j=2,j1)
-    close(ifoutput)
-thv0 = 0.
-    open(ifoutput,file='movh_thv.'//cmyid//'.'//cexpnr,position='append',action='write')
-    write(ifoutput,'(es12.5)') ((thv0(i,j)-300.,i=2,i1),j=2,j1)
     close(ifoutput)
 
     open(ifoutput,file='movh_qt.'//cmyid//'.'//cexpnr,position='append',action='write')

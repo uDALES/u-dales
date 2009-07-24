@@ -98,7 +98,7 @@ contains
   subroutine initbulkmicrostat
     use modmpi,    only  : myid, mpi_logical, my_real, comm3d, mpierr
     use modglobal, only  : ifnamopt, fname_options, cexpnr, ifoutput, &
-              dtav_glob, timeav_glob, ladaptive, k1, dtmax
+              dtav_glob, timeav_glob, ladaptive, k1, dtmax,btime
     implicit none
     integer      :: ierr
 
@@ -120,8 +120,8 @@ contains
     call MPI_BCAST(dtav    ,1,MY_REAL  ,0,comm3d,mpierr)
     call MPI_BCAST(timeav    ,1,MY_REAL  ,0,comm3d,mpierr)
 
-    tnext    = dtav - 1e-3
-    tnextwrite  = timeav - 1e-3
+    tnext    = dtav - 1e-3+btime
+    tnextwrite  = timeav - 1e-3+btime
     nsamples  = nint(timeav/dtav)
 
     if (.not. lmicrostat) return

@@ -783,7 +783,7 @@ contains
     use modmpi,    only : myid,cmyid
     use modglobal, only :  i2,jmax,j2,k1,dx,dy,dzf,dzh,zf,zh,es0,tmelt,rlv,rd,rv,cp,bt,at,cexpnr,ifoutput,timee,dt_lim
     use modfields, only : qtm,thlm,presf, exnf
-    use modsurfdata,  only : thvs,thls,qts
+    use modsurface,only : thvs,thls,qts
     implicit none
 
     ! LOCAL
@@ -828,16 +828,36 @@ contains
         thvpart = (thlpart+(rlv/cp)*qlpart/exnpart) * (1.+(rv/rd-1)*qtpart-rv/rd*qlpart)
 
          partids(n) = particle%unique
-        partdata(1,n) = (particle%x-2)*dx
-        partdata(2,n) = (jmax*myid+particle%y-2)*dy
-        partdata(3,n) = zh(floor(particle%z)) + dzf(floor(particle%z))*(particle%z-floor(particle%z))
-        partdata(4,n) = (particle%ures+particle%usgs)*dx
-        partdata(5,n) = (particle%vres+particle%vsgs)*dy
-        partdata(6,n) = (particle%wres+particle%wsgs)*dzf(floor(particle%z))
-        partdata(7,n) = thlpart
-        partdata(8,n) = thvpart
-        partdata(9,n) = qtpart
-        partdata(10,n)= qlpart
+        if (ndata > 0) then
+           partdata(1,n) = (particle%x-2)*dx
+        endif
+        if (ndata > 1) then
+           partdata(2,n) = (jmax*myid+particle%y-2)*dy
+        endif
+        if (ndata > 2) then
+           partdata(3,n) = zh(floor(particle%z)) + dzf(floor(particle%z))*(particle%z-floor(particle%z))
+        endif
+        if (ndata > 3) then
+           partdata(4,n) = (particle%ures+particle%usgs)*dx
+        endif
+        if (ndata > 4) then
+           partdata(5,n) = (particle%vres+particle%vsgs)*dy
+        endif
+        if (ndata > 5) then
+           partdata(6,n) = (particle%wres+particle%wsgs)*dzf(floor(particle%z))
+        endif
+        if (ndata > 6) then
+           partdata(7,n) = thlpart
+        endif
+        if (ndata > 7) then
+           partdata(8,n) = thvpart
+        endif
+        if (ndata > 8) then
+           partdata(9,n) = qtpart
+        endif
+        if (ndata > 9) then
+           partdata(10,n)= qlpart
+        endif
         particle => particle%next
       end do
 
@@ -937,7 +957,7 @@ contains
     use modglobal,  only : dx,dy,dzf,zf,zh,dzh,grav,delta,timee,dt
     use modfields,  only : dthvdz
     use modsubgrid, only : ce1, ce2, cn
-    use modsurfdata,only : thvs
+    use modsurface, only : thvs
     implicit none
 
 

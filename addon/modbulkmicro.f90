@@ -351,10 +351,7 @@ module modbulkmicro
     use modfields, only : rhof
     use modmpi,    only : myid
     implicit none
-    real :: phi_br(2-ih:i1+ih,2-jh:j1+jh,k1)       &! work variable
-              ,n_arr(2-ih:i1+ih,2-jh:j1+jh,k1), &
-              dt_spl
-    integer :: k,n_spl
+    real :: phi_br(2-ih:i1+ih,2-jh:j1+jh,k1)
 
     ac(2:i1,2:j1,1:k1)=0
 
@@ -407,16 +404,6 @@ module modbulkmicro
    if (any(qc(2:i1,2:j1,1:kmax)/delt - ac(2:i1,2:j1,1:kmax) .lt. 0.)) then
      write(6,*)'ac too large', count(qc(2:i1,2:j1,1:kmax)/delt - ac(2:i1,2:j1,1:kmax) .lt. 0.),myid
    end if
-
-    n_arr = 0
-    do k=1,kmax
-      where (qc(2:i1,2:j1,k)>1e-8)
-        n_arr(2:i1,2:j1,k) = ac(2:i1,2:j1,k)/(qc(2:i1,2:j1,k)*rhof(k)*dzf(k))
-      end where
-    end do
-    n_spl = ceiling(maxval(n_arr)*dt)
-    dt_spl = dt/real(n_spl)
-
 
 
   end subroutine accretion
@@ -479,9 +466,11 @@ module modbulkmicro
 
     qr_spl(2:i1,2:j1,1:k1) = qr(2:i1,2:j1,1:k1)
     Nr_spl(2:i1,2:j1,1:k1)  = Nr(2:i1,2:j1,1:k1)
-       
+
     wfallmax = 9.9
-    n_spl = ceiling(wfallmax*dt/(3*minval(dzf)))
+    n_spl = ceiling(wfallmax*delt/(minval(dzf)))
+    dt_spl = delt/real(n_spl)
+
     do jn = 1 , n_spl ! time splitting loop
 
       sed_qr(2:i1,2:j1,1:k1) = 0.

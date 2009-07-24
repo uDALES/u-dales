@@ -90,7 +90,7 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine fielddump
     use modfields, only : um,vm,wm,thlm,qtm,ql0
-    use modsurfdata,only : thls,qts,thvs
+    use modsurface,only : thls,qts,thvs
     use modglobal, only : imax,i1,ih,jmax,j1,jh,kmax,k1,rk3step,&
                           timee,dt_lim,cexpnr,ifoutput
     use modmpi,    only : myid,cmyid

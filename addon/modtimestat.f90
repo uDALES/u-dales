@@ -59,6 +59,7 @@ contains
     use modmpi,    only : my_real,myid,comm3d,mpi_logical,mpierr,mpi_integer
     use modglobal, only : ifnamopt, fname_options,cexpnr,dtmax,ifoutput,dtav_glob,ladaptive,k1,kmax,rd,rv,dt_lim,btime
     use modfields, only : thlprof,qtprof,svprof
+    use modsurface, only : isurf
     implicit none
     integer :: ierr,k,location = 1
     real :: gradient = 0.0
@@ -127,20 +128,29 @@ contains
     end select
     deallocate(profile)
     if(myid==0) then
-       !tmser1
+      !tmser1
       open (ifoutput,file='tmser1.'//cexpnr,status='replace',position='append')
       write(ifoutput,'(2a)') &
-             '#  time      cc    z_cbase   z_ctop   zi        we', &
+             '#  time      cc     z_cbase    z_ctop_avg  z_ctop_max      zi         we', &
              '   <<ql>>  <<ql>>_max   w_max   tke     ql_max'
       close(ifoutput)
       !tmsurf
       open (ifoutput,file='tmsurf.'//cexpnr,status='replace',position='append')
       write(ifoutput,'(2a)') &
-             '#  time        ust        tst        qst       obukh', &
-             '    thls          z0     wthls      wthvs      wqls '
+             '#  time        ust        tst        qst         obukh', &
+             '      thls        z0        wthls      wthvs      wqls '
       close(ifoutput)
-   end if
-
+      if(isurf == 1) then
+        open (ifoutput,file='tmlsm.'//cexpnr,status='replace',position='append')
+        write(ifoutput,'(2a)') &
+               '#     time      Qnet        H          LE         G0  ', &
+               '   tendskin       rs         ra        tskin' 
+        write(ifoutput,'(2a)') &
+               '#      [s]     [W/m2]     [W/m2]     [W/m2]     [W/m2]  ', &
+               '   [W/m2]      [s/m]      [s/m]        [K]' 
+        close(ifoutput)
+      end if
+    end if
 
   end subroutine inittimestat
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -150,23 +160,26 @@ contains
                           rslabs,timee,dt_lim,rk3step,cexpnr,ifoutput
 !
     use modfields,  only : um,vm,wm,e12m,ql0,u0av,v0av,rhof
-    use modsurfdata,only : wtsurf, wqsurf, isurf,ustar,tstar,qstar,z0,obl,qts,thls
+    use modsurface, only : wtsurf, wqsurf, isurf,ustar,tstar,qstar,z0,oblav,qts,thls,&
+                           Qnet, H, LE, G0, rs, ra, tskin, tendskin
     use modmpi,     only : my_real,mpi_sum,mpi_max,comm3d,mpierr,myid
     implicit none
 
-
-
-    real   :: zbaseavl,ztopavl, ztop
+    real   :: zbaseavl, ztopavl, ztopmaxl, ztop
     real   :: qlintavl, qlintmaxl, tke_totl
     real   :: ccl, wmaxl, qlmaxl
-    real   :: zbaseav,ztopav
+    real   :: zbaseav, ztopav, ztopmax
     real   :: qlintav, qlintmax, tke_tot
     real   :: cc, wmax, qlmax
     real   :: qlint
     real   :: ust,tst,qst,ustl,tstl,qstl
+    real   :: usttst, ustqst, usttstl, ustqstl
     real   :: wts, wqls,wtvs
     real   :: c1,c2 !Used to calculate wthvs
 
+    ! lsm variables
+    real   :: Qnetavl, Havl, LEavl, G0avl, tendskinavl, rsavl, raavl, tskinavl
+    real   :: Qnetav, Hav, LEav, G0av, tendskinav, rsav, raav, tskinav
     integer:: i, j, k
 
     if (.not.(ltimestat)) return
@@ -239,6 +252,7 @@ contains
     wmaxl  = 0.0
     qlmaxl = 0.0
     ztopavl = 0.0
+    ztopmaxl = 0.0
 
     do  i=2,i1
     do  j=2,j1
@@ -250,6 +264,7 @@ contains
       end do
 
       ztopavl = ztopavl + ztop
+      if (ztop > ztopmaxl) ztopmaxl = ztop
     end do
     end do
 
@@ -259,6 +274,8 @@ contains
                           MPI_MAX, comm3d,mpierr)
     call MPI_ALLREDUCE(ztopavl, ztopav, 1,    MY_REAL, &
                           MPI_SUM, comm3d,mpierr)
+    call MPI_ALLREDUCE(ztopmaxl, ztopmax, 1,    MY_REAL, &
+                          MPI_MAX, comm3d,mpierr)
   !     -------------------------
   !     9.4  normalise the fields
   !     -------------------------
@@ -294,53 +311,93 @@ contains
     call MPI_ALLREDUCE(tke_totl, tke_tot, 1,    MY_REAL, &
                           MPI_SUM, comm3d,mpierr)
 
-      tke_tot = tke_tot/rslabs
-  !     -------------------------
-  !     9.6  Horizontally  Averaged ustar, tstar and obl
-  !     -------------------------
-      ustl=sum(ustar(2:i1,2:j1))
-      tstl=sum(tstar(2:i1,2:j1))
-      qstl=sum(qstar(2:i1,2:j1))
+    tke_tot = tke_tot/rslabs
+!     -------------------------
+!     9.6  Horizontally  Averaged ustar, tstar and obl
+!     -------------------------
+    ustl=sum(ustar(2:i1,2:j1))
+    tstl=sum(tstar(2:i1,2:j1))
+    qstl=sum(qstar(2:i1,2:j1))
+
+    usttstl=sum(ustar(2:i1,2:j1)*tstar(2:i1,2:j1))
+    ustqstl=sum(ustar(2:i1,2:j1)*qstar(2:i1,2:j1))
 
 !       ustl=min(1e-20, ustl)
 !       tstl=min(1e-20, tstl)
 !       qstl=min(1e-20, qstl)
 
-      call MPI_ALLREDUCE(ustl, ust, 1,  MY_REAL,MPI_SUM, comm3d,mpierr)
-      call MPI_ALLREDUCE(tstl, tst, 1,  MY_REAL,MPI_SUM, comm3d,mpierr)
-      call MPI_ALLREDUCE(qstl, qst, 1,  MY_REAL,MPI_SUM, comm3d,mpierr)
-      ust = ust/rslabs
-      tst = tst/rslabs
-      qst = qst/rslabs
+    call MPI_ALLREDUCE(ustl, ust, 1,  MY_REAL,MPI_SUM, comm3d,mpierr)
+    call MPI_ALLREDUCE(tstl, tst, 1,  MY_REAL,MPI_SUM, comm3d,mpierr)
+    call MPI_ALLREDUCE(qstl, qst, 1,  MY_REAL,MPI_SUM, comm3d,mpierr)
 
-      !Constants c1 and c2
-        c1       = 1.+(rv/rd-1)*qts
-        c2       = (rv/rd-1)
-       !Constants c1 and c2
-      c1   = 1.+(rv/rd-1)*qts
-      c2   = (rv/rd-1)
+    ust = ust / rslabs
+    tst = tst / rslabs
+    qst = qst / rslabs
 
-      if(isurf >= 3) then
-        wts  = wtsurf
-        wqls = wqsurf
-        wtvs = c1*wts + c2*thls*wqls
-      else
-        wts  = -ust*tst
-        wqls = -ust*qst
-        wtvs = c1*wts + c2*thls*wqls
-      end if
+    if(isurf < 3) then
+      call MPI_ALLREDUCE(usttstl, usttst, 1,  MY_REAL,MPI_SUM, comm3d,mpierr)
+      call MPI_ALLREDUCE(ustqstl, ustqst, 1,  MY_REAL,MPI_SUM, comm3d,mpierr)
+    
+      usttst = usttst / rslabs
+      ustqst = ustqst / rslabs
+    end if
 
-  !     9.7  write the results to output file
+    !Constants c1 and c2
+    c1   = 1.+(rv/rd-1)*qts
+    c2   = (rv/rd-1)
+
+    if(isurf >= 3) then
+      wts  = wtsurf
+      wqls = wqsurf
+      wtvs = c1*wts + c2*thls*wqls
+    else
+      wts  = -usttst
+      wqls = -ustqst
+      wtvs = c1*wts + c2*thls*wqls
+    end if
+
+  !  9.7  Create statistics for the land surface scheme
+    if(isurf == 1) then
+      Qnetavl      = sum(Qnet(2:i1,2:j1))
+      Havl         = sum(H(2:i1,2:j1))
+      LEavl        = sum(LE(2:i1,2:j1))
+      G0avl        = sum(G0(2:i1,2:j1))
+      tendskinavl  = sum(tendskin(2:i1,2:j1))
+      rsavl        = sum(rs(2:i1,2:j1))
+      raavl        = sum(ra(2:i1,2:j1))
+      tskinavl     = sum(tskin(2:i1,2:j1))
+
+      call MPI_ALLREDUCE(Qnetavl,     Qnetav,     1,  MY_REAL,MPI_SUM, comm3d,mpierr)
+      call MPI_ALLREDUCE(Havl,        Hav,        1,  MY_REAL,MPI_SUM, comm3d,mpierr)
+      call MPI_ALLREDUCE(LEavl,       LEav,       1,  MY_REAL,MPI_SUM, comm3d,mpierr)
+      call MPI_ALLREDUCE(G0avl,       G0av,       1,  MY_REAL,MPI_SUM, comm3d,mpierr)
+      call MPI_ALLREDUCE(tendskinavl, tendskinav, 1,  MY_REAL,MPI_SUM, comm3d,mpierr)
+      call MPI_ALLREDUCE(rsavl,       rsav,       1,  MY_REAL,MPI_SUM, comm3d,mpierr)
+      call MPI_ALLREDUCE(raavl,       raav,       1,  MY_REAL,MPI_SUM, comm3d,mpierr)
+      call MPI_ALLREDUCE(tskinavl,    tskinav,    1,  MY_REAL,MPI_SUM, comm3d,mpierr)
+      
+      Qnetav        = Qnetav      / rslabs 
+      Hav           = Hav         / rslabs 
+      LEav          = LEav        / rslabs 
+      G0av          = G0av        / rslabs 
+      tendskinav    = tendskinav  / rslabs
+      rsav          = rsav        / rslabs 
+      raav          = raav        / rslabs 
+      tskinav       = tskinav     / rslabs
+    end if
+
+  !  9.8  write the results to output file
   !     ---------------------------------------
 
     if(myid==0)then
        !tmser1
       open (ifoutput,file='tmser1.'//cexpnr,position='append')
-      write( ifoutput,'(f10.2,f5.2,3f9.3,f10.4,5f9.3)') &
+      write( ifoutput,'(f10.2,f6.3,4f12.3,f10.4,5f9.3)') &
           timee, &
           cc, &
           zbaseav, &
           ztopav, &
+          ztopmax, &
           zi, &
           we, &
           qlintav*1000., &
@@ -357,22 +414,38 @@ contains
           ust     ,&
           tst     ,&
           qst     ,&
-          obl     ,&
+          oblav   ,&
           thls    ,&
           z0      ,&
           wts     ,&
           wtvs    ,&
           wqls
       close(ifoutput)
+
+      if (isurf == 1) then
+        !tmlsm
+        open (ifoutput,file='tmlsm.'//cexpnr,position='append')
+        write(ifoutput,'(f10.2,8f11.3)') &
+            timee       ,& 
+            Qnetav      ,&  
+            Hav         ,&           
+            LEav        ,&           
+            G0av        ,&           
+            tendskinav  ,&
+            rsav        ,&           
+            raav        ,&           
+            tskinav                
+        close(ifoutput)
+      end if
     end if
 
   end subroutine timestat
 
   subroutine calcblheight
-    use modglobal, only : ih,i1,jh,j1,kmax,k1,cp,rlv,imax,rd,zh,dzh,zf,dzf,rv,rslabs,iadv_sv,iadv_kappa
-    use modfields, only : w0,qt0,qt0h,ql0,thl0,thl0h,thv0h,sv0,exnf,whls
-    use modsurfdata,only :svs
-    use modmpi,    only : mpierr, comm3d,mpi_sum,my_real
+    use modglobal,  only : ih,i1,jh,j1,kmax,k1,cp,rlv,imax,rd,zh,dzh,zf,dzf,rv,rslabs,iadv_sv,iadv_kappa
+    use modfields,  only : w0,qt0,qt0h,ql0,thl0,thl0h,thv0h,sv0,exnf,whls
+    use modsurface, only :svs
+    use modmpi,     only : mpierr, comm3d,mpi_sum,my_real
     implicit none
     real   :: zil, dhdt,locval,oldlocval
     integer :: location,i,j,k,nsamp,stride

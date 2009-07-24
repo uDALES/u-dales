@@ -75,10 +75,11 @@ contains
     dtmn = dtmn +dt; ndt =ndt+1.
     if(timee<tnext) return
     tnext = tnext+tcheck
+    dtmn  = dtmn / ndt
     if (myid==0) then
       call date_and_time(time=timeday)
       write (*,*) '================================================================='
-      write (*,'(3A,F9.2,A,F6.3)') 'Time of Day: ', timeday(1:10),'    Time of Simulation: ', timee, '    dt: ',dtmn/ndt
+      write (*,'(3A,F9.2,A,F12.9)') 'Time of Day: ', timeday(1:10),'    Time of Simulation: ', timee, '    dt: ',dtmn
     end if
     call calccourant
     call calcpeclet

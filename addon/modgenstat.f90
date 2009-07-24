@@ -128,9 +128,9 @@ save
  real, allocatable :: wqlres(:)    ! slab averaged tot w-ql      flux at half levels
  real, allocatable :: wqltot(:)    ! slab averaged tot w-ql      flux at half levels
 
-  real, allocatable :: wtvtot(:)                     !  slab averaged total wthv-flux
-  real, allocatable :: wtvres(:)                     !  slab averaged res   wthv-flux
-  real, allocatable :: wtvsub(:)                     !  slab averaged sub   wthv-flux
+ real, allocatable :: wtvtot(:)    !  slab averaged total wthv-flux
+ real, allocatable :: wtvres(:)    !  slab averaged res   wthv-flux
+ real, allocatable :: wtvsub(:)    !  slab averaged sub   wthv-flux
 
  real, allocatable :: wsvsub(:,:)! slab averaged sub w-sv(n)  flux
  real, allocatable :: wsvres(:,:)! slab averaged res w-sv(n)  flux
@@ -140,7 +140,7 @@ contains
 
   subroutine initgenstat
     use modmpi,    only : myid,mpierr, comm3d,my_real, mpi_logical
-    use modglobal, only : dtmax, k1, nsv,ifnamopt,fname_options, ifoutput, cexpnr,dtav_glob,timeav_glob,ladaptive,dt_lim
+    use modglobal, only : dtmax, k1, nsv,ifnamopt,fname_options, ifoutput, cexpnr,dtav_glob,timeav_glob,ladaptive,dt_lim,btime
 
 
     implicit none
@@ -163,8 +163,8 @@ contains
     call MPI_BCAST(dtav       ,1,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(lstat   ,1,MPI_LOGICAL,0,comm3d,mpierr)
 
-    tnext      = dtav - 1e-3
-    tnextwrite = timeav-1e-3
+    tnext      = dtav - 1e-3+btime
+    tnextwrite = timeav-1e-3+btime
     nsamples   = nint(timeav/dtav)
     if(.not.(lstat)) return
     dt_lim = min(dt_lim,tnext)
@@ -350,7 +350,7 @@ contains
 
     use modfields, only : u0,v0,w0,um,vm,wm,qtm,thlm,thl0,qt0,qt0h, &
                           ql0,ql0h,thl0h,thv0h,sv0, svm, e12m,exnf,exnh
-    use modsurfdata,only : thls,qts,svs,ustar,tstar,qstar,svstar
+    use modsurface,only : thls,qts,svs,ustar,tstar,qstar,svstar
     use modsubgrid,only : ekm, ekh
     use modglobal, only : i1,ih,j1,jh,k1,kmax,nsv,dzf,dzh,rlv,rv,rd,cp, &
                           rslabs,cu,cv,iadv_thl,iadv_kappa,eps1,dxi,dyi
@@ -1447,8 +1447,13 @@ contains
       wqlrmn =  0.
       wqltmn =  0.
 
-      uwtmn  = 0.
-      vwtmn  = 0.
+      uwtmn  =  0.
+      vwtmn  =  0.
+      uwrmn  =  0.
+      vwrmn  =  0.
+      uwsmn  =  0.
+      vwsmn  =  0.
+
 
       u2mn     = 0.
       v2mn     = 0.

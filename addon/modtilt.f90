@@ -235,7 +235,7 @@ contains
   subroutine tiltedgravity
 
     use modglobal,  only : grav,kmax,i1,j1
-    use modsurfdata,only : thvs
+    use modsurface, only : thvs
     use modfields,  only : thv0h,up,wp
 
     implicit none
@@ -524,7 +524,7 @@ contains
   subroutine adjustbudget(buoyav)
     use modglobal,  only : j1,i1,rslabs,k1,cu,grav
     use modfields,  only : u0av,u0
-    use modsurfdata,only : thvs
+    use modsurface, only : thvs
 
     implicit none
     real buox

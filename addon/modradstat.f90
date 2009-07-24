@@ -165,7 +165,7 @@ contains
   subroutine do_radstat
 
     use modmpi,    only : nprocs,comm3d,nprocs,my_real, mpi_sum,mpierr, slabsum
-    use modglobal, only : kmax,rslabs,cp,dzf,i1,j1
+    use modglobal, only : kmax,rslabs,cp,dzf,i1,j1,k1
     use modfields, only : thlpcar
     use modradiation, only : lwd,lwu,swn, rho_air_mn
 
@@ -183,7 +183,7 @@ contains
     tllwtendavl = 0.
     tlswtendavl = 0.
 
-    do k=1,kmax
+    do k=1,k1
       lwdavl(k) = sum(lwd(2:i1,2:j1,k))
       lwuavl(k) = sum(lwu(2:i1,2:j1,k))
       swnavl(k) = sum(swn(2:i1,2:j1,k))
@@ -191,9 +191,9 @@ contains
 
     do k=1,kmax
       tllwtendavl(k) = -(lwdavl(k+1)-lwdavl(k)+lwuavl(k+1)-lwuavl(k))/(rho_air_mn*cp*dzf(k))
-      tlswtendavl(k) = -(swnavl(k+1)-swnavl(k))/(rho_air_mn*cp*dzf(k))
+      tlswtendavl(k) =  (swnavl(k+1)-swnavl(k))/(rho_air_mn*cp*dzf(k))
     end do
-    swnavl = swnav
+    !swnavl = swnav
 
     call MPI_ALLREDUCE(lwdavl, lwdav, kmax,    MY_REAL, &
                          MPI_SUM, comm3d,mpierr)

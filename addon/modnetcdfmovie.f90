@@ -48,7 +48,7 @@ save
 
   !id of variables
   integer :: uid, vid, wid, thlid, qtid
-  integer :: Hid, LEid, G0id, tendskinid, tskinid
+  integer :: Hid, LEid, G0id, tendskinid, tskinid, oblid
 
   !COMMON VARIABLES
   !constants
@@ -161,6 +161,9 @@ contains
       if (status /= nf90_noerr) call nchandle_error(status)
       status = nf90_def_var(ncid, "tskin", nf90_float, (/xid, yid, tid/), tskinid)
       if (status /= nf90_noerr) call nchandle_error(status)
+      status = nf90_def_var(ncid, "L", nf90_float, (/xid, yid, tid/), oblid)
+      if (status /= nf90_noerr) call nchandle_error(status)
+
     end if
 
     !turn off define mode
@@ -198,14 +201,14 @@ contains
     use netcdf
     use modfields
     use modmpi
-    use modsurface, only : isurf, H, LE, G0, tendskin, tskin
+    use modsurface, only : isurf, H, LE, G0, tendskin, tskin, obl
     
 
     implicit none
 
     real, dimension(jmax, ncklimit)   :: uslicex, vslicex, wslicex, thlslicex, qtslicex
     real, dimension(imax, jmax)       :: uslicez, vslicez, wslicez, thlslicez, qtslicez
-    real, dimension(imax, jmax)       :: Hslicez, LEslicez, G0slicez, tendskinslicez, tskinslicez
+    real, dimension(imax, jmax)       :: Hslicez, LEslicez, G0slicez, tendskinslicez, tskinslicez, oblslicez
     integer                           :: status
 
     if(lmoviez .eqv. .true.) then
@@ -250,6 +253,7 @@ contains
         G0slicez       = G0(2:i1, 2:j1)
         tendskinslicez = tendskin(2:i1, 2:j1)
         tskinslicez    = tskin(2:i1, 2:j1)
+        oblslicez      = obl(2:i1, 2:j1)
 
         status = nf90_put_var(ncid, Hid, Hslicez, (/1,1,nccall/), (/imax, jmax, 1/))
         if(status /= nf90_noerr) call nchandle_error(status)
@@ -260,6 +264,8 @@ contains
         status = nf90_put_var(ncid, tendskinid, tendskinslicez, (/1,1,nccall/), (/imax, jmax, 1/))
         if(status /= nf90_noerr) call nchandle_error(status)
         status = nf90_put_var(ncid, tskinid, tskinslicez, (/1,1,nccall/), (/imax, jmax, 1/))
+        if(status /= nf90_noerr) call nchandle_error(status)
+        status = nf90_put_var(ncid, oblid, oblslicez, (/1,1,nccall/), (/imax, jmax, 1/))
         if(status /= nf90_noerr) call nchandle_error(status)
       end if
     end if
