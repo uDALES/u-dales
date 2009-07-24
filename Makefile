@@ -6,7 +6,7 @@ TARGET=dales3
 PLATFORM=$(SYST)
 DEBUG=FALSE
 # Set NetCDF module
-DONETCDF=TRUE
+DONETCDF=FALSE
 
 # Objects required for build
 FSRC=$(wildcard *.f90)
@@ -18,7 +18,6 @@ ifeq ($(PLATFORM), HUYGENS)
   FC          =  mpfort
   FCOPTS     += -qsmallstack=dynlenonheap -qfree=F90 -qrealsize=8 -qwarn64 -qflttrap=en:ov:zero:inv:imp -qflag=w:e
   FLOPTS     += -qsmallstack=dynlenonheap -qrealsize=8 -qwarn64 -qflttrap=en:ov:zero:inv:imp -qflag=w:e
-  NETCDF_LIBS = netcdf netcdff
   NETCDF_INCDIR=$(SARA_NETCDF_INCLUDE)
   NETCDF_LIBDIR=$(SARA_NETCDF_LIB)
   ifeq ($(DEBUG),TRUE)
@@ -49,9 +48,9 @@ ifeq ($(PLATFORM), localpc_gfortran)
   FCOPTS      = -W -Wall -fdefault-real-8 -ffree-line-length-none 
   INCDIRS = 
   LIBDIRS = 
-  NETCDF_LIBS = netcdf
-  NETCDF_INCDIR = /usr/include
-  NETCDF_LIBDIR = /usr/lib
+  NETCDF_LIBS = netcdf 
+  NETCDF_INCDIR =/usr/include
+  NETCDF_LIBDIR =/usr/lib
   ifeq ($(DEBUG),TRUE)
     FCOPTS     += -O0 -g -ffpe-trap=invalid,zero,overflow
     FLOPTS     += -O0 -g -ffpe-trap=invalid,zero,overflow

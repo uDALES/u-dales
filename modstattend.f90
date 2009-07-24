@@ -53,8 +53,8 @@ module modstattend
 
   real    :: dtav, timeav,tnext,tnextwrite
   integer,parameter :: tend_tot=1,tend_start=1,tend_adv=2,tend_subg=3,tend_force=4,&
-                       tend_rad=5,tend_ls=6,tend_micro=7, tend_topbound=8,tend_pois=9,tend_addon=10
-  integer,parameter :: nrfields = 10
+                       tend_rad=5,tend_ls=6,tend_micro=7, tend_topbound=8,tend_pois=9,tend_addon=10, tend_coriolis=11
+  integer,parameter :: nrfields = 11
   integer :: nsamples
   logical :: ltend = .false.
 
@@ -206,19 +206,20 @@ contains
            ,'#                                                           ' &
            ,'#                  |                               VELOCITY ' &
            ,' TENDENCIES                                    |           ' &
-           ,'# LEV HEIGHT   PRES  |  ADVECT       DIFF         FORCES       LARGE SCALE    DAMP' &
+           ,'# LEV HEIGHT   PRES  |  ADVECT       DIFF         FORCES       CORIOLIS     LARGE SCALE    DAMP' &
            ,'         PRESSURE         ADD ON        TOTAL' &
            ,'#      (M)   (MB)  |  ---------   (M/S^2)     ----------' &
            ,'      ' &
            ,'#----------------------------------------------------------' &
            ,'----------------------------------------------------------'
-      write(ifoutput,'(I4,F8.2,F7.1,8E13.5)') &
+      write(ifoutput,'(I4,F8.2,F7.1,9E13.5)') &
            (k, &
             zf       (k), &
             presf    (k)/100., &
             upmn   (k,tend_adv), &
             upmn   (k,tend_subg), &
             upmn   (k,tend_force), &
+            upmn   (k,tend_coriolis), &
             upmn   (k,tend_ls), &
             upmn   (k,tend_topbound), &
             upmn   (k,tend_pois), &
@@ -241,19 +242,20 @@ contains
            ,'#                                                           ' &
            ,'#                  |                               VELOCITY ' &
            ,' TENDENCIES                                    |           ' &
-           ,'# LEV HEIGHT   PRES  |  ADVECT       DIFF         FORCES       LARGE SCALE    DAMP' &
+           ,'# LEV HEIGHT   PRES  |  ADVECT       DIFF         FORCES       CORIOLIS       LARGE SCALE    DAMP' &
            ,'         PRESSURE         ADD ON      TOTAL' &
            ,'#      (M)   (MB)  |  ---------   (M/S^2)     ----------' &
            ,'      ' &
            ,'#----------------------------------------------------------' &
            ,'----------------------------------------------------------'
-      write(ifoutput,'(I4,F8.2,F7.1,8E13.5)') &
+      write(ifoutput,'(I4,F8.2,F7.1,9E13.5)') &
            (k, &
             zf       (k), &
             presf    (k)/100., &
             vpmn   (k,tend_adv), &
             vpmn   (k,tend_subg), &
             vpmn   (k,tend_force), &
+            vpmn   (k,tend_coriolis), &
             vpmn   (k,tend_ls), &
             vpmn   (k,tend_topbound), &
             vpmn   (k,tend_pois), &
@@ -276,19 +278,20 @@ contains
            ,'#                                                           ' &
            ,'#                  |                               VELOCITY ' &
            ,' TENDENCIES                                    |           ' &
-           ,'# LEV HEIGHT   PRES  |  ADVECT       DIFF         FORCES       LARGE SCALE    DAMP' &
+           ,'# LEV HEIGHT   PRES  |  ADVECT       DIFF         FORCES       CORIOLIS       LARGE SCALE    DAMP' &
            ,'         PRESSURE         ADD ON      TOTAL' &
            ,'#      (M)   (MB)  |  ---------   (M/S^2)     ----------' &
            ,'      ' &
            ,'#----------------------------------------------------------' &
            ,'----------------------------------------------------------'
-      write(ifoutput,'(I4,F8.2,F7.1,8E13.5)') &
+      write(ifoutput,'(I4,F8.2,F7.1,9E13.5)') &
            (k, &
             zf       (k), &
             presf    (k)/100., &
             wpmn   (k,tend_adv), &
             wpmn   (k,tend_subg), &
             wpmn   (k,tend_force), &
+            wpmn   (k,tend_coriolis), &
             wpmn   (k,tend_ls), &
             wpmn   (k,tend_topbound), &
             wpmn   (k,tend_pois), &

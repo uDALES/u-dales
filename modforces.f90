@@ -23,7 +23,7 @@ module modforces
 implicit none
 save
 private
-public :: forces, lstend
+public :: forces, coriolis, lstend
 contains
   subroutine forces
 
@@ -45,9 +45,9 @@ contains
 !                                                                 |
 !-----------------------------------------------------------------|
 
-  use modglobal,  only : i1,j1,kmax,dzh,dzf,cu,cv,om22,om23,grav
-  use modfields,  only : u0,v0,w0,up,vp,wp,thv0h,dpdxl,dpdyl
-  use modsurface, only : thvs
+  use modglobal, only : i1,j1,kmax,dzh,dzf,grav
+  use modfields, only : u0,v0,w0,up,vp,wp,thv0h,dpdxl,dpdyl
+  use modsurface,only : thvs
   implicit none
 
   integer i, j, k, jm, jp, km, kp
@@ -62,18 +62,81 @@ contains
     jm=j-1
   do i=2,i1
 
-    up(i,j,k) = up(i,j,k) - dpdxl(k) + cv*om23 &
+    up(i,j,k) = up(i,j,k) - dpdxl(k)
+    vp(i,j,k) = vp(i,j,k) - dpdyl(k)
+
+    wp(i,j,k) = wp(i,j,k)+ grav/thvs * thv0h(i,j,k)
+
+  end do
+  end do
+!     -------------------------------------------end i&j-loop
+  end do
+!     -------------------------------------------end k-loop
+
+!     --------------------------------------------
+!     special treatment for lowest full level: k=1
+!     --------------------------------------------
+
+  do j=2,j1
+    jp = j+1
+    jm = j-1
+  do i=2,i1
+
+    up(i,j,1) = up(i,j,1) - dpdxl(1)
+
+    vp(i,j,1) = vp(i,j,1) - dpdyl(1)
+
+    wp(i,j,1) = 0.0
+
+  end do
+  end do
+!     ----------------------------------------------end i,j-loop
+
+
+  return
+  end subroutine forces
+  subroutine coriolis
+
+!-----------------------------------------------------------------|
+!                                                                 |
+!      Thijs Heus TU Delft                                        |
+!                                                                 |
+!     purpose.                                                    |
+!     --------                                                    |
+!                                                                 |
+!      Calculates the Coriolis force.                             |
+!                                                                 |
+!**   interface.                                                  |
+!     ----------                                                  |
+!                                                                 |
+!     *coriolis* is called from *program*.                          |
+!                                                                 |
+!-----------------------------------------------------------------|
+
+  use modglobal, only : i1,j1,kmax,dzh,dzf,cu,cv,om22,om23
+  use modfields, only : u0,v0,w0,up,vp,wp
+  implicit none
+
+  integer i, j, k, jm, jp, km, kp
+
+
+  do k=2,kmax
+    kp=k+1
+    km=k-1
+  do j=2,j1
+    jp=j+1
+    jm=j-1
+  do i=2,i1
+
+    up(i,j,k) = up(i,j,k)+ cv*om23 &
           +(v0(i,j,k)+v0(i,jp,k)+v0(i-1,j,k)+v0(i-1,jp,k))*om23*0.25 &
           -(w0(i,j,k)+w0(i,j,kp)+w0(i-1,j,kp)+w0(i-1,j,k))*om22*0.25
 
-    vp(i,j,k) = vp(i,j,k) - dpdyl(k) - cu*om23 &
+    vp(i,j,k) = vp(i,j,k)  - cu*om23 &
           -(u0(i,j,k)+u0(i,jm,k)+u0(i+1,jm,k)+u0(i+1,j,k))*om23*0.25
 
 
-    wp(i,j,k) = wp(i,j,k) + cu*om22 &
-          + grav/thvs * thv0h(i,j,k)
-          !+ grav/thvs * thv0h(i,j,k) - grav
-      wp(i,j,k) = wp(i,j,k) +( (dzf(km) * (u0(i,j,k)  + u0(i+1,j,k) )    &
+    wp(i,j,k) = wp(i,j,k) + cu*om22 +( (dzf(km) * (u0(i,j,k)  + u0(i+1,j,k) )    &
                 +    dzf(k)  * (u0(i,j,km) + u0(i+1,j,km))  ) / dzh(k) ) &
                 * om22*0.25
   end do
@@ -91,11 +154,11 @@ contains
     jm = j-1
   do i=2,i1
 
-    up(i,j,1) = up(i,j,1) - dpdxl(1) + cv*om23 &
+    up(i,j,1) = up(i,j,1)  + cv*om23 &
           +(v0(i,j,1)+v0(i,jp,1)+v0(i-1,j,1)+v0(i-1,jp,1))*om23*0.25 &
           -(w0(i,j,1)+w0(i,j ,2)+w0(i-1,j,2)+w0(i-1,j ,1))*om22*0.25
 
-    vp(i,j,1) = vp(i,j,1) - dpdyl(1) - cu*om23 &
+    vp(i,j,1) = vp(i,j,1) - cu*om23 &
           -(u0(i,j,1)+u0(i,jm,1)+u0(i+1,jm,1)+u0(i+1,j,1))*om23*0.25
 
     wp(i,j,1) = 0.0
@@ -106,7 +169,7 @@ contains
 
 
   return
-  end subroutine forces
+  end subroutine coriolis
 
   subroutine lstend
 

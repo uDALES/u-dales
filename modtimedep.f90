@@ -262,7 +262,7 @@ contains
 
   subroutine timedepz
     use modfields,   only : ug, vg, dqtdtls,dqtdxls,dqtdyls, wfls,whls,thlprof,qtprof,thlpcar,dthldxls,dthldyls,dudxls,dudyls,dvdxls,dvdyls,dpdxl,dpdyl
-    use modglobal,   only : timee,om23,zf,dzf,dzh,k1,kmax,grav,llsadv
+    use modglobal,   only : timee,om23_gs,zf,dzf,dzh,k1,kmax,grav,llsadv
     implicit none
 
     integer t,k
@@ -290,8 +290,8 @@ contains
 
 
     do k=1,kmax
-      dpdxl(k) =  om23*vg(k)
-      dpdyl(k) = -om23*ug(k)
+      dpdxl(k) =  om23_gs*vg(k)
+      dpdyl(k) = -om23_gs*ug(k)
     end do
 
     whls(1)  = 0.0
@@ -309,9 +309,9 @@ contains
       dudyls  (1) =  0.0
       dvdxls  (1) = -0.5 *( whls(2)-whls(1) )/ dzf(k)
       dvdyls  (1) =  0.0
-      dthldxls(1) = om23*thlprof(1)/grav &
+      dthldxls(1) = om23_gs*thlprof(1)/grav &
                         * (vg(2)-vg(1))/dzh(2)
-      dthldyls(1) = -om23*thlprof(1)/grav &
+      dthldyls(1) = -om23_gs*thlprof(1)/grav &
                         * (ug(2)-ug(1))/dzh(2)
 
       do k=2,kmax-1
@@ -319,9 +319,9 @@ contains
         dudyls(k) =  0.0
         dvdxls(k) = -0.5 *( whls(k+1)-whls(k) )/ dzf(k)
         dvdyls(k) =  0.0
-        dthldxls(k) = om23*thlprof(k)/grav &
+        dthldxls(k) = om23_gs*thlprof(k)/grav &
                         * (vg(k+1)-vg(k-1))/(zf(k+1)-zf(k-1))
-        dthldyls(k) = -om23*thlprof(k)/grav &
+        dthldyls(k) = -om23_gs*thlprof(k)/grav &
                         * (ug(k+1)-ug(k-1))/(zf(k+1)-zf(k-1))
       end do
 

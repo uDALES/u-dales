@@ -59,7 +59,7 @@ program DALES      !Version 3.2 Beta 1
   use modmicrophysics,   only : microsources
   use modsurface,        only : surface
   use modsubgrid,        only : subgrid
-  use modforces,         only : forces, lstend
+  use modforces,         only : forces, coriolis, lstend
   use modradiation,      only : radiation
   use modpois,           only : poisson
 
@@ -77,7 +77,7 @@ program DALES      !Version 3.2 Beta 1
   use modcloudfield,   only : initcloudfield, cloudfield
   use modfielddump,    only : initfielddump, fielddump
   use modstattend,     only : initstattend, stattend,exitstattend, tend_start,tend_adv,tend_subg,tend_force,&
-                              tend_rad,tend_ls,tend_micro, tend_topbound,tend_pois,tend_addon
+                              tend_rad,tend_ls,tend_micro, tend_topbound,tend_pois,tend_addon, tend_coriolis
 
   use modbulkmicrostat,only : initbulkmicrostat, bulkmicrostat,exitbulkmicrostat
   use modbudget,       only : initbudget, budgetstat, exitbudget
@@ -86,7 +86,7 @@ program DALES      !Version 3.2 Beta 1
   use modparticles,    only : initparticles, particles, exitparticles
   use modnudge,        only : initnudge, nudge, exitnudge
 !   use modnetcdfstats,  only : initnetcdfstats, netcdfstats, exitnetcdfstats
-   use modnetcdfmovie,  only : initnetcdfmovie, netcdfmovie, exitnetcdfmovie
+!    use modnetcdfmovie,  only : initnetcdfmovie, netcdfmovie, exitnetcdfmovie
   use modchem,         only : initchem,inputchem, twostep
 
   implicit none
@@ -114,7 +114,7 @@ program DALES      !Version 3.2 Beta 1
   call initparticles
   call initnudge
 !   call initnetcdfstats
-   call initnetcdfmovie
+!   call initnetcdfmovie
   call initbulkmicrostat
   call initbudget
 
@@ -145,6 +145,8 @@ program DALES      !Version 3.2 Beta 1
 !-----------------------------------------------------
 !   3.3   REMAINING TERMS
 !-----------------------------------------------------
+    call coriolis !remaining terms of ns equation
+    call stattend(tend_coriolis)
     call forces !remaining terms of ns equation
     call stattend(tend_force)
     call radiation !radiation scheme
@@ -198,7 +200,7 @@ program DALES      !Version 3.2 Beta 1
     call particles
 
 !     call netcdfstats
-     call netcdfmovie
+!     call netcdfmovie
     call bulkmicrostat
     call budgetstat
 
@@ -219,7 +221,7 @@ program DALES      !Version 3.2 Beta 1
   call exitparticles
   call exitnudge
 !   call exitnetcdfstats
-   call exitnetcdfmovie
+!   call exitnetcdfmovie
   call exitsampling
   call exitstattend
   call exitbulkmicrostat

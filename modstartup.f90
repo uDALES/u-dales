@@ -32,7 +32,7 @@ save
   integer (KIND=selected_int_kind(6)) :: irandom= 0     !    * number to seed the randomnizer with
   integer :: krand = huge(0)
   real :: randthl= 0.1,randqt=1e-5                 !    * thl and qt amplitude of randomnization
-  
+
 contains
   subroutine startup
 
@@ -162,7 +162,7 @@ contains
     call MPI_BCAST(sfc_albedo ,1,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(reff       ,1,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(isvsmoke   ,1,MPI_INTEGER,0,comm3d,mpierr)
-        
+
     call MPI_BCAST(llsadv     ,1,MPI_LOGICAL,0,comm3d,mpierr)
     call MPI_BCAST(lqlnr      ,1,MPI_LOGICAL,0,comm3d,mpierr)
     call MPI_BCAST(cu         ,1,MY_REAL   ,0,comm3d,mpierr)
@@ -172,7 +172,7 @@ contains
     call MPI_BCAST(krand      ,1,MPI_INTEGER,0,comm3d,mpierr)
     call MPI_BCAST(randthl    ,1,MY_REAL    ,0,comm3d,mpierr)
     call MPI_BCAST(randqt     ,1,MY_REAL   ,0,comm3d,mpierr)
-    
+
     call MPI_BCAST(ladaptive  ,1,MPI_LOGICAL,0,comm3d,mpierr)
     call MPI_BCAST(courant,1,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(peclet,1,MY_REAL   ,0,comm3d,mpierr)
@@ -293,8 +293,8 @@ contains
                                   v0av,u0av,qt0av,ql0av,thl0av,sv0av,exnf,exnh,presf,presh,rhof,&
                                   thlpcar
     use modglobal,         only : i1,i2,ih,j1,j2,jh,kmax,k1,dtmax,dt,timee,ntimee,ntrun,btime,nsv,&
-                                  zf,dzf,dzh,rv,rd,grav,cp,rlv,pref0,om23,llsadv,&
-                                  rslabs,cu,cv,e12min,dzh,dtheta,dqt,dsv,cexpnr,ifinput,lwarmstart,trestart,ladaptive,tnextrestart
+                                  zf,dzf,dzh,rv,rd,grav,cp,rlv,pref0,om23_gs,&
+                                  rslabs,cu,cv,e12min,dzh,dtheta,dqt,dsv,cexpnr,ifinput,lwarmstart,trestart, ladaptive,llsadv,tnextrestart
     use modsubgrid,        only : ekm,ekh
     use modsurface,        only : wtsurf,wqsurf,wsvsurf, &
                                   thls,tskin,tskinm,thvs,ustin,ps,qts,isurf,svs,obl,oblav, &
@@ -519,7 +519,7 @@ contains
         tv      = th0av(k)*exnf(k)*(1.+(rv/rd-1)*qt0av(k)-rv/rd*ql0av(k))
         rhof(k) = presf(k)/(rd*tv)
       end do
-      
+
       ! CvH - only do this for fixed timestepping. In adaptive dt comes from restartfile
       if(ladaptive .eqv. .false.) dt=dtmax
 
@@ -582,8 +582,8 @@ contains
 !******include rho if rho = rho(z) /= 1.0 ***********
 
     do k=1,kmax
-      dpdxl(k) =  om23*vg(k)
-      dpdyl(k) = -om23*ug(k)
+      dpdxl(k) =  om23_gs*vg(k)
+      dpdyl(k) = -om23_gs*ug(k)
     end do
 
   !-----------------------------------------------------------------
@@ -605,9 +605,9 @@ contains
       dudyls  (1) =  0.0
       dvdxls  (1) = -0.5 *( whls(2)-whls(1) )/ dzf(k)
       dvdyls  (1) =  0.0
-      dthldxls(1) = om23*thlprof(1)/grav &
+      dthldxls(1) = om23_gs*thlprof(1)/grav &
                         * (vg(2)-vg(1))/dzh(2)
-      dthldyls(1) = -om23*thlprof(1)/grav &
+      dthldyls(1) = -om23_gs*thlprof(1)/grav &
                         * (ug(2)-ug(1))/dzh(2)
 
       do k=2,kmax-1
@@ -615,9 +615,9 @@ contains
         dudyls(k) =  0.0
         dvdxls(k) = -0.5 *( whls(k+1)-whls(k) )/ dzf(k)
         dvdyls(k) =  0.0
-        dthldxls(k) = om23*thlprof(k)/grav &
+        dthldxls(k) = om23_gs*thlprof(k)/grav &
                         * (vg(k+1)-vg(k-1))/(zf(k+1)-zf(k-1))
-        dthldyls(k) = -om23*thlprof(k)/grav &
+        dthldyls(k) = -om23_gs*thlprof(k)/grav &
                         * (ug(k+1)-ug(k-1))/(zf(k+1)-zf(k-1))
       end do
 
@@ -645,7 +645,7 @@ contains
     ntimee  = nint(timee/dtmax)
 
     tnextrestart = btime + trestart
-    
+
     deallocate (height,th0av)
 
 
