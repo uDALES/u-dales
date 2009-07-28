@@ -127,7 +127,7 @@ save
       real :: btime             !    * time of (re)start
       integer :: ntimee         !    * number of timesteps since the cold start
       integer :: ntrun          !    * number of timesteps since the start of the run
-      
+
       logical :: ladaptive   = .false.    !   * adaptive timestepping on or off
 
       real    :: courant = -1
@@ -170,7 +170,7 @@ save
       real, allocatable :: delta(:)       ! (dx*dy*dz)**(1/3)
 
       logical :: leq      = .true.  ! switch for (non)-equidistant mode.
-
+      logical :: lmomsubs = .true.  ! switch to apply subsidence on the momentum or not
 contains
   subroutine initglobal
     use modmpi, only: nprocs, myid,comm3d, my_real, mpierr
@@ -191,11 +191,11 @@ contains
       case(iadv_5th)
         courant = 1.4
       case default
-        courant = 1.4 
+        courant = 1.4
       end select
     end if
-    
-    
+
+
     ! phsgrid
 
     jmax = jtot/nprocs

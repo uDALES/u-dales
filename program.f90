@@ -19,14 +19,8 @@
 !
 !
 
-<<<<<<< HEAD:program.f90
 program DALES      !Version 3.2 Beta 1
-!April 2009
-=======
-program DALES      !Version 3.1.1
 
-!January 2008
->>>>>>> 3ce102ce23428a40f81cdba6474935a248ce1676:program.f90
 !Stephan de Roode      - TU Delft
 !Chiel van Heerwaarden - Wageningen
 !Thijs Heus            - KNMI
