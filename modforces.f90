@@ -192,7 +192,7 @@ contains
 !                                                                 |
 !-----------------------------------------------------------------|
 
-  use modglobal, only : i1,j1,k1,kmax,dzh,nsv
+  use modglobal, only : i1,j1,k1,kmax,dzh,nsv,lmomsubs
   use modfields, only : up,vp,thlp,qtp,svp,&
                         whls, u0av,v0av,thl0av,qt0av,sv0av,&
                         dudxls,dudyls,dvdxls,dvdyls,dthldxls,dthldyls,dqtdxls,dqtdyls,dqtdtls
@@ -203,7 +203,8 @@ contains
   real,allocatable,dimension(:) :: subsu, subsv
   allocate(subsu(k1))
   allocate(subsv(k1))
-
+  subsu=0.0
+  subsv=0.0
 !   if (ltimedep) then
 ! !     call ls
 !   end if
@@ -221,15 +222,15 @@ contains
   subs        = 0.5*whls(k+1)  *(qt0av(k+1)-qt0av(k)  )/dzh(k+1)
   qtp(2:i1,2:j1,1)  = qtp(2:i1,2:j1,1)-u0av(k)*dqtdxls(k)-v0av(k)*dqtdyls(k)-subs+dqtdtls(k)
 
-  subsu(k)    = 0.5*whls(k+1)  *(u0av(k+1)-u0av(k)  )/dzh(k+1)
+  if(lmomsubs) subsu(k)    = 0.5*whls(k+1)  *(u0av(k+1)-u0av(k)  )/dzh(k+1)
   up(2:i1,2:j1,1)   = up(2:i1,2:j1,1) -u0av(k)*dudxls(k)-v0av(k)*dudyls(k)-subsu(k)
 
-  subsv(k)    = 0.5*whls(k+1)  *(v0av(k+1)-v0av(k)  )/dzh(k+1)
+  if(lmomsubs) subsv(k)    = 0.5*whls(k+1)  *(v0av(k+1)-v0av(k)  )/dzh(k+1)
   vp(2:i1,2:j1,1)   = vp(2:i1,2:j1,1) -u0av(k)*dvdxls(k)-v0av(k)*dvdyls(k)-subsv(k)
 
   do n=1,nsv
     subs =  0.5*whls(k+1)  *(sv0av(k+1,n)-sv0av(k,n)  )/dzh(k+1)
-!     svp(2:i1,2:j1,1,n) = svp(2:i1,2:j1,1,n)-subs
+    svp(2:i1,2:j1,1,n) = svp(2:i1,2:j1,1,n)-subs
   enddo
 
 !     1.2 other model levels twostream
@@ -249,13 +250,13 @@ contains
 
     subsplus    = whls(k+1) *(u0av(k+1) - u0av(k)  )/dzh(k+1)
     subsmin     = whls(k)   *(u0av(k)   - u0av(k-1))/dzh(k)
-    subsu(k)    = (dzh(k)*subsplus + dzh(k+1)*subsmin) &
+    if(lmomsubs) subsu(k)    = (dzh(k)*subsplus + dzh(k+1)*subsmin) &
                      /(dzh(k)+dzh(k+1))
     up(2:i1,2:j1,k)   = up(2:i1,2:j1,k)-u0av(k)*dudxls(k)-v0av(k)*dudyls(k)-subsu(k)
 
     subsplus    = whls(k+1) *(v0av(k+1) - v0av(k)  )/dzh(k+1)
     subsmin     = whls(k)   *(v0av(k)   - v0av(k-1))/dzh(k)
-    subsv(k)    = (dzh(k)*subsplus + dzh(k+1)*subsmin) &
+    if(lmomsubs) subsv(k)    = (dzh(k)*subsplus + dzh(k+1)*subsmin) &
                      /(dzh(k)+dzh(k+1))
     vp(2:i1,2:j1,k)   = vp(2:i1,2:j1,k)-u0av(k)*dvdxls(k)-v0av(k)*dvdyls(k)-subsv(k)
     do n=1,nsv

@@ -20,7 +20,6 @@
 !
 
 program DALES      !Version 3.2 Beta 1
-!April 2009
 !Stephan de Roode      - TU Delft
 !Chiel van Heerwaarden - Wageningen
 !Thijs Heus            - KNMI
