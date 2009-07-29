@@ -170,7 +170,7 @@ save
       real, allocatable :: delta(:)       ! (dx*dy*dz)**(1/3)
 
       logical :: leq      = .true.  ! switch for (non)-equidistant mode.
-      logical :: lmomsubs = .true.  ! switch to apply subsidence on the momentum or not
+      logical :: lmomsubs = .false.  ! switch to apply subsidence on the momentum or not
 contains
   subroutine initglobal
     use modmpi, only: nprocs, myid,comm3d, my_real, mpierr
