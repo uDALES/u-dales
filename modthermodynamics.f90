@@ -24,7 +24,7 @@ module modthermodynamics
 !   private
   public :: thermodynamics,calc_halflev
   public :: lqlnr
-  logical :: lqlnr    = .false. ! switch for ql calc. with Newton-Raphson (on/off)
+  logical :: lqlnr    = .true. ! switch for ql calc. with Newton-Raphson (on/off)
   real, allocatable :: th0av(:)
 
 contains
@@ -428,33 +428,38 @@ contains
   real tl, es, qs, qsl, b1
   real, intent(in)  :: qt(2-ih:i1+ih,2-jh:j1+jh,k1),thl(2-ih:i1+ih,2-jh:j1+jh,k1),exner(k1),pressure(k1)
   real, intent(out) :: ql(2-ih:i1+ih,2-jh:j1+jh,k1)
-  real :: Tnr,qsatur
+  real :: Tnr,qsatur,Tnr_old
+  integer :: niter,nitert
     if (lqlnr) then
 
 !mc      calculation of T with Newton-Raphson method
 !mc      first guess is Tnr=tl
 !mc
+      nitert = 0
       do j=2,j1
         do i=2,i1
           do k=1,k1
 
             tl  = thl(i,j,k)*exner(k)
             Tnr=tl
-
-            do iiii = 1,4
+            Tnr_old=0
+            do while (abs(Tnr-Tnr_old)/Tnr>1e-5)
+              niter = niter+1
+              Tnr_old = Tnr
               es    = es0*exp(at*(Tnr-tmelt)/(Tnr-bt))
               qsatur= rd/rv*es/(pressure(k)-(1-rd/rv)*es)
               Tnr = Tnr - (Tnr+(rlv/cp)*qsatur-tl- &
                       (rlv/cp)*qt(i,j,k))/(1+(rlv**2*qsatur)/ &
                       (rv*cp*Tnr**2))
             end do
+            nitert =max(nitert,niter)
+            niter = 0.0
 
             ql(i,j,k) = dim(qt(i,j,k)-qsatur,0.)
 
           end do
         end do
       end do
-
     else
 
 
