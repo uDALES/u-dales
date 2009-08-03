@@ -62,7 +62,7 @@ contains
     use modboundary,       only : initboundary,ksp
     use modthermodynamics, only : initthermodynamics,lqlnr    !cstep remove chi_half
     use modmicrophysics,   only : initmicrophysics
-    use modsubgrid,        only : initsubgrid,ldelta, cf,cn,Rigc,Prandtl,lmason
+    use modsubgrid,        only : initsubgrid,ldelta, cf,cn,Rigc,Prandtl,lmason,lsmagorinsky
     use modmpi,            only : comm3d,myid, mpi_integer,mpi_logical,my_real,mpierr, mpi_character
 
     implicit none
@@ -85,7 +85,7 @@ contains
     namelist/DYNAMICS/ &
         llsadv, lqlnr, cu, cv, iadv_mom, iadv_tke, iadv_thl, iadv_qt, iadv_sv
     namelist/SUBGRID/ &
-        ldelta,lmason, cf,cn,Rigc,Prandtl
+        ldelta,lmason, cf,cn,Rigc,Prandtl,lsmagorinsky
 !   logical :: ldelta   = .false. ! switch for subgrid
   !read namelists
 
@@ -187,6 +187,7 @@ contains
 
     call MPI_BCAST(ldelta     ,1,MPI_LOGICAL,0,comm3d,mpierr)
     call MPI_BCAST(lmason     ,1,MPI_LOGICAL,0,comm3d,mpierr)
+    call MPI_BCAST(lsmagorinsky,1,MPI_LOGICAL,0,comm3d,mpierr)
     call MPI_BCAST(cf         ,1,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(cn         ,1,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(Rigc       ,1,MY_REAL   ,0,comm3d,mpierr)

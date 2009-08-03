@@ -23,13 +23,14 @@ implicit none
 save
 ! private
 public :: subgrid, initsubgrid,exitsubgrid
-public :: ldelta, lmason,cf, Rigc,prandtl, cm, cn, ch1, ch2, ce1, ce2, ekm,ekh, sbdiss,sbshr,sbbuo
+public :: ldelta, lmason,lsmagorinsky,cf, Rigc,prandtl, cm, cn, ch1, ch2, ce1, ce2, ekm,ekh, sbdiss,sbshr,sbbuo
 
   !cstep: set default values
   !cstep: user has the option to change ldelta, cf, cn, and Rigc in namoptions
 
   logical :: ldelta   = .false. ! switch for subgrid length formulation (on/off)
   logical :: lmason   = .false. ! switch for decreased length scale near the surface
+  logical :: lsmagorinsky= .false. ! switch for smagorinsky subrid scheme
   real :: cf      = 2.5  !filter constant
   real :: Rigc    = 0.25 !critical Richardson number
   real :: Prandtl = 3
@@ -39,7 +40,7 @@ public :: ldelta, lmason,cf, Rigc,prandtl, cm, cn, ch1, ch2, ce1, ce2, ekm,ekh, 
   real :: ch2     = 2.
   real :: ce1     = 0.19
   real :: ce2     = 0.51
-
+  real :: cs
   real :: alpha_kolm   = 1.5     !factor in Kolmogorov expression for spectral energy
   real :: beta_kolm    = 1.      !factor in Kolmogorov relation for temperature spectrum
 
@@ -57,7 +58,7 @@ contains
     use modmpi, only    : myid
     implicit none
 
-    real :: ceps, ch ,cs
+    real :: ceps, ch
 
     allocate(ekm(2-ih:i1+ih,2-jh:j1+jh,k1))
     allocate(ekh(2-ih:i1+ih,2-jh:j1+jh,k1))
@@ -109,13 +110,13 @@ contains
     call diffu(up)
     call diffv(vp)
     call diffw(wp)
-    call diffe(e12p)
+    if (.not. lsmagorinsky) call diffe(e12p)
     call diffc(thl0,thlp,ustar,tstar)
     if (lmoist) call diffc( qt0, qtp,ustar,qstar)
     do n=1,nsv
       call diffc(sv0(:,:,:,n),svp(:,:,:,n),ustar,svstar(:,:,n))
     end do
-    call sources
+    if (.not. lsmagorinsky) call sources
   end subroutine
 
   subroutine exitsubgrid
@@ -157,8 +158,9 @@ contains
 !                                                                 |
 !-----------------------------------------------------------------|
 
-  use modglobal,  only : i1, j1,kmax,k1,ih,jh,i2,j2,delta,ekmin,grav, zf, fkar
-  use modfields,  only : dthvdz,e12m
+  use modglobal,  only : i1, j1,kmax,k1,ih,jh,i2,j2,delta,ekmin,grav, zf, fkar, &
+                         dxi,dyi,dzf
+  use modfields,  only : dthvdz,e12m,u0,v0,w0
   use modsurface, only : thvs
   use modmpi,     only : excjs
   implicit none
@@ -168,26 +170,40 @@ contains
 
 !********************************************************************
 !*********************************************************************
+  if (lsmagorinsky) then
+    do k=1,kmax
+    do j=2,j1
+    do i=2,i1
+      ekm(i,j,k)  = (cs*delta(k))**2*sqrt(0.5*(1-rigc/prandtl)*     ( &
+            ((u0(i+1,j,k)-u0(i,j,k))*dxi) &
+          + ((v0(i,j+1,k)-v0(i,j,k))*dyi) &
+          + ((w0(i,j,k+1)-w0(i,j,k))/dzf(k))   )**2)
+      ekh(i,j,k)  = ekm(i,j,k)/prandtl
+    end do
+    end do
+    end do
+  else
+    do k=1,kmax
+    do j=2,j1
+    do i=2,i1
+      if (ldelta .or. (dthvdz(i,j,k)<=0)) then
+        zlt(i,j,k) = delta(k)
+        if (lmason) zlt(i,j,k) = sqrt(1/(1/zlt(i,j,k)**2)+1/(fkar*zf(k))**2)
+        ekm(i,j,k) = cm * zlt(i,j,k) * e12m(i,j,k)
+        ekh(i,j,k) = (ch1 + ch2) * ekm(i,j,k)
+      else
 
-  do k=1,kmax
-  do j=2,j1
-  do i=2,i1
-    if (ldelta .or. (dthvdz(i,j,k)<=0)) then
-      zlt(i,j,k) = delta(k)
-      if (lmason) zlt(i,j,k) = sqrt(1/(1/zlt(i,j,k)**2)+1/(fkar*zf(k))**2)
-      ekm(i,j,k) = cm * zlt(i,j,k) * e12m(i,j,k)
-      ekh(i,j,k) = (ch1 + ch2) * ekm(i,j,k)
-    else
+        zlt(i,j,k) = min(delta(k),cn*e12m(i,j,k)/sqrt(grav/thvs*abs(dthvdz(i,j,k))))
+        if (lmason) zlt(i,j,k) = sqrt(1/(1/zlt(i,j,k)**2)+1/(fkar*zf(k))**2)
 
-      zlt(i,j,k) = min(delta(k),cn*e12m(i,j,k)/sqrt(grav/thvs*abs(dthvdz(i,j,k))))
-      if (lmason) zlt(i,j,k) = sqrt(1/(1/zlt(i,j,k)**2)+1/(fkar*zf(k))**2)
+        ekm(i,j,k) = cm * zlt(i,j,k) * e12m(i,j,k)
+        ekh(i,j,k) = (ch1 + ch2 * zlt(i,j,k)/delta(k)) * ekm(i,j,k)
+      endif
+    end do
+    end do
+    end do
+  end if
 
-      ekm(i,j,k) = cm * zlt(i,j,k) * e12m(i,j,k)
-      ekh(i,j,k) = (ch1 + ch2 * zlt(i,j,k)/delta(k)) * ekm(i,j,k)
-    endif
-  end do
-  end do
-  end do
   ekm(:,:,:) = max(ekm(:,:,:),ekmin)
   ekh(:,:,:) = max(ekh(:,:,:),ekmin)
 

@@ -26,6 +26,7 @@ subroutine advection
   use modglobal, only : lmoist, nsv, iadv_mom,iadv_tke,iadv_thl,iadv_qt,iadv_sv, &
                         iadv_cd2,iadv_5th,iadv_cd6,iadv_kappa,iadv_upw
   use modfields, only : u0,up,v0,vp,w0,wp,e120,e12p,thl0,thlp,qt0,qtp,sv0,svp
+  use modsubgrid, only: lsmagorinsky
   implicit none
   integer :: n
 
@@ -46,18 +47,20 @@ subroutine advection
       stop "Unknown advection scheme "
   end select
 
-  select case(iadv_tke)
-    case(iadv_cd2)
-      call advecc_2nd(e120,e12p)
-    case(iadv_5th)
-      call advecc_5th(e120,e12p)
-    case(iadv_cd6)
-      call advecc_6th(e120,e12p)
-    case(iadv_kappa)
-      call advecc_kappa(e120,e12p)
-    case default
-      stop "Unknown advection scheme "
-  end select
+  if (lsmagorinsky) then
+    select case(iadv_tke)
+      case(iadv_cd2)
+        call advecc_2nd(e120,e12p)
+      case(iadv_5th)
+        call advecc_5th(e120,e12p)
+      case(iadv_cd6)
+        call advecc_6th(e120,e12p)
+      case(iadv_kappa)
+        call advecc_kappa(e120,e12p)
+      case default
+        stop "Unknown advection scheme "
+    end select
+  end if
 
   select case(iadv_thl)
     case(iadv_cd2)
