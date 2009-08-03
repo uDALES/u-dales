@@ -54,11 +54,17 @@ public :: ldelta, lmason,lsmagorinsky,cf, Rigc,prandtl, cm, cn, ch1, ch2, ce1, c
 contains
   subroutine initsubgrid
     use modglobal, only : ih,i1,jh,j1,k1,&
-                          pi
+                          pi,ifnamopt,fname_options
     use modmpi, only    : myid
+    use modmpi,    only : myid, nprocs, comm3d, mpierr, my_real, mpi_logical, mpi_integer
+
     implicit none
 
+    integer   :: ierr
+
     real :: ceps, ch
+    namelist/SUBGRID/ &
+        ldelta,lmason, cf,cn,Rigc,Prandtl,lsmagorinsky
 
     allocate(ekm(2-ih:i1+ih,2-jh:j1+jh,k1))
     allocate(ekh(2-ih:i1+ih,2-jh:j1+jh,k1))
@@ -67,6 +73,19 @@ contains
     allocate(sbshr(2-ih:i1+ih,2-jh:j1+jh,k1))
     allocate(sbbuo(2-ih:i1+ih,2-jh:j1+jh,k1))
 
+    if(myid==0)then
+      open(ifnamopt,file=fname_options,status='old',iostat=ierr)
+      read (ifnamopt,SUBGRID,iostat=ierr)
+      write(6 ,SUBGRID)
+      close(ifnamopt)
+    end if
+    call MPI_BCAST(ldelta     ,1,MPI_LOGICAL,0,comm3d,mpierr)
+    call MPI_BCAST(lmason     ,1,MPI_LOGICAL,0,comm3d,mpierr)
+    call MPI_BCAST(lsmagorinsky,1,MPI_LOGICAL,0,comm3d,mpierr)
+    call MPI_BCAST(cf         ,1,MY_REAL   ,0,comm3d,mpierr)
+    call MPI_BCAST(cn         ,1,MY_REAL   ,0,comm3d,mpierr)
+    call MPI_BCAST(Rigc       ,1,MY_REAL   ,0,comm3d,mpierr)
+    call MPI_BCAST(Prandtl    ,1,MY_REAL   ,0,comm3d,mpierr)
 
     cm = cf / (2. * pi) * (1.5*alpha_kolm)**(-1.5)
 

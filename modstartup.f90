@@ -84,8 +84,6 @@ contains
         rka,dlwtop,dlwbot,sw0,gc,sfc_albedo,reff,isvsmoke
     namelist/DYNAMICS/ &
         llsadv, lqlnr, cu, cv, iadv_mom, iadv_tke, iadv_thl, iadv_qt, iadv_sv
-    namelist/SUBGRID/ &
-        ldelta,lmason, cf,cn,Rigc,Prandtl,lsmagorinsky
 !   logical :: ldelta   = .false. ! switch for subgrid
   !read namelists
 
@@ -101,14 +99,15 @@ contains
       end if
       read (ifnamopt,RUN)
       write(6 ,RUN)
+      rewind(ifnamopt)
       read (ifnamopt,DOMAIN)
       write(6 ,DOMAIN)
+      rewind(ifnamopt)
       read (ifnamopt,PHYSICS)
       write(6 ,PHYSICS)
+      rewind(ifnamopt)
       read (ifnamopt,DYNAMICS,iostat=ierr)
       write(6 ,DYNAMICS)
-      read (ifnamopt,SUBGRID,iostat=ierr)
-      write(6 ,SUBGRID)
       close(ifnamopt)
     end if
 
@@ -185,13 +184,6 @@ contains
     call MPI_BCAST(iadv_qt ,1,MPI_INTEGER,0,comm3d,mpierr)
     call MPI_BCAST(iadv_sv(1:nsv) ,nsv,MPI_INTEGER,0,comm3d,mpierr)
 
-    call MPI_BCAST(ldelta     ,1,MPI_LOGICAL,0,comm3d,mpierr)
-    call MPI_BCAST(lmason     ,1,MPI_LOGICAL,0,comm3d,mpierr)
-    call MPI_BCAST(lsmagorinsky,1,MPI_LOGICAL,0,comm3d,mpierr)
-    call MPI_BCAST(cf         ,1,MY_REAL   ,0,comm3d,mpierr)
-    call MPI_BCAST(cn         ,1,MY_REAL   ,0,comm3d,mpierr)
-    call MPI_BCAST(Rigc       ,1,MY_REAL   ,0,comm3d,mpierr)
-    call MPI_BCAST(Prandtl    ,1,MY_REAL   ,0,comm3d,mpierr)
 
   ! Allocate and initialize core modules
     call initglobal
