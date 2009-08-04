@@ -178,14 +178,14 @@ contains
 !-----------------------------------------------------------------|
 
   use modglobal,  only : i1, j1,kmax,k1,ih,jh,i2,j2,delta,ekmin,grav, zf, fkar, &
-                         dxi,dyi,dzf
+                         dxi,dyi,dzf,dzh
   use modfields,  only : dthvdz,e12m,u0,v0,w0
   use modsurface, only : thvs
   use modmpi,     only : excjs
   implicit none
 
-
-  integer :: i,j,k
+  real    :: strain
+  integer :: i,j,k,kp,km,jp,jm
 
 !********************************************************************
 !*********************************************************************
@@ -193,10 +193,47 @@ contains
     do k=1,kmax
     do j=2,j1
     do i=2,i1
-      ekm(i,j,k)  = (cs*delta(k))**2*sqrt(0.5*(1-rigc/prandtl)*     ( &
-            ((u0(i+1,j,k)-u0(i,j,k))*dxi) &
-          + ((v0(i,j+1,k)-v0(i,j,k))*dyi) &
-          + ((w0(i,j,k+1)-w0(i,j,k))/dzf(k))   )**2)
+      kp=k+1
+      km=k-1
+      jp=j+1
+      jm=j-1
+
+      strain =  ( &
+              ((u0(i+1,j,k)-u0(i,j,k))   *dxi        )**2    + &
+              ((v0(i,jp,k)-v0(i,j,k))    *dyi         )**2    + &
+              ((w0(i,j,kp)-w0(i,j,k))    /dzf(k)     )**2    )
+
+      strain = strain + 0.5 * ( &
+                ((w0(i,j,kp)-w0(i-1,j,kp))  *dxi     + &
+                (u0(i,j,kp)-u0(i,j,k))     / dzh(kp)  )**2    + &
+                ((w0(i,j,k)-w0(i-1,j,k))    *dxi     + &
+                (u0(i,j,k)-u0(i,j,km))     / dzh(k)   )**2    + &
+                ((w0(i+1,j,k)-w0(i,j,k))    *dxi     + &
+                (u0(i+1,j,k)-u0(i+1,j,km)) / dzh(k)   )**2    + &
+                ((w0(i+1,j,kp)-w0(i,j,kp))  *dxi     + &
+                (u0(i+1,j,kp)-u0(i+1,j,k)) / dzh(kp)  )**2    )
+
+      strain = strain + 0.5 * ( &
+                ((u0(i,jp,k)-u0(i,j,k))     *dyi     + &
+                (v0(i,jp,k)-v0(i-1,jp,k))  *dxi        )**2    + &
+                ((u0(i,j,k)-u0(i,jm,k))     *dyi     + &
+                (v0(i,j,k)-v0(i-1,j,k))    *dxi        )**2    + &
+                ((u0(i+1,j,k)-u0(i+1,jm,k)) *dyi     + &
+                (v0(i+1,j,k)-v0(i,j,k))    *dxi        )**2    + &
+                ((u0(i+1,jp,k)-u0(i+1,j,k)) *dyi     + &
+                (v0(i+1,jp,k)-v0(i,jp,k))  *dxi        )**2    )
+
+      strain = strain + 0.5 * ( &
+                ((v0(i,j,kp)-v0(i,j,k))     / dzh(kp) + &
+                (w0(i,j,kp)-w0(i,jm,kp))   *dyi        )**2    + &
+                ((v0(i,j,k)-v0(i,j,km))     / dzh(k)+ &
+                (w0(i,j,k)-w0(i,jm,k))     *dyi        )**2    + &
+                ((v0(i,jp,k)-v0(i,jp,km))   / dzh(k)+ &
+                (w0(i,jp,k)-w0(i,j,k))     *dyi        )**2    + &
+                ((v0(i,jp,kp)-v0(i,jp,k))   / dzh(kp) + &
+                (w0(i,jp,kp)-w0(i,j,kp))   *dyi        )**2    )
+
+      ekm(i,j,k)  = (cs*delta(k))**2*sqrt(0.5*(1-rigc/prandtl)*strain)
       ekh(i,j,k)  = ekm(i,j,k)/prandtl
     end do
     end do
