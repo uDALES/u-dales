@@ -124,7 +124,7 @@ contains
     if (myid/=0) return
 
     do n=1,nvar
-      status = nf90_put_var(ncid, varid(n), vars(1:kmax,n), (/1,nccall/), (/kmax, 1/))
+      status = nf90_put_var(ncid, varid(n), vars(1:kmax,n))
       if(status /= nf90_noerr) call nchandle_error(status)
     end do
   return

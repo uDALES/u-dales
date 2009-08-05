@@ -1144,6 +1144,7 @@ contains
       use modglobal, only : kmax,k1,nsv, zh,zf,timee,rlv,cp,cexpnr,ifoutput
       use modfields, only : presf,presh,exnf,exnh
       use modmpi,    only : myid
+      use modstat_nc, only: lnetcdf, writeprof_nc
       implicit none
 
 
@@ -1460,7 +1461,9 @@ contains
          close(ifoutput)
 
       end do
-
+      if (lnetcdf) then
+        call writeprof_nc(nvar,varid,vars,1)
+      end if
 
 
     end if ! end if(myid==0)
