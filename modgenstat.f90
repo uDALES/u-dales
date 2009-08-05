@@ -57,6 +57,12 @@ private
 PUBLIC :: initgenstat, genstat, exitgenstat
 save
 
+!NetCDF variables
+  integer,parameter :: nvar = 31
+  real, allocatable,dimension(:,:) :: vars
+  character(5),dimension(nvar) :: varnames
+  integer, dimension(nvar) :: varid
+
   real    :: dtav, timeav,tnext,tnextwrite
   logical :: lstat= .false. ! switch for conditional sampling cloud (on/off)
   integer :: nsamples
@@ -141,6 +147,7 @@ contains
   subroutine initgenstat
     use modmpi,    only : myid,mpierr, comm3d,my_real, mpi_logical
     use modglobal, only : dtmax, k1, nsv,ifnamopt,fname_options, ifoutput, cexpnr,dtav_glob,timeav_glob,ladaptive,dt_lim,btime
+    use modstat_nc,only : initprof_nc,lnetcdf
 
 
     implicit none
@@ -233,6 +240,7 @@ contains
     allocate(th0av(k1))
     allocate(svptav(k1,nsv))
     allocate(svpav(k1,nsv))
+    allocate(vars(k1,nvar))
 
 
 
@@ -319,6 +327,40 @@ contains
             open (ifoutput,file=name,status='replace')
             close (ifoutput)
         end do
+        if(lnetcdf) then
+          varnames( 1) = "u"   ;vars(:, 1) = umn
+          varnames( 2) = "v"   ;vars(:, 2) = vmn
+          varnames( 3) = "thl" ;vars(:, 3) = thlmn
+          varnames( 4) = "thv" ;vars(:, 4) = thvmn
+          varnames( 5) = "qt"  ;vars(:, 5) = qtmn
+          varnames( 6) = "ql"  ;vars(:, 6) = qlmn
+          varnames( 7) = "wtls";vars(:, 7) = wtlsmn
+          varnames( 8) = "wtlr";vars(:, 8) = wtlrmn
+          varnames( 9) = "wtlt";vars(:, 9) = wtltmn
+          varnames(10) = "wtvs";vars(:,10) = wtvsmn
+          varnames(11) = "wtvr"; vars(:,11) = wtvrmn
+          varnames(12) = "wtvt";vars(:,12) = wtvtmn
+          varnames(13) = "wqls";vars(:,13) = wqlsmn
+          varnames(14) = "wqlr";vars(:,14) = wqlrmn
+          varnames(15) = "wqlt";vars(:,15) = wqltmn
+          varnames(16) = "uws" ;vars(:,16) = uwsmn
+          varnames(17) = "uwr" ;vars(:,17) = uwrmn
+          varnames(18) = "uwt" ;vars(:,18) = uwtmn
+          varnames(19) = "vws" ;vars(:,19) = vwsmn
+          varnames(20) = "vwr" ;vars(:,20) = vwrmn
+          varnames(21) = "vwt" ;vars(:,21) = vwtmn
+          varnames(22) = "w2"  ;vars(:,22) = w2mn
+          varnames(23) = "skew";vars(:,23) = skewmn
+          varnames(24) = "w2s" ;vars(:,24) = w2submn
+          varnames(25) = "u2"  ;vars(:,25) = u2mn
+          varnames(26) = "v2"  ;vars(:,26) = v2mn
+          varnames(27) = "qt2" ;vars(:,27) = qt2mn
+          varnames(28) = "thl2";vars(:,28) = thl2mn
+          varnames(29) = "thv2";vars(:,29) = thv2mn
+          varnames(30) = "th2" ;vars(:,30) = th2mn
+          varnames(31) = "ql2" ;vars(:,31) = ql2mn
+         call initprof_nc(nvar,varid,varnames)
+        end if
 
       end if
 

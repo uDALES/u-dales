@@ -68,6 +68,7 @@ program DALES      !Version 3.2 Beta 1
 !     0.1     USE STATEMENTS FOR ADDONS STATISTICAL ROUTINES
 !----------------------------------------------------------------
   use modchecksim,     only : initchecksim, checksim
+  use modstat_nc,      only : initstat_nc,exitstat_nc
   use modtimestat,     only : inittimestat, timestat
   use modgenstat,      only : initgenstat, genstat, exitgenstat
   use modradstat,      only : initradstat ,radstat, exitradstat
@@ -101,6 +102,7 @@ program DALES      !Version 3.2 Beta 1
 !      2     INITIALIZE STATISTICAL ROUTINES AND ADD-ONS
 !---------------------------------------------------------
   call initchecksim
+  call initstat_nc  ! should be called before stat-routines that might do netCDF
   call inittimestat
   call initgenstat
   call inittilt
@@ -226,6 +228,7 @@ program DALES      !Version 3.2 Beta 1
   call exitstattend
   call exitbulkmicrostat
   call exitbudget
+  call exitstat_nc
   call exitmodules
 
 end program DALES

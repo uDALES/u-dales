@@ -6,7 +6,7 @@ TARGET=dales3
 PLATFORM=$(SYST)
 DEBUG=FALSE
 # Set NetCDF module
-DONETCDF=FALSE
+DONETCDF=TRUE
 
 # Objects required for build
 FSRC=$(wildcard *.f90)
@@ -45,10 +45,10 @@ endif
 # settings for local WS Run using MPI on gfortran
 ifeq ($(PLATFORM), localpc_gfortran)
   FC          = mpif90
-  FCOPTS      = -W -Wall -fdefault-real-8 -ffree-line-length-none 
-  INCDIRS = 
-  LIBDIRS = 
-  NETCDF_LIBS = netcdf 
+  FCOPTS      = -W -Wall -fdefault-real-8 -ffree-line-length-none
+  INCDIRS =
+  LIBDIRS =
+  NETCDF_LIBS = netcdff netcdf
   NETCDF_INCDIR =/usr/include
   NETCDF_LIBDIR =/usr/lib
   ifeq ($(DEBUG),TRUE)
