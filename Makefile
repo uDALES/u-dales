@@ -20,6 +20,7 @@ ifeq ($(PLATFORM), HUYGENS)
   FLOPTS     += -qsmallstack=dynlenonheap -qrealsize=8 -qwarn64 -qflttrap=en:ov:zero:inv:imp -qflag=w:e
   NETCDF_INCDIR=$(SARA_NETCDF_INCLUDE)
   NETCDF_LIBDIR=$(SARA_NETCDF_LIB)
+  NETCDF_LIBS = netcdff netcdf
   ifeq ($(DEBUG),TRUE)
     FCOPTS     += -O2 -g -qfullpath -C -qsigtrap -qinitauto=ff
     FLOPTS     += -O2 -g -qfullpath -C -qsigtrap -qinitauto=ff
