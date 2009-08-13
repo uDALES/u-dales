@@ -1,3 +1,4 @@
+
 !----------------------------------------------------------------------------
 ! This file is part of DALES.
 !
@@ -31,8 +32,8 @@
              l_rain      = .true. , & ! rain formation / evolution flag              (in namelist NAMMICROPHYSICS)
              l_mur_cst   = .false.    ! false = no constant value of mur (mur=f(Dv)) (in namelist NAMMICROPHYSICS)
   real    :: mur_cst     = 5        & ! mur value if l_mur_cst=T                     (in namelist NAMMICROPHYSICS)
-                 ,Nc_0 = 100e6       & ! initial cloud droplet number
-                 ,sig_g = 1.5       & ! geom. std dev of cloud droplet DSD
+                 ,Nc_0 = 70e6       & ! initial cloud droplet number
+                 ,sig_g = 1.34      & ! geom. std dev of cloud droplet DSD
                  ,sig_gr = 1.5        ! geometric std dev of rain drop DSD
 
   logical :: l_lognormal = .false.    ! log param of rain terminal velocities for rain sedim
@@ -42,7 +43,7 @@
   real, parameter ::  D0_kk = 50e-6     & ! diameter sep. cloud and prec. in KK00 scheme
                      ,qcmin = 1.e-7     & ! Cloud mixing ratio treshold for calculations
                      ,qrmin = 1.e-13    & ! Rain  mixing ratio treshold for calculations
-                    ,nuc = 0           & ! width parameter of cloud DSD
+!                    ,nuc = 0           & ! width parameter of cloud DSD
                      ,pluseps = 1e-25   &
                      ,mineps = -1e-50   &
                      ,epscloud= 0.01e-3 &
@@ -112,7 +113,8 @@
 
 
   real,allocatable, dimension(:,:,:) :: qc  & ! cloud droplets mixing ratio [kg_w/kg_a]
-                                       ,Nc  &  ! cloud droplets number conc.  [#/m^3]
+                                       ,Nc  & ! cloud droplets number conc.  [#/m^3]
+                                       ,nuc & ! width parameter of cloud DSD
                                        ,rhoz  !slab averaged density in 3 dimensions
 
   real,allocatable, dimension(:,:,:) :: qr_spl, Nr_spl
