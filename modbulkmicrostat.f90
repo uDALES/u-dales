@@ -99,12 +99,13 @@ contains
     use modmpi,    only  : myid, mpi_logical, my_real, comm3d, mpierr
     use modglobal, only  : ifnamopt, fname_options, cexpnr, ifoutput, &
               dtav_glob, timeav_glob, ladaptive, k1, dtmax,btime
+    use modmicrophysics, only : imicro, imicro_bulk
     implicit none
     integer      :: ierr
 
-
     namelist/NAMBULKMICROSTAT/ &
     lmicrostat, dtav, timeav
+    if (imicro /= imicro_bulk) return
 
     dtav  = dtav_glob
     timeav  = timeav_glob
