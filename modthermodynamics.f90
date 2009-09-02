@@ -424,7 +424,7 @@ contains
   use modsurface, only : thls
   implicit none
 
-  integer i, j, k, iiii
+  integer i, j, k
   real tl, es, qs, qsl, b1
   real, intent(in)  :: qt(2-ih:i1+ih,2-jh:j1+jh,k1),thl(2-ih:i1+ih,2-jh:j1+jh,k1),exner(k1),pressure(k1)
   real, intent(out) :: ql(2-ih:i1+ih,2-jh:j1+jh,k1)
