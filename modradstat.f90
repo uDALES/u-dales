@@ -76,6 +76,7 @@ contains
   subroutine initradstat
     use modmpi,    only : myid,mpierr, comm3d,my_real, mpi_logical
     use modglobal, only : dtmax, k1, ifnamopt,fname_options, ifoutput, cexpnr,dtav_glob,timeav_glob,ladaptive,dt_lim,btime
+    use modstat_nc, only: lnetcdf, initprof_nc
 
 
     implicit none
@@ -234,7 +235,7 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine writeradstat
       use modmpi,    only : myid
-      use modglobal, only : cexpnr,ifoutput,kmax,zf,timee
+      use modglobal, only : cexpnr,ifoutput,kmax,k1,zf,timee
       use modstat_nc, only: lnetcdf, writeprof_nc
 
 
