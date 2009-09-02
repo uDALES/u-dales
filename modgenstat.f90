@@ -1,13 +1,13 @@
 !----------------------------------------------------------------------------
 ! This file is part of DALES.
 !
-! DALES is free software; you can redistribute it and/or modify
+! DALES is free software you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 3 of the License, or
+! the Free Software Foundation either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! DALES is distributed in the hope that it will be useful,
-! but WITHOUT ANY WARRANTY; without even the implied warranty of
+! but WITHOUT ANY WARRANTY without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU General Public License for more details.
 !
@@ -58,39 +58,39 @@ PUBLIC :: initgenstat, genstat, exitgenstat
 save
 
 !NetCDF variables
-  integer,parameter :: nvar = 31
-  real, allocatable,dimension(:,:) :: vars
-  character(5),dimension(nvar) :: varnames
+  integer,parameter :: nvar = 33
+  character(20),dimension(nvar) :: varnames
   integer, dimension(nvar) :: varid
+  integer :: nwrite =1
 
   real    :: dtav, timeav,tnext,tnextwrite
   logical :: lstat= .false. ! switch for conditional sampling cloud (on/off)
   integer :: nsamples
 !     ----  total fields  ---
 
-  real, allocatable :: umn   (:)       ,vmn   (:)
-  real, allocatable :: thlmn (:)       ,thvmn (:)
-  real, allocatable :: qtmn  (:)       ,qlmn  (:),  qlhmn(:),cfracmn(:)
+  real, allocatable  :: umn   (:)       ,vmn   (:)
+  real, allocatable  :: thlmn (:)       ,thvmn (:)
+  real, allocatable  :: qtmn  (:)       ,qlmn  (:),  qlhmn(:),cfracmn(:)
 
-! real, allocatable ::     --- fluxes (resolved, subgrid and total) ---
-  real, allocatable :: wtlsmn (:),wtlrmn (:),wtltmn(:)
-  real, allocatable :: wtvsmn (:),wtvrmn (:),wtvtmn(:)
-  real, allocatable :: wqlsmn (:),wqlrmn (:),wqltmn(:)
-  real, allocatable :: wqtsmn (:),wqtrmn (:),wqttmn(:)
-  real, allocatable :: wsvsmn (:,:),wsvrmn(:,:),wsvtmn(:,:)
-  real, allocatable :: uwtmn  (:),vwtmn  (:) !total    uw, vw
-  real, allocatable :: uwsmn  (:),vwsmn  (:) !resolved uw, vw
-  real, allocatable :: uwrmn  (:),vwrmn  (:) !subgrid  uw, vw
-! real, allocatable ::     --- various moments ---
+! real, allocatable  ::     --- fluxes (resolved, subgrid and total) ---
+  real, allocatable  :: wtlsmn (:),wtlrmn (:),wtltmn(:)
+  real, allocatable  :: wtvsmn (:),wtvrmn (:),wtvtmn(:)
+  real, allocatable  :: wqlsmn (:),wqlrmn (:),wqltmn(:)
+  real, allocatable  :: wqtsmn (:),wqtrmn (:),wqttmn(:)
+  real, allocatable  :: wsvsmn (:,:),wsvrmn(:,:),wsvtmn(:,:)
+  real, allocatable  :: uwtmn  (:),vwtmn  (:) !total    uw, vw
+  real, allocatable  :: uwsmn  (:),vwsmn  (:) !resolved uw, vw
+  real, allocatable  :: uwrmn  (:),vwrmn  (:) !subgrid  uw, vw
+! real, allocatable  ::     --- various moments ---
 
-!   real, allocatable :: rmn        (:), r2mn   (:), r3mn (:), rhmn (:)
-  real, allocatable :: w2mn       (:), skewmn (:)
-  real, allocatable :: w2submn    (:)
-  real, allocatable :: u2mn       (:), v2mn  (:),     qt2mn(:)
-  real, allocatable :: thl2mn     (:), thv2mn(:),     th2mn(:),     ql2mn(:)
-!   real, allocatable :: qs2mn      (:), qsmn  (:)
-  real, allocatable :: svmmn(:,:),svptmn(:,:),svplsmn(:,:),svpmn(:,:)
-  real, allocatable :: sv2mn(:,:)
+!   real, allocatable  :: rmn        (:), r2mn   (:), r3mn (:), rhmn (:)
+  real, allocatable  :: w2mn       (:), skewmn (:)
+  real, allocatable  :: w2submn    (:)
+  real, allocatable  :: u2mn       (:), v2mn  (:),     qt2mn(:)
+  real, allocatable  :: thl2mn     (:), thv2mn(:),     th2mn(:),     ql2mn(:)
+!   real, allocatable  :: qs2mn      (:), qsmn  (:)
+  real, allocatable  :: svmmn(:,:),svptmn(:,:),svplsmn(:,:),svpmn(:,:)
+  real, allocatable  :: sv2mn(:,:)
 
  real, allocatable :: umav (:)     ! slab averaged ql_0    at full level
  real, allocatable :: vmav (:)     ! slab averaged ql_0    at full level
@@ -240,7 +240,6 @@ contains
     allocate(th0av(k1))
     allocate(svptav(k1,nsv))
     allocate(svpav(k1,nsv))
-    allocate(vars(k1,nvar))
 
 
 
@@ -328,37 +327,39 @@ contains
             close (ifoutput)
         end do
         if(lnetcdf) then
-          varnames( 1) = "u"   ;vars(:, 1) = umn
-          varnames( 2) = "v"   ;vars(:, 2) = vmn
-          varnames( 3) = "thl" ;vars(:, 3) = thlmn
-          varnames( 4) = "thv" ;vars(:, 4) = thvmn
-          varnames( 5) = "qt"  ;vars(:, 5) = qtmn
-          varnames( 6) = "ql"  ;vars(:, 6) = qlmn
-          varnames( 7) = "wtls";vars(:, 7) = wtlsmn
-          varnames( 8) = "wtlr";vars(:, 8) = wtlrmn
-          varnames( 9) = "wtlt";vars(:, 9) = wtltmn
-          varnames(10) = "wtvs";vars(:,10) = wtvsmn
-          varnames(11) = "wtvr"; vars(:,11) = wtvrmn
-          varnames(12) = "wtvt";vars(:,12) = wtvtmn
-          varnames(13) = "wqls";vars(:,13) = wqlsmn
-          varnames(14) = "wqlr";vars(:,14) = wqlrmn
-          varnames(15) = "wqlt";vars(:,15) = wqltmn
-          varnames(16) = "uws" ;vars(:,16) = uwsmn
-          varnames(17) = "uwr" ;vars(:,17) = uwrmn
-          varnames(18) = "uwt" ;vars(:,18) = uwtmn
-          varnames(19) = "vws" ;vars(:,19) = vwsmn
-          varnames(20) = "vwr" ;vars(:,20) = vwrmn
-          varnames(21) = "vwt" ;vars(:,21) = vwtmn
-          varnames(22) = "w2"  ;vars(:,22) = w2mn
-          varnames(23) = "skew";vars(:,23) = skewmn
-          varnames(24) = "w2s" ;vars(:,24) = w2submn
-          varnames(25) = "u2"  ;vars(:,25) = u2mn
-          varnames(26) = "v2"  ;vars(:,26) = v2mn
-          varnames(27) = "qt2" ;vars(:,27) = qt2mn
-          varnames(28) = "thl2";vars(:,28) = thl2mn
-          varnames(29) = "thv2";vars(:,29) = thv2mn
-          varnames(30) = "th2" ;vars(:,30) = th2mn
-          varnames(31) = "ql2" ;vars(:,31) = ql2mn
+          varnames( 1) = "zh"
+          varnames( 2) = "presh"
+          varnames( 3) = "u"
+          varnames( 4) = "v"
+          varnames( 5) = "thl"
+          varnames( 6) = "thv"
+          varnames( 7) = "qt"
+          varnames( 8) = "ql"
+          varnames( 9) = "wtls"
+          varnames(10) = "wtlr"
+          varnames(11) = "wtlt"
+          varnames(12) = "wtvs"
+          varnames(13) = "wtvr"
+          varnames(14) = "wtvt"
+          varnames(15) = "wqls"
+          varnames(16) = "wqlr"
+          varnames(17) = "wqlt"
+          varnames(18) = "uws"
+          varnames(19) = "uwr"
+          varnames(20) = "uwt"
+          varnames(21) = "vws"
+          varnames(22) = "vwr"
+          varnames(23) = "vwt"
+          varnames(24) = "w2"
+          varnames(25) = "skew"
+          varnames(26) = "w2s"
+          varnames(27) = "u2"
+          varnames(28) = "v2"
+          varnames(29) = "qt2"
+          varnames(30) = "thl2"
+          varnames(31) = "thv2"
+          varnames(32) = "th2"
+          varnames(33) = "ql2"
          call initprof_nc(nvar,varid,varnames)
         end if
 
@@ -1148,6 +1149,7 @@ contains
       implicit none
 
 
+      real,dimension(k1,nvar) :: vars
 
       real,allocatable, dimension(:) :: tmn, thmn
       integer nsecs, nhrs, nminut,k,n
@@ -1462,7 +1464,42 @@ contains
 
       end do
       if (lnetcdf) then
-        call writeprof_nc(nvar,varid,vars,1)
+        vars(:, 1) = zh
+        vars(:, 2) = presh
+        vars(:, 3) = umn
+        vars(:, 4) = vmn
+        vars(:, 5) = thlmn
+        vars(:, 6) = thvmn
+        vars(:, 7) = qtmn
+        vars(:, 8) = qlmn
+        vars(:, 9) = wtlsmn
+        vars(:,10) = wtlrmn
+        vars(:,11) = wtltmn
+        vars(:,12) = wtvsmn
+        vars(:,13) = wtvrmn
+        vars(:,14) = wtvtmn
+        vars(:,15) = wqlsmn
+        vars(:,16) = wqlrmn
+        vars(:,17) = wqltmn
+        vars(:,18) = uwsmn
+        vars(:,19) = uwrmn
+        vars(:,20) = uwtmn
+        vars(:,21) = vwsmn
+        vars(:,22) = vwrmn
+        vars(:,23) = vwtmn
+        vars(:,24) = w2mn
+        vars(:,25) = skewmn
+        vars(:,26) = w2submn
+        vars(:,27) = u2mn
+        vars(:,28) = v2mn
+        vars(:,29) = qt2mn
+        vars(:,30) = thl2mn
+        vars(:,31) = thv2mn
+        vars(:,32) = th2mn
+        vars(:,33) = ql2mn
+
+        call writeprof_nc(nvar,varid,vars,nwrite)
+        nwrite = nwrite +1
       end if
 
 

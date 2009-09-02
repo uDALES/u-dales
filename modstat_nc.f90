@@ -21,7 +21,7 @@
 module modstat_nc
     use typeSizes
     use netcdf
-    integer :: ncid,tid,zid
+    integer :: ncid,ttsid,tprid,zid
     logical :: lnetcdf
 contains
   subroutine initstat_nc
@@ -49,7 +49,7 @@ contains
     if (myid==0) then
 
       ncfile = 'stat.nc.xxx'
-      write(ncfile(6:8),'(i3.3)') iexpnr
+      write(ncfile(9:11),'(i3.3)') iexpnr
       write(6,*) "NETCDFSTATS: Creating: ", ncfile
 
       !create file
@@ -59,7 +59,9 @@ contains
       !create dimensions
       status = nf90_def_dim(ncid, "z", kmax, zid)
       if (status /= nf90_noerr) call nchandle_error(status)
-      status = nf90_def_dim(ncid, "t", nf90_unlimited, tid)
+      status = nf90_def_dim(ncid, "t_pr", nf90_unlimited, tprid)
+      if (status /= nf90_noerr) call nchandle_error(status)
+      status = nf90_def_dim(ncid, "t_ts", nf90_unlimited, ttsid)
       if (status /= nf90_noerr) call nchandle_error(status)
       status = nf90_enddef(ncid)
       if (status /= nf90_noerr) call nchandle_error(status)
@@ -103,7 +105,7 @@ contains
 
     if (status /= nf90_noerr) call nchandle_error(status)
     do n=1,nvar
-      status = nf90_def_var(ncid, varnames(n), nf90_float, (/zid, tid/), varid(n))
+      status = nf90_def_var(ncid, varnames(n), nf90_float, (/zid, tprid/), varid(n))
       if (status /= nf90_noerr) call nchandle_error(status)
     end do
 
@@ -124,7 +126,7 @@ contains
     if (myid/=0) return
 
     do n=1,nvar
-      status = nf90_put_var(ncid, varid(n), vars(1:kmax,n))
+      status = nf90_put_var(ncid, varid(n), vars(1:kmax,n), (/1,nccall/), (/kmax , 1/))
       if(status /= nf90_noerr) call nchandle_error(status)
     end do
   return
@@ -143,7 +145,7 @@ contains
 
     if (status /= nf90_noerr) call nchandle_error(status)
     do n=1,nvar
-      status = nf90_def_var(ncid, varnames(n), nf90_float, tid, varid(n))
+      status = nf90_def_var(ncid, varnames(n), nf90_float, ttsid, varid(n))
       if (status /= nf90_noerr) call nchandle_error(status)
     end do
 

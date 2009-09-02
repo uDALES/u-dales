@@ -38,6 +38,11 @@ implicit none
 !private
 PUBLIC :: initradstat, radstat, exitradstat
 save
+!NetCDF variables
+  integer,parameter :: nvar = 6
+  character(20),dimension(nvar) :: varnames
+  integer, dimension(nvar) :: varid
+  integer :: nwrite =1
 
   real    :: dtav, timeav,tnext,tnextwrite
   integer :: nsamples
@@ -137,7 +142,16 @@ contains
     if(myid==0)then
       open (ifoutput,file='radstat.'//cexpnr,status='replace')
       close (ifoutput)
-    end if
+         if(lnetcdf) then
+          varnames( 1) = "tllwtendmn"
+          varnames( 2) = "tlswtendmn"
+          varnames( 3) = "lwumn"
+          varnames( 4) = "lwdmn"
+          varnames( 5) = "swnmn"
+          varnames( 6) = "tlradlsmn"
+        call initprof_nc(nvar,varid,varnames)
+        end if
+   end if
 
   end subroutine initradstat
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -221,9 +235,11 @@ contains
   subroutine writeradstat
       use modmpi,    only : myid
       use modglobal, only : cexpnr,ifoutput,kmax,zf,timee
+      use modstat_nc, only: lnetcdf, writeprof_nc
 
 
       implicit none
+      real,dimension(k1,nvar) :: vars
 
       integer nsecs, nhrs, nminut,k
 
@@ -268,7 +284,16 @@ contains
             tlradlsmn(k) *3600
       end do
       close (ifoutput)
-
+      if (lnetcdf) then
+        vars(:, 1) = tllwtendmn
+        vars(:, 2) = tlswtendmn
+        vars(:, 3) = lwumn
+        vars(:, 4) = lwdmn
+        vars(:, 5) = swnmn
+        vars(:, 6) = tlradlsmn
+        call writeprof_nc(nvar,varid,vars,nwrite)
+        nwrite = nwrite +1
+      end if
     end if ! end if(myid==0)
 
     lwumn = 0.0

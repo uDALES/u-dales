@@ -43,6 +43,11 @@ implicit none
 ! private
 ! PUBLIC :: inittimestat, timestat
 save
+!NetCDF variables
+  integer,parameter :: nvar = 20
+  character(20),dimension(nvar) :: varnames
+  integer, dimension(nvar) :: varid
+  integer :: nwrite =1
 
   real    :: dtav,tnext
   logical :: ltimestat= .false. ! switch for conditional sampling cloud (on/off)
@@ -64,6 +69,7 @@ contains
     use modglobal, only : ifnamopt, fname_options,cexpnr,dtmax,ifoutput,dtav_glob,ladaptive,k1,kmax,rd,rv,dt_lim,btime
     use modfields, only : thlprof,qtprof,svprof
     use modsurface, only : isurf
+    use modstat_nc, only : lnetcdf, inittstat_nc
     implicit none
     integer :: ierr,k,location = 1
     real :: gradient = 0.0
@@ -148,11 +154,34 @@ contains
         open (ifoutput,file='tmlsm.'//cexpnr,status='replace',position='append')
         write(ifoutput,'(2a)') &
                '#     time      Qnet        H          LE         G0  ', &
-               '   tendskin       rs         ra        tskin' 
+               '   tendskin       rs         ra        tskin'
         write(ifoutput,'(2a)') &
                '#      [s]     [W/m2]     [W/m2]     [W/m2]     [W/m2]  ', &
-               '   [W/m2]      [s/m]      [s/m]        [K]' 
+               '   [W/m2]      [s/m]      [s/m]        [K]'
         close(ifoutput)
+      end if
+      if (lnetcdf) then
+        varnames( 1) ="cc"
+        varnames( 2) ="zcbase"
+        varnames( 3) ="z_ctop_avg"
+        varnames( 4) ="z_ctop_max"
+        varnames( 5) ="zi"
+        varnames( 6) ="we"
+        varnames( 7) ="LWP"
+        varnames( 8) ="LWP_max"
+        varnames( 9) ="w_max"
+        varnames(10) ="tke"
+        varnames(11) ="ql_max"
+        varnames(12) ="ust"
+        varnames(13) ="tst"
+        varnames(14) ="qst"
+        varnames(15) ="obukh"
+        varnames(16) ="thls"
+        varnames(17) ="z0"
+        varnames(18) ="wthls"
+        varnames(19) ="wthvs"
+        varnames(20) ="wqls"
+        call inittstat_nc(nvar,varid,varnames)
       end if
     end if
 
@@ -167,6 +196,7 @@ contains
     use modsurface, only : wtsurf, wqsurf, isurf,ustar,tstar,qstar,z0,oblav,qts,thls,&
                            Qnet, H, LE, G0, rs, ra, tskin, tendskin
     use modmpi,     only : my_real,mpi_sum,mpi_max,mpi_min,comm3d,mpierr,myid
+    use modstat_nc,  only : lnetcdf, writetstat_nc
     implicit none
 
     real   :: zbaseavl, ztopavl, ztopmaxl, ztop,zbaseminl
@@ -176,6 +206,7 @@ contains
     real   :: usttst, ustqst, usttstl, ustqstl
     real   :: wts, wqls,wtvs
     real   :: c1,c2 !Used to calculate wthvs
+    real,dimension(nvar) :: vars
 
     ! lsm variables
     real   :: Qnetavl, Havl, LEavl, G0avl, tendskinavl, rsavl, raavl, tskinavl
@@ -260,7 +291,7 @@ contains
     do  i=2,i1
     do  j=2,j1
       ztop  = 0.0
-      
+
       do  k=1,kmax
         if (ql0(i,j,k) > 0) ztop = zf(k)
         wmaxl = max(wm(i,j,k),wmaxl)
@@ -341,7 +372,7 @@ contains
     if(isurf < 3) then
       call MPI_ALLREDUCE(usttstl, usttst, 1,  MY_REAL,MPI_SUM, comm3d,mpierr)
       call MPI_ALLREDUCE(ustqstl, ustqst, 1,  MY_REAL,MPI_SUM, comm3d,mpierr)
-    
+
       usttst = usttst / rslabs
       ustqst = ustqst / rslabs
     end if
@@ -379,14 +410,14 @@ contains
       call MPI_ALLREDUCE(rsavl,       rsav,       1,  MY_REAL,MPI_SUM, comm3d,mpierr)
       call MPI_ALLREDUCE(raavl,       raav,       1,  MY_REAL,MPI_SUM, comm3d,mpierr)
       call MPI_ALLREDUCE(tskinavl,    tskinav,    1,  MY_REAL,MPI_SUM, comm3d,mpierr)
-      
-      Qnetav        = Qnetav      / rslabs 
-      Hav           = Hav         / rslabs 
-      LEav          = LEav        / rslabs 
-      G0av          = G0av        / rslabs 
+
+      Qnetav        = Qnetav      / rslabs
+      Hav           = Hav         / rslabs
+      LEav          = LEav        / rslabs
+      G0av          = G0av        / rslabs
       tendskinav    = tendskinav  / rslabs
-      rsav          = rsav        / rslabs 
-      raav          = raav        / rslabs 
+      rsav          = rsav        / rslabs
+      raav          = raav        / rslabs
       tskinav       = tskinav     / rslabs
     end if
 
@@ -430,16 +461,41 @@ contains
         !tmlsm
         open (ifoutput,file='tmlsm.'//cexpnr,position='append')
         write(ifoutput,'(f10.2,8f11.3)') &
-            timee       ,& 
-            Qnetav      ,&  
-            Hav         ,&           
-            LEav        ,&           
-            G0av        ,&           
+            timee       ,&
+            Qnetav      ,&
+            Hav         ,&
+            LEav        ,&
+            G0av        ,&
             tendskinav  ,&
-            rsav        ,&           
-            raav        ,&           
-            tskinav                
+            rsav        ,&
+            raav        ,&
+            tskinav
         close(ifoutput)
+      end if
+      if (lnetcdf) then
+        vars( 1) = cc
+        vars( 2) = zbaseav
+        vars( 3) = ztopav
+        vars( 4) = ztopmax
+        vars( 5) = zi
+        vars( 6) = we
+        vars( 7) = qlintav
+        vars( 8) = qlintmax
+        vars( 9) = wmax
+        vars(10) = tke_tot*dzf(1)
+        vars(11) = qlmax
+        vars(12) = ust
+        vars(13) = tst
+        vars(14) = qst
+        vars(15) = oblav
+        vars(16) = thls
+        vars(17) = z0
+        vars(18) = wts
+        vars(19) = wtvs
+        vars(20) = wqls
+        call writetstat_nc(nvar,varid,vars,nwrite)
+        nwrite = nwrite + 1
+
       end if
     end if
 
