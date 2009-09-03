@@ -651,7 +651,7 @@ contains
                            tsoil,tskin,isurf,ksoilmax
     use modfields,  only : u0,v0,w0,thl0,qt0,ql0,ql0h,e120,dthvdz,presf,presh,sv0
     use modglobal,  only : i1,i2,ih,j1,j2,jh,k1,dtheta,dqt,dsv,startfile,timee,&
-                          iexpnr,ntimee,rk3step,ifinput,nsv,runtime,dt
+                          iexpnr,ntimee,rk3step,ifinput,nsv,runtime,dt,cu,cv
     use modmpi,     only : cmyid, myid
     use modsubgrid, only : ekm
 
@@ -669,7 +669,9 @@ contains
     open(unit=ifinput,file=name,form='unformatted', status='old')
 
       read(ifinput)  (((u0    (i,j,k),i=2-ih,i1+ih),j=2-jh,j1+jh),k=1,k1)
+      u0 = u0-cu
       read(ifinput)  (((v0    (i,j,k),i=2-ih,i1+ih),j=2-jh,j1+jh),k=1,k1)
+      v0 = v0-cv
       read(ifinput)  (((w0    (i,j,k),i=2-ih,i1+ih),j=2-jh,j1+jh),k=1,k1)
       read(ifinput)  (((thl0  (i,j,k),i=2-ih,i1+ih),j=2-jh,j1+jh),k=1,k1)
       read(ifinput)  (((qt0   (i,j,k),i=2-ih,i1+ih),j=2-jh,j1+jh),k=1,k1)
@@ -718,7 +720,7 @@ contains
                           tsoil,tskin,ksoilmax,isurf,ksoilmax
     use modfields, only : u0,v0,w0,thl0,qt0,ql0,ql0h,e120,dthvdz,presf,presh,sv0
     use modglobal, only : i1,i2,ih,j1,j2,jh,k1,dsv,trestart,tnextrestart,dt_lim,timee,cexpnr,&
-                          ntimee,rk3step,ifoutput,nsv,runtime,dtheta,dqt,dt
+                          ntimee,rk3step,ifoutput,nsv,runtime,dtheta,dqt,dt,cu,cv
     use modmpi,    only : cmyid,myid
     use modsubgrid,only : ekm
 
@@ -750,8 +752,8 @@ contains
       name(16:18)= cexpnr
       open  (ifoutput,file=name,form='unformatted',status='replace')
 
-      write(ifoutput)  (((u0    (i,j,k),i=2-ih,i1+ih),j=2-jh,j1+jh),k=1,k1)
-      write(ifoutput)  (((v0    (i,j,k),i=2-ih,i1+ih),j=2-jh,j1+jh),k=1,k1)
+      write(ifoutput)  (((cu+u0 (i,j,k),i=2-ih,i1+ih),j=2-jh,j1+jh),k=1,k1)
+      write(ifoutput)  (((cv+v0 (i,j,k),i=2-ih,i1+ih),j=2-jh,j1+jh),k=1,k1)
       write(ifoutput)  (((w0    (i,j,k),i=2-ih,i1+ih),j=2-jh,j1+jh),k=1,k1)
       write(ifoutput)  (((thl0  (i,j,k),i=2-ih,i1+ih),j=2-jh,j1+jh),k=1,k1)
       write(ifoutput)  (((qt0   (i,j,k),i=2-ih,i1+ih),j=2-jh,j1+jh),k=1,k1)
