@@ -147,7 +147,7 @@ contains
   subroutine initgenstat
     use modmpi,    only : myid,mpierr, comm3d,my_real, mpi_logical
     use modglobal, only : dtmax, kmax,k1, nsv,ifnamopt,fname_options, ifoutput, cexpnr,dtav_glob,timeav_glob,ladaptive,dt_lim,btime
-    use modstat_nc, only : lnetcdf, open_nc,define_nc
+    use modstat_nc, only : lnetcdf, open_nc,define_nc,ncinfo
 
 
     implicit none
@@ -329,6 +329,7 @@ contains
       if (lnetcdf) then
         lfname = trim(fname)//cexpnr
         ncname( 1,:)=(/'time','Time','s','time'/)
+        call ncinfo(ncname( 1,:),'time','Time','s','time')
         ncname( 2,:)=(/'zt','Vertical displacement of cell centers','m','zt'/)
         ncname( 3,:)=(/'zm','Vertical displacement of cell edges','m','zm'/)
         ncname( 4,:)=(/'dn0','Base-state density','kg/m^3','zt'/)
@@ -368,7 +369,6 @@ contains
         ncname(38,:)=(/'th2r','Resolved theta variance','K^2','zt'/)
         ncname(39,:)=(/'qt2r','Resolved total water variance','(kg/kg)^2','zt'/)
         ncname(40,:)=(/'ql2r','Resolved liquid water variance','(kg/kg)^2','zt'/)
-
         call open_nc(lfname,  ncid,.true.,idum,n3=kmax)
         call define_nc( ncid, NVar, ncname)
       end if

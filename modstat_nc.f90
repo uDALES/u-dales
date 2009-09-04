@@ -252,6 +252,17 @@ subroutine define_nc(ncID, nVar, sx)
 
   end subroutine writestat3D_nc
 
+  subroutine ncinfo(out,in1,in2,in3,in4)
+
+    implicit none
+    character(*), dimension(4),intent(out) ::out
+    character(*), intent(in) ::in1,in2,in3,in4
+    out(1) = in1
+    out(2) = in2
+    out(3) = in3
+    out(4) = in4
+  end subroutine ncinfo
+
   subroutine nchandle_error(status)
     use netcdf
     implicit none
