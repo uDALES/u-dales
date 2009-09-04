@@ -69,7 +69,7 @@ contains
     use modglobal, only : ifnamopt, fname_options,cexpnr,dtmax,ifoutput,dtav_glob,ladaptive,k1,kmax,rd,rv,dt_lim,btime
     use modfields, only : thlprof,qtprof,svprof
     use modsurface, only : isurf
-    use modstat_nc, only : lnetcdf, open_nc,define_nc
+    use modstat_nc, only : lnetcdf, open_nc,define_nc,ncinfo
     implicit none
     integer :: ierr,k,location = 1,idum
     real :: gradient = 0.0
@@ -164,27 +164,27 @@ contains
       if (lnetcdf) then
         dtav = dtav_glob
         lfname = trim(fname)//cexpnr
-        ncname( 1,:)=(/'time','Time of the timeseries','s','time'/)
-        ncname( 2,:)=(/'cfrac','Cloud fraction','-','time'/)
-        ncname( 3,:)=(/'zb','Cloud-base height','m','time'/)
-        ncname( 4,:)=(/'zc_av','Average Cloud-top height','m','time'/)
-        ncname( 5,:)=(/'zc_max','Maximum Cloud-top height','m','time'/)
-        ncname( 6,:)=(/'zi','Boundary layer height','m','time'/)
-        ncname( 7,:)=(/'we','Entrainment velocity','m/s','time'/)
-        ncname( 8,:)=(/'lwp_bar','Liquid-water path','kg/m^2','time'/)
-        ncname( 9,:)=(/'lwp_max','Maximum Liquid-water path','kg/m^2','time'/)
-        ncname(10,:)=(/'wmax','Maximum vertical velocity','m/s','time'/)
-        ncname(11,:)=(/'vtke','Vertical integral of total TKE','kg/s','time'/)
-        ncname(12,:)=(/'lmax','Maximum liquid water mixing ratio','kg/kg','time'/)
-        ncname(13,:)=(/'ustar','Surface friction velocity','m/s','time'/)
-        ncname(14,:)=(/'tstr','Turbulent temperature scale','K','time'/)
-        ncname(15,:)=(/'qtstr','Turbulent humidity scale','K','time'/)
-        ncname(16,:)=(/'obukh','Obukhov Length','m','time'/)
-        ncname(17,:)=(/'tsrf','Surface liquid water potential temperature','K','time'/)
-        ncname(18,:)=(/'z0','Roughness height','m','time'/)
-        ncname(19,:)=(/'shf_bar','Sensible heat flux','W/m^2','time'/)
-        ncname(20,:)=(/'sfcbflx','Surface Buoyancy Flux','m/s^2','time'/)
-        ncname(21,:)=(/'lhf_bar','Latent heat flux','W/m^2','time'/)
+        call ncinfo(ncname( 1,:),'time','Time of the timeseries','s','time')
+        call ncinfo(ncname( 2,:),'cfrac','Cloud fraction','-','time')
+        call ncinfo(ncname( 3,:),'zb','Cloud-base height','m','time')
+        call ncinfo(ncname( 4,:),'zc_av','Average Cloud-top height','m','time')
+        call ncinfo(ncname( 5,:),'zc_max','Maximum Cloud-top height','m','time')
+        call ncinfo(ncname( 6,:),'zi','Boundary layer height','m','time')
+        call ncinfo(ncname( 7,:),'we','Entrainment velocity','m/s','time')
+        call ncinfo(ncname( 8,:),'lwp_bar','Liquid-water path','kg/m^2','time')
+        call ncinfo(ncname( 9,:),'lwp_max','Maximum Liquid-water path','kg/m^2','time')
+        call ncinfo(ncname(10,:),'wmax','Maximum vertical velocity','m/s','time')
+        call ncinfo(ncname(11,:),'vtke','Vertical integral of total TKE','kg/s','time')
+        call ncinfo(ncname(12,:),'lmax','Maximum liquid water mixing ratio','kg/kg','time')
+        call ncinfo(ncname(13,:),'ustar','Surface friction velocity','m/s','time')
+        call ncinfo(ncname(14,:),'tstr','Turbulent temperature scale','K','time')
+        call ncinfo(ncname(15,:),'qtstr','Turbulent humidity scale','K','time')
+        call ncinfo(ncname(16,:),'obukh','Obukhov Length','m','time')
+        call ncinfo(ncname(17,:),'tsrf','Surface liquid water potential temperature','K','time')
+        call ncinfo(ncname(18,:),'z0','Roughness height','m','time')
+        call ncinfo(ncname(19,:),'shf_bar','Sensible heat flux','W/m^2','time')
+        call ncinfo(ncname(20,:),'sfcbflx','Surface Buoyancy Flux','m/s^2','time')
+        call ncinfo(ncname(21,:),'lhf_bar','Latent heat flux','W/m^2','time')
         call open_nc(lfname,  ncid,.true.,idum)
         call define_nc( ncid, NVar, ncname)
       end if

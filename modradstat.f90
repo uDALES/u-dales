@@ -75,7 +75,7 @@ contains
   subroutine initradstat
     use modmpi,    only : myid,mpierr, comm3d,my_real, mpi_logical
     use modglobal, only : dtmax, k1,kmax, ifnamopt,fname_options, ifoutput, cexpnr,dtav_glob,timeav_glob,ladaptive,dt_lim,btime
-    use modstat_nc, only : lnetcdf, open_nc,define_nc
+    use modstat_nc, only : lnetcdf, open_nc,define_nc,ncinfo
     use modgenstat, only : dtav_prof=>dtav, timeav_prof=>timeav, fname_prof=>fname,ncid_prof=>ncid
 
     implicit none
@@ -149,12 +149,12 @@ contains
       timeav = timeav_prof
       if (myid==0) then
         lfname = trim(fname_prof)//cexpnr
-        ncname( 1,:)=(/'tllwtend','Long wave radiative tendency','K/s','zt'/)
-        ncname( 2,:)=(/'tlswtend','Short wave radiative tendency','K/s','zt'/)
-        ncname( 3,:)=(/'tlradls','Large scale radiative tendency','K/s','zt'/)
-        ncname( 4,:)=(/'lwu','Long wave upward radiative flux','W/m^2','zm'/)
-        ncname( 5,:)=(/'lwd','Long wave downward radiative flux','W/m^2','zm'/)
-        ncname( 6,:)=(/'swd','Short wave downward radiative flux','W/m^2','zm'/)
+        call ncinfo(ncname( 1,:),'tllwtend','Long wave radiative tendency','K/s','zt')
+        call ncinfo(ncname( 2,:),'tlswtend','Short wave radiative tendency','K/s','zt')
+        call ncinfo(ncname( 3,:),'tlradls','Large scale radiative tendency','K/s','zt')
+        call ncinfo(ncname( 4,:),'lwu','Long wave upward radiative flux','W/m^2','zm')
+        call ncinfo(ncname( 5,:),'lwd','Long wave downward radiative flux','W/m^2','zm')
+        call ncinfo(ncname( 6,:),'swd','Short wave downward radiative flux','W/m^2','zm')
 
         call open_nc(lfname,  ncid_prof,.false.,frontrun,n3=kmax)
         call define_nc( ncid_prof, NVar, ncname)
