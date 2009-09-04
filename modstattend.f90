@@ -50,6 +50,10 @@ module modstattend
 !   private
 !   public :: initstattend, stattend, exitstattend
   save
+!NetCDF variables
+  integer,parameter :: nvar = 43
+  character(80),dimension(nvar,4) :: ncname
+  integer :: frontrun
 
   real    :: dtav, timeav,tnext,tnextwrite
   integer,parameter :: tend_tot=1,tend_start=1,tend_adv=2,tend_subg=3,tend_force=4,&
@@ -63,8 +67,12 @@ module modstattend
 contains
   subroutine initstattend
     use modmpi,   only : mpierr,my_real,mpi_logical,comm3d,myid
-    use modglobal,only : dtmax,imax,jmax,ifnamopt,fname_options,k1,dtav_glob,timeav_glob,ladaptive, dt_lim,btime
+    use modglobal,only : cexpnr,dtmax,imax,jmax,kmax,ifnamopt,fname_options,k1,dtav_glob,timeav_glob,ladaptive, dt_lim,btime
+    use modstat_nc, only : lnetcdf, open_nc,define_nc
+    use modgenstat, only : dtav_prof=>dtav, timeav_prof=>timeav, fname_prof=>fname,ncid_prof=>ncid
+
     implicit none
+    character(40) :: lfname
     integer :: ierr
 
 
@@ -110,12 +118,66 @@ contains
     wpav = 0
     thlpav = 0
     qtpav = 0
+    if (lnetcdf) then
+      dtav = dtav_prof
+      timeav = timeav_prof
+      if (myid==0) then
+        lfname = trim(fname_prof)//cexpnr
+        ncname( 1,:)=(/'utendadv','U advective tendency','m/s^2','zt'/)
+        ncname( 2,:)=(/'utenddif','U diffusive tendency','m/s^2','zt'/)
+        ncname( 3,:)=(/'utendfor','U tendency due to other forces','m/s^2','zt'/)
+        ncname( 4,:)=(/'utendcor','U coriolis tendency','m/s^2','zt'/)
+        ncname( 5,:)=(/'utendls','U large scale tendency','m/s^2','zt'/)
+        ncname( 6,:)=(/'utendtop','U top boundary tendency','m/s^2','zt'/)
+        ncname( 7,:)=(/'utendpois','U pressure gradient tendency','m/s^2','zt'/)
+        ncname( 8,:)=(/'utendaddon','U in addons tendency','m/s^2','zt'/)
+        ncname( 9,:)=(/'utendtot','U total tendency','m/s^2','zt'/)
+        ncname(10,:)=(/'vtendadv','V advective tendency','m/s^2','zt'/)
+        ncname(11,:)=(/'vtenddif','V diffusive tendency','m/s^2','zt'/)
+        ncname(12,:)=(/'vtendfor','V tendency due to other forces','m/s^2','zt'/)
+        ncname(13,:)=(/'vtendcor','V coriolis tendency','m/s^2','zt'/)
+        ncname(14,:)=(/'vtendls','V large scale tendency','m/s^2','zt'/)
+        ncname(15,:)=(/'vtendtop','V top boundary tendency','m/s^2','zt'/)
+        ncname(16,:)=(/'vtendpois','V pressure gradient tendency','m/s^2','zt'/)
+        ncname(17,:)=(/'vtendaddon','V in addons tendency','m/s^2','zt'/)
+        ncname(18,:)=(/'vtendtot','V total tendency','m/s^2','zt'/)
+        ncname(19,:)=(/'wtendadv','W advective tendency','m/s^2','zm'/)
+        ncname(20,:)=(/'wtenddif','W diffusive tendency','m/s^2','zm'/)
+        ncname(21,:)=(/'wtendfor','W tendency due to other forces','m/s^2','zm'/)
+        ncname(22,:)=(/'wtendcor','W coriolis tendency','m/s^2','zm'/)
+        ncname(23,:)=(/'wtendls','W large scale tendency','m/s^2','zm'/)
+        ncname(24,:)=(/'wtendtop','W top boundary tendency','m/s^2','zm'/)
+        ncname(25,:)=(/'wtendpois','W pressure gradient tendency','m/s^2','zm'/)
+        ncname(26,:)=(/'wtendaddon','W in addons tendency','m/s^2','zm'/)
+        ncname(27,:)=(/'wtendtot','W total tendency','m/s^2','zm'/)
+        ncname(28,:)=(/'tltendadv','theta_l advective tendency','K/s','zt'/)
+        ncname(29,:)=(/'tltenddif','theta_l diffusive tendency','K/s','zt'/)
+        ncname(30,:)=(/'tltendrad','theta_l radiative tendency','K/s','zt'/)
+        ncname(31,:)=(/'tltendmicro','theta_l microphysical tendency','K/s','zt'/)
+        ncname(32,:)=(/'tltendls','theta_l large scale tendency','K/s','zt'/)
+        ncname(33,:)=(/'tltendtop','theta_l  top boundary tendency','K/s','zt'/)
+        ncname(34,:)=(/'tltendaddon','theta_l in addons tendency','K/s','zt'/)
+        ncname(35,:)=(/'tltendtot','theta_l total tendency','K/s','zt'/)
+        ncname(36,:)=(/'qttendadv','total water content advective tendency','kg/kg/s','zt'/)
+        ncname(37,:)=(/'qttenddif','total water content diffusive tendency','kg/kg/s','zt'/)
+        ncname(38,:)=(/'qttendrad','total water content radiative tendency','kg/kg/s','zt'/)
+        ncname(39,:)=(/'qttendmicro','total water content microphysical tendency','kg/kg/s','zt'/)
+        ncname(40,:)=(/'qttendls','total water content large scale tendency','kg/kg/s','zt'/)
+        ncname(41,:)=(/'qttendtop','total water content  top boundary tendency','kg/kg/s','zt'/)
+        ncname(42,:)=(/'qttendaddon','total water content in addons tendency','kg/kg/s','zt'/)
+        ncname(43,:)=(/'qttendtot','total water content total tendency','kg/kg/s','zt'/)
+
+        call open_nc(lfname,  ncid_prof,.false.,frontrun,n3=kmax)
+        call define_nc( ncid_prof, NVar, ncname)
+      end if
+
+   end if
 
   end subroutine initstattend
 
   subroutine stattend(tendterm,lastterm)
     use modmpi,    only : myid,slabsum
-    use modglobal, only : ih,jh,i1,j1,k1,rk3step,timee,dt_lim,rslabs
+    use modglobal, only : ih,jh,i1,j1,kmax,k1,rk3step,timee,dt_lim,rslabs
     use modfields, only : up,vp,wp,thlp,qtp
     implicit none
     integer, intent(in)           :: tendterm
@@ -181,10 +243,13 @@ contains
 
 
   subroutine writestattend
-    use modglobal, only : timee,ifoutput,kmax, zf, cexpnr
+    use modglobal, only : timee,ifoutput,kmax,k1, zf, cexpnr
     use modfields, only : presf
+    use modstat_nc, only: lnetcdf, writestat1D_nc
+    use modgenstat, only: ncid_prof=>ncid,nrec_prof=>nrec
     implicit none
-
+    real,dimension(k1,nvar) :: vars
+     integer :: nrec
     integer nsecs, nhrs, nminut,k
 
     nsecs   = nint(timee)
@@ -368,6 +433,53 @@ contains
             qtpmn   (k,tend_tot), &
                           k=1,kmax)
      close(ifoutput)
+      if (lnetcdf) then
+        vars(:, 1) =upmn(:,tend_adv)
+        vars(:, 2) =upmn(:,tend_subg)
+        vars(:, 3) =upmn(:,tend_force)
+        vars(:, 4) =upmn(:,tend_coriolis)
+        vars(:, 5) =upmn(:,tend_ls)
+        vars(:, 6) =upmn(:,tend_topbound)
+        vars(:, 7) =upmn(:,tend_pois)
+        vars(:, 8) =upmn(:,tend_addon)
+        vars(:, 9) =upmn(:,tend_tot)
+        vars(:,10) =vpmn(:,tend_adv)
+        vars(:,11) =vpmn(:,tend_subg)
+        vars(:,12) =vpmn(:,tend_force)
+        vars(:,13) =vpmn(:,tend_coriolis)
+        vars(:,14) =vpmn(:,tend_ls)
+        vars(:,15) =vpmn(:,tend_topbound)
+        vars(:,16) =vpmn(:,tend_pois)
+        vars(:,17) =vpmn(:,tend_addon)
+        vars(:,18) =vpmn(:,tend_tot)
+        vars(:,19) =wpmn(:,tend_adv)
+        vars(:,20) =wpmn(:,tend_subg)
+        vars(:,21) =wpmn(:,tend_force)
+        vars(:,22) =wpmn(:,tend_coriolis)
+        vars(:,23) =wpmn(:,tend_ls)
+        vars(:,24) =wpmn(:,tend_topbound)
+        vars(:,25) =wpmn(:,tend_pois)
+        vars(:,26) =wpmn(:,tend_addon)
+        vars(:,27) =wpmn(:,tend_tot)
+        vars(:,28) =thlpmn(:,tend_adv)
+        vars(:,29) =thlpmn(:,tend_subg)
+        vars(:,30) =thlpmn(:,tend_rad)
+        vars(:,31) =thlpmn(:,tend_micro)
+        vars(:,32) =thlpmn(:,tend_ls)
+        vars(:,33) =thlpmn(:,tend_topbound)
+        vars(:,34) =thlpmn(:,tend_addon)
+        vars(:,35) =thlpmn(:,tend_tot)
+        vars(:,36) =qtpmn(:,tend_adv)
+        vars(:,37) =qtpmn(:,tend_subg)
+        vars(:,38) =qtpmn(:,tend_rad)
+        vars(:,39) =qtpmn(:,tend_micro)
+        vars(:,40) =qtpmn(:,tend_ls)
+        vars(:,41) =qtpmn(:,tend_topbound)
+        vars(:,42) =qtpmn(:,tend_addon)
+        vars(:,43) =qtpmn(:,tend_tot)
+        nrec=nrec_prof+frontrun
+        call writestat1D_nc(ncid_prof,nvar,ncname,vars,nrec,.false.,1,kmax,1,k1)
+      end if
 
   end subroutine writestattend
 

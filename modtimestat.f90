@@ -44,10 +44,10 @@ implicit none
 ! PUBLIC :: inittimestat, timestat
 save
 !NetCDF variables
-  integer,parameter :: nvar = 20
-  character(20),dimension(nvar) :: varnames
-  integer, dimension(nvar) :: varid
-  integer :: nwrite =1
+  integer,parameter :: nvar = 21
+  integer :: ncid,nrec = 0
+  character(80) :: fname = 'tmser.nc.'
+  character(80),dimension(nvar,4) :: ncname
 
   real    :: dtav,tnext
   logical :: ltimestat= .false. ! switch for conditional sampling cloud (on/off)
@@ -69,11 +69,12 @@ contains
     use modglobal, only : ifnamopt, fname_options,cexpnr,dtmax,ifoutput,dtav_glob,ladaptive,k1,kmax,rd,rv,dt_lim,btime
     use modfields, only : thlprof,qtprof,svprof
     use modsurface, only : isurf
-    use modstat_nc, only : lnetcdf, inittstat_nc
+    use modstat_nc, only : lnetcdf, open_nc,define_nc
     implicit none
-    integer :: ierr,k,location = 1
+    integer :: ierr,k,location = 1,idum
     real :: gradient = 0.0
     real, allocatable,dimension(:) :: profile
+    character(40) :: lfname
 
 
     namelist/NAMTIMESTAT/ &
@@ -161,27 +162,31 @@ contains
         close(ifoutput)
       end if
       if (lnetcdf) then
-        varnames( 1) ="cc"
-        varnames( 2) ="zcbase"
-        varnames( 3) ="z_ctop_avg"
-        varnames( 4) ="z_ctop_max"
-        varnames( 5) ="zi"
-        varnames( 6) ="we"
-        varnames( 7) ="LWP"
-        varnames( 8) ="LWP_max"
-        varnames( 9) ="w_max"
-        varnames(10) ="tke"
-        varnames(11) ="ql_max"
-        varnames(12) ="ust"
-        varnames(13) ="tst"
-        varnames(14) ="qst"
-        varnames(15) ="obukh"
-        varnames(16) ="thls"
-        varnames(17) ="z0"
-        varnames(18) ="wthls"
-        varnames(19) ="wthvs"
-        varnames(20) ="wqls"
-        call inittstat_nc(nvar,varid,varnames)
+        dtav = dtav_glob
+        lfname = trim(fname)//cexpnr
+        ncname( 1,:)=(/'time','Time of the timeseries','s','time'/)
+        ncname( 2,:)=(/'cfrac','Cloud fraction','-','time'/)
+        ncname( 3,:)=(/'zb','Cloud-base height','m','time'/)
+        ncname( 4,:)=(/'zc_av','Average Cloud-top height','m','time'/)
+        ncname( 5,:)=(/'zc_max','Maximum Cloud-top height','m','time'/)
+        ncname( 6,:)=(/'zi','Boundary layer height','m','time'/)
+        ncname( 7,:)=(/'we','Entrainment velocity','m/s','time'/)
+        ncname( 8,:)=(/'lwp_bar','Liquid-water path','kg/m^2','time'/)
+        ncname( 9,:)=(/'lwp_max','Maximum Liquid-water path','kg/m^2','time'/)
+        ncname(10,:)=(/'wmax','Maximum vertical velocity','m/s','time'/)
+        ncname(11,:)=(/'vtke','Vertical integral of total TKE','kg/s','time'/)
+        ncname(12,:)=(/'lmax','Maximum liquid water mixing ratio','kg/kg','time'/)
+        ncname(13,:)=(/'ustar','Surface friction velocity','m/s','time'/)
+        ncname(14,:)=(/'tstr','Turbulent temperature scale','K','time'/)
+        ncname(15,:)=(/'qtstr','Turbulent humidity scale','K','time'/)
+        ncname(16,:)=(/'obukh','Obukhov Length','m','time'/)
+        ncname(17,:)=(/'tsrf','Surface liquid water potential temperature','K','time'/)
+        ncname(18,:)=(/'z0','Roughness height','m','time'/)
+        ncname(19,:)=(/'shf_bar','Sensible heat flux','W/m^2','time'/)
+        ncname(20,:)=(/'sfcbflx','Surface Buoyancy Flux','m/s^2','time'/)
+        ncname(21,:)=(/'lhf_bar','Latent heat flux','W/m^2','time'/)
+        call open_nc(lfname,  ncid,.true.,idum)
+        call define_nc( ncid, NVar, ncname)
       end if
     end if
 
@@ -473,28 +478,29 @@ contains
         close(ifoutput)
       end if
       if (lnetcdf) then
-        vars( 1) = cc
-        vars( 2) = zbaseav
-        vars( 3) = ztopav
-        vars( 4) = ztopmax
-        vars( 5) = zi
-        vars( 6) = we
-        vars( 7) = qlintav
-        vars( 8) = qlintmax
-        vars( 9) = wmax
-        vars(10) = tke_tot*dzf(1)
-        vars(11) = qlmax
-        vars(12) = ust
-        vars(13) = tst
-        vars(14) = qst
-        vars(15) = oblav
-        vars(16) = thls
-        vars(17) = z0
-        vars(18) = wts
-        vars(19) = wtvs
-        vars(20) = wqls
-        call writetstat_nc(nvar,varid,vars,nwrite)
-        nwrite = nwrite + 1
+        vars( 1) = timee
+        vars( 2) = cc
+        vars( 3) = zbaseav
+        vars( 4) = ztopav
+        vars( 5) = ztopmax
+        vars( 6) = zi
+        vars( 7) = we
+        vars( 8) = qlintav
+        vars( 9) = qlintmax
+        vars(10) = wmax
+        vars(11) = tke_tot*dzf(1)
+        vars(12) = qlmax
+        vars(13) = ust
+        vars(14) = tst
+        vars(15) = qst
+        vars(16) = oblav
+        vars(17) = thls
+        vars(18) = z0
+        vars(19) = wts
+        vars(20) = wtvs
+        vars(21) = wqls
+        call writetstat_nc(ncid,nvar,ncname,vars,nrec,.true.)
+
 
       end if
     end if
@@ -618,6 +624,11 @@ contains
   end subroutine calcblheight
 
   subroutine exittimestat
+    use modmpi, only : myid
+    use modstat_nc, only : exitstat_nc,lnetcdf
+    implicit none
+
+    if(lnetcdf .and. myid==0) call exitstat_nc(ncid)
   end subroutine exittimestat
 
 end module modtimestat

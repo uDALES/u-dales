@@ -14,23 +14,26 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-! Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
+! Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI,MPI-M
 !----------------------------------------------------------------------------
 !
-!
+! TODO: Enable 2D and 3D grids
 module modstat_nc
-    use typeSizes
     use netcdf
-    integer :: ncid,ttsid,tprid,zid
+    implicit none
+!     integer :: ncid,ttsid,tprid,zid
     logical :: lnetcdf
+
+    integer, save :: timeID=0, ztID=0, zmID=0, xtID=0, xmID=0, ytID=0, ymID=0
+
 contains
+
+
   subroutine initstat_nc
     use modglobal, only : kmax,ifnamopt,fname_options,iexpnr
     use modmpi,    only : mpierr,mpi_logical,comm3d,myid
     implicit none
 
-    integer             :: status
-    character(len = 20) :: ncfile
     integer             :: ierr
 
     namelist/NAMNETCDFSTATS/ &
@@ -44,137 +47,212 @@ contains
     end if
 
     call MPI_BCAST(lnetcdf    ,1,MPI_LOGICAL, 0,comm3d,mpierr)
-
-    if(.not.(lnetcdf)) return
-    if (myid==0) then
-
-      ncfile = 'stat.nc.xxx'
-      write(ncfile(9:11),'(i3.3)') iexpnr
-      write(6,*) "NETCDFSTATS: Creating: ", ncfile
-
-      !create file
-      status = nf90_create(ncfile, nf90_clobber, ncid)
-      if (status /= nf90_noerr) call nchandle_error(status)
-
-      !create dimensions
-      status = nf90_def_dim(ncid, "z", kmax, zid)
-      if (status /= nf90_noerr) call nchandle_error(status)
-      status = nf90_def_dim(ncid, "t_pr", nf90_unlimited, tprid)
-      if (status /= nf90_noerr) call nchandle_error(status)
-      status = nf90_def_dim(ncid, "t_ts", nf90_unlimited, ttsid)
-      if (status /= nf90_noerr) call nchandle_error(status)
-      status = nf90_enddef(ncid)
-      if (status /= nf90_noerr) call nchandle_error(status)
-
-
-    end if
-
-
   return
   end subroutine initstat_nc
+!
+! ----------------------------------------------------------------------
+! Subroutine Open_NC: Opens a NetCDF File and identifies starting record
+!
+subroutine open_nc (fname, ncid,lead,frontrun, n1, n2, n3)
+  use modglobal, only : author,version
+  implicit none
 
-  subroutine exitstat_nc
-    use modmpi, only : myid
+ integer, intent(inout):: ncid
+ integer, intent(out) :: frontrun
+ logical, intent(in) :: lead
+  integer, optional, intent (in) :: n1, n2, n3
+ character (len=40), intent (in) :: fname
 
-    implicit none
+ character (len=8):: date
+ integer :: iret
+ logical :: lopen
 
-    integer status
+    inquire(file=trim(fname),opened=lopen)
 
-    if(lnetcdf .and. myid==0) then
-
-      status = nf90_close(ncid)
-      if (status /= nf90_noerr) call nchandle_error(status)
-      status = nf90_close(ncid)
-      if (status /= nf90_noerr) call nchandle_error(status)
+  if (.not.lopen) then
+    if (.not. lead) frontrun=1
+    call date_and_time(date)
+    iret = nf90_create(fname,NF90_SHARE,ncid)
+    iret = nf90_put_att(ncid,NF90_GLOBAL,'title',fname)
+    iret = nf90_put_att(ncid,NF90_GLOBAL,'history','Created on '//date)
+    iret = nf90_put_att(ncid, NF90_GLOBAL, 'Source',trim(version))
+    iret = nf90_put_att(ncid, NF90_GLOBAL, 'Author',trim(author))
+    iret = nf90_put_att(ncid, NF90_GLOBAL, '_FillValue',-999.)
+    if (present(n1)) then
+      iret = nf90_def_dim(ncID, 'xt', n1, xtID)
+      iret = nf90_def_dim(ncID, 'xm', n1, xmID)
     end if
+    if (present(n2)) then
+      iret = nf90_def_dim(ncID, 'yt', n2, ytID)
+      iret = nf90_def_dim(ncID, 'ym', n2, ymID)
+    end if
+    if (present(n3)) then
+      iret = nf90_def_dim(ncID, 'zt', n3, ztID)
+      iret = nf90_def_dim(ncID, 'zm', n3, zmID)
+    end if
+  else
+      iret = nf90_redef(ncid)
+  end if
+  iret = nf90_sync(ncid)
 
-  return
-  end subroutine exitstat_nc
+end subroutine open_nc
+!
+! ----------------------------------------------------------------------
+! Subroutine Define_NC: Defines the structure of the nc file (if not
+! already open)
+!
+subroutine define_nc(ncID, nVar, sx)
+  implicit none
+  integer, intent (in) :: nVar, ncID
+  character (len=80), intent (in) :: sx(nVar,4)
+
+  integer, save ::  dim_mttt(4) = 0, dim_tmtt(4) = 0, dim_ttmt(4) = 0, dim_tttt(4) = 0, dim_tt(2)= 0, dim_mt(2)= 0,dim_t0tt(3)=0,dim_m0tt(3)=0,dim_t0mt(3)=0,dim_tt0t(3)=0,dim_mt0t(3)=0,dim_tm0t(3)=0,dim_0ttt(3)=0,dim_0mtt(3)=0,dim_0tmt(3)=0
+
+  integer :: iret, n, VarID
+  dim_tt = (/ztId,timeId/)
+  dim_mt = (/zmId,timeId/)
+  dim_t0tt= (/xtID,ztID,timeId/)! thermo point
+  dim_t0mt= (/xtID,zmID,timeId/)! zpoint
+  dim_m0tt= (/xmID,ztID,timeId/)! upoint
+
+  dim_tt0t= (/xtID,ytID,timeId/)! thermo point
+  dim_tm0t= (/xtID,ymID,timeId/)! vpoint
+  dim_mt0t= (/xmID,ytID,timeId/)! upoint
+
+  dim_0ttt= (/ytID,ztID,timeId/)! thermo point
+  dim_0tmt= (/ytID,zmID,timeId/)! wpoint
+  dim_0mtt= (/ymID,ztID,timeId/)! vpoint
+
+  dim_tttt= (/xtID,ytID,ztID,timeId/)! thermo point
+  dim_ttmt= (/xtID,ytID,zmID,timeId/)! zpoint
+  dim_mttt= (/xmID,ytID,ztID,timeId/)! upoint
+  dim_tmtt= (/xtID,ymID,ztId,timeId/)! ypoint
+  do n=1,nVar
+    select case(trim(sx(n,4)))
+      case ('time')
+        iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,timeId,VarID)
+      case ('zt')
+        iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,ztID ,VarID)
+      case ('zm')
+        iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,zmID ,VarID)
+      case ('xt')
+        iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,xtID ,VarID)
+      case ('xm')
+        iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,xmID ,VarID)
+      case ('yt')
+        iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,ytID ,VarID)
+      case ('ym')
+        iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,ymID ,VarID)
+      case ('tttt')
+        iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_tttt,VarID)
+      case ('mttt')
+        iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_mttt,VarID)
+      case ('tmtt')
+          iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_tmtt,VarID)
+      case ('ttmt')
+          iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_ttmt,VarID)
+      case default
+      print *, 'ABORTING: Bad dimensional information'
+      stop
+      ! call appl_abort(0)
+    end select
+    iret=nf90_put_att(ncID,VarID,'longname',sx(n,2))
+    iret=nf90_put_att(ncID,VarID,'units',sx(n,3))
+  end do
+  iret= nf90_enddef(ncID)
+  iret= nf90_sync(ncID)
+  end subroutine define_nc
+
+  subroutine exitstat_nc(ncid)
+
+   implicit none
+   integer, intent(in) :: ncid
+   integer status
+
+   status = nf90_close(ncid)
+   if (status /= nf90_noerr) call nchandle_error(status)
+ end subroutine exitstat_nc
 
 
-  subroutine initprof_nc(nvar,varid,varnames)
-    use modglobal, only : kmax
-    use modmpi,    only : myid
+  subroutine writetstat_nc(ncid,nvar,ncname,vars,nrec,lraise)
     implicit none
-    integer :: status,n
-    integer,intent(in) :: nvar
-    character(len=*),dimension(nvar),intent(in) :: varnames
-    integer,dimension(nvar),intent(out)       :: varid
-    if (myid /=0) return
-    status = nf90_redef(ncid)
+    integer, intent(in)                      :: ncid,nvar
+    integer, intent(inout)                   :: nrec
+    real,dimension(nvar),intent(in)          :: vars
+    character(*), dimension(:,:),intent(in)  :: ncname
+    logical, intent(in)                      :: lraise
 
-    if (status /= nf90_noerr) call nchandle_error(status)
+    integer :: iret,n,varid
+    if(lraise) then
+      nrec = nrec+1
+    end if
     do n=1,nvar
-      status = nf90_def_var(ncid, varnames(n), nf90_float, (/zid, tprid/), varid(n))
-      if (status /= nf90_noerr) call nchandle_error(status)
+       iret = nf90_inq_varid(ncid, ncname(n,1), VarID)
+       iret = nf90_put_var(ncid, VarID, vars(n), start=(/nrec/))
     end do
+    iret = nf90_sync(ncid)
 
-    status = nf90_enddef(ncid)
-    if (status /= nf90_noerr) call nchandle_error(status)
-
-    return
-  end subroutine initprof_nc
-
-  subroutine writeprof_nc(nvar,varid,vars,nccall)
-    use modglobal, only : kmax
-    use modmpi,    only : myid
-    implicit none
-    integer, intent(in)             :: nvar,nccall
-    real,dimension(kmax,nvar),intent(in)  :: vars
-    integer,dimension(nvar),intent(in) :: varid
-    integer :: status,n
-    if (myid/=0) return
-
-    do n=1,nvar
-      status = nf90_put_var(ncid, varid(n), vars(1:kmax,n), (/1,nccall/), (/kmax , 1/))
-      if(status /= nf90_noerr) call nchandle_error(status)
-    end do
-  return
-  end subroutine writeprof_nc
-
-  subroutine inittstat_nc(nvar,varid,varnames)
-    use modmpi,    only : myid
-    implicit none
-    integer,intent(in) :: nvar
-    character(len=*),dimension(nvar),intent(in) :: varnames
-    integer,dimension(nvar),intent(out)       :: varid
-    integer :: status,n
-    if (myid /=0) return
-
-    status = nf90_redef(ncid)
-
-    if (status /= nf90_noerr) call nchandle_error(status)
-    do n=1,nvar
-      status = nf90_def_var(ncid, varnames(n), nf90_float, ttsid, varid(n))
-      if (status /= nf90_noerr) call nchandle_error(status)
-    end do
-
-    status = nf90_enddef(ncid)
-    if (status /= nf90_noerr) call nchandle_error(status)
-
-
-    return
-  end subroutine inittstat_nc
-
-  subroutine writetstat_nc(nvar,varid,vars,nccall)
-    use modmpi,    only : myid
-    implicit none
-    integer, intent(in)             :: nvar,nccall
-    real,dimension(nvar),intent(in)  :: vars
-    integer,dimension(nvar),intent(in) :: varid
-    integer :: status,n
-    if (myid/=0) return
-
-    do n=1,nvar
-      status = nf90_put_var(ncid, varid(n), vars(n),(/nccall/))
-      if(status /= nf90_noerr) call nchandle_error(status)
-    end do
-  return
-  return
   end subroutine writetstat_nc
 
+  subroutine writestat1D_nc(ncid,nvar,ncname,vars,nrec,lraise,dimmin,dimmax,wrmin,wrmax)
+    implicit none
+    integer, intent(in)                      :: ncid,nvar,dimmin,dimmax,wrmin,wrmax
+    integer, intent(inout)                   :: nrec
+    real,dimension(dimmin:dimmax,nvar),intent(in)   :: vars
+    character(*), dimension(:,:),intent(in)  :: ncname
+    logical, intent(in)                      :: lraise
+
+    integer :: iret,n,varid
+    if(lraise) then
+      nrec = nrec+1
+    end if
+    do n=1,nvar
+       iret = nf90_inq_varid(ncid, ncname(n,1), VarID)
+       iret = nf90_put_var(ncid, VarID, vars(wrmin:wrmax,n), start=(/nrec/))
+    end do
+    iret = nf90_sync(ncid)
+
+  end subroutine writestat1D_nc
+  subroutine writestat2D_nc(ncid,nvar,ncname,vars,nrec,lraise,dim1min,dim1max,wr1min,wr1max,dim2min,dim2max,wr2min,wr2max)
+    implicit none
+    integer, intent(in)                      :: ncid,nvar,dim1min,dim1max,wr1min,wr1max,dim2min,dim2max,wr2min,wr2max
+    integer, intent(inout)                   :: nrec
+    real,dimension(dim1min:dim1max,dim2min:dim2max,nvar),intent(in)   :: vars
+    character(*), dimension(:,:),intent(in)  :: ncname
+    logical, intent(in)                      :: lraise
+
+    integer :: iret,n,varid
+    if(lraise) then
+      nrec = nrec+1
+    end if
+    do n=1,nvar
+       iret = nf90_inq_varid(ncid, ncname(n,1), VarID)
+       iret = nf90_put_var(ncid, VarID, vars(wr1min:wr1max,wr2min:wr2max,n), start=(/nrec/))
+    end do
+    iret = nf90_sync(ncid)
+
+  end subroutine writestat2D_nc
+  subroutine writestat3D_nc(ncid,nvar,ncname,vars,nrec,lraise,dim1min,dim1max,wr1min,wr1max,dim2min,dim2max,wr2min,wr2max,dim3min,dim3max,wr3min,wr3max)
+    implicit none
+    integer, intent(in)                      :: ncid,nvar,dim1min,dim1max,wr1min,wr1max,dim2min,dim2max,wr2min,wr2max,dim3min,dim3max,wr3min,wr3max
+    integer, intent(inout)                   :: nrec
+    real,dimension(dim1min:dim1max,dim2min:dim2max,dim3min:dim3max,nvar),intent(in)   :: vars
+    character(*), dimension(:,:),intent(in)  :: ncname
+    logical, intent(in)                      :: lraise
+
+    integer :: iret,n,varid
+    if(lraise) then
+      nrec = nrec+1
+    end if
+    do n=1,nvar
+       iret = nf90_inq_varid(ncid, ncname(n,1), VarID)
+       iret = nf90_put_var(ncid, VarID, vars(wr1min:wr1max,wr2min:wr2max,wr3min:wr3max,n), start=(/nrec/))
+    end do
+    iret = nf90_sync(ncid)
+
+  end subroutine writestat3D_nc
+
   subroutine nchandle_error(status)
-    use typeSizes
     use netcdf
     implicit none
 

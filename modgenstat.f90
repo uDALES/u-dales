@@ -53,15 +53,15 @@ module modgenstat
     !-----------------------------------------------------------------|
 
 implicit none
-private
+! private
 PUBLIC :: initgenstat, genstat, exitgenstat
 save
 
 !NetCDF variables
-  integer,parameter :: nvar = 33
-  character(20),dimension(nvar) :: varnames
-  integer, dimension(nvar) :: varid
-  integer :: nwrite =1
+  integer,parameter :: nvar = 40
+  integer :: ncid,nrec = 0
+  character(80) :: fname = 'profiles.nc.'
+  character(80),dimension(nvar,4) :: ncname
 
   real    :: dtav, timeav,tnext,tnextwrite
   logical :: lstat= .false. ! switch for conditional sampling cloud (on/off)
@@ -146,14 +146,14 @@ contains
 
   subroutine initgenstat
     use modmpi,    only : myid,mpierr, comm3d,my_real, mpi_logical
-    use modglobal, only : dtmax, k1, nsv,ifnamopt,fname_options, ifoutput, cexpnr,dtav_glob,timeav_glob,ladaptive,dt_lim,btime
-    use modstat_nc,only : initprof_nc,lnetcdf
+    use modglobal, only : dtmax, kmax,k1, nsv,ifnamopt,fname_options, ifoutput, cexpnr,dtav_glob,timeav_glob,ladaptive,dt_lim,btime
+    use modstat_nc, only : lnetcdf, open_nc,define_nc
 
 
     implicit none
 
-    integer n, ierr
-    character(20) :: name
+    integer n, ierr,idum
+    character(40) :: name,lfname
     namelist/NAMGENSTAT/ &
     dtav,timeav,lstat
 
@@ -326,42 +326,53 @@ contains
             open (ifoutput,file=name,status='replace')
             close (ifoutput)
         end do
-        if(lnetcdf) then
-          varnames( 1) = "zh"
-          varnames( 2) = "presh"
-          varnames( 3) = "u"
-          varnames( 4) = "v"
-          varnames( 5) = "thl"
-          varnames( 6) = "thv"
-          varnames( 7) = "qt"
-          varnames( 8) = "ql"
-          varnames( 9) = "wtls"
-          varnames(10) = "wtlr"
-          varnames(11) = "wtlt"
-          varnames(12) = "wtvs"
-          varnames(13) = "wtvr"
-          varnames(14) = "wtvt"
-          varnames(15) = "wqls"
-          varnames(16) = "wqlr"
-          varnames(17) = "wqlt"
-          varnames(18) = "uws"
-          varnames(19) = "uwr"
-          varnames(20) = "uwt"
-          varnames(21) = "vws"
-          varnames(22) = "vwr"
-          varnames(23) = "vwt"
-          varnames(24) = "w2"
-          varnames(25) = "skew"
-          varnames(26) = "w2s"
-          varnames(27) = "u2"
-          varnames(28) = "v2"
-          varnames(29) = "qt2"
-          varnames(30) = "thl2"
-          varnames(31) = "thv2"
-          varnames(32) = "th2"
-          varnames(33) = "ql2"
-         call initprof_nc(nvar,varid,varnames)
-        end if
+      if (lnetcdf) then
+        lfname = trim(fname)//cexpnr
+        ncname( 1,:)=(/'time','Time','s','time'/)
+        ncname( 2,:)=(/'zt','Vertical displacement of cell centers','m','zt'/)
+        ncname( 3,:)=(/'zm','Vertical displacement of cell edges','m','zm'/)
+        ncname( 4,:)=(/'dn0','Base-state density','kg/m^3','zt'/)
+        ncname( 5,:)=(/'presh','Pressure at cell center','Pa','zt'/)
+        ncname( 6,:)=(/'u','West-East velocity','m/s','zt'/)
+        ncname( 7,:)=(/'v','South-North velocity','m/s','zt'/)
+        ncname( 8,:)=(/'thl','Liquid water potential temperature','K','zt'/)
+        ncname( 9,:)=(/'thv','Virtual potential temperature','K','zt'/)
+        ncname(10,:)=(/'qt','Total water mixing ratio','kg/kg','zt'/)
+        ncname(11,:)=(/'ql','Liquid water mixing ratio','kg/kg','zt'/)
+        ncname(12,:)=(/'wtls','SFS-Theta_l flux','Km/s','zm'/)
+        ncname(13,:)=(/'wtlr','Resolved Theta_l flux','Km/s','zm'/)
+        ncname(14,:)=(/'wtlt','Total Theta_l flux','Km/s','zm'/)
+        ncname(15,:)=(/'wtvs','SFS-buoyancy flux','Km/s','zm'/)
+        ncname(16,:)=(/'wtvr','Resolved buoyancy flux','Km/s','zm'/)
+        ncname(17,:)=(/'wtvt','Total buoyancy flux','Km/s','zm'/)
+        ncname(18,:)=(/'wqts','SFS-moisture flux','kg/kg m/s','zm'/)
+        ncname(19,:)=(/'wqtr','Resolved moisture flux','kg/kg m/s','zm'/)
+        ncname(20,:)=(/'wqtt','Total moisture flux','kg/kg m/s','zm'/)
+        ncname(21,:)=(/'wqls','SFS-liquid water flux','kg/kg m/s','zm'/)
+        ncname(22,:)=(/'wqlr','Resolved liquid water flux','kg/kg m/s','zm'/)
+        ncname(23,:)=(/'wqlt','Total liquid water flux','kg/kg m/s','zm'/)
+        ncname(24,:)=(/'uws','SFS-momentum flux (uw)','m^2/s^2','zm'/)
+        ncname(25,:)=(/'uwr','Resolved momentum flux (uw)','m^2/s^2','zm'/)
+        ncname(26,:)=(/'uwt','Total momentum flux (vw)','m^2/s^2','zm'/)
+        ncname(27,:)=(/'vws','SFS-momentum flux (vw)','m^2/s^2','zm'/)
+        ncname(28,:)=(/'vwr','Resolved momentum flux (vw)','m^2/s^2','zm'/)
+        ncname(29,:)=(/'vwt','Total momentum flux (vw)','m^2/s^2','zm'/)
+        ncname(30,:)=(/'w2s','SFS vertical velocity variance','m^2/s^2','zm'/)
+        ncname(31,:)=(/'w2r','Resolved vertical velocity variance','m^2/s^2','zm'/)
+        ncname(32,:)=(/'w2t','Total vertical velocity variance','m^2/s^2','zm'/)
+        ncname(33,:)=(/'skew','vertical velocity skewness','-','zm'/)
+        ncname(34,:)=(/'u2r','Resolved horizontal velocity variance (u)','m^2/s^2','zt'/)
+        ncname(35,:)=(/'v2r','Resolved horizontal velocity variance (v)','m^2/s^2','zt'/)
+        ncname(36,:)=(/'thl2r','Resolved theta_l variance','K^2','zt'/)
+        ncname(37,:)=(/'thv2r','Resolved buoyancy variance','K^2','zt'/)
+        ncname(38,:)=(/'th2r','Resolved theta variance','K^2','zt'/)
+        ncname(39,:)=(/'qt2r','Resolved total water variance','(kg/kg)^2','zt'/)
+        ncname(40,:)=(/'ql2r','Resolved liquid water variance','(kg/kg)^2','zt'/)
+
+        call open_nc(lfname,  ncid,.true.,idum,n3=kmax)
+        call define_nc( ncid, NVar, ncname)
+      end if
+
 
       end if
 
@@ -1143,9 +1154,9 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine writestat
       use modglobal, only : kmax,k1,nsv, zh,zf,timee,rlv,cp,cexpnr,ifoutput
-      use modfields, only : presf,presh,exnf,exnh
+      use modfields, only : presf,presh,exnf,exnh,rhof
       use modmpi,    only : myid
-      use modstat_nc, only: lnetcdf, writeprof_nc
+      use modstat_nc, only: lnetcdf, writestat1D_nc
       implicit none
 
 
@@ -1464,42 +1475,48 @@ contains
 
       end do
       if (lnetcdf) then
-        vars(:, 1) = zh
-        vars(:, 2) = presh
-        vars(:, 3) = umn
-        vars(:, 4) = vmn
-        vars(:, 5) = thlmn
-        vars(:, 6) = thvmn
-        vars(:, 7) = qtmn
-        vars(:, 8) = qlmn
-        vars(:, 9) = wtlsmn
-        vars(:,10) = wtlrmn
-        vars(:,11) = wtltmn
-        vars(:,12) = wtvsmn
-        vars(:,13) = wtvrmn
-        vars(:,14) = wtvtmn
-        vars(:,15) = wqlsmn
-        vars(:,16) = wqlrmn
-        vars(:,17) = wqltmn
-        vars(:,18) = uwsmn
-        vars(:,19) = uwrmn
-        vars(:,20) = uwtmn
-        vars(:,21) = vwsmn
-        vars(:,22) = vwrmn
-        vars(:,23) = vwtmn
-        vars(:,24) = w2mn
-        vars(:,25) = skewmn
-        vars(:,26) = w2submn
-        vars(:,27) = u2mn
-        vars(:,28) = v2mn
-        vars(:,29) = qt2mn
-        vars(:,30) = thl2mn
-        vars(:,31) = thv2mn
-        vars(:,32) = th2mn
-        vars(:,33) = ql2mn
+        vars( 1,:)=timee
+        vars( 2,:)=zh
+        vars( 3,:)=zf
+        vars( 4,:)=rhof
+        vars( 5,:)=presh
+        vars( 6,:)=umn
+        vars( 7,:)=vmn
+        vars( 8,:)=thlmn
+        vars( 9,:)=thvmn
+        vars(10,:)=qtmn
+        vars(11,:)=qlmn
+        vars(12,:)=wtlsmn
+        vars(13,:)=wtlrmn
+        vars(14,:)=wtltmn
+        vars(15,:)=wtvsmn
+        vars(16,:)=wtvrmn
+        vars(17,:)=wtvtmn
+        vars(18,:)=wqtsmn
+        vars(19,:)=wqtrmn
+        vars(20,:)=wqttmn
+        vars(21,:)=wqlsmn
+        vars(22,:)=wqlrmn
+        vars(23,:)=wqltmn
+        vars(24,:)=uwsmn
+        vars(25,:)=uwrmn
+        vars(26,:)=uwtmn
+        vars(27,:)=vwsmn
+        vars(28,:)=vwrmn
+        vars(29,:)=vwtmn
+        vars(30,:)=w2mn
+        vars(31,:)=w2submn
+        vars(32,:)=w2submn+w2mn
+        vars(33,:)=skewmn
+        vars(34,:)=u2mn
+        vars(35,:)=v2mn
+        vars(36,:)=thl2mn
+        vars(37,:)=thv2mn
+        vars(38,:)=th2mn
+        vars(39,:)=qt2mn
+        vars(40,:)=ql2mn
 
-        call writeprof_nc(nvar,varid,vars,nwrite)
-        nwrite = nwrite +1
+        call writestat1D_nc(ncid,nvar,ncname,vars,nrec,.true.,1,kmax,1,k1)
       end if
 
 
@@ -1569,9 +1586,13 @@ contains
 
   end subroutine writestat
   subroutine exitgenstat
-  implicit none
+    use modmpi, only : myid
+    use modstat_nc, only : exitstat_nc,lnetcdf
+    implicit none
 
     if(.not.(lstat)) return
+
+    if(lnetcdf .and. myid==0) call exitstat_nc(ncid)
 
     deallocate(umn       ,vmn   )
     deallocate(thlmn        ,thvmn )

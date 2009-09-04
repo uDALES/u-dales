@@ -171,6 +171,8 @@ save
 
       logical :: leq      = .true.  ! switch for (non)-equidistant mode.
       logical :: lmomsubs = .false.  ! switch to apply subsidence on the momentum or not
+
+      character(80) :: author='', version='DALES 3.2'
 contains
   subroutine initglobal
     use modmpi, only: nprocs, myid,comm3d, my_real, mpierr

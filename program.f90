@@ -191,8 +191,8 @@ program DALES      !Version 3.2 Beta 1
     call twostep
 
     call checksim
-    call timestat
-    call genstat
+    call timestat  !Timestat must preceed all other timeseries that could write in the same netCDF file (unless stated otherwise
+    call genstat  !Genstat must preceed all other statistics that could write in the same netCDF file (unless stated otherwise
     call radstat
     call sampling
     call crosssection
@@ -201,8 +201,6 @@ program DALES      !Version 3.2 Beta 1
     call fielddump
     call particles
 
-!     call netcdfstats
-!     call netcdfmovie
     call bulkmicrostat
     call budgetstat
 
@@ -228,7 +226,6 @@ program DALES      !Version 3.2 Beta 1
   call exitstattend
   call exitbulkmicrostat
   call exitbudget
-  call exitstat_nc
   call exitmodules
 
 end program DALES

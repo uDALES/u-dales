@@ -48,7 +48,7 @@ contains
                                   lwarmstart,startfile,trestart,&
                                   nsv,imax,jtot,kmax,xsize,ysize,xlat,xlon,xday,xtime,&
                                   lmoist,lcoriol,lmomsubs,cu, cv,ifnamopt,fname_options,llsadv,&
-                                  iadv_mom,iadv_tke,iadv_thl,iadv_qt,iadv_sv,courant,peclet,ladaptive
+                                  iadv_mom,iadv_tke,iadv_thl,iadv_qt,iadv_sv,courant,peclet,ladaptive,author
     use modsurface,        only : z0,ustin,wtsurf,wqsurf,wsvsurf,ps,thls,isurf,initsurface
     use modfields,         only : initfields
     use modpois,           only : initpois
@@ -72,7 +72,7 @@ contains
 
     namelist/RUN/ &
         iexpnr,lwarmstart,startfile, runtime, dtmax,dtav_glob,timeav_glob,&
-        trestart,irandom,randthl,randqt,krand,nsv,courant,peclet,ladaptive
+        trestart,irandom,randthl,randqt,krand,nsv,courant,peclet,ladaptive,author
     namelist/DOMAIN/ &
         imax,jtot,kmax,&
         xsize,ysize,&
@@ -116,6 +116,7 @@ contains
     call MPI_BCAST(iexpnr     ,1,MPI_INTEGER,0,comm3d,mpierr)
     call MPI_BCAST(lwarmstart ,1,MPI_LOGICAL,0,comm3d,mpierr)
     call MPI_BCAST(startfile  ,50,MPI_CHARACTER,0,comm3d,mpierr)
+    call MPI_BCAST(author     ,80,MPI_CHARACTER,0,comm3d,mpierr)
     call MPI_BCAST(runtime    ,1,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(trestart   ,1,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(dtmax      ,1,MY_REAL   ,0,comm3d,mpierr)

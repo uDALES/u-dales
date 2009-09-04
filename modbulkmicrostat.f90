@@ -54,6 +54,11 @@ implicit none
 private
 PUBLIC  :: initbulkmicrostat, bulkmicrostat, exitbulkmicrostat, bulkmicrotend
 save
+!NetCDF variables
+  integer,parameter :: nvar = 23
+  character(80),dimension(nvar,4) :: ncname
+  integer :: frontrun
+
 
   real          :: dtav, timeav, tnext, tnextwrite
   integer          :: nsamples
@@ -98,9 +103,13 @@ contains
   subroutine initbulkmicrostat
     use modmpi,    only  : myid, mpi_logical, my_real, comm3d, mpierr
     use modglobal, only  : ifnamopt, fname_options, cexpnr, ifoutput, &
-              dtav_glob, timeav_glob, ladaptive, k1, dtmax,btime
+              dtav_glob, timeav_glob, ladaptive, k1,kmax, dtmax,btime
     use modmicrophysics, only : imicro, imicro_bulk
+    use modstat_nc, only : lnetcdf, open_nc,define_nc
+    use modgenstat, only : dtav_prof=>dtav, timeav_prof=>timeav, fname_prof=>fname,ncid_prof=>ncid
+
     implicit none
+    character(40) :: lfname
     integer      :: ierr
 
     namelist/NAMBULKMICROSTAT/ &
@@ -185,6 +194,40 @@ contains
       open (ifoutput,file = 'qtptend.'//cexpnr,status = 'replace')
       close(ifoutput)
     end if
+    if (lnetcdf) then
+      dtav = dtav_prof
+      timeav = timeav_prof
+      if (myid==0) then
+        lfname = trim(fname_prof)//cexpnr
+        ncname( 1,:)=(/'cfrac','Cloud fraction','-','zt'/)
+        ncname( 2,:)=(/'rainrate','Echo Rain Rate','W/m^2','zt'/)
+        ncname( 3,:)=(/'preccount','Preccount','W/m^2','zm'/)
+        ncname( 4,:)=(/'nrrain','nrrain','W/m^2','zm'/)
+        ncname( 5,:)=(/'raincount','raincount','W/m^2','zt'/)
+        ncname( 6,:)=(/'precmn','precmn','W/m^2','zm'/)
+        ncname( 7,:)=(/'dvrmn','dvrmn','W/m^2','zt'/)
+        ncname( 8,:)=(/'qrmn','qrmn','W/m^2','zt'/)
+        ncname( 9,:)=(/'npauto','Autoconversion rain drop tendency','#/m3/s','zt'/)
+        ncname(10,:)=(/'npaccr','Accretion rain drop tendency','#/m3/s','zt'/)
+        ncname(11,:)=(/'npsed','Sedimentation rain drop tendency','#/m3/s','zt'/)
+        ncname(12,:)=(/'npevap','Evaporation rain drop tendency','#/m3/s','zt'/)
+        ncname(13,:)=(/'qrptot','Total rain water content tendency','kg/kg/s','zt'/)
+        ncname(14,:)=(/'qrpauto','Autoconversion rain water content tendency','kg/kg/s','zt'/)
+        ncname(15,:)=(/'qrpaccr','Accretion rain water content tendency','kg/kg/s','zt'/)
+        ncname(16,:)=(/'qrpsed','Sedimentation rain water content tendency','kg/kg/s','zt'/)
+        ncname(17,:)=(/'qrpevap','Evaporation rain water content tendency','kg/kg/s','zt'/)
+        ncname(18,:)=(/'qrptot','Total rain water content tendency','kg/kg/s','zt'/)
+        ncname(19,:)=(/'qtpauto','Autoconversion total water content tendency','kg/kg/s','zt'/)
+        ncname(20,:)=(/'qtpaccr','Accretion total water content tendency','kg/kg/s','zt'/)
+        ncname(21,:)=(/'qtpsed','Sedimentation total water content tendency','kg/kg/s','zt'/)
+        ncname(22,:)=(/'qtpevap','Evaporation total water content tendency','kg/kg/s','zt'/)
+        ncname(23,:)=(/'qtptot','Total total water content tendency','kg/kg/s','zt'/)
+
+        call open_nc(lfname,  ncid_prof,.false.,frontrun,n3=kmax)
+        call define_nc( ncid_prof, NVar, ncname)
+      end if
+
+   end if
 
   end subroutine initbulkmicrostat
 
@@ -315,11 +358,16 @@ contains
 
   subroutine writebulkmicrostat
     use modmpi,    only  : myid
-    use modglobal,    only  : timee, ifoutput, cexpnr, kmax, &
+    use modglobal,    only  : timee, ifoutput, cexpnr, k1,kmax, &
               rlv, zf
     use modfields,    only  : presf
     use modbulkmicrodata,  only  : rhoz
-    implicit none
+      use modstat_nc, only: lnetcdf, writestat1D_nc
+      use modgenstat, only: ncid_prof=>ncid,nrec_prof=>nrec
+
+      implicit none
+      real,dimension(k1,nvar) :: vars
+      integer :: nrec
 
     integer    :: nsecs, nhrs, nminut
     integer    :: k
@@ -467,6 +515,33 @@ contains
       sum    (qtpmn(k,2:nrfields))  , &
       k=1,kmax)
     close(ifoutput)
+      if (lnetcdf) then
+        vars(:, 1) = cloudcountmn
+        vars(:, 2) = prec_prcmn  (:)*rhoz(2,2,:)*rlv
+        vars(:, 3) = preccountmn  (:)
+        vars(:, 4) = Nrrainmn  (:)
+        vars(:, 5) = raincountmn  (:)
+        vars(:, 6) = precmn    (:)*rhoz(2,2,:)*rlv
+        vars(:, 7) = Dvrmn    (:)
+        vars(:, 8) = qrmn    (:)
+        vars(:, 9) =Npmn    (k,iauto)
+        vars(:,10) =Npmn    (k,iaccr)
+        vars(:,11) =Npmn    (k,ised)
+        vars(:,12) =Npmn    (k,ievap)
+        vars(:,13) =sum(Npmn  (k,2:nrfields))
+        vars(:,14) =qlpmn    (k,iauto)
+        vars(:,15) =qlpmn    (k,iaccr)
+        vars(:,16) =qlpmn    (k,ised)
+        vars(:,17) =qlpmn    (k,ievap)
+        vars(:,18) =sum(qlpmn  (k,2:nrfields))
+        vars(:,19) =qtpmn    (k,iauto)
+        vars(:,20) =qtpmn    (k,iaccr)
+        vars(:,21) =qtpmn    (k,ised)
+        vars(:,22) =qtpmn    (k,ievap)
+        vars(:,23) = sum    (qtpmn(k,2:nrfields))
+        nrec=nrec_prof+frontrun
+        call writestat1D_nc(ncid_prof,nvar,ncname,vars,nrec,.false.,1,kmax,1,k1)
+      end if
 
     end if
 
