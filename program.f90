@@ -89,7 +89,7 @@ program DALES      !Version 3.2 Beta 1
 !   use modnetcdfstats,  only : initnetcdfstats, netcdfstats, exitnetcdfstats
 !   use modnetcdfmovie,  only : initnetcdfmovie, netcdfmovie, exitnetcdfmovie
   use modchem,         only : initchem,inputchem, twostep
-
+  use modstat_nc,      only : initstat_nc
   implicit none
 
 !----------------------------------------------------------------
@@ -115,6 +115,7 @@ program DALES      !Version 3.2 Beta 1
   call initradstat
   call initparticles
   call initnudge
+  call initstat_nc
 !   call initnetcdfstats
 !   call initnetcdfmovie
   call initbulkmicrostat
