@@ -60,7 +60,7 @@ contains
 !                                   timerad!,rka,dlwtop,dlwbot,sw0,gc,sfc_albedo,reff,isvsmoke
     use modtimedep,        only : inittimedep,ltimedep
     use modboundary,       only : initboundary,ksp
-    use modthermodynamics, only : initthermodynamics,lqlnr    !cstep remove chi_half
+    use modthermodynamics, only : initthermodynamics,lqlnr, chi_half
     use modmicrophysics,   only : initmicrophysics
     use modsubgrid,        only : initsubgrid,ldelta, cf,cn,Rigc,Prandtl,lmason
     use modmpi,            only : comm3d,myid, mpi_integer,mpi_logical,my_real,mpierr, mpi_character
@@ -79,7 +79,7 @@ contains
         xlat,xlon,xday,xtime,ksp
     namelist/PHYSICS/ &
         !cstep z0,ustin,wtsurf,wqsurf,wsvsurf,ps,thls,chi_half,lmoist,isurf,lneutraldrag,&
-         z0,ustin,wtsurf,wqsurf,wsvsurf,ps,thls,lmoist,isurf,&
+         z0,ustin,wtsurf,wqsurf,wsvsurf,ps,thls,lmoist,isurf,chi_half,&
         lcoriol,lmomsubs, ltimedep,irad,timerad,iradiation,rad_ls,rad_longw,rad_shortw,rad_smoke,&
         rka,dlwtop,dlwbot,sw0,gc,sfc_albedo,reff,isvsmoke
     namelist/DYNAMICS/ &
@@ -142,7 +142,7 @@ contains
     call MPI_BCAST(wsvsurf(1:nsv),nsv,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(ps         ,1,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(thls       ,1,MY_REAL   ,0,comm3d,mpierr)
-    !cstep   call MPI_BCAST(chi_half   ,1,MY_REAL   ,0,comm3d,mpierr)
+    call MPI_BCAST(chi_half   ,1,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(lmoist     ,1,MPI_LOGICAL,0,comm3d,mpierr)
     call MPI_BCAST(lcoriol    ,1,MPI_LOGICAL,0,comm3d,mpierr)
     call MPI_BCAST(lmomsubs   ,1,MPI_LOGICAL,0,comm3d,mpierr)

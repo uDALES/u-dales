@@ -26,7 +26,7 @@ module modthermodynamics
   public :: lqlnr
   logical :: lqlnr    = .true. ! switch for ql calc. with Newton-Raphson (on/off)
   real, allocatable :: th0av(:)
-
+  real :: chi_half=0.5
 contains
   subroutine initthermodynamics
     use modglobal, only : k1
@@ -136,7 +136,7 @@ contains
 
            del_thv_sat = a_moist * dth + b_moist * dq
 
-           chi     = (zf(k) - zf(k-1))/(dzh(k)+dzh(k+1))
+           chi     = 2*chi_half*(zf(k) - zf(k-1))/(dzh(k)+dzh(k+1))
            chi_sat = c_liquid * ql0(i,j,k) / (del_thv_dry - del_thv_sat)
 
            if (chi < chi_sat) then  !mixed parcel is saturated
