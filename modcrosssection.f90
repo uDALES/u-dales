@@ -44,7 +44,7 @@ module modcrosssection
 
 implicit none
 private
-PUBLIC :: initcrosssection, crosssection
+PUBLIC :: initcrosssection, crosssection,exitcrosssection
 save
 !NetCDF variables
   integer,parameter :: nvar = 14
@@ -298,11 +298,11 @@ contains
     deallocate(thv0)
 
   end subroutine wrthorz
-  subroutine exitfielddump
+  subroutine exitcrosssection
     use modstat_nc, only : exitstat_nc,lnetcdf
     implicit none
 
-    if(lnetcdf) call exitstat_nc(ncid)
-  end subroutine exitfielddump
+    if(lcross .and. lnetcdf) call exitstat_nc(ncid)
+  end subroutine exitcrosssection
 
 end module modcrosssection

@@ -23,26 +23,24 @@ program DALES      !Version 3.2 Beta 1
 
 !Stephan de Roode      - TU Delft
 !Chiel van Heerwaarden - Wageningen
-!Thijs Heus            - KNMI
+!Thijs Heus            - MPI-Met
 !
 ! NEW FEATURES
-! Bulkmicrophysics
-! Adaptive timestepping
-! Grid stretching
-! Improved subgrid modeling, cleaned up radiation
-! Many bugfixes, especially in the statistical routines
-! Created a hook for user specified surface, forcings, microphysics and radiation
+! Land Surface model
+! Chemistry
+! NetCDF output
+! Gitourius repository, including case database
+! Optional Smagorinsky SFS-scheme
+!
+! CHANGES
+! Newton-Raphson Ql calculations now by default true
+! Subsidence by default off for momentum. Changable with lmomsubs switch in physics
 !
 ! KNOWN ISSUES/TO DO
-! particles testen, non-eq grid implementeren
-!
-! COMING UP FOR VERSION 3.2
+! Radiation
 ! review documentation
-! case library
-! subversion server, website
-! chemistry invoegen
-! Full radiation code
-! Land surface routine
+! Cleaning up for release : Removal of debug statements, cleaner code, less warnings
+
 !--------------------------------------------------------------------------------------
 
 
@@ -68,15 +66,15 @@ program DALES      !Version 3.2 Beta 1
 !     0.1     USE STATEMENTS FOR ADDONS STATISTICAL ROUTINES
 !----------------------------------------------------------------
   use modchecksim,     only : initchecksim, checksim
-  use modstat_nc,      only : initstat_nc,exitstat_nc
+  use modstat_nc,      only : initstat_nc
   use modtimestat,     only : inittimestat, timestat
   use modgenstat,      only : initgenstat, genstat, exitgenstat
   use modradstat,      only : initradstat ,radstat, exitradstat
   use modsampling,     only : initsampling, sampling,exitsampling
-  use modcrosssection, only : initcrosssection, crosssection
+  use modcrosssection, only : initcrosssection, crosssection,exitcrosssection
   use modprojection,   only : initprojection, projection
   use modcloudfield,   only : initcloudfield, cloudfield
-  use modfielddump,    only : initfielddump, fielddump
+  use modfielddump,    only : initfielddump, fielddump,exitfielddump
   use modstattend,     only : initstattend, stattend,exitstattend, tend_start,tend_adv,tend_subg,tend_force,&
                               tend_rad,tend_ls,tend_micro, tend_topbound,tend_pois,tend_addon, tend_coriolis
 
@@ -89,7 +87,6 @@ program DALES      !Version 3.2 Beta 1
 !   use modnetcdfstats,  only : initnetcdfstats, netcdfstats, exitnetcdfstats
 !   use modnetcdfmovie,  only : initnetcdfmovie, netcdfmovie, exitnetcdfmovie
   use modchem,         only : initchem,inputchem, twostep
-  use modstat_nc,      only : initstat_nc
   implicit none
 
 !----------------------------------------------------------------
@@ -226,6 +223,8 @@ program DALES      !Version 3.2 Beta 1
   call exitstattend
   call exitbulkmicrostat
   call exitbudget
+  call exitcrosssection
+  call exitfielddump
   call exitmodules
 
 end program DALES

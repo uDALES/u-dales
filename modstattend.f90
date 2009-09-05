@@ -249,7 +249,7 @@ contains
       use modgenstat, only: ncid_prof=>ncid,nrec_prof=>nrec
     implicit none
     real,dimension(k1,nvar) :: vars
-    integer nsecs, nhrs, nminut,k,nrec
+    integer nsecs, nhrs, nminut,k
 
     nsecs   = nint(timee)
     nhrs    = int(nsecs/3600)
@@ -476,7 +476,6 @@ contains
         vars(:,41) =qtpmn(:,tend_topbound)
         vars(:,42) =qtpmn(:,tend_addon)
         vars(:,43) =qtpmn(:,tend_tot)
-        nrec =nrec_prof+1
         call writestat_nc(ncid_prof,nvar,ncname,vars(1:kmax,:),nrec_prof+1,kmax)
       end if
 

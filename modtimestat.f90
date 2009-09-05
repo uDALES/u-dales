@@ -624,7 +624,7 @@ contains
     use modstat_nc, only : exitstat_nc,lnetcdf
     implicit none
 
-    if(lnetcdf .and. myid==0) call exitstat_nc(ncid)
+    if(ltimestat .and. lnetcdf .and. myid==0) call exitstat_nc(ncid)
   end subroutine exittimestat
 
 end module modtimestat

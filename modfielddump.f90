@@ -42,7 +42,7 @@ module modfielddump
 
 implicit none
 private
-PUBLIC :: initfielddump, fielddump
+PUBLIC :: initfielddump, fielddump,exitfielddump
 save
 !NetCDF variables
   integer,parameter :: nvar = 6
@@ -225,7 +225,7 @@ contains
     use modstat_nc, only : exitstat_nc,lnetcdf
     implicit none
 
-    if(lnetcdf) call exitstat_nc(ncid)
+    if(lfielddump .and. lnetcdf) call exitstat_nc(ncid)
   end subroutine exitfielddump
 
 end module modfielddump

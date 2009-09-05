@@ -273,7 +273,6 @@ contains
 
   ! Generate tridiagonal matrix
     do k=1,kmax
-  ! CvH Possible error poisson solver
       a(k)=1./(dzf(k)*dzh(k))
       c(k)=1./(dzf(k)*dzh(k+1))
       b(k)=-(a(k)+c(k))

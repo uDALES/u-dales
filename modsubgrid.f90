@@ -222,7 +222,6 @@ contains
                 (v0(i+1,j,k)-v0(i,j,k))    *dxi        )**2    + &
                 ((u0(i+1,jp,k)-u0(i+1,j,k)) *dyi     + &
                 (v0(i+1,jp,k)-v0(i,jp,k))  *dxi        )**2    )
-
       strain = strain + 0.5 * ( &
                 ((v0(i,j,kp)-v0(i,j,k))     / dzh(kp) + &
                 (w0(i,j,kp)-w0(i,jm,kp))   *dyi        )**2    + &

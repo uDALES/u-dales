@@ -62,7 +62,7 @@ contains
     use modboundary,       only : initboundary,ksp
     use modthermodynamics, only : initthermodynamics,lqlnr, chi_half
     use modmicrophysics,   only : initmicrophysics
-    use modsubgrid,        only : initsubgrid,ldelta, cf,cn,Rigc,Prandtl,lmason
+    use modsubgrid,        only : initsubgrid,ldelta, cf,cn,Rigc,Prandtl,lmason,lsmagorinsky
     use modmpi,            only : comm3d,myid, mpi_integer,mpi_logical,my_real,mpierr, mpi_character
 
     implicit none
