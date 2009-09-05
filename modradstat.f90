@@ -41,7 +41,6 @@ save
 !NetCDF variables
   integer,parameter :: nvar = 6
   character(80),dimension(nvar,4) :: ncname
-  integer :: frontrun
 
   real    :: dtav, timeav,tnext,tnextwrite
   integer :: nsamples
@@ -75,11 +74,10 @@ contains
   subroutine initradstat
     use modmpi,    only : myid,mpierr, comm3d,my_real, mpi_logical
     use modglobal, only : dtmax, k1,kmax, ifnamopt,fname_options, ifoutput, cexpnr,dtav_glob,timeav_glob,ladaptive,dt_lim,btime
-    use modstat_nc, only : lnetcdf, open_nc,define_nc,ncinfo
-    use modgenstat, only : dtav_prof=>dtav, timeav_prof=>timeav, fname_prof=>fname,ncid_prof=>ncid
+    use modstat_nc, only : lnetcdf, redefine_nc,define_nc,ncinfo
+    use modgenstat, only : dtav_prof=>dtav, timeav_prof=>timeav,ncid_prof=>ncid
 
     implicit none
-    character(40) :: lfname
 
     integer ierr
     namelist/NAMRADSTAT/ &
@@ -147,16 +145,20 @@ contains
     if (lnetcdf) then
       dtav = dtav_prof
       timeav = timeav_prof
-      if (myid==0) then
-        lfname = trim(fname_prof)//cexpnr
-        call ncinfo(ncname( 1,:),'tllwtend','Long wave radiative tendency','K/s','zt')
-        call ncinfo(ncname( 2,:),'tlswtend','Short wave radiative tendency','K/s','zt')
-        call ncinfo(ncname( 3,:),'tlradls','Large scale radiative tendency','K/s','zt')
-        call ncinfo(ncname( 4,:),'lwu','Long wave upward radiative flux','W/m^2','zm')
-        call ncinfo(ncname( 5,:),'lwd','Long wave downward radiative flux','W/m^2','zm')
-        call ncinfo(ncname( 6,:),'swd','Short wave downward radiative flux','W/m^2','zm')
 
-        call open_nc(lfname,  ncid_prof,.false.,frontrun,n3=kmax)
+      tnext      = dtav-1e-3+btime
+      tnextwrite = timeav-1e-3+btime
+      nsamples = nint(timeav/dtav)
+
+      if (myid==0) then
+        call ncinfo(ncname( 1,:),'tllwtend','Long wave radiative tendency','K/s','tt')
+        call ncinfo(ncname( 2,:),'tlswtend','Short wave radiative tendency','K/s','tt')
+        call ncinfo(ncname( 3,:),'tlradls','Large scale radiative tendency','K/s','tt')
+        call ncinfo(ncname( 4,:),'lwu','Long wave upward radiative flux','W/m^2','mt')
+        call ncinfo(ncname( 5,:),'lwd','Long wave downward radiative flux','W/m^2','mt')
+        call ncinfo(ncname( 6,:),'swd','Short wave downward radiative flux','W/m^2','mt')
+
+        call redefine_nc(ncid_prof)
         call define_nc( ncid_prof, NVar, ncname)
       end if
 
@@ -244,12 +246,11 @@ contains
   subroutine writeradstat
       use modmpi,    only : myid
       use modglobal, only : cexpnr,ifoutput,kmax,k1,zf,timee
-      use modstat_nc, only: lnetcdf, writestat1D_nc
+      use modstat_nc, only: lnetcdf, writestat_nc
       use modgenstat, only: ncid_prof=>ncid,nrec_prof=>nrec
 
       implicit none
       real,dimension(k1,nvar) :: vars
-      integer :: nrec
       integer nsecs, nhrs, nminut,k
 
 
@@ -300,8 +301,7 @@ contains
         vars(:, 4) = lwumn
         vars(:, 5) = lwdmn
         vars(:, 6) = swnmn
-        nrec=nrec_prof+frontrun
-        call writestat1D_nc(ncid_prof,nvar,ncname,vars,nrec,.false.,1,kmax,1,k1)
+        call writestat_nc(ncid_prof,nvar,ncname,vars(1:kmax,:),nrec_prof,kmax)
       end if
     end if ! end if(myid==0)
 

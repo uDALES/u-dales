@@ -46,7 +46,7 @@ save
 !NetCDF variables
   integer,parameter :: nvar = 21
   integer :: ncid,nrec = 0
-  character(80) :: fname = 'tmser.nc.'
+  character(80) :: fname = 'tmser.xxx.nc'
   character(80),dimension(nvar,4) :: ncname
 
   real    :: dtav,tnext
@@ -71,10 +71,9 @@ contains
     use modsurface, only : isurf
     use modstat_nc, only : lnetcdf, open_nc,define_nc,ncinfo
     implicit none
-    integer :: ierr,k,location = 1,idum
+    integer :: ierr,k,location = 1
     real :: gradient = 0.0
     real, allocatable,dimension(:) :: profile
-    character(40) :: lfname
 
 
     namelist/NAMTIMESTAT/ &
@@ -162,9 +161,8 @@ contains
         close(ifoutput)
       end if
       if (lnetcdf) then
-        dtav = dtav_glob
-        lfname = trim(fname)//cexpnr
-        call ncinfo(ncname( 1,:),'time','Time of the timeseries','s','time')
+        fname(7:9) = cexpnr
+        call ncinfo(ncname( 1,:),'time','Time','s','time')
         call ncinfo(ncname( 2,:),'cfrac','Cloud fraction','-','time')
         call ncinfo(ncname( 3,:),'zb','Cloud-base height','m','time')
         call ncinfo(ncname( 4,:),'zc_av','Average Cloud-top height','m','time')
@@ -185,7 +183,7 @@ contains
         call ncinfo(ncname(19,:),'shf_bar','Sensible heat flux','W/m^2','time')
         call ncinfo(ncname(20,:),'sfcbflx','Surface Buoyancy Flux','m/s^2','time')
         call ncinfo(ncname(21,:),'lhf_bar','Latent heat flux','W/m^2','time')
-        call open_nc(lfname,  ncid,.true.,idum)
+        call open_nc(fname,  ncid)
         call define_nc( ncid, NVar, ncname)
       end if
     end if
@@ -201,7 +199,7 @@ contains
     use modsurface, only : wtsurf, wqsurf, isurf,ustar,tstar,qstar,z0,oblav,qts,thls,&
                            Qnet, H, LE, G0, rs, ra, tskin, tendskin
     use modmpi,     only : my_real,mpi_sum,mpi_max,mpi_min,comm3d,mpierr,myid
-    use modstat_nc,  only : lnetcdf, writetstat_nc
+    use modstat_nc,  only : lnetcdf, writestat_nc
     implicit none
 
     real   :: zbaseavl, ztopavl, ztopmaxl, ztop,zbaseminl
@@ -499,9 +497,7 @@ contains
         vars(19) = wts
         vars(20) = wtvs
         vars(21) = wqls
-        call writetstat_nc(ncid,nvar,ncname,vars,nrec,.true.)
-
-
+        call writestat_nc(ncid,nvar,ncname,vars,nrec,.true.)
       end if
     end if
 

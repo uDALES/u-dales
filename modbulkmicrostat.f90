@@ -57,7 +57,6 @@ save
 !NetCDF variables
   integer,parameter :: nvar = 23
   character(80),dimension(nvar,4) :: ncname
-  integer :: frontrun
 
 
   real          :: dtav, timeav, tnext, tnextwrite
@@ -104,11 +103,10 @@ contains
     use modmpi,    only  : myid, mpi_logical, my_real, comm3d, mpierr
     use modglobal, only  : ifnamopt, fname_options, cexpnr, ifoutput, &
               dtav_glob, timeav_glob, ladaptive, k1,kmax, dtmax,btime
-    use modstat_nc, only : lnetcdf, open_nc,define_nc,ncinfo
-    use modgenstat, only : dtav_prof=>dtav, timeav_prof=>timeav, fname_prof=>fname,ncid_prof=>ncid
+    use modstat_nc, only : lnetcdf, redefine_nc,define_nc,ncinfo
+    use modgenstat, only : dtav_prof=>dtav, timeav_prof=>timeav,ncid_prof=>ncid
 
     implicit none
-    character(40) :: lfname
     integer      :: ierr
 
     namelist/NAMBULKMICROSTAT/ &
@@ -196,7 +194,6 @@ contains
       dtav = dtav_prof
       timeav = timeav_prof
       if (myid==0) then
-        lfname = trim(fname_prof)//cexpnr
         call ncinfo(ncname( 1,:),'cfrac','Cloud fraction','-','zt')
         call ncinfo(ncname( 2,:),'rainrate','Echo Rain Rate','W/m^2','zt')
         call ncinfo(ncname( 3,:),'preccount','Preccount','W/m^2','zm')
@@ -221,7 +218,7 @@ contains
         call ncinfo(ncname(22,:),'qtpevap','Evaporation total water content tendency','kg/kg/s','zt')
         call ncinfo(ncname(23,:),'qtptot','Total total water content tendency','kg/kg/s','zt')
 
-        call open_nc(lfname,  ncid_prof,.false.,frontrun,n3=kmax)
+        call redefine_nc(ncid_prof)
         call define_nc( ncid_prof, NVar, ncname)
       end if
 
@@ -360,12 +357,11 @@ contains
               rlv, zf
     use modfields,    only  : presf
     use modbulkmicrodata,  only  : rhoz
-      use modstat_nc, only: lnetcdf, writestat1D_nc
+      use modstat_nc, only: lnetcdf, writestat_nc
       use modgenstat, only: ncid_prof=>ncid,nrec_prof=>nrec
 
       implicit none
       real,dimension(k1,nvar) :: vars
-      integer :: nrec
 
     integer    :: nsecs, nhrs, nminut
     integer    :: k
@@ -512,7 +508,7 @@ contains
       qtpmn    (k,ievap)    , &
       sum    (qtpmn(k,2:nrfields))  , &
       k=1,kmax)
-    close(ifoutput)
+      close(ifoutput)
       if (lnetcdf) then
         vars(:, 1) = cloudcountmn
         vars(:, 2) = prec_prcmn  (:)*rhoz(2,2,:)*rlv
@@ -537,8 +533,7 @@ contains
         vars(:,21) =qtpmn    (k,ised)
         vars(:,22) =qtpmn    (k,ievap)
         vars(:,23) = sum    (qtpmn(k,2:nrfields))
-        nrec=nrec_prof+frontrun
-        call writestat1D_nc(ncid_prof,nvar,ncname,vars,nrec,.false.,1,kmax,1,k1)
+        call writestat_nc(ncid_prof,nvar,ncname,vars(1:kmax,:),nrec_prof,kmax)
       end if
 
     end if

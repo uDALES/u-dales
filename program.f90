@@ -103,8 +103,8 @@ program DALES      !Version 3.2 Beta 1
 !---------------------------------------------------------
   call initchecksim
   call initstat_nc  ! should be called before stat-routines that might do netCDF
-  call inittimestat
-  call initgenstat
+  call inittimestat  !Timestat must preceed all other timeseries that could write in the same netCDF file (unless stated otherwise
+  call initgenstat  !Genstat must preceed all other statistics that could write in the same netCDF file (unless stated otherwise
   call inittilt
   call initsampling
   call initcrosssection
@@ -115,7 +115,6 @@ program DALES      !Version 3.2 Beta 1
   call initradstat
   call initparticles
   call initnudge
-  call initstat_nc
 !   call initnetcdfstats
 !   call initnetcdfmovie
   call initbulkmicrostat
