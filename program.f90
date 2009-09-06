@@ -21,8 +21,8 @@
 
 program DALES      !Version 3.2 Beta 1
 !Stephan de Roode      - TU Delft
-!Chiel van Heerwaarden - Wageningen
-!Thijs Heus            - KNMI
+!Chiel van Heerwaarden - Wageningen University
+!Thijs Heus            - Max Planck Institute Hamburg
 !
 ! NEW FEATURES
 ! Bulkmicrophysics
