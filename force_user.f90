@@ -1,3 +1,5 @@
+!> \file force_user.f90
+!! A dummy file for cases where one wants additional forcings
 !----------------------------------------------------------------------------
 ! This file is part of DALES.
 !
@@ -19,7 +21,7 @@
 !
 !
 subroutine force_user
-! A dummy file for cases where one wants additional forcings
+
 
 return
 end subroutine force_user

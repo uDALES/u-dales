@@ -1,5 +1,17 @@
-!----------------------------------------------------------------------------
-! This file is part of DALES.
+!> \file modstartup.f90
+!!  Initializes the run
+
+!>
+!! Initializes the run.
+!>
+!! Modstartup reads the namelists and initial data, sets the fields and calls
+!! the inits of the other routines where necessary. Reading and writing of the
+!! restart files also live in this module.
+!!  \author Chiel van Heerwaarden, Wageningen U.R.
+!!  \author Thijs Heus,MPI-M
+!!  \todo documentation
+!!  \par Revision list
+!  This file is part of DALES.
 !
 ! DALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -14,15 +26,11 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-! Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
-!----------------------------------------------------------------------------
+!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
-!
+
 module modstartup
 
-! Chiel van Heerwaarden & Thijs Heus  19-07-2007
-! Reads initial profiles, and initializes fields
-! Reads and writes restart files
 
 implicit none
 ! private
@@ -55,9 +63,6 @@ contains
     use modradiation,      only : initradiation,irad,iradiation,&
                                   rad_ls,rad_longw,rad_shortw,rad_smoke,&
                                   timerad,rka,dlwtop,dlwbot,sw0,gc,sfc_albedo,reff,isvsmoke
-!     use modradiation,      only : initradiation,irad,&
-!                                   rad_ls,rad_longw,rad_shortw,rad_smoke,&
-!                                   timerad!,rka,dlwtop,dlwbot,sw0,gc,sfc_albedo,reff,isvsmoke
     use modtimedep,        only : inittimedep,ltimedep
     use modboundary,       only : initboundary,ksp
     use modthermodynamics, only : initthermodynamics,lqlnr, chi_half

@@ -1,5 +1,16 @@
-!----------------------------------------------------------------------------
-! This file is part of DALES.
+!> \file modsubgrid.f90
+!!  Calculates and applies the Sub Filter Scale diffusion
+
+!>
+!!  Calculates and applies the Sub Filter Scale diffusion
+!>
+!!  \author Pier Siebesma, K.N.M.I.
+!!  \author Stephan de Roode,TU Delft
+!!  \author Chiel van Heerwaarden, Wageningen U.R.
+!!  \author Thijs Heus,MPI-M
+!!  \par Revision list
+!!  \todo Documentation
+!  This file is part of DALES.
 !
 ! DALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -14,10 +25,9 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-! Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
-!----------------------------------------------------------------------------
+!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
-!
+
 module modsubgrid
 implicit none
 save
@@ -28,11 +38,11 @@ public :: ldelta, lmason,lsmagorinsky,cf, Rigc,prandtl, cm, cn, ch1, ch2, ce1, c
   !cstep: set default values
   !cstep: user has the option to change ldelta, cf, cn, and Rigc in namoptions
 
-  logical :: ldelta   = .false. ! switch for subgrid length formulation (on/off)
-  logical :: lmason   = .false. ! switch for decreased length scale near the surface
-  logical :: lsmagorinsky= .false. ! switch for smagorinsky subrid scheme
-  real :: cf      = 2.5  !filter constant
-  real :: Rigc    = 0.25 !critical Richardson number
+  logical :: ldelta   = .false. !<  switch for subgrid length formulation (on/off)
+  logical :: lmason   = .false. !<  switch for decreased length scale near the surface
+  logical :: lsmagorinsky= .false. !<  switch for smagorinsky subrid scheme
+  real :: cf      = 2.5  !< filter constant
+  real :: Rigc    = 0.25 !< critical Richardson number
   real :: Prandtl = 3
   real :: cm      = 0.12
   real :: cn      = 0.76
@@ -41,15 +51,15 @@ public :: ldelta, lmason,lsmagorinsky,cf, Rigc,prandtl, cm, cn, ch1, ch2, ce1, c
   real :: ce1     = 0.19
   real :: ce2     = 0.51
   real :: cs
-  real :: alpha_kolm   = 1.5     !factor in Kolmogorov expression for spectral energy
-  real :: beta_kolm    = 1.      !factor in Kolmogorov relation for temperature spectrum
+  real :: alpha_kolm   = 1.5     !< factor in Kolmogorov expression for spectral energy
+  real :: beta_kolm    = 1.      !< factor in Kolmogorov relation for temperature spectrum
 
-  real, allocatable :: ekm(:,:,:)  !  k-coefficient for momentum
-  real, allocatable :: ekh(:,:,:)  !  k-coefficient for heat and q_tot
-  real, allocatable :: sbdiss(:,:,:)!dissiation
-  real, allocatable :: sbshr(:,:,:) !shear production
-  real, allocatable :: sbbuo(:,:,:) !buoyancy production / destruction
-  real, allocatable :: zlt(:,:,:)  !  filter width
+  real, allocatable :: ekm(:,:,:)  !<   k-coefficient for momentum
+  real, allocatable :: ekh(:,:,:)  !<   k-coefficient for heat and q_tot
+  real, allocatable :: sbdiss(:,:,:)!< dissiation
+  real, allocatable :: sbshr(:,:,:) !< shear production
+  real, allocatable :: sbbuo(:,:,:) !< buoyancy production / destruction
+  real, allocatable :: zlt(:,:,:)  !<   filter width
 
 contains
   subroutine initsubgrid
@@ -97,7 +107,7 @@ contains
     ce1  = (cn**2)* (cm/Rigc - ch1*cm )
     ce2  = ceps - ce1
 
-    cs   = (cm**3/ceps)**0.25   !smagorinsky constant, not used in model
+    cs   = (cm**3/ceps)**0.25   !< Smagorinsky constant
 
     if (myid==0) then
       write (6,*) 'cf    = ',cf

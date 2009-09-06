@@ -1,3 +1,5 @@
+!> \file surf_user.f90
+!! A dummy file for cases where one wants specific surface prescription
 !----------------------------------------------------------------------------
 ! This file is part of DALES.
 !

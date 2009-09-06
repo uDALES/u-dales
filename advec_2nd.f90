@@ -1,5 +1,17 @@
-!----------------------------------------------------------------------------
-! This file is part of DALES.
+!> \file advec_2nd.f90
+!!  Does advection with a 2nd order central differencing scheme.
+!! \par Revision list
+!! \par Authors
+!! Second order central differencing can be used for variables where neither very
+!! high accuracy nor strict monotonicity is necessary.
+!! \latexonly
+!!\begin{eqnarray}
+!! F_{i-\frac{1}{2}}^{2nd} &=&
+!!\fav{u}_{i-\frac{1}{2}}\frac{\phi_{i}+\phi_{i-1}}{2},
+!!\end{eqnarray}
+!! \endlatexonly
+!!
+!  This file is part of DALES.
 !
 ! DALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -14,18 +26,18 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-! Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
-!----------------------------------------------------------------------------
+!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
-!
+
+!> Advection at cell center
 subroutine advecc_2nd(putin,putout)
 
   use modglobal, only : i1,ih,j1,jh,k1,kmax,dxi5,dyi5,dzi5,dzf,dzh,leq
   use modfields, only : u0, v0, w0
   implicit none
 
-  real, dimension(2-ih:i1+ih,2-jh:j1+jh,k1), intent(in)  :: putin
-  real, dimension(2-ih:i1+ih,2-jh:j1+jh,k1), intent(inout) :: putout
+  real, dimension(2-ih:i1+ih,2-jh:j1+jh,k1), intent(in)  :: putin !< Input: the cell centered field
+  real, dimension(2-ih:i1+ih,2-jh:j1+jh,k1), intent(inout) :: putout !< Output: the tendency
 
   integer :: i,j,k,ip,im,jp,jm,kp,km
 
@@ -102,15 +114,16 @@ subroutine advecc_2nd(putin,putout)
 end subroutine advecc_2nd
 
 
-
+!> Advection at the u point.
 subroutine advecu_2nd(putin, putout)
 
   use modglobal, only : i1,ih,j1,jh,k1,kmax,dxiq,dyiq,dziq,dzf,dzh,leq
   use modfields, only : u0, v0, w0
   implicit none
 
-  real, dimension(2-ih:i1+ih,2-jh:j1+jh,k1), intent(in)  :: putin
-  real, dimension(2-ih:i1+ih,2-jh:j1+jh,k1), intent(inout) :: putout
+
+  real, dimension(2-ih:i1+ih,2-jh:j1+jh,k1), intent(in)  :: putin !< Input: the u-field
+  real, dimension(2-ih:i1+ih,2-jh:j1+jh,k1), intent(inout) :: putout !< Output: the tendency
 
   integer :: i,j,k,ip,im,jp,jm,kp,km
 
@@ -191,15 +204,15 @@ subroutine advecu_2nd(putin, putout)
 end subroutine advecu_2nd
 
 
-
+!> Advection at the v point.
 subroutine advecv_2nd(putin, putout)
 
   use modglobal, only : i1,ih,j1,jh,k1,kmax,dxiq,dyiq,dziq,dzf,dzh,leq
   use modfields, only : u0, v0, w0
   implicit none
 
-  real, dimension(2-ih:i1+ih,2-jh:j1+jh,k1), intent(in)  :: putin
-  real, dimension(2-ih:i1+ih,2-jh:j1+jh,k1), intent(inout) :: putout
+  real, dimension(2-ih:i1+ih,2-jh:j1+jh,k1), intent(in)  :: putin !< Input: the v-field
+  real, dimension(2-ih:i1+ih,2-jh:j1+jh,k1), intent(inout) :: putout !< Output: the tendency
 
   integer :: i,j,k,ip,im,jp,jm,kp,km
   do k=1,kmax
@@ -278,14 +291,15 @@ end subroutine advecv_2nd
 
 
 
+!> Advection at the w point.
 subroutine advecw_2nd(putin,putout)
 
   use modglobal, only : i1,ih,j1,jh,k1,kmax,dxiq,dyiq,dziq,dzf,dzh,leq
   use modfields, only : u0, v0, w0
   implicit none
 
-  real, dimension(2-ih:i1+ih,2-jh:j1+jh,k1), intent(in)  :: putin
-  real, dimension(2-ih:i1+ih,2-jh:j1+jh,k1), intent(inout) :: putout
+  real, dimension(2-ih:i1+ih,2-jh:j1+jh,k1), intent(in)  :: putin !< Input: the w-field
+  real, dimension(2-ih:i1+ih,2-jh:j1+jh,k1), intent(inout) :: putout !< Output: the tendency
 
   integer :: i,j,k,ip,im,jp,jm,kp,km
 

@@ -1,5 +1,17 @@
-!----------------------------------------------------------------------------
-! This file is part of DALES.
+!> \file modforces.f90
+!!  Calculates the other forces and sources in the equations.
+
+!>
+!!  Calculates the other forces and sources in the equations.
+!>
+!!  This includes the large scale forcings, the coriolis and the subsidence
+!!  \author Pier Siebesma, K.N.M.I.
+!!  \author Stephan de Roode,TU Delft
+!!  \author Chiel van Heerwaarden, Wageningen U.R.
+!!  \author Thijs Heus,MPI-M
+!!  \par Revision list
+!!  \todo Documentation
+!  This file is part of DALES.
 !
 ! DALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -14,10 +26,11 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-! Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
-!----------------------------------------------------------------------------
+!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
-!
+
+
+
 module modforces
 !Calculates additional forces and large scale tendencies
 implicit none

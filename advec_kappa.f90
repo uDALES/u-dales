@@ -1,5 +1,20 @@
-!----------------------------------------------------------------------------
-! This file is part of DALES.
+!> \file advec_kappa.f90
+!!  Does advection with a kappa limiter scheme.
+!! \par Revision list
+!! \par Authors
+!! \see Hundsdorfer et al 1995
+!!
+!! For advection of scalars that need to be strictly monotone (for example chemically reacting species) the kappa scheme has been implemented:
+!! \latexonly
+!! \begin{eqnarray}
+!!  F_{i-\frac{1}{2}}^{\kappa} &=& \fav{u}_{i-\frac{1}{2}}
+!!  \left[\phi_{i-1}+\frac{1}{2}\kappa_{i-\frac{1}{2}}\left(\phi_{i-1}-\phi_{i-2}\right)\right],
+!! \end{eqnarray}
+!! in case $\fav{u}>0$. $\kappa_{i-\smfrac{1}{2}}$ serves as a switch between higher order advection and first order upwind in case of strong upwind gradients of $\phi$.
+!! \endlatexonly
+!! This makes the scheme monotone, but also rather dissipative.
+!!
+!  This file is part of DALES.
 !
 ! DALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -14,57 +29,20 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-! Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
-!----------------------------------------------------------------------------
-!
+!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
 
+!> Advection at cell center
   subroutine advecc_kappa(var,varp)
-
-!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-!      Modified by Hans Cuijpers (19 June 1995)
-!      Subroutine originates from:
-!                              kappa1.0a.f
-!          A program for the solution of advection problems.
-!               (F77-real Version 1.0a, January 1995)
-!                               by
-!                           Cees Beets
-!                               of
-!      The Institute for Marine and Atmospheric Research Utrecht
-!                    e-mail: beets@fys.ruu.nl
-!_______________________________________________________________________
-!____________________________PURPOSE____________________________________
-!     Subroutine kappa solves the advection equation:
-!       c  +  (u c) + (v c) + (w c)  = 0
-!        t         x       y       z
-!     on structered grids.
-!     For the time discretization a positive second order
-!     Runge-Kutta scheme is used (ref. CWI REPORT NM-R930,
-!     W.H. Hundsdorfer, B. Koren, M. van Loon and J.G. Verwer).
-!     For the space discretization the positive limited
-!     k=1/3 scheme is used (ref. CWI REPORT NM-R9308, B. Koren)
-!_________________________ON INPUT______________________________________
-!     var(i2,j2,k1):         Scalar (theta_l, q_tot or concentration)
-!_________________________ON OUTPUT____________________________________
-!     varp(i2,j2,k1):        Advection part of scalar
-!_____________________PROGRAM SPECIFICATIONS____________________________
-!     uses
-!       rlim:      limiter
-!     other specs
-!       i/o:       none
-!       language:  F77 (compilable under F90)
-!       bc:        assumes periodic boundary conditions in x,y
-!                  and zero flux boundary condition at the surface
-!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
   use modglobal, only : i1,i2,ih,j1,j2,jh,k1,kmax,dxi,dyi,dzi
   use modfields, only : u0, v0, w0
   implicit none
-
   real,external :: rlim
-  real      var(2-ih:i1+ih,2-jh:j1+jh,k1),varp(2-ih:i1+ih,2-jh:j1+jh,k1)
-  real      d1,d2,cf
+  real, dimension(2-ih:i1+ih,2-jh:j1+jh,k1), intent(in)  :: var !< Input: the cell centered field
+  real, dimension(2-ih:i1+ih,2-jh:j1+jh,k1), intent(inout) :: varp !< Output: the tendency
   integer   i,j,k
+  real :: cf,d1,d2
   do k=1,kmax
     do j=2,j1
       do i=2,i2
@@ -143,13 +121,15 @@
   return
   end subroutine advecc_kappa
 
+!> Interpolation of a field to half level in a way consistent with kappa advection
   subroutine  halflev_kappa(var,varout)
 
   use modglobal, only : i1,ih,j1,jh,k1,kmax
     use modfields, only : u0, v0, w0
     implicit none
     real,external :: rlim
-    real      var(2-ih:i1+ih,2-jh:j1+jh,k1),varout(2-ih:i1+ih,2-jh:j1+jh,k1)
+  real, dimension(2-ih:i1+ih,2-jh:j1+jh,k1), intent(in)  :: var !< Input: the cell centered field
+  real, dimension(2-ih:i1+ih,2-jh:j1+jh,k1), intent(inout) :: varout !< Output: the field at half level
     real      d1,d2,cf
     integer   i,j,k
 
@@ -186,12 +166,15 @@
       end do
     end do
   end subroutine halflev_kappa
-!***********************************************************************
+
+!> Determination of the limiter function
   real function rlim(d1,d2)
     use modglobal, only : eps1
     implicit none
+    real, intent(in) :: d1 !< Scalar flux at 1.5 cells upwind
+    real, intent(in) :: d2 !< Scalar flux at 0.5 cells upwind
 
-    real ri,phir,d1,d2
+    real ri,phir
 
     ri    = (d2+eps1)/(d1+eps1)
     phir  = max(0.,min(2.*ri,min(1./3.+2./3.*ri,2.)))

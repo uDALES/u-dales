@@ -1,23 +1,38 @@
-!----------------------------------------------------------------------------
-! This file is part of DALES.
+!> \file modgenstat.f90
+!!  Genstat calculates slab averages of several variables
+
+!>
+!!  Genstat calculates slab averages of several variables
+!>
+!!  Written to fields.expnr, moments.expnr and flux1.expnr and flux2.expnr
+!! If netcdf is true, this module leads the profiles.expnr.nc output
+!!  \author Hans Cuijpers, K.N.M.I.
+!!  \author Pier Siebesma, K.N.M.I.
+!!  \author Stephan de Roode,TU Delft
+!!  \author Chiel van Heerwaarden, Wageningen U.R.
+!!  \author Thijs Heus,MPI-M
+!!  \par Revision list
+!!  \todo Documentation
+!  This file is part of DALES.
 !
-! DALES is free software you can redistribute it and/or modify
+! DALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation either version 3 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! DALES is distributed in the hope that it will be useful,
-! but WITHOUT ANY WARRANTY without even the implied warranty of
+! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU General Public License for more details.
 !
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-! Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
-!----------------------------------------------------------------------------
+!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
-!
+
+
+
 module modgenstat
 
     !-----------------------------------------------------------------|

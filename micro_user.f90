@@ -1,3 +1,5 @@
+!> \file micro_user.f90
+!! A dummy file for cases where one wants specific microphysics
 !----------------------------------------------------------------------------
 ! This file is part of DALES.
 !
@@ -19,7 +21,7 @@
 !
 !
 subroutine micro_user
-! A dummy file for cases where one wants alternative microphysics
+
 
 return
 end subroutine micro_user

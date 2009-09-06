@@ -1,5 +1,15 @@
-!----------------------------------------------------------------------------
-! This file is part of DALES.
+!> \file modcrosssection.f90
+!!   Dumps an instantenous crosssection of the field
+
+!>
+!! Dumps an instantenous crosssection of the field.
+!>
+!! Crosssections in the yz-plane and in the xy-plane            |
+    !        of u,v,w,thl,thv,qt,ql. Written to movv_*.expnr and movh_*.expnr
+!! If netcdf is true, this module leads the cross.myid.expnr.nc output
+
+!!  \par Revision list
+!  This file is part of DALES.
 !
 ! DALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -14,33 +24,11 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-! Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
-!----------------------------------------------------------------------------
-!
+!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
 module modcrosssection
 
-    !-----------------------------------------------------------------|
-    !                                                                 |
-    !*** *cross*  dumps an instantenous crosssection of the field     |
-    !                                                                 |
-    !     purpose.                                                    |
-    !     --------                                                    |
-    !                                                                 |
-    !                                                                 |
-    !    Crosssections in the yz-plane and in the xy-plane            |
-    !        of u,v,w,thl,thv,qt,ql                                   |
-    !____________________SETTINGS_AND_SWITCHES________________________|
-    !                     IN &NAMCROSSSECTION                         |
-    !                                                                 |
-    !    dtav        SAMPLING INTERVAL                                |
-    !                                                                 |
-    !    lcross      SWITCH TO ENABLE CROSSSECTION                    |
-    !                                                                 |
-    !    crossheight HEIGHT OF THE XY-CROSSSECTION                    |
-    !                                                                 |
-    !    crossplane  LOCATION OF THE YZ-PLANE ON EVERY PROCESSOR      |
-    !-----------------------------------------------------------------|
+
 
 implicit none
 private
@@ -54,12 +42,12 @@ save
   character(80),dimension(1,4) :: tncname
 
   real    :: dtav,tnext
-  logical :: lcross = .false. ! switch for conditional sampling cloud (on/off)
-  integer :: crossheight = 2
-  integer :: crossplane = 2
+  logical :: lcross = .false. !< switch for doing the crosssection (on/off)
+  integer :: crossheight = 2 !< Height of the xy crosssection
+  integer :: crossplane = 2 !< Location of the xz crosssection
 
 contains
-
+!> Initializing Crosssection. Read out the namelist, initializing the variables
   subroutine initcrosssection
     use modmpi,   only :myid,my_real,mpierr,comm3d,mpi_logical,mpi_integer,cmyid
     use modglobal,only :imax,jmax,ifnamopt,fname_options,dtmax,rk3step, dtav_glob,ladaptive,j1,kmax,dt_lim,cexpnr
@@ -122,7 +110,7 @@ contains
 
 
   end subroutine initcrosssection
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!>Run crosssection. Mainly timekeeping
   subroutine crosssection
     use modglobal, only : rk3step,timee,dt_lim
     use modstat_nc, only : lnetcdf, writestat_nc
@@ -143,7 +131,9 @@ contains
 
 
   end subroutine crosssection
-  !*****************************************************************************
+
+
+!> Do the xz crosssections and dump them to file
   subroutine wrtvert
   use modglobal, only : imax,i1,j1,kmax,nsv,rlv,cp,rv,rd,cu,cv,cexpnr,ifoutput
   use modfields, only : um,vm,wm,thlm,qtm,svm,thl0,qt0,ql0,exnf
@@ -220,7 +210,8 @@ contains
     deallocate(thv0)
 
   end subroutine wrtvert
-!*****************************************************************************
+
+!> Do the xy crosssections and dump them to file
   subroutine wrthorz
     use modglobal, only : imax,jmax,i1,j1,nsv,rlv,cp,rv,rd,cu,cv,cexpnr,ifoutput
     use modfields, only : um,vm,wm,thlm,qtm,svm,thl0,qt0,ql0,exnf
@@ -298,6 +289,7 @@ contains
     deallocate(thv0)
 
   end subroutine wrthorz
+!> Clean up when leaving the run
   subroutine exitcrosssection
     use modstat_nc, only : exitstat_nc,lnetcdf
     implicit none

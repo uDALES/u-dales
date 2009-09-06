@@ -1,5 +1,14 @@
-!----------------------------------------------------------------------------
-! This file is part of DALES.
+!> \file modstattend.f90
+!!  Calculates the tendencies of the main fields
+
+
+!>
+!!  Calculates the tendencies of the main fields
+!>
+!! Profiles of the individual terms of the prognostic equations.  Written to *tend.expnr
+!! If netcdf is true, this module also writes in the profiles.expnr.nc output
+!!  \author Thijs Heus, MPI
+!  This file is part of DALES.
 !
 ! DALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -14,38 +23,10 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-! Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
-!----------------------------------------------------------------------------
-!
+!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
 module modstattend
 
-    !-----------------------------------------------------------------|
-    !                                                                 |
-    !*** *stattend*  calculates tendencies of prognostic variables    |
-    !                                                                 |
-    !      Thijs Heus      TU Delft     15/11/2007                    |
-    !                                                                 |
-    !     purpose.                                                    |
-    !     --------                                                    |
-    !                                                                 |
-    !                                                                 |
-    !    NOTE: A STATEMENT call stattend NEEDS TO BE SET BEFORE       |
-    !    ADVECTION AND AFTER ADVECTION, SUBGRID, THE ADDONS, DAMPING  |
-    !    AND PRESSURE SECTIONS IN program.f90                          |
-    !                                                                 |
-    !                                                                 |
-    !_________________________ON OUTPUT_______________________________|
-    !                                                                 |
-    !     Various slab averages                                       |
-    !                                                                 |
-    !____________________SETTINGS_AND_SWITCHES________________________|
-    !                     IN &NAMSTATTEND                             |
-    !                                                                 |
-    !    dtav           SAMPLING INTERVAL                             |
-    !    timeav         WRITING INTERVAL                              |
-    !    lstattend      SWITCH TO ENABLE TENDENCY STATISTICS          |
-    !-----------------------------------------------------------------|
   implicit none
 !   private
 !   public :: initstattend, stattend, exitstattend
@@ -64,7 +45,8 @@ module modstattend
   real, allocatable :: upmn(:,:),vpmn(:,:),wpmn(:,:),thlpmn(:,:),qtpmn(:,:)
   real, allocatable :: upav(:,:),vpav(:,:),wpav(:,:),thlpav(:,:),qtpav(:,:)
 contains
-  subroutine initstattend
+!> Initialization routine, reads namelists and inits variables
+subroutine initstattend
     use modmpi,   only : mpierr,my_real,mpi_logical,comm3d,myid
     use modglobal,only : cexpnr,dtmax,imax,jmax,kmax,ifnamopt,fname_options,k1,dtav_glob,timeav_glob,ladaptive, dt_lim,btime
     use modstat_nc, only : lnetcdf, redefine_nc,define_nc,ncinfo
@@ -175,13 +157,14 @@ contains
 
   end subroutine initstattend
 
+!> Performs the statistics, keeps track of what the tendencies were last time, and what they are this time.
   subroutine stattend(tendterm,lastterm)
     use modmpi,    only : myid,slabsum
     use modglobal, only : ih,jh,i1,j1,kmax,k1,rk3step,timee,dt_lim,rslabs
     use modfields, only : up,vp,wp,thlp,qtp
     implicit none
-    integer, intent(in)           :: tendterm
-    logical, intent(in), optional :: lastterm
+    integer, intent(in)           :: tendterm !< name of the term to write down
+    logical, intent(in), optional :: lastterm !< true if this is the last term of the equations; the write routine is entered.
     real, dimension(:),allocatable :: avfield
 
     if (.not.(ltend)) return
@@ -241,7 +224,7 @@ contains
     deallocate(avfield)
   end subroutine stattend
 
-
+!> Write the statistics to file
   subroutine writestattend
     use modglobal, only : timee,ifoutput,kmax,k1, zf, cexpnr
     use modfields, only : presf
@@ -480,7 +463,7 @@ contains
       end if
 
   end subroutine writestattend
-
+!> Cleans up after the run
   subroutine exitstattend
   implicit none
    if(.not.(ltend)) return

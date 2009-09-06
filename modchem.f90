@@ -1,3 +1,38 @@
+!> \file modchem.f90
+!!  Calculates chemical reaction rates for active scalars
+
+
+!>
+!!  Calculates chemical reaction rates for active scalars
+!>
+!! Solves the source/sink term for chemically active scalars using the chemical
+!! solver TWOSTEP. In short, this chemical solver is an implicit method with
+!! second-order accuracy based on the two-step backward differenation formula.
+!! Since in atmospheric chemistry we are delaing with chemical system characterized
+!! by a wide range of chemical time scales, i.e. stiff system of ordinary
+!! differential equations, the two-step solver is able to adjust the time step
+!! depending on the chemical reaction rate.
+!! \see Verwer et al (1994, 1995); Vila et al (2005, 2009)
+!!  \author Kees van den Dries
+!!  \author Jordi Vila
+!! \todo documentation
+!! \todo reduce the number of warnings
+!  This file is part of DALES.
+!
+! DALES is free software; you can redistribute it and/or modify
+! it under the terms of the GNU General Public License as published by
+! the Free Software Foundation; either version 3 of the License, or
+! (at your option) any later version.
+!
+! DALES is distributed in the hope that it will be useful,
+! but WITHOUT ANY WARRANTY; without even the implied warranty of
+! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+! GNU General Public License for more details.
+!
+! You should have received a copy of the GNU General Public License
+! along with this program.  If not, see <http://www.gnu.org/licenses/>.
+!
+!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 module modchem
 
 
@@ -7,7 +42,7 @@ module modchem
   !       &NAMCHEM
   !         lchem       = .false.  SWITCH: switches chemistry module on and off
   !         tnor        = 17       total number of reactions (at least >= number of reactions)
-  !         firstchem   = 1        number of the colum in scalar.inp of the first chemical  
+  !         firstchem   = 1        number of the colum in scalar.inp of the first chemical
   !         lastchem    = 15       number of the colum in scalar.inp of the last chemical
   !                                only important if there are other scalars available in scalar.inp
   !         ldiuvar     = .true.   SWITCH: diurnal photolysis reaction rates
@@ -17,7 +52,7 @@ module modchem
   !         t_ref	    = 298.
   !         p_ref	    = 100000.
   !         q_ref	    = 5.e-3
-  !         lchmovie    = .false.  SWITCH: if TRUE gives extra output for movies(experimental) 
+  !         lchmovie    = .false.  SWITCH: if TRUE gives extra output for movies(experimental)
   !         dtchmovie   = 60.      when to write extra output
   !         itermin     = 1.e-6    (not to change)
   !       /
@@ -64,7 +99,7 @@ module modchem
 ! 5.0667e-6 R_O3   1    4    6.29e-5   2.412   0.7  2.2e-10  2.9e-11  1.0    1.0   O3         -> 2HO + (O2)
 ! 0.0167    R_NO2  1    2    1.67e-2   -.575   1.2    1.0     1.0     1.0    1.0   NO2 + (O2) -> NO + O3
 ! $ end of chemical reactions specified by $ as first character on the line.
-! 
+!
 ! #
 ! #   function = 0 => Meaning K colum kn2rd in PPB*sec no temp dependence
 ! #   function = 1 => Meaning K colum kn2rd in cm3/molecule*sec no temp dependence
@@ -80,9 +115,9 @@ module modchem
 ! #            MEANING of A..G         K= A * exp (B/T)   K" = 1 + C * exp(D/T)[H20]
 ! #   function = 7 => K = K (cm6/molecule2*s)for above R63Ab reaction K = A * (T/1)^0 * exp(0/T)=A*1*1 = A
 ! #            MEANING of A..G         K = A * (T/B)^C * exp (D/T)
-! 
+!
 ! # function for photolysis reactions
-! 
+!
 ! #   function = 1 => ! constant independent of sza
 ! #            Keff = A
 ! #   function = 2 =>) ! exponential function
@@ -95,7 +130,7 @@ module modchem
 ! #            Keff = 1.
 ! #
 ! #
-! 
+!
 ! # reactions for nighttime chemistry
 ! #0.583E+0  R_57A  0    2    1.8e-11   110     1.0    1.0      1.0    1.0    1.0   NO + NO3    -> 2NO2
 ! #0.109E-5  R_58A  0    2    1.4e-13  -2470    1.0    1.0      1.0    1.0    1.0   NO2 + O3    -> NO3 + (O2)
@@ -103,7 +138,7 @@ module modchem
 ! #0.996E-1  R_62A  0    5    1.3e-3   -3.5   -11000   9.7e14   0.1  -11080   .35   N2O5        -> NO3 + NO2
 ! #0.567E-11 R_63Aa 0    2    2.5e-22   0.0     1.0    1.0      1.0    1.0    1.0   N2O5 + H2O  -> 2HNO3
 ! #1.0       R_63Ab 0    7    1.8e-39   1.0     0.0    0.0      1.0    1.0    1.0   N2O5 + 2H2O -> 2HNO3 + H2O
-! 
+!
 ! #Photolysis
 ! #5.0667e-6 R_O3   1    1      1.0     1.0     1.0     1.0     1.0     1.0    1.0  O3         -> 2HO + (O2)
 ! #0.0167    R_NO2  1    1      1.0     1.0     1.0     1.0     1.0     1.0    1.0  NO2 + (O2) -> NO + O3
@@ -131,16 +166,16 @@ save
   real, parameter :: Avogrado = 6.023e23
   real, parameter :: ppb  = 1.e9 ! convert to ppb
 
-  integer nr_raddep !number of photolysis reactions
-  integer nchsp     !number of chemical species calculated from lastchem - firstchem
-  integer choffset  !=firstchem -1 => offset for chemicals in sv0
+  integer nr_raddep !< number of photolysis reactions
+  integer nchsp     !< number of chemical species calculated from lastchem - firstchem
+  integer choffset  !< =firstchem -1 => offset for chemicals in sv0
 
   type RCdef
     character*6 rname
-    integer*1 raddep  ! 1 if reaction = radiation dependend
-    real Kreact       !reaction konstant from input file
-    real Keff         !to use with special circumstances cq with radiation and/or temperature depend reactions
-    integer Kindex    !index to array with effective K due to clouds and temperature
+    integer*1 raddep  !<  1 if reaction = radiation dependend
+    real Kreact       !< reaction konstant from input file
+    real Keff         !< to use with special circumstances cq with radiation and/or temperature depend reactions
+    integer Kindex    !< index to array with effective K due to clouds and temperature
     integer func1
     real A
     real B
@@ -151,35 +186,35 @@ save
     real G
   end type RCdef
 
-  type (RCdef), allocatable :: RC(:) !tnor
+  type (RCdef), allocatable :: RC(:) !< tnor
 
   type Form
-    integer*1 formula  !number of the formula to use
-    integer r_nr    !reaction number, index to RC
-    integer PorL    !0=> not active   1=>Production  2=>Loss
-    integer*1 coef    !coefficient in formula
-    integer comp1    !index to sv0
+    integer*1 formula  !< number of the formula to use
+    integer r_nr    !< reaction number, index to RC
+    integer PorL    !< 0=> not active   1=>Production  2=>Loss
+    integer*1 coef    !< coefficient in formula
+    integer comp1    !< index to sv0
     integer*1 exp1
-    integer comp2    !index to sv0
+    integer comp2    !< index to sv0
     integer*1 exp2
   end type Form
 
   type Name_Number
-    character (len=6) name  !name of chemical
-    logical active      !active=1 else 0
-    integer chem_number    !number (not really used)
+    character (len=6) name  !< name of chemical
+    logical active      !< active=1 else 0
+    integer chem_number    !< number (not really used)
     real atol
     real rtol
-    integer nr_PL      !total number of reactions in which this chemical is used
-    type (Form) PL(mrpcc)  !stucture holding the reaction components, reaction number etc
+    integer nr_PL      !< total number of reactions in which this chemical is used
+    type (Form) PL(mrpcc)  !< stucture holding the reaction components, reaction number etc
   end type Name_Number
 
-  type (Name_Number), allocatable ::PL_scheme(:)   !(nchsp)
+  type (Name_Number), allocatable ::PL_scheme(:)   !< (nchsp)
 
-  integer, allocatable :: raddep_RCindex(:) !(nr_raddep)
-  real, allocatable :: keff(:,:,:,:)    ! (i,j2,raddep_nr,kmax)
-  real, allocatable :: keffT(:,:,:)    !(i2,j2,kefft_nr)
-  real, allocatable :: atol(:),rtol(:)  ! nchsp
+  integer, allocatable :: raddep_RCindex(:) !< (nr_raddep)
+  real, allocatable :: keff(:,:,:,:)    !<  (i,j2,raddep_nr,kmax)
+  real, allocatable :: keffT(:,:,:)    !< (i2,j2,kefft_nr)
+  real, allocatable :: atol(:),rtol(:)  !<  nchsp
   real, allocatable :: rk1(:,:),rk2(:,:),rk(:,:),kreact(:,:)
   real, allocatable :: T_abs(:,:),convppb(:,:)
 
@@ -201,7 +236,7 @@ save
 
 
 contains
-!-----------------------------------------------------------------------------------------
+!> Initializing Chemistry. Read out the namelist, initializing the variables
 SUBROUTINE initchem
   use modglobal, only : imax,jmax,i1,i2,ih, j1,j2,jh, k1, kmax, nsv, ifnamopt, fname_options, ifoutput, cexpnr
   use modmpi,    only : myid, mpi_logical, mpi_integer, my_real, comm3d, mpierr
@@ -293,15 +328,10 @@ SUBROUTINE initchem
 
 end subroutine initchem
 
-!----------------------------------------------------------
+!> Determine from the chemical equations in chem.inp.xxx the scheme to solve the chemical production and loss terms
 subroutine inputchem
 
-!c***********************************************************************
-!c
-!c  Determine from the chemical equations in chem.inp.xxx
-!c  the scheme to solve the chemical production and loss terms
-!c
-!c***********************************************************************
+
  use modglobal, only : imax,jmax,i1,i2,ih, j1,j2,jh, k1,kmax, nsv,cexpnr
  use modmpi,    only : myid
  implicit none
@@ -331,20 +361,20 @@ subroutine inputchem
 
   type Reaction
     character*6  name
-    real kr      !kn2rd
-    integer RadDep   !reaction is radiation dependend
+    real kr      !< kn2rd
+    integer RadDep   !< reaction is radiation dependend
     integer keff_index
-    integer Order  !orde of reaction
-    integer nr_chem  !nr of chemicals in reaction (including non active species
-    integer nr_chem_inp !nr of chem on input
-    integer nr_chem_outp !nr of chem on output
+    integer Order  !< orde of reaction
+    integer nr_chem  !< nr of chemicals in reaction (including non active species
+    integer nr_chem_inp !< nr of chem on input
+    integer nr_chem_outp !< nr of chem on output
     type (Chem) inp(2)
     type (Chem) outp(2)
   end type Reaction
 
-  type (Name_Number),allocatable :: PL_temp(:)    !(nchsp)
-  type (Reaction),allocatable    :: reactions(:)  !(totalnumberofreactions=tnor)
-  character*6, allocatable       :: chem_name(:)  !(nchsp)
+  type (Name_Number),allocatable :: PL_temp(:)    !< (nchsp)
+  type (Reaction),allocatable    :: reactions(:)  !< (totalnumberofreactions=tnor)
+  character*6, allocatable       :: chem_name(:)  !< (nchsp)
 
 
   if (.not. (lchem)) return
@@ -1212,40 +1242,30 @@ implicit none
   end do !tnor
 
 end subroutine calc_K
-
+!> calculate the photolyis rate perturbed by clouds
+!!
+!! \author Jordi Vila   WUR          16/08/2004
+!! \author Kees vd Dries WUR
+!! \see Chang et al.(eqs 13) (JGR, vol 92, 14,681).
+!!
+!!     It calculates the photolysis rate perturbed by the clouds
+!!     It takes the clear sky value prescribed at input_chem
+!!     and it modifyes according to the parameterization developed
+!!     by Chang et al.(eqs 13) (JGR, vol 92, 14,681).
+!!     The parametrization depends on:
+!!     - Cloud optical depth
+!!     - Solar zenith angles
+!!
+!!     If zbase then from top down to ztop to catch double(broken) clouds
+!!     inside cloud scaled with ql0
+!!
+!!                 hv
+!!     O3         ----> O(1D) + O2   (jO3)
+!!     O(1D) + H2O ---> 2HO
+!!     O(1D) + AIR ---> DEACTIVATION
+!!overall:
+!!     O3 + H2O ---> 2HO + O2         (JO3)
 subroutine ratech
-!
-!-----------------------------------------------------------------|
-!                                                                 |
-!*** *ratech*  calculate the photolyis rate perturbed by clouds   |
-!                                                                 |
-!     Jordi Vila   WUR          16/08/2004                        |
-!                                                                 |
-!    purpose.                                                     |
-!     --------
-!
-!     It calculates the photolysis rate perturbed by the clouds
-!     It takes the clear sky value prescribed at input_chem
-!     and it modifyes according to the parameterization developed
-!     by Chang et al.(eqs 13) (JGR, vol 92, 14,681).
-!     The parametrization depends on:
-!     - Cloud optical depth
-!     - Solar zenith angles
-!
-!**   interface.
-!     ----------
-! KvdD
-!     if zbase then from top down to ztop to catch double(broken) clouds
-!     inside cloud scaled with ql0
-!
-!                 hv
-!     O3         ----> O(1D) + O2   (jO3)
-!     O(1D) + H2O ---> 2HO
-!     O(1D) + AIR ---> DEACTIVATION
-!overall:
-!     O3 + H2O ---> 2HO + O2         (JO3)
-!-----------------------------------------------------------------
-!
 
   use modglobal, only : i1,i2,ih, j1,j2,jh, k1,kmax, timeav_glob,pi,xtime,timee,xday,xlat,xlon, &
                         zf,dzf, iexpnr,rslabs,ifoutput,cexpnr
@@ -1482,7 +1502,6 @@ subroutine ratech
   RETURN
 
   end  subroutine ratech
-!XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 subroutine ITER(t,gdt,k)
 use modglobal, only : i2, j2,nsv,timee
@@ -1552,9 +1571,7 @@ implicit none
 end subroutine ITER
 
 
-!c
-!c ---- Function to calculate solar zenith angle
-!c
+!> Function to calculate solar zenith angle
 real function getth(daynr,lat,lon,xhr)
 implicit none
   real daynr, lat, lon, xhr
@@ -1641,7 +1658,6 @@ implicit none
 
 end subroutine chemmovie
 
-!XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 subroutine write_chem_scheme(chem_name)
 use modglobal, only: nsv,ifoutput,cexpnr

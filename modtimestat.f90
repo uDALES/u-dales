@@ -1,5 +1,17 @@
-!----------------------------------------------------------------------------
-! This file is part of DALES.
+!> \file modtimestat.f90
+!!  Timestat calculates timeseries of several variables
+
+!>
+!! Timestat calculates timeseries of several variables
+!>
+!! Timeseries of the most relevant parameters. Written to tmser1.expnr and tmsurf.expnr
+!! If netcdf is true, this module leads the tmser.expnr.nc output
+!!  \author Pier Siebesma, K.N.M.I.
+!!  \author Stephan de Roode,TU Delft
+!!  \author Chiel van Heerwaarden, Wageningen U.R.
+!!  \author Thijs Heus,MPI-M
+!!  \par Revision list
+!  This file is part of DALES.
 !
 ! DALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -14,29 +26,12 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-! Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
-!----------------------------------------------------------------------------
+!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
-!
+
+
 module modtimestat
 
-    !-----------------------------------------------------------------|
-    !                                                                 |
-    !*** *timestat*  calculates timeseries of several variables       |
-    !                                                                 |
-    !      Pier Siebesma   K.N.M.I.     05/06/1998                    |
-    !                                                                 |
-    !_________________________ON OUTPUT_______________________________|
-    !                                                                 |
-    !     Various timeseries                                          |
-    !                                                                 |
-    !____________________SETTINGS_AND_SWITCHES________________________|
-    !                     IN &NAMTIMESTAT                             |
-    !                                                                 |
-    !    dtav           SAMPLING INTERVAL                             |
-    !                                                                 |
-    !    ltimestat      SWITCH TO ENABLE TIMESERIES                   |
-    !-----------------------------------------------------------------|
 
 
 implicit none
@@ -50,8 +45,8 @@ save
   character(80),dimension(nvar,4) :: ncname
 
   real    :: dtav,tnext
-  logical :: ltimestat= .false. ! switch for conditional sampling cloud (on/off)
-  real    :: zi,ziold=-1, we   !inversion height and entrainment velocity
+  logical :: ltimestat= .false. !<switch for timestatistics (on/off)
+  real    :: zi,ziold=-1, we
   integer, parameter :: iblh_flux = 1, iblh_grad = 2, iblh_thres = 3
   integer, parameter :: iblh_thv = -1,iblh_thl = -2, iblh_qt = -3
   integer :: iblh_meth = iblh_grad, iblh_var = iblh_thv
@@ -63,7 +58,7 @@ save
   real   :: qlint
 
 contains
-
+!> Initializing Timestat. Read out the namelist, initializing the variables
   subroutine inittimestat
     use modmpi,    only : my_real,myid,comm3d,mpi_logical,mpierr,mpi_integer
     use modglobal, only : ifnamopt, fname_options,cexpnr,dtmax,ifoutput,dtav_glob,ladaptive,k1,kmax,rd,rv,dt_lim,btime
@@ -76,9 +71,10 @@ contains
     real, allocatable,dimension(:) :: profile
 
 
-    namelist/NAMTIMESTAT/ &
-    dtav,ltimestat,blh_thres,iblh_meth,iblh_var,blh_nsamp,blh_thres
-
+    namelist/NAMTIMESTAT/ & !< namelist
+    dtav,ltimestat,blh_thres,iblh_meth,iblh_var,blh_nsamp,blh_thres !! namelist contents
+!!bla
+!!dibla
 
     dtav=dtav_glob
     if(myid==0)then
@@ -189,7 +185,8 @@ contains
     end if
 
   end subroutine inittimestat
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+!>Run timestat. Calculate and write the statistics
   subroutine timestat
 
     use modglobal,  only : i1,j1,kmax,zf,dzf,cu,cv,rv,rd,&
@@ -503,6 +500,12 @@ contains
 
   end subroutine timestat
 
+!>Calculate the boundary layer height
+!!
+!! There are 3 available ways to calculate the boundary layer height:
+!! - By determining the minimum flux in some scalar, e.g. buoyancy
+!! - By determining the minimum local gradient of some scalar, averaged over a definable number of columns
+!! - By monitoring a threshold value of some scalar, averaged over a definable number of columns
   subroutine calcblheight
     use modglobal,  only : ih,i1,jh,j1,kmax,k1,cp,rlv,imax,rd,zh,dzh,zf,dzf,rv,rslabs,iadv_sv,iadv_kappa
     use modfields,  only : w0,qt0,qt0h,ql0,thl0,thl0h,thv0h,sv0,exnf,whls
@@ -619,6 +622,7 @@ contains
 
   end subroutine calcblheight
 
+!> Clean up when leaving the run
   subroutine exittimestat
     use modmpi, only : myid
     use modstat_nc, only : exitstat_nc,lnetcdf

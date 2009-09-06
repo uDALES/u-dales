@@ -1,5 +1,15 @@
-!----------------------------------------------------------------------------
-! This file is part of DALES.
+!> \file advec_6th.f90
+!!  Does advection with a 6th order central differencing scheme.
+!! \par Revision list
+!! \par Authors
+!! \see Wicker and Scamarock 2002
+!!
+!! A higher-order accuracy in the calculation of the advection is reached with a
+!! sixth order central differencing scheme.
+!! \latexonly
+!!!! \endlatexonly
+!!
+!  This file is part of DALES.
 !
 ! DALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -14,10 +24,10 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-! Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
-!----------------------------------------------------------------------------
+!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
-!
+
+!> Advection at cell center
 subroutine advecc_6th(putin, putout)
 
   use modglobal, only : i1,ih,j1,jh,k1,kmax,dxi,dyi,dzf
@@ -111,7 +121,7 @@ subroutine advecc_6th(putin, putout)
 end subroutine advecc_6th
 
 
-
+!> Advection at the u point.
 subroutine advecu_6th(putin,putout)
 
   use modglobal, only : i1,ih,j1,jh,k1,kmax,dxi5,dyi5,dzf
@@ -119,8 +129,8 @@ subroutine advecu_6th(putin,putout)
 
   implicit none
 
-  real, dimension(2-ih:i1+ih,2-jh:j1+jh,k1), intent(in)  :: putin
-  real, dimension(2-ih:i1+ih,2-jh:j1+jh,k1), intent(out) :: putout
+  real, dimension(2-ih:i1+ih,2-jh:j1+jh,k1), intent(in)  :: putin !< Input: the u field
+  real, dimension(2-ih:i1+ih,2-jh:j1+jh,k1), intent(inout) :: putout !< Output: the tendency
 
   integer :: i,j,k
 
@@ -206,14 +216,15 @@ end subroutine advecu_6th
 
 
 
+!> Advection at the v point.
 subroutine advecv_6th(putin, putout)
 
   use modglobal, only : i1,ih,j1,jh,k1,kmax,dxi5,dyi5,dzf
   use modfields, only : u0, v0, w0
   implicit none
 
-  real, dimension(2-ih:i1+ih,2-jh:j1+jh,k1), intent(in)  :: putin
-  real, dimension(2-ih:i1+ih,2-jh:j1+jh,k1), intent(out) :: putout
+  real, dimension(2-ih:i1+ih,2-jh:j1+jh,k1), intent(in)  :: putin !< Input: the v field
+  real, dimension(2-ih:i1+ih,2-jh:j1+jh,k1), intent(inout) :: putout !< Output: the tendency
 
   integer :: i,j,k
 
@@ -299,14 +310,15 @@ end subroutine advecv_6th
 
 
 
+!> Advection at the w point.
 subroutine advecw_6th(putin, putout)
 
   use modglobal, only : i1,ih,j1,jh,k1,kmax,dxi5,dyi5,dzh
   use modfields, only : u0, v0, w0
   implicit none
 
-  real, dimension(2-ih:i1+ih,2-jh:j1+jh,k1), intent(in)  :: putin
-  real, dimension(2-ih:i1+ih,2-jh:j1+jh,k1), intent(out) :: putout
+  real, dimension(2-ih:i1+ih,2-jh:j1+jh,k1), intent(in)  :: putin !< Input: the w field
+  real, dimension(2-ih:i1+ih,2-jh:j1+jh,k1), intent(inout) :: putout !< Output: the tendency
 
   integer :: i,j,k
 

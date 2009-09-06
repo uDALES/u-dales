@@ -1,5 +1,21 @@
-!----------------------------------------------------------------------------
-! This file is part of DALES.
+!> \file modsampling.f90
+!!  Calculates statistics under conditional criteria
+
+
+!>
+!!  Calculates statistics under conditional criteria
+!>
+!!  Calculates statistics under conditional criteria, for instance over updrafts or cloudy parts of the domain. Written to $sampname_fld.expnr and to $sampname_flx.expnr.
+!! If netcdf is true, this module also writes in the profiles.expnr.nc output
+!! Currently implemented criteria for sampling are:
+!! - Updraft (w>0)
+!! - Cloud (ql>0)
+!! - Buoyant updraft (w>0 and thv>0)
+!! - Cloud core (ql>0 and thv>0)
+!!
+!!  \author Thijs Heus, MPI-M
+!!  \author Pier Siebesma, KNMI
+!  This file is part of DALES.
 !
 ! DALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -14,47 +30,11 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-! Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
-!----------------------------------------------------------------------------
-!
+!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
 module modsampling
 
-    !-----------------------------------------------------------------|
-    !                                                                 |
-    !*** *sampling*  calculates conditional sampled fields            |
-    !                                                                 |
-    !      Pier Siebesma   K.N.M.I.     05/06/1998                    |
-    !      Thijs Heus      T.U. Delft   31/10/2007                    |
-    !                                                                 |
-    !     purpose.                                                    |
-    !     --------                                                    |
-    !                                                                 |
-    !     sampling.f90 calculates:                                    |
-    !                                                                 |
-    !    Conditional sampled fields of:                               |
-    !                theta_l, theta_v, q_t and q_l  and w             |
-    !    Conditional sampled covariances of w with:                   |
-    !                theta_l, theta_v, q_t and q_l                    |
-    !    Conditional sampled Mass Flux                                |
-    !                                                                 |
-    !_________________________ON OUTPUT_______________________________|
-    !                                                                 |
-    !     Various Conditional sampled fields.                         |
-    !                                                                 |
-    !____________________SETTINGS_AND_SWITCHES________________________|
-    !                     IN &NAMSAMPLING                             |
-    !                                                                 |
-    !    dtav           SAMPLING INTERVAL                             |
-    !                                                                 |
-    !    timeav         INTERVAL OF WRITING                           |
-    !                                                                 |
-    !    lsampco        SWITCH TO SAMPLE CLOUD (ql>0)                 |
-    !                                                                 |
-    !    lsampcl        SWITCH TO SAMPLE CLOUD CORE (ql>0,thv>0)      |
-    !                                                                 |
-    !    lsampupd       SWITCH TO SAMPLE UPDRAFTS (w>0)               |
-    !-----------------------------------------------------------------|
+
 
 implicit none
 private
@@ -66,15 +46,15 @@ save
   real    :: dtav, timeav,tnext,tnextwrite
   integer :: nsamples,isamp,isamptot
   character(20),dimension(10) :: samplname,longsamplname
-  logical :: lsampcl  = .false. ! switch for conditional sampling cloud (on/off)
-  logical :: lsampco  = .false. ! switch for conditional sampling core (on/off)
-  logical :: lsampup  = .false. ! switch for conditional sampling updraft (on/off)
-  logical :: lsampbuup  = .false. ! switch for conditional sampling buoyant updraft (on/off)
+  logical :: lsampcl  = .false. !< switch for conditional sampling cloud (on/off)
+  logical :: lsampco  = .false. !< switch for conditional sampling core (on/off)
+  logical :: lsampup  = .false. !< switch for conditional sampling updraft (on/off)
+  logical :: lsampbuup  = .false. !< switch for conditional sampling buoyant updraft (on/off)
   real, allocatable, dimension(:,:) ::  wavl,tlavl,tvavl,qtavl,qlavl,nrsampl,massflxavl, &
                                         wtlavl,wtvavl,wqtavl,wqlavl,uwavl,vwavl
 
 contains
-
+!> Initialization routine, reads namelists and inits variables
   subroutine initsampling
 
     use modmpi,    only : comm3d, my_real,mpierr,myid,mpi_logical
@@ -191,7 +171,7 @@ contains
 
 
   end subroutine initsampling
-
+!> Cleans up after the run
   subroutine exitsampling
     use modstat_nc, only : lnetcdf
     implicit none
@@ -202,7 +182,7 @@ contains
        if (lnetcdf) deallocate(ncname)
     end if
   end subroutine exitsampling
-
+!> General routine, does the timekeeping
   subroutine sampling
     use modglobal, only : rk3step,timee,dt_lim
     implicit none
@@ -226,7 +206,7 @@ contains
 
   return
   end subroutine sampling
-
+!> Performs the actual sampling
   subroutine dosampling
     use modglobal, only : i1,i2,j1,j2,kmax,k1,ih,jh,&
                           dx,dy,dzh,dzf,cp,rv,rlv,rd,rslabs
@@ -398,7 +378,7 @@ contains
 
 
   end subroutine dosampling
-
+!> Write the statistics to file
   subroutine writesampling
 
     use modglobal, only : timee,k1,kmax,zf,zh,cexpnr,ifoutput,rslabs

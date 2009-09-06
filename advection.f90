@@ -1,5 +1,12 @@
-!----------------------------------------------------------------------------
-! This file is part of DALES.
+!> \file advection.f90
+!!  Advection management
+
+!>
+!!  Advection management
+!! \par Revision list
+!! Thijs Heus, Chiel van Heerwaarden, 15 June 2007
+!! \par Authors
+!  This file is part of DALES.
 !
 ! DALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -14,13 +21,10 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-! Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
-!----------------------------------------------------------------------------
+!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
-!
-! Advection redirection function
-! Thijs Heus, Chiel van Heerwaarden, 15 June 2007
 
+!> Advection redirection function
 subroutine advection
 
   use modglobal, only : lmoist, nsv, iadv_mom,iadv_tke,iadv_thl,iadv_qt,iadv_sv, &

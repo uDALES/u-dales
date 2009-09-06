@@ -1,5 +1,11 @@
-!----------------------------------------------------------------------------
-! This file is part of DALES.
+!> \file modfields.f90
+!!  Declares, allocates and initializes the 3D fields
+
+!>
+!!  Declares, allocates and initializes the 3D fields
+!>
+
+!  This file is part of DALES.
 !
 ! DALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -14,13 +20,8 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-! Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
-!----------------------------------------------------------------------------
+!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
-!
-!       ----------------------------------------------------------------
-!*    module *modprog* all fields and tendencies.
-!       ----------------------------------------------------------------
 
 module modfields
 
@@ -29,85 +30,86 @@ save
 
   ! Prognostic variables
 
-  real, allocatable :: um(:,:,:)        !  x-component of velocity at time step t-1
-  real, allocatable :: vm(:,:,:)        !  y-component of velocity at time step t-1
-  real, allocatable :: wm(:,:,:)        !  z-component of velocity at time step t-1
-  real, allocatable :: thlm(:,:,:)      !  liq. water pot. temperature at time step t-1
-  real, allocatable :: e12m(:,:,:)      !  turb. kin. energy at time step t-1
-  real, allocatable :: qtm(:,:,:)       !  total specific humidity at time step t
-  real, allocatable :: u0(:,:,:)        !  x-component of velocity at time step t
-  real, allocatable :: v0(:,:,:)        !  y-component of velocity at time step t
-  real, allocatable :: w0(:,:,:)        !  z-component of velocity at time step t
-  real, allocatable :: thl0(:,:,:)      !  liq. water pot. temperature at time step t
-  real, allocatable :: thl0h(:,:,:)     ! 3d-field of theta_l at half levels for kappa scheme
-  real, allocatable :: qt0h(:,:,:)      ! 3d-field of q_tot   at half levels for kappa scheme
-  real, allocatable :: e120(:,:,:)      !  turb. kin. energy at time step t
-  real, allocatable :: qt0(:,:,:)       !  total specific humidity at time step t
+  real, allocatable :: um(:,:,:)        !<   x-component of velocity at time step t-1
+  real, allocatable :: vm(:,:,:)        !<   y-component of velocity at time step t-1
+  real, allocatable :: wm(:,:,:)        !<   z-component of velocity at time step t-1
+  real, allocatable :: thlm(:,:,:)      !<   liq. water pot. temperature at time step t-1
+  real, allocatable :: e12m(:,:,:)      !<   turb. kin. energy at time step t-1
+  real, allocatable :: qtm(:,:,:)       !<   total specific humidity at time step t
+  real, allocatable :: u0(:,:,:)        !<   x-component of velocity at time step t
+  real, allocatable :: v0(:,:,:)        !<   y-component of velocity at time step t
+  real, allocatable :: w0(:,:,:)        !<   z-component of velocity at time step t
+  real, allocatable :: thl0(:,:,:)      !<   liq. water pot. temperature at time step t
+  real, allocatable :: thl0h(:,:,:)     !<  3d-field of theta_l at half levels for kappa scheme
+  real, allocatable :: qt0h(:,:,:)      !<  3d-field of q_tot   at half levels for kappa scheme
+  real, allocatable :: e120(:,:,:)      !<   turb. kin. energy at time step t
+  real, allocatable :: qt0(:,:,:)       !<   total specific humidity at time step t
 
-  real, allocatable :: up(:,:,:)        !  tendency of um
-  real, allocatable :: vp(:,:,:)        !  tendency of vm
-  real, allocatable :: wp(:,:,:)        !  tendency of wm
-  real, allocatable :: thlp(:,:,:)      !  tendency of thlm
-  real, allocatable :: e12p(:,:,:)      !  tendency of e12m
-  real, allocatable :: qtp(:,:,:)       !  tendency of qtm
+  real, allocatable :: up(:,:,:)        !<   tendency of um
+  real, allocatable :: vp(:,:,:)        !<   tendency of vm
+  real, allocatable :: wp(:,:,:)        !<   tendency of wm
+  real, allocatable :: thlp(:,:,:)      !<   tendency of thlm
+  real, allocatable :: e12p(:,:,:)      !<   tendency of e12m
+  real, allocatable :: qtp(:,:,:)       !<   tendency of qtm
 
-  real, allocatable :: svm(:,:,:,:)   ! scalar sv(n) at time step t-1
-  real, allocatable :: sv0(:,:,:,:)   ! scalar sv(n) at time step t
-  real, allocatable :: svp(:,:,:,:)   ! tendency of sv(n)
+  real, allocatable :: svm(:,:,:,:)   !<  scalar sv(n) at time step t-1
+  real, allocatable :: sv0(:,:,:,:)   !<  scalar sv(n) at time step t
+  real, allocatable :: svp(:,:,:,:)   !<  tendency of sv(n)
 
 
 
   ! Diagnostic variables
 
-  real, allocatable :: ql0(:,:,:)  !  liquid water content
+  real, allocatable :: ql0(:,:,:)  !<   liquid water content
 
-  real, allocatable :: thv0h(:,:,:)!  theta_v at half level
+  real, allocatable :: thv0h(:,:,:)!<   theta_v at half level
 
-  real, allocatable :: whls(:)                       !  large scale vert velocity at half levels
+  real, allocatable :: whls(:)                       !<   large scale vert velocity at half levels
 
-  real, allocatable :: presf(:)                      !  hydrostatic pressure at full level
-  real, allocatable :: presh(:)                      !  hydrostatic pressure at half level
-  real, allocatable :: exnf(:)                       !  hydrostatic exner function at full level
-  real, allocatable :: exnh(:)                       !  hydrostatic exner function at half level
+  real, allocatable :: presf(:)                      !<   hydrostatic pressure at full level
+  real, allocatable :: presh(:)                      !<   hydrostatic pressure at half level
+  real, allocatable :: exnf(:)                       !<   hydrostatic exner function at full level
+  real, allocatable :: exnh(:)                       !<   hydrostatic exner function at half level
 
-  real, allocatable :: rhof(:)                       !  slab averaged density at full level
-  real, allocatable :: qt0av(:)                      !  slab averaged q_tot
-  real, allocatable :: ql0av(:)                      !  slab averaged q_liq
+  real, allocatable :: rhof(:)                       !<   slab averaged density at full level
+  real, allocatable :: qt0av(:)                      !<   slab averaged q_tot
+  real, allocatable :: ql0av(:)                      !<   slab averaged q_liq
 
-  real, allocatable :: thl0av(:)                     !  slab averaged th_liq
-  real, allocatable :: u0av(:)                       !  slab averaged u
-  real, allocatable :: v0av(:)                       !  slab averaged v
-  real, allocatable :: ug(:)                       !  geostrophic u-wind
-  real, allocatable :: vg(:)                       !  geostrophic v-wind
+  real, allocatable :: thl0av(:)                     !<   slab averaged th_liq
+  real, allocatable :: u0av(:)                       !<   slab averaged u
+  real, allocatable :: v0av(:)                       !<   slab averaged v
+  real, allocatable :: ug(:)                       !<   geostrophic u-wind
+  real, allocatable :: vg(:)                       !<   geostrophic v-wind
 
-  real, allocatable :: dpdxl(:)                      !  large scale pressure x-gradient
-  real, allocatable :: dpdyl(:)                      !  large scale pressure y-gradient
+  real, allocatable :: dpdxl(:)                      !<   large scale pressure x-gradient
+  real, allocatable :: dpdyl(:)                      !<   large scale pressure y-gradient
 
-  real, allocatable :: dthldxls(:)                   !  large scale x-gradient of th_liq
-  real, allocatable :: dthldyls(:)                   !  large scale y-gradient of th_liq
-  real, allocatable :: dqtdxls(:)                    !  large scale x-gradient of q_tot
-  real, allocatable :: dqtdyls(:)                    !  large scale y-gradient of q_tot
-  real, allocatable :: dqtdtls(:)                    !  large scale y-gradient of q_tot
-  real, allocatable :: dudxls(:)                     !  large scale x-gradient of u
+  real, allocatable :: dthldxls(:)                   !<   large scale x-gradient of th_liq
+  real, allocatable :: dthldyls(:)                   !<   large scale y-gradient of th_liq
+  real, allocatable :: dqtdxls(:)                    !<   large scale x-gradient of q_tot
+  real, allocatable :: dqtdyls(:)                    !<   large scale y-gradient of q_tot
+  real, allocatable :: dqtdtls(:)                    !<   large scale y-gradient of q_tot
+  real, allocatable :: dudxls(:)                     !<   large scale x-gradient of u
 
-  real, allocatable :: dudyls(:)                     !  large scale y-gradient of u
-  real, allocatable :: dvdxls(:)                     !  large scale x-gradient of v
-  real, allocatable :: dvdyls(:)                     !  large scale y-gradient of v
-  real, allocatable :: wfls  (:)                     !  large scale y-gradient of v
+  real, allocatable :: dudyls(:)                     !<   large scale y-gradient of u
+  real, allocatable :: dvdxls(:)                     !<   large scale x-gradient of v
+  real, allocatable :: dvdyls(:)                     !<   large scale y-gradient of v
+  real, allocatable :: wfls  (:)                     !<   large scale y-gradient of v
   real, allocatable :: ql0h(:,:,:)
-  real, allocatable :: dthvdz(:,:,:)!  theta_v at half level
+  real, allocatable :: dthvdz(:,:,:)!<   theta_v at half level
 
-  real, allocatable :: thlprof(:)                    !  initial thl-profile
-  real, allocatable :: qtprof(:)                     !  initial qt-profile
-  real, allocatable :: uprof(:)                      !  initial u-profile
-  real, allocatable :: vprof(:)                      !  initial v-profile
-  real, allocatable :: e12prof(:)                    !  initial subgrid TKE profile
-  real, allocatable :: sv0av(:,:)                  !  slab average of sv(n)
-  real, allocatable :: svprof(:,:)                 !  initial sv(n)-profile
+  real, allocatable :: thlprof(:)                    !<   initial thl-profile
+  real, allocatable :: qtprof(:)                     !<   initial qt-profile
+  real, allocatable :: uprof(:)                      !<   initial u-profile
+  real, allocatable :: vprof(:)                      !<   initial v-profile
+  real, allocatable :: e12prof(:)                    !<   initial subgrid TKE profile
+  real, allocatable :: sv0av(:,:)                  !<   slab average of sv(n)
+  real, allocatable :: svprof(:,:)                 !<   initial sv(n)-profile
 
-  real, allocatable :: thlpcar(:)                    !prescribed radiatively forced thl tendency
+  real, allocatable :: thlpcar(:)                    !< prescribed radiatively forced thl tendency
 
 contains
+!> Allocate and initialize the prognostic variables
   subroutine initfields
 
     use modglobal, only : i1,ih,j1,jh,kmax,k1,nsv
@@ -196,6 +198,7 @@ contains
 
   end subroutine initfields
 
+!> Deallocate the fields
   subroutine exitfields
   implicit none
 

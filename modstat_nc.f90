@@ -1,5 +1,16 @@
-!----------------------------------------------------------------------------
-! This file is part of DALES.
+!> \file modstat_nc.f90
+!!  Background routines to write NetCDF output
+
+!>
+!!  Background routines to write NetCDF output.
+!>
+!! All calls to the netcdf library should be directed through here.
+!! Inspired on the UCLA-LES routine by Bjorn Stevens.
+!!  \author Thijs Heus,MPI-M
+!!  \par Revision list
+!!  \todo documentation
+!!   \todo restartfiles in NetCDF?
+!  This file is part of DALES.
 !
 ! DALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -14,15 +25,14 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-! Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI,MPI-M
-!----------------------------------------------------------------------------
+!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
-! TODO: Enable 2D and 3D grids
 module modstat_nc
     use netcdf
     implicit none
     logical :: lnetcdf
     integer, save :: timeID=0, ztID=0, zmID=0, xtID=0, xmID=0, ytID=0, ymID=0
+!> The only interface necessary to write data to netcdf, regardless of the dimensions.
     interface writestat_nc
       module procedure writestat_time_nc
       module procedure writestat_1D_nc
@@ -51,29 +61,22 @@ contains
     end if
 
     call MPI_BCAST(lnetcdf    ,1,MPI_LOGICAL, 0,comm3d,mpierr)
-  return
+
   end subroutine initstat_nc
 !
 ! ----------------------------------------------------------------------
-! Subroutine Open_NC: Opens a NetCDF File and identifies starting record
+!> Subroutine Open_NC: Opens a NetCDF File and identifies starting record
 !
-subroutine open_nc (fname, ncid,n1, n2, n3)
-  use modglobal, only : author,version
-  implicit none
-  integer, intent (out) :: ncid
-  integer, optional, intent (in) :: n1, n2, n3
- character (len=40), intent (in) :: fname
+  subroutine open_nc (fname, ncid,n1, n2, n3)
+    use modglobal, only : author,version
+    implicit none
+    integer, intent (out) :: ncid
+    integer, optional, intent (in) :: n1, n2, n3
+    character (len=40), intent (in) :: fname
 
- character (len=12):: date='',time=''
- integer :: iret,varid
+    character (len=12):: date='',time=''
+    integer :: iret,varid
 
-!     inquire(file=trim(fname),exist=lopen)
-!     if(lopen) then
-!       open(1, file=trim(fname), status='old')
-!       close(1,status='delete')
-!     end if
-!     inquire(file=trim(fname),opened=lopen)
-! write (*,*) 'ISOPEN', lopen
     call date_and_time(date,time)
     iret = nf90_create(fname,NF90_SHARE,ncid)
     iret = nf90_put_att(ncid,NF90_GLOBAL,'title',fname)
@@ -114,84 +117,84 @@ subroutine open_nc (fname, ncid,n1, n2, n3)
     end if
 
 
-end subroutine open_nc
+  end subroutine open_nc
 
-!
-! ----------------------------------------------------------------------
-! Subroutine Define_NC: Defines the structure of the nc file (if not
-! already open)
-!
-subroutine define_nc(ncID, nVar, sx)
-  implicit none
-  integer, intent (in) :: nVar, ncID
-  character (*), intent (in) :: sx(nVar,4)
+  !
+  ! ----------------------------------------------------------------------
+  !> Subroutine Define_NC: Defines the structure of the nc file (if not
+  !! already open)
+  !
+  subroutine define_nc(ncID, nVar, sx)
+    implicit none
+    integer, intent (in) :: nVar, ncID
+    character (*), intent (in) :: sx(nVar,4)
 
-  integer, save ::  dim_mttt(4) = 0, dim_tmtt(4) = 0, dim_ttmt(4) = 0, dim_tttt(4) = 0, dim_tt(2)= 0, dim_mt(2)= 0,dim_t0tt(3)=0,dim_m0tt(3)=0,dim_t0mt(3)=0,dim_tt0t(3)=0,dim_mt0t(3)=0,dim_tm0t(3)=0,dim_0ttt(3)=0,dim_0mtt(3)=0,dim_0tmt(3)=0
+    integer, save ::  dim_mttt(4) = 0, dim_tmtt(4) = 0, dim_ttmt(4) = 0, dim_tttt(4) = 0, dim_tt(2)= 0, dim_mt(2)= 0,dim_t0tt(3)=0,dim_m0tt(3)=0,dim_t0mt(3)=0,dim_tt0t(3)=0,dim_mt0t(3)=0,dim_tm0t(3)=0,dim_0ttt(3)=0,dim_0mtt(3)=0,dim_0tmt(3)=0
 
-  integer :: iret, n, VarID
-  dim_tt = (/ztId,timeId/)
-  dim_mt = (/zmId,timeId/)
+    integer :: iret, n, VarID
+    dim_tt = (/ztId,timeId/)
+    dim_mt = (/zmId,timeId/)
 
-  dim_t0tt= (/xtID,ztID,timeId/)! thermo point
-  dim_t0mt= (/xtID,zmID,timeId/)! zpoint
-  dim_m0tt= (/xmID,ztID,timeId/)! upoint
-  dim_tt0t= (/xtID,ytID,timeId/)! thermo point
-  dim_tm0t= (/xtID,ymID,timeId/)! vpoint
-  dim_mt0t= (/xmID,ytID,timeId/)! upoint
-  dim_0ttt= (/ytID,ztID,timeId/)! thermo point
-  dim_0tmt= (/ytID,zmID,timeId/)! wpoint
-  dim_0mtt= (/ymID,ztID,timeId/)! vpoint
+    dim_t0tt= (/xtID,ztID,timeId/)! thermo point
+    dim_t0mt= (/xtID,zmID,timeId/)! zpoint
+    dim_m0tt= (/xmID,ztID,timeId/)! upoint
+    dim_tt0t= (/xtID,ytID,timeId/)! thermo point
+    dim_tm0t= (/xtID,ymID,timeId/)! vpoint
+    dim_mt0t= (/xmID,ytID,timeId/)! upoint
+    dim_0ttt= (/ytID,ztID,timeId/)! thermo point
+    dim_0tmt= (/ytID,zmID,timeId/)! wpoint
+    dim_0mtt= (/ymID,ztID,timeId/)! vpoint
 
-  dim_tttt= (/xtID,ytID,ztID,timeId/)! thermo point
-  dim_ttmt= (/xtID,ytID,zmID,timeId/)! zpoint
-  dim_mttt= (/xmID,ytID,ztID,timeId/)! upoint
-  dim_tmtt= (/xtID,ymID,ztId,timeId/)! ypoint
-  do n=1,nVar
-    select case(trim(sx(n,4)))
-      case ('time')
-        iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,(/timeID/) ,VarID)
-      case ('tt')
-        iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_tt ,VarID)
-      case ('mt')
-        iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_mt,VarID)
-!2D Fields
-      case ('t0tt')
-        iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_t0tt,VarID)
-      case ('t0mt')
-        iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_t0mt,VarID)
-      case ('m0tt')
-        iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_m0tt,VarID)
-      case ('tt0t')
-        iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_tt0t,VarID)
-      case ('tm0t')
-        iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_tm0t,VarID)
-      case ('mt0t')
-        iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_mt0t,VarID)
-      case ('0ttt')
-        iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_0ttt,VarID)
-      case ('0tmt')
-        iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_0tmt,VarID)
-      case ('0mtt')
-        iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_0mtt,VarID)
-!3D Fields
-      case ('tttt')
-        iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_tttt,VarID)
-      case ('mttt')
-        iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_mttt,VarID)
-      case ('tmtt')
-        iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_tmtt,VarID)
-      case ('ttmt')
-        iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_ttmt,VarID)
-      case default
-      print *, 'ABORTING: Bad dimensional information'
-      stop
-      ! call appl_abort(0)
-    end select
-    iret=nf90_put_att(ncID,VarID,'longname',sx(n,2))
-    iret=nf90_put_att(ncID,VarID,'units',sx(n,3))
+    dim_tttt= (/xtID,ytID,ztID,timeId/)! thermo point
+    dim_ttmt= (/xtID,ytID,zmID,timeId/)! zpoint
+    dim_mttt= (/xmID,ytID,ztID,timeId/)! upoint
+    dim_tmtt= (/xtID,ymID,ztId,timeId/)! ypoint
+    do n=1,nVar
+      select case(trim(sx(n,4)))
+        case ('time')
+          iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,(/timeID/) ,VarID)
+        case ('tt')
+          iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_tt ,VarID)
+        case ('mt')
+          iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_mt,VarID)
+  !2D Fields
+        case ('t0tt')
+          iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_t0tt,VarID)
+        case ('t0mt')
+          iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_t0mt,VarID)
+        case ('m0tt')
+          iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_m0tt,VarID)
+        case ('tt0t')
+          iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_tt0t,VarID)
+        case ('tm0t')
+          iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_tm0t,VarID)
+        case ('mt0t')
+          iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_mt0t,VarID)
+        case ('0ttt')
+          iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_0ttt,VarID)
+        case ('0tmt')
+          iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_0tmt,VarID)
+        case ('0mtt')
+          iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_0mtt,VarID)
+  !3D Fields
+        case ('tttt')
+          iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_tttt,VarID)
+        case ('mttt')
+          iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_mttt,VarID)
+        case ('tmtt')
+          iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_tmtt,VarID)
+        case ('ttmt')
+          iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_ttmt,VarID)
+        case default
+        print *, 'ABORTING: Bad dimensional information'
+        stop
+        ! call appl_abort(0)
+      end select
+      iret=nf90_put_att(ncID,VarID,'longname',sx(n,2))
+      iret=nf90_put_att(ncID,VarID,'units',sx(n,3))
 
-  end do
-  iret= nf90_enddef(ncID)
+    end do
+    iret= nf90_enddef(ncID)
   end subroutine define_nc
 
   subroutine redefine_nc(ncid)
@@ -320,111 +323,6 @@ subroutine define_nc(ncID, nVar, sx)
 
   end subroutine writestat_3D_short_nc
 
-!
-!   subroutine writestat_nc(ncid,nvar,ncname,vars,nrec,lraise)
-!     implicit none
-!     integer, intent(in)                      :: ncid,nvar
-!     integer,intent(in),dimension(*)          :: dims
-!     integer, intent(inout)                   :: nrec
-!     real,dimension(dimmin:dimmax,nvar),intent(in)   :: vars
-!     character(*), dimension(:,:),intent(in)  :: ncname
-!     logical, intent(in)                      :: lraise
-!
-!     integer :: iret,n,varid,ndims
-!     if(lraise) then
-!       nrec = nrec+1
-!     end if
-!     do n=1,nvar
-!       iret = nf90_inq_varid(ncid, ncname(n,1), VarID)
-!       iret = nf90_inq_varid(ncid, VarID,ndims=ndims)
-!       if(ncname(n,4)=="time") then
-!         iret = nf90_put_var(ncid, VarID, vars(1,n), start=(/nrec/))
-!       else if(ndims==1) then
-!         iret = nf90_put_var(ncid, VarID, vars(dims(1):dims(2),n),(/1,1/),(/dims(2)-dims(1)+1,1/))
-!       else if(ndims==2) then
-!         iret = nf90_put_var(ncid, VarID, vars(dims(1):dims(2),n),(/1,nrec/),(/dims(2)-dims(1)+1,1/))
-!       else if(ndims==3) then
-!         iret = nf90_put_var(ncid, VarID, vars(dims(1):dims(2),dims(3):dims(4),n),(/1,nrec/),(/dims(2)-dims(1)+1,dims(4)-dims(3)+1,1/))
-!       else if(ndims==4) then
-!         iret = nf90_put_var(ncid, VarID, vars(dims(1):dims(2),dims(3):dims(4),dims(5):dims(6),n),(/1,nrec/),(/dims(2)-dims(1)+1,dims(4)-dims(3)+1,dims(6)-dims(5)+1,1/))
-!       end if
-!
-!     end do
-!     iret = nf90_sync(ncid)
-!
-!   end subroutine writestat_nc
-!
-!
-!   subroutine writestat_nc(ncid,nvar,ncname,vars,nrec,lraise)
-!     implicit none
-!     integer, intent(in)                      :: ncid,nvar
-!     integer,intent(in),dimension(*)          :: dims
-!     integer, intent(inout)                   :: nrec
-!     real,dimension(dimmin:dimmax,nvar),intent(in)   :: vars
-!     character(*), dimension(:,:),intent(in)  :: ncname
-!     logical, intent(in)                      :: lraise
-!
-!     integer :: iret,n,varid,ndims
-!     if(lraise) then
-!       nrec = nrec+1
-!     end if
-!     do n=1,nvar
-!       iret = nf90_inq_varid(ncid, ncname(n,1), VarID)
-!       iret = nf90_inq_varid(ncid, VarID,ndims=ndims)
-!       if(ncname(n,4)=="time") then
-!         iret = nf90_put_var(ncid, VarID, vars(1,n), start=(/nrec/))
-!       else if(ndims==1) then
-!         iret = nf90_put_var(ncid, VarID, vars(dims(1):dims(2),n),(/1,1/),(/dims(2)-dims(1)+1,1/))
-!       else if(ndims==2) then
-!         iret = nf90_put_var(ncid, VarID, vars(dims(1):dims(2),n),(/1,nrec/),(/dims(2)-dims(1)+1,1/))
-!       else if(ndims==3) then
-!         iret = nf90_put_var(ncid, VarID, vars(dims(1):dims(2),dims(3):dims(4),n),(/1,nrec/),(/dims(2)-dims(1)+1,dims(4)-dims(3)+1,1/))
-!       else if(ndims==4) then
-!         iret = nf90_put_var(ncid, VarID, vars(dims(1):dims(2),dims(3):dims(4),dims(5):dims(6),n),(/1,nrec/),(/dims(2)-dims(1)+1,dims(4)-dims(3)+1,dims(6)-dims(5)+1,1/))
-!       end if
-!
-!     end do
-!     iret = nf90_sync(ncid)
-!
-!   end subroutine writestat_nc
-! !   subroutine writestat2D_nc(ncid,nvar,ncname,vars,nrec,lraise,dim1min,dim1max,wr1min,wr1max,dim2min,dim2max,wr2min,wr2max)
-!     implicit none
-!     integer, intent(in)                      :: ncid,nvar,dim1min,dim1max,wr1min,wr1max,dim2min,dim2max,wr2min,wr2max
-!     integer, intent(inout)                   :: nrec
-!     real,dimension(dim1min:dim1max,dim2min:dim2max,nvar),intent(in)   :: vars
-!     character(*), dimension(:,:),intent(in)  :: ncname
-!     logical, intent(in)                      :: lraise
-!
-!     integer :: iret,n,varid
-!     if(lraise) then
-!       nrec = nrec+1
-!     end if
-!     do n=1,nvar
-!        iret = nf90_inq_varid(ncid, ncname(n,1), VarID)
-!        iret = nf90_put_var(ncid, VarID, vars(wr1min:wr1max,wr2min:wr2max,n), start=(/nrec/))
-!     end do
-!     iret = nf90_sync(ncid)
-!
-!   end subroutine writestat2D_nc
-!   subroutine writestat3D_nc(ncid,nvar,ncname,vars,nrec,lraise,dim1min,dim1max,wr1min,wr1max,dim2min,dim2max,wr2min,wr2max,dim3min,dim3max,wr3min,wr3max)
-!     implicit none
-!     integer, intent(in)                      :: ncid,nvar,dim1min,dim1max,wr1min,wr1max,dim2min,dim2max,wr2min,wr2max,dim3min,dim3max,wr3min,wr3max
-!     integer, intent(inout)                   :: nrec
-!     real,dimension(dim1min:dim1max,dim2min:dim2max,dim3min:dim3max,nvar),intent(in)   :: vars
-!     character(*), dimension(:,:),intent(in)  :: ncname
-!     logical, intent(in)                      :: lraise
-!
-!     integer :: iret,n,varid
-!     if(lraise) then
-!       nrec = nrec+1
-!     end if
-!     do n=1,nvar
-!        iret = nf90_inq_varid(ncid, ncname(n,1), VarID)
-!        iret = nf90_put_var(ncid, VarID, vars(wr1min:wr1max,wr2min:wr2max,wr3min:wr3max,n), start=(/nrec/))
-!     end do
-!     iret = nf90_sync(ncid)
-!
-!   end subroutine writestat3D_nc
 
   subroutine ncinfo(out,in1,in2,in3,in4)
 

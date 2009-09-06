@@ -1,5 +1,10 @@
-!----------------------------------------------------------------------------
-! This file is part of DALES.
+!> \file modglobal.f90
+!!  Declares the global constants
+
+!>
+!!  Declares the global constants
+!>
+!  This file is part of DALES.
 !
 ! DALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -14,9 +19,7 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-! Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
-!----------------------------------------------------------------------------
-!
+!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
 module modglobal
 
@@ -36,7 +39,7 @@ save
       integer ::  k2
       integer ::  i2
       integer ::  j2
-      integer ::  nsv = 0       !Number of additional scalar fields
+      integer ::  nsv = 0       !< Number of additional scalar fields
       integer ::  ncosv = 0
 
       integer ::  ih=3
@@ -45,52 +48,52 @@ save
 
       character(50) :: fname_options = 'namoptions'
 
-      logical :: lwarmstart = .false.!  flag for "cold" or "warm" start
-      real    :: trestart  = 3600. !    * each trestart sec. a restart file is written to disk
-      real    :: tnextrestart  = 3600. !    * each trestart sec. a restart file is written to disk
-      character(50) :: startfile    !   * name of the restart file
+      logical :: lwarmstart = .false.!<   flag for "cold" or "warm" start
+      real    :: trestart  = 3600. !<     * each trestart sec. a restart file is written to disk
+      real    :: tnextrestart  = 3600. !<     * each trestart sec. a restart file is written to disk
+      character(50) :: startfile    !<    * name of the restart file
 
-      logical :: llsadv   = .false. ! switch for large scale forcings
+      logical :: llsadv   = .false. !<  switch for large scale forcings
 
-      ! Global constants modconst.f90
-      !File numbers
+      !<  Global constants modconst.f90
+      !< File numbers
 
       integer, parameter :: ifinput    = 1
       integer, parameter :: ifoutput   = 2
       integer, parameter :: ifnamopt   = 3
 
       real,parameter :: pi      = 3.141592653589793116
-      real,parameter :: grav    = 9.81             !   *gravity acceleration.
-      real,parameter :: rd      = 287.04           !   *gas constant for dry air.
-      real,parameter :: rv      = 461.5            !   *gas constant for water vapor.
-      real,parameter :: cp      = 1004.            !   *specific heat at constant pressure (dry air).
-      real,parameter :: rlv     = 2.5e6            !   *latent heat for vaporisation.
-      real,parameter :: ep      = rd/rv            !   0.622
-      real,parameter :: ep2     = rv/rd - 1.       !   0.61
-      !real,parameter :: cv      = cp-rd            !   716.96
-      real,parameter :: rcp     = rd/cp            !   0.286
-      real,parameter :: cpr     = cp/rd            !   3.50
-      real,parameter :: rlvocp  = rlv/cp           !   2.49
+      real,parameter :: grav    = 9.81             !<    *gravity acceleration.
+      real,parameter :: rd      = 287.04           !<    *gas constant for dry air.
+      real,parameter :: rv      = 461.5            !<    *gas constant for water vapor.
+      real,parameter :: cp      = 1004.            !<    *specific heat at constant pressure (dry air).
+      real,parameter :: rlv     = 2.5e6            !<    *latent heat for vaporisation.
+      real,parameter :: ep      = rd/rv            !<    0.622
+      real,parameter :: ep2     = rv/rd - 1.       !<    0.61
+      !< real,parameter :: cv      = cp-rd            !<    716.96
+      real,parameter :: rcp     = rd/cp            !<    0.286
+      real,parameter :: cpr     = cp/rd            !<    3.50
+      real,parameter :: rlvocp  = rlv/cp           !<    2.49
 
-      real,parameter :: rhow    = 0.998e3          !   * Density of water
-      real,parameter :: pref0   = 1.e5             !   *standard pressure used in exner function.
-      real,parameter :: tmelt   = 273.16           !   *temperature of melting of ice.
-      real,parameter :: es0     = 610.78           !   * constants used for computation
-      real,parameter :: at      = 17.27            !   * of saturation mixing ratio
-      real,parameter :: bt      = 35.86            !   * using Tetens Formula.
-      real,parameter :: ekmin   = 1.e-6            !   *minimum value for k-coefficient.
-      real,parameter :: e12min  = 5.e-5            !   *minimum value for TKE.
-      real,parameter :: fkar    = 0.4              !   *Von Karman constant
-      real,parameter :: eps1    = 1.e-10           !   *very small number*
-      real,parameter :: epscloud= 1.e-5            !   *limit for cloud calculation 0.01 g/kg
+      real,parameter :: rhow    = 0.998e3          !<    * Density of water
+      real,parameter :: pref0   = 1.e5             !<    *standard pressure used in exner function.
+      real,parameter :: tmelt   = 273.16           !<    *temperature of melting of ice.
+      real,parameter :: es0     = 610.78           !<    * constants used for computation
+      real,parameter :: at      = 17.27            !<    * of saturation mixing ratio
+      real,parameter :: bt      = 35.86            !<    * using Tetens Formula.
+      real,parameter :: ekmin   = 1.e-6            !<    *minimum value for k-coefficient.
+      real,parameter :: e12min  = 5.e-5            !<    *minimum value for TKE.
+      real,parameter :: fkar    = 0.4              !<    *Von Karman constant
+      real,parameter :: eps1    = 1.e-10           !<    *very small number*
+      real,parameter :: epscloud= 1.e-5            !<    *limit for cloud calculation 0.01 g/kg
 
-      logical :: lcoriol  = .true.  ! switch for coriolis force
-      real    :: om22                       !   *2.*omega_earth*cos(lat)
-      real    :: om23                       !   *2.*omega_earth*sin(lat)
-      real    :: om22_gs                       !   *2.*omega_earth*cos(lat)
-      real    :: om23_gs                       !   *2.*omega_earth*sin(lat)
-      real    :: xlat    = 52.              !   *latitude  in degrees.
-      real    :: xlon    = 0.               !   *longitude in degrees.
+      logical :: lcoriol  = .true.  !<  switch for coriolis force
+      real    :: om22                       !<    *2.*omega_earth*cos(lat)
+      real    :: om23                       !<    *2.*omega_earth*sin(lat)
+      real    :: om22_gs                       !<    *2.*omega_earth*cos(lat)
+      real    :: om23_gs                       !<    *2.*omega_earth*sin(lat)
+      real    :: xlat    = 52.              !<    *latitude  in degrees.
+      real    :: xlon    = 0.               !<    *longitude in degrees.
 
 
       !Advection scheme
@@ -102,33 +105,33 @@ save
       integer, parameter :: iadv_cd6    = 6
       integer, parameter :: iadv_kappa  = 7
 
-      logical :: lmoist   = .true.  !  switch to calculate moisture fields
-      logical :: lsgbucorr= .false.  !  switch to enable subgrid buoyancy flux
+      logical :: lmoist   = .true.  !<   switch to calculate moisture fields
+      logical :: lsgbucorr= .false.  !<   switch to enable subgrid buoyancy flux
 
 
       ! Global variables (modvar.f90)
 
-      real :: xday      = 1.    !    * day number
-      real :: xtime     = 0.    !    * GMT time
-      real :: cu        = 0.    !    * translation velocity in x-direction
-      real :: cv        = 0.    !    * translation velocity in y-direction
-      real :: runtime   = 300.  !    * simulation time in secs
-      real :: dtmax     = 20.    !    * maximum time integration interval
+      real :: xday      = 1.    !<     * day number
+      real :: xtime     = 0.    !<     * GMT time
+      real :: cu        = 0.    !<     * translation velocity in x-direction
+      real :: cv        = 0.    !<     * translation velocity in y-direction
+      real :: runtime   = 300.  !<     * simulation time in secs
+      real :: dtmax     = 20.    !<     * maximum time integration interval
       real :: dtav_glob   = 60.
       real :: timeav_glob = 3600.
-      real :: thres     = 5.e-3 !    * threshold value for inversion height calculations
-      real :: dqt               !    * applied gradient of qt at top of model
-      real :: dtheta            !    * applied gradient of theta at top of model
-      real,allocatable :: dsv(:)          !    * applied gradient of sv(n) at top of model
-    !    real :: dsv(nsv)          !    * applied gradient of sv(n) at top of model
+      real :: thres     = 5.e-3 !<     * threshold value for inversion height calculations
+      real :: dqt               !<     * applied gradient of qt at top of model
+      real :: dtheta            !<     * applied gradient of theta at top of model
+      real,allocatable :: dsv(:)          !<     * applied gradient of sv(n) at top of model
+    !<     real :: dsv(nsv)          !<     * applied gradient of sv(n) at top of model
 
-      real :: dt                !    * time integration interval
-      real :: timee             !    * elapsed time since the "cold" start
-      real :: btime             !    * time of (re)start
-      integer :: ntimee         !    * number of timesteps since the cold start
-      integer :: ntrun          !    * number of timesteps since the start of the run
+      real :: dt                !<     * time integration interval
+      real :: timee             !<     * elapsed time since the "cold" start
+      real :: btime             !<     * time of (re)start
+      integer :: ntimee         !<     * number of timesteps since the cold start
+      integer :: ntrun          !<     * number of timesteps since the start of the run
 
-      logical :: ladaptive   = .false.    !   * adaptive timestepping on or off
+      logical :: ladaptive   = .false.    !<    * adaptive timestepping on or off
 
       real    :: courant = -1
       real    :: peclet  = 0.15
@@ -136,7 +139,7 @@ save
 
       integer :: rk3step = 0
 
-      integer :: iexpnr = 0     !    * number of the experiment
+      integer :: iexpnr = 0     !<     * number of the experiment
 
       character(3) cexpnr
 
@@ -144,35 +147,39 @@ save
 
       ! modphsgrd.f90
 
-      real :: dx              ! grid spacing in x-direction
-      real :: dy              ! grid spacing in y-direction
-      real :: dz              ! grid spacing in z-direction
-      real :: dxi             ! 1/dx
-      real :: dyi             ! 1/dy
-      real :: dzi             ! 1/dz
-      real :: dxiq            ! 1/(dx*4)
-      real :: dyiq            ! 1/(dy*4)
-      real :: dziq            ! 1/(dz*4)
-      real :: dxi5            ! 1/(dx*2)
-      real :: dyi5            ! 1/(dy*2)
-      real :: dzi5            ! 1/(dz*2)
-      real :: dx2i            ! (1/dx)**2
-      real :: dy2i            ! (1/dy)**2
+      real :: dx              !<  grid spacing in x-direction
+      real :: dy              !<  grid spacing in y-direction
+      real :: dz              !<  grid spacing in z-direction
+      real :: dxi             !<  1/dx
+      real :: dyi             !<  1/dy
+      real :: dzi             !<  1/dz
+      real :: dxiq            !<  1/(dx*4)
+      real :: dyiq            !<  1/(dy*4)
+      real :: dziq            !<  1/(dz*4)
+      real :: dxi5            !<  1/(dx*2)
+      real :: dyi5            !<  1/(dy*2)
+      real :: dzi5            !<  1/(dz*2)
+      real :: dx2i            !<  (1/dx)**2
+      real :: dy2i            !<  (1/dy)**2
 
 
       real :: rslabs
-      real, allocatable :: dzf(:)         ! thickness of full level
-      real, allocatable :: dzh(:)         ! thickness of half level
-      real, allocatable :: zh(:)          ! height of half level [m]
-      real, allocatable :: zf(:)          ! height of full level [m]
-      real :: xsize    = -1 ! domain size in x-direction
-      real :: ysize    = -1 ! domain size in y-direction
-      real, allocatable :: delta(:)       ! (dx*dy*dz)**(1/3)
+      real, allocatable :: dzf(:)         !<  thickness of full level
+      real, allocatable :: dzh(:)         !<  thickness of half level
+      real, allocatable :: zh(:)          !<  height of half level [m]
+      real, allocatable :: zf(:)          !<  height of full level [m]
+      real :: xsize    = -1 !<  domain size in x-direction
+      real :: ysize    = -1 !<  domain size in y-direction
+      real, allocatable :: delta(:)       !<  (dx*dy*dz)**(1/3)
 
-      logical :: leq      = .true.  ! switch for (non)-equidistant mode.
-      logical :: lmomsubs = .false.  ! switch to apply subsidence on the momentum or not
+      logical :: leq      = .true.  !<  switch for (non)-equidistant mode.
+      logical :: lmomsubs = .false.  !<  switch to apply subsidence on the momentum or not
       character(80) :: author='', version='DALES 3.2'
 contains
+
+!> Initialize global settings.
+!!
+!! Set courant number, calculate the grid sizes (both computational and physical), and set the coriolis parameter
   subroutine initglobal
     use modmpi, only: nprocs, myid,comm3d, my_real, mpierr
     implicit none
@@ -360,7 +367,7 @@ contains
     tnextrestart = trestart
 
   end subroutine initglobal
-
+!> Clean up when leaving the run
   subroutine exitglobal
     deallocate(dsv,dzf,dzh,zh,zf,delta)
   end subroutine exitglobal

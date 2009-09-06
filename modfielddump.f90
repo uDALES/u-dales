@@ -1,5 +1,14 @@
-!----------------------------------------------------------------------------
-! This file is part of DALES.
+!> \file modfielddump.f90
+!!  Dumps 3D fields of several variables
+
+!>
+!!  Dumps 3D fields of several variables
+!>
+!!  Dumps 3D fields of several variables Written to wb*.myid.expnr
+!! If netcdf is true, this module leads the fielddump.myid.expnr.nc output
+!!  \author Thijs Heus,MPI-M
+!!  \par Revision list
+!  This file is part of DALES.
 !
 ! DALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -14,31 +23,10 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-! Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
-!----------------------------------------------------------------------------
-!
+!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
 module modfielddump
 
-    !-----------------------------------------------------------------|
-    !                                                                 |
-    !*** *fielddump*  dumps complete 3d fields in 2-byte integers     |
-    !                                                                 |
-    !      Thijs Heus                   19/06/2007                    |
-    !                                                                 |
-    !     purpose.                                                    |
-    !     --------                                                    |
-    !                                                                 |
-    !                                                                 |
-    !    Dumps fields of:                                             |
-    !                u,v,w, thl,thv,qt and ql                         |
-    !____________________SETTINGS_AND_SWITCHES________________________|
-    !                     IN &NAMFIELDDUMP                             |
-    !                                                                 |
-    !    dtav            SAMPLING INTERVAL                             |
-    !    lfielddump      SWITCH TO ENABLE FIELDDUMP                    |
-    !    ldiracc         SWITCH TO DUMP IN DIRECT ACCESS FILES         |
-    !-----------------------------------------------------------------|
 
 implicit none
 private
@@ -53,11 +41,11 @@ save
 
   real    :: dtav,tnext
   integer :: klow,khigh
-  logical :: lfielddump= .false. ! switch for conditional sampling cloud (on/off)
-  logical :: ldiracc   = .false. ! switch for conditional sampling cloud (on/off)
+  logical :: lfielddump= .false. !< switch to enable the fielddump (on/off)
+  logical :: ldiracc   = .false. !< switch for doing direct access writing (on/off)
 
 contains
-
+!> Initializing fielddump. Read out the namelist, initializing the variables
   subroutine initfielddump
     use modmpi,   only :myid,my_real,mpierr,comm3d,mpi_logical,mpi_integer,cmyid
     use modglobal,only :imax,jmax,kmax,cexpnr,ifnamopt,fname_options,dtmax,dtav_glob,kmax, ladaptive,dt_lim,btime
@@ -111,7 +99,8 @@ contains
     end if
 
   end subroutine initfielddump
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+!> Do fielddump. Collect data to truncated (2 byte) integers, and write them to file
   subroutine fielddump
     use modfields, only : um,vm,wm,thlm,qtm,ql0
     use modsurface,only : thls,qts,thvs
@@ -221,6 +210,7 @@ contains
     deallocate(field,vars)
 
   end subroutine fielddump
+!> Clean up when leaving the run
   subroutine exitfielddump
     use modstat_nc, only : exitstat_nc,lnetcdf
     implicit none

@@ -1,52 +1,64 @@
-!----------------------------------------------------------------------------
-! This file is part of DALES.
-!
-! DALES is free software; you can redistribute it and/or modify
-! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 3 of the License, or
-! (at your option) any later version.
-!
-! DALES is distributed in the hope that it will be useful,
-! but WITHOUT ANY WARRANTY; without even the implied warranty of
-! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-! GNU General Public License for more details.
-!
-! You should have received a copy of the GNU General Public License
-! along with this program.  If not, see <http://www.gnu.org/licenses/>.
-!
-! Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
-!----------------------------------------------------------------------------
-!
-!
+!> \file program.f90
+!! Main program
 
+!>
+!! \mainpage
+!! Dutch Atmospheric Large Eddy Simulation
+!! \section DALES Dutch Atmospheric Large Eddy Simulation
+!!
+!! @version 3.2git
+!!
+!! @author
+!! Stephan de Roode
+!! (TU Delft)
+!! \author
+!! Chiel van Heerwaarden
+!! (Wageningen University)
+!! \author
+!! Thijs Heus
+!! (Max Planck Institute Hamburg)
+!>
+!! \section Log Change log
+!! \par New Features
+!!  - Land Surface model
+!!  - Chemistry
+!!  - NetCDF output
+!!  - Gitourius repository, including case database
+!!  - Optional Smagorinsky SFS-scheme
+!! \par Changes
+!! - Newton-Raphson Ql calculations now by default true\n
+!! - Subsidence by default off for momentum. Changable with lmomsubs switch in
+!! physics
+!!
+!! \todo
+!! - Radiation
+!! - Review documentation
+!! - Cleaning up for release : Removal of debug statements, cleaner code, less
+!! warnings in chemistry, clean example dirs
+!!
+!! \section License License
+!!  This file is part of DALES.
+!!
+!!  DALES is free software; you can redistribute it and/or modify it under the
+!! terms of the GNU General Public License as published by the Free Software
+!! Foundation; either version 3 of the License, or (at your option) any later
+!! version.
+!!
+!!  DALES is distributed in the hope that it will be useful, but WITHOUT ANY
+!! WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+!! PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+!!
+!!  You should have received a copy of the GNU General Public License along with
+!! this program.  If not, see <http://www.gnu.org/licenses/>.
+!!
+!!  Copyright 1993-2009 Delft University of Technology, Wageningen University,
+!! Utrecht University, KNMI
+!!
 program DALES      !Version 3.2 Beta 1
 
-!Stephan de Roode      - TU Delft
-!Chiel van Heerwaarden - Wageningen
-!Thijs Heus            - MPI-Met
-!
-! NEW FEATURES
-! Land Surface model
-! Chemistry
-! NetCDF output
-! Gitourius repository, including case database
-! Optional Smagorinsky SFS-scheme
-!
-! CHANGES
-! Newton-Raphson Ql calculations now by default true
-! Subsidence by default off for momentum. Changable with lmomsubs switch in physics
-!
-! KNOWN ISSUES/TO DO
-! Radiation
-! review documentation
-! Cleaning up for release : Removal of debug statements, cleaner code, less warnings
-
-!--------------------------------------------------------------------------------------
-
-
-!----------------------------------------------------------------
-!     0.0    USE STATEMENTS FOR CORE MODULES
-!----------------------------------------------------------------
+!!----------------------------------------------------------------
+!!     0.0    USE STATEMENTS FOR CORE MODULES
+!!----------------------------------------------------------------
   use modmpi,            only : myid, initmpi
   use modglobal,         only : rk3step,timee,btime,runtime
   use modfields,         only : thl0
@@ -212,13 +224,10 @@ program DALES      !Version 3.2 Beta 1
 !--------------------------------------------------------
 !    4    FINALIZE ADD ONS AND THE MAIN PROGRAM
 !-------------------------------------------------------
-   call exitgenstat
-   call exitradstat
-!   call exittilt
+  call exitgenstat
+  call exitradstat
   call exitparticles
   call exitnudge
-!   call exitnetcdfstats
-!   call exitnetcdfmovie
   call exitsampling
   call exitstattend
   call exitbulkmicrostat

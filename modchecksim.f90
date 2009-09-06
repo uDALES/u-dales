@@ -1,5 +1,14 @@
-!----------------------------------------------------------------------------
-! This file is part of DALES.
+!> \file modchecksim.f90
+!!  Monitors Courant and Peclet numbers, and divergence.
+
+!>
+!!  Monitors Courant and Peclet numbers, and divergence.
+!>
+!!  These numbers are put out to screen either every tcheck seconds, or every time step (if tcheck=0).
+!!  \author Thijs Heus,MPI-M
+!!  \author Hans Cuijpers, KNMI
+!!  \par Revision list
+!  This file is part of DALES.
 !
 ! DALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -14,22 +23,10 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-! Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
-!----------------------------------------------------------------------------
+!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
 !
 module modchecksim
-
-    !-----------------------------------------------------------------|
-    !                                                                 |
-    !*** *checksim*  Calculates divergence and Courant number         |
-    !      modifications Thijs Heus TUDelft 03/08/2007                |
-    !                                                                 |
-    !____________________SETTINGS_AND_SWITCHES________________________|
-    !                      IN &NAMCHECKSIM                            |
-    !                                                                 |
-    !    tcheck         CHECK INTERVAL                                |
-    !-----------------------------------------------------------------|
 
   implicit none
   private
@@ -40,6 +37,7 @@ module modchecksim
 
   save
 contains
+!> Initializing Checksim. Read out the namelist, initializing the variables
   subroutine initchecksim
     use modglobal, only : ifnamopt, fname_options,dtmax,ladaptive,btime
     use modmpi,    only : myid,my_real,comm3d,mpierr
@@ -64,7 +62,7 @@ contains
 
 
   end subroutine initchecksim
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!>Run checksim. Timekeeping, and output
   subroutine checksim
     use modglobal, only : timee, rk3step, dt_lim,dt
     use modmpi,    only : myid
@@ -88,24 +86,8 @@ contains
     ndt   = 0.
 
   end subroutine checksim
+!>      Calculates the courant number as in max(w)*deltat/deltaz
   subroutine calccourant
-!-----------------------------------------------------------------|
-!                                                                 |
-!      Thijs Heus   TU Delft  13/7/2005                           |
-!                                                                 |
-!     purpose.                                                    |
-!     --------                                                    |
-!                                                                 |
-!      Calculates the courant number as in max(w) *deltat/deltaz  |
-!      and writes it to screen.                                   |
-!                                                                 |
-!     interface.                                                  |
-!     ----------                                                  |
-!                                                                 |
-!     *calccourant* is called from *program*.                     |
-!                                                                 |
-!-----------------------------------------------------------------|
-
     use modglobal, only : i1,j1,kmax,k1,dx,dy,dzh,dt,timee
     use modfields, only : u0,v0,w0
     use modmpi,    only : myid,comm3d,mpierr,mpi_max,my_real
@@ -140,24 +122,8 @@ contains
 
     return
   end subroutine calccourant
+!> Calculates the cell peclet number as max(ekm) *deltat/deltax**2
   subroutine calcpeclet
-!-----------------------------------------------------------------|
-!                                                                 |
-!      Thijs Heus   KNMI    16/12/2008                            |
-!                                                                 |
-!     purpose.                                                    |
-!     --------                                                    |
-!                                                                 |
-!      Calculates the cell peclet number as in                    |
-!       max(ekm) *deltat/deltax**2                                |
-!      and writes it to screen.                                   |
-!                                                                 |
-!     interface.                                                  |
-!     ----------                                                  |
-!                                                                 |
-!     *calcpeclet* is called from *program*.                      |
-!                                                                 |
-!-----------------------------------------------------------------|
 
     use modglobal, only : i1,j1,k1,kmax,dx,dy,dzh,dt,timee
     use modsubgrid,only : ekm
@@ -184,27 +150,8 @@ contains
 
     return
   end subroutine calcpeclet
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
+!> Checks local and total divergence
   subroutine chkdiv
-
-!-----------------------------------------------------------------|
-!                                                                 |
-!*** *chkdiv checks local and total divergence                    |
-!             for next timestep.                                  |
-!                                                                 |
-!      Hans Cuijpers   I.M.A.U.    06/01/1995                     |
-!      adapted tstep   to chkdiv Mathieu nov 2000
-!                                                                 |
-!     purpose.                                                    |
-!     --------                                                    |
-!                                                                 |
-!**   interface.                                                  |
-!     ----------                                                  |
-!                                                                 |
-!                                                                 |
-!-----------------------------------------------------------------|
 
     use modglobal, only : i1,j1,kmax,dx,dy,dzf
     use modfields, only : um,vm,wm

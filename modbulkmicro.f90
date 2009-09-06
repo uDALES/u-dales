@@ -1,8 +1,20 @@
+!> \file modbulkmicro.f90
 
-
-
-!----------------------------------------------------------------------------
-! This file is part of DALES.
+!>
+!!  Bulk microphysics.
+!>
+!! Calculates bulk microphysics using a two moment scheme.
+!! \see   Seifert and Beheng (Atm. Res., 2001)
+!! \see  Seifert and Beheng (Met Atm Phys, 2006)
+!! \see  Stevens and Seifert (J. Meteorol. Soc. Japan, 2008)  (rain sedim, mur param)
+!! \see  Seifert (J. Atm Sc., 2008) (rain evap)
+!! \see  Khairoutdinov and Kogan (2000) (drizzle param : auto, accr, sedim, evap)
+!!  \author Olivier Geoffroy, K.N.M.I.
+!!  \author Margreet van Zanten, K.N.M.I.
+!!  \author Stephan de Roode,TU Delft
+!!  \par Revision list
+!! \todo documentation
+!  This file is part of DALES.
 !
 ! DALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -17,33 +29,14 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-! Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
-!----------------------------------------------------------------------------
+!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
-!
+
 
 module modbulkmicro
 
-!*********************************************************************
-!
-!   Margreet van Zanten   KNMI  Juli-Augustus 2005
-!   Olivier  Geoffroy     KNMI  March         2008
-!
-!   purpose:
-!   Calculates microphysical processes based on
-!
-!   ** l_sb=T **
-!   Seifert and Beheng (Atm. Res., 2001)
-!   Seifert and Beheng (Met Atm Phys, 2006)
-!   Stevens and Seifert (J. Meteorol. Soc. Japan, 2008)  (rain sedim, mur param)
-!   Seifert (J. Atm Sc., 2008) (rain evap)
-!
-!   ** l_sb=F **
-!   Khairoutdinov and Kogan (2000) (drizzle param : auto, accr, sedim, evap)
 !
 !
-!   The sedimentation of cloud droplets assumes a lognormal DSD in which the
-!   geometric std dev. is assumed to be fixed at 1.3.
 !
 !   Amount of liquid water is splitted into cloud water and precipitable
 !   water (as such it is a two moment scheme). Cloud droplet number conc. is
@@ -65,13 +58,8 @@ module modbulkmicro
   save
   contains
 
-  !*********************************************************************
-  !*********************************************************************
-
+!> Initializes and allocates the arrays
   subroutine initbulkmicro
-  !*********************************************************************
-  ! subroutine initbulkmicro
-  !*********************************************************************
     use modglobal, only : ih,i1,jh,j1,k1,dzf,dtmax,rk3step
     use modmpi,    only : myid
     implicit none
@@ -119,9 +107,7 @@ module modbulkmicro
 
   end subroutine initbulkmicro
 
-  !*********************************************************************
-  !*********************************************************************
-
+!> Cleaning up after the run
   subroutine exitbulkmicro
   !*********************************************************************
   ! subroutine exitbulkmicro
@@ -130,20 +116,15 @@ module modbulkmicro
 
     deallocate(Nr,Nrp,qltot,qr,qrp,thlpmcr,qtpmcr  )
 
-    deallocate(nuc,sedc,sed_qr,sed_Nr,exnz,presz,Dvc,xc,Dvr,mur,lbdr, & 
+    deallocate(nuc,sedc,sed_qr,sed_Nr,exnz,presz,Dvc,xc,Dvr,mur,lbdr, &
                xr,au,phi,tau,ac,sc,br,evap,Nevap,qr_spl,Nr_spl,wfall_qr,wfall_Nr)
 
     deallocate(precep)
 
   end subroutine exitbulkmicro
 
-  !*********************************************************************
-  !*********************************************************************
-
+!> Calculates the microphysical source term.
   subroutine bulkmicro
-  !*********************************************************************
-  ! subroutine bulkmicro
-  !*********************************************************************
     use modglobal, only : dt,rk3step,timee,kmax,rlv,cp
     use modfields, only : sv0,svm,svp,qtp,thlp,qt0,ql0,presf, exnf,rhof
     use modbulkmicrostat, only : bulkmicrotend
@@ -176,7 +157,7 @@ module modbulkmicro
   !*********************************************************************
   ! remove neg. values of Nr and qr
   !*********************************************************************
-    if (l_rain) then 
+    if (l_rain) then
     if (sum(qr, qr<0.) > 0.000001*sum(qr)) then
       write(*,*)'amount of neg. qr and Nr thrown away is too high  ',timee,' sec'
     end if
@@ -292,20 +273,14 @@ module modbulkmicro
     endwhere
 
   end subroutine bulkmicro
-
-  !*********************************************************************
-  !*********************************************************************
-
+  !> Determine autoconversion rate and adjust qrp and Nrp accordingly
+  !!
+  !!   The autoconversion rate is formulated for f(x)=A*x**(nuc)*exp(-Bx),
+  !!   decaying exponentially for droplet mass x.
+  !!   It can easily be reformulated for f(x)=A*x**(nuc)*exp(-Bx**(mu)) and
+  !!   by chosing mu=1/3 one would get a gamma distribution in drop diameter
+  !!   -> faster rain formation. (Seifert)
   subroutine autoconversion
-  !*********************************************************************
-  ! determine autoconversion rate and adjust qrp and Nrp accordingly
-  !
-  !   The autoconversion rate is formulated for f(x)=A*x**(nuc)*exp(-Bx),
-  !   decaying exponentially for droplet mass x.
-  !   It can easily be reformulated for f(x)=A*x**(nuc)*exp(-Bx**(mu)) and
-  !   by chosing mu=1/3 one would get a gamma distribution in drop diameter
-  !   -> faster rain formation. (Seifert)
-  !*********************************************************************
     use modglobal, only : i1,j1,kmax,eps1,rlv,cp
     use modmpi,    only : myid
     implicit none
@@ -358,9 +333,6 @@ module modbulkmicro
     end if
 
   end subroutine autoconversion
-
-  !*********************************************************************
-  !*********************************************************************
 
   subroutine accretion
   !*********************************************************************
@@ -428,16 +400,15 @@ module modbulkmicro
 
   end subroutine accretion
 
-  !*********************************************************************
-  !*********************************************************************
-
+!> Sedimentation of cloud water
+!!
+!!   The sedimentation of cloud droplets assumes a lognormal DSD in which the
+!!   geometric std dev. is assumed to be fixed at 1.3.
+!! sedimentation of cloud droplets
+!! lognormal CDSD is assumed (1 free parameter : sig_g)
+!! terminal velocity : Stokes velocity is assumed (v(D) ~ D^2)
+!! flux is calc. anal.
   subroutine sedimentation_cloud
-  !*********************************************************************
-  ! sedimentation of cloud droplets
-  ! lognormal CDSD is assumed (1 free parameter : sig_g)
-  ! terminal velocity : Stokes velocity is assumed (v(D) ~ D^2)
-  ! flux is calc. anal.
-  !*********************************************************************
     use modglobal, only : i1,j1,k1,kmax,eps1,rlv,cp,dzf,pi
     use modmpi,    only : myid
 
@@ -445,12 +416,12 @@ module modbulkmicro
     integer :: k
 
 !    real    :: qc_spl(2-ih:i1+ih,2-jh:j1+jh,k1)       &! work variable
-!              ,Nc_spl(2-ih:i1+ih,2-jh:j1+jh,k1)     
+!              ,Nc_spl(2-ih:i1+ih,2-jh:j1+jh,k1)
 !    real,save :: dt_spl,wfallmax
 !
 !    qc_spl(2:i1,2:j1,1:k1) = qc(2:i1,2:j1,1:k1)
 !    Nc_spl(2:i1,2:j1,1:k1)  = Nc(2:i1,2:j1,1:k1)
-!       
+!
 !    wfallmax = 9.9
 !    n_spl = ceiling(wfallmax*delt/(minval(dzf)))
 !    dt_spl = delt/real(n_spl)
@@ -470,36 +441,33 @@ module modbulkmicro
 
   end subroutine sedimentation_cloud
 
-  !*********************************************************************
-  !*********************************************************************
 
+!> Sedimentaion of rain
+!! sedimentation of drizzle water
+!! - gen. gamma distr is assumed. Terminal velocities param according to
+!!   Stevens & Seifert. Flux are calc. anal.
+!! - l_lognormal =T : lognormal DSD is assumed with D_g and N known and
+!!   sig_g assumed. Flux are calc. numerically with help of a
+!!   polynomial function
   subroutine sedimentation_rain
-  !*********************************************************************
-  ! sedimentation of drizzle water
-  ! - gen. gamma distr is assumed. Terminal velocities param according to
-  !   Stevens & Seifert. Flux are calc. anal.
-  ! - l_lognormal =T : lognormal DSD is assumed with D_g and N known and
-  !   sig_g assumed. Flux are calc. numerically with help of a
-  !   polynomial function
-  !*********************************************************************
     use modglobal, only : i1,j1,k1,kmax,eps1,dzf,pi,dt
     use modfields, only : rhof
     use modmpi,    only : myid,mpi_max,mpi_integer,mpierr,comm3d
     implicit none
     integer :: i,j,k,jn
-    integer :: n_spl      ! sedimentation time splitting loop
+    integer :: n_spl      !<  sedimentation time splitting loop
     real    :: pwcont
-    real    :: wvar(2-ih:i1+ih,2-jh:j1+jh,k1)       &! work variable
-              ,xr_spl(2-ih:i1+ih,2-jh:j1+jh,k1)     &! for time splitting
-              ,Dvr_spl(2-ih:i1+ih,2-jh:j1+jh,k1)    &!    -
-              ,mur_spl(2-ih:i1+ih,2-jh:j1+jh,k1)    &!    -
-              ,lbdr_spl(2-ih:i1+ih,2-jh:j1+jh,k1)   &!    -
-              ,Dgr(2-ih:i1+ih,2-jh:j1+jh,k1)         ! lognormal geometric diameter
+    real    :: wvar(2-ih:i1+ih,2-jh:j1+jh,k1)       &!<  work variable
+              ,xr_spl(2-ih:i1+ih,2-jh:j1+jh,k1)     &!<  for time splitting
+              ,Dvr_spl(2-ih:i1+ih,2-jh:j1+jh,k1)    &!<     -
+              ,mur_spl(2-ih:i1+ih,2-jh:j1+jh,k1)    &!<     -
+              ,lbdr_spl(2-ih:i1+ih,2-jh:j1+jh,k1)   &!<     -
+              ,Dgr(2-ih:i1+ih,2-jh:j1+jh,k1)         !<  lognormal geometric diameter
     real,save :: dt_spl,wfallmax
 
     qr_spl(2:i1,2:j1,1:k1) = qr(2:i1,2:j1,1:k1)
     Nr_spl(2:i1,2:j1,1:k1)  = Nr(2:i1,2:j1,1:k1)
-       
+
     wfallmax = 9.9
     n_spl = ceiling(wfallmax*delt/(minval(dzf)))
     dt_spl = delt/real(n_spl)
@@ -686,7 +654,6 @@ module modbulkmicro
             ser(2:i1,2:j1,k1),  &
             gam(2:i1,2:j1,k1)
 
-   integer :: ii,jj,kk
 
     real cof(6),stp,half,one,fpf
 

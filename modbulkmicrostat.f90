@@ -1,5 +1,18 @@
-!----------------------------------------------------------------------------
-! This file is part of DALES.
+!> \file modbulkmicrostat.f90
+!!  Calculates profiles coming from the bulkmicrophysics
+
+
+!>
+!!  Calculates profiles coming from the bulkmicrophysics
+!>
+!! Profiles coming from the bulkmicrophysics. Written to precep.expnr for the
+!! rain rates etc., and to qlptend.expnr, nptend.expnr and qtptend.expnr for the
+!! tendencies is rain water content, droplet number, and total water content,
+!! respectively.
+!! If netcdf is true, this module also writes in the profiles.expnr.nc output
+!!  \author Olivier Geoffroy, KNMI
+!!  \author Johan van de Dussen, TU Delft
+!  This file is part of DALES.
 !
 ! DALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -14,41 +27,9 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-! Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
-!----------------------------------------------------------------------------
-!
+!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
 module modbulkmicrostat
-
-  !-----------------------------------------------------------------|
-  !                                                                 |
-  !*** *bulkmicrostat*  calculates tendencies of bulkmicrophysics   |
-  !                                                                 |
-  !      Thijs Heus          TU Delft     15/11/2007                |
-  !      Olivier Geoffroy        KNMI     march 2008                |
-  !      Johan van de Dussen TU Delft     22/01/2009                |
-  !                                                                 |
-  !     purpose.                                                    |
-  !     --------                                                    |
-  !                                                                 |
-  !                                                                 |
-  !    NOTE: A STATEMENT call bulkmicrotend NEEDS                   |
-  !    TO BE SET BEFORE AUTOCONVERSION, AFTER AUTOCONVERSION,       |
-  !    ACCRETION, SEDIMENTATION AND EVAPORATION SECTIONS IN         |
-  !    modbulkmicro.f90                                             |
-  !                                                                 |
-  !                                                                 |
-  !_________________________ON OUTPUT_______________________________|
-  !                                                                 |
-  !     Various slab averages                                       |
-  !                                                                 |
-  !____________________SETTINGS_AND_SWITCHES________________________|
-  !                     IN &NAMBULKMICROSTAT                        |
-  !                                                                 |
-  !    dtav           SAMPLING INTERVAL                             |
-  !    timeav         WRITING INTERVAL                              |
-  !    lmicrostat     SWITCH TO ENABLE STATISTICS                   |
-  !-----------------------------------------------------------------|
 
 implicit none
 private
@@ -99,7 +80,8 @@ save
                Dvrmn
 
 contains
-  subroutine initbulkmicrostat
+!> Initialization routine, reads namelists and inits variables
+subroutine initbulkmicrostat
     use modmpi,    only  : myid, mpi_logical, my_real, comm3d, mpierr
     use modglobal, only  : ifnamopt, fname_options, cexpnr, ifoutput, &
               dtav_glob, timeav_glob, ladaptive, k1,kmax, dtmax,btime
@@ -227,7 +209,7 @@ contains
   end subroutine initbulkmicrostat
 
 !------------------------------------------------------------------------------!
-
+!> General routine, does the timekeeping
   subroutine bulkmicrostat
     use modmpi,    only  : myid
     use modglobal,    only  : rk3step, timee, dt_lim
@@ -251,7 +233,7 @@ contains
   end subroutine bulkmicrostat
 
 !------------------------------------------------------------------------------!
-
+!> Performs the calculations for rainrate etc.
   subroutine dobulkmicrostat
     use modmpi,    only  : my_real, mpi_sum, comm3d, mpierr
     use modglobal,    only  : i1, j1, k1, rslabs
@@ -301,7 +283,7 @@ contains
   end subroutine dobulkmicrostat
 
 !------------------------------------------------------------------------------!
-
+!> Performs the calculations for the tendencies etc.
   subroutine bulkmicrotend
     use modmpi,    only  : slabsum
     use modglobal,    only  : rk3step, timee, dt_lim, k1, ih, i1, jh, j1, rslabs
@@ -350,7 +332,7 @@ contains
   end subroutine bulkmicrotend
 
 !------------------------------------------------------------------------------!
-
+!> Write the stats to file
   subroutine writebulkmicrostat
     use modmpi,    only  : myid
     use modglobal,    only  : timee, ifoutput, cexpnr, k1,kmax, &

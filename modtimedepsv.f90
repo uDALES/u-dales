@@ -1,5 +1,16 @@
-!----------------------------------------------------------------------------
-! This file is part of DALES.
+!> \file modtimedepsv.f90
+!!  Prescribes surface values, fluxes and LS forcings at certain times for scalars
+
+!>
+!!  Prescribes surface values, fluxes and LS forcings at certain times for scalars
+!>
+!!  \author Roel Neggers, KNMI
+!!  \author Thijs Heus,MPI-M
+!!  \author Stephan de Roode, TU Delft
+!!  \author Simon Axelsen, UU
+!!  \par Revision list
+!! \todo documentation
+!  This file is part of DALES.
 !
 ! DALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -14,19 +25,10 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-! Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
-!----------------------------------------------------------------------------
+!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
-!
-!
-!       ----------------------------------------------------------------
-!
-!*    module *modtimedep* prescribed surface fluxes and LS forcings
-!*                    at certain times
-!*
-!*            Roel Neggers    KNMI    01-05-2001
-!
-!       ----------------------------------------------------------------
+
+
 
 module modtimedepsv
 
@@ -36,16 +38,16 @@ private
 public :: inittimedepsv, timedepsv,exittimedepsv
 save
 ! switches for timedependent surface fluxes and large scale forcings
-  logical       :: ltimedepsvz    = .false. !Switch for large scale forcings
-  logical       :: ltimedepsvsurf = .true.  !Switch for surface fluxes
+  logical       :: ltimedepsvz    = .false. !< Switch for large scale forcings
+  logical       :: ltimedepsvsurf = .true.  !< Switch for surface fluxes
 
   integer, parameter    :: kflux = 100
   integer, parameter    :: kls   = 100
   real, allocatable     :: timesvsurf (:)
-  real, allocatable     :: svst     (:,:) !Time dependent surface scalar concentration
+  real, allocatable     :: svst     (:,:) !< Time dependent surface scalar concentration
 
   real, allocatable     :: timesvz  (:)
-  real, allocatable     :: svzt(:,:,:) !Time dependent, height dependent scalar concentrations
+  real, allocatable     :: svzt(:,:,:) !< Time dependent, height dependent scalar concentrations
 
 
 

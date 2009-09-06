@@ -1,5 +1,19 @@
-!----------------------------------------------------------------------------
-! This file is part of DALES.
+!> \file tstep.f90
+!!  Performs the time integration
+
+!>
+!!  Performs the time integration
+!>
+!! Tstep uses adaptive timestepping and 3rd order Runge Kutta time integration.
+!! The adaptive timestepping chooses it's delta_t according to the courant number
+!! and the cell peclet number, depending on the advection scheme in use.
+!!
+!!
+!!  \author Chiel van Heerwaarden, Wageningen University
+!!  \author Thijs Heus,MPI-M
+!! \see Wicker and Skamarock 2002
+!!  \par Revision list
+!  This file is part of DALES.
 !
 ! DALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -14,13 +28,18 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-! Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
-!----------------------------------------------------------------------------
+!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
-!
+
+!> Determine time step size dt in initialization and update time variables
+!!
+!! The size of the timestep $\Delta t$ is determined adaptively, and is limited by both the Courant-Friedrichs-Lewy criterion ($\CFL$)
+!! \begin{equation}
+!! \CFL = \mr{max}\left(\left|\frac{u_i \Delta t}{\Delta x_i}\right|\right),
+!! \end{equation}
+!! and the diffusion number $d$. The timestep is further limited by the needs of other modules, e.g. the statistics.
 subroutine tstep_update
-! Determine time step size dt in initialization and update time variables
-! Chiel van Heerwaarden, Thijs Heus 14 June 2007
+
 
   use modglobal, only : i1,j1,rk3step,timee,runtime,btime,dtmax,dt,ntimee,ntrun,courant,peclet,kmax,dx,dy,dzh,dt_lim,ladaptive
   use modfields, only : um,vm,wm
@@ -83,9 +102,9 @@ subroutine tstep_update
         end do
         call MPI_ALLREDUCE(courtotl,courtot,1,MY_REAL,MPI_MAX,comm3d,mpierr)
         call MPI_ALLREDUCE(peclettotl,peclettot,1,MY_REAL,MPI_MAX,comm3d,mpierr)
-        
+
         dt = minval((/runtime-timee+btime+1e-3, dt_lim, dt*courant/courtot, dt*peclet/peclettot, timee/))
-        
+
         dt_lim = runtime-timee+btime
         timee   = timee  + dt
         ntimee  = ntimee + 1
@@ -102,12 +121,22 @@ subroutine tstep_update
 end subroutine tstep_update
 
 
-
+!> Time integration is done by a third order Runge-Kutta scheme.
+!!
+!! \latexonly
+!! With $f^n(\phi^n)$ the right-hand side of the appropriate equation for variable
+!! $\phi=\{\fav{u},\fav{v},\fav{w},e^{\smfrac{1}{2}},\fav{\varphi}\}$, $\phi^{n+1}$
+!! at $t+\Delta t$ is calculated in three steps:
+!! \begin{eqnarray}
+!! \phi^{*} &=&\phi^n + \frac{\Delta t}{3}f^n(\phi^n)\nonumber\\\\
+!! \phi^{**} &=&\phi^{n} + \frac{\Delta t}{2}f^{*}(\phi^{*})\nonumber\\\\
+!! \phi^{n+1} &=&\phi^{n} + \Delta t f^{**}(\phi^{**}),
+!! \end{eqnarray}
+!! with the asterisks denoting intermediate time steps.
+!! \endlatexonly
+!! \see Wicker and Skamarock, 2002
 subroutine tstep_integrate
 
-! THIRD ORDER RUNGE KUTTA
-! Chiel van Heerwaarden, 14 June 2007
-! Following Wicker and Skamarock, 2002
 
   use modglobal, only : i1,j1,kmax,nsv,dt,rk3step,e12min,lmoist
   use modfields, only : u0,um,up,v0,vm,vp,w0,wm,wp,&

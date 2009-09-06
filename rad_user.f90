@@ -1,3 +1,5 @@
+!> \file rad_user.f90
+!! A dummy file for cases where one wants specific radiation
 !----------------------------------------------------------------------------
 ! This file is part of DALES.
 !

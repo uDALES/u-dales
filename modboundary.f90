@@ -1,5 +1,6 @@
-!----------------------------------------------------------------------------
-! This file is part of DALES.
+!> \file modboundary.f90
+!!  Takes care of all the boundaries, except for the surface
+!  This file is part of DALES.
 !
 ! DALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -14,25 +15,31 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-! Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
-!----------------------------------------------------------------------------
-!
+!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
 
-!       ----------------------------------------------------------------
-!*    module *modsurf* relevant variables for the surface layer
-!       ----------------------------------------------------------------
-
+!>
+!! Modboundary takes care of all the boundaries, except for the surface
+!>
+!! This module takes care of the periodic boundary conditions in x- and y, of
+!! the top inlet conditions, of the gravity wave damping.
+!! \par Revision list
+!! \par Authors
+!!
 module modboundary
+
 
 implicit none
 save
 private
 public :: initboundary, boundary, exitboundary,grwdamp, ksp,tqaver,cyclich
-  integer :: ksp = -1                 !    lowest level of sponge layer
-  real,allocatable :: tsc(:)          !   *damping coefficients to be used in grwdamp.
+  integer :: ksp = -1                 !<    lowest level of sponge layer
+  real,allocatable :: tsc(:)          !<   damping coefficients to be used in grwdamp.
 
 contains
+!>
+!! Initializing Boundary; specifically the sponge layer
+!>
   subroutine initboundary
     use modglobal, only : k1,kmax,pi,zf
     implicit none
@@ -56,6 +63,19 @@ contains
 
   end subroutine initboundary
 
+!>
+!! Execute boundary conditions
+!>
+!! The boundary conditions at the top of the domain and in the horizontal
+!! directions are relatively straightforward. In the horizontal directions,
+!! periodic boundary conditions are applied.
+!! \latexonly
+!! At the top of the domain, we take:
+!! \begin{equation}
+!!  \derr{\fav{u}}{z} = \derr{\fav{v}}{z} = 0;\\ \fav{w} = 0;\\
+!! \derr{\fav{\varphi}}{z} =  \mr{cst}.
+!! \end{equation}
+!! \endlatexonly
   subroutine boundary
   implicit none
 
@@ -64,31 +84,14 @@ contains
     call topm
     call toph
   end subroutine boundary
-
+!> Cleans up after the run
   subroutine exitboundary
   implicit none
     deallocate(tsc)
   end subroutine exitboundary
-  subroutine cyclich
 
-!-----------------------------------------------------------------|
-!                                                                 |
-!*** *cyclic*  set lateral boundary conditions                    |
-!                                                                 |
-!      Hans Cuijpers   I.M.A.U.                                   |
-!      Pier Siebesma   K.N.M.I.     22/02/1995                    |
-!                                                                 |
-!     purpose.                                                    |
-!     --------                                                    |
-!                                                                 |
-!     Set cyclic boundary condition for thl0,thlm,qt0,qtm.        |
-!                                                                 |
-!**   interface.                                                  |
-!     ----------                                                  |
-!                                                                 |
-!             *cyclic* is called from *program*.                  |
-!                                                                 |
-!-----------------------------------------------------------------|
+!> Sets lateral periodic boundary conditions for the scalars
+ subroutine cyclich
 
   use modglobal, only : i1,i2,ih,j1,jh,k1,nsv
   use modfields, only : thl0,thlm,qt0,qtm,sv0,svm
@@ -123,27 +126,8 @@ contains
   return
   end subroutine cyclich
 
-  subroutine cyclicm
-
-!-----------------------------------------------------------------|
-!                                                                 |
-!*** *cyclicm*  set lateral boundary conditions                   |
-!                                                                 |
-!      Hans Cuijpers   I.M.A.U.                                   |
-!      Pier Siebesma   K.N.M.I.     22/02/1995                    |
-!                                                                 |
-!     purpose.                                                    |
-!     --------                                                    |
-!                                                                 |
-!     Set cyclic boundary condition for u0,v0,w0,um,vm,wm,        |
-!     e120 and e12m.                                              |
-!                                                                 |
-!**   interface.                                                  |
-!     ----------                                                  |
-!                                                                 |
-!             *cyclic* is called from *program*.                  |
-!                                                                 |
-!-----------------------------------------------------------------|
+!>set lateral periodic boundary conditions for momentum
+ subroutine cyclicm
 
   use modglobal, only : i1,i2,ih,j1,jh,k1
   use modfields, only : u0,um,v0,vm,w0,wm,e120,e12m
@@ -185,31 +169,25 @@ contains
   return
   end subroutine cyclicm
 
-
-  subroutine grwdamp
-
-!-----------------------------------------------------------------|
-!                                                                 |
-!*** *grwdamp*  damps gravity waves                               |
-!                                                                 |
-!      Hans Cuijpers   I.M.A.U.  06/01/1995                       |
-!                                                                 |
-!     purpose.                                                    |
-!     --------                                                    |
-!                                                                 |
-!     grwdamp damps gravity waves                                 |
-!     in the upper third of the domain.                           |
-!                                                                 |
-!**   interface.                                                  |
-!     ----------                                                  |
-!                                                                 |
-!     *grwdamp* is called from *program*.                         |
-!                                                                 |
-!-----------------------------------------------------------------|
-
+!>
+!! grwdamp damps gravity waves in the upper part of the domain.
+!>
+!! The lower limit of the damping region is set by ksp
+!! Horizontal fluctuations at the top of the domain (for instance gravity waves)
+!! are damped out by a sponge layer through an additional forcing/source term.
+!! \latexonly
+!! \begin{eqnarray}
+!! \force{i}{sp}(z) &=& -\frac{1}{t^{\mr{sp}}}\left(\xav{\fav{u_i}}-\fav{u_i}\right), \\\\
+!!  \source{\varphi}{sp}(z) &=& -\frac{1}{t^{\mr{sp}}}\left(\xav{\varphi}-\varphi\right),
+!! \end{eqnarray}
+!! with $t^{\mr{sp}}$ a relaxation time scale that goes from
+!! $t^{\mr{sp}}_0=1/(2.75\times10^{-3})\mr{s}\approx 6$min at the top of the domain
+!! to infinity at the bottom of the sponge layer.
+!! \endlatexonly
+ subroutine grwdamp
   use modglobal, only : i1,j1,kmax,cu,cv
   use modfields, only : up,vp,wp,thlp,qtp,u0,v0,w0,thl0,qt0, ug,vg,thl0av,qt0av
-
+  implicit none
 
   integer k
 
@@ -225,30 +203,12 @@ contains
   return
   end subroutine grwdamp
 
-
+!> Sets top boundary conditions for scalars
   subroutine toph
-
-!-----------------------------------------------------------------|
-!                                                                 |
-!*** *toph*  The fields at the highest levels are set             |
-!                                                                 |
-!      Hans Cuijpers   I.M.A.U.                                   |
-!      Pier Siebesma   K.N.M.I.     06/01/1995                    |
-!                                                                 |
-!     purpose.                                                    |
-!     --------                                                    |
-!                                                                 |
-!     The thl, qt and sv(n) fields at the highest levels are set  |
-!                                                                 |
-!**   interface.                                                  |
-!     ----------                                                  |
-!                                                                 |
-!             *toph* is called from *program*.                    |
-!                                                                 |
-!-----------------------------------------------------------------|
 
   use modglobal, only : i1,j1,kmax,k1,nsv,dtheta,dqt,dsv,dzh
   use modfields, only : thl0,thlm,qt0,qtm,sv0,svm
+  implicit none
   integer n
 
 ! **  Top conditions :
@@ -265,31 +225,12 @@ contains
 
   return
   end subroutine toph
-
+!> Sets top boundary conditions for momentum
   subroutine topm
-
-!-----------------------------------------------------------------|
-!                                                                 |
-!*** *topm*  The fields at the highest levels are set             |
-!                                                                 |
-!      Hans Cuijpers   I.M.A.U.                                   |
-!      Pier Siebesma   K.N.M.I.     06/01/1995                    |
-!                                                                 |
-!     purpose.                                                    |
-!     --------                                                    |
-!                                                                 |
-!     The velocity and TKEfields at the highest levels are set    |
-!                                                                 |
-!**   interface.                                                  |
-!     ----------                                                  |
-!                                                                 |
-!             *top* is called from *program*.                     |
-!                                                                 |
-!-----------------------------------------------------------------|
 
     use modglobal, only : i1,j1,kmax,k1,e12min
     use modfields, only : u0,v0,w0,e120,um,vm,wm,e12m
-
+    implicit none
     u0(:,:,k1)   = u0(:,:,kmax)
     v0(:,:,k1)   = v0(:,:,kmax)
     w0(:,:,k1)   = 0.0
@@ -303,34 +244,13 @@ contains
   return
   end subroutine topm
 
-
+!>Set thl, qt and sv(n) equal to slab average at level kmax
   subroutine tqaver
-
-!-----------------------------------------------------------------|
-!                                                                 |
-!*** *tqaver*  set thl, qt and sv(n) equal                        |
-!              to slab average at level kmax                      |
-!                                                                 |
-!      Hans Cuijpers   I.M.A.U.                                   |
-!      Pier Siebesma   K.N.M.I.     06/01/1995                    |
-!                                                                 |
-!     purpose.                                                    |
-!     --------                                                    |
-!                                                                 |
-!      set thl, qt and sv(n) equal to slab average at level kmax  |
-!                                                                 |
-!                                                                 |
-!**   interface.                                                  |
-!     ----------                                                  |
-!                                                                 |
-!             *tqaver* is called from *program*.                  |
-!                                                                 |
-!-----------------------------------------------------------------|
 
   use modmpi,    only : comm3d,mpierr,my_real, mpi_sum
   use modglobal, only : i1,j1,kmax,nsv,rslabs
   use modfields, only : thl0,qt0,sv0
-
+  implicit none
 
   real thl0a, qt0a
   real thl0al, qt0al

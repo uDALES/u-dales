@@ -1,5 +1,15 @@
-!----------------------------------------------------------------------------
-! This file is part of DALES.
+!> \file modmicrophysics.f90
+!!  Microphysics abstraction layer.
+
+!>
+!!  Microphysics abstraction layer.
+!>
+!!  Also provides the drizzle routine
+!!  \author Hans Cuijpers, IMAU
+!!  \author Thijs Heus,MPI-M
+!!  \todo Documentation
+!!  \par Revision list
+!  This file is part of DALES.
 !
 ! DALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -14,27 +24,14 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-! Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
-!----------------------------------------------------------------------------
+!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
-!
+
+
+
 module modmicrophysics
 
-    !-----------------------------------------------------------------|
-    !                                                                 |
-    !*** *microphysics Manages the droplet handling schemes           |
-    !                                                                 |
-    !      Thijs Heus                   03/08/2007                    |
-    !                                                                 |
-    !____________________SETTINGS_AND_SWITCHES________________________|
-    !                      IN &NAMMICROPHYSICS                        |
-    !    imicro         MICROPHYSICS SCHEME                           |
-    !                     0 = ALL-OR-NOTHING CONDENSATION (DEFAULT)   |
-    !                     1 = DRIZZLE ROUTINE                         |
-    !                     2 = BULK MICROPHYSICS                       |
-    !                     3 = BIN MICROPHYSICS                        |
-    !                    10 = USER SPECIFIED MICROPHYSICS             |
-    !-----------------------------------------------------------------|
+
 implicit none
 private
 public :: initmicrophysics, microphysics, microsources,exitmicrophysics

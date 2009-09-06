@@ -1,5 +1,14 @@
-!----------------------------------------------------------------------------
-! This file is part of DALES.
+!> \file modradstat.f90
+!!  Calculates the radiative statistics
+
+
+!>
+!!  Calculates the radiative statistics
+!>
+!! Profiles of the radiative statistics. Written to radstat.expnr
+!! If netcdf is true, this module also writes in the profiles.expnr.nc output
+!!  \author Stephan de Roode, TU Delft
+!  This file is part of DALES.
 !
 ! DALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -14,25 +23,10 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-! Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
-!----------------------------------------------------------------------------
-!
+!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
 module modradstat
 
-    !-----------------------------------------------------------------|
-    !                                                                 |
-    !*** *stattend*  calculates slab averaged radiation statistics    |
-    !                                                                 |
-    !____________________SETTINGS_AND_SWITCHES________________________|
-    !                     IN &NAMTIMESTAT                             |
-    !                                                                 |
-    !    dtav           SAMPLING INTERVAL                             |
-    !                                                                 |
-    !    timeav         INTERVAL OF WRITING                           |
-    !                                                                 |
-    !    lstat      SWITCH TO ENABLE TIMESERIES                       |
-    !-----------------------------------------------------------------|
 
 implicit none
 !private
@@ -44,7 +38,7 @@ save
 
   real    :: dtav, timeav,tnext,tnextwrite
   integer :: nsamples
-  logical :: lstat= .false. ! switch for conditional sampling cloud (on/off)
+  logical :: lstat= .false. !< switch to enable the radiative statistics (on/off)
 
 !     ------
 
@@ -70,7 +64,7 @@ save
   real, allocatable :: tlradlsmn(:)
 
 contains
-
+!> Initialization routine, reads namelists and inits variables
   subroutine initradstat
     use modmpi,    only : myid,mpierr, comm3d,my_real, mpi_logical
     use modglobal, only : dtmax, k1,kmax, ifnamopt,fname_options, ifoutput, cexpnr,dtav_glob,timeav_glob,ladaptive,dt_lim,btime
@@ -165,7 +159,7 @@ contains
    end if
 
   end subroutine initradstat
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!> General routine, does the timekeeping
   subroutine radstat
     use modglobal, only : rk3step,timee,dt_lim
     implicit none
@@ -186,7 +180,8 @@ contains
     dt_lim = minval((/dt_lim,tnext-timee,tnextwrite-timee/))
 
   end subroutine radstat
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+!> Calculates the statistics
   subroutine do_radstat
 
     use modmpi,    only : nprocs,comm3d,nprocs,my_real, mpi_sum,mpierr, slabsum
@@ -242,7 +237,7 @@ contains
 
   end subroutine do_radstat
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!> Write the statistics to file
   subroutine writeradstat
       use modmpi,    only : myid
       use modglobal, only : cexpnr,ifoutput,kmax,k1,zf,timee
@@ -301,7 +296,7 @@ contains
         vars(:, 4) = lwumn
         vars(:, 5) = lwdmn
         vars(:, 6) = swnmn
-        call writestat_nc(ncid_prof,nvar,ncname,vars(1:kmax,:),nrec_prof,kmax)
+        call writestat_nc(ncid_prof,nvar,ncname,vars(1:kmax,:),nrec_prof+1,kmax)
       end if
     end if ! end if(myid==0)
 
@@ -315,7 +310,7 @@ contains
 
   end subroutine writeradstat
 
-
+!> Cleans up after the run
   subroutine exitradstat
     implicit none
 

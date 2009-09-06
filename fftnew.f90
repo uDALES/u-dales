@@ -1,5 +1,6 @@
-!----------------------------------------------------------------------------
-! This file is part of DALES.
+!> \file fftnew.f90
+!! Performs Fast Fourier Transforms.
+!  This file is part of DALES.
 !
 ! DALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -14,9 +15,7 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-! Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
-!----------------------------------------------------------------------------
-!
+!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
 
   subroutine RADB2 (IDO,L1,CC,CH,WA1)
