@@ -1,5 +1,14 @@
-!----------------------------------------------------------------------------
-! This file is part of DALES.
+!> \file modnudge.f90
+!!  Nudges theta_l and q_t profiles to the initial profiles on a timescale tnudgeT
+!>
+
+!>
+!!  Nudges theta_l and q_t profiles to the initial profiles on a timescale tnudgeT
+!>
+!!  \author Thijs Heus,MPI-M
+!!  \par Revision list
+!!  \todo Documentation
+!  This file is part of DALES.
 !
 ! DALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -14,28 +23,13 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-! Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
-!----------------------------------------------------------------------------
+!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
-!
+
+
+
 module modnudge
-    !-----------------------------------------------------------------|
-    !                                                                 |
-    !      Thijs Heus  TUDelft   06/12/2004                           |
-    !     --------                                                    |
-    !                                                                 |
-    !      Nudges theta_l and q_t profiles to the initial profiles    |
-    !      on a timescale tnudge
-    !                                                                 |
-    !     ----------                                                  |
-    !                                                                 |
-    !     *nudge* is called from *program*.                           |
-    !____________________SETTINGS_AND_SWITCHES________________________|
-    !                       IN &NAMNUDGE                              |
-    !                                                                 |
-    !    tnudge         nudging timescale. If tnudge is zero,         |
-    !                   nudging is switched off                       |
-    !-----------------------------------------------------------------|
+
 
 implicit none
 PRIVATE

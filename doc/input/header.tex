@@ -1,10 +1,11 @@
 \documentclass[a4paper]{book}
 \usepackage{a4wide}
 \usepackage{makeidx}
-\usepackage{fancyhdr}
 \usepackage{graphicx}
 \usepackage{multicol}
 \usepackage{float}
+\usepackage{listings}
+\usepackage{color}
 \usepackage{textcomp}
 \usepackage{alltt}
 \usepackage{times}
@@ -27,13 +28,11 @@
 \fi
 \usepackage[utf8]{inputenc}
 \usepackage{doxygen}
+\lstset{language=C++,inputencoding=utf8,basicstyle=\footnotesize,breaklines=true,breakatwhitespace=true,tabsize=4,numbers=left }
+\usepackage{longtable,amssymb,amsmath,mathrsfs,fancyhdr,pdfpages}
 \makeindex
 \setcounter{tocdepth}{3}
 \renewcommand{\footrulewidth}{0.4pt}
-
-%% copernicus_discussions.cls
-% \documentclass[gmdd, hvmath, online]{copernicus_discussions}
-\usepackage{natbib}
 \newcommand{\smfrac}[2]{#1/#2}
 \newcommand{\derr}[2]{\frac{\partial #1}{\partial #2}}
 \newcommand{\fav}[1]{\widetilde{#1}}
@@ -45,17 +44,18 @@
 \newcommand{\sgse}{e}
 \newcommand{\rese}{E}
 \newcommand{\iftwocol}[2]{\if\else #2\fi}
+\newcommand{\CFL}{\mr{CFL}}
 
-\newcommand{\eqnm}{Eq.~}
-\newcommand{\eqnms}{Eqs.~}
-\newcommand{\fignm}{Fig.~}
-\newcommand{\Fignm}{Fig.~}
-\newcommand{\fignms}{Figs.~}
-\newcommand{\tabnm}{Tab.~}
-\newcommand{\tabnms}{Tabs.~}
-\newcommand{\secnm}{section~}
-\newcommand{\secnms}{sections~}
-\newcommand{\introduction}{\section{Introduction}}
+% \newcommand{\eqnm}{Eq.~}
+% \newcommand{\eqnms}{Eqs.~}
+% \newcommand{\fignm}{Fig.~}
+% \newcommand{\Fignm}{Fig.~}
+% \newcommand{\fignms}{Figs.~}
+% \newcommand{\tabnm}{Tab.~}
+% \newcommand{\tabnms}{Tabs.~}
+% \newcommand{\secnm}{section~}
+% \newcommand{\secnms}{sections~}
+% \newcommand{\introduction}{\section{Introduction}}
 
 \begin{document}
 \begin{titlepage}
@@ -63,19 +63,17 @@
 \begin{center}
 {\Large Dutch Atmospheric Large Eddy Simulation}\\
 \vspace*{1cm}
-{\large User Manual}\\
+{\large User manual}\\
 \vspace*{0.5cm}
 {\small \today}\\
 \end{center}
 \end{titlepage}
-% \clearemptydoublepage
+\clearemptydoublepage
 \pagenumbering{roman}
-\setcounter{tocdepth}{1}
 \tableofcontents
-% \clearemptydoublepage
+\clearemptydoublepage
 \pagenumbering{arabic}
-\chapter{General Description}
-\input{dales_introduction}
-\input{dales_governing}
-\bibliographystyle{copernicus}
-\bibliography{Bibliography}
+\hypersetup{pageanchor=true}
+\chapter{General Introduction}
+% \includepdf[pages=-]{../input/dales-article.pdf}
+% \includepdf[pages=-]{../input/dales-manual.pdf}

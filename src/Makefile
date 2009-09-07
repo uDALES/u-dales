@@ -106,5 +106,13 @@ depend: $(FRSC)
 include depend
 
 clean:
-	rm -f $(notdir $(FOBJS) $(COBJS)) $(TARGET) *.mod *~ depend
+	rm -f $(notdir $(FOBJS) $(COBJS)) $(TARGET) *.mod *~ depend *.orig *.backup *.bak
 
+.PHONY: cleandoc
+cleandoc:
+	rm -rf doc/latex doc/html
+
+.PHONY: doc
+doc: 
+	doxygen doc/input/Doxyfile
+	$(MAKE) -C doc/latex

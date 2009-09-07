@@ -1,5 +1,14 @@
-!----------------------------------------------------------------------------
-! This file is part of DALES.
+!> \file modstattend.f90
+!!  Calculates the tendencies of the main fields
+
+
+!>
+!!  Calculates the tendencies of the main fields
+!>
+!! Profiles of the individual terms of the prognostic equations.  Written to *tend.expnr
+!! If netcdf is true, this module also writes in the profiles.expnr.nc output
+!!  \author Thijs Heus, MPI
+!  This file is part of DALES.
 !
 ! DALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -14,56 +23,35 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-! Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
-!----------------------------------------------------------------------------
-!
+!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
 module modstattend
 
-    !-----------------------------------------------------------------|
-    !                                                                 |
-    !*** *stattend*  calculates tendencies of prognostic variables    |
-    !                                                                 |
-    !      Thijs Heus      TU Delft     15/11/2007                    |
-    !                                                                 |
-    !     purpose.                                                    |
-    !     --------                                                    |
-    !                                                                 |
-    !                                                                 |
-    !    NOTE: A STATEMENT call stattend NEEDS TO BE SET BEFORE       |
-    !    ADVECTION AND AFTER ADVECTION, SUBGRID, THE ADDONS, DAMPING  |
-    !    AND PRESSURE SECTIONS IN program.f90                          |
-    !                                                                 |
-    !                                                                 |
-    !_________________________ON OUTPUT_______________________________|
-    !                                                                 |
-    !     Various slab averages                                       |
-    !                                                                 |
-    !____________________SETTINGS_AND_SWITCHES________________________|
-    !                     IN &NAMSTATTEND                             |
-    !                                                                 |
-    !    dtav           SAMPLING INTERVAL                             |
-    !    timeav         WRITING INTERVAL                              |
-    !    lstattend      SWITCH TO ENABLE TENDENCY STATISTICS          |
-    !-----------------------------------------------------------------|
   implicit none
 !   private
 !   public :: initstattend, stattend, exitstattend
   save
+!NetCDF variables
+  integer,parameter :: nvar = 43
+  character(80),dimension(nvar,4) :: ncname
 
   real    :: dtav, timeav,tnext,tnextwrite
   integer,parameter :: tend_tot=1,tend_start=1,tend_adv=2,tend_subg=3,tend_force=4,&
-                       tend_rad=5,tend_ls=6,tend_micro=7, tend_topbound=8,tend_pois=9,tend_addon=10
-  integer,parameter :: nrfields = 10
+                       tend_rad=5,tend_ls=6,tend_micro=7, tend_topbound=8,tend_pois=9,tend_addon=10, tend_coriolis=11
+  integer,parameter :: nrfields = 11
   integer :: nsamples
   logical :: ltend = .false.
 
   real, allocatable :: upmn(:,:),vpmn(:,:),wpmn(:,:),thlpmn(:,:),qtpmn(:,:)
   real, allocatable :: upav(:,:),vpav(:,:),wpav(:,:),thlpav(:,:),qtpav(:,:)
 contains
-  subroutine initstattend
+!> Initialization routine, reads namelists and inits variables
+subroutine initstattend
     use modmpi,   only : mpierr,my_real,mpi_logical,comm3d,myid
-    use modglobal,only : dtmax,imax,jmax,ifnamopt,fname_options,k1,dtav_glob,timeav_glob,ladaptive, dt_lim,btime
+    use modglobal,only : cexpnr,dtmax,imax,jmax,kmax,ifnamopt,fname_options,k1,dtav_glob,timeav_glob,ladaptive, dt_lim,btime
+    use modstat_nc, only : lnetcdf, redefine_nc,define_nc,ncinfo
+    use modgenstat, only : dtav_prof=>dtav, timeav_prof=>timeav,ncid_prof=>ncid
+
     implicit none
     integer :: ierr
 
@@ -110,16 +98,73 @@ contains
     wpav = 0
     thlpav = 0
     qtpav = 0
+    if (lnetcdf) then
+      dtav = dtav_prof
+      timeav = timeav_prof
+       tnext      = dtav-1e-3+btime
+      tnextwrite = timeav-1e-3+btime
+      nsamples = nint(timeav/dtav)
+     if (myid==0) then
+        call ncinfo(ncname( 1,:),'utendadv','U advective tendency','m/s^2','tt')
+        call ncinfo(ncname( 2,:),'utenddif','U diffusive tendency','m/s^2','tt')
+        call ncinfo(ncname( 3,:),'utendfor','U tendency due to other forces','m/s^2','tt')
+        call ncinfo(ncname( 4,:),'utendcor','U coriolis tendency','m/s^2','tt')
+        call ncinfo(ncname( 5,:),'utendls','U large scale tendency','m/s^2','tt')
+        call ncinfo(ncname( 6,:),'utendtop','U top boundary tendency','m/s^2','tt')
+        call ncinfo(ncname( 7,:),'utendpois','U pressure gradient tendency','m/s^2','tt')
+        call ncinfo(ncname( 8,:),'utendaddon','U in addons tendency','m/s^2','tt')
+        call ncinfo(ncname( 9,:),'utendtot','U total tendency','m/s^2','tt')
+        call ncinfo(ncname(10,:),'vtendadv','V advective tendency','m/s^2','tt')
+        call ncinfo(ncname(11,:),'vtenddif','V diffusive tendency','m/s^2','tt')
+        call ncinfo(ncname(12,:),'vtendfor','V tendency due to other forces','m/s^2','tt')
+        call ncinfo(ncname(13,:),'vtendcor','V coriolis tendency','m/s^2','tt')
+        call ncinfo(ncname(14,:),'vtendls','V large scale tendency','m/s^2','tt')
+        call ncinfo(ncname(15,:),'vtendtop','V top boundary tendency','m/s^2','tt')
+        call ncinfo(ncname(16,:),'vtendpois','V pressure gradient tendency','m/s^2','tt')
+        call ncinfo(ncname(17,:),'vtendaddon','V in addons tendency','m/s^2','tt')
+        call ncinfo(ncname(18,:),'vtendtot','V total tendency','m/s^2','tt')
+        call ncinfo(ncname(19,:),'wtendadv','W advective tendency','m/s^2','mt')
+        call ncinfo(ncname(20,:),'wtenddif','W diffusive tendency','m/s^2','mt')
+        call ncinfo(ncname(21,:),'wtendfor','W tendency due to other forces','m/s^2','mt')
+        call ncinfo(ncname(22,:),'wtendcor','W coriolis tendency','m/s^2','mt')
+        call ncinfo(ncname(23,:),'wtendls','W large scale tendency','m/s^2','mt')
+        call ncinfo(ncname(24,:),'wtendtop','W top boundary tendency','m/s^2','mt')
+        call ncinfo(ncname(25,:),'wtendpois','W pressure gradient tendency','m/s^2','mt')
+        call ncinfo(ncname(26,:),'wtendaddon','W in addons tendency','m/s^2','mt')
+        call ncinfo(ncname(27,:),'wtendtot','W total tendency','m/s^2','mt')
+        call ncinfo(ncname(28,:),'tltendadv','theta_l advective tendency','K/s','tt')
+        call ncinfo(ncname(29,:),'tltenddif','theta_l diffusive tendency','K/s','tt')
+        call ncinfo(ncname(30,:),'tltendrad','theta_l radiative tendency','K/s','tt')
+        call ncinfo(ncname(31,:),'tltendmicro','theta_l microphysical tendency','K/s','tt')
+        call ncinfo(ncname(32,:),'tltendls','theta_l large scale tendency','K/s','tt')
+        call ncinfo(ncname(33,:),'tltendtop','theta_l  top boundary tendency','K/s','tt')
+        call ncinfo(ncname(34,:),'tltendaddon','theta_l in addons tendency','K/s','tt')
+        call ncinfo(ncname(35,:),'tltendtot','theta_l total tendency','K/s','tt')
+        call ncinfo(ncname(36,:),'qttendadv','total water content advective tendency','kg/kg/s','tt')
+        call ncinfo(ncname(37,:),'qttenddif','total water content diffusive tendency','kg/kg/s','tt')
+        call ncinfo(ncname(38,:),'qttendrad','total water content radiative tendency','kg/kg/s','tt')
+        call ncinfo(ncname(39,:),'qttendmicro','total water content microphysical tendency','kg/kg/s','tt')
+        call ncinfo(ncname(40,:),'qttendls','total water content large scale tendency','kg/kg/s','tt')
+        call ncinfo(ncname(41,:),'qttendtop','total water content  top boundary tendency','kg/kg/s','tt')
+        call ncinfo(ncname(42,:),'qttendaddon','total water content in addons tendency','kg/kg/s','tt')
+        call ncinfo(ncname(43,:),'qttendtot','total water content total tendency','kg/kg/s','tt')
+
+        call redefine_nc(ncid_prof)
+        call define_nc( ncid_prof, NVar, ncname)
+     end if
+
+   end if
 
   end subroutine initstattend
 
+!> Performs the statistics, keeps track of what the tendencies were last time, and what they are this time.
   subroutine stattend(tendterm,lastterm)
     use modmpi,    only : myid,slabsum
-    use modglobal, only : ih,jh,i1,j1,k1,rk3step,timee,dt_lim,rslabs
+    use modglobal, only : ih,jh,i1,j1,kmax,k1,rk3step,timee,dt_lim,rslabs
     use modfields, only : up,vp,wp,thlp,qtp
     implicit none
-    integer, intent(in)           :: tendterm
-    logical, intent(in), optional :: lastterm
+    integer, intent(in)           :: tendterm !< name of the term to write down
+    logical, intent(in), optional :: lastterm !< true if this is the last term of the equations; the write routine is entered.
     real, dimension(:),allocatable :: avfield
 
     if (.not.(ltend)) return
@@ -179,12 +224,14 @@ contains
     deallocate(avfield)
   end subroutine stattend
 
-
+!> Write the statistics to file
   subroutine writestattend
-    use modglobal, only : timee,ifoutput,kmax, zf, cexpnr
+    use modglobal, only : timee,ifoutput,kmax,k1, zf, cexpnr
     use modfields, only : presf
+      use modstat_nc, only: lnetcdf, writestat_nc
+      use modgenstat, only: ncid_prof=>ncid,nrec_prof=>nrec
     implicit none
-
+    real,dimension(k1,nvar) :: vars
     integer nsecs, nhrs, nminut,k
 
     nsecs   = nint(timee)
@@ -206,19 +253,20 @@ contains
            ,'#                                                           ' &
            ,'#                  |                               VELOCITY ' &
            ,' TENDENCIES                                    |           ' &
-           ,'# LEV HEIGHT   PRES  |  ADVECT       DIFF         FORCES       LARGE SCALE    DAMP' &
+           ,'# LEV HEIGHT   PRES  |  ADVECT       DIFF         FORCES       CORIOLIS     LARGE SCALE    DAMP' &
            ,'         PRESSURE         ADD ON        TOTAL' &
            ,'#      (M)   (MB)  |  ---------   (M/S^2)     ----------' &
            ,'      ' &
            ,'#----------------------------------------------------------' &
            ,'----------------------------------------------------------'
-      write(ifoutput,'(I4,F8.2,F7.1,8E13.5)') &
+      write(ifoutput,'(I4,F8.2,F7.1,9E13.5)') &
            (k, &
             zf       (k), &
             presf    (k)/100., &
             upmn   (k,tend_adv), &
             upmn   (k,tend_subg), &
             upmn   (k,tend_force), &
+            upmn   (k,tend_coriolis), &
             upmn   (k,tend_ls), &
             upmn   (k,tend_topbound), &
             upmn   (k,tend_pois), &
@@ -241,19 +289,20 @@ contains
            ,'#                                                           ' &
            ,'#                  |                               VELOCITY ' &
            ,' TENDENCIES                                    |           ' &
-           ,'# LEV HEIGHT   PRES  |  ADVECT       DIFF         FORCES       LARGE SCALE    DAMP' &
+           ,'# LEV HEIGHT   PRES  |  ADVECT       DIFF         FORCES       CORIOLIS       LARGE SCALE    DAMP' &
            ,'         PRESSURE         ADD ON      TOTAL' &
            ,'#      (M)   (MB)  |  ---------   (M/S^2)     ----------' &
            ,'      ' &
            ,'#----------------------------------------------------------' &
            ,'----------------------------------------------------------'
-      write(ifoutput,'(I4,F8.2,F7.1,8E13.5)') &
+      write(ifoutput,'(I4,F8.2,F7.1,9E13.5)') &
            (k, &
             zf       (k), &
             presf    (k)/100., &
             vpmn   (k,tend_adv), &
             vpmn   (k,tend_subg), &
             vpmn   (k,tend_force), &
+            vpmn   (k,tend_coriolis), &
             vpmn   (k,tend_ls), &
             vpmn   (k,tend_topbound), &
             vpmn   (k,tend_pois), &
@@ -276,19 +325,20 @@ contains
            ,'#                                                           ' &
            ,'#                  |                               VELOCITY ' &
            ,' TENDENCIES                                    |           ' &
-           ,'# LEV HEIGHT   PRES  |  ADVECT       DIFF         FORCES       LARGE SCALE    DAMP' &
+           ,'# LEV HEIGHT   PRES  |  ADVECT       DIFF         FORCES       CORIOLIS       LARGE SCALE    DAMP' &
            ,'         PRESSURE         ADD ON      TOTAL' &
            ,'#      (M)   (MB)  |  ---------   (M/S^2)     ----------' &
            ,'      ' &
            ,'#----------------------------------------------------------' &
            ,'----------------------------------------------------------'
-      write(ifoutput,'(I4,F8.2,F7.1,8E13.5)') &
+      write(ifoutput,'(I4,F8.2,F7.1,9E13.5)') &
            (k, &
             zf       (k), &
             presf    (k)/100., &
             wpmn   (k,tend_adv), &
             wpmn   (k,tend_subg), &
             wpmn   (k,tend_force), &
+            wpmn   (k,tend_coriolis), &
             wpmn   (k,tend_ls), &
             wpmn   (k,tend_topbound), &
             wpmn   (k,tend_pois), &
@@ -365,9 +415,55 @@ contains
             qtpmn   (k,tend_tot), &
                           k=1,kmax)
      close(ifoutput)
+      if (lnetcdf) then
+        vars(:, 1) =upmn(:,tend_adv)
+        vars(:, 2) =upmn(:,tend_subg)
+        vars(:, 3) =upmn(:,tend_force)
+        vars(:, 4) =upmn(:,tend_coriolis)
+        vars(:, 5) =upmn(:,tend_ls)
+        vars(:, 6) =upmn(:,tend_topbound)
+        vars(:, 7) =upmn(:,tend_pois)
+        vars(:, 8) =upmn(:,tend_addon)
+        vars(:, 9) =upmn(:,tend_tot)
+        vars(:,10) =vpmn(:,tend_adv)
+        vars(:,11) =vpmn(:,tend_subg)
+        vars(:,12) =vpmn(:,tend_force)
+        vars(:,13) =vpmn(:,tend_coriolis)
+        vars(:,14) =vpmn(:,tend_ls)
+        vars(:,15) =vpmn(:,tend_topbound)
+        vars(:,16) =vpmn(:,tend_pois)
+        vars(:,17) =vpmn(:,tend_addon)
+        vars(:,18) =vpmn(:,tend_tot)
+        vars(:,19) =wpmn(:,tend_adv)
+        vars(:,20) =wpmn(:,tend_subg)
+        vars(:,21) =wpmn(:,tend_force)
+        vars(:,22) =wpmn(:,tend_coriolis)
+        vars(:,23) =wpmn(:,tend_ls)
+        vars(:,24) =wpmn(:,tend_topbound)
+        vars(:,25) =wpmn(:,tend_pois)
+        vars(:,26) =wpmn(:,tend_addon)
+        vars(:,27) =wpmn(:,tend_tot)
+        vars(:,28) =thlpmn(:,tend_adv)
+        vars(:,29) =thlpmn(:,tend_subg)
+        vars(:,30) =thlpmn(:,tend_rad)
+        vars(:,31) =thlpmn(:,tend_micro)
+        vars(:,32) =thlpmn(:,tend_ls)
+        vars(:,33) =thlpmn(:,tend_topbound)
+        vars(:,34) =thlpmn(:,tend_addon)
+        vars(:,35) =thlpmn(:,tend_tot)
+        vars(:,36) =qtpmn(:,tend_adv)
+        vars(:,37) =qtpmn(:,tend_subg)
+        vars(:,38) =qtpmn(:,tend_rad)
+        vars(:,39) =qtpmn(:,tend_micro)
+        vars(:,40) =qtpmn(:,tend_ls)
+        vars(:,41) =qtpmn(:,tend_topbound)
+        vars(:,42) =qtpmn(:,tend_addon)
+        vars(:,43) =qtpmn(:,tend_tot)
+        call writestat_nc(ncid_prof,nvar,ncname,vars(1:kmax,:),nrec_prof+1,kmax)
+      end if
 
   end subroutine writestattend
-
+!> Cleans up after the run
   subroutine exitstattend
   implicit none
    if(.not.(ltend)) return

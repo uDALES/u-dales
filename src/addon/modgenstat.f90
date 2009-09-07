@@ -1,5 +1,19 @@
-!----------------------------------------------------------------------------
-! This file is part of DALES.
+!> \file modgenstat.f90
+!!  Genstat calculates slab averages of several variables
+
+!>
+!!  Genstat calculates slab averages of several variables
+!>
+!!  Written to fields.expnr, moments.expnr and flux1.expnr and flux2.expnr
+!! If netcdf is true, this module leads the profiles.expnr.nc output
+!!  \author Hans Cuijpers, K.N.M.I.
+!!  \author Pier Siebesma, K.N.M.I.
+!!  \author Stephan de Roode,TU Delft
+!!  \author Chiel van Heerwaarden, Wageningen U.R.
+!!  \author Thijs Heus,MPI-M
+!!  \par Revision list
+!!  \todo Documentation
+!  This file is part of DALES.
 !
 ! DALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -14,10 +28,11 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-! Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
-!----------------------------------------------------------------------------
+!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
-!
+
+
+
 module modgenstat
 
     !-----------------------------------------------------------------|
@@ -53,38 +68,45 @@ module modgenstat
     !-----------------------------------------------------------------|
 
 implicit none
-private
+! private
 PUBLIC :: initgenstat, genstat, exitgenstat
 save
+
+!NetCDF variables
+  integer,parameter :: nvar = 37
+  integer :: ncid,nrec = 0
+  character(80) :: fname = 'profiles.xxx.nc'
+  character(80),dimension(nvar,4) :: ncname
+  character(80),dimension(1,4) :: tncname
 
   real    :: dtav, timeav,tnext,tnextwrite
   logical :: lstat= .false. ! switch for conditional sampling cloud (on/off)
   integer :: nsamples
 !     ----  total fields  ---
 
-  real, allocatable :: umn   (:)       ,vmn   (:)
-  real, allocatable :: thlmn (:)       ,thvmn (:)
-  real, allocatable :: qtmn  (:)       ,qlmn  (:),  qlhmn(:),cfracmn(:)
+  real, allocatable  :: umn   (:)       ,vmn   (:)
+  real, allocatable  :: thlmn (:)       ,thvmn (:)
+  real, allocatable  :: qtmn  (:)       ,qlmn  (:),  qlhmn(:),cfracmn(:)
 
-! real, allocatable ::     --- fluxes (resolved, subgrid and total) ---
-  real, allocatable :: wtlsmn (:),wtlrmn (:),wtltmn(:)
-  real, allocatable :: wtvsmn (:),wtvrmn (:),wtvtmn(:)
-  real, allocatable :: wqlsmn (:),wqlrmn (:),wqltmn(:)
-  real, allocatable :: wqtsmn (:),wqtrmn (:),wqttmn(:)
-  real, allocatable :: wsvsmn (:,:),wsvrmn(:,:),wsvtmn(:,:)
-  real, allocatable :: uwtmn  (:),vwtmn  (:) !total    uw, vw
-  real, allocatable :: uwsmn  (:),vwsmn  (:) !resolved uw, vw
-  real, allocatable :: uwrmn  (:),vwrmn  (:) !subgrid  uw, vw
-! real, allocatable ::     --- various moments ---
+! real, allocatable  ::     --- fluxes (resolved, subgrid and total) ---
+  real, allocatable  :: wtlsmn (:),wtlrmn (:),wtltmn(:)
+  real, allocatable  :: wtvsmn (:),wtvrmn (:),wtvtmn(:)
+  real, allocatable  :: wqlsmn (:),wqlrmn (:),wqltmn(:)
+  real, allocatable  :: wqtsmn (:),wqtrmn (:),wqttmn(:)
+  real, allocatable  :: wsvsmn (:,:),wsvrmn(:,:),wsvtmn(:,:)
+  real, allocatable  :: uwtmn  (:),vwtmn  (:) !total    uw, vw
+  real, allocatable  :: uwsmn  (:),vwsmn  (:) !resolved uw, vw
+  real, allocatable  :: uwrmn  (:),vwrmn  (:) !subgrid  uw, vw
+! real, allocatable  ::     --- various moments ---
 
-!   real, allocatable :: rmn        (:), r2mn   (:), r3mn (:), rhmn (:)
-  real, allocatable :: w2mn       (:), skewmn (:)
-  real, allocatable :: w2submn    (:)
-  real, allocatable :: u2mn       (:), v2mn  (:),     qt2mn(:)
-  real, allocatable :: thl2mn     (:), thv2mn(:),     th2mn(:),     ql2mn(:)
-!   real, allocatable :: qs2mn      (:), qsmn  (:)
-  real, allocatable :: svmmn(:,:),svptmn(:,:),svplsmn(:,:),svpmn(:,:)
-  real, allocatable :: sv2mn(:,:)
+!   real, allocatable  :: rmn        (:), r2mn   (:), r3mn (:), rhmn (:)
+  real, allocatable  :: w2mn       (:), skewmn (:)
+  real, allocatable  :: w2submn    (:)
+  real, allocatable  :: u2mn       (:), v2mn  (:),     qt2mn(:)
+  real, allocatable  :: thl2mn     (:), thv2mn(:),     th2mn(:),     ql2mn(:)
+!   real, allocatable  :: qs2mn      (:), qsmn  (:)
+  real, allocatable  :: svmmn(:,:),svptmn(:,:),svplsmn(:,:),svpmn(:,:)
+  real, allocatable  :: sv2mn(:,:)
 
  real, allocatable :: umav (:)     ! slab averaged ql_0    at full level
  real, allocatable :: vmav (:)     ! slab averaged ql_0    at full level
@@ -140,13 +162,14 @@ contains
 
   subroutine initgenstat
     use modmpi,    only : myid,mpierr, comm3d,my_real, mpi_logical
-    use modglobal, only : dtmax, k1, nsv,ifnamopt,fname_options, ifoutput, cexpnr,dtav_glob,timeav_glob,ladaptive,dt_lim,btime
+    use modglobal, only : dtmax, kmax,k1, nsv,ifnamopt,fname_options, ifoutput, cexpnr,dtav_glob,timeav_glob,ladaptive,dt_lim,btime
+    use modstat_nc, only : lnetcdf, open_nc,define_nc,redefine_nc,ncinfo,writestat_dims_nc
 
 
     implicit none
 
     integer n, ierr
-    character(20) :: name
+    character(40) :: name
     namelist/NAMGENSTAT/ &
     dtav,timeav,lstat
 
@@ -319,6 +342,55 @@ contains
             open (ifoutput,file=name,status='replace')
             close (ifoutput)
         end do
+      if (lnetcdf) then
+        fname(10:12) = cexpnr
+        call ncinfo(tncname(1,:),'time','Time','s','time')
+        call ncinfo(ncname( 1,:),'dn0','Base-state density','kg/m^3','tt')
+        call ncinfo(ncname( 2,:),'presh','Pressure at cell center','Pa','tt')
+        call ncinfo(ncname( 3,:),'u','West-East velocity','m/s','tt')
+        call ncinfo(ncname( 4,:),'v','South-North velocity','m/s','tt')
+        call ncinfo(ncname( 5,:),'thl','Liquid water potential temperature','K','tt')
+        call ncinfo(ncname( 6,:),'thv','Virtual potential temperature','K','tt')
+        call ncinfo(ncname( 7,:),'qt','Total water mixing ratio','kg/kg','tt')
+        call ncinfo(ncname( 8,:),'ql','Liquid water mixing ratio','kg/kg','tt')
+        call ncinfo(ncname( 9,:),'wtls','SFS-Theta_l flux','Km/s','mt')
+        call ncinfo(ncname(10,:),'wtlr','Resolved Theta_l flux','Km/s','mt')
+        call ncinfo(ncname(11,:),'wtlt','Total Theta_l flux','Km/s','mt')
+        call ncinfo(ncname(12,:),'wtvs','SFS-buoyancy flux','Km/s','mt')
+        call ncinfo(ncname(13,:),'wtvr','Resolved buoyancy flux','Km/s','mt')
+        call ncinfo(ncname(14,:),'wtvt','Total buoyancy flux','Km/s','mt')
+        call ncinfo(ncname(15,:),'wqts','SFS-moisture flux','kg/kg m/s','mt')
+        call ncinfo(ncname(16,:),'wqtr','Resolved moisture flux','kg/kg m/s','mt')
+        call ncinfo(ncname(17,:),'wqtt','Total moisture flux','kg/kg m/s','mt')
+        call ncinfo(ncname(18,:),'wqls','SFS-liquid water flux','kg/kg m/s','mt')
+        call ncinfo(ncname(19,:),'wqlr','Resolved liquid water flux','kg/kg m/s','mt')
+        call ncinfo(ncname(20,:),'wqlt','Total liquid water flux','kg/kg m/s','mt')
+        call ncinfo(ncname(21,:),'uws','SFS-momentum flux (uw)','m^2/s^2','mt')
+        call ncinfo(ncname(22,:),'uwr','Resolved momentum flux (uw)','m^2/s^2','mt')
+        call ncinfo(ncname(23,:),'uwt','Total momentum flux (vw)','m^2/s^2','mt')
+        call ncinfo(ncname(24,:),'vws','SFS-momentum flux (vw)','m^2/s^2','mt')
+        call ncinfo(ncname(25,:),'vwr','Resolved momentum flux (vw)','m^2/s^2','mt')
+        call ncinfo(ncname(26,:),'vwt','Total momentum flux (vw)','m^2/s^2','mt')
+        call ncinfo(ncname(27,:),'w2s','SFS vertical velocity variance','m^2/s^2','mt')
+        call ncinfo(ncname(28,:),'w2r','Resolved vertical velocity variance','m^2/s^2','mt')
+        call ncinfo(ncname(29,:),'w2t','Total vertical velocity variance','m^2/s^2','mt')
+        call ncinfo(ncname(30,:),'skew','vertical velocity skewness','-','mt')
+        call ncinfo(ncname(31,:),'u2r','Resolved horizontal velocity variance (u)','m^2/s^2','tt')
+        call ncinfo(ncname(32,:),'v2r','Resolved horizontal velocity variance (v)','m^2/s^2','tt')
+        call ncinfo(ncname(33,:),'thl2r','Resolved theta_l variance','K^2','tt')
+        call ncinfo(ncname(34,:),'thv2r','Resolved buoyancy variance','K^2','tt')
+        call ncinfo(ncname(35,:),'th2r','Resolved theta variance','K^2','tt')
+        call ncinfo(ncname(36,:),'qt2r','Resolved total water variance','(kg/kg)^2','tt')
+        call ncinfo(ncname(37,:),'ql2r','Resolved liquid water variance','(kg/kg)^2','tt')
+
+
+        call open_nc(fname,  ncid,n3=kmax)
+       call define_nc( ncid, 1, tncname)
+        call writestat_dims_nc(ncid)
+        call redefine_nc(ncid)
+        call define_nc( ncid, NVar, ncname)
+      end if
+
 
       end if
 
@@ -1100,11 +1172,13 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine writestat
       use modglobal, only : kmax,k1,nsv, zh,zf,timee,rlv,cp,cexpnr,ifoutput
-      use modfields, only : presf,presh,exnf,exnh
+      use modfields, only : presf,presh,exnf,exnh,rhof
       use modmpi,    only : myid
+      use modstat_nc, only: lnetcdf, writestat_nc
       implicit none
 
 
+      real,dimension(k1,nvar) :: vars
 
       real,allocatable, dimension(:) :: tmn, thmn
       integer nsecs, nhrs, nminut,k,n
@@ -1418,7 +1492,47 @@ contains
          close(ifoutput)
 
       end do
-
+      if (lnetcdf) then
+        vars(:, 1)=rhof
+        vars(:, 2)=presh
+        vars(:, 3)=umn
+        vars(:, 4)=vmn
+        vars(:, 5)=thlmn
+        vars(:, 6)=thvmn
+        vars(:, 7)=qtmn
+        vars(:, 8)=qlmn
+        vars(:, 9)=wtlsmn
+        vars(:,10)=wtlrmn
+        vars(:,11)=wtltmn
+        vars(:,12)=wtvsmn
+        vars(:,13)=wtvrmn
+        vars(:,14)=wtvtmn
+        vars(:,15)=wqtsmn
+        vars(:,16)=wqtrmn
+        vars(:,17)=wqttmn
+        vars(:,18)=wqlsmn
+        vars(:,19)=wqlrmn
+        vars(:,20)=wqltmn
+        vars(:,21)=uwsmn
+        vars(:,22)=uwrmn
+        vars(:,23)=uwtmn
+        vars(:,24)=vwsmn
+        vars(:,25)=vwrmn
+        vars(:,26)=vwtmn
+        vars(:,27)=w2mn
+        vars(:,28)=w2submn
+        vars(:,29)=w2submn+w2mn
+        vars(:,30)=skewmn
+        vars(:,31)=u2mn
+        vars(:,32)=v2mn
+        vars(:,33)=thl2mn
+        vars(:,34)=thv2mn
+        vars(:,35)=th2mn
+        vars(:,36)=qt2mn
+        vars(:,37)=ql2mn
+        call writestat_nc(ncid,1,tncname,(/timee/),nrec,.true.)
+        call writestat_nc(ncid,nvar,ncname,vars(1:kmax,:),nrec,kmax)
+      end if
 
 
     end if ! end if(myid==0)
@@ -1487,9 +1601,13 @@ contains
 
   end subroutine writestat
   subroutine exitgenstat
-  implicit none
+    use modmpi, only : myid
+    use modstat_nc, only : exitstat_nc,lnetcdf
+    implicit none
 
     if(.not.(lstat)) return
+
+    if(lnetcdf .and. myid==0) call exitstat_nc(ncid)
 
     deallocate(umn       ,vmn   )
     deallocate(thlmn        ,thvmn )

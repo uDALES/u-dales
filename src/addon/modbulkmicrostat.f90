@@ -1,5 +1,18 @@
-!----------------------------------------------------------------------------
-! This file is part of DALES.
+!> \file modbulkmicrostat.f90
+!!  Calculates profiles coming from the bulkmicrophysics
+
+
+!>
+!!  Calculates profiles coming from the bulkmicrophysics
+!>
+!! Profiles coming from the bulkmicrophysics. Written to precep.expnr for the
+!! rain rates etc., and to qlptend.expnr, nptend.expnr and qtptend.expnr for the
+!! tendencies is rain water content, droplet number, and total water content,
+!! respectively.
+!! If netcdf is true, this module also writes in the profiles.expnr.nc output
+!!  \author Olivier Geoffroy, KNMI
+!!  \author Johan van de Dussen, TU Delft
+!  This file is part of DALES.
 !
 ! DALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -14,46 +27,18 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-! Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
-!----------------------------------------------------------------------------
-!
+!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
 module modbulkmicrostat
-
-  !-----------------------------------------------------------------|
-  !                                                                 |
-  !*** *bulkmicrostat*  calculates tendencies of bulkmicrophysics   |
-  !                                                                 |
-  !      Thijs Heus          TU Delft     15/11/2007                |
-  !      Olivier Geoffroy        KNMI     march 2008                |
-  !      Johan van de Dussen TU Delft     22/01/2009                |
-  !                                                                 |
-  !     purpose.                                                    |
-  !     --------                                                    |
-  !                                                                 |
-  !                                                                 |
-  !    NOTE: A STATEMENT call bulkmicrotend NEEDS                   |
-  !    TO BE SET BEFORE AUTOCONVERSION, AFTER AUTOCONVERSION,       |
-  !    ACCRETION, SEDIMENTATION AND EVAPORATION SECTIONS IN         |
-  !    modbulkmicro.f90                                             |
-  !                                                                 |
-  !                                                                 |
-  !_________________________ON OUTPUT_______________________________|
-  !                                                                 |
-  !     Various slab averages                                       |
-  !                                                                 |
-  !____________________SETTINGS_AND_SWITCHES________________________|
-  !                     IN &NAMBULKMICROSTAT                        |
-  !                                                                 |
-  !    dtav           SAMPLING INTERVAL                             |
-  !    timeav         WRITING INTERVAL                              |
-  !    lmicrostat     SWITCH TO ENABLE STATISTICS                   |
-  !-----------------------------------------------------------------|
 
 implicit none
 private
 PUBLIC  :: initbulkmicrostat, bulkmicrostat, exitbulkmicrostat, bulkmicrotend
 save
+!NetCDF variables
+  integer,parameter :: nvar = 23
+  character(80),dimension(nvar,4) :: ncname
+
 
   real          :: dtav, timeav, tnext, tnextwrite
   integer          :: nsamples
@@ -95,13 +80,16 @@ save
                Dvrmn
 
 contains
-  subroutine initbulkmicrostat
+!> Initialization routine, reads namelists and inits variables
+subroutine initbulkmicrostat
     use modmpi,    only  : myid, mpi_logical, my_real, comm3d, mpierr
     use modglobal, only  : ifnamopt, fname_options, cexpnr, ifoutput, &
-              dtav_glob, timeav_glob, ladaptive, k1, dtmax,btime
+              dtav_glob, timeav_glob, ladaptive, k1,kmax, dtmax,btime
+    use modstat_nc, only : lnetcdf, redefine_nc,define_nc,ncinfo
+    use modgenstat, only : dtav_prof=>dtav, timeav_prof=>timeav,ncid_prof=>ncid
+
     implicit none
     integer      :: ierr
-
 
     namelist/NAMBULKMICROSTAT/ &
     lmicrostat, dtav, timeav
@@ -184,11 +172,44 @@ contains
       open (ifoutput,file = 'qtptend.'//cexpnr,status = 'replace')
       close(ifoutput)
     end if
+    if (lnetcdf) then
+      dtav = dtav_prof
+      timeav = timeav_prof
+      if (myid==0) then
+        call ncinfo(ncname( 1,:),'cfrac','Cloud fraction','-','zt')
+        call ncinfo(ncname( 2,:),'rainrate','Echo Rain Rate','W/m^2','zt')
+        call ncinfo(ncname( 3,:),'preccount','Preccount','W/m^2','zm')
+        call ncinfo(ncname( 4,:),'nrrain','nrrain','W/m^2','zm')
+        call ncinfo(ncname( 5,:),'raincount','raincount','W/m^2','zt')
+        call ncinfo(ncname( 6,:),'precmn','precmn','W/m^2','zm')
+        call ncinfo(ncname( 7,:),'dvrmn','dvrmn','W/m^2','zt')
+        call ncinfo(ncname( 8,:),'qrmn','qrmn','W/m^2','zt')
+        call ncinfo(ncname( 9,:),'npauto','Autoconversion rain drop tendency','#/m3/s','zt')
+        call ncinfo(ncname(10,:),'npaccr','Accretion rain drop tendency','#/m3/s','zt')
+        call ncinfo(ncname(11,:),'npsed','Sedimentation rain drop tendency','#/m3/s','zt')
+        call ncinfo(ncname(12,:),'npevap','Evaporation rain drop tendency','#/m3/s','zt')
+        call ncinfo(ncname(13,:),'qrptot','Total rain water content tendency','kg/kg/s','zt')
+        call ncinfo(ncname(14,:),'qrpauto','Autoconversion rain water content tendency','kg/kg/s','zt')
+        call ncinfo(ncname(15,:),'qrpaccr','Accretion rain water content tendency','kg/kg/s','zt')
+        call ncinfo(ncname(16,:),'qrpsed','Sedimentation rain water content tendency','kg/kg/s','zt')
+        call ncinfo(ncname(17,:),'qrpevap','Evaporation rain water content tendency','kg/kg/s','zt')
+        call ncinfo(ncname(18,:),'qrptot','Total rain water content tendency','kg/kg/s','zt')
+        call ncinfo(ncname(19,:),'qtpauto','Autoconversion total water content tendency','kg/kg/s','zt')
+        call ncinfo(ncname(20,:),'qtpaccr','Accretion total water content tendency','kg/kg/s','zt')
+        call ncinfo(ncname(21,:),'qtpsed','Sedimentation total water content tendency','kg/kg/s','zt')
+        call ncinfo(ncname(22,:),'qtpevap','Evaporation total water content tendency','kg/kg/s','zt')
+        call ncinfo(ncname(23,:),'qtptot','Total total water content tendency','kg/kg/s','zt')
+
+        call redefine_nc(ncid_prof)
+        call define_nc( ncid_prof, NVar, ncname)
+      end if
+
+   end if
 
   end subroutine initbulkmicrostat
 
 !------------------------------------------------------------------------------!
-
+!> General routine, does the timekeeping
   subroutine bulkmicrostat
     use modmpi,    only  : myid
     use modglobal,    only  : rk3step, timee, dt_lim
@@ -212,7 +233,7 @@ contains
   end subroutine bulkmicrostat
 
 !------------------------------------------------------------------------------!
-
+!> Performs the calculations for rainrate etc.
   subroutine dobulkmicrostat
     use modmpi,    only  : my_real, mpi_sum, comm3d, mpierr
     use modglobal,    only  : i1, j1, k1, rslabs
@@ -262,7 +283,7 @@ contains
   end subroutine dobulkmicrostat
 
 !------------------------------------------------------------------------------!
-
+!> Performs the calculations for the tendencies etc.
   subroutine bulkmicrotend
     use modmpi,    only  : slabsum
     use modglobal,    only  : rk3step, timee, dt_lim, k1, ih, i1, jh, j1, rslabs
@@ -311,14 +332,18 @@ contains
   end subroutine bulkmicrotend
 
 !------------------------------------------------------------------------------!
-
+!> Write the stats to file
   subroutine writebulkmicrostat
     use modmpi,    only  : myid
-    use modglobal,    only  : timee, ifoutput, cexpnr, kmax, &
+    use modglobal,    only  : timee, ifoutput, cexpnr, k1,kmax, &
               rlv, zf
     use modfields,    only  : presf
     use modbulkmicrodata,  only  : rhoz
-    implicit none
+      use modstat_nc, only: lnetcdf, writestat_nc
+      use modgenstat, only: ncid_prof=>ncid,nrec_prof=>nrec
+
+      implicit none
+      real,dimension(k1,nvar) :: vars
 
     integer    :: nsecs, nhrs, nminut
     integer    :: k
@@ -465,7 +490,33 @@ contains
       qtpmn    (k,ievap)    , &
       sum    (qtpmn(k,2:nrfields))  , &
       k=1,kmax)
-    close(ifoutput)
+      close(ifoutput)
+      if (lnetcdf) then
+        vars(:, 1) = cloudcountmn
+        vars(:, 2) = prec_prcmn  (:)*rhoz(2,2,:)*rlv
+        vars(:, 3) = preccountmn  (:)
+        vars(:, 4) = Nrrainmn  (:)
+        vars(:, 5) = raincountmn  (:)
+        vars(:, 6) = precmn    (:)*rhoz(2,2,:)*rlv
+        vars(:, 7) = Dvrmn    (:)
+        vars(:, 8) = qrmn    (:)
+        vars(:, 9) =Npmn    (k,iauto)
+        vars(:,10) =Npmn    (k,iaccr)
+        vars(:,11) =Npmn    (k,ised)
+        vars(:,12) =Npmn    (k,ievap)
+        vars(:,13) =sum(Npmn  (k,2:nrfields))
+        vars(:,14) =qlpmn    (k,iauto)
+        vars(:,15) =qlpmn    (k,iaccr)
+        vars(:,16) =qlpmn    (k,ised)
+        vars(:,17) =qlpmn    (k,ievap)
+        vars(:,18) =sum(qlpmn  (k,2:nrfields))
+        vars(:,19) =qtpmn    (k,iauto)
+        vars(:,20) =qtpmn    (k,iaccr)
+        vars(:,21) =qtpmn    (k,ised)
+        vars(:,22) =qtpmn    (k,ievap)
+        vars(:,23) = sum    (qtpmn(k,2:nrfields))
+        call writestat_nc(ncid_prof,nvar,ncname,vars(1:kmax,:),nrec_prof,kmax)
+      end if
 
     end if
 

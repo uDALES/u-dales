@@ -1,5 +1,21 @@
-!----------------------------------------------------------------------------
-! This file is part of DALES.
+!> \file modsampling.f90
+!!  Calculates statistics under conditional criteria
+
+
+!>
+!!  Calculates statistics under conditional criteria
+!>
+!!  Calculates statistics under conditional criteria, for instance over updrafts or cloudy parts of the domain. Written to $sampname_fld.expnr and to $sampname_flx.expnr.
+!! If netcdf is true, this module also writes in the profiles.expnr.nc output
+!! Currently implemented criteria for sampling are:
+!! - Updraft (w>0)
+!! - Cloud (ql>0)
+!! - Buoyant updraft (w>0 and thv>0)
+!! - Cloud core (ql>0 and thv>0)
+!!
+!!  \author Thijs Heus, MPI-M
+!!  \author Pier Siebesma, KNMI
+!  This file is part of DALES.
 !
 ! DALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -14,70 +30,38 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-! Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
-!----------------------------------------------------------------------------
-!
+!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
 module modsampling
 
-    !-----------------------------------------------------------------|
-    !                                                                 |
-    !*** *sampling*  calculates conditional sampled fields            |
-    !                                                                 |
-    !      Pier Siebesma   K.N.M.I.     05/06/1998                    |
-    !      Thijs Heus      T.U. Delft   31/10/2007                    |
-    !                                                                 |
-    !     purpose.                                                    |
-    !     --------                                                    |
-    !                                                                 |
-    !     sampling.f90 calculates:                                    |
-    !                                                                 |
-    !    Conditional sampled fields of:                               |
-    !                theta_l, theta_v, q_t and q_l  and w             |
-    !    Conditional sampled covariances of w with:                   |
-    !                theta_l, theta_v, q_t and q_l                    |
-    !    Conditional sampled Mass Flux                                |
-    !                                                                 |
-    !_________________________ON OUTPUT_______________________________|
-    !                                                                 |
-    !     Various Conditional sampled fields.                         |
-    !                                                                 |
-    !____________________SETTINGS_AND_SWITCHES________________________|
-    !                     IN &NAMSAMPLING                             |
-    !                                                                 |
-    !    dtav           SAMPLING INTERVAL                             |
-    !                                                                 |
-    !    timeav         INTERVAL OF WRITING                           |
-    !                                                                 |
-    !    lsampco        SWITCH TO SAMPLE CLOUD (ql>0)                 |
-    !                                                                 |
-    !    lsampcl        SWITCH TO SAMPLE CLOUD CORE (ql>0,thv>0)      |
-    !                                                                 |
-    !    lsampupd       SWITCH TO SAMPLE UPDRAFTS (w>0)               |
-    !-----------------------------------------------------------------|
+
 
 implicit none
 private
 PUBLIC :: initsampling, sampling, exitsampling
 save
-
+!NetCDF variables
+  integer,parameter :: nvar = 13
+  character(80),allocatable,dimension(:,:,:) :: ncname
   real    :: dtav, timeav,tnext,tnextwrite
   integer :: nsamples,isamp,isamptot
-  character(20),dimension(10) :: samplname
-  logical :: lsampcl  = .false. ! switch for conditional sampling cloud (on/off)
-  logical :: lsampco  = .false. ! switch for conditional sampling core (on/off)
-  logical :: lsampup  = .false. ! switch for conditional sampling updraft (on/off)
-  logical :: lsampbuup  = .false. ! switch for conditional sampling buoyant updraft (on/off)
+  character(20),dimension(10) :: samplname,longsamplname
+  logical :: lsampcl  = .false. !< switch for conditional sampling cloud (on/off)
+  logical :: lsampco  = .false. !< switch for conditional sampling core (on/off)
+  logical :: lsampup  = .false. !< switch for conditional sampling updraft (on/off)
+  logical :: lsampbuup  = .false. !< switch for conditional sampling buoyant updraft (on/off)
   real, allocatable, dimension(:,:) ::  wavl,tlavl,tvavl,qtavl,qlavl,nrsampl,massflxavl, &
                                         wtlavl,wtvavl,wqtavl,wqlavl,uwavl,vwavl
 
 contains
-
+!> Initialization routine, reads namelists and inits variables
   subroutine initsampling
 
     use modmpi,    only : comm3d, my_real,mpierr,myid,mpi_logical
     use modglobal, only : ladaptive, dtmax,rk3step,k1,ifnamopt,fname_options,   &
                            dtav_glob,timeav_glob,dt_lim,btime
+    use modstat_nc, only : lnetcdf, redefine_nc,define_nc,ncinfo
+    use modgenstat, only : dtav_prof=>dtav, timeav_prof=>timeav,ncid_prof=>ncid
     implicit none
 
     integer :: ierr
@@ -104,19 +88,23 @@ contains
     isamptot = 0
     if (lsampup) then
       isamptot = isamptot + 1
-      samplname(isamptot) = 'updraft'
+      samplname(isamptot) = 'upd'
+      longsamplname(isamptot) = 'Updraft '
     end if
     if (lsampbuup) then
       isamptot = isamptot + 1
-      samplname(isamptot) = 'buoyupdraft'
+      samplname(isamptot) = 'buupd'
+      longsamplname(isamptot) = 'Buoyant Updraft '
     end if
     if (lsampcl) then
       isamptot = isamptot + 1
-      samplname(isamptot) = 'cloud'
+      samplname(isamptot) = 'cld'
+      longsamplname(isamptot) = 'Cloud '
     end if
     if (lsampco) then
       isamptot = isamptot + 1
-      samplname(isamptot) = 'cloudcore'
+      samplname(isamptot) = 'cldcr'
+      longsamplname(isamptot) = 'Cloud Core '
     end if
 
     if(isamptot == 0) return
@@ -151,19 +139,50 @@ contains
     wqlavl     = 0.0
     uwavl      = 0.0
     vwavl      = 0.0
+    if (lnetcdf) then
+      dtav = dtav_prof
+      timeav = timeav_prof
+       tnext      = dtav-1e-3+btime
+      tnextwrite = timeav-1e-3+btime
+      nsamples = nint(timeav/dtav)
+     if (myid==0) then
+        allocate(ncname(nvar,4,isamptot))
+        do isamp=1,isamptot
+          call ncinfo(ncname( 1,:,isamp),'nrsamp'//samplname(isamp),trim(longsamplname(isamp))//' '//'number of points','-','tt')
+          call ncinfo(ncname( 2,:,isamp),'w'//samplname(isamp),trim(longsamplname(isamp))//' '//'mean vertical velocity','m/s','mt')
+          call ncinfo(ncname( 3,:,isamp),'tl'//samplname(isamp),trim(longsamplname(isamp))//' '//'mean liquid water potential temperature','K','tt')
+          call ncinfo(ncname( 4,:,isamp),'qt'//samplname(isamp),trim(longsamplname(isamp))//' '//'mean total water content','kg/kg','tt')
+          call ncinfo(ncname( 5,:,isamp),'ql'//samplname(isamp),trim(longsamplname(isamp))//' '//'mean liquid water content','kg/kg','tt')
+          call ncinfo(ncname( 6,:,isamp),'tv'//samplname(isamp),trim(longsamplname(isamp))//' '//'mean virtual potential temperature','K','tt')
+          call ncinfo(ncname( 7,:,isamp),'massflx'//samplname(isamp),trim(longsamplname(isamp))//' '//'mass fluxU pressure gradient tendency','m^3/s','mt')
+          call ncinfo(ncname( 8,:,isamp),'wtl'//samplname(isamp),trim(longsamplname(isamp))//' '//'theta_l flux','K m/s','mt')
+          call ncinfo(ncname( 9,:,isamp),'wqt'//samplname(isamp),trim(longsamplname(isamp))//' '//'total water flux','kg/kg m/s','mt')
+          call ncinfo(ncname(10,:,isamp),'wql'//samplname(isamp),trim(longsamplname(isamp))//' '//'liquid water flux','kg/kg m/s','mt')
+          call ncinfo(ncname(11,:,isamp),'wtv'//samplname(isamp),trim(longsamplname(isamp))//' '//'theta_v flux','K m/s','mt')
+          call ncinfo(ncname(12,:,isamp),'uw'//samplname(isamp),trim(longsamplname(isamp))//' '//'uw flux','m^2/s^2','mt')
+          call ncinfo(ncname(13,:,isamp),'vw'//samplname(isamp),trim(longsamplname(isamp))//' '//'vw flux','m^2/s^2','mt')
+
+          call redefine_nc(ncid_prof)
+          call define_nc( ncid_prof, NVar, ncname)
+        end do
+     end if
+
+   end if
 
 
   end subroutine initsampling
-
+!> Cleans up after the run
   subroutine exitsampling
+    use modstat_nc, only : lnetcdf
     implicit none
 
-    if (isamptot>0) &
+    if (isamptot>0) then
        deallocate( wavl,tlavl,tvavl,qtavl,qlavl,nrsampl,massflxavl, &
                 wtlavl,wtvavl,wqtavl,wqlavl,uwavl,vwavl)
-
+       if (lnetcdf) deallocate(ncname)
+    end if
   end subroutine exitsampling
-
+!> General routine, does the timekeeping
   subroutine sampling
     use modglobal, only : rk3step,timee,dt_lim
     implicit none
@@ -187,7 +206,7 @@ contains
 
   return
   end subroutine sampling
-
+!> Performs the actual sampling
   subroutine dosampling
     use modglobal, only : i1,i2,j1,j2,kmax,k1,ih,jh,&
                           dx,dy,dzh,dzf,cp,rv,rlv,rd,rslabs
@@ -223,18 +242,18 @@ contains
 
     mask = .false.
     select case (samplname(isamp))
-    case ('updraft')
+    case ('upd')
       where(w0>0.0) mask = .true.
-    case ('buoyupdraft')
+    case ('buup')
       thvav = 0.0
       call slabsum(thvav,1,k1,thv0,2-ih,i1+ih,2-jh,j1+jh,1,k1,2,i1,2,j1,1,k1)
       thvav = thvav/rslabs
       do k=1,kmax
         where(w0(2:i1,2:j1,k)>0.0 .and. thv0(2:i1,2:j1,k) > thvav(k)) mask(2:i1,2:j1,k) = .true.
       end do
-    case ('cloud')
+    case ('cld')
       where(ql0>epsilon(1.0)) mask = .true.
-    case ('cloudcore')
+    case ('cldcr')
       thvav = 0.0
       call slabsum(thvav,1,k1,thv0,2-ih,i1+ih,2-jh,j1+jh,1,k1,2,i1,2,j1,1,k1)
       thvav = thvav/rslabs
@@ -359,13 +378,16 @@ contains
 
 
   end subroutine dosampling
-
+!> Write the statistics to file
   subroutine writesampling
 
     use modglobal, only : timee,k1,kmax,zf,zh,cexpnr,ifoutput,rslabs
     use modfields, only : presf,presh
     use modmpi,    only : myid,my_real,comm3d,mpierr,mpi_sum
+    use modstat_nc, only: lnetcdf, writestat_nc
+    use modgenstat, only: ncid_prof=>ncid,nrec_prof=>nrec
     implicit none
+    real,dimension(k1,nvar) :: vars
 
     real, allocatable, dimension(:)  :: wmn,tlmn,tvmn,qtmn,qlmn,nrsampmn,massflxmn, &
                                         wtlmn,wtvmn,wqtmn,wqlmn,uwmn,vwmn
@@ -443,7 +465,7 @@ contains
 !write files
         open (ifoutput,file=trim(samplname(isamp))//'fld.'//cexpnr,position='append')
         write(ifoutput,'(//3A,/A,F5.0,A,I4,A,I2,A,I2,A)') &
-          '#------------------------------ ',trim(samplname(isamp)),' -------------------------------'      &
+          '#------------------------------ ',trim(longsamplname(isamp)),' -------------------------------'      &
           ,'#',timeav,'--- AVERAGING TIMESTEP --- '      &
           ,nhrs,':',nminut,':',nsecs      &
           ,'   HRS:MIN:SEC AFTER INITIALIZATION '
@@ -469,7 +491,7 @@ contains
 
         open (ifoutput,file=trim(samplname(isamp))//'flx.'//cexpnr,position='append')
         write(ifoutput,'(//3A,/A,F5.0,A,I4,A,I2,A,I2,A)') &
-          '#------------------------------- ',trim(samplname(isamp)),' ----------------------------------------'      &
+          '#------------------------------- ',trim(longsamplname(isamp)),' ----------------------------------------'      &
           ,'#',timeav,'--- AVERAGING TIMESTEP --- '      &
           ,nhrs,':',nminut,':',nsecs      &
           ,'   HRS:MIN:SEC AFTER INITIALIZATION '
@@ -493,6 +515,23 @@ contains
                 vwmn     (k)
         end do
         close(ifoutput)
+      if (lnetcdf) then
+        vars(:, 1) =nrsampmn
+        vars(:, 2) =wmn
+        vars(:, 3) =tlmn
+        vars(:, 4) =qtmn
+        vars(:, 5) =qlmn
+        vars(:, 6) =tvmn
+        vars(:, 7) =massflxmn
+        vars(:, 8) =wtlmn
+        vars(:, 9) =wqtmn
+        vars(:,10) =wqlmn
+        vars(:,11) =wtvmn
+        vars(:,12) =uwmn
+        vars(:,13) =vwmn
+
+        call writestat_nc(ncid_prof,nvar,ncname(:,:,isamp),vars(1:kmax,:),nrec_prof,kmax)
+      end if
 
       end do
     end if

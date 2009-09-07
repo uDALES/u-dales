@@ -1,5 +1,20 @@
-!----------------------------------------------------------------------------
-! This file is part of DALES.
+!> \file modbulkmicro.f90
+
+!>
+!!  Bulk microphysics.
+!>
+!! Calculates bulk microphysics using a two moment scheme.
+!! \see   Seifert and Beheng (Atm. Res., 2001)
+!! \see  Seifert and Beheng (Met Atm Phys, 2006)
+!! \see  Stevens and Seifert (J. Meteorol. Soc. Japan, 2008)  (rain sedim, mur param)
+!! \see  Seifert (J. Atm Sc., 2008) (rain evap)
+!! \see  Khairoutdinov and Kogan (2000) (drizzle param : auto, accr, sedim, evap)
+!!  \author Olivier Geoffroy, K.N.M.I.
+!!  \author Margreet van Zanten, K.N.M.I.
+!!  \author Stephan de Roode,TU Delft
+!!  \par Revision list
+!! \todo documentation
+!  This file is part of DALES.
 !
 ! DALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -14,33 +29,14 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-! Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
-!----------------------------------------------------------------------------
+!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
-!
+
 
 module modbulkmicro
 
-!*********************************************************************
-!
-!   Margreet van Zanten   KNMI  Juli-Augustus 2005
-!   Olivier  Geoffroy     KNMI  March         2008
-!
-!   purpose:
-!   Calculates microphysical processes based on
-!
-!   ** l_sb=T **
-!   Seifert and Beheng (Atm. Res., 2001)
-!   Seifert and Beheng (Met Atm Phys, 2005)
-!   Stevens and Seifert (J. Meteorol. Soc. Japan, 2008)  (rain sedim, mur param)
-!   Seifert (J. Atm Sc., 2008) (rain evap)
-!
-!   ** l_sb=F **
-!   Khairoutdinov and Kogan (2000) (drizzle param : auto, accr, sedim, evap)
 !
 !
-!   The sedimentation of cloud droplets assumes a lognormal DSD in which the
-!   geometric std dev. is assumed to be fixed at 1.2.
 !
 !   Amount of liquid water is splitted into cloud water and precipitable
 !   water (as such it is a two moment scheme). Cloud droplet number conc. is
@@ -62,13 +58,8 @@ module modbulkmicro
   save
   contains
 
-  !*********************************************************************
-  !*********************************************************************
-
+!> Initializes and allocates the arrays
   subroutine initbulkmicro
-  !*********************************************************************
-  ! subroutine initbulkmicro
-  !*********************************************************************
     use modglobal, only : ih,i1,jh,j1,k1,dzf,dtmax,rk3step
     use modmpi,    only : myid
     implicit none
@@ -80,6 +71,7 @@ module modbulkmicro
              ,qrp(2-ih:i1+ih,2-jh:j1+jh,k1)       &
              ,qc(2-ih:i1+ih,2-jh:j1+jh,k1)        &
              ,Nc(2-ih:i1+ih,2-jh:j1+jh,k1)        &
+             ,nuc(2-ih:i1+ih,2-jh:j1+jh,k1)        &
              ,thlpmcr(2-ih:i1+ih,2-jh:j1+jh,k1)   &
              ,qtpmcr(2-ih:i1+ih,2-jh:j1+jh,k1)    &
              ,sedc(2-ih:i1+ih,2-jh:j1+jh,k1)      &
@@ -115,9 +107,7 @@ module modbulkmicro
 
   end subroutine initbulkmicro
 
-  !*********************************************************************
-  !*********************************************************************
-
+!> Cleaning up after the run
   subroutine exitbulkmicro
   !*********************************************************************
   ! subroutine exitbulkmicro
@@ -126,20 +116,15 @@ module modbulkmicro
 
     deallocate(Nr,Nrp,qltot,qr,qrp,thlpmcr,qtpmcr  )
 
-    deallocate(sedc,sed_qr,sed_Nr,exnz,presz,Dvc,xc,Dvr,mur,lbdr, &
+    deallocate(nuc,sedc,sed_qr,sed_Nr,exnz,presz,Dvc,xc,Dvr,mur,lbdr, &
                xr,au,phi,tau,ac,sc,br,evap,Nevap,qr_spl,Nr_spl,wfall_qr,wfall_Nr)
 
     deallocate(precep)
 
   end subroutine exitbulkmicro
 
-  !*********************************************************************
-  !*********************************************************************
-
+!> Calculates the microphysical source term.
   subroutine bulkmicro
-  !*********************************************************************
-  ! subroutine bulkmicro
-  !*********************************************************************
     use modglobal, only : dt,rk3step,timee,kmax,rlv,cp
     use modfields, only : sv0,svm,svp,qtp,thlp,qt0,ql0,presf, exnf,rhof
     use modbulkmicrostat, only : bulkmicrotend
@@ -163,13 +148,16 @@ module modbulkmicro
     enddo
 
     if ( timee .eq. 0. .and. rk3step .eq. 1 .and. myid .eq. 0) then
-      write(*,*) ' l_lognormal',l_lognormal
-      write(*,*) ' rhoz(1)', rhoz(2,2,1),' rhoz(10)', rhoz(2,2,10)
+      write(*,*) 'l_lognormal',l_lognormal
+      write(*,*) 'rhoz(1)', rhoz(2,2,1),' rhoz(10)', rhoz(2,2,10)
       write(*,*) 'l_mur_cst',l_mur_cst,' mur_cst',mur_cst
+      write(*,*) 'nuc = param'
     endif
+
   !*********************************************************************
   ! remove neg. values of Nr and qr
   !*********************************************************************
+    if (l_rain) then
     if (sum(qr, qr<0.) > 0.000001*sum(qr)) then
       write(*,*)'amount of neg. qr and Nr thrown away is too high  ',timee,' sec'
     end if
@@ -177,9 +165,14 @@ module modbulkmicro
       write(*,*)'amount of neg. qr and Nr thrown away is too high  ',timee,' sec'
     end if
 
-    where (Nr <= 0. .or. qr<=qrmin )
-     Nr  = 0.
-     qr  = 0.
+      where (Nr  < 0. ) Nr  = 0.
+      where (qr < 0. ) qr = 0.
+    endif   ! l_rain
+
+!    where (Nr <= 0. .or. qr<=qrmin )
+    where (qr<=qrmin )
+!     Nr  = 0.
+!     qr  = 0.
      qrmask = .false.
     elsewhere
      qrmask = .true.
@@ -203,7 +196,7 @@ module modbulkmicro
     if (l_rain) then
       xr(2:i1,2:j1,1:k1) = 0.
       Dvr(2:i1,2:j1,1:k1) = 0.
-      mur(2:i1,2:j1,1:k1) = 0.
+      mur(2:i1,2:j1,1:k1) = 30.
       lbdr(2:i1,2:j1,1:k1) = 0.
       if (l_sb ) then
         where (qrmask(2:i1,2:j1,1:k1))
@@ -220,7 +213,9 @@ module modbulkmicro
         else
         ! mur = f(Dv)
           where (qrmask(2:i1,2:j1,1:k1))
-            mur(2:i1,2:j1,1:k1) = 10. * (1+tanh(1200.*(Dvr(2:i1,2:j1,1:k1)-0.0014))) ! Stevens & Seifert (2008) param
+!            mur(2:i1,2:j1,1:k1) = 10. * (1+tanh(1200.*(Dvr(2:i1,2:j1,1:k1)-0.0014))) ! Stevens & Seifert (2008) param
+            mur(2:i1,2:j1,1:k1) = min(30.,- 1. + 0.008/ (qr(2:i1,2:j1,1:k1)*rhoz(2:i1,2:j1,1:k1))**0.6)  ! G09b
+
             lbdr(2:i1,2:j1,1:k1) = ((mur(2:i1,2:j1,1:k1)+3.)*(mur(2:i1,2:j1,1:k1)+2.)*(mur(2:i1,2:j1,1:k1)+1.))**(1./3.)/Dvr(2:i1,2:j1,1:k1)
           endwhere
         endif
@@ -278,20 +273,14 @@ module modbulkmicro
     endwhere
 
   end subroutine bulkmicro
-
-  !*********************************************************************
-  !*********************************************************************
-
+  !> Determine autoconversion rate and adjust qrp and Nrp accordingly
+  !!
+  !!   The autoconversion rate is formulated for f(x)=A*x**(nuc)*exp(-Bx),
+  !!   decaying exponentially for droplet mass x.
+  !!   It can easily be reformulated for f(x)=A*x**(nuc)*exp(-Bx**(mu)) and
+  !!   by chosing mu=1/3 one would get a gamma distribution in drop diameter
+  !!   -> faster rain formation. (Seifert)
   subroutine autoconversion
-  !*********************************************************************
-  ! determine autoconversion rate and adjust qrp and Nrp accordingly
-  !
-  !   The autoconversion rate is formulated for f(x)=A*x**(nuc)*exp(-Bx),
-  !   decaying exponentially for droplet mass x.
-  !   It can easily be reformulated for f(x)=A*x**(nuc)*exp(-Bx**(mu)) and
-  !   by chosing mu=1/3 one would get a gamma distribution in drop diameter
-  !   -> faster rain formation. (Seifert)
-  !*********************************************************************
     use modglobal, only : i1,j1,kmax,eps1,rlv,cp
     use modmpi,    only : myid
     implicit none
@@ -303,10 +292,16 @@ module modbulkmicro
     !
       tau(2:i1,2:j1,1:k1) = 0.
       phi(2:i1,2:j1,1:k1) = 0.
-      k_au = k_c/(20*x_s) * (nuc+2.)*(nuc+4.)/(nuc+1.)**2.
+      nuc(2:i1,2:j1,1:k1) = 0.
+      k_au = k_c/(20*x_s)
+
       where (qcmask(2:i1,2:j1,1:k1))
+
+        nuc(2:i1,2:j1,1:k1) = 1.58*(rhoz(2:i1,2:j1,1:k1)*qc(2:i1,2:j1,1:k1)*1000.) +0.72-1. !G09a
+!        nuc(2:i1,2:j1,1:k1) = 0. !
         xc(2:i1,2:j1,1:k1) = rhoz(2:i1,2:j1,1:k1)*qc(2:i1,2:j1,1:k1)/Nc(2:i1,2:j1,1:k1)
-        au(2:i1,2:j1,1:k1) = k_au * (qc(2:i1,2:j1,1:k1) * xc(2:i1,2:j1,1:k1))**2. * 1.225 ! *rho**2/rho/rho (= 1)
+        au(2:i1,2:j1,1:k1) = k_au* (nuc(2:i1,2:j1,1:k1)+2.)*(nuc(2:i1,2:j1,1:k1)+4.)/(nuc(2:i1,2:j1,1:k1)+1.)**2.    &
+                    * (qc(2:i1,2:j1,1:k1) * xc(2:i1,2:j1,1:k1))**2. * 1.225 ! *rho**2/rho/rho (= 1)
         tau(2:i1,2:j1,1:k1) = 1.0 - qc(2:i1,2:j1,1:k1)/qltot(2:i1,2:j1,1:k1)
         phi(2:i1,2:j1,1:k1) = k_1 * tau(2:i1,2:j1,1:k1)**k_2 * (1.0 -tau(2:i1,2:j1,1:k1)**k_2)**3
         au(2:i1,2:j1,1:k1) = au(2:i1,2:j1,1:k1) * (1.0 + phi(2:i1,2:j1,1:k1)/(1.0 -tau(2:i1,2:j1,1:k1))**2)
@@ -339,9 +334,6 @@ module modbulkmicro
 
   end subroutine autoconversion
 
-  !*********************************************************************
-  !*********************************************************************
-
   subroutine accretion
   !*********************************************************************
   ! determine accr. + self coll. + br-up rate and adjust qrp and Nrp
@@ -359,7 +351,7 @@ module modbulkmicro
     !
     ! SB accretion
     !
-     where (qrmask .and. qcmask )
+     where (qrmask(2:i1,2:j1,1:k1) .and. qcmask(2:i1,2:j1,1:k1))
        tau(2:i1,2:j1,1:k1) = 1.0 - qc(2:i1,2:j1,1:k1)/(qltot(2:i1,2:j1,1:k1))
        phi(2:i1,2:j1,1:k1) = (tau(2:i1,2:j1,1:k1)/(tau(2:i1,2:j1,1:k1) + k_l))**4.
        ac(2:i1,2:j1,1:k1) = k_r *rhoz(2:i1,2:j1,1:k1)*qc(2:i1,2:j1,1:k1) * qr(2:i1,2:j1,1:k1) * phi(2:i1,2:j1,1:k1) * (1.225/rhoz(2:i1,2:j1,1:k1))**0.5
@@ -375,7 +367,8 @@ module modbulkmicro
       br(2:i1,2:j1,1:k1)=0
       where (qrmask(2:i1,2:j1,1:k1))
         sc(2:i1,2:j1,1:k1) = k_rr *rhoz(2:i1,2:j1,1:k1)* qr(2:i1,2:j1,1:k1) * Nr(2:i1,2:j1,1:k1)  &
-                       * (1 + kappa_r*Dvr(2:i1,2:j1,1:k1))**(-9.)* (1.225/rhoz(2:i1,2:j1,1:k1))**0.5
+                       * (1 + kappa_r/lbdr(2:i1,2:j1,1:k1))**(-9.)* (1.225/rhoz(2:i1,2:j1,1:k1))**0.5
+
       endwhere
       where (  Dvr(2:i1,2:j1,1:k1) .gt. 0.30E-3 .and. qrmask(2:i1,2:j1,1:k1))
         phi_br(2:i1,2:j1,1:k1) = k_br * (Dvr(2:i1,2:j1,1:k1)-D_eq)
@@ -405,24 +398,35 @@ module modbulkmicro
      write(6,*)'ac too large', count(qc(2:i1,2:j1,1:kmax)/delt - ac(2:i1,2:j1,1:kmax) .lt. 0.),myid
    end if
 
-
   end subroutine accretion
 
-  !*********************************************************************
-  !*********************************************************************
-
+!> Sedimentation of cloud water
+!!
+!!   The sedimentation of cloud droplets assumes a lognormal DSD in which the
+!!   geometric std dev. is assumed to be fixed at 1.3.
+!! sedimentation of cloud droplets
+!! lognormal CDSD is assumed (1 free parameter : sig_g)
+!! terminal velocity : Stokes velocity is assumed (v(D) ~ D^2)
+!! flux is calc. anal.
   subroutine sedimentation_cloud
-  !*********************************************************************
-  ! sedimentation of cloud droplets
-  ! lognormal CDSD is assumed (1 free parameter : sig_g)
-  ! terminal velocity : Stokes velocity is assumed (v(D) ~ D^2)
-  ! flux is calc. anal.
-  !*********************************************************************
     use modglobal, only : i1,j1,k1,kmax,eps1,rlv,cp,dzf,pi
     use modmpi,    only : myid
 
     implicit none
     integer :: k
+
+!    real    :: qc_spl(2-ih:i1+ih,2-jh:j1+jh,k1)       &! work variable
+!              ,Nc_spl(2-ih:i1+ih,2-jh:j1+jh,k1)
+!    real,save :: dt_spl,wfallmax
+!
+!    qc_spl(2:i1,2:j1,1:k1) = qc(2:i1,2:j1,1:k1)
+!    Nc_spl(2:i1,2:j1,1:k1)  = Nc(2:i1,2:j1,1:k1)
+!
+!    wfallmax = 9.9
+!    n_spl = ceiling(wfallmax*delt/(minval(dzf)))
+!    dt_spl = delt/real(n_spl)
+!
+!    do jn = 1 , n_spl  ! time splitting loop
 
     sedc(2:i1,2:j1,1:k1) = 0.
     csed = c_St*(3./(4.*pi*rhow))**(2./3.)*exp(5.*log(sig_g)**2.)
@@ -437,31 +441,28 @@ module modbulkmicro
 
   end subroutine sedimentation_cloud
 
-  !*********************************************************************
-  !*********************************************************************
 
+!> Sedimentaion of rain
+!! sedimentation of drizzle water
+!! - gen. gamma distr is assumed. Terminal velocities param according to
+!!   Stevens & Seifert. Flux are calc. anal.
+!! - l_lognormal =T : lognormal DSD is assumed with D_g and N known and
+!!   sig_g assumed. Flux are calc. numerically with help of a
+!!   polynomial function
   subroutine sedimentation_rain
-  !*********************************************************************
-  ! sedimentation of drizzle water
-  ! - gen. gamma distr is assumed. Terminal velocities param according to
-  !   Stevens & Seifert. Flux are calc. anal.
-  ! - l_lognormal =T : lognormal DSD is assumed with D_g and N known and
-  !   sig_g assumed. Flux are calc. numerically with help of a
-  !   polynomial function
-  !*********************************************************************
     use modglobal, only : i1,j1,k1,kmax,eps1,dzf,pi,dt
     use modfields, only : rhof
     use modmpi,    only : myid,mpi_max,mpi_integer,mpierr,comm3d
     implicit none
     integer :: i,j,k,jn
-    integer :: n_spl      ! sedimentation time splitting loop
+    integer :: n_spl      !<  sedimentation time splitting loop
     real    :: pwcont
-    real    :: wvar(2-ih:i1+ih,2-jh:j1+jh,k1)       &! work variable
-              ,xr_spl(2-ih:i1+ih,2-jh:j1+jh,k1)     &! for time splitting
-              ,Dvr_spl(2-ih:i1+ih,2-jh:j1+jh,k1)    &!    -
-              ,mur_spl(2-ih:i1+ih,2-jh:j1+jh,k1)    &!    -
-              ,lbdr_spl(2-ih:i1+ih,2-jh:j1+jh,k1)   &!    -
-              ,Dgr(2-ih:i1+ih,2-jh:j1+jh,k1)         ! lognormal geometric diameter
+    real    :: wvar(2-ih:i1+ih,2-jh:j1+jh,k1)       &!<  work variable
+              ,xr_spl(2-ih:i1+ih,2-jh:j1+jh,k1)     &!<  for time splitting
+              ,Dvr_spl(2-ih:i1+ih,2-jh:j1+jh,k1)    &!<     -
+              ,mur_spl(2-ih:i1+ih,2-jh:j1+jh,k1)    &!<     -
+              ,lbdr_spl(2-ih:i1+ih,2-jh:j1+jh,k1)   &!<     -
+              ,Dgr(2-ih:i1+ih,2-jh:j1+jh,k1)         !<  lognormal geometric diameter
     real,save :: dt_spl,wfallmax
 
     qr_spl(2:i1,2:j1,1:k1) = qr(2:i1,2:j1,1:k1)
@@ -510,13 +511,16 @@ module modbulkmicro
         if (l_mur_cst) then
           mur_spl(2:i1,2:j1,1:k1) = mur_cst
         else
-          mur_spl(2:i1,2:j1,1:k1) = 10. * (1+tanh(1200.*(Dvr_spl(2:i1,2:j1,1:k1)-0.0014)))
+          where (qr_spl(2:i1,2:j1,1:k1) > qrmin)
+!          mur_spl(2:i1,2:j1,1:k1) = 10. * (1+tanh(1200.*(Dvr_spl(2:i1,2:j1,1:k1)-0.0014))) ! SS08
+          mur_spl(2:i1,2:j1,1:k1) = min(30.,- 1. + 0.008/ (qr_spl(2:i1,2:j1,1:k1)*rhoz(2:i1,2:j1,1:k1))**0.6)  ! G09b
+          endwhere
         endif
 
         where (qr_spl(2:i1,2:j1,1:k1) > qrmin)
           lbdr_spl(2:i1,2:j1,1:k1) = ((mur_spl(2:i1,2:j1,1:k1)+3.)*(mur_spl(2:i1,2:j1,1:k1)+2.)*(mur_spl(2:i1,2:j1,1:k1)+1.))**(1./3.)/Dvr_spl(2:i1,2:j1,1:k1)
-          wfall_qr(2:i1,2:j1,1:k1)  = (a_tvsb-b_tvsb*(1.+c_tvsb/lbdr_spl(2:i1,2:j1,1:k1))**(-1.*(mur_spl(2:i1,2:j1,1:k1)+4.)))
-          wfall_Nr(2:i1,2:j1,1:k1) = (a_tvsb-b_tvsb*(1.+c_tvsb/lbdr_spl(2:i1,2:j1,1:k1))**(-1.*(mur_spl(2:i1,2:j1,1:k1)+1.)))
+          wfall_qr(2:i1,2:j1,1:k1)  = max(0.,(a_tvsb-b_tvsb*(1.+c_tvsb/lbdr_spl(2:i1,2:j1,1:k1))**(-1.*(mur_spl(2:i1,2:j1,1:k1)+4.))))
+          wfall_Nr(2:i1,2:j1,1:k1) = max(0.,(a_tvsb-b_tvsb*(1.+c_tvsb/lbdr_spl(2:i1,2:j1,1:k1))**(-1.*(mur_spl(2:i1,2:j1,1:k1)+1.))))
           sed_qr(2:i1,2:j1,1:k1) = wfall_qr(2:i1,2:j1,1:k1)*qr_spl(2:i1,2:j1,1:k1)*rhoz(2:i1,2:j1,1:k1)
           sed_Nr(2:i1,2:j1,1:k1) = wfall_Nr(2:i1,2:j1,1:k1)*Nr_spl(2:i1,2:j1,1:k1)
         endwhere
@@ -644,11 +648,12 @@ module modbulkmicro
   !*********************************************************************
     use modglobal, only : ih,i1,jh,j1,k1
     implicit none
-    real :: xx(2-ih:i1+ih,2-jh:j1+jh,k1),  &
-            x(2-ih:i1+ih,2-jh:j1+jh,k1),  &
-            tmp(2-ih:i1+ih,2-jh:j1+jh,k1),  &
-            ser(2-ih:i1+ih,2-jh:j1+jh,k1),  &
-            gam(2-ih:i1+ih,2-jh:j1+jh,k1)
+    real :: xx(2:i1,2:j1,k1),  &
+            x(2:i1,2:j1,k1),  &
+            tmp(2:i1,2:j1,k1),  &
+            ser(2:i1,2:j1,k1),  &
+            gam(2:i1,2:j1,k1)
+
 
     real cof(6),stp,half,one,fpf
 
@@ -656,15 +661,20 @@ module modbulkmicro
   data cof,stp /76.18009173,-86.50532033,24.01409822,  &
        -1.231739516,0.120858003e-2,-0.536382e-5,2.50662827465/
   data half,one,fpf /0.5,1.0,5.5/
-  x=xx-one
-  tmp=x+fpf
-  tmp=(x+half)*log(tmp)-tmp
-  ser=one
+
+  x(2:i1,2:j1,1:k1)=xx(2:i1,2:j1,1:k1)-one
+  tmp(2:i1,2:j1,1:k1)=x(2:i1,2:j1,1:k1)+fpf
+  tmp(2:i1,2:j1,1:k1)=(x(2:i1,2:j1,1:k1)+half)*log(tmp(2:i1,2:j1,1:k1))-tmp(2:i1,2:j1,1:k1)
+  ser(2:i1,2:j1,1:k1)=one
   do j=1,6
-    x=x+one
-    ser=ser+cof(j)/x
+    where (qrmask(2:i1,2:j1,1:k1))
+      x(2:i1,2:j1,1:k1)=x(2:i1,2:j1,1:k1)+one
+      ser(2:i1,2:j1,1:k1)=ser(2:i1,2:j1,1:k1)+cof(j)/x(2:i1,2:j1,1:k1)
+    endwhere
   end do
-  gam = exp(tmp+log(stp*ser))
+
+  gam(2:i1,2:j1,1:k1) = exp(tmp(2:i1,2:j1,1:k1)+log(stp*ser(2:i1,2:j1,1:k1)))
+
 
   end function f_gamma
 

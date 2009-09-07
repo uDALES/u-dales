@@ -33,11 +33,13 @@
 
 !> Determine time step size dt in initialization and update time variables
 !!
-!! The size of the timestep $\Delta t$ is determined adaptively, and is limited by both the Courant-Friedrichs-Lewy criterion ($\CFL$)
+!! The size of the timestep Delta t is determined adaptively, and is limited by both the Courant-Friedrichs-Lewy criterion CFL
+!! \latexonly
 !! \begin{equation}
 !! \CFL = \mr{max}\left(\left|\frac{u_i \Delta t}{\Delta x_i}\right|\right),
 !! \end{equation}
 !! and the diffusion number $d$. The timestep is further limited by the needs of other modules, e.g. the statistics.
+!! \endlatexonly
 subroutine tstep_update
 
 

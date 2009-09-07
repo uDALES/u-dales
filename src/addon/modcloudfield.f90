@@ -1,5 +1,11 @@
-!----------------------------------------------------------------------------
-! This file is part of DALES.
+!> \file modcloudfield.f90
+!!  Dumps all the wet points in the field
+
+!>
+!! Dumps all the wet points in the field to clouds.myid.expnr
+!>
+!!  \author Harm Jonker, TU Delft
+!  This file is part of DALES.
 !
 ! DALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -14,43 +20,23 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-! Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
-!----------------------------------------------------------------------------
+!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
-!
+
 module modcloudfield
 
-    !-----------------------------------------------------------------|
-    !                                                                 |
-    !*** *cloudfield*  dumps all the wet points in the field          |
-    !      modifications H.J./K.N.M.I.  14/07/1998                    |
-    !                                                                 |
-    !     purpose.                                                    |
-    !     --------                                                    |
-    !                                                                 |
-    !                                                                 |
-    !____________________SETTINGS_AND_SWITCHES________________________|
-    !                     IN &NAMCLOUDFIELD                           |
-    !                                                                 |
-    !    dtav           SAMPLING INTERVAL                             |
-    !                                                                 |
-    !    timeav         INTERVAL OF WRITING                           |
-    !                                                                 |
-    !    lcloudfield    SWITCH TO ENABLE CLOUDFIELD DUMPS             |
-    !                                                                 |
-    !    laddinfo       SWITCH TO WRITE QL AND W VALUES               |
-    !-----------------------------------------------------------------|
+
 implicit none
 private
 PUBLIC :: initcloudfield, cloudfield
 save
 
   real    :: dtav,tnext
-  logical :: lcloudfield= .false. ! switch for conditional sampling cloud (on/off)
-  logical :: laddinfo   = .false. ! switch for conditional sampling cloud (on/off)
+  logical :: lcloudfield= .false. !< switch for writing cloud field (on/off)
+  logical :: laddinfo   = .false. !< switch to write ql and w values (on/off)
 
 contains
-
+!> Initializing Cloudfield. Read out the namelist, initializing the variables
   subroutine initcloudfield
 
     use modmpi,   only :myid,my_real,mpierr,comm3d,mpi_logical
@@ -83,8 +69,8 @@ contains
 
 
   end subroutine initcloudfield
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  subroutine cloudfield
+!>Run cloudfield. Dump the coordinates to file
+   subroutine cloudfield
     use modglobal, only : imax,i1,jmax,j1,kmax, rk3step,dt_lim,timee, cexpnr,ifoutput
     use modfields, only : w0,ql0
     use modmpi,    only : cmyid

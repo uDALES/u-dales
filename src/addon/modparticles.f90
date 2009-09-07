@@ -1,5 +1,18 @@
-!----------------------------------------------------------------------------
-! This file is part of DALES.
+!> \file modparticles.f90
+!!  Tracks the flow through Lagrangian particles
+
+!>
+!!  Tracks the flow through Lagrangian particles
+!>
+!!  \see Heus et al (JAS 2008), Verzijlbergh et al (ACP 2009)
+!!  \author Gert Jan van Dijk, TU Delft
+!!  \author Remco Verzijlbergh,TU Delft
+!!  \author Harm Jonker, TU Delft
+!!  \author Thijs Heus,MPI-M
+!!  \par Revision list
+!!  \todo Documentation
+!!  \todo NetCDF implementation
+!  This file is part of DALES.
 !
 ! DALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -14,52 +27,8 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-! Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
-!----------------------------------------------------------------------------
+!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
-!
-
-    !-----------------------------------------------------------------|
-    !                                                                 |
-    !*** *particles  calculates Lagrangian particle trajectories      |
-    !     See Heus, van Dijk, Jonker and van den Akker (submitted to  |
-    !     JAS,2008) for a description/validation                      |
-    !                                                                 |
-    !      Gert Jan van Dijk            01/07/2006                    |
-    !      Remco Verzijlbergh           17/09/2008                    |
-    !      Thijs Heus                   13/11/2008                    |
-    !                                                                 |
-    !____________________SETTINGS_AND_SWITCHES________________________|
-    !                      IN &NAMPARTICLES                           |
-    !                                                                 |
-    !    lpartic        SWITCHES THE ROUTINE ON/OFF                   |
-    !                                                                 |
-    !    lpartsgs       SWITCHES THE SUBGRID DIFFUSION ON/OFF         |
-    !                                                                 |
-    !    intmeth        TIME INTEGERATION SCHEME                      |
-    !                     0 = PARTICLES STAND STILL                   |
-    !                     3 = RUNGE KUTTA THIRD ORDER                 |
-    !                                                                 |
-    !    startfilepart     NAME OF THE PARTICLE START-UP FILE         |
-    !                      THIS TEXT FILE HAS THE NUMBER OF           |
-    !                      PARTICLES ON THE FIRST LINE                |
-    !                      AND THEN FOR EVERY PARTICLE A LINE         |
-    !                      WITH INITIAL T X Y Z IN PHYSICAL           |
-    !                      COORDINATES                                |
-    !                                                                 |
-    !    lstat          SWITCH FOR STATISTICS                         |
-    !                                                                 |
-    !    dtav           TIME INTERVAL FOR SAMPLING OF STATISTICS      |
-    !                                                                 |
-    !    timeav         TIME INTERVAL FOR WRITING OF STATISTICS       |
-    !                                                                 |
-    !    ldump          SWITCH FOR DUMP OF PARTICLE FIELD             |
-    !                                                                 |
-    !    timedump       TIME INTERVAL FOR DUMP OF PARTICLE FIELD      |
-    !                                                                 |
-    !    npartdump      NUMBER OF VARIABLES WRITTEN AT TIMEDUMP       |
-    !                     IN ORDER:X,Y,Z,U,V,W,THL,THV,QT,QL          |
-    !-----------------------------------------------------------------|
 
 module modparticles
 implicit none
@@ -68,23 +37,23 @@ PUBLIC :: initparticles, particles, exitparticles
 SAVE
 
   logical :: lpartic    = .false.
-  integer :: intmeth    =    3          !    * Choose the integrationscheme you would like to use.
-  logical :: lpartsgs   = .true.        ! switch for particle subgrid velocity (on/off)
+  integer :: intmeth    =    3          !<     * Choose the integrationscheme you would like to use.
+  logical :: lpartsgs   = .true.        !<  switch for particle subgrid velocity (on/off)
   logical :: lstat      = .false.
   real    :: timeav     = 3600.
   real    :: dtav       =   60.
   logical :: ldump      = .false.
-  real    :: timedump   = 3600.         !    * write the solution every dtwrite seconds
+  real    :: timedump   = 3600.         !<     * write the solution every dtwrite seconds
   integer :: npartdump  = 10
   character(30) :: startfilepart
 
   integer :: nsamples
   real    :: tnext,tnextwrite,tnextdump
 
-  integer,parameter  :: inomove=0                       !the options for the integrationscheme
+  integer,parameter  :: inomove=0                       !< the options for the integrationscheme
   integer,parameter  :: irk3=3
 
-  integer (KIND=selected_int_kind(10)):: idum = -12345  !seed for gaussian random variable (must be negative integer)
+  integer (KIND=selected_int_kind(10)):: idum = -12345  !< seed for gaussian random variable (must be negative integer)
 
 
   real :: ysizelocal

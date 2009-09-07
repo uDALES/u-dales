@@ -1,5 +1,14 @@
-!----------------------------------------------------------------------------
-! This file is part of DALES.
+!> \file modbudget.f90
+!!  Calculates the turbulent budgets
+
+
+!>
+!! Calculates the turbulent budgets
+!>
+!! Profiles of the resolved and SFS TKE budgets. Written to budget.expnr and sbbudget.expnr
+!! If netcdf is true, this module also writes in the profiles.expnr.nc output
+!!  \author Hans Cuijpers, IMAU
+!  This file is part of DALES.
 !
 ! DALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -14,69 +23,49 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-! Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
-!----------------------------------------------------------------------------
+!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
-!
-
 module modbudget
-
-!-----------------------------------------------------------------|
-!                                                                 |
-!*** *budget* calculates the terms in the TKE-budget              |
-!                                                                 |
-!      Hans Cuijpers   I.M.A.U.     23/06/1995                    |
-!                                                                 |
-!     purpose.                                                    |
-!     --------                                                    |
-!                                                                 |
-!     budget.f calculates:                                        |
-!                                                                 |
-!     * time averaged terms of TKE-budget                         |
-!     * the storage term  (STOR)                                  |
-!     * the residual term (RESID)                                 |
-!                                                                 |
-!     The budget can be switched on using locigal *lstat* the     |
-!     namelist *NAMBUDGET* in the input file namoptions           |
-!                                                                 |
-!-----------------------------------------------------------------|
 
 
   implicit none
   PRIVATE
   PUBLIC :: initbudget,budgetstat,exitbudget
   save
+!NetCDF variables
+  integer,parameter :: nvar = 18
+  character(80),dimension(nvar,4) :: ncname
 
   real    :: dtav, timeav,tnext,tnextwrite
   integer :: nsamples
   logical :: lbudget= .false. ! switch for turbulent TKE budget
 
   !time averaged fields, resolved TKE
-  real, allocatable :: tkemn(:)  !Resolved TKE
-  real, allocatable :: shrmn(:)   !Shear
-  real, allocatable :: buomn(:)   !Buoyancy
-  real, allocatable :: trspmn(:)  !Transport
-  real, allocatable :: ptrspmn(:) !Pressure transport (redistribution)
-  real, allocatable :: dissmn(:)  !Dissipation
-  real, allocatable :: stormn(:)  !Storage = dE/dt
-  real, allocatable :: budgmn(:)  !Budget = sum of contributions excl storage
-  real, allocatable :: residmn(:) !Residual = budget - storage
-  real, allocatable :: tkeb(:)    !TKE at beginning of averaging periode. Used to calculate stormn
-  real, allocatable :: tkeav(:)   !Must be module global to calculate dE/dt in combination with tkeb
+  real, allocatable :: tkemn(:)   !< Resolved TKE
+  real, allocatable :: shrmn(:)   !< Shear
+  real, allocatable :: buomn(:)   !< Buoyancy
+  real, allocatable :: trspmn(:)  !< Transport
+  real, allocatable :: ptrspmn(:) !< Pressure transport (redistribution)
+  real, allocatable :: dissmn(:)  !< Dissipation
+  real, allocatable :: stormn(:)  !< Storage = dE/dt
+  real, allocatable :: budgmn(:)  !< Budget = sum of contributions excl storage
+  real, allocatable :: residmn(:) !< Residual = budget - storage
+  real, allocatable :: tkeb(:)    !< TKE at beginning of averaging periode. Used to calculate stormn
+  real, allocatable :: tkeav(:)   !< Must be module global to calculate dE/dt in combination with tkeb
 
 
   !time averaged fields, subgrid TKE
-  real, allocatable :: sbtkemn(:)   !Resolved TKE
-  real, allocatable :: sbshrmn(:)   !Shear
-  real, allocatable :: sbbuomn(:)   !Buoyancy
-  real, allocatable :: sbdissmn(:)  !Dissipation
-  real, allocatable :: sbstormn(:)  !Storage = dE/dt
-  real, allocatable :: sbbudgmn(:)  !Budget = sum of contributions excl storage
-  real, allocatable :: sbresidmn(:) !Residual = budget - storage
-  real, allocatable :: sbtkeb(:)    !TKE at beginning of averaging periode. Used to calculate stormn
-  real, allocatable :: sbtkeav(:)   !Must be module global to calculate dE/dt in combination with tkeb
-  real, allocatable :: ekmmn(:)     !Turbulent exchange coefficient momentum
-  real, allocatable :: khkmmn(:)    !Kh / Km, in post-processing used to determine filter-grid ratio
+  real, allocatable :: sbtkemn(:)   !< subgrid TKE
+  real, allocatable :: sbshrmn(:)   !< subgrid Shear
+  real, allocatable :: sbbuomn(:)   !< subgrid Buoyancy
+  real, allocatable :: sbdissmn(:)  !< subgrid Dissipation
+  real, allocatable :: sbstormn(:)  !< subgrid Storage = dE/dt
+  real, allocatable :: sbbudgmn(:)  !< subgrid Budget = sum of contributions excl storage
+  real, allocatable :: sbresidmn(:) !< subgrid Residual = budget - storage
+  real, allocatable :: sbtkeb(:)    ! TKE at beginning of averaging periode. Used to calculate stormn
+  real, allocatable :: sbtkeav(:)   ! Must be module global to calculate dE/dt in combination with tkeb
+  real, allocatable :: ekmmn(:)     !< Turbulent exchange coefficient momentum
+  real, allocatable :: khkmmn(:)    !< Kh / Km, in post-processing used to determine filter-grid ratio
 
   real :: tkebtime
 
@@ -84,10 +73,12 @@ module modbudget
   logical :: lsbtkeb   !Switch to tell if the sbtke at beg of av periode has been stored
 
 contains
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!> Initialization routine, reads namelists and inits variables
   subroutine initbudget
     use modmpi,    only : myid,mpierr, comm3d,my_real, mpi_logical
     use modglobal, only : dtmax, k1,ifnamopt,fname_options, ifoutput, cexpnr,dtav_glob,timeav_glob,ladaptive,dt_lim,btime
+    use modstat_nc, only : lnetcdf, redefine_nc,define_nc,ncinfo
+    use modgenstat, only : dtav_prof=>dtav, timeav_prof=>timeav,ncid_prof=>ncid
 
 
     implicit none
@@ -149,11 +140,44 @@ contains
        open (ifoutput,file='sbbudget.'//cexpnr,status='replace')
        close (ifoutput)
     endif
+    if (lnetcdf) then
+      dtav = dtav_prof
+      timeav = timeav_prof
+       tnext      = dtav-1e-3+btime
+      tnextwrite = timeav-1e-3+btime
+      nsamples = nint(timeav/dtav)
+     if (myid==0) then
+        call ncinfo(ncname( 1,:),'tker','Resolved TKE','m/s^2','tt')
+        call ncinfo(ncname( 2,:),'shr','Resolved Shear','m/s^2','tt')
+        call ncinfo(ncname( 3,:),'buo','Resolved Buoyancy','m/s^2','tt')
+        call ncinfo(ncname( 4,:),'trsp','Resolved Transport','m/s^2','tt')
+        call ncinfo(ncname( 5,:),'ptrsp','Resolved Pressure transport (redistribution)','m/s^2','tt')
+        call ncinfo(ncname( 6,:),'diss','Resolved Dissipation','m/s^2','tt')
+        call ncinfo(ncname( 7,:),'budg','Resolved Storage = dE/dt','m/s^2','tt')
+        call ncinfo(ncname( 8,:),'stor','Resolved Budget = sum of contributions excl storage','m/s^2','tt')
+        call ncinfo(ncname( 9,:),'resid','Resolved Residual = budget - storage','m/s^2','tt')
+        call ncinfo(ncname(10,:),'sbtke','Subgrid TKE','m/s^2','tt')
+        call ncinfo(ncname(11,:),'sbshr','Subgrid Shear','m/s^2','tt')
+        call ncinfo(ncname(12,:),'sbbuo','Subgrid Buoyancy','m/s^2','tt')
+        call ncinfo(ncname(13,:),'sbdiss','Subgrid Dissipation','m/s^2','tt')
+        call ncinfo(ncname(14,:),'sbstor','Subgrid Storage = dE/dt','m/s^2','tt')
+        call ncinfo(ncname(15,:),'sbbudg','Subgrid Budget = sum of contributions excl storage','m/s^2','tt')
+        call ncinfo(ncname(16,:),'sbresid','Subgrid Residual = budget - storage','m/s^2','tt')
+        call ncinfo(ncname(17,:),'ekm','Turbulent exchange coefficient momentum','m/s^2','tt')
+        call ncinfo(ncname(18,:),'khkm   ','Kh / Km, in post-processing used to determine filter-grid ratio','m/s^2','tt')
+
+
+
+        call redefine_nc(ncid_prof)
+        call define_nc( ncid_prof, NVar, ncname)
+     end if
+
+   end if
 
   end subroutine initbudget
 
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!> General routine, does the timekeeping
   subroutine budgetstat
 
     use modglobal, only : rk3step,timee, dt_lim
@@ -176,7 +200,8 @@ contains
     end if
     dt_lim = minval((/dt_lim,tnext-timee,tnextwrite-timee/))
   end subroutine budgetstat
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+!> Performs the resolved budget calculations
   subroutine do_genbudget
     use modglobal,  only : i1,j1,k1,kmax,dzf,dzh, &
                           rslabs,cu,cv,iadv_thl,grav, &
@@ -639,14 +664,12 @@ contains
   deallocate(subx,suby,subz,subxl,subyl,subzl)
 end subroutine do_genbudget
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!> Performs the SFS - budget calculations
   subroutine do_gensbbudget
     use modglobal,  only : i1,j1,ih,jh,k1,kmax,rslabs
     use modsubgrid, only : ekm,ekh,sbdiss,sbshr,sbbuo
     use modfields,  only : e120
     use modmpi,     only : slabsum,nprocs,comm3d,nprocs,my_real, mpi_sum,mpierr
-
-    implicit none
     !----------------------------
     ! 1.1 Declare allocatable
     !----------------------------
@@ -718,12 +741,14 @@ end subroutine do_genbudget
     deallocate(sbtkeavl,khkmavl)
   end subroutine do_gensbbudget
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!> Write the budgets to file
   subroutine writebudget
     use modglobal, only : kmax,k1,zf,timee,cexpnr,ifoutput
     use modmpi,    only : myid
-
+    use modstat_nc,only : writestat_nc,lnetcdf
+      use modgenstat, only: ncid_prof=>ncid,nrec_prof=>nrec
     implicit none
+    real,dimension(k1,nvar) :: vars
     integer nsecs, nhrs, nminut,k
     nsecs   = nint(timee)
     nhrs    = int(nsecs/3600)
@@ -816,6 +841,27 @@ end subroutine do_genbudget
             k=1,kmax)
        close(ifoutput)
     endif !endif myid==0
+      if (lnetcdf) then
+        vars(:, 1) =tkemn
+        vars(:, 2) =shrmn
+        vars(:, 3) =buomn
+        vars(:, 4) =trspmn
+        vars(:, 5) =ptrspmn
+        vars(:, 6) =dissmn
+        vars(:, 7) =budgmn
+        vars(:, 8) =stormn
+        vars(:, 9) =residmn
+        vars(:,10) =sbtkemn
+        vars(:,11) =sbshrmn
+        vars(:,12) =sbbuomn
+        vars(:,13) =sbdissmn
+        vars(:,14) =sbstormn
+        vars(:,15) =sbbudgmn
+        vars(:,16) =sbresidmn
+        vars(:,17) =ekmmn
+        vars(:,18) =khkmmn
+        call writestat_nc(ncid_prof,nvar,ncname,vars(1:kmax,:),nrec_prof,kmax)
+      end if
       !Reset time mean variables; resolved TKE
       tkemn=0.;tkeb=0.;shrmn=0.;buomn=0.;trspmn=0.;ptrspmn=0.;
       dissmn=0.;stormn=0.;budgmn=0.;residmn=0.
@@ -827,7 +873,7 @@ end subroutine do_genbudget
   end subroutine writebudget
 
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!> Cleans up after the run
   subroutine exitbudget
   implicit none
 

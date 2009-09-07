@@ -1,5 +1,17 @@
-!----------------------------------------------------------------------------
-! This file is part of DALES.
+!> \file modtimestat.f90
+!!  Timestat calculates timeseries of several variables
+
+!>
+!! Timestat calculates timeseries of several variables
+!>
+!! Timeseries of the most relevant parameters. Written to tmser1.expnr and tmsurf.expnr
+!! If netcdf is true, this module leads the tmser.expnr.nc output
+!!  \author Pier Siebesma, K.N.M.I.
+!!  \author Stephan de Roode,TU Delft
+!!  \author Chiel van Heerwaarden, Wageningen U.R.
+!!  \author Thijs Heus,MPI-M
+!!  \par Revision list
+!  This file is part of DALES.
 !
 ! DALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -14,61 +26,55 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-! Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
-!----------------------------------------------------------------------------
+!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
-!
+
+
 module modtimestat
 
-    !-----------------------------------------------------------------|
-    !                                                                 |
-    !*** *timestat*  calculates timeseries of several variables       |
-    !                                                                 |
-    !      Pier Siebesma   K.N.M.I.     05/06/1998                    |
-    !                                                                 |
-    !_________________________ON OUTPUT_______________________________|
-    !                                                                 |
-    !     Various timeseries                                          |
-    !                                                                 |
-    !____________________SETTINGS_AND_SWITCHES________________________|
-    !                     IN &NAMTIMESTAT                             |
-    !                                                                 |
-    !    dtav           SAMPLING INTERVAL                             |
-    !                                                                 |
-    !    ltimestat      SWITCH TO ENABLE TIMESERIES                   |
-    !-----------------------------------------------------------------|
 
 
 implicit none
-private
-PUBLIC :: inittimestat, timestat
+! private
+! PUBLIC :: inittimestat, timestat
 save
+!NetCDF variables
+  integer,parameter :: nvar = 21
+  integer :: ncid,nrec = 0
+  character(80) :: fname = 'tmser.xxx.nc'
+  character(80),dimension(nvar,4) :: ncname
 
   real    :: dtav,tnext
-  logical :: ltimestat= .false. ! switch for conditional sampling cloud (on/off)
-  real    :: zi,ziold=-1, we   !inversion height and entrainment velocity
+  logical :: ltimestat= .false. !<switch for timestatistics (on/off)
+  real    :: zi,ziold=-1, we
   integer, parameter :: iblh_flux = 1, iblh_grad = 2, iblh_thres = 3
   integer, parameter :: iblh_thv = -1,iblh_thl = -2, iblh_qt = -3
   integer :: iblh_meth = iblh_grad, iblh_var = iblh_thv
   integer :: blh_nsamp = 4
   real    :: blh_thres=-1 ,blh_sign=1.0
+  real   :: zbaseav, ztopav, ztopmax,zbasemin
+  real   :: qlintav, qlintmax, tke_tot
+  real   :: cc, wmax, qlmax
+  real   :: qlint
 
 contains
-
+!> Initializing Timestat. Read out the namelist, initializing the variables
   subroutine inittimestat
     use modmpi,    only : my_real,myid,comm3d,mpi_logical,mpierr,mpi_integer
     use modglobal, only : ifnamopt, fname_options,cexpnr,dtmax,ifoutput,dtav_glob,ladaptive,k1,kmax,rd,rv,dt_lim,btime
     use modfields, only : thlprof,qtprof,svprof
     use modsurface, only : isurf
+    use modstat_nc, only : lnetcdf, open_nc,define_nc,ncinfo
     implicit none
     integer :: ierr,k,location = 1
     real :: gradient = 0.0
     real, allocatable,dimension(:) :: profile
 
 
-    namelist/NAMTIMESTAT/ &
-    dtav,ltimestat,blh_thres,iblh_meth,iblh_var,blh_nsamp,blh_thres
-
+    namelist/NAMTIMESTAT/ & !< namelist
+    dtav,ltimestat,blh_thres,iblh_meth,iblh_var,blh_nsamp,blh_thres !! namelist contents
+!!bla
+!!dibla
 
     dtav=dtav_glob
     if(myid==0)then
@@ -144,16 +150,43 @@ contains
         open (ifoutput,file='tmlsm.'//cexpnr,status='replace',position='append')
         write(ifoutput,'(2a)') &
                '#     time      Qnet        H          LE         G0  ', &
-               '   tendskin       rs         ra        tskin' 
+               '   tendskin       rs         ra        tskin'
         write(ifoutput,'(2a)') &
                '#      [s]     [W/m2]     [W/m2]     [W/m2]     [W/m2]  ', &
-               '   [W/m2]      [s/m]      [s/m]        [K]' 
+               '   [W/m2]      [s/m]      [s/m]        [K]'
         close(ifoutput)
+      end if
+      if (lnetcdf) then
+        fname(7:9) = cexpnr
+        call ncinfo(ncname( 1,:),'time','Time','s','time')
+        call ncinfo(ncname( 2,:),'cfrac','Cloud fraction','-','time')
+        call ncinfo(ncname( 3,:),'zb','Cloud-base height','m','time')
+        call ncinfo(ncname( 4,:),'zc_av','Average Cloud-top height','m','time')
+        call ncinfo(ncname( 5,:),'zc_max','Maximum Cloud-top height','m','time')
+        call ncinfo(ncname( 6,:),'zi','Boundary layer height','m','time')
+        call ncinfo(ncname( 7,:),'we','Entrainment velocity','m/s','time')
+        call ncinfo(ncname( 8,:),'lwp_bar','Liquid-water path','kg/m^2','time')
+        call ncinfo(ncname( 9,:),'lwp_max','Maximum Liquid-water path','kg/m^2','time')
+        call ncinfo(ncname(10,:),'wmax','Maximum vertical velocity','m/s','time')
+        call ncinfo(ncname(11,:),'vtke','Vertical integral of total TKE','kg/s','time')
+        call ncinfo(ncname(12,:),'lmax','Maximum liquid water mixing ratio','kg/kg','time')
+        call ncinfo(ncname(13,:),'ustar','Surface friction velocity','m/s','time')
+        call ncinfo(ncname(14,:),'tstr','Turbulent temperature scale','K','time')
+        call ncinfo(ncname(15,:),'qtstr','Turbulent humidity scale','K','time')
+        call ncinfo(ncname(16,:),'obukh','Obukhov Length','m','time')
+        call ncinfo(ncname(17,:),'tsrf','Surface liquid water potential temperature','K','time')
+        call ncinfo(ncname(18,:),'z0','Roughness height','m','time')
+        call ncinfo(ncname(19,:),'shf_bar','Sensible heat flux','W/m^2','time')
+        call ncinfo(ncname(20,:),'sfcbflx','Surface Buoyancy Flux','m/s^2','time')
+        call ncinfo(ncname(21,:),'lhf_bar','Latent heat flux','W/m^2','time')
+        call open_nc(fname,  ncid)
+        call define_nc( ncid, NVar, ncname)
       end if
     end if
 
   end subroutine inittimestat
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+!>Run timestat. Calculate and write the statistics
   subroutine timestat
 
     use modglobal,  only : i1,j1,kmax,zf,dzf,cu,cv,rv,rd,&
@@ -162,20 +195,18 @@ contains
     use modfields,  only : um,vm,wm,e12m,ql0,u0av,v0av,rhof
     use modsurface, only : wtsurf, wqsurf, isurf,ustar,tstar,qstar,z0,oblav,qts,thls,&
                            Qnet, H, LE, G0, rs, ra, tskin, tendskin
-    use modmpi,     only : my_real,mpi_sum,mpi_max,comm3d,mpierr,myid
+    use modmpi,     only : my_real,mpi_sum,mpi_max,mpi_min,comm3d,mpierr,myid
+    use modstat_nc,  only : lnetcdf, writestat_nc
     implicit none
 
-    real   :: zbaseavl, ztopavl, ztopmaxl, ztop
+    real   :: zbaseavl, ztopavl, ztopmaxl, ztop,zbaseminl
     real   :: qlintavl, qlintmaxl, tke_totl
     real   :: ccl, wmaxl, qlmaxl
-    real   :: zbaseav, ztopav, ztopmax
-    real   :: qlintav, qlintmax, tke_tot
-    real   :: cc, wmax, qlmax
-    real   :: qlint
     real   :: ust,tst,qst,ustl,tstl,qstl
     real   :: usttst, ustqst, usttstl, ustqstl
     real   :: wts, wqls,wtvs
     real   :: c1,c2 !Used to calculate wthvs
+    real,dimension(nvar) :: vars
 
     ! lsm variables
     real   :: Qnetavl, Havl, LEavl, G0avl, tendskinavl, rsavl, raavl, tskinavl
@@ -202,6 +233,7 @@ contains
 
     zbaseavl = 0.0
     ztopavl = 0.0
+    zbaseminl = zf(kmax)
 
     call calcblheight
 
@@ -229,6 +261,7 @@ contains
       do k=1,kmax
         if (ql0(i,j,k) > 0.) then
         zbaseavl = zbaseavl + zf(k)
+        zbaseminl = min(zf(k),zbaseminl)
         exit
         end if
       end do
@@ -244,7 +277,8 @@ contains
                           MPI_MAX, comm3d,mpierr)
     call MPI_ALLREDUCE(zbaseavl, zbaseav, 1,    MY_REAL, &
                           MPI_SUM, comm3d,mpierr)
-
+    call MPI_ALLREDUCE(zbaseminl, zbasemin, 1,    MY_REAL, &
+                          MPI_MIN, comm3d,mpierr)
   !     ---------------------------------------
   !     9.3  determine maximum ql_max and w_max
   !     ---------------------------------------
@@ -257,6 +291,7 @@ contains
     do  i=2,i1
     do  j=2,j1
       ztop  = 0.0
+
       do  k=1,kmax
         if (ql0(i,j,k) > 0) ztop = zf(k)
         wmaxl = max(wm(i,j,k),wmaxl)
@@ -337,7 +372,7 @@ contains
     if(isurf < 3) then
       call MPI_ALLREDUCE(usttstl, usttst, 1,  MY_REAL,MPI_SUM, comm3d,mpierr)
       call MPI_ALLREDUCE(ustqstl, ustqst, 1,  MY_REAL,MPI_SUM, comm3d,mpierr)
-    
+
       usttst = usttst / rslabs
       ustqst = ustqst / rslabs
     end if
@@ -375,14 +410,14 @@ contains
       call MPI_ALLREDUCE(rsavl,       rsav,       1,  MY_REAL,MPI_SUM, comm3d,mpierr)
       call MPI_ALLREDUCE(raavl,       raav,       1,  MY_REAL,MPI_SUM, comm3d,mpierr)
       call MPI_ALLREDUCE(tskinavl,    tskinav,    1,  MY_REAL,MPI_SUM, comm3d,mpierr)
-      
-      Qnetav        = Qnetav      / rslabs 
-      Hav           = Hav         / rslabs 
-      LEav          = LEav        / rslabs 
-      G0av          = G0av        / rslabs 
+
+      Qnetav        = Qnetav      / rslabs
+      Hav           = Hav         / rslabs
+      LEav          = LEav        / rslabs
+      G0av          = G0av        / rslabs
       tendskinav    = tendskinav  / rslabs
-      rsav          = rsav        / rslabs 
-      raav          = raav        / rslabs 
+      rsav          = rsav        / rslabs
+      raav          = raav        / rslabs
       tskinav       = tskinav     / rslabs
     end if
 
@@ -426,21 +461,51 @@ contains
         !tmlsm
         open (ifoutput,file='tmlsm.'//cexpnr,position='append')
         write(ifoutput,'(f10.2,8f11.3)') &
-            timee       ,& 
-            Qnetav      ,&  
-            Hav         ,&           
-            LEav        ,&           
-            G0av        ,&           
+            timee       ,&
+            Qnetav      ,&
+            Hav         ,&
+            LEav        ,&
+            G0av        ,&
             tendskinav  ,&
-            rsav        ,&           
-            raav        ,&           
-            tskinav                
+            rsav        ,&
+            raav        ,&
+            tskinav
         close(ifoutput)
+      end if
+      if (lnetcdf) then
+        vars( 1) = timee
+        vars( 2) = cc
+        vars( 3) = zbaseav
+        vars( 4) = ztopav
+        vars( 5) = ztopmax
+        vars( 6) = zi
+        vars( 7) = we
+        vars( 8) = qlintav
+        vars( 9) = qlintmax
+        vars(10) = wmax
+        vars(11) = tke_tot*dzf(1)
+        vars(12) = qlmax
+        vars(13) = ust
+        vars(14) = tst
+        vars(15) = qst
+        vars(16) = oblav
+        vars(17) = thls
+        vars(18) = z0
+        vars(19) = wts
+        vars(20) = wtvs
+        vars(21) = wqls
+        call writestat_nc(ncid,nvar,ncname,vars,nrec,.true.)
       end if
     end if
 
   end subroutine timestat
 
+!>Calculate the boundary layer height
+!!
+!! There are 3 available ways to calculate the boundary layer height:
+!! - By determining the minimum flux in some scalar, e.g. buoyancy
+!! - By determining the minimum local gradient of some scalar, averaged over a definable number of columns
+!! - By monitoring a threshold value of some scalar, averaged over a definable number of columns
   subroutine calcblheight
     use modglobal,  only : ih,i1,jh,j1,kmax,k1,cp,rlv,imax,rd,zh,dzh,zf,dzf,rv,rslabs,iadv_sv,iadv_kappa
     use modfields,  only : w0,qt0,qt0h,ql0,thl0,thl0h,thv0h,sv0,exnf,whls
@@ -557,7 +622,13 @@ contains
 
   end subroutine calcblheight
 
+!> Clean up when leaving the run
   subroutine exittimestat
+    use modmpi, only : myid
+    use modstat_nc, only : exitstat_nc,lnetcdf
+    implicit none
+
+    if(ltimestat .and. lnetcdf .and. myid==0) call exitstat_nc(ncid)
   end subroutine exittimestat
 
 end module modtimestat
