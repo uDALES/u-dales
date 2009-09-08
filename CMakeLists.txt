@@ -1,12 +1,12 @@
 if($ENV{SYST} STREQUAL "localpc_gfortran")
   set(CMAKE_Fortran_COMPILER "mpif90")
   add_definitions(-W -Wall -fdefault-real-8 -ffree-line-length-none -I/include -I/usr/include -I/usr/local/include)
-elseif($ENV{SYST}  STREQUAL "huygens")
+elseif($ENV{SYST}  STREQUAL "HUYGENS")
   set(CMAKE_Fortran_COMPILER "mpfort")
-  set(CMAKE_Fortran_FLAGS "-qsmallstack=dynlenonheap -qfree=F90 -qrealsize=8 -qwarn64 -qflttrap=en:ov:zero:inv:imp -qflag=w:e)
+  set(CMAKE_Fortran_FLAGS "-O5 -qnoipa -qsmallstack=dynlenonheap -qfree=F90 -qrealsize=8 -qwarn64 -qflttrap=en:ov:zero:inv:imp -qflag=w:e")
 elseif($ENV{SYST}  STREQUAL "localpc_ifort")
   set(CMAKE_Fortran_COMPILER "mpif90")
-  set(CMAKE_Fortran_FLAGS "-r8 -ftz -fpe0 -extend_source -O3)
+  set(CMAKE_Fortran_FLAGS "-r8 -ftz -fpe0 -extend_source -O3")
 endif($ENV{SYST} STREQUAL "localpc_gfortran")
 PROJECT(DALES Fortran)
 cmake_minimum_required(VERSION 2.6)
@@ -21,7 +21,7 @@ find_path(NETCDF_INCLUDE_DIR netcdf.mod NETCDF.mod
   PATHS
   /usr/include
   $ENV{HOME}/include
-  $(SARA_NETCDF_INCLUDE)
+  $ENV{SARA_NETCDF_INCLUDE}
 PATH_SUFFIXES netcdf-3)
 find_library(NETCDF_C_LIB netcdf
   DOC "NetCDF C library"
@@ -30,7 +30,7 @@ find_library(NETCDF_C_LIB netcdf
   /usr/lib64
   $ENV{HOME}/lib
   $ENV{HOME}/lib64
-$(SARA_NETCDF_LIB)
+  $ENV{SARA_NETCDF_LIB}
 )
 find_library(NETCDF_FORTRAN_LIB netcdff
   DOC "NetCDF Fortran library"
@@ -39,7 +39,7 @@ find_library(NETCDF_FORTRAN_LIB netcdff
   /usr/lib64
   $ENV{HOME}/lib
   $ENV{HOME}/lib64
-$(SARA_NETCDF_LIB)
+  $ENV{SARA_NETCDF_LIB}
 )
 
 set(NETCDF_LIBS ${NETCDF_C_LIB})
