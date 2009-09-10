@@ -42,17 +42,30 @@ find_library(NETCDF_FORTRAN_LIB netcdff
   $ENV{SARA_NETCDF_LIB}
 )
 
-set(NETCDF_LIBS ${NETCDF_C_LIB})
+if(NETCDF_INCLUDE_DIR)
+else(NETCDF_INCLUDE_DIR)
+  MESSAGE(STATUS "WARNING: No NETCDF bindings are found.")
+endif(NETCDF_INCLUDE_DIR)
+
+if(NETCDF_C_LIB)
+  set(NETCDF_LIBS ${NETCDF_C_LIB})
+else(NETCDF_C_LIB)
+  MESSAGE(STATUS "WARNING: No NETCDF bindings are found.")
+endif(NETCDF_C_LIB)
+
 if(NETCDF_FORTRAN_LIB)
   set(NETCDF_LIBS ${NETCDF_LIBS} ${NETCDF_FORTRAN_LIB})
+else(NETCDF_FORTRAN_LIB)
+  MESSAGE(STATUS "WARNING: No Fortran NETCDF bindings are found.")
 endif(NETCDF_FORTRAN_LIB)
 ###documentation
-set(doc_dir doc)
-find_package(Doxygen)
-if(DOXYGEN)
-  configure_file(${CMAKE_SOURCE_DIR}/Doxyfile.cmake Doxyfile)
-  add_custom_target(docs
-    ${DOXYGEN_EXECUTABLE} ${PROJECT_BINARY_DIR}/Doxyfile)
-endif(DOXYGEN)
+INCLUDE(FindDoxygen)
+IF (DOXYGEN)
+    ADD_SUBDIRECTORY(utils/doc)
+ELSE (DOXYGEN)
+    MESSAGE(STATUS "WARNING: Doxygen not found - Reference manual will 
+not be created")
+ENDIF (DOXYGEN)
+
 
 ADD_SUBDIRECTORY( src)
