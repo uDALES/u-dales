@@ -60,7 +60,8 @@ contains
     use modsurface,        only : z0,ustin,wtsurf,wqsurf,wsvsurf,ps,thls,isurf,initsurface
     use modfields,         only : initfields
     use modpois,           only : initpois
-    use modradiation,      only : initradiation,irad,iradiation,&
+    use modradiation,      only : initradiation
+    use modraddata,        only : irad,iradiation,&
                                   rad_ls,rad_longw,rad_shortw,rad_smoke,&
                                   timerad,rka,dlwtop,dlwbot,sw0,gc,sfc_albedo,reff,isvsmoke
     use modtimedep,        only : inittimedep,ltimedep

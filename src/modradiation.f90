@@ -5,7 +5,10 @@
 !!  Calculates the radiative sources
 !>
 !!  \author Stephan de Roode,TU Delft
-!!  \todo Full Radiation
+!!  \author Thijs Heus, MPI-M
+!!  \todo Full Radiation : Namelists and init; get rid of datafiles
+!!  \todo Full Radiation : Test and debug
+!!  \todo Full Radiation : Clean up the code
 !!  \todo Documentation
 !!  \par Revision list
 !  This file is part of DALES.
@@ -29,56 +32,26 @@
 
 
 module modradiation
-
+use modraddata
 implicit none
-
-SAVE
-
-  integer, parameter :: irad_none  = 0   !< 0=no radiation
-  integer, parameter :: irad_full  = 1   !< 1=full radiation
-  integer, parameter :: irad_par   = 2   !< 2=parameterized radiation
-  integer, parameter :: irad_user  = 10  !< 10=user specified radiation
-
-  logical :: rad_ls      = .true.   !< prescribed radiative forcing
-  logical :: rad_longw   = .true.   !< parameterized longwave radiative forcing
-  logical :: rad_shortw  = .true.   !< parameterized shortwave radiative forcing
-  logical :: rad_smoke   = .false.  !< longwave divergence for smoke cloud
-
-  real              :: timerad = 0 !<  timescale of the radiation scheme
-  real              :: tnext   = 0
-  real :: rho_air_mn = 1.1436 !< mean air density used in radiation computation
-  real :: rka        = 130.   !< extinction coefficient in radpar scheme
-  real :: dlwtop     = 74.    !< longwave radiative flux divergence at top of domain
-  real :: dlwbot     = 0.     !< longwave radiative flux divergence near the surface
-  real :: sw0        = 1100.0 !< direct component at top of the cloud (W/m^2), diffuse not possible
-  real :: gc         = 0.85   !< asymmetry factor of droplet scattering angle distribution
-  real :: sfc_albedo = 0.05   !< ground surface albedo
-  real :: reff       = 1.e-5  !< cloud droplet effective radius (m)
-  integer :: isvsmoke = 1     !< number of passive scalar to be used for optical depth calculation
-  integer :: iradiation = irad_par
-  integer :: irad    = -1
-
-
-  real mu                    !< cosine of the solar zenith angle
-
-  real, allocatable :: thlprad(:,:,:)                      !<   the radiative tendencies
-  real, allocatable :: swn(:,:,:),lwd(:,:,:),lwu(:,:,:)    !<   shortwave radiative flux
-
 
 contains
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine initradiation
-    use modglobal, only : kmax,i1,j1,k1,nsv,dtmax,ih,jh,btime
+    use modglobal, only : kmax,i1,ih,j1,jh,k1,nsv,dtmax,ih,jh,btime
     use modmpi,    only : myid
     implicit none
 
     allocate(thlprad(2-ih:i1+ih,2-jh:j1+jh,k1))
-    allocate(swn(2:i1,2:j1,k1))
-    allocate(lwd(2:i1,2:j1,k1))
-    allocate(lwu(2:i1,2:j1,k1))
+    allocate(swd(2-ih:i1+ih,2-jh:j1+jh,k1))
+    allocate(swu(2-ih:i1+ih,2-jh:j1+jh,k1))
+    allocate(lwd(2-ih:i1+ih,2-jh:j1+jh,k1))
+    allocate(lwu(2-ih:i1+ih,2-jh:j1+jh,k1))
+    allocate(albedo(2-ih:i1+ih,2-jh:j1+jh))
     thlprad = 0.
-    swn = 0.
+    swd = 0.
+    swu = 0.
     lwd = 0.
     lwu = 0.
     if (irad/=-1) then
@@ -123,10 +96,6 @@ contains
       stop 'Smoke radiation with wrong (non-existent?) scalar field'
     endif
 
-    if (iradiation==1) then
-       stop 'full scheme not yet implemented'
-    endif
-
   end subroutine
 
 
@@ -147,8 +116,7 @@ contains
       select case (iradiation)
           case (irad_none)
           case (irad_full)
-            stop 'full scheme not yet implemented'
-            call rad_full
+            call radfull
           case (irad_par)
             if (rad_ls) then
                 call radprof
@@ -175,37 +143,69 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine exitradiation
     implicit none
-    deallocate(thlprad,swn,lwd,lwu)
+    deallocate(thlprad,swd,swu,lwd,lwu,albedo)
   end subroutine exitradiation
 !
 !
   subroutine radfull
   use radiation, only : d4stream
-  use modglobal, only : i1,j1,k1
-  use modsurface, only : thls
+  use modglobal, only : imax,i1,ih,jmax,j1,jh,kmax,k1,cp,dzf,rlv
+  use modfields, only : rhof, exnf,exnh, thl0,qt0,ql0,sv0
+  use modsurface, only : thls,qts
+  use modmicrodata, only : imicro, imicro_bulk, Nc_0,iqr
     implicit none
-!       integer,parameter :: nzp=k1, nxp=1, nyp=1
-      real    :: cntlat, time_in, sst,  CCN
-      real, dimension (k1)                 :: dn0, pi0, pi1, dzt
-      real, dimension (k1,i1,j1)          :: a_pexnr, a_scr1, a_rv, a_rc
-      real, dimension (k1,i1,j1)        :: a_tt, a_rflx, a_sflx, albedo, a_rpp
-!convert our variables into bjorn variables, including switching column order
+  real :: thlpld,thlplu,thlpsd,thlpsu
+  real, dimension(k1)  :: rhof_b, exnf_b
+  real, dimension(2-ih:i1+ih,2-jh:j1+jh,k1) :: temp_b, qv_b, ql_b,rr_b
+  integer :: i,j,k
+!take care of UCLALES z-shift for thermo variables.
+      do k=1,kmax
+        rhof_b(k+1)     = rhof(k)
+        exnf_b(k+1)     = exnf(k)
+        qv_b(:,:,k+1)   = qt0(:,:,k) - ql0(:,:,k)
+        ql_b(:,:,k+1)   = ql0(:,:,k)
+        temp_b(:,:,k+1) = thl0(:,:,k)*exnf(k)+(rlv/cp)*ql0(:,:,k)
+        if (imicro==imicro_bulk) rr_b(:,:,k+1) = sv0(:,:,k,iqr)
 
+      end do
+      rhof_b(1)     = rhof(1)
+      exnf_b(1)     = exnh(1) + 0.5*dzf(1)*(exnh(1)-exnf(1))
+      ql_b(:,:,1)   = ql0(:,:,1)
+      qv_b(:,:,1)   = qts + 0.5*dzf(1)*(qts-qt0(:,:,1))-ql_b(:,:,1)
+      temp_b(:,:,1) = (thls + 0.5*dzf(1)*(thls-thl0(:,:,1)))*exnf_b(1)+ &
+             (rlv/cp)*ql_b(:,:,1)
+      if (imicro==imicro_bulk) rr_b(:,:,1) = rr_b(:,:,2)
 !run radiation
-!         if (present(time_in) .and. present(cntlat) .and. present(thls)) then
-!           if (level == 3) then
-!                       d4stream(n1, n2, n3, alat, time, sknt, sfc_albedo, CCN, dn0, &
-!          pi0, pi1, dzm, pip, tk, rv, rc, tt, rflx, sflx, albedo, rr)
-                 call d4stream(k1,i1,j1, cntlat, time_in, sst, 0.05, CCN,&
-                  dn0, pi0, pi1, dzt, a_pexnr, a_scr1, a_rv, a_rc, a_tt,  &
-                  a_rflx, a_sflx, albedo, rr=a_rpp)
-!           else
-!              call d4stream(nzp, nxp, nyp, cntlat, time_in, sst, 0.05, CCN,&
-!                   dn0, pi0, pi1, dzt, a_pexnr, a_scr1, a_rv, a_rc, a_tt,  &
-!                   a_rflx, a_sflx, albedo)
-!           end if
-!         end if
-!convert back
+             call d4stream(i1,ih,j1,jh,k1,   &  !done
+             thls,          &       !done
+             sfc_albedo,          &   !done
+             Nc_0,           &     !done
+                  rhof_b,      &     !done
+                  exnf_b*cp,      &    !done
+                  temp_b,   &  !done
+                  qv_b,    &   !done
+                  ql_b,   &    !done
+                  swd,     &       !done     -OUT
+                  swu,   &       !done -OUT
+                  lwd,     &       !done     -OUT
+                  lwu,   &       !done -OUT
+                  albedo,   &      !done       -OUT
+                  rr=rr_b)
+
+!Add up thl tendency
+        do k=1,kmax
+        do j=2,j1
+        do i=2,i1
+          thlpld          = -(lwd(i,j,k+1)-lwd(i,j,k))/(rho_air_mn*cp*dzf(k))
+          thlplu          = -(lwu(i,j,k+1)-lwu(i,j,k))/(rho_air_mn*cp*dzf(k))
+          thlpsd          = -(swd(i,j,k+1)-swd(i,j,k))/(rho_air_mn*cp*dzf(k))
+          thlpsu          = -(swu(i,j,k+1)-swu(i,j,k))/(rho_air_mn*cp*dzf(k))
+
+          thlprad(i,j,k)  = thlprad(i,j,k) + thlpld+thlplu+thlpsu+thlpsd
+        end do
+        end do
+        end do
+
 
 end subroutine radfull
 
@@ -235,7 +235,7 @@ end subroutine radfull
 
 
 
-  use modglobal,    only : i1,j1,kmax, k1,ih,jh,dzf,timee,pi,cp,xtime,xday,xlon,xlat,rslabs
+  use modglobal,    only : i1,j1,kmax, k1,ih,jh,dzf,cp,rslabs,xtime,timee,xday,xlat,xlon
   use modfields,    only : ql0, sv0
   implicit none
   real, allocatable :: lwpt(:),lwpb(:)
@@ -243,7 +243,7 @@ end subroutine radfull
   real, allocatable :: absorber(:,:,:)  !  liquid water content or smoke
 
   real thlpld,thlplu,thlpsw
-  real obliq,xlam,phi,el,declin,hora,rtime,tauc
+  real tauc
   integer :: i=0, j=0, k
 
   real :: rho_l= 1000.  !liquid water density (kg/m3)
@@ -306,17 +306,9 @@ end subroutine radfull
 
     !compute solar zenith angle
 
-    rtime   = xtime + timee/3600
-    phi    = xlat * pi/180.
-    el     = xlon * pi/180.
-    obliq  = 23.45 * pi/180.
-    xlam   = 4.88 + 0.0172 * xday
-    declin = asin(sin(obliq)*sin(xlam))
-    hora   = el-pi + 2.*pi*(rtime/24.)
-    mu   = max(0.,sin(declin)*sin(phi)+cos(declin)*cos(phi)* &
-                                                         cos(hora))
-    swn = 0.0
 
+    swd = 0.0
+    mu=zenith(xtime + timee/3600,xday,xlat,xlon)
     do j=2,j1
     do i=2,i1
 
@@ -333,7 +325,7 @@ end subroutine radfull
       end if
 
       do k=1,kmax
-        thlpsw          = (swn(i,j,k+1)-swn(i,j,k))/(rho_air_mn*cp*dzf(k))
+        thlpsw          = (swd(i,j,k+1)-swd(i,j,k))/(rho_air_mn*cp*dzf(k))
         thlprad(i,j,k)  = thlprad(i,j,k) + thlpsw
 
       end do
@@ -429,7 +421,7 @@ end subroutine radfull
 
   do k = k1,1,-1
       taupath = taupath + taude(k)
-      swn(i,j,k)=sw0*(4./3.)*(rp*(c1*exp(-rk*taupath) &
+      swd(i,j,k)=sw0*(4./3.)*(rp*(c1*exp(-rk*taupath) &
                  -c2*exp(rk*taupath)) &
                  -beta*exp(-taupath/mu)) &
                  +mu*sw0*exp(-taupath/mu)
@@ -458,6 +450,8 @@ end subroutine radfull
 
   return
   end subroutine radprof
+
+
 
 
 end module

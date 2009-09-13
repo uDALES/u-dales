@@ -1,12 +1,23 @@
+!> \file rad_solver.f90
+!!  Does the acutal radiation calculations
+
+!>
+!!  Does the acutal radiation calculations
+!>
+!!  \author Robert Pincus
+!!  \author Bjorn Stevens
+!!  \author Thijs Heus
+!!  \todo Documentation
+!!  \par Revision list
 !----------------------------------------------------------------------------
-! This file is part of UCLALES.
+! This file is part of DALES.
 !
-! UCLALES is free software; you can redistribute it and/or modify
+! DALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
 ! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
-! UCLALES is distributed in the hope that it will be useful,
+! DALES is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU General Public License for more details.
@@ -17,9 +28,9 @@
 ! Copyright 1999-2008, Bjorn B. Stevens, Dep't Atmos and Ocean Sci, UCLA
 !----------------------------------------------------------------------------
 !
-module solver
+module rad_solver
 
-  use defs, only : nv, nv1, pi
+  use modglobal, only :  pi
   implicit none
  !
   ! u denotes the Double-Gauss quadratures and weights (Sykes, 1951).
@@ -27,6 +38,10 @@ module solver
   ! respectively.  p11d(4,4), p22d(4,4), and p33d(4,4) are defined as
   ! 0.5*p1d(i)*p1d(j), 0.5*p2d(i)*p2d(j), and 0.5*p3d(i)*p3d(j) resp.
   !
+  integer :: nv,nv1,mb
+  real :: totalpower
+  real,parameter :: SolarConstant      = 1.365d+3  !< The Solar radiation constant
+
   real, parameter :: u(4) = (/-0.7886752,-0.2113247,0.2113247,0.7886752/)
   real, parameter :: p0d(4)= (/ 1., 1., 1., 1./)
   real, parameter :: p1d(4)= (/-0.788675, -.211325,  .211325, .788675/)
@@ -53,12 +68,10 @@ module solver
 
 contains
 
-  ! **********************************************************************
-  ! coefficient calculations for four first-order differential equations.
-  !
-  ! See the paper by Liou, Fu and Ackerman (1988) for the formulation of
-  ! the delta-four-stream approximation in a homogeneous layer.
-  ! **********************************************************************
+  !> coefficient calculations for four first-order differential equations.
+  !>
+  !> See the paper by Liou, Fu and Ackerman (1988) for the formulation of
+  !> the delta-four-stream approximation in a homogeneous layer.
   subroutine coefft(solar,w,w1,w2,w3,t0,t1,u0,f0,aa,zz,a1,z1,fk1,fk2)
 
     logical, intent (in) :: solar
@@ -211,10 +224,8 @@ contains
 
   end subroutine coefft
 
-  ! **********************************************************************
-  ! In the limits of no scattering ( Fu, 1991 ), fk1 = 1.0 / u(3) and
-  ! fk2 = 1.0 / u(4).
-  ! **********************************************************************
+  !> In the limits of no scattering ( Fu, 1991 ), fk1 = 1.0 / u(3) and
+  !> fk2 = 1.0 / u(4).
   subroutine coefft0( solar,t0,t1,u0,f0,aa,zz,a1,z1,fk1,fk2)
 
     logical, intent (in) :: solar
@@ -433,6 +444,7 @@ contains
     integer :: k44, n44, m18, m28, m38, m48, m1f, im1, i0m1, i0, i0f, ifq
     real    :: xx, yy, t, p
 
+    i0=0
     n4 = 4*nv
     do  k = 1, nv - 1
        k44 = 4 * k - 4
@@ -673,4 +685,4 @@ contains
 
   end subroutine qft
 
-end module solver
+end module rad_solver

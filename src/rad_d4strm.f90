@@ -1,12 +1,23 @@
+!> \file rad_d4strm.f90
+!!  Delta 4-stream radiation
+
+!>
+!!  Delta 4-stream radiation
+!>
+!!  \author Robert Pincus
+!!  \author Bjorn Stevens
+!!  \author Thijs Heus
+!!  \todo Documentation
+!!  \par Revision list
 !----------------------------------------------------------------------------
-! This file is part of UCLALES.
+! This file is part of DALES.
 !
-! UCLALES is free software; you can redistribute it and/or modify
+! DALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
 ! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
-! UCLALES is distributed in the hope that it will be useful,
+! DALES is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU General Public License for more details.
@@ -19,9 +30,9 @@
 !
 module fuliou
 
-  use defs, only   : nv, nv1, mb, pi, totalpower, g, R, ep2
   use cldwtr, only : init_cldwtr, cloud_water
-  use solver, only : qft
+  use rad_solver, only : qft, nv,nv1,mb,totalpower
+  use modglobal, only : pi,grav,rd,ep2
   use RandomNumbers
   use ckd
 
@@ -32,11 +43,8 @@ module fuliou
   real, parameter :: minSolarZenithCosForVis = 1.e-4
 
 contains
-  !
-  !---------------------------------------------------------------------------
-  ! Subroutine rad_init initialize data arrays for gases, ice model and water
-  ! model on first call
-  !
+  !> Subroutine rad_init initialize data arrays for gases, ice model and water
+  !> model on first call
   subroutine rad_init
 
     if (.not.Initialized) then
@@ -48,13 +56,10 @@ contains
 
     Initialized = .True.
   end subroutine rad_init
-  ! ----------------------------------------------------------------------
-  ! Subroutine rad: Computes radiative fluxes using a band structure
-  ! defined by input ckd file
-  !
-
+  !> Subroutine rad: Computes radiative fluxes using a band structure
+  !> defined by input ckd file
   subroutine rad (as, u0, ss, pts, ee, pp, pt, ph, po, fds, fus, fdir, fuir, &
-       plwc, pre, piwc, pde, prwc, pgwc, useMcICA )
+       plwc, pre, useMcICA )
 
     real, intent (in)  :: pp (nv1) ! pressure at interfaces
 
@@ -65,11 +70,11 @@ contains
 
     real, optional, dimension(nv), intent (in)  :: &
          plwc, & ! cloud liquid water content [g/m^3]
-         pre,  & ! effective radius of cloud droplets [microns]
-         piwc, & ! cloud ice water content [g/m^3]
-         pde,  & ! effective diameter of ice particles [microns]
-         prwc, & ! rain water content [g/m^3]
-         pgwc    ! graupel water content
+         pre!,  & ! effective radius of cloud droplets [microns]
+!          piwc, & ! cloud ice water content [g/m^3]
+!          pde,  & ! effective diameter of ice particles [microns]
+!          prwc, & ! rain water content [g/m^3]
+!          pgwc    ! graupel water content
 
     real, intent (in) :: &
          as, & ! broadband albedo (all visible bands given this value)
@@ -89,19 +94,18 @@ contains
     if(present(useMcICA)) McICA = useMcICA
 
     call rad_ir(pts, ee, pp, pt, ph, po, fdir, fuir, &
-                 plwc, pre, piwc, pde, prwc, pgwc, McICA  )
+                 plwc, pre, McICA  )
     call rad_vis(as, u0, ss, pp, pt, ph, po, fds, fus,  &
-                 plwc, pre, piwc, pde, prwc, pgwc, McICA  )
+                 plwc, pre, McICA  )
 
   end subroutine rad
 
-  ! ----------------------------------------------------------------------
-  ! Subroutine rad_ir
-  ! Computes IR radiative fluxes using a band structure
-  ! defined by input ckd file
-  !
+  !> Subroutine rad_ir
+  !> Computes IR radiative fluxes using a band structure
+  !> defined by input ckd file
+  !>
   subroutine rad_ir (pts, ee, pp, pt, ph, po, fdir, fuir, &
-       plwc, pre, piwc, pde, prwc, pgwc, useMcICA  )
+       plwc, pre, useMcICA  )
 
     real, intent (in)  :: pp (nv1) ! pressure at interfaces
 
@@ -112,11 +116,11 @@ contains
 
     real, optional, dimension(nv), intent (in)  :: &
          plwc, & ! cloud liquid water content [g/m^3]
-         pre,  & ! effective radius of cloud droplets [microns]
-         piwc, & ! cloud ice water content [g/m^3]
-         pde,  & ! effective diameter of ice particles [microns]
-         prwc, & ! rain water content [g/m^3]
-         pgwc    ! graupel water content
+         pre!,  & ! effective radius of cloud droplets [microns]
+!          piwc, & ! cloud ice water content [g/m^3]
+!          pde,  & ! effective diameter of ice particles [microns]
+!          prwc, & ! rain water content [g/m^3]
+!          pgwc    ! graupel water content
 
     real, intent (in) :: &
          ee, & ! broadband surface emissivity (all IR bands given this value)
@@ -141,6 +145,7 @@ contains
     real :: randomNumber
     ! ----------------------------------------
 
+    ib=0;ig2=0
     if (.not.Initialized) then
        call init_ckd
        randoms = new_RandomNumberSequence(1)
@@ -220,13 +225,10 @@ contains
     fuq2 = bf(nv1) * 0.03 * pi * ee
     fuir(:) = fuir(:) + fuq2
   end subroutine rad_ir
-  ! ----------------------------------------------------------------------
-  ! Subroutine rad_vis: Computes radiative fluxes using a band structure
-  ! defined by input ckd file
-  !
-
+  !> Subroutine rad_vis: Computes radiative fluxes using a band structure
+  !> defined by input ckd file
   subroutine rad_vis (as, u0, ss, pp, pt, ph, po, fds, fus,  &
-       plwc, pre, piwc, pde, prwc, pgwc, useMcICA  )
+       plwc, pre, useMcICA  )
 
     real, intent (in)  :: pp (nv1) ! pressure at interfaces
 
@@ -237,11 +239,11 @@ contains
 
     real, optional, dimension(nv), intent (in)  :: &
          plwc, & ! cloud liquid water content [g/m^3]
-         pre,  & ! effective radius of cloud droplets [microns]
-         piwc, & ! cloud ice water content [g/m^3]
-         pde,  & ! effective diameter of ice particles [microns]
-         prwc, & ! rain water content [g/m^3]
-         pgwc    ! graupel water content
+         pre!,  & ! effective radius of cloud droplets [microns]
+!          piwc, & ! cloud ice water content [g/m^3]
+!          pde,  & ! effective diameter of ice particles [microns]
+!          prwc, & ! rain water content [g/m^3]
+!          pgwc    ! graupel water content
 
     real, intent (in) :: &
          as, & ! broadband albedo (all visible bands given this value)
@@ -267,7 +269,7 @@ contains
     real    :: fuq1, xs_norm
     real    :: randomNumber
     ! ----------------------------------------
-
+    ig2=0
     if (.not.Initialized) call rad_init
 
     if (.not. allocated(bandweights)) then
@@ -358,14 +360,13 @@ contains
       fus(:)  = fus(:)*fuq1
     end if
   end subroutine rad_vis
-  ! ----------------------------------------------------------------------
-  ! Subroutine select_bandg
-  !
-  ! selects the band (i) and the g point (j) based on the probability a
-  ! photon would be found in the wavelengths covered by the band and g
-  ! point, which is given by g_prob.  Note g_prob sums to unity for both
-  ! the solar bands (power > 0.) and the infrared bands respectively.
-  !
+  !> Subroutine select_bandg
+  !>
+  !> selects the band (i) and the g point (j) based on the probability a
+  !> photon would be found in the wavelengths covered by the band and g
+  !> point, which is given by g_prob.  Note g_prob sums to unity for both
+  !> the solar bands (power > 0.) and the infrared bands respectively.
+  !>
   subroutine select_bandg(bands, bandweights, randomNumber, i, j)
     type(band_properties), &
           dimension(:),    &
@@ -391,10 +392,9 @@ contains
     end do
   end subroutine select_bandg
 
-  ! ----------------------------------------------------------------------
-  ! subroutine thicks: Integrates the hydrostatic equation to provide
-  ! layer thicknesses
-  !
+  !> subroutine thicks: Integrates the hydrostatic equation to provide
+  !> layer thicknesses
+  !>
   subroutine thicks(pp, pt, ph, dz)
 
     real, intent (in) :: pp(nv1), pt(nv), ph(nv)
@@ -405,12 +405,15 @@ contains
 
     do  i = 1, nv
        tv = pt(i)*(1+0. + ep2*ph(i) )
-       dz(i) = (R/g) * tv * alog( pp(i+1) / pp(i) )
+       dz(i) = (rd/grav) * tv * alog( pp(i+1) / pp(i) )
     end do
 
   end subroutine thicks
-  ! ----------------------------------------------------------------------
-  !
+
+    !> Adds optical properties to running sum
+    !>   If ssa and/or w[1-4] are not present we assume the new medium is
+    !> strictly absorbring
+    !>
   subroutine combineOpticalProperties(tau,      ssa,      pF, &
                                       tauToAdd, ssaToAdd, pFtoAdd)
     real, dimension(:),    intent(inout) :: tau, ssa
@@ -420,11 +423,6 @@ contains
     real, dimension(:, :), optional, intent(in) :: pFToAdd ! Phs function
 
     integer :: j
-    !
-    ! Adds optical properties to running sum
-    !   If ssa and/or w[1-4] are not present we assume the new medium is
-    ! strictly absorbring
-    !
     if(present(ssaToAdd) .and. present(pfToAdd)) then
        do j = 1, size(pF, 2)
           where (ssa(:) * tau(:) + ssaToAdd(:) * tauToAdd(:) > 0.)
@@ -450,17 +448,16 @@ contains
     end if
 
   end subroutine combineOpticalProperties
-  ! ----------------------------------------------------------------------
-  ! Subroutine rayle:  computes optical properties associated with rayleigh
-  ! scattering
-  !
-  ! ri is the coefficient in Eq.(4.8) of Fu (1991) to compute the optical
-  ! depth due to Rayleigh scattering in the solar bands.
-  !
-  ! tr, wr, and wwr are the optical depth, single scattering albedo,
-  ! and expansion coefficients of the phase function ( 1, 2, 3, and
-  ! 4 ) due to the Rayleigh scattering for a given layer.
-  !
+  !> Subroutine rayle:  computes optical properties associated with rayleigh
+  !> scattering
+  !>
+  !> ri is the coefficient in Eq.(4.8) of Fu (1991) to compute the optical
+  !> depth due to Rayleigh scattering in the solar bands.
+  !>
+  !> tr, wr, and wwr are the optical depth, single scattering albedo,
+  !> and expansion coefficients of the phase function ( 1, 2, 3, and
+  !> 4 ) due to the Rayleigh scattering for a given layer.
+  !>
   subroutine rayle ( ib, u0, power, pp, pt, dz, tr, wr, wwr)
     integer, intent (in) :: ib
     real, intent (in)    :: u0, power, pp(nv1), pt(nv), dz(nv)
@@ -492,12 +489,10 @@ contains
     end if
   end subroutine rayle
 
-  ! *********************************************************************
-  ! tgm(nv) are the optical depthes due to water vapor continuum absorp-
-  ! tion in nv layers for a given band ib. We include continuum absorp-
-  ! tion in the 280 to 1250 cm**-1 region. vv(11)-vv(17) are the central
-  ! wavenumbers of each band in this region.
-  ! *********************************************************************
+  !> tgm(nv) are the optical depthes due to water vapor continuum absorp-
+  !> tion in nv layers for a given band ib. We include continuum absorp-
+  !> tion in the 280 to 1250 cm**-1 region. vv(11)-vv(17) are the central
+  !> wavenumbers of each band in this region.
   subroutine gascon ( center, pp, pt, ph, tgm)
     real,  intent (in) :: center, pp(nv1), pt(nv), ph(nv)
     real, intent (out) :: tgm(nv)
@@ -517,13 +512,12 @@ contains
        tgm(:) = 0.
     end if
   end subroutine gascon
-  ! ----------------------------------------------------------------------
-  ! Subroutine planck:  Integrates planck function over band in xk sub
-  ! intervals.  The temperatures at the interfaces are taken as the
-  ! average of the mid-point temperatures, the temperature at the lowest
-  ! pressure interface is set to the temperature at the first mid point,
-  ! and surface temperatures are taken as the skin temperature.
-  !
+  !> Subroutine planck:  Integrates planck function over band in xk sub
+  !> intervals.  The temperatures at the interfaces are taken as the
+  !> average of the mid-point temperatures, the temperature at the lowest
+  !> pressure interface is set to the temperature at the first mid point,
+  !> and surface temperatures are taken as the skin temperature.
+  !>
   subroutine planck ( pt, tskin, llimit, rlimit, bf)
     real, intent (in)    :: pt(nv), tskin, llimit, rlimit
     real, intent (out)   :: bf(nv1) ! intensity [W/m^2/Sr]
@@ -554,7 +548,11 @@ contains
 
   end subroutine planck
   !
-  ! ---------------------------------------------------------------------------
+    !>
+    !> find the weighting for band points so that the probability of a photon
+    !> existing in the g-point range of a band can be calculated, and used for
+    !> McICA calculations.  This is the relative band width for the IR bands
+    !>
   subroutine computeIRBandWeights(bands, weighted, bandweights)
     type(band_properties), &
           dimension(:), intent( in) :: bands
@@ -562,11 +560,6 @@ contains
     real, dimension(:), intent(out) :: bandweights
 
     integer :: ib
-    !
-    ! find the weighting for band points so that the probability of a photon
-    ! existing in the g-point range of a band can be calculated, and used for
-    ! McICA calculations.  This is the relative band width for the IR bands
-    !
 
     if(size(bands) /= size(bandweights)) &
       stop "Didn't provide the right amount of storage for band weights"
@@ -580,7 +573,11 @@ contains
        bandweights(:) = 1./(real(size(bands)))
     end if
   end subroutine computeIRBandWeights
-  ! ---------------------------------------------------------------------------
+    !>
+    !> find the weighting for band points so that the probability of a photon
+    !> existing in the g-point range of a band can be calculated, and used for
+    !> McICA calculations.  This is the solar power for the solar bands
+    !>
   subroutine computeSolarBandWeights(bands, weighted, bandweights)
     type(band_properties), &
           dimension(:), intent( in) :: bands
@@ -588,11 +585,7 @@ contains
     real, dimension(:), intent(out) :: bandweights
 
     integer :: i
-    !
-    ! find the weighting for band points so that the probability of a photon
-    ! existing in the g-point range of a band can be calculated, and used for
-    ! McICA calculations.  This is the solar power for the solar bands
-    !
+    i=1
         if(size(bands) /= size(bandweights)) &
          stop "Didn't provide the right amount of storage for band weights"
     if(any(.not. isSolar(bands))) stop "Can't compute solar band weights in IR"

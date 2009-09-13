@@ -57,7 +57,8 @@ contains
   subroutine thermodynamics
     use modglobal, only : lmoist, timee
     use modfields, only : thl0,thl0h,qt0,qt0h,ql0,ql0h,presf,presh,exnf,exnh
-    use modmicrophysics, only : microphysics, imicro, imicro_none, imicro_drizzle
+    use modmicrophysics, only : microphysics
+    use modmicrophysics, only : imicro, imicro_none, imicro_drizzle
     implicit none
     if (timee==0) call diagfld
     if (lmoist) then

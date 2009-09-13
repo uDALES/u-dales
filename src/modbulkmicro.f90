@@ -52,7 +52,7 @@ module modbulkmicro
 !   bulkmicro is called from *modmicrophysics*
 !
 !*********************************************************************
-  use modbulkmicrodata
+  use modmicrodata
 
   implicit none
   save
@@ -125,7 +125,7 @@ module modbulkmicro
 
 !> Calculates the microphysical source term.
   subroutine bulkmicro
-    use modglobal, only : dt,rk3step,timee,kmax,rlv,cp
+    use modglobal, only : ih,jh,i1,j1,k1,dt,rk3step,timee,kmax,rlv,cp
     use modfields, only : sv0,svm,svp,qtp,thlp,qt0,ql0,presf, exnf,rhof
     use modbulkmicrostat, only : bulkmicrotend
     use modmpi,    only : myid
@@ -281,7 +281,7 @@ module modbulkmicro
   !!   by chosing mu=1/3 one would get a gamma distribution in drop diameter
   !!   -> faster rain formation. (Seifert)
   subroutine autoconversion
-    use modglobal, only : i1,j1,kmax,eps1,rlv,cp
+    use modglobal, only : ih,i1,jh,j1,k1,kmax,eps1,rlv,cp
     use modmpi,    only : myid
     implicit none
     au = 0.
@@ -339,7 +339,7 @@ module modbulkmicro
   ! determine accr. + self coll. + br-up rate and adjust qrp and Nrp
   ! accordingly. Break-up : Seifert (2007)
   !*********************************************************************
-    use modglobal, only : i1,j1,kmax,eps1,rlv,cp,dt,dzf
+    use modglobal, only : ih,i1,jh,j1,k1,kmax,eps1,rlv,cp,dt,dzf
     use modfields, only : rhof
     use modmpi,    only : myid
     implicit none
@@ -450,7 +450,7 @@ module modbulkmicro
 !!   sig_g assumed. Flux are calc. numerically with help of a
 !!   polynomial function
   subroutine sedimentation_rain
-    use modglobal, only : i1,j1,k1,kmax,eps1,dzf,pi,dt
+    use modglobal, only : ih,i1,jh,j1,k1,kmax,eps1,dzf,pi,dt
     use modfields, only : rhof
     use modmpi,    only : myid,mpi_max,mpi_integer,mpierr,comm3d
     implicit none
@@ -570,7 +570,7 @@ module modbulkmicro
   ! Evaporation of prec. : Seifert (2008)
   ! Cond. (S>0.) neglected (all water is condensed on cloud droplets)
   !*********************************************************************
-    use modglobal, only : i1,j1,kmax,eps1,es0,rd,rv,tmelt,rlv,cp,at,bt,pi,ep
+    use modglobal, only : ih,i1,jh,j1,k1,kmax,eps1,es0,rd,rv,tmelt,rlv,cp,at,bt,pi,ep
     use modfields, only : exnf,thl0,qt0,svm
     use modmpi,    only : myid
     implicit none

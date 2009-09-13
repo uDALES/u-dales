@@ -87,16 +87,17 @@ subroutine initbulkmicrostat
               dtav_glob, timeav_glob, ladaptive, k1,kmax, dtmax,btime
     use modstat_nc, only : lnetcdf, redefine_nc,define_nc,ncinfo
     use modgenstat, only : dtav_prof=>dtav, timeav_prof=>timeav,ncid_prof=>ncid
-
+    use modmicrodata,only: imicro, imicro_bulk
     implicit none
     integer      :: ierr
 
     namelist/NAMBULKMICROSTAT/ &
     lmicrostat, dtav, timeav
 
+    if (imicro /=imicro_bulk) return
+
     dtav  = dtav_glob
     timeav  = timeav_glob
-
     if(myid==0)then
       open (ifnamopt,file=fname_options,status='old',iostat=ierr)
       read (ifnamopt,NAMBULKMICROSTAT,iostat=ierr)
@@ -237,7 +238,7 @@ subroutine initbulkmicrostat
   subroutine dobulkmicrostat
     use modmpi,    only  : my_real, mpi_sum, comm3d, mpierr
     use modglobal,    only  : i1, j1, k1, rslabs
-    use modbulkmicrodata,  only  : qc, qr, precep, Dvr, Nr, epscloud, epsqr, epsprec
+    use modmicrodata,  only  : qc, qr, precep, Dvr, Nr, epscloud, epsqr, epsprec
     implicit none
 
     integer      :: k
@@ -288,7 +289,7 @@ subroutine initbulkmicrostat
     use modmpi,    only  : slabsum
     use modglobal,    only  : rk3step, timee, dt_lim, k1, ih, i1, jh, j1, rslabs
     use modfields,    only  : qtp
-    use modbulkmicrodata,  only  : qrp, Nrp
+    use modmicrodata,  only  : qrp, Nrp
     implicit none
 
     real, dimension(:), allocatable  :: avfield
@@ -338,7 +339,7 @@ subroutine initbulkmicrostat
     use modglobal,    only  : timee, ifoutput, cexpnr, k1,kmax, &
               rlv, zf
     use modfields,    only  : presf
-    use modbulkmicrodata,  only  : rhoz
+    use modmicrodata,  only  : rhoz
       use modstat_nc, only: lnetcdf, writestat_nc
       use modgenstat, only: ncid_prof=>ncid,nrec_prof=>nrec
 

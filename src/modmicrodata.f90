@@ -1,8 +1,8 @@
-!> \file modbulkmicrodata.f90
-!!  Variables necessary for the bulk microphysics
+!> \file modmicrodata.f90
+!!  Variables necessary for the microphysics
 
 !>
-!!  Variables necessary for the bulk microphysics
+!!  Variables necessary for the microphysics
 !>
 !  This file is part of DALES.
 !
@@ -22,11 +22,18 @@
 !  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
 
-  module modbulkmicrodata
+  module modmicrodata
 
-  use modglobal, only : ih,i1,jh,j1,k1, rhow
+  use modglobal, only : rhow
   implicit none
   save
+  integer :: imicro = 0
+
+  integer, parameter :: imicro_none    = 0
+  integer, parameter :: imicro_drizzle = 1
+  integer, parameter :: imicro_bulk    = 2
+  integer, parameter :: imicro_bin     = 3
+  integer, parameter :: imicro_user    = 10
   logical :: l_sb        = .true. , &!< SB scheme (.true.) / KK00 scheme (.false.)   (in namelist NAMMICROPHYSICS)
              l_sedc      = .true. , & !<  cloud droplet sedimentation flag             (in namelist NAMMICROPHYSICS)
              l_rain      = .true. , & !<  rain formation / evolution flag              (in namelist NAMMICROPHYSICS)
@@ -155,5 +162,5 @@
   real :: delt
 
   logical ,allocatable,dimension(:,:,:):: qcmask,qrmask
-  end module modbulkmicrodata
+  end module modmicrodata
 

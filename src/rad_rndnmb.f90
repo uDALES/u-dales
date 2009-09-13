@@ -1,23 +1,50 @@
-! $Revision: 1.5 $, $Date: 2006/06/02 20:50:24 $
-! $Name:  $
-! Fortran-95 implementation of the Mersenne Twister 19937, following
-! the C implementation described below (code mt19937ar-cok.c, dated 2002/2/10)
-! adapted cosmetically by making the names more general.   Users must
-! declare one or more variables of type randomNumberSequence in the calling
-! procedure which are then initialized using a required seed. If the
-! variable is not initialized the random numbers will all be 0.
+!> \file rad_rndnmb.f90
+!!  Random number generator for the McICA radiation
+
+!>
+!!  Random number generator for the McICA radiation
+!>
+!!  \author Robert Pincus
+!!  \todo Documentation
+!!  \par Revision list
+!----------------------------------------------------------------------------
+! This file is part of DALES.
 !
-! For example:
-! program testRandoms
-!   use RandomNumbers
-!   type(randomNumberSequence) :: randomNumbers
-!   integer                    :: i
+! DALES is free software; you can redistribute it and/or modify
+! it under the terms of the GNU General Public License as published by
+! the Free Software Foundation; either version 3 of the License, or
+! (at your option) any later version.
 !
-!   randomNumbers = new_RandomNumberSequence(seed = 100)
-!   do i = 1, 10
-!     print ('(f12.10, 2x)'), getRandomReal(randomNumbers)
-!   end do
-! end program testRandoms
+! DALES is distributed in the hope that it will be useful,
+! but WITHOUT ANY WARRANTY; without even the implied warranty of
+! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+! GNU General Public License for more details.
+!
+! You should have received a copy of the GNU General Public License
+! along with this program.  If not, see <http://www.gnu.org/licenses/>.
+!
+! Copyright 1999-2008, Bjorn B. Stevens, Dep't Atmos and Ocean Sci, UCLA
+!----------------------------------------------------------------------------
+!! $Revision: 1.5 $, $Date: 2006/06/02 20:50:24 $
+! ! $Name:  $
+!! Fortran-95 implementation of the Mersenne Twister 19937, following
+!! the C implementation described below (code mt19937ar-cok.c, dated 2002/2/10)
+!! adapted cosmetically by making the names more general.   Users must
+!! declare one or more variables of type randomNumberSequence in the calling
+!! procedure which are then initialized using a required seed. If the
+!! variable is not initialized the random numbers will all be 0.
+!!
+!! For example:
+!! program testRandoms
+!!   use RandomNumbers
+!!   type(randomNumberSequence) :: randomNumbers
+!!   integer                    :: i
+!!
+!!   randomNumbers = new_RandomNumberSequence(seed = 100)
+!!   do i = 1, 10
+!!     print ('(f12.10, 2x)'), getRandomReal(randomNumbers)
+!!   end do
+!! end program testRandoms
 !
 ! Fortran-95 implementation by
 !   Robert Pincus
@@ -151,13 +178,13 @@ contains
     integer, intent(in) :: y
     integer             :: temper
 
-!     integer :: x
-!
-!     ! Tempering
-!     x      = ieor(y, ishft(y, -11))
-!     x      = ieor(x, iand(ishft(x,  7), TMASKB))
-!     x      = ieor(x, iand(ishft(x, 15), TMASKC))
-!     temper = ieor(x, ishft(x, -18))
+    integer :: x
+
+    ! Tempering
+    x      = ieor(y, ishft(y, -11))
+    x      = ieor(x, iand(ishft(x,  7), TMASKB))
+    x      = ieor(x, iand(ishft(x, 15), TMASKC))
+    temper = ieor(x, ishft(x, -18))
   end function temper
   ! -------------------------------------------------------------
   ! Public (but hidden) functions

@@ -33,7 +33,7 @@ implicit none
 PUBLIC :: initradstat, radstat, exitradstat
 save
 !NetCDF variables
-  integer,parameter :: nvar = 6
+  integer,parameter :: nvar = 7
   character(80),dimension(nvar,4) :: ncname
 
   real    :: dtav, timeav,tnext,tnextwrite
@@ -46,21 +46,24 @@ save
   real, allocatable :: tlswtendavl(:)
   real, allocatable :: lwuavl(:)
   real, allocatable :: lwdavl(:)
-  real, allocatable :: swnavl(:)
+  real, allocatable :: swdavl(:)
+  real, allocatable :: swuavl(:)
 
 !   --------------
   real, allocatable :: tllwtendav(:)
   real, allocatable :: tlswtendav(:)
   real, allocatable :: lwuav(:)
   real, allocatable :: lwdav(:)
-  real, allocatable :: swnav(:)
+  real, allocatable :: swdav(:)
+  real, allocatable :: swuav(:)
 
 !
   real, allocatable :: tllwtendmn(:)
   real, allocatable :: tlswtendmn(:)
   real, allocatable :: lwumn(:)
   real, allocatable :: lwdmn(:)
-  real, allocatable :: swnmn(:)
+  real, allocatable :: swdmn(:)
+  real, allocatable :: swumn(:)
   real, allocatable :: tlradlsmn(:)
 
 contains
@@ -98,7 +101,8 @@ contains
    !allocate variables that are needed in modradiation
     allocate(lwdavl(k1))
     allocate(lwuavl(k1))
-    allocate(swnavl(k1))
+    allocate(swdavl(k1))
+    allocate(swuavl(k1))
     allocate (tllwtendavl(k1))
     allocate (tlswtendavl(k1))
 
@@ -114,20 +118,23 @@ contains
 
     allocate(lwuav(k1))
     allocate(lwdav(k1))
-    allocate(swnav(k1))
+    allocate(swdav(k1))
+    allocate(swuav(k1))
     allocate(tllwtendav(k1))
     allocate(tlswtendav(k1))
 
     allocate(lwumn(k1))
     allocate(lwdmn(k1))
-    allocate(swnmn(k1))
+    allocate(swdmn(k1))
+    allocate(swumn(k1))
     allocate(tllwtendmn(k1))
     allocate(tlswtendmn(k1))
     allocate(tlradlsmn(k1))
 
     lwumn = 0.0
     lwdmn = 0.0
-    swnmn = 0.0
+    swdmn = 0.0
+    swumn = 0.0
     tllwtendmn = 0.0
     tlswtendmn = 0.0
     tlradlsmn  = 0.0
@@ -187,39 +194,43 @@ contains
     use modmpi,    only : nprocs,comm3d,nprocs,my_real, mpi_sum,mpierr, slabsum
     use modglobal, only : kmax,rslabs,cp,dzf,i1,j1,k1
     use modfields, only : thlpcar
-    use modradiation, only : lwd,lwu,swn, rho_air_mn
+    use modraddata, only : lwd,lwu,swd,swu, rho_air_mn
 
     implicit none
     integer :: k
 
     lwdav  = 0.
     lwuav  = 0.
-    swnav  = 0.
+    swdav  = 0.
     tllwtendav = 0.
     tlswtendav = 0.
     lwdavl  = 0.
     lwuavl  = 0.
-    swnavl  = 0.
+    swdavl  = 0.
+    swuavl  = 0.
     tllwtendavl = 0.
     tlswtendavl = 0.
 
     do k=1,k1
       lwdavl(k) = sum(lwd(2:i1,2:j1,k))
       lwuavl(k) = sum(lwu(2:i1,2:j1,k))
-      swnavl(k) = sum(swn(2:i1,2:j1,k))
+      swdavl(k) = sum(swd(2:i1,2:j1,k))
+      swuavl(k) = sum(swu(2:i1,2:j1,k))
     end do
 
     do k=1,kmax
       tllwtendavl(k) = -(lwdavl(k+1)-lwdavl(k)+lwuavl(k+1)-lwuavl(k))/(rho_air_mn*cp*dzf(k))
-      tlswtendavl(k) =  (swnavl(k+1)-swnavl(k))/(rho_air_mn*cp*dzf(k))
+      tlswtendavl(k) =  (swdavl(k+1)-swdavl(k))/(rho_air_mn*cp*dzf(k))
     end do
-    !swnavl = swnav
+    !swdavl = swdav
 
     call MPI_ALLREDUCE(lwdavl, lwdav, kmax,    MY_REAL, &
                          MPI_SUM, comm3d,mpierr)
     call MPI_ALLREDUCE(lwuavl, lwuav, kmax,    MY_REAL, &
                          MPI_SUM, comm3d,mpierr)
-    call MPI_ALLREDUCE(swnavl, swnav, kmax,    MY_REAL, &
+   call MPI_ALLREDUCE(swdavl, swdav, kmax,    MY_REAL, &
+                         MPI_SUM, comm3d,mpierr)
+   call MPI_ALLREDUCE(swuavl, swuav, kmax,    MY_REAL, &
                          MPI_SUM, comm3d,mpierr)
     call MPI_ALLREDUCE(tllwtendavl, tllwtendav, kmax,    MY_REAL, &
                          MPI_SUM, comm3d,mpierr)
@@ -230,7 +241,8 @@ contains
 
     lwumn = lwumn + lwuav/rslabs
     lwdmn = lwdmn + lwdav/rslabs
-    swnmn = swnmn + swnav/rslabs
+    swdmn = swdmn + swdav/rslabs
+    swumn = swumn + swuav/rslabs
     tllwtendmn = tllwtendmn + tllwtendav/rslabs
     tlswtendmn = tlswtendmn + tlswtendav/rslabs
     tlradlsmn  = tlradlsmn  + thlpcar
@@ -256,7 +268,8 @@ contains
 
       lwumn   = lwumn    /nsamples
       lwdmn   = lwdmn    /nsamples
-      swnmn   = swnmn    /nsamples
+      swdmn   = swdmn    /nsamples
+      swumn   = swumn    /nsamples
       tllwtendmn = tllwtendmn /nsamples
       tlswtendmn = tlswtendmn /nsamples
       tlradlsmn  = tlradlsmn  /nsamples
@@ -273,17 +286,18 @@ contains
       ,nhrs,':',nminut,':',nsecs      &
       ,'   HRS:MIN:SEC AFTER INITIALIZATION '
       write (ifoutput,'(A/2A/2A)') &
-          '#--------------------------------------------------------' &
-          ,'#LEV HGHT     LW_UP        LW_DN        SW_NET       ' &
+          '#--------------------------------------------------------------------------' &
+          ,'#LEV HGHT     LW_UP        LW_DN        SW_UP       SW_DN       ' &
           ,'TL_LW_TEND   TL_SW_TEND   TL_LS_TEND' &
-          ,'#    (M)      (W/M^2)      (W/M^2)      (W/M^2)      ' &
+          ,'#    (M)      (W/M^2)      (W/M^2)      (W/M^2)      (W/M^2)      ' &
           ,'(K/H)         (K/H)        (K/H)'
       do k=1,kmax
-        write(ifoutput,'(I3,F8.2,6E13.4)') &
+        write(ifoutput,'(I3,F8.2,7E13.4)') &
             k,zf(k),&
             lwumn(k),&
             lwdmn(k),&
-            swnmn(k),&
+            swdmn(k),&
+            swumn(k),&
             tllwtendmn(k)*3600,&
             tlswtendmn(k)*3600,&
             tlradlsmn(k) *3600
@@ -295,14 +309,16 @@ contains
         vars(:, 3) = tlradlsmn
         vars(:, 4) = lwumn
         vars(:, 5) = lwdmn
-        vars(:, 6) = swnmn
+        vars(:, 6) = swumn
+        vars(:, 7) = swdmn
         call writestat_nc(ncid_prof,nvar,ncname,vars(1:kmax,:),nrec_prof+1,kmax)
       end if
     end if ! end if(myid==0)
 
     lwumn = 0.0
     lwdmn = 0.0
-    swnmn = 0.0
+    swdmn = 0.0
+    swumn = 0.0
     tllwtendmn = 0.0
     tlswtendmn = 0.0
     tlradlsmn  = 0.0
@@ -315,13 +331,13 @@ contains
     implicit none
 
     !deallocate variables that are needed in modradiation
-    deallocate(lwdavl,lwuavl,swnavl,tllwtendavl,tlswtendavl)
+    deallocate(lwdavl,lwuavl,swdavl,swuavl,tllwtendavl,tlswtendavl)
 
     if(.not.(lstat)) return
 
-    deallocate(lwuav,lwdav,swnav)
+    deallocate(lwuav,lwdav,swdav,swuav)
     deallocate(tllwtendav,tlswtendav)
-    deallocate(lwumn,lwdmn,swnmn)
+    deallocate(lwumn,lwdmn,swdmn,swumn)
     deallocate(tllwtendmn,tlswtendmn,tlradlsmn)
 
 

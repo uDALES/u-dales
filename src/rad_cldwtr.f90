@@ -1,12 +1,23 @@
+!> \file rad_cldwtr.f90
+!>  The cloudwater radiation
+
+!>
+!>  The cloudwater radiation
+!>
+!>  \author Robert Pincus
+!>  \author Bjorn Stevens
+!>  \author Thijs Heus
+!>  \todo Documentation
+!>  \par Revision list
 !----------------------------------------------------------------------------
-! This file is part of UCLALES.
+! This file is part of DALES.
 !
-! UCLALES is free software; you can redistribute it and/or modify
+! DALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
 ! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
-! UCLALES is distributed in the hope that it will be useful,
+! DALES is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU General Public License for more details.
@@ -19,18 +30,16 @@
 !
 module cldwtr
 
-  use defs, only : nv, mb
+  use rad_solver, only : nv, mb
   integer, save :: nsizes
   logical, save :: Initialized = .False.
 
   real, allocatable    :: re(:), fl(:), bz(:,:), wz(:,:), gz(:,:)
 
 contains
-  !
-  !---------------------------------------------------------------------------
-  ! Surbourine cloud_init initialize data arrays for the cloud model,
-  ! checking for consistency between band structure of cloud model and CKD
-  !
+  !> Surbourine cloud_init initialize data arrays for the cloud model,
+  !> checking for consistency between band structure of cloud model and CKD
+  !>
   subroutine init_cldwtr
 
     use ckd, only : band, center
@@ -41,7 +50,7 @@ contains
     integer             :: ib, i, nbands
     character (len=12)  :: frmt
 
-    open ( unit = 71, file = 'datafiles/cldwtr.dat', status = 'old', recl=nrec)
+    open ( unit = 71, file = 'cldwtr.dat', status = 'old', recl=nrec)
     read (71,'(2I3)') nsizes, nbands
     if (nbands /= mb .or. nsizes*nbands*15 > nrec) &
          stop 'TERMINATING: incompatible cldwtr.dat file'
@@ -71,12 +80,11 @@ contains
 
   end subroutine init_cldwtr
 
-  ! -----------------------------------------------------------------------
-  ! Subroutine cloud_water:  calculates the optical depth (tw), single
-  ! scattering albedo (ww), and phase function (www(4)) given the cloud
-  ! water [g/m^3] and effective radius [microns] by interpolating based on
-  ! known optical properties at predefined sizes
-  !
+  !> Subroutine cloud_water:  calculates the optical depth (tw), single
+  !> scattering albedo (ww), and phase function (www(4)) given the cloud
+  !> water [g/m^3] and effective radius [microns] by interpolating based on
+  !> known optical properties at predefined sizes
+  !>
   subroutine cloud_water ( ib, pre, pcw, dz, tw, ww, www )
 
     implicit none
@@ -128,10 +136,9 @@ contains
     return
   end subroutine cloud_water
 
-  ! ---------------------------------------------------------------------------
-  ! linear interpolation between two points, returns indicies of the
-  ! interpolation points and weights
-  !
+  !> linear interpolation between two points, returns indicies of the
+  !> interpolation points and weights
+  !>
   subroutine interpolate(x,ny,y,i1,i2,alpha)
 
     integer, intent (in) :: ny

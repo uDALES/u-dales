@@ -1,12 +1,23 @@
+!> \file rad_corkds.f90
+!! Correlated k-distribution
+
+!>
+!! Correlated k-distribution
+!>
+!!  \author Robert Pincus
+!!  \author Bjorn Stevens
+!!  \author Thijs Heus
+!!  \todo Documentation
+!!  \par Revision list
 !----------------------------------------------------------------------------
-! This file is part of UCLALES.
+! This file is part of DALES.
 !
-! UCLALES is free software; you can redistribute it and/or modify
+! DALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
 ! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
-! UCLALES is distributed in the hope that it will be useful,
+! DALES is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU General Public License for more details.
@@ -14,16 +25,17 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-! Copyright 1999-2007, Bjorn B. Stevens, Dep't Atmos and Ocean Sci, UCLA
+! Copyright 1999-2008, Bjorn B. Stevens, Dep't Atmos and Ocean Sci, UCLA
 !----------------------------------------------------------------------------
 !
 module ckd
 
-  use defs, only : mair, nv, nv1, mb, totalpower
+  use modglobal, only : mair
+  use rad_solver, only :nv, nv1, mb, totalpower
   implicit none
   private
 
-  character (len=20) :: gasfile = 'datafiles/ckd.dat'
+  character (len=20) :: gasfile = 'ckd.dat'
   logical, save      :: Initialized = .False.
   real, save         :: bllmx, brlmn
   integer, save      :: ngases
@@ -53,9 +65,9 @@ module ckd
 contains
   !
   ! ---------------------------------------------------------------------------
-  ! Subroutine ckd_init:  Reads the correlated K distribution data an assures
-  ! that it conforms to expected properties
-  !
+  !> Subroutine ckd_init:  Reads the correlated K distribution data an assures
+  !> that it conforms to expected properties
+  !>
   subroutine init_ckd
 
     implicit none
@@ -195,10 +207,10 @@ contains
   end subroutine init_ckd
   !
   ! ---------------------------------------------------------------------------
-  ! Subroutine gases:  given an atmospheric state, a band and g point number
-  ! this routroutine calculates the optical depth at that g-point within that
-  ! band for all the gases (nongray gaseous absorbers) in the band.
-  !
+  !> Subroutine gases:  given an atmospheric state, a band and g point number
+  !> this routroutine calculates the optical depth at that g-point within that
+  !> band for all the gases (nongray gaseous absorbers) in the band.
+  !>
   subroutine gases ( this_band, ig, pp, pt, ph, po, tg )
 
     implicit none
@@ -261,16 +273,14 @@ contains
     end do
 
   end subroutine gases
-  !
-  ! ---------------------------------------------------------------------------
-  ! Subroutine select_gas determintes the mixing ratio to use in the optical
-  ! depth calculation.  For simple overlaps, this amounts to selecting the
-  ! correct input array, ph for water vapor, po for ozone. For fixed gases
-  ! this converts a concentration to a mixing ratio given the molecular weight
-  ! of the gas and some specified background concentration.  For C02 the
-  ! mixing ratio is chosen so that if conc = 330.e-6, the pq*xfct in subroutine
-  ! po = 0.5
-  !
+  !> Subroutine select_gas determines the mixing ratio to use in the optical
+  !> depth calculation.  For simple overlaps, this amounts to selecting the
+  !> correct input array, ph for water vapor, po for ozone. For fixed gases
+  !> this converts a concentration to a mixing ratio given the molecular weight
+  !> of the gas and some specified background concentration.  For C02 the
+  !> mixing ratio is chosen so that if conc = 330.e-6, the pq*xfct in subroutine
+  !> po = 0.5
+  !>
   subroutine select_gas (name, conc_x, mx, pp, ph, po, pq)
 
     character (len=5), intent (in) :: name
@@ -306,11 +316,11 @@ contains
   end subroutine select_gas
   !
   ! ---------------------------------------------------------------------------
-  ! Subroutine qk: interpolates the gasesous absorption coefficients in units
-  ! of (cm-atm)**-1 to the given temperature and pressure in each layer
-  ! following: ln k = a + b * ( t - tbase ) + c * ( t - tbase ) ** 2 in
-  ! temperature and  linear interpolation in pressure.
-  !
+  !> Subroutine qk: interpolates the gasesous absorption coefficients in units
+  !> of (cm-atm)**-1 to the given temperature and pressure in each layer
+  !> following: ln k = a + b * ( t - tbase ) + c * ( t - tbase ) ** 2 in
+  !> temperature and  linear interpolation in pressure.
+  !>
   subroutine qk (nt, np, stanp, tbase, coefki, pp, pt, fkg )
 
     implicit none
@@ -396,18 +406,12 @@ contains
 
     gPointWeight = thisBand%hk(ig)
   end function gPointWeight
-  !
-  ! ----------------------------------------------------------------------
-  ! function isSolar:  Returns True if the band is in the Solar region
-  !
+  !> function isSolar:  Returns True if the band is in the Solar region
   elemental logical function isSolar(thisBand)
     type(band_properties), intent(in) :: thisBand
 
     isSolar = thisBand%power > 0.
   end function isSolar
-  !
-  ! ----------------------------------------------------------------------
-  !
   function copy_band_properties(original) result(copy)
 
     type(band_properties), intent(in) :: original

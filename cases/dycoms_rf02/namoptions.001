@@ -1,0 +1,100 @@
+&RUN
+iexpnr     =  001
+lwarmstart =  .false.
+startfile  =  'initd01h00m002.999'
+runtime    =  21600
+trestart   =  10800
+ladaptive  = .true.
+irandom    =  43
+randthl    =  0.1
+randqt     =  2.5e-5
+nsv        =  0
+/
+
+&DOMAIN
+imax       =  128
+jtot       =  128
+kmax       =  160
+
+
+xsize      =  3200.
+ysize      =  3200.
+
+xlat       =  31.5
+xlon       =  240.5
+xday       =  195.
+xtime      =  8.
+/
+
+&PHYSICS
+z0         =  2e-4
+ustin      =  0.25
+ps         =  101780.00
+thls       =  290.531
+wtsurf     =  0.0131
+wqsurf     =  3.05e-5
+
+lmoist     =  .true.
+isurf      =  3
+iradiation =  1
+timerad    =  4
+lcoriol    =  .true.
+/
+
+&DYNAMICS
+llsadv     =  .false.
+lqlnr      =  .false.
+cu         =  -6.
+cv         =  -4.
+
+iadv_mom   =  5
+iadv_tke   =  5
+iadv_thl   =  5
+iadv_qt    =  5
+iadv_sv    =  7
+/
+&NAMMICROPHYSICS
+imicro     = 0
+l_sb = .false.
+l_sedc = .true.
+l_rain = .false.
+l_mur_cst=.false.
+
+/
+&NAMBULKMICROSTAT
+lmicrostat = .true.
+timeav     = 1800
+dtav       = 300
+/
+&NAMCHECKSIM
+tcheck     = 0
+/
+&NAMSAMPLING
+lsampcl    = .false.
+lsampco    = .false.
+dtav       = 300
+timeav     = 1800
+/
+&NAMTIMESTAT
+ltimestat  = .true.
+dtav       = 300
+/
+&NAMCROSSSECTION
+lcross     = .false.
+dtav       = 300
+/
+&NAMGENSTAT
+lstat      = .true.
+dtav       = 300
+timeav     = 1800
+/
+
+&NAMFIELDDUMP
+lfielddump = .false.
+dtav       = 300
+ldiracc    = .true.
+/
+&NAMSTATTEND
+dtav       = 300
+ltend      = .false.
+/

@@ -30,29 +30,15 @@
 
 
 module modmicrophysics
-
+use modmicrodata
 
 implicit none
-private
-public :: initmicrophysics, microphysics, microsources,exitmicrophysics
-public :: imicro,imicro_none,imicro_drizzle,imicro_bulk,imicro_bin
-
-integer :: imicro = 0
-
-integer, parameter :: imicro_none    = 0
-integer, parameter :: imicro_drizzle = 1
-integer, parameter :: imicro_bulk    = 2
-integer, parameter :: imicro_bin     = 3
-integer, parameter :: imicro_user    = 10
 
 contains
   subroutine initmicrophysics
     use modmpi,   only :myid,my_real,mpierr,comm3d,mpi_integer,mpi_real,mpi_logical
     use modglobal,only :ifnamopt,fname_options
     use modbulkmicro, only : initbulkmicro
-    use modbulkmicrodata, only : l_sb,l_rain,l_sedc,l_mur_cst,mur_cst,& ! OG
-                          Nc_0, sig_g, sig_gr                           ! SdeR
-!     use modbinmicro,  only : initbinmicro
     implicit none
     integer :: ierr
     namelist/NAMMICROPHYSICS/ &
@@ -156,7 +142,6 @@ contains
 
   use modglobal, only : i1,j1,kmax,rlv,cp,dzf,pi
   use modfields, only : qtp,ql0,thlp,rhof,exnf
-  use modbulkmicrodata, only : rhow, sig_g, Nc_0,c_St
   implicit none
   real :: sedc,csed
   integer :: i, j, k

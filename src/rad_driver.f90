@@ -1,12 +1,23 @@
+!> \file rad_driver.f90
+!!  Manages the full radiation McICA scheme
+
+!>
+!!  Manages the full radiation McICA scheme
+!>
+!!  \author Robert Pincus
+!!  \author Bjorn Stevens
+!!  \author Thijs Heus
+!!  \todo Documentation
+!!  \par Revision list
 !----------------------------------------------------------------------------
-! This file is part of UCLALES.
+! This file is part of DALES.
 !
-! UCLALES is free software; you can redistribute it and/or modify
+! DALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
 ! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
-! UCLALES is distributed in the hope that it will be useful,
+! DALES is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU General Public License for more details.
@@ -19,41 +30,43 @@
 !
 module radiation
 
-  use defs, only       : cp, rcp, cpr, rowt, p00, pi, nv1, nv, SolarConstant
   use fuliou, only     : rad
+  use modglobal, only  : cp,rcp,cpr,rhow,pref0,pi,xlat,xlon,xday,xtime,timee
+  use rad_solver,only: nv1, nv, SolarConstant
+  use modraddata,only  : zenith
   implicit none
 
-  character (len=19), parameter :: background = 'datafiles/dsrt.lay'
+  character (len=19), parameter :: background = 'backrad.lay'
 
   logical, save     :: first_time = .True.
   real, allocatable, save ::  pp(:), pt(:), ph(:), po(:), pre(:), pde(:), &
        plwc(:), piwc(:), prwc(:), pgwc(:), fds(:), fus(:), fdir(:), fuir(:)
 
-  integer :: k,i,j, npts
+  integer :: i,j,k, npts
   real    :: ee, u0, day, time, alat, zz
 
   contains
 
-    subroutine d4stream(n1, n2, n3, alat, time, sknt, sfc_albedo, CCN, dn0, &
-         pi0, pi1, dzm, pip, tk, rv, rc, tt, rflx, sflx, albedo, rr)
+    subroutine d4stream(i1,ih,j1,jh,k1, sknt, sfc_albedo, CCN, dn0, &
+         pi0,  tk, rv, rc, fds3D,fus3D,fdir3D,fuir3D, albedo, rr)
   implicit none
 
 
-      integer, intent (in) :: n1, n2, n3
-      real, intent (in)    :: alat, time, sknt, sfc_albedo, CCN
-      real, dimension (n1), intent (in)                 :: dn0, pi0, pi1, dzm
-      real, dimension (n1,n2,n3), intent (in)           :: pip, tk, rv, rc
-      real, optional, dimension (n1,n2,n3), intent (in) :: rr
-      real, dimension (n1,n2,n3), intent (inout)        :: tt, rflx, sflx
-      real, intent (out)                                :: albedo(n2,n3)
+      integer, intent (in) :: i1,ih,j1,jh,k1
+      real, intent (in)    ::  sknt, sfc_albedo, CCN
+      real, dimension (k1), intent (in)                 :: dn0, pi0
+      real, dimension (2-ih:i1+ih,2-jh:j1+jh,k1), intent (in) :: tk, rv, rc
+      real, optional, dimension (2-ih:i1+ih,2-jh:j1+jh,k1), intent (in) :: rr
+      real, dimension (2-ih:i1+ih,2-jh:j1+jh,k1), intent (out):: fus3D,fds3D,fuir3D,fdir3D
+      real, dimension (2-ih:i1+ih,2-jh:j1+jh), intent (out):: albedo
 
       integer :: kk
-      real    :: xfact, prw, p0(n1), exner(n1), pres(n1)
+      real    :: prw, p0(k1), exner(k1), pres(k1)
 
       if (first_time) then
-         p0(n1) = (p00*(pi0(n1)/cp)**cpr) / 100.
-         p0(n1-1) = (p00*(pi0(n1-1)/cp)**cpr) / 100.
-         call setup(background,n1,npts,nv1,nv,p0)
+         p0(k1) = (pref0*(pi0(k1)/cp)**cpr) / 100.
+         p0(k1-1) = (pref0*(pi0(k1-1)/cp)**cpr) / 100.
+         call setup(background,k1,npts,nv1,nv,p0)
          first_time = .False.
          if (allocated(pre))   pre(:) = 0.
          if (allocated(pde))   pde(:) = 0.
@@ -70,42 +83,45 @@ module radiation
       ! determine the solar geometery, as measured by u0, the cosine of the
       ! solar zenith angle
       !
-      u0 = zenith(alat,time)
+      u0 = zenith(xtime + timee/3600,xday,xlat,xlon)
       !
       ! call the radiation
       !
-      prw = (4./3.)*pi*rowt
-      do j=3,n3-2
-         do i=3,n2-2
-            do k=1,n1
-               exner(k)= (pi0(k)+pi1(k)+pip(k,i,j))/cp
-               pres(k) = p00 * (exner(k))**cpr
+      prw = (4./3.)*pi*rhow
+      do j=2,j1
+         do i=2,i1
+            do k=1,k1
+               exner(k)= (pi0(k))/cp
+               pres(k) = pref0 * (exner(k))**cpr
             end do
             pp(nv1) = 0.5*(pres(1)+pres(2)) / 100.
-            do k=2,n1
+            do k=2,k1
                kk = nv-(k-2)
-               pt(kk) = tk(k,i,j)
-               ph(kk) = rv(k,i,j)
+               pt(kk) = tk(i,j,k)
+               ph(kk) = rv(i,j,k)
                if (present(rr)) then
-                  plwc(kk) = 1000.*dn0(k)*max(0.,(rc(k,i,j)-rr(k,i,j)))
-                  prwc(kk) = 1000.*dn0(k)*rr(k,i,j)
+                  plwc(kk) = 1000.*dn0(k)*max(0.,(rc(i,j,k)-rr(i,j,k)))
+                  prwc(kk) = 1000.*dn0(k)*rr(i,j,k)
                else
-                  plwc(kk) = 1000.*dn0(k)*rc(k,i,j)
+                  plwc(kk) = 1000.*dn0(k)*rc(i,j,k)
                   prwc(kk) = 0.
                end if
                pre(kk)  = 1.e6*(plwc(kk)/(1000.*prw*CCN*dn0(k)))**(1./3.)
                if (plwc(kk).le.0.) pre(kk) = 0.
-               if (k < n1) pp(kk) = 0.5*(pres(k)+pres(k+1)) / 100.
+               if (k < k1) pp(kk) = 0.5*(pres(k)+pres(k+1)) / 100.
             end do
-            pp(nv-n1+2) = pres(n1)/100. - 0.5*(pres(n1-1)-pres(n1)) / 100.
+            pp(nv-k1+2) = pres(k1)/100. - 0.5*(pres(k1-1)-pres(k1)) / 100.
 
             call rad( sfc_albedo, u0, SolarConstant, sknt, ee, pp, pt, ph, po,&
                  fds, fus, fdir, fuir, plwc=plwc, pre=pre, useMcICA=.True.)
 
-            do k=1,n1
+            do k=1,k1
                kk = nv1 - (k-1)
-               sflx(k,i,j) = fus(kk)  - fds(kk)
-               rflx(k,i,j) = sflx(k,i,j) + fuir(kk) - fdir(kk)
+               fus3d(i,j,k) =  fus(kk)
+               fds3d(i,j,k) =  fds(kk)
+               fuir3d(i,j,k) = fuir(kk)
+               fdir3d(i,j,k) = fdir(kk)
+!                rflx(i,j,k) = sflx(i,j,k) + fuir(kk) - fdir(kk)
             end do
 
             if (u0 > 0.) then
@@ -114,29 +130,29 @@ module radiation
                albedo(i,j) = -999.
             end if
 
-            do k=2,n1-3
-               xfact  = exner(k)*dzm(k)/(cp*dn0(k))
-               tt(k,i,j) = tt(k,i,j) - (rflx(k,i,j) - rflx(k-1,i,j))*xfact
-            end do
+!             do k=2,k1-3
+!                xfact  = exner(k)*dzm(k)/(cp*dn0(k))
+!                tp(i,j,k) = - (rflx(i,j,k) - rflx(k-1,i,j))*xfact
+!             end do
 
          end do
       end do
 
     end subroutine d4stream
 
-  ! ---------------------------------------------------------------------------
-  ! sets up the input data to extend through an atmopshere of appreiciable
-  ! depth using a background souding specified as a paramter, match this to
-  ! the original sounding using p0 as this does not depend on time and thus
-  ! allows us to recompute the same background matching after a history start
-  !
-  subroutine setup(background,n1,npts,nv1,nv,zp)
+  !>
+  !! sets up the input data to extend through an atmopshere of appreiciable
+  !! depth using a background souding specified as a paramter, match this to
+  !! the original sounding using p0 as this does not depend on time and thus
+  !! allows us to recompute the same background matching after a history start
+  !!
+  subroutine setup(background,k1,npts,nv1,nv,zp)
   implicit none
 
     character (len=19), intent (in) :: background
-    integer, intent (in) :: n1
+    integer, intent (in) :: k1
     integer, intent (out):: npts,nv1,nv
-    real, intent (in)    :: zp(n1)
+    real, intent (in)    :: zp(k1)
 
     real, allocatable  :: sp(:), st(:), sh(:), so(:), sl(:)
 
@@ -144,6 +160,7 @@ module radiation
     logical :: blend
     real    :: pa, pb, ptop, ptest, test, dp1, dp2, dp3, Tsurf
 
+    norig = 0
     open ( unit = 08, file = background, status = 'old' )
     print *, 'Reading Background Sounding: ',background
     read (08,*) Tsurf, ns
@@ -156,7 +173,7 @@ module radiation
     !
     ! identify what part, if any, of background sounding to use
     !
-    ptop = zp(n1)
+    ptop = zp(k1)
     if (sp(2) < ptop) then
        pa = sp(1)
        pb = sp(2)
@@ -179,7 +196,7 @@ module radiation
     if (blend) then
        dp1 = pb-pa
        dp2 = ptop - pb
-       dp3 = zp(n1-1) - zp(n1)
+       dp3 = zp(k1-1) - zp(k1)
        if (dp1 > 2.*dp2) k = k-1 ! first level is too close, blend from prev
        npts  = k
        norig = k
@@ -190,9 +207,9 @@ module radiation
           test  = ptop-ptest
           npts  = npts + 1
        end do
-       nv1 = npts + n1
+       nv1 = npts + k1
     else
-       nv1 = n1
+       nv1 = k1
     end if
     nv = nv1-1
     !
@@ -226,9 +243,9 @@ module radiation
     end if
 
   end subroutine setup
-  ! ---------------------------------------------------------------------------
-  !  locate the index closest to a value
-  !
+  !>
+  !!  locate the index closest to a value
+  !!
   integer function getindex(x,n,xval)
   implicit none
 
@@ -257,8 +274,7 @@ module radiation
 
   end function getindex
 
-  ! ---------------------------------------------------------------------------
-  ! linear interpolation between two points,
+  !> linear interpolation between two points,
   !
   real function intrpl(x1,y1,x2,y2,x)
   implicit none
@@ -272,26 +288,22 @@ module radiation
 
   end function intrpl
 
-  ! ---------------------------------------------------------------------------
-  ! Return the cosine of the solar zenith angle give the decimal day and
-  ! the latitude
-  !
-  real function zenith(alat,time)
-  implicit none
-
-    real, intent (in)  :: alat, time
-
-    real :: lamda, d, sig, del, h, day
-
-    day    = floor(time)
-    lamda  = alat*pi/180.
-    d      = 2.*pi*int(time)/365.
-    sig    = d + pi/180.*(279.9340 + 1.914827*sin(d) - 0.7952*cos(d) &
-         &                      + 0.019938*sin(2.*d) - 0.00162*cos(2.*d))
-    del    = asin(sin(23.4439*pi/180.)*sin(sig))
-    h      = 2.*pi*((time-day)-0.5)
-    zenith = sin(lamda)*sin(del) + cos(lamda)*cos(del)*cos(h)
-
-  end function zenith
-
+!   !> Return the cosine of the solar zenith angle give the decimal day and
+!   !> the latitude
+!   !
+!   real function zenith()
+!     use modglobal, only : xtime, timee, pi, xday,xlat,xlon
+!     implicit none
+!     real :: rtime,phi,el,obliq,xlam,declin,hora
+!
+!     rtime   = xtime + timee/3600
+!     phi    = xlat * pi/180.
+!     el     = xlon * pi/180.
+!     obliq  = 23.45 * pi/180.
+!     xlam   = 4.88 + 0.0172 * xday
+!     declin = asin(sin(obliq)*sin(xlam))
+!     hora   = el-pi + 2.*pi*(rtime/24.)
+!     zenith = max(0.,sin(declin)*sin(phi)+cos(declin)*cos(phi)* &
+!                                                          cos(hora))
+!   end function zenith
 end module radiation
