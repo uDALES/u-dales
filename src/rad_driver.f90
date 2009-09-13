@@ -36,7 +36,6 @@ module radiation
   use modraddata,only  : zenith
   implicit none
 
-  character (len=19), parameter :: background = 'backrad.inp.'
 
   logical, save     :: first_time = .True.
   real, allocatable, save ::  pp(:), pt(:), ph(:), po(:), pre(:), pde(:), &
@@ -62,11 +61,13 @@ module radiation
 
       integer :: kk
       real    :: prw, p0(k1), exner(k1), pres(k1)
+      character (len=19) :: background
 
       if (first_time) then
          p0(k1) = (pref0*(pi0(k1)/cp)**cpr) / 100.
          p0(k1-1) = (pref0*(pi0(k1-1)/cp)**cpr) / 100.
-         call setup(background//cexpnr,k1,npts,nv1,nv,p0)
+         background  = 'backrad.inp.'//cexpnr
+         call setup(background,k1,npts,nv1,nv,p0)
          first_time = .False.
          if (allocated(pre))   pre(:) = 0.
          if (allocated(pde))   pde(:) = 0.
@@ -146,10 +147,10 @@ module radiation
   !! the original sounding using p0 as this does not depend on time and thus
   !! allows us to recompute the same background matching after a history start
   !!
-  subroutine setup(background,k1,npts,nv1,nv,zp)
+  subroutine setup(filenm,k1,npts,nv1,nv,zp)
   implicit none
 
-    character (len=19), intent (in) :: background
+    character (len=19), intent (in) :: filenm
     integer, intent (in) :: k1
     integer, intent (out):: npts,nv1,nv
     real, intent (in)    :: zp(k1)
@@ -161,8 +162,8 @@ module radiation
     real    :: pa, pb, ptop, ptest, test, dp1, dp2, dp3, Tsurf
 
     norig = 0
-    open ( unit = 08, file = background, status = 'old' )
-    print *, 'Reading Background Sounding: ',background
+    open ( unit = 08, file = filenm, status = 'old' )
+    print *, 'Reading Background Sounding: ',filenm
     read (08,*) Tsurf, ns
     allocate ( sp(ns), st(ns), sh(ns), so(ns), sl(ns))
     do k=1,ns

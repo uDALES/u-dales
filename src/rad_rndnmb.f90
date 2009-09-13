@@ -174,7 +174,7 @@ contains
 
   end subroutine nextState
   ! ---------------------------
-  elemental function temper(y)
+  function temper(y)
     integer, intent(in) :: y
     integer             :: temper
 

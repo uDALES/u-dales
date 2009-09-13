@@ -35,7 +35,6 @@ module ckd
   implicit none
   private
 
-  character (len=20) :: gasfile = 'ckd.inp.'
   logical, save      :: Initialized = .False.
   real, save         :: bllmx, brlmn
   integer, save      :: ngases
@@ -78,8 +77,9 @@ contains
     real, dimension(2000) :: realVars
 
     real, allocatable :: gasesinband(:)
-
-    OPEN ( unit = 66, file = trim(gasfile//cexpnr), status = 'old' )
+    character (len=20) :: gasfile
+    gasfile = 'ckd.inp.'//cexpnr
+    OPEN ( unit = 66, file = trim(gasfile), status = 'old' )
     read (66, '(2I5)') mb, ngases
     allocate (band(mb), gas(ngases))
     read (66, '(300(6E12.4,/))') realVars(1:mb+1)

@@ -49,8 +49,9 @@ contains
 
     integer             :: ib, i, nbands
     character (len=12)  :: frmt
-
-    open ( unit = 71, file = 'cldwtr.inp.'//cexpnr, status = 'old', recl=nrec)
+    character (len=20)  :: filenm
+    filenm = 'cldwtr.inp.'//cexpnr
+    open ( unit = 71, file = filenm, status = 'old', recl=nrec)
     read (71,'(2I3)') nsizes, nbands
     if (nbands /= mb .or. nsizes*nbands*15 > nrec) &
          stop 'TERMINATING: incompatible cldwtr.dat file'
