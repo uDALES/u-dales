@@ -36,7 +36,7 @@ module radiation
   use modraddata,only  : zenith
   implicit none
 
-  character (len=19), parameter :: background = 'backrad.lay.'
+  character (len=19), parameter :: background = 'backrad.inp.'
 
   logical, save     :: first_time = .True.
   real, allocatable, save ::  pp(:), pt(:), ph(:), po(:), pre(:), pde(:), &

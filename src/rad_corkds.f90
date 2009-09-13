@@ -35,7 +35,7 @@ module ckd
   implicit none
   private
 
-  character (len=20) :: gasfile = 'ckd.dat.'
+  character (len=20) :: gasfile = 'ckd.inp.'
   logical, save      :: Initialized = .False.
   real, save         :: bllmx, brlmn
   integer, save      :: ngases
