@@ -31,12 +31,12 @@
 module radiation
 
   use fuliou, only     : rad
-  use modglobal, only  : cp,rcp,cpr,rhow,pref0,pi,xlat,xlon,xday,xtime,timee
+  use modglobal, only  : cexpnr,cp,rcp,cpr,rhow,pref0,pi,xlat,xlon,xday,xtime,timee
   use rad_solver,only: nv1, nv, SolarConstant
   use modraddata,only  : zenith
   implicit none
 
-  character (len=19), parameter :: background = 'backrad.lay'
+  character (len=19), parameter :: background = 'backrad.lay.'
 
   logical, save     :: first_time = .True.
   real, allocatable, save ::  pp(:), pt(:), ph(:), po(:), pre(:), pde(:), &
@@ -66,7 +66,7 @@ module radiation
       if (first_time) then
          p0(k1) = (pref0*(pi0(k1)/cp)**cpr) / 100.
          p0(k1-1) = (pref0*(pi0(k1-1)/cp)**cpr) / 100.
-         call setup(background,k1,npts,nv1,nv,p0)
+         call setup(background//cexpnr,k1,npts,nv1,nv,p0)
          first_time = .False.
          if (allocated(pre))   pre(:) = 0.
          if (allocated(pde))   pde(:) = 0.

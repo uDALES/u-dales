@@ -41,7 +41,7 @@ contains
   !> checking for consistency between band structure of cloud model and CKD
   !>
   subroutine init_cldwtr
-
+    use modglobal, only : cexpnr
     use ckd, only : band, center
     integer, parameter  :: nrec = 21600
 
@@ -50,7 +50,7 @@ contains
     integer             :: ib, i, nbands
     character (len=12)  :: frmt
 
-    open ( unit = 71, file = 'cldwtr.dat', status = 'old', recl=nrec)
+    open ( unit = 71, file = 'cldwtr.dat.'//cexpnr, status = 'old', recl=nrec)
     read (71,'(2I3)') nsizes, nbands
     if (nbands /= mb .or. nsizes*nbands*15 > nrec) &
          stop 'TERMINATING: incompatible cldwtr.dat file'

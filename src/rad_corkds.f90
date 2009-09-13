@@ -30,12 +30,12 @@
 !
 module ckd
 
-  use modglobal, only : mair
+  use modglobal, only : mair,cexpnr
   use rad_solver, only :nv, nv1, mb, totalpower
   implicit none
   private
 
-  character (len=20) :: gasfile = 'ckd.dat'
+  character (len=20) :: gasfile = 'ckd.dat.'
   logical, save      :: Initialized = .False.
   real, save         :: bllmx, brlmn
   integer, save      :: ngases
@@ -79,7 +79,7 @@ contains
 
     real, allocatable :: gasesinband(:)
 
-    OPEN ( unit = 66, file = trim(gasfile), status = 'old' )
+    OPEN ( unit = 66, file = trim(gasfile//cexpnr), status = 'old' )
     read (66, '(2I5)') mb, ngases
     allocate (band(mb), gas(ngases))
     read (66, '(300(6E12.4,/))') realVars(1:mb+1)
