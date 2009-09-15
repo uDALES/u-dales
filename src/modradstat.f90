@@ -158,6 +158,7 @@ contains
         call ncinfo(ncname( 4,:),'lwu','Long wave upward radiative flux','W/m^2','mt')
         call ncinfo(ncname( 5,:),'lwd','Long wave downward radiative flux','W/m^2','mt')
         call ncinfo(ncname( 6,:),'swd','Short wave downward radiative flux','W/m^2','mt')
+        call ncinfo(ncname( 7,:),'swu','Short wave upward radiative flux','W/m^2','mt')
 
         call redefine_nc(ncid_prof)
         call define_nc( ncid_prof, NVar, ncname)
