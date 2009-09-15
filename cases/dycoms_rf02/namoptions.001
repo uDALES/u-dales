@@ -8,7 +8,7 @@ ladaptive  = .true.
 irandom    =  43
 randthl    =  0.1
 randqt     =  2.5e-5
-nsv        =  0
+nsv        =  2
 /
 
 &DOMAIN
@@ -27,25 +27,33 @@ xtime      =  8.
 /
 
 &PHYSICS
+lmoist     =  .true.
+iradiation =  10
+timerad    =  0
+dlwtop     = 70
+dlwbot     = 22
+rka        = 95.2
+rad_ls     = .false.
+rad_longw  = .true.
+rad_shortw = .false.
+rad_smoke  = .false.
+
+lcoriol    =  .true.
+/
+&SURFACE
+isurf      =  3
 z0         =  2e-4
 ustin      =  0.25
 ps         =  101780.00
 thls       =  290.531
 wtsurf     =  0.0131
 wqsurf     =  3.05e-5
-
-lmoist     =  .true.
-isurf      =  3
-iradiation =  1
-timerad    =  4
-lcoriol    =  .true.
 /
-
 &DYNAMICS
 llsadv     =  .false.
 lqlnr      =  .false.
-cu         =  -6.
-cv         =  -4.
+cu         =  5.
+cv         =  -5.5.
 
 iadv_mom   =  5
 iadv_tke   =  5
@@ -54,7 +62,7 @@ iadv_qt    =  5
 iadv_sv    =  7
 /
 &NAMMICROPHYSICS
-imicro     = 0
+imicro     = 2
 l_sb = .false.
 l_sedc = .true.
 l_rain = .false.
@@ -97,4 +105,9 @@ ldiracc    = .true.
 &NAMSTATTEND
 dtav       = 300
 ltend      = .false.
+/
+&NAMRADSTAT
+lstat = .true.
+dtav = 60
+timeav = 1800
 /
