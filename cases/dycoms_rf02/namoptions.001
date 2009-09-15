@@ -29,6 +29,8 @@ xtime      =  8.
 &PHYSICS
 lmoist     =  .true.
 iradiation =  10
+isurf      =  3
+
 timerad    =  0
 dlwtop     = 70
 dlwbot     = 22
@@ -40,9 +42,9 @@ rad_smoke  = .false.
 
 lcoriol    =  .true.
 /
-&SURFACE
-isurf      =  3
-z0         =  2e-4
+&NAMSURFACE
+z0mav      =  2e-4
+z0hav      =  2e-4
 ustin      =  0.25
 ps         =  101780.00
 thls       =  290.531
@@ -53,7 +55,7 @@ wqsurf     =  3.05e-5
 llsadv     =  .false.
 lqlnr      =  .false.
 cu         =  5.
-cv         =  -5.5.
+cv         =  -5.5
 
 iadv_mom   =  5
 iadv_tke   =  5
@@ -72,7 +74,7 @@ l_mur_cst=.false.
 &NAMBULKMICROSTAT
 lmicrostat = .true.
 timeav     = 1800
-dtav       = 300
+dtav       = 60
 /
 &NAMCHECKSIM
 tcheck     = 0
@@ -80,30 +82,30 @@ tcheck     = 0
 &NAMSAMPLING
 lsampcl    = .false.
 lsampco    = .false.
-dtav       = 300
+dtav       = 60
 timeav     = 1800
 /
 &NAMTIMESTAT
 ltimestat  = .true.
-dtav       = 300
+dtav       = 60
 /
 &NAMCROSSSECTION
 lcross     = .false.
-dtav       = 300
+dtav       = 60
 /
 &NAMGENSTAT
 lstat      = .true.
-dtav       = 300
+dtav       = 60
 timeav     = 1800
 /
 
 &NAMFIELDDUMP
 lfielddump = .false.
-dtav       = 300
+dtav       = 60
 ldiracc    = .true.
 /
 &NAMSTATTEND
-dtav       = 300
+dtav       = 60
 ltend      = .false.
 /
 &NAMRADSTAT
