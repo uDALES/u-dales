@@ -33,7 +33,7 @@ implicit none
 PUBLIC :: initradstat, radstat, exitradstat
 save
 !NetCDF variables
-  integer,parameter :: nvar = 7
+  integer,parameter :: nvar = 8
   character(80),dimension(nvar,4) :: ncname
 
   real    :: dtav, timeav,tnext,tnextwrite
@@ -42,14 +42,8 @@ save
 
 !     ------
 
-  real, allocatable :: tllwtendavl(:)
-  real, allocatable :: tlswtendavl(:)
-  real, allocatable :: lwuavl(:)
-  real, allocatable :: lwdavl(:)
-  real, allocatable :: swdavl(:)
-  real, allocatable :: swuavl(:)
-
 !   --------------
+  real, allocatable :: tltendav(:)
   real, allocatable :: tllwtendav(:)
   real, allocatable :: tlswtendav(:)
   real, allocatable :: lwuav(:)
@@ -58,6 +52,7 @@ save
   real, allocatable :: swuav(:)
 
 !
+  real, allocatable :: tltendmn(:)
   real, allocatable :: tllwtendmn(:)
   real, allocatable :: tlswtendmn(:)
   real, allocatable :: lwumn(:)
@@ -98,13 +93,6 @@ contains
     tnextwrite = timeav-1e-3+btime
     nsamples = nint(timeav/dtav)
 
-   !allocate variables that are needed in modradiation
-    allocate(lwdavl(k1))
-    allocate(lwuavl(k1))
-    allocate(swdavl(k1))
-    allocate(swuavl(k1))
-    allocate (tllwtendavl(k1))
-    allocate (tlswtendavl(k1))
 
     if(.not.(lstat)) return
     dt_lim = min(dt_lim,tnext)
@@ -121,6 +109,7 @@ contains
     allocate(swdav(k1))
     allocate(swuav(k1))
     allocate(tllwtendav(k1))
+    allocate(tltendav(k1))
     allocate(tlswtendav(k1))
 
     allocate(lwumn(k1))
@@ -128,6 +117,7 @@ contains
     allocate(swdmn(k1))
     allocate(swumn(k1))
     allocate(tllwtendmn(k1))
+    allocate(tltendmn(k1))
     allocate(tlswtendmn(k1))
     allocate(tlradlsmn(k1))
 
@@ -135,6 +125,7 @@ contains
     lwdmn = 0.0
     swdmn = 0.0
     swumn = 0.0
+    tltendmn = 0.0
     tllwtendmn = 0.0
     tlswtendmn = 0.0
     tlradlsmn  = 0.0
@@ -152,13 +143,14 @@ contains
       nsamples = nint(timeav/dtav)
 
       if (myid==0) then
-        call ncinfo(ncname( 1,:),'tllwtend','Long wave radiative tendency','K/s','tt')
-        call ncinfo(ncname( 2,:),'tlswtend','Short wave radiative tendency','K/s','tt')
-        call ncinfo(ncname( 3,:),'tlradls','Large scale radiative tendency','K/s','tt')
-        call ncinfo(ncname( 4,:),'lwu','Long wave upward radiative flux','W/m^2','mt')
-        call ncinfo(ncname( 5,:),'lwd','Long wave downward radiative flux','W/m^2','mt')
-        call ncinfo(ncname( 6,:),'swd','Short wave downward radiative flux','W/m^2','mt')
-        call ncinfo(ncname( 7,:),'swu','Short wave upward radiative flux','W/m^2','mt')
+        call ncinfo(ncname( 1,:),'tltend','Total radiative tendency','K/s','tt')
+        call ncinfo(ncname( 2,:),'tllwtend','Long wave radiative tendency','K/s','tt')
+        call ncinfo(ncname( 3,:),'tlswtend','Short wave radiative tendency','K/s','tt')
+        call ncinfo(ncname( 4,:),'tlradls','Large scale radiative tendency','K/s','tt')
+        call ncinfo(ncname( 5,:),'lwu','Long wave upward radiative flux','W/m^2','mt')
+        call ncinfo(ncname( 6,:),'lwd','Long wave downward radiative flux','W/m^2','mt')
+        call ncinfo(ncname( 7,:),'swd','Short wave downward radiative flux','W/m^2','mt')
+        call ncinfo(ncname( 8,:),'swu','Short wave upward radiative flux','W/m^2','mt')
 
         call redefine_nc(ncid_prof)
         call define_nc( ncid_prof, NVar, ncname)
@@ -192,10 +184,10 @@ contains
 !> Calculates the statistics
   subroutine do_radstat
 
-    use modmpi,    only : nprocs,comm3d,nprocs,my_real, mpi_sum,mpierr, slabsum
-    use modglobal, only : kmax,rslabs,cp,dzf,i1,j1,k1
+    use modmpi,    only :  slabsum
+    use modglobal, only : kmax,rslabs,cp,dzf,i1,j1,k1,ih,jh
     use modfields, only : thlpcar
-    use modraddata, only : lwd,lwu,swd,swu, rho_air_mn
+    use modraddata, only : lwd,lwu,swd,swu, rho_air_mn,thlprad
 
     implicit none
     integer :: k
@@ -203,40 +195,20 @@ contains
     lwdav  = 0.
     lwuav  = 0.
     swdav  = 0.
+    tltendav = 0.
     tllwtendav = 0.
     tlswtendav = 0.
-    lwdavl  = 0.
-    lwuavl  = 0.
-    swdavl  = 0.
-    swuavl  = 0.
-    tllwtendavl = 0.
-    tlswtendavl = 0.
+    tltendav = 0.
 
-    do k=1,k1
-      lwdavl(k) = sum(lwd(2:i1,2:j1,k))
-      lwuavl(k) = sum(lwu(2:i1,2:j1,k))
-      swdavl(k) = sum(swd(2:i1,2:j1,k))
-      swuavl(k) = sum(swu(2:i1,2:j1,k))
-    end do
-
+    call slabsum(lwdav ,1,k1,lwd ,2-ih,i1+ih,2-jh,j1+jh,1,k1,2,i1,2,j1,1,k1)
+    call slabsum(lwuav ,1,k1,lwu ,2-ih,i1+ih,2-jh,j1+jh,1,k1,2,i1,2,j1,1,k1)
+    call slabsum(swdav ,1,k1,swd ,2-ih,i1+ih,2-jh,j1+jh,1,k1,2,i1,2,j1,1,k1)
+    call slabsum(swuav ,1,k1,swu ,2-ih,i1+ih,2-jh,j1+jh,1,k1,2,i1,2,j1,1,k1)
+    call slabsum(tltendav ,1,k1,thlprad ,2-ih,i1+ih,2-jh,j1+jh,1,k1,2,i1,2,j1,1,k1)
     do k=1,kmax
-      tllwtendavl(k) = -(lwdavl(k+1)-lwdavl(k)+lwuavl(k+1)-lwuavl(k))/(rho_air_mn*cp*dzf(k))
-      tlswtendavl(k) =  (swdavl(k+1)-swdavl(k))/(rho_air_mn*cp*dzf(k))
+      tllwtendav(k) = -(lwdav(k+1)-lwdav(k)+lwuav(k+1)-lwuav(k))/(rho_air_mn*cp*dzf(k))
+      tlswtendav(k) =  (swdav(k+1)-swdav(k)+swuav(k+1)-swuav(k))/(rho_air_mn*cp*dzf(k))
     end do
-    !swdavl = swdav
-
-    call MPI_ALLREDUCE(lwdavl, lwdav, kmax,    MY_REAL, &
-                         MPI_SUM, comm3d,mpierr)
-    call MPI_ALLREDUCE(lwuavl, lwuav, kmax,    MY_REAL, &
-                         MPI_SUM, comm3d,mpierr)
-   call MPI_ALLREDUCE(swdavl, swdav, kmax,    MY_REAL, &
-                         MPI_SUM, comm3d,mpierr)
-   call MPI_ALLREDUCE(swuavl, swuav, kmax,    MY_REAL, &
-                         MPI_SUM, comm3d,mpierr)
-    call MPI_ALLREDUCE(tllwtendavl, tllwtendav, kmax,    MY_REAL, &
-                         MPI_SUM, comm3d,mpierr)
-    call MPI_ALLREDUCE(tlswtendavl, tlswtendav, kmax,    MY_REAL, &
-                         MPI_SUM, comm3d,mpierr)
 
  !    ADD SLAB AVERAGES TO TIME MEAN
 
@@ -244,6 +216,7 @@ contains
     lwdmn = lwdmn + lwdav/rslabs
     swdmn = swdmn + swdav/rslabs
     swumn = swumn + swuav/rslabs
+    tltendmn = tltendmn + tltendav/rslabs
     tllwtendmn = tllwtendmn + tllwtendav/rslabs
     tlswtendmn = tlswtendmn + tlswtendav/rslabs
     tlradlsmn  = tlradlsmn  + thlpcar
@@ -274,7 +247,7 @@ contains
       tllwtendmn = tllwtendmn /nsamples
       tlswtendmn = tlswtendmn /nsamples
       tlradlsmn  = tlradlsmn  /nsamples
-
+      tltendmn   =tltendmn/nsamples
   !     ----------------------
   !     2.0  write the fields
   !           ----------------
@@ -289,30 +262,32 @@ contains
       write (ifoutput,'(A/2A/2A)') &
           '#--------------------------------------------------------------------------' &
           ,'#LEV HGHT     LW_UP        LW_DN        SW_UP       SW_DN       ' &
-          ,'TL_LW_TEND   TL_SW_TEND   TL_LS_TEND' &
+          ,'TL_LW_TEND   TL_SW_TEND   TL_LS_TEND   TL_TEND' &
           ,'#    (M)      (W/M^2)      (W/M^2)      (W/M^2)      (W/M^2)      ' &
-          ,'(K/H)         (K/H)        (K/H)'
+          ,'(K/H)         (K/H)        (K/H)        (K/H)'
       do k=1,kmax
-        write(ifoutput,'(I3,F8.2,7E13.4)') &
+        write(ifoutput,'(I3,F8.2,8E13.4)') &
             k,zf(k),&
             lwumn(k),&
             lwdmn(k),&
-            swdmn(k),&
             swumn(k),&
+            swdmn(k),&
             tllwtendmn(k)*3600,&
             tlswtendmn(k)*3600,&
-            tlradlsmn(k) *3600
+            tlradlsmn(k) *3600,&
+            tltendmn(k) *3600
       end do
       close (ifoutput)
       if (lnetcdf) then
-        vars(:, 1) = tllwtendmn
-        vars(:, 2) = tlswtendmn
-        vars(:, 3) = tlradlsmn
-        vars(:, 4) = lwumn
-        vars(:, 5) = lwdmn
-        vars(:, 6) = swumn
-        vars(:, 7) = swdmn
-        call writestat_nc(ncid_prof,nvar,ncname,vars(1:kmax,:),nrec_prof+1,kmax)
+        vars(:, 1) = tltendmn
+        vars(:, 2) = tllwtendmn
+        vars(:, 3) = tlswtendmn
+        vars(:, 4) = tlradlsmn
+        vars(:, 5) = lwumn
+        vars(:, 6) = lwdmn
+        vars(:, 7) = swumn
+        vars(:, 8) = swdmn
+        call writestat_nc(ncid_prof,nvar,ncname,vars(1:kmax,:),nrec_prof,kmax)
       end if
     end if ! end if(myid==0)
 
@@ -332,7 +307,6 @@ contains
     implicit none
 
     !deallocate variables that are needed in modradiation
-    deallocate(lwdavl,lwuavl,swdavl,swuavl,tllwtendavl,tlswtendavl)
 
     if(.not.(lstat)) return
 
