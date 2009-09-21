@@ -1,5 +1,3 @@
-!> \file rad_user.f90
-!! A dummy file for cases where one wants specific radiation
 !----------------------------------------------------------------------------
 ! This file is part of DALES.
 !
@@ -24,7 +22,7 @@ subroutine rad_user
 ! DYCOMS version of rad_user adds a radiative forcing above the inversion layer
 use modfields, only : qt0
 use modglobal, only : i1,j1,kmax,dzh,zf
-use modraddata, only : thlprad
+use modradiation, only : thlprad
 implicit none
 integer :: i,j,k
 real    :: thres = 8e-3,a=1,D=3.75e-6

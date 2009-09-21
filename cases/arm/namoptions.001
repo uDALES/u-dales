@@ -1,0 +1,100 @@
+&RUN
+iexpnr     =  001
+lwarmstart =  .false.
+startfile  =  'initd03h00m000.001'
+runtime    =  50400
+trestart   =  3600
+ladaptive  = .true.
+irandom    =  43
+randthl    =  0.1
+randqt     =  0
+nsv        =  0
+/
+
+&DOMAIN
+imax       =  128
+jtot       =  128
+kmax       =  220
+
+
+xsize      =  6400.
+ysize      =  6400.
+
+xlat       =  36.
+xlon       =  0.
+xday       =  0.
+xtime      =  0.
+/
+
+&PHYSICS
+z0         =  3.5e-2
+ustin      =  0.18
+ps         =  97000.00
+thls       =  299.00
+wtsurf     =  4.6e-2
+wqsurf     =  5.4e-5
+
+lmoist     =  .true.
+isurf      =  3
+irad       =  1
+timerad    =  3600
+lcoriol    =  .true.
+ltimedep   =  .true.
+/
+
+&DYNAMICS
+llsadv     =  .false.
+lqlnr      =  .false.
+cu         =  10.
+cv         =  0.
+
+iadv_mom    =  2
+iadv_tke    =  2
+iadv_thl    =  2
+iadv_qt     =  2
+iadv_sv     =  2
+/
+&NAMCHECKSIM
+tcheck      = 0
+/
+&NAMSAMPLING
+lsampbuup     = .true.
+lsampup     = .true.
+lsampcl     = .true.
+lsampco     = .true.
+dtav        = 60
+timeav      = 3600
+/
+&NAMTIMESTAT
+ltimestat   = .true.
+dtav        = 60
+/
+&NAMCROSSSECTION
+lcross      = .false.
+dtav        = 60
+/
+&NAMGENSTAT
+lstat       = .true.
+dtav        = 60
+timeav      = 3600
+/
+&NAMFIELDDUMP
+lfielddump  = .false.
+dtav        = 6
+ldiracc     = .false.
+/
+&NAMSTATTEND
+dtav = 60
+ltend = .false.
+/
+&NAMPARTICLES
+lpartic     = .false.
+dtpart      = 6.
+intmeth     = 3
+dtav        = 60.
+lstat       = .true.
+timeav      = 600.
+timedump    = 6
+npartdump   = 10
+lpartsgs    = .true.
+/
