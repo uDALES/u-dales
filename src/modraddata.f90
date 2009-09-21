@@ -30,7 +30,7 @@
 
 module modraddata
 
-implicit none
+! implicit none
 
 SAVE
 
@@ -46,7 +46,7 @@ SAVE
 
 
   real              :: timerad = 0 !<  timescale of the radiation scheme
-  real              :: tnext   = 0
+  real              :: tnext   = 0 !<  time of the first upcoming call of the radiation scheme
   real :: rho_air_mn = 1.1436 !< mean air density used in radiation computation
   real :: rka        = 130.   !< extinction coefficient in radpar scheme
   real :: dlwtop     = 74.    !< longwave radiative flux divergence at top of domain
@@ -56,30 +56,39 @@ SAVE
   real :: sfc_albedo = 0.05   !< ground surface albedo
   real :: reff       = 1.e-5  !< cloud droplet effective radius (m)
   integer :: isvsmoke = 1     !< number of passive scalar to be used for optical depth calculation
-  integer :: iradiation = irad_par
-  integer :: irad    = -1
+  integer :: iradiation = irad_par  !< Selection parameter for type of radiation scheme
+  integer :: irad    = -1  !< Deprecated selection parameter for the type of radiation scheme
 
 
   real mu                    !< cosine of the solar zenith angle
 
-  real, allocatable :: thlprad(:,:,:)                      !<   the radiative tendencies
-  real, allocatable :: swd(:,:,:),swu(:,:,:),lwd(:,:,:),lwu(:,:,:)    !<   shortwave radiative flux
-  real, allocatable :: albedo(:,:)
+  real, allocatable :: thlprad(:,:,:)!<   the radiative tendencies
+  real, allocatable :: swd(:,:,:)    !<   shortwave downward radiative flux
+  real, allocatable :: swu(:,:,:)    !<   shortwave upward radiative flux
+  real, allocatable :: lwd(:,:,:)    !<   longwave downward radiative flux
+  real, allocatable :: lwu(:,:,:)    !<   longwave upward radiative flux
+  real, allocatable :: albedo(:,:)   !<   Albedo
 
 contains
-
+!< Calculation of the zenith angle
+!< \param time UTC Time of the simulation
+!< \param xday Day at the start of the simulation
+!< \param xlat Latitude of the domain
+!< \param xlon Longitude of the domain
   real function zenith(time, xday, xlat,xlon)
     use modglobal, only : pi
-    implicit none
+!     implicit none
     real, intent(in) :: time, xday, xlat, xlon
     real :: phi,el,obliq,xlam,declin,hora
-
+    real :: day,daytime
+    day    = xday + floor(time/86400.)
+    daytime= mod(time,86400.)
     phi    = xlat * pi/180.
     el     = xlon * pi/180.
     obliq  = 23.45 * pi/180.
-    xlam   = 4.88 + 0.0172 * xday
+    xlam   = 4.88 + 0.0172 * day
     declin = asin(sin(obliq)*sin(xlam))
-    hora   = el-pi + 2.*pi*(time/24.)
+    hora   = el-pi + 2.*pi*(daytime/24.)
     zenith = max(0.,sin(declin)*sin(phi)+cos(declin)*cos(phi)* &
                                                          cos(hora))
   end function zenith
