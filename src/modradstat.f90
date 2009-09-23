@@ -195,6 +195,7 @@ contains
     lwdav  = 0.
     lwuav  = 0.
     swdav  = 0.
+    swuav  = 0.
     tltendav = 0.
     tllwtendav = 0.
     tlswtendav = 0.
