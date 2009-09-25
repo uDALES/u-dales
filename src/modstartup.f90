@@ -62,7 +62,7 @@ contains
     use modpois,           only : initpois
     use modradiation,      only : initradiation
     use modraddata,        only : irad,iradiation,&
-                                  rad_ls,rad_longw,rad_shortw,rad_smoke,&
+                                  rad_ls,rad_longw,rad_shortw,rad_smoke,useMcICA,&
                                   timerad,rka,dlwtop,dlwbot,sw0,gc,sfc_albedo,reff,isvsmoke
     use modtimedep,        only : inittimedep,ltimedep
     use modboundary,       only : initboundary,ksp
@@ -86,7 +86,7 @@ contains
     namelist/PHYSICS/ &
         !cstep z0,ustin,wtsurf,wqsurf,wsvsurf,ps,thls,chi_half,lmoist,isurf,lneutraldrag,&
          z0,ustin,wtsurf,wqsurf,wsvsurf,ps,thls,lmoist,isurf,chi_half,&
-        lcoriol,lmomsubs, ltimedep,irad,timerad,iradiation,rad_ls,rad_longw,rad_shortw,rad_smoke,&
+        lcoriol,lmomsubs, ltimedep,irad,timerad,iradiation,rad_ls,rad_longw,rad_shortw,rad_smoke,useMcICA,&
         rka,dlwtop,dlwbot,sw0,gc,sfc_albedo,reff,isvsmoke
     namelist/DYNAMICS/ &
         llsadv, lqlnr, cu, cv, iadv_mom, iadv_tke, iadv_thl, iadv_qt, iadv_sv
@@ -161,6 +161,7 @@ contains
     call MPI_BCAST(rad_longw  ,1,MPI_LOGICAL,0,comm3d,mpierr)
     call MPI_BCAST(rad_shortw ,1,MPI_LOGICAL,0,comm3d,mpierr)
     call MPI_BCAST(rad_smoke  ,1,MPI_LOGICAL,0,comm3d,mpierr)
+    call MPI_BCAST(useMcIca   ,1,MPI_LOGICAL,0,comm3d,mpierr)
     call MPI_BCAST(rka        ,1,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(dlwtop     ,1,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(dlwbot     ,1,MY_REAL   ,0,comm3d,mpierr)

@@ -43,7 +43,7 @@ SAVE
   logical :: rad_longw   = .true.   !< parameterized longwave radiative forcing
   logical :: rad_shortw  = .true.   !< parameterized shortwave radiative forcing
   logical :: rad_smoke   = .false.  !< longwave divergence for smoke cloud
-
+  logical :: useMcICA    = .true.   !< Use the Monte Carlo Independent Column Approach
 
   real              :: timerad = 0 !<  timescale of the radiation scheme
   real              :: tnext   = 0 !<  time of the first upcoming call of the radiation scheme
@@ -68,6 +68,7 @@ SAVE
   real, allocatable :: lwd(:,:,:)    !<   longwave downward radiative flux
   real, allocatable :: lwu(:,:,:)    !<   longwave upward radiative flux
   real, allocatable :: albedo(:,:)   !<   Albedo
+
 
 contains
 !< Calculation of the zenith angle

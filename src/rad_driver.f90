@@ -33,7 +33,7 @@ module radiation
   use fuliou, only     : rad
   use modglobal, only  : cexpnr,cp,rcp,cpr,rhow,pref0,pi,xlat,xlon,xday,xtime,timee
   use rad_solver,only: nv1, nv, SolarConstant
-  use modraddata,only  : zenith
+  use modraddata,only  : zenith,useMcICA
   implicit none
 
 
@@ -114,7 +114,7 @@ module radiation
             pp(nv-k1+2) = pres(k1)/100. - 0.5*(pres(k1-1)-pres(k1)) / 100.
 
             call rad( sfc_albedo, u0, SolarConstant, sknt, ee, pp, pt, ph, po,&
-                 fds, fus, fdir, fuir, plwc=plwc, pre=pre, useMcICA=.True.)
+                 fds, fus, fdir, fuir, plwc=plwc, pre=pre, useMcICA=useMcICA)
 
             do k=1,k1
                kk = nv1 - (k-1)
