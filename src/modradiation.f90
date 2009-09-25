@@ -191,7 +191,9 @@ contains
                   lwu,   &       !done -OUT
                   albedo,   &      !done       -OUT
                   rr=rr_b)
-
+!Downward radiation fluxes are pointing downward in DALES, pointing upward in UCLALES 
+        lwd = -lwd
+        swd = -swd
 !Add up thl tendency
         do k=1,kmax
         do j=2,j1
