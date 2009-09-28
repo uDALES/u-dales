@@ -60,7 +60,7 @@ contains
 
   use modglobal, only : i1,j1,kmax,dzh,dzf,grav
   use modfields, only : u0,v0,w0,up,vp,wp,thv0h,dpdxl,dpdyl
-  use modsurface,only : thvs
+  use modsurfdata,only : thvs
   implicit none
 
   integer i, j, k, jm, jp, km, kp

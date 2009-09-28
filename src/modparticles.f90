@@ -752,7 +752,7 @@ contains
     use modmpi,    only : myid,cmyid
     use modglobal, only :  i2,jmax,j2,k1,dx,dy,dzf,dzh,zf,zh,es0,tmelt,rlv,rd,rv,cp,bt,at,cexpnr,ifoutput,timee,dt_lim
     use modfields, only : qtm,thlm,presf, exnf
-    use modsurface,only : thvs,thls,qts
+    use modsurfdata,only: thvs,thls,qts
     implicit none
 
     ! LOCAL
@@ -926,7 +926,7 @@ contains
     use modglobal,  only : dx,dy,dzf,zf,zh,dzh,grav,delta,timee,dt
     use modfields,  only : dthvdz
     use modsubgrid, only : ce1, ce2, cn
-    use modsurface, only : thvs
+    use modsurfdata,only : thvs
     implicit none
 
 

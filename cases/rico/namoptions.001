@@ -2,9 +2,9 @@
 iexpnr     =  001
 lwarmstart =  .false.
 startfile  =  'initd00h01m000.000'
-runtime    =  43200
+runtime    =  1440
 trestart   =  3600
-ladaptive  =  .false.
+ladaptive  =  .true.
 dtmax      =  4
 irandom    =  43
 randthl    =  0.1
@@ -13,13 +13,13 @@ nsv        =  2
 /
 
 &DOMAIN
-imax       =  128
-jtot       =  128
+imax       =  32
+jtot       =  32
 kmax       =  126
 
 
-xsize      =  12800
-ysize      =  12800
+xsize      =  3200
+ysize      =  3200
 
 xlat       =  18.0
 xlon       =  298.5
@@ -41,11 +41,11 @@ timerad    =  2
 lcoriol    =  .true.
 lmomsubs   =  .false.
 /
-&NAMSURFACE      
+&NAMSURFACE
 thls  =  298.5
 z0mav =  1.6e-4
 z0hav =  3.2e-5
-/                    
+/
 
 
 &DYNAMICS
@@ -87,8 +87,8 @@ dtav       = 60
 /
 &NAMGENSTAT
 lstat      = .true.
-dtav       = 60
-timeav     = 21600
+dtav       = 1440
+timeav     = 1440
 /
 
 &NAMFIELDDUMP
@@ -100,4 +100,8 @@ ldiracc    = .true.
 dtav       = 60
 timeav     = 21600
 ltend      = .true.
+/
+&NAMCLOUDFIELD
+dtav=1440
+lcloudfld = .true.
 /

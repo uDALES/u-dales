@@ -181,7 +181,7 @@ contains
 
   subroutine timedepsvsurf
     use modglobal,   only : timee,nsv
-    use modsurface,  only : svs
+    use modsurfdata,  only : svs
     implicit none
     integer t,n
     real fac

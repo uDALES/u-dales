@@ -63,7 +63,7 @@ contains
     use modmpi,    only : my_real,myid,comm3d,mpi_logical,mpierr,mpi_integer
     use modglobal, only : ifnamopt, fname_options,cexpnr,dtmax,ifoutput,dtav_glob,ladaptive,k1,kmax,rd,rv,dt_lim,btime
     use modfields, only : thlprof,qtprof,svprof
-    use modsurface, only : isurf
+    use modsurfdata, only : isurf
     use modstat_nc, only : lnetcdf, open_nc,define_nc,ncinfo
     implicit none
     integer :: ierr,k,location = 1
@@ -193,7 +193,7 @@ contains
                           rslabs,timee,dt_lim,rk3step,cexpnr,ifoutput
 !
     use modfields,  only : um,vm,wm,e12m,ql0,u0av,v0av,rhof
-    use modsurface, only : wtsurf, wqsurf, isurf,ustar,tstar,qstar,z0,oblav,qts,thls,&
+    use modsurfdata,only : wtsurf, wqsurf, isurf,ustar,tstar,qstar,z0,oblav,qts,thls,&
                            Qnet, H, LE, G0, rs, ra, tskin, tendskin
     use modmpi,     only : my_real,mpi_sum,mpi_max,mpi_min,comm3d,mpierr,myid
     use modstat_nc,  only : lnetcdf, writestat_nc
@@ -509,7 +509,7 @@ contains
   subroutine calcblheight
     use modglobal,  only : ih,i1,jh,j1,kmax,k1,cp,rlv,imax,rd,zh,dzh,zf,dzf,rv,rslabs,iadv_sv,iadv_kappa
     use modfields,  only : w0,qt0,qt0h,ql0,thl0,thl0h,thv0h,sv0,exnf,whls
-    use modsurface, only :svs
+    use modsurfdata,only :svs
     use modmpi,     only : mpierr, comm3d,mpi_sum,my_real
     implicit none
     real   :: zil, dhdt,locval,oldlocval

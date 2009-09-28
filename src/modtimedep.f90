@@ -69,7 +69,7 @@ contains
   subroutine inittimedep
     use modmpi,    only :myid,my_real,mpi_logical,mpierr,comm3d
     use modglobal, only :ifnamopt,fname_options,dtmax, btime,cexpnr,k1,kmax,ifinput,runtime
-    use modsurface,only :ps,qts,wqsurf,wtsurf,thls
+    use modsurfdata,only :ps,qts,wqsurf,wtsurf,thls
     use modtimedepsv, only : inittimedepsv
     implicit none
 
@@ -350,7 +350,8 @@ contains
 
   subroutine timedepsurf
     use modglobal,   only : timee, lmoist
-    use modsurface,  only : wtsurf,wqsurf,thls,qts,ps, qtsurf
+    use modsurfdata, only : wtsurf,wqsurf,thls,qts,ps
+    use modsurface,  only : qtsurf
 
     implicit none
     integer t

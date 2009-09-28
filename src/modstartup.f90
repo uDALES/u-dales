@@ -57,7 +57,8 @@ contains
                                   nsv,imax,jtot,kmax,xsize,ysize,xlat,xlon,xday,xtime,&
                                   lmoist,lcoriol,lmomsubs,cu, cv,ifnamopt,fname_options,llsadv,&
                                   iadv_mom,iadv_tke,iadv_thl,iadv_qt,iadv_sv,courant,peclet,ladaptive,author
-    use modsurface,        only : z0,ustin,wtsurf,wqsurf,wsvsurf,ps,thls,isurf,initsurface
+    use modsurfdata,       only : z0,ustin,wtsurf,wqsurf,wsvsurf,ps,thls,isurf
+    use modsurface,        only : initsurface
     use modfields,         only : initfields
     use modpois,           only : initpois
     use modradiation,      only : initradiation
@@ -230,7 +231,7 @@ contains
   !                                                                 |
   !-----------------------------------------------------------------|
 
-    use modsurface,only : wtsurf,wqsurf,ustin,thls,z0,isurf,ps
+    use modsurfdata,only : wtsurf,wqsurf,ustin,thls,z0,isurf,ps
     use modglobal, only : imax,jtot, ysize,xsize,dtmax,runtime, startfile,lwarmstart
     use modmpi,    only : myid, nprocs,mpierr
 
@@ -298,9 +299,9 @@ contains
                                   zf,dzf,dzh,rv,rd,grav,cp,rlv,pref0,om23_gs,&
                                   rslabs,cu,cv,e12min,dzh,dtheta,dqt,dsv,cexpnr,ifinput,lwarmstart,trestart, ladaptive,llsadv,tnextrestart
     use modsubgrid,        only : ekm,ekh
-    use modsurface,        only : wtsurf,wqsurf,wsvsurf, &
-                                  thls,tskin,tskinm,thvs,ustin,ps,qts,isurf,svs,obl,oblav, &
-                                  surface,qtsurf
+    use modsurfdata,       only : wtsurf,wqsurf,wsvsurf, &
+                                  thls,tskin,tskinm,thvs,ustin,ps,qts,isurf,svs,obl,oblav
+    use modsurface,        only : surface,qtsurf
     use modboundary,       only : boundary,tqaver
     use modmpi,            only : slabsum,myid,comm3d,mpierr,my_real
     use modthermodynamics, only : thermodynamics,calc_halflev
@@ -655,7 +656,7 @@ contains
 
   subroutine readrestartfiles
 
-    use modsurface, only : ustar,tstar,qstar,svstar,dudz,dvdz,dthldz,dqtdz,ps,thls,qts,thvs,oblav,&
+    use modsurfdata, only : ustar,tstar,qstar,svstar,dudz,dvdz,dthldz,dqtdz,ps,thls,qts,thvs,oblav,&
                            tsoil,tskin,isurf,ksoilmax
     use modfields,  only : u0,v0,w0,thl0,qt0,ql0,ql0h,e120,dthvdz,presf,presh,sv0
     use modglobal,  only : i1,i2,ih,j1,j2,jh,k1,dtheta,dqt,dsv,startfile,timee,&
@@ -724,7 +725,7 @@ contains
   end subroutine readrestartfiles
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine writerestartfiles
-    use modsurface,only : ustar,tstar,qstar,svstar,dudz,dvdz,dthldz,dqtdz,ps,thls,qts,thvs,oblav,&
+    use modsurfdata,only: ustar,tstar,qstar,svstar,dudz,dvdz,dthldz,dqtdz,ps,thls,qts,thvs,oblav,&
                           tsoil,tskin,ksoilmax,isurf,ksoilmax
     use modfields, only : u0,v0,w0,thl0,qt0,ql0,ql0h,e120,dthvdz,presf,presh,sv0
     use modglobal, only : i1,i2,ih,j1,j2,jh,k1,dsv,trestart,tnextrestart,dt_lim,timee,cexpnr,&

@@ -86,7 +86,7 @@ contains
   subroutine calthv
     use modglobal, only : lmoist,i1,j1,k1,kmax,zf,zh,dzh,rlv,rd,rv,cp,eps1
     use modfields, only : thl0,thl0h,ql0,ql0h,qt0,qt0h,sv0,exnf,exnh,thv0h,dthvdz
-    use modsurface,only : dthldz,dqtdz
+    use modsurfdata,only : dthldz,dqtdz
 
     implicit none
 
@@ -200,7 +200,7 @@ contains
   use modglobal, only : i1,ih,j1,jh,k1,nsv,zh,zf,cu,cv,rslabs,grav,rlv,cp,rd,rv,pref0
   use modfields, only : u0,v0,w0,thl0,qt0,ql0,sv0,u0av,v0av,thl0av,qt0av,ql0av,sv0av, &
                         presf,presh,exnf,exnh, rhof
-  use modsurface,only : thls,ps
+  use modsurfdata,only : thls,ps
   use modmpi,    only : slabsum
   implicit none
 
@@ -303,7 +303,7 @@ contains
 
   use modglobal, only : k1,dzf,dzh,rv,rd,cp,tmelt,zf,grav,pref0
   use modfields, only : qt0av,ql0av,presf,presh
-  use modsurface,only : ps,thls
+  use modsurfdata,only : ps,thls
   implicit none
 
   integer   k
@@ -376,7 +376,7 @@ contains
 
 
   use modglobal, only : ih,jh,i1,j1,k1,es0,at,bt,rd,rv,rlv,cp,tmelt
-  use modsurface, only : thls
+  use modsurfdata, only : thls
   implicit none
 
   integer i, j, k
@@ -440,7 +440,7 @@ contains
   subroutine calc_halflev
     use modglobal, only : i1,j1,k1,dzf,dzh,iadv_thl, iadv_qt, iadv_kappa
     use modfields, only : thl0,thl0h,qt0,qt0h
-    use modsurface,only: qts,thls
+    use modsurfdata,only: qts,thls
     implicit none
 
     integer :: i,j,k

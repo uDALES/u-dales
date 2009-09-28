@@ -131,7 +131,7 @@ contains
 
     use modglobal, only : i1,ih,i2,j1,jh,j2,k1,nsv, lmoist
     use modfields, only : up,vp,wp,e12p,thl0,thlp,qt0,qtp,sv0,svp
-    use modsurface,only : ustar,tstar,qstar,svstar
+    use modsurfdata,only : ustar,tstar,qstar,svstar
     implicit none
     integer n
 
@@ -190,7 +190,7 @@ contains
   use modglobal,  only : i1, j1,kmax,k1,ih,jh,i2,j2,delta,ekmin,grav, zf, fkar, &
                          dxi,dyi,dzf,dzh
   use modfields,  only : dthvdz,e12m,u0,v0,w0
-  use modsurface, only : thvs
+  use modsurfdata, only : thvs
   use modmpi,     only : excjs
   implicit none
 
@@ -321,7 +321,7 @@ contains
 
   use modglobal,   only : i1,j1,kmax,delta,dx,dy,dxi,dyi,dzf,zf,dzh,grav
   use modfields,   only : u0,v0,w0,e12m,e12p,dthvdz
-  use modsurface,  only : dudz,dvdz,thvs
+  use modsurfdata,  only : dudz,dvdz,thvs
   implicit none
 
   real    tdef2
@@ -551,7 +551,7 @@ contains
 
     use modglobal, only : i1,ih,i2,j1,jh,j2,k1,kmax,dxi,dx2i,dzf,dy,dyi,dy2i,dzh, cu,cv
     use modfields, only : u0,v0,w0
-    use modsurface,only : ustar
+    use modsurfdata,only : ustar
     implicit none
 
     real, intent(inout) :: putout(2-ih:i1+ih,2-jh:j1+jh,k1)
@@ -662,7 +662,7 @@ contains
 
     use modglobal, only : i1,ih,i2,j1,jh,j2,k1,kmax,dx,dxi,dx2i,dzf,dyi,dy2i,dzh, cu,cv
     use modfields, only : u0,v0,w0
-    use modsurface,only : ustar
+    use modsurfdata,only : ustar
 
     implicit none
 

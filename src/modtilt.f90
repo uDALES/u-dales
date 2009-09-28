@@ -263,7 +263,7 @@ contains
   subroutine tiltedgravity
 
     use modglobal,  only : grav,kmax,i1,j1
-    use modsurface, only : thvs
+    use modsurfdata,only : thvs
     use modfields,  only : thv0h,up,wp
 
     implicit none

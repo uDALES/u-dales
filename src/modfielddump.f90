@@ -103,7 +103,7 @@ contains
 !> Do fielddump. Collect data to truncated (2 byte) integers, and write them to file
   subroutine fielddump
     use modfields, only : um,vm,wm,thlm,qtm,ql0
-    use modsurface,only : thls,qts,thvs
+    use modsurfdata,only : thls,qts,thvs
     use modglobal, only : imax,i1,ih,jmax,j1,jh,kmax,k1,rk3step,&
                           timee,dt_lim,cexpnr,ifoutput
     use modmpi,    only : myid,cmyid

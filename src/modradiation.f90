@@ -7,6 +7,10 @@
 !!  \author Stephan de Roode,TU Delft
 !!  \author Thijs Heus, MPI-M
 !!  \todo Full Radiation : Namelists and init; get rid of datafiles
+!!  \todo Full Radiation : Check difference between tllwmn and tlradtendmn
+!!  \todo Full Radiation : Couple with modsurface and modchem
+!!  \todo Full Radiation : Debug Microphysics
+!!  \todo Full Radiation : Merge into 1 module
 !!  \todo Full Radiation : Test and debug
 !!  \todo Full Radiation : Clean up the code
 !!  \todo Documentation
@@ -148,10 +152,10 @@ contains
 !
 !
   subroutine radfull
-  use radiation, only : d4stream
-  use modglobal, only : imax,i1,ih,jmax,j1,jh,kmax,k1,cp,dzf,rlv
-  use modfields, only : rhof, exnf,exnh, thl0,qt0,ql0,sv0
-  use modsurface, only : thls,qts
+  use radiation,    only : d4stream
+  use modglobal,    only : imax,i1,ih,jmax,j1,jh,kmax,k1,cp,dzf,rlv,zf
+  use modfields,    only : rhof, exnf,exnh, thl0,qt0,ql0,sv0
+  use modsurfdata,  only : thls,qts
   use modmicrodata, only : imicro, imicro_bulk, Nc_0,iqr
     implicit none
   real :: thlpld,thlplu,thlpsd,thlpsu
@@ -168,45 +172,32 @@ contains
         if (imicro==imicro_bulk) rr_b(:,:,k+1) = sv0(:,:,k,iqr)
 
       end do
-      rhof_b(1)     = rhof(1)
+!take care of the surface boundary conditions
+      rhof_b(1)     = rhof(1) + 2*zf(1)/dzf(1)*(rhof(1)-rhof(2))
       exnf_b(1)     = exnh(1) + 0.5*dzf(1)*(exnh(1)-exnf(1))
-      ql_b(:,:,1)   = ql0(:,:,1)
+      ql_b(:,:,1)   = ql0(:,:,1) + 2*zf(1)/dzf(1)*(ql0(:,:,1)-ql0(:,:,2))
       qv_b(:,:,1)   = qts + 0.5*dzf(1)*(qts-qt0(:,:,1))-ql_b(:,:,1)
       temp_b(:,:,1) = (thls + 0.5*dzf(1)*(thls-thl0(:,:,1)))*exnf_b(1)+ &
              (rlv/cp)*ql_b(:,:,1)
       if (imicro==imicro_bulk) rr_b(:,:,1) = rr_b(:,:,2)
 !run radiation
-             call d4stream(i1,ih,j1,jh,k1,   &  !done
-             thls,          &       !done
-             sfc_albedo,          &   !done
-             Nc_0,           &     !done
-                  rhof_b,      &     !done
-                  exnf_b*cp,      &    !done
-                  temp_b,   &  !done
-                  qv_b,    &   !done
-                  ql_b,   &    !done
-                  swd,     &       !done     -OUT
-                  swu,   &       !done -OUT
-                  lwd,     &       !done     -OUT
-                  lwu,   &       !done -OUT
-                  albedo,   &      !done       -OUT
-                  rr=rr_b)
-!Downward radiation fluxes are pointing downward in DALES, pointing upward in UCLALES 
-        lwd = -lwd
-        swd = -swd
+      call d4stream(i1,ih,j1,jh,k1,thls,sfc_albedo,Nc_0,rhof_b,exnf_b*cp,temp_b,qv_b,ql_b,swd,swu,lwd,lwu,albedo,rr=rr_b)
+!Downward radiation fluxes are pointing downward in UCLALES, pointing upward in DALES
+      lwd = -lwd
+      swd = -swd
 !Add up thl tendency
-        do k=1,kmax
-        do j=2,j1
-        do i=2,i1
-          thlpld          = -(lwd(i,j,k+1)-lwd(i,j,k))/(rho_air_mn*cp*dzf(k))
-          thlplu          = -(lwu(i,j,k+1)-lwu(i,j,k))/(rho_air_mn*cp*dzf(k))
-          thlpsd          = -(swd(i,j,k+1)-swd(i,j,k))/(rho_air_mn*cp*dzf(k))
-          thlpsu          = -(swu(i,j,k+1)-swu(i,j,k))/(rho_air_mn*cp*dzf(k))
+      do k=1,kmax
+      do j=2,j1
+      do i=2,i1
+        thlpld          = -(lwd(i,j,k+1)-lwd(i,j,k))/(rho_air_mn*cp*dzf(k))
+        thlplu          = -(lwu(i,j,k+1)-lwu(i,j,k))/(rho_air_mn*cp*dzf(k))
+        thlpsd          = -(swd(i,j,k+1)-swd(i,j,k))/(rho_air_mn*cp*dzf(k))
+        thlpsu          = -(swu(i,j,k+1)-swu(i,j,k))/(rho_air_mn*cp*dzf(k))
 
-          thlprad(i,j,k)  = thlprad(i,j,k) + thlpld+thlplu+thlpsu+thlpsd
-        end do
-        end do
-        end do
+        thlprad(i,j,k)  = thlprad(i,j,k) + thlpld+thlplu+thlpsu+thlpsd
+      end do
+      end do
+      end do
 
 
 end subroutine radfull
