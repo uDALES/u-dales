@@ -53,7 +53,7 @@ SAVE
   real :: dlwbot     = 0.     !< longwave radiative flux divergence near the surface
   real :: sw0        = 1100.0 !< direct component at top of the cloud (W/m^2), diffuse not possible
   real :: gc         = 0.85   !< asymmetry factor of droplet scattering angle distribution
-  real :: sfc_albedo = 0.05   !< ground surface albedo
+  !CvH real :: sfc_albedo = 0.05   !< ground surface albedo
   real :: reff       = 1.e-5  !< cloud droplet effective radius (m)
   integer :: isvsmoke = 1     !< number of passive scalar to be used for optical depth calculation
   integer :: iradiation = irad_par  !< Selection parameter for type of radiation scheme
@@ -67,7 +67,7 @@ SAVE
   real, allocatable :: swu(:,:,:)    !<   shortwave upward radiative flux
   real, allocatable :: lwd(:,:,:)    !<   longwave downward radiative flux
   real, allocatable :: lwu(:,:,:)    !<   longwave upward radiative flux
-  real, allocatable :: albedo(:,:)   !<   Albedo
+  !CvH albedo real, allocatable :: albedo(:,:)   !<   Albedo
 
 
 contains

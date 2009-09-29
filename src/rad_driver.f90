@@ -30,10 +30,10 @@
 !
 module radiation
 
-  use fuliou, only     : rad
-  use modglobal, only  : cexpnr,cp,rcp,cpr,rhow,pref0,pi,xlat,xlon,xday,xtime,timee
-  use rad_solver,only: nv1, nv, SolarConstant
-  use modraddata,only  : zenith,useMcICA
+  use fuliou,      only : rad
+  use modglobal,   only : cexpnr,cp,rcp,cpr,rhow,pref0,pi,xlat,xlon,xday,xtime,timee
+  use rad_solver,  only : nv1, nv, SolarConstant
+  use modraddata,  only : zenith,useMcICA
   implicit none
 
 
@@ -46,18 +46,18 @@ module radiation
 
   contains
 
-    subroutine d4stream(i1,ih,j1,jh,k1, sknt, sfc_albedo, CCN, dn0, &
-         pi0,  tk, rv, rc, fds3D,fus3D,fdir3D,fuir3D, albedo, rr)
-  implicit none
-
+    subroutine d4stream(i1,ih,j1,jh,k1, tskin, albedo, CCN, dn0, &
+         pi0,  tk, rv, rc, fds3D,fus3D,fdir3D,fuir3D, rr)
+      implicit none
 
       integer, intent (in) :: i1,ih,j1,jh,k1
-      real, intent (in)    ::  sknt, sfc_albedo, CCN
+      real, intent (in)    :: CCN
+      ! CvH real, intent (in)    :: sknt, sfc_albedo, CCN
       real, dimension (k1), intent (in)                 :: dn0, pi0
-      real, dimension (2-ih:i1+ih,2-jh:j1+jh,k1), intent (in) :: tk, rv, rc
+      real, dimension (2-ih:i1+ih,2-jh:j1+jh,k1), intent (in)  :: tk, rv, rc
       real, optional, dimension (2-ih:i1+ih,2-jh:j1+jh,k1), intent (in) :: rr
-      real, dimension (2-ih:i1+ih,2-jh:j1+jh,k1), intent (out):: fus3D,fds3D,fuir3D,fdir3D
-      real, dimension (2-ih:i1+ih,2-jh:j1+jh), intent (out):: albedo
+      real, dimension (2-ih:i1+ih,2-jh:j1+jh,k1), intent (out) :: fus3D,fds3D,fuir3D,fdir3D
+      real, dimension (2-ih:i1+ih,2-jh:j1+jh), intent (in) :: tskin, albedo
 
       integer :: kk
       real    :: prw, p0(k1), exner(k1), pres(k1)
@@ -113,7 +113,7 @@ module radiation
             end do
             pp(nv-k1+2) = pres(k1)/100. - 0.5*(pres(k1-1)-pres(k1)) / 100.
 
-            call rad( sfc_albedo, u0, SolarConstant, sknt, ee, pp, pt, ph, po,&
+            call rad( albedo(i,j), u0, SolarConstant, tskin(i,j), ee, pp, pt, ph, po,&
                  fds, fus, fdir, fuir, plwc=plwc, pre=pre, useMcICA=useMcICA)
 
             do k=1,k1
@@ -125,11 +125,12 @@ module radiation
 !                rflx(i,j,k) = sflx(i,j,k) + fuir(kk) - fdir(kk)
             end do
 
-            if (u0 > 0.) then
-               albedo(i,j) = fus(1)/fds(1)
-            else
-               albedo(i,j) = -999.
-            end if
+!           CvH TO BE REMOVED
+!           if (u0 > 0.) then
+!              albedo(i,j) = fus(1)/fds(1)
+!           else
+!              albedo(i,j) = -999.
+!           end if
 
 !             do k=2,k1-3
 !                xfact  = exner(k)*dzm(k)/(cp*dn0(k))

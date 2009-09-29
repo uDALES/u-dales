@@ -33,8 +33,6 @@
 !  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
 
-
-
 module modradiation
 use modraddata
 implicit none
@@ -43,8 +41,8 @@ contains
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine initradiation
-    use modglobal, only : kmax,i1,ih,j1,jh,k1,nsv,dtmax,ih,jh,btime
-    use modmpi,    only : myid
+    use modglobal,    only : kmax,i1,ih,j1,jh,k1,nsv,dtmax,ih,jh,btime
+    use modmpi,       only : myid
     implicit none
 
     allocate(thlprad(2-ih:i1+ih,2-jh:j1+jh,k1))
@@ -52,7 +50,7 @@ contains
     allocate(swu(2-ih:i1+ih,2-jh:j1+jh,k1))
     allocate(lwd(2-ih:i1+ih,2-jh:j1+jh,k1))
     allocate(lwu(2-ih:i1+ih,2-jh:j1+jh,k1))
-    allocate(albedo(2-ih:i1+ih,2-jh:j1+jh))
+    !allocate(albedo(2-ih:i1+ih,2-jh:j1+jh))
     thlprad = 0.
     swd = 0.
     swu = 0.
@@ -147,7 +145,7 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine exitradiation
     implicit none
-    deallocate(thlprad,swd,swu,lwd,lwu,albedo)
+    deallocate(thlprad,swd,swu,lwd,lwu)
   end subroutine exitradiation
 !
 !
@@ -155,7 +153,8 @@ contains
   use radiation,    only : d4stream
   use modglobal,    only : imax,i1,ih,jmax,j1,jh,kmax,k1,cp,dzf,rlv,zf
   use modfields,    only : rhof, exnf,exnh, thl0,qt0,ql0,sv0
-  use modsurfdata,  only : thls,qts
+  ! CvH thls, qts need to be removed
+  use modsurfdata,  only : albedo, tskin, qskin, thls, qts
   use modmicrodata, only : imicro, imicro_bulk, Nc_0,iqr
     implicit none
   real :: thlpld,thlplu,thlpsd,thlpsu
@@ -176,12 +175,12 @@ contains
       rhof_b(1)     = rhof(1) + 2*zf(1)/dzf(1)*(rhof(1)-rhof(2))
       exnf_b(1)     = exnh(1) + 0.5*dzf(1)*(exnh(1)-exnf(1))
       ql_b(:,:,1)   = ql0(:,:,1) + 2*zf(1)/dzf(1)*(ql0(:,:,1)-ql0(:,:,2))
-      qv_b(:,:,1)   = qts + 0.5*dzf(1)*(qts-qt0(:,:,1))-ql_b(:,:,1)
-      temp_b(:,:,1) = (thls + 0.5*dzf(1)*(thls-thl0(:,:,1)))*exnf_b(1)+ &
+      qv_b(:,:,1)   = qskin(:,:) + 0.5*dzf(1)*(qskin(:,:)-qt0(:,:,1))-ql_b(:,:,1)
+      temp_b(:,:,1) = (tskin(:,:) + 0.5*dzf(1)*(tskin(:,:)-thl0(:,:,1)))*exnf_b(1)+ &
              (rlv/cp)*ql_b(:,:,1)
       if (imicro==imicro_bulk) rr_b(:,:,1) = rr_b(:,:,2)
 !run radiation
-      call d4stream(i1,ih,j1,jh,k1,thls,sfc_albedo,Nc_0,rhof_b,exnf_b*cp,temp_b,qv_b,ql_b,swd,swu,lwd,lwu,albedo,rr=rr_b)
+      call d4stream(i1,ih,j1,jh,k1,tskin,albedo,Nc_0,rhof_b,exnf_b*cp,temp_b,qv_b,ql_b,swd,swu,lwd,lwu,rr=rr_b)
 !Downward radiation fluxes are pointing downward in UCLALES, pointing upward in DALES
       lwd = -lwd
       swd = -swd
@@ -203,7 +202,7 @@ contains
 end subroutine radfull
 
 
- subroutine radpar
+subroutine radpar
 !-----------------------------------------------------------------|
 !                                                                 |
 !*** *radpar*  calculates tendency due to parameterized radiation |
@@ -224,9 +223,6 @@ end subroutine radfull
 !     ----------                                                  |
 !                                                                 |
 !-----------------------------------------------------------------|
-
-
-
 
   use modglobal,    only : i1,j1,kmax, k1,ih,jh,dzf,cp,rslabs,xtime,timee,xday,xlat,xlon
   use modfields,    only : ql0, sv0
@@ -350,6 +346,7 @@ end subroutine radfull
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
   use modglobal, only :  k1
+  use modsurfdata,  only : albedo
   implicit none
 
   real, intent(inout), dimension (k1) :: tau
@@ -406,9 +403,9 @@ end subroutine radfull
   xm23p=1.0-rtt*rp
   ap23b=alpha+rtt*beta
 
-  t1=1-sfc_albedo-rtt*(1.+sfc_albedo)*rp
-  t2=1-sfc_albedo+rtt*(1.+sfc_albedo)*rp
-  t3=(1-sfc_albedo)*alpha-rtt*(1+sfc_albedo)*beta+sfc_albedo*mu
+  t1=1-albedo(i,j)-rtt*(1.+albedo(i,j))*rp
+  t2=1-albedo(i,j)+rtt*(1.+albedo(i,j))*rp
+  t3=(1-albedo(i,j))*alpha-rtt*(1+albedo(i,j))*beta+albedo(i,j)*mu
   c2=(xp23p*t3*exmu0-t1*ap23b*exmk)/(xp23p*t2*expk-xm23p*t1*exmk)
   c1=(ap23b-c2*xm23p)/xp23p
 

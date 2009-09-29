@@ -24,7 +24,7 @@
 !! This module provides an interactive surface parameterization
 !!
 !! \par Revision list
-!! \par Authors
+!! \par Chiel van Heerwaarden
 !! \todo documentation
 !!  \deprecated Modsurface replaces the old modsurf.f90
 
@@ -321,9 +321,10 @@ contains
 
 !> Calculates the interaction with the soil, the surface temperature and humidity, and finally the surface fluxes.
   subroutine surface
-    use modglobal, only : dt, i1, i2, j1, j2, cp, rlv, fkar, zf, cu, cv, nsv, rk3step, timee, rslabs, pi
-    use modfields, only : thl0, qt0, u0, v0, rhof
-    use modmpi,    only : my_real, mpierr, comm3d, mpi_sum, myid, excj
+    use modglobal,  only : dt, i1, i2, j1, j2, cp, rlv, fkar, zf, cu, cv, nsv, rk3step, timee, rslabs, pi
+    use modraddata, only : iradiation, swu, swd, lwu, lwd
+    use modfields,  only : thl0, qt0, u0, v0, rhof
+    use modmpi,     only : my_real, mpierr, comm3d, mpi_sum, myid, excj
     implicit none
 
     real     :: f1, f2, f3 ! Correction functions for Jarvis-Steward
@@ -356,6 +357,13 @@ contains
 
           ! Qnet(i,j)  =  (1. - albedo(i,j)) * SWin + 0.8 * 5.67e-8 * thl0(i,j,1) ** 4. - 5.67e-8 * tskin(i,j) ** 4.
           !Qnet(i,j) = 400.
+
+          if(iradiation == 1) then
+            Qnet(i,j) = swd(i,j,1) - swu(i,j,1) + lwd(i,j,1) - lwu(i,j,1)
+            if(i == 2 .and. j == 2) then
+              write(6,*) "CvH", swd(i,j,1), swu(i,j,1), lwd(i,j,1), lwu(i,j,1)
+            end if
+          end if
 
           ! Use the energy balance from the previous timestep
           G0(i,j) = lambdaskin(i,j) * ( tskin(i,j) - tsoil(i,j,1) )
