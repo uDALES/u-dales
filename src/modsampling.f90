@@ -174,12 +174,13 @@ contains
 !> Cleans up after the run
   subroutine exitsampling
     use modstat_nc, only : lnetcdf
+    use modmpi,     only : myid
     implicit none
 
     if (isamptot>0) then
        deallocate( wavl,tlavl,tvavl,qtavl,qlavl,nrsampl,massflxavl, &
                 wtlavl,wtvavl,wqtavl,wqlavl,uwavl,vwavl)
-       if (lnetcdf) deallocate(ncname)
+       if (lnetcdf .and. myid==0) deallocate(ncname)
     end if
   end subroutine exitsampling
 !> General routine, does the timekeeping
