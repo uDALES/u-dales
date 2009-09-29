@@ -16,14 +16,13 @@ imax       =  32
 jtot       =  32
 kmax       =  160
 
-
 xsize      =  3200.
 ysize      =  3200.
 
 xlat       =  31.5
 xlon       =  240.5
 xday       =  195.
-xtime      =  12.
+xtime      =  15. 
 /
 
 &PHYSICS

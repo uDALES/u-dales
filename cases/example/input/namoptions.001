@@ -1,46 +1,79 @@
 &RUN
 iexpnr     =  001
 lwarmstart =  .false.
-startfile  =  'initd03h00m000.001'
+startfile  =  'initd00h01m000.001'
 runtime    =  7200
-trestart   =  3600
+trestart   =  3600 
 ladaptive  =  .true.
 irandom    =  43
 randthl    =  0.1
 randqt     =  2.5e-5
-nsv        =  1
+nsv        =  0 
 /
 
 &DOMAIN
-imax       =  64
+imax       =  64 
 jtot       =  64
 kmax       =  96
 
 xsize      =  3200.
 ysize      =  3200.
 
-xlat       =  15.
-xlon       =  0.
-xday       =  0.
-xtime      =  0.
+xlat       =  51.96
+xlon       =  4.95
+xday       =  287.
+xtime      =  22.
 /
 
 &PHYSICS
 z0         =  0.035
 ustin      =  0.0
-ps         =  101300.00
-thls       =  299.10
+ps         =  100000.00
+thls       =  296.
 wtsurf     =  0.1
 wqsurf     =  0.0001
-wsvsurf    =  0.1
-
+wsvsurf(1) =  0.
+wsvsurf(2) =  1.
 lmoist     =  .true.
-isurf      =  4
-iradiation =  0
-timerad    =  3600
+isurf      =  1
+iradiation =  1
+useMcICA   =  .true.
 lcoriol    =  .true.
 /
 
+&NAMSURFACE
+tsoilav(1)   = 290.
+tsoilav(2)   = 287.
+tsoilav(3)   = 285.
+tsoilav(4)   = 283.
+tsoildeepav  = 283.
+
+phiwav(1)    = 0.25 
+phiwav(2)    = 0.25 
+phiwav(3)    = 0.25
+phiwav(4)    = 0.25 
+
+rootfav(1)   = 0.35
+rootfav(2)   = 0.38 
+rootfav(3)   = 0.23 
+rootfav(4)   = 0.04
+
+lsea         = .false.
+lmostlocal   = .false.
+lsmoothflux  = .false.
+rsisurf2     = 50.
+
+z0mav        = 0.035
+z0hav        = 0.007
+Cskinav      = 20000.
+lambdaskinav = 5.
+albedoav     = 0.20
+Qnetav       = 450.
+
+rsminav      = 110.
+LAIav        = 2.
+gDav         = 0.
+/
 &DYNAMICS
 llsadv     =  .false.
 lqlnr      =  .false.
@@ -53,18 +86,22 @@ iadv_thl    =  5
 iadv_qt     =  5
 iadv_sv     =  5
 /
+
 &NAMCHECKSIM
-tcheck      = 60
+tcheck      = 0
 /
+
 &NAMSAMPLING
 lsampup     = .false.
 dtav        = 60
 timeav      = 120
 /
+
 &NAMTIMESTAT
-ltimestat   = .false.
-dtav        = 60
+ltimestat   = .true.
+dtav        = 5
 /
+
 &NAMCROSSSECTION
 lcross      = .false.
 dtav        = 60
@@ -82,5 +119,19 @@ ldiracc     = .true.
 &NAMSTATTEND
 dtav        = 60
 timeav      = 300
-ltend       = .false.
+ltend       = .true.
 /
+
+&NAMBUDGET
+lbudget = .true.
+dtav    = 60
+timeav  = 300
+/
+
+&NAMNETCDFMOVIE
+lnetcdfmovie = .false.
+dtmovie      = 10
+lmoviez      = .false.
+slicez       = 1
+slicex       = 1
+

@@ -261,7 +261,6 @@ contains
       allocate(ra(i2,j2))
       allocate(tendskin(i2,j2))
       allocate(tskinm(i2,j2))
-      allocate(albedo(i2,j2))
       allocate(Cskin(i2,j2))
       allocate(lambdaskin(i2,j2))
       allocate(LAI(i2,j2))
@@ -275,6 +274,7 @@ contains
       gD         = gDav
     end if
 
+    allocate(albedo(i2,j2))
     allocate(z0m(i2,j2))
     allocate(z0h(i2,j2))
     allocate(obl(i2,j2))
