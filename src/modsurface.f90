@@ -266,7 +266,6 @@ contains
       allocate(LAI(i2,j2))
       allocate(gD(i2,j2))
 
-      albedo     = albedoav
       Cskin      = Cskinav
       lambdaskin = lambdaskinav
       rsmin      = rsminav
@@ -282,6 +281,8 @@ contains
     allocate(qskin(i2,j2))
     allocate(Cm(i2,j2))
     allocate(Cs(i2,j2))
+
+    albedo     = albedoav
 
     if((z0mav == -1 .and. z0hav == -1) .and. (z0 .ne. -1)) then
       z0mav = z0
