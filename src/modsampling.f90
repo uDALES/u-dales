@@ -154,7 +154,7 @@ contains
           call ncinfo(ncname( 4,:,isamp),'qt'//samplname(isamp),trim(longsamplname(isamp))//' '//'mean total water content','kg/kg','tt')
           call ncinfo(ncname( 5,:,isamp),'ql'//samplname(isamp),trim(longsamplname(isamp))//' '//'mean liquid water content','kg/kg','tt')
           call ncinfo(ncname( 6,:,isamp),'tv'//samplname(isamp),trim(longsamplname(isamp))//' '//'mean virtual potential temperature','K','tt')
-          call ncinfo(ncname( 7,:,isamp),'massflx'//samplname(isamp),trim(longsamplname(isamp))//' '//'mass fluxU pressure gradient tendency','m^3/s','mt')
+          call ncinfo(ncname( 7,:,isamp),'massflx'//samplname(isamp),trim(longsamplname(isamp))//' '//'mass flux','m^3/s','mt')
           call ncinfo(ncname( 8,:,isamp),'wtl'//samplname(isamp),trim(longsamplname(isamp))//' '//'theta_l flux','K m/s','mt')
           call ncinfo(ncname( 9,:,isamp),'wqt'//samplname(isamp),trim(longsamplname(isamp))//' '//'total water flux','kg/kg m/s','mt')
           call ncinfo(ncname(10,:,isamp),'wql'//samplname(isamp),trim(longsamplname(isamp))//' '//'liquid water flux','kg/kg m/s','mt')
@@ -163,7 +163,7 @@ contains
           call ncinfo(ncname(13,:,isamp),'vw'//samplname(isamp),trim(longsamplname(isamp))//' '//'vw flux','m^2/s^2','mt')
 
           call redefine_nc(ncid_prof)
-          call define_nc( ncid_prof, NVar, ncname)
+          call define_nc( ncid_prof, NVar, ncname(:,:,isamp))
         end do
      end if
 

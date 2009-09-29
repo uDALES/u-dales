@@ -176,9 +176,9 @@ contains
         call ncinfo(ncname(16,:),'obukh','Obukhov Length','m','time')
         call ncinfo(ncname(17,:),'tsrf','Surface liquid water potential temperature','K','time')
         call ncinfo(ncname(18,:),'z0','Roughness height','m','time')
-        call ncinfo(ncname(19,:),'shf_bar','Sensible heat flux','W/m^2','time')
-        call ncinfo(ncname(20,:),'sfcbflx','Surface Buoyancy Flux','m/s^2','time')
-        call ncinfo(ncname(21,:),'lhf_bar','Latent heat flux','W/m^2','time')
+        call ncinfo(ncname(19,:),'shf_bar','Sensible heat flux','K m/s','time')
+        call ncinfo(ncname(20,:),'sfcbflx','Surface Buoyancy Flux','K m/s','time')
+        call ncinfo(ncname(21,:),'lhf_bar','Latent heat flux','kg/kg m/s','time')
         call open_nc(fname,  ncid)
         call define_nc( ncid, NVar, ncname)
       end if

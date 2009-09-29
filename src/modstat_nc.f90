@@ -190,6 +190,10 @@ contains
         stop
         ! call appl_abort(0)
       end select
+      if (iret/=0) then
+        write (*,*) 'nvar', nvar, sx(n,:)
+        call nchandle_error(iret)
+      end if
       iret=nf90_put_att(ncID,VarID,'longname',sx(n,2))
       iret=nf90_put_att(ncID,VarID,'units',sx(n,3))
 
