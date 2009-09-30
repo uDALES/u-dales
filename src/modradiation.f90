@@ -178,9 +178,12 @@ contains
       qv_b(:,:,1)   = qskin(:,:) + 0.5*dzf(1)*(qskin(:,:)-qt0(:,:,1))-ql_b(:,:,1)
       temp_b(:,:,1) = (tskin(:,:) + 0.5*dzf(1)*(tskin(:,:)-thl0(:,:,1)))*exnf_b(1)+ &
              (rlv/cp)*ql_b(:,:,1)
-      if (imicro==imicro_bulk) rr_b(:,:,1) = rr_b(:,:,2)
-!run radiation
-      call d4stream(i1,ih,j1,jh,k1,tskin,albedo,Nc_0,rhof_b,exnf_b*cp,temp_b,qv_b,ql_b,swd,swu,lwd,lwu,rr=rr_b)
+      if (imicro==imicro_bulk) then
+        rr_b(:,:,1) = rr_b(:,:,2)
+        call d4stream(i1,ih,j1,jh,k1,tskin,albedo,Nc_0,rhof_b,exnf_b*cp,temp_b,qv_b,ql_b,swd,swu,lwd,lwu,rr=rr_b)
+      else
+        call d4stream(i1,ih,j1,jh,k1,tskin,albedo,Nc_0,rhof_b,exnf_b*cp,temp_b,qv_b,ql_b,swd,swu,lwd,lwu)
+      end if
 !Downward radiation fluxes are pointing downward in UCLALES, pointing upward in DALES
       lwd = -lwd
       swd = -swd
@@ -197,7 +200,7 @@ contains
           end do
         end do
       end do
-      
+
 end subroutine radfull
 
 
