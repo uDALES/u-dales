@@ -383,7 +383,7 @@ contains
 
           if(iradiation == 1) then
             Qnet(i,j) = -(swdav + swuav + lwdav + lwuav)
-            if(i==2 .and. j==2) write(6,*) "CvH", i,j, swdav, swuav, lwdav, lwuav
+            if(myid == 0 .and. i==2 .and. j==2) write(6,*) "CvH", i,j, swdav, swuav, lwdav, lwuav
           end if
 
           ! Use the energy balance from the previous timestep
