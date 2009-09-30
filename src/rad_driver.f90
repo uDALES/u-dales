@@ -63,8 +63,6 @@ module radiation
       real    :: prw, p0(k1), exner(k1), pres(k1)
       character (len=19) :: background
 
-      write(6,*) "CvHd4", CCN, dn0(1), pi0(1), tk(2,2,1), rv(2,2,1), rc(2,2,1), rr(2,2,1), tskin(2,2), albedo(2,2)
-
       if (first_time) then
          p0(k1) = (pref0*(pi0(k1)/cp)**cpr) / 100.
          p0(k1-1) = (pref0*(pi0(k1-1)/cp)**cpr) / 100.
@@ -127,13 +125,6 @@ module radiation
 !                rflx(i,j,k) = sflx(i,j,k) + fuir(kk) - fdir(kk)
             end do
             
-            if(i == 2 .and. j == 2) then
-              do k = 1, k1
-                kk = nv1 - (k-1)
-                write(6,*) "CvH", i,j,k, fds(kk)
-              end do
-            end if
-
 !           CvH TO BE REMOVED
 !           if (u0 > 0.) then
 !              albedo(i,j) = fus(1)/fds(1)

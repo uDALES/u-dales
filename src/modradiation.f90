@@ -154,36 +154,47 @@ contains
   use modglobal,    only : imax,i1,ih,jmax,j1,jh,kmax,k1,cp,dzf,rlv,zf
   use modfields,    only : rhof, exnf,exnh, thl0,qt0,ql0,sv0
   ! CvH thls, qts need to be removed
-  use modsurfdata,  only : albedo, tskin, qskin, thls, qts
+  use modsurfdata,  only : albedo, tskin, qskin !, thls, qts
   use modmicrodata, only : imicro, imicro_bulk, Nc_0,iqr
     implicit none
   real :: thlpld,thlplu,thlpsd,thlpsu
   real, dimension(k1)  :: rhof_b, exnf_b
   real, dimension(2-ih:i1+ih,2-jh:j1+jh,k1) :: temp_b, qv_b, ql_b,rr_b
   integer :: i,j,k
+
 !take care of UCLALES z-shift for thermo variables.
       do k=1,kmax
         rhof_b(k+1)     = rhof(k)
         exnf_b(k+1)     = exnf(k)
-        qv_b(:,:,k+1)   = qt0(:,:,k) - ql0(:,:,k)
-        ql_b(:,:,k+1)   = ql0(:,:,k)
-        temp_b(:,:,k+1) = thl0(:,:,k)*exnf(k)+(rlv/cp)*ql0(:,:,k)
-        if (imicro==imicro_bulk) rr_b(:,:,k+1) = sv0(:,:,k,iqr)
-
+        do j=2,j1
+          do i=2,i1
+            qv_b(i,j,k+1)   = qt0(i,j,k) - ql0(i,j,k)
+            ql_b(i,j,k+1)   = ql0(i,j,k)
+            temp_b(i,j,k+1) = thl0(i,j,k)*exnf(k)+(rlv/cp)*ql0(i,j,k)
+            if (imicro==imicro_bulk) rr_b(i,j,k+1) = sv0(i,j,k,iqr)
+          end do
+        end do
       end do
-!take care of the surface boundary conditions
+     
+      !take care of the surface boundary conditions
       rhof_b(1)     = rhof(1) + 2*zf(1)/dzf(1)*(rhof(1)-rhof(2))
       exnf_b(1)     = exnh(1) + 0.5*dzf(1)*(exnh(1)-exnf(1))
-      ql_b(:,:,1)   = ql0(:,:,1) + 2*zf(1)/dzf(1)*(ql0(:,:,1)-ql0(:,:,2))
-      qv_b(:,:,1)   = qskin(:,:) + 0.5*dzf(1)*(qskin(:,:)-qt0(:,:,1))-ql_b(:,:,1)
-      temp_b(:,:,1) = (tskin(:,:) + 0.5*dzf(1)*(tskin(:,:)-thl0(:,:,1)))*exnf_b(1)+ &
-             (rlv/cp)*ql_b(:,:,1)
+
+      do j=2,j1
+        do i=2,i1
+          ql_b(i,j,1)   = ql0(i,j,1) + 2*zf(1)/dzf(1)*(ql0(i,j,1)-ql0(i,j,2))
+          qv_b(i,j,1)   = qskin(i,j) + 0.5*dzf(1)*(qskin(i,j)-qt0(i,j,1))-ql_b(i,j,1)
+          temp_b(i,j,1) = (tskin(i,j) + 0.5*dzf(1)*(tskin(i,j)-thl0(i,j,1)))*exnf_b(1) + (rlv/cp)*ql_b(i,j,1)
+        end do
+      end do
+
       if (imicro==imicro_bulk) then
         rr_b(:,:,1) = rr_b(:,:,2)
         call d4stream(i1,ih,j1,jh,k1,tskin,albedo,Nc_0,rhof_b,exnf_b*cp,temp_b,qv_b,ql_b,swd,swu,lwd,lwu,rr=rr_b)
       else
         call d4stream(i1,ih,j1,jh,k1,tskin,albedo,Nc_0,rhof_b,exnf_b*cp,temp_b,qv_b,ql_b,swd,swu,lwd,lwu)
       end if
+
 !Downward radiation fluxes are pointing downward in UCLALES, pointing upward in DALES
       lwd = -lwd
       swd = -swd

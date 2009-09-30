@@ -361,7 +361,7 @@ contains
 
           if(iradiation == 1) then
             Qnet(i,j) = -(swd(i,j,1) + swu(i,j,1) + lwd(i,j,1) + lwu(i,j,1))
-!            if(i==3 .and. j==3) write(6,*) "CvH", i,j, swd(i,j,1), swu(i,j,1), lwd(i,j,1), lwu(i,j,1)
+            if(i==2 .and. j==2) write(6,*) "CvH", i,j, swd(i,j,1), swu(i,j,1), lwd(i,j,1), lwu(i,j,1)
           end if
 
           ! Use the energy balance from the previous timestep
