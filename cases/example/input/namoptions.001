@@ -20,9 +20,9 @@ xsize      =  3200.
 ysize      =  3200.
 
 xlat       =  51.96
-xlon       =  4.95
-xday       =  287.
-xtime      =  22.
+xlon       =  4.91
+xday       =  268.
+xtime      =  12.
 /
 
 &PHYSICS
@@ -74,6 +74,7 @@ rsminav      = 110.
 LAIav        = 2.
 gDav         = 0.
 /
+
 &DYNAMICS
 llsadv     =  .false.
 lqlnr      =  .false.
@@ -99,7 +100,7 @@ timeav      = 120
 
 &NAMTIMESTAT
 ltimestat   = .true.
-dtav        = 5
+dtav        = 30 
 /
 
 &NAMCROSSSECTION
@@ -134,4 +135,10 @@ dtmovie      = 10
 lmoviez      = .false.
 slicez       = 1
 slicex       = 1
+/
 
+&NAMRADSTAT
+lstat = .true.
+dtav = 30
+timeav = 30
+/

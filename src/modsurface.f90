@@ -175,7 +175,7 @@ contains
       dzsoil(3) = 0.72
       dzsoil(4) = 1.89
 
-!! 1.3   -  Calculate vertical layer properties
+      !! 1.3   -  Calculate vertical layer properties
       zsoil(1)  = dzsoil(1)
       do k = 2, ksoilmax
         zsoil(k) = zsoil(k-1) + dzsoil(k)
@@ -383,8 +383,7 @@ contains
 
           if(iradiation == 1) then
             Qnet(i,j) = -(swdav + swuav + lwdav + lwuav)
-            !if(i==2 .and. j==2) write(6,*) "CvH", i,j, swdav, swuav, lwdav, lwuav
-            if(i==2 .and. j==2) write(6,*) "CvH", i,j, swdav, swdavn(i,j,1), swdavn(i,j,2), swdavn(i,j,3), swdavn(i,j,4), swdavn(i,j,5)
+            if(i==2 .and. j==2) write(6,*) "CvH", i,j, swdav, swuav, lwdav, lwuav
           end if
 
           ! Use the energy balance from the previous timestep
