@@ -186,19 +186,18 @@ contains
       swd = -swd
 !Add up thl tendency
       do k=1,kmax
-      do j=2,j1
-      do i=2,i1
-        thlpld          = -(lwd(i,j,k+1)-lwd(i,j,k))/(rho_air_mn*cp*dzf(k))
-        thlplu          = -(lwu(i,j,k+1)-lwu(i,j,k))/(rho_air_mn*cp*dzf(k))
-        thlpsd          = -(swd(i,j,k+1)-swd(i,j,k))/(rho_air_mn*cp*dzf(k))
-        thlpsu          = -(swu(i,j,k+1)-swu(i,j,k))/(rho_air_mn*cp*dzf(k))
+        do j=2,j1
+          do i=2,i1
+            thlpld          = -(lwd(i,j,k+1)-lwd(i,j,k))/(rho_air_mn*cp*dzf(k))
+            thlplu          = -(lwu(i,j,k+1)-lwu(i,j,k))/(rho_air_mn*cp*dzf(k))
+            thlpsd          = -(swd(i,j,k+1)-swd(i,j,k))/(rho_air_mn*cp*dzf(k))
+            thlpsu          = -(swu(i,j,k+1)-swu(i,j,k))/(rho_air_mn*cp*dzf(k))
 
-        thlprad(i,j,k)  = thlprad(i,j,k) + thlpld+thlplu+thlpsu+thlpsd
+            thlprad(i,j,k)  = thlprad(i,j,k) + thlpld+thlplu+thlpsu+thlpsd
+          end do
+        end do
       end do
-      end do
-      end do
-
-
+      
 end subroutine radfull
 
 

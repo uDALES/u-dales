@@ -12,7 +12,7 @@ endif($ENV{SYST} STREQUAL "localpc_gfortran")
 PROJECT(DALES Fortran)
 cmake_minimum_required(VERSION 2.6)
 
-set(CMAKE_BUILD_TYPE "Debug")
+set(CMAKE_BUILD_TYPE "Release")
 
 set(VERSION_MAJOR "3")
 set(VERSION_MINOR "1")
