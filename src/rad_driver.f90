@@ -125,13 +125,6 @@ module radiation
 !                rflx(i,j,k) = sflx(i,j,k) + fuir(kk) - fdir(kk)
             end do
             
-            if(i == 2 .and. j == 2) then
-            do k = 1, k1
-              kk = nv1 - (k-1)
-              write(6,*) "CvH", i,j,k, fds(kk)
-            end do
-            end if
-
 !           CvH TO BE REMOVED
 !           if (u0 > 0.) then
 !              albedo(i,j) = fus(1)/fds(1)
