@@ -67,7 +67,7 @@ SAVE
   real, allocatable :: lwdavn  (:,:,:)
   real, allocatable :: lwuavn  (:,:,:)
 
-  integer           :: nradtime  = 30
+  integer           :: nradtime  = 60
 
   ! Soil related constants [adapted from ECMWF]
   real, parameter   :: phi       = 0.472  !<  volumetric soil porosity [-]
