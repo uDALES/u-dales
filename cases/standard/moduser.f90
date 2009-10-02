@@ -1,4 +1,4 @@
-!> \file force_user.f90
+!> \file moduser.f90
 !! A dummy file for cases where one wants additional forcings
 !----------------------------------------------------------------------------
 ! This file is part of DALES.
@@ -20,8 +20,23 @@
 !----------------------------------------------------------------------------
 !
 !
+module moduser
+
+contains
 subroutine force_user
+  implicit none
+  end subroutine force_user
 
+subroutine rad_user
+  implicit none
+end subroutine rad_user
 
-return
-end subroutine force_user
+subroutine micro_user
+  implicit none
+end subroutine micro_user
+
+subroutine surf_user
+  implicit none
+end subroutine surf_user
+
+end module moduser

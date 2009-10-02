@@ -1,3 +1,5 @@
+!> \file moduser.f90
+!! A dummy file for cases where one wants additional forcings
 !----------------------------------------------------------------------------
 ! This file is part of DALES.
 !
@@ -18,7 +20,10 @@
 !----------------------------------------------------------------------------
 !
 !
-subroutine rad_user
+module moduser
+
+contains
+subroutine force_user
 ! DYCOMS version of rad_user adds a radiative forcing above the inversion layer
 use modfields, only : qt0
 use modglobal, only : i1,j1,kmax,dzh,zf
@@ -45,6 +50,18 @@ real    :: zi=0.0
     end do
   enddo
   enddo
+end subroutine force_user
 
-return
+subroutine rad_user
+  implicit none
 end subroutine rad_user
+
+subroutine micro_user
+  implicit none
+end subroutine micro_user
+
+subroutine surf_user
+  implicit none
+end subroutine surf_user
+
+end module moduser

@@ -36,7 +36,8 @@ module modforces
 implicit none
 save
 private
-public :: forces, coriolis, lstend
+public :: forces, coriolis, lstend,lforce_user
+logical :: lforce_user = .false.
 contains
   subroutine forces
 
@@ -61,11 +62,12 @@ contains
   use modglobal, only : i1,j1,kmax,dzh,dzf,grav
   use modfields, only : u0,v0,w0,up,vp,wp,thv0h,dpdxl,dpdyl
   use modsurfdata,only : thvs
+  use moduser,   only : force_user
   implicit none
 
   integer i, j, k, jm, jp, km, kp
 
-  call force_user
+  if (lforce_user) call force_user
 
   do k=2,kmax
     kp=k+1

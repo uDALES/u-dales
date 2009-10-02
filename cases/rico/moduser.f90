@@ -1,3 +1,5 @@
+!> \file moduser.f90
+!! A dummy file for cases where one wants additional forcings
 !----------------------------------------------------------------------------
 ! This file is part of DALES.
 !
@@ -18,10 +20,24 @@
 !----------------------------------------------------------------------------
 !
 !
+module moduser
+
+contains
+subroutine force_user
+  implicit none
+  end subroutine force_user
+
+subroutine rad_user
+  implicit none
+end subroutine rad_user
+
+subroutine micro_user
+  implicit none
+end subroutine micro_user
+
 subroutine surf_user
-! A dummy file for cases where one wants alternative surface layer implementation
- use modglobal, only : zf,i1,j1,i2,j2,grav,nsv,fkar,cv,cu
- use modsurface, only : ustar,tstar,qstar,dudz,dvdz,dqtdz,dthldz,&
+ use modglobal,  only : zf,i1,j1,i2,j2,grav,nsv,fkar,cv,cu
+ use modsurfdata,only : ustar,tstar,qstar,dudz,dvdz,dqtdz,dthldz,&
                           svs,svstar,z0,qts,thls,thvs
   use modfields, only : u0,v0,thl0,qt0,sv0,u0av,v0av,qt0av,thl0av
   use modmpi,    only :  excj
@@ -51,20 +67,20 @@ subroutine surf_user
 
   do j=2,j1
   do i=2,i1
-  
+
     dthz1 = thl0(i,j,1) - thls
     dqz1  = qt0(i,j,1)  - qts
     upcu  = 0.5*(u0(i,j,1)+u0(i+1,j,1))+cu
     vpcv  = 0.5*(v0(i,j,1)+v0(i,j+1,1))+cv
     horv  = sqrt(upcu**2 + vpcv**2)
     horv2 = (upcu**2 + vpcv**2)
-    
+
     ustar(i,j) = sqrt(C_m*horv2)
     tstar(i,j) = C_h*horv*dthz1/ustar(i,j)
     qstar(i,j) = C_q*horv*dqz1/ustar(i,j)
-    
+
     obl   = ustar(i,j)**2/(fkar*(grav/thvs)*(tstar(i,j)+0.61*thvs*qstar(i,j)))
-    
+
     if (stab < 0.) then
        phimzf = (1.-16.*zf(1)/obl)**(-0.25)
        phihzf = (1.-16.*zf(1)/obl)**(-0.50)
@@ -79,13 +95,13 @@ subroutine surf_user
        phimzf = (1.+5.*zf(1)/obl)
        phihzf = (1.+8.*zf(1)/obl)
     endif
-    
-    
+
+
     dudz(i,j)   = ustar(i,j)*(phimzf/(fkar*zf(1)))*(upcu/horv)
     dvdz(i,j)   = ustar(i,j)*(phimzf/(fkar*zf(1)))*(vpcv/horv)
     dthldz(i,j) = tstar(i,j)*(phihzf/(fkar*zf(1)))
     dqtdz(i,j)  = qstar(i,j)*(phihzf/(fkar*zf(1)))
-    
+
   end do
   end do
 
@@ -103,6 +119,6 @@ subroutine surf_user
     enddo
     enddo
   enddo
-
-return
 end subroutine surf_user
+
+end module moduser

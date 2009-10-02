@@ -90,6 +90,7 @@ contains
   end subroutine microphysics
 
   subroutine microsources
+   use moduser,      only : micro_user
    use modbulkmicro, only : bulkmicro
 !     use modbinmicro,  only : binmicrosources
     implicit none

@@ -57,6 +57,7 @@ contains
                                   nsv,imax,jtot,kmax,xsize,ysize,xlat,xlon,xday,xtime,&
                                   lmoist,lcoriol,lmomsubs,cu, cv,ifnamopt,fname_options,llsadv,&
                                   iadv_mom,iadv_tke,iadv_thl,iadv_qt,iadv_sv,courant,peclet,ladaptive,author
+    use modforces,         only : lforce_user
     use modsurfdata,       only : z0,ustin,wtsurf,wqsurf,wsvsurf,ps,thls,isurf
     use modsurface,        only : initsurface
     use modfields,         only : initfields
@@ -88,7 +89,7 @@ contains
         !cstep z0,ustin,wtsurf,wqsurf,wsvsurf,ps,thls,chi_half,lmoist,isurf,lneutraldrag,&
          z0,ustin,wtsurf,wqsurf,wsvsurf,ps,thls,lmoist,isurf,chi_half,&
         lcoriol,lmomsubs, ltimedep,irad,timerad,iradiation,rad_ls,rad_longw,rad_shortw,rad_smoke,useMcICA,&
-        rka,dlwtop,dlwbot,sw0,gc,sfc_albedo,reff,isvsmoke
+        rka,dlwtop,dlwbot,sw0,gc,sfc_albedo,reff,isvsmoke,lforce_user
     namelist/DYNAMICS/ &
         llsadv, lqlnr, cu, cv, iadv_mom, iadv_tke, iadv_thl, iadv_qt, iadv_sv
 !   logical :: ldelta   = .false. ! switch for subgrid
@@ -152,6 +153,7 @@ contains
     call MPI_BCAST(chi_half   ,1,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(lmoist     ,1,MPI_LOGICAL,0,comm3d,mpierr)
     call MPI_BCAST(lcoriol    ,1,MPI_LOGICAL,0,comm3d,mpierr)
+    call MPI_BCAST(lforce_user,1,MPI_LOGICAL,0,comm3d,mpierr)
     call MPI_BCAST(lmomsubs   ,1,MPI_LOGICAL,0,comm3d,mpierr)
     call MPI_BCAST(ltimedep   ,1,MPI_LOGICAL,0,comm3d,mpierr)
 

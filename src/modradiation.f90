@@ -11,7 +11,6 @@
 !!  \todo Full Radiation : Couple with modsurface and modchem
 !!  \todo Full Radiation : Debug Microphysics
 !!  \todo Full Radiation : Merge into 1 module
-!!  \todo Full Radiation : Test and debug
 !!  \todo Full Radiation : Clean up the code
 !!  \todo Documentation
 !!  \par Revision list
@@ -108,6 +107,7 @@ contains
   subroutine radiation
     use modglobal, only : timee, dt_lim,rk3step
     use modfields, only : thlp
+    use moduser,   only : rad_user
     implicit none
 
     if(timee<tnext .and. rk3step==3) then
@@ -173,9 +173,9 @@ contains
 
       end do
 !take care of the surface boundary conditions
-      rhof_b(1)     = rhof(1) + 2*zf(1)/dzf(1)*(rhof(1)-rhof(2))
+      rhof_b(1)     = rhof(1) + 2.0*zf(1)/dzf(1)*(rhof(1)-rhof(2))
       exnf_b(1)     = exnh(1) + 0.5*dzf(1)*(exnh(1)-exnf(1))
-      ql_b(:,:,1)   = ql0(:,:,1) + 2*zf(1)/dzf(1)*(ql0(:,:,1)-ql0(:,:,2))
+      ql_b(:,:,1)   = ql0(:,:,1) + 2.0*zf(1)/dzf(1)*(ql0(:,:,1)-ql0(:,:,2))
       qv_b(:,:,1)   = qts + 0.5*dzf(1)*(qts-qt0(:,:,1))-ql_b(:,:,1)
       temp_b(:,:,1) = (thls + 0.5*dzf(1)*(thls-thl0(:,:,1)))*exnf_b(1)+ &
              (rlv/cp)*ql_b(:,:,1)
