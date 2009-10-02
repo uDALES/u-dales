@@ -1,6 +1,13 @@
 if (NOT CMAKE_BUILD_TYPE)
-  set (CMAKE_BUILD_TYPE RELEASE CACHE STRING)
+  set (CMAKE_BUILD_TYPE RELEASE CACHE STRING
+      "Choose the type of build, options are: None Debug Release."
+      FORCE)
 endif (NOT CMAKE_BUILD_TYPE)
+
+if($ENV{SYST} STREQUAL "")
+  set($ENV{SYST} STREQUAL "localpc_gfortran")
+endif($ENV{SYST} STREQUAL "")
+
 if($ENV{SYST} STREQUAL "localpc_gfortran")
   set(CMAKE_Fortran_COMPILER "mpif90")
   set(CMAKE_Fortran_FLAGS "-finit-real=nan -W -Wall -fdefault-real-8 -ffree-line-length-none -I/include -I/usr/include -I/usr/local/include" CACHE STRING "")
