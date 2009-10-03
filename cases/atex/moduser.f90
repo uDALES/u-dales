@@ -27,7 +27,7 @@ subroutine force_user
 ! DYCOMS version of rad_user adds a radiative forcing above the inversion layer
 use modfields, only : qt0
 use modglobal, only : i1,j1,kmax,dzh,zf
-use modradiation, only : thlprad
+use modraddata,only : thlprad
 implicit none
 integer :: i,j,k
 real    :: thres = 8e-3,a=1,D=3.75e-6
