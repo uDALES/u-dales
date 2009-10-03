@@ -24,32 +24,33 @@ module moduser
 
 contains
 subroutine force_user
-! DYCOMS version of rad_user adds a radiative forcing above the inversion layer
-use modfields, only : qt0
-use modglobal, only : i1,j1,kmax,dzh,zf
-use modraddata,only : thlprad
-implicit none
-integer :: i,j,k
-real    :: thres = 8e-3,a=1,D=3.75e-6
-real    :: zi=0.0
+  use modglobal, only : kmax,dzh,zf,zh
+  use modfields, only : qt0av,thlp,qtp,whls
+  implicit none
+  integer :: k,kinv,ktrot
+  real    :: ztrot, zinv
+  do k=1,kmax
+    if (qt0av(k)<6.5e-3) exit
+  end do
+  kinv = k-1
+  zinv = zf(kinv) + (qt0av(kinv)-6.5e-3)/(qt0av(kinv)-qt0av(kinv+1))*dzh(k)
+  do k=kinv,kmax
+    if (zf(k) > zinv+300) exit
+  end do
+  ktrot = k-1
+  ztrot = zf(ktrot) + (zf(ktrot)-(zinv+300))/(zf(ktrot)-zf(ktrot+1))*dzh(k)
 
-  do i=2,j1
-  do j=2,j1
-  !Determine local BL-height following the specifications.
-    do k=kmax,1,-1
-      if (qt0(i,j,k) > thres) then
-        zi =zf(k) + (thres-qt0(i,j,k)) &
-                    *dzh(k+1)/(qt0(i,j,k+1)-qt0(i,j,k))
-        exit
-      endif
-    enddo
-    ! Apply the radiative flux divergence
-    do k=kmax,1,-1
-      if (zf(k)< zi) exit
-      thlprad(i,j,k) = thlprad(i,j,k) + a*D/3.*((zf(k)-zi)**(1./3.)+zi*(zf(k)-zi)**(-2./3.))
-    end do
-  enddo
-  enddo
+  whls = 0.
+  do k=1,kinv
+    whls(k)     = zh(k)/zinv*6.5e-3
+    thlp(:,:,k) = thlp(:,:,k) -1.1575e-5*(3-zf(k)/zinv)
+    qtp(:,:,k)  = qtp(:,:,k)  -1.58e-8*(3-zf(k)/zinv)
+  end do
+  do k=kinv+1,ktrot
+    whls(k)     = 6.5e-3*(zh(k)-ztrot)/300
+    thlp(:,:,k) = thlp(:,:,k) -1.1575e-5*(2.)
+    qtp(:,:,k)  = qtp(:,:,k)  -1.58e-8*(2.)
+  end do
 end subroutine force_user
 
 subroutine rad_user
