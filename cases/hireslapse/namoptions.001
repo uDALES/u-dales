@@ -12,8 +12,8 @@ nsv        =  0
 /
 
 &DOMAIN
-imax       =  320 
-jtot       =  320
+imax       =  160 
+jtot       =  160
 kmax       =  196
 
 xsize      =  3200.
@@ -22,7 +22,7 @@ ysize      =  3200.
 xlat       =  51.96
 xlon       =  4.91
 xday       =  268.
-xtime      =  6.
+xtime      =  4.
 /
 
 &PHYSICS
