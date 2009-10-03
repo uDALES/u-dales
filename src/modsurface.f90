@@ -47,7 +47,7 @@ contains
 
     integer   :: i,j,k, ierr
     namelist/NAMSURFACE/ & !< Soil related variables
-      tsoilav, tsoildeepav, phiwav, rootfav, &
+      isurf,tsoilav, tsoildeepav, phiwav, rootfav, &
       ! Land surface related variables
       lsea, lmostlocal, lsmoothflux, z0mav, z0hav, rsisurf2, Cskinav, lambdaskinav, albedoav, Qnetav, &
       ! Jarvis-Steward related variables
@@ -68,6 +68,7 @@ contains
       close(ifnamopt)
     end if
 
+    call MPI_BCAST(isurf        , 1       , MPI_INTEGER, 0, comm3d, mpierr)
     call MPI_BCAST(tsoilav      , ksoilmax, MY_REAL, 0, comm3d, mpierr)
     call MPI_BCAST(tsoildeepav  , 1       , MY_REAL, 0, comm3d, mpierr)
     call MPI_BCAST(phiwav       , ksoilmax, MY_REAL, 0, comm3d, mpierr)
@@ -95,6 +96,12 @@ contains
     call MPI_BCAST(wsvsurf(1:nsv),nsv,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(ps         ,1,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(thls       ,1,MY_REAL   ,0,comm3d,mpierr)
+
+    if((z0mav == -1 .and. z0hav == -1) .and. (z0 .ne. -1)) then
+      z0mav = z0
+      z0hav = z0 / 5.
+      write(6,*) "WARNING: z0m is defined as the z0, z0h is defined as z0 / 5."
+    end if
 
     if(isurf == 1) then
       if(tsoilav(1) == -1 .or. tsoilav(2) == -1 .or. tsoilav(3) == -1 .or. tsoilav(4) == -1) then
@@ -128,6 +135,7 @@ contains
         stop "NAMSURFACE: Set rsisurf2 if you use isurf = 2 over land "
       end if
     end if
+
 
     if(isurf .ne. 3) then
       if(z0mav == -1) then
@@ -283,11 +291,6 @@ contains
     allocate(Cm(i2,j2))
     allocate(Cs(i2,j2))
 
-    if((z0mav == -1 .and. z0hav == -1) .and. (z0 .ne. -1)) then
-      z0mav = z0
-      z0hav = z0 / 5.
-      write(6,*) "WARNING: z0m is defined as the z0, z0h is defined as z0 / 5."
-    end if
 
     z0m        = z0mav
     z0h        = z0hav
