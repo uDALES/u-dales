@@ -42,7 +42,7 @@ subroutine force_user
 
   whls = 0.
   do k=1,kinv
-    whls(k)     = zh(k)/zinv*6.5e-3
+    whls(k)     = -zh(k)/zinv*6.5e-3
     thlp(:,:,k) = thlp(:,:,k) -1.1575e-5*(3-zf(k)/zinv)
     qtp(:,:,k)  = qtp(:,:,k)  -1.58e-8*(3-zf(k)/zinv)
   end do
