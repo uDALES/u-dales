@@ -34,7 +34,7 @@
 !! - Radiation
 !! - Review documentation
 !! - Cleaning up for release : Removal of debug statements, cleaner code, less
-!! warnings in chemistry, clean example dirs
+!! warnings in chemistry
 !!
 !! \section License License
 !!  This file is part of DALES.
@@ -85,7 +85,7 @@ program DALES      !Version 3.2 Beta 1
   use modsampling,     only : initsampling, sampling,exitsampling
   use modcrosssection, only : initcrosssection, crosssection,exitcrosssection
   use modprojection,   only : initprojection, projection
-  use modcloudfield,  only : initcloudfield, cloudfield
+  use modcloudfield,   only : initcloudfield, cloudfield
   use modfielddump,    only : initfielddump, fielddump,exitfielddump
   use modstattend,     only : initstattend, stattend,exitstattend, tend_start,tend_adv,tend_subg,tend_force,&
                               tend_rad,tend_ls,tend_micro, tend_topbound,tend_pois,tend_addon, tend_coriolis

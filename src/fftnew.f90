@@ -886,6 +886,9 @@
   logical firstloop
   DIMENSION       WA(N+1)      ,IFAC(2*N+1)    ,NTRYH(4)
   DATA NTRYH(1),NTRYH(2),NTRYH(3),NTRYH(4)/4,2,3,5/
+
+  NTRY = 4
+  NQ   = 0
   NL = N
   NF = 0
   NR = 1

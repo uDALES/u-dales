@@ -82,7 +82,7 @@ contains
     dt_lim = min(dt_lim,tnext)
 
     if(projectheight>kmax .or. projectplane>j1) then
-      stop 'projection: projection out of range' 
+      stop 'projection: projection out of range'
     end if
     if (.not. ladaptive .and. abs(dtav/dtmax-nint(dtav/dtmax))>1e-4) then
       stop 'projection: dtav should be a integer multiple of dtmax'
@@ -116,10 +116,10 @@ contains
   use modmpi,    only : myid
   implicit none
 
-  integer i,j,k,n
+  integer i,k,n
   character(20) :: name
 
- 
+
   if( myid /= 0 ) return
 
     open(ifoutput,file='projv_thl.'//cexpnr,position='append',action='write')
