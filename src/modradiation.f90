@@ -32,8 +32,6 @@
 !  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
 
-
-
 module modradiation
 use modraddata
 implicit none
@@ -42,8 +40,8 @@ contains
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine initradiation
-    use modglobal, only : kmax,i1,ih,j1,jh,k1,nsv,dtmax,ih,jh,btime
-    use modmpi,    only : myid
+    use modglobal,    only : kmax,i1,ih,j1,jh,k1,nsv,dtmax,ih,jh,btime
+    use modmpi,       only : myid
     implicit none
 
     allocate(thlprad(2-ih:i1+ih,2-jh:j1+jh,k1))
@@ -51,7 +49,7 @@ contains
     allocate(swu(2-ih:i1+ih,2-jh:j1+jh,k1))
     allocate(lwd(2-ih:i1+ih,2-jh:j1+jh,k1))
     allocate(lwu(2-ih:i1+ih,2-jh:j1+jh,k1))
-    allocate(albedo(2-ih:i1+ih,2-jh:j1+jh))
+    !allocate(albedo(2-ih:i1+ih,2-jh:j1+jh))
     thlprad = 0.
     swd = 0.
     swu = 0.
@@ -108,6 +106,7 @@ contains
     use modglobal, only : timee, dt_lim,rk3step
     use modfields, only : thlp
     use moduser,   only : rad_user
+    use modradfull,only : radfull
     implicit none
 
     if(timee<tnext .and. rk3step==3) then
@@ -147,86 +146,12 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine exitradiation
     implicit none
-    deallocate(thlprad,swd,swu,lwd,lwu,albedo)
+    deallocate(thlprad,swd,swu,lwd,lwu)
   end subroutine exitradiation
-!
-!
-  subroutine radfull
-  use radiation,    only : d4stream
-  use modglobal,    only : imax,i1,ih,jmax,j1,jh,kmax,k1,cp,dzf,rlv,zf
-  use modfields,    only : rhof, exnf,exnh, thl0,qt0,ql0,sv0
-  use modsurfdata,  only : thls,qts
-  use modmicrodata, only : imicro, imicro_bulk, Nc_0,iqr
-    implicit none
-  real :: thlpld,thlplu,thlpsd,thlpsu
-  real, dimension(k1)  :: rhof_b, exnf_b
-  real, dimension(2-ih:i1+ih,2-jh:j1+jh,k1) :: temp_b, qv_b, ql_b,rr_b
-  integer :: i,j,k
-!take care of UCLALES z-shift for thermo variables.
-      do k=1,kmax
-        rhof_b(k+1)     = rhof(k)
-        exnf_b(k+1)     = exnf(k)
-        qv_b(:,:,k+1)   = qt0(:,:,k) - ql0(:,:,k)
-        ql_b(:,:,k+1)   = ql0(:,:,k)
-        temp_b(:,:,k+1) = thl0(:,:,k)*exnf(k)+(rlv/cp)*ql0(:,:,k)
-        if (imicro==imicro_bulk) rr_b(:,:,k+1) = sv0(:,:,k,iqr)
-
-      end do
-!take care of the surface boundary conditions
-      rhof_b(1)     = rhof(1) + 2.0*zf(1)/dzf(1)*(rhof(1)-rhof(2))
-      exnf_b(1)     = exnh(1) + 0.5*dzf(1)*(exnh(1)-exnf(1))
-      ql_b(:,:,1)   = ql0(:,:,1) + 2.0*zf(1)/dzf(1)*(ql0(:,:,1)-ql0(:,:,2))
-      qv_b(:,:,1)   = qts + 0.5*dzf(1)*(qts-qt0(:,:,1))-ql_b(:,:,1)
-      temp_b(:,:,1) = (thls + 0.5*dzf(1)*(thls-thl0(:,:,1)))*exnf_b(1)+ &
-             (rlv/cp)*ql_b(:,:,1)
-      if (imicro==imicro_bulk) rr_b(:,:,1) = rr_b(:,:,2)
-!run radiation
-      call d4stream(i1,ih,j1,jh,k1,thls,sfc_albedo,Nc_0,rhof_b,exnf_b*cp,temp_b,qv_b,ql_b,swd,swu,lwd,lwu,albedo,rr=rr_b)
-!Downward radiation fluxes are pointing downward in UCLALES, pointing upward in DALES
-      lwd = -lwd
-      swd = -swd
-!Add up thl tendency
-      do k=1,kmax
-      do j=2,j1
-      do i=2,i1
-        thlpld          = -(lwd(i,j,k+1)-lwd(i,j,k))/(rho_air_mn*cp*dzf(k))
-        thlplu          = -(lwu(i,j,k+1)-lwu(i,j,k))/(rho_air_mn*cp*dzf(k))
-        thlpsd          = -(swd(i,j,k+1)-swd(i,j,k))/(rho_air_mn*cp*dzf(k))
-        thlpsu          = -(swu(i,j,k+1)-swu(i,j,k))/(rho_air_mn*cp*dzf(k))
-
-        thlprad(i,j,k)  = thlprad(i,j,k) + thlpld+thlplu+thlpsu+thlpsd
-      end do
-      end do
-      end do
 
 
-end subroutine radfull
-
-
- subroutine radpar
-!-----------------------------------------------------------------|
-!                                                                 |
-!*** *radpar*  calculates tendency due to parameterized radiation |
-!                                                                 |
-!      Hans Cuijpers   I.M.A.U.  06/01/1995                       |
-!                                                                 |
-!     purpose.                                                    |
-!     --------                                                    |
-!                                                                 |
-!      In this subroutine the radiative flux divergence of the    |
-!      cloud is calculated                                        |
-
-!      Margreet van Zanten IMAU juli 2000
-!      SW flux calculation added
-!      short version of radiat.f
-!                                                                 |
-!**   interface.                                                  |
-!     ----------                                                  |
-!                                                                 |
-!-----------------------------------------------------------------|
-
-
-
+!> calculates tendency due to parameterized radiation
+subroutine radpar
 
   use modglobal,    only : i1,j1,kmax, k1,ih,jh,dzf,cp,rslabs,xtime,timee,xday,xlat,xlon
   use modfields,    only : ql0, sv0
@@ -335,21 +260,13 @@ end subroutine radfull
   return
   end subroutine radpar
 
+!!   the sunray model is described by fouquart and  bonnel
+!!   (1980, contr. atmos. phys.).
 
-
-!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-!                                                                      c
   subroutine sunray(tau,tauc,i,j)
 
-!                                                                      c
-!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-
-!   the sunray model is described by fouquart and  bonnel                  c
-!   (1980, contr. atmos. phys.).                                                               c
-
-!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-
   use modglobal, only :  k1
+  use modsurfdata,  only : albedo
   implicit none
 
   real, intent(inout), dimension (k1) :: tau
@@ -406,9 +323,9 @@ end subroutine radfull
   xm23p=1.0-rtt*rp
   ap23b=alpha+rtt*beta
 
-  t1=1-sfc_albedo-rtt*(1.+sfc_albedo)*rp
-  t2=1-sfc_albedo+rtt*(1.+sfc_albedo)*rp
-  t3=(1-sfc_albedo)*alpha-rtt*(1+sfc_albedo)*beta+sfc_albedo*mu
+  t1=1-albedo(i,j)-rtt*(1.+albedo(i,j))*rp
+  t2=1-albedo(i,j)+rtt*(1.+albedo(i,j))*rp
+  t3=(1-albedo(i,j))*alpha-rtt*(1+albedo(i,j))*beta+albedo(i,j)*mu
   c2=(xp23p*t3*exmu0-t1*ap23b*exmk)/(xp23p*t2*expk-xm23p*t1*exmk)
   c1=(ap23b-c2*xm23p)/xp23p
 

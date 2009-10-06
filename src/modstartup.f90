@@ -65,7 +65,7 @@ contains
     use modradiation,      only : initradiation
     use modraddata,        only : irad,iradiation,&
                                   rad_ls,rad_longw,rad_shortw,rad_smoke,useMcICA,&
-                                  timerad,rka,dlwtop,dlwbot,sw0,gc,sfc_albedo,reff,isvsmoke
+                                  timerad,rka,dlwtop,dlwbot,sw0,gc,reff,isvsmoke
     use modtimedep,        only : inittimedep,ltimedep
     use modboundary,       only : initboundary,ksp
     use modthermodynamics, only : initthermodynamics,lqlnr, chi_half
@@ -89,7 +89,7 @@ contains
         !cstep z0,ustin,wtsurf,wqsurf,wsvsurf,ps,thls,chi_half,lmoist,isurf,lneutraldrag,&
          z0,ustin,wtsurf,wqsurf,wsvsurf,ps,thls,lmoist,isurf,chi_half,&
         lcoriol,lmomsubs, ltimedep,irad,timerad,iradiation,rad_ls,rad_longw,rad_shortw,rad_smoke,useMcICA,&
-        rka,dlwtop,dlwbot,sw0,gc,sfc_albedo,reff,isvsmoke,lforce_user
+        rka,dlwtop,dlwbot,sw0,gc,reff,isvsmoke,lforce_user
     namelist/DYNAMICS/ &
         llsadv, lqlnr, cu, cv, iadv_mom, iadv_tke, iadv_thl, iadv_qt, iadv_sv
 !   logical :: ldelta   = .false. ! switch for subgrid
@@ -170,7 +170,7 @@ contains
     call MPI_BCAST(dlwbot     ,1,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(sw0        ,1,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(gc         ,1,MY_REAL   ,0,comm3d,mpierr)
-    call MPI_BCAST(sfc_albedo ,1,MY_REAL   ,0,comm3d,mpierr)
+    ! CvH call MPI_BCAST(sfc_albedo ,1,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(reff       ,1,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(isvsmoke   ,1,MPI_INTEGER,0,comm3d,mpierr)
 

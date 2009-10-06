@@ -24,7 +24,7 @@
 !! This module provides an interactive surface parameterization
 !!
 !! \par Revision list
-!! \par Authors
+!! \par Chiel van Heerwaarden
 !! \todo documentation
 !!  \deprecated Modsurface replaces the old modsurf.f90
 
@@ -269,13 +269,11 @@ contains
       allocate(ra(i2,j2))
       allocate(tendskin(i2,j2))
       allocate(tskinm(i2,j2))
-      allocate(albedo(i2,j2))
       allocate(Cskin(i2,j2))
       allocate(lambdaskin(i2,j2))
       allocate(LAI(i2,j2))
       allocate(gD(i2,j2))
 
-      albedo     = albedoav
       Cskin      = Cskinav
       lambdaskin = lambdaskinav
       rsmin      = rsminav
@@ -283,6 +281,7 @@ contains
       gD         = gDav
     end if
 
+    allocate(albedo(i2,j2))
     allocate(z0m(i2,j2))
     allocate(z0h(i2,j2))
     allocate(obl(i2,j2))
@@ -290,6 +289,8 @@ contains
     allocate(qskin(i2,j2))
     allocate(Cm(i2,j2))
     allocate(Cs(i2,j2))
+
+    albedo     = albedoav
 
 
     z0m        = z0mav
@@ -324,9 +325,10 @@ contains
 
 !> Calculates the interaction with the soil, the surface temperature and humidity, and finally the surface fluxes.
   subroutine surface
-    use modglobal, only : dt, i1, i2, j1, j2, cp, rlv, fkar, zf, cu, cv, nsv, rk3step, timee, rslabs, pi
-    use modfields, only : thl0, qt0, u0, v0, rhof
-    use modmpi,    only : my_real, mpierr, comm3d, mpi_sum, myid, excj
+    use modglobal,  only : dt, i1, i2, j1, j2, cp, rlv, fkar, zf, cu, cv, nsv, rk3step, timee, rslabs, pi
+    use modraddata, only : iradiation, swu, swd, lwu, lwd
+    use modfields,  only : thl0, qt0, u0, v0, rhof
+    use modmpi,     only : my_real, mpierr, comm3d, mpi_sum, myid, excj
     use moduser,   only : surf_user
     implicit none
 
@@ -360,6 +362,11 @@ contains
 
           ! Qnet(i,j)  =  (1. - albedo(i,j)) * SWin + 0.8 * 5.67e-8 * thl0(i,j,1) ** 4. - 5.67e-8 * tskin(i,j) ** 4.
           !Qnet(i,j) = 400.
+
+          if(iradiation == 1) then
+            Qnet(i,j) = -(swd(i,j,1) + swu(i,j,1) + lwd(i,j,1) + lwu(i,j,1))
+            if(i==2 .and. j==2) write(6,*) "CvH", i,j, swd(i,j,1), swu(i,j,1), lwd(i,j,1), lwu(i,j,1)
+          end if
 
           ! Use the energy balance from the previous timestep
           G0(i,j) = lambdaskin(i,j) * ( tskin(i,j) - tsoil(i,j,1) )
