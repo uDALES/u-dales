@@ -183,7 +183,7 @@ contains
       dzsoil(3) = 0.72
       dzsoil(4) = 1.89
 
-!! 1.3   -  Calculate vertical layer properties
+      !! 1.3   -  Calculate vertical layer properties
       zsoil(1)  = dzsoil(1)
       do k = 2, ksoilmax
         zsoil(k) = zsoil(k-1) + dzsoil(k)
@@ -290,6 +290,11 @@ contains
     allocate(Cm(i2,j2))
     allocate(Cs(i2,j2))
 
+    allocate(swdavn(i2,j2,nradtime))
+    allocate(swuavn(i2,j2,nradtime))
+    allocate(lwdavn(i2,j2,nradtime))
+    allocate(lwuavn(i2,j2,nradtime))
+
     albedo     = albedoav
 
 
@@ -343,6 +348,8 @@ contains
     real     :: ustl, qstl, tstl
     !real     :: SWin
 
+    real               :: swdav, swuav, lwdav, lwuav
+
     if (isurf==10) then
       call surf_user
       return
@@ -363,9 +370,24 @@ contains
           ! Qnet(i,j)  =  (1. - albedo(i,j)) * SWin + 0.8 * 5.67e-8 * thl0(i,j,1) ** 4. - 5.67e-8 * tskin(i,j) ** 4.
           !Qnet(i,j) = 400.
 
+          swdavn(i,j,2:nradtime) = swdavn(i,j,1:nradtime-1)  
+          swuavn(i,j,2:nradtime) = swuavn(i,j,1:nradtime-1)  
+          lwdavn(i,j,2:nradtime) = lwdavn(i,j,1:nradtime-1)  
+          lwuavn(i,j,2:nradtime) = lwuavn(i,j,1:nradtime-1)  
+
+          swdavn(i,j,1) = swd(i,j,1) 
+          swuavn(i,j,1) = swu(i,j,1) 
+          lwdavn(i,j,1) = lwd(i,j,1) 
+          lwuavn(i,j,1) = lwu(i,j,1) 
+
+          swdav = sum(swdavn(i,j,:)) / nradtime
+          swuav = sum(swuavn(i,j,:)) / nradtime
+          lwdav = sum(lwdavn(i,j,:)) / nradtime
+          lwuav = sum(lwuavn(i,j,:)) / nradtime
+
           if(iradiation == 1) then
-            Qnet(i,j) = -(swd(i,j,1) + swu(i,j,1) + lwd(i,j,1) + lwu(i,j,1))
-            if(i==2 .and. j==2) write(6,*) "CvH", i,j, swd(i,j,1), swu(i,j,1), lwd(i,j,1), lwu(i,j,1)
+            Qnet(i,j) = -(swdav + swuav + lwdav + lwuav)
+            if(myid == 0 .and. rk3step == 3 .and. i==2 .and. j==2) write(6,*) "CvH", i,j, swdav, swuav, lwdav, lwuav
           end if
 
           ! Use the energy balance from the previous timestep
