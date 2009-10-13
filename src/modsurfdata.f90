@@ -62,6 +62,13 @@ SAVE
   real, allocatable :: tsoildeep (:,:)    !<  Soil temperature [K]
   real              :: tsoildeepav
 
+  real, allocatable :: swdavn  (:,:,:)
+  real, allocatable :: swuavn  (:,:,:)
+  real, allocatable :: lwdavn  (:,:,:)
+  real, allocatable :: lwuavn  (:,:,:)
+
+  integer           :: nradtime  = 60
+
   ! Soil related constants [adapted from ECMWF]
   real, parameter   :: phi       = 0.472  !<  volumetric soil porosity [-]
   real, parameter   :: phifc     = 0.323  !<  volumetric moisture at field capacity [-]
