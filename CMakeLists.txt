@@ -95,7 +95,7 @@ else(CASE)
      CONFIGURE_FILE( ${CMAKE_CURRENT_SOURCE_DIR}/cases/standard/moduser.f90 ${CMAKE_CURRENT_SOURCE_DIR}/src/moduser.f90 COPYONLY)
     endif (usrfile STREQUAL "")
 endif(CASE)
-unset(CASE CACHE)
+#unset(CASE CACHE)
 
 
 ADD_SUBDIRECTORY( src)
