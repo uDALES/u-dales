@@ -39,9 +39,10 @@ contains
 !> Reads the namelists and initialises the soil.
   subroutine initsurface
 
-    use modglobal, only : jmax, i1, i2, j1, j2, cp, rlv, zf, nsv, ifnamopt, fname_options
-    use modfields, only : thl0, qt0
-    use modmpi,    only : myid, nprocs, comm3d, mpierr, my_real, mpi_logical, mpi_integer
+    use modglobal,  only : jmax, i1, i2, j1, j2, cp, rlv, zf, nsv, ifnamopt, fname_options
+    use modraddata, only : iradiation
+    use modfields,  only : thl0, qt0
+    use modmpi,     only : myid, nprocs, comm3d, mpierr, my_real, mpi_logical, mpi_integer
 
     implicit none
 
@@ -290,10 +291,12 @@ contains
     allocate(Cm(i2,j2))
     allocate(Cs(i2,j2))
 
-    allocate(swdavn(i2,j2,nradtime))
-    allocate(swuavn(i2,j2,nradtime))
-    allocate(lwdavn(i2,j2,nradtime))
-    allocate(lwuavn(i2,j2,nradtime))
+    if(iradiation == 1) then
+      allocate(swdavn(i2,j2,nradtime))
+      allocate(swuavn(i2,j2,nradtime))
+      allocate(lwdavn(i2,j2,nradtime))
+      allocate(lwuavn(i2,j2,nradtime))
+    end if
 
     albedo     = albedoav
 
@@ -348,7 +351,7 @@ contains
     real     :: ustl, qstl, tstl
     !real     :: SWin
 
-    real               :: swdav, swuav, lwdav, lwuav
+    real     :: swdav, swuav, lwdav, lwuav
 
     if (isurf==10) then
       call surf_user
@@ -370,24 +373,24 @@ contains
           ! Qnet(i,j)  =  (1. - albedo(i,j)) * SWin + 0.8 * 5.67e-8 * thl0(i,j,1) ** 4. - 5.67e-8 * tskin(i,j) ** 4.
           !Qnet(i,j) = 400.
 
-          swdavn(i,j,2:nradtime) = swdavn(i,j,1:nradtime-1)  
-          swuavn(i,j,2:nradtime) = swuavn(i,j,1:nradtime-1)  
-          lwdavn(i,j,2:nradtime) = lwdavn(i,j,1:nradtime-1)  
-          lwuavn(i,j,2:nradtime) = lwuavn(i,j,1:nradtime-1)  
-
-          swdavn(i,j,1) = swd(i,j,1) 
-          swuavn(i,j,1) = swu(i,j,1) 
-          lwdavn(i,j,1) = lwd(i,j,1) 
-          lwuavn(i,j,1) = lwu(i,j,1) 
-
-          swdav = sum(swdavn(i,j,:)) / nradtime
-          swuav = sum(swuavn(i,j,:)) / nradtime
-          lwdav = sum(lwdavn(i,j,:)) / nradtime
-          lwuav = sum(lwuavn(i,j,:)) / nradtime
-
           if(iradiation == 1) then
+            swdavn(i,j,2:nradtime) = swdavn(i,j,1:nradtime-1)  
+            swuavn(i,j,2:nradtime) = swuavn(i,j,1:nradtime-1)  
+            lwdavn(i,j,2:nradtime) = lwdavn(i,j,1:nradtime-1)  
+            lwuavn(i,j,2:nradtime) = lwuavn(i,j,1:nradtime-1)  
+
+            swdavn(i,j,1) = swd(i,j,1) 
+            swuavn(i,j,1) = swu(i,j,1) 
+            lwdavn(i,j,1) = lwd(i,j,1) 
+            lwuavn(i,j,1) = lwu(i,j,1) 
+
+            swdav = sum(swdavn(i,j,:)) / nradtime
+            swuav = sum(swuavn(i,j,:)) / nradtime
+            lwdav = sum(lwdavn(i,j,:)) / nradtime
+            lwuav = sum(lwuavn(i,j,:)) / nradtime
+
             Qnet(i,j) = -(swdav + swuav + lwdav + lwuav)
-            if(myid == 0 .and. rk3step == 3 .and. i==2 .and. j==2) write(6,*) "CvH", i,j, swdav, swuav, lwdav, lwuav
+            if(myid == 0 .and. rk3step == 3) write(6,*) "CvH", i,j, Qnet(i,j)
           end if
 
           ! Use the energy balance from the previous timestep
