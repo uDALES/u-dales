@@ -333,7 +333,7 @@ contains
 
 !> Calculates the interaction with the soil, the surface temperature and humidity, and finally the surface fluxes.
   subroutine surface
-    use modglobal,  only : dt, i1, i2, j1, j2, cp, rlv, fkar, zf, cu, cv, nsv, rk3step, timee, rslabs, pi
+    use modglobal,  only : dt, i1, i2, j1, j2, cp, rlv, fkar, zf, cu, cv, nsv, rk3step, timee, rslabs, pi, pref0, rd
     use modraddata, only : iradiation, swu, swd, lwu, lwd
     use modfields,  only : thl0, qt0, u0, v0, rhof, ql0, exnf
     use modmpi,     only : my_real, mpierr, comm3d, mpi_sum, myid, excj
@@ -390,7 +390,6 @@ contains
             lwuav = sum(lwuavn(i,j,:)) / nradtime
 
             Qnet(i,j) = -(swdav + swuav + lwdav + lwuav)
-            if(myid == 0 .and. i == 2 .and. j == 2) write(6,*) "CvH", i,j, Qnet(i,j), tskin(i,j), thl0(i,j,1) + (rlv / cp) / exnf(1) * ql0(i,j,1), thl0(i,j,1)
           end if
 
           ! Use the energy balance from the previous timestep
@@ -482,9 +481,11 @@ contains
           ustar(i,j) = sqrt(Cm(i,j)) * horv
           !CvH remove liquid water to convert liquid water potential temperature to potential temperature
           !tstar(i,j) = ( thl0(i,j,1) - tskin(i,j) ) / (ra(i,j)) / ustar(i,j)
-          tstar(i,j) = ( thl0(i,j,1) + (rlv / cp) / exnf(1) * ql0(i,j,1) - tskin(i,j) ) / (ra(i,j)) / ustar(i,j)
+          tstar(i,j) = ( thl0(i,j,1) + (rlv / cp) / ((ps / pref0)**(rd/cp)) * ql0(i,j,1) - tskin(i,j) ) / (ra(i,j)) / ustar(i,j)
           !CvH end
           qstar(i,j) = ( qt0(i,j,1)  - qskin(i,j) ) / (ra(i,j) + rs(i,j)) / ustar(i,j)
+          
+          if(myid == 0 .and. i == 2 .and. j == 2) write(6,*) "CvH", thl0(i,j,1) + (rlv / cp) / ((ps / pref0)**(rd/cp)) * ql0(i,j,1), thl0(i,j,1),  tskin(i,j) 
 
           do n=1,nsv
             svstar(i,j,n) = -wsvsurf(n) / ustar(i,j)
