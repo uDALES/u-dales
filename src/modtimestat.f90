@@ -247,26 +247,26 @@ contains
     tke_totl = 0.0
 
     do j=2,j1
-    do i=2,i1
-      qlint     = 0.0
-      do k=1,kmax
-        qlint = qlint + ql0(i,j,k)*rhof(k)*dzf(k)
-      end do
-      if (qlint>0.) then
-        ccl      = ccl      + 1.0
-        qlintavl = qlintavl + qlint
-        qlintmaxl = max(qlint,qlintmaxl)
-      end if
-
-      do k=1,kmax
-        if (ql0(i,j,k) > 0.) then
-        zbaseavl = zbaseavl + zf(k)
-        zbaseminl = min(zf(k),zbaseminl)
-        exit
+      do i=2,i1
+        qlint     = 0.0
+        do k=1,kmax
+          qlint = qlint + ql0(i,j,k)*rhof(k)*dzf(k)
+        end do
+        if (qlint>0.) then
+          ccl      = ccl      + 1.0
+          qlintavl = qlintavl + qlint
+          qlintmaxl = max(qlint,qlintmaxl)
         end if
+  
+        do k=1,kmax
+          if (ql0(i,j,k) > 0.) then
+          zbaseavl = zbaseavl + zf(k)
+          zbaseminl = min(zf(k),zbaseminl)
+          exit
+          end if
+        end do
+  
       end do
-
-    end do
     end do
 
     call MPI_ALLREDUCE(ccl   , cc   , 1,    MY_REAL, &
@@ -289,18 +289,18 @@ contains
     ztopmaxl = 0.0
 
     do  i=2,i1
-    do  j=2,j1
-      ztop  = 0.0
-
-      do  k=1,kmax
-        if (ql0(i,j,k) > 0) ztop = zf(k)
-        wmaxl = max(wm(i,j,k),wmaxl)
-        qlmaxl = max(ql0(i,j,k),qlmaxl)
+      do  j=2,j1
+        ztop  = 0.0
+  
+        do  k=1,kmax
+          if (ql0(i,j,k) > 0) ztop = zf(k)
+          wmaxl = max(wm(i,j,k),wmaxl)
+          qlmaxl = max(ql0(i,j,k),qlmaxl)
+        end do
+  
+        ztopavl = ztopavl + ztop
+        if (ztop > ztopmaxl) ztopmaxl = ztop
       end do
-
-      ztopavl = ztopavl + ztop
-      if (ztop > ztopmaxl) ztopmaxl = ztop
-    end do
     end do
 
     call MPI_ALLREDUCE(wmaxl   , wmax   , 1,    MY_REAL, &
