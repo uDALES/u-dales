@@ -335,7 +335,7 @@ contains
   subroutine surface
     use modglobal,  only : dt, i1, i2, j1, j2, cp, rlv, fkar, zf, cu, cv, nsv, rk3step, timee, rslabs, pi
     use modraddata, only : iradiation, swu, swd, lwu, lwd
-    use modfields,  only : thl0, qt0, u0, v0, rhof
+    use modfields,  only : thl0, qt0, u0, v0, rhof, ql0, exnf
     use modmpi,     only : my_real, mpierr, comm3d, mpi_sum, myid, excj
     use moduser,   only : surf_user
     implicit none
@@ -480,7 +480,10 @@ contains
           ra(i,j) = 1. / ( Cs(i,j) * horv )
 
           ustar(i,j) = sqrt(Cm(i,j)) * horv
-          tstar(i,j) = ( thl0(i,j,1) - tskin(i,j) ) / (ra(i,j)) / ustar(i,j)
+          !CvH remove liquid water to convert liquid water potential temperature to potential temperature
+          !tstar(i,j) = ( thl0(i,j,1) - tskin(i,j) ) / (ra(i,j)) / ustar(i,j)
+          tstar(i,j) = ( thl0(i,j,1) + (rlv / cp) / exnf(1) * ql0(i,j,1) - tskin(i,j) ) / (ra(i,j)) / ustar(i,j)
+          !CvH end
           qstar(i,j) = ( qt0(i,j,1)  - qskin(i,j) ) / (ra(i,j) + rs(i,j)) / ustar(i,j)
 
           do n=1,nsv
