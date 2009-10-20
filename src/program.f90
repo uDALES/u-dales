@@ -218,9 +218,6 @@ program DALES      !Version 3.2 Beta 1
     call bulkmicrostat
     call budgetstat
 
-!    call netcdfstats
-!    call netcdfmovie
-
     call writerestartfiles
   end do
 
@@ -242,10 +239,6 @@ program DALES      !Version 3.2 Beta 1
   call exitbudget
   call exitcrosssection
   call exitfielddump
-
-!  call exitnetcdfstats
-!  call exitnetcdfmovie
-
   call exitmodules
 
 end program DALES
