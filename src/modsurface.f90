@@ -390,7 +390,7 @@ contains
             lwuav = sum(lwuavn(i,j,:)) / nradtime
 
             Qnet(i,j) = -(swdav + swuav + lwdav + lwuav)
-            if(myid == 0 .and. rk3step == 3) write(6,*) "CvH", i,j, Qnet(i,j)
+            if(myid == 0 .and. i == 2 .and. j == 2) write(6,*) "CvH", i,j, Qnet(i,j), tskin(i,j), thl0(i,j,1) + (rlv / cp) / exnf(1) * ql0(i,j,1), thl0(i,j,1)
           end if
 
           ! Use the energy balance from the previous timestep
