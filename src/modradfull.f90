@@ -143,14 +143,15 @@ contains
       end do
 
       !take care of the surface boundary conditions
-      rhof_b(1)     = rhof(1) + 2*zf(1)/dzf(1)*(rhof(1)-rhof(2))
-      exnf_b(1)     = exnh(1) + 0.5*dzf(1)*(exnh(1)-exnf(1))
+      !CvH edit, extrapolation creates instability in surface scheme
+      rhof_b(1)     = rhof(1) + zf(1)/dzf(1)*(rhof(1)-rhof(2)) !+ 2*zf(1)/dzf(1)*(rhof(1)-rhof(2))
+      exnf_b(1)     = exnh(1) !+ 0.5*dzf(1)*(exnh(1)-exnf(1))
 
       do j=2,j1
         do i=2,i1
-          ql_b(i,j,1)   = ql0(i,j,1) + 2*zf(1)/dzf(1)*(ql0(i,j,1)-ql0(i,j,2))
-          qv_b(i,j,1)   = qskin(i,j) + 0.5*dzf(1)*(qskin(i,j)-qt0(i,j,1))-ql_b(i,j,1)
-          temp_b(i,j,1) = (tskin(i,j) + 0.5*dzf(1)*(tskin(i,j)-thl0(i,j,1)))*exnf_b(1) + (rlv/cp)*ql_b(i,j,1)
+          ql_b(i,j,1)   = 0.! ql0(i,j,1) + 2*zf(1)/dzf(1)*(ql0(i,j,1)-ql0(i,j,2))
+          qv_b(i,j,1)   = qskin(i,j) !+ 0.5*dzf(1)*(qskin(i,j)-qt0(i,j,1))-ql_b(i,j,1)
+          temp_b(i,j,1) = tskin(i,j) !+ 0.5*dzf(1)*(tskin(i,j)-thl0(i,j,1)))*exnf_b(1) + (rlv/cp)*ql_b(i,j,1)
         end do
       end do
 
