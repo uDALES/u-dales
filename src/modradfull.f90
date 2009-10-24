@@ -153,9 +153,9 @@ contains
 
       do j=2,j1
         do i=2,i1
-          ql_b(i,j,1)   = 0.! ql0(i,j,1) + 2*zf(1)/dzf(1)*(ql0(i,j,1)-ql0(i,j,2))
-          qv_b(i,j,1)   = qskin(i,j) !+ 0.5*dzf(1)*(qskin(i,j)-qt0(i,j,1))-ql_b(i,j,1)
-          temp_b(i,j,1) = tskin(i,j) !+ 0.5*dzf(1)*(tskin(i,j)-thl0(i,j,1)))*exnf_b(1) + (rlv/cp)*ql_b(i,j,1)
+          ql_b(i,j,1)   = 0.! CvH, no ql at surface
+          qv_b(i,j,1)   = qskin(i,j) !CvH, no ql at surface thus qv = qt
+          temp_b(i,j,1) = tskin(i,j) 
         end do
       end do
       
