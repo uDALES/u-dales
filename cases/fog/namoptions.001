@@ -22,7 +22,7 @@ ysize      =  400.
 xlat       =  52.
 xlon       =  5.
 xday       =  215.
-xtime      =  2.
+xtime      =  0.
 /
 
 &PHYSICS
