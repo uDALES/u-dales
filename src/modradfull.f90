@@ -116,10 +116,9 @@ module modradfull
 contains
     subroutine radfull
   !   use radiation,    only : d4stream
-    use modglobal,    only : imax,i1,ih,jmax,j1,jh,kmax,k1,cp,dzf,rlv,zf
+    use modglobal,    only : imax,i1,ih,jmax,j1,jh,kmax,k1,cp,dzf,rlv,rd,zf,pref0
     use modfields,    only : rhof, exnf,exnh, thl0,qt0,ql0,sv0
-    ! CvH thls, qts need to be removed
-    use modsurfdata,  only : albedo, tskin, qskin !, thls, qts
+    use modsurfdata,  only : albedo, tskin, qskin, thvs, qts, ps
     use modmicrodata, only : imicro, imicro_bulk, Nc_0,iqr
     use modraddata,   only : thlprad, lwd,lwu,swd,swu,rho_air_mn
       implicit none
@@ -127,6 +126,8 @@ contains
     real, dimension(k1)  :: rhof_b, exnf_b
     real, dimension(2-ih:i1+ih,2-jh:j1+jh,k1) :: temp_b, qv_b, ql_b,rr_b
     integer :: i,j,k
+
+    real :: exnersurf
 
 !take care of UCLALES z-shift for thermo variables.
       do k=1,kmax
@@ -144,8 +145,11 @@ contains
 
       !take care of the surface boundary conditions
       !CvH edit, extrapolation creates instability in surface scheme
-      rhof_b(1)     = rhof(1) + zf(1)/dzf(1)*(rhof(1)-rhof(2)) !+ 2*zf(1)/dzf(1)*(rhof(1)-rhof(2))
-      exnf_b(1)     = exnh(1) !+ 0.5*dzf(1)*(exnh(1)-exnf(1))
+      exnersurf = (ps/pref0) ** (rd/cp)
+      rhof_b(1) = ps / (rd * thvs * exnersurf) 
+      exnf_b(1) = exnersurf
+
+      write(6,*) "CvH check1", rhof_b(1), rhof_b(2), exnf_b(1), exnf_b(2)
 
       do j=2,j1
         do i=2,i1
@@ -154,6 +158,9 @@ contains
           temp_b(i,j,1) = tskin(i,j) !+ 0.5*dzf(1)*(tskin(i,j)-thl0(i,j,1)))*exnf_b(1) + (rlv/cp)*ql_b(i,j,1)
         end do
       end do
+      
+      write(6,*) "CvH check2", ql_b(2,2,1), ql_b(2,2,2), qv_b(2,2,1), qv_b(2,2,2)
+      !CvH end edit
 
       if (imicro==imicro_bulk) then
         rr_b(:,:,1) = rr_b(:,:,2)

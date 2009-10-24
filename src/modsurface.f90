@@ -485,7 +485,7 @@ contains
           !CvH end
           qstar(i,j) = ( qt0(i,j,1)  - qskin(i,j) ) / (ra(i,j) + rs(i,j)) / ustar(i,j)
           
-          if(myid == 0 .and. i == 2 .and. j == 2) write(6,*) "CvH", thl0(i,j,1) + (rlv / cp) / ((ps / pref0)**(rd/cp)) * ql0(i,j,1), thl0(i,j,1),  tskin(i,j) 
+          !if(myid == 0 .and. i == 2 .and. j == 2) write(6,*) "CvH", thl0(i,j,1) + (rlv / cp) / ((ps / pref0)**(rd/cp)) * ql0(i,j,1), thl0(i,j,1),  tskin(i,j) 
 
           do n=1,nsv
             svstar(i,j,n) = -wsvsurf(n) / ustar(i,j)
