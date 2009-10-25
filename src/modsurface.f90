@@ -338,7 +338,7 @@ contains
 !> Calculates the interaction with the soil, the surface temperature and humidity, and finally the surface fluxes.
   subroutine surface
     use modglobal,  only : dt, i1, i2, j1, j2, cp, rlv, fkar, zf, cu, cv, nsv, rk3step, timee, rslabs, pi, pref0, rd, eps1
-    use modraddata, only : iradiation, swu, swd, lwu, lwd
+    use modraddata, only : iradiation, swu, swd, lwu, lwd, useMcICA
     use modfields,  only : thl0, qt0, u0, v0, rhof, ql0, exnf
     use modmpi,     only : my_real, mpierr, comm3d, mpi_sum, myid, excj
     use moduser,   only : surf_user
@@ -379,22 +379,26 @@ contains
           !Qnet(i,j) = 400.
 
           if(iradiation == 1) then
-            swdavn(i,j,2:nradtime) = swdavn(i,j,1:nradtime-1)  
-            swuavn(i,j,2:nradtime) = swuavn(i,j,1:nradtime-1)  
-            lwdavn(i,j,2:nradtime) = lwdavn(i,j,1:nradtime-1)  
-            lwuavn(i,j,2:nradtime) = lwuavn(i,j,1:nradtime-1)  
+            if(useMcICA) then
+              swdavn(i,j,2:nradtime) = swdavn(i,j,1:nradtime-1)  
+              swuavn(i,j,2:nradtime) = swuavn(i,j,1:nradtime-1)  
+              lwdavn(i,j,2:nradtime) = lwdavn(i,j,1:nradtime-1)  
+              lwuavn(i,j,2:nradtime) = lwuavn(i,j,1:nradtime-1)  
 
-            swdavn(i,j,1) = swd(i,j,1) 
-            swuavn(i,j,1) = swu(i,j,1) 
-            lwdavn(i,j,1) = lwd(i,j,1) 
-            lwuavn(i,j,1) = lwu(i,j,1) 
+              swdavn(i,j,1) = swd(i,j,1) 
+              swuavn(i,j,1) = swu(i,j,1) 
+              lwdavn(i,j,1) = lwd(i,j,1) 
+              lwuavn(i,j,1) = lwu(i,j,1) 
 
-            swdav = sum(swdavn(i,j,:)) / nradtime
-            swuav = sum(swuavn(i,j,:)) / nradtime
-            lwdav = sum(lwdavn(i,j,:)) / nradtime
-            lwuav = sum(lwuavn(i,j,:)) / nradtime
+              swdav = sum(swdavn(i,j,:)) / nradtime
+              swuav = sum(swuavn(i,j,:)) / nradtime
+              lwdav = sum(lwdavn(i,j,:)) / nradtime
+              lwuav = sum(lwuavn(i,j,:)) / nradtime
 
-            Qnet(i,j) = -(swdav + swuav + lwdav + lwuav)
+              Qnet(i,j) = -(swdav + swuav + lwdav + lwuav)
+            else
+              Qnet(i,j) = -(swd(i,j,1) + swu(i,j,1) + lwd(i,j,1) + lwu(i,j,1))
+            end if
           end if
 
           ! Use the energy balance from the previous timestep
