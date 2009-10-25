@@ -1368,6 +1368,7 @@ contains
     !>
   subroutine combineOpticalProperties(tau,      ssa,      pF, &
                                       tauToAdd, ssaToAdd, pFtoAdd)
+    use modglobal, only : eps1
     real, dimension(:),    intent(inout) :: tau, ssa
     real, dimension(:, :), intent(inout) :: pF   ! Phs function (level, moment)
     real, dimension(:),    intent(in)    :: tautoAdd
@@ -1395,7 +1396,8 @@ contains
       !
       ! New medium is absorbing - phase function doesn't change
       !
-       ssa(:) = (ssa(:) * tau(:)) / (tau(:) + tauToAdd(:))
+      !CvH add eps1 to prevent division by zero
+       ssa(:) = (ssa(:) * tau(:)) / (tau(:) + tauToAdd(:) + eps1)
        tau(:) = tau(:) + tauToAdd(:)
     end if
 
