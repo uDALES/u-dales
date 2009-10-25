@@ -337,7 +337,7 @@ contains
 
 !> Calculates the interaction with the soil, the surface temperature and humidity, and finally the surface fluxes.
   subroutine surface
-    use modglobal,  only : dt, i1, i2, j1, j2, cp, rlv, fkar, zf, cu, cv, nsv, rk3step, timee, rslabs, pi, pref0, rd
+    use modglobal,  only : dt, i1, i2, j1, j2, cp, rlv, fkar, zf, cu, cv, nsv, rk3step, timee, rslabs, pi, pref0, rd, eps1
     use modraddata, only : iradiation, swu, swd, lwu, lwd
     use modfields,  only : thl0, qt0, u0, v0, rhof, ql0, exnf
     use modmpi,     only : my_real, mpierr, comm3d, mpi_sum, myid, excj
@@ -403,7 +403,7 @@ contains
           LE(i,j) = - rhof(1) * rlv * ustar(i,j) * qstar(i,j)
 
           ! H should not be applied on thl but on th
-          raold   = - (tskin(i,j) - thl0(i,j,1))  / (ustar(i,j) * tstar(i,j) )
+          raold   = - (tskin(i,j) - thl0(i,j,1))  / (ustar(i,j) * tstar(i,j) + eps1 )
           H(i,j)  = - rhof(1) * cp * ( thl0(i,j,1) + (rlv / cp) / ((ps / pref0)**(rd/cp)) * ql0(i,j,1) - tskin(i,j) ) / raold
 
           if(i == 2 .and. j == 2) write(6,*) "CvHeb", timee, H(i,j), -rhof(1) * cp  * ustar(i,j) * tstar(i,j)
