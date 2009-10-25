@@ -1274,6 +1274,8 @@ contains
          !
          if (present(plwc)) then
            call cloud_water(ib, pre, plwc, dz, tw, ww, www)
+           ! CvH
+           write (6,*) "CvHrad", TauNoGas, tw
            call combineOpticalProperties(TauNoGas, wNoGas, pfNoGas, tw,ww,www)
          end if
 
