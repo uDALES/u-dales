@@ -406,7 +406,7 @@ contains
           raold   = - (tskin(i,j) - thl0(i,j,1))  / (ustar(i,j) * tstar(i,j) + eps1 )
           H(i,j)  = - rhof(1) * cp * ( thl0(i,j,1) + (rlv / cp) / ((ps / pref0)**(rd/cp)) * ql0(i,j,1) - tskin(i,j) ) / raold
 
-          if(i == 2 .and. j == 2) write(6,*) "CvHeb", timee, H(i,j), -rhof(1) * cp  * ustar(i,j) * tstar(i,j)
+          if(i == 2 .and. j == 2 .and. myid == 0 .and. rk3step == 1) write(6,*) "CvHeb", timee, H(i,j), -rhof(1) * cp  * ustar(i,j) * tstar(i,j)
 
           ! 1.3   -   Time integrate the skin temperature
 
