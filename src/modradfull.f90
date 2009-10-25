@@ -149,8 +149,6 @@ contains
       rhof_b(1) = ps / (rd * thvs * exnersurf) 
       exnf_b(1) = exnersurf
 
-      !write(6,*) "CvH check1", rhof_b(1), rhof_b(2), exnf_b(1), exnf_b(2)
-
       do j=2,j1
         do i=2,i1
           ql_b(i,j,1)   = 0.! CvH, no ql at surface
@@ -159,7 +157,6 @@ contains
         end do
       end do
       
-      !write(6,*) "CvH check2", ql_b(2,2,1), ql_b(2,2,2), qv_b(2,2,1), qv_b(2,2,2)
       !CvH end edit
 
       if (imicro==imicro_bulk) then
@@ -1394,8 +1391,7 @@ contains
       !
       ! New medium is absorbing - phase function doesn't change
       !
-      !CvH add eps1 to prevent division by zero
-       ssa(:) = (ssa(:) * tau(:)) / (tau(:) + tauToAdd(:) + eps1)
+       ssa(:) = (ssa(:) * tau(:)) / (tau(:) + tauToAdd(:))
        tau(:) = tau(:) + tauToAdd(:)
     end if
 
