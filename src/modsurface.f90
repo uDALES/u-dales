@@ -356,6 +356,7 @@ contains
     !real     :: SWin
 
     real     :: swdav, swuav, lwdav, lwuav
+    real     :: raold
 
     if (isurf==10) then
       call surf_user
@@ -398,8 +399,14 @@ contains
 
           ! Use the energy balance from the previous timestep
           G0(i,j) = lambdaskin(i,j) * ( tskin(i,j) - tsoil(i,j,1) )
-          H(i,j)  = - rhof(1) * cp  * ustar(i,j) * tstar(i,j)
+          !H(i,j)  = - rhof(1) * cp  * ustar(i,j) * tstar(i,j)
           LE(i,j) = - rhof(1) * rlv * ustar(i,j) * qstar(i,j)
+
+          ! H should not be applied on thl but on th
+          raold   = - (tskin(i,j) - thl0(i,j,1))  / (ustar(i,j) * tstar(i,j) )
+          H(i,j)  = - rhof(1) * cp * ( thl0(i,j,1) + (rlv / cp) / ((ps / pref0)**(rd/cp)) * ql0(i,j,1) - tskin(i,j) ) / raold
+
+          if(i == 2 .and. j == 2) write(6,*) "CvHeb", timee, H(i,j), -rhof(1) * cp  * ustar(i,j) * tstar(i,j)
 
           ! 1.3   -   Time integrate the skin temperature
 
@@ -483,9 +490,9 @@ contains
           ra(i,j) = 1. / ( Cs(i,j) * horv )
 
           ustar(i,j) = sqrt(Cm(i,j)) * horv
-          !CvH remove liquid water to convert liquid water potential temperature to potential temperature
-          !tstar(i,j) = ( thl0(i,j,1) - tskin(i,j) ) / (ra(i,j)) / ustar(i,j)
-          tstar(i,j) = ( thl0(i,j,1) + (rlv / cp) / ((ps / pref0)**(rd/cp)) * ql0(i,j,1) - tskin(i,j) ) / (ra(i,j)) / ustar(i,j)
+          tstar(i,j) = ( thl0(i,j,1) - tskin(i,j) ) / (ra(i,j)) / ustar(i,j)
+
+          !tstar(i,j) = ( thl0(i,j,1) + (rlv / cp) / ((ps / pref0)**(rd/cp)) * ql0(i,j,1) - tskin(i,j) ) / (ra(i,j)) / ustar(i,j)
           !CvH end
 
           !CvH allow for dewfall at night, bypass stomatal resistance
@@ -495,8 +502,6 @@ contains
             qstar(i,j) = ( qt0(i,j,1)  - qskin(i,j) ) / (ra(i,j) + rs(i,j)) / ustar(i,j)
           end if
           
-          !if(myid == 0 .and. i == 2 .and. j == 2) write(6,*) "CvH", thl0(i,j,1) + (rlv / cp) / ((ps / pref0)**(rd/cp)) * ql0(i,j,1), thl0(i,j,1),  tskin(i,j) 
-
           do n=1,nsv
             svstar(i,j,n) = -wsvsurf(n) / ustar(i,j)
           enddo
