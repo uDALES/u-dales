@@ -487,7 +487,13 @@ contains
           !tstar(i,j) = ( thl0(i,j,1) - tskin(i,j) ) / (ra(i,j)) / ustar(i,j)
           tstar(i,j) = ( thl0(i,j,1) + (rlv / cp) / ((ps / pref0)**(rd/cp)) * ql0(i,j,1) - tskin(i,j) ) / (ra(i,j)) / ustar(i,j)
           !CvH end
-          qstar(i,j) = ( qt0(i,j,1)  - qskin(i,j) ) / (ra(i,j) + rs(i,j)) / ustar(i,j)
+
+          !CvH allow for dewfall at night, bypass stomatal resistance
+          if(qt0(i,j,1) - qskin(i,j) > 0.) then
+            qstar(i,j) = ( qt0(i,j,1)  - qskin(i,j) ) / ra(i,j) / ustar(i,j)
+          else
+            qstar(i,j) = ( qt0(i,j,1)  - qskin(i,j) ) / (ra(i,j) + rs(i,j)) / ustar(i,j)
+          end if
           
           !if(myid == 0 .and. i == 2 .and. j == 2) write(6,*) "CvH", thl0(i,j,1) + (rlv / cp) / ((ps / pref0)**(rd/cp)) * ql0(i,j,1), thl0(i,j,1),  tskin(i,j) 
 
