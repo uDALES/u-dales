@@ -100,7 +100,7 @@ timeav      = 120
 
 &NAMTIMESTAT
 ltimestat   = .true.
-dtav        = 5
+dtav        = 60
 /
 
 &NAMCROSSSECTION
