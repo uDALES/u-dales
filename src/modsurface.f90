@@ -379,7 +379,7 @@ contains
           !Qnet(i,j) = 400.
 
           if(iradiation == 1) then
-            if(useMcICA) then
+            if(useMcICA .and. rk3step == 1) then
               swdavn(i,j,2:nradtime) = swdavn(i,j,1:nradtime-1)  
               swuavn(i,j,2:nradtime) = swuavn(i,j,1:nradtime-1)  
               lwdavn(i,j,2:nradtime) = lwdavn(i,j,1:nradtime-1)  
