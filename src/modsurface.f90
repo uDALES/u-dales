@@ -379,21 +379,23 @@ contains
           !Qnet(i,j) = 400.
 
           if(iradiation == 1) then
-            if(useMcICA .and. rk3step == 1) then
-              swdavn(i,j,2:nradtime) = swdavn(i,j,1:nradtime-1)  
-              swuavn(i,j,2:nradtime) = swuavn(i,j,1:nradtime-1)  
-              lwdavn(i,j,2:nradtime) = lwdavn(i,j,1:nradtime-1)  
-              lwuavn(i,j,2:nradtime) = lwuavn(i,j,1:nradtime-1)  
+            if(useMcICA) then
+              if(rk3step == 1) then
+                swdavn(i,j,2:nradtime) = swdavn(i,j,1:nradtime-1)  
+                swuavn(i,j,2:nradtime) = swuavn(i,j,1:nradtime-1)  
+                lwdavn(i,j,2:nradtime) = lwdavn(i,j,1:nradtime-1)  
+                lwuavn(i,j,2:nradtime) = lwuavn(i,j,1:nradtime-1)  
 
-              swdavn(i,j,1) = swd(i,j,1) 
-              swuavn(i,j,1) = swu(i,j,1) 
-              lwdavn(i,j,1) = lwd(i,j,1) 
-              lwuavn(i,j,1) = lwu(i,j,1) 
+                swdavn(i,j,1) = swd(i,j,1) 
+                swuavn(i,j,1) = swu(i,j,1) 
+                lwdavn(i,j,1) = lwd(i,j,1) 
+                lwuavn(i,j,1) = lwu(i,j,1) 
 
-              swdav = sum(swdavn(i,j,:)) / nradtime
-              swuav = sum(swuavn(i,j,:)) / nradtime
-              lwdav = sum(lwdavn(i,j,:)) / nradtime
-              lwuav = sum(lwuavn(i,j,:)) / nradtime
+                swdav = sum(swdavn(i,j,:)) / nradtime
+                swuav = sum(swuavn(i,j,:)) / nradtime
+                lwdav = sum(lwdavn(i,j,:)) / nradtime
+                lwuav = sum(lwuavn(i,j,:)) / nradtime
+              end if
 
               Qnet(i,j) = -(swdav + swuav + lwdav + lwuav)
             else
@@ -409,8 +411,6 @@ contains
           ! H should not be applied on thl but on th
           raold   = - (tskin(i,j) - thl0(i,j,1))  / (ustar(i,j) * tstar(i,j) + eps1 )
           H(i,j)  = - rhof(1) * cp * ( thl0(i,j,1) + (rlv / cp) / ((ps / pref0)**(rd/cp)) * ql0(i,j,1) - tskin(i,j) ) / raold
-
-          if(i == 2 .and. j == 2 .and. myid == 0 .and. rk3step == 1) write(6,*) "CvHeb", timee, H(i,j), -rhof(1) * cp  * ustar(i,j) * tstar(i,j)
 
           ! 1.3   -   Time integrate the skin temperature
 
