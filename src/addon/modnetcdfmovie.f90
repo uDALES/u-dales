@@ -185,7 +185,7 @@ contains
     tnext = tnext+dtmovie
     dt_lim = minval((/dt_lim,tnext-timee/))
     !dt_lim = min(dt_lim,tnext)
-
+    
     call do_netcdfmovie
     nccall = nccall + 1
 
@@ -263,6 +263,9 @@ contains
         if(status /= nf90_noerr) call nchandle_error(status)
       end if
     end if
+
+    status     = nf90_sync(ncid)
+    if(status /= nf90_noerr) call nchandle_error(status)
 
   end subroutine do_netcdfmovie
 
