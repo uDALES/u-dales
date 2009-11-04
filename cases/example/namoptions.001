@@ -37,8 +37,7 @@ wsvsurf(2) =  1.
 lmoist     =  .true.
 isurf      =  1
 iradiation =  1
-timerad    = 60
-useMcICA   =  .false.
+useMcICA   =  .true.
 lcoriol    =  .true.
 /
 
@@ -66,7 +65,7 @@ rsisurf2     = 50.
 
 z0mav        = 0.035
 z0hav        = 0.007
-Cskinav      = 20000.
+Cskinav      = 0.
 lambdaskinav = 5.
 albedoav     = 0.20
 Qnetav       = 450.
