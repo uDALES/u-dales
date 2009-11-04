@@ -1,0 +1,31 @@
+# Loadleveler directives start with # @
+# @ node = 1
+# @ tasks_per_node = 8
+# @ notification = never
+# @ input = /dev/null
+# @ output = errorfile.001
+# @ error = errorfile.001
+# @ wall_clock_limit = 20:00:00
+# @ job_type = parallel
+# @ network.MPI = sn_all,not_shared,US
+# @ queue
+#
+# Here the shell script starts.
+# go to the working directory:
+#
+iexpnr=001
+cd $HOME/dalesrepo/cases/example
+
+workdir=`pwd`
+partition=`uname -n`
+tmpdir=`echo $TMPDIR | sed "s/scratch\/local/gpfs\/mcn1\/${partition}/g"`
+rm -f tmpdir.$iexpnr
+ln -fs $tmpdir tmpdir.$iexpnr
+
+cp dales3 *inp.$iexpnr namoptions.$iexpnr $TMPDIR
+cd $TMPDIR
+./dales3 namoptions.$iexpnr >output.$iexpnr
+
+mv * $workdir
+cd $workdir
+rm -r tmpdir.$iexpnr
