@@ -130,7 +130,7 @@ timeav  = 300
 
 &NAMNETCDFMOVIE
 lnetcdfmovie = .true.
-dtmovie      = 60
+dtmovie      = 10
 lmoviez      = .false.
 slicez       = 1
 slicex       = 1
