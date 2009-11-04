@@ -345,7 +345,6 @@ contains
     implicit none
 
     real     :: f1, f2, f3 ! Correction functions for Jarvis-Steward
-    real     :: e, esat    ! Vapor pressure and saturated vapor pressure
     integer  :: i, j, k, n
     real     :: upcu, vpcv, horv
     real     :: phimzf, phihzf
@@ -356,106 +355,15 @@ contains
     !real     :: SWin
 
     real     :: swdav, swuav, lwdav, lwuav
-    real     :: raold
+    real     :: exner, tsurfm, e, esat, qsat, desatdT, dqsatdT, Acoef, Bcoef
 
     if (isurf==10) then
       call surf_user
       return
     end if
     ! 1     -   Calculate the surface temperature
-    if(isurf == 1) then
-      thlsl = 0.0
-      do j = 2, j1
-        do i = 2, i1
-          ! 1.1   -   Calculate the heat transport properties of the soil
-          ! CvH I put it in the init function, as we don't have prognostic soil moisture at this stage
-
-          ! 1.2   -   Calculate the skin temperature as the top boundary conditions for heat transport
-          ! TEMPORARY SOLUTION, SHOULD BE REPLACED BY RADIATION SCHEME!
-
-          !SWin =  max(600. * sin((timee + 10800.) / (24. * 3600.) * 2. * pi), 0.)
-
-          ! Qnet(i,j)  =  (1. - albedo(i,j)) * SWin + 0.8 * 5.67e-8 * thl0(i,j,1) ** 4. - 5.67e-8 * tskin(i,j) ** 4.
-          !Qnet(i,j) = 400.
-
-          if(iradiation == 1) then
-            if(useMcICA) then
-              if(rk3step == 1) then
-                swdavn(i,j,2:nradtime) = swdavn(i,j,1:nradtime-1)  
-                swuavn(i,j,2:nradtime) = swuavn(i,j,1:nradtime-1)  
-                lwdavn(i,j,2:nradtime) = lwdavn(i,j,1:nradtime-1)  
-                lwuavn(i,j,2:nradtime) = lwuavn(i,j,1:nradtime-1)  
-
-                swdavn(i,j,1) = swd(i,j,1) 
-                swuavn(i,j,1) = swu(i,j,1) 
-                lwdavn(i,j,1) = lwd(i,j,1) 
-                lwuavn(i,j,1) = lwu(i,j,1) 
-
-                swdav = sum(swdavn(i,j,:)) / nradtime
-                swuav = sum(swuavn(i,j,:)) / nradtime
-                lwdav = sum(lwdavn(i,j,:)) / nradtime
-                lwuav = sum(lwuavn(i,j,:)) / nradtime
-              end if
-
-              Qnet(i,j) = -(swdav + swuav + lwdav + lwuav)
-            else
-              Qnet(i,j) = -(swd(i,j,1) + swu(i,j,1) + lwd(i,j,1) + lwu(i,j,1))
-            end if
-          end if
-
-          ! Use the energy balance from the previous timestep
-          G0(i,j) = lambdaskin(i,j) * ( tskin(i,j) - tsoil(i,j,1) )
-          !H(i,j)  = - rhof(1) * cp  * ustar(i,j) * tstar(i,j)
-          LE(i,j) = - rhof(1) * rlv * ustar(i,j) * qstar(i,j)
-
-          ! H should not be applied on thl but on th
-          raold   = - (tskin(i,j) - thl0(i,j,1))  / (ustar(i,j) * tstar(i,j) + eps1 )
-          H(i,j)  = - rhof(1) * cp * ( thl0(i,j,1) + (rlv / cp) / ((ps / pref0)**(rd/cp)) * ql0(i,j,1) - tskin(i,j) ) / raold
-
-          ! 1.3   -   Time integrate the skin temperature
-
-          rk3coef = dt / (4. - dble(rk3step))
-
-          if(rk3step == 1 .and. timee > 0.) then
-            tskinm(i,j) = tskin(i,j)
-          end if
-
-          tskin(i,j)  = tskinm(i,j) + rk3coef / Cskin(i,j) * (Qnet(i,j) - H(i,j) - G0(i,j) - LE(i,j))
-
-          ! 1.4   -   Solve the diffusion equation for the heat transport
-          tsoil(i,j,1) = tsoil(i,j,1) + dt / pCs(i,j,1) * ( lambdah(i,j,ksoilmax) * (tsoil(i,j,2) - tsoil(i,j,1)) / dzsoilh(1) + G0(i,j) ) / dzsoil(1)
-          do k = 2, ksoilmax-1
-            tsoil(i,j,k) = tsoil(i,j,k) + dt / pCs(i,j,k) * ( lambdah(i,j,k) * (tsoil(i,j,k+1) - tsoil(i,j,k)) / dzsoilh(k) - lambdah(i,j,k-1) * (tsoil(i,j,k) - tsoil(i,j,k-1)) / dzsoilh(k-1) ) / dzsoil(k)
-          end do
-          tsoil(i,j,ksoilmax) = tsoil(i,j,ksoilmax) + dt / pCs(i,j,ksoilmax) * ( lambda(i,j,ksoilmax) * (tsoildeep(i,j) - tsoil(i,j,ksoilmax)) / dzsoil(ksoilmax) - lambdah(i,j,ksoilmax-1) * (tsoil(i,j,ksoilmax) - tsoil(i,j,ksoilmax-1)) / dzsoil(ksoilmax-1) ) / dzsoil(ksoilmax)
-
-          ! 1.5   -   Update G and skin temperature
-          G0(i,j)    = lambdaskin(i,j) * ( tskin(i,j) - tsoil(i,j,1) )
-          tskin(i,j) = tskinm(i,j) + rk3coef / Cskin(i,j) * (Qnet(i,j) - H(i,j) - G0(i,j) - LE(i,j))
-
-          tendskin(i,j) = Cskin(i,j) * (tskin(i,j) - tskinm(i,j)) / rk3coef
-
-          thlsl = thlsl + tskin(i,j)
-        end do
-      end do
-
-      call MPI_ALLREDUCE(thlsl, thls, 1,  MY_REAL, MPI_SUM, comm3d,mpierr)
-      thls = thls / rslabs
-
-      call qtsurf
-
-    elseif(isurf == 2) then
-      do j = 2, j1
-        do i = 2, i1
-          tskin(i,j) = thls
-        end do
-      end do
-
-      call qtsurf
-
-    end if
-
-    ! 2     -   Calculate the surface fluxes
+    
+    ! CvH start with computation of drag coefficients to allow for implicit solver
     if(isurf <= 2) then
 
       call getobl
@@ -482,7 +390,7 @@ contains
               rs(i,j) = rsmin(i,j) / LAI(i,j) * f1 * f2 * f3
           end if
 
-          ! 3     -   Calculate the drag coefficient aerodynamic resistance
+          ! 3     -   Calculate the drag coefficient and aerodynamic resistance
           Cm(i,j) = fkar ** 2. / (log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j)) + psim(z0m(i,j) / obl(i,j))) ** 2.
           Cs(i,j) = fkar ** 2. / (log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j)) + psim(z0m(i,j) / obl(i,j))) / (log(zf(1) / z0h(i,j)) - psih(zf(1) / obl(i,j)) + psih(z0h(i,j) / obl(i,j)))
 
@@ -492,12 +400,174 @@ contains
           horv  = max(horv, 1.e-2)
 
           ra(i,j) = 1. / ( Cs(i,j) * horv )
+        end do
+      end do
+    end if
+
+    ! Solve the surface energy balance and the heat and moisture transport in the soil
+    if(isurf == 1) then
+      thlsl = 0.0
+      do j = 2, j1
+        do i = 2, i1
+          ! 1.1   -   Calculate the heat transport properties of the soil
+          ! CvH I put it in the init function, as we don't have prognostic soil moisture at this stage
+
+          ! 1.2   -   Calculate the skin temperature as the top boundary conditions for heat transport
+          if(iradiation == 1) then
+            if(useMcICA) then
+              if(rk3step == 1) then
+                swdavn(i,j,2:nradtime) = swdavn(i,j,1:nradtime-1)  
+                swuavn(i,j,2:nradtime) = swuavn(i,j,1:nradtime-1)  
+                lwdavn(i,j,2:nradtime) = lwdavn(i,j,1:nradtime-1)  
+                lwuavn(i,j,2:nradtime) = lwuavn(i,j,1:nradtime-1)  
+
+                swdavn(i,j,1) = swd(i,j,1) 
+                swuavn(i,j,1) = swu(i,j,1) 
+                lwdavn(i,j,1) = lwd(i,j,1) 
+                lwuavn(i,j,1) = lwu(i,j,1) 
+
+              end if
+              
+              swdav = sum(swdavn(i,j,:)) / nradtime
+              swuav = sum(swuavn(i,j,:)) / nradtime
+              lwdav = sum(lwdavn(i,j,:)) / nradtime
+              lwuav = sum(lwuavn(i,j,:)) / nradtime
+
+              Qnet(i,j) = -(swdav + swuav + lwdav + lwuav)
+            else
+              Qnet(i,j) = -(swd(i,j,1) + swu(i,j,1) + lwd(i,j,1) + lwu(i,j,1))
+            end if
+          end if
+
+          ! CvH solve the surface temperature implicitly. Do not take into account variations in LWout.
+          if(rk3step == 1 .and. timee > 0.) then
+            tskinm(i,j) = tskin(i,j)
+          end if
+
+          exner   = (ps / pref0) ** (rd/cp)
+          tsurfm  = tskinm(i,j) * exner
+          
+          esat    = 0.611e3 * exp(17.2694 * (tsurfm - 273.16) / (tsurfm - 35.86))
+          qsat    = 0.622 * esat / ps
+          desatdT = esat * (17.2694 / (tsurfm - 35.86) - 17.2694 * (tsurfm - 273.16) / (tsurfm - 35.86)**2.)
+          dqsatdT = 0.622 * desatdT / ps
+
+          Acoef   = Qnet(i,j) + rhof(1) * cp / ra(i,j) * thl0(i,j,1) + rhof(1) * rlv / (ra(i,j) + rs(i,j)) * (dqsatdT * tsurfm - qsat + qt0(i,j,1)) + lambdaskin(i,j) * tsoil(i,j,1)
+          Bcoef   = rhof(1) * cp / ra(i,j) + rhof(1) * rlv / (ra(i,j) + rs(i,j)) * dqsatdT + lambdaskin(i,j)
+
+          rk3coef = dt / (4. - dble(rk3step))
+
+          if (i == 2 .and. j == 2) write(6,*) "CvH", tskin(i,j)
+
+          if (Cskin(i,j) == 0.)
+            tskin(i,j) = Acoef * Bcoef ** (-1.) / exner
+          else
+            tskin(i,j) = (1. + rk3coef / Cskin(i,j) * Bcoef) ** (-1.) * (tsurfm + rk3coef / Cskin(i,j) * Acoef) / exner
+          end if
+
+          if (i == 2 .and. j == 2) write(6,*) "CvH", tskin(i,j), tsurfm
+
+          ! Use the energy balance from the previous timestep
+          G0(i,j)       = lambdaskin(i,j) * ( tskin(i,j) - tsoil(i,j,1) )
+          LE(i,j)       = - rhof(1) * rlv / (ra(i,j) + rs(i,j)) * ( qt0(i,j,1) - (dqsatdT * (tskin(i,j) * exner - tsurfm) + qsat))
+          H(i,j)        = - rhof(1) * cp  / ra(i,j) * ( thl0(i,j,1) + (rlv / cp) / ((ps / pref0)**(rd/cp)) * ql0(i,j,1) - tskin(i,j) * exner ) 
+          tendskin(i,j) = Cskin(i,j) * (tskin(i,j) - tskinm(i,j)) * exner / rk3coef
+
+          if (i == 2 .and. j == 2) write(6,*) "CvH", Qnet(i,j), H(i,j) + LE(i,j) + G0(i,j) + tendskin(i,j), H(i,j), LE(i,j), G0(i,j), tendskin(i,j)
+
+          !! Use the energy balance from the previous timestep
+          !G0(i,j) = lambdaskin(i,j) * ( tskin(i,j) - tsoil(i,j,1) )
+          !LE(i,j) = - rhof(1) * rlv * ustar(i,j) * qstar(i,j)
+
+          !!raold   = - (tskin(i,j) - thl0(i,j,1))  / (ustar(i,j) * tstar(i,j) + eps1 )
+          !H(i,j)  = - rhof(1) * cp * ( thl0(i,j,1) + (rlv / cp) / ((ps / pref0)**(rd/cp)) * ql0(i,j,1) - tskin(i,j) ) / ra(i,j)
+
+          !! 1.3   -   Time integrate the skin temperature
+
+          !if(rk3step == 1 .and. timee > 0.) then
+          !  tskinm(i,j) = tskin(i,j)
+          !end if
+
+          !tskin(i,j)  = tskinm(i,j) + rk3coef / Cskin(i,j) * (Qnet(i,j) - H(i,j) - G0(i,j) - LE(i,j))
+
+          ! 1.4   -   Solve the diffusion equation for the heat transport
+          tsoil(i,j,1) = tsoil(i,j,1) + dt / pCs(i,j,1) * ( lambdah(i,j,ksoilmax) * (tsoil(i,j,2) - tsoil(i,j,1)) / dzsoilh(1) + G0(i,j) ) / dzsoil(1)
+          do k = 2, ksoilmax-1
+            tsoil(i,j,k) = tsoil(i,j,k) + dt / pCs(i,j,k) * ( lambdah(i,j,k) * (tsoil(i,j,k+1) - tsoil(i,j,k)) / dzsoilh(k) - lambdah(i,j,k-1) * (tsoil(i,j,k) - tsoil(i,j,k-1)) / dzsoilh(k-1) ) / dzsoil(k)
+          end do
+          tsoil(i,j,ksoilmax) = tsoil(i,j,ksoilmax) + dt / pCs(i,j,ksoilmax) * ( lambda(i,j,ksoilmax) * (tsoildeep(i,j) - tsoil(i,j,ksoilmax)) / dzsoil(ksoilmax) - lambdah(i,j,ksoilmax-1) * (tsoil(i,j,ksoilmax) - tsoil(i,j,ksoilmax-1)) / dzsoil(ksoilmax-1) ) / dzsoil(ksoilmax)
+
+          ! 1.5   -   Update G and skin temperature
+          !G0(i,j)    = lambdaskin(i,j) * ( tskin(i,j) - tsoil(i,j,1) )
+          !tskin(i,j) = tskinm(i,j) + rk3coef / Cskin(i,j) * (Qnet(i,j) - H(i,j) - G0(i,j) - LE(i,j))
+
+          thlsl = thlsl + tskin(i,j)
+        end do
+      end do
+
+      call MPI_ALLREDUCE(thlsl, thls, 1,  MY_REAL, MPI_SUM, comm3d,mpierr)
+      thls = thls / rslabs
+
+      call qtsurf
+
+    elseif(isurf == 2) then
+      do j = 2, j1
+        do i = 2, i1
+          tskin(i,j) = thls
+        end do
+      end do
+
+      call qtsurf
+
+    end if
+
+    ! 2     -   Calculate the surface fluxes
+    if(isurf <= 2) then
+
+      !call getobl
+
+      !call MPI_BCAST(oblav ,1,MY_REAL ,0,comm3d,mpierr)
+
+      !do j = 2, j1
+      !  do i = 2, i1
+      !    if(isurf == 2) then
+      !      if(lsea .eqv. .true.) then
+      !        rs(i,j) = 0.
+      !      else
+      !        rs(i,j) = rsisurf2
+      !      end if
+      !    else
+      !        ! 2.1   -   Calculate the surface resistance
+      !        f1  = 1. / min(1., (0.004 * max(0.,Qnet(i,j)) + 0.05) / (0.81 * (0.004 * max(0.,Qnet(i,j)) + 1.)))
+      !        f2  = (phifc - phiwp) / (phitot(i,j) - phiwp)
+
+      !        esat = 0.611e3 * exp(17.2694 * (thl0(i,j,1) - 273.16) / (thl0(i,j,1) - 35.86))
+      !        e    = qt0(i,j,1) * ps / 0.622
+      !        f3   = 1. / exp(-gD(i,j) * (esat - e) / 100.)
+
+      !        rs(i,j) = rsmin(i,j) / LAI(i,j) * f1 * f2 * f3
+      !    end if
+
+      !    ! 3     -   Calculate the drag coefficient and aerodynamic resistance
+      !    Cm(i,j) = fkar ** 2. / (log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j)) + psim(z0m(i,j) / obl(i,j))) ** 2.
+      !    Cs(i,j) = fkar ** 2. / (log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j)) + psim(z0m(i,j) / obl(i,j))) / (log(zf(1) / z0h(i,j)) - psih(zf(1) / obl(i,j)) + psih(z0h(i,j) / obl(i,j)))
+
+      !    upcu  = 0.5 * (u0(i,j,1) + u0(i+1,j,1)) + cu
+      !    vpcv  = 0.5 * (v0(i,j,1) + v0(i,j+1,1)) + cv
+      !    horv  = sqrt(upcu ** 2. + vpcv ** 2.)
+      !    horv  = max(horv, 1.e-2)
+
+      !    ra(i,j) = 1. / ( Cs(i,j) * horv )
+
+      do j = 2, j1
+        do i = 2, i1
+          upcu  = 0.5 * (u0(i,j,1) + u0(i+1,j,1)) + cu
+          vpcv  = 0.5 * (v0(i,j,1) + v0(i,j+1,1)) + cv
+          horv  = sqrt(upcu ** 2. + vpcv ** 2.)
+          horv  = max(horv, 1.e-2)
 
           ustar(i,j) = sqrt(Cm(i,j)) * horv
           tstar(i,j) = ( thl0(i,j,1) - tskin(i,j) ) / (ra(i,j)) / ustar(i,j)
-
-          !tstar(i,j) = ( thl0(i,j,1) + (rlv / cp) / ((ps / pref0)**(rd/cp)) * ql0(i,j,1) - tskin(i,j) ) / (ra(i,j)) / ustar(i,j)
-          !CvH end
 
           !CvH allow for dewfall at night, bypass stomatal resistance
           if(qt0(i,j,1) - qskin(i,j) > 0.) then
