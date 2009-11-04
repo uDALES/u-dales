@@ -97,7 +97,7 @@ program DALES      !Version 3.2 Beta 1
   use modparticles,    only : initparticles, particles, exitparticles
   use modnudge,        only : initnudge, nudge, exitnudge
 !   use modnetcdfstats,  only : initnetcdfstats, netcdfstats, exitnetcdfstats
-!   use modnetcdfmovie,  only : initnetcdfmovie, netcdfmovie, exitnetcdfmovie
+  use modnetcdfmovie,  only : initnetcdfmovie, netcdfmovie, exitnetcdfmovie
   use modchem,         only : initchem,inputchem, twostep
   implicit none
 
@@ -125,7 +125,7 @@ program DALES      !Version 3.2 Beta 1
   call initparticles
   call initnudge
 !   call initnetcdfstats
-!   call initnetcdfmovie
+  call initnetcdfmovie
   call initbulkmicrostat
   call initbudget
 
@@ -218,6 +218,8 @@ program DALES      !Version 3.2 Beta 1
     call bulkmicrostat
     call budgetstat
 
+    call netcdfmovie
+
     call writerestartfiles
   end do
 
@@ -239,6 +241,7 @@ program DALES      !Version 3.2 Beta 1
   call exitbudget
   call exitcrosssection
   call exitfielddump
+  call exitnetcdfmovie
   call exitmodules
 
 end program DALES
