@@ -48,7 +48,7 @@ save
 
   !id of variables
   integer :: uid, vid, wid, thlid, qtid
-
+  integer :: Hid, LEid, G0id, tendskinid, tskinid
 
   !COMMON VARIABLES
   !constants
@@ -71,16 +71,19 @@ contains
     use netcdf, only : nf90_def_var,nf90_unlimited,nf90_enddef,nf90_float, nf90_clobber, nf90_create, nf90_def_dim, nf90_noerr
     use modmpi, only : myid,comm3d,mpierr, my_real,mpi_logical, mpi_integer
     use modglobal, only : dtmax,ladaptive, dt_lim
+    use modsurface, only : isurf
 
     implicit none
 
-    integer             :: status, npes
+    integer             :: status
     character(len = 20) :: ncfile
-    integer             :: n, ierr
-    character(20)       :: name
+    integer             :: ierr
+!    character(20)       :: name
 
     namelist/NAMNETCDFMOVIE/ &
     dtmovie,lnetcdfmovie, ncklimit, lmoviez, slicex, slicez
+
+    dtmovie=dtav_glob
 
     if(myid==0)then
       open(ifnamopt,file=fname_options,status='old',iostat=ierr)
@@ -95,9 +98,8 @@ contains
     call MPI_BCAST(lmoviez         ,1,MPI_LOGICAL, 0, comm3d, mpierr)
     call MPI_BCAST(slicex          ,1,MPI_INTEGER,  0, comm3d, mpierr)
     call MPI_BCAST(slicez          ,1,MPI_INTEGER,  0, comm3d, mpierr)
-    tnext = dtmovie-1e-6
-
-
+    
+    tnext = dtmovie-1e-3+btime
 
     if(.not.(lnetcdfmovie)) return
     dt_lim = min(dt_lim,tnext)
@@ -148,6 +150,19 @@ contains
     status = nf90_def_var(ncid, "qt", nf90_float, (/xid, yid, zid, tid/), qtid)
     if (status /= nf90_noerr) call nchandle_error(status)
 
+    if(isurf == 1) then
+      status = nf90_def_var(ncid, "H", nf90_float, (/xid, yid, tid/), Hid)
+      if (status /= nf90_noerr) call nchandle_error(status)
+      status = nf90_def_var(ncid, "LE", nf90_float, (/xid, yid, tid/), LEid)
+      if (status /= nf90_noerr) call nchandle_error(status)
+      status = nf90_def_var(ncid, "G0", nf90_float, (/xid, yid, tid/), G0id)
+      if (status /= nf90_noerr) call nchandle_error(status)
+      status = nf90_def_var(ncid, "tendskin", nf90_float, (/xid, yid, tid/), tendskinid)
+      if (status /= nf90_noerr) call nchandle_error(status)
+      status = nf90_def_var(ncid, "tskin", nf90_float, (/xid, yid, tid/), tskinid)
+      if (status /= nf90_noerr) call nchandle_error(status)
+    end if
+
     !turn off define mode
     status = nf90_enddef(ncid)
     if (status /= nf90_noerr) call nchandle_error(status)
@@ -168,7 +183,8 @@ contains
       return
     end if
     tnext = tnext+dtmovie
-    dt_lim = min(dt_lim,tnext)
+    dt_lim = minval((/dt_lim,tnext-timee/))
+    !dt_lim = min(dt_lim,tnext)
 
     call do_netcdfmovie
     nccall = nccall + 1
@@ -182,11 +198,14 @@ contains
     use netcdf
     use modfields
     use modmpi
+    use modsurface, only : isurf, H, LE, G0, tendskin, tskin
+    
 
     implicit none
 
     real, dimension(jmax, ncklimit)   :: uslicex, vslicex, wslicex, thlslicex, qtslicex
     real, dimension(imax, jmax)       :: uslicez, vslicez, wslicez, thlslicez, qtslicez
+    real, dimension(imax, jmax)       :: Hslicez, LEslicez, G0slicez, tendskinslicez, tskinslicez
     integer                           :: status
 
     if(lmoviez .eqv. .true.) then
@@ -225,6 +244,24 @@ contains
       if(status /= nf90_noerr) call nchandle_error(status)
       status = nf90_put_var(ncid, qtid, qtslicez, (/1,1,1,nccall/), (/imax, jmax, 1 , 1/))
 
+      if(isurf == 1) then
+        Hslicez        = H(2:i1, 2:j1)
+        LEslicez       = LE(2:i1, 2:j1)
+        G0slicez       = G0(2:i1, 2:j1)
+        tendskinslicez = tendskin(2:i1, 2:j1)
+        tskinslicez    = tskin(2:i1, 2:j1)
+
+        status = nf90_put_var(ncid, Hid, Hslicez, (/1,1,nccall/), (/imax, jmax, 1/))
+        if(status /= nf90_noerr) call nchandle_error(status)
+        status = nf90_put_var(ncid, LEid, LEslicez, (/1,1,nccall/), (/imax, jmax, 1/))
+        if(status /= nf90_noerr) call nchandle_error(status)
+        status = nf90_put_var(ncid, G0id, G0slicez, (/1,1,nccall/), (/imax, jmax, 1/))
+        if(status /= nf90_noerr) call nchandle_error(status)
+        status = nf90_put_var(ncid, tendskinid, tendskinslicez, (/1,1,nccall/), (/imax, jmax, 1/))
+        if(status /= nf90_noerr) call nchandle_error(status)
+        status = nf90_put_var(ncid, tskinid, tskinslicez, (/1,1,nccall/), (/imax, jmax, 1/))
+        if(status /= nf90_noerr) call nchandle_error(status)
+      end if
     end if
 
   end subroutine do_netcdfmovie

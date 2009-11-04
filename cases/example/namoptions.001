@@ -2,7 +2,7 @@
 iexpnr     =  001
 lwarmstart =  .false.
 startfile  =  'initd00h01m000.001'
-runtime    =  720000
+runtime    =  120
 trestart   =  3600 
 ladaptive  =  .true.
 irandom    =  43
@@ -129,8 +129,8 @@ timeav  = 300
 /
 
 &NAMNETCDFMOVIE
-lnetcdfmovie = .false.
-dtmovie      = 10
+lnetcdfmovie = .true.
+dtmovie      = 60
 lmoviez      = .false.
 slicez       = 1
 slicex       = 1
