@@ -352,7 +352,6 @@ contains
 
     real     :: ust, qst, tst
     real     :: ustl, qstl, tstl
-    !real     :: SWin
 
     real     :: swdav, swuav, lwdav, lwuav
     real     :: exner, tsurfm, e, esat, qsat, desatdT, dqsatdT, Acoef, Bcoef
@@ -379,7 +378,7 @@ contains
               rs(i,j) = rsisurf2
             end if
           else
-              ! 2.1   -   Calculate the surface resistance
+              ! 2.1   -   Calculate the surface resistance !CvH f1 should be based on SWin!
               f1  = 1. / min(1., (0.004 * max(0.,Qnet(i,j)) + 0.05) / (0.81 * (0.004 * max(0.,Qnet(i,j)) + 1.)))
               f2  = (phifc - phiwp) / (phitot(i,j) - phiwp)
 
@@ -459,7 +458,7 @@ contains
 
           if (i == 2 .and. j == 2) write(6,*) "CvH", tskin(i,j)
 
-          if (Cskin(i,j) == 0.)
+          if (Cskin(i,j) == 0.) then
             tskin(i,j) = Acoef * Bcoef ** (-1.) / exner
           else
             tskin(i,j) = (1. + rk3coef / Cskin(i,j) * Bcoef) ** (-1.) * (tsurfm + rk3coef / Cskin(i,j) * Acoef) / exner
