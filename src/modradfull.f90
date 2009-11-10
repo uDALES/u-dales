@@ -1983,8 +1983,12 @@ contains
        cwmks = pcw(k)*1.e-3
        if ( cwmks .ge. 1.e-8) then
           j = 0
-          do while (j<nsizes .and. pre(k) > re(j+1))
-             j = j + 1
+          do while (j<nsizes)
+             if (pre(k) > re(j+1)) then
+               j = j + 1
+             else
+               exit
+             end if
           end do
           if (j >= 1 .and. j < nsizes) then
              j1 = j+1

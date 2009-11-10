@@ -783,13 +783,12 @@ contains
 
           Rib   = grav / thvs * zf(1) * (thv - thvs) / horv2
 
-          iter = 4
+          iter = 10
           L = obl(i,j)
 
           if(Rib * L < 0. .or. abs(L) == 1e5) then
             if(Rib > 0) L = 0.01
             if(Rib < 0) L = -0.01
-            iter = 8
           end if
 
           do n = 0, iter
@@ -798,10 +797,9 @@ contains
             Lend    = L + 0.001*L
             fxdif   = ( (- zf(1) / Lstart * (log(zf(1) / z0h(i,j)) - psih(zf(1) / Lstart) + psih(z0h(i,j) / Lstart)) / (log(zf(1) / z0m(i,j)) - psim(zf(1) / Lstart) + psim(z0m(i,j) / Lstart)) ** 2.) - (-zf(1) / Lend * (log(zf(1) / z0h(i,j)) - psih(zf(1) / Lend) + psih(z0h(i,j) / Lend)) / (log(zf(1) / z0m(i,j)) - psim(zf(1) / Lend) + psim(z0m(i,j) / Lend)) ** 2.) ) / (Lstart - Lend)
             L       = L - fx / fxdif
-            if(thvs - thv >= 0.) then
-              if(L < -1e5 .or. L >= 0) L = -1e5
-            else
-              if(L > 1e5 .or. L <= 0) L = 1e5
+            if(Rib * L < 0. .or. abs(L) == 1e5) then
+              if(Rib > 0) L = 0.01
+              if(Rib < 0) L = -0.01
             end if
           end do
 
@@ -832,13 +830,12 @@ contains
 
       Rib   = grav / thvs * zf(1) * (thv - thvs) / horv2
 
-      iter = 3
+      iter = 10
       L = oblav
 
       if(Rib * L < 0. .or. abs(L) == 1e5) then
         if(Rib > 0) L = 0.01
         if(Rib < 0) L = -0.01
-        iter = 6
       end if
 
       do i = 0, iter
@@ -847,10 +844,9 @@ contains
         Lend    = L + 0.001*L
         fxdif   = ( (- zf(1) / Lstart * (log(zf(1) / z0hav) - psih(zf(1) / Lstart) + psih(z0hav / Lstart)) / (log(zf(1) / z0mav) - psim(zf(1) / Lstart) + psim(z0mav / Lstart)) ** 2.) - (-zf(1) / Lend * (log(zf(1) / z0hav) - psih(zf(1) / Lend) + psih(z0hav / Lend)) / (log(zf(1) / z0mav) - psim(zf(1) / Lend) + psim(z0mav / Lend)) ** 2.) ) / (Lstart - Lend)
         L       = L - fx / fxdif
-        if(thvs - thv >= 0.) then
-          if(L < -1e5 .or. L >= 0) L = -1e5
-        else
-          if(L > 1e5 .or. L <= 0) L = 1e5
+        if(Rib * L < 0. .or. abs(L) == 1e5) then
+          if(Rib > 0) L = 0.01
+          if(Rib < 0) L = -0.01
         end if
       end do
 
