@@ -2,7 +2,7 @@
 iexpnr     =  001
 lwarmstart =  .false.
 startfile  =  'initd00h01m000.001'
-runtime    =  120
+runtime    =  7200
 trestart   =  3600 
 ladaptive  =  .true.
 irandom    =  43
@@ -36,7 +36,7 @@ wsvsurf(1) =  0.
 wsvsurf(2) =  1.
 lmoist     =  .true.
 isurf      =  1
-iradiation =  1
+iradiation =  0
 useMcICA   =  .true.
 lcoriol    =  .true.
 /
@@ -48,10 +48,10 @@ tsoilav(3)   = 285.
 tsoilav(4)   = 283.
 tsoildeepav  = 283.
 
-phiwav(1)    = 0.25 
-phiwav(2)    = 0.25 
-phiwav(3)    = 0.25
-phiwav(4)    = 0.25 
+phiwav(1)    = 0.171001 
+phiwav(2)    = 0.171001 
+phiwav(3)    = 0.171001
+phiwav(4)    = 0.171001 
 
 rootfav(1)   = 0.35
 rootfav(2)   = 0.38 
@@ -65,8 +65,8 @@ rsisurf2     = 50.
 
 z0mav        = 0.035
 z0hav        = 0.007
-Cskinav      = 0.
-lambdaskinav = 5.
+Cskinav      = 957.
+lambdaskinav = 401.
 albedoav     = 0.20
 Qnetav       = 450.
 
