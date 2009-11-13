@@ -299,6 +299,7 @@ contains
     tllwtendmn = 0.0
     tlswtendmn = 0.0
     tlradlsmn  = 0.0
+    tltendmn  = 0.0
 
 
   end subroutine writeradstat
