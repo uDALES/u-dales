@@ -399,6 +399,7 @@ contains
           horv  = max(horv, 1.e-2)
 
           ra(i,j) = 1. / ( Cs(i,j) * horv )
+
         end do
       end do
     end if
