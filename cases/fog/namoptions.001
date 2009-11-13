@@ -4,7 +4,8 @@ lwarmstart =  .false.
 startfile  =  'initd00h01m000.001'
 runtime    =  36000
 trestart   =  3600 
-ladaptive  =  .true.
+ladaptive  =  .false.
+dtmax      =  2.
 irandom    =  43
 randthl    =  0.1
 randqt     =  2.5e-5
@@ -66,8 +67,8 @@ rsisurf2     = 50000.
 
 z0mav        = 0.15
 z0hav        = 0.020
-Cskinav      = 200000.
-lambdaskinav = 5.0
+Cskinav      = 0.
+lambdaskinav = 6.0
 albedoav     = 0.23
 Qnetav       = -15.
 
@@ -75,6 +76,7 @@ rsminav      = 110.
 LAIav        = 2.
 gDav         = 0.
 /
+
 &DYNAMICS
 llsadv     =  .false.
 lqlnr      =  .false.
