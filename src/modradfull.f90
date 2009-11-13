@@ -149,8 +149,8 @@ contains
       rhof_b(1) = ps / (rd * thvs * exnersurf) 
       exnf_b(1) = exnersurf
 
-      rhof_b(1) = rhof(1) + 2*zf(1)/dzf(1)*(rhof(1)-rhof(2))
-      exnf_b(1) = exnh(1) + 0.5*dzf(1)*(exnh(1)-exnf(1))
+      !rhof_b(1) = rhof(1) + 2*zf(1)/dzf(1)*(rhof(1)-rhof(2))
+      !exnf_b(1) = exnh(1) + 0.5*dzf(1)*(exnh(1)-exnf(1))
 
       do j=2,j1
         do i=2,i1
