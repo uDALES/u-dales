@@ -106,7 +106,7 @@ timeav      = 120
 
 &NAMTIMESTAT
 ltimestat   = .true.
-dtav        = 60
+dtav        = 2
 /
 
 &NAMCROSSSECTION
@@ -124,8 +124,8 @@ dtav        = 60
 ldiracc     = .true.
 /
 &NAMSTATTEND
-dtav        = 60
-timeav      = 300
+dtav        = 2
+timeav      = 2
 ltend       = .true.
 /
 
@@ -137,6 +137,6 @@ timeav  = 300
 
 &NAMRADSTAT
 lstat = .true.
-dtav = 60
-timeav = 300
+dtav = 2
+timeav = 2
 /

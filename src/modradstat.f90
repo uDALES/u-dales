@@ -208,7 +208,7 @@ contains
     call slabsum(tltendav ,1,k1,thlprad ,2-ih,i1+ih,2-jh,j1+jh,1,k1,2,i1,2,j1,1,k1)
     do k=1,kmax
       tllwtendav(k) = -(lwdav(k+1)-lwdav(k)+lwuav(k+1)-lwuav(k))/(rho_air_mn*cp*dzf(k))
-      tlswtendav(k) =  (swdav(k+1)-swdav(k)+swuav(k+1)-swuav(k))/(rho_air_mn*cp*dzf(k))
+      tlswtendav(k) = -(swdav(k+1)-swdav(k)+swuav(k+1)-swuav(k))/(rho_air_mn*cp*dzf(k))
     end do
 
  !    ADD SLAB AVERAGES TO TIME MEAN
@@ -220,7 +220,7 @@ contains
     tltendmn = tltendmn + tltendav/rslabs
     tllwtendmn = tllwtendmn + tllwtendav/rslabs
     tlswtendmn = tlswtendmn + tlswtendav/rslabs
-    tlradlsmn  = tlradlsmn  + thlpcar
+    tlradlsmn  = tlradlsmn  + thlpcar   /rslabs
 
   end subroutine do_radstat
 
@@ -248,7 +248,7 @@ contains
       tllwtendmn = tllwtendmn /nsamples
       tlswtendmn = tlswtendmn /nsamples
       tlradlsmn  = tlradlsmn  /nsamples
-      tltendmn   =tltendmn/nsamples
+      tltendmn   = tltendmn   /nsamples
   !     ----------------------
   !     2.0  write the fields
   !           ----------------
@@ -276,7 +276,7 @@ contains
             tllwtendmn(k)*3600,&
             tlswtendmn(k)*3600,&
             tlradlsmn(k) *3600,&
-            tltendmn(k) *3600
+            tltendmn(k)  *3600
       end do
       close (ifoutput)
       if (lnetcdf) then
