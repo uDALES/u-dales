@@ -227,6 +227,7 @@ subroutine initstattend
 !> Write the statistics to file
   subroutine writestattend
     use modglobal, only : timee,ifoutput,kmax,k1, zf, cexpnr
+    use modmpi,    only : myid
     use modfields, only : presf
       use modstat_nc, only: lnetcdf, writestat_nc
       use modgenstat, only: ncid_prof=>ncid,nrec_prof=>nrec
@@ -239,6 +240,7 @@ subroutine initstattend
     nminut  = int(nsecs/60)-nhrs*60
     nsecs   = mod(nsecs,60)
 
+    if(myid == 0) then
     open(ifoutput,file='utend.'//cexpnr,position='append')
      write(ifoutput,'(//A,/A,I4,A,I2,A,I2,A)') &
          '#--------------------------------------------------------'      &
@@ -461,6 +463,7 @@ subroutine initstattend
         vars(:,43) =qtpmn(:,tend_tot)
         call writestat_nc(ncid_prof,nvar,ncname,vars(1:kmax,:),nrec_prof+1,kmax)
       end if
+    end if
 
   end subroutine writestattend
 !> Cleans up after the run
