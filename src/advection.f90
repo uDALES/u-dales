@@ -51,7 +51,7 @@ subroutine advection
       stop "Unknown advection scheme "
   end select
 
-  if (lsmagorinsky) then
+  if (.not. lsmagorinsky) then
     select case(iadv_tke)
       case(iadv_cd2)
         call advecc_2nd(e120,e12p)
