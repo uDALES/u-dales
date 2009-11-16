@@ -6,8 +6,8 @@ runtime    =  7200
 trestart   =  3600 
 ladaptive  =  .true.
 irandom    =  43
-randthl    =  0.1
-randqt     =  2.5e-5
+randthl    =  0.0
+randqt     =  2.5e-50
 nsv        =  0 
 /
 
@@ -30,13 +30,13 @@ z0         =  0.035
 ustin      =  0.0
 ps         =  100000.00
 thls       =  296.
-wtsurf     =  0.1
-wqsurf     =  0.0001
+wtsurf     =  0.0
+wqsurf     =  0.0
 wsvsurf(1) =  0.
 wsvsurf(2) =  1.
 lmoist     =  .true.
-isurf      =  1
-iradiation =  0
+isurf      =  4
+iradiation =  1
 useMcICA   =  .true.
 lcoriol    =  .true.
 /
@@ -134,4 +134,10 @@ dtmovie      = 10
 lmoviez      = .false.
 slicez       = 1
 slicex       = 1
+/
 
+&NAMRADSTAT
+lstat = .true.
+dtav = 2
+timeav = 2
+/

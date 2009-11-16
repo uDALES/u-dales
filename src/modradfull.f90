@@ -156,9 +156,11 @@ contains
         do i=2,i1
           ql_b(i,j,1)   = 0.! CvH, no ql at surface
           qv_b(i,j,1)   = qskin(i,j) !CvH, no ql at surface thus qv = qt
-          temp_b(i,j,1) = tskin(i,j) 
+          temp_b(i,j,1) = tskin(i,j)*exnersurf 
         end do
       end do
+
+      write(6,*) "CvH", temp_b(2,2,1), temp_b(2,2,2), temp_b(2,2,3)
       
       !CvH end edit
 
