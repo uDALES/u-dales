@@ -160,8 +160,6 @@ contains
         end do
       end do
 
-      write(6,*) "CvH", temp_b(2,2,1), temp_b(2,2,2), temp_b(2,2,3)
-      
       !CvH end edit
 
       if (imicro==imicro_bulk) then
