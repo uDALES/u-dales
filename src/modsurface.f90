@@ -457,23 +457,17 @@ contains
 
           rk3coef = dt / (4. - dble(rk3step))
 
-          !if (i == 2 .and. j == 2) write(6,*) "CvH", tskin(i,j)
-
           if (Cskin(i,j) == 0.) then
             tskin(i,j) = Acoef * Bcoef ** (-1.) / exner
           else
             tskin(i,j) = (1. + rk3coef / Cskin(i,j) * Bcoef) ** (-1.) * (tsurfm + rk3coef / Cskin(i,j) * Acoef) / exner
           end if
 
-          !if (i == 2 .and. j == 2) write(6,*) "CvH", tskin(i,j), tsurfm
-
           ! Use the energy balance from the previous timestep
           G0(i,j)       = lambdaskin(i,j) * ( tskin(i,j) - tsoil(i,j,1) )
           LE(i,j)       = - rhof(1) * rlv / (ra(i,j) + rs(i,j)) * ( qt0(i,j,1) - (dqsatdT * (tskin(i,j) * exner - tsurfm) + qsat))
           H(i,j)        = - rhof(1) * cp  / ra(i,j) * ( thl0(i,j,1) + (rlv / cp) / ((ps / pref0)**(rd/cp)) * ql0(i,j,1) - tskin(i,j) * exner ) 
           tendskin(i,j) = Cskin(i,j) * (tskin(i,j) - tskinm(i,j)) * exner / rk3coef
-
-          !if (i == 2 .and. j == 2) write(6,*) "CvH", Qnet(i,j), H(i,j) + LE(i,j) + G0(i,j) + tendskin(i,j), H(i,j), LE(i,j), G0(i,j), tendskin(i,j)
 
           !! Use the energy balance from the previous timestep
           !G0(i,j) = lambdaskin(i,j) * ( tskin(i,j) - tsoil(i,j,1) )

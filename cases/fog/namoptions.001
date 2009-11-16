@@ -4,8 +4,7 @@ lwarmstart =  .false.
 startfile  =  'initd00h01m000.001'
 runtime    =  36000
 trestart   =  3600 
-ladaptive  =  .false.
-dtmax      =  2.
+ladaptive  =  .true.
 irandom    =  43
 randthl    =  0.1
 randqt     =  2.5e-5
@@ -13,8 +12,8 @@ nsv        =  0
 /
 
 &DOMAIN
-imax       =  96 
-jtot       =  96
+imax       =  64 
+jtot       =  64
 kmax       =  64
 
 xsize      =  400.
@@ -38,7 +37,6 @@ wsvsurf(2) =  0.
 lmoist     =  .true.
 isurf      =  1
 iradiation =  1
-timerad    =  0
 useMcICA   =  .true.
 lcoriol    =  .true.
 /
@@ -106,7 +104,7 @@ timeav      = 120
 
 &NAMTIMESTAT
 ltimestat   = .true.
-dtav        = 2
+dtav        = 60
 /
 
 &NAMCROSSSECTION
@@ -124,8 +122,8 @@ dtav        = 60
 ldiracc     = .true.
 /
 &NAMSTATTEND
-dtav        = 2
-timeav      = 2
+dtav        = 60
+timeav      = 300
 ltend       = .true.
 /
 
@@ -137,6 +135,6 @@ timeav  = 300
 
 &NAMRADSTAT
 lstat = .true.
-dtav = 2
-timeav = 2
+dtav = 60
+timeav = 300
 /
