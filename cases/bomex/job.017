@@ -1,0 +1,73 @@
+#!/bin/bash
+# Loadleveler directives start with # @
+#
+# In this job an MPI program is started.
+# This job will run on two nodes, 16 processes on each node,
+# making a total of 32 processes.
+# @ job_name = 017
+# @ node = 1
+# @ tasks_per_node = 32
+#
+# Loadleveler can send email, but for this job, we ask Loadleveler not
+#     to send any email:
+#
+# @ notification = never
+#
+# Define the standard input, output and error for the job:
+#
+# @ input = /dev/null
+# @ output = errorfile.$(job_name)
+# @ error = errorfile.$(job_name)
+#
+# Job will take at most 1 hour, 10 minutes and 20 seconds wallclock time
+#
+# @ wall_clock_limit = 3:00:00
+#
+# Tell Loadleveler that this is a parallel job. Loadleveler will take
+# care of defining the proper environment for the job
+#
+# @ job_type = parallel
+#
+# The following line ensures that the communication between nodes will
+# use the infiniband hardware:
+#
+# @ network.MPI = sn_all,not_shared,US
+#
+# This ends the instructions for Loadleveler:
+#
+# @ queue
+#
+# Here the shell script starts.
+# go to the working directory:
+#
+/bin/bash
+
+cd $HOME/Experiments/Bomex/H017
+
+workdir=`pwd`
+partition=`uname -n`
+TMPDIR=`echo $TMPDIR | sed "s/scratch\/local/gpfs\/mcn1\/${partition}/g"`
+rm -f TMPDIR.$LOADL_JOB_NAME
+ln -fs $TMPDIR TMPDIR.$LOADL_JOB_NAME
+
+mkdir $HOME/Experiments/Bomex/H017/Code
+cp $HOME/Les_versions/Dales3.2/Cumulus/*f90  $HOME/Experiments/Bomex/H017/Code/.
+cp $HOME/Les_versions/Dales3.2/Cumulus/Makefile  $HOME/Experiments/Bomex/H017/Code/.
+
+cp $HOME/Les_versions/Dales3.2/Cumulus/dales3.2.0  $TMPDIR/les.exe
+cp $HOME/Experiments/Bomex/H017/namoptions.017   $TMPDIR/namoptions
+
+cp $HOME/Cases/Bomex/Yoerik/bomex.prof.inp.yoerik   $TMPDIR/prof.inp.017
+cp $HOME/Cases/Bomex/Yoerik/bomex.lscale.inp.yoerik $TMPDIR/lscale.inp.017
+
+
+cd $TMPDIR
+./les.exe >output.017
+
+mv * $workdir
+cd $workdir
+
+mkdir INIT
+mv init* INIT
+
+
