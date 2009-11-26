@@ -187,7 +187,7 @@ contains
 
     integer :: advarr(4)
     real phi, colat, silat, omega, omega_gs
-    integer k
+    integer :: k, n
     character(80) chmess
 
     !timestepping
@@ -244,7 +244,14 @@ contains
     if (iadv_tke<0) iadv_tke = iadv_mom
     if (iadv_thl<0) iadv_thl = iadv_mom
     if (iadv_qt<0)  iadv_qt  = iadv_mom
-    where (iadv_sv<0)  iadv_sv  = iadv_mom
+
+    !CvH remove where
+    !where (iadv_sv<0)  iadv_sv  = iadv_mom
+    do n = 1, nsv
+      if(iadv_sv(n) < 0) then
+        iadv_sv(n) = iadv_mom
+      end if
+    end do
 
     phi    = xlat*pi/180.
     colat  = cos(phi)
