@@ -56,7 +56,7 @@ SAVE
   !CvH real :: sfc_albedo = 0.05   !< ground surface albedo
   real :: reff       = 1.e-5  !< cloud droplet effective radius (m)
   integer :: isvsmoke = 1     !< number of passive scalar to be used for optical depth calculation
-  integer :: iradiation = irad_par  !< Selection parameter for type of radiation scheme
+  integer :: iradiation = irad_none !< Selection parameter for type of radiation scheme
   integer :: irad    = -1  !< Deprecated selection parameter for the type of radiation scheme
 
 
