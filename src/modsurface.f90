@@ -635,6 +635,11 @@ contains
               phihzf = 1.
             endif
 
+            upcu  = 0.5 * (u0(i,j,1) + u0(i+1,j,1)) + cu
+            vpcv  = 0.5 * (v0(i,j,1) + v0(i,j+1,1)) + cv
+            horv  = sqrt(upcu ** 2. + vpcv ** 2.)
+            horv  = max(horv, 1.e-2)
+
             dudz  (i,j) = ustar(i,j) * phimzf / (fkar*zf(1))*(upcu/horv)
             dvdz  (i,j) = ustar(i,j) * phimzf / (fkar*zf(1))*(vpcv/horv)
             dthldz(i,j) = tstar(i,j) * phihzf / (fkar*zf(1))
