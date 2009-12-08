@@ -53,7 +53,7 @@ contains
     namelist/NAMSURFACE/ & !< Soil related variables
       isurf,tsoilav, tsoildeepav, phiwav, rootfav, &
       ! Land surface related variables
-      lsea, lmostlocal, lsmoothflux, z0mav, z0hav, rsisurf2, Cskinav, lambdaskinav, albedoav, Qnetav, &
+      lmostlocal, lsmoothflux, z0mav, z0hav, rsisurf2, Cskinav, lambdaskinav, albedoav, Qnetav, &
       ! Jarvis-Steward related variables
       rsminav, LAIav, gDav, &
       ! Prescribed values for isurf 2, 3, 4
@@ -78,7 +78,6 @@ contains
     call MPI_BCAST(phiwav       , ksoilmax, MY_REAL, 0, comm3d, mpierr)
     call MPI_BCAST(rootfav      , ksoilmax, MY_REAL, 0, comm3d, mpierr)
 
-    call MPI_BCAST(lsea         , 1, MPI_LOGICAL, 0, comm3d, mpierr)
     call MPI_BCAST(lmostlocal   , 1, MPI_LOGICAL, 0, comm3d, mpierr)
     call MPI_BCAST(lsmoothflux  , 1, MPI_LOGICAL, 0, comm3d, mpierr)
     call MPI_BCAST(z0mav        , 1, MY_REAL, 0, comm3d, mpierr)
@@ -134,11 +133,11 @@ contains
       end if
     end if
 
-    if(isurf == 2) then
-      if(rsisurf2 == -1 .and. (lsea .eqv. .false.)) then
-        stop "NAMSURFACE: Set rsisurf2 if you use isurf = 2 over land "
-      end if
-    end if
+    !if(isurf == 2) then
+    !  if(rsisurf2 == -1 .and. (lsea .eqv. .false.)) then
+    !    stop "NAMSURFACE: Set rsisurf2 if you use isurf = 2 over land "
+    !  end if
+    !end if
 
 
     if(isurf .ne. 3) then
@@ -151,16 +150,14 @@ contains
     end if
 
     if(isurf <= 2) then
-      if(lsea .eqv. .false.) then
-        if(rsminav == -1) then
-          stop "NAMSURFACE: rsminav is not set"
-        end if
-        if(LAIav == -1) then
-          stop "NAMSURFACE: LAIav is not set"
-        end if
-        if(gDav == -1) then
-          stop "NAMSURFACE: gDav is not set"
-        end if
+      if(rsminav == -1) then
+        stop "NAMSURFACE: rsminav is not set"
+      end if
+      if(LAIav == -1) then
+        stop "NAMSURFACE: LAIav is not set"
+      end if
+      if(gDav == -1) then
+        stop "NAMSURFACE: gDav is not set"
       end if
     end if
 
@@ -371,11 +368,7 @@ contains
       do j = 2, j1
         do i = 2, i1
           if(isurf == 2) then
-            if(lsea .eqv. .true.) then
-              rs(i,j) = 0.
-            else
-              rs(i,j) = rsisurf2
-            end if
+            rs(i,j) = rsisurf2
           else
               ! 2.1   -   Calculate the surface resistance !CvH f1 should be based on SWin!
               f1  = 1. / min(1., (0.004 * max(0.,Qnet(i,j)) + 0.05) / (0.81 * (0.004 * max(0.,Qnet(i,j)) + 1.)))
@@ -462,7 +455,6 @@ contains
             tskin(i,j) = (1. + rk3coef / Cskin(i,j) * Bcoef) ** (-1.) * (tsurfm + rk3coef / Cskin(i,j) * Acoef) / exner
           end if
 
-          ! Use the energy balance from the previous timestep
           G0(i,j)       = lambdaskin(i,j) * ( tskin(i,j) - tsoil(i,j,1) )
           LE(i,j)       = - rhof(1) * rlv / (ra(i,j) + rs(i,j)) * ( qt0(i,j,1) - (dqsatdT * (tskin(i,j) * exner - tsurfm) + qsat))
           H(i,j)        = - rhof(1) * cp  / ra(i,j) * ( thl0(i,j,1) + (rlv / cp) / ((ps / pref0)**(rd/cp)) * ql0(i,j,1) - tskin(i,j) * exner ) 

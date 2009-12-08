@@ -85,7 +85,6 @@ SAVE
   ! Land surface properties
 
   ! Surface properties
-  logical           :: lsea  = .true.   !<  Switch for sea
   real, allocatable :: z0m        (:,:) !<  Roughness length for momentum [m]
   real              :: z0mav = -1
   real, allocatable :: z0h        (:,:) !<  Roughness length for heat [m]
@@ -111,7 +110,7 @@ SAVE
   real, allocatable :: G0       (:,:)   !<  Ground heat flux [W/m2]
   real, allocatable :: ra       (:,:)   !<  Aerodynamic resistance [s/m]
   real, allocatable :: rs       (:,:)   !<  Vegetation resistance [s/m]
-  real              :: rsisurf2 = -1    !<  Vegetation resistance [s/m] if isurf2 is used
+  real              :: rsisurf2 = 0.    !<  Vegetation resistance [s/m] if isurf2 is used
   real, allocatable :: rsmin    (:,:)   !<  Minimum vegetation resistance [s/m]
   real              :: rsminav = -1
   real, allocatable :: tendskin (:,:)   !<  Tendency of skin [W/m2]
