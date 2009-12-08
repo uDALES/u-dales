@@ -601,8 +601,8 @@ contains
           end if
 
           ustar  (i,j) = max(ustar(i,j), 1.e-2)
-          thlflux(i,j) = - wtsurf / ustar(i,j)
-          qtflux (i,j) = - wqsurf / ustar(i,j)
+          thlflux(i,j) = wtsurf
+          qtflux (i,j) = wqsurf
 
           do n=1,nsv
             svstar(i,j,n) = -wsvsurf(n) / ustar(i,j)
