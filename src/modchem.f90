@@ -1,39 +1,9 @@
-!> \file modchem.f90
-!!  Calculates chemical reaction rates for active scalars
-
-
-!>
-!!  Calculates chemical reaction rates for active scalars
-!>
-!! Solves the source/sink term for chemically active scalars using the chemical
-!! solver TWOSTEP. In short, this chemical solver is an implicit method with
-!! second-order accuracy based on the two-step backward differenation formula.
-!! Since in atmospheric chemistry we are delaing with chemical system characterized
-!! by a wide range of chemical time scales, i.e. stiff system of ordinary
-!! differential equations, the two-step solver is able to adjust the time step
-!! depending on the chemical reaction rate.
-!! \see Verwer et al (1994, 1995); Vila et al (2005, 2009)
-!!  \author Kees van den Dries
-!!  \author Jordi Vila
-!! \todo documentation
-!! \todo reduce the number of warnings
-!  This file is part of DALES.
-!
-! DALES is free software; you can redistribute it and/or modify
-! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 3 of the License, or
-! (at your option) any later version.
-!
-! DALES is distributed in the hope that it will be useful,
-! but WITHOUT ANY WARRANTY; without even the implied warranty of
-! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-! GNU General Public License for more details.
-!
-! You should have received a copy of the GNU General Public License
-! along with this program.  If not, see <http://www.gnu.org/licenses/>.
-!
-!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 module modchem
+! version 1.0  3 chem_components on input and  4 on output but only interger coefficents.
+! version 1.1  4 chem_components on input and 4 on output real on output allowed
+! 2009_07_09 bug fixed wrong coefficients
+! 2009_07_10  1916 and 1954       write(coef_str,'(f4.2)')PL_scheme(i)%PL(j)%coef     f4.2 ipv i2
+! version 1.2 4 chem on input and NCCAA(zie modchem) on output on change recompile
 
 
   !____________________SETTINGS_AND_SWITCHES________________________
@@ -45,16 +15,19 @@ module modchem
   !         firstchem   = 1        number of the colum in scalar.inp of the first chemical
   !         lastchem    = 15       number of the colum in scalar.inp of the last chemical
   !                                only important if there are other scalars available in scalar.inp
-  !         ldiuvar     = .true.   SWITCH: diurnal photolysis reaction rates
+  !         ldiuvar     = .true.   SWITCH: diurnal photolysis reaction rates, If false it uses h_ref to calculate
+  !                                a constant photolysis rate
   !         h_ref       = 12.      if above is FALSE use this hour to calculate the photolysis rates
   !         lchconst    = .false.  SWITCH: if TRUE then the calculation of the reaction rates
   !                                        uses t_ref, p_ref, q_ref and not the model temp, humidity and pressure
+  !         lcloudKconst   = .false.  SWITCH: if TRUE then if there are clouds they will not change the K of the photolysis reactions
   !         t_ref	    = 298.
   !         p_ref	    = 100000.
   !         q_ref	    = 5.e-3
   !         lchmovie    = .false.  SWITCH: if TRUE gives extra output for movies(experimental)
   !         dtchmovie   = 60.      when to write extra output
   !         itermin     = 1.e-6    (not to change)
+  !         dtl_max     = 3600     set maximum timestep (only when ladaptive)
   !       /
   !-----------------------------------------------------------------
 
@@ -100,6 +73,8 @@ module modchem
 ! 0.0167    R_NO2  1    2    1.67e-2   -.575   1.2    1.0     1.0     1.0    1.0   NO2 + (O2) -> NO + O3
 ! $ end of chemical reactions specified by $ as first character on the line.
 !
+! # Reaction: R_CO   R_RH   R_23   R_25  R_26a  R_28  R_43  R_45  R_54A  R_O3  R_NO2
+!# function:  1      2      2      2     6      3     4     2     2      4     2
 ! #
 ! #   function = 0 => Meaning K colum kn2rd in PPB*sec no temp dependence
 ! #   function = 1 => Meaning K colum kn2rd in cm3/molecule*sec no temp dependence
@@ -111,26 +86,26 @@ module modchem
 ! #            MEANING of A..G         K'= A * (T/300)^B * exp(C/T)[M]     K" = D * (T/300)^E * exp(F/T)   Fc = G
 ! #   function = 5 => K = K'* K"/(K'+ K")* G (/sec)
 ! #            MEANING of A..G         K'= A * (T/300)^B * exp(C/T)[M]     K" = D * (T/300)^E * exp(F/T)   Fc = G
-! #   function = 6 => K =  K'* K" (cm3/molecule*s)
-! #            MEANING of A..G         K= A * exp (B/T)   K" = 1 + C * exp(D/T)[H20]
+! #   function = 6 => K =  (K'+ K")*(1+K'") (cm3/molecule*s)
+! #            special for 2HO2 ->H2O2 + (O2) because there are 2 reactions
+! #            MEANING of A..G         K'= A * exp (B/T)   K"= C * exp(D/T)[M]  K'" = 1 + E * exp(F/T)[H20]
 ! #   function = 7 => K = K (cm6/molecule2*s)for above R63Ab reaction K = A * (T/1)^0 * exp(0/T)=A*1*1 = A
 ! #            MEANING of A..G         K = A * (T/B)^C * exp (D/T)
 !
 ! # function for photolysis reactions
-!
-! #   function = 1 => ! constant independent of sza
-! #            Keff = A
-! #   function = 2 =>) ! exponential function
-! #            Keff = A * exp(B / coszen)
-! #   function = 3 => ! powerfunction
-! #            Keff = A * coszen ** B
-! #   function = 4 => ! powerfunction but special for JO3 because of dependence on H2O and Air
-! #            Keff = A * (coszen ** B) * D*[H2O] / (D*[H2O] + E*[M])
-! #   function = any other number =>
-! #            Keff = 1.
-! #
-! #
-!
+!#   function = 0 => ! constant independent of sza, K read from colum kn2rd
+!#            Keff = kn2rd
+!#   function = 1 => ! constant independent of sza
+!#            Keff = A
+!#   function = 2 =>) ! exponential function
+!#            Keff = A * exp(B / coszen)
+!#   function = 3 => ! powerfunction
+!#            Keff = A * coszen ** B
+!#   function = 4 => ! powerfunction but special for JO3 because of dependence on H2O and Air
+!#            Keff = A * (coszen ** B) * D*[H2O] / (D*[H2O] + E*[M])
+!#   function = any other number =>
+!#            Keff = 1.
+!#
 ! # reactions for nighttime chemistry
 ! #0.583E+0  R_57A  0    2    1.8e-11   110     1.0    1.0      1.0    1.0    1.0   NO + NO3    -> 2NO2
 ! #0.109E-5  R_58A  0    2    1.4e-13  -2470    1.0    1.0      1.0    1.0    1.0   NO2 + O3    -> NO3 + (O2)
@@ -153,29 +128,39 @@ save
 
   ! namoptions
   integer tnor, firstchem, lastchem
-  real dtchmovie,itermin
+  real dtchmovie,itermin,dtl_max
   real t_ref,q_ref,p_ref,h_ref
-  logical lchem, ldiuvar,lchconst,lchmovie, lremoveneg
+  logical lchem, ldiuvar,lchconst,lchmovie,lcloudKconst
+
+  real tnextwrite
+  logical switch
 
   integer   mrpcc
   parameter (mrpcc = 20)
+
+  integer,parameter :: NCCBA = 4   !Number Chemical Components Before Arrow !!!!!!!  4 is MAXIMUM !!!!!
+  integer,parameter :: NCCAA = 8   !Number Chemical Components After Arrow  on change recompile !!!!!
+  integer,parameter :: NNSPEC = 2*(NCCBA + NCCAA) - 1
+
   integer ,parameter :: numit = 2
 
   real, parameter :: MW_air = 28.97
   real, parameter :: MW_H2O = 18
   real, parameter :: Avogrado = 6.023e23
   real, parameter :: ppb  = 1.e9 ! convert to ppb
+  integer PRODUCTION, LOSS
+  parameter (PRODUCTION=1, LOSS=2)
 
-  integer nr_raddep !< number of photolysis reactions
-  integer nchsp     !< number of chemical species calculated from lastchem - firstchem
-  integer choffset  !< =firstchem -1 => offset for chemicals in sv0
+  integer nr_raddep !number of photolysis reactions
+  integer nchsp     !number of chemical species calculated from lastchem - firstchem
+  integer choffset  !=firstchem -1 => offset for chemicals in sv0
 
   type RCdef
     character*6 rname
-    integer*1 raddep  !<  1 if reaction = radiation dependend
-    real Kreact       !< reaction konstant from input file
-    real Keff         !< to use with special circumstances cq with radiation and/or temperature depend reactions
-    integer Kindex    !< index to array with effective K due to clouds and temperature
+    integer raddep  ! 1 if reaction = radiation dependend
+    real Kreact       !reaction konstant from input file
+    real Keff         !to use with special circumstances cq with radiation and/or temperature depend reactions
+    integer Kindex    !index to array with effective K due to clouds and temperature
     integer func1
     real A
     real B
@@ -186,80 +171,85 @@ save
     real G
   end type RCdef
 
-  type (RCdef), allocatable :: RC(:) !< tnor
+  type (RCdef), allocatable :: RC(:) !tnor
 
-  type Form
-    integer*1 formula  !< number of the formula to use
-    integer r_nr    !< reaction number, index to RC
-    integer PorL    !< 0=> not active   1=>Production  2=>Loss
-    integer*1 coef    !< coefficient in formula
-    integer comp1    !< index to sv0
-    integer*1 exp1
-    integer comp2    !< index to sv0
-    integer*1 exp2
-  end type Form
+  type,PUBLIC :: Form
+    integer formula  !number of the formula to use
+    integer r_nr    !reaction number, index to RC
+    integer PorL    !0=> not active   1=>Production  2=>Loss
+    real coef    !coefficient in formula
+    integer comp1    !index to sv0
+    integer exp1
+    integer comp2    !index to sv0
+    integer exp2
+    integer comp3    !index to sv0
+    integer exp3
+    integer comp4    !index to sv0
+    integer exp4
+ end type Form
 
-  type Name_Number
-    character (len=6) name  !< name of chemical
-    logical active      !< active=1 else 0
-    integer chem_number    !< number (not really used)
+  type,PUBLIC :: Name_Number
+    character (len=6) name  !name of chemical
+    logical active      !active=1 else 0
+    integer chem_number    !number (not really used)
     real atol
     real rtol
-    integer nr_PL      !< total number of reactions in which this chemical is used
-    type (Form) PL(mrpcc)  !< stucture holding the reaction components, reaction number etc
+    integer nr_PL      !total number of reactions in which this chemical is used
+    type (Form) PL(mrpcc)  !stucture holding the reaction components, reaction number etc
   end type Name_Number
 
-  type (Name_Number), allocatable ::PL_scheme(:)   !< (nchsp)
+  type (Name_Number), allocatable ::PL_scheme(:)   !(nchsp)
 
-  integer, allocatable :: raddep_RCindex(:) !< (nr_raddep)
-  real, allocatable :: keff(:,:,:,:)    !<  (i,j2,raddep_nr,kmax)
-  real, allocatable :: keffT(:,:,:)    !< (i2,j2,kefft_nr)
-  real, allocatable :: atol(:),rtol(:)  !<  nchsp
+  integer, allocatable :: raddep_RCindex(:) !(nr_raddep)
+  real, allocatable :: keff(:,:,:,:)    ! (i,j2,raddep_nr,kmax)
+  real, allocatable :: keffT(:,:,:)    !(i2,j2,kefft_nr)
+  real, allocatable :: atol(:),rtol(:)  ! nchsp
   real, allocatable :: rk1(:,:),rk2(:,:),rk(:,:),kreact(:,:)
   real, allocatable :: T_abs(:,:),convppb(:,:)
 
   real, allocatable :: ynew(:,:,:),yold(:,:,:),ysum(:,:,:)
   real, allocatable,target :: yl(:,:,:),yp(:,:,:)
 
-  real*4, allocatable :: writearray(:,:)
+  real, allocatable :: writearray(:,:)
   real*4, allocatable :: k3d(:,:,:,:)
 
-  type location
+  type, PUBLIC :: location
     character (len = 6) name
     integer   loc
   end type location
 
-  type (location) :: INERT, O3, NO, NO2, NO3, N2O5, HNO3, RH, R, HO, HO2, H2O, H2O2, CO, CO2, NH3, H2SO4
+ type (location) :: INERT, PRODUC , O3, O1D, NO2, NO, NO3, N2O5, HNO3, RH, R, ISO, RO2, H2O2, HO2, HO, CO, CO2, H2O, NH3, H2SO4, CH2O, CH3O2, MVK
 
 
-  real, allocatable :: kefftemp(:)  !(1:k1)
+  real, allocatable :: kefftemp(:,:)  !(1:kmax,1:nr_raddep)
 
 
 contains
-!> Initializing Chemistry. Read out the namelist, initializing the variables
+!-----------------------------------------------------------------------------------------
 SUBROUTINE initchem
-  use modglobal, only : imax,jmax,i1,i2,ih, j1,j2,jh, k1, kmax, nsv, ifnamopt, fname_options, ifoutput, cexpnr
+  use modglobal, only : imax,jmax,i1,i2,ih, j1,j2,jh, k1, kmax, nsv, ifnamopt, fname_options, ifoutput, cexpnr,timeav_glob,btime
   use modmpi,    only : myid, mpi_logical, mpi_integer, my_real, comm3d, mpierr
   implicit none
 
   integer i, ierr
-  namelist/NAMCHEM/ lchem, tnor, firstchem,lastchem,ldiuvar,h_ref,lchconst,lremoveneg, t_ref, q_ref, p_ref,lchmovie, dtchmovie, itermin
+  namelist/NAMCHEM/ lchem, dtl_max, lcloudKconst, tnor, firstchem,lastchem,ldiuvar,h_ref,lchconst, t_ref, q_ref, p_ref,lchmovie, dtchmovie, itermin
 
 
-  lchem =.false.
-  ldiuvar =.false.
-  h_ref = 12.0
+  lchem    =.false.
+  dtl_max  = 3600
+  ldiuvar  = .false.
+  h_ref    = 12.0
   lchconst = .false.
-  t_ref = 298.
-  p_ref = 100000.
-  q_ref = 5.e-3
+  t_ref    = 298.
+  p_ref    = 100000.
+  q_ref    = 5.e-3
   lchmovie = .false.
-  dtchmovie = 60
-  itermin = 1.e-6
-  firstchem = 1
+  dtchmovie= 60
+  itermin  = 1.e-6
+  firstchem= 1
   lastchem = nsv
-  nchsp = nsv
-  lremoveneg = .false.
+  nchsp    = nsv
+  lcloudKconst  = .false.
 
   if(myid==0) then
     open(ifnamopt,file=fname_options,status='old',iostat=ierr)
@@ -273,10 +263,11 @@ SUBROUTINE initchem
   call MPI_BCAST(ldiuvar   ,1,mpi_logical , 0,comm3d, mpierr)
   call MPI_BCAST(lchconst  ,1,mpi_logical , 0,comm3d, mpierr)
   call MPI_BCAST(lchmovie  ,1,mpi_logical , 0,comm3d, mpierr)
-  call MPI_BCAST(lremoveneg,1,mpi_logical , 0,comm3d, mpierr)
+  call MPI_BCAST(lcloudKconst ,1,mpi_logical , 0,comm3d, mpierr)
   call MPI_BCAST(tnor      ,1,mpi_integer , 0,comm3d, mpierr)
   call MPI_BCAST(firstchem ,1,mpi_integer , 0,comm3d, mpierr)
   call MPI_BCAST(lastchem  ,1,mpi_integer , 0,comm3d, mpierr)
+  call MPI_BCAST(dtl_max   ,1,MY_REAL     , 0,comm3d, mpierr)
   call MPI_BCAST(t_ref     ,1,MY_REAL     , 0,comm3d, mpierr)
   call MPI_BCAST(q_ref     ,1,MY_REAL     , 0,comm3d, mpierr)
   call MPI_BCAST(p_ref     ,1,MY_REAL     , 0,comm3d, mpierr)
@@ -285,7 +276,8 @@ SUBROUTINE initchem
   call MPI_BCAST(dtchmovie ,1,MY_REAL     , 0,comm3d, mpierr)
 
   if (.not. (lchem)) return
-
+  tnextwrite = timeav_glob-1e-3+btime
+  switch = .false.
   nchsp = lastchem - firstchem  + 1
   choffset = firstchem - 1
 
@@ -297,8 +289,6 @@ SUBROUTINE initchem
   allocate (rk1(2:i1,2:j1),rk2(2:i1,2:j1),rk(2:i1,2:j1),kreact(2:i1,2:j1))
   allocate (T_abs(2:i1,2:j1), convppb(2:i1,2:j1))
 
-  allocate (kefftemp(kmax))
-
   PL_scheme(1)%name = '     '
   PL_scheme(1)%atol = 0.
   PL_scheme(1)%rtol = 0.
@@ -308,11 +298,15 @@ SUBROUTINE initchem
   do i=1,mrpcc
     PL_scheme(1)%PL(i)%formula = 0
     PL_scheme(1)%PL(i)%r_nr = 0
-    PL_scheme(1)%PL(i)%coef = 0
+    PL_scheme(1)%PL(i)%coef = 0.
     PL_scheme(1)%PL(i)%comp1 = 0
     PL_scheme(1)%PL(i)%exp1 = 0
     PL_scheme(1)%PL(i)%comp2 = 0
     PL_scheme(1)%PL(i)%exp2 = 0
+    PL_scheme(1)%PL(i)%comp3 = 0
+    PL_scheme(1)%PL(i)%exp3 = 0
+    PL_scheme(1)%PL(i)%comp4 = 0
+    PL_scheme(1)%PL(i)%exp4 = 0
   enddo
 
   do i=2, nchsp
@@ -326,34 +320,39 @@ SUBROUTINE initchem
     close (ifoutput)
   endif
 
+  call inputchem
+
 end subroutine initchem
 
-!> Determine from the chemical equations in chem.inp.xxx the scheme to solve the chemical production and loss terms
+!----------------------------------------------------------
 subroutine inputchem
 
-
+!c***********************************************************************
+!c
+!c  Determine from the chemical equations in chem.inp.xxx
+!c  the scheme to solve the chemical production and loss terms
+!c
+!c***********************************************************************
  use modglobal, only : imax,jmax,i1,i2,ih, j1,j2,jh, k1,kmax, nsv,cexpnr
  use modmpi,    only : myid
  implicit none
 
-  integer i,j,k,l,react,max_reactions
-  integer p,q
-  integer*2 number, nr_raddep_react
-  integer react_nr,coefficient
-  real reactconst, fact(7)
+  integer i,j,k,l,react
+  integer*2 number
+  integer react_nr
+  real reactconst,coefficient, fact(7)
   integer func1,raddep,nr_chemcomp,nr_active_chemicals
   integer keff_nr, keffT_nr
-  character*7 spec(7)
-  character*150 line
-  character*255 scalarline
+  character*11 spec(NNSPEC)
+  character*255 line
   logical prod,found
   character (len=6) tempname
   character (len=6) name
   character (len=6) rname
-
+  integer icoeff(4)
 
   type Chem
-    integer coeff
+    real coeff
     character (len=6) name
     integer chem_nr
     integer index_sv0
@@ -361,20 +360,20 @@ subroutine inputchem
 
   type Reaction
     character*6  name
-    real kr      !< kn2rd
-    integer RadDep   !< reaction is radiation dependend
+    real kr      !kn2rd
+    integer RadDep   !reaction is radiation dependend
     integer keff_index
-    integer Order  !< orde of reaction
-    integer nr_chem  !< nr of chemicals in reaction (including non active species
-    integer nr_chem_inp !< nr of chem on input
-    integer nr_chem_outp !< nr of chem on output
-    type (Chem) inp(2)
-    type (Chem) outp(2)
+    integer Order  !orde of reaction
+    integer nr_chem  !nr of chemicals in reaction (including non active species
+    integer nr_chem_inp !nr of chem on input
+    integer nr_chem_outp !nr of chem on output
+    type (Chem) inp(NCCBA)
+    type (Chem) outp(NCCAA)
   end type Reaction
 
-  type (Name_Number),allocatable :: PL_temp(:)    !< (nchsp)
-  type (Reaction),allocatable    :: reactions(:)  !< (totalnumberofreactions=tnor)
-  character*6, allocatable       :: chem_name(:)  !< (nchsp)
+  type (Name_Number),allocatable :: PL_temp(:)    !(nchsp)
+  type (Reaction),allocatable    :: reactions(:)  !(totalnumberofreactions=tnor)
+  character*6, allocatable       :: chem_name(:)  !(nchsp)
 
 
   if (.not. (lchem)) return
@@ -397,8 +396,8 @@ subroutine inputchem
   reactions(:)%nr_chem = 0
   reactions(:)%nr_chem_inp = 0
   reactions(:)%nr_chem_outp= 0
-  do i=1,2
-    reactions(:)%inp(i)%Coeff = 0
+  do i=1,4
+    reactions(:)%inp(i)%Coeff = 0.
     reactions(:)%inp(i)%name = '     '
     reactions(:)%inp(i)%chem_nr = 0
     reactions(:)%inp(i)%index_sv0 = 999
@@ -430,11 +429,11 @@ subroutine inputchem
         write(*,'(i2,2x,a)') number,trim(line)
       endif
 
-      do i=1,7
-        spec(i)='        '
+      do i=1,NNSPEC
+        spec(i)='           '
       enddo
 
-      read(line,*,end=300)reactconst,rname,raddep,func1,(fact(j),j=1,7),(spec(j),j=1,7)
+      read(line,*,end=300)reactconst,rname,raddep,func1,(fact(j),j=1,7),(spec(j),j=1,NNSPEC)
 300   j=j-1
 
       if ((func1 == 6 .or. (raddep==1 .and. func1== 4)) .and. H2O%loc == 0) then
@@ -444,7 +443,7 @@ subroutine inputchem
 
       !determine the number of chemical components
       i=1
-      do while (len_trim(spec(i))>0 .and. i<7)
+      do while (len_trim(spec(i))>0 .and. i<NNSPEC)
         i=i+1
       end do
       !   if (myid==0) print *,'aantal componenten=', i,(i+1)/2,(spec(j),j=1,7)
@@ -487,9 +486,9 @@ subroutine inputchem
 
       do j=1, 2 * nr_chemcomp - 1
         select case (spec(j))
-        case ('+       ')
+        case ('+          ')
 !         print *,'found +'
-        case ('->      ')
+        case ('->         ')
 !         print *,'found ->'
           prod = .true.
           reactions(react)%nr_chem_inp = l
@@ -500,13 +499,32 @@ subroutine inputchem
             !non active species forget it
             l=l-1
           else
-            if (spec(j)(1:1).LT.'0' .OR. spec(j)(1:1) .GT.'9') then !no coef before species
-              tempname = spec(j)(1:6)
-              coefficient = 1
-            else
-              tempname = spec(j)(2:7)
-              coefficient = ichar(spec(j)(1:1))-48
-            end if
+            do i=1,len(spec(j))
+              if( spec(j)(i:i) .GT. '@' ) then
+                !starting name chemical component
+                tempname = spec(j)(i:len(spec(j)))
+                if( i == 1 ) then !nothing before chem comp
+                  coefficient = 1.
+                else !we have numbers before
+                  read( spec(j)(1:i-1),*)coefficient
+                endif
+                if( (prod .eqv. .false.) .and. ((coefficient +.0005)< 1.))then
+                  write(*,*) 'Sorry, coefficient on input should be a multiply of 1'
+                  STOP
+                endif
+                if( (prod .eqv. .false.) .and. (coefficient/int(coefficient) > 1.005) ) then
+                  write(*,*) 'Sorry, coefficient on input should be a multiply of 1 found:',spec(j)
+                  STOP
+                endif
+                exit
+              else
+                if (i >= len(spec(j)) )then
+                  write(*,*)'Probably space between coefficient and chemical component'
+                  write(*,*) 'look between ',spec(j),spec(j+1)
+                  STOP
+                endif
+              endif
+            enddo
 
             !find index in sv0
             i=1
@@ -544,6 +562,7 @@ subroutine inputchem
 
   allocate (raddep_RCindex(keff_nr))
   allocate (keff(2:i1,2:j1,keff_nr,kmax))
+  allocate (kefftemp(kmax,keff_nr))
   allocate (keffT(2:i1,2:j1,keffT_nr))
   allocate (writearray(k1,tnor+2))
 
@@ -639,37 +658,78 @@ subroutine inputchem
   do i=1,nr_active_chemicals        !********************* misschien nchsp
     do j=1,PL_scheme(i)%nr_PL
       react_nr = PL_scheme(i)%PL(j)%r_nr
-      if( PL_scheme(i)%PL(j)%PorL == 1) then
+      if( PL_scheme(i)%PL(j)%PorL == PRODUCTION) then     !this is a PRODUCTION
         do k=1,reactions(react_nr)%nr_chem_outp
-        if(reactions(react_nr)%nr_chem_inp == 1 )then !left of arrow 1 reactant
-          select case (reactions(react_nr)%inp(1)%coeff)
-          case (1)
-            PL_scheme(i)%PL(j)%formula = 1
-            PL_scheme(i)%PL(j)%comp1 = reactions(react_nr)%inp(1)%index_sv0
-          case (2)
-            PL_scheme(i)%PL(j)%formula = 2
-            PL_scheme(i)%PL(j)%comp1 = reactions(react_nr)%inp(1)%index_sv0
-            PL_scheme(i)%PL(j)%comp2 = reactions(react_nr)%inp(1)%index_sv0
-          case default
-            PL_scheme(i)%PL(j)%formula = 3
-            PL_scheme(i)%PL(j)%comp1 = reactions(react_nr)%inp(1)%index_sv0
-            PL_scheme(i)%PL(j)%exp1  = reactions(react_nr)%inp(1)%coeff
-          end select
-          PL_scheme(i)%PL(j)%coef =  reactions(react_nr)%outp(k)%coeff
-        else  !there are 2 reacting species
-          if (reactions(react_nr)%inp(1)%coeff == 1 .AND. reactions(react_nr)%inp(2)%coeff == 1 ) then
-            PL_scheme(i)%PL(j)%formula = 2
-            PL_scheme(i)%PL(j)%comp1 = reactions(react_nr)%inp(1)%index_sv0
-            PL_scheme(i)%PL(j)%comp2 = reactions(react_nr)%inp(2)%index_sv0
-          else
-            PL_scheme(i)%PL(j)%formula = 4
-            PL_scheme(i)%PL(j)%comp1 = reactions(react_nr)%inp(1)%index_sv0
-            PL_scheme(i)%PL(j)%exp1  = reactions(react_nr)%inp(1)%coeff
-            PL_scheme(i)%PL(j)%comp2 = reactions(react_nr)%inp(2)%index_sv0
-            PL_scheme(i)%PL(j)%exp2  = reactions(react_nr)%inp(2)%coeff
+          if( reactions(react_nr)%outp(k)%name == PL_scheme(i)%name) then
+            select case(reactions(react_nr)%nr_chem_inp)  !left of arrow 1 reactant
+              case (1)
+              icoeff(1) = int(reactions(react_nr)%inp(1)%coeff +0.05)
+                 select case (icoeff(1))
+                   case (1)
+                     PL_scheme(i)%PL(j)%formula = 1
+                     PL_scheme(i)%PL(j)%comp1 = reactions(react_nr)%inp(1)%index_sv0
+                   case (2)
+                     PL_scheme(i)%PL(j)%formula = 2
+                     PL_scheme(i)%PL(j)%comp1 = reactions(react_nr)%inp(1)%index_sv0
+                     PL_scheme(i)%PL(j)%comp2 = reactions(react_nr)%inp(1)%index_sv0
+                   case default
+                     PL_scheme(i)%PL(j)%formula = 3
+                     PL_scheme(i)%PL(j)%comp1 = reactions(react_nr)%inp(1)%index_sv0
+                     PL_scheme(i)%PL(j)%exp1  = icoeff(1)
+                  end select
+                  PL_scheme(i)%PL(j)%coef =  reactions(react_nr)%outp(k)%coeff
+              case(2)  !there are 2 reacting species
+              icoeff(1) = int(reactions(react_nr)%inp(1)%coeff +0.05)
+              icoeff(2) = int(reactions(react_nr)%inp(2)%coeff +0.05)
+                if((icoeff(1) == 1) .AND. (icoeff(2) == 1) ) then
+                  PL_scheme(i)%PL(j)%formula = 2
+                  PL_scheme(i)%PL(j)%comp1 = reactions(react_nr)%inp(1)%index_sv0
+                  PL_scheme(i)%PL(j)%comp2 = reactions(react_nr)%inp(2)%index_sv0
+                else
+                  PL_scheme(i)%PL(j)%formula = 4
+                  PL_scheme(i)%PL(j)%comp1 = reactions(react_nr)%inp(1)%index_sv0
+                  PL_scheme(i)%PL(j)%exp1  = icoeff(1)
+                  PL_scheme(i)%PL(j)%comp2 = reactions(react_nr)%inp(2)%index_sv0
+                  PL_scheme(i)%PL(j)%exp2  = icoeff(2)
+                endif
+                PL_scheme(i)%PL(j)%coef =  reactions(react_nr)%outp(k)%coeff
+              case (3) !! there are 3 reacting species
+               icoeff(1) = int(reactions(react_nr)%inp(1)%coeff +0.05)
+               icoeff(2) = int(reactions(react_nr)%inp(2)%coeff +0.05)
+               icoeff(3) = int(reactions(react_nr)%inp(3)%coeff +0.05)
+               if( (icoeff(1)==1) .and. (icoeff(2) == 1) .and. (icoeff(3) == 1)) then
+                  ! we don't need exponents keep it simple
+                  PL_scheme(i)%PL(j)%formula = 5
+                  PL_scheme(i)%PL(j)%comp1 = reactions(react_nr)%inp(1)%index_sv0
+                  PL_scheme(i)%PL(j)%comp2 = reactions(react_nr)%inp(2)%index_sv0
+                  PL_scheme(i)%PL(j)%comp3 = reactions(react_nr)%inp(3)%index_sv0
+                else
+                  PL_scheme(i)%PL(j)%formula = 6
+                  PL_scheme(i)%PL(j)%comp1 = reactions(react_nr)%inp(1)%index_sv0
+                  PL_scheme(i)%PL(j)%exp1  = icoeff(1)
+                  PL_scheme(i)%PL(j)%comp2 = reactions(react_nr)%inp(2)%index_sv0
+                  PL_scheme(i)%PL(j)%exp2  = icoeff(2)
+                  PL_scheme(i)%PL(j)%comp3 = reactions(react_nr)%inp(3)%index_sv0
+                  PL_scheme(i)%PL(j)%exp3  = icoeff(3)
+                endif
+                PL_scheme(i)%PL(j)%coef =  reactions(react_nr)%outp(k)%coeff
+              case (4)
+               icoeff(1) = int(reactions(react_nr)%inp(1)%coeff +0.05)
+               icoeff(2) = int(reactions(react_nr)%inp(2)%coeff +0.05)
+               icoeff(3) = int(reactions(react_nr)%inp(3)%coeff +0.05)
+               icoeff(4) = int(reactions(react_nr)%inp(4)%coeff +0.05)
+               PL_scheme(i)%PL(j)%formula = 7
+               PL_scheme(i)%PL(j)%comp1 = reactions(react_nr)%inp(1)%index_sv0
+               PL_scheme(i)%PL(j)%exp1  = icoeff(1)
+               PL_scheme(i)%PL(j)%comp2 = reactions(react_nr)%inp(2)%index_sv0
+               PL_scheme(i)%PL(j)%exp2  = icoeff(2)
+               PL_scheme(i)%PL(j)%comp3 = reactions(react_nr)%inp(3)%index_sv0
+               PL_scheme(i)%PL(j)%exp3  = icoeff(3)
+               PL_scheme(i)%PL(j)%comp4 = reactions(react_nr)%inp(4)%index_sv0
+               PL_scheme(i)%PL(j)%exp4  = icoeff(4)
+               PL_scheme(i)%PL(j)%coef =  reactions(react_nr)%outp(k)%coeff
+            end select
           endif
-          PL_scheme(i)%PL(j)%coef =  reactions(react_nr)%outp(k)%coeff
-        endif
         enddo ! k=1,reactions(react_nr)%nr_chem_outp
       endif !( PL_scheme(i)%PL(j)%PorL == 1)
     enddo !j=1,PL_scheme(i)%nr_PL
@@ -679,33 +739,143 @@ subroutine inputchem
   do i=1,nr_active_chemicals
     do j=1,PL_scheme(i)%nr_PL
       react_nr = PL_scheme(i)%PL(j)%r_nr
-      if( PL_scheme(i)%PL(j)%PorL == 2) then
+      if( PL_scheme(i)%PL(j)%PorL == LOSS) then     !This is LOSS
       do k=1,reactions(react_nr)%nr_chem_inp
-        if(reactions(react_nr)%nr_chem_inp == 1 )then !the loss comp is the only reactant
-          select case (reactions(react_nr)%inp(1)%coeff)
-          case (1)
-            PL_scheme(i)%PL(j)%formula = 0
-            PL_scheme(i)%PL(j)%coef = 1
-          case (2)
-            PL_scheme(i)%PL(j)%formula = 1
-            PL_scheme(i)%PL(j)%comp1 = reactions(react_nr)%inp(1)%index_sv0
-            PL_scheme(i)%PL(j)%coef = 2
-          case (3)
-            PL_scheme(i)%PL(j)%formula = 3
-            PL_scheme(i)%PL(j)%comp1 = reactions(react_nr)%inp(1)%index_sv0
-            PL_scheme(i)%PL(j)%exp1  = reactions(react_nr)%inp(1)%coeff - 1
-            PL_scheme(i)%PL(j)%coef = 1  !????????????
+        icoeff(1) = int(reactions(react_nr)%inp(1)%coeff +0.05)
+        icoeff(2) = int(reactions(react_nr)%inp(2)%coeff +0.05)
+        icoeff(3) = int(reactions(react_nr)%inp(3)%coeff +0.05)
+        icoeff(4) = int(reactions(react_nr)%inp(4)%coeff +0.05)
+        select case(reactions(react_nr)%nr_chem_inp)
+        case (1) !the loss comp is the only reactant
+          select case (icoeff(1))
+            case (1)
+              PL_scheme(i)%PL(j)%formula = 0
+            case (2)
+              PL_scheme(i)%PL(j)%formula = 1
+              PL_scheme(i)%PL(j)%comp1 = reactions(react_nr)%inp(1)%index_sv0
+            case (3)
+              PL_scheme(i)%PL(j)%formula = 3
+              PL_scheme(i)%PL(j)%comp1 = reactions(react_nr)%inp(1)%index_sv0
+              PL_scheme(i)%PL(j)%exp1  = icoeff(1) - 1
           end select
-        else ! we have 2 components in which one is current species
-          if(reactions(react_nr)%inp(1)%chem_nr == i) then !first one is current
-            PL_scheme(i)%PL(j)%formula = 1
-            PL_scheme(i)%PL(j)%comp1 = reactions(react_nr)%inp(2)%index_sv0
-          else
-            PL_scheme(i)%PL(j)%formula = 1
-            PL_scheme(i)%PL(j)%comp1 = reactions(react_nr)%inp(1)%index_sv0
+          PL_scheme(i)%PL(j)%coef = reactions(react_nr)%inp(1)%coeff
+        case (2) ! we have 2 components in which one is current species
+          if( reactions(react_nr)%inp(k)%name == PL_scheme(i)%name) then ! current selected
+            select case (k)
+            case(1)
+              if( (icoeff(1) ==1) .and. (icoeff(2) == 1) ) then
+                PL_scheme(i)%PL(j)%formula = 1
+                PL_scheme(i)%PL(j)%comp1 = reactions(react_nr)%inp(2)%index_sv0
+              else if((icoeff(1) ==1) .and. (icoeff(2) > 1) ) then
+                PL_scheme(i)%PL(j)%formula = 3
+                PL_scheme(i)%PL(j)%comp1 = reactions(react_nr)%inp(2)%index_sv0
+                PL_scheme(i)%PL(j)%exp1  = icoeff(2)
+              else if((icoeff(1) ==2) .and. (icoeff(2) == 1) ) then
+                PL_scheme(i)%PL(j)%formula = 2
+                PL_scheme(i)%PL(j)%comp1 = reactions(react_nr)%inp(1)%index_sv0
+                PL_scheme(i)%PL(j)%comp2 = reactions(react_nr)%inp(2)%index_sv0
+              else
+                PL_scheme(i)%PL(j)%formula = 4
+                PL_scheme(i)%PL(j)%comp1 = reactions(react_nr)%inp(1)%index_sv0
+                PL_scheme(i)%PL(j)%exp1  = icoeff(1) - 1
+                PL_scheme(i)%PL(j)%comp2 = reactions(react_nr)%inp(2)%index_sv0
+                PL_scheme(i)%PL(j)%exp2  = icoeff(2)
+              endif
+              PL_scheme(i)%PL(j)%coef = reactions(react_nr)%inp(1)%coeff
+            case(2)
+              if( (icoeff(1) ==1) .and. (icoeff(2) == 1) ) then
+                PL_scheme(i)%PL(j)%formula = 1
+                PL_scheme(i)%PL(j)%comp1 = reactions(react_nr)%inp(1)%index_sv0
+              else if((icoeff(2) ==1) .and. (icoeff(1) > 1)) then
+                PL_scheme(i)%PL(j)%formula = 3
+                PL_scheme(i)%PL(j)%comp1 = reactions(react_nr)%inp(1)%index_sv0
+                PL_scheme(i)%PL(j)%exp1  = icoeff(1)
+              else if((icoeff(2) ==2) .and. (icoeff(1) == 1) ) then
+                PL_scheme(i)%PL(j)%formula = 2
+                PL_scheme(i)%PL(j)%comp1 = reactions(react_nr)%inp(1)%index_sv0
+                PL_scheme(i)%PL(j)%comp2 = reactions(react_nr)%inp(2)%index_sv0
+              else
+                PL_scheme(i)%PL(j)%formula = 4
+                PL_scheme(i)%PL(j)%comp1 = reactions(react_nr)%inp(1)%index_sv0
+                PL_scheme(i)%PL(j)%exp1  = icoeff(1)
+                PL_scheme(i)%PL(j)%comp2 = reactions(react_nr)%inp(2)%index_sv0
+                PL_scheme(i)%PL(j)%exp2  = icoeff(2) - 1
+              endif
+              PL_scheme(i)%PL(j)%coef = reactions(react_nr)%inp(2)%coeff
+            end select
           endif
+        case (3) !we have 3 components on input
+          if( reactions(react_nr)%inp(k)%name == PL_scheme(i)%name) then ! current selected
+            select case (k)
+              case (1)
+                PL_scheme(i)%PL(j)%formula = 6
+                PL_scheme(i)%PL(j)%comp1 = reactions(react_nr)%inp(2)%index_sv0
+                PL_scheme(i)%PL(j)%exp1  = icoeff(2)
+                PL_scheme(i)%PL(j)%comp2 = reactions(react_nr)%inp(3)%index_sv0
+                PL_scheme(i)%PL(j)%exp2  = icoeff(3)
+                PL_scheme(i)%PL(j)%coef = reactions(react_nr)%inp(1)%coeff
+                if ( icoeff(1) == 1 ) then
+                  PL_scheme(i)%PL(j)%formula = 4
+                else
+                  PL_scheme(i)%PL(j)%comp3 = reactions(react_nr)%inp(1)%index_sv0
+                  PL_scheme(i)%PL(j)%exp3  = icoeff(1) - 1
+                endif
+              case (2)
+                PL_scheme(i)%PL(j)%formula = 6
+                PL_scheme(i)%PL(j)%comp1 = reactions(react_nr)%inp(1)%index_sv0
+                PL_scheme(i)%PL(j)%exp1  = icoeff(1)
+                PL_scheme(i)%PL(j)%comp2 = reactions(react_nr)%inp(3)%index_sv0
+                PL_scheme(i)%PL(j)%exp2  = icoeff(3)
+                PL_scheme(i)%PL(j)%coef = reactions(react_nr)%inp(2)%coeff
+                if ( icoeff(2) == 1 ) then
+                  PL_scheme(i)%PL(j)%formula = 4
+                else
+                  PL_scheme(i)%PL(j)%comp3 = reactions(react_nr)%inp(2)%index_sv0
+                  PL_scheme(i)%PL(j)%exp3  = icoeff(2) -1
+                endif
+              case (3)
+                PL_scheme(i)%PL(j)%formula = 6
+                PL_scheme(i)%PL(j)%comp1 = reactions(react_nr)%inp(1)%index_sv0
+                PL_scheme(i)%PL(j)%exp1  = icoeff(1)
+                PL_scheme(i)%PL(j)%comp2 = reactions(react_nr)%inp(2)%index_sv0
+                PL_scheme(i)%PL(j)%exp2  = icoeff(2)
+                PL_scheme(i)%PL(j)%coef = reactions(react_nr)%inp(3)%coeff
+                if ( icoeff(3) == 1 ) then
+                  PL_scheme(i)%PL(j)%formula = 4
+                else
+                  PL_scheme(i)%PL(j)%comp3 = reactions(react_nr)%inp(3)%index_sv0
+                  PL_scheme(i)%PL(j)%exp3  = icoeff(3) -1
+                endif
+            end select
+          endif
+        case (4) !we have 4 components on input
           PL_scheme(i)%PL(j)%coef = 1  !????????????
-        endif
+          if( reactions(react_nr)%inp(k)%name == PL_scheme(i)%name) then ! current selected
+            PL_scheme(i)%PL(j)%formula = 7
+            PL_scheme(i)%PL(j)%comp1 = reactions(react_nr)%inp(1)%index_sv0
+            PL_scheme(i)%PL(j)%exp1  = icoeff(1)
+            PL_scheme(i)%PL(j)%comp2 = reactions(react_nr)%inp(2)%index_sv0
+            PL_scheme(i)%PL(j)%exp2  = icoeff(2)
+            PL_scheme(i)%PL(j)%comp3 = reactions(react_nr)%inp(3)%index_sv0
+            PL_scheme(i)%PL(j)%exp3  = icoeff(3)
+            PL_scheme(i)%PL(j)%comp4 = reactions(react_nr)%inp(4)%index_sv0
+            PL_scheme(i)%PL(j)%exp4  = icoeff(4)
+            select case(k)
+              case (1)
+                PL_scheme(i)%PL(j)%exp1  = icoeff(1) - 1
+                PL_scheme(i)%PL(j)%coef = reactions(react_nr)%inp(1)%coeff
+              case (2)
+                PL_scheme(i)%PL(j)%exp2  = icoeff(2) - 1
+                PL_scheme(i)%PL(j)%coef = reactions(react_nr)%inp(2)%coeff
+              case (3)
+                PL_scheme(i)%PL(j)%exp3  = icoeff(3) - 1
+                PL_scheme(i)%PL(j)%coef = reactions(react_nr)%inp(3)%coeff
+              case (4)
+                PL_scheme(i)%PL(j)%exp4  = icoeff(4) - 1
+                PL_scheme(i)%PL(j)%coef = reactions(react_nr)%inp(4)%coeff
+            end select
+          endif
+        end select
       enddo
       endif
     enddo
@@ -775,25 +945,27 @@ SUBROUTINE read_chem(chem_name)
 
   character*6, dimension(nchsp) ::chem_name
   character*255 scalarline
-  integer i,j,status
+  integer i,j
 
   INERT%name  = 'INERT'
+  PRODUC%name = 'PRODUC'
   O3%name     = 'O3'
   NO%name     = 'NO'
   NO2%name    = 'NO2'
   NO3%name    = 'NO3'
   N2O5%name   = 'N2O5'
   HNO3%name   = 'HNO3'
-  HO%name     = 'HO'
   HO2%name    = 'HO2'
+  HO%name     = 'HO'
   H2O2%name   = 'H2O2'
   H2O%name    = 'H2O'
   CO%name     = 'CO'
   CO2%name    = 'CO2'
-  RH%name     = 'RH'
+  RH%name     = 'ISO' !**************************** pas op
   R%name      = 'R'
   NH3%name    = 'NH3'
   H2SO4%name  = 'H2SO4'
+  ISO%name    = 'ISO'
 
   !chem species and atol and rtol
   read(10,'(a)',err=100)scalarline
@@ -815,9 +987,11 @@ SUBROUTINE read_chem(chem_name)
     if (CO2%name   == chem_name(i)) then ; CO2%loc  = i;  cycle; endif
     if (RH%name    == chem_name(i)) then ; RH%loc   = i;  cycle; endif
     if (R%name     == chem_name(i)) then ; R%loc    = i;  cycle; endif
+    if (ISO%name   == chem_name(i)) then ; ISO%loc    = i;  cycle; endif
     if (NH3%name   == chem_name(i)) then ; NH3%loc  = i;  cycle; endif
     if (H2SO4%name == chem_name(i)) then ; H2SO4%loc  = i;  cycle; endif
     if (INERT%name == chem_name(i)) then ; INERT%loc  = i;  cycle; endif
+    if (PRODUC%name== chem_name(i)) then ; PRODUC%loc  = i;  cycle; endif
   enddo
 ! the above loc gives the location of a chemical component relative to the first chemical position
 ! in SV0. The loc of the first chemical is always 1.  If you need the absolute
@@ -848,7 +1022,7 @@ end subroutine read_chem
 
 
 SUBROUTINE twostep()     !(t,te,y)   (timee, timee+dt, sv0)
-use modglobal, only : rk3step,timee,timeav_glob
+use modglobal, only : rk3step,timee,timeav_glob,dt_lim, ladaptive
 use modfields, only: svm
 use modmpi, only: myid
 implicit none
@@ -857,12 +1031,17 @@ implicit none
 
   if (rk3step/=3) return
   if(timee==0) return
+  if (ladaptive .eqv. .true.) then
+    dt_lim=min(dt_lim,dtl_max)
+  endif
 
   !!!! We only use the chemistry scalars in svm,
   !!!! in twostep2 we use them as y(:,:,:,1:nchsp)
   !!!! they may be starting at XX but we acces them with index 1 to nchsp
   call twostep2(svm(:,:,:,firstchem:lastchem))
-
+  if (timee >= tnextwrite ) then
+    tnextwrite = tnextwrite + timeav_glob
+  endif
 end subroutine twostep
 
 !-----------------------------------------------------------------------------------------
@@ -895,7 +1074,7 @@ SUBROUTINE twostep2(y)
 !c
 use modglobal, only : ih,i1,jh,j1,i2,j2,k1,kmax, nsv, xtime, timee,dt,timeav_glob, xday,xlat,xlon,zf,dzf,ifoutput,cexpnr
 use modfields, only : qt0
-use modmpi, only: comm3d, mpierr,mpi_max,mpi_min,my_real,myid,cmyid
+use modmpi, only: comm3d, mpierr,mpi_max,mpi_min,mpi_sum,my_real,mpi_real,myid,cmyid,nprocs
 
 implicit none
 
@@ -903,13 +1082,13 @@ implicit none
   real    y(2-ih:i1+ih,2-jh:j1+jh,k1,1:nchsp)
 
   real, allocatable :: ybegin(:,:,:,:)
+  real, allocatable :: writearrayg(:,:)
   real    t, te
-  real    negi,posi,toti,percent
   integer nfcn,naccpt,nrejec,nstart,i,j,n,pl
-  real    tb, kdt, dtmin, kdtmax, sta, ytol
+  real    tb, kdt, dtmin, kdtmax, ytol
   real    ratio,dtold,a1,a2,c,cp1,dtg,errlte,dyc
   logical accept,failer,restart
-  real    kdtl, errltel,dummy
+  real    kdtl, errltel
   character*20 formatstring
   real    epsilon
   parameter (epsilon=1.0e-10)
@@ -963,7 +1142,7 @@ implicit none
 
     ynew(:,:,1:nchsp) = y(2:i1,2:j1, pl,1:nchsp)
     ysum(:,:,1:nchsp)  = y(2:i1,2:j1, pl,1:nchsp)
-    call ITER (t,0.0,pl)
+    call ITER (0.0,pl)
     nfcn=nfcn+1
     kdtl=te-t
 
@@ -998,7 +1177,7 @@ implicit none
     ysum(:,:,1:nchsp)  = y(2:i1,2:j1, pl,1:nchsp)
 
     do i=1,numit
-      call ITER(t+kdt,kdt,pl)
+      call ITER(kdt,pl)
       nfcn=nfcn+1
     enddo
 
@@ -1022,7 +1201,7 @@ implicit none
     ynew(:,:,1:nchsp) = max(0.0,y(2:i1,2:j1,pl,1:nchsp)+ ratio*(y(2:i1,2:j1,pl,1:nchsp)-yold(:,:,1:nchsp)))
 
     do i=1,numit
-      call ITER(t+kdt,dtg,pl)
+      call ITER(dtg,pl)
       nfcn=nfcn+1
     enddo
 
@@ -1076,23 +1255,33 @@ implicit none
 120 t=tb
   enddo  !pl=1,kmax
 
-  if(myid==0) then
-    if( mod( timee,timeav_glob) == 0) then
-      ! this are the keffs of the first processor only just to have an idea
-       open(ifoutput,file='keffs.'//cexpnr,position='append')
-       write(ifoutput,'(a,f8.1)') 'time =',timee
-       write(formatstring,'(a,i3,a)') '(5x,',tnor+2,'(2x,a6,3x))'
-       write(ifoutput,formatstring) (RC(i)%rname,i=1,tnor),'Tabs','convppb'
-       write(formatstring,'(a,i3,a)') '(5x,',tnor+2,'(3x,i3,5x))'
-       write(ifoutput,formatstring)( RC(i)%func1,i=1,tnor)
-       do pl=1,kmax
-         write(ifoutput,'(i3,x,19e11.4)') pl,(writearray(pl,i),i=1,tnor+2)
-       enddo
-       close(ifoutput)
-    endif
+
+  if( timee>=tnextwrite) then
+    allocate (writearrayg(k1,tnor+2))
+    writearrayg = 0.
+    do n=1,tnor+2
+      call MPI_ALLREDUCE(writearray(:,n), writearrayg(:,n) ,k1, MY_REAL, MPI_SUM, comm3d, mpierr)
+    enddo
+    if(myid==0) then
+      open(ifoutput,file='keffs.'//cexpnr,position='append')
+      write(ifoutput,'(a,f8.1)') 'time =',timee
+      write(formatstring,'(a,i3,a)') '(5x,',tnor+2,'(2x,a6,3x))'
+      write(ifoutput,formatstring) (RC(i)%rname,i=1,tnor),'Tabs','convppb'
+      write(formatstring,'(a,i3,a)') '(5x,',tnor+2,'(3x,i3,5x))'
+      write(ifoutput,formatstring)( RC(i)%func1,i=1,tnor)
+!      do pl=1,kmax
+!        write(ifoutput,'(i3,x,19e11.4)') pl,(writearray(pl,i),i=1,tnor+2)
+!      enddo
+      do pl=1,kmax
+        write(ifoutput,'(i3,1x,19e11.4)') pl,(writearrayg(pl,i)/nprocs,i=1,tnor+2)
+      enddo
+
+      close(ifoutput)
+    endif !(myid == 0)
+    deallocate(writearrayg)
   endif
 
-  if (lchmovie .and. mod(timee,dtchmovie)==0 ) then
+  if (lchmovie .and. (mod(timee,dtchmovie)==0 )) then
     call chemmovie(ybegin)
     deallocate(k3d,ybegin)
   endif
@@ -1112,7 +1301,7 @@ implicit none
   logical accept
   parameter (eps=1.e-12)
 
-  if (errlte.gt.1.0.and.dt.gt.dtmin) then
+  if ((errlte.gt.1.0).and.(dt.gt.dtmin)) then
     accept=.false.
     ts=t
   else
@@ -1173,27 +1362,27 @@ implicit none
     convppb(:,:) = Avogrado * 1.e-9 * 1e-6 * (p_ref/100) / (8.314e-2 * t_ref)
   endif
 
-  if (lchmovie .and. mod(timee,dtchmovie)==0) then
+  if (lchmovie .and. (mod(timee,dtchmovie)==0)) then
     k3d(:,:,k,tnor+1) = T_abs
     k3d(:,:,k,tnor+2) = convppb
   endif
 
-  if (myid==0 .and. mod(timee,timeav_glob)==0) then
+  if( timee>=tnextwrite) then
      writearray(k,tnor+1)=sum(T_abs)/(imax*jmax)
      writearray(k,tnor+2)=sum(convppb)/(imax*jmax)
   endif
 
-  if( lchmovie .and. mod(timee,dtchmovie)==0) then
+  if( lchmovie .and. (mod(timee,dtchmovie)==0)) then
      writearray(k,tnor+1)=sum(T_abs)/(imax*jmax)
      writearray(k,tnor+2)=sum(convppb)/(imax*jmax)
   endif
 
   do i=1, tnor
     if (RC(i)%RadDep == 1 ) then
-      if( myid==0 .and. mod(timee,timeav_glob)==0 ) then
+      if (timee>=tnextwrite) then
         writearray(k,i) = sum(keff(:,:,RC(i)%Kindex,k))/(imax*jmax)
       endif
-      if( lchmovie .and. mod(timee,dtchmovie)==0) then
+      if( lchmovie .and. (mod(timee,dtchmovie)==0)) then
         k3d(:,:,k,i) = keff(:,:,RC(i)%Kindex,k)
       endif
       !do nothing this is done in ratech
@@ -1201,8 +1390,8 @@ implicit none
       select case ( RC(i)%func1 )
       case(0)
         !do nothing K is in PPB and constant
-      case(1) ! K in cm3/molecules*sec and constant
-        keffT(:,:,RC(i)%Kindex) = RC(i)%Kreact * convppb(:,:)
+      case(1) ! K in cm3/molecules*sec and independent of temperature
+        keffT(:,:,RC(i)%Kindex) = RC(i)%A * convppb(:,:)
       case(2) !temperature depence of K
         keffT(:,:,RC(i)%Kindex) = RC(i)%A * exp(RC(i)%B / T_abs(:,:)) * convppb(:,:)
       case (3) !more complex temperature dependence
@@ -1230,11 +1419,11 @@ implicit none
         STOP
       end select
 
-      if (myid==0 .and. mod(timee,timeav_glob)==0) then
+      if( timee>=tnextwrite) then
         writearray(k,i)=sum(keffT(:,:,RC(i)%Kindex))/(imax*jmax)
       endif
 
-      if (lchmovie .and. mod(timee,dtchmovie)==0) then
+      if (lchmovie .and. (mod(timee,dtchmovie)==0)) then
         k3d(:,:,k,i) = keffT(:,:,RC(i)%Kindex)
       endif
     endif
@@ -1242,30 +1431,40 @@ implicit none
   end do !tnor
 
 end subroutine calc_K
-!> calculate the photolyis rate perturbed by clouds
-!!
-!! \author Jordi Vila   WUR          16/08/2004
-!! \author Kees vd Dries WUR
-!! \see Chang et al.(eqs 13) (JGR, vol 92, 14,681).
-!!
-!!     It calculates the photolysis rate perturbed by the clouds
-!!     It takes the clear sky value prescribed at input_chem
-!!     and it modifyes according to the parameterization developed
-!!     by Chang et al.(eqs 13) (JGR, vol 92, 14,681).
-!!     The parametrization depends on:
-!!     - Cloud optical depth
-!!     - Solar zenith angles
-!!
-!!     If zbase then from top down to ztop to catch double(broken) clouds
-!!     inside cloud scaled with ql0
-!!
-!!                 hv
-!!     O3         ----> O(1D) + O2   (jO3)
-!!     O(1D) + H2O ---> 2HO
-!!     O(1D) + AIR ---> DEACTIVATION
-!!overall:
-!!     O3 + H2O ---> 2HO + O2         (JO3)
+
 subroutine ratech
+!
+!-----------------------------------------------------------------|
+!                                                                 |
+!*** *ratech*  calculate the photolyis rate perturbed by clouds   |
+!                                                                 |
+!     Jordi Vila   WUR          16/08/2004                        |
+!                                                                 |
+!    purpose.                                                     |
+!     --------
+!
+!     It calculates the photolysis rate perturbed by the clouds
+!     It takes the clear sky value prescribed at input_chem
+!     and it modifyes according to the parameterization developed
+!     by Chang et al.(eqs 13) (JGR, vol 92, 14,681).
+!     The parametrization depends on:
+!     - Cloud optical depth
+!     - Solar zenith angles
+!
+!**   interface.
+!     ----------
+! KvdD
+!     if zbase then from top down to ztop to catch double(broken) clouds
+!     inside cloud scaled with ql0
+!
+!                 hv
+!     O3         ----> O(1D) + O2   (jO3)
+!     O(1D) + H2O ---> 2HO
+!     O(1D) + AIR ---> DEACTIVATION
+!overall:
+!     O3 + H2O ---> 2HO + O2         (JO3)
+!-----------------------------------------------------------------
+!
 
   use modglobal, only : i1,i2,ih, j1,j2,jh, k1,kmax, timeav_glob,pi,xtime,timee,xday,xlat,xlon, &
                         zf,dzf, iexpnr,rslabs,ifoutput,cexpnr
@@ -1276,13 +1475,11 @@ subroutine ratech
   real  sza
   real     timeav
   integer   i,j,k,l,m,n,r
-  integer   e, index
-
   real  zbase, ztop, qlint, clddepth
   real  zbasesum, ztopmax, zbasecount
   real  zbasesuml, ztopmaxl, zbasecountl
   real  cloudheight, cloudheightmax
-  real  cloudheightl, cloudheightmaxl
+  real  cloudheightmaxl
   real  cloudheightsum, cloudheightsuml
   real  cloudcount,cloudcountl
   real  qlintsum,qlintsuml
@@ -1290,19 +1487,15 @@ subroutine ratech
   real  qlintallsum,qlintallsuml
   real  qlintallmax,qlintallmaxl
   real  coszen, coszenmax
-  real  slope, jbase, jtop
   real  rhow, re, tr, fba, fab, tauc, tau2
-  real  KR
   real  ks,diff,qsum
-  real  xhr, tijd, solar_fact
+  real  xhr
   logical lday
 
   lday = .false.
 
   timeav = timeav_glob
-  xhr = xtime +timee/3600.
-
-  tijd= xtime * 3600 +timee
+  xhr = xtime + timee/3600.
 
   re    = 1.e-05 ! mean cloud drop radius
   rhow  = 1000.  ! density of water
@@ -1317,15 +1510,27 @@ subroutine ratech
 
   if (coszen > 0.00) then !it is day
     lday = .true.
+    if(myid==0 .and. (switch .eqv. .false.)) then
+      switch = .true.
+      write(*,*)'The SUN is UP at timee=',timee,xhr
+    endif
     if (ldiuvar .eqv. .false.) then ! we have to fix the sza to the fixed hour h_ref
       sza = getth(xday,xlat,xlon,h_ref)
       coszen = max(0.0,cos(sza))
+!write(*,*)sza,coszen
+    endif
+  else
+    lday = .false.
+    if(myid==0 .and. (switch .eqv. .true.) ) then
+      switch = .false.
+      write(*,*)'The SUN is DOWN at timee=',timee,xhr
     endif
   endif
 
   if (lday .eqv. .false.) then
     ! It is night, no photolysis reactions
     keff(:,:,:,:) = 0.0
+    RETURN
   else
     do i=1, nr_raddep
       r = raddep_RCindex(i) !array to photolysis reactionnumbers
@@ -1334,136 +1539,129 @@ subroutine ratech
         RC(r)%Keff = RC(r)%A
       case (2) ! exponential function
         RC(r)%Keff = RC(r)%A * exp(RC(r)%B / coszen)
+!write(*,*)'func 2',RC(r)%Keff
       case (3) ! powerfunction
         RC(r)%Keff = RC(r)%A * coszen ** RC(r)%B
       case (4) ! powerfunction but special for JO3
         RC(r)%Keff = RC(r)%A * coszen ** RC(r)%B
+!write(*,*)'func 4',RC(r)%Keff
       case default
         RC(r)%Keff = 1.
       end select
     enddo
   endif
 
-  if(lday .eqv. .true. ) then
-    if( sum(ql0) == 0.0 ) then  ! maybe < 0.01
-      !there is no liquid water in the domain so no clouds fill keff() then we are finished here
-      do i=1, nr_raddep
-        r = raddep_RCindex(i)
-        select case (RC(r)%func1)
-        case (4) !special for jO3  JO3 = jO3 * k1[H2O] / (k1[H2O] + k2[Air])
-          if(lchconst .eqv. .true.) then
-            keff(:,:,i,:) = RC(r)%Keff * RC(r)%D *  (q_ref * MW_air/MW_h2o ) / &
-             (RC(r)%D * q_ref * MW_air/MW_h2o + RC(r)%E * (1.- q_ref))
-          else
-            keff(:,:,i,:) = RC(r)%Keff * RC(r)%D * ( qt0(2:i1,2:j1,1:kmax) * MW_air/MW_h2o ) / &
-             (RC(r)%D * ( qt0(2:i1,2:j1,1:kmax) * MW_air/MW_h2o ) + RC(r)%E * (1.- qt0(2:i1,2:j1,1:kmax)))
-          endif
-        case default ! for now for all other photolysis reactions
-          keff(:,:,i,:) = RC(r)%Keff
-        end select
-      enddo
-    else
-      !we have to look for the individual clouds
+  !fill the keff with values for no clouds
+  do i=1, nr_raddep
+    r = raddep_RCindex(i)
+    select case (RC(r)%func1)
+    case (4) !special for jO3  JO3 = jO3 * k1[H2O] / (k1[H2O] + k2[Air])
+      if(lchconst .eqv. .true.) then
+        keff(:,:,i,:) = RC(r)%Keff * RC(r)%D *  (q_ref * MW_air/MW_h2o ) / &
+         (RC(r)%D * q_ref * MW_air/MW_h2o + RC(r)%E * (1.- q_ref* MW_air/MW_h2o))
+!write(*,*)'func 4', keff(2,2,i,2),RC(r)%Keff,RC(r)%D *  (q_ref * MW_air/MW_h2o ),RC(r)%D * q_ref * MW_air/MW_h2o,RC(r)%E * (1.- q_ref* MW_air/MW_h2o)
+      else
+        keff(:,:,i,:) = RC(r)%Keff * RC(r)%D * ( qt0(2:i1,2:j1,1:kmax) * MW_air/MW_h2o ) / &
+         (RC(r)%D * ( qt0(2:i1,2:j1,1:kmax) * MW_air/MW_h2o ) + RC(r)%E * (1.- qt0(2:i1,2:j1,1:kmax)* MW_air/MW_h2o))
+      endif
+    case default ! for now for all other photolysis reactions
+      keff(:,:,i,:) = RC(r)%Keff
+    end select
+  enddo
 
-      zbase = 0.
-      zbasesum = 0.
-      zbasecount = 0.
-      ztop = 0.
-      ztopmax = 0.
-      cloudheightmax = 0.0
-      cloudheightsum = 0.0
-      cloudcount = 0.0
-      qlintsum = 0.0
-      qlintallsum = 0.0
-      qlintallmax = 0.0
+  if( sum(ql0) == 0.0 .or. (lcloudKconst  .eqv. .true.)) then  ! maybe < 0.01
+    !there is no liquid water in the domain so no clouds
+    !or we like constamnt value's for K so we are finished here
+  else
+    !we have to look for the individual clouds
 
-     !for clouds the the max solar zenith angle is cutoff at 60 degrees
-      coszenmax = min(60*pi/180,coszen)
+    zbasesum = 0.
+    zbasecount = 0.
+    clddepth = 0.
+    ztopmax = 0.
+    cloudheightmax = 0.0
+    cloudheightsum = 0.0
+    cloudcount = 0.0
+    qlintsum = 0.0
+    qlintallsum = 0.0
+    qlintallmax = 0.0
 
-      do j=2,j1
-        do i=2,i1
-          kefftemp = 1.0
-          do k=1,kmax
-            if (ql0(i,j,k) > 0.0) then !found bottom of cloud at level k
-              do L=kmax,k,-1  !continue from top down to bottom
-                if (ql0(i,j,L).gt.0.0) then !found top of cloud at level L
-                  qsum  = sum(ql0(i,j,k:L))
-                  qlint = sum(ql0(i,j,k:L) * rhof(k:L) * dzf(k:L)) ! ??? ###############rhof(one) or rhof(L)   ###########################
-                  exit !L loop
-                endif
-              enddo
+    !for clouds the the max solar zenith angle is cutoff at 60 degrees
+    coszenmax = min(60*pi/180,coszen)
 
-              tau2 = (3./2.)*(qlint/(rhow*re))
+    do j=2,j1
+      do i=2,i1
+        kefftemp = 1.0
+        do k=1,kmax
+          if (ql0(i,j,k) > 0.0) then !found bottom of cloud at level k
+            do L=kmax,k,-1  !continue from top down to bottom
+              if (ql0(i,j,L).gt.0.0) then !found top of cloud at level L
+                qsum  = sum(ql0(i,j,k:L))
+                qlint = sum(ql0(i,j,k:L) * rhof(k:L) * dzf(k:L)) ! ??? ###############rhof(one) or rhof(L)   ###########################
+                exit !L loop
+              endif
+            enddo
 
-              zbase = zf(k)
-              ztop = zf(L)
-              clddepth = ztop - zbase
+            zbase = zf(k)
+            ztop = zf(L)
+            clddepth = ztop - zbase
+            cloudcount = cloudcount + 1
+            qlintallsum = qlintallsum + qlint
+            qlintallmax = max(qlintallmax,qlint)
 
-              !- Calculating transmission coefficient, cloud optical depth
-              if (tau2 >= tauc ) then  ! 'dense' cloud
-                ! smooting of cloud base and top
-                zbase = zf(k) - (ql0(i,j,k)/(ql0(i,j,k) + ql0(i,j,k+1))) * dzf(k)  !!!!! of dzf(k+-?) with non equidistant grid
-                ztop  = zf(L) + (ql0(i,j,L)/(ql0(i,j,L) + ql0(i,j,L-1))) * dzf(L)  !!!!! of dzf(l+-?)
+            !- Calculating transmission coefficient, cloud optical depth
+            tau2 = (3./2.)*(qlint/(rhow*re))
+     ! if(myid==0)write(*,*) myid,'tau2',tau2,tauc,i,j,k,l
+            if (tau2 >= tauc ) then  ! 'dense' cloud
+              ! smooting of cloud base and top
+              zbase = zf(k) - (ql0(i,j,k)/(ql0(i,j,k) + ql0(i,j,k+1))) * dzf(k)  !!!!! of dzf(k+-?) with non equidistant grid
+              ztop  = zf(L) + (ql0(i,j,L)/(ql0(i,j,L) + ql0(i,j,L-1))) * dzf(L)  !!!!! of dzf(l+-?)
+              !for cloud statistics
+              zbasesum = zbasesum + zbase
+              zbasecount = zbasecount + 1
+              ztopmax = max(ztopmax, ztop)
+              cloudheight = ztop - zbase
+              cloudheightmax = max(cloudheightmax, cloudheight)
+              cloudheightsum = cloudheightsum + cloudheight
+              qlintsum = qlintsum + qlint
+              qlintmax = max(qlintmax,qlint)
 
-                tr   = (5. - exp(-tau2))/(4.+ 3.*tau2*0.14)
+              tr   = (5. - exp(-tau2))/(4.+ 3.*tau2*0.14)
 
-                fba  = 1.6 * tr * coszenmax      !factor below clouds
-                kefftemp(1:k-1)  = fba
+              fba  = 1.6 * tr * coszenmax      !factor below clouds
+              kefftemp(1:k-1,:)  = fba
+              ! Only the factor above clouds is dependent on the chemical species
+              do m = 1, nr_raddep
+                r = raddep_RCindex(m)
+                !RC(r)%C is the alfa factor of Chang
+                fab  = 1. + RC(r)%C * (1-tr) * coszenmax   !factor above clouds
+                ! above cloud
+                kefftemp(l:kmax,m) = fab
 
-                ! Only the factor above clouds is dependent on the chemical species
-                do m = 1, nr_raddep
-                  r = raddep_RCindex(m)
-                  fab  = 1. + RC(r)%C * (1-tr) * coszenmax   !factor above clouds
-                  ! above cloud
-                  kefftemp(l:kmax) = fab
-
-                  !inside cloud
-                  diff = fab - fba
-                  ks = fab
-
-                  ! scale inside cloud with ql0
-                  ! not sure this is correct with non equidistant grid
-                  do n=l-1,k,-1
-                    ks = ks - ql0(i,j,n)/qsum * diff
-                    kefftemp(n) = ks
-                  enddo
-
-                  select case (RC(r)%func1)
-                  case (4) !special for jO3  JO3 = jO3 * k1[H2O] / (k1[H2O] + k2[Air])
-                    if(lchconst .eqv. .true.) then
-                      keff(:,:,i,:) = RC(r)%Keff * RC(r)%D *  (q_ref * MW_air/MW_h2o ) / &
-                        (RC(r)%D * q_ref * MW_air/MW_h2o + RC(r)%E * (1.- q_ref))
-                    else
-                      keff(:,:,i,:) = RC(r)%Keff * RC(r)%D * ( qt0(2:i1,2:j1,1:kmax) * MW_air/MW_h2o ) / &
-                        (RC(r)%D * ( qt0(2:i1,2:j1,1:kmax) * MW_air/MW_h2o ) + RC(r)%E * (1.- qt0(2:i1,2:j1,1:kmax)))
-                    endif
-                  case default ! for now all other photolysis reactions are the same
-                    keff(i,j,m,:) = kefftemp(1:kmax) * RC(r)%Keff
-                  end select
-                  !if(myid==0 .and. mod(timee,900)==0) writearray(:,tnor-2+l)=sum(keff(:,:,RC(i)%Kindex))/(i2*j2)
+                !inside cloud
+                diff = fab - fba
+                ks = fab
+       !if(myid==0)write(*,*) raddep_RCindex(m),'fab=',fab,'fba=',fba
+                ! scale inside cloud with ql0
+                ! not sure this is correct with non equidistant grid
+                do n=l-1,k,-1
+                  ks = ks - ql0(i,j,n)/qsum * diff
+                  kefftemp(n,m) = ks
                 enddo
+                keff(i,j,m,:) = keff(i,j,m,:) * kefftemp(:,m)
+        !if(myid==0)write (*,*) myid,'xxx',timee,m,r,RC(r)%func1, RC(r)%Keff,keff(i,j,m,1)
+              enddo !m = 1, nr_raddep
+
+            endif !dense cloud
+            EXIT ! k loop
+          endif !ql0(i,j,k) >0
+        enddo !k loop
+      enddo !i loop
+    enddo !j loop
+  endif !ql0(:,:,:) = 0
 
 
-                zbasesum = zbasesum + zbase
-                zbasecount = zbasecount +1
-                ztopmax = max(ztopmax, ztop)
-
-                cloudheight = ztop - zbase
-                cloudheightmax = max(cloudheightmax, cloudheight)
-                cloudheightsum = cloudheightsum + cloudheight
-                qlintsum = qlintsum + qlint
-                qlintmax = max(qlintmax,qlint)
-              endif !dense cloud
-            endif !ql0(i,j,k) >0
-            exit ! k loop
-          enddo !k loop
-        enddo !i loop
-      enddo !j loop
-
-    endif !ql0(:,:,:) > 0
-  endif ! if lday
-
-  if (mod(timee, timeav)== 0 )then
+  if(timee>=tnextwrite) then
      ztopmaxl = ztopmax
      zbasesuml = zbasesum
      zbasecountl = zbasecount
@@ -1490,28 +1688,29 @@ subroutine ratech
      call MPI_ALLREDUCE(qlintallmaxl, qlintallmax, 1,    MY_REAL,  MPI_MAX, comm3d, mpierr)
      call MPI_ALLREDUCE(qlintallsuml, qlintallsum, 1,    MY_REAL,  MPI_SUM, comm3d, mpierr)
 
-     if (myid ==0 .and. timee >0) then
+     if ( myid ==0 ) then
        open (ifoutput,file='cloudstat.'//cexpnr,position='append')
        write(ifoutput,'(f7.0,f6.2,2f7.2,4f9.1,4f9.4)')timee, xhr, zbasecount/rslabs, cloudcount/rslabs, zbasesum / (zbasecount+1.0e-5), &
          ztopmax, cloudheightsum/(zbasecount+1.0e-5), cloudheightmax, qlintsum / (zbasecount+1.0e-5), &
          qlintmax, qlintallsum / (cloudcount + 1.0e-5), qlintallmax
        close (ifoutput)
-    endif
+     endif
   endif
 
   RETURN
 
   end  subroutine ratech
+!XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
-subroutine ITER(t,gdt,k)
+subroutine ITER(gdt,k)
 use modglobal, only : i2, j2,nsv,timee
 use modmpi, only : myid
 implicit none
 
-  real    t,gdt
+  real    gdt
   integer k
   real,pointer,dimension(:,:,:) :: YPL_pointer
-  integer i,j,n
+  integer j,n
 
   YL(:,:,:) = 0.
   YP(:,:,:) = 0.
@@ -1520,6 +1719,7 @@ implicit none
   if (PL_scheme(n)%active .EQV. .TRUE.) then
     if (PL_scheme(n)%name == CO%name )  cycle    !don't do calculation of CO, kept constant at start concentration
     if (PL_scheme(n)%name == H2O%name )  cycle    !don't do calculation of H2O
+    if (PL_scheme(n)%name == PRODUC%name) cycle
 
     do j=1, PL_scheme(n)%nr_PL
 
@@ -1542,6 +1742,22 @@ implicit none
         case (4)
           YPL_pointer(:,:,n) = YPL_pointer(:,:,n) + PL_scheme(n)%PL(j)%coef * keff(:,:,RC(PL_scheme(n)%PL(j)%r_nr)%Kindex,k) * ynew(:,:,PL_scheme(n)%PL(j)%comp1)  ** PL_scheme(n)%PL(j)%exp1 &
                    * ynew(:,:,PL_scheme(n)%PL(j)%comp2)  ** PL_scheme(n)%PL(j)%exp2
+        case (5)
+          YPL_pointer(:,:,n) = YPL_pointer(:,:,n) + PL_scheme(n)%PL(j)%coef * keff(:,:,RC(PL_scheme(n)%PL(j)%r_nr)%Kindex,k) &
+                   * ynew(:,:,PL_scheme(n)%PL(j)%comp1) &
+                   * ynew(:,:,PL_scheme(n)%PL(j)%comp2) &
+                   * ynew(:,:,PL_scheme(n)%PL(j)%comp3)
+        case (6)
+          YPL_pointer(:,:,n) = YPL_pointer(:,:,n) + PL_scheme(n)%PL(j)%coef * keff(:,:,RC(PL_scheme(n)%PL(j)%r_nr)%Kindex,k) &
+                   * ynew(:,:,PL_scheme(n)%PL(j)%comp1) ** PL_scheme(n)%PL(j)%exp1 &
+                   * ynew(:,:,PL_scheme(n)%PL(j)%comp2) ** PL_scheme(n)%PL(j)%exp2 &
+                   * ynew(:,:,PL_scheme(n)%PL(j)%comp3) ** PL_scheme(n)%PL(j)%exp3
+        case (7)
+          YPL_pointer(:,:,n) = YPL_pointer(:,:,n) + PL_scheme(n)%PL(j)%coef * keff(:,:,RC(PL_scheme(n)%PL(j)%r_nr)%Kindex,k) &
+                   * ynew(:,:,PL_scheme(n)%PL(j)%comp1) ** PL_scheme(n)%PL(j)%exp1 &
+                   * ynew(:,:,PL_scheme(n)%PL(j)%comp2) ** PL_scheme(n)%PL(j)%exp2 &
+                   * ynew(:,:,PL_scheme(n)%PL(j)%comp3) ** PL_scheme(n)%PL(j)%exp3 &
+                   * ynew(:,:,PL_scheme(n)%PL(j)%comp4) ** PL_scheme(n)%PL(j)%exp4
         end select
       else
         kreact(:,:) = PL_scheme(n)%PL(j)%coef * KeffT(:,:,RC(PL_scheme(n)%PL(j)%r_nr)%Kindex)
@@ -1557,6 +1773,19 @@ implicit none
         case (4)
           YPL_pointer(:,:,n) = YPL_pointer(:,:,n) + kreact(:,:) * ynew(:,:,PL_scheme(n)%PL(j)%comp1) ** PL_scheme(n)%PL(j)%exp1 &
                    * ynew(:,:,PL_scheme(n)%PL(j)%comp2)  ** PL_scheme(n)%PL(j)%exp2
+        case (5)
+          YPL_pointer(:,:,n) = YPL_pointer(:,:,n) + kreact(:,:) * ynew(:,:,PL_scheme(n)%PL(j)%comp1) &
+                                                                * ynew(:,:,PL_scheme(n)%PL(j)%comp2) &
+                                                                * ynew(:,:,PL_scheme(n)%PL(j)%comp3)
+        case (6)
+          YPL_pointer(:,:,n) = YPL_pointer(:,:,n) + kreact(:,:) * ynew(:,:,PL_scheme(n)%PL(j)%comp1) ** PL_scheme(n)%PL(j)%exp1 &
+                                                                * ynew(:,:,PL_scheme(n)%PL(j)%comp2) ** PL_scheme(n)%PL(j)%exp2 &
+                                                                * ynew(:,:,PL_scheme(n)%PL(j)%comp3) ** PL_scheme(n)%PL(j)%exp3
+        case (7)
+          YPL_pointer(:,:,n) = YPL_pointer(:,:,n) + kreact(:,:) * ynew(:,:,PL_scheme(n)%PL(j)%comp1) ** PL_scheme(n)%PL(j)%exp1 &
+                                                                * ynew(:,:,PL_scheme(n)%PL(j)%comp2) ** PL_scheme(n)%PL(j)%exp2 &
+                                                                * ynew(:,:,PL_scheme(n)%PL(j)%comp3) ** PL_scheme(n)%PL(j)%exp3 &
+                                                                * ynew(:,:,PL_scheme(n)%PL(j)%comp4) ** PL_scheme(n)%PL(j)%exp4
         end select
       endif
 
@@ -1571,7 +1800,9 @@ implicit none
 end subroutine ITER
 
 
-!> Function to calculate solar zenith angle
+!c
+!c ---- Function to calculate solar zenith angle
+!c
 real function getth(daynr,lat,lon,xhr)
 implicit none
   real daynr, lat, lon, xhr
@@ -1658,6 +1889,7 @@ implicit none
 
 end subroutine chemmovie
 
+!XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 subroutine write_chem_scheme(chem_name)
 use modglobal, only: nsv,ifoutput,cexpnr
@@ -1666,113 +1898,148 @@ implicit none
 
   character*6, dimension(nchsp) :: chem_name(:)
   integer i,j
+  character (len=4) coef_str
 
   if ( myid == 0 ) then
 
   !Print out the reaction schemes
-  open(ifoutput,file='reaction_scheme.'//CEXPNR)
+  open(ifoutput,file='reaction_scheme.'//CEXPNR,RECL=132)
+  write(ifoutput,*)' '
+  do i=1,nchsp
   write(ifoutput,*)'---------------------------------------'
   write(ifoutput,*)' '
-
-  do i=1,nchsp
-  if (PL_scheme(i)%active .EQV. .FALSE. ) then
-    write(ifoutput,*)PL_scheme(i)%name,'(',i,')'
+ if (PL_scheme(i)%active .EQV. .FALSE. ) then
+    write(ifoutput,'(a6,a2,i2,a,a)')PL_scheme(i)%name,'(',i,')','NO REACTION'
     write(ifoutput,*)' '
   else
-    write(ifoutput,*)PL_scheme(i)%name,'(',i,')'
+    write(ifoutput,'(a6,a2,i2,a)')PL_scheme(i)%name,'(',i,')'
+    write(ifoutput,'(a5)') 'YP = '
     do j=1,PL_scheme(i)%nr_PL
-      if (PL_scheme(i)%PL(j)%PorL == 1 ) then
+      write(coef_str,'(f4.2)')PL_scheme(i)%PL(j)%coef
+      if (PL_scheme(i)%PL(j)%PorL == PRODUCTION ) then
         select case (PL_scheme(i)%PL(j)%formula)
         case (0)
-          write(ifoutput,*) '   YPtemp = YPtemp +',PL_scheme(i)%PL(j)%coef,' * K(',PL_scheme(i)%PL(j)%r_nr,')'
+          write(ifoutput,*) '    +',coef_str,' * K(',trim(RC(PL_scheme(i)%PL(j)%r_nr)%rname),')  ( F=',PL_scheme(i)%PL(j)%formula,')'
         case (1)
-          write(ifoutput,*) '   YPtemp = YPtemp +',PL_scheme(i)%PL(j)%coef,' * K(',PL_scheme(i)%PL(j)%r_nr,') * Y[',chem_name(PL_scheme(i)%PL(j)%comp1),']'
+          write(ifoutput,*)'    +',coef_str,' * K(',trim(RC(PL_scheme(i)%PL(j)%r_nr)%rname),') * Y[',trim(chem_name(PL_scheme(i)%PL(j)%comp1)),']','( F=',PL_scheme(i)%PL(j)%formula,')'
         case (2)
-          write(ifoutput,*) '   YPtemp = YPtemp +',PL_scheme(i)%PL(j)%coef,' * K(',PL_scheme(i)%PL(j)%r_nr,') * Y[',chem_name(PL_scheme(i)%PL(j)%comp1),']', &
-                    '* Y[',chem_name(PL_scheme(i)%PL(j)%comp2),']'
+          write(ifoutput,*)'    +',coef_str,' * K(',trim(RC(PL_scheme(i)%PL(j)%r_nr)%rname),') * Y[',trim(chem_name(PL_scheme(i)%PL(j)%comp1)),']', &
+                    '* Y[',trim(chem_name(PL_scheme(i)%PL(j)%comp2)),'] ( F=',PL_scheme(i)%PL(j)%formula,')'
         case (3)
-          write(ifoutput,*) '   YPtemp = YPtemp +',PL_scheme(i)%PL(j)%coef,' * K(',PL_scheme(i)%PL(j)%r_nr,') * Y[',chem_name(PL_scheme(i)%PL(j)%comp1),'] ** (',PL_scheme(i)%PL(j)%exp1,')'
+          write(ifoutput,*)'    +',coef_str,' * K(',trim(RC(PL_scheme(i)%PL(j)%r_nr)%rname),') * Y[',trim(chem_name(PL_scheme(i)%PL(j)%comp1)),'] ** (',PL_scheme(i)%PL(j)%exp1,')','( F=',PL_scheme(i)%PL(j)%formula,')'
         case(4)
-          write(ifoutput,*) '   YPtemp = YPtemp +',PL_scheme(i)%PL(j)%coef,' * K(',PL_scheme(i)%PL(j)%r_nr,') * Y[',chem_name(PL_scheme(i)%PL(j)%comp1),'] ** (',PL_scheme(i)%PL(j)%exp1,')', &
-                    ' * Y[',chem_name(PL_scheme(i)%PL(j)%comp2),']** (',PL_scheme(i)%PL(j)%exp2,')'
+          write(ifoutput,*)'    +',coef_str,' * K(',trim(RC(PL_scheme(i)%PL(j)%r_nr)%rname),') * Y[',trim(chem_name(PL_scheme(i)%PL(j)%comp1)),'] ** (',PL_scheme(i)%PL(j)%exp1,')', &
+                    ' * Y[',trim(chem_name(PL_scheme(i)%PL(j)%comp2)),']** (',PL_scheme(i)%PL(j)%exp2,') ( F=',PL_scheme(i)%PL(j)%formula,')'
+        case(5)
+          write(ifoutput,*)'    +',coef_str,' * K(',trim(RC(PL_scheme(i)%PL(j)%r_nr)%rname), &
+                    ') * Y[',trim(chem_name(PL_scheme(i)%PL(j)%comp1)),']', &
+                    '* Y[',trim(chem_name(PL_scheme(i)%PL(j)%comp2)), &
+                    '] * Y[',trim(chem_name(PL_scheme(i)%PL(j)%comp3)),'] ( F=',PL_scheme(i)%PL(j)%formula,')'
+        case(6)
+          write(ifoutput,*)'    +',coef_str,' * K(',trim(RC(PL_scheme(i)%PL(j)%r_nr)%rname), &
+                    ') * Y[',trim(chem_name(PL_scheme(i)%PL(j)%comp1)),']** (',PL_scheme(i)%PL(j)%exp1, &
+                    ') * Y[',trim(chem_name(PL_scheme(i)%PL(j)%comp2)),'] ** (',PL_scheme(i)%PL(j)%exp2, &
+                    ') *  Y[',trim(chem_name(PL_scheme(i)%PL(j)%comp3)),'] ** (',PL_scheme(i)%PL(j)%exp3,')( F=',PL_scheme(i)%PL(j)%formula,')'
+        case(7)
+          write(ifoutput,*)'    +',coef_str,' * K(',trim(RC(PL_scheme(i)%PL(j)%r_nr)%rname), &
+                    ') * Y[',trim(chem_name(PL_scheme(i)%PL(j)%comp1)),']** (',PL_scheme(i)%PL(j)%exp1, &
+                    ') * Y[',trim(chem_name(PL_scheme(i)%PL(j)%comp2)),'] ** (',PL_scheme(i)%PL(j)%exp2, &
+                    ') * Y[',trim(chem_name(PL_scheme(i)%PL(j)%comp3)),'] ** (',PL_scheme(i)%PL(j)%exp3, &
+                    ')* Y[',trim(chem_name(PL_scheme(i)%PL(j)%comp4)),'] ** (',PL_scheme(i)%PL(j)%exp4,')( F=',PL_scheme(i)%PL(j)%formula,')'
         end select
       endif
     enddo
-    write(ifoutput,*)'YP(',PL_scheme(i)%name,') = YPtemp'
 
+    write(ifoutput,'(a5)') 'YL = '
     do j=1,PL_scheme(i)%nr_PL
-      if (PL_scheme(i)%PL(j)%PorL == 2 ) then
+      if (PL_scheme(i)%PL(j)%PorL == LOSS ) then
+        write(coef_str,'(f4.2)')PL_scheme(i)%PL(j)%coef
         select case (PL_scheme(i)%PL(j)%formula)
         case (0)
-          write(ifoutput,*) '   YLtemp = YLtemp +',PL_scheme(i)%PL(j)%coef,' * K(',PL_scheme(i)%PL(j)%r_nr,')'
+          write(ifoutput,*)'    +',coef_str,' * K(',trim(RC(PL_scheme(i)%PL(j)%r_nr)%rname),')  ( F=',PL_scheme(i)%PL(j)%formula,')'
         case (1)
-          write(ifoutput,*) '   YLtemp = YLtemp +',PL_scheme(i)%PL(j)%coef,' * K(',PL_scheme(i)%PL(j)%r_nr,') * Y[',chem_name(PL_scheme(i)%PL(j)%comp1),']'
+          write(ifoutput,*)'    +',coef_str,' * K(',trim(RC(PL_scheme(i)%PL(j)%r_nr)%rname),') * Y[',trim(chem_name(PL_scheme(i)%PL(j)%comp1)),']','( F=',PL_scheme(i)%PL(j)%formula,')'
         case (2)
-          write(ifoutput,*) '   YLtemp = YLtemp +',PL_scheme(i)%PL(j)%coef,' * K(',PL_scheme(i)%PL(j)%r_nr,') * Y[',chem_name(PL_scheme(i)%PL(j)%comp1),']', &
-                    '* Y[',chem_name(PL_scheme(i)%PL(j)%comp2),']'
+          write(ifoutput,*) '    +',coef_str,' * K(',trim(RC(PL_scheme(i)%PL(j)%r_nr)%rname),') * Y[',trim(chem_name(PL_scheme(i)%PL(j)%comp1)),']', &
+                    '* Y[',trim(chem_name(PL_scheme(i)%PL(j)%comp2)),'] ( F=',PL_scheme(i)%PL(j)%formula,')'
         case (3)
-          write(ifoutput,*) '   YLtemp = YLtemp +',PL_scheme(i)%PL(j)%coef,' * K(',PL_scheme(i)%PL(j)%r_nr,') * Y[',chem_name(PL_scheme(i)%PL(j)%comp1),'] ** (',PL_scheme(i)%PL(j)%exp1,')'
+          write(ifoutput,*)'    +',coef_str,' * K(',trim(RC(PL_scheme(i)%PL(j)%r_nr)%rname),') * Y[',trim(chem_name(PL_scheme(i)%PL(j)%comp1)),'] ** (',PL_scheme(i)%PL(j)%exp1,') ( F=',PL_scheme(i)%PL(j)%formula,')'
         case(4)
-          write(ifoutput,*) '   YLtemp = YLtemp +',PL_scheme(i)%PL(j)%coef,' * K(',PL_scheme(i)%PL(j)%r_nr,') * Y[',chem_name(PL_scheme(i)%PL(j)%comp1),'] ** (',PL_scheme(i)%PL(j)%exp1,')', &
-                    ' * Y[',chem_name(PL_scheme(i)%PL(j)%comp2),']** (',PL_scheme(i)%PL(j)%exp2,')'
+          write(ifoutput,*)'    +',coef_str,' * K(',trim(RC(PL_scheme(i)%PL(j)%r_nr)%rname),') * Y[',trim(chem_name(PL_scheme(i)%PL(j)%comp1)),'] ** (',PL_scheme(i)%PL(j)%exp1,')', &
+                    ' * Y[',trim(chem_name(PL_scheme(i)%PL(j)%comp2)),']** (',PL_scheme(i)%PL(j)%exp2,') ( F=',PL_scheme(i)%PL(j)%formula,')'
+        case(5)
+          write(ifoutput,*)'    +',coef_str,' * K(',trim(RC(PL_scheme(i)%PL(j)%r_nr)%rname), &
+                    ') * Y[',trim(chem_name(PL_scheme(i)%PL(j)%comp1)),']', &
+                    '* Y[',trim(chem_name(PL_scheme(i)%PL(j)%comp2)), &
+                    '] * Y[',trim(chem_name(PL_scheme(i)%PL(j)%comp3)),'] ( F=',PL_scheme(i)%PL(j)%formula,')'
+        case(6)
+          write(ifoutput,*)'    +',coef_str,' * K(',trim(RC(PL_scheme(i)%PL(j)%r_nr)%rname), &
+                    ') * Y[',trim(chem_name(PL_scheme(i)%PL(j)%comp1)),']** (',PL_scheme(i)%PL(j)%exp1, &
+                    ') * Y[',trim(chem_name(PL_scheme(i)%PL(j)%comp2)),'] ** (',PL_scheme(i)%PL(j)%exp2, &
+                    ') *  Y[',trim(chem_name(PL_scheme(i)%PL(j)%comp3)),'] ** (',PL_scheme(i)%PL(j)%exp3,')( F=',PL_scheme(i)%PL(j)%formula,')'
+        case(7)
+          write(ifoutput,*)'    +',coef_str,' * K(',trim(RC(PL_scheme(i)%PL(j)%r_nr)%rname), &
+                    ') * Y[',trim(chem_name(PL_scheme(i)%PL(j)%comp1)),']** (',PL_scheme(i)%PL(j)%exp1, &
+                    ') * Y[',trim(chem_name(PL_scheme(i)%PL(j)%comp2)),'] ** (',PL_scheme(i)%PL(j)%exp2, &
+                    ') * Y[',trim(chem_name(PL_scheme(i)%PL(j)%comp3)),'] ** (',PL_scheme(i)%PL(j)%exp3, &
+                    ')* Y[',trim(chem_name(PL_scheme(i)%PL(j)%comp4)),'] ** (',PL_scheme(i)%PL(j)%exp4,')( F=',PL_scheme(i)%PL(j)%formula,')'
         end select
       endif
     enddo
-    write(ifoutput,*)'YL(',PL_scheme(i)%name,') = YLtemp'
-    write(ifoutput,*) ' '
-  endif !PL_scheme%active
-  enddo
-
-  do i=1,nchsp
-  write(ifoutput,*)'---------------------------------------'
-  write(ifoutput,*)' '
-  if (PL_scheme(i)%active .EQV. .FALSE. ) then
-    write(ifoutput,*)PL_scheme(i)%name,'(',i,')'
-      write(ifoutput,*)' '
-  else
-    write(ifoutput,*)PL_scheme(i)%name,'(',i,')'
-    do j=1,PL_scheme(i)%nr_PL
-      if (PL_scheme(i)%PL(j)%PorL  == 1 ) then
-        select case (PL_scheme(i)%PL(j)%formula)
-        case (0)
-          write(ifoutput,*) '   YPtemp = YPtemp +',PL_scheme(i)%PL(j)%coef,' * K(',PL_scheme(i)%PL(j)%r_nr,')'
-        case (1)
-          write(ifoutput,*) '   YPtemp = YPtemp +',PL_scheme(i)%PL(j)%coef,' * K(',RC(PL_scheme(i)%PL(j)%r_nr)%rname,') * Y[',chem_name(PL_scheme(i)%PL(j)%comp1),']'
-        case (2)
-          write(ifoutput,*) '   YPtemp = YPtemp +',PL_scheme(i)%PL(j)%coef,' * K(',RC(PL_scheme(i)%PL(j)%r_nr)%rname,') * Y[',chem_name(PL_scheme(i)%PL(j)%comp1),']', &
-                    '* Y[',chem_name(PL_scheme(i)%PL(j)%comp2),']'
-        case (3)
-          write(ifoutput,*) '   YPtemp = YPtemp +',PL_scheme(i)%PL(j)%coef,' * K(',RC(PL_scheme(i)%PL(j)%r_nr)%rname,') * Y[',chem_name(PL_scheme(i)%PL(j)%comp1),'] ** (',PL_scheme(i)%PL(j)%exp1,')'
-        case(4)
-          write(ifoutput,*) '   YPtemp = YPtemp +',PL_scheme(i)%PL(j)%coef,' * K(',RC(PL_scheme(i)%PL(j)%r_nr)%rname,') * Y[',chem_name(PL_scheme(i)%PL(j)%comp1),'] ** (',PL_scheme(i)%PL(j)%exp1,')', &
-                    ' * Y[',chem_name(PL_scheme(i)%PL(j)%comp2),']** (',PL_scheme(i)%PL(j)%exp2,')'
-        end select
-      endif
-    enddo
-    write(ifoutput,*)'YP(',PL_scheme(i)%name,') = YPtemp'
-
-    do j=1,PL_scheme(i)%nr_PL
-      if (PL_scheme(i)%PL(j)%PorL == 2 ) then
-        select case (PL_scheme(i)%PL(j)%formula)
-        case (0)
-          write(ifoutput,*) '   YLtemp = YLtemp +',PL_scheme(i)%PL(j)%coef,' * K(',RC(PL_scheme(i)%PL(j)%r_nr)%rname,')'
-        case (1)
-          write(ifoutput,*) '   YLtemp = YLtemp +',PL_scheme(i)%PL(j)%coef,' * K(',RC(PL_scheme(i)%PL(j)%r_nr)%rname,') * Y[',chem_name(PL_scheme(i)%PL(j)%comp1),']'
-        case (2)
-          write(ifoutput,*) '   YLtemp = YLtemp +',PL_scheme(i)%PL(j)%coef,' * K(',RC(PL_scheme(i)%PL(j)%r_nr)%rname,') * Y[',chem_name(PL_scheme(i)%PL(j)%comp1),']', &
-                    '* Y[',chem_name(PL_scheme(i)%PL(j)%comp2),']'
-        case (3)
-          write(ifoutput,*) '   YLtemp = YLtemp +',PL_scheme(i)%PL(j)%coef,' * K(',RC(PL_scheme(i)%PL(j)%r_nr)%rname,') * Y[',chem_name(PL_scheme(i)%PL(j)%comp1),'] ** (',PL_scheme(i)%PL(j)%exp1,')'
-        case(4)
-          write(ifoutput,*) '   YLtemp = YLtemp +',PL_scheme(i)%PL(j)%coef,' * K(',RC(PL_scheme(i)%PL(j)%r_nr)%rname,') * Y[',chem_name(PL_scheme(i)%PL(j)%comp1),'] ** (',PL_scheme(i)%PL(j)%exp1,')', &
-                    ' * Y[',chem_name(PL_scheme(i)%PL(j)%comp2),']** (',PL_scheme(i)%PL(j)%exp2,')'
-        end select
-      endif
-    enddo
-    write(ifoutput,*)'YL(',PL_scheme(i)%name,') = YLtemp'
     write(ifoutput,*) ' '
   endif
   enddo
+
+!  do i=1,nchsp
+!  write(ifoutput,*)'---------------------------------------'
+!  write(ifoutput,*)' '
+!  if (PL_scheme(i)%active .EQV. .FALSE. ) then
+!    write(ifoutput,*)PL_scheme(i)%name,'(',i,')'
+!      write(ifoutput,*)' '
+!  else
+!    write(ifoutput,*)PL_scheme(i)%name,'(',i,')'
+!    do j=1,PL_scheme(i)%nr_PL
+!      if (PL_scheme(i)%PL(j)%PorL  == 1 ) then
+!        select case (PL_scheme(i)%PL(j)%formula)
+!        case (0)
+!          write(ifoutput,*) '   YPtemp = YPtemp +',PL_scheme(i)%PL(j)%coef,' * K(',PL_scheme(i)%PL(j)%r_nr,')'
+!        case (1)
+!          write(ifoutput,*) '   YPtemp = YPtemp +',PL_scheme(i)%PL(j)%coef,' * K(',RC(PL_scheme(i)%PL(j)%r_nr)%rname,') * Y[',chem_name(PL_scheme(i)%PL(j)%comp1),']'
+!        case (2)
+!          write(ifoutput,*) '   YPtemp = YPtemp +',PL_scheme(i)%PL(j)%coef,' * K(',RC(PL_scheme(i)%PL(j)%r_nr)%rname,') * Y[',chem_name(PL_scheme(i)%PL(j)%comp1),']', &
+!                    '* Y[',chem_name(PL_scheme(i)%PL(j)%comp2),']'
+!        case (3)
+!          write(ifoutput,*) '   YPtemp = YPtemp +',PL_scheme(i)%PL(j)%coef,' * K(',RC(PL_scheme(i)%PL(j)%r_nr)%rname,') * Y[',chem_name(PL_scheme(i)%PL(j)%comp1),'] ** (',PL_scheme(i)%PL(j)%exp1,')'
+!        case(4)
+!          write(ifoutput,*) '   YPtemp = YPtemp +',PL_scheme(i)%PL(j)%coef,' * K(',RC(PL_scheme(i)%PL(j)%r_nr)%rname,') * Y[',chem_name(PL_scheme(i)%PL(j)%comp1),'] ** (',PL_scheme(i)%PL(j)%exp1,')', &
+!                    ' * Y[',chem_name(PL_scheme(i)%PL(j)%comp2),']** (',PL_scheme(i)%PL(j)%exp2,')'
+!        end select
+!      endif
+!    enddo
+!    write(ifoutput,*)'YP(',PL_scheme(i)%name,') = YPtemp'
+!
+!    do j=1,PL_scheme(i)%nr_PL
+!      if (PL_scheme(i)%PL(j)%PorL == 2 ) then
+!        select case (PL_scheme(i)%PL(j)%formula)
+!        case (0)
+!          write(ifoutput,*) '   YLtemp = YLtemp +',PL_scheme(i)%PL(j)%coef,' * K(',RC(PL_scheme(i)%PL(j)%r_nr)%rname,')'
+!        case (1)
+!          write(ifoutput,*) '   YLtemp = YLtemp +',PL_scheme(i)%PL(j)%coef,' * K(',RC(PL_scheme(i)%PL(j)%r_nr)%rname,') * Y[',chem_name(PL_scheme(i)%PL(j)%comp1),']'
+!        case (2)
+!          write(ifoutput,*) '   YLtemp = YLtemp +',PL_scheme(i)%PL(j)%coef,' * K(',RC(PL_scheme(i)%PL(j)%r_nr)%rname,') * Y[',chem_name(PL_scheme(i)%PL(j)%comp1),']', &
+!                    '* Y[',chem_name(PL_scheme(i)%PL(j)%comp2),']'
+!        case (3)
+!          write(ifoutput,*) '   YLtemp = YLtemp +',PL_scheme(i)%PL(j)%coef,' * K(',RC(PL_scheme(i)%PL(j)%r_nr)%rname,') * Y[',chem_name(PL_scheme(i)%PL(j)%comp1),'] ** (',PL_scheme(i)%PL(j)%exp1,')'
+!        case(4)
+!          write(ifoutput,*) '   YLtemp = YLtemp +',PL_scheme(i)%PL(j)%coef,' * K(',RC(PL_scheme(i)%PL(j)%r_nr)%rname,') * Y[',chem_name(PL_scheme(i)%PL(j)%comp1),'] ** (',PL_scheme(i)%PL(j)%exp1,')', &
+!                    ' * Y[',chem_name(PL_scheme(i)%PL(j)%comp2),']** (',PL_scheme(i)%PL(j)%exp2,')'
+!        end select
+!      endif
+!    enddo
+!    write(ifoutput,*)'YL(',PL_scheme(i)%name,') = YLtemp'
+!    write(ifoutput,*) ' '
+!  endif
+!  enddo
   close(ifoutput)
   endif !if myid==0
 
