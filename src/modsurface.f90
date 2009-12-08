@@ -460,31 +460,12 @@ contains
           H(i,j)        = - rhof(1) * cp  / ra(i,j) * ( thl0(i,j,1) + (rlv / cp) / ((ps / pref0)**(rd/cp)) * ql0(i,j,1) - tskin(i,j) * exner ) 
           tendskin(i,j) = Cskin(i,j) * (tskin(i,j) - tskinm(i,j)) * exner / rk3coef
 
-          !! Use the energy balance from the previous timestep
-          !G0(i,j) = lambdaskin(i,j) * ( tskin(i,j) - tsoil(i,j,1) )
-          !LE(i,j) = - rhof(1) * rlv * ustar(i,j) * qstar(i,j)
-
-          !!raold   = - (tskin(i,j) - thl0(i,j,1))  / (ustar(i,j) * tstar(i,j) + eps1 )
-          !H(i,j)  = - rhof(1) * cp * ( thl0(i,j,1) + (rlv / cp) / ((ps / pref0)**(rd/cp)) * ql0(i,j,1) - tskin(i,j) ) / ra(i,j)
-
-          !! 1.3   -   Time integrate the skin temperature
-
-          !if(rk3step == 1 .and. timee > 0.) then
-          !  tskinm(i,j) = tskin(i,j)
-          !end if
-
-          !tskin(i,j)  = tskinm(i,j) + rk3coef / Cskin(i,j) * (Qnet(i,j) - H(i,j) - G0(i,j) - LE(i,j))
-
           ! 1.4   -   Solve the diffusion equation for the heat transport
           tsoil(i,j,1) = tsoil(i,j,1) + dt / pCs(i,j,1) * ( lambdah(i,j,ksoilmax) * (tsoil(i,j,2) - tsoil(i,j,1)) / dzsoilh(1) + G0(i,j) ) / dzsoil(1)
           do k = 2, ksoilmax-1
             tsoil(i,j,k) = tsoil(i,j,k) + dt / pCs(i,j,k) * ( lambdah(i,j,k) * (tsoil(i,j,k+1) - tsoil(i,j,k)) / dzsoilh(k) - lambdah(i,j,k-1) * (tsoil(i,j,k) - tsoil(i,j,k-1)) / dzsoilh(k-1) ) / dzsoil(k)
           end do
           tsoil(i,j,ksoilmax) = tsoil(i,j,ksoilmax) + dt / pCs(i,j,ksoilmax) * ( lambda(i,j,ksoilmax) * (tsoildeep(i,j) - tsoil(i,j,ksoilmax)) / dzsoil(ksoilmax) - lambdah(i,j,ksoilmax-1) * (tsoil(i,j,ksoilmax) - tsoil(i,j,ksoilmax-1)) / dzsoil(ksoilmax-1) ) / dzsoil(ksoilmax)
-
-          ! 1.5   -   Update G and skin temperature
-          !G0(i,j)    = lambdaskin(i,j) * ( tskin(i,j) - tsoil(i,j,1) )
-          !tskin(i,j) = tskinm(i,j) + rk3coef / Cskin(i,j) * (Qnet(i,j) - H(i,j) - G0(i,j) - LE(i,j))
 
           thlsl = thlsl + tskin(i,j)
         end do
@@ -508,42 +489,6 @@ contains
 
     ! 2     -   Calculate the surface fluxes
     if(isurf <= 2) then
-
-      !call getobl
-
-      !call MPI_BCAST(oblav ,1,MY_REAL ,0,comm3d,mpierr)
-
-      !do j = 2, j1
-      !  do i = 2, i1
-      !    if(isurf == 2) then
-      !      if(lsea .eqv. .true.) then
-      !        rs(i,j) = 0.
-      !      else
-      !        rs(i,j) = rsisurf2
-      !      end if
-      !    else
-      !        ! 2.1   -   Calculate the surface resistance
-      !        f1  = 1. / min(1., (0.004 * max(0.,Qnet(i,j)) + 0.05) / (0.81 * (0.004 * max(0.,Qnet(i,j)) + 1.)))
-      !        f2  = (phifc - phiwp) / (phitot(i,j) - phiwp)
-
-      !        esat = 0.611e3 * exp(17.2694 * (thl0(i,j,1) - 273.16) / (thl0(i,j,1) - 35.86))
-      !        e    = qt0(i,j,1) * ps / 0.622
-      !        f3   = 1. / exp(-gD(i,j) * (esat - e) / 100.)
-
-      !        rs(i,j) = rsmin(i,j) / LAI(i,j) * f1 * f2 * f3
-      !    end if
-
-      !    ! 3     -   Calculate the drag coefficient and aerodynamic resistance
-      !    Cm(i,j) = fkar ** 2. / (log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j)) + psim(z0m(i,j) / obl(i,j))) ** 2.
-      !    Cs(i,j) = fkar ** 2. / (log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j)) + psim(z0m(i,j) / obl(i,j))) / (log(zf(1) / z0h(i,j)) - psih(zf(1) / obl(i,j)) + psih(z0h(i,j) / obl(i,j)))
-
-      !    upcu  = 0.5 * (u0(i,j,1) + u0(i+1,j,1)) + cu
-      !    vpcv  = 0.5 * (v0(i,j,1) + v0(i,j+1,1)) + cv
-      !    horv  = sqrt(upcu ** 2. + vpcv ** 2.)
-      !    horv  = max(horv, 1.e-2)
-
-      !    ra(i,j) = 1. / ( Cs(i,j) * horv )
-
       do j = 2, j1
         do i = 2, i1
           upcu  = 0.5 * (u0(i,j,1) + u0(i+1,j,1)) + cu
@@ -605,7 +550,6 @@ contains
 
         do j = 2, j1
           do i = 2, i1
-            ! ustar (i,j) = max(ustar(i,j), 1.e-2)
             tstar (i,j) = -wtsurf / ustar(i,j)
             qstar (i,j) = -wqsurf / ustar(i,j)
 
