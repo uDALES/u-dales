@@ -1592,7 +1592,7 @@ subroutine ratech
     do j=2,j1
       do i=2,i1
         kefftemp = 1.0
-        do k=1,kmax
+        do k=2,kmax
           if (ql0(i,j,k) > 0.0) then !found bottom of cloud at level k
             do L=kmax,k,-1  !continue from top down to bottom
               if (ql0(i,j,L).gt.0.0) then !found top of cloud at level L
@@ -1611,7 +1611,6 @@ subroutine ratech
 
             !- Calculating transmission coefficient, cloud optical depth
             tau2 = (3./2.)*(qlint/(rhow*re))
-     ! if(myid==0)write(*,*) myid,'tau2',tau2,tauc,i,j,k,l
             if (tau2 >= tauc ) then  ! 'dense' cloud
               ! smooting of cloud base and top
               zbase = zf(k) - (ql0(i,j,k)/(ql0(i,j,k) + ql0(i,j,k+1))) * dzf(k)  !!!!! of dzf(k+-?) with non equidistant grid
@@ -1843,7 +1842,7 @@ implicit none
   do n=1,nchsp
     write(filenaam,'(a,a)')trim(PL_scheme(n)%name),id
     open(fileout,file=filenaam,form='unformatted',position='append',action='write')
-    dummy(:,:,:)=svm(2:i1,2:j1,:,n)
+    dummy(:,:,:)=svm(2:i1,2:j1,1:kmax,n)
      write(fileout) (((dummy(i,j,k),i=2,i1),j=2,j1),k=1,kmax)
     close(fileout)
   enddo
