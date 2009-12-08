@@ -125,9 +125,9 @@ SAVE
   real, allocatable :: Cm    (:,:)      !<  Drag coefficient for momentum [-]
   real, allocatable :: Cs    (:,:)      !<  Drag coefficient for scalars [-]
   real, allocatable :: ustar (:,:)      !<  Friction velocity [m/s]
-  real, allocatable :: tstar (:,:)      !<  Turbulent temperature scale [K m/s]
-  real, allocatable :: qstar (:,:)      !<  Turbulent specific humidity scale [kg/kg m/s]
-  real, allocatable :: svstar(:,:,:)    !<  Turbulent scalar scale [- m/s]
+  real, allocatable :: thlflux (:,:)    !<  Kinematic temperature flux [K m/s]
+  real, allocatable :: qtflux  (:,:)    !<  Kinematic specific humidity flux [kg/kg m/s]
+  real, allocatable :: svstar  (:,:,:)  !<  Turbulent scalar scale [- m/s]
 
   ! Surface gradients of prognostic variables
   real, allocatable :: dudz  (:,:)      !<  U-wind gradient in surface layer [1/s]

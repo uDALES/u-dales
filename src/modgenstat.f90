@@ -422,7 +422,7 @@ contains
 
     use modfields, only : u0,v0,w0,um,vm,wm,qtm,thlm,thl0,qt0,qt0h, &
                           ql0,ql0h,thl0h,thv0h,sv0, svm, e12m,exnf,exnh
-    use modsurfdata,only: thls,qts,svs,ustar,tstar,qstar,svstar
+    use modsurfdata,only: thls,qts,svs,ustar,thlflux,qtflux,svstar
     use modsubgrid,only : ekm, ekh
     use modglobal, only : i1,ih,j1,jh,k1,kmax,nsv,dzf,dzh,rlv,rv,rd,cp, &
                           rslabs,cu,cv,iadv_thl,iadv_kappa,eps1,dxi,dyi
@@ -683,11 +683,10 @@ contains
       qlhavl(1) = qlhavl(1) + ql0h(i,j,1)
   !     thv(1) = thlm(i,j,1) * (1.+(rv/rd-1)*qtm(i,j,1))
 
-      wtlsubl(1) = wtlsubl(1) - ustar(i,j)*tstar(i,j)
-      wqtsubl(1) = wqtsubl(1) - ustar(i,j)*qstar(i,j)
+      wtlsubl(1) = wtlsubl(1) + thlflux(i,j)
+      wqtsubl(1) = wqtsubl(1) + qtflux (i,j)
       wqlsubl(1) = 0
-      wtvsubl(1) = wtvsubl(1) - &
-                      ustar(i,j)*(c1*tstar(i,j)+c2*thls*qstar(i,j)) !hj: thv0 replaced by thls
+      wtvsubl(1) = wtvsubl(1) + ( c1*thlflux(i,j)+c2*thls*qtflux(i,j) ) !hj: thv0 replaced by thls
 
       !Momentum flux
       if (abs(um(i,j,1)+cu)<eps1) then

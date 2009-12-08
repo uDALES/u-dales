@@ -131,7 +131,7 @@ contains
 
     use modglobal, only : i1,ih,i2,j1,jh,j2,k1,nsv, lmoist
     use modfields, only : up,vp,wp,e12p,thl0,thlp,qt0,qtp,sv0,svp
-    use modsurfdata,only : ustar,tstar,qstar,svstar
+    use modsurfdata,only : ustar,thlflux,qtflux,svstar
     implicit none
     integer n
 
@@ -140,10 +140,10 @@ contains
     call diffv(vp)
     call diffw(wp)
     if (.not. lsmagorinsky) call diffe(e12p)
-    call diffc(thl0,thlp,ustar,tstar)
-    if (lmoist) call diffc( qt0, qtp,ustar,qstar)
+    call diffc(thl0,thlp,thlflux)
+    if (lmoist) call diffc( qt0, qtp, qtflux)
     do n=1,nsv
-      call diffc(sv0(:,:,:,n),svp(:,:,:,n),ustar,svstar(:,:,n))
+      call diffc(sv0(:,:,:,n),svp(:,:,:,n), svstar(:,:,n))
     end do
     if (.not. lsmagorinsky) call sources
   end subroutine
@@ -425,14 +425,14 @@ contains
   return
   end subroutine sources
 
-  subroutine diffc (putin,putout,ustar,vstar)
+  subroutine diffc (putin,putout,flux)
 
     use modglobal, only : i1,ih,i2,j1,jh,j2,k1,kmax,dx2i,dzf,dy2i,dzh
     implicit none
 
     real, intent(in)    :: putin(2-ih:i1+ih,2-jh:j1+jh,k1)
     real, intent(inout) :: putout(2-ih:i1+ih,2-jh:j1+jh,k1)
-    real, intent(in)    :: ustar (i2,j2),vstar(i2,j2)
+    real, intent(in)    :: flux (i2,j2)
 
     integer i,j,k,jm,jp,km,kp
 
@@ -477,7 +477,7 @@ contains
                   + &
                 ( (dzf(2)*ekh(i,j,1) + dzf(1)*ekh(i,j,2)) &
                   *  (putin(i,j,2)-putin(i,j,1)) / dzh(2)**2 &
-                  - ustar(i,j) * vstar(i,j) *2.                        )/dzf(1) &
+                  - flux(i,j) *2.                        )/dzf(1) &
                           )
 
       end do

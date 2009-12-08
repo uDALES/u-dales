@@ -102,8 +102,8 @@ contains
 
     if((z0mav == -1 .and. z0hav == -1) .and. (z0 .ne. -1)) then
       z0mav = z0
-      z0hav = z0 / 5.
-      write(6,*) "WARNING: z0m is defined as the z0, z0h is defined as z0 / 5."
+      z0hav = z0
+      write(6,*) "WARNING: z0m and z0h not defined, set equal to z0"
     end if
 
     if(isurf == 1) then
@@ -318,14 +318,14 @@ contains
 
 
     ! 3. Initialize surface layer
-    allocate(ustar (i2,j2))
-    allocate(dudz  (i2,j2))
-    allocate(dvdz  (i2,j2))
-    allocate(tstar (i2,j2))
-    allocate(qstar (i2,j2))
-    allocate(dqtdz (i2,j2))
-    allocate(dthldz(i2,j2))
-    allocate(svstar(i2,j2,nsv))
+    allocate(ustar   (i2,j2))
+    allocate(dudz    (i2,j2))
+    allocate(dvdz    (i2,j2))
+    allocate(thlflux (i2,j2))
+    allocate(qtflux  (i2,j2))
+    allocate(dqtdz   (i2,j2))
+    allocate(dthldz  (i2,j2))
+    allocate(svstar  (i2,j2,nsv))
     allocate(svs(nsv))
 
     return
@@ -346,8 +346,8 @@ contains
     real     :: phimzf, phihzf
     real     :: rk3coef, thlsl
 
-    real     :: ust, qst, tst
-    real     :: ustl, qstl, tstl
+    real     :: ust
+    real     :: ustl, wtsurfl, wqsurfl
 
     real     :: swdav, swuav, lwdav, lwuav
     real     :: exner, tsurfm, e, esat, qsat, desatdT, dqsatdT, Acoef, Bcoef
@@ -496,18 +496,18 @@ contains
           horv  = sqrt(upcu ** 2. + vpcv ** 2.)
           horv  = max(horv, 1.e-2)
 
-          ustar(i,j) = sqrt(Cm(i,j)) * horv
-          tstar(i,j) = ( thl0(i,j,1) - tskin(i,j) ) / (ra(i,j)) / ustar(i,j)
+          ustar  (i,j) = sqrt(Cm(i,j)) * horv
+          thlflux(i,j) = - ( thl0(i,j,1) - tskin(i,j) ) / ra(i,j) 
 
           !CvH allow for dewfall at night, bypass stomatal resistance
           if(qt0(i,j,1) - qskin(i,j) > 0.) then
-            qstar(i,j) = ( qt0(i,j,1)  - qskin(i,j) ) / ra(i,j) / ustar(i,j)
+            qtflux(i,j) = - (qt0(i,j,1)  - qskin(i,j)) / ra(i,j) 
           else
-            qstar(i,j) = ( qt0(i,j,1)  - qskin(i,j) ) / (ra(i,j) + rs(i,j)) / ustar(i,j)
+            qtflux(i,j) = - (qt0(i,j,1)  - qskin(i,j)) / (ra(i,j) + rs(i,j))
           end if
           
           do n=1,nsv
-            svstar(i,j,n) = -wsvsurf(n) / ustar(i,j)
+            svstar(i,j,n) = -wsvsurf(n) 
           enddo
 
           if (obl(i,j) < 0.) then
@@ -525,33 +525,30 @@ contains
 
           dudz  (i,j) = ustar(i,j) * phimzf / (fkar*zf(1))*(upcu/horv)
           dvdz  (i,j) = ustar(i,j) * phimzf / (fkar*zf(1))*(vpcv/horv)
-          dthldz(i,j) = tstar(i,j) * phihzf / (fkar*zf(1))
-          dqtdz (i,j) = qstar(i,j) * phihzf / (fkar*zf(1))
+          dthldz(i,j) = - thlflux(i,j) / ustar(i,j) * phihzf / (fkar*zf(1))
+          dqtdz (i,j) = - qtflux(i,j)  / ustar(i,j) * phihzf / (fkar*zf(1))
 
         end do
       end do
 
       if(lsmoothflux) then
 
-        ustl=sum(ustar(2:i1,2:j1))
-        tstl=sum(tstar(2:i1,2:j1))
-        qstl=sum(qstar(2:i1,2:j1))
+        ustl    = sum(ustar  (2:i1,2:j1))
+        wtsurfl = sum(thlflux(2:i1,2:j1))
+        wqsurfl = sum(qtflux (2:i1,2:j1))
 
         call MPI_ALLREDUCE(ustl, ust, 1,  MY_REAL,MPI_SUM, comm3d,mpierr)
-        call MPI_ALLREDUCE(tstl, tst, 1,  MY_REAL,MPI_SUM, comm3d,mpierr)
-        call MPI_ALLREDUCE(qstl, qst, 1,  MY_REAL,MPI_SUM, comm3d,mpierr)
+        call MPI_ALLREDUCE(wtsurfl, wtsurf, 1,  MY_REAL,MPI_SUM, comm3d,mpierr)
+        call MPI_ALLREDUCE(wqsurfl, wqsurf, 1,  MY_REAL,MPI_SUM, comm3d,mpierr)
 
-        ust = ust / rslabs
-        tst = tst / rslabs
-        qst = qst / rslabs
-
-        wtsurf = -ust*tst
-        wqsurf = -ust*qst
+        wtsurf = wtsurf / rslabs
+        wqsurf = wqsurf / rslabs
 
         do j = 2, j1
           do i = 2, i1
-            tstar (i,j) = -wtsurf / ustar(i,j)
-            qstar (i,j) = -wqsurf / ustar(i,j)
+
+            thlflux(i,j) = wtsurf 
+            qtflux (i,j) = wqsurf 
 
             do n=1,nsv
               svstar(i,j,n) = -wsvsurf(n) / ustar(i,j)
@@ -577,8 +574,8 @@ contains
 
             dudz  (i,j) = ustar(i,j) * phimzf / (fkar*zf(1))*(upcu/horv)
             dvdz  (i,j) = ustar(i,j) * phimzf / (fkar*zf(1))*(vpcv/horv)
-            dthldz(i,j) = tstar(i,j) * phihzf / (fkar*zf(1))
-            dqtdz (i,j) = qstar(i,j) * phihzf / (fkar*zf(1))
+            dthldz(i,j) = - thlflux(i,j) / ustar(i,j) * phihzf / (fkar*zf(1))
+            dqtdz (i,j) = - qtflux(i,j)  / ustar(i,j) * phihzf / (fkar*zf(1))
           end do
         end do
 
@@ -603,9 +600,9 @@ contains
             ustar (i,j) = ustin
           end if
 
-          ustar (i,j) = max(ustar(i,j), 1.e-2)
-          tstar (i,j) = -wtsurf / ustar(i,j)
-          qstar (i,j) = -wqsurf / ustar(i,j)
+          ustar  (i,j) = max(ustar(i,j), 1.e-2)
+          thlflux(i,j) = - wtsurf / ustar(i,j)
+          qtflux (i,j) = - wqsurf / ustar(i,j)
 
           do n=1,nsv
             svstar(i,j,n) = -wsvsurf(n) / ustar(i,j)
@@ -626,8 +623,8 @@ contains
 
           dudz  (i,j) = ustar(i,j) * phimzf / (fkar*zf(1))*(upcu/horv)
           dvdz  (i,j) = ustar(i,j) * phimzf / (fkar*zf(1))*(vpcv/horv)
-          dthldz(i,j) = tstar(i,j) * phihzf / (fkar*zf(1))
-          dqtdz (i,j) = qstar(i,j) * phihzf / (fkar*zf(1))
+          dthldz(i,j) = - thlflux(i,j) / ustar(i,j) * phihzf / (fkar*zf(1))
+          dqtdz (i,j) = - qtflux(i,j)  / ustar(i,j) * phihzf / (fkar*zf(1))
 
           Cs(i,j) = fkar ** 2. / (log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j)) + psim(z0m(i,j) / obl(i,j))) / (log(zf(1) / z0h(i,j)) - psih(zf(1) / obl(i,j)) + psih(z0h(i,j) / obl(i,j)))
 

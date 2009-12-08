@@ -63,7 +63,7 @@ contains
     use modmpi,    only : my_real,myid,comm3d,mpi_logical,mpierr,mpi_integer
     use modglobal, only : ifnamopt, fname_options,cexpnr,dtmax,ifoutput,dtav_glob,ladaptive,k1,kmax,rd,rv,dt_lim,btime
     use modfields, only : thlprof,qtprof,svprof
-    use modsurface, only : isurf
+    use modsurfdata, only : isurf
     use modstat_nc, only : lnetcdf, open_nc,define_nc,ncinfo
     implicit none
     integer :: ierr,k,location = 1
@@ -176,9 +176,9 @@ contains
         call ncinfo(ncname(16,:),'obukh','Obukhov Length','m','time')
         call ncinfo(ncname(17,:),'tsrf','Surface liquid water potential temperature','K','time')
         call ncinfo(ncname(18,:),'z0','Roughness height','m','time')
-        call ncinfo(ncname(19,:),'shf_bar','Sensible heat flux','W/m^2','time')
-        call ncinfo(ncname(20,:),'sfcbflx','Surface Buoyancy Flux','m/s^2','time')
-        call ncinfo(ncname(21,:),'lhf_bar','Latent heat flux','W/m^2','time')
+        call ncinfo(ncname(19,:),'shf_bar','Sensible heat flux','K m/s','time')
+        call ncinfo(ncname(20,:),'sfcbflx','Surface Buoyancy Flux','K m/s','time')
+        call ncinfo(ncname(21,:),'lhf_bar','Latent heat flux','kg/kg m/s','time')
         call open_nc(fname,  ncid)
         call define_nc( ncid, NVar, ncname)
       end if
@@ -193,7 +193,7 @@ contains
                           rslabs,timee,dt_lim,rk3step,cexpnr,ifoutput
 !
     use modfields,  only : um,vm,wm,e12m,ql0,u0av,v0av,rhof
-    use modsurface, only : wtsurf, wqsurf, isurf,ustar,tstar,qstar,z0,oblav,qts,thls,&
+    use modsurfdata,only : wtsurf, wqsurf, isurf,ustar,tstar,qstar,z0,oblav,qts,thls,&
                            Qnet, H, LE, G0, rs, ra, tskin, tendskin
     use modmpi,     only : my_real,mpi_sum,mpi_max,mpi_min,comm3d,mpierr,myid
     use modstat_nc,  only : lnetcdf, writestat_nc
@@ -247,26 +247,26 @@ contains
     tke_totl = 0.0
 
     do j=2,j1
-    do i=2,i1
-      qlint     = 0.0
-      do k=1,kmax
-        qlint = qlint + ql0(i,j,k)*rhof(k)*dzf(k)
-      end do
-      if (qlint>0.) then
-        ccl      = ccl      + 1.0
-        qlintavl = qlintavl + qlint
-        qlintmaxl = max(qlint,qlintmaxl)
-      end if
-
-      do k=1,kmax
-        if (ql0(i,j,k) > 0.) then
-        zbaseavl = zbaseavl + zf(k)
-        zbaseminl = min(zf(k),zbaseminl)
-        exit
+      do i=2,i1
+        qlint     = 0.0
+        do k=1,kmax
+          qlint = qlint + ql0(i,j,k)*rhof(k)*dzf(k)
+        end do
+        if (qlint>0.) then
+          ccl      = ccl      + 1.0
+          qlintavl = qlintavl + qlint
+          qlintmaxl = max(qlint,qlintmaxl)
         end if
+  
+        do k=1,kmax
+          if (ql0(i,j,k) > 0.) then
+          zbaseavl = zbaseavl + zf(k)
+          zbaseminl = min(zf(k),zbaseminl)
+          exit
+          end if
+        end do
+  
       end do
-
-    end do
     end do
 
     call MPI_ALLREDUCE(ccl   , cc   , 1,    MY_REAL, &
@@ -289,18 +289,18 @@ contains
     ztopmaxl = 0.0
 
     do  i=2,i1
-    do  j=2,j1
-      ztop  = 0.0
-
-      do  k=1,kmax
-        if (ql0(i,j,k) > 0) ztop = zf(k)
-        wmaxl = max(wm(i,j,k),wmaxl)
-        qlmaxl = max(ql0(i,j,k),qlmaxl)
+      do  j=2,j1
+        ztop  = 0.0
+  
+        do  k=1,kmax
+          if (ql0(i,j,k) > 0) ztop = zf(k)
+          wmaxl = max(wm(i,j,k),wmaxl)
+          qlmaxl = max(ql0(i,j,k),qlmaxl)
+        end do
+  
+        ztopavl = ztopavl + ztop
+        if (ztop > ztopmaxl) ztopmaxl = ztop
       end do
-
-      ztopavl = ztopavl + ztop
-      if (ztop > ztopmaxl) ztopmaxl = ztop
-    end do
     end do
 
     call MPI_ALLREDUCE(wmaxl   , wmax   , 1,    MY_REAL, &
@@ -509,7 +509,7 @@ contains
   subroutine calcblheight
     use modglobal,  only : ih,i1,jh,j1,kmax,k1,cp,rlv,imax,rd,zh,dzh,zf,dzf,rv,rslabs,iadv_sv,iadv_kappa
     use modfields,  only : w0,qt0,qt0h,ql0,thl0,thl0h,thv0h,sv0,exnf,whls
-    use modsurface, only :svs
+    use modsurfdata,only :svs
     use modmpi,     only : mpierr, comm3d,mpi_sum,my_real
     implicit none
     real   :: zil, dhdt,locval,oldlocval
