@@ -477,7 +477,7 @@ contains
                   + &
                 ( (dzf(2)*ekh(i,j,1) + dzf(1)*ekh(i,j,2)) &
                   *  (putin(i,j,2)-putin(i,j,1)) / dzh(2)**2 &
-                  - flux(i,j) *2.                        )/dzf(1) &
+                  + flux(i,j) *2.                        )/dzf(1) &
                           )
 
       end do
