@@ -26,7 +26,6 @@
 !! \par Revision list
 !! \par Chiel van Heerwaarden
 !! \todo documentation
-!! \todo check consistency theta vs T at land surface
 !! \todo implement bare soil evaporation
 !! \todo implement water reservoir at land surface for dew and interception water
 !! \todo add moisture transport between soil layers
