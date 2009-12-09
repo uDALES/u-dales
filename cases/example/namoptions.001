@@ -6,8 +6,8 @@ runtime    =  7200
 trestart   =  3600 
 ladaptive  =  .true.
 irandom    =  43
-randthl    =  0.0
-randqt     =  2.5e-50
+randthl    =  0.1
+randqt     =  2.5e-5
 nsv        =  2
 /
 
@@ -22,7 +22,7 @@ ysize      =  3200.
 xlat       =  51.96
 xlon       =  4.95
 xday       =  287.
-xtime      =  12.
+xtime      =  6.
 /
 
 &PHYSICS
@@ -58,7 +58,6 @@ rootfav(2)   = 0.38
 rootfav(3)   = 0.23 
 rootfav(4)   = 0.04
 
-lsea         = .false.
 lmostlocal   = .false.
 lsmoothflux  = .false.
 rsisurf2     = 50.
