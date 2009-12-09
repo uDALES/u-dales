@@ -79,8 +79,8 @@ lsampup     = .true.
 lsampbuup   = .true.
 /
 &NAMTIMESTAT
-ltimestat   = .false.
-dtav        = 60
+ltimestat   = .true.
+dtav        = 10
 /
 &NAMCROSSSECTION
 lcross      = .false.
