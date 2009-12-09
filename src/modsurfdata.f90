@@ -127,7 +127,7 @@ SAVE
   real, allocatable :: ustar (:,:)      !<  Friction velocity [m/s]
   real, allocatable :: thlflux (:,:)    !<  Kinematic temperature flux [K m/s]
   real, allocatable :: qtflux  (:,:)    !<  Kinematic specific humidity flux [kg/kg m/s]
-  real, allocatable :: svstar  (:,:,:)  !<  Turbulent scalar scale [- m/s]
+  real, allocatable :: svflux  (:,:,:)  !<  Kinematic scalar flux [- m/s]
 
   ! Surface gradients of prognostic variables
   real, allocatable :: dudz  (:,:)      !<  U-wind gradient in surface layer [1/s]

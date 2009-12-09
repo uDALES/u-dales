@@ -131,7 +131,7 @@ contains
 
     use modglobal, only : i1,ih,i2,j1,jh,j2,k1,nsv, lmoist
     use modfields, only : up,vp,wp,e12p,thl0,thlp,qt0,qtp,sv0,svp
-    use modsurfdata,only : ustar,thlflux,qtflux,svstar
+    use modsurfdata,only : ustar,thlflux,qtflux,svflux
     implicit none
     integer n
 
@@ -143,7 +143,7 @@ contains
     call diffc(thl0,thlp,thlflux)
     if (lmoist) call diffc( qt0, qtp, qtflux)
     do n=1,nsv
-      call diffc(sv0(:,:,:,n),svp(:,:,:,n), svstar(:,:,n))
+      call diffc(sv0(:,:,:,n),svp(:,:,:,n),svflux(:,:,n))
     end do
     if (.not. lsmagorinsky) call sources
   end subroutine

@@ -422,7 +422,7 @@ contains
 
     use modfields, only : u0,v0,w0,um,vm,wm,qtm,thlm,thl0,qt0,qt0h, &
                           ql0,ql0h,thl0h,thv0h,sv0, svm, e12m,exnf,exnh
-    use modsurfdata,only: thls,qts,svs,ustar,thlflux,qtflux,svstar
+    use modsurfdata,only: thls,qts,svs,ustar,thlflux,qtflux,svflux
     use modsubgrid,only : ekm, ekh
     use modglobal, only : i1,ih,j1,jh,k1,kmax,nsv,dzf,dzh,rlv,rv,rd,cp, &
                           rslabs,cu,cv,iadv_thl,iadv_kappa,eps1,dxi,dyi
@@ -727,7 +727,7 @@ contains
 !       r3avl    (1) = r3avl    (1) + ((qt0(i,j,1) - qs0)**3)
 
       do n=1,nsv
-        wsvsubl(1,n) = wsvsubl(1,n) - ustar(i,j)*svstar(i,j,n)
+        wsvsubl(1,n) = wsvsubl(1,n) + svflux(i,j,n)
         sv2avl(1,n)  = sv2avl(1,n) + (svm(i,j,1,n)-svmav(1,n))**2
       end do
     end do

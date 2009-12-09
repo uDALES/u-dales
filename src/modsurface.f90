@@ -325,7 +325,7 @@ contains
     allocate(qtflux  (i2,j2))
     allocate(dqtdz   (i2,j2))
     allocate(dthldz  (i2,j2))
-    allocate(svstar  (i2,j2,nsv))
+    allocate(svflux  (i2,j2,nsv))
     allocate(svs(nsv))
 
     return
@@ -507,7 +507,7 @@ contains
           end if
           
           do n=1,nsv
-            svstar(i,j,n) = -wsvsurf(n) 
+            svflux(i,j,n) = wsvsurf(n) 
           enddo
 
           if (obl(i,j) < 0.) then
@@ -551,7 +551,7 @@ contains
             qtflux (i,j) = wqsurf 
 
             do n=1,nsv
-              svstar(i,j,n) = -wsvsurf(n) / ustar(i,j)
+              svflux(i,j,n) = wsvsurf(n)
             enddo
 
             if (obl(i,j) < 0.) then
@@ -605,7 +605,7 @@ contains
           qtflux (i,j) = wqsurf
 
           do n=1,nsv
-            svstar(i,j,n) = -wsvsurf(n) / ustar(i,j)
+            svflux(i,j,n) = wsvsurf(n)
           enddo
 
           if (obl(i,j) < 0.) then

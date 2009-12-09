@@ -658,7 +658,7 @@ contains
 
   subroutine readrestartfiles
 
-    use modsurfdata, only : ustar,thlflux,qtflux,svstar,dudz,dvdz,dthldz,dqtdz,ps,thls,qts,thvs,oblav,&
+    use modsurfdata, only : ustar,thlflux,qtflux,svflux,dudz,dvdz,dthldz,dqtdz,ps,thls,qts,thvs,oblav,&
                            tsoil,tskin,isurf,ksoilmax
     use modfields,  only : u0,v0,w0,thl0,qt0,ql0,ql0h,e120,dthvdz,presf,presh,sv0
     use modglobal,  only : i1,i2,ih,j1,j2,jh,k1,dtheta,dqt,dsv,startfile,timee,&
@@ -708,7 +708,7 @@ contains
       write(6,*) 'loading ',name
       open(unit=ifinput,file=name,form='unformatted')
       read(ifinput) ((((sv0(i,j,k,n),i=2-ih,i1+ih),j=2-jh,j1+jh),k=1,k1),n=1,nsv)
-      read(ifinput) (((svstar(i,j,n),i=1,i2),j=1,j2),n=1,nsv)
+      read(ifinput) (((svflux(i,j,n),i=1,i2),j=1,j2),n=1,nsv)
       read(ifinput) (dsv(n),n=1,nsv)
       read(ifinput)  timee
       close(ifinput)
@@ -727,7 +727,7 @@ contains
   end subroutine readrestartfiles
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine writerestartfiles
-    use modsurfdata,only: ustar,thlflux,qtflux,svstar,dudz,dvdz,dthldz,dqtdz,ps,thls,qts,thvs,oblav,&
+    use modsurfdata,only: ustar,thlflux,qtflux,svflux,dudz,dvdz,dthldz,dqtdz,ps,thls,qts,thvs,oblav,&
                           tsoil,tskin,ksoilmax,isurf,ksoilmax
     use modfields, only : u0,v0,w0,thl0,qt0,ql0,ql0h,e120,dthvdz,presf,presh,sv0
     use modglobal, only : i1,i2,ih,j1,j2,jh,k1,dsv,trestart,tnextrestart,dt_lim,timee,cexpnr,&
@@ -793,7 +793,7 @@ contains
         name(16:18) = cexpnr
         open  (ifoutput,file=name,form='unformatted')
         write(ifoutput) ((((sv0(i,j,k,n),i=2-ih,i1+ih),j=2-jh,j1+jh),k=1,k1),n=1,nsv)
-        write(ifoutput) (((svstar(i,j,n),i=1,i2),j=1,j2),n=1,nsv)
+        write(ifoutput) (((svflux(i,j,n),i=1,i2),j=1,j2),n=1,nsv)
         write(ifoutput) (dsv(n),n=1,nsv)
         write(ifoutput)  timee
 
