@@ -79,7 +79,7 @@ program DALES      !Version 3.2 Beta 1
 !----------------------------------------------------------------
   use modchecksim,     only : initchecksim, checksim
   use modstat_nc,      only : initstat_nc
-!  use modtimestat,     only : inittimestat, timestat
+  use modtimestat,     only : inittimestat, timestat
   use modgenstat,      only : initgenstat, genstat, exitgenstat
   use modradstat,      only : initradstat ,radstat, exitradstat
   use modsampling,     only : initsampling, sampling,exitsampling
@@ -112,7 +112,7 @@ program DALES      !Version 3.2 Beta 1
 !---------------------------------------------------------
   call initchecksim
   call initstat_nc  ! should be called before stat-routines that might do netCDF
-!  call inittimestat  !Timestat must preceed all other timeseries that could write in the same netCDF file (unless stated otherwise
+  call inittimestat  !Timestat must preceed all other timeseries that could write in the same netCDF file (unless stated otherwise
   call initgenstat  !Genstat must preceed all other statistics that could write in the same netCDF file (unless stated otherwise
   call inittilt
   call initsampling
@@ -205,7 +205,7 @@ program DALES      !Version 3.2 Beta 1
     call twostep
 
     call checksim
-!    call timestat  !Timestat must preceed all other timeseries that could write in the same netCDF file (unless stated otherwise
+    call timestat  !Timestat must preceed all other timeseries that could write in the same netCDF file (unless stated otherwise
     call genstat  !Genstat must preceed all other statistics that could write in the same netCDF file (unless stated otherwise
     call radstat
     call sampling
