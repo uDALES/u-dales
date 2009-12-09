@@ -129,7 +129,7 @@ timeav  = 300
 /
 
 &NAMNETCDFMOVIE
-lnetcdfmovie = .true.
+lnetcdfmovie = .false.
 dtmovie      = 10
 lmoviez      = .false.
 slicez       = 1
@@ -138,6 +138,6 @@ slicex       = 1
 
 &NAMRADSTAT
 lstat = .true.
-dtav = 2
-timeav = 2
+dtav = 60
+timeav = 300
 /
