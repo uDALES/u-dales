@@ -128,9 +128,7 @@ program DALES      !Version 3.2 Beta 1
   ! call initnetcdfmovie
   call initbulkmicrostat
   call initbudget
-
   call initchem
-  call inputchem
 
 !------------------------------------------------------
 !   3.0   MAIN TIME LOOP

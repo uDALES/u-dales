@@ -132,6 +132,11 @@ contains
     if(myid==0)then
         open(ifnamopt,file=fname_options,status='old',iostat=ierr)
         read (ifnamopt,NAMTILT,iostat=ierr)
+        if (ierr > 0) then
+          print *, 'Problem in namoptions NAMTILT'
+          print *, 'iostat error: ', ierr
+          stop 'ERROR: Problem in namoptions NAMTILT'
+        endif
         write(6 ,NAMTILT)
       close(ifnamopt)
     end if
