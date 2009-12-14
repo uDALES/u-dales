@@ -48,6 +48,11 @@ contains
     if(myid==0)then
       open(ifnamopt,file=fname_options,status='old',iostat=ierr)
       read (ifnamopt,NAMMICROPHYSICS,iostat=ierr)
+      if (ierr > 0) then
+        print *, 'Problem in namoptions NAMMICROPHYSICS'
+        print *, 'iostat error: ', ierr
+        stop 'ERROR: Problem in namoptions NAMMICROPHYSICS'
+      endif
       write(6 ,NAMMICROPHYSICS)
       close(ifnamopt)
     end if

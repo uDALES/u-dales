@@ -86,6 +86,11 @@ contains
     if(myid==0)then
       open(ifnamopt,file=fname_options,status='old',iostat=ierr)
       read (ifnamopt,SUBGRID,iostat=ierr)
+      if (ierr > 0) then
+        print *, 'Problem in namoptions SUBGRID'
+        print *, 'iostat error: ', ierr
+        stop 'ERROR: Problem in namoptions SUBGRID'
+      endif
       write(6 ,SUBGRID)
       close(ifnamopt)
     end if

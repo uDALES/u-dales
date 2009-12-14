@@ -81,6 +81,11 @@ contains
     if(myid==0)then
       open(ifnamopt,file=fname_options,status='old',iostat=ierr)
       read (ifnamopt,NAMRADSTAT,iostat=ierr)
+      if (ierr > 0) then
+        print *, 'Problem in namoptions NAMRADSTAT'
+        print *, 'iostat error: ', ierr
+        stop 'ERROR: Problem in namoptions NAMRADSTAT'
+      endif
       write(6 ,NAMRADSTAT)
       close(ifnamopt)
     end if

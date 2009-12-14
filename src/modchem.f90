@@ -254,6 +254,11 @@ SUBROUTINE initchem
   if(myid==0) then
     open(ifnamopt,file=fname_options,status='old',iostat=ierr)
     read (ifnamopt,NAMCHEM,iostat=ierr)
+    if (ierr > 0) then
+      print *, 'Problem in namoptions NAMCHEM'
+      print *, 'iostat error: ', ierr
+      stop 'ERROR: Problem in namoptions NAMCHEM'
+    endif
     write(6 ,NAMCHEM)
     close(ifnamopt)
   endif

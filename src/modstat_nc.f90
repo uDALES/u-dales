@@ -56,6 +56,11 @@ contains
     if(myid==0)then
       open(ifnamopt,file=fname_options,status='old',iostat=ierr)
       read (ifnamopt,NAMNETCDFSTATS,iostat=ierr)
+      if (ierr > 0) then
+        print *, 'Problem in namoptions NAMNETCDFSTATS'
+        print *, 'iostat error: ', ierr
+        stop 'ERROR: Problem in namoptions NAMNETCDFSTATS'
+      endif
       write(6, NAMNETCDFSTATS)
       close(ifnamopt)
     end if

@@ -105,16 +105,36 @@ contains
       if (ierr /= 0) then
         stop 'ERROR:Namoptions does not exist'
       end if
-      read (ifnamopt,RUN)
+      read (ifnamopt,RUN,iostat=ierr)
+      if (ierr > 0) then
+        print *, 'Problem in namoptions RUN'
+        print *, 'iostat error: ', ierr
+        stop 'ERROR: Problem in namoptions RUN'
+      endif
       write(6 ,RUN)
       rewind(ifnamopt)
-      read (ifnamopt,DOMAIN)
+      read (ifnamopt,DOMAIN,iostat=ierr)
+      if (ierr > 0) then
+        print *, 'Problem in namoptions DOMAIN'
+        print *, 'iostat error: ', ierr
+        stop 'ERROR: Problem in namoptions DOMAIN'
+      endif
       write(6 ,DOMAIN)
       rewind(ifnamopt)
-      read (ifnamopt,PHYSICS)
+      read (ifnamopt,PHYSICS,iostat=ierr)
+      if (ierr > 0) then
+        print *, 'Problem in namoptions PHYSICS'
+        print *, 'iostat error: ', ierr
+        stop 'ERROR: Problem in namoptions PHYSICS'
+      endif
       write(6 ,PHYSICS)
       rewind(ifnamopt)
       read (ifnamopt,DYNAMICS,iostat=ierr)
+      if (ierr > 0) then
+        print *, 'Problem in namoptions DYNAMICS'
+        print *, 'iostat error: ', ierr
+        stop 'ERROR: Problem in namoptions DYNAMICS'
+      endif
       write(6 ,DYNAMICS)
       close(ifnamopt)
     end if

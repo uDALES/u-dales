@@ -103,6 +103,11 @@ subroutine initbulkmicrostat
     if(myid==0)then
       open (ifnamopt,file=fname_options,status='old',iostat=ierr)
       read (ifnamopt,NAMBULKMICROSTAT,iostat=ierr)
+      if (ierr > 0) then
+        print *, 'Problem in namoptions NAMBULKMICROSTAT'
+        print *, 'iostat error: ', ierr
+        stop 'ERROR: Problem in namoptions NAMBULKMICROSTAT'
+      endif
       write(6,NAMBULKMICROSTAT)
       close(ifnamopt)
     end if
