@@ -1,0 +1,911 @@
+\documentclass[twoside,11pt,fleqn,a4paper,english,openright]{report}
+
+\usepackage{psfrag}		% Hiermee kun je tekst vanuit latex in een eps-figuur zetten (ook gedraaid e.d.)
+\usepackage{babel} 		% Afbreken van woorden in vreemde talen & Engels
+\usepackage{psfig, epsfig}	% volgens mij onnodig door graphicsx
+\usepackage{amsfonts}		% Nodig om normale tekst in formules te zetten
+\usepackage{amsmath}		% Nodig voor bijzondere formule-structuren, incl. align
+\usepackage{amssymb}		% Nodig om redelijk standaard symbolen weer te geven (vooral dingen als \lesssim)
+\usepackage{palatino}		% textfont: roman, sans-serif, monospace wordt Palatino, Helevetica, Courier
+\usepackage[round]{natbib}	% bibliography \citet zorgt voor auteur en (jaartal) \citep is (a, j) 
+\usepackage{tocbibind}		% Stopt TOC, List of Tables, List of Figures, bib en Index in de TOC
+\usepackage[breaklinks=true]{hyperref}		% Alle referenties worden links
+\usepackage[small,bf]{caption}	% Caption mooi krijgen.
+\usepackage{supertabular} 	% Tabellen op meerdere pagina's
+\usepackage{longtable}		% Supertabular, maar de kolommen blijven dezelfde grootte
+\usepackage{float}		% Je kunt figuren `here` plaatsen met H
+\usepackage{placeins}		% Package zorgt voor floatbarier voor elke section + zelf gedefinieerd
+\usepackage{mdwlist}		% Kan dingen met lijsten. Geeft ook de optie itemize* (geen witregels tussen items)
+\usepackage{multirow}		% Combine multiple rows within a tabular
+
+
+\topmargin= -5 mm
+\textwidth 15.5cm
+\voffset 0cm
+%\hoffset -1 cm
+\textheight 23cm
+\oddsidemargin  0mm
+\evensidemargin 0mm
+\marginparwidth 1.0cm
+\headheight 14pt
+\setlength{\abovecaptionskip}{-10pt}
+\setlength{\belowcaptionskip}{0pt}
+
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\addtolength{\headwidth}{\marginparsep}
+\addtolength{\headwidth}{0.5\marginparwidth}
+\renewcommand{\chaptermark}[1]{\markboth{\thechapter.\ #1}{}}
+\renewcommand{\sectionmark}[1]{\markright{\thesection\ #1}{}}
+\fancyhf{}
+\fancyfoot[RO,LE]{\bfseries\thepage}
+\fancyhead[LE]{\bfseries\rightmark}
+\fancyhead[RO]{\bfseries\leftmark}
+
+% redefine plain style
+\fancypagestyle{plain}{%
+\fancyhf{}
+\renewcommand{\headheight}{14pt}
+\fancyfoot[RO,LE]{\bfseries\thepage}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+}
+
+\def\degrees{\ifmmode^\circ\else$^\circ$\fi}
+
+\def\slfrac#1#2{{\mathord{\mathchoice   % 
+        {\kern.1em\raise.5ex\hbox{$\scriptstyle#1$}\kern-.1em
+        /\kern-.15em\lower.25ex\hbox{$\scriptstyle#2$}}
+        {\kern.1em\raise.5ex\hbox{$\scriptstyle#1$}\kern-.1em
+        /\kern-.15em\lower.25ex\hbox{$\scriptstyle#2$}}
+        {\kern.1em\raise.4ex\hbox{$\scriptscriptstyle#1$}\kern-.1em
+        /\kern-.14em\lower.25ex\hbox{$\scriptscriptstyle#2$}}
+        {\kern.1em\raise.2ex\hbox{$\scriptscriptstyle#1$}\kern-.1em
+        /\kern-.1em\lower.25ex\hbox{$\scriptscriptstyle#2$}}}}}
+
+\begin{document}
+\pagenumbering{Roman}
+ \begin{titlepage}
+  \title{\textbf{Overview of all namoptions in DALES}}
+  \author{Thijs Heus \\
+  Chiel van Heerwaarden \\
+  Johan van der Dussen \\
+  Huug Ouwersloot}
+  \maketitle
+ \end{titlepage}
+\thispagestyle{empty}
+
+\tableofcontents
+\addtocontents{toc}{\protect}
+%\listoftables
+\chapter{Introduction}\label{chapter:introduction}
+
+\pagenumbering{arabic}
+\setcounter{page}{1}
+This document gives an overview of all namelist options in version 3.2 of the Dutch Atmospheric Large Eddy Simulation (DALES) model. Only general information concerning these options is presented. For more detailed information about the model, the reader is referred to \citet{Heus2009}. \\
+Much information in this document originates from citet{Heus2009}. All information from that document is checked and corrected where necessary. The options are also updated to match the current version. 
+
+\chapter{Namoptions overview}\label{chapter:namoptions}
+
+All options that can be set for the LES experiments will be discussed in the following paragraphs. These options are listed in a separate paragraph for all name lists. For all name lists, the options are given with their default values, possible values, a description and the unit. The possible values are denoted by an $x$. The paragraphs are grouped in two sections. In the first section, the main modules are discussed. In the second section an overview of the extra modules is presented.
+
+\section{Main modules}\label{par:mainmod}
+
+\subsection{Namelist DOMAIN}\label{par:domain}
+
+\begin{center}
+	  \tablefirsthead{
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tablehead{
+%        \multicolumn{5}{l}{\small \it Continued from previous page}\\
+%        \multicolumn{5}{c}{}\\
+%        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+%        \hline &&&&\\
+  }
+  \tabletail{
+%        &&&&\\\hline
+%        \multicolumn{5}{c}{}\\
+%        \multicolumn{5}{r}{\small \it Continued on next page}\\
+  }
+  \tablelasttail{
+        &&&&\\\hline
+  }
+\begin{supertabular}{|l|p{1.6cm}|p{5cm}|p{6.3cm}|l|}
+  imax		& 64		& $x \in \mathbb{N}^*$	& Number of horizontal grid points in x-direction	& -\\
+  jtot		& 64		& $x = n \cdot N_{\text{processors}}, \quad n \in \mathbb{N}^*$	& Number of horizontal grid points in y-direction	& -\\
+  kmax		& 96		& $x \in \mathbb{N}^*$		& Number of vertical grid points		& -\\
+  xsize		& -		& $x \in \mathbb{N}^*$		& Horizontal size of the simulated domain	& m\\
+  ysize		& -		& $x \in \mathbb{N}^*$		& Horizontal size of the simulated domain	& m\\
+  xlat		& 52	& $x \in \mathbb{R}, \quad -90 \leq x \leq 90$			& Latitude					& $\,^{\circ}$\\
+  xlon		& 0		& $x \in \mathbb{R}, \quad 0 \leq x \leq 360$			& Longitude					& $\,^{\circ}$\\
+  xday		& 1		& $x \in \mathbb{R}, \quad 1 \leq x \leq 365$	& Number of the day				& -\\
+  xtime		& 0		& $x \in \mathbb{R}, \quad 0 \leq x < 24$	& UTC time of the day				& h\\
+  ksp		& \scriptsize min($\frac{3}{4}$kmax, kmax - 15)	& $x \in \mathbb{N}, \quad 0 \leq x \leq (\text{kmax} - 15)$	& Lower height of sponge layer			& -\\
+\end{supertabular}
+\end{center}
+
+\newpage
+\subsection{Namelist DYNAMICS}\label{par:dynamics}
+
+\begin{center}
+	  \tablefirsthead{
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tablehead{
+        \multicolumn{5}{l}{\small \it Continued from previous page}\\
+        \multicolumn{5}{c}{}\\
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tabletail{
+        &&&&\\\hline
+        \multicolumn{5}{c}{}\\
+        \multicolumn{5}{r}{\small \it Continued on next page}\\
+  }
+  \tablelasttail{
+        &&&&\\\hline
+  }
+\begin{supertabular}{|l|p{1.6cm}|p{4cm}|p{6cm}|l|}
+  cu		& 0		& $x \in \mathbb{R}$	& Transformation velocity of the Galilei transformation in x-direction	& m s$^{-1}$\\
+  cv		& 0		& $x \in \mathbb{R}$	& Transformation velocity of the Galilei transformation in y-direction	& m s$^{-1}$\\
+  llsadv	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$		& Switch for large scale forcings			& -\\
+  lqlnr		& .false.	& $x\in\{\text{.false.},\text{.true.}\}$		& Switch for Newton-Raphson approximation of the liquid water content	& -\\
+  \qquad	&		&				&							&\\
+  \multirow{7}{*}{\begin{tabular}{@{\hspace{0cm}}l}iadv\_mom\\iadv\_tke\\iadv\_thl\\iadv\_qt\\iadv\_sv \end{tabular}$\left. \begin{tabular}{l} \\ \\ \\ \\ \\ \end{tabular} \right\}$} & \multirow{7}{*}{5} & \multirow{7}{*}{$x \in \{1,2,4,5,6,7\}$}	& Advection scheme for momentum, TKE, $\theta_l$, $q_t$ and scalars: & \multirow{7}{*}{-}\\
+  	&		&				& 1 = 1$^{\text{st}}$ order upwind					&\\
+  	&		&				& 2 = 2$^{\text{nd}}$ order central difference			&\\
+  	&		&				& 4 = 4$^{\text{th}}$ order central difference			&\\
+  	&		&				& 5 = Option 6 + 5$^{\text{th}}$ order upwind	&\\
+  	&		&				& 6 = 6$^{\text{th}}$ order central difference			&\\
+	&		&				& 7 = Kappa scheme					&\\
+\end{supertabular}
+\end{center}
+
+\subsection{Namelist PHYSICS}\label{par:physics}
+
+\begin{center}
+	  \tablefirsthead{
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tablehead{
+        \multicolumn{5}{l}{\small \it Continued from previous page}\\
+        \multicolumn{5}{c}{}\\
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tabletail{
+        &&&&\\\hline
+        \multicolumn{5}{c}{}\\
+        \multicolumn{5}{r}{\small \it Continued on next page}\\
+  }
+  \tablelasttail{
+        &&&&\\\hline
+  }
+\begin{supertabular}{|l|p{1.6cm}|p{4cm}|p{6cm}|l|}
+  thls		& -		&  $x \in \mathbb{R}, \quad x>0$		& Liquid water potential temperature at the surface	& K\\
+  ps		& -		&  $x \in \mathbb{R}, \quad x>0$		& Pressure at the surface			& Pa\\
+  &&&&\\
+  isurf		& -		& $x \in \{1,2,3,4\}$			& \begin{tabular}{@{\hspace{0cm}}p{6cm}}Flag for surface parametrization\\1 = Interactive scheme (using radiation)\\2 = Forced surface temperature; fluxes are calculated\\3 = Forced momentum, moisture and heat flux; surface temperature is calculated\\4 = Forced moisture and heat flux; $u_*$ and surface temperature are calculated\\\end{tabular}	& -\\
+  &&&&\\
+  z0		& -		& $x \in \mathbb{R}, \quad x>0$		& Surface roughness				& m\\
+  ustin		& -		& $x \in \mathbb{R}, \quad x>0$			& Prescribed friction velocity			& m s$^{-1}$\\
+  wtsurf	& -		& $x \in \mathbb{R}, \quad x>0$		& Flux of liq. water pot. temp. at the surface	& K m s$^{-1}$\\
+  wqsurf	& -		& $x \in \mathbb{R}$		& Flux of total water content 			& kg kg$^{-1}$\\
+  wsvsurf(1:nsv)& 0		& $x \in \mathbb{R}$	& Flux of scalar n at the surface		& -\\
+  ltimedep	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for timedependent fluxes and large scale forcings	& -\\
+  lcoriol	& .true.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for coriolis force			& -\\
+  lmoist	& .true.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for calculation of moisture fields	& -\\
+  lneutraldrag	& 	& 	& Obsolete 		& \\
+  chi\_half		& 	& 	& Obsolete		& \\
+  timerad	& 0		& $x \in \mathbb{R}, \quad x>0$	& Value for sampling interval of radiation scheme	& s\\  
+  \qquad	&		&				&						& \\
+  \multirow{5}{*}[-14pt]{iradiation} & \multirow{5}{*}[-14pt]{2} & \multirow{5}{*}[-14pt]{$x \in \{0, 1, 2, 10\}$}	& Flag for radiation calculations & \multirow{5}{*}[-14pt]{-}\\
+  & & & 0 = No radiation &\\
+  & & & 1 = Full radiation (not implemented yet)		&\\
+  & & & 2 = Parametrized radiation				&\\
+  & & & 10 = User defined radiation (use \texttt{rad\_user.f90})&\\
+  & & & &\\
+  rad\_ls	& .true.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for prescribed radiative forcing		& -\\
+  rad\_longw	& .true.	& $x\in\{\text{.false.},\text{.true.}\}$		& Switch for parametrized longwave radiative forcing	& -\\
+  rad\_shortw	& .true.	& $x\in\{\text{.false.},\text{.true.}\}$		& Switch for parametrized shortwave radiative forcing	& -\\
+  rad\_smoke	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$		& Switch for longwave divergence for smoke cloud	& -\\
+  \qquad	&		&				&						& \\
+  \multirow{8}{*}{irad} & \multirow{8}{*}{-1}	& \multirow{8}{*}{$x \in \{-1,0,1,2,3,4,10\}$}	& Flag to force (iradiation, rad\_ls, rad\_longw, rad\_shortw, rad\_smoke) & \multirow{8}{*}{-}\\ 
+  	& & & -1 = - & \\
+  	& & & 0 = (0,-,-,-,-) & \\
+  	& & & 1 = (2,.true.,.false.,.false.,.false.) & \\
+  	& & & 2 = (2,.false.,.true.,.false.,.false.) & \\
+  	& & & 3 = (1,-,-,-,-) & \\
+  	& & & 4 = (2,.false.,.true.,.true.,.false.) & \\
+  	& & & 10 = (2,.false.,.false.,.false.,.true.) & \\
+  	&&&&\\
+  rka		& 130		& $x \in \mathbb{R}, \quad x>0$		& Extinction coefficient (used if $iradiation = 2$)	& m$^2$ kg$^{-1}$\\
+  dlwbot	& 0		& $x \in \mathbb{R}, \quad x \ge 0$		& Longwave radiative flux jump at cloud bottom	& W m$^{-2}$\\
+  dlwtop	& 74		& $x \in \mathbb{R}, \quad x \ge 0$	& Longwave radiative flux jump at cloud top	& W m$^{-2}$\\
+  sw0		& 1100		& $x \in \mathbb{R}, \quad x \ge 0$	& Direct solar radiative component cloud top (assumes zero diffusive contribution)	& W m$^{-2}$\\
+  gc		& 0.85		& $x \in \mathbb{R}, \quad 0 \leq x \leq 1$	& Asymmetry factor of droplet scattering angle distribution & -\\
+  sfc\_albedo	& 0.05		& $x \in \mathbb{R}, \quad 0 \leq x \leq 1$	& Surface albedo					& -\\
+  reff		& 1e-5		& $x \in \mathbb{R}, \quad x>0$	& Cloud drop effective radius					& m\\
+  isvsmoke	& 1		& $x \in \mathbb{N}, \quad 0 \leq x \leq \text{nsv}$	& Number of passive scalar fields to be used for optical depth calculation (not used when $rad\_smoke = .false.$)	& -\\
+\end{supertabular}
+\end{center}
+
+\subsection{Namelist RUN}\label{par:run}
+
+\begin{center}
+	  \tablefirsthead{
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tablehead{
+        \multicolumn{5}{l}{\small \it Continued from previous page}\\
+        \multicolumn{5}{c}{}\\
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tabletail{
+        &&&&\\\hline
+        \multicolumn{5}{c}{}\\
+        \multicolumn{5}{r}{\small \it Continued on next page}\\
+  }
+  \tablelasttail{
+        &&&&\\\hline
+  }
+\begin{supertabular}{|l|p{1.6cm}|p{4.4cm}|p{6cm}|l|}
+  iexpnr	& 000		& $x \in \mathbb{R}, \quad x \geq 0$		& Experiment number; every output filename ends with [.iexpnr]	& -\\
+  dtmax		& 20		& $x \in \mathbb{R}, \quad x>0$		& Maximum timestep that is used by the model	& s\\
+  runtime	& 300		& $x \in \mathbb{R}, \quad x>0$		& Total simulation (or: run) time		& s\\
+  lwarmstart& .false.	& $x\in\{\text{.false.},\text{.true.}\}$		& Flag for a ``cold'' or a  ``warm'' start	& -\\
+  startfile	& -		& $x = \text{initd\#\#h\#\#mxxx.\#\#\#}$	& Basis for the name of the restartfiles	& -\\
+  trestart	& 3600		& $x \in \mathbb{R}, \quad x>0$		& Each $trestart$ seconds, a restart file is written to disk	& s\\
+  dtav\_glob	& 60		& $x = n \cdot \text{dtmax}, \quad n \in \mathbb{N}^*$		& Global value for sampling interval of statistical routines	& s\\
+  timeav\_glob	& 3600		& $x = n \cdot \text{dtav\_glob}, \quad n \in \mathbb{N}^*$	& Global value for writing interval of statistical routines	& s\\
+  irandom	& 0		& $x \in \mathbb{Z}$			& Number to feed randomnizer with		& -\\
+  krand		& kmax		& $x \in \mathbb{N}, \quad 1 \leq x \leq \text{kmax}$		& Top vertical full level of randomnization 	& -\\
+  randqt	& 1e-5		& $x \in \mathbb{R}, \quad x>0$		& Amplitude of randomnization of qt		& kg kg$^{-1}$\\
+  randthl	& 0.1		& $x \in \mathbb{R}, \quad x>0$		& Amplitude of randomnization of thl		& K\\
+  nsv		& 0		& $x \in \mathbb{N}, \quad 0 \leq x \leq 100$	& Number of additional passive scalars		& -\\
+  ladaptive	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$		& If .true., this allows the model to vary time step, depending on numerical stability criteria				& -\\
+  courant	& 1.4 or 3	& $x \in \mathbb{R}, \quad x>0$		& Courant number				& -\\
+  peclet	& 0.2		& $x \in \mathbb{R}, \quad x>0$		& Peclet number					& -\\	
+\end{supertabular}
+\end{center}
+
+\subsection{Namelist SUBGRID}\label{par:subgrid}
+
+\begin{center}
+	  \tablefirsthead{
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tablehead{
+        \multicolumn{5}{l}{\small \it Continued from previous page}\\
+        \multicolumn{5}{c}{}\\
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tabletail{
+        &&&&\\\hline
+        \multicolumn{5}{c}{}\\
+        \multicolumn{5}{r}{\small \it Continued on next page}\\
+  }
+  \tablelasttail{
+        &&&&\\\hline
+  }
+\begin{supertabular}{|l|p{1.6cm}|p{4cm}|p{6cm}|l|}
+  ldelta	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for diminished sfs in stable flow		& -\\
+  lmason	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for decreased length scale near the surface	& -\\
+  cf		& 2.5		& $x \in \mathbb{R}, \quad x>0$	& Filter constant					& -\\
+  cn		& 0.76		& $x \in \mathbb{R}, \quad x>0$	& Subfilter scale parameter				& -\\
+  Rigc		& 0.25		& $x \in \mathbb{R}, \quad x>0$	& Critical Richardson number				& -\\
+  Prandtl	& 3			& $x \in \mathbb{R}, \quad x>0$	& Prandtl number					& -\\
+\end{supertabular}
+\end{center}
+
+\newpage
+\section{Extra modules}\label{par:extramod}
+
+\subsection{Namelist NAMBUDGET}\label{par:budget}
+
+\begin{center}
+	  \tablefirsthead{
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tablehead{
+        \multicolumn{5}{l}{\small \it Continued from previous page}\\
+        \multicolumn{5}{c}{}\\
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tabletail{
+        &&&&\\\hline
+        \multicolumn{5}{c}{}\\
+        \multicolumn{5}{r}{\small \it Continued on next page}\\
+  }
+  \tablelasttail{
+        &&&&\\\hline
+  }
+\begin{supertabular}{|l|p{2cm}|p{4cm}|p{6cm}|l|}
+  lbudget	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$		& Switch for turbulent TKE budget calculation	& -\\
+  dtav		& dtav\_glob	& $x = n \cdot \text{dtmax}, \quad n \in \mathbb{N}^*$	& Time interval for sampling of statistics	& s\\
+  timeav	& timeav\_glob	& $x = n \cdot \text{dtav}, \quad n \in \mathbb{N}^*$	& Time interval for writing statistics		& s\\
+\end{supertabular}
+\end{center}
+
+\subsection{Namelist NAMBULKMICROSTAT}\label{par:bulkmicrostat}
+
+\begin{center}
+	  \tablefirsthead{
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tablehead{
+        \multicolumn{5}{l}{\small \it Continued from previous page}\\
+        \multicolumn{5}{c}{}\\
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tabletail{
+        &&&&\\\hline
+        \multicolumn{5}{c}{}\\
+        \multicolumn{5}{r}{\small \it Continued on next page}\\
+  }
+  \tablelasttail{
+        &&&&\\\hline
+  }
+\begin{supertabular}{|l|p{2cm}|p{4cm}|p{6cm}|l|}
+  lmicrostat	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for microphysics statistics calculation	& -\\
+  dtav		& dtav\_glob	& $x = n \cdot \text{dtmax}, \quad n \in \mathbb{N}^*$	& Time interval for sampling of statistics	& s\\
+  timeav	& timeav\_glob	& $x = n \cdot \text{dtav}, \quad n \in \mathbb{N}^*$	& Time interval for writing statistics		& s\\
+\end{supertabular}
+\end{center}
+
+\subsection{Namelist NAMCHECKSIM}\label{par:checksim}
+
+\begin{center}
+	  \tablefirsthead{
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tablehead{
+        \multicolumn{5}{l}{\small \it Continued from previous page}\\
+        \multicolumn{5}{c}{}\\
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tabletail{
+        &&&&\\\hline
+        \multicolumn{5}{c}{}\\
+        \multicolumn{5}{r}{\small \it Continued on next page}\\
+  }
+  \tablelasttail{
+        &&&&\\\hline
+  }
+\begin{supertabular}{|l|p{1.6cm}|p{4cm}|p{6cm}|l|}
+  tcheck	& dtmax	& $x \in \mathbb{R}, \quad x>0$	& Time interval between checks of velocity divergence and Courant numbers	& s\\
+\end{supertabular}
+\end{center}
+
+\subsection{Namelist NAMCHEM}\label{par:chem}
+
+\begin{center}
+	  \tablefirsthead{
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tablehead{
+        \multicolumn{5}{l}{\small \it Continued from previous page}\\
+        \multicolumn{5}{c}{}\\
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tabletail{
+        &&&&\\\hline
+        \multicolumn{5}{c}{}\\
+        \multicolumn{5}{r}{\small \it Continued on next page}\\
+  }
+  \tablelasttail{
+        &&&&\\\hline
+  }
+\begin{supertabular}{|l|p{1.6cm}|p{4cm}|p{6cm}|l|}
+  lchem	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch to turn chemistry on and off & -\\
+  tnor	& -	& $x \in \mathbb{N}, \quad x \ge N_{\text{reactions}}$	& Number of chemical reactions & -\\
+  firstchem	& 1	& $x \in \mathbb{N}, \quad 1 \le x \le \text{lastchem}$	& Column number in scalar.inp of first chemical & -\\
+  lastchem	& nsv	& $x \in \mathbb{N}, \quad \text{firstchem} \le x \le \text{nsv}$	& Column number in scalar.inp of last chemical & -\\
+  ldiuvar & .false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switches diurnal photolysis reaction rates & -\\
+  h\_ref	& 12	& $x \in \mathbb{R}, \quad 0 \leq x < 24$	& Hour used to calculate photolysis rates if ldiuvar = .false. & h\\
+  lcloudKconst	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch to make photolysis reaction rates independent of cloud presence if .true. & -\\
+  lchconst	& .false. & $x\in\{\text{.false.},\text{.true.}\}$	& Reaction rates are based on t\_ref p\_ref and q\_ref instead of calculated $T$, $p$ and $q$ if .true. & -\\
+  t\_ref	& 298 & $x \in \mathbb{R}, \quad x \ge 0$	& Reference temperature	& K\\
+  q\_ref	& 5.e-3 & $x \in \mathbb{R}, \quad x \ge 0$	&  Reference humidity & kg kg$^{-1}$\\
+  p\_ref & 100000 & $x \in \mathbb{R}, \quad x > 0$&  Reference pressure & Pa\\
+  lchmovie & .false. &  $x\in\{\text{.false.},\text{.true.}\}$ & Switch for extra output to make movies & -\\
+  dtchmovie & 60& $x \in \mathbb{R}, \quad x > 0$& Time interval to write extra output & s\\
+\end{supertabular}
+\end{center}
+
+\subsection{Namelist NAMCLOUDFIELD}\label{par:cloudfield}
+
+\begin{center}
+	  \tablefirsthead{
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tablehead{
+        \multicolumn{5}{l}{\small \it Continued from previous page}\\
+        \multicolumn{5}{c}{}\\
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tabletail{
+        &&&&\\\hline
+        \multicolumn{5}{c}{}\\
+        \multicolumn{5}{r}{\small \it Continued on next page}\\
+  }
+  \tablelasttail{
+        &&&&\\\hline
+  }
+\begin{supertabular}{|l|p{1.6cm}|p{4cm}|p{6cm}|l|}
+  lcloudfield	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for cloud field calculations		& -\\
+  laddinfo	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch to enable writing of $q_l$ and $w$ values	& -\\
+  dtav		& dtav\_glob	& $x = n \cdot \text{dtmax}, \quad n \in \mathbb{N}^*$	& Time interval for sampling of statistics	& s\\
+\end{supertabular}
+\end{center}
+
+\subsection{Namelist NAMCROSSSECTION}\label{par:crosssection}
+
+\begin{center}
+	  \tablefirsthead{
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tablehead{
+        \multicolumn{5}{l}{\small \it Continued from previous page}\\
+        \multicolumn{5}{c}{}\\
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tabletail{
+        &&&&\\\hline
+        \multicolumn{5}{c}{}\\
+        \multicolumn{5}{r}{\small \it Continued on next page}\\
+  }
+  \tablelasttail{
+        &&&&\\\hline
+  }
+\begin{supertabular}{|l|p{1.6cm}|p{4cm}|p{6cm}|l|}
+  lcross	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for dumping of crosssections of the field	& -\\
+  dtav		& dtav\_glob	& $x = n \cdot \text{dtmax}, \quad n \in \mathbb{N}^*$	& Time interval for sampling of statistics	& s\\
+  crossheight	& 2		& $x \in \mathbb{N}, \quad 1 \leq x \leq \text{kmax}$	& Height of the horizontal crosssection		& -\\
+  crossplane	& 2		& $x \in \mathbb{N}, \quad 1 \leq x \leq \text{kmax}$	& Location of the vertical (yz) plane on every processor& -\\
+\end{supertabular}
+\end{center}
+
+\subsection{Namelist NAMFIELDDUMP}\label{par:fielddump}
+
+\begin{center}
+	  \tablefirsthead{
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tablehead{
+        \multicolumn{5}{l}{\small \it Continued from previous page}\\
+        \multicolumn{5}{c}{}\\
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tabletail{
+        &&&&\\\hline
+        \multicolumn{5}{c}{}\\
+        \multicolumn{5}{r}{\small \it Continued on next page}\\
+  }
+  \tablelasttail{
+        &&&&\\\hline
+  }
+\begin{supertabular}{|l|p{1.6cm}|p{4.8cm}|p{6cm}|l|}
+  lfielddump	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for dumping of 3d-fields		& -\\
+  dtav		& dtav\_glob	& $x = n \cdot \text{dtmax}, \quad n \in \mathbb{N}^*$	& Time interval for sampling of statistics	& s\\
+  ldiracc	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch to dump into direct access files instead of Fortran unformatted files		& -\\
+  klow		& 1		& $x \in \mathbb{N}, \quad 1 \le x \le \text{khigh}$	& Lowest level of the 3d-field output		& -\\
+  khigh		& $kmax$	& $x \in \mathbb{N}, \quad \text{klow} \le x \le \text{kmax}$	& Highest level of the 3d-field output		& -\\
+\end{supertabular}
+\end{center}
+
+\subsection{Namelist NAMGENSTAT}\label{par:namgenstat}
+\begin{center}
+	  \tablefirsthead{
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tablehead{
+        \multicolumn{5}{l}{\small \it Continued from previous page}\\
+        \multicolumn{5}{c}{}\\
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tabletail{
+        &&&&\\\hline
+        \multicolumn{5}{c}{}\\
+        \multicolumn{5}{r}{\small \it Continued on next page}\\
+  }
+  \tablelasttail{
+        &&&&\\\hline
+  }
+\begin{supertabular}{|l|p{2cm}|p{4cm}|p{6cm}|l|}
+  lstat		& .false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for calculating generic slabaveraged statistics	& -\\
+  dtav		& dtav\_glob	& $x = n \cdot \text{dtmax}, \quad n \in \mathbb{N}^*$	& Time interval for sampling of statistics	& s\\
+  timeav	& timeav\_glob	& $x = n \cdot \text{dtav}, \quad n \in \mathbb{N}^*$	& Time interval for writing statistics		& s\\
+\end{supertabular}
+\end{center}
+
+\newpage
+\subsection{Namelist NAMMICROPHYSICS}\label{par:microphysics}
+
+\begin{center}
+	  \tablefirsthead{
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tablehead{
+        \multicolumn{5}{l}{\small \it Continued from previous page}\\
+        \multicolumn{5}{c}{}\\
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tabletail{
+        &&&&\\\hline
+        \multicolumn{5}{c}{}\\
+        \multicolumn{5}{r}{\small \it Continued on next page}\\
+  }
+  \tablelasttail{
+        &&&&\\\hline
+  }
+\begin{supertabular}{|l|p{1.6cm}|p{4cm}|p{6cm}|l|}
+\multirow{3}{*}[-14pt]{imicro}	& \multirow{3}{*}[-14pt]{0}	& \multirow{3}{*}[-14pt]{$x \in \{0,2\}$}	& Flag for the microphysical scheme:			& \multirow{3}{*}[-14pt]{-}\\
+  & & & 0 = No microphysics (all-or-nothing scheme)&\\
+  & & & 2 = Bulk microphysics&\\
+  &&&&\\
+  l\_sb		& .true.		& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for KK00 \citep{Khairoutdinov2000} or SB \citep{Seifert2001,Seifert2006} scheme resp.			& -\\
+  l\_sedc	& .true.		& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for cloud droplet sedimentation		& -\\
+  l\_rain	& .true.		& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for rain formation and evolution		& -\\
+  l\_mur\_cst	& .false.		& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for a constant value of $\mu_r$ (in raindrop gamma distribution)	& -\\
+  mur\_cst	& 5			& $x \in \mathbb{R}, \quad x>0$	& Value for $\mu_r$, a shape parameter for the rain drop number density distribution (used only if l\_mur\_cst = .true.)	& -\\
+  Nc\_0		& 100e6			& $x \in \mathbb{R}, \quad x \ge 0$	& Initial number of cloud droplets			& -\\
+  sig\_g	& 1.5			& $x \in \mathbb{R}, \quad x \ge 0$	& Geometric standard deviation of the cloud droplet drop size distribution			& -\\
+  sig\_gr	& 1.5		& $x \in \mathbb{R}, \quad x \ge 0$	& Geometric standard deviation of the rain droplet drop size distribution			& -\\
+\end{supertabular}
+\end{center}
+
+\subsection{Namelist NAMNETCDFSTATS}\label{par:netcdf}
+\begin{center}
+	  \tablefirsthead{
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tablehead{
+        \multicolumn{5}{l}{\small \it Continued from previous page}\\
+        \multicolumn{5}{c}{}\\
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tabletail{
+        &&&&\\\hline
+        \multicolumn{5}{c}{}\\
+        \multicolumn{5}{r}{\small \it Continued on next page}\\
+  }
+  \tablelasttail{
+        &&&&\\\hline
+  }
+\begin{supertabular}{|l|p{1.6cm}|p{4cm}|p{6cm}|l|}
+lnetcdf	& -	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch to write NetCDF output	& -\\
+\end{supertabular}
+\end{center}
+
+\newpage
+\subsection{Namelist NAMNUDGE}\label{par:nudge}
+\begin{center}
+	  \tablefirsthead{
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tablehead{
+        \multicolumn{5}{l}{\small \it Continued from previous page}\\
+        \multicolumn{5}{c}{}\\
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tabletail{
+        &&&&\\\hline
+        \multicolumn{5}{c}{}\\
+        \multicolumn{5}{r}{\small \it Continued on next page}\\
+  }
+  \tablelasttail{
+        &&&&\\\hline
+  }
+\begin{supertabular}{|l|p{1.6cm}|p{4cm}|p{6.5cm}|l|}
+lnudge	& -		& $x\in\{\text{.false.},\text{.true.}\}$	& Switch to activate/deactivate nudging	& -\\
+tnudgefac & 1	& $x \in \mathbb{R}, \quad x>0$	&	Nudgefactor & -\\
+\end{supertabular}
+\end{center}
+
+%\newpage $\,$\\
+\subsection{Namelist NAMPARTICLES}\label{par:particles}
+\begin{center}
+	  \tablefirsthead{
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tablehead{
+        \multicolumn{5}{l}{\small \it Continued from previous page}\\
+        \multicolumn{5}{c}{}\\
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tabletail{
+        &&&&\\\hline
+        \multicolumn{5}{c}{}\\
+        \multicolumn{5}{r}{\small \it Continued on next page}\\
+  }
+  \tablelasttail{
+        &&&&\\\hline
+  }
+\begin{supertabular}{|l|p{1.6cm}|p{4cm}|p{6cm}|l|}
+  lpartic	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch to enable/disable this routine		& -\\
+  lpartsgs	& .true.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for subgrid diffusion			& -\\
+  &&&&\\
+  \multirow{3}{*}{intmeth}	& \multirow{3}{*}{3}		& \multirow{3}{*}{$x\in\{0,3\}$}			& Flag for time integration scheme		& \multirow{3}{*}{-}\\
+  & & & 0 = particles stand still & \\
+  & & & 3 = Adams-Bashfort second order scheme &\\
+  &&&&\\
+  lstat		& .false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for particle statistics		& -\\
+  dtav		& 60		& $x = n \cdot \text{dtmax}, \quad n \in \mathbb{N}^*$	& Time interval for sampling of statistics	& s\\
+  timeav	& 3600		& $x = n \cdot \text{dtav}, \quad n \in \mathbb{N}^*$	& Time interval for writing statistics	& s\\
+  ldump		& .false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for dump of particle field		& -\\
+  timedump	& 3600		& $x \in \mathbb{R}, \quad x>0$	& Time interval for particle field dump		& s\\
+  npartdump	& 10		& $x \in \mathbb{N}, \quad 0 \leq x \leq 10$	& Number of variables written at $timedump$, in order: $x$, $y$, $z$, $u$, $v$, $w$, $\theta_l$, $\theta_v$, $q_t$, $q_l$	& -\\
+\end{supertabular}
+\end{center}
+
+\subsection{Namelist NAMprojection}\label{par:projection}
+\begin{center}
+	  \tablefirsthead{
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tablehead{
+        \multicolumn{5}{l}{\small \it Continued from previous page}\\
+        \multicolumn{5}{c}{}\\
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tabletail{
+        &&&&\\\hline
+        \multicolumn{5}{c}{}\\
+        \multicolumn{5}{r}{\small \it Continued on next page}\\
+  }
+  \tablelasttail{
+        &&&&\\\hline
+  }
+\begin{supertabular}{|l|p{1.6cm}|p{4cm}|p{6cm}|l|}
+  lproject	&	.false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch to activate dumping of projections of the field	& -\\
+  dtav		& dtav\_glob	& $x = n \cdot \text{dtmax}, \quad n \in \mathbb{N}^*$	& Time interval for sampling of statistics	& s\\
+  projectheight	& 2	& $x \in \mathbb{N}^*, \quad x \le \text{kmax}$	& Height of the xy-projection & -\\
+  projectplane	& 2	& $x \in \mathbb{N}^*, \quad x \le \frac{\text{jtot}}{N_{\text{processors}}}$	& Position of the xz-plane on every processor & -\\
+\end{supertabular}
+\end{center}
+
+%\newpage
+\subsection{Namelist NAMRADSTAT}\label{par:radstat}
+\begin{center}
+	  \tablefirsthead{
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tablehead{
+        \multicolumn{5}{l}{\small \it Continued from previous page}\\
+        \multicolumn{5}{c}{}\\
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tabletail{
+        &&&&\\\hline
+        \multicolumn{5}{c}{}\\
+        \multicolumn{5}{r}{\small \it Continued on next page}\\
+  }
+  \tablelasttail{
+        &&&&\\\hline
+  }
+\begin{supertabular}{|l|p{2cm}|p{4cm}|p{6cm}|l|}
+  lradstat	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for calculating slabaveraged radiation statistics	& -\\
+  dtav		& dtav\_glob	& $x = n \cdot \text{dtmax}, \quad n \in \mathbb{N}^*$	& Time interval for sampling of statistics	& s\\
+  timeav	& timeav\_glob	& $x = n \cdot \text{dtav}, \quad n \in \mathbb{N}^*$	& Time interval for writing statistics		& s\\
+\end{supertabular}
+\end{center}
+
+\subsection{Namelist NAMSAMPLING}\label{par:sampling}
+\begin{center}
+	  \tablefirsthead{
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tablehead{
+        \multicolumn{5}{l}{\small \it Continued from previous page}\\
+        \multicolumn{5}{c}{}\\
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tabletail{
+        &&&&\\\hline
+        \multicolumn{5}{c}{}\\
+        \multicolumn{5}{r}{\small \it Continued on next page}\\
+  }
+  \tablelasttail{
+        &&&&\\\hline
+  }
+\begin{supertabular}{|l|p{2cm}|p{4cm}|p{6cm}|l|}
+  dtav		& dtav\_glob	& $x = n \cdot \text{dtmax}, \quad n \in \mathbb{N}^*$	& Time interval for sampling of statistics	& s\\
+  timeav	& timeav\_glob	& $x = n \cdot \text{dtav}, \quad n \in \mathbb{N}^*$	& Time interval for writing statistics	& s\\
+  lsampcl	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for conditional sampling cloud ($q_l > 0$)	& -\\
+  lsampco	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for conditional sampling cloud core ($q_l > 0,\theta_v' > 0$)	& -\\
+  lsampup	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for conditional sampling updrafts ($w > 0$)	& -\\
+  lsampbuup	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for conditional sampling of buoyant updrafts ($w > 0, \theta_v' > 0$)	& -\\
+\end{supertabular}
+\end{center}
+
+\newpage
+\subsection{Namelist NAMSTATTEND}\label{par:stattend}
+\begin{center}
+	  \tablefirsthead{
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tablehead{
+        \multicolumn{5}{l}{\small \it Continued from previous page}\\
+        \multicolumn{5}{c}{}\\
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tabletail{
+        &&&&\\\hline
+        \multicolumn{5}{c}{}\\
+        \multicolumn{5}{r}{\small \it Continued on next page}\\
+  }
+  \tablelasttail{
+        &&&&\\\hline
+  }
+\begin{supertabular}{|l|p{2cm}|p{4cm}|p{6cm}|l|}
+  lstattend	& & & Obsolete & \\
+  ltend	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for calculation of tendencies of prognostic variables & -\\
+  dtav		& dtav\_glob	& $x = n \cdot \text{dtmax}, \quad n \in \mathbb{N}^*$	& Time interval for sampling of statistics	& s\\
+  timeav	& timeav\_glob	& $x = n \cdot \text{dtav}, \quad n \in \mathbb{N}^*$	& Time interval for writing statistics	& s\\
+\end{supertabular}
+\end{center}
+
+%\newpage
+\subsection{Namelist NAMSURFACE}\label{par:surface}
+\begin{center}
+	  \tablefirsthead{
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tablehead{
+        \multicolumn{5}{l}{\small \it Continued from previous page}\\
+        \multicolumn{5}{c}{}\\
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tabletail{
+        &&&&\\\hline
+        \multicolumn{5}{c}{}\\
+        \multicolumn{5}{r}{\small \it Continued on next page}\\
+  }
+  \tablelasttail{
+        &&&&\\\hline
+  }
+\begin{supertabular}{|l|p{1.6cm}|p{4cm}|p{6cm}|l|}
+  isurf	& -1	& $x \in \{1,2,3,4\}$	& Overrides isurf flag of Namelist \hyperref[par:physics]{PHYSICS} if used. & -\\
+  lmostlocal	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch to locally determine Obukhov length& -\\
+  lsmoothflux	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch to create uniform sensible and latent heat flux over domain& -\\
+  z0	& -1	& 	& Obsolete	& \\
+  z0mav	& -1	& $x \in \mathbb{R}, \quad x>0$	& Roughness length of momentum	& m\\
+  z0hav	& -1	& $x \in \mathbb{R}, \quad x>0$	& Roughness length of heat	& m\\
+  thls	& -1	& $x \in \mathbb{R}, \quad x>0$	& Surface liquid water potential temperature & K\\
+  ps	& -1	& $x \in \mathbb{R}, \quad x>0$	& Surface pressure & Pa\\
+  ustin	& -1	& $x \in \mathbb{R}, \quad x \ge 0$	& Prescribed friction velocity & m s$^{-1}$\\
+  wtsurf	& -1	& $x \in \mathbb{R}$	& Prescribed kinematic temperature flux	& K m s$^{-1}$\\
+  wqsurf	& -1	& $x \in \mathbb{R}$	& Prescribed kinematic moisture flux & kg kg$^{-1}$ m s$^{-1}$\\
+  wsvsurf	& -	& $x \in \mathbb{R}[100]$	& Prescribed surface scalar flux & ppb m s$^{-1}$\\ 
+  tsoilav	& -	& $x \in \mathbb{R}[4], \quad x[i] > 0$	& Initial soil temperature (for 4 layers, only used if isurf = 1)	& K\\
+  tsoildeepav	& - & $x \in \mathbb{R}, \quad x>0$ & Soil bottom temperature (if isurf = 1)& K \\
+  phiwav	& -	& $x \in \mathbb{R}[4], \quad 0 \leq x[i] \leq 0.472$	& Soil moisture (if isurf = 1 and preferably below 0.323)	& m$^{3}$ m$^{-3}$\\
+  rootfav	& -	& $x \in \mathbb{R}[4], \quad 0 \leq x[i] \leq 1, \quad \sum_i x[i] =1$	& Root fraction	(if isurf = 1) & -	\\
+  Cskinav	& -1	& $x \in \mathbb{R}, \quad x \ge 0$	& Heat capacity skin layer (if isurf = 1)	& J K$^{-1}$ m$^{-2}$\\
+  lambdaskinav	& -	& $x \in \mathbb{R}, \quad x \ge 0$	& Heat conductivity skin layer (if isurf = 1)	& J s$^{-1}$ K$^{-1}$ m$^{-2}$\\
+  albedoav	& -1	& $x \in \mathbb{R}, \quad 0 \le x \le 1$ & Albedo (if isurf = 1)	& -\\
+  Qnetav	& -1	& $x \in \mathbb{R}$	& Net radiation (if iradiation $\ne$ 1 and isurf = 1)	& J s$^{-1}$ m$^{-2}$\\
+  rsminav	& -1	& $x \in \mathbb{R}, \quad x \ge 0$	& Minimal vegetation resistance	(if isurf = 1)& s m$^{-1}$\\
+  LAIav	& -1	& $x \in \mathbb{R}, \quad x \ge 0$	& Leaf area index (if isurf = 1)	& m$^{2}$ m$^{-2}$\\
+  gDav	& -	& $x \in \mathbb{R}, \quad x \ge 0$	& Correction for evaporation of tall vegetation (if isurf = 1) & -\\
+  lsea	& .true.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch to model sea surface (if isurf = 2) & -\\
+  rsisurf2	& -1	& $x \in \mathbb{R}, \quad x \ge 0$	& Vegetation resistance (if isurf = 2)	& s m$^{-1}$\\
+\end{supertabular}
+\end{center}
+
+\subsection{Namelist NAMTILT}\label{par:tilt}
+\begin{center}
+	  \tablefirsthead{
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tablehead{
+        \multicolumn{5}{l}{\small \it Continued from previous page}\\
+        \multicolumn{5}{c}{}\\
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tabletail{
+        &&&&\\\hline
+        \multicolumn{5}{c}{}\\
+        \multicolumn{5}{r}{\small \it Continued on next page}\\
+  }
+  \tablelasttail{
+        &&&&\\\hline
+  }
+\begin{supertabular}{|l|p{2cm}|p{4cm}|p{6cm}|l|}
+  ltilted	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for a tilted boundary layer		& -\\
+  alfa		& 0		& $x \in \mathbb{R}, \quad - \frac{\pi}{2} \le x \le \frac{\pi}{2}$	& Tilt angle				& rad\\
+  lstat		& .true.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for statistics				& -\\
+  dtav		& dtav\_glob	& $x = n \cdot \text{dtmax}, \quad n \in \mathbb{N}^*$	& Time interval for sampling of statistics	& s\\
+  timeav	& timeav\_glob	& $x = n \cdot \text{dtav}, \quad n \in \mathbb{N}^*$	& Time interval for writing statistics		& s\\
+\end{supertabular}
+\end{center}
+
+\subsection{Namelist NAMTIMESTAT}\label{par:timestat}
+\begin{center}
+	  \tablefirsthead{
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tablehead{
+        \multicolumn{5}{l}{\small \it Continued from previous page}\\
+        \multicolumn{5}{c}{}\\
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tabletail{
+        &&&&\\\hline
+        \multicolumn{5}{c}{}\\
+        \multicolumn{5}{r}{\small \it Continued on next page}\\
+  }
+  \tablelasttail{
+        &&&&\\\hline
+  }
+\begin{supertabular}{|l|p{2cm}|p{4cm}|p{6cm}|l|}
+  ltimestat	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for calculation of time series		& -\\
+  dtav		& dtav\_glob	& $x = n \cdot \text{dtmax}, \quad n \in \mathbb{N}^*$	& Time interval for sampling of statistics	& s\\
+  & & & &\\
+  \multirow{4}{*}{iblh\_var}	& \multirow{4}{*}{iblh\_thv}	& \multirow{4}{*}{$x\in\{-1,-2,-3\}$}	& Flag for the variable used to calculate boundary layer height			& \multirow{4}{*}{-}\\
+  & & & $-1$ = virtual pot. temp. $\theta_v$	&\\
+  & & & $-2$ = liquid water pot. temp. $\theta_l$ &\\
+  & & & $-3$ = total humidity $q_t$		&\\
+  & & & &\\
+  \multirow{4}{*}{iblh\_meth}	& \multirow{4}{*}{iblh\_grad}	& \multirow{4}{*}{$x\in\{1,2,3\}$}	& Flag for the method used to calculate boundary layer height	& \multirow{4}{*}{-}\\
+  & & & 1 = use flux of selected variable			&\\
+  & & & 2 = use gradient of selected variable		&\\
+  & & & 3 = use a threshold (auto or user specified)	&\\
+  & & & &\\
+  blh\_thres	& $-1$	& $x \in \mathbb{R}, \quad x \ge 0$	& Threshold for the selected variable, used only for iblh\_thres method	& K or kg kg$^{-1}$\\
+  blh\_nsamp	& 4		& $x \in \mathbb{N}^*, \quad x \le \text{kmax}$	& Number of levels to integrate over	& -\\
+\end{supertabular}
+\end{center}
+
+\bibliographystyle{plainnat}
+\bibliography{literaturenam}
+
+\end{document}
