@@ -26,8 +26,6 @@ module modchem
   !         q_ref	    = 5.e-3
   !         lchmovie    = .false.  SWITCH: if TRUE gives extra output for movies(experimental)
   !         dtchmovie   = 60.      when to write extra output
-  !         itermin     = 1.e-6    (not to change)
-  !         dtl_max     = 3600     set maximum timestep (only when ladaptive)
   !       /
   !-----------------------------------------------------------------
 
@@ -128,7 +126,7 @@ save
 
   ! namoptions
   integer tnor, firstchem, lastchem
-  real dtchmovie,itermin,dtl_max
+  real dtchmovie,itermin
   real t_ref,q_ref,p_ref,h_ref
   logical lchem, ldiuvar,lchconst,lchmovie,lcloudKconst
 
@@ -232,11 +230,12 @@ SUBROUTINE initchem
   implicit none
 
   integer i, ierr
-  namelist/NAMCHEM/ lchem, dtl_max, lcloudKconst, tnor, firstchem,lastchem,ldiuvar,h_ref,lchconst, t_ref, q_ref, p_ref,lchmovie, dtchmovie, itermin
 
+  namelist/NAMCHEM/ lchem, lcloudKconst, tnor, firstchem,lastchem,ldiuvar,h_ref,lchconst, t_ref, q_ref, p_ref,lchmovie, dtchmovie
+
+  itermin  = 1.e-6
 
   lchem    =.false.
-  dtl_max  = 3600
   ldiuvar  = .false.
   h_ref    = 12.0
   lchconst = .false.
@@ -245,7 +244,6 @@ SUBROUTINE initchem
   q_ref    = 5.e-3
   lchmovie = .false.
   dtchmovie= 60
-  itermin  = 1.e-6
   firstchem= 1
   lastchem = nsv
   nchsp    = nsv
@@ -272,7 +270,6 @@ SUBROUTINE initchem
   call MPI_BCAST(tnor      ,1,mpi_integer , 0,comm3d, mpierr)
   call MPI_BCAST(firstchem ,1,mpi_integer , 0,comm3d, mpierr)
   call MPI_BCAST(lastchem  ,1,mpi_integer , 0,comm3d, mpierr)
-  call MPI_BCAST(dtl_max   ,1,MY_REAL     , 0,comm3d, mpierr)
   call MPI_BCAST(t_ref     ,1,MY_REAL     , 0,comm3d, mpierr)
   call MPI_BCAST(q_ref     ,1,MY_REAL     , 0,comm3d, mpierr)
   call MPI_BCAST(p_ref     ,1,MY_REAL     , 0,comm3d, mpierr)
@@ -1027,7 +1024,7 @@ end subroutine read_chem
 
 
 SUBROUTINE twostep()     !(t,te,y)   (timee, timee+dt, sv0)
-use modglobal, only : rk3step,timee,timeav_glob,dt_lim, ladaptive
+use modglobal, only : rk3step,timee,timeav_glob
 use modfields, only: svm
 use modmpi, only: myid
 implicit none
@@ -1036,9 +1033,6 @@ implicit none
 
   if (rk3step/=3) return
   if(timee==0) return
-  if (ladaptive .eqv. .true.) then
-    dt_lim=min(dt_lim,dtl_max)
-  endif
 
   !!!! We only use the chemistry scalars in svm,
   !!!! in twostep2 we use them as y(:,:,:,1:nchsp)
