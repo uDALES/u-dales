@@ -856,7 +856,7 @@ module modbulkmicro
 
     real cof(6),stp,half,one,fpf
 
-  integer j
+  integer jcnt,i,j,k
   data cof,stp /76.18009173,-86.50532033,24.01409822,  &
        -1.231739516,0.120858003e-2,-0.536382e-5,2.50662827465/
   data half,one,fpf /0.5,1.0,5.5/
@@ -865,15 +865,20 @@ module modbulkmicro
   tmp(2:i1,2:j1,1:k1)=x(2:i1,2:j1,1:k1)+fpf
   tmp(2:i1,2:j1,1:k1)=(x(2:i1,2:j1,1:k1)+half)*log(tmp(2:i1,2:j1,1:k1))-tmp(2:i1,2:j1,1:k1)
   ser(2:i1,2:j1,1:k1)=one
-  do j=1,6
-    where (qrmask(2:i1,2:j1,1:k1))
-      x(2:i1,2:j1,1:k1)=x(2:i1,2:j1,1:k1)+one
-      ser(2:i1,2:j1,1:k1)=ser(2:i1,2:j1,1:k1)+cof(j)/x(2:i1,2:j1,1:k1)
-    endwhere
+  do jcnt=1,6
+    do j=2,j1
+    do i=2,i1
+    do k=1,k1
+       if (qrmask(i,j,k)) then
+          x  (i,j,k)=x(i,j,k)+one
+          ser(i,j,k)=ser(i,j,k)+cof(jcnt)/x(i,j,k)
+       endif
+    enddo
+    enddo
+    enddo
   end do
 
   gam(2:i1,2:j1,1:k1) = exp(tmp(2:i1,2:j1,1:k1)+log(stp*ser(2:i1,2:j1,1:k1)))
-
 
   end function f_gamma
 
