@@ -847,41 +847,32 @@ module modbulkmicro
   !*********************************************************************
     use modglobal, only : ih,i1,jh,j1,k1
     implicit none
-    real, allocatable :: xx(:,:,:), x(:,:,:),tmp(:,:,:),ser(:,:,:),gam(:,:,:)
-
-    real cof(6),stp,half,one,fpf
-
-  integer jcnt,i,j,k
-  data cof,stp /76.18009173,-86.50532033,24.01409822,  &
-       -1.231739516,0.120858003e-2,-0.536382e-5,2.50662827465/
-  data half,one,fpf /0.5,1.0,5.5/
-
-  allocate (xx(2:i1,2:j1,k1),  &
+    real :: xx(2:i1,2:j1,k1),  &
             x(2:i1,2:j1,k1),  &
             tmp(2:i1,2:j1,k1),  &
             ser(2:i1,2:j1,k1),  &
-            gam(2:i1,2:j1,k1))
+            gam(2:i1,2:j1,k1)
 
+
+    real cof(6),stp,half,one,fpf
+
+  integer j
+  data cof,stp /76.18009173,-86.50532033,24.01409822,  &
+       -1.231739516,0.120858003e-2,-0.536382e-5,2.50662827465/
+  data half,one,fpf /0.5,1.0,5.5/
 
   x(2:i1,2:j1,1:k1)=xx(2:i1,2:j1,1:k1)-one
   tmp(2:i1,2:j1,1:k1)=x(2:i1,2:j1,1:k1)+fpf
   tmp(2:i1,2:j1,1:k1)=(x(2:i1,2:j1,1:k1)+half)*log(tmp(2:i1,2:j1,1:k1))-tmp(2:i1,2:j1,1:k1)
   ser(2:i1,2:j1,1:k1)=one
-  do jcnt=1,6
-    do j=2,j1
-    do i=2,i1
-    do k=1,k1
-       if (qrmask(i,j,k)) then
-          x  (i,j,k)=x(i,j,k)+one
-          ser(i,j,k)=ser(i,j,k)+cof(jcnt)/x(i,j,k)
-       endif
-    enddo
-    enddo
-    enddo
+  do j=1,6
+    where (qrmask(2:i1,2:j1,1:k1))
+      x(2:i1,2:j1,1:k1)=x(2:i1,2:j1,1:k1)+one
+      ser(2:i1,2:j1,1:k1)=ser(2:i1,2:j1,1:k1)+cof(j)/x(2:i1,2:j1,1:k1)
+    endwhere
   end do
 
   gam(2:i1,2:j1,1:k1) = exp(tmp(2:i1,2:j1,1:k1)+log(stp*ser(2:i1,2:j1,1:k1)))
-  deallocate(xx,x,tmp,ser,gam)
 
 
   end function f_gamma
