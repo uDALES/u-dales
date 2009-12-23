@@ -384,7 +384,7 @@ subroutine radpar
       end do
     end do
 
-    write(6,*) "CvHrad", swd(2,2,1), swu(2,2,1), lwd(2,2,1), lwu(2,2,1), tskin(2,2)
+    !write(6,*) "CvHrad", swd(2,2,1), swu(2,2,1), lwd(2,2,1), lwu(2,2,1), tskin(2,2)
 
   end subroutine radlsm
 
