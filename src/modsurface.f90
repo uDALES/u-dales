@@ -370,8 +370,13 @@ contains
           if(isurf == 2) then
             rs(i,j) = rsisurf2
           else
-              ! 2.1   -   Calculate the surface resistance !CvH f1 should be based on SWin!
-              f1  = 1. / min(1., (0.004 * max(0.,Qnet(i,j)) + 0.05) / (0.81 * (0.004 * max(0.,Qnet(i,j)) + 1.)))
+              ! 2.1   -   Calculate the surface resistance 
+              if (iradiation > 0) then
+                f1  = 1. / min(1., (0.004 * max(0.,-swd(i,j,1)) + 0.05) / (0.81 * (0.004 * max(0.,-swd(i,j,1)) + 1.)))
+              else
+                f1  = 1.
+              end if
+
               f2  = (phifc - phiwp) / (phitot(i,j) - phiwp)
 
               esat = 0.611e3 * exp(17.2694 * (thl0(i,j,1) - 273.16) / (thl0(i,j,1) - 35.86))
@@ -405,8 +410,8 @@ contains
           ! CvH I put it in the init function, as we don't have prognostic soil moisture at this stage
 
           ! 1.2   -   Calculate the skin temperature as the top boundary conditions for heat transport
-          if(iradiation == 1) then
-            if(useMcICA) then
+          if(iradiation > 0) then
+            if(iradiation == 1 .and. useMcICA) then
               if(rk3step == 1) then
                 swdavn(i,j,2:nradtime) = swdavn(i,j,1:nradtime-1)  
                 swuavn(i,j,2:nradtime) = swuavn(i,j,1:nradtime-1)  
