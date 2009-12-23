@@ -378,7 +378,7 @@ subroutine radpar
     do j=2,j1
       do i=2,i1
         swd(i,j,1) = - S0 * zenith(xtime + timee / 3600., xday, xlat, xlon)
-        swu(i,j,1) = - (1. - albedo(i,j)) * swd(i,j,1)
+        swu(i,j,1) = - albedo(i,j) * swd(i,j,1)
         lwd(i,j,1) = - 0.8 * bolz * thl0(i,j,1) ** 4.
         lwu(i,j,1) = bolz * tskin(i,j) ** 4.
       end do
