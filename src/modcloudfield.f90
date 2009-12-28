@@ -145,6 +145,8 @@ contains
 
     close(ifoutput)
 
+    deallocate(ipos,jpos,kpos,wcl,qlcl)
+
   end subroutine cloudfield
 
 end module modcloudfield
