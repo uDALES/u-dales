@@ -1145,7 +1145,7 @@ implicit none
     nfcn=nfcn+1
     kdtl=te-t
 
-    !  if n points to H2O or CO or INERT skip calculations
+    !  if n points to H2O or INERT skip calculations
     do n=1,nchsp
       if (n == H2O%loc .or. (PL_scheme(n)%active .eqv. .false.)) cycle
       do j=2,j1
@@ -1207,7 +1207,7 @@ implicit none
     !c Stepsize control.
     errltel=0.0
     do n=1,nchsp
-      if (n == H2O%loc .or. n == CO%loc .or. n==INERT%loc) cycle  !we aren't interested in the chemistry of water and CO is kept constant
+      if (n == H2O%loc .or. n==INERT%loc) cycle  !we aren't interested in the chemistry of water and is kept constant
       do j=2,j1
         do i=2,i1
           ytol=atol(n)+rtol(n)*abs(y(i,j,pl,n))
@@ -1715,7 +1715,6 @@ implicit none
 
   do n=1,nchsp
   if (PL_scheme(n)%active .EQV. .TRUE.) then
-    if (PL_scheme(n)%name == CO%name )  cycle    !don't do calculation of CO, kept constant at start concentration
     if (PL_scheme(n)%name == H2O%name )  cycle    !don't do calculation of H2O
     if (PL_scheme(n)%name == PRODUC%name) cycle
 
