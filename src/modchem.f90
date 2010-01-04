@@ -1147,7 +1147,7 @@ implicit none
 
     !  if n points to H2O or CO or INERT skip calculations
     do n=1,nchsp
-      if (n == H2O%loc .or. n == CO%loc .or. (PL_scheme(n)%active .eqv. .false.)) cycle
+      if (n == H2O%loc .or. (PL_scheme(n)%active .eqv. .false.)) cycle
       do j=2,j1
         do i=2,i1
           dyc=yp(i,j,n)-y(i,j, pl, n)*yl(i,j, n)
