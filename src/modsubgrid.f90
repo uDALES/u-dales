@@ -194,7 +194,7 @@ contains
   use modmpi,     only : excjs
   implicit none
 
-  real    :: strain
+  real    :: strain,rig
   integer :: i,j,k,kp,km,jp,jm
 
 !********************************************************************
@@ -241,8 +241,8 @@ contains
                 (w0(i,jp,k)-w0(i,j,k))     *dyi        )**2    + &
                 ((v0(i,jp,kp)-v0(i,jp,k))   / dzh(kp) + &
                 (w0(i,jp,kp)-w0(i,j,kp))   *dyi        )**2    )
-
-      ekm(i,j,k)  = (cs*delta(k))**2*sqrt(0.5*(1-rigc/prandtl)*strain)
+      rig         =    grav*dthvdz(i,j,k)/(thvs*strain)
+      ekm(i,j,k)  = (cs*delta(k))**2*sqrt(0.5*(1-rig/prandtl)*strain)
       ekh(i,j,k)  = ekm(i,j,k)/prandtl
     end do
     end do

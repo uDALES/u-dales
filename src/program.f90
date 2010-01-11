@@ -105,6 +105,7 @@ program DALES      !Version 3.2 Beta 1
 !     1      READ NAMELISTS,INITIALISE GRID, CONSTANTS AND FIELDS
 !----------------------------------------------------------------
   call initmpi
+
   call startup
 
 !---------------------------------------------------------
