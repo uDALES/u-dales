@@ -2,7 +2,7 @@
 iexpnr     =  001
 lwarmstart =  .false.
 startfile  =  'initd00h01m000.001'
-runtime    =  7200
+runtime    =  36000
 trestart   =  3600 
 ladaptive  =  .true.
 irandom    =  43
@@ -14,26 +14,26 @@ nsv        =  0
 &DOMAIN
 imax       =  64 
 jtot       =  64
-kmax       =  96
+kmax       =  64
 
-xsize      =  3200.
-ysize      =  3200.
+xsize      =  400.
+ysize      =  400.
 
-xlat       =  51.96
-xlon       =  4.91
-xday       =  268.
-xtime      =  12.
+xlat       =  52.
+xlon       =  5.
+xday       =  215.
+xtime      =  0.
 /
 
 &PHYSICS
-z0         =  0.035
+z0         =  0.15
 ustin      =  0.0
 ps         =  100000.00
-thls       =  296.
-wtsurf     =  0.1
-wqsurf     =  0.0001
+thls       =  282.
+wtsurf     =  -0.01
+wqsurf     =  0.0000001
 wsvsurf(1) =  0.
-wsvsurf(2) =  1.
+wsvsurf(2) =  0.
 lmoist     =  .true.
 isurf      =  1
 iradiation =  1
@@ -42,11 +42,11 @@ lcoriol    =  .true.
 /
 
 &NAMSURFACE
-tsoilav(1)   = 290.
-tsoilav(2)   = 287.
-tsoilav(3)   = 285.
-tsoilav(4)   = 283.
-tsoildeepav  = 283.
+tsoilav(1)   = 287.
+tsoilav(2)   = 288.
+tsoilav(3)   = 289.
+tsoilav(4)   = 289.
+tsoildeepav  = 289.
 
 phiwav(1)    = 0.25 
 phiwav(2)    = 0.25 
@@ -61,14 +61,14 @@ rootfav(4)   = 0.04
 lsea         = .false.
 lmostlocal   = .false.
 lsmoothflux  = .false.
-rsisurf2     = 50.
+rsisurf2     = 50000.
 
-z0mav        = 0.035
-z0hav        = 0.007
-Cskinav      = 20000.
-lambdaskinav = 5.
-albedoav     = 0.20
-Qnetav       = 450.
+z0mav        = 0.15
+z0hav        = 0.020
+Cskinav      = 0.
+lambdaskinav = 6.0
+albedoav     = 0.23
+Qnetav       = -15.
 
 rsminav      = 110.
 LAIav        = 2.
@@ -88,6 +88,10 @@ iadv_qt     =  5
 iadv_sv     =  5
 /
 
+&NAMMICROPHYSICS
+imicro    = 1
+/
+
 &NAMCHECKSIM
 tcheck      = 0
 /
@@ -100,7 +104,7 @@ timeav      = 120
 
 &NAMTIMESTAT
 ltimestat   = .true.
-dtav        = 30 
+dtav        = 60
 /
 
 &NAMCROSSSECTION
@@ -124,21 +128,13 @@ ltend       = .true.
 /
 
 &NAMBUDGET
-lbudget = .true.
+lbudget = .false.
 dtav    = 60
 timeav  = 300
 /
 
-&NAMNETCDFMOVIE
-lnetcdfmovie = .false.
-dtmovie      = 10
-lmoviez      = .false.
-slicez       = 1
-slicex       = 1
-/
-
 &NAMRADSTAT
 lstat = .true.
-dtav = 30
-timeav = 30
+dtav = 60
+timeav = 300
 /

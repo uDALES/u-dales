@@ -125,8 +125,8 @@ program DALES      !Version 3.2 Beta 1
   call initradstat
   call initparticles
   call initnudge
-!   call initnetcdfstats
-!   call initnetcdfmovie
+  ! call initnetcdfstats
+  ! call initnetcdfmovie
   call initbulkmicrostat
   call initbudget
 
@@ -143,11 +143,18 @@ program DALES      !Version 3.2 Beta 1
     call stattend(tend_start)
 
 !-----------------------------------------------------
-!   3.1   THE SURFACE LAYER
+!   3.1   RADIATION         
+!-----------------------------------------------------
+    call radiation !radiation scheme
+    call stattend(tend_rad)
+
+!-----------------------------------------------------
+!   3.2   THE SURFACE LAYER
 !-----------------------------------------------------
     call surface
+
 !-----------------------------------------------------
-!   3.2   ADVECTION AND DIFFUSION
+!   3.3   ADVECTION AND DIFFUSION
 !-----------------------------------------------------
     call advection
     call stattend(tend_adv)
@@ -155,14 +162,12 @@ program DALES      !Version 3.2 Beta 1
     call stattend(tend_subg)
 
 !-----------------------------------------------------
-!   3.3   REMAINING TERMS
+!   3.4   REMAINING TERMS
 !-----------------------------------------------------
     call coriolis !remaining terms of ns equation
     call stattend(tend_coriolis)
     call forces !remaining terms of ns equation
     call stattend(tend_force)
-    call radiation !radiation scheme
-    call stattend(tend_rad)
 
     call lstend !large scale forcings
     call stattend(tend_ls)
@@ -214,6 +219,8 @@ program DALES      !Version 3.2 Beta 1
     call bulkmicrostat
     call budgetstat
 
+    ! call netcdfmovie
+
     call writerestartfiles
   end do
 
@@ -235,6 +242,7 @@ program DALES      !Version 3.2 Beta 1
   call exitbudget
   call exitcrosssection
   call exitfielddump
+  ! call exitnetcdfmovie
   call exitmodules
 
 end program DALES

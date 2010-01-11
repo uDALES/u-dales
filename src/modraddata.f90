@@ -37,6 +37,7 @@ SAVE
   integer, parameter :: irad_none  = 0   !< 0=no radiation
   integer, parameter :: irad_full  = 1   !< 1=full radiation
   integer, parameter :: irad_par   = 2   !< 2=parameterized radiation
+  integer, parameter :: irad_lsm   = 3   !< 3=simple surface radiation for land surface model
   integer, parameter :: irad_user  = 10  !< 10=user specified radiation
 
   logical :: rad_ls      = .true.   !< prescribed radiative forcing
@@ -56,7 +57,7 @@ SAVE
   !CvH real :: sfc_albedo = 0.05   !< ground surface albedo
   real :: reff       = 1.e-5  !< cloud droplet effective radius (m)
   integer :: isvsmoke = 1     !< number of passive scalar to be used for optical depth calculation
-  integer :: iradiation = irad_par  !< Selection parameter for type of radiation scheme
+  integer :: iradiation = irad_none !< Selection parameter for type of radiation scheme
   integer :: irad    = -1  !< Deprecated selection parameter for the type of radiation scheme
 
 

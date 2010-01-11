@@ -2,13 +2,13 @@
 iexpnr     =  001
 lwarmstart =  .false.
 startfile  =  'initd00h01m000.001'
-runtime    =  7200
+runtime    =  36000
 trestart   =  3600 
 ladaptive  =  .true.
 irandom    =  43
 randthl    =  0.1
 randqt     =  2.5e-5
-nsv        =  0 
+nsv        =  2
 /
 
 &DOMAIN
@@ -22,7 +22,7 @@ ysize      =  3200.
 xlat       =  51.96
 xlon       =  4.95
 xday       =  287.
-xtime      =  22.
+xtime      =  6.
 /
 
 &PHYSICS
@@ -30,9 +30,9 @@ z0         =  0.035
 ustin      =  0.0
 ps         =  100000.00
 thls       =  296.
-wtsurf     =  0.1
-wqsurf     =  0.0001
-wsvsurf(1) =  0.
+wtsurf     =  0.0
+wqsurf     =  0.0
+wsvsurf(1) =  0.1
 wsvsurf(2) =  1.
 lmoist     =  .true.
 isurf      =  1
@@ -48,25 +48,24 @@ tsoilav(3)   = 285.
 tsoilav(4)   = 283.
 tsoildeepav  = 283.
 
-phiwav(1)    = 0.25 
-phiwav(2)    = 0.25 
-phiwav(3)    = 0.25
-phiwav(4)    = 0.25 
+phiwav(1)    = 0.3
+phiwav(2)    = 0.3
+phiwav(3)    = 0.3
+phiwav(4)    = 0.3
 
 rootfav(1)   = 0.35
 rootfav(2)   = 0.38 
 rootfav(3)   = 0.23 
 rootfav(4)   = 0.04
 
-lsea         = .false.
 lmostlocal   = .false.
 lsmoothflux  = .false.
 rsisurf2     = 50.
 
 z0mav        = 0.035
 z0hav        = 0.007
-Cskinav      = 20000.
-lambdaskinav = 5.
+Cskinav      = 0.
+lambdaskinav = 15.
 albedoav     = 0.20
 Qnetav       = 450.
 
@@ -74,6 +73,7 @@ rsminav      = 110.
 LAIav        = 2.
 gDav         = 0.
 /
+
 &DYNAMICS
 llsadv     =  .false.
 lqlnr      =  .false.
@@ -84,7 +84,7 @@ iadv_mom    =  5
 iadv_tke    =  5
 iadv_thl    =  5
 iadv_qt     =  5
-iadv_sv     =  5
+iadv_sv     =  100*5
 /
 
 &NAMCHECKSIM
@@ -99,7 +99,7 @@ timeav      = 120
 
 &NAMTIMESTAT
 ltimestat   = .true.
-dtav        = 5
+dtav        = 60
 /
 
 &NAMCROSSSECTION
@@ -134,4 +134,10 @@ dtmovie      = 10
 lmoviez      = .false.
 slicez       = 1
 slicex       = 1
+/
 
+&NAMRADSTAT
+lstat = .true.
+dtav = 60
+timeav = 300
+/

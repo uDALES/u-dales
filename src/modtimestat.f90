@@ -193,7 +193,7 @@ contains
                           rslabs,timee,dt_lim,rk3step,cexpnr,ifoutput
 !
     use modfields,  only : um,vm,wm,e12m,ql0,u0av,v0av,rhof
-    use modsurfdata,only : wtsurf, wqsurf, isurf,ustar,tstar,qstar,z0,oblav,qts,thls,&
+    use modsurfdata,only : wtsurf, wqsurf, isurf,ustar,thlflux,qtflux,z0,oblav,qts,thls,&
                            Qnet, H, LE, G0, rs, ra, tskin, tendskin
     use modmpi,     only : my_real,mpi_sum,mpi_max,mpi_min,comm3d,mpierr,myid
     use modstat_nc,  only : lnetcdf, writestat_nc
@@ -202,8 +202,8 @@ contains
     real   :: zbaseavl, ztopavl, ztopmaxl, ztop,zbaseminl
     real   :: qlintavl, qlintmaxl, tke_totl
     real   :: ccl, wmaxl, qlmaxl
-    real   :: ust,tst,qst,ustl,tstl,qstl
-    real   :: usttst, ustqst, usttstl, ustqstl
+    real   :: ust,tst,qst,ustl,tstl,qstl,thlfluxl,qtfluxl
+    real   :: usttst, ustqst
     real   :: wts, wqls,wtvs
     real   :: c1,c2 !Used to calculate wthvs
     real,dimension(nvar) :: vars
@@ -247,26 +247,26 @@ contains
     tke_totl = 0.0
 
     do j=2,j1
-    do i=2,i1
-      qlint     = 0.0
-      do k=1,kmax
-        qlint = qlint + ql0(i,j,k)*rhof(k)*dzf(k)
-      end do
-      if (qlint>0.) then
-        ccl      = ccl      + 1.0
-        qlintavl = qlintavl + qlint
-        qlintmaxl = max(qlint,qlintmaxl)
-      end if
-
-      do k=1,kmax
-        if (ql0(i,j,k) > 0.) then
-        zbaseavl = zbaseavl + zf(k)
-        zbaseminl = min(zf(k),zbaseminl)
-        exit
+      do i=2,i1
+        qlint     = 0.0
+        do k=1,kmax
+          qlint = qlint + ql0(i,j,k)*rhof(k)*dzf(k)
+        end do
+        if (qlint>0.) then
+          ccl      = ccl      + 1.0
+          qlintavl = qlintavl + qlint
+          qlintmaxl = max(qlint,qlintmaxl)
         end if
+  
+        do k=1,kmax
+          if (ql0(i,j,k) > 0.) then
+          zbaseavl = zbaseavl + zf(k)
+          zbaseminl = min(zf(k),zbaseminl)
+          exit
+          end if
+        end do
+  
       end do
-
-    end do
     end do
 
     call MPI_ALLREDUCE(ccl   , cc   , 1,    MY_REAL, &
@@ -289,18 +289,18 @@ contains
     ztopmaxl = 0.0
 
     do  i=2,i1
-    do  j=2,j1
-      ztop  = 0.0
-
-      do  k=1,kmax
-        if (ql0(i,j,k) > 0) ztop = zf(k)
-        wmaxl = max(wm(i,j,k),wmaxl)
-        qlmaxl = max(ql0(i,j,k),qlmaxl)
+      do  j=2,j1
+        ztop  = 0.0
+  
+        do  k=1,kmax
+          if (ql0(i,j,k) > 0) ztop = zf(k)
+          wmaxl = max(wm(i,j,k),wmaxl)
+          qlmaxl = max(ql0(i,j,k),qlmaxl)
+        end do
+  
+        ztopavl = ztopavl + ztop
+        if (ztop > ztopmaxl) ztopmaxl = ztop
       end do
-
-      ztopavl = ztopavl + ztop
-      if (ztop > ztopmaxl) ztopmaxl = ztop
-    end do
     end do
 
     call MPI_ALLREDUCE(wmaxl   , wmax   , 1,    MY_REAL, &
@@ -351,15 +351,8 @@ contains
 !     9.6  Horizontally  Averaged ustar, tstar and obl
 !     -------------------------
     ustl=sum(ustar(2:i1,2:j1))
-    tstl=sum(tstar(2:i1,2:j1))
-    qstl=sum(qstar(2:i1,2:j1))
-
-    usttstl=sum(ustar(2:i1,2:j1)*tstar(2:i1,2:j1))
-    ustqstl=sum(ustar(2:i1,2:j1)*qstar(2:i1,2:j1))
-
-!       ustl=min(1e-20, ustl)
-!       tstl=min(1e-20, tstl)
-!       qstl=min(1e-20, qstl)
+    tstl=sum(- thlflux(2:i1,2:j1) / ustar(2:i1,2:j1))
+    qstl=sum(- qtflux (2:i1,2:j1) / ustar(2:i1,2:j1))
 
     call MPI_ALLREDUCE(ustl, ust, 1,  MY_REAL,MPI_SUM, comm3d,mpierr)
     call MPI_ALLREDUCE(tstl, tst, 1,  MY_REAL,MPI_SUM, comm3d,mpierr)
@@ -370,8 +363,11 @@ contains
     qst = qst / rslabs
 
     if(isurf < 3) then
-      call MPI_ALLREDUCE(usttstl, usttst, 1,  MY_REAL,MPI_SUM, comm3d,mpierr)
-      call MPI_ALLREDUCE(ustqstl, ustqst, 1,  MY_REAL,MPI_SUM, comm3d,mpierr)
+      thlfluxl = sum(thlflux(2:i1, 2:j1))
+      qtfluxl  = sum(qtflux (2:i1, 2:j1))
+
+      call MPI_ALLREDUCE(thlfluxl, usttst, 1,  MY_REAL,MPI_SUM, comm3d,mpierr)
+      call MPI_ALLREDUCE(qtfluxl,  ustqst, 1,  MY_REAL,MPI_SUM, comm3d,mpierr)
 
       usttst = usttst / rslabs
       ustqst = ustqst / rslabs

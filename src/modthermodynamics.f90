@@ -185,9 +185,22 @@ contains
       end do
       end do
     end if
-    where (abs(dthvdz)<eps1)
-      dthvdz = sign(eps1,dthvdz)
-    end where
+
+    !CvH remove WHERE
+    !where (abs(dthvdz)<eps1)
+    !  dthvdz = sign(eps1,dthvdz)
+    !end where
+    do k=1,kmax
+      do j=2,j1
+        do i=2,i1
+          if(abs(dthvdz(i,j,k)) < eps1) then
+            dthvdz(i,j,k) = sign(eps1, dthvdz(i,j,k))
+          end if
+        end do
+      end do
+    end do
+
+
 
   end subroutine calthv
 !> Calculate diagnostic slab averaged fields.

@@ -26,6 +26,9 @@
 !! \par Revision list
 !! \par Chiel van Heerwaarden
 !! \todo documentation
+!! \todo implement bare soil evaporation
+!! \todo implement water reservoir at land surface for dew and interception water
+!! \todo add moisture transport between soil layers
 !!  \deprecated Modsurface replaces the old modsurf.f90
 
 module modsurface
@@ -39,9 +42,10 @@ contains
 !> Reads the namelists and initialises the soil.
   subroutine initsurface
 
-    use modglobal, only : jmax, i1, i2, j1, j2, cp, rlv, zf, nsv, ifnamopt, fname_options
-    use modfields, only : thl0, qt0
-    use modmpi,    only : myid, nprocs, comm3d, mpierr, my_real, mpi_logical, mpi_integer
+    use modglobal,  only : jmax, i1, i2, j1, j2, cp, rlv, zf, nsv, ifnamopt, fname_options
+    use modraddata, only : iradiation
+    use modfields,  only : thl0, qt0
+    use modmpi,     only : myid, nprocs, comm3d, mpierr, my_real, mpi_logical, mpi_integer
 
     implicit none
 
@@ -49,7 +53,7 @@ contains
     namelist/NAMSURFACE/ & !< Soil related variables
       isurf,tsoilav, tsoildeepav, phiwav, rootfav, &
       ! Land surface related variables
-      lsea, lmostlocal, lsmoothflux, z0mav, z0hav, rsisurf2, Cskinav, lambdaskinav, albedoav, Qnetav, &
+      lmostlocal, lsmoothflux, z0mav, z0hav, rsisurf2, Cskinav, lambdaskinav, albedoav, Qnetav, &
       ! Jarvis-Steward related variables
       rsminav, LAIav, gDav, &
       ! Prescribed values for isurf 2, 3, 4
@@ -74,7 +78,6 @@ contains
     call MPI_BCAST(phiwav       , ksoilmax, MY_REAL, 0, comm3d, mpierr)
     call MPI_BCAST(rootfav      , ksoilmax, MY_REAL, 0, comm3d, mpierr)
 
-    call MPI_BCAST(lsea         , 1, MPI_LOGICAL, 0, comm3d, mpierr)
     call MPI_BCAST(lmostlocal   , 1, MPI_LOGICAL, 0, comm3d, mpierr)
     call MPI_BCAST(lsmoothflux  , 1, MPI_LOGICAL, 0, comm3d, mpierr)
     call MPI_BCAST(z0mav        , 1, MY_REAL, 0, comm3d, mpierr)
@@ -99,8 +102,8 @@ contains
 
     if((z0mav == -1 .and. z0hav == -1) .and. (z0 .ne. -1)) then
       z0mav = z0
-      z0hav = z0 / 5.
-      write(6,*) "WARNING: z0m is defined as the z0, z0h is defined as z0 / 5."
+      z0hav = z0
+      write(6,*) "WARNING: z0m and z0h not defined, set equal to z0"
     end if
 
     if(isurf == 1) then
@@ -130,11 +133,11 @@ contains
       end if
     end if
 
-    if(isurf == 2) then
-      if(rsisurf2 == -1 .and. (lsea .eqv. .false.)) then
-        stop "NAMSURFACE: Set rsisurf2 if you use isurf = 2 over land "
-      end if
-    end if
+    !if(isurf == 2) then
+    !  if(rsisurf2 == -1 .and. (lsea .eqv. .false.)) then
+    !    stop "NAMSURFACE: Set rsisurf2 if you use isurf = 2 over land "
+    !  end if
+    !end if
 
 
     if(isurf .ne. 3) then
@@ -147,16 +150,14 @@ contains
     end if
 
     if(isurf <= 2) then
-      if(lsea .eqv. .false.) then
-        if(rsminav == -1) then
-          stop "NAMSURFACE: rsminav is not set"
-        end if
-        if(LAIav == -1) then
-          stop "NAMSURFACE: LAIav is not set"
-        end if
-        if(gDav == -1) then
-          stop "NAMSURFACE: gDav is not set"
-        end if
+      if(rsminav == -1) then
+        stop "NAMSURFACE: rsminav is not set"
+      end if
+      if(LAIav == -1) then
+        stop "NAMSURFACE: LAIav is not set"
+      end if
+      if(gDav == -1) then
+        stop "NAMSURFACE: gDav is not set"
       end if
     end if
 
@@ -183,7 +184,7 @@ contains
       dzsoil(3) = 0.72
       dzsoil(4) = 1.89
 
-!! 1.3   -  Calculate vertical layer properties
+      !! 1.3   -  Calculate vertical layer properties
       zsoil(1)  = dzsoil(1)
       do k = 2, ksoilmax
         zsoil(k) = zsoil(k-1) + dzsoil(k)
@@ -290,6 +291,13 @@ contains
     allocate(Cm(i2,j2))
     allocate(Cs(i2,j2))
 
+    if(iradiation == 1) then
+      allocate(swdavn(i2,j2,nradtime))
+      allocate(swuavn(i2,j2,nradtime))
+      allocate(lwdavn(i2,j2,nradtime))
+      allocate(lwuavn(i2,j2,nradtime))
+    end if
+
     albedo     = albedoav
 
 
@@ -310,14 +318,14 @@ contains
 
 
     ! 3. Initialize surface layer
-    allocate(ustar (i2,j2))
-    allocate(dudz  (i2,j2))
-    allocate(dvdz  (i2,j2))
-    allocate(tstar (i2,j2))
-    allocate(qstar (i2,j2))
-    allocate(dqtdz (i2,j2))
-    allocate(dthldz(i2,j2))
-    allocate(svstar(i2,j2,nsv))
+    allocate(ustar   (i2,j2))
+    allocate(dudz    (i2,j2))
+    allocate(dvdz    (i2,j2))
+    allocate(thlflux (i2,j2))
+    allocate(qtflux  (i2,j2))
+    allocate(dqtdz   (i2,j2))
+    allocate(dthldz  (i2,j2))
+    allocate(svflux  (i2,j2,nsv))
     allocate(svs(nsv))
 
     return
@@ -325,29 +333,75 @@ contains
 
 !> Calculates the interaction with the soil, the surface temperature and humidity, and finally the surface fluxes.
   subroutine surface
-    use modglobal,  only : dt, i1, i2, j1, j2, cp, rlv, fkar, zf, cu, cv, nsv, rk3step, timee, rslabs, pi
-    use modraddata, only : iradiation, swu, swd, lwu, lwd
-    use modfields,  only : thl0, qt0, u0, v0, rhof
+    use modglobal,  only : dt, i1, i2, j1, j2, cp, rlv, fkar, zf, cu, cv, nsv, rk3step, timee, rslabs, pi, pref0, rd, eps1
+    use modraddata, only : iradiation, swu, swd, lwu, lwd, useMcICA
+    use modfields,  only : thl0, qt0, u0, v0, rhof, ql0, exnf
     use modmpi,     only : my_real, mpierr, comm3d, mpi_sum, myid, excj
     use moduser,   only : surf_user
     implicit none
 
     real     :: f1, f2, f3 ! Correction functions for Jarvis-Steward
-    real     :: e, esat    ! Vapor pressure and saturated vapor pressure
     integer  :: i, j, k, n
     real     :: upcu, vpcv, horv
     real     :: phimzf, phihzf
     real     :: rk3coef, thlsl
 
-    real     :: ust, qst, tst
-    real     :: ustl, qstl, tstl
-    !real     :: SWin
+    real     :: ust
+    real     :: ustl, wtsurfl, wqsurfl
+
+    real     :: swdav, swuav, lwdav, lwuav
+    real     :: exner, tsurfm, e, esat, qsat, desatdT, dqsatdT, Acoef, Bcoef
 
     if (isurf==10) then
       call surf_user
       return
     end if
     ! 1     -   Calculate the surface temperature
+    
+    ! CvH start with computation of drag coefficients to allow for implicit solver
+    if(isurf <= 2) then
+
+      call getobl
+
+      call MPI_BCAST(oblav ,1,MY_REAL ,0,comm3d,mpierr)
+
+      do j = 2, j1
+        do i = 2, i1
+          if(isurf == 2) then
+            rs(i,j) = rsisurf2
+          else
+              ! 2.1   -   Calculate the surface resistance 
+              if (iradiation > 0) then
+                f1  = 1. / min(1., (0.004 * max(0.,-swd(i,j,1)) + 0.05) / (0.81 * (0.004 * max(0.,-swd(i,j,1)) + 1.)))
+              else
+                f1  = 1.
+              end if
+
+              f2  = (phifc - phiwp) / (phitot(i,j) - phiwp)
+
+              esat = 0.611e3 * exp(17.2694 * (thl0(i,j,1) - 273.16) / (thl0(i,j,1) - 35.86))
+              e    = qt0(i,j,1) * ps / 0.622
+              f3   = 1. / exp(-gD(i,j) * (esat - e) / 100.)
+
+              rs(i,j) = rsmin(i,j) / LAI(i,j) * f1 * f2 * f3
+          end if
+
+          ! 3     -   Calculate the drag coefficient and aerodynamic resistance
+          Cm(i,j) = fkar ** 2. / (log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j)) + psim(z0m(i,j) / obl(i,j))) ** 2.
+          Cs(i,j) = fkar ** 2. / (log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j)) + psim(z0m(i,j) / obl(i,j))) / (log(zf(1) / z0h(i,j)) - psih(zf(1) / obl(i,j)) + psih(z0h(i,j) / obl(i,j)))
+
+          upcu  = 0.5 * (u0(i,j,1) + u0(i+1,j,1)) + cu
+          vpcv  = 0.5 * (v0(i,j,1) + v0(i,j+1,1)) + cv
+          horv  = sqrt(upcu ** 2. + vpcv ** 2.)
+          horv  = max(horv, 1.e-2)
+
+          ra(i,j) = 1. / ( Cs(i,j) * horv )
+
+        end do
+      end do
+    end if
+
+    ! Solve the surface energy balance and the heat and moisture transport in the soil
     if(isurf == 1) then
       thlsl = 0.0
       do j = 2, j1
@@ -356,32 +410,60 @@ contains
           ! CvH I put it in the init function, as we don't have prognostic soil moisture at this stage
 
           ! 1.2   -   Calculate the skin temperature as the top boundary conditions for heat transport
-          ! TEMPORARY SOLUTION, SHOULD BE REPLACED BY RADIATION SCHEME!
+          if(iradiation > 0) then
+            if(iradiation == 1 .and. useMcICA) then
+              if(rk3step == 1) then
+                swdavn(i,j,2:nradtime) = swdavn(i,j,1:nradtime-1)  
+                swuavn(i,j,2:nradtime) = swuavn(i,j,1:nradtime-1)  
+                lwdavn(i,j,2:nradtime) = lwdavn(i,j,1:nradtime-1)  
+                lwuavn(i,j,2:nradtime) = lwuavn(i,j,1:nradtime-1)  
 
-          !SWin =  max(600. * sin((timee + 10800.) / (24. * 3600.) * 2. * pi), 0.)
+                swdavn(i,j,1) = swd(i,j,1) 
+                swuavn(i,j,1) = swu(i,j,1) 
+                lwdavn(i,j,1) = lwd(i,j,1) 
+                lwuavn(i,j,1) = lwu(i,j,1) 
 
-          ! Qnet(i,j)  =  (1. - albedo(i,j)) * SWin + 0.8 * 5.67e-8 * thl0(i,j,1) ** 4. - 5.67e-8 * tskin(i,j) ** 4.
-          !Qnet(i,j) = 400.
+              end if
+              
+              swdav = sum(swdavn(i,j,:)) / nradtime
+              swuav = sum(swuavn(i,j,:)) / nradtime
+              lwdav = sum(lwdavn(i,j,:)) / nradtime
+              lwuav = sum(lwuavn(i,j,:)) / nradtime
 
-          if(iradiation == 1) then
-            Qnet(i,j) = -(swd(i,j,1) + swu(i,j,1) + lwd(i,j,1) + lwu(i,j,1))
-            if(i==2 .and. j==2) write(6,*) "CvH", i,j, swd(i,j,1), swu(i,j,1), lwd(i,j,1), lwu(i,j,1)
+              Qnet(i,j) = -(swdav + swuav + lwdav + lwuav)
+            else
+              Qnet(i,j) = -(swd(i,j,1) + swu(i,j,1) + lwd(i,j,1) + lwu(i,j,1))
+            end if
           end if
 
-          ! Use the energy balance from the previous timestep
-          G0(i,j) = lambdaskin(i,j) * ( tskin(i,j) - tsoil(i,j,1) )
-          H(i,j)  = - rhof(1) * cp  * ustar(i,j) * tstar(i,j)
-          LE(i,j) = - rhof(1) * rlv * ustar(i,j) * qstar(i,j)
-
-          ! 1.3   -   Time integrate the skin temperature
-
-          rk3coef = dt / (4. - dble(rk3step))
-
+          ! CvH solve the surface temperature implicitly. Do not take into account variations in LWout.
           if(rk3step == 1 .and. timee > 0.) then
             tskinm(i,j) = tskin(i,j)
           end if
 
-          tskin(i,j)  = tskinm(i,j) + rk3coef / Cskin(i,j) * (Qnet(i,j) - H(i,j) - G0(i,j) - LE(i,j))
+          exner   = (ps / pref0) ** (rd/cp)
+          tsurfm  = tskinm(i,j) * exner
+          
+          esat    = 0.611e3 * exp(17.2694 * (tsurfm - 273.16) / (tsurfm - 35.86))
+          qsat    = 0.622 * esat / ps
+          desatdT = esat * (17.2694 / (tsurfm - 35.86) - 17.2694 * (tsurfm - 273.16) / (tsurfm - 35.86)**2.)
+          dqsatdT = 0.622 * desatdT / ps
+
+          Acoef   = Qnet(i,j) + rhof(1) * cp / ra(i,j) * thl0(i,j,1) + rhof(1) * rlv / (ra(i,j) + rs(i,j)) * (dqsatdT * tsurfm - qsat + qt0(i,j,1)) + lambdaskin(i,j) * tsoil(i,j,1)
+          Bcoef   = rhof(1) * cp / ra(i,j) + rhof(1) * rlv / (ra(i,j) + rs(i,j)) * dqsatdT + lambdaskin(i,j)
+
+          rk3coef = dt / (4. - dble(rk3step))
+
+          if (Cskin(i,j) == 0.) then
+            tskin(i,j) = Acoef * Bcoef ** (-1.) / exner
+          else
+            tskin(i,j) = (1. + rk3coef / Cskin(i,j) * Bcoef) ** (-1.) * (tsurfm + rk3coef / Cskin(i,j) * Acoef) / exner
+          end if
+
+          G0(i,j)       = lambdaskin(i,j) * ( tskin(i,j) - tsoil(i,j,1) )
+          LE(i,j)       = - rhof(1) * rlv / (ra(i,j) + rs(i,j)) * ( qt0(i,j,1) - (dqsatdT * (tskin(i,j) * exner - tsurfm) + qsat))
+          H(i,j)        = - rhof(1) * cp  / ra(i,j) * ( thl0(i,j,1) + (rlv / cp) / ((ps / pref0)**(rd/cp)) * ql0(i,j,1) - tskin(i,j) * exner ) 
+          tendskin(i,j) = Cskin(i,j) * (tskin(i,j) - tskinm(i,j)) * exner / rk3coef
 
           ! 1.4   -   Solve the diffusion equation for the heat transport
           tsoil(i,j,1) = tsoil(i,j,1) + dt / pCs(i,j,1) * ( lambdah(i,j,ksoilmax) * (tsoil(i,j,2) - tsoil(i,j,1)) / dzsoilh(1) + G0(i,j) ) / dzsoil(1)
@@ -389,12 +471,6 @@ contains
             tsoil(i,j,k) = tsoil(i,j,k) + dt / pCs(i,j,k) * ( lambdah(i,j,k) * (tsoil(i,j,k+1) - tsoil(i,j,k)) / dzsoilh(k) - lambdah(i,j,k-1) * (tsoil(i,j,k) - tsoil(i,j,k-1)) / dzsoilh(k-1) ) / dzsoil(k)
           end do
           tsoil(i,j,ksoilmax) = tsoil(i,j,ksoilmax) + dt / pCs(i,j,ksoilmax) * ( lambda(i,j,ksoilmax) * (tsoildeep(i,j) - tsoil(i,j,ksoilmax)) / dzsoil(ksoilmax) - lambdah(i,j,ksoilmax-1) * (tsoil(i,j,ksoilmax) - tsoil(i,j,ksoilmax-1)) / dzsoil(ksoilmax-1) ) / dzsoil(ksoilmax)
-
-          ! 1.5   -   Update G and skin temperature
-          G0(i,j)    = lambdaskin(i,j) * ( tskin(i,j) - tsoil(i,j,1) )
-          tskin(i,j) = tskinm(i,j) + rk3coef / Cskin(i,j) * (Qnet(i,j) - H(i,j) - G0(i,j) - LE(i,j))
-
-          tendskin(i,j) = Cskin(i,j) * (tskin(i,j) - tskinm(i,j)) / rk3coef
 
           thlsl = thlsl + tskin(i,j)
         end do
@@ -418,48 +494,25 @@ contains
 
     ! 2     -   Calculate the surface fluxes
     if(isurf <= 2) then
-
-      call getobl
-
-      call MPI_BCAST(oblav ,1,MY_REAL ,0,comm3d,mpierr)
-
       do j = 2, j1
         do i = 2, i1
-          if(isurf == 2) then
-            if(lsea .eqv. .true.) then
-              rs(i,j) = 0.
-            else
-              rs(i,j) = rsisurf2
-            end if
-          else
-              ! 2.1   -   Calculate the surface resistance
-              f1  = 1. / min(1., (0.004 * max(0.,Qnet(i,j)) + 0.05) / (0.81 * (0.004 * max(0.,Qnet(i,j)) + 1.)))
-              f2  = (phifc - phiwp) / (phitot(i,j) - phiwp)
-
-              esat = 0.611e3 * exp(17.2694 * (thl0(i,j,1) - 273.16) / (thl0(i,j,1) - 35.86))
-              e    = qt0(i,j,1) * ps / 0.622
-              f3   = 1. / exp(-gD(i,j) * (esat - e) / 100.)
-
-              rs(i,j) = rsmin(i,j) / LAI(i,j) * f1 * f2 * f3
-          end if
-
-          ! 3     -   Calculate the drag coefficient aerodynamic resistance
-          Cm(i,j) = fkar ** 2. / (log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j)) + psim(z0m(i,j) / obl(i,j))) ** 2.
-          Cs(i,j) = fkar ** 2. / (log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j)) + psim(z0m(i,j) / obl(i,j))) / (log(zf(1) / z0h(i,j)) - psih(zf(1) / obl(i,j)) + psih(z0h(i,j) / obl(i,j)))
-
           upcu  = 0.5 * (u0(i,j,1) + u0(i+1,j,1)) + cu
           vpcv  = 0.5 * (v0(i,j,1) + v0(i,j+1,1)) + cv
           horv  = sqrt(upcu ** 2. + vpcv ** 2.)
           horv  = max(horv, 1.e-2)
 
-          ra(i,j) = 1. / ( Cs(i,j) * horv )
+          ustar  (i,j) = sqrt(Cm(i,j)) * horv
+          thlflux(i,j) = - ( thl0(i,j,1) - tskin(i,j) ) / ra(i,j) 
 
-          ustar(i,j) = sqrt(Cm(i,j)) * horv
-          tstar(i,j) = ( thl0(i,j,1) - tskin(i,j) ) / (ra(i,j)) / ustar(i,j)
-          qstar(i,j) = ( qt0(i,j,1)  - qskin(i,j) ) / (ra(i,j) + rs(i,j)) / ustar(i,j)
-
+          !CvH allow for dewfall at night, bypass stomatal resistance
+          if(qt0(i,j,1) - qskin(i,j) > 0.) then
+            qtflux(i,j) = - (qt0(i,j,1)  - qskin(i,j)) / ra(i,j) 
+          else
+            qtflux(i,j) = - (qt0(i,j,1)  - qskin(i,j)) / (ra(i,j) + rs(i,j))
+          end if
+          
           do n=1,nsv
-            svstar(i,j,n) = -wsvsurf(n) / ustar(i,j)
+            svflux(i,j,n) = wsvsurf(n) 
           enddo
 
           if (obl(i,j) < 0.) then
@@ -477,37 +530,33 @@ contains
 
           dudz  (i,j) = ustar(i,j) * phimzf / (fkar*zf(1))*(upcu/horv)
           dvdz  (i,j) = ustar(i,j) * phimzf / (fkar*zf(1))*(vpcv/horv)
-          dthldz(i,j) = tstar(i,j) * phihzf / (fkar*zf(1))
-          dqtdz (i,j) = qstar(i,j) * phihzf / (fkar*zf(1))
+          dthldz(i,j) = - thlflux(i,j) / ustar(i,j) * phihzf / (fkar*zf(1))
+          dqtdz (i,j) = - qtflux(i,j)  / ustar(i,j) * phihzf / (fkar*zf(1))
 
         end do
       end do
 
       if(lsmoothflux) then
 
-        ustl=sum(ustar(2:i1,2:j1))
-        tstl=sum(tstar(2:i1,2:j1))
-        qstl=sum(qstar(2:i1,2:j1))
+        ustl    = sum(ustar  (2:i1,2:j1))
+        wtsurfl = sum(thlflux(2:i1,2:j1))
+        wqsurfl = sum(qtflux (2:i1,2:j1))
 
         call MPI_ALLREDUCE(ustl, ust, 1,  MY_REAL,MPI_SUM, comm3d,mpierr)
-        call MPI_ALLREDUCE(tstl, tst, 1,  MY_REAL,MPI_SUM, comm3d,mpierr)
-        call MPI_ALLREDUCE(qstl, qst, 1,  MY_REAL,MPI_SUM, comm3d,mpierr)
+        call MPI_ALLREDUCE(wtsurfl, wtsurf, 1,  MY_REAL,MPI_SUM, comm3d,mpierr)
+        call MPI_ALLREDUCE(wqsurfl, wqsurf, 1,  MY_REAL,MPI_SUM, comm3d,mpierr)
 
-        ust = ust / rslabs
-        tst = tst / rslabs
-        qst = qst / rslabs
-
-        wtsurf = -ust*tst
-        wqsurf = -ust*qst
+        wtsurf = wtsurf / rslabs
+        wqsurf = wqsurf / rslabs
 
         do j = 2, j1
           do i = 2, i1
-            ! ustar (i,j) = max(ustar(i,j), 1.e-2)
-            tstar (i,j) = -wtsurf / ustar(i,j)
-            qstar (i,j) = -wqsurf / ustar(i,j)
+
+            thlflux(i,j) = wtsurf 
+            qtflux (i,j) = wqsurf 
 
             do n=1,nsv
-              svstar(i,j,n) = -wsvsurf(n) / ustar(i,j)
+              svflux(i,j,n) = wsvsurf(n)
             enddo
 
             if (obl(i,j) < 0.) then
@@ -523,10 +572,15 @@ contains
               phihzf = 1.
             endif
 
+            upcu  = 0.5 * (u0(i,j,1) + u0(i+1,j,1)) + cu
+            vpcv  = 0.5 * (v0(i,j,1) + v0(i,j+1,1)) + cv
+            horv  = sqrt(upcu ** 2. + vpcv ** 2.)
+            horv  = max(horv, 1.e-2)
+
             dudz  (i,j) = ustar(i,j) * phimzf / (fkar*zf(1))*(upcu/horv)
             dvdz  (i,j) = ustar(i,j) * phimzf / (fkar*zf(1))*(vpcv/horv)
-            dthldz(i,j) = tstar(i,j) * phihzf / (fkar*zf(1))
-            dqtdz (i,j) = qstar(i,j) * phihzf / (fkar*zf(1))
+            dthldz(i,j) = - thlflux(i,j) / ustar(i,j) * phihzf / (fkar*zf(1))
+            dqtdz (i,j) = - qtflux(i,j)  / ustar(i,j) * phihzf / (fkar*zf(1))
           end do
         end do
 
@@ -551,12 +605,12 @@ contains
             ustar (i,j) = ustin
           end if
 
-          ustar (i,j) = max(ustar(i,j), 1.e-2)
-          tstar (i,j) = -wtsurf / ustar(i,j)
-          qstar (i,j) = -wqsurf / ustar(i,j)
+          ustar  (i,j) = max(ustar(i,j), 1.e-2)
+          thlflux(i,j) = wtsurf
+          qtflux (i,j) = wqsurf
 
           do n=1,nsv
-            svstar(i,j,n) = -wsvsurf(n) / ustar(i,j)
+            svflux(i,j,n) = wsvsurf(n)
           enddo
 
           if (obl(i,j) < 0.) then
@@ -574,8 +628,8 @@ contains
 
           dudz  (i,j) = ustar(i,j) * phimzf / (fkar*zf(1))*(upcu/horv)
           dvdz  (i,j) = ustar(i,j) * phimzf / (fkar*zf(1))*(vpcv/horv)
-          dthldz(i,j) = tstar(i,j) * phihzf / (fkar*zf(1))
-          dqtdz (i,j) = qstar(i,j) * phihzf / (fkar*zf(1))
+          dthldz(i,j) = - thlflux(i,j) / ustar(i,j) * phihzf / (fkar*zf(1))
+          dqtdz (i,j) = - qtflux(i,j)  / ustar(i,j) * phihzf / (fkar*zf(1))
 
           Cs(i,j) = fkar ** 2. / (log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j)) + psim(z0m(i,j) / obl(i,j))) / (log(zf(1) / z0h(i,j)) - psih(zf(1) / obl(i,j)) + psih(z0h(i,j) / obl(i,j)))
 
@@ -666,13 +720,12 @@ contains
 
           Rib   = grav / thvs * zf(1) * (thv - thvs) / horv2
 
-          iter = 4
+          iter = 10
           L = obl(i,j)
 
           if(Rib * L < 0. .or. abs(L) == 1e5) then
             if(Rib > 0) L = 0.01
             if(Rib < 0) L = -0.01
-            iter = 8
           end if
 
           do n = 0, iter
@@ -681,10 +734,9 @@ contains
             Lend    = L + 0.001*L
             fxdif   = ( (- zf(1) / Lstart * (log(zf(1) / z0h(i,j)) - psih(zf(1) / Lstart) + psih(z0h(i,j) / Lstart)) / (log(zf(1) / z0m(i,j)) - psim(zf(1) / Lstart) + psim(z0m(i,j) / Lstart)) ** 2.) - (-zf(1) / Lend * (log(zf(1) / z0h(i,j)) - psih(zf(1) / Lend) + psih(z0h(i,j) / Lend)) / (log(zf(1) / z0m(i,j)) - psim(zf(1) / Lend) + psim(z0m(i,j) / Lend)) ** 2.) ) / (Lstart - Lend)
             L       = L - fx / fxdif
-            if(thvs - thv >= 0.) then
-              if(L < -1e5 .or. L >= 0) L = -1e5
-            else
-              if(L > 1e5 .or. L <= 0) L = 1e5
+            if(Rib * L < 0. .or. abs(L) == 1e5) then
+              if(Rib > 0) L = 0.01
+              if(Rib < 0) L = -0.01
             end if
           end do
 
@@ -715,13 +767,12 @@ contains
 
       Rib   = grav / thvs * zf(1) * (thv - thvs) / horv2
 
-      iter = 3
+      iter = 10
       L = oblav
 
       if(Rib * L < 0. .or. abs(L) == 1e5) then
         if(Rib > 0) L = 0.01
         if(Rib < 0) L = -0.01
-        iter = 6
       end if
 
       do i = 0, iter
@@ -730,10 +781,9 @@ contains
         Lend    = L + 0.001*L
         fxdif   = ( (- zf(1) / Lstart * (log(zf(1) / z0hav) - psih(zf(1) / Lstart) + psih(z0hav / Lstart)) / (log(zf(1) / z0mav) - psim(zf(1) / Lstart) + psim(z0mav / Lstart)) ** 2.) - (-zf(1) / Lend * (log(zf(1) / z0hav) - psih(zf(1) / Lend) + psih(z0hav / Lend)) / (log(zf(1) / z0mav) - psim(zf(1) / Lend) + psim(z0mav / Lend)) ** 2.) ) / (Lstart - Lend)
         L       = L - fx / fxdif
-        if(thvs - thv >= 0.) then
-          if(L < -1e5 .or. L >= 0) L = -1e5
-        else
-          if(L > 1e5 .or. L <= 0) L = 1e5
+        if(Rib * L < 0. .or. abs(L) == 1e5) then
+          if(Rib > 0) L = 0.01
+          if(Rib < 0) L = -0.01
         end if
       end do
 

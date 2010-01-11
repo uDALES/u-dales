@@ -422,7 +422,7 @@ contains
 
     use modfields, only : u0,v0,w0,um,vm,wm,qtm,thlm,thl0,qt0,qt0h, &
                           ql0,ql0h,thl0h,thv0h,sv0, svm, e12m,exnf,exnh
-    use modsurface,only : thls,qts,svs,ustar,tstar,qstar,svstar
+    use modsurfdata,only: thls,qts,svs,ustar,tstar,qstar,svstar
     use modsubgrid,only : ekm, ekh
     use modglobal, only : i1,ih,j1,jh,k1,kmax,nsv,dzf,dzh,rlv,rv,rd,cp, &
                           rslabs,cu,cv,iadv_thl,iadv_kappa,eps1,dxi,dyi

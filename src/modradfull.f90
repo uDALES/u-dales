@@ -116,10 +116,9 @@ module modradfull
 contains
     subroutine radfull
   !   use radiation,    only : d4stream
-    use modglobal,    only : imax,i1,ih,jmax,j1,jh,kmax,k1,cp,dzf,rlv,zf
+    use modglobal,    only : imax,i1,ih,jmax,j1,jh,kmax,k1,cp,dzf,rlv,rd,zf,pref0
     use modfields,    only : rhof, exnf,exnh, thl0,qt0,ql0,sv0
-    ! CvH thls, qts need to be removed
-    use modsurfdata,  only : albedo, tskin, qskin !, thls, qts
+    use modsurfdata,  only : albedo, tskin, qskin, thvs, qts, ps
     use modmicrodata, only : imicro, imicro_bulk, Nc_0,iqr
     use modraddata,   only : thlprad, lwd,lwu,swd,swu,rho_air_mn
       implicit none
@@ -127,6 +126,8 @@ contains
     real, dimension(k1)  :: rhof_b, exnf_b
     real, dimension(2-ih:i1+ih,2-jh:j1+jh,k1) :: temp_b, qv_b, ql_b,rr_b
     integer :: i,j,k
+
+    real :: exnersurf
 
 !take care of UCLALES z-shift for thermo variables.
       do k=1,kmax
@@ -143,16 +144,23 @@ contains
       end do
 
       !take care of the surface boundary conditions
-      rhof_b(1)     = rhof(1) + 2*zf(1)/dzf(1)*(rhof(1)-rhof(2))
-      exnf_b(1)     = exnh(1) + 0.5*dzf(1)*(exnh(1)-exnf(1))
+      !CvH edit, extrapolation creates instability in surface scheme
+      exnersurf = (ps/pref0) ** (rd/cp)
+      rhof_b(1) = ps / (rd * thvs * exnersurf) 
+      exnf_b(1) = exnersurf
+
+      !rhof_b(1) = rhof(1) + 2*zf(1)/dzf(1)*(rhof(1)-rhof(2))
+      !exnf_b(1) = exnh(1) + 0.5*dzf(1)*(exnh(1)-exnf(1))
 
       do j=2,j1
         do i=2,i1
-          ql_b(i,j,1)   = ql0(i,j,1) + 2*zf(1)/dzf(1)*(ql0(i,j,1)-ql0(i,j,2))
-          qv_b(i,j,1)   = qskin(i,j) + 0.5*dzf(1)*(qskin(i,j)-qt0(i,j,1))-ql_b(i,j,1)
-          temp_b(i,j,1) = (tskin(i,j) + 0.5*dzf(1)*(tskin(i,j)-thl0(i,j,1)))*exnf_b(1) + (rlv/cp)*ql_b(i,j,1)
+          ql_b(i,j,1)   = 0.! CvH, no ql at surface
+          qv_b(i,j,1)   = qskin(i,j) !CvH, no ql at surface thus qv = qt
+          temp_b(i,j,1) = tskin(i,j)*exnersurf 
         end do
       end do
+
+      !CvH end edit
 
       if (imicro==imicro_bulk) then
         rr_b(:,:,1) = rr_b(:,:,2)
@@ -1358,6 +1366,7 @@ contains
     !>
   subroutine combineOpticalProperties(tau,      ssa,      pF, &
                                       tauToAdd, ssaToAdd, pFtoAdd)
+    use modglobal, only : eps1
     real, dimension(:),    intent(inout) :: tau, ssa
     real, dimension(:, :), intent(inout) :: pF   ! Phs function (level, moment)
     real, dimension(:),    intent(in)    :: tautoAdd
@@ -1977,8 +1986,12 @@ contains
        cwmks = pcw(k)*1.e-3
        if ( cwmks .ge. 1.e-8) then
           j = 0
-          do while (j<nsizes .and. pre(k) > re(j+1))
-             j = j + 1
+          do while (j<nsizes)
+             if (pre(k) > re(j+1)) then
+               j = j + 1
+             else
+               exit
+             end if
           end do
           if (j >= 1 .and. j < nsizes) then
              j1 = j+1

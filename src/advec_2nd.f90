@@ -266,21 +266,21 @@ subroutine advecv_2nd(putin, putout)
     jm=j-1
     jp=j+1
       do i=2,i1
-      im=i-1
-      ip=i+1
-        putout(i,j,1)  = putout(i,j,1)- ( &
-           (w0(i,j,k+1)+w0(i,j-1,k+1)) &
-          *(putin(i,j,k+1)*dzf(k)+putin(i,j,k)*dzf(k+1) )/ dzh(k+1) &
-          -(w0(i,j,k)+w0(i,j-1,k)) &
-          *(putin(i,j,k-1)*dzf(k)+putin(i,j,k)*dzf(k-1)) / dzh(k) &
-           ) / (4. * dzf(k))
+        im=i-1
+        ip=i+1
+        putout(i,j,1)  = putout(i,j,1) - ( &
+          (w0(i,j,2)+w0(i,jm,2)) &
+          *(putin(i,j,2)*dzf(1)+putin(i,j,1)*dzf(2) )/ dzh(2) &
+          ) / (4. * dzf(1))
         do k=2,kmax
-        km=k-1
-        kp=k+1
+          km=k-1
+          kp=k+1
           putout(i,j,k)  = putout(i,j,k)- ( &
-                ( w0(i,j,kp)+w0(i,jm,kp))*(putin(i,j,kp)+putin(i,j,k)) &
-                -(w0(i,j,k) +w0(i,jm,k)) *(putin(i,j,km)+putin(i,j,k)) &
-                )*dziq
+            (w0(i,j,kp)+w0(i,jm,kp)) &
+            *(putin(i,j,kp)*dzf(k)+putin(i,j,k)*dzf(kp) )/ dzh(kp) &
+            -(w0(i,j,k)+w0(i,jm,k)) &
+            *(putin(i,j,km)*dzf(k)+putin(i,j,k)*dzf(km)) / dzh(k) &
+            ) / (4. * dzf(k))
         end do
       end do
     end do
