@@ -8,4 +8,7 @@ ADD_CUSTOM_TARGET(docs
 		      COMMAND mkdir -p ${CMAKE_SOURCE_DIR}/doc/html
 		      COMMAND cp -r ${CMAKE_CURRENT_BINARY_DIR}/doc/html/* ${CMAKE_SOURCE_DIR}/doc/html/
  		      COMMAND cp    ${CMAKE_CURRENT_BINARY_DIR}/doc/latex/refman.pdf ${CMAKE_SOURCE_DIR}/doc/
+ 		      COMMAND cp    ${CMAKE_CURRENT_BINARY_DIR}/doc/latex/git_dales.pdf ${CMAKE_SOURCE_DIR}/doc/
+ 		      COMMAND cp    ${CMAKE_CURRENT_BINARY_DIR}/doc/latex/dales-manual.pdf ${CMAKE_SOURCE_DIR}/doc/
+ 		      COMMAND cp    ${CMAKE_CURRENT_BINARY_DIR}/doc/latex/dales-article.pdf ${CMAKE_SOURCE_DIR}/doc/
 		      DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/doxygen.conf)
