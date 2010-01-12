@@ -34,7 +34,10 @@ module modbudget
   save
 !NetCDF variables
   integer,parameter :: nvar = 18
+  integer :: ncid,nrec = 0
+  character(80) :: fname = 'budget.xxx.nc'
   character(80),dimension(nvar,4) :: ncname
+  character(80),dimension(1,4) :: tncname
 
   real    :: dtav, timeav,tnext,tnextwrite
   integer :: nsamples
@@ -76,8 +79,8 @@ contains
 !> Initialization routine, reads namelists and inits variables
   subroutine initbudget
     use modmpi,    only : myid,mpierr, comm3d,my_real, mpi_logical
-    use modglobal, only : dtmax, k1,ifnamopt,fname_options, ifoutput, cexpnr,dtav_glob,timeav_glob,ladaptive,dt_lim,btime
-    use modstat_nc, only : lnetcdf, redefine_nc,define_nc,ncinfo
+    use modglobal, only : dtmax, k1,ifnamopt,fname_options, ifoutput, cexpnr,dtav_glob,timeav_glob,ladaptive,dt_lim,btime,kmax
+    use modstat_nc, only : lnetcdf, open_nc,define_nc,redefine_nc,ncinfo,writestat_dims_nc
     use modgenstat, only : dtav_prof=>dtav, timeav_prof=>timeav,ncid_prof=>ncid
 
 
@@ -147,6 +150,8 @@ contains
       tnextwrite = timeav-1e-3+btime
       nsamples = nint(timeav/dtav)
      if (myid==0) then
+        fname(8:10) = cexpnr
+        call ncinfo(tncname(1,:),'time','Time','s','time')
         call ncinfo(ncname( 1,:),'tker','Resolved TKE','m/s^2','tt')
         call ncinfo(ncname( 2,:),'shr','Resolved Shear','m/s^2','tt')
         call ncinfo(ncname( 3,:),'buo','Resolved Buoyancy','m/s^2','tt')
@@ -165,9 +170,9 @@ contains
         call ncinfo(ncname(16,:),'sbresid','Subgrid Residual = budget - storage','m/s^2','tt')
         call ncinfo(ncname(17,:),'ekm','Turbulent exchange coefficient momentum','m/s^2','tt')
         call ncinfo(ncname(18,:),'khkm   ','Kh / Km, in post-processing used to determine filter-grid ratio','m/s^2','tt')
-
-
-
+        call open_nc(fname,ncid,n3=kmax)
+        call define_nc( ncid, 1, tncname)
+        call writestat_dims_nc(ncid)
         call redefine_nc(ncid_prof)
         call define_nc( ncid_prof, NVar, ncname)
      end if
