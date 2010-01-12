@@ -6,7 +6,7 @@
 !! Dutch Atmospheric Large Eddy Simulation
 !! \section DALES Dutch Atmospheric Large Eddy Simulation
 !!
-!! @version 3.2git
+!! @version 3.2beta2
 !!
 !! @author
 !! Stephan de Roode
@@ -31,8 +31,13 @@
 !! physics
 !!
 !! \todo
-!! - Radiation
-!! - Review documentation
+!! - Timestep limitations for micro and radiation
+!! - CMake smoothing
+!! - Test everywhere, especially in radiation and LSM
+!! - Reform of modsampling
+!! - Netcdf bug (Steef)
+!! - Documentation: CMake
+!! - Documentation: Build one coherent story of the paper, Huugs/Johans description, CMake and Git HOWTOS
 !! - Cleaning up for release : Removal of debug statements, cleaner code, less
 !! warnings in chemistry
 !!

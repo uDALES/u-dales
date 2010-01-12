@@ -29,7 +29,7 @@ cmake_minimum_required(VERSION 2.6)
 
 set(VERSION_MAJOR "3")
 set(VERSION_MINOR "1")
-set(VERSION_PATCH "82")
+set(VERSION_PATCH "90")
 find_path(NETCDF_INCLUDE_DIR netcdf.mod NETCDF.mod
   DOC "NetCDF include directory (must contain netcdf.mod)"
   PATHS

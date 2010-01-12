@@ -7,11 +7,9 @@
 !!  \author Stephan de Roode,TU Delft
 !!  \author Thijs Heus, MPI-M
 !!  \todo Full Radiation : Namelists and init; get rid of datafiles
-!!  \todo Full Radiation : Check difference between tllwmn and tlradtendmn
 !!  \todo Full Radiation : Couple with modsurface and modchem
 !!  \todo Full Radiation : Debug Microphysics
-!!  \todo Full Radiation : Merge into 1 module
-!!  \todo Full Radiation : Clean up the code
+
 !!  \todo Documentation
 !!  \par Revision list
 !  This file is part of DALES.
