@@ -82,14 +82,10 @@ contains
     allocate(sbdiss(2-ih:i1+ih,2-jh:j1+jh,k1))
     allocate(sbshr(2-ih:i1+ih,2-jh:j1+jh,k1))
     allocate(sbbuo(2-ih:i1+ih,2-jh:j1+jh,k1))
-    print *, 'a',myid,lsmagorinsky
 
     if(myid==0)then
-    print *, 'a',lsmagorinsky
       open(ifnamopt,file=fname_options,status='old',iostat=ierr)
-     print *, 'b',lsmagorinsky
       read (ifnamopt,NAMSUBGRID,iostat=ierr)
-     print *, 'c',lsmagorinsky
       if (ierr > 0) then
         print *, 'Problem in namoptions NAMSUBGRID'
         print *, 'iostat error: ', ierr
@@ -199,17 +195,69 @@ contains
   use modglobal,  only : i1, j1,kmax,k1,ih,jh,i2,j2,delta,ekmin,grav, zf, fkar, &
                          dxi,dyi,dzf,dzh
   use modfields,  only : dthvdz,e12m,u0,v0,w0
-  use modsurfdata, only : thvs
+  use modsurfdata, only : dudz,dvdz,thvs
+
   use modmpi,     only : excjs
   implicit none
 
-  real    :: strain,rig
+  real    :: strain,rigoprandtl
   integer :: i,j,k,kp,km,jp,jm
 
 !********************************************************************
 !*********************************************************************
   if (lsmagorinsky) then
-    do k=1,kmax
+    do j=2,j1
+    do i=2,i1
+      k = 1
+      kp=k+1
+      km=k-1
+      jp=j+1
+      jm=j-1
+
+      strain =  ( &
+              ((u0(i+1,j,k)-u0(i,j,k))   *dxi        )**2    + &
+              ((v0(i,jp,k)-v0(i,j,k))    *dyi         )**2    + &
+              ((w0(i,j,kp)-w0(i,j,k))    /dzf(k)     )**2    )
+
+      strain = strain + 0.5 * ( &
+                ((w0(i,j,kp)-w0(i-1,j,kp))  *dxi     + &
+                (u0(i,j,kp)-u0(i,j,k))     / dzh(kp)  )**2    + &
+                ((w0(i,j,k)-w0(i-1,j,k))    *dxi     + &
+                dudz(i,j)   )**2    + &
+                ((w0(i+1,j,k)-w0(i,j,k))    *dxi     + &
+                dudz(i+1,j)   )**2    + &
+                ((w0(i+1,j,kp)-w0(i,j,kp))  *dxi     + &
+                (u0(i+1,j,kp)-u0(i+1,j,k)) / dzh(kp)  )**2    )
+
+      strain = strain + 0.5 * ( &
+                ((u0(i,jp,k)-u0(i,j,k))     *dyi     + &
+                (v0(i,jp,k)-v0(i-1,jp,k))  *dxi        )**2    + &
+                ((u0(i,j,k)-u0(i,jm,k))     *dyi     + &
+                (v0(i,j,k)-v0(i-1,j,k))    *dxi        )**2    + &
+                ((u0(i+1,j,k)-u0(i+1,jm,k)) *dyi     + &
+                (v0(i+1,j,k)-v0(i,j,k))    *dxi        )**2    + &
+                ((u0(i+1,jp,k)-u0(i+1,j,k)) *dyi     + &
+                (v0(i+1,jp,k)-v0(i,jp,k))  *dxi        )**2    )
+      strain = strain + 0.5 * ( &
+                ((v0(i,j,kp)-v0(i,j,k))     / dzh(kp) + &
+                (w0(i,j,kp)-w0(i,jm,kp))   *dyi        )**2    + &
+                (dvdz(i,j)+ &
+                (w0(i,j,k)-w0(i,jm,k))     *dyi        )**2    + &
+                (dvdz(i,j+1)+ &
+                (w0(i,jp,k)-w0(i,j,k))     *dyi        )**2    + &
+                ((v0(i,jp,kp)-v0(i,jp,k))   / dzh(kp) + &
+                (w0(i,jp,kp)-w0(i,j,kp))   *dyi        )**2    )
+      rigoprandtl =    grav*dthvdz(i,j,k)/(thvs*strain*prandtl)
+      if (rigoprandtl>1) then
+        ekm(i,j,k) = ekmin
+      else
+        ekm(i,j,k)  = (cs*delta(k))**2*sqrt(0.5*(1-rigoprandtl)*strain)
+      end if
+      ekh(i,j,k)  = ekm(i,j,k)/prandtl
+    end do
+    end do
+
+    do k=2,kmax
     do j=2,j1
     do i=2,i1
       kp=k+1
@@ -250,8 +298,12 @@ contains
                 (w0(i,jp,k)-w0(i,j,k))     *dyi        )**2    + &
                 ((v0(i,jp,kp)-v0(i,jp,k))   / dzh(kp) + &
                 (w0(i,jp,kp)-w0(i,j,kp))   *dyi        )**2    )
-      rig         =    grav*dthvdz(i,j,k)/(thvs*strain)
-      ekm(i,j,k)  = (cs*delta(k))**2*sqrt(0.5*(1-rig/prandtl)*strain)
+      rigoprandtl =    grav*dthvdz(i,j,k)/(thvs*strain*prandtl)
+      if (rigoprandtl>1) then
+        ekm(i,j,k) = ekmin
+      else
+        ekm(i,j,k)  = (cs*delta(k))**2*sqrt(0.5*(1-rigoprandtl)*strain)
+      end if
       ekh(i,j,k)  = ekm(i,j,k)/prandtl
     end do
     end do
