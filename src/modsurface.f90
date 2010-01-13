@@ -136,6 +136,16 @@ contains
       if(Qnetav == -1) then
         stop "NAMSURFACE: Qnetav is not set"
       end if
+      if(rsminav == -1) then
+        stop "NAMSURFACE: rsminav is not set"
+      end if
+      if(LAIav == -1) then
+        stop "NAMSURFACE: LAIav is not set"
+      end if
+      if(gDav == -1) then
+        stop "NAMSURFACE: gDav is not set"
+      end if
+
     end if
 
     !if(isurf == 2) then
@@ -154,16 +164,7 @@ contains
       end if
     end if
 
-    if(isurf <= 2) then
-      if(rsminav == -1) then
-        stop "NAMSURFACE: rsminav is not set"
-      end if
-      if(LAIav == -1) then
-        stop "NAMSURFACE: LAIav is not set"
-      end if
-      if(gDav == -1) then
-        stop "NAMSURFACE: gDav is not set"
-      end if
+    if(isurf == 1) then
     end if
 
     ! 1.1  -   Allocate arrays
