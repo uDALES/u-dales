@@ -73,7 +73,7 @@ contains
     integer   :: ierr
 
     real :: ceps, ch
-    namelist/SUBGRID/ &
+    namelist/NAMSUBGRID/ &
         ldelta,lmason, cf,cn,Rigc,Prandtl,lsmagorinsky
 
     allocate(ekm(2-ih:i1+ih,2-jh:j1+jh,k1))
@@ -82,16 +82,20 @@ contains
     allocate(sbdiss(2-ih:i1+ih,2-jh:j1+jh,k1))
     allocate(sbshr(2-ih:i1+ih,2-jh:j1+jh,k1))
     allocate(sbbuo(2-ih:i1+ih,2-jh:j1+jh,k1))
+    print *, 'a',myid,lsmagorinsky
 
     if(myid==0)then
+    print *, 'a',lsmagorinsky
       open(ifnamopt,file=fname_options,status='old',iostat=ierr)
-      read (ifnamopt,SUBGRID,iostat=ierr)
+     print *, 'b',lsmagorinsky
+      read (ifnamopt,NAMSUBGRID,iostat=ierr)
+     print *, 'c',lsmagorinsky
       if (ierr > 0) then
-        print *, 'Problem in namoptions SUBGRID'
+        print *, 'Problem in namoptions NAMSUBGRID'
         print *, 'iostat error: ', ierr
-        stop 'ERROR: Problem in namoptions SUBGRID'
+        stop 'ERROR: Problem in namoptions NAMSUBGRID'
       endif
-      write(6 ,SUBGRID)
+      write(6 ,NAMSUBGRID)
       close(ifnamopt)
     end if
     call MPI_BCAST(ldelta     ,1,MPI_LOGICAL,0,comm3d,mpierr)
