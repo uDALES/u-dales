@@ -248,11 +248,11 @@ contains
                 ((v0(i,jp,kp)-v0(i,jp,k))   / dzh(kp) + &
                 (w0(i,jp,kp)-w0(i,j,kp))   *dyi        )**2    )
       rigoprandtl =    grav*dthvdz(i,j,k)/(thvs*strain*prandtl)
-      if (rigoprandtl>1) then
-        ekm(i,j,k) = ekmin
-      else
-        ekm(i,j,k)  = (cs*delta(k))**2*sqrt(0.5*(1-rigoprandtl)*strain)
-      end if
+!       if (rigoprandtl>1) then
+!         ekm(i,j,k) = ekmin
+!       else
+        ekm(i,j,k)  = (cs*delta(k))**2*sqrt(0.5*strain)!*sqrt(1-rigoprandtl)
+!       end if
       ekh(i,j,k)  = ekm(i,j,k)/prandtl
     end do
     end do
@@ -298,12 +298,12 @@ contains
                 (w0(i,jp,k)-w0(i,j,k))     *dyi        )**2    + &
                 ((v0(i,jp,kp)-v0(i,jp,k))   / dzh(kp) + &
                 (w0(i,jp,kp)-w0(i,j,kp))   *dyi        )**2    )
-      rigoprandtl =    grav*dthvdz(i,j,k)/(thvs*strain*prandtl)
-      if (rigoprandtl>1) then
-        ekm(i,j,k) = ekmin
-      else
-        ekm(i,j,k)  = (cs*delta(k))**2*sqrt(0.5*(1-rigoprandtl)*strain)
-      end if
+!       rigoprandtl =    grav*dthvdz(i,j,k)/(thvs*strain*prandtl)
+!       if (rigoprandtl>1) then
+!         ekm(i,j,k) = ekmin
+!       else
+        ekm(i,j,k)  = (cs*delta(k))**2*sqrt(0.5*strain)!*sqrt(1-rigoprandtl)
+!       end if
       ekh(i,j,k)  = ekm(i,j,k)/prandtl
     end do
     end do
