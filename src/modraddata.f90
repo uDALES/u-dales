@@ -37,6 +37,7 @@ SAVE
   integer, parameter :: irad_none  = 0   !< 0=no radiation
   integer, parameter :: irad_full  = 1   !< 1=full radiation
   integer, parameter :: irad_par   = 2   !< 2=parameterized radiation
+  integer, parameter :: irad_lsm   = 3   !< 3=simple surface radiation for land surface model
   integer, parameter :: irad_user  = 10  !< 10=user specified radiation
 
   logical :: rad_ls      = .true.   !< prescribed radiative forcing

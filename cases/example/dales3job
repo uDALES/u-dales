@@ -13,6 +13,9 @@
 # Here the shell script starts.
 # go to the working directory:
 #
+export MALLOC_MMAP_MAX_=0
+export MALLOC_TRIM_THRESHOLD_=-1
+
 iexpnr=001
 cd $HOME/dalesrepo/cases/example
 

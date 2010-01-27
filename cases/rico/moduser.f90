@@ -37,8 +37,8 @@ end subroutine micro_user
 
 subroutine surf_user
  use modglobal,  only : zf,i1,j1,i2,j2,grav,nsv,fkar,cv,cu
- use modsurfdata,only : ustar,tstar,qstar,dudz,dvdz,dqtdz,dthldz,&
-                          svs,svstar,z0,qts,thls,thvs
+ use modsurfdata,only : ustar,dudz,dvdz,dqtdz,dthldz,&
+                          svs,z0,qts,thls,thvs,thlflux,qtflux,svflux
   use modfields, only : u0,v0,thl0,qt0,sv0,u0av,v0av,qt0av,thl0av
   use modmpi,    only :  excj
   implicit none
@@ -47,9 +47,7 @@ subroutine surf_user
   real upcu, vpcv
   real horv2, horv, stab, obl
   real dthz1, dqz1, dsvz1
-  real momflux, thflux, qtflux
   real, parameter :: C_m = 0.001229, C_h = 0.001094, C_q = 0.001133
-
 
 !***********************************************************************
 !***  Calculate ust, tst, qst and obukhov-length iteratively   *********
@@ -59,9 +57,6 @@ subroutine surf_user
   dqz1  = qt0av(1)-qts
   horv = sqrt(u0av(1)**2 + v0av(1)**2)
   horv2 = u0av(1)**2 + v0av(1)**2
-  momflux = C_m*horv2
-  thflux = C_h*horv*dthz1
-  qtflux = C_q*horv*dqz1
   stab  = dthz1+0.61*thvs*dqz1
 
 
@@ -76,10 +71,11 @@ subroutine surf_user
     horv2 = (upcu**2 + vpcv**2)
 
     ustar(i,j) = sqrt(C_m*horv2)
-    tstar(i,j) = C_h*horv*dthz1/ustar(i,j)
-    qstar(i,j) = C_q*horv*dqz1/ustar(i,j)
+    thlflux(i,j) = - C_h*horv*dthz1
+    qtflux(i,j) = -C_q*horv*dqz1
+    
 
-    obl   = ustar(i,j)**2/(fkar*(grav/thvs)*(tstar(i,j)+0.61*thvs*qstar(i,j)))
+    obl   = -ustar(i,j)**3/(fkar*(grav/thvs)*(thlflux(i,j)+0.61*thvs*qtflux(i,j)))
 
     if (stab < 0.) then
        phimzf = (1.-16.*zf(1)/obl)**(-0.25)
@@ -95,12 +91,13 @@ subroutine surf_user
        phimzf = (1.+5.*zf(1)/obl)
        phihzf = (1.+8.*zf(1)/obl)
     endif
+    
 
 
     dudz(i,j)   = ustar(i,j)*(phimzf/(fkar*zf(1)))*(upcu/horv)
     dvdz(i,j)   = ustar(i,j)*(phimzf/(fkar*zf(1)))*(vpcv/horv)
-    dthldz(i,j) = tstar(i,j)*(phihzf/(fkar*zf(1)))
-    dqtdz(i,j)  = qstar(i,j)*(phihzf/(fkar*zf(1)))
+    dthldz(i,j) = - thlflux(i,j) / ustar(i,j) * phihzf / (fkar*zf(1))
+    dqtdz (i,j) = - qtflux(i,j)  / ustar(i,j) * phihzf / (fkar*zf(1))
 
   end do
   end do
@@ -115,7 +112,7 @@ subroutine surf_user
     do j=2,j1
     do i=2,i1
       dsvz1 = sv0(i,j,1,n) - svs(n)
-      svstar(i,j,n) = C_q*horv*dsvz1/ustar(i,j)
+      svflux(i,j,n) = -C_q*horv*dsvz1
     enddo
     enddo
   enddo

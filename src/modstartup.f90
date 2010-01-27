@@ -678,7 +678,7 @@ contains
 
   subroutine readrestartfiles
 
-    use modsurfdata, only : ustar,tstar,qstar,svstar,dudz,dvdz,dthldz,dqtdz,ps,thls,qts,thvs,oblav,&
+    use modsurfdata, only : ustar,thlflux,qtflux,svflux,dudz,dvdz,dthldz,dqtdz,ps,thls,qts,thvs,oblav,&
                            tsoil,tskin,isurf,ksoilmax
     use modfields,  only : u0,v0,w0,thl0,qt0,ql0,ql0h,e120,dthvdz,presf,presh,sv0
     use modglobal,  only : i1,i2,ih,j1,j2,jh,k1,dtheta,dqt,dsv,startfile,timee,&
@@ -712,8 +712,8 @@ contains
       read(ifinput)  (((dthvdz(i,j,k),i=2-ih,i1+ih),j=2-jh,j1+jh),k=1,k1)
       read(ifinput)  (((ekm   (i,j,k),i=2-ih,i1+ih),j=2-jh,j1+jh),k=1,k1)
       read(ifinput)   ((ustar (i,j  ),i=1,i2      ),j=1,j2      )
-      read(ifinput)   ((tstar (i,j  ),i=1,i2      ),j=1,j2      )
-      read(ifinput)   ((qstar (i,j  ),i=1,i2      ),j=1,j2      )
+      read(ifinput)   ((thlflux (i,j  ),i=1,i2      ),j=1,j2      )
+      read(ifinput)   ((qtflux  (i,j  ),i=1,i2      ),j=1,j2      )
       read(ifinput)   ((dthldz(i,j  ),i=1,i2      ),j=1,j2      )
       read(ifinput)   ((dqtdz (i,j  ),i=1,i2      ),j=1,j2      )
       read(ifinput)  (  presf (    k)                            ,k=1,k1)
@@ -728,7 +728,7 @@ contains
       write(6,*) 'loading ',name
       open(unit=ifinput,file=name,form='unformatted')
       read(ifinput) ((((sv0(i,j,k,n),i=2-ih,i1+ih),j=2-jh,j1+jh),k=1,k1),n=1,nsv)
-      read(ifinput) (((svstar(i,j,n),i=1,i2),j=1,j2),n=1,nsv)
+      read(ifinput) (((svflux(i,j,n),i=1,i2),j=1,j2),n=1,nsv)
       read(ifinput) (dsv(n),n=1,nsv)
       read(ifinput)  timee
       close(ifinput)
@@ -747,7 +747,7 @@ contains
   end subroutine readrestartfiles
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine writerestartfiles
-    use modsurfdata,only: ustar,tstar,qstar,svstar,dudz,dvdz,dthldz,dqtdz,ps,thls,qts,thvs,oblav,&
+    use modsurfdata,only: ustar,thlflux,qtflux,svflux,dudz,dvdz,dthldz,dqtdz,ps,thls,qts,thvs,oblav,&
                           tsoil,tskin,ksoilmax,isurf,ksoilmax
     use modfields, only : u0,v0,w0,thl0,qt0,ql0,ql0h,e120,dthvdz,presf,presh,sv0
     use modglobal, only : i1,i2,ih,j1,j2,jh,k1,dsv,trestart,tnextrestart,dt_lim,timee,cexpnr,&
@@ -794,8 +794,8 @@ contains
       write(ifoutput)  (((dthvdz(i,j,k),i=2-ih,i1+ih),j=2-jh,j1+jh),k=1,k1)
       write(ifoutput)  (((ekm   (i,j,k),i=2-ih,i1+ih),j=2-jh,j1+jh),k=1,k1)
       write(ifoutput)   ((ustar (i,j  ),i=1,i2      ),j=1,j2      )
-      write(ifoutput)   ((tstar (i,j  ),i=1,i2      ),j=1,j2      )
-      write(ifoutput)   ((qstar (i,j  ),i=1,i2      ),j=1,j2      )
+      write(ifoutput)   ((thlflux (i,j  ),i=1,i2      ),j=1,j2      )
+      write(ifoutput)   ((qtflux  (i,j  ),i=1,i2      ),j=1,j2      )
       write(ifoutput)   ((dthldz(i,j  ),i=1,i2      ),j=1,j2      )
       write(ifoutput)   ((dqtdz (i,j  ),i=1,i2      ),j=1,j2      )
       write(ifoutput)  (  presf (    k)                            ,k=1,k1)
@@ -813,7 +813,7 @@ contains
         name(16:18) = cexpnr
         open  (ifoutput,file=name,form='unformatted')
         write(ifoutput) ((((sv0(i,j,k,n),i=2-ih,i1+ih),j=2-jh,j1+jh),k=1,k1),n=1,nsv)
-        write(ifoutput) (((svstar(i,j,n),i=1,i2),j=1,j2),n=1,nsv)
+        write(ifoutput) (((svflux(i,j,n),i=1,i2),j=1,j2),n=1,nsv)
         write(ifoutput) (dsv(n),n=1,nsv)
         write(ifoutput)  timee
 

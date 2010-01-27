@@ -80,7 +80,7 @@ lsampbuup   = .true.
 /
 &NAMTIMESTAT
 ltimestat   = .true.
-dtav        = 60
+dtav        = 10
 /
 &NAMCROSSSECTION
 lcross      = .false.

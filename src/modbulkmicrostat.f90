@@ -37,8 +37,10 @@ PUBLIC  :: initbulkmicrostat, bulkmicrostat, exitbulkmicrostat, bulkmicrotend
 save
 !NetCDF variables
   integer,parameter :: nvar = 23
+  integer :: ncid,nrec = 0
+  character(80) :: fname = 'bulkmicrostat.xxx.nc'
   character(80),dimension(nvar,4) :: ncname
-
+  character(80),dimension(1,4) :: tncname
 
   real          :: dtav, timeav, tnext, tnextwrite
   integer          :: nsamples
@@ -85,7 +87,7 @@ subroutine initbulkmicrostat
     use modmpi,    only  : myid, mpi_logical, my_real, comm3d, mpierr
     use modglobal, only  : ifnamopt, fname_options, cexpnr, ifoutput, &
               dtav_glob, timeav_glob, ladaptive, k1,kmax, dtmax,btime
-    use modstat_nc, only : lnetcdf, redefine_nc,define_nc,ncinfo
+    use modstat_nc, only : lnetcdf, open_nc,define_nc,redefine_nc,ncinfo,writestat_dims_nc
     use modgenstat, only : dtav_prof=>dtav, timeav_prof=>timeav,ncid_prof=>ncid
     use modmicrodata,only: imicro, imicro_bulk
     implicit none
@@ -182,6 +184,8 @@ subroutine initbulkmicrostat
       dtav = dtav_prof
       timeav = timeav_prof
       if (myid==0) then
+        fname(15:17) = cexpnr
+        call ncinfo(tncname(1,:),'time','Time','s','time')
         call ncinfo(ncname( 1,:),'cfrac','Cloud fraction','-','tt')
         call ncinfo(ncname( 2,:),'rainrate','Echo Rain Rate','W/m^2','tt')
         call ncinfo(ncname( 3,:),'preccount','Preccount','W/m^2','mt')
@@ -194,7 +198,7 @@ subroutine initbulkmicrostat
         call ncinfo(ncname(10,:),'npaccr','Accretion rain drop tendency','#/m3/s','tt')
         call ncinfo(ncname(11,:),'npsed','Sedimentation rain drop tendency','#/m3/s','tt')
         call ncinfo(ncname(12,:),'npevap','Evaporation rain drop tendency','#/m3/s','tt')
-        call ncinfo(ncname(13,:),'qrptot','Total rain water content tendency','kg/kg/s','tt')
+        call ncinfo(ncname(13,:),'nptot','Total rain drop tendency','#/m3/s','tt')
         call ncinfo(ncname(14,:),'qrpauto','Autoconversion rain water content tendency','kg/kg/s','tt')
         call ncinfo(ncname(15,:),'qrpaccr','Accretion rain water content tendency','kg/kg/s','tt')
         call ncinfo(ncname(16,:),'qrpsed','Sedimentation rain water content tendency','kg/kg/s','tt')
@@ -205,7 +209,9 @@ subroutine initbulkmicrostat
         call ncinfo(ncname(21,:),'qtpsed','Sedimentation total water content tendency','kg/kg/s','tt')
         call ncinfo(ncname(22,:),'qtpevap','Evaporation total water content tendency','kg/kg/s','tt')
         call ncinfo(ncname(23,:),'qtptot','Total total water content tendency','kg/kg/s','tt')
-
+        call open_nc(fname,ncid,n3=kmax)
+        call define_nc( ncid, 1, tncname)
+        call writestat_dims_nc(ncid)
         call redefine_nc(ncid_prof)
         call define_nc( ncid_prof, NVar, ncname)
       end if
