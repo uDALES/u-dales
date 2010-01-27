@@ -1716,7 +1716,7 @@ implicit none
   do n=1,nchsp
   if (PL_scheme(n)%active .EQV. .TRUE.) then
     if (PL_scheme(n)%name == H2O%name )  cycle    !don't do calculation of H2O
-    if (PL_scheme(n)%name == PRODUC%name) cycle
+!    if (PL_scheme(n)%name == PRODUC%name) cycle
 
     do j=1, PL_scheme(n)%nr_PL
 
