@@ -32,7 +32,7 @@ module modradfull
 
   implicit none
   private
-  public :: radfull
+  public :: radfull,d4stream
 
   logical, save     :: d4stream_initialized = .False.
   real, allocatable, save ::  pp(:), pt(:), ph(:), po(:), pre(:), pde(:), &
