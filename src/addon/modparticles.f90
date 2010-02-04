@@ -113,6 +113,11 @@ contains
       if(myid==0)then
         open(ifnamopt,file=fname_options,status='old',iostat=ierr)
         read (ifnamopt,NAMPARTICLES,iostat=ierr)
+        if (ierr > 0) then
+          print *, 'Problem in namoptions NAMPARTICLES'
+          print *, 'iostat error: ', ierr
+          stop 'ERROR: Problem in namoptions NAMPARTICLES'
+        endif
         write(6 ,NAMPARTICLES)
         close(ifnamopt)
       end if
@@ -752,7 +757,7 @@ contains
     use modmpi,    only : myid,cmyid
     use modglobal, only :  i2,jmax,j2,k1,dx,dy,dzf,dzh,zf,zh,es0,tmelt,rlv,rd,rv,cp,bt,at,cexpnr,ifoutput,timee,dt_lim
     use modfields, only : qtm,thlm,presf, exnf
-    use modsurface,only : thvs,thls,qts
+    use modsurfdata,only: thvs,thls,qts
     implicit none
 
     ! LOCAL
@@ -926,7 +931,7 @@ contains
     use modglobal,  only : dx,dy,dzf,zf,zh,dzh,grav,delta,timee,dt
     use modfields,  only : dthvdz
     use modsubgrid, only : ce1, ce2, cn
-    use modsurface, only : thvs
+    use modsurfdata,only : thvs
     implicit none
 
 

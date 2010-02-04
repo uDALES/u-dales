@@ -36,7 +36,8 @@ save
   integer,parameter :: nvar = 12
   character(80),dimension(nvar,4) :: ncname
 
-  real    :: dtav, timeav,tnext,tnextwrite
+  real    :: dtav, timeav
+  integer :: idtav,itimeav,tnext,tnextwrite
   integer :: nsamples
   logical :: lstat= .false. !< switch to enable the radiative statistics (on/off)
   logical :: lradclearair= .false. !< switch to enable the radiative statistics (on/off)
@@ -74,9 +75,9 @@ contains
 !> Initialization routine, reads namelists and inits variables
   subroutine initradstat
     use modmpi,    only : myid,mpierr, comm3d,my_real, mpi_logical
-    use modglobal, only : dtmax, k1,kmax, ifnamopt,fname_options, ifoutput, cexpnr,dtav_glob,timeav_glob,ladaptive,dt_lim,btime
+    use modglobal, only : dtmax, k1,kmax, ifnamopt,fname_options, ifoutput, cexpnr,dtav_glob,timeav_glob,ladaptive,dt_lim,btime,tres
     use modstat_nc, only : lnetcdf, redefine_nc,define_nc,ncinfo
-    use modgenstat, only : dtav_prof=>dtav, timeav_prof=>timeav,ncid_prof=>ncid
+    use modgenstat, only : idtav_prof=>idtav, itimeav_prof=>itimeav,ncid_prof=>ncid
 
     implicit none
 
@@ -103,10 +104,14 @@ contains
     call MPI_BCAST(dtav       ,1,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(lstat   ,1,MPI_LOGICAL,0,comm3d,mpierr)
     call MPI_BCAST(lradclearair,1,MPI_LOGICAL,0,comm3d,mpierr)
+    idtav = dtav/tres
+    dtav  = idtav*tres
+    itimeav = timeav/tres
+    timeav  = itimeav*tres
 
-    tnext      = dtav-1e-3+btime
-    tnextwrite = timeav-1e-3+btime
-    nsamples = nint(timeav/dtav)
+    tnext      = dtav   +btime
+    tnextwrite = timeav +btime
+    nsamples = itimeav/idtav
 
 
     if(.not.(lstat)) return
@@ -162,12 +167,11 @@ contains
       close (ifoutput)
     end if
     if (lnetcdf) then
-      dtav = dtav_prof
-      timeav = timeav_prof
-
-      tnext      = dtav-1e-3+btime
-      tnextwrite = timeav-1e-3+btime
-      nsamples = nint(timeav/dtav)
+      idtav = idtav_prof
+      itimeav = itimeav_prof
+      tnext      = idtav+btime
+      tnextwrite = itimeav+btime
+      nsamples = itimeav/idtav
 
       if (myid==0) then
         call ncinfo(ncname( 1,:),'tltend','Total radiative tendency','K/s','tt')
@@ -201,11 +205,11 @@ contains
       return
     end if
     if (timee>=tnext) then
-      tnext = tnext+dtav
+      tnext = tnext+idtav
       call do_radstat
     end if
     if (timee>=tnextwrite) then
-      tnextwrite = tnextwrite+timeav
+      tnextwrite = tnextwrite+itimeav
       call writeradstat
     end if
     dt_lim = minval((/dt_lim,tnext-timee,tnextwrite-timee/))
@@ -324,7 +328,7 @@ contains
 !> Write the statistics to file
   subroutine writeradstat
       use modmpi,    only : myid
-      use modglobal, only : cexpnr,ifoutput,kmax,k1,zf,timee
+      use modglobal, only : cexpnr,ifoutput,kmax,k1,zf,rtimee
       use modstat_nc, only: lnetcdf, writestat_nc
       use modgenstat, only: ncid_prof=>ncid,nrec_prof=>nrec
 
@@ -333,7 +337,7 @@ contains
       integer nsecs, nhrs, nminut,k
 
 
-      nsecs   = nint(timee)
+      nsecs   = nint(rtimee)
       nhrs    = int(nsecs/3600)
       nminut  = int(nsecs/60)-nhrs*60
       nsecs   = mod(nsecs,60)

@@ -339,7 +339,7 @@ contains
 
 !> Calculates the interaction with the soil, the surface temperature and humidity, and finally the surface fluxes.
   subroutine surface
-    use modglobal,  only : dt, i1, i2, j1, j2, cp, rlv, fkar, zf, cu, cv, nsv, rk3step, timee, rslabs, pi, pref0, rd, eps1
+    use modglobal,  only : rdt, i1, i2, j1, j2, cp, rlv, fkar, zf, cu, cv, nsv, rk3step, timee, rslabs, pi, pref0, rd, eps1
     use modraddata, only : iradiation, swu, swd, lwu, lwd, useMcICA
     use modfields,  only : thl0, qt0, u0, v0, rhof, ql0, exnf
     use modmpi,     only : my_real, mpierr, comm3d, mpi_sum, myid, excj
@@ -443,7 +443,7 @@ contains
           end if
 
           ! CvH solve the surface temperature implicitly. Do not take into account variations in LWout.
-          if(rk3step == 1 .and. timee > 0.) then
+          if(rk3step == 1 .and. timee > 0) then
             tskinm(i,j) = tskin(i,j)
           end if
 
@@ -458,7 +458,7 @@ contains
           Acoef   = Qnet(i,j) + rhof(1) * cp / ra(i,j) * thl0(i,j,1) + rhof(1) * rlv / (ra(i,j) + rs(i,j)) * (dqsatdT * tsurfm - qsat + qt0(i,j,1)) + lambdaskin(i,j) * tsoil(i,j,1)
           Bcoef   = rhof(1) * cp / ra(i,j) + rhof(1) * rlv / (ra(i,j) + rs(i,j)) * dqsatdT + lambdaskin(i,j)
 
-          rk3coef = dt / (4. - dble(rk3step))
+          rk3coef = rdt / (4. - dble(rk3step))
 
           if (Cskin(i,j) == 0.) then
             tskin(i,j) = Acoef * Bcoef ** (-1.) / exner
@@ -472,11 +472,11 @@ contains
           tendskin(i,j) = Cskin(i,j) * (tskin(i,j) - tskinm(i,j)) * exner / rk3coef
 
           ! 1.4   -   Solve the diffusion equation for the heat transport
-          tsoil(i,j,1) = tsoil(i,j,1) + dt / pCs(i,j,1) * ( lambdah(i,j,ksoilmax) * (tsoil(i,j,2) - tsoil(i,j,1)) / dzsoilh(1) + G0(i,j) ) / dzsoil(1)
+          tsoil(i,j,1) = tsoil(i,j,1) + rdt / pCs(i,j,1) * ( lambdah(i,j,ksoilmax) * (tsoil(i,j,2) - tsoil(i,j,1)) / dzsoilh(1) + G0(i,j) ) / dzsoil(1)
           do k = 2, ksoilmax-1
-            tsoil(i,j,k) = tsoil(i,j,k) + dt / pCs(i,j,k) * ( lambdah(i,j,k) * (tsoil(i,j,k+1) - tsoil(i,j,k)) / dzsoilh(k) - lambdah(i,j,k-1) * (tsoil(i,j,k) - tsoil(i,j,k-1)) / dzsoilh(k-1) ) / dzsoil(k)
+            tsoil(i,j,k) = tsoil(i,j,k) + rdt / pCs(i,j,k) * ( lambdah(i,j,k) * (tsoil(i,j,k+1) - tsoil(i,j,k)) / dzsoilh(k) - lambdah(i,j,k-1) * (tsoil(i,j,k) - tsoil(i,j,k-1)) / dzsoilh(k-1) ) / dzsoil(k)
           end do
-          tsoil(i,j,ksoilmax) = tsoil(i,j,ksoilmax) + dt / pCs(i,j,ksoilmax) * ( lambda(i,j,ksoilmax) * (tsoildeep(i,j) - tsoil(i,j,ksoilmax)) / dzsoil(ksoilmax) - lambdah(i,j,ksoilmax-1) * (tsoil(i,j,ksoilmax) - tsoil(i,j,ksoilmax-1)) / dzsoil(ksoilmax-1) ) / dzsoil(ksoilmax)
+          tsoil(i,j,ksoilmax) = tsoil(i,j,ksoilmax) + rdt / pCs(i,j,ksoilmax) * ( lambda(i,j,ksoilmax) * (tsoildeep(i,j) - tsoil(i,j,ksoilmax)) / dzsoil(ksoilmax) - lambdah(i,j,ksoilmax-1) * (tsoil(i,j,ksoilmax) - tsoil(i,j,ksoilmax-1)) / dzsoil(ksoilmax-1) ) / dzsoil(ksoilmax)
 
           thlsl = thlsl + tskin(i,j)
         end do

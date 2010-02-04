@@ -132,6 +132,11 @@ contains
     if(myid==0)then
         open(ifnamopt,file=fname_options,status='old',iostat=ierr)
         read (ifnamopt,NAMTILT,iostat=ierr)
+        if (ierr > 0) then
+          print *, 'Problem in namoptions NAMTILT'
+          print *, 'iostat error: ', ierr
+          stop 'ERROR: Problem in namoptions NAMTILT'
+        endif
         write(6 ,NAMTILT)
       close(ifnamopt)
     end if
@@ -263,7 +268,7 @@ contains
   subroutine tiltedgravity
 
     use modglobal,  only : grav,kmax,i1,j1
-    use modsurface, only : thvs
+    use modsurfdata,only : thvs
     use modfields,  only : thv0h,up,wp
 
     implicit none

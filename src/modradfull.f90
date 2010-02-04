@@ -185,7 +185,7 @@ contains
 
     subroutine d4stream(i1,ih,j1,jh,k1, tskin, albedo, CCN, dn0, &
          pi0,  tk, rv, rc, fds3D,fus3D,fdir3D,fuir3D, rr)
-      use modglobal, only : cexpnr,cp,cpr,pi,pref0,timee,xday,xlat,xlon,xtime,rhow
+      use modglobal, only : cexpnr,cp,cpr,pi,pref0,rtimee,xday,xlat,xlon,xtime,rhow
       use modraddata,only : useMcICA,zenith
       implicit none
 
@@ -223,7 +223,7 @@ contains
       ! determine the solar geometery, as measured by u0, the cosine of the
       ! solar zenith angle
       !
-      u0 = zenith(xtime + timee/3600,xday,xlat,xlon)
+      u0 = zenith(xtime + rtimee/3600,xday,xlat,xlon)
       !
       ! call the radiation
       !

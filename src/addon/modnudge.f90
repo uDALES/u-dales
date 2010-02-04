@@ -65,8 +65,13 @@ contains
     if(myid==0)then
 
       open(ifnamopt,file=fname_options,status='old',iostat=ierr)
-      read (ifnamopt,namnudge,iostat=ierr)
-      write(6 ,namnudge)
+      read (ifnamopt,NAMNUDGE,iostat=ierr)
+      if (ierr > 0) then
+        print *, 'Problem in namoptions NAMNUDGE'
+        print *, 'iostat error: ', ierr
+        stop 'ERROR: Problem in namoptions NAMNUDGE'
+      endif
+      write(6 ,NAMNUDGE)
       close(ifnamopt)
     end if
     call MPI_BCAST(lnudge    , 1,MPI_LOGICAL,0,comm3d,mpierr)

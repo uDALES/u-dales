@@ -55,7 +55,7 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine inittimedepsv
     use modmpi,   only :myid,my_real,mpi_logical,mpierr,comm3d
-    use modglobal,only :ifnamopt,fname_options, btime,cexpnr,kmax,k1,ifinput,runtime,nsv
+    use modglobal,only :ifnamopt,fname_options, btime,cexpnr,kmax,k1,ifinput,runtime,tres,nsv
     implicit none
 
     character (80):: chmess
@@ -96,7 +96,7 @@ contains
       write(outputfmt(8:10),'(I3)') nsv
       t    = 0
       ierr = 0
-      do while (timesvsurf(t)< (runtime+btime))
+      do while (timesvsurf(t)< tres*real(runtime+btime))
         t=t+1
         read(ifinput,*, iostat = ierr) timesvsurf(t), (svst(t,n),n=1,nsv)
         write(*,'(f7.1,4e12.4)') timesvsurf(t), (svst(t,n),n=1,nsv)
@@ -104,7 +104,7 @@ contains
             stop 'STOP: No time dependend data for end of run (surface fluxes of scalar)'
         end if
       end do
-      if(timesvsurf(1)>(runtime+btime)) then
+      if(timesvsurf(1)>tres*real(runtime+btime)) then
          write(6,*) 'Time dependent surface variables do not change before end of'
          write(6,*) 'simulation. --> only large scale changes in scalars'
          ltimedepsvsurf=.false.
@@ -116,7 +116,7 @@ contains
 !     ---load large scale forcings----
       t = 0
 
-      do while (timesvz(t) < (runtime+btime))
+      do while (timesvz(t) < tres*(runtime+btime))
         t = t + 1
         chmess1 = "#"
         ierr = 1 ! not zero
@@ -135,7 +135,7 @@ contains
         end do
       end do
 
-      if ((timesvz(1) > (runtime+btime)) .or. (timesvsurf(1) > (runtime+btime))) then
+      if ((timesvz(1) > tres*real(runtime+btime)) .or. (timesvsurf(1) > tres*real(runtime+btime))) then
         write(6,*) 'Time dependent large scale forcings sets in after end of simulation -->'
         write(6,*) '--> only time dependent surface variables (scalars)'
         ltimedepsvz=.false.
@@ -180,7 +180,7 @@ contains
   end subroutine timedepsvz
 
   subroutine timedepsvsurf
-    use modglobal,   only : timee,nsv
+    use modglobal,   only : rtimee,nsv
     use modsurfdata,  only : svs
     implicit none
     integer t,n
@@ -190,14 +190,14 @@ contains
 
   !     --- interpolate! ----
     t=1
-    do while(timee>timesvsurf(t))
+    do while(rtimee>timesvsurf(t))
       t=t+1
     end do
-    if (timee/=timesvsurf(t)) then
+    if (rtimee/=timesvsurf(t)) then
       t=t-1
     end if
 
-    fac = ( timee-timesvsurf(t) ) / ( timesvsurf(t+1)-timesvsurf(t))
+    fac = ( rtimee-timesvsurf(t) ) / ( timesvsurf(t+1)-timesvsurf(t))
     do n=1,nsv
        svs(n) = svst(t,n) + fac * (svst(t+1,n) - svst(t,n))
     enddo

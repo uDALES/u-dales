@@ -38,7 +38,8 @@ module modstattend
   character(80),dimension(nvar,4) :: ncname
   character(80),dimension(1,4) :: tncname
 
-  real    :: dtav, timeav,tnext,tnextwrite
+  real    :: dtav, timeav
+  integer :: idtav,itimeav,tnext,tnextwrite
   integer,parameter :: tend_tot=1,tend_start=1,tend_adv=2,tend_subg=3,tend_force=4,&
                        tend_rad=5,tend_ls=6,tend_micro=7, tend_topbound=8,tend_pois=9,tend_addon=10, tend_coriolis=11
   integer,parameter :: nrfields = 11
@@ -51,9 +52,9 @@ contains
 !> Initialization routine, reads namelists and inits variables
 subroutine initstattend
     use modmpi,   only : mpierr,my_real,mpi_logical,comm3d,myid
-    use modglobal,only : cexpnr,dtmax,imax,jmax,kmax,ifnamopt,fname_options,k1,dtav_glob,timeav_glob,ladaptive, dt_lim,btime,kmax
+    use modglobal,only : cexpnr,dtmax,imax,jmax,kmax,ifnamopt,fname_options,k1,dtav_glob,timeav_glob,ladaptive, dt_lim,btime,kmax,tres
     use modstat_nc, only : lnetcdf, open_nc,define_nc,redefine_nc,ncinfo,writestat_dims_nc
-    use modgenstat, only : dtav_prof=>dtav, timeav_prof=>timeav,ncid_prof=>ncid
+    use modgenstat, only : idtav_prof=>idtav, itimeav_prof=>itimeav,ncid_prof=>ncid
 
     implicit none
     integer :: ierr
@@ -80,10 +81,14 @@ subroutine initstattend
     call MPI_BCAST(timeav     ,1,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(ltend      ,1,MPI_LOGICAL,0,comm3d,mpierr)
 
-    tnext   = dtav - 1e-3 + btime
-    tnextwrite = timeav - 1e-3 + btime
-    nsamples = nint(timeav/dtav)
+    idtav = dtav/tres
+    dtav  = idtav*tres
+    itimeav = timeav/tres
+    timeav  = itimeav*tres
 
+    tnext      = dtav   +btime
+    tnextwrite = timeav +btime
+    nsamples = itimeav/idtav
     if(.not.(ltend)) return
     dt_lim = min(dt_lim,tnext)
 
@@ -107,11 +112,14 @@ subroutine initstattend
     thlpav = 0
     qtpav = 0
     if (lnetcdf) then
-      dtav = dtav_prof
-      timeav = timeav_prof
-       tnext      = dtav-1e-3+btime
-      tnextwrite = timeav-1e-3+btime
-      nsamples = nint(timeav/dtav)
+    idtav = dtav/tres
+    dtav  = idtav*tres
+    itimeav = timeav/tres
+    timeav  = itimeav*tres
+
+    tnext      = dtav   +btime
+    tnextwrite = timeav +btime
+    nsamples = itimeav/idtav
      if (myid==0) then
         fname(10:12) = cexpnr
         call ncinfo(tncname(1,:),'time','Time','s','time')
@@ -214,7 +222,7 @@ subroutine initstattend
 
     if (present(lastterm)) then
     if (lastterm) then
-      tnext = tnext+dtav
+      tnext = tnext+idtav
       upmn  = upmn  + upav /nsamples/rslabs
       vpmn  = vpmn  + vpav /nsamples/rslabs
       wpmn  = wpmn  + wpav /nsamples/rslabs
@@ -226,7 +234,7 @@ subroutine initstattend
       qtpav  = 0.0
       thlpav  = 0.0
       if (timee>=tnextwrite) then
-        tnextwrite = tnextwrite+timeav
+        tnextwrite = tnextwrite+itimeav
         call writestattend
       end if
       dt_lim = minval((/dt_lim,tnext-timee,tnextwrite-timee/))
@@ -238,7 +246,7 @@ subroutine initstattend
 
 !> Write the statistics to file
   subroutine writestattend
-    use modglobal, only : timee,ifoutput,kmax,k1, zf, cexpnr
+    use modglobal, only : rtimee,ifoutput,kmax,k1, zf, cexpnr
     use modmpi,    only : myid
     use modfields, only : presf
       use modstat_nc, only: lnetcdf, writestat_nc
@@ -247,7 +255,7 @@ subroutine initstattend
     real,dimension(k1,nvar) :: vars
     integer nsecs, nhrs, nminut,k
 
-    nsecs   = nint(timee)
+    nsecs   = nint(rtimee)
     nhrs    = int(nsecs/3600)
     nminut  = int(nsecs/60)-nhrs*60
     nsecs   = mod(nsecs,60)
