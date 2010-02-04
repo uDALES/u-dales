@@ -204,7 +204,7 @@ contains
     use modsurfdata,only : wtsurf, wqsurf, isurf,ustar,thlflux,qtflux,z0,oblav,qts,thls,&
                            Qnet, H, LE, G0, rs, ra, tskin, tendskin
     use modmpi,     only : my_real,mpi_sum,mpi_max,mpi_min,comm3d,mpierr,myid
-    use modstat_nc,  only : lnetcdf, writestat_nc
+    use modstat_nc,  only : lnetcdf, writestat_nc,nc_fillvalue
     implicit none
 
     real   :: zbaseavl, ztopavl, ztopmaxl, ztop,zbaseminl
@@ -478,9 +478,13 @@ contains
       if (lnetcdf) then
         vars( 1) = rtimee
         vars( 2) = cc
+        if (vars(2)==0) vars(2) = nc_fillvalue
         vars( 3) = zbaseav
+        if (vars(2)==0) vars(2) = nc_fillvalue
         vars( 4) = ztopav
+        if (vars(2)==0) vars(2) = nc_fillvalue
         vars( 5) = ztopmax
+        if (vars(2)==0) vars(2) = nc_fillvalue
         vars( 6) = zi
         vars( 7) = we
         vars( 8) = qlintav
@@ -497,6 +501,7 @@ contains
         vars(19) = wts
         vars(20) = wtvs
         vars(21) = wqls
+        
         call writestat_nc(ncid,nvar,ncname,vars,nrec,.true.)
       end if
     end if

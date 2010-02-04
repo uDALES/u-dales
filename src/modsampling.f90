@@ -574,7 +574,7 @@ contains
     use modglobal, only : rtimee,k1,kmax,zf,zh,cexpnr,ifoutput,rslabs,grav
     use modfields, only : presf,presh
     use modmpi,    only : myid,my_real,comm3d,mpierr,mpi_sum
-    use modstat_nc, only: lnetcdf, writestat_nc
+    use modstat_nc, only: lnetcdf, writestat_nc,nc_fillvalue
     use modgenstat, only: ncid_prof=>ncid,nrec_prof=>nrec
     use modsurfdata, only: thvs
 
@@ -838,18 +838,22 @@ contains
 
       if (lnetcdf) then
         vars(:, 1) =nrsampmn
-        vars(:, 2) =wmn
-        vars(:, 3) =tlmn
-        vars(:, 4) =qtmn
-        vars(:, 5) =qlmn
-        vars(:, 6) =tvmn
-        vars(:, 7) =massflxmn
-        vars(:, 8) =wtlmn
-        vars(:, 9) =wqtmn
-        vars(:,10) =wqlmn
-        vars(:,11) =wtvmn
-        vars(:,12) =uwmn
-        vars(:,13) =vwmn
+        if (any(nrsampmn>0)) then
+          vars(:, 2) =wmn
+          vars(:, 3) =tlmn
+          vars(:, 4) =qtmn
+          vars(:, 5) =qlmn
+          vars(:, 6) =tvmn
+          vars(:, 7) =massflxmn
+          vars(:, 8) =wtlmn
+          vars(:, 9) =wqtmn
+          vars(:,10) =wqlmn
+          vars(:,11) =wtvmn
+          vars(:,12) =uwmn
+          vars(:,13) =vwmn
+        else
+          vars(:,2:13)=nc_fillvalue
+        end if
 
         call writestat_nc(ncid_prof,nvar,ncname(:,:,isamp),vars(1:kmax,:),nrec_prof,kmax)
       end if

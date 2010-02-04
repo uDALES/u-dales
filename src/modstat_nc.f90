@@ -32,6 +32,7 @@ module modstat_nc
     implicit none
     logical :: lnetcdf
     integer, save :: timeID=0, ztID=0, zmID=0, xtID=0, xmID=0, ytID=0, ymID=0
+    real(kind=4) :: nc_fillvalue = -999.
 !> The only interface necessary to write data to netcdf, regardless of the dimensions.
     interface writestat_nc
       module procedure writestat_time_nc
@@ -88,7 +89,6 @@ contains
     iret = nf90_put_att(ncid,NF90_GLOBAL,'history','Created on '//trim(date)//' at '//trim(time))
     iret = nf90_put_att(ncid, NF90_GLOBAL, 'Source',trim(version))
     iret = nf90_put_att(ncid, NF90_GLOBAL, 'Author',trim(author))
-    iret = nf90_put_att(ncid, NF90_GLOBAL, '_FillValue',-999.)
     iret = nf90_def_dim(ncID, 'time', NF90_UNLIMITED, timeID)
     if (present(n1)) then
       iret = nf90_def_dim(ncID, 'xt', n1, xtID)
@@ -201,6 +201,7 @@ contains
       end if
       iret=nf90_put_att(ncID,VarID,'longname',sx(n,2))
       iret=nf90_put_att(ncID,VarID,'units',sx(n,3))
+      iret = nf90_put_att(ncid, VarID, '_FillValue',nc_fillvalue)
 
     end do
     iret= nf90_enddef(ncID)
