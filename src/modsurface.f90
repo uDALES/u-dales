@@ -334,6 +334,12 @@ contains
     allocate(svflux  (i2,j2,nsv))
     allocate(svs(nsv))
 
+    ! CvH set initial values for rs and ra to be able to compute qskin
+    if(isurf == 1) then
+      ra = 50.
+      rs = 100.
+    end if
+
     return
   end subroutine initsurface
 
@@ -686,6 +692,7 @@ contains
           surfwet    = ra(i,j) / (ra(i,j) + rs(i,j))
           qskin(i,j) = surfwet * qsatsurf + (1. - surfwet) * qt0(i,j,1)
           qtsl       = qtsl + qskin(i,j)
+          !write(6,*), ra(i,j), rs(i,j), surfwet
         end do
       end do
 
