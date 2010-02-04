@@ -665,11 +665,13 @@ contains
 
 !> Calculate the surface humidity assuming saturation.
   subroutine qtsurf
-    use modglobal, only : tmelt,bt,at,rd,rv,cp,es0,pref0,rslabs,i1,j1
-    use modmpi,    only : my_real,mpierr,comm3d,mpi_sum,myid
+    use modglobal,   only : tmelt,bt,at,rd,rv,cp,es0,pref0,rslabs,i1,j1
+    use modfields,   only : qt0
+    use modsurfdata, only : rs, ra
+    use modmpi,      only : my_real,mpierr,comm3d,mpi_sum,myid
 
     implicit none
-    real       :: exner, tsurf, es, qtsl
+    real       :: exner, tsurf, qsatsurf, surfwet, es, qtsl
     integer    :: i,j
 
     if(isurf <= 2) then
@@ -679,8 +681,10 @@ contains
           exner      = (ps / pref0)**(rd/cp)
           tsurf      = tskin(i,j) * exner
           es         = es0 * exp (at*(tsurf-tmelt) / (tsurf-bt))
-          qskin(i,j) = rd / rv * es / (ps-(1-rd/rv)*es)
-
+          !qskin(i,j) = rd / rv * es / (ps-(1-rd/rv)*es)
+          qsatsurf   = rd / rv * es / (ps-(1-rd/rv)*es)
+          surfwet    = ra(i,j) / (ra(i,j) + rs(i,j))
+          qskin(i,j) = surfwet * qsatsurf + (1. - surfwet) * qt0(i,j,1)
           qtsl       = qtsl + qskin(i,j)
         end do
       end do
