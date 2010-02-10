@@ -50,8 +50,8 @@ PUBLIC :: initprojection, projection
 save
 
   real    :: dtav
-  integer :: idtav,tnext
-  logical(kind=longint) :: lproject = .false. ! switch for conditional sampling cloud (on/off)
+  integer(kind=longint)  :: idtav,tnext
+  logical:: lproject = .false. ! switch for conditional sampling cloud (on/off)
   integer :: projectheight = 2  !lowest integration boundary
   integer :: projectplane = 2
 
