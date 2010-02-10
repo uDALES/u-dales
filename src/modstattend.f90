@@ -26,6 +26,7 @@
 !  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
 module modstattend
+  use modglobal, only : longint
 
   implicit none
 !   private
@@ -39,7 +40,7 @@ module modstattend
   character(80),dimension(1,4) :: tncname
 
   real    :: dtav, timeav
-  integer :: idtav,itimeav,tnext,tnextwrite
+  integer(kind=longint) :: idtav,itimeav,tnext,tnextwrite
   integer,parameter :: tend_tot=1,tend_start=1,tend_adv=2,tend_subg=3,tend_force=4,&
                        tend_rad=5,tend_ls=6,tend_micro=7, tend_topbound=8,tend_pois=9,tend_addon=10, tend_coriolis=11
   integer,parameter :: nrfields = 11

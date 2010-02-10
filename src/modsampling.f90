@@ -35,6 +35,7 @@
 module modsampling
 
 
+  use modglobal, only : longint
 
 implicit none
 private
@@ -44,7 +45,7 @@ save
   integer,parameter :: nvar = 13
   character(80),allocatable,dimension(:,:,:) :: ncname
   real    :: dtav, timeav
-  integer :: idtav,itimeav,tnext,tnextwrite
+  integer(kind=longint) :: idtav,itimeav,tnext,tnextwrite
   integer :: nsamples,isamp,isamptot
   character(20),dimension(10) :: samplname,longsamplname
   logical :: lsampcl  = .false. !< switch for conditional sampling cloud (on/off)

@@ -29,6 +29,7 @@
 module modcrosssection
 
 
+  use modglobal, only : longint
 
 implicit none
 private
@@ -42,7 +43,7 @@ save
   character(80),dimension(1,4) :: tncname
 
   real    :: dtav
-  integer :: idtav,tnext
+  integer(kind=longint) :: idtav,tnext
   logical :: lcross = .false. !< switch for doing the crosssection (on/off)
   integer :: crossheight = 2 !< Height of the xy crosssection
   integer :: crossplane = 2 !< Location of the xz crosssection

@@ -119,7 +119,11 @@ module modchem
 ! #8.330e-3  R_NO2  1    0      1.0     1.0     1.0     1.0     1.0     1.0    1.0  NO2 + (O2) -> NO + O3
 !
 !
+
+  use modglobal, only : longint
+
 implicit none
+
 private
 PUBLIC :: lchem, initchem,inputchem, twostep, PL_scheme, nchsp, firstchem, lastchem, RH, choffset
 save
@@ -129,7 +133,7 @@ save
   real itermin,dtchmovie
   real t_ref,q_ref,p_ref,h_ref
   logical lchem, ldiuvar,lchconst,lchmovie,lcloudKconst
-  integer     itimeav,tnextwrite,idtchmovie
+  integer(kind=longint) ::     itimeav,tnextwrite,idtchmovie
 
   logical switch
 

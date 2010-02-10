@@ -27,6 +27,7 @@
 !
 module modradstat
 
+  use modglobal, only : longint
 
 implicit none
 !private
@@ -37,7 +38,7 @@ save
   character(80),dimension(nvar,4) :: ncname
 
   real    :: dtav, timeav
-  integer :: idtav,itimeav,tnext,tnextwrite
+  integer(kind=longint) :: idtav,itimeav,tnext,tnextwrite
   integer :: nsamples
   logical :: lstat= .false. !< switch to enable the radiative statistics (on/off)
   logical :: lradclearair= .false. !< switch to enable the radiative statistics (on/off)

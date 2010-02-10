@@ -31,6 +31,7 @@
 !
 
 module modparticles
+  use modglobal, only : longint
 implicit none
 PRIVATE
 PUBLIC :: initparticles, particles, exitparticles
@@ -48,7 +49,7 @@ SAVE
   character(30) :: startfilepart
 
   integer :: nsamples
-  integer    :: itimeav,idtav,itimedump,tnext,tnextwrite,tnextdump
+  integer(kind=longint)    :: itimeav,idtav,itimedump,tnext,tnextwrite,tnextdump
 
   integer,parameter  :: inomove=0                       !< the options for the integrationscheme
   integer,parameter  :: irk3=3
