@@ -154,24 +154,20 @@ use modmpi, only : myid
           temp_b(i,j,1) = temp_b(i,j,2) +dzh(1)/dzh(2)*(temp_b(i,j,2)-temp_b(i,j,3))
         end do
       end do
-      tempskin = 0.5*(temp_b(1:i1+1,1:j1+1,1)+temp_b(1:i1+1,1:j1+1,1))
-      ! tempskin = tskin*exnh(1)
-      !CvH end edit
+      tempskin = 0.5*(temp_b(1:i1+1,1:j1+1,1)+temp_b(1:i1+1,1:j1+1,2))
+     ! tempskin = tskin*exnh(1)
+     !CvH end edit
 
       if (imicro==imicro_bulk) then
         rr_b(:,:,1) = 0.
         call d4stream(i1,ih,j1,jh,k1,tempskin,albedo,Nc_0,rhof_b,exnf_b*cp,temp_b,qv_b,ql_b,swd,swu,lwd,lwu,rr=rr_b)
       else
-        call d4stream(i1,ih,j1,jh,k1-1,tempskin,albedo,Nc_0,rhof_b,exnf_b*cp,temp_b,qv_b,ql_b,swd,swu,lwd,lwu)
+        call d4stream(i1,ih,j1,jh,k1,tempskin,albedo,Nc_0,rhof_b,exnf_b*cp,temp_b,qv_b,ql_b,swd,swu,lwd,lwu)
       end if
 
 !Downward radiation fluxes are pointing downward in UCLALES, pointing upward in DALES
       lwd = -lwd
       swd = -swd
-!      lwd(:,:,1) = lwd(:,:,1)+0.3333333*(lwd(:,:,1)-lwd(:,:,2))
-!      swd(:,:,1) = swd(:,:,1)+0.3333333*(swd(:,:,1)-swd(:,:,2))
-!      lwu(:,:,1) = lwu(:,:,1)+0.3333333*(lwu(:,:,1)-lwu(:,:,2))
-!      swu(:,:,1) = swu(:,:,1)+0.3333333*(swu(:,:,1)-swu(:,:,2))
 
 !Add up thl tendency
       do k=1,kmax
