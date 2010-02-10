@@ -154,7 +154,7 @@ use modmpi, only : myid
           temp_b(i,j,1) = temp_b(i,j,2) +dzh(1)/dzh(2)*(temp_b(i,j,2)-temp_b(i,j,3))
         end do
       end do
-      tempskin = 0.5*(temp_b(1:i1+1,1:j1+1,1)+temp_b(1:i1+1,1:j1+1,1))
+      tempskin = 0.5*(temp_b(1:i1+1,1:j1+1,1)+temp_b(1:i1+1,1:j1+1,2))
       ! tempskin = tskin*exnh(1)
       !CvH end edit
 
