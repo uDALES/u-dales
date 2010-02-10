@@ -44,7 +44,8 @@ save
   character(80) :: fname = 'tmser.xxx.nc'
   character(80),dimension(nvar,4) :: ncname
 
-  real    :: dtav,tnext
+  real    :: dtav
+  integer :: idtav,tnext
   logical :: ltimestat= .false. !<switch for timestatistics (on/off)
   real    :: zi,ziold=-1, we
   integer, parameter :: iblh_flux = 1, iblh_grad = 2, iblh_thres = 3
@@ -61,7 +62,7 @@ contains
 !> Initializing Timestat. Read out the namelist, initializing the variables
   subroutine inittimestat
     use modmpi,    only : my_real,myid,comm3d,mpi_logical,mpierr,mpi_integer
-    use modglobal, only : ifnamopt, fname_options,cexpnr,dtmax,ifoutput,dtav_glob,ladaptive,k1,kmax,rd,rv,dt_lim,btime
+    use modglobal, only : ifnamopt, fname_options,cexpnr,dtmax,idtmax,ifoutput,dtav_glob,tres,ladaptive,k1,kmax,rd,rv,dt_lim,btime
     use modfields, only : thlprof,qtprof,svprof
     use modsurfdata, only : isurf
     use modstat_nc, only : lnetcdf, open_nc,define_nc,ncinfo
@@ -95,8 +96,10 @@ contains
     call MPI_BCAST(iblh_meth  ,1,MPI_INTEGER,0,comm3d,mpierr)
     call MPI_BCAST(iblh_var   ,1,MPI_INTEGER,0,comm3d,mpierr)
     call MPI_BCAST(blh_nsamp  ,1,MPI_INTEGER,0,comm3d,mpierr)
-
-    tnext = dtav-1e-3+btime
+    idtav = dtav/tres
+    dtav  = idtav*tres
+    
+    tnext = idtav+btime
 
     if(.not.(ltimestat)) return
     dt_lim = min(dt_lim,tnext)
@@ -195,13 +198,13 @@ contains
   subroutine timestat
 
     use modglobal,  only : i1,j1,kmax,zf,dzf,cu,cv,rv,rd,&
-                          rslabs,timee,dt_lim,rk3step,cexpnr,ifoutput
+                          rslabs,timee,rtimee,dt_lim,rk3step,cexpnr,ifoutput
 !
     use modfields,  only : um,vm,wm,e12m,ql0,u0av,v0av,rhof
     use modsurfdata,only : wtsurf, wqsurf, isurf,ustar,thlflux,qtflux,z0,oblav,qts,thls,&
                            Qnet, H, LE, G0, rs, ra, tskin, tendskin
     use modmpi,     only : my_real,mpi_sum,mpi_max,mpi_min,comm3d,mpierr,myid
-    use modstat_nc,  only : lnetcdf, writestat_nc
+    use modstat_nc,  only : lnetcdf, writestat_nc,nc_fillvalue
     implicit none
 
     real   :: zbaseavl, ztopavl, ztopmaxl, ztop,zbaseminl
@@ -220,12 +223,11 @@ contains
 
     if (.not.(ltimestat)) return
     if (rk3step/=3) return
-    if (timee==0) return
     if(timee<tnext) then
       dt_lim = min(dt_lim,tnext-timee)
       return
     end if
-    tnext = tnext+dtav
+    tnext = tnext+idtav
     dt_lim = minval((/dt_lim,tnext-timee/))
 
     !      -----------------------------------------------------------
@@ -429,7 +431,7 @@ contains
        !tmser1
       open (ifoutput,file='tmser1.'//cexpnr,position='append')
       write( ifoutput,'(f10.2,f6.3,4f12.3,f10.4,5f9.3)') &
-          timee, &
+          rtimee, &
           cc, &
           zbaseav, &
           ztopav, &
@@ -446,7 +448,7 @@ contains
       !tmsurf
       open (ifoutput,file='tmsurf.'//cexpnr,position='append')
       write( ifoutput,'(f10.2,3e11.3,2f11.3,4e11.3)') &
-          timee   ,&
+          rtimee   ,&
           ust     ,&
           tst     ,&
           qst     ,&
@@ -462,7 +464,7 @@ contains
         !tmlsm
         open (ifoutput,file='tmlsm.'//cexpnr,position='append')
         write(ifoutput,'(f10.2,8f11.3)') &
-            timee       ,&
+            rtimee       ,&
             Qnetav      ,&
             Hav         ,&
             LEav        ,&
@@ -474,11 +476,15 @@ contains
         close(ifoutput)
       end if
       if (lnetcdf) then
-        vars( 1) = timee
+        vars( 1) = rtimee
         vars( 2) = cc
+        if (vars(2)==0) vars(2) = nc_fillvalue
         vars( 3) = zbaseav
+        if (vars(2)==0) vars(2) = nc_fillvalue
         vars( 4) = ztopav
+        if (vars(2)==0) vars(2) = nc_fillvalue
         vars( 5) = ztopmax
+        if (vars(2)==0) vars(2) = nc_fillvalue
         vars( 6) = zi
         vars( 7) = we
         vars( 8) = qlintav
@@ -495,6 +501,7 @@ contains
         vars(19) = wts
         vars(20) = wtvs
         vars(21) = wqls
+        
         call writestat_nc(ncid,nvar,ncname,vars,nrec,.true.)
       end if
     end if

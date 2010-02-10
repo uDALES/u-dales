@@ -33,12 +33,14 @@ implicit none
 PUBLIC :: initradstat, radstat, exitradstat
 save
 !NetCDF variables
-  integer,parameter :: nvar = 8
+  integer,parameter :: nvar = 12
   character(80),dimension(nvar,4) :: ncname
 
-  real    :: dtav, timeav,tnext,tnextwrite
+  real    :: dtav, timeav
+  integer :: idtav,itimeav,tnext,tnextwrite
   integer :: nsamples
   logical :: lstat= .false. !< switch to enable the radiative statistics (on/off)
+  logical :: lradclearair= .false. !< switch to enable the radiative statistics (on/off)
 
 !     ------
 
@@ -50,6 +52,10 @@ save
   real, allocatable :: lwdav(:)
   real, allocatable :: swdav(:)
   real, allocatable :: swuav(:)
+  real, allocatable :: lwucaav(:)
+  real, allocatable :: lwdcaav(:)
+  real, allocatable :: swdcaav(:)
+  real, allocatable :: swucaav(:)
 
 !
   real, allocatable :: tltendmn(:)
@@ -59,21 +65,25 @@ save
   real, allocatable :: lwdmn(:)
   real, allocatable :: swdmn(:)
   real, allocatable :: swumn(:)
+  real, allocatable :: lwucamn(:)
+  real, allocatable :: lwdcamn(:)
+  real, allocatable :: swdcamn(:)
+  real, allocatable :: swucamn(:)
   real, allocatable :: tlradlsmn(:)
 
 contains
 !> Initialization routine, reads namelists and inits variables
   subroutine initradstat
     use modmpi,    only : myid,mpierr, comm3d,my_real, mpi_logical
-    use modglobal, only : dtmax, k1,kmax, ifnamopt,fname_options, ifoutput, cexpnr,dtav_glob,timeav_glob,ladaptive,dt_lim,btime
+    use modglobal, only : dtmax, k1,kmax, ifnamopt,fname_options, ifoutput, cexpnr,dtav_glob,timeav_glob,ladaptive,dt_lim,btime,tres
     use modstat_nc, only : lnetcdf, redefine_nc,define_nc,ncinfo
-    use modgenstat, only : dtav_prof=>dtav, timeav_prof=>timeav,ncid_prof=>ncid
+    use modgenstat, only : idtav_prof=>idtav, itimeav_prof=>itimeav,ncid_prof=>ncid
 
     implicit none
 
     integer ierr
     namelist/NAMRADSTAT/ &
-    dtav,timeav,lstat
+    dtav,timeav,lstat,lradclearair
 
     dtav=dtav_glob;timeav=timeav_glob
     lstat = .false.
@@ -93,10 +103,15 @@ contains
     call MPI_BCAST(timeav     ,1,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(dtav       ,1,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(lstat   ,1,MPI_LOGICAL,0,comm3d,mpierr)
+    call MPI_BCAST(lradclearair,1,MPI_LOGICAL,0,comm3d,mpierr)
+    idtav = dtav/tres
+    dtav  = idtav*tres
+    itimeav = timeav/tres
+    timeav  = itimeav*tres
 
-    tnext      = dtav-1e-3+btime
-    tnextwrite = timeav-1e-3+btime
-    nsamples = nint(timeav/dtav)
+    tnext      = dtav   +btime
+    tnextwrite = timeav +btime
+    nsamples = itimeav/idtav
 
 
     if(.not.(lstat)) return
@@ -113,6 +128,10 @@ contains
     allocate(lwdav(k1))
     allocate(swdav(k1))
     allocate(swuav(k1))
+    allocate(lwucaav(k1))
+    allocate(lwdcaav(k1))
+    allocate(swdcaav(k1))
+    allocate(swucaav(k1))
     allocate(tllwtendav(k1))
     allocate(tltendav(k1))
     allocate(tlswtendav(k1))
@@ -121,6 +140,10 @@ contains
     allocate(lwdmn(k1))
     allocate(swdmn(k1))
     allocate(swumn(k1))
+    allocate(lwucamn(k1))
+    allocate(lwdcamn(k1))
+    allocate(swdcamn(k1))
+    allocate(swucamn(k1))
     allocate(tllwtendmn(k1))
     allocate(tltendmn(k1))
     allocate(tlswtendmn(k1))
@@ -130,6 +153,10 @@ contains
     lwdmn = 0.0
     swdmn = 0.0
     swumn = 0.0
+    lwucamn = 0.0
+    lwdcamn = 0.0
+    swdcamn = 0.0
+    swucamn = 0.0
     tltendmn = 0.0
     tllwtendmn = 0.0
     tlswtendmn = 0.0
@@ -140,12 +167,11 @@ contains
       close (ifoutput)
     end if
     if (lnetcdf) then
-      dtav = dtav_prof
-      timeav = timeav_prof
-
-      tnext      = dtav-1e-3+btime
-      tnextwrite = timeav-1e-3+btime
-      nsamples = nint(timeav/dtav)
+      idtav = idtav_prof
+      itimeav = itimeav_prof
+      tnext      = idtav+btime
+      tnextwrite = itimeav+btime
+      nsamples = itimeav/idtav
 
       if (myid==0) then
         call ncinfo(ncname( 1,:),'tltend','Total radiative tendency','K/s','tt')
@@ -156,6 +182,10 @@ contains
         call ncinfo(ncname( 6,:),'lwd','Long wave downward radiative flux','W/m^2','mt')
         call ncinfo(ncname( 7,:),'swd','Short wave downward radiative flux','W/m^2','mt')
         call ncinfo(ncname( 8,:),'swu','Short wave upward radiative flux','W/m^2','mt')
+        call ncinfo(ncname( 9,:),'lwuca','Long wave clear air upward radiative flux','W/m^2','mt')
+        call ncinfo(ncname(10,:),'lwdca','Long wave clear air downward radiative flux','W/m^2','mt')
+        call ncinfo(ncname(11,:),'swdca','Short wave clear air downward radiative flux','W/m^2','mt')
+        call ncinfo(ncname(12,:),'swuca','Short wave clear air upward radiative flux','W/m^2','mt')
 
         call redefine_nc(ncid_prof)
         call define_nc( ncid_prof, NVar, ncname)
@@ -175,11 +205,11 @@ contains
       return
     end if
     if (timee>=tnext) then
-      tnext = tnext+dtav
+      tnext = tnext+idtav
       call do_radstat
     end if
     if (timee>=tnextwrite) then
-      tnextwrite = tnextwrite+timeav
+      tnextwrite = tnextwrite+itimeav
       call writeradstat
     end if
     dt_lim = minval((/dt_lim,tnext-timee,tnextwrite-timee/))
@@ -227,12 +257,78 @@ contains
     tlswtendmn = tlswtendmn + tlswtendav/rslabs
     tlradlsmn  = tlradlsmn  + thlpcar   /rslabs
 
+    if (lradclearair) call radclearair
   end subroutine do_radstat
+
+      subroutine radclearair
+    use modradfull,    only : d4stream
+    use modglobal,    only : imax,i1,ih,jmax,j1,jh,kmax,k1,cp,dzf,rlv,rd,zf,pref0,rslabs
+    use modfields,    only : rhof, exnf,exnh, thl0,qt0,ql0
+    use modsurfdata,  only : albedo, tskin, qskin, thvs, qts, ps
+    use modmicrodata, only : imicro, imicro_bulk, Nc_0,iqr
+    use modraddata,   only : thlprad,rho_air_mn
+    use modmpi,    only :  slabsum
+      implicit none
+    real, dimension(k1)  :: rhof_b, exnf_b
+    real, dimension(2-ih:i1+ih,2-jh:j1+jh,k1) :: temp_b, qv_b, ql_b,swdca,swuca,lwdca,lwuca
+    integer :: i,j,k
+
+    real :: exnersurf
+    lwdcaav  = 0.
+    lwucaav  = 0.
+    swdcaav  = 0.
+    swucaav  = 0.
+
+!take care of UCLALES z-shift for thermo variables.
+      do k=1,kmax
+        rhof_b(k+1)     = rhof(k)
+        exnf_b(k+1)     = exnf(k)
+        do j=2,j1
+          do i=2,i1
+            qv_b(i,j,k+1)   = qt0(i,j,k) - ql0(i,j,k)
+            ql_b(i,j,k+1)   = 0.
+            temp_b(i,j,k+1) = thl0(i,j,k)*exnf(k)+(rlv/cp)*ql0(i,j,k)
+          end do
+        end do
+      end do
+
+      !take care of the surface boundary conditions
+      !CvH edit, extrapolation creates instability in surface scheme
+      exnersurf = (ps/pref0) ** (rd/cp)
+      rhof_b(1) = ps / (rd * thvs * exnersurf)
+      exnf_b(1) = exnersurf
+
+      !rhof_b(1) = rhof(1) + 2*zf(1)/dzf(1)*(rhof(1)-rhof(2))
+      !exnf_b(1) = exnh(1) + 0.5*dzf(1)*(exnh(1)-exnf(1))
+
+      do j=2,j1
+        do i=2,i1
+          ql_b(i,j,1)   = 0.! CvH, no ql at surface
+          qv_b(i,j,1)   = qskin(i,j) !CvH, no ql at surface thus qv = qt
+          temp_b(i,j,1) = tskin(i,j)*exnersurf
+        end do
+      end do
+
+      call d4stream(i1,ih,j1,jh,k1,tskin,albedo,Nc_0,rhof_b,exnf_b*cp,temp_b,qv_b,ql_b,swdca,swuca,lwdca,lwuca)
+
+
+   call slabsum(lwdcaav ,1,k1,lwdca ,2-ih,i1+ih,2-jh,j1+jh,1,k1,2,i1,2,j1,1,k1)
+    call slabsum(lwucaav ,1,k1,lwuca ,2-ih,i1+ih,2-jh,j1+jh,1,k1,2,i1,2,j1,1,k1)
+    call slabsum(swdcaav ,1,k1,swdca ,2-ih,i1+ih,2-jh,j1+jh,1,k1,2,i1,2,j1,1,k1)
+    call slabsum(swucaav ,1,k1,swuca ,2-ih,i1+ih,2-jh,j1+jh,1,k1,2,i1,2,j1,1,k1)
+
+ !    ADD SLAB AVERAGES TO TIME MEAN
+
+    lwucamn = lwucamn + lwucaav/rslabs
+    lwdcamn = lwdcamn + lwdcaav/rslabs
+    swdcamn = swdcamn + swdcaav/rslabs
+    swucamn = swucamn + swucaav/rslabs
+    end subroutine radclearair
 
 !> Write the statistics to file
   subroutine writeradstat
       use modmpi,    only : myid
-      use modglobal, only : cexpnr,ifoutput,kmax,k1,zf,timee
+      use modglobal, only : cexpnr,ifoutput,kmax,k1,zf,rtimee
       use modstat_nc, only: lnetcdf, writestat_nc
       use modgenstat, only: ncid_prof=>ncid,nrec_prof=>nrec
 
@@ -241,7 +337,7 @@ contains
       integer nsecs, nhrs, nminut,k
 
 
-      nsecs   = nint(timee)
+      nsecs   = nint(rtimee)
       nhrs    = int(nsecs/3600)
       nminut  = int(nsecs/60)-nhrs*60
       nsecs   = mod(nsecs,60)
@@ -250,6 +346,10 @@ contains
       lwdmn   = lwdmn    /nsamples
       swdmn   = swdmn    /nsamples
       swumn   = swumn    /nsamples
+      lwucamn   = lwucamn    /nsamples
+      lwdcamn   = lwdcamn    /nsamples
+      swdcamn   = swdcamn    /nsamples
+      swucamn   = swucamn    /nsamples
       tllwtendmn = tllwtendmn /nsamples
       tlswtendmn = tlswtendmn /nsamples
       tlradlsmn  = tlradlsmn  /nsamples
@@ -272,7 +372,7 @@ contains
           ,'#    (M)      (W/M^2)      (W/M^2)      (W/M^2)      (W/M^2)      ' &
           ,'(K/H)         (K/H)        (K/H)        (K/H)'
       do k=1,kmax
-        write(ifoutput,'(I3,F8.2,8E13.4)') &
+        write(ifoutput,'(I3,F8.2,12E13.4)') &
             k,zf(k),&
             lwumn(k),&
             lwdmn(k),&
@@ -281,7 +381,11 @@ contains
             tllwtendmn(k)*3600,&
             tlswtendmn(k)*3600,&
             tlradlsmn(k) *3600,&
-            tltendmn(k)  *3600
+            tltendmn(k)  *3600,&
+            lwucamn(k),&
+            lwdcamn(k),&
+            swucamn(k),&
+            swdcamn(k)
       end do
       close (ifoutput)
       if (lnetcdf) then
@@ -293,7 +397,11 @@ contains
         vars(:, 6) = lwdmn
         vars(:, 7) = swumn
         vars(:, 8) = swdmn
-        call writestat_nc(ncid_prof,nvar,ncname,vars(1:kmax,:),nrec_prof,kmax)
+         vars(:, 5) = lwucamn
+        vars(:, 6) = lwdcamn
+        vars(:, 7) = swucamn
+        vars(:, 8) = swdcamn
+       call writestat_nc(ncid_prof,nvar,ncname,vars(1:kmax,:),nrec_prof,kmax)
       end if
     end if ! end if(myid==0)
 
@@ -301,6 +409,10 @@ contains
     lwdmn = 0.0
     swdmn = 0.0
     swumn = 0.0
+    lwucamn = 0.0
+    lwdcamn = 0.0
+    swdcamn = 0.0
+    swucamn = 0.0
     tllwtendmn = 0.0
     tlswtendmn = 0.0
     tlradlsmn  = 0.0

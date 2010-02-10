@@ -43,7 +43,8 @@
 subroutine tstep_update
 
 
-  use modglobal, only : i1,j1,rk3step,timee,runtime,btime,dtmax,dt,ntimee,ntrun,courant,peclet,kmax,dx,dy,dzh,dt_lim,ladaptive
+  use modglobal, only : i1,j1,rk3step,timee,rtimee,runtime,btime,dtmax,dt,ntimee,ntrun,courant,peclet,&
+                        kmax,dx,dy,dzh,dt_lim,ladaptive,timeleft,idtmax,rdt,tres,longint 
   use modfields, only : um,vm,wm
   use modsubgrid,only : ekm
   use modmpi,    only : myid,comm3d,mpierr,mpi_max,my_real
@@ -66,31 +67,37 @@ subroutine tstep_update
         courtotl=0
         peclettotl = 0
         do k=1,kmax
-          courtotl=max(courtotl,maxval(abs(um(2:i1,2:j1,k)/dx)+abs(vm(2:i1,2:j1,k)/dy)+abs(wm(2:i1,2:j1,k)/dzh(k)))*dt)
-          peclettotl=max(peclettotl,maxval(ekm(2:i1,2:j1,k))*dt/minval((/dzh(k),dx,dy/))**2)
+          courtotl=max(courtotl,maxval(abs(um(2:i1,2:j1,k)/dx)+abs(vm(2:i1,2:j1,k)/dy)+abs(wm(2:i1,2:j1,k)/dzh(k)))*rdt)
+          peclettotl=max(peclettotl,maxval(ekm(2:i1,2:j1,k))*rdt/minval((/dzh(k),dx,dy/))**2)
         end do
         call MPI_ALLREDUCE(courtotl,courtot,1,MY_REAL,MPI_MAX,comm3d,mpierr)
         call MPI_ALLREDUCE(peclettotl,peclettot,1,MY_REAL,MPI_MAX,comm3d,mpierr)
-        if ( pecletold>0) then
+       if ( pecletold>0) then
+            dt = minval((/timee,timeleft,floor(dt*courant/courtot,longint),floor(dt*peclet/peclettot,longint),dt_lim,idtmax/))
+            dt_lim  = timeleft
           if (abs(courtot-courold)/courold<0.1 .and. (abs(peclettot-pecletold)/pecletold<0.1)) then
-            dt = minval((/runtime-timee+btime,0.2*dt*courant/courtot,0.2*dt*peclet/peclettot,dt_lim,dtmax/))
-            dt_lim  = runtime-timee+btime
-          else
             spinup = .false.
           end if
         end if
+        rdt = dble(dt)*tres
+        dt_lim = timeleft
         timee   = timee  + dt
+        rtimee  = dble(timee)*tres
+        timeleft=timeleft-dt
         ntimee  = ntimee + 1
         ntrun   = ntrun  + 1
       else
         if (timee >= 2. * dt) dt = 2. * dt
-        if (timee >= dtmax) then
-          dt = dtmax
+        if (timee >= idtmax) then
+          dt = idtmax
           spinup = .false.
         end if
+        rdt = dble(dt)*tres
         ntimee  = ntimee + 1
         ntrun   = ntrun  + 1
         timee   = timee  + dt
+        rtimee  = dble(timee)*tres
+        timeleft=timeleft-dt
       end if
     ! Normal time loop
     else
@@ -98,24 +105,29 @@ subroutine tstep_update
         courtotl=0
         peclettotl = 1e-5
         do k=1,kmax
-          courtotl=max(courtotl,maxval(abs(um(2:i1,2:j1,k)/dx)+abs(vm(2:i1,2:j1,k)/dy)+abs(wm(2:i1,2:j1,k)/dzh(k)))*dt)
-          peclettotl=max(peclettotl,maxval(ekm(2:i1,2:j1,k))*dt/minval((/dzh(k),dx,dy/))**2)
+          courtotl=max(courtotl,maxval(abs(um(2:i1,2:j1,k)/dx)+abs(vm(2:i1,2:j1,k)/dy)+abs(wm(2:i1,2:j1,k)/dzh(k)))*rdt)
+          peclettotl=max(peclettotl,maxval(ekm(2:i1,2:j1,k))/minval((/dzh(k),dx,dy/))**2*rdt)
 
         end do
         call MPI_ALLREDUCE(courtotl,courtot,1,MY_REAL,MPI_MAX,comm3d,mpierr)
         call MPI_ALLREDUCE(peclettotl,peclettot,1,MY_REAL,MPI_MAX,comm3d,mpierr)
 
-        dt = minval((/runtime-timee+btime+1e-3, dt_lim, dtmax, dt*courant/courtot, dt*peclet/peclettot, timee/))
-
-        dt_lim = runtime-timee+btime
+        dt = minval((/timeleft, dt_lim, idtmax, dt*floor(courant/courtot), dt*floor(peclet/peclettot), timee/))
+        rdt = dble(dt)*tres
+        dt_lim = timeleft
         timee   = timee  + dt
+        rtimee  = dble(timee)*tres
+        timeleft=timeleft-dt
         ntimee  = ntimee + 1
         ntrun   = ntrun  + 1
       else
-        dt = dtmax
+        dt = dtmax*tres
+        rdt = dtmax
         ntimee  = ntimee + 1
         ntrun   = ntrun  + 1
         timee   = timee  + dt !ntimee*dtmax
+        rtimee  = dble(timee)*tres
+        timeleft=timeleft-dt
       end if
     end if
   end if
@@ -140,7 +152,7 @@ end subroutine tstep_update
 subroutine tstep_integrate
 
 
-  use modglobal, only : i1,j1,kmax,nsv,dt,rk3step,e12min,lmoist
+  use modglobal, only : i1,j1,kmax,nsv,rdt,rk3step,e12min,lmoist
   use modfields, only : u0,um,up,v0,vm,vp,w0,wm,wp,&
                         thl0,thlm,thlp,qt0,qtm,qtp,&
                         e120,e12m,e12p,sv0,svm,svp
@@ -150,7 +162,7 @@ subroutine tstep_integrate
   integer i,j,k,n
   real rk3coef
 
-  rk3coef = dt / (4. - dble(rk3step))
+  rk3coef = rdt / (4. - dble(rk3step))
 
   do k=1,kmax
     do j=2,j1

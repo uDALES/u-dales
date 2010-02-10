@@ -32,14 +32,15 @@ module modchecksim
   private
   public initchecksim,checksim
 
-  real    :: tcheck = 0.,tnext = 3600.
+  real    :: tcheck = 0.
+  integer :: tnext = 3600.,itcheck
   real    :: dtmn =0.,ndt =0.
 
   save
 contains
 !> Initializing Checksim. Read out the namelist, initializing the variables
   subroutine initchecksim
-    use modglobal, only : ifnamopt, fname_options,dtmax,ladaptive,btime
+    use modglobal, only : ifnamopt, fname_options,dtmax,ladaptive,btime,tres
     use modmpi,    only : myid,my_real,comm3d,mpierr
     implicit none
     integer :: ierr
@@ -63,26 +64,27 @@ contains
     end if
 
     call MPI_BCAST(tcheck     ,1,MY_REAL   ,0,comm3d,mpierr)
-    tnext = tcheck-1e-3+btime
+    itcheck = floor(tcheck/tres)
+    tnext = tcheck+btime
 
 
   end subroutine initchecksim
 !>Run checksim. Timekeeping, and output
   subroutine checksim
-    use modglobal, only : timee, rk3step, dt_lim,dt
+    use modglobal, only : timee,rtimee, rk3step, dt_lim,rdt
     use modmpi,    only : myid
     implicit none
     character(20) :: timeday
     if (timee ==0) return
     if (rk3step/=3) return
-    dtmn = dtmn +dt; ndt =ndt+1.
+    dtmn = dtmn +rdt; ndt =ndt+1.
     if(timee<tnext) return
     tnext = tnext+tcheck
     dtmn  = dtmn / ndt
     if (myid==0) then
       call date_and_time(time=timeday)
       write (*,*) '================================================================='
-      write (*,'(3A,F9.2,A,F12.9)') 'Time of Day: ', timeday(1:10),'    Time of Simulation: ', timee, '    dt: ',dtmn
+      write (*,'(3A,F9.2,A,F12.9)') 'Time of Day: ', timeday(1:10),'    Time of Simulation: ', rtimee, '    dt: ',dtmn
     end if
     call calccourant
     call calcpeclet

@@ -6,10 +6,6 @@
 !>
 !!  \author Stephan de Roode,TU Delft
 !!  \author Thijs Heus, MPI-M
-!!  \todo Full Radiation : Namelists and init; get rid of datafiles
-!!  \todo Full Radiation : Couple with modsurface and modchem
-!!  \todo Full Radiation : Debug Microphysics
-
 !!  \todo Documentation
 !!  \par Revision list
 !  This file is part of DALES.
@@ -38,7 +34,7 @@ contains
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine initradiation
-    use modglobal,    only : kmax,i1,ih,j1,jh,k1,nsv,dtmax,ih,jh,btime
+    use modglobal,    only : kmax,i1,ih,j1,jh,k1,nsv,ih,jh,btime,tres
     use modmpi,       only : myid
     implicit none
 
@@ -86,7 +82,8 @@ contains
         rad_smoke  = .true.
       end select
     end if
-    tnext = -1e-3+btime
+    itimerad = floor(timerad/tres)
+    tnext = btime
 
     if (rad_smoke.and.isvsmoke>nsv) then
       if (rad_shortw) then
@@ -111,8 +108,8 @@ contains
       dt_lim = min(dt_lim,tnext-timee)
     end if
 
-    if((timerad==0 .or. timee>tnext) .and. rk3step==1) then
-      tnext = tnext+timerad
+    if((itimerad==0 .or. timee==tnext) .and. rk3step==1) then
+      tnext = tnext+itimerad
       thlprad = 0.0
       select case (iradiation)
           case (irad_none)
@@ -153,7 +150,7 @@ contains
 !> calculates tendency due to parameterized radiation
 subroutine radpar
 
-  use modglobal,    only : i1,j1,kmax, k1,ih,jh,dzf,cp,rslabs,xtime,timee,xday,xlat,xlon
+  use modglobal,    only : i1,j1,kmax, k1,ih,jh,dzf,cp,rslabs,xtime,rtimee,xday,xlat,xlon
   use modfields,    only : ql0, sv0
   implicit none
   real, allocatable :: lwpt(:),lwpb(:)
@@ -226,7 +223,7 @@ subroutine radpar
 
 
     swd = 0.0
-    mu=zenith(xtime + timee/3600,xday,xlat,xlon)
+    mu=zenith(xtime + rtimee/3600,xday,xlat,xlon)
     do j=2,j1
     do i=2,i1
 
@@ -364,7 +361,7 @@ subroutine radpar
 
   subroutine radlsm
     use modsurfdata, only : albedo, tskin
-    use modglobal,   only : i1, j1, timee, xtime, xday, xlat, xlon
+    use modglobal,   only : i1, j1, rtimee, xtime, xday, xlat, xlon
     use modfields,   only : thl0
     implicit none
     integer   :: i,j
@@ -375,7 +372,7 @@ subroutine radpar
 
     do j=2,j1
       do i=2,i1
-        swd(i,j,1) = - S0 * zenith(xtime + timee / 3600., xday, xlat, xlon)
+        swd(i,j,1) = - S0 * zenith(xtime + rtimee / 3600., xday, xlat, xlon)
         swu(i,j,1) = - albedo(i,j) * swd(i,j,1)
         lwd(i,j,1) = - 0.8 * bolz * thl0(i,j,1) ** 4.
         lwu(i,j,1) = bolz * tskin(i,j) ** 4.

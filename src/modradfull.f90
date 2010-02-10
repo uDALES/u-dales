@@ -7,11 +7,6 @@
 !!  \author Bjorn Stevens
 !!  \author Robert Pincus
 !!  \author Thijs Heus, MPI-M
-!!  \todo Full Radiation : Namelists and init; get rid of datafiles
-!!  \todo Full Radiation : Check difference between tllwmn and tlradtendmn
-!!  \todo Full Radiation : Couple with modsurface and modchem
-!!  \todo Full Radiation : Debug Microphysics
-!!  \todo Full Radiation : Clean up the code
 !!  \par Revision list
 !  This file is part of DALES.
 !
@@ -37,7 +32,7 @@ module modradfull
 
   implicit none
   private
-  public :: radfull
+  public :: radfull,d4stream
 
   logical, save     :: d4stream_initialized = .False.
   real, allocatable, save ::  pp(:), pt(:), ph(:), po(:), pre(:), pde(:), &
@@ -196,7 +191,7 @@ use modmpi, only : myid
 
     subroutine d4stream(i1,ih,j1,jh,k1, tskin, albedo, CCN, dn0, &
          pi0,  tk, rv, rc, fds3D,fus3D,fdir3D,fuir3D, rr)
-      use modglobal, only : cexpnr,cp,cpr,pi,pref0,timee,xday,xlat,xlon,xtime,rhow
+      use modglobal, only : cexpnr,cp,cpr,pi,pref0,rtimee,xday,xlat,xlon,xtime,rhow
       use modraddata,only : useMcICA,zenith
       implicit none
 
@@ -234,7 +229,7 @@ use modmpi, only : myid
       ! determine the solar geometery, as measured by u0, the cosine of the
       ! solar zenith angle
       !
-      u0 = zenith(xtime + timee/3600,xday,xlat,xlon)
+      u0 = zenith(xtime + rtimee/3600,xday,xlat,xlon)
       !
       ! call the radiation
       !

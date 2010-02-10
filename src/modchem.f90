@@ -26,8 +26,6 @@ module modchem
   !         q_ref	    = 5.e-3
   !         lchmovie    = .false.  SWITCH: if TRUE gives extra output for movies(experimental)
   !         dtchmovie   = 60.      when to write extra output
-  !         itermin     = 1.e-6    (not to change)
-  !         dtl_max     = 3600     set maximum timestep (only when ladaptive)
   !       /
   !-----------------------------------------------------------------
 
@@ -128,11 +126,11 @@ save
 
   ! namoptions
   integer tnor, firstchem, lastchem
-  real dtchmovie,itermin,dtl_max
+  real itermin,dtchmovie
   real t_ref,q_ref,p_ref,h_ref
   logical lchem, ldiuvar,lchconst,lchmovie,lcloudKconst
+  integer     itimeav,tnextwrite,idtchmovie
 
-  real tnextwrite
   logical switch
 
   integer   mrpcc
@@ -227,16 +225,17 @@ save
 contains
 !-----------------------------------------------------------------------------------------
 SUBROUTINE initchem
-  use modglobal, only : imax,jmax,i1,i2,ih, j1,j2,jh, k1, kmax, nsv, ifnamopt, fname_options, ifoutput, cexpnr,timeav_glob,btime
+  use modglobal, only : imax,jmax,i1,i2,ih, j1,j2,jh, k1, kmax, nsv, ifnamopt, fname_options, ifoutput, cexpnr,timeav_glob,btime,tres
   use modmpi,    only : myid, mpi_logical, mpi_integer, my_real, comm3d, mpierr
   implicit none
 
   integer i, ierr
-  namelist/NAMCHEM/ lchem, dtl_max, lcloudKconst, tnor, firstchem,lastchem,ldiuvar,h_ref,lchconst, t_ref, q_ref, p_ref,lchmovie, dtchmovie, itermin
 
+  namelist/NAMCHEM/ lchem, lcloudKconst, tnor, firstchem,lastchem,ldiuvar,h_ref,lchconst, t_ref, q_ref, p_ref,lchmovie, dtchmovie
+
+  itermin  = 1.e-6
 
   lchem    =.false.
-  dtl_max  = 3600
   ldiuvar  = .false.
   h_ref    = 12.0
   lchconst = .false.
@@ -245,7 +244,7 @@ SUBROUTINE initchem
   q_ref    = 5.e-3
   lchmovie = .false.
   dtchmovie= 60
-  itermin  = 1.e-6
+  idtchmovie = dtchmovie/tres
   firstchem= 1
   lastchem = nsv
   nchsp    = nsv
@@ -272,7 +271,6 @@ SUBROUTINE initchem
   call MPI_BCAST(tnor      ,1,mpi_integer , 0,comm3d, mpierr)
   call MPI_BCAST(firstchem ,1,mpi_integer , 0,comm3d, mpierr)
   call MPI_BCAST(lastchem  ,1,mpi_integer , 0,comm3d, mpierr)
-  call MPI_BCAST(dtl_max   ,1,MY_REAL     , 0,comm3d, mpierr)
   call MPI_BCAST(t_ref     ,1,MY_REAL     , 0,comm3d, mpierr)
   call MPI_BCAST(q_ref     ,1,MY_REAL     , 0,comm3d, mpierr)
   call MPI_BCAST(p_ref     ,1,MY_REAL     , 0,comm3d, mpierr)
@@ -281,7 +279,8 @@ SUBROUTINE initchem
   call MPI_BCAST(dtchmovie ,1,MY_REAL     , 0,comm3d, mpierr)
 
   if (.not. (lchem)) return
-  tnextwrite = timeav_glob-1e-3+btime
+  itimeav = floor(timeav_glob/tres)
+  tnextwrite = itimeav+btime
   switch = .false.
   nchsp = lastchem - firstchem  + 1
   choffset = firstchem - 1
@@ -1027,7 +1026,7 @@ end subroutine read_chem
 
 
 SUBROUTINE twostep()     !(t,te,y)   (timee, timee+dt, sv0)
-use modglobal, only : rk3step,timee,timeav_glob,dt_lim, ladaptive
+use modglobal, only : rk3step,timee
 use modfields, only: svm
 use modmpi, only: myid
 implicit none
@@ -1036,16 +1035,13 @@ implicit none
 
   if (rk3step/=3) return
   if(timee==0) return
-  if (ladaptive .eqv. .true.) then
-    dt_lim=min(dt_lim,dtl_max)
-  endif
 
   !!!! We only use the chemistry scalars in svm,
   !!!! in twostep2 we use them as y(:,:,:,1:nchsp)
   !!!! they may be starting at XX but we acces them with index 1 to nchsp
   call twostep2(svm(:,:,:,firstchem:lastchem))
   if (timee >= tnextwrite ) then
-    tnextwrite = tnextwrite + timeav_glob
+    tnextwrite = tnextwrite + itimeav
   endif
 end subroutine twostep
 
@@ -1077,7 +1073,7 @@ SUBROUTINE twostep2(y)
 !c                                                                 |
 !c-----------------------------------------------------------------|
 !c
-use modglobal, only : ih,i1,jh,j1,i2,j2,k1,kmax, nsv, xtime, timee,dt,timeav_glob, xday,xlat,xlon,zf,dzf,ifoutput,cexpnr
+use modglobal, only : ih,i1,jh,j1,i2,j2,k1,kmax, nsv, xtime, timee,rtimee,rdt, xday,xlat,xlon,zf,dzf,ifoutput,cexpnr
 use modfields, only : qt0
 use modmpi, only: comm3d, mpierr,mpi_max,mpi_min,mpi_sum,my_real,mpi_real,myid,cmyid,nprocs
 
@@ -1100,8 +1096,8 @@ implicit none
   !parameter (dtmin=.2)    !orgineel 1.e-6)
 
   !c Initialization of logical and counters
-  t = timee
-  te = timee + dt
+  t = rtimee
+  te = rtimee + rdt
 
   dtmin = itermin
   naccpt  =0
@@ -1120,7 +1116,7 @@ implicit none
     endif
   endif
 
-  if(lchmovie .and. mod(timee,dtchmovie)==0 ) then
+  if(lchmovie .and. mod(timee,idtchmovie)==0 ) then
     allocate(k3d(2:i1,2:j1,kmax,tnor+2))  !2 extra for T_abs and convppb
     allocate(ybegin(2-ih:i1+ih,2-jh:j1+jh,k1,nchsp))
     ybegin = y
@@ -1151,9 +1147,9 @@ implicit none
     nfcn=nfcn+1
     kdtl=te-t
 
-    !  if n points to H2O or CO or INERT skip calculations
+    !  if n points to H2O or INERT skip calculations
     do n=1,nchsp
-      if (n == H2O%loc .or. n == CO%loc .or. (PL_scheme(n)%active .eqv. .false.)) cycle
+      if (n == H2O%loc .or. (PL_scheme(n)%active .eqv. .false.)) cycle
       do j=2,j1
         do i=2,i1
           dyc=yp(i,j,n)-y(i,j, pl, n)*yl(i,j, n)
@@ -1213,7 +1209,7 @@ implicit none
     !c Stepsize control.
     errltel=0.0
     do n=1,nchsp
-      if (n == H2O%loc .or. n == CO%loc .or. n==INERT%loc) cycle  !we aren't interested in the chemistry of water and CO is kept constant
+      if (n == H2O%loc .or. n==INERT%loc) cycle  !we aren't interested in the chemistry of water and is kept constant
       do j=2,j1
         do i=2,i1
           ytol=atol(n)+rtol(n)*abs(y(i,j,pl,n))
@@ -1269,7 +1265,7 @@ implicit none
     enddo
     if(myid==0) then
       open(ifoutput,file='keffs.'//cexpnr,position='append')
-      write(ifoutput,'(a,f8.1)') 'time =',timee
+      write(ifoutput,'(a,f8.1)') 'time =',rtimee
       write(formatstring,'(a,i3,a)') '(5x,',tnor+2,'(2x,a6,3x))'
       write(ifoutput,formatstring) (RC(i)%rname,i=1,tnor),'Tabs','convppb'
       write(formatstring,'(a,i3,a)') '(5x,',tnor+2,'(3x,i3,5x))'
@@ -1286,7 +1282,7 @@ implicit none
     deallocate(writearrayg)
   endif
 
-  if (lchmovie .and. (mod(timee,dtchmovie)==0 )) then
+  if (lchmovie .and. (mod(timee,idtchmovie)==0 )) then
     call chemmovie(ybegin)
     deallocate(k3d,ybegin)
   endif
@@ -1347,7 +1343,7 @@ end subroutine FIT
 !XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 subroutine calc_K(k)
-use modglobal, only :rlv, cp, i1,j1, imax,jmax,timeav_glob,timee
+use modglobal, only :rlv, cp, i1,j1, imax,jmax,timee
 use modfields, only :thl0,exnf,qt0,ql0,presf,svm
 use modmpi, only : myid
 implicit none
@@ -1367,7 +1363,7 @@ implicit none
     convppb(:,:) = Avogrado * 1.e-9 * 1e-6 * (p_ref/100) / (8.314e-2 * t_ref)
   endif
 
-  if (lchmovie .and. (mod(timee,dtchmovie)==0)) then
+  if (lchmovie .and. (mod(timee,idtchmovie)==0)) then
     k3d(:,:,k,tnor+1) = T_abs
     k3d(:,:,k,tnor+2) = convppb
   endif
@@ -1377,7 +1373,7 @@ implicit none
      writearray(k,tnor+2)=sum(convppb)/(imax*jmax)
   endif
 
-  if( lchmovie .and. (mod(timee,dtchmovie)==0)) then
+  if( lchmovie .and. (mod(timee,idtchmovie)==0)) then
      writearray(k,tnor+1)=sum(T_abs)/(imax*jmax)
      writearray(k,tnor+2)=sum(convppb)/(imax*jmax)
   endif
@@ -1387,7 +1383,7 @@ implicit none
       if (timee>=tnextwrite) then
         writearray(k,i) = sum(keff(:,:,RC(i)%Kindex,k))/(imax*jmax)
       endif
-      if( lchmovie .and. (mod(timee,dtchmovie)==0)) then
+      if( lchmovie .and. (mod(timee,idtchmovie)==0)) then
         k3d(:,:,k,i) = keff(:,:,RC(i)%Kindex,k)
       endif
       !do nothing this is done in ratech
@@ -1428,7 +1424,7 @@ implicit none
         writearray(k,i)=sum(keffT(:,:,RC(i)%Kindex))/(imax*jmax)
       endif
 
-      if (lchmovie .and. (mod(timee,dtchmovie)==0)) then
+      if (lchmovie .and. (mod(timee,idtchmovie)==0)) then
         k3d(:,:,k,i) = keffT(:,:,RC(i)%Kindex)
       endif
     endif
@@ -1471,14 +1467,13 @@ subroutine ratech
 !-----------------------------------------------------------------
 !
 
-  use modglobal, only : i1,i2,ih, j1,j2,jh, k1,kmax, timeav_glob,pi,xtime,timee,xday,xlat,xlon, &
+  use modglobal, only : i1,i2,ih, j1,j2,jh, k1,kmax,pi,xtime,timee,rtimee,tres,xday,xlat,xlon, &
                         zf,dzf, iexpnr,rslabs,ifoutput,cexpnr
   use modfields, only : sv0, qt0, ql0 ,rhof
   use modmpi,    only : myid, comm3d, mpierr, mpi_max, my_real, mpi_integer, mpi_sum
   implicit none
 
   real  sza
-  real     timeav
   integer   i,j,k,l,m,n,r
   real  zbase, ztop, qlint, clddepth
   real  zbasesum, ztopmax, zbasecount
@@ -1499,8 +1494,7 @@ subroutine ratech
 
   lday = .false.
 
-  timeav = timeav_glob
-  xhr = xtime + timee/3600.
+  xhr = xtime + rtimee/3600.
 
   re    = 1.e-05 ! mean cloud drop radius
   rhow  = 1000.  ! density of water
@@ -1517,7 +1511,7 @@ subroutine ratech
     lday = .true.
     if(myid==0 .and. (switch .eqv. .false.)) then
       switch = .true.
-      write(*,*)'The SUN is UP at timee=',timee,xhr
+      write(*,*)'The SUN is UP at timee=',rtimee,xhr
     endif
     if (ldiuvar .eqv. .false.) then ! we have to fix the sza to the fixed hour h_ref
       sza = getth(xday,xlat,xlon,h_ref)
@@ -1528,7 +1522,7 @@ subroutine ratech
     lday = .false.
     if(myid==0 .and. (switch .eqv. .true.) ) then
       switch = .false.
-      write(*,*)'The SUN is DOWN at timee=',timee,xhr
+      write(*,*)'The SUN is DOWN at timee=',rtimee,xhr
     endif
   endif
 
@@ -1694,7 +1688,7 @@ subroutine ratech
 
      if ( myid ==0 ) then
        open (ifoutput,file='cloudstat.'//cexpnr,position='append')
-       write(ifoutput,'(f7.0,f6.2,2f7.2,4f9.1,4f9.4)')timee, xhr, zbasecount/rslabs, cloudcount/rslabs, zbasesum / (zbasecount+1.0e-5), &
+       write(ifoutput,'(f7.0,f6.2,2f7.2,4f9.1,4f9.4)')rtimee, xhr, zbasecount/rslabs, cloudcount/rslabs, zbasesum / (zbasecount+1.0e-5), &
          ztopmax, cloudheightsum/(zbasecount+1.0e-5), cloudheightmax, qlintsum / (zbasecount+1.0e-5), &
          qlintmax, qlintallsum / (cloudcount + 1.0e-5), qlintallmax
        close (ifoutput)
@@ -1721,9 +1715,8 @@ implicit none
 
   do n=1,nchsp
   if (PL_scheme(n)%active .EQV. .TRUE.) then
-    if (PL_scheme(n)%name == CO%name )  cycle    !don't do calculation of CO, kept constant at start concentration
     if (PL_scheme(n)%name == H2O%name )  cycle    !don't do calculation of H2O
-    if (PL_scheme(n)%name == PRODUC%name) cycle
+!    if (PL_scheme(n)%name == PRODUC%name) cycle
 
     do j=1, PL_scheme(n)%nr_PL
 

@@ -60,7 +60,7 @@ module modbulkmicro
 
 !> Initializes and allocates the arrays
   subroutine initbulkmicro
-    use modglobal, only : ih,i1,jh,j1,k1,dzf,dtmax,rk3step
+    use modglobal, only : ih,i1,jh,j1,k1,dzf,rk3step
     use modmpi,    only : myid
     implicit none
 
@@ -127,7 +127,7 @@ module modbulkmicro
 
 !> Calculates the microphysical source term.
   subroutine bulkmicro
-    use modglobal, only : ih,jh,i1,j1,k1,dt,rk3step,timee,kmax,rlv,cp
+    use modglobal, only : ih,jh,i1,j1,k1,rdt,rk3step,timee,kmax,rlv,cp
     use modfields, only : sv0,svm,svp,qtp,thlp,qt0,ql0,presf, exnf,rhof
     use modbulkmicrostat, only : bulkmicrotend
     use modmpi,    only : myid
@@ -149,7 +149,7 @@ module modbulkmicro
     qtpmcr  = 0.0
     Nc     = 0.0
 
-    delt = dt/ (4. - dble(rk3step))
+    delt = rdt/ (4. - dble(rk3step))
     do k = 1, k1
       do i=2,i1 
       do j=2,j1
@@ -429,7 +429,7 @@ module modbulkmicro
   ! determine accr. + self coll. + br-up rate and adjust qrp and Nrp
   ! accordingly. Break-up : Seifert (2007)
   !*********************************************************************
-    use modglobal, only : ih,i1,jh,j1,k1,kmax,eps1,rlv,cp,dt,dzf
+    use modglobal, only : ih,i1,jh,j1,k1,kmax,eps1,rlv,cp,dzf
     use modfields, only : rhof
     use modmpi,    only : myid
     implicit none
@@ -571,7 +571,7 @@ module modbulkmicro
 !!   sig_g assumed. Flux are calc. numerically with help of a
 !!   polynomial function
   subroutine sedimentation_rain
-    use modglobal, only : ih,i1,jh,j1,k1,kmax,eps1,dzf,pi,dt
+    use modglobal, only : ih,i1,jh,j1,k1,kmax,eps1,dzf,pi
     use modfields, only : rhof
     use modmpi,    only : myid,mpi_max,mpi_integer,mpierr,comm3d
     implicit none

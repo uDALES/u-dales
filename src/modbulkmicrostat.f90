@@ -42,7 +42,8 @@ save
   character(80),dimension(nvar,4) :: ncname
   character(80),dimension(1,4) :: tncname
 
-  real          :: dtav, timeav, tnext, tnextwrite
+  real          :: dtav, timeav
+  integer       :: idtav, itimeav, tnext, tnextwrite
   integer          :: nsamples
   logical          :: lmicrostat = .false.
   integer, parameter      :: nrfields = 5  , &
@@ -86,9 +87,9 @@ contains
 subroutine initbulkmicrostat
     use modmpi,    only  : myid, mpi_logical, my_real, comm3d, mpierr
     use modglobal, only  : ifnamopt, fname_options, cexpnr, ifoutput, &
-              dtav_glob, timeav_glob, ladaptive, k1,kmax, dtmax,btime
+              dtav_glob, timeav_glob, ladaptive, k1,kmax, dtmax,btime,tres
     use modstat_nc, only : lnetcdf, open_nc,define_nc,redefine_nc,ncinfo,writestat_dims_nc
-    use modgenstat, only : dtav_prof=>dtav, timeav_prof=>timeav,ncid_prof=>ncid
+    use modgenstat, only : idtav_prof=>idtav, itimeav_prof=>itimeav,ncid_prof=>ncid
     use modmicrodata,only: imicro, imicro_bulk
     implicit none
     integer      :: ierr
@@ -115,11 +116,15 @@ subroutine initbulkmicrostat
     call MPI_BCAST(lmicrostat  ,1,MPI_LOGICAL  ,0,comm3d,mpierr)
     call MPI_BCAST(dtav    ,1,MY_REAL  ,0,comm3d,mpierr)
     call MPI_BCAST(timeav    ,1,MY_REAL  ,0,comm3d,mpierr)
+    idtav = dtav/tres
+    dtav  = idtav*tres
+    itimeav = timeav/tres
+    timeav  = itimeav*tres
 
-    tnext    = dtav - 1e-3+btime
-    tnextwrite  = timeav - 1e-3+btime
-    nsamples  = nint(timeav/dtav)
-
+    tnext      = dtav   +btime
+    tnextwrite = timeav +btime
+    nsamples = itimeav/idtav
+    
     if (.not. lmicrostat) return
     if (abs(timeav/dtav - nsamples) > 1e-4) then
       stop 'timeav must be an integer multiple of dtav (NAMBULKMICROSTAT)'
@@ -181,8 +186,11 @@ subroutine initbulkmicrostat
       close(ifoutput)
     end if
     if (lnetcdf) then
-      dtav = dtav_prof
-      timeav = timeav_prof
+      idtav = idtav_prof
+      itimeav = itimeav_prof
+      tnext      = idtav+btime
+      tnextwrite = itimeav+btime
+      nsamples = itimeav/idtav
       if (myid==0) then
         fname(15:17) = cexpnr
         call ncinfo(tncname(1,:),'time','Time','s','time')
@@ -234,11 +242,11 @@ subroutine initbulkmicrostat
       return
     end if
     if (timee >= tnext) then
-      tnext = tnext + dtav
+      tnext = tnext + idtav
       call dobulkmicrostat
     end if
     if (timee >= tnextwrite) then
-      tnextwrite = tnextwrite + timeav
+      tnextwrite = tnextwrite + itimeav
       call writebulkmicrostat
     end if
 
@@ -347,7 +355,7 @@ subroutine initbulkmicrostat
 !> Write the stats to file
   subroutine writebulkmicrostat
     use modmpi,    only  : myid
-    use modglobal,    only  : timee, ifoutput, cexpnr, k1,kmax, &
+    use modglobal,    only  : rtimee, ifoutput, cexpnr, k1,kmax, &
               rlv, zf
     use modfields,    only  : presf
     use modmicrodata,  only  : rhoz
@@ -360,7 +368,7 @@ subroutine initbulkmicrostat
     integer    :: nsecs, nhrs, nminut
     integer    :: k
 
-    nsecs    = nint(timee)
+    nsecs    = nint(rtimee)
     nhrs    = int (nsecs/3600)
     nminut    = int (nsecs/60)-nhrs*60
     nsecs    = mod (nsecs,60)
