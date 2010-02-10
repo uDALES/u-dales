@@ -116,15 +116,17 @@ module modradfull
 contains
     subroutine radfull
   !   use radiation,    only : d4stream
-    use modglobal,    only : imax,i1,ih,jmax,j1,jh,kmax,k1,cp,dzf,rlv,rd,zf,pref0
+    use modglobal,    only : imax,i1,ih,jmax,j1,jh,kmax,k1,cp,dzf,dzh,rlv,rd,zf,pref0
     use modfields,    only : rhof, exnf,exnh, thl0,qt0,ql0,sv0
     use modsurfdata,  only : albedo, tskin, qskin, thvs, qts, ps
     use modmicrodata, only : imicro, imicro_bulk, Nc_0,iqr
     use modraddata,   only : thlprad, lwd,lwu,swd,swu,rho_air_mn
+use modmpi, only : myid
       implicit none
     real :: thlpld,thlplu,thlpsd,thlpsu
     real, dimension(k1)  :: rhof_b, exnf_b
     real, dimension(2-ih:i1+ih,2-jh:j1+jh,k1) :: temp_b, qv_b, ql_b,rr_b
+    real, dimension(1:i1+1,1:j1) :: tempskin
     integer :: i,j,k
 
     real :: exnersurf
@@ -146,40 +148,44 @@ contains
       !take care of the surface boundary conditions
       !CvH edit, extrapolation creates instability in surface scheme
       exnersurf = (ps/pref0) ** (rd/cp)
-      rhof_b(1) = ps / (rd * thvs * exnersurf) 
-      exnf_b(1) = exnersurf
-
-      !rhof_b(1) = rhof(1) + 2*zf(1)/dzf(1)*(rhof(1)-rhof(2))
-      !exnf_b(1) = exnh(1) + 0.5*dzf(1)*(exnh(1)-exnf(1))
+      rhof_b(1) = rhof(1) + dzh(1)/dzh(2)*(rhof(1)-rhof(2))
+      exnf_b(1) = exnh(1) + dzh(1)/dzh(2)*(rhof(1)-rhof(2))
+    
 
       do j=2,j1
         do i=2,i1
-          ql_b(i,j,1)   = 0.! CvH, no ql at surface
-          qv_b(i,j,1)   = qskin(i,j) !CvH, no ql at surface thus qv = qt
-          temp_b(i,j,1) = tskin(i,j)*exnersurf 
+          ql_b(i,j,1)   = 0
+          qv_b(i,j,1)   = qv_b(i,j,2) +dzh(1)/dzh(2)*(qv_b(i,j,2)-qv_b(i,j,3))
+          temp_b(i,j,1) = temp_b(i,j,2) +dzh(1)/dzh(2)*(temp_b(i,j,2)-temp_b(i,j,3))
         end do
       end do
-
+      tempskin = 0.5*(temp_b(1:i1+1,1:j1+1,1)+temp_b(1:i1+1,1:j1+1,1))
+      ! tempskin = tskin*exnh(1)
       !CvH end edit
 
       if (imicro==imicro_bulk) then
-        rr_b(:,:,1) = rr_b(:,:,2)
-        call d4stream(i1,ih,j1,jh,k1,tskin,albedo,Nc_0,rhof_b,exnf_b*cp,temp_b,qv_b,ql_b,swd,swu,lwd,lwu,rr=rr_b)
+        rr_b(:,:,1) = 0.
+        call d4stream(i1,ih,j1,jh,k1,tempskin,albedo,Nc_0,rhof_b,exnf_b*cp,temp_b,qv_b,ql_b,swd,swu,lwd,lwu,rr=rr_b)
       else
-        call d4stream(i1,ih,j1,jh,k1,tskin,albedo,Nc_0,rhof_b,exnf_b*cp,temp_b,qv_b,ql_b,swd,swu,lwd,lwu)
+        call d4stream(i1,ih,j1,jh,k1-1,tempskin,albedo,Nc_0,rhof_b,exnf_b*cp,temp_b,qv_b,ql_b,swd,swu,lwd,lwu)
       end if
 
 !Downward radiation fluxes are pointing downward in UCLALES, pointing upward in DALES
       lwd = -lwd
       swd = -swd
+!      lwd(:,:,1) = lwd(:,:,1)+0.3333333*(lwd(:,:,1)-lwd(:,:,2))
+!      swd(:,:,1) = swd(:,:,1)+0.3333333*(swd(:,:,1)-swd(:,:,2))
+!      lwu(:,:,1) = lwu(:,:,1)+0.3333333*(lwu(:,:,1)-lwu(:,:,2))
+!      swu(:,:,1) = swu(:,:,1)+0.3333333*(swu(:,:,1)-swu(:,:,2))
+
 !Add up thl tendency
       do k=1,kmax
         do j=2,j1
           do i=2,i1
-            thlpld          = -(lwd(i,j,k+1)-lwd(i,j,k))/(rho_air_mn*cp*dzf(k))
-            thlplu          = -(lwu(i,j,k+1)-lwu(i,j,k))/(rho_air_mn*cp*dzf(k))
-            thlpsd          = -(swd(i,j,k+1)-swd(i,j,k))/(rho_air_mn*cp*dzf(k))
-            thlpsu          = -(swu(i,j,k+1)-swu(i,j,k))/(rho_air_mn*cp*dzf(k))
+            thlpld          = -(lwd(i,j,k+1)-lwd(i,j,k))/(rhof(k)*cp*dzf(k))
+            thlplu          = -(lwu(i,j,k+1)-lwu(i,j,k))/(rhof(k)*cp*dzf(k))
+            thlpsd          = -(swd(i,j,k+1)-swd(i,j,k))/(rhof(k)*cp*dzf(k))
+            thlpsu          = -(swu(i,j,k+1)-swu(i,j,k))/(rhof(k)*cp*dzf(k))
 
             thlprad(i,j,k)  = thlprad(i,j,k) + thlpld+thlplu+thlpsu+thlpsd
           end do
