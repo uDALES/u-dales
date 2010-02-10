@@ -26,7 +26,7 @@
 !  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
 module modbudget
-
+  use modglobal, only : longint
 
   implicit none
   PRIVATE
@@ -40,7 +40,7 @@ module modbudget
   character(80),dimension(1,4) :: tncname
 
   real    :: dtav, timeav
-  integer :: idtav, itimeav,tnext,tnextwrite
+  integer(kind=longint) :: idtav, itimeav,tnext,tnextwrite
   integer :: nsamples
   logical :: lbudget= .false. ! switch for turbulent TKE budget
 

@@ -42,6 +42,7 @@ module modprojection
     !                                                                 |
     !    projectplane  LOCATION OF THE YZ-PLANE ON EVERY PROCESSOR      |
     !-----------------------------------------------------------------|
+  use modglobal, only : longint
 
 implicit none
 private
@@ -50,7 +51,7 @@ save
 
   real    :: dtav
   integer :: idtav,tnext
-  logical :: lproject = .false. ! switch for conditional sampling cloud (on/off)
+  logical(kind=longint) :: lproject = .false. ! switch for conditional sampling cloud (on/off)
   integer :: projectheight = 2  !lowest integration boundary
   integer :: projectplane = 2
 

@@ -27,13 +27,14 @@
 !
 !
 module modchecksim
+  use modglobal, only : longint
 
   implicit none
   private
   public initchecksim,checksim
 
   real    :: tcheck = 0.
-  integer :: tnext = 3600.,itcheck
+  integer(kind=longint) :: tnext = 3600.,itcheck
   real    :: dtmn =0.,ndt =0.
 
   save

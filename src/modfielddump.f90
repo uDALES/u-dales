@@ -27,6 +27,7 @@
 !
 module modfielddump
 
+  use modglobal, only : longint
 
 implicit none
 private
@@ -40,7 +41,7 @@ save
   character(80),dimension(1,4) :: tncname
 
   real    :: dtav
-  integer :: idtav,tnext
+  integer(kind=longint) :: idtav,tnext
   integer :: klow,khigh
   logical :: lfielddump= .false. !< switch to enable the fielddump (on/off)
   logical :: ldiracc   = .false. !< switch for doing direct access writing (on/off)

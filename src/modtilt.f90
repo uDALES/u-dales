@@ -81,6 +81,7 @@
     !          8.1 exittilt: deacllocte variables                     !
     !-----------------------------------------------------------------|
 module modtilt
+  use modglobal, only : longint
 implicit none
 PRIVATE
 PUBLIC :: thldefm,thldef0, ltilted,&
@@ -92,7 +93,7 @@ SAVE
   logical :: ltilted  = .false.
   logical :: lstat    = .true. !default = true, but subroutine only entered if ltilted=true
   real    :: dtav, timeav
-  integer :: idtav,itimeav,tnext,tnextwrite
+  integer(kind=longint) :: idtav,itimeav,tnext,tnextwrite
   integer :: nsamples
 
 
