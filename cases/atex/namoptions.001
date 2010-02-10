@@ -46,7 +46,7 @@ ps       =  101500.00
 thls     =  296.7357
 z0       =  1.5e-4
 ustin    =  0.3
-isurf    = 1
+isurf    = 2
 /
 
 
@@ -105,5 +105,5 @@ ltend      = .true.
 /
 &NAMCLOUDFIELD
 dtav=60
-lcloudfld = .true.
+lcloudfield = .true.
 /

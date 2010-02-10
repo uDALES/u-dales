@@ -73,7 +73,7 @@ subroutine tstep_update
         call MPI_ALLREDUCE(peclettotl,peclettot,1,MY_REAL,MPI_MAX,comm3d,mpierr)
         if ( pecletold>0) then
           if (abs(courtot-courold)/courold<0.1 .and. (abs(peclettot-pecletold)/pecletold<0.1)) then
-            dt = minval((/runtime-timee+btime,0.2*dt*courant/courtot,0.2*dt*peclet/peclettot,dt_lim/))
+            dt = minval((/runtime-timee+btime,0.2*dt*courant/courtot,0.2*dt*peclet/peclettot,dt_lim,dtmax/))
             dt_lim  = runtime-timee+btime
           else
             spinup = .false.
@@ -105,7 +105,7 @@ subroutine tstep_update
         call MPI_ALLREDUCE(courtotl,courtot,1,MY_REAL,MPI_MAX,comm3d,mpierr)
         call MPI_ALLREDUCE(peclettotl,peclettot,1,MY_REAL,MPI_MAX,comm3d,mpierr)
 
-        dt = minval((/runtime-timee+btime+1e-3, dt_lim, dt*courant/courtot, dt*peclet/peclettot, timee/))
+        dt = minval((/runtime-timee+btime+1e-3, dt_lim, dtmax, dt*courant/courtot, dt*peclet/peclettot, timee/))
 
         dt_lim = runtime-timee+btime
         timee   = timee  + dt

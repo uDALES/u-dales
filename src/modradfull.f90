@@ -7,11 +7,6 @@
 !!  \author Bjorn Stevens
 !!  \author Robert Pincus
 !!  \author Thijs Heus, MPI-M
-!!  \todo Full Radiation : Namelists and init; get rid of datafiles
-!!  \todo Full Radiation : Check difference between tllwmn and tlradtendmn
-!!  \todo Full Radiation : Couple with modsurface and modchem
-!!  \todo Full Radiation : Debug Microphysics
-!!  \todo Full Radiation : Clean up the code
 !!  \par Revision list
 !  This file is part of DALES.
 !

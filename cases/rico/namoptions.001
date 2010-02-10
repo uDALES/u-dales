@@ -35,7 +35,7 @@ thls       =  298.5
 
 
 lmoist     =  .true.
-isurf      =  2
+isurf      =  10
 irad       =  1
 timerad    =  2
 lcoriol    =  .true.
@@ -103,5 +103,5 @@ ltend      = .true.
 /
 &NAMCLOUDFIELD
 dtav=1440
-lcloudfld = .true.
+lcloudfield = .true.
 /

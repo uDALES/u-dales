@@ -1,6 +1,7 @@
 \documentclass[a4paper]{book}
 \usepackage{a4wide}
 \usepackage{makeidx}
+\usepackage{fancyhdr}
 \usepackage{graphicx}
 \usepackage{multicol}
 \usepackage{float}
@@ -28,10 +29,10 @@
 \fi
 \usepackage[utf8]{inputenc}
 \usepackage{doxygen}
-\lstset{language=C++,inputencoding=utf8,basicstyle=\footnotesize,breaklines=true,breakatwhitespace=true,tabsize=4,numbers=left }
-\usepackage{longtable,amssymb,amsmath,mathrsfs,fancyhdr,pdfpages}
+\lstset{language=C++,inputencoding=utf8,basicstyle=\footnotesize,breaklines=true
+,breakatwhitespace=true,tabsize=4,numbers=left }
+\usepackage{longtable,amssymb,amsmath,mathrsfs,pdfpages}
 \makeindex
-\setcounter{tocdepth}{3}
 \renewcommand{\footrulewidth}{0.4pt}
 \newcommand{\smfrac}[2]{#1/#2}
 \newcommand{\derr}[2]{\frac{\partial #1}{\partial #2}}
@@ -66,6 +67,6 @@
 \pagenumbering{arabic}
 \hypersetup{pageanchor=true}
 \chapter{General Introduction}
-\includepdf[pages=-]{dales-article.pdf}
-\includepdf[pages=-]{dales-manual.pdf}
-\includepdf[pages=-]{git_dales.pdf}
+% \includepdf[pages=-]{dales-article.pdf}
+% \includepdf[pages=-]{dales-manual.pdf}
+% \includepdf[pages=-]{git_dales.pdf}

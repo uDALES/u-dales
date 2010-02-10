@@ -68,6 +68,11 @@ contains
     if(myid==0)then
       open(ifnamopt,file=fname_options,status='old',iostat=ierr)
       read (ifnamopt,NAMSURFACE,iostat=ierr)
+      if (ierr > 0) then
+        print *, 'Problem in namoptions NAMSURFACE'
+        print *, 'iostat error: ', ierr
+        stop 'ERROR: Problem in namoptions NAMSURFACE'
+      endif
       write(6 ,NAMSURFACE)
       close(ifnamopt)
     end if
@@ -131,6 +136,16 @@ contains
       if(Qnetav == -1) then
         stop "NAMSURFACE: Qnetav is not set"
       end if
+      if(rsminav == -1) then
+        stop "NAMSURFACE: rsminav is not set"
+      end if
+      if(LAIav == -1) then
+        stop "NAMSURFACE: LAIav is not set"
+      end if
+      if(gDav == -1) then
+        stop "NAMSURFACE: gDav is not set"
+      end if
+
     end if
 
     !if(isurf == 2) then
@@ -149,16 +164,7 @@ contains
       end if
     end if
 
-    if(isurf <= 2) then
-      if(rsminav == -1) then
-        stop "NAMSURFACE: rsminav is not set"
-      end if
-      if(LAIav == -1) then
-        stop "NAMSURFACE: LAIav is not set"
-      end if
-      if(gDav == -1) then
-        stop "NAMSURFACE: gDav is not set"
-      end if
+    if(isurf == 1) then
     end if
 
     ! 1.1  -   Allocate arrays
@@ -328,6 +334,12 @@ contains
     allocate(svflux  (i2,j2,nsv))
     allocate(svs(nsv))
 
+    ! CvH set initial values for rs and ra to be able to compute qskin
+    if(isurf == 1) then
+      ra = 50.
+      rs = 100.
+    end if
+
     return
   end subroutine initsurface
 
@@ -460,7 +472,7 @@ contains
             tskin(i,j) = (1. + rk3coef / Cskin(i,j) * Bcoef) ** (-1.) * (tsurfm + rk3coef / Cskin(i,j) * Acoef) / exner
           end if
 
-          G0(i,j)       = lambdaskin(i,j) * ( tskin(i,j) - tsoil(i,j,1) )
+          G0(i,j)       = lambdaskin(i,j) * ( tskin(i,j) * exner - tsoil(i,j,1) )
           LE(i,j)       = - rhof(1) * rlv / (ra(i,j) + rs(i,j)) * ( qt0(i,j,1) - (dqsatdT * (tskin(i,j) * exner - tsurfm) + qsat))
           H(i,j)        = - rhof(1) * cp  / ra(i,j) * ( thl0(i,j,1) + (rlv / cp) / ((ps / pref0)**(rd/cp)) * ql0(i,j,1) - tskin(i,j) * exner ) 
           tendskin(i,j) = Cskin(i,j) * (tskin(i,j) - tskinm(i,j)) * exner / rk3coef
@@ -659,11 +671,13 @@ contains
 
 !> Calculate the surface humidity assuming saturation.
   subroutine qtsurf
-    use modglobal, only : tmelt,bt,at,rd,rv,cp,es0,pref0,rslabs,i1,j1
-    use modmpi,    only : my_real,mpierr,comm3d,mpi_sum,myid
+    use modglobal,   only : tmelt,bt,at,rd,rv,cp,es0,pref0,rslabs,i1,j1
+    use modfields,   only : qt0
+    use modsurfdata, only : rs, ra
+    use modmpi,      only : my_real,mpierr,comm3d,mpi_sum,myid
 
     implicit none
-    real       :: exner, tsurf, es, qtsl
+    real       :: exner, tsurf, qsatsurf, surfwet, es, qtsl
     integer    :: i,j
 
     if(isurf <= 2) then
@@ -673,9 +687,12 @@ contains
           exner      = (ps / pref0)**(rd/cp)
           tsurf      = tskin(i,j) * exner
           es         = es0 * exp (at*(tsurf-tmelt) / (tsurf-bt))
-          qskin(i,j) = rd / rv * es / (ps-(1-rd/rv)*es)
-
+          !qskin(i,j) = rd / rv * es / (ps-(1-rd/rv)*es)
+          qsatsurf   = rd / rv * es / (ps-(1-rd/rv)*es)
+          surfwet    = ra(i,j) / (ra(i,j) + rs(i,j))
+          qskin(i,j) = surfwet * qsatsurf + (1. - surfwet) * qt0(i,j,1)
           qtsl       = qtsl + qskin(i,j)
+          !write(6,*), ra(i,j), rs(i,j), surfwet
         end do
       end do
 
