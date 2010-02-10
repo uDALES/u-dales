@@ -168,19 +168,7 @@ contains
       lwd = -lwd
       swd = -swd
 !Add up thl tendency
-      !CvH: surface does NOT contain a full level but only 0.75
-        do j=2,j1
-          do i=2,i1
-            thlpld          = -(lwd(i,j,2)-lwd(i,j,1))/(rho_air_mn*cp*0.75*dzf(k))
-            thlplu          = -(lwu(i,j,2)-lwu(i,j,1))/(rho_air_mn*cp*0.75*dzf(k))
-            thlpsd          = -(swd(i,j,2)-swd(i,j,1))/(rho_air_mn*cp*0.75*dzf(k))
-            thlpsu          = -(swu(i,j,2)-swu(i,j,1))/(rho_air_mn*cp*0.75*dzf(k))
-
-            thlprad(i,j,k)  = thlprad(i,j,k) + thlpld+thlplu+thlpsu+thlpsd
-          end do
-        end do
-
-      do k=2,kmax
+      do k=1,kmax
         do j=2,j1
           do i=2,i1
             thlpld          = -(lwd(i,j,k+1)-lwd(i,j,k))/(rho_air_mn*cp*dzf(k))
