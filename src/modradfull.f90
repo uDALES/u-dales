@@ -167,6 +167,14 @@ contains
 !Downward radiation fluxes are pointing downward in UCLALES, pointing upward in DALES
       lwd = -lwd
       swd = -swd
+
+      !CvH extrapolate to surface
+
+      lwd(:,:,1) = lwd(:,:,1) + (1./3.) * (lwd(:,:,1) - lwd(:,:,2))
+      swd(:,:,1) = swd(:,:,1) + (1./3.) * (swd(:,:,1) - swd(:,:,2))
+      lwu(:,:,1) = lwu(:,:,1) + (1./3.) * (lwu(:,:,1) - lwu(:,:,2))
+      swu(:,:,1) = swu(:,:,1) + (1./3.) * (swu(:,:,1) - swu(:,:,2))
+
 !Add up thl tendency
       do k=1,kmax
         do j=2,j1
