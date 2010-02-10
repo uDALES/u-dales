@@ -22,7 +22,7 @@ ysize      =  3200.
 xlat       =  51.96
 xlon       =  4.95
 xday       =  287.
-xtime      =  6.
+xtime      =  12.
 /
 
 &PHYSICS
