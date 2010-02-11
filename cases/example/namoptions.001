@@ -62,10 +62,10 @@ lmostlocal   = .false.
 lsmoothflux  = .false.
 rsisurf2     = 50.
 
-z0mav        = 0.035
-z0hav        = 0.007
-Cskinav      = 0.
-lambdaskinav = 15.
+z0mav        = 0.1
+z0hav        = 0.05
+Cskinav      = 0
+lambdaskinav = 5.
 albedoav     = 0.20
 Qnetav       = 450.
 
@@ -111,7 +111,7 @@ dtav        = 60
 &NAMGENSTAT
 lstat       = .true.
 dtav        = 60
-timeav      = 300
+timeav      = 1800
 /
 &NAMFIELDDUMP
 lfielddump  = .false.
@@ -120,14 +120,14 @@ ldiracc     = .true.
 /
 &NAMSTATTEND
 dtav        = 60
-timeav      = 300
+timeav      = 1800
 ltend       = .true.
 /
 
 &NAMBUDGET
 lbudget = .true.
 dtav    = 60
-timeav  = 300
+timeav  = 1800
 /
 
 &NAMNETCDFMOVIE
@@ -141,5 +141,5 @@ slicex       = 1
 &NAMRADSTAT
 lstat = .true.
 dtav = 60
-timeav = 300
+timeav = 1800
 /
