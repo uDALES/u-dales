@@ -357,7 +357,7 @@ contains
   subroutine surface
     use modglobal,  only : rdt, i1, i2, j1, j2, cp, rlv, fkar, zf, cu, cv, nsv, rk3step, timee, rslabs, pi, pref0, rd, eps1, boltz
     use modraddata, only : iradiation, swu, swd, lwu, lwd, useMcICA
-    use modfields,  only : thl0, qt0, u0, v0, rhof, ql0, exnf
+    use modfields,  only : thl0, qt0, u0, v0, rhof, ql0, exnf, presf
     use modmpi,     only : my_real, mpierr, comm3d, mpi_sum, myid, excj
     use moduser,   only : surf_user
     implicit none
@@ -475,7 +475,6 @@ contains
           ! First, remove LWup from Qnet calculation
           Qnet(i,j) = Qnet(i,j) + boltz * tsurfm ** 4.
 
-          
           rssoil(i,j) = 100.
 
           fH      = rhof(1) * cp / ra(i,j)
@@ -485,13 +484,13 @@ contains
 
           fLE     = fLEveg + fLEsoil + fLEpot
 
-          exnera  = (ps / pref0) ** (rd/cp)
+          exnera  = (presf(1) / pref0) ** (rd/cp)
           Tatm    = exnera * thl0(i,j,1) + (rlv / cp) * ql0(i,j,1)
           
           rk3coef = rdt / (4. - dble(rk3step))
           
           !Acoef   = Qnet(i,j) + fH * Tatm + fLE * (dqsatdT * tsurfm - qsat + qt0(i,j,1)) + lambdaskin(i,j) * tsoil(i,j,1)
-          Acoef   = Qnet(i,j) - boltz * tsurfm ** 4. + 4. * boltz * tsurfm ** 3. * tsurfm / rk3coef + fH * Tatm + fLE * (dqsatdT * tsurfm - qsat + qt0(i,j,1)) + lambdaskin(i,j) * tsoil(i,j,1)
+          Acoef   = Qnet(i,j) - boltz * tsurfm ** 4. + 4. * boltz * tsurfm ** 4. / rk3coef + fH * Tatm + fLE * (dqsatdT * tsurfm - qsat + qt0(i,j,1)) + lambdaskin(i,j) * tsoil(i,j,1)
           !Bcoef   = fH + fLE * dqsatdT + lambdaskin(i,j)
           Bcoef   = 4. * boltz * tsurfm ** 3. / rk3coef + fH + fLE * dqsatdT + lambdaskin(i,j)
 
@@ -501,8 +500,8 @@ contains
             tskin(i,j) = (1. + rk3coef / Cskin(i,j) * Bcoef) ** (-1.) * (tsurfm + rk3coef / Cskin(i,j) * Acoef) / exner
           end if
 
+          Qnet(i,j)     = Qnet(i,j) - (boltz * tsurfm ** 4. + 4. * boltz * tsurfm ** 3. * (tskin(i,j) * exner - tsurfm) / rk3coef)
           !Qnet(i,j)     = Qnet(i,j) - boltz * (tskin(i,j) * exner) ** 4.
-          Qnet(i,j)     = Qnet(i,j) - boltz * (tskin(i,j) * exner) ** 4.
           G0(i,j)       = lambdaskin(i,j) * ( tskin(i,j) * exner - tsoil(i,j,1) )
           LE(i,j)       = - fLE * ( qt0(i,j,1) - (dqsatdT * (tskin(i,j) * exner - tsurfm) + qsat))
           H(i,j)        = - fH  * ( Tatm - tskin(i,j) * exner ) 
