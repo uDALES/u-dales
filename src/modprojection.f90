@@ -85,9 +85,8 @@ contains
     call MPI_BCAST(projectheight,1,MPI_INTEGER,0,comm3d,mpierr)
     call MPI_BCAST(projectplane ,1,MPI_INTEGER,0,comm3d,mpierr)
     idtav = dtav/tres
-    dtav  = idtav*tres
 
-    tnext      = dtav   +btime
+    tnext      = idtav   +btime
     if(.not.(lproject)) return
     dt_lim = min(dt_lim,tnext)
 

@@ -106,12 +106,10 @@ contains
     call MPI_BCAST(lstat   ,1,MPI_LOGICAL,0,comm3d,mpierr)
     call MPI_BCAST(lradclearair,1,MPI_LOGICAL,0,comm3d,mpierr)
     idtav = dtav/tres
-    dtav  = idtav*tres
     itimeav = timeav/tres
-    timeav  = itimeav*tres
 
-    tnext      = dtav   +btime
-    tnextwrite = timeav +btime
+    tnext      = idtav   +btime
+    tnextwrite = itimeav +btime
     nsamples = itimeav/idtav
 
 

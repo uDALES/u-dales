@@ -98,8 +98,7 @@ contains
     call MPI_BCAST(iblh_var   ,1,MPI_INTEGER,0,comm3d,mpierr)
     call MPI_BCAST(blh_nsamp  ,1,MPI_INTEGER,0,comm3d,mpierr)
     idtav = dtav/tres
-    dtav  = idtav*tres
-    
+   
     tnext = idtav+btime
 
     if(.not.(ltimestat)) return

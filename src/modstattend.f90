@@ -83,12 +83,10 @@ subroutine initstattend
     call MPI_BCAST(ltend      ,1,MPI_LOGICAL,0,comm3d,mpierr)
 
     idtav = dtav/tres
-    dtav  = idtav*tres
     itimeav = timeav/tres
-    timeav  = itimeav*tres
 
-    tnext      = dtav   +btime
-    tnextwrite = timeav +btime
+    tnext      = idtav   +btime
+    tnextwrite = itimeav +btime
     nsamples = itimeav/idtav
     if(.not.(ltend)) return
     dt_lim = min(dt_lim,tnext)
@@ -114,12 +112,10 @@ subroutine initstattend
     qtpav = 0
     if (lnetcdf) then
     idtav = dtav/tres
-    dtav  = idtav*tres
     itimeav = timeav/tres
-    timeav  = itimeav*tres
 
-    tnext      = dtav   +btime
-    tnextwrite = timeav +btime
+    tnext      = idtav   +btime
+    tnextwrite = itimeav +btime
     nsamples = itimeav/idtav
      if (myid==0) then
         fname(10:12) = cexpnr
@@ -181,13 +177,12 @@ subroutine initstattend
 !> Performs the statistics, keeps track of what the tendencies were last time, and what they are this time.
   subroutine stattend(tendterm,lastterm)
     use modmpi,    only : myid,slabsum
-    use modglobal, only : ih,jh,i1,j1,kmax,k1,rk3step,timee,dt_lim,rslabs
+    use modglobal, only : ih,jh,i1,j1,kmax,k1,rk3step,timee,dt_lim,rslabs,btime
     use modfields, only : up,vp,wp,thlp,qtp
     implicit none
     integer, intent(in)           :: tendterm !< name of the term to write down
     logical, intent(in), optional :: lastterm !< true if this is the last term of the equations; the write routine is entered.
     real, dimension(:),allocatable :: avfield
-
     if (.not.(ltend)) return
     if (rk3step/=3) return
     if(timee<tnext) then

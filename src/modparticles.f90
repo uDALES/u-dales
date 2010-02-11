@@ -137,14 +137,11 @@ contains
     if (.not.(lpartic)) return
       if(lstat) then
         idtav = dtav/tres
-        dtav  = idtav*tres
         itimeav = timeav/tres
         itimedump = timedump/tres
-        timeav  = itimeav*tres
-        timedump  = itimedump*tres
 
-        tnext      = dtav   +btime
-        tnextwrite = timeav +btime
+        tnext      = idtav   +btime
+        tnextwrite = itimeav +btime
         nsamples = itimeav/idtav
         tnextdump  = itimedump+btime
         dt_lim = min(dt_lim,tnext)
@@ -603,7 +600,7 @@ contains
 
     if (timee>=tnext) then
       tnext = tnext+idtav
-     dt_lim = minval((/dt_lim,tnext-timee/))
+      dt_lim = minval((/dt_lim,tnext-timee/))
       particle =>head
       do while (associated(particle))
 

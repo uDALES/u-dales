@@ -108,12 +108,10 @@ contains
     call MPI_BCAST(dtav       ,1,MY_REAL    ,0,comm3d,mpierr)
     call MPI_BCAST(lbudget    ,1,MPI_LOGICAL,0,comm3d,mpierr)
     idtav = dtav/tres
-    dtav  = idtav*tres
     itimeav = timeav/tres
-    timeav  = itimeav*tres
 
-    tnext      = dtav   +btime
-    tnextwrite = timeav +btime
+    tnext      = idtav   +btime
+    tnextwrite = itimeav +btime
     nsamples = itimeav/idtav
     if(.not.(lbudget)) return
     dt_lim = min(dt_lim,tnext)

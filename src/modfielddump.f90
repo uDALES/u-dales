@@ -79,9 +79,8 @@ contains
     call MPI_BCAST(lfielddump  ,1,MPI_LOGICAL,0,comm3d,ierr)
     call MPI_BCAST(ldiracc     ,1,MPI_LOGICAL,0,comm3d,ierr)
     idtav = dtav/tres
-    dtav  = idtav*tres
 
-    tnext      = dtav   +btime
+    tnext      = idtav   +btime
     if(.not.(lfielddump)) return
     dt_lim = min(dt_lim,tnext)
 

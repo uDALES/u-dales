@@ -123,12 +123,10 @@ contains
 
     if(isamptot == 0) return
      idtav = dtav/tres
-    dtav  = idtav*tres
     itimeav = timeav/tres
-    timeav  = itimeav*tres
 
-    tnext      = dtav   +btime
-    tnextwrite = timeav +btime
+    tnext      = idtav   +btime
+    tnextwrite = itimeav +btime
     if (abs(timeav/dtav-nint(timeav/dtav))>1e-4) then
       stop 'timeav must be a integer multiple of dtav'
     end if

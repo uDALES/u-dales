@@ -79,8 +79,7 @@ contains
     call MPI_BCAST(crossheight,1,MPI_INTEGER,0,comm3d,mpierr)
     call MPI_BCAST(crossplane ,1,MPI_INTEGER,0,comm3d,mpierr)
     idtav = dtav/tres
-    dtav  = idtav*tres
-    tnext   = dtav+dtav
+    tnext   = idtav+btime
     if(.not.(lcross)) return
     dt_lim = min(dt_lim,tnext)
 

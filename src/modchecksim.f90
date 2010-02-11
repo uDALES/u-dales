@@ -66,7 +66,7 @@ contains
 
     call MPI_BCAST(tcheck     ,1,MY_REAL   ,0,comm3d,mpierr)
     itcheck = floor(tcheck/tres)
-    tnext = tcheck+btime
+    tnext = itcheck+btime
 
 
   end subroutine initchecksim
@@ -80,7 +80,7 @@ contains
     if (rk3step/=3) return
     dtmn = dtmn +rdt; ndt =ndt+1.
     if(timee<tnext) return
-    tnext = tnext+tcheck
+    tnext = tnext+itcheck
     dtmn  = dtmn / ndt
     if (myid==0) then
       call date_and_time(time=timeday)
