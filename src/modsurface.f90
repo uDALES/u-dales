@@ -335,9 +335,11 @@ contains
     allocate(svs(nsv))
 
     ! CvH set initial values for rs and ra to be able to compute qskin
-    if(isurf == 1) then
+    if(isurf <= 2) then
       ra = 50.
-      rs = 100.
+      if(isurf == 1) then
+        rs = 100.
+      end if
     end if
 
     return
