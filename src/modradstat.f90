@@ -396,10 +396,10 @@ contains
         vars(:, 6) = lwdmn
         vars(:, 7) = swumn
         vars(:, 8) = swdmn
-         vars(:, 5) = lwucamn
-        vars(:, 6) = lwdcamn
-        vars(:, 7) = swucamn
-        vars(:, 8) = swdcamn
+        vars(:, 9) = lwucamn
+        vars(:,10) = lwdcamn
+        vars(:,11) = swucamn
+        vars(:,12) = swdcamn
        call writestat_nc(ncid_prof,nvar,ncname,vars(1:kmax,:),nrec_prof,kmax)
       end if
     end if ! end if(myid==0)
