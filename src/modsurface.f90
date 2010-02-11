@@ -53,9 +53,9 @@ contains
     namelist/NAMSURFACE/ & !< Soil related variables
       isurf,tsoilav, tsoildeepav, phiwav, rootfav, &
       ! Land surface related variables
-      lmostlocal, lsmoothflux, z0mav, z0hav, rsisurf2, Cskinav, lambdaskinav, albedoav, Qnetav, &
+      lmostlocal, lsmoothflux, z0mav, z0hav, rsisurf2, Cskinav, lambdaskinav, albedoav, Qnetav, cvegav, &
       ! Jarvis-Steward related variables
-      rsminav, LAIav, gDav, &
+      rsminav, rssoilminav, LAIav, gDav, &
       ! Prescribed values for isurf 2, 3, 4
       z0, thls, ps, ustin, wtsurf, wqsurf, wsvsurf
 
@@ -273,6 +273,10 @@ contains
     if(isurf <= 2) then
       allocate(rs(i2,j2))
       allocate(rsmin(i2,j2))
+      allocate(rssoil(i2,j2))
+      allocate(rssoilmin(i2,j2))
+      allocate(cveg(i2,j2))
+      allocate(cliq(i2,j2))
       allocate(ra(i2,j2))
       allocate(tendskin(i2,j2))
       allocate(tskinm(i2,j2))
@@ -284,8 +288,12 @@ contains
       Cskin      = Cskinav
       lambdaskin = lambdaskinav
       rsmin      = rsminav
+      rssoilmin  = rsminav
       LAI        = LAIav
       gD         = gDav
+
+      cveg       = cvegav
+      cliq       = 0.
     end if
 
     allocate(albedo(i2,j2))
@@ -347,14 +355,14 @@ contains
 
 !> Calculates the interaction with the soil, the surface temperature and humidity, and finally the surface fluxes.
   subroutine surface
-    use modglobal,  only : dt, i1, i2, j1, j2, cp, rlv, fkar, zf, cu, cv, nsv, rk3step, timee, rslabs, pi, pref0, rd, eps1
+    use modglobal,  only : dt, i1, i2, j1, j2, cp, rlv, fkar, zf, cu, cv, nsv, rk3step, timee, rslabs, pi, pref0, rd, eps1, boltz
     use modraddata, only : iradiation, swu, swd, lwu, lwd, useMcICA
     use modfields,  only : thl0, qt0, u0, v0, rhof, ql0, exnf
     use modmpi,     only : my_real, mpierr, comm3d, mpi_sum, myid, excj
     use moduser,   only : surf_user
     implicit none
 
-    real     :: f1, f2, f3 ! Correction functions for Jarvis-Steward
+    real     :: f1, f2, f3, f4 ! Correction functions for Jarvis-Steward
     integer  :: i, j, k, n
     real     :: upcu, vpcv, horv
     real     :: phimzf, phihzf
@@ -364,7 +372,8 @@ contains
     real     :: ustl, wtsurfl, wqsurfl
 
     real     :: swdav, swuav, lwdav, lwuav
-    real     :: exner, tsurfm, e, esat, qsat, desatdT, dqsatdT, Acoef, Bcoef
+    real     :: exner, exnera, tsurfm, Tatm, e, esat, qsat, desatdT, dqsatdT, Acoef, Bcoef
+    real     :: fH, fLE, fLEveg, fLEsoil, fLEpot
 
     if (isurf==10) then
       call surf_user
@@ -463,10 +472,32 @@ contains
           desatdT = esat * (17.2694 / (tsurfm - 35.86) - 17.2694 * (tsurfm - 273.16) / (tsurfm - 35.86)**2.)
           dqsatdT = 0.622 * desatdT / ps
 
-          Acoef   = Qnet(i,j) + rhof(1) * cp / ra(i,j) * thl0(i,j,1) + rhof(1) * rlv / (ra(i,j) + rs(i,j)) * (dqsatdT * tsurfm - qsat + qt0(i,j,1)) + lambdaskin(i,j) * tsoil(i,j,1)
-          Bcoef   = rhof(1) * cp / ra(i,j) + rhof(1) * rlv / (ra(i,j) + rs(i,j)) * dqsatdT + lambdaskin(i,j)
+          ! First, remove LWup from Qnet calculation
+          Qnet(i,j) = Qnet(i,j) + boltz * tsurfm ** 4.
+
+          
+          rssoil(i,j) = 100.
+
+          fH      = rhof(1) * cp / ra(i,j)
+          fLEveg  = (1. - cliq(i,j)) * cveg(i,j) * rhof(1) * rlv / (ra(i,j) + rs(i,j))
+          fLEsoil = (1. - cveg(i,j))             * rhof(1) * rlv / (ra(i,j) + rssoil(i,j))
+          fLEpot  = cliq(i,j) * cveg(i,j)        * rhof(1) * rlv /  ra(i,j)
+
+          fLE     = fLEveg + fLEsoil + fLEpot
+
+          exnera  = (ps / pref0) ** (rd/cp)
+          Tatm    = exnera * thl0(i,j,1) + (rlv / cp) * ql0(i,j,1)
+          
+          
+          !Acoef   = Qnet(i,j) + fH * Tatm + fLE * (dqsatdT * tsurfm - qsat + qt0(i,j,1)) + lambdaskin(i,j) * tsoil(i,j,1)
+          Acoef   = Qnet(i,j) - boltz * tsurfm ** 4. + 4. * boltz * tsurfm ** 3. * tsurfm / rk3coef + fH * Tatm + fLE * (dqsatdT * tsurfm - qsat + qt0(i,j,1)) + lambdaskin(i,j) * tsoil(i,j,1)
+          !Bcoef   = fH + fLE * dqsatdT + lambdaskin(i,j)
+          Bcoef   = 4. * boltz * tsurfm ** 3. / rk3coef + fH + fLE * dqsatdT + lambdaskin(i,j)
 
           rk3coef = dt / (4. - dble(rk3step))
+
+          if(i == 2 .and. j <= 3) write(6,*) "SEB0:", Bcoef, 4. * boltz * tsurfm ** 3. / rk3coef, fH + fLE * dqsatdT + lambdaskin(i,j)
+          if(i == 2 .and. j == 3) stop
 
           if (Cskin(i,j) == 0.) then
             tskin(i,j) = Acoef * Bcoef ** (-1.) / exner
@@ -474,11 +505,16 @@ contains
             tskin(i,j) = (1. + rk3coef / Cskin(i,j) * Bcoef) ** (-1.) * (tsurfm + rk3coef / Cskin(i,j) * Acoef) / exner
           end if
 
+          Qnet(i,j)     = Qnet(i,j) - boltz * (tskin(i,j) * exner) ** 4.
           G0(i,j)       = lambdaskin(i,j) * ( tskin(i,j) * exner - tsoil(i,j,1) )
-          LE(i,j)       = - rhof(1) * rlv / (ra(i,j) + rs(i,j)) * ( qt0(i,j,1) - (dqsatdT * (tskin(i,j) * exner - tsurfm) + qsat))
-          H(i,j)        = - rhof(1) * cp  / ra(i,j) * ( thl0(i,j,1) + (rlv / cp) / ((ps / pref0)**(rd/cp)) * ql0(i,j,1) - tskin(i,j) * exner ) 
+          LE(i,j)       = - fLE * ( qt0(i,j,1) - (dqsatdT * (tskin(i,j) * exner - tsurfm) + qsat))
+          H(i,j)        = - fH  * ( Tatm - tskin(i,j) * exner ) 
           tendskin(i,j) = Cskin(i,j) * (tskin(i,j) - tskinm(i,j)) * exner / rk3coef
 
+          !write(6,*) "SEB:", Qnet(i,j), H(i,j), LE(i,j), G0(i,j), tendskin(i,j), H(i,j)+LE(i,j)+G0(i,j)+tendskin(i,j)
+
+          
+          
           ! 1.4   -   Solve the diffusion equation for the heat transport
           tsoil(i,j,1) = tsoil(i,j,1) + dt / pCs(i,j,1) * ( lambdah(i,j,ksoilmax) * (tsoil(i,j,2) - tsoil(i,j,1)) / dzsoilh(1) + G0(i,j) ) / dzsoil(1)
           do k = 2, ksoilmax-1

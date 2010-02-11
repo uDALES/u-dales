@@ -360,21 +360,20 @@ subroutine radpar
 
   subroutine radlsm
     use modsurfdata, only : albedo, tskin
-    use modglobal,   only : i1, j1, timee, xtime, xday, xlat, xlon
+    use modglobal,   only : i1, j1, timee, xtime, xday, xlat, xlon, boltz
     use modfields,   only : thl0
     implicit none
     integer   :: i,j
-    real      :: S0, bolz
+    real      :: S0
 
     S0 = 980.
-    bolz = 5.67e-8
 
     do j=2,j1
       do i=2,i1
         swd(i,j,1) = - S0 * zenith(xtime + timee / 3600., xday, xlat, xlon)
         swu(i,j,1) = - albedo(i,j) * swd(i,j,1)
-        lwd(i,j,1) = - 0.8 * bolz * thl0(i,j,1) ** 4.
-        lwu(i,j,1) = bolz * tskin(i,j) ** 4.
+        lwd(i,j,1) = - 0.8 * boltz * thl0(i,j,1) ** 4.
+        lwu(i,j,1) = boltz * tskin(i,j) ** 4.
       end do
     end do
 

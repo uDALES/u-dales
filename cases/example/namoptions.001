@@ -70,6 +70,8 @@ albedoav     = 0.20
 Qnetav       = 450.
 
 rsminav      = 110.
+rssoilminav  = 50.
+cvegav       = 1.
 LAIav        = 2.
 gDav         = 0.
 /
