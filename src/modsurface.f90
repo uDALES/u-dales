@@ -790,7 +790,7 @@ contains
               if(Rib > 0) L = 0.01
               if(Rib < 0) L = -0.01
             end if
-            if(abs(L - Lold) < 0.001) exit
+            if(abs(L - Lold) < 0.0001) exit
           end do
 
           obl(i,j) = L
@@ -840,13 +840,13 @@ contains
           if(Rib > 0) L = 0.01
           if(Rib < 0) L = -0.01
         end if
-        if(abs(L - Lold) < 0.001) exit
+        if(abs(L - Lold) < 0.0001) exit
       end do
 
       obl   = L
       oblav = L
 
-      write(6,*) "CvH iter: ", iter
+      write(6,*) "CvH iter: ", iter, Rib
 
     end if
 
