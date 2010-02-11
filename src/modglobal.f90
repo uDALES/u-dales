@@ -63,31 +63,32 @@ save
       integer, parameter :: ifoutput   = 2
       integer, parameter :: ifnamopt   = 3
 
-      real,parameter :: pi      = 3.141592653589793116
-      real,parameter :: grav    = 9.81             !<    *gravity acceleration.
-      real,parameter :: rd      = 287.04           !<    *gas constant for dry air.
-      real,parameter :: rv      = 461.5            !<    *gas constant for water vapor.
-      real,parameter :: cp      = 1004.            !<    *specific heat at constant pressure (dry air).
-      real,parameter :: rlv     = 2.5e6            !<    *latent heat for vaporisation.
-      real,parameter :: ep      = rd/rv            !<    0.622
-      real,parameter :: ep2     = rv/rd - 1.       !<    0.61
-      !< real,parameter :: cv      = cp-rd            !<    716.96
-      real,parameter :: rcp     = rd/cp            !<    0.286
-      real,parameter :: cpr     = cp/rd            !<    3.50
-      real,parameter :: rlvocp  = rlv/cp           !<    2.49
-      real, parameter :: mair   = 28.967          !< Molar mass of air
+      real,parameter :: pi       = 3.141592653589793116
+      real,parameter :: grav     = 9.81             !<    *gravity acceleration.
+      real,parameter :: rd       = 287.04           !<    *gas constant for dry air.
+      real,parameter :: rv       = 461.5            !<    *gas constant for water vapor.
+      real,parameter :: cp       = 1004.            !<    *specific heat at constant pressure (dry air).
+      real,parameter :: rlv      = 2.5e6            !<    *latent heat for vaporisation.
+      real,parameter :: ep       = rd/rv            !<    0.622
+      real,parameter :: ep2      = rv/rd - 1.       !<    0.61
+      !< real,parameter :: cv       = cp-rd            !<    716.96
+      real,parameter :: rcp      = rd/cp            !<    0.286
+      real,parameter :: cpr      = cp/rd            !<    3.50
+      real,parameter :: rlvocp   = rlv/cp           !<    2.49
+      real, parameter :: mair    = 28.967          !< Molar mass of air
 
-      real,parameter :: rhow    = 0.998e3          !<    * Density of water
-      real,parameter :: pref0   = 1.e5             !<    *standard pressure used in exner function.
-      real,parameter :: tmelt   = 273.16           !<    *temperature of melting of ice.
-      real,parameter :: es0     = 610.78           !<    * constants used for computation
-      real,parameter :: at      = 17.27            !<    * of saturation mixing ratio
-      real,parameter :: bt      = 35.86            !<    * using Tetens Formula.
-      real,parameter :: ekmin   = 1.e-6            !<    *minimum value for k-coefficient.
-      real,parameter :: e12min  = 5.e-5            !<    *minimum value for TKE.
-      real,parameter :: fkar    = 0.4              !<    *Von Karman constant
-      real,parameter :: eps1    = 1.e-10           !<    *very small number*
-      real,parameter :: epscloud= 1.e-5            !<    *limit for cloud calculation 0.01 g/kg
+      real,parameter :: rhow     = 0.998e3          !<    * Density of water
+      real,parameter :: pref0    = 1.e5             !<    *standard pressure used in exner function.
+      real,parameter :: tmelt    = 273.16           !<    *temperature of melting of ice.
+      real,parameter :: es0      = 610.78           !<    * constants used for computation
+      real,parameter :: at       = 17.27            !<    * of saturation mixing ratio
+      real,parameter :: bt       = 35.86            !<    * using Tetens Formula.
+      real,parameter :: ekmin    = 1.e-6            !<    *minimum value for k-coefficient.
+      real,parameter :: e12min   = 5.e-5            !<    *minimum value for TKE.
+      real,parameter :: fkar     = 0.4              !<    *Von Karman constant
+      real,parameter :: eps1     = 1.e-10           !<    *very small number*
+      real,parameter :: epscloud = 1.e-5            !<    *limit for cloud calculation 0.01 g/kg
+      real,parameter :: boltz    = 5.67e-8          !<    *Stefan-Boltzmann constant
 
       logical :: lcoriol  = .true.  !<  switch for coriolis force
       real    :: om22                       !<    *2.*omega_earth*cos(lat)
