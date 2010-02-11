@@ -756,7 +756,7 @@ contains
 
     integer             :: i,j,n,iter
     real                :: thv, L, horv2, horv2l, oblavl
-    real                :: Rib, Lstart, Lend, fx, fxdif
+    real                :: Rib, Lstart, Lend, fx, fxdif, Lold
 
     if(lmostlocal) then
 
@@ -770,7 +770,7 @@ contains
 
           Rib   = grav / thvs * zf(1) * (thv - thvs) / horv2
 
-          iter = 10
+          iter = 0
           L = obl(i,j)
 
           if(Rib * L < 0. .or. abs(L) == 1e5) then
@@ -778,7 +778,9 @@ contains
             if(Rib < 0) L = -0.01
           end if
 
-          do n = 0, iter
+          do while (.true.)
+            iter    = iter + 1
+            Lold    = L
             fx      = Rib - zf(1) / L * (log(zf(1) / z0h(i,j)) - psih(zf(1) / L) + psih(z0h(i,j) / L)) / (log(zf(1) / z0m(i,j)) - psim(zf(1) / L) + psim(z0m(i,j) / L)) ** 2.
             Lstart  = L - 0.001*L
             Lend    = L + 0.001*L
@@ -788,6 +790,7 @@ contains
               if(Rib > 0) L = 0.01
               if(Rib < 0) L = -0.01
             end if
+            if(abs(L - Lold) < 0.001) exit
           end do
 
           obl(i,j) = L
@@ -817,7 +820,7 @@ contains
 
       Rib   = grav / thvs * zf(1) * (thv - thvs) / horv2
 
-      iter = 10
+      iter = 0
       L = oblav
 
       if(Rib * L < 0. .or. abs(L) == 1e5) then
@@ -825,7 +828,9 @@ contains
         if(Rib < 0) L = -0.01
       end if
 
-      do i = 0, iter
+      do while (.true.)
+        iter    = iter + 1
+        Lold    = L
         fx      = Rib - zf(1) / L * (log(zf(1) / z0hav) - psih(zf(1) / L) + psih(z0hav / L)) / (log(zf(1) / z0mav) - psim(zf(1) / L) + psim(z0mav / L)) ** 2.
         Lstart  = L - 0.001*L
         Lend    = L + 0.001*L
@@ -835,10 +840,13 @@ contains
           if(Rib > 0) L = 0.01
           if(Rib < 0) L = -0.01
         end if
+        if(abs(L - Lold) < 0.001) exit
       end do
 
       obl   = L
       oblav = L
+
+      write(6,*) "CvH iter: ", iter
 
     end if
 
