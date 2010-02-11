@@ -71,7 +71,7 @@ Qnetav       = 450.
 
 rsminav      = 110.
 rssoilminav  = 50.
-cvegav       = 1.
+cvegav       = 0.9
 LAIav        = 2.
 gDav         = 0.
 /
