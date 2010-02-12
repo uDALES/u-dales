@@ -417,7 +417,6 @@ contains
             f4      = 1./ (1. - 0.0016 * (298.0 - Tatm) ** 2.)
 
             rsveg(i,j)  = rsmin(i,j) / LAI(i,j) * f1 * f2 * f3 * f4
-            if(i == 2 .and. j == 2) write(6,*) "CvH f: ", f1, f2, f3, f4
 
             ! 2.2   - Calculate soil resistance based on ECMWF method
 
@@ -535,9 +534,6 @@ contains
           H(i,j)        = - fH  * ( Tatm - tskin(i,j) * exner ) 
           tendskin(i,j) = Cskin(i,j) * (tskin(i,j) - tskinm(i,j)) * exner / rk3coef
 
-          if(i == 2 .and. j == 2) write(6,*) "rsveg, rssoil, rs", rsveg(i,j), rssoil(i,j), rs(i,j), qsat - qt0(i,j,1)
-          !write(6,*) "SEB: ", Qnet(i,j), H(i,j), LE(i,j), G0(i,j), tendskin(i,j), H(i,j)+LE(i,j)+G0(i,j)+tendskin(i,j)
-          !write(6,*) "LEv, LEs ", -fLEveg * (qt0(i,j,1) - (dqsatdT * (tskin(i,j) * exner - tsurfm) + qsat)), -fLEsoil * ( qt0(i,j,1) - (dqsatdT * (tskin(i,j) * exner - tsurfm) + qsat))
 
           ! 1.4   -   Solve the diffusion equation for the heat transport
           tsoil(i,j,1) = tsoil(i,j,1) + rdt / pCs(i,j,1) * ( lambdah(i,j,ksoilmax) * (tsoil(i,j,2) - tsoil(i,j,1)) / dzsoilh(1) + G0(i,j) ) / dzsoil(1)
@@ -875,7 +871,6 @@ contains
       obl   = L
       oblav = L
 
-      write(6,*) "CvH iter: ", iter, Rib
 
     end if
 
