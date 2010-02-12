@@ -396,19 +396,28 @@ contains
             rs(i,j) = rsisurf2
           else
             ! 2.1   -   Calculate the surface resistance 
+            ! Stomatal opening as a function of incoming short wave radiation
             if (iradiation > 0) then
               f1  = 1. / min(1., (0.004 * max(0.,-swd(i,j,1)) + 0.05) / (0.81 * (0.004 * max(0.,-swd(i,j,1)) + 1.)))
             else
               f1  = 1.
             end if
 
+            ! Soil moisture availability
             f2  = (phifc - phiwp) / (phitot(i,j) - phiwp)
 
+            ! Response of stomata to vapor deficit of atmosphere
             esat = 0.611e3 * exp(17.2694 * (thl0(i,j,1) - 273.16) / (thl0(i,j,1) - 35.86))
             e    = qt0(i,j,1) * ps / 0.622
             f3   = 1. / exp(-gD(i,j) * (esat - e) / 100.)
 
-            rsveg(i,j)  = rsmin(i,j) / LAI(i,j) * f1 * f2 * f3
+            ! Response to temperature
+            exnera  = (presf(1) / pref0) ** (rd/cp)
+            Tatm    = exnera * thl0(i,j,1) + (rlv / cp) * ql0(i,j,1)
+            f4      = 1./ (1. - 0.0016 * (298.0 - Tatm) ** 2.)
+
+            rsveg(i,j)  = rsmin(i,j) / LAI(i,j) * f1 * f2 * f3 * f4
+            if(i == 2 .and. j == 2) write(6,*) "CvH f: ", f1, f2, f3, f4
 
             ! 2.2   - Calculate soil resistance based on ECMWF method
 
@@ -767,7 +776,7 @@ contains
     use modmpi,    only : my_real,mpierr,comm3d,mpi_sum,myid,excj
     implicit none
 
-    integer             :: i,j,n,iter
+    integer             :: i,j,iter
     real                :: thv, L, horv2, horv2l, oblavl
     real                :: Rib, Lstart, Lend, fx, fxdif, Lold
 
