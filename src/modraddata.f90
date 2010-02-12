@@ -72,7 +72,7 @@ SAVE
 
 
 contains
-!< Calculation of the zenith angle
+!< Calculation of the cosine of the zenith angle
 !< \param time UTC Time of the simulation
 !< \param xday Day at the start of the simulation
 !< \param xlat Latitude of the domain
