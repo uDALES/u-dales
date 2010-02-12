@@ -491,7 +491,15 @@ contains
           ! First, remove LWup from Qnet calculation
           Qnet(i,j) = Qnet(i,j) + boltz * tsurfm ** 4.
 
+          ! Calculate coefficients for surface fluxes
           fH      = rhof(1) * cp / ra(i,j)
+
+          ! Allow for dew fall
+          if(qsat - qt0(i,j,1) < 0.) then
+            rsveg(i,j)  = 0.
+            rssoil(i,j) = 0.
+          end if
+
           fLEveg  = (1. - cliq(i,j)) * cveg(i,j) * rhof(1) * rlv / (ra(i,j) + rsveg(i,j))
           fLEsoil = (1. - cveg(i,j))             * rhof(1) * rlv / (ra(i,j) + rssoil(i,j))
           fLEpot  = cliq(i,j) * cveg(i,j)        * rhof(1) * rlv /  ra(i,j)
@@ -527,7 +535,7 @@ contains
           H(i,j)        = - fH  * ( Tatm - tskin(i,j) * exner ) 
           tendskin(i,j) = Cskin(i,j) * (tskin(i,j) - tskinm(i,j)) * exner / rk3coef
 
-          !write(6,*) "rsveg, rssoil, rs", rsveg(i,j), rssoil(i,j), rs(i,j)
+          if(i == 2 .and. j == 2) write(6,*) "rsveg, rssoil, rs", rsveg(i,j), rssoil(i,j), rs(i,j), qsat - qt0(i,j,1)
           !write(6,*) "SEB: ", Qnet(i,j), H(i,j), LE(i,j), G0(i,j), tendskin(i,j), H(i,j)+LE(i,j)+G0(i,j)+tendskin(i,j)
           !write(6,*) "LEv, LEs ", -fLEveg * (qt0(i,j,1) - (dqsatdT * (tskin(i,j) * exner - tsurfm) + qsat)), -fLEsoil * ( qt0(i,j,1) - (dqsatdT * (tskin(i,j) * exner - tsurfm) + qsat))
 
