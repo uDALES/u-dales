@@ -393,19 +393,28 @@ contains
             rs(i,j) = rsisurf2
           else
               ! 2.1   -   Calculate the surface resistance 
+            ! Stomatal opening as a function of incoming short wave radiation
               if (iradiation > 0) then
                 f1  = 1. / min(1., (0.004 * max(0.,-swd(i,j,1)) + 0.05) / (0.81 * (0.004 * max(0.,-swd(i,j,1)) + 1.)))
               else
                 f1  = 1.
               end if
 
+            ! Soil moisture availability
               f2  = (phifc - phiwp) / (phitot(i,j) - phiwp)
 
+            ! Response of stomata to vapor deficit of atmosphere
               esat = 0.611e3 * exp(17.2694 * (thl0(i,j,1) - 273.16) / (thl0(i,j,1) - 35.86))
               e    = qt0(i,j,1) * ps / 0.622
               f3   = 1. / exp(-gD(i,j) * (esat - e) / 100.)
 
-              rs(i,j) = rsmin(i,j) / LAI(i,j) * f1 * f2 * f3
+            ! Response to temperature
+            exnera  = (presf(1) / pref0) ** (rd/cp)
+            Tatm    = exnera * thl0(i,j,1) + (rlv / cp) * ql0(i,j,1)
+            f4      = 1./ (1. - 0.0016 * (298.0 - Tatm) ** 2.)
+
+            rsveg(i,j)  = rsmin(i,j) / LAI(i,j) * f1 * f2 * f3 * f4
+            if(i == 2 .and. j == 2) write(6,*) "CvH f: ", f1, f2, f3, f4
           end if
 
           ! 3     -   Calculate the drag coefficient and aerodynamic resistance
@@ -474,10 +483,8 @@ contains
           ! First, remove LWup from Qnet calculation
           Qnet(i,j) = Qnet(i,j) + boltz * tsurfm ** 4.
 
-          rssoil(i,j) = 100.
-
           fH      = rhof(1) * cp / ra(i,j)
-          fLEveg  = (1. - cliq(i,j)) * cveg(i,j) * rhof(1) * rlv / (ra(i,j) + rs(i,j))
+          fLEveg  = (1. - cliq(i,j)) * cveg(i,j) * rhof(1) * rlv / (ra(i,j) + rsveg(i,j))
           fLEsoil = (1. - cveg(i,j))             * rhof(1) * rlv / (ra(i,j) + rssoil(i,j))
           fLEpot  = cliq(i,j) * cveg(i,j)        * rhof(1) * rlv /  ra(i,j)
 
@@ -503,6 +510,12 @@ contains
           !Qnet(i,j)     = Qnet(i,j) - boltz * (tskin(i,j) * exner) ** 4.
           G0(i,j)       = lambdaskin(i,j) * ( tskin(i,j) * exner - tsoil(i,j,1) )
           LE(i,j)       = - fLE * ( qt0(i,j,1) - (dqsatdT * (tskin(i,j) * exner - tsurfm) + qsat))
+          if(LE(i,j) == 0.) then
+            rs(i,j)     = 1.e8
+          else
+            rs(i,j)     = - rhof(1) * rlv * (qt0(i,j,1) - (dqsatdT * (tskin(i,j) * exner - tsurfm) + qsat)) / LE(i,j) - ra(i,j)
+          end if
+
           H(i,j)        = - fH  * ( Tatm - tskin(i,j) * exner ) 
           tendskin(i,j) = Cskin(i,j) * (tskin(i,j) - tskinm(i,j)) * exner / rk3coef
 
@@ -550,11 +563,12 @@ contains
           thlflux(i,j) = - ( thl0(i,j,1) - tskin(i,j) ) / ra(i,j) 
 
           !CvH allow for dewfall at night, bypass stomatal resistance
-          if(qt0(i,j,1) - qskin(i,j) > 0.) then
-            qtflux(i,j) = - (qt0(i,j,1)  - qskin(i,j)) / ra(i,j) 
-          else
-            qtflux(i,j) = - (qt0(i,j,1)  - qskin(i,j)) / (ra(i,j) + rs(i,j))
-          end if
+          !if(qt0(i,j,1) - qskin(i,j) > 0.) then
+          !  qtflux(i,j) = - (qt0(i,j,1)  - qskin(i,j)) / ra(i,j) 
+          !else
+          !  qtflux(i,j) = - (qt0(i,j,1)  - qskin(i,j)) / (ra(i,j) + rs(i,j))
+          !end if
+          qtflux(i,j) = - (qt0(i,j,1)  - qskin(i,j)) / (ra(i,j) + rs(i,j))
           
           do n=1,nsv
             svflux(i,j,n) = wsvsurf(n) 
@@ -753,7 +767,7 @@ contains
     use modmpi,    only : my_real,mpierr,comm3d,mpi_sum,myid,excj
     implicit none
 
-    integer             :: i,j,n,iter
+    integer             :: i,j,iter
     real                :: thv, L, horv2, horv2l, oblavl
     real                :: Rib, Lstart, Lend, fx, fxdif, Lold
 
