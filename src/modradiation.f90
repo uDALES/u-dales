@@ -364,14 +364,17 @@ subroutine radpar
     use modglobal,   only : i1, j1, rtimee, xtime, xday, xlat, xlon, boltz
     use modfields,   only : thl0
     implicit none
-    integer   :: i,j
-    real      :: S0
+    integer        :: i,j
+    real           :: Tr, sinlea
+    real,parameter :: S0 = 1376.
 
-    S0 = 980.
+    sinlea = zenith(xtime + rtimee / 3600., xday, xlat, xlon)
+
+    Tr  = (0.6 + 0.2 * sinlea)
 
     do j=2,j1
       do i=2,i1
-        swd(i,j,1) = - S0 * zenith(xtime + rtimee / 3600., xday, xlat, xlon)
+        swd(i,j,1) = - S0 * Tr * sinlea
         swu(i,j,1) = - albedo(i,j) * swd(i,j,1)
         lwd(i,j,1) = - 0.8 * boltz * thl0(i,j,1) ** 4.
         lwu(i,j,1) = boltz * tskin(i,j) ** 4.

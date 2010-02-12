@@ -93,6 +93,8 @@ contains
     call MPI_BCAST(Qnetav       , 1, MY_REAL, 0, comm3d, mpierr)
 
     call MPI_BCAST(rsminav      , 1, MY_REAL, 0, comm3d, mpierr)
+    call MPI_BCAST(rssoilminav  , 1, MY_REAL, 0, comm3d, mpierr)
+    call MPI_BCAST(cvegav       , 1, MY_REAL, 0, comm3d, mpierr)
     call MPI_BCAST(LAIav        , 1, MY_REAL, 0, comm3d, mpierr)
     call MPI_BCAST(gDav         , 1, MY_REAL, 0, comm3d, mpierr)
 
@@ -271,6 +273,7 @@ contains
 
     if(isurf <= 2) then
       allocate(rs(i2,j2))
+      allocate(rsveg(i2,j2))
       allocate(rsmin(i2,j2))
       allocate(rssoil(i2,j2))
       allocate(rssoilmin(i2,j2))
@@ -361,7 +364,7 @@ contains
     use moduser,   only : surf_user
     implicit none
 
-    real     :: f1, f2, f3, f4 ! Correction functions for Jarvis-Steward
+    real     :: f1, f2, f3, f4 ! Correction functions for Jarvis-Stewart
     integer  :: i, j, k, n
     real     :: upcu, vpcv, horv
     real     :: phimzf, phihzf
@@ -392,21 +395,21 @@ contains
           if(isurf == 2) then
             rs(i,j) = rsisurf2
           else
-              ! 2.1   -   Calculate the surface resistance 
+            ! 2.1   -   Calculate the surface resistance 
             ! Stomatal opening as a function of incoming short wave radiation
-              if (iradiation > 0) then
-                f1  = 1. / min(1., (0.004 * max(0.,-swd(i,j,1)) + 0.05) / (0.81 * (0.004 * max(0.,-swd(i,j,1)) + 1.)))
-              else
-                f1  = 1.
-              end if
+            if (iradiation > 0) then
+              f1  = 1. / min(1., (0.004 * max(0.,-swd(i,j,1)) + 0.05) / (0.81 * (0.004 * max(0.,-swd(i,j,1)) + 1.)))
+            else
+              f1  = 1.
+            end if
 
             ! Soil moisture availability
-              f2  = (phifc - phiwp) / (phitot(i,j) - phiwp)
+            f2  = (phifc - phiwp) / (phitot(i,j) - phiwp)
 
             ! Response of stomata to vapor deficit of atmosphere
-              esat = 0.611e3 * exp(17.2694 * (thl0(i,j,1) - 273.16) / (thl0(i,j,1) - 35.86))
-              e    = qt0(i,j,1) * ps / 0.622
-              f3   = 1. / exp(-gD(i,j) * (esat - e) / 100.)
+            esat = 0.611e3 * exp(17.2694 * (thl0(i,j,1) - 273.16) / (thl0(i,j,1) - 35.86))
+            e    = qt0(i,j,1) * ps / 0.622
+            f3   = 1. / exp(-gD(i,j) * (esat - e) / 100.)
 
             ! Response to temperature
             exnera  = (presf(1) / pref0) ** (rd/cp)
@@ -415,6 +418,11 @@ contains
 
             rsveg(i,j)  = rsmin(i,j) / LAI(i,j) * f1 * f2 * f3 * f4
             if(i == 2 .and. j == 2) write(6,*) "CvH f: ", f1, f2, f3, f4
+
+            ! 2.2   - Calculate soil resistance based on ECMWF method
+
+            f2  = (phifc - phiwp) / (phiw(i,j,1) - phiwp)
+            rssoil(i,j) = rssoilmin(i,j) * f2
           end if
 
           ! 3     -   Calculate the drag coefficient and aerodynamic resistance
@@ -468,7 +476,7 @@ contains
           end if
 
           ! CvH solve the surface temperature implicitly. Do not take into account variations in LWout.
-          if(rk3step == 1 .and. timee > 0) then
+          if(rk3step == 1 .and. timee > 0.) then
             tskinm(i,j) = tskin(i,j)
           end if
 
@@ -483,11 +491,19 @@ contains
           ! First, remove LWup from Qnet calculation
           Qnet(i,j) = Qnet(i,j) + boltz * tsurfm ** 4.
 
+          ! Calculate coefficients for surface fluxes
           fH      = rhof(1) * cp / ra(i,j)
+
+          ! Allow for dew fall
+          if(qsat - qt0(i,j,1) < 0.) then
+            rsveg(i,j)  = 0.
+            rssoil(i,j) = 0.
+          end if
+
           fLEveg  = (1. - cliq(i,j)) * cveg(i,j) * rhof(1) * rlv / (ra(i,j) + rsveg(i,j))
           fLEsoil = (1. - cveg(i,j))             * rhof(1) * rlv / (ra(i,j) + rssoil(i,j))
           fLEpot  = cliq(i,j) * cveg(i,j)        * rhof(1) * rlv /  ra(i,j)
-
+          
           fLE     = fLEveg + fLEsoil + fLEpot
 
           exnera  = (presf(1) / pref0) ** (rd/cp)
@@ -519,10 +535,10 @@ contains
           H(i,j)        = - fH  * ( Tatm - tskin(i,j) * exner ) 
           tendskin(i,j) = Cskin(i,j) * (tskin(i,j) - tskinm(i,j)) * exner / rk3coef
 
-          !write(6,*) "SEB:", Qnet(i,j), H(i,j), LE(i,j), G0(i,j), tendskin(i,j), H(i,j)+LE(i,j)+G0(i,j)+tendskin(i,j)
+          if(i == 2 .and. j == 2) write(6,*) "rsveg, rssoil, rs", rsveg(i,j), rssoil(i,j), rs(i,j), qsat - qt0(i,j,1)
+          !write(6,*) "SEB: ", Qnet(i,j), H(i,j), LE(i,j), G0(i,j), tendskin(i,j), H(i,j)+LE(i,j)+G0(i,j)+tendskin(i,j)
+          !write(6,*) "LEv, LEs ", -fLEveg * (qt0(i,j,1) - (dqsatdT * (tskin(i,j) * exner - tsurfm) + qsat)), -fLEsoil * ( qt0(i,j,1) - (dqsatdT * (tskin(i,j) * exner - tsurfm) + qsat))
 
-          
-          
           ! 1.4   -   Solve the diffusion equation for the heat transport
           tsoil(i,j,1) = tsoil(i,j,1) + rdt / pCs(i,j,1) * ( lambdah(i,j,ksoilmax) * (tsoil(i,j,2) - tsoil(i,j,1)) / dzsoilh(1) + G0(i,j) ) / dzsoil(1)
           do k = 2, ksoilmax-1
@@ -733,7 +749,7 @@ contains
         do i = 2, i1
           exner      = (ps / pref0)**(rd/cp)
           tsurf      = tskin(i,j) * exner
-          es         = es0 * exp (at*(tsurf-tmelt) / (tsurf-bt))
+          es         = es0 * exp(at*(tsurf-tmelt) / (tsurf-bt))
           !qskin(i,j) = rd / rv * es / (ps-(1-rd/rv)*es)
           qsatsurf   = rd / rv * es / (ps-(1-rd/rv)*es)
           surfwet    = ra(i,j) / (ra(i,j) + rs(i,j))
