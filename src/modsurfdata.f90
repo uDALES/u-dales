@@ -112,7 +112,8 @@ SAVE
   real, allocatable :: H        (:,:)   !<  Sensible heat flux [W/m2]
   real, allocatable :: G0       (:,:)   !<  Ground heat flux [W/m2]
   real, allocatable :: ra       (:,:)   !<  Aerodynamic resistance [s/m]
-  real, allocatable :: rs       (:,:)   !<  Vegetation resistance [s/m]
+  real, allocatable :: rs       (:,:)   !<  Composite resistance [s/m]
+  real, allocatable :: rsveg    (:,:)   !<  Vegetation resistance [s/m]
   real, allocatable :: rssoil   (:,:)   !<  Soil evaporation resistance [s/m]
   real              :: rsisurf2 = 0.    !<  Vegetation resistance [s/m] if isurf2 is used
   real, allocatable :: rsmin    (:,:)   !<  Minimum vegetation resistance [s/m]
