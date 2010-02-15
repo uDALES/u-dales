@@ -32,7 +32,7 @@ module modradfull
 
   implicit none
   private
-  public :: radfull
+  public :: radfull,d4stream
 
   logical, save     :: d4stream_initialized = .False.
   real, allocatable, save ::  pp(:), pt(:), ph(:), po(:), pre(:), pde(:), &
@@ -152,11 +152,12 @@ use modmpi, only : myid
           ql_b(i,j,1)   = 0
           qv_b(i,j,1)   = qv_b(i,j,2) +dzh(1)/dzh(2)*(qv_b(i,j,2)-qv_b(i,j,3))
           temp_b(i,j,1) = temp_b(i,j,2) +dzh(1)/dzh(2)*(temp_b(i,j,2)-temp_b(i,j,3))
+          tempskin = 0.5*(temp_b(i,j,1)+temp_b(i,j,2))
         end do
       end do
-      tempskin = 0.5*(temp_b(1:i1+1,1:j1+1,1)+temp_b(1:i1+1,1:j1+1,2))
+     ! tempskin = tskin*exnh(1)
       ! tempskin = tskin*exnh(1)
-      !CvH end edit
+     !CvH end edit
 
       if (imicro==imicro_bulk) then
         rr_b(:,:,1) = 0.
@@ -168,7 +169,7 @@ use modmpi, only : myid
 !Downward radiation fluxes are pointing downward in UCLALES, pointing upward in DALES
       lwd = -lwd
       swd = -swd
-!      lwd(:,:,1) = lwd(:,:,1)+0.3333333*(lwd(:,:,1)-lwd(:,:,2))
+
 !      swd(:,:,1) = swd(:,:,1)+0.3333333*(swd(:,:,1)-swd(:,:,2))
 !      lwu(:,:,1) = lwu(:,:,1)+0.3333333*(lwu(:,:,1)-lwu(:,:,2))
 !      swu(:,:,1) = swu(:,:,1)+0.3333333*(swu(:,:,1)-swu(:,:,2))
@@ -191,7 +192,7 @@ use modmpi, only : myid
 
     subroutine d4stream(i1,ih,j1,jh,k1, tskin, albedo, CCN, dn0, &
          pi0,  tk, rv, rc, fds3D,fus3D,fdir3D,fuir3D, rr)
-      use modglobal, only : cexpnr,cp,cpr,pi,pref0,timee,xday,xlat,xlon,xtime,rhow
+      use modglobal, only : cexpnr,cp,cpr,pi,pref0,rtimee,xday,xlat,xlon,xtime,rhow
       use modraddata,only : useMcICA,zenith
       implicit none
 
@@ -229,7 +230,7 @@ use modmpi, only : myid
       ! determine the solar geometery, as measured by u0, the cosine of the
       ! solar zenith angle
       !
-      u0 = zenith(xtime + timee/3600,xday,xlat,xlon)
+      u0 = zenith(xtime + rtimee/3600,xday,xlat,xlon)
       !
       ! call the radiation
       !

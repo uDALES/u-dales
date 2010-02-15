@@ -12,8 +12,8 @@ nsv        =  2
 /
 
 &DOMAIN
-imax       =  64 
-jtot       =  64
+imax       =  32 
+jtot       =  32
 kmax       =  96
 
 xsize      =  3200.
@@ -22,7 +22,7 @@ ysize      =  3200.
 xlat       =  51.96
 xlon       =  4.95
 xday       =  287.
-xtime      =  6.
+xtime      =  10.
 /
 
 &PHYSICS
@@ -36,7 +36,7 @@ wsvsurf(1) =  0.1
 wsvsurf(2) =  1.
 lmoist     =  .true.
 isurf      =  1
-iradiation =  1
+iradiation =  0
 useMcICA   =  .true.
 lcoriol    =  .true.
 /

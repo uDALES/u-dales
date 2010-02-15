@@ -33,7 +33,10 @@ module modstattend
   save
 !NetCDF variables
   integer,parameter :: nvar = 43
+  integer :: ncid,nrec = 0
+  character(80) :: fname = 'stattend.xxx.nc'
   character(80),dimension(nvar,4) :: ncname
+  character(80),dimension(1,4) :: tncname
 
   real    :: dtav, timeav,tnext,tnextwrite
   integer,parameter :: tend_tot=1,tend_start=1,tend_adv=2,tend_subg=3,tend_force=4,&
@@ -48,8 +51,8 @@ contains
 !> Initialization routine, reads namelists and inits variables
 subroutine initstattend
     use modmpi,   only : mpierr,my_real,mpi_logical,comm3d,myid
-    use modglobal,only : cexpnr,dtmax,imax,jmax,kmax,ifnamopt,fname_options,k1,dtav_glob,timeav_glob,ladaptive, dt_lim,btime
-    use modstat_nc, only : lnetcdf, redefine_nc,define_nc,ncinfo
+    use modglobal,only : cexpnr,dtmax,imax,jmax,kmax,ifnamopt,fname_options,k1,dtav_glob,timeav_glob,ladaptive, dt_lim,btime,kmax
+    use modstat_nc, only : lnetcdf, open_nc,define_nc,redefine_nc,ncinfo,writestat_dims_nc
     use modgenstat, only : dtav_prof=>dtav, timeav_prof=>timeav,ncid_prof=>ncid
 
     implicit none
@@ -64,6 +67,11 @@ subroutine initstattend
     if(myid==0)then
       open(ifnamopt,file=fname_options,status='old',iostat=ierr)
       read (ifnamopt,NAMSTATTEND,iostat=ierr)
+      if (ierr > 0) then
+        print *, 'Problem in namoptions NAMSTATTEND'
+        print *, 'iostat error: ', ierr
+        stop 'ERROR: Problem in namoptions NAMSTATTEND'
+      endif
       write(6 ,NAMSTATTEND)
       close(ifnamopt)
     end if
@@ -105,6 +113,8 @@ subroutine initstattend
       tnextwrite = timeav-1e-3+btime
       nsamples = nint(timeav/dtav)
      if (myid==0) then
+        fname(10:12) = cexpnr
+        call ncinfo(tncname(1,:),'time','Time','s','time')
         call ncinfo(ncname( 1,:),'utendadv','U advective tendency','m/s^2','tt')
         call ncinfo(ncname( 2,:),'utenddif','U diffusive tendency','m/s^2','tt')
         call ncinfo(ncname( 3,:),'utendfor','U tendency due to other forces','m/s^2','tt')
@@ -148,7 +158,9 @@ subroutine initstattend
         call ncinfo(ncname(41,:),'qttendtop','total water content  top boundary tendency','kg/kg/s','tt')
         call ncinfo(ncname(42,:),'qttendaddon','total water content in addons tendency','kg/kg/s','tt')
         call ncinfo(ncname(43,:),'qttendtot','total water content total tendency','kg/kg/s','tt')
-
+        call open_nc(fname,ncid,n3=kmax)
+        call define_nc( ncid, 1, tncname)
+        call writestat_dims_nc(ncid)
         call redefine_nc(ncid_prof)
         call define_nc( ncid_prof, NVar, ncname)
      end if
@@ -227,6 +239,7 @@ subroutine initstattend
 !> Write the statistics to file
   subroutine writestattend
     use modglobal, only : timee,ifoutput,kmax,k1, zf, cexpnr
+    use modmpi,    only : myid
     use modfields, only : presf
       use modstat_nc, only: lnetcdf, writestat_nc
       use modgenstat, only: ncid_prof=>ncid,nrec_prof=>nrec
@@ -239,6 +252,7 @@ subroutine initstattend
     nminut  = int(nsecs/60)-nhrs*60
     nsecs   = mod(nsecs,60)
 
+    if(myid == 0) then
     open(ifoutput,file='utend.'//cexpnr,position='append')
      write(ifoutput,'(//A,/A,I4,A,I2,A,I2,A)') &
          '#--------------------------------------------------------'      &
@@ -461,6 +475,7 @@ subroutine initstattend
         vars(:,43) =qtpmn(:,tend_tot)
         call writestat_nc(ncid_prof,nvar,ncname,vars(1:kmax,:),nrec_prof+1,kmax)
       end if
+    end if
 
   end subroutine writestattend
 !> Cleans up after the run

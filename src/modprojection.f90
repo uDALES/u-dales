@@ -42,14 +42,16 @@ module modprojection
     !                                                                 |
     !    projectplane  LOCATION OF THE YZ-PLANE ON EVERY PROCESSOR      |
     !-----------------------------------------------------------------|
+  use modglobal, only : longint
 
 implicit none
 private
 PUBLIC :: initprojection, projection
 save
 
-  real    :: dtav,tnext
-  logical :: lproject = .false. ! switch for conditional sampling cloud (on/off)
+  real    :: dtav
+  integer(kind=longint)  :: idtav,tnext
+  logical:: lproject = .false. ! switch for conditional sampling cloud (on/off)
   integer :: projectheight = 2  !lowest integration boundary
   integer :: projectplane = 2
 
@@ -57,7 +59,7 @@ contains
 
   subroutine initprojection
     use modmpi,   only :myid,my_real,mpierr,comm3d,mpi_logical,mpi_integer
-    use modglobal,only :ifnamopt,fname_options,dtmax,rk3step, dtav_glob,ladaptive,j1,kmax,dt_lim
+    use modglobal,only :ifnamopt,fname_options,dtmax,rk3step, dtav_glob,ladaptive,j1,kmax,dt_lim,tres,btime
     implicit none
 
     integer :: ierr
@@ -82,7 +84,9 @@ contains
     call MPI_BCAST(lproject     ,1,MPI_LOGICAL,0,comm3d,mpierr)
     call MPI_BCAST(projectheight,1,MPI_INTEGER,0,comm3d,mpierr)
     call MPI_BCAST(projectplane ,1,MPI_INTEGER,0,comm3d,mpierr)
-    tnext   = dtav-1e-3
+    idtav = dtav/tres
+
+    tnext      = idtav   +btime
     if(.not.(lproject)) return
     dt_lim = min(dt_lim,tnext)
 
@@ -107,7 +111,7 @@ contains
       dt_lim = min(dt_lim,tnext-timee)
       return
     end if
-    tnext = tnext+dtav
+    tnext = tnext+idtav
     dt_lim = minval((/dt_lim,tnext-timee/))
     call wrtvert
     call wrthorz

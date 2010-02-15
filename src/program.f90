@@ -59,7 +59,7 @@ program DALES      !Version 3.2 Beta 1
 !!     0.0    USE STATEMENTS FOR CORE MODULES
 !!----------------------------------------------------------------
   use modmpi,            only : myid, initmpi
-  use modglobal,         only : rk3step,timee,btime,runtime
+  use modglobal,         only : rk3step,timee,btime,runtime,timeleft
   use modfields,         only : thl0
   use modstartup,        only : startup, writerestartfiles,exitmodules
   use modtimedep,        only : timedep
@@ -134,7 +134,7 @@ program DALES      !Version 3.2 Beta 1
 !   3.0   MAIN TIME LOOP
 !------------------------------------------------------
   write(*,*)'START myid ', myid
-  do while ((timee-btime)<runtime .or. rk3step < 3)
+  do while (timeleft>0 .or. rk3step < 3)
     call tstep_update
     call timedep
     call stattend(tend_start)

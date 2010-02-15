@@ -47,10 +47,11 @@ save
       integer ::  kh=1
 
       character(50) :: fname_options = 'namoptions'
-
+      integer, parameter :: longint=8
       logical :: lwarmstart = .false.!<   flag for "cold" or "warm" start
       real    :: trestart  = 3600. !<     * each trestart sec. a restart file is written to disk
-      real    :: tnextrestart  = 3600. !<     * each trestart sec. a restart file is written to disk
+      integer(kind=longint) :: itrestart !<     * each trestart sec. a restart file is written to disk
+      integer(kind=longint)    :: tnextrestart    !<     * each trestart sec. a restart file is written to disk
       character(50) :: startfile    !<    * name of the restart file
 
       logical :: llsadv   = .false. !<  switch for large scale forcings
@@ -112,32 +113,37 @@ save
 
 
       ! Global variables (modvar.f90)
-
       real :: xday      = 1.    !<     * day number
       real :: xtime     = 0.    !<     * GMT time
       real :: cu        = 0.    !<     * translation velocity in x-direction
       real :: cv        = 0.    !<     * translation velocity in y-direction
       real :: runtime   = 300.  !<     * simulation time in secs
       real :: dtmax     = 20.    !<     * maximum time integration interval
+      integer(kind=longint) :: idtmax        !<     * maximum time integration interval
       real :: dtav_glob   = 60.
       real :: timeav_glob = 3600.
+      real :: tres     = 0.001
       real :: thres     = 5.e-3 !<     * threshold value for inversion height calculations
       real :: dqt               !<     * applied gradient of qt at top of model
       real :: dtheta            !<     * applied gradient of theta at top of model
       real,allocatable :: dsv(:)          !<     * applied gradient of sv(n) at top of model
     !<     real :: dsv(nsv)          !<     * applied gradient of sv(n) at top of model
 
-      real :: dt                !<     * time integration interval
-      real :: timee             !<     * elapsed time since the "cold" start
-      real :: btime             !<     * time of (re)start
+      integer(kind=longint) :: dt                !<     * time integration interval
+      real :: rdt                !<     * time integration interval
+      integer(kind=longint) :: timee             !<     * elapsed time since the "cold" start
+      real :: rtimee             !<     * elapsed time since the "cold" start
+      integer(kind=longint) :: btime             !<     * time of (re)start
       integer :: ntimee         !<     * number of timesteps since the cold start
       integer :: ntrun          !<     * number of timesteps since the start of the run
-
+      integer(kind=longint) :: timeleft
+      
       logical :: ladaptive   = .false.    !<    * adaptive timestepping on or off
 
       real    :: courant = -1
       real    :: peclet  = 0.15
-      real    :: dt_lim    = 3600.
+      integer(kind=longint) :: dt_lim
+
 
       integer :: rk3step = 0
 
@@ -373,7 +379,8 @@ contains
         write(6,'(i4,5f8.2)') k,dzf(k),zf(k),zh(k),dzh(k),delta(k)
       end do
     end if
-    tnextrestart = trestart
+    tnextrestart = trestart/tres
+    timeleft     = btime+runtime
 
   end subroutine initglobal
 !> Clean up when leaving the run

@@ -31,6 +31,7 @@
 module modraddata
 
 ! implicit none
+  use modglobal, only : longint
 
 SAVE
 
@@ -47,7 +48,8 @@ SAVE
   logical :: useMcICA    = .true.   !< Use the Monte Carlo Independent Column Approach
 
   real              :: timerad = 0 !<  timescale of the radiation scheme
-  real              :: tnext   = 0 !<  time of the first upcoming call of the radiation scheme
+  integer(kind=longint)           :: itimerad = 0 !<  timescale of the radiation scheme
+  integer (kind=longint)          :: tnext   = 0 !<  time of the first upcoming call of the radiation scheme
   real :: rho_air_mn = 1.1436 !< mean air density used in radiation computation
   real :: rka        = 130.   !< extinction coefficient in radpar scheme
   real :: dlwtop     = 74.    !< longwave radiative flux divergence at top of domain
