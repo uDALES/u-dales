@@ -203,7 +203,7 @@ use modmpi, only : myid
       real, dimension (2-ih:i1+ih,2-jh:j1+jh,k1), intent (in)  :: tk, rv, rc
       real, optional, dimension (2-ih:i1+ih,2-jh:j1+jh,k1), intent (in) :: rr
       real, dimension (2-ih:i1+ih,2-jh:j1+jh,k1), intent (out) :: fus3D,fds3D,fuir3D,fdir3D
-      real, dimension (i1+1,i1+1), intent (in) :: tskin, albedo
+      real, dimension (1:i1+1,1:j1+1), intent (in) :: tskin, albedo
 
       integer :: kk
       real    :: prw, p0(k1), exner(k1), pres(k1)
