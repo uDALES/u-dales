@@ -115,7 +115,7 @@ contains
     use modfields,    only : rhof, exnf,exnh, thl0,qt0,ql0,sv0
     use modsurfdata,  only : albedo, tskin, qskin, thvs, qts, ps
     use modmicrodata, only : imicro, imicro_bulk, Nc_0,iqr
-    use modraddata,   only : thlprad, lwd,lwu,swd,swu,rho_air_mn
+    use modraddata,   only : thlprad, lwd,lwu,swd,swu
 use modmpi, only : myid
       implicit none
     real :: thlpld,thlplu,thlpsd,thlpsu
@@ -173,12 +173,12 @@ use modmpi, only : myid
       do k=1,kmax
         do j=2,j1
           do i=2,i1
-            thlpld          = -(lwd(i,j,k+1)-lwd(i,j,k))/(rhof(k)*cp*dzf(k))
-            thlplu          = -(lwu(i,j,k+1)-lwu(i,j,k))/(rhof(k)*cp*dzf(k))
-            thlpsd          = -(swd(i,j,k+1)-swd(i,j,k))/(rhof(k)*cp*dzf(k))
-            thlpsu          = -(swu(i,j,k+1)-swu(i,j,k))/(rhof(k)*cp*dzf(k))
+            thlpld          = -(lwd(i,j,k+1)-lwd(i,j,k))
+            thlplu          = -(lwu(i,j,k+1)-lwu(i,j,k))
+            thlpsd          = -(swd(i,j,k+1)-swd(i,j,k))
+            thlpsu          = -(swu(i,j,k+1)-swu(i,j,k))
 
-            thlprad(i,j,k)  = thlprad(i,j,k) + thlpld+thlplu+thlpsu+thlpsd
+            thlprad(i,j,k)  = thlprad(i,j,k) + (thlpld+thlplu+thlpsu+thlpsd)/(rhof(k)*cp*dzf(k))
           end do
         end do
       end do
@@ -248,7 +248,7 @@ use modmpi, only : myid
                   plwc(kk) = 1000.*dn0(k)*rc(i,j,k)
                   prwc(kk) = 0.
                end if
-               pre(kk)  = 1.e6*(plwc(kk)/(1000.*prw*CCN*dn0(k)))**(1./3.)
+               pre(kk)  = 1.e6*(plwc(kk)/(1000.*prw*CCN))**(1./3.)   !CCN already in right units
                if (plwc(kk).le.0.) pre(kk) = 0.
                if (k < k1) pp(kk) = 0.5*(pres(k)+pres(k+1)) / 100.
             end do
@@ -303,6 +303,7 @@ use modmpi, only : myid
     !
     ! identify what part, if any, of background sounding to use
     !
+    sp(k) = sp(k) / 100.   !convert to hPa
     ptop = zp(k1)
     if (sp(2) < ptop) then
        pa = sp(1)

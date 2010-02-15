@@ -241,8 +241,8 @@ contains
     call slabsum(swuav ,1,k1,swu ,2-ih,i1+ih,2-jh,j1+jh,1,k1,2,i1,2,j1,1,k1)
     call slabsum(tltendav ,1,k1,thlprad ,2-ih,i1+ih,2-jh,j1+jh,1,k1,2,i1,2,j1,1,k1)
     do k=1,kmax
-      tllwtendav(k) = -(lwdav(k+1)-lwdav(k)+lwuav(k+1)-lwuav(k))/(rho_air_mn*cp*dzf(k))
-      tlswtendav(k) = -(swdav(k+1)-swdav(k)+swuav(k+1)-swuav(k))/(rho_air_mn*cp*dzf(k))
+      tllwtendav(k) = -(lwdav(k+1)-lwdav(k)+lwuav(k+1)-lwuav(k))/(rhof(k)*cp*dzf(k))
+      tlswtendav(k) = -(swdav(k+1)-swdav(k)+swuav(k+1)-swuav(k))/(rhof(k)*cp*dzf(k))
     end do
 
  !    ADD SLAB AVERAGES TO TIME MEAN
@@ -366,13 +366,13 @@ contains
       ,'   HRS:MIN:SEC AFTER INITIALIZATION '
       write (ifoutput,'(A/2A/2A)') &
           '#--------------------------------------------------------------------------' &
-          ,'#LEV HGHT     LW_UP        LW_DN        SW_UP       SW_DN       ' &
+          ,'#LEV RAD_FLX_HGHT  THL_HGHT  LW_UP        LW_DN        SW_UP       SW_DN       ' &
           ,'TL_LW_TEND   TL_SW_TEND   TL_LS_TEND   TL_TEND' &
-          ,'#    (M)      (W/M^2)      (W/M^2)      (W/M^2)      (W/M^2)      ' &
+          ,'#    (M)    (M)      (W/M^2)      (W/M^2)      (W/M^2)      (W/M^2)      ' &
           ,'(K/H)         (K/H)        (K/H)        (K/H)'
       do k=1,kmax
-        write(ifoutput,'(I3,F8.2,12E13.4)') &
-            k,zf(k),&
+        write(ifoutput,'(I3,2F8.2,12E13.4)') &
+            k,zh(k), zf(k),&
             lwumn(k),&
             lwdmn(k),&
             swumn(k),&
