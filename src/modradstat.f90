@@ -327,7 +327,7 @@ contains
 !> Write the statistics to file
   subroutine writeradstat
       use modmpi,    only : myid
-      use modglobal, only : cexpnr,ifoutput,kmax,k1,zf,rtimee
+      use modglobal, only : cexpnr,ifoutput,kmax,k1,zf,zh,rtimee
       use modstat_nc, only: lnetcdf, writestat_nc
       use modgenstat, only: ncid_prof=>ncid,nrec_prof=>nrec
 
