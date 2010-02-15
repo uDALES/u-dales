@@ -115,7 +115,7 @@ contains
     use modfields,    only : rhof, exnf,exnh, thl0,qt0,ql0,sv0
     use modsurfdata,  only : albedo, tskin, qskin, thvs, qts, ps
     use modmicrodata, only : imicro, imicro_bulk, Nc_0,iqr
-    use modraddata,   only : thlprad, lwd,lwu,swd,swu,rho_air_mn
+    use modraddata,   only : thlprad, lwd,lwu,swd,swu
       implicit none
     real :: thlpld,thlplu,thlpsd,thlpsu
     real, dimension(k1)  :: rhof_b, exnf_b
@@ -171,12 +171,12 @@ contains
       do k=1,kmax
         do j=2,j1
           do i=2,i1
-            thlpld          = -(lwd(i,j,k+1)-lwd(i,j,k))/(rho_air_mn*cp*dzf(k))
-            thlplu          = -(lwu(i,j,k+1)-lwu(i,j,k))/(rho_air_mn*cp*dzf(k))
-            thlpsd          = -(swd(i,j,k+1)-swd(i,j,k))/(rho_air_mn*cp*dzf(k))
-            thlpsu          = -(swu(i,j,k+1)-swu(i,j,k))/(rho_air_mn*cp*dzf(k))
+            thlpld          = -(lwd(i,j,k+1)-lwd(i,j,k))
+            thlplu          = -(lwu(i,j,k+1)-lwu(i,j,k))
+            thlpsd          = -(swd(i,j,k+1)-swd(i,j,k))
+            thlpsu          = -(swu(i,j,k+1)-swu(i,j,k))
 
-            thlprad(i,j,k)  = thlprad(i,j,k) + thlpld+thlplu+thlpsu+thlpsd
+            thlprad(i,j,k)  = thlprad(i,j,k) + (thlpld+thlplu+thlpsu+thlpsd)/(rhof(k)*cp*dzf(k))
           end do
         end do
       end do
@@ -187,6 +187,7 @@ contains
          pi0,  tk, rv, rc, fds3D,fus3D,fdir3D,fuir3D, rr)
       use modglobal, only : cexpnr,cp,cpr,pi,pref0,timee,xday,xlat,xlon,xtime,rhow
       use modraddata,only : useMcICA,zenith
+      use modfields,only: SW_up_TOA, SW_dn_TOA, LW_up_TOA, LW_dn_TOA
       implicit none
 
       integer, intent (in) :: i1,ih,j1,jh,k1
@@ -246,7 +247,7 @@ contains
                   plwc(kk) = 1000.*dn0(k)*rc(i,j,k)
                   prwc(kk) = 0.
                end if
-               pre(kk)  = 1.e6*(plwc(kk)/(1000.*prw*CCN*dn0(k)))**(1./3.)
+               pre(kk)  = 1.e6*(plwc(kk)/(1000.*prw*CCN))**(1./3.)   !CCN already in right units
                if (plwc(kk).le.0.) pre(kk) = 0.
                if (k < k1) pp(kk) = 0.5*(pres(k)+pres(k+1)) / 100.
             end do
@@ -265,6 +266,11 @@ contains
 
          end do
       end do
+
+      SW_up_TOA(i,j) = fus(1)
+      SW_dn_TOA(i,j) = fds(1)
+      LW_up_TOA(i,j) = fuir(1)
+      LW_dn_TOA(i,j) = fdir(1)
 
     end subroutine d4stream
 
@@ -301,6 +307,7 @@ contains
     !
     ! identify what part, if any, of background sounding to use
     !
+    sp(k) = sp(k) / 100.   !convert to hPa
     ptop = zp(k1)
     if (sp(2) < ptop) then
        pa = sp(1)
