@@ -254,10 +254,6 @@ contains
     allocate(svptav(k1,nsv))
     allocate(svpav(k1,nsv))
 
-
-    svpav = 0.
-    svptav = 0.
-
       umn      = 0.
       vmn      = 0.
       thlmn    = 0.
