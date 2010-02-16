@@ -31,8 +31,9 @@
 !! physics
 !!
 !! \todo
-!! - Timestep limitations for micro and radiation
 !! - Test everywhere, especially in radiation and LSM
+!! - Check restart files
+!! - Check whether all variables are present in the netCDF output
 !! - Documentation: Build one coherent story of the paper, Huugs/Johans description, CMake and Git HOWTOS
 !!
 !! \section License License
@@ -53,7 +54,7 @@
 !!  Copyright 1993-2009 Delft University of Technology, Wageningen University,
 !! Utrecht University, KNMI
 !!
-program DALES      !Version 3.2 Beta 1
+program DALES      !Version 3.2 RC 1
 
 !!----------------------------------------------------------------
 !!     0.0    USE STATEMENTS FOR CORE MODULES
