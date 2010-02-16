@@ -63,6 +63,11 @@ contains
     if(myid==0)then
       open(ifnamopt,file=fname_options,status='old',iostat=ierr)
       read (ifnamopt,NAMFIELDDUMP,iostat=ierr)
+      if (ierr > 0) then
+        print *, 'Problem in namoptions NAMFIELDDUMP'
+        print *, 'iostat error: ', ierr
+        stop 'ERROR: Problem in namoptions NAMFIELDDUMP'
+      endif
       write(6 ,NAMFIELDDUMP)
       close(ifnamopt)
     end if
@@ -103,7 +108,7 @@ contains
 !> Do fielddump. Collect data to truncated (2 byte) integers, and write them to file
   subroutine fielddump
     use modfields, only : um,vm,wm,thlm,qtm,ql0
-    use modsurface,only : thls,qts,thvs
+    use modsurfdata,only : thls,qts,thvs
     use modglobal, only : imax,i1,ih,jmax,j1,jh,kmax,k1,rk3step,&
                           timee,dt_lim,cexpnr,ifoutput
     use modmpi,    only : myid,cmyid

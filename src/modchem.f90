@@ -119,18 +119,22 @@ module modchem
 ! #8.330e-3  R_NO2  1    0      1.0     1.0     1.0     1.0     1.0     1.0    1.0  NO2 + (O2) -> NO + O3
 !
 !
+
+  use modglobal, only : longint
+
 implicit none
+
 private
 PUBLIC :: lchem, initchem,inputchem, twostep, PL_scheme, nchsp, firstchem, lastchem, RH, choffset
 save
 
   ! namoptions
   integer tnor, firstchem, lastchem
-  real dtchmovie,itermin
+  real itermin,dtchmovie
   real t_ref,q_ref,p_ref,h_ref
   logical lchem, ldiuvar,lchconst,lchmovie,lcloudKconst
+  integer(kind=longint) ::     itimeav,tnextwrite,idtchmovie
 
-  real tnextwrite
   logical switch
 
   integer   mrpcc
@@ -225,7 +229,7 @@ save
 contains
 !-----------------------------------------------------------------------------------------
 SUBROUTINE initchem
-  use modglobal, only : imax,jmax,i1,i2,ih, j1,j2,jh, k1, kmax, nsv, ifnamopt, fname_options, ifoutput, cexpnr,timeav_glob,btime
+  use modglobal, only : imax,jmax,i1,i2,ih, j1,j2,jh, k1, kmax, nsv, ifnamopt, fname_options, ifoutput, cexpnr,timeav_glob,btime,tres
   use modmpi,    only : myid, mpi_logical, mpi_integer, my_real, comm3d, mpierr
   implicit none
 
@@ -244,6 +248,7 @@ SUBROUTINE initchem
   q_ref    = 5.e-3
   lchmovie = .false.
   dtchmovie= 60
+  idtchmovie = dtchmovie/tres
   firstchem= 1
   lastchem = nsv
   nchsp    = nsv
@@ -278,7 +283,8 @@ SUBROUTINE initchem
   call MPI_BCAST(dtchmovie ,1,MY_REAL     , 0,comm3d, mpierr)
 
   if (.not. (lchem)) return
-  tnextwrite = timeav_glob-1e-3+btime
+  itimeav = floor(timeav_glob/tres)
+  tnextwrite = itimeav+btime
   switch = .false.
   nchsp = lastchem - firstchem  + 1
   choffset = firstchem - 1
@@ -1024,7 +1030,7 @@ end subroutine read_chem
 
 
 SUBROUTINE twostep()     !(t,te,y)   (timee, timee+dt, sv0)
-use modglobal, only : rk3step,timee,timeav_glob
+use modglobal, only : rk3step,timee
 use modfields, only: svm
 use modmpi, only: myid
 implicit none
@@ -1039,7 +1045,7 @@ implicit none
   !!!! they may be starting at XX but we acces them with index 1 to nchsp
   call twostep2(svm(:,:,:,firstchem:lastchem))
   if (timee >= tnextwrite ) then
-    tnextwrite = tnextwrite + timeav_glob
+    tnextwrite = tnextwrite + itimeav
   endif
 end subroutine twostep
 
@@ -1071,7 +1077,7 @@ SUBROUTINE twostep2(y)
 !c                                                                 |
 !c-----------------------------------------------------------------|
 !c
-use modglobal, only : ih,i1,jh,j1,i2,j2,k1,kmax, nsv, xtime, timee,dt,timeav_glob, xday,xlat,xlon,zf,dzf,ifoutput,cexpnr
+use modglobal, only : ih,i1,jh,j1,i2,j2,k1,kmax, nsv, xtime, timee,rtimee,rdt, xday,xlat,xlon,zf,dzf,ifoutput,cexpnr
 use modfields, only : qt0
 use modmpi, only: comm3d, mpierr,mpi_max,mpi_min,mpi_sum,my_real,mpi_real,myid,cmyid,nprocs
 
@@ -1094,8 +1100,8 @@ implicit none
   !parameter (dtmin=.2)    !orgineel 1.e-6)
 
   !c Initialization of logical and counters
-  t = timee
-  te = timee + dt
+  t = rtimee
+  te = rtimee + rdt
 
   dtmin = itermin
   naccpt  =0
@@ -1114,7 +1120,7 @@ implicit none
     endif
   endif
 
-  if(lchmovie .and. mod(timee,dtchmovie)==0 ) then
+  if(lchmovie .and. mod(timee,idtchmovie)==0 ) then
     allocate(k3d(2:i1,2:j1,kmax,tnor+2))  !2 extra for T_abs and convppb
     allocate(ybegin(2-ih:i1+ih,2-jh:j1+jh,k1,nchsp))
     ybegin = y
@@ -1263,7 +1269,7 @@ implicit none
     enddo
     if(myid==0) then
       open(ifoutput,file='keffs.'//cexpnr,position='append')
-      write(ifoutput,'(a,f8.1)') 'time =',timee
+      write(ifoutput,'(a,f8.1)') 'time =',rtimee
       write(formatstring,'(a,i3,a)') '(5x,',tnor+2,'(2x,a6,3x))'
       write(ifoutput,formatstring) (RC(i)%rname,i=1,tnor),'Tabs','convppb'
       write(formatstring,'(a,i3,a)') '(5x,',tnor+2,'(3x,i3,5x))'
@@ -1280,7 +1286,7 @@ implicit none
     deallocate(writearrayg)
   endif
 
-  if (lchmovie .and. (mod(timee,dtchmovie)==0 )) then
+  if (lchmovie .and. (mod(timee,idtchmovie)==0 )) then
     call chemmovie(ybegin)
     deallocate(k3d,ybegin)
   endif
@@ -1341,7 +1347,7 @@ end subroutine FIT
 !XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 subroutine calc_K(k)
-use modglobal, only :rlv, cp, i1,j1, imax,jmax,timeav_glob,timee
+use modglobal, only :rlv, cp, i1,j1, imax,jmax,timee
 use modfields, only :thl0,exnf,qt0,ql0,presf,svm
 use modmpi, only : myid
 implicit none
@@ -1361,7 +1367,7 @@ implicit none
     convppb(:,:) = Avogrado * 1.e-9 * 1e-6 * (p_ref/100) / (8.314e-2 * t_ref)
   endif
 
-  if (lchmovie .and. (mod(timee,dtchmovie)==0)) then
+  if (lchmovie .and. (mod(timee,idtchmovie)==0)) then
     k3d(:,:,k,tnor+1) = T_abs
     k3d(:,:,k,tnor+2) = convppb
   endif
@@ -1371,7 +1377,7 @@ implicit none
      writearray(k,tnor+2)=sum(convppb)/(imax*jmax)
   endif
 
-  if( lchmovie .and. (mod(timee,dtchmovie)==0)) then
+  if( lchmovie .and. (mod(timee,idtchmovie)==0)) then
      writearray(k,tnor+1)=sum(T_abs)/(imax*jmax)
      writearray(k,tnor+2)=sum(convppb)/(imax*jmax)
   endif
@@ -1381,7 +1387,7 @@ implicit none
       if (timee>=tnextwrite) then
         writearray(k,i) = sum(keff(:,:,RC(i)%Kindex,k))/(imax*jmax)
       endif
-      if( lchmovie .and. (mod(timee,dtchmovie)==0)) then
+      if( lchmovie .and. (mod(timee,idtchmovie)==0)) then
         k3d(:,:,k,i) = keff(:,:,RC(i)%Kindex,k)
       endif
       !do nothing this is done in ratech
@@ -1422,7 +1428,7 @@ implicit none
         writearray(k,i)=sum(keffT(:,:,RC(i)%Kindex))/(imax*jmax)
       endif
 
-      if (lchmovie .and. (mod(timee,dtchmovie)==0)) then
+      if (lchmovie .and. (mod(timee,idtchmovie)==0)) then
         k3d(:,:,k,i) = keffT(:,:,RC(i)%Kindex)
       endif
     endif
@@ -1465,14 +1471,13 @@ subroutine ratech
 !-----------------------------------------------------------------
 !
 
-  use modglobal, only : i1,i2,ih, j1,j2,jh, k1,kmax, timeav_glob,pi,xtime,timee,xday,xlat,xlon, &
+  use modglobal, only : i1,i2,ih, j1,j2,jh, k1,kmax,pi,xtime,timee,rtimee,tres,xday,xlat,xlon, &
                         zf,dzf, iexpnr,rslabs,ifoutput,cexpnr
   use modfields, only : sv0, qt0, ql0 ,rhof
   use modmpi,    only : myid, comm3d, mpierr, mpi_max, my_real, mpi_integer, mpi_sum
   implicit none
 
   real  sza
-  real     timeav
   integer   i,j,k,l,m,n,r
   real  zbase, ztop, qlint, clddepth
   real  zbasesum, ztopmax, zbasecount
@@ -1493,8 +1498,7 @@ subroutine ratech
 
   lday = .false.
 
-  timeav = timeav_glob
-  xhr = xtime + timee/3600.
+  xhr = xtime + rtimee/3600.
 
   re    = 1.e-05 ! mean cloud drop radius
   rhow  = 1000.  ! density of water
@@ -1511,7 +1515,7 @@ subroutine ratech
     lday = .true.
     if(myid==0 .and. (switch .eqv. .false.)) then
       switch = .true.
-      write(*,*)'The SUN is UP at timee=',timee,xhr
+      write(*,*)'The SUN is UP at timee=',rtimee,xhr
     endif
     if (ldiuvar .eqv. .false.) then ! we have to fix the sza to the fixed hour h_ref
       sza = getth(xday,xlat,xlon,h_ref)
@@ -1522,7 +1526,7 @@ subroutine ratech
     lday = .false.
     if(myid==0 .and. (switch .eqv. .true.) ) then
       switch = .false.
-      write(*,*)'The SUN is DOWN at timee=',timee,xhr
+      write(*,*)'The SUN is DOWN at timee=',rtimee,xhr
     endif
   endif
 
@@ -1688,7 +1692,7 @@ subroutine ratech
 
      if ( myid ==0 ) then
        open (ifoutput,file='cloudstat.'//cexpnr,position='append')
-       write(ifoutput,'(f7.0,f6.2,2f7.2,4f9.1,4f9.4)')timee, xhr, zbasecount/rslabs, cloudcount/rslabs, zbasesum / (zbasecount+1.0e-5), &
+       write(ifoutput,'(f7.0,f6.2,2f7.2,4f9.1,4f9.4)')rtimee, xhr, zbasecount/rslabs, cloudcount/rslabs, zbasesum / (zbasecount+1.0e-5), &
          ztopmax, cloudheightsum/(zbasecount+1.0e-5), cloudheightmax, qlintsum / (zbasecount+1.0e-5), &
          qlintmax, qlintallsum / (cloudcount + 1.0e-5), qlintallmax
        close (ifoutput)

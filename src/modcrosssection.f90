@@ -29,6 +29,7 @@
 module modcrosssection
 
 
+  use modglobal, only : longint
 
 implicit none
 private
@@ -41,7 +42,8 @@ save
   character(80),dimension(nvar,4) :: ncname
   character(80),dimension(1,4) :: tncname
 
-  real    :: dtav,tnext
+  real    :: dtav
+  integer(kind=longint) :: idtav,tnext
   logical :: lcross = .false. !< switch for doing the crosssection (on/off)
   integer :: crossheight = 2 !< Height of the xy crosssection
   integer :: crossplane = 2 !< Location of the xz crosssection
@@ -50,7 +52,7 @@ contains
 !> Initializing Crosssection. Read out the namelist, initializing the variables
   subroutine initcrosssection
     use modmpi,   only :myid,my_real,mpierr,comm3d,mpi_logical,mpi_integer,cmyid
-    use modglobal,only :imax,jmax,ifnamopt,fname_options,dtmax,rk3step, dtav_glob,ladaptive,j1,kmax,dt_lim,cexpnr
+    use modglobal,only :imax,jmax,ifnamopt,fname_options,dtmax,rk3step, dtav_glob,ladaptive,j1,kmax,dt_lim,cexpnr,tres,btime
     use modstat_nc,only : lnetcdf,open_nc, define_nc, redefine_nc,ncinfo,writestat_dims_nc
    implicit none
 
@@ -76,7 +78,8 @@ contains
     call MPI_BCAST(lcross     ,1,MPI_LOGICAL,0,comm3d,mpierr)
     call MPI_BCAST(crossheight,1,MPI_INTEGER,0,comm3d,mpierr)
     call MPI_BCAST(crossplane ,1,MPI_INTEGER,0,comm3d,mpierr)
-    tnext   = dtav-1e-3
+    idtav = dtav/tres
+    tnext   = idtav+btime
     if(.not.(lcross)) return
     dt_lim = min(dt_lim,tnext)
 
@@ -87,7 +90,6 @@ contains
       stop 'CROSSSECTION: dtav should be a integer multiple of dtmax'
     end if
     if (lnetcdf) then
-      dtav = dtav_glob
       fname(7:9) = cmyid
       fname(11:13) = cexpnr
       call ncinfo(tncname(1,:),'time','Time','s','time')
@@ -117,7 +119,7 @@ contains
   end subroutine initcrosssection
 !>Run crosssection. Mainly timekeeping
   subroutine crosssection
-    use modglobal, only : rk3step,timee,dt_lim
+    use modglobal, only : rk3step,timee,rtimee,dt_lim
     use modstat_nc, only : lnetcdf, writestat_nc
     implicit none
 
@@ -128,9 +130,9 @@ contains
       dt_lim = min(dt_lim,tnext-timee)
       return
     end if
-    tnext = tnext+dtav
+    tnext = tnext+idtav
     dt_lim = minval((/dt_lim,tnext-timee/))
-     if(lnetcdf) call writestat_nc(ncid,1,tncname,(/timee/),nrec,.true.)
+     if(lnetcdf) call writestat_nc(ncid,1,tncname,(/rtimee/),nrec,.true.)
    call wrtvert
     call wrthorz
 
@@ -140,7 +142,7 @@ contains
 
 !> Do the xz crosssections and dump them to file
   subroutine wrtvert
-  use modglobal, only : imax,i1,j1,kmax,nsv,rlv,cp,rv,rd,cu,cv,cexpnr,ifoutput
+  use modglobal, only : imax,i1,j1,kmax,nsv,rlv,cp,rv,rd,cu,cv,cexpnr,ifoutput,rtimee
   use modfields, only : um,vm,wm,thlm,qtm,svm,thl0,qt0,ql0,exnf
   use modmpi,    only : myid
   use modstat_nc, only : lnetcdf, writestat_nc
@@ -209,6 +211,7 @@ contains
       vars(:,:,5) = thv0(2:i1,crossplane,1:kmax)
       vars(:,:,6) = qtm(2:i1,crossplane,1:kmax)
       vars(:,:,7) = ql0(2:i1,crossplane,1:kmax)
+      call writestat_nc(ncid,1,tncname,(/rtimee/),nrec,.true.)
       call writestat_nc(ncid,7,ncname(1:7,:),vars,nrec,imax,kmax)
       deallocate(vars)
     end if

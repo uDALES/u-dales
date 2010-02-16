@@ -34,7 +34,7 @@ contains
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine initradiation
-    use modglobal,    only : kmax,i1,ih,j1,jh,k1,nsv,dtmax,ih,jh,btime
+    use modglobal,    only : kmax,i1,ih,j1,jh,k1,nsv,ih,jh,btime,tres
     use modmpi,       only : myid
     implicit none
 
@@ -43,12 +43,16 @@ contains
     allocate(swu(2-ih:i1+ih,2-jh:j1+jh,k1))
     allocate(lwd(2-ih:i1+ih,2-jh:j1+jh,k1))
     allocate(lwu(2-ih:i1+ih,2-jh:j1+jh,k1))
-    !allocate(albedo(2-ih:i1+ih,2-jh:j1+jh))
+    allocate(SW_up_TOA(2-ih:i1+ih,2-jh:j1+jh))
+    allocate(SW_dn_TOA(2-ih:i1+ih,2-jh:j1+jh))
+    allocate(LW_up_TOA(2-ih:i1+ih,2-jh:j1+jh))
+    allocate(LW_dn_TOA(2-ih:i1+ih,2-jh:j1+jh))
     thlprad = 0.
     swd = 0.
     swu = 0.
     lwd = 0.
     lwu = 0.
+    SW_up_TOA=0;SW_dn_TOA=0;LW_up_TOA=0;LW_dn_TOA=0
     if (irad/=-1) then
       if (myid==0) write (*,*) 'WARNING: The use of irad is deprecated. Please use the iradiation switch'
       select case (irad)
@@ -82,7 +86,8 @@ contains
         rad_smoke  = .true.
       end select
     end if
-    tnext = -1e-3+btime
+    itimerad = floor(timerad/tres)
+    tnext = btime
 
     if (rad_smoke.and.isvsmoke>nsv) then
       if (rad_shortw) then
@@ -107,8 +112,8 @@ contains
       dt_lim = min(dt_lim,tnext-timee)
     end if
 
-    if((timerad==0 .or. timee>tnext) .and. rk3step==1) then
-      tnext = tnext+timerad
+    if((itimerad==0 .or. timee==tnext) .and. rk3step==1) then
+      tnext = tnext+itimerad
       thlprad = 0.0
       select case (iradiation)
           case (irad_none)
@@ -143,14 +148,15 @@ contains
   subroutine exitradiation
     implicit none
     deallocate(thlprad,swd,swu,lwd,lwu)
+    deallocate(SW_up_TOA, SW_dn_TOA,LW_up_TOA,LW_dn_TOA)
   end subroutine exitradiation
 
 
 !> calculates tendency due to parameterized radiation
 subroutine radpar
 
-  use modglobal,    only : i1,j1,kmax, k1,ih,jh,dzf,cp,rslabs,xtime,timee,xday,xlat,xlon
-  use modfields,    only : ql0, sv0
+  use modglobal,    only : i1,j1,kmax, k1,ih,jh,dzf,cp,rslabs,xtime,rtimee,xday,xlat,xlon
+  use modfields,    only : ql0, sv0, rhof
   implicit none
   real, allocatable :: lwpt(:),lwpb(:)
   real, allocatable :: tau(:)
@@ -189,13 +195,13 @@ subroutine radpar
 ! **   Downward LWP
 
        do k=kmax,1,-1
-        lwpt(k) = lwpt(k+1) + rho_air_mn*absorber(i,j,k)*dzf(k)
+        lwpt(k) = lwpt(k+1) + rhof(k)*absorber(i,j,k)*dzf(k)
        end do
 
 ! **   Upward LWP
 
        do k=2,k1
-         lwpb(k) = lwpb(k-1) + rho_air_mn*absorber(i,j,k-1)*dzf(k-1)
+         lwpb(k) = lwpb(k-1) + rhof(k)*absorber(i,j,k-1)*dzf(k-1)
        end do
 
        do k=1,k1
@@ -204,8 +210,8 @@ subroutine radpar
       end do
 
        do k=1,kmax
-         thlpld         = -(lwd(i,j,k+1)-lwd(i,j,k))/(rho_air_mn*cp*dzf(k))
-         thlplu         = -(lwu(i,j,k+1)-lwu(i,j,k))/(rho_air_mn*cp*dzf(k))
+         thlpld         = -(lwd(i,j,k+1)-lwd(i,j,k))/(rhof(k)*cp*dzf(k))
+         thlplu         = -(lwu(i,j,k+1)-lwu(i,j,k))/(rhof(k)*cp*dzf(k))
          thlprad(i,j,k) =   thlprad(i,j,k) + thlpld+thlplu
        end do
 
@@ -222,7 +228,7 @@ subroutine radpar
 
 
     swd = 0.0
-    mu=zenith(xtime + timee/3600,xday,xlat,xlon)
+    mu=zenith(xtime + rtimee/3600,xday,xlat,xlon)
     do j=2,j1
     do i=2,i1
 
@@ -231,7 +237,7 @@ subroutine radpar
         do k = 1,kmax
           tau(k) = 0.      ! tau laagje dz
           if (ql0(i,j,k) > 1e-5) then
-            tau(k)=1.5*ql0(i,j,k)*rho_air_mn*dzf(k)/reff/rho_l
+            tau(k)=1.5*ql0(i,j,k)*rhof(k)*dzf(k)/reff/rho_l
             tauc=tauc+tau(k)
           end if
         end do
@@ -239,7 +245,7 @@ subroutine radpar
       end if
 
       do k=1,kmax
-        thlpsw          = (swd(i,j,k+1)-swd(i,j,k))/(rho_air_mn*cp*dzf(k))
+        thlpsw          = (swd(i,j,k+1)-swd(i,j,k))/(rhof(k)*cp*dzf(k))
         thlprad(i,j,k)  = thlprad(i,j,k) + thlpsw
 
       end do
@@ -360,21 +366,23 @@ subroutine radpar
 
   subroutine radlsm
     use modsurfdata, only : albedo, tskin
-    use modglobal,   only : i1, j1, timee, xtime, xday, xlat, xlon
+    use modglobal,   only : i1, j1, rtimee, xtime, xday, xlat, xlon, boltz
     use modfields,   only : thl0
     implicit none
-    integer   :: i,j
-    real      :: S0, bolz
+    integer        :: i,j
+    real           :: Tr, sinlea
+    real,parameter :: S0 = 1376.
 
-    S0 = 980.
-    bolz = 5.67e-8
+    sinlea = zenith(xtime + rtimee / 3600., xday, xlat, xlon)
+
+    Tr  = (0.6 + 0.2 * sinlea)
 
     do j=2,j1
       do i=2,i1
-        swd(i,j,1) = - S0 * zenith(xtime + timee / 3600., xday, xlat, xlon)
+        swd(i,j,1) = - S0 * Tr * sinlea
         swu(i,j,1) = - albedo(i,j) * swd(i,j,1)
-        lwd(i,j,1) = - 0.8 * bolz * thl0(i,j,1) ** 4.
-        lwu(i,j,1) = bolz * tskin(i,j) ** 4.
+        lwd(i,j,1) = - 0.8 * boltz * thl0(i,j,1) ** 4.
+        lwu(i,j,1) = boltz * tskin(i,j) ** 4.
       end do
     end do
 

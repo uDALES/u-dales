@@ -251,16 +251,10 @@ contains
 !     1.2 other model levels twostream
 
   do k=2,kmax
-    subsplus    = whls(k+1)  *(thl0av(k+1)-thl0av(k)  )/dzh(k+1)
-    subsmin     = whls(k  )  *(thl0av(k)  -thl0av(k-1))/dzh(k)
-    subs        = (dzh(k)*subsplus + dzh(k+1)*subsmin) &
-                     /(dzh(k)+dzh(k+1))
+    subs    = whls(k+1)  *(thl0av(k+1)-thl0av(k)  )/dzh(k+1)
     thlp(2:i1,2:j1,k) = thlp(2:i1,2:j1,k)-u0av(k)*dthldxls(k)-v0av(k)*dthldyls(k)-subs
 
-    subsplus    = whls(k+1)  *(qt0av(k+1) - qt0av(k)  ) /dzh(k+1)
-    subsmin     = whls(k  )  *(qt0av(k)   - qt0av(k-1)) /dzh(k)
-    subs        = (dzh(k)*subsplus + dzh(k+1)*subsmin) &
-                     /(dzh(k)+dzh(k+1))
+    subs    = whls(k+1)  *(qt0av(k+1) - qt0av(k)  ) /dzh(k+1)
     qtp(2:i1,2:j1,k) = qtp(2:i1,2:j1,k) -u0av(k)*dqtdxls(k)-v0av(k)*dqtdyls(k)-subs+dqtdtls(k)
 
     subsplus    = whls(k+1) *(u0av(k+1) - u0av(k)  )/dzh(k+1)
@@ -275,10 +269,7 @@ contains
                      /(dzh(k)+dzh(k+1))
     vp(2:i1,2:j1,k)   = vp(2:i1,2:j1,k)-u0av(k)*dvdxls(k)-v0av(k)*dvdyls(k)-subsv(k)
     do n=1,nsv
-      subsplus  = whls(k+1)  *(sv0av(k+1,n) - sv0av(k,n)  ) /dzh(k+1)
-      subsmin   = whls(k  )  *(sv0av(k,n)   - sv0av(k-1,n)) /dzh(k)
-      subs      = (dzh(k)*subsplus + dzh(k+1)*subsmin) &
-                     /(dzh(k)+dzh(k+1))
+      subs  = whls(k+1)  *(sv0av(k+1,n) - sv0av(k,n)  ) /dzh(k+1)
       svp(2:i1,2:j1,k,n) = svp(2:i1,2:j1,k,n)-subs
     enddo
 
