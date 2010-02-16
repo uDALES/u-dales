@@ -302,13 +302,13 @@ contains
     allocate ( sp(ns), st(ns), sh(ns), so(ns), sl(ns))
     do k=1,ns
        read ( 08, *) sp(k), st(k), sh(k), so(k), sl(k)
+       sp(k) = sp(k) / 100.   !convert to hPa
     enddo
     close (08)
 
     !
     ! identify what part, if any, of background sounding to use
     !
-    sp(k) = sp(k) / 100.   !convert to hPa
     ptop = zp(k1)
     if (sp(2) < ptop) then
        pa = sp(1)
