@@ -116,7 +116,6 @@ contains
     use modsurfdata,  only : albedo, tskin, qskin, thvs, qts, ps
     use modmicrodata, only : imicro, imicro_bulk, Nc_0,iqr
     use modraddata,   only : thlprad, lwd,lwu,swd,swu
-use modmpi, only : myid
       implicit none
     real :: thlpld,thlplu,thlpsd,thlpsu
     real, dimension(k1)  :: rhof_b, exnf_b
@@ -155,7 +154,7 @@ use modmpi, only : myid
           tempskin = 0.5*(temp_b(i,j,1)+temp_b(i,j,2))
         end do
       end do
-     ! tempskin = tskin*exnh(1)
+
      !CvH end edit
 
       if (imicro==imicro_bulk) then
@@ -189,6 +188,7 @@ use modmpi, only : myid
          pi0,  tk, rv, rc, fds3D,fus3D,fdir3D,fuir3D, rr)
       use modglobal, only : cexpnr,cp,cpr,pi,pref0,rtimee,xday,xlat,xlon,xtime,rhow
       use modraddata,only : useMcICA,zenith
+      use modfields,only: SW_up_TOA, SW_dn_TOA, LW_up_TOA, LW_dn_TOA
       implicit none
 
       integer, intent (in) :: i1,ih,j1,jh,k1
@@ -267,6 +267,11 @@ use modmpi, only : myid
 
          end do
       end do
+
+      SW_up_TOA(i,j) = fus(1)
+      SW_dn_TOA(i,j) = fds(1)
+      LW_up_TOA(i,j) = fuir(1)
+      LW_dn_TOA(i,j) = fdir(1)
 
     end subroutine d4stream
 

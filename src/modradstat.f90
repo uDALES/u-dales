@@ -220,8 +220,8 @@ contains
 
     use modmpi,    only :  slabsum
     use modglobal, only : kmax,rslabs,cp,dzf,i1,j1,k1,ih,jh
-    use modfields, only : thlpcar
-    use modraddata, only : lwd,lwu,swd,swu, rho_air_mn,thlprad
+    use modfields, only : thlpcar,rhof
+    use modraddata, only : lwd,lwu,swd,swu,thlprad
 
     implicit none
     integer :: k
@@ -265,7 +265,7 @@ contains
     use modfields,    only : rhof, exnf,exnh, thl0,qt0,ql0
     use modsurfdata,  only : albedo, tskin, qskin, thvs, qts, ps
     use modmicrodata, only : imicro, imicro_bulk, Nc_0,iqr
-    use modraddata,   only : thlprad,rho_air_mn
+    use modraddata,   only : thlprad
     use modmpi,    only :  slabsum
       implicit none
     real, dimension(k1)  :: rhof_b, exnf_b

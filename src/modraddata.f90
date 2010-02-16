@@ -70,7 +70,7 @@ SAVE
   real, allocatable :: lwd(:,:,:)    !<   longwave downward radiative flux
   real, allocatable :: lwu(:,:,:)    !<   longwave upward radiative flux
   !CvH albedo real, allocatable :: albedo(:,:)   !<   Albedo
-
+  real, allocatable :: SW_up_TOA(:,:), SW_dn_TOA(:,:), LW_up_TOA(:,:), LW_dn_TOA(:,:) !< Top of the atmosphere radiative fluxes
 
 contains
 !< Calculation of the cosine of the zenith angle
