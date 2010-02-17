@@ -92,6 +92,7 @@ program DALES      !Version 3.2 RC 1
 
   use modbulkmicrostat,only : initbulkmicrostat, bulkmicrostat,exitbulkmicrostat
   use modbudget,       only : initbudget, budgetstat, exitbudget
+  use modstress,       only : initstressbudget, stressbudgetstat, exitstressbudget
 
   use modtilt,         only : inittilt, tiltedgravity, tiltedboundary, exittilt
   use modparticles,    only : initparticles, particles, exitparticles
@@ -129,6 +130,7 @@ program DALES      !Version 3.2 RC 1
   ! call initnetcdfmovie
   call initbulkmicrostat
   call initbudget
+  call initstressbudget
   call initchem
 
 !------------------------------------------------------
@@ -216,6 +218,7 @@ program DALES      !Version 3.2 RC 1
 
     call bulkmicrostat
     call budgetstat
+    call stressbudgetstat
 
     ! call netcdfmovie
 
@@ -238,6 +241,7 @@ program DALES      !Version 3.2 RC 1
   call exitstattend
   call exitbulkmicrostat
   call exitbudget
+  call exitstressbudget
   call exitcrosssection
   call exitfielddump
   ! call exitnetcdfmovie
