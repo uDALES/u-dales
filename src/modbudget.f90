@@ -35,7 +35,6 @@ module modbudget
 !NetCDF variables
   integer,parameter :: nvar = 18
   integer :: ncid,nrec = 0
-  character(80) :: fname = 'budget.xxx.nc'
   character(80),dimension(nvar,4) :: ncname
   character(80),dimension(1,4) :: tncname
 
@@ -157,8 +156,6 @@ contains
       tnextwrite = itimeav+btime
       nsamples = itimeav/idtav
      if (myid==0) then
-        fname(8:10) = cexpnr
-        call ncinfo(tncname(1,:),'time','Time','s','time')
         call ncinfo(ncname( 1,:),'tker','Resolved TKE','m/s^2','tt')
         call ncinfo(ncname( 2,:),'shr','Resolved Shear','m/s^2','tt')
         call ncinfo(ncname( 3,:),'buo','Resolved Buoyancy','m/s^2','tt')
@@ -177,9 +174,6 @@ contains
         call ncinfo(ncname(16,:),'sbresid','Subgrid Residual = budget - storage','m/s^2','tt')
         call ncinfo(ncname(17,:),'ekm','Turbulent exchange coefficient momentum','m/s^2','tt')
         call ncinfo(ncname(18,:),'khkm   ','Kh / Km, in post-processing used to determine filter-grid ratio','m/s^2','tt')
-        call open_nc(fname,ncid,n3=kmax)
-        call define_nc( ncid, 1, tncname)
-        call writestat_dims_nc(ncid)
         call redefine_nc(ncid_prof)
         call define_nc( ncid_prof, NVar, ncname)
      end if
