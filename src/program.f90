@@ -6,7 +6,7 @@
 !! Dutch Atmospheric Large Eddy Simulation
 !! \section DALES Dutch Atmospheric Large Eddy Simulation
 !!
-!! @version 3.2beta2
+!! @version 3.2 RC 1
 !!
 !! @author
 !! Stephan de Roode
