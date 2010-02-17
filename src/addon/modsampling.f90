@@ -35,6 +35,7 @@
 module modsampling
 
 
+  use modglobal, only : longint
 
 implicit none
 private
@@ -43,7 +44,8 @@ save
 !NetCDF variables
   integer,parameter :: nvar = 13
   character(80),allocatable,dimension(:,:,:) :: ncname
-  real    :: dtav, timeav,tnext,tnextwrite
+  real    :: dtav, timeav
+  integer(kind=longint) :: idtav,itimeav,tnext,tnextwrite
   integer :: nsamples,isamp,isamptot
   character(20),dimension(10) :: samplname,longsamplname
   logical :: lsampcl  = .false. !< switch for conditional sampling cloud (on/off)
@@ -64,9 +66,9 @@ contains
 
     use modmpi,    only : comm3d, my_real,mpierr,myid,mpi_logical
     use modglobal, only : ladaptive, dtmax,rk3step,k1,ifnamopt,fname_options,   &
-                           dtav_glob,timeav_glob,dt_lim,btime
+                           dtav_glob,timeav_glob,dt_lim,btime,tres
     use modstat_nc, only : lnetcdf, redefine_nc,define_nc,ncinfo
-    use modgenstat, only : dtav_prof=>dtav, timeav_prof=>timeav,ncid_prof=>ncid
+    use modgenstat, only : idtav_prof=>idtav, itimeav_prof=>itimeav,ncid_prof=>ncid
     implicit none
 
     integer :: ierr
@@ -120,11 +122,11 @@ contains
     end if
 
     if(isamptot == 0) return
-    tnext   = dtav-1e-3+btime
-    tnextwrite = timeav-1e-3+btime
-    nsamples = nint(timeav/dtav)
-    dt_lim = min(dt_lim,tnext)
+     idtav = dtav/tres
+    itimeav = timeav/tres
 
+    tnext      = idtav   +btime
+    tnextwrite = itimeav +btime
     if (abs(timeav/dtav-nint(timeav/dtav))>1e-4) then
       stop 'timeav must be a integer multiple of dtav'
     end if
@@ -176,11 +178,11 @@ contains
     sig_el     = 0.0
 
     if (lnetcdf) then
-      dtav = dtav_prof
-      timeav = timeav_prof
-       tnext      = dtav-1e-3+btime
-      tnextwrite = timeav-1e-3+btime
-      nsamples = nint(timeav/dtav)
+      idtav = idtav_prof
+      itimeav = itimeav_prof
+      tnext      = idtav+btime
+      tnextwrite = itimeav+btime
+      nsamples = itimeav/idtav
      if (myid==0) then
         allocate(ncname(nvar,4,isamptot))
         do isamp=1,isamptot
@@ -233,13 +235,13 @@ contains
       return
     end if
     if (timee>=tnext) then
-      tnext = tnext+dtav
+      tnext = tnext+idtav
       do isamp = 1,isamptot
         call dosampling
       end do
     end if
     if (timee>=tnextwrite) then
-      tnextwrite = tnextwrite+timeav
+      tnextwrite = tnextwrite+itimeav
       call writesampling
     end if
     dt_lim = minval((/dt_lim,tnext-timee,tnextwrite-timee/))
@@ -568,10 +570,10 @@ contains
 !> Write the statistics to file
   subroutine writesampling
 
-    use modglobal, only : timee,k1,kmax,zf,zh,cexpnr,ifoutput,rslabs,grav
+    use modglobal, only : rtimee,k1,kmax,zf,zh,cexpnr,ifoutput,rslabs,grav
     use modfields, only : presf,presh
     use modmpi,    only : myid,my_real,comm3d,mpierr,mpi_sum
-    use modstat_nc, only: lnetcdf, writestat_nc
+    use modstat_nc, only: lnetcdf, writestat_nc,nc_fillvalue
     use modgenstat, only: ncid_prof=>ncid,nrec_prof=>nrec
     use modsurfdata, only: thvs
 
@@ -608,7 +610,7 @@ contains
               dtaudxhav(k1,isamptot),dtaudzhav(k1,isamptot),thvhav(k1,isamptot),fcorav(k1,isamptot))
     allocate (w_e(k1,isamptot),sig_e(k1,isamptot))
 
-    nsecs   = nint(timee)
+    nsecs   = nint(rtimee)
     nhrs    = int(nsecs/3600)
     nminut  = int(nsecs/60)-nhrs*60
     nsecs   = mod(nsecs,60)
@@ -835,18 +837,22 @@ contains
 
       if (lnetcdf) then
         vars(:, 1) =nrsampmn
-        vars(:, 2) =wmn
-        vars(:, 3) =tlmn
-        vars(:, 4) =qtmn
-        vars(:, 5) =qlmn
-        vars(:, 6) =tvmn
-        vars(:, 7) =massflxmn
-        vars(:, 8) =wtlmn
-        vars(:, 9) =wqtmn
-        vars(:,10) =wqlmn
-        vars(:,11) =wtvmn
-        vars(:,12) =uwmn
-        vars(:,13) =vwmn
+        if (any(nrsampmn>0)) then
+          vars(:, 2) =wmn
+          vars(:, 3) =tlmn
+          vars(:, 4) =qtmn
+          vars(:, 5) =qlmn
+          vars(:, 6) =tvmn
+          vars(:, 7) =massflxmn
+          vars(:, 8) =wtlmn
+          vars(:, 9) =wqtmn
+          vars(:,10) =wqlmn
+          vars(:,11) =wtvmn
+          vars(:,12) =uwmn
+          vars(:,13) =vwmn
+        else
+          vars(:,2:13)=nc_fillvalue
+        end if
 
         call writestat_nc(ncid_prof,nvar,ncname(:,:,isamp),vars(1:kmax,:),nrec_prof,kmax)
       end if
