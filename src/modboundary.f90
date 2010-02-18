@@ -186,14 +186,14 @@ contains
 !! \endlatexonly
  subroutine grwdamp
   use modglobal, only : i1,j1,kmax,cu,cv
-  use modfields, only : up,vp,wp,thlp,qtp,u0,v0,w0,thl0,qt0, u0av,v0av,thl0av,qt0av
+  use modfields, only : up,vp,wp,thlp,qtp,u0,v0,w0,thl0,qt0, ug,vg,thl0av,qt0av
   implicit none
 
   integer k
 
   do k=ksp,kmax
-    up(:,:,k)  = up(:,:,k)-(u0(:,:,k)-(u0av(k)-cu))*tsc(k)
-    vp(:,:,k)  = vp(:,:,k)-(v0(:,:,k)-(v0av(k)-cv))*tsc(k)
+    up(:,:,k)  = up(:,:,k)-(u0(:,:,k)-(ug(k)-cu))*tsc(k)
+    vp(:,:,k)  = vp(:,:,k)-(v0(:,:,k)-(vg(k)-cv))*tsc(k)
     wp(:,:,k)  = wp(:,:,k)-w0(:,:,k)*tsc(k)
     thlp(:,:,k)= thlp(:,:,k)-(thl0(:,:,k)-thl0av(k))*tsc(k)
     qtp(:,:,k) = qtp(:,:,k)-(qt0(:,:,k)-qt0av(k))*tsc(k)
