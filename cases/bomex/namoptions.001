@@ -1,10 +1,11 @@
 &RUN
-iexpnr     =  017
+iexpnr     =  001
 lwarmstart =  .false.
 startfile  =  'initd00h01m000.012'
 runtime    =  28800
 trestart   =  3600
-dtmax      =  5
+dtmax      =  6
+ladaptive  = .true.
 irandom    =  43
 randthl    =  0.1
 randqt     =  2.5e-5
@@ -12,8 +13,8 @@ nsv        =  0
 /
 
 &DOMAIN
-imax       =  128
-jtot       =  128
+imax       =  32
+jtot       =  32
 kmax       =  80
 
 
@@ -68,7 +69,7 @@ dtav        = 60.
 timeav      = 600.
 /
 &NAMCHECKSIM
-tcheck      = 6
+tcheck      = 0
 /
 &NAMSAMPLING
 dtav        = 60
