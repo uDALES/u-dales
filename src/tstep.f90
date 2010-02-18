@@ -53,9 +53,8 @@ subroutine tstep_update
   integer       :: k
   real,save     :: courtot=-1,peclettot=-1
   real          :: courtotl,courold,peclettotl,pecletold
-  logical,save  :: spinup
+  logical,save  :: spinup=.true.
 
-  if(timee == 0) spinup = .true.
 
   rk3step = mod(rk3step,3) + 1
   if(rk3step == 1) then
@@ -86,17 +85,12 @@ subroutine tstep_update
         ntimee  = ntimee + 1
         ntrun   = ntrun  + 1
       else
-        if (timee >= 2. * dt) dt = 2. * dt
-        if (timee >= idtmax) then
+        dt = 2 * dt
+        if (dt >= idtmax) then
           dt = idtmax
           spinup = .false.
         end if
         rdt = dble(dt)*tres
-        ntimee  = ntimee + 1
-        ntrun   = ntrun  + 1
-        timee   = timee  + dt
-        rtimee  = dble(timee)*tres
-        timeleft=timeleft-dt
       end if
     ! Normal time loop
     else
@@ -112,14 +106,14 @@ subroutine tstep_update
         call MPI_ALLREDUCE(peclettotl,peclettot,1,MY_REAL,MPI_MAX,comm3d,mpierr)
         dt = min(timee,dt_lim,idtmax,floor(rdt/tres*courant/courtot,longint),floor(rdt/tres*peclet/peclettot,longint))
         rdt = dble(dt)*tres
+        timeleft=timeleft-dt
         dt_lim = timeleft
         timee   = timee  + dt
         rtimee  = dble(timee)*tres
-        timeleft=timeleft-dt
         ntimee  = ntimee + 1
         ntrun   = ntrun  + 1
       else
-        dt = dtmax*tres
+        dt = idtmax
         rdt = dtmax
         ntimee  = ntimee + 1
         ntrun   = ntrun  + 1
