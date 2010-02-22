@@ -1,0 +1,346 @@
+\documentclass[10pt]{article}
+%\usepackage{a4}
+\usepackage{natbib}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{float}
+%\usepackage{mathtime}
+
+
+% Title Page
+\title{Implementation of momentum budget into DALES}
+\author{Arnold Moene (WUR), David Pino (UPC)}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent This report discusses the details of implementing the momentum budget in the Dutch 
+Atmospheric LES (DALES) code version 3.2 following the formulation proposed by \cite{gao:balance}.
+\end{abstract}
+
+\section{User information}
+
+In the DALES code V3.2 an additional subroutine ({\it modstress.f90}) has been included. 
+Moreover, a section called NAMSTRESS has been created in the {\it namoptions.exp} file which include a switch (lstress) to calculate 
+all the terms of the stress tensor. 
+It's important to notice that the subroutine calculates and writes, in ASCII or NetCDF, the file 
+{\it stressbudget.exp} the budget for the elements $u'^2$, $u'v'$, $u'w'$, $v'^2$, $v'w'$, and $w'^2$ of the stress tensor. 
+Finally, at the end of the file the sum of the elements of the diagonal divided by 2 is written. This corresponds to the 
+TKE budget calculated in subroutine {\it modbudget.f90}. 
+
+\section{Momentum budget}
+The prognostic equation for the turbulent fluctuations, $u'_i$, reads \citep[chapter 4, eq. 4.1.1]{stull:introbl}:
+
+\begin{equation*}
+  \frac{\partial u'_i}{\partial t} +  \overline{u}_k\frac{\partial u'_i}{\partial{x_k}} +
+                                      u'_k\frac{\partial \overline{u}_i}{\partial{x_k}} +
+                                      u'_k \frac{\partial u'_i}{\partial{x_k}} =
+  \delta_{i3} \left( \frac{\theta'_v}{\overline{\theta}_v} \right) g +
+   f_c \epsilon_{ik3} u'_k -
+  \frac{1}{\overline{\rho}} \frac{\partial p'}{\partial x_i} + 
+  \left(\nu \frac{\partial^2 u'_i}{\partial x^2_k}\right)' +
+  \frac{\partial(\overline{u'_i u'_k})}{\partial x_k}.
+\end{equation*}
+
+By using the condition of incompressibility, $\partial u'_k/ \partial x_k=0$, this equation can be written:
+\begin{equation}
+  \frac{\partial u'_i}{\partial t} + \frac{\partial  \overline{u}_k u'_i}{\partial{x_k}} +
+  \frac{\partial u'_k \overline{u}_i}{\partial{x_k}} +
+  \frac{\partial u'_k u'_i}{\partial{x_k}} =
+  \delta_{i3} \left( \frac{\theta'_v}{\overline{\theta}_v} \right) g +
+  f_c \epsilon_{ik3} u'_k -
+  \frac{1}{\overline{\rho}} \frac{\partial p'}{\partial x_i} + 
+  \left(\nu \frac{\partial^2 u'_i}{\partial x^2_k}\right)'+
+  \frac{\partial(\overline{u'_i u'_k})}{\partial x_k}. 
+  \label{EQ_TEND_FLUCT}
+\end{equation}
+
+Since we are using an LES model that uses a subgrid model that is expressed in terms of a subgrid-scale viscosity \citep{heus}, 
+the $\nu$ in the above equation should be interpreted as the subgrid-scale viscosity (with the molecular viscosity being negligible). 
+
+From this equation the different stresses can be built up. The next step is to multiply \ref{EQ_TEND_FLUCT} by the fluctuation $u'_j$ 
+and perform Reynolds averaging. Note that the last term in \ref{EQ_TEND_FLUCT} dissapears because $\overline{u'_i}=0$ and $\partial /\partial x_k=0$ for $k=1,2$:
+
+\begin{equation}
+\begin{split}
+  \underbrace{ \overline{u'_j \frac{\partial u'_i}{\partial t}} }_{a1} & +
+  \underbrace{ \overline{u'_j \frac{\partial \overline{u}_k           u'_i}{\partial{x_k}}} }_{b1} +
+  \underbrace{ \overline{u'_j \frac{\partial u'_k \overline{u}_i}{\partial{x_k}}} }_{c1}+
+  \underbrace{ \overline{u'_j \frac{\partial  u'_k  u'_i}{\partial{x_k}}} }_{d1} = \\
+  &
+  \underbrace{ \overline{u'_j \delta_{i3} \left( \frac{\theta'_v}{\overline{\theta}_v} \right) g } }_{e1} +
+  \underbrace{ \overline{u'_j  f_c \epsilon_{ik3} u'_k} }_{f1}-
+  \underbrace{ \overline{u'_j \frac{1}{\overline{\rho}} \frac{\partial p'}{\partial x_i}} }_{g1}+ 
+  \underbrace{ \overline{u'_j \nu \left(\frac{\partial^2 u'_i}{\partial x^2_k}\right)'} }_{h1} 
+  \label{EQ_TEND_FLUCT_UJ}
+\end{split}
+\end{equation}
+
+The above equation can also be rewritten with the $i$ and $j$ indices interchanged, giving:
+\begin{equation}
+\begin{split}
+  \underbrace{ \overline{u'_i \frac{\partial u'_j}{\partial t}} }_{a2} & +
+  \underbrace{ \overline{u'_i \frac{\partial \overline{u}_k u'_j}{\partial{x_k}}} }_{b2} +
+  \underbrace{ \overline{u'_i \frac{\partial u'_k  \overline{u}_j}{\partial{x_k}}} }_{c2} +
+  \underbrace{ \overline{u'_i \frac{\partial u'_k u'_j}{\partial{x_k}}} }_{d2} = \\
+  &
+  \underbrace{ \overline{u'_i \delta_{j3} \left( \frac{\theta'_v}{\overline{\theta}_v} \right) g} }_{e2} +
+  \underbrace{ \overline{u'_i  f_c \epsilon_{jk3} u'_k} }_{f2} -
+  \underbrace{ \overline{u'_i \frac{1}{\overline{\rho}} \frac{\partial p'}{\partial x_j}} }_{g2} + 
+  \underbrace{ \overline{u'_i \left(\nu \frac{\partial^2 u'_j}{\partial x^2_k}\right)'} }_{h2}  
+  \label{EQ_TEND_FLUCT_UI}
+\end{split}
+\end{equation}
+Then by adding \ref{EQ_TEND_FLUCT_UJ} and \ref{EQ_TEND_FLUCT_UI} these can be combined, 
+and by using the product rule, the equation for the tendency of the momentum flux $\overline{u'_i u'_j}$ is obtained. The equation reads:
+\begin{equation}
+\begin{split}
+  \underbrace{\frac{\partial \overline{u'_i u'_j}}{\partial t}}_a & +
+  \underbrace{\overline{u}_k \frac{\partial \overline{u'_j u'_i}}{\partial{x_k}}
+             }_b +
+  \underbrace{\overline{u'_k u'_j} \frac{\partial \overline{u}_i}{\partial{x_k}}
+             }_c +
+  \underbrace{\overline{u'_k u'_i} \frac{\partial \overline{u}_j}{\partial{x_k}}
+             }_c +
+  \underbrace{\frac{\partial \overline{u'_k u'_j u'_i}}{\partial{x_k}}
+             }_d = \\
+  &
+  \underbrace{\left( \frac{g}{\overline{\theta}_v} \right) 
+              \left(\overline{u'_j \theta'_v \delta_{i3} } + \overline{u'_i \theta'_v \delta_{j3} } \right)
+             }_e +
+  \underbrace{ f_c \left(
+              \overline{\epsilon_{ik3} u'_j  u'_k} + \overline{\epsilon_{jk3} u'_i  u'_k} \right)
+             }_f - \\
+  &
+  \underbrace{
+              \overline{u'_j \frac{1}{\overline{\rho}} \frac{\partial p'}{\partial x_i}} +
+              \overline{u'_i \frac{1}{\overline{\rho}} \frac{\partial p'}{\partial x_j}}
+             }_g + 
+  \underbrace{ \overline{u'_j \nu \left(\frac{\partial^2 u'_i}{\partial x^2_k}\right)'}+ \overline{u'_i \nu \left(\frac{\partial^2 u'_j}{\partial x^2_k}\right)'}}_h 
+  \label{EQ_TEND_FLUCT_UI_PARTS}
+\end{split}
+\end{equation}
+The various terms in equation \ref{EQ_TEND_FLUCT_UI_PARTS} are:
+\begin{enumerate}
+   \item[a] tendency/storage
+   \item[b] advection
+   \item[c] shear production
+   \item[d] transport turbulent diffusion
+   \item[e] buoyancy production/destruction
+   \item[f] Coriolis production/destruction
+   \item[g] pressure-gradient velocity interaction
+   \item[h] viscous dissipation
+\end{enumerate}
+
+The essential point in the method of \cite{gao:balance} is that the discretization of \ref{EQ_TEND_FLUCT_UI_PARTS} 
+will give different results than discretization of the sum of  \ref{EQ_TEND_FLUCT_UJ}  and  \ref{EQ_TEND_FLUCT_UI}.
+
+\section{Discretization}
+
+In order to discretize the sum of  \ref{EQ_TEND_FLUCT_UJ}  and  \ref{EQ_TEND_FLUCT_UI} we have to take into account the 
+discretization of the terms in the momentum budget equation (\ref{EQ_TEND_FLUCT_UI_PARTS}). The rate equation for $u'_i$ should be discretized in the same way as 
+that of the instantaneous velocity. Therefore, \ref{EQ_TEND_FLUCT_UJ} and \ref{EQ_TEND_FLUCT_UI} 
+are the starting point for the discretization. 
+Since, equations \ref{EQ_TEND_FLUCT_UJ} and \ref{EQ_TEND_FLUCT_UI} are identical in form, we will only discuss \ref{EQ_TEND_FLUCT_UJ}:
+\begin{equation}
+\begin{split}
+  \underbrace{ \overline{u'_j \frac{\partial u'_i}{\partial t}} }_{a1} & +
+  \underbrace{ \overline{u'_j \frac{\partial \overline{u}_k           u'_i}{\partial{x_k}}} }_{b1} +
+  \underbrace{ \overline{u'_j \frac{\partial u'_k \overline{u}_i}{\partial{x_k}}} }_{c1}+
+  \underbrace{ \overline{u'_j \frac{\partial  u'_k  u'_i}{\partial{x_k}}} }_{d1} = \\
+  &
+  \underbrace{ \overline{\delta_{i3} \left( \frac{u'_j\theta'_v}{\overline{\theta}_v} \right) g } }_{e1} +
+  \underbrace{ \overline{f_c \epsilon_{ik3} u'_j u'_k} }_{f1}-
+  \underbrace{ \overline{u'_j \frac{1}{\overline{\rho}} \frac{\partial p'}{\partial x_i}} }_{g1}+ 
+  \underbrace{ \overline{u'_j \nu \frac{\partial^2 u'_i}{\partial x^2_k}} }_{h1} 
+\end{split}
+\notag
+\end{equation}
+
+The DALES uses a finite volume discretization with a staggered grid \cite{harlow:numerical} (see figure \ref{FIG_STAGGERED}).
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=7cm]{staggered_grid.eps}
+	\caption{\small Arrangement of variables on a staggered grid: pressure (and other scalars like potential temperature, humidity, ...) 
+are located in the center of the cell, velocity components are displaced in the upstream direction of the component.}
+	\label{FIG_STAGGERED}
+\end{figure}
+
+The turbulence stresses in \ref{EQ_TEND_FLUCT_UJ} are defined at the edges of the grid box where the faces of the $u_i$ and $u_j$ 
+velocity intersect. Below, on the the terms in \ref{EQ_TEND_FLUCT_UJ} are dealt with, but the total budget term will consist of a 
+term originating from \ref{EQ_TEND_FLUCT_UJ} and one from \ref{EQ_TEND_FLUCT_UI}. See figure \ref{off-diagonal} to understand how the 
+off-diagonal stresses are interpolated to cell edges. 
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=7cm]{off_diag.eps}
+	\caption{\small Interpolation of off-diagonal stresses to cell edges.}
+	\label{off-diagonal}
+\end{figure}
+
+For all the terms of the stress budget, the codification at DALES of $\overline{u'_1 u'_1}$, 
+$\overline{u'_1 u'_2}$ and $\overline{u'_1 u'_3}$ stress elements are written as:
+
+\begin{verbatim}
+dumfield=2.*u0_dev*u_term
+
+dumfield(2:i1,2:j1,:) =
+0.25*(u0_dev(2:i1,2:j1,:)+u0_dev(2:i1,1:jmax,:))*&
+     (v_term(2:i1,2:j1,:)+v_term(1:imax,2:j1,:))+&
+0.25*(u_term(2:i1,2:j1,:)+u_term(2:i1,1:jmax,:))*&
+     (v0_dev(2:i1,2:j1,:)+v0_dev(1:imax,2:j1,:))
+
+dumfield(2:i1,2:j1,2:k1) =
+0.25*(u0_dev(2:i1,2:j1,2:k1)+u0_dev(2:i1,2:j1,1:kmax))* &
+     (w_term(2:i1,2:j1,2:k1)+w_term(1:imax,2:j1,2:k1))+ &  
+0.25*(u_term(2:i1,2:j1,2:k1)+u_term(2:i1,2:j1,1:kmax))* &
+     (w0_dev(2:i1,2:j1,2:k1)+w0_dev(1:imax,2:j1,2:k1)), 
+\end{verbatim}
+
+\noindent where \verb=u0_dev==$u'_1$, \verb=v0_dev==$u'_2$, \verb=w0_dev==$u'_3$, $i1=imax+1$, $j1=jmax+1$, and $k1=kmax+1$. 
+\verb=u_term=, \verb=v_term=, and \verb=w_term= are calcualted with the advection subroutines of the model and are different for
+each particular term of the stress budget.
+
+\subsection{Advection (b1)}
+The advection term, $\overline{u'_j \frac{\partial \overline{u_k}u'_i}{\partial{x_k}}}$, 
+is identical zero if the mean vertical velocity ($\overline{w}$)is zero, and the flow is horizontally homogeneous.
+
+In this case \verb=u_term==$\frac{\partial \overline{u_k}u'_1}{\partial{x_k}}$, and \verb=v_term==$\frac{\partial \overline{u_k}u'_2}{\partial{x_k}}$, 
+\verb=w_term==$\frac{\partial \overline{u_k}u'_3}{\partial{x_k}}$.
+
+\subsection{Shear production (c1)}
+In the term $\overline{u'_j \frac{\partial u'_k\overline{u_i}}{\partial{x_k}}}$, the term 
+$\frac{\partial \overline{u}_k u'_i}{\partial{x_k}}$ is evaluated at the $u_i$-point and needs to be 
+interpolated to the $ij$ edge by averaging in the $j$-direction. $u'_j$ is available at the $u_j$-point and is interpolated 
+to the $ij$ edge by averaging in the $i$-direction. 
+
+For this term, \verb=u_term==$\frac{\partial u'_k\overline{u_1}}{\partial{x_k}}$, \verb=v_term==$\frac{\partial u'_k\overline{u_2}}{\partial{x_k}}$, 
+\verb=w_term==$\frac{\partial u'_k\overline{u_3}}{\partial{x_k}}$.
+
+\subsection{Turbulent diffusion (d1)}
+In the term $\overline{u'_j \frac{\partial  u'_k  u'_i}{\partial{x_k}}}$, the term $\frac{\partial  u'_k  u'_i}{\partial{x_k}}$ 
+is available at the $u_i$-point and needs to be interpolated to the $ij$ edge by averaging in the $j$-direction. 
+Again, $u'_j$ is available at the $u_j$-point and is interpolated to the $ij$ edge by averaging in the $i$-direction.
+
+The codification of this term implies 
+\verb=u_term==$\frac{\partial u'_k u'_1}{\partial{x_k}}$, \verb=v_term==$\frac{\partial u'_k u'_2}{\partial{x_k}}$,
+\verb=w_term==$\frac{\partial u'_k u'_3}{\partial{x_k}}$.
+
+\subsection{Buoyancy production/destruction (e1)}
+In the term $\overline{u'_j \delta_{i3} \left( \frac{\theta'_v}{\overline{\theta}_v} \right) g }$, the term 
+$\delta_{i3} \left( \frac{\theta'_v}{\overline{\theta}_v} \right) g$ is available at the $u_i$-point and is interpolated 
+to the correct edge by averaging in the $j$-direction. $u'_j$ is available at the $u_j$-point and is interpolated 
+to the $ij$ edge by averaging in the $i$-direction.
+
+This term has only component in the $z$-direction. The \verb=w_term= is codified as:
+
+\begin{verbatim}
+
+do k=1,kmax
+thv0h_avl(k) =  sum(thv0h(2:i1,2:j1,k))/rslabs
+enddo
+
+call MPI_ALLREDUCE(thv0h_avl, thv0h_av, k1,  MY_REAL, &
+                           MPI_SUM, comm3d,mpierr)
+
+do k=1,k1
+w_term(:,:,k) = (grav/thvs) * (thv0h(2-ih:i1+ih,2-jh:j1+jh,k) - thv0h_av(k))
+enddo
+    
+call cyclicx(w_term)
+ \end{verbatim}
+
+\noindent where $k1=kmax+1$, grav is the acceleration of gravity and thvs is mean virtual potential temperature in the boundary 
+layer defined in \emph{modsurface.f90}.
+
+\subsection{Coriolis production/destruction (f1)}
+In the term $\overline{u'_j  f_c \epsilon_{ik3} u'_k}$, $f_c \epsilon_{ik3} u'_k$ is defined at the $u_i$-point and is 
+interpolated to the correct edge by averaging in the $j$-direction. $u'_j$ is available at the $u_j$-point 
+and is interpolated to the $ij$ edge by averaging in the $i$-direction.
+
+In this case:
+
+\begin{verbatim}
+u_term(2:i1,2:j1,1:kmax) =   &
++(v0_dev(2:i1,2:j1,1:kmax)+v0_dev(2:i1,3:j2,1:kmax) &
++ v0_dev(1:imax,2:j1,1:kmax)+v0_dev(1:imax,3:j2,1:kmax))*om23*0.25 &
+-(w0_dev(2:i1,2:j1,1:kmax)+w0_dev(2:i1,2:j1,2:k1) &
++w0_dev(1:imax,2:j1,2:k1)+w0_dev(1:imax,2:j1,1:kmax))*om22*0.25
+
+v_term(2:i1,2:j1,:) =  &
+-(u0_dev(2:i1,2:j1,:)+u0_dev(2:i1,1:j1-1,:)&
++ u0_dev(3:i2,1:j1-1,:)+u0_dev(3:i2,2:j1,:))*om23*0.25
+
+do k=2,k1
+w_term(2:i1,2:j1,k) =  &
+om22 * 0.25*((dzf(k-1) * (u0_dev(2:i1,2:j1,k-1)  + u0_dev(3:i2,2:j1,k-1))&
++ dzf(k) * (u0_dev(2:i1,2:j1,k) + u0_dev(3:i2,2:j1,k))) / dzh(k)) 
+enddo 
+\end{verbatim}
+
+\noindent where $i2=imax+2$, $j2=jmax+2$ and $om22=2\Omega\cos\phi$,
+and $om23=2\Omega\sin\phi$ are already defined in the subroutine
+\emph{modglobal.f90}.
+
+\subsection{Pressure-gradient velocity interaction (g1)}
+In the term $\overline{u'_j \frac{1}{\overline{\rho}} \frac{\partial p'}{\partial x_i}}$, 
+$\frac{1}{\overline{\rho}} \frac{\partial p'}{\partial x_i}$ is defined at the $u_i$-point and is interpolated 
+to the correct edge by averaging in the $j$-direction. $u'_j$ is available at the $u_j$-point and is interpolated to the $ij$ edge be 
+averaging in the $i$-direction.
+
+For this case:
+
+\begin{verbatim}
+u_term(2:i1,2:j1,1:k1) = -(p(2:i1,2:j1,1:k1)-p(1:imax,2:j1,1:k1))*dxi
+v_term(2:i1,2:j1,1:k1) = -(p(2:i1,2:j1,1:k1)-p(2:i1,1:jmax,1:k1))*dyi
+
+do k=2,k1
+w_term(2:i1,2:j1,k) = -(p(2:i1,2:j1,k)-p(2:i1,2:j1,k-1))/dzh(k) 
+enddo
+\end{verbatim}
+
+\noindent where $dxi=1/\Delta x$ and $dyi=1/\Delta y$.
+
+\subsection{Viscous dissipation (h1)}
+In the term $\overline{u'_j \nu \frac{\partial^2 u'_i}{\partial x^2_k}}$, $\nu \frac{\partial^2 u'_i}{\partial x^2_k}$ is 
+defined at the $u_i$-point  and is interpolated to the correct edge by averaging in the $j$-direction. $u'_j$ 
+is available at the $u_j$-point and is interpolated to the $ij$ edge by averaging in the $i$-direction.
+Note that in the LES model, $\nu$ includes (or in fact: \emph{only} includes) the subgrid viscosity.
+
+The calculation of the \verb=u_term, v_term and w_term= is as follows:
+
+\begin{verbatim}
+
+call diffu(u_term)
+call diffv(v_term)
+call diffw(w_term)
+
+call cyclicx(u_term)
+call cyclicx(v_term)
+call cyclicx(w_term)
+
+do k=1,k1
+   uterm_avl(k) = sum(u_term(2:i1,2:j1,k))/rslabs
+   vterm_avl(k) = sum(v_term(2:i1,2:j1,k))/rslabs
+   wterm_avl(k) = sum(w_term(2:i1,2:j1,k))/rslabs
+enddo
+
+call MPI_ALLREDUCE(uterm_avl, uterm_av, k1,  MY_REAL, &
+                       MPI_SUM, comm3d, mpierr)
+call MPI_ALLREDUCE(vterm_avl, vterm_av, k1,  MY_REAL, &
+                       MPI_SUM, comm3d, mpierr)
+call MPI_ALLREDUCE(wterm_avl, wterm_av, k1,  MY_REAL, &
+                       MPI_SUM, comm3d, mpierr)
+
+do k=1,k1
+    u_term(:,:,k) = u_term(:,:,k) - uterm_av(k)
+    v_term(:,:,k) = v_term(:,:,k) - vterm_av(k)
+    w_term(:,:,k) = w_term(:,:,k) - wterm_av(k)
+enddo
+\end{verbatim}
+ 
+\bibliographystyle{klunamed}
+\bibliography{meteo}
+
+\end{document}          

@@ -184,9 +184,9 @@ contains
         call ncinfo(ncname(16,:),'obukh','Obukhov Length','m','time')
         call ncinfo(ncname(17,:),'tsrf','Surface liquid water potential temperature','K','time')
         call ncinfo(ncname(18,:),'z0','Roughness height','m','time')
-        call ncinfo(ncname(19,:),'shf_bar','Sensible heat flux','K m/s','time')
-        call ncinfo(ncname(20,:),'sfcbflx','Surface Buoyancy Flux','K m/s','time')
-        call ncinfo(ncname(21,:),'lhf_bar','Latent heat flux','kg/kg m/s','time')
+        call ncinfo(ncname(19,:),'wtheta','Surface kinematic temperature flux','K m/s','time')
+        call ncinfo(ncname(20,:),'wthetav','Surface kinematic virtual temperature flux','K m/s','time')
+        call ncinfo(ncname(21,:),'wq','Surface kinematic moisture flux','kg/kg m/s','time')
         call open_nc(fname,  ncid)
         call define_nc( ncid, NVar, ncname)
       end if
@@ -376,8 +376,8 @@ contains
       call MPI_ALLREDUCE(thlfluxl, usttst, 1,  MY_REAL,MPI_SUM, comm3d,mpierr)
       call MPI_ALLREDUCE(qtfluxl,  ustqst, 1,  MY_REAL,MPI_SUM, comm3d,mpierr)
 
-      usttst = usttst / rslabs
-      ustqst = ustqst / rslabs
+      usttst = -usttst / rslabs
+      ustqst = -ustqst / rslabs
     end if
 
     !Constants c1 and c2

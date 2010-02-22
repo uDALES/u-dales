@@ -66,6 +66,7 @@ module modgenstat
     !                                                                 |
     !    lstat      SWITCH TO ENABLE TIMESERIES                       |
     !-----------------------------------------------------------------|
+  use modglobal, only : longint
 
 implicit none
 ! private
@@ -79,7 +80,8 @@ save
   character(80),dimension(nvar,4) :: ncname
   character(80),dimension(1,4) :: tncname
 
-  real    :: dtav, timeav,tnext,tnextwrite
+  real    :: dtav, timeav
+  integer(kind=longint) :: idtav,itimeav,tnext,tnextwrite
   logical :: lstat= .false. ! switch for conditional sampling cloud (on/off)
   integer :: nsamples
 !     ----  total fields  ---
@@ -158,7 +160,7 @@ contains
 
   subroutine initgenstat
     use modmpi,    only : myid,mpierr, comm3d,my_real, mpi_logical
-    use modglobal, only : dtmax, kmax,k1, nsv,ifnamopt,fname_options, ifoutput, cexpnr,dtav_glob,timeav_glob,ladaptive,dt_lim,btime
+    use modglobal, only : dtmax, kmax,k1, nsv,ifnamopt,fname_options, ifoutput, cexpnr,dtav_glob,timeav_glob,ladaptive,dt_lim,btime,tres
     use modstat_nc, only : lnetcdf, open_nc,define_nc,redefine_nc,ncinfo,writestat_dims_nc
 
 
@@ -186,10 +188,12 @@ contains
     call MPI_BCAST(timeav     ,1,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(dtav       ,1,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(lstat   ,1,MPI_LOGICAL,0,comm3d,mpierr)
+    idtav = dtav/tres
+    itimeav = timeav/tres
 
-    tnext      = dtav - 1e-3+btime
-    tnextwrite = timeav-1e-3+btime
-    nsamples   = nint(timeav/dtav)
+    tnext      = idtav   +btime
+    tnextwrite = itimeav +btime
+    nsamples = itimeav/idtav
     if(.not.(lstat)) return
     dt_lim = min(dt_lim,tnext)
 
@@ -253,10 +257,6 @@ contains
     allocate(th0av(k1))
     allocate(svptav(k1,nsv))
     allocate(svpav(k1,nsv))
-
-
-    svpav = 0.
-    svptav = 0.
 
       umn      = 0.
       vmn      = 0.
@@ -383,7 +383,7 @@ contains
 
 
         call open_nc(fname,  ncid,n3=kmax)
-       call define_nc( ncid, 1, tncname)
+        call define_nc( ncid, 1, tncname)
         call writestat_dims_nc(ncid)
         call redefine_nc(ncid)
         call define_nc( ncid, NVar, ncname)
@@ -406,11 +406,11 @@ contains
       return
     end if
     if (timee>=tnext) then
-      tnext = tnext+dtav
+      tnext = tnext+idtav
       call do_genstat
     end if
     if (timee>=tnextwrite) then
-      tnextwrite = tnextwrite+timeav
+      tnextwrite = tnextwrite+itimeav
       call writestat
     end if
     dt_lim = minval((/dt_lim,tnext-timee,tnextwrite-timee/))
@@ -1144,7 +1144,7 @@ contains
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine writestat
-      use modglobal, only : kmax,k1,nsv, zh,zf,timee,rlv,cp,cexpnr,ifoutput
+      use modglobal, only : kmax,k1,nsv, zh,zf,rtimee,rlv,cp,cexpnr,ifoutput
       use modfields, only : presf,presh,exnf,exnh,rhof
       use modmpi,    only : myid
       use modstat_nc, only: lnetcdf, writestat_nc
@@ -1157,7 +1157,7 @@ contains
       integer nsecs, nhrs, nminut,k,n
       real convt, convq
       character(20) :: name
-      nsecs   = nint(timee)
+      nsecs   = nint(rtimee)
       nhrs    = int(nsecs/3600)
       nminut  = int(nsecs/60)-nhrs*60
       nsecs   = mod(nsecs,60)
@@ -1503,7 +1503,7 @@ contains
         vars(:,35)=th2mn
         vars(:,36)=qt2mn
         vars(:,37)=ql2mn
-        call writestat_nc(ncid,1,tncname,(/timee/),nrec,.true.)
+        call writestat_nc(ncid,1,tncname,(/rtimee/),nrec,.true.)
         call writestat_nc(ncid,nvar,ncname,vars(1:kmax,:),nrec,kmax)
       end if
 

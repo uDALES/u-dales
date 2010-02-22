@@ -220,8 +220,8 @@ contains
 
     use modmpi,    only :  slabsum
     use modglobal, only : kmax,rslabs,cp,dzf,i1,j1,k1,ih,jh
-    use modfields, only : thlpcar
-    use modraddata, only : lwd,lwu,swd,swu, rho_air_mn,thlprad
+    use modfields, only : thlpcar,rhof
+    use modraddata, only : lwd,lwu,swd,swu,thlprad
 
     implicit none
     integer :: k
@@ -241,8 +241,8 @@ contains
     call slabsum(swuav ,1,k1,swu ,2-ih,i1+ih,2-jh,j1+jh,1,k1,2,i1,2,j1,1,k1)
     call slabsum(tltendav ,1,k1,thlprad ,2-ih,i1+ih,2-jh,j1+jh,1,k1,2,i1,2,j1,1,k1)
     do k=1,kmax
-      tllwtendav(k) = -(lwdav(k+1)-lwdav(k)+lwuav(k+1)-lwuav(k))/(rho_air_mn*cp*dzf(k))
-      tlswtendav(k) = -(swdav(k+1)-swdav(k)+swuav(k+1)-swuav(k))/(rho_air_mn*cp*dzf(k))
+      tllwtendav(k) = -(lwdav(k+1)-lwdav(k)+lwuav(k+1)-lwuav(k))/(rhof(k)*cp*dzf(k))
+      tlswtendav(k) = -(swdav(k+1)-swdav(k)+swuav(k+1)-swuav(k))/(rhof(k)*cp*dzf(k))
     end do
 
  !    ADD SLAB AVERAGES TO TIME MEAN
@@ -265,7 +265,7 @@ contains
     use modfields,    only : rhof, exnf,exnh, thl0,qt0,ql0
     use modsurfdata,  only : albedo, tskin, qskin, thvs, qts, ps
     use modmicrodata, only : imicro, imicro_bulk, Nc_0,iqr
-    use modraddata,   only : thlprad,rho_air_mn
+    use modraddata,   only : thlprad
     use modmpi,    only :  slabsum
       implicit none
     real, dimension(k1)  :: rhof_b, exnf_b
@@ -311,7 +311,7 @@ contains
       call d4stream(i1,ih,j1,jh,k1,tskin,albedo,Nc_0,rhof_b,exnf_b*cp,temp_b,qv_b,ql_b,swdca,swuca,lwdca,lwuca)
 
 
-   call slabsum(lwdcaav ,1,k1,lwdca ,2-ih,i1+ih,2-jh,j1+jh,1,k1,2,i1,2,j1,1,k1)
+    call slabsum(lwdcaav ,1,k1,lwdca ,2-ih,i1+ih,2-jh,j1+jh,1,k1,2,i1,2,j1,1,k1)
     call slabsum(lwucaav ,1,k1,lwuca ,2-ih,i1+ih,2-jh,j1+jh,1,k1,2,i1,2,j1,1,k1)
     call slabsum(swdcaav ,1,k1,swdca ,2-ih,i1+ih,2-jh,j1+jh,1,k1,2,i1,2,j1,1,k1)
     call slabsum(swucaav ,1,k1,swuca ,2-ih,i1+ih,2-jh,j1+jh,1,k1,2,i1,2,j1,1,k1)
@@ -327,7 +327,7 @@ contains
 !> Write the statistics to file
   subroutine writeradstat
       use modmpi,    only : myid
-      use modglobal, only : cexpnr,ifoutput,kmax,k1,zf,rtimee
+      use modglobal, only : cexpnr,ifoutput,kmax,k1,zf,zh,rtimee
       use modstat_nc, only: lnetcdf, writestat_nc
       use modgenstat, only: ncid_prof=>ncid,nrec_prof=>nrec
 
@@ -366,13 +366,13 @@ contains
       ,'   HRS:MIN:SEC AFTER INITIALIZATION '
       write (ifoutput,'(A/2A/2A)') &
           '#--------------------------------------------------------------------------' &
-          ,'#LEV HGHT     LW_UP        LW_DN        SW_UP       SW_DN       ' &
+          ,'#LEV RAD_FLX_HGHT  THL_HGHT  LW_UP        LW_DN        SW_UP       SW_DN       ' &
           ,'TL_LW_TEND   TL_SW_TEND   TL_LS_TEND   TL_TEND' &
-          ,'#    (M)      (W/M^2)      (W/M^2)      (W/M^2)      (W/M^2)      ' &
+          ,'#    (M)    (M)      (W/M^2)      (W/M^2)      (W/M^2)      (W/M^2)      ' &
           ,'(K/H)         (K/H)        (K/H)        (K/H)'
       do k=1,kmax
-        write(ifoutput,'(I3,F8.2,12E13.4)') &
-            k,zf(k),&
+        write(ifoutput,'(I3,2F8.2,12E13.4)') &
+            k,zh(k), zf(k),&
             lwumn(k),&
             lwdmn(k),&
             swumn(k),&

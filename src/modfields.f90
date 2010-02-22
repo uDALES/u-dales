@@ -56,8 +56,6 @@ save
   real, allocatable :: sv0(:,:,:,:)   !<  scalar sv(n) at time step t
   real, allocatable :: svp(:,:,:,:)   !<  tendency of sv(n)
 
-
-
   ! Diagnostic variables
 
   real, allocatable :: ql0(:,:,:)  !<   liquid water content
@@ -107,6 +105,7 @@ save
   real, allocatable :: svprof(:,:)                 !<   initial sv(n)-profile
 
   real, allocatable :: thlpcar(:)                    !< prescribed radiatively forced thl tendency
+  real, allocatable :: SW_up_TOA(:,:), SW_dn_TOA(:,:), LW_up_TOA(:,:), LW_dn_TOA(:,:)
 
 contains
 !> Allocate and initialize the prognostic variables
@@ -177,8 +176,11 @@ contains
     allocate(e12prof(k1))
     allocate(sv0av(k1,nsv))
     allocate(svprof(k1,nsv))
-
     allocate(thlpcar(k1))
+    allocate(SW_up_TOA(2-ih:i1+ih,2-jh:j1+jh))
+    allocate(SW_dn_TOA(2-ih:i1+ih,2-jh:j1+jh))
+    allocate(LW_up_TOA(2-ih:i1+ih,2-jh:j1+jh))
+    allocate(LW_dn_TOA(2-ih:i1+ih,2-jh:j1+jh))
 
     um=0;u0=0;up=0
     vm=0;v0=0;vp=0
@@ -195,6 +197,7 @@ contains
     ug=0;vg=0;dpdxl=0;dpdyl=0;wfls=0;whls=0;thlpcar = 0
     dthldxls=0;dthldyls=0;dqtdxls=0;dqtdyls=0;dudxls=0;dudyls=0;dvdxls=0;dvdyls=0
     dthvdz=0
+    SW_up_TOA=0;SW_dn_TOA=0;LW_up_TOA=0;LW_dn_TOA=0
 
   end subroutine initfields
 
@@ -209,6 +212,7 @@ contains
     deallocate(ug,vg,dpdxl,dpdyl,dthldxls,dthldyls,dqtdxls,dqtdyls,dqtdtls,dudxls,dudyls,dvdxls,dvdyls,wfls)
     deallocate(thlprof,qtprof,uprof,vprof,e12prof,sv0av,svprof)
     deallocate(thlpcar)
+    deallocate(SW_up_TOA,SW_dn_TOA,LW_up_TOA,LW_dn_TOA)
 
    end subroutine exitfields
 
