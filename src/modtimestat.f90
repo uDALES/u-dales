@@ -40,7 +40,7 @@ implicit none
 ! PUBLIC :: inittimestat, timestat
 save
 !NetCDF variables
-  integer,parameter :: nvar = 21
+  integer,parameter :: nvar = 28
   integer :: ncid,nrec = 0
   character(80) :: fname = 'tmser.xxx.nc'
   character(80),dimension(nvar,4) :: ncname
@@ -182,11 +182,21 @@ contains
         call ncinfo(ncname(14,:),'tstr','Turbulent temperature scale','K','time')
         call ncinfo(ncname(15,:),'qtstr','Turbulent humidity scale','K','time')
         call ncinfo(ncname(16,:),'obukh','Obukhov Length','m','time')
-        call ncinfo(ncname(17,:),'tsrf','Surface liquid water potential temperature','K','time')
+        call ncinfo(ncname(17,:),'thlskin','Surface liquid water potential temperature','K','time')
         call ncinfo(ncname(18,:),'z0','Roughness height','m','time')
         call ncinfo(ncname(19,:),'wtheta','Surface kinematic temperature flux','K m/s','time')
         call ncinfo(ncname(20,:),'wthetav','Surface kinematic virtual temperature flux','K m/s','time')
         call ncinfo(ncname(21,:),'wq','Surface kinematic moisture flux','kg/kg m/s','time')
+
+        if(isurf==1) then
+          call ncinfo(ncname(22,:),'Qnet','Net radiation','W/m^2','time')
+          call ncinfo(ncname(23,:),'H','Sensible heat flux','W/m^2','time')
+          call ncinfo(ncname(24,:),'LE','Latent heat flux','W/m^2','time')
+          call ncinfo(ncname(25,:),'G0','Ground heat flux','W/m^2','time')
+          call ncinfo(ncname(26,:),'tendskin','Skin tendency','W/m^2','time')
+          call ncinfo(ncname(27,:),'rs','Surface resistance','m/s','time')
+          call ncinfo(ncname(28,:),'ra','Aerodynamic resistance','m/s','time')
+        end if
         call open_nc(fname,  ncid)
         call define_nc( ncid, NVar, ncname)
       end if
@@ -501,6 +511,15 @@ contains
         vars(19) = wts
         vars(20) = wtvs
         vars(21) = wqls
+        if (isurf == 1) then
+          vars(22) = Qnetav
+          vars(23) = Hav
+          vars(24) = LEav
+          vars(25) = G0av
+          vars(26) = tendskinav
+          vars(27) = rsav
+          vars(28) = raav
+        end if
         
         call writestat_nc(ncid,nvar,ncname,vars,nrec,.true.)
       end if
