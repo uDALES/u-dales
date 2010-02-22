@@ -899,7 +899,7 @@ contains
       obl   = L
       oblav = L
 
-      write(6,*) "CvH iter: ", iter, Rib
+      !write(6,*) "CvH iter: ", iter, Rib
 
     end if
 
