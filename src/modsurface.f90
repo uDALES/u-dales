@@ -607,7 +607,7 @@ contains
           !else
           !  qtflux(i,j) = - (qt0(i,j,1)  - qskin(i,j)) / (ra(i,j) + rs(i,j))
           !end if
-          qtflux(i,j) = - (qt0(i,j,1)  - qskin(i,j)) / (ra(i,j) + rs(i,j))
+          qtflux(i,j) = - (qt0(i,j,1)  - qskin(i,j)) / ra(i,j)
           
           do n=1,nsv
             svflux(i,j,n) = wsvsurf(n) 
