@@ -40,10 +40,12 @@ implicit none
 ! PUBLIC :: inittimestat, timestat
 save
 !NetCDF variables
-  integer,parameter :: nvar = 28
+  !integer,parameter :: nvar = 28
+  integer :: nvar
   integer :: ncid,nrec = 0
   character(80) :: fname = 'tmser.xxx.nc'
-  character(80),dimension(nvar,4) :: ncname
+  !character(80),dimension(nvar,4) :: ncname
+  character(80), allocatable, dimension(:,:)    :: ncname
 
   real    :: dtav
   integer(kind=longint) :: idtav,tnext
@@ -165,6 +167,14 @@ contains
         close(ifoutput)
       end if
       if (lnetcdf) then
+        if(isurf == 1) then
+          nvar = 28
+        else
+          nvar = 21
+        end if
+        
+        allocate(ncname(nvar,4))
+
         fname(7:9) = cexpnr
         call ncinfo(ncname( 1,:),'time','Time','s','time')
         call ncinfo(ncname( 2,:),'cfrac','Cloud fraction','-','time')

@@ -35,10 +35,14 @@ wqsurf     =  0.0001
 wsvsurf(1) =  0.
 wsvsurf(2) =  1.
 lmoist     =  .true.
-isurf      =  1
-iradiation =  1
+isurf      =  4
+iradiation =  0
 useMcICA   =  .true.
 lcoriol    =  .true.
+/
+
+&NAMNETCDFSTATS
+lnetcdf    = .true.
 /
 
 &NAMSURFACE
