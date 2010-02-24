@@ -52,7 +52,7 @@ contains
     namelist/NAMSURFACE/ & !< Soil related variables
       isurf,tsoilav, tsoildeepav, phiwav, rootfav, &
       ! Land surface related variables
-      lmostlocal, lsmoothflux, z0mav, z0hav, rsisurf2, Cskinav, lambdaskinav, albedoav, Qnetav, cvegav, &
+      lmostlocal, lsmoothflux, lneutral, z0mav, z0hav, rsisurf2, Cskinav, lambdaskinav, albedoav, Qnetav, cvegav, &
       ! Jarvis-Steward related variables
       rsminav, rssoilminav, LAIav, gDav, &
       ! Prescribed values for isurf 2, 3, 4
@@ -84,6 +84,7 @@ contains
 
     call MPI_BCAST(lmostlocal   , 1, MPI_LOGICAL, 0, comm3d, mpierr)
     call MPI_BCAST(lsmoothflux  , 1, MPI_LOGICAL, 0, comm3d, mpierr)
+    call MPI_BCAST(lneutral     , 1, MPI_LOGICAL, 0, comm3d, mpierr)
     call MPI_BCAST(z0mav        , 1, MY_REAL, 0, comm3d, mpierr)
     call MPI_BCAST(z0hav        , 1, MY_REAL, 0, comm3d, mpierr)
     call MPI_BCAST(rsisurf2     , 1, MY_REAL, 0, comm3d, mpierr)
@@ -386,7 +387,11 @@ contains
     ! CvH start with computation of drag coefficients to allow for implicit solver
     if(isurf <= 2) then
 
-      call getobl
+      if(lneutral) then
+        obl(:,:) = -1.e10
+      else
+        call getobl
+      end if
 
       call MPI_BCAST(oblav ,1,MY_REAL ,0,comm3d,mpierr)
 
@@ -686,7 +691,11 @@ contains
 
     else
 
-      call getobl
+      if(lneutral) then
+        obl(:,:) = -1.e10
+      else
+        call getobl
+      end if
 
       thlsl = 0.
       do j = 2, j1
