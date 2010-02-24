@@ -2,7 +2,7 @@
 iexpnr     =  001
 lwarmstart =  .false.
 startfile  =  'initd00h01m000.001'
-runtime    =  200000
+runtime    =  10800
 trestart   =  3600 
 ladaptive  =  .true.
 irandom    =  43
@@ -12,8 +12,8 @@ nsv        =  0
 /
 
 &DOMAIN
-imax       =  160 
-jtot       =  160
+imax       =  128 
+jtot       =  128
 kmax       =  196
 
 xsize      =  3200.
@@ -26,12 +26,12 @@ xtime      =  4.
 /
 
 &PHYSICS
-z0         =  0.035
+z0         =  0.1
 ustin      =  0.0
 ps         =  100000.00
-thls       =  296.
-wtsurf     =  0.1
-wqsurf     =  0.0001
+thls       =  290.
+wtsurf     =  0.
+wqsurf     =  0.
 wsvsurf(1) =  0.
 wsvsurf(2) =  1.
 lmoist     =  .true.
@@ -67,8 +67,8 @@ lmostlocal   = .false.
 lsmoothflux  = .false.
 rsisurf2     = 50.
 
-z0mav        = 0.035
-z0hav        = 0.007
+z0mav        = 0.1
+z0hav        = 0.02
 Cskinav      = 20000.
 lambdaskinav = 5.
 albedoav     = 0.20
@@ -105,7 +105,7 @@ timeav      = 120
 
 &NAMTIMESTAT
 ltimestat   = .true.
-dtav        = 30 
+dtav        = 60 
 /
 
 &NAMCROSSSECTION
@@ -115,7 +115,7 @@ dtav        = 60
 &NAMGENSTAT
 lstat       = .true.
 dtav        = 60
-timeav      = 300
+timeav      = 1800
 /
 &NAMFIELDDUMP
 lfielddump  = .false.
@@ -124,18 +124,18 @@ ldiracc     = .true.
 /
 &NAMSTATTEND
 dtav        = 60
-timeav      = 300
+timeav      = 1800
 ltend       = .true.
 /
 
 &NAMBUDGET
 lbudget = .true.
 dtav    = 60
-timeav  = 300
+timeav  = 1800
 /
 
 &NAMRADSTAT
 lstat = .true.
-dtav = 30
-timeav = 30
+dtav = 60
+timeav = 1800
 /
