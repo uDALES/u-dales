@@ -12,12 +12,12 @@ nsv        =  0
 /
 
 &DOMAIN
-imax       =  128 
-jtot       =  128
-kmax       =  64
+imax       =  256 
+jtot       =  256
+kmax       =  96
 
-xsize      =  3200.
-ysize      =  3200.
+xsize      =  1024.
+ysize      =  1024.
 
 xlat       =  51.96
 xlon       =  4.91
@@ -65,6 +65,7 @@ rootfav(4)   = 0.04
 cvegav       = 0.9
 lmostlocal   = .false.
 lsmoothflux  = .false.
+lneutral     = .true.
 rsisurf2     = 50.
 
 z0mav        = 0.1
