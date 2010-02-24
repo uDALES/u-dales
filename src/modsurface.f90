@@ -389,6 +389,7 @@ contains
 
       if(lneutral) then
         obl(:,:) = -1.e10
+        oblav    = -1.e10
       else
         call getobl
       end if
@@ -693,9 +694,12 @@ contains
 
       if(lneutral) then
         obl(:,:) = -1.e10
+        oblav    = -1.e10
       else
         call getobl
       end if
+
+      write(6,*) "CvH: OBL:", obl(2,2), oblav
 
       thlsl = 0.
       do j = 2, j1
