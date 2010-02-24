@@ -699,8 +699,6 @@ contains
         call getobl
       end if
 
-      write(6,*) "CvH: OBL:", obl(2,2), oblav
-
       thlsl = 0.
       do j = 2, j1
         do i = 2, i1
