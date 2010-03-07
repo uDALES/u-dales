@@ -367,7 +367,7 @@ contains
 
     real     :: f1, f2, f3, f4 ! Correction functions for Jarvis-Stewart
     integer  :: i, j, k, n
-    real     :: upcu, vpcv, horv
+    real     :: upcu, vpcv, horv, horvav
     real     :: phimzf, phihzf
     real     :: rk3coef, thlsl
 
@@ -435,12 +435,15 @@ contains
           Cm(i,j) = fkar ** 2. / (log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j)) + psim(z0m(i,j) / obl(i,j))) ** 2.
           Cs(i,j) = fkar ** 2. / (log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j)) + psim(z0m(i,j) / obl(i,j))) / (log(zf(1) / z0h(i,j)) - psih(zf(1) / obl(i,j)) + psih(z0h(i,j) / obl(i,j)))
 
-          upcu  = 0.5 * (u0(i,j,1) + u0(i+1,j,1)) + cu
-          vpcv  = 0.5 * (v0(i,j,1) + v0(i,j+1,1)) + cv
-          horv  = sqrt(upcu ** 2. + vpcv ** 2.)
-          horv  = max(horv, 1.e-2)
+          !upcu  = 0.5 * (u0(i,j,1) + u0(i+1,j,1)) + cu
+          !vpcv  = 0.5 * (v0(i,j,1) + v0(i,j+1,1)) + cv
+          !horv  = sqrt(upcu ** 2. + vpcv ** 2.)
+          !horv  = max(horv, 1.e-2)
 
-          ra(i,j) = 1. / ( Cs(i,j) * horv )
+          !CvH test smoothz0
+          !ra(i,j) = 1. / ( Cs(i,j) * horv )
+          horvav  = sqrt(u0av(1) ** 2. + v0av(1) ** 2.)
+          ra(i,j) = 1. / ( Cs(i,j) * horvav )
 
         end do
       end do
@@ -599,12 +602,13 @@ contains
     if(isurf <= 2) then
       do j = 2, j1
         do i = 2, i1
-          upcu  = 0.5 * (u0(i,j,1) + u0(i+1,j,1)) + cu
-          vpcv  = 0.5 * (v0(i,j,1) + v0(i,j+1,1)) + cv
-          horv  = sqrt(upcu ** 2. + vpcv ** 2.)
-          horv  = max(horv, 1.e-2)
+          upcu   = 0.5 * (u0(i,j,1) + u0(i+1,j,1)) + cu
+          vpcv   = 0.5 * (v0(i,j,1) + v0(i,j+1,1)) + cv
+          horv   = sqrt(upcu ** 2. + vpcv ** 2.)
+          horv   = max(horv, 1.e-2)
+          horvav = sqrt(u0av(1) ** 2. + v0av(1) ** 2.)
 
-          ustar  (i,j) = sqrt(Cm(i,j)) * horv
+          ustar  (i,j) = sqrt(Cm(i,j) * horv * horvav)
           thlflux(i,j) = - ( thl0(i,j,1) - tskin(i,j) ) / ra(i,j) 
 
           !CvH allow for dewfall at night, bypass stomatal resistance
