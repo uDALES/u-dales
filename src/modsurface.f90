@@ -707,13 +707,16 @@ contains
       do j = 2, j1
         do i = 2, i1
 
-          upcu  = 0.5 * (u0(i,j,1) + u0(i+1,j,1)) + cu
-          vpcv  = 0.5 * (v0(i,j,1) + v0(i,j+1,1)) + cv
-          horv  = sqrt(upcu ** 2. + vpcv ** 2.)
-          horv  = max(horv, 1.e-2)
+          upcu   = 0.5 * (u0(i,j,1) + u0(i+1,j,1)) + cu
+          vpcv   = 0.5 * (v0(i,j,1) + v0(i,j+1,1)) + cv
+          horv   = sqrt(upcu ** 2. + vpcv ** 2.)
+          horv   = max(horv, 1.e-2)
+          horvav = sqrt(u0av(1) ** 2. + v0av(1) ** 2.)
 
+          ! CvH take square root of horv * horvav, to make sure slab average
+          ! follows law of the wall
           if( isurf == 4) then
-            ustar (i,j) = fkar * horv / (log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j)) + psim(z0m(i,j) / obl(i,j)))
+            ustar (i,j) = fkar * sqrt(horv * horvav) / (log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j)) + psim(z0m(i,j) / obl(i,j)))
           else
             ustar (i,j) = ustin
           end if
