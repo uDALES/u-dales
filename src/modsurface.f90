@@ -360,7 +360,7 @@ contains
   subroutine surface
     use modglobal,  only : rdt, i1, i2, j1, j2, cp, rlv, fkar, zf, cu, cv, nsv, rk3step, timee, rslabs, pi, pref0, rd, eps1, boltz
     use modraddata, only : iradiation, swu, swd, lwu, lwd, useMcICA
-    use modfields,  only : thl0, qt0, u0, v0, rhof, ql0, exnf, presf
+    use modfields,  only : thl0, qt0, u0, v0, rhof, ql0, exnf, presf, u0av, v0av
     use modmpi,     only : my_real, mpierr, comm3d, mpi_sum, myid, excj
     use moduser,   only : surf_user
     implicit none
