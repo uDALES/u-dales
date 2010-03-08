@@ -435,15 +435,17 @@ contains
           Cm(i,j) = fkar ** 2. / (log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j)) + psim(z0m(i,j) / obl(i,j))) ** 2.
           Cs(i,j) = fkar ** 2. / (log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j)) + psim(z0m(i,j) / obl(i,j))) / (log(zf(1) / z0h(i,j)) - psih(zf(1) / obl(i,j)) + psih(z0h(i,j) / obl(i,j)))
 
-          !upcu  = 0.5 * (u0(i,j,1) + u0(i+1,j,1)) + cu
-          !vpcv  = 0.5 * (v0(i,j,1) + v0(i,j+1,1)) + cv
-          !horv  = sqrt(upcu ** 2. + vpcv ** 2.)
-          !horv  = max(horv, 1.e-2)
-
-          !CvH test smoothz0
-          !ra(i,j) = 1. / ( Cs(i,j) * horv )
-          horvav  = sqrt(u0av(1) ** 2. + v0av(1) ** 2.)
-          ra(i,j) = 1. / ( Cs(i,j) * horvav )
+          if(lmostlocal) then
+            upcu  = 0.5 * (u0(i,j,1) + u0(i+1,j,1)) + cu
+            vpcv  = 0.5 * (v0(i,j,1) + v0(i,j+1,1)) + cv
+            horv  = sqrt(upcu ** 2. + vpcv ** 2.)
+            horv  = max(horv, 1.e-2)
+            ra(i,j) = 1. / ( Cs(i,j) * horv )
+          else
+            !CvH test smoothz0
+            horvav  = sqrt(u0av(1) ** 2. + v0av(1) ** 2.)
+            ra(i,j) = 1. / ( Cs(i,j) * horvav )
+          end if
 
         end do
       end do
@@ -607,8 +609,12 @@ contains
           horv   = sqrt(upcu ** 2. + vpcv ** 2.)
           horv   = max(horv, 1.e-2)
           horvav = sqrt(u0av(1) ** 2. + v0av(1) ** 2.)
-
-          ustar  (i,j) = sqrt(Cm(i,j) * horv * horvav)
+          
+          if(lmostlocal) then 
+            ustar  (i,j) = sqrt(Cm(i,j)) * horv 
+          else
+            ustar  (i,j) = sqrt(Cm(i,j) * horv * horvav)
+          end if
           thlflux(i,j) = - ( thl0(i,j,1) - tskin(i,j) ) / ra(i,j) 
 
           !CvH allow for dewfall at night, bypass stomatal resistance
@@ -880,46 +886,48 @@ contains
       call MPI_ALLREDUCE(oblavl, oblav, 1,  MY_REAL, MPI_SUM, comm3d,mpierr)
       oblav = oblav / rslabs
 
-    else
+    !CvH also do a global evaluation if lmostlocal = .true. to get an appropriate local mean
+    !else
+    end if
 
-      thv    = thl0av(1) * (1. + (rv/rd - 1.) * qt0av(1))
-      horv2l = sum( (u0(2:i1,2:j1,1) + cu ) ** 2.)  +  sum( (v0(2:i1,2:j1,1) + cv ) ** 2.)
-      horv2l = max(horv2l, 1.e-2)
+    thv    = thl0av(1) * (1. + (rv/rd - 1.) * qt0av(1))
+    horv2l = sum( (u0(2:i1,2:j1,1) + cu ) ** 2.)  +  sum( (v0(2:i1,2:j1,1) + cv ) ** 2.)
+    horv2l = max(horv2l, 1.e-2)
 
-      call MPI_ALLREDUCE(horv2l, horv2, 1,  MY_REAL, MPI_SUM, comm3d,mpierr)
-      horv2 = horv2 / rslabs
+    call MPI_ALLREDUCE(horv2l, horv2, 1,  MY_REAL, MPI_SUM, comm3d,mpierr)
+    horv2 = horv2 / rslabs
 
-      Rib   = grav / thvs * zf(1) * (thv - thvs) / horv2
+    Rib   = grav / thvs * zf(1) * (thv - thvs) / horv2
 
-      iter = 0
-      L = oblav
+    iter = 0
+    L = oblav
 
+    if(Rib * L < 0. .or. abs(L) == 1e5) then
+      if(Rib > 0) L = 0.01
+      if(Rib < 0) L = -0.01
+    end if
+
+    do while (.true.)
+      iter    = iter + 1
+      Lold    = L
+      fx      = Rib - zf(1) / L * (log(zf(1) / z0hav) - psih(zf(1) / L) + psih(z0hav / L)) / (log(zf(1) / z0mav) - psim(zf(1) / L) + psim(z0mav / L)) ** 2.
+      Lstart  = L - 0.001*L
+      Lend    = L + 0.001*L
+      fxdif   = ( (- zf(1) / Lstart * (log(zf(1) / z0hav) - psih(zf(1) / Lstart) + psih(z0hav / Lstart)) / (log(zf(1) / z0mav) - psim(zf(1) / Lstart) + psim(z0mav / Lstart)) ** 2.) - (-zf(1) / Lend * (log(zf(1) / z0hav) - psih(zf(1) / Lend) + psih(z0hav / Lend)) / (log(zf(1) / z0mav) - psim(zf(1) / Lend) + psim(z0mav / Lend)) ** 2.) ) / (Lstart - Lend)
+      L       = L - fx / fxdif
       if(Rib * L < 0. .or. abs(L) == 1e5) then
         if(Rib > 0) L = 0.01
         if(Rib < 0) L = -0.01
       end if
+      if(abs(L - Lold) < 0.0001) exit
+    end do
 
-      do while (.true.)
-        iter    = iter + 1
-        Lold    = L
-        fx      = Rib - zf(1) / L * (log(zf(1) / z0hav) - psih(zf(1) / L) + psih(z0hav / L)) / (log(zf(1) / z0mav) - psim(zf(1) / L) + psim(z0mav / L)) ** 2.
-        Lstart  = L - 0.001*L
-        Lend    = L + 0.001*L
-        fxdif   = ( (- zf(1) / Lstart * (log(zf(1) / z0hav) - psih(zf(1) / Lstart) + psih(z0hav / Lstart)) / (log(zf(1) / z0mav) - psim(zf(1) / Lstart) + psim(z0mav / Lstart)) ** 2.) - (-zf(1) / Lend * (log(zf(1) / z0hav) - psih(zf(1) / Lend) + psih(z0hav / Lend)) / (log(zf(1) / z0mav) - psim(zf(1) / Lend) + psim(z0mav / Lend)) ** 2.) ) / (Lstart - Lend)
-        L       = L - fx / fxdif
-        if(Rib * L < 0. .or. abs(L) == 1e5) then
-          if(Rib > 0) L = 0.01
-          if(Rib < 0) L = -0.01
-        end if
-        if(abs(L - Lold) < 0.0001) exit
-      end do
-
+    if(.not. lmostlocal) then
       obl   = L
-      oblav = L
-
-      !write(6,*) "CvH iter: ", iter, Rib
-
     end if
+    oblav = L
+
+    !end if
 
     return
 
