@@ -872,19 +872,19 @@ contains
 
           obl(i,j) = L
 
-          oblavl   = oblavl + obl(i,j)
+          !oblavl   = oblavl + obl(i,j)
 
         end do
       end do
 
-      do i=2,i1
-        do j=2,j1
-          oblavl = oblavl + obl(i,j)
-        end do
-      end do
+      !do i=2,i1
+      !  do j=2,j1
+      !    oblavl = oblavl + obl(i,j)
+      !  end do
+      !end do
 
-      call MPI_ALLREDUCE(oblavl, oblav, 1,  MY_REAL, MPI_SUM, comm3d,mpierr)
-      oblav = oblav / rslabs
+      !call MPI_ALLREDUCE(oblavl, oblav, 1,  MY_REAL, MPI_SUM, comm3d,mpierr)
+      !oblav = oblav / rslabs
 
     !CvH also do a global evaluation if lmostlocal = .true. to get an appropriate local mean
     !else
@@ -923,7 +923,7 @@ contains
     end do
 
     if(.not. lmostlocal) then
-      obl   = L
+      obl(:,:) = L
     end if
     oblav = L
 
