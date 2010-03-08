@@ -613,7 +613,7 @@ contains
           if(lmostlocal) then 
             ustar  (i,j) = sqrt(Cm(i,j)) * horv 
           else
-            ustar  (i,j) = sqrt(Cm(i,j) * horv * horvav)
+            ustar  (i,j) = sqrt(Cm(i,j)) * horvav
           end if
           thlflux(i,j) = - ( thl0(i,j,1) - tskin(i,j) ) / ra(i,j) 
 
@@ -827,7 +827,7 @@ contains
 !> Calculates the Obuhkov length iteratively.
   subroutine getobl
     use modglobal, only : zf, rv, rd, grav, rslabs, i1, j1, i2, j2, timee, cu, cv
-    use modfields, only : thl0av, qt0av, u0, v0, thl0, qt0
+    use modfields, only : thl0av, qt0av, u0, v0, thl0, qt0, u0av, v0av
     use modmpi,    only : my_real,mpierr,comm3d,mpi_sum,myid,excj
     implicit none
 
@@ -891,11 +891,14 @@ contains
     end if
 
     thv    = thl0av(1) * (1. + (rv/rd - 1.) * qt0av(1))
-    horv2l = sum( (u0(2:i1,2:j1,1) + cu ) ** 2.)  +  sum( (v0(2:i1,2:j1,1) + cv ) ** 2.)
-    horv2l = max(horv2l, 1.e-2)
+    !horv2l = sum( (u0(2:i1,2:j1,1) + cu ) ** 2.)  +  sum( (v0(2:i1,2:j1,1) + cv ) ** 2.)
+    !horv2l = max(horv2l, 1.e-2)
 
-    call MPI_ALLREDUCE(horv2l, horv2, 1,  MY_REAL, MPI_SUM, comm3d,mpierr)
-    horv2 = horv2 / rslabs
+    !call MPI_ALLREDUCE(horv2l, horv2, 1,  MY_REAL, MPI_SUM, comm3d,mpierr)
+    !horv2 = horv2 / rslabs
+    !CvH return to classical formulation
+    
+    horv2 = u0av(1)**2. + v0av(1)**2.
 
     Rib   = grav / thvs * zf(1) * (thv - thvs) / horv2
 
