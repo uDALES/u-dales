@@ -2,7 +2,7 @@
 iexpnr     =  001
 lwarmstart =  .false.
 startfile  =  'initd00h01m000.001'
-runtime    =  10800
+runtime    =  36000
 trestart   =  3600 
 ladaptive  =  .true.
 irandom    =  43
