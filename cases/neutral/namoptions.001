@@ -12,12 +12,12 @@ nsv        =  0
 /
 
 &DOMAIN
-imax       =  256 
-jtot       =  256
-kmax       =  96
+imax       =  64 
+jtot       =  32
+kmax       =  100
 
-xsize      =  1024.
-ysize      =  1024.
+xsize      =  4000.
+ysize      =  2000.
 
 xlat       =  51.96
 xlon       =  4.91
@@ -69,7 +69,7 @@ lneutral     = .true.
 rsisurf2     = 50.
 
 z0mav        = 0.1
-z0hav        = 0.02
+z0hav        = 0.1
 Cskinav      = 20000.
 lambdaskinav = 5.
 albedoav     = 0.20
