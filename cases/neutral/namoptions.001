@@ -19,8 +19,8 @@ kmax       =  128
 xsize      =  4000.
 ysize      =  2000.
 
-xlat       =  51.96
-xlon       =  4.91
+xlat       =  45.
+xlon       =  0.
 xday       =  268.
 xtime      =  4.
 /
