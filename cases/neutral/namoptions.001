@@ -6,8 +6,8 @@ runtime    =  10800
 trestart   =  3600 
 ladaptive  =  .true.
 irandom    =  43
-randthl    =  0.1
-randqt     =  2.5e-5
+randthl    =  0.5
+randqt     =  0.
 nsv        =  0
 /
 
@@ -87,11 +87,11 @@ lqlnr      =  .false.
 cu         =  0.
 cv         =  0.
 
-iadv_mom    =  5
-iadv_tke    =  5
-iadv_thl    =  5
-iadv_qt     =  5
-iadv_sv     =  5
+iadv_mom    =  2
+iadv_tke    =  2
+iadv_thl    =  2
+iadv_qt     =  2
+iadv_sv     =  2
 /
 
 &NAMCHECKSIM
