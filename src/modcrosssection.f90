@@ -442,13 +442,13 @@ contains
     end do
     if (lnetcdf) then
       allocate(vars(1:jmax,1:kmax,7))
-      vars(:,:,1) = um(crossortho,1:jmax,1:kmax)+cu
-      vars(:,:,2) = vm(crossortho,1:jmax,1:kmax)+cv
-      vars(:,:,3) = wm(crossortho,1:jmax,1:kmax)
-      vars(:,:,4) = thlm(crossortho,1:jmax,1:kmax)
-      vars(:,:,5) = thv0(1:jmax,1:kmax)
-      vars(:,:,6) = qtm(crossortho,1:jmax,1:kmax)
-      vars(:,:,7) = ql0(crossortho,1:jmax,1:kmax)
+      vars(:,:,1) = um(crossortho,2:j1,1:kmax)+cu
+      vars(:,:,2) = vm(crossortho,2:j1,1:kmax)+cv
+      vars(:,:,3) = wm(crossortho,2:j1,1:kmax)
+      vars(:,:,4) = thlm(crossortho,2:j1,1:kmax)
+      vars(:,:,5) = thv0(2:j1,1:kmax)
+      vars(:,:,6) = qtm(crossortho,2:j1,1:kmax)
+      vars(:,:,7) = ql0(crossortho,2:j1,1:kmax)
       call writestat_nc(ncid3,1,tncname3,(/rtimee/),nrec3,.true.)
       call writestat_nc(ncid3,7,ncname3(1:7,:),vars,nrec3,jmax,kmax)
       deallocate(vars)
