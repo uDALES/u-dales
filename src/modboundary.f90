@@ -35,7 +35,7 @@ private
 public :: initboundary, boundary, exitboundary,grwdamp, ksp,tqaver,cyclich
   integer :: ksp = -1                 !<    lowest level of sponge layer
   real,allocatable :: tsc(:)          !<   damping coefficients to be used in grwdamp.
-
+  real :: rnu0 = 2.75e-3
 contains
 !>
 !! Initializing Boundary; specifically the sponge layer
@@ -44,14 +44,14 @@ contains
     use modglobal, only : k1,kmax,pi,zf
     implicit none
 
-    real    :: rnu0, zspb, zspt
+    real    :: zspb, zspt
     integer :: k
     allocate(tsc(k1))
 ! Sponge layer
     if (ksp==-1) then
       ksp  = min(3*kmax/4,kmax - 15)
     end if
-    rnu0    = 2.75e-3
+
     zspb    = zf(ksp)
     zspt    = zf(kmax)
 
@@ -60,7 +60,6 @@ contains
       tsc(k) = rnu0*sin(0.5*pi*(zf(k)-zspb)/(zspt-zspb))**2
     end do
    tsc(k1)=tsc(kmax)
-
   end subroutine initboundary
 
 !>
@@ -185,20 +184,47 @@ contains
 !! to infinity at the bottom of the sponge layer.
 !! \endlatexonly
  subroutine grwdamp
-  use modglobal, only : i1,j1,kmax,cu,cv
-  use modfields, only : up,vp,wp,thlp,qtp,u0,v0,w0,thl0,qt0, u0av,v0av,thl0av,qt0av
+  use modglobal, only : i1,j1,kmax,cu,cv,lcoriol,igrw_damp,geodamptime
+  use modfields, only : up,vp,wp,thlp,qtp,u0,v0,w0,thl0,qt0, ug,vg,thl0av,qt0av,u0av,v0av
   implicit none
 
   integer k
 
-  do k=ksp,kmax
-    up(:,:,k)  = up(:,:,k)-(u0(:,:,k)-(u0av(k)-cu))*tsc(k)
-    vp(:,:,k)  = vp(:,:,k)-(v0(:,:,k)-(v0av(k)-cv))*tsc(k)
-    wp(:,:,k)  = wp(:,:,k)-w0(:,:,k)*tsc(k)
-    thlp(:,:,k)= thlp(:,:,k)-(thl0(:,:,k)-thl0av(k))*tsc(k)
-    qtp(:,:,k) = qtp(:,:,k)-(qt0(:,:,k)-qt0av(k))*tsc(k)
-  end do
-
+  select case(igrw_damp)
+  case(0) !do nothing
+  case(1)
+    do k=ksp,kmax
+      up(:,:,k)  = up(:,:,k)-(u0(:,:,k)-(u0av(k)-cu))*tsc(k)
+      vp(:,:,k)  = vp(:,:,k)-(v0(:,:,k)-(v0av(k)-cv))*tsc(k)
+      wp(:,:,k)  = wp(:,:,k)-w0(:,:,k)*tsc(k)
+      thlp(:,:,k)= thlp(:,:,k)-(thl0(:,:,k)-thl0av(k))*tsc(k)
+      qtp(:,:,k) = qtp(:,:,k)-(qt0(:,:,k)-qt0av(k))*tsc(k)
+    end do
+    if(lcoriol) then
+    do k=ksp,kmax
+      up(:,:,k)  = up(:,:,k)-(u0(:,:,k)-(ug(k)-cu))*((1./(geodamptime*rnu0))*tsc(k))
+      vp(:,:,k)  = vp(:,:,k)-(v0(:,:,k)-(vg(k)-cv))*((1./(geodamptime*rnu0))*tsc(k))
+    end do
+    end if
+  case(2)
+    do k=ksp,kmax
+      up(:,:,k)  = up(:,:,k)-(u0(:,:,k)-(ug(k)-cu))*tsc(k)
+      vp(:,:,k)  = vp(:,:,k)-(v0(:,:,k)-(vg(k)-cv))*tsc(k)
+      wp(:,:,k)  = wp(:,:,k)-w0(:,:,k)*tsc(k)
+      thlp(:,:,k)= thlp(:,:,k)-(thl0(:,:,k)-thl0av(k))*tsc(k)
+      qtp(:,:,k) = qtp(:,:,k)-(qt0(:,:,k)-qt0av(k))*tsc(k)
+    end do
+  case(3)
+    do k=ksp,kmax
+      up(:,:,k)  = up(:,:,k)-(u0(:,:,k)-(u0av(k)-cu))*tsc(k)
+      vp(:,:,k)  = vp(:,:,k)-(v0(:,:,k)-(v0av(k)-cv))*tsc(k)
+      wp(:,:,k)  = wp(:,:,k)-w0(:,:,k)*tsc(k)
+      thlp(:,:,k)= thlp(:,:,k)-(thl0(:,:,k)-thl0av(k))*tsc(k)
+      qtp(:,:,k) = qtp(:,:,k)-(qt0(:,:,k)-qt0av(k))*tsc(k)
+    end do
+  case default
+    stop "no gravity wave damping option selected"
+  end select
 
   return
   end subroutine grwdamp

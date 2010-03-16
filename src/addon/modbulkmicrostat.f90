@@ -30,6 +30,7 @@
 !  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
 module modbulkmicrostat
+  use modglobal, only : longint
 
 implicit none
 private
@@ -37,10 +38,13 @@ PUBLIC  :: initbulkmicrostat, bulkmicrostat, exitbulkmicrostat, bulkmicrotend
 save
 !NetCDF variables
   integer,parameter :: nvar = 23
+  integer :: ncid,nrec = 0
+  character(80) :: fname = 'bulkmicrostat.xxx.nc'
   character(80),dimension(nvar,4) :: ncname
+  character(80),dimension(1,4) :: tncname
 
-
-  real          :: dtav, timeav, tnext, tnextwrite
+  real          :: dtav, timeav
+  integer(kind=longint):: idtav, itimeav, tnext, tnextwrite
   integer          :: nsamples
   logical          :: lmicrostat = .false.
   integer, parameter      :: nrfields = 5  , &
@@ -84,22 +88,28 @@ contains
 subroutine initbulkmicrostat
     use modmpi,    only  : myid, mpi_logical, my_real, comm3d, mpierr
     use modglobal, only  : ifnamopt, fname_options, cexpnr, ifoutput, &
-              dtav_glob, timeav_glob, ladaptive, k1,kmax, dtmax,btime
-    use modstat_nc, only : lnetcdf, redefine_nc,define_nc,ncinfo
-    use modgenstat, only : dtav_prof=>dtav, timeav_prof=>timeav,ncid_prof=>ncid
-
+              dtav_glob, timeav_glob, ladaptive, k1,kmax, dtmax,btime,tres
+    use modstat_nc, only : lnetcdf, open_nc,define_nc,redefine_nc,ncinfo,writestat_dims_nc
+    use modgenstat, only : idtav_prof=>idtav, itimeav_prof=>itimeav,ncid_prof=>ncid
+    use modmicrodata,only: imicro, imicro_bulk
     implicit none
     integer      :: ierr
 
     namelist/NAMBULKMICROSTAT/ &
     lmicrostat, dtav, timeav
 
+    if (imicro /=imicro_bulk) return
+
     dtav  = dtav_glob
     timeav  = timeav_glob
-
     if(myid==0)then
       open (ifnamopt,file=fname_options,status='old',iostat=ierr)
       read (ifnamopt,NAMBULKMICROSTAT,iostat=ierr)
+      if (ierr > 0) then
+        print *, 'Problem in namoptions NAMBULKMICROSTAT'
+        print *, 'iostat error: ', ierr
+        stop 'ERROR: Problem in namoptions NAMBULKMICROSTAT'
+      endif
       write(6,NAMBULKMICROSTAT)
       close(ifnamopt)
     end if
@@ -107,11 +117,13 @@ subroutine initbulkmicrostat
     call MPI_BCAST(lmicrostat  ,1,MPI_LOGICAL  ,0,comm3d,mpierr)
     call MPI_BCAST(dtav    ,1,MY_REAL  ,0,comm3d,mpierr)
     call MPI_BCAST(timeav    ,1,MY_REAL  ,0,comm3d,mpierr)
+    idtav = dtav/tres
+    itimeav = timeav/tres
 
-    tnext    = dtav - 1e-3+btime
-    tnextwrite  = timeav - 1e-3+btime
-    nsamples  = nint(timeav/dtav)
-
+    tnext      = idtav   +btime
+    tnextwrite = itimeav +btime
+    nsamples = itimeav/idtav
+    
     if (.not. lmicrostat) return
     if (abs(timeav/dtav - nsamples) > 1e-4) then
       stop 'timeav must be an integer multiple of dtav (NAMBULKMICROSTAT)'
@@ -173,33 +185,40 @@ subroutine initbulkmicrostat
       close(ifoutput)
     end if
     if (lnetcdf) then
-      dtav = dtav_prof
-      timeav = timeav_prof
+      idtav = idtav_prof
+      itimeav = itimeav_prof
+      tnext      = idtav+btime
+      tnextwrite = itimeav+btime
+      nsamples = itimeav/idtav
       if (myid==0) then
-        call ncinfo(ncname( 1,:),'cfrac','Cloud fraction','-','zt')
-        call ncinfo(ncname( 2,:),'rainrate','Echo Rain Rate','W/m^2','zt')
-        call ncinfo(ncname( 3,:),'preccount','Preccount','W/m^2','zm')
-        call ncinfo(ncname( 4,:),'nrrain','nrrain','W/m^2','zm')
-        call ncinfo(ncname( 5,:),'raincount','raincount','W/m^2','zt')
-        call ncinfo(ncname( 6,:),'precmn','precmn','W/m^2','zm')
-        call ncinfo(ncname( 7,:),'dvrmn','dvrmn','W/m^2','zt')
-        call ncinfo(ncname( 8,:),'qrmn','qrmn','W/m^2','zt')
-        call ncinfo(ncname( 9,:),'npauto','Autoconversion rain drop tendency','#/m3/s','zt')
-        call ncinfo(ncname(10,:),'npaccr','Accretion rain drop tendency','#/m3/s','zt')
-        call ncinfo(ncname(11,:),'npsed','Sedimentation rain drop tendency','#/m3/s','zt')
-        call ncinfo(ncname(12,:),'npevap','Evaporation rain drop tendency','#/m3/s','zt')
-        call ncinfo(ncname(13,:),'qrptot','Total rain water content tendency','kg/kg/s','zt')
-        call ncinfo(ncname(14,:),'qrpauto','Autoconversion rain water content tendency','kg/kg/s','zt')
-        call ncinfo(ncname(15,:),'qrpaccr','Accretion rain water content tendency','kg/kg/s','zt')
-        call ncinfo(ncname(16,:),'qrpsed','Sedimentation rain water content tendency','kg/kg/s','zt')
-        call ncinfo(ncname(17,:),'qrpevap','Evaporation rain water content tendency','kg/kg/s','zt')
-        call ncinfo(ncname(18,:),'qrptot','Total rain water content tendency','kg/kg/s','zt')
-        call ncinfo(ncname(19,:),'qtpauto','Autoconversion total water content tendency','kg/kg/s','zt')
-        call ncinfo(ncname(20,:),'qtpaccr','Accretion total water content tendency','kg/kg/s','zt')
-        call ncinfo(ncname(21,:),'qtpsed','Sedimentation total water content tendency','kg/kg/s','zt')
-        call ncinfo(ncname(22,:),'qtpevap','Evaporation total water content tendency','kg/kg/s','zt')
-        call ncinfo(ncname(23,:),'qtptot','Total total water content tendency','kg/kg/s','zt')
-
+        fname(15:17) = cexpnr
+        call ncinfo(tncname(1,:),'time','Time','s','time')
+        call ncinfo(ncname( 1,:),'cfrac','Cloud fraction','-','tt')
+        call ncinfo(ncname( 2,:),'rainrate','Echo Rain Rate','W/m^2','tt')
+        call ncinfo(ncname( 3,:),'preccount','Preccount','W/m^2','mt')
+        call ncinfo(ncname( 4,:),'nrrain','nrrain','W/m^2','mt')
+        call ncinfo(ncname( 5,:),'raincount','raincount','W/m^2','tt')
+        call ncinfo(ncname( 6,:),'precmn','precmn','W/m^2','mt')
+        call ncinfo(ncname( 7,:),'dvrmn','dvrmn','W/m^2','tt')
+        call ncinfo(ncname( 8,:),'qrmn','qrmn','W/m^2','tt')
+        call ncinfo(ncname( 9,:),'npauto','Autoconversion rain drop tendency','#/m3/s','tt')
+        call ncinfo(ncname(10,:),'npaccr','Accretion rain drop tendency','#/m3/s','tt')
+        call ncinfo(ncname(11,:),'npsed','Sedimentation rain drop tendency','#/m3/s','tt')
+        call ncinfo(ncname(12,:),'npevap','Evaporation rain drop tendency','#/m3/s','tt')
+        call ncinfo(ncname(13,:),'nptot','Total rain drop tendency','#/m3/s','tt')
+        call ncinfo(ncname(14,:),'qrpauto','Autoconversion rain water content tendency','kg/kg/s','tt')
+        call ncinfo(ncname(15,:),'qrpaccr','Accretion rain water content tendency','kg/kg/s','tt')
+        call ncinfo(ncname(16,:),'qrpsed','Sedimentation rain water content tendency','kg/kg/s','tt')
+        call ncinfo(ncname(17,:),'qrpevap','Evaporation rain water content tendency','kg/kg/s','tt')
+        call ncinfo(ncname(18,:),'qrptot','Total rain water content tendency','kg/kg/s','tt')
+        call ncinfo(ncname(19,:),'qtpauto','Autoconversion total water content tendency','kg/kg/s','tt')
+        call ncinfo(ncname(20,:),'qtpaccr','Accretion total water content tendency','kg/kg/s','tt')
+        call ncinfo(ncname(21,:),'qtpsed','Sedimentation total water content tendency','kg/kg/s','tt')
+        call ncinfo(ncname(22,:),'qtpevap','Evaporation total water content tendency','kg/kg/s','tt')
+        call ncinfo(ncname(23,:),'qtptot','Total total water content tendency','kg/kg/s','tt')
+        call open_nc(fname,ncid,n3=kmax)
+        call define_nc( ncid, 1, tncname)
+        call writestat_dims_nc(ncid)
         call redefine_nc(ncid_prof)
         call define_nc( ncid_prof, NVar, ncname)
       end if
@@ -222,11 +241,11 @@ subroutine initbulkmicrostat
       return
     end if
     if (timee >= tnext) then
-      tnext = tnext + dtav
+      tnext = tnext + idtav
       call dobulkmicrostat
     end if
     if (timee >= tnextwrite) then
-      tnextwrite = tnextwrite + timeav
+      tnextwrite = tnextwrite + itimeav
       call writebulkmicrostat
     end if
 
@@ -237,7 +256,7 @@ subroutine initbulkmicrostat
   subroutine dobulkmicrostat
     use modmpi,    only  : my_real, mpi_sum, comm3d, mpierr
     use modglobal,    only  : i1, j1, k1, rslabs
-    use modbulkmicrodata,  only  : qc, qr, precep, Dvr, Nr, epscloud, epsqr, epsprec
+    use modmicrodata,  only  : qc, qr, precep, Dvr, Nr, epscloud, epsqr, epsprec
     implicit none
 
     integer      :: k
@@ -288,7 +307,7 @@ subroutine initbulkmicrostat
     use modmpi,    only  : slabsum
     use modglobal,    only  : rk3step, timee, dt_lim, k1, ih, i1, jh, j1, rslabs
     use modfields,    only  : qtp
-    use modbulkmicrodata,  only  : qrp, Nrp
+    use modmicrodata,  only  : qrp, Nrp
     implicit none
 
     real, dimension(:), allocatable  :: avfield
@@ -335,10 +354,10 @@ subroutine initbulkmicrostat
 !> Write the stats to file
   subroutine writebulkmicrostat
     use modmpi,    only  : myid
-    use modglobal,    only  : timee, ifoutput, cexpnr, k1,kmax, &
+    use modglobal,    only  : rtimee, ifoutput, cexpnr, k1,kmax, &
               rlv, zf
     use modfields,    only  : presf
-    use modbulkmicrodata,  only  : rhoz
+    use modmicrodata,  only  : rhoz
       use modstat_nc, only: lnetcdf, writestat_nc
       use modgenstat, only: ncid_prof=>ncid,nrec_prof=>nrec
 
@@ -348,7 +367,7 @@ subroutine initbulkmicrostat
     integer    :: nsecs, nhrs, nminut
     integer    :: k
 
-    nsecs    = nint(timee)
+    nsecs    = nint(rtimee)
     nhrs    = int (nsecs/3600)
     nminut    = int (nsecs/60)-nhrs*60
     nsecs    = mod (nsecs,60)

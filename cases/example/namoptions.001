@@ -12,8 +12,8 @@ nsv        =  2
 /
 
 &DOMAIN
-imax       =  64 
-jtot       =  64
+imax       =  32 
+jtot       =  32
 kmax       =  96
 
 xsize      =  3200.
@@ -22,7 +22,7 @@ ysize      =  3200.
 xlat       =  51.96
 xlon       =  4.95
 xday       =  287.
-xtime      =  6.
+xtime      =  10.
 /
 
 &PHYSICS
@@ -62,14 +62,16 @@ lmostlocal   = .false.
 lsmoothflux  = .false.
 rsisurf2     = 50.
 
-z0mav        = 0.035
-z0hav        = 0.007
-Cskinav      = 0.
-lambdaskinav = 15.
+z0mav        = 0.1
+z0hav        = 0.05
+Cskinav      = 0
+lambdaskinav = 5.
 albedoav     = 0.20
 Qnetav       = 450.
 
 rsminav      = 110.
+rssoilminav  = 50.
+cvegav       = 1.
 LAIav        = 2.
 gDav         = 0.
 /
@@ -109,7 +111,7 @@ dtav        = 60
 &NAMGENSTAT
 lstat       = .true.
 dtav        = 60
-timeav      = 300
+timeav      = 1800
 /
 &NAMFIELDDUMP
 lfielddump  = .false.
@@ -118,14 +120,14 @@ ldiracc     = .true.
 /
 &NAMSTATTEND
 dtav        = 60
-timeav      = 300
+timeav      = 1800
 ltend       = .true.
 /
 
 &NAMBUDGET
 lbudget = .true.
 dtav    = 60
-timeav  = 300
+timeav  = 1800
 /
 
 &NAMNETCDFMOVIE
@@ -139,5 +141,5 @@ slicex       = 1
 &NAMRADSTAT
 lstat = .true.
 dtav = 60
-timeav = 300
+timeav = 1800
 /

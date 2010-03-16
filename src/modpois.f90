@@ -65,7 +65,7 @@ contains
 
 
     use modfields, only : up, vp, wp, u0, v0, w0
-    use modglobal, only : rk3step, i1,i2,j1,kmax,k1,ih,jh, dx,dy,dzf,dzh,dt
+    use modglobal, only : rk3step, i1,i2,j1,kmax,k1,ih,jh, dx,dy,dzf,dzh,rdt
     use modmpi,    only : excjs
     implicit none
     real,allocatable :: pup(:,:,:), pvp(:,:,:), pwp(:,:,:)
@@ -76,7 +76,7 @@ contains
     allocate(pvp(2-ih:i1+ih,2-jh:j1+jh,k1))
     allocate(pwp(2-ih:i1+ih,2-jh:j1+jh,k1))
 
-    rk3coef = dt / (4. - dble(rk3step))
+    rk3coef = rdt / (4. - dble(rk3step))
 
     do k=1,kmax
       do j=2,j1

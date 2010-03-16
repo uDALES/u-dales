@@ -32,8 +32,7 @@ module modradfull
 
   implicit none
   private
-  public :: radfull
-
+  public :: radfull,d4stream
   logical, save     :: d4stream_initialized = .False.
   real, allocatable, save ::  pp(:), pt(:), ph(:), po(:), pre(:), pde(:), &
        plwc(:), piwc(:), prwc(:), pgwc(:), fds(:), fus(:), fdir(:), fuir(:)
@@ -111,7 +110,7 @@ module modradfull
 contains
     subroutine radfull
   !   use radiation,    only : d4stream
-    use modglobal,    only : imax,i1,ih,jmax,j1,jh,kmax,k1,cp,dzf,rlv,rd,zf,pref0
+    use modglobal,    only : imax,i1,ih,jmax,j1,jh,kmax,k1,cp,dzf,dzh,rlv,rd,zf,pref0
     use modfields,    only : rhof, exnf,exnh, thl0,qt0,ql0,sv0
     use modsurfdata,  only : albedo, tskin, qskin, thvs, qts, ps
     use modmicrodata, only : imicro, imicro_bulk, Nc_0,iqr
@@ -120,6 +119,7 @@ contains
     real :: thlpld,thlplu,thlpsd,thlpsu
     real, dimension(k1)  :: rhof_b, exnf_b
     real, dimension(2-ih:i1+ih,2-jh:j1+jh,k1) :: temp_b, qv_b, ql_b,rr_b
+    real, dimension(1:i1+1,1:j1+1) :: tempskin
     integer :: i,j,k
 
     real :: exnersurf
@@ -130,7 +130,7 @@ contains
         exnf_b(k+1)     = exnf(k)
         do j=2,j1
           do i=2,i1
-            qv_b(i,j,k+1)   = qt0(i,j,k) - ql0(i,j,k)
+            qv_b(i,j,k+1)   = max(0.,qt0(i,j,k) - ql0(i,j,k))
             ql_b(i,j,k+1)   = ql0(i,j,k)
             temp_b(i,j,k+1) = thl0(i,j,k)*exnf(k)+(rlv/cp)*ql0(i,j,k)
             if (imicro==imicro_bulk) rr_b(i,j,k+1) = sv0(i,j,k,iqr)
@@ -141,32 +141,32 @@ contains
       !take care of the surface boundary conditions
       !CvH edit, extrapolation creates instability in surface scheme
       exnersurf = (ps/pref0) ** (rd/cp)
-      rhof_b(1) = ps / (rd * thvs * exnersurf) 
-      exnf_b(1) = exnersurf
-
-      !rhof_b(1) = rhof(1) + 2*zf(1)/dzf(1)*(rhof(1)-rhof(2))
-      !exnf_b(1) = exnh(1) + 0.5*dzf(1)*(exnh(1)-exnf(1))
+      rhof_b(1) = rhof(1) + dzh(1)/dzh(2)*(rhof(1)-rhof(2))
+      exnf_b(1) = exnh(1) + dzh(1)/dzh(2)*(rhof(1)-rhof(2))
+    
 
       do j=2,j1
         do i=2,i1
-          ql_b(i,j,1)   = 0.! CvH, no ql at surface
-          qv_b(i,j,1)   = qskin(i,j) !CvH, no ql at surface thus qv = qt
-          temp_b(i,j,1) = tskin(i,j)*exnersurf 
+          ql_b(i,j,1)   = 0
+          qv_b(i,j,1)   = qv_b(i,j,2) +dzh(1)/dzh(2)*(qv_b(i,j,2)-qv_b(i,j,3))
+          temp_b(i,j,1) = temp_b(i,j,2) +dzh(1)/dzh(2)*(temp_b(i,j,2)-temp_b(i,j,3))
+          tempskin = 0.5*(temp_b(i,j,1)+temp_b(i,j,2))
         end do
       end do
 
-      !CvH end edit
+     !CvH end edit
 
       if (imicro==imicro_bulk) then
-        rr_b(:,:,1) = rr_b(:,:,2)
-        call d4stream(i1,ih,j1,jh,k1,tskin,albedo,Nc_0,rhof_b,exnf_b*cp,temp_b,qv_b,ql_b,swd,swu,lwd,lwu,rr=rr_b)
+        rr_b(:,:,1) = 0.
+        call d4stream(i1,ih,j1,jh,k1,tempskin,albedo,Nc_0,rhof_b,exnf_b*cp,temp_b,qv_b,ql_b,swd,swu,lwd,lwu,rr=rr_b)
       else
-        call d4stream(i1,ih,j1,jh,k1,tskin,albedo,Nc_0,rhof_b,exnf_b*cp,temp_b,qv_b,ql_b,swd,swu,lwd,lwu)
+        call d4stream(i1,ih,j1,jh,k1,tempskin,albedo,Nc_0,rhof_b,exnf_b*cp,temp_b,qv_b,ql_b,swd,swu,lwd,lwu)
       end if
 
 !Downward radiation fluxes are pointing downward in UCLALES, pointing upward in DALES
       lwd = -lwd
       swd = -swd
+
 !Add up thl tendency
       do k=1,kmax
         do j=2,j1
@@ -185,7 +185,7 @@ contains
 
     subroutine d4stream(i1,ih,j1,jh,k1, tskin, albedo, CCN, dn0, &
          pi0,  tk, rv, rc, fds3D,fus3D,fdir3D,fuir3D, rr)
-      use modglobal, only : cexpnr,cp,cpr,pi,pref0,timee,xday,xlat,xlon,xtime,rhow
+      use modglobal, only : cexpnr,cp,cpr,pi,pref0,rtimee,xday,xlat,xlon,xtime,rhow
       use modraddata,only : useMcICA,zenith
       use modfields,only: SW_up_TOA, SW_dn_TOA, LW_up_TOA, LW_dn_TOA
       implicit none
@@ -197,7 +197,7 @@ contains
       real, dimension (2-ih:i1+ih,2-jh:j1+jh,k1), intent (in)  :: tk, rv, rc
       real, optional, dimension (2-ih:i1+ih,2-jh:j1+jh,k1), intent (in) :: rr
       real, dimension (2-ih:i1+ih,2-jh:j1+jh,k1), intent (out) :: fus3D,fds3D,fuir3D,fdir3D
-      real, dimension (i1+1,i1+1), intent (in) :: tskin, albedo
+      real, dimension (1:i1+1,1:j1+1), intent (in) :: tskin, albedo
 
       integer :: kk
       real    :: prw, p0(k1), exner(k1), pres(k1)
@@ -224,7 +224,7 @@ contains
       ! determine the solar geometery, as measured by u0, the cosine of the
       ! solar zenith angle
       !
-      u0 = zenith(xtime + timee/3600,xday,xlat,xlon)
+      u0 = zenith(xtime + rtimee/3600,xday,xlat,xlon)
       !
       ! call the radiation
       !
@@ -241,18 +241,17 @@ contains
                pt(kk) = tk(i,j,k)
                ph(kk) = rv(i,j,k)
                if (present(rr)) then
-                  plwc(kk) = 1000.*dn0(k)*max(0.,(rc(i,j,k)-rr(i,j,k)))
+                  plwc(kk) = 1000.*dn0(k)*max(0.,rc(i,j,k))
                   prwc(kk) = 1000.*dn0(k)*rr(i,j,k)
                else
-                  plwc(kk) = 1000.*dn0(k)*rc(i,j,k)
+                  plwc(kk) = 1000.*dn0(k)*max(0.,rc(i,j,k))
                   prwc(kk) = 0.
                end if
                pre(kk)  = 1.e6*(plwc(kk)/(1000.*prw*CCN))**(1./3.)   !CCN already in right units
-               if (plwc(kk).le.0.) pre(kk) = 0.
+               if (plwc(kk)<=0.) pre(kk) = 0.
                if (k < k1) pp(kk) = 0.5*(pres(k)+pres(k+1)) / 100.
             end do
             pp(nv-k1+2) = pres(k1)/100. - 0.5*(pres(k1-1)-pres(k1)) / 100.
-
             call rad( albedo(i,j), u0, SolarConstant, tskin(i,j), ee, pp, pt, ph, po,&
                  fds, fus, fdir, fuir, plwc=plwc, pre=pre, useMcICA=useMcICA)
 
@@ -301,6 +300,7 @@ contains
     allocate ( sp(ns), st(ns), sh(ns), so(ns), sl(ns))
     do k=1,ns
        read ( 08, *) sp(k), st(k), sh(k), so(k), sl(k)
+       sp(k) = sp(k) / 100.   !convert to hPa
     enddo
     close (08)
 
@@ -404,7 +404,7 @@ contains
        q2 =   w2w * ( 1.5 * fw - 0.5 )
        q3 = - w3w * ( 2.5 * fw - 1.5 ) * u0
        do i = 1, 4
-          c(i,5) = (w0w + q1*p1d(i) + q2*p2d(i) + q3*p3d(i))/u(i)
+          c(i,5) = (w0w + q1*p1d(i) + q2*p2d(i) + q3*p3d(i))/(u0+epsilon(u0))
        end do
     else
        do i = 1, 4
@@ -451,10 +451,10 @@ contains
     a(2,1,2) = b(1,2) * b(2,1) + b(2,2) * b(4,1)
     a(1,2,2) = b(3,2) * b(1,1) + b(4,2) * b(3,1)
     a(1,1,2) = fw2 + fw4
-    d(1) = b(3,2) * b(4,3) + b(4,2) * b(3,3) + b(2,3) / u0
-    d(2) = b(1,2) * b(4,3) + b(2,2) * b(3,3) + b(1,3) / u0
-    d(3) = b(3,1) * b(1,3) + b(4,1) * b(2,3) + b(3,3) / u0
-    d(4) = b(1,1) * b(1,3) + b(2,1) * b(2,3) + b(4,3) / u0
+    d(1) = b(3,2) * b(4,3) + b(4,2) * b(3,3) + b(2,3) / (u0+epsilon(u0))
+    d(2) = b(1,2) * b(4,3) + b(2,2) * b(3,3) + b(1,3) / (u0+epsilon(u0))
+    d(3) = b(3,1) * b(1,3) + b(4,1) * b(2,3) + b(3,3) / (u0+epsilon(u0))
+    d(4) = b(1,1) * b(1,3) + b(2,1) * b(2,3) + b(4,3) / (u0+epsilon(u0))
 
     ! **********************************************************************
     ! coefficient calculations for fourth-order differential equations.
@@ -462,10 +462,10 @@ contains
     x = u0 * u0
     b1 = a(2,2,1) + a(1,1,1)
     c1 = a(2,1,1) * a(1,2,1) - a(1,1,1) * a(2,2,1)
-    z(1) = a(2,1,1) * d(3) + d(4) / x - a(1,1,1) * d(4)
-    z(2) = a(1,2,1) * d(4) - a(2,2,1) *d(3) + d(3) / x
-    z(3) = a(2,1,2) * d(1) + d(2) / x - a(1,1,2) * d(2)
-    z(4) = a(1,2,2) * d(2) - a(2,2,2) * d(1) + d(1) / x
+    z(1) = a(2,1,1) * d(3) + d(4) / (x+epsilon(u0)) - a(1,1,1) * d(4)
+    z(2) = a(1,2,1) * d(4) - a(2,2,1) *d(3) + d(3) / (x+epsilon(u0))
+    z(3) = a(2,1,2) * d(1) + d(2) / (x+epsilon(u0)) - a(1,1,2) * d(2)
+    z(4) = a(1,2,2) * d(2) - a(2,2,2) * d(1) + d(1) / (x+epsilon(u0))
 
     ! **********************************************************************
     ! fk1 and fk2 are the eigenvalues.
@@ -475,7 +475,7 @@ contains
     fk1 = sqrt ( ( b1 + x ) * 0.5 )
     fk2 = sqrt ( ( b1 - x ) * 0.5 )
     fw = u0 * u0
-    x = 1.0 / ( fw * fw ) - b1 / fw - c1
+    x = 1.0 / ( fw * fw+epsilon(u0) ) - b1 / (fw+epsilon(u0)) - c1
     fw = 0.5 * f0 / x
     z(1) = fw * z(1)
     z(2) = fw * z(2)
@@ -511,11 +511,11 @@ contains
     a1(4,3) = a1(1,2)
     a1(4,4) = a1(1,1)
     if ( solar ) then
-       fq0 = exp ( - t0 / u0 )
-       fq1 = exp ( - t1 / u0 )
+       fq0 = exp ( - t0 / (u0+epsilon(u0)) )
+       fq1 = exp ( - t1 / (u0+epsilon(u0)) )
     else
        fq0 = 1.0
-       fq1 = exp ( - dt / u0 )
+       fq1 = exp ( - dt / (u0+epsilon(u0)) )
     endif
     x = exp ( - fk1 * dt )
     y = exp ( - fk2 * dt )
@@ -547,7 +547,7 @@ contains
 
     fk1 = 4.7320545
     fk2 = 1.2679491
-    y = exp ( - ( t1 - t0 ) / u0 )
+    y = exp ( - ( t1 - t0 ) / (u0+epsilon(u0)))
     fw = 0.5 * f0
     do i = 1, 4
        if ( solar ) then
@@ -556,7 +556,7 @@ contains
           zz(i,2) = 0.0
        else
           jj = 5 - i
-          z1(i) = fw / ( 1.0 + u(jj) / u0 )
+          z1(i) = fw / ( 1.0 + u(jj) / (u0+epsilon(u0)) )
           zz(i,1) = z1(i)
           zz(i,2) = z1(i) * y
        endif
@@ -685,7 +685,7 @@ contains
     if ( solar ) then
        v1 = 0.2113247 * asbs
        v2 = 0.7886753 * asbs
-       v3 = asbs * u0(1) * f0(1) * exp ( - t(nv) / u0(1) )
+       v3 = asbs * u0(1) * f0(1) * exp ( - t(nv) / (u0(1)+epsilon(u0)) )
     else
        v1 = 0.2113247 * ( 1.0 - ee )
        v2 = 0.7886753 * ( 1.0 - ee )
@@ -975,7 +975,7 @@ contains
           x(3) = 1.0
           x(4) = 1.0
           if (solar) y1 = t(kk)
-          xy =  exp ( - y1 / u0a(kk) )
+          xy =  exp ( - y1 / (u0a(kk)+epsilon(u0a(1)) ))
        endif
        if (kk > 1) tkm1 = t(kk)
 
@@ -1387,7 +1387,7 @@ contains
        end do
        where (tau(:) + tauToAdd(:) > 0.)
           ssa(:) = (ssa(:) * tau(:) + ssaToAdd(:) * tauToAdd(:)) /            &
-               (tau(:) + tauToAdd(:))
+               (tau(:) + tauToAdd(:)+epsilon(tau(1)))
        elsewhere
           ssa(:) = 0.
        end where
@@ -1396,7 +1396,7 @@ contains
       !
       ! New medium is absorbing - phase function doesn't change
       !
-       ssa(:) = (ssa(:) * tau(:)) / (tau(:) + tauToAdd(:))
+       ssa(:) = (ssa(:) * tau(:)) / (tau(:) + tauToAdd(:)+epsilon(tau(1)))
        tau(:) = tau(:) + tauToAdd(:)
     end if
 
@@ -1736,7 +1736,6 @@ contains
           do k = 1, nv
              tg(k) = tg(k) + fkg(k)*pq(k)*(pp(k+1)-pp(k))*xfct
           end do
-
        case (2)
           call qk (gas(n)%nt, gas(n)%np, gas(n)%sp, gas(n)%tbase,            &
                gas(n)%xk(1,1,igg,1), pp, pt, fkga )

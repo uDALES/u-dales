@@ -44,7 +44,7 @@ SAVE
 contains
   subroutine initnudge
     use modmpi,   only :myid,my_real,mpierr,comm3d,mpi_logical
-    use modglobal,only :ifnamopt,fname_options,runtime,btime,cexpnr,ifinput,k1,kmax
+    use modglobal,only :ifnamopt,fname_options,runtime,btime,cexpnr,ifinput,k1,kmax,tres
     implicit none
 
     integer :: ierr,k,t
@@ -65,8 +65,13 @@ contains
     if(myid==0)then
 
       open(ifnamopt,file=fname_options,status='old',iostat=ierr)
-      read (ifnamopt,namnudge,iostat=ierr)
-      write(6 ,namnudge)
+      read (ifnamopt,NAMNUDGE,iostat=ierr)
+      if (ierr > 0) then
+        print *, 'Problem in namoptions NAMNUDGE'
+        print *, 'iostat error: ', ierr
+        stop 'ERROR: Problem in namoptions NAMNUDGE'
+      endif
+      write(6 ,NAMNUDGE)
       close(ifnamopt)
     end if
     call MPI_BCAST(lnudge    , 1,MPI_LOGICAL,0,comm3d,mpierr)
@@ -76,7 +81,7 @@ contains
       t = 0
       open (ifinput,file='nudge.inp.'//cexpnr)
 
-      do while (timenudge(t) < (runtime+btime))
+      do while (timenudge(t) < tres*real(runtime+btime))
         t = t + 1
         chmess1 = "#"
         ierr = 1 ! not zero
@@ -131,7 +136,7 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   subroutine nudge
-    use modglobal, only : timee,i1,j1,k1,rk3step,kmax,dt
+    use modglobal, only : rtimee,i1,j1,k1,rk3step,kmax,rdt
     use modfields, only : up,vp,wp,thlp, qtp,u0av,v0av,qt0av,thl0av
     use modmpi,    only : myid
     implicit none
@@ -141,21 +146,21 @@ contains
 
     if (.not.(lnudge)) return
 !     if (rk3step/=3) return
-    if (timee==0) return
+    if (rtimee==0) return
 
     t=1
-    do while(timee>timenudge(t))
+    do while(rtimee>timenudge(t))
       t=t+1
     end do
-    if (timee/=timenudge(1)) then
+    if (rtimee/=timenudge(1)) then
       t=t-1
     end if
 
-    dtm = ( timee-timenudge(t) ) / ( timenudge(t+1)-timenudge(t) )
-    dtp = ( timenudge(t+1)-timee)/ ( timenudge(t+1)-timenudge(t) )
+    dtm = ( rtimee-timenudge(t) ) / ( timenudge(t+1)-timenudge(t) )
+    dtp = ( timenudge(t+1)-rtimee)/ ( timenudge(t+1)-timenudge(t) )
 
     do k=1,kmax
-      currtnudge = max(dt,tnudge(k,t)*dtp+tnudge(k,t+1)*dtm)
+      currtnudge = max(rdt,tnudge(k,t)*dtp+tnudge(k,t+1)*dtm)
       if(lunudge  ) up  (2:i1,2:j1,k)=up  (2:i1,2:j1,k)-&
           (u0av  (k)-(unudge  (k,t)*dtp+unudge  (k,t+1)*dtm))/currtnudge
       if(lvnudge  ) vp  (2:i1,2:j1,k)=vp  (2:i1,2:j1,k)-&

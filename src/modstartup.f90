@@ -53,9 +53,9 @@ contains
       !-----------------------------------------------------------------|
 
     use modglobal,         only : initglobal,iexpnr,runtime, dtmax,dtav_glob,timeav_glob,&
-                                  lwarmstart,startfile,trestart,&
+                                  lwarmstart,startfile,trestart,itrestart,&
                                   nsv,imax,jtot,kmax,xsize,ysize,xlat,xlon,xday,xtime,&
-                                  lmoist,lcoriol,lmomsubs,cu, cv,ifnamopt,fname_options,llsadv,&
+                                  lmoist,lcoriol,igrw_damp,geodamptime,lmomsubs,cu, cv,ifnamopt,fname_options,llsadv,&
                                   iadv_mom,iadv_tke,iadv_thl,iadv_qt,iadv_sv,courant,peclet,ladaptive,author
     use modforces,         only : lforce_user
     use modsurfdata,       only : z0,ustin,wtsurf,wqsurf,wsvsurf,ps,thls,isurf
@@ -65,7 +65,7 @@ contains
     use modradiation,      only : initradiation
     use modraddata,        only : irad,iradiation,&
                                   rad_ls,rad_longw,rad_shortw,rad_smoke,useMcICA,&
-                                  timerad,rka,dlwtop,dlwbot,sw0,gc,reff,isvsmoke
+                                  timerad,itimerad,rka,dlwtop,dlwbot,sw0,gc,reff,isvsmoke
     use modtimedep,        only : inittimedep,ltimedep
     use modboundary,       only : initboundary,ksp
     use modthermodynamics, only : initthermodynamics,lqlnr, chi_half
@@ -88,7 +88,7 @@ contains
     namelist/PHYSICS/ &
         !cstep z0,ustin,wtsurf,wqsurf,wsvsurf,ps,thls,chi_half,lmoist,isurf,lneutraldrag,&
          z0,ustin,wtsurf,wqsurf,wsvsurf,ps,thls,lmoist,isurf,chi_half,&
-        lcoriol,lmomsubs, ltimedep,irad,timerad,iradiation,rad_ls,rad_longw,rad_shortw,rad_smoke,useMcICA,&
+        lcoriol,igrw_damp,geodamptime,lmomsubs, ltimedep,irad,timerad,iradiation,rad_ls,rad_longw,rad_shortw,rad_smoke,useMcICA,&
         rka,dlwtop,dlwbot,sw0,gc,reff,isvsmoke,lforce_user
     namelist/DYNAMICS/ &
         llsadv, lqlnr, cu, cv, iadv_mom, iadv_tke, iadv_thl, iadv_qt, iadv_sv
@@ -173,6 +173,8 @@ contains
     call MPI_BCAST(chi_half   ,1,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(lmoist     ,1,MPI_LOGICAL,0,comm3d,mpierr)
     call MPI_BCAST(lcoriol    ,1,MPI_LOGICAL,0,comm3d,mpierr)
+    call MPI_BCAST(igrw_damp  ,1,MPI_INTEGER,0,comm3d,mpierr)
+    call MPI_BCAST(geodamptime,1,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(lforce_user,1,MPI_LOGICAL,0,comm3d,mpierr)
     call MPI_BCAST(lmomsubs   ,1,MPI_LOGICAL,0,comm3d,mpierr)
     call MPI_BCAST(ltimedep   ,1,MPI_LOGICAL,0,comm3d,mpierr)
@@ -317,9 +319,9 @@ contains
                                   wfls,whls,ug,vg,uprof,vprof,thlprof, qtprof,e12prof, svprof,&
                                   v0av,u0av,qt0av,ql0av,thl0av,sv0av,exnf,exnh,presf,presh,rhof,&
                                   thlpcar
-    use modglobal,         only : i1,i2,ih,j1,j2,jh,kmax,k1,dtmax,dt,timee,ntimee,ntrun,btime,nsv,&
+    use modglobal,         only : i1,i2,ih,j1,j2,jh,kmax,k1,dtmax,idtmax,dt,rdt,runtime,timeleft,tres,rtimee,timee,ntimee,ntrun,btime,nsv,&
                                   zf,dzf,dzh,rv,rd,grav,cp,rlv,pref0,om23_gs,&
-                                  rslabs,cu,cv,e12min,dzh,dtheta,dqt,dsv,cexpnr,ifinput,lwarmstart,trestart, ladaptive,llsadv,tnextrestart
+                                  rslabs,cu,cv,e12min,dzh,dtheta,dqt,dsv,cexpnr,ifinput,lwarmstart,itrestart,trestart, ladaptive,llsadv,tnextrestart
     use modsubgrid,        only : ekm,ekh
     use modsurfdata,       only : wtsurf,wqsurf,wsvsurf, &
                                   thls,tskin,tskinm,thvs,ustin,ps,qts,isurf,svs,obl,oblav
@@ -353,8 +355,9 @@ contains
     !    1.1 read fields
     !-----------------------------------------------------------------
 
-      dt = dtmax / 128.
-      timee = 0.0
+      rdt = dtmax / 100.
+      dt  = floor(rdt/tres)
+      timee = 0
       if (myid==0) then
         open (ifinput,file='prof.inp.'//cexpnr)
         read (ifinput,'(a80)') chmess
@@ -546,7 +549,7 @@ contains
       end do
 
       ! CvH - only do this for fixed timestepping. In adaptive dt comes from restartfile
-      if(ladaptive .eqv. .false.) dt=dtmax
+      if(ladaptive .eqv. .false.) rdt=dtmax
 
     end if
 
@@ -664,12 +667,15 @@ contains
 
     end if
 
-
+    idtmax = floor(dtmax/tres)
     btime   = timee
+    timeleft=ceiling(runtime/tres)
+    rdt = real(dt)*tres
     ntrun   = 0
+    rtimee  = real(timee)*tres
     ntimee  = nint(timee/dtmax)
-
-    tnextrestart = btime + trestart
+    itrestart = floor(trestart/tres)
+    tnextrestart = btime + itrestart
 
     deallocate (height,th0av)
 
@@ -682,7 +688,7 @@ contains
                            tsoil,tskin,isurf,ksoilmax
     use modfields,  only : u0,v0,w0,thl0,qt0,ql0,ql0h,e120,dthvdz,presf,presh,sv0
     use modglobal,  only : i1,i2,ih,j1,j2,jh,k1,dtheta,dqt,dsv,startfile,timee,&
-                          iexpnr,ntimee,rk3step,ifinput,nsv,runtime,dt,cu,cv
+                          iexpnr,ntimee,tres,rk3step,ifinput,nsv,runtime,dt,cu,cv
     use modmpi,     only : cmyid, myid
     use modsubgrid, only : ekm
 
@@ -719,7 +725,7 @@ contains
       read(ifinput)  (  presf (    k)                            ,k=1,k1)
       read(ifinput)  (  presh (    k)                            ,k=1,k1)
       read(ifinput)  ps,thls,qts,thvs,oblav
-      read(ifinput)  dtheta,dqt,timee,dt
+      read(ifinput)  dtheta,dqt,timee,dt,tres
 
     close(ifinput)
 
@@ -750,8 +756,8 @@ contains
     use modsurfdata,only: ustar,thlflux,qtflux,svflux,dudz,dvdz,dthldz,dqtdz,ps,thls,qts,thvs,oblav,&
                           tsoil,tskin,ksoilmax,isurf,ksoilmax
     use modfields, only : u0,v0,w0,thl0,qt0,ql0,ql0h,e120,dthvdz,presf,presh,sv0
-    use modglobal, only : i1,i2,ih,j1,j2,jh,k1,dsv,trestart,tnextrestart,dt_lim,timee,cexpnr,&
-                          ntimee,rk3step,ifoutput,nsv,runtime,dtheta,dqt,dt,cu,cv
+    use modglobal, only : i1,i2,ih,j1,j2,jh,k1,dsv,itrestart,tnextrestart,dt_lim,rtimee,timee,tres,cexpnr,&
+                          ntimee,rtimee,rk3step,ifoutput,nsv,runtime,dtheta,dqt,dt,cu,cv
     use modmpi,    only : cmyid,myid
     use modsubgrid,only : ekm
 
@@ -768,14 +774,14 @@ contains
     if (lexitnow .and. myid == 0 ) then
       open(1, file=trim(name), status='old')
       close(1,status='delete')
-      write(*,*) 'Stopped at t=',timee
+      write(*,*) 'Stopped at t=',rtimee
     end if
 
     if (timee<tnextrestart) dt_lim = min(dt_lim,tnextrestart-timee)
     if (timee>=tnextrestart .or. lexitnow) then
-      tnextrestart = tnextrestart+trestart
-      ihour = floor(timee/3600)
-      imin  = floor((timee-ihour * 3600) /3600. * 60.)
+      tnextrestart = tnextrestart+itrestart
+      ihour = floor(rtimee/3600)
+      imin  = floor((rtimee-ihour * 3600) /3600. * 60.)
       name = 'initd  h  m   .'
       write (name(6:7)  ,'(i2.2)') ihour
       write (name(9:10) ,'(i2.2)') imin
@@ -801,7 +807,7 @@ contains
       write(ifoutput)  (  presf (    k)                            ,k=1,k1)
       write(ifoutput)  (  presh (    k)                            ,k=1,k1)
       write(ifoutput)  ps,thls,qts,thvs,oblav
-      write(ifoutput)  dtheta,dqt,timee,dt
+      write(ifoutput)  dtheta,dqt,timee,dt,tres
 
       close (ifoutput)
 
@@ -838,7 +844,7 @@ contains
       end if
 
       if (myid==0) then
-        write(*,'(A,F15.7,A,I4)') 'dump at time = ',timee,' unit = ',ifoutput
+        write(*,'(A,F15.7,A,I4)') 'dump at time = ',rtimee,' unit = ',ifoutput
       end if
 
     end if

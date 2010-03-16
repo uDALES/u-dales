@@ -194,7 +194,7 @@ contains
 
   use modglobal,  only : i1, j1,kmax,k1,ih,jh,i2,j2,delta,ekmin,grav, zf, fkar, &
                          dxi,dyi,dzf,dzh
-  use modfields,  only : dthvdz,e12m,u0,v0,w0
+  use modfields,  only : dthvdz,e120,u0,v0,w0
   use modsurfdata, only : dudz,dvdz,thvs
 
   use modmpi,     only : excjs
@@ -315,14 +315,14 @@ contains
       if (ldelta .or. (dthvdz(i,j,k)<=0)) then
         zlt(i,j,k) = delta(k)
         if (lmason) zlt(i,j,k) = sqrt(1/(1/zlt(i,j,k)**2)+1/(fkar*zf(k))**2)
-        ekm(i,j,k) = cm * zlt(i,j,k) * e12m(i,j,k)
+        ekm(i,j,k) = cm * zlt(i,j,k) * e120(i,j,k)
         ekh(i,j,k) = (ch1 + ch2) * ekm(i,j,k)
       else
 
-        zlt(i,j,k) = min(delta(k),cn*e12m(i,j,k)/sqrt(grav/thvs*abs(dthvdz(i,j,k))))
+        zlt(i,j,k) = min(delta(k),cn*e120(i,j,k)/sqrt(grav/thvs*abs(dthvdz(i,j,k))))
         if (lmason) zlt(i,j,k) = sqrt(1/(1/zlt(i,j,k)**2)+1/(fkar*zf(k))**2)
 
-        ekm(i,j,k) = cm * zlt(i,j,k) * e12m(i,j,k)
+        ekm(i,j,k) = cm * zlt(i,j,k) * e120(i,j,k)
         ekh(i,j,k) = (ch1 + ch2 * zlt(i,j,k)/delta(k)) * ekm(i,j,k)
       endif
     end do
@@ -381,7 +381,7 @@ contains
 !-----------------------------------------------------------------|
 
   use modglobal,   only : i1,j1,kmax,delta,dx,dy,dxi,dyi,dzf,zf,dzh,grav
-  use modfields,   only : u0,v0,w0,e12m,e12p,dthvdz
+  use modfields,   only : u0,v0,w0,e120,e12p,dthvdz
   use modsurfdata,  only : dudz,dvdz,thvs
   implicit none
 
@@ -432,9 +432,9 @@ contains
                (w0(i,jp,kp)-w0(i,j,kp))   / dy        )**2    )
 
 
-    sbshr(i,j,k)  = ekm(i,j,k)*tdef2/ ( 2*e12m(i,j,k))
-    sbbuo(i,j,k)  = -ekh(i,j,k)*grav/thvs*dthvdz(i,j,k)/ ( 2*e12m(i,j,k))
-    sbdiss(i,j,k) = - (ce1 + ce2*zlt(i,j,k)/delta(k)) * e12m(i,j,k)**2 /(2.*zlt(i,j,k))
+    sbshr(i,j,k)  = ekm(i,j,k)*tdef2/ ( 2*e120(i,j,k))
+    sbbuo(i,j,k)  = -ekh(i,j,k)*grav/thvs*dthvdz(i,j,k)/ ( 2*e120(i,j,k))
+    sbdiss(i,j,k) = - (ce1 + ce2*zlt(i,j,k)/delta(k)) * e120(i,j,k)**2 /(2.*zlt(i,j,k))
   end do
   end do
   end do
@@ -474,9 +474,9 @@ contains
 
 ! **  Include shear and buoyancy production terms and dissipation **
 
-    sbshr(i,j,1)  = ekm(i,j,1)*tdef2/ ( 2*e12m(i,j,1))
-    sbbuo(i,j,1)  = -ekh(i,j,1)*grav/thvs*dthvdz(i,j,1)/ ( 2*e12m(i,j,1))
-    sbdiss(i,j,1) = - (ce1 + ce2*zlt(i,j,1)/delta(1)) * e12m(i,j,1)**2 /(2.*zlt(i,j,1))
+    sbshr(i,j,1)  = ekm(i,j,1)*tdef2/ ( 2*e120(i,j,1))
+    sbbuo(i,j,1)  = -ekh(i,j,1)*grav/thvs*dthvdz(i,j,1)/ ( 2*e120(i,j,1))
+    sbdiss(i,j,1) = - (ce1 + ce2*zlt(i,j,1)/delta(1)) * e120(i,j,1)**2 /(2.*zlt(i,j,1))
   end do
   end do
 

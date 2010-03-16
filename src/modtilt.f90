@@ -81,6 +81,7 @@
     !          8.1 exittilt: deacllocte variables                     !
     !-----------------------------------------------------------------|
 module modtilt
+  use modglobal, only : longint
 implicit none
 PRIVATE
 PUBLIC :: thldefm,thldef0, ltilted,&
@@ -91,7 +92,8 @@ SAVE
   real    :: alfa     = 0.
   logical :: ltilted  = .false.
   logical :: lstat    = .true. !default = true, but subroutine only entered if ltilted=true
-  real    :: dtav, timeav,tnext,tnextwrite
+  real    :: dtav, timeav
+  integer(kind=longint) :: idtav,itimeav,tnext,tnextwrite
   integer :: nsamples
 
 
@@ -116,7 +118,7 @@ contains
   subroutine inittilt
     use modmpi,   only : myid,my_real,mpierr,comm3d,mpi_integer,mpi_logical,slabsum
     use modglobal,only : ifnamopt,ifoutput,fname_options,ifinput,cexpnr,&
-                         i1,j1,ih,jh,k1,iexpnr,cu,lmoist,timeav_glob, dtav_glob, dt_lim,btime
+                         i1,j1,ih,jh,k1,iexpnr,cu,lmoist,timeav_glob, dtav_glob, dt_lim,btime,tres
     use modstartup,only : irandom,randthl,krand,randomnize
 
     implicit none
@@ -148,7 +150,12 @@ contains
     call MPI_BCAST(alfa    ,1,MY_REAL    ,0,comm3d,mpierr)
     call MPI_BCAST(dtav    ,1,MY_REAL    ,0,comm3d,mpierr)
     call MPI_BCAST(timeav  ,1,MY_REAL    ,0,comm3d,mpierr)
+    idtav = dtav/tres
+    itimeav = timeav/tres
 
+    tnext      = idtav   +btime
+    tnextwrite = itimeav +btime
+    nsamples = itimeav/idtav
     if(.not.(ltilted)) return
 
     if(cu/=0.) stop 'cu/=0 not allowed in a tilted environment'
@@ -177,9 +184,7 @@ contains
         open (ifoutput,file='fielddef.'//cexpnr,status='replace')
         close (ifoutput)
       endif
-      tnext = dtav - 1e-3+btime
-      tnextwrite = timeav - 1e-3
-      nsamples = nint(timeav/dtav)
+
       dt_lim = min(dt_lim,tnext)
 
     endif
@@ -467,11 +472,11 @@ contains
       return
     end if
     if (timee>=tnext) then
-      tnext = tnext+dtav
+      tnext = tnext+idtav
       call do_tiltstat
     end if
     if (timee>=tnextwrite) then
-      tnextwrite = tnextwrite+timeav
+      tnextwrite = tnextwrite+itimeav
       call writetiltstat
     end if
     dt_lim = minval((/dt_lim,tnext-timee,tnextwrite-timee/))
@@ -506,13 +511,13 @@ contains
 !------------------------
   subroutine writetiltstat
 
-    use modglobal, only : kmax,k1,zf,timee,cexpnr,ifoutput
+    use modglobal, only : kmax,k1,zf,rtimee,cexpnr,ifoutput
     use modmpi,    only : myid
 
     implicit none
     integer nsecs, nhrs, nminut,k
     real convt
-    nsecs   = nint(timee)
+    nsecs   = nint(rtimee)
     nhrs    = int(nsecs/3600)
     nminut  = int(nsecs/60)-nhrs*60
     nsecs   = mod(nsecs,60)

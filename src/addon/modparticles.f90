@@ -31,6 +31,7 @@
 !
 
 module modparticles
+  use modglobal, only : longint
 implicit none
 PRIVATE
 PUBLIC :: initparticles, particles, exitparticles
@@ -48,7 +49,7 @@ SAVE
   character(30) :: startfilepart
 
   integer :: nsamples
-  real    :: tnext,tnextwrite,tnextdump
+  integer(kind=longint)    :: itimeav,idtav,itimedump,tnext,tnextwrite,tnextdump
 
   integer,parameter  :: inomove=0                       !< the options for the integrationscheme
   integer,parameter  :: irk3=3
@@ -86,7 +87,7 @@ contains
   subroutine initparticles
     use modmpi,   only : myid,my_real,mpierr,comm3d,mpi_integer,mpi_logical,nprocs
     use modglobal,only : ifnamopt,fname_options,ifinput,dtmax,cexpnr,&
-                         dx,dy,dzf,zh,kmax,k1,iexpnr,runtime,timee,ysize,dt_lim,btime
+                         dx,dy,dzf,zh,kmax,k1,iexpnr,runtime,timee,ysize,dt_lim,btime,rtimee,tres
 
     implicit none
 
@@ -113,6 +114,11 @@ contains
       if(myid==0)then
         open(ifnamopt,file=fname_options,status='old',iostat=ierr)
         read (ifnamopt,NAMPARTICLES,iostat=ierr)
+        if (ierr > 0) then
+          print *, 'Problem in namoptions NAMPARTICLES'
+          print *, 'iostat error: ', ierr
+          stop 'ERROR: Problem in namoptions NAMPARTICLES'
+        endif
         write(6 ,NAMPARTICLES)
         close(ifnamopt)
       end if
@@ -130,10 +136,14 @@ contains
 
     if (.not.(lpartic)) return
       if(lstat) then
-        nsamples = nint(timeav/dtav)
-        tnext = dtav-1e-3+btime
-        tnextwrite = timeav-1e-3+btime
-        tnextdump  = timedump-1e-3+btime
+        idtav = dtav/tres
+        itimeav = timeav/tres
+        itimedump = timedump/tres
+
+        tnext      = idtav   +btime
+        tnextwrite = itimeav +btime
+        nsamples = itimeav/idtav
+        tnextdump  = itimedump+btime
         dt_lim = min(dt_lim,tnext)
       end if
 
@@ -182,21 +192,6 @@ contains
       nrpartvar = nrpartvar + 1
     end if
 
-    if (myid == 0) then
-      write(6,*)
-      write(6,*) '#####################################################################'
-      write(6,*) '####### experiment number = ', iexpnr,'.'
-      write(6,*) '####### duration of the simulation = ', runtime,' s.'
-      write(6,*) '####### number of particles = ', np,'.'
-      if (lstat) write(6,*) '####### particle statistics written every ', timeav, ' seconds.'
-      if (ldump) write(6,*) '####### particles written every ', timedump, ' seconds.'
-      if (lpartsgs) write(6,*) '####### you have subgrid velocity calculations turned on.'
-      if (intmeth == 3) write(6,*) '####### integration method used: Runge Kutta 3rd order'
-      write(6,*) '#####################################################################'
-      write(6,*)
-    end if
-
-
     call particle_initlist()
     nplisted = 0
 
@@ -239,7 +234,7 @@ contains
 
     close(ifinput)
 
-    write(6,*) 'timee :',timee,': proc ',myid,': #particles: ',nplisted
+    write(6,*) 'timee :',rtimee,': proc ',myid,': #particles: ',nplisted
 
   end subroutine initparticles
 
@@ -248,13 +243,13 @@ contains
   subroutine exitparticles
 
     use modmpi, only : myid
-    use modglobal,only:timee
+    use modglobal,only:rtimee
     implicit none
 
 
     if (.not.(lpartic)) return
 
-    write(6,*) timee,": proc ",myid,": removing all particles from list..."
+    write(6,*) rtimee,": proc ",myid,": removing all particles from list..."
     call particle_quitlist()
     deallocate(fsm)
   end subroutine exitparticles
@@ -262,23 +257,23 @@ contains
 !*****************************************************************************
 
   subroutine particles
-    use modglobal, only :dx,dy,dzf,k1,rk3step,dtmax,timee,btime,j2,i2
+    use modglobal, only :dx,dy,dzf,k1,rk3step,rtimee,j2,i2
     implicit none
     type (particle_record), pointer:: particle
 
     if (.not.(lpartic)) return
     if ( np < 1 ) return
-    if (timee < btime + dtmax) return
+    if (rtimee == 0) return
 
     if (lpartsgs) call sgsinit
 
     particle => head
     do while( associated(particle) )
-      if (  timee - particle%tstart >= 0 ) then
+      if (  rtimee - particle%tstart >= 0 ) then
         particle%partstep = particle%partstep + 1
 
 !interpolation of the velocity field
-        if (  timee - particle%tstart >= 0 ) then
+        if (  rtimee - particle%tstart >= 0 ) then
           particle%ures = velocity_ures(particle%x,particle%y,particle%z) / dx
           particle%vres = velocity_vres(particle%x,particle%y,particle%z) / dy
           particle%wres = velocity_wres(particle%x,particle%y,particle%z) / dzf(floor(particle%z))
@@ -309,7 +304,7 @@ contains
 !Time integration
     particle => head
     do while( associated(particle) )
-      if (  timee - particle%tstart >= 0 ) then
+      if (  rtimee - particle%tstart >= 0 ) then
         select case(intmeth)
         case(inomove)
                 ! no movement
@@ -333,12 +328,12 @@ contains
 !*****************************************************************************
 
   subroutine rk3(particle)
-    use modglobal, only : rk3step,dt,j1,dzf
+    use modglobal, only : rk3step,rdt,j1,dzf
     implicit none
     real :: rk3coef
 
     TYPE (particle_record), POINTER:: particle
-    rk3coef = dt / (4. - dble(rk3step))
+    rk3coef = rdt / (4. - dble(rk3step))
     particle%x =  particle%x_prev + (particle%ures +particle%usgs) * rk3coef
     particle%y =  particle%y_prev + (particle%vres +particle%vsgs) * rk3coef
     particle%z =  particle%z_prev + (particle%wres +particle%wsgs) * rk3coef
@@ -477,15 +472,15 @@ contains
 
   function velocity_usgs(particle)
 
-    use modglobal, only : dx,dt
+    use modglobal, only : dx,rdt
     implicit none
 
     !local::
     real :: velocity_usgs
     TYPE (particle_record), POINTER:: particle
 
-      velocity_usgs = -0.5*fce*particle%usgs_prev*dx*dt + &
-                      0.5*(dsigma2dt_sgs*particle%usgs_prev*dx+dsigma2dx_sgs)*dt + &
+      velocity_usgs = -0.5*fce*particle%usgs_prev*dx*rdt + &
+                      0.5*(dsigma2dt_sgs*particle%usgs_prev*dx+dsigma2dx_sgs)*rdt + &
                       sqrt(fce*sigma2_new)*gauss1(idum) + &
                       particle%usgs_prev*dx
 
@@ -495,15 +490,15 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   function velocity_vsgs(particle)
 
-    use modglobal, only : dy,dt
+    use modglobal, only : dy,rdt
     implicit none
 
     !local::
     real :: velocity_vsgs
     TYPE (particle_record), POINTER:: particle
 
-      velocity_vsgs = -0.5*fce*particle%vsgs_prev*dy*dt + &
-                      0.5*(dsigma2dt_sgs*particle%vsgs_prev*dy+dsigma2dy_sgs)*dt + &
+      velocity_vsgs = -0.5*fce*particle%vsgs_prev*dy*rdt + &
+                      0.5*(dsigma2dt_sgs*particle%vsgs_prev*dy+dsigma2dy_sgs)*rdt + &
                       sqrt(fce*sigma2_new)*gauss1(idum) + &
                       particle%vsgs_prev*dy
 
@@ -513,15 +508,15 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   function velocity_wsgs(particle)
 
-    use modglobal, only : dzf,dt
+    use modglobal, only : dzf,rdt
     implicit none
 
     !local::
     real :: velocity_wsgs
     TYPE (particle_record), POINTER:: particle
 
-      velocity_wsgs = -0.5*fce*particle%wsgs_prev*dzf(floor(particle%z))*dt + &
-                      0.5*(dsigma2dt_sgs*particle%wsgs_prev*dzf(floor(particle%z))+dsigma2dz_sgs)*dt + &
+      velocity_wsgs = -0.5*fce*particle%wsgs_prev*dzf(floor(particle%z))*rdt + &
+                      0.5*(dsigma2dt_sgs*particle%wsgs_prev*dzf(floor(particle%z))+dsigma2dz_sgs)*rdt + &
                       sqrt(fce*sigma2_new)*gauss1(idum) + &
                       particle%wsgs_prev*dzf(floor(particle%z))
 
@@ -604,8 +599,8 @@ contains
     tkesgsavl = 0
 
     if (timee>=tnext) then
-      tnext = tnext+dtav
-     dt_lim = minval((/dt_lim,tnext-timee/))
+      tnext = tnext+idtav
+      dt_lim = minval((/dt_lim,tnext-timee/))
       particle =>head
       do while (associated(particle))
 
@@ -650,7 +645,7 @@ contains
     end if
 
     if (timee>=tnextwrite) then
-      tnextwrite = tnextwrite+timeav
+      tnextwrite = tnextwrite+itimeav
 
       !normalization
       where (nrparticlesav>0)
@@ -750,9 +745,9 @@ contains
  !*****************************************************************************
   subroutine writeparticles
     use modmpi,    only : myid,cmyid
-    use modglobal, only :  i2,jmax,j2,k1,dx,dy,dzf,dzh,zf,zh,es0,tmelt,rlv,rd,rv,cp,bt,at,cexpnr,ifoutput,timee,dt_lim
+    use modglobal, only :  i2,jmax,j2,k1,dx,dy,dzf,dzh,zf,zh,es0,tmelt,rlv,rd,rv,cp,bt,at,cexpnr,ifoutput,timee,rtimee,dt_lim
     use modfields, only : qtm,thlm,presf, exnf
-    use modsurface,only : thvs,thls,qts
+    use modsurfdata,only: thvs,thls,qts
     implicit none
 
     ! LOCAL
@@ -771,7 +766,7 @@ contains
     end if
 
     if (timee>=tnextdump) then
-
+      tnextdump =tnextdump + itimedump
       allocate (partdata(ndata,nplisted))
       allocate (partids(nplisted))
 
@@ -831,7 +826,7 @@ contains
       end do
 
       open(ifoutput,file='particles.'//cmyid//'.'//cexpnr,form='unformatted',position = 'append',action='write')
-      write(ifoutput) timee,nplisted
+      write(ifoutput) rtimee,nplisted
       write(ifoutput) (partids(n),(partdata(m,n),m=1,ndata),n=1,nplisted)
       close(ifoutput)
       deallocate (partdata)
@@ -923,10 +918,10 @@ contains
   subroutine sgshelpvar(particle)
 
 
-    use modglobal,  only : dx,dy,dzf,zf,zh,dzh,grav,delta,timee,dt
+    use modglobal,  only : dx,dy,dzf,zf,zh,dzh,grav,delta,timee,rdt
     use modfields,  only : dthvdz
     use modsubgrid, only : ce1, ce2, cn
-    use modsurface, only : thvs
+    use modsurfdata,only : thvs
     implicit none
 
 
@@ -993,9 +988,9 @@ contains
                              (sgstke(particle%x, particle%y, real(zbottom+1.5) ) - &
                               sgstke(particle%x, particle%y, real(zbottom+0.5)))
 
-    dsigma2dt_sgs = (log(sigma2_new)-log(particle%sigma2_sgs))/dt
+    dsigma2dt_sgs = (log(sigma2_new)-log(particle%sigma2_sgs))/rdt
 
-    dsigma2dt_sgs = sign(1.,dsigma2dt_sgs)*min(abs(dsigma2dt_sgs),1./dt)
+    dsigma2dt_sgs = sign(1.,dsigma2dt_sgs)*min(abs(dsigma2dt_sgs),1./rdt)
 
     particle%sigma2_sgs = sigma2_new
 

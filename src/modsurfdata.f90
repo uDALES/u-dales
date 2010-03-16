@@ -96,6 +96,9 @@ SAVE
   real              :: albedoav = -1
   real, allocatable :: LAI        (:,:) !<  Leaf area index vegetation [-]
   real              :: LAIav    = -1
+  real, allocatable :: cveg       (:,:) !<  Vegetation cover [-]
+  real              :: cvegav   = -1
+  real, allocatable :: cliq       (:,:) !<  Fraction of vegetated surface covered with liquid water [-]
   real, allocatable :: Cskin      (:,:) !<  Heat capacity skin layer [J]
   real              :: Cskinav  = -1
   real, allocatable :: lambdaskin (:,:) !<  Heat conductivity skin layer [W/m/K]
@@ -109,10 +112,14 @@ SAVE
   real, allocatable :: H        (:,:)   !<  Sensible heat flux [W/m2]
   real, allocatable :: G0       (:,:)   !<  Ground heat flux [W/m2]
   real, allocatable :: ra       (:,:)   !<  Aerodynamic resistance [s/m]
-  real, allocatable :: rs       (:,:)   !<  Vegetation resistance [s/m]
+  real, allocatable :: rs       (:,:)   !<  Composite resistance [s/m]
+  real, allocatable :: rsveg    (:,:)   !<  Vegetation resistance [s/m]
+  real, allocatable :: rssoil   (:,:)   !<  Soil evaporation resistance [s/m]
   real              :: rsisurf2 = 0.    !<  Vegetation resistance [s/m] if isurf2 is used
   real, allocatable :: rsmin    (:,:)   !<  Minimum vegetation resistance [s/m]
   real              :: rsminav = -1
+  real, allocatable :: rssoilmin(:,:)   !<  Minimum soil evaporation resistance [s/m]
+  real              :: rssoilminav = -1
   real, allocatable :: tendskin (:,:)   !<  Tendency of skin [W/m2]
   real, allocatable :: gD       (:,:)   !<  Response factor vegetation to vapor pressure deficit [-]
   real              :: gDav

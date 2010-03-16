@@ -26,7 +26,7 @@
 !  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
 module modbudget
-
+  use modglobal, only : longint
 
   implicit none
   PRIVATE
@@ -34,9 +34,12 @@ module modbudget
   save
 !NetCDF variables
   integer,parameter :: nvar = 18
+  integer :: ncid,nrec = 0
   character(80),dimension(nvar,4) :: ncname
+  character(80),dimension(1,4) :: tncname
 
-  real    :: dtav, timeav,tnext,tnextwrite
+  real    :: dtav, timeav
+  integer(kind=longint) :: idtav, itimeav,tnext,tnextwrite
   integer :: nsamples
   logical :: lbudget= .false. ! switch for turbulent TKE budget
 
@@ -67,7 +70,6 @@ module modbudget
   real, allocatable :: ekmmn(:)     !< Turbulent exchange coefficient momentum
   real, allocatable :: khkmmn(:)    !< Kh / Km, in post-processing used to determine filter-grid ratio
 
-  real :: tkebtime
 
   logical :: ltkeb     !Switch to tell if the tke   at beg of av periode has been stored
   logical :: lsbtkeb   !Switch to tell if the sbtke at beg of av periode has been stored
@@ -76,9 +78,9 @@ contains
 !> Initialization routine, reads namelists and inits variables
   subroutine initbudget
     use modmpi,    only : myid,mpierr, comm3d,my_real, mpi_logical
-    use modglobal, only : dtmax, k1,ifnamopt,fname_options, ifoutput, cexpnr,dtav_glob,timeav_glob,ladaptive,dt_lim,btime
-    use modstat_nc, only : lnetcdf, redefine_nc,define_nc,ncinfo
-    use modgenstat, only : dtav_prof=>dtav, timeav_prof=>timeav,ncid_prof=>ncid
+    use modglobal, only : dtmax,idtmax, k1,ifnamopt,fname_options, ifoutput, cexpnr,dtav_glob,timeav_glob,ladaptive,dt_lim,btime,kmax,tres
+    use modstat_nc, only : lnetcdf, open_nc,define_nc,redefine_nc,ncinfo,writestat_dims_nc
+    use modgenstat, only : idtav_prof=>idtav, itimeav_prof=>itimeav,ncid_prof=>ncid
 
 
     implicit none
@@ -92,6 +94,11 @@ contains
     if(myid==0)then
        open(ifnamopt,file=fname_options,status='old',iostat=ierr)
        read (ifnamopt,NAMBUDGET,iostat=ierr)
+       if (ierr > 0) then
+         print *, 'Problem in namoptions NAMBUDGET'
+         print *, 'iostat error: ', ierr
+         stop 'ERROR: Problem in namoptions NAMBUDGET'
+       endif
        write(6 ,NAMBUDGET)
        close(ifnamopt)
     end if
@@ -99,10 +106,12 @@ contains
     call MPI_BCAST(timeav     ,1,MY_REAL    ,0,comm3d,mpierr)
     call MPI_BCAST(dtav       ,1,MY_REAL    ,0,comm3d,mpierr)
     call MPI_BCAST(lbudget    ,1,MPI_LOGICAL,0,comm3d,mpierr)
+    idtav = dtav/tres
+    itimeav = timeav/tres
 
-    tnext      = dtav   - 1e-3+btime
-    tnextwrite = timeav - 1e-3+btime
-    nsamples = nint(timeav/dtav)
+    tnext      = idtav   +btime
+    tnextwrite = itimeav +btime
+    nsamples = itimeav/idtav
     if(.not.(lbudget)) return
     dt_lim = min(dt_lim,tnext)
 
@@ -141,11 +150,11 @@ contains
        close (ifoutput)
     endif
     if (lnetcdf) then
-      dtav = dtav_prof
-      timeav = timeav_prof
-       tnext      = dtav-1e-3+btime
-      tnextwrite = timeav-1e-3+btime
-      nsamples = nint(timeav/dtav)
+      idtav = idtav_prof
+      itimeav = itimeav_prof
+      tnext      = idtav+btime
+      tnextwrite = itimeav+btime
+      nsamples = itimeav/idtav
      if (myid==0) then
         call ncinfo(ncname( 1,:),'tker','Resolved TKE','m/s^2','tt')
         call ncinfo(ncname( 2,:),'shr','Resolved Shear','m/s^2','tt')
@@ -165,9 +174,6 @@ contains
         call ncinfo(ncname(16,:),'sbresid','Subgrid Residual = budget - storage','m/s^2','tt')
         call ncinfo(ncname(17,:),'ekm','Turbulent exchange coefficient momentum','m/s^2','tt')
         call ncinfo(ncname(18,:),'khkm   ','Kh / Km, in post-processing used to determine filter-grid ratio','m/s^2','tt')
-
-
-
         call redefine_nc(ncid_prof)
         call define_nc( ncid_prof, NVar, ncname)
      end if
@@ -190,12 +196,12 @@ contains
       return
     end if
     if (timee>=tnext) then
-      tnext = tnext+dtav
+      tnext = tnext+idtav
       call do_genbudget
       call do_gensbbudget
     end if
     if (timee>=tnextwrite) then
-      tnextwrite = tnextwrite+timeav
+      tnextwrite = tnextwrite+itimeav
       call writebudget
     end if
     dt_lim = minval((/dt_lim,tnext-timee,tnextwrite-timee/))
@@ -206,7 +212,7 @@ contains
     use modglobal,  only : i1,j1,k1,kmax,dzf,dzh, &
                           rslabs,cu,cv,iadv_thl,grav, &
                           dxi,dyi,dx2i,dy2i
-    use modsurface, only : thvs, ustar
+    use modsurfdata,only : thvs, ustar
     use modsubgrid, only : ekm
     use modpois,    only : p
     use modfields,  only : u0,v0,w0,thl0h,thv0h,u0av,v0av
@@ -743,14 +749,14 @@ end subroutine do_genbudget
 
 !> Write the budgets to file
   subroutine writebudget
-    use modglobal, only : kmax,k1,zf,timee,cexpnr,ifoutput
+    use modglobal, only : kmax,k1,zf,rtimee,cexpnr,ifoutput
     use modmpi,    only : myid
     use modstat_nc,only : writestat_nc,lnetcdf
       use modgenstat, only: ncid_prof=>ncid,nrec_prof=>nrec
     implicit none
     real,dimension(k1,nvar) :: vars
     integer nsecs, nhrs, nminut,k
-    nsecs   = nint(timee)
+    nsecs   = nint(rtimee)
     nhrs    = int(nsecs/3600)
     nminut  = int(nsecs/60)-nhrs*60
     nsecs   = mod(nsecs,60)

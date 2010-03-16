@@ -140,7 +140,7 @@ contains
       do while (timeflux(t) <= (runtime+btime))
         t=t+1
         read(ifinput,*, iostat = ierr) timeflux(t), wtsurft(t), wqsurft(t),thlst(t),qtst(t),pst(t)
-        write(*,'(f8.1,6e12.4)') timeflux(t), wtsurft(t), wqsurft(t),thlst(t),qtst(t),pst(t)
+        write(*,'(i8,6e12.4)') t,timeflux(t), wtsurft(t), wqsurft(t),thlst(t),qtst(t),pst(t)
         if (ierr < 0) then
             stop 'STOP: No time dependend data for end of run (surface fluxes)'
         end if
@@ -263,7 +263,7 @@ contains
 
   subroutine timedepz
     use modfields,   only : ug, vg, dqtdtls,dqtdxls,dqtdyls, wfls,whls,thlprof,qtprof,thlpcar,dthldxls,dthldyls,dudxls,dudyls,dvdxls,dvdyls,dpdxl,dpdyl
-    use modglobal,   only : timee,om23_gs,zf,dzf,dzh,k1,kmax,grav,llsadv
+    use modglobal,   only : rtimee,om23_gs,zf,dzf,dzh,k1,kmax,grav,llsadv
     implicit none
 
     integer t,k
@@ -273,14 +273,14 @@ contains
 
     !---- interpolate ----
     t=1
-    do while(timee>timels(t))
+    do while(rtimee>timels(t))
       t=t+1
     end do
-    if (timee/=timels(1)) then
+    if (rtimee/=timels(1)) then
       t=t-1
     end if
 
-    fac = ( timee-timels(t) ) / ( timels(t+1)-timels(t) )
+    fac = ( rtimee-timels(t) ) / ( timels(t+1)-timels(t) )
     ug      = ugt     (:,t) + fac * ( ugt     (:,t+1) - ugt     (:,t) )
     vg      = vgt     (:,t) + fac * ( vgt     (:,t+1) - vgt     (:,t) )
     wfls    = wflst   (:,t) + fac * ( wflst   (:,t+1) - wflst   (:,t) )
@@ -349,7 +349,7 @@ contains
   end subroutine timedepz
 
   subroutine timedepsurf
-    use modglobal,   only : timee, lmoist
+    use modglobal,   only : rtimee, lmoist
     use modsurfdata, only : wtsurf,wqsurf,thls,qts,ps
     use modsurface,  only : qtsurf
 
@@ -361,14 +361,14 @@ contains
     if(.not.(ltimedepsurf)) return
   !     --- interpolate! ----
     t=1
-    do while(timee>timeflux(t))
+    do while(rtimee>timeflux(t))
       t=t+1
     end do
-    if (timee/=timeflux(t)) then
+    if (rtimee/=timeflux(t)) then
       t=t-1
     end if
 
-    fac = ( timee-timeflux(t) ) / ( timeflux(t+1)-timeflux(t))
+    fac = ( rtimee-timeflux(t) ) / ( timeflux(t+1)-timeflux(t))
     wqsurf = wqsurft(t) + fac * ( wqsurft(t+1) - wqsurft(t)  )
     wtsurf = wtsurft(t) + fac * ( wtsurft(t+1) - wtsurft(t)  )
     thls   = thlst(t)   + fac * ( thlst(t+1)   - thlst(t)    )

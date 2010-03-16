@@ -66,6 +66,7 @@ module modgenstat
     !                                                                 |
     !    lstat      SWITCH TO ENABLE TIMESERIES                       |
     !-----------------------------------------------------------------|
+  use modglobal, only : longint
 
 implicit none
 ! private
@@ -79,7 +80,8 @@ save
   character(80),dimension(nvar,4) :: ncname
   character(80),dimension(1,4) :: tncname
 
-  real    :: dtav, timeav,tnext,tnextwrite
+  real    :: dtav, timeav
+  integer(kind=longint) :: idtav,itimeav,tnext,tnextwrite
   logical :: lstat= .false. ! switch for conditional sampling cloud (on/off)
   integer :: nsamples
 !     ----  total fields  ---
@@ -119,12 +121,8 @@ save
   real, allocatable :: svpav(:,:)                  !  slab average total tendency of sv(n)
   real, allocatable :: svptav(:,:)                 !  slab average tendency of sv(n) due to turb.
 
- real, allocatable :: ql0av (:)     ! slab averaged ql_0    at full level
   real, allocatable :: uptav(:)                      !  slab averaged tendency for u
   real, allocatable :: vptav(:)                      !  slab averaged tendency for v
-  real, allocatable :: thlpav(:)                     !  slab averaged tendency of thl
- real, allocatable :: thpav (:)     ! slab averaged d(theta)/dt
- real, allocatable :: qlpav (:)     ! slab averaged d(ql)/dt
 
  real, allocatable :: thptav(:)     ! slab averaged turbulence tendency of theta
  real, allocatable :: qlptav(:)     ! slab averaged turbulence tendency of q_liq
@@ -162,7 +160,7 @@ contains
 
   subroutine initgenstat
     use modmpi,    only : myid,mpierr, comm3d,my_real, mpi_logical
-    use modglobal, only : dtmax, kmax,k1, nsv,ifnamopt,fname_options, ifoutput, cexpnr,dtav_glob,timeav_glob,ladaptive,dt_lim,btime
+    use modglobal, only : dtmax, kmax,k1, nsv,ifnamopt,fname_options, ifoutput, cexpnr,dtav_glob,timeav_glob,ladaptive,dt_lim,btime,tres
     use modstat_nc, only : lnetcdf, open_nc,define_nc,redefine_nc,ncinfo,writestat_dims_nc
 
 
@@ -178,6 +176,11 @@ contains
     if(myid==0)then
       open(ifnamopt,file=fname_options,status='old',iostat=ierr)
       read (ifnamopt,NAMGENSTAT,iostat=ierr)
+      if (ierr > 0) then
+        print *, 'Problem in namoptions NAMGENSTAT'
+        print *, 'iostat error: ', ierr
+        stop 'ERROR: Problem in namoptions NAMGENSTAT'
+      endif
       write(6 ,NAMGENSTAT)
       close(ifnamopt)
     end if
@@ -185,10 +188,12 @@ contains
     call MPI_BCAST(timeav     ,1,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(dtav       ,1,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(lstat   ,1,MPI_LOGICAL,0,comm3d,mpierr)
+    idtav = dtav/tres
+    itimeav = timeav/tres
 
-    tnext      = dtav - 1e-3+btime
-    tnextwrite = timeav-1e-3+btime
-    nsamples   = nint(timeav/dtav)
+    tnext      = idtav   +btime
+    tnextwrite = itimeav +btime
+    nsamples = itimeav/idtav
     if(.not.(lstat)) return
     dt_lim = min(dt_lim,tnext)
 
@@ -225,10 +230,6 @@ contains
     allocate(uptav(k1))
     allocate(vptav(k1))
 
-    allocate(ql0av (k1))
-    allocate(thlpav(k1))
-    allocate(thpav (k1))
-    allocate(qlpav (k1))
     allocate(thptav(k1))
     allocate(qlptav(k1))
     allocate(uwtot (k1))
@@ -256,9 +257,6 @@ contains
     allocate(th0av(k1))
     allocate(svptav(k1,nsv))
     allocate(svpav(k1,nsv))
-
-
-
 
       umn      = 0.
       vmn      = 0.
@@ -385,7 +383,7 @@ contains
 
 
         call open_nc(fname,  ncid,n3=kmax)
-       call define_nc( ncid, 1, tncname)
+        call define_nc( ncid, 1, tncname)
         call writestat_dims_nc(ncid)
         call redefine_nc(ncid)
         call define_nc( ncid, NVar, ncname)
@@ -408,11 +406,11 @@ contains
       return
     end if
     if (timee>=tnext) then
-      tnext = tnext+dtav
+      tnext = tnext+idtav
       call do_genstat
     end if
     if (timee>=tnextwrite) then
-      tnextwrite = tnextwrite+timeav
+      tnextwrite = tnextwrite+itimeav
       call writestat
     end if
     dt_lim = minval((/dt_lim,tnext-timee,tnextwrite-timee/))
@@ -422,7 +420,7 @@ contains
 
     use modfields, only : u0,v0,w0,um,vm,wm,qtm,thlm,thl0,qt0,qt0h, &
                           ql0,ql0h,thl0h,thv0h,sv0, svm, e12m,exnf,exnh
-    use modsurfdata,only: thls,qts,svs,ustar,tstar,qstar,svstar
+    use modsurfdata,only: thls,qts,svs,ustar,thlflux,qtflux,svflux
     use modsubgrid,only : ekm, ekh
     use modglobal, only : i1,ih,j1,jh,k1,kmax,nsv,dzf,dzh,rlv,rv,rd,cp, &
                           rslabs,cu,cv,iadv_thl,iadv_kappa,eps1,dxi,dyi
@@ -463,11 +461,8 @@ contains
     real,allocatable, dimension(:):: wtvsubl
     real,allocatable, dimension(:) ::wtvresl
 
-    real,allocatable, dimension(:):: ql0avl   ! slab averaged ql_0    at full level
     real,allocatable, dimension(:):: cfracavl ! cloudfraction    at full level
 
-    real,allocatable, dimension(:):: thpavl    ! slab averaged d(theta)/dt
-    real,allocatable, dimension(:):: qlpavl    ! slab averaged d(ql)/dt
 
     real,allocatable, dimension(:):: qlptavl   ! slab averaged turbulence tendency of q_liq
     real,allocatable, dimension(:):: uwsubl
@@ -526,11 +521,8 @@ contains
     allocate( wtvsubl    (k1))
     allocate( wtvresl    (k1))
 
-    allocate( ql0avl (k1))  ! slab averaged ql_0    at full level
     allocate( cfracavl(k1))  ! slab averaged cloud fraction
 
-    allocate( thpavl (k1) )  ! slab averaged d(theta)/dt
-    allocate( qlpavl (k1) )  ! slab averaged d(ql)/dt
 
     allocate( qlptavl(k1))   ! slab averaged turbulence tendency of q_liq
     allocate( uwsubl(k1))
@@ -563,12 +555,9 @@ contains
   !     3.0    RESET ARRAYS FOR SLAB AVERAGES
   !     ---    ------------------------------
   !     --------------------------------------------------------
-    ql0avl      = 0.0
     qlhavl      = 0.0
     cfracavl    = 0.0
 
-    qlpavl      = 0.0
-    thpavl      = 0.0
 
     qlptavl     = 0.0
 
@@ -679,15 +668,13 @@ contains
     cqt   = 1./den
     do j=2,j1
     do i=2,i1
-!       ql0avl(1) = qlmavl(1) + ql0(i,j,1)
       qlhavl(1) = qlhavl(1) + ql0h(i,j,1)
   !     thv(1) = thlm(i,j,1) * (1.+(rv/rd-1)*qtm(i,j,1))
 
-      wtlsubl(1) = wtlsubl(1) - ustar(i,j)*tstar(i,j)
-      wqtsubl(1) = wqtsubl(1) - ustar(i,j)*qstar(i,j)
+      wtlsubl(1) = wtlsubl(1) + thlflux(i,j)
+      wqtsubl(1) = wqtsubl(1) + qtflux (i,j)
       wqlsubl(1) = 0
-      wtvsubl(1) = wtvsubl(1) - &
-                      ustar(i,j)*(c1*tstar(i,j)+c2*thls*qstar(i,j)) !hj: thv0 replaced by thls
+      wtvsubl(1) = wtvsubl(1) + ( c1*thlflux(i,j)+c2*thls*qtflux(i,j) ) !hj: thv0 replaced by thls
 
       !Momentum flux
       if (abs(um(i,j,1)+cu)<eps1) then
@@ -728,7 +715,7 @@ contains
 !       r3avl    (1) = r3avl    (1) + ((qt0(i,j,1) - qs0)**3)
 
       do n=1,nsv
-        wsvsubl(1,n) = wsvsubl(1,n) - ustar(i,j)*svstar(i,j,n)
+        wsvsubl(1,n) = wsvsubl(1,n) + svflux(i,j,n)
         sv2avl(1,n)  = sv2avl(1,n) + (svm(i,j,1,n)-svmav(1,n))**2
       end do
     end do
@@ -755,7 +742,6 @@ contains
     !     ------------------------------------------------------
     !     calculate ql and thv at time t0 at full and half level
     !      ----------------------------------------------------
-        ql0avl(k) = ql0avl(k)  + ql0(i,j,k)
         qlhavl(k) = qlhavl(k)  + ql0h(i,j,k)
 
     !     -----------------------------------------------------------
@@ -916,8 +902,6 @@ contains
   !         DEPRECATED
 
   ! MPI communication
-    call MPI_ALLREDUCE(ql0avl, ql0av, k1,    MY_REAL, &
-                      MPI_SUM, comm3d,mpierr)
     call MPI_ALLREDUCE(qlhavl, qlhav, k1,    MY_REAL, &
                       MPI_SUM, comm3d,mpierr)
     call MPI_ALLREDUCE(wqlsubl, wqlsub, k1,    MY_REAL, &
@@ -935,10 +919,6 @@ contains
     call MPI_ALLREDUCE(wtvsubl, wtvsub, k1,    MY_REAL, &
                       MPI_SUM, comm3d,mpierr)
     call MPI_ALLREDUCE(wtvresl, wtvres, k1,    MY_REAL, &
-                      MPI_SUM, comm3d,mpierr)
-    call MPI_ALLREDUCE(qlpavl, qlpav, k1,    MY_REAL, &
-                      MPI_SUM, comm3d,mpierr)
-    call MPI_ALLREDUCE(thpavl, thpav, k1,    MY_REAL, &
                       MPI_SUM, comm3d,mpierr)
     call MPI_ALLREDUCE(uwsubl, uwsub, k1,    MY_REAL, &
                       MPI_SUM, comm3d,mpierr)
@@ -984,7 +964,7 @@ contains
                       MPI_SUM, comm3d,mpierr)
 
     do n=1,nsv
-  call MPI_ALLREDUCE(sv2avl(:,n),sv2av(:,n),kmax,MY_REAL, &
+  call MPI_ALLREDUCE(sv2avl(:,n),sv2av(:,n),k1,MY_REAL, &
                         MPI_SUM, comm3d,mpierr)
   call MPI_ALLREDUCE(wsvsubl(:,n),wsvsub(:,n), k1,    MY_REAL, &
       MPI_SUM, comm3d,mpierr)
@@ -996,7 +976,6 @@ contains
   !     6   NORMALIZATION OF THE FIELDS AND FLUXES
   !     -----------------------------------------------
 
-      ql0av   = ql0av  /rslabs
       qlhav   = qlhav  /rslabs
 
       wqlsub  = wqlsub /rslabs
@@ -1015,9 +994,6 @@ contains
       wqltot  = wqlres + wqlsub
       wtltot  = wtlres + wtlsub
       wtvtot  = wtvres + wtvsub
-
-      qlpav    = (ql0av-qlmav)/dtav
-      thpav    = thlpav   + (rlv/cp)*qlpav  /exnf
 
 
         wsvsub = wsvsub /rslabs
@@ -1140,11 +1116,8 @@ contains
     deallocate( wtvsubl    )
     deallocate( wtvresl    )
 
-    deallocate( ql0avl )  ! slab averaged ql_0    at full level
     deallocate( cfracavl )
 
-    deallocate( thpavl  )  ! slab averaged d(theta)/dt
-    deallocate( qlpavl  )  ! slab averaged d(ql)/dt
 
     deallocate( qlptavl)   ! slab averaged turbulence tendency of q_liq
     deallocate( uwsubl)
@@ -1171,7 +1144,7 @@ contains
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine writestat
-      use modglobal, only : kmax,k1,nsv, zh,zf,timee,rlv,cp,cexpnr,ifoutput
+      use modglobal, only : kmax,k1,nsv, zh,zf,rtimee,rlv,cp,cexpnr,ifoutput
       use modfields, only : presf,presh,exnf,exnh,rhof
       use modmpi,    only : myid
       use modstat_nc, only: lnetcdf, writestat_nc
@@ -1184,7 +1157,7 @@ contains
       integer nsecs, nhrs, nminut,k,n
       real convt, convq
       character(20) :: name
-      nsecs   = nint(timee)
+      nsecs   = nint(rtimee)
       nhrs    = int(nsecs/3600)
       nminut  = int(nsecs/60)-nhrs*60
       nsecs   = mod(nsecs,60)
@@ -1530,7 +1503,7 @@ contains
         vars(:,35)=th2mn
         vars(:,36)=qt2mn
         vars(:,37)=ql2mn
-        call writestat_nc(ncid,1,tncname,(/timee/),nrec,.true.)
+        call writestat_nc(ncid,1,tncname,(/rtimee/),nrec,.true.)
         call writestat_nc(ncid,nvar,ncname,vars(1:kmax,:),nrec,kmax)
       end if
 
@@ -1638,10 +1611,6 @@ contains
     deallocate(uptav)
     deallocate(vptav)
 
-    deallocate(ql0av )
-    deallocate(thlpav)
-    deallocate(thpav )
-    deallocate(qlpav )
     deallocate(thptav)
     deallocate(qlptav)
     deallocate(uwtot )

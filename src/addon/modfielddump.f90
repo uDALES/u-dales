@@ -27,6 +27,7 @@
 !
 module modfielddump
 
+  use modglobal, only : longint
 
 implicit none
 private
@@ -39,7 +40,8 @@ save
   character(80),dimension(nvar,4) :: ncname
   character(80),dimension(1,4) :: tncname
 
-  real    :: dtav,tnext
+  real    :: dtav
+  integer(kind=longint) :: idtav,tnext
   integer :: klow,khigh
   logical :: lfielddump= .false. !< switch to enable the fielddump (on/off)
   logical :: ldiracc   = .false. !< switch for doing direct access writing (on/off)
@@ -48,7 +50,7 @@ contains
 !> Initializing fielddump. Read out the namelist, initializing the variables
   subroutine initfielddump
     use modmpi,   only :myid,my_real,mpierr,comm3d,mpi_logical,mpi_integer,cmyid
-    use modglobal,only :imax,jmax,kmax,cexpnr,ifnamopt,fname_options,dtmax,dtav_glob,kmax, ladaptive,dt_lim,btime
+    use modglobal,only :imax,jmax,kmax,cexpnr,ifnamopt,fname_options,dtmax,dtav_glob,kmax, ladaptive,dt_lim,btime,tres
     use modstat_nc,only : lnetcdf,open_nc, define_nc, redefine_nc,ncinfo,writestat_dims_nc
     implicit none
     integer :: ierr
@@ -63,6 +65,11 @@ contains
     if(myid==0)then
       open(ifnamopt,file=fname_options,status='old',iostat=ierr)
       read (ifnamopt,NAMFIELDDUMP,iostat=ierr)
+      if (ierr > 0) then
+        print *, 'Problem in namoptions NAMFIELDDUMP'
+        print *, 'iostat error: ', ierr
+        stop 'ERROR: Problem in namoptions NAMFIELDDUMP'
+      endif
       write(6 ,NAMFIELDDUMP)
       close(ifnamopt)
     end if
@@ -71,8 +78,9 @@ contains
     call MPI_BCAST(dtav        ,1,MY_REAL   ,0,comm3d,ierr)
     call MPI_BCAST(lfielddump  ,1,MPI_LOGICAL,0,comm3d,ierr)
     call MPI_BCAST(ldiracc     ,1,MPI_LOGICAL,0,comm3d,ierr)
+    idtav = dtav/tres
 
-    tnext   = dtav-1e-3+btime
+    tnext      = idtav   +btime
     if(.not.(lfielddump)) return
     dt_lim = min(dt_lim,tnext)
 
@@ -80,7 +88,6 @@ contains
       stop 'dtav should be a integer multiple of dtmax'
     end if
     if (lnetcdf) then
-      dtav = dtav_glob
       fname(11:13) = cmyid
       fname(15:17) = cexpnr
       call ncinfo(tncname(1,:),'time','Time','s','time')
@@ -103,9 +110,9 @@ contains
 !> Do fielddump. Collect data to truncated (2 byte) integers, and write them to file
   subroutine fielddump
     use modfields, only : um,vm,wm,thlm,qtm,ql0
-    use modsurface,only : thls,qts,thvs
+    use modsurfdata,only : thls,qts,thvs
     use modglobal, only : imax,i1,ih,jmax,j1,jh,kmax,k1,rk3step,&
-                          timee,dt_lim,cexpnr,ifoutput
+                          timee,dt_lim,cexpnr,ifoutput,rtimee
     use modmpi,    only : myid,cmyid
     use modstat_nc, only : lnetcdf, writestat_nc
     implicit none
@@ -122,7 +129,7 @@ contains
       dt_lim = min(dt_lim,tnext-timee)
       return
     end if
-    tnext = tnext+dtav
+    tnext = tnext+idtav
     dt_lim = minval((/dt_lim,tnext-timee/))
 
     allocate(field(2-ih:i1+ih,2-jh:j1+jh,k1))
@@ -196,7 +203,7 @@ contains
     end if
     close (ifoutput)
     if(lnetcdf) then
-      call writestat_nc(ncid,1,tncname,(/timee/),nrec,.true.)
+      call writestat_nc(ncid,1,tncname,(/rtimee/),nrec,.true.)
       call writestat_nc(ncid,nvar,ncname,vars,nrec,imax,jmax,khigh-klow+1)
     end if
 

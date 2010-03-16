@@ -26,7 +26,6 @@
 !! \par Revision list
 !! \par Chiel van Heerwaarden
 !! \todo documentation
-!! \todo implement bare soil evaporation
 !! \todo implement water reservoir at land surface for dew and interception water
 !! \todo add moisture transport between soil layers
 !!  \deprecated Modsurface replaces the old modsurf.f90
@@ -53,9 +52,9 @@ contains
     namelist/NAMSURFACE/ & !< Soil related variables
       isurf,tsoilav, tsoildeepav, phiwav, rootfav, &
       ! Land surface related variables
-      lmostlocal, lsmoothflux, z0mav, z0hav, rsisurf2, Cskinav, lambdaskinav, albedoav, Qnetav, &
+      lmostlocal, lsmoothflux, z0mav, z0hav, rsisurf2, Cskinav, lambdaskinav, albedoav, Qnetav, cvegav, &
       ! Jarvis-Steward related variables
-      rsminav, LAIav, gDav, &
+      rsminav, rssoilminav, LAIav, gDav, &
       ! Prescribed values for isurf 2, 3, 4
       z0, thls, ps, ustin, wtsurf, wqsurf, wsvsurf
 
@@ -94,6 +93,8 @@ contains
     call MPI_BCAST(Qnetav       , 1, MY_REAL, 0, comm3d, mpierr)
 
     call MPI_BCAST(rsminav      , 1, MY_REAL, 0, comm3d, mpierr)
+    call MPI_BCAST(rssoilminav  , 1, MY_REAL, 0, comm3d, mpierr)
+    call MPI_BCAST(cvegav       , 1, MY_REAL, 0, comm3d, mpierr)
     call MPI_BCAST(LAIav        , 1, MY_REAL, 0, comm3d, mpierr)
     call MPI_BCAST(gDav         , 1, MY_REAL, 0, comm3d, mpierr)
 
@@ -272,7 +273,12 @@ contains
 
     if(isurf <= 2) then
       allocate(rs(i2,j2))
+      allocate(rsveg(i2,j2))
       allocate(rsmin(i2,j2))
+      allocate(rssoil(i2,j2))
+      allocate(rssoilmin(i2,j2))
+      allocate(cveg(i2,j2))
+      allocate(cliq(i2,j2))
       allocate(ra(i2,j2))
       allocate(tendskin(i2,j2))
       allocate(tskinm(i2,j2))
@@ -284,8 +290,12 @@ contains
       Cskin      = Cskinav
       lambdaskin = lambdaskinav
       rsmin      = rsminav
+      rssoilmin  = rsminav
       LAI        = LAIav
       gD         = gDav
+
+      cveg       = cvegav
+      cliq       = 0.
     end if
 
     allocate(albedo(i2,j2))
@@ -334,19 +344,27 @@ contains
     allocate(svflux  (i2,j2,nsv))
     allocate(svs(nsv))
 
+    ! CvH set initial values for rs and ra to be able to compute qskin
+    if(isurf <= 2) then
+      ra = 50.
+      if(isurf == 1) then
+        rs = 100.
+      end if
+    end if
+
     return
   end subroutine initsurface
 
 !> Calculates the interaction with the soil, the surface temperature and humidity, and finally the surface fluxes.
   subroutine surface
-    use modglobal,  only : dt, i1, i2, j1, j2, cp, rlv, fkar, zf, cu, cv, nsv, rk3step, timee, rslabs, pi, pref0, rd, eps1
+    use modglobal,  only : rdt, i1, i2, j1, j2, cp, rlv, fkar, zf, cu, cv, nsv, rk3step, timee, rslabs, pi, pref0, rd, eps1, boltz
     use modraddata, only : iradiation, swu, swd, lwu, lwd, useMcICA
-    use modfields,  only : thl0, qt0, u0, v0, rhof, ql0, exnf
+    use modfields,  only : thl0, qt0, u0, v0, rhof, ql0, exnf, presf
     use modmpi,     only : my_real, mpierr, comm3d, mpi_sum, myid, excj
     use moduser,   only : surf_user
     implicit none
 
-    real     :: f1, f2, f3 ! Correction functions for Jarvis-Steward
+    real     :: f1, f2, f3, f4 ! Correction functions for Jarvis-Stewart
     integer  :: i, j, k, n
     real     :: upcu, vpcv, horv
     real     :: phimzf, phihzf
@@ -356,7 +374,8 @@ contains
     real     :: ustl, wtsurfl, wqsurfl
 
     real     :: swdav, swuav, lwdav, lwuav
-    real     :: exner, tsurfm, e, esat, qsat, desatdT, dqsatdT, Acoef, Bcoef
+    real     :: exner, exnera, tsurfm, Tatm, e, esat, qsat, desatdT, dqsatdT, Acoef, Bcoef
+    real     :: fH, fLE, fLEveg, fLEsoil, fLEpot
 
     if (isurf==10) then
       call surf_user
@@ -376,20 +395,33 @@ contains
           if(isurf == 2) then
             rs(i,j) = rsisurf2
           else
-              ! 2.1   -   Calculate the surface resistance 
-              if (iradiation > 0) then
-                f1  = 1. / min(1., (0.004 * max(0.,-swd(i,j,1)) + 0.05) / (0.81 * (0.004 * max(0.,-swd(i,j,1)) + 1.)))
-              else
-                f1  = 1.
-              end if
+            ! 2.1   -   Calculate the surface resistance 
+            ! Stomatal opening as a function of incoming short wave radiation
+            if (iradiation > 0) then
+              f1  = 1. / min(1., (0.004 * max(0.,-swd(i,j,1)) + 0.05) / (0.81 * (0.004 * max(0.,-swd(i,j,1)) + 1.)))
+            else
+              f1  = 1.
+            end if
 
-              f2  = (phifc - phiwp) / (phitot(i,j) - phiwp)
+            ! Soil moisture availability
+            f2  = (phifc - phiwp) / (phitot(i,j) - phiwp)
 
-              esat = 0.611e3 * exp(17.2694 * (thl0(i,j,1) - 273.16) / (thl0(i,j,1) - 35.86))
-              e    = qt0(i,j,1) * ps / 0.622
-              f3   = 1. / exp(-gD(i,j) * (esat - e) / 100.)
+            ! Response of stomata to vapor deficit of atmosphere
+            esat = 0.611e3 * exp(17.2694 * (thl0(i,j,1) - 273.16) / (thl0(i,j,1) - 35.86))
+            e    = qt0(i,j,1) * ps / 0.622
+            f3   = 1. / exp(-gD(i,j) * (esat - e) / 100.)
 
-              rs(i,j) = rsmin(i,j) / LAI(i,j) * f1 * f2 * f3
+            ! Response to temperature
+            exnera  = (presf(1) / pref0) ** (rd/cp)
+            Tatm    = exnera * thl0(i,j,1) + (rlv / cp) * ql0(i,j,1)
+            f4      = 1./ (1. - 0.0016 * (298.0 - Tatm) ** 2.)
+
+            rsveg(i,j)  = rsmin(i,j) / LAI(i,j) * f1 * f2 * f3 * f4
+
+            ! 2.2   - Calculate soil resistance based on ECMWF method
+
+            f2  = (phifc - phiwp) / (phiw(i,j,1) - phiwp)
+            rssoil(i,j) = rssoilmin(i,j) * f2
           end if
 
           ! 3     -   Calculate the drag coefficient and aerodynamic resistance
@@ -455,10 +487,33 @@ contains
           desatdT = esat * (17.2694 / (tsurfm - 35.86) - 17.2694 * (tsurfm - 273.16) / (tsurfm - 35.86)**2.)
           dqsatdT = 0.622 * desatdT / ps
 
-          Acoef   = Qnet(i,j) + rhof(1) * cp / ra(i,j) * thl0(i,j,1) + rhof(1) * rlv / (ra(i,j) + rs(i,j)) * (dqsatdT * tsurfm - qsat + qt0(i,j,1)) + lambdaskin(i,j) * tsoil(i,j,1)
-          Bcoef   = rhof(1) * cp / ra(i,j) + rhof(1) * rlv / (ra(i,j) + rs(i,j)) * dqsatdT + lambdaskin(i,j)
+          ! First, remove LWup from Qnet calculation
+          Qnet(i,j) = Qnet(i,j) + boltz * tsurfm ** 4.
 
-          rk3coef = dt / (4. - dble(rk3step))
+          ! Calculate coefficients for surface fluxes
+          fH      = rhof(1) * cp / ra(i,j)
+
+          ! Allow for dew fall
+          if(qsat - qt0(i,j,1) < 0.) then
+            rsveg(i,j)  = 0.
+            rssoil(i,j) = 0.
+          end if
+
+          fLEveg  = (1. - cliq(i,j)) * cveg(i,j) * rhof(1) * rlv / (ra(i,j) + rsveg(i,j))
+          fLEsoil = (1. - cveg(i,j))             * rhof(1) * rlv / (ra(i,j) + rssoil(i,j))
+          fLEpot  = cliq(i,j) * cveg(i,j)        * rhof(1) * rlv /  ra(i,j)
+          
+          fLE     = fLEveg + fLEsoil + fLEpot
+
+          exnera  = (presf(1) / pref0) ** (rd/cp)
+          Tatm    = exnera * thl0(i,j,1) + (rlv / cp) * ql0(i,j,1)
+          
+          rk3coef = rdt / (4. - dble(rk3step))
+          
+          !Acoef   = Qnet(i,j) + fH * Tatm + fLE * (dqsatdT * tsurfm - qsat + qt0(i,j,1)) + lambdaskin(i,j) * tsoil(i,j,1)
+          Acoef   = Qnet(i,j) - boltz * tsurfm ** 4. + 4. * boltz * tsurfm ** 4. / rk3coef + fH * Tatm + fLE * (dqsatdT * tsurfm - qsat + qt0(i,j,1)) + lambdaskin(i,j) * tsoil(i,j,1)
+          !Bcoef   = fH + fLE * dqsatdT + lambdaskin(i,j)
+          Bcoef   = 4. * boltz * tsurfm ** 3. / rk3coef + fH + fLE * dqsatdT + lambdaskin(i,j)
 
           if (Cskin(i,j) == 0.) then
             tskin(i,j) = Acoef * Bcoef ** (-1.) / exner
@@ -466,17 +521,26 @@ contains
             tskin(i,j) = (1. + rk3coef / Cskin(i,j) * Bcoef) ** (-1.) * (tsurfm + rk3coef / Cskin(i,j) * Acoef) / exner
           end if
 
-          G0(i,j)       = lambdaskin(i,j) * ( tskin(i,j) - tsoil(i,j,1) )
-          LE(i,j)       = - rhof(1) * rlv / (ra(i,j) + rs(i,j)) * ( qt0(i,j,1) - (dqsatdT * (tskin(i,j) * exner - tsurfm) + qsat))
-          H(i,j)        = - rhof(1) * cp  / ra(i,j) * ( thl0(i,j,1) + (rlv / cp) / ((ps / pref0)**(rd/cp)) * ql0(i,j,1) - tskin(i,j) * exner ) 
+          Qnet(i,j)     = Qnet(i,j) - (boltz * tsurfm ** 4. + 4. * boltz * tsurfm ** 3. * (tskin(i,j) * exner - tsurfm) / rk3coef)
+          !Qnet(i,j)     = Qnet(i,j) - boltz * (tskin(i,j) * exner) ** 4.
+          G0(i,j)       = lambdaskin(i,j) * ( tskin(i,j) * exner - tsoil(i,j,1) )
+          LE(i,j)       = - fLE * ( qt0(i,j,1) - (dqsatdT * (tskin(i,j) * exner - tsurfm) + qsat))
+          if(LE(i,j) == 0.) then
+            rs(i,j)     = 1.e8
+          else
+            rs(i,j)     = - rhof(1) * rlv * (qt0(i,j,1) - (dqsatdT * (tskin(i,j) * exner - tsurfm) + qsat)) / LE(i,j) - ra(i,j)
+          end if
+
+          H(i,j)        = - fH  * ( Tatm - tskin(i,j) * exner ) 
           tendskin(i,j) = Cskin(i,j) * (tskin(i,j) - tskinm(i,j)) * exner / rk3coef
 
+
           ! 1.4   -   Solve the diffusion equation for the heat transport
-          tsoil(i,j,1) = tsoil(i,j,1) + dt / pCs(i,j,1) * ( lambdah(i,j,ksoilmax) * (tsoil(i,j,2) - tsoil(i,j,1)) / dzsoilh(1) + G0(i,j) ) / dzsoil(1)
+          tsoil(i,j,1) = tsoil(i,j,1) + rdt / pCs(i,j,1) * ( lambdah(i,j,ksoilmax) * (tsoil(i,j,2) - tsoil(i,j,1)) / dzsoilh(1) + G0(i,j) ) / dzsoil(1)
           do k = 2, ksoilmax-1
-            tsoil(i,j,k) = tsoil(i,j,k) + dt / pCs(i,j,k) * ( lambdah(i,j,k) * (tsoil(i,j,k+1) - tsoil(i,j,k)) / dzsoilh(k) - lambdah(i,j,k-1) * (tsoil(i,j,k) - tsoil(i,j,k-1)) / dzsoilh(k-1) ) / dzsoil(k)
+            tsoil(i,j,k) = tsoil(i,j,k) + rdt / pCs(i,j,k) * ( lambdah(i,j,k) * (tsoil(i,j,k+1) - tsoil(i,j,k)) / dzsoilh(k) - lambdah(i,j,k-1) * (tsoil(i,j,k) - tsoil(i,j,k-1)) / dzsoilh(k-1) ) / dzsoil(k)
           end do
-          tsoil(i,j,ksoilmax) = tsoil(i,j,ksoilmax) + dt / pCs(i,j,ksoilmax) * ( lambda(i,j,ksoilmax) * (tsoildeep(i,j) - tsoil(i,j,ksoilmax)) / dzsoil(ksoilmax) - lambdah(i,j,ksoilmax-1) * (tsoil(i,j,ksoilmax) - tsoil(i,j,ksoilmax-1)) / dzsoil(ksoilmax-1) ) / dzsoil(ksoilmax)
+          tsoil(i,j,ksoilmax) = tsoil(i,j,ksoilmax) + rdt / pCs(i,j,ksoilmax) * ( lambda(i,j,ksoilmax) * (tsoildeep(i,j) - tsoil(i,j,ksoilmax)) / dzsoil(ksoilmax) - lambdah(i,j,ksoilmax-1) * (tsoil(i,j,ksoilmax) - tsoil(i,j,ksoilmax-1)) / dzsoil(ksoilmax-1) ) / dzsoil(ksoilmax)
 
           thlsl = thlsl + tskin(i,j)
         end do
@@ -511,11 +575,12 @@ contains
           thlflux(i,j) = - ( thl0(i,j,1) - tskin(i,j) ) / ra(i,j) 
 
           !CvH allow for dewfall at night, bypass stomatal resistance
-          if(qt0(i,j,1) - qskin(i,j) > 0.) then
-            qtflux(i,j) = - (qt0(i,j,1)  - qskin(i,j)) / ra(i,j) 
-          else
-            qtflux(i,j) = - (qt0(i,j,1)  - qskin(i,j)) / (ra(i,j) + rs(i,j))
-          end if
+          !if(qt0(i,j,1) - qskin(i,j) > 0.) then
+          !  qtflux(i,j) = - (qt0(i,j,1)  - qskin(i,j)) / ra(i,j) 
+          !else
+          !  qtflux(i,j) = - (qt0(i,j,1)  - qskin(i,j)) / (ra(i,j) + rs(i,j))
+          !end if
+          qtflux(i,j) = - (qt0(i,j,1)  - qskin(i,j)) / (ra(i,j) + rs(i,j))
           
           do n=1,nsv
             svflux(i,j,n) = wsvsurf(n) 
@@ -665,11 +730,13 @@ contains
 
 !> Calculate the surface humidity assuming saturation.
   subroutine qtsurf
-    use modglobal, only : tmelt,bt,at,rd,rv,cp,es0,pref0,rslabs,i1,j1
-    use modmpi,    only : my_real,mpierr,comm3d,mpi_sum,myid
+    use modglobal,   only : tmelt,bt,at,rd,rv,cp,es0,pref0,rslabs,i1,j1
+    use modfields,   only : qt0
+    use modsurfdata, only : rs, ra
+    use modmpi,      only : my_real,mpierr,comm3d,mpi_sum,myid
 
     implicit none
-    real       :: exner, tsurf, es, qtsl
+    real       :: exner, tsurf, qsatsurf, surfwet, es, qtsl
     integer    :: i,j
 
     if(isurf <= 2) then
@@ -678,9 +745,11 @@ contains
         do i = 2, i1
           exner      = (ps / pref0)**(rd/cp)
           tsurf      = tskin(i,j) * exner
-          es         = es0 * exp (at*(tsurf-tmelt) / (tsurf-bt))
-          qskin(i,j) = rd / rv * es / (ps-(1-rd/rv)*es)
-
+          es         = es0 * exp(at*(tsurf-tmelt) / (tsurf-bt))
+          !qskin(i,j) = rd / rv * es / (ps-(1-rd/rv)*es)
+          qsatsurf   = rd / rv * es / (ps-(1-rd/rv)*es)
+          surfwet    = ra(i,j) / (ra(i,j) + rs(i,j))
+          qskin(i,j) = surfwet * qsatsurf + (1. - surfwet) * qt0(i,j,1)
           qtsl       = qtsl + qskin(i,j)
         end do
       end do
@@ -710,9 +779,9 @@ contains
     use modmpi,    only : my_real,mpierr,comm3d,mpi_sum,myid,excj
     implicit none
 
-    integer             :: i,j,n,iter
+    integer             :: i,j,iter
     real                :: thv, L, horv2, horv2l, oblavl
-    real                :: Rib, Lstart, Lend, fx, fxdif
+    real                :: Rib, Lstart, Lend, fx, fxdif, Lold
 
     if(lmostlocal) then
 
@@ -726,7 +795,7 @@ contains
 
           Rib   = grav / thvs * zf(1) * (thv - thvs) / horv2
 
-          iter = 10
+          iter = 0
           L = obl(i,j)
 
           if(Rib * L < 0. .or. abs(L) == 1e5) then
@@ -734,7 +803,9 @@ contains
             if(Rib < 0) L = -0.01
           end if
 
-          do n = 0, iter
+          do while (.true.)
+            iter    = iter + 1
+            Lold    = L
             fx      = Rib - zf(1) / L * (log(zf(1) / z0h(i,j)) - psih(zf(1) / L) + psih(z0h(i,j) / L)) / (log(zf(1) / z0m(i,j)) - psim(zf(1) / L) + psim(z0m(i,j) / L)) ** 2.
             Lstart  = L - 0.001*L
             Lend    = L + 0.001*L
@@ -744,6 +815,7 @@ contains
               if(Rib > 0) L = 0.01
               if(Rib < 0) L = -0.01
             end if
+            if(abs(L - Lold) < 0.0001) exit
           end do
 
           obl(i,j) = L
@@ -773,7 +845,7 @@ contains
 
       Rib   = grav / thvs * zf(1) * (thv - thvs) / horv2
 
-      iter = 10
+      iter = 0
       L = oblav
 
       if(Rib * L < 0. .or. abs(L) == 1e5) then
@@ -781,7 +853,9 @@ contains
         if(Rib < 0) L = -0.01
       end if
 
-      do i = 0, iter
+      do while (.true.)
+        iter    = iter + 1
+        Lold    = L
         fx      = Rib - zf(1) / L * (log(zf(1) / z0hav) - psih(zf(1) / L) + psih(z0hav / L)) / (log(zf(1) / z0mav) - psim(zf(1) / L) + psim(z0mav / L)) ** 2.
         Lstart  = L - 0.001*L
         Lend    = L + 0.001*L
@@ -791,10 +865,12 @@ contains
           if(Rib > 0) L = 0.01
           if(Rib < 0) L = -0.01
         end if
+        if(abs(L - Lold) < 0.0001) exit
       end do
 
       obl   = L
       oblav = L
+
 
     end if
 

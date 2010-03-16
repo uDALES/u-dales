@@ -6,7 +6,7 @@
 !! Dutch Atmospheric Large Eddy Simulation
 !! \section DALES Dutch Atmospheric Large Eddy Simulation
 !!
-!! @version 3.2beta2
+!! @version 3.2 RC 1
 !!
 !! @author
 !! Stephan de Roode
@@ -31,8 +31,9 @@
 !! physics
 !!
 !! \todo
-!! - Timestep limitations for micro and radiation
 !! - Test everywhere, especially in radiation and LSM
+!! - Check restart files
+!! - Check whether all variables are present in the netCDF output
 !! - Documentation: Build one coherent story of the paper, Huugs/Johans description, CMake and Git HOWTOS
 !!
 !! \section License License
@@ -53,13 +54,13 @@
 !!  Copyright 1993-2009 Delft University of Technology, Wageningen University,
 !! Utrecht University, KNMI
 !!
-program DALES      !Version 3.2 Beta 1
+program DALES      !Version 3.2 RC 1
 
 !!----------------------------------------------------------------
 !!     0.0    USE STATEMENTS FOR CORE MODULES
 !!----------------------------------------------------------------
   use modmpi,            only : myid, initmpi
-  use modglobal,         only : rk3step,timee,btime,runtime
+  use modglobal,         only : rk3step,timee,btime,runtime,timeleft
   use modfields,         only : thl0
   use modstartup,        only : startup, writerestartfiles,exitmodules
   use modtimedep,        only : timedep
@@ -91,6 +92,7 @@ program DALES      !Version 3.2 Beta 1
 
   use modbulkmicrostat,only : initbulkmicrostat, bulkmicrostat,exitbulkmicrostat
   use modbudget,       only : initbudget, budgetstat, exitbudget
+  use modstress,       only : initstressbudget, stressbudgetstat, exitstressbudget
 
   use modtilt,         only : inittilt, tiltedgravity, tiltedboundary, exittilt
   use modparticles,    only : initparticles, particles, exitparticles
@@ -128,13 +130,14 @@ program DALES      !Version 3.2 Beta 1
   ! call initnetcdfmovie
   call initbulkmicrostat
   call initbudget
+  call initstressbudget
   call initchem
 
 !------------------------------------------------------
 !   3.0   MAIN TIME LOOP
 !------------------------------------------------------
   write(*,*)'START myid ', myid
-  do while ((timee-btime)<runtime .or. rk3step < 3)
+  do while (timeleft>0 .or. rk3step < 3)
     call tstep_update
     call timedep
     call stattend(tend_start)
@@ -215,6 +218,7 @@ program DALES      !Version 3.2 Beta 1
 
     call bulkmicrostat
     call budgetstat
+    call stressbudgetstat
 
     ! call netcdfmovie
 
@@ -237,6 +241,7 @@ program DALES      !Version 3.2 Beta 1
   call exitstattend
   call exitbulkmicrostat
   call exitbudget
+  call exitstressbudget
   call exitcrosssection
   call exitfielddump
   ! call exitnetcdfmovie

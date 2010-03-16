@@ -215,11 +215,6 @@ contains
 
   integer k,n
   real subsplus, subsmin, subs
-  real,allocatable,dimension(:) :: subsu, subsv
-  allocate(subsu(k1))
-  allocate(subsv(k1))
-  subsu=0.0
-  subsv=0.0
 !   if (ltimedep) then
 ! !     call ls
 !   end if
@@ -237,11 +232,11 @@ contains
   subs        = 0.5*whls(k+1)  *(qt0av(k+1)-qt0av(k)  )/dzh(k+1)
   qtp(2:i1,2:j1,1)  = qtp(2:i1,2:j1,1)-u0av(k)*dqtdxls(k)-v0av(k)*dqtdyls(k)-subs+dqtdtls(k)
 
-  if(lmomsubs) subsu(k)    = 0.5*whls(k+1)  *(u0av(k+1)-u0av(k)  )/dzh(k+1)
-  up(2:i1,2:j1,1)   = up(2:i1,2:j1,1) -u0av(k)*dudxls(k)-v0av(k)*dudyls(k)-subsu(k)
+  if(lmomsubs) up(2:i1,2:j1,k)   = 0.5*up(2:i1,2:j1,k)- whls(k+1) *(u0av(k+1) - u0av(k)  )/dzh(k+1)
+  up(2:i1,2:j1,1)   = up(2:i1,2:j1,1) -u0av(k)*dudxls(k)-v0av(k)*dudyls(k)
 
-  if(lmomsubs) subsv(k)    = 0.5*whls(k+1)  *(v0av(k+1)-v0av(k)  )/dzh(k+1)
-  vp(2:i1,2:j1,1)   = vp(2:i1,2:j1,1) -u0av(k)*dvdxls(k)-v0av(k)*dvdyls(k)-subsv(k)
+  if(lmomsubs) vp(2:i1,2:j1,k)   = 0.5*vp(2:i1,2:j1,k)- whls(k+1) *(v0av(k+1) - v0av(k)  )/dzh(k+1)
+  vp(2:i1,2:j1,1)   = vp(2:i1,2:j1,1) -u0av(k)*dvdxls(k)-v0av(k)*dvdyls(k)
 
   do n=1,nsv
     subs =  0.5*whls(k+1)  *(sv0av(k+1,n)-sv0av(k,n)  )/dzh(k+1)
@@ -257,17 +252,13 @@ contains
     subs    = whls(k+1)  *(qt0av(k+1) - qt0av(k)  ) /dzh(k+1)
     qtp(2:i1,2:j1,k) = qtp(2:i1,2:j1,k) -u0av(k)*dqtdxls(k)-v0av(k)*dqtdyls(k)-subs+dqtdtls(k)
 
-    subsplus    = whls(k+1) *(u0av(k+1) - u0av(k)  )/dzh(k+1)
-    subsmin     = whls(k)   *(u0av(k)   - u0av(k-1))/dzh(k)
-    if(lmomsubs) subsu(k)    = (dzh(k)*subsplus + dzh(k+1)*subsmin) &
-                     /(dzh(k)+dzh(k+1))
-    up(2:i1,2:j1,k)   = up(2:i1,2:j1,k)-u0av(k)*dudxls(k)-v0av(k)*dudyls(k)-subsu(k)
+    if(lmomsubs) up(2:i1,2:j1,k)   = up(2:i1,2:j1,k)- whls(k+1) *(u0av(k+1) - u0av(k)  )/dzh(k+1)
+    up(2:i1,2:j1,k)   = up(2:i1,2:j1,k)-u0av(k)*dudxls(k)-v0av(k)*dudyls(k)
 
     subsplus    = whls(k+1) *(v0av(k+1) - v0av(k)  )/dzh(k+1)
     subsmin     = whls(k)   *(v0av(k)   - v0av(k-1))/dzh(k)
-    if(lmomsubs) subsv(k)    = (dzh(k)*subsplus + dzh(k+1)*subsmin) &
-                     /(dzh(k)+dzh(k+1))
-    vp(2:i1,2:j1,k)   = vp(2:i1,2:j1,k)-u0av(k)*dvdxls(k)-v0av(k)*dvdyls(k)-subsv(k)
+    if(lmomsubs) vp(2:i1,2:j1,k)   = vp(2:i1,2:j1,k)- whls(k+1) *(v0av(k+1) - v0av(k)  )/dzh(k+1)
+    vp(2:i1,2:j1,k)   = vp(2:i1,2:j1,k)-u0av(k)*dvdxls(k)-v0av(k)*dvdyls(k)
     do n=1,nsv
       subs  = whls(k+1)  *(sv0av(k+1,n) - sv0av(k,n)  ) /dzh(k+1)
       svp(2:i1,2:j1,k,n) = svp(2:i1,2:j1,k,n)-subs
@@ -275,7 +266,6 @@ contains
 
   enddo
 
-  deallocate(subsu,subsv)
 
   return
   end subroutine lstend

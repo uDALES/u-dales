@@ -47,10 +47,11 @@ save
       integer ::  kh=1
 
       character(50) :: fname_options = 'namoptions'
-
+      integer, parameter :: longint=8
       logical :: lwarmstart = .false.!<   flag for "cold" or "warm" start
       real    :: trestart  = 3600. !<     * each trestart sec. a restart file is written to disk
-      real    :: tnextrestart  = 3600. !<     * each trestart sec. a restart file is written to disk
+      integer(kind=longint) :: itrestart !<     * each trestart sec. a restart file is written to disk
+      integer(kind=longint)    :: tnextrestart    !<     * each trestart sec. a restart file is written to disk
       character(50) :: startfile    !<    * name of the restart file
 
       logical :: llsadv   = .false. !<  switch for large scale forcings
@@ -62,33 +63,36 @@ save
       integer, parameter :: ifoutput   = 2
       integer, parameter :: ifnamopt   = 3
 
-      real,parameter :: pi      = 3.141592653589793116
-      real,parameter :: grav    = 9.81             !<    *gravity acceleration.
-      real,parameter :: rd      = 287.04           !<    *gas constant for dry air.
-      real,parameter :: rv      = 461.5            !<    *gas constant for water vapor.
-      real,parameter :: cp      = 1004.            !<    *specific heat at constant pressure (dry air).
-      real,parameter :: rlv     = 2.5e6            !<    *latent heat for vaporisation.
-      real,parameter :: ep      = rd/rv            !<    0.622
-      real,parameter :: ep2     = rv/rd - 1.       !<    0.61
-      !< real,parameter :: cv      = cp-rd            !<    716.96
-      real,parameter :: rcp     = rd/cp            !<    0.286
-      real,parameter :: cpr     = cp/rd            !<    3.50
-      real,parameter :: rlvocp  = rlv/cp           !<    2.49
-      real, parameter :: mair   = 28.967          !< Molar mass of air
+      real,parameter :: pi       = 3.141592653589793116
+      real,parameter :: grav     = 9.81             !<    *gravity acceleration.
+      real,parameter :: rd       = 287.04           !<    *gas constant for dry air.
+      real,parameter :: rv       = 461.5            !<    *gas constant for water vapor.
+      real,parameter :: cp       = 1004.            !<    *specific heat at constant pressure (dry air).
+      real,parameter :: rlv      = 2.5e6            !<    *latent heat for vaporisation.
+      real,parameter :: ep       = rd/rv            !<    0.622
+      real,parameter :: ep2      = rv/rd - 1.       !<    0.61
+      !< real,parameter :: cv       = cp-rd            !<    716.96
+      real,parameter :: rcp      = rd/cp            !<    0.286
+      real,parameter :: cpr      = cp/rd            !<    3.50
+      real,parameter :: rlvocp   = rlv/cp           !<    2.49
+      real, parameter :: mair    = 28.967          !< Molar mass of air
 
-      real,parameter :: rhow    = 0.998e3          !<    * Density of water
-      real,parameter :: pref0   = 1.e5             !<    *standard pressure used in exner function.
-      real,parameter :: tmelt   = 273.16           !<    *temperature of melting of ice.
-      real,parameter :: es0     = 610.78           !<    * constants used for computation
-      real,parameter :: at      = 17.27            !<    * of saturation mixing ratio
-      real,parameter :: bt      = 35.86            !<    * using Tetens Formula.
-      real,parameter :: ekmin   = 1.e-6            !<    *minimum value for k-coefficient.
-      real,parameter :: e12min  = 5.e-5            !<    *minimum value for TKE.
-      real,parameter :: fkar    = 0.4              !<    *Von Karman constant
-      real,parameter :: eps1    = 1.e-10           !<    *very small number*
-      real,parameter :: epscloud= 1.e-5            !<    *limit for cloud calculation 0.01 g/kg
+      real,parameter :: rhow     = 0.998e3          !<    * Density of water
+      real,parameter :: pref0    = 1.e5             !<    *standard pressure used in exner function.
+      real,parameter :: tmelt    = 273.16           !<    *temperature of melting of ice.
+      real,parameter :: es0      = 610.78           !<    * constants used for computation
+      real,parameter :: at       = 17.27            !<    * of saturation mixing ratio
+      real,parameter :: bt       = 35.86            !<    * using Tetens Formula.
+      real,parameter :: ekmin    = 1.e-6            !<    *minimum value for k-coefficient.
+      real,parameter :: e12min   = 5.e-5            !<    *minimum value for TKE.
+      real,parameter :: fkar     = 0.4              !<    *Von Karman constant
+      real,parameter :: eps1     = 1.e-10           !<    *very small number*
+      real,parameter :: epscloud = 1.e-5            !<    *limit for cloud calculation 0.01 g/kg
+      real,parameter :: boltz    = 5.67e-8          !<    *Stefan-Boltzmann constant
 
       logical :: lcoriol  = .true.  !<  switch for coriolis force
+      integer :: igrw_damp = 1 !< switch to enable gravity wave damping 
+      real    :: geodamptime = 7200. !< time scale for nudging to geowind in sponge layer, prevents oscillations
       real    :: om22                       !<    *2.*omega_earth*cos(lat)
       real    :: om23                       !<    *2.*omega_earth*sin(lat)
       real    :: om22_gs                       !<    *2.*omega_earth*cos(lat)
@@ -111,32 +115,37 @@ save
 
 
       ! Global variables (modvar.f90)
-
       real :: xday      = 1.    !<     * day number
       real :: xtime     = 0.    !<     * GMT time
       real :: cu        = 0.    !<     * translation velocity in x-direction
       real :: cv        = 0.    !<     * translation velocity in y-direction
       real :: runtime   = 300.  !<     * simulation time in secs
       real :: dtmax     = 20.    !<     * maximum time integration interval
+      integer(kind=longint) :: idtmax        !<     * maximum time integration interval
       real :: dtav_glob   = 60.
       real :: timeav_glob = 3600.
+      real :: tres     = 0.001
       real :: thres     = 5.e-3 !<     * threshold value for inversion height calculations
       real :: dqt               !<     * applied gradient of qt at top of model
       real :: dtheta            !<     * applied gradient of theta at top of model
       real,allocatable :: dsv(:)          !<     * applied gradient of sv(n) at top of model
     !<     real :: dsv(nsv)          !<     * applied gradient of sv(n) at top of model
 
-      real :: dt                !<     * time integration interval
-      real :: timee             !<     * elapsed time since the "cold" start
-      real :: btime             !<     * time of (re)start
+      integer(kind=longint) :: dt                !<     * time integration interval
+      real :: rdt                !<     * time integration interval
+      integer(kind=longint) :: timee             !<     * elapsed time since the "cold" start
+      real :: rtimee             !<     * elapsed time since the "cold" start
+      integer(kind=longint) :: btime             !<     * time of (re)start
       integer :: ntimee         !<     * number of timesteps since the cold start
       integer :: ntrun          !<     * number of timesteps since the start of the run
-
+      integer(kind=longint) :: timeleft
+      
       logical :: ladaptive   = .false.    !<    * adaptive timestepping on or off
 
       real    :: courant = -1
       real    :: peclet  = 0.15
-      real    :: dt_lim    = 3600.
+      integer(kind=longint) :: dt_lim
+
 
       integer :: rk3step = 0
 
@@ -372,7 +381,8 @@ contains
         write(6,'(i4,5f8.2)') k,dzf(k),zf(k),zh(k),dzh(k),delta(k)
       end do
     end if
-    tnextrestart = trestart
+    tnextrestart = trestart/tres
+    timeleft     = btime+runtime
 
   end subroutine initglobal
 !> Clean up when leaving the run

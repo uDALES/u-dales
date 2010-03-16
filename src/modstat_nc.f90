@@ -32,6 +32,7 @@ module modstat_nc
     implicit none
     logical :: lnetcdf
     integer, save :: timeID=0, ztID=0, zmID=0, xtID=0, xmID=0, ytID=0, ymID=0
+    real(kind=4) :: nc_fillvalue = -999.
 !> The only interface necessary to write data to netcdf, regardless of the dimensions.
     interface writestat_nc
       module procedure writestat_time_nc
@@ -88,7 +89,6 @@ contains
     iret = nf90_put_att(ncid,NF90_GLOBAL,'history','Created on '//trim(date)//' at '//trim(time))
     iret = nf90_put_att(ncid, NF90_GLOBAL, 'Source',trim(version))
     iret = nf90_put_att(ncid, NF90_GLOBAL, 'Author',trim(author))
-    iret = nf90_put_att(ncid, NF90_GLOBAL, '_FillValue',-999.)
     iret = nf90_def_dim(ncID, 'time', NF90_UNLIMITED, timeID)
     if (present(n1)) then
       iret = nf90_def_dim(ncID, 'xt', n1, xtID)
@@ -201,6 +201,7 @@ contains
       end if
       iret=nf90_put_att(ncID,VarID,'longname',sx(n,2))
       iret=nf90_put_att(ncID,VarID,'units',sx(n,3))
+      iret = nf90_put_att(ncid, VarID, '_FillValue',nc_fillvalue)
 
     end do
     iret= nf90_enddef(ncID)
@@ -223,7 +224,8 @@ contains
    if (status /= nf90_noerr) call nchandle_error(status)
  end subroutine exitstat_nc
   subroutine writestat_dims_nc(ncid)
-    use modglobal, only : dx,dy,zf,zh
+    use modglobal, only : dx,dy,zf,zh,jmax
+    use modmpi, only : myid
     implicit none
     integer, intent(in) :: ncid
     integer             :: i=0,iret,length,varid
@@ -236,10 +238,10 @@ contains
 
     iret = nf90_inq_varid(ncid, 'yt', VarID)
     iret=nf90_inquire_dimension(ncid, ytID, len=length)
-    if (iret==0) iret = nf90_put_var(ncid, varID, (/(dy*(0.5+i),i=0,length-1)/),(/1/))
+    if (iret==0) iret = nf90_put_var(ncid, varID, (/(dy*(0.5+i)+myid*jmax*dy,i=0,length-1)/),(/1/))
     iret = nf90_inq_varid(ncid, 'ym', VarID)
     iret=nf90_inquire_dimension(ncid, ymID, len=length)
-    if (iret==0) iret = nf90_put_var(ncid, varID, (/(dy*i,i=0,length-1)/),(/1/))
+    if (iret==0) iret = nf90_put_var(ncid, varID, (/(dy*i+myid*jmax*dy,i=0,length-1)/),(/1/))
 
     iret = nf90_inq_varid(ncid, 'zt', VarID)
     iret=nf90_inquire_dimension(ncid,ztID, len=length)

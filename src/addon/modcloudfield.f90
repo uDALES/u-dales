@@ -6,6 +6,8 @@
 !>
 !!  \author Harm Jonker, TU Delft
 !  This file is part of DALES.
+!  \todo
+!  Write into netcdf files
 !
 ! DALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -25,13 +27,15 @@
 
 module modcloudfield
 
+  use modglobal, only : longint
 
 implicit none
 private
 PUBLIC :: initcloudfield, cloudfield
 save
 
-  real    :: dtav,tnext
+  real    :: dtav
+  integer(kind=longint) :: idtav,tnext
   logical :: lcloudfield= .false. !< switch for writing cloud field (on/off)
   logical :: laddinfo   = .false. !< switch to write ql and w values (on/off)
 
@@ -40,7 +44,7 @@ contains
   subroutine initcloudfield
 
     use modmpi,   only :myid,my_real,mpierr,comm3d,mpi_logical
-    use modglobal,only :ifnamopt,fname_options,dtmax,dtav_glob,dt_lim,btime
+    use modglobal,only :ifnamopt,fname_options,dtmax,dtav_glob,dt_lim,btime,ladaptive,tres
     implicit none
     integer :: ierr
     namelist/NAMCLOUDFIELD/ &
@@ -51,6 +55,11 @@ contains
     if(myid==0)then
       open(ifnamopt,file=fname_options,status='old',iostat=ierr)
       read (ifnamopt,NAMCLOUDFIELD,iostat=ierr)
+      if (ierr > 0) then
+        print *, 'Problem in namoptions NAMCLOUDFIELD'
+        print *, 'iostat error: ', ierr
+        stop 'ERROR: Problem in namoptions NAMCLOUDFIELD'
+      endif
       write(6 ,NAMCLOUDFIELD)
       close(ifnamopt)
     end if
@@ -59,11 +68,12 @@ contains
     call MPI_BCAST(lcloudfield  ,1,MPI_LOGICAL,0,comm3d,mpierr)
     call MPI_BCAST(laddinfo     ,1,MPI_LOGICAL,0,comm3d,mpierr)
 
-    if(.not.(lcloudfield)) return
-    tnext   = dtav-1e-3+btime
-    dt_lim = min(dt_lim,tnext)
+    idtav = dtav/tres
+    tnext      = idtav   +btime
 
-    if (abs(dtav/dtmax-nint(dtav/dtmax))>1e-4) then
+    if(.not.(lcloudfield)) return
+
+    if (.not. ladaptive .and. abs(dtav/dtmax-nint(dtav/dtmax))>1e-4) then
       stop 'dtav should be a integer multiple of dtmax'
     end if
 
@@ -71,7 +81,7 @@ contains
   end subroutine initcloudfield
 !>Run cloudfield. Dump the coordinates to file
    subroutine cloudfield
-    use modglobal, only : imax,i1,jmax,j1,kmax, rk3step,dt_lim,timee, cexpnr,ifoutput
+    use modglobal, only : imax,i1,jmax,j1,kmax, rk3step,dt_lim,timee,rtimee, cexpnr,ifoutput
     use modfields, only : w0,ql0
     use modmpi,    only : cmyid
     implicit none
@@ -87,7 +97,7 @@ contains
       dt_lim = min(dt_lim,tnext-timee)
       return
     end if
-    tnext = tnext+dtav
+    tnext = tnext+idtav
     dt_lim = minval((/dt_lim,tnext-timee/))
 
     ncl  = imax*jmax*kmax
@@ -130,13 +140,13 @@ contains
     open(ifoutput,file='clouds'//cmyid//'.'//cexpnr,position='append')
 
     if(laddinfo) then
-      write(ifoutput,'(2i10)') nint(timee),cldpoints
+      write(ifoutput,'(2i10)') nint(rtimee),cldpoints
       if( cldpoints > 0 ) then
       write(ifoutput,'(i3,2i4,2i5)') &
           (ipos(n),jpos(n),kpos(n),qlcl(n),wcl(n),n=1,cldpoints)
       end if
     else
-      write(ifoutput,'(2i10)') nint(timee),cldpoints
+      write(ifoutput,'(2i10)') nint(rtimee),cldpoints
       if( cldpoints > 0 ) then
       write(ifoutput,'(i3,2i4)') &
           (ipos(n),jpos(n),kpos(n),n=1,cldpoints)
@@ -144,6 +154,8 @@ contains
     end if
 
     close(ifoutput)
+
+    deallocate(ipos,jpos,kpos,wcl,qlcl)
 
   end subroutine cloudfield
 
