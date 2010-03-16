@@ -91,6 +91,8 @@ save
       real,parameter :: boltz    = 5.67e-8          !<    *Stefan-Boltzmann constant
 
       logical :: lcoriol  = .true.  !<  switch for coriolis force
+      integer :: igrw_damp = 1 !< switch to enable gravity wave damping 
+      real    :: geodamptime = 7200. !< time scale for nudging to geowind in sponge layer, prevents oscillations
       real    :: om22                       !<    *2.*omega_earth*cos(lat)
       real    :: om23                       !<    *2.*omega_earth*sin(lat)
       real    :: om22_gs                       !<    *2.*omega_earth*cos(lat)

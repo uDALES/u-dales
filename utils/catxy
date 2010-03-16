@@ -1,0 +1,21 @@
+#!/bin/bash
+for ih in 1 2 3 4 5; do
+rm crossxy.${ih}.nc
+for idy in 000 001 002 003 004 005 006 007 008 009 010 011 012 013 014 015 016 017 018 019 020 021 022 023 024 025 026 027 028 029 030 031; do # Bourne Shell
+ncks -O -v uxy crossxy.${ih}.${idy}.???.nc tempu.${ih}.${idy}.nc
+ncks -O -v vxy crossxy.${ih}.${idy}.???.nc tempv.${ih}.${idy}.nc
+ncks -O -v wxy,thlxy,thvxy,qtxy,qlxy crossxy.${ih}.${idy}.???.nc temp.${ih}.${idy}.nc
+ncpdq -O -a yt,time,xm tempu.${ih}.${idy}.nc tempu.${ih}.${idy}.nc # Make y record dimension
+ncpdq -O -a ym,time,xt tempv.${ih}.${idy}.nc tempv.${ih}.${idy}.nc # Make y record dimension
+ncpdq -O -a yt,time,xt temp.${ih}.${idy}.nc temp.${ih}.${idy}.nc # Make y record dimension
+done
+ncrcat -O tempu.${ih}.???.nc tempuxy.${ih}.nc       # Concatenate along y
+ncrcat -O tempv.${ih}.???.nc tempvxy.${ih}.nc       # Concatenate along y
+ncrcat -O temp.${ih}.???.nc tempxy.${ih}.nc         # Concatenate along y
+ncpdq -O -a time,yt,xm tempuxy.${ih}.nc tempuxy.${ih}.nc # Revert to time as record dimension
+ncpdq -O -a time,ym,xt tempvxy.${ih}.nc tempvxy.${ih}.nc # Revert to time as record dimension
+ncpdq -O -a time,yt,xt tempxy.${ih}.nc crossxy.${ih}.nc # Revert to time as record dimension
+ncks -A tempuxy.${ih}.nc crossxy.${ih}.nc
+ncks -A tempvxy.${ih}.nc crossxy.${ih}.nc
+done
+rm temp*.nc
