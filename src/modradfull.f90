@@ -154,6 +154,7 @@ contains
         end do
       end do
 
+      ! tempskin = tskin*exnh(1)
      !CvH end edit
 
       if (imicro==imicro_bulk) then
@@ -166,6 +167,10 @@ contains
 !Downward radiation fluxes are pointing downward in UCLALES, pointing upward in DALES
       lwd = -lwd
       swd = -swd
+
+!      swd(:,:,1) = swd(:,:,1)+0.3333333*(swd(:,:,1)-swd(:,:,2))
+!      lwu(:,:,1) = lwu(:,:,1)+0.3333333*(lwu(:,:,1)-lwu(:,:,2))
+!      swu(:,:,1) = swu(:,:,1)+0.3333333*(swu(:,:,1)-swu(:,:,2))
 
 !Add up thl tendency
       do k=1,kmax

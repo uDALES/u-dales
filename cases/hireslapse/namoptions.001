@@ -2,7 +2,7 @@
 iexpnr     =  001
 lwarmstart =  .false.
 startfile  =  'initd00h01m000.001'
-runtime    =  200000
+runtime    =  10800
 trestart   =  3600 
 ladaptive  =  .true.
 irandom    =  43
@@ -12,8 +12,8 @@ nsv        =  0
 /
 
 &DOMAIN
-imax       =  160 
-jtot       =  160
+imax       =  128 
+jtot       =  128
 kmax       =  196
 
 xsize      =  3200.
@@ -35,10 +35,14 @@ wqsurf     =  0.0001
 wsvsurf(1) =  0.
 wsvsurf(2) =  1.
 lmoist     =  .true.
-isurf      =  1
-iradiation =  1
+isurf      =  4
+iradiation =  0
 useMcICA   =  .true.
 lcoriol    =  .true.
+/
+
+&NAMNETCDFSTATS
+lnetcdf    = .true.
 /
 
 &NAMSURFACE
@@ -58,7 +62,7 @@ rootfav(2)   = 0.38
 rootfav(3)   = 0.23 
 rootfav(4)   = 0.04
 
-lsea         = .false.
+cvegav       = 0.9
 lmostlocal   = .false.
 lsmoothflux  = .false.
 rsisurf2     = 50.
@@ -71,6 +75,7 @@ albedoav     = 0.20
 Qnetav       = 450.
 
 rsminav      = 110.
+rssoilminav  = 50.
 LAIav        = 2.
 gDav         = 0.
 /

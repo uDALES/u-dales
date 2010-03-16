@@ -52,7 +52,7 @@ contains
     namelist/NAMSURFACE/ & !< Soil related variables
       isurf,tsoilav, tsoildeepav, phiwav, rootfav, &
       ! Land surface related variables
-      lmostlocal, lsmoothflux, z0mav, z0hav, rsisurf2, Cskinav, lambdaskinav, albedoav, Qnetav, cvegav, &
+      lmostlocal, lsmoothflux, lneutral, z0mav, z0hav, rsisurf2, Cskinav, lambdaskinav, albedoav, Qnetav, cvegav, &
       ! Jarvis-Steward related variables
       rsminav, rssoilminav, LAIav, gDav, &
       ! Prescribed values for isurf 2, 3, 4
@@ -84,6 +84,7 @@ contains
 
     call MPI_BCAST(lmostlocal   , 1, MPI_LOGICAL, 0, comm3d, mpierr)
     call MPI_BCAST(lsmoothflux  , 1, MPI_LOGICAL, 0, comm3d, mpierr)
+    call MPI_BCAST(lneutral     , 1, MPI_LOGICAL, 0, comm3d, mpierr)
     call MPI_BCAST(z0mav        , 1, MY_REAL, 0, comm3d, mpierr)
     call MPI_BCAST(z0hav        , 1, MY_REAL, 0, comm3d, mpierr)
     call MPI_BCAST(rsisurf2     , 1, MY_REAL, 0, comm3d, mpierr)
@@ -359,14 +360,14 @@ contains
   subroutine surface
     use modglobal,  only : rdt, i1, i2, j1, j2, cp, rlv, fkar, zf, cu, cv, nsv, rk3step, timee, rslabs, pi, pref0, rd, eps1, boltz
     use modraddata, only : iradiation, swu, swd, lwu, lwd, useMcICA
-    use modfields,  only : thl0, qt0, u0, v0, rhof, ql0, exnf, presf
+    use modfields,  only : thl0, qt0, u0, v0, rhof, ql0, exnf, presf, u0av, v0av
     use modmpi,     only : my_real, mpierr, comm3d, mpi_sum, myid, excj
     use moduser,   only : surf_user
     implicit none
 
     real     :: f1, f2, f3, f4 ! Correction functions for Jarvis-Stewart
     integer  :: i, j, k, n
-    real     :: upcu, vpcv, horv
+    real     :: upcu, vpcv, horv, horvav
     real     :: phimzf, phihzf
     real     :: rk3coef, thlsl
 
@@ -386,7 +387,12 @@ contains
     ! CvH start with computation of drag coefficients to allow for implicit solver
     if(isurf <= 2) then
 
-      call getobl
+      if(lneutral) then
+        obl(:,:) = -1.e10
+        oblav    = -1.e10
+      else
+        call getobl
+      end if
 
       call MPI_BCAST(oblav ,1,MY_REAL ,0,comm3d,mpierr)
 
@@ -422,18 +428,24 @@ contains
 
             f2  = (phifc - phiwp) / (phiw(i,j,1) - phiwp)
             rssoil(i,j) = rssoilmin(i,j) * f2
+            rssoil(i,j) = rssoilmin(i,j) * f2
           end if
 
           ! 3     -   Calculate the drag coefficient and aerodynamic resistance
           Cm(i,j) = fkar ** 2. / (log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j)) + psim(z0m(i,j) / obl(i,j))) ** 2.
           Cs(i,j) = fkar ** 2. / (log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j)) + psim(z0m(i,j) / obl(i,j))) / (log(zf(1) / z0h(i,j)) - psih(zf(1) / obl(i,j)) + psih(z0h(i,j) / obl(i,j)))
 
-          upcu  = 0.5 * (u0(i,j,1) + u0(i+1,j,1)) + cu
-          vpcv  = 0.5 * (v0(i,j,1) + v0(i,j+1,1)) + cv
-          horv  = sqrt(upcu ** 2. + vpcv ** 2.)
-          horv  = max(horv, 1.e-2)
-
-          ra(i,j) = 1. / ( Cs(i,j) * horv )
+          if(lmostlocal) then
+            upcu  = 0.5 * (u0(i,j,1) + u0(i+1,j,1)) + cu
+            vpcv  = 0.5 * (v0(i,j,1) + v0(i,j+1,1)) + cv
+            horv  = sqrt(upcu ** 2. + vpcv ** 2.)
+            horv  = max(horv, 1.e-2)
+            ra(i,j) = 1. / ( Cs(i,j) * horv )
+          else
+            !CvH test smoothz0
+            horvav  = sqrt(u0av(1) ** 2. + v0av(1) ** 2.)
+            ra(i,j) = 1. / ( Cs(i,j) * horvav )
+          end if
 
         end do
       end do
@@ -508,7 +520,30 @@ contains
           exnera  = (presf(1) / pref0) ** (rd/cp)
           Tatm    = exnera * thl0(i,j,1) + (rlv / cp) * ql0(i,j,1)
           
+          ! Calculate coefficients for surface fluxes
+          fH      = rhof(1) * cp / ra(i,j)
+
+          ! Allow for dew fall
+          if(qsat - qt0(i,j,1) < 0.) then
+            rsveg(i,j)  = 0.
+            rssoil(i,j) = 0.
+          end if
+
+          fLEveg  = (1. - cliq(i,j)) * cveg(i,j) * rhof(1) * rlv / (ra(i,j) + rsveg(i,j))
+          fLEsoil = (1. - cveg(i,j))             * rhof(1) * rlv / (ra(i,j) + rssoil(i,j))
+          fLEpot  = cliq(i,j) * cveg(i,j)        * rhof(1) * rlv /  ra(i,j)
+          
+          fLE     = fLEveg + fLEsoil + fLEpot
+
+          exnera  = (presf(1) / pref0) ** (rd/cp)
+          Tatm    = exnera * thl0(i,j,1) + (rlv / cp) * ql0(i,j,1)
+          
           rk3coef = rdt / (4. - dble(rk3step))
+          
+          !Acoef   = Qnet(i,j) + fH * Tatm + fLE * (dqsatdT * tsurfm - qsat + qt0(i,j,1)) + lambdaskin(i,j) * tsoil(i,j,1)
+          Acoef   = Qnet(i,j) - boltz * tsurfm ** 4. + 4. * boltz * tsurfm ** 4. / rk3coef + fH * Tatm + fLE * (dqsatdT * tsurfm - qsat + qt0(i,j,1)) + lambdaskin(i,j) * tsoil(i,j,1)
+          !Bcoef   = fH + fLE * dqsatdT + lambdaskin(i,j)
+          Bcoef   = 4. * boltz * tsurfm ** 3. / rk3coef + fH + fLE * dqsatdT + lambdaskin(i,j)
           
           !Acoef   = Qnet(i,j) + fH * Tatm + fLE * (dqsatdT * tsurfm - qsat + qt0(i,j,1)) + lambdaskin(i,j) * tsoil(i,j,1)
           Acoef   = Qnet(i,j) - boltz * tsurfm ** 4. + 4. * boltz * tsurfm ** 4. / rk3coef + fH * Tatm + fLE * (dqsatdT * tsurfm - qsat + qt0(i,j,1)) + lambdaskin(i,j) * tsoil(i,j,1)
@@ -534,6 +569,9 @@ contains
           H(i,j)        = - fH  * ( Tatm - tskin(i,j) * exner ) 
           tendskin(i,j) = Cskin(i,j) * (tskin(i,j) - tskinm(i,j)) * exner / rk3coef
 
+
+          !write(6,*) "SEB: ", Qnet(i,j), H(i,j), LE(i,j), G0(i,j), tendskin(i,j), H(i,j)+LE(i,j)+G0(i,j)+tendskin(i,j)
+          !write(6,*) "LEv, LEs ", -fLEveg * (qt0(i,j,1) - (dqsatdT * (tskin(i,j) * exner - tsurfm) + qsat)), -fLEsoil * ( qt0(i,j,1) - (dqsatdT * (tskin(i,j) * exner - tsurfm) + qsat))
 
           ! 1.4   -   Solve the diffusion equation for the heat transport
           tsoil(i,j,1) = tsoil(i,j,1) + rdt / pCs(i,j,1) * ( lambdah(i,j,ksoilmax) * (tsoil(i,j,2) - tsoil(i,j,1)) / dzsoilh(1) + G0(i,j) ) / dzsoil(1)
@@ -566,12 +604,17 @@ contains
     if(isurf <= 2) then
       do j = 2, j1
         do i = 2, i1
-          upcu  = 0.5 * (u0(i,j,1) + u0(i+1,j,1)) + cu
-          vpcv  = 0.5 * (v0(i,j,1) + v0(i,j+1,1)) + cv
-          horv  = sqrt(upcu ** 2. + vpcv ** 2.)
-          horv  = max(horv, 1.e-2)
-
-          ustar  (i,j) = sqrt(Cm(i,j)) * horv
+          upcu   = 0.5 * (u0(i,j,1) + u0(i+1,j,1)) + cu
+          vpcv   = 0.5 * (v0(i,j,1) + v0(i,j+1,1)) + cv
+          horv   = sqrt(upcu ** 2. + vpcv ** 2.)
+          horv   = max(horv, 1.e-2)
+          horvav = sqrt(u0av(1) ** 2. + v0av(1) ** 2.)
+          
+          if(lmostlocal) then 
+            ustar  (i,j) = sqrt(Cm(i,j)) * horv 
+          else
+            ustar  (i,j) = sqrt(Cm(i,j)) * horvav
+          end if
           thlflux(i,j) = - ( thl0(i,j,1) - tskin(i,j) ) / ra(i,j) 
 
           !CvH allow for dewfall at night, bypass stomatal resistance
@@ -580,7 +623,7 @@ contains
           !else
           !  qtflux(i,j) = - (qt0(i,j,1)  - qskin(i,j)) / (ra(i,j) + rs(i,j))
           !end if
-          qtflux(i,j) = - (qt0(i,j,1)  - qskin(i,j)) / (ra(i,j) + rs(i,j))
+          qtflux(i,j) = - (qt0(i,j,1)  - qskin(i,j)) / ra(i,j)
           
           do n=1,nsv
             svflux(i,j,n) = wsvsurf(n) 
@@ -659,19 +702,27 @@ contains
 
     else
 
-      call getobl
+      if(lneutral) then
+        obl(:,:) = -1.e10
+        oblav    = -1.e10
+      else
+        call getobl
+      end if
 
       thlsl = 0.
       do j = 2, j1
         do i = 2, i1
 
-          upcu  = 0.5 * (u0(i,j,1) + u0(i+1,j,1)) + cu
-          vpcv  = 0.5 * (v0(i,j,1) + v0(i,j+1,1)) + cv
-          horv  = sqrt(upcu ** 2. + vpcv ** 2.)
-          horv  = max(horv, 1.e-2)
+          upcu   = 0.5 * (u0(i,j,1) + u0(i+1,j,1)) + cu
+          vpcv   = 0.5 * (v0(i,j,1) + v0(i,j+1,1)) + cv
+          horv   = sqrt(upcu ** 2. + vpcv ** 2.)
+          horv   = max(horv, 1.e-2)
+          horvav = sqrt(u0av(1) ** 2. + v0av(1) ** 2.)
 
+          ! CvH take square root of horv * horvav, to make sure slab average
+          ! follows law of the wall
           if( isurf == 4) then
-            ustar (i,j) = fkar * horv / (log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j)) + psim(z0m(i,j) / obl(i,j)))
+            ustar (i,j) = fkar * sqrt(horv * horvav) / (log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j)) + psim(z0m(i,j) / obl(i,j)))
           else
             ustar (i,j) = ustin
           end if
@@ -751,6 +802,7 @@ contains
           surfwet    = ra(i,j) / (ra(i,j) + rs(i,j))
           qskin(i,j) = surfwet * qsatsurf + (1. - surfwet) * qt0(i,j,1)
           qtsl       = qtsl + qskin(i,j)
+          !write(6,*), ra(i,j), rs(i,j), surfwet
         end do
       end do
 
@@ -775,7 +827,7 @@ contains
 !> Calculates the Obuhkov length iteratively.
   subroutine getobl
     use modglobal, only : zf, rv, rd, grav, rslabs, i1, j1, i2, j2, timee, cu, cv
-    use modfields, only : thl0av, qt0av, u0, v0, thl0, qt0
+    use modfields, only : thl0av, qt0av, u0, v0, thl0, qt0, u0av, v0av
     use modmpi,    only : my_real,mpierr,comm3d,mpi_sum,myid,excj
     implicit none
 
@@ -820,59 +872,65 @@ contains
 
           obl(i,j) = L
 
-          oblavl   = oblavl + obl(i,j)
+          !oblavl   = oblavl + obl(i,j)
 
         end do
       end do
 
-      do i=2,i1
-        do j=2,j1
-          oblavl = oblavl + obl(i,j)
-        end do
-      end do
+      !do i=2,i1
+      !  do j=2,j1
+      !    oblavl = oblavl + obl(i,j)
+      !  end do
+      !end do
 
-      call MPI_ALLREDUCE(oblavl, oblav, 1,  MY_REAL, MPI_SUM, comm3d,mpierr)
-      oblav = oblav / rslabs
+      !call MPI_ALLREDUCE(oblavl, oblav, 1,  MY_REAL, MPI_SUM, comm3d,mpierr)
+      !oblav = oblav / rslabs
 
-    else
+    !CvH also do a global evaluation if lmostlocal = .true. to get an appropriate local mean
+    !else
+    end if
 
-      thv    = thl0av(1) * (1. + (rv/rd - 1.) * qt0av(1))
-      horv2l = sum( (u0(2:i1,2:j1,1) + cu ) ** 2.)  +  sum( (v0(2:i1,2:j1,1) + cv ) ** 2.)
-      horv2l = max(horv2l, 1.e-2)
+    thv    = thl0av(1) * (1. + (rv/rd - 1.) * qt0av(1))
+    !horv2l = sum( (u0(2:i1,2:j1,1) + cu ) ** 2.)  +  sum( (v0(2:i1,2:j1,1) + cv ) ** 2.)
+    !horv2l = max(horv2l, 1.e-2)
 
-      call MPI_ALLREDUCE(horv2l, horv2, 1,  MY_REAL, MPI_SUM, comm3d,mpierr)
-      horv2 = horv2 / rslabs
+    !call MPI_ALLREDUCE(horv2l, horv2, 1,  MY_REAL, MPI_SUM, comm3d,mpierr)
+    !horv2 = horv2 / rslabs
+    !CvH return to classical formulation
+    
+    horv2 = u0av(1)**2. + v0av(1)**2.
 
-      Rib   = grav / thvs * zf(1) * (thv - thvs) / horv2
+    Rib   = grav / thvs * zf(1) * (thv - thvs) / horv2
 
-      iter = 0
-      L = oblav
+    iter = 0
+    L = oblav
 
+    if(Rib * L < 0. .or. abs(L) == 1e5) then
+      if(Rib > 0) L = 0.01
+      if(Rib < 0) L = -0.01
+    end if
+
+    do while (.true.)
+      iter    = iter + 1
+      Lold    = L
+      fx      = Rib - zf(1) / L * (log(zf(1) / z0hav) - psih(zf(1) / L) + psih(z0hav / L)) / (log(zf(1) / z0mav) - psim(zf(1) / L) + psim(z0mav / L)) ** 2.
+      Lstart  = L - 0.001*L
+      Lend    = L + 0.001*L
+      fxdif   = ( (- zf(1) / Lstart * (log(zf(1) / z0hav) - psih(zf(1) / Lstart) + psih(z0hav / Lstart)) / (log(zf(1) / z0mav) - psim(zf(1) / Lstart) + psim(z0mav / Lstart)) ** 2.) - (-zf(1) / Lend * (log(zf(1) / z0hav) - psih(zf(1) / Lend) + psih(z0hav / Lend)) / (log(zf(1) / z0mav) - psim(zf(1) / Lend) + psim(z0mav / Lend)) ** 2.) ) / (Lstart - Lend)
+      L       = L - fx / fxdif
       if(Rib * L < 0. .or. abs(L) == 1e5) then
         if(Rib > 0) L = 0.01
         if(Rib < 0) L = -0.01
       end if
+      if(abs(L - Lold) < 0.0001) exit
+    end do
 
-      do while (.true.)
-        iter    = iter + 1
-        Lold    = L
-        fx      = Rib - zf(1) / L * (log(zf(1) / z0hav) - psih(zf(1) / L) + psih(z0hav / L)) / (log(zf(1) / z0mav) - psim(zf(1) / L) + psim(z0mav / L)) ** 2.
-        Lstart  = L - 0.001*L
-        Lend    = L + 0.001*L
-        fxdif   = ( (- zf(1) / Lstart * (log(zf(1) / z0hav) - psih(zf(1) / Lstart) + psih(z0hav / Lstart)) / (log(zf(1) / z0mav) - psim(zf(1) / Lstart) + psim(z0mav / Lstart)) ** 2.) - (-zf(1) / Lend * (log(zf(1) / z0hav) - psih(zf(1) / Lend) + psih(z0hav / Lend)) / (log(zf(1) / z0mav) - psim(zf(1) / Lend) + psim(z0mav / Lend)) ** 2.) ) / (Lstart - Lend)
-        L       = L - fx / fxdif
-        if(Rib * L < 0. .or. abs(L) == 1e5) then
-          if(Rib > 0) L = 0.01
-          if(Rib < 0) L = -0.01
-        end if
-        if(abs(L - Lold) < 0.0001) exit
-      end do
-
-      obl   = L
-      oblav = L
-
-
+    if(.not. lmostlocal) then
+      obl(:,:) = L
     end if
+    oblav = L
+
+    !end if
 
     return
 

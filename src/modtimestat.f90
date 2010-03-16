@@ -40,10 +40,12 @@ implicit none
 ! PUBLIC :: inittimestat, timestat
 save
 !NetCDF variables
-  integer,parameter :: nvar = 21
+  !integer,parameter :: nvar = 28
+  integer :: nvar
   integer :: ncid,nrec = 0
   character(80) :: fname = 'tmser.xxx.nc'
-  character(80),dimension(nvar,4) :: ncname
+  !character(80),dimension(nvar,4) :: ncname
+  character(80), allocatable, dimension(:,:)    :: ncname
 
   real    :: dtav
   integer(kind=longint) :: idtav,tnext
@@ -165,6 +167,14 @@ contains
         close(ifoutput)
       end if
       if (lnetcdf) then
+        if(isurf == 1) then
+          nvar = 28
+        else
+          nvar = 21
+        end if
+        
+        allocate(ncname(nvar,4))
+
         fname(7:9) = cexpnr
         call ncinfo(ncname( 1,:),'time','Time','s','time')
         call ncinfo(ncname( 2,:),'cfrac','Cloud fraction','-','time')
@@ -182,11 +192,21 @@ contains
         call ncinfo(ncname(14,:),'tstr','Turbulent temperature scale','K','time')
         call ncinfo(ncname(15,:),'qtstr','Turbulent humidity scale','K','time')
         call ncinfo(ncname(16,:),'obukh','Obukhov Length','m','time')
-        call ncinfo(ncname(17,:),'tsrf','Surface liquid water potential temperature','K','time')
+        call ncinfo(ncname(17,:),'thlskin','Surface liquid water potential temperature','K','time')
         call ncinfo(ncname(18,:),'z0','Roughness height','m','time')
-        call ncinfo(ncname(19,:),'shf_bar','Sensible heat flux','K m/s','time')
-        call ncinfo(ncname(20,:),'sfcbflx','Surface Buoyancy Flux','K m/s','time')
-        call ncinfo(ncname(21,:),'lhf_bar','Latent heat flux','kg/kg m/s','time')
+        call ncinfo(ncname(19,:),'wtheta','Surface kinematic temperature flux','K m/s','time')
+        call ncinfo(ncname(20,:),'wthetav','Surface kinematic virtual temperature flux','K m/s','time')
+        call ncinfo(ncname(21,:),'wq','Surface kinematic moisture flux','kg/kg m/s','time')
+
+        if(isurf==1) then
+          call ncinfo(ncname(22,:),'Qnet','Net radiation','W/m^2','time')
+          call ncinfo(ncname(23,:),'H','Sensible heat flux','W/m^2','time')
+          call ncinfo(ncname(24,:),'LE','Latent heat flux','W/m^2','time')
+          call ncinfo(ncname(25,:),'G0','Ground heat flux','W/m^2','time')
+          call ncinfo(ncname(26,:),'tendskin','Skin tendency','W/m^2','time')
+          call ncinfo(ncname(27,:),'rs','Surface resistance','m/s','time')
+          call ncinfo(ncname(28,:),'ra','Aerodynamic resistance','m/s','time')
+        end if
         call open_nc(fname,  ncid)
         call define_nc( ncid, NVar, ncname)
       end if
@@ -376,8 +396,8 @@ contains
       call MPI_ALLREDUCE(thlfluxl, usttst, 1,  MY_REAL,MPI_SUM, comm3d,mpierr)
       call MPI_ALLREDUCE(qtfluxl,  ustqst, 1,  MY_REAL,MPI_SUM, comm3d,mpierr)
 
-      usttst = usttst / rslabs
-      ustqst = ustqst / rslabs
+      usttst = -usttst / rslabs
+      ustqst = -ustqst / rslabs
     end if
 
     !Constants c1 and c2
@@ -501,6 +521,15 @@ contains
         vars(19) = wts
         vars(20) = wtvs
         vars(21) = wqls
+        if (isurf == 1) then
+          vars(22) = Qnetav
+          vars(23) = Hav
+          vars(24) = LEav
+          vars(25) = G0av
+          vars(26) = tendskinav
+          vars(27) = rsav
+          vars(28) = raav
+        end if
         
         call writestat_nc(ncid,nvar,ncname,vars,nrec,.true.)
       end if

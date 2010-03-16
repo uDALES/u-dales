@@ -74,7 +74,7 @@ PUBLIC :: initgenstat, genstat, exitgenstat
 save
 
 !NetCDF variables
-  integer,parameter :: nvar = 37
+  integer,parameter :: nvar = 36
   integer :: ncid,nrec = 0
   character(80) :: fname = 'profiles.xxx.nc'
   character(80),dimension(nvar,4) :: ncname
@@ -369,17 +369,17 @@ contains
         call ncinfo(ncname(24,:),'vws','SFS-momentum flux (vw)','m^2/s^2','mt')
         call ncinfo(ncname(25,:),'vwr','Resolved momentum flux (vw)','m^2/s^2','mt')
         call ncinfo(ncname(26,:),'vwt','Total momentum flux (vw)','m^2/s^2','mt')
-        call ncinfo(ncname(27,:),'w2s','SFS vertical velocity variance','m^2/s^2','mt')
+        call ncinfo(ncname(27,:),'w2s','SFS-TKE','m^2/s^2','mt')
         call ncinfo(ncname(28,:),'w2r','Resolved vertical velocity variance','m^2/s^2','mt')
-        call ncinfo(ncname(29,:),'w2t','Total vertical velocity variance','m^2/s^2','mt')
-        call ncinfo(ncname(30,:),'skew','vertical velocity skewness','-','mt')
-        call ncinfo(ncname(31,:),'u2r','Resolved horizontal velocity variance (u)','m^2/s^2','tt')
-        call ncinfo(ncname(32,:),'v2r','Resolved horizontal velocity variance (v)','m^2/s^2','tt')
-        call ncinfo(ncname(33,:),'thl2r','Resolved theta_l variance','K^2','tt')
-        call ncinfo(ncname(34,:),'thv2r','Resolved buoyancy variance','K^2','tt')
-        call ncinfo(ncname(35,:),'th2r','Resolved theta variance','K^2','tt')
-        call ncinfo(ncname(36,:),'qt2r','Resolved total water variance','(kg/kg)^2','tt')
-        call ncinfo(ncname(37,:),'ql2r','Resolved liquid water variance','(kg/kg)^2','tt')
+        !call ncinfo(ncname(29,:),'w2t','Total vertical velocity variance','m^2/s^2','mt')
+        call ncinfo(ncname(29,:),'skew','vertical velocity skewness','-','mt')
+        call ncinfo(ncname(30,:),'u2r','Resolved horizontal velocity variance (u)','m^2/s^2','tt')
+        call ncinfo(ncname(31,:),'v2r','Resolved horizontal velocity variance (v)','m^2/s^2','tt')
+        call ncinfo(ncname(32,:),'thl2r','Resolved theta_l variance','K^2','tt')
+        call ncinfo(ncname(33,:),'thv2r','Resolved buoyancy variance','K^2','tt')
+        call ncinfo(ncname(34,:),'th2r','Resolved theta variance','K^2','tt')
+        call ncinfo(ncname(35,:),'qt2r','Resolved total water variance','(kg/kg)^2','tt')
+        call ncinfo(ncname(36,:),'ql2r','Resolved liquid water variance','(kg/kg)^2','tt')
 
 
         call open_nc(fname,  ncid,n3=kmax)
@@ -1492,17 +1492,17 @@ contains
         vars(:,24)=vwsmn
         vars(:,25)=vwrmn
         vars(:,26)=vwtmn
-        vars(:,27)=w2mn
-        vars(:,28)=w2submn
-        vars(:,29)=w2submn+w2mn
-        vars(:,30)=skewmn
-        vars(:,31)=u2mn
-        vars(:,32)=v2mn
-        vars(:,33)=thl2mn
-        vars(:,34)=thv2mn
-        vars(:,35)=th2mn
-        vars(:,36)=qt2mn
-        vars(:,37)=ql2mn
+        vars(:,27)=w2submn
+        vars(:,28)=w2mn
+        !vars(:,29)=w2submn+w2mn
+        vars(:,29)=skewmn
+        vars(:,30)=u2mn
+        vars(:,31)=v2mn
+        vars(:,32)=thl2mn
+        vars(:,33)=thv2mn
+        vars(:,34)=th2mn
+        vars(:,35)=qt2mn
+        vars(:,36)=ql2mn
         call writestat_nc(ncid,1,tncname,(/rtimee/),nrec,.true.)
         call writestat_nc(ncid,nvar,ncname,vars(1:kmax,:),nrec,kmax)
       end if
