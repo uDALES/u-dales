@@ -2,22 +2,22 @@
 iexpnr     =  001
 lwarmstart =  .false.
 startfile  =  'initd00h01m000.001'
-runtime    =  36000
+runtime    =  28800
 trestart   =  3600 
 ladaptive  =  .true.
 irandom    =  43
-randthl    =  0.5
+randthl    =  0.
 randqt     =  0.
 nsv        =  0
 /
 
 &DOMAIN
-imax       =  200
-jtot       =  100
+imax       =  270
+jtot       =  150
 kmax       =  128
 
-xsize      =  4000.
-ysize      =  2000.
+xsize      =  4050.
+ysize      =  2250.
 
 xlat       =  45.
 xlon       =  0.
@@ -34,7 +34,7 @@ wtsurf     =  0.
 wqsurf     =  0.
 wsvsurf(1) =  0.
 wsvsurf(2) =  1.
-lmoist     =  .true.
+lmoist     =  .false.
 isurf      =  4
 iradiation =  0
 useMcICA   =  .true.
