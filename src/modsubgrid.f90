@@ -50,7 +50,8 @@ public :: ldelta, lmason,lsmagorinsky,cf, Rigc,prandtl, cm, cn, ch1, ch2, ce1, c
   real :: ch2     = 2.
   real :: ce1     = 0.19
   real :: ce2     = 0.51
-  real :: cs
+  real :: cs      = -1.
+  real :: nmason  = 2.   !< exponent in Mason correction function
   real :: alpha_kolm   = 1.5     !< factor in Kolmogorov expression for spectral energy
   real :: beta_kolm    = 1.      !< factor in Kolmogorov relation for temperature spectrum
 
@@ -74,7 +75,7 @@ contains
 
     real :: ceps, ch
     namelist/NAMSUBGRID/ &
-        ldelta,lmason, cf,cn,Rigc,Prandtl,lsmagorinsky
+        ldelta,lmason, cf,cn,Rigc,Prandtl,lsmagorinsky,cs,nmason
 
     allocate(ekm(2-ih:i1+ih,2-jh:j1+jh,k1))
     allocate(ekh(2-ih:i1+ih,2-jh:j1+jh,k1))
@@ -97,6 +98,7 @@ contains
     call MPI_BCAST(ldelta     ,1,MPI_LOGICAL,0,comm3d,mpierr)
     call MPI_BCAST(lmason     ,1,MPI_LOGICAL,0,comm3d,mpierr)
     call MPI_BCAST(lsmagorinsky,1,MPI_LOGICAL,0,comm3d,mpierr)
+    call MPI_BCAST(cs         ,1,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(cf         ,1,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(cn         ,1,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(Rigc       ,1,MY_REAL   ,0,comm3d,mpierr)
@@ -112,7 +114,11 @@ contains
     ce1  = (cn**2)* (cm/Rigc - ch1*cm )
     ce2  = ceps - ce1
 
-    cs   = (cm**3/ceps)**0.25   !< Smagorinsky constant
+    if(cs == -1.) then
+      cs   = (cm**3/ceps)**0.25   !< Smagorinsky constant
+    end if
+
+
 
     if (myid==0) then
       write (6,*) 'cf    = ',cf
@@ -195,12 +201,12 @@ contains
   use modglobal,  only : i1, j1,kmax,k1,ih,jh,i2,j2,delta,ekmin,grav, zf, fkar, &
                          dxi,dyi,dzf,dzh
   use modfields,  only : dthvdz,e120,u0,v0,w0
-  use modsurfdata, only : dudz,dvdz,thvs
+  use modsurfdata, only : dudz,dvdz,thvs,z0m
 
   use modmpi,     only : excjs
   implicit none
 
-  real    :: strain,rigoprandtl
+  real    :: strain,mlen
   integer :: i,j,k,kp,km,jp,jm
 
 !********************************************************************
@@ -247,12 +253,13 @@ contains
                 (w0(i,jp,k)-w0(i,j,k))     *dyi        )**2    + &
                 ((v0(i,jp,kp)-v0(i,jp,k))   / dzh(kp) + &
                 (w0(i,jp,kp)-w0(i,j,kp))   *dyi        )**2    )
-      rigoprandtl =    grav*dthvdz(i,j,k)/(thvs*strain*prandtl)
-!       if (rigoprandtl>1) then
-!         ekm(i,j,k) = ekmin
-!       else
-        ekm(i,j,k)  = (cs*delta(k))**2*sqrt(0.5*strain)!*sqrt(1-rigoprandtl)
-!       end if
+      if(lmason) then
+        mlen        = (1. / (cs * delta(k))**nmason + 1. / (fkar * (zf(k) + z0m(i,j)))**nmason)**(-1./nmason)
+      else
+        mlen        = cs * delta(k)
+      end if
+      ekm(i,j,k)  = mlen**2.*sqrt(0.5*strain)
+      !if(i == 2 .and. j == 2) write(6,*)"CvH mlen", k, mlen, mlen / delta(k), delta(k)
       ekh(i,j,k)  = ekm(i,j,k)/prandtl
     end do
     end do
@@ -298,12 +305,14 @@ contains
                 (w0(i,jp,k)-w0(i,j,k))     *dyi        )**2    + &
                 ((v0(i,jp,kp)-v0(i,jp,k))   / dzh(kp) + &
                 (w0(i,jp,kp)-w0(i,j,kp))   *dyi        )**2    )
-!       rigoprandtl =    grav*dthvdz(i,j,k)/(thvs*strain*prandtl)
-!       if (rigoprandtl>1) then
-!         ekm(i,j,k) = ekmin
-!       else
-        ekm(i,j,k)  = (cs*delta(k))**2*sqrt(0.5*strain)!*sqrt(1-rigoprandtl)
-!       end if
+      if(lmason) then
+        mlen        = (1. / (cs * delta(k))**nmason + 1. / (fkar * (zf(k) + z0m(i,j)))**nmason)**(-1./nmason)
+      else
+        mlen        = cs * delta(k)
+      end if
+      ekm(i,j,k)  = mlen**2.*sqrt(0.5*strain)
+      !if(i == 2 .and. j == 2) write(6,*)"CvH mlen", k, mlen, mlen / delta(k), delta(k)
+
       ekh(i,j,k)  = ekm(i,j,k)/prandtl
     end do
     end do

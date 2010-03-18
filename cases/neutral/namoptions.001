@@ -45,6 +45,13 @@ lcoriol    =  .true.
 lnetcdf    = .true.
 /
 
+&NAMSUBGRID
+lsmagorinsky = .true.
+cs           = 0.1
+lmason       = .true.
+nmason       = 1.
+/
+
 &NAMSURFACE
 tsoilav(1)   = 290.
 tsoilav(2)   = 287.
