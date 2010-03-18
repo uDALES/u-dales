@@ -5,6 +5,7 @@ startfile  =  'initd00h01m000.001'
 runtime    =  28800
 trestart   =  3600 
 ladaptive  =  .true.
+courant    =  1.5
 irandom    =  43
 randthl    =  0.
 randqt     =  0.

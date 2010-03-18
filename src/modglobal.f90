@@ -201,7 +201,7 @@ contains
     if (courant<0) then
       select case(iadv_mom)
       case(iadv_cd2)
-        courant = 3
+        courant = 1.5
       case(iadv_cd6)
         courant = 1.4
       case(iadv_5th)
