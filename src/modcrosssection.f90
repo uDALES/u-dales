@@ -29,7 +29,7 @@
 module modcrosssection
 
 
-  use modglobal, only : longint
+  use modglobal, only : longint,kmax
 
 implicit none
 private
@@ -38,18 +38,18 @@ save
 !NetCDF variables
   integer,parameter :: nvar = 7
   integer :: ncid1 = 0
-  integer, dimension(5) :: ncid2 = (/ 1, 2, 3, 4, 5 /)
-  integer :: ncid3 = 6
+  integer,allocatable :: ncid2(:)
+  integer :: ncid3 = 1
   integer :: nrec1 = 0
-  integer, dimension(5) :: nrec2 = (/ 0, 0, 0, 0, 0 /)
+  integer,allocatable :: nrec2(:)
   integer :: nrec3 = 0
-  integer, dimension(5) :: crossheights
-  integer :: nxy
+  integer,allocatable :: crossheight(:)
+  integer :: nxy = 0
   integer :: cross
   integer :: nrc
-  character(1) :: cheight
+  character(4) :: cheight
   character(80) :: fname1 = 'crossxz.xxx.xxx.nc'
-  character(80) :: fname2 = 'crossxy.x.xxx.xxx.nc'
+  character(80) :: fname2 = 'crossxy.xxxx.xxx.xxx.nc'
   character(80) :: fname3 = 'crossyz.xxx.xxx.nc'
   character(80),dimension(nvar,4) :: ncname1
   character(80),dimension(1,4) :: tncname1
@@ -61,11 +61,6 @@ save
   real    :: dtav
   integer(kind=longint) :: idtav,tnext
   logical :: lcross = .false. !< switch for doing the crosssection (on/off)
-  integer :: crossheight = 2 !< Height of the xy crosssection
-  integer :: crossheight2 = -999 !< Height of the 2nd xy crosssection
-  integer :: crossheight3 = -999 !< Height of the 3rd xy crosssection
-  integer :: crossheight4 = -999 !< Height of the 4th xy crosssection
-  integer :: crossheight5 = -999 !< Height of the 5th xy crosssection
   integer :: crossplane = 2 !< Location of the xz crosssection
   integer :: crossortho = 2 !< Location of the yz crosssection
 
@@ -77,10 +72,17 @@ contains
     use modstat_nc,only : lnetcdf,open_nc, define_nc, redefine_nc,ncinfo,writestat_dims_nc
    implicit none
 
-    integer :: ierr
+    integer :: ierr,k
 
     namelist/NAMCROSSSECTION/ &
-    lcross, dtav, crossheight, crossheight2, crossheight3, crossheight4, crossheight5, crossplane, crossortho
+    lcross, dtav, crossheight, crossplane, crossortho
+
+    allocate(ncid2(kmax),nrec2(kmax),crossheight(kmax))
+    crossheight(1)=2
+    crossheight(2:kmax)=-999
+    ncid2(1)=2
+    ncid2(2:kmax)=0
+    nrec2(1:kmax)=0
 
     dtav = dtav_glob
     if(myid==0)then
@@ -97,35 +99,25 @@ contains
 
     call MPI_BCAST(dtav       ,1,MY_REAL    ,0,comm3d,mpierr)
     call MPI_BCAST(lcross     ,1,MPI_LOGICAL,0,comm3d,mpierr)
-    call MPI_BCAST(crossheight,1,MPI_INTEGER,0,comm3d,mpierr)
-    call MPI_BCAST(crossheight2,1,MPI_INTEGER,0,comm3d,mpierr)
-    call MPI_BCAST(crossheight3,1,MPI_INTEGER,0,comm3d,mpierr)
-    call MPI_BCAST(crossheight4,1,MPI_INTEGER,0,comm3d,mpierr)
-    call MPI_BCAST(crossheight5,1,MPI_INTEGER,0,comm3d,mpierr)
+    call MPI_BCAST(crossheight(1:kmax),kmax,MPI_INTEGER,0,comm3d,mpierr)
     call MPI_BCAST(crossplane ,1,MPI_INTEGER,0,comm3d,mpierr)
     call MPI_BCAST(crossortho ,1,MPI_INTEGER,0,comm3d,mpierr)
 
-    crossheights=(/crossheight, crossheight2, crossheight3, crossheight4, crossheight5/)
-    nxy=1
-    if (crossheight2 > 0) then
-    nxy=2
-    if (crossheight3 > 0) then
-    nxy=3
-    if (crossheight4 > 0) then
-    nxy=4
-    if (crossheight5 > 0) then
-    nxy=5
-    end if
-    end if
-    end if
-    end if
+    nxy=0
+    k=1
+    do while (crossheight(k) > 0)
+    nxy=nxy+1
+    ncid2(k)=k+1
+    nrec2(k)=0
+    k=k+1
+    end do
 
     idtav = dtav/tres
     tnext   = idtav+btime
     if(.not.(lcross)) return
     dt_lim = min(dt_lim,tnext)
 
-    if(crossheight>kmax .or. crossheight2>kmax .or. crossheight3>kmax .or. crossheight4>kmax .or. crossheight5>kmax .or. crossplane>j1 .or. crossortho> i1 ) then
+    if(any((crossheight(1:kmax).gt.kmax)) .or. crossplane>j1 .or. crossortho> i1 ) then
       stop 'CROSSSECTION: crosssection out of range'
     end if
     if (.not. ladaptive .and. abs(dtav/dtmax-nint(dtav/dtmax))>1e-4) then
@@ -150,10 +142,10 @@ contains
       call define_nc( ncid1, NVar, ncname1)
     end if
     do cross=1,nxy
-    write(cheight,'(i1.1)') cross
-    fname2(9:9) = cheight
-    fname2(11:13) = cmyid
-    fname2(15:17) = cexpnr
+    write(cheight,'(i4.4)') crossheight(cross)
+    fname2(9:12) = cheight
+    fname2(14:16) = cmyid
+    fname2(18:20) = cexpnr
     call ncinfo(tncname2(1,:),'time','Time','s','time')
     call ncinfo(ncname2( 1,:),'uxy','xy crosssections of the West-East velocity','m/s','mt0t')
     call ncinfo(ncname2( 2,:),'vxy','xy crosssections of the South-North velocity','m/s','tm0t')
@@ -311,31 +303,31 @@ contains
     do  j=2,j1
     do  i=2,i1
       thv0(i,j,cross) =&
-       (thl0(i,j,crossheights(cross))+&
-       rlv*ql0(i,j,crossheights(cross))/&
-       (cp*exnf(crossheights(cross)))) &
-                    *(1+(rv/rd-1)*qt0(i,j,crossheights(cross))&
-                    -rv/rd*ql0(i,j,crossheights(cross)))
+       (thl0(i,j,crossheight(cross))+&
+       rlv*ql0(i,j,crossheight(cross))/&
+       (cp*exnf(crossheight(cross)))) &
+                    *(1+(rv/rd-1)*qt0(i,j,crossheight(cross))&
+                    -rv/rd*ql0(i,j,crossheight(cross)))
     enddo
     enddo
     enddo
 
     do  cross=1,nxy
-    write(cheight,'(i1.1)') cross
+    write(cheight,'(i4.4)') crossheight(cross)
     open(ifoutput,file='movh_u.'//cheight//'.'//cmyid//'.'//cexpnr,position='append',action='write')
-    write(ifoutput,'(es12.5)') ((um(i,j,crossheights(cross))+cu,i=2,i1),j=2,j1)
+    write(ifoutput,'(es12.5)') ((um(i,j,crossheight(cross))+cu,i=2,i1),j=2,j1)
     close(ifoutput)
 
     open(ifoutput,file='movh_v.'//cheight//'.'//cmyid//'.'//cexpnr,position='append',action='write')
-    write(ifoutput,'(es12.5)') ((vm(i,j,crossheights(cross))+cv,i=2,i1),j=2,j1)
+    write(ifoutput,'(es12.5)') ((vm(i,j,crossheight(cross))+cv,i=2,i1),j=2,j1)
     close(ifoutput)
 
     open(ifoutput,file='movh_w.'//cheight//'.'//cmyid//'.'//cexpnr,position='append',action='write')
-    write(ifoutput,'(es12.5)') ((wm(i,j,crossheights(cross)),i=2,i1),j=2,j1)
+    write(ifoutput,'(es12.5)') ((wm(i,j,crossheight(cross)),i=2,i1),j=2,j1)
     close(ifoutput)
 
     open(ifoutput,file='movh_thl.'//cheight//'.'//cmyid//'.'//cexpnr,position='append',action='write')
-    write(ifoutput,'(es12.5)') ((thlm(i,j,crossheights(cross)),i=2,i1),j=2,j1)
+    write(ifoutput,'(es12.5)') ((thlm(i,j,crossheight(cross)),i=2,i1),j=2,j1)
     close(ifoutput)
 
     open(ifoutput,file='movh_thv.'//cheight//'.'//cmyid//'.'//cexpnr,position='append',action='write')
@@ -343,18 +335,18 @@ contains
     close(ifoutput)
 
     open(ifoutput,file='movh_qt.'//cheight//'.'//cmyid//'.'//cexpnr,position='append',action='write')
-    write(ifoutput,'(es12.5)') ((1.e3*qtm(i,j,crossheights(cross)),i=2,i1),j=2,j1)
+    write(ifoutput,'(es12.5)') ((1.e3*qtm(i,j,crossheight(cross)),i=2,i1),j=2,j1)
     close(ifoutput)
 
     open(ifoutput,file='movh_ql.'//cheight//'.'//cmyid//'.'//cexpnr,position='append',action='write')
-    write(ifoutput,'(es12.5)') ((1.e3*ql0(i,j,crossheights(cross)),i=2,i1),j=2,j1)
+    write(ifoutput,'(es12.5)') ((1.e3*ql0(i,j,crossheight(cross)),i=2,i1),j=2,j1)
     close(ifoutput)
 
     do n = 1,nsv
       name = 'movh_tnn.'//cheight//'.'//cmyid//'.'//cexpnr
       write(name(7:8),'(i2.2)') n
       open(ifoutput,file=name,position='append',action='write')
-      write(ifoutput,'(es12.5)') ((svm(i,j,crossheights(cross),n),i=2,i1),j=2,j1)
+      write(ifoutput,'(es12.5)') ((svm(i,j,crossheight(cross),n),i=2,i1),j=2,j1)
       close(ifoutput)
     end do
     end do
@@ -362,13 +354,13 @@ contains
     if (lnetcdf) then
       do cross=1,nxy
       allocate(vars(1:imax,1:jmax,7))
-      vars(:,:,1) = um(2:i1,2:j1,crossheights(cross))+cu
-      vars(:,:,2) = vm(2:i1,2:j1,crossheights(cross))+cv
-      vars(:,:,3) = wm(2:i1,2:j1,crossheights(cross))
-      vars(:,:,4) = thlm(2:i1,2:j1,crossheights(cross))
+      vars(:,:,1) = um(2:i1,2:j1,crossheight(cross))+cu
+      vars(:,:,2) = vm(2:i1,2:j1,crossheight(cross))+cv
+      vars(:,:,3) = wm(2:i1,2:j1,crossheight(cross))
+      vars(:,:,4) = thlm(2:i1,2:j1,crossheight(cross))
       vars(:,:,5) = thv0(2:i1,2:j1,cross)
-      vars(:,:,6) = qtm(2:i1,2:j1,crossheights(cross))
-      vars(:,:,7) = ql0(2:i1,2:j1,crossheights(cross))
+      vars(:,:,6) = qtm(2:i1,2:j1,crossheight(cross))
+      vars(:,:,7) = ql0(2:i1,2:j1,crossheight(cross))
       call writestat_nc(ncid2(cross),1,tncname2,(/rtimee/),nrec2(cross),.true.)
       call writestat_nc(ncid2(cross),7,ncname2(1:7,:),vars,nrec2(cross),imax,jmax)
       deallocate(vars)
@@ -461,10 +453,13 @@ contains
 !> Clean up when leaving the run
   subroutine exitcrosssection
     use modstat_nc, only : exitstat_nc,lnetcdf
+    use modmpi, only : myid
     implicit none
 
     if(lcross .and. lnetcdf) then
+    if (myid==0) then
     call exitstat_nc(ncid1)
+    end if
     do cross=1,nxy
     call exitstat_nc(ncid2(cross))
     end do
