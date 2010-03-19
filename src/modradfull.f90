@@ -307,7 +307,6 @@ contains
     !
     ! identify what part, if any, of background sounding to use
     !
-    sp(k) = sp(k) / 100.   !convert to hPa
     ptop = zp(k1)
     if (sp(2) < ptop) then
        pa = sp(1)
