@@ -15,7 +15,7 @@ nsv        =  0
 &DOMAIN
 imax       =  90
 jtot       =  45
-kmax       =  128
+kmax       =  100
 
 xsize      =  4050.
 ysize      =  2250.
