@@ -97,6 +97,7 @@ contains
     end if
     call MPI_BCAST(ldelta     ,1,MPI_LOGICAL,0,comm3d,mpierr)
     call MPI_BCAST(lmason     ,1,MPI_LOGICAL,0,comm3d,mpierr)
+    call MPI_BCAST(nmason     ,1,MY_REAL    ,0,comm3d,mpierr)
     call MPI_BCAST(lsmagorinsky,1,MPI_LOGICAL,0,comm3d,mpierr)
     call MPI_BCAST(cs         ,1,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(cf         ,1,MY_REAL   ,0,comm3d,mpierr)
@@ -323,13 +324,12 @@ contains
     do i=2,i1
       if (ldelta .or. (dthvdz(i,j,k)<=0)) then
         zlt(i,j,k) = delta(k)
-        if (lmason) zlt(i,j,k) = sqrt(1/(1/zlt(i,j,k)**2)+1/(fkar*zf(k))**2)
+        if (lmason) zlt(i,j,k) = (1. / zlt(i,j,k) ** nmason + 1. / ( fkar * (zf(k) + z0m(i,j)))**nmason) ** (-1./nmason)
         ekm(i,j,k) = cm * zlt(i,j,k) * e120(i,j,k)
         ekh(i,j,k) = (ch1 + ch2) * ekm(i,j,k)
       else
-
         zlt(i,j,k) = min(delta(k),cn*e120(i,j,k)/sqrt(grav/thvs*abs(dthvdz(i,j,k))))
-        if (lmason) zlt(i,j,k) = sqrt(1/(1/zlt(i,j,k)**2)+1/(fkar*zf(k))**2)
+        if (lmason) zlt(i,j,k) = (1. / zlt(i,j,k) ** nmason + 1. / ( fkar * (zf(k) + z0m(i,j)))**nmason) ** (-1./nmason)
 
         ekm(i,j,k) = cm * zlt(i,j,k) * e120(i,j,k)
         ekh(i,j,k) = (ch1 + ch2 * zlt(i,j,k)/delta(k)) * ekm(i,j,k)
