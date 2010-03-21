@@ -88,7 +88,7 @@ subroutine advecc_6th(putin, putout)
                   )/(2*dzf(k)) &
                   )
         
-        elseif(k == 3.) then
+        elseif(k == 3) then
         !CvH do 2nd order for bottom and top
 
             putout(i,j,k)  = putout(i,j,k)- (  &
