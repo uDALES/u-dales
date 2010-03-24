@@ -40,7 +40,8 @@ public :: ldelta, lmason,lsmagorinsky,cf, Rigc,prandtl, cm, cn, ch1, ch2, ce1, c
 
   logical :: ldelta   = .false. !<  switch for subgrid length formulation (on/off)
   logical :: lmason   = .false. !<  switch for decreased length scale near the surface
-  logical :: lsmagorinsky= .false. !<  switch for smagorinsky subrid scheme
+  logical :: lsmagorinsky= .false. !<  switch for smagorinsky subgrid scheme
+  logical :: ldynsub     = .false. !<  switch for dynamic subgrid scheme
   real :: cf      = 2.5  !< filter constant
   real :: Rigc    = 0.25 !< critical Richardson number
   real :: Prandtl = 3
@@ -75,7 +76,7 @@ contains
 
     real :: ceps, ch
     namelist/NAMSUBGRID/ &
-        ldelta,lmason, cf,cn,Rigc,Prandtl,lsmagorinsky,cs,nmason
+        ldelta,lmason, cf,cn,Rigc,Prandtl,lsmagorinsky,ldynsub,cs,nmason
 
     allocate(ekm(2-ih:i1+ih,2-jh:j1+jh,k1))
     allocate(ekh(2-ih:i1+ih,2-jh:j1+jh,k1))
@@ -99,6 +100,7 @@ contains
     call MPI_BCAST(lmason     ,1,MPI_LOGICAL,0,comm3d,mpierr)
     call MPI_BCAST(nmason     ,1,MY_REAL    ,0,comm3d,mpierr)
     call MPI_BCAST(lsmagorinsky,1,MPI_LOGICAL,0,comm3d,mpierr)
+    call MPI_BCAST(ldynsub     ,1,MPI_LOGICAL,0,comm3d,mpierr)
     call MPI_BCAST(cs         ,1,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(cf         ,1,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(cn         ,1,MY_REAL   ,0,comm3d,mpierr)
@@ -165,6 +167,39 @@ contains
     deallocate(ekm,ekh,zlt,sbdiss,sbbuo,sbshr)
   end subroutine exitsubgrid
 
+  subroutine filter(v2f, ndx)
+    use modglobal, only : i1,ih,i2,j1,jh,j2,kmax,k1
+    ! top hat filter
+    ! for now, only filter in horizontal
+    implicit none
+
+    integer, intent(in)    :: ndx
+    real,    intent(inout) :: v2f(2-ih:i1+ih,2-jh:j1+jh,k1)
+    integer                :: i,j,k
+
+    if(ndx == 4) then
+      do k = 1,kmax
+        do j = 2,j1
+          do i = 2,i1
+            v2f(i,j,k) = 0.125 * v2f(i-2,j,k) + 0.25 * v2f(i-1,j,k) + 0.25 * v2f(i,j,k) + 0.25 * v2f(i+1,j,k) + 0.125 * v2f(i+1,j,k)
+            v2f(i,j,k) = 0.125 * v2f(i,j-2,k) + 0.25 * v2f(i,j-1,k) + 0.25 * v2f(i,j,k) + 0.25 * v2f(i,j+2,k) + 0.125 * v2f(i,j+2,k)
+          end do
+        end do
+      end do
+    elseif(ndx == 2) then
+      do k = 1,kmax
+        do j = 2,j1
+          do i = 2,i1
+            v2f(i,j,k) = 0.25 * v2f(i-1,j,k) + 0.5 * v2f(i,j,k) + 0.25 * v2f(i+1,j,k)
+            v2f(i,j,k) = 0.25 * v2f(i,j-1,k) + 0.5 * v2f(i,j,k) + 0.25 * v2f(i,j+1,k)
+          end do
+        end do
+      end do
+    end if
+
+    return
+  end subroutine filter
+
   subroutine closure
 
 !-----------------------------------------------------------------|
@@ -209,6 +244,13 @@ contains
 
   real    :: strain,mlen
   integer :: i,j,k,kp,km,jp,jm
+
+  !CvH Dynamic subgrid model variables
+  real, allocatable :: u_bar(:,:), v_bar(:,:), w_bar(:,:)
+  real, allocatable :: u_hat(:,:), v_hat(:,:), w_hat(:,:)
+  real, allocatable :: L11(:,:), L12(:,:), L13(:,:), L22(:,:), L23(:,:), L33(:,:)
+  real, allocatable :: Q11(:,:), Q12(:,:), Q13(:,:), Q22(:,:), Q23(:,:), Q33(:,:)
+  
 
 !********************************************************************
 !*********************************************************************
@@ -318,6 +360,97 @@ contains
     end do
     end do
     end do
+  elseif(ldynsub) then
+    ! CvH dynamic subgrid model
+    ! go through the model layer by layer
+    allocate(u_bar(2-ih:i1+ih,2-jh:j1+jh))
+    allocate(v_bar(2-ih:i1+ih,2-jh:j1+jh))
+    allocate(w_bar(2-ih:i1+ih,2-jh:j1+jh))
+    allocate(u_hat(2-ih:i1+ih,2-jh:j1+jh))
+    allocate(v_hat(2-ih:i1+ih,2-jh:j1+jh))
+    allocate(w_hat(2-ih:i1+ih,2-jh:j1+jh))
+    
+    allocate(L11(2-ih:i1+ih,2-jh:j1+jh))
+    allocate(L12(2-ih:i1+ih,2-jh:j1+jh))
+    allocate(L13(2-ih:i1+ih,2-jh:j1+jh))
+    allocate(L22(2-ih:i1+ih,2-jh:j1+jh))
+    allocate(L23(2-ih:i1+ih,2-jh:j1+jh))
+    allocate(L33(2-ih:i1+ih,2-jh:j1+jh))
+
+    allocate(Q11(2-ih:i1+ih,2-jh:j1+jh))
+    allocate(Q12(2-ih:i1+ih,2-jh:j1+jh))
+    allocate(Q13(2-ih:i1+ih,2-jh:j1+jh))
+    allocate(Q22(2-ih:i1+ih,2-jh:j1+jh))
+    allocate(Q23(2-ih:i1+ih,2-jh:j1+jh))
+    allocate(Q33(2-ih:i1+ih,2-jh:j1+jh)) 
+
+    ! Unstagger the grid
+    do k = 1,kmax
+      do j = 2 - jh,j1 + jh - 1
+        do i = 2 - ih,i1 + ih - 1
+          u_bar(i,j) = 0.5 * (u0(i,j,k) + u0(i+1,j,k))
+          v_bar(i,j) = 0.5 * (v0(i,j,k) + v0(i,j+1,k))
+          w_bar(i,j) = 0.5 * (w0(i,j,k) + w0(i,j,k+1))
+        end do
+      end do
+    end do
+    
+    u_hat(:,:) = u_bar(:,:)
+    v_hat(:,:) = v_bar(:,:)
+    w_hat(:,:) = w_bar(:,:)
+
+    L11(:,:) = u_bar(:,:) * u_bar(:,:)
+    L12(:,:) = u_bar(:,:) * v_bar(:,:)
+    L13(:,:) = u_bar(:,:) * w_bar(:,:)
+    L22(:,:) = v_bar(:,:) * v_bar(:,:)
+    L23(:,:) = v_bar(:,:) * w_bar(:,:)
+    L33(:,:) = w_bar(:,:) * w_bar(:,:)
+
+    Q11(:,:) = u_bar(:,:) * u_bar(:,:)
+    Q12(:,:) = u_bar(:,:) * v_bar(:,:)
+    Q13(:,:) = u_bar(:,:) * w_bar(:,:)
+    Q22(:,:) = v_bar(:,:) * v_bar(:,:)
+    Q23(:,:) = v_bar(:,:) * w_bar(:,:)
+    Q33(:,:) = w_bar(:,:) * w_bar(:,:)
+
+    ! filter the variable at twice the grid size
+    call filter(u_bar,2)
+    call filter(v_bar,2)
+    call filter(w_bar,2)
+
+    ! follow Bou-Zeid, 2005
+    call filter(L11,2)
+    L11(:,:) = L11(:,:) - u_bar(:,:)*u_bar(:,:)
+    call filter(L12,2)
+    L12(:,:) = L12(:,:) - u_bar(:,:)*v_bar(:,:)
+    call filter(L13,2)
+    L13(:,:) = L13(:,:) - u_bar(:,:)*w_bar(:,:)
+    call filter(L22,2)
+    L22(:,:) = L22(:,:) - v_bar(:,:)*v_bar(:,:)
+    call filter(L23,2)
+    L23(:,:) = L23(:,:) - v_bar(:,:)*w_bar(:,:)
+    call filter(L33,2)
+    L33(:,:) = L33(:,:) - w_bar(:,:)*w_bar(:,:)
+
+    ! filter the variable at four times the grid size
+    call filter(u_hat,4)
+    call filter(v_hat,4)
+    call filter(w_hat,4)
+
+    ! follow Bou-Zeid, 2005
+    call filter(Q11,4)
+    Q11(:,:) = Q11(:,:) - u_hat(:,:)*u_hat(:,:)
+    call filter(Q12,4)
+    Q12(:,:) = Q12(:,:) - u_hat(:,:)*v_hat(:,:)
+    call filter(Q13,4)
+    Q13(:,:) = Q13(:,:) - u_hat(:,:)*w_hat(:,:)
+    call filter(Q22,4)
+    Q22(:,:) = Q22(:,:) - v_hat(:,:)*v_hat(:,:)
+    call filter(Q23,4)
+    Q23(:,:) = Q23(:,:) - v_hat(:,:)*w_hat(:,:)
+    call filter(Q33,4)
+    Q33(:,:) = Q33(:,:) - w_hat(:,:)*w_hat(:,:)
+
   else
     do k=1,kmax
     do j=2,j1

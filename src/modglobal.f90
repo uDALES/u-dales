@@ -236,12 +236,12 @@ contains
       jh = 3
       kh = 1
     elseif (any(advarr==iadv_kappa).or.any(iadv_sv(1:nsv)==iadv_kappa)) then
-      ih = 2
-      jh = 2
+      ih = 3
+      jh = 3
       kh = 1
     elseif (any(advarr==iadv_cd2).or.any(iadv_sv(1:nsv)==iadv_cd2)) then
-      ih = 1
-      jh = 1
+      ih = 3
+      jh = 3
       kh = 1
     end if
     ncosv = max(2*nsv-3,0)
