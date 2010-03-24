@@ -59,14 +59,13 @@ contains
 !                                                                 |
 !-----------------------------------------------------------------|
 
-  use modglobal, only : i1,j1,kmax,dzh,dzf,grav,pi,dx,zf
+  use modglobal, only : i1,j1,kmax,dzh,dzf,grav
   use modfields, only : u0,v0,w0,up,vp,wp,thv0h,dpdxl,dpdyl
   use modsurfdata,only : thvs
   use moduser,   only : force_user
   implicit none
 
-  integer  :: i, j, k, jm, jp, km, kp
-  real     :: Cc, ac, hc
+  integer i, j, k, jm, jp, km, kp
 
   if (lforce_user) call force_user
 
@@ -107,26 +106,6 @@ contains
   end do
   end do
 !     ----------------------------------------------end i,j-loop
-
-
-  !CvH add canopy stress as a test
-
-  hc = 4.*dx
-  Cc = 0.8
-  do k = 1,kmax
-    do j = 2,j1
-      do i = 2,i1
-        if(zf(k) < hc) then
-          ac = cos(pi * zf(k) / (2. * hc))**2.
-        else
-          ac = 0.
-        end if
-        up(i,j,k) = up(i,j,k) - Cc * ac * sqrt(u0(i,j,k)**2. + v0(i,j,k)**2.) * u0(i,j,k)
-        vp(i,j,k) = vp(i,j,k) - Cc * ac * sqrt(u0(i,j,k)**2. + v0(i,j,k)**2.) * v0(i,j,k)
-        !if(i == 2 .and. j == 2) write(6,*) "CvH: ", Cc, ac
-      end do
-    end do
-  end do
 
 
   return
