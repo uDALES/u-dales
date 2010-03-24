@@ -618,7 +618,7 @@ contains
           gradient(2:k1) = abs(profile(2:k1) - profile(1:kmax))/dzh(2:k1)
           dgrad(2:kmax)    = (gradient(3:k1) - gradient(2:kmax))/dzf(2:kmax)
           location = maxloc(gradient,1)
-          zil  = zil + nsamp*(zh(location-1) - dzh(location)*dgrad(location-1)/(dgrad(location)-dgrad(location-1)))
+          zil  = zil + nsamp*(zh(location-1) - dzh(location)*dgrad(location-1)/(dgrad(location)-dgrad(location-1) + 1.e-8))
         enddo
       enddo
     case (iblh_thres)
