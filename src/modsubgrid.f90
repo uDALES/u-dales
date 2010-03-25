@@ -248,8 +248,17 @@ contains
   !CvH Dynamic subgrid model variables
   real, allocatable :: u_bar(:,:), v_bar(:,:), w_bar(:,:)
   real, allocatable :: u_hat(:,:), v_hat(:,:), w_hat(:,:)
+  real, allocatable :: S11(:,:), S12(:,:), S13(:,:), S22(:,:), S23(:,:), S33(:,:)
+  real, allocatable :: S11_bar(:,:), S12_bar(:,:), S13_bar(:,:), S22_bar(:,:), S23_bar(:,:), S33_bar(:,:)
+  real, allocatable :: S11_hat(:,:), S12_hat(:,:), S13_hat(:,:), S22_hat(:,:), S23_hat(:,:), S33_hat(:,:)
+  real, allocatable :: S_S11_bar(:,:), S_S12_bar(:,:), S_S13_bar(:,:), S_S22_bar(:,:), S_S23_bar(:,:), S_S33_bar(:,:)
+  real, allocatable :: S_S11_hat(:,:), S_S12_hat(:,:), S_S13_hat(:,:), S_S22_hat(:,:), S_S23_hat(:,:), S_S33_hat(:,:)
+  real, allocatable :: S_bar(:,:), S_hat(:,:)
   real, allocatable :: L11(:,:), L12(:,:), L13(:,:), L22(:,:), L23(:,:), L33(:,:)
   real, allocatable :: Q11(:,:), Q12(:,:), Q13(:,:), Q22(:,:), Q23(:,:), Q33(:,:)
+  real, allocatable :: M11(:,:), M12(:,:), M13(:,:), M22(:,:), M23(:,:), M33(:,:)
+  real, allocatable :: N11(:,:), N12(:,:), N13(:,:), N22(:,:), N23(:,:), N33(:,:)
+  real, allocatable :: LM(:,:), MM(:,:), QN(:,:), NN(:,:)
   
 
 !********************************************************************
@@ -363,6 +372,8 @@ contains
   elseif(ldynsub) then
     ! CvH dynamic subgrid model
     ! go through the model layer by layer
+    do k = 1,kmax
+    
     allocate(u_bar(2-ih:i1+ih,2-jh:j1+jh))
     allocate(v_bar(2-ih:i1+ih,2-jh:j1+jh))
     allocate(w_bar(2-ih:i1+ih,2-jh:j1+jh))
@@ -385,13 +396,29 @@ contains
     allocate(Q33(2-ih:i1+ih,2-jh:j1+jh)) 
 
     ! Unstagger the grid
-    do k = 1,kmax
-      do j = 2 - jh,j1 + jh - 1
-        do i = 2 - ih,i1 + ih - 1
-          u_bar(i,j) = 0.5 * (u0(i,j,k) + u0(i+1,j,k))
-          v_bar(i,j) = 0.5 * (v0(i,j,k) + v0(i,j+1,k))
-          w_bar(i,j) = 0.5 * (w0(i,j,k) + w0(i,j,k+1))
-        end do
+    do j = 2 - jh,j1 + jh - 1
+      do i = 2 - ih,i1 + ih - 1
+        u_bar(i,j) = 0.5 * (u0(i,j,k) + u0(i+1,j,k))
+        v_bar(i,j) = 0.5 * (v0(i,j,k) + v0(i,j+1,k))
+        w_bar(i,j) = 0.5 * (w0(i,j,k) + w0(i,j,k+1))
+      end do
+    end do
+    
+    !calculate strain components on non-staggered grid
+    do j = 2 - jh,j1 + jh - 1
+      do i = 2 - ih,i1 + ih - 1
+        S11(i,j) =  0.5 * ( (u0(i,j,k) - u0(i+1,j,k)) * dxi 
+          & + (u0(i,j,k) - u0(i+1,j,k)) * dxi )          ! dudx + dudx
+        S12(i,j) = 0.5 * ( (u0(i,j,k) - u0(i+1,j,k)) * dxi 
+          & + (u0(i,j,k) - u0(i+1,j,k)) * dxi )         ! dudy + dvdx
+        S13(i,j) = 0.5 * ( (u0(i,j,k) - u0(i+1,j,k)) * dxi 
+          & + (u0(i,j,k) - u0(i+1,j,k)) * dxi )         ! dudz + dwdx
+        S22(i,j) = 0.5 * ( (u0(i,j,k) - u0(i+1,j,k)) * dxi 
+          & + (u0(i,j,k) - u0(i+1,j,k)) * dxi )         ! dvdy + dvdy
+        S23(i,j) = 0.5 * ( (u0(i,j,k) - u0(i+1,j,k)) * dxi 
+          & + (u0(i,j,k) - u0(i+1,j,k)) * dxi )         ! dvdz + dwdy
+        S33(i,j) = 0.5 * ( (w0(i,j,k) - w0(i,j,k+1)) * dzf(k)
+          & +(w0(i,j,k) - w0(i,j,k+1)) * dzf(k) )       ! dwdz + dwdz
       end do
     end do
     
@@ -450,6 +477,8 @@ contains
     Q23(:,:) = Q23(:,:) - v_hat(:,:)*w_hat(:,:)
     call filter(Q33,4)
     Q33(:,:) = Q33(:,:) - w_hat(:,:)*w_hat(:,:)
+
+
 
   else
     do k=1,kmax
