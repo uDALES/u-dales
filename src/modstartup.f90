@@ -320,7 +320,7 @@ contains
                                   v0av,u0av,qt0av,ql0av,thl0av,sv0av,exnf,exnh,presf,presh,rhof,&
                                   thlpcar
     use modglobal,         only : i1,i2,ih,j1,j2,jh,kmax,k1,dtmax,idtmax,dt,rdt,runtime,timeleft,tres,rtimee,timee,ntimee,ntrun,btime,nsv,&
-                                  zf,dzf,dzh,rv,rd,grav,cp,rlv,pref0,om23_gs,&
+                                  zf,zh,dzf,dzh,rv,rd,grav,cp,rlv,pref0,om23_gs,&
                                   rslabs,cu,cv,e12min,dzh,dtheta,dqt,dsv,cexpnr,ifinput,lwarmstart,itrestart,trestart, ladaptive,llsadv,tnextrestart
     use modsubgrid,        only : ekm,ekh
     use modsurfdata,       only : wtsurf,wqsurf,wsvsurf, &
@@ -610,8 +610,8 @@ contains
 !******include rho if rho = rho(z) /= 1.0 ***********
 
     do k=1,kmax
-      dpdxl(k) =  om23_gs*vg(k)
-      dpdyl(k) = -om23_gs*ug(k)
+      dpdxl(k) = -ustin**2. / zh(k1) ! om23_gs*vg(k)
+      dpdyl(k) = 0. !-om23_gs*ug(k)
     end do
 
   !-----------------------------------------------------------------

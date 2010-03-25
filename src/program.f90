@@ -164,7 +164,7 @@ program DALES      !Version 3.2 RC 1
 !-----------------------------------------------------
 !   3.4   REMAINING TERMS
 !-----------------------------------------------------
-    call coriolis !remaining terms of ns equation
+    !call coriolis !remaining terms of ns equation
     call stattend(tend_coriolis)
     call forces !remaining terms of ns equation
     call stattend(tend_force)

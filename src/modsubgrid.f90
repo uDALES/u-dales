@@ -63,6 +63,23 @@ public :: ldelta, lmason,lsmagorinsky,cf, Rigc,prandtl, cm, cn, ch1, ch2, ce1, c
   real, allocatable :: sbbuo(:,:,:) !< buoyancy production / destruction
   real, allocatable :: zlt(:,:,:)  !<   filter width
 
+  !CvH Allocate
+  !CvH Dynamic subgrid model variables
+  real, allocatable :: u_bar(:,:), v_bar(:,:), w_bar(:,:)
+  real, allocatable :: u_hat(:,:), v_hat(:,:), w_hat(:,:)
+  real, allocatable :: S11(:,:), S12(:,:), S13(:,:), S22(:,:), S23(:,:), S33(:,:)
+  real, allocatable :: S11_bar(:,:), S12_bar(:,:), S13_bar(:,:), S22_bar(:,:), S23_bar(:,:), S33_bar(:,:)
+  real, allocatable :: S11_hat(:,:), S12_hat(:,:), S13_hat(:,:), S22_hat(:,:), S23_hat(:,:), S33_hat(:,:)
+  real, allocatable :: S_S11_bar(:,:), S_S12_bar(:,:), S_S13_bar(:,:), S_S22_bar(:,:), S_S23_bar(:,:), S_S33_bar(:,:)
+  real, allocatable :: S_S11_hat(:,:), S_S12_hat(:,:), S_S13_hat(:,:), S_S22_hat(:,:), S_S23_hat(:,:), S_S33_hat(:,:)
+  real, allocatable :: S(:,:), S_bar(:,:), S_hat(:,:)
+  real, allocatable :: L11(:,:), L12(:,:), L13(:,:), L22(:,:), L23(:,:), L33(:,:)
+  real, allocatable :: Q11(:,:), Q12(:,:), Q13(:,:), Q22(:,:), Q23(:,:), Q33(:,:)
+  real, allocatable :: M11(:,:), M12(:,:), M13(:,:), M22(:,:), M23(:,:), M33(:,:)
+  real, allocatable :: N11(:,:), N12(:,:), N13(:,:), N22(:,:), N23(:,:), N33(:,:)
+  real, allocatable :: LM(:,:), MM(:,:), QN(:,:), NN(:,:)
+
+
 contains
   subroutine initsubgrid
     use modglobal, only : ih,i1,jh,j1,k1,&
@@ -136,6 +153,88 @@ contains
       write (6,*) 'Rigc  = ',Rigc
     endif
 
+    !CvH init dynamic subgrid model
+    if(ldynsub) then
+      allocate(u_bar(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(v_bar(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(w_bar(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(u_hat(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(v_hat(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(w_hat(2-ih:i1+ih,2-jh:j1+jh))
+      
+      allocate(S11(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S12(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S13(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S22(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S23(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S33(2-ih:i1+ih,2-jh:j1+jh)) 
+      
+      allocate(S11_bar(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S12_bar(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S13_bar(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S22_bar(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S23_bar(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S33_bar(2-ih:i1+ih,2-jh:j1+jh)) 
+      
+      allocate(S11_hat(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S12_hat(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S13_hat(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S22_hat(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S23_hat(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S33_hat(2-ih:i1+ih,2-jh:j1+jh)) 
+       
+      allocate(S_S11_bar(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S_S12_bar(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S_S13_bar(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S_S22_bar(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S_S23_bar(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S_S33_bar(2-ih:i1+ih,2-jh:j1+jh)) 
+      
+      allocate(S_S11_hat(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S_S12_hat(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S_S13_hat(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S_S22_hat(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S_S23_hat(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S_S33_hat(2-ih:i1+ih,2-jh:j1+jh)) 
+  
+      allocate(S(2-ih:i1+ih,2-jh:j1+jh)) 
+      allocate(S_bar(2-ih:i1+ih,2-jh:j1+jh)) 
+      allocate(S_hat(2-ih:i1+ih,2-jh:j1+jh)) 
+      
+      allocate(L11(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(L12(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(L13(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(L22(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(L23(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(L33(2-ih:i1+ih,2-jh:j1+jh))
+  
+      allocate(Q11(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(Q12(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(Q13(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(Q22(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(Q23(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(Q33(2-ih:i1+ih,2-jh:j1+jh)) 
+  
+      allocate(M11(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(M12(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(M13(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(M22(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(M23(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(M33(2-ih:i1+ih,2-jh:j1+jh)) 
+  
+      allocate(N11(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(N12(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(N13(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(N22(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(N23(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(N33(2-ih:i1+ih,2-jh:j1+jh)) 
+  
+      allocate(LM(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(MM(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(QN(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(NN(2-ih:i1+ih,2-jh:j1+jh))
+    end if
+   
 !
   end subroutine initsubgrid
   subroutine subgrid
@@ -159,7 +258,7 @@ contains
     do n=1,nsv
       call diffc(sv0(:,:,:,n),svp(:,:,:,n),svflux(:,:,n))
     end do
-    if (.not. lsmagorinsky) call sources
+    if ((.not. lsmagorinsky) .and. (.not. ldynsub)) call sources
   end subroutine
 
   subroutine exitsubgrid
@@ -174,27 +273,30 @@ contains
     implicit none
 
     integer, intent(in)    :: ndx
-    real,    intent(inout) :: v2f(2-ih:i1+ih,2-jh:j1+jh,k1)
-    integer                :: i,j,k
+    real,    intent(inout) :: v2f(2-ih:i1+ih,2-jh:j1+jh)
+    real                   :: v2fin(2-ih:i1+ih,2-jh:j1+jh)
+    integer                :: i,j
+
+    v2fin(:,:) = v2f(:,:)
 
     if(ndx == 4) then
-      do k = 1,kmax
+      !do k = 1,kmax
         do j = 2,j1
           do i = 2,i1
-            v2f(i,j,k) = 0.125 * v2f(i-2,j,k) + 0.25 * v2f(i-1,j,k) + 0.25 * v2f(i,j,k) + 0.25 * v2f(i+1,j,k) + 0.125 * v2f(i+1,j,k)
-            v2f(i,j,k) = 0.125 * v2f(i,j-2,k) + 0.25 * v2f(i,j-1,k) + 0.25 * v2f(i,j,k) + 0.25 * v2f(i,j+2,k) + 0.125 * v2f(i,j+2,k)
+            v2f(i,j) = 0.125 * v2fin(i-2,j) + 0.25 * v2fin(i-1,j) + 0.25 * v2fin(i,j) + 0.25 * v2fin(i+1,j) + 0.125 * v2fin(i+2,j)
+            v2f(i,j) = 0.125 * v2fin(i,j-2) + 0.25 * v2fin(i,j-1) + 0.25 * v2fin(i,j) + 0.25 * v2fin(i,j+2) + 0.125 * v2fin(i,j+2)
           end do
         end do
-      end do
+      !end do
     elseif(ndx == 2) then
-      do k = 1,kmax
+      !do k = 1,kmax
         do j = 2,j1
           do i = 2,i1
-            v2f(i,j,k) = 0.25 * v2f(i-1,j,k) + 0.5 * v2f(i,j,k) + 0.25 * v2f(i+1,j,k)
-            v2f(i,j,k) = 0.25 * v2f(i,j-1,k) + 0.5 * v2f(i,j,k) + 0.25 * v2f(i,j+1,k)
+            v2f(i,j) = 0.25 * v2fin(i-1,j) + 0.5 * v2fin(i,j) + 0.25 * v2fin(i+1,j)
+            v2f(i,j) = 0.25 * v2fin(i,j-1) + 0.5 * v2fin(i,j) + 0.25 * v2fin(i,j+1)
           end do
         end do
-      end do
+      !end do
     end if
 
     return
@@ -245,20 +347,22 @@ contains
   real    :: strain,mlen
   integer :: i,j,k,kp,km,jp,jm
 
-  !CvH Dynamic subgrid model variables
-  real, allocatable :: u_bar(:,:), v_bar(:,:), w_bar(:,:)
-  real, allocatable :: u_hat(:,:), v_hat(:,:), w_hat(:,:)
-  real, allocatable :: S11(:,:), S12(:,:), S13(:,:), S22(:,:), S23(:,:), S33(:,:)
-  real, allocatable :: S11_bar(:,:), S12_bar(:,:), S13_bar(:,:), S22_bar(:,:), S23_bar(:,:), S33_bar(:,:)
-  real, allocatable :: S11_hat(:,:), S12_hat(:,:), S13_hat(:,:), S22_hat(:,:), S23_hat(:,:), S33_hat(:,:)
-  real, allocatable :: S_S11_bar(:,:), S_S12_bar(:,:), S_S13_bar(:,:), S_S22_bar(:,:), S_S23_bar(:,:), S_S33_bar(:,:)
-  real, allocatable :: S_S11_hat(:,:), S_S12_hat(:,:), S_S13_hat(:,:), S_S22_hat(:,:), S_S23_hat(:,:), S_S33_hat(:,:)
-  real, allocatable :: S_bar(:,:), S_hat(:,:)
-  real, allocatable :: L11(:,:), L12(:,:), L13(:,:), L22(:,:), L23(:,:), L33(:,:)
-  real, allocatable :: Q11(:,:), Q12(:,:), Q13(:,:), Q22(:,:), Q23(:,:), Q33(:,:)
-  real, allocatable :: M11(:,:), M12(:,:), M13(:,:), M22(:,:), M23(:,:), M33(:,:)
-  real, allocatable :: N11(:,:), N12(:,:), N13(:,:), N22(:,:), N23(:,:), N33(:,:)
-  real, allocatable :: LM(:,:), MM(:,:), QN(:,:), NN(:,:)
+  !!!!CvH Dynamic subgrid model variables
+  !!!real, allocatable :: u_bar(:,:), v_bar(:,:), w_bar(:,:)
+  !!!real, allocatable :: u_hat(:,:), v_hat(:,:), w_hat(:,:)
+  !!!real, allocatable :: S11(:,:), S12(:,:), S13(:,:), S22(:,:), S23(:,:), S33(:,:)
+  !!!real, allocatable :: S11_bar(:,:), S12_bar(:,:), S13_bar(:,:), S22_bar(:,:), S23_bar(:,:), S33_bar(:,:)
+  !!!real, allocatable :: S11_hat(:,:), S12_hat(:,:), S13_hat(:,:), S22_hat(:,:), S23_hat(:,:), S33_hat(:,:)
+  !!!real, allocatable :: S_S11_bar(:,:), S_S12_bar(:,:), S_S13_bar(:,:), S_S22_bar(:,:), S_S23_bar(:,:), S_S33_bar(:,:)
+  !!!real, allocatable :: S_S11_hat(:,:), S_S12_hat(:,:), S_S13_hat(:,:), S_S22_hat(:,:), S_S23_hat(:,:), S_S33_hat(:,:)
+  !!!real, allocatable :: S(:,:), S_bar(:,:), S_hat(:,:)
+  !!!real, allocatable :: L11(:,:), L12(:,:), L13(:,:), L22(:,:), L23(:,:), L33(:,:)
+  !!!real, allocatable :: Q11(:,:), Q12(:,:), Q13(:,:), Q22(:,:), Q23(:,:), Q33(:,:)
+  !!!real, allocatable :: M11(:,:), M12(:,:), M13(:,:), M22(:,:), M23(:,:), M33(:,:)
+  !!!real, allocatable :: N11(:,:), N12(:,:), N13(:,:), N22(:,:), N23(:,:), N33(:,:)
+  !!!real, allocatable :: LM(:,:), MM(:,:), QN(:,:), NN(:,:)
+
+  real              :: const
   
 
 !********************************************************************
@@ -373,111 +477,305 @@ contains
     ! CvH dynamic subgrid model
     ! go through the model layer by layer
     do k = 1,kmax
-    
-    allocate(u_bar(2-ih:i1+ih,2-jh:j1+jh))
-    allocate(v_bar(2-ih:i1+ih,2-jh:j1+jh))
-    allocate(w_bar(2-ih:i1+ih,2-jh:j1+jh))
-    allocate(u_hat(2-ih:i1+ih,2-jh:j1+jh))
-    allocate(v_hat(2-ih:i1+ih,2-jh:j1+jh))
-    allocate(w_hat(2-ih:i1+ih,2-jh:j1+jh))
-    
-    allocate(L11(2-ih:i1+ih,2-jh:j1+jh))
-    allocate(L12(2-ih:i1+ih,2-jh:j1+jh))
-    allocate(L13(2-ih:i1+ih,2-jh:j1+jh))
-    allocate(L22(2-ih:i1+ih,2-jh:j1+jh))
-    allocate(L23(2-ih:i1+ih,2-jh:j1+jh))
-    allocate(L33(2-ih:i1+ih,2-jh:j1+jh))
-
-    allocate(Q11(2-ih:i1+ih,2-jh:j1+jh))
-    allocate(Q12(2-ih:i1+ih,2-jh:j1+jh))
-    allocate(Q13(2-ih:i1+ih,2-jh:j1+jh))
-    allocate(Q22(2-ih:i1+ih,2-jh:j1+jh))
-    allocate(Q23(2-ih:i1+ih,2-jh:j1+jh))
-    allocate(Q33(2-ih:i1+ih,2-jh:j1+jh)) 
-
-    ! Unstagger the grid
-    do j = 2 - jh,j1 + jh - 1
-      do i = 2 - ih,i1 + ih - 1
-        u_bar(i,j) = 0.5 * (u0(i,j,k) + u0(i+1,j,k))
-        v_bar(i,j) = 0.5 * (v0(i,j,k) + v0(i,j+1,k))
-        w_bar(i,j) = 0.5 * (w0(i,j,k) + w0(i,j,k+1))
+      
+      !!allocate(u_bar(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(v_bar(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(w_bar(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(u_hat(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(v_hat(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(w_hat(2-ih:i1+ih,2-jh:j1+jh))
+      !!
+      !!allocate(S11(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(S12(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(S13(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(S22(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(S23(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(S33(2-ih:i1+ih,2-jh:j1+jh)) 
+      !!
+      !!allocate(S11_bar(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(S12_bar(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(S13_bar(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(S22_bar(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(S23_bar(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(S33_bar(2-ih:i1+ih,2-jh:j1+jh)) 
+      !!
+      !!allocate(S11_hat(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(S12_hat(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(S13_hat(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(S22_hat(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(S23_hat(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(S33_hat(2-ih:i1+ih,2-jh:j1+jh)) 
+      !! 
+      !!allocate(S_S11_bar(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(S_S12_bar(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(S_S13_bar(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(S_S22_bar(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(S_S23_bar(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(S_S33_bar(2-ih:i1+ih,2-jh:j1+jh)) 
+      !!
+      !!allocate(S_S11_hat(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(S_S12_hat(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(S_S13_hat(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(S_S22_hat(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(S_S23_hat(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(S_S33_hat(2-ih:i1+ih,2-jh:j1+jh)) 
+  
+      !!allocate(S(2-ih:i1+ih,2-jh:j1+jh)) 
+      !!allocate(S_bar(2-ih:i1+ih,2-jh:j1+jh)) 
+      !!allocate(S_hat(2-ih:i1+ih,2-jh:j1+jh)) 
+      !!
+      !!allocate(L11(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(L12(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(L13(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(L22(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(L23(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(L33(2-ih:i1+ih,2-jh:j1+jh))
+  
+      !!allocate(Q11(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(Q12(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(Q13(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(Q22(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(Q23(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(Q33(2-ih:i1+ih,2-jh:j1+jh)) 
+  
+      !!allocate(M11(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(M12(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(M13(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(M22(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(M23(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(M33(2-ih:i1+ih,2-jh:j1+jh)) 
+  
+      !!allocate(N11(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(N12(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(N13(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(N22(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(N23(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(N33(2-ih:i1+ih,2-jh:j1+jh)) 
+  
+      !!allocate(LM(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(MM(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(QN(2-ih:i1+ih,2-jh:j1+jh))
+      !!allocate(NN(2-ih:i1+ih,2-jh:j1+jh))
+      
+      ! Unstagger the grid
+      do j = 2 - jh,j1 + jh - 1
+        do i = 2 - ih,i1 + ih - 1
+          u_bar(i,j) = 0.5 * (u0(i,j,k) + u0(i+1,j,k))
+          v_bar(i,j) = 0.5 * (v0(i,j,k) + v0(i,j+1,k))
+          w_bar(i,j) = 0.5 * (w0(i,j,k) + w0(i,j,k+1))
+        end do
       end do
+      
+      if(k < 2) write(6,*) "ba0", k,u_bar(2,2),u_bar(3,2),u_bar(4,2),u_bar(5,2),u_bar(6,2),u_bar(7,2)
+      !calculate strain components on non-staggered grid
+
+      ! FIX FOR NONEQUIDISTANT GRID!!!
+      if(k == 1) then
+        do j = 2 - jh + 1,j1 + jh - 1
+          do i = 2 - ih + 1,i1 + ih - 1
+            S11(i,j) =  0.5 * ( (u0(i+1,j,k) - u0(i,j,k)) * dxi &
+              + (u0(i,j,k) - u0(i+1,j,k)) * dxi )          ! dudx + dudx
+  
+            S12(i,j) = 0.5 * ( 0.25*(u0(i,j+1,k)+u0(i+1,j+1,k) - (u0(i,j-1,k)+u0(i+1,j-1,k))) * dyi &
+              + 0.25*(v0(i+1,j,k)+v0(i+1,j+1,k) - (v0(i-1,j,k)+v0(i-1,j+1,k))) * dxi )         ! dudy + dvdx
+  
+            S13(i,j) = 0.5 * ( 0.25*(u0(i,j,k+1)+u0(i+1,j,k+1)+u0(i,j,k)+u0(i+1,j,k)) / dzf(k) &
+              + 0.25*(w0(i+1,j,k)+w0(i+1,j,k+1) - (w0(i-1,j,k)+w0(i-1,j,k+1))) * dxi )         ! dudz + dwdx
+  
+            S22(i,j) = 0.5 * ( (v0(i,j+1,k) - v0(i,j,k)) * dyi &
+              + (v0(i,j+1,k) - v0(i,j,k)) * dyi )         ! dvdy + dvdy
+  
+            S23(i,j) = 0.5 * ( 0.25*(v0(i,j,k+1)+v0(i,j+1,k+1)+v0(i,j,k)+v0(i,j+1,k)) / dzf(k) &
+              + 0.25*(w0(i,j+1,k)+w0(i,j+1,k+1) - (w0(i,j-1,k)+w0(i,j-1,k+1))) * dyi )         ! dvdz + dwdy
+  
+            S33(i,j) = 0.5 * ( (w0(i,j,k) - w0(i,j,k+1)) / dzf(k) &
+              +(w0(i,j,k) - w0(i,j,k+1)) / dzf(k) )       ! dwdz + dwdz
+          end do
+        end do
+
+      else
+        do j = 2 - jh + 1,j1 + jh - 1
+          do i = 2 - ih + 1,i1 + ih - 1
+            S11(i,j) =  0.5 * ( (u0(i+1,j,k) - u0(i,j,k)) * dxi &
+              + (u0(i,j,k) - u0(i+1,j,k)) * dxi )          ! dudx + dudx
+  
+            S12(i,j) = 0.5 * ( 0.25*(u0(i,j+1,k)+u0(i+1,j+1,k) - (u0(i,j-1,k)+u0(i+1,j-1,k))) * dyi &
+              + 0.25*(v0(i+1,j,k)+v0(i+1,j+1,k) - (v0(i-1,j,k)+v0(i-1,j+1,k))) * dxi )         ! dudy + dvdx
+  
+            S13(i,j) = 0.5 * ( 0.25*(u0(i,j,k+1)+u0(i+1,j,k+1) - (u0(i,j,k-1)+u0(i+1,j,k-1))) / dzf(k) &
+              + 0.25*(w0(i+1,j,k)+w0(i+1,j,k+1) - (w0(i-1,j,k)+w0(i-1,j,k+1))) * dxi )         ! dudz + dwdx
+  
+            S22(i,j) = 0.5 * ( (v0(i,j+1,k) - v0(i,j,k)) * dyi &
+              + (v0(i,j+1,k) - v0(i,j,k)) * dyi )         ! dvdy + dvdy
+  
+            S23(i,j) = 0.5 * ( 0.25*(v0(i,j,k+1)+v0(i,j+1,k+1) - (v0(i,j,k-1)+v0(i,j+1,k-1))) / dzf(k) &
+              + 0.25*(w0(i,j+1,k)+w0(i,j+1,k+1) - (w0(i,j-1,k)+w0(i,j-1,k+1))) * dyi )         ! dvdz + dwdy
+  
+            S33(i,j) = 0.5 * ( (w0(i,j,k) - w0(i,j,k+1)) / dzf(k) &
+              +(w0(i,j,k) - w0(i,j,k+1)) / dzf(k) )       ! dwdz + dwdz
+          end do
+        end do
+      end if
+      
+      u_hat(:,:) = u_bar(:,:)
+      v_hat(:,:) = v_bar(:,:)
+      w_hat(:,:) = w_bar(:,:)
+  
+      L11(:,:) = u_bar(:,:) * u_bar(:,:)
+      L12(:,:) = u_bar(:,:) * v_bar(:,:)
+      L13(:,:) = u_bar(:,:) * w_bar(:,:)
+      L22(:,:) = v_bar(:,:) * v_bar(:,:)
+      L23(:,:) = v_bar(:,:) * w_bar(:,:)
+      L33(:,:) = w_bar(:,:) * w_bar(:,:)
+  
+      Q11(:,:) = u_bar(:,:) * u_bar(:,:)
+      Q12(:,:) = u_bar(:,:) * v_bar(:,:)
+      Q13(:,:) = u_bar(:,:) * w_bar(:,:)
+      Q22(:,:) = v_bar(:,:) * v_bar(:,:)
+      Q23(:,:) = v_bar(:,:) * w_bar(:,:)
+      Q33(:,:) = w_bar(:,:) * w_bar(:,:)
+  
+      ! filter the variable at twice the grid size
+      call filter(u_bar,2)
+      call filter(v_bar,2)
+      call filter(w_bar,2)
+  
+      ! follow Bou-Zeid, 2005
+      call filter(L11,2)
+      L11(:,:) = L11(:,:) - u_bar(:,:)*u_bar(:,:)
+      call filter(L12,2)
+      L12(:,:) = L12(:,:) - u_bar(:,:)*v_bar(:,:)
+      call filter(L13,2)
+      L13(:,:) = L13(:,:) - u_bar(:,:)*w_bar(:,:)
+      call filter(L22,2)
+      L22(:,:) = L22(:,:) - v_bar(:,:)*v_bar(:,:)
+      call filter(L23,2)
+      L23(:,:) = L23(:,:) - v_bar(:,:)*w_bar(:,:)
+      call filter(L33,2)
+      L33(:,:) = L33(:,:) - w_bar(:,:)*w_bar(:,:)
+  
+      ! filter the variable at four times the grid size
+      call filter(u_hat,4)
+      call filter(v_hat,4)
+      call filter(w_hat,4)
+  
+      ! follow Bou-Zeid, 2005
+      call filter(Q11,4)
+      Q11(:,:) = Q11(:,:) - u_hat(:,:)*u_hat(:,:)
+      call filter(Q12,4)
+      Q12(:,:) = Q12(:,:) - u_hat(:,:)*v_hat(:,:)
+      call filter(Q13,4)
+      Q13(:,:) = Q13(:,:) - u_hat(:,:)*w_hat(:,:)
+      call filter(Q22,4)
+      Q22(:,:) = Q22(:,:) - v_hat(:,:)*v_hat(:,:)
+      call filter(Q23,4)
+      Q23(:,:) = Q23(:,:) - v_hat(:,:)*w_hat(:,:)
+      call filter(Q33,4)
+      Q33(:,:) = Q33(:,:) - w_hat(:,:)*w_hat(:,:)
+  
+      S(:,:) = sqrt(2.*(S11(:,:)**2. + S22(:,:)**2. + S33(:,:)**2. + &
+        2. * (S12(:,:)**2. + S13(:,:)**2. + S23(:,:)**2.)))
+  
+      S11_bar(:,:) = S11(:,:)
+      S12_bar(:,:) = S12(:,:)
+      S13_bar(:,:) = S13(:,:)
+      S22_bar(:,:) = S22(:,:)
+      S23_bar(:,:) = S23(:,:)
+      S33_bar(:,:) = S33(:,:)
+  
+      S11_hat(:,:) = S11_bar(:,:)
+      S12_hat(:,:) = S12_bar(:,:)
+      S13_hat(:,:) = S13_bar(:,:)
+      S22_hat(:,:) = S22_bar(:,:)
+      S23_hat(:,:) = S23_bar(:,:)
+      S33_hat(:,:) = S33_bar(:,:)
+  
+      call filter(S11_bar,2)
+      call filter(S12_bar,2)
+      call filter(S13_bar,2)
+      call filter(S22_bar,2)
+      call filter(S23_bar,2)
+      call filter(S33_bar,2)
+  
+      call filter(S11_hat,4)
+      call filter(S12_hat,4)
+      call filter(S13_hat,4)
+      call filter(S22_hat,4)
+      call filter(S23_hat,4)
+      call filter(S33_hat,4)
+  
+      S_bar(:,:) = sqrt(2.*(S11_bar(:,:)**2. + S22_bar(:,:)**2. + S33_bar(:,:)**2. + &
+        2. *(S12_bar(:,:)**2. + S13_bar(:,:)**2. + S23_bar(:,:)**2.)))
+  
+      S_hat(:,:) = sqrt(2.*(S11_hat(:,:)**2. + S22_hat(:,:)**2. + S33_hat(:,:)**2. + &
+        2. *(S12_hat(:,:)**2. + S13_hat(:,:)**2. + S23_hat(:,:)**2.)))
+  
+      S_S11_bar(:,:) = S(:,:) * S11(:,:)
+      S_S12_bar(:,:) = S(:,:) * S12(:,:)
+      S_S13_bar(:,:) = S(:,:) * S13(:,:)
+      S_S22_bar(:,:) = S(:,:) * S22(:,:)
+      S_S23_bar(:,:) = S(:,:) * S23(:,:)
+      S_S33_bar(:,:) = S(:,:) * S33(:,:)
+  
+      S_S11_hat(:,:) = S_S11_bar(:,:)
+      S_S12_hat(:,:) = S_S12_bar(:,:)
+      S_S13_hat(:,:) = S_S13_bar(:,:)
+      S_S22_hat(:,:) = S_S22_bar(:,:)
+      S_S23_hat(:,:) = S_S23_bar(:,:)
+      S_S33_hat(:,:) = S_S33_bar(:,:)
+  
+      call filter(S_S11_bar,2)
+      call filter(S_S12_bar,2)
+      call filter(S_S13_bar,2)
+      call filter(S_S22_bar,2)
+      call filter(S_S23_bar,2)
+      call filter(S_S33_bar,2)
+  
+      call filter(S_S11_hat,4)
+      call filter(S_S12_hat,4)
+      call filter(S_S13_hat,4)
+      call filter(S_S22_hat,4)
+      call filter(S_S23_hat,4)
+      call filter(S_S33_hat,4)
+  
+      !Compute Mij and Nij as in Bou-Zeid, 2005
+      const = 2 * delta(k) ** 2.
+  
+      M11 = const*(S_S11_bar - 4.  * S_bar * S11_bar)
+      M12 = const*(S_S12_bar - 4.  * S_bar * S12_bar)
+      M13 = const*(S_S13_bar - 4.  * S_bar * S13_bar)
+      M22 = const*(S_S22_bar - 4.  * S_bar * S22_bar)
+      M23 = const*(S_S23_bar - 4.  * S_bar * S23_bar)
+      M33 = const*(S_S33_bar - 4.  * S_bar * S33_bar)
+  
+      N11 = const*(S_S11_hat - 16. * S_hat * S11_hat)
+      N12 = const*(S_S12_hat - 16. * S_hat * S12_hat)
+      N13 = const*(S_S13_hat - 16. * S_hat * S13_hat)
+      N22 = const*(S_S22_hat - 16. * S_hat * S22_hat)
+      N23 = const*(S_S23_hat - 16. * S_hat * S23_hat)
+      N33 = const*(S_S33_hat - 16. * S_hat * S33_hat)
+  
+      ! Contracting the tensors
+      LM  = L11*M11 + L22*M22 + L33*M33 + 2. * (L12*M12 + L13*M13 + L23*M23)
+      MM  = M11*M11 + M22*M22 + M33*M33 + 2. * (M12*M12 + M13*M13 + M23*M23)
+      
+      QN  = Q11*N11 + Q22*N22 + Q33*N33 + 2. * (Q12*N12 + Q13*N13 + Q23*N23)
+      NN  = N11*N11 + N22*N22 + N33*N33 + 2. * (N12*N12 + N13*N13 + N23*N23)
+
+      NN  = max(1.e-10, NN)
+      MM  = max(1.e-10, MM)
+
+      if(k < 2) write(6,*) k, "cs4 = ", maxval(QN(2:i1,2:j1) / NN(2:i1,2:j1)), "cs2 = ", maxval(LM(2:i1,2:j1) / MM(2:i1,2:j1))
+      if(k < 2) write(6,*) "ori", k, u0(2,2,1),u0(3,2,1),u0(4,2,1),u0(5,2,1),u0(6,2,1),u0(7,2,1)
+      if(k < 2) write(6,*) "bar", k,u_bar(2,2),u_bar(3,2),u_bar(4,2),u_bar(5,2),u_bar(6,2),u_bar(7,2)
+      if(k < 2) write(6,*) "hat", k,u_hat(2,2),u_hat(3,2),u_hat(4,2),u_hat(5,2),u_hat(6,2),u_hat(7,2)
+
+      mlen        = cs * delta(k)
+      
+      ekm(:,:,k)  = mlen ** 2. * S(:,:)
+      ekh(:,:,k)  = ekm(i,j,k) / prandtl
+ 
     end do
-    
-    !calculate strain components on non-staggered grid
-    do j = 2 - jh,j1 + jh - 1
-      do i = 2 - ih,i1 + ih - 1
-        S11(i,j) =  0.5 * ( (u0(i,j,k) - u0(i+1,j,k)) * dxi 
-          & + (u0(i,j,k) - u0(i+1,j,k)) * dxi )          ! dudx + dudx
-        S12(i,j) = 0.5 * ( (u0(i,j,k) - u0(i+1,j,k)) * dxi 
-          & + (u0(i,j,k) - u0(i+1,j,k)) * dxi )         ! dudy + dvdx
-        S13(i,j) = 0.5 * ( (u0(i,j,k) - u0(i+1,j,k)) * dxi 
-          & + (u0(i,j,k) - u0(i+1,j,k)) * dxi )         ! dudz + dwdx
-        S22(i,j) = 0.5 * ( (u0(i,j,k) - u0(i+1,j,k)) * dxi 
-          & + (u0(i,j,k) - u0(i+1,j,k)) * dxi )         ! dvdy + dvdy
-        S23(i,j) = 0.5 * ( (u0(i,j,k) - u0(i+1,j,k)) * dxi 
-          & + (u0(i,j,k) - u0(i+1,j,k)) * dxi )         ! dvdz + dwdy
-        S33(i,j) = 0.5 * ( (w0(i,j,k) - w0(i,j,k+1)) * dzf(k)
-          & +(w0(i,j,k) - w0(i,j,k+1)) * dzf(k) )       ! dwdz + dwdz
-      end do
-    end do
-    
-    u_hat(:,:) = u_bar(:,:)
-    v_hat(:,:) = v_bar(:,:)
-    w_hat(:,:) = w_bar(:,:)
-
-    L11(:,:) = u_bar(:,:) * u_bar(:,:)
-    L12(:,:) = u_bar(:,:) * v_bar(:,:)
-    L13(:,:) = u_bar(:,:) * w_bar(:,:)
-    L22(:,:) = v_bar(:,:) * v_bar(:,:)
-    L23(:,:) = v_bar(:,:) * w_bar(:,:)
-    L33(:,:) = w_bar(:,:) * w_bar(:,:)
-
-    Q11(:,:) = u_bar(:,:) * u_bar(:,:)
-    Q12(:,:) = u_bar(:,:) * v_bar(:,:)
-    Q13(:,:) = u_bar(:,:) * w_bar(:,:)
-    Q22(:,:) = v_bar(:,:) * v_bar(:,:)
-    Q23(:,:) = v_bar(:,:) * w_bar(:,:)
-    Q33(:,:) = w_bar(:,:) * w_bar(:,:)
-
-    ! filter the variable at twice the grid size
-    call filter(u_bar,2)
-    call filter(v_bar,2)
-    call filter(w_bar,2)
-
-    ! follow Bou-Zeid, 2005
-    call filter(L11,2)
-    L11(:,:) = L11(:,:) - u_bar(:,:)*u_bar(:,:)
-    call filter(L12,2)
-    L12(:,:) = L12(:,:) - u_bar(:,:)*v_bar(:,:)
-    call filter(L13,2)
-    L13(:,:) = L13(:,:) - u_bar(:,:)*w_bar(:,:)
-    call filter(L22,2)
-    L22(:,:) = L22(:,:) - v_bar(:,:)*v_bar(:,:)
-    call filter(L23,2)
-    L23(:,:) = L23(:,:) - v_bar(:,:)*w_bar(:,:)
-    call filter(L33,2)
-    L33(:,:) = L33(:,:) - w_bar(:,:)*w_bar(:,:)
-
-    ! filter the variable at four times the grid size
-    call filter(u_hat,4)
-    call filter(v_hat,4)
-    call filter(w_hat,4)
-
-    ! follow Bou-Zeid, 2005
-    call filter(Q11,4)
-    Q11(:,:) = Q11(:,:) - u_hat(:,:)*u_hat(:,:)
-    call filter(Q12,4)
-    Q12(:,:) = Q12(:,:) - u_hat(:,:)*v_hat(:,:)
-    call filter(Q13,4)
-    Q13(:,:) = Q13(:,:) - u_hat(:,:)*w_hat(:,:)
-    call filter(Q22,4)
-    Q22(:,:) = Q22(:,:) - v_hat(:,:)*v_hat(:,:)
-    call filter(Q23,4)
-    Q23(:,:) = Q23(:,:) - v_hat(:,:)*w_hat(:,:)
-    call filter(Q33,4)
-    Q33(:,:) = Q33(:,:) - w_hat(:,:)*w_hat(:,:)
-
 
 
   else
