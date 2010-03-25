@@ -794,14 +794,14 @@ contains
       QNav = QNav / rslabs
       NNav = NNav / rslabs
 
-      NNav  = max(1.e-10, NNav)
-      MMav  = max(1.e-10, MMav)
+      NNav  = max(1.e-24, NNav)
+      MMav  = max(1.e-24, MMav)
 
       cs2_2 = LMav / MMav
       cs4_2 = QNav / NNav
       
-      cs2_2 = max(1.e-10, cs2_2)
-      cs4_2 = max(1.e-10, cs4_2)
+      cs2_2 = max(1.e-24, cs2_2)
+      cs4_2 = max(1.e-24, cs4_2)
 
       beta = max(cs4_2 / cs2_2, 0.125)
 
