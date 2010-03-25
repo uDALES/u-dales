@@ -1,6 +1,6 @@
-!> \file modsubgrid.f90
-!!  Calculates and applies the Sub Filter Scale diffusion
-
+!!> \file modsubgrid.f90
+!!!  Calculates and applies the Sub Filter Scale diffusion
+!
 !>
 !!  Calculates and applies the Sub Filter Scale diffusion
 !>
@@ -78,13 +78,16 @@ public :: ldelta, lmason,lsmagorinsky,cf, Rigc,prandtl, cm, cn, ch1, ch2, ce1, c
   real, allocatable :: M11(:,:), M12(:,:), M13(:,:), M22(:,:), M23(:,:), M33(:,:)
   real, allocatable :: N11(:,:), N12(:,:), N13(:,:), N22(:,:), N23(:,:), N33(:,:)
   real, allocatable :: LM(:,:), MM(:,:), QN(:,:), NN(:,:)
+  !real, allocatable :: cs4_2(:,:), cs2_2(:,:), beta(:,:)
+
+  real              :: const, beta, cs4_2, cs2_2
+  real              :: LMav, LMavl, MMav, MMavl, QNav, QNavl, NNav, NNavl
 
 
 contains
   subroutine initsubgrid
     use modglobal, only : ih,i1,jh,j1,k1,&
                           pi,ifnamopt,fname_options
-    use modmpi, only    : myid
     use modmpi,    only : myid, nprocs, comm3d, mpierr, my_real, mpi_logical, mpi_integer
 
     implicit none
@@ -233,6 +236,10 @@ contains
       allocate(MM(2-ih:i1+ih,2-jh:j1+jh))
       allocate(QN(2-ih:i1+ih,2-jh:j1+jh))
       allocate(NN(2-ih:i1+ih,2-jh:j1+jh))
+      
+      !allocate(cs2_2(2-ih:i1+ih,2-jh:j1+jh))
+      !allocate(cs4_2(2-ih:i1+ih,2-jh:j1+jh))
+      !allocate(beta(2-ih:i1+ih,2-jh:j1+jh))
     end if
    
 !
@@ -336,12 +343,12 @@ contains
 !                                                                 |
 !-----------------------------------------------------------------|
 
-  use modglobal,  only : i1, j1,kmax,k1,ih,jh,i2,j2,delta,ekmin,grav, zf, fkar, &
-                         dxi,dyi,dzf,dzh
-  use modfields,  only : dthvdz,e120,u0,v0,w0
+  use modglobal,   only : i1, j1,kmax,k1,ih,jh,i2,j2,delta,ekmin,grav, zf, fkar, &
+                         dxi,dyi,dzf,dzh,rk3step, rslabs
+  use modfields,   only : dthvdz,e120,u0,v0,w0
   use modsurfdata, only : dudz,dvdz,thvs,z0m
 
-  use modmpi,     only : excjs
+  use modmpi,    only : excjs, myid, nprocs, comm3d, mpierr, my_real, mpi_sum
   implicit none
 
   real    :: strain,mlen
@@ -361,9 +368,6 @@ contains
   !!!real, allocatable :: M11(:,:), M12(:,:), M13(:,:), M22(:,:), M23(:,:), M33(:,:)
   !!!real, allocatable :: N11(:,:), N12(:,:), N13(:,:), N22(:,:), N23(:,:), N33(:,:)
   !!!real, allocatable :: LM(:,:), MM(:,:), QN(:,:), NN(:,:)
-
-  real              :: const
-  
 
 !********************************************************************
 !*********************************************************************
@@ -566,7 +570,7 @@ contains
         end do
       end do
       
-      if(k < 2) write(6,*) "ba0", k,u_bar(2,2),u_bar(3,2),u_bar(4,2),u_bar(5,2),u_bar(6,2),u_bar(7,2)
+      !if(k < 2 .and. myid == 0) write(6,*) "ba0", k,u_bar(2,2),u_bar(3,2),u_bar(4,2),u_bar(5,2),u_bar(6,2),u_bar(7,2)
       !calculate strain components on non-staggered grid
 
       ! FIX FOR NONEQUIDISTANT GRID!!!
@@ -762,13 +766,53 @@ contains
       QN  = Q11*N11 + Q22*N22 + Q33*N33 + 2. * (Q12*N12 + Q13*N13 + Q23*N23)
       NN  = N11*N11 + N22*N22 + N33*N33 + 2. * (N12*N12 + N13*N13 + N23*N23)
 
-      NN  = max(1.e-10, NN)
-      MM  = max(1.e-10, MM)
+      LMavl = 0.
+      MMavl = 0.
+      QNavl = 0.
+      NNavl = 0.
 
-      if(k < 2) write(6,*) k, "cs4 = ", maxval(QN(2:i1,2:j1) / NN(2:i1,2:j1)), "cs2 = ", maxval(LM(2:i1,2:j1) / MM(2:i1,2:j1))
-      if(k < 2) write(6,*) "ori", k, u0(2,2,1),u0(3,2,1),u0(4,2,1),u0(5,2,1),u0(6,2,1),u0(7,2,1)
-      if(k < 2) write(6,*) "bar", k,u_bar(2,2),u_bar(3,2),u_bar(4,2),u_bar(5,2),u_bar(6,2),u_bar(7,2)
-      if(k < 2) write(6,*) "hat", k,u_hat(2,2),u_hat(3,2),u_hat(4,2),u_hat(5,2),u_hat(6,2),u_hat(7,2)
+      LMav = 0.
+      MMav = 0.
+      QNav = 0.
+      NNav = 0.
+
+      do j = 2,j1
+        do i = 2,i1
+          LMavl = LMavl + LM(i,j)
+          MMavl = MMavl + MM(i,j)
+          QNavl = QNavl + QN(i,j)
+          NNavl = NNavl + NN(i,j)
+        end do
+      end do
+
+      call MPI_ALLREDUCE(LMavl, LMav, 1, MY_REAL, MPI_SUM, comm3d,mpierr)
+      call MPI_ALLREDUCE(MMavl, MMav, 1, MY_REAL, MPI_SUM, comm3d,mpierr)
+      call MPI_ALLREDUCE(QNavl, QNav, 1, MY_REAL, MPI_SUM, comm3d,mpierr)
+      call MPI_ALLREDUCE(NNavl, NNav, 1, MY_REAL, MPI_SUM, comm3d,mpierr)
+
+      LMav = LMav / rslabs
+      MMav = MMav / rslabs
+      QNav = QNav / rslabs
+      NNav = NNav / rslabs
+
+      NNav  = max(1.e-10, NNav)
+      MMav  = max(1.e-10, MMav)
+
+      cs2_2 = LMav / MMav
+      cs4_2 = QNav / NNav
+      
+      cs2_2 = max(1.e-10, cs2_2)
+      cs4_2 = max(1.e-10, cs4_2)
+
+      beta = max(cs4_2 / cs2_2, 0.125)
+
+      cs   = sqrt(cs2_2 / beta)
+
+      if(k < 50 .and. myid==0 .and. rk3step == 3) write(6,*) real(k)/100., "cs4 = ", sqrt(cs4_2), "cs2 = ", sqrt(cs2_2), "cs = ", cs
+
+      !if(k < 2 .and. myid==0) write(6,*) "ori", k, u0(2,2,1),u0(3,2,1),u0(4,2,1),u0(5,2,1),u0(6,2,1),u0(7,2,1)
+      !if(k < 2 .and. myid==0) write(6,*) "bar", k,u_bar(2,2),u_bar(3,2),u_bar(4,2),u_bar(5,2),u_bar(6,2),u_bar(7,2)
+      !if(k < 2 .and. myid==0) write(6,*) "hat", k,u_hat(2,2),u_hat(3,2),u_hat(4,2),u_hat(5,2),u_hat(6,2),u_hat(7,2)
 
       mlen        = cs * delta(k)
       
