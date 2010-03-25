@@ -481,86 +481,86 @@ contains
     ! CvH dynamic subgrid model
     ! go through the model layer by layer
     do k = 1,kmax
+      u_bar(:,:) = 0.
+      v_bar(:,:) = 0.
+      w_bar(:,:) = 0.
+      u_hat(:,:) = 0.
+      v_hat(:,:) = 0.
+      w_hat(:,:) = 0.
       
-      !!allocate(u_bar(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(v_bar(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(w_bar(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(u_hat(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(v_hat(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(w_hat(2-ih:i1+ih,2-jh:j1+jh))
-      !!
-      !!allocate(S11(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(S12(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(S13(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(S22(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(S23(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(S33(2-ih:i1+ih,2-jh:j1+jh)) 
-      !!
-      !!allocate(S11_bar(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(S12_bar(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(S13_bar(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(S22_bar(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(S23_bar(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(S33_bar(2-ih:i1+ih,2-jh:j1+jh)) 
-      !!
-      !!allocate(S11_hat(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(S12_hat(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(S13_hat(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(S22_hat(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(S23_hat(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(S33_hat(2-ih:i1+ih,2-jh:j1+jh)) 
-      !! 
-      !!allocate(S_S11_bar(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(S_S12_bar(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(S_S13_bar(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(S_S22_bar(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(S_S23_bar(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(S_S33_bar(2-ih:i1+ih,2-jh:j1+jh)) 
-      !!
-      !!allocate(S_S11_hat(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(S_S12_hat(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(S_S13_hat(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(S_S22_hat(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(S_S23_hat(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(S_S33_hat(2-ih:i1+ih,2-jh:j1+jh)) 
-  
-      !!allocate(S(2-ih:i1+ih,2-jh:j1+jh)) 
-      !!allocate(S_bar(2-ih:i1+ih,2-jh:j1+jh)) 
-      !!allocate(S_hat(2-ih:i1+ih,2-jh:j1+jh)) 
-      !!
-      !!allocate(L11(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(L12(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(L13(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(L22(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(L23(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(L33(2-ih:i1+ih,2-jh:j1+jh))
-  
-      !!allocate(Q11(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(Q12(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(Q13(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(Q22(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(Q23(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(Q33(2-ih:i1+ih,2-jh:j1+jh)) 
-  
-      !!allocate(M11(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(M12(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(M13(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(M22(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(M23(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(M33(2-ih:i1+ih,2-jh:j1+jh)) 
-  
-      !!allocate(N11(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(N12(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(N13(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(N22(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(N23(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(N33(2-ih:i1+ih,2-jh:j1+jh)) 
-  
-      !!allocate(LM(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(MM(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(QN(2-ih:i1+ih,2-jh:j1+jh))
-      !!allocate(NN(2-ih:i1+ih,2-jh:j1+jh))
+      S11(:,:) = 0.
+      S12(:,:) = 0.
+      S13(:,:) = 0.
+      S22(:,:) = 0.
+      S23(:,:) = 0.
+      S33(:,:) = 0. 
       
+      S11_bar(:,:) = 0.
+      S12_bar(:,:) = 0.
+      S13_bar(:,:) = 0.
+      S22_bar(:,:) = 0.
+      S23_bar(:,:) = 0.
+      S33_bar(:,:) = 0. 
+      
+      S11_hat(:,:) = 0.
+      S12_hat(:,:) = 0.
+      S13_hat(:,:) = 0.
+      S22_hat(:,:) = 0.
+      S23_hat(:,:) = 0.
+      S33_hat(:,:) = 0.
+      
+      S_S11_bar(:,:) = 0.
+      S_S12_bar(:,:) = 0.
+      S_S13_bar(:,:) = 0.
+      S_S22_bar(:,:) = 0.
+      S_S23_bar(:,:) = 0.
+      S_S33_bar(:,:) = 0.
+      
+      S_S11_hat(:,:) = 0.
+      S_S12_hat(:,:) = 0.
+      S_S13_hat(:,:) = 0.
+      S_S22_hat(:,:) = 0.
+      S_S23_hat(:,:) = 0.
+      S_S33_hat(:,:) = 0.
+  
+      S(:,:)     = 0.
+      S_bar(:,:) = 0.
+      S_hat(:,:) = 0.
+      
+      L11(:,:) = 0.
+      L12(:,:) = 0.
+      L13(:,:) = 0.
+      L22(:,:) = 0.
+      L23(:,:) = 0.
+      L33(:,:) = 0.
+      
+      Q11(:,:) = 0.
+      Q12(:,:) = 0.
+      Q13(:,:) = 0.
+      Q22(:,:) = 0.
+      Q23(:,:) = 0.
+      Q33(:,:) = 0. 
+      
+      M11(:,:) = 0.
+      M12(:,:) = 0.
+      M13(:,:) = 0.
+      M22(:,:) = 0.
+      M23(:,:) = 0.
+      M33(:,:) = 0. 
+      
+      N11(:,:) = 0.
+      N12(:,:) = 0.
+      N13(:,:) = 0.
+      N22(:,:) = 0.
+      N23(:,:) = 0.
+      N33(:,:) = 0. 
+  
+      LM(:,:) = 0.
+      MM(:,:) = 0.
+      QN(:,:) = 0.
+      NN(:,:) = 0.
+ 
+     
       ! Unstagger the grid
       do j = 2 - jh,j1 + jh - 1
         do i = 2 - ih,i1 + ih - 1
@@ -570,7 +570,6 @@ contains
         end do
       end do
       
-      !if(k < 2 .and. myid == 0) write(6,*) "ba0", k,u_bar(2,2),u_bar(3,2),u_bar(4,2),u_bar(5,2),u_bar(6,2),u_bar(7,2)
       !calculate strain components on non-staggered grid
 
       ! FIX FOR NONEQUIDISTANT GRID!!!
