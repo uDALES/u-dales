@@ -290,8 +290,8 @@ contains
       !do k = 1,kmax
         do j = 2,j1
           do i = 2,i1
-            v2f(i,j) = 0.125 * v2fin(i-2,j) + 0.25 * v2fin(i-1,j) + 0.25 * v2fin(i,j) + 0.25 * v2fin(i+1,j) + 0.125 * v2fin(i+2,j)
-            v2f(i,j) = 0.125 * v2fin(i,j-2) + 0.25 * v2fin(i,j-1) + 0.25 * v2fin(i,j) + 0.25 * v2fin(i,j+2) + 0.125 * v2fin(i,j+2)
+            v2f(i,j) = 0.5 * (0.125 * v2fin(i-2,j) + 0.25 * v2fin(i-1,j) + 0.25 * v2fin(i,j) + 0.25 * v2fin(i+1,j) + 0.125 * v2fin(i+2,j)) &
+             + 0.5 * (0.125 * v2fin(i,j-2) + 0.25 * v2fin(i,j-1) + 0.25 * v2fin(i,j) + 0.25 * v2fin(i,j+2) + 0.125 * v2fin(i,j+2))
           end do
         end do
       !end do
@@ -299,8 +299,8 @@ contains
       !do k = 1,kmax
         do j = 2,j1
           do i = 2,i1
-            v2f(i,j) = 0.25 * v2fin(i-1,j) + 0.5 * v2fin(i,j) + 0.25 * v2fin(i+1,j)
-            v2f(i,j) = 0.25 * v2fin(i,j-1) + 0.5 * v2fin(i,j) + 0.25 * v2fin(i,j+1)
+            v2f(i,j) = 0.5 * (0.25 * v2fin(i-1,j) + 0.5 * v2fin(i,j) + 0.25 * v2fin(i+1,j)) &
+             + 0.5 * (0.25 * v2fin(i,j-1) + 0.5 * v2fin(i,j) + 0.25 * v2fin(i,j+1))
           end do
         end do
       !end do
@@ -577,7 +577,7 @@ contains
         do j = 2 - jh + 1,j1 + jh - 1
           do i = 2 - ih + 1,i1 + ih - 1
             S11(i,j) =  0.5 * ( (u0(i+1,j,k) - u0(i,j,k)) * dxi &
-              + (u0(i,j,k) - u0(i+1,j,k)) * dxi )          ! dudx + dudx
+              + (u0(i+1,j,k) - u0(i,j,k)) * dxi )          ! dudx + dudx
   
             S12(i,j) = 0.5 * ( 0.25*(u0(i,j+1,k)+u0(i+1,j+1,k) - (u0(i,j-1,k)+u0(i+1,j-1,k))) * dyi &
               + 0.25*(v0(i+1,j,k)+v0(i+1,j+1,k) - (v0(i-1,j,k)+v0(i-1,j+1,k))) * dxi )         ! dudy + dvdx
@@ -591,8 +591,8 @@ contains
             S23(i,j) = 0.5 * ( 0.25*(v0(i,j,k+1)+v0(i,j+1,k+1)+v0(i,j,k)+v0(i,j+1,k)) / dzf(k) &
               + 0.25*(w0(i,j+1,k)+w0(i,j+1,k+1) - (w0(i,j-1,k)+w0(i,j-1,k+1))) * dyi )         ! dvdz + dwdy
   
-            S33(i,j) = 0.5 * ( (w0(i,j,k) - w0(i,j,k+1)) / dzf(k) &
-              +(w0(i,j,k) - w0(i,j,k+1)) / dzf(k) )       ! dwdz + dwdz
+            S33(i,j) = 0.5 * ( (w0(i,j,k+1) - w0(i,j,k)) / dzf(k) &
+              +(w0(i,j,k+1) - w0(i,j,k)) / dzf(k) )       ! dwdz + dwdz
           end do
         end do
 
@@ -600,7 +600,7 @@ contains
         do j = 2 - jh + 1,j1 + jh - 1
           do i = 2 - ih + 1,i1 + ih - 1
             S11(i,j) =  0.5 * ( (u0(i+1,j,k) - u0(i,j,k)) * dxi &
-              + (u0(i,j,k) - u0(i+1,j,k)) * dxi )          ! dudx + dudx
+              + (u0(i+1,j,k) - u0(i,j,k)) * dxi )          ! dudx + dudx
   
             S12(i,j) = 0.5 * ( 0.25*(u0(i,j+1,k)+u0(i+1,j+1,k) - (u0(i,j-1,k)+u0(i+1,j-1,k))) * dyi &
               + 0.25*(v0(i+1,j,k)+v0(i+1,j+1,k) - (v0(i-1,j,k)+v0(i-1,j+1,k))) * dxi )         ! dudy + dvdx
@@ -614,8 +614,8 @@ contains
             S23(i,j) = 0.5 * ( 0.25*(v0(i,j,k+1)+v0(i,j+1,k+1) - (v0(i,j,k-1)+v0(i,j+1,k-1))) / dzf(k) &
               + 0.25*(w0(i,j+1,k)+w0(i,j+1,k+1) - (w0(i,j-1,k)+w0(i,j-1,k+1))) * dyi )         ! dvdz + dwdy
   
-            S33(i,j) = 0.5 * ( (w0(i,j,k) - w0(i,j,k+1)) / dzf(k) &
-              +(w0(i,j,k) - w0(i,j,k+1)) / dzf(k) )       ! dwdz + dwdz
+            S33(i,j) = 0.5 * ( (w0(i,j,k+1) - w0(i,j,k)) / dzf(k) &
+              +(w0(i,j,k+1) - w0(i,j,k)) / dzf(k) )       ! dwdz + dwdz
           end do
         end do
       end if
