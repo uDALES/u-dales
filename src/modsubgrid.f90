@@ -122,7 +122,7 @@ contains
     call MPI_BCAST(nmason     ,1,MY_REAL    ,0,comm3d,mpierr)
     call MPI_BCAST(lsmagorinsky,1,MPI_LOGICAL,0,comm3d,mpierr)
     call MPI_BCAST(ldynsub     ,1,MPI_LOGICAL,0,comm3d,mpierr)
-    call MPI_BCAST(cs         ,k1,MY_REAL   ,0,comm3d,mpierr)
+    call MPI_BCAST(cs         ,1,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(cf         ,1,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(cn         ,1,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(Rigc       ,1,MY_REAL   ,0,comm3d,mpierr)
