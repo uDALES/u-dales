@@ -74,7 +74,7 @@ PUBLIC :: initgenstat, genstat, exitgenstat
 save
 
 !NetCDF variables
-  integer,parameter :: nvar = 36
+  integer,parameter :: nvar = 37
   integer :: ncid,nrec = 0
   character(80) :: fname = 'profiles.xxx.nc'
   character(80),dimension(nvar,4) :: ncname
@@ -387,6 +387,7 @@ contains
         call ncinfo(ncname(34,:),'th2r','Resolved theta variance','K^2','tt')
         call ncinfo(ncname(35,:),'qt2r','Resolved total water variance','(kg/kg)^2','tt')
         call ncinfo(ncname(36,:),'ql2r','Resolved liquid water variance','(kg/kg)^2','tt')
+        call ncinfo(ncname(37,:),'cs','Smagorinsky constant','(kg/kg)^2','tt')
 
 
         call open_nc(fname,  ncid,n3=kmax)
@@ -1520,6 +1521,7 @@ contains
         vars(:,34)=th2mn
         vars(:,35)=qt2mn
         vars(:,36)=ql2mn
+        vars(:,37)=csz
         call writestat_nc(ncid,1,tncname,(/rtimee/),nrec,.true.)
         call writestat_nc(ncid,nvar,ncname,vars(1:kmax,:),nrec,kmax)
       end if
