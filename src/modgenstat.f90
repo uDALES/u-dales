@@ -1586,6 +1586,9 @@ contains
       wsvsmn = 0.
       wsvrmn = 0.
       wsvtmn = 0.
+
+      cszmn  = 0.
+
       deallocate(tmn, thmn)
 
 
