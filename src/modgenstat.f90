@@ -1656,9 +1656,11 @@ contains
     deallocate(wsvtot)
     deallocate(thvhav)
     deallocate(th0av)
+    deallocate(svpav)
     deallocate(svptav)
     
-    deallocate(cszmn, cszav)
+    deallocate(cszmn)
+    deallocate(cszav)
 
   end subroutine exitgenstat
 
