@@ -1161,6 +1161,7 @@ contains
   subroutine writestat
       use modglobal, only : kmax,k1,nsv, zh,zf,rtimee,rlv,cp,cexpnr,ifoutput
       use modfields, only : presf,presh,exnf,exnh,rhof
+      use modsubgrid, only : csz
       use modmpi,    only : myid
       use modstat_nc, only: lnetcdf, writestat_nc
       implicit none
