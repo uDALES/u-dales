@@ -156,6 +156,8 @@ save
  real, allocatable :: wsvres(:,:)! slab averaged res w-sv(n)  flux
  real, allocatable :: wsvtot(:,:)! slab averaged tot w-sv(n)  flux
 
+ real, allocatable :: cszmn(:)    ! Smagorinsky constant
+ real, allocatable :: cszav(:)    ! Smagorinsky constant
 contains
 
   subroutine initgenstat
@@ -258,6 +260,8 @@ contains
     allocate(svptav(k1,nsv))
     allocate(svpav(k1,nsv))
 
+    allocate(cszmn(k1), cszav(k1))
+
       umn      = 0.
       vmn      = 0.
       thlmn    = 0.
@@ -318,6 +322,9 @@ contains
       wsvsmn = 0.
       wsvrmn = 0.
       wsvtmn = 0.
+
+      cszav = 0.
+      cszmn = 0.
 
       if(myid==0)then
         open (ifoutput,file='field.'//cexpnr,status='replace')
@@ -421,7 +428,7 @@ contains
     use modfields, only : u0,v0,w0,um,vm,wm,qtm,thlm,thl0,qt0,qt0h, &
                           ql0,ql0h,thl0h,thv0h,sv0, svm, e12m,exnf,exnh
     use modsurfdata,only: thls,qts,svs,ustar,thlflux,qtflux,svflux
-    use modsubgrid,only : ekm, ekh
+    use modsubgrid,only : ekm, ekh, csz
     use modglobal, only : i1,ih,j1,jh,k1,kmax,nsv,dzf,dzh,rlv,rv,rd,cp, &
                           rslabs,cu,cv,iadv_thl,iadv_kappa,eps1,dxi,dyi
     use modmpi,    only : nprocs,comm3d,nprocs,my_real, mpi_sum,mpierr, slabsum
@@ -612,6 +619,8 @@ contains
     cfracav= 0.0
     svmav = 0.
 
+    cszav = 0.
+
     do  j=2,j1
     do  i=2,i1
     do  k=1,kmax
@@ -640,6 +649,8 @@ contains
     cfracav = cfracav / rslabs
     thmav  = thlmav + (rlv/cp)*qlmav/exnf
     thvmav = thvmav/rslabs
+
+    cszav  = csz
   !
 
     do n=1,nsv
@@ -1086,6 +1097,9 @@ contains
         wsvrmn = wsvrmn + wsvres
         wsvtmn = wsvtmn + wsvtot
       skewmn   = skewmn   + w3av/max(w2av**1.5,epsilon(w2av(1)))
+
+      cszmn = cszmn + cszav
+      
     deallocate( &
         qlhavl , & ! slab averaged ql_0 at half level &
         wsvsubl,&   ! slab averaged sub w-sv(n)  flux &
@@ -1226,6 +1240,8 @@ contains
         wsvrmn = wsvrmn/nsamples
         wsvtmn = wsvtmn/nsamples
 
+        cszmn = cszmn / nsamples
+
 
   !     ------------------------------------------
   !     2.0  Construct other time averaged fields
@@ -1249,11 +1265,11 @@ contains
       write (ifoutput,'(A/2A/2A)') &
           '#--------------------------------------------------------' &
           ,'#LEV  HGHT    PRES    TEMP       TH_L     THETA      TH_V     ' &
-          ,'  QT_AV      QL_AV      U       V   CLOUD FRACTION' &
+          ,'  QT_AV      QL_AV      U       V   CLOUD FRACTION  CS' &
           ,'#      (M)    (MB)   (----------- (KELVIN) ---------------)    ' &
-          ,'(----(G/KG)------)  (--- (M/S ---)   (-----------)'
+          ,'(----(G/KG)------)  (--- (M/S ---)   (-----------)  (---)'
       do k=1,kmax
-        write(ifoutput,'(I3,F8.2,F7.1,5F10.4,F12.5,3F11.4)') &
+        write(ifoutput,'(I3,F8.2,F7.1,5F10.4,F12.5,4F11.4)') &
             k, &
             zf    (k), &
             presf (k)/100., &
@@ -1265,7 +1281,8 @@ contains
             qlmn  (k)*1000., &
             umn   (k), &
             vmn   (k), &
-            cfracmn(k)
+            cfracmn(k), &
+            cszmn(k)
       end do
       close (ifoutput)
 

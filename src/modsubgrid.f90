@@ -51,7 +51,7 @@ public :: ldelta, lmason,lsmagorinsky,cf, Rigc,prandtl, cm, cn, ch1, ch2, ce1, c
   real :: ch2     = 2.
   real :: ce1     = 0.19
   real :: ce2     = 0.51
-  real :: cs      = -1.
+  real :: cs      = -1
   real :: nmason  = 2.   !< exponent in Mason correction function
   real :: alpha_kolm   = 1.5     !< factor in Kolmogorov expression for spectral energy
   real :: beta_kolm    = 1.      !< factor in Kolmogorov relation for temperature spectrum
@@ -78,7 +78,7 @@ public :: ldelta, lmason,lsmagorinsky,cf, Rigc,prandtl, cm, cn, ch1, ch2, ce1, c
   real, allocatable :: M11(:,:), M12(:,:), M13(:,:), M22(:,:), M23(:,:), M33(:,:)
   real, allocatable :: N11(:,:), N12(:,:), N13(:,:), N22(:,:), N23(:,:), N33(:,:)
   real, allocatable :: LM(:,:), MM(:,:), QN(:,:), NN(:,:)
-  !real, allocatable :: cs4_2(:,:), cs2_2(:,:), beta(:,:)
+  real, allocatable :: csz(:)
 
   real              :: const, beta, cs4_2, cs2_2
   real              :: LMav, LMavl, MMav, MMavl, QNav, QNavl, NNav, NNavl
@@ -104,6 +104,7 @@ contains
     allocate(sbdiss(2-ih:i1+ih,2-jh:j1+jh,k1))
     allocate(sbshr(2-ih:i1+ih,2-jh:j1+jh,k1))
     allocate(sbbuo(2-ih:i1+ih,2-jh:j1+jh,k1))
+    allocate(csz(k1))
 
     if(myid==0)then
       open(ifnamopt,file=fname_options,status='old',iostat=ierr)
@@ -121,7 +122,7 @@ contains
     call MPI_BCAST(nmason     ,1,MY_REAL    ,0,comm3d,mpierr)
     call MPI_BCAST(lsmagorinsky,1,MPI_LOGICAL,0,comm3d,mpierr)
     call MPI_BCAST(ldynsub     ,1,MPI_LOGICAL,0,comm3d,mpierr)
-    call MPI_BCAST(cs         ,1,MY_REAL   ,0,comm3d,mpierr)
+    call MPI_BCAST(cs         ,k1,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(cf         ,1,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(cn         ,1,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(Rigc       ,1,MY_REAL   ,0,comm3d,mpierr)
@@ -138,7 +139,7 @@ contains
     ce2  = ceps - ce1
 
     if(cs == -1.) then
-      cs   = (cm**3/ceps)**0.25   !< Smagorinsky constant
+      csz(:)  = (cm**3/ceps)**0.25   !< Smagorinsky constant
     end if
 
 
@@ -270,7 +271,7 @@ contains
 
   subroutine exitsubgrid
     implicit none
-    deallocate(ekm,ekh,zlt,sbdiss,sbbuo,sbshr)
+    deallocate(ekm,ekh,zlt,sbdiss,sbbuo,sbshr,csz)
   end subroutine exitsubgrid
 
   subroutine filter(v2f, ndx)
@@ -414,9 +415,9 @@ contains
                 ((v0(i,jp,kp)-v0(i,jp,k))   / dzh(kp) + &
                 (w0(i,jp,kp)-w0(i,j,kp))   *dyi        )**2    )
       if(lmason) then
-        mlen        = (1. / (cs * delta(k))**nmason + 1. / (fkar * (zf(k) + z0m(i,j)))**nmason)**(-1./nmason)
+        mlen        = (1. / (csz(k) * delta(k))**nmason + 1. / (fkar * (zf(k) + z0m(i,j)))**nmason)**(-1./nmason)
       else
-        mlen        = cs * delta(k)
+        mlen        = csz(k) * delta(k)
       end if
       ekm(i,j,k)  = mlen**2.*sqrt(0.5*strain)
       !if(i == 2 .and. j == 2) write(6,*)"CvH mlen", k, mlen, mlen / delta(k), delta(k)
@@ -466,9 +467,9 @@ contains
                 ((v0(i,jp,kp)-v0(i,jp,k))   / dzh(kp) + &
                 (w0(i,jp,kp)-w0(i,j,kp))   *dyi        )**2    )
       if(lmason) then
-        mlen        = (1. / (cs * delta(k))**nmason + 1. / (fkar * (zf(k) + z0m(i,j)))**nmason)**(-1./nmason)
+        mlen        = (1. / (csz(k) * delta(k))**nmason + 1. / (fkar * (zf(k) + z0m(i,j)))**nmason)**(-1./nmason)
       else
-        mlen        = cs * delta(k)
+        mlen        = csz(k) * delta(k)
       end if
       ekm(i,j,k)  = mlen**2.*sqrt(0.5*strain)
       !if(i == 2 .and. j == 2) write(6,*)"CvH mlen", k, mlen, mlen / delta(k), delta(k)
@@ -805,15 +806,15 @@ contains
 
       beta = max(cs4_2 / cs2_2, 0.125)
 
-      cs   = sqrt(cs2_2 / beta)
+      csz(k) = sqrt(cs2_2 / beta)
 
-      if(k < 50 .and. myid==0 .and. rk3step == 3) write(6,*) real(k)/100., "cs4 = ", sqrt(cs4_2), "cs2 = ", sqrt(cs2_2), "cs = ", cs
+      !if(k < 50 .and. myid==0 .and. rk3step == 3) write(6,*) real(k)/100., "cs4 = ", sqrt(cs4_2), "cs2 = ", sqrt(cs2_2), "cs = ", csz(k)
 
       !if(k < 2 .and. myid==0) write(6,*) "ori", k, u0(2,2,1),u0(3,2,1),u0(4,2,1),u0(5,2,1),u0(6,2,1),u0(7,2,1)
       !if(k < 2 .and. myid==0) write(6,*) "bar", k,u_bar(2,2),u_bar(3,2),u_bar(4,2),u_bar(5,2),u_bar(6,2),u_bar(7,2)
       !if(k < 2 .and. myid==0) write(6,*) "hat", k,u_hat(2,2),u_hat(3,2),u_hat(4,2),u_hat(5,2),u_hat(6,2),u_hat(7,2)
 
-      mlen        = cs * delta(k)
+      mlen        = csz(k) * delta(k)
       
       ekm(:,:,k)  = mlen ** 2. * S(:,:)
       ekh(:,:,k)  = ekm(i,j,k) / prandtl
