@@ -811,9 +811,96 @@ contains
 
       end if
 
+      !i = 10
+      !j = 10
+      !if(k == 1) then
+      !  kp=k+1
+      !  km=k-1
+      !  jp=j+1
+      !  jm=j-1
+
+      !  strain =  ( &
+      !          ((u0(i+1,j,k)-u0(i,j,k))   *dxi        )**2    + &
+      !          ((v0(i,jp,k)-v0(i,j,k))    *dyi         )**2    + &
+      !          ((w0(i,j,kp)-w0(i,j,k))    /dzf(k)     )**2    )
+
+      !  strain = strain + 0.5 * ( &
+      !            ((w0(i,j,kp)-w0(i-1,j,kp))  *dxi     + &
+      !            (u0(i,j,kp)-u0(i,j,k))     / dzh(kp)  )**2    + &
+      !            ((w0(i,j,k)-w0(i-1,j,k))    *dxi     + &
+      !            dudz(i,j)   )**2    + &
+      !            ((w0(i+1,j,k)-w0(i,j,k))    *dxi     + &
+      !            dudz(i+1,j)   )**2    + &
+      !            ((w0(i+1,j,kp)-w0(i,j,kp))  *dxi     + &
+      !            (u0(i+1,j,kp)-u0(i+1,j,k)) / dzh(kp)  )**2    )
+
+      !  strain = strain + 0.5 * ( &
+      !            ((u0(i,jp,k)-u0(i,j,k))     *dyi     + &
+      !            (v0(i,jp,k)-v0(i-1,jp,k))  *dxi        )**2    + &
+      !            ((u0(i,j,k)-u0(i,jm,k))     *dyi     + &
+      !            (v0(i,j,k)-v0(i-1,j,k))    *dxi        )**2    + &
+      !            ((u0(i+1,j,k)-u0(i+1,jm,k)) *dyi     + &
+      !            (v0(i+1,j,k)-v0(i,j,k))    *dxi        )**2    + &
+      !            ((u0(i+1,jp,k)-u0(i+1,j,k)) *dyi     + &
+      !            (v0(i+1,jp,k)-v0(i,jp,k))  *dxi        )**2    )
+      !  strain = strain + 0.5 * ( &
+      !            ((v0(i,j,kp)-v0(i,j,k))     / dzh(kp) + &
+      !            (w0(i,j,kp)-w0(i,jm,kp))   *dyi        )**2    + &
+      !            (dvdz(i,j)+ &
+      !            (w0(i,j,k)-w0(i,jm,k))     *dyi        )**2    + &
+      !            (dvdz(i,j+1)+ &
+      !            (w0(i,jp,k)-w0(i,j,k))     *dyi        )**2    + &
+      !            ((v0(i,jp,kp)-v0(i,jp,k))   / dzh(kp) + &
+      !            (w0(i,jp,kp)-w0(i,j,kp))   *dyi        )**2    )
+      ! 
+      !else
+      !  kp=k+1
+      !  km=k-1
+      !  i = 10
+      !  j = 10
+      !  jp=j+1
+      !  jm=j-1
+
+      !  strain =  ( &
+      !          ((u0(i+1,j,k)-u0(i,j,k))   *dxi        )**2    + &
+      !          ((v0(i,jp,k)-v0(i,j,k))    *dyi         )**2    + &
+      !          ((w0(i,j,kp)-w0(i,j,k))    /dzf(k)     )**2    )
+
+      !  strain = strain + 0.5 * ( &
+      !            ((w0(i,j,kp)-w0(i-1,j,kp))  *dxi     + &
+      !            (u0(i,j,kp)-u0(i,j,k))     / dzh(kp)  )**2    + &
+      !            ((w0(i,j,k)-w0(i-1,j,k))    *dxi     + &
+      !            (u0(i,j,k)-u0(i,j,km))     / dzh(k)   )**2    + &
+      !            ((w0(i+1,j,k)-w0(i,j,k))    *dxi     + &
+      !            (u0(i+1,j,k)-u0(i+1,j,km)) / dzh(k)   )**2    + &
+      !            ((w0(i+1,j,kp)-w0(i,j,kp))  *dxi     + &
+      !            (u0(i+1,j,kp)-u0(i+1,j,k)) / dzh(kp)  )**2    )
+
+      !  strain = strain + 0.5 * ( &
+      !            ((u0(i,jp,k)-u0(i,j,k))     *dyi     + &
+      !            (v0(i,jp,k)-v0(i-1,jp,k))  *dxi        )**2    + &
+      !            ((u0(i,j,k)-u0(i,jm,k))     *dyi     + &
+      !            (v0(i,j,k)-v0(i-1,j,k))    *dxi        )**2    + &
+      !            ((u0(i+1,j,k)-u0(i+1,jm,k)) *dyi     + &
+      !            (v0(i+1,j,k)-v0(i,j,k))    *dxi        )**2    + &
+      !            ((u0(i+1,jp,k)-u0(i+1,j,k)) *dyi     + &
+      !            (v0(i+1,jp,k)-v0(i,jp,k))  *dxi        )**2    )
+      !  strain = strain + 0.5 * ( &
+      !            ((v0(i,j,kp)-v0(i,j,k))     / dzh(kp) + &
+      !            (w0(i,j,kp)-w0(i,jm,kp))   *dyi        )**2    + &
+      !            ((v0(i,j,k)-v0(i,j,km))     / dzh(k)+ &
+      !            (w0(i,j,k)-w0(i,jm,k))     *dyi        )**2    + &
+      !            ((v0(i,jp,k)-v0(i,jp,km))   / dzh(k)+ &
+      !            (w0(i,jp,k)-w0(i,j,k))     *dyi        )**2    + &
+      !            ((v0(i,jp,kp)-v0(i,jp,k))   / dzh(kp) + &
+      !            (w0(i,jp,kp)-w0(i,j,kp))   *dyi        )**2    )
+      !end if
+
+      !write(6,*) "strain:", k, "old", 2. * sqrt(0.5*strain), "new", S(10,10)
+
       mlen        = csz(k) * delta(k)
       
-      ekm(:,:,k)  = mlen ** 2. * S(:,:)
+      ekm(:,:,k)  = 2. * mlen ** 2. * S(:,:)
       ekh(:,:,k)  = ekm(i,j,k) / prandtl
  
     end do
