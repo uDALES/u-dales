@@ -719,10 +719,10 @@ contains
           horv   = max(horv, 1.e-2)
           horvav = sqrt(u0av(1) ** 2. + v0av(1) ** 2.)
 
-          ! CvH take square root of horv * horvav, to make sure slab average
-          ! follows law of the wall
+          ! CvH insert slab averaged velocity. Essential for reproduction of log
+          ! layer at the first levels
           if( isurf == 4) then
-            ustar (i,j) = fkar * sqrt(horv * horvav) / (log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j)) + psim(z0m(i,j) / obl(i,j)))
+            ustar (i,j) = fkar * horvav  / (log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j)) + psim(z0m(i,j) / obl(i,j)))
           else
             ustar (i,j) = ustin
           end if
