@@ -195,8 +195,8 @@ All options that can be set for the LES experiments will be discussed in the fol
   z0		& -		& $x \in \mathbb{R}, \quad x>0$		& Surface roughness				& m\\
   ustin		& -		& $x \in \mathbb{R}, \quad x>0$			& Prescribed friction velocity			& m s$^{-1}$\\
   wtsurf	& -		& $x \in \mathbb{R}, \quad x>0$		& Flux of liq. water pot. temp. at the surface	& K m s$^{-1}$\\
-  wqsurf	& -		& $x \in \mathbb{R}$		& Flux of total water content 			& kg kg$^{-1}$\\
-  wsvsurf(1:nsv)& 0		& $x \in \mathbb{R}$	& Flux of scalar n at the surface		& -\\
+  wqsurf	& -		& $x \in \mathbb{R}$		& Flux of total water content 			& kg kg$^{-1}$ m s$^{-1}$\\
+  wsvsurf(1:nsv)& 0		& $x \in \mathbb{R}$	& Flux of scalar n at the surface		& ppb m s$^{-1}$\\
   ltimedep	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for timedependent fluxes and large scale forcings	& -\\
   lcoriol	& .true.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for coriolis force			& -\\
   lmoist	& .true.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for calculation of moisture fields	& -\\
