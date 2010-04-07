@@ -564,6 +564,40 @@ contains
        
       !calculate strain components on non-staggered grid
 
+      !  strain =  ( &
+      !          ((u0(i+1,j,k)-u0(i,j,k))   *dxi        )**2    + &
+      !          ((v0(i,jp,k)-v0(i,j,k))    *dyi         )**2    + &
+      !          ((w0(i,j,kp)-w0(i,j,k))    /dzf(k)     )**2    )
+
+      !  strain = strain + 0.5 * ( &
+      !            ((w0(i,j,kp)-w0(i-1,j,kp))  *dxi     + &
+      !            (u0(i,j,kp)-u0(i,j,k))     / dzh(kp)  )**2    + &
+      !            ((w0(i,j,k)-w0(i-1,j,k))    *dxi     + &
+      !            dudz(i,j)   )**2    + &
+      !            ((w0(i+1,j,k)-w0(i,j,k))    *dxi     + &
+      !            dudz(i+1,j)   )**2    + &
+      !            ((w0(i+1,j,kp)-w0(i,j,kp))  *dxi     + &
+      !            (u0(i+1,j,kp)-u0(i+1,j,k)) / dzh(kp)  )**2    )
+
+      !  strain = strain + 0.5 * ( &
+      !            ((u0(i,jp,k)-u0(i,j,k))     *dyi     + &
+      !            (v0(i,jp,k)-v0(i-1,jp,k))  *dxi        )**2    + &
+      !            ((u0(i,j,k)-u0(i,jm,k))     *dyi     + &
+      !            (v0(i,j,k)-v0(i-1,j,k))    *dxi        )**2    + &
+      !            ((u0(i+1,j,k)-u0(i+1,jm,k)) *dyi     + &
+      !            (v0(i+1,j,k)-v0(i,j,k))    *dxi        )**2    + &
+      !            ((u0(i+1,jp,k)-u0(i+1,j,k)) *dyi     + &
+      !            (v0(i+1,jp,k)-v0(i,jp,k))  *dxi        )**2    )
+      !  strain = strain + 0.5 * ( &
+      !            ((v0(i,j,kp)-v0(i,j,k))     / dzh(kp) + &
+      !            (w0(i,j,kp)-w0(i,jm,kp))   *dyi        )**2    + &
+      !            (dvdz(i,j)+ &
+      !            (w0(i,j,k)-w0(i,jm,k))     *dyi        )**2    + &
+      !            (dvdz(i,j+1)+ &
+      !            (w0(i,jp,k)-w0(i,j,k))     *dyi        )**2    + &
+      !            ((v0(i,jp,kp)-v0(i,jp,k))   / dzh(kp) + &
+      !            (w0(i,jp,kp)-w0(i,j,kp))   *dyi        )**2    )
+ 
       ! FIX FOR NONEQUIDISTANT GRID!!!
       if(k == 1) then
         do j = 2 - jh + 1,j1 + jh - 1
@@ -574,13 +608,13 @@ contains
             S12(i,j) = 0.5 * ( 0.25*(u0(i,j+1,k)+u0(i+1,j+1,k) - (u0(i,j-1,k)+u0(i+1,j-1,k))) * dyi &
               + 0.25*(v0(i+1,j,k)+v0(i+1,j+1,k) - (v0(i-1,j,k)+v0(i-1,j+1,k))) * dxi )         ! dudy + dvdx
   
-            S13(i,j) = 0.5 * ( 0.25*(u0(i,j,k+1)+u0(i+1,j,k+1)+u0(i,j,k)+u0(i+1,j,k)) / dzf(k) &
+            S13(i,j) = 0.5 * ( dudz(i,j) &
               + 0.25*(w0(i+1,j,k)+w0(i+1,j,k+1) - (w0(i-1,j,k)+w0(i-1,j,k+1))) * dxi )         ! dudz + dwdx
   
             S22(i,j) = 0.5 * ( (v0(i,j+1,k) - v0(i,j,k)) * dyi &
               + (v0(i,j+1,k) - v0(i,j,k)) * dyi )         ! dvdy + dvdy
   
-            S23(i,j) = 0.5 * ( 0.25*(v0(i,j,k+1)+v0(i,j+1,k+1)+v0(i,j,k)+v0(i,j+1,k)) / dzf(k) &
+            S23(i,j) = 0.5 * ( dvdz(i,j) &
               + 0.25*(w0(i,j+1,k)+w0(i,j+1,k+1) - (w0(i,j-1,k)+w0(i,j-1,k+1))) * dyi )         ! dvdz + dwdy
   
             S33(i,j) = 0.5 * ( (w0(i,j,k+1) - w0(i,j,k)) / dzf(k) &
