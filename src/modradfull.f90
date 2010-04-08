@@ -267,14 +267,14 @@ contains
                fuir3d(i,j,k) = fuir(kk)
                fdir3d(i,j,k) = fdir(kk)
             end do
+            SW_up_TOA(i,j) = fus(1)
+            SW_dn_TOA(i,j) = fds(1)
+            LW_up_TOA(i,j) = fuir(1)
+            LW_dn_TOA(i,j) = fdir(1)
 
          end do
       end do
 
-      SW_up_TOA(i,j) = fus(1)
-      SW_dn_TOA(i,j) = fds(1)
-      LW_up_TOA(i,j) = fuir(1)
-      LW_dn_TOA(i,j) = fdir(1)
 
     end subroutine d4stream
 
