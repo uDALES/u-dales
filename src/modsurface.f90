@@ -338,6 +338,8 @@ contains
     allocate(ustar   (i2,j2))
     allocate(dudz    (i2,j2))
     allocate(dvdz    (i2,j2))
+    allocate(dudzs   (i2,j2))
+    allocate(dvdzs   (i2,j2))
     allocate(thlflux (i2,j2))
     allocate(qtflux  (i2,j2))
     allocate(dqtdz   (i2,j2))
@@ -750,6 +752,8 @@ contains
 
           dudz  (i,j) = ustar(i,j) * phimzf / (fkar*zf(1))*(upcu/horv)
           dvdz  (i,j) = ustar(i,j) * phimzf / (fkar*zf(1))*(vpcv/horv)
+          dudzs (i,j) = ustar(i,j) * phimzf / (fkar*z0m(i,j))*(upcu/horv)
+          dvdzs (i,j) = ustar(i,j) * phimzf / (fkar*z0m(i,j))*(vpcv/horv)
           dthldz(i,j) = - thlflux(i,j) / ustar(i,j) * phihzf / (fkar*zf(1))
           dqtdz (i,j) = - qtflux(i,j)  / ustar(i,j) * phihzf / (fkar*zf(1))
 

@@ -140,6 +140,8 @@ SAVE
   ! Surface gradients of prognostic variables
   real, allocatable :: dudz  (:,:)      !<  U-wind gradient in surface layer [1/s]
   real, allocatable :: dvdz  (:,:)      !<  V-wind gradient in surface layer [1/s]
+  real, allocatable :: dudzs (:,:)      !<  U-wind gradient at surface [1/s]
+  real, allocatable :: dvdzs (:,:)      !<  V-wind gradient at surface [1/s]
   real, allocatable :: dqtdz (:,:)      !<  Specific humidity gradient in surface layer [kg/kg/m]
   real, allocatable :: dthldz(:,:)      !<  Liquid water potential temperature gradient in surface layer [K/m]
 
