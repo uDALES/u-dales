@@ -832,7 +832,7 @@ contains
     implicit none
 
     integer             :: i,j,iter
-    real                :: thv, L, horv2, horv2l, oblavl
+    real                :: thv, L, horv2, oblavl
     real                :: Rib, Lstart, Lend, fx, fxdif, Lold
 
     if(lmostlocal) then
