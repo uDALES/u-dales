@@ -791,18 +791,22 @@ contains
         QNav = QNav / rslabs
         NNav = NNav / rslabs
 
-        NNav  = max(1.e-24, NNav)
+        LMav  = max(1.e-24, LMav)
         MMav  = max(1.e-24, MMav)
+        QNav  = max(1.e-24, QNav)
+        NNav  = max(1.e-24, NNav)
 
-        cs2_2 = LMav / MMav
-        cs4_2 = QNav / NNav
-        
-        cs2_2 = max(1.e-24, cs2_2)
-        cs4_2 = max(1.e-24, cs4_2)
+        !cs2_2 = LMav / MMav
+        !cs4_2 = QNav / NNav
+        !
+        !cs2_2 = max(1.e-24, cs2_2)
+        !cs4_2 = max(1.e-24, cs4_2)
 
-        beta = max(cs4_2 / cs2_2, 0.125)
+        !beta = max(cs4_2 / cs2_2, 0.125)
 
-        csz(k) = sqrt(cs2_2 / beta)
+        csz(k) = (LMav / MMav) / ( (QNav * MMav) / (NNav * LMav) )
+
+        !csz(k) = sqrt(cs2_2 / beta)
 
       end do
     end if
