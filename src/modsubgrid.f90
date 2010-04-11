@@ -167,7 +167,7 @@ contains
     endif
 
     !CvH init dynamic subgrid model
-    if(lsmagorinsky) then
+    if(ldynsub) then
       
       allocate(S(2-ih:i1+ih,2-jh:j1+jh)) 
       
@@ -178,80 +178,77 @@ contains
       allocate(S23(2-ih:i1+ih,2-jh:j1+jh))
       allocate(S33(2-ih:i1+ih,2-jh:j1+jh)) 
 
-      if(ldynsub) then
+      allocate(u_bar(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(v_bar(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(w_bar(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(u_hat(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(v_hat(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(w_hat(2-ih:i1+ih,2-jh:j1+jh))
       
-        allocate(u_bar(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(v_bar(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(w_bar(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(u_hat(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(v_hat(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(w_hat(2-ih:i1+ih,2-jh:j1+jh))
-        
-        allocate(S11_bar(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(S12_bar(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(S13_bar(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(S22_bar(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(S23_bar(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(S33_bar(2-ih:i1+ih,2-jh:j1+jh)) 
-        
-        allocate(S11_hat(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(S12_hat(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(S13_hat(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(S22_hat(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(S23_hat(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(S33_hat(2-ih:i1+ih,2-jh:j1+jh)) 
-         
-        allocate(S_S11_bar(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(S_S12_bar(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(S_S13_bar(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(S_S22_bar(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(S_S23_bar(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(S_S33_bar(2-ih:i1+ih,2-jh:j1+jh)) 
-        
-        allocate(S_S11_hat(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(S_S12_hat(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(S_S13_hat(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(S_S22_hat(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(S_S23_hat(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(S_S33_hat(2-ih:i1+ih,2-jh:j1+jh)) 
+      allocate(S11_bar(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S12_bar(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S13_bar(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S22_bar(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S23_bar(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S33_bar(2-ih:i1+ih,2-jh:j1+jh)) 
+      
+      allocate(S11_hat(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S12_hat(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S13_hat(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S22_hat(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S23_hat(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S33_hat(2-ih:i1+ih,2-jh:j1+jh)) 
+       
+      allocate(S_S11_bar(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S_S12_bar(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S_S13_bar(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S_S22_bar(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S_S23_bar(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S_S33_bar(2-ih:i1+ih,2-jh:j1+jh)) 
+      
+      allocate(S_S11_hat(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S_S12_hat(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S_S13_hat(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S_S22_hat(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S_S23_hat(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S_S33_hat(2-ih:i1+ih,2-jh:j1+jh)) 
   
-        allocate(S_bar(2-ih:i1+ih,2-jh:j1+jh)) 
-        allocate(S_hat(2-ih:i1+ih,2-jh:j1+jh)) 
-        
-        allocate(L11(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(L12(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(L13(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(L22(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(L23(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(L33(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S_bar(2-ih:i1+ih,2-jh:j1+jh)) 
+      allocate(S_hat(2-ih:i1+ih,2-jh:j1+jh)) 
+      
+      allocate(L11(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(L12(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(L13(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(L22(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(L23(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(L33(2-ih:i1+ih,2-jh:j1+jh))
   
-        allocate(Q11(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(Q12(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(Q13(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(Q22(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(Q23(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(Q33(2-ih:i1+ih,2-jh:j1+jh)) 
+      allocate(Q11(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(Q12(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(Q13(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(Q22(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(Q23(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(Q33(2-ih:i1+ih,2-jh:j1+jh)) 
   
-        allocate(M11(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(M12(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(M13(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(M22(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(M23(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(M33(2-ih:i1+ih,2-jh:j1+jh)) 
+      allocate(M11(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(M12(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(M13(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(M22(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(M23(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(M33(2-ih:i1+ih,2-jh:j1+jh)) 
   
-        allocate(N11(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(N12(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(N13(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(N22(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(N23(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(N33(2-ih:i1+ih,2-jh:j1+jh)) 
+      allocate(N11(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(N12(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(N13(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(N22(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(N23(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(N33(2-ih:i1+ih,2-jh:j1+jh)) 
   
-        allocate(LM(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(MM(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(QN(2-ih:i1+ih,2-jh:j1+jh))
-        allocate(NN(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(LM(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(MM(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(QN(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(NN(2-ih:i1+ih,2-jh:j1+jh))
     
-      end if
     end if
    
 !
@@ -796,17 +793,19 @@ contains
         QNav  = max(1.e-24, QNav)
         NNav  = max(1.e-24, NNav)
 
-        !cs2_2 = LMav / MMav
-        !cs4_2 = QNav / NNav
-        !
-        !cs2_2 = max(1.e-24, cs2_2)
-        !cs4_2 = max(1.e-24, cs4_2)
+        cs2_2 = LMav / MMav
+        cs4_2 = QNav / NNav
+        
+        cs2_2 = max(1.e-24, cs2_2)
+        cs4_2 = max(1.e-24, cs4_2)
 
-        !beta = max(cs4_2 / cs2_2, 0.125)
+        beta = max(cs4_2 / cs2_2, 0.125)
+        !beta = cs4_2 / cs2_2
 
-        csz(k) = (LMav / MMav) / ( (QNav * MMav) / (NNav * LMav) )
+        !csz(k) = sqrt( (LMav / MMav) / ( (QNav * MMav) / (NNav * LMav) ))
+        csz(k) = sqrt(cs2_2 / beta)
 
-        !csz(k) = sqrt(cs2_2 / beta)
+        write(6,*) "cs: ", k, csz(k)
 
       end do
     end if

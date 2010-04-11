@@ -41,10 +41,11 @@ contains
 !> Reads the namelists and initialises the soil.
   subroutine initsurface
 
-    use modglobal,  only : jmax, i1, i2, j1, j2, cp, rlv, zf, nsv, ifnamopt, fname_options
+    use modglobal,  only : jmax, i1, i2, j1, j2, ih, jh, cp, rlv, zf, nsv, ifnamopt, fname_options
     use modraddata, only : iradiation
     use modfields,  only : thl0, qt0
     use modmpi,     only : myid, nprocs, comm3d, mpierr, my_real, mpi_logical, mpi_integer
+    use modsubgrid, only : ldynsub
 
     implicit none
 
@@ -336,8 +337,13 @@ contains
 
     ! 3. Initialize surface layer
     allocate(ustar   (i2,j2))
-    allocate(dudz    (i2,j2))
-    allocate(dvdz    (i2,j2))
+    if(ldynsub) then
+      allocate(dudz    (i2,j2))
+      allocate(dvdz    (i2,j2))
+    else
+      allocate(dudz    (2-ih:i1+ih,2-jh:j1+jh))
+      allocate(dvdz    (2-ih:i1+ih,2-jh:j1+jh))
+    end if
     allocate(thlflux (i2,j2))
     allocate(qtflux  (i2,j2))
     allocate(dqtdz   (i2,j2))
@@ -358,15 +364,16 @@ contains
 
 !> Calculates the interaction with the soil, the surface temperature and humidity, and finally the surface fluxes.
   subroutine surface
-    use modglobal,  only : rdt, i1, i2, j1, j2, cp, rlv, fkar, zf, cu, cv, nsv, rk3step, timee, rslabs, pi, pref0, rd, eps1, boltz
+    use modglobal,  only : rdt, i1, i2, j1, j2, ih, jh, cp, rlv, fkar, zf, cu, cv, nsv, rk3step, timee, rslabs, pi, pref0, rd, eps1, boltz
     use modraddata, only : iradiation, swu, swd, lwu, lwd, useMcICA
     use modfields,  only : thl0, qt0, u0, v0, rhof, ql0, exnf, presf, u0av, v0av
-    use modmpi,     only : my_real, mpierr, comm3d, mpi_sum, myid, excj
+    use modmpi,     only : my_real, mpierr, comm3d, mpi_sum, myid, excj, excjs
     use moduser,   only : surf_user
+    use modsubgrid, only : ldynsub
     implicit none
 
     real     :: f1, f2, f3, f4 ! Correction functions for Jarvis-Stewart
-    integer  :: i, j, k, n
+    integer  :: i, j, k, m, n
     real     :: upcu, vpcv, horv, horvav
     real     :: phimzf, phihzf
     real     :: rk3coef, thlsl
@@ -774,6 +781,18 @@ contains
     end do
 
     call excj( ustar  , 1, i2, 1, j2, 1,1)
+
+    if(ldynsub) then
+      do m = 1,ih
+        dudz(2-m,:)  = dudz(i2-m,:)
+        dudz(i1+m,:) = dudz(1+m,:)
+        dvdz(2-m,:)  = dvdz(i2-m,:)
+        dvdz(i1+m,:) = dvdz(1+m,:)
+      end do
+      
+      call excjs(dudz, 2,i1,2,j1,1,1,ih,jh)
+      call excjs(dvdz, 2,i1,2,j1,1,1,ih,jh)
+    end if
 
     return
 
