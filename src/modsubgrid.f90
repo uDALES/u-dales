@@ -814,7 +814,7 @@ contains
 
     ! For ekm and ekh computation, revert to highest possible accuracy in strain
     ! discretization
-    do k = 1, k1
+    do k = 1,kmax
       mlen        = csz(k) * delta(k)
 
       do i = 2,i1
