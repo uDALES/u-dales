@@ -387,7 +387,7 @@ contains
         call ncinfo(ncname(34,:),'th2r','Resolved theta variance','K^2','tt')
         call ncinfo(ncname(35,:),'qt2r','Resolved total water variance','(kg/kg)^2','tt')
         call ncinfo(ncname(36,:),'ql2r','Resolved liquid water variance','(kg/kg)^2','tt')
-        call ncinfo(ncname(37,:),'cs','Smagorinsky constant','(kg/kg)^2','tt')
+        call ncinfo(ncname(37,:),'cs','Smagorinsky constant','-','tt')
 
 
         call open_nc(fname,  ncid,n3=kmax)
@@ -1271,7 +1271,7 @@ contains
           ,'#      (M)    (MB)   (----------- (KELVIN) ---------------)    ' &
           ,'(----(G/KG)------)  (--- (M/S ---)   (-----------)  (---)'
       do k=1,kmax
-        write(ifoutput,'(I3,F8.2,F7.1,5F10.4,F12.5,4F11.4)') &
+        write(ifoutput,'(I3,F8.2,F7.1,5F10.4,F12.5,3F11.4,F11.5)') &
             k, &
             zf    (k), &
             presf (k)/100., &
