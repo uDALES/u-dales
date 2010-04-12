@@ -353,7 +353,7 @@ contains
 !-----------------------------------------------------------------|
 
   use modglobal,   only : i1, j1,kmax,k1,ih,jh,i2,j2,delta,ekmin,grav, zf, fkar, &
-                         dxi,dyi,dzf,dzh,rk3step, rslabs
+                         dxi,dyi,dzf,dzh,rk3step,rslabs
   use modfields,   only : dthvdz,e120,u0,v0,w0
   use modsurfdata, only : dudz,dvdz,thvs,z0m
 
@@ -473,8 +473,8 @@ contains
 !    end do
 
   if(lsmagorinsky) then
-    if(ldynsub) then
-      ! CvH dynamic subgrid model
+    if(ldynsub .and. rk3step == 1) then
+      ! CvH dynamic subgrid model, compute cs only in first RK3 iteration step
       ! go through the model layer by layer
       do k = 1,kmax
         S(:,:)   = 0.
