@@ -805,7 +805,7 @@ contains
         !csz(k) = sqrt( (LMav / MMav) / ( (QNav * MMav) / (NNav * LMav) ))
         csz(k) = sqrt(cs2_2 / beta)
 
-        if(myid == 0) write(6,*) "cs: ", k, csz(k)
+        !if(myid == 0) write(6,*) "cs: ", k, csz(k)
 
       end do
     end if
