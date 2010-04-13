@@ -300,7 +300,7 @@ contains
         do j = 2,j1
           do i = 2,i1
             v2f(i,j) = 0.5 * (0.125 * v2fin(i-2,j) + 0.25 * v2fin(i-1,j) + 0.25 * v2fin(i,j) + 0.25 * v2fin(i+1,j) + 0.125 * v2fin(i+2,j)) &
-             + 0.5 * (0.125 * v2fin(i,j-2) + 0.25 * v2fin(i,j-1) + 0.25 * v2fin(i,j) + 0.25 * v2fin(i,j+2) + 0.125 * v2fin(i,j+2))
+             + 0.5 * (0.125 * v2fin(i,j-2) + 0.25 * v2fin(i,j-1) + 0.25 * v2fin(i,j) + 0.25 * v2fin(i,j+1) + 0.125 * v2fin(i,j+2))
           end do
         end do
       !end do
@@ -658,6 +658,10 @@ contains
         call filter(u_hat,4)
         call filter(v_hat,4)
         call filter(w_hat,4)
+
+        !do i = 2, i1
+        !  write(6,*) k,i, 0.5*(u0(i,2,k)+u0(i+1,2,k)), u_bar(i,2), u_hat(i,2)
+        !end do
   
         ! follow Bou-Zeid, 2005
         call filter(Q11,4)
@@ -799,13 +803,16 @@ contains
         cs2_2 = max(1.e-24, cs2_2)
         cs4_2 = max(1.e-24, cs4_2)
 
-        beta = max(cs4_2 / cs2_2, 0.125)
-        !beta = cs4_2 / cs2_2
+        beta = cs4_2 / cs2_2
+        if(beta < 0.125) then
+          write(6,*) "WARNING! Beta clip at k = ", k
+          beta = max(cs4_2 / cs2_2, 0.125)
+        end if
 
         !csz(k) = sqrt( (LMav / MMav) / ( (QNav * MMav) / (NNav * LMav) ))
         csz(k) = sqrt(cs2_2 / beta)
 
-        !if(myid == 0) write(6,*) "cs: ", k, csz(k)
+        !if(myid == 0) write(6,*) "cs: ", k, csz(k), sqrt(cs2_2), sqrt(cs4_2)
 
       end do
     end if
