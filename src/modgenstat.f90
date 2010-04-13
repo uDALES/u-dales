@@ -801,7 +801,7 @@ contains
 
         uwr     = (w0(i,j,k)+w0(i-1,j,k)) &
                   *((u0(i,j,k-1)+cu)*dzf(k)+(u0(i,j,k)+cu)*dzf(k-1))/(4*dzh(k))
-        vwr     = (w0(i,j,k)+w0(i-1,j,k)) &
+        vwr     = (w0(i,j,k)+w0(i,j-1,k)) &
                   *((v0(i,j,k-1)+cv)*dzf(k)+(v0(i,j,k)+cv)*dzf(k-1))/(4*dzh(k))
         uws     = -euhalf &
                   *((u0(i,j,k)-u0(i,j,k-1))/dzh(k)+(w0(i,j,k)-w0(i-1,j,k))*dxi)
