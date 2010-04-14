@@ -108,6 +108,7 @@ save
       integer, parameter :: iadv_cd2    = 2
       integer, parameter :: iadv_5th    = 5
       integer, parameter :: iadv_cd6    = 6
+      integer, parameter :: iadv_62     = 62
       integer, parameter :: iadv_kappa  = 7
 
       logical :: lmoist   = .true.  !<   switch to calculate moisture fields

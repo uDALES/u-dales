@@ -378,7 +378,7 @@ subroutine advecv_6th(putin, putout)
                   )* dyi5 &
                 +( &
                     (w0(i,j,k+1)+w0(i,j-1,k+1))*(putin(i,j,k+1)+putin(i,j,k)) / 2.&
-                    -(w0(i,j,k)  +w0(i,j-1,k)) *(putin(i,j,k-1)+putin(i,j,k)) / 2.&
+                    -(w0(i,j,k) +w0(i,j-1,k))  *(putin(i,j,k-1)+putin(i,j,k)) / 2.&
                   )/(2.*dzf(k)) &
                   )
 

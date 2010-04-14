@@ -47,6 +47,10 @@ subroutine advection
       call advecu_6th(u0,up)
       call advecv_6th(v0,vp)
       call advecw_6th(w0,wp)
+    case(iadv_62)
+      call advecu_62(u0,up)
+      call advecv_62(v0,vp)
+      call advecw_62(w0,wp)
     case default
       stop "Unknown advection scheme "
   end select
@@ -59,6 +63,8 @@ subroutine advection
         call advecc_5th(e120,e12p)
       case(iadv_cd6)
         call advecc_6th(e120,e12p)
+      case(iadv_62)
+        call advecc_62(e120,e12p)
       case(iadv_kappa)
         call advecc_kappa(e120,e12p)
       case default
@@ -73,6 +79,8 @@ subroutine advection
       call advecc_5th(thl0,thlp)
     case(iadv_cd6)
       call advecc_6th(thl0,thlp)
+    case(iadv_62)
+      call advecc_62(thl0,thlp)
     case(iadv_kappa)
       call advecc_kappa(thl0,thlp)
     case(iadv_upw)
@@ -88,6 +96,8 @@ subroutine advection
         call advecc_5th(qt0,qtp)
       case(iadv_cd6)
         call advecc_6th(qt0,qtp)
+      case(iadv_62)
+        call advecc_62(qt0,qtp)
       case(iadv_kappa)
         call advecc_kappa(qt0,qtp)
       case(iadv_upw)
@@ -104,6 +114,8 @@ subroutine advection
       call advecc_5th(sv0(:,:,:,n),svp(:,:,:,n))
     case(iadv_cd6)
       call advecc_6th(sv0(:,:,:,n),svp(:,:,:,n))
+    case(iadv_62)
+      call advecc_62(sv0(:,:,:,n),svp(:,:,:,n))
     case(iadv_kappa)
       call advecc_kappa(sv0(:,:,:,n),svp(:,:,:,n))
     case(iadv_upw)
