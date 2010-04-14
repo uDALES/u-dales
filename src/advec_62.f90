@@ -1,8 +1,9 @@
-!> \file advec_6th.f90
-!!  Does advection with a 6th order central differencing scheme.
+!> \file advec_62.f90
+!!  Does advection with a 6th order horizontal central differencing scheme.
+!!  Vertical advection is done with 2nd order scheme.
 !! \par Revision list
 !! \par Authors
-!! \see Wicker and Scamarock 2002
+!! \see Wicker and Skamarock 2002
 !!
 !! A higher-order accuracy in the calculation of the advection is reached with a
 !! sixth order central differencing scheme.
@@ -28,7 +29,7 @@
 !
 
 !> Advection at cell center
-subroutine advecc_6th(putin, putout)
+subroutine advecc_62(putin, putout)
 
   use modglobal, only : i1,ih,j1,jh,k1,kmax,dxi,dyi,dzf
   use modfields, only : u0, v0, w0
@@ -94,11 +95,11 @@ subroutine advecc_6th(putin, putout)
 
 !   end if
 
-end subroutine advecc_6th
+end subroutine advecc_62
 
 
 !> Advection at the u point.
-subroutine advecu_6th(putin,putout)
+subroutine advecu_62(putin,putout)
 
   use modglobal, only : i1,ih,j1,jh,k1,kmax,dxi5,dyi5,dzf
   use modfields, only : u0, v0, w0
@@ -164,12 +165,12 @@ subroutine advecu_6th(putin,putout)
 
 !   end if
 
-end subroutine advecu_6th
+end subroutine advecu_62
 
 
 
 !> Advection at the v point.
-subroutine advecv_6th(putin, putout)
+subroutine advecv_62(putin, putout)
 
   use modglobal, only : i1,ih,j1,jh,k1,kmax,dxi5,dyi5,dzf
   use modfields, only : u0, v0, w0
@@ -234,12 +235,12 @@ subroutine advecv_6th(putin, putout)
 
 !   end if
 
-end subroutine advecv_6th
+end subroutine advecv_62
 
 
 
 !> Advection at the w point.
-subroutine advecw_6th(putin, putout)
+subroutine advecw_62(putin, putout)
 
   use modglobal, only : i1,ih,j1,jh,k1,kmax,dxi5,dyi5,dzh
   use modfields, only : u0, v0, w0
@@ -276,4 +277,4 @@ subroutine advecw_6th(putin, putout)
       end do
      end do
 
-end subroutine advecw_6th
+end subroutine advecw_62

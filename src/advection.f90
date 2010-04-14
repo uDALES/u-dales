@@ -28,7 +28,7 @@
 subroutine advection
 
   use modglobal, only : lmoist, nsv, iadv_mom,iadv_tke,iadv_thl,iadv_qt,iadv_sv, &
-                        iadv_cd2,iadv_5th,iadv_cd6,iadv_kappa,iadv_upw
+                        iadv_cd2,iadv_5th,iadv_cd6,iadv_62,iadv_kappa,iadv_upw
   use modfields, only : u0,up,v0,vp,w0,wp,e120,e12p,thl0,thlp,qt0,qtp,sv0,svp
   use modsubgrid, only: lsmagorinsky
   implicit none
