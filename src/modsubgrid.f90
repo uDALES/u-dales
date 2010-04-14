@@ -659,10 +659,6 @@ contains
         call filter(v_hat,4)
         call filter(w_hat,4)
 
-        !do i = 2, i1
-        !  write(6,*) k,i, 0.5*(u0(i,2,k)+u0(i+1,2,k)), u_bar(i,2), u_hat(i,2)
-        !end do
-  
         ! follow Bou-Zeid, 2005
         call filter(Q11,4)
         Q11(:,:) = Q11(:,:) - u_hat(:,:)*u_hat(:,:)
@@ -811,8 +807,6 @@ contains
 
         !csz(k) = sqrt( (LMav / MMav) / ( (QNav * MMav) / (NNav * LMav) ))
         csz(k) = sqrt(cs2_2 / beta)
-
-        !if(myid == 0) write(6,*) "cs: ", k, csz(k), sqrt(cs2_2), sqrt(cs4_2)
 
       end do
     end if
