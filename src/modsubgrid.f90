@@ -294,25 +294,30 @@ contains
     integer                :: i,j
 
     v2fin(:,:) = v2f(:,:)
-
-    if(ndx == 4) then
-      !do k = 1,kmax
-        do j = 2,j1
-          do i = 2,i1
-            v2f(i,j) = 0.5 * (0.125 * v2fin(i-2,j) + 0.25 * v2fin(i-1,j) + 0.25 * v2fin(i,j) + 0.25 * v2fin(i+1,j) + 0.125 * v2fin(i+2,j)) &
-             + 0.5 * (0.125 * v2fin(i,j-2) + 0.25 * v2fin(i,j-1) + 0.25 * v2fin(i,j) + 0.25 * v2fin(i,j+1) + 0.125 * v2fin(i,j+2))
-          end do
+   if(ndx == 2) then
+      do j = 2,j1
+        do i = 2,i1
+          !v2f(i,j) = 0.5 * (0.25 * v2fin(i-1,j) + 0.5 * v2fin(i,j) + 0.25 * v2fin(i+1,j)) &
+          ! + 0.5 * (0.25 * v2fin(i,j-1) + 0.5 * v2fin(i,j) + 0.25 * v2fin(i,j+1))
+          v2f(i,j) = 0.25 * ( &
+              0.25 * v2fin(i-1,j-1) + 0.5 * v2fin(i,j-1) + 0.25 * v2fin(i+1,j-1) &
+            + 0.5  * v2fin(i-1,j  ) +       v2fin(i,j  ) + 0.5  * v2fin(i+1,j  ) &
+            + 0.25 * v2fin(i-1,j+1) + 0.5 * v2fin(i,j+1) + 0.25 * v2fin(i+1,j+1) )
         end do
-      !end do
-    elseif(ndx == 2) then
-      !do k = 1,kmax
-        do j = 2,j1
-          do i = 2,i1
-            v2f(i,j) = 0.5 * (0.25 * v2fin(i-1,j) + 0.5 * v2fin(i,j) + 0.25 * v2fin(i+1,j)) &
-             + 0.5 * (0.25 * v2fin(i,j-1) + 0.5 * v2fin(i,j) + 0.25 * v2fin(i,j+1))
-          end do
+      end do
+    elseif(ndx == 4) then
+      do j = 2,j1
+        do i = 2,i1
+          !v2f(i,j) = 0.5 * (0.125 * v2fin(i-2,j) + 0.25 * v2fin(i-1,j) + 0.25 * v2fin(i,j) + 0.25 * v2fin(i+1,j) + 0.125 * v2fin(i+2,j)) &
+          ! + 0.5 * (0.125 * v2fin(i,j-2) + 0.25 * v2fin(i,j-1) + 0.25 * v2fin(i,j) + 0.25 * v2fin(i,j+1) + 0.125 * v2fin(i,j+2))
+          v2f(i,j) = 0.0625 * ( &
+              0.25 * v2fin(i-2,j-2) + 0.5 * v2fin(i-1,j-2) + 0.5 * v2fin(i  ,j-2) + 0.5 * v2fin(i+1,j-2) + 0.25 * v2fin(i+2,j-2) &
+            + 0.5  * v2fin(i-2,j-1) + 1.0 * v2fin(i-1,j-1) + 1.0 * v2fin(i  ,j-1) + 1.0 * v2fin(i+1,j-1) + 0.5  * v2fin(i+2,j-1) &
+            + 0.5  * v2fin(i-2,j  ) + 1.0 * v2fin(i-1,j  ) + 1.0 * v2fin(i  ,j  ) + 1.0 * v2fin(i+1,j  ) + 0.5  * v2fin(i+2,j  ) &
+            + 0.5  * v2fin(i-2,j+1) + 1.0 * v2fin(i-1,j+1) + 1.0 * v2fin(i  ,j+1) + 1.0 * v2fin(i+1,j+1) + 0.5  * v2fin(i+2,j+1) &
+            + 0.25 * v2fin(i-2,j+2) + 0.5 * v2fin(i-1,j+2) + 0.5 * v2fin(i  ,j+2) + 0.5 * v2fin(i+1,j+2) + 0.25 * v2fin(i+2,j+2) )
         end do
-      !end do
+      end do
     end if
 
     return
