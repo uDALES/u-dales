@@ -1003,7 +1003,7 @@ SUBROUTINE read_chem(chem_name)
   H2O%name    = 'H2O'
   CO%name     = 'CO'
   CO2%name    = 'CO2'
-  RH%name     = 'ISO' !**************************** pas op
+  RH%name     = 'RH'
   R%name      = 'R'
   NH3%name    = 'NH3'
   H2SO4%name  = 'H2SO4'
