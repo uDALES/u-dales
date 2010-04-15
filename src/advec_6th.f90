@@ -50,15 +50,15 @@ subroutine advecc_6th(putin, putout)
 
           putout(i,j,k)  = putout(i,j,k)- ( &
                 ( &
-                    u0(i+1,j,k)/60. &
+                    u0(i+1,j,k)/66. &
                     *(37.*(putin(i+1,j,k)+putin(i,j,k))-8.*(putin(i+2,j,k)+putin(i-1,j,k))+(putin(i+3,j,k)+putin(i-2,j,k)))&
-                    -u0(i,j,k)/60. &
+                    -u0(i,j,k)/66. &
                     *(37.*(putin(i,j,k)+putin(i-1,j,k))-8.*(putin(i+1,j,k)+putin(i-2,j,k))+(putin(i+2,j,k)+putin(i-3,j,k)))&
                   )*dxi&
                 +(&
-                    v0(i,j+1,k)/60. &
+                    v0(i,j+1,k)/66. &
                     *(37.*(putin(i,j+1,k)+putin(i,j,k))-8.*(putin(i,j+2,k)+putin(i,j-1,k))+(putin(i,j+3,k)+putin(i,j-2,k)))&
-                    -v0(i,j,k)/60. &
+                    -v0(i,j,k)/66. &
                     *(37.*(putin(i,j,k)+putin(i,j-1,k))-8.*(putin(i,j+1,k)+putin(i,j-2,k))+(putin(i,j+2,k)+putin(i,j-3,k)))&
                   )* dyi &
                 +( &
@@ -74,15 +74,15 @@ subroutine advecc_6th(putin, putout)
 
             putout(i,j,k)  = putout(i,j,k)- (  &
                   ( &
-                      u0(i+1,j,k)/60. &
+                      u0(i+1,j,k)/66. &
                       *(37.*(putin(i+1,j,k)+putin(i,j,k))-8.*(putin(i+2,j,k)+putin(i-1,j,k))+(putin(i+3,j,k)+putin(i-2,j,k)))&
-                      -u0(i,j,k)/60. &
+                      -u0(i,j,k)/66. &
                       *(37.*(putin(i,j,k)+putin(i-1,j,k))-8.*(putin(i+1,j,k)+putin(i-2,j,k))+(putin(i+2,j,k)+putin(i-3,j,k)))&
                   )*dxi&
                 +(&
-                      v0(i,j+1,k)/60. &
+                      v0(i,j+1,k)/66. &
                       *(37.*(putin(i,j+1,k)+putin(i,j,k))-8.*(putin(i,j+2,k)+putin(i,j-1,k))+(putin(i,j+3,k)+putin(i,j-2,k)))&
-                      -v0(i,j,k)/60. &
+                      -v0(i,j,k)/66. &
                       *(37.*(putin(i,j,k)+putin(i,j-1,k))-8.*(putin(i,j+1,k)+putin(i,j-2,k))+(putin(i,j+2,k)+putin(i,j-3,k)))&
                   )* dyi &
                 +( &
@@ -96,19 +96,19 @@ subroutine advecc_6th(putin, putout)
 
             putout(i,j,k)  = putout(i,j,k)- (  &
                   ( &
-                      u0(i+1,j,k)/60. &
+                      u0(i+1,j,k)/66. &
                       *(37.*(putin(i+1,j,k)+putin(i,j,k))-8.*(putin(i+2,j,k)+putin(i-1,j,k))+(putin(i+3,j,k)+putin(i-2,j,k)))&
-                      -u0(i,j,k)/60. &
+                      -u0(i,j,k)/66. &
                       *(37.*(putin(i,j,k)+putin(i-1,j,k))-8.*(putin(i+1,j,k)+putin(i-2,j,k))+(putin(i+2,j,k)+putin(i-3,j,k)))&
                   )*dxi&
                 +(&
-                      v0(i,j+1,k)/60. &
+                      v0(i,j+1,k)/66. &
                       *(37.*(putin(i,j+1,k)+putin(i,j,k))-8.*(putin(i,j+2,k)+putin(i,j-1,k))+(putin(i,j+3,k)+putin(i,j-2,k)))&
-                      -v0(i,j,k)/60. &
+                      -v0(i,j,k)/66. &
                       *(37.*(putin(i,j,k)+putin(i,j-1,k))-8.*(putin(i,j+1,k)+putin(i,j-2,k))+(putin(i,j+2,k)+putin(i,j-3,k)))&
                   )* dyi &
                 +( &
-                      w0(i,j,k+1)/12. &
+                      w0(i,j,k+1)/10. &
                       *(7.*(putin(i,j,k+1)+putin(i,j,k))-(putin(i,j,k+2)+putin(i,j,k-1)))&
                       -w0(i,j,k)  * (putin(i,j,k-1)+putin(i,j,k)) / 2. &
                   )/ dzf(k) &
@@ -123,21 +123,21 @@ subroutine advecc_6th(putin, putout)
 
             putout(i,j,k)  = putout(i,j,k)- (  &
                   ( &
-                      u0(i+1,j,k)/60. &
+                      u0(i+1,j,k)/66. &
                       *(37.*(putin(i+1,j,k)+putin(i,j,k))-8.*(putin(i+2,j,k)+putin(i-1,j,k))+(putin(i+3,j,k)+putin(i-2,j,k)))&
-                      -u0(i,j,k)/60. &
+                      -u0(i,j,k)/66. &
                       *(37.*(putin(i,j,k)+putin(i-1,j,k))-8.*(putin(i+1,j,k)+putin(i-2,j,k))+(putin(i+2,j,k)+putin(i-3,j,k)))&
                   )*dxi&
                 +(&
-                      v0(i,j+1,k)/60. &
+                      v0(i,j+1,k)/66. &
                       *(37.*(putin(i,j+1,k)+putin(i,j,k))-8.*(putin(i,j+2,k)+putin(i,j-1,k))+(putin(i,j+3,k)+putin(i,j-2,k)))&
-                      -v0(i,j,k)/60. &
+                      -v0(i,j,k)/66. &
                       *(37.*(putin(i,j,k)+putin(i,j-1,k))-8.*(putin(i,j+1,k)+putin(i,j-2,k))+(putin(i,j+2,k)+putin(i,j-3,k)))&
                   )* dyi &
                 +( &
-                      w0(i,j,k+1)/60. &
+                      w0(i,j,k+1)/66. &
                       *(37.*(putin(i,j,k+1)+putin(i,j,k))-8.*(putin(i,j,k+2)+putin(i,j,k-1))+(putin(i,j,k+3)+putin(i,j,k-2)))&
-                      -w0(i,j,k)/12. &
+                      -w0(i,j,k)/10. &
                       *(7.*(putin(i,j,k)+putin(i,j,k-1))-(putin(i,j,k+1)+putin(i,j,k-2)))&
                   )/dzf(k) &
                   )
@@ -150,21 +150,21 @@ subroutine advecc_6th(putin, putout)
 
             putout(i,j,k)  = putout(i,j,k)- (  &
                   ( &
-                      u0(i+1,j,k)/60. &
+                      u0(i+1,j,k)/66. &
                       *(37.*(putin(i+1,j,k)+putin(i,j,k))-8.*(putin(i+2,j,k)+putin(i-1,j,k))+(putin(i+3,j,k)+putin(i-2,j,k)))&
-                      -u0(i,j,k)/60. &
+                      -u0(i,j,k)/66. &
                       *(37.*(putin(i,j,k)+putin(i-1,j,k))-8.*(putin(i+1,j,k)+putin(i-2,j,k))+(putin(i+2,j,k)+putin(i-3,j,k)))&
                   )* dxi &
                 +( &
-                      v0(i,j+1,k)/60. &
+                      v0(i,j+1,k)/66. &
                       *(37.*(putin(i,j+1,k)+putin(i,j,k))-8.*(putin(i,j+2,k)+putin(i,j-1,k))+(putin(i,j+3,k)+putin(i,j-2,k)))&
-                      -v0(i,j,k)/60. &
+                      -v0(i,j,k)/66. &
                       *(37.*(putin(i,j,k)+putin(i,j-1,k))-8.*(putin(i,j+1,k)+putin(i,j-2,k))+(putin(i,j+2,k)+putin(i,j-3,k)))&
                   )*dyi&
                 +(&
-                      w0(i,j,k+1)/60. &
+                      w0(i,j,k+1)/66. &
                       *(37.*(putin(i,j,k+1)+putin(i,j,k))-8.*(putin(i,j,k+2)+putin(i,j,k-1))+(putin(i,j,k+3)+putin(i,j,k-2)))&
-                      -w0(i,j,k)/60. &
+                      -w0(i,j,k)/66. &
                       *(37.*(putin(i,j,k)+putin(i,j,k-1))-8.*(putin(i,j,k+1)+putin(i,j,k-2))+(putin(i,j,k+2)+putin(i,j,k-3)))&
                   )/dzf(k) &
                   )
@@ -207,15 +207,15 @@ subroutine advecu_6th(putin,putout)
 
           putout(i,j,k)  = putout(i,j,k)- ( &
                 ( &
-                    (u0(i+1,j,k)+u0(i,j,k))/60. &
+                    (u0(i+1,j,k)+u0(i,j,k))/66. &
                     *(37.*(putin(i+1,j,k)+putin(i,j,k))-8.*(putin(i+2,j,k)+putin(i-1,j,k))+(putin(i+3,j,k)+putin(i-2,j,k)))&
-                    -(u0(i,j,k)+u0(i-1,j,k))/60. &
+                    -(u0(i,j,k)+u0(i-1,j,k))/66. &
                     *(37.*(putin(i,j,k)+putin(i-1,j,k))-8.*(putin(i+1,j,k)+putin(i-2,j,k))+(putin(i+2,j,k)+putin(i-3,j,k)))&
                 )*dxi5&
               +(&
-                    (v0(i,j+1,k)+v0(i-1,j+1,k))/60. &
+                    (v0(i,j+1,k)+v0(i-1,j+1,k))/66. &
                     *(37.*(putin(i,j+1,k)+putin(i,j,k))-8.*(putin(i,j+2,k)+putin(i,j-1,k))+(putin(i,j+3,k)+putin(i,j-2,k)))&
-                    -(v0(i,j,k)+v0(i-1,j,k))/60. &
+                    -(v0(i,j,k)+v0(i-1,j,k))/66. &
                     *(37.*(putin(i,j,k)+putin(i,j-1,k))-8.*(putin(i,j+1,k)+putin(i,j-2,k))+(putin(i,j+2,k)+putin(i,j-3,k)))&
                 )* dyi5 &
               +( &
@@ -227,15 +227,15 @@ subroutine advecu_6th(putin,putout)
 
           putout(i,j,k)  = putout(i,j,k)- ( &
                 (&
-                    (u0(i+1,j,k)+u0(i,j,k))/60. &
+                    (u0(i+1,j,k)+u0(i,j,k))/66. &
                     *(37.*(putin(i+1,j,k)+putin(i,j,k))-8.*(putin(i+2,j,k)+putin(i-1,j,k))+(putin(i+3,j,k)+putin(i-2,j,k)))&
-                    -(u0(i,j,k)+u0(i-1,j,k))/60. &
+                    -(u0(i,j,k)+u0(i-1,j,k))/66. &
                     *(37.*(putin(i,j,k)+putin(i-1,j,k))-8.*(putin(i+1,j,k)+putin(i-2,j,k))+(putin(i+2,j,k)+putin(i-3,j,k)))&
                 )*dxi5&
               +(&
-                    (v0(i,j+1,k)+v0(i-1,j+1,k))/60. &
+                    (v0(i,j+1,k)+v0(i-1,j+1,k))/66. &
                     *(37.*(putin(i,j+1,k)+putin(i,j,k))-8.*(putin(i,j+2,k)+putin(i,j-1,k))+(putin(i,j+3,k)+putin(i,j-2,k)))&
-                    -(v0(i,j,k)+v0(i-1,j,k))/60. &
+                    -(v0(i,j,k)+v0(i-1,j,k))/66. &
                     *(37.*(putin(i,j,k)+putin(i,j-1,k))-8.*(putin(i,j+1,k)+putin(i,j-2,k))+(putin(i,j+2,k)+putin(i,j-3,k)))&
                 )* dyi5 &
               +( &
@@ -248,19 +248,19 @@ subroutine advecu_6th(putin,putout)
 
           putout(i,j,k)  = putout(i,j,k)- ( &
                 (&
-                    (u0(i+1,j,k)+u0(i,j,k))/60. &
+                    (u0(i+1,j,k)+u0(i,j,k))/66. &
                     *(37.*(putin(i+1,j,k)+putin(i,j,k))-8.*(putin(i+2,j,k)+putin(i-1,j,k))+(putin(i+3,j,k)+putin(i-2,j,k)))&
-                    -(u0(i,j,k)+u0(i-1,j,k))/60. &
+                    -(u0(i,j,k)+u0(i-1,j,k))/66. &
                     *(37.*(putin(i,j,k)+putin(i-1,j,k))-8.*(putin(i+1,j,k)+putin(i-2,j,k))+(putin(i+2,j,k)+putin(i-3,j,k)))&
                 )*dxi5&
               +(&
-                    (v0(i,j+1,k)+v0(i-1,j+1,k))/60. &
+                    (v0(i,j+1,k)+v0(i-1,j+1,k))/66. &
                     *(37.*(putin(i,j+1,k)+putin(i,j,k))-8.*(putin(i,j+2,k)+putin(i,j-1,k))+(putin(i,j+3,k)+putin(i,j-2,k)))&
-                    -(v0(i,j,k)+v0(i-1,j,k))/60. &
+                    -(v0(i,j,k)+v0(i-1,j,k))/66. &
                     *(37.*(putin(i,j,k)+putin(i,j-1,k))-8.*(putin(i,j+1,k)+putin(i,j-2,k))+(putin(i,j+2,k)+putin(i,j-3,k)))&
                 )* dyi5 &
               +( &
-                    (w0(i,j,k+1)+w0(i-1,j,k+1))/12. &
+                    (w0(i,j,k+1)+w0(i-1,j,k+1))/10. &
                     *(7.*(putin(i,j,k+1)+putin(i,j,k))-(putin(i,j,k+2)+putin(i,j,k-1)))&
                     -(putin(i,j,k)+putin(i,j,k-1))*(w0(i,j,k)+w0(i-1,j,k)) / 2. &
                 )/(2.*dzf(k)) &
@@ -270,21 +270,21 @@ subroutine advecu_6th(putin,putout)
 
           putout(i,j,k)  = putout(i,j,k)- ( &
                 (&
-                    (u0(i+1,j,k)+u0(i,j,k))/60. &
+                    (u0(i+1,j,k)+u0(i,j,k))/66. &
                     *(37.*(putin(i+1,j,k)+putin(i,j,k))-8.*(putin(i+2,j,k)+putin(i-1,j,k))+(putin(i+3,j,k)+putin(i-2,j,k)))&
-                    -(u0(i,j,k)+u0(i-1,j,k))/60. &
+                    -(u0(i,j,k)+u0(i-1,j,k))/66. &
                     *(37.*(putin(i,j,k)+putin(i-1,j,k))-8.*(putin(i+1,j,k)+putin(i-2,j,k))+(putin(i+2,j,k)+putin(i-3,j,k)))&
                 )*dxi5&
               +(&
-                    (v0(i,j+1,k)+v0(i-1,j+1,k))/60. &
+                    (v0(i,j+1,k)+v0(i-1,j+1,k))/66. &
                     *(37.*(putin(i,j+1,k)+putin(i,j,k))-8.*(putin(i,j+2,k)+putin(i,j-1,k))+(putin(i,j+3,k)+putin(i,j-2,k)))&
-                    -(v0(i,j,k)+v0(i-1,j,k))/60. &
+                    -(v0(i,j,k)+v0(i-1,j,k))/66. &
                     *(37.*(putin(i,j,k)+putin(i,j-1,k))-8.*(putin(i,j+1,k)+putin(i,j-2,k))+(putin(i,j+2,k)+putin(i,j-3,k)))&
                 )* dyi5 &
               +( &
-                    (w0(i,j,k+1)+w0(i-1,j,k+1))/60. &
+                    (w0(i,j,k+1)+w0(i-1,j,k+1))/66. &
                     *(37.*(putin(i,j,k+1)+putin(i,j,k))-8.*(putin(i,j,k+2)+putin(i,j,k-1))+(putin(i,j,k+3)+putin(i,j,k-2)))&
-                    -(w0(i,j,k)+w0(i-1,j,k))/12. &
+                    -(w0(i,j,k)+w0(i-1,j,k))/10. &
                     *(7.*(putin(i,j,k)+putin(i,j,k-1))-(putin(i,j,k+1)+putin(i,j,k-2)))&
                 )/(2.*dzf(k)) &
                 )
@@ -292,21 +292,21 @@ subroutine advecu_6th(putin,putout)
 
           putout(i,j,k)  = putout(i,j,k)- ( &
                   ( &
-                      (u0(i+1,j,k)+u0(i,j,k))/60. &
+                      (u0(i+1,j,k)+u0(i,j,k))/66. &
                       *(37.*(putin(i+1,j,k)+putin(i,j,k))-8.*(putin(i+2,j,k)+putin(i-1,j,k))+(putin(i+3,j,k)+putin(i-2,j,k)))&
-                      -(u0(i,j,k)+u0(i-1,j,k))/60. &
+                      -(u0(i,j,k)+u0(i-1,j,k))/66. &
                       *(37.*(putin(i,j,k)+putin(i-1,j,k))-8.*(putin(i+1,j,k)+putin(i-2,j,k))+(putin(i+2,j,k)+putin(i-3,j,k)))&
                   )*dxi5&
                 +(&
-                      (v0(i,j+1,k)+v0(i-1,j+1,k))/60. &
+                      (v0(i,j+1,k)+v0(i-1,j+1,k))/66. &
                       *(37.*(putin(i,j+1,k)+putin(i,j,k))-8.*(putin(i,j+2,k)+putin(i,j-1,k))+(putin(i,j+3,k)+putin(i,j-2,k)))&
-                      -(v0(i,j,k)+v0(i-1,j,k))/60. &
+                      -(v0(i,j,k)+v0(i-1,j,k))/66. &
                       *(37.*(putin(i,j,k)+putin(i,j-1,k))-8.*(putin(i,j+1,k)+putin(i,j-2,k))+(putin(i,j+2,k)+putin(i,j-3,k)))&
                   )*dyi5&
                 + (&
-                      (w0(i,j,k+1)+w0(i-1,j,k+1))/60. &
+                      (w0(i,j,k+1)+w0(i-1,j,k+1))/66. &
                       *(37.*(putin(i,j,k+1)+putin(i,j,k))-8.*(putin(i,j,k+2)+putin(i,j,k-1))+(putin(i,j,k+3)+putin(i,j,k-2)))&
-                      -(w0(i,j,k)+w0(i-1,j,k))/60. &
+                      -(w0(i,j,k)+w0(i-1,j,k))/66. &
                       *(37.*(putin(i,j,k)+putin(i,j,k-1))-8.*(putin(i,j,k+1)+putin(i,j,k-2))+(putin(i,j,k+2)+putin(i,j,k-3)))&
                   )/(2.*dzf(k)) &
                   )
@@ -345,15 +345,15 @@ subroutine advecv_6th(putin, putout)
 
           putout(i,j,k)  = putout(i,j,k)- ( &
                 ( &
-                    (u0(i+1,j,k)+u0(i+1,j-1,k))/60. &
+                    (u0(i+1,j,k)+u0(i+1,j-1,k))/66. &
                     *(37.*(putin(i+1,j,k)+putin(i,j,k))-8.*(putin(i+2,j,k)+putin(i-1,j,k))+(putin(i+3,j,k)+putin(i-2,j,k)))&
-                    -(u0(i,j,k)+u0(i,j-1,k))/60. &
+                    -(u0(i,j,k)+u0(i,j-1,k))/66. &
                     *(37.*(putin(i,j,k)+putin(i-1,j,k))-8.*(putin(i+1,j,k)+putin(i-2,j,k))+(putin(i+2,j,k)+putin(i-3,j,k)))&
                  )*dxi5&
                 +(&
-                    (v0(i,j+1,k)+v0(i,j,k))/60. &
+                    (v0(i,j+1,k)+v0(i,j,k))/66. &
                     *(37.*(putin(i,j+1,k)+putin(i,j,k))-8.*(putin(i,j+2,k)+putin(i,j-1,k))+(putin(i,j+3,k)+putin(i,j-2,k)))&
-                    -(v0(i,j,k)+v0(i,j-1,k))/60. &
+                    -(v0(i,j,k)+v0(i,j-1,k))/66. &
                     *(37.*(putin(i,j,k)+putin(i,j-1,k))-8.*(putin(i,j+1,k)+putin(i,j-2,k))+(putin(i,j+2,k)+putin(i,j-3,k)))&
                   )* dyi5 &
                 +( &
@@ -365,15 +365,15 @@ subroutine advecv_6th(putin, putout)
 
           putout(i,j,k)  = putout(i,j,k)- ( &
                 ( &
-                    (u0(i+1,j,k)+u0(i+1,j-1,k))/60. &
+                    (u0(i+1,j,k)+u0(i+1,j-1,k))/66. &
                     *(37.*(putin(i+1,j,k)+putin(i,j,k))-8.*(putin(i+2,j,k)+putin(i-1,j,k))+(putin(i+3,j,k)+putin(i-2,j,k)))&
-                    -(u0(i,j,k)+u0(i,j-1,k))/60. &
+                    -(u0(i,j,k)+u0(i,j-1,k))/66. &
                     *(37.*(putin(i,j,k)+putin(i-1,j,k))-8.*(putin(i+1,j,k)+putin(i-2,j,k))+(putin(i+2,j,k)+putin(i-3,j,k)))&
                  )*dxi5&
                 +(&
-                    (v0(i,j+1,k)+v0(i,j,k))/60. &
+                    (v0(i,j+1,k)+v0(i,j,k))/66. &
                     *(37.*(putin(i,j+1,k)+putin(i,j,k))-8.*(putin(i,j+2,k)+putin(i,j-1,k))+(putin(i,j+3,k)+putin(i,j-2,k)))&
-                    -(v0(i,j,k)+v0(i,j-1,k))/60. &
+                    -(v0(i,j,k)+v0(i,j-1,k))/66. &
                     *(37.*(putin(i,j,k)+putin(i,j-1,k))-8.*(putin(i,j+1,k)+putin(i,j-2,k))+(putin(i,j+2,k)+putin(i,j-3,k)))&
                   )* dyi5 &
                 +( &
@@ -386,19 +386,19 @@ subroutine advecv_6th(putin, putout)
 
           putout(i,j,k)  = putout(i,j,k)- ( &
                 ( &
-                    (u0(i+1,j,k)+u0(i+1,j-1,k))/60. &
+                    (u0(i+1,j,k)+u0(i+1,j-1,k))/66. &
                     *(37.*(putin(i+1,j,k)+putin(i,j,k))-8.*(putin(i+2,j,k)+putin(i-1,j,k))+(putin(i+3,j,k)+putin(i-2,j,k)))&
-                    -(u0(i,j,k)+u0(i,j-1,k))/60. &
+                    -(u0(i,j,k)+u0(i,j-1,k))/66. &
                     *(37.*(putin(i,j,k)+putin(i-1,j,k))-8.*(putin(i+1,j,k)+putin(i-2,j,k))+(putin(i+2,j,k)+putin(i-3,j,k)))&
                  )*dxi5&
                 +(&
-                    (v0(i,j+1,k)+v0(i,j,k))/60. &
+                    (v0(i,j+1,k)+v0(i,j,k))/66. &
                     *(37.*(putin(i,j+1,k)+putin(i,j,k))-8.*(putin(i,j+2,k)+putin(i,j-1,k))+(putin(i,j+3,k)+putin(i,j-2,k)))&
-                    -(v0(i,j,k)+v0(i,j-1,k))/60. &
+                    -(v0(i,j,k)+v0(i,j-1,k))/66. &
                     *(37.*(putin(i,j,k)+putin(i,j-1,k))-8.*(putin(i,j+1,k)+putin(i,j-2,k))+(putin(i,j+2,k)+putin(i,j-3,k)))&
                   )* dyi5 &
                 +( &
-                    (w0(i,j,k+1)+w0(i,j-1,k+1))/12. &
+                    (w0(i,j,k+1)+w0(i,j-1,k+1))/10. &
                     *(7.*(putin(i,j,k+1)+putin(i,j,k))-(putin(i,j,k+2)+putin(i,j,k-1)))&
                     -(w0(i,j,k)  +w0(i,j-1,k))  *(putin(i,j,k-1)+putin(i,j,k)) / 2.&
                   )/(2.*dzf(k)) &
@@ -408,21 +408,21 @@ subroutine advecv_6th(putin, putout)
 
           putout(i,j,k)  = putout(i,j,k)- ( &
                 ( &
-                    (u0(i+1,j,k)+u0(i+1,j-1,k))/60. &
+                    (u0(i+1,j,k)+u0(i+1,j-1,k))/66. &
                     *(37.*(putin(i+1,j,k)+putin(i,j,k))-8.*(putin(i+2,j,k)+putin(i-1,j,k))+(putin(i+3,j,k)+putin(i-2,j,k)))&
-                    -(u0(i,j,k)+u0(i,j-1,k))/60. &
+                    -(u0(i,j,k)+u0(i,j-1,k))/66. &
                     *(37.*(putin(i,j,k)+putin(i-1,j,k))-8.*(putin(i+1,j,k)+putin(i-2,j,k))+(putin(i+2,j,k)+putin(i-3,j,k)))&
                  )*dxi5&
                 +(&
-                    (v0(i,j+1,k)+v0(i,j,k))/60. &
+                    (v0(i,j+1,k)+v0(i,j,k))/66. &
                     *(37.*(putin(i,j+1,k)+putin(i,j,k))-8.*(putin(i,j+2,k)+putin(i,j-1,k))+(putin(i,j+3,k)+putin(i,j-2,k)))&
-                    -(v0(i,j,k)+v0(i,j-1,k))/60. &
+                    -(v0(i,j,k)+v0(i,j-1,k))/66. &
                     *(37.*(putin(i,j,k)+putin(i,j-1,k))-8.*(putin(i,j+1,k)+putin(i,j-2,k))+(putin(i,j+2,k)+putin(i,j-3,k)))&
                   )* dyi5 &
                 +( &
-                    (w0(i,j,k+1)+w0(i,j-1,k+1))/60. &
+                    (w0(i,j,k+1)+w0(i,j-1,k+1))/66. &
                     *(37.*(putin(i,j,k+1)+putin(i,j,k))-8.*(putin(i,j,k+2)+putin(i,j,k-1))+(putin(i,j,k+3)+putin(i,j,k-2)))&
-                    -(w0(i,j,k)+w0(i,j-1,k))/12. &
+                    -(w0(i,j,k)+w0(i,j-1,k))/10. &
                     *(7.*(putin(i,j,k)+putin(i,j,k-1))-(putin(i,j,k+1)+putin(i,j,k-2)))&
                   )/(2.*dzf(k)) &
                   )
@@ -431,21 +431,21 @@ subroutine advecv_6th(putin, putout)
 
           putout(i,j,k)  = putout(i,j,k)- ( &
                   ( &
-                      (u0(i+1,j,k)+u0(i+1,j-1,k))/60. &
+                      (u0(i+1,j,k)+u0(i+1,j-1,k))/66. &
                       *(37.*(putin(i+1,j,k)+putin(i,j,k))-8.*(putin(i+2,j,k)+putin(i-1,j,k))+(putin(i+3,j,k)+putin(i-2,j,k)))&
-                      -(u0(i,j,k)+u0(i,j-1,k))/60. &
+                      -(u0(i,j,k)+u0(i,j-1,k))/66. &
                       *(37.*(putin(i,j,k)+putin(i-1,j,k))-8.*(putin(i+1,j,k)+putin(i-2,j,k))+(putin(i+2,j,k)+putin(i-3,j,k)))&
                   )*dxi5&
                 +(&
-                      (v0(i,j+1,k)+v0(i,j,k))/60. &
+                      (v0(i,j+1,k)+v0(i,j,k))/66. &
                       *(37.*(putin(i,j+1,k)+putin(i,j,k))-8.*(putin(i,j+2,k)+putin(i,j-1,k))+(putin(i,j+3,k)+putin(i,j-2,k)))&
-                      -(v0(i,j,k)+v0(i,j-1,k))/60. &
+                      -(v0(i,j,k)+v0(i,j-1,k))/66. &
                       *(37.*(putin(i,j,k)+putin(i,j-1,k))-8.*(putin(i,j+1,k)+putin(i,j-2,k))+(putin(i,j+2,k)+putin(i,j-3,k)))&
                   )*dyi5&
                 +(&
-                      (w0(i,j,k+1)+w0(i,j-1,k+1))/60. &
+                      (w0(i,j,k+1)+w0(i,j-1,k+1))/66. &
                       *(37.*(putin(i,j,k+1)+putin(i,j,k))-8.*(putin(i,j,k+2)+putin(i,j,k-1))+(putin(i,j,k+3)+putin(i,j,k-2)))&
-                      -(w0(i,j,k)+w0(i,j-1,k))/60. &
+                      -(w0(i,j,k)+w0(i,j-1,k))/66. &
                       *(37.*(putin(i,j,k)+putin(i,j,k-1))-8.*(putin(i,j,k+1)+putin(i,j,k-2))+(putin(i,j,k+2)+putin(i,j,k-3)))&
                   )/(2*dzf(k)) &
                   )
@@ -483,19 +483,19 @@ subroutine advecw_6th(putin, putout)
           if(k==2) then
             putout(i,j,k)  = putout(i,j,k)- ( &
                  (&
-                     (u0(i+1,j,k)+u0(i+1,j,k-1))/60. &
+                     (u0(i+1,j,k)+u0(i+1,j,k-1))/66. &
                      *(37.*(putin(i+1,j,k)+putin(i,j,k))-8.*(putin(i+2,j,k)+putin(i-1,j,k))+(putin(i+3,j,k)+putin(i-2,j,k)))&
-                     -(u0(i,j,k)+u0(i,j,k-1))/60. &
+                     -(u0(i,j,k)+u0(i,j,k-1))/66. &
                      *(37.*(putin(i,j,k)+putin(i-1,j,k))-8.*(putin(i+1,j,k)+putin(i-2,j,k))+(putin(i+2,j,k)+putin(i-3,j,k)))&
                  )*dxi5&
                 +(&
-                     (v0(i,j+1,k)+v0(i,j+1,k-1))/60. &
+                     (v0(i,j+1,k)+v0(i,j+1,k-1))/66. &
                      *(37.*(putin(i,j+1,k)+putin(i,j,k))-8.*(putin(i,j+2,k)+putin(i,j-1,k))+(putin(i,j+3,k)+putin(i,j-2,k)))&
-                     -(v0(i,j,k)+v0(i,j,k-1))/60. &
+                     -(v0(i,j,k)+v0(i,j,k-1))/66. &
                      *(37.*(putin(i,j,k)+putin(i,j-1,k))-8.*(putin(i,j+1,k)+putin(i,j-2,k))+(putin(i,j+2,k)+putin(i,j-3,k)))&
                   )* dyi5 &
                 + ( &
-                     (w0(i,j,k)+w0(i,j,k+1))/12. &
+                     (w0(i,j,k)+w0(i,j,k+1))/10. &
                      *(7.*(putin(i,j,k+1)+putin(i,j,k))-(putin(i,j,k+2)+putin(i,j,k-1)))&
                      -(putin(i,j,k)+putin(i,j,k-1))*(w0(i,j,k) + w0(i,j,k-1)) / 2. &
                   )/(2.*dzh(k)) &
@@ -504,15 +504,15 @@ subroutine advecw_6th(putin, putout)
           elseif(k==kmax-1 .or. k==kmax) then
             putout(i,j,k)  = putout(i,j,k)- ( &
                  (&
-                     (u0(i+1,j,k)+u0(i+1,j,k-1))/60. &
+                     (u0(i+1,j,k)+u0(i+1,j,k-1))/66. &
                      *(37.*(putin(i+1,j,k)+putin(i,j,k))-8.*(putin(i+2,j,k)+putin(i-1,j,k))+(putin(i+3,j,k)+putin(i-2,j,k)))&
-                     -(u0(i,j,k)+u0(i,j,k-1))/60. &
+                     -(u0(i,j,k)+u0(i,j,k-1))/66. &
                      *(37.*(putin(i,j,k)+putin(i-1,j,k))-8.*(putin(i+1,j,k)+putin(i-2,j,k))+(putin(i+2,j,k)+putin(i-3,j,k)))&
                  )*dxi5&
                 +(&
-                     (v0(i,j+1,k)+v0(i,j+1,k-1))/60. &
+                     (v0(i,j+1,k)+v0(i,j+1,k-1))/66. &
                      *(37.*(putin(i,j+1,k)+putin(i,j,k))-8.*(putin(i,j+2,k)+putin(i,j-1,k))+(putin(i,j+3,k)+putin(i,j-2,k)))&
-                     -(v0(i,j,k)+v0(i,j,k-1))/60. &
+                     -(v0(i,j,k)+v0(i,j,k-1))/66. &
                      *(37.*(putin(i,j,k)+putin(i,j-1,k))-8.*(putin(i,j+1,k)+putin(i,j-2,k))+(putin(i,j+2,k)+putin(i,j-3,k)))&
                   )* dyi5 &
                 + ( &
@@ -524,21 +524,21 @@ subroutine advecw_6th(putin, putout)
           elseif(k==3) then
             putout(i,j,k)  = putout(i,j,k)- ( &
                  (&
-                     (u0(i+1,j,k)+u0(i+1,j,k-1))/60. &
+                     (u0(i+1,j,k)+u0(i+1,j,k-1))/66. &
                      *(37.*(putin(i+1,j,k)+putin(i,j,k))-8.*(putin(i+2,j,k)+putin(i-1,j,k))+(putin(i+3,j,k)+putin(i-2,j,k)))&
-                     -(u0(i,j,k)+u0(i,j,k-1))/60. &
+                     -(u0(i,j,k)+u0(i,j,k-1))/66. &
                      *(37.*(putin(i,j,k)+putin(i-1,j,k))-8.*(putin(i+1,j,k)+putin(i-2,j,k))+(putin(i+2,j,k)+putin(i-3,j,k)))&
                  )*dxi5&
                 +(&
-                     (v0(i,j+1,k)+v0(i,j+1,k-1))/60. &
+                     (v0(i,j+1,k)+v0(i,j+1,k-1))/66. &
                      *(37.*(putin(i,j+1,k)+putin(i,j,k))-8.*(putin(i,j+2,k)+putin(i,j-1,k))+(putin(i,j+3,k)+putin(i,j-2,k)))&
-                     -(v0(i,j,k)+v0(i,j,k-1))/60. &
+                     -(v0(i,j,k)+v0(i,j,k-1))/66. &
                      *(37.*(putin(i,j,k)+putin(i,j-1,k))-8.*(putin(i,j+1,k)+putin(i,j-2,k))+(putin(i,j+2,k)+putin(i,j-3,k)))&
                   )* dyi5 &
                 + ( &
-                     (w0(i,j,k)+w0(i,j,k+1))/60. &
+                     (w0(i,j,k)+w0(i,j,k+1))/66. &
                      *(37.*(putin(i,j,k+1)+putin(i,j,k))-8.*(putin(i,j,k+2)+putin(i,j,k-1))+(putin(i,j,k+3)+putin(i,j,k-2)))&
-                     -(w0(i,j,k)+w0(i,j,k-1))/12. &
+                     -(w0(i,j,k)+w0(i,j,k-1))/10. &
                      *(7.*(putin(i,j,k)+putin(i,j,k-1))-(putin(i,j,k+1)+putin(i,j,k-2))) &
                   )/(2.*dzh(k)) &
                   )
@@ -547,21 +547,21 @@ subroutine advecw_6th(putin, putout)
 
             putout(i,j,k)  = putout(i,j,k)- ( &
                   (&
-                      (u0(i+1,j,k)+u0(i+1,j,k-1))/60. &
+                      (u0(i+1,j,k)+u0(i+1,j,k-1))/66. &
                       *(37.*(putin(i+1,j,k)+putin(i,j,k))-8.*(putin(i+2,j,k)+putin(i-1,j,k))+(putin(i+3,j,k)+putin(i-2,j,k)))&
-                      -(u0(i,j,k)+u0(i,j,k-1))/60. &
+                      -(u0(i,j,k)+u0(i,j,k-1))/66. &
                       *(37.*(putin(i,j,k)+putin(i-1,j,k))-8.*(putin(i+1,j,k)+putin(i-2,j,k))+(putin(i+2,j,k)+putin(i-3,j,k)))&
                   )*dxi5&
                 +(&
-                      (v0(i,j+1,k)+v0(i,j+1,k-1))/60. &
+                      (v0(i,j+1,k)+v0(i,j+1,k-1))/66. &
                       *(37.*(putin(i,j+1,k)+putin(i,j,k))-8.*(putin(i,j+2,k)+putin(i,j-1,k))+(putin(i,j+3,k)+putin(i,j-2,k)))&
-                      -(v0(i,j,k)+v0(i,j,k-1))/60. &
+                      -(v0(i,j,k)+v0(i,j,k-1))/66. &
                       *(37.*(putin(i,j,k)+putin(i,j-1,k))-8.*(putin(i,j+1,k)+putin(i,j-2,k))+(putin(i,j+2,k)+putin(i,j-3,k)))&
                   )*dyi5&
                 + (&
-                      (w0(i,j,k)+w0(i,j,k+1))/60. &
+                      (w0(i,j,k)+w0(i,j,k+1))/66. &
                       *(37.*(putin(i,j,k+1)+putin(i,j,k))-8.*(putin(i,j,k+2)+putin(i,j,k-1))+(putin(i,j,k+3)+putin(i,j,k-2)))&
-                      -(w0(i,j,k)+w0(i,j,k-1))/60. &
+                      -(w0(i,j,k)+w0(i,j,k-1))/66. &
                       *(37.*(putin(i,j,k)+putin(i,j,k-1))-8.*(putin(i,j,k+1)+putin(i,j,k-2))+(putin(i,j,k+2)+putin(i,j,k-3)))&
                   )/(2.*dzh(k)) &
                   )
