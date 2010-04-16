@@ -254,8 +254,6 @@ contains
       allocate(QN(2-ih:i1+ih,2-jh:j1+jh))
       allocate(NN(2-ih:i1+ih,2-jh:j1+jh))
 
-      tf1 = 3
-      tf2 = 4
     end if
    
   end subroutine initsubgrid
