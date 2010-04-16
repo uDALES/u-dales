@@ -834,13 +834,13 @@ contains
 
         beta = (cs2_tf2 / cs2_tf1) ** (log(real(tf1))/(log(real(tf2))-log(real(tf1))))
         if(beta < 0.125) then
-          !if(myid == 0) write(6,*) "WARNING! Beta clip at k = ", k
+          if(myid == 0) write(6,*) "WARNING! Beta clip at k = ", k
           beta = max(beta, 0.125)
         end if
 
         !csz(k) = sqrt( (LMav / MMav) / ( (QNav * MMav) / (NNav * LMav) ))
         csz(k) = sqrt(cs2_tf1 / beta)
-        if(myid == 0) write(6,*) k, csz(k)
+        !if(myid == 0) write(6,*) k, csz(k)
 
       end do
     end if
