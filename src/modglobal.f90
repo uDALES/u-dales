@@ -233,6 +233,11 @@ contains
       ih = 5
       jh = 5
       kh = 1
+    elseif (any(advarr==iadv_62).or.any(iadv_sv(1:nsv)==iadv_62)) then
+      ! CvH temporarily increase ih for dynsub scheme
+      ih = 5
+      jh = 5
+      kh = 1
     elseif (any(advarr==iadv_5th).or.any(iadv_sv(1:nsv)==iadv_5th)) then
       ih = 3
       jh = 3
