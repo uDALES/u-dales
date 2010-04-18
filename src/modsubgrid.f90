@@ -95,7 +95,7 @@ contains
 
     implicit none
 
-    integer   :: k,ierr
+    integer   :: i,j,k,ierr
 
     real :: ceps, ch
     real :: mlen
@@ -254,6 +254,16 @@ contains
       allocate(QN(2-ih:i1+ih,2-jh:j1+jh))
       allocate(NN(2-ih:i1+ih,2-jh:j1+jh))
 
+      !S(:,:) = 0.
+      !S(10,10) = 1.
+      !call filter(S, 4)
+      !do j = 2,j1
+      !  do i = 2,i1
+      !    write(6,*) i, j, S(i,j)
+      !  end do
+      !end do
+      !stop
+
     end if
    
   end subroutine initsubgrid
@@ -286,7 +296,7 @@ contains
     deallocate(ekm,ekh,zlt,sbdiss,sbbuo,sbshr,csz)
   end subroutine exitsubgrid
 
-  subroutine filter(v2f, ndx)
+  subroutine tophat(v2f, ndx)
     use modglobal, only : i1,ih,i2,j1,jh,j2,kmax,k1
     ! top hat filter
     ! for now, only filter in horizontal
@@ -347,7 +357,42 @@ contains
     end if
 
     return
+  end subroutine tophat
+
+  subroutine filter(v2f, ndx)
+    use modglobal, only : i1,ih,i2,j1,jh,j2,kmax,k1,dx
+    ! gaussian filter
+    ! for now, only filter in horizontal
+    implicit none
+
+    integer, intent(in)    :: ndx
+    real,    intent(inout) :: v2f(2-ih:i1+ih,2-jh:j1+jh)
+    real                   :: v2fin(2-ih:i1+ih,2-jh:j1+jh)
+    integer                :: i,j,m,n
+    real                   :: weight, weightmn, widthx2
+
+    v2fin(:,:) = v2f(:,:)
+    v2f(:,:) = 0.
+    
+    widthx2  = (real(ndx) * dx) ** 2.
+
+    do j = 2,j1
+      do i = 2,i1
+        weight = 0.
+        do m = - ndx, ndx
+          do n = - ndx, ndx
+            weightmn = exp(-6. * (real(m) * dx)**2. / widthx2) * exp(-6. * (real(n) * dx)**2. / widthx2)
+            v2f(i,j) = v2f(i,j) + weightmn * v2fin(i+m,j+n)
+            weight   = weight + weightmn
+          end do
+        end do
+        v2f(i,j) = v2f(i,j) / weight
+      end do
+    end do
+
+    return
   end subroutine filter
+
 
   subroutine closure
 

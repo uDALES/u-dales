@@ -229,8 +229,9 @@ contains
     !set the number of ghost cells. NB: This switch has to run in order of required ghost cells
     advarr = (/iadv_mom,iadv_tke,iadv_thl,iadv_qt/)
     if     (any(advarr==iadv_cd6).or.any(iadv_sv(1:nsv)==iadv_cd6)) then
-      ih = 3
-      jh = 3
+      ! CvH temporarily increase ih for dynsub scheme
+      ih = 5
+      jh = 5
       kh = 1
     elseif (any(advarr==iadv_5th).or.any(iadv_sv(1:nsv)==iadv_5th)) then
       ih = 3
@@ -241,8 +242,9 @@ contains
       jh = 3
       kh = 1
     elseif (any(advarr==iadv_cd2).or.any(iadv_sv(1:nsv)==iadv_cd2)) then
-      ih = 3
-      jh = 3
+      ! CvH temporarily increase ih for dynsub scheme
+      ih = 5
+      jh = 5
       kh = 1
     end if
     ncosv = max(2*nsv-3,0)
