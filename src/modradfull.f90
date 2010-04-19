@@ -312,6 +312,7 @@ contains
     !
     ! identify what part, if any, of background sounding to use
     !
+    sp(k) = sp(k) / 100.   !convert to hPa
     ptop = zp(k1)
     if (sp(2) < ptop) then
        pa = sp(1)
@@ -408,7 +409,7 @@ contains
        q2 =   w2w * ( 1.5 * fw - 0.5 )
        q3 = - w3w * ( 2.5 * fw - 1.5 ) * u0
        do i = 1, 4
-          c(i,5) = (w0w + q1*p1d(i) + q2*p2d(i) + q3*p3d(i))/(u0+epsilon(u0))
+          c(i,5) = (w0w + q1*p1d(i) + q2*p2d(i) + q3*p3d(i))/u(i)
        end do
     else
        do i = 1, 4

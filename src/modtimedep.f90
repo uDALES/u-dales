@@ -140,7 +140,7 @@ contains
       do while (timeflux(t) <= (runtime+btime))
         t=t+1
         read(ifinput,*, iostat = ierr) timeflux(t), wtsurft(t), wqsurft(t),thlst(t),qtst(t),pst(t)
-        write(*,'(f8.1,6e12.4)') timeflux(t), wtsurft(t), wqsurft(t),thlst(t),qtst(t),pst(t)
+        write(*,'(i8,6e12.4)') t,timeflux(t), wtsurft(t), wqsurft(t),thlst(t),qtst(t),pst(t)
         if (ierr < 0) then
             stop 'STOP: No time dependend data for end of run (surface fluxes)'
         end if
