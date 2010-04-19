@@ -70,7 +70,8 @@ contains
     use modboundary,       only : initboundary,ksp
     use modthermodynamics, only : initthermodynamics,lqlnr, chi_half
     use modmicrophysics,   only : initmicrophysics
-    use modsubgrid,        only : initsubgrid,ldelta, cf,cn,Rigc,Prandtl,lmason,lsmagorinsky
+    use modsubgrid,        only : initsubgrid
+    use modsubgriddata,    only : ldelta, cf,cn,Rigc,Prandtl,lmason,lsmagorinsky
     use modmpi,            only : comm3d,myid, mpi_integer,mpi_logical,my_real,mpierr, mpi_character
 
     implicit none
@@ -690,7 +691,7 @@ contains
     use modglobal,  only : i1,i2,ih,j1,j2,jh,k1,dtheta,dqt,dsv,startfile,timee,&
                           iexpnr,ntimee,tres,rk3step,ifinput,nsv,runtime,dt,cu,cv
     use modmpi,     only : cmyid, myid
-    use modsubgrid, only : ekm
+    use modsubgriddata, only : ekm
 
 
     character(50) :: name
@@ -759,7 +760,7 @@ contains
     use modglobal, only : i1,i2,ih,j1,j2,jh,k1,dsv,itrestart,tnextrestart,dt_lim,rtimee,timee,tres,cexpnr,&
                           ntimee,rtimee,rk3step,ifoutput,nsv,runtime,dtheta,dqt,dt,cu,cv
     use modmpi,    only : cmyid,myid
-    use modsubgrid,only : ekm
+    use modsubgriddata, only : ekm
 
     implicit none
     logical :: lexitnow = .false.

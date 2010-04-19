@@ -429,7 +429,7 @@ contains
     use modfields, only : u0,v0,w0,um,vm,wm,qtm,thlm,thl0,qt0,qt0h, &
                           ql0,ql0h,thl0h,thv0h,sv0, svm, e12m,exnf,exnh
     use modsurfdata,only: thls,qts,svs,ustar,thlflux,qtflux,svflux
-    use modsubgrid,only : ekm, ekh, csz
+    use modsubgriddata,only : ekm, ekh, csz
     use modglobal, only : i1,ih,j1,jh,k1,kmax,nsv,dzf,dzh,rlv,rv,rd,cp, &
                           rslabs,cu,cv,iadv_thl,iadv_kappa,eps1,dxi,dyi
     use modmpi,    only : nprocs,comm3d,nprocs,my_real, mpi_sum,mpierr, slabsum
@@ -1161,7 +1161,7 @@ contains
   subroutine writestat
       use modglobal, only : kmax,k1,nsv, zh,zf,rtimee,rlv,cp,cexpnr,ifoutput
       use modfields, only : presf,presh,exnf,exnh,rhof
-      use modsubgrid, only : csz
+      use modsubgriddata, only : csz
       use modmpi,    only : myid
       use modstat_nc, only: lnetcdf, writestat_nc
       implicit none

@@ -192,7 +192,8 @@ contains
 !!
 !! Set courant number, calculate the grid sizes (both computational and physical), and set the coriolis parameter
   subroutine initglobal
-    use modmpi, only: nprocs, myid,comm3d, my_real, mpierr
+    use modmpi, only : nprocs, myid,comm3d, my_real, mpierr
+    use modsubgriddata, only : ldynsub, tf2
     implicit none
 
     integer :: advarr(4)
@@ -229,31 +230,33 @@ contains
     !set the number of ghost cells. NB: This switch has to run in order of required ghost cells
     advarr = (/iadv_mom,iadv_tke,iadv_thl,iadv_qt/)
     if     (any(advarr==iadv_cd6).or.any(iadv_sv(1:nsv)==iadv_cd6)) then
-      ! CvH temporarily increase ih for dynsub scheme
-      ih = 5
-      jh = 5
+      ih = 3
+      jh = 3
       kh = 1
     elseif (any(advarr==iadv_62).or.any(iadv_sv(1:nsv)==iadv_62)) then
-      ! CvH temporarily increase ih for dynsub scheme
-      ih = 5
-      jh = 5
+      ih = 3
+      jh = 3
       kh = 1
     elseif (any(advarr==iadv_5th).or.any(iadv_sv(1:nsv)==iadv_5th)) then
       ih = 3
       jh = 3
       kh = 1
     elseif (any(advarr==iadv_kappa).or.any(iadv_sv(1:nsv)==iadv_kappa)) then
-      ih = 3
-      jh = 3
+      ih = 2
+      jh = 2
       kh = 1
     elseif (any(advarr==iadv_cd2).or.any(iadv_sv(1:nsv)==iadv_cd2)) then
-      ! CvH temporarily increase ih for dynsub scheme
-      ih = 5
-      jh = 5
+      ih = 1
+      jh = 1
       kh = 1
     end if
-    ncosv = max(2*nsv-3,0)
 
+    !CvH enhance ih and jh to be able to use largest testfilter if dynamic subgrid scheme is used
+    if(ldynsub .eqv. .true.) then
+      ih = tf2 + 1
+      jh = tf2 + 1
+    end if
+    ncosv = max(2*nsv-3,0)
 
     ! Global constants
 
