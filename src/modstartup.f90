@@ -70,7 +70,7 @@ contains
     use modboundary,       only : initboundary,ksp
     use modthermodynamics, only : initthermodynamics,lqlnr, chi_half
     use modmicrophysics,   only : initmicrophysics
-    use modsubgrid,        only : initsubgrid
+    use modsubgrid,        only : initsubgrid, subgridnamelist
     use modsubgriddata,    only : ldelta, cf,cn,Rigc,Prandtl,lmason,lsmagorinsky
     use modmpi,            only : comm3d,myid, mpi_integer,mpi_logical,my_real,mpierr, mpi_character
 
@@ -93,7 +93,10 @@ contains
         rka,dlwtop,dlwbot,sw0,gc,reff,isvsmoke,lforce_user
     namelist/DYNAMICS/ &
         llsadv, lqlnr, cu, cv, iadv_mom, iadv_tke, iadv_thl, iadv_qt, iadv_sv
-!   logical :: ldelta   = .false. ! switch for subgrid
+    
+    !Initialize subgrid namelist here to allow for ih, jh adjustment dynamic subgrid model
+    call subgridnamelist
+
   !read namelists
 
     if(myid==0)then

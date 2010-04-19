@@ -33,24 +33,24 @@ use modsubgriddata
 implicit none
 save
 ! private
-  public :: subgrid, initsubgrid,exitsubgrid
+  public :: subgrid, initsubgrid, exitsubgrid, subgridnamelist
   !CvH variable definitions are moved to mod
 
 contains
   subroutine initsubgrid
     use modglobal, only : ih,i1,jh,j1,k1,delta,zf,fkar, &
                           pi,ifnamopt,fname_options
-    use modmpi,    only : myid, nprocs, comm3d, mpierr, my_real, mpi_logical, mpi_integer
+    use modmpi, only : myid
 
     implicit none
 
-    integer   :: k,ierr
+    integer   :: k
 
     real :: ceps, ch
     real :: mlen
 
-    namelist/NAMSUBGRID/ &
-        ldelta,lmason, cf,cn,Rigc,Prandtl,lsmagorinsky,ldynsub,tf1,tf2,cs,nmason
+    ! CvH moved reading of namelist to modstartup to be able to adjust ih, jh for filter
+    ! call subgridnamelist
 
     allocate(ekm(2-ih:i1+ih,2-jh:j1+jh,k1))
     allocate(ekh(2-ih:i1+ih,2-jh:j1+jh,k1))
@@ -59,30 +59,6 @@ contains
     allocate(sbshr(2-ih:i1+ih,2-jh:j1+jh,k1))
     allocate(sbbuo(2-ih:i1+ih,2-jh:j1+jh,k1))
     allocate(csz(k1))
-
-    if(myid==0)then
-      open(ifnamopt,file=fname_options,status='old',iostat=ierr)
-      read (ifnamopt,NAMSUBGRID,iostat=ierr)
-      if (ierr > 0) then
-        print *, 'Problem in namoptions NAMSUBGRID'
-        print *, 'iostat error: ', ierr
-        stop 'ERROR: Problem in namoptions NAMSUBGRID'
-      endif
-      write(6 ,NAMSUBGRID)
-      close(ifnamopt)
-    end if
-    call MPI_BCAST(ldelta     ,1,MPI_LOGICAL,0,comm3d,mpierr)
-    call MPI_BCAST(lmason     ,1,MPI_LOGICAL,0,comm3d,mpierr)
-    call MPI_BCAST(nmason     ,1,MY_REAL    ,0,comm3d,mpierr)
-    call MPI_BCAST(lsmagorinsky,1,MPI_LOGICAL,0,comm3d,mpierr)
-    call MPI_BCAST(ldynsub     ,1,MPI_LOGICAL,0,comm3d,mpierr)
-    call MPI_BCAST(tf1         ,1,MPI_INTEGER,0,comm3d,mpierr)
-    call MPI_BCAST(tf2         ,1,MPI_INTEGER,0,comm3d,mpierr)
-    call MPI_BCAST(cs         ,1,MY_REAL   ,0,comm3d,mpierr)
-    call MPI_BCAST(cf         ,1,MY_REAL   ,0,comm3d,mpierr)
-    call MPI_BCAST(cn         ,1,MY_REAL   ,0,comm3d,mpierr)
-    call MPI_BCAST(Rigc       ,1,MY_REAL   ,0,comm3d,mpierr)
-    call MPI_BCAST(Prandtl    ,1,MY_REAL   ,0,comm3d,mpierr)
 
     cm = cf / (2. * pi) * (1.5*alpha_kolm)**(-1.5)
 
@@ -210,6 +186,45 @@ contains
     end if
    
   end subroutine initsubgrid
+
+  subroutine subgridnamelist
+    use modglobal, only : pi,ifnamopt,fname_options
+    use modmpi,    only : myid, nprocs, comm3d, mpierr, my_real, mpi_logical, mpi_integer
+
+    implicit none
+
+    integer :: ierr
+
+    namelist/NAMSUBGRID/ &
+        ldelta,lmason, cf,cn,Rigc,Prandtl,lsmagorinsky,ldynsub,tf1,tf2,cs,nmason
+
+    if(myid==0)then
+      open(ifnamopt,file=fname_options,status='old',iostat=ierr)
+      read (ifnamopt,NAMSUBGRID,iostat=ierr)
+      if (ierr > 0) then
+        print *, 'Problem in namoptions NAMSUBGRID'
+        print *, 'iostat error: ', ierr
+        stop 'ERROR: Problem in namoptions NAMSUBGRID'
+      endif
+      write(6 ,NAMSUBGRID)
+      close(ifnamopt)
+    end if
+
+    call MPI_BCAST(ldelta     ,1,MPI_LOGICAL,0,comm3d,mpierr)
+    call MPI_BCAST(lmason     ,1,MPI_LOGICAL,0,comm3d,mpierr)
+    call MPI_BCAST(nmason     ,1,MY_REAL    ,0,comm3d,mpierr)
+    call MPI_BCAST(lsmagorinsky,1,MPI_LOGICAL,0,comm3d,mpierr)
+    call MPI_BCAST(ldynsub     ,1,MPI_LOGICAL,0,comm3d,mpierr)
+    call MPI_BCAST(tf1         ,1,MPI_INTEGER,0,comm3d,mpierr)
+    call MPI_BCAST(tf2         ,1,MPI_INTEGER,0,comm3d,mpierr)
+    call MPI_BCAST(cs         ,1,MY_REAL   ,0,comm3d,mpierr)
+    call MPI_BCAST(cf         ,1,MY_REAL   ,0,comm3d,mpierr)
+    call MPI_BCAST(cn         ,1,MY_REAL   ,0,comm3d,mpierr)
+    call MPI_BCAST(Rigc       ,1,MY_REAL   ,0,comm3d,mpierr)
+    call MPI_BCAST(Prandtl    ,1,MY_REAL   ,0,comm3d,mpierr)
+
+  end subroutine subgridnamelist
+
   subroutine subgrid
 
  ! Diffusion subroutines
