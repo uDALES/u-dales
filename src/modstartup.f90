@@ -613,8 +613,8 @@ contains
 !******include rho if rho = rho(z) /= 1.0 ***********
 
     do k=1,kmax
-      dpdxl(k) = -ustin**2. / zh(k1) ! om23_gs*vg(k)
-      dpdyl(k) = 0. !-om23_gs*ug(k)
+      dpdxl(k) =  om23_gs*vg(k)
+      dpdyl(k) = -om23_gs*ug(k)
     end do
 
   !-----------------------------------------------------------------
