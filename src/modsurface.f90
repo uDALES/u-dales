@@ -333,17 +333,17 @@ contains
 !      end do
 !    end do
 !
-
-
     ! 3. Initialize surface layer
     allocate(ustar   (i2,j2))
+
     if(ldynsub) then
-      allocate(dudz    (i2,j2))
-      allocate(dvdz    (i2,j2))
-    else
       allocate(dudz    (2-ih:i1+ih,2-jh:j1+jh))
       allocate(dvdz    (2-ih:i1+ih,2-jh:j1+jh))
+    else
+      allocate(dudz    (i2,j2))
+      allocate(dvdz    (i2,j2))
     end if
+
     allocate(thlflux (i2,j2))
     allocate(qtflux  (i2,j2))
     allocate(dqtdz   (i2,j2))

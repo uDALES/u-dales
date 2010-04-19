@@ -208,6 +208,8 @@ contains
         courant = 1.5
       case(iadv_cd6)
         courant = 1.4
+      case(iadv_62)
+        courant = 1.4
       case(iadv_5th)
         courant = 1.4
       case default

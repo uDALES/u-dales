@@ -94,9 +94,6 @@ contains
     namelist/DYNAMICS/ &
         llsadv, lqlnr, cu, cv, iadv_mom, iadv_tke, iadv_thl, iadv_qt, iadv_sv
     
-    !Initialize subgrid namelist here to allow for ih, jh adjustment dynamic subgrid model
-    call subgridnamelist
-
   !read namelists
 
     if(myid==0)then
@@ -142,8 +139,7 @@ contains
       write(6 ,DYNAMICS)
       close(ifnamopt)
     end if
-
-
+    
   !broadcast namelists
     call MPI_BCAST(iexpnr     ,1,MPI_INTEGER,0,comm3d,mpierr)
     call MPI_BCAST(lwarmstart ,1,MPI_LOGICAL,0,comm3d,mpierr)
@@ -221,6 +217,9 @@ contains
     call MPI_BCAST(iadv_qt ,1,MPI_INTEGER,0,comm3d,mpierr)
     call MPI_BCAST(iadv_sv(1:nsv) ,nsv,MPI_INTEGER,0,comm3d,mpierr)
 
+    ! Initialize subgrid namelist here to allow for ih, jh adjustment dynamic subgrid model
+    ! CvH move subgrid back to core?
+    call subgridnamelist
 
   ! Allocate and initialize core modules
     call initglobal
