@@ -33,58 +33,8 @@ use modsubgriddata
 implicit none
 save
 ! private
-public :: subgrid, initsubgrid,exitsubgrid
-!public :: ldelta, lmason,lsmagorinsky,cf, Rigc,prandtl, cm, cn, ch1, ch2, ce1, ce2, ekm,ekh, sbdiss,sbshr,sbbuo
-
-  !logical :: ldelta   = .false. !<  switch for subgrid length formulation (on/off)
-  !logical :: lmason   = .false. !<  switch for decreased length scale near the surface
-  !logical :: lsmagorinsky= .false. !<  switch for smagorinsky subgrid scheme
-  !logical :: ldynsub     = .false. !<  switch for dynamic subgrid scheme
-  !real :: cf      = 2.5  !< filter constant
-  !real :: Rigc    = 0.25 !< critical Richardson number
-  !real :: Prandtl = 3
-  !real :: cm      = 0.12
-  !real :: cn      = 0.76
-  !real :: ch1     = 1.
-  !real :: ch2     = 2.
-  !real :: ce1     = 0.19
-  !real :: ce2     = 0.51
-  !real :: cs      = -1
-  !real :: nmason  = 2.   !< exponent in Mason correction function
-  !real :: alpha_kolm   = 1.5     !< factor in Kolmogorov expression for spectral energy
-  !real :: beta_kolm    = 1.      !< factor in Kolmogorov relation for temperature spectrum
-
-  !real, allocatable :: ekm(:,:,:)  !<   k-coefficient for momentum
-  !real, allocatable :: ekh(:,:,:)  !<   k-coefficient for heat and q_tot
-  !real, allocatable :: sbdiss(:,:,:)!< dissiation
-  !real, allocatable :: sbshr(:,:,:) !< shear production
-  !real, allocatable :: sbbuo(:,:,:) !< buoyancy production / destruction
-  !real, allocatable :: zlt(:,:,:)  !<   filter width
-
-  !!CvH Allocate
-  !!CvH Dynamic subgrid model variables
-  !real, allocatable :: u_bar(:,:), v_bar(:,:), w_bar(:,:)
-  !real, allocatable :: u_hat(:,:), v_hat(:,:), w_hat(:,:)
-  !real, allocatable :: S11(:,:), S12(:,:), S13(:,:), S22(:,:), S23(:,:), S33(:,:)
-  !real, allocatable :: S11_bar(:,:), S12_bar(:,:), S13_bar(:,:), S22_bar(:,:), S23_bar(:,:), S33_bar(:,:)
-  !real, allocatable :: S11_hat(:,:), S12_hat(:,:), S13_hat(:,:), S22_hat(:,:), S23_hat(:,:), S33_hat(:,:)
-  !real, allocatable :: S_S11_bar(:,:), S_S12_bar(:,:), S_S13_bar(:,:), S_S22_bar(:,:), S_S23_bar(:,:), S_S33_bar(:,:)
-  !real, allocatable :: S_S11_hat(:,:), S_S12_hat(:,:), S_S13_hat(:,:), S_S22_hat(:,:), S_S23_hat(:,:), S_S33_hat(:,:)
-  !real, allocatable :: S(:,:), S_bar(:,:), S_hat(:,:)
-  !real, allocatable :: L11(:,:), L12(:,:), L13(:,:), L22(:,:), L23(:,:), L33(:,:)
-  !real, allocatable :: Q11(:,:), Q12(:,:), Q13(:,:), Q22(:,:), Q23(:,:), Q33(:,:)
-  !real, allocatable :: M11(:,:), M12(:,:), M13(:,:), M22(:,:), M23(:,:), M33(:,:)
-  !real, allocatable :: N11(:,:), N12(:,:), N13(:,:), N22(:,:), N23(:,:), N33(:,:)
-  !real, allocatable :: LM(:,:), MM(:,:), QN(:,:), NN(:,:)
-  !real, allocatable :: csz(:)
-  !real, allocatable :: weighttf1(:,:)
-  !real, allocatable :: weighttf2(:,:)
-
-  !integer           :: tf1 = 2
-  !integer           :: tf2 = 4
-
-  !real              :: const, beta, cs2_tf1, cs2_tf2
-  !real              :: LMav, LMavl, MMav, MMavl, QNav, QNavl, NNav, NNavl
+  public :: subgrid, initsubgrid,exitsubgrid
+  !CvH variable definitions are moved to mod
 
 contains
   subroutine initsubgrid
@@ -385,18 +335,6 @@ contains
 
     weighttf2 = weighttf2 / weight
 
-    !do n = - tf1, tf1
-    !  do m = - tf1, tf1
-    !    write(6,*) m, n, weighttf1(m,n)
-    !  end do
-    !end do
-    !do n = - tf2, tf2
-    !  do m = - tf2, tf2
-    !    write(6,*) m, n, weighttf2(m,n)
-    !  end do
-    !end do
-    !stop
-
   end subroutine initfilter
 
   subroutine filter(v2f, tf)
@@ -486,115 +424,6 @@ contains
 
   real    :: strain,mlen
   integer :: i,j,k,kp,km,jp,jm
-
-!********************************************************************
-!*********************************************************************
-!  if (lsmagorinsky) then
-!    do j=2,j1
-!    do i=2,i1
-!      k = 1
-!      kp=k+1
-!      km=k-1
-!      jp=j+1
-!      jm=j-1
-!
-!      strain =  ( &
-!              ((u0(i+1,j,k)-u0(i,j,k))   *dxi        )**2    + &
-!              ((v0(i,jp,k)-v0(i,j,k))    *dyi         )**2    + &
-!              ((w0(i,j,kp)-w0(i,j,k))    /dzf(k)     )**2    )
-!
-!      strain = strain + 0.5 * ( &
-!                ((w0(i,j,kp)-w0(i-1,j,kp))  *dxi     + &
-!                (u0(i,j,kp)-u0(i,j,k))     / dzh(kp)  )**2    + &
-!                ((w0(i,j,k)-w0(i-1,j,k))    *dxi     + &
-!                dudz(i,j)   )**2    + &
-!                ((w0(i+1,j,k)-w0(i,j,k))    *dxi     + &
-!                dudz(i+1,j)   )**2    + &
-!                ((w0(i+1,j,kp)-w0(i,j,kp))  *dxi     + &
-!                (u0(i+1,j,kp)-u0(i+1,j,k)) / dzh(kp)  )**2    )
-!
-!      strain = strain + 0.5 * ( &
-!                ((u0(i,jp,k)-u0(i,j,k))     *dyi     + &
-!                (v0(i,jp,k)-v0(i-1,jp,k))  *dxi        )**2    + &
-!                ((u0(i,j,k)-u0(i,jm,k))     *dyi     + &
-!                (v0(i,j,k)-v0(i-1,j,k))    *dxi        )**2    + &
-!                ((u0(i+1,j,k)-u0(i+1,jm,k)) *dyi     + &
-!                (v0(i+1,j,k)-v0(i,j,k))    *dxi        )**2    + &
-!                ((u0(i+1,jp,k)-u0(i+1,j,k)) *dyi     + &
-!                (v0(i+1,jp,k)-v0(i,jp,k))  *dxi        )**2    )
-!      strain = strain + 0.5 * ( &
-!                ((v0(i,j,kp)-v0(i,j,k))     / dzh(kp) + &
-!                (w0(i,j,kp)-w0(i,jm,kp))   *dyi        )**2    + &
-!                (dvdz(i,j)+ &
-!                (w0(i,j,k)-w0(i,jm,k))     *dyi        )**2    + &
-!                (dvdz(i,j+1)+ &
-!                (w0(i,jp,k)-w0(i,j,k))     *dyi        )**2    + &
-!                ((v0(i,jp,kp)-v0(i,jp,k))   / dzh(kp) + &
-!                (w0(i,jp,kp)-w0(i,j,kp))   *dyi        )**2    )
-!      if(lmason) then
-!        mlen        = (1. / (csz(k) * delta(k))**nmason + 1. / (fkar * (zf(k) + z0m(i,j)))**nmason)**(-1./nmason)
-!      else
-!        mlen        = csz(k) * delta(k)
-!      end if
-!      ekm(i,j,k)  = mlen**2.*sqrt(0.5*strain)
-!      !if(i == 2 .and. j == 2) write(6,*)"CvH mlen", k, mlen, mlen / delta(k), delta(k)
-!      ekh(i,j,k)  = ekm(i,j,k)/prandtl
-!    end do
-!    end do
-!
-!    do k=2,kmax
-!    do j=2,j1
-!    do i=2,i1
-!      kp=k+1
-!      km=k-1
-!      jp=j+1
-!      jm=j-1
-!
-!      strain =  ( &
-!              ((u0(i+1,j,k)-u0(i,j,k))   *dxi        )**2    + &
-!              ((v0(i,jp,k)-v0(i,j,k))    *dyi         )**2    + &
-!              ((w0(i,j,kp)-w0(i,j,k))    /dzf(k)     )**2    )
-!
-!      strain = strain + 0.5 * ( &
-!                ((w0(i,j,kp)-w0(i-1,j,kp))  *dxi     + &
-!                (u0(i,j,kp)-u0(i,j,k))     / dzh(kp)  )**2    + &
-!                ((w0(i,j,k)-w0(i-1,j,k))    *dxi     + &
-!                (u0(i,j,k)-u0(i,j,km))     / dzh(k)   )**2    + &
-!                ((w0(i+1,j,k)-w0(i,j,k))    *dxi     + &
-!                (u0(i+1,j,k)-u0(i+1,j,km)) / dzh(k)   )**2    + &
-!                ((w0(i+1,j,kp)-w0(i,j,kp))  *dxi     + &
-!                (u0(i+1,j,kp)-u0(i+1,j,k)) / dzh(kp)  )**2    )
-!
-!      strain = strain + 0.5 * ( &
-!                ((u0(i,jp,k)-u0(i,j,k))     *dyi     + &
-!                (v0(i,jp,k)-v0(i-1,jp,k))  *dxi        )**2    + &
-!                ((u0(i,j,k)-u0(i,jm,k))     *dyi     + &
-!                (v0(i,j,k)-v0(i-1,j,k))    *dxi        )**2    + &
-!                ((u0(i+1,j,k)-u0(i+1,jm,k)) *dyi     + &
-!                (v0(i+1,j,k)-v0(i,j,k))    *dxi        )**2    + &
-!                ((u0(i+1,jp,k)-u0(i+1,j,k)) *dyi     + &
-!                (v0(i+1,jp,k)-v0(i,jp,k))  *dxi        )**2    )
-!      strain = strain + 0.5 * ( &
-!                ((v0(i,j,kp)-v0(i,j,k))     / dzh(kp) + &
-!                (w0(i,j,kp)-w0(i,jm,kp))   *dyi        )**2    + &
-!                ((v0(i,j,k)-v0(i,j,km))     / dzh(k)+ &
-!                (w0(i,j,k)-w0(i,jm,k))     *dyi        )**2    + &
-!                ((v0(i,jp,k)-v0(i,jp,km))   / dzh(k)+ &
-!                (w0(i,jp,k)-w0(i,j,k))     *dyi        )**2    + &
-!                ((v0(i,jp,kp)-v0(i,jp,k))   / dzh(kp) + &
-!                (w0(i,jp,kp)-w0(i,j,kp))   *dyi        )**2    )
-!      if(lmason) then
-!        mlen        = (1. / (csz(k) * delta(k))**nmason + 1. / (fkar * (zf(k) + z0m(i,j)))**nmason)**(-1./nmason)
-!      else
-!        mlen        = csz(k) * delta(k)
-!      end if
-!      ekm(i,j,k)  = mlen**2.*sqrt(0.5*strain)
-!      !if(i == 2 .and. j == 2) write(6,*)"CvH mlen", k, mlen, mlen / delta(k), delta(k)
-!
-!      ekh(i,j,k)  = ekm(i,j,k)/prandtl
-!    end do
-!    end do
-!    end do
 
   if(lsmagorinsky) then
     if(ldynsub .and. rk3step == 1) then
@@ -925,13 +754,11 @@ contains
 
         beta = (cs2_tf2 / cs2_tf1) ** (log(real(tf1))/(log(real(tf2))-log(real(tf1))))
         if(beta < 0.125) then
-          !if(myid == 0) write(6,*) "WARNING! Beta clip at k = ", k
           beta = max(beta, 0.125)
         end if
 
         !csz(k) = sqrt( (LMav / MMav) / ( (QNav * MMav) / (NNav * LMav) ))
         csz(k) = sqrt(cs2_tf1 / beta)
-        !if(myid == 0) write(6,*) k, csz(k)
 
       end do
     end if
@@ -970,7 +797,7 @@ contains
               ((u0(i+1,jp,k)-u0(i+1,j,k)) *dyi     + &
               (v0(i+1,jp,k)-v0(i,jp,k))  *dxi        )**2    )
 
-            strain = strain + 0.125 * ( &
+            strain = strain + 0.5 * ( &
               ( 0.25*(w0(i,jp,kp)-w0(i,jm,kp))*dyi + &
               dvdz(i,j)   )**2 )
       
@@ -1012,8 +839,6 @@ contains
               (w0(i,jp,kp)-w0(i,j,kp))   *dyi        )**2    )
           end if
 
-          !if(i == 10 .and. j == 10) write(6,*) "strain:", k, "old", sqrt(0.5*strain), "new", S(10,10)
-          
           ekm(i,j,k)  = mlen ** 2. * sqrt(2. * strain)
           ekh(i,j,k)  = ekm(i,j,k) / prandtl
         end do
