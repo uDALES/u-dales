@@ -1525,7 +1525,7 @@ implicit none
       if(myid==0) then
         open (ifoutput,file='seg.'//cexpnr,position='append') 
           write(formatstring,'(a,i3,a)') '(F9.2,1x,F7.2,',tnor,'(2x,e12.6))'
-          write(ifoutput,formatstring) timee,zi,(segregation(i),i=1,tnor)
+          write(ifoutput,formatstring) rtimee,zi,(segregation(i),i=1,tnor)
         close(ifoutput)
 
         nsecs   = nint(real(timee)/1000.)
@@ -1544,7 +1544,7 @@ implicit none
  
           write(formatstring,'(a,i3,a)') '(F9.2,1x,F7.2,1x,F7.2,',tnor,'(2x,e12.6))'
           do it_k=1,kmax
-            write(ifoutput,formatstring) timee,zi,(it_k-0.5)*dz,(segregation_vert(i,it_k),i=1,tnor)
+            write(ifoutput,formatstring) rtimee,zi,(it_k-0.5)*dz,(segregation_vert(i,it_k),i=1,tnor)
           enddo !Loop over height
           write(ifoutput,'(//)') 
         close(ifoutput)
