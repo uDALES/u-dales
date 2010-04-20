@@ -76,7 +76,7 @@ contains
       csz(:)  = cs
     end if
 
-    if(lmason .and. lsmagorinsky) then
+    if(lmason) then
       do k = 1,k1
         mlen   = (1. / (csz(k) * delta(k))**nmason + 1. / (fkar * zf(k))**nmason)**(-1./nmason)
         csz(k) = mlen / delta(k)
