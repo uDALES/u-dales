@@ -1528,7 +1528,7 @@ implicit none
           write(ifoutput,formatstring) timee,zi,(segregation(i),i=1,tnor)
         close(ifoutput)
 
-        nsecs   = nint(timee)
+        nsecs   = nint(real(timee)/1000.)
         nhrs    = int(nsecs/3600)
         nminut  = int(nsecs/60)-nhrs*60
         nsecs   = mod(nsecs,60)
