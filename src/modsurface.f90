@@ -862,7 +862,7 @@ contains
         do j=1,j2
           thv    = thl0(i,j,1) * (1. + (rv/rd - 1.) * qt0(i,j,1))
           horv2 = u0(i,j,1)*u0(i,j,1) + v0(i,j,1)*v0(i,j,1)
-          horv2 = max(horv2, 1.e-2)
+          horv2 = max(horv2, 1.e-3)
 
           Rib   = grav / thvs * zf(1) * (thv - thvs) / horv2
 
@@ -918,6 +918,7 @@ contains
     !CvH return to classical formulation
     
     horv2 = u0av(1)**2. + v0av(1)**2.
+    horv2 = max(horv2, 1.e-3)
 
     Rib   = grav / thvs * zf(1) * (thv - thvs) / horv2
 
