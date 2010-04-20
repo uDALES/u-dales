@@ -97,7 +97,7 @@ contains
     endif
 
     !CvH init dynamic subgrid model
-    if(ldynsub) then
+    if(ldynsub .and. lsmagorinsky) then
       
       allocate(S(2-ih:i1+ih,2-jh:j1+jh)) 
       
@@ -246,7 +246,7 @@ contains
     do n=1,nsv
       call diffc(sv0(:,:,:,n),svp(:,:,:,n),svflux(:,:,n))
     end do
-    if ((.not. lsmagorinsky) .and. (.not. ldynsub)) call sources
+    if (.not. lsmagorinsky) call sources
   end subroutine
 
   subroutine exitsubgrid
