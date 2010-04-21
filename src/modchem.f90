@@ -26,6 +26,7 @@ module modchem
   !         q_ref	    = 5.e-3
   !         lchmovie    = .false.  SWITCH: if TRUE gives extra output for movies(experimental)
   !         dtchmovie   = 60.      when to write extra output
+  !         lsegr       = .false.  SWITCH: if TRUE gives information about segregation in a Mixed Layer approach
   !       /
   !-----------------------------------------------------------------
 
@@ -107,8 +108,6 @@ module modchem
 ! # reactions for nighttime chemistry
 ! #0.583E+0  R_57A  0    2    1.8e-11   110     1.0    1.0      1.0    1.0    1.0   NO + NO3    -> 2NO2
 ! #0.109E-5  R_58A  0    2    1.4e-13  -2470    1.0    1.0      1.0    1.0    1.0   NO2 + O3    -> NO3 + (O2)
-! #0.148E-1  R_61A  0    4    3.6e-30  -4.1     0.0    1.9e-12  0.2    0.0    .35   NO2 + NO3   -> N2O5
-! #0.996E-1  R_62A  0    5    1.3e-3   -3.5   -11000   9.7e14   0.1  -11080   .35   N2O5        -> NO3 + NO2
 ! #0.567E-11 R_63Aa 0    2    2.5e-22   0.0     1.0    1.0      1.0    1.0    1.0   N2O5 + H2O  -> 2HNO3
 ! #1.0       R_63Ab 0    7    1.8e-39   1.0     0.0    0.0      1.0    1.0    1.0   N2O5 + 2H2O -> 2HNO3 + H2O
 !
@@ -132,7 +131,7 @@ save
   integer tnor, firstchem, lastchem
   real itermin,dtchmovie
   real t_ref,q_ref,p_ref,h_ref
-  logical lchem, ldiuvar,lchconst,lchmovie,lcloudKconst
+  logical lchem, ldiuvar,lchconst,lchmovie,lcloudKconst,lsegr
   integer(kind=longint) ::     itimeav,tnextwrite,idtchmovie
 
   logical switch
@@ -205,6 +204,7 @@ save
   integer, allocatable :: raddep_RCindex(:) !(nr_raddep)
   real, allocatable :: keff(:,:,:,:)    ! (i,j2,raddep_nr,kmax)
   real, allocatable :: keffT(:,:,:)    !(i2,j2,kefft_nr)
+  real, allocatable :: keffT3D(:,:,:,:)  !(i2,j2,raddep_nr,kmax)
   real, allocatable :: atol(:),rtol(:)  ! nchsp
   real, allocatable :: rk1(:,:),rk2(:,:),rk(:,:),kreact(:,:)
   real, allocatable :: T_abs(:,:),convppb(:,:)
@@ -225,6 +225,16 @@ save
 
   real, allocatable :: kefftemp(:,:)  !(1:kmax,1:nr_raddep)
 
+  real, allocatable :: segregation(:)          !segregation calculated (amount of reactions)
+  real, allocatable :: segregation_vert(:,:)   !segregation calculated (amount of reactions,height)
+  real, allocatable :: seg_conc_prod(:)        !average of multiplied concentrations (amount of reactions)
+  real, allocatable :: seg_conc_prod_vert(:,:) !average of multiplied concentrations (amount of reactions,height)
+  real, allocatable :: seg_conc(:,:,:)         !individual averaged concentration (max. input chemicals involved per reaction,height,amount of reactions)
+  real, allocatable :: seg_conc_mult(:)        !multiplication of the relevant averaged concentrations (amount of reactions)
+  real, allocatable :: seg_conc_mult_vert(:,:) !multiplication of the relevant averaged concentrations (amount of reactions,height)
+  real, allocatable :: seg_concl(:,:)          !summation parameter for individual averaged concentration (max. amount of input chemicals involved,height)
+  real, allocatable :: seg_conc_prodl(:)       !summation parameter for average of multiplied concentrations (height)
+  logical, allocatable :: reaction_ev(:)       !switch to check whether the reaction is already evaluated (amount of reactions)
 
 contains
 !-----------------------------------------------------------------------------------------
@@ -235,7 +245,7 @@ SUBROUTINE initchem
 
   integer i, ierr
 
-  namelist/NAMCHEM/ lchem, lcloudKconst, tnor, firstchem,lastchem,ldiuvar,h_ref,lchconst, t_ref, q_ref, p_ref,lchmovie, dtchmovie
+  namelist/NAMCHEM/ lchem, lcloudKconst, tnor, firstchem,lastchem,ldiuvar,h_ref,lchconst, t_ref, q_ref, p_ref,lchmovie, dtchmovie,lsegr
 
   itermin  = 1.e-6
 
@@ -253,6 +263,7 @@ SUBROUTINE initchem
   lastchem = nsv
   nchsp    = nsv
   lcloudKconst  = .false.
+  lsegr    = .false.
 
   if(myid==0) then
     open(ifnamopt,file=fname_options,status='old',iostat=ierr)
@@ -271,7 +282,8 @@ SUBROUTINE initchem
   call MPI_BCAST(ldiuvar   ,1,mpi_logical , 0,comm3d, mpierr)
   call MPI_BCAST(lchconst  ,1,mpi_logical , 0,comm3d, mpierr)
   call MPI_BCAST(lchmovie  ,1,mpi_logical , 0,comm3d, mpierr)
-  call MPI_BCAST(lcloudKconst ,1,mpi_logical , 0,comm3d, mpierr)
+  call MPI_BCAST(lsegr     ,1,mpi_logical , 0,comm3d, mpierr)
+  call MPI_BCAST(lcloudKconst,1,mpi_logical ,0,comm3d,mpierr)
   call MPI_BCAST(tnor      ,1,mpi_integer , 0,comm3d, mpierr)
   call MPI_BCAST(firstchem ,1,mpi_integer , 0,comm3d, mpierr)
   call MPI_BCAST(lastchem  ,1,mpi_integer , 0,comm3d, mpierr)
@@ -326,6 +338,12 @@ SUBROUTINE initchem
     close (ifoutput)
     open (ifoutput,file='keffs.'//cexpnr,status='replace')
     close (ifoutput)
+    if (lsegr .EQV. .true.) then
+      open (ifoutput,file='seg.'//cexpnr,status='replace') !File that describes segregation over whole Mixed Layer
+      close(ifoutput)
+      open (ifoutput,file='seg_h.'//cexpnr,status='replace') !File that describes segregation per height
+      close(ifoutput)
+    endif !Output for segregation
   endif
 
   call inputchem
@@ -341,7 +359,7 @@ subroutine inputchem
 !c  the scheme to solve the chemical production and loss terms
 !c
 !c***********************************************************************
- use modglobal, only : imax,jmax,i1,i2,ih, j1,j2,jh, k1,kmax, nsv,cexpnr
+ use modglobal, only : imax,jmax,i1,i2,ih, j1,j2,jh, k1,kmax, nsv,cexpnr, ifoutput
  use modmpi,    only : myid
  implicit none
 
@@ -358,6 +376,7 @@ subroutine inputchem
   character (len=6) name
   character (len=6) rname
   integer icoeff(4)
+  character*30 formatstring
 
   type Chem
     real coeff
@@ -573,6 +592,27 @@ subroutine inputchem
   allocate (kefftemp(kmax,keff_nr))
   allocate (keffT(2:i1,2:j1,keffT_nr))
   allocate (writearray(k1,tnor+2))
+
+!  if (lsegrk .EQV. .true.) then                    ! As of yet unused expansion of segregation
+!    allocate (keffT3D(2:i1,2:j1,keffT_nr,kmax))
+!  endif
+
+  if (lsegr .EQV. .true.) then
+    allocate (segregation(tnor))
+    allocate (segregation_vert(tnor,kmax))
+    allocate (seg_conc_prod(tnor))
+    allocate (seg_conc_prod_vert(tnor,kmax))
+    allocate (seg_conc(NCCBA,kmax,tnor))
+    allocate (seg_conc_mult(tnor))
+    allocate (seg_conc_mult_vert(tnor,kmax))
+    allocate (seg_concl(NCCBA,kmax))
+    allocate (seg_conc_prodl(kmax))
+    allocate (reaction_ev(tnor))
+
+    open (ifoutput,file='seg.'//cexpnr,position='append') !File that describes segregation over whole Mixed Layer
+      write(formatstring,'(a,i3,a)') '(a9,1x,a7,',tnor,'(2x,a5,i3.3,a4))'
+      write(ifoutput,formatstring) '#Time [s]','z_i [m]',('IsegR',i,' [-]',i=1,tnor)
+  endif
 
   !fill raddep_RCindex and keffT
   do i=1,react
@@ -969,7 +1009,7 @@ SUBROUTINE read_chem(chem_name)
   H2O%name    = 'H2O'
   CO%name     = 'CO'
   CO2%name    = 'CO2'
-  RH%name     = 'ISO' !**************************** pas op
+  RH%name     = 'RH'
   R%name      = 'R'
   NH3%name    = 'NH3'
   H2SO4%name  = 'H2SO4'
@@ -1077,9 +1117,10 @@ SUBROUTINE twostep2(y)
 !c                                                                 |
 !c-----------------------------------------------------------------|
 !c
-use modglobal, only : ih,i1,jh,j1,i2,j2,k1,kmax, nsv, xtime, timee,rtimee,rdt, xday,xlat,xlon,zf,dzf,ifoutput,cexpnr
+use modglobal, only : ih,i1,jh,j1,i2,j2,k1,kmax,nsv,xtime,rtimee,rdt,timee,timeav_glob,xday,xlat,xlon,zf,dzf,ifoutput,cexpnr,dz,rslabs
 use modfields, only : qt0
 use modmpi, only: comm3d, mpierr,mpi_max,mpi_min,mpi_sum,my_real,mpi_real,myid,cmyid,nprocs
+use modtimestat, only: we, zi, ziold, calcblheight
 
 implicit none
 
@@ -1089,28 +1130,30 @@ implicit none
   real, allocatable :: ybegin(:,:,:,:)
   real, allocatable :: writearrayg(:,:)
   real    t, te
-  integer nfcn,naccpt,nrejec,nstart,i,j,n,pl
+  integer nfcn,naccpt,nrejec,nstart,i,j,n,pl,it_i,it_j,it_k,it_l
   real    tb, kdt, dtmin, kdtmax, ytol
   real    ratio,dtold,a1,a2,c,cp1,dtg,errlte,dyc
   logical accept,failer,restart
   real    kdtl, errltel
-  character*20 formatstring
+  character*40 formatstring
   real    epsilon
   parameter (epsilon=1.0e-10)
   !parameter (dtmin=.2)    !orgineel 1.e-6)
+  integer k_zi,Rnr
+  integer nsecs, nhrs, nminut
+  real    rest_zi, zi_temp, we_temp
 
   !c Initialization of logical and counters
   t = rtimee
   te = rtimee + rdt
 
-  dtmin = itermin
-  naccpt  =0
-  nrejec  =0
-  nfcn    =0
-  nstart  =0
-  tb      =t
-  kdtmax   =te-t
-
+  dtmin   = itermin
+  naccpt  = 0
+  nrejec  = 0
+  nfcn    = 0
+  nstart  = 0
+  tb      = t
+  kdtmax  = te-t
 
   if (H2O%loc /= 0) then
     if (lchconst .EQV. .true.) then
@@ -1259,6 +1302,255 @@ implicit none
 
 120 t=tb
   enddo  !pl=1,kmax
+
+
+  if (lsegr .EQV. .true.) then
+    if(timee>=tnextwrite) then
+      we_temp = we
+      zi_temp = ziold
+      call calcblheight
+      we      = we_temp
+      ziold   = zi_temp
+      k_zi    = int(zi/dz)
+      rest_zi = (zi/dz)-k_zi
+
+      reaction_ev = .FALSE.
+      do n=1,nchsp
+        if (PL_scheme(n)%active .EQV. .TRUE.) then
+          do j=1,PL_scheme(n)%nr_PL
+          if(PL_scheme(n)%PL(j)%PorL == PRODUCTION) then !Only look at the reaction formulas from the perspective of produced chemicals
+            Rnr = PL_scheme(n)%PL(j)%r_nr  !Number of the reaction evaluated
+            if (reaction_ev(Rnr) .EQV. .FALSE.) then !Only look at reactions that are not evaluated yet
+              seg_concl = 0.0
+              seg_conc_prodl = 0.0
+              select case (PL_scheme(n)%PL(j)%formula) ! Determine the chemical equation type
+
+              case (0) ! No input chemicals, so segregation is always 0 everywhere
+                seg_conc_prod      = 1.0
+                seg_conc_mult      = 1.0
+                seg_conc_prod_vert = 1.0
+                seg_conc_mult_vert = 1.0
+
+              case (1) ! A -> ...
+                do it_k=1,kmax
+                  do it_j=2,j1
+                    do it_i=2,i1
+                      seg_concl(1,it_k)    = seg_concl(1,it_k) + y(it_i,it_j,it_k,PL_scheme(n)%PL(j)%comp1)
+                      seg_conc_prodl(it_k) = seg_conc_prodl(it_k) + y(it_i,it_j,it_k,PL_scheme(n)%PL(j)%comp1)
+                    enddo
+                  enddo
+                enddo
+                do it_l=1,1
+                  call MPI_ALLREDUCE(seg_concl(it_l,:) ,seg_conc(it_l,:,Rnr) ,kmax ,MY_REAL ,MPI_SUM ,comm3d ,mpierr)
+                enddo
+                call MPI_ALLREDUCE(seg_conc_prodl(:) ,seg_conc_prod_vert(Rnr,:) ,kmax ,MY_REAL ,MPI_SUM ,comm3d ,mpierr)
+                seg_conc_mult_vert(Rnr,:) = seg_conc(1,:,Rnr)
+                seg_conc_prod(Rnr) = sum(seg_conc_prod_vert(Rnr,1:k_zi))+rest_zi*seg_conc_prod_vert(Rnr,k_zi+1)
+                seg_conc_mult(Rnr) = (sum(seg_conc(1,1:k_zi,Rnr)) + rest_zi*seg_conc(1,k_zi+1,Rnr))
+
+              case(2) ! A + B -> ...
+                do it_k=1,kmax
+                  do it_j=2,j1
+                    do it_i=2,i1
+                      seg_concl(1,it_k)    = seg_concl(1,it_k) + y(it_i,it_j,it_k,PL_scheme(n)%PL(j)%comp1)
+                      seg_concl(2,it_k)    = seg_concl(2,it_k) + y(it_i,it_j,it_k,PL_scheme(n)%PL(j)%comp2)
+                      seg_conc_prodl(it_k) = seg_conc_prodl(it_k) + y(it_i,it_j,it_k,PL_scheme(n)%PL(j)%comp1)*y(it_i,it_j,it_k,PL_scheme(n)%PL(j)%comp2)
+                    enddo
+                  enddo
+                enddo
+                do it_l=1,2
+                  call MPI_ALLREDUCE(seg_concl(it_l,:) ,seg_conc(it_l,:,Rnr) ,kmax ,MY_REAL ,MPI_SUM ,comm3d ,mpierr)
+                enddo
+                call MPI_ALLREDUCE(seg_conc_prodl(:) ,seg_conc_prod_vert(Rnr,:) ,kmax ,MY_REAL ,MPI_SUM ,comm3d ,mpierr)
+                seg_conc_mult_vert(Rnr,:) = seg_conc(1,:,Rnr)*seg_conc(2,:,Rnr)/rslabs
+                seg_conc_prod(Rnr) = sum(seg_conc_prod_vert(Rnr,1:k_zi))+rest_zi*seg_conc_prod_vert(Rnr,k_zi+1)
+                seg_conc_mult(Rnr) = (sum(seg_conc(1,1:k_zi,Rnr)) + rest_zi*seg_conc(1,k_zi+1,Rnr)) &
+                                   * (sum(seg_conc(2,1:k_zi,Rnr)) + rest_zi*seg_conc(2,k_zi+1,Rnr))/(rslabs*(k_zi+rest_zi))
+              case(3) ! A^a -> ...
+                do it_k=1,kmax
+                  do it_j=2,j1
+                    do it_i=2,i1
+                      seg_concl(1,it_k)    = seg_concl(1,it_k) + y(it_i,it_j,it_k,PL_scheme(n)%PL(j)%comp1)
+                      seg_conc_prodl(it_k) = seg_conc_prodl(it_k) + (y(it_i,it_j,it_k,PL_scheme(n)%PL(j)%comp1) ** PL_scheme(n)%PL(j)%exp1)
+                    enddo
+                  enddo
+                enddo
+                do it_l=1,1
+                  call MPI_ALLREDUCE(seg_concl(it_l,:) ,seg_conc(it_l,:,Rnr) ,kmax ,MY_REAL ,MPI_SUM ,comm3d ,mpierr)
+                enddo
+                call MPI_ALLREDUCE(seg_conc_prodl(:) ,seg_conc_prod_vert(Rnr,:) ,kmax ,MY_REAL ,MPI_SUM ,comm3d ,mpierr)
+                seg_conc_mult_vert(Rnr,:) = (seg_conc(1,:,Rnr) ** PL_scheme(n)%PL(j)%exp1) / (rslabs ** (PL_scheme(n)%PL(j)%exp1 - 1))
+                seg_conc_prod(Rnr) = sum(seg_conc_prod_vert(Rnr,1:k_zi))+rest_zi*seg_conc_prod_vert(Rnr,k_zi+1)
+                seg_conc_mult(Rnr) = ((sum(seg_conc(1,1:k_zi,Rnr)) + rest_zi*seg_conc(1,k_zi+1,Rnr)) ** PL_scheme(n)%PL(j)%exp1)&
+                                   / ((rslabs*(k_zi+rest_zi)) ** (PL_scheme(n)%PL(j)%exp1 - 1))
+                
+              case(4) !A^a + B^b -> ...
+                do it_k=1,kmax
+                  do it_j=2,j1
+                    do it_i=2,i1
+                      seg_concl(1,it_k)    = seg_concl(1,it_k) + y(it_i,it_j,it_k,PL_scheme(n)%PL(j)%comp1)
+                      seg_concl(2,it_k)    = seg_concl(2,it_k) + y(it_i,it_j,it_k,PL_scheme(n)%PL(j)%comp2)
+                      seg_conc_prodl(it_k) = seg_conc_prodl(it_k) + (y(it_i,it_j,it_k,PL_scheme(n)%PL(j)%comp1) ** PL_scheme(n)%PL(j)%exp1) &
+                                           * (y(it_i,it_j,it_k,PL_scheme(n)%PL(j)%comp2) ** PL_scheme(n)%PL(j)%exp2)
+                    enddo
+                  enddo
+                enddo
+                do it_l=1,2
+                  call MPI_ALLREDUCE(seg_concl(it_l,:) ,seg_conc(it_l,:,Rnr) ,kmax ,MY_REAL ,MPI_SUM ,comm3d ,mpierr)
+                enddo
+                call MPI_ALLREDUCE(seg_conc_prodl(:) ,seg_conc_prod_vert(Rnr,:) ,kmax ,MY_REAL ,MPI_SUM ,comm3d ,mpierr)
+                seg_conc_mult_vert(Rnr,:) = (seg_conc(1,:,Rnr) ** PL_scheme(n)%PL(j)%exp1) * (seg_conc(2,:,Rnr) ** PL_scheme(n)%PL(j)%exp2) &
+                                          / (rslabs ** (PL_scheme(n)%PL(j)%exp1 + PL_scheme(n)%PL(j)%exp2 - 1))
+                seg_conc_prod(Rnr) = sum(seg_conc_prod_vert(Rnr,1:k_zi))+rest_zi*seg_conc_prod_vert(Rnr,k_zi+1)
+                seg_conc_mult(Rnr) = ((sum(seg_conc(1,1:k_zi,Rnr)) + rest_zi*seg_conc(1,k_zi+1,Rnr)) ** PL_scheme(n)%PL(j)%exp1)&
+                                   * ((sum(seg_conc(2,1:k_zi,Rnr)) + rest_zi*seg_conc(2,k_zi+1,Rnr)) ** PL_scheme(n)%PL(j)%exp2)&
+                                   / ((rslabs*(k_zi+rest_zi)) ** (PL_scheme(n)%PL(j)%exp1 + PL_scheme(n)%PL(j)%exp2 - 1))
+                
+              case(5) ! A + B + C -> ...   
+                do it_k=1,kmax
+                  do it_j=2,j1
+                    do it_i=2,i1
+                      seg_concl(1,it_k)    = seg_concl(1,it_k) + y(it_i,it_j,it_k,PL_scheme(n)%PL(j)%comp1)
+                      seg_concl(2,it_k)    = seg_concl(2,it_k) + y(it_i,it_j,it_k,PL_scheme(n)%PL(j)%comp2)
+                      seg_concl(3,it_k)    = seg_concl(3,it_k) + y(it_i,it_j,it_k,PL_scheme(n)%PL(j)%comp3)
+                      seg_conc_prodl(it_k) = seg_conc_prodl(it_k) + y(it_i,it_j,it_k,PL_scheme(n)%PL(j)%comp1) &
+                                           * y(it_i,it_j,it_k,PL_scheme(n)%PL(j)%comp2) * y(it_i,it_j,it_k,PL_scheme(n)%PL(j)%comp3)
+                    enddo
+                  enddo
+                enddo
+                do it_l=1,3
+                  call MPI_ALLREDUCE(seg_concl(it_l,:) ,seg_conc(it_l,:,Rnr) ,kmax ,MY_REAL ,MPI_SUM ,comm3d ,mpierr)
+                enddo
+                call MPI_ALLREDUCE(seg_conc_prodl(:) ,seg_conc_prod_vert(Rnr,:) ,kmax ,MY_REAL ,MPI_SUM ,comm3d ,mpierr)
+                seg_conc_mult_vert(Rnr,:) = seg_conc(1,:,Rnr)*seg_conc(2,:,Rnr)*seg_conc(3,:,Rnr)/(rslabs**2)
+                seg_conc_prod(Rnr) = sum(seg_conc_prod_vert(Rnr,1:k_zi))+rest_zi*seg_conc_prod_vert(Rnr,k_zi+1)
+                seg_conc_mult(Rnr) = (sum(seg_conc(1,1:k_zi,Rnr)) + rest_zi*seg_conc(1,k_zi+1,Rnr)) &
+                                   * (sum(seg_conc(2,1:k_zi,Rnr)) + rest_zi*seg_conc(2,k_zi+1,Rnr)) &
+                                   * (sum(seg_conc(3,1:k_zi,Rnr)) + rest_zi*seg_conc(3,k_zi+1,Rnr)) / ((rslabs*(k_zi+rest_zi))**2)
+                
+              case(6) ! A^a + B^b + C^c -> ...
+                do it_k=1,kmax
+                  do it_j=2,j1
+                    do it_i=2,i1
+                      seg_concl(1,it_k)    = seg_concl(1,it_k) + y(it_i,it_j,it_k,PL_scheme(n)%PL(j)%comp1)
+                      seg_concl(2,it_k)    = seg_concl(2,it_k) + y(it_i,it_j,it_k,PL_scheme(n)%PL(j)%comp2)
+                      seg_concl(3,it_k)    = seg_concl(3,it_k) + y(it_i,it_j,it_k,PL_scheme(n)%PL(j)%comp3)
+                      seg_conc_prodl(it_k) = seg_conc_prodl(it_k) + (y(it_i,it_j,it_k,PL_scheme(n)%PL(j)%comp1) ** PL_scheme(n)%PL(j)%exp1) &
+                                           * (y(it_i,it_j,it_k,PL_scheme(n)%PL(j)%comp2) ** PL_scheme(n)%PL(j)%exp2) &
+                                           * (y(it_i,it_j,it_k,PL_scheme(n)%PL(j)%comp3) ** PL_scheme(n)%PL(j)%exp3)
+                    enddo
+                  enddo
+                enddo
+                do it_l=1,3
+                  call MPI_ALLREDUCE(seg_concl(it_l,:) ,seg_conc(it_l,:,Rnr) ,kmax ,MY_REAL ,MPI_SUM ,comm3d ,mpierr)
+                enddo
+                call MPI_ALLREDUCE(seg_conc_prodl(:) ,seg_conc_prod_vert(Rnr,:) ,kmax ,MY_REAL ,MPI_SUM ,comm3d ,mpierr)
+                seg_conc_mult_vert(Rnr,:) = (seg_conc(1,:,Rnr) ** PL_scheme(n)%PL(j)%exp1) &
+                                          * (seg_conc(2,:,Rnr) ** PL_scheme(n)%PL(j)%exp2) &
+                                          * (seg_conc(3,:,Rnr) ** PL_scheme(n)%PL(j)%exp3) &
+                                          / (rslabs ** (PL_scheme(n)%PL(j)%exp1 + PL_scheme(n)%PL(j)%exp2 + PL_scheme(n)%PL(j)%exp3 - 1))
+                seg_conc_prod(Rnr) = sum(seg_conc_prod_vert(Rnr,1:k_zi))+rest_zi*seg_conc_prod_vert(Rnr,k_zi+1)
+                seg_conc_mult(Rnr) = ((sum(seg_conc(1,1:k_zi,Rnr)) + rest_zi*seg_conc(1,k_zi+1,Rnr)) ** PL_scheme(n)%PL(j)%exp1)&
+                                   * ((sum(seg_conc(2,1:k_zi,Rnr)) + rest_zi*seg_conc(2,k_zi+1,Rnr)) ** PL_scheme(n)%PL(j)%exp2)&
+                                   * ((sum(seg_conc(3,1:k_zi,Rnr)) + rest_zi*seg_conc(3,k_zi+1,Rnr)) ** PL_scheme(n)%PL(j)%exp3)&
+                                   / ((rslabs*(k_zi+rest_zi)) ** (PL_scheme(n)%PL(j)%exp1 + PL_scheme(n)%PL(j)%exp2 + PL_scheme(n)%PL(j)%exp3 - 1))
+                
+              case(7) ! A^a + B^b + C^c + D^d -> ... 
+                do it_k=1,kmax
+                  do it_j=2,j1
+                    do it_i=2,i1
+                      seg_concl(1,it_k)    = seg_concl(1,it_k) + y(it_i,it_j,it_k,PL_scheme(n)%PL(j)%comp1)
+                      seg_concl(2,it_k)    = seg_concl(2,it_k) + y(it_i,it_j,it_k,PL_scheme(n)%PL(j)%comp2)
+                      seg_concl(3,it_k)    = seg_concl(3,it_k) + y(it_i,it_j,it_k,PL_scheme(n)%PL(j)%comp3)
+                      seg_concl(4,it_k)    = seg_concl(4,it_k) + y(it_i,it_j,it_k,PL_scheme(n)%PL(j)%comp4)
+                      seg_conc_prodl(it_k) = seg_conc_prodl(it_k) + (y(it_i,it_j,it_k,PL_scheme(n)%PL(j)%comp1) ** PL_scheme(n)%PL(j)%exp1) &
+                                           * (y(it_i,it_j,it_k,PL_scheme(n)%PL(j)%comp2) ** PL_scheme(n)%PL(j)%exp2) &
+                                           * (y(it_i,it_j,it_k,PL_scheme(n)%PL(j)%comp3) ** PL_scheme(n)%PL(j)%exp3) &
+                                           * (y(it_i,it_j,it_k,PL_scheme(n)%PL(j)%comp4) ** PL_scheme(n)%PL(j)%exp4)
+                    enddo
+                  enddo
+                enddo
+                do it_l=1,4
+                  call MPI_ALLREDUCE(seg_concl(it_l,:) ,seg_conc(it_l,:,Rnr) ,kmax ,MY_REAL ,MPI_SUM ,comm3d ,mpierr)
+                enddo
+                call MPI_ALLREDUCE(seg_conc_prodl(:) ,seg_conc_prod_vert(Rnr,:) ,kmax ,MY_REAL ,MPI_SUM ,comm3d ,mpierr)
+                seg_conc_mult_vert(Rnr,:) = (seg_conc(1,:,Rnr) ** PL_scheme(n)%PL(j)%exp1) &
+                                          * (seg_conc(2,:,Rnr) ** PL_scheme(n)%PL(j)%exp2) &
+                                          * (seg_conc(3,:,Rnr) ** PL_scheme(n)%PL(j)%exp3) &
+                                          * (seg_conc(4,:,Rnr) ** PL_scheme(n)%PL(j)%exp4) &
+                                          / (rslabs ** (PL_scheme(n)%PL(j)%exp1 + PL_scheme(n)%PL(j)%exp2 &
+                                                      + PL_scheme(n)%PL(j)%exp3 + PL_scheme(n)%PL(j)%exp4 - 1))
+                seg_conc_prod(Rnr) = sum(seg_conc_prod_vert(Rnr,1:k_zi))+rest_zi*seg_conc_prod_vert(Rnr,k_zi+1)
+                seg_conc_mult(Rnr) = ((sum(seg_conc(1,1:k_zi,Rnr)) + rest_zi*seg_conc(1,k_zi+1,Rnr)) ** PL_scheme(n)%PL(j)%exp1)&
+                                   * ((sum(seg_conc(2,1:k_zi,Rnr)) + rest_zi*seg_conc(2,k_zi+1,Rnr)) ** PL_scheme(n)%PL(j)%exp2)&
+                                   * ((sum(seg_conc(3,1:k_zi,Rnr)) + rest_zi*seg_conc(3,k_zi+1,Rnr)) ** PL_scheme(n)%PL(j)%exp3)&
+                                   * ((sum(seg_conc(4,1:k_zi,Rnr)) + rest_zi*seg_conc(4,k_zi+1,Rnr)) ** PL_scheme(n)%PL(j)%exp4)&
+                                   / ((rslabs*(k_zi+rest_zi)) ** (PL_scheme(n)%PL(j)%exp1 + PL_scheme(n)%PL(j)%exp2 &
+                                                                + PL_scheme(n)%PL(j)%exp3 + PL_scheme(n)%PL(j)%exp4 - 1))
+              case default
+                if(myid==0) then
+                  Print *,'Reaction type of reaction #',Rnr,' is not supported for segregation calculations'
+                endif
+              end select !select case as function of the equation type
+!
+!              if(myid==0) then
+!                Print *,'Finished segregation calculation for reaction #',Rnr
+!              endif
+!                
+              reaction_ev(PL_scheme(n)%PL(j)%r_nr) = .TRUE. ! Reaction #<r_nr> has been evaluated
+            endif !reaction evaluated yet?
+          endif   !only PRODUCTION terms for chemical n
+          enddo   !j=1,reactions for chemical n
+        endif     !active
+      enddo       !n=1,nchsp
+      do j=1,tnor
+        if(reaction_ev(j) .EQV. .FALSE.) then
+          if(myid==0) then
+            Print *,'Reaction ',j,' has no production terms and is therefore not evaluated'
+          endif
+        endif
+      enddo
+
+      where (seg_conc_mult .ne. 0)
+        segregation = (seg_conc_prod-seg_conc_mult)/seg_conc_mult
+      elsewhere
+        segregation = -9999.0 !Error code, devision by 0
+      endwhere
+      where (seg_conc_mult_vert .ne. 0)
+        segregation_vert = (seg_conc_prod_vert-seg_conc_mult_vert)/seg_conc_mult_vert
+      elsewhere
+        segregation_vert = -9999.0 !Error code, devision by 0
+      endwhere
+
+      if(myid==0) then
+        open (ifoutput,file='seg.'//cexpnr,position='append') 
+          write(formatstring,'(a,i3,a)') '(F9.2,1x,F7.2,',tnor,'(2x,e12.6))'
+          write(ifoutput,formatstring) rtimee,zi,(segregation(i),i=1,tnor)
+        close(ifoutput)
+
+        nsecs   = nint(real(timee)/1000.)
+        nhrs    = int(nsecs/3600)
+        nminut  = int(nsecs/60)-nhrs*60
+        nsecs   = mod(nsecs,60)
+        open (ifoutput,file='seg_h.'//cexpnr,position='append') 
+          write(ifoutput,'(A,/A,F5.0,A,I4,A,I2.2,A,I2.2,A,/A)') &
+          '#-----------------------------------------------------------------------------'&
+          ,'#',(timeav_glob),'--- AVERAGING TIMESTEP --- '      &
+          ,nhrs,':',nminut,':',nsecs      &
+          ,'   HRS:MIN:SEC AFTER INITIALIZATION ','#-----------------------------------------------------------------------------'
+
+          write(formatstring,'(a,i3,a)') '(a9,1x,a7,1x,a7,',tnor,'(2x,a5,i3.3,a4))'
+          write(ifoutput,formatstring) '#Time [s]','z_i [m]','h [m]',('IsegR',i,' [-]',i=1,tnor)
+ 
+          write(formatstring,'(a,i3,a)') '(F9.2,1x,F7.2,1x,F7.2,',tnor,'(2x,e12.6))'
+          do it_k=1,kmax
+            write(ifoutput,formatstring) rtimee,zi,(it_k-0.5)*dz,(segregation_vert(i,it_k),i=1,tnor)
+          enddo !Loop over height
+          write(ifoutput,'(//)') 
+        close(ifoutput)
+      endif !(myid == 0)
+    endif   !timee>=tnextwrite
+  endif     !lsegr .EQV. .true.
 
 
   if( timee>=tnextwrite) then
@@ -1426,6 +1718,9 @@ implicit none
 
       if( timee>=tnextwrite) then
         writearray(k,i)=sum(keffT(:,:,RC(i)%Kindex))/(imax*jmax)
+!        if (lsegrk .EQV. .true.) then
+!          keffT3D(:,:,:,k) = keffT(:,:,:)
+!        endif
       endif
 
       if (lchmovie .and. (mod(timee,idtchmovie)==0)) then

@@ -109,6 +109,7 @@ save
       integer, parameter :: iadv_5th    = 5
       integer, parameter :: iadv_cd6    = 6
       integer, parameter :: iadv_62     = 62
+      integer, parameter :: iadv_52     = 52
       integer, parameter :: iadv_kappa  = 7
 
       logical :: lmoist   = .true.  !<   switch to calculate moisture fields
@@ -211,6 +212,8 @@ contains
       case(iadv_62)
         courant = 1.4
       case(iadv_5th)
+        courant = 1.4
+      case(iadv_52)
         courant = 1.4
       case default
         courant = 1.4

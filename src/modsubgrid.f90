@@ -76,7 +76,7 @@ contains
       csz(:)  = cs
     end if
 
-    if(lmason .and. lsmagorinsky) then
+    if(lmason) then
       do k = 1,k1
         mlen   = (1. / (csz(k) * delta(k))**nmason + 1. / (fkar * zf(k))**nmason)**(-1./nmason)
         csz(k) = mlen / delta(k)
@@ -97,7 +97,7 @@ contains
     endif
 
     !CvH init dynamic subgrid model
-    if(ldynsub) then
+    if(ldynsub .and. lsmagorinsky) then
       
       allocate(S(2-ih:i1+ih,2-jh:j1+jh)) 
       
@@ -246,7 +246,7 @@ contains
     do n=1,nsv
       call diffc(sv0(:,:,:,n),svp(:,:,:,n),svflux(:,:,n))
     end do
-    if ((.not. lsmagorinsky) .and. (.not. ldynsub)) call sources
+    if (.not. lsmagorinsky) call sources
   end subroutine
 
   subroutine exitsubgrid
@@ -437,7 +437,7 @@ contains
   use modmpi,    only : excjs, myid, nprocs, comm3d, mpierr, my_real, mpi_sum
   implicit none
 
-  real    :: strain,mlen
+  real    :: strain2,mlen
   integer :: i,j,k,kp,km,jp,jm
 
   if(lsmagorinsky) then
@@ -793,16 +793,16 @@ contains
           jm=j-1
 
           if(k == 1) then
-            strain =  ( &
+            strain2 =  ( &
               ((u0(i+1,j,k)-u0(i,j,k))   *dxi        )**2    + &
               ((v0(i,jp,k)-v0(i,j,k))    *dyi        )**2    + &
               ((w0(i,j,kp)-w0(i,j,k))    /dzf(k)     )**2    )
 
-            strain = strain + 0.5 * ( &
+            strain2 = strain2 + 0.5 * ( &
               ( 0.25*(w0(i+1,j,kp)-w0(i-1,j,kp))*dxi + &
               dudz(i,j)   )**2 )
 
-            strain = strain + 0.125 * ( &
+            strain2 = strain2 + 0.125 * ( &
               ((u0(i,jp,k)-u0(i,j,k))     *dyi     + &
               (v0(i,jp,k)-v0(i-1,jp,k))  *dxi        )**2    + &
               ((u0(i,j,k)-u0(i,jm,k))     *dyi     + &
@@ -812,18 +812,18 @@ contains
               ((u0(i+1,jp,k)-u0(i+1,j,k)) *dyi     + &
               (v0(i+1,jp,k)-v0(i,jp,k))  *dxi        )**2    )
 
-            strain = strain + 0.5 * ( &
+            strain2 = strain2 + 0.5 * ( &
               ( 0.25*(w0(i,jp,kp)-w0(i,jm,kp))*dyi + &
               dvdz(i,j)   )**2 )
       
           else
 
-            strain =  ( &
+            strain2 =  ( &
               ((u0(i+1,j,k)-u0(i,j,k))   *dxi        )**2    + &
               ((v0(i,jp,k)-v0(i,j,k))    *dyi        )**2    + &
               ((w0(i,j,kp)-w0(i,j,k))    /dzf(k)     )**2    )
 
-            strain = strain + 0.125 * ( &
+            strain2 = strain2 + 0.125 * ( &
               ((w0(i,j,kp)-w0(i-1,j,kp))  *dxi     + &
               (u0(i,j,kp)-u0(i,j,k))     / dzh(kp)  )**2    + &
               ((w0(i,j,k)-w0(i-1,j,k))    *dxi     + &
@@ -833,7 +833,7 @@ contains
               ((w0(i+1,j,kp)-w0(i,j,kp))  *dxi     + &
               (u0(i+1,j,kp)-u0(i+1,j,k)) / dzh(kp)  )**2    )
 
-            strain = strain + 0.125 * ( &
+            strain2 = strain2 + 0.125 * ( &
               ((u0(i,jp,k)-u0(i,j,k))     *dyi     + &
               (v0(i,jp,k)-v0(i-1,jp,k))  *dxi        )**2    + &
               ((u0(i,j,k)-u0(i,jm,k))     *dyi     + &
@@ -843,7 +843,7 @@ contains
               ((u0(i+1,jp,k)-u0(i+1,j,k)) *dyi     + &
               (v0(i+1,jp,k)-v0(i,jp,k))  *dxi        )**2    )
 
-            strain = strain + 0.125 * ( &
+            strain2 = strain2 + 0.125 * ( &
               ((v0(i,j,kp)-v0(i,j,k))     / dzh(kp) + &
               (w0(i,j,kp)-w0(i,jm,kp))   *dyi        )**2    + &
               ((v0(i,j,k)-v0(i,j,km))     / dzh(k)+ &
@@ -854,7 +854,7 @@ contains
               (w0(i,jp,kp)-w0(i,j,kp))   *dyi        )**2    )
           end if
 
-          ekm(i,j,k)  = mlen ** 2. * sqrt(2. * strain)
+          ekm(i,j,k)  = mlen ** 2. * sqrt(2. * strain2)
           ekh(i,j,k)  = ekm(i,j,k) / prandtl
         end do
       end do
