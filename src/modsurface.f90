@@ -729,7 +729,11 @@ contains
           ! CvH insert slab averaged velocity. Essential for reproduction of log
           ! layer at the first levels
           if( isurf == 4) then
-            ustar (i,j) = fkar * horvav  / (log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j)) + psim(z0m(i,j) / obl(i,j)))
+            if(lmostlocal) then
+              ustar (i,j) = fkar * horv  / (log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j)) + psim(z0m(i,j) / obl(i,j)))
+            else
+              ustar (i,j) = fkar * horvav / (log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j)) + psim(z0m(i,j) / obl(i,j)))
+            end if
           else
             ustar (i,j) = ustin
           end if
