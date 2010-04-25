@@ -403,7 +403,7 @@ contains
        q2 =   w2w * ( 1.5 * fw - 0.5 )
        q3 = - w3w * ( 2.5 * fw - 1.5 ) * u0
        do i = 1, 4
-          c(i,5) = (w0w + q1*p1d(i) + q2*p2d(i) + q3*p3d(i))/(u0+epsilon(u0))
+          c(i,5) = (w0w + q1*p1d(i) + q2*p2d(i) + q3*p3d(i))/(u(i) + epsilon(u(i)))
        end do
     else
        do i = 1, 4
@@ -684,7 +684,7 @@ contains
     if ( solar ) then
        v1 = 0.2113247 * asbs
        v2 = 0.7886753 * asbs
-       v3 = asbs * u0(1) * f0(1) * exp ( - t(nv) / (u0(1)+epsilon(u0)) )
+       v3 = asbs * u0(1) * f0(1) * exp ( - t(nv) / (u0(1)+epsilon(u0(1)) ))
     else
        v1 = 0.2113247 * ( 1.0 - ee )
        v2 = 0.7886753 * ( 1.0 - ee )
@@ -1934,6 +1934,10 @@ contains
 
     filenm = 'cldwtr.inp.'//cexpnr
     open ( unit = 71, file = filenm, status = 'old', recl=nrec,iostat=ierr)
+    if (ierr.ne.0) then 
+       write (6,*) 'cldwtr.inp not present. terminate run'
+       stop
+    endif
     if (ierr==0) read (71,'(2I3)') nsizes, nbands
     if (nbands /= mb .or. nsizes*nbands*15 > nrec) &
          stop 'TERMINATING: incompatible cldwtr.dat file'
