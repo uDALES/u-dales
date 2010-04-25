@@ -316,12 +316,12 @@ contains
   subroutine fromztop
 
   use modglobal, only : k1,dzf,dzh,rv,rd,cp,tmelt,zf,grav,pref0
-  use modfields, only : qt0av,ql0av,presf,presh
-  use modsurfdata,only : ps,thls
+  use modfields, only : qt0av,ql0av,presf,presh,thvh,thvf
+  use modsurfdata,only : ps,thvs
   implicit none
 
   integer   k
-  real      thetav, rdocp
+  real      rdocp
   real,allocatable,dimension (:) :: thetah, qth, qlh
 
   allocate(thetah(k1), qth(k1), qlh(k1))
@@ -342,20 +342,20 @@ contains
 !          assuming hydrostatic equilibrium       *
 !**************************************************
 
-!     1: lowest level
+!     1: lowest level: use thvs
 
-  thetav   = th0av(1)*(1+(rv/rd-1)*qt0av(1)-rv/rd*ql0av(1))
+  thvh(1) = thvs
   presf(1) = ps**rdocp - &
-                 grav*(pref0**rdocp)*zf(1) /(cp*thetav)
+                 grav*(pref0**rdocp)*zf(1) /(cp*thvh(1))
   presf(1) = presf(1)**(1./rdocp)
 
 !     2: higher levels
 
   do k=2,k1
 
-    thetav   = thetah(k)*(1+(rv/rd-1)*qth(k)-rv/rd*qlh(k))
+    thvh(k)  = thetah(k)*(1+(rv/rd-1)*qth(k)-rv/rd*qlh(k))
     presf(k) = presf(k-1)**rdocp - &
-                   grav*(pref0**rdocp)*dzh(k) /(cp*thetav)
+                   grav*(pref0**rdocp)*dzh(k) /(cp*thvh(k))
     presf(k) = presf(k)**(1./rdocp)
   end do
 
@@ -365,10 +365,11 @@ contains
 !**************************************************
 
   presh(1) = ps
+  thvf(1) = th0av(1)*(1+(rv/rd-1)*qt0av(1)-rv/rd*ql0av(1))
   do k=2,k1
-    thetav   = th0av(k-1)*(1+(rv/rd-1)*qt0av(k-1)-rv/rd*ql0av(k-1))
+    thvf(k)  = th0av(k)*(1+(rv/rd-1)*qt0av(k)-rv/rd*ql0av(k))
     presh(k) = presh(k-1)**rdocp - &
-                   grav*(pref0**rdocp)*dzf(k-1) / (cp*thetav)
+                   grav*(pref0**rdocp)*dzf(k-1) / (cp*thvf(k-1))
     presh(k) = presh(k)**(1./rdocp)
   end do
 
