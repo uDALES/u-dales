@@ -68,7 +68,8 @@ save
   real, allocatable :: presh(:)                      !<   hydrostatic pressure at half level
   real, allocatable :: exnf(:)                       !<   hydrostatic exner function at full level
   real, allocatable :: exnh(:)                       !<   hydrostatic exner function at half level
-
+  real, allocatable :: thvf(:)                       !<   hydrostatic exner function at full level
+  real, allocatable :: thvh(:)                       !<   hydrostatic exner function at half level
   real, allocatable :: rhof(:)                       !<   slab averaged density at full level
   real, allocatable :: qt0av(:)                      !<   slab averaged q_tot
   real, allocatable :: ql0av(:)                      !<   slab averaged q_liq
@@ -147,6 +148,8 @@ contains
     allocate(presh(k1))
     allocate(exnf(k1))
     allocate(exnh(k1))
+    allocate(thvf(k1))
+    allocate(thvh(k1))
     allocate(rhof(k1))
     allocate(qt0av(k1))
     allocate(ql0av(k1))
@@ -191,7 +194,7 @@ contains
     svm=0;sv0=0;svp=0
 
     ql0=0;thv0h=0;thl0h=0;qt0h=0
-    presf=0;presh=0;exnf=0;exnh=0;rhof=0    ! OG
+    presf=0;presh=0;exnf=0;exnh=0;thvf=0;thvh=0;rhof=0    ! OG
     qt0av=0;ql0av=0;thl0av=0;u0av=0;v0av=0;sv0av=0
     thlprof=0;qtprof=0;uprof=0;vprof=0;e12prof=0;svprof=0
     ug=0;vg=0;dpdxl=0;dpdyl=0;wfls=0;whls=0;thlpcar = 0
@@ -208,7 +211,7 @@ contains
     deallocate(um,vm,wm,thlm,e12m,qtm,u0,v0,w0,thl0,thl0h,qt0h,e120,qt0)
     deallocate(up,vp,wp,thlp,e12p,qtp)
     deallocate(svm,sv0,svp)
-    deallocate(ql0,ql0h,thv0h,dthvdz,whls,presf,presh,exnf,exnh,rhof,qt0av,ql0av,thl0av,u0av,v0av)
+    deallocate(ql0,ql0h,thv0h,dthvdz,whls,presf,presh,exnf,exnh,thvf,thvh,rhof,qt0av,ql0av,thl0av,u0av,v0av)
     deallocate(ug,vg,dpdxl,dpdyl,dthldxls,dthldyls,dqtdxls,dqtdyls,dqtdtls,dudxls,dudyls,dvdxls,dvdyls,wfls)
     deallocate(thlprof,qtprof,uprof,vprof,e12prof,sv0av,svprof)
     deallocate(thlpcar)
