@@ -8,7 +8,7 @@ foreach ii (crossxy.$ih.*.$exp.nc)
 set idy = $ii:r:r:e
 ncks -O -v uxy crossxy.$ih.$idy.${exp}.nc tempu.$ih.$idy.nc
 ncks -O -v vxy crossxy.$ih.$idy.${exp}.nc tempv.$ih.$idy.nc
-ncks -O -v wxy,thlxy,thvxy,qtxy,qlxy crossxy.$ih.$idy.$exp.nc temp.$ih.$idy.nc
+ncks -O -v wxy,thlxy,thvxy,qtxy,qlxy,qrxy,buoyxy crossxy.$ih.$idy.$exp.nc temp.$ih.$idy.nc
 ncpdq -O -a yt,time,xm tempu.$ih.$idy.nc tempu.$ih.$idy.nc # Make y record dimension
 ncpdq -O -a ym,time,xt tempv.$ih.$idy.nc tempv.$ih.$idy.nc # Make y record dimension
 ncpdq -O -a yt,time,xt temp.$ih.$idy.nc temp.$ih.$idy.nc # Make y record dimension
@@ -23,4 +23,3 @@ ncks -A tempuxy.$ih.nc crossxy.$ih.$exp.nc
 ncks -A tempvxy.$ih.nc crossxy.$ih.$exp.nc
 end
 rm temp*.nc
-

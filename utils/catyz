@@ -2,12 +2,12 @@
 foreach j (crossyz.000.???.nc)
 rm temp*.nc
 set exp=$j:r:e
-rm crossxz.$exp.nc
+rm crossyz.$exp.nc
 foreach i (crossyz.*.$exp.nc)
 set idy=$i:r:r:e
 ncks -O -v wyz crossyz.$idy.$exp.nc tempw.$idy.nc
 ncks -O -v vyz crossyz.$idy.$exp.nc tempv.$idy.nc
-ncks -O -v uyz,thlyz,thvyz,qtyz,qlyz crossyz.$idy.$exp.nc temp.$idy.nc
+ncks -O -v uyz,thlyz,thvyz,qtyz,qlyz,qryz,buoyyz crossyz.$idy.$exp.nc temp.$idy.nc
 ncpdq -O -a yt,time,zm tempw.$idy.nc tempw.$idy.nc # Make y record dimension
 ncpdq -O -a ym,time,zt tempv.$idy.nc tempv.$idy.nc # Make y record dimension
 ncpdq -O -a yt,time,zt temp.$idy.nc temp.$idy.nc # Make y record dimension
@@ -22,4 +22,3 @@ ncks -A tempwyz.nc crossyz.$exp.nc
 ncks -A tempvyz.nc crossyz.$exp.nc
 end
 rm temp*.nc
-
