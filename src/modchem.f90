@@ -416,6 +416,10 @@ subroutine inputchem
   allocate (RC(tnor))
   allocate (chem_name(nchsp))
 
+  do i=1, nchsp 
+    pl_temp(i)=pl_scheme(1)
+  enddo
+
   reactions(:)%kr = 0.0
   reactions(:)%RadDep = 0
   reactions(:)%keff_index = 0
@@ -693,7 +697,6 @@ subroutine inputchem
     enddo !j=1,reactions(i)%nr_chem_outp
   enddo !i=1,react
 
-
   nr_active_chemicals = k
 
   if (nr_active_chemicals < nchsp ) then
@@ -703,7 +706,7 @@ subroutine inputchem
   !Determine from the reactions which formula to use for all the production and loss reactions
   !first do all reactions on the production side
 
-  do i=1,nr_active_chemicals        !********************* misschien nchsp
+  do i=1,nr_active_chemicals        !not nchsp: only active chemicals evaluated. Scheme is set in order (including inert species) later on
     do j=1,PL_scheme(i)%nr_PL
       react_nr = PL_scheme(i)%PL(j)%r_nr
       if( PL_scheme(i)%PL(j)%PorL == PRODUCTION) then     !this is a PRODUCTION
