@@ -303,7 +303,7 @@ contains
       if (z0<0) stop 'z0 out of range/not set'
     case(3:4)
       if (wtsurf<0)  stop 'wtsurf out of range/not set'
-      if (wqsurf<0)  stop 'wtsurf out of range/not set'
+      if (wqsurf<0)  stop 'wqsurf out of range/not set'
     case default
       stop 'isurf out of range/not set'
     end select
