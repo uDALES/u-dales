@@ -451,6 +451,7 @@ contains
           else
             !CvH test smoothz0
             horvav  = sqrt(u0av(1) ** 2. + v0av(1) ** 2.)
+            horvav  = max(horvav, 1.e-2)
             ra(i,j) = 1. / ( Cs(i,j) * horvav )
           end if
 
@@ -616,6 +617,7 @@ contains
           horv   = sqrt(upcu ** 2. + vpcv ** 2.)
           horv   = max(horv, 1.e-2)
           horvav = sqrt(u0av(1) ** 2. + v0av(1) ** 2.)
+          horvav = max(horvav, 1.e-2)
           
           if(lmostlocal) then 
             ustar  (i,j) = sqrt(Cm(i,j)) * horv 
