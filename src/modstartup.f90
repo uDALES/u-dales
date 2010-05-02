@@ -258,7 +258,7 @@ contains
   !                                                                 |
   !-----------------------------------------------------------------|
 
-    use modsurfdata,only : wtsurf,wqsurf,ustin,thls,z0,isurf,ps
+    use modsurfdata,only : wtsurf,wqsurf,ustin,thls,isurf,ps
     use modglobal, only : imax,jtot, ysize,xsize,dtmax,runtime, startfile,lwarmstart
     use modmpi,    only : myid, nprocs,mpierr
 
@@ -297,20 +297,20 @@ contains
       if (startfile == '') stop 'no restartfile set'
     end if
   !isurf
-    select case (isurf)
-    case(1)
-    case(2,10)
-      if (z0<0) stop 'z0 out of range/not set'
-    case(3:4)
-      if (wtsurf<0)  stop 'wtsurf out of range/not set'
-      if (wqsurf<0)  stop 'wtsurf out of range/not set'
-    case default
-      stop 'isurf out of range/not set'
-    end select
-    if (isurf ==3) then
-      if (ustin < 0)  stop 'ustin out of range/not set'
+    if (myid == 0) then
+      select case (isurf)
+      case(1)
+      case(2,10)
+      case(3:4)
+        if (wtsurf<0)  stop 'wtsurf out of range/not set'
+        if (wqsurf<0)  stop 'wqsurf out of range/not set'
+      case default
+        stop 'isurf out of range/not set'
+      end select
+      if (isurf ==3) then
+        if (ustin < 0)  stop 'ustin out of range/not set'
+      end if
     end if
-
 
   end subroutine checkinitvalues
 
