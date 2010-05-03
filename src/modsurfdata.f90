@@ -154,6 +154,6 @@ SAVE
   real              :: ustin  = -1      !<  Prescribed friction velocity [m/s]
   real              :: wtsurf = -1      !<  Prescribed kinematic temperature flux [K m/s]
   real              :: wqsurf = -1      !<  Prescribed kinematic moisture flux [kg/kg m/s]
-  real              :: wsvsurf(100)     !<  Prescribed surface scalar(n) flux [- m/s]
+  real              :: wsvsurf(100) = 0 !<  Prescribed surface scalar(n) flux [- m/s]
 
 end module modsurfdata
