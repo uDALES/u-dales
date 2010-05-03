@@ -431,8 +431,7 @@ contains
     use modsurfdata,only: thls,qts,svs,ustar,thlflux,qtflux,svflux
     use modsubgriddata,only : ekm, ekh, csz
     use modglobal, only : i1,ih,j1,jh,k1,kmax,nsv,dzf,dzh,rlv,rv,rd,cp, &
-                          rslabs,cu,cv,iadv_thl,iadv_kappa,eps1,dxi,dyi,iadv_mom
-                          !CvH remove iadv_mom after tests
+                          rslabs,cu,cv,iadv_thl,iadv_kappa,eps1,dxi,dyi
     use modmpi,    only : nprocs,comm3d,nprocs,my_real, mpi_sum,mpierr, slabsum
     implicit none
 
@@ -802,17 +801,6 @@ contains
 
         uwr     = (w0(i,j,k)+w0(i-1,j,k)) &
                   *((u0(i,j,k-1)+cu)*dzf(k)+(u0(i,j,k)+cu)*dzf(k-1))/(4*dzh(k))
-
-        if(iadv_mom == 6) then
-          if(k == 2) then
-            uwr = w0(i,j,k)  * (u0(i,j,k-1)+u0(i,j,k)) / 2.
-          elseif(k == 3 .or. k == kmax) then
-            uwr = w0(i,j,k)/12. * (7.*(u0(i,j,k)+u0(i,j,k-1))-(u0(i,j,k+1)+u0(i,j,k-2)))
-          else
-            uwr = w0(i,j,k)/60. * (37.*(u0(i,j,k)+u0(i,j,k-1))-8.*(u0(i,j,k+1)+u0(i,j,k-2))+(u0(i,j,k+2)+u0(i,j,k-3)))
-          end if
-        end if
-
         vwr     = (w0(i,j,k)+w0(i,j-1,k)) &
                   *((v0(i,j,k-1)+cv)*dzf(k)+(v0(i,j,k)+cv)*dzf(k-1))/(4*dzh(k))
         uws     = -euhalf &
