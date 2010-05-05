@@ -258,8 +258,8 @@ contains
 
     !CvH enhance ih and jh to be able to use largest testfilter if dynamic subgrid scheme is used
     if(ldynsub .eqv. .true.) then
-      ih = tf2 + 1
-      jh = tf2 + 1
+      ih = tf2 / 2 + 1
+      jh = tf2 / 2 + 1
     end if
     ncosv = max(2*nsv-3,0)
 

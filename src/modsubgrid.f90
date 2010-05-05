@@ -182,7 +182,7 @@ contains
       allocate(weighttf1(-tf1:tf1,-tf1:tf1))
       allocate(weighttf2(-tf2:tf2,-tf2:tf2))
 
-      call initfilter
+      !call initfilter
     end if
    
   end subroutine initsubgrid
@@ -254,145 +254,145 @@ contains
     deallocate(ekm,ekh,zlt,sbdiss,sbbuo,sbshr,csz)
   end subroutine exitsubgrid
 
-  !subroutine tophat(v2f, ndx)
-  !  use modglobal, only : i1,ih,i2,j1,jh,j2,kmax,k1
-  !  ! top hat filter
-  !  ! for now, only filter in horizontal
-  !  implicit none
-
-  !  integer, intent(in)    :: ndx
-  !  real,    intent(inout) :: v2f(2-ih:i1+ih,2-jh:j1+jh)
-  !  real                   :: v2fin(2-ih:i1+ih,2-jh:j1+jh)
-  !  integer                :: i,j,m,n
-  !  real                   :: weight
-
-  !  v2fin(:,:) = v2f(:,:)
-  !  v2f(:,:) = 0.
-  !  
-  !  weight   = ndx**2.
-
-  !  ! Filter width is even
-  !  if(mod(ndx,2) == 0) then
-  !    do j = 2,j1
-  !      do i = 2,i1
-  !        do m = - ndx / 2, ndx / 2
-  !          do n = - ndx / 2, ndx / 2
-  !            ! Check if we are on the left edge or right edge
-  !            if(m == - ndx / 2 .or. m == ndx / 2) then
-  !              ! Check if we are on the top edge or bottom edge
-  !              if(n == - ndx / 2 .or. n == ndx / 2) then
-  !                v2f(i,j) = v2f(i,j) + 0.25 * v2fin(i+m,j+n)
-  !              else
-  !                v2f(i,j) = v2f(i,j) + 0.5 * v2fin(i+m,j+n)
-  !              end if
-  !            ! We are not on left or right edge
-  !            else
-  !              ! Check if we are on top edge or bottom edge
-  !              if(n == - ndx / 2 .or. n == ndx / 2) then
-  !                v2f(i,j) = v2f(i,j) + 0.5 * v2fin(i+m,j+n)
-  !              ! We are not on any edge
-  !              else
-  !                v2f(i,j) = v2f(i,j) + 1.0 * v2fin(i+m,j+n)
-  !              end if
-  !            end if
-  !          end do
-  !        end do
-  !        v2f(i,j) = v2f(i,j) / weight
-  !      end do
-  !    end do
-  !  else
-  !    ! Filter width is odd
-  !    do j = 2,j1
-  !      do i = 2,i1
-  !        do m = - (ndx - 1) / 2, (ndx - 1) / 2
-  !          do n = - (ndx - 1) / 2, (ndx - 1) / 2
-  !             v2f(i,j) = v2f(i,j) + v2fin(i+m,j+n)
-  !          end do
-  !        end do
-  !        v2f(i,j) = v2f(i,j) / weight
-  !      end do
-  !    end do
-  !  end if
-
-  !  return
-  !end subroutine tophat
-
-  subroutine initfilter
-    use modglobal, only : dx, dy
-    implicit none
-
-    integer             :: m, n
-    real                :: weight, widthx2
-
-    ! first, determine weights for first test filter
-    widthx2   = (real(tf1) * dx) ** 2.
-    weight    = 0.
-    weighttf1 = 0.
-    do n = - tf1, tf1
-      do m = - tf1, tf1
-        weighttf1(m,n) = exp(-6. * (real(m) * dx)**2. / widthx2) * exp(-6. * (real(n) * dx)**2. / widthx2)
-        weight         = weight + weighttf1(m,n)
-      end do
-    end do
-
-    weighttf1 = weighttf1 / weight
-    
-    ! second, determine weights for second test filter
-    widthx2   = (real(tf2) * dx) ** 2.
-    weight    = 0.
-    weighttf2 = 0.
-    do n = - tf2, tf2
-      do m = - tf2, tf2
-        weighttf2(m,n) = exp(-6. * (real(m) * dx)**2. / widthx2) * exp(-6. * (real(n) * dx)**2. / widthx2)
-        weight         = weight + weighttf2(m,n)
-      end do
-    end do
-
-    weighttf2 = weighttf2 / weight
-
-  end subroutine initfilter
-
-  subroutine filter(v2f, tf)
-    use modglobal, only : i1,ih,i2,j1,jh,j2,kmax,k1,dx
-    ! gaussian filter
+  subroutine filter(v2f, ndx)
+    use modglobal, only : i1,ih,i2,j1,jh,j2,kmax,k1
+    ! top hat filter
     ! for now, only filter in horizontal
     implicit none
 
-    integer, intent(in)    :: tf
+    integer, intent(in)    :: ndx
     real,    intent(inout) :: v2f(2-ih:i1+ih,2-jh:j1+jh)
     real                   :: v2fin(2-ih:i1+ih,2-jh:j1+jh)
     integer                :: i,j,m,n
+    real                   :: weight
 
     v2fin(:,:) = v2f(:,:)
     v2f(:,:) = 0.
+    
+    weight   = ndx**2.
 
-    if(tf == tf1) then
+    ! Filter width is even
+    if(mod(ndx,2) == 0) then
       do j = 2,j1
         do i = 2,i1
-          do n = - tf1, tf1 
-            do m = - tf1, tf1
-              v2f(i,j) = v2f(i,j) + weighttf1(m,n) * v2fin(i+m,j+n)
+          do m = - ndx / 2, ndx / 2
+            do n = - ndx / 2, ndx / 2
+              ! Check if we are on the left edge or right edge
+              if(m == - ndx / 2 .or. m == ndx / 2) then
+                ! Check if we are on the top edge or bottom edge
+                if(n == - ndx / 2 .or. n == ndx / 2) then
+                  v2f(i,j) = v2f(i,j) + 0.25 * v2fin(i+m,j+n)
+                else
+                  v2f(i,j) = v2f(i,j) + 0.5 * v2fin(i+m,j+n)
+                end if
+              ! We are not on left or right edge
+              else
+                ! Check if we are on top edge or bottom edge
+                if(n == - ndx / 2 .or. n == ndx / 2) then
+                  v2f(i,j) = v2f(i,j) + 0.5 * v2fin(i+m,j+n)
+                ! We are not on any edge
+                else
+                  v2f(i,j) = v2f(i,j) + 1.0 * v2fin(i+m,j+n)
+                end if
+              end if
             end do
           end do
-        end do
-      end do
-    elseif(tf == tf2) then
-      do j = 2,j1
-        do i = 2,i1
-          do n = - tf2, tf2
-            do m = - tf2, tf2
-              v2f(i,j) = v2f(i,j) + weighttf2(m,n) * v2fin(i+m,j+n)
-            end do
-          end do
+          v2f(i,j) = v2f(i,j) / weight
         end do
       end do
     else
-      write(6,*) "Error in filter call. DALES aborted."
-      stop
+      ! Filter width is odd
+      do j = 2,j1
+        do i = 2,i1
+          do m = - (ndx - 1) / 2, (ndx - 1) / 2
+            do n = - (ndx - 1) / 2, (ndx - 1) / 2
+               v2f(i,j) = v2f(i,j) + v2fin(i+m,j+n)
+            end do
+          end do
+          v2f(i,j) = v2f(i,j) / weight
+        end do
+      end do
     end if
 
     return
   end subroutine filter
+
+  !subroutine initfilter
+  !  use modglobal, only : dx, dy
+  !  implicit none
+
+  !  integer             :: m, n
+  !  real                :: weight, widthx2
+
+  !  ! first, determine weights for first test filter
+  !  widthx2   = (real(tf1) * dx) ** 2.
+  !  weight    = 0.
+  !  weighttf1 = 0.
+  !  do n = - tf1, tf1
+  !    do m = - tf1, tf1
+  !      weighttf1(m,n) = exp(-6. * (real(m) * dx)**2. / widthx2) * exp(-6. * (real(n) * dx)**2. / widthx2)
+  !      weight         = weight + weighttf1(m,n)
+  !    end do
+  !  end do
+
+  !  weighttf1 = weighttf1 / weight
+  !  
+  !  ! second, determine weights for second test filter
+  !  widthx2   = (real(tf2) * dx) ** 2.
+  !  weight    = 0.
+  !  weighttf2 = 0.
+  !  do n = - tf2, tf2
+  !    do m = - tf2, tf2
+  !      weighttf2(m,n) = exp(-6. * (real(m) * dx)**2. / widthx2) * exp(-6. * (real(n) * dx)**2. / widthx2)
+  !      weight         = weight + weighttf2(m,n)
+  !    end do
+  !  end do
+
+  !  weighttf2 = weighttf2 / weight
+
+  !end subroutine initfilter
+
+  !subroutine filter(v2f, tf)
+  !  use modglobal, only : i1,ih,i2,j1,jh,j2,kmax,k1,dx
+  !  ! gaussian filter
+  !  ! for now, only filter in horizontal
+  !  implicit none
+
+  !  integer, intent(in)    :: tf
+  !  real,    intent(inout) :: v2f(2-ih:i1+ih,2-jh:j1+jh)
+  !  real                   :: v2fin(2-ih:i1+ih,2-jh:j1+jh)
+  !  integer                :: i,j,m,n
+
+  !  v2fin(:,:) = v2f(:,:)
+  !  v2f(:,:) = 0.
+
+  !  if(tf == tf1) then
+  !    do j = 2,j1
+  !      do i = 2,i1
+  !        do n = - tf1, tf1 
+  !          do m = - tf1, tf1
+  !            v2f(i,j) = v2f(i,j) + weighttf1(m,n) * v2fin(i+m,j+n)
+  !          end do
+  !        end do
+  !      end do
+  !    end do
+  !  elseif(tf == tf2) then
+  !    do j = 2,j1
+  !      do i = 2,i1
+  !        do n = - tf2, tf2
+  !          do m = - tf2, tf2
+  !            v2f(i,j) = v2f(i,j) + weighttf2(m,n) * v2fin(i+m,j+n)
+  !          end do
+  !        end do
+  !      end do
+  !    end do
+  !  else
+  !    write(6,*) "Error in filter call. DALES aborted."
+  !    stop
+  !  end if
+
+  !  return
+  !end subroutine filter
 
 
   subroutine closure
@@ -441,7 +441,8 @@ contains
   integer :: i,j,k,kp,km,jp,jm
 
   if(lsmagorinsky) then
-    if(ldynsub .and. rk3step == 1) then
+    !if(ldynsub .and. rk3step == 1) then
+    if(ldynsub) then
       ! CvH dynamic subgrid model, compute cs only in first RK3 iteration step
       ! go through the model layer by layer
       do k = 1,kmax
@@ -770,6 +771,7 @@ contains
         beta = (cs2_tf2 / cs2_tf1) ** (log(real(tf1))/(log(real(tf2))-log(real(tf1))))
         if(beta < 0.125) then
           beta = max(beta, 0.125)
+          if(myid == 0) write(6,*) "Beta clip at height:", k
         end if
 
         !csz(k) = sqrt( (LMav / MMav) / ( (QNav * MMav) / (NNav * LMav) ))

@@ -4,7 +4,8 @@ lwarmstart =  .false.
 startfile  =  'initd00h01m000.001'
 runtime    =  36000
 trestart   =  3600 
-ladaptive  =  .true.
+ladaptive  =  .false.
+dtmax      =  5
 irandom    =  43
 randthl    =  0.1
 randqt     =  2.5e-5
@@ -26,11 +27,11 @@ xtime      =  10.
 /
 
 &PHYSICS
-z0         =  0.035
+z0         =  0.1
 ustin      =  0.0
 ps         =  100000.00
 thls       =  296.
-wtsurf     =  0.0
+wtsurf     =  0.1
 wqsurf     =  0.0
 wsvsurf(1) =  0.1
 wsvsurf(2) =  1.
@@ -63,7 +64,7 @@ lsmoothflux  = .false.
 rsisurf2     = 50.
 
 z0mav        = 0.1
-z0hav        = 0.05
+z0hav        = 0.02
 Cskinav      = 0
 lambdaskinav = 5.
 albedoav     = 0.20
@@ -82,11 +83,18 @@ lqlnr      =  .false.
 cu         =  0.
 cv         =  0.
 
-iadv_mom    =  5
-iadv_tke    =  5
-iadv_thl    =  5
-iadv_qt     =  5
-iadv_sv     =  100*5
+iadv_mom    =  62
+iadv_tke    =  62
+iadv_thl    =  62
+iadv_qt     =  62
+iadv_sv     =  100*62
+/
+
+&NAMSUBGRID
+lsmagorinsky = .true.
+ldynsub      = .true.
+tf1          = 2
+tf2          = 4
 /
 
 &NAMCHECKSIM
@@ -111,7 +119,7 @@ dtav        = 60
 &NAMGENSTAT
 lstat       = .true.
 dtav        = 60
-timeav      = 1800
+timeav      = 900
 /
 &NAMFIELDDUMP
 lfielddump  = .false.
