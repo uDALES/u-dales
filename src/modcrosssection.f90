@@ -220,7 +220,7 @@ contains
   use modstat_nc, only : lnetcdf, writestat_nc
   implicit none
 
-  integer i,j,k,n
+  integer i,k,n
   character(20) :: name
 
   real, allocatable :: thv0(:,:),vars(:,:,:),buoy(:,:)
@@ -311,7 +311,7 @@ contains
 
     ! LOCAL
     integer i,j,n
-    character(20) :: name
+    character(40) :: name
     real, allocatable :: thv0(:,:,:),vars(:,:,:),buoy(:,:,:)
 
     allocate(thv0(2:i1,2:j1,nxy),buoy(2:i1,2:j1,nxy))
@@ -365,7 +365,7 @@ contains
     close(ifoutput)
 
     do n = 1,nsv
-      name = 'movh_tnn.'//cheight//'.'//cmyid//'.'//cexpnr
+      name = 'movh_snn.'//trim(cheight)//'.'//cmyid//'.'//cexpnr
       write(name(7:8),'(i2.2)') n
       open(ifoutput,file=name,position='append',action='write')
       write(ifoutput,'(es12.5)') ((svm(i,j,crossheight(cross),n),i=2,i1),j=2,j1)
