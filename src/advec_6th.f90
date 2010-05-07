@@ -130,7 +130,7 @@ subroutine advecc_6th(putin, putout)
                       *(37.*(putin(i,j,k)+putin(i,j-1,k))-8.*(putin(i,j+1,k)+putin(i,j-2,k))+(putin(i,j+2,k)+putin(i,j-3,k)))&
                   )* dyi &
                 +( &
-                      w0(i,j,k)/12. &
+                      w0(i,j,k+1)/12. &
                       *(7.*(putin(i,j,k+1)+putin(i,j,k))-(putin(i,j,k+2)+putin(i,j,k-1)))&
                       -w0(i,j,k)/60. &
                       *(37.*(putin(i,j,k)+putin(i,j,k-1))-8.*(putin(i,j,k+1)+putin(i,j,k-2))+(putin(i,j,k+2)+putin(i,j,k-3)))&
