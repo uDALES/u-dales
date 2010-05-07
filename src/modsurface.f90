@@ -151,13 +151,6 @@ contains
 
     end if
 
-    !if(isurf == 2) then
-    !  if(rsisurf2 == -1 .and. (lsea .eqv. .false.)) then
-    !    stop "NAMSURFACE: Set rsisurf2 if you use isurf = 2 over land "
-    !  end if
-    !end if
-
-
     if(isurf .ne. 3) then
       if(z0mav == -1) then
         stop "NAMSURFACE: z0mav is not set"
@@ -322,17 +315,6 @@ contains
     z0m        = z0mav
     z0h        = z0hav
 
-! CvH heterogeneous roughness test
-!    do j=1,j2
-!      do i=1,i2
-!        if( mod(j-2, (jmax*nprocs) / 2) >= 0 .and. mod(j-2, (jmax*nprocs) / 2) < nprocs*jmax / 4 ) then
-!          z0m(i,j) = z0m(i,j) * 10.
-!          z0h(i,j) = z0h(i,j) * 10.
-!        end if
-!        !if(i == 2) write(6,*) "CvH", myid, j, z0m(i,j), nprocs, mod(j-2, (jmax*nprocs) / 2), nprocs*jmax / 4
-!      end do
-!    end do
-!
     ! 3. Initialize surface layer
     allocate(ustar   (i2,j2))
 
@@ -449,7 +431,6 @@ contains
             horv  = max(horv, 1.e-2)
             ra(i,j) = 1. / ( Cs(i,j) * horv )
           else
-            !CvH test smoothz0
             horvav  = sqrt(u0av(1) ** 2. + v0av(1) ** 2.)
             horvav  = max(horvav, 1.e-2)
             ra(i,j) = 1. / ( Cs(i,j) * horvav )
@@ -494,7 +475,7 @@ contains
             end if
           end if
 
-          ! CvH solve the surface temperature implicitly. Do not take into account variations in LWout.
+          ! CvH solve the surface temperature implicitly including variations in LWout
           if(rk3step == 1 .and. timee > 0.) then
             tskinm(i,j) = tskin(i,j)
           end if
@@ -548,14 +529,10 @@ contains
           
           rk3coef = rdt / (4. - dble(rk3step))
           
-          !Acoef   = Qnet(i,j) + fH * Tatm + fLE * (dqsatdT * tsurfm - qsat + qt0(i,j,1)) + lambdaskin(i,j) * tsoil(i,j,1)
           Acoef   = Qnet(i,j) - boltz * tsurfm ** 4. + 4. * boltz * tsurfm ** 4. / rk3coef + fH * Tatm + fLE * (dqsatdT * tsurfm - qsat + qt0(i,j,1)) + lambdaskin(i,j) * tsoil(i,j,1)
-          !Bcoef   = fH + fLE * dqsatdT + lambdaskin(i,j)
           Bcoef   = 4. * boltz * tsurfm ** 3. / rk3coef + fH + fLE * dqsatdT + lambdaskin(i,j)
           
-          !Acoef   = Qnet(i,j) + fH * Tatm + fLE * (dqsatdT * tsurfm - qsat + qt0(i,j,1)) + lambdaskin(i,j) * tsoil(i,j,1)
           Acoef   = Qnet(i,j) - boltz * tsurfm ** 4. + 4. * boltz * tsurfm ** 4. / rk3coef + fH * Tatm + fLE * (dqsatdT * tsurfm - qsat + qt0(i,j,1)) + lambdaskin(i,j) * tsoil(i,j,1)
-          !Bcoef   = fH + fLE * dqsatdT + lambdaskin(i,j)
           Bcoef   = 4. * boltz * tsurfm ** 3. / rk3coef + fH + fLE * dqsatdT + lambdaskin(i,j)
 
           if (Cskin(i,j) == 0.) then
@@ -565,7 +542,6 @@ contains
           end if
 
           Qnet(i,j)     = Qnet(i,j) - (boltz * tsurfm ** 4. + 4. * boltz * tsurfm ** 3. * (tskin(i,j) * exner - tsurfm) / rk3coef)
-          !Qnet(i,j)     = Qnet(i,j) - boltz * (tskin(i,j) * exner) ** 4.
           G0(i,j)       = lambdaskin(i,j) * ( tskin(i,j) * exner - tsoil(i,j,1) )
           LE(i,j)       = - fLE * ( qt0(i,j,1) - (dqsatdT * (tskin(i,j) * exner - tsurfm) + qsat))
           if(LE(i,j) == 0.) then
@@ -576,10 +552,6 @@ contains
 
           H(i,j)        = - fH  * ( Tatm - tskin(i,j) * exner ) 
           tendskin(i,j) = Cskin(i,j) * (tskin(i,j) - tskinm(i,j)) * exner / rk3coef
-
-
-          !write(6,*) "SEB: ", Qnet(i,j), H(i,j), LE(i,j), G0(i,j), tendskin(i,j), H(i,j)+LE(i,j)+G0(i,j)+tendskin(i,j)
-          !write(6,*) "LEv, LEs ", -fLEveg * (qt0(i,j,1) - (dqsatdT * (tskin(i,j) * exner - tsurfm) + qsat)), -fLEsoil * ( qt0(i,j,1) - (dqsatdT * (tskin(i,j) * exner - tsurfm) + qsat))
 
           ! 1.4   -   Solve the diffusion equation for the heat transport
           tsoil(i,j,1) = tsoil(i,j,1) + rdt / pCs(i,j,1) * ( lambdah(i,j,ksoilmax) * (tsoil(i,j,2) - tsoil(i,j,1)) / dzsoilh(1) + G0(i,j) ) / dzsoil(1)
@@ -624,20 +596,16 @@ contains
           else
             ustar  (i,j) = sqrt(Cm(i,j)) * horvav
           end if
+          
           thlflux(i,j) = - ( thl0(i,j,1) - tskin(i,j) ) / ra(i,j) 
 
-          !CvH allow for dewfall at night, bypass stomatal resistance
-          !if(qt0(i,j,1) - qskin(i,j) > 0.) then
-          !  qtflux(i,j) = - (qt0(i,j,1)  - qskin(i,j)) / ra(i,j) 
-          !else
-          !  qtflux(i,j) = - (qt0(i,j,1)  - qskin(i,j)) / (ra(i,j) + rs(i,j))
-          !end if
           qtflux(i,j) = - (qt0(i,j,1)  - qskin(i,j)) / ra(i,j)
           
           do n=1,nsv
             svflux(i,j,n) = wsvsurf(n) 
           enddo
 
+          ! commented lines are classical Businger-Dyer functions
           if (obl(i,j) < 0.) then
             !phimzf = (1.-16.*zf(1)/obl)**(-0.25)
             phimzf = (1. + 3.6 * (-zf(1)/obl(i,j))**(2./3.))**(-0.5)
@@ -729,8 +697,6 @@ contains
           horvav = sqrt(u0av(1) ** 2. + v0av(1) ** 2.)
           horvav = max(horv, 1.e-2)
 
-          ! CvH insert slab averaged velocity. Essential for reproduction of log
-          ! layer at the first levels
           if( isurf == 4) then
             if(lmostlocal) then
               ustar (i,j) = fkar * horv  / (log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j)) + psim(z0m(i,j) / obl(i,j)))
@@ -823,12 +789,10 @@ contains
           exner      = (ps / pref0)**(rd/cp)
           tsurf      = tskin(i,j) * exner
           es         = es0 * exp(at*(tsurf-tmelt) / (tsurf-bt))
-          !qskin(i,j) = rd / rv * es / (ps-(1-rd/rv)*es)
           qsatsurf   = rd / rv * es / (ps-(1-rd/rv)*es)
           surfwet    = ra(i,j) / (ra(i,j) + rs(i,j))
           qskin(i,j) = surfwet * qsatsurf + (1. - surfwet) * qt0(i,j,1)
           qtsl       = qtsl + qskin(i,j)
-          !write(6,*), ra(i,j), rs(i,j), surfwet
         end do
       end do
 
@@ -840,7 +804,7 @@ contains
       tsurf = thls*exner
       es    = es0*exp(at*(tsurf-tmelt)/(tsurf-bt))
       qts   = rd/rv*es/(ps-(1-rd/rv)*es)
-      ! CvH Check to prevent collapse of spinup u* = 0 and  u = 0 free convection case
+      ! check to prevent collapse of spinup u* = 0 and  u = 0 free convection case
       qts   = max(qts, 0.)
     end if
 
@@ -898,32 +862,14 @@ contains
 
           obl(i,j) = L
 
-          !oblavl   = oblavl + obl(i,j)
-
         end do
       end do
-
-      !do i=2,i1
-      !  do j=2,j1
-      !    oblavl = oblavl + obl(i,j)
-      !  end do
-      !end do
-
-      !call MPI_ALLREDUCE(oblavl, oblav, 1,  MY_REAL, MPI_SUM, comm3d,mpierr)
-      !oblav = oblav / rslabs
-
-    !CvH also do a global evaluation if lmostlocal = .true. to get an appropriate local mean
-    !else
     end if
 
-    thv    = thl0av(1) * (1. + (rv/rd - 1.) * qt0av(1))
-    !horv2l = sum( (u0(2:i1,2:j1,1) + cu ) ** 2.)  +  sum( (v0(2:i1,2:j1,1) + cv ) ** 2.)
-    !horv2l = max(horv2l, 1.e-2)
+    !CvH also do a global evaluation if lmostlocal = .true. to get an appropriate local mean
 
-    !call MPI_ALLREDUCE(horv2l, horv2, 1,  MY_REAL, MPI_SUM, comm3d,mpierr)
-    !horv2 = horv2 / rslabs
-    !CvH return to classical formulation
-    
+    thv    = thl0av(1) * (1. + (rv/rd - 1.) * qt0av(1))
+
     horv2 = u0av(1)**2. + v0av(1)**2.
     horv2 = max(horv2, 1.e-4)
 
@@ -956,8 +902,6 @@ contains
       obl(:,:) = L
     end if
     oblav = L
-
-    !end if
 
     return
 
