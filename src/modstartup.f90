@@ -70,7 +70,7 @@ contains
     use modboundary,       only : initboundary,ksp
     use modthermodynamics, only : initthermodynamics,lqlnr, chi_half
     use modmicrophysics,   only : initmicrophysics
-    use modsubgrid,        only : initsubgrid, subgridnamelist
+    use modsubgrid,        only : initsubgrid
     use modsubgriddata,    only : ldelta, cf,cn,Rigc,Prandtl,lmason,lsmagorinsky
     use modmpi,            only : comm3d,myid, mpi_integer,mpi_logical,my_real,mpierr, mpi_character
 
@@ -217,11 +217,7 @@ contains
     call MPI_BCAST(iadv_qt ,1,MPI_INTEGER,0,comm3d,mpierr)
     call MPI_BCAST(iadv_sv(1:nsv) ,nsv,MPI_INTEGER,0,comm3d,mpierr)
 
-    ! Initialize subgrid namelist here to allow for ih, jh adjustment dynamic subgrid model
-    ! CvH move subgrid back to core?
-    call subgridnamelist
-
-  ! Allocate and initialize core modules
+    ! Allocate and initialize core modules
     call initglobal
     call initfields
 

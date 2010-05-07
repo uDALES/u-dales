@@ -194,7 +194,6 @@ contains
 !! Set courant number, calculate the grid sizes (both computational and physical), and set the coriolis parameter
   subroutine initglobal
     use modmpi, only : nprocs, myid,comm3d, my_real, mpierr
-    use modsubgriddata, only : ldynsub, tf2
     implicit none
 
     integer :: advarr(4)
@@ -256,11 +255,6 @@ contains
       kh = 1
     end if
 
-    !CvH enhance ih and jh to be able to use largest testfilter if dynamic subgrid scheme is used
-    if(ldynsub .eqv. .true.) then
-      ih = tf2 / 2 + 1
-      jh = tf2 / 2 + 1
-    end if
     ncosv = max(2*nsv-3,0)
 
     ! Global constants

@@ -45,7 +45,6 @@ contains
     use modraddata, only : iradiation
     use modfields,  only : thl0, qt0
     use modmpi,     only : myid, nprocs, comm3d, mpierr, my_real, mpi_logical, mpi_integer
-    use modsubgrid, only : ldynsub
 
     implicit none
 
@@ -318,13 +317,8 @@ contains
     ! 3. Initialize surface layer
     allocate(ustar   (i2,j2))
 
-    if(ldynsub) then
-      allocate(dudz    (2-ih:i1+ih,2-jh:j1+jh))
-      allocate(dvdz    (2-ih:i1+ih,2-jh:j1+jh))
-    else
-      allocate(dudz    (i2,j2))
-      allocate(dvdz    (i2,j2))
-    end if
+    allocate(dudz    (i2,j2))
+    allocate(dvdz    (i2,j2))
 
     allocate(thlflux (i2,j2))
     allocate(qtflux  (i2,j2))
@@ -351,11 +345,10 @@ contains
     use modfields,  only : thl0, qt0, u0, v0, rhof, ql0, exnf, presf, u0av, v0av
     use modmpi,     only : my_real, mpierr, comm3d, mpi_sum, myid, excj, excjs
     use moduser,   only : surf_user
-    use modsubgrid, only : ldynsub
     implicit none
 
     real     :: f1, f2, f3, f4 ! Correction functions for Jarvis-Stewart
-    integer  :: i, j, k, m, n
+    integer  :: i, j, k, n
     real     :: upcu, vpcv, horv, horvav
     real     :: phimzf, phihzf
     real     :: rk3coef, thlsl
@@ -754,18 +747,6 @@ contains
     end do
 
     call excj( ustar  , 1, i2, 1, j2, 1,1)
-
-    if(ldynsub) then
-      do m = 1,ih
-        dudz(2-m,:)  = dudz(i2-m,:)
-        dudz(i1+m,:) = dudz(1+m,:)
-        dvdz(2-m,:)  = dvdz(i2-m,:)
-        dvdz(i1+m,:) = dvdz(1+m,:)
-      end do
-      
-      call excjs(dudz, 2,i1,2,j1,1,1,ih,jh)
-      call excjs(dvdz, 2,i1,2,j1,1,1,ih,jh)
-    end if
 
     return
 
