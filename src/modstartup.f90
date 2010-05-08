@@ -318,7 +318,7 @@ contains
                                   wfls,whls,ug,vg,uprof,vprof,thlprof, qtprof,e12prof, svprof,&
                                   v0av,u0av,qt0av,ql0av,thl0av,sv0av,exnf,exnh,presf,presh,rhof,&
                                   thlpcar
-    use modglobal,         only : i1,i2,ih,j1,j2,jh,kmax,k1,dtmax,idtmax,dt,rdt,runtime,timeleft,tres,rtimee,timee,ntimee,ntrun,btime,nsv,&
+    use modglobal,         only : i1,i2,ih,j1,j2,jh,kmax,k1,dtmax,idtmax,dt,rdt,runtime,timeleft,tres,rtimee,timee,ntimee,ntrun,btime,dt_lim,nsv,&
                                   zf,zh,dzf,dzh,rv,rd,grav,cp,rlv,pref0,om23_gs,&
                                   rslabs,cu,cv,e12min,dzh,dtheta,dqt,dsv,cexpnr,ifinput,lwarmstart,itrestart,trestart, ladaptive,llsadv,tnextrestart
     use modsubgrid,        only : ekm,ekh
@@ -593,7 +593,6 @@ contains
 
 ! MPI broadcast variables read in
 
-
     call MPI_BCAST(ug       ,kmax,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(vg       ,kmax,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(wfls     ,kmax,MY_REAL   ,0,comm3d,mpierr)
@@ -665,10 +664,10 @@ contains
       dthldyls = 0.0
 
     end if
-
     idtmax = floor(dtmax/tres)
     btime   = timee
     timeleft=ceiling(runtime/tres)
+    dt_lim = timeleft
     rdt = real(dt)*tres
     ntrun   = 0
     rtimee  = real(timee)*tres
@@ -687,7 +686,7 @@ contains
                            tsoil,tskin,isurf,ksoilmax
     use modfields,  only : u0,v0,w0,thl0,qt0,ql0,ql0h,e120,dthvdz,presf,presh,sv0
     use modglobal,  only : i1,i2,ih,j1,j2,jh,k1,dtheta,dqt,dsv,startfile,timee,&
-                          iexpnr,ntimee,tres,rk3step,ifinput,nsv,runtime,dt,cu,cv
+                          iexpnr,ntimee,tres,rk3step,ifinput,nsv,runtime,dt,rdt,cu,cv
     use modmpi,     only : cmyid, myid
     use modsubgriddata, only : ekm
 
@@ -705,9 +704,9 @@ contains
     open(unit=ifinput,file=name,form='unformatted', status='old')
 
       read(ifinput)  (((u0    (i,j,k),i=2-ih,i1+ih),j=2-jh,j1+jh),k=1,k1)
-      u0 = u0-cu
+!       u0 = u0-cu
       read(ifinput)  (((v0    (i,j,k),i=2-ih,i1+ih),j=2-jh,j1+jh),k=1,k1)
-      v0 = v0-cv
+!       v0 = v0-cv
       read(ifinput)  (((w0    (i,j,k),i=2-ih,i1+ih),j=2-jh,j1+jh),k=1,k1)
       read(ifinput)  (((thl0  (i,j,k),i=2-ih,i1+ih),j=2-jh,j1+jh),k=1,k1)
       read(ifinput)  (((qt0   (i,j,k),i=2-ih,i1+ih),j=2-jh,j1+jh),k=1,k1)
@@ -725,7 +724,6 @@ contains
       read(ifinput)  (  presh (    k)                            ,k=1,k1)
       read(ifinput)  ps,thls,qts,thvs,oblav
       read(ifinput)  dtheta,dqt,timee,dt,tres
-
     close(ifinput)
 
     if (nsv>0) then
@@ -788,8 +786,8 @@ contains
       name(16:18)= cexpnr
       open  (ifoutput,file=name,form='unformatted',status='replace')
 
-      write(ifoutput)  (((cu+u0 (i,j,k),i=2-ih,i1+ih),j=2-jh,j1+jh),k=1,k1)
-      write(ifoutput)  (((cv+v0 (i,j,k),i=2-ih,i1+ih),j=2-jh,j1+jh),k=1,k1)
+      write(ifoutput)  (((u0 (i,j,k),i=2-ih,i1+ih),j=2-jh,j1+jh),k=1,k1)
+      write(ifoutput)  (((v0 (i,j,k),i=2-ih,i1+ih),j=2-jh,j1+jh),k=1,k1)
       write(ifoutput)  (((w0    (i,j,k),i=2-ih,i1+ih),j=2-jh,j1+jh),k=1,k1)
       write(ifoutput)  (((thl0  (i,j,k),i=2-ih,i1+ih),j=2-jh,j1+jh),k=1,k1)
       write(ifoutput)  (((qt0   (i,j,k),i=2-ih,i1+ih),j=2-jh,j1+jh),k=1,k1)
@@ -806,7 +804,7 @@ contains
       write(ifoutput)  (  presf (    k)                            ,k=1,k1)
       write(ifoutput)  (  presh (    k)                            ,k=1,k1)
       write(ifoutput)  ps,thls,qts,thvs,oblav
-      write(ifoutput)  dtheta,dqt,timee,dt,tres
+      write(ifoutput)  dtheta,dqt,timee,  dt,tres
 
       close (ifoutput)
 
