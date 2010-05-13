@@ -688,7 +688,7 @@ contains
           horv   = sqrt(upcu ** 2. + vpcv ** 2.)
           horv   = max(horv, 1.e-2)
           horvav = sqrt(u0av(1) ** 2. + v0av(1) ** 2.)
-          horvav = max(horv, 1.e-2)
+          horvav = max(horvav, 1.e-2)
 
           if( isurf == 4) then
             if(lmostlocal) then
