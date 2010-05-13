@@ -500,11 +500,11 @@ contains
         vars( 2) = cc
         if (vars(2)==0) vars(2) = nc_fillvalue
         vars( 3) = zbaseav
-        if (vars(2)==0) vars(2) = nc_fillvalue
+        if (vars(3)==0) vars(3) = nc_fillvalue
         vars( 4) = ztopav
-        if (vars(2)==0) vars(2) = nc_fillvalue
+        if (vars(4)==0) vars(4) = nc_fillvalue
         vars( 5) = ztopmax
-        if (vars(2)==0) vars(2) = nc_fillvalue
+        if (vars(5)==0) vars(5) = nc_fillvalue
         vars( 6) = zi
         vars( 7) = we
         vars( 8) = qlintav
