@@ -615,10 +615,17 @@ contains
         nsamp =  ceiling(real(i1-i+1)/real(stride))
         do j=2,j1
           profile  = sum(blh_fld(i:i1:stride,j,:),1)
-          gradient(2:k1) = abs(profile(2:k1) - profile(1:kmax))/dzh(2:k1)
+          select case (iblh_var)
+          case(iblh_qt) !Water vapour gradients near the inversion layer can be either positive or negative
+            gradient(2:k1) = abs(profile(2:k1) - profile(1:kmax))/dzh(2:k1)
+          case(iblh_thl,iblh_thv) !temperature jumps near the inversion layer are always positive
+            gradient(2:k1) = (profile(2:k1) - profile(1:kmax))/dzh(2:k1)
+          case default
+            gradient(2:k1) = (profile(2:k1) - profile(1:kmax))/dzh(2:k1)
+          end select
           dgrad(2:kmax)    = (gradient(3:k1) - gradient(2:kmax))/dzf(2:kmax)
           location = maxloc(gradient,1)
-          zil  = zil + nsamp*(zh(location-1) - dzh(location)*dgrad(location-1)/(dgrad(location)-dgrad(location-1)))
+          zil  = zil + nsamp*(zh(location-1) - dzh(location)*dgrad(location-1)/(dgrad(location)-dgrad(location-1) + 1.e-8))
         enddo
       enddo
     case (iblh_thres)

@@ -27,10 +27,10 @@
 !> Advection redirection function
 subroutine advection
 
-  use modglobal, only : lmoist, nsv, iadv_mom,iadv_tke,iadv_thl,iadv_qt,iadv_sv, &
-                        iadv_cd2,iadv_5th,iadv_cd6,iadv_kappa,iadv_upw
-  use modfields, only : u0,up,v0,vp,w0,wp,e120,e12p,thl0,thlp,qt0,qtp,sv0,svp
-  use modsubgrid, only: lsmagorinsky
+  use modglobal,  only : lmoist, nsv, iadv_mom,iadv_tke,iadv_thl,iadv_qt,iadv_sv, &
+                         iadv_cd2,iadv_5th,iadv_52,iadv_cd6,iadv_62,iadv_kappa,iadv_upw
+  use modfields,  only : u0,up,v0,vp,w0,wp,e120,e12p,thl0,thlp,qt0,qtp,sv0,svp
+  use modsubgrid, only : lsmagorinsky
   implicit none
   integer :: n
 
@@ -43,10 +43,18 @@ subroutine advection
       call advecu_5th(u0,up)
       call advecv_5th(v0,vp)
       call advecw_5th(w0,wp)
+    case(iadv_52)
+      call advecu_52(u0,up)
+      call advecv_52(v0,vp)
+      call advecw_52(w0,wp)
     case(iadv_cd6)
       call advecu_6th(u0,up)
       call advecv_6th(v0,vp)
       call advecw_6th(w0,wp)
+    case(iadv_62)
+      call advecu_62(u0,up)
+      call advecv_62(v0,vp)
+      call advecw_62(w0,wp)
     case default
       stop "Unknown advection scheme "
   end select
@@ -57,8 +65,12 @@ subroutine advection
         call advecc_2nd(e120,e12p)
       case(iadv_5th)
         call advecc_5th(e120,e12p)
+      case(iadv_52)
+        call advecc_52(e120,e12p)
       case(iadv_cd6)
         call advecc_6th(e120,e12p)
+      case(iadv_62)
+        call advecc_62(e120,e12p)
       case(iadv_kappa)
         call advecc_kappa(e120,e12p)
       case default
@@ -71,8 +83,12 @@ subroutine advection
       call advecc_2nd(thl0,thlp)
     case(iadv_5th)
       call advecc_5th(thl0,thlp)
+    case(iadv_52)
+      call advecc_52(thl0,thlp)
     case(iadv_cd6)
       call advecc_6th(thl0,thlp)
+    case(iadv_62)
+      call advecc_62(thl0,thlp)
     case(iadv_kappa)
       call advecc_kappa(thl0,thlp)
     case(iadv_upw)
@@ -86,8 +102,12 @@ subroutine advection
         call advecc_2nd(qt0,qtp)
       case(iadv_5th)
         call advecc_5th(qt0,qtp)
+      case(iadv_52)
+        call advecc_52(qt0,qtp)
       case(iadv_cd6)
         call advecc_6th(qt0,qtp)
+      case(iadv_62)
+        call advecc_62(qt0,qtp)
       case(iadv_kappa)
         call advecc_kappa(qt0,qtp)
       case(iadv_upw)
@@ -102,8 +122,12 @@ subroutine advection
       call advecc_2nd(sv0(:,:,:,n),svp(:,:,:,n))
     case(iadv_5th)
       call advecc_5th(sv0(:,:,:,n),svp(:,:,:,n))
+    case(iadv_52)
+      call advecc_52(sv0(:,:,:,n),svp(:,:,:,n))
     case(iadv_cd6)
       call advecc_6th(sv0(:,:,:,n),svp(:,:,:,n))
+    case(iadv_62)
+      call advecc_62(sv0(:,:,:,n),svp(:,:,:,n))
     case(iadv_kappa)
       call advecc_kappa(sv0(:,:,:,n),svp(:,:,:,n))
     case(iadv_upw)

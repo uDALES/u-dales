@@ -91,7 +91,7 @@ save
       real,parameter :: boltz    = 5.67e-8          !<    *Stefan-Boltzmann constant
 
       logical :: lcoriol  = .true.  !<  switch for coriolis force
-      integer :: igrw_damp = 1 !< switch to enable gravity wave damping 
+      integer :: igrw_damp = 2 !< switch to enable gravity wave damping 
       real    :: geodamptime = 7200. !< time scale for nudging to geowind in sponge layer, prevents oscillations
       real    :: om22                       !<    *2.*omega_earth*cos(lat)
       real    :: om23                       !<    *2.*omega_earth*sin(lat)
@@ -108,6 +108,8 @@ save
       integer, parameter :: iadv_cd2    = 2
       integer, parameter :: iadv_5th    = 5
       integer, parameter :: iadv_cd6    = 6
+      integer, parameter :: iadv_62     = 62
+      integer, parameter :: iadv_52     = 52
       integer, parameter :: iadv_kappa  = 7
 
       logical :: lmoist   = .true.  !<   switch to calculate moisture fields
@@ -191,7 +193,8 @@ contains
 !!
 !! Set courant number, calculate the grid sizes (both computational and physical), and set the coriolis parameter
   subroutine initglobal
-    use modmpi, only: nprocs, myid,comm3d, my_real, mpierr
+    use modmpi, only : nprocs, myid,comm3d, my_real, mpierr
+    use modsubgriddata, only : ldynsub, tf2
     implicit none
 
     integer :: advarr(4)
@@ -203,10 +206,14 @@ contains
     if (courant<0) then
       select case(iadv_mom)
       case(iadv_cd2)
-        courant = 3
+        courant = 1.5
       case(iadv_cd6)
         courant = 1.4
+      case(iadv_62)
+        courant = 1.4
       case(iadv_5th)
+        courant = 1.4
+      case(iadv_52)
         courant = 1.4
       case default
         courant = 1.4
@@ -231,6 +238,10 @@ contains
       ih = 3
       jh = 3
       kh = 1
+    elseif (any(advarr==iadv_62).or.any(iadv_sv(1:nsv)==iadv_62)) then
+      ih = 3
+      jh = 3
+      kh = 1
     elseif (any(advarr==iadv_5th).or.any(iadv_sv(1:nsv)==iadv_5th)) then
       ih = 3
       jh = 3
@@ -244,8 +255,13 @@ contains
       jh = 1
       kh = 1
     end if
-    ncosv = max(2*nsv-3,0)
 
+    !CvH enhance ih and jh to be able to use largest testfilter if dynamic subgrid scheme is used
+    if(ldynsub .eqv. .true.) then
+      ih = tf2 + 1
+      jh = tf2 + 1
+    end if
+    ncosv = max(2*nsv-3,0)
 
     ! Global constants
 

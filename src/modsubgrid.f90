@@ -1,6 +1,6 @@
-!> \file modsubgrid.f90
-!!  Calculates and applies the Sub Filter Scale diffusion
-
+!!> \file modsubgrid.f90
+!!!  Calculates and applies the Sub Filter Scale diffusion
+!
 !>
 !!  Calculates and applies the Sub Filter Scale diffusion
 !>
@@ -29,52 +29,28 @@
 !
 
 module modsubgrid
+use modsubgriddata
 implicit none
 save
 ! private
-public :: subgrid, initsubgrid,exitsubgrid
-public :: ldelta, lmason,lsmagorinsky,cf, Rigc,prandtl, cm, cn, ch1, ch2, ce1, ce2, ekm,ekh, sbdiss,sbshr,sbbuo
-
-  !cstep: set default values
-  !cstep: user has the option to change ldelta, cf, cn, and Rigc in namoptions
-
-  logical :: ldelta   = .false. !<  switch for subgrid length formulation (on/off)
-  logical :: lmason   = .false. !<  switch for decreased length scale near the surface
-  logical :: lsmagorinsky= .false. !<  switch for smagorinsky subrid scheme
-  real :: cf      = 2.5  !< filter constant
-  real :: Rigc    = 0.25 !< critical Richardson number
-  real :: Prandtl = 3
-  real :: cm      = 0.12
-  real :: cn      = 0.76
-  real :: ch1     = 1.
-  real :: ch2     = 2.
-  real :: ce1     = 0.19
-  real :: ce2     = 0.51
-  real :: cs
-  real :: alpha_kolm   = 1.5     !< factor in Kolmogorov expression for spectral energy
-  real :: beta_kolm    = 1.      !< factor in Kolmogorov relation for temperature spectrum
-
-  real, allocatable :: ekm(:,:,:)  !<   k-coefficient for momentum
-  real, allocatable :: ekh(:,:,:)  !<   k-coefficient for heat and q_tot
-  real, allocatable :: sbdiss(:,:,:)!< dissiation
-  real, allocatable :: sbshr(:,:,:) !< shear production
-  real, allocatable :: sbbuo(:,:,:) !< buoyancy production / destruction
-  real, allocatable :: zlt(:,:,:)  !<   filter width
+  public :: subgrid, initsubgrid, exitsubgrid, subgridnamelist
+  !CvH variable definitions are moved to mod
 
 contains
   subroutine initsubgrid
-    use modglobal, only : ih,i1,jh,j1,k1,&
+    use modglobal, only : ih,i1,jh,j1,k1,delta,zf,fkar, &
                           pi,ifnamopt,fname_options
-    use modmpi, only    : myid
-    use modmpi,    only : myid, nprocs, comm3d, mpierr, my_real, mpi_logical, mpi_integer
+    use modmpi, only : myid
 
     implicit none
 
-    integer   :: ierr
+    integer   :: k
 
     real :: ceps, ch
-    namelist/NAMSUBGRID/ &
-        ldelta,lmason, cf,cn,Rigc,Prandtl,lsmagorinsky
+    real :: mlen
+
+    ! CvH moved reading of namelist to modstartup to be able to adjust ih, jh for filter
+    ! call subgridnamelist
 
     allocate(ekm(2-ih:i1+ih,2-jh:j1+jh,k1))
     allocate(ekh(2-ih:i1+ih,2-jh:j1+jh,k1))
@@ -82,25 +58,7 @@ contains
     allocate(sbdiss(2-ih:i1+ih,2-jh:j1+jh,k1))
     allocate(sbshr(2-ih:i1+ih,2-jh:j1+jh,k1))
     allocate(sbbuo(2-ih:i1+ih,2-jh:j1+jh,k1))
-
-    if(myid==0)then
-      open(ifnamopt,file=fname_options,status='old',iostat=ierr)
-      read (ifnamopt,NAMSUBGRID,iostat=ierr)
-      if (ierr > 0) then
-        print *, 'Problem in namoptions NAMSUBGRID'
-        print *, 'iostat error: ', ierr
-        stop 'ERROR: Problem in namoptions NAMSUBGRID'
-      endif
-      write(6 ,NAMSUBGRID)
-      close(ifnamopt)
-    end if
-    call MPI_BCAST(ldelta     ,1,MPI_LOGICAL,0,comm3d,mpierr)
-    call MPI_BCAST(lmason     ,1,MPI_LOGICAL,0,comm3d,mpierr)
-    call MPI_BCAST(lsmagorinsky,1,MPI_LOGICAL,0,comm3d,mpierr)
-    call MPI_BCAST(cf         ,1,MY_REAL   ,0,comm3d,mpierr)
-    call MPI_BCAST(cn         ,1,MY_REAL   ,0,comm3d,mpierr)
-    call MPI_BCAST(Rigc       ,1,MY_REAL   ,0,comm3d,mpierr)
-    call MPI_BCAST(Prandtl    ,1,MY_REAL   ,0,comm3d,mpierr)
+    allocate(csz(k1))
 
     cm = cf / (2. * pi) * (1.5*alpha_kolm)**(-1.5)
 
@@ -112,7 +70,18 @@ contains
     ce1  = (cn**2)* (cm/Rigc - ch1*cm )
     ce2  = ceps - ce1
 
-    cs   = (cm**3/ceps)**0.25   !< Smagorinsky constant
+    if(cs == -1.) then
+      csz(:)  = (cm**3/ceps)**0.25   !< Smagorinsky constant
+    else
+      csz(:)  = cs
+    end if
+
+    if(lmason) then
+      do k = 1,k1
+        mlen   = (1. / (csz(k) * delta(k))**nmason + 1. / (fkar * zf(k))**nmason)**(-1./nmason)
+        csz(k) = mlen / delta(k)
+      end do
+    end if
 
     if (myid==0) then
       write (6,*) 'cf    = ',cf
@@ -127,8 +96,135 @@ contains
       write (6,*) 'Rigc  = ',Rigc
     endif
 
-!
+    !CvH init dynamic subgrid model
+    if(ldynsub .and. lsmagorinsky) then
+      
+      allocate(S(2-ih:i1+ih,2-jh:j1+jh)) 
+      
+      allocate(S11(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S12(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S13(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S22(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S23(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S33(2-ih:i1+ih,2-jh:j1+jh)) 
+
+      allocate(u_bar(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(v_bar(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(w_bar(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(u_hat(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(v_hat(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(w_hat(2-ih:i1+ih,2-jh:j1+jh))
+      
+      allocate(S11_bar(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S12_bar(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S13_bar(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S22_bar(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S23_bar(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S33_bar(2-ih:i1+ih,2-jh:j1+jh)) 
+      
+      allocate(S11_hat(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S12_hat(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S13_hat(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S22_hat(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S23_hat(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S33_hat(2-ih:i1+ih,2-jh:j1+jh)) 
+       
+      allocate(S_S11_bar(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S_S12_bar(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S_S13_bar(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S_S22_bar(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S_S23_bar(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S_S33_bar(2-ih:i1+ih,2-jh:j1+jh)) 
+      
+      allocate(S_S11_hat(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S_S12_hat(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S_S13_hat(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S_S22_hat(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S_S23_hat(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(S_S33_hat(2-ih:i1+ih,2-jh:j1+jh)) 
+  
+      allocate(S_bar(2-ih:i1+ih,2-jh:j1+jh)) 
+      allocate(S_hat(2-ih:i1+ih,2-jh:j1+jh)) 
+      
+      allocate(L11(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(L12(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(L13(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(L22(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(L23(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(L33(2-ih:i1+ih,2-jh:j1+jh))
+  
+      allocate(Q11(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(Q12(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(Q13(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(Q22(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(Q23(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(Q33(2-ih:i1+ih,2-jh:j1+jh)) 
+  
+      allocate(M11(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(M12(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(M13(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(M22(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(M23(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(M33(2-ih:i1+ih,2-jh:j1+jh)) 
+  
+      allocate(N11(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(N12(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(N13(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(N22(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(N23(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(N33(2-ih:i1+ih,2-jh:j1+jh)) 
+  
+      allocate(LM(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(MM(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(QN(2-ih:i1+ih,2-jh:j1+jh))
+      allocate(NN(2-ih:i1+ih,2-jh:j1+jh))
+
+      allocate(weighttf1(-tf1:tf1,-tf1:tf1))
+      allocate(weighttf2(-tf2:tf2,-tf2:tf2))
+
+      call initfilter
+    end if
+   
   end subroutine initsubgrid
+
+  subroutine subgridnamelist
+    use modglobal, only : pi,ifnamopt,fname_options
+    use modmpi,    only : myid, nprocs, comm3d, mpierr, my_real, mpi_logical, mpi_integer
+
+    implicit none
+
+    integer :: ierr
+
+    namelist/NAMSUBGRID/ &
+        ldelta,lmason, cf,cn,Rigc,Prandtl,lsmagorinsky,ldynsub,tf1,tf2,cs,nmason
+
+    if(myid==0)then
+      open(ifnamopt,file=fname_options,status='old',iostat=ierr)
+      read (ifnamopt,NAMSUBGRID,iostat=ierr)
+      if (ierr > 0) then
+        print *, 'Problem in namoptions NAMSUBGRID'
+        print *, 'iostat error: ', ierr
+        stop 'ERROR: Problem in namoptions NAMSUBGRID'
+      endif
+      write(6 ,NAMSUBGRID)
+      close(ifnamopt)
+    end if
+
+    call MPI_BCAST(ldelta     ,1,MPI_LOGICAL,0,comm3d,mpierr)
+    call MPI_BCAST(lmason     ,1,MPI_LOGICAL,0,comm3d,mpierr)
+    call MPI_BCAST(nmason     ,1,MY_REAL    ,0,comm3d,mpierr)
+    call MPI_BCAST(lsmagorinsky,1,MPI_LOGICAL,0,comm3d,mpierr)
+    call MPI_BCAST(ldynsub     ,1,MPI_LOGICAL,0,comm3d,mpierr)
+    call MPI_BCAST(tf1         ,1,MPI_INTEGER,0,comm3d,mpierr)
+    call MPI_BCAST(tf2         ,1,MPI_INTEGER,0,comm3d,mpierr)
+    call MPI_BCAST(cs         ,1,MY_REAL   ,0,comm3d,mpierr)
+    call MPI_BCAST(cf         ,1,MY_REAL   ,0,comm3d,mpierr)
+    call MPI_BCAST(cn         ,1,MY_REAL   ,0,comm3d,mpierr)
+    call MPI_BCAST(Rigc       ,1,MY_REAL   ,0,comm3d,mpierr)
+    call MPI_BCAST(Prandtl    ,1,MY_REAL   ,0,comm3d,mpierr)
+
+  end subroutine subgridnamelist
+
   subroutine subgrid
 
  ! Diffusion subroutines
@@ -155,8 +251,149 @@ contains
 
   subroutine exitsubgrid
     implicit none
-    deallocate(ekm,ekh,zlt,sbdiss,sbbuo,sbshr)
+    deallocate(ekm,ekh,zlt,sbdiss,sbbuo,sbshr,csz)
   end subroutine exitsubgrid
+
+  !subroutine tophat(v2f, ndx)
+  !  use modglobal, only : i1,ih,i2,j1,jh,j2,kmax,k1
+  !  ! top hat filter
+  !  ! for now, only filter in horizontal
+  !  implicit none
+
+  !  integer, intent(in)    :: ndx
+  !  real,    intent(inout) :: v2f(2-ih:i1+ih,2-jh:j1+jh)
+  !  real                   :: v2fin(2-ih:i1+ih,2-jh:j1+jh)
+  !  integer                :: i,j,m,n
+  !  real                   :: weight
+
+  !  v2fin(:,:) = v2f(:,:)
+  !  v2f(:,:) = 0.
+  !  
+  !  weight   = ndx**2.
+
+  !  ! Filter width is even
+  !  if(mod(ndx,2) == 0) then
+  !    do j = 2,j1
+  !      do i = 2,i1
+  !        do m = - ndx / 2, ndx / 2
+  !          do n = - ndx / 2, ndx / 2
+  !            ! Check if we are on the left edge or right edge
+  !            if(m == - ndx / 2 .or. m == ndx / 2) then
+  !              ! Check if we are on the top edge or bottom edge
+  !              if(n == - ndx / 2 .or. n == ndx / 2) then
+  !                v2f(i,j) = v2f(i,j) + 0.25 * v2fin(i+m,j+n)
+  !              else
+  !                v2f(i,j) = v2f(i,j) + 0.5 * v2fin(i+m,j+n)
+  !              end if
+  !            ! We are not on left or right edge
+  !            else
+  !              ! Check if we are on top edge or bottom edge
+  !              if(n == - ndx / 2 .or. n == ndx / 2) then
+  !                v2f(i,j) = v2f(i,j) + 0.5 * v2fin(i+m,j+n)
+  !              ! We are not on any edge
+  !              else
+  !                v2f(i,j) = v2f(i,j) + 1.0 * v2fin(i+m,j+n)
+  !              end if
+  !            end if
+  !          end do
+  !        end do
+  !        v2f(i,j) = v2f(i,j) / weight
+  !      end do
+  !    end do
+  !  else
+  !    ! Filter width is odd
+  !    do j = 2,j1
+  !      do i = 2,i1
+  !        do m = - (ndx - 1) / 2, (ndx - 1) / 2
+  !          do n = - (ndx - 1) / 2, (ndx - 1) / 2
+  !             v2f(i,j) = v2f(i,j) + v2fin(i+m,j+n)
+  !          end do
+  !        end do
+  !        v2f(i,j) = v2f(i,j) / weight
+  !      end do
+  !    end do
+  !  end if
+
+  !  return
+  !end subroutine tophat
+
+  subroutine initfilter
+    use modglobal, only : dx, dy
+    implicit none
+
+    integer             :: m, n
+    real                :: weight, widthx2
+
+    ! first, determine weights for first test filter
+    widthx2   = (real(tf1) * dx) ** 2.
+    weight    = 0.
+    weighttf1 = 0.
+    do n = - tf1, tf1
+      do m = - tf1, tf1
+        weighttf1(m,n) = exp(-6. * (real(m) * dx)**2. / widthx2) * exp(-6. * (real(n) * dx)**2. / widthx2)
+        weight         = weight + weighttf1(m,n)
+      end do
+    end do
+
+    weighttf1 = weighttf1 / weight
+    
+    ! second, determine weights for second test filter
+    widthx2   = (real(tf2) * dx) ** 2.
+    weight    = 0.
+    weighttf2 = 0.
+    do n = - tf2, tf2
+      do m = - tf2, tf2
+        weighttf2(m,n) = exp(-6. * (real(m) * dx)**2. / widthx2) * exp(-6. * (real(n) * dx)**2. / widthx2)
+        weight         = weight + weighttf2(m,n)
+      end do
+    end do
+
+    weighttf2 = weighttf2 / weight
+
+  end subroutine initfilter
+
+  subroutine filter(v2f, tf)
+    use modglobal, only : i1,ih,i2,j1,jh,j2,kmax,k1,dx
+    ! gaussian filter
+    ! for now, only filter in horizontal
+    implicit none
+
+    integer, intent(in)    :: tf
+    real,    intent(inout) :: v2f(2-ih:i1+ih,2-jh:j1+jh)
+    real                   :: v2fin(2-ih:i1+ih,2-jh:j1+jh)
+    integer                :: i,j,m,n
+
+    v2fin(:,:) = v2f(:,:)
+    v2f(:,:) = 0.
+
+    if(tf == tf1) then
+      do j = 2,j1
+        do i = 2,i1
+          do n = - tf1, tf1 
+            do m = - tf1, tf1
+              v2f(i,j) = v2f(i,j) + weighttf1(m,n) * v2fin(i+m,j+n)
+            end do
+          end do
+        end do
+      end do
+    elseif(tf == tf2) then
+      do j = 2,j1
+        do i = 2,i1
+          do n = - tf2, tf2
+            do m = - tf2, tf2
+              v2f(i,j) = v2f(i,j) + weighttf2(m,n) * v2fin(i+m,j+n)
+            end do
+          end do
+        end do
+      end do
+    else
+      write(6,*) "Error in filter call. DALES aborted."
+      stop
+    end if
+
+    return
+  end subroutine filter
+
 
   subroutine closure
 
@@ -192,148 +429,460 @@ contains
 !                                                                 |
 !-----------------------------------------------------------------|
 
-  use modglobal,  only : i1, j1,kmax,k1,ih,jh,i2,j2,delta,ekmin,grav, zf, fkar, &
-                         dxi,dyi,dzf,dzh
-  use modfields,  only : dthvdz,e120,u0,v0,w0
-  use modsurfdata, only : dudz,dvdz,thvs
+  use modglobal,   only : i1, j1,kmax,k1,ih,jh,i2,j2,delta,ekmin,grav, zf, fkar, &
+                         dxi,dyi,dzf,dzh,rk3step,rslabs
+  use modfields,   only : dthvdz,e120,u0,v0,w0
+  use modsurfdata, only : dudz,dvdz,thvs,z0m
 
-  use modmpi,     only : excjs
+  use modmpi,    only : excjs, myid, nprocs, comm3d, mpierr, my_real, mpi_sum
   implicit none
 
-  real    :: strain,rigoprandtl
+  real    :: strain2,mlen
   integer :: i,j,k,kp,km,jp,jm
 
-!********************************************************************
-!*********************************************************************
-  if (lsmagorinsky) then
-    do j=2,j1
-    do i=2,i1
-      k = 1
-      kp=k+1
-      km=k-1
-      jp=j+1
-      jm=j-1
+  if(lsmagorinsky) then
+    if(ldynsub .and. rk3step == 1) then
+      ! CvH dynamic subgrid model, compute cs only in first RK3 iteration step
+      ! go through the model layer by layer
+      do k = 1,kmax
+        S(:,:)   = 0.
+        
+        S11(:,:) = 0.
+        S12(:,:) = 0.
+        S13(:,:) = 0.
+        S22(:,:) = 0.
+        S23(:,:) = 0.
+        S33(:,:) = 0. 
 
-      strain =  ( &
+        u_bar(:,:) = 0.
+        v_bar(:,:) = 0.
+        w_bar(:,:) = 0.
+        u_hat(:,:) = 0.
+        v_hat(:,:) = 0.
+        w_hat(:,:) = 0.
+     
+        S11_bar(:,:) = 0.
+        S12_bar(:,:) = 0.
+        S13_bar(:,:) = 0.
+        S22_bar(:,:) = 0.
+        S23_bar(:,:) = 0.
+        S33_bar(:,:) = 0. 
+        
+        S11_hat(:,:) = 0.
+        S12_hat(:,:) = 0.
+        S13_hat(:,:) = 0.
+        S22_hat(:,:) = 0.
+        S23_hat(:,:) = 0.
+        S33_hat(:,:) = 0.
+        
+        S_S11_bar(:,:) = 0.
+        S_S12_bar(:,:) = 0.
+        S_S13_bar(:,:) = 0.
+        S_S22_bar(:,:) = 0.
+        S_S23_bar(:,:) = 0.
+        S_S33_bar(:,:) = 0.
+        
+        S_S11_hat(:,:) = 0.
+        S_S12_hat(:,:) = 0.
+        S_S13_hat(:,:) = 0.
+        S_S22_hat(:,:) = 0.
+        S_S23_hat(:,:) = 0.
+        S_S33_hat(:,:) = 0.
+  
+        S_bar(:,:) = 0.
+        S_hat(:,:) = 0.
+        
+        L11(:,:) = 0.
+        L12(:,:) = 0.
+        L13(:,:) = 0.
+        L22(:,:) = 0.
+        L23(:,:) = 0.
+        L33(:,:) = 0.
+        
+        Q11(:,:) = 0.
+        Q12(:,:) = 0.
+        Q13(:,:) = 0.
+        Q22(:,:) = 0.
+        Q23(:,:) = 0.
+        Q33(:,:) = 0. 
+        
+        M11(:,:) = 0.
+        M12(:,:) = 0.
+        M13(:,:) = 0.
+        M22(:,:) = 0.
+        M23(:,:) = 0.
+        M33(:,:) = 0. 
+        
+        N11(:,:) = 0.
+        N12(:,:) = 0.
+        N13(:,:) = 0.
+        N22(:,:) = 0.
+        N23(:,:) = 0.
+        N33(:,:) = 0. 
+  
+        LM(:,:) = 0.
+        MM(:,:) = 0.
+        QN(:,:) = 0.
+        NN(:,:) = 0.
+
+        ! CHECK FOR NONEQUIDISTANT GRID!!!
+        if(k == 1) then
+          do j = 2 - jh + 1,j1 + jh - 1
+            do i = 2 - ih + 1,i1 + ih - 1
+              S11(i,j) =  0.5 * ( (u0(i+1,j,k) - u0(i,j,k)) * dxi &
+                + (u0(i+1,j,k) - u0(i,j,k)) * dxi )          ! dudx + dudx
+  
+              S12(i,j) = 0.5 * ( 0.25*(u0(i,j+1,k)+u0(i+1,j+1,k) - (u0(i,j-1,k)+u0(i+1,j-1,k))) * dyi &
+                + 0.25*(v0(i+1,j,k)+v0(i+1,j+1,k) - (v0(i-1,j,k)+v0(i-1,j+1,k))) * dxi )         ! dudy + dvdx
+  
+              S13(i,j) = 0.5 * ( dudz(i,j) &
+                + 0.25*(w0(i+1,j,k)+w0(i+1,j,k+1) - (w0(i-1,j,k)+w0(i-1,j,k+1))) * dxi )         ! dudz + dwdx
+  
+              S22(i,j) = 0.5 * ( (v0(i,j+1,k) - v0(i,j,k)) * dyi &
+                + (v0(i,j+1,k) - v0(i,j,k)) * dyi )         ! dvdy + dvdy
+  
+              S23(i,j) = 0.5 * ( dvdz(i,j) &
+                + 0.25*(w0(i,j+1,k)+w0(i,j+1,k+1) - (w0(i,j-1,k)+w0(i,j-1,k+1))) * dyi )         ! dvdz + dwdy
+  
+              S33(i,j) = 0.5 * ( (w0(i,j,k+1) - w0(i,j,k)) / dzf(k) &
+                +(w0(i,j,k+1) - w0(i,j,k)) / dzf(k) )       ! dwdz + dwdz
+            end do
+          end do
+
+        else
+          do j = 2 - jh + 1,j1 + jh - 1
+            do i = 2 - ih + 1,i1 + ih - 1
+              S11(i,j) =  0.5 * ( (u0(i+1,j,k) - u0(i,j,k)) * dxi &
+                + (u0(i+1,j,k) - u0(i,j,k)) * dxi )          ! dudx + dudx
+  
+              S12(i,j) = 0.5 * ( 0.25*(u0(i,j+1,k)+u0(i+1,j+1,k) - (u0(i,j-1,k)+u0(i+1,j-1,k))) * dyi &
+                + 0.25*(v0(i+1,j,k)+v0(i+1,j+1,k) - (v0(i-1,j,k)+v0(i-1,j+1,k))) * dxi )         ! dudy + dvdx
+  
+              S13(i,j) = 0.5 * ( 0.25*(u0(i,j,k+1)+u0(i+1,j,k+1) - (u0(i,j,k-1)+u0(i+1,j,k-1))) / dzf(k) &
+                + 0.25*(w0(i+1,j,k)+w0(i+1,j,k+1) - (w0(i-1,j,k)+w0(i-1,j,k+1))) * dxi )         ! dudz + dwdx
+  
+              S22(i,j) = 0.5 * ( (v0(i,j+1,k) - v0(i,j,k)) * dyi &
+                + (v0(i,j+1,k) - v0(i,j,k)) * dyi )         ! dvdy + dvdy
+  
+              S23(i,j) = 0.5 * ( 0.25*(v0(i,j,k+1)+v0(i,j+1,k+1) - (v0(i,j,k-1)+v0(i,j+1,k-1))) / dzf(k) &
+                + 0.25*(w0(i,j+1,k)+w0(i,j+1,k+1) - (w0(i,j-1,k)+w0(i,j-1,k+1))) * dyi )         ! dvdz + dwdy
+  
+              S33(i,j) = 0.5 * ( (w0(i,j,k+1) - w0(i,j,k)) / dzf(k) &
+                +(w0(i,j,k+1) - w0(i,j,k)) / dzf(k) )       ! dwdz + dwdz
+            end do
+          end do
+        end if
+ 
+        S(:,:) = sqrt(2.*(S11(:,:)**2. + S22(:,:)**2. + S33(:,:)**2. + &
+          2. * (S12(:,:)**2. + S13(:,:)**2. + S23(:,:)**2.)))
+    
+        ! Unstagger the grid
+        do j = 2 - jh,j1 + jh - 1
+          do i = 2 - ih,i1 + ih - 1
+            u_bar(i,j) = 0.5 * (u0(i,j,k) + u0(i+1,j,k))
+            v_bar(i,j) = 0.5 * (v0(i,j,k) + v0(i,j+1,k))
+            w_bar(i,j) = 0.5 * (w0(i,j,k) + w0(i,j,k+1))
+          end do
+        end do
+     
+        u_hat(:,:) = u_bar(:,:)
+        v_hat(:,:) = v_bar(:,:)
+        w_hat(:,:) = w_bar(:,:)
+  
+        L11(:,:) = u_bar(:,:) * u_bar(:,:)
+        L12(:,:) = u_bar(:,:) * v_bar(:,:)
+        L13(:,:) = u_bar(:,:) * w_bar(:,:)
+        L22(:,:) = v_bar(:,:) * v_bar(:,:)
+        L23(:,:) = v_bar(:,:) * w_bar(:,:)
+        L33(:,:) = w_bar(:,:) * w_bar(:,:)
+  
+        Q11(:,:) = u_bar(:,:) * u_bar(:,:)
+        Q12(:,:) = u_bar(:,:) * v_bar(:,:)
+        Q13(:,:) = u_bar(:,:) * w_bar(:,:)
+        Q22(:,:) = v_bar(:,:) * v_bar(:,:)
+        Q23(:,:) = v_bar(:,:) * w_bar(:,:)
+        Q33(:,:) = w_bar(:,:) * w_bar(:,:)
+  
+        ! filter the variable at the width of test filter 1
+        call filter(u_bar,tf1)
+        call filter(v_bar,tf1)
+        call filter(w_bar,tf1)
+  
+        ! follow Bou-Zeid, 2005
+        call filter(L11,tf1)
+        L11(:,:) = L11(:,:) - u_bar(:,:)*u_bar(:,:)
+        call filter(L12,tf1)
+        L12(:,:) = L12(:,:) - u_bar(:,:)*v_bar(:,:)
+        call filter(L13,tf1)
+        L13(:,:) = L13(:,:) - u_bar(:,:)*w_bar(:,:)
+        call filter(L22,tf1)
+        L22(:,:) = L22(:,:) - v_bar(:,:)*v_bar(:,:)
+        call filter(L23,tf1)
+        L23(:,:) = L23(:,:) - v_bar(:,:)*w_bar(:,:)
+        call filter(L33,tf1)
+        L33(:,:) = L33(:,:) - w_bar(:,:)*w_bar(:,:)
+  
+        ! filter the variable at four times the grid size
+        call filter(u_hat,tf2)
+        call filter(v_hat,tf2)
+        call filter(w_hat,tf2)
+
+        ! follow Bou-Zeid, 2005
+        call filter(Q11,tf2)
+        Q11(:,:) = Q11(:,:) - u_hat(:,:)*u_hat(:,:)
+        call filter(Q12,tf2)
+        Q12(:,:) = Q12(:,:) - u_hat(:,:)*v_hat(:,:)
+        call filter(Q13,tf2)
+        Q13(:,:) = Q13(:,:) - u_hat(:,:)*w_hat(:,:)
+        call filter(Q22,tf2)
+        Q22(:,:) = Q22(:,:) - v_hat(:,:)*v_hat(:,:)
+        call filter(Q23,tf2)
+        Q23(:,:) = Q23(:,:) - v_hat(:,:)*w_hat(:,:)
+        call filter(Q33,tf2)
+        Q33(:,:) = Q33(:,:) - w_hat(:,:)*w_hat(:,:)
+  
+        S11_bar(:,:) = S11(:,:)
+        S12_bar(:,:) = S12(:,:)
+        S13_bar(:,:) = S13(:,:)
+        S22_bar(:,:) = S22(:,:)
+        S23_bar(:,:) = S23(:,:)
+        S33_bar(:,:) = S33(:,:)
+  
+        S11_hat(:,:) = S11_bar(:,:)
+        S12_hat(:,:) = S12_bar(:,:)
+        S13_hat(:,:) = S13_bar(:,:)
+        S22_hat(:,:) = S22_bar(:,:)
+        S23_hat(:,:) = S23_bar(:,:)
+        S33_hat(:,:) = S33_bar(:,:)
+  
+        call filter(S11_bar,tf1)
+        call filter(S12_bar,tf1)
+        call filter(S13_bar,tf1)
+        call filter(S22_bar,tf1)
+        call filter(S23_bar,tf1)
+        call filter(S33_bar,tf1)
+  
+        call filter(S11_hat,tf2)
+        call filter(S12_hat,tf2)
+        call filter(S13_hat,tf2)
+        call filter(S22_hat,tf2)
+        call filter(S23_hat,tf2)
+        call filter(S33_hat,tf2)
+  
+        S_bar(:,:) = sqrt(2.*(S11_bar(:,:)**2. + S22_bar(:,:)**2. + S33_bar(:,:)**2. + &
+          2. *(S12_bar(:,:)**2. + S13_bar(:,:)**2. + S23_bar(:,:)**2.)))
+  
+        S_hat(:,:) = sqrt(2.*(S11_hat(:,:)**2. + S22_hat(:,:)**2. + S33_hat(:,:)**2. + &
+          2. *(S12_hat(:,:)**2. + S13_hat(:,:)**2. + S23_hat(:,:)**2.)))
+  
+        S_S11_bar(:,:) = S(:,:) * S11(:,:)
+        S_S12_bar(:,:) = S(:,:) * S12(:,:)
+        S_S13_bar(:,:) = S(:,:) * S13(:,:)
+        S_S22_bar(:,:) = S(:,:) * S22(:,:)
+        S_S23_bar(:,:) = S(:,:) * S23(:,:)
+        S_S33_bar(:,:) = S(:,:) * S33(:,:)
+  
+        S_S11_hat(:,:) = S_S11_bar(:,:)
+        S_S12_hat(:,:) = S_S12_bar(:,:)
+        S_S13_hat(:,:) = S_S13_bar(:,:)
+        S_S22_hat(:,:) = S_S22_bar(:,:)
+        S_S23_hat(:,:) = S_S23_bar(:,:)
+        S_S33_hat(:,:) = S_S33_bar(:,:)
+  
+        call filter(S_S11_bar,tf1)
+        call filter(S_S12_bar,tf1)
+        call filter(S_S13_bar,tf1)
+        call filter(S_S22_bar,tf1)
+        call filter(S_S23_bar,tf1)
+        call filter(S_S33_bar,tf1)
+  
+        call filter(S_S11_hat,tf2)
+        call filter(S_S12_hat,tf2)
+        call filter(S_S13_hat,tf2)
+        call filter(S_S22_hat,tf2)
+        call filter(S_S23_hat,tf2)
+        call filter(S_S33_hat,tf2)
+  
+        !Compute Mij and Nij as in Bou-Zeid, 2005
+        const = 2. * delta(k) ** 2.
+  
+        M11 = const*(S_S11_bar - real(tf1)**2. * S_bar * S11_bar)
+        M12 = const*(S_S12_bar - real(tf1)**2. * S_bar * S12_bar)
+        M13 = const*(S_S13_bar - real(tf1)**2. * S_bar * S13_bar)
+        M22 = const*(S_S22_bar - real(tf1)**2. * S_bar * S22_bar)
+        M23 = const*(S_S23_bar - real(tf1)**2. * S_bar * S23_bar)
+        M33 = const*(S_S33_bar - real(tf1)**2. * S_bar * S33_bar)
+  
+        N11 = const*(S_S11_hat - real(tf2)**2. * S_hat * S11_hat)
+        N12 = const*(S_S12_hat - real(tf2)**2. * S_hat * S12_hat)
+        N13 = const*(S_S13_hat - real(tf2)**2. * S_hat * S13_hat)
+        N22 = const*(S_S22_hat - real(tf2)**2. * S_hat * S22_hat)
+        N23 = const*(S_S23_hat - real(tf2)**2. * S_hat * S23_hat)
+        N33 = const*(S_S33_hat - real(tf2)**2. * S_hat * S33_hat)
+  
+        ! Contracting the tensors
+        LM  = L11*M11 + L22*M22 + L33*M33 + 2. * (L12*M12 + L13*M13 + L23*M23)
+        MM  = M11*M11 + M22*M22 + M33*M33 + 2. * (M12*M12 + M13*M13 + M23*M23)
+        
+        QN  = Q11*N11 + Q22*N22 + Q33*N33 + 2. * (Q12*N12 + Q13*N13 + Q23*N23)
+        NN  = N11*N11 + N22*N22 + N33*N33 + 2. * (N12*N12 + N13*N13 + N23*N23)
+
+        LMavl = 0.
+        MMavl = 0.
+        QNavl = 0.
+        NNavl = 0.
+
+        LMav = 0.
+        MMav = 0.
+        QNav = 0.
+        NNav = 0.
+
+        do j = 2,j1
+          do i = 2,i1
+            LMavl = LMavl + LM(i,j)
+            MMavl = MMavl + MM(i,j)
+            QNavl = QNavl + QN(i,j)
+            NNavl = NNavl + NN(i,j)
+          end do
+        end do
+
+        call MPI_ALLREDUCE(LMavl, LMav, 1, MY_REAL, MPI_SUM, comm3d,mpierr)
+        call MPI_ALLREDUCE(MMavl, MMav, 1, MY_REAL, MPI_SUM, comm3d,mpierr)
+        call MPI_ALLREDUCE(QNavl, QNav, 1, MY_REAL, MPI_SUM, comm3d,mpierr)
+        call MPI_ALLREDUCE(NNavl, NNav, 1, MY_REAL, MPI_SUM, comm3d,mpierr)
+
+        LMav = LMav / rslabs
+        MMav = MMav / rslabs
+        QNav = QNav / rslabs
+        NNav = NNav / rslabs
+
+        LMav  = max(1.e-24, LMav)
+        MMav  = max(1.e-24, MMav)
+        QNav  = max(1.e-24, QNav)
+        NNav  = max(1.e-24, NNav)
+
+        cs2_tf1 = LMav / MMav
+        cs2_tf2 = QNav / NNav
+        
+        cs2_tf1 = max(1.e-24, cs2_tf1)
+        cs2_tf2 = max(1.e-24, cs2_tf2)
+
+        beta = (cs2_tf2 / cs2_tf1) ** (log(real(tf1))/(log(real(tf2))-log(real(tf1))))
+        if(beta < 0.125) then
+          beta = max(beta, 0.125)
+        end if
+
+        !csz(k) = sqrt( (LMav / MMav) / ( (QNav * MMav) / (NNav * LMav) ))
+        csz(k) = sqrt(cs2_tf1 / beta)
+
+      end do
+    end if
+    ! End dynamic part of smagorinksy computation
+
+    ! For ekm and ekh computation, revert to highest possible accuracy in strain
+    ! discretization
+    do k = 1,kmax
+      mlen        = csz(k) * delta(k)
+
+      do i = 2,i1
+        do j = 2,j1
+
+          kp=k+1
+          km=k-1
+          jp=j+1
+          jm=j-1
+
+          if(k == 1) then
+            strain2 =  ( &
               ((u0(i+1,j,k)-u0(i,j,k))   *dxi        )**2    + &
-              ((v0(i,jp,k)-v0(i,j,k))    *dyi         )**2    + &
+              ((v0(i,jp,k)-v0(i,j,k))    *dyi        )**2    + &
               ((w0(i,j,kp)-w0(i,j,k))    /dzf(k)     )**2    )
 
-      strain = strain + 0.5 * ( &
-                ((w0(i,j,kp)-w0(i-1,j,kp))  *dxi     + &
-                (u0(i,j,kp)-u0(i,j,k))     / dzh(kp)  )**2    + &
-                ((w0(i,j,k)-w0(i-1,j,k))    *dxi     + &
-                dudz(i,j)   )**2    + &
-                ((w0(i+1,j,k)-w0(i,j,k))    *dxi     + &
-                dudz(i+1,j)   )**2    + &
-                ((w0(i+1,j,kp)-w0(i,j,kp))  *dxi     + &
-                (u0(i+1,j,kp)-u0(i+1,j,k)) / dzh(kp)  )**2    )
+            strain2 = strain2 + 0.5 * ( &
+              ( 0.25*(w0(i+1,j,kp)-w0(i-1,j,kp))*dxi + &
+              dudz(i,j)   )**2 )
 
-      strain = strain + 0.5 * ( &
-                ((u0(i,jp,k)-u0(i,j,k))     *dyi     + &
-                (v0(i,jp,k)-v0(i-1,jp,k))  *dxi        )**2    + &
-                ((u0(i,j,k)-u0(i,jm,k))     *dyi     + &
-                (v0(i,j,k)-v0(i-1,j,k))    *dxi        )**2    + &
-                ((u0(i+1,j,k)-u0(i+1,jm,k)) *dyi     + &
-                (v0(i+1,j,k)-v0(i,j,k))    *dxi        )**2    + &
-                ((u0(i+1,jp,k)-u0(i+1,j,k)) *dyi     + &
-                (v0(i+1,jp,k)-v0(i,jp,k))  *dxi        )**2    )
-      strain = strain + 0.5 * ( &
-                ((v0(i,j,kp)-v0(i,j,k))     / dzh(kp) + &
-                (w0(i,j,kp)-w0(i,jm,kp))   *dyi        )**2    + &
-                (dvdz(i,j)+ &
-                (w0(i,j,k)-w0(i,jm,k))     *dyi        )**2    + &
-                (dvdz(i,j+1)+ &
-                (w0(i,jp,k)-w0(i,j,k))     *dyi        )**2    + &
-                ((v0(i,jp,kp)-v0(i,jp,k))   / dzh(kp) + &
-                (w0(i,jp,kp)-w0(i,j,kp))   *dyi        )**2    )
-      rigoprandtl =    grav*dthvdz(i,j,k)/(thvs*strain*prandtl)
-!       if (rigoprandtl>1) then
-!         ekm(i,j,k) = ekmin
-!       else
-        ekm(i,j,k)  = (cs*delta(k))**2*sqrt(0.5*strain)!*sqrt(1-rigoprandtl)
-!       end if
-      ekh(i,j,k)  = ekm(i,j,k)/prandtl
-    end do
-    end do
+            strain2 = strain2 + 0.125 * ( &
+              ((u0(i,jp,k)-u0(i,j,k))     *dyi     + &
+              (v0(i,jp,k)-v0(i-1,jp,k))  *dxi        )**2    + &
+              ((u0(i,j,k)-u0(i,jm,k))     *dyi     + &
+              (v0(i,j,k)-v0(i-1,j,k))    *dxi        )**2    + &
+              ((u0(i+1,j,k)-u0(i+1,jm,k)) *dyi     + &
+              (v0(i+1,j,k)-v0(i,j,k))    *dxi        )**2    + &
+              ((u0(i+1,jp,k)-u0(i+1,j,k)) *dyi     + &
+              (v0(i+1,jp,k)-v0(i,jp,k))  *dxi        )**2    )
 
-    do k=2,kmax
-    do j=2,j1
-    do i=2,i1
-      kp=k+1
-      km=k-1
-      jp=j+1
-      jm=j-1
+            strain2 = strain2 + 0.5 * ( &
+              ( 0.25*(w0(i,jp,kp)-w0(i,jm,kp))*dyi + &
+              dvdz(i,j)   )**2 )
+      
+          else
 
-      strain =  ( &
+            strain2 =  ( &
               ((u0(i+1,j,k)-u0(i,j,k))   *dxi        )**2    + &
-              ((v0(i,jp,k)-v0(i,j,k))    *dyi         )**2    + &
+              ((v0(i,jp,k)-v0(i,j,k))    *dyi        )**2    + &
               ((w0(i,j,kp)-w0(i,j,k))    /dzf(k)     )**2    )
 
-      strain = strain + 0.5 * ( &
-                ((w0(i,j,kp)-w0(i-1,j,kp))  *dxi     + &
-                (u0(i,j,kp)-u0(i,j,k))     / dzh(kp)  )**2    + &
-                ((w0(i,j,k)-w0(i-1,j,k))    *dxi     + &
-                (u0(i,j,k)-u0(i,j,km))     / dzh(k)   )**2    + &
-                ((w0(i+1,j,k)-w0(i,j,k))    *dxi     + &
-                (u0(i+1,j,k)-u0(i+1,j,km)) / dzh(k)   )**2    + &
-                ((w0(i+1,j,kp)-w0(i,j,kp))  *dxi     + &
-                (u0(i+1,j,kp)-u0(i+1,j,k)) / dzh(kp)  )**2    )
+            strain2 = strain2 + 0.125 * ( &
+              ((w0(i,j,kp)-w0(i-1,j,kp))  *dxi     + &
+              (u0(i,j,kp)-u0(i,j,k))     / dzh(kp)  )**2    + &
+              ((w0(i,j,k)-w0(i-1,j,k))    *dxi     + &
+              (u0(i,j,k)-u0(i,j,km))     / dzh(k)   )**2    + &
+              ((w0(i+1,j,k)-w0(i,j,k))    *dxi     + &
+              (u0(i+1,j,k)-u0(i+1,j,km)) / dzh(k)   )**2    + &
+              ((w0(i+1,j,kp)-w0(i,j,kp))  *dxi     + &
+              (u0(i+1,j,kp)-u0(i+1,j,k)) / dzh(kp)  )**2    )
 
-      strain = strain + 0.5 * ( &
-                ((u0(i,jp,k)-u0(i,j,k))     *dyi     + &
-                (v0(i,jp,k)-v0(i-1,jp,k))  *dxi        )**2    + &
-                ((u0(i,j,k)-u0(i,jm,k))     *dyi     + &
-                (v0(i,j,k)-v0(i-1,j,k))    *dxi        )**2    + &
-                ((u0(i+1,j,k)-u0(i+1,jm,k)) *dyi     + &
-                (v0(i+1,j,k)-v0(i,j,k))    *dxi        )**2    + &
-                ((u0(i+1,jp,k)-u0(i+1,j,k)) *dyi     + &
-                (v0(i+1,jp,k)-v0(i,jp,k))  *dxi        )**2    )
-      strain = strain + 0.5 * ( &
-                ((v0(i,j,kp)-v0(i,j,k))     / dzh(kp) + &
-                (w0(i,j,kp)-w0(i,jm,kp))   *dyi        )**2    + &
-                ((v0(i,j,k)-v0(i,j,km))     / dzh(k)+ &
-                (w0(i,j,k)-w0(i,jm,k))     *dyi        )**2    + &
-                ((v0(i,jp,k)-v0(i,jp,km))   / dzh(k)+ &
-                (w0(i,jp,k)-w0(i,j,k))     *dyi        )**2    + &
-                ((v0(i,jp,kp)-v0(i,jp,k))   / dzh(kp) + &
-                (w0(i,jp,kp)-w0(i,j,kp))   *dyi        )**2    )
-!       rigoprandtl =    grav*dthvdz(i,j,k)/(thvs*strain*prandtl)
-!       if (rigoprandtl>1) then
-!         ekm(i,j,k) = ekmin
-!       else
-        ekm(i,j,k)  = (cs*delta(k))**2*sqrt(0.5*strain)!*sqrt(1-rigoprandtl)
-!       end if
-      ekh(i,j,k)  = ekm(i,j,k)/prandtl
+            strain2 = strain2 + 0.125 * ( &
+              ((u0(i,jp,k)-u0(i,j,k))     *dyi     + &
+              (v0(i,jp,k)-v0(i-1,jp,k))  *dxi        )**2    + &
+              ((u0(i,j,k)-u0(i,jm,k))     *dyi     + &
+              (v0(i,j,k)-v0(i-1,j,k))    *dxi        )**2    + &
+              ((u0(i+1,j,k)-u0(i+1,jm,k)) *dyi     + &
+              (v0(i+1,j,k)-v0(i,j,k))    *dxi        )**2    + &
+              ((u0(i+1,jp,k)-u0(i+1,j,k)) *dyi     + &
+              (v0(i+1,jp,k)-v0(i,jp,k))  *dxi        )**2    )
+
+            strain2 = strain2 + 0.125 * ( &
+              ((v0(i,j,kp)-v0(i,j,k))     / dzh(kp) + &
+              (w0(i,j,kp)-w0(i,jm,kp))   *dyi        )**2    + &
+              ((v0(i,j,k)-v0(i,j,km))     / dzh(k)+ &
+              (w0(i,j,k)-w0(i,jm,k))     *dyi        )**2    + &
+              ((v0(i,jp,k)-v0(i,jp,km))   / dzh(k)+ &
+              (w0(i,jp,k)-w0(i,j,k))     *dyi        )**2    + &
+              ((v0(i,jp,kp)-v0(i,jp,k))   / dzh(kp) + &
+              (w0(i,jp,kp)-w0(i,j,kp))   *dyi        )**2    )
+          end if
+
+          ekm(i,j,k)  = mlen ** 2. * sqrt(2. * strain2)
+          ekh(i,j,k)  = ekm(i,j,k) / prandtl
+        end do
+      end do
     end do
-    end do
-    end do
+
   else
     do k=1,kmax
-    do j=2,j1
-    do i=2,i1
-      if (ldelta .or. (dthvdz(i,j,k)<=0)) then
-        zlt(i,j,k) = delta(k)
-        if (lmason) zlt(i,j,k) = sqrt(1/(1/zlt(i,j,k)**2)+1/(fkar*zf(k))**2)
-        ekm(i,j,k) = cm * zlt(i,j,k) * e120(i,j,k)
-        ekh(i,j,k) = (ch1 + ch2) * ekm(i,j,k)
-      else
+      do j=2,j1
+        do i=2,i1
+          if (ldelta .or. (dthvdz(i,j,k)<=0)) then
+            zlt(i,j,k) = delta(k)
+            if (lmason) zlt(i,j,k) = (1. / zlt(i,j,k) ** nmason + 1. / ( fkar * (zf(k) + z0m(i,j)))**nmason) ** (-1./nmason)
+            ekm(i,j,k) = cm * zlt(i,j,k) * e120(i,j,k)
+            ekh(i,j,k) = (ch1 + ch2) * ekm(i,j,k)
+          else
+            zlt(i,j,k) = min(delta(k),cn*e120(i,j,k)/sqrt(grav/thvs*abs(dthvdz(i,j,k))))
+            if (lmason) zlt(i,j,k) = (1. / zlt(i,j,k) ** nmason + 1. / ( fkar * (zf(k) + z0m(i,j)))**nmason) ** (-1./nmason)
 
-        zlt(i,j,k) = min(delta(k),cn*e120(i,j,k)/sqrt(grav/thvs*abs(dthvdz(i,j,k))))
-        if (lmason) zlt(i,j,k) = sqrt(1/(1/zlt(i,j,k)**2)+1/(fkar*zf(k))**2)
-
-        ekm(i,j,k) = cm * zlt(i,j,k) * e120(i,j,k)
-        ekh(i,j,k) = (ch1 + ch2 * zlt(i,j,k)/delta(k)) * ekm(i,j,k)
-      endif
-    end do
-    end do
+            ekm(i,j,k) = cm * zlt(i,j,k) * e120(i,j,k)
+            ekh(i,j,k) = (ch1 + ch2 * zlt(i,j,k)/delta(k)) * ekm(i,j,k)
+          endif
+        end do
+      end do
     end do
   end if
 
   ekm(:,:,:) = max(ekm(:,:,:),ekmin)
   ekh(:,:,:) = max(ekh(:,:,:),ekmin)
-
-
 
 !*************************************************************
 !     Set cyclic boundary condition for K-closure factors.
@@ -348,10 +897,10 @@ contains
   call excjs( ekh           , 2,i1,2,j1,1,k1,ih,jh)
 
   do j=1,j2
-  do i=1,i2
-    ekm(i,j,k1)  = ekm(i,j,kmax)
-    ekh(i,j,k1)  = ekh(i,j,kmax)
-  end do
+    do i=1,i2
+      ekm(i,j,k1)  = ekm(i,j,kmax)
+      ekh(i,j,k1)  = ekh(i,j,kmax)
+    end do
   end do
 
   return

@@ -44,7 +44,7 @@ subroutine tstep_update
 
 
   use modglobal, only : i1,j1,rk3step,timee,rtimee,runtime,btime,dtmax,dt,ntimee,ntrun,courant,peclet,&
-                        kmax,dx,dy,dzh,dt_lim,ladaptive,timeleft,idtmax,rdt,tres,longint 
+                        kmax,dx,dy,dzh,dt_lim,ladaptive,timeleft,idtmax,rdt,tres,longint ,lwarmstart
   use modfields, only : um,vm,wm
   use modsubgrid,only : ekm
   use modmpi,    only : myid,comm3d,mpierr,mpi_max,my_real
@@ -55,7 +55,8 @@ subroutine tstep_update
   real          :: courtotl,courold,peclettotl,pecletold
   logical,save  :: spinup=.true.
 
-
+  if(lwarmstart) spinup = .false.
+  
   rk3step = mod(rk3step,3) + 1
   if(rk3step == 1) then
     ! Initialization
