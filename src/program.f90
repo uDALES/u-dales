@@ -84,7 +84,7 @@ program DALES      !Version 3.2 RC 1
   use modradstat,      only : initradstat ,radstat, exitradstat
   use modsampling,     only : initsampling, sampling,exitsampling
   use modcrosssection, only : initcrosssection, crosssection,exitcrosssection
-  use modprojection,   only : initprojection, projection
+  !use modprojection,   only : initprojection, projection
   use modcloudfield,   only : initcloudfield, cloudfield
   use modfielddump,    only : initfielddump, fielddump,exitfielddump
   use modstattend,     only : initstattend, stattend,exitstattend, tend_start,tend_adv,tend_subg,tend_force,&
@@ -94,11 +94,10 @@ program DALES      !Version 3.2 RC 1
   use modbudget,       only : initbudget, budgetstat, exitbudget
   use modstress,       only : initstressbudget, stressbudgetstat, exitstressbudget
 
-  use modtilt,         only : inittilt, tiltedgravity, tiltedboundary, exittilt
-  use modparticles,    only : initparticles, particles, exitparticles
-  use modnudge,        only : initnudge, nudge, exitnudge
-!   use modnetcdfstats,  only : initnetcdfstats, netcdfstats, exitnetcdfstats
-!   use modnetcdfmovie,  only : initnetcdfmovie, netcdfmovie, exitnetcdfmovie
+  !use modtilt,         only : inittilt, tiltedgravity, tiltedboundary, exittilt
+  !use modparticles,    only : initparticles, particles, exitparticles
+  !use modnudge,        only : initnudge, nudge, exitnudge
+  
   use modchem,         only : initchem,inputchem, twostep
   implicit none
 
@@ -113,21 +112,19 @@ program DALES      !Version 3.2 RC 1
 !      2     INITIALIZE STATISTICAL ROUTINES AND ADD-ONS
 !---------------------------------------------------------
   call initchecksim
-  call initstat_nc  ! should be called before stat-routines that might do netCDF
-  call inittimestat  !Timestat must preceed all other timeseries that could write in the same netCDF file (unless stated otherwise
-  call initgenstat  !Genstat must preceed all other statistics that could write in the same netCDF file (unless stated otherwise
-  call inittilt
+  call initstat_nc   ! Should be called before stat-routines that might do netCDF
+  call inittimestat  ! Timestat must preceed all other timeseries that could write in the same netCDF file (unless stated otherwise
+  call initgenstat   ! Genstat must preceed all other statistics that could write in the same netCDF file (unless stated otherwise
+  !call inittilt
   call initsampling
   call initcrosssection
-  call initprojection
+  !call initprojection
   call initcloudfield
   call initfielddump
   call initstattend
   call initradstat
-  call initparticles
-  call initnudge
-  ! call initnetcdfstats
-  ! call initnetcdfmovie
+  !call initparticles
+  !call initnudge
   call initbulkmicrostat
   call initbudget
   call initstressbudget
@@ -177,8 +174,8 @@ program DALES      !Version 3.2 RC 1
 !------------------------------------------------------
 !   3.4   EXECUTE ADD ONS
 !------------------------------------------------------
-    call nudge
-    call tiltedgravity
+    !call nudge
+    !call tiltedgravity
     call stattend(tend_addon)
 
 !-----------------------------------------------------------------------
@@ -192,12 +189,11 @@ program DALES      !Version 3.2 RC 1
 
     call tstep_integrate
     call boundary
-    call tiltedboundary
+    !call tiltedboundary
 !-----------------------------------------------------
 !   3.6   LIQUID WATER CONTENT AND DIAGNOSTIC FIELDS
 !-----------------------------------------------------
     call thermodynamics
-
 
 !-----------------------------------------------------
 !   3.7  WRITE RESTARTFILES AND DO STATISTICS
@@ -211,16 +207,14 @@ program DALES      !Version 3.2 RC 1
     call radstat
     call sampling
     call crosssection
-    call projection
+    !call projection
     call cloudfield
     call fielddump
-    call particles
+    !call particles
 
     call bulkmicrostat
     call budgetstat
     call stressbudgetstat
-
-    ! call netcdfmovie
 
     call writerestartfiles
   end do
@@ -235,8 +229,8 @@ program DALES      !Version 3.2 RC 1
 !-------------------------------------------------------
   call exitgenstat
   call exitradstat
-  call exitparticles
-  call exitnudge
+  !call exitparticles
+  !call exitnudge
   call exitsampling
   call exitstattend
   call exitbulkmicrostat
@@ -244,7 +238,6 @@ program DALES      !Version 3.2 RC 1
   call exitstressbudget
   call exitcrosssection
   call exitfielddump
-  ! call exitnetcdfmovie
   call exitmodules
 
 end program DALES
