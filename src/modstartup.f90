@@ -488,6 +488,8 @@ contains
 
       call qtsurf
 
+      thvs = thls * (1. + (rv/rd - 1.) * qts)
+
       u0av(1)   = uprof(1)
       thl0av(1) = thlprof(1)
       svs = svprof(1,:)
