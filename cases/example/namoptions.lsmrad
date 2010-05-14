@@ -26,7 +26,6 @@ xtime      =  10.
 /
 
 &PHYSICS
-z0         =  0.1
 ustin      =  0.0
 ps         =  100000.00
 thls       =  296.
@@ -115,7 +114,7 @@ dtav        = 60
 &NAMGENSTAT
 lstat       = .true.
 dtav        = 60
-timeav      = 900
+timeav      = 1800
 /
 &NAMFIELDDUMP
 lfielddump  = .false.
