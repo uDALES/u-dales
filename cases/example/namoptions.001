@@ -2,10 +2,9 @@
 iexpnr     =  001
 lwarmstart =  .false.
 startfile  =  'initd00h01m000.001'
-runtime    =  36000
+runtime    =  7200
 trestart   =  3600 
-ladaptive  =  .false.
-dtmax      =  5
+ladaptive  =  .true.
 irandom    =  43
 randthl    =  0.1
 randqt     =  2.5e-5
@@ -13,8 +12,8 @@ nsv        =  2
 /
 
 &DOMAIN
-imax       =  32 
-jtot       =  32
+imax       =  64 
+jtot       =  64
 kmax       =  96
 
 xsize      =  3200.
@@ -32,11 +31,11 @@ ustin      =  0.0
 ps         =  100000.00
 thls       =  296.
 wtsurf     =  0.1
-wqsurf     =  0.0
+wqsurf     =  0.0001
 wsvsurf(1) =  0.1
 wsvsurf(2) =  1.
 lmoist     =  .true.
-isurf      =  2
+isurf      =  4
 iradiation =  0
 useMcICA   =  .true.
 lcoriol    =  .true.
@@ -85,16 +84,13 @@ cv         =  0.
 
 iadv_mom    =  62
 iadv_tke    =  62
-iadv_thl    =  62
-iadv_qt     =  62
-iadv_sv     =  100*62
+iadv_thl    =  52
+iadv_qt     =  52
+iadv_sv     =  100*52
 /
 
 &NAMSUBGRID
-lsmagorinsky = .true.
-ldynsub      = .true.
-tf1          = 2
-tf2          = 4
+lsmagorinsky = .false.
 /
 
 &NAMCHECKSIM
@@ -129,25 +125,17 @@ ldiracc     = .true.
 &NAMSTATTEND
 dtav        = 60
 timeav      = 1800
-ltend       = .true.
+ltend       = .false.
 /
 
 &NAMBUDGET
-lbudget = .true.
+lbudget = .false.
 dtav    = 60
 timeav  = 1800
 /
 
-&NAMNETCDFMOVIE
-lnetcdfmovie = .false.
-dtmovie      = 10
-lmoviez      = .false.
-slicez       = 1
-slicex       = 1
-/
-
 &NAMRADSTAT
-lstat = .true.
+lstat = .false.
 dtav = 60
 timeav = 1800
 /

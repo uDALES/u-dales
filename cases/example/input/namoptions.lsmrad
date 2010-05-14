@@ -36,7 +36,7 @@ wsvsurf(1) =  0.1
 wsvsurf(2) =  1.
 lmoist     =  .true.
 isurf      =  1
-iradiation =  3
+iradiation =  1
 useMcICA   =  .true.
 lcoriol    =  .true.
 /
