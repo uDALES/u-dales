@@ -340,18 +340,18 @@ contains
 
 !> Calculates the interaction with the soil, the surface temperature and humidity, and finally the surface fluxes.
   subroutine surface
-    use modglobal,  only : rdt, i1, i2, j1, j2, ih, jh, cp, rlv, fkar, zf, cu, cv, nsv, rk3step, timee, rslabs, pi, pref0, rd, eps1, boltz
+    use modglobal,  only : rdt, i1, i2, j1, j2, ih, jh, cp, rlv, fkar, zf, cu, cv, nsv, rk3step, timee, rslabs, pi, pref0, rd, rv, eps1, boltz
     use modraddata, only : iradiation, swu, swd, lwu, lwd, useMcICA
     use modfields,  only : thl0, qt0, u0, v0, rhof, ql0, exnf, presf, u0av, v0av
     use modmpi,     only : my_real, mpierr, comm3d, mpi_sum, myid, excj, excjs
-    use moduser,   only : surf_user
+    use moduser,    only : surf_user
     implicit none
 
     real     :: f1, f2, f3, f4 ! Correction functions for Jarvis-Stewart
     integer  :: i, j, k, n
     real     :: upcu, vpcv, horv, horvav
     real     :: phimzf, phihzf
-    real     :: rk3coef, thlsl
+    real     :: rk3coef, thlsl, qtsl
 
     real     :: ust
     real     :: ustl, wtsurfl, wqsurfl
@@ -680,6 +680,8 @@ contains
       end if
 
       thlsl = 0.
+      qtsl  = 0.
+      
       do j = 2, j1
         do i = 2, i1
 
@@ -729,14 +731,20 @@ contains
           Cs(i,j) = fkar ** 2. / (log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j)) + psim(z0m(i,j) / obl(i,j))) / (log(zf(1) / z0h(i,j)) - psih(zf(1) / obl(i,j)) + psih(z0h(i,j) / obl(i,j)))
 
           tskin(i,j) = wtsurf / (Cs(i,j) * horv) + thl0(i,j,1)
+          qskin(i,j) = wqsurf / (Cs(i,j) * horv) + qt0(i,j,1)
           thlsl      = thlsl + tskin(i,j)
+          qtsl       = qtsl  + qskin(i,j)
         end do
       end do
 
       call MPI_ALLREDUCE(thlsl, thls, 1,  MY_REAL, MPI_SUM, comm3d,mpierr)
-      thls = thls / rslabs
+      call MPI_ALLREDUCE(qtsl, qts, 1,  MY_REAL, MPI_SUM, comm3d,mpierr)
 
-      call qtsurf
+      thls = thls / rslabs
+      qts  = qtsl / rslabs
+      thvs = thls * (1. + (rv/rd - 1.) * qts)
+
+      !call qtsurf
 
     end if
 
@@ -770,7 +778,7 @@ contains
           exner      = (ps / pref0)**(rd/cp)
           tsurf      = tskin(i,j) * exner
           es         = es0 * exp(at*(tsurf-tmelt) / (tsurf-bt))
-          qsatsurf   = rd / rv * es / (ps-(1-rd/rv)*es)
+          qsatsurf   = rd / rv * es / ps
           surfwet    = ra(i,j) / (ra(i,j) + rs(i,j))
           qskin(i,j) = surfwet * qsatsurf + (1. - surfwet) * qt0(i,j,1)
           qtsl       = qtsl + qskin(i,j)
@@ -779,17 +787,18 @@ contains
 
       call MPI_ALLREDUCE(qtsl, qts, 1,  MY_REAL, &
                          MPI_SUM, comm3d,mpierr)
-      qts = qts / rslabs
-    else
-      exner = (ps/pref0)**(rd/cp)
-      tsurf = thls*exner
-      es    = es0*exp(at*(tsurf-tmelt)/(tsurf-bt))
-      qts   = rd/rv*es/(ps-(1-rd/rv)*es)
-      ! check to prevent collapse of spinup u* = 0 and  u = 0 free convection case
-      qts   = max(qts, 0.)
+      qts  = qts / rslabs
+      thvs = thls * (1. + (rv/rd - 1.) * qts)
+    !else
+    !  exner = (ps/pref0)**(rd/cp)
+    !  tsurf = thls*exner
+    !  es    = es0*exp(at*(tsurf-tmelt)/(tsurf-bt))
+    !  !qts   = rd/rv*es/(ps-(1-rd/rv)*es)
+    !  qts   = rd/rv*es/ps ! specific hum instead of mr
+    !  ! check to prevent collapse of spinup u* = 0 and  u = 0 free convection case
+    !  !qts   = max(qts, 0.)
+    !  qskin(:,:) = qts
     end if
-
-    thvs = thls * (1. + (rv/rd - 1.) * qts)
 
     return
 
@@ -803,20 +812,21 @@ contains
     implicit none
 
     integer             :: i,j,iter
-    real                :: thv, L, horv2, oblavl
+    real                :: thv, thvsl, L, horv2, oblavl
     real                :: Rib, Lstart, Lend, fx, fxdif, Lold
 
     if(lmostlocal) then
 
       oblavl = 0.
 
-      do i=1,i2
-        do j=1,j2
-          thv    = thl0(i,j,1) * (1. + (rv/rd - 1.) * qt0(i,j,1))
+      do i=2,i1
+        do j=2,j1
+          thv    = thl0(i,j,1)  * (1. + (rv/rd - 1.) * qt0(i,j,1))
+          thvsl  = tskin(i,j)   * (1. + (rv/rd - 1.) * qskin(i,j))
           horv2 = u0(i,j,1)*u0(i,j,1) + v0(i,j,1)*v0(i,j,1)
           horv2 = max(horv2, 1.e-4)
 
-          Rib   = grav / thvs * zf(1) * (thv - thvs) / horv2
+          Rib   = grav / thvs * zf(1) * (thv - thvsl) / horv2
 
           iter = 0
           L = obl(i,j)

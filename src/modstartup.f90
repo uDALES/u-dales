@@ -472,11 +472,14 @@ contains
 !    2.2 Initialize surface layer
 !-----------------------------------------------------------------
 
-      if(isurf == 1) then
+      if(isurf <= 2) then
         tskin  = thls
-        tskinm = tskin
+        if(isurf == 1) then
+          tskinm = tskin
+        end if
       else if(isurf >= 3) then
         thls = thlprof(1)
+        qts  = qtprof(1)
       end if
 
       ! Set initial Obukhov length to -0.1 for iteration
