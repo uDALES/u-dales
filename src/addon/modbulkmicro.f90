@@ -121,7 +121,7 @@ module modbulkmicro
     deallocate(sedc,sed_qr,sed_Nr,exnz,presz,Dvc,xc,Dvr,xr,mur,lbdr, &
                au,phi,tau,rhoz,ac,sc,br,evap,Nevap,qr_spl,Nr_spl,wfall_qr,wfall_Nr)
 
-    deallocate(precep,wfall_qr,wfall_Nr)
+    deallocate(precep)
 
   end subroutine exitbulkmicro
 

@@ -254,7 +254,7 @@ contains
     tltendmn = tltendmn + tltendav/rslabs
     tllwtendmn = tllwtendmn + tllwtendav/rslabs
     tlswtendmn = tlswtendmn + tlswtendav/rslabs
-    tlradlsmn  = tlradlsmn  + thlpcar   /rslabs
+    tlradlsmn  = tlradlsmn  + thlpcar
 
     if (lradclearair) call radclearair
   end subroutine do_radstat

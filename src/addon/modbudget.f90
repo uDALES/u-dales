@@ -213,7 +213,7 @@ contains
                           rslabs,cu,cv,iadv_thl,grav, &
                           dxi,dyi,dx2i,dy2i
     use modsurfdata,only : thvs, ustar
-    use modsubgrid, only : ekm
+    use modsubgriddata, only : ekm
     use modpois,    only : p
     use modfields,  only : u0,v0,w0,thl0h,thv0h,u0av,v0av
 !cstep    use modtilt,    only : adjustbudget,ltilted
@@ -673,7 +673,7 @@ end subroutine do_genbudget
 !> Performs the SFS - budget calculations
   subroutine do_gensbbudget
     use modglobal,  only : i1,j1,ih,jh,k1,kmax,rslabs
-    use modsubgrid, only : ekm,ekh,sbdiss,sbshr,sbbuo
+    use modsubgriddata, only : ekm,ekh,sbdiss,sbshr,sbbuo
     use modfields,  only : e120
     use modmpi,     only : slabsum,nprocs,comm3d,nprocs,my_real, mpi_sum,mpierr
     !----------------------------
