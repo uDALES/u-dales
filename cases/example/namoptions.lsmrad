@@ -34,19 +34,45 @@ wqsurf     =  0.0001
 wsvsurf(1) =  0.1
 wsvsurf(2) =  1.
 lmoist     =  .true.
-isurf      =  4
-iradiation =  0
+isurf      =  1
+iradiation =  1
 useMcICA   =  .true.
 lcoriol    =  .true.
 /
 
 &NAMSURFACE
+tsoilav(1)   = 290.
+tsoilav(2)   = 287.
+tsoilav(3)   = 285.
+tsoilav(4)   = 283.
+tsoildeepav  = 283.
+
+phiwav(1)    = 0.3
+phiwav(2)    = 0.3
+phiwav(3)    = 0.3
+phiwav(4)    = 0.3
+
+rootfav(1)   = 0.35
+rootfav(2)   = 0.38 
+rootfav(3)   = 0.23 
+rootfav(4)   = 0.04
+
 lmostlocal   = .false.
 lsmoothflux  = .false.
-rsisurf2     = 0.
+rsisurf2     = 50.
 
 z0mav        = 0.1
 z0hav        = 0.02
+Cskinav      = 0
+lambdaskinav = 5.
+albedoav     = 0.20
+Qnetav       = 450.
+
+rsminav      = 110.
+rssoilminav  = 50.
+cvegav       = 0.9
+LAIav        = 2.
+gDav         = 0.
 /
 
 &DYNAMICS

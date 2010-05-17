@@ -1,6 +1,6 @@
 # Loadleveler directives start with # @
 # @ node = 1
-# @ tasks_per_node = 16
+# @ tasks_per_node = 8
 # @ notification = never
 # @ input = /dev/null
 # @ output = errorfile.001

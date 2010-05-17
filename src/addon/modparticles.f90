@@ -920,7 +920,7 @@ contains
 
     use modglobal,  only : dx,dy,dzf,zf,zh,dzh,grav,delta,timee,rdt
     use modfields,  only : dthvdz
-    use modsubgrid, only : ce1, ce2, cn
+    use modsubgriddata, only : ce1, ce2, cn
     use modsurfdata,only : thvs
     implicit none
 
