@@ -96,6 +96,7 @@ contains
     call MPI_BCAST(rsminav      , 1, MY_REAL, 0, comm3d, mpierr)
     call MPI_BCAST(rssoilminav  , 1, MY_REAL, 0, comm3d, mpierr)
     call MPI_BCAST(cvegav       , 1, MY_REAL, 0, comm3d, mpierr)
+    call MPI_BCAST(Wlav         , 1, MY_REAL, 0, comm3d, mpierr)
     call MPI_BCAST(LAIav        , 1, MY_REAL, 0, comm3d, mpierr)
     call MPI_BCAST(gDav         , 1, MY_REAL, 0, comm3d, mpierr)
 
@@ -147,6 +148,10 @@ contains
       if(gDav == -1) then
         stop "NAMSURFACE: gDav is not set"
       end if
+      if(Wlav == -1) then
+        stop "NAMSURFACE: Wlav is not set"
+      end if
+
 
     end if
 
@@ -303,7 +308,7 @@ contains
 
       cveg       = cvegav
       cliq       = 0.
-      Wl         = 0.0001
+      Wl         = Wlav
     end if
 
     allocate(albedo(i2,j2))

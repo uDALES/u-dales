@@ -93,12 +93,14 @@ SAVE
 
   ! Surface properties
   real, allocatable :: z0m        (:,:) !<  Roughness length for momentum [m]
-  real              :: z0mav = -1
+  real              :: z0mav    = -1
   real, allocatable :: z0h        (:,:) !<  Roughness length for heat [m]
-  real              :: z0hav = -1
+  real              :: z0hav    = -1
   real, allocatable :: tskin      (:,:) !<  Skin temperature [K]
   real, allocatable :: tskinm     (:,:) !<  Skin temperature previous timestep [K]
   real, allocatable :: Wl         (:,:) !<  Liquid water reservoir [m]
+  real              :: Wlav     = -1                                  
+  real, parameter   :: Wmax     = 0.0002 !<  Maximum layer of liquid water on surface [m]
   real, allocatable :: Wlm        (:,:) !<  Liquid water reservoir previous timestep [m]
   real, allocatable :: qskin      (:,:) !<  Skin specific humidity [kg/kg]
   real, allocatable :: albedo     (:,:) !<  Surface albedo [-]
@@ -113,7 +115,6 @@ SAVE
   real, allocatable :: lambdaskin (:,:) !<  Heat conductivity skin layer [W/m/K]
   real              :: lambdaskinav
   real              :: ps       = -1    !<  Surface pressure [Pa]
-  real, parameter   :: Wmax     = 0.0002 !<  Maximum layer of liquid water on surface [m]
 
   ! Surface energy balance
   real, allocatable :: Qnet     (:,:)   !<  Net radiation [W/m2]
