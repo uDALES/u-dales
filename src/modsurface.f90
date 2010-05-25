@@ -369,7 +369,7 @@ contains
 
     real     :: swdav, swuav, lwdav, lwuav
     real     :: exner, exnera, tsurfm, Tatm, e, esat, qsat, desatdT, dqsatdT, Acoef, Bcoef
-    real     :: fH, fLE, fLEveg, fLEsoil, fLEpot
+    real     :: fH, fLE, fLEveg, fLEsoil, fLEpot, LEveg, LEsoil
 
     ! CvH temp, move to modsurfdata
     real     :: gammasat, bc, psisat
@@ -392,8 +392,6 @@ contains
       do k = 1, ksoilmax
         phifrac(:,:,k) = phiw(:,:,k) * dzsoil(k) / zsoil(ksoilmax) / phitot(:,:)
       end do
-
-      write(6,*) "CvH test:", phifrac(2,2,1), phifrac(2,2,2), phifrac(2,2,3), phifrac(2,2,4)
     end if
  
     ! CvH start with computation of drag coefficients to allow for implicit solver
@@ -567,6 +565,10 @@ contains
           Qnet(i,j)     = Qnet(i,j) - (boltz * tsurfm ** 4. + 4. * boltz * tsurfm ** 3. * (tskin(i,j) * exner - tsurfm) / rk3coef)
           G0(i,j)       = lambdaskin(i,j) * ( tskin(i,j) * exner - tsoil(i,j,1) )
           LE(i,j)       = - fLE * ( qt0(i,j,1) - (dqsatdT * (tskin(i,j) * exner - tsurfm) + qsat))
+
+          LEveg         = - fLEveg  * ( qt0(i,j,1) - (dqsatdT * (tskin(i,j) * exner - tsurfm) + qsat))
+          LEsoil        = - fLEsoil * ( qt0(i,j,1) - (dqsatdT * (tskin(i,j) * exner - tsurfm) + qsat))
+
           if(LE(i,j) == 0.) then
             rs(i,j)     = 1.e8
           else
@@ -622,15 +624,17 @@ contains
           tsoil(i,j,ksoilmax) = tsoilm(i,j,ksoilmax) + rk3coef / pCs(i,j,ksoilmax) * ( lambda(i,j,ksoilmax) * (tsoildeep(i,j) - tsoil(i,j,ksoilmax)) / dzsoil(ksoilmax) - lambdah(i,j,ksoilmax-1) * (tsoil(i,j,ksoilmax) - tsoil(i,j,ksoilmax-1)) / dzsoil(ksoilmax-1) ) / dzsoil(ksoilmax)
 
           ! 1.5   -   Solve the diffusion equation for the moisture transport
-          phiw(i,j,1) = phiwm(i,j,1) + rk3coef * ( lambdash(i,j,1) * (phiw(i,j,2) - phiw(i,j,1)) / dzsoilh(1) - gammash(i,j,1) - (phifrac(i,j,1) * fLEveg + fLEsoil) / (rhow*rlv)) / dzsoil(1)
+          phiw(i,j,1) = phiwm(i,j,1) + rk3coef * ( lambdash(i,j,1) * (phiw(i,j,2) - phiw(i,j,1)) / dzsoilh(1) - gammash(i,j,1) - (phifrac(i,j,1) * LEveg + LEsoil) / (rhow*rlv)) / dzsoil(1)
+          !if(i == 2 .and. j == 2) write(6,*) "CvH1 down:", lambdash(i,j,1) * (phiw(i,j,2) - phiw(i,j,1)) / dzsoilh(1) - gammash(i,j,1), "out:", (phifrac(i,j,1) * LEveg + LEsoil) / (rhow*rlv)
           do k = 2, ksoilmax-1
-            phiw(i,j,k) = phiwm(i,j,k) + rk3coef * ( lambdash(i,j,k) * (phiw(i,j,k+1) - phiw(i,j,k)) / dzsoilh(k) - gammash(i,j,k) - lambdash(i,j,k-1) * (phiw(i,j,k) - phiw(i,j,k-1)) / dzsoilh(k-1) + gammash(i,j,k-1) - (phifrac(i,j,k) * fLEveg) / (rhow*rlv)) / dzsoil(k)
+            phiw(i,j,k) = phiwm(i,j,k) + rk3coef * ( lambdash(i,j,k) * (phiw(i,j,k+1) - phiw(i,j,k)) / dzsoilh(k) - gammash(i,j,k) - lambdash(i,j,k-1) * (phiw(i,j,k) - phiw(i,j,k-1)) / dzsoilh(k-1) + gammash(i,j,k-1) - (phifrac(i,j,k) * LEveg) / (rhow*rlv)) / dzsoil(k)
+            !if(i == 2 .and. j == 2) write(6,*) "CvH1 down:", lambdash(i,j,k) * (phiw(i,j,k+1) - phiw(i,j,k)) / dzsoilh(k) - gammash(i,j,k) , "up:", lambdash(i,j,k-1) * (phiw(i,j,k) - phiw(i,j,k-1)) / dzsoilh(k-1) - gammash(i,j,k-1), "out:", (phifrac(i,j,k) * LEveg) / (rhow*rlv)
           end do
           ! closed bottom for now
-          phiw(i,j,ksoilmax) = phiwm(i,j,ksoilmax) + rk3coef * (- lambdash(i,j,ksoilmax-1) * (tsoil(i,j,ksoilmax) - tsoil(i,j,ksoilmax-1)) / dzsoil(ksoilmax-1) + gammash(i,j,ksoilmax-1) - (phifrac(i,j,ksoilmax) * fLEveg) / (rhow*rlv) ) / dzsoil(ksoilmax)
+          phiw(i,j,ksoilmax) = phiwm(i,j,ksoilmax) + rk3coef * (- lambdash(i,j,ksoilmax-1) * (phiw(i,j,ksoilmax) - phiw(i,j,ksoilmax-1)) / dzsoil(ksoilmax-1) + gammash(i,j,ksoilmax-1) - (phifrac(i,j,ksoilmax) * LEveg) / (rhow*rlv) ) / dzsoil(ksoilmax)
+          !if(i == 2 .and. j == 2) write(6,*) "CvH1 down:", 0., "up:", lambdash(i,j,ksoilmax-1) * (phiw(i,j,ksoilmax) - phiw(i,j,ksoilmax-1)) / dzsoilh(ksoilmax-1) - gammash(i,j,ksoilmax-1), "out:", (phifrac(i,j,ksoilmax) * LEveg) / (rhow*rlv)
 
-          if(i == 2 .and. j == 2) write(6,*) "CvH1", phiw(i,j,1), phiw(i,j,2), phiw(i,j,3), phiw(i,j,4), LE(i,j)
-
+          if(i == 2 .and. j == 2) write(6,*) "CvH bal", phiwm(i,j,1), phiwm(i,j,2), phiwm(i,j,3), phiwm(i,j,4), phiwm(i,j,1)*dzsoil(1)+phiwm(i,j,2)*dzsoil(2)+phiwm(i,j,3)*dzsoil(3)+phiwm(i,j,4)*dzsoil(4), LE(i,j)
         end do
       end do
 
