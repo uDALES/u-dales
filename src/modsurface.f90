@@ -838,7 +838,7 @@ contains
       call MPI_ALLREDUCE(qtsl, qts, 1,  MY_REAL, MPI_SUM, comm3d,mpierr)
 
       thls = thls / rslabs
-      qts  = qtsl / rslabs
+      qts  = qts  / rslabs
       thvs = thls * (1. + (rv/rd - 1.) * qts)
 
       !call qtsurf
