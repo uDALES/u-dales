@@ -175,6 +175,7 @@ contains
       allocate(pCs(i2,j2,ksoilmax))
       allocate(rootf(i2,j2,ksoilmax))
       allocate(tsoil(i2,j2,ksoilmax))
+      allocate(tsoilm(i2,j2,ksoilmax))
       allocate(tsoildeep(i2,j2))
       allocate(phitot(i2,j2))
 
@@ -469,7 +470,7 @@ contains
           end if
 
           ! CvH solve the surface temperature implicitly including variations in LWout
-          if(rk3step == 1 .and. timee > 0.) then
+          if(rk3step == 1) then
             tskinm(i,j) = tskin(i,j)
           end if
 
@@ -547,11 +548,15 @@ contains
           tendskin(i,j) = Cskin(i,j) * (tskin(i,j) - tskinm(i,j)) * exner / rk3coef
 
           ! 1.4   -   Solve the diffusion equation for the heat transport
-          tsoil(i,j,1) = tsoil(i,j,1) + rdt / pCs(i,j,1) * ( lambdah(i,j,ksoilmax) * (tsoil(i,j,2) - tsoil(i,j,1)) / dzsoilh(1) + G0(i,j) ) / dzsoil(1)
+          if(rk3step == 1) then
+            tsoilm(i,j,:) = tsoil(i,j,:)
+          end if
+
+          tsoil(i,j,1) = tsoilm(i,j,1) + rk3coef / pCs(i,j,1) * ( lambdah(i,j,1) * (tsoil(i,j,2) - tsoil(i,j,1)) / dzsoilh(1) + G0(i,j) ) / dzsoil(1)
           do k = 2, ksoilmax-1
-            tsoil(i,j,k) = tsoil(i,j,k) + rdt / pCs(i,j,k) * ( lambdah(i,j,k) * (tsoil(i,j,k+1) - tsoil(i,j,k)) / dzsoilh(k) - lambdah(i,j,k-1) * (tsoil(i,j,k) - tsoil(i,j,k-1)) / dzsoilh(k-1) ) / dzsoil(k)
+            tsoil(i,j,k) = tsoilm(i,j,k) + rk3coef / pCs(i,j,k) * ( lambdah(i,j,k) * (tsoil(i,j,k+1) - tsoil(i,j,k)) / dzsoilh(k) - lambdah(i,j,k-1) * (tsoil(i,j,k) - tsoil(i,j,k-1)) / dzsoilh(k-1) ) / dzsoil(k)
           end do
-          tsoil(i,j,ksoilmax) = tsoil(i,j,ksoilmax) + rdt / pCs(i,j,ksoilmax) * ( lambda(i,j,ksoilmax) * (tsoildeep(i,j) - tsoil(i,j,ksoilmax)) / dzsoil(ksoilmax) - lambdah(i,j,ksoilmax-1) * (tsoil(i,j,ksoilmax) - tsoil(i,j,ksoilmax-1)) / dzsoil(ksoilmax-1) ) / dzsoil(ksoilmax)
+          tsoil(i,j,ksoilmax) = tsoilm(i,j,ksoilmax) + rk3coef / pCs(i,j,ksoilmax) * ( lambda(i,j,ksoilmax) * (tsoildeep(i,j) - tsoil(i,j,ksoilmax)) / dzsoil(ksoilmax) - lambdah(i,j,ksoilmax-1) * (tsoil(i,j,ksoilmax) - tsoil(i,j,ksoilmax-1)) / dzsoil(ksoilmax-1) ) / dzsoil(ksoilmax)
 
           thlsl = thlsl + tskin(i,j)
         end do

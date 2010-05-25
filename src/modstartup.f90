@@ -323,7 +323,7 @@ contains
                                   rslabs,cu,cv,e12min,dzh,dtheta,dqt,dsv,cexpnr,ifinput,lwarmstart,itrestart,trestart, ladaptive,llsadv,tnextrestart
     use modsubgrid,        only : ekm,ekh
     use modsurfdata,       only : wtsurf,wqsurf,wsvsurf, &
-                                  thls,tskin,tskinm,thvs,ustin,ps,qts,isurf,svs,obl,oblav
+                                  thls,tskin,tskinm,tsoil,tsoilm,thvs,ustin,ps,qts,isurf,svs,obl,oblav
     use modsurface,        only : surface,qtsurf
     use modboundary,       only : boundary,tqaver
     use modmpi,            only : slabsum,myid,comm3d,mpierr,my_real
@@ -476,6 +476,7 @@ contains
         tskin  = thls
         if(isurf == 1) then
           tskinm = tskin
+          tsoilm = tsoil
         end if
       else if(isurf >= 3) then
         thls = thlprof(1)
