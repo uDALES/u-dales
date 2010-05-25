@@ -291,6 +291,8 @@ contains
       allocate(lambdaskin(i2,j2))
       allocate(LAI(i2,j2))
       allocate(gD(i2,j2))
+      allocate(Wl(i2,j2))
+      allocate(Wlm(i2,j2))
 
       Cskin      = Cskinav
       lambdaskin = lambdaskinav
@@ -301,6 +303,7 @@ contains
 
       cveg       = cvegav
       cliq       = 0.
+      Wl         = 0.0001
     end if
 
     allocate(albedo(i2,j2))
@@ -369,7 +372,8 @@ contains
 
     real     :: swdav, swuav, lwdav, lwuav
     real     :: exner, exnera, tsurfm, Tatm, e, esat, qsat, desatdT, dqsatdT, Acoef, Bcoef
-    real     :: fH, fLE, fLEveg, fLEsoil, fLEpot, LEveg, LEsoil
+    real     :: fH, fLE, fLEveg, fLEsoil, fLEpot, LEveg, LEsoil, LEliq
+    real     :: Wlmx
 
     ! CvH temp, move to modsurfdata
     real     :: gammasat, bc, psisat
@@ -499,6 +503,7 @@ contains
           ! CvH solve the surface temperature implicitly including variations in LWout
           if(rk3step == 1) then
             tskinm(i,j) = tskin(i,j)
+            Wlm(i,j)    = Wl(i,j)
           end if
 
           exner   = (ps / pref0) ** (rd/cp)
@@ -520,6 +525,9 @@ contains
             rsveg(i,j)  = 0.
             rssoil(i,j) = 0.
           end if
+
+          Wlmx    = LAI(i,j) * Wmax
+          cliq    = min(1., Wl / Wlmx) 
 
           fLEveg  = (1. - cliq(i,j)) * cveg(i,j) * rhof(1) * rlv / (ra(i,j) + rsveg(i,j))
           fLEsoil = (1. - cveg(i,j))             * rhof(1) * rlv / (ra(i,j) + rssoil(i,j))
@@ -568,6 +576,7 @@ contains
 
           LEveg         = - fLEveg  * ( qt0(i,j,1) - (dqsatdT * (tskin(i,j) * exner - tsurfm) + qsat))
           LEsoil        = - fLEsoil * ( qt0(i,j,1) - (dqsatdT * (tskin(i,j) * exner - tsurfm) + qsat))
+          LEliq         = - fLEpot  * ( qt0(i,j,1) - (dqsatdT * (tskin(i,j) * exner - tsurfm) + qsat))
 
           if(LE(i,j) == 0.) then
             rs(i,j)     = 1.e8
@@ -577,6 +586,8 @@ contains
 
           H(i,j)        = - fH  * ( Tatm - tskin(i,j) * exner ) 
           tendskin(i,j) = Cskin(i,j) * (tskin(i,j) - tskinm(i,j)) * exner / rk3coef
+          
+          Wl(i,j)       =  Wlm(i,j) + rk3coef * (- LEliq / (rhow * rlv))
           
           thlsl = thlsl + tskin(i,j)
 
@@ -634,7 +645,7 @@ contains
           phiw(i,j,ksoilmax) = phiwm(i,j,ksoilmax) + rk3coef * (- lambdash(i,j,ksoilmax-1) * (phiw(i,j,ksoilmax) - phiw(i,j,ksoilmax-1)) / dzsoil(ksoilmax-1) + gammash(i,j,ksoilmax-1) - (phifrac(i,j,ksoilmax) * LEveg) / (rhow*rlv) ) / dzsoil(ksoilmax)
           !if(i == 2 .and. j == 2) write(6,*) "CvH1 down:", 0., "up:", lambdash(i,j,ksoilmax-1) * (phiw(i,j,ksoilmax) - phiw(i,j,ksoilmax-1)) / dzsoilh(ksoilmax-1) - gammash(i,j,ksoilmax-1), "out:", (phifrac(i,j,ksoilmax) * LEveg) / (rhow*rlv)
 
-          if(i == 2 .and. j == 2 .and. myid==0) write(6,*) "CvH bal", phiwm(i,j,1), lambdas(i,j,1), gammas(i,j,1), phiwm(i,j,1)*dzsoil(1)+phiwm(i,j,2)*dzsoil(2)+phiwm(i,j,3)*dzsoil(3)+phiwm(i,j,4)*dzsoil(4), LE(i,j)
+          if(i == 2 .and. j == 2 .and. myid==0 .and. rk3step == 3) write(6,*) "CvH", cliq(i,j), phiwm(i,j,1), lambdas(i,j,1), gammas(i,j,1), phiwm(i,j,1)*dzsoil(1)+phiwm(i,j,2)*dzsoil(2)+phiwm(i,j,3)*dzsoil(3)+phiwm(i,j,4)*dzsoil(4), LE(i,j)
         end do
       end do
 
