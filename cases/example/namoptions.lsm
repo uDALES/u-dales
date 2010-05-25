@@ -22,7 +22,7 @@ ysize      =  3200.
 xlat       =  51.96
 xlon       =  4.95
 xday       =  287.
-xtime      =  10.
+xtime      =  8.
 /
 
 &PHYSICS
@@ -71,6 +71,7 @@ Qnetav       = 450.
 rsminav      = 110.
 rssoilminav  = 50.
 cvegav       = 0.9
+Wlav         = 0.0
 LAIav        = 2.
 gDav         = 0.
 /

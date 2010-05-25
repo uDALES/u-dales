@@ -52,7 +52,7 @@ contains
     namelist/NAMSURFACE/ & !< Soil related variables
       isurf,tsoilav, tsoildeepav, phiwav, rootfav, &
       ! Land surface related variables
-      lmostlocal, lsmoothflux, lneutral, z0mav, z0hav, rsisurf2, Cskinav, lambdaskinav, albedoav, Qnetav, cvegav, &
+      lmostlocal, lsmoothflux, lneutral, z0mav, z0hav, rsisurf2, Cskinav, lambdaskinav, albedoav, Qnetav, cvegav, Wlav, &
       ! Jarvis-Steward related variables
       rsminav, rssoilminav, LAIav, gDav, &
       ! Prescribed values for isurf 2, 3, 4
@@ -377,7 +377,7 @@ contains
 
     real     :: swdav, swuav, lwdav, lwuav
     real     :: exner, exnera, tsurfm, Tatm, e, esat, qsat, desatdT, dqsatdT, Acoef, Bcoef
-    real     :: fH, fLE, fLEveg, fLEsoil, fLEpot, LEveg, LEsoil, LEliq
+    real     :: fH, fLE, fLEveg, fLEsoil, fLEliq, LEveg, LEsoil, LEliq
     real     :: Wlmx
 
     ! CvH temp, move to modsurfdata
@@ -536,9 +536,9 @@ contains
 
           fLEveg  = (1. - cliq(i,j)) * cveg(i,j) * rhof(1) * rlv / (ra(i,j) + rsveg(i,j))
           fLEsoil = (1. - cveg(i,j))             * rhof(1) * rlv / (ra(i,j) + rssoil(i,j))
-          fLEpot  = cliq(i,j) * cveg(i,j)        * rhof(1) * rlv /  ra(i,j)
+          fLEliq  = cliq(i,j) * cveg(i,j)        * rhof(1) * rlv /  ra(i,j)
           
-          fLE     = fLEveg + fLEsoil + fLEpot
+          fLE     = fLEveg + fLEsoil + fLEliq
 
           exnera  = (presf(1) / pref0) ** (rd/cp)
           Tatm    = exnera * thl0(i,j,1) + (rlv / cp) * ql0(i,j,1)
@@ -554,9 +554,9 @@ contains
 
           fLEveg  = (1. - cliq(i,j)) * cveg(i,j) * rhof(1) * rlv / (ra(i,j) + rsveg(i,j))
           fLEsoil = (1. - cveg(i,j))             * rhof(1) * rlv / (ra(i,j) + rssoil(i,j))
-          fLEpot  = cliq(i,j) * cveg(i,j)        * rhof(1) * rlv /  ra(i,j)
+          fLEliq  = cliq(i,j) * cveg(i,j)        * rhof(1) * rlv /  ra(i,j)
           
-          fLE     = fLEveg + fLEsoil + fLEpot
+          fLE     = fLEveg + fLEsoil + fLEliq
 
           exnera  = (presf(1) / pref0) ** (rd/cp)
           Tatm    = exnera * thl0(i,j,1) + (rlv / cp) * ql0(i,j,1)
@@ -581,7 +581,7 @@ contains
 
           LEveg         = - fLEveg  * ( qt0(i,j,1) - (dqsatdT * (tskin(i,j) * exner - tsurfm) + qsat))
           LEsoil        = - fLEsoil * ( qt0(i,j,1) - (dqsatdT * (tskin(i,j) * exner - tsurfm) + qsat))
-          LEliq         = - fLEpot  * ( qt0(i,j,1) - (dqsatdT * (tskin(i,j) * exner - tsurfm) + qsat))
+          LEliq         = - fLEliq  * ( qt0(i,j,1) - (dqsatdT * (tskin(i,j) * exner - tsurfm) + qsat))
 
           if(LE(i,j) == 0.) then
             rs(i,j)     = 1.e8
