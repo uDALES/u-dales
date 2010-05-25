@@ -50,14 +50,21 @@ SAVE
   ! Spatially varying properties
   real, allocatable :: lambda  (:,:,:)    !<  Heat conductivity soil layer [W/m/K]
   real, allocatable :: lambdah (:,:,:)    !<  Heat conductivity soil layer half levels [W/m/K]
+  real, allocatable :: lambdas (:,:,:)    !<  Soil moisture diffusivity soil layer 
+  real, allocatable :: lambdash(:,:,:)    !<  Soil moisture diffusivity soil half levels 
+  real, allocatable :: gammas  (:,:,:)    !<  Soil moisture conductivity soil layer 
+  real, allocatable :: gammash (:,:,:)    !<  Soil moisture conductivity soil half levels 
   real, allocatable :: Dh      (:,:,:)    !<  Heat diffusivity
   real, allocatable :: phiw    (:,:,:)    !<  Water content soil matrix [-]
+  real, allocatable :: phiwm   (:,:,:)    !<  Water content soil matrix previous time step [-]
+  real, allocatable :: phifrac (:,:,:)    !<  Relative water content per layer [-]
   real              :: phiwav  (ksoilmax)
   real, allocatable :: phitot  (:,:)      !<  Total soil water content [-]
   real, allocatable :: pCs     (:,:,:)    !<  Volumetric heat capacity [J/m3/K]
   real, allocatable :: rootf   (:,:,:)    !<  Root fraction per soil layer [-]
   real              :: rootfav (ksoilmax)
   real, allocatable :: tsoil   (:,:,:)    !<  Soil temperature [K]
+  real, allocatable :: tsoilm  (:,:,:)    !<  Soil temperature previous time step [K]
   real              :: tsoilav (ksoilmax)
   real, allocatable :: tsoildeep (:,:)    !<  Soil temperature [K]
   real              :: tsoildeepav

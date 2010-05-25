@@ -170,11 +170,18 @@ contains
 
       allocate(lambda(i2,j2,ksoilmax))
       allocate(lambdah(i2,j2,ksoilmax))
+      allocate(lambdas(i2,j2,ksoilmax))
+      allocate(lambdash(i2,j2,ksoilmax))
+      allocate(gammas(i2,j2,ksoilmax))
+      allocate(gammash(i2,j2,ksoilmax))
       allocate(Dh(i2,j2,ksoilmax))
       allocate(phiw(i2,j2,ksoilmax))
+      allocate(phiwm(i2,j2,ksoilmax))
+      allocate(phifrac(i2,j2,ksoilmax))
       allocate(pCs(i2,j2,ksoilmax))
       allocate(rootf(i2,j2,ksoilmax))
       allocate(tsoil(i2,j2,ksoilmax))
+      allocate(tsoilm(i2,j2,ksoilmax))
       allocate(tsoildeep(i2,j2))
       allocate(phitot(i2,j2))
 
@@ -210,6 +217,10 @@ contains
       end do
 
       phitot(:,:) = phitot(:,:) / zsoil(ksoilmax)
+
+      do k = 1, ksoilmax
+        phifrac(:,:,k) = phiw(:,:,k) * dzsoil(k) / zsoil(ksoilmax) / phitot(:,:)
+      end do
 
       ! Set root fraction per layer for short grass
       rootf(:,:,1) = rootfav(1)
@@ -340,7 +351,7 @@ contains
 
 !> Calculates the interaction with the soil, the surface temperature and humidity, and finally the surface fluxes.
   subroutine surface
-    use modglobal,  only : rdt, i1, i2, j1, j2, ih, jh, cp, rlv, fkar, zf, cu, cv, nsv, rk3step, timee, rslabs, pi, pref0, rd, rv, eps1, boltz
+    use modglobal,  only : rdt, i1, i2, j1, j2, ih, jh, cp, rlv, fkar, zf, cu, cv, nsv, rk3step, timee, rslabs, pi, pref0, rd, rv, eps1, boltz, rhow
     use modraddata, only : iradiation, swu, swd, lwu, lwd, useMcICA
     use modfields,  only : thl0, qt0, u0, v0, rhof, ql0, exnf, presf, u0av, v0av
     use modmpi,     only : my_real, mpierr, comm3d, mpi_sum, myid, excj, excjs
@@ -360,12 +371,31 @@ contains
     real     :: exner, exnera, tsurfm, Tatm, e, esat, qsat, desatdT, dqsatdT, Acoef, Bcoef
     real     :: fH, fLE, fLEveg, fLEsoil, fLEpot
 
+    ! CvH temp, move to modsurfdata
+    real     :: gammasat, bc, psisat
+
     if (isurf==10) then
       call surf_user
       return
     end if
-    ! 1     -   Calculate the surface temperature
+
+    if (isurf == 1) then
+      ! 1.X - Compute water content per layer
+      phitot = 0.0
     
+      do k = 1, ksoilmax
+        phitot(:,:) = phitot(:,:) + phiw(:,:,k) * dzsoil(k)
+      end do
+    
+      phitot(:,:) = phitot(:,:) / zsoil(ksoilmax)
+    
+      do k = 1, ksoilmax
+        phifrac(:,:,k) = phiw(:,:,k) * dzsoil(k) / zsoil(ksoilmax) / phitot(:,:)
+      end do
+
+      write(6,*) "CvH test:", phifrac(2,2,1), phifrac(2,2,2), phifrac(2,2,3), phifrac(2,2,4)
+    end if
+ 
     ! CvH start with computation of drag coefficients to allow for implicit solver
     if(isurf <= 2) then
 
@@ -469,7 +499,7 @@ contains
           end if
 
           ! CvH solve the surface temperature implicitly including variations in LWout
-          if(rk3step == 1 .and. timee > 0.) then
+          if(rk3step == 1) then
             tskinm(i,j) = tskin(i,j)
           end if
 
@@ -545,15 +575,62 @@ contains
 
           H(i,j)        = - fH  * ( Tatm - tskin(i,j) * exner ) 
           tendskin(i,j) = Cskin(i,j) * (tskin(i,j) - tskinm(i,j)) * exner / rk3coef
+          
+          thlsl = thlsl + tskin(i,j)
+
+          ! Solve the soil
+          if(rk3step == 1) then
+            tsoilm(i,j,:) = tsoil(i,j,:)
+            phiwm(i,j,:)  = phiw(i,j,:)
+          end if
+
+          ! Calculate the soil heat capacity and conductivity based on water content
+          do k = 1, ksoilmax
+            pCs(i,j,k)    = (1. - phi) * pCm + phiw(i,j,k) * pCw
+            Ke            = log10(phiw(i,j,k) / phi) + 1.
+            lambda(i,j,k) = Ke * (lambdasat - lambdadry) + lambdadry
+          end do
+
+          do k = 1, ksoilmax-1
+            lambdah(i,j,k) = (lambda(i,j,k) * dzsoil(k+1) + lambda(i,j,k+1) * dzsoil(k)) / dzsoilh(k)
+          end do
+    
+          lambdah(i,j,ksoilmax) = lambda(i,j,ksoilmax)
+
+          ! Calculate the soil moisture diffusivity and conductivity
+          bc       = 6.04
+          gammasat = 0.57e-6
+          psisat   = -0.388
+          
+          do k = 1, ksoilmax
+            gammas(i,j,k)  = gammasat * (phiw(i,j,k) / phi) ** (2. * bc + 3.)
+            lambdas(i,j,k) = bc * gammasat * (-1.) * psisat / phi * (phiw(i,j,k) / phi) ** (bc + 2.)
+          end do
+
+          do k = 1, ksoilmax-1
+            lambdash(i,j,k) = (lambdas(i,j,k) * dzsoil(k+1) + lambdas(i,j,k+1) * dzsoil(k)) / dzsoilh(k)
+            gammash(i,j,k)  = (gammas(i,j,k)  * dzsoil(k+1) + gammas(i,j,k+1)  * dzsoil(k)) / dzsoilh(k)
+          end do
+    
+          lambdash(i,j,ksoilmax) = lambdas(i,j,ksoilmax)
 
           ! 1.4   -   Solve the diffusion equation for the heat transport
-          tsoil(i,j,1) = tsoil(i,j,1) + rdt / pCs(i,j,1) * ( lambdah(i,j,ksoilmax) * (tsoil(i,j,2) - tsoil(i,j,1)) / dzsoilh(1) + G0(i,j) ) / dzsoil(1)
+          tsoil(i,j,1) = tsoilm(i,j,1) + rk3coef / pCs(i,j,1) * ( lambdah(i,j,1) * (tsoil(i,j,2) - tsoil(i,j,1)) / dzsoilh(1) + G0(i,j) ) / dzsoil(1)
           do k = 2, ksoilmax-1
-            tsoil(i,j,k) = tsoil(i,j,k) + rdt / pCs(i,j,k) * ( lambdah(i,j,k) * (tsoil(i,j,k+1) - tsoil(i,j,k)) / dzsoilh(k) - lambdah(i,j,k-1) * (tsoil(i,j,k) - tsoil(i,j,k-1)) / dzsoilh(k-1) ) / dzsoil(k)
+            tsoil(i,j,k) = tsoilm(i,j,k) + rk3coef / pCs(i,j,k) * ( lambdah(i,j,k) * (tsoil(i,j,k+1) - tsoil(i,j,k)) / dzsoilh(k) - lambdah(i,j,k-1) * (tsoil(i,j,k) - tsoil(i,j,k-1)) / dzsoilh(k-1) ) / dzsoil(k)
           end do
-          tsoil(i,j,ksoilmax) = tsoil(i,j,ksoilmax) + rdt / pCs(i,j,ksoilmax) * ( lambda(i,j,ksoilmax) * (tsoildeep(i,j) - tsoil(i,j,ksoilmax)) / dzsoil(ksoilmax) - lambdah(i,j,ksoilmax-1) * (tsoil(i,j,ksoilmax) - tsoil(i,j,ksoilmax-1)) / dzsoil(ksoilmax-1) ) / dzsoil(ksoilmax)
+          tsoil(i,j,ksoilmax) = tsoilm(i,j,ksoilmax) + rk3coef / pCs(i,j,ksoilmax) * ( lambda(i,j,ksoilmax) * (tsoildeep(i,j) - tsoil(i,j,ksoilmax)) / dzsoil(ksoilmax) - lambdah(i,j,ksoilmax-1) * (tsoil(i,j,ksoilmax) - tsoil(i,j,ksoilmax-1)) / dzsoil(ksoilmax-1) ) / dzsoil(ksoilmax)
 
-          thlsl = thlsl + tskin(i,j)
+          ! 1.5   -   Solve the diffusion equation for the moisture transport
+          phiw(i,j,1) = phiwm(i,j,1) + rk3coef * ( lambdash(i,j,1) * (phiw(i,j,2) - phiw(i,j,1)) / dzsoilh(1) - gammash(i,j,1) - (phifrac(i,j,1) * fLEveg + fLEsoil) / (rhow*rlv)) / dzsoil(1)
+          do k = 2, ksoilmax-1
+            phiw(i,j,k) = phiwm(i,j,k) + rk3coef * ( lambdash(i,j,k) * (phiw(i,j,k+1) - phiw(i,j,k)) / dzsoilh(k) - gammash(i,j,k) - lambdash(i,j,k-1) * (phiw(i,j,k) - phiw(i,j,k-1)) / dzsoilh(k-1) + gammash(i,j,k-1) - (phifrac(i,j,k) * fLEveg) / (rhow*rlv)) / dzsoil(k)
+          end do
+          ! closed bottom for now
+          phiw(i,j,ksoilmax) = phiwm(i,j,ksoilmax) + rk3coef * (- lambdash(i,j,ksoilmax-1) * (tsoil(i,j,ksoilmax) - tsoil(i,j,ksoilmax-1)) / dzsoil(ksoilmax-1) + gammash(i,j,ksoilmax-1) - (phifrac(i,j,ksoilmax) * fLEveg) / (rhow*rlv) ) / dzsoil(ksoilmax)
+
+          if(i == 2 .and. j == 2) write(6,*) "CvH1", phiw(i,j,1), phiw(i,j,2), phiw(i,j,3), phiw(i,j,4), LE(i,j)
+
         end do
       end do
 
