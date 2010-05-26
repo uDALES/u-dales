@@ -503,6 +503,8 @@ contains
             else
               Qnet(i,j) = -(swd(i,j,1) + swu(i,j,1) + lwd(i,j,1) + lwu(i,j,1))
             end if
+          else
+            Qnet(i,j) = Qnetav
           end if
 
           ! CvH solve the surface temperature implicitly including variations in LWout
@@ -566,8 +568,8 @@ contains
           Acoef   = Qnet(i,j) - boltz * tsurfm ** 4. + 4. * boltz * tsurfm ** 4. / rk3coef + fH * Tatm + fLE * (dqsatdT * tsurfm - qsat + qt0(i,j,1)) + lambdaskin(i,j) * tsoil(i,j,1)
           Bcoef   = 4. * boltz * tsurfm ** 3. / rk3coef + fH + fLE * dqsatdT + lambdaskin(i,j)
           
-          Acoef   = Qnet(i,j) - boltz * tsurfm ** 4. + 4. * boltz * tsurfm ** 4. / rk3coef + fH * Tatm + fLE * (dqsatdT * tsurfm - qsat + qt0(i,j,1)) + lambdaskin(i,j) * tsoil(i,j,1)
-          Bcoef   = 4. * boltz * tsurfm ** 3. / rk3coef + fH + fLE * dqsatdT + lambdaskin(i,j)
+          !Acoef   = Qnet(i,j) - boltz * tsurfm ** 4. + 4. * boltz * tsurfm ** 4. / rk3coef + fH * Tatm + fLE * (dqsatdT * tsurfm - qsat + qt0(i,j,1)) + lambdaskin(i,j) * tsoil(i,j,1)
+          !Bcoef   = 4. * boltz * tsurfm ** 3. / rk3coef + fH + fLE * dqsatdT + lambdaskin(i,j)
 
           if (Cskin(i,j) == 0.) then
             tskin(i,j) = Acoef * Bcoef ** (-1.) / exner
@@ -650,7 +652,7 @@ contains
           phiw(i,j,ksoilmax) = phiwm(i,j,ksoilmax) + rk3coef * (- lambdash(i,j,ksoilmax-1) * (phiw(i,j,ksoilmax) - phiw(i,j,ksoilmax-1)) / dzsoil(ksoilmax-1) + gammash(i,j,ksoilmax-1) - (phifrac(i,j,ksoilmax) * LEveg) / (rhow*rlv) ) / dzsoil(ksoilmax)
           !if(i == 2 .and. j == 2) write(6,*) "CvH1 down:", 0., "up:", lambdash(i,j,ksoilmax-1) * (phiw(i,j,ksoilmax) - phiw(i,j,ksoilmax-1)) / dzsoilh(ksoilmax-1) - gammash(i,j,ksoilmax-1), "out:", (phifrac(i,j,ksoilmax) * LEveg) / (rhow*rlv)
 
-          if(i == 2 .and. j == 2 .and. myid==0 .and. rk3step == 3) write(6,*) "CvH", cliq(i,j), phiwm(i,j,1), lambdas(i,j,1), gammas(i,j,1), phiwm(i,j,1)*dzsoil(1)+phiwm(i,j,2)*dzsoil(2)+phiwm(i,j,3)*dzsoil(3)+phiwm(i,j,4)*dzsoil(4), LE(i,j)
+          if(i == 2 .and. j == 2 .and. myid==0 ) write(6,*) "CvH", cliq(i,j), phiwm(i,j,1), lambdas(i,j,1), gammas(i,j,1), phiwm(i,j,1)*dzsoil(1)+phiwm(i,j,2)*dzsoil(2)+phiwm(i,j,3)*dzsoil(3)+phiwm(i,j,4)*dzsoil(4), LE(i,j)
         end do
       end do
 
@@ -713,7 +715,6 @@ contains
           dvdz  (i,j) = ustar(i,j) * phimzf / (fkar*zf(1))*(vpcv/horv)
           dthldz(i,j) = - thlflux(i,j) / ustar(i,j) * phihzf / (fkar*zf(1))
           dqtdz (i,j) = - qtflux(i,j)  / ustar(i,j) * phihzf / (fkar*zf(1))
-
         end do
       end do
 
