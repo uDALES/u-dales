@@ -82,6 +82,7 @@ program DALES      !Version 3.2 RC 1
   use modtimestat,     only : inittimestat, timestat
   use modgenstat,      only : initgenstat, genstat, exitgenstat
   use modradstat,      only : initradstat ,radstat, exitradstat
+  use modlsmstat,      only : initlsmstat ,lsmstat, exitlsmstat
   use modsampling,     only : initsampling, sampling,exitsampling
   use modcrosssection, only : initcrosssection, crosssection,exitcrosssection
   !use modprojection,   only : initprojection, projection
@@ -123,6 +124,7 @@ program DALES      !Version 3.2 RC 1
   call initfielddump
   call initstattend
   call initradstat
+  call initlsmstat
   !call initparticles
   !call initnudge
   call initbulkmicrostat
@@ -205,6 +207,7 @@ program DALES      !Version 3.2 RC 1
     call timestat  !Timestat must preceed all other timeseries that could write in the same netCDF file (unless stated otherwise
     call genstat  !Genstat must preceed all other statistics that could write in the same netCDF file (unless stated otherwise
     call radstat
+    call lsmstat
     call sampling
     call crosssection
     !call projection
@@ -229,6 +232,7 @@ program DALES      !Version 3.2 RC 1
 !-------------------------------------------------------
   call exitgenstat
   call exitradstat
+  call exitlsmstat
   !call exitparticles
   !call exitnudge
   call exitsampling
