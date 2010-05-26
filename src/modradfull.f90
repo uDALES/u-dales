@@ -1621,7 +1621,7 @@ contains
        end do
 
        if (abs(sum(gas(n)%hk) - 1.) <= 1.1 * spacing(1.) ) then
-          print *, gas(n)%name, gas(n)%iband, gas(n)%noverlap,              &
+          print 601, gas(n)%name, gas(n)%iband, gas(n)%noverlap,              &
                gas(n)%ng, gas(n)%np, gas(n)%nt
        else
           print *, gas(n)%hk, sum(gas(n)%hk(:))
