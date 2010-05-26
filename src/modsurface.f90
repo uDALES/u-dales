@@ -467,6 +467,8 @@ contains
             else
               Qnet(i,j) = -(swd(i,j,1) + swu(i,j,1) + lwd(i,j,1) + lwu(i,j,1))
             end if
+          else
+            Qnet(i,j) = Qnetav
           end if
 
           ! CvH solve the surface temperature implicitly including variations in LWout
