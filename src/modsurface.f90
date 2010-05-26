@@ -769,7 +769,7 @@ contains
   subroutine qtsurf
     use modglobal,   only : tmelt,bt,at,rd,rv,cp,es0,pref0,rslabs,i1,j1
     use modfields,   only : qt0
-    use modsurfdata, only : rs, ra
+    !use modsurfdata, only : rs, ra
     use modmpi,      only : my_real,mpierr,comm3d,mpi_sum,myid
 
     implicit none
@@ -892,7 +892,6 @@ contains
         if(Rib > 0) L = 0.01
         if(Rib < 0) L = -0.01
       end if
-      write(6,*) "iter", iter, Rib, L
       if(abs(L - Lold) < 0.0001) exit
       if(iter > 1000) stop 'Obukhov length calculation does not converge. Model terminated'
     end do
