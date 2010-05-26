@@ -164,7 +164,7 @@ contains
     use modmpi,    only : myid,mpierr, comm3d,my_real, mpi_logical
     use modglobal, only : dtmax, kmax,k1, nsv,ifnamopt,fname_options, ifoutput, cexpnr,dtav_glob,timeav_glob,ladaptive,dt_lim,btime,tres
     use modstat_nc, only : lnetcdf, open_nc,define_nc,redefine_nc,ncinfo,writestat_dims_nc
-
+    use modsurfdata, only : isurf,ksoilmax
 
     implicit none
 
@@ -390,7 +390,11 @@ contains
         call ncinfo(ncname(37,:),'cs','Smagorinsky constant','-','tt')
 
 
-        call open_nc(fname,  ncid,n3=kmax)
+        if (isurf==1) then
+          call open_nc(fname,  ncid,n3=kmax,ns=ksoilmax)
+        else
+          call open_nc(fname,  ncid,n3=kmax,ns=ksoilmax)
+        endif
         call define_nc( ncid, 1, tncname)
         call writestat_dims_nc(ncid)
         call redefine_nc(ncid)
