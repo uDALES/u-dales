@@ -159,9 +159,6 @@ contains
       end if
     end if
 
-    if(isurf == 1) then
-    end if
-
     ! 1.1  -   Allocate arrays
     if(isurf == 1) then
       allocate(zsoil(ksoilmax))
@@ -263,24 +260,20 @@ contains
       allocate(H(i2,j2))
       allocate(G0(i2,j2))
 
-      Qnet = Qnetav
-    end if
-
-    if(isurf <= 2) then
-      allocate(rs(i2,j2))
       allocate(rsveg(i2,j2))
       allocate(rsmin(i2,j2))
       allocate(rssoil(i2,j2))
       allocate(rssoilmin(i2,j2))
       allocate(cveg(i2,j2))
       allocate(cliq(i2,j2))
-      allocate(ra(i2,j2))
       allocate(tendskin(i2,j2))
       allocate(tskinm(i2,j2))
       allocate(Cskin(i2,j2))
       allocate(lambdaskin(i2,j2))
       allocate(LAI(i2,j2))
       allocate(gD(i2,j2))
+
+      Qnet       = Qnetav
 
       Cskin      = Cskinav
       lambdaskin = lambdaskinav
@@ -291,6 +284,19 @@ contains
 
       cveg       = cvegav
       cliq       = 0.
+    end if
+
+    if(isurf <= 2) then
+      allocate(rs(i2,j2))
+      allocate(ra(i2,j2))
+
+      ! CvH set initial values for rs and ra to be able to compute qskin
+      ra = 50.
+      if(isurf == 1) then
+        rs = 100.
+      else
+        rs = rsisurf2
+      end if
     end if
 
     allocate(albedo(i2,j2))
@@ -310,8 +316,6 @@ contains
     end if
 
     albedo     = albedoav
-
-
     z0m        = z0mav
     z0h        = z0hav
 
@@ -327,16 +331,6 @@ contains
     allocate(dthldz  (i2,j2))
     allocate(svflux  (i2,j2,nsv))
     allocate(svs(nsv))
-
-    ! CvH set initial values for rs and ra to be able to compute qskin
-    if(isurf <= 2) then
-      ra = 50.
-      if(isurf == 1) then
-        rs = 100.
-      else
-        rs = rsisurf2
-      end if
-    end if
 
     return
   end subroutine initsurface
