@@ -164,9 +164,6 @@ contains
       end if
     end if
 
-    if(isurf == 1) then
-    end if
-
     ! 1.1  -   Allocate arrays
     if(isurf == 1) then
       allocate(zsoil(ksoilmax))
@@ -278,18 +275,12 @@ contains
       allocate(H(i2,j2))
       allocate(G0(i2,j2))
 
-      Qnet = Qnetav
-    end if
-
-    if(isurf <= 2) then
-      allocate(rs(i2,j2))
       allocate(rsveg(i2,j2))
       allocate(rsmin(i2,j2))
       allocate(rssoil(i2,j2))
       allocate(rssoilmin(i2,j2))
       allocate(cveg(i2,j2))
       allocate(cliq(i2,j2))
-      allocate(ra(i2,j2))
       allocate(tendskin(i2,j2))
       allocate(tskinm(i2,j2))
       allocate(Cskin(i2,j2))
@@ -298,6 +289,8 @@ contains
       allocate(gD(i2,j2))
       allocate(Wl(i2,j2))
       allocate(Wlm(i2,j2))
+
+      Qnet       = Qnetav
 
       Cskin      = Cskinav
       lambdaskin = lambdaskinav
@@ -309,6 +302,19 @@ contains
       cveg       = cvegav
       cliq       = 0.
       Wl         = Wlav
+    end if
+
+    if(isurf <= 2) then
+      allocate(rs(i2,j2))
+      allocate(ra(i2,j2))
+
+      ! CvH set initial values for rs and ra to be able to compute qskin
+      ra = 50.
+      if(isurf == 1) then
+        rs = 100.
+      else
+        rs = rsisurf2
+      end if
     end if
 
     allocate(albedo(i2,j2))
@@ -328,8 +334,6 @@ contains
     end if
 
     albedo     = albedoav
-
-
     z0m        = z0mav
     z0h        = z0hav
 
@@ -345,14 +349,6 @@ contains
     allocate(dthldz  (i2,j2))
     allocate(svflux  (i2,j2,nsv))
     allocate(svs(nsv))
-
-    ! CvH set initial values for rs and ra to be able to compute qskin
-    if(isurf <= 2) then
-      ra = 50.
-      if(isurf == 1) then
-        rs = 100.
-      end if
-    end if
 
     return
   end subroutine initsurface
@@ -417,9 +413,7 @@ contains
 
       do j = 2, j1
         do i = 2, i1
-          if(isurf == 2) then
-            rs(i,j) = rsisurf2
-          else
+          if(isurf == 1) then
             ! 2.1   -   Calculate the surface resistance 
             ! Stomatal opening as a function of incoming short wave radiation
             if (iradiation > 0) then
@@ -635,6 +629,11 @@ contains
           lambdash(i,j,ksoilmax) = lambdas(i,j,ksoilmax)
 
           ! 1.4   -   Solve the diffusion equation for the heat transport
+          tsoil(i,j,1) = tsoilm(i,j,1) + rk3coef / pCs(i,j,1) * ( lambdah(i,j,1) * (tsoil(i,j,2) - tsoil(i,j,1)) / dzsoilh(1) + G0(i,j) ) / dzsoil(1)
+          if(rk3step == 1) then
+            tsoilm(i,j,:) = tsoil(i,j,:)
+          end if
+
           tsoil(i,j,1) = tsoilm(i,j,1) + rk3coef / pCs(i,j,1) * ( lambdah(i,j,1) * (tsoil(i,j,2) - tsoil(i,j,1)) / dzsoilh(1) + G0(i,j) ) / dzsoil(1)
           do k = 2, ksoilmax-1
             tsoil(i,j,k) = tsoilm(i,j,k) + rk3coef / pCs(i,j,k) * ( lambdah(i,j,k) * (tsoil(i,j,k+1) - tsoil(i,j,k)) / dzsoilh(k) - lambdah(i,j,k-1) * (tsoil(i,j,k) - tsoil(i,j,k-1)) / dzsoilh(k-1) ) / dzsoil(k)
@@ -862,7 +861,7 @@ contains
   subroutine qtsurf
     use modglobal,   only : tmelt,bt,at,rd,rv,cp,es0,pref0,rslabs,i1,j1
     use modfields,   only : qt0
-    use modsurfdata, only : rs, ra
+    !use modsurfdata, only : rs, ra
     use modmpi,      only : my_real,mpierr,comm3d,mpi_sum,myid
 
     implicit none
@@ -947,6 +946,7 @@ contains
               if(Rib < 0) L = -0.01
             end if
             if(abs(L - Lold) < 0.0001) exit
+            if(iter > 1000) stop 'Obukhov length calculation does not converge!'
           end do
 
           obl(i,j) = L
@@ -985,6 +985,7 @@ contains
         if(Rib < 0) L = -0.01
       end if
       if(abs(L - Lold) < 0.0001) exit
+      if(iter > 1000) stop 'Obukhov length calculation does not converge!'
     end do
 
     if(.not. lmostlocal) then
