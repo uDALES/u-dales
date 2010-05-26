@@ -333,6 +333,8 @@ contains
       ra = 50.
       if(isurf == 1) then
         rs = 100.
+      else
+        rs = rsisurf2
       end if
     end if
 
@@ -381,9 +383,7 @@ contains
 
       do j = 2, j1
         do i = 2, i1
-          if(isurf == 2) then
-            rs(i,j) = rsisurf2
-          else
+          if(isurf == 1) then
             ! 2.1   -   Calculate the surface resistance 
             ! Stomatal opening as a function of incoming short wave radiation
             if (iradiation > 0) then
