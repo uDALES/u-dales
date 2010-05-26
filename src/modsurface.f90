@@ -854,6 +854,7 @@ contains
               if(Rib < 0) L = -0.01
             end if
             if(abs(L - Lold) < 0.0001) exit
+            if(iter > 1000) stop 'Obukhov length calculation does not converge. Model terminated'
           end do
 
           obl(i,j) = L
@@ -891,7 +892,9 @@ contains
         if(Rib > 0) L = 0.01
         if(Rib < 0) L = -0.01
       end if
+      write(6,*) "iter", iter, Rib, L
       if(abs(L - Lold) < 0.0001) exit
+      if(iter > 1000) stop 'Obukhov length calculation does not converge. Model terminated'
     end do
 
     if(.not. lmostlocal) then
