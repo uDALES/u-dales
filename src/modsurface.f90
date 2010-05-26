@@ -424,6 +424,7 @@ contains
 
             ! Soil moisture availability
             f2  = (phifc - phiwp) / (phitot(i,j) - phiwp)
+            f2  = max(f2, 1.)
 
             ! Response of stomata to vapor deficit of atmosphere
             esat = 0.611e3 * exp(17.2694 * (thl0(i,j,1) - 273.16) / (thl0(i,j,1) - 35.86))
@@ -440,6 +441,7 @@ contains
             ! 2.2   - Calculate soil resistance based on ECMWF method
 
             f2  = (phifc - phiwp) / (phiw(i,j,1) - phiwp)
+            f2  = max(f2, 1.)
             rssoil(i,j) = rssoilmin(i,j) * f2
             rssoil(i,j) = rssoilmin(i,j) * f2
           end if
