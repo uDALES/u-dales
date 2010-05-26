@@ -139,3 +139,13 @@ lstat = .true.
 dtav = 60
 timeav = 1800
 /
+
+&NAMLSMSTAT
+lstat = .true.
+dtav = 60
+timeav = 1800
+/
+
+&NAMNETCDFSTATS
+lnetcdf = .true.
+/

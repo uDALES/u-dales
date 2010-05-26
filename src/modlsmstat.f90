@@ -210,7 +210,7 @@ contains
       use modglobal, only : cexpnr,ifoutput,zf,zh,rtimee
       use modstat_nc, only: lnetcdf, writestat_nc
       use modgenstat, only: ncid_prof=>ncid,nrec_prof=>nrec
-      use modsurfdata,only : ksoilmax,zsoil
+      use modsurfdata,only : ksoilmax,zsoilc
       implicit none
       real,dimension(ksoilmax,nvar) :: vars
       integer nsecs, nhrs, nminut,k
@@ -243,7 +243,7 @@ contains
           ,'#    (M)    (K)          (M^3/M^3)    (W/M/K)      (M^2/S)       (M/S)      '
       do k=1,ksoilmax
         write(ifoutput,'(I3,F8.2,F10.4,4E13.4)') &
-            k, zsoil(k),&
+            k, zsoilc(k),&
             tsoilmn(k),&
             phiwmn(k),&
             lambdamn(k),&

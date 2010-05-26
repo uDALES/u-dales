@@ -248,7 +248,7 @@ contains
  end subroutine exitstat_nc
   subroutine writestat_dims_nc(ncid)
     use modglobal, only : dx,dy,zf,zh,jmax
-    use modsurfdata, only : zsoil,isurf
+    use modsurfdata, only : zsoilc,isurf
     use modmpi, only : myid
     implicit none
     integer, intent(in) :: ncid
@@ -276,7 +276,7 @@ contains
     if (isurf==1) then
       iret = nf90_inq_varid(ncid, 'zts', VarID)
       iret=nf90_inquire_dimension(ncid, ztsID, len=length)
-      if (iret==0) iret = nf90_put_var(ncid, varID, zsoil(1:length),(/1/))
+      if (iret==0) iret = nf90_put_var(ncid, varID, zsoilc(1:length),(/1/))
     end if
 
   end subroutine writestat_dims_nc

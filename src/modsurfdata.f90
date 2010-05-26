@@ -44,6 +44,7 @@ SAVE
   real              :: Ke                 !<  Kersten number [-]
 
   real, allocatable :: zsoil  (:)         !<  Height of bottom soil layer from surface [m]
+  real, allocatable :: zsoilc (:)        !<  Height of center soil layer from surface [m]
   real, allocatable :: dzsoil (:)         !<  Depth of soil layer [m]
   real, allocatable :: dzsoilh(:)         !<  Depth of soil layer between center of layers [m]
 

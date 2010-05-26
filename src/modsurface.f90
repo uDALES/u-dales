@@ -167,6 +167,7 @@ contains
     ! 1.1  -   Allocate arrays
     if(isurf == 1) then
       allocate(zsoil(ksoilmax))
+      allocate(zsoilc(ksoilmax))
       allocate(dzsoil(ksoilmax))
       allocate(dzsoilh(ksoilmax))
 
@@ -199,7 +200,7 @@ contains
       do k = 2, ksoilmax
         zsoil(k) = zsoil(k-1) + dzsoil(k)
       end do
-
+      zsoilc = -(zsoil-0.5*dzsoil)
       do k = 1, ksoilmax-1
         dzsoilh(k) = 0.5 * (dzsoil(k+1) + dzsoil(k))
       end do
