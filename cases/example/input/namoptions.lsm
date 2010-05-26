@@ -22,7 +22,7 @@ ysize      =  3200.
 xlat       =  51.96
 xlon       =  4.95
 xday       =  287.
-xtime      =  10.
+xtime      =  8.
 /
 
 &PHYSICS
@@ -63,7 +63,7 @@ rsisurf2     = 50.
 
 z0mav        = 0.1
 z0hav        = 0.02
-Cskinav      = 0
+Cskinav      = 20000
 lambdaskinav = 5.
 albedoav     = 0.20
 Qnetav       = 450.
@@ -71,6 +71,7 @@ Qnetav       = 450.
 rsminav      = 110.
 rssoilminav  = 50.
 cvegav       = 0.9
+Wlav         = 0.0
 LAIav        = 2.
 gDav         = 0.
 /
@@ -137,4 +138,10 @@ timeav  = 1800
 lstat = .true.
 dtav = 60
 timeav = 1800
+/
+
+&NAMLSMSTAT
+lstat  = .true.
+dtav   = 60
+timeav = 60
 /
