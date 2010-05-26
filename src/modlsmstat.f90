@@ -181,7 +181,6 @@ contains
     use modsurfdata, only : ksoilmax,tsoil,phiw,lambda,lambdas,gammas
 
     implicit none
-    integer :: k
 
     tsoilav  = 0.
     phiwav  = 0.
