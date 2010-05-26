@@ -695,7 +695,7 @@ contains
   subroutine readrestartfiles
 
     use modsurfdata, only : ustar,thlflux,qtflux,svflux,dudz,dvdz,dthldz,dqtdz,ps,thls,qts,thvs,oblav,&
-                           tsoil,tskin,isurf,ksoilmax,Qnet,swdavn,swuavn,lwdavn,lwuavn,nradtime
+                           tsoil,phiw,tskin,Wl,isurf,ksoilmax,Qnet,swdavn,swuavn,lwdavn,lwuavn,nradtime
     use modraddata, only: iradiation, useMcICA
     use modfields,  only : u0,v0,w0,thl0,qt0,ql0,ql0h,e120,dthvdz,presf,presh,sv0
     use modglobal,  only : i1,i2,ih,j1,j2,jh,k1,dtheta,dqt,dsv,startfile,timee,&
@@ -755,7 +755,9 @@ contains
       write(6,*) 'loading ',name
       open(unit=ifinput,file=name,form='unformatted')
       read(ifinput) (((tsoil(i,j,k),i=1,i2),j=1,j2),k=1,ksoilmax)
+      read(ifinput) (((phiw(i,j,k),i=1,i2),j=1,j2),k=1,ksoilmax)
       read(ifinput) ((tskin(i,j),i=1,i2),j=1,j2)
+      read(ifinput) ((Wl(i,j),i=1,i2),j=1,j2)
       read(ifinput) ((Qnet(i,j),i=1,i2),j=1,j2)
       if(iradiation == 1 .and. useMcICA) then
         read(ifinput) (((swdavn(i,j,n),i=1,i2),j=1,j2),n=1,nradtime)
@@ -771,7 +773,7 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine writerestartfiles
     use modsurfdata,only: ustar,thlflux,qtflux,svflux,dudz,dvdz,dthldz,dqtdz,ps,thls,qts,thvs,oblav,&
-                          tsoil,tskin,ksoilmax,isurf,ksoilmax,Qnet,swdavn,swuavn,lwdavn,lwuavn,nradtime
+                          tsoil,phiw,tskin,Wl,ksoilmax,isurf,ksoilmax,Qnet,swdavn,swuavn,lwdavn,lwuavn,nradtime
     use modraddata, only: iradiation, useMcICA
     use modfields, only : u0,v0,w0,thl0,qt0,ql0,ql0h,e120,dthvdz,presf,presh,sv0
     use modglobal, only : i1,i2,ih,j1,j2,jh,k1,dsv,itrestart,tnextrestart,dt_lim,rtimee,timee,tres,cexpnr,&
@@ -852,7 +854,9 @@ contains
         name(16:18) = cexpnr
         open  (ifoutput,file=name,form='unformatted')
         write(ifoutput) (((tsoil(i,j,k),i=1,i2),j=1,j2),k=1,ksoilmax)
+        write(ifoutput) (((phiw(i,j,k),i=1,i2),j=1,j2),k=1,ksoilmax)
         write(ifoutput) ((tskin(i,j),i=1,i2),j=1,j2)
+        write(ifoutput) ((Wl(i,j),i=1,i2),j=1,j2)
         write(ifoutput) ((Qnet(i,j),i=1,i2),j=1,j2)
         if(iradiation == 1 .and. useMcICA) then
           write(ifoutput) (((swdavn(i,j,n),i=1,i2),j=1,j2),n=1,nradtime)
