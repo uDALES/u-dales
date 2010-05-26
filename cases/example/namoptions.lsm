@@ -63,11 +63,7 @@ rsisurf2     = 50.
 
 z0mav        = 0.1
 z0hav        = 0.02
-<<<<<<< HEAD
 Cskinav      = 20000
-=======
-Cskinav      = 20000.
->>>>>>> chiel
 lambdaskinav = 5.
 albedoav     = 0.20
 Qnetav       = 450.
