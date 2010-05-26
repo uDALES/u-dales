@@ -424,7 +424,10 @@ contains
 
             ! Soil moisture availability
             f2  = (phifc - phiwp) / (phitot(i,j) - phiwp)
+            ! Prevent f2 becoming less than 1
             f2  = max(f2, 1.)
+            ! Put upper boundary on f2 for cases with very dry soils
+            f2  = min(1.e8, f2)
 
             ! Response of stomata to vapor deficit of atmosphere
             esat = 0.611e3 * exp(17.2694 * (thl0(i,j,1) - 273.16) / (thl0(i,j,1) - 35.86))
@@ -442,6 +445,7 @@ contains
 
             f2  = (phifc - phiwp) / (phiw(i,j,1) - phiwp)
             f2  = max(f2, 1.)
+            f2  = min(1.e8, f2)
             rssoil(i,j) = rssoilmin(i,j) * f2
             rssoil(i,j) = rssoilmin(i,j) * f2
           end if
@@ -564,9 +568,6 @@ contains
           Acoef   = Qnet(i,j) - boltz * tsurfm ** 4. + 4. * boltz * tsurfm ** 4. / rk3coef + fH * Tatm + fLE * (dqsatdT * tsurfm - qsat + qt0(i,j,1)) + lambdaskin(i,j) * tsoil(i,j,1)
           Bcoef   = 4. * boltz * tsurfm ** 3. / rk3coef + fH + fLE * dqsatdT + lambdaskin(i,j)
           
-          !Acoef   = Qnet(i,j) - boltz * tsurfm ** 4. + 4. * boltz * tsurfm ** 4. / rk3coef + fH * Tatm + fLE * (dqsatdT * tsurfm - qsat + qt0(i,j,1)) + lambdaskin(i,j) * tsoil(i,j,1)
-          !Bcoef   = 4. * boltz * tsurfm ** 3. / rk3coef + fH + fLE * dqsatdT + lambdaskin(i,j)
-
           if (Cskin(i,j) == 0.) then
             tskin(i,j) = Acoef * Bcoef ** (-1.) / exner
           else
