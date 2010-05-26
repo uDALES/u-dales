@@ -58,6 +58,7 @@ SAVE
   real, allocatable :: rootf   (:,:,:)    !<  Root fraction per soil layer [-]
   real              :: rootfav (ksoilmax)
   real, allocatable :: tsoil   (:,:,:)    !<  Soil temperature [K]
+  real, allocatable :: tsoilm  (:,:,:)    !<  Soil temperature previous time step [K]
   real              :: tsoilav (ksoilmax)
   real, allocatable :: tsoildeep (:,:)    !<  Soil temperature [K]
   real              :: tsoildeepav
