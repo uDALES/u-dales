@@ -238,32 +238,32 @@ contains
       tsoil(:,:,3)   = tsoilav(3)
       tsoil(:,:,4)   = tsoilav(4)
       tsoildeep(:,:) = tsoildeepav
+     
+      !! Calculate the soil heat capacity and conductivity based on water content
+      !! CvH - If we need prognostic soil moisture at one point, these 2 loops should move to the surface function
+      !do k = 1, ksoilmax
+      !  do j = 2, j1
+      !    do i = 2, i1
+      !      pCs(i,j,k)    = (1. - phi) * pCm + phiw(i,j,k) * pCw
+      !      Ke            = log10(phiw(i,j,k) / phi) + 1.
+      !      lambda(i,j,k) = Ke * (lambdasat - lambdadry) + lambdadry
+      !    end do
+      !  end do
+      !end do
 
-      ! Calculate the soil heat capacity and conductivity based on water content
-      ! CvH - If we need prognostic soil moisture at one point, these 2 loops should move to the surface function
-      do k = 1, ksoilmax
-        do j = 2, j1
-          do i = 2, i1
-            pCs(i,j,k)    = (1. - phi) * pCm + phiw(i,j,k) * pCw
-            Ke            = log10(phiw(i,j,k) / phi) + 1.
-            lambda(i,j,k) = Ke * (lambdasat - lambdadry) + lambdadry
-          end do
-        end do
-      end do
+      !do k = 1, ksoilmax-1
+      !  do j = 2, j1
+      !    do i = 2, i1
+      !      lambdah(i,j,k) = (lambda(i,j,k) * dzsoil(k+1) + lambda(i,j,k+1) * dzsoil(k)) / dzsoilh(k)
+      !    end do
+      !  end do
+      !end do
 
-      do k = 1, ksoilmax-1
-        do j = 2, j1
-          do i = 2, i1
-            lambdah(i,j,k) = (lambda(i,j,k) * dzsoil(k+1) + lambda(i,j,k+1) * dzsoil(k)) / dzsoilh(k)
-          end do
-        end do
-      end do
-
-      do j = 2, j1
-        do i = 2, i1
-          lambdah(i,j,ksoilmax) = lambda(i,j,ksoilmax)
-        end do
-      end do
+      !do j = 2, j1
+      !  do i = 2, i1
+      !    lambdah(i,j,ksoilmax) = lambda(i,j,ksoilmax)
+      !  end do
+      !end do
 
     end if
 
@@ -375,9 +375,6 @@ contains
     real     :: exner, exnera, tsurfm, Tatm, e, esat, qsat, desatdT, dqsatdT, Acoef, Bcoef
     real     :: fH, fLE, fLEveg, fLEsoil, fLEliq, LEveg, LEsoil, LEliq
     real     :: Wlmx
-
-    ! CvH temp, move to modsurfdata
-    real     :: gammasat, bc, psisat
 
     if (isurf==10) then
       call surf_user
@@ -614,11 +611,6 @@ contains
     
           lambdah(i,j,ksoilmax) = lambda(i,j,ksoilmax)
 
-          ! Calculate the soil moisture diffusivity and conductivity
-          bc       = 6.04
-          gammasat = 0.57e-6
-          psisat   = -0.388
-          
           do k = 1, ksoilmax
             gammas(i,j,k)  = gammasat * (phiw(i,j,k) / phi) ** (2. * bc + 3.)
             lambdas(i,j,k) = bc * gammasat * (-1.) * psisat / phi * (phiw(i,j,k) / phi) ** (bc + 2.)

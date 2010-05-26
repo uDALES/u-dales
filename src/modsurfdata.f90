@@ -88,6 +88,9 @@ SAVE
   real, parameter   :: lambdasm  = 3.11   !<  Heat conductivity soil matrix [W/m/K]
   real, parameter   :: lambdaw   = 0.57   !<  Heat conductivity water [W/m/K]
 
+  real, parameter   :: bc        = 6.04     !< Clapp and Hornberger non-dimensional exponent [-]
+  real, parameter   :: gammasat  = 0.57e-6  !< Hydraulic conductivity at saturation [m s-1]
+  real, parameter   :: psisat    = -0.388   !< Matrix potential at saturation [m]
 
   ! Land surface properties
 
