@@ -245,6 +245,10 @@ contains
       ih = 3
       jh = 3
       kh = 1
+    elseif (any(advarr==iadv_52).or.any(iadv_sv(1:nsv)==iadv_52)) then
+      ih = 3
+      jh = 3
+      kh = 1
     elseif (any(advarr==iadv_kappa).or.any(iadv_sv(1:nsv)==iadv_kappa)) then
       ih = 2
       jh = 2

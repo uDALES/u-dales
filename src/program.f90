@@ -99,7 +99,7 @@ program DALES      !Version 3.2 RC 1
   !use modparticles,    only : initparticles, particles, exitparticles
   !use modnudge,        only : initnudge, nudge, exitnudge
   
-  use modchem,         only : initchem,inputchem, twostep
+  !use modchem,         only : initchem,inputchem, twostep
   implicit none
 
 !----------------------------------------------------------------
@@ -130,7 +130,7 @@ program DALES      !Version 3.2 RC 1
   call initbulkmicrostat
   call initbudget
   call initstressbudget
-  call initchem
+  !call initchem
 
 !------------------------------------------------------
 !   3.0   MAIN TIME LOOP
@@ -200,8 +200,7 @@ program DALES      !Version 3.2 RC 1
 !-----------------------------------------------------
 !   3.7  WRITE RESTARTFILES AND DO STATISTICS
 !------------------------------------------------------
-    ! Chemistry
-    call twostep
+    !call twostep
 
     call checksim
     call timestat  !Timestat must preceed all other timeseries that could write in the same netCDF file (unless stated otherwise

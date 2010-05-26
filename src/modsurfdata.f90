@@ -93,11 +93,15 @@ SAVE
 
   ! Surface properties
   real, allocatable :: z0m        (:,:) !<  Roughness length for momentum [m]
-  real              :: z0mav = -1
+  real              :: z0mav    = -1
   real, allocatable :: z0h        (:,:) !<  Roughness length for heat [m]
-  real              :: z0hav = -1
+  real              :: z0hav    = -1
   real, allocatable :: tskin      (:,:) !<  Skin temperature [K]
   real, allocatable :: tskinm     (:,:) !<  Skin temperature previous timestep [K]
+  real, allocatable :: Wl         (:,:) !<  Liquid water reservoir [m]
+  real              :: Wlav     = -1                                  
+  real, parameter   :: Wmax     = 0.0002 !<  Maximum layer of liquid water on surface [m]
+  real, allocatable :: Wlm        (:,:) !<  Liquid water reservoir previous timestep [m]
   real, allocatable :: qskin      (:,:) !<  Skin specific humidity [kg/kg]
   real, allocatable :: albedo     (:,:) !<  Surface albedo [-]
   real              :: albedoav = -1
@@ -161,6 +165,6 @@ SAVE
   real              :: ustin  = -1      !<  Prescribed friction velocity [m/s]
   real              :: wtsurf = -1      !<  Prescribed kinematic temperature flux [K m/s]
   real              :: wqsurf = -1      !<  Prescribed kinematic moisture flux [kg/kg m/s]
-  real              :: wsvsurf(100)     !<  Prescribed surface scalar(n) flux [- m/s]
+  real              :: wsvsurf(100) = 0 !<  Prescribed surface scalar(n) flux [- m/s]
 
 end module modsurfdata

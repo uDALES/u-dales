@@ -52,7 +52,7 @@ contains
     namelist/NAMSURFACE/ & !< Soil related variables
       isurf,tsoilav, tsoildeepav, phiwav, rootfav, &
       ! Land surface related variables
-      lmostlocal, lsmoothflux, lneutral, z0mav, z0hav, rsisurf2, Cskinav, lambdaskinav, albedoav, Qnetav, cvegav, &
+      lmostlocal, lsmoothflux, lneutral, z0mav, z0hav, rsisurf2, Cskinav, lambdaskinav, albedoav, Qnetav, cvegav, Wlav, &
       ! Jarvis-Steward related variables
       rsminav, rssoilminav, LAIav, gDav, &
       ! Prescribed values for isurf 2, 3, 4
@@ -96,6 +96,7 @@ contains
     call MPI_BCAST(rsminav      , 1, MY_REAL, 0, comm3d, mpierr)
     call MPI_BCAST(rssoilminav  , 1, MY_REAL, 0, comm3d, mpierr)
     call MPI_BCAST(cvegav       , 1, MY_REAL, 0, comm3d, mpierr)
+    call MPI_BCAST(Wlav         , 1, MY_REAL, 0, comm3d, mpierr)
     call MPI_BCAST(LAIav        , 1, MY_REAL, 0, comm3d, mpierr)
     call MPI_BCAST(gDav         , 1, MY_REAL, 0, comm3d, mpierr)
 
@@ -147,6 +148,10 @@ contains
       if(gDav == -1) then
         stop "NAMSURFACE: gDav is not set"
       end if
+      if(Wlav == -1) then
+        stop "NAMSURFACE: Wlav is not set"
+      end if
+
 
     end if
 
@@ -157,9 +162,6 @@ contains
       if(z0hav == -1) then
         stop "NAMSURFACE: z0hav is not set"
       end if
-    end if
-
-    if(isurf == 1) then
     end if
 
     ! 1.1  -   Allocate arrays
@@ -273,24 +275,22 @@ contains
       allocate(H(i2,j2))
       allocate(G0(i2,j2))
 
-      Qnet = Qnetav
-    end if
-
-    if(isurf <= 2) then
-      allocate(rs(i2,j2))
       allocate(rsveg(i2,j2))
       allocate(rsmin(i2,j2))
       allocate(rssoil(i2,j2))
       allocate(rssoilmin(i2,j2))
       allocate(cveg(i2,j2))
       allocate(cliq(i2,j2))
-      allocate(ra(i2,j2))
       allocate(tendskin(i2,j2))
       allocate(tskinm(i2,j2))
       allocate(Cskin(i2,j2))
       allocate(lambdaskin(i2,j2))
       allocate(LAI(i2,j2))
       allocate(gD(i2,j2))
+      allocate(Wl(i2,j2))
+      allocate(Wlm(i2,j2))
+
+      Qnet       = Qnetav
 
       Cskin      = Cskinav
       lambdaskin = lambdaskinav
@@ -301,6 +301,20 @@ contains
 
       cveg       = cvegav
       cliq       = 0.
+      Wl         = Wlav
+    end if
+
+    if(isurf <= 2) then
+      allocate(rs(i2,j2))
+      allocate(ra(i2,j2))
+
+      ! CvH set initial values for rs and ra to be able to compute qskin
+      ra = 50.
+      if(isurf == 1) then
+        rs = 100.
+      else
+        rs = rsisurf2
+      end if
     end if
 
     allocate(albedo(i2,j2))
@@ -320,8 +334,6 @@ contains
     end if
 
     albedo     = albedoav
-
-
     z0m        = z0mav
     z0h        = z0hav
 
@@ -337,14 +349,6 @@ contains
     allocate(dthldz  (i2,j2))
     allocate(svflux  (i2,j2,nsv))
     allocate(svs(nsv))
-
-    ! CvH set initial values for rs and ra to be able to compute qskin
-    if(isurf <= 2) then
-      ra = 50.
-      if(isurf == 1) then
-        rs = 100.
-      end if
-    end if
 
     return
   end subroutine initsurface
@@ -369,7 +373,8 @@ contains
 
     real     :: swdav, swuav, lwdav, lwuav
     real     :: exner, exnera, tsurfm, Tatm, e, esat, qsat, desatdT, dqsatdT, Acoef, Bcoef
-    real     :: fH, fLE, fLEveg, fLEsoil, fLEpot, LEveg, LEsoil
+    real     :: fH, fLE, fLEveg, fLEsoil, fLEliq, LEveg, LEsoil, LEliq
+    real     :: Wlmx
 
     ! CvH temp, move to modsurfdata
     real     :: gammasat, bc, psisat
@@ -408,9 +413,7 @@ contains
 
       do j = 2, j1
         do i = 2, i1
-          if(isurf == 2) then
-            rs(i,j) = rsisurf2
-          else
+          if(isurf == 1) then
             ! 2.1   -   Calculate the surface resistance 
             ! Stomatal opening as a function of incoming short wave radiation
             if (iradiation > 0) then
@@ -494,11 +497,14 @@ contains
             else
               Qnet(i,j) = -(swd(i,j,1) + swu(i,j,1) + lwd(i,j,1) + lwu(i,j,1))
             end if
+          else
+            Qnet(i,j) = Qnetav
           end if
 
           ! CvH solve the surface temperature implicitly including variations in LWout
           if(rk3step == 1) then
             tskinm(i,j) = tskin(i,j)
+            Wlm(i,j)    = Wl(i,j)
           end if
 
           exner   = (ps / pref0) ** (rd/cp)
@@ -521,11 +527,14 @@ contains
             rssoil(i,j) = 0.
           end if
 
+          Wlmx    = LAI(i,j) * Wmax
+          cliq    = min(1., Wl / Wlmx) 
+
           fLEveg  = (1. - cliq(i,j)) * cveg(i,j) * rhof(1) * rlv / (ra(i,j) + rsveg(i,j))
           fLEsoil = (1. - cveg(i,j))             * rhof(1) * rlv / (ra(i,j) + rssoil(i,j))
-          fLEpot  = cliq(i,j) * cveg(i,j)        * rhof(1) * rlv /  ra(i,j)
+          fLEliq  = cliq(i,j) * cveg(i,j)        * rhof(1) * rlv /  ra(i,j)
           
-          fLE     = fLEveg + fLEsoil + fLEpot
+          fLE     = fLEveg + fLEsoil + fLEliq
 
           exnera  = (presf(1) / pref0) ** (rd/cp)
           Tatm    = exnera * thl0(i,j,1) + (rlv / cp) * ql0(i,j,1)
@@ -541,9 +550,9 @@ contains
 
           fLEveg  = (1. - cliq(i,j)) * cveg(i,j) * rhof(1) * rlv / (ra(i,j) + rsveg(i,j))
           fLEsoil = (1. - cveg(i,j))             * rhof(1) * rlv / (ra(i,j) + rssoil(i,j))
-          fLEpot  = cliq(i,j) * cveg(i,j)        * rhof(1) * rlv /  ra(i,j)
+          fLEliq  = cliq(i,j) * cveg(i,j)        * rhof(1) * rlv /  ra(i,j)
           
-          fLE     = fLEveg + fLEsoil + fLEpot
+          fLE     = fLEveg + fLEsoil + fLEliq
 
           exnera  = (presf(1) / pref0) ** (rd/cp)
           Tatm    = exnera * thl0(i,j,1) + (rlv / cp) * ql0(i,j,1)
@@ -553,8 +562,8 @@ contains
           Acoef   = Qnet(i,j) - boltz * tsurfm ** 4. + 4. * boltz * tsurfm ** 4. / rk3coef + fH * Tatm + fLE * (dqsatdT * tsurfm - qsat + qt0(i,j,1)) + lambdaskin(i,j) * tsoil(i,j,1)
           Bcoef   = 4. * boltz * tsurfm ** 3. / rk3coef + fH + fLE * dqsatdT + lambdaskin(i,j)
           
-          Acoef   = Qnet(i,j) - boltz * tsurfm ** 4. + 4. * boltz * tsurfm ** 4. / rk3coef + fH * Tatm + fLE * (dqsatdT * tsurfm - qsat + qt0(i,j,1)) + lambdaskin(i,j) * tsoil(i,j,1)
-          Bcoef   = 4. * boltz * tsurfm ** 3. / rk3coef + fH + fLE * dqsatdT + lambdaskin(i,j)
+          !Acoef   = Qnet(i,j) - boltz * tsurfm ** 4. + 4. * boltz * tsurfm ** 4. / rk3coef + fH * Tatm + fLE * (dqsatdT * tsurfm - qsat + qt0(i,j,1)) + lambdaskin(i,j) * tsoil(i,j,1)
+          !Bcoef   = 4. * boltz * tsurfm ** 3. / rk3coef + fH + fLE * dqsatdT + lambdaskin(i,j)
 
           if (Cskin(i,j) == 0.) then
             tskin(i,j) = Acoef * Bcoef ** (-1.) / exner
@@ -568,6 +577,7 @@ contains
 
           LEveg         = - fLEveg  * ( qt0(i,j,1) - (dqsatdT * (tskin(i,j) * exner - tsurfm) + qsat))
           LEsoil        = - fLEsoil * ( qt0(i,j,1) - (dqsatdT * (tskin(i,j) * exner - tsurfm) + qsat))
+          LEliq         = - fLEliq  * ( qt0(i,j,1) - (dqsatdT * (tskin(i,j) * exner - tsurfm) + qsat))
 
           if(LE(i,j) == 0.) then
             rs(i,j)     = 1.e8
@@ -577,6 +587,8 @@ contains
 
           H(i,j)        = - fH  * ( Tatm - tskin(i,j) * exner ) 
           tendskin(i,j) = Cskin(i,j) * (tskin(i,j) - tskinm(i,j)) * exner / rk3coef
+          
+          Wl(i,j)       =  Wlm(i,j) + rk3coef * (- LEliq / (rhow * rlv))
           
           thlsl = thlsl + tskin(i,j)
 
@@ -634,7 +646,7 @@ contains
           phiw(i,j,ksoilmax) = phiwm(i,j,ksoilmax) + rk3coef * (- lambdash(i,j,ksoilmax-1) * (phiw(i,j,ksoilmax) - phiw(i,j,ksoilmax-1)) / dzsoil(ksoilmax-1) + gammash(i,j,ksoilmax-1) - (phifrac(i,j,ksoilmax) * LEveg) / (rhow*rlv) ) / dzsoil(ksoilmax)
           !if(i == 2 .and. j == 2) write(6,*) "CvH1 down:", 0., "up:", lambdash(i,j,ksoilmax-1) * (phiw(i,j,ksoilmax) - phiw(i,j,ksoilmax-1)) / dzsoilh(ksoilmax-1) - gammash(i,j,ksoilmax-1), "out:", (phifrac(i,j,ksoilmax) * LEveg) / (rhow*rlv)
 
-          if(i == 2 .and. j == 2 .and. myid==0) write(6,*) "CvH bal", phiwm(i,j,1), lambdas(i,j,1), gammas(i,j,1), phiwm(i,j,1)*dzsoil(1)+phiwm(i,j,2)*dzsoil(2)+phiwm(i,j,3)*dzsoil(3)+phiwm(i,j,4)*dzsoil(4), LE(i,j)
+          if(i == 2 .and. j == 2 .and. myid==0 ) write(6,*) "CvH", cliq(i,j), phiwm(i,j,1), lambdas(i,j,1), gammas(i,j,1), phiwm(i,j,1)*dzsoil(1)+phiwm(i,j,2)*dzsoil(2)+phiwm(i,j,3)*dzsoil(3)+phiwm(i,j,4)*dzsoil(4), LE(i,j)
         end do
       end do
 
@@ -697,7 +709,6 @@ contains
           dvdz  (i,j) = ustar(i,j) * phimzf / (fkar*zf(1))*(vpcv/horv)
           dthldz(i,j) = - thlflux(i,j) / ustar(i,j) * phihzf / (fkar*zf(1))
           dqtdz (i,j) = - qtflux(i,j)  / ustar(i,j) * phihzf / (fkar*zf(1))
-
         end do
       end do
 
@@ -822,7 +833,7 @@ contains
       call MPI_ALLREDUCE(qtsl, qts, 1,  MY_REAL, MPI_SUM, comm3d,mpierr)
 
       thls = thls / rslabs
-      qts  = qtsl / rslabs
+      qts  = qts  / rslabs
       thvs = thls * (1. + (rv/rd - 1.) * qts)
 
       !call qtsurf
@@ -845,7 +856,7 @@ contains
   subroutine qtsurf
     use modglobal,   only : tmelt,bt,at,rd,rv,cp,es0,pref0,rslabs,i1,j1
     use modfields,   only : qt0
-    use modsurfdata, only : rs, ra
+    !use modsurfdata, only : rs, ra
     use modmpi,      only : my_real,mpierr,comm3d,mpi_sum,myid
 
     implicit none
@@ -930,6 +941,7 @@ contains
               if(Rib < 0) L = -0.01
             end if
             if(abs(L - Lold) < 0.0001) exit
+            if(iter > 1000) stop 'Obukhov length calculation does not converge!'
           end do
 
           obl(i,j) = L
@@ -968,6 +980,7 @@ contains
         if(Rib < 0) L = -0.01
       end if
       if(abs(L - Lold) < 0.0001) exit
+      if(iter > 1000) stop 'Obukhov length calculation does not converge!'
     end do
 
     if(.not. lmostlocal) then
