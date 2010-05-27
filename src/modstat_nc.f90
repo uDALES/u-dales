@@ -214,7 +214,7 @@ contains
         case ('tttts')
           iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_tttts,VarID)
         case default
-        print *, 'ABORTING: Bad dimensional information',sx(n,:)
+        print *, 'ABORTING: Bad dimensional information ',sx(n,:)
         stop
         ! call appl_abort(0)
       end select
@@ -254,28 +254,28 @@ contains
     integer, intent(in) :: ncid
     integer             :: i=0,iret,length,varid
     iret = nf90_inq_varid(ncid, 'xt', VarID)
-    iret=nf90_inquire_dimension(ncid, xtID, len=length)
+    if (iret==0) iret=nf90_inquire_dimension(ncid, xtID, len=length)
     if (iret==0) iret = nf90_put_var(ncid, varID, (/(dx*(0.5+i),i=0,length-1)/),(/1/))
     iret = nf90_inq_varid(ncid, 'xm', VarID)
-    iret=nf90_inquire_dimension(ncid, xmID, len=length)
+    if (iret==0) iret=nf90_inquire_dimension(ncid, xmID, len=length)
     if (iret==0) iret = nf90_put_var(ncid, varID, (/(dx*i,i=0,length-1)/),(/1/))
 
     iret = nf90_inq_varid(ncid, 'yt', VarID)
-    iret=nf90_inquire_dimension(ncid, ytID, len=length)
+    if (iret==0) iret=nf90_inquire_dimension(ncid, ytID, len=length)
     if (iret==0) iret = nf90_put_var(ncid, varID, (/(dy*(0.5+i)+myid*jmax*dy,i=0,length-1)/),(/1/))
     iret = nf90_inq_varid(ncid, 'ym', VarID)
-    iret=nf90_inquire_dimension(ncid, ymID, len=length)
+    if (iret==0) iret=nf90_inquire_dimension(ncid, ymID, len=length)
     if (iret==0) iret = nf90_put_var(ncid, varID, (/(dy*i+myid*jmax*dy,i=0,length-1)/),(/1/))
 
     iret = nf90_inq_varid(ncid, 'zt', VarID)
-    iret=nf90_inquire_dimension(ncid,ztID, len=length)
+    if (iret==0) iret=nf90_inquire_dimension(ncid,ztID, len=length)
     if (iret==0) iret = nf90_put_var(ncid, varID, zf(1:length),(/1/))
     iret = nf90_inq_varid(ncid, 'zm', VarID)
-    iret=nf90_inquire_dimension(ncid, zmID, len=length)
+    if (iret==0) iret=nf90_inquire_dimension(ncid, zmID, len=length)
     if (iret==0) iret = nf90_put_var(ncid, varID, zh(1:length),(/1/))
     if (isurf==1) then
       iret = nf90_inq_varid(ncid, 'zts', VarID)
-      iret=nf90_inquire_dimension(ncid, ztsID, len=length)
+      if (iret==0) iret = nf90_inquire_dimension(ncid, ztsID, len=length)
       if (iret==0) iret = nf90_put_var(ncid, varID, zsoilc(1:length),(/1/))
     end if
 

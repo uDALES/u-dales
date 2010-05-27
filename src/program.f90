@@ -85,6 +85,7 @@ program DALES      !Version 3.2 RC 1
   use modlsmstat,      only : initlsmstat ,lsmstat, exitlsmstat
   use modsampling,     only : initsampling, sampling,exitsampling
   use modcrosssection, only : initcrosssection, crosssection,exitcrosssection
+  use modlsmcrosssection, only : initlsmcrosssection, lsmcrosssection,exitlsmcrosssection
   !use modprojection,   only : initprojection, projection
   use modcloudfield,   only : initcloudfield, cloudfield
   use modfielddump,    only : initfielddump, fielddump,exitfielddump
@@ -119,6 +120,7 @@ program DALES      !Version 3.2 RC 1
   !call inittilt
   call initsampling
   call initcrosssection
+  call initlsmcrosssection
   !call initprojection
   call initcloudfield
   call initfielddump
@@ -209,6 +211,7 @@ program DALES      !Version 3.2 RC 1
     call lsmstat
     call sampling
     call crosssection
+    call lsmcrosssection
     !call projection
     call cloudfield
     call fielddump
@@ -240,6 +243,7 @@ program DALES      !Version 3.2 RC 1
   call exitbudget
   call exitstressbudget
   call exitcrosssection
+  call exitlsmcrosssection
   call exitfielddump
   call exitmodules
 

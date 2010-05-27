@@ -161,16 +161,16 @@ contains
         write(ifoutput,'(3a)') &
                '#     time      Qnet        H          LE         G0  ', &
                '   tendskin       rs         ra        tskin       cliq  ', &
-               '   rssoil      rsveg'
+               '    Wl       rssoil     rsveg'
         write(ifoutput,'(3a)') &
                '#      [s]     [W/m2]     [W/m2]     [W/m2]     [W/m2]  ', &
                '   [W/m2]      [s/m]      [s/m]        [K]        [-]   ', &
-               '   [s/m]      [s/m]'
+               '   [m]      [s/m]      [s/m]'
         close(ifoutput)
       end if
       if (lnetcdf) then
         if(isurf == 1) then
-          nvar = 31
+          nvar = 32
         else
           nvar = 21
         end if
@@ -209,8 +209,9 @@ contains
           call ncinfo(ncname(27,:),'rs','Surface resistance','s/m','time')
           call ncinfo(ncname(28,:),'ra','Aerodynamic resistance','s/m','time')
           call ncinfo(ncname(29,:),'cliq','Fraction of vegetated surface covered with liquid water','-','time')
-          call ncinfo(ncname(30,:),'rssoil','Soil evaporation resistance','s/m','time')
-          call ncinfo(ncname(31,:),'rsveg','Vegitation resistance','s/m','time')
+          call ncinfo(ncname(30,:),'Wl','Liquid water reservoir','m','time')
+          call ncinfo(ncname(31,:),'rssoil','Soil evaporation resistance','s/m','time')
+          call ncinfo(ncname(32,:),'rsveg','Vegitation resistance','s/m','time')
         end if
         call open_nc(fname,  ncid)
         call define_nc( ncid, NVar, ncname)
@@ -228,7 +229,7 @@ contains
     use modfields,  only : um,vm,wm,e12m,ql0,u0av,v0av,rhof
     use modsurfdata,only : wtsurf, wqsurf, isurf,ustar,thlflux,qtflux,z0,oblav,qts,thls,&
                            Qnet, H, LE, G0, rs, ra, tskin, tendskin, &
-                           cliq,rsveg,rssoil
+                           cliq,rsveg,rssoil,Wl
     use modmpi,     only : my_real,mpi_sum,mpi_max,mpi_min,comm3d,mpierr,myid
     use modstat_nc,  only : lnetcdf, writestat_nc,nc_fillvalue
     implicit none
@@ -243,8 +244,8 @@ contains
     real,dimension(nvar) :: vars
 
     ! lsm variables
-    real   :: Qnetavl, Havl, LEavl, G0avl, tendskinavl, rsavl, raavl, tskinavl,cliqavl,rsvegavl,rssoilavl
-    real   :: Qnetav, Hav, LEav, G0av, tendskinav, rsav, raav, tskinav,cliqav,rsvegav,rssoilav
+    real   :: Qnetavl, Havl, LEavl, G0avl, tendskinavl, rsavl, raavl, tskinavl,Wlavl,cliqavl,rsvegavl,rssoilavl
+    real   :: Qnetav, Hav, LEav, G0av, tendskinav, rsav, raav, tskinav,Wlav,cliqav,rsvegav,rssoilav
     integer:: i, j, k
 
     if (.not.(ltimestat)) return
@@ -430,6 +431,7 @@ contains
       rsavl        = sum(rs(2:i1,2:j1))
       raavl        = sum(ra(2:i1,2:j1))
       cliqavl      = sum(cliq(2:i1,2:j1))
+      Wlavl        = sum(wl(2:i1,2:j1))
       rsvegavl     = sum(rsveg(2:i1,2:j1))
       rssoilavl    = sum(rssoil(2:i1,2:j1))
       tskinavl     = sum(tskin(2:i1,2:j1))
@@ -442,6 +444,7 @@ contains
       call MPI_ALLREDUCE(rsavl,       rsav,       1,  MY_REAL,MPI_SUM, comm3d,mpierr)
       call MPI_ALLREDUCE(raavl,       raav,       1,  MY_REAL,MPI_SUM, comm3d,mpierr)
       call MPI_ALLREDUCE(cliqavl,     cliqav,     1,  MY_REAL,MPI_SUM, comm3d,mpierr)
+      call MPI_ALLREDUCE(wlavl,       wlav,       1,  MY_REAL,MPI_SUM, comm3d,mpierr)
       call MPI_ALLREDUCE(rsvegavl,    rsvegav,    1,  MY_REAL,MPI_SUM, comm3d,mpierr)
       call MPI_ALLREDUCE(rssoilavl,   rssoilav,   1,  MY_REAL,MPI_SUM, comm3d,mpierr)
       call MPI_ALLREDUCE(tskinavl,    tskinav,    1,  MY_REAL,MPI_SUM, comm3d,mpierr)
@@ -454,6 +457,7 @@ contains
       rsav          = rsav        / rslabs
       raav          = raav        / rslabs
       cliqav        = cliqav      / rslabs
+      wlav          = wlav      / rslabs
       rsvegav       = rsvegav     / rslabs
       rssoilav      = rssoilav    / rslabs
       tskinav       = tskinav     / rslabs
@@ -498,7 +502,7 @@ contains
       if (isurf == 1) then
         !tmlsm
         open (ifoutput,file='tmlsm.'//cexpnr,position='append')
-        write(ifoutput,'(f10.2,11f11.3)') &
+        write(ifoutput,'(f10.2,12f11.3)') &
             rtimee       ,&
             Qnetav      ,&
             Hav         ,&
@@ -509,6 +513,7 @@ contains
             raav        ,&
             tskinav     ,&
             cliqav      ,&
+            wlav        ,&
             rssoilav    ,&
             rsvegav    
         close(ifoutput)
@@ -548,8 +553,9 @@ contains
           vars(27) = rsav
           vars(28) = raav
           vars(29) = cliqav
-          vars(30) = rssoilav
-          vars(31) = rsvegav
+          vars(30) = wlav
+          vars(31) = rssoilav
+          vars(32) = rsvegav
         end if
         
         call writestat_nc(ncid,nvar,ncname,vars,nrec,.true.)
