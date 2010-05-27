@@ -149,3 +149,4 @@ timeav = 1800
 &NAMNETCDFSTATS
 lnetcdf = .true.
 /
+
