@@ -5,20 +5,19 @@ startfile  =  'initd00h01m000.001'
 runtime    =  180000
 trestart   =  36000
 ladaptive  =  .true.
-courant    =  1.5
 irandom    =  43
-randthl    =  0.
+randthl    =  0.1
 randqt     =  0.
 nsv        =  0
 /
 
 &DOMAIN
-imax       =  90
-jtot       =  45
+imax       =  96
+jtot       =  96
 kmax       =  100
 
-xsize      =  4050.
-ysize      =  2250.
+xsize      =  4800.
+ysize      =  4800.
 
 xlat       =  45.
 xlon       =  0.
@@ -50,8 +49,8 @@ lnetcdf    = .true.
 &NAMSUBGRID
 lsmagorinsky = .false
 cs           = 0.16
-lmason       = .false.
-nmason       = 2.
+lmason       = .true.
+nmason       = 1.
 /
 
 &NAMSURFACE
@@ -96,11 +95,11 @@ lqlnr      =  .false.
 cu         =  5.
 cv         =  0.
 
-iadv_mom    =  2
-iadv_tke    =  2
-iadv_thl    =  2
-iadv_qt     =  2
-iadv_sv     =  2
+iadv_mom    =  62
+iadv_tke    =  62
+iadv_thl    =  52
+iadv_qt     =  52
+iadv_sv     =  52
 /
 
 &NAMCHECKSIM
