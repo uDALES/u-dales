@@ -616,6 +616,7 @@ subroutine inputchem
     open (ifoutput,file='seg.'//cexpnr,position='append') !File that describes segregation over whole Mixed Layer
       write(formatstring,'(a,i3,a)') '(a9,1x,a7,',tnor,'(2x,a5,i3.3,a4))'
       write(ifoutput,formatstring) '#Time [s]','z_i [m]',('IsegR',i,' [-]',i=1,tnor)
+    close(ifoutput)
   endif
 
   !fill raddep_RCindex and keffT
