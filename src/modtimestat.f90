@@ -509,8 +509,8 @@ contains
             raav        ,&
             tskinav     ,&
             cliqav      ,&
-            rsvegav     ,&
-            rssoilav    
+            rssoilav    ,&
+            rsvegav    
         close(ifoutput)
       end if
       if (lnetcdf) then
@@ -548,8 +548,8 @@ contains
           vars(27) = rsav
           vars(28) = raav
           vars(29) = cliqav
-          vars(30) = rsvegav
-          vars(31) = rssoilav
+          vars(30) = rssoilav
+          vars(31) = rsvegav
         end if
         
         call writestat_nc(ncid,nvar,ncname,vars,nrec,.true.)

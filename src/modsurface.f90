@@ -48,7 +48,7 @@ contains
 
     implicit none
 
-    integer   :: i,j,k, ierr
+    integer   :: k, ierr
     namelist/NAMSURFACE/ & !< Soil related variables
       isurf,tsoilav, tsoildeepav, phiwav, rootfav, &
       ! Land surface related variables
@@ -445,7 +445,6 @@ contains
             f2  = max(f2, 1.)
             f2  = min(1.e8, f2)
             rssoil(i,j) = rssoilmin(i,j) * f2
-            rssoil(i,j) = rssoilmin(i,j) * f2
           end if
 
           ! 3     -   Calculate the drag coefficient and aerodynamic resistance
@@ -642,7 +641,7 @@ contains
           phiw(i,j,ksoilmax) = phiwm(i,j,ksoilmax) + rk3coef * (- lambdash(i,j,ksoilmax-1) * (phiw(i,j,ksoilmax) - phiw(i,j,ksoilmax-1)) / dzsoil(ksoilmax-1) + gammash(i,j,ksoilmax-1) - (phifrac(i,j,ksoilmax) * LEveg) / (rhow*rlv) ) / dzsoil(ksoilmax)
           !if(i == 2 .and. j == 2) write(6,*) "CvH1 down:", 0., "up:", lambdash(i,j,ksoilmax-1) * (phiw(i,j,ksoilmax) - phiw(i,j,ksoilmax-1)) / dzsoilh(ksoilmax-1) - gammash(i,j,ksoilmax-1), "out:", (phifrac(i,j,ksoilmax) * LEveg) / (rhow*rlv)
 
-          if(i == 2 .and. j == 2 .and. myid==0 ) write(6,*) "CvH", cliq(i,j), phiwm(i,j,1), lambdas(i,j,1), gammas(i,j,1), phiwm(i,j,1)*dzsoil(1)+phiwm(i,j,2)*dzsoil(2)+phiwm(i,j,3)*dzsoil(3)+phiwm(i,j,4)*dzsoil(4), LE(i,j)
+          !if(i == 2 .and. j == 2 .and. myid==0 ) write(6,*) "CvH", cliq(i,j), phiwm(i,j,1), lambdas(i,j,1), gammas(i,j,1), phiwm(i,j,1)*dzsoil(1)+phiwm(i,j,2)*dzsoil(2)+phiwm(i,j,3)*dzsoil(3)+phiwm(i,j,4)*dzsoil(4), LE(i,j)
         end do
       end do
 
