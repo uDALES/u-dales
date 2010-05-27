@@ -160,12 +160,12 @@ contains
         open (ifoutput,file='tmlsm.'//cexpnr,status='replace',position='append')
         write(ifoutput,'(3a)') &
                '#     time      Qnet        H          LE         G0  ', &
-               '   tendskin       rs         ra        tskin      cliq  ', &
-               '   rssoil         rsveg'
+               '   tendskin       rs         ra        tskin       cliq  ', &
+               '   rssoil      rsveg'
         write(ifoutput,'(3a)') &
                '#      [s]     [W/m2]     [W/m2]     [W/m2]     [W/m2]  ', &
-               '   [W/m2]      [s/m]      [s/m]        [K]      [-]     ', &
-               '   [s/m]       [s/m]'
+               '   [W/m2]      [s/m]      [s/m]        [K]        [-]   ', &
+               '   [s/m]      [s/m]'
         close(ifoutput)
       end if
       if (lnetcdf) then
