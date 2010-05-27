@@ -102,7 +102,7 @@ program DALES      !Version 3.2 RC 1
   !use modnudge,        only : initnudge, nudge, exitnudge
   !use modprojection,   only : initprojection, projection
   
-  !use modchem,         only : initchem,inputchem, twostep
+  !use modchem,         only : initchem, twostep
 
   implicit none
 
