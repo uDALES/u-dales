@@ -105,23 +105,31 @@ timeav      = 120
 
 &NAMTIMESTAT
 ltimestat   = .true.
-dtav        = 60
+dtav        = 10
 /
 
 &NAMCROSSSECTION
 lcross      = .false.
 dtav        = 60
 /
+
+&NAMLSMCROSSSECTION
+lcross      = .true.
+dtav        = 1800
+/
+
 &NAMGENSTAT
 lstat       = .true.
 dtav        = 60
 timeav      = 1800
 /
+
 &NAMFIELDDUMP
 lfielddump  = .false.
 dtav        = 60
 ldiracc     = .true.
 /
+
 &NAMSTATTEND
 dtav        = 60
 timeav      = 1800
