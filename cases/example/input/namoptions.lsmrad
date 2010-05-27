@@ -100,7 +100,7 @@ tcheck      = 0
 &NAMSAMPLING
 lsampup     = .false.
 dtav        = 60
-timeav      = 120
+timeav      = 1800
 /
 
 &NAMTIMESTAT
