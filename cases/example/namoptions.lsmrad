@@ -112,16 +112,24 @@ dtav        = 60
 lcross      = .false.
 dtav        = 60
 /
+
+&NAMLSMCROSSSECTION
+lcross      = .true.
+dtav        = 10
+/
+
 &NAMGENSTAT
 lstat       = .true.
 dtav        = 60
 timeav      = 1800
 /
+
 &NAMFIELDDUMP
 lfielddump  = .false.
 dtav        = 60
 ldiracc     = .true.
 /
+
 &NAMSTATTEND
 dtav        = 60
 timeav      = 1800

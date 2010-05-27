@@ -2,7 +2,7 @@
 iexpnr     =  001
 lwarmstart =  .false.
 startfile  =  'initd00h01m000.001'
-runtime    =  7200
+runtime    =  20
 trestart   =  3600 
 ladaptive  =  .true.
 irandom    =  43
@@ -105,23 +105,31 @@ timeav      = 120
 
 &NAMTIMESTAT
 ltimestat   = .true.
-dtav        = 60
+dtav        = 10
 /
 
 &NAMCROSSSECTION
 lcross      = .false.
 dtav        = 60
 /
+
+&NAMLSMCROSSSECTION
+lcross      = .true.
+dtav        = 10
+/
+
 &NAMGENSTAT
 lstat       = .true.
-dtav        = 60
-timeav      = 1800
+dtav        = 10
+timeav      = 20
 /
+
 &NAMFIELDDUMP
 lfielddump  = .false.
 dtav        = 60
 ldiracc     = .true.
 /
+
 &NAMSTATTEND
 dtav        = 60
 timeav      = 1800
@@ -142,8 +150,8 @@ timeav = 1800
 
 &NAMLSMSTAT
 lstat = .true.
-dtav = 60
-timeav = 1800
+dtav = 10
+timeav = 20
 /
 
 &NAMNETCDFSTATS
