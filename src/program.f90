@@ -132,7 +132,7 @@ program DALES      !Version 3.2 RC 1
   !call initnudge
   call initbulkmicrostat
   call initbudget
-  call initstressbudget
+  !call initstressbudget
   !call initchem
 
 !------------------------------------------------------
@@ -219,7 +219,7 @@ program DALES      !Version 3.2 RC 1
 
     call bulkmicrostat
     call budgetstat
-    call stressbudgetstat
+    !call stressbudgetstat
 
     call writerestartfiles
   end do
@@ -241,7 +241,7 @@ program DALES      !Version 3.2 RC 1
   call exitstattend
   call exitbulkmicrostat
   call exitbudget
-  call exitstressbudget
+  !call exitstressbudget
   call exitcrosssection
   call exitfielddump
   call exitmodules
