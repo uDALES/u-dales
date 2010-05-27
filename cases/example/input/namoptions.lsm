@@ -115,13 +115,13 @@ dtav        = 60
 
 &NAMLSMCROSSSECTION
 lcross      = .true.
-dtav        = 10
+dtav        = 1800
 /
 
 &NAMGENSTAT
 lstat       = .true.
-dtav        = 10
-timeav      = 20
+dtav        = 60
+timeav      = 1800
 /
 
 &NAMFIELDDUMP
@@ -150,8 +150,8 @@ timeav = 1800
 
 &NAMLSMSTAT
 lstat = .true.
-dtav = 10
-timeav = 20
+dtav = 60
+timeav = 1800
 /
 
 &NAMNETCDFSTATS

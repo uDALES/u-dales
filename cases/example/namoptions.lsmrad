@@ -110,12 +110,12 @@ dtav        = 60
 
 &NAMCROSSSECTION
 lcross      = .false.
-dtav        = 60
+dtav        = 1800
 /
 
 &NAMLSMCROSSSECTION
 lcross      = .true.
-dtav        = 10
+dtav        = 1800
 /
 
 &NAMGENSTAT
