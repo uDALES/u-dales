@@ -1,6 +1,6 @@
 # Loadleveler directives start with # @
 # @ node = 1
-# @ tasks_per_node = 30
+# @ tasks_per_node = 32
 # @ notification = never
 # @ input = /dev/null
 # @ output = errorfile.001
@@ -29,3 +29,4 @@ cd $TMPDIR
 mv * $workdir
 cd $workdir
 rm -r tmpdir.$iexpnr
+
