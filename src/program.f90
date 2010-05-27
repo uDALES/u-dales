@@ -86,7 +86,6 @@ program DALES      !Version 3.2 RC 1
   use modsampling,     only : initsampling, sampling,exitsampling
   use modcrosssection, only : initcrosssection, crosssection,exitcrosssection
   use modlsmcrosssection, only : initlsmcrosssection, lsmcrosssection,exitlsmcrosssection
-  !use modprojection,   only : initprojection, projection
   use modcloudfield,   only : initcloudfield, cloudfield
   use modfielddump,    only : initfielddump, fielddump,exitfielddump
   use modstattend,     only : initstattend, stattend,exitstattend, tend_start,tend_adv,tend_subg,tend_force,&
@@ -94,13 +93,17 @@ program DALES      !Version 3.2 RC 1
 
   use modbulkmicrostat,only : initbulkmicrostat, bulkmicrostat,exitbulkmicrostat
   use modbudget,       only : initbudget, budgetstat, exitbudget
-  use modstress,       only : initstressbudget, stressbudgetstat, exitstressbudget
+
+  ! modules below are disabled by default to improve compilation time
+  !use modstress,       only : initstressbudget, stressbudgetstat, exitstressbudget
 
   !use modtilt,         only : inittilt, tiltedgravity, tiltedboundary, exittilt
   !use modparticles,    only : initparticles, particles, exitparticles
   !use modnudge,        only : initnudge, nudge, exitnudge
+  !use modprojection,   only : initprojection, projection
   
   !use modchem,         only : initchem,inputchem, twostep
+
   implicit none
 
 !----------------------------------------------------------------
@@ -131,7 +134,7 @@ program DALES      !Version 3.2 RC 1
   !call initnudge
   call initbulkmicrostat
   call initbudget
-  call initstressbudget
+  !call initstressbudget
   !call initchem
 
 !------------------------------------------------------
@@ -219,7 +222,7 @@ program DALES      !Version 3.2 RC 1
 
     call bulkmicrostat
     call budgetstat
-    call stressbudgetstat
+    !call stressbudgetstat
 
     call writerestartfiles
   end do
@@ -241,7 +244,7 @@ program DALES      !Version 3.2 RC 1
   call exitstattend
   call exitbulkmicrostat
   call exitbudget
-  call exitstressbudget
+  !call exitstressbudget
   call exitcrosssection
   call exitlsmcrosssection
   call exitfielddump
