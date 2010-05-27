@@ -31,7 +31,7 @@ module modstat_nc
     use netcdf
     implicit none
     logical :: lnetcdf
-    integer, save :: timeID=0, ztID=0, zmID=0, xtID=0, xmID=0, ytID=0, ymID=0
+    integer, save :: timeID=0, ztID=0, zmID=0, xtID=0, xmID=0, ytID=0, ymID=0,ztsID=0
     real(kind=4) :: nc_fillvalue = -999.
 !> The only interface necessary to write data to netcdf, regardless of the dimensions.
     interface writestat_nc
@@ -73,11 +73,11 @@ contains
 ! ----------------------------------------------------------------------
 !> Subroutine Open_NC: Opens a NetCDF File and identifies starting record
 !
-  subroutine open_nc (fname, ncid,n1, n2, n3)
+  subroutine open_nc (fname, ncid,n1, n2, n3, ns)
     use modglobal, only : author,version
     implicit none
     integer, intent (out) :: ncid
-    integer, optional, intent (in) :: n1, n2, n3
+    integer, optional, intent (in) :: n1, n2, n3, ns
     character (len=40), intent (in) :: fname
 
     character (len=12):: date='',time=''
@@ -120,6 +120,12 @@ contains
       iret=nf90_put_att(ncID,VarID,'longname','Vertical displacement of cell edges')
       iret=nf90_put_att(ncID,VarID,'units','m')
     end if
+    if (present(ns)) then
+      iret = nf90_def_dim(ncID, 'zts', ns, ztsID)
+      iret = nf90_def_var(ncID,'zts',NF90_FLOAT,(/ztsID/) ,VarID)
+      iret=nf90_put_att(ncID,VarID,'longname','Soil level depth of cell centers')
+      iret=nf90_put_att(ncID,VarID,'units','m')
+    end if
 
 
   end subroutine open_nc
@@ -134,7 +140,10 @@ contains
     integer, intent (in) :: nVar, ncID
     character (*), intent (in) :: sx(nVar,4)
 
-    integer, save ::  dim_mttt(4) = 0, dim_tmtt(4) = 0, dim_ttmt(4) = 0, dim_tttt(4) = 0, dim_tt(2)= 0, dim_mt(2)= 0,dim_t0tt(3)=0,dim_m0tt(3)=0,dim_t0mt(3)=0,dim_tt0t(3)=0,dim_mt0t(3)=0,dim_tm0t(3)=0,dim_0ttt(3)=0,dim_0mtt(3)=0,dim_0tmt(3)=0
+    integer, save ::  dim_mttt(4) = 0, dim_tmtt(4) = 0, dim_ttmt(4) = 0, dim_tttt(4) = 0, &
+                      dim_tt(2)= 0, dim_mt(2)= 0,dim_t0tt(3)=0,dim_m0tt(3)=0,dim_t0mt(3)=0,dim_tt0t(3)=0, &
+                      dim_mt0t(3)=0,dim_tm0t(3)=0,dim_0ttt(3)=0,dim_0mtt(3)=0,dim_0tmt(3)=0,&
+                      dim_tts(2)=0,dim_t0tts(3)=0,dim_0ttts(3)=0,dim_tttts(4)=0
 
     integer :: iret, n, VarID
     dim_tt = (/ztId,timeId/)
@@ -154,6 +163,11 @@ contains
     dim_ttmt= (/xtID,ytID,zmID,timeId/)! zpoint
     dim_mttt= (/xmID,ytID,ztID,timeId/)! upoint
     dim_tmtt= (/xtID,ymID,ztId,timeId/)! ypoint
+
+    dim_tts = (/ztsId,timeId/)
+    dim_t0tts= (/xtID,ztsID,timeId/)! thermo soil point
+    dim_0ttts= (/ytID,ztsID,timeId/)! thermo point
+    dim_tttts= (/xtID,ytID,ztsID,timeId/)! thermo point
     do n=1,nVar
       select case(trim(sx(n,4)))
         case ('time')
@@ -190,8 +204,17 @@ contains
           iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_tmtt,VarID)
         case ('ttmt')
           iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_ttmt,VarID)
+!Soil fields
+        case ('tts')
+          iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_tts ,VarID)
+        case ('t0tts')
+          iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_t0tts,VarID)
+        case ('0ttts')
+          iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_0ttts,VarID)
+        case ('tttts')
+          iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_tttts,VarID)
         case default
-        print *, 'ABORTING: Bad dimensional information'
+        print *, 'ABORTING: Bad dimensional information ',sx(n,:)
         stop
         ! call appl_abort(0)
       end select
@@ -225,30 +248,36 @@ contains
  end subroutine exitstat_nc
   subroutine writestat_dims_nc(ncid)
     use modglobal, only : dx,dy,zf,zh,jmax
+    use modsurfdata, only : zsoilc,isurf
     use modmpi, only : myid
     implicit none
     integer, intent(in) :: ncid
     integer             :: i=0,iret,length,varid
     iret = nf90_inq_varid(ncid, 'xt', VarID)
-    iret=nf90_inquire_dimension(ncid, xtID, len=length)
+    if (iret==0) iret=nf90_inquire_dimension(ncid, xtID, len=length)
     if (iret==0) iret = nf90_put_var(ncid, varID, (/(dx*(0.5+i),i=0,length-1)/),(/1/))
     iret = nf90_inq_varid(ncid, 'xm', VarID)
-    iret=nf90_inquire_dimension(ncid, xmID, len=length)
+    if (iret==0) iret=nf90_inquire_dimension(ncid, xmID, len=length)
     if (iret==0) iret = nf90_put_var(ncid, varID, (/(dx*i,i=0,length-1)/),(/1/))
 
     iret = nf90_inq_varid(ncid, 'yt', VarID)
-    iret=nf90_inquire_dimension(ncid, ytID, len=length)
+    if (iret==0) iret=nf90_inquire_dimension(ncid, ytID, len=length)
     if (iret==0) iret = nf90_put_var(ncid, varID, (/(dy*(0.5+i)+myid*jmax*dy,i=0,length-1)/),(/1/))
     iret = nf90_inq_varid(ncid, 'ym', VarID)
-    iret=nf90_inquire_dimension(ncid, ymID, len=length)
+    if (iret==0) iret=nf90_inquire_dimension(ncid, ymID, len=length)
     if (iret==0) iret = nf90_put_var(ncid, varID, (/(dy*i+myid*jmax*dy,i=0,length-1)/),(/1/))
 
     iret = nf90_inq_varid(ncid, 'zt', VarID)
-    iret=nf90_inquire_dimension(ncid,ztID, len=length)
+    if (iret==0) iret=nf90_inquire_dimension(ncid,ztID, len=length)
     if (iret==0) iret = nf90_put_var(ncid, varID, zf(1:length),(/1/))
     iret = nf90_inq_varid(ncid, 'zm', VarID)
-    iret=nf90_inquire_dimension(ncid, zmID, len=length)
+    if (iret==0) iret=nf90_inquire_dimension(ncid, zmID, len=length)
     if (iret==0) iret = nf90_put_var(ncid, varID, zh(1:length),(/1/))
+    if (isurf==1) then
+      iret = nf90_inq_varid(ncid, 'zts', VarID)
+      if (iret==0) iret = nf90_inquire_dimension(ncid, ztsID, len=length)
+      if (iret==0) iret = nf90_put_var(ncid, varID, zsoilc(1:length),(/1/))
+    end if
 
   end subroutine writestat_dims_nc
 

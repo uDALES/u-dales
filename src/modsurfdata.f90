@@ -44,14 +44,21 @@ SAVE
   real              :: Ke                 !<  Kersten number [-]
 
   real, allocatable :: zsoil  (:)         !<  Height of bottom soil layer from surface [m]
+  real, allocatable :: zsoilc (:)        !<  Height of center soil layer from surface [m]
   real, allocatable :: dzsoil (:)         !<  Depth of soil layer [m]
   real, allocatable :: dzsoilh(:)         !<  Depth of soil layer between center of layers [m]
 
   ! Spatially varying properties
   real, allocatable :: lambda  (:,:,:)    !<  Heat conductivity soil layer [W/m/K]
   real, allocatable :: lambdah (:,:,:)    !<  Heat conductivity soil layer half levels [W/m/K]
+  real, allocatable :: lambdas (:,:,:)    !<  Soil moisture diffusivity soil layer 
+  real, allocatable :: lambdash(:,:,:)    !<  Soil moisture diffusivity soil half levels 
+  real, allocatable :: gammas  (:,:,:)    !<  Soil moisture conductivity soil layer 
+  real, allocatable :: gammash (:,:,:)    !<  Soil moisture conductivity soil half levels 
   real, allocatable :: Dh      (:,:,:)    !<  Heat diffusivity
   real, allocatable :: phiw    (:,:,:)    !<  Water content soil matrix [-]
+  real, allocatable :: phiwm   (:,:,:)    !<  Water content soil matrix previous time step [-]
+  real, allocatable :: phifrac (:,:,:)    !<  Relative water content per layer [-]
   real              :: phiwav  (ksoilmax)
   real, allocatable :: phitot  (:,:)      !<  Total soil water content [-]
   real, allocatable :: pCs     (:,:,:)    !<  Volumetric heat capacity [J/m3/K]
@@ -82,16 +89,23 @@ SAVE
   real, parameter   :: lambdasm  = 3.11   !<  Heat conductivity soil matrix [W/m/K]
   real, parameter   :: lambdaw   = 0.57   !<  Heat conductivity water [W/m/K]
 
+  real, parameter   :: bc        = 6.04     !< Clapp and Hornberger non-dimensional exponent [-]
+  real, parameter   :: gammasat  = 0.57e-6  !< Hydraulic conductivity at saturation [m s-1]
+  real, parameter   :: psisat    = -0.388   !< Matrix potential at saturation [m]
 
   ! Land surface properties
 
   ! Surface properties
   real, allocatable :: z0m        (:,:) !<  Roughness length for momentum [m]
-  real              :: z0mav = -1
+  real              :: z0mav    = -1
   real, allocatable :: z0h        (:,:) !<  Roughness length for heat [m]
-  real              :: z0hav = -1
+  real              :: z0hav    = -1
   real, allocatable :: tskin      (:,:) !<  Skin temperature [K]
   real, allocatable :: tskinm     (:,:) !<  Skin temperature previous timestep [K]
+  real, allocatable :: Wl         (:,:) !<  Liquid water reservoir [m]
+  real              :: Wlav     = -1                                  
+  real, parameter   :: Wmax     = 0.0002 !<  Maximum layer of liquid water on surface [m]
+  real, allocatable :: Wlm        (:,:) !<  Liquid water reservoir previous timestep [m]
   real, allocatable :: qskin      (:,:) !<  Skin specific humidity [kg/kg]
   real, allocatable :: albedo     (:,:) !<  Surface albedo [-]
   real              :: albedoav = -1
