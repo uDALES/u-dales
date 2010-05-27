@@ -41,6 +41,11 @@ useMcICA   =  .true.
 lcoriol    =  .true.
 /
 
+&NAMSUBGRID
+lmason     = .true.
+cf         = 2.
+/
+
 &NAMSURFACE
 tsoilav(1)   = 287.
 tsoilav(2)   = 288.
