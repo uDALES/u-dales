@@ -12,8 +12,8 @@ nsv        =  2
 /
 
 &DOMAIN
-imax       =  32
-jtot       =  32
+imax       =  128
+jtot       =  128
 kmax       =  160
 
 xsize      =  3200.
@@ -27,7 +27,7 @@ xtime      =  15.
 
 &PHYSICS
 lmoist     =  .true.
-iradiation =  1
+iradiation =  10
 isurf      =  3
 
 timerad    =  0

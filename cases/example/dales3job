@@ -5,7 +5,7 @@
 # @ input = /dev/null
 # @ output = errorfile.001
 # @ error = errorfile.001
-# @ wall_clock_limit = 20:00:00
+# @ wall_clock_limit = 1:00:00
 # @ job_type = parallel
 # @ network.MPI = sn_all,not_shared,US
 # @ queue
