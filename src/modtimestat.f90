@@ -160,12 +160,12 @@ contains
         open (ifoutput,file='tmlsm.'//cexpnr,status='replace',position='append')
         write(ifoutput,'(3a)') &
                '#     time      Qnet        H          LE         G0  ', &
-               '   tendskin       rs         ra        tskin       cliq  ', &
-               '    Wl       rssoil     rsveg'
+               '   tendskin     rs         ra        tskin        cliq  ', &
+               '    Wl          rssoil     rsveg'
         write(ifoutput,'(3a)') &
-               '#      [s]     [W/m2]     [W/m2]     [W/m2]     [W/m2]  ', &
-               '   [W/m2]      [s/m]      [s/m]        [K]        [-]   ', &
-               '   [m]      [s/m]      [s/m]'
+               '#      [s]     [W/m2]     [W/m2]     [W/m2]     [W/m2]', &
+               '   [W/m2]      [s/m]       [s/m]     [K]          [-]   ', &
+               '   [m]          [s/m]      [s/m]'
         close(ifoutput)
       end if
       if (lnetcdf) then
@@ -502,7 +502,7 @@ contains
       if (isurf == 1) then
         !tmlsm
         open (ifoutput,file='tmlsm.'//cexpnr,position='append')
-        write(ifoutput,'(f10.2,12f11.3)') &
+        write(ifoutput,'(f10.2,9f11.3,e13.3, 2f11.3)') &
             rtimee       ,&
             Qnetav      ,&
             Hav         ,&
