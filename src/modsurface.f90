@@ -781,16 +781,19 @@ contains
     real     :: Wlmx
 
     ! 1.X - Compute water content per layer
-    phitot = 0.0
+    do j = 2,j1
+      do i = 2,i1
+        phitot(i,j) = 0.0
+        do k = 1, ksoilmax
+          phitot(i,j) = phitot(i,j) + phiw(i,j,k) * dzsoil(k)
+        end do
 
-    do k = 1, ksoilmax
-      phitot(:,:) = phitot(:,:) + phiw(:,:,k) * dzsoil(k)
-    end do
+        phitot(i,j) = phitot(i,j) / zsoil(ksoilmax)
 
-    phitot(:,:) = phitot(:,:) / zsoil(ksoilmax)
-
-    do k = 1, ksoilmax
-      phifrac(:,:,k) = phiw(:,:,k) * dzsoil(k) / zsoil(ksoilmax) / phitot(:,:)
+        do k = 1, ksoilmax
+          phifrac(i,j,k) = phiw(i,j,k) * dzsoil(k) / zsoil(ksoilmax) / phitot(i,j)
+        end do
+      end do
     end do
 
     thlsl = 0.0
@@ -887,26 +890,9 @@ contains
           rssoil(i,j) = 0.
         end if
 
-        Wlmx    = LAI(i,j) * Wmax
-        cliq    = min(1., Wl / Wlmx)
-
-        fLEveg  = (1. - cliq(i,j)) * cveg(i,j) * rhof(1) * rlv / (ra(i,j) + rsveg(i,j))
-        fLEsoil = (1. - cveg(i,j))             * rhof(1) * rlv / (ra(i,j) + rssoil(i,j))
-        fLEliq  = cliq(i,j) * cveg(i,j)        * rhof(1) * rlv /  ra(i,j)
-
-        fLE     = fLEveg + fLEsoil + fLEliq
-
-        exnera  = (presf(1) / pref0) ** (rd/cp)
-        Tatm    = exnera * thl0(i,j,1) + (rlv / cp) * ql0(i,j,1)
-
-        ! Calculate coefficients for surface fluxes
-        fH      = rhof(1) * cp / ra(i,j)
-
-        ! Allow for dew fall
-        if(qsat - qt0(i,j,1) < 0.) then
-          rsveg(i,j)  = 0.
-          rssoil(i,j) = 0.
-        end if
+        Wlmx      = LAI(i,j) * Wmax
+        Wl(i,j)   = min(Wl(i,j), Wlmx)
+        cliq(i,j) = Wl(i,j) / Wlmx
 
         fLEveg  = (1. - cliq(i,j)) * cveg(i,j) * rhof(1) * rlv / (ra(i,j) + rsveg(i,j))
         fLEsoil = (1. - cveg(i,j))             * rhof(1) * rlv / (ra(i,j) + rssoil(i,j))
@@ -945,7 +931,12 @@ contains
         H(i,j)        = - fH  * ( Tatm - tskin(i,j) * exner )
         tendskin(i,j) = Cskin(i,j) * (tskin(i,j) - tskinm(i,j)) * exner / rk3coef
 
-        Wl(i,j)       =  Wlm(i,j) + rk3coef * (- LEliq / (rhow * rlv))
+        ! In case of dew formation, allow all water to enter skin reservoir Wl
+        if(qsat - qt0(i,j,1) < 0.) then
+          Wl(i,j)       =  Wlm(i,j) + rk3coef * ((-1.) * (LEliq + LEsoil + LEveg) / (rhow * rlv))
+        else
+          Wl(i,j)       =  Wlm(i,j) + rk3coef * ((-1.) * LEliq / (rhow * rlv))
+        end if
 
         thlsl = thlsl + tskin(i,j)
 
