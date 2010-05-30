@@ -207,9 +207,9 @@ contains
       case(iadv_cd2)
         courant = 1.5
       case(iadv_cd6)
-        courant = 1.4
+        courant = 1.1
       case(iadv_62)
-        courant = 1.4
+        courant = 1.1
       case(iadv_5th)
         courant = 1.4
       case(iadv_52)
@@ -217,8 +217,20 @@ contains
       case default
         courant = 1.4
       end select
-    end if
-
+      if (any(iadv_sv(1:nsv)==iadv_cd6) .or. any((/iadv_thl,iadv_qt,iadv_tke/)==iadv_cd6)) then
+        courant = min(courant, 1.1)
+      elseif (any(iadv_sv(1:nsv)==iadv_62) .or. any((/iadv_thl,iadv_qt,iadv_tke/)==iadv_62)) then
+        courant = min(courant, 1.1)
+      elseif (any(iadv_sv(1:nsv)==iadv_kappa) .or. any((/iadv_thl,iadv_qt,iadv_tke/)==iadv_kappa)) then
+        courant = min(courant, 1.1)
+      elseif (any(iadv_sv(1:nsv)==iadv_5th) .or. any((/iadv_thl,iadv_qt,iadv_tke/)==iadv_5th)) then
+        courant = min(courant, 1.4)
+      elseif (any(iadv_sv(1:nsv)==iadv_52 ).or. any((/iadv_thl,iadv_qt,iadv_tke/)==iadv_52)) then
+        courant = min(courant, 1.4)
+      elseif (any(iadv_sv(1:nsv)==iadv_cd2) .or. any((/iadv_thl,iadv_qt,iadv_tke/)==iadv_cd2)) then
+        courant = min(courant, 1.5)
+      end if
+   end if
 
     ! phsgrid
 
@@ -242,6 +254,10 @@ contains
       jh = 3
       kh = 1
     elseif (any(advarr==iadv_5th).or.any(iadv_sv(1:nsv)==iadv_5th)) then
+      ih = 3
+      jh = 3
+      kh = 1
+    elseif (any(advarr==iadv_52).or.any(iadv_sv(1:nsv)==iadv_52)) then
       ih = 3
       jh = 3
       kh = 1

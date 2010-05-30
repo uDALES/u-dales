@@ -2,7 +2,7 @@
 iexpnr     =  001
 lwarmstart =  .false.
 startfile  =  'initd00h01m000.000'
-runtime    =  1440
+runtime    =  86400
 trestart   =  3600
 ladaptive  =  .true.
 dtmax      =  4
@@ -13,13 +13,13 @@ nsv        =  2
 /
 
 &DOMAIN
-imax       =  32
-jtot       =  32
+imax       =  128
+jtot       =  128
 kmax       =  126
 
 
-xsize      =  3200
-ysize      =  3200
+xsize      =  12800
+ysize      =  12800
 
 xlat       =  18.0
 xlon       =  298.5
@@ -36,7 +36,7 @@ thls       =  298.5
 
 lmoist     =  .true.
 isurf      =  10
-irad       =  1
+irad       =  0
 timerad    =  2
 lcoriol    =  .true.
 lmomsubs   =  .false.
@@ -61,10 +61,10 @@ iadv_qt    =  2
 iadv_sv    =  7
 /
 &NAMMICROPHYSICS
-imicro     = 0
+imicro     = 2
 /
 &NAMBULKMICROSTAT
-lstat      = .true.
+lmicrostat = .true.
 timeav     = 21600
 dtav       = 60
 /

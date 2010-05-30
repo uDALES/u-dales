@@ -164,7 +164,7 @@ contains
     use modmpi,    only : myid,mpierr, comm3d,my_real, mpi_logical
     use modglobal, only : dtmax, kmax,k1, nsv,ifnamopt,fname_options, ifoutput, cexpnr,dtav_glob,timeav_glob,ladaptive,dt_lim,btime,tres
     use modstat_nc, only : lnetcdf, open_nc,define_nc,redefine_nc,ncinfo,writestat_dims_nc
-
+    use modsurfdata, only : isurf,ksoilmax
 
     implicit none
 
@@ -390,7 +390,11 @@ contains
         call ncinfo(ncname(37,:),'cs','Smagorinsky constant','-','tt')
 
 
-        call open_nc(fname,  ncid,n3=kmax)
+        if (isurf==1) then
+          call open_nc(fname,  ncid,n3=kmax,ns=ksoilmax)
+        else
+          call open_nc(fname,  ncid,n3=kmax,ns=ksoilmax)
+        endif
         call define_nc( ncid, 1, tncname)
         call writestat_dims_nc(ncid)
         call redefine_nc(ncid)
@@ -432,7 +436,7 @@ contains
     use modsubgriddata,only : ekm, ekh, csz
     use modglobal, only : i1,ih,j1,jh,k1,kmax,nsv,dzf,dzh,rlv,rv,rd,cp, &
                           rslabs,cu,cv,iadv_thl,iadv_kappa,eps1,dxi,dyi
-    use modmpi,    only : nprocs,comm3d,nprocs,my_real, mpi_sum,mpierr, slabsum
+    use modmpi,    only : nprocs,comm3d,nprocs,my_real,mpi_sum,mpierr,slabsum
     implicit none
 
 
@@ -622,17 +626,19 @@ contains
 
     cszav = 0.
 
-    do  j=2,j1
-    do  i=2,i1
-    do  k=1,kmax
-      thv0(i,j,k) = (thl0(i,j,k)+rlv*ql0(i,j,k)/(cp*exnf(k))) &
-                    *(1+(rv/rd-1)*qt0(i,j,k)-rv/rd*ql0(i,j,k))
+    do  k=1,k1
+      do  j=2,j1
+        do  i=2,i1
+          thv0(i,j,k) = (thl0(i,j,k)+rlv*ql0(i,j,k)/(cp*exnf(k))) &
+                        *(1+(rv/rd-1)*qt0(i,j,k)-rv/rd*ql0(i,j,k))
+        enddo
+      enddo
     enddo
-    enddo
-    enddo
+
     do k=1,k1
       cfracavl(k)    = cfracavl(k)+count(ql0(2:i1,2:j1,k)>0)
     end do
+
     call MPI_ALLREDUCE(cfracavl,cfracav,k1,MY_REAL,MPI_SUM,comm3d,mpierr)
 
     call slabsum(umav  ,1,k1,um  ,2-ih,i1+ih,2-jh,j1+jh,1,k1,2,i1,2,j1,1,k1)

@@ -82,9 +82,10 @@ program DALES      !Version 3.2 RC 1
   use modtimestat,     only : inittimestat, timestat
   use modgenstat,      only : initgenstat, genstat, exitgenstat
   use modradstat,      only : initradstat ,radstat, exitradstat
+  use modlsmstat,      only : initlsmstat ,lsmstat, exitlsmstat
   use modsampling,     only : initsampling, sampling,exitsampling
   use modcrosssection, only : initcrosssection, crosssection,exitcrosssection
-  !use modprojection,   only : initprojection, projection
+  use modlsmcrosssection, only : initlsmcrosssection, lsmcrosssection,exitlsmcrosssection
   use modcloudfield,   only : initcloudfield, cloudfield
   use modfielddump,    only : initfielddump, fielddump,exitfielddump
   use modstattend,     only : initstattend, stattend,exitstattend, tend_start,tend_adv,tend_subg,tend_force,&
@@ -92,13 +93,17 @@ program DALES      !Version 3.2 RC 1
 
   use modbulkmicrostat,only : initbulkmicrostat, bulkmicrostat,exitbulkmicrostat
   use modbudget,       only : initbudget, budgetstat, exitbudget
-  use modstress,       only : initstressbudget, stressbudgetstat, exitstressbudget
+
+  ! modules below are disabled by default to improve compilation time
+  !use modstress,       only : initstressbudget, stressbudgetstat, exitstressbudget
 
   !use modtilt,         only : inittilt, tiltedgravity, tiltedboundary, exittilt
   !use modparticles,    only : initparticles, particles, exitparticles
   !use modnudge,        only : initnudge, nudge, exitnudge
+  !use modprojection,   only : initprojection, projection
   
-  use modchem,         only : initchem,inputchem, twostep
+  !use modchem,         only : initchem, twostep
+
   implicit none
 
 !----------------------------------------------------------------
@@ -118,17 +123,19 @@ program DALES      !Version 3.2 RC 1
   !call inittilt
   call initsampling
   call initcrosssection
+  call initlsmcrosssection
   !call initprojection
   call initcloudfield
   call initfielddump
   call initstattend
   call initradstat
+  call initlsmstat
   !call initparticles
   !call initnudge
   call initbulkmicrostat
   call initbudget
-  call initstressbudget
-  call initchem
+  !call initstressbudget
+  !call initchem
 
 !------------------------------------------------------
 !   3.0   MAIN TIME LOOP
@@ -198,15 +205,16 @@ program DALES      !Version 3.2 RC 1
 !-----------------------------------------------------
 !   3.7  WRITE RESTARTFILES AND DO STATISTICS
 !------------------------------------------------------
-    ! Chemistry
-    call twostep
+    !call twostep
 
     call checksim
     call timestat  !Timestat must preceed all other timeseries that could write in the same netCDF file (unless stated otherwise
     call genstat  !Genstat must preceed all other statistics that could write in the same netCDF file (unless stated otherwise
     call radstat
+    call lsmstat
     call sampling
     call crosssection
+    call lsmcrosssection
     !call projection
     call cloudfield
     call fielddump
@@ -214,7 +222,7 @@ program DALES      !Version 3.2 RC 1
 
     call bulkmicrostat
     call budgetstat
-    call stressbudgetstat
+    !call stressbudgetstat
 
     call writerestartfiles
   end do
@@ -229,14 +237,16 @@ program DALES      !Version 3.2 RC 1
 !-------------------------------------------------------
   call exitgenstat
   call exitradstat
+  call exitlsmstat
   !call exitparticles
   !call exitnudge
   call exitsampling
   call exitstattend
   call exitbulkmicrostat
   call exitbudget
-  call exitstressbudget
+  !call exitstressbudget
   call exitcrosssection
+  call exitlsmcrosssection
   call exitfielddump
   call exitmodules
 
