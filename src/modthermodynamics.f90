@@ -98,92 +98,93 @@ contains
     dthvdz = 0
     if (lmoist) then
 
-      do  j=2,j1
-      do  i=2,i1
       do  k=2,k1
-        thv0h(i,j,k) = (thl0h(i,j,k)+rlv*ql0h(i,j,k)/(cp*exnh(k))) &
-                      *(1+(rv/rd-1)*qt0h(i,j,k)-rv/rd*ql0h(i,j,k))
-      end do
-      end do
+        do  j=2,j1
+          do  i=2,i1
+            thv0h(i,j,k) = (thl0h(i,j,k)+rlv*ql0h(i,j,k)/(cp*exnh(k))) &
+                          *(1+(rv/rd-1)*qt0h(i,j,k)-rv/rd*ql0h(i,j,k))
+          end do
+        end do
       end do
 
       do k=2,kmax
+        do j=2,j1
+          do i=2,i1
+!
+!         default thv jump computed unsaturated
+!
+            epsilon = rd/rv
+            eps_I = 1/epsilon - 1.  !cstep approx 0.608
+
+            a_dry = 1. + eps_I * qt0(i,j,k)
+            b_dry = eps_I * thl0(i,j,k)
+
+            dth = thl0(i,j,k+1)-thl0(i,j,k-1)
+            dq  = qt0(i,j,k+1)-qt0(i,j,k-1)
+
+            del_thv_dry = a_dry   * dth + b_dry * dq
+
+            dthv = del_thv_dry
+
+            if  (ql0(i,j,k)> 0) then  !include moist thermodynamics
+
+               temp = thl0(i,j,k)*exnf(k)+(rlv/cp)*ql0(i,j,k)
+               qs   = qt0(i,j,k) - ql0(i,j,k)
+
+               a_moist = (1.-qt0(i,j,k)+qs/epsilon*(1.+rlv/(rv*temp))) &
+                        /(1.+rlv**2*qs/(cp*rv*temp**2))
+               b_moist = a_moist*rlv/cp-temp
+               c_liquid = a_dry * rlv / cp - thl0(i,j,k) / epsilon
+
+               del_thv_sat = a_moist * dth + b_moist * dq
+
+               chi     = 2*chi_half*(zf(k) - zf(k-1))/(dzh(k)+dzh(k+1))
+               chi_sat = c_liquid * ql0(i,j,k) / (del_thv_dry - del_thv_sat)
+
+               if (chi < chi_sat) then  !mixed parcel is saturated
+                 dthv = del_thv_sat
+              end if
+            end if
+
+            dthvdz(i,j,k) = dthv/(dzh(k+1)+dzh(k))
+          end do
+        end do
+      end do
+
       do j=2,j1
-      do i=2,i1
-!
-!     default thv jump computed unsaturated
-!
-        epsilon = rd/rv
-        eps_I = 1/epsilon - 1.  !cstep approx 0.608
+        do i=2,i1
 
-        a_dry = 1. + eps_I * qt0(i,j,k)
-        b_dry = eps_I * thl0(i,j,k)
 
-        dth = thl0(i,j,k+1)-thl0(i,j,k-1)
-        dq  = qt0(i,j,k+1)-qt0(i,j,k-1)
+          if(ql0(i,j,1)>0) then
+            temp = thl0(i,j,1)*exnf(1)+(rlv/cp)*ql0(i,j,1)
+            qs   = qt0(i,j,1) - ql0(i,j,1)
+            c1   = (1.-qt0(i,j,1)+rv/rd*qs*(1.+rlv/(rv*temp))) &
+                      /(1.+rlv**2*qs/(cp*rv*temp**2))
+            c2   = c1*rlv/(temp*cp)-1.
 
-        del_thv_dry = a_dry   * dth + b_dry * dq
+          else
+            c1 = 1.+(rv/rd-1)*qt0(i,j,1)
+            c2 = rv/rd-1
 
-        dthv = del_thv_dry
-
-        if  (ql0(i,j,k)> 0) then  !include moist thermodynamics
-
-           temp = thl0(i,j,k)*exnf(k)+(rlv/cp)*ql0(i,j,k)
-           qs   = qt0(i,j,k) - ql0(i,j,k)
-
-           a_moist = (1.-qt0(i,j,k)+qs/epsilon*(1.+rlv/(rv*temp))) &
-                    /(1.+rlv**2*qs/(cp*rv*temp**2))
-           b_moist = a_moist*rlv/cp-temp
-           c_liquid = a_dry * rlv / cp - thl0(i,j,k) / epsilon
-
-           del_thv_sat = a_moist * dth + b_moist * dq
-
-           chi     = 2*chi_half*(zf(k) - zf(k-1))/(dzh(k)+dzh(k+1))
-           chi_sat = c_liquid * ql0(i,j,k) / (del_thv_dry - del_thv_sat)
-
-           if (chi < chi_sat) then  !mixed parcel is saturated
-             dthv = del_thv_sat
           end if
-        end if
+          dthvdz(i,j,1) = c1*dthldz(i,j) + c2*thl0(i,j,1)*dqtdz(i,j)
 
-        dthvdz(i,j,k) = dthv/(dzh(k+1)+dzh(k))
-      end do
-      end do
-      end do
-      do j=2,j1
-      do i=2,i1
-
-
-        if(ql0(i,j,1)>0) then
-          temp = thl0(i,j,1)*exnf(1)+(rlv/cp)*ql0(i,j,1)
-          qs   = qt0(i,j,1) - ql0(i,j,1)
-          c1   = (1.-qt0(i,j,1)+rv/rd*qs*(1.+rlv/(rv*temp))) &
-                    /(1.+rlv**2*qs/(cp*rv*temp**2))
-          c2   = c1*rlv/(temp*cp)-1.
-
-        else
-          c1 = 1.+(rv/rd-1)*qt0(i,j,1)
-          c2 = rv/rd-1
-
-        end if
-        dthvdz(i,j,1) = c1*dthldz(i,j) + c2*thl0(i,j,1)*dqtdz(i,j)
-
-      end do
+        end do
       end do
 
     else
       thv0h = thl0h
       do k=2,kmax
-      do j=2,j1
-      do i=2,i1
-        dthvdz(i,j,k) = (thl0(i,j,k+1)-thl0(i,j,k-1))/(dzh(k+1)+dzh(k))
-      end do
-      end do
+        do j=2,j1
+          do i=2,i1
+            dthvdz(i,j,k) = (thl0(i,j,k+1)-thl0(i,j,k-1))/(dzh(k+1)+dzh(k))
+          end do
+        end do
       end do
       do  j=2,j1
-      do  i=2,i1
-        dthvdz(i,j,1) = dthldz(i,j)
-      end do
+        do  i=2,i1
+          dthvdz(i,j,1) = dthldz(i,j)
+        end do
       end do
     end if
 
@@ -406,9 +407,9 @@ contains
 !mc      first guess is Tnr=tl
 !mc
       nitert = 0
-      do j=2,j1
-        do i=2,i1
-          do k=1,k1
+      do k=1,k1
+        do j=2,j1
+          do i=2,i1
 
             tl  = thl(i,j,k)*exner(k)
             Tnr=tl
@@ -433,9 +434,9 @@ contains
     else
 
 
-      do j=2,j1
-        do i=2,i1
-          do k=1,k1
+      do k=1,k1
+        do j=2,j1
+          do i=2,i1
             tl  = thl(i,j,k)*exner(k)
             es  = es0*exp(at*(tl-tmelt)/(tl-bt))
             qsl = rd/rv*es/(pressure(k)-(1-rd/rv)*es)
@@ -460,16 +461,15 @@ contains
 
     integer :: i,j,k
 
-
     if (iadv_thl==iadv_kappa) then
       call halflev_kappa(thl0,thl0h)
     else
-      do  j=2,j1
-      do  i=2,i1
       do  k=2,k1
-        thl0h(i,j,k) = (thl0(i,j,k)*dzf(k-1)+thl0(i,j,k-1)*dzf(k))/(2*dzh(k))
-      end do
-      end do
+        do  j=2,j1
+          do  i=2,i1
+            thl0h(i,j,k) = (thl0(i,j,k)*dzf(k-1)+thl0(i,j,k-1)*dzf(k))/(2*dzh(k))
+          end do
+        end do
       end do
     end if
     thl0h(2:i1,2:j1,1) = thls
@@ -477,12 +477,12 @@ contains
     if (iadv_qt==iadv_kappa) then
         call halflev_kappa(qt0,qt0h)
     else
-      do  j=2,j1
-      do  i=2,i1
       do  k=2,k1
-        qt0h(i,j,k)  = (qt0 (i,j,k)*dzf(k-1)+qt0 (i,j,k-1)*dzf(k))/(2*dzh(k))
-      end do
-      end do
+        do  j=2,j1
+          do  i=2,i1
+            qt0h(i,j,k)  = (qt0 (i,j,k)*dzf(k-1)+qt0 (i,j,k-1)*dzf(k))/(2*dzh(k))
+          end do
+        end do
       end do
       qt0h(2:i1,2:j1,1)  = qts
     end if
