@@ -242,7 +242,7 @@ contains
           ,'#LEV HEIGHT  T_SOIL      SOIL MOIST   HEAT COND.   MOIST DIFF.  MOIST COND.' &
           ,'#    (M)    (K)          (M^3/M^3)    (W/M/K)      (M^2/S)       (M/S)      '
       do k=1,ksoilmax
-        write(ifoutput,'(I3,F8.2,F10.4,4E13.4)') &
+        write(ifoutput,'(I3,F8.4,F10.4,4E13.4)') &
             k, zsoilc(k),&
             tsoilmn(k),&
             phiwmn(k),&
