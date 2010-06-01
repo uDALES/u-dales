@@ -34,7 +34,7 @@ contains
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine initradiation
-    use modglobal,    only : kmax,i1,ih,j1,jh,k1,nsv,ih,jh,btime,tres
+    use modglobal,    only : kmax,i1,ih,j1,jh,k1,nsv,ih,jh,btime,tres,dt_lim
     use modmpi,       only : myid
     implicit none
 
@@ -86,8 +86,10 @@ contains
         rad_smoke  = .true.
       end select
     end if
+    if (iradiation == 0) return
     itimerad = floor(timerad/tres)
-    tnext = btime
+    tnext = itimerad+btime
+    dt_lim = min(dt_lim,tnext)
 
     if (rad_smoke.and.isvsmoke>nsv) then
       if (rad_shortw) then
@@ -111,10 +113,11 @@ contains
     if(timee<tnext .and. rk3step==3) then
       dt_lim = min(dt_lim,tnext-timee)
     end if
-
+print *,itimerad,timee,tnext
     if((itimerad==0 .or. timee==tnext) .and. rk3step==1) then
       tnext = tnext+itimerad
       thlprad = 0.0
+print *,'in'      
       select case (iradiation)
           case (irad_none)
           case (irad_full)
