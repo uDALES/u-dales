@@ -113,11 +113,9 @@ contains
     if(timee<tnext .and. rk3step==3) then
       dt_lim = min(dt_lim,tnext-timee)
     end if
-print *,itimerad,timee,tnext
     if((itimerad==0 .or. timee==tnext) .and. rk3step==1) then
       tnext = tnext+itimerad
       thlprad = 0.0
-print *,'in'      
       select case (iradiation)
           case (irad_none)
           case (irad_full)
