@@ -258,11 +258,11 @@ contains
             upcu  = 0.5 * (u0(i,j,1) + u0(i+1,j,1)) + cu
             vpcv  = 0.5 * (v0(i,j,1) + v0(i,j+1,1)) + cv
             horv  = sqrt(upcu ** 2. + vpcv ** 2.)
-            horv  = max(horv, 1.e-2)
+            horv  = max(horv, 0.1)
             ra(i,j) = 1. / ( Cs(i,j) * horv )
           else
             horvav  = sqrt(u0av(1) ** 2. + v0av(1) ** 2.)
-            horvav  = max(horvav, 1.e-2)
+            horvav  = max(horvav, 0.1)
             ra(i,j) = 1. / ( Cs(i,j) * horvav )
           end if
 
@@ -292,9 +292,9 @@ contains
           upcu   = 0.5 * (u0(i,j,1) + u0(i+1,j,1)) + cu
           vpcv   = 0.5 * (v0(i,j,1) + v0(i,j+1,1)) + cv
           horv   = sqrt(upcu ** 2. + vpcv ** 2.)
-          horv   = max(horv, 1.e-2)
+          horv   = max(horv, 0.1)
           horvav = sqrt(u0av(1) ** 2. + v0av(1) ** 2.)
-          horvav = max(horvav, 1.e-2)
+          horvav = max(horvav, 0.1)
           
           if(lmostlocal) then 
             ustar  (i,j) = sqrt(Cm(i,j)) * horv 
@@ -369,7 +369,7 @@ contains
             upcu  = 0.5 * (u0(i,j,1) + u0(i+1,j,1)) + cu
             vpcv  = 0.5 * (v0(i,j,1) + v0(i,j+1,1)) + cv
             horv  = sqrt(upcu ** 2. + vpcv ** 2.)
-            horv  = max(horv, 1.e-2)
+            horv  = max(horv, 0.1)
 
             dudz  (i,j) = ustar(i,j) * phimzf / (fkar*zf(1))*(upcu/horv)
             dvdz  (i,j) = ustar(i,j) * phimzf / (fkar*zf(1))*(vpcv/horv)
@@ -398,9 +398,9 @@ contains
           upcu   = 0.5 * (u0(i,j,1) + u0(i+1,j,1)) + cu
           vpcv   = 0.5 * (v0(i,j,1) + v0(i,j+1,1)) + cv
           horv   = sqrt(upcu ** 2. + vpcv ** 2.)
-          horv   = max(horv, 1.e-2)
+          horv   = max(horv, 0.1)
           horvav = sqrt(u0av(1) ** 2. + v0av(1) ** 2.)
-          horvav = max(horvav, 1.e-2)
+          horvav = max(horvav, 0.1)
 
           if( isurf == 4) then
             if(lmostlocal) then
@@ -525,7 +525,7 @@ contains
           thv    = thl0(i,j,1)  * (1. + (rv/rd - 1.) * qt0(i,j,1))
           thvsl  = tskin(i,j)   * (1. + (rv/rd - 1.) * qskin(i,j))
           horv2 = u0(i,j,1)*u0(i,j,1) + v0(i,j,1)*v0(i,j,1)
-          horv2 = max(horv2, 1.e-4)
+          horv2 = max(horv2, 0.01)
 
           Rib   = grav / thvs * zf(1) * (thv - thvsl) / horv2
 
@@ -563,7 +563,7 @@ contains
     thv    = thl0av(1) * (1. + (rv/rd - 1.) * qt0av(1))
 
     horv2 = u0av(1)**2. + v0av(1)**2.
-    horv2 = max(horv2, 1.e-4)
+    horv2 = max(horv2, 0.01)
 
     Rib   = grav / thvs * zf(1) * (thv - thvs) / horv2
 
