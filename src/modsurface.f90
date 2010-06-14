@@ -310,12 +310,11 @@ contains
             svflux(i,j,n) = wsvsurf(n) 
           enddo
 
-          ! commented lines are classical Businger-Dyer functions
           if (obl(i,j) < 0.) then
-            !phimzf = (1.-16.*zf(1)/obl)**(-0.25)
-            phimzf = (1. + 3.6 * (-zf(1)/obl(i,j))**(2./3.))**(-0.5)
-            !phihzf = (1.-16.*zf(1)/obl)**(-0.50)
-            phihzf = (1. + 7.9 * (-zf(1)/obl(i,j))**(2./3.))**(-0.5)
+            phimzf = (1.-16.*zf(1)/obl(i,j))**(-0.25)
+            !phimzf = (1. + 3.6 * (-zf(1)/obl(i,j))**(2./3.))**(-0.5)
+            phihzf = (1.-16.*zf(1)/obl(i,j))**(-0.50)
+            !phihzf = (1. + 7.9 * (-zf(1)/obl(i,j))**(2./3.))**(-0.5)
           elseif (obl(i,j) > 0.) then
             phimzf = (1.+5.*zf(1)/obl(i,j))
             phihzf = (1.+5.*zf(1)/obl(i,j))
@@ -355,10 +354,10 @@ contains
             enddo
 
             if (obl(i,j) < 0.) then
-              !phimzf = (1.-16.*zf(1)/obl)**(-0.25)
-              phimzf = (1. + 3.6 * (-zf(1)/obl(i,j))**(2./3.))**(-0.5)
-              !phihzf = (1.-16.*zf(1)/obl)**(-0.50)
-              phihzf = (1. + 7.9 * (-zf(1)/obl(i,j))**(2./3.))**(-0.5)
+              phimzf = (1.-16.*zf(1)/obl(i,j))**(-0.25)
+              !phimzf = (1. + 3.6 * (-zf(1)/obl(i,j))**(2./3.))**(-0.5)
+              phihzf = (1.-16.*zf(1)/obl(i,j))**(-0.50)
+              !phihzf = (1. + 7.9 * (-zf(1)/obl(i,j))**(2./3.))**(-0.5)
             elseif (obl(i,j) > 0.) then
               phimzf = (1.+5.*zf(1)/obl(i,j))
               phihzf = (1.+5.*zf(1)/obl(i,j))
@@ -422,10 +421,10 @@ contains
           enddo
 
           if (obl(i,j) < 0.) then
-            !phimzf = (1.-16.*zf(1)/obl)**(-0.25)
-            phimzf = (1. + 3.6 * (-zf(1)/obl(i,j))**(2./3.))**(-0.5)
-            !phihzf = (1.-16.*zf(1)/obl)**(-0.50)
-            phihzf = (1. + 7.9 * (-zf(1)/obl(i,j))**(2./3.))**(-0.5)
+            phimzf = (1.-16.*zf(1)/obl(i,j))**(-0.25)
+            !phimzf = (1. + 3.6 * (-zf(1)/obl(i,j))**(2./3.))**(-0.5)
+            phihzf = (1.-16.*zf(1)/obl(i,j))**(-0.50)
+            !phihzf = (1. + 7.9 * (-zf(1)/obl(i,j))**(2./3.))**(-0.5)
           elseif (obl(i,j) > 0.) then
             phimzf = (1.+5.*zf(1)/obl(i,j))
             phihzf = (1.+5.*zf(1)/obl(i,j))
@@ -609,11 +608,11 @@ contains
     real             :: x
 
     if(zeta <= 0) then
-      !x     = (1. - 16. * zeta) ** (0.25)
-      !psim  = 3.14159265 / 2. - 2. * atan(x) + log( (1.+x) ** 2. * (1. + x ** 2.) / 8.)
+      x     = (1. - 16. * zeta) ** (0.25)
+      psim  = 3.14159265 / 2. - 2. * atan(x) + log( (1.+x) ** 2. * (1. + x ** 2.) / 8.)
       ! CvH use Wilson, 2001 rather than Businger-Dyer for correct free convection limit
-      x     = (1. + 3.6 * abs(zeta) ** (2./3.)) ** (-0.5)
-      psim = 3. * log( (1. + 1. / x) / 2.)
+      !x     = (1. + 3.6 * abs(zeta) ** (2./3.)) ** (-0.5)
+      !psim = 3. * log( (1. + 1. / x) / 2.)
     else
       psim  = -2./3. * (zeta - 5./0.35)*exp(-0.35 * zeta) - zeta - (10./3.) / 0.35
     end if
@@ -630,11 +629,11 @@ contains
     real             :: x
 
     if(zeta <= 0) then
-      !x     = (1. - 16. * zeta) ** (0.25)
-      !psih  = 2. * log( (1. + x ** 2.) / 2. )
+      x     = (1. - 16. * zeta) ** (0.25)
+      psih  = 2. * log( (1. + x ** 2.) / 2. )
       ! CvH use Wilson, 2001
-      x     = (1. + 7.9 * abs(zeta) ** (2./3.)) ** (-0.5)
-      psih  = 3. * log( (1. + 1. / x) / 2.)
+      !x     = (1. + 7.9 * abs(zeta) ** (2./3.)) ** (-0.5)
+      !psih  = 3. * log( (1. + 1. / x) / 2.)
     else
       psih  = -2./3. * (zeta - 5./0.35)*exp(-0.35 * zeta) - (1. + (2./3.) * zeta) ** (1.5) - (10./3.) / 0.35 + 1.
     end if
