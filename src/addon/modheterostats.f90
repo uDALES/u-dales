@@ -21,7 +21,6 @@
 module modheterostats
 
 use modglobal, only: nsv, kmax,longint
-!use modfields, only: 							  !HGO: DELETE NOMINATION
 
 implicit none
 private
@@ -39,7 +38,6 @@ save
   integer :: ncid
 
   !id of dimensions
-  !integer :: xid                    					  !HGO: DELETE NOMINATION             
   integer :: yid, zid, tid             
 
   !id of variables (means)
@@ -65,24 +63,6 @@ save
 
   !Only used in chemistry cases: integer :: OHISOcovid, O3NOcovid
 
-  !VARIABLES FOR MOVIE							    !HGO: DELETE NOMINATION
-  !id of netcdf								    !HGO: DELETE NOMINATION
-  !integer :: ncidmovie            					    !HGO: DELETE NOMINATION
-  !id of dimensions                                                         !HGO: DELETE NOMINATION
-  !integer :: xidmovie, yidmovie, zidmovie, tidmovie                        !HGO: DELETE NOMINATION
-  !id of variables 							    !HGO: DELETE NOMINATION
-  !integer :: uidmovie, vidmovie, widmovie, thlidmovie, qtidmovie           !HGO: DELETE NOMINATION
-  !VARIABLES FOR FIELD DUMP						    !HGO: DELETE NOMINATION
-  !id of netcdf 							    !HGO: DELETE NOMINATION
-  !integer :: ncidfieldu, ncidfieldv, ncidfieldw, ncidfieldthl, ncidfieldqt !HGO: DELETE NOMINATION
-  !id of dimensions							    !HGO: DELETE NOMINATION
-  !integer :: xidfieldu,   yidfieldu,   zidfieldu,   tidfieldu		    !HGO: DELETE NOMINATION
-  !integer :: xidfieldv,   yidfieldv,   zidfieldv,   tidfieldv		    !HGO: DELETE NOMINATION
-  !integer :: xidfieldw,   yidfieldw,   zidfieldw,   tidfieldw		    !HGO: DELETE NOMINATION
-  !integer :: xidfieldthl, yidfieldthl, zidfieldthl, tidfieldthl	    !HGO: DELETE NOMINATION
-  !integer :: xidfieldqt,  yidfieldqt,  zidfieldqt,  tidfieldqt		    !HGO: DELETE NOMINATION
-  !id of variables							    !HGO: DELETE NOMINATION
-  !integer :: uidfield, vidfield, widfield, thlidfield, qtidfield	    !HGO: DELETE NOMINATION
 
   !COMMON VARIABLES
   !constants
@@ -90,13 +70,6 @@ save
   !parameter (ncklimit = 50)
   integer :: nccall = 1
 
-  !integer :: ncfieldflag		!HGO: DELETE NOMINATION
-  !parameter (ncfieldflag = 31)		!HGO: DELETE NOMINATION
-  ! 1 = u				!HGO: DELETE NOMINATION
-  ! 2 = v				!HGO: DELETE NOMINATION
-  ! 4 = w				!HGO: DELETE NOMINATION
-  ! 8 = thl				!HGO: DELETE NOMINATION
-  ! 16 = qt				!HGO: DELETE NOMINATION
 
 contains
   subroutine initheterostats
@@ -325,8 +298,6 @@ contains
     do k = 2,k1
       do j = 2,j1
         do i = 2,i1
-!          thl0h(i,j,k) = 0.5*(thl0(i,j,k) + thl0(i,j,k-1))				!HGO: DELETE NOMINATION
-!          qt0h(i,j,k) = 0.5*(qt0(i,j,k) + qt0(i,j,k-1))				!HGO: DELETE NOMINATION
           vonw(i,j,k) = 0.25*(v0(i,j,k) + v0(i,j+1,k) + v0(i,j,k-1) + v0(i,j+1,k-1))
         end do
       end do
