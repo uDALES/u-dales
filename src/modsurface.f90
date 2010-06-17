@@ -406,7 +406,7 @@ contains
             if(lmostlocal) then
               ustar (i,j) = fkar * horv   / (log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j)) + psim(z0m(i,j) / obl(i,j)))
             else
-              ustar (i,j) = fkar * horvav / (log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j)) + psim(z0m(i,j) / obl(i,j))) * sqrt(2. * horv / horvav - 1.)
+              ustar (i,j) = fkar * horvav / (log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j)) + psim(z0m(i,j) / obl(i,j))) * sqrt(max(2. * horv / horvav, 1.) - 1.)
             end if
           else
             ustar (i,j) = ustin
