@@ -297,14 +297,14 @@ contains
           horvav = max(horvav, 0.1)
           
           if(lmostlocal) then 
-            ustar  (i,j) = sqrt(Cm(i,j)) * horv 
+            ustar (i,j) = sqrt(Cm(i,j)) * horv 
           else
-            ustar  (i,j) = sqrt(Cm(i,j)) * horvav
+            ustar (i,j) = sqrt(Cm(i,j)) * horvav * sqrt(2. * horv / horvav - 1.)
           end if
           
           thlflux(i,j) = - ( thl0(i,j,1) - tskin(i,j) ) / ra(i,j) 
 
-          qtflux(i,j) = - (qt0(i,j,1)  - qskin(i,j)) / ra(i,j)
+          qtflux(i,j)  = - ( qt0(i,j,1)  - qskin(i,j)) / ra(i,j)
           
           do n=1,nsv
             svflux(i,j,n) = wsvsurf(n) 
@@ -404,9 +404,9 @@ contains
 
           if( isurf == 4) then
             if(lmostlocal) then
-              ustar (i,j) = fkar * horv  / (log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j)) + psim(z0m(i,j) / obl(i,j)))
+              ustar (i,j) = fkar * horv   / (log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j)) + psim(z0m(i,j) / obl(i,j)))
             else
-              ustar (i,j) = fkar * horvav / (log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j)) + psim(z0m(i,j) / obl(i,j)))
+              ustar (i,j) = fkar * horvav / (log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j)) + psim(z0m(i,j) / obl(i,j))) * sqrt(2. * horv / horvav - 1.)
             end if
           else
             ustar (i,j) = ustin
