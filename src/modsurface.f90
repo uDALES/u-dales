@@ -515,6 +515,7 @@ contains
     integer             :: i,j,iter
     real                :: thv, thvsl, L, horv2, oblavl
     real                :: Rib, Lstart, Lend, fx, fxdif, Lold
+    real                :: upcu, vpcv
 
     if(lmostlocal) then
 
@@ -522,12 +523,14 @@ contains
 
       do i=2,i1
         do j=2,j1
-          thv    = thl0(i,j,1)  * (1. + (rv/rd - 1.) * qt0(i,j,1))
-          thvsl  = tskin(i,j)   * (1. + (rv/rd - 1.) * qskin(i,j))
-          horv2 = u0(i,j,1)*u0(i,j,1) + v0(i,j,1)*v0(i,j,1)
-          horv2 = max(horv2, 0.01)
+          thv     =   thl0(i,j,1)  * (1. + (rv/rd - 1.) * qt0(i,j,1))
+          thvsl   =   tskin(i,j)   * (1. + (rv/rd - 1.) * qskin(i,j))
+          upcu    =   0.5 * (u0(i,j,1) + u0(i+1,j,1)) + cu
+          vpcv    =   0.5 * (v0(i,j,1) + v0(i,j+1,1)) + cv
+          horv2   =   upcu ** 2. + vpcv ** 2.
+          horv2   =   max(horv2, 0.01)
 
-          Rib   = grav / thvs * zf(1) * (thv - thvsl) / horv2
+          Rib     =   grav / thvs * zf(1) * (thv - thvsl) / horv2
 
           iter = 0
           L = obl(i,j)
