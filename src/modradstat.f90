@@ -183,8 +183,8 @@ contains
         call ncinfo(ncname( 8,:),'swd','Short wave upward radiative flux','W/m^2','mt')
         call ncinfo(ncname( 9,:),'lwuca','Long wave clear air upward radiative flux','W/m^2','mt')
         call ncinfo(ncname(10,:),'lwdca','Long wave clear air downward radiative flux','W/m^2','mt')
-        call ncinfo(ncname(11,:),'swdca','Short wave clear air downward radiative flux','W/m^2','mt')
-        call ncinfo(ncname(12,:),'swuca','Short wave clear air upward radiative flux','W/m^2','mt')
+        call ncinfo(ncname(11,:),'swuca','Short wave clear air downward radiative flux','W/m^2','mt')
+        call ncinfo(ncname(12,:),'swdca','Short wave clear air upward radiative flux','W/m^2','mt')
 
         call redefine_nc(ncid_prof)
         call define_nc( ncid_prof, NVar, ncname)
