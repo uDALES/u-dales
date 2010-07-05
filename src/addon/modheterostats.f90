@@ -442,7 +442,7 @@ contains
     end do
 
     do n = 1,nsv
-      do k = 2,ncklimit
+      do k = 1,ncklimit
         do j = 1,jmax
           do i = 1,imax
             !shift prognostic fields one step as 1st column
