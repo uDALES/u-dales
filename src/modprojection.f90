@@ -139,7 +139,7 @@ contains
     end if
     tnext = tnext+idtav
     dt_lim = minval((/dt_lim,tnext-timee/))
-    call wrthorz
+     call wrthorz
 
 
   end subroutine projection
@@ -184,14 +184,14 @@ contains
       allocate(vars(1:imax,1:jmax,nvar))
       do j = 2,j1
         do i = 2,i1
-          vars(i,j,1) = sum(thlm (i,j,1:ksplit)*rhof*dzf)
-          vars(i,j,2) = sum(thlm (i,j,ksplit+1:kmax)*rhof*dzf)
-          vars(i,j,3) = sum(thv0h(i,j,1:ksplit)*rhof*dzf)
-          vars(i,j,4) = sum(thv0h(i,j,ksplit+1:kmax)*rhof*dzf)
-          vars(i,j,5) = sum(qtm  (i,j,1:ksplit)*rhof*dzf)
-          vars(i,j,6) = sum(qtm  (i,j,ksplit+1:kmax)*rhof*dzf)
-          vars(i,j,7) = sum(ql0  (i,j,1:ksplit)*rhof*dzf)
-          vars(i,j,8) = sum(ql0  (i,j,ksplit+1:kmax)*rhof*dzf)
+          vars(i-1,j-1,1) = sum(thlm (i,j,1:ksplit)*rhof(1:ksplit)*dzf(1:ksplit))
+          vars(i-1,j-1,2) = sum(thlm (i,j,ksplit+1:kmax)*rhof(ksplit+1:kmax)*dzf(ksplit+1:kmax))
+          vars(i-1,j-1,3) = sum(thv0h(i,j,1:ksplit)*rhof(1:ksplit)*dzf(1:ksplit))
+          vars(i-1,j-1,4) = sum(thv0h(i,j,ksplit+1:kmax)*rhof(ksplit+1:kmax)*dzf(ksplit+1:kmax))
+          vars(i-1,j-1,5) = sum(qtm  (i,j,1:ksplit)*rhof(1:ksplit)*dzf(1:ksplit))
+          vars(i-1,j-1,6) = sum(qtm  (i,j,ksplit+1:kmax)*rhof(ksplit+1:kmax)*dzf(ksplit+1:kmax))
+          vars(i-1,j-1,7) = sum(ql0  (i,j,1:ksplit)*rhof(1:ksplit)*dzf(1:ksplit))
+          vars(i-1,j-1,8) = sum(ql0  (i,j,ksplit+1:kmax)*rhof(ksplit+1:kmax)*dzf(ksplit+1:kmax))
         end do
       end do
       
