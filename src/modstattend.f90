@@ -53,7 +53,7 @@ contains
 !> Initialization routine, reads namelists and inits variables
 subroutine initstattend
     use modmpi,   only : mpierr,my_real,mpi_logical,comm3d,myid
-    use modglobal,only : cexpnr,dtmax,imax,jmax,kmax,ifnamopt,fname_options,k1,dtav_glob,timeav_glob,ladaptive, dt_lim,btime,kmax,tres
+    use modglobal,only : cexpnr,dtmax,imax,jmax,kmax,ifnamopt,fname_options,k1,dtav_glob,timeav_glob,ladaptive, dt_lim,btime,kmax,tres,ifoutput
     use modstat_nc, only : lnetcdf, open_nc,define_nc,redefine_nc,ncinfo,writestat_dims_nc
     use modgenstat, only : idtav_prof=>idtav, itimeav_prof=>itimeav,ncid_prof=>ncid
 
@@ -110,6 +110,20 @@ subroutine initstattend
     wpav = 0
     thlpav = 0
     qtpav = 0
+
+    if(myid==0)then
+      open (ifoutput,file='utend.'//cexpnr,status='replace')  
+      close (ifoutput)
+      open (ifoutput,file='vtend.'//cexpnr,status='replace')  
+      close (ifoutput)
+      open (ifoutput,file='wtend.'//cexpnr,status='replace')  
+      close (ifoutput)
+      open (ifoutput,file='tltend.'//cexpnr,status='replace')  
+      close (ifoutput)
+      open (ifoutput,file='qttend.'//cexpnr,status='replace')  
+      close (ifoutput)
+    endif
+
     if (lnetcdf) then
     idtav = dtav/tres
     itimeav = timeav/tres

@@ -4,7 +4,7 @@ lwarmstart =  .false.
 startfile  =  'initd00h01m000.012'
 runtime    =  28800
 trestart   =  3600
-dtmax      =  6
+dtmax      =  10
 ladaptive  = .true.
 irandom    =  43
 randthl    =  0.1
@@ -13,8 +13,8 @@ nsv        =  0
 /
 
 &DOMAIN
-imax       =  32
-jtot       =  32
+imax       =  64
+jtot       =  64
 kmax       =  80
 
 
@@ -81,7 +81,7 @@ lsampbuup   = .true.
 /
 &NAMTIMESTAT
 ltimestat   = .true.
-dtav        = 10
+dtav        = 60
 /
 &NAMCROSSSECTION
 lcross      = .false.

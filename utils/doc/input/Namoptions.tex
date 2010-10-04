@@ -84,7 +84,7 @@
 \pagenumbering{arabic}
 \setcounter{page}{1}
 This document gives an overview of all namelist options in version 3.2 of the Dutch Atmospheric Large Eddy Simulation (DALES) model. Only general information concerning these options is presented. For more detailed information about the model, the reader is referred to \citet{Heus2009}. \\
-Much information in this document originates from citet{Heus2009}. All information from that document is checked and corrected where necessary. The options are also updated to match the current version. 
+Much information in this document originates from \citet{Heus2009}. All information from that document is checked and corrected where necessary. The options are also updated to match the current version. 
 
 \chapter{Namoptions overview}\label{chapter:namoptions}
 
@@ -117,8 +117,8 @@ All options that can be set for the LES experiments will be discussed in the fol
   imax		& 64		& $x \in \mathbb{N}^*$	& Number of horizontal grid points in x-direction	& -\\
   jtot		& 64		& $x = n \cdot N_{\text{processors}}, \quad n \in \mathbb{N}^*$	& Number of horizontal grid points in y-direction	& -\\
   kmax		& 96		& $x \in \mathbb{N}^*$		& Number of vertical grid points		& -\\
-  xsize		& -		& $x \in \mathbb{N}^*$		& Horizontal size of the simulated domain	& m\\
-  ysize		& -		& $x \in \mathbb{N}^*$		& Horizontal size of the simulated domain	& m\\
+  xsize		& -1		& $x \in \mathbb{N}^*$		& Horizontal size of the simulated domain	& m\\
+  ysize		& -1		& $x \in \mathbb{N}^*$		& Horizontal size of the simulated domain	& m\\
   xlat		& 52	& $x \in \mathbb{R}, \quad -90 \leq x \leq 90$			& Latitude					& $\,^{\circ}$\\
   xlon		& 0		& $x \in \mathbb{R}, \quad 0 \leq x \leq 360$			& Longitude					& $\,^{\circ}$\\
   xday		& 1		& $x \in \mathbb{R}, \quad 1 \leq x \leq 365$	& Number of the day				& -\\
@@ -129,7 +129,6 @@ All options that can be set for the LES experiments will be discussed in the fol
 
 \newpage
 \subsection{Namelist DYNAMICS}\label{par:dynamics}
-
 \begin{center}
 	  \tablefirsthead{
         \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
@@ -153,14 +152,16 @@ All options that can be set for the LES experiments will be discussed in the fol
   cu		& 0		& $x \in \mathbb{R}$	& Transformation velocity of the Galilei transformation in x-direction	& m s$^{-1}$\\
   cv		& 0		& $x \in \mathbb{R}$	& Transformation velocity of the Galilei transformation in y-direction	& m s$^{-1}$\\
   llsadv	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$		& Switch for large scale forcings			& -\\
-  lqlnr		& .false.	& $x\in\{\text{.false.},\text{.true.}\}$		& Switch for Newton-Raphson approximation of the liquid water content	& -\\
+  lqlnr		& .true.	& $x\in\{\text{.false.},\text{.true.}\}$		& Switch for Newton-Raphson approximation of the liquid water content	& -\\
   \qquad	&		&				&							&\\
-  \multirow{7}{*}{\begin{tabular}{@{\hspace{0cm}}l}iadv\_mom\\iadv\_tke\\iadv\_thl\\iadv\_qt\\iadv\_sv \end{tabular}$\left. \begin{tabular}{l} \\ \\ \\ \\ \\ \end{tabular} \right\}$} & \multirow{7}{*}{5} & \multirow{7}{*}{$x \in \{1,2,4,5,6,7\}$}	& Advection scheme for momentum, TKE, $\theta_l$, $q_t$ and scalars: & \multirow{7}{*}{-}\\
+  \multirow{9}{*}{\begin{tabular}{@{\hspace{0cm}}l}iadv\_mom\\iadv\_tke\\iadv\_thl\\iadv\_qt\\iadv\_sv(1:nsv) \end{tabular}$\left. \begin{tabular}{l} \\ \\ \\ \\ \\ \end{tabular} \right\}$} & \multirow{9}{*}{\begin{tabular}{@{\hspace{0cm}}l}5\\-1\\-1\\-1\\-1
+\end{tabular}} & \multirow{9}{*}{$x \in \{1,2,5,52,6,62,7\}$}	& Advection scheme for momentum, TKE, $\theta_l$, $q_t$ and scalars: & \multirow{9}{*}{-}\\
   	&		&				& 1 = 1$^{\text{st}}$ order upwind					&\\
   	&		&				& 2 = 2$^{\text{nd}}$ order central difference			&\\
-  	&		&				& 4 = 4$^{\text{th}}$ order central difference			&\\
   	&		&				& 5 = Option 6 + 5$^{\text{th}}$ order upwind	&\\
+  	&		&				& 52 = Horizontal 5$^{\text{th}}$ \& vertical 2$^{\text{nd}}$	&\\
   	&		&				& 6 = 6$^{\text{th}}$ order central difference			&\\
+  	&		&				& 62 = Horizontal 6$^{\text{th}}$ \& vertical 2$^{\text{nd}}$	&\\
 	&		&				& 7 = Kappa scheme					&\\
 \end{supertabular}
 \end{center}
@@ -187,35 +188,40 @@ All options that can be set for the LES experiments will be discussed in the fol
         &&&&\\\hline
   }
 \begin{supertabular}{|l|p{1.6cm}|p{4cm}|p{6cm}|l|}
-  thls		& -		&  $x \in \mathbb{R}, \quad x>0$		& Liquid water potential temperature at the surface	& K\\
-  ps		& -		&  $x \in \mathbb{R}, \quad x>0$		& Pressure at the surface			& Pa\\
+  thls		& -1	&  $x \in \mathbb{R}, \quad x>0$		& Liquid water potential temperature at the surface	& K\\
+  ps		& -1	&  $x \in \mathbb{R}, \quad x>0$		& Pressure at the surface			& Pa\\
   &&&&\\
-  isurf		& -		& $x \in \{1,2,3,4\}$			& \begin{tabular}{@{\hspace{0cm}}p{6cm}}Flag for surface parametrization\\1 = Interactive scheme (using radiation)\\2 = Forced surface temperature; fluxes are calculated\\3 = Forced momentum, moisture and heat flux; surface temperature is calculated\\4 = Forced moisture and heat flux; $u_*$ and surface temperature are calculated\\\end{tabular}	& -\\
+  isurf		& -1	& $x \in \{1,2,3,4,10\}$			& \begin{tabular}{@{\hspace{0cm}}p{6cm}}Flag for surface parametrization\\1 = Interactive scheme (using radiation)\\2 = Forced surface temperature; fluxes are calculated\\3 = Forced momentum, moisture and heat flux; surface temperature is calculated\\4 = Forced moisture and heat flux; $u_*$ and surface temperature are calculated \\10 = User defined surface scheme. Can only be used for certain cases (using the file moduser.f90) \\\end{tabular}	& -\\
   &&&&\\
-  z0		& -		& $x \in \mathbb{R}, \quad x>0$		& Surface roughness				& m\\
-  ustin		& -		& $x \in \mathbb{R}, \quad x>0$			& Prescribed friction velocity			& m s$^{-1}$\\
-  wtsurf	& -		& $x \in \mathbb{R}, \quad x>0$		& Flux of liq. water pot. temp. at the surface	& K m s$^{-1}$\\
-  wqsurf	& -		& $x \in \mathbb{R}$		& Flux of total water content 			& kg kg$^{-1}$ m s$^{-1}$\\
+  z0		& -1	& $x \in \mathbb{R}, \quad x>0$		& Surface roughness				& m\\
+  ustin		& -1	& $x \in \mathbb{R}, \quad x>0$			& Prescribed friction velocity			& m s$^{-1}$\\
+  wtsurf	& -1	& $x \in \mathbb{R}, \quad x>0$		& Flux of liq. water pot. temp. at the surface	& K m s$^{-1}$\\
+  wqsurf	& -1	& $x \in \mathbb{R}$		& Flux of total water content 			& kg kg$^{-1}$ m s$^{-1}$\\
   wsvsurf(1:nsv)& 0		& $x \in \mathbb{R}$	& Flux of scalar n at the surface		& ppb m s$^{-1}$\\
   ltimedep	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for timedependent fluxes and large scale forcings	& -\\
   lcoriol	& .true.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for coriolis force			& -\\
+  igrw\_damp & 2         & $x \in \{0,1,2,3\}$	&	\begin{tabular}{@{\hspace{0cm}}p{6cm}}Flag for gravity wave damping\\0 = no damping \\1 = fast damping of wind to average wind \& slow damping of average to geowind \\2 = fast damping of wind to geowind  \\3 = fast damping of wind to average wind \\\end{tabular} & -\\
+  geodamptime & 7200	& $x \in \mathbb{R}, \quad x>0$	& Time scale for nudging to geowind in sponge layer & s\\
+  lmomsubs	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch to apply subsidence on momentum & -\\
   lmoist	& .true.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for calculation of moisture fields	& -\\
   lneutraldrag	& 	& 	& Obsolete 		& \\
   chi\_half		& 	& 	& Obsolete		& \\
   timerad	& 0		& $x \in \mathbb{R}, \quad x>0$	& Value for sampling interval of radiation scheme	& s\\  
   \qquad	&		&				&						& \\
-  \multirow{5}{*}[-14pt]{iradiation} & \multirow{5}{*}[-14pt]{2} & \multirow{5}{*}[-14pt]{$x \in \{0, 1, 2, 10\}$}	& Flag for radiation calculations & \multirow{5}{*}[-14pt]{-}\\
+  \multirow{7}{*}[-14pt]{iradiation} & \multirow{7}{*}[-14pt]{0} & \multirow{7}{*}[-14pt]{$x \in \{0, 1, 2, 3, 10\}$}	& Flag for radiation calculations & \multirow{7}{*}[-14pt]{-}\\
   & & & 0 = No radiation &\\
   & & & 1 = Full radiation (not implemented yet)		&\\
   & & & 2 = Parametrized radiation				&\\
+  & & & 3 = Simple surface radiation for land surface model&\\
   & & & 10 = User defined radiation (use \texttt{rad\_user.f90})&\\
   & & & &\\
+  useMcICA	& .true.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for the Monte Carlo Independent Column Approach & -\\
   rad\_ls	& .true.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for prescribed radiative forcing		& -\\
   rad\_longw	& .true.	& $x\in\{\text{.false.},\text{.true.}\}$		& Switch for parametrized longwave radiative forcing	& -\\
   rad\_shortw	& .true.	& $x\in\{\text{.false.},\text{.true.}\}$		& Switch for parametrized shortwave radiative forcing	& -\\
   rad\_smoke	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$		& Switch for longwave divergence for smoke cloud	& -\\
   \qquad	&		&				&						& \\
-  \multirow{8}{*}{irad} & \multirow{8}{*}{-1}	& \multirow{8}{*}{$x \in \{-1,0,1,2,3,4,10\}$}	& Flag to force (iradiation, rad\_ls, rad\_longw, rad\_shortw, rad\_smoke) & \multirow{8}{*}{-}\\ 
+  \multirow{8}{*}{irad} & \multirow{8}{*}{-1}	& \multirow{8}{*}{$x \in \{-1,0,1,2,3,4,10\}$}	& Deprecated flag to force (iradiation, rad\_ls, rad\_longw, rad\_shortw, rad\_smoke) & \multirow{8}{*}{-}\\ 
   	& & & -1 = - & \\
   	& & & 0 = (0,-,-,-,-) & \\
   	& & & 1 = (2,.true.,.false.,.false.,.false.) & \\
@@ -229,9 +235,10 @@ All options that can be set for the LES experiments will be discussed in the fol
   dlwtop	& 74		& $x \in \mathbb{R}, \quad x \ge 0$	& Longwave radiative flux jump at cloud top	& W m$^{-2}$\\
   sw0		& 1100		& $x \in \mathbb{R}, \quad x \ge 0$	& Direct solar radiative component cloud top (assumes zero diffusive contribution)	& W m$^{-2}$\\
   gc		& 0.85		& $x \in \mathbb{R}, \quad 0 \leq x \leq 1$	& Asymmetry factor of droplet scattering angle distribution & -\\
-  sfc\_albedo	& 0.05		& $x \in \mathbb{R}, \quad 0 \leq x \leq 1$	& Surface albedo					& -\\
+  sfc\_albedo	& 	& 	& Obsolete & \\
   reff		& 1e-5		& $x \in \mathbb{R}, \quad x>0$	& Cloud drop effective radius					& m\\
   isvsmoke	& 1		& $x \in \mathbb{N}, \quad 0 \leq x \leq \text{nsv}$	& Number of passive scalar fields to be used for optical depth calculation (not used when $rad\_smoke = .false.$)	& -\\
+  lmoduser	& .false. & $x\in\{\text{.false.},\text{.true.}\}$ & Switch for user-defined forcing. Can only be used for certain cases (using the file moduser.f90) & -\\
 \end{supertabular}
 \end{center}
 
@@ -271,8 +278,9 @@ All options that can be set for the LES experiments will be discussed in the fol
   randthl	& 0.1		& $x \in \mathbb{R}, \quad x>0$		& Amplitude of randomnization of thl		& K\\
   nsv		& 0		& $x \in \mathbb{N}, \quad 0 \leq x \leq 100$	& Number of additional passive scalars		& -\\
   ladaptive	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$		& If .true., this allows the model to vary time step, depending on numerical stability criteria				& -\\
-  courant	& 1.4 or 3	& $x \in \mathbb{R}, \quad x>0$		& Courant number				& -\\
-  peclet	& 0.2		& $x \in \mathbb{R}, \quad x>0$		& Peclet number					& -\\	
+  courant	& 1.4	& $x \in \mathbb{R}, \quad x>0$		& Courant number				& -\\
+  peclet	& 0.15 & $x \in \mathbb{R}, \quad x>0$		& Peclet number					& -\\	
+  author	& $""$	& $x = "...."$	& Name of the author & -\\
 \end{supertabular}
 \end{center}
 
@@ -304,6 +312,9 @@ All options that can be set for the LES experiments will be discussed in the fol
   cn		& 0.76		& $x \in \mathbb{R}, \quad x>0$	& Subfilter scale parameter				& -\\
   Rigc		& 0.25		& $x \in \mathbb{R}, \quad x>0$	& Critical Richardson number				& -\\
   Prandtl	& 3			& $x \in \mathbb{R}, \quad x>0$	& Prandtl number					& -\\
+  lsmagorinsky & .false.& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for smagorinsky subgrid scheme & -\\
+  cs	& -1	& $x \in \mathbb{R}, \quad x>0$ & Smagorinsky constant	& -\\
+  nmason	& 2	& $x \in \mathbb{R}, \quad x>0$ & Exponent in Mason correction function & -\\
 \end{supertabular}
 \end{center}
 
@@ -388,7 +399,7 @@ All options that can be set for the LES experiments will be discussed in the fol
         &&&&\\\hline
   }
 \begin{supertabular}{|l|p{1.6cm}|p{4cm}|p{6cm}|l|}
-  tcheck	& dtmax	& $x \in \mathbb{R}, \quad x>0$	& Time interval between checks of velocity divergence and Courant numbers	& s\\
+  tcheck	& 0	& $x \in \mathbb{R}, \quad x>0$	& Time interval between checks of velocity divergence and Courant numbers	& s\\
 \end{supertabular}
 \end{center}
 
@@ -483,8 +494,9 @@ All options that can be set for the LES experiments will be discussed in the fol
 \begin{supertabular}{|l|p{1.6cm}|p{4cm}|p{6cm}|l|}
   lcross	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for dumping of crosssections of the field	& -\\
   dtav		& dtav\_glob	& $x = n \cdot \text{dtmax}, \quad n \in \mathbb{N}^*$	& Time interval for sampling of statistics	& s\\
-  crossheight	& 2		& $x \in \mathbb{N}, \quad 1 \leq x \leq \text{kmax}$	& Height of the horizontal crosssection		& -\\
-  crossplane	& 2		& $x \in \mathbb{N}, \quad 1 \leq x \leq \text{kmax}$	& Location of the vertical (yz) plane on every processor& -\\
+  crossheight(1:100)& 1: $x=2$ & $x \in \mathbb{N}, \quad 1 \leq x \leq \text{kmax}$	& Heights of the horizontal crosssection		& -\\
+  crossplane	& 2		& $x \in \mathbb{N}, \quad 1 \leq x \leq \text{kmax}$	& Location of the vertical (xz) plane on every processor& -\\
+  crossortho	& 2	& $x \in \mathbb{N}, \quad 1 \leq x \leq \text{kmax}$	& Location of the vertical (yz) plane & - \\
 \end{supertabular}
 \end{center}
 
@@ -568,17 +580,20 @@ All options that can be set for the LES experiments will be discussed in the fol
         &&&&\\\hline
   }
 \begin{supertabular}{|l|p{1.6cm}|p{4cm}|p{6cm}|l|}
-\multirow{3}{*}[-14pt]{imicro}	& \multirow{3}{*}[-14pt]{0}	& \multirow{3}{*}[-14pt]{$x \in \{0,2\}$}	& Flag for the microphysical scheme:			& \multirow{3}{*}[-14pt]{-}\\
+\multirow{7}{*}[-14pt]{imicro}	& \multirow{7}{*}[-14pt]{0}	& \multirow{7}{*}[-14pt]{$x \in \{0,1,2,3,10\}$}	& Flag for the microphysical scheme:			& \multirow{7}{*}[-14pt]{-}\\
   & & & 0 = No microphysics (all-or-nothing scheme)&\\
+  & & & 1 = Drizzle microphysics&\\
   & & & 2 = Bulk microphysics&\\
+  & & & 3 = Bin microphysics (inactive)&\\
+  & & & 10 = User defined microphysics. Can only be used for certain cases (using the file moduser.f90)&\\
   &&&&\\
   l\_sb		& .true.		& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for KK00 \citep{Khairoutdinov2000} or SB \citep{Seifert2001,Seifert2006} scheme resp.			& -\\
   l\_sedc	& .true.		& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for cloud droplet sedimentation		& -\\
   l\_rain	& .true.		& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for rain formation and evolution		& -\\
   l\_mur\_cst	& .false.		& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for a constant value of $\mu_r$ (in raindrop gamma distribution)	& -\\
   mur\_cst	& 5			& $x \in \mathbb{R}, \quad x>0$	& Value for $\mu_r$, a shape parameter for the rain drop number density distribution (used only if l\_mur\_cst = .true.)	& -\\
-  Nc\_0		& 100e6			& $x \in \mathbb{R}, \quad x \ge 0$	& Initial number of cloud droplets			& -\\
-  sig\_g	& 1.5			& $x \in \mathbb{R}, \quad x \ge 0$	& Geometric standard deviation of the cloud droplet drop size distribution			& -\\
+  Nc\_0		& 70e6			& $x \in \mathbb{R}, \quad x \ge 0$	& Initial number of cloud droplets			& -\\
+  sig\_g	& 1.34			& $x \in \mathbb{R}, \quad x \ge 0$	& Geometric standard deviation of the cloud droplet drop size distribution			& -\\
   sig\_gr	& 1.5		& $x \in \mathbb{R}, \quad x \ge 0$	& Geometric standard deviation of the rain droplet drop size distribution			& -\\
 \end{supertabular}
 \end{center}
@@ -723,7 +738,8 @@ tnudgefac & 1	& $x \in \mathbb{R}, \quad x>0$	&	Nudgefactor & -\\
         &&&&\\\hline
   }
 \begin{supertabular}{|l|p{2cm}|p{4cm}|p{6cm}|l|}
-  lradstat	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for calculating slabaveraged radiation statistics	& -\\
+  lstat	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for calculating slabaveraged radiation statistics	& -\\
+  lradclearair	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Another switch for calculating slabaveraged radiation statistics	& -\\
   dtav		& dtav\_glob	& $x = n \cdot \text{dtmax}, \quad n \in \mathbb{N}^*$	& Time interval for sampling of statistics	& s\\
   timeav	& timeav\_glob	& $x = n \cdot \text{dtav}, \quad n \in \mathbb{N}^*$	& Time interval for writing statistics		& s\\
 \end{supertabular}
@@ -752,6 +768,7 @@ tnudgefac & 1	& $x \in \mathbb{R}, \quad x>0$	&	Nudgefactor & -\\
 \begin{supertabular}{|l|p{2cm}|p{4cm}|p{6cm}|l|}
   dtav		& dtav\_glob	& $x = n \cdot \text{dtmax}, \quad n \in \mathbb{N}^*$	& Time interval for sampling of statistics	& s\\
   timeav	& timeav\_glob	& $x = n \cdot \text{dtav}, \quad n \in \mathbb{N}^*$	& Time interval for writing statistics	& s\\
+  lsampall      & .false.       & $x\in\{\text{.false.},\text{.true.}\}$        & Switch for sampling all data & -\\
   lsampcl	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for conditional sampling cloud ($q_l > 0$)	& -\\
   lsampco	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for conditional sampling cloud core ($q_l > 0,\theta_v' > 0$)	& -\\
   lsampup	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for conditional sampling updrafts ($w > 0$)	& -\\
@@ -788,6 +805,33 @@ tnudgefac & 1	& $x \in \mathbb{R}, \quad x>0$	&	Nudgefactor & -\\
 \end{supertabular}
 \end{center}
 
+\subsection{Namelist NAMSTRESS}\label{par:stress}
+\begin{center}
+	  \tablefirsthead{
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tablehead{
+        \multicolumn{5}{l}{\small \it Continued from previous page}\\
+        \multicolumn{5}{c}{}\\
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tabletail{
+        &&&&\\\hline
+        \multicolumn{5}{c}{}\\
+        \multicolumn{5}{r}{\small \it Continued on next page}\\
+  }
+  \tablelasttail{
+        &&&&\\\hline
+  }
+\begin{supertabular}{|l|p{2cm}|p{4cm}|p{6cm}|l|}
+  lstress	& .false. & $x\in\{\text{.false.},\text{.true.}\}$ & Switch for turbulent stress budget & -\\
+  dtav		& dtav\_glob	& $x = n \cdot \text{dtmax}, \quad n \in \mathbb{N}^*$	& Time interval for sampling of statistics	& s\\
+  timeav	& timeav\_glob	& $x = n \cdot \text{dtav}, \quad n \in \mathbb{N}^*$	& Time interval for writing statistics	& s\\
+\end{supertabular}
+\end{center}
+
 %\newpage
 \subsection{Namelist NAMSURFACE}\label{par:surface}
 \begin{center}
@@ -810,9 +854,10 @@ tnudgefac & 1	& $x \in \mathbb{R}, \quad x>0$	&	Nudgefactor & -\\
         &&&&\\\hline
   }
 \begin{supertabular}{|l|p{1.6cm}|p{4cm}|p{6cm}|l|}
-  isurf	& -1	& $x \in \{1,2,3,4\}$	& Overrides isurf flag of Namelist \hyperref[par:physics]{PHYSICS} if used. & -\\
+  isurf	& -1	& $x \in \{1,2,3,4,10\}$	& Overrides isurf flag of Namelist \hyperref[par:physics]{PHYSICS} if used. & -\\
   lmostlocal	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch to locally determine Obukhov length& -\\
   lsmoothflux	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch to create uniform sensible and latent heat flux over domain& -\\
+  lneutral	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch to disable stability corrections & -\\
   z0	& -1	& 	& Obsolete	& \\
   z0mav	& -1	& $x \in \mathbb{R}, \quad x>0$	& Roughness length of momentum	& m\\
   z0hav	& -1	& $x \in \mathbb{R}, \quad x>0$	& Roughness length of heat	& m\\
@@ -821,7 +866,7 @@ tnudgefac & 1	& $x \in \mathbb{R}, \quad x>0$	&	Nudgefactor & -\\
   ustin	& -1	& $x \in \mathbb{R}, \quad x \ge 0$	& Prescribed friction velocity & m s$^{-1}$\\
   wtsurf	& -1	& $x \in \mathbb{R}$	& Prescribed kinematic temperature flux	& K m s$^{-1}$\\
   wqsurf	& -1	& $x \in \mathbb{R}$	& Prescribed kinematic moisture flux & kg kg$^{-1}$ m s$^{-1}$\\
-  wsvsurf	& -	& $x \in \mathbb{R}[100]$	& Prescribed surface scalar flux & ppb m s$^{-1}$\\ 
+  wsvsurf(1:nsv)& 0	& $x \in \mathbb{R}[100]$	& Prescribed surface scalar flux & ppb m s$^{-1}$\\ 
   tsoilav	& -	& $x \in \mathbb{R}[4], \quad x[i] > 0$	& Initial soil temperature (for 4 layers, only used if isurf = 1)	& K\\
   tsoildeepav	& - & $x \in \mathbb{R}, \quad x>0$ & Soil bottom temperature (if isurf = 1)& K \\
   phiwav	& -	& $x \in \mathbb{R}[4], \quad 0 \leq x[i] \leq 0.472$	& Soil moisture (if isurf = 1 and preferably below 0.323)	& m$^{3}$ m$^{-3}$\\
@@ -830,14 +875,16 @@ tnudgefac & 1	& $x \in \mathbb{R}, \quad x>0$	&	Nudgefactor & -\\
   lambdaskinav	& -	& $x \in \mathbb{R}, \quad x \ge 0$	& Heat conductivity skin layer (if isurf = 1)	& J s$^{-1}$ K$^{-1}$ m$^{-2}$\\
   albedoav	& -1	& $x \in \mathbb{R}, \quad 0 \le x \le 1$ & Albedo (if isurf = 1)	& -\\
   Qnetav	& -1	& $x \in \mathbb{R}$	& Net radiation (if iradiation $\ne$ 1 and isurf = 1)	& J s$^{-1}$ m$^{-2}$\\
+  cvegav	& -1	& $x \in \mathbb{R}, \quad x \ge 0$	& Vegetation cover & -\\
   rsminav	& -1	& $x \in \mathbb{R}, \quad x \ge 0$	& Minimal vegetation resistance	(if isurf = 1)& s m$^{-1}$\\
+  rssoilminav & -1	&  $x \in \mathbb{R}, \quad x \ge 0$ & Minimum soil evaporation resistance &-\\
   LAIav	& -1	& $x \in \mathbb{R}, \quad x \ge 0$	& Leaf area index (if isurf = 1)	& m$^{2}$ m$^{-2}$\\
   gDav	& -	& $x \in \mathbb{R}, \quad x \ge 0$	& Correction for evaporation of tall vegetation (if isurf = 1) & -\\
-  lsea	& .true.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch to model sea surface (if isurf = 2) & -\\
-  rsisurf2	& -1	& $x \in \mathbb{R}, \quad x \ge 0$	& Vegetation resistance (if isurf = 2)	& s m$^{-1}$\\
+  rsisurf2	& 0	& $x \in \mathbb{R}, \quad x \ge 0$	& Vegetation resistance (if isurf = 2)	& s m$^{-1}$\\
 \end{supertabular}
 \end{center}
 
+\newpage
 \subsection{Namelist NAMTILT}\label{par:tilt}
 \begin{center}
 	  \tablefirsthead{

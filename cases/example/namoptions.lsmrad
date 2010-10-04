@@ -1,0 +1,160 @@
+&RUN
+iexpnr     =  001
+lwarmstart =  .false.
+startfile  =  'initd00h01m000.001'
+runtime    =  7200
+trestart   =  3600 
+ladaptive  =  .true.
+irandom    =  43
+randthl    =  0.1
+randqt     =  2.5e-5
+nsv        =  2
+/
+
+&DOMAIN
+imax       =  64 
+jtot       =  64
+kmax       =  96
+
+xsize      =  3200.
+ysize      =  3200.
+
+xlat       =  51.96
+xlon       =  4.95
+xday       =  287.
+xtime      =  8.
+/
+
+&PHYSICS
+ustin      =  0.0
+ps         =  100000.00
+thls       =  296.
+wtsurf     =  0.1
+wqsurf     =  0.0001
+wsvsurf(1) =  0.1
+wsvsurf(2) =  1.
+lmoist     =  .true.
+isurf      =  1
+iradiation =  1
+useMcICA   =  .true.
+lcoriol    =  .true.
+/
+
+&NAMSURFACE
+tsoilav(1)   = 290.
+tsoilav(2)   = 287.
+tsoilav(3)   = 285.
+tsoilav(4)   = 283.
+tsoildeepav  = 283.
+
+phiwav(1)    = 0.3
+phiwav(2)    = 0.3
+phiwav(3)    = 0.3
+phiwav(4)    = 0.3
+
+rootfav(1)   = 0.35
+rootfav(2)   = 0.38 
+rootfav(3)   = 0.23 
+rootfav(4)   = 0.04
+
+lmostlocal   = .false.
+lsmoothflux  = .false.
+rsisurf2     = 50.
+
+z0mav        = 0.1
+z0hav        = 0.02
+Cskinav      = 20000.
+lambdaskinav = 5.
+albedoav     = 0.20
+Qnetav       = 450.
+
+rsminav      = 110.
+rssoilminav  = 50.
+cvegav       = 0.9
+LAIav        = 2.
+gDav         = 0.
+Wlav         = 0.0
+/
+
+&DYNAMICS
+llsadv     =  .false.
+lqlnr      =  .false.
+cu         =  0.
+cv         =  0.
+
+iadv_mom    =  62
+iadv_tke    =  62
+iadv_thl    =  52
+iadv_qt     =  52
+iadv_sv     =  100*52
+/
+
+&NAMSUBGRID
+lsmagorinsky = .false.
+/
+
+&NAMCHECKSIM
+tcheck      = 0
+/
+
+&NAMSAMPLING
+lsampup     = .false.
+dtav        = 60
+timeav      = 1800
+/
+
+&NAMTIMESTAT
+ltimestat   = .true.
+dtav        = 60
+/
+
+&NAMCROSSSECTION
+lcross      = .false.
+dtav        = 1800
+/
+
+&NAMLSMCROSSSECTION
+lcross      = .true.
+dtav        = 1800
+/
+
+&NAMGENSTAT
+lstat       = .true.
+dtav        = 60
+timeav      = 1800
+/
+
+&NAMFIELDDUMP
+lfielddump  = .false.
+dtav        = 60
+ldiracc     = .true.
+/
+
+&NAMSTATTEND
+dtav        = 60
+timeav      = 1800
+ltend       = .false.
+/
+
+&NAMBUDGET
+lbudget = .false.
+dtav    = 60
+timeav  = 1800
+/
+
+&NAMRADSTAT
+lstat = .false.
+dtav = 60
+timeav = 1800
+/
+
+&NAMLSMSTAT
+lstat = .true.
+dtav = 60
+timeav = 1800
+/
+
+&NAMNETCDFSTATS
+lnetcdf = .true.
+/
+

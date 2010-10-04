@@ -143,7 +143,7 @@ contains
       exnersurf = (ps/pref0) ** (rd/cp)
       rhof_b(1) = rhof(1) + dzh(1)/dzh(2)*(rhof(1)-rhof(2))
       exnf_b(1) = exnh(1) + dzh(1)/dzh(2)*(rhof(1)-rhof(2))
-    
+
 
       do j=2,j1
         do i=2,i1
@@ -1607,6 +1607,8 @@ contains
        read (66,'(300(6E12.4,/))')                                            &
             realVars(:(gas(n)%ng * gas(n)%np * gas(n)%nt * gas(n)%noverlap))
        ib = 1
+
+      gas(n)%name = adjustl(gas(n)%name)
        do l = 1, gas(n)%noverlap
          do k = 1, gas(n)%nt
            do j = 1, gas(n)%np
@@ -1716,7 +1718,6 @@ contains
 
     integer :: k, n, igg, nn
     real    :: xfct
-
     if (.not.ckd_Initialized) stop 'TERMINATING:  ckd_gases not initialized'
     do k = 1, nv
        tg(k) = 0.
@@ -1750,7 +1751,7 @@ contains
           do k = 1, nv
              fkg(k) = fkga(k) + pq(k) * fkgb(k)
           end do
-          call select_gas('  CO2', gas(n)%default_conc, gas(n)%mweight,       &
+          call select_gas('CO2', gas(n)%default_conc, gas(n)%mweight,       &
                pp, ph, po, pq)
           xfct = (2.24e4/gas(n)%mweight) * 10./9.81
           do k = 1, nv
@@ -1773,20 +1774,19 @@ contains
   !>
   subroutine select_gas (name, conc_x, mx, pp, ph, po, pq)
     use modglobal, only : mair
-    character (len=5), intent (in) :: name
+    character (len=*), intent (in) :: name
     real, intent (in) :: conc_x,mx
     real, intent (in) :: pp(nv1), ph(nv), po(nv)
     real, intent (out):: pq(nv)
 
     integer :: k
     real    :: xx
-
-    select case(name)
-    case ('  H2O')
+    select case(trim(name))
+    case ('H2O')
        pq(:) = ph(:)
-    case ('   O3')
+    case ('O3')
        pq(:) = po(:)
-    case ('  CO2')
+    case ('CO2')
        xx = conc_x/330.e-6 / ((2.24e4/mx) * 10./9.81)
        pq(:) = xx
     case ('OVRLP')
@@ -1939,7 +1939,7 @@ contains
 
     filenm = 'cldwtr.inp.'//cexpnr
     open ( unit = 71, file = filenm, status = 'old', recl=nrec,iostat=ierr)
-    if (ierr.ne.0) then 
+    if (ierr.ne.0) then
        write (6,*) 'cldwtr.inp not present. terminate run'
        stop
     endif

@@ -255,7 +255,7 @@ contains
                           grav,om22,cu,timee
     use modfields, only : u0,v0,w0,thl0,thl0h,qt0,qt0h,ql0,ql0h,thv0h,exnf,exnh, &
                           wp
-    use modsubgrid,only : ekh,ekm
+    use modsubgriddata,only : ekh,ekm
     use modmpi    ,only : slabsum
     use modpois,   only : p
     use modsurfdata,only: thvs

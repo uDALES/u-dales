@@ -70,7 +70,7 @@ contains
     use modboundary,       only : initboundary,ksp
     use modthermodynamics, only : initthermodynamics,lqlnr, chi_half
     use modmicrophysics,   only : initmicrophysics
-    use modsubgrid,        only : initsubgrid, subgridnamelist
+    use modsubgrid,        only : initsubgrid
     use modsubgriddata,    only : ldelta, cf,cn,Rigc,Prandtl,lmason,lsmagorinsky
     use modmpi,            only : comm3d,myid, mpi_integer,mpi_logical,my_real,mpierr, mpi_character
 
@@ -217,11 +217,7 @@ contains
     call MPI_BCAST(iadv_qt ,1,MPI_INTEGER,0,comm3d,mpierr)
     call MPI_BCAST(iadv_sv(1:nsv) ,nsv,MPI_INTEGER,0,comm3d,mpierr)
 
-    ! Initialize subgrid namelist here to allow for ih, jh adjustment dynamic subgrid model
-    ! CvH move subgrid back to core?
-    call subgridnamelist
-
-  ! Allocate and initialize core modules
+    ! Allocate and initialize core modules
     call initglobal
     call initfields
 
@@ -327,7 +323,7 @@ contains
                                   rslabs,cu,cv,e12min,dzh,dtheta,dqt,dsv,cexpnr,ifinput,lwarmstart,itrestart,trestart, ladaptive,llsadv,tnextrestart
     use modsubgrid,        only : ekm,ekh
     use modsurfdata,       only : wtsurf,wqsurf,wsvsurf, &
-                                  thls,tskin,tskinm,thvs,ustin,ps,qts,isurf,svs,obl,oblav
+                                  thls,tskin,tskinm,qskin,tsoil,tsoilm,phiw,phiwm,Wl,Wlm,thvs,ustin,ps,qts,isurf,svs,obl,oblav
     use modsurface,        only : surface,qtsurf
     use modboundary,       only : boundary,tqaver
     use modmpi,            only : slabsum,myid,comm3d,mpierr,my_real
@@ -476,11 +472,19 @@ contains
 !    2.2 Initialize surface layer
 !-----------------------------------------------------------------
 
-      if(isurf == 1) then
+      if(isurf <= 2) then
         tskin  = thls
-        tskinm = tskin
+        if(isurf == 1) then
+          tskinm = tskin
+          tsoilm = tsoil
+          phiwm  = phiw
+          Wlm    = Wl
+        end if
       else if(isurf >= 3) then
-        thls = thlprof(1)
+        thls  = thlprof(1)
+        tskin = thls
+        qts   = qtprof(1)
+        qskin = qts
       end if
 
       ! Set initial Obukhov length to -0.1 for iteration
@@ -489,9 +493,15 @@ contains
 
       call qtsurf
 
+      thvs = thls * (1. + (rv/rd - 1.) * qts)
+
       u0av(1)   = uprof(1)
       thl0av(1) = thlprof(1)
       svs = svprof(1,:)
+     
+      call boundary
+      call thermodynamics
+
       call surface
 
       dtheta = (thlprof(kmax)-thlprof(kmax-1)) / dzh(kmax)
@@ -686,8 +696,9 @@ contains
 
   subroutine readrestartfiles
 
-    use modsurfdata, only : ustar,thlflux,qtflux,svflux,dudz,dvdz,dthldz,dqtdz,ps,thls,qts,thvs,oblav,&
-                           tsoil,tskin,isurf,ksoilmax
+    use modsurfdata, only : ustar,thlflux,qtflux,svflux,dudz,dvdz,dthldz,dqtdz,ps,thls,qts,thvs,obl,oblav,&
+                           tsoil,phiw,tskin,qskin,Wl,isurf,ksoilmax,Qnet,swdavn,swuavn,lwdavn,lwuavn,nradtime
+    use modraddata, only: iradiation, useMcICA
     use modfields,  only : u0,v0,w0,thl0,qt0,ql0,ql0h,e120,dthvdz,presf,presh,sv0
     use modglobal,  only : i1,i2,ih,j1,j2,jh,k1,dtheta,dqt,dsv,startfile,timee,&
                           iexpnr,ntimee,tres,rk3step,ifinput,nsv,runtime,dt,rdt,cu,cv
@@ -724,6 +735,9 @@ contains
       read(ifinput)   ((qtflux  (i,j  ),i=1,i2      ),j=1,j2      )
       read(ifinput)   ((dthldz(i,j  ),i=1,i2      ),j=1,j2      )
       read(ifinput)   ((dqtdz (i,j  ),i=1,i2      ),j=1,j2      )
+      read(ifinput)   ((obl   (i,j  ),i=1,i2      ),j=1,j2      )
+      read(ifinput)   ((tskin(i,j),i=1,i2),j=1,j2)
+      read(ifinput)   ((qskin(i,j),i=1,i2),j=1,j2)
       read(ifinput)  (  presf (    k)                            ,k=1,k1)
       read(ifinput)  (  presh (    k)                            ,k=1,k1)
       read(ifinput)  ps,thls,qts,thvs,oblav
@@ -746,7 +760,15 @@ contains
       write(6,*) 'loading ',name
       open(unit=ifinput,file=name,form='unformatted')
       read(ifinput) (((tsoil(i,j,k),i=1,i2),j=1,j2),k=1,ksoilmax)
-      read(ifinput) ((tskin(i,j),i=1,i2),j=1,j2)
+      read(ifinput) (((phiw(i,j,k),i=1,i2),j=1,j2),k=1,ksoilmax)
+      read(ifinput) ((Wl(i,j),i=1,i2),j=1,j2)
+      read(ifinput) ((Qnet(i,j),i=1,i2),j=1,j2)
+      if(iradiation == 1 .and. useMcICA) then
+        read(ifinput) (((swdavn(i,j,n),i=1,i2),j=1,j2),n=1,nradtime)
+        read(ifinput) (((swuavn(i,j,n),i=1,i2),j=1,j2),n=1,nradtime)
+        read(ifinput) (((lwdavn(i,j,n),i=1,i2),j=1,j2),n=1,nradtime)
+        read(ifinput) (((lwuavn(i,j,n),i=1,i2),j=1,j2),n=1,nradtime)
+      end if
       read(ifinput)  timee
       close(ifinput)
     end if
@@ -754,8 +776,9 @@ contains
   end subroutine readrestartfiles
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine writerestartfiles
-    use modsurfdata,only: ustar,thlflux,qtflux,svflux,dudz,dvdz,dthldz,dqtdz,ps,thls,qts,thvs,oblav,&
-                          tsoil,tskin,ksoilmax,isurf,ksoilmax
+    use modsurfdata,only: ustar,thlflux,qtflux,svflux,dudz,dvdz,dthldz,dqtdz,ps,thls,qts,thvs,obl,oblav,&
+                          tsoil,phiw,tskin,qskin,Wl,ksoilmax,isurf,ksoilmax,Qnet,swdavn,swuavn,lwdavn,lwuavn,nradtime
+    use modraddata, only: iradiation, useMcICA
     use modfields, only : u0,v0,w0,thl0,qt0,ql0,ql0h,e120,dthvdz,presf,presh,sv0
     use modglobal, only : i1,i2,ih,j1,j2,jh,k1,dsv,itrestart,tnextrestart,dt_lim,rtimee,timee,tres,cexpnr,&
                           ntimee,rtimee,rk3step,ifoutput,nsv,runtime,dtheta,dqt,dt,cu,cv
@@ -805,6 +828,9 @@ contains
       write(ifoutput)   ((qtflux  (i,j  ),i=1,i2      ),j=1,j2      )
       write(ifoutput)   ((dthldz(i,j  ),i=1,i2      ),j=1,j2      )
       write(ifoutput)   ((dqtdz (i,j  ),i=1,i2      ),j=1,j2      )
+      write(ifoutput)   ((obl   (i,j  ),i=1,i2      ),j=1,j2      )
+      write(ifoutput)   ((tskin(i,j),i=1,i2),j=1,j2)
+      write(ifoutput)   ((qskin(i,j),i=1,i2),j=1,j2)
       write(ifoutput)  (  presf (    k)                            ,k=1,k1)
       write(ifoutput)  (  presh (    k)                            ,k=1,k1)
       write(ifoutput)  ps,thls,qts,thvs,oblav
@@ -835,7 +861,15 @@ contains
         name(16:18) = cexpnr
         open  (ifoutput,file=name,form='unformatted')
         write(ifoutput) (((tsoil(i,j,k),i=1,i2),j=1,j2),k=1,ksoilmax)
-        write(ifoutput) ((tskin(i,j),i=1,i2),j=1,j2)
+        write(ifoutput) (((phiw(i,j,k),i=1,i2),j=1,j2),k=1,ksoilmax)
+        write(ifoutput) ((Wl(i,j),i=1,i2),j=1,j2)
+        write(ifoutput) ((Qnet(i,j),i=1,i2),j=1,j2)
+        if(iradiation == 1 .and. useMcICA) then
+          write(ifoutput) (((swdavn(i,j,n),i=1,i2),j=1,j2),n=1,nradtime)
+          write(ifoutput) (((swuavn(i,j,n),i=1,i2),j=1,j2),n=1,nradtime)
+          write(ifoutput) (((lwdavn(i,j,n),i=1,i2),j=1,j2),n=1,nradtime)
+          write(ifoutput) (((lwuavn(i,j,n),i=1,i2),j=1,j2),n=1,nradtime)
+        end if
         write(ifoutput)  timee
 
         close (ifoutput)

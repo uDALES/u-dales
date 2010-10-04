@@ -52,6 +52,7 @@ save
   logical :: lsampco  = .false. !< switch for conditional sampling core (on/off)
   logical :: lsampup  = .false. !< switch for conditional sampling updraft (on/off)
   logical :: lsampbuup  = .false. !< switch for conditional sampling buoyant updraft (on/off)
+  logical :: lsampall = .false. !< switch for sampling all data (on/off)
   real, allocatable, dimension(:,:) ::  wavl,tlavl,tvavl,qtavl,qlavl,nrsampl,massflxavl, &
                                         wtlavl,wtvavl,wqtavl,wqlavl,uwavl,vwavl
   real, allocatable, dimension(:,:) :: wwavl,pavl,dwdthavl,dwwdzhavl,dpdzhavl, &
@@ -66,7 +67,7 @@ contains
 
     use modmpi,    only : comm3d, my_real,mpierr,myid,mpi_logical
     use modglobal, only : ladaptive, dtmax,rk3step,k1,ifnamopt,fname_options,   &
-                           dtav_glob,timeav_glob,dt_lim,btime,tres
+                           dtav_glob,timeav_glob,dt_lim,btime,tres,ifoutput,cexpnr
     use modstat_nc, only : lnetcdf, redefine_nc,define_nc,ncinfo
     use modgenstat, only : idtav_prof=>idtav, itimeav_prof=>itimeav,ncid_prof=>ncid
     implicit none
@@ -74,7 +75,7 @@ contains
     integer :: ierr
 
     namelist/NAMSAMPLING/ &
-    dtav,timeav,lsampcl,lsampco,lsampup,lsampbuup
+    dtav,timeav,lsampcl,lsampco,lsampup,lsampbuup,lsampall
 
     dtav=dtav_glob;timeav=timeav_glob
 
@@ -95,11 +96,15 @@ contains
     call MPI_BCAST(lsampcl,1,MPI_LOGICAL,0,comm3d,mpierr)
     call MPI_BCAST(lsampco,1,MPI_LOGICAL,0,comm3d,mpierr)
     call MPI_BCAST(lsampup,1,MPI_LOGICAL,0,comm3d,mpierr)
+    call MPI_BCAST(lsampall,1,MPI_LOGICAL,0,comm3d,mpierr)
     call MPI_BCAST(lsampbuup,1,MPI_LOGICAL,0,comm3d,mpierr)
 
-    isamptot = 1
-    samplname (isamptot) = 'all'
-    longsamplname(isamptot) = 'All '
+    isamptot = 0
+    if (lsampall) then
+      isamptot = isamptot + 1
+      samplname (isamptot) = 'all'
+      longsamplname(isamptot) = 'All '
+    endif
     if (lsampup) then
       isamptot = isamptot + 1
       samplname(isamptot) = 'upd'
@@ -176,6 +181,17 @@ contains
 
     w_el       = 0.0
     sig_el     = 0.0
+
+    if(myid==0)then
+      do isamp = 1,isamptot
+        open (ifoutput,file=trim(samplname(isamp))//'wbudg.'//cexpnr,status='replace')
+        close (ifoutput)
+        open (ifoutput,file=trim(samplname(isamp))//'fld.'//cexpnr,status='replace')
+        close (ifoutput)
+        open (ifoutput,file=trim(samplname(isamp))//'flx.'//cexpnr,status='replace')
+        close (ifoutput)
+      enddo
+    endif
 
     if (lnetcdf) then
       idtav = idtav_prof
