@@ -49,7 +49,7 @@ private
 PUBLIC :: initprojection, projection
 save
 !NetCDF variables
-  integer,parameter :: nvar = 4
+  integer,parameter :: nvar = 8
   integer :: ncid = 0
   integer :: nrec = 0
   character(80) :: fname = 'proj.xxx.xxx.nc'
@@ -59,21 +59,21 @@ save
   real    :: dtav
   integer(kind=longint)  :: idtav,tnext
   logical:: lproject = .false. ! switch for conditional sampling cloud (on/off)
-  integer :: projectheight = 2  !lowest integration boundary
-  integer :: projectplane = 2
+  real    :: projectheight = 0.
+  integer :: ksplit = 2  !lowest integration boundary
 
 contains
 
   subroutine initprojection
     use modmpi,   only :myid,my_real,mpierr,comm3d,mpi_logical,mpi_integer,cmyid
-    use modglobal,only :imax,jmax,ifnamopt,fname_options,dtmax,rk3step, dtav_glob,ladaptive,j1,kmax,dt_lim,tres,btime,cexpnr
+    use modglobal,only :imax,jmax,ifnamopt,fname_options,dtmax,rk3step, dtav_glob,ladaptive,j1,kmax,dt_lim,tres,btime,cexpnr,zf
     use modstat_nc, only : lnetcdf, open_nc,define_nc,ncinfo, writestat_dims_nc, redefine_nc
     implicit none
 
     integer :: ierr
 
     namelist/NAMprojection/ &
-    lproject, dtav, projectheight, projectplane
+    lproject, dtav, projectheight
 
     dtav = dtav_glob
     if(myid==0)then
@@ -87,18 +87,20 @@ contains
       write(6 ,NAMprojection)
       close(ifnamopt)
     end if
-
+    do ksplit=1,kmax
+      if (zf(ksplit)>=projectheight) exit
+    end do
+    ksplit = ksplit - 1
     call MPI_BCAST(dtav       ,1,MY_REAL    ,0,comm3d,mpierr)
     call MPI_BCAST(lproject     ,1,MPI_LOGICAL,0,comm3d,mpierr)
-    call MPI_BCAST(projectheight,1,MPI_INTEGER,0,comm3d,mpierr)
-    call MPI_BCAST(projectplane ,1,MPI_INTEGER,0,comm3d,mpierr)
+    call MPI_BCAST(ksplit,1,MPI_INTEGER,0,comm3d,mpierr)
     idtav = dtav/tres
 
     tnext      = idtav   +btime
     if(.not.(lproject)) return
     dt_lim = min(dt_lim,tnext)
 
-    if(projectheight>kmax .or. projectplane>j1) then
+    if(ksplit>kmax) then
       stop 'projection: projection out of range'
     end if
     if (.not. ladaptive .and. abs(dtav/dtmax-nint(dtav/dtmax))>1e-4) then
@@ -107,10 +109,14 @@ contains
     fname(6:8) = cmyid
     fname(10:12) = cexpnr
     call ncinfo(tncname(1,:),'time','Time','s','time')
-    call ncinfo(ncname( 1,:),'thlxy','Integrated liquid water potential temperature path','K/m','tt0t')
-    call ncinfo(ncname( 2,:),'thvxy','Integrated virtual potential temperature path','K/m','tt0t')
-    call ncinfo(ncname( 3,:),'qtxy','Integrated total water path','kg/m','tt0t')
-    call ncinfo(ncname( 4,:),'qlxy','Integrate liquid waterpath ','kg/m','tt0t')
+    call ncinfo(ncname( 1,:),'thlxylow','Subcloud Integrated liquid water potential temperature path','K/m','tt0t')
+    call ncinfo(ncname( 2,:),'thlxyhigh','Cloudlayer Integrated liquid water potential temperature path','K/m','tt0t')
+    call ncinfo(ncname( 3,:),'thvxylow','Subcloud Integrated virtual potential temperature path','K/m','tt0t')
+    call ncinfo(ncname( 4,:),'thvxyhigh','Cloudlayer Integrated virtual potential temperature path','K/m','tt0t')
+    call ncinfo(ncname( 5,:),'qtxylow','Subcloud Integrated total water path','kg/m','tt0t')
+    call ncinfo(ncname( 6,:),'qtxyhigh','Cloudlayer Integrated total water path','kg/m','tt0t')
+    call ncinfo(ncname( 7,:),'qlxylow','Subcloud Integrate liquid waterpath ','kg/m','tt0t')
+    call ncinfo(ncname( 8,:),'qlxyhigh','Cloudlayer Integrate liquid waterpath ','kg/m','tt0t')
     call open_nc(fname,  ncid,n1=imax,n2=jmax)
     call define_nc( ncid, 1, tncname)
     call writestat_dims_nc(ncid)
@@ -146,8 +152,8 @@ contains
 
 
     ! LOCAL
-    integer i,j,n
-    character(20) :: name
+    integer i,j
+!     character(20) :: name
     real,allocatable,dimension(:,:,:) :: vars
 !     
 !     open(ifoutput,file='projh_thl.'//cmyid//'.'//cexpnr,position='append',action='write')
@@ -178,10 +184,14 @@ contains
       allocate(vars(1:imax,1:jmax,nvar))
       do j = 2,j1
         do i = 2,i1
-          vars(i,j,1) = sum(thlm (i,j,:)*rhof*dzf)
-          vars(i,j,2) = sum(thv0h(i,j,:)*rhof*dzf)
-          vars(i,j,3) = sum(qtm  (i,j,:)*rhof*dzf)
-          vars(i,j,4) = sum(ql0  (i,j,:)*rhof*dzf)
+          vars(i,j,1) = sum(thlm (i,j,1:ksplit)*rhof*dzf)
+          vars(i,j,2) = sum(thlm (i,j,ksplit+1:kmax)*rhof*dzf)
+          vars(i,j,3) = sum(thv0h(i,j,1:ksplit)*rhof*dzf)
+          vars(i,j,4) = sum(thv0h(i,j,ksplit+1:kmax)*rhof*dzf)
+          vars(i,j,5) = sum(qtm  (i,j,1:ksplit)*rhof*dzf)
+          vars(i,j,6) = sum(qtm  (i,j,ksplit+1:kmax)*rhof*dzf)
+          vars(i,j,7) = sum(ql0  (i,j,1:ksplit)*rhof*dzf)
+          vars(i,j,8) = sum(ql0  (i,j,ksplit+1:kmax)*rhof*dzf)
         end do
       end do
       
