@@ -117,9 +117,11 @@ contains
     call ncinfo(ncname( 6,:),'qtxyhigh','Cloudlayer Integrated total water path','kg/m','tt0t')
     call ncinfo(ncname( 7,:),'qlxylow','Subcloud Integrate liquid waterpath ','kg/m','tt0t')
     call ncinfo(ncname( 8,:),'qlxyhigh','Cloudlayer Integrate liquid waterpath ','kg/m','tt0t')
-    call open_nc(fname,  ncid,n1=imax,n2=jmax)
-    call define_nc( ncid, 1, tncname)
-    call writestat_dims_nc(ncid)
+    call open_nc(fname,  ncid,nrec,n1=imax,n2=jmax)
+    if (nrec==0) then
+      call define_nc( ncid, 1, tncname)
+      call writestat_dims_nc(ncid)
+    end if
     call redefine_nc(ncid)
     call define_nc( ncid, NVar, ncname)
 

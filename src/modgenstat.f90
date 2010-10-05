@@ -393,12 +393,14 @@ contains
 
 
         if (isurf==1) then
-          call open_nc(fname,  ncid,n3=kmax,ns=ksoilmax)
+          call open_nc(fname,  ncid,nrec,n3=kmax,ns=ksoilmax)
         else
-          call open_nc(fname,  ncid,n3=kmax,ns=ksoilmax)
+          call open_nc(fname,  ncid,nrec,n3=kmax)
         endif
-        call define_nc( ncid, 1, tncname)
-        call writestat_dims_nc(ncid)
+        if (nrec == 0) then
+          call define_nc( ncid, 1, tncname)
+          call writestat_dims_nc(ncid)
+        end if
         call redefine_nc(ncid)
         call define_nc( ncid, NVar, ncname)
       end if

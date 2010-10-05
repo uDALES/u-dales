@@ -213,8 +213,8 @@ contains
           call ncinfo(ncname(31,:),'rssoil','Soil evaporation resistance','s/m','time')
           call ncinfo(ncname(32,:),'rsveg','Vegitation resistance','s/m','time')
         end if
-        call open_nc(fname,  ncid)
-        call define_nc( ncid, NVar, ncname)
+        call open_nc(fname,  ncid,nrec)
+        if(nrec==0) call define_nc( ncid, NVar, ncname)
       end if
     end if
 
