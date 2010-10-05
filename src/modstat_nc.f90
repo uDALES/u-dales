@@ -261,7 +261,7 @@ contains
       end select
       if (iret/=0) then
         write (*,*) 'nvar', nvar, sx(n,:)
-print *,dim_tt
+print *,dim_tttt
         call nchandle_error(iret)
       end if
       iret=nf90_put_att(ncID,VarID,'longname',sx(n,2))
