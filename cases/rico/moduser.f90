@@ -81,6 +81,7 @@ subroutine surf_user
     vpcv  = 0.5*(v0(i,j,1)+v0(i,j+1,1))+cv
     horv  = sqrt(upcu**2 + vpcv**2)
     horv2 = (upcu**2 + vpcv**2)
+    stab  = dthz1+0.61*thvs*dqz1
 
     ustar(i,j) = sqrt(C_m*horv2)
     thlflux(i,j) = - C_h*horv*dthz1
