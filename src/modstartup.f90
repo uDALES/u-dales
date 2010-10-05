@@ -789,7 +789,7 @@ contains
     logical :: lexitnow = .false.
     integer imin,ihour
     integer i,j,k,n
-    character(20) name
+    character(20) name,linkname
 
     if (timee == 0) return
     if (rk3step /=3) return
@@ -837,6 +837,9 @@ contains
       write(ifoutput)  dtheta,dqt,timee,  dt,tres
 
       close (ifoutput)
+      linkname = name
+      linkname(6:11) = "latest"
+      call system("ln -sf "//name //" "//linkname)
 
       if (nsv>0) then
         name  = 'inits  h  m   .'
@@ -851,6 +854,10 @@ contains
         write(ifoutput)  timee
 
         close (ifoutput)
+        linkname = name
+        linkname(6:11) = "latest"
+        call system("ln -sf "//name //" "//linkname)
+
       end if
 
       if (isurf == 1) then
@@ -873,6 +880,9 @@ contains
         write(ifoutput)  timee
 
         close (ifoutput)
+        linkname = name
+        linkname(6:11) = "latest"
+        call system("ln -sf "//name //" "//linkname)
       end if
       if (lexitnow) then
         runtime = 0  !jump out of the time loop

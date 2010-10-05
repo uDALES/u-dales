@@ -98,9 +98,11 @@ contains
       call ncinfo(ncname( 5,:),'ql','Liquid water mixing ratio','1e-5kg/kg','tttt')
       call ncinfo(ncname( 6,:),'thl','Liquid water potential temperature above 300K','K','tttt')
 
-      call open_nc(fname,  ncid,n1=imax,n2=jmax,n3=khigh-klow+1)
-      call define_nc( ncid, 1, tncname)
-      call writestat_dims_nc(ncid)
+      call open_nc(fname,  ncid,nrec,n1=imax,n2=jmax,n3=khigh-klow+1)
+      if (nrec==0) then
+        call define_nc( ncid, 1, tncname)
+        call writestat_dims_nc(ncid)
+      end if
       call redefine_nc(ncid)
       call define_nc( ncid, NVar, ncname)
     end if
