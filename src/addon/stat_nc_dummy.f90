@@ -28,6 +28,7 @@ module modstat_nc
     implicit none
     logical :: lnetcdf
     integer, save :: timeID=0, ztID=0, zmID=0, xtID=0, xmID=0, ytID=0, ymID=0
+    real :: nc_fillvalue=-999.
 !> The only interface necessary to write data to netcdf, regardless of the dimensions.
     interface writestat_nc
       module procedure writestat_time_nc
@@ -65,11 +66,11 @@ contains
 ! ----------------------------------------------------------------------
 !> Subroutine Open_NC: Opens a NetCDF File and identifies starting record
 !
-  subroutine open_nc (fname, ncid,n1, n2, n3)
+  subroutine open_nc (fname, ncid,n1, n2, n3,ns)
     use modglobal, only : author,version
     implicit none
     integer, intent (out) :: ncid
-    integer, optional, intent (in) :: n1, n2, n3
+    integer, optional, intent (in) :: n1, n2, n3,ns
     character (len=40), intent (in) :: fname
 
   end subroutine open_nc
