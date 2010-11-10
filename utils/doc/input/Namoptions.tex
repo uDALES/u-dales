@@ -495,8 +495,8 @@ All options that can be set for the LES experiments will be discussed in the fol
   lcross	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for dumping of crosssections of the field	& -\\
   dtav		& dtav\_glob	& $x = n \cdot \text{dtmax}, \quad n \in \mathbb{N}^*$	& Time interval for sampling of statistics	& s\\
   crossheight(1:100)& 1: $x=2$ & $x \in \mathbb{N}, \quad 1 \leq x \leq \text{kmax}$	& Heights of the horizontal crosssection		& -\\
-  crossplane	& 2		& $x \in \mathbb{N}, \quad 1 \leq x \leq \text{kmax}$	& Location of the vertical (xz) plane on every processor& -\\
-  crossortho	& 2	& $x \in \mathbb{N}, \quad 1 \leq x \leq \text{kmax}$	& Location of the vertical (yz) plane & - \\
+  crossplane	& 2		& $x \in \mathbb{N}, \quad 1 \leq x \leq {\text{jtot}}/{N_\text{processors}}$	& Location of the vertical (xz) plane on every processor& -\\
+  crossortho	& 2	& $x \in \mathbb{N}, \quad 1 \leq x \leq \text{imax}$	& Location of the vertical (yz) plane & - \\
 \end{supertabular}
 \end{center}
 
