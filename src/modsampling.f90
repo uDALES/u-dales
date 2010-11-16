@@ -348,7 +348,7 @@ contains
       enddo
       enddo
       enddo
-    case ('buup')
+    case ('buupd')
       do i=2,i1
       do j=2,j1
       do k=1,kmax
