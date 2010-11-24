@@ -552,12 +552,16 @@ print *,'su',ps,pref0,cp
       call slabsum(thl0av,1,k1,thl0,2-ih,i1+ih,2-jh,j1+jh,1,k1,2,i1,2,j1,1,k1)
       call slabsum(qt0av ,1,k1,qt0 ,2-ih,i1+ih,2-jh,j1+jh,1,k1,2,i1,2,j1,1,k1)
       call slabsum(ql0av ,1,k1,ql0 ,2-ih,i1+ih,2-jh,j1+jh,1,k1,2,i1,2,j1,1,k1)
+      do n=1,nsv
+        call slabsum(sv0av(1,n),1,k1,sv0(1,1,1,n),2-ih,i1+ih,2-jh,j1+jh,1,k1,2,i1,2,j1,1,k1)
+      end do
 
       u0av  = u0av  /rslabs + cu
       v0av  = v0av  /rslabs + cv
       thl0av = thl0av/rslabs
       qt0av = qt0av /rslabs
       ql0av = ql0av /rslabs
+      sv0av = sv0av /rslabs
       th0av  = thl0av + (rlv/cp)*ql0av/exnf
       do k=1,k1
         tv      = th0av(k)*exnf(k)*(1.+(rv/rd-1)*qt0av(k)-rv/rd*ql0av(k))
