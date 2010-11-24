@@ -552,7 +552,7 @@ contains
               if(Rib > 0) L = 0.01
               if(Rib < 0) L = -0.01
             end if
-            if(abs(L - Lold) / Lold < 1e-4) exit
+            if(abs((L - Lold) / Lold) < 1e-4) exit
             if(iter > 1000) stop 'Obukhov length calculation does not converge!'
           end do
 
@@ -593,7 +593,7 @@ contains
         if(Rib > 0) L = 0.01
         if(Rib < 0) L = -0.01
       end if
-      if(abs(L - Lold) / Lold < 1e-4) exit
+      if(abs((L - Lold) / Lold) < 1e-4) exit
       if(iter > 1000) stop 'Obukhov length calculation does not converge!'
     end do
 
