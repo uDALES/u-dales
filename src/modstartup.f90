@@ -323,12 +323,11 @@ contains
                                   rslabs,cu,cv,e12min,dzh,dtheta,dqt,dsv,cexpnr,ifinput,lwarmstart,itrestart,trestart, ladaptive,llsadv,tnextrestart
     use modsubgrid,        only : ekm,ekh
     use modsurfdata,       only : wtsurf,wqsurf,wsvsurf, &
-                                  thls,tskin,tskinm,tsoil,tsoilm,phiw,phiwm,Wl,Wlm,thvs,ustin,ps,qts,isurf,svs,obl,oblav
+                                  thls,tskin,tskinm,qskin,tsoil,tsoilm,phiw,phiwm,Wl,Wlm,thvs,ustin,ps,qts,isurf,svs,obl,oblav
     use modsurface,        only : surface,qtsurf
     use modboundary,       only : boundary,tqaver
     use modmpi,            only : slabsum,myid,comm3d,mpierr,my_real
     use modthermodynamics, only : thermodynamics,calc_halflev
-    use moduser,           only : initsurf_user
 
     integer i,j,k,n
 
@@ -473,22 +472,20 @@ contains
 !    2.2 Initialize surface layer
 !-----------------------------------------------------------------
 
-      select case(isurf)
-      case(1)
+      if(isurf <= 2) then
         tskin  = thls
-        tskinm = tskin
-        tsoilm = tsoil
-        phiwm  = phiw
-        Wlm    = Wl
-      case(2)
-        tskin  = thls
-      case(3,4)
-        thls = thlprof(1)
-        qts  = qtprof(1)
-      case(10)
-print *,'su',ps,pref0,cp
-        call initsurf_user
-      end select
+        if(isurf == 1) then
+          tskinm = tskin
+          tsoilm = tsoil
+          phiwm  = phiw
+          Wlm    = Wl
+        end if
+      else if(isurf >= 3) then
+        thls  = thlprof(1)
+        tskin = thls
+        qts   = qtprof(1)
+        qskin = qts
+      end if
 
       ! Set initial Obukhov length to -0.1 for iteration
       obl   = -0.1
@@ -703,8 +700,8 @@ print *,'su',ps,pref0,cp
 
   subroutine readrestartfiles
 
-    use modsurfdata, only : ustar,thlflux,qtflux,svflux,dudz,dvdz,dthldz,dqtdz,ps,thls,qts,thvs,oblav,&
-                           tsoil,phiw,tskin,Wl,isurf,ksoilmax,Qnet,swdavn,swuavn,lwdavn,lwuavn,nradtime
+    use modsurfdata, only : ustar,thlflux,qtflux,svflux,dudz,dvdz,dthldz,dqtdz,ps,thls,qts,thvs,obl,oblav,&
+                           tsoil,phiw,tskin,qskin,Wl,isurf,ksoilmax,Qnet,swdavn,swuavn,lwdavn,lwuavn,nradtime
     use modraddata, only: iradiation, useMcICA
     use modfields,  only : u0,v0,w0,thl0,qt0,ql0,ql0h,e120,dthvdz,presf,presh,sv0
     use modglobal,  only : i1,i2,ih,j1,j2,jh,k1,dtheta,dqt,dsv,startfile,timee,&
@@ -742,6 +739,9 @@ print *,'su',ps,pref0,cp
       read(ifinput)   ((qtflux  (i,j  ),i=1,i2      ),j=1,j2      )
       read(ifinput)   ((dthldz(i,j  ),i=1,i2      ),j=1,j2      )
       read(ifinput)   ((dqtdz (i,j  ),i=1,i2      ),j=1,j2      )
+      read(ifinput)   ((obl   (i,j  ),i=1,i2      ),j=1,j2      )
+      read(ifinput)   ((tskin(i,j),i=1,i2),j=1,j2)
+      read(ifinput)   ((qskin(i,j),i=1,i2),j=1,j2)
       read(ifinput)  (  presf (    k)                            ,k=1,k1)
       read(ifinput)  (  presh (    k)                            ,k=1,k1)
       read(ifinput)  ps,thls,qts,thvs,oblav
@@ -765,7 +765,6 @@ print *,'su',ps,pref0,cp
       open(unit=ifinput,file=name,form='unformatted')
       read(ifinput) (((tsoil(i,j,k),i=1,i2),j=1,j2),k=1,ksoilmax)
       read(ifinput) (((phiw(i,j,k),i=1,i2),j=1,j2),k=1,ksoilmax)
-      read(ifinput) ((tskin(i,j),i=1,i2),j=1,j2)
       read(ifinput) ((Wl(i,j),i=1,i2),j=1,j2)
       read(ifinput) ((Qnet(i,j),i=1,i2),j=1,j2)
       if(iradiation == 1 .and. useMcICA) then
@@ -781,8 +780,8 @@ print *,'su',ps,pref0,cp
   end subroutine readrestartfiles
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine writerestartfiles
-    use modsurfdata,only: ustar,thlflux,qtflux,svflux,dudz,dvdz,dthldz,dqtdz,ps,thls,qts,thvs,oblav,&
-                          tsoil,phiw,tskin,Wl,ksoilmax,isurf,ksoilmax,Qnet,swdavn,swuavn,lwdavn,lwuavn,nradtime
+    use modsurfdata,only: ustar,thlflux,qtflux,svflux,dudz,dvdz,dthldz,dqtdz,ps,thls,qts,thvs,obl,oblav,&
+                          tsoil,phiw,tskin,qskin,Wl,ksoilmax,isurf,ksoilmax,Qnet,swdavn,swuavn,lwdavn,lwuavn,nradtime
     use modraddata, only: iradiation, useMcICA
     use modfields, only : u0,v0,w0,thl0,qt0,ql0,ql0h,e120,dthvdz,presf,presh,sv0
     use modglobal, only : i1,i2,ih,j1,j2,jh,k1,dsv,itrestart,tnextrestart,dt_lim,rtimee,timee,tres,cexpnr,&
@@ -833,6 +832,9 @@ print *,'su',ps,pref0,cp
       write(ifoutput)   ((qtflux  (i,j  ),i=1,i2      ),j=1,j2      )
       write(ifoutput)   ((dthldz(i,j  ),i=1,i2      ),j=1,j2      )
       write(ifoutput)   ((dqtdz (i,j  ),i=1,i2      ),j=1,j2      )
+      write(ifoutput)   ((obl   (i,j  ),i=1,i2      ),j=1,j2      )
+      write(ifoutput)   ((tskin(i,j),i=1,i2),j=1,j2)
+      write(ifoutput)   ((qskin(i,j),i=1,i2),j=1,j2)
       write(ifoutput)  (  presf (    k)                            ,k=1,k1)
       write(ifoutput)  (  presh (    k)                            ,k=1,k1)
       write(ifoutput)  ps,thls,qts,thvs,oblav
@@ -864,7 +866,6 @@ print *,'su',ps,pref0,cp
         open  (ifoutput,file=name,form='unformatted')
         write(ifoutput) (((tsoil(i,j,k),i=1,i2),j=1,j2),k=1,ksoilmax)
         write(ifoutput) (((phiw(i,j,k),i=1,i2),j=1,j2),k=1,ksoilmax)
-        write(ifoutput) ((tskin(i,j),i=1,i2),j=1,j2)
         write(ifoutput) ((Wl(i,j),i=1,i2),j=1,j2)
         write(ifoutput) ((Qnet(i,j),i=1,i2),j=1,j2)
         if(iradiation == 1 .and. useMcICA) then
