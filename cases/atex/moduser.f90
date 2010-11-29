@@ -23,6 +23,11 @@
 module moduser
 
 contains
+
+subroutine initsurf_user
+  implicit none
+end subroutine initsurf_user
+
 subroutine force_user
   use modglobal, only : kmax,dzh,zf,zh
   use modfields, only : qt0av,thlp,qtp,whls
