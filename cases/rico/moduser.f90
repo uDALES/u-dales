@@ -21,7 +21,7 @@
 !
 !
 module moduser
-
+implicit none
 contains
 subroutine force_user
   implicit none
@@ -34,6 +34,18 @@ end subroutine rad_user
 subroutine micro_user
   implicit none
 end subroutine micro_user
+
+subroutine initsurf_user
+    use modglobal,   only : tmelt,bt,at,rd,rv,cp,es0,pref0
+    use modsurfdata, only : ps,qts,thvs,thls
+    real       :: exner, tsurf, es
+
+    exner      = (ps / pref0)**(rd/cp)
+    tsurf      = thls * exner
+    es         = es0 * exp(at*(tsurf-tmelt) / (tsurf-bt))
+    qts        = rd / rv * es / ps
+    thvs = thls * (1. + (rv/rd - 1.) * qts)
+end subroutine initsurf_user
 
 subroutine surf_user
  use modglobal,  only : zf,i1,j1,i2,j2,grav,nsv,fkar,cv,cu
