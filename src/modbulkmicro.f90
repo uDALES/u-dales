@@ -471,7 +471,7 @@ module modbulkmicro
      do k=1,k1
         if (qrmask(i,j,k)) then
            sc(i,j,k) = k_rr *rhoz(i,j,k)* qr(i,j,k) * Nr(i,j,k)  &
-                       * (1 + kappa_r/lbdr(i,j,k))**(-9.)* (1.225/rhoz(i,j,k))**0.5
+                       * (1 + kappa_r/lbdr(i,j,k)*pirhow**(1./3.))**(-9.)* (1.225/rhoz(i,j,k))**0.5
         endif
         if (Dvr(i,j,k) .gt. 0.30E-3 .and. qrmask(i,j,k)) then
            phi_br(i,j,k) = k_br * (Dvr(i,j,k)-D_eq)
