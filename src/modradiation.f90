@@ -104,7 +104,7 @@ contains
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine radiation
-    use modglobal, only : timee, dt_lim,rk3step
+    use modglobal, only : timee, dt_lim,rk3step,i1,j1,kmax
     use modfields, only : thlp
     use moduser,   only : rad_user
     use modradfull,only : radfull
@@ -131,14 +131,16 @@ contains
           case (irad_lsm)
             call radlsm
           case (irad_user)
-            call rad_user
-            if (rad_ls) then
-                call radprof
-            endif
-
+! EWB: the if statement should came first because moduser uses a radpar variable
             if(rad_longw.or.rad_shortw) then
               call radpar
             endif
+    
+            call rad_user    
+            if (rad_ls) then
+               call radprof
+            endif   
+             
       end select
     end if
     thlp = thlp + thlprad
