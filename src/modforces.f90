@@ -214,7 +214,7 @@ contains
   implicit none
 
   integer k,n
-  real subsplus, subsmin, subs
+  real subs_thl,subs_qt,subs_u,subs_v,subs_sv
 !   if (ltimedep) then
 ! !     call ls
 !   end if
@@ -225,47 +225,66 @@ contains
 
 !     1.1 lowest model level above surface : only downward component
 
+  subs_u   = 0.
+  subs_v   = 0.
+  subs_thl = 0.
+  subs_qt  = 0.
+  subs_sv  = 0.
+
   k = 1
-  subs        = 0.5*whls(k+1)  *(thl0av(k+1)-thl0av(k)  )/dzh(k+1)
-  thlp(2:i1,2:j1,1) = thlp(2:i1,2:j1,1) -u0av(k)*dthldxls(k)-v0av(k)*dthldyls(k)-subs
+  if (whls(k+1).lt.0) then !neglect effect of mean ascending on tendencies at the lowest full level
+  subs_thl     = 0.5*whls(k+1)  *(thl0av(k+1)-thl0av(k))/dzh(k+1)
+  subs_qt      = 0.5*whls(k+1)  *(qt0av (k+1)-qt0av(k) )/dzh(k+1)
+    if(lmomsubs) then
+       subs_u  = 0.5*whls(k+1)  *(u0av  (k+1)-u0av(k)  )/dzh(k+1)
+       subs_v  = 0.5*whls(k+1)  *(v0av  (k+1)-v0av(k)  )/dzh(k+1)
+    endif
+    do n=1,nsv
+      subs_sv =  0.5*whls(k+1)  *(sv0av(k+1,n)-sv0av(k,n)  )/dzh(k+1)
+      svp(2:i1,2:j1,1,n) = svp(2:i1,2:j1,1,n)-subs_sv
+    enddo
+  endif
 
-  subs        = 0.5*whls(k+1)  *(qt0av(k+1)-qt0av(k)  )/dzh(k+1)
-  qtp(2:i1,2:j1,1)  = qtp(2:i1,2:j1,1)-u0av(k)*dqtdxls(k)-v0av(k)*dqtdyls(k)-subs+dqtdtls(k)
+  thlp(2:i1,2:j1,1) = thlp(2:i1,2:j1,1) -u0av(k)*dthldxls(k)-v0av(k)*dthldyls(k)-subs_thl
+  qtp(2:i1,2:j1,1)  = qtp (2:i1,2:j1,1) -u0av(k)*dqtdxls (k)-v0av(k)*dqtdyls (k)-subs_qt +dqtdtls(k)
+  up(2:i1,2:j1,1)   = up  (2:i1,2:j1,1) -u0av(k)*dudxls(k)  -v0av(k)*dudyls  (k)-subs_u
+  vp(2:i1,2:j1,1)   = vp  (2:i1,2:j1,1) -u0av(k)*dvdxls(k)  -v0av(k)*dvdyls  (k)-subs_v
 
-  if(lmomsubs) up(2:i1,2:j1,k)   = 0.5*up(2:i1,2:j1,k)- whls(k+1) *(u0av(k+1) - u0av(k)  )/dzh(k+1)
-  up(2:i1,2:j1,1)   = up(2:i1,2:j1,1) -u0av(k)*dudxls(k)-v0av(k)*dudyls(k)
-
-  if(lmomsubs) vp(2:i1,2:j1,k)   = 0.5*vp(2:i1,2:j1,k)- whls(k+1) *(v0av(k+1) - v0av(k)  )/dzh(k+1)
-  vp(2:i1,2:j1,1)   = vp(2:i1,2:j1,1) -u0av(k)*dvdxls(k)-v0av(k)*dvdyls(k)
-
-  do n=1,nsv
-    subs =  0.5*whls(k+1)  *(sv0av(k+1,n)-sv0av(k,n)  )/dzh(k+1)
-    svp(2:i1,2:j1,1,n) = svp(2:i1,2:j1,1,n)-subs
-  enddo
 
 !     1.2 other model levels twostream
 
   do k=2,kmax
-    subs    = whls(k+1)  *(thl0av(k+1)-thl0av(k)  )/dzh(k+1)
-    thlp(2:i1,2:j1,k) = thlp(2:i1,2:j1,k)-u0av(k)*dthldxls(k)-v0av(k)*dthldyls(k)-subs
 
-    subs    = whls(k+1)  *(qt0av(k+1) - qt0av(k)  ) /dzh(k+1)
-    qtp(2:i1,2:j1,k) = qtp(2:i1,2:j1,k) -u0av(k)*dqtdxls(k)-v0av(k)*dqtdyls(k)-subs+dqtdtls(k)
+    if (whls(k+1).lt.0) then   !downwind scheme for subsidence
+      subs_thl    = whls(k+1) * (thl0av(k+1) - thl0av(k))/dzh(k+1)
+      subs_qt     = whls(k+1) * (qt0av (k+1) - qt0av (k))/dzh(k+1)
+      do n=1,nsv
+        subs_sv   = whls(k+1)  *(sv0av(k+1,n) - sv0av(k,n))/dzh(k+1)
+        svp(2:i1,2:j1,k,n) = svp(2:i1,2:j1,k,n)-subs_sv
+      enddo
+      if(lmomsubs) then
+         subs_u   = whls(k+1) * (u0av  (k+1) - u0av  (k))/dzh(k+1)
+         subs_v   = whls(k+1) * (v0av  (k+1) - v0av  (k))/dzh(k+1)
+      endif
+    else !downwind scheme for mean upward motions
+      subs_thl    = whls(k) * (thl0av(k) - thl0av(k-1))/dzh(k)
+      subs_qt     = whls(k) * (qt0av (k) - qt0av (k-1))/dzh(k)
+      do n=1,nsv
+        subs_sv   = whls(k) * (sv0av(k,n) - sv0av(k-1,n))/dzh(k)
+        svp(2:i1,2:j1,k,n) = svp(2:i1,2:j1,k,n)-subs_sv
+      enddo
+      if(lmomsubs) then
+         subs_u   = whls(k) * (u0av  (k) - u0av  (k-1))/dzh(k)
+         subs_v   = whls(k) * (v0av  (k) - v0av  (k-1))/dzh(k)
+      endif
+    endif
 
-    if(lmomsubs) up(2:i1,2:j1,k)   = up(2:i1,2:j1,k)- whls(k+1) *(u0av(k+1) - u0av(k)  )/dzh(k+1)
-    up(2:i1,2:j1,k)   = up(2:i1,2:j1,k)-u0av(k)*dudxls(k)-v0av(k)*dudyls(k)
-
-    subsplus    = whls(k+1) *(v0av(k+1) - v0av(k)  )/dzh(k+1)
-    subsmin     = whls(k)   *(v0av(k)   - v0av(k-1))/dzh(k)
-    if(lmomsubs) vp(2:i1,2:j1,k)   = vp(2:i1,2:j1,k)- whls(k+1) *(v0av(k+1) - v0av(k)  )/dzh(k+1)
-    vp(2:i1,2:j1,k)   = vp(2:i1,2:j1,k)-u0av(k)*dvdxls(k)-v0av(k)*dvdyls(k)
-    do n=1,nsv
-      subs  = whls(k+1)  *(sv0av(k+1,n) - sv0av(k,n)  ) /dzh(k+1)
-      svp(2:i1,2:j1,k,n) = svp(2:i1,2:j1,k,n)-subs
-    enddo
+    thlp(2:i1,2:j1,k) = thlp(2:i1,2:j1,k)-u0av(k)*dthldxls(k)-v0av(k)*dthldyls(k)-subs_thl
+    qtp (2:i1,2:j1,k) = qtp (2:i1,2:j1,k)-u0av(k)*dqtdxls (k)-v0av(k)*dqtdyls (k)-subs_qt+dqtdtls(k)
+    up  (2:i1,2:j1,k) = up  (2:i1,2:j1,k)-u0av(k)*dudxls  (k)-v0av(k)*dudyls  (k)-subs_u
+    vp  (2:i1,2:j1,k) = vp  (2:i1,2:j1,k)-u0av(k)*dvdxls  (k)-v0av(k)*dvdyls  (k)-subs_v
 
   enddo
-
 
   return
   end subroutine lstend
