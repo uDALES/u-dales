@@ -204,7 +204,7 @@ All options that can be set for the LES experiments will be discussed in the fol
   geodamptime & 7200	& $x \in \mathbb{R}, \quad x>0$	& Time scale for nudging to geowind in sponge layer & s\\
   lmomsubs	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch to apply subsidence on momentum & -\\
   lmoist	& .true.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for calculation of moisture fields	& -\\
-  lneutraldrag	& 	& 	& Obsolete 		& \\
+%  lneutraldrag	& 	& 	& Obsolete 		& \\
   chi\_half		& 	& 	& Obsolete		& \\
   timerad	& 0		& $x \in \mathbb{R}, \quad x>0$	& Value for sampling interval of radiation scheme	& s\\  
   \qquad	&		&				&						& \\
@@ -235,10 +235,10 @@ All options that can be set for the LES experiments will be discussed in the fol
   dlwtop	& 74		& $x \in \mathbb{R}, \quad x \ge 0$	& Longwave radiative flux jump at cloud top	& W m$^{-2}$\\
   sw0		& 1100		& $x \in \mathbb{R}, \quad x \ge 0$	& Direct solar radiative component cloud top (assumes zero diffusive contribution)	& W m$^{-2}$\\
   gc		& 0.85		& $x \in \mathbb{R}, \quad 0 \leq x \leq 1$	& Asymmetry factor of droplet scattering angle distribution & -\\
-  sfc\_albedo	& 	& 	& Obsolete & \\
+%  sfc\_albedo	& 	& 	& Obsolete & \\
   reff		& 1e-5		& $x \in \mathbb{R}, \quad x>0$	& Cloud drop effective radius					& m\\
   isvsmoke	& 1		& $x \in \mathbb{N}, \quad 0 \leq x \leq \text{nsv}$	& Number of passive scalar fields to be used for optical depth calculation (not used when $rad\_smoke = .false.$)	& -\\
-  lmoduser	& .false. & $x\in\{\text{.false.},\text{.true.}\}$ & Switch for user-defined forcing. Can only be used for certain cases (using the file moduser.f90) & -\\
+  lforce\_user	& .false. & $x\in\{\text{.false.},\text{.true.}\}$ & Switch for user-defined forcing. Can only be used for certain cases (using the file moduser.f90) & -\\
 \end{supertabular}
 \end{center}
 
@@ -558,6 +558,62 @@ All options that can be set for the LES experiments will be discussed in the fol
 \end{center}
 
 \newpage
+
+\subsection{Namelist NAMLSMCROSSSECTION}\label{par:lsmcrosssection}
+\begin{center}
+	  \tablefirsthead{
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tablehead{
+        \multicolumn{5}{l}{\small \it Continued from previous page}\\
+        \multicolumn{5}{c}{}\\
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tabletail{
+        &&&&\\\hline
+        \multicolumn{5}{c}{}\\
+        \multicolumn{5}{r}{\small \it Continued on next page}\\
+  }
+  \tablelasttail{
+        &&&&\\\hline
+  }
+\begin{supertabular}{|l|p{1.6cm}|p{4cm}|p{6cm}|l|}
+  lcross	&	.false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch to activate dumping of projections in the land surface layer & -\\
+  dtav		& dtav\_glob	& $x = n \cdot \text{dtmax}, \quad n \in \mathbb{N}^*$	& Time interval for sampling of statistics	& s\\
+  crossheight	& 2	& $x \in \mathbb{N}^*, \quad x \le 4$	& Height of the xy-projection & -\\
+  crossplane	& 2	& $x \in \mathbb{N}^*, \quad x \le \frac{\text{jtot}}{N_{\text{processors}}}$	& Position of the xz-plane on every processor & -\\
+\end{supertabular}
+\end{center}
+
+\subsection{Namelist NAMLSMSTAT}\label{par:lsmstat}
+\begin{center}
+	  \tablefirsthead{
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tablehead{
+        \multicolumn{5}{l}{\small \it Continued from previous page}\\
+        \multicolumn{5}{c}{}\\
+        \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
+        \hline &&&&\\
+  }
+  \tabletail{
+        &&&&\\\hline
+        \multicolumn{5}{c}{}\\
+        \multicolumn{5}{r}{\small \it Continued on next page}\\
+  }
+  \tablelasttail{
+        &&&&\\\hline
+  }
+\begin{supertabular}{|l|p{1.6cm}|p{4cm}|p{6cm}|l|}
+  lstat		& .false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for calculating land surface statistics	& -\\
+  dtav		& dtav\_glob	& $x = n \cdot \text{dtmax}, \quad n \in \mathbb{N}^*$	& Time interval for sampling of statistics	& s\\
+  timeav	& timeav\_glob	& $x = n \cdot \text{dtav}, \quad n \in \mathbb{N}^*$	& Time interval for writing statistics		& s\\
+\end{supertabular}
+\end{center}
+
 \subsection{Namelist NAMMICROPHYSICS}\label{par:microphysics}
 
 \begin{center}
@@ -619,7 +675,9 @@ All options that can be set for the LES experiments will be discussed in the fol
         &&&&\\\hline
   }
 \begin{supertabular}{|l|p{1.6cm}|p{4cm}|p{6cm}|l|}
-lnetcdf	& -	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch to write NetCDF output	& -\\
+dtav	& dtav\_glob & $x = n \cdot \text{dtmax}, \quad n \in \mathbb{N}^*$	& Time interval for sampling of statistics	& s\\
+lnetcdf	& .false. & $x\in\{\text{.false.},\text{.true.}\}$	& Switch to write NetCDF output	& -\\
+ncklimit& 60	&  $x \in \mathbb{N}^*, \quad x \le \text{kmax}$ & Maximum height index for which $x$-averages are calculated and written & -\\ 
 \end{supertabular}
 \end{center}
 
@@ -689,6 +747,7 @@ tnudgefac & 1	& $x \in \mathbb{R}, \quad x>0$	&	Nudgefactor & -\\
 \end{center}
 
 \subsection{Namelist NAMprojection}\label{par:projection}
+Old version of modcrosssection (Paragraph \ref{par:crosssection}). Usage of modprojection is not advised.
 \begin{center}
 	  \tablefirsthead{
         \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default} & \multicolumn{1}{c}{Possible values} & \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Unit}\\
@@ -798,7 +857,7 @@ tnudgefac & 1	& $x \in \mathbb{R}, \quad x>0$	&	Nudgefactor & -\\
         &&&&\\\hline
   }
 \begin{supertabular}{|l|p{2cm}|p{4cm}|p{6cm}|l|}
-  lstattend	& & & Obsolete & \\
+%  lstattend	& & & Obsolete & \\
   ltend	& .false.	& $x\in\{\text{.false.},\text{.true.}\}$	& Switch for calculation of tendencies of prognostic variables & -\\
   dtav		& dtav\_glob	& $x = n \cdot \text{dtmax}, \quad n \in \mathbb{N}^*$	& Time interval for sampling of statistics	& s\\
   timeav	& timeav\_glob	& $x = n \cdot \text{dtav}, \quad n \in \mathbb{N}^*$	& Time interval for writing statistics	& s\\
@@ -876,6 +935,7 @@ tnudgefac & 1	& $x \in \mathbb{R}, \quad x>0$	&	Nudgefactor & -\\
   albedoav	& -1	& $x \in \mathbb{R}, \quad 0 \le x \le 1$ & Albedo (if isurf = 1)	& -\\
   Qnetav	& -1	& $x \in \mathbb{R}$	& Net radiation (if iradiation $\ne$ 1 and isurf = 1)	& J s$^{-1}$ m$^{-2}$\\
   cvegav	& -1	& $x \in \mathbb{R}, \quad x \ge 0$	& Vegetation cover & -\\
+  Wlav		& -1	& $x \in \mathbb{R}, \quad x \ge 0$	& Initial water cover on vegetation	& m\\
   rsminav	& -1	& $x \in \mathbb{R}, \quad x \ge 0$	& Minimal vegetation resistance	(if isurf = 1)& s m$^{-1}$\\
   rssoilminav & -1	&  $x \in \mathbb{R}, \quad x \ge 0$ & Minimum soil evaporation resistance &-\\
   LAIav	& -1	& $x \in \mathbb{R}, \quad x \ge 0$	& Leaf area index (if isurf = 1)	& m$^{2}$ m$^{-2}$\\
