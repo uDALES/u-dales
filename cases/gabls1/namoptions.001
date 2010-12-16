@@ -44,11 +44,11 @@ lqlnr      =  .false.
 cu         =  4.
 cv         =  0.
 
-iadv_mom    =  6
-iadv_tke    =  6
-iadv_thl    =  6
-iadv_qt     =  6
-iadv_sv     =  6
+iadv_mom    =  52
+iadv_tke    =  52
+iadv_thl    =  52
+iadv_qt     =  52
+iadv_sv     =  52
 /
 
 &NAMSUBGRID
