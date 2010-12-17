@@ -486,7 +486,6 @@ contains
         thls = thlprof(1)
         qts  = qtprof(1)
       case(10)
-print *,'su',ps,pref0,cp
         call initsurf_user
       end select
 
