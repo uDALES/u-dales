@@ -65,7 +65,7 @@ subroutine tstep_update
         courold = courtot
         pecletold = peclettot
         courtotl=0.
-        peclettotl=1e-5
+        peclettotl=0.
         do k=1,kmax
           courtotl=max(courtotl,maxval(abs(um(2:i1,2:j1,k)/dx)),maxval(abs(vm(2:i1,2:j1,k)/dy)),maxval(abs(wm(2:i1,2:j1,k)/dzh(k))))*rdt
           peclettotl=max(peclettotl,maxval(ekm(2:i1,2:j1,k))*rdt/minval((/dzh(k),dx,dy/))**2)
