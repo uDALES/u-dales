@@ -64,7 +64,7 @@ contains
   ! Adapted fillps for RK3 time loop
 
 
-    use modfields, only : up, vp, wp, u0, v0, w0
+    use modfields, only : up, vp, wp, um, vm, wm
     use modglobal, only : rk3step, i1,i2,j1,kmax,k1,ih,jh, dx,dy,dzf,dzh,rdt
     use modmpi,    only : excjs
     implicit none
@@ -81,9 +81,9 @@ contains
     do k=1,kmax
       do j=2,j1
         do i=2,i1
-          pup(i,j,k) = up(i,j,k) + u0(i,j,k) / rk3coef
-          pvp(i,j,k) = vp(i,j,k) + v0(i,j,k) / rk3coef
-          pwp(i,j,k) = wp(i,j,k) + w0(i,j,k) / rk3coef
+          pup(i,j,k) = up(i,j,k) + um(i,j,k) / rk3coef
+          pvp(i,j,k) = vp(i,j,k) + vm(i,j,k) / rk3coef
+          pwp(i,j,k) = wp(i,j,k) + wm(i,j,k) / rk3coef
         end do
       end do
     end do

@@ -552,9 +552,12 @@ contains
               if(Rib > 0) L = 0.01
               if(Rib < 0) L = -0.01
             end if
-            if(abs(L - Lold) < 0.0001) exit
+            if(abs((L - Lold) / Lold) < 1e-4) exit
             if(iter > 1000) stop 'Obukhov length calculation does not converge!'
           end do
+
+          if(L > 1e6)  L = 1e6
+          if(L < -1e6) L = -1e6
 
           obl(i,j) = L
 
@@ -590,9 +593,12 @@ contains
         if(Rib > 0) L = 0.01
         if(Rib < 0) L = -0.01
       end if
-      if(abs(L - Lold) < 0.0001) exit
+      if(abs((L - Lold) / Lold) < 1e-4) exit
       if(iter > 1000) stop 'Obukhov length calculation does not converge!'
     end do
+
+    if(L > 1e6)  L = 1e6
+    if(L < -1e6) L = -1e6
 
     if(.not. lmostlocal) then
       obl(:,:) = L

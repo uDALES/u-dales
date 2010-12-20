@@ -1,0 +1,28 @@
+#!/bin/bash
+
+for ii in fielddump.???.???.nc
+do
+idy1=${ii%.*.*}
+idy=${idy1##*.}
+ncks -v ql $ii tempql1.$idy.nc
+ncpdq -O -a yt,time,zt,xt tempql1.$idy.nc tempql.$idy.nc # Make y record dimension
+done
+
+ncrcat -O tempql.???.nc tempql.nc       # Concatenate along y
+ncpdq -O -a time,zt,yt,xt tempql.nc fieldql.nc # Revert to time as record dimension
+rm temp*.nc
+
+docontinue=1
+cnt=1
+while [ $docontinue -eq 1 ];
+do
+docontinue=0
+printf -v gt "%05i" $cnt
+ncks -O -d time,$cnt,$cnt fieldql.nc frame.$gt.nc
+if [ -e frame$gt.nc ]
+then
+ncwa -O -a time frame.$gt.nc frame.$gt.nc
+ncks -O -v ql frame.$gt.nc frame.$gt.nc
+docontinue=1
+fi
+done

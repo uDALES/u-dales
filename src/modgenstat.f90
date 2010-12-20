@@ -315,8 +315,10 @@ contains
 
       svmmn   = 0.
       svpmn   = 0.
+      svpav   = 0.
 !       svplsmn = 0.
       svptmn  = 0.
+      svptav  = 0.
 
       sv2mn = 0.
 

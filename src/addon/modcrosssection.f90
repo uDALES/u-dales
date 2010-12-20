@@ -271,7 +271,7 @@ contains
     close(ifoutput)
 
     do n = 1,nsv
-      name = 'movh_tnn.'//cexpnr
+      name = 'movv_snn.'//cexpnr
       write(name(7:8),'(i2.2)') n
       open(ifoutput,file=name,position='append',action='write')
       write(ifoutput,'(es12.5)') ((svm(i,crossplane,k,n),i=2,i1),k=1,kmax)
@@ -459,7 +459,7 @@ contains
     close(ifoutput)
 
     do n = 1,nsv
-      name = 'movh_tnn.'//cmyid//'.'//cexpnr
+      name = 'movo_snn.'//cmyid//'.'//cexpnr
       write(name(7:8),'(i2.2)') n
       open(ifoutput,file=name,position='append',action='write')
       write(ifoutput,'(es12.5)') ((svm(crossortho,j,k,n),j=2,j1),k=1,kmax)

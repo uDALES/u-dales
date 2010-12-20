@@ -1,0 +1,15 @@
+What: Dales v3.2 configuration files for GABLS1 intercomparison case 
+Date: December 8, 2010
+Author: Arnold Moene (arnold.moene@wur.nl) WUR-MAQ
+
+The detailed description of the intercomparison case can be found in:
+
+Beare, R.J.; MacVean, M.K.; Holtslag, A.A.M.; Cuxart, J.; Esau, I.; Golaz, J.C.; Jimenez, M.A.; Khairoutdinov, M.; Kosovic, B.; Lewellen, D.; Lund, T.S.; Lundquist, J.K.; McCabe, A.; Moene, A.F.; Noh, Y.; Raasch, S.; Sullivan, P. (2006) 
+An Intercomparison of Large-Eddy Simulations of the Stable Boundary Layer
+Boundary-Layer Meteorology 118 (2). - p. 247 - 272. 
+
+Notes: 
+* the relatively small dtmax is needed to correct the adaptive time step which allows too large time steps in the initial part of the simulation
+* the ls_flux.inp.001 file contains on set of extern forcings for t=-1 second, because the model skips (or at leasst skipped in my 3.2 beta version) the first set of forcings. Thus only the prescribed forcings for t=0 seconds and t=36000 seconds are read and used
+* The model crashes for advection scheme 6. In the past it has been performed with 5th and 2nd order advecion scheme. For this standard case, scheme 52 is chosen: 5th order in the horizontal direction (for stability) and 2nd order in the vertical (to make statistics comparable with model calculations).
+* In the namoptions, CF is set to 2.0 in order to prevent too much subgrid dissipation

@@ -39,7 +39,6 @@ save
 !NetCDF variables
   integer,parameter :: nvar = 23
   integer :: ncid,nrec = 0
-  character(80) :: fname = 'bulkmicrostat.xxx.nc'
   character(80),dimension(nvar,4) :: ncname
   character(80),dimension(1,4) :: tncname
 
@@ -191,7 +190,6 @@ subroutine initbulkmicrostat
       tnextwrite = itimeav+btime
       nsamples = itimeav/idtav
       if (myid==0) then
-        fname(15:17) = cexpnr
         call ncinfo(tncname(1,:),'time','Time','s','time')
         call ncinfo(ncname( 1,:),'cfrac','Cloud fraction','-','tt')
         call ncinfo(ncname( 2,:),'rainrate','Echo Rain Rate','W/m^2','tt')
@@ -216,9 +214,6 @@ subroutine initbulkmicrostat
         call ncinfo(ncname(21,:),'qtpsed','Sedimentation total water content tendency','kg/kg/s','tt')
         call ncinfo(ncname(22,:),'qtpevap','Evaporation total water content tendency','kg/kg/s','tt')
         call ncinfo(ncname(23,:),'qtptot','Total total water content tendency','kg/kg/s','tt')
-        call open_nc(fname,ncid,n3=kmax)
-        call define_nc( ncid, 1, tncname)
-        call writestat_dims_nc(ncid)
         call redefine_nc(ncid_prof)
         call define_nc( ncid_prof, NVar, ncname)
       end if
@@ -519,21 +514,27 @@ subroutine initbulkmicrostat
         vars(:, 6) = precmn    (:)*rhoz(2,2,:)*rlv
         vars(:, 7) = Dvrmn    (:)
         vars(:, 8) = qrmn    (:)
-        vars(:, 9) =Npmn    (k,iauto)
-        vars(:,10) =Npmn    (k,iaccr)
-        vars(:,11) =Npmn    (k,ised)
-        vars(:,12) =Npmn    (k,ievap)
-        vars(:,13) =sum(Npmn  (k,2:nrfields))
-        vars(:,14) =qlpmn    (k,iauto)
-        vars(:,15) =qlpmn    (k,iaccr)
-        vars(:,16) =qlpmn    (k,ised)
-        vars(:,17) =qlpmn    (k,ievap)
-        vars(:,18) =sum(qlpmn  (k,2:nrfields))
-        vars(:,19) =qtpmn    (k,iauto)
-        vars(:,20) =qtpmn    (k,iaccr)
-        vars(:,21) =qtpmn    (k,ised)
-        vars(:,22) =qtpmn    (k,ievap)
-        vars(:,23) = sum    (qtpmn(k,2:nrfields))
+        vars(:, 9) =Npmn    (:,iauto)
+        vars(:,10) =Npmn    (:,iaccr)
+        vars(:,11) =Npmn    (:,ised)
+        vars(:,12) =Npmn    (:,ievap)
+        do k=1,k1
+        vars(k,13) =sum(Npmn  (k,2:nrfields))
+        enddo
+        vars(:,14) =qlpmn    (:,iauto)
+        vars(:,15) =qlpmn    (:,iaccr)
+        vars(:,16) =qlpmn    (:,ised)
+        vars(:,17) =qlpmn    (:,ievap)
+        do k=1,k1
+        vars(k,18) =sum(qlpmn  (k,2:nrfields))
+        enddo
+        vars(:,19) =qtpmn    (:,iauto)
+        vars(:,20) =qtpmn    (:,iaccr)
+        vars(:,21) =qtpmn    (:,ised)
+        vars(:,22) =qtpmn    (:,ievap)
+        do k=1,k1
+        vars(k,23) =sum(qtpmn  (k,2:nrfields))
+        enddo
         call writestat_nc(ncid_prof,nvar,ncname,vars(1:kmax,:),nrec_prof,kmax)
       end if
 

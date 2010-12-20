@@ -23,6 +23,10 @@
 module moduser
 
 contains
+subroutine initsurf_user
+  implicit none
+end subroutine initsurf_user
+
 subroutine force_user
   implicit none
 end subroutine force_user
