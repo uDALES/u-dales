@@ -177,9 +177,7 @@ subroutine initstattend
         call ncinfo(ncname(41,:),'qttendtop','total water content  top boundary tendency','kg/kg/s','tt')
         call ncinfo(ncname(42,:),'qttendaddon','total water content in addons tendency','kg/kg/s','tt')
         call ncinfo(ncname(43,:),'qttendtot','total water content total tendency','kg/kg/s','tt')
-        call open_nc(fname,ncid,n3=kmax)
-        call define_nc( ncid, 1, tncname)
-        call writestat_dims_nc(ncid)
+
         call redefine_nc(ncid_prof)
         call define_nc( ncid_prof, NVar, ncname)
      end if

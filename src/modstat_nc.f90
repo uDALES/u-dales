@@ -73,59 +73,98 @@ contains
 ! ----------------------------------------------------------------------
 !> Subroutine Open_NC: Opens a NetCDF File and identifies starting record
 !
-  subroutine open_nc (fname, ncid,n1, n2, n3, ns)
-    use modglobal, only : author,version
+  subroutine open_nc (fname, ncid,nrec,n1, n2, n3, ns)
+    use modglobal, only : author,version,rtimee
     implicit none
-    integer, intent (out) :: ncid
+    integer, intent (out) :: ncid,nrec
     integer, optional, intent (in) :: n1, n2, n3, ns
     character (len=40), intent (in) :: fname
 
     character (len=12):: date='',time=''
-    integer :: iret,varid
+    integer :: iret,varid,ncall,RecordDimID
+    real, allocatable :: xtimes(:)
+    logical :: exans
 
-    call date_and_time(date,time)
-    iret = nf90_create(fname,NF90_SHARE,ncid)
-    iret = nf90_put_att(ncid,NF90_GLOBAL,'title',fname)
-    iret = nf90_put_att(ncid,NF90_GLOBAL,'history','Created on '//trim(date)//' at '//trim(time))
-    iret = nf90_put_att(ncid, NF90_GLOBAL, 'Source',trim(version))
-    iret = nf90_put_att(ncid, NF90_GLOBAL, 'Author',trim(author))
-    iret = nf90_def_dim(ncID, 'time', NF90_UNLIMITED, timeID)
-    if (present(n1)) then
-      iret = nf90_def_dim(ncID, 'xt', n1, xtID)
-      iret = nf90_def_dim(ncID, 'xm', n1, xmID)
-      iret = nf90_def_var(ncID,'xt',NF90_FLOAT,xtID ,VarID)
-      iret=nf90_put_att(ncID,VarID,'longname','West-East displacement of cell centers')
-      iret=nf90_put_att(ncID,VarID,'units','m')
-      iret = nf90_def_var(ncID,'xm',NF90_FLOAT,xmID,VarID)
-      iret=nf90_put_att(ncID,VarID,'longname','West-East displacement of cell edges')
-      iret=nf90_put_att(ncID,VarID,'units','m')
+    inquire(file=trim(fname),exist=exans)
+
+    ncall = 0
+    if (.not.exans) then
+
+      call date_and_time(date,time)
+      iret = nf90_create(fname,NF90_SHARE,ncid)
+      iret = nf90_put_att(ncid,NF90_GLOBAL,'title',fname)
+      iret = nf90_put_att(ncid,NF90_GLOBAL,'history','Created on '//trim(date)//' at '//trim(time))
+      iret = nf90_put_att(ncid, NF90_GLOBAL, 'Source',trim(version))
+      iret = nf90_put_att(ncid, NF90_GLOBAL, 'Author',trim(author))
+      iret = nf90_def_dim(ncID, 'time', NF90_UNLIMITED, timeID)
+      if (present(n1)) then
+        iret = nf90_def_dim(ncID, 'xt', n1, xtID)
+        iret = nf90_def_dim(ncID, 'xm', n1, xmID)
+        iret = nf90_def_var(ncID,'xt',NF90_FLOAT,xtID ,VarID)
+        iret=nf90_put_att(ncID,VarID,'longname','West-East displacement of cell centers')
+        iret=nf90_put_att(ncID,VarID,'units','m')
+        iret = nf90_def_var(ncID,'xm',NF90_FLOAT,xmID,VarID)
+        iret=nf90_put_att(ncID,VarID,'longname','West-East displacement of cell edges')
+        iret=nf90_put_att(ncID,VarID,'units','m')
+      end if
+      if (present(n2)) then
+        iret = nf90_def_dim(ncID, 'yt', n2, ytID)
+        iret = nf90_def_dim(ncID, 'ym', n2, ymID)
+        iret = nf90_def_var(ncID,'yt',NF90_FLOAT,ytID ,VarID)
+        iret=nf90_put_att(ncID,VarID,'longname','South-North displacement of cell centers')
+        iret=nf90_put_att(ncID,VarID,'units','m')
+        iret = nf90_def_var(ncID,'ym',NF90_FLOAT,ymID,VarID)
+        iret=nf90_put_att(ncID,VarID,'longname','South-North displacement of cell edges')
+        iret=nf90_put_att(ncID,VarID,'units','m')
+      end if
+      if (present(n3)) then
+        iret = nf90_def_dim(ncID, 'zt', n3, ztID)
+        iret = nf90_def_dim(ncID, 'zm', n3, zmID)
+        iret = nf90_def_var(ncID,'zt',NF90_FLOAT,(/ztID/) ,VarID)
+        iret=nf90_put_att(ncID,VarID,'longname','Vertical displacement of cell centers')
+        iret=nf90_put_att(ncID,VarID,'units','m')
+        iret = nf90_def_var(ncID,'zm',NF90_FLOAT,(/zmID/),VarID)
+        iret=nf90_put_att(ncID,VarID,'longname','Vertical displacement of cell edges')
+        iret=nf90_put_att(ncID,VarID,'units','m')
+      end if
+      if (present(ns)) then
+        iret = nf90_def_dim(ncID, 'zts', ns, ztsID)
+        iret = nf90_def_var(ncID,'zts',NF90_FLOAT,(/ztsID/) ,VarID)
+        iret=nf90_put_att(ncID,VarID,'longname','Soil level depth of cell centers')
+        iret=nf90_put_att(ncID,VarID,'units','m')
+      end if
+
+    else
+       iret = nf90_open (trim(fname), NF90_WRITE, ncid)
+       iret = nf90_inquire(ncid, unlimitedDimId = RecordDimID)
+       iret = nf90_inquire_dimension(ncid, RecordDimID, len=nrec)
+       ncall=0
+       iret = nf90_inq_varid(ncid,'time',timeID)
+       allocate (xtimes(nrec+1))
+       iret = nf90_get_var(ncid, timeId, xtimes(1:nrec))
+
+       do while(ncall <= nrec .and. xtimes(ncall+1) < rtimee - spacing(1.))
+          ncall=ncall+1
+       end do
+       deallocate(xtimes)
+       if (present(n1)) then
+         iret = nf90_inq_dimid(ncid,'xt',xtId)
+         iret = nf90_inq_dimid(ncid,'xm',xmId)
+       end if
+       if (present(n2)) then
+         iret = nf90_inq_dimid(ncid,'yt',ytId)
+         iret = nf90_inq_dimid(ncid,'ym',ymId)
+       end if
+       if (present(n3)) then
+         iret = nf90_inq_dimid(ncid,'zt',ztId)
+         iret = nf90_inq_dimid(ncid,'zm',zmId)
+       end if
+       if (present(ns)) then
+         iret = nf90_inq_dimid(ncid,'zts',ztsId)
+       end if
     end if
-    if (present(n2)) then
-      iret = nf90_def_dim(ncID, 'yt', n2, ytID)
-      iret = nf90_def_dim(ncID, 'ym', n2, ymID)
-      iret = nf90_def_var(ncID,'yt',NF90_FLOAT,ytID ,VarID)
-      iret=nf90_put_att(ncID,VarID,'longname','South-North displacement of cell centers')
-      iret=nf90_put_att(ncID,VarID,'units','m')
-      iret = nf90_def_var(ncID,'ym',NF90_FLOAT,ymID,VarID)
-      iret=nf90_put_att(ncID,VarID,'longname','South-North displacement of cell edges')
-      iret=nf90_put_att(ncID,VarID,'units','m')
-    end if
-    if (present(n3)) then
-      iret = nf90_def_dim(ncID, 'zt', n3, ztID)
-      iret = nf90_def_dim(ncID, 'zm', n3, zmID)
-      iret = nf90_def_var(ncID,'zt',NF90_FLOAT,(/ztID/) ,VarID)
-      iret=nf90_put_att(ncID,VarID,'longname','Vertical displacement of cell centers')
-      iret=nf90_put_att(ncID,VarID,'units','m')
-      iret = nf90_def_var(ncID,'zm',NF90_FLOAT,(/zmID/),VarID)
-      iret=nf90_put_att(ncID,VarID,'longname','Vertical displacement of cell edges')
-      iret=nf90_put_att(ncID,VarID,'units','m')
-    end if
-    if (present(ns)) then
-      iret = nf90_def_dim(ncID, 'zts', ns, ztsID)
-      iret = nf90_def_var(ncID,'zts',NF90_FLOAT,(/ztsID/) ,VarID)
-      iret=nf90_put_att(ncID,VarID,'longname','Soil level depth of cell centers')
-      iret=nf90_put_att(ncID,VarID,'units','m')
-    end if
+    nrec = ncall
+    iret = nf90_sync(ncid)
 
 
   end subroutine open_nc
@@ -169,6 +208,8 @@ contains
     dim_0ttts= (/ytID,ztsID,timeId/)! thermo point
     dim_tttts= (/xtID,ytID,ztsID,timeId/)! thermo point
     do n=1,nVar
+      iret = nf90_inq_varid(ncid, trim(sx(n,1)), VarID)
+      if (iret == 0) cycle
       select case(trim(sx(n,4)))
         case ('time')
           iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,(/timeID/) ,VarID)
@@ -220,6 +261,7 @@ contains
       end select
       if (iret/=0) then
         write (*,*) 'nvar', nvar, sx(n,:)
+
         call nchandle_error(iret)
       end if
       iret=nf90_put_att(ncID,VarID,'longname',sx(n,2))
