@@ -1544,7 +1544,6 @@ contains
         vars(:,36)=ql2mn
         vars(:,37)=csz
         do n=1,nsv
-          write (csvname(1:3),'(i3.3)') n
           vars(:,37+7*(n-1)  )=svmmn(:,n)
           vars(:,37+7*(n-1)+1)=svpmn(:,n)
           vars(:,37+7*(n-1)+2)=svptmn(:,n)
