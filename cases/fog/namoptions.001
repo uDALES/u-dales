@@ -1,19 +1,20 @@
 &RUN
 iexpnr     =  001
-lwarmstart =  .true.
-startfile  =  'initdlatest000.001'
-runtime    =  180
-trestart   =  60 
+lwarmstart =  .false.
+startfile  =  'initd00h01m000.001'
+runtime    =  36000
+trestart   =  3600 
 ladaptive  =  .true.
 irandom    =  43
 randthl    =  0.1
 randqt     =  2.5e-5
 nsv        =  0 
+courant    =  1.
 /
 
 &DOMAIN
-imax       =  32 
-jtot       =  32
+imax       =  64 
+jtot       =  64
 kmax       =  64
 
 xsize      =  400.
@@ -39,7 +40,6 @@ isurf      =  1
 iradiation =  1
 useMcICA   =  .true.
 lcoriol    =  .true.
-timerad    =  10
 /
 
 &NAMSUBGRID
@@ -112,7 +112,7 @@ timeav      = 120
 
 &NAMTIMESTAT
 ltimestat   = .true.
-dtav        = 20
+dtav        = 60
 /
 
 &NAMCROSSSECTION
@@ -136,7 +136,7 @@ ltend       = .true.
 /
 
 &NAMBUDGET
-lbudget = .true.
+lbudget = .false.
 dtav    = 60
 timeav  = 300
 /
@@ -145,7 +145,4 @@ timeav  = 300
 lstat = .true.
 dtav = 60
 timeav = 300
-/
-&NAMNETCDFSTATS
-lnetcdf=.true.
 /

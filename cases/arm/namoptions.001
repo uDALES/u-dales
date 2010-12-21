@@ -1,7 +1,7 @@
 &RUN
 iexpnr     =  001
 lwarmstart =  .false.
-startfile  =  'initd03h00m000.001'
+startfile  =  'initdlatest000.001'
 runtime    =  50400
 trestart   =  3600
 ladaptive  = .true.
@@ -36,7 +36,11 @@ wqsurf     =  5.4e-5
 
 lmoist     =  .true.
 isurf      =  3
-irad       =  1
+iradiation =  2
+rad_ls     = .true.
+rad_longw  = .false.
+rad_shortw = .false.
+rad_smoke  = .false.
 timerad    =  3600
 lcoriol    =  .true.
 ltimedep   =  .true.

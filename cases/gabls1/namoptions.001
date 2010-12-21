@@ -1,14 +1,14 @@
 &RUN
 iexpnr     =  001
 lwarmstart =  .false.
-startfile  =  'initd01h00m000.001'
+startfile  =  'initd04h00m000.001'
 runtime    =  32400
 trestart   =  3600
-dtmax      =  0.5
 irandom    =  43
 randthl    =  0.1
 randqt     =  0
 nsv        =  0
+ladaptive  = .true.
 /
 
 &DOMAIN
@@ -28,7 +28,7 @@ xtime      =  0.
 &PHYSICS
 ltimedep   =  .true.
 lmoist     =  .false.
-irad       =  0
+iradiation =  0
 lcoriol    =  .true.
 /
 
@@ -56,9 +56,6 @@ iadv_sv     =  52
   cf = 2.0
 /
 
-&NAMCHECKSIM
-tcheck      = 1
-/
 &NAMSAMPLING
 lsampup     = .false.
 dtav        = 60
