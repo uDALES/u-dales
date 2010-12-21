@@ -154,6 +154,7 @@ contains
       do while (ierr ==0)
         read (ifinput,*,iostat=ierr) dummyr
       end do
+      backspace (ifinput)
 !     ---load large scale forcings----
 
       t = 0
