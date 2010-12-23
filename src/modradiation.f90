@@ -36,6 +36,7 @@ contains
   subroutine initradiation
     use modglobal,    only : kmax,i1,ih,j1,jh,k1,nsv,ih,jh,btime,tres,dt_lim
     use modmpi,       only : myid
+    use modsurfdata,  only : albedoav
     implicit none
 
     allocate(thlprad(2-ih:i1+ih,2-jh:j1+jh,k1))
@@ -86,6 +87,13 @@ contains
         rad_smoke  = .true.
       end select
     end if
+    
+    if(iradiation==irad_full .or. rad_shortw) then
+      if(albedoav == -1) then
+        stop "NAMSURFACE: albedoav is not compatible with radiation scheme"
+      end if
+    endif  
+    
     if (iradiation == 0) return
     itimerad = floor(timerad/tres)
     tnext = itimerad+btime
