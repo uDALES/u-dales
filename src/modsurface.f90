@@ -42,7 +42,7 @@ contains
   subroutine initsurface
 
     use modglobal,  only : jmax, i1, i2, j1, j2, ih, jh, cp, rlv, zf, nsv, ifnamopt, fname_options
-    use modraddata, only : iradiation,rad_shortw,irad_full
+    use modraddata, only : iradiation
     use modfields,  only : thl0, qt0
     use modmpi,     only : myid, nprocs, comm3d, mpierr, my_real, mpi_logical, mpi_integer
 
@@ -133,6 +133,9 @@ contains
       if(lambdaskinav == -1) then
         stop "NAMSURFACE: lambdaskinav is not set"
       end if
+      if(albedoav == -1) then
+        stop "NAMSURFACE: albedoav is not set"
+      end if
       if(Qnetav == -1) then
         stop "NAMSURFACE: Qnetav is not set"
       end if
@@ -150,12 +153,6 @@ contains
       end if
     end if
 
-    if(isurf == 1 .or. iradiation==irad_full .or. rad_shortw) then
-      if(albedoav == -1) then
-        stop "NAMSURFACE: albedoav is not set"
-      end if
-    endif  
-    
     if(isurf .ne. 3) then
       if(z0mav == -1) then
         stop "NAMSURFACE: z0mav is not set"
