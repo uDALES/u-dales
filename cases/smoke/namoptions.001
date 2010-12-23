@@ -55,10 +55,10 @@ lqlnr      =  .false.
 cu         =  0.
 cv         =  0.
 
-iadv_mom    =  5
-iadv_tke    =  5
-iadv_thl    =  5
-iadv_qt     =  5
+iadv_mom    =  2
+iadv_tke    =  2
+iadv_thl    =  7
+iadv_qt     =  7
 iadv_sv     =  7
 /
 &NAMCHECKSIM

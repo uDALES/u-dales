@@ -29,11 +29,12 @@ subroutine initsurf_user
 end subroutine initsurf_user
 
 subroutine force_user
-  use modglobal, only : kmax,dzh,zf,zh
+  use modglobal, only : kmax,dzh,zf,zh, timee
   use modfields, only : qt0av,thlp,qtp,whls
   implicit none
   integer :: k,kinv,ktrot
   real    :: ztrot, zinv
+  if (timee<5400) return
   do k=1,kmax
     if (qt0av(k)<6.5e-3) exit
   end do

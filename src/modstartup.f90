@@ -786,7 +786,7 @@ contains
     use modraddata, only: iradiation, useMcICA
     use modfields, only : u0,v0,w0,thl0,qt0,ql0,ql0h,e120,dthvdz,presf,presh,sv0
     use modglobal, only : i1,i2,ih,j1,j2,jh,k1,dsv,itrestart,tnextrestart,dt_lim,rtimee,timee,tres,cexpnr,&
-                          ntimee,rtimee,rk3step,ifoutput,nsv,runtime,dtheta,dqt,dt,cu,cv
+                          ntimee,rtimee,rk3step,ifoutput,nsv,timeleft,dtheta,dqt,dt,cu,cv
     use modmpi,    only : cmyid,myid
     use modsubgriddata, only : ekm
 
@@ -794,17 +794,12 @@ contains
     logical :: lexitnow = .false.
     integer imin,ihour
     integer i,j,k,n
-    character(20) name
+    character(20) name,linkname
 
     if (timee == 0) return
     if (rk3step /=3) return
     name = 'exit_now.'//cexpnr
     inquire(file=trim(name), EXIST=lexitnow)
-    if (lexitnow .and. myid == 0 ) then
-      open(1, file=trim(name), status='old')
-      close(1,status='delete')
-      write(*,*) 'Stopped at t=',rtimee
-    end if
 
     if (timee<tnextrestart) dt_lim = min(dt_lim,tnextrestart-timee)
     if (timee>=tnextrestart .or. lexitnow) then
@@ -839,6 +834,9 @@ contains
       write(ifoutput)  dtheta,dqt,timee,  dt,tres
 
       close (ifoutput)
+      linkname = name
+      linkname(6:11) = "latest"
+      call system("ln -sf "//name //" "//linkname)
 
       if (nsv>0) then
         name  = 'inits  h  m   .'
@@ -853,6 +851,10 @@ contains
         write(ifoutput)  timee
 
         close (ifoutput)
+        linkname = name
+        linkname(6:11) = "latest"
+        call system("ln -sf "//name //" "//linkname)
+
       end if
 
       if (isurf == 1) then
@@ -876,9 +878,17 @@ contains
         write(ifoutput)  timee
 
         close (ifoutput)
+        linkname = name
+        linkname(6:11) = "latest"
+        call system("ln -sf "//name //" "//linkname)
       end if
       if (lexitnow) then
-        runtime = 0  !jump out of the time loop
+        timeleft = 0  !jump out of the time loop
+      end if
+      if (lexitnow .and. myid == 0 ) then
+        open(1, file=trim(name), status='old')
+        close(1,status='delete')
+        write(*,*) 'Stopped at t=',rtimee
       end if
 
       if (myid==0) then

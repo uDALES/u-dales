@@ -1,7 +1,7 @@
 &RUN
 iexpnr     =  001
 lwarmstart =  .false.
-startfile  =  'initd00h01m000.001'
+startfile  =  'initdlatest000.001'
 runtime    =  10800
 trestart   =  3600 
 ladaptive  =  .true.

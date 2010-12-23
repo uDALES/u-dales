@@ -121,11 +121,7 @@ contains
           case (irad_full)
             call radfull
           case (irad_par)
-            if (rad_ls) then
-                call radprof
-            endif
-
-            if(rad_longw.or.rad_shortw) then
+             if(rad_longw.or.rad_shortw) then
               call radpar
             endif
           case (irad_lsm)
@@ -137,11 +133,11 @@ contains
             endif
     
             call rad_user    
-            if (rad_ls) then
-               call radprof
-            endif   
              
       end select
+      if (rad_ls) then
+        call radprof
+      endif   
     end if
     thlp = thlp + thlprad
 

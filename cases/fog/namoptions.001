@@ -9,6 +9,7 @@ irandom    =  43
 randthl    =  0.1
 randqt     =  2.5e-5
 nsv        =  0 
+courant    =  1.
 /
 
 &DOMAIN

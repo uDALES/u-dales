@@ -395,22 +395,24 @@ contains
         call ncinfo(ncname(37,:),'cs','Smagorinsky constant','-','tt')
         do n=1,nsv
           write (csvname(1:3),'(i3.3)') n
-          call ncinfo(ncname(37+7*(n-1),:),'sv'//csvname,'Scalar '//csvname//' mixing ratio','(kg/kg)','tt')
-          call ncinfo(ncname(37+7*(n-1)+1,:),'svp'//csvname,'Scalar '//csvname//' tendency','(kg/kg/s)','tt')
-          call ncinfo(ncname(37+7*(n-1)+2,:),'svpt'//csvname,'Scalar '//csvname//' turbulence tendency','(kg/kg/s)','tt')
-          call ncinfo(ncname(37+7*(n-1)+3,:),'sv'//csvname//'2r','Resolved scalar '//csvname//' variance','(kg/kg)^2','tt')
-          call ncinfo(ncname(37+7*(n-1)+4,:),'wsv'//csvname//'s','SFS scalar '//csvname//' flux','kg/kg m/s','mt')
-          call ncinfo(ncname(37+7*(n-1)+5,:),'wsv'//csvname//'r','Resolved scalar '//csvname//' flux','kg/kg m/s','mt')
-          call ncinfo(ncname(37+7*(n-1)+6,:),'wsv'//csvname//'t','Total scalar '//csvname//' flux','kg/kg m/s','mt')
+          call ncinfo(ncname(37+7*(n-1)+1,:),'sv'//csvname,'Scalar '//csvname//' mixing ratio','(kg/kg)','tt')
+          call ncinfo(ncname(37+7*(n-1)+2,:),'svp'//csvname,'Scalar '//csvname//' tendency','(kg/kg/s)','tt')
+          call ncinfo(ncname(37+7*(n-1)+3,:),'svpt'//csvname,'Scalar '//csvname//' turbulence tendency','(kg/kg/s)','tt')
+          call ncinfo(ncname(37+7*(n-1)+4,:),'sv'//csvname//'2r','Resolved scalar '//csvname//' variance','(kg/kg)^2','tt')
+          call ncinfo(ncname(37+7*(n-1)+5,:),'wsv'//csvname//'s','SFS scalar '//csvname//' flux','kg/kg m/s','mt')
+          call ncinfo(ncname(37+7*(n-1)+6,:),'wsv'//csvname//'r','Resolved scalar '//csvname//' flux','kg/kg m/s','mt')
+          call ncinfo(ncname(37+7*(n-1)+7,:),'wsv'//csvname//'t','Total scalar '//csvname//' flux','kg/kg m/s','mt')
         end do
 
         if (isurf==1) then
-          call open_nc(fname,  ncid,n3=kmax,ns=ksoilmax)
+          call open_nc(fname,  ncid,nrec,n3=kmax,ns=ksoilmax)
         else
-          call open_nc(fname,  ncid,n3=kmax,ns=ksoilmax)
+          call open_nc(fname,  ncid,nrec,n3=kmax)
         endif
-        call define_nc( ncid, 1, tncname)
-        call writestat_dims_nc(ncid)
+        if (nrec == 0) then
+          call define_nc( ncid, 1, tncname)
+          call writestat_dims_nc(ncid)
+        end if
         call redefine_nc(ncid)
         call define_nc( ncid, NVar, ncname)
       end if
@@ -1544,13 +1546,13 @@ contains
         vars(:,36)=ql2mn
         vars(:,37)=csz
         do n=1,nsv
-          vars(:,37+7*(n-1)  )=svmmn(:,n)
-          vars(:,37+7*(n-1)+1)=svpmn(:,n)
-          vars(:,37+7*(n-1)+2)=svptmn(:,n)
-          vars(:,37+7*(n-1)+3)=sv2mn(:,n)
-          vars(:,37+7*(n-1)+4)=wsvsmn(:,n)
-          vars(:,37+7*(n-1)+5)=wsvrmn(:,n)
-          vars(:,37+7*(n-1)+6)=wsvtmn(:,n)
+          vars(:,37+7*(n-1)+1)=svmmn(:,n)
+          vars(:,37+7*(n-1)+2)=svpmn(:,n)
+          vars(:,37+7*(n-1)+3)=svptmn(:,n)
+          vars(:,37+7*(n-1)+4)=sv2mn(:,n)
+          vars(:,37+7*(n-1)+5)=wsvsmn(:,n)
+          vars(:,37+7*(n-1)+6)=wsvrmn(:,n)
+          vars(:,37+7*(n-1)+7)=wsvtmn(:,n)
         end do
         call writestat_nc(ncid,1,tncname,(/rtimee/),nrec,.true.)
         call writestat_nc(ncid,nvar,ncname,vars(1:kmax,:),nrec,kmax)

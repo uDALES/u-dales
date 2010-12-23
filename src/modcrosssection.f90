@@ -137,32 +137,36 @@ contains
       call ncinfo(ncname1( 7,:),'qlxz','xz crosssection of the Liquid water mixing ratio','kg/kg','t0tt')
       call ncinfo(ncname1( 8,:),'buoyxz','xz crosssection of the Buoyancy','K','t0tt')
       call ncinfo(ncname1( 9,:),'qrxz','xz crosssection of the Rain water mixing ratio','kg/kg','t0tt')
-      call open_nc(fname1,  ncid1,n1=imax,n3=kmax)
-      call define_nc( ncid1, 1, tncname1)
-      call writestat_dims_nc(ncid1)
+      call open_nc(fname1,  ncid1,nrec1,n1=imax,n3=kmax)
+      if (nrec1 == 0) then
+        call define_nc( ncid1, 1, tncname1)
+        call writestat_dims_nc(ncid1)
+      end if
       call redefine_nc(ncid1)
       call define_nc( ncid1, NVar, ncname1)
     end if
     do cross=1,nxy
-    write(cheight,'(i4.4)') crossheight(cross)
-    fname2(9:12) = cheight
-    fname2(14:16) = cmyid
-    fname2(18:20) = cexpnr
-    call ncinfo(tncname2(1,:),'time','Time','s','time')
-    call ncinfo(ncname2( 1,:),'uxy','xy crosssections of the West-East velocity','m/s','mt0t')
-    call ncinfo(ncname2( 2,:),'vxy','xy crosssections of the South-North velocity','m/s','tm0t')
-    call ncinfo(ncname2( 3,:),'wxy','xy crosssections of the Vertical velocity','m/s','tt0t')
-    call ncinfo(ncname2( 4,:),'thlxy','xy crosssections of the Liquid water potential temperature','K','tt0t')
-    call ncinfo(ncname2( 5,:),'thvxy','xy crosssections of the Virtual potential temperature','K','tt0t')
-    call ncinfo(ncname2( 6,:),'qtxy','xy crosssections of the Total water mixing ratio','kg/kg','tt0t')
-    call ncinfo(ncname2( 7,:),'qlxy','xy crosssections of the Liquid water mixing ratio','kg/kg','tt0t')
-    call ncinfo(ncname2( 8,:),'buoyxy','xy crosssection of the Buoyancy','K','tt0t')
-    call ncinfo(ncname2( 9,:),'qrxy','xy crosssection of the Rain water mixing ratio','kg/kg','tt0t')
-    call open_nc(fname2,  ncid2(cross),n1=imax,n2=jmax)
-    call define_nc( ncid2(cross), 1, tncname2)
-    call writestat_dims_nc(ncid2(cross))
-    call redefine_nc(ncid2(cross))
-    call define_nc( ncid2(cross), NVar, ncname2)
+      write(cheight,'(i4.4)') crossheight(cross)
+      fname2(9:12) = cheight
+      fname2(14:16) = cmyid
+      fname2(18:20) = cexpnr
+      call ncinfo(tncname2(1,:),'time','Time','s','time')
+      call ncinfo(ncname2( 1,:),'uxy','xy crosssections of the West-East velocity','m/s','mt0t')
+      call ncinfo(ncname2( 2,:),'vxy','xy crosssections of the South-North velocity','m/s','tm0t')
+      call ncinfo(ncname2( 3,:),'wxy','xy crosssections of the Vertical velocity','m/s','tt0t')
+      call ncinfo(ncname2( 4,:),'thlxy','xy crosssections of the Liquid water potential temperature','K','tt0t')
+      call ncinfo(ncname2( 5,:),'thvxy','xy crosssections of the Virtual potential temperature','K','tt0t')
+      call ncinfo(ncname2( 6,:),'qtxy','xy crosssections of the Total water mixing ratio','kg/kg','tt0t')
+      call ncinfo(ncname2( 7,:),'qlxy','xy crosssections of the Liquid water mixing ratio','kg/kg','tt0t')
+      call ncinfo(ncname2( 8,:),'buoyxy','xy crosssection of the Buoyancy','K','tt0t')
+      call ncinfo(ncname2( 9,:),'qrxy','xy crosssection of the Rain water mixing ratio','kg/kg','tt0t')
+      call open_nc(fname2,  ncid2(cross),nrec2(cross),n1=imax,n2=jmax)
+      if (nrec2(cross)==0) then
+        call define_nc( ncid2(cross), 1, tncname2)
+        call writestat_dims_nc(ncid2(cross))
+      end if
+      call redefine_nc(ncid2(cross))
+      call define_nc( ncid2(cross), NVar, ncname2)
     end do
     fname3(9:11) = cmyid
     fname3(13:15) = cexpnr
@@ -176,9 +180,11 @@ contains
     call ncinfo(ncname3( 7,:),'qlyz','yz crosssection of the Liquid water mixing ratio','kg/kg','0ttt')
     call ncinfo(ncname3( 8,:),'buoyyz','yz crosssection of the Buoyancy','K','0ttt')
     call ncinfo(ncname3( 9,:),'qryz','yz crosssection of the Rain water mixing ratio','kg/kg','0ttt')
-    call open_nc(fname3,  ncid3,n2=jmax,n3=kmax)
-    call define_nc( ncid3, 1, tncname3)
-    call writestat_dims_nc(ncid3)
+    call open_nc(fname3,  ncid3,nrec3,n2=jmax,n3=kmax)
+    if (nrec3==0) then
+      call define_nc( ncid3, 1, tncname3)
+      call writestat_dims_nc(ncid3)
+    end if
     call redefine_nc(ncid3)
     call define_nc( ncid3, NVar, ncname3)
     end if
