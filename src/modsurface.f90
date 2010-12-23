@@ -192,6 +192,10 @@ contains
       allocate(swuavn(i2,j2,nradtime))
       allocate(lwdavn(i2,j2,nradtime))
       allocate(lwuavn(i2,j2,nradtime))
+      swdavn =  0.
+      swuavn =  0.
+      lwdavn =  0.
+      lwuavn =  0.
     end if
 
     albedo     = albedoav

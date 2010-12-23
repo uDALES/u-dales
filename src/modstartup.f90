@@ -324,7 +324,7 @@ contains
     use modsubgrid,        only : ekm,ekh
     use modsurfdata,       only : wtsurf,wqsurf,wsvsurf, &
                                   thls,tskin,tskinm,tsoil,tsoilm,phiw,phiwm,Wl,Wlm,thvs,ustin,ps,qts,isurf,svs,obl,oblav
-    use modsurface,        only : surface,qtsurf
+    use modsurface,        only : surface,qtsurf,dthldz
     use modboundary,       only : boundary,tqaver
     use modmpi,            only : slabsum,myid,comm3d,mpierr,my_real
     use modthermodynamics, only : thermodynamics,calc_halflev
@@ -494,7 +494,8 @@ contains
       oblav = -0.1
 
       call qtsurf
-
+      
+      dthldz = (thlprof(1) - thls)/zf(1)
       thvs = thls * (1. + (rv/rd - 1.) * qts)
 
       u0av(1)   = uprof(1)
