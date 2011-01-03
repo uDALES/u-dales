@@ -28,8 +28,8 @@ PROJECT(DALES Fortran)
 cmake_minimum_required(VERSION 2.6)
 
 set(VERSION_MAJOR "3")
-set(VERSION_MINOR "1")
-set(VERSION_PATCH "90")
+set(VERSION_MINOR "2")
+set(VERSION_PATCH "0")
 find_path(NETCDF_INCLUDE_DIR netcdf.mod NETCDF.mod
   DOC "NetCDF include directory (must contain netcdf.mod)"
   PATHS
