@@ -77,7 +77,7 @@ contains
   subroutine initradstat
     use modmpi,    only : myid,mpierr, comm3d,my_real, mpi_logical
     use modglobal, only : dtmax, k1,kmax, ifnamopt,fname_options, ifoutput, cexpnr,dtav_glob,timeav_glob,ladaptive,dt_lim,btime,tres
-    use modstat_nc, only : lnetcdf, redefine_nc,define_nc,ncinfo
+    use modstat_nc, only : lnetcdf,define_nc,ncinfo
     use modgenstat, only : idtav_prof=>idtav, itimeav_prof=>itimeav,ncid_prof=>ncid
 
     implicit none
@@ -186,7 +186,7 @@ contains
         call ncinfo(ncname(11,:),'swuca','Short wave clear air upward radiative flux','W/m^2','mt')
         call ncinfo(ncname(12,:),'swdca','Short wave clear air downward radiative flux','W/m^2','mt')
 
-        call redefine_nc(ncid_prof)
+
         call define_nc( ncid_prof, NVar, ncname)
       end if
 

@@ -170,6 +170,7 @@ contains
     nrec = ncall
     iret = nf90_sync(ncid)
 
+    iret= nf90_enddef(ncID)
 
   end subroutine open_nc
 
@@ -189,6 +190,15 @@ contains
                       dim_tts(2)=0,dim_t0tts(3)=0,dim_0ttts(3)=0,dim_tttts(4)=0
 
     integer :: iret, n, VarID
+    iret = nf90_inq_dimid(ncid,'time',timeId)
+    iret = nf90_inq_dimid(ncid,'xt',xtId)
+    iret = nf90_inq_dimid(ncid,'xm',xmId)
+    iret = nf90_inq_dimid(ncid,'yt',ytId)
+    iret = nf90_inq_dimid(ncid,'ym',ymId)
+    iret = nf90_inq_dimid(ncid,'zt',ztId)
+    iret = nf90_inq_dimid(ncid,'zm',zmId)
+    iret = nf90_inq_dimid(ncid,'zts',ztsId)
+    iret = nf90_redef(ncid) 
     dim_tt = (/ztId,timeId/)
     dim_mt = (/zmId,timeId/)
 

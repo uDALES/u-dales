@@ -42,7 +42,7 @@ contains
   subroutine initsurface
 
     use modglobal,  only : jmax, i1, i2, j1, j2, ih, jh, cp, rlv, zf, nsv, ifnamopt, fname_options
-    use modraddata, only : iradiation
+    use modraddata, only : iradiation,rad_shortw,irad_full
     use modfields,  only : thl0, qt0
     use modmpi,     only : myid, nprocs, comm3d, mpierr, my_real, mpi_logical, mpi_integer
 
@@ -133,9 +133,6 @@ contains
       if(lambdaskinav == -1) then
         stop "NAMSURFACE: lambdaskinav is not set"
       end if
-      if(albedoav == -1) then
-        stop "NAMSURFACE: albedoav is not set"
-      end if
       if(Qnetav == -1) then
         stop "NAMSURFACE: Qnetav is not set"
       end if
@@ -153,6 +150,12 @@ contains
       end if
     end if
 
+    if(isurf == 1) then
+      if(albedoav == -1) then
+        stop "NAMSURFACE: albedoav is not set"
+      end if
+    endif  
+    
     if(isurf .ne. 3) then
       if(z0mav == -1) then
         stop "NAMSURFACE: z0mav is not set"
@@ -186,8 +189,13 @@ contains
     allocate(qskin(i2,j2))
     allocate(Cm(i2,j2))
     allocate(Cs(i2,j2))
-
+    if(rad_shortw .and. albedoav == -1) then
+      stop "NAMSURFACE: albedoav is not set"
+    end if
     if(iradiation == 1) then
+      if(albedoav == -1) then
+        stop "NAMSURFACE: albedoav is not set"
+      end if
       allocate(swdavn(i2,j2,nradtime))
       allocate(swuavn(i2,j2,nradtime))
       allocate(lwdavn(i2,j2,nradtime))
@@ -811,10 +819,39 @@ contains
     thlsl = 0.0
     do j = 2, j1
       do i = 2, i1
+        ! 1.2   -   Calculate the skin temperature as the top boundary conditions for heat transport
+        if(iradiation > 0) then
+          if(iradiation == 1 .and. useMcICA) then
+            if(rk3step == 1) then
+              swdavn(i,j,2:nradtime) = swdavn(i,j,1:nradtime-1)
+              swuavn(i,j,2:nradtime) = swuavn(i,j,1:nradtime-1)
+              lwdavn(i,j,2:nradtime) = lwdavn(i,j,1:nradtime-1)
+              lwuavn(i,j,2:nradtime) = lwuavn(i,j,1:nradtime-1)
+
+              swdavn(i,j,1) = -abs(swd(i,j,1))
+              swuavn(i,j,1) = abs(swu(i,j,1))
+              lwdavn(i,j,1) = -abs(lwd(i,j,1))
+              lwuavn(i,j,1) = abs(lwu(i,j,1))
+
+            end if
+
+            swdav = sum(swdavn(i,j,:)) / nradtime
+            swuav = sum(swuavn(i,j,:)) / nradtime
+            lwdav = sum(lwdavn(i,j,:)) / nradtime
+            lwuav = sum(lwuavn(i,j,:)) / nradtime
+
+            Qnet(i,j) = -(swdav + swuav + lwdav + lwuav)
+!if (i==2 .and. j==2) print *,swdav,swuav,lwdav,lwuav,Qnet(2,2)
+          else
+            Qnet(i,j) = -(swd(i,j,1) + swu(i,j,1) + lwd(i,j,1) + lwu(i,j,1))
+          end if
+        else
+          Qnet(i,j) = Qnetav
+        end if
         ! 2.1   -   Calculate the surface resistance
         ! Stomatal opening as a function of incoming short wave radiation
         if (iradiation > 0) then
-          f1  = 1. / min(1., (0.004 * max(0.,-swd(i,j,1)) + 0.05) / (0.81 * (0.004 * max(0.,-swd(i,j,1)) + 1.)))
+          f1  = 1. / min(1., (0.004 * max(0.,-swdav) + 0.05) / (0.81 * (0.004 * max(0.,-swdav) + 1.)))
         else
           f1  = 1.
         end if
@@ -846,35 +883,6 @@ contains
         rssoil(i,j) = rssoilmin(i,j) * f2
         ! 1.1   -   Calculate the heat transport properties of the soil
         ! CvH I put it in the init function, as we don't have prognostic soil moisture at this stage
-
-        ! 1.2   -   Calculate the skin temperature as the top boundary conditions for heat transport
-        if(iradiation > 0) then
-          if(iradiation == 1 .and. useMcICA) then
-            if(rk3step == 1) then
-              swdavn(i,j,2:nradtime) = swdavn(i,j,1:nradtime-1)
-              swuavn(i,j,2:nradtime) = swuavn(i,j,1:nradtime-1)
-              lwdavn(i,j,2:nradtime) = lwdavn(i,j,1:nradtime-1)
-              lwuavn(i,j,2:nradtime) = lwuavn(i,j,1:nradtime-1)
-
-              swdavn(i,j,1) = swd(i,j,1)
-              swuavn(i,j,1) = swu(i,j,1)
-              lwdavn(i,j,1) = lwd(i,j,1)
-              lwuavn(i,j,1) = lwu(i,j,1)
-
-            end if
-
-            swdav = sum(swdavn(i,j,:)) / nradtime
-            swuav = sum(swuavn(i,j,:)) / nradtime
-            lwdav = sum(lwdavn(i,j,:)) / nradtime
-            lwuav = sum(lwuavn(i,j,:)) / nradtime
-
-            Qnet(i,j) = -(swdav + swuav + lwdav + lwuav)
-          else
-            Qnet(i,j) = -(swd(i,j,1) + swu(i,j,1) + lwd(i,j,1) + lwu(i,j,1))
-          end if
-        else
-          Qnet(i,j) = Qnetav
-        end if
 
         ! CvH solve the surface temperature implicitly including variations in LWout
         if(rk3step == 1) then

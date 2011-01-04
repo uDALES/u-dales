@@ -223,16 +223,16 @@ contains
 
     call initboundary
     call initthermodynamics
+    call initradiation
     call initsurface
     call initsubgrid
-    call initradiation
     call initpois
     call initmicrophysics
     call inittimedep !depends on modglobal,modfields, modmpi, modsurf, modradiation
 
     call checkinitvalues
     call readinitfiles
-!     call initradiation
+
 
   end subroutine startup
 

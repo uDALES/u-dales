@@ -63,7 +63,7 @@ contains
   subroutine initlsmstat
     use modmpi,    only : myid,mpierr, comm3d,my_real, mpi_logical
     use modglobal, only : dtmax, ifnamopt,fname_options, ifoutput, cexpnr,dtav_glob,timeav_glob,ladaptive,dt_lim,btime,tres
-    use modstat_nc, only : lnetcdf, redefine_nc,define_nc,ncinfo
+    use modstat_nc, only : lnetcdf,define_nc,ncinfo
     use modgenstat, only : idtav_prof=>idtav, itimeav_prof=>itimeav,ncid_prof=>ncid
     use modsurfdata,only : ksoilmax,isurf
     implicit none
@@ -144,7 +144,6 @@ contains
         call ncinfo(ncname( 4,:),'lambdas','Soil moisture diffusivity soil layer','m^2/s','tts')
         call ncinfo(ncname( 5,:),'gammas','Soil moisture conductivity soil layer','M/s','tts')
 
-        call redefine_nc(ncid_prof)
         call define_nc( ncid_prof, NVar, ncname)
       end if
 

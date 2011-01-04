@@ -55,7 +55,6 @@ SAVE
   real :: dlwbot     = 0.     !< longwave radiative flux divergence near the surface
   real :: sw0        = 1100.0 !< direct component at top of the cloud (W/m^2), diffuse not possible
   real :: gc         = 0.85   !< asymmetry factor of droplet scattering angle distribution
-  !CvH real :: sfc_albedo = 0.05   !< ground surface albedo
   real :: reff       = 1.e-5  !< cloud droplet effective radius (m)
   integer :: isvsmoke = 1     !< number of passive scalar to be used for optical depth calculation
   integer :: iradiation = irad_none !< Selection parameter for type of radiation scheme
@@ -69,7 +68,6 @@ SAVE
   real, allocatable :: swu(:,:,:)    !<   shortwave upward radiative flux
   real, allocatable :: lwd(:,:,:)    !<   longwave downward radiative flux
   real, allocatable :: lwu(:,:,:)    !<   longwave upward radiative flux
-  !CvH albedo real, allocatable :: albedo(:,:)   !<   Albedo
   real, allocatable :: SW_up_TOA(:,:), SW_dn_TOA(:,:), LW_up_TOA(:,:), LW_dn_TOA(:,:) !< Top of the atmosphere radiative fluxes
 
 contains
@@ -86,12 +84,13 @@ contains
     real :: day,daytime
     day    = xday + floor(time/86400.)
     daytime= mod(time,86400.)
+
     phi    = xlat * pi/180.
     el     = xlon * pi/180.
     obliq  = 23.45 * pi/180.
     xlam   = 4.88 + 0.0172 * day
     declin = asin(sin(obliq)*sin(xlam))
-    hora   = el-pi + 2.*pi*(daytime/24.)
+    hora   = el-pi + 2.*pi*(daytime/86400.)
     zenith = max(0.,sin(declin)*sin(phi)+cos(declin)*cos(phi)* &
                                                          cos(hora))
   end function zenith

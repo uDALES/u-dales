@@ -197,7 +197,6 @@ contains
 
       integer, intent (in) :: i1,ih,j1,jh,k1
       real, intent (in)    :: CCN
-      ! CvH real, intent (in)    :: sknt, sfc_albedo, CCN
       real, dimension (k1), intent (in)                 :: dn0, pi0
       real, dimension (2-ih:i1+ih,2-jh:j1+jh,k1), intent (in)  :: tk, rv, rc
       real, optional, dimension (2-ih:i1+ih,2-jh:j1+jh,k1), intent (in) :: rr
@@ -229,7 +228,8 @@ contains
       ! determine the solar geometery, as measured by u0, the cosine of the
       ! solar zenith angle
       !
-      u0 = zenith(xtime + rtimee/3600,xday,xlat,xlon)
+      u0 = zenith(xtime*3600 + rtimee,xday,xlat,xlon)
+
       !
       ! call the radiation
       !
@@ -274,7 +274,6 @@ contains
 
          end do
       end do
-
 
     end subroutine d4stream
 
@@ -1237,7 +1236,8 @@ contains
     fds(:)  = 0.0
     fus(:)  = 0.0
     bf(:)   = 0.0
-
+    fd1 = 0.0
+    fu1 = 0.0
     if(u0 > minSolarZenithCosForVis) then
       call thicks(pp, pt, ph, dz)
 
@@ -1308,7 +1308,7 @@ contains
       !
       ! In this model, we used the solar spectral irradiance determined by
       ! Thekaekara (1973), and 1340.0 W/m**2 is the solar energy contained
-      ! in the spectral region 0.2 - 4.0 um., thus scale solar fluxes by
+      ! in the spectral region 0.2 0- 4.0 um., thus scale solar fluxes by
       ! fuq1
       !
       fuq1 = ss / totalpower

@@ -70,7 +70,7 @@ contains
   subroutine initlsmcrosssection
     use modmpi,   only :myid,my_real,mpierr,comm3d,mpi_logical,mpi_integer,cmyid
     use modglobal,only :imax,jmax,ifnamopt,fname_options,dtmax,rk3step, dtav_glob,ladaptive,j1,i1,dt_lim,cexpnr,tres,btime
-    use modstat_nc,only : lnetcdf,open_nc, define_nc, redefine_nc,ncinfo,writestat_dims_nc
+    use modstat_nc,only : lnetcdf,open_nc, define_nc,ncinfo,writestat_dims_nc
    implicit none
 
     integer :: ierr
@@ -123,7 +123,6 @@ contains
         if (nrec1==0) then
           call define_nc( ncid1, 1, tncname1)
           call writestat_dims_nc(ncid1)
-          call redefine_nc(ncid1)
           call define_nc( ncid1, NVar, ncname1)
         end if
       end if
@@ -138,7 +137,6 @@ contains
         if (nrec2==0) then
           call define_nc( ncid2, 1, tncname2)
           call writestat_dims_nc(ncid2)
-          call redefine_nc(ncid2)
           call define_nc( ncid2, NVar, ncname2)
         end if
 ! 
@@ -163,7 +161,6 @@ contains
           call define_nc( ncid3, 1, tncname3)
           call writestat_dims_nc(ncid3)
         end if
-        call redefine_nc(ncid3)
         call define_nc( ncid3, NVar3, ncname3)
     end if
 

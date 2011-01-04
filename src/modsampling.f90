@@ -68,7 +68,7 @@ contains
     use modmpi,    only : comm3d, my_real,mpierr,myid,mpi_logical
     use modglobal, only : ladaptive, dtmax,rk3step,k1,ifnamopt,fname_options,   &
                            dtav_glob,timeav_glob,dt_lim,btime,tres,cexpnr,ifoutput
-    use modstat_nc, only : lnetcdf, redefine_nc,define_nc,ncinfo
+    use modstat_nc, only : lnetcdf,define_nc,ncinfo
     use modgenstat, only : idtav_prof=>idtav, itimeav_prof=>itimeav,ncid_prof=>ncid
     implicit none
 
@@ -239,7 +239,7 @@ contains
           call ncinfo(ncname(26,:,isamp),'resid'//samplname(isamp),trim(longsamplname(isamp))//' '//'residual term in sampled budget eqn','m/s^2','mt')
           call ncinfo(ncname(27,:,isamp),'whend'//samplname(isamp),trim(longsamplname(isamp))//' '//'ws at end of sampling period','m/s','mt')
           call ncinfo(ncname(28,:,isamp),'sighend'//samplname(isamp),trim(longsamplname(isamp))//' '//'sigma at end of period','-','mt')
-          call redefine_nc(ncid_prof)
+
           call define_nc( ncid_prof, NVar, ncname(:,:,isamp))
         end do
      end if

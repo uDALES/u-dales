@@ -69,7 +69,7 @@ contains
   subroutine initcrosssection
     use modmpi,   only :myid,my_real,mpierr,comm3d,mpi_logical,mpi_integer,cmyid
     use modglobal,only :imax,jmax,ifnamopt,fname_options,dtmax,rk3step, dtav_glob,ladaptive,j1,kmax,i1,dt_lim,cexpnr,tres,btime
-    use modstat_nc,only : lnetcdf,open_nc, define_nc, redefine_nc,ncinfo,writestat_dims_nc
+    use modstat_nc,only : lnetcdf,open_nc, define_nc,ncinfo,writestat_dims_nc
    implicit none
 
     integer :: ierr,k
@@ -142,7 +142,6 @@ contains
         call define_nc( ncid1, 1, tncname1)
         call writestat_dims_nc(ncid1)
       end if
-      call redefine_nc(ncid1)
       call define_nc( ncid1, NVar, ncname1)
     end if
     do cross=1,nxy
@@ -165,7 +164,6 @@ contains
         call define_nc( ncid2(cross), 1, tncname2)
         call writestat_dims_nc(ncid2(cross))
       end if
-      call redefine_nc(ncid2(cross))
       call define_nc( ncid2(cross), NVar, ncname2)
     end do
     fname3(9:11) = cmyid
@@ -185,7 +183,7 @@ contains
       call define_nc( ncid3, 1, tncname3)
       call writestat_dims_nc(ncid3)
     end if
-    call redefine_nc(ncid3)
+
     call define_nc( ncid3, NVar, ncname3)
     end if
 

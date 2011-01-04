@@ -87,12 +87,11 @@ contains
         rad_smoke  = .true.
       end select
     end if
-    
-    if(iradiation==irad_full .or. rad_shortw) then
-      if(albedoav == -1) then
-        stop "NAMSURFACE: albedoav is not compatible with radiation scheme"
-      end if
-    endif  
+    if(iradiation==0 .or. iradiation==10) then
+      rad_shortw = .false.
+      rad_longw  = .false.
+      rad_smoke  = .false.
+    end if
     
     if (iradiation == 0) return
     itimerad = floor(timerad/tres)
