@@ -234,7 +234,7 @@ subroutine radpar
 
 
     swd = 0.0
-    mu=zenith(xtime + rtimee/3600,xday,xlat,xlon)
+    mu=zenith(xtime*3600 + rtimee,xday,xlat,xlon)
     do j=2,j1
     do i=2,i1
 
@@ -379,7 +379,7 @@ subroutine radpar
     real           :: Tr, sinlea
     real,parameter :: S0 = 1376.
 
-    sinlea = zenith(xtime + rtimee / 3600., xday, xlat, xlon)
+    sinlea = zenith(xtime*3600 + rtimee, xday, xlat, xlon)
 
     Tr  = (0.6 + 0.2 * sinlea)
 
