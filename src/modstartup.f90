@@ -298,8 +298,8 @@ contains
       case(1)
       case(2,10)
       case(3:4)
-        if (wtsurf<0)  stop 'wtsurf out of range/not set'
-        if (wqsurf<0)  stop 'wqsurf out of range/not set'
+        if (wtsurf == -1)  stop 'wtsurf not set'
+        if (wqsurf == -1)  stop 'wqsurf not set'
       case default
         stop 'isurf out of range/not set'
       end select
