@@ -12,8 +12,7 @@ module modboundary
   save
   private
   public :: initboundary, boundary, exitboundary,grwdamp, ksp,tqaver,cyclich,&
-       bcp,bcpup,masscorr,&
-       closurebc
+       bcp,bcpup,closurebc
   integer :: ksp = -1                 !<    lowest level of sponge layer
   real,allocatable :: tsc(:)          !<   damping coefficients to be used in grwdamp.
   real :: rnu0 = 2.75e-3
@@ -531,46 +530,6 @@ uouttot = cos(iangle)*ubulk
     return
   end subroutine iolet
 
-  !> correct the u-velocity to get correct mass flow rate
-  subroutine masscorr
-
-    use modglobal, only : ib,ie,jb,je,ih,jh,kb,ke,kh,jgb,jge,dzf,zh,dy,dt,rk3step,massflowrate,&
-         jmax,libm,dt,rk3step,linoutflow,lmassflowr
-    use modfields, only : um,up,uout,uouttot,udef
-    use modmpi,    only : slabsum,myid
-
-    real, dimension(kb:ke)             :: uoutold
-    real rk3coef,rk3coefi,massflowrateold
-    integer i,j,k
-
-    if ((.not.linoutflow).and. (lmassflowr)) then
-       rk3coef = dt / (4. - dble(rk3step))
-       rk3coefi = 1 / rk3coef
-
-       udef = 0.
-       uout = 0.
-       uoutold = 0.
-       call slabsum(uout   ,kb,ke, up  ,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ie,ie,jb,je,kb,ke) ! determine horizontal (j) average outflow velocity diff
-       call slabsum(uoutold,kb,ke, um  ,ib-ih,ie+ih,jb-jh,je+jh,kb-kh,ke+kh,ie,ie,jb,je,kb,ke) ! determine horizontal (j) average outflow velocity old
-
-       do k=kb,ke
-          uout(k)    = rk3coef*uout(k)   *dzf(k)*dy  ! mass flow rate through each slab (density = 1000 kg/m3)
-          uoutold(k) =         uoutold(k)*dzf(k)*dy  ! mass flow rate through each slab (density = 1000 kg/m3) (previous time step)
-       end do
-       uouttot         = sum(uout(kb:ke))                 ! mass flow rate (at outlet)
-       massflowrateold = sum(uoutold(kb:ke))              ! mass flow rate (at outlet) (previous time step)
-       udef =  (massflowrate - (uouttot + massflowrateold))/(((jge-jgb+1)*dy)*(zh(ke+1)-zh(kb)))   !udef=massdef/(Area*density)
-       do k = kb,ke
-          do j = jb,je
-             do i = ib,ie
-                up(i,j,k) = up(i,j,k)  + udef*rk3coefi
-             end do
-          end do
-       end do
-
-    end if
-
-  end subroutine masscorr
 
   !>set boundary conditions pup,pvp,pwp in subroutine fillps in modpois.f90
   subroutine bcpup(pup,pvp,pwp,rk3coef)

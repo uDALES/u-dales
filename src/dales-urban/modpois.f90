@@ -96,7 +96,8 @@ contains
     use modglobal, only : rk3step, ib,ie,jb,je,kb,ke,ih,jh,kh, dxfi,dyi,dzfi,dt,&
                           linoutflow,libm
     use modmpi,    only : excjs
-    use modboundary, only: bcpup,masscorr
+    use modboundary, only: bcpup
+    use modforces, only: masscorr
 
     implicit none
     real,allocatable :: pup(:,:,:), pvp(:,:,:), pwp(:,:,:)
