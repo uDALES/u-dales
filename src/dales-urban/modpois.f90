@@ -46,7 +46,7 @@ contains
   end subroutine initpois
 
   subroutine poisson
-    use modglobal, only : ib,ie,ih,kb,ke,kh,kmax,dxh,dxf,dy,dzf,dzh,linoutflow,linletgen
+    use modglobal, only : ib,ie,ih,kb,ke,kh,kmax,dxh,dxf,dy,dzf,dzh,linoutflow,iinletgen
     use modmpi, only : myid,nprocs,barrou
     implicit none
     integer ibc1,ibc2,kbc1,kbc2,ksen
@@ -59,7 +59,7 @@ contains
 !  ibc?=1: neumann
 !  ibc?=2: periodic
 !  ibc?=3: dirichlet
-  if (linoutflow == .true.) then
+  if (linoutflow ) then
     ibc1 = 1      ! inlet
     ibc2 = 3      ! outlet
   else
@@ -97,7 +97,6 @@ contains
                           linoutflow,libm
     use modmpi,    only : excjs
     use modboundary, only: bcpup,masscorr
-    use modibm,    only : ibmnorm
 
     implicit none
     real,allocatable :: pup(:,:,:), pvp(:,:,:), pwp(:,:,:)
@@ -207,7 +206,7 @@ contains
     end do
     end do
 
-    if (linoutflow == .true.) then
+    if (linoutflow ) then
       do k=kb,ke
       do j=jb,je
       do i=ib,ie+1
@@ -255,7 +254,7 @@ contains
 !    wp(ib:ie,jb:je,kb+1) = wp(ib:ie,jb:je,kb+1) - &
 !                             (p(ib:ie,jb:je,kb+1)-p(ib:ie,jb:je,kb))*dzhi(kb+1)
 !
-!    if (linoutflow == .true.) then
+!    if (linoutflow ) then
 !        up(ie+1,jb:je,kb:ke) = up(ie+1,jb:je,kb:ke) - &
 !                              (p(ie+1,jb:je,kb:ke)-p(ie,jb:je,kb:ke))*dxhi(ie+1)  ! see equation 5.82 (u is comp from mass conserv.)
 !    end if  

@@ -21,88 +21,85 @@
 !
 
 !> Advection at cell center
-subroutine advecc_upw(hi,hj,hk,putin,putout)
+subroutine advecc_upw(hi, hj, hk, putin, putout)
 
-!  use modglobal, only : i1,ih,j1,jh,k1,kmax,dxi,dyi,dzi
-  use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,dyi,dxfci,dzfci
-  use modfields, only : u0, v0, w0
-  implicit none
+   use modglobal, only:ib, ie, ih, jb, je, jh, kb, ke, dyi, dxfci, dzfci
+   use modfields, only:u0, v0, w0
+   implicit none
 
-  integer, intent(in) :: hi                                                  !< size of halo in i
-  integer, intent(in) :: hj                                                  !< size of halo in j
-  integer, intent(in) :: hk                                                  !< size of halo in k
-  real, dimension(ib-hi:ie+hi,jb-hj:je+hj,kb-hk:ke+hk), intent(in)  :: putin !< Input: the cell centered field
-  real, dimension(ib-hi:ie+hi,jb-hj:je+hj,kb:   ke+hk), intent(inout) :: putout !< Output: the tendency
+   integer, intent(in) :: hi !< size of halo in i
+   integer, intent(in) :: hj !< size of halo in j
+   integer, intent(in) :: hk !< size of halo in k
+   real, dimension(ib - hi:ie + hi, jb - hj:je + hj, kb - hk:ke + hk), intent(in)  :: putin !< Input: the cell centered field
+   real, dimension(ib - hi:ie + hi, jb - hj:je + hj, kb:ke + hk), intent(inout) :: putout !< Output: the tendency
 
-  real, allocatable, dimension(:,:,:) :: put
-  integer :: i,j,k
+   real, allocatable, dimension(:, :, :) :: put
+   integer :: i, j, k
 
-  allocate(put(ib-hi:ie+hi,jb-hj:je+hj,kb-hk:ke+hk))
+   allocate (put(ib - hi:ie + hi, jb - hj:je + hj, kb - hk:ke + hk))
 
-  do k=kb,ke
-    do j=jb,je
-      do i=ib,ie+1
-       if( u0(i,j,k) > 0 ) then
-           put(i,j,k) = putin(i-1,j,k)
-       else
-           put(i,j,k) = putin(i,j,k)
-       endif
+   do k = kb, ke
+      do j = jb, je
+         do i = ib, ie + 1
+            if (u0(i, j, k) > 0) then
+               put(i, j, k) = putin(i - 1, j, k)
+            else
+               put(i, j, k) = putin(i, j, k)
+            endif
+         enddo
       enddo
-    enddo
-  enddo
+   enddo
 
-  do k=kb,ke
-    do j=jb,je
-      do i=ib,ie
-        putout(i,j,k) = putout(i,j,k) - &
-            (u0(i+1,j,k)*put(i+1,j,k)-u0(i,j,k)*put(i,j,k))*dxfci(i)
+   do k = kb, ke
+      do j = jb, je
+         do i = ib, ie
+            putout(i, j, k) = putout(i, j, k) - &
+                              (u0(i + 1, j, k)*put(i + 1, j, k) - u0(i, j, k)*put(i, j, k))*dxfci(i)
+         enddo
       enddo
-    enddo
-  enddo
+   enddo
 
-  do k=kb,ke
-    do j=jb,je+1
-      do i=ib,ie
-       if( v0(i,j,k) > 0 ) then
-           put(i,j,k) = putin(i,j-1,k)
-       else
-           put(i,j,k) = putin(i,j,k)
-       endif
+   do k = kb, ke
+      do j = jb, je + 1
+         do i = ib, ie
+            if (v0(i, j, k) > 0) then
+               put(i, j, k) = putin(i, j - 1, k)
+            else
+               put(i, j, k) = putin(i, j, k)
+            endif
+         enddo
       enddo
-    enddo
-  enddo
-  do k=kb,ke
-    do j=jb,je
-      do i=ib,ie
-        putout(i,j,k) = putout(i,j,k) - &
-            (v0(i,j+1,k)*put(i,j+1,k)-v0(i,j,k)*put(i,j,k))*dyi
+   enddo
+   do k = kb, ke
+      do j = jb, je
+         do i = ib, ie
+            putout(i, j, k) = putout(i, j, k) - &
+                              (v0(i, j + 1, k)*put(i, j + 1, k) - v0(i, j, k)*put(i, j, k))*dyi
+         enddo
       enddo
-    enddo
-  enddo
+   enddo
 
- !  put(2:i1,2:j1, 1) = 0
- ! put(2:i1,2:j1,k1) = 0
-  do k=kb,ke+1
-    do j=jb,je
-      do i=ib,ie
-       if( w0(i,j,k) > 0 ) then
-           put(i,j,k) = putin(i,j,k-1)
-       else
-           put(i,j,k) = putin(i,j,k)
-       endif
+   do k = kb, ke + 1
+      do j = jb, je
+         do i = ib, ie
+            if (w0(i, j, k) > 0) then
+               put(i, j, k) = putin(i, j, k - 1)
+            else
+               put(i, j, k) = putin(i, j, k)
+            endif
+         enddo
       enddo
-    enddo
-  enddo
-  do k=kb,ke
-    do j=jb,je
-      do i=ib,ie
-        putout(i,j,k) = putout(i,j,k) - &
-            (w0(i,j,k+1)*put(i,j,k+1)-w0(i,j,k)*put(i,j,k))*dzfci(k)
+   enddo
+   do k = kb, ke
+      do j = jb, je
+         do i = ib, ie
+            putout(i, j, k) = putout(i, j, k) - &
+                              (w0(i, j, k + 1)*put(i, j, k + 1) - w0(i, j, k)*put(i, j, k))*dzfci(k)
+         enddo
       enddo
-    enddo
-  enddo
+   enddo
 
-deallocate(put)
+   deallocate (put)
 
 end subroutine advecc_upw
 

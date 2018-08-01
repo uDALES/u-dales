@@ -4,7 +4,6 @@
 !! \par Revision list
 !! All boundary conditions are in this file, except for immersed boundaries.
 !! \par Authors
-!! Jasper Tomas, March 31 2014
 !!
 module modboundary
 
@@ -12,8 +11,8 @@ module modboundary
   implicit none
   save
   private
-  public :: initboundary, boundary, bottom, exitboundary,grwdamp, ksp,tqaver,cyclich,&
-       bcp,bcpup,wallaw,wallawt,masscorr,&
+  public :: initboundary, boundary, exitboundary,grwdamp, ksp,tqaver,cyclich,&
+       bcp,bcpup,masscorr,&
        closurebc
   integer :: ksp = -1                 !<    lowest level of sponge layer
   real,allocatable :: tsc(:)          !<   damping coefficients to be used in grwdamp.
@@ -57,17 +56,16 @@ contains
     use modmpi,    only : myid,slabsum
     use modinlet,  only : inletgen,inletgennotemp
     use modinletdata, only : irecy,ubulk,iangle
-    use modsurface, only : getobl
+!    use modsurface, only : getobl
     implicit none
-    real massin, massout,massout2, masstopke,masstopke1
     integer i,k  
 
-    call getobl
+!    call getobl
 
-    if (linoutflow == .true.) then
+    if (linoutflow) then
 !       uouttot = ubulk
 uouttot = cos(iangle)*ubulk     
-  if (ltempeq ==.true.) then
+       if (ltempeq) then
           call inletgen
        else 
           call inletgennotemp
@@ -81,26 +79,24 @@ uouttot = cos(iangle)*ubulk
        call topm
     endif
     call toph
-    call bottom
 
   end subroutine boundary
   !> Cleans up after the run
   subroutine exitboundary
     implicit none
-    deallocate(tsc)
   end subroutine exitboundary
 
 
   subroutine closurebc
     use modsubgriddata, only : ekm,ekh
     use modglobal,      only : ib,ie,jb,je,kb,ke,ih,jh,kh,numol,prandtlmoli,linoutflow,&
-         linletgen, lzerogradtop
+         iinletgen, lzerogradtop
     use modmpi,         only : excjs
     integer i,j
 
 
     ! Top and bottom
-    if (lzerogradtop==.true. .or. linletgen==1 .or. linletgen==2) then
+    if ((lzerogradtop) .or. (iinletgen==1) .or. (iinletgen==2)) then
        do j=jb-1,je+1
           do i=ib-1,ie+1
              ekm(i,j,ke+1)  = ekm(i,j,ke)                          ! zero-gradient top wall
@@ -121,7 +117,7 @@ uouttot = cos(iangle)*ubulk
     end if
 
     ! horizontal BC's
-    if (linoutflow == .true.) then      ! inflow/outflow
+    if (linoutflow ) then      ! inflow/outflow
        ekm(ib-1, :,:) = ekm(ib,:,:)
        ekm(ie+1,:,:) = ekm(ie, :,:)
        ekh(ib-1, :,:) = ekh(ib,:,:)
@@ -143,17 +139,16 @@ uouttot = cos(iangle)*ubulk
   !> Sets lateral periodic boundary conditions for the scalars
   subroutine cyclich
     use modglobal, only : ib,ie,jb,je,ih,jh,kb,ke,kh,nsv,dt,lscalinout,lscalrec,lmoistinout,ltempinout,rk3step,dxhi,ltempeq,&
-                          ihc,jhc,khc
-    use modfields, only : thl0,thlm,qt0,qtm,sv0,svm,svprof,thlprof,qtprof,uouttot
-    use modmpi,    only : excjs
+                          ihc,jhc,khc,lSIRANEinout,dy
+    use modfields, only : thl0,thlm,qt0,qtm,sv0,svm,svprof,thlprof,qtprof,uouttot,um,u0,vm,v0
+    use modmpi,    only : excjs,myid,nprocs
+    use modinletdata,only : ubulk
     real rk3coef
     integer k,n,m
 
-
-    if (ltempinout == .true.) then
-       ! New code for nonperiodic moisture and temperature
+       ! New code for nonperiodic moisture and temperature !switch here is defined in opposite way to linoutflow...
          do m = 1,ih
-           thl0(ib-m,:,:)  = thl0(ie+1-m,:,:)
+           thl0(ib-m,:,:)  = thl0(ie+1-m,:,:)  
            thl0(ie+m,:,:)  = thl0(ib-1+m,:,:)
            thlm(ib-m,:,:)  = thlm(ie+1-m,:,:)
            thlm(ie+m,:,:)  = thlm(ib-1+m,:,:)
@@ -161,9 +156,7 @@ uouttot = cos(iangle)*ubulk
        ! j-direction
        call excjs( thl0           , ib,ie,jb,je,kb,ke+kh,ih,jh)
        call excjs( thlm           , ib,ie,jb,je,kb,ke+kh,ih,jh)
-    end if
 
-    if (lmoistinout == .true.) then
            do m = 1,ih
            qt0(ib-m,:,:)   = qt0(ie+1-m,:,:)
            qt0(ie+m,:,:)   = qt0(ib-1+m,:,:)
@@ -172,22 +165,19 @@ uouttot = cos(iangle)*ubulk
           end do
        call excjs( qt0            , ib,ie,jb,je,kb,ke+kh,ih,jh)
        call excjs( qtm            , ib,ie,jb,je,kb,ke+kh,ih,jh)
-    end if
 
-
-
-    if (lscalinout == .true.) then  ! convective outflow
+    if (lscalinout ) then  ! convective outflow
        rk3coef = dt / (4. - dble(rk3step))
        do n=1,nsv
           do k=kb,ke+1
              sv0(ib-1,:,k,n) = 2*svprof(k,n) - sv0(ib,:,k,n)
              svm(ib-1,:,k,n) = 2*svprof(k,n) - svm(ib,:,k,n)
           end do
-          sv0(ie+1,:,:,n)= sv0(ie,:,:,n) - (sv0(ie+1,:,:,n)-sv0(ie,:,:,n))*dxhi(ie+1)*rk3coef*uouttot
-          svm(ie+1,:,:,n)= svm(ie,:,:,n) - (svm(ie+1,:,:,n)-svm(ie,:,:,n))*dxhi(ie+1)*rk3coef*uouttot
+          sv0(ie+1,:,:,n)= sv0(ie,:,:,n) - (sv0(ie+1,:,:,n)-sv0(ie,:,:,n))*dxhi(ie+1)*rk3coef*ubulk
+          svm(ie+1,:,:,n)= svm(ie,:,:,n) - (svm(ie+1,:,:,n)-svm(ie,:,:,n))*dxhi(ie+1)*rk3coef*ubulk !changed from uouttot to ubulk here !tg3315 08/11/2017
        enddo
-    
-    elseif (lscalrec == .true.) then 
+ 
+    elseif (lscalrec ) then ! recycling method for scalar fields following Matheou and Bowman (2015)
       if (nsv>0) then
         rk3coef = dt / (4. - dble(rk3step))
         do m = 1,ihc ! loop over virtual cells
@@ -204,11 +194,29 @@ uouttot = cos(iangle)*ubulk
           svm(ib-m,:,:,1) = 0
 
           ! DIY outflow BC (advection step as linout) tg3315
-
           sv0(ie+m,:,:,nsv)=sv0(ie+1-m,:,:,nsv)-(sv0(ie+m,:,:,nsv)-sv0(ie+1-m,:,:,nsv))*dxhi(ie+m)*rk3coef*uouttot
           svm(ie+m,:,:,nsv)=svm(ie+1-m,:,:,nsv)-(svm(ie+m,:,:,nsv)-svm(ie+1-m,:,:,nsv))*dxhi(ie+m)*rk3coef*uouttot
         end do 
       end if
+
+      elseif (lSIRANEinout) then ! tg3315 boundary condition to replicate the simulation set up in SIRANE
+        if (nsv>0) then
+          rk3coef = dt / (4. - dble(rk3step))
+          do n=1,nsv   
+            do m=1,ihc
+              do k=kb,ke+1
+                sv0(ib-m,:,k,n) = 2*svprof(k,n) - sv0(ib-m+1,:,k,n)  !scalars have two ghost cells...???
+                svm(ib-m,:,k,n) = 2*svprof(k,n) - svm(ib-m+1,:,k,n)
+              end do
+!              sv0(ie+m,:,:,n)= sv0(ie+m-1,:,:,n) - (sv0(ie+m,:,:,n)-sv0(ie+m-1,:,:,n))*dxhi(ie+m)*rk3coef*ubulk
+!              svm(ie+m,:,:,n)= svm(ie+m-1,:,:,n) - (svm(ie+m,:,:,n)-svm(ie+m-1,:,:,n))*dxhi(ie+m)*rk3coef*ubulk !changed from uouttot to ubulk here !tg3315 08/11/2017
+!              sv0(ie+m,:,:,n)= sv0(ie+m-1,:,:,n) - (sv0(ie+m,:,:,n)-sv0(ie+m-1,:,:,n))*dxhi(ie+m)*rk3coef*u0(ie+m,:,:)
+!              svm(ie+m,:,:,n)= svm(ie+m-1,:,:,n) - (svm(ie+m,:,:,n)-svm(ie+m-1,:,:,n))*dxhi(ie+m)*rk3coef*um(ie+m,:,:) !changed from uouttot to ubulk here !tg3315 08/11/2017
+              svm(ie+m,:,:,n)= svm(ie+m-1,:,:,n)
+              sv0(ie+m,:,:,n)= sv0(ie+m-1,:,:,n)
+            end do !m, ihc
+          end do !nsv 
+        end if !nsv>0
 
       else  ! 'normal' periodic boundary condition
       ! do m = 1,ih
@@ -226,6 +234,27 @@ uouttot = cos(iangle)*ubulk
        call excjs( svm(:,:,:,n) , ib,ie,jb,je,kb-khc,ke+khc,ihc,jhc)
     enddo
 
+    ! tg3315 commented this out for westerly wind direction... 17.05.18
+    if (lSIRANEinout) then ! do this after excjs as these overwrite changes to ghost cells in y-direction
+      do m=1,jhc
+        do n=1,nsv
+        if (myid==0) then
+          do k=kb,ke+1
+            sv0(:,jb-m,k,n) = 2*svprof(k,n) - sv0(:,jb-m+1,k,n)
+            svm(:,jb-m,k,n) = 2*svprof(k,n) - svm(:,jb-m+1,k,n)
+          end do
+        end if
+        if (myid==nprocs-1) then
+          !sv0(:,je+m,:,n)= sv0(:,je+m-1,:,n) - (sv0(:,je+m,:,n)-sv0(:,je+m-1,:,n))*dy*rk3coef*ubulk
+          !svm(:,je+m,:,n)= svm(:,je+m-1,:,n) - (svm(:,je+m,:,n)-svm(:,je+m-1,:,n))*dy*rk3coef*ubulk !changed from uouttot to ubulk here !tg3315 08/11/2017
+    !      sv0(:,je+m,:,n)= sv0(:,je+m-1,:,n) - (sv0(:,je+m,:,n)-sv0(:,je+m-1,:,n))*dy*rk3coef*v0(:,je+m,:)
+    !      svm(:,je+m,:,n)= svm(:,je+m-1,:,n) - (svm(:,je+m,:,n)-svm(:,je+m-1,:,n))*dy*rk3coef*vm(:,je+m,:) !changed from uouttot to ubulk here !tg3315 08/11/2017
+          svm(:,je+m,:,n)= svm(:,je+m-1,:,n)
+          sv0(:,je+m,:,n)= sv0(:,je+m-1,:,n)
+          end if                                                                                
+        end do !m ,jhc
+      end do !nsv 
+    end if ! lSIRANEinout
 
     return
   end subroutine cyclich
@@ -269,7 +298,7 @@ uouttot = cos(iangle)*ubulk
     call excjs( vm  , ib,ie,jb,je,kb,ke+kh,ih,jh)
     call excjs( wm  , ib,ie,jb,je,kb,ke+kh,ih,jh)
 
-    if (loneeqn==.true.) then
+    if (loneeqn) then
          e120(ib-m,:,:) = e120(ie+1-m,:,:)
          e120(ie+m,:,:) = e120(ib-1+m,:,:)
          e12m(ib-m,:,:) = e12m(ie+1-m,:,:)
@@ -282,7 +311,7 @@ uouttot = cos(iangle)*ubulk
        end do
     end if
 
-    if (lsmagorinsky==.true.) then
+    if (lsmagorinsky) then
        ! exchange shear components between processors
        do n=1,12 ! for all 12 components
           call excjs( shear(:,:,:,n) , ib,ie,jb,je,kb,ke,0,1)
@@ -311,11 +340,11 @@ uouttot = cos(iangle)*ubulk
     call excjs( wm  , ib,ie,jb,je,kb,ke+kh,ih,jh)
 
     ! Heat
-    if (ltempeq == .true.) then
+    if (ltempeq ) then
        call excjs( thl0           , ib,ie,jb,je,kb,ke+kh,ih,jh)
        call excjs( thlm           , ib,ie,jb,je,kb,ke+kh,ih,jh)
     end if
-    if (lmoist == .true.) then
+    if (lmoist ) then
        call excjs( qt0            , ib,ie,jb,je,kb,ke+kh,ih,jh)
        call excjs( qtm            , ib,ie,jb,je,kb,ke+kh,ih,jh)
     end if
@@ -325,7 +354,7 @@ uouttot = cos(iangle)*ubulk
        call excjs( svm(:,:,:,n) , ib,ie,jb,je,kb-khc,ke+khc,ihc,jhc)
     enddo
 
-    if (loneeqn==.true.) then
+    if (loneeqn) then
        call excjs( e120, ib,ie,jb,je,kb,ke+kh,ih,jh)
        call excjs( e12m, ib,ie,jb,je,kb,ke+kh,ih,jh)
        ! exchange shear components between processors
@@ -335,7 +364,7 @@ uouttot = cos(iangle)*ubulk
        end do
     end if
 
-    if (lsmagorinsky==.true.) then  ! needed for wall-damping (lsmagorinsky and loneeqn)
+    if (lsmagorinsky) then  ! needed for wall-damping (lsmagorinsky and loneeqn)
        ! exchange shear components between processors
        do n=1,12 ! for all 12 components
           call excjs( shear(:,:,:,n) , ib,ie,jb,je,kb,ke,0,1)
@@ -348,14 +377,14 @@ uouttot = cos(iangle)*ubulk
   !>set inlet and outlet boundary conditions in i-direction
   subroutine iolet
 
-    use modglobal, only : dxhi,dxhci,xh,zh,ib,ie,jb,je,ih,jh,kb,ke,kh,nsv,rk3step,dt,linletgen,ltempeq,lmoist,ihc
+    use modglobal, only : dxhi,dxhci,xh,zh,ib,ie,jb,je,ih,jh,kb,ke,kh,nsv,rk3step,dt,iinletgen,ltempeq,lmoist,ihc
     use modfields, only : u0,um,v0,vm,w0,wm,e120,e12m,thl0,thlm,qt0,qtm,sv0,svm,uprof,vprof,e12prof,thlprof,&
          qtprof,svprof,uouttot,wouttot
     use modmpi,    only : excjs,myid
     use modinletdata, only : u0inletbcold,v0inletbcold,w0inletbcold,uminletbc,vminletbc,wminletbc,totaluold,&
          t0inletbcold,tminletbc
 
-    real rk3coef,uouttotold
+    real rk3coef
 
     integer n,i,j,k,m
 
@@ -366,7 +395,7 @@ uouttot = cos(iangle)*ubulk
     ! Inlet boundary is located at ib (not ib-1)!
 
     ! Inlet
-    if (linletgen == 1 .or. linletgen ==2) then
+    if ((iinletgen == 1) .or. (iinletgen == 2)) then
        do j=jb,je
           do k=kb,ke
              u0(ib,j,k)=u0inletbcold(j,k)
@@ -395,7 +424,7 @@ uouttot = cos(iangle)*ubulk
        end do
 
        ! Heat
-       if (ltempeq ==.true.) then
+       if (ltempeq ) then
           do k=kb,ke
              do j=jb,je
                 thl0(ib-1,j,k) = t0inletbcold(j,k)
@@ -405,7 +434,7 @@ uouttot = cos(iangle)*ubulk
        end if
 
 
-       if (lmoist ==.true.) then
+       if (lmoist ) then
           do k=kb,ke
              do j=jb,je
                 qt0(ib-1,j,k) = 2*qtprof(k) - qt0(ib,j,k)  !watch!
@@ -415,7 +444,7 @@ uouttot = cos(iangle)*ubulk
        end if
 
 
-    else  ! (if linetgen==.false.)
+    else  ! (if linetgen.eqv..false.)
 
        do j=jb-1,je+1
           do k=kb,ke+1
@@ -428,28 +457,26 @@ uouttot = cos(iangle)*ubulk
 
              e120(ib-1,j,k) = 2*e12prof(k) - e120(ib,j,k)      ! (e12(ib)+e12(ib-1))/2=e12prof
              e12m(ib-1,j,k) = 2*e12prof(k) - e12m(ib,j,k)      ! (e12(ib)+e12(ib-1))/2=e12prof
-             
-             ! commented by tg3315 !undone !i think should only be for nsv =1.
-             !do n=1,nsv
-             !   do m = 1,ihc
-             !      sv0(ib-m,j,k,n) = 2*svprof(k,n) - sv0(ib+(m-1),j,k,n)
-             !      svm(ib-m,j,k,n) = 2*svprof(k,n) - svm(ib+(m-1),j,k,n)
-             !   enddo
-             !enddo
-
-             ! added tg3315
-             do m = 1,ihc
-                   sv0(ib-m,j,k,1) = 2*svprof(k,1) - sv0(ib+(m-1),j,k,1)
-                   svm(ib-m,j,k,1) = 2*svprof(k,1) - svm(ib+(m-1),j,k,1)
-             enddo
-
-
+            
+             !if (lscarec) then
+             !  do m = 1,ihc
+             !    sv0(ib-m,j,k,1) = 2*svprof(k,1) - sv0(ib+(m-1),j,k,1)
+             !    svm(ib-m,j,k,1) = 2*svprof(k,1) - svm(ib+(m-1),j,k,1)
+             !  enddo
+             !else
+               do n=1,nsv
+                 do m = 1,ihc
+                   sv0(ib-m,j,k,n) = 2*svprof(k,n) - sv0(ib+(m-1),j,k,n)
+                   svm(ib-m,j,k,n) = 2*svprof(k,n) - svm(ib+(m-1),j,k,n)
+                 end do
+               end do
+             !end if
 
           enddo
        enddo
 
        ! Heat
-       if (ltempeq == .true.) then
+       if (ltempeq ) then
           do j=jb-1,je+1
              do k=kb,ke+1
                 thl0(ib-1,j,k) = 2*thlprof(k) - thl0(ib,j,k) 
@@ -458,7 +485,7 @@ uouttot = cos(iangle)*ubulk
           end do
        end if
 
-       if (lmoist == .true.) then
+       if (lmoist ) then
           do j=jb-1,je+1
              do k=kb,ke+1
                 qt0(ib-1,j,k) = 2*qtprof(k) - qt0(ib,j,k) 
@@ -472,7 +499,7 @@ uouttot = cos(iangle)*ubulk
        um(ib-1,:,:)   = 2*um(ib,:,:)-um(ib+1,:,:)    ! (u(ib+1)+u(ib-1))/2 = u(ib)
        w0(ib-1,:,:)   = -w0(ib,:,:)                  ! (w(ib)+w(ib-1))/2 = 0
        wm(ib-1,:,:)   = -wm(ib,:,:)
-    end if ! linletgen==1 .or. linletgen==2
+    end if ! iinletgen==1 .or. iinletgen==2
 
     ! Outlet
     ! Momentum
@@ -484,27 +511,22 @@ uouttot = cos(iangle)*ubulk
     e12m(ie+1,:,:) = e12m(ie,:,:) - (e12m(ie+1,:,:)-e12m(ie,:,:))*dxhi(ie+1)*rk3coef*uouttot
 
     ! Heat
-    if (ltempeq == .true.) then
+    if (ltempeq ) then
        thl0(ie+1,:,:) = thl0(ie,:,:) - (thl0(ie+1,:,:)-thl0(ie,:,:))*dxhi(ie+1)*rk3coef*uouttot
        thlm(ie+1,:,:) = thlm(ie,:,:) - (thlm(ie+1,:,:)-thlm(ie,:,:))*dxhi(ie+1)*rk3coef*uouttot
     end if
 
 
-    if (lmoist == .true.) then
+    if (lmoist ) then
        qt0(ie+1,:,:)  = qt0(ie,:,:) - (qt0(ie+1,:,:)-qt0(ie,:,:))*dxhi(ie+1)*rk3coef*uouttot
        qtm(ie+1,:,:)  = qtm(ie,:,:) - (qtm(ie+1,:,:)-qtm(ie,:,:))*dxhi(ie+1)*rk3coef*uouttot
     end if
 
-
-    ! commented by tg3315 !undone !changed dxhi to dxhci!?
-    !do n=1,nsv
-    !   sv0(ie+1,:,:,n)= sv0(ie,:,:,n) - (sv0(ie+1,:,:,n)-sv0(ie,:,:,n))*dxhi(ie+1)*rk3coef*uouttot
-    !   svm(ie+1,:,:,n)= svm(ie,:,:,n) - (svm(ie+1,:,:,n)-svm(ie,:,:,n))*dxhi(ie+1)*rk3coef*uouttot
-    !end do
-
-    !added tg3315
-    sv0(ie+1,:,:,nsv)= sv0(ie,:,:,nsv) - (sv0(ie+1,:,:,nsv)-sv0(ie,:,:,nsv))*dxhci(ie+1)*rk3coef*uouttot
-    svm(ie+1,:,:,nsv)= svm(ie,:,:,nsv) - (svm(ie+1,:,:,nsv)-svm(ie,:,:,nsv))*dxhci(ie+1)*rk3coef*uouttot
+    ! tg3315 !changed dxhi to dxhci!?
+    do n=1,nsv
+       sv0(ie+1,:,:,n)= sv0(ie,:,:,n) - (sv0(ie+1,:,:,n)-sv0(ie,:,:,n))*dxhci(ie+1)*rk3coef*uouttot
+       svm(ie+1,:,:,n)= svm(ie,:,:,n) - (svm(ie+1,:,:,n)-svm(ie,:,:,n))*dxhci(ie+1)*rk3coef*uouttot
+    end do
 
     return
   end subroutine iolet
@@ -514,37 +536,38 @@ uouttot = cos(iangle)*ubulk
 
     use modglobal, only : ib,ie,jb,je,ih,jh,kb,ke,kh,jgb,jge,dzf,zh,dy,dt,rk3step,massflowrate,&
          jmax,libm,dt,rk3step,linoutflow,lmassflowr
-    use modfields, only : um,up,uout,uouttot
+    use modfields, only : um,up,uout,uouttot,udef
     use modmpi,    only : slabsum,myid
 
     real, dimension(kb:ke)             :: uoutold
-    real udef,rk3coef,rk3coefi,massflowrateold
+    real rk3coef,rk3coefi,massflowrateold
     integer i,j,k
 
-    ! need to add .or. lscalrec??? tg3315
-    if (linoutflow == .false. .and. lmassflowr == .true.) then
+    if ((.not.linoutflow).and. (lmassflowr)) then
        rk3coef = dt / (4. - dble(rk3step))
        rk3coefi = 1 / rk3coef
 
+       udef = 0.
        uout = 0.
        uoutold = 0.
        call slabsum(uout   ,kb,ke, up  ,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ie,ie,jb,je,kb,ke) ! determine horizontal (j) average outflow velocity diff
        call slabsum(uoutold,kb,ke, um  ,ib-ih,ie+ih,jb-jh,je+jh,kb-kh,ke+kh,ie,ie,jb,je,kb,ke) ! determine horizontal (j) average outflow velocity old
 
        do k=kb,ke
-          uout(k)    = rk3coef*uout(k)   *dzf(k)*dy*1000.  ! mass flow rate through each slab (density = 1000 kg/m3)
-          uoutold(k) =         uoutold(k)*dzf(k)*dy*1000.  ! mass flow rate through each slab (density = 1000 kg/m3) (previous time step)
+          uout(k)    = rk3coef*uout(k)   *dzf(k)*dy  ! mass flow rate through each slab (density = 1000 kg/m3)
+          uoutold(k) =         uoutold(k)*dzf(k)*dy  ! mass flow rate through each slab (density = 1000 kg/m3) (previous time step)
        end do
        uouttot         = sum(uout(kb:ke))                 ! mass flow rate (at outlet)
        massflowrateold = sum(uoutold(kb:ke))              ! mass flow rate (at outlet) (previous time step)
-       udef =  (massflowrate - (uouttot + massflowrateold))/(((jge-jgb+1)*dy)*(zh(ke+1)-zh(kb))*1000.)   !udef=massdef/(Area*density)
+       udef =  (massflowrate - (uouttot + massflowrateold))/(((jge-jgb+1)*dy)*(zh(ke+1)-zh(kb)))   !udef=massdef/(Area*density)
        do k = kb,ke
           do j = jb,je
              do i = ib,ie
-                up(i,j,k)  = up(i,j,k)  + udef*rk3coefi
+                up(i,j,k) = up(i,j,k)  + udef*rk3coefi
              end do
           end do
        end do
+
     end if
 
   end subroutine masscorr
@@ -552,7 +575,7 @@ uouttot = cos(iangle)*ubulk
   !>set boundary conditions pup,pvp,pwp in subroutine fillps in modpois.f90
   subroutine bcpup(pup,pvp,pwp,rk3coef)
 
-    use modglobal, only : ib,ie,jb,je,ih,jh,kb,ke,kh,linoutflow,dxfi,linletgen,&
+    use modglobal, only : ib,ie,jb,je,ih,jh,kb,ke,kh,linoutflow,dxfi,iinletgen,&
          Uinf,libm,jmax
     use modfields, only : pres0,up,vp,wp,um,w0,u0,uouttot
     use modmpi, only : excjs,myid
@@ -568,9 +591,8 @@ uouttot = cos(iangle)*ubulk
     integer i,j,k
 
     rk3coefi = 1. / rk3coef
-    ! again or scalrec??? tg3315
-    if (linoutflow == .true.) then
-       if (linletgen == 1 .or. linletgen == 2) then
+    if (linoutflow ) then
+       if ((iinletgen == 1) .or. (iinletgen == 2)) then
           do j=jb,je
              do i=ib,ie
                 pwp(i,j,kb)  = 0.
@@ -583,7 +605,7 @@ uouttot = cos(iangle)*ubulk
                 pup(ib,j,k) = u0inletbc(j,k)*rk3coefi
              end do
           end do
-       else ! if not linletgen
+       else ! if not iinletgen
           do j=jb,je
              do i=ib,ie
                 pwp(i,j,kb)  = 0.
@@ -621,14 +643,14 @@ uouttot = cos(iangle)*ubulk
   !>set pressure boundary conditions
   subroutine bcp(p)
 
-    use modglobal, only : ib,ie,jb,je,ih,jh,kb,ke,kh,linoutflow,dxfi,linletgen
+    use modglobal, only : ib,ie,jb,je,ih,jh,kb,ke,kh,linoutflow,dxfi
     use modfields, only : pres0,up,u0,um,uouttot
     use modmpi, only : excj
 
     real, dimension(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh), intent(inout) :: p !< pressure
     integer i,j,k
-    ! again if linoutflow tg3315, should we remove sv from this and set to true?
-    if (linoutflow == .true.) then
+
+    if (linoutflow ) then
        do k=kb,ke
           do j=jb,je
              p(ib-1,j,k)    = p(ib,j,k)                       ! inflow:  dp/dn=0
@@ -668,40 +690,43 @@ uouttot = cos(iangle)*ubulk
   !! to infinity at the bottom of the sponge layer.
   !! \endlatexonly
   subroutine grwdamp
-    use modglobal, only : ke,kmax,cu,cv,lcoriol,igrw_damp,geodamptime
+    use modglobal, only : ke,kmax,lcoriol,igrw_damp,geodamptime
     use modfields, only : up,vp,wp,thlp,qtp,u0,v0,w0,thl0,qt0, ug,vg,thl0av,qt0av,u0av,v0av
+    use modmpi, only : myid    
     implicit none
 
     integer k
-
+    !if (myid==0) then
+    !write(*,*) "up before grwdamp",up(3,3,ke)
+    !end if
     select case(igrw_damp)
     case(0) !do nothing
     case(1)
        do k=ksp,ke
-          up(:,:,k)  = up(:,:,k)-(u0(:,:,k)-(u0av(k)-cu))*tsc(k)
-          vp(:,:,k)  = vp(:,:,k)-(v0(:,:,k)-(v0av(k)-cv))*tsc(k)
+          up(:,:,k)  = up(:,:,k)-(u0(:,:,k)-u0av(k))*tsc(k)
+          vp(:,:,k)  = vp(:,:,k)-(v0(:,:,k)-v0av(k))*tsc(k)
           wp(:,:,k)  = wp(:,:,k)-w0(:,:,k)*tsc(k)
           thlp(:,:,k)= thlp(:,:,k)-(thl0(:,:,k)-thl0av(k))*tsc(k)
           qtp(:,:,k) = qtp(:,:,k)-(qt0(:,:,k)-qt0av(k))*tsc(k)
        end do
        if(lcoriol) then
           do k=ksp,ke
-             up(:,:,k)  = up(:,:,k)-(u0(:,:,k)-(ug(k)-cu))*((1./(geodamptime*rnu0))*tsc(k))
-             vp(:,:,k)  = vp(:,:,k)-(v0(:,:,k)-(vg(k)-cv))*((1./(geodamptime*rnu0))*tsc(k))
+             up(:,:,k)  = up(:,:,k)-(u0(:,:,k)-ug(k))*((1./(geodamptime*rnu0))*tsc(k))
+             vp(:,:,k)  = vp(:,:,k)-(v0(:,:,k)-vg(k))*((1./(geodamptime*rnu0))*tsc(k))
           end do
        end if
     case(2)
        do k=ksp,ke
-          up(:,:,k)  = up(:,:,k)-(u0(:,:,k)-(ug(k)-cu))*tsc(k)
-          vp(:,:,k)  = vp(:,:,k)-(v0(:,:,k)-(vg(k)-cv))*tsc(k)
+          up(:,:,k)  = up(:,:,k)-(u0(:,:,k)-ug(k))*tsc(k)
+          vp(:,:,k)  = vp(:,:,k)-(v0(:,:,k)-vg(k))*tsc(k)
           wp(:,:,k)  = wp(:,:,k)-w0(:,:,k)*tsc(k)
           thlp(:,:,k)= thlp(:,:,k)-(thl0(:,:,k)-thl0av(k))*tsc(k)
           qtp(:,:,k) = qtp(:,:,k)-(qt0(:,:,k)-qt0av(k))*tsc(k)
        end do
     case(3)
        do k=ksp,ke
-          up(:,:,k)  = up(:,:,k)-(u0(:,:,k)-(u0av(k)-cu))*tsc(k)
-          vp(:,:,k)  = vp(:,:,k)-(v0(:,:,k)-(v0av(k)-cv))*tsc(k)
+          up(:,:,k)  = up(:,:,k)-(u0(:,:,k)-u0av(k))*tsc(k)
+          vp(:,:,k)  = vp(:,:,k)-(v0(:,:,k)-v0av(k))*tsc(k)
           wp(:,:,k)  = wp(:,:,k)-w0(:,:,k)*tsc(k)
           thlp(:,:,k)= thlp(:,:,k)-(thl0(:,:,k)-thl0av(k))*tsc(k)
           qtp(:,:,k) = qtp(:,:,k)-(qt0(:,:,k)-qt0av(k))*tsc(k)
@@ -709,6 +734,9 @@ uouttot = cos(iangle)*ubulk
     case default
        stop "no gravity wave damping option selected"
     end select
+!if (myid==0) then
+!write(*,*) "up after grwdamp",up(3,3,ke)
+!end if
 
     return
   end subroutine grwdamp
@@ -716,41 +744,27 @@ uouttot = cos(iangle)*ubulk
   !> Sets top boundary conditions for scalars
   subroutine toph
 
-    use modglobal, only : ib,ie,jb,je,kb,ke,cu,cv,numol,prandtlmol,dzh,cu,cv,&
-         dtheta,dqt,dsv,nsv,lzerogradtop,lzerogradtopscal,ltempeq,lmoist,khc,ltfluxtop,numoli,lwallfunc,prandtlmol,dzf
+    use modglobal, only : ib,ie,jb,je,kb,ke,numol,prandtlmol,dzh,&
+         dtheta,dqt,dsv,nsv,lzerogradtop,lzerogradtopscal,ltempeq,lmoist,khc,ltfluxtop,dzf,dzhi,&
+         rk3step,dt,dzfi,dzh,dzh2i
     use modfields, only : u0,v0,e120,um,vm,e12m,thl0,qt0,sv0,thlm,qtm,svm
-    use modsurfdata,only: thlflux,qtflux,svflux,ustar,thl_top,qt_top,wttop
+    use modsubgriddata, only : ekh
+    use modsurfdata,only: ustar,thl_top,qt_top,wttop,wqtop
     implicit none
 
-    real    :: flux
+    real    :: flux,rk3coef
     integer :: i,j,jp,jm,n,m
 
-
-    !! *** No-slip wall conditions ****
-    !    do j=jb,je
-    !       jp=j+1
-    !       jm=j-1
-    !
-    !       do i=ib,ie
-    !        thl0(i,j,ke+1) = thl0(i,j,ke) + (thlflux(i,j)*dzh(ke)*prandtlmol )/numol
-    !        qt0(i,j,ke+1) = qt0(i,j,ke) + (qtflux(i,j)*dzh(ke)*prandtlmol )/numol
-    !        sv0(i,j,ke+1,:) = sv0(i,j,ke,:) + (svflux(i,j,:)*dzh(ke)*prandtlmol )/numol
-    !
-    !        thlm(i,j,ke+1) = thlm(i,j,ke) + (thlflux(i,j)*dzh(ke)*prandtlmol )/numol
-    !        qtm(i,j,ke+1) = qtm(i,j,ke) + (qtflux(i,j)*dzh(ke)*prandtlmol )/numol
-    !        svm(i,j,ke+1,:) = svm(i,j,ke,:) + (svflux(i,j,:)*dzh(ke)*prandtlmol )/numol
-    !       end do
-    !     end do
-    !! *** End of conditions for no-slip wall ****
-
     ! **  Top conditions :
-
+    !1) zero gradient = zero flux (no perpendicular mean velocity)
+    !2) given flux
+    !3) given temperature at boundary
     if (lzerogradtopscal) then
-       if (ltempeq ==.true.) then
+       if (ltempeq ) then
           thl0(:,:,ke+1) = thl0(:,:,ke)
           thlm(:,:,ke+1) = thlm(:,:,ke)
        end if
-       if (lmoist == .true.) then
+       if (lmoist) then
           qt0(:,:,ke+1) = qt0(:,:,ke)
           qtm(:,:,ke+1) = qtm(:,:,ke)
        end if
@@ -758,15 +772,23 @@ uouttot = cos(iangle)*ubulk
           sv0(:,:,ke+1,n) = sv0(:,:,ke,n)
           svm(:,:,ke+1,n) = svm(:,:,ke,n)      
        end do
-    else if (ltfluxtop == .true.) then
-      thl0(:,:,ke+1) = wttop*dzf(ke)+thl0(:,:,ke)
-      thlm(:,:,ke+1) = wttop*dzf(ke)+thlm(:,:,ke)   
+    else if (ltfluxtop) then
+       if (ltempeq) then
+         rk3coef = dt / (4. - dble(rk3step))
+        ! tg3315 edited 18/01/18 - also requires seeting value of ekh in startup
+        thl0(:,:,ke+1) = thl0(:,:,ke) + dzh(ke+1) * wttop / ( dzhi(ke+1) * (0.5*(dzf(ke)*ekh(:,:,ke+1)+dzf(ke+1)*ekh(:,:,ke)) ) )
+        thlm(:,:,ke+1) = thlm(:,:,ke) + dzh(ke+1) * wttop / ( dzhi(ke+1) * (0.5*(dzf(ke)*ekh(:,:,ke+1)+dzf(ke+1)*ekh(:,:,ke)) ) )
+      end if
+      if (lmoist) then
+        qt0(:,:,ke+1) = qt0(:,:,ke) + dzh(ke+1) * wqtop / ( dzhi(ke+1) * (0.5*(dzf(ke)*ekh(:,:,ke+1)+dzf(ke+1)*ekh(:,:,ke)) ) )
+        qtm(:,:,ke+1) = qtm(:,:,ke) + dzh(ke+1) * wqtop / ( dzhi(ke+1) * (0.5*(dzf(ke)*ekh(:,:,ke+1)+dzf(ke+1)*ekh(:,:,ke)) ) )
+      end if
     else
-       if (ltempeq ==.true.) then
+       if (ltempeq ) then
           thl0(:,:,ke+1) = 2.*thl_top - thl0(:,:,ke)                       ! T=thl_top
           thlm(:,:,ke+1) = 2.*thl_top - thlm(:,:,ke)                       ! T=thl_top
        end if
-       if (lmoist ==.true.) then
+       if (lmoist) then
           qt0(:,:,ke+1) = 2.*qt_top - qt0(:,:,ke)                       ! qt=qt_top
           qtm(:,:,ke+1) = 2.*qt_top - qtm(:,:,ke)                       ! qt=qt_top
        end if
@@ -784,21 +806,17 @@ uouttot = cos(iangle)*ubulk
   !> Sets top boundary conditions for momentum
   subroutine topm
 
-    use modglobal,      only : ib,ie,jb,je,kb,ke,ih,jh,kh,cu,cv,numol,prandtlmol,dzh,cu,cv,lwallfunc,dzf,&
-         e12min,dxfi,dxf,dxhi,xh,linletgen,jgb,jge,Uinf,numoli,dzfi,lzerogradtop
-    use modfields,      only : u0,v0,w0,um,vm,wm,thl0,e120,e12m,shear,wout,wouttot
+    use modglobal,      only : ib,ie,jb,je,kb,ke,ih,jh,kh,dzh,dzf,&
+         e12min,dxfi,dxf,dxhi,xh,iinletgen,jgb,jge,Uinf,numoli,dzfi,lzerogradtop
+    use modfields,      only : u0,v0,w0,um,vm,wm,thl0,e120,e12m,wout,wouttot
     use modsubgriddata, only : ekm
     use modinlet,       only : dispthickness
     use modinletdata,   only : Uinl,ddispdxold
     use modmpi,         only : slabsumi,myid
-    use modsurfdata,    only : wtsurf
     implicit none
-
-    !real, dimension(ib:ie) :: displ
-    real    :: ucu,vcv,upcu,vpcv,fu,fv,nji
-    integer :: i,j,jp,jm
-
-    if (linletgen==1 .or. linletgen==2) then
+    integer :: i
+    real    :: nji
+    if ((iinletgen==1) .or. (iinletgen==2)) then
        u0(:,:,ke+1)   = u0(:,:,ke)
        v0(:,:,ke+1)   = v0(:,:,ke)
        e120(:,:,ke+1) = e12min
@@ -825,262 +843,12 @@ uouttot = cos(iangle)*ubulk
 
        w0(:,:,ke+1)   = 0.0
        wm(:,:,ke+1)   = 0.0
-       !e120(:,:,ke+1) = e12min           ! free slip top wall
-       !e12m(:,:,ke+1) = e12min
-       e120(:,:,ke+1) = e120(:,:,ke)      ! zero grad.
-       e12m(:,:,ke+1) = e120(:,:,ke)      ! zero grad.
-    else ! no slip top
-       if (lwallfunc == .true.) then
-          do j=jb,je
-             do i=ib,ie
-                call wallaw(Uinf-u0(i,j,ke),0.5*(thl0(i,j,ke)*dxf(i-1)+thl0(i-1,j,ke)*dxf(i))*dxhi(i),wtsurf,dzf(ke),numol,shear(i,j,ke,4))    ! compute shear stress at upper wall (also used in v. Driest damping!)   
-                u0(i,j,ke+1)   = u0(i,j,ke) + shear(i,j,ke,4)*dzh(ke+1)*numoli ! compute ghost value
-                um(i,j,ke+1)   = um(i,j,ke) + shear(i,j,ke,4)*dzh(ke+1)*numoli ! compute ghost value
-
-                call wallaw(-v0(i,j,ke),0.5*(thl0(i,j,ke)+thl0(i,j-1,ke)),wtsurf,dzf(ke),numol,shear(i,j,ke,8))    ! compute shear stress at upper wall (also used in v. Driest damping!)   
-                v0(i,j,ke+1)   = v0(i,j,ke) + shear(i,j,ke,8)*dzh(ke+1)*numoli 
-                vm(i,j,ke+1)   = vm(i,j,ke) + shear(i,j,ke,8)*dzh(ke+1)*numoli 
-
-                w0(i,j,ke+1)   = 0.0
-                wm(i,j,ke+1)   = 0.0
-             end do
-          end do
-       else
-          shear(:,:,ke,4)= 2.*numol*(Uinf-u0(:,:,ke))*dzfi(ke)     ! x-shear at upper wall (used in wall-damping function) 
-          um(:,:,ke+1)   = 2.*Uinf - um(:,:,ke)
-          u0(:,:,ke+1)   = 2.*Uinf - u0(:,:,ke)
-
-          shear(:,:,ke,8)= -2.*numol*(v0(:,:,ke))*dzfi(ke)         ! y-shear at upper wall (used in wall-damping function) 
-          v0(:,:,ke+1)   = -v0(:,:,ke)
-          vm(:,:,ke+1)   = -vm(:,:,ke)
-
-          w0(:,:,ke+1)   = 0.0
-          wm(:,:,ke+1)   = 0.0
-       end if
-       !    e120(:,:,ke+1) = e12min           ! free slip top wall
-       e120(:,:,ke+1) = e120(:,:,ke)      ! zero grad.
-       e12m(:,:,ke+1) = e120(:,:,ke)      ! zero grad.
+       e120(:,:,ke+1) = e12min           ! free slip top wall
+       e12m(:,:,ke+1) = e12min
     end if
-
 
     return
   end subroutine topm
-
-  !> Sets bottom boundary conditions for bottom wall
-  subroutine bottom
-
-    use modglobal, only : ib,ie,jb,je,kb,cu,cv,numol,prandtlmol,dzh,cu,cv,lwallfunc,lwallfuncs,&
-                          dxf,dxhi,dzf,dzfi,numoli,ltempeq,khc,lmoist,ltfluxbot
-    use modfields, only : u0,v0,e120,um,vm,w0,wm,e12m,thl0,qt0,sv0,thlm,qtm,svm,shear
-    use modsurfdata,only: thlflux,qtflux,svflux,ustar,thvs,qts,wtsurf,wqsurf
-    use modsubgriddata, only: ekm
-    use modsurface, only: ustar
-    implicit none
-
-    real    :: ucu,vcv,upcu,vpcv,fu,fvi,flux
-    integer :: i,j,jp,jm,m
-
-    if (lwallfunc == .true.) then
-       do j=jb,je
-          do i=ib,ie
-
-             call wallaw(u0(i,j,kb),0.5*(thl0(i,j,kb)*dxf(i-1)+thl0(i-1,j,kb)*dxf(i))*dxhi(i),wtsurf,dzf(kb),numol,shear(i,j,kb,3))
-
-             !write(*,'(3A,2I5,F6.2)') 'x', 'y', 'Bottom shear x', i, j, shear(i,j,kb,3)
-             !write(*,'(3A,2I5,F6.2)') 'x', 'y', 'Bottom shear x2', i, j, shear(i,j,kb,3)
-
-             u0(i,j,kb-1)   = u0(i,j,kb) - shear(i,j,kb,3)*dzh(kb)*numoli ! compute ghost value
-             !write(*,'(A,2(1pE9.2))') 'u0(kb), u0(kb-1)', u0(i,j,kb), u0(i,j,kb-1)
-             um(i,j,kb-1)   = um(i,j,kb) - shear(i,j,kb,3)*dzh(kb)*numoli ! compute ghost value
-
-      call wallaw(v0(i,j,kb),0.5*(thl0(i,j,kb)+thl0(i,j-1,kb)),wtsurf,dzf(kb),numol,shear(i,j,kb,7))   ! compute shear stress at lower wall (later on also used in v. Driest damping!)         
-             v0(i,j,kb-1)   = v0(i,j,kb) - shear(i,j,kb,7)*dzh(kb)*numoli ! compute ghost value
-             vm(i,j,kb-1)   = vm(i,j,kb) - shear(i,j,kb,7)*dzh(kb)*numoli ! compute ghost value
-
-             w0(i,j,kb)     = 0.0     
-             wm(i,j,kb)     = 0.0     
-
-             do m=1,khc
-                sv0(i,j,kb-m,:) = sv0(i,j,kb,:) + (svflux(i,j,:)*dzh(kb)*prandtlmol )*numoli
-                svm(i,j,kb-m,:) = svm(i,j,kb,:) + (svflux(i,j,:)*dzh(kb)*prandtlmol )*numoli
-             end do
-          end do
-       end do
-    else  ! no wall function, just no-slip
-       do j=jb,je
-          do i=ib,ie
-             !shear(i,j,kb,3)= 2.*numol*u0(i,j,kb)*dzfi(kb)     ! x-shear at lower wall (used in wall-damping function) 
-              shear(i,j,kb,3)= 2.*numol*u0(i,j,kb)*dzfi(kb)     ! x-shear at lower wall (used in wall-damping function) 
-             u0(i,j,kb-1)   = -u0(i,j,kb) !- fu*dzh(kb)/numol        ! BC for u
-             um(i,j,kb-1)   = -um(i,j,kb) !- fu*dzh(kb)/numol        ! BC for u
-
-             !shear(i,j,kb,7)= 2.*numol*v0(i,j,kb)*dzfi(kb)     ! y-shear at lower wall (used in wall-damping function) 
-             shear(i,j,kb,7)= 2.*numol*v0(i,j,kb)*dzfi(kb)     ! y-shear at lower wall (used in wall-damping function) 
-             v0(i,j,kb-1)   = -v0(i,j,kb)! - fv*dzh(kb)/numol        ! BC for v
-             vm(i,j,kb-1)   = -vm(i,j,kb)! - fv*dzh(kb)/numol        ! BC for v
-
-             w0(i,j,kb)     = 0.0     
-             wm(i,j,kb)     = 0.0    
-
-             do m=1,khc
-                sv0(i,j,kb-m,:) = sv0(i,j,kb,:) + (svflux(i,j,:)*dzh(kb)*prandtlmol )*numoli
-                svm(i,j,kb-m,:) = svm(i,j,kb,:) + (svflux(i,j,:)*dzh(kb)*prandtlmol )*numoli
-             end do
-          end do
-       end do
-    end if
-
-    ! heat
-    if (ltempeq == .true.) then
-     if (ltfluxbot == .true.) then
-       do j=jb,je
-          do i=ib,ie
-             thl0(i,j,kb-1) = thl0(i,j,kb) -wtsurf*dzf(kb)
-             thlm(i,j,kb-1) = thlm(i,j,kb) -wtsurf*dzf(kb)
-          end do
-       end do
-    else
-      if (lwallfuncs == .true.) then
-        do j=jb,je
-        do i=ib,ie
-          call wallawt(thl0(i,j,kb),thvs,dzf(kb),flux)
-          thl0(i,j,kb-1)   = thl0(i,j,kb) - flux*dzh(kb)*prandtlmol*numoli !compute ghost value
-          thlm(i,j,kb-1)   = thlm(i,j,kb) - flux*dzh(kb)*prandtlmol*numoli !compute ghost value
-        end do
-        end do
-      else
-        do j=jb,je
-        do i=ib,ie    ! again if linoutflow tg3315, should we remove sv from this and set to truee
-          thl0(i,j,kb-1) = 2.*thvs - thl0(i,j,kb) ! fixed temperature                                                                                                                                                                        
-!          qt0(i,j,kb-1) = qt0(i,j,kb) + (qtflux(i,j)*dzh(kb)*prandtlmol
-!          )*numoli
-          thlm(i,j,kb-1) = 2.*thvs - thlm(i,j,kb) ! fixed temperature
-!          qtm(i,j,kb-1) = qtm(i,j,kb) + (qtflux(i,j)*dzh(kb)*prandtlmol
-!          )*numoli
-        end do
-        end do
-      end if ! lwallfunc
-    end if  ! ltfluxtop
-  end if
-
-
- if (lmoist == .true.) then
-     if (ltfluxbot == .true.) then
-       do j=jb,je
-          do i=ib,ie
-             qt0(i,j,kb-1) = qt0(i,j,kb) -wqsurf*dzf(kb)
-             qtm(i,j,kb-1) = qtm(i,j,kb) -wqsurf*dzf(kb)
-          end do
-       end do
-    else
-      if (lwallfuncs == .true.) then
-        do j=jb,je
-        do i=ib,ie
-          call wallawt(qt0(i,j,kb),qts,dzf(kb),flux)
-          qt0(i,j,kb-1)   = qt0(i,j,kb) - flux*dzh(kb)*prandtlmol*numoli
-!compute ghost value
-          qtm(i,j,kb-1)   = qtm(i,j,kb) - flux*dzh(kb)*prandtlmol*numoli
-!compute ghost value
-        end do
-        end do
-      else
-        do j=jb,je
-        do i=ib,ie
-          qt0(i,j,kb-1) = 2.*qts - qt0(i,j,kb) ! fixed temperature                                                                                                                                                                        
-!          qt0(i,j,kb-1) = qt0(i,j,kb) + (qtflux(i,j)*dzh(kb)*prandtlmol
-!          )*numoli
-          qtm(i,j,kb-1) = 2.*qts - qtm(i,j,kb) ! fixed temperature
-!          qtm(i,j,kb-1) = qtm(i,j,kb) + (qtflux(i,j)*dzh(kb)*prandtlmol
-!          )*numoli
-        end do
-        end do
-      end if ! lwallfunc
-    end if  ! ltfluxtop
-  end if
-
-
-    e120(:,:,kb-1) = e120(:,:,kb)
-    e12m(:,:,kb-1) = e12m(:,:,kb)
-
-    return
-  end subroutine bottom
-
-
-  subroutine wallawt(theta,thetasurf,dx,flux)
-    use modglobal,       only : lMOST,prandtlmoli,numol
-    use modsurfdata,     only : Csav,horvel
-    implicit none
-
-      real, intent(in)  :: theta,thetasurf,dx
-      real, intent(out) :: flux
-
-
-      if (lMOST == .true.) then      ! use Monin-Obukhov similarity
-!          flux = -Csav*horvel*(theta-thetasurf)
-          flux = Csav*horvel*(theta-thetasurf)
-      else                           ! use NO wall function
-!          flux = -numol*prandtlmoli*(theta-thetasurf)/(0.5*dx)
-          flux = (theta-thetasurf)*prandtlmoli*numol/(0.5*dx)
-      end if
-    
-  end subroutine wallawt
-
-
-
-  subroutine wallaw(utan,thadj,flux,dx,visc,tau)
-  
-
-
-        use modglobal,       only : fkar,grav,ltempeq,lMOST
-    use modsurfdata,     only : thls,z0,z0hav,Cmav,Csav,horvel
-
-    implicit none
-
-    real, intent(in)  :: utan,thadj,flux,dx,visc
-    real, intent(out) :: tau
-
-    real    const1, const2, const3, const4
-    real    tausub, taupow
-    real    sub, dutan, utankr,utanabs
-    real    aaa,bbb
-    real    dxi,dx5
-    real    utan2, lmo, ust
-
-    parameter(aaa = 8.3)
-    parameter(bbb = 0.1428571429)
-
-    dxi = 1./dx
-    dx5  = 0.5*dx
-         if (lMOST == .true.) then      ! use Monin-Obukhov similarity
-!        tau = -Cmav*horvel*utan
-        tau = Cmav*horvel*utan
-
-!! multiply with numol, because it is later divided by it
-!        tau = Cmav*horvel*utan*visc  
-      else      
-
-const1 = 0.5 * (1. - bbb) * aaa ** ((1. + bbb) / (1. - bbb))
-    const2 = (1. + bbb) / aaa
-    const3 = aaa ** (2. / (1. - bbb))
-    const4 = 2. / (1. + bbb)
-
-    utanabs=abs(utan) 
-    utankr = 0.5 * visc * dxi * const3
-    dutan  = utankr - utanabs
-    sub    = max (sign(1.,dutan),0.)
-
-    tausub    = 2. * visc * utanabs * dxi
-    !      taupow3   =   const1 * (visc * dxi)**(1.+bbb) + (const2 * (visc * dxi)**bbb) * utanabs
-    taupow    = ( const1 * (visc * dxi)**(1.+bbb) + (const2 * (visc * dxi)**bbb) * utanabs)** const4
-
-    !      if (taupow3<=0) then
-    !        write(6,*) 'taupow3 <=0!!!'
-    !      end if
-    tau = sub * tausub + (1.- sub) * taupow
-    tau = sign(tau,utan)  ! give tau the same sign as utan
-   end if 
-   return
-  end subroutine wallaw
 
 !>Set thl, qt and sv(n) equal to slab average at level kmax
 !>Set thl, qt and sv(n) equal to slab average at level kmax

@@ -18,7 +18,7 @@ save
 
 contains
   subroutine initinlet
-    use modglobal, only : ih,ib,ie,jh,jb,je,kb,ke,kh,linletgen,iplane,xf,lstoreplane,nstore,Uinf,ltempeq,pi,zf,zh
+    use modglobal, only : ih,ib,ie,jh,jb,je,kb,ke,kh,iinletgen,iplane,xf,lstoreplane,nstore,Uinf,ltempeq,pi,zf,zh
     use modfields, only : um
     use modmpi, only : myid,nprocs
    
@@ -27,7 +27,7 @@ contains
     integer :: k
 
 
-  if (linletgen==1) then
+  if (iinletgen==1) then
 
   allocate(Utav(ib:ie,kb:ke))
   allocate(Uinl(kb:ke))
@@ -72,7 +72,7 @@ contains
   allocate(heavif(kb:ke))
   allocate(heavih(kb:ke+1))
 
-  if (lstoreplane == .true.) then
+  if (lstoreplane ) then
     allocate(storeu0inletbc(jb:je,kb:ke,1:nstore))
     allocate(storev0inletbc(jb:je,kb:ke,1:nstore))
     allocate(storew0inletbc(jb:je,kb:ke+1,1:nstore))
@@ -103,7 +103,7 @@ contains
 
 
 
-  if (ltempeq == .true. ) then
+  if (ltempeq  ) then
     allocate(Ttav(ib:ie,kb:ke))
     allocate(taver(ib:ie,kb:ke))
     allocate(Tinl(kb:ke))
@@ -117,7 +117,7 @@ contains
     allocate(locupot(kb:ke))
     allocate(heavit(kb:ke))
   
-    if (lstoreplane == .true.) then
+    if (lstoreplane ) then
       allocate(storet0inletbc(jb:je,kb:ke,1:nstore))
     end if
 ! Heaviside function for temperature
@@ -147,7 +147,7 @@ contains
 !  btime = timee                              ! this is done to make sure btime is set when avint is computed correctly at startup (only for RA) 
 
   
-  else if (linletgen == 2) then
+  else if (iinletgen == 2) then
     allocate(storeu0inletbc(jb:je,kb:ke,1:nstore))
     allocate(storev0inletbc(jb:je,kb:ke,1:nstore))
     allocate(storew0inletbc(jb:je,kb:ke+1,1:nstore))
@@ -162,7 +162,7 @@ contains
     allocate(uminletbc(jb:je,kb:ke))
     allocate(vminletbc(jb:je,kb:ke))
     allocate(wminletbc(jb:je,kb:ke+1))
-    if (ltempeq == .true.) then
+    if (ltempeq ) then
       allocate(storet0inletbc(jb:je,kb:ke,1:nstore))
       allocate(t0inletbc(jb:je,kb:ke))
       allocate(t0inletbcold(jb:je,kb:ke))
@@ -184,7 +184,7 @@ contains
   end subroutine initinlet
 
   subroutine inletgen
-    use modglobal,   only : ib,ie,jb,je,jgb,jge,kb,ke,zf,zh,dzf,dzhi,timee,btime,totavtime,rk3step,dt,numol,iplane,lles,linletgen,inletav,runavtime,Uinf,lwallfunc,linletRA,totinletav,lstoreplane,nstore,prandtlmoli,numol,grav,lbuoyancy,lfixinlet,lmassflowr,lfixutauin
+    use modglobal,   only : ib,ie,jb,je,jgb,jge,kb,ke,zf,zh,dzf,dzhi,timee,btime,totavtime,rk3step,dt,numol,iplane,lles,iinletgen,inletav,runavtime,Uinf,lwallfunc,linletRA,totinletav,lstoreplane,nstore,prandtlmoli,numol,grav,lbuoyancy,lfixinlet,lmassflowr,lfixutauin
     use modfields,   only : u0,v0,w0,thl0,wm,uprof
     use modsurfdata, only : thls,thl_top
     use modsave,     only : writerestartfiles
@@ -240,7 +240,7 @@ contains
     integer i,j,k,kk,kdamp
 
 
-   if (linletgen == 1) then
+   if (iinletgen == 1) then
 
    u0inletbcold = u0inletbc
    v0inletbcold = v0inletbc
@@ -260,7 +260,7 @@ contains
       deltat = rk3coef - (dt/2.)
     end if
 
-    if (linletRA== .true.) then  ! this is a switch to use 'running average'
+    if (linletRA) then  ! this is a switch to use 'running average'
       avint = totinletav + timee-btime ! runav interval = averaging interval previuous sim  + current elapsed sim time
     else
       avint  = inletav
@@ -310,7 +310,7 @@ contains
 !    if (myid==0) then
 !      write(6,*) 'Checking Urec for NaN' 
 !      do k=kb,ke
-!        if (ISNAN(Urec(k))==.true.) then
+!        if (ISNAN(Urec(k))) then
 !          write(6,*) 'Urec(k)=NaN at k=kb+', k-kb
 !        end if
 !      end do
@@ -345,7 +345,7 @@ contains
     end do
 
  
-    if (lwallfunc==.true.) then
+    if (lwallfunc) then
       call wallawinlet(Urec(kb),dzf(kb),numol,utaur2)    ! compute wall shear stress at recycle station
     else
       utaur2 = 2.*numol*Urec(kb)/dzf(kb)
@@ -357,7 +357,7 @@ contains
     ttaur = q0/utaur                ! ttau = q/(rho*cp*utau) =  (alpha *dT/dz) / utau
    ! compute momentum thickness at inlet and recycle plane
   
-   if(lbuoyancy==.true.) then
+   if(lbuoyancy) then
      lmor = (thls* utaur**2 )/ (0.41 * grav * ttaur)      ! L = -T0*utau^3 / kappa*g*<w'T'> =  
 !     write(6,*) 'Initial dr,myid, utaur, ttaur, Lmor =', dr,myid,utaur,ttaur,lmor
 !     lmor = 0.3;
@@ -393,7 +393,7 @@ contains
 !      thetar=0.00001 
 !    else
 !      utaui = utaur* (thetar/thetai)**(1./8.)    ! See Lund (1998): 'Similar to Ludwig-Tillmann correlation'
-    if (lfixutauin /= .true.) then 
+    if (.not.lfixutauin) then 
       utaui  = utaur* abs(thetar/thetai)**(1./8.)   ! See Lund (1998): 'Similar to Ludwig-Tillmann correlation'
     end if
     if (thetati == 0.) then
@@ -514,7 +514,7 @@ contains
       else                            ! normal interpolation
         Uinli(k) = Urec(loclowif(k)) + (Urec(locupif(k)) - Urec(loclowif(k))) / (zirf(locupif(k)) - zirf(loclowif(k))) * (ziif(k) - zirf(loclowif(k)))
         Tinli(k) = Trec(loclowif(k)) + (Trec(locupif(k)) - Trec(loclowif(k))) / (zirf(locupif(k)) - zirf(loclowif(k))) * (ziif(k) - zirf(loclowif(k)))
-        if (ziif(k) .gt. zirf(locupif(k)) .or. ziif(k) .lt. zirf(loclowif(k))) then
+        if ((ziif(k) .gt. zirf(locupif(k))) .or. (ziif(k) .lt. zirf(loclowif(k)))) then
           write(6,*) '!!!Mistake in Interpolation !!!!'
         end if
       end if
@@ -742,7 +742,7 @@ contains
     totalu    = sum(uravdzf(kb:ke))/(zh(ke+1)-zh(kb))      ! Area-averaged outflow velocity
 
 ! rescale the instantaneous profile to keep mass flux constant (tot avoid pressure fluctuations)
-    if (lmassflowr == .true.) then 
+    if (lmassflowr ) then 
       do k=kb,ke
         uinldzf(k) = Uinl(k)*dzf(k)
       end do
@@ -774,7 +774,7 @@ contains
 !    end if
 
    ! Compute j- and time-averaged  inlet U  (used for compute thetai)
-    if (lfixinlet == .false.) then  ! only update the average inlet profiles when lfixinlet == .false.
+    if (.not.lfixinlet) then  ! only update the average inlet profiles when lfixinlet .eqv..false.
       do k=kb,ke
         Uinl(k) =  urav(k)*deltat*avinti + (1.-deltat*avinti)*Uinl(k)
       end do
@@ -788,7 +788,7 @@ contains
 !    uminletbc = uminletbc + (Uinf-utop)
 
 ! write inletplane to array (and to file after 1000 time steps)   
-    if (lstoreplane == .true.) then     
+    if (lstoreplane ) then     
       storeu0inletbc(:,:,nstepread) = u0inletbc(:,:) 
       storev0inletbc(:,:,nstepread) = v0inletbc(:,:)
       storew0inletbc(:,:,nstepread) = w0inletbc(:,:)
@@ -800,7 +800,7 @@ contains
         call writerestartfiles 
         nstepread = 1          ! reset counter 
       end if   ! nstepread == 1001      
-    end if ! lstoreplane == .true.
+    end if ! lstoreplane 
     
 
     if (rk3step==1) then
@@ -810,7 +810,7 @@ contains
       tminletbc = t0inletbc
     end if
 
-   if (lbuoyancy ==.true.) then
+   if (lbuoyancy ) then
 !     call blthicknessmo(di_test,utaui,lmoi)
      call blthicknesst(di_test,Uinl,0.99)
 !     call dispthicknessmo(displ)  ! needed in top BC
@@ -822,7 +822,7 @@ contains
      call dispthicknessexp(displ)
    end if
    call blthicknesst(dti_test,Tinl-thls,0.99)
-   if (myid==0 .and. rk3step==3) then
+   if ((myid==0) .and. (rk3step==3)) then
      write(6,*) 'Inlet Gen: gamma,lambda=',gamm,lamb
      write(6,*) 'Inlet Gen: Uinl(ke),Tinl(ke)=',Uinl(ke),Tinl(ke)
      write(6,*) 'Inlet Gen: utaui,utaur =',utaui,utaur
@@ -833,14 +833,14 @@ contains
      write(6,*) 'Inlet Gen: d*i, d*r=',displ(ib),displ(irecy)
      write(6,*) 'Inlet Gen: thetai,thetar',thetai,thetar
      write(6,*) 'Inlet Gen: thetati,thetatr',thetati,thetatr
-     if (lmassflowr == .true.) then
+     if (lmassflowr ) then
        write(6,*) 'Inlet Gen: mass flux correction factor = ',scalef
 !       write(6,*) 'Inlet Gen: mass flux                   = ',totalreadu
        write(6,*) 'Inlet Gen: mass flux                   = ',totaluinl
      end if
    end if
     
-    elseif (linletgen == 2) then
+    elseif (iinletgen == 2) then
       if (myid==0) then
         write(6,*) 'nstepread=',nstepread
       end if
@@ -927,12 +927,12 @@ contains
         wminletbc = w0inletbc
         tminletbc = t0inletbc
       end if
-    end if  ! linletgen
+    end if  ! iinletgen
 
   end subroutine inletgen
  
   subroutine inletgennotemp
-    use modglobal,   only : ib,ie,jb,je,jgb,jge,kb,ke,zf,zh,dzf,dzhi,timee,btime,totavtime,rk3step,dt,numol,iplane,lles,linletgen,inletav,runavtime,Uinf,lwallfunc,linletRA,totinletav,lstoreplane,nstore,lfixinlet,lfixutauin,lmassflowr
+    use modglobal,   only : ib,ie,jb,je,jgb,jge,kb,ke,zf,zh,dzf,dzhi,timee,btime,totavtime,rk3step,dt,numol,iplane,lles,iinletgen,inletav,runavtime,Uinf,lwallfunc,linletRA,totinletav,lstoreplane,nstore,lfixinlet,lfixutauin,lmassflowr
     use modfields,   only : u0,v0,w0,wm,uprof
     use modsave,     only : writerestartfiles
     use modmpi,      only : slabsum,myid
@@ -976,7 +976,7 @@ contains
     real                    :: totaluinl                   ! bulk velocity at the inlet
     integer i,j,k,kk
 
-   if (linletgen == 1) then
+   if (iinletgen == 1) then
 
    u0inletbcold = u0inletbc
    v0inletbcold = v0inletbc
@@ -995,7 +995,7 @@ contains
       deltat = rk3coef - (dt/2.)
     end if
 
-    if (linletRA== .true.) then  ! this is a switch to use 'running average'
+    if (linletRA) then  ! this is a switch to use 'running average'
       avint = totinletav + timee-btime ! runav interval = averaging interval previuous sim  + current elapsed sim time
     else
       avint  = inletav
@@ -1042,7 +1042,7 @@ contains
     end do
 
  
-    if (lwallfunc==.true.) then
+    if (lwallfunc) then
       call wallawinlet(Urec(kb),dzf(kb),numol,utaur2)    ! compute wall shear stress at recycle station
     else
       utaur2 = 2.*numol*Urec(kb)/dzf(kb)
@@ -1059,7 +1059,7 @@ contains
    call momentumthicknessexp(thetar,Urec)       
 !   call blthickness(dr,utaur)
   
-    if (lfixutauin /= .true.) then 
+    if (.not.lfixutauin) then 
       utaui  = utaur* abs(thetar/thetai)**(1./8.)   ! See Lund (1998): 'Similar to Ludwig-Tillmann correlation'
     end if
     gamm = utaui / utaur                          ! Gamma in Lund (1998)
@@ -1150,7 +1150,7 @@ contains
         Uinli(k) = Urec(kb)/zirf(kb) * ziif(k)
       else                            ! normal interpolation
         Uinli(k) = Urec(loclowif(k)) + (Urec(locupif(k)) - Urec(loclowif(k))) / (zirf(locupif(k)) - zirf(loclowif(k)))* (ziif(k) - zirf(loclowif(k)))
-        if (ziif(k) .gt. zirf(locupif(k)) .or. ziif(k) .lt. zirf(loclowif(k))) then
+        if ((ziif(k) .gt. zirf(locupif(k))) .or. (ziif(k) .lt. zirf(loclowif(k)))) then
           write(6,*) '!!!Mistake in Interpolation !!!!'
         end if
       end if
@@ -1308,7 +1308,7 @@ contains
       totalu = sum(uravdzf(kb:ke))/(zh(ke+1)-zh(kb))      ! Area-averaged outflow velocity
 
 ! correct instantaneous inflow velocity for constant mass-flux
-      if (lmassflowr == .true.) then
+      if (lmassflowr ) then
         do k=kb,ke
           uinldzf(k) = Uinl(k)*dzf(k)     
         end do
@@ -1319,14 +1319,14 @@ contains
       end if
 
    ! Compute j- and time-averaged  inlet U  (used for compute thetai)
-    if (lfixinlet == .false.) then  ! only update the average inlet profiles when lfixinlet == .false.
+    if (.not.lfixinlet) then  ! only update the average inlet profiles when lfixinlet .eqv..false.
       do k=kb,ke
         Uinl(k) =  urav(k)*deltat*avinti + (1.-deltat*avinti)*Uinl(k)
       end do
     end if
 
 ! write inletplane to array (and to file after 1000 time steps)   
-    if (lstoreplane == .true.) then     
+    if (lstoreplane ) then     
       storeu0inletbc(:,:,nstepread) = u0inletbc(:,:) 
       storev0inletbc(:,:,nstepread) = v0inletbc(:,:)
       storew0inletbc(:,:,nstepread) = w0inletbc(:,:)
@@ -1337,7 +1337,7 @@ contains
         call writerestartfiles
         nstepread = 1          ! reset counter 
       end if   ! nstepread == 1001      
-    end if ! lstoreplane == .true.
+    end if ! lstoreplane 
     
 
     if (rk3step==1) then
@@ -1352,21 +1352,21 @@ contains
 !   call dispthickness(displ)  ! needed in top BC
    call dispthicknessexp(displ)  ! needed in top BC
 
-   if (myid==0 .and. rk3step==3) then
+   if ((myid==0) .and. (rk3step==3)) then
      write(6,*) 'Inlet Gen: gamma=',gamm
      write(6,*) 'Inlet Gen: Uinl(ke)=',Uinl(ke)
      write(6,*) 'Inlet Gen: utaui,utaur =',utaui,utaur
      write(6,*) 'Inlet Gen: deltar, deltai_test', dr, di_test
      write(6,*) 'Inlet Gen: d*i, d*r=',displ(ib),displ(irecy)
      write(6,*) 'Inlet Gen: thetai,thetar',thetai,thetar
-     if (lmassflowr == .true.) then
+     if (lmassflowr ) then
        write(6,*) 'Inlet Gen: mass flux correction factor = ',scalef
 !       write(6,*) 'Inlet Gen: mass flux                   = ',totalreadu
        write(6,*) 'Inlet Gen: mass flux                   = ',totaluinl
      end if
    end if
     
-    elseif (linletgen == 2) then
+    elseif (iinletgen == 2) then
       if (myid==0) then
         write(6,*) 'nstepread=',nstepread
       end if
@@ -1449,7 +1449,7 @@ contains
         vminletbc = v0inletbc
         wminletbc = w0inletbc
       end if
-    end if  ! linletgen
+    end if  ! iinletgen
 
   end subroutine inletgennotemp
 
@@ -1623,7 +1623,7 @@ contains
   subroutine dispthicknessmo(output)
 ! output is an array of length (ib:ie)) containing displacement thickness values
     use modglobal, only : ib,ie,kb,ke,dzf,xf,Uinf,numol,grav,prandtlmoli
-    use modsurface, only : thls
+    use modsurfdata, only : thls
     implicit none
 
        real, dimension(ib:ie),       intent(out) :: output  !< dispacement thickness
@@ -1645,7 +1645,7 @@ contains
          ustar     = sqrt(abs(2.*numol* Utav(i,kb)/dzf(kb)))              ! average streamwise friction at x-location
          tstar     = numol*prandtlmoli* 2.*(Ttav(i,kb)-thls)/(dzf(kb)*ustar)    ! average shear temp. at x-location
          lmo       = (thls*ustar**2)/(kappa*grav*tstar)                  ! obukhov length at this x-location
-         if (lmo >= 10000. .or. lmo <= 0.01) then
+         if ((lmo >= 10000.) .or. (lmo <= 0.01)) then
            lmo = 1000.
          end if
 !         lmo = 0.3  !! TEMPORARY
@@ -1863,7 +1863,7 @@ contains
       write(ifoutput)  (((storew0inletbc (j,k,n),j=jb,je),k=kb,ke+1),n=1,nstore)
       close (ifoutput)
 
-      if (ltempeq == .true.) then
+      if (ltempeq ) then
         name = 'inlet/itemp_    k   .'
         write (name(13:16)  ,'(i4.4)') nfile
         name(18:20)= cmyid
@@ -1922,7 +1922,7 @@ contains
         read(ifinput)  (((storew0inold (j,k,n),j=jbin,jein),k=kbin,kein+1),n=1,nstore)
         close (ifinput)
 
-        if (ltempeq ==.true.) then
+        if (ltempeq ) then
           name = 'inlet/itemp_    k   .'
           write (name(13:16)  ,'(i4.4)') nfile
           write (name(18:20)  ,'(i3.3)') filen
@@ -1954,7 +1954,7 @@ contains
         storeu0indum(jsdum:jfdum,:,:)    = storeu0inold(js:jf,:,:)      ! s: start  f: final
         storev0indum(jsdum:jfdum,:,:)    = storev0inold(js:jf,:,:)      ! s: start  f: final
         storew0indum(jsdum:jfdum,:,:)    = storew0inold(js:jf,:,:)      ! s: start  f: final
-        if (ltempeq ==.true.) then
+        if (ltempeq ) then
           storet0indum(jsdum:jfdum,:,:)    = storet0inold(js:jf,:,:)      ! s: start  f: final
         end if
       end do  ! loop over original inlet files
@@ -1964,18 +1964,18 @@ contains
       call yinterpolate (storew0indum,storew0innew,kbin,kein+1)
       call yinterpolate (storet0indum,storet0innew,kbin,kein)
 
-      if (lzinzsim==.false.) then ! interpolate when zin =/ zsim
+      if (.not.lzinzsim) then ! interpolate when zin =/ zsim
         call zinterpolate (storeu0innew(:,:,:),storeu0inletbc)   ! interpolate inlet profile to zgrid
         call zinterpolate (storev0innew(:,:,:),storev0inletbc)   ! interpolate inlet profile to zgrid
         call zinterpolatew(storew0innew(:,:,:),storew0inletbc)   ! interpolate inlet profile to zgrid
-        if (ltempeq==.true.) then
+        if (ltempeq) then
           call zinterpolatet(storet0innew(:,:,:),storet0inletbc)   ! interpolate inlet profile to zgrid
         end if
       else
         storeu0inletbc(:,:,:) = storeu0inold(:,:,:)
         storev0inletbc(:,:,:) = storev0inold(:,:,:)
         storew0inletbc(:,:,:) = storew0inold(:,:,:)
-        if (ltempeq==.true.) then
+        if (ltempeq) then
           storet0inletbc(:,:,:) = storet0inold(:,:,:)
         end if
       end if
@@ -2023,7 +2023,7 @@ contains
 !        output(:,k,:) = input(:,kbin,:)   ! temeperature is not zero at the wall, so line above is wrong
       else                            ! normal interpolation
         output(:,k,:) = input(:,linlf(k),:) + (input(:,linuf(k),:) - input(:,linlf(k),:)) / (zfin(linuf(k)) - zfin(linlf(k))) * (zf(k) - zfin(linlf(k)))
-        if (zf(k) .gt. zfin(linuf(k)) .or. zf(k) .lt. zfin(linlf(k))) then
+        if ((zf(k) .gt. zfin(linuf(k))) .or. (zf(k) .lt. zfin(linlf(k)))) then
           write(6,*) '!!!Mistake in zinterpolate !!!!'
         end if
       end if
@@ -2047,7 +2047,7 @@ contains
 !        output(:,k,:) = input(:,kbin,:)   ! temeperature is not zero at the wall, so line above is wrong
       else                            ! normal interpolation
         output(k) = input(linlf(k)) + (input(linuf(k)) - input(linlf(k))) / (zfin(linuf(k)) - zfin(linlf(k))) * (zf(k) - zf(linlf(k)))
-        if (zf(k) .gt. zfin(linuf(k)) .or. zf(k) .lt. zfin(linlf(k))) then
+        if ((zf(k) .gt. zfin(linuf(k))) .or. (zf(k) .lt. zfin(linlf(k)))) then
           write(6,*) '!!!Mistake in zinterpolate1d !!!!'
         end if
       end if
@@ -2070,7 +2070,7 @@ contains
 !        output(:,k,:) = input(:,kbin,:)   ! temeperature is not zero at the wall, so line above is wrong
       else                            ! normal interpolation
         output(:,k) = input(:,linlf(k)) + (input(:,linuf(k)) - input(:,linlf(k))) / (zfin(linuf(k)) - zfin(linlf(k))) * (zf(k) - zf(linlf(k)))
-        if (zf(k) .gt. zfin(linuf(k)) .or. zf(k) .lt. zfin(linlf(k))) then
+        if ((zf(k) .gt. zfin(linuf(k))) .or. (zf(k) .lt. zfin(linlf(k)))) then
           write(6,*) '!!!Mistake in zinterpolate2d !!!!'
         end if
       end if
@@ -2097,7 +2097,7 @@ contains
 !        output(:,k,:) = input(:,kbin,:)   ! temeperature is not zero at the wall, so line above is wrong
       else                            ! normal interpolation
         output(:,k,:) = input(:,linlh(k),:) + (input(:,linuh(k),:) - input(:,linlh(k),:)) / (zhin(linuh(k)) - zhin(linlh(k))) * (zh(k) - zhin(linlh(k)))
-        if (zh(k) .gt. zhin(linuh(k)) .or. zh(k) .lt. zhin(linlh(k))) then
+        if ((zh(k) .gt. zhin(linuh(k))) .or. (zh(k) .lt. zhin(linlh(k)))) then
           write(6,*) '!!!Mistake in zinterpolatew !!!!'
         end if
       end if
@@ -2123,7 +2123,7 @@ contains
 !        output(:,k,:) = input(:,kbin,:)   ! temeperature is not zero at the wall, so line above is wrong
       else                            ! normal interpolation
         output(k) = input(linlh(k)) + (input(linuh(k)) - input(linlh(k))) / (zhin(linuh(k)) - zhin(linlh(k))) * (zh(k) - zh(linlh(k)))
-        if (zh(k) .gt. zhin(linuh(k)) .or. zh(k) .lt. zhin(linlh(k))) then
+        if ((zh(k) .gt. zhin(linuh(k))) .or. (zh(k) .lt. zhin(linlh(k)))) then
           write(6,*) '!!!Mistake in zinterpolatew1d !!!!'
         end if
       end if
@@ -2152,7 +2152,7 @@ contains
 !        output(:,k,:) = input(:,kbin,:)   ! temeperature is not zero at the wall, so line above is wrong
       else                            ! normal interpolation
         output(:,k,:) = input(:,linlf(k),:) + (input(:,linuf(k),:) - input(:,linlf(k),:)) / (zfin(linuf(k)) - zfin(linlf(k))) * (zf(k) - zfin(linlf(k)))
-        if (zf(k) .gt. zfin(linuf(k)) .or. zf(k) .lt. zfin(linlf(k))) then
+        if ((zf(k) .gt. zfin(linuf(k))) .or. (zf(k) .lt. zfin(linlf(k)))) then
           write(6,*) '!!!Mistake in zinterpolatet !!!!'
         end if
       end if
@@ -2179,7 +2179,7 @@ contains
 !        output(:,k,:) = input(:,kbin,:)   ! temeperature is not zero at the wall, so line above is wrong
       else                            ! normal interpolation
         output(k) = input(linlf(k)) + (input(linuf(k)) - input(linlf(k))) / (zfin(linuf(k)) - zfin(linlf(k))) * (zf(k) - zf(linlf(k)))
-        if (zf(k) .gt. zfin(linuf(k)) .or. zf(k) .lt. zfin(linlf(k))) then
+        if ((zf(k) .gt. zfin(linuf(k))) .or. (zf(k) .lt. zfin(linlf(k)))) then
           write(6,*) '!!!Mistake in zinterpolatet1d !!!!'
         end if
       end if
@@ -2228,12 +2228,13 @@ contains
   integer ierr,k,kk,kmaxin,j,jj
   real ysizeproc
 
+      namelist/INFO/nprocsinl,jgtotinl,kmaxin,dtin,wtop,totalreadu
+
   namezinlet = 'zgrid.inl'
   namezinfo  = 'zgrid.inf'
  
     if (myid==0) then
   
-      namelist/INFO/nprocsinl,jgtotinl,kmaxin,dtin,wtop,totalreadu
 
       open(ifinput,file=namezinfo,status='old',iostat=ierr)
         if (ierr /= 0) then
@@ -2307,7 +2308,7 @@ contains
     call MPI_BCAST(lzinzsim,1,MPI_INTEGER      ,0,comm3d,mpierr)
 
     
-    if (lzinzsim == .false.) then 
+    if (.not.lzinzsim) then 
       if (myid==0) then
         write(6,*) 'zgrid.inl does not equal zgrid.inp: Inlet will be interpolated in z'
       end if
@@ -2346,7 +2347,7 @@ contains
         end do
       end do
 
-     else  ! lzinzsim == .true. -> grids are equal
+     else  ! lzinzsim  -> grids are equal
        if (myid==0) then 
          write(6,*) 'zgrid.inl equals zgrid.inp: Inlet will not be interpolated in z'
        end if
@@ -2474,22 +2475,22 @@ contains
 
 
   subroutine exitinlet
-  use modglobal,      only : linletgen,lstoreplane,ltempeq
+  use modglobal,      only : iinletgen,lstoreplane,ltempeq
 
-  if (linletgen==1) then
+  if (iinletgen==1) then
     deallocate(Uinl,Winl,Urec,Wrec,u0inletbc,v0inletbc,w0inletbc,zirf,ziif,ziih,zirh,zorf,zoif,zorh,zoih,loclowif,locupif,loclowih,locupih,loclowof,locupof,loclowoh,locupoh,uminletbc,vminletbc,wminletbc,u0inletbcold,v0inletbcold,w0inletbcold,Utav,upupavinl,vpvpavinl,wpwpavinl,upwpavinl,thlpthlpavinl,thlpupavinl,thlpwpavinl)
-    if (ltempeq == .true.) then
+    if (ltempeq ) then
        deallocate(t0inletbc,tminletbc,t0inletbcold,loclowot,locupot,zotr,zoti,Tinl,Trec)
     end if
-    if (lstoreplane == .true.) then 
+    if (lstoreplane ) then 
       deallocate(storeu0inletbc,storev0inletbc,storew0inletbc)
-       if (ltempeq == .true.) then
+       if (ltempeq ) then
          deallocate(storet0inletbc)
        end if
     end if 
-  else if (linletgen == 2) then
+  else if (iinletgen == 2) then
     deallocate(storeu0inletbc,storev0inletbc,storew0inletbc,u0inletbc,v0inletbc,w0inletbc,uminletbc,vminletbc,wminletbc,u0inletbcold,v0inletbcold,w0inletbcold)
-    if (ltempeq == .true.) then
+    if (ltempeq ) then
        deallocate(t0inletbc,tminletbc,t0inletbcold,storet0inletbc)
     end if
   end if

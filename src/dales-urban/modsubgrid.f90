@@ -124,7 +124,7 @@ contains
     call MPI_BCAST(Prandtl    ,1,MY_REAL   ,0,comm3d,mpierr)
     prandtli = 1./Prandtl
     write(*,*) '1/prandtl',prandtli
-    if (lsmagorinsky==.true. .or. lvreman==.true. .or. loneeqn==.true.) then
+    if ((lsmagorinsky) .or. (lvreman) .or. (loneeqn)) then
        lles =.true.
     endif
 
@@ -200,9 +200,9 @@ contains
 
     use modglobal,   only : ib,ie,jb,je,kb,ke,kh,ih,jh,jmax,delta,ekmin,grav, zf, fkar,jgb,jge,&
          dxf,dxf2,dxhi,dxfi,dy2,dyi,dyiq,dzf,dzf2,dzfi,dzhi,rk3step,rslabs, &
-         cu,cv,numol,numoli,prandtlmoli,lles, rk3step,dxfiq,dzfiq,lbuoyancy,dzh
-    use modfields,   only : dthvdz,e120,u0,v0,w0,thl0,mindist,wall,shear,yplus
-    use modsurfdata, only : dudz,dvdz,thvs,z0m,ustar
+         numol,numoli,prandtlmoli,lles, rk3step,dxfiq,dzfiq,lbuoyancy,dzh
+    use modfields,   only : dthvdz,e120,u0,v0,w0,thl0,mindist,wall,shear
+    use modsurfdata, only : dudz,dvdz,thvs,ustar
     use modmpi,    only : excjs, myid, nprocs, comm3d, mpierr, my_real,mpi_sum,slabsumi
     use modboundary, only : closurebc 
     use modinletdata, only : utaui
@@ -214,7 +214,7 @@ contains
          b23,b33,bb,const,const2
     integer :: i,j,k,kp,km,jp,jm,im,ip,iw,jw,kw,c1,c2
 
-    !  if (lles == .true. .and. rk3step == 1) then        ! compute ekm and ekh only once in complete RK-cycle
+    !  if (lles  .and. rk3step == 1) then        ! compute ekm and ekh only once in complete RK-cycle
     if(lsmagorinsky) then
        do k = kb,ke
           kp=k+1
@@ -232,7 +232,7 @@ contains
                 kw = wall(i,j,k,3)
                 c1 = wall(i,j,k,4)   ! shear stress component
                 c2 = wall(i,j,k,5)   ! shear stress component
-                if (jw >= jb-1 .and. jw <= je+1) then      ! check if jw is within the halo of this proc
+                if ((jw >= jb-1) .and. (jw <= je+1)) then      ! check if jw is within the halo of this proc
                    !write(*,'(A,E9.2,A,E9.2,A,E9.2,A,E9.2)') 'component1:', c1, 'component2:', c2, 'shear c1:', shear(iw,jw,kw,c1), 'shear c2:', shear(iw,jw,kw,c2)
                    distplus = mindist(i,j,k)*sqrt(abs(shear(iw,jw,kw,c1))+abs(shear(iw,jw,kw,c2)))*numoli
                    damp(i,j,k) = sqrt(1. - exp((-distplus*0.04)**3.))            ! Wall-damping according to Piomelli
@@ -291,7 +291,7 @@ contains
        !    ekh(:,:,:) = max(ekh(:,:,:),ekmin)
     elseif(lvreman) then
 
-       if (lbuoyancy == .true. .and. lbuoycorr==.true. ) then
+       if ((lbuoyancy) .and. (lbuoycorr)) then
        const = prandtli*grav/(thvs*sqrt(2.*3.))
          do k = kb,ke
           kp = k+1
@@ -352,8 +352,8 @@ contains
                 if (dthvdz(i,j,k) <= 0) then
                   const2=(bb/aa)
                 else
-                  write(*,*) "const",const
-                  write(*,*) "delta",delta
+                 ! write(*,*) "const",const
+                 ! write(*,*) "delta",delta
                   const2=(bb/aa)-(delta(i,k)**4)*dthvdz(i,j,k)*const
                   if (const2 <0) const2 = 0
                 end if
@@ -421,7 +421,6 @@ else  ! neutral case
           b13 = dxf2(i)*a11*a13 + dy2*a21*a23 + dzf2(k)*a31*a33
           b23 = dxf2(i)*a12*a13 + dy2*a22*a23 + dzf2(k)*a32*a33
           bb = b11*b22 - b12*b12 + b11*b33 - b13*b13 + b22*b33 - b23*b23
-
           if (bb < 0.00000001) then
             ekm(i,j,k) = 0.
             ekh(i,j,k) = 0.
@@ -440,7 +439,7 @@ else  ! neutral case
 
 
         !do TKE scheme
-    elseif (loneeqn ==.true.) then 
+    elseif (loneeqn ) then 
        do k=kb,ke
           do j=jb,je
              do i=ib,ie
@@ -457,9 +456,8 @@ else  ! neutral case
                 !else 
                 damp(i,j,k) = 1.
                 !end if
-                if (ldelta .or. (dthvdz(i,j,k)<=0)) then
+                if ((ldelta) .or. (dthvdz(i,j,k)<=0)) then
                    zlt(i,j,k) = delta(i,k)
-                   if (lmason) zlt(i,j,k) = (1. / zlt(i,j,k) ** nmason + 1. / ( fkar * (zf(k) + z0m(i,j)))**nmason) ** (-1./nmason)
                    ekm(i,j,k) = cm * zlt(i,j,k) *damp(i,j,k)* e120(i,j,k) !* 0.5! LES with near-wall damping !!! added factor 0.5 for shear-driven flow
                    ekh(i,j,k) = (ch1 + ch2) * ekm(i,j,k)               ! maybe ekh should be calculated from (molecular) Prandtl number
                    ekm(i,j,k) = ekm(i,j,k) + numol                     ! add molecular viscosity
@@ -526,6 +524,7 @@ else  ! neutral case
          dzh, delta
     use modfields,   only : u0,v0,w0,e120,e12p,dthvdz,thl0,thvf
     use modsurfdata,  only : dudz,dvdz,thvs
+!    use modmpi,       only : myid
     implicit none
 
     real    tdef2,prandtlmoli
@@ -547,7 +546,6 @@ else  ! neutral case
     !      end do
     !    end do
     ! End of addition by J. Tomas (thermodynamics routine is bypassed)
-
 
     do k=kb+1,ke
        do j=jb,je
@@ -676,7 +674,7 @@ else  ! neutral case
     real    cekh
     integer i,j,k,jm,jp,km,kp
 
-    if (lles==.true.) then
+    if (lles) then
 
        do k=kb,ke
           kp=k+1
@@ -782,7 +780,7 @@ else  ! neutral case
   subroutine diffu (putout)
 
     use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,kmax,dxhi,dxf,dxfi,lles,&          
-         dzf,dzfi,dy,dyi,dy2i,dzhi,dzhiq,cu,cv,jmax,numol
+         dzf,dzfi,dy,dyi,dy2i,dzhi,dzhiq,jmax,numol
     use modfields, only : u0,v0,w0
     use modsurfdata,only : ustar
     use modmpi, only    : myid
@@ -790,11 +788,11 @@ else  ! neutral case
 
     real, intent(inout) :: putout(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
     real                :: emmo,emom,emop,empo
-    real                :: fu
+    real                :: fu,dummy
     real                :: ucu, upcu
     integer             :: i,j,k,jm,jp,km,kp
 
-    if (lles==.true.) then
+    if (lles) then
 
        do k=kb,ke
           kp=k+1
@@ -869,7 +867,7 @@ else  ! neutral case
           end do
        end do
 
-    end if   ! lles==.true.
+    end if   ! lles
 
   end subroutine diffu
 
@@ -877,7 +875,7 @@ else  ! neutral case
   subroutine diffv (putout)
 
     use modglobal, only   : ib,ie,ih,jb,je,jh,kb,ke,kh,dxf,dxhi,dxfi,dzf,dzfi,dyi,&
-         dy2i,dzhi,dzhiq,cu,cv,jmax,numol,lles
+         dy2i,dzhi,dzhiq,jmax,numol,lles
     use modfields, only   : u0,v0,w0
     use modsurfdata,only  : ustar
     use modmpi, only      : myid
@@ -889,7 +887,7 @@ else  ! neutral case
     real                :: fv, vcv,vpcv
     integer             :: i,j,k,jm,jp,km,kp
 
-    if (lles==.true.) then
+    if (lles) then
 
        do k=kb,ke
           kp=k+1
@@ -986,7 +984,7 @@ else  ! neutral case
     real                :: emom, eomm, eopm, epom
     integer             :: i,j,k,jm,jp,km,kp
 
-    if (lles==.true.) then
+    if (lles) then
 
        do k=kb+1,ke
           kp=k+1

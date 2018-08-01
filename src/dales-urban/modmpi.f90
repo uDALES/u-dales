@@ -54,7 +54,7 @@ contains
     integer periods2(1)
 
     call MPI_INIT(mpierr)
-    MY_REAL = MPI_DOUBLE_PRECISION
+    MY_REAL = MPI_DOUBLE_PRECISION  !MPI_REAL8 should be the same..
     call MPI_COMM_RANK( MPI_COMM_WORLD, myid, mpierr )
     call MPI_COMM_SIZE( MPI_COMM_WORLD, nprocs, mpierr )
 ! Specify the # procs in each direction.
@@ -206,6 +206,9 @@ contains
   return
   end subroutine excj
 
+  ! tg3315 - does some transfer of ghost cell information in the y-direction.
+  ! nbrbottom is cpu below and nbrtop is cpu above
+  ! MPI_PROC_NULL = -2???
   subroutine excjs( a, sx, ex, sy, ey, sz,ez,ih,jh)
     implicit none
   integer sx, ex, sy, ey, sz, ez, ih, jh
@@ -220,14 +223,13 @@ contains
             buffj3(iiget),&
             buffj4(iiget))
 
-
   if(nbrtop/=MPI_PROC_NULL)then
     ii = 0
     do j=1,jh
     do k=sz,ez
     do i=sx-ih,ex+ih
       ii = ii + 1
-      buffj1(ii) = a(i,ey-j+1,k)
+      buffj1(ii) = a(i,ey-j+1,k) ! tg3315 buffj1 is je-jhc ghost cells on myid
     enddo
     enddo
     enddo
@@ -236,19 +238,24 @@ contains
   call MPI_SENDRECV(  buffj1,  ii    , MY_REAL, nbrtop, 4, &
                            buffj2,  iiget , MY_REAL, nbrbottom,  4, &
                            comm3d, status, mpierr )
+
+  ! tg3315 sends this to nbrtop and pulls buffj2 from nbrbottom! send and receive process that is good for executing chain shifts.
+
   if(nbrbottom/=MPI_PROC_NULL)then
     ii = 0
     do j=1,jh
     do k=sz,ez
     do i=sx-ih,ex+ih
       ii = ii + 1
-      a(i,sy-j,k) = buffj2(ii)
+      a(i,sy-j,k) = buffj2(ii) ! set the previous ghost cells to buffj2 (last cells of nbrbottom I think)
     enddo
     enddo
     enddo
   endif
 
 !   call barrou()
+
+  ! repeats this process for other way round
 
   if(nbrbottom/=MPI_PROC_NULL)then
     ii = 0
@@ -308,6 +315,33 @@ contains
     return
   end subroutine slabsum
 
+  subroutine avexy_ibm(aver,var,ib,ie,jb,je,kb,ke,ih,jh,kh,II,IIs)
+    implicit none
+
+    integer :: ib,ie,jb,je,kb,ke,ih,jh,kh
+    real    :: aver(kb:ke+kh)
+    real    :: var(ib:ie,jb:je,kb:ke+kh)
+    integer :: II(ib:ie,jb:je,kb:ke+kh)
+    integer :: IIs(kb:ke+kh)
+    real    :: averl(kb:ke+kh)
+    real    :: avers(kb:ke+kh)
+    integer :: k
+
+    averl       = 0.
+    avers       = 0.
+
+    do k=kb,ke+kh
+      averl(k) = sum(var(ib:ie,jb:je,k)*II(ib:ie,jb:je,k))
+    enddo
+
+    call MPI_ALLREDUCE(averl, avers, ke+kh-kb+1,  MY_REAL, &
+                          MPI_SUM, comm3d,mpierr)
+    
+    aver =  avers/IIs
+
+    return
+  end subroutine avexy_ibm
+
   subroutine slabsumi(aver,iis,iif,var,ib,ie,jb,je,kb,ke,ibs,ies,jbs,jes,kbs,kes)
     implicit none
 
@@ -334,5 +368,30 @@ contains
     return
   end subroutine slabsumi
 
+  !Could make this so it has cases like if the input is 1,2 or 3D...
+  subroutine avey_ibm(aver,var,ib,ie,jb,je,kb,ke,II,IIt)
+  implicit none
+  integer                 :: ib,ie,jb,je,kb,ke
+  real                    :: aver(ib:ie,kb:ke)
+  real                    :: avero(ib:ie,kb:ke)
+  real                    :: var(ib:ie,jb:je,kb:ke)
+  integer                 :: II(ib:ie,jb:je,kb:ke)
+  integer                 :: IIt(ib:ie,kb:ke)
+  logical                 :: lytdump
+
+  avero = 0.
+  aver  = 0.
+
+  avero = sum(var(ib:ie,jb:je,kb:ke)*II(ib:ie,jb:je,kb:ke), DIM=2)
+
+  call MPI_ALLREDUCE(avero(ib:ie,kb:ke), aver(ib:ie,kb:ke), (ke-kb+1)*(ie-ib+1), MY_REAL,MPI_SUM, comm3d,mpierr)
+
+  where (IIt==0)
+    aver = -999
+  elsewhere
+    aver = aver/IIt
+  endwhere
+ 
+  end subroutine avey_ibm
 
 end module

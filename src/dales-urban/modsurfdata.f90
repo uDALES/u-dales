@@ -27,6 +27,8 @@
 !
 
 
+!!whole module should be removed and variables moved
+
 
 module modsurfdata
 
@@ -36,18 +38,12 @@ SAVE
   integer :: isurf        = -1            !<   Flag for surface parametrization
 
   ! Surface properties
-  real, allocatable :: z0m        (:,:) !<  Roughness length for momentum [m]
-  real              :: z0mav    = -1
-  real, allocatable :: z0h        (:,:) !<  Roughness length for heat [m]
-  real              :: z0hav    = -1
   real, allocatable :: tskin      (:,:) !<  Skin temperature [K]
   real, allocatable :: qskin      (:,:) !<  Skin specific humidity [kg/kg]
   real              :: ps       = -1    !<  Surface pressure [Pa]
 
   ! Surface energy balance
   logical           :: lmostlocal  = .false.  !<  Switch to apply MOST locally to get local Obukhov length
-! logical           :: lneutral    = .false.  !<  Disable stability corrections
-!  logical           :: lneutral    = .true.  !<  Disable stability corrections
   real, allocatable :: obl   (:,:)      !<  Obukhov length [m]
   real              :: oblav =   0.001           !<  Spatially averaged obukhov length [m]
   real, allocatable :: Cm    (:,:)      !<  Drag coefficient for momentum [-]
@@ -70,13 +66,14 @@ SAVE
   real              :: qt_top  = -1     !<  Top value of specific humidity [kg/kg]
   real              :: thvs    = -1         !<  Surface virtual temperature [K]
   real, allocatable :: svs   (:)        !<  Surface scalar concentration [-]
-  real              :: z0    = -1       !<  Surface roughness length [m]
-
+  real              :: z0    = 0.1       !<  Surface roughness length [m]
+  real              :: z0h   = 0.1      !<  Surface roughness for heat [m]
   ! prescribed surface fluxes
-  real              :: ustin  = -1      !<  Prescribed friction velocity [m/s]
-  real              :: wtsurf = -1      !<  Prescribed kinematic temperature flux [K m/s]
-  real              :: wttop  = -1
-  real              :: wqsurf = -1      !<  Prescribed kinematic moisture flux [kg/kg m/s]
+  real              :: ustin  = 0      !<  Prescribed friction velocity [m/s]
+  real              :: wtsurf = 0      !<  Prescribed kinematic temperature flux [K m/s]
+  real              :: wttop  = 0
+  real              :: wqtop  = 0
+  real              :: wqsurf = 0      !<  Prescribed kinematic moisture flux [kg/kg m/s]
   real              :: wsvsurf(100) = 0 !<  Prescribed surface scalar(n) flux [- m/s]
 
   real              :: Cmav             !<  Average drag coefficient for momentum [-]

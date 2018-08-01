@@ -24,7 +24,8 @@ save
   logical :: loneeqn      = .false. !<  switch for one-eqn subgrid scheme
   real :: cf      = 2.5  !< filter constant
   real :: Rigc    = 0.25 !< critical Richardson number
-  real :: Prandtl = 3
+  real :: Prandtl = 0.333
+!  real :: Prandtl = 3.0
 !  real :: prandtli= 1./3.
   real :: prandtli
   real :: cm      = 0.12
@@ -44,6 +45,7 @@ save
 
   real, allocatable :: ekm(:,:,:)   !< k-coefficient for momentum
   real, allocatable :: ekh(:,:,:)   !< k-coefficient for heat and q_tot
+
   real, allocatable :: sbdiss(:,:,:)!< dissiation
   real, allocatable :: sbshr(:,:,:) !< shear production
   real, allocatable :: sbbuo(:,:,:) !< buoyancy production / destruction

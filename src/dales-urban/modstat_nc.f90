@@ -29,6 +29,7 @@
 !
 module modstat_nc
     use netcdf
+    use modmpi, only : myid
     implicit none
     integer, save :: timeID=0, ztID=0, zmID=0, xtID=0, xmID=0, ytID=0, ymID=0, ztsID=0
     real(kind=4) :: nc_fillvalue = -999.
@@ -44,28 +45,11 @@ contains
 
 
   subroutine initstat_nc
-    use modglobal, only : kmax,ifnamopt,fname_options,iexpnr,lnetcdf
+    use modglobal, only : kmax,ifnamopt,fname_options,iexpnr
     use modmpi,    only : mpierr,mpi_logical,comm3d,myid
     implicit none
 
     integer             :: ierr
-
-    namelist/NAMNETCDFSTATS/ &
-    lnetcdf
-
-    if(myid==0)then
-      open(ifnamopt,file=fname_options,status='old',iostat=ierr)
-      read (ifnamopt,NAMNETCDFSTATS,iostat=ierr)
-      if (ierr > 0) then
-        print *, 'Problem in namoptions NAMNETCDFSTATS'
-        print *, 'iostat error: ', ierr
-        stop 'ERROR: Problem in namoptions NAMNETCDFSTATS'
-      endif
-      write(6, NAMNETCDFSTATS)
-      close(ifnamopt)
-    end if
-
-    call MPI_BCAST(lnetcdf    ,1,MPI_LOGICAL, 0,comm3d,mpierr)
 
   end subroutine initstat_nc
 !
@@ -73,7 +57,7 @@ contains
 !> Subroutine Open_NC: Opens a NetCDF File and identifies starting record
 !
   subroutine open_nc (fname, ncid,nrec,n1, n2, n3, ns)
-    use modglobal, only : author,version,timee,lnetcdf
+    use modglobal, only : author,version,timee
     implicit none
     integer, intent (out) :: ncid,nrec
     integer, optional, intent (in) :: n1, n2, n3, ns
@@ -85,7 +69,7 @@ contains
     logical :: exans
 
     inquire(file=trim(fname),exist=exans)
-    write(*,*) 'opennc'
+    !write(*,*) 'opennc'
     ncall = 0
     if (.not.exans) then
 
@@ -185,12 +169,13 @@ contains
     character (*), intent (in) :: sx(nVar,4)
 
     integer, save ::  dim_mttt(4) = 0, dim_tmtt(4) = 0, dim_ttmt(4) = 0, dim_tttt(4) = 0, &
-                      dim_tt(2)= 0, dim_mt(2)= 0,dim_t0tt(3)=0,dim_m0tt(3)=0,dim_t0mt(3)=0,dim_tt0t(3)=0, &
+                      dim_tt(2)= 0, dim_mt(2)= 0,dim_t0tt(3)=0,dim_m0tt(3)=0,dim_t0mt(3)=0,&
+                      dim_m0mt(3)=0, dim_tt0t(3)=0, &
                       dim_mt0t(3)=0,dim_tm0t(3)=0,dim_0ttt(3)=0,dim_0mtt(3)=0,dim_0tmt(3)=0,&
-                      dim_tts(2)=0,dim_t0tts(3)=0,dim_0ttts(3)=0,dim_tttts(4)=0
+                      dim_tts(2)=0,dim_t0tts(3)=0,dim_0ttts(3)=0,dim_tttts(4)=0,dim_ttt0(3)=0 !tg3315 added last one
 
     integer :: iret, n, VarID
-    write(*,*) 'definenc'
+    !write(*,*) 'definenc'
     iret = nf90_inq_dimid(ncid,'time',timeId)
     iret = nf90_inq_dimid(ncid,'xt',xtId)
     iret = nf90_inq_dimid(ncid,'xm',xmId)
@@ -206,6 +191,7 @@ contains
     dim_t0tt= (/xtID,ztID,timeId/)! thermo point
     dim_t0mt= (/xtID,zmID,timeId/)! zpoint
     dim_m0tt= (/xmID,ztID,timeId/)! upoint
+    dim_m0mt= (/xmID,ztID,timeId/)! uw stats point
     dim_tt0t= (/xtID,ytID,timeId/)! thermo point
     dim_tm0t= (/xtID,ymID,timeId/)! vpoint
     dim_mt0t= (/xmID,ytID,timeId/)! upoint
@@ -218,13 +204,23 @@ contains
     dim_mttt= (/xmID,ytID,ztID,timeId/)! upoint
     dim_tmtt= (/xtID,ymID,ztId,timeId/)! ypoint
 
+    dim_ttt0= (/xtID,ytID,ztID/)! stats point tg3315
+
     dim_tts = (/ztsId,timeId/)
     dim_t0tts= (/xtID,ztsID,timeId/)! thermo soil point
     dim_0ttts= (/ytID,ztsID,timeId/)! thermo point
     dim_tttts= (/xtID,ytID,ztsID,timeId/)! thermo point
     do n=1,nVar
-      ! write(*,*) 'n', n
-      ! write(*,*) 'sx', sx
+!      write(*,*) 'n', n
+!      write(*,*) "dummyline1"
+!      write(*,*) 'sx1', sx(1,:)
+!      write(*,*) 'sx2', sx(2,:)
+!      write(*,*) "dummyline2"
+!      write(*,*) 'trim(sx(n,1))', trim(sx(n,1))
+!      write(*,*) 'trim(sx(n,2))', trim(sx(n,2))
+!      write(*,*) 'trim(sx(n,3))', trim(sx(n,3))
+!      write(*,*) 'trim(sx(n,4))', trim(sx(n,4))
+!      write (*,*) 'ncID', ncID
       iret = nf90_inq_varid(ncid, trim(sx(n,1)), VarID)
       if (iret == 0) cycle
       select case(trim(sx(n,4)))
@@ -241,6 +237,8 @@ contains
           iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_t0mt,VarID)
         case ('m0tt')
           iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_m0tt,VarID)
+        case ('m0mt')
+          iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_m0mt,VarID)
         case ('tt0t')
           iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_tt0t,VarID)
         case ('tm0t')
@@ -253,6 +251,8 @@ contains
           iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_0tmt,VarID)
         case ('0mtt')
           iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_0mtt,VarID)
+        case ('ttt0')                  !tg3315 for uav,vav,wav etc.
+          iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_ttt0,VarID)
   !3D Fields
         case ('tttt')
           iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_tttt,VarID)
@@ -272,14 +272,14 @@ contains
         case ('tttts')
           iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_tttts,VarID)
         case default
-      !  write(*,*) 'nvar', nvar, sx(n,:)
+        write(*,*) 'nvar', nvar, sx(n,:)
         print *, 'ABORTING: Bad dimensional information ',sx(n,:)
         stop
         ! call appl_abort(0)
       end select
       if (iret/=0) then
-      !  write (*,*) 'nvar', nvar, sx(n,:)
-
+!        write (*,*) 'nvar', nvar, sx(n,:)
+!        write (*,*) 'ncID', ncID
         call nchandle_error(iret)
       end if
       iret = nf90_put_att(ncID,VarID,'longname',sx(n,2))
@@ -313,11 +313,12 @@ contains
     implicit none
     integer, intent(in) :: ncid
     integer             :: i=0,iret,length,varid
-    write(*,*) 'dimsnc'
+    write(*,*) 'writestat_dims_nc'
     iret = nf90_inq_varid(ncid, 'xt', VarID)
     if (iret==0) iret=nf90_inquire_dimension(ncid, xtID, len=length)
-    if (iret==0) iret = nf90_put_var(ncid, varID, zf(1:length),(/1/))
+    !if (iret==0) iret = nf90_put_var(ncid, varID, zf(1:length),(/1/))
     if (iret==0) iret = nf90_put_var(ncid, varID, xf(1:length),(/1/))
+    
     iret = nf90_inq_varid(ncid, 'xm', VarID)
     if (iret==0) iret=nf90_inquire_dimension(ncid, xmID, len=length)
     if (iret==0) iret = nf90_put_var(ncid, varID, xh(1:length),(/1/))
@@ -331,10 +332,10 @@ contains
 
     iret = nf90_inq_varid(ncid, 'zt', VarID)
     if (iret==0) iret=nf90_inquire_dimension(ncid,ztID, len=length)
-    if (iret==0) iret = nf90_put_var(ncid, varID, zf(1:length),(/1/))
+    if (iret==0) iret = nf90_put_var(ncid, varID, zf(0:length-1),(/1/))  !ils13, 29.06.2017 zf starts at 0, not at 1
     iret = nf90_inq_varid(ncid, 'zm', VarID)
     if (iret==0) iret=nf90_inquire_dimension(ncid, zmID, len=length)
-    if (iret==0) iret = nf90_put_var(ncid, varID, zh(1:length),(/1/))
+    if (iret==0) iret = nf90_put_var(ncid, varID, zh(0:length-1),(/1/))  !same for zh
     if (isurf==1) then
       iret = nf90_inq_varid(ncid, 'zts', VarID)
       if (iret==0) iret = nf90_inquire_dimension(ncid, ztsID, len=length)
@@ -352,7 +353,7 @@ contains
     logical, intent(in)                      :: lraise
 
     integer :: iret,n,varid
-    write(*,*) 'time-nc'
+    !write(*,*) 'time-nc'
     if(lraise) then
       nrec = nrec+1
     end if
@@ -403,18 +404,20 @@ contains
     character(*), dimension(:,:),intent(in)  :: ncname
 
     integer :: iret,n,varid
-    write(*,*) 'write 3Dnc'
+    !write(*,*) 'write 3Dnc'
     do n=1,nvar
       iret = nf90_inq_varid(ncid, ncname(n,1), VarID)
-           write(*,*) "nth netcdf variable",n
+           !write(*,*) 'MYID,.', myid
+           !write(*,*) "nth netcdf variable",n
            !write(*,*) 'ncid',ncid
-           write(*,*) "nvar",nvar
-           !write(*,*) 'ncname',ncname
-           !write(*,*) 'vars',vars
+           !write(*,*) "n",n
+           !write(*,*) 'ncname(n,1)',ncname(n,1)
+           !write(*,*) 'VarID',VarID
            !write(*,*) 'nrec',nrec
            !write(*,*) 'imax',dim1
            !write(*,*) 'jmax',dim2
            !write(*,*) 'kmax',dim3
+           !write(*,*) 'shape(vars)',shape(vars)
       iret = nf90_put_var(ncid, VarID, vars(1:dim1,1:dim2,1:dim3,n),(/1,1,1,nrec/),(/dim1,dim2,dim3,1/))
     end do
     iret = nf90_sync(ncid)
@@ -428,7 +431,7 @@ contains
     character(*), dimension(:,:),intent(in)  :: ncname
 
     integer :: iret,n,varid
-    write(*,*) '3Dnc short'
+    !write(*,*) '3Dnc short'
     do n=1,nvar
       iret = nf90_inq_varid(ncid, ncname(n,1), VarID)
       iret = nf90_put_var(ncid, VarID, vars(1:dim1,1:dim2,1:dim3,n),(/1,1,1,nrec/),(/dim1,dim2,dim3,1/))
@@ -457,6 +460,7 @@ contains
 
     if(status /= nf90_noerr) then
       print *, trim(nf90_strerror(status))
+      write(*,*) 'status',  status !tg3315 added to get error code
       stop "Stopped"
     end if
 

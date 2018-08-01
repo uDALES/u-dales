@@ -152,10 +152,10 @@ module modinletdata
     real, allocatable :: yfin(:)
     real, allocatable :: yhdum(:)
     real, allocatable :: yfdum(:)
-    real, allocatable :: ylocupf(:)
-    real, allocatable :: yloclowf(:)
-    real, allocatable :: ylocuph(:)
-    real, allocatable :: yloclowh(:)
+    integer, allocatable :: ylocupf(:)
+    integer, allocatable :: yloclowf(:)
+    integer, allocatable :: ylocuph(:)
+    integer, allocatable :: yloclowh(:)
     
     real :: dyin
 

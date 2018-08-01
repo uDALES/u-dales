@@ -55,9 +55,9 @@ contains
   !> Do moist thermodynamics.
   !! Calculate the liquid water content, do the microphysics, calculate the mean hydrostatic pressure, calculate the fields at the half levels, and finally calculate the virtual potential temperature.
   subroutine thermodynamics
-    use modglobal, only : lmoist, timee, kb, ke, kh, ib, ih, ie, jb, jh, je,rlv, cp, rslabs, rd, rv
-    use modfields, only : thl0,thl0h,qt0,qt0h,ql0,ql0h,presf,presh,exnf,exnh,thvh,thv0h,qt0av,ql0av,thvf,rhof
-    use modmpi,    only : slabsum
+    use modglobal, only : lmoist, timee, kb, ke, kh, ib, ih, ie, jb, jh, je,rlv, cp, rslabs, rd, rv, libm
+    use modfields, only : thl0,thl0h,qt0,qt0h,ql0,ql0h,presf,presh,exnf,exnh,thvh,thv0h,qt0av,ql0av,thvf,rhof,IIc,IIw,IIcs,IIws
+    use modmpi,    only : slabsum,avexy_ibm,myid
 !ILS13 added variables behind "exnh"
     implicit none
     integer :: k
@@ -75,21 +75,46 @@ contains
 
 !ILS13 introduced from DALES4.0   13.05.2015
     thvh=0.
-    call slabsum(thvh,kb,ke+kh,thv0h(:,:,kb:ke+kh),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh) !redefine halflevel thv using calculated thv
-    thvh = thvh/rslabs
+!    call slabsum(thvh,kb,ke+kh,thv0h(:,:,kb:ke+kh),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh) !redefine halflevel thv using calculated thv
+!    thvh = thvh/rslabs
+    call avexy_ibm(thvh(kb:ke+kh),thv0h(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh))
+
+!    if (libm) then
+!      call avexy_ibm(thvh(kb:ke),thv0h(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIws(kb:ke))    
+!    else
+!      call slabsum(thvh,kb,ke+kh,thv0h(:,:,kb:ke+kh),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
+!     !redefine halflevel thv using calculated thv
+!     thvh = thvh/rslabs
+!    end if
+
     thvh(kb) = th0av(kb)*(1+(rv/rd-1)*qt0av(kb)-rv/rd*ql0av(kb)) ! override first level
+!    where (thvh==0) !override slabs completely covered by blocks
+!      thvh = th0av(kb)*(1+(rv/rd-1)*qt0av(kb)-rv/rd*ql0av(kb))
+!    endwhere
+
     do k=kb,ke+kh
-    thv0(ib+ih:ie,jb+jh:je,k) = (thl0(ib+ih:ie,jb+ih:je,k)+rlv*ql0(ib+ih:ie,jb+ih:je,k)/(cp*exnf(k)))*(1+(rv/rd-1)*qt0(ib+ih:ie,jb+ih:je,k)-rv/rd*ql0(ib+ih:ie,jb+ih:je,k))
+!    thv0(ib+ih:ie,jb+jh:je,k) = (thl0(ib+ih:ie,jb+ih:je,k)+rlv*ql0(ib+ih:ie,jb+ih:je,k)/(cp*exnf(k)))*(1+(rv/rd-1)*qt0(ib+ih:ie,jb+ih:je,k)-rv/rd*ql0(ib+ih:ie,jb+ih:je,k))
+    thv0(ib:ie,jb:je,k) = (thl0(ib:ie,jb:je,k)+rlv*ql0(ib:ie,jb:je,k)/(cp*exnf(k)))*(1+(rv/rd-1)*qt0(ib:ie,jb:je,k)-rv/rd*ql0(ib:ie,jb:je,k))
     enddo
     thvf = 0.0
+
     !write(*,*), "thv0",thv0
-    call slabsum(thvf,kb,ke+kh,thv0,ib,ie+ih,jb,je+jh,kb,ke+kh,ib+ih,ie,jb+ih,je,kb,ke+kh)
-    thvf = thvf/rslabs
+!    call slabsum(thvf,kb,ke+kh,thv0,ib,ie+ih,jb,je+jh,kb,ke+kh,ib+ih,ie,jb+ih,je,kb,ke+kh)
+!    call slabsum(thvf,kb,ke+kh,thv0,ib,ie,jb,je,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
+    call avexy_ibm(thvf(kb:ke+kh),thv0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh))
+!    write(*,*), 'IIc(2,2,:), myid' , IIc(12,2,:), myid
+
+!    where (thvf==0) !override slabs completely covered by blocks
+!      thvf = th0av(kb)*(1+(rv/rd-1)*qt0av(kb)-rv/rd*ql0av(kb))
+!    endwhere
+
+!    thvf = thvf/rslabs
     !write(*,*) "thvf",thvf
     !write(*,*) "exnf",exnf
    
-
-
+!    do k=1,k1
+!      rhof(k) = presf(k)/(rd*thvf(k)*exnf(k))
+!    end do
 
   end subroutine thermodynamics
   !> Cleans up after the run
@@ -143,7 +168,6 @@ contains
                 dthv = del_thv_dry
 
                 if  (ql0(i,j,k)> 0) then  !include moist thermodynamics
-
                    temp = thl0(i,j,k)*exnf(k)+(rlv/cp)*ql0(i,j,k)
                    qs   = qt0(i,j,k) - ql0(i,j,k)
 
@@ -169,22 +193,7 @@ contains
 
        do j=jb,je
           do i=ib,ie
-
-
-             if(ql0(i,j,kb)>0) then
-                temp = thl0(i,j,kb)*exnf(kb)+(rlv/cp)*ql0(i,j,kb)
-                qs   = qt0(i,j,kb) - ql0(i,j,kb)
-                c1   = (1.-qt0(i,j,kb)+rv/rd*qs*(1.+rlv/(rv*temp))) &
-                     /(1.+rlv**2*qs/(cp*rv*temp**2))
-                c2   = c1*rlv/(temp*cp)-1.
-
-             else
-                c1 = 1.+(rv/rd-1)*qt0(i,j,kb)
-                c2 = rv/rd-1
-
-             end if
-             dthvdz(i,j,kb) = c1*dthldz(i,j) + c2*thl0(i,j,kb)*dqtdz(i,j)
-
+            dthvdz(i,j,kb)=0.
           end do
        end do
 
@@ -200,7 +209,7 @@ contains
        end do
        do  j=jb,je
           do  i=ib,ie
-             dthvdz(i,j,kb) = dthldz(i,j)
+            dthvdz(i,j,kb)=0.
           end do
        end do
     end if
@@ -229,11 +238,11 @@ contains
   !! \author      Pier Siebesma   K.N.M.I.     06/01/1995
   subroutine diagfld
 
-    use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,nsv,zh,zf,cu,cv,rslabs,grav,rlv,cp,rd,rv,pref0
+    use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,khc,nsv,zh,zf,rslabs,grav,rlv,cp,rd,rv,pref0
     use modfields, only : u0,v0,w0,thl0,qt0,ql0,sv0,u0av,v0av,thl0av,qt0av,ql0av,sv0av, &
-         presf,presh,exnf,exnh, rhof, thvf
+         presf,presh,exnf,exnh,rhof,thvf,IIc,IIcs,IIu,IIus,IIv,IIvs
     use modsurfdata,only : thls,ps
-    use modmpi,    only : slabsum
+    use modmpi,    only : slabsum,myid,avexy_ibm
     implicit none
 
     real     tv
@@ -257,20 +266,20 @@ contains
 
     !CvH changed momentum array dimensions to same value as scalars!
     !  call slabsum(u0av  ,kb,ke+kh,u0  ,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
-    call slabsum(u0av  ,kb,ke+kh,u0(:,:,kb:ke+kh)  ,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
+!    call slabsum(u0av  ,kb,ke+kh,u0(:,:,kb:ke+kh)  ,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
+    call avexy_ibm(u0av(kb:ke+kh),u0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh))
     !  call slabsum(v0av  ,kb,ke+kh,v0  ,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
-    call slabsum(v0av  ,kb,ke+kh,v0(:,:,kb:ke+kh)  ,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
+!    call slabsum(v0av  ,kb,ke+kh,v0(:,:,kb:ke+kh)  ,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
+    call avexy_ibm(v0av(kb:ke+kh),v0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh))
     !  call slabsum(thl0av,kb,ke+kh,thl0,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
-    call slabsum(thl0av,kb,ke+kh,thl0(:,:,kb:ke+kh),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
+!    call slabsum(thl0av,kb,ke+kh,thl0(:,:,kb:ke+kh),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
+    call avexy_ibm(thl0av(kb:ke+kh),thl0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh))
     !  call slabsum(qt0av ,kb,ke+kh,qt0 ,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
-    call slabsum(qt0av ,kb,ke+kh,qt0(:,:,kb:ke+kh) ,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
-    call slabsum(ql0av ,kb,ke+kh,ql0 ,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
+!    call slabsum(qt0av ,kb,ke+kh,qt0(:,:,kb:ke+kh) ,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
+    call avexy_ibm(qt0av(kb:ke+kh),qt0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh))
+!    call slabsum(ql0av ,kb,ke+kh,ql0 ,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
+    call avexy_ibm(ql0av(kb:ke+kh),ql0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh))
 
-    u0av  = u0av  /rslabs + cu
-    v0av  = v0av  /rslabs + cv
-    thl0av = thl0av/rslabs
-    qt0av = qt0av /rslabs
-    ql0av = ql0av /rslabs
     exnf   = 1-grav*zf/(cp*thls)
     exnh  = 1-grav*zh/(cp*thls)
     th0av  = thl0av + (rlv/cp)*ql0av/exnf
@@ -280,7 +289,8 @@ contains
     
 
     do n=1,nsv
-       call slabsum(sv0av(kb,n),kb,ke+kh,sv0(ib-ih,jb-jh,kb,n),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
+!       call slabsum(sv0av(kb,n),kb,ke+kh,sv0(ib-ih,jb-jh,kb,n),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
+    call avexy_ibm(sv0av(kb:ke+khc,n),sv0(ib:ie,jb:je,kb:ke+khc,n),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+khc),IIcs(kb:ke+khc))
     end do
     sv0av = sv0av/rslabs
 
@@ -381,11 +391,9 @@ contains
 
     !     2: higher levels
 
-    do k=kb+1,ke+kh
-
+    do k=kb+1,ke+kh 
        thvh(k)  = thetah(k)*(1+(rv/rd-1)*qth(k)-rv/rd*qlh(k))
-       presf(k) = presf(k-1)**rdocp - &
-            grav*(pref0**rdocp)*dzh(k) /(cp*thvh(k))
+       presf(k) = presf(k-1)**rdocp - grav*(pref0**rdocp)*dzh(k) /(cp*thvh(k))
        presf(k) = presf(k)**(1./rdocp)
     end do
 
@@ -398,8 +406,7 @@ contains
     thvf(kb) = th0av(kb)*(1+(rv/rd-1)*qt0av(kb)-rv/rd*ql0av(kb))
     do k=kb+1,ke+kh
        thvf(k)  = th0av(k)*(1+(rv/rd-1)*qt0av(k)-rv/rd*ql0av(k))
-       presh(k) = presh(k-1)**rdocp - &
-            grav*(pref0**rdocp)*dzf(k-1) / (cp*thvf(k-1))
+       presh(k) = presh(k-1)**rdocp - grav*(pref0**rdocp)*dzf(k-1) / (cp*thvf(k-1))
        presh(k) = presh(k)**(1./rdocp)
     end do
 
@@ -433,7 +440,6 @@ contains
     real :: Tnr,qsatur,Tnr_old
     integer :: niter,nitert
     if (lqlnr) then
-
        !mc      calculation of T with Newton-Raphson method
        !mc      first guess is Tnr=tl
        !mc
@@ -500,6 +506,7 @@ contains
              thl0h(i,j,k) = (thl0(i,j,k)*dzf(k-1)+thl0(i,j,k-1)*dzf(k))/(2*dzh(k))
           end do
        end do
+
     end do
         thl0h(ib:ie,jb:je,kb) = thls
 
