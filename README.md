@@ -1,43 +1,83 @@
 # Dales-U
 
-This is the basic repository for using the Dales-Urban model.
+This is a starter kit for using the Dales-Urban model. It has the basic repository (dales-u) that contains everything you need to run Dales-U. Within it are the two submodules "pre-post" and "dales-urban" in the src directory. These libraries are currently under development and are repositories themselves. In [How keep the submodules up to date](https://gitlab.com/bss116/dales-u#how-to-keep-the-submodules-up-to-date) you find instructions on how to make sure you always have the latest version of the libraries.
+
 
 ## Getting Started
 
 ### Get a copy of the repository
-These instructions will get you a copy of the project up and running on your local machine for development and testing purposes.
 
-git clone instructions ...
+* To get a copy of Dales-U for your local machine go to the directory you want to store it in and use
+
+```
+git clone --recurse-submodules git@gitlab.com:bss116/dales-u.git
+```
+
+* To be able to push your changes to a remote repository, fork the project on GitLab: [Dales-U](https://gitlab.com/bss116/dales-u). 
+
+Go to your fork, copy the ssh link (`git@gitlab.com:USERNAME/REPOSITORY.git`) and copy the project to your local machine by using
+
+```
+git clone --recurse-submodules git@gitlab.com:USERNAME/REPOSITORY.git
+```
+
+Then go to all submodules and checkout the branch you want to work on, e.g.
+
+```
+git checkout master
+```
+
+To keep your repository of Dales-U in sync with the original, check out how to [sync a fork](https://help.github.com/articles/syncing-a-fork).
 
 ### Prerequisites
 
-What things you need to install the software and how to install them
+Dales requires several packages installed on your local machine. The packages are gcc, gfortran, make, netcdf, open-mpi and fftw.
+
+#### Installing prerequisites on macOS
+
+We recommend installing the packages via [homebrew](https://brew.sh/). If you do not have homebrew, first check that XCode is installed by typing
 
 ```
-Give examples
+xcode-select -p
+``` 
+
+If you get an error, install it with
+
 ```
+xcode-select --install
+```
+
+Then install homebrew with 
+
+```
+/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+
+```
+To test whether homebrew is installed type
+
+```
+brew doctor
+```
+
+Install the packages netcdf (also installs gcc and gfortran), open-mpi, fftw and make (should be already installed) with
+
+```
+brew install packagename
+```
+
+You may also want to install the package nco, which is required for postprocessing in "pre-post", and ncview for easy visualisations of Dales-U output.
 
 ### Installing
 
-A step by step series of examples that tell you how to get a development env running
+Homebrew installs packages in "/usr/local/" directory, make sure this path (or whereever your packages are stored) is added to the Makefile as INCDIRS and/or LIBDIRS.
 
-Say what the step will be
+To get an executable version of Dales-U go to the directory "src/dales-urban" and compile by typing `make`.
 
-```
-Give the example
-```
+Don't forget to run a `make clean` after making changes to the source code or Makefile and before recompiling.
 
-And repeat
+## How to keep the submodules up-to-date
 
-```
-until finished
-```
-
-End with an example of getting some data out of the system or using it for a little demo
-
-## How keep the submodules up-to-date
-
-The current submodules are pre-post and dales-urban in the src directory.
+The current submodules are "pre-post" and "dales-urban" in the src directory.
 
 First set the following git shortcuts
 
@@ -51,51 +91,9 @@ git config --global alias.spush 'push --recurse-submodules=on-demand'
 
 and check these configurations with `git config --list`.
 
-### Push changes in the submodules and repository
-
-Changes in the submodule need to be added directly from within it.
-So go to the submodule directory and track your changes by
-
-```
-git add changedfile
-git commit -m "change message"
-```
-
-#### Push changes of the submodule only
-* From within the submodule do
-
-```
-git pull
-git push
-```
-
-#### Push changes of the main repository only
-* From the main repository (dales-u) use
-
-```
-git push
-```
-
-#### Push changes of the main repository and submodules
-
-* From the main repository (dales-u) use
-
-```
-git spush
-```
-
-or
-* Push changes of the submodule as above. 
-Then go to the main repository and add and commit the newest version of the submodule.
-Push the update with
-
-```
-git push
-```
-
 ### Update the repository
 
-#### To update the submodules only:
+#### To update the submodules only
 
 * Go to the submodule and use 
 
@@ -104,7 +102,8 @@ git pull
 ```
 
 or
-* From the main repository (dales-u) use
+
+* From the main repository (Dales-U) use
 
 ```
 git puls
@@ -125,25 +124,86 @@ git fetch
 git status
 ```
 
-#### To update the main repository only:
+#### To update the main repository only
 
-* From the main repository (dales-u) use
+* From the main repository use
 
 ```
 git pull
 ```
 
 #### To update both the main repository and all submodules
-* From the main repository (dales-u) use
+
+* From the main repository use
 
 ```
 git pula
 ```
 
-Remember that the main repository needs to know which version of the submodule to use.
-If there is a new version of the submodule it needs to be added and committed in the main repository too.
-(Check it with `git status`).
+### Publish changes in the repository
 
+Changes to the submodule need to be reported in two steps.
+1) The submodule needs to be updated.
+2) The main repository (Dales-U) needs to be told to use the updated version of the submodule.
+
+#### Push changes of the submodule
+
+Changes to the submodule need to be added directly from within it.
+Go to the submodule directory and track your changes with
+
+```
+git add changedfile
+git commit -m "change message"
+```
+then use
+
+```
+git pull
+git push
+```
+
+to update the submodule.
+If you want to tell the main repository to update to this version of the submodule, go to the main repository and add the newest changes with
+
+```
+git add submodule
+git commit -m "Updated submodule to newest version"
+```
+
+and then push the change with
+
+```
+git pull
+git push
+```
+
+This is the recommended workflow because it is the easiest way to separate changes to the library (e.g. the Dales source code) and changes to the repository (e.g. tracking new experiment setups).
+
+#### Push changes of the main repository only
+
+If you make changes in the main repository and the submodule, but you do not want to update to the newest version of the submodule yet (e.g. because the changes are unstable), you can just push your changes of the main repository using
+
+```
+git pull
+git push
+```
+
+from the main repository. It will then update the files but switch to the newest version of the submodule unless you commit these changes too (see above).
+
+#### Push changes of the main repository and submodules
+
+When you have committed changes in both the main repository and the submodules you can push them at once by using
+
+```
+git pula
+git spush
+```
+
+from the main repository.
+Remember that the main repository needs to know which version of the submodule to use.
+If you want to update the repository to a new version of the submodule it needs to be added and committed in the repository too. (Check it with `git status`).
+
+**_Template needs to be completed from here_**
 
 ## Running the tests
 
