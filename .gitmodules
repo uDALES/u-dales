@@ -1,6 +1,6 @@
 [submodule "pre-post"]
 	path = pre-post
-	url = git@gitlab.com:ivsuter/pre-post.git
+	url = git@gitlab.com:dales-urbanists/pre-post.git
 [submodule "src/dales-urban"]
 	path = src/dales-urban
 	url = git@gitlab.com:mvanreeuwijk/dales-urban.git
