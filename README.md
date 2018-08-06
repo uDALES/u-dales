@@ -7,13 +7,13 @@ This is a starter kit for using the Dales-Urban model. It has the basic reposito
 
 ### Get a copy of the repository
 
-* To get a copy of Dales-U for your local machine go to the directory you want to store it in and use
+* To get a copy of Dales-U just for your local machine go to the directory you want to store it in and use
 
 ```
-git clone --recurse-submodules git@gitlab.com:bss116/dales-u.git
+git clone --recurse-submodules git@gitlab.com:dales-urbanists/dales-u.git
 ```
 
-* To be able to push your changes to a remote repository, fork the project on GitLab: [Dales-U](https://gitlab.com/bss116/dales-u). 
+* To be able to push your changes to a remote repository, fork the project on GitLab: [Dales-U](https://gitlab.com/dales-urbanists/dales-u). 
 
 Go to your fork, copy the ssh link (`git@gitlab.com:USERNAME/REPOSITORY.git`) and copy the project to your local machine by using
 
@@ -32,6 +32,7 @@ To keep your repository of Dales-U in sync with the original, check out how to [
 ### Prerequisites
 
 Dales requires several packages installed on your local machine. The packages are gcc, gfortran, make, netcdf, open-mpi and fftw.
+
 
 #### Installing prerequisites on macOS
 
