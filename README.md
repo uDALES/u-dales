@@ -33,8 +33,17 @@ To keep your repository of Dales-U in sync with the original, check out how to [
 
 Dales requires several packages installed on your local machine. The packages are gcc, gfortran, make, netcdf, open-mpi and fftw.
 
+#### Prerequisites on high performace clusters
 
-#### Installing prerequisites on macOS
+Load the required packages by using
+
+```
+module load packagename
+```
+
+The file "dalesmodules" in the utils directory provides a list of all required packages.
+
+#### Prerequisites on macOS
 
 We recommend installing the packages via [homebrew](https://brew.sh/). If you do not have homebrew, first check that XCode is installed by typing
 
@@ -68,9 +77,10 @@ brew install packagename
 
 You may also want to install the package nco, which is required for postprocessing in "pre-post", and ncview for easy visualisations of Dales-U output.
 
-### Installing
-
 Homebrew installs packages in "/usr/local/" directory, make sure this path (or whereever your packages are stored) is added to the Makefile as INCDIRS and/or LIBDIRS.
+
+
+### Installing
 
 To get an executable version of Dales-U go to the directory "src/dales-urban" and compile by typing `make`.
 
@@ -204,9 +214,10 @@ from the main repository.
 Remember that the main repository needs to know which version of the submodule to use.
 If you want to update the repository to a new version of the submodule it needs to be added and committed in the repository too. (Check it with `git status`).
 
-**_Template needs to be completed from here_**
 
 ## Running the tests
+
+**_Template needs to be completed from here_**
 
 Explain how to run the automated tests for this system
 
