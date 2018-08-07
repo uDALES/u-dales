@@ -1,0 +1,8 @@
+# Compiled Object files
+*.o
+
+# Fortran module files
+*.mod
+
+# Executables
+*.out
