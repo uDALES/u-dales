@@ -66,11 +66,11 @@ F77OBJS=$(F77SRC:.f=.o)
  ifeq ($(DEBUG),TRUE)
     FCOPTS     += -g -Warray-bounds -finit-real=nan -fbacktrace #-Wall -Wextra -Warray-temporaries -Wconversion -fimplicit-none -fcheck=all -ffpe-trap=zero,overflow,underflow
     FLOPTS     += -g -Warray-bounds -finit-real=nan -fbacktrace #-Wextra -Wall
-    FCOPTS77   += -g
-    FLOPTS77   += -g
+    FCOPTS77   += -g -fbacktrace
+    FLOPTS77   += -g -fbacktrace
  else
-    FCOPTS     += -O3 -g -traceback
-    FCOPTS77   += -O3 -g -traceback
+    FCOPTS     += -O3 -g -fbacktrace
+    FCOPTS77   += -O3 -g -fbacktrace
  endif
 
 endif
@@ -142,13 +142,13 @@ ifeq ($(PLATFORM),macos)
   FLOPTS77    = -fdefault-real-8
 
   ifeq ($(DEBUG),TRUE)
-    FCOPTS     += -g -traceback -Warray-bounds -finit-real=nan -fbacktrace #-Wall -Wextra -Warray-temporaries -Wconversion -fimplicit-none -fcheck=all -ffpe-trap=zero,overflow,underflow
-    FLOPTS     += -g -traceback -Warray-bounds -finit-real=nan -fbacktrace #-Wextra -Wall
-    FCOPTS77   += -g -traceback
-    FLOPTS77   += -g -traceback
+    FCOPTS     += -g -Warray-bounds -finit-real=nan -fbacktrace #-Wall -Wextra -Warray-temporaries -Wconversion -fimplicit-none -fcheck=all -ffpe-trap=zero,overflow,underflow -Wunused
+    FLOPTS     += -g -Warray-bounds -Wunused -finit-real=nan -fbacktrace #-Wextra -Wall
+    FCOPTS77   += -g -fbacktrace
+    FLOPTS77   += -g -fbacktrace
   else
-    FCOPTS     += -O3 -g -traceback
-    FCOPTS77   += -O3 -g -traceback
+    FCOPTS     += -O3 -g -fbacktrace
+    FCOPTS77   += -O3 -g -fbacktrace
   endif
 
 endif
