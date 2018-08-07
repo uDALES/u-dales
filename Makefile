@@ -28,10 +28,10 @@ F77OBJS=$(F77SRC:.f=.o)
   FLOPTS77      = -mcmodel=medium
  ifeq ($(DEBUG),TRUE)
 #    FCOPTS     += -g  -traceback -CB -check all
-    FCOPTS     += -g -traceback -CB -Wunused
-    FLOPTS     += -g -traceback -CB -Wunused
-    FCOPTS77   += -g -traceback -CB
-    FLOPTS77   += -g -CB
+    FCOPTS     += -g -traceback -CB -warn unused
+    FLOPTS     += -g -traceback -CB -warn unused
+    FCOPTS77   += -g -traceback -CB -warn unused
+    FLOPTS77   += -g -CB -warn unused
   else
     FCOPTS     += -O3 -g -traceback
     FCOPTS77     += -O3 -g -traceback
