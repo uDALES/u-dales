@@ -62,24 +62,32 @@ SAVE
   ! Surface properties in case of prescribed conditions (previous isurf 2, 3 and 4)
   real              :: thls     = -1    !<  Surface liquid water potential temperature [K]
   real              :: thl_top  = -1    !<  Surface liquid water potential temperature [K] at top wall
+
   real              :: qts     = -1         !<  Surface specific humidity [kg/kg]
   real              :: qt_top  = -1     !<  Top value of specific humidity [kg/kg]
+
   real              :: thvs    = -1         !<  Surface virtual temperature [K]
+
   real, allocatable :: svs   (:)        !<  Surface scalar concentration [-]
+  real, allocatable :: sv_top (:)       ! top scalar concentration concentrations
+
   real              :: z0    = 0.1       !<  Surface roughness length [m]
   real              :: z0h   = 0.1      !<  Surface roughness for heat [m]
   ! prescribed surface fluxes
   real              :: ustin  = 0      !<  Prescribed friction velocity [m/s]
-  real              :: wtsurf = 0      !<  Prescribed kinematic temperature flux [K m/s]
-  real              :: wttop  = 0
-  real              :: wqtop  = 0
-  real              :: wqsurf = 0      !<  Prescribed kinematic moisture flux [kg/kg m/s]
-  real              :: wsvsurf(100) = 0 !<  Prescribed surface scalar(n) flux [- m/s]
-
   real              :: Cmav             !<  Average drag coefficient for momentum [-]
   real              :: Csav             !<  Average drag coefficient for scalars [-]
   real              :: horvel           !<  Average horizontal velocity at first level
 
+
+  real              :: wtsurf = 0      !<  Prescribed kinematic temperature flux [K m/s]
+  real              :: wttop  = 0
+
+  real              :: wqtop  = 0
+  real              :: wqsurf = 0      !<  Prescribed kinematic moisture flux [kg/kg m/s]
+
+  real, allocatable :: wsvsurf(:) !<  Prescribed surface scalar(n) flux [- m/s]
+  real, allocatable :: wsvtop(:)
 
 
 end module modsurfdata

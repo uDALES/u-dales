@@ -63,7 +63,6 @@ module modglobal
    integer :: ntrees = 0
    integer :: npurif = 0
    integer ::  iplane ! ib+iplane is the plane that is stored when lstoreplane=.true.
-   integer ::  iinletgen = 0 !<  0: no inletgen, 1: turb. inlet generator (Lund (1998)), 2: read inlet from file
    integer ::  nstore = 1002 ! number of rk steps in inletfile. This should be a multiple of three!
    character(50) :: fname_options = 'namoptions'
    integer, parameter :: longint = 8
@@ -79,6 +78,36 @@ module modglobal
    real    :: tnextfielddump !<
    character(50) :: startfile !<    * name of the restart file
 
+   !Switches for boundary conditions
+   !momentum (m), temperature (T), humidity (q) and scalars (s)
+   !lateral in x/i direction (x), in y/j direction (y) at the top (top) and at the bottom (bot)
+   !1 = periodic, >1 special in/outflow conditions
+   integer :: BCxm = 1
+   integer :: BCxT = 1
+   integer :: BCxq = 1
+   integer :: BCxs = 1
+   
+   !y direction is currently alway periodic
+   integer :: BCym = 1
+   integer :: BCyT = 1
+   integer :: BCyq = 1
+   integer :: BCys = 1
+
+   !at the top (top)
+   !1 = freeslip, 2 = noslip, 3 = determined by inflow conditions
+   integer :: BCtopm = 1
+   integer :: BCtopT = 1
+   integer :: BCtopq = 1
+   integer :: BCtops = 1
+
+   !at the bottom (bot) !the bottom BC are defacto useless, since they will be covered by a road facet
+   !1 = freeslip, 2 = noslip
+   integer :: BCbotm = 2
+   integer :: BCbotT = 2
+   integer :: BCbotq = 2
+   integer :: BCbots = 2
+
+   integer :: iinletgen = 0 !<  0: no inletgen, 1: turb. inlet generator (Lund (1998)), 2: read inlet from file
    logical :: linoutflow = .false. !<  switch for periodic BC in both horizontal directions (false) or inflow/outflow in i and periodic in j.
    logical :: lzerogradtop = .false. !<  switch for zero gradient BC's at top wall (iinletgen 1 and 2 are seperate).
    logical :: lzerogradtopscal = .false. !
