@@ -38,7 +38,7 @@ contains
       !-----------------------------------------------------------------|
 
       use modglobal, only:initglobal, iexpnr, runtime, dtmax, dtav_glob, timeav_glob, &
-         lwarmstart, lstratstart, lreadscal, startfile, tfielddump, fieldvars, tsample, tstatsdump, trestart, &
+         lwarmstart, lstratstart, lfielddump, lreadscal, startfile, tfielddump, fieldvars, tsample, tstatsdump, trestart, &
          nsv, imax, jtot, kmax, xsize, ysize, xlat, xlon, xday, xtime, lwalldist, &
          lmoist, lcoriol, igrw_damp, geodamptime, ifnamopt, fname_options, &
          xS,yS,zS,SS,sigS,iwallmom,iwalltemp,iwallmoist,iadv_mom,iadv_tke,iadv_thl,iadv_qt,iadv_sv,courant,diffnr,ladaptive,author,&
@@ -68,7 +68,7 @@ contains
       !declare namelists
 
       namelist/RUN/ &
-         iexpnr, lwarmstart, lstratstart, lreadscal, startfile, runtime, dtmax, dtav_glob, timeav_glob, &
+         iexpnr, lwarmstart, lstratstart, lfielddump, lreadscal, startfile, runtime, dtmax, dtav_glob, timeav_glob, &
          trestart, tfielddump, fieldvars, tsample, tstatsdump, irandom, randthl, randqt, krand, nsv, courant, diffnr, ladaptive, &
          author, lper2inout, libm, ltrees, lnudge, tnudge, nnudge, lpurif, lles, lwallfunc, lmassflowr, lreadmean, &
                 startmean,lydump,lytdump,lxydump,lxytdump,lslicedump,ltdump,ltkedump,lscasrc,lscasrcl,lwalldist,lstore3d,lstorexz,&
@@ -188,6 +188,7 @@ contains
       call MPI_BCAST(iexpnr, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(lwarmstart, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lstratstart, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(lfielddump, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lreadscal, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch to read scalar pollutant fields (warm start)
       call MPI_BCAST(lscasrc, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315
       call MPI_BCAST(lscasrcl, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315

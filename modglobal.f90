@@ -68,6 +68,7 @@ module modglobal
    integer, parameter :: longint = 8
    logical :: lwarmstart = .false. !<   flag for "cold" or "warm" start
    logical :: lstratstart = .false.
+   logical :: lfielddump = .false. !!< switch to enable the fielddump (on/off)  
    logical :: lreadscal = .false. !<   flag for reading scalar pollutant field (warm start)
    real    :: trestart !<     * each trestart sec. a restart file is written to disk
    real    :: tfielddump !<

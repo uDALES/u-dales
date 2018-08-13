@@ -47,7 +47,6 @@ module modfielddump
   
   real    :: dtav,tnext
   integer :: klow,khigh,n,nvar
-  logical :: lfielddump= .true.  !< switch to enable the fielddump (on/off)
   logical :: ldiracc   = .false. !< switch for doing direct access writing (on/off)
   logical :: lbinary   = .false. ! 
 
@@ -55,7 +54,7 @@ contains
  !> Initializing fielddump. Read out the namelist, initializing the variables
   subroutine initfielddump
     use modmpi,   only   :myid,my_real,mpierr,comm3d,mpi_logical,mpi_integer,cmyid, mpi_character
-    use modglobal,only   :imax,jmax,kmax,cexpnr,ifnamopt,fname_options,dtmax,dtav_glob,kb,ke, ladaptive,dt_lim,btime,nsv,fieldvars,ib,ie,jb,je,kb,ke
+    use modglobal,only   :imax,jmax,kmax,cexpnr,ifnamopt,fname_options,dtmax,dtav_glob,kb,ke, ladaptive,dt_lim,btime,nsv,fieldvars,ib,ie,jb,je,kb,ke, lfielddump
     use modstat_nc,only  : open_nc, define_nc,ncinfo,writestat_dims_nc
     use modfields, only  : u0,v0,w0,thl0,sv0,ql0,qt0,pres0
     implicit none
@@ -63,10 +62,21 @@ contains
 
   !  type(domainptr), dimension(nvar) :: pfields
 
-    namelist/NAMFIELDDUMP/ &
-         dtav,lfielddump,ldiracc,lbinary,klow,khigh
-
-    write(*,*), '(LEN(trim(fieldvars))+1)/3', (LEN(trim(fieldvars))+1)/3
+!! ils13 13.08.18: Does this do anything?
+!    namelist/NAMFIELDDUMP/ &
+!         dtav,ldiracc,lbinary,klow,khigh
+!    write(*,*), '(LEN(trim(fieldvars))+1)/3', (LEN(trim(fieldvars))+1)/3
+!    if(myid==0)then
+!       open(ifnamopt,file=fname_options,status='old',iostat=ierr)
+!       read (ifnamopt,NAMFIELDDUMP,iostat=ierr)
+!       if (ierr > 0) then
+!          print *, 'Problem in namoptions NAMFIELDDUMP'
+!          print *, 'iostat error: ', ierr
+!          stop 'ERROR: Problem in namoptions NAMFIELDDUMP'
+!       endif
+!       write(6 ,NAMFIELDDUMP)
+!       close(ifnamopt)
+!    end if
 
     nvar = (LEN(trim(fieldvars))+1)/3
     
@@ -81,18 +91,8 @@ contains
     dtav=dtav_glob
     klow=kb
     khigh=ke
-    if(myid==0)then
-       open(ifnamopt,file=fname_options,status='old',iostat=ierr)
-       read (ifnamopt,NAMFIELDDUMP,iostat=ierr)
-       if (ierr > 0) then
-          print *, 'Problem in namoptions NAMFIELDDUMP'
-          print *, 'iostat error: ', ierr
-          stop 'ERROR: Problem in namoptions NAMFIELDDUMP'
-       endif
-       write(6 ,NAMFIELDDUMP)
-       close(ifnamopt)
-    end if
 
+!ils13 13.08.18: why is this broadcast, doesn't every processor do it anyway?
     call MPI_BCAST(klow        ,1,MPI_INTEGER,0,comm3d,ierr)
     call MPI_BCAST(khigh       ,1,MPI_INTEGER,0,comm3d,ierr)
     call MPI_BCAST(dtav        ,1,MY_REAL    ,0,comm3d,ierr)
@@ -184,7 +184,7 @@ contains
     use modfields, only : u0,v0,w0,thl0,qt0,ql0,sv0  !ILS13 21.04.2015 changed to u0 from um  etc
     use modsurfdata,only : thls,qts,thvs
     use modglobal, only : ib,ie,ih,jb,je,jh,ke,kb,kh,rk3step,timee,dt_lim,cexpnr,ifoutput,imax,jmax,&
-                          tfielddump, tnextfielddump,nsv
+                          tfielddump, tnextfielddump,nsv, lfielddump
     !use modmpi,    only : myid,cmyid
     !use modsubgriddata, only : ekm,sbshr
     use modstat_nc, only : writestat_nc
@@ -218,6 +218,7 @@ contains
 
   !> Clean up when leaving the run
   subroutine exitfielddump
+      use modglobal, only : lfielddump
       use modstat_nc, only : exitstat_nc
     implicit none
 
