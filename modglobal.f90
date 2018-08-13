@@ -300,7 +300,7 @@ module modglobal
    logical :: ladaptive = .false. !<    * adaptive timestepping on or off
 
    real    :: courant = -1
-   real    :: peclet = 0.25
+   real    :: diffnr = 0.25
    real    :: dt_lim
 
    integer :: rk3step = 0

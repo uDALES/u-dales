@@ -6,7 +6,7 @@
 !>
 !! Tstep uses adaptive timestepping and 3rd order Runge Kutta time integration.
 !! The adaptive timestepping chooses it's delta_t according to the courant number
-!! and the cell peclet number, depending on the advection scheme in use.
+!! and the diffusion number, depending on the advection scheme in use.
 !!
 !!  \author Jasper Tomas, TU Delft
 !!  \author Chiel van Heerwaarden, Wageningen University
@@ -43,7 +43,7 @@
 subroutine tstep_update
 
 
-  use modglobal, only : ib,ie,jb,je,rk3step,timee,runtime,dtmax,dt,ntimee,ntrun,courant,peclet,&
+  use modglobal, only : ib,ie,jb,je,rk3step,timee,runtime,dtmax,dt,ntimee,ntrun,courant,diffnr,&
                         kb,ke,dxh,dxhi,dxh2i,dyi,dy2i,dzh,dt_lim,ladaptive,timeleft,dt,lwarmstart,&
                         dzh2i,tEB,tnextEB,dtEB
   use modfields, only : um,vm,wm
@@ -52,8 +52,8 @@ subroutine tstep_update
   implicit none
 
   integer       :: i, j, k,imin,kmin
-  real,save     :: courtot=-1,peclettot=-1
-  real          :: courtotl,courold,peclettotl,pecletold
+  real,save     :: courtot=-1,diffnrtot=-1
+  real          :: courtotl,courold,diffnrtotl,diffnrold
 !  logical,save  :: spinup=.true.
   logical,save  :: spinup=.false.
 
@@ -67,24 +67,24 @@ subroutine tstep_update
       write(6,*) '!spinup!'
       if (ladaptive) then
         courold = courtot
-        pecletold = peclettot
+        diffnrold = diffnrtot
         courtotl=0
-        peclettotl = 0
+        diffnrtotl = 0
         do k=kb,ke
         do j=jb,je
         do i=ib,ie
           courtotl = max(courtotl,(abs(um(i,j,k))*dxhi(i) + abs(vm(i,j,k))*dyi + abs(wm(i,j,k))/dzh(k))*dt)
-!          peclettotl = max(peclettotl,  ekm(i,j,k)*(1/dzh(k)**2 + dxh2i(i) + dy2i)*dt )
-          peclettotl = max(peclettotl,  ekm(i,j,k)*(dzh2i(k) + dxh2i(i) + dy2i)*dt, & 
+!          diffnrtotl = max(diffnrtotl,  ekm(i,j,k)*(1/dzh(k)**2 + dxh2i(i) + dy2i)*dt )
+          diffnrtotl = max(diffnrtotl,  ekm(i,j,k)*(dzh2i(k) + dxh2i(i) + dy2i)*dt, & 
                                         ekh(i,j,k)*(dzh2i(k) + dxh2i(i) + dy2i)*dt ) 
         end do
         end do
         end do
         call MPI_ALLREDUCE(courtotl,courtot,1,MY_REAL,MPI_MAX,comm3d,mpierr)
-        call MPI_ALLREDUCE(peclettotl,peclettot,1,MY_REAL,MPI_MAX,comm3d,mpierr)
-        if ( pecletold>0) then
-          dt = min(dtmax,dt*courant/courtot,dt*peclet/peclettot)
-          if ((abs(courtot-courold)/courold<0.1) .and. (abs(peclettot-pecletold)/pecletold<0.1)) then
+        call MPI_ALLREDUCE(diffnrtotl,diffnrtot,1,MY_REAL,MPI_MAX,comm3d,mpierr)
+        if ( diffnrold>0) then
+          dt = min(dtmax,dt*courant/courtot,dt*diffnr/diffnrtot)
+          if ((abs(courtot-courold)/courold<0.1) .and. (abs(diffnrtot-diffnrold)/diffnrold<0.1)) then
             spinup = .false.
           end if
         end if
@@ -106,14 +106,14 @@ subroutine tstep_update
 
       if (ladaptive) then
         courtotl=0
-        peclettotl = 1e-5
+        diffnrtotl = 1e-5
         do k=kb,ke
         do j=jb,je
         do i=ib,ie
           courtotl = max(courtotl,(abs(um(i,j,k))*dxhi(i) + abs(vm(i,j,k))*dyi + abs(wm(i,j,k))/dzh(k))*dt)
-          peclettotl = max(peclettotl,  ekm(i,j,k)*(dzh2i(k) + dxh2i(i) + dy2i)*dt,&
+          diffnrtotl = max(diffnrtotl,  ekm(i,j,k)*(dzh2i(k) + dxh2i(i) + dy2i)*dt,&
                                         ekh(i,j,k)*(dzh2i(k) + dxh2i(i) + dy2i)*dt ) 
-!          if (peclettotl ==  ekh(i,j,k)*(dzh2i(k) + dxh2i(i) + dy2i)*dt) then 
+!          if (diffnrtotl ==  ekh(i,j,k)*(dzh2i(k) + dxh2i(i) + dy2i)*dt) then 
 !           imin = i
 !           kmin = k
 !          end if
@@ -123,14 +123,14 @@ subroutine tstep_update
 !     write(6,*) 'Peclet criterion at proc,i,k = ', myid,imin,kmin
 
         call MPI_ALLREDUCE(courtotl,courtot,1,MY_REAL,MPI_MAX,comm3d,mpierr)
-        call MPI_ALLREDUCE(peclettotl,peclettot,1,MY_REAL,MPI_MAX,comm3d,mpierr)
+        call MPI_ALLREDUCE(diffnrtotl,diffnrtot,1,MY_REAL,MPI_MAX,comm3d,mpierr)
         if (courtot <= 0) then
           write(6,*) 'courtot=0!'
         end if 
-        if (peclettot <= 0) then
-          write(6,*) 'peclettot=0!'
+        if (diffnrtot <= 0) then
+          write(6,*) 'diffnrtot=0!'
         end if 
-        dt = min(dtmax,dt*courant/courtot,dt*peclet/peclettot)          
+        dt = min(dtmax,dt*courant/courtot,dt*diffnr/diffnrtot)          
         timeleft=timeleft-dt
         dt_lim = timeleft
         timee   = timee  + dt

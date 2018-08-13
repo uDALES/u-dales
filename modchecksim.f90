@@ -90,7 +90,7 @@ contains
       write (*,'(3A,F9.2,A,F12.9)') 'Time of Day: ', timeday(1:10),'    Time of Simulation: ', timee, '    dt: ',dtmn
     end if
     call calccourant
-    call calcpeclet
+    call calcdiffnr
     call chkdiv
     dtmn  = 0.
     ndt   = 0.
@@ -126,7 +126,7 @@ contains
   end subroutine calccourant
 
 !> Calculates the diffusion number as max(ekm) *deltat/deltax**2
-  subroutine calcpeclet
+  subroutine calcdiffnr
 
     use modglobal,      only : ib,ie,jb,je,kb,ke,kh,dxh2i,dy2i,dzh,dt,timee
     use modsubgriddata, only : ekm,ekh
@@ -134,28 +134,28 @@ contains
     implicit none
 
 
-    real peclettotl,peclettot
+    real diffnrtotl,diffnrtot
     integer       :: i,j,k
 
-    peclettotl = 0.
-    peclettot  = 0.
+    diffnrtotl = 0.
+    diffnrtot  = 0.
     do k=kb,ke
     do j=jb,je
     do i=ib,ie
-!      peclettotl = max(peclettotl,  ekm(i,j,k)*(1/dzh(k)**2 + dxh2i(i) + dy2i)*dtmn )  ! or should I interpolate ekm to the correct position?
-      peclettotl = max(peclettotl,  ekm(i,j,k)*(1/dzh(k)**2 + dxh2i(i) + dy2i)*dtmn, &
+!      diffnrtotl = max(diffnrtotl,  ekm(i,j,k)*(1/dzh(k)**2 + dxh2i(i) + dy2i)*dtmn )  ! or should I interpolate ekm to the correct position?
+      diffnrtotl = max(diffnrtotl,  ekm(i,j,k)*(1/dzh(k)**2 + dxh2i(i) + dy2i)*dtmn, &
                                     ekh(i,j,k)*(1/dzh(k)**2 + dxh2i(i) + dy2i)*dtmn )  ! or should I interpolate ekm to the correct position?
     end do
     end do
     end do
 
-    call MPI_ALLREDUCE(peclettotl,peclettot,1,MY_REAL,MPI_MAX,comm3d,mpierr)
+    call MPI_ALLREDUCE(diffnrtotl,diffnrtot,1,MY_REAL,MPI_MAX,comm3d,mpierr)
     if (myid==0) then
-      write(6,'(A,ES10.2)') 'Diffusion number:',peclettot
+      write(6,'(A,ES10.2)') 'Diffusion number:',diffnrtot
     end if
 
     return
-  end subroutine calcpeclet
+  end subroutine calcdiffnr
 
   !> tg3315 27/02/18 - was not outputting cell Peclet number so added this to give cell Reynolds number
   subroutine calcreyn

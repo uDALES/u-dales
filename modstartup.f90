@@ -41,7 +41,7 @@ contains
          lwarmstart, lstratstart, lreadscal, startfile, tfielddump, fieldvars, tsample, tstatsdump, trestart, &
          nsv, imax, jtot, kmax, xsize, ysize, xlat, xlon, xday, xtime, lwalldist, &
          lmoist, lcoriol, igrw_damp, geodamptime, ifnamopt, fname_options, &
-         xS,yS,zS,SS,sigS,iwallmom,iwalltemp,iwallmoist,iadv_mom,iadv_tke,iadv_thl,iadv_qt,iadv_sv,courant,peclet,ladaptive,author,&
+         xS,yS,zS,SS,sigS,iwallmom,iwalltemp,iwallmoist,iadv_mom,iadv_tke,iadv_thl,iadv_qt,iadv_sv,courant,diffnr,ladaptive,author,&
          linoutflow, lper2inout, libm, ltrees, lnudge, tnudge, nnudge, lpurif, lles, lmassflowr, massflowrate, lstoreplane, iplane, &
          lreadmean, iinletgen, inletav, lreadminl, Uinf, Vinf, linletRA, nblocks, ntrees, npurif, &
          lscalinout,lscalrec,lSIRANEinout,lscasrc,lscasrcl,lscasrcr,lydump,lytdump,lxydump,lxytdump,lslicedump,ltdump,ltkedump,lzerogradtop,&
@@ -69,7 +69,7 @@ contains
 
       namelist/RUN/ &
          iexpnr, lwarmstart, lstratstart, lreadscal, startfile, runtime, dtmax, dtav_glob, timeav_glob, &
-         trestart, tfielddump, fieldvars, tsample, tstatsdump, irandom, randthl, randqt, krand, nsv, courant, peclet, ladaptive, &
+         trestart, tfielddump, fieldvars, tsample, tstatsdump, irandom, randthl, randqt, krand, nsv, courant, diffnr, ladaptive, &
          author, lper2inout, libm, ltrees, lnudge, tnudge, nnudge, lpurif, lles, lwallfunc, lmassflowr, lreadmean, &
                 startmean,lydump,lytdump,lxydump,lxytdump,lslicedump,ltdump,ltkedump,lscasrc,lscasrcl,lwalldist,lstore3d,lstorexz,&
                 randu, nkplane, kplane, nsvl, nsvp, ifixuinf, lvinf, tscale, dpdx
@@ -381,7 +381,7 @@ contains
 
       call MPI_BCAST(ladaptive, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(courant, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(peclet, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(diffnr, 1, MY_REAL, 0, comm3d, mpierr)
 
       call MPI_BCAST(isurf, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(iadv_mom, 1, MPI_INTEGER, 0, comm3d, mpierr)
