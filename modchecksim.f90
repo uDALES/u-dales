@@ -36,7 +36,7 @@ module modchecksim
 
   real    :: tcheck = 0.
   !integer(kind=longint) :: tnext = 3600.,itcheck
-  real    :: tnext = 0
+  real    :: tnext = 0.
   real    :: dtmn =0.,ndt =0.
 
   save
@@ -157,6 +157,7 @@ contains
     return
   end subroutine calcdiffnr
 
+  !ils13, 13.08.18: currently unused, not called
   !> tg3315 27/02/18 - was not outputting cell Peclet number so added this to give cell Reynolds number
   subroutine calcreyn
 

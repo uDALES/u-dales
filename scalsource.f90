@@ -54,7 +54,8 @@ subroutine scalsource
   use initfac, only : block
 
   implicit none
-  integer :: i,j,k,n,il,iu,jl,ju,kl,ku,xL
+  integer :: i,j,k,n,il,iu,jl,ju,kl,ku
+  real :: xL
   real :: dyi
   real :: ra2 = 0.
   real :: scalsum = 0.

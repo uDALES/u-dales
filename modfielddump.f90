@@ -106,7 +106,7 @@ contains
     !    dt_lim = min(dt_lim,tnext)
 
     if(.not.(lfielddump)) return
-    if (.not. ladaptive .and. abs(dtav/dtmax-nint(dtav/dtmax))>1e-4) then !tg3315 this is not relevant to these fields, dtav is stats sampling interval...
+    if ((.not. ladaptive) .and. (abs(dtav/dtmax-nint(dtav/dtmax))>1e-4)) then !tg3315 this is not relevant to these fields, dtav is stats sampling interval...
        stop 'dtav should be a integer multiple of dtmax'
     end if
 

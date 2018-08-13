@@ -333,8 +333,8 @@ contains
 
             ! zero conc. on scalar 1 !tg3315 should be changed to as above in
             ! lscalinout???
-            sv0(ib - m, :, :, 1) = 0
-            svm(ib - m, :, :, 1) = 0
+            sv0(ib - m, :, :, 1) = 0.
+            svm(ib - m, :, :, 1) = 0.
 
             ! DIY outflow BC (advection step as linout) tg3315
           sv0(ie+m,:,:,nsv)=sv0(ie+1-m,:,:,nsv)-(sv0(ie+m,:,:,nsv)-sv0(ie+1-m,:,:,nsv))*dxhi(ie+m)*rk3coef*uouttot
@@ -867,67 +867,6 @@ contains
       return
    end subroutine grwdamp
 
-   !> Sets top boundary conditions for scalars
-   subroutine toph
-
-      use modglobal, only:ib, ie, jb, je, kb, ke, numol, prandtlmol, dzh, &
-         dtheta, dqt, dsv, nsv, lzerogradtop, lzerogradtopscal, ltempeq, lmoist, khc, ltfluxtop, dzf, dzhi, &
-         rk3step, dt, dzfi, dzh, dzh2i
-      use modfields, only:u0, v0, e120, um, vm, e12m, thl0, qt0, sv0, thlm, qtm, svm
-      use modsubgriddata, only:ekh
-      use modsurfdata, only:ustar, thl_top, qt_top, wttop, wqtop
-      implicit none
-
-      real    :: flux, rk3coef
-      integer :: i, j, jp, jm, n, m
-
-      ! **  Top conditions :
-      !1) zero gradient = zero flux (no perpendicular mean velocity)
-      !2) given flux
-      !3) given temperature at boundary
-      if (lzerogradtopscal) then
-         if (ltempeq) then
-            thl0(:, :, ke + 1) = thl0(:, :, ke)
-            thlm(:, :, ke + 1) = thlm(:, :, ke)
-         end if
-         if (lmoist) then
-            qt0(:, :, ke + 1) = qt0(:, :, ke)
-            qtm(:, :, ke + 1) = qtm(:, :, ke)
-         end if
-         do n = 1, nsv
-            sv0(:, :, ke + 1, n) = sv0(:, :, ke, n)
-            svm(:, :, ke + 1, n) = svm(:, :, ke, n)
-         end do
-      else if (ltfluxtop) then
-         if (ltempeq) then
-            rk3coef = dt/(4.-dble(rk3step))
-            ! tg3315 edited 18/01/18 - also requires seeting value of ekh in startup
-thl0(:, :, ke + 1) = thl0(:, :, ke) + dzh(ke + 1)*wttop/(dzhi(ke + 1)*(0.5*(dzf(ke)*ekh(:, :, ke + 1) + dzf(ke + 1)*ekh(:, :, ke))))
-thlm(:, :, ke + 1) = thlm(:, :, ke) + dzh(ke + 1)*wttop/(dzhi(ke + 1)*(0.5*(dzf(ke)*ekh(:, :, ke + 1) + dzf(ke + 1)*ekh(:, :, ke))))
-         end if
-         if (lmoist) then
-  qt0(:, :, ke + 1) = qt0(:, :, ke) + dzh(ke + 1)*wqtop/(dzhi(ke + 1)*(0.5*(dzf(ke)*ekh(:, :, ke + 1) + dzf(ke + 1)*ekh(:, :, ke))))
-  qtm(:, :, ke + 1) = qtm(:, :, ke) + dzh(ke + 1)*wqtop/(dzhi(ke + 1)*(0.5*(dzf(ke)*ekh(:, :, ke + 1) + dzf(ke + 1)*ekh(:, :, ke))))
-         end if
-      else
-         if (ltempeq) then
-            thl0(:, :, ke + 1) = 2.*thl_top - thl0(:, :, ke) ! T=thl_top
-            thlm(:, :, ke + 1) = 2.*thl_top - thlm(:, :, ke) ! T=thl_top
-         end if
-         if (lmoist) then
-            qt0(:, :, ke + 1) = 2.*qt_top - qt0(:, :, ke) ! qt=qt_top
-            qtm(:, :, ke + 1) = 2.*qt_top - qtm(:, :, ke) ! qt=qt_top
-         end if
-         do m = 1, khc
-            do n = 1, nsv
-               sv0(:, :, ke + m, n) = sv0(:, :, ke, n)
-               svm(:, :, ke + m, n) = svm(:, :, ke, n)
-            enddo
-         enddo
-      endif
-
-      return
-   end subroutine toph
 
    subroutine fluxtop(field, ek, flux)
       use modglobal, only:ib, ie, ih, jb, je, jh, kb, ke, kh, dzf, dzh, dzhi, eps1

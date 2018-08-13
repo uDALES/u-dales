@@ -1908,7 +1908,7 @@ contains
         if (filen == -1) then 
           filen = nprocsinl-1                      ! -1 means the last proc (periodic)
         else
-          filen = fileid - floor(fileid/real(nprocsinl))*nprocsinl  ! loop over proc's
+          filen = fileid - floor(real(fileid)/real(nprocsinl))*nprocsinl  ! loop over proc's
         end if
 !        write(6,*) '!!!!! filen = ', filen
         name = 'inlet/inlet_    k   .'
@@ -2396,7 +2396,7 @@ contains
       do j=jgein+1,jgbin,-1
         if (yhin(j)<= yh(jb)) then
           if (yfin(j)<= yf(jb)) then  
-            procinlo = floor((j-jgbin)/real(jtotin))      ! this is the first cell to consider
+            procinlo = floor(real(j-jgbin)/real(jtotin))      ! this is the first cell to consider
             filenumstart = procinlo
             jgbeg = j
             jbeg = j-(procinlo*jtotin)
@@ -2404,10 +2404,10 @@ contains
             jj = j+jtotdum-1
 !            procinup = floor((j-jgbin)/real(jtotin))     
 !            procinup = floor((j-jgbin+1)/real(jtotin))
-            procinup = floor((jj-jgbin)/real(jtotin))
+            procinup = floor(real(jj-jgbin)/real(jtotin))
             filenumend = procinup
             jend = jj-(procinup*jtotin)
-            procinup = procinup-floor(procinup/real(nprocsinl))*nprocsinl  ! continue on first procinl again
+            procinup = procinup-floor(real(procinup)/real(nprocsinl))*nprocsinl  ! continue on first procinl again
           else
             if (j == jgbin) then
               jgbeg = j-1
@@ -2415,20 +2415,20 @@ contains
               procinlo = nprocsinl-1
               filenumstart = -1
               jj = j+jtotdum-2
-              procinup = floor((jj-jgbin)/real(jtotin))
+              procinup = floor(real(jj-jgbin)/real(jtotin))
               filenumend = procinup
               jend = jj-(procinup*jtotin)
-              procinup = procinup-floor(procinup/real(nprocsinl))*nprocsinl  !continue on first procinl again
+              procinup = procinup-floor(real(procinup)/real(nprocsinl))*nprocsinl  !continue on first procinl again
             else  
-              procinlo = floor((j-jgbin-1)/real(jtotin))    ! One cell lower is needed
+              procinlo = floor(real(j-jgbin-1)/real(jtotin))    ! One cell lower is needed
               filenumstart = procinlo
               jgbeg = j-1
               jbeg = j-(procinlo*jtotin)-1         
               jj = j+jtotdum-2
-              procinup = floor((jj-jgbin)/real(jtotin))
+              procinup = floor(real(jj-jgbin)/real(jtotin))
               filenumend = procinup
               jend = jj-(procinup*jtotin)
-              procinup = procinup-floor(procinup/real(nprocsinl))*nprocsinl  ! continue on first procinl again
+              procinup = procinup-floor(real(procinup)/real(nprocsinl))*nprocsinl  ! continue on first procinl again
             end if ! j=jgbin
           end if
           exit

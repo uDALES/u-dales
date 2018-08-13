@@ -271,7 +271,7 @@ contains
     return
   end subroutine tderive
 
-
+!ils13, 13.08.18: currently unused, not callled
   subroutine ALL_ALL_j(p,ptrans,iaction)
 ! purpose: do all-to-all communication
 ! data are only distributed over the j-direction for p

@@ -102,19 +102,16 @@ module modglobal
    integer :: BCtops = 1
 
    !at the bottom (bot) !the bottom BC are defacto useless, since they will be covered by a road facet
-   !1 = freeslip, 2 = noslip
+   !1 = flux, 2 = wall function
    integer :: BCbotm = 2
    integer :: BCbotT = 2
-   integer :: BCbotq = 2
-   integer :: BCbots = 2
+   integer :: BCbotq = 1
+   integer :: BCbots = 1
 
    integer :: iinletgen = 0 !<  0: no inletgen, 1: turb. inlet generator (Lund (1998)), 2: read inlet from file
    logical :: linoutflow = .false. !<  switch for periodic BC in both horizontal directions (false) or inflow/outflow in i and periodic in j.
    logical :: lzerogradtop = .false. !<  switch for zero gradient BC's at top wall (iinletgen 1 and 2 are seperate).
    logical :: lzerogradtopscal = .false. !
-   logical :: ltfluxtop = .false. !fixed flux or fixed value top BC
-   logical :: ltfluxbot = .false. !fixed flux or fixed values bottom BC
-   logical :: lqfluxbot = .false. !fixed flux for bottom moisture
    logical :: lbuoyancy = .true. !<  switch for buoyancy force in modforces
    logical :: ltempeq = .true. !<  switch for solving temperature equation (either with or without buoyancy term)
    logical :: lscalinout = .false. !<  seperate switch for inflow/outflow BC for scalar (only necessary when linoutflow.eqv..false.).
@@ -246,11 +243,11 @@ module modglobal
   !trees
   integer, allocatable :: tree(:,:)             !< field with data from tree.inp.xxx
   real, allocatable :: ladt(:)                  !< field with leaf area density data
-  real    :: cd = 0, ud = 0, Rshade = 0, sun = 0, decay = 0,Bowen = 0   !< current set of parameters for tree model
+  real    :: cd = 0., ud = 0., Rshade = 0., sun = 0., decay = 0.,Bowen = 0.   !< current set of parameters for tree model
 
   logical :: lnudge = .false.                   !< switch for applying nudging at the top of the domain
   real    :: tnudge = 50.                       !< time scale for nudging
-  integer :: nnudge = 10.
+  integer :: nnudge = 10
 
   !chemistry
   logical :: lchem = .false.    ! switch for basic chemistry
@@ -277,7 +274,7 @@ module modglobal
    real :: dtav = 0.
    real :: dtav_glob = 60.
    real :: timeav_glob = 3600.
-   real :: totavtime = 0 !<    * the total time over which the values are averaged in meansXXX.XXX
+   real :: totavtime = 0. !<    * the total time over which the values are averaged in meansXXX.XXX
    real :: dtEB = 10. !time interval between calculations of facet energy balance
    real :: tEB = 0. !time of last calculation of facet energy balance
    real :: tnextEB = 0. !time for next calculation of facet energy balance
@@ -300,7 +297,7 @@ module modglobal
 
    logical :: ladaptive = .false. !<    * adaptive timestepping on or off
 
-   real    :: courant = -1
+   real    :: courant = -1.
    real    :: diffnr = 0.25
    real    :: dt_lim
 
@@ -360,8 +357,8 @@ module modglobal
    real, allocatable :: dxh2i(:) !<  = 1/dxh^2
    real, allocatable :: xh(:) !<  height of half level [m]
    real, allocatable :: xf(:) !<  height of full level [m]
-   real :: xsize = -1 !<  domain size in x-direction
-   real :: ysize = -1 !<  domain size in y-direction
+   real :: xsize = -1. !<  domain size in x-direction
+   real :: ysize = -1. !<  domain size in y-direction
    real, allocatable :: delta(:, :) !<  (dx*dy*dz)**(1/3)
 
    logical :: lmomsubs = .false. !<  switch to apply subsidence on the momentum or not

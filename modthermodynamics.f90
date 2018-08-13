@@ -136,7 +136,7 @@ contains
     real    c1,c2,dq,dth,dthv,temp
     real    a_dry, b_dry, a_moist, b_moist, c_liquid, epsilon, eps_I, chi_sat, chi
     real    del_thv_sat, del_thv_dry
-    dthvdz = 0
+    dthvdz = 0.0
     if (lmoist) then
 
        do  k=kb,ke+kh
@@ -450,7 +450,7 @@ contains
 
                 tl  = thl(i,j,k)*exner(k)
                 Tnr=tl
-                Tnr_old=0
+                Tnr_old=0.
                 do while (abs(Tnr-Tnr_old)/Tnr>1e-5)
                    niter = niter+1
                    Tnr_old = Tnr
@@ -461,7 +461,7 @@ contains
                         (rv*cp*Tnr**2))
                 end do
                 nitert =max(nitert,niter)
-                niter = 0.0
+                niter = 0
 
                 ql(i,j,k) = dim(qt(i,j,k)-qsatur,0.)
 

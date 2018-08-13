@@ -663,7 +663,7 @@ contains
     um=0.;u0=0.;up=0.
     vm=0.;v0=0.;vp=0.
     wm=0.;w0=0.;wp=0.
-    pres0=0;
+    pres0=0.;
     thlm=0.;thl0=0.;thlp=0.
     qtm=0.;qt0=0.;qtp=0.
     e12m=0.;e120=0.;e12p=0.
@@ -695,16 +695,16 @@ contains
 
     IIc=1;IIu=1;IIv=1;IIct=1;IIw=1;IIuw=1;IIvw=1;IIuwt=1;IIut=1;IIvt=1;IIwt=1;IIcs=1;IIus=1;IIvs=1;IIws=1;IIuws=1;IIvws=1
 
-    uav=0;vav=0;wav=0;thlav=0;qtav=0;svav=0;viscratioav=0;uuav=0;vvav=0
-    wwav=0;uvav=0;uwav=0;vwav=0;sv2av=0;thl2av=0;ql2av=0;qt2av=0;presav=0
-    thluav=0;thlvav=0;thlwav=0;thlthlav=0;svuav=0;svvav=0;svwav=0
-    shear=0
-    upupav=0;vpvpav=0;wpwpav=0;thlpthlpav=0;qlpqlpav=0;qtpqtpav=0;svpsvpav=0;upvpav=0;upwpav=0;vpwpav=0
-    thlpupav=0;thlpvpav=0;thlpwpav=0;qlpupav=0;qlpvpav=0;qlpwpav=0;qtpwpav=0;qtpvpav=0;qtpupav=0;svpupav=0;svpvpav=0;svpwpav=0
-    umint=0;vmint=0;wmint=0
+    uav=0.;vav=0.;wav=0.;thlav=0.;qtav=0.;svav=0.;viscratioav=0.;uuav=0.;vvav=0.
+    wwav=0.;uvav=0.;uwav=0.;vwav=0.;sv2av=0.;thl2av=0.;ql2av=0.;qt2av=0.;presav=0.
+    thluav=0.;thlvav=0.;thlwav=0.;thlthlav=0.;svuav=0.;svvav=0.;svwav=0.
+    shear=0.
+    upupav=0.;vpvpav=0.;wpwpav=0.;thlpthlpav=0.;qlpqlpav=0.;qtpqtpav=0.;svpsvpav=0.;upvpav=0.;upwpav=0.;vpwpav=0.
+    thlpupav=0.;thlpvpav=0.;thlpwpav=0.;qlpupav=0.;qlpvpav=0.;qlpwpav=0.;qtpwpav=0.;qtpvpav=0.;qtpupav=0.;svpupav=0.;svpvpav=0.;svpwpav=0.
+    umint=0.;vmint=0.;wmint=0.
 ! SGS
-    uusgsav=0;vvsgsav=0;wwsgsav=0;uwsgsav=0;thlusgsav=0;thlwsgsav=0;qlusgsav=0;qlwsgsav=0;qtwsgsav=0;qtusgsav=0;
-    svusgsav=0;svwsgsav=0;tkesgsav=0;nusgsav=0.
+    uusgsav=0.;vvsgsav=0.;wwsgsav=0.;uwsgsav=0.;thlusgsav=0.;thlwsgsav=0.;qlusgsav=0.;qlwsgsav=0.;qtwsgsav=0.;qtusgsav=0.;
+    svusgsav=0.;svwsgsav=0.;tkesgsav=0.;nusgsav=0.
 ! Resolved dissipation 
     strain2av=0.
 ! Subgrid dissipation 

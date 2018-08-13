@@ -203,7 +203,7 @@
          allocate (typeloc(int(minval(walltypes(:, 1))):int(maxval(walltypes(:, 1)))))
 
          if (myid .eq. 0) then  !all the read processes just need to be done on one processor
-            typeloc = 0.
+            typeloc = 0
             do n = 1, nwalltypes
                typeloc(int(walltypes(n, 1))) = n
             end do
@@ -239,7 +239,7 @@
 ! assign the facet properties to their own arrays
             do n = 1, nfcts
                i = typeloc(facets(n, 2))
-               faclGR(n) = (abs(walltypes(i, 2) - 1) < 1.0D-5) !logic for green surface, conversion from real to logical
+               faclGR(n) = (abs(walltypes(i, 2) - 1.00) < 1.0D-5) !logic for green surface, conversion from real to logical
                facz0(n) = walltypes(i, 3)  !surface momentum roughness
                facz0h(n) = walltypes(i, 4) !surface heat & moisture roughness
                facalb(n) = walltypes(i, 5) !surface shortwave albedo
@@ -314,7 +314,7 @@
             do n = 0, nfcts
             if (faclGR(n)) then
                facwsoil(n) = wsoil
-               fachurel(n) = 0.5*(1 - cos(3.14159*wsoil/wfc))
+               fachurel(n) = 0.5*(1. - cos(3.14159*wsoil/wfc))
             end if
             end do
 

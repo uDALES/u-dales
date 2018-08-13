@@ -1015,13 +1015,13 @@ SUBROUTINE unoh(otf, octh, logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar
    octh = 0.
    otf = 0.
    IF (Ribl0 > 0.21) THEN !0.25 approx critical for bulk Richardson number  => stable
-      Fm = 1/(1 + b2*Ribl0)**2 !Eq. 4
+      Fm = 1./(1. + b2*Ribl0)**2 !Eq. 4
       Fh = Fm !Eq. 4
    ELSE ! => unstable
       cm = (dm*fkar2)/(logdz**2)*b1*sqdz !Eq. 5
       ch = (dh*fkar2)/(logdz**2)*b1*sqdz !Eq. 5
-      Fm = 1 - (b1*Ribl0)/(1 + cm*SQRT(ABS(Ribl0))) !Eq. 3
-      Fh = 1 - (b1*Ribl0)/(1 + ch*SQRT(ABS(Ribl0))) !Eq. 3
+      Fm = 1. - (b1*Ribl0)/(1. + cm*SQRT(ABS(Ribl0))) !Eq. 3
+      Fh = 1. - (b1*Ribl0)/(1. + ch*SQRT(ABS(Ribl0))) !Eq. 3
    END IF
 
    M = prandtlmol*logdz*SQRT(Fm)/Fh !Eq. 14
@@ -1030,17 +1030,17 @@ SUBROUTINE unoh(otf, octh, logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar
 
    !interate to get new Richardson number
    IF (Ribl1 > 0.21) THEN !0.25 approx critical for bulk Richardson number  => stable
-      Fm = 1/(1 + b2*Ribl1)**2 !Eq. 4
+      Fm = 1./(1. + b2*Ribl1)**2 !Eq. 4
       Fh = Fm !Eq. 4
    ELSE ! => unstable
       cm = (dm*fkar2)/(logdz**2)*b1*sqdz !Eq. 5
       ch = (dh*fkar2)/(logdz**2)*b1*sqdz !Eq. 5
-      Fm = 1 - (b1*Ribl1)/(1 + cm*SQRT(ABS(Ribl1))) !Eq. 3
-      Fh = 1 - (b1*Ribl1)/(1 + ch*SQRT(ABS(Ribl1))) !Eq. 3
+      Fm = 1. - (b1*Ribl1)/(1. + cm*SQRT(ABS(Ribl1))) !Eq. 3
+      Fh = 1. - (b1*Ribl1)/(1. + ch*SQRT(ABS(Ribl1))) !Eq. 3
    END IF
    M = prandtlmol*logdz*SQRT(Fm)/Fh !Eq. 14
 
-   dTrough = dT*1/(prandtlmol*logzh/M + 1) !Eq. 13a
+   dTrough = dT*1./(prandtlmol*logzh/M + 1.) !Eq. 13a
 
    octh = SQRT(utangInt)*fkar2/(logdz*logdzh)*prandtlmoli*Fh !Eq. 8
    otf = octh*dTrough !Eq. 2, Eq. 8
@@ -1062,13 +1062,13 @@ REAL FUNCTION unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !for 
    REAL, PARAMETER :: dh = 5.3
    REAL, PARAMETER :: prandtlmol = 0.71
    IF (Ribl0 > 0.21) THEN !0.25 approx critical for bulk Richardson number  => stable
-      Fm = 1/(1 + b2*Ribl0)**2 !Eq. 4
+      Fm = 1./(1. + b2*Ribl0)**2 !Eq. 4
       Fh = Fm !Eq. 4
    ELSE ! => unstable
       cm = (dm*fkar2)/(logdz**2)*b1*sqdz !Eq. 5
       ch = (dh*fkar2)/(logdz**2)*b1*sqdz !Eq. 5
-      Fm = 1 - (b1*Ribl0)/(1 + cm*SQRT(ABS(Ribl0))) !Eq. 3
-      Fh = 1 - (b1*Ribl0)/(1 + ch*SQRT(ABS(Ribl0))) !Eq. 3
+      Fm = 1. - (b1*Ribl0)/(1. + cm*SQRT(ABS(Ribl0))) !Eq. 3
+      Fh = 1. - (b1*Ribl0)/(1. + ch*SQRT(ABS(Ribl0))) !Eq. 3
    END IF
 
    M = prandtlmol*logdz*SQRT(Fm)/Fh !Eq. 14
@@ -1077,10 +1077,10 @@ REAL FUNCTION unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !for 
 
    !interate to get new Richardson number
    IF (Ribl1 > 0.21) THEN !0.25 approx critical for bulk Richardson number  => stable
-      Fm = 1/(1 + b2*Ribl1)**2 !Eq. 4
+      Fm = 1./(1. + b2*Ribl1)**2 !Eq. 4
    ELSE ! => unstable
       cm = (dm*fkar2)/(logdz**2)*b1*sqdz !Eq. 5
-      Fm = 1 - (b1*Ribl1)/(1 + cm*SQRT(ABS(Ribl1))) !Eq. 3
+      Fm = 1. - (b1*Ribl1)/(1. + cm*SQRT(ABS(Ribl1))) !Eq. 3
    END IF
 
    Ctm = fkar2/(logdz**2)*Fm !Eq. 7

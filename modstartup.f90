@@ -46,7 +46,7 @@ contains
          lreadmean, iinletgen, inletav, lreadminl, Uinf, Vinf, linletRA, nblocks, ntrees, npurif, &
          lscalinout,lscalrec,lSIRANEinout,lscasrc,lscasrcl,lscasrcr,lydump,lytdump,lxydump,lxytdump,lslicedump,ltdump,ltkedump,lzerogradtop,&
          lzerogradtopscal, lbuoyancy, ltempeq, numol, prandtlmol, sun, Bowen, cd, decay, ud, Qpu, epu, numoli, prandtlmoli, z0w, z0hw, &
-         lfixinlet, lfixutauin, lstore3d, lstorexz, startmean, pi, ltfluxtop, ltfluxbot, &
+         lfixinlet, lfixutauin, lstore3d, lstorexz, startmean, pi, &
          thlsrc, nkplane, kplane, nsvl, nsvp, ifixuinf, lvinf, tscale, ltempinout, lmoistinout, lstat, dtav, &
          timeav,ltkebudget,lcanopy,lwallfunc,lprofforc,lchem,k1,JNO2,rv,rd,tnextEB,tEB,dtEB,bldT,wsoil,wgrmax,wwilt,wfc,skyLW,GRLAI,rsmin,nfcts,lEB,lconstW, &
          BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys,BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots
@@ -717,7 +717,7 @@ contains
             !-----------------------------------------------------------------
 
             dt = dtmax/100.
-            timee = 0
+            timee = 0.
             if (myid == 0) then
                open (ifinput, file='prof.inp.'//cexpnr)
                read (ifinput, '(a80)') chmess
@@ -1678,13 +1678,13 @@ contains
          IIw(:, :, :) = 1
          IIuw(:, :, :) = 1
          IIvw(:, :, :) = 1
-         IIcs(:) = rslabs
-         IIus(:) = rslabs
-         IIvs(:) = rslabs
-         IIws(:) = rslabs
-         IIuws(:) = rslabs
-         IIvws(:) = rslabs
-         IIct(:, :) = jtot; 
+         IIcs(:) = nint(rslabs)
+         IIus(:) = nint(rslabs)
+         IIvs(:) = nint(rslabs)
+         IIws(:) = nint(rslabs)
+         IIuws(:) = nint(rslabs)
+         IIvws(:) = nint(rslabs)
+         IIct(:, :) = jtot 
          IIut(:, :) = jtot
          IIvt(:, :) = jtot
          IIwt(:, :) = jtot
@@ -1826,22 +1826,22 @@ contains
       call MPI_ALLREDUCE(IIvd(ib:ie, kb:ke), IIvt(ib:ie, kb:ke), (ke - kb + 1)*(ie - ib + 1), MPI_INTEGER, MPI_SUM, comm3d, mpierr)
 
       where (IIcs == 0)
-      IIcs = rslabs
+      IIcs = nint(rslabs)
       endwhere
       where (IIus == 0)
-      IIus = rslabs
+      IIus = nint(rslabs)
       endwhere
       where (IIvs == 0)
-      IIvs = rslabs
+      IIvs = nint(rslabs)
       endwhere
       where (IIws == 0)
-      IIws = rslabs
+      IIws = nint(rslabs)
       endwhere
       where (IIuws == 0)
-      IIuws = rslabs
+      IIuws = nint(rslabs)
       endwhere
       where (IIvws == 0)
-      IIvws = rslabs
+      IIvws = nint(rslabs)
       endwhere
 
       ! use masking matrices to set 0 in blocks from start? tg3315 13/12/17

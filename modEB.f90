@@ -298,7 +298,7 @@ function gaussji(c,d,n) result(a)
             end if
             
             !update canopy resistance used in wf_gr
-            fachurel(n) = max(min(1.0, 0.5*(1 - cos(3.14159*facwsoil(n)/wfc))), 0.) !relative humidity above soil
+            fachurel(n) = max(min(1.0, 0.5*(1.0 - cos(3.14159*facwsoil(n)/wfc))), 0.) !relative humidity above soil
             facf(n, 1) = 1./min(1.0, (0.004*netSW(n) + 0.05)/(0.81*(0.004*netSW(n) + 1))) !f1
             facf(n, 2) = 1./min(max(0.001, (facwsoil(n) - wwilt)/(wfc - wwilt)), 1.0) !f2
             !f3 drops out because it is for high vegetation only
@@ -318,7 +318,7 @@ function gaussji(c,d,n) result(a)
       implicit none
       real, intent(in) :: T
       real :: gres
-      gres = 611*exp(17.27*(T - 273.15)/(T - 35.85)) ![Pa] Bolton 1980
+      gres = 611.00*exp(17.27*(T - 273.15)/(T - 35.85)) ![Pa] Bolton 1980
       qsat = 0.62198*0.01*gres/(1000-0.01*gres) ![kg/kg] Murphy & Koop 2005 !1000 can be replaced with actual air pressure if desired
    end function qsat
 

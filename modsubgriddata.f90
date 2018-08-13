@@ -34,7 +34,7 @@ save
   real :: ch2     = 2.
   real :: ce1     = 0.19
   real :: ce2     = 0.51
-  real :: cs      = -1
+  real :: cs      = -1.
   real :: nmason  = 2.   !< exponent in Mason correction function
   real :: alpha_kolm  = 1.5     !< factor in Kolmogorov expression for spectral energy
   real :: beta_kolm   = 1.      !< factor in Kolmogorov relation for temperature spectrum

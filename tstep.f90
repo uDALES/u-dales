@@ -52,7 +52,7 @@ subroutine tstep_update
   implicit none
 
   integer       :: i, j, k,imin,kmin
-  real,save     :: courtot=-1,diffnrtot=-1
+  real,save     :: courtot=-1.,diffnrtot=-1.
   real          :: courtotl,courold,diffnrtotl,diffnrold
 !  logical,save  :: spinup=.true.
   logical,save  :: spinup=.false.
@@ -68,8 +68,8 @@ subroutine tstep_update
       if (ladaptive) then
         courold = courtot
         diffnrold = diffnrtot
-        courtotl=0
-        diffnrtotl = 0
+        courtotl=0.
+        diffnrtotl = 0.
         do k=kb,ke
         do j=jb,je
         do i=ib,ie
@@ -105,7 +105,7 @@ subroutine tstep_update
     else  !spinup = .false.
 
       if (ladaptive) then
-        courtotl=0
+        courtotl=0.
         diffnrtotl = 1e-5
         do k=kb,ke
         do j=jb,je

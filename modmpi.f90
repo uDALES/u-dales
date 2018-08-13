@@ -387,7 +387,7 @@ contains
   call MPI_ALLREDUCE(avero(ib:ie,kb:ke), aver(ib:ie,kb:ke), (ke-kb+1)*(ie-ib+1), MY_REAL,MPI_SUM, comm3d,mpierr)
 
   where (IIt==0)
-    aver = -999
+    aver = -999.
   elsewhere
     aver = aver/IIt
   endwhere

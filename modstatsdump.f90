@@ -603,11 +603,11 @@ contains
         wpthlpyk = wthlyk - wy*thlyk
 
         where (IIwt==0)
-          wpthlpyk  = -999                                                                         
+          wpthlpyk  = -999.0                                                                       
         endwhere
 
         where (IIuwt==0)
-          upwpyik    = -999
+          upwpyik    = -999.0
         endwhere
 
       end if ! lydump
@@ -746,11 +746,11 @@ contains
     ! slicedump fields are generalised so can define what is required here
     if (lslicedump) then
       slice = (slice*(tstatsdumpp-tsamplep) + (0.5*(svm(ib:ie,jb:je,kb,1)+svm(ib:ie,jb:je,kb+1,1)))*tsamplep)*tstatsdumppi
-      slice2 = (slice2*(tstatsdumpp-tsamplep) + (sum(svm(ib:ie,jb:je,kb:kb+8,1),3)/9)*tsamplep)*tstatsdumppi
+      slice2 = (slice2*(tstatsdumpp-tsamplep) + (sum(svm(ib:ie,jb:je,kb:kb+8,1),3)/9.)*tsamplep)*tstatsdumppi
       slice3 = (slice3*(tstatsdumpp-tsamplep) + (0.5*(svm(ib:ie,jb:je,kb,2)+svm(ib:ie,jb:je,kb+1,2)))*tsamplep)*tstatsdumppi
-      slice4 = (slice4*(tstatsdumpp-tsamplep) + (sum(svm(ib:ie,jb:je,kb:kb+8,2),3)/9)*tsamplep)*tstatsdumppi
+      slice4 = (slice4*(tstatsdumpp-tsamplep) + (sum(svm(ib:ie,jb:je,kb:kb+8,2),3)/9.)*tsamplep)*tstatsdumppi
       slice5 = (slice5*(tstatsdumpp-tsamplep) + (0.5*(svm(ib:ie,jb:je,kb,3)+svm(ib:ie,jb:je,kb+1,3)))*tsamplep)*tstatsdumppi
-      slice6 = (slice6*(tstatsdumpp-tsamplep) + (sum(svm(ib:ie,jb:je,kb:kb+8,3),3)/9)*tsamplep)*tstatsdumppi
+      slice6 = (slice6*(tstatsdumpp-tsamplep) + (sum(svm(ib:ie,jb:je,kb:kb+8,3),3)/9.)*tsamplep)*tstatsdumppi
       slice7 = (slice7*(tstatsdumpp-tsamplep) + (um(ib:ie,jb:je,kb)+um(ib:ie,jb:je,kb+1))*tsamplep)*tstatsdumppi
       slice8 = (slice8*(tstatsdumpp-tsamplep) + (vm(ib:ie,jb:je,kb)+vm(ib:ie,jb:je,kb+1))*tsamplep)*tstatsdumppi
     endif !lslicedump
@@ -1006,7 +1006,8 @@ contains
     real, dimension(ib:ie,  jb-1:je+1,kb:ke)    :: dummyy
     real, dimension(ib:ie,  jb  :je,  kb:ke+1)  :: dummyz
 
-  integer i,j,k,ip,im,jp,jm,kp,km,strainav2
+  integer i,j,k,ip,im,jp,jm,kp,km
+  real strainav2
   real dummy
 
     ! Tvav = (Tvm - <ui>*d/dxj(<Sij>)  ) + 2*nu*<Sij'Sij'>

@@ -355,7 +355,7 @@ contains
                  ! write(*,*) "const",const
                  ! write(*,*) "delta",delta
                   const2=(bb/aa)-(delta(i,k)**4)*dthvdz(i,j,k)*const
-                  if (const2 <0) const2 = 0
+                  if (const2 <0.0) const2 = 0.0
                 end if
                 ekm(i,j,k)=c_vreman*sqrt(const2)
                 ekh(i,j,k)=ekm(i,j,k)*prandtli 

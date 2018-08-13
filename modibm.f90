@@ -584,8 +584,8 @@ contains
             up(il, jl:ju, kl:ku) = -um(il, jl:ju, kl:ku)*rk3coefi
             up(iu, jl:ju, kl:ku) = -um(iu, jl:ju, kl:ku)*rk3coefi
 
-            up(il + 1:iu - 1, jl:ju, kl:ku) = 0 !internal velocity don't change or
-            um(il + 1:iu - 1, jl:ju, kl:ku) = 0 !internal velocity = 0    or both?
+            up(il + 1:iu - 1, jl:ju, kl:ku) = 0. !internal velocity don't change or
+            um(il + 1:iu - 1, jl:ju, kl:ku) = 0. !internal velocity = 0    or both?
 
          end do ! 1,nxwallsnorm
 
@@ -601,8 +601,8 @@ contains
             vp(il:iu, jl, kl:ku) = -vm(il:iu, jl, kl:ku)*rk3coefi
             vp(il:iu, ju, kl:ku) = -vm(il:iu, ju, kl:ku)*rk3coefi
 
-            vp(il:iu, jl + 1:ju - 1, kl:ku) = 0
-            vm(il:iu, jl + 1:ju - 1, kl:ku) = 0
+            vp(il:iu, jl + 1:ju - 1, kl:ku) = 0.0
+            vm(il:iu, jl + 1:ju - 1, kl:ku) = 0.0
          end do  !1,nyminwall
 
          do n = 1, nypluswall
@@ -617,8 +617,8 @@ contains
             vp(il:iu, jl, kl:ku) = -vm(il:iu, jl, kl:ku)*rk3coefi
             vp(il:iu, ju, kl:ku) = -vm(il:iu, ju, kl:ku)*rk3coefi
 
-            vp(il:iu, jl + 1:ju - 1, kl:ku) = 0
-            vm(il:iu, jl + 1:ju - 1, kl:ku) = 0
+            vp(il:iu, jl + 1:ju - 1, kl:ku) = 0.0
+            vm(il:iu, jl + 1:ju - 1, kl:ku) = 0.0
          end do !1,nypluswall
 
          do n = 1, nxwall
@@ -633,8 +633,8 @@ contains
             wp(il:iu, jl:ju, kl) = -wm(il:iu, jl:ju, kl)*rk3coefi
             wp(il:iu, jl:ju, ku) = -wm(il:iu, jl:ju, ku)*rk3coefi
 
-            wp(il:iu, jl:ju, kl + 1:ku - 1) = 0
-            wm(il:iu, jl:ju, kl + 1:ku - 1) = 0
+            wp(il:iu, jl:ju, kl + 1:ku - 1) = 0.
+            wm(il:iu, jl:ju, kl + 1:ku - 1) = 0.
 
          end do !1,nxwall
 
@@ -967,7 +967,7 @@ contains
       !kind of obsolete when road facets are being used
       !vegetated floor not added (could simply be copied from vegetated horizontal facets)
       use modglobal, only:ib, ie, ih, jh, kh, jb, je, kb, numol, prandtlmol, dzh, &
-         dxf, dxhi, dzf, dzfi, numoli, ltempeq, khc, lmoist, ltfluxbot, lqfluxbot, dzh2i
+         dxf, dxhi, dzf, dzfi, numoli, ltempeq, khc, lmoist, BCbotT, BCbotq, BCbotm, dzh2i
       use modfields, only : u0,v0,e120,um,vm,w0,wm,e12m,thl0,qt0,sv0,thlm,qtm,svm,up,vp,thlp,qtp,shear,momfluxb,tfluxb,cth
       use modsurfdata, only:thlflux, qtflux, svflux, ustar, thvs, qts, wtsurf, wqsurf, thls, z0, z0h
       use modsubgriddata, only:ekm, ekh
@@ -975,10 +975,15 @@ contains
       implicit none
       integer :: i, j, jp, jm, m
       !momentum
+      if (BCbotm.eq.2) then
       call wfuno(ih, jh, kh, up, vp, thlp, momfluxb, tfluxb, cth, bcTfluxA, u0, v0, thl0, thls, z0, z0h, 0, 1, 91)
-
+      else
+      write (*, *) "WARNING: ABORT, bottom boundary type for momentum undefined"
+      stop
+      end if
+ 
       if (ltempeq) then
-         if (ltfluxbot) then !neumann/fixed flux bc for temperature
+         if (BCbotT.eq.1) then !neumann/fixed flux bc for temperature
             do j = jb, je
                do i = ib, ie
                   thlp(i, j, kb) = thlp(i, j, kb) &
@@ -990,13 +995,16 @@ contains
                                    )*dzfi(kb)
                end do
             end do
-         else !wall function bc for temperature (fixed temperature)
+         else if (BCbotT.eq.2) then !wall function bc for temperature (fixed temperature)
             call wfuno(ih, jh, kh, up, vp, thlp, momfluxb, tfluxb, cth, bcTfluxA, u0, v0, thl0, thls, z0, z0h, 0, 1, 92)
-         end if ! ltfluxtop
+         else
+         write (*, *) "WARNING: ABORT, bottom boundary type for temperature undefined"
+         stop
+         end if
       end if ! ltempeq
 
       if (lmoist) then
-         if (lqfluxbot) then !neumann/fixed flux bc for moisture
+         if (BCbotq.eq.1) then !neumann/fixed flux bc for moisture
             do j = jb, je
                do i = ib, ie
                   qtp(i, j, kb) = qtp(i, j, kb) + ( &
@@ -1007,13 +1015,16 @@ contains
                                   )*dzfi(kb)
                end do
             end do
-         end if ! lqfluxtop
+         else
+          write (*, *) "WARNING: ABORT, bottom boundary type for moisture undefined"  
+          stop
+         end if !
       end if !lmoist
 
       e120(:, :, kb - 1) = e120(:, :, kb)
       e12m(:, :, kb - 1) = e12m(:, :, kb)
-      wm(:, :, kb) = 0
-      w0(:, :, kb) = 0
+      wm(:, :, kb) = 0.
+      w0(:, :, kb) = 0.
       return
    end subroutine bottom
 

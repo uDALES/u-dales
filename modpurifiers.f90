@@ -73,9 +73,9 @@ contains
 
       do n = 1, npurif
 
-        upu=0
-        vpu=0
-        wpu=0
+        upu=0.
+        vpu=0.
+        wpu=0.
 
         ! Determine flow direction through purifier=
         select case(purif(n,7))
@@ -186,11 +186,11 @@ contains
           if (ju > je) ju=je
           if (jl < jb) jl=jb
 
-          where (sv0(:,:,:,1) < 0) sv0(:,:,:,1)=0     !must do this in tstep after svo = ... 
+          where (sv0(:,:,:,1) < 0.) sv0(:,:,:,1)=0.     !must do this in tstep after svo = ... 
 
           ! calculate concentration at purifier inlet
           allocate(inpu(il:iu,jl:ju,kl:ku,1:nsv))
-          inpu=0
+          inpu=0.
           select case(purif(n,7))
             case(1)
             do i=il,iu

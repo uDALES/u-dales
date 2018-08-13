@@ -452,16 +452,16 @@ endif
   do i=ib,ie
 
     up(i,j,k) = up(i,j,k)  &
-          +(v0(i,j,k)+v0(i,jp,k)+v0(i-1,j,k)+v0(i-1,jp,k))*om23*0.25 &
-          -(w0(i,j,k)+w0(i,j,kp)+w0(i-1,j,kp)+w0(i-1,j,k))*om22*0.25
+          +((v0(i,j,k)+v0(i,jp,k)+v0(i-1,j,k)+v0(i-1,jp,k))*om23*0.25) &
+          -((w0(i,j,k)+w0(i,j,kp)+w0(i-1,j,kp)+w0(i-1,j,k))*om22*0.25)
 
     vp(i,j,k) = vp(i,j,k)  &
-          -(u0(i,j,k)+u0(i,jm,k)+u0(i+1,jm,k)+u0(i+1,j,k))*om23*0.25
+          -((u0(i,j,k)+u0(i,jm,k)+u0(i+1,jm,k)+u0(i+1,j,k))*om23*0.25)
 
 
-    wp(i,j,k) = wp(i,j,k) + ( (dzf(km) * (u0(i,j,k)  + u0(i+1,j,k) )    &
+    wp(i,j,k) = wp(i,j,k) +(( (dzf(km) * (u0(i,j,k)  + u0(i+1,j,k) )    &
                 +    dzf(k)  * (u0(i,j,km) + u0(i+1,j,km))  ) / dzh(k) ) &
-                * om22*0.25
+                * om22*0.25)
   
   end do
   end do
@@ -478,7 +478,7 @@ endif
     jm = j-1
   do i=ib,ie
 
-    up(i,j,kb) = up(i,j,kb)  + &
+    up(i,j,kb) = up(i,j,kb)  &
           +(v0(i,j,kb)+v0(i,jp,kb)+v0(i-1,j,kb)+v0(i-1,jp,kb))*om23*0.25 &
           -(w0(i,j,kb)+w0(i,j ,kb+1)+w0(i-1,j,kb+1)+w0(i-1,j ,kb))*om22*0.25
 
