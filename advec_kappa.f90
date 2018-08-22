@@ -58,6 +58,8 @@
         end do
      end do
 
+  varp(:,:,:) = varp(:,:,:) + dumu(:,:,:)+duml(:,:,:)
+
   dumu(:,:,:) = 0.
   duml(:,:,:) = 0.
 ! -d(vc)/dy (no stretched grid)
@@ -79,6 +81,8 @@
            end do
         end do
      end do
+
+  varp(:,:,:) = varp(:,:,:) + dumu(:,:,:)+duml(:,:,:)
 
   dumu(:,:,:) = 0.
   duml(:,:,:) = 0.
@@ -102,6 +106,8 @@
            end do
         end do
      end do
+
+     varp(:,:,:) = varp(:,:,:) + dumu(:,:,:)+duml(:,:,:)
 
      return
   end subroutine advecc_kappa
