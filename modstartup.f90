@@ -711,10 +711,6 @@ contains
                      e12prof(k)
                end do
 
-               write(*,*), 'UPROF', uprof
-                write(*,*), 'vPROF', vprof
-
-
                ! Apply rotation in horizontal
                !write (6, *) 'iangle = ', iangle
 
