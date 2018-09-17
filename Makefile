@@ -63,9 +63,10 @@ F77OBJS=$(F77SRC:.f=.o)
  FCOPTS77     += -fdefault-real-8 
  FLOPTS77      = -fdefault-real-8 
 
+#-Wampersand -Wcharacter-truncation -Wunused -Wconversion -Wconversion-extra -Wall
  ifeq ($(DEBUG),TRUE)
-    FCOPTS     += -g -Warray-bounds -finit-real=nan -fbacktrace -Wconversion -Wconversion-extra#-Wunused -Wall -Wextra -Warray-temporaries -Wconversion -fimplicit-none -fcheck=all -ffpe-trap=zero,overflow,underflow
-    FLOPTS     += -g -Warray-bounds -finit-real=nan -fbacktrace -Wconversion -Wconversion-extra#-Wunused -Wextra -Wall
+    FCOPTS     += -g -Warray-bounds -finit-real=nan -fbacktrace  -Wextra #-Warray-temporaries -Wconversion -fimplicit-none -fcheck=all -ffpe-trap=zero,overflow,underflow
+    FLOPTS     += -g -Warray-bounds -finit-real=nan -fbacktrace  -Westra #-Wconversion -Wconversion-extra -Wextra -Wall
     FCOPTS77   += -g -fbacktrace
     FLOPTS77   += -g -fbacktrace
  else
