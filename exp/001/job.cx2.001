@@ -1,0 +1,37 @@
+#!/bin/bash
+#PBS -l walltime=024:00:00
+#PBS -l select=1:ncpus=16
+
+####:mem=500Mb
+
+iexpnr=641
+exe=dalesurban
+expdir=$DA_TOPDIR/exp
+workdir=/work/tg3315
+
+echo "-------------------------------------------------"
+echo "  job.$iexpnr"
+echo "-------------------------------------------------"
+
+# copy file to temporary directory
+ mkdir $workdir/$iexpnr 2>/dev/null
+ pbsdsh2 cp -av $expdir/$iexpnr/* $TMPDIR
+ mv /$workdir/$iexpnr/ti* $TMPDIR
+
+ echo $TMPDIR > where_am_i
+
+# execute the program
+
+#module load netcdf
+echo lib-path: $LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=/apps/netcdf/4.3.0/lib:$LD_LIBRARY_PATH
+
+cd $TMPDIR
+pbsexec -grace 30 mpiexec $expdir/$iexpnr/$exe $TMPDIR/namoptions.$iexpnr $TMPDIR/output.$iexpnr 2>&1
+
+#cd $workdir/$iexpnr
+#cp -av $TMPDIR/\*.$iexpnr $TMPDIR/\*.nc $TMPDIR/$exe . 2>&1
+pbsdsh2 cp -av $TMPDIR/\* $workdir/$iexpnr
+
+echo "... job.$iexpnr done"
+
