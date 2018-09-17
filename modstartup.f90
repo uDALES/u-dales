@@ -711,13 +711,17 @@ contains
                      e12prof(k)
                end do
 
-               ! Apply rotation in horizontal
-               write (6, *) 'iangle = ', iangle
+               write(*,*), 'UPROF', uprof
+                write(*,*), 'vPROF', vprof
 
-               uprofrot = uprof*cos(iangle) - vprof*sin(iangle)
-               vprofrot = vprof*cos(iangle) + uprof*sin(iangle)
-               uprof = uprofrot
-               vprof = vprofrot
+
+               ! Apply rotation in horizontal
+               !write (6, *) 'iangle = ', iangle
+
+               !uprofrot = uprof*cos(iangle) - vprof*sin(iangle)
+               !vprofrot = vprof*cos(iangle) + uprof*sin(iangle)
+               !uprof = uprofrot
+               !vprof = vprofrot
 
                close (ifinput)
                write (*, *) 'height    thl     qt      u      v     e12'
