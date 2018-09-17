@@ -5,4 +5,5 @@
 *.mod
 
 # Executables
+dalesurban*
 *.out
