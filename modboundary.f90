@@ -332,7 +332,6 @@ contains
             end do
 
             ! zero conc. on scalar 1 !tg3315 should be changed to as above in
-            ! lscalinout???
             sv0(ib - m, :, :, 1) = 0.
             svm(ib - m, :, :, 1) = 0.
 
@@ -345,7 +344,7 @@ contains
    end subroutine scalrec
 
    subroutine scalSIRANE
-    use modglobal, only : ib,ie,jb,je,ih,jh,kb,ke,kh,nsv,dt,lscalinout,lscalrec,lmoistinout,ltempinout,rk3step,dxhi,ltempeq,&
+    use modglobal, only : ib,ie,jb,je,ih,jh,kb,ke,kh,nsv,dt,lscalrec,lmoistinout,ltempinout,rk3step,dxhi,ltempeq,&
          ihc, jhc, khc, lSIRANEinout, dy
       use modfields, only:sv0, svm, svprof
       use modinletdata, only:ubulk

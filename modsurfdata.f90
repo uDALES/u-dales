@@ -35,8 +35,6 @@ module modsurfdata
 ! implicit none
 
 SAVE
-  integer :: isurf        = -1            !<   Flag for surface parametrization
-
   ! Surface properties
   real, allocatable :: tskin      (:,:) !<  Skin temperature [K]
   real, allocatable :: qskin      (:,:) !<  Skin specific humidity [kg/kg]
@@ -74,7 +72,6 @@ SAVE
   real              :: z0    = 0.1       !<  Surface roughness length [m]
   real              :: z0h   = 0.1      !<  Surface roughness for heat [m]
   ! prescribed surface fluxes
-  real              :: ustin  = 0.      !<  Prescribed friction velocity [m/s]
   real              :: Cmav             !<  Average drag coefficient for momentum [-]
   real              :: Csav             !<  Average drag coefficient for scalars [-]
   real              :: horvel           !<  Average horizontal velocity at first level
@@ -88,6 +85,8 @@ SAVE
 
   real, allocatable :: wsvsurf(:) !<  Prescribed surface scalar(n) flux [- m/s]
   real, allocatable :: wsvtop(:)
+  real :: wsvsurfdum(1:99) = 0. !<  Dummy variables as nsv allocated variable
+  real :: wsvtopdum(1:99)  = 0.
 
 
 end module modsurfdata

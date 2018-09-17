@@ -238,7 +238,8 @@ contains
   !! \author      Pier Siebesma   K.N.M.I.     06/01/1995
   subroutine diagfld
 
-    use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,khc,nsv,zh,zf,rslabs,grav,rlv,cp,rd,rv,pref0
+    use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,khc,nsv,zh,zf,rslabs,grav,rlv,cp,rd,rv,pref0,&
+                          lEB
     use modfields, only : u0,v0,w0,thl0,qt0,ql0,sv0,u0av,v0av,thl0av,qt0av,ql0av,sv0av, &
          presf,presh,exnf,exnh,rhof,thvf,IIc,IIcs,IIu,IIus,IIv,IIvs
     use modsurfdata,only : thls,ps
@@ -274,6 +275,9 @@ contains
     !  call slabsum(thl0av,kb,ke+kh,thl0,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
 !    call slabsum(thl0av,kb,ke+kh,thl0(:,:,kb:ke+kh),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
     call avexy_ibm(thl0av(kb:ke+kh),thl0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh))
+    if (lEB) then ! as lEB applies blocks to kb and masking matrices average this to zero
+      thl0av(kb) = thl0av(kb+1)
+    end if
     !  call slabsum(qt0av ,kb,ke+kh,qt0 ,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
 !    call slabsum(qt0av ,kb,ke+kh,qt0(:,:,kb:ke+kh) ,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
     call avexy_ibm(qt0av(kb:ke+kh),qt0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh))
@@ -292,7 +296,7 @@ contains
 !       call slabsum(sv0av(kb,n),kb,ke+kh,sv0(ib-ih,jb-jh,kb,n),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
     call avexy_ibm(sv0av(kb:ke+khc,n),sv0(ib:ie,jb:je,kb:ke+khc,n),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+khc),IIcs(kb:ke+khc))
     end do
-    sv0av = sv0av/rslabs
+!    sv0av = sv0av/rslabs
 
     !***********************************************************
     !  2.0   calculate average profile of pressure at full and *
@@ -355,7 +359,7 @@ contains
   !! \author Pier Siebesma   K.N.M.I.     06/01/1995
   subroutine fromztop
 
-    use modglobal, only : kmax,kb,ke,kh,dzf,dzh,rv,rd,cp,tmelt,zf,grav,pref0
+    use modglobal, only : kmax,kb,ke,kh,dzf,dzh,rv,rd,cp,tmelt,zf,grav,pref0,lEB
     use modfields, only : qt0av,ql0av,presf,presh,thvh,thvf
     use modsurfdata,only : ps,thvs
     implicit none

@@ -20,8 +20,8 @@ contains
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine writerestartfiles
-    use modsurfdata,only: ustar,thlflux,qtflux,svflux,dudz,dvdz,dthldz,dqtdz,ps,thls,qts,thvs,oblav,&
-                          isurf
+    use modsurfdata,only: ustar,thlflux,qtflux,svflux,dudz,dvdz,dthldz,dqtdz,ps,thls,qts,thvs,oblav
+
     use modfields, only : u0,v0,w0,thl0,qt0,ql0,ql0h,e120,dthvdz,presf,presh,sv0,mindist,wall,&
                           uav,vav,wav,uuav,vvav,wwav,uvav,uwav,vwav,thlav,thl2av,qtav,qlav,ql2av,qt2av,svav,sv2av,momthick,&
                           friction,displthick,pres0,viscratioav,thluav,thlvav,thlwav,qtuav,qtvav,qtwav,qluav,qlvav,qlwav,svuav,svvav,svwav,&

@@ -45,7 +45,6 @@ module modfielddump
   !dimension(nvar,4) :: ncname
   character(80),dimension(1,4) :: tncname
   
-  real    :: dtav,tnext
   integer :: klow,khigh,n,nvar
   logical :: ldiracc   = .false. !< switch for doing direct access writing (on/off)
   logical :: lbinary   = .false. ! 
@@ -54,29 +53,13 @@ contains
  !> Initializing fielddump. Read out the namelist, initializing the variables
   subroutine initfielddump
     use modmpi,   only   :myid,my_real,mpierr,comm3d,mpi_logical,mpi_integer,cmyid, mpi_character
-    use modglobal,only   :imax,jmax,kmax,cexpnr,ifnamopt,fname_options,dtmax,dtav_glob,kb,ke, ladaptive,dt_lim,btime,nsv,fieldvars,ib,ie,jb,je,kb,ke, lfielddump
+    use modglobal,only   :imax,jmax,kmax,cexpnr,ifnamopt,fname_options,dtmax,kb,ke, ladaptive,dt_lim,btime,nsv,fieldvars,ib,ie,jb,je,kb,ke, lfielddump
     use modstat_nc,only  : open_nc, define_nc,ncinfo,writestat_dims_nc
     use modfields, only  : u0,v0,w0,thl0,sv0,ql0,qt0,pres0
     implicit none
     integer :: ierr
 
   !  type(domainptr), dimension(nvar) :: pfields
-
-!! ils13 13.08.18: Does this do anything?
-!    namelist/NAMFIELDDUMP/ &
-!         dtav,ldiracc,lbinary,klow,khigh
-!    write(*,*), '(LEN(trim(fieldvars))+1)/3', (LEN(trim(fieldvars))+1)/3
-!    if(myid==0)then
-!       open(ifnamopt,file=fname_options,status='old',iostat=ierr)
-!       read (ifnamopt,NAMFIELDDUMP,iostat=ierr)
-!       if (ierr > 0) then
-!          print *, 'Problem in namoptions NAMFIELDDUMP'
-!          print *, 'iostat error: ', ierr
-!          stop 'ERROR: Problem in namoptions NAMFIELDDUMP'
-!       endif
-!       write(6 ,NAMFIELDDUMP)
-!       close(ifnamopt)
-!    end if
 
     nvar = (LEN(trim(fieldvars))+1)/3
     
@@ -88,27 +71,22 @@ contains
       allocate(ncname(nvar,4)) 
     end if
 
-    dtav=dtav_glob
+
     klow=kb
     khigh=ke
 
 !ils13 13.08.18: why is this broadcast, doesn't every processor do it anyway?
     call MPI_BCAST(klow        ,1,MPI_INTEGER,0,comm3d,ierr)
     call MPI_BCAST(khigh       ,1,MPI_INTEGER,0,comm3d,ierr)
-    call MPI_BCAST(dtav        ,1,MY_REAL    ,0,comm3d,ierr)
     call MPI_BCAST(lfielddump  ,1,MPI_LOGICAL,0,comm3d,ierr)
     call MPI_BCAST(ldiracc     ,1,MPI_LOGICAL,0,comm3d,ierr)
     call MPI_BCAST(lbinary     ,1,MPI_LOGICAL,0,comm3d,ierr)
     call MPI_BCAST(ncname     ,80,MPI_CHARACTER,0,comm3d,mpierr) 
     call MPI_BCAST(nvar       ,1,MPI_INTEGER,0,comm3d,mpierr)
 
-    tnext      = dtav   +btime
     !    dt_lim = min(dt_lim,tnext)
 
     if(.not.(lfielddump)) return
-    if ((.not. ladaptive) .and. (abs(dtav/dtmax-nint(dtav/dtmax))>1e-4)) then !tg3315 this is not relevant to these fields, dtav is stats sampling interval...
-       stop 'dtav should be a integer multiple of dtmax'
-    end if
 
     fname(11:13) = cmyid
     fname(15:17) = cexpnr

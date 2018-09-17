@@ -59,6 +59,7 @@ module modglobal
    integer ::  khc = 2 ! used in k-scheme
 
    integer :: nblocks = 0 ! no. of blocks in IBM
+   integer, allocatable :: block(:,:)
    integer :: nfcts = -1 ! no. of wall facets
    integer :: ntrees = 0
    integer :: npurif = 0
@@ -68,7 +69,7 @@ module modglobal
    integer, parameter :: longint = 8
    logical :: lwarmstart = .false. !<   flag for "cold" or "warm" start
    logical :: lstratstart = .false.
-   logical :: lfielddump = .false. !!< switch to enable the fielddump (on/off)  
+   logical :: lfielddump = .true. !!< switch to enable the fielddump (on/off)  
    logical :: lreadscal = .false. !<   flag for reading scalar pollutant field (warm start)
    real    :: trestart !<     * each trestart sec. a restart file is written to disk
    real    :: tfielddump !<
@@ -114,7 +115,6 @@ module modglobal
    logical :: lzerogradtopscal = .false. !
    logical :: lbuoyancy = .true. !<  switch for buoyancy force in modforces
    logical :: ltempeq = .true. !<  switch for solving temperature equation (either with or without buoyancy term)
-   logical :: lscalinout = .false. !<  seperate switch for inflow/outflow BC for scalar (only necessary when linoutflow.eqv..false.).
    logical :: lscalrec = .false. !<
    logical :: lSIRANEinout=.false. !<  
    logical :: ltempinout = .false. !<  seperate switch for inflow/outflow BC for temperature (only necessary when linoutflow.eqv..false.).
@@ -147,8 +147,6 @@ module modglobal
    logical :: lstorexz = .false. !<  switch that determines wether xz fields are stored in subdir's each trestart2.
    logical :: lstorexy = .false. !xy files stored
    logical :: lreadmean = .false. !<  switch that determines wether mean variables should be read from means#myid#.#expnr#
-   logical :: lcanopy = .false.
-   logical :: ltkebudget = .false.
    logical :: lstat = .false.
    logical :: lEB = .false.
    logical :: lwriteEBfiles = .true.
@@ -202,8 +200,6 @@ module modglobal
    real             :: prandtlmoli !< Inverse of Prandtl number
 
    integer          :: iwallmom = 2, iwalltemp = 1, iwallmoist = 1
-   real             :: z0hw !< wall roughness for heat
-   real             :: z0w !< wall roughness for momentum
 
    real, parameter :: rhow = 0.998e3 !<    * Density of water
    real, parameter :: pref0 = 1.e5 !<    *standard pressure used in exner function.
@@ -270,10 +266,6 @@ module modglobal
    real :: xtime = 0. !<     * GMT time
    real :: runtime = 300. !<     * simulation time in secs
    real :: dtmax = 20. !<     * maximum time integration interval
-   real :: timeav = 0.
-   real :: dtav = 0.
-   real :: dtav_glob = 60.
-   real :: timeav_glob = 3600.
    real :: totavtime = 0. !<    * the total time over which the values are averaged in meansXXX.XXX
    real :: dtEB = 10. !time interval between calculations of facet energy balance
    real :: tEB = 0. !time of last calculation of facet energy balance

@@ -37,20 +37,20 @@ contains
       !      Thijs Heus                   15/06/2007                    |
       !-----------------------------------------------------------------|
 
-      use modglobal, only:initglobal, iexpnr, runtime, dtmax, dtav_glob, timeav_glob, &
+      use modglobal, only:initglobal, iexpnr, runtime, dtmax,  &
          lwarmstart, lstratstart, lfielddump, lreadscal, startfile, tfielddump, fieldvars, tsample, tstatsdump, trestart, &
          nsv, imax, jtot, kmax, xsize, ysize, xlat, xlon, xday, xtime, lwalldist, &
          lmoist, lcoriol, igrw_damp, geodamptime, ifnamopt, fname_options, &
          xS,yS,zS,SS,sigS,iwallmom,iwalltemp,iwallmoist,iadv_mom,iadv_tke,iadv_thl,iadv_qt,iadv_sv,courant,diffnr,ladaptive,author,&
          linoutflow, lper2inout, libm, ltrees, lnudge, tnudge, nnudge, lpurif, lles, lmassflowr, massflowrate, lstoreplane, iplane, &
          lreadmean, iinletgen, inletav, lreadminl, Uinf, Vinf, linletRA, nblocks, ntrees, npurif, &
-         lscalinout,lscalrec,lSIRANEinout,lscasrc,lscasrcl,lscasrcr,lydump,lytdump,lxydump,lxytdump,lslicedump,ltdump,ltkedump,lzerogradtop,&
-         lzerogradtopscal, lbuoyancy, ltempeq, numol, prandtlmol, sun, Bowen, cd, decay, ud, Qpu, epu, numoli, prandtlmoli, z0w, z0hw, &
+         lscalrec,lSIRANEinout,lscasrc,lscasrcl,lscasrcr,lydump,lytdump,lxydump,lxytdump,lslicedump,ltdump,ltkedump,lzerogradtop,&
+         lzerogradtopscal, lbuoyancy, ltempeq, numol, prandtlmol, sun, Bowen, cd, decay, ud, Qpu, epu, numoli, prandtlmoli, &
          lfixinlet, lfixutauin, lstore3d, lstorexz, startmean, pi, &
-         thlsrc, nkplane, kplane, nsvl, nsvp, ifixuinf, lvinf, tscale, ltempinout, lmoistinout, lstat, dtav, &
-         timeav,ltkebudget,lcanopy,lwallfunc,lprofforc,lchem,k1,JNO2,rv,rd,tnextEB,tEB,dtEB,bldT,wsoil,wgrmax,wwilt,wfc,skyLW,GRLAI,rsmin,nfcts,lEB,lconstW, &
+         thlsrc, nkplane, kplane, nsvl, nsvp, ifixuinf, lvinf, tscale, ltempinout, lmoistinout,  &
+         lwallfunc,lprofforc,lchem,k1,JNO2,rv,rd,tnextEB,tEB,dtEB,bldT,wsoil,wgrmax,wwilt,wfc,skyLW,GRLAI,rsmin,nfcts,lEB,lconstW, &
          BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys,BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots
-      use modsurfdata, only:z0, z0h, ustin, wtsurf, wttop, wqtop, wqsurf, wsvsurf, ps, thvs, thls, thl_top, qt_top, qts, isurf
+      use modsurfdata, only:z0, z0h,  wtsurf, wttop, wqtop, wqsurf, wsvsurf, wsvtop, wsvsurfdum, wsvtopdum, ps, thvs, thls, thl_top, qt_top, qts 
 !            use modsurface,        only : initsurface
       use modfields, only:initfields, dpdx, ncname
       use modpois, only:initpois
@@ -68,7 +68,7 @@ contains
       !declare namelists
 
       namelist/RUN/ &
-         iexpnr, lwarmstart, lstratstart, lfielddump, lreadscal, startfile, runtime, dtmax, dtav_glob, timeav_glob, &
+         iexpnr, lwarmstart, lstratstart, lfielddump, lreadscal, startfile, runtime, dtmax,  &
          trestart, tfielddump, fieldvars, tsample, tstatsdump, irandom, randthl, randqt, krand, nsv, courant, diffnr, ladaptive, &
          author, lper2inout, libm, ltrees, lnudge, tnudge, nnudge, lpurif, lles, lwallfunc, lmassflowr, lreadmean, &
                 startmean,lydump,lytdump,lxydump,lxytdump,lslicedump,ltdump,ltkedump,lscasrc,lscasrcl,lwalldist,lstore3d,lstorexz,&
@@ -78,8 +78,9 @@ contains
          xsize, ysize, &
          xlat, xlon, xday, xtime, ksp, &
          nblocks, ntrees, npurif
-      namelist/BC/&
-         BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys,BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots
+      namelist/BC/ &
+         BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys,BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots,&
+         wtsurf, wttop, wqsurf, wsvsurfdum, wsvtopdum, thls, thl_top, qt_top, qts
       namelist/INLET/ &
          Uinf, Vinf, di, dti, iplane, inletav, linletRA, lstoreplane, lreadminl, lfixinlet, lfixutauin, xS, yS, zS, &
          SS, sigS
@@ -88,13 +89,11 @@ contains
       namelist/ENERGYBALANCE/ &
          lEB, lconstW, dtEB, nfcts, bldT, wsoil, wgrmax, wwilt, wfc, skyLW, GRLAI, rsmin
       namelist/PHYSICS/ &
-         z0, ustin, ps, wtsurf, wttop, wqsurf, thls, thl_top, qt_top, qts, lmoist, isurf, &
+         z0, z0h, ps, lmoist, &
          lcoriol, igrw_damp, massflowrate, numol, prandtlmol, sun, Bowen, cd, decay, ud, Qpu, epu, &
-         lbuoyancy, ltempeq, lprofforc, lchem, k1, JNO2
+         lbuoyancy, ltempeq, lprofforc, lqlnr, lchem, k1, JNO2
       namelist/DYNAMICS/ &
-         lqlnr, iadv_mom, iadv_tke, iadv_thl, iadv_qt, iadv_sv
-      namelist/NAMGENSTAT/ &
-         lstat, dtav, timeav, ltkebudget, lcanopy
+         iadv_mom, iadv_tke, iadv_thl, iadv_qt, iadv_sv
 
       if (myid == 0) then
          if (command_argument_count() >= 1) then
@@ -231,11 +230,6 @@ contains
          call MPI_BCAST(BCbotq, 1, MPI_INTEGER, 0, comm3d, mpierr)
          call MPI_BCAST(BCbots, 1, MPI_INTEGER, 0, comm3d, mpierr)
 
-
-
-
-      call MPI_BCAST(z0w, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(z0hw, 1, MY_REAL, 0, comm3d, mpierr)
       write (*, *) "sec c"
 
       call MPI_BCAST(lwallfunc, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for reading mean inlet/recycle plane profiles (Uinl,Urec,Wrec)
@@ -249,8 +243,6 @@ contains
       call MPI_BCAST(lstore3d, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for turning on/off storing 3d fields
       call MPI_BCAST(lstorexz, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for turning on/off storing xz fields
       call MPI_BCAST(lreadmean, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for reading mean variables from means#MYID#.#EXPNR#
-      call MPI_BCAST(lcanopy, 1, MPI_LOGICAL, 0, comm3d, mpierr)
-      call MPI_BCAST(ltkebudget, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lydump, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315 added switch for writing statistics files
       call MPI_BCAST(lytdump, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315 added switch for writing statistics files
       call MPI_BCAST(lxydump, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315 added switch for writing statistics files
@@ -272,8 +264,6 @@ contains
       call MPI_BCAST(tnextEB, 1, MY_REAL, 0, comm3d, mpierr)
 
       call MPI_BCAST(dtmax, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(dtav_glob, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(timeav_glob, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(nsv, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(fieldvars, 50, MPI_CHARACTER, 0, comm3d, mpierr)
       !call MPI_BCAST(nstat      ,1,MPI_INTEGER,0,comm3d,mpierr) !tg3315
@@ -304,10 +294,14 @@ contains
       call MPI_BCAST(bctfyp, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(bctfz, 1, MY_REAL, 0, comm3d, mpierr)
 
-      call MPI_BCAST(ustin, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(wtsurf, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(wqsurf, 1, MY_REAL, 0, comm3d, mpierr)
+      allocate (wsvsurf(1:nsv))
+      wsvsurf = wsvsurfdum(1:nsv)
       call MPI_BCAST(wsvsurf(1:nsv), nsv, MY_REAL, 0, comm3d, mpierr)
+      allocate (wsvtop(1:nsv))
+      wsvtop = wsvtopdum(1:nsv)                                                                   
+      call MPI_BCAST(wsvtop(1:nsv), nsv, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(ps, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(thvs, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(thls, 1, MY_REAL, 0, comm3d, mpierr)
@@ -384,7 +378,6 @@ contains
       call MPI_BCAST(courant, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(diffnr, 1, MY_REAL, 0, comm3d, mpierr)
 
-      call MPI_BCAST(isurf, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(iadv_mom, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(iadv_tke, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(iadv_thl, 1, MPI_INTEGER, 0, comm3d, mpierr)
@@ -442,7 +435,7 @@ contains
       !                                                                 |
       !-----------------------------------------------------------------|
 
-      use modsurfdata, only:wtsurf, wqsurf, ustin, qts, isurf, ps
+      use modsurfdata, only:wtsurf, wqsurf, qts, ps
             use modglobal, only : imax,kmax,jtot,ysize,xsize,dtmax,runtime, startfile,lwarmstart,lstratstart,BCxm,BCxT,BCxq,BCxs,BCtopm,iinletgen,linoutflow
       use modmpi, only:myid, nprocs, mpierr, comm3d, MPI_INTEGER, MPI_LOGICAL
 
@@ -544,22 +537,6 @@ contains
 
       end if
 
-      !isurf
-      if (myid == 0) then
-         select case (isurf)
-         case (1)
-         case (2, 10)
-         case (3:4)
-            if (wtsurf == -1) stop'wtsurf not set'
-            if (wqsurf == -1) stop'wqsurf not set'
-         case default
-            stop'isurf out of range/not set'
-         end select
-         if (isurf == 3) then
-            if (ustin < 0) stop'ustin out of range/not set'
-         end if
-      end if
-
    end subroutine checkinitvalues
 
    subroutine readinitfiles
@@ -578,7 +555,7 @@ contains
          tnextfielddump, tfielddump, tsample, tstatsdump, startfile, lprofforc, lchem, k1, JNO2
       use modsubgriddata, only:ekm, ekh
       use modsurfdata, only:wtsurf, wqsurf, wsvsurf, &
-         thls, thvs, ustin, ps, qts, isurf, svs
+         thls, thvs, ps, qts, svs
 !            use modsurface,        only : surface,dthldz
       use modboundary, only:boundary, tqaver
       use modmpi, only:slabsum, myid, comm3d, mpierr, my_real, avexy_ibm
@@ -1021,6 +998,12 @@ contains
             !    2.2 Initialize surface layer
             !-----------------------------------------------------------------
 
+         !ILS13 reintroduced thv !tg3315 this part may wrong, could need to use
+         call calc_halflev
+         ! exnf = (presf/pref0)**(rd/cp)  !exner functions not in restart files
+         ! anymore.. or at least not read
+         ! exnh = (presh/pref0)**(rd/cp)
+
             call boundary ! tg3315 17.10.17 having this in startup was causing issues for running with lmoist ! turned of when pot. temp = temp.
             call thermodynamics ! turned off when pot. temp = temp.
 
@@ -1408,7 +1391,7 @@ contains
    subroutine readrestartfiles
 
       use modsurfdata, only:ustar, thlflux, qtflux, svflux, dudz, dvdz, dthldz, dqtdz, ps, thls, qts, thvs, oblav, &
-         isurf, wtsurf
+         wtsurf
       use modfields, only:u0, v0, w0, thl0, qt0, ql0, ql0h, qtav, qlav, e120, dthvdz, presf, presh, sv0, mindist, wall, &
          uav, vav, wav, uuav, vvav, wwav, uvav, uwav, vwav, svav, thlav, thl2av, sv2av, pres0, svm, &
          svprof, viscratioav, thluav, thlvav, thlwav, svuav, svvav, svwav, presav, &
@@ -1654,7 +1637,7 @@ contains
 
    subroutine createmasks
       use modglobal, only:ib, ie, ih, ihc, jb, je, jh, jhc, kb, ke, kh, khc, rslabs, jmax, nblocks, &
-         ifinput, cexpnr, libm, jtot
+         ifinput, cexpnr, libm, jtot, block
       use modfields, only:IIc, IIu, IIv, IIw, IIuw, IIvw, IIct, IIwt, IIut, IIuwt, IIvt, IIcs, IIus, IIuws, IIvws, IIvs, IIws, &
          um, u0, vm, v0, wm, w0
       use modmpi, only:myid, comm3d, mpierr, MPI_INTEGER, MPI_DOUBLE_PRECISION, MY_REAL, nprocs, &
@@ -1692,7 +1675,7 @@ contains
          return
       end if
 
-      allocate (block(1:nblocks, 6))
+      allocate (block(1:nblocks, 11))
 
       if (myid == 0) then
          if (nblocks > 0) then
@@ -1706,7 +1689,12 @@ contains
                   block(n, 3), &
                   block(n, 4), &
                   block(n, 5), &
-                  block(n, 6)
+                  block(n, 6), &
+                  block(n, 7), &
+                  block(n, 8), &
+                  block(n, 9), &
+                  block(n, 10), &
+                  block(n, 11)
             end do
             close (ifinput)
 
@@ -1723,7 +1711,7 @@ contains
          end if !nblocks>0
       end if !myid
 
-      call MPI_BCAST(block, 6*nblocks, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(block, 11*nblocks, MPI_INTEGER, 0, comm3d, mpierr)
 
 ! Create masking matrices
       IIc = 1; IIu = 1; IIv = 1; IIct = 1; IIw = 1; IIuw = 1; IIvw = 1; IIwt = 1; IIut = 1; IIvt = 1; IIuwt = 1; IIcs = 1; IIus = 1; IIvs = 1; IIws = 1; IIuws = 1; IIvws = 1

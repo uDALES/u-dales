@@ -6,13 +6,14 @@
 !   WARNING: if walls with more than 3 layers (4 points) are to be considered, this file needs to be changed
 !            e.g. walltypes needs to read 7+4*nlayers columns, offsets in reading facet properties also change accordingly
    module initfac
-      use modglobal, only:ifinput, nblocks, nfcts, cexpnr, libm, bldT, rsmin, wsoil, wfc, nwalllayers
+      use modglobal, only:ifinput, nblocks, nfcts, cexpnr, libm, bldT, rsmin, wsoil, wfc,&
+                          nwalllayers, block
      use modmpi, only:myid, comm3d, mpierr, MPI_INTEGER, MPI_DOUBLE_PRECISION, MY_REAL, nprocs, cmyid, MPI_REAL8, MPI_REAL4, MPI_SUM, mpi_logical
       implicit none
       public :: readfacetfiles
       save
 
-      integer, allocatable :: block(:, :) !block coordinates and facet Nr corresponding to block faces
+      !integer, allocatable :: block(:, :) !block coordinates and facet Nr corresponding to block faces
       !facet properties
       logical, allocatable :: faclGR(:) !logic array, is it a green (vegetated) facet?
       real, allocatable    :: facz0(:) !roughness for momentum on facets
@@ -59,7 +60,10 @@
    contains
 
       subroutine readfacetfiles
+      use modglobal, only: block
+      implicit none
 
+      !use modglobal, only:block 
 !read initial&unchangeable facet values from files
 !read blocks and facet Nr corresponding to block faces (Order: Top, West, East, North, South)
 !define facets with properties and initial temperature
@@ -70,7 +74,7 @@
 
          integer :: n = 0, i = 0, j = 0, k = 0, io = 0
 
-         allocate (block(nblocks, 11))
+         !allocate (block(nblocks, 11))
          allocate (faclGR(0:nfcts))
          allocate (facz0(0:nfcts)) !0 is the default value (e.g. for internal walls)
          allocate (facz0h(0:nfcts))
@@ -107,7 +111,7 @@
          allocate (faccth(0:nfcts))
          allocate (facqsat(0:nfcts))
 
-         block = 0; 
+         !block = 0; 
          faclGR = .false.; facz0 = 0.; facz0h = 0.; facalb = 0.; facem = 0.; facd=0.; facdi = 0.; faccp = 0.
          faclami = 0.; fackappa = 0.; faca = 0.; facain = 0; facets = 0
          vf = 0.; svf = 0.; netsw = 0.; facLWin = 0.
@@ -116,25 +120,25 @@
          facf = 0.; fachurel = 0.; facwsoil = 0.; faccth = 0.; facqsat = 0.; 
 
          if (myid == 0 .and. libm) then ! read blocks corner coordinates and facet-Nr correspoinding to the block sides
-            open (ifinput, file='blocks.inp.'//cexpnr)
-            read (ifinput, '(a80)') chmess
-            read (ifinput, '(a80)') chmess
-            do n = 1, nblocks
+         !   open (ifinput, file='blocks.inp.'//cexpnr)
+         !   read (ifinput, '(a80)') chmess
+         !   read (ifinput, '(a80)') chmess
+         !   do n = 1, nblocks
                !blockfile is :ilow iheigh jlow jheigh klow kheigh facTop facWest facEast facNorth facSouth
-               read (ifinput, *) &
-                  block(n, 1), & 
-                  block(n, 2), &
-                  block(n, 3), &
-                  block(n, 4), &
-                  block(n, 5), &
-                  block(n, 6), &
-                  block(n, 7), &
-                  block(n, 8), &
-                  block(n, 9), &
-                  block(n, 10), &
-                  block(n, 11)
-            end do
-            close (ifinput)
+         !      read (ifinput, *) &
+         !         block(n, 1), & 
+         !         block(n, 2), &
+         !         block(n, 3), &
+         !         block(n, 4), &
+         !         block(n, 5), &
+         !         block(n, 6), &
+         !         block(n, 7), &
+         !         block(n, 8), &
+         !         block(n, 9), &
+         !         block(n, 10), &
+         !         block(n, 11)
+         !   end do
+         !   close (ifinput)
 
 ! read facet areas
             open (ifinput, file='facetarea.inp.'//cexpnr)
