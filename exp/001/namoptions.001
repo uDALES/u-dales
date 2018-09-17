@@ -31,7 +31,7 @@ lmassflowr = .false.
 lreadmean  = .false.
 lstore3d   = .false.
 lstorexz   = .false.
-ifixuinf   = 1
+ifixuinf   = 0
 /
 
 &DOMAIN
