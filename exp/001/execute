@@ -1,0 +1,22 @@
+#!/bin/bash
+location=local  #local,cx1,cx2
+
+iexpnr=001
+exe=dalesurban_local
+
+ncpu=16    #used for local and hpc
+
+nnode=2    #only hpc
+walltime='"24:00:00"' #only hpc
+mem=62  #gb, only hpc
+
+#edit da_exe to change correct job file and parameters
+sed -i "0,/location=.*/s/location=.*/location=$location/g" $DA_TOPDIR"/bin/da_exe"
+sed -i "0,/expnr=.*/s/expnr=.*/expnr=$iexpnr/g" $DA_TOPDIR"/bin/da_exe"
+sed -i "0,/exe=.*/s/exe=.*/exe=$exe/g" $DA_TOPDIR"/bin/da_exe"
+sed -i "0,/ncpu=.*/s/ncpu=.*/ncpu=$ncpu/g" $DA_TOPDIR"/bin/da_exe"
+sed -i "0,/nnode=.*/s/nnode=.*/nnode=$nnode/g" $DA_TOPDIR"/bin/da_exe"
+sed -i "0,/walltime=.*/s/walltime=.*/walltime=$walltime/g" $DA_TOPDIR"/bin/da_exe"
+sed -i "0,/mem=.*/s/mem=.*/mem=$mem/g" $DA_TOPDIR"/bin/da_exe"
+
+$DA_TOPDIR"/bin/da_exe"
