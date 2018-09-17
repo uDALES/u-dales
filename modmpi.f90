@@ -211,7 +211,7 @@ contains
   ! MPI_PROC_NULL = -2???
   subroutine excjs( a, sx, ex, sy, ey, sz,ez,ih,jh)
     implicit none
-  integer sx, ex, sy, ey, sz, ez, , jh
+  integer sx, ex, sy, ey, sz, ez, ih, jh
   real a(sx-ih:ex+ih, sy-jh:ey+jh, sz:ez)
   integer status(MPI_STATUS_SIZE), iiget
   integer ii, i, j, k
@@ -315,10 +315,10 @@ contains
     return
   end subroutine slabsum
 
-  subroutine avexy_ibm(aver,var,ib,ie,jb,je,kb,ke,kh,II,IIs)
+  subroutine avexy_ibm(aver,var,ib,ie,jb,je,kb,ke,ih,jh,kh,II,IIs)
     implicit none
 
-    integer :: ib,ie,jb,je,kb,ke,jh,kh
+    integer :: ib,ie,jb,je,kb,ke,ih,jh,kh
     real    :: aver(kb:ke+kh)
     real    :: var(ib:ie,jb:je,kb:ke+kh)
     integer :: II(ib:ie,jb:je,kb:ke+kh)
