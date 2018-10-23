@@ -55,6 +55,8 @@ contains
          if ((ju < jb - 1) .or. (jl > je + 1)) then
             cycle
          end if
+         if (ju > je) ju=je !tg3315 and bss116 added 23.10.18 as bad allocation otherwise
+         if (jl < jb) jl=jb
          do sc = 1, nsv
             sv0(il:iu, jl:ju, kl:ku, sc) = 0. !internal
             svm(il:iu, jl:ju, kl:ku, sc) = 0. !internal

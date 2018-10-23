@@ -902,8 +902,8 @@ contains
       !all the ghost cells have the same value?
       do m = 1, khc
       do n = 1, nsv
-  sv0(:,:,ke+m,n) = sv0(:,:,ke,n) + dzh(ke+1) * flux(n) / ( dzhi(ke+1) * (0.5*(dzf(ke)*ekh(:,:,ke+1)+dzf(ke+1)*ekh(:,:,ke))))
-  svm(:,:,ke+m,n) = svm(:,:,ke,n) + dzh(ke+1) * flux(n) / ( dzhi(ke+1) * (0.5*(dzf(ke)*ekh(:,:,ke+1)+dzf(ke+1)*ekh(:,:,ke))))
+  sv0(ib-ih:ie+ih,jb-jh:je+jh,ke+m,n) = sv0(ib-ih:ie+ih,jb-jh:je+jh,ke,n) + dzh(ke+1) * flux(n) / ( dzhi(ke+1) * (0.5*(dzf(ke)*ekh(ib-ih:ie+ih,jb-jh:je+jh,ke+1)+dzf(ke+1)*ekh(ib-ih:ie+ih,jb-jh:je+jh,ke))))
+  svm(ib-ih:ie+ih,jb-jh:je+jh,ke+m,n) = svm(ib-ih:ie+ih,jb-jh:je+jh,ke,n) + dzh(ke+1) * flux(n) / ( dzhi(ke+1) * (0.5*(dzf(ke)*ekh(ib-ih:ie+ih,jb-jh:je+jh,ke+1)+dzf(ke+1)*ekh(ib-ih:ie+ih,jb-jh:je+jh,ke))))
       end do
       end do
       !
@@ -918,8 +918,8 @@ contains
       ! all the ghost cells have the same vlaue?
       do m = 1, khc
       do n = 1, nsv
-         sv0(:, :, ke + m, n) = 2*val(n) - sv0(:, :, ke, n)
-         svm(:, :, ke + m, n) = 2*val(n) - svm(:, :, ke, n)
+         sv0(: , : , ke + m, n) = 2*val(n) - sv0(: , : , ke, n)
+         svm(: , : , ke + m, n) = 2*val(n) - svm(: , : , ke, n)
       end do
       end do
       !

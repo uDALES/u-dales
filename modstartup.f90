@@ -104,14 +104,14 @@ contains
          open (ifnamopt, file=fname_options, status='old', iostat=ierr)
          if (ierr /= 0) then
             print *, 'iostat error: ', ierr
-            stop'ERROR:Namoptions does not exist'
+            stop 'ERROR:Namoptions does not exist'
          end if
 
          read (ifnamopt, RUN, iostat=ierr)
          if (ierr > 0) then
             print *, 'Problem in namoptions RUN'
             print *, 'iostat error: ', ierr
-            stop'ERROR: Problem in namoptions RUN'
+            stop 'ERROR: Problem in namoptions RUN'
          endif
          write (6, RUN)
          rewind (ifnamopt)
@@ -120,7 +120,7 @@ contains
          if (ierr > 0) then
             print *, 'Problem in namoptions DOMAIN'
             print *, 'iostat error: ', ierr
-            stop'ERROR: Problem in namoptions DOMAIN'
+            stop 'ERROR: Problem in namoptions DOMAIN'
          endif
          write (6, DOMAIN)
          rewind (ifnamopt)
@@ -129,7 +129,7 @@ contains
          if (ierr > 0) then
             print *, 'Problem in namoptions BC'
             print *, 'iostat error: ', ierr
-            stop'ERROR: Problem in namoptions BC'
+            stop 'ERROR: Problem in namoptions BC'
          endif
          write (6, BC)
          rewind (ifnamopt)
@@ -138,7 +138,7 @@ contains
          if (ierr > 0) then
             print *, 'Problem in namoptions INLET'
             print *, 'iostat error: ', ierr
-            stop'ERROR: Problem in namoptions INLET'
+            stop 'ERROR: Problem in namoptions INLET'
          endif
          write (6, INLET)
          rewind (ifnamopt)
@@ -147,7 +147,7 @@ contains
          if (ierr > 0) then
             print *, 'Problem in namoptions WALLS'
             print *, 'iostat error: ', ierr
-            stop'ERROR: Problem in namoptions WALLS'
+            stop 'ERROR: Problem in namoptions WALLS'
          endif
          write (6, WALLS)
          rewind (ifnamopt)
@@ -156,7 +156,7 @@ contains
          if (ierr > 0) then
             print *, 'Problem in namoptions EB'
             print *, 'iostat error: ', ierr
-            stop'ERROR: Problem in namoptions EB'
+            stop 'ERROR: Problem in namoptions EB'
          endif
          write (6, ENERGYBALANCE)
          rewind (ifnamopt)
@@ -165,7 +165,7 @@ contains
          if (ierr > 0) then
             print *, 'Problem in namoptions PHYSICS'
             print *, 'iostat error: ', ierr
-            stop'ERROR: Problem in namoptions PHYSICS'
+            stop 'ERROR: Problem in namoptions PHYSICS'
          endif
          write (6, PHYSICS)
          rewind (ifnamopt)
@@ -174,7 +174,7 @@ contains
          if (ierr > 0) then
             print *, 'Problem in namoptions DYNAMICS'
             print *, 'iostat error: ', ierr
-            stop'ERROR: Problem in namoptions DYNAMICS'
+            stop 'ERROR: Problem in namoptions DYNAMICS'
          endif
          write (6, DYNAMICS)
          close (ifnamopt)
@@ -472,14 +472,14 @@ contains
 
       !Check Namoptions
 
-      if (runtime < 0) stop'runtime out of range/not set'
-      if (dtmax < 0) stop'dtmax out of range/not set '
-      if (ps < 0) stop'psout of range/not set'
-      if (xsize < 0) stop'xsize out of range/not set'
-      if (ysize < 0) stop'ysize out of range/not set '
+      if (runtime < 0) stop 'runtime out of range/not set'
+      if (dtmax < 0) stop 'dtmax out of range/not set '
+      if (ps < 0) stop 'psout of range/not set'
+      if (xsize < 0) stop 'xsize out of range/not set'
+      if (ysize < 0) stop 'ysize out of range/not set '
 
       if ((lwarmstart) .or. (lstratstart)) then
-         if (startfile == '') stop'no restartfile set'
+         if (startfile == '') stop 'no restartfile set'
       end if
 
 
@@ -773,8 +773,8 @@ contains
 
 !ILS13 30.11.17, added, not sure if necessary
 !ILS13 30.11.1, commented
-            do j = jb - 1, je + 1
-               do i = ib - 1, ie + 1
+            do j = jb - jh, je + jh
+               do i = ib - ih, ie + ih
                   thl0(i, j, ke + 1) = thl0(i, j, ke)
                   thl0(i, j, kb - 1) = thl0(i, j, kb)
                end do
@@ -993,6 +993,15 @@ contains
                   end do
                end do
             end do
+            
+            !do n = 1,nsv
+            !  do j = jb - jhc, je + jhc
+            !    do i = ib - ihc, ie + ihc
+            !      svm(i, j, ke + 1, n) = svm(i, j, ke)
+            !      sv0(i, j, kb - 1, n) = sv0(i, j, kb)
+            !    end do
+            !  end do
+            !end do
 
             !-----------------------------------------------------------------
             !    2.2 Initialize surface layer
@@ -1636,13 +1645,13 @@ contains
    end subroutine randomnize
 
    subroutine createmasks
-      use modglobal, only:ib, ie, ih, ihc, jb, je, jh, jhc, kb, ke, kh, khc, rslabs, jmax, nblocks, &
+      use modglobal, only:ib, ie, ih, ihc, jb, je, jh, jhc, kb, ke, kh, khc, rslabs, jmax, nblocks,&
          ifinput, cexpnr, libm, jtot, block
-      use modfields, only:IIc, IIu, IIv, IIw, IIuw, IIvw, IIct, IIwt, IIut, IIuwt, IIvt, IIcs, IIus, IIuws, IIvws, IIvs, IIws, &
+      use modfields, only:IIc, IIu, IIv, IIw, IIuw, IIvw, IIct, IIwt, IIut, IIuwt, IIvt, IIcs, IIus, IIuws, IIvws, IIvs, IIws, IIbl, &
          um, u0, vm, v0, wm, w0
       use modmpi, only:myid, comm3d, mpierr, MPI_INTEGER, MPI_DOUBLE_PRECISION, MY_REAL, nprocs, &
          cmyid, MPI_REAL8, MPI_REAL4, MPI_SUM, excjs
-      use initfac, only:block
+!      use initfac, only:block
       integer k, n, il, iu, jl, ju, kl, ku
       integer :: IIcl(kb:ke + khc), IIul(kb:ke + khc), IIvl(kb:ke + khc), IIwl(kb:ke + khc), IIuwl(kb:ke + khc), IIvwl(kb:ke + khc)
       integer :: IIcd(ib:ie, kb:ke)
@@ -1675,7 +1684,7 @@ contains
          return
       end if
 
-      allocate (block(1:nblocks, 11))
+      allocate (block(1:nblocks, 1:11))
 
       if (myid == 0) then
          if (nblocks > 0) then
@@ -1812,6 +1821,13 @@ contains
      call MPI_ALLREDUCE(IIuwd(ib:ie, kb:ke), IIuwt(ib:ie, kb:ke), (ke - kb + 1)*(ie - ib + 1), MPI_INTEGER, MPI_SUM, comm3d, mpierr)
       call MPI_ALLREDUCE(IIud(ib:ie, kb:ke), IIut(ib:ie, kb:ke), (ke - kb + 1)*(ie - ib + 1), MPI_INTEGER, MPI_SUM, comm3d, mpierr)
       call MPI_ALLREDUCE(IIvd(ib:ie, kb:ke), IIvt(ib:ie, kb:ke), (ke - kb + 1)*(ie - ib + 1), MPI_INTEGER, MPI_SUM, comm3d, mpierr)
+
+      ! masking matrix for switch if entire slab is blocks
+      if (IIcs(kb) == 0) then
+        IIbl = 0
+      else
+        IIbl = 1
+      end if
 
       where (IIcs == 0)
       IIcs = nint(rslabs)

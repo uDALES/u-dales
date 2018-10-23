@@ -238,10 +238,9 @@ contains
   !! \author      Pier Siebesma   K.N.M.I.     06/01/1995
   subroutine diagfld
 
-    use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,khc,nsv,zh,zf,rslabs,grav,rlv,cp,rd,rv,pref0,&
-                          lEB
+    use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,khc,nsv,zh,zf,rslabs,grav,rlv,cp,rd,rv,pref0
     use modfields, only : u0,v0,w0,thl0,qt0,ql0,sv0,u0av,v0av,thl0av,qt0av,ql0av,sv0av, &
-         presf,presh,exnf,exnh,rhof,thvf,IIc,IIcs,IIu,IIus,IIv,IIvs
+         presf,presh,exnf,exnh,rhof,thvf,IIc,IIcs,IIu,IIus,IIv,IIvs,IIbl
     use modsurfdata,only : thls,ps
     use modmpi,    only : slabsum,myid,avexy_ibm
     implicit none
@@ -275,7 +274,7 @@ contains
     !  call slabsum(thl0av,kb,ke+kh,thl0,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
 !    call slabsum(thl0av,kb,ke+kh,thl0(:,:,kb:ke+kh),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
     call avexy_ibm(thl0av(kb:ke+kh),thl0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh))
-    if (lEB) then ! as lEB applies blocks to kb and masking matrices average this to zero
+    if (IIbl == 0) then ! as lEB applies blocks to kb and masking matrices average this to zero
       thl0av(kb) = thl0av(kb+1)
     end if
     !  call slabsum(qt0av ,kb,ke+kh,qt0 ,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
@@ -360,7 +359,7 @@ contains
   subroutine fromztop
 
     use modglobal, only : kmax,kb,ke,kh,dzf,dzh,rv,rd,cp,tmelt,zf,grav,pref0,lEB
-    use modfields, only : qt0av,ql0av,presf,presh,thvh,thvf
+    use modfields, only : qt0av,ql0av,presf,presh,thvh,thvf,IIcs
     use modsurfdata,only : ps,thvs
     implicit none
 

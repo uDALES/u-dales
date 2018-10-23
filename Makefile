@@ -30,8 +30,8 @@ F77OBJS=$(F77SRC:.f=.o)
 #    FCOPTS     += -g  -traceback -CB -check all
     FCOPTS     += -g -traceback -CB -warn unused
     FLOPTS     += -g -traceback -CB -warn unused
-    FCOPTS77   += -g -traceback -CB -warn unused
-    FLOPTS77   += -g -CB -warn unused
+    FCOPTS77   += -g -traceback #-CB -warn unused
+    FLOPTS77   += -g #-CB -warn unused
   else
     FCOPTS     += -O3 -g -traceback
     FCOPTS77     += -O3 -g -traceback
