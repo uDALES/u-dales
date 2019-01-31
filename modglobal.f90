@@ -65,7 +65,7 @@ module modglobal
    integer :: npurif = 0
    integer ::  iplane ! ib+iplane is the plane that is stored when lstoreplane=.true.
    integer ::  nstore = 1002 ! number of rk steps in inletfile. This should be a multiple of three!
-   character(50) :: fname_options = 'namoptions'
+   character(90) :: fname_options = 'namoptions'
    integer, parameter :: longint = 8
    logical :: lwarmstart = .false. !<   flag for "cold" or "warm" start
    logical :: lstratstart = .false.
@@ -78,7 +78,7 @@ module modglobal
    real    :: tnextrestart !<     * each trestart sec. a restart file is written to disk
    real    :: tscale !       timescale: domain height*Uinf/utau**2
    real    :: tnextfielddump !<
-   character(50) :: startfile !<    * name of the restart file
+   character(90) :: startfile !<    * name of the restart file
 
    !Switches for boundary conditions
    !momentum (m), temperature (T), humidity (q) and scalars (s)
