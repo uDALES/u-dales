@@ -31,8 +31,8 @@ module modstatsdump
 
   !NetCDF variables
   integer :: ncidy,ncidyt,ncidtke,ncidxy,ncidslice,ncidxyt,nrecy=0,nrecyt=0,nrectke=0,nrecxy=0,&
-             nrecslice=0,nrecxyt=0,nstatyt=14,nstaty=14,nstattke=8,nstatxy=14,nstatslice=8,&
-             nstatxyt=20,ncidt,nrect=0,nstatt=15
+             nrecslice=0,nrecxyt=0,nstatyt=14,nstaty=14,nstattke=8,nstatxy=15,nstatslice=8,&
+             nstatxyt=21,ncidt,nrect=0,nstatt=15
   character(80) :: yname = 'ydump.xxx.nc'
   character(80) :: ytname = 'ytdump.xxx.nc'
   character(80) :: tkename = 'tkedump.xxx.nc'
@@ -174,15 +174,16 @@ contains
       call ncinfo(ncstatxy( 3,:),'wxy'     ,'Vertical velocity'           ,'m/s'    ,'mt'  )
       call ncinfo(ncstatxy( 4,:),'thlxy'   ,'Temperature'                 ,'K'      ,'tt'  )
       call ncinfo(ncstatxy( 5,:),'qtxy'    ,'Moisture'                    ,'kg/kg'  ,'tt'  )
-      call ncinfo(ncstatxy( 6,:),'upwpxy'  ,'Mom. flux'                   ,'m^2/s^2','mt'  )
-      call ncinfo(ncstatxy( 7,:),'wpthlpxy','Heat flux'                   ,'Km/s'   ,'mt'  )
-      call ncinfo(ncstatxy( 8,:),'vpwpxy'  ,'Mom. flux'                   ,'Km/s'   ,'mt'  )
-      call ncinfo(ncstatxy( 9,:),'usgsxy'  ,'SGS mom. flux'               ,'m^2/s^2','mt'  )
-      call ncinfo(ncstatxy(10,:),'thlsgsxy','SGS heat flux'               ,'Km/s'   ,'mt'  )
-      call ncinfo(ncstatxy(11,:),'vsgsxy'  ,'SGS mom. flux'               ,'m^2/s^2','mt'  )
-      call ncinfo(ncstatxy(12,:),'uwxyik'  ,'Advective mom. flux'         ,'m^2/s^2','mt') 
-      call ncinfo(ncstatxy(13,:),'wthlxy'  ,'Advective heat flux'         ,'K m/s'  ,'mt')
-      call ncinfo(ncstatxy(14,:),'vwxy'    ,'Advective mom. flux'         ,'m^2/s^2','mt')
+      call ncinfo(ncstatxy( 6,:),'pxy'     ,'Pressure'                    ,'kgm/s^2','tt'  )
+      call ncinfo(ncstatxy( 7,:),'upwpxy'  ,'Mom. flux'                   ,'m^2/s^2','mt'  )
+      call ncinfo(ncstatxy( 8,:),'wpthlpxy','Heat flux'                   ,'Km/s'   ,'mt'  )
+      call ncinfo(ncstatxy( 9,:),'vpwpxy'  ,'Mom. flux'                   ,'Km/s'   ,'mt'  )
+      call ncinfo(ncstatxy(10,:),'usgsxy'  ,'SGS mom. flux'               ,'m^2/s^2','mt'  )
+      call ncinfo(ncstatxy(11,:),'thlsgsxy','SGS heat flux'               ,'Km/s'   ,'mt'  )
+      call ncinfo(ncstatxy(12,:),'vsgsxy'  ,'SGS mom. flux'               ,'m^2/s^2','mt'  )
+      call ncinfo(ncstatxy(13,:),'uwxyik'  ,'Advective mom. flux'         ,'m^2/s^2','mt'  ) 
+      call ncinfo(ncstatxy(14,:),'wthlxy'  ,'Advective heat flux'         ,'K m/s'  ,'mt'  )
+      call ncinfo(ncstatxy(15,:),'vwxy'    ,'Advective mom. flux'         ,'m^2/s^2','mt'  )
       if (myid==0) then      
         call open_nc(xyname, ncidxy, nrecxy, n3=khigh-klow+1)
         if (nrecxy==0) then
@@ -203,21 +204,22 @@ contains
       call ncinfo(ncstatxyt( 3,:),'wxyt'       ,'Vertical velocity'           ,'m/s'    ,'mt'  )
       call ncinfo(ncstatxyt( 4,:),'thlxyt'     ,'Temperature'                 ,'K'      ,'tt'  )
       call ncinfo(ncstatxyt( 5,:),'qtxyt'      ,'Moisture'                    ,'kg/kg'  ,'tt'  )
-      call ncinfo(ncstatxyt( 6,:),'upwpxyt'    ,'Turbulent mom. flux'         ,'m^2/s^2','mt'  )
-      call ncinfo(ncstatxyt( 7,:),'wpthlpxyt'  ,'Turbulent heat flux'         ,'K m/s'  ,'mt'  )
-      call ncinfo(ncstatxyt( 8,:),'vpwpxyt'    ,'Turbulent mom. flux'         ,'m^2/s^2','mt'  )
-      call ncinfo(ncstatxyt( 9,:),'uwxyt'      ,'Kinematic mom. flux'         ,'m^2/s^2','mt'  )
-      call ncinfo(ncstatxyt( 10,:),'wthlxyt'   ,'Kinematic heat flux'         ,'K m/s'  ,'mt'  )
-      call ncinfo(ncstatxyt( 11,:),'vwxyt'     ,'Kinematic mom. flux'         ,'m^2/s^2','mt'  )
-      call ncinfo(ncstatxyt( 12,:),'wwxyt'     ,'Kinematic mom. flux'         ,'m^2/s^2','mt'  )
-      call ncinfo(ncstatxyt( 13,:),'usgsxyt'   ,'SGS mom. flux'               ,'m^2/s^2','mt'  )
-      call ncinfo(ncstatxyt( 14,:),'thlsgsxyt' ,'SGS heat flux'               ,'K m/s'  ,'mt'  )
-      call ncinfo(ncstatxyt( 15,:),'vsgsxyt'   ,'SGS mom. flux'               ,'K m/s'  ,'mt'  )
-      call ncinfo(ncstatxyt( 16,:),'thlpthlptxy','Temp. variance'             ,'K^2'    ,'tt'  )
-      call ncinfo(ncstatxyt( 17,:),'upuptxyc'  ,'u variance'                  ,'m^2/s^2','tt'  )
-      call ncinfo(ncstatxyt( 18,:),'vpvptxyc'  ,'v variance'                  ,'m^2/s^2','tt'  )
-      call ncinfo(ncstatxyt( 19,:),'wpwptxyc'  ,'w variance'                  ,'m^2/s^2','tt'  )
-      call ncinfo(ncstatxyt( 20,:),'tketxyc'   ,'tke'                         ,'m^2/s^2','tt'  )
+      call ncinfo(ncstatxyt( 6,:),'pxyt'       ,'Pressure'                    ,'kgm/s^2','tt'  )
+      call ncinfo(ncstatxyt( 7,:),'upwpxyt'    ,'Turbulent mom. flux'         ,'m^2/s^2','mt'  )
+      call ncinfo(ncstatxyt( 8,:),'wpthlpxyt'  ,'Turbulent heat flux'         ,'K m/s'  ,'mt'  )
+      call ncinfo(ncstatxyt( 9,:),'vpwpxyt'    ,'Turbulent mom. flux'         ,'m^2/s^2','mt'  )
+      call ncinfo(ncstatxyt( 10,:),'uwxyt'     ,'Kinematic mom. flux'         ,'m^2/s^2','mt'  )
+      call ncinfo(ncstatxyt( 11,:),'wthlxyt'   ,'Kinematic heat flux'         ,'K m/s'  ,'mt'  )
+      call ncinfo(ncstatxyt( 12,:),'vwxyt'     ,'Kinematic mom. flux'         ,'m^2/s^2','mt'  )
+      call ncinfo(ncstatxyt( 13,:),'wwxyt'     ,'Kinematic mom. flux'         ,'m^2/s^2','mt'  )
+      call ncinfo(ncstatxyt( 14,:),'usgsxyt'   ,'SGS mom. flux'               ,'m^2/s^2','mt'  )
+      call ncinfo(ncstatxyt( 15,:),'thlsgsxyt' ,'SGS heat flux'               ,'K m/s'  ,'mt'  )
+      call ncinfo(ncstatxyt( 16,:),'vsgsxyt'   ,'SGS mom. flux'               ,'K m/s'  ,'mt'  )
+      call ncinfo(ncstatxyt( 17,:),'thlpthlptxy','Temp. variance'             ,'K^2'    ,'tt'  )
+      call ncinfo(ncstatxyt( 18,:),'upuptxyc'  ,'u variance'                  ,'m^2/s^2','tt'  )
+      call ncinfo(ncstatxyt( 19,:),'vpvptxyc'  ,'v variance'                  ,'m^2/s^2','tt'  )
+      call ncinfo(ncstatxyt( 20,:),'wpwptxyc'  ,'w variance'                  ,'m^2/s^2','tt'  )
+      call ncinfo(ncstatxyt( 21,:),'tketxyc'   ,'tke'                         ,'m^2/s^2','tt'  )
 
       if (myid==0) then      
         call open_nc(xytname, ncidxyt, nrecxyt, n3=khigh-klow+1)
@@ -332,7 +334,7 @@ contains
                                sca1yt,sca2yt,sca3yt,thlsgsyt,usgsyt,&
                                usgsxyt,thlsgsxyt,vsgsxyt,uwtik,vwtjk,wtjk,vtjk,&
                                wthltk,thlthlt,utik,wtik,wmt,thltk,thlt,uxyt,vxyt,wxyt,thlxyt,&
-                               ncstatxyt,qtxyt,ncstatt,uutc,vvtc,wwtc,utc,vtc,wtc,&
+                               ncstatxyt,qtxyt,pxyt,ncstatt,uutc,vvtc,wwtc,utc,vtc,wtc,&
                                umt,vmt,sv1t,sv2t,sv3t,sv4t,sv1tk,sv2tk,sv3tk,sv4tk,wsv1tk,wsv2tk,wsv3tk,wsv4tk,&
                                sv1sgst,sv2sgst,sv3sgst,sv4sgst
   use modglobal,        only : ib,ie,ih,ihc,xf,xh,jb,je,jhc,jgb,jge,dy,dyi,jh,ke,kb,kh,khc,rk3step,&
@@ -408,6 +410,7 @@ contains
   real, dimension(kb:ke+kh)                    :: wxy
   real, dimension(kb:ke+kh)                    :: thlxy
   real, dimension(kb:ke+kh)                    :: qtxy
+  real, dimension(kb:ke+kh)                    :: pxy
   real, dimension(kb:ke+kh)                    :: usgsxy
   real, dimension(kb:ke+kh)                    :: thlsgsxy
   real, dimension(kb:ke+kh)                    :: vsgsxy
@@ -622,7 +625,7 @@ contains
       !> Average in x and y-direction
       if (lxydump .or. lxytdump) then
 
-        uxy=0.;vxy=0.;wxy=0.;thlxy=0.;qtxy=0.;sca1xy=0.;thlsgsxy=0.;usgsxy=0.;vsgsxy=0.
+        uxy=0.;vxy=0.;wxy=0.;thlxy=0.;qtxy=0.;pxy=0.;sca1xy=0.;thlsgsxy=0.;usgsxy=0.;vsgsxy=0.
 
         !> Spatial averages of mean quantities
         call avexy_ibm(uxy(kb:ke+kh),um(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh))
@@ -634,6 +637,7 @@ contains
         if (lmoist) then
           call avexy_ibm(qtxy(kb:ke+kh),qtm(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh))
         end if
+        call avexy_ibm(pxy(kb:ke+kh),pres0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh))
         call avexy_ibm(usgsxy(kb:ke+kh),usgs(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh))
         call avexy_ibm(thlsgsxy(kb:ke+kh),thlsgs(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh))
         call avexy_ibm(vsgsxy(kb:ke+kh),vsgs(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIvw(ib:ie,jb:je,kb:ke+kh),IIvws(kb:ke+kh))
@@ -667,6 +671,7 @@ contains
         wxyt(kb:ke+kh) = (wxyt(kb:ke+kh)*(tstatsdumpp-tsamplep) + wxy(kb:ke+kh)*tsamplep)*tstatsdumppi
         thlxyt(kb:ke+kh) = (thlxyt(kb:ke+kh)*(tstatsdumpp-tsamplep) + thlxy(kb:ke+kh)*tsamplep)*tstatsdumppi
         qtxyt(kb:ke+kh) = (qtxyt(kb:ke+kh)*(tstatsdumpp-tsamplep) + qtxy(kb:ke+kh)*tsamplep)*tstatsdumppi
+        pxyt(kb:ke+kh) = (pxyt(kb:ke+kh)*(tstatsdumpp-tsamplep) + pxy(kb:ke+kh)*tsamplep)*tstatsdumppi
         usgsxyt(kb:ke+kh) = (usgsxyt(kb:ke+kh)*(tstatsdumpp-tsamplep) + usgsxy(kb:ke+kh)*tsamplep)*tstatsdumppi                                                                                           
         thlsgsxyt(kb:ke+kh) = (thlsgsxyt(kb:ke+kh)*(tstatsdumpp-tsamplep) + thlsgsxy(kb:ke+kh)*tsamplep)*tstatsdumppi
         vsgsxyt(kb:ke+kh) = (vsgsxyt(kb:ke+kh)*(tstatsdumpp-tsamplep) + vsgsxy(kb:ke+kh)*tsamplep)*tstatsdumppi
@@ -800,15 +805,16 @@ contains
           varsxy(:,3)  = wxy(kb:ke)
           varsxy(:,4)  = thlxy(kb:ke)
           varsxy(:,5)  = qtxy(kb:ke)
-          varsxy(:,6)  = upwpxyik(kb:ke)
-          varsxy(:,7)  = wpthlpxyk(kb:ke)
-          varsxy(:,8)  = vpwpxyjk(kb:ke)
-          varsxy(:,9)  = usgsxy(kb:ke)
-          varsxy(:,10) = thlsgsxy(kb:ke) !wdthldtc(kb:ke)
-          varsxy(:,11) = vsgsxy(kb:ke)
-          varsxy(:,12) = uwxyik(kb:ke)
-          varsxy(:,13) = wthlxyk(kb:ke)
-          varsxy(:,14) = vwxyjk(kb:ke)
+          varsxy(:,6)  = pxy(kb:ke)
+          varsxy(:,7)  = upwpxyik(kb:ke)
+          varsxy(:,8)  = wpthlpxyk(kb:ke)
+          varsxy(:,9)  = vpwpxyjk(kb:ke)
+          varsxy(:,10) = usgsxy(kb:ke)
+          varsxy(:,11) = thlsgsxy(kb:ke) !wdthldtc(kb:ke)
+          varsxy(:,12) = vsgsxy(kb:ke)
+          varsxy(:,13) = uwxyik(kb:ke)
+          varsxy(:,14) = wthlxyk(kb:ke)
+          varsxy(:,15) = vwxyjk(kb:ke)
 
           call writestat_1D_nc(ncidxy,nstatxy,ncstatxy,varsxy,nrecxy,khigh-klow+1)
       end if !myid
@@ -854,21 +860,22 @@ contains
           varsxyt(:,3)  = wxyt(kb:ke)
           varsxyt(:,4)  = thlxyt(kb:ke)
           varsxyt(:,5)  = qtxyt(kb:ke)
-          varsxyt(:,6)  = upwptxyik(kb:ke)
-          varsxyt(:,7)  = wpthlptxyk(kb:ke)
-          varsxyt(:,8)  = vpwptxyjk(kb:ke)
-          varsxyt(:,9)  = uwtxyik(kb:ke)
-          varsxyt(:,10) = wthltxyk(kb:ke) !wdthldtc(kb:ke)
-          varsxyt(:,11) = vwtxyjk(kb:ke)
-          varsxyt(:,12) = wwtxyk(kb:ke) !wdthldtc(kb:ke)
-          varsxyt(:,13) = usgsxyt(kb:ke) !wdthldtw(kb:ke)
-          varsxyt(:,14) = thlsgsxyt(kb:ke)
-          varsxyt(:,15) = vsgsxyt(kb:ke)
-          varsxyt(:,16) = thlpthlptxy(kb:ke)
-          varsxyt(:,17) = upuptxyc(kb:ke)
-          varsxyt(:,18) = vpvptxyc(kb:ke)
-          varsxyt(:,19) = wpwptxyc(kb:ke)
-          varsxyt(:,20) = tketxyc(kb:ke)
+          varsxyt(:,6)  = pxyt(kb:ke)
+          varsxyt(:,7)  = upwptxyik(kb:ke)
+          varsxyt(:,8)  = wpthlptxyk(kb:ke)
+          varsxyt(:,9)  = vpwptxyjk(kb:ke)
+          varsxyt(:,10) = uwtxyik(kb:ke)
+          varsxyt(:,11) = wthltxyk(kb:ke) !wdthldtc(kb:ke)
+          varsxyt(:,12) = vwtxyjk(kb:ke)
+          varsxyt(:,13) = wwtxyk(kb:ke)
+          varsxyt(:,14) = usgsxyt(kb:ke) !wdthldtw(kb:ke)
+          varsxyt(:,15) = thlsgsxyt(kb:ke)
+          varsxyt(:,16) = vsgsxyt(kb:ke)
+          varsxyt(:,17) = thlpthlptxy(kb:ke)
+          varsxyt(:,18) = upuptxyc(kb:ke)
+          varsxyt(:,19) = vpvptxyc(kb:ke)
+          varsxyt(:,20) = wpwptxyc(kb:ke)
+          varsxyt(:,21) = tketxyc(kb:ke)
           call writestat_1D_nc(ncidxyt,nstatxyt,ncstatxyt,varsxyt,nrecxyt,khigh-klow+1)
       end if !myid
     end if !lxytdump

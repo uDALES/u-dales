@@ -92,7 +92,8 @@ module modfields
   real, allocatable :: vxyt(:)        
   real, allocatable :: wxyt(:)        
   real, allocatable :: thlxyt(:)        
-  real, allocatable :: qtxyt(:)        
+  real, allocatable :: qtxyt(:)
+  real, allocatable :: pxyt(:)        
   real, allocatable :: usgsxyt(:)
   real, allocatable :: thlsgsxyt(:)
   real, allocatable :: vsgsxyt(:)
@@ -486,6 +487,7 @@ contains
     allocate(wxyt(kb:ke+kh))
     allocate(thlxyt(kb:ke+kh))
     allocate(qtxyt(kb:ke+kh))
+    allocate(pxyt(kb:ke+kh))
     allocate(usgsxyt(kb:ke+kh))
     allocate(thlsgsxyt(kb:ke+kh))
     allocate(vsgsxyt(kb:ke+kh))
@@ -684,7 +686,7 @@ contains
 
     uyt=0.;uytik=0.;vyt=0.;wyt=0.;wytik=0.;thlyt=0.;qtyt=0.;thlytk=0.;sca1yt=0.;sca2yt=0.;sca3yt=0.;thlsgsyt=0.;
     usgsyt=0.
-    uxyt=0.;vxyt=0.;wxyt=0.;thlxyt=0.;qtxyt=0.;usgsxyt=0.;vsgsxyt=0.;thlsgsxyt=0.;
+    uxyt=0.;vxyt=0.;wxyt=0.;thlxyt=0.;qtxyt=0.;pxyt=0.;usgsxyt=0.;vsgsxyt=0.;thlsgsxyt=0.;
     uwtik=0.;wthltk=0.;thlthlt=0.;uutc=0.;vvtc=0.;wwtc=0.;vwtjk=0.;utik=0.;wtik=0.;wtjk=0.;vtjk=0.;
     wmt=0.;thltk=0.;thlt=0.;slice=0.;slice2=0.;slice3=0.;slice4=0.;slice5=0.;utc=0.;vtc=0.;wtc=0.
     slice6=0.;slice7=0.;slice8=0.;umt=0.;vmt=0.;sv1t=0.;sv2t=0.;sv3t=0.;sv4t=0.;sv1tk=0.;sv2tk=0.;sv3tk=0.;sv4tk=0.
