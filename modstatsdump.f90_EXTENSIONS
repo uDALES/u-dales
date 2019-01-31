@@ -1,0 +1,1139 @@
+!> \file modstatsdump.f90
+!!  Dumps statistics of various fields
+!>
+!!  \author Tom Grylls, ICL May 25 2016
+!
+!  This file is part of DALES.
+!
+! DALES is free software; you can redistribute it and/or modify
+! it under the terms of the GNU General Public License as published by
+! the Free Software Foundation; either version 3 of the License, or
+! (at your option) any later version.
+!
+! DALES is distributed in the hope that it will be useful,
+! but WITHOUT ANY WARRANTY; without even the implied warranty of
+! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+! GNU General Public License for more details.
+!
+! You should have received a copy of the GNU General Public License
+! along with this program.  If not, see <http://www.gnu.org/licenses/>.
+!
+!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
+!
+module modstatsdump
+
+  use modglobal, only : dt,lstatsdump,ltimedump,ltkedump,lzdump,lztdump,ifoutput !,nstat
+  use modmpi, only : myid
+  implicit none
+  private
+  PUBLIC :: initstatsdump,statsdump,exitstatsdump
+  save
+
+  !NetCDF variables
+  integer :: ncid,ncidt,ncidtke,ncidz,ncidslice,ncidzt,nrec=0,nrect=0,nrectke=0,nrecz=0,&
+             nrecslice=0,nreczt=0,nstat=14,nstats=14,nstattke=8,nstatz=11,nstatslice=8,&
+             nstatzt=11
+  character(80) :: fname = 'statsdump.xxx.nc'
+  character(80) :: tname = 'timedump.xxx.nc'
+  character(80) :: tkename = 'tkedump.xxx.nc'
+  character(80) :: zname = 'zdump.xxx.nc'
+  character(80) :: ztname = 'ztdump.xxx.nc'
+  character(80) :: slicename = 'slicedump.xxx.xxx.nc'
+  character(80),dimension(1,4) :: tncstat
+  character(80),dimension(1,4) :: tncstatt
+  character(80),dimension(1,4) :: tncstattke
+  character(80),dimension(1,4) :: tncstatz
+  character(80),dimension(1,4) :: tncstatslice
+  character(80),dimension(1,4) :: tncstatzt
+
+  integer :: klow,khigh,i,j,k
+  real    :: tsamplep,ttimedumpp,tsample,ttimedump
+
+contains
+
+  !--------------------------
+  !> Initializing statsdump. Read out the namelist, initializing the variables
+  !-------------------------
+
+  subroutine initstatsdump
+    use modmpi,   only : my_real,mpierr,comm3d,mpi_logical,mpi_integer,mpi_character,cmyid
+    use modglobal,only : imax,jmax,kmax,cexpnr,ifnamopt,fname_options,kb,ke,ladaptive,btime,&
+                         lnetcdf,nsv,lslicedump,lztdump
+    use modstat_nc,only: open_nc, define_nc,ncinfo,writestat_dims_nc
+    use modfields,only : ncstaty,ncstatyt,ncstattke,ncstatxy,ncstatslice,ncstatxyt
+    implicit none
+    integer :: ierr
+
+    namelist/NAMSTATSDUMP/ &
+         lstatsdump,tsample,klow,khigh,ttimedump,ltimedump,ltkedump,lzdump,lztdump
+
+    allocate(ncstaty(nstats,4))
+    allocate(ncstatyt(nstat,4))
+    allocate(ncstattke(nstattke,4))
+    allocate(ncstatxy(nstatz,4))
+    allocate(ncstatslice(nstatslice,4))
+    allocate(ncstatxyt(nstatzt,4))
+
+    klow=kb
+    khigh=ke
+
+    if(myid==0)then
+       open(ifnamopt,file=fname_options,status='old',iostat=ierr)
+       read (ifnamopt,NAMSTATSDUMP,iostat=ierr)
+       if (ierr > 0) then
+          print *, 'Problem in namoptions NAMSTATSDUMP'
+          print *, 'iostat error: ', ierr
+          stop 'ERROR: Problem in namoptions NAMSTATSDUMP'
+       endif
+       write(6 ,NAMSTATSDUMP)
+       close(ifnamopt)
+    end if
+
+    call MPI_BCAST(klow        ,1,MPI_INTEGER,0,comm3d,ierr) !have to do this? just want nc for first CPU
+    call MPI_BCAST(khigh       ,1,MPI_INTEGER,0,comm3d,ierr)
+    call MPI_BCAST(nstat       ,1,MPI_INTEGER,0,comm3d,ierr)
+    call MPI_BCAST(nstats      ,1,MPI_INTEGER,0,comm3d,ierr)
+    call MPI_BCAST(ncstaty      ,80,MPI_CHARACTER,0,comm3d,mpierr)
+    call MPI_BCAST(ncstatyt     ,80,MPI_CHARACTER,0,comm3d,mpierr)
+    call MPI_BCAST(ncstattke   ,80,MPI_CHARACTER,0,comm3d,mpierr)
+    call MPI_BCAST(ncstatxy     ,80,MPI_CHARACTER,0,comm3d,mpierr)
+    call MPI_BCAST(ncstatxyt     ,80,MPI_CHARACTER,0,comm3d,mpierr)
+
+    !> Generate y-averaged NetCDF: statsdump.xxx.nc  
+    if(lstatsdump) then
+
+      fname(11:13) = cexpnr
+      call ncinfo(tncstat(1,:),'time'      ,'Time'                         ,'s'      ,'time')
+      call ncinfo(ncstaty( 1,:),'uy'        ,'Streamwise velocity'          ,'m/s'    ,'m0tt')
+      call ncinfo(ncstaty( 2,:),'vy'        ,'Spanwise velocity'            ,'m/s'    ,'t0tt')
+      call ncinfo(ncstaty( 3,:),'wy'        ,'Vertical velocity'            ,'m/s'    ,'t0mt')
+      call ncinfo(ncstaty( 4,:),'thly'      ,'Temperature'                  ,'K'      ,'t0tt')
+      call ncinfo(ncstaty( 5,:),'qty'       ,'Moisture'                     ,'kg/kg'  ,'t0tt')
+      call ncinfo(ncstaty( 6,:),'sca1y'     ,'Scalar field 1'               ,'M'      ,'t0tt')
+      call ncinfo(ncstaty( 7,:),'wsv'       ,'Advective sca flux'           ,'M m/s'  ,'t0mt')
+      call ncinfo(ncstaty( 8,:),'wpsvp'     ,'Turbulent sca flux'           ,'M m/s'  ,'t0mt')
+      call ncinfo(ncstaty( 9,:),'upwpy'     ,'Turbulent mom. flux'          ,'m^2/s^2','m0mt')
+      call ncinfo(ncstaty(10,:),'wpthlpy'   ,'Turbulent heat flux'          ,'K m/s'  ,'t0mt')
+      call ncinfo(ncstaty(11,:),'usgsy'     ,'SGS mom. flux'                ,'m^2/s^2','m0mt') 
+      call ncinfo(ncstaty(12,:),'thlsgsy'   ,'SGS heat flux'                ,'K m/s'  ,'t0mt')
+      call ncinfo(ncstaty(13,:),'uwyik'     ,'Advective mom. flux'          ,'m^2/s^2','m0mt') 
+      call ncinfo(ncstaty(14,:),'wthlyk'    ,'Advective heat flux'          ,'K m/s'  ,'t0mt')
+
+      if (myid==0) then
+        call open_nc(fname, ncid, nrec, n1=imax, n3=khigh-klow+1)
+        if (nrec==0) then
+          call define_nc( ncid, 1, tncstat)
+          call writestat_dims_nc(ncid)
+        end if
+      call define_nc( ncid, nstats, ncstaty)
+      endif !myid==0
+    endif
+
+    !> Generate time and y averaged NetCDF: timedump.xxx.nc
+    if (ltimedump) then
+    
+      tname(10:12) = cexpnr
+      call ncinfo(tncstatt(1,:),'time'       ,'Sampling time'             ,'s'       ,'time')
+      call ncinfo(ncstatyt( 1,:),'uyt'        ,'Streamwise velocity'       ,'m/s'     ,'m0tt')
+      call ncinfo(ncstatyt( 2,:),'vyt'        ,'Spanwise velocity'         ,'m/s'     ,'t0tt')
+      call ncinfo(ncstatyt( 3,:),'wyt'        ,'Vertical velocity'         ,'m/s'     ,'t0mt')
+      call ncinfo(ncstatyt( 4,:),'thlyt'      ,'Temperature'               ,'K'       ,'t0tt')
+      call ncinfo(ncstatyt( 5,:),'qtyt'       ,'Moisture'                  ,'kg/kg'   ,'t0tt')
+      call ncinfo(ncstatyt( 6,:),'scayt'     ,'Scalar field 1'            ,'kg/m^3'  ,'t0tt')
+      call ncinfo(ncstatyt( 7,:),'wscayt'     ,'Scalar field 2'            ,'kg/m^3'  ,'t0tt')
+      call ncinfo(ncstatyt( 8,:),'wpscap3yt'     ,'Scalar field 3'            ,'kg/m^3'  ,'t0tt')
+      call ncinfo(ncstatyt( 9,:),'upwpyt'     ,'Turbulent mom. flux'       ,'m^2/s^2' ,'m0mt')
+      call ncinfo(ncstatyt( 10,:),'wpthlpyt'  ,'Turbulent heat flux'       ,'K m/s'   ,'t0mt')
+      call ncinfo(ncstatyt( 11,:),'uwyt'      ,'Kinematic mom. flux'       ,'m^2/s^2' ,'m0mt')
+      call ncinfo(ncstatyt( 12,:),'wthlyt'    ,'Kinematic heat flux'       ,'K m/s'   ,'t0mt')
+      call ncinfo(ncstatyt( 13,:),'usgsyt'    ,'SGS mom. flux'             ,'m^2/s^2' ,'m0mt')
+      call ncinfo(ncstatyt( 14,:),'scasgsyt'  ,'SGS heat flux'             ,'K m/s'   ,'t0mt')
+
+      if (myid==0) then
+        call open_nc(tname, ncidt, nrect, n1=imax, n3=khigh-klow+1)
+        if (nrect==0) then
+          call define_nc( ncidt, 1, tncstatt)
+          call writestat_dims_nc(ncidt)
+        end if
+        call define_nc( ncidt, nstat, ncstatyt)
+      endif !myid==0
+    endif
+
+    !> Generate time, y and x averaged NetCDF: zdump.xxx.nc
+    if (lzdump) then
+    
+      zname(7:9) = cexpnr
+      call ncinfo(tncstatz(1,:),'time'    ,'Time'                        ,'s'      ,'time')
+      call ncinfo(ncstatxy( 1,:),'uxy'     ,'Streamwise velocity'         ,'m/s'    ,'tt'  )
+      call ncinfo(ncstatxy( 2,:),'vxy'     ,'Spanwise velocity'           ,'m/s'    ,'tt'  )
+      call ncinfo(ncstatxy( 3,:),'wxy'     ,'Vertical velocity'           ,'m/s'    ,'mt'  )
+      call ncinfo(ncstatxy( 4,:),'thlxy'   ,'Temperature'                 ,'K'      ,'tt'  )
+      call ncinfo(ncstatxy( 5,:),'qtxy'    ,'Moisture'                    ,'kg/kg'  ,'tt'  )
+      call ncinfo(ncstatxy( 6,:),'upwpxy'  ,'Mom. flux'                   ,'m^2/s^2','mt'  )
+      call ncinfo(ncstatxy( 7,:),'wpthlpxy','Heat flux'                   ,'Km/s'   ,'mt'  )
+      call ncinfo(ncstatxy( 8,:),'usgs'    ,'SGS mom. flux'               ,'m^2/s^2','mt'  )
+      call ncinfo(ncstatxy( 9,:),'thlsgs'  ,'SGS heat flux'               ,'Km/s'   ,'mt'  )
+      call ncinfo(ncstatxy(10,:),'uwxyik'  ,'Advective mom. flux'         ,'m^2/s^2','mt') 
+      call ncinfo(ncstatxy(11,:),'wthlxyk' ,'Advective heat flux'         ,'K m/s'  ,'mt')
+      if (myid==0) then      
+        call open_nc(zname, ncidz, nrecz, n3=khigh-klow+1)
+        if (nrecz==0) then
+          call define_nc( ncidz, 1, tncstatz)
+          call writestat_dims_nc(ncidz)
+        end if
+        call define_nc( ncidz, nstatz, ncstatxy)
+      end if
+    end if
+
+    !> Generate time, y and x averaged NetCDF: zdump.xxx.nc
+    if (lztdump) then
+    
+      ztname(8:10) = cexpnr
+      call ncinfo(tncstatzt(1,:),'time'      ,'Time'                        ,'s'      ,'time')
+      call ncinfo(ncstatxyt( 1,:),'uyt'       ,'Streamwise velocity'         ,'m/s'    ,'tt'  )
+      call ncinfo(ncstatxyt( 2,:),'vyt'       ,'Spanwise velocity'           ,'m/s'    ,'tt'  )
+      call ncinfo(ncstatxyt( 3,:),'wyt'       ,'Vertical velocity'           ,'m/s'    ,'mt'  )
+      call ncinfo(ncstatxyt( 4,:),'thlyt'     ,'Temperature'                 ,'K'      ,'tt'  )
+      call ncinfo(ncstatxyt( 5,:),'qtxyt'     ,'Moisture'                    ,'kg/kg'  ,'tt'  )
+      call ncinfo(ncstatxyt( 6,:),'upwpyt'    ,'Turbulent mom. flux'         ,'m^2/s^2','mt'  )
+      call ncinfo(ncstatxyt( 7,:),'wpthlpyt'  ,'Turbulent heat flux'         ,'K m/s'  ,'mt'  )
+      call ncinfo(ncstatxyt( 8,:),'uwyt'      ,'Kinematic mom. flux'         ,'m^2/s^2','mt'  )
+      call ncinfo(ncstatxyt( 9,:),'wthlyt'    ,'Kinematic heat flux'         ,'K m/s'  ,'mt'  )
+      call ncinfo(ncstatxyt( 10,:),'usgs'     ,'SGS mom. flux'               ,'m^2/s^2','mt'  )
+      call ncinfo(ncstatxyt( 11,:),'thlsgs'   ,'SGS heat flux'               ,'K m/s'  ,'mt'  )
+
+      if (myid==0) then      
+        call open_nc(ztname, ncidzt, nreczt, n3=khigh-klow+1)
+        if (nreczt==0) then
+          call define_nc( ncidzt, 1, tncstatzt)
+          call writestat_dims_nc(ncidzt)
+        end if
+        call define_nc( ncidzt, nstatzt, ncstatxyt)
+      end if
+    end if
+
+    !> Generate time, y and x averaged NetCDF for tke budget: tkedump.xxx.nc
+    if (ltkedump) then
+    
+      tkename(9:11) = cexpnr
+      call ncinfo(tncstattke(1,:),'time' ,'Time'                                 ,'s'       ,'time')
+      call ncinfo(ncstattke( 1,:),'p_b'  ,'p_bant production or consumption term', 'm^2/s^3','tt'  )
+      call ncinfo(ncstattke( 2,:),'t_p'  ,'total viscous transport (?)'          , 'm^2/s^3','tt'  )
+      call ncinfo(ncstattke( 3,:),'adv'  ,'Advection by mean wind'               , 'm^2/s^3','tt'  )
+      call ncinfo(ncstattke( 4,:),'t_t'  ,'Total turb???'                        , 'm^2/s^3','tt'  )
+      call ncinfo(ncstattke( 5,:),'t_sgs','total SGS  term'                      , 'm^2/s^3','tt'  )
+      call ncinfo(ncstattke( 6,:),'p_t'  ,'Shear production term'                , 'm^2/s^3','tt'  )
+      call ncinfo(ncstattke( 7,:),'t_v'  ,'Resolved viscous dissipation term'    , 'm^2/s^3','tt'  )
+      call ncinfo(ncstattke( 8,:),'d_sgs','SGS dissipation term'                 , 'm^2/s^3','tt'  )
+
+      if (myid==0) then      
+        call open_nc(tkename, ncidtke, nrectke, n3=khigh-klow+1)
+        if (nrectke==0) then
+          call define_nc( ncidtke, 1, tncstattke)
+          call writestat_dims_nc(ncidtke)
+        end if
+        call define_nc( ncidtke, nstattke, ncstattke)
+      endif !myid==0
+   
+    endif
+
+    if (lslicedump) then
+
+      slicename(11:13) = cmyid
+      slicename(15:17) = cexpnr
+
+      call ncinfo(tncstatslice(1,:),'time'     ,'Time'   ,'s'   ,'time')
+      call ncinfo(ncstatslice( 1,:),'sca_kb1'  ,'Scalar field at kb', '-', 'tt0t')
+      call ncinfo(ncstatslice( 2,:),'sca_ave1' ,'Averaged scalar field over canyon', '-', 'tt0t')
+      call ncinfo(ncstatslice( 3,:),'sca_kb2'  ,'Scalar field at kb+1', '-', 'tt0t')
+      call ncinfo(ncstatslice( 4,:),'sca_ave2' ,'Averaged scalar field over canyon', '-', 'tt0t')
+      call ncinfo(ncstatslice( 5,:),'sca_kb3'  ,'Scalar field at kb+1', '-', 'tt0t')
+      call ncinfo(ncstatslice( 6,:),'sca_ave3' ,'Averaged scalar field over canyon', '-', 'tt0t')
+      call ncinfo(ncstatslice( 7,:),'u_kb'     ,'Streamwise velocity at kb', '-', 'mt0t')
+      call ncinfo(ncstatslice( 8,:),'v_kb'     ,'Spanwise velocity at kb', '-', 'tm0t')
+
+      call open_nc(slicename, ncidslice, nrecslice, n1=imax, n2=jmax)
+
+      if (nrecslice==0) then
+        call define_nc( ncidslice, 1, tncstatslice)
+        call writestat_dims_nc(ncidslice)  
+      end if
+
+      call define_nc( ncidslice, nstatslice, ncstatslice)
+
+    end if
+
+    !> Set times to zero so works for warm starts... could have issues with warmstarts here...
+    tsamplep = 0.
+    ttimedumpp = 0.
+
+  end subroutine initstatsdump
+
+  !-------------------------
+  !> Generate and write statistics into NetCDF file format
+  !-------------------------
+ 
+  subroutine statsdump
+
+  use modfields,        only : um,up,vm,wm,svm,qtm,thlm,pres0,ncstaty,ncstatxy,ncstatyt,ncstattke,&
+                               ncstatslice,t_t,t_v,t_p,t_sgs,d_sgs,p_b,p_t,adv,IIc,IIu,IIv,&
+                               IIw,IIuw,IIct,IIwt,IIut,IIvt,IIuwt,IIcs,IIws,IIus,IIvs,IIuws,&
+                               slice,slice2,slice3,slice4,slice5,slice6,slice7,slice8,&
+                               uyt,vyt,wyt,thlyt,qtyt,&
+                               sca1yt,sca2yt,sca3yt,thlsgsyt,usgsyt,&
+                               usgsxyt,thlsgsxyt,uwtik,&
+                               wthltk,utik,wtik,wmt,thltk,uxyt,vxyt,wxyt,thlxyt,&
+                               ncstatxyt,qtxyt,wsv1tk,sv1tk
+  use modglobal,        only : ib,ie,ih,ihc,xf,xh,jb,je,jhc,jgb,jge,dy,jh,ke,kb,kh,khc,rk3step,&
+                               timee,cexpnr,lnetcdf,tsample,ttimedump,jtot,imax,jmax,dzf,&
+                               ltempeq,zh,dxf,dzf,lmassflowr,dzh2i,lprofforc,lscasrcl,&
+                               lslicedump,lchem,dzhi,dzhiq,dxhi,massflowrate,lmoist,nsv
+!  use modsubgriddata,   only : ekm,sbshr
+  use modstat_nc,       only : writestat_nc,writestat_1D_nc
+  use modmpi,           only : myid,cmyid,my_real,mpi_sum,avey_ibm,mpierr,&
+                               comm3d,avexy_ibm,nprocs
+  use modsurfdata,      only : thls
+  use modsubgrid,       only : ekh,ekm
+  use modstatistics,    only : genstats,tkestats
+  implicit none
+
+  !> Create fields to be used in statistics
+
+  ! interpolated fields
+!  real, dimension(ib:ie,jb:je,kb:ke)     :: umc
+!  real, dimension(ib:ie,jb:je,kb:ke)     :: vmc
+!  real, dimension(ib:ie,jb:je,kb:ke)     :: wmc
+  real, dimension(ib:ie,jb:je,kb:ke+kh)     :: thlk
+  real, dimension(ib:ie,jb:je,kb:ke+kh)     :: uik
+  real, dimension(ib:ie,jb:je,kb:ke+kh)     :: wik
+  real, dimension(ib:ie,jb:je,kb:ke+kh)     :: svk
+
+
+  ! SGS fluxes
+  real, dimension(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)     :: thlsgs
+  real, dimension(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)     :: usgs
+
+  ! y-averaged fields
+  real, dimension(ib:ie,kb:ke)                 :: uy
+  real, dimension(ib:ie,kb:ke)                 :: vy
+  real, dimension(ib:ie,kb:ke)                 :: wy
+  real, dimension(ib:ie,kb:ke)                 :: thly
+  real, dimension(ib:ie,kb:ke)                 :: qty
+  real, dimension(ib:ie,kb:ke)                 :: sca1y
+  real, dimension(ib:ie,kb:ke)                 :: sca2y
+  real, dimension(ib:ie,kb:ke)                 :: sca3y
+  real, dimension(ib:ie,kb:ke)                 :: usgsy
+  real, dimension(ib:ie,kb:ke)                 :: thlsgsy
+
+  real, dimension(ib:ie,kb:ke)                 :: uwyik
+  real, dimension(ib:ie,kb:ke)                 :: wthlyk
+  real, dimension(ib:ie,kb:ke)                 :: wyik
+  real, dimension(ib:ie,kb:ke)                 :: uyik
+  real, dimension(ib:ie,kb:ke)                 :: thlyk
+  real, dimension(ib:ie,kb:ke)                 :: upwpyik
+  real, dimension(ib:ie,kb:ke)                 :: wpthlpyk 
+
+  ! xy-averaged fields
+  real, dimension(kb:ke+kh)                    :: uxy
+  real, dimension(kb:ke+kh)                    :: vxy
+  real, dimension(kb:ke+kh)                    :: wxy
+  real, dimension(kb:ke+kh)                    :: thlxy
+  real, dimension(kb:ke+kh)                    :: qtxy
+  real, dimension(kb:ke+kh)                    :: usgsxy
+  real, dimension(kb:ke+kh)                    :: thlsgsxy
+  real, dimension(kb:ke+kh)                    :: sca1xy
+
+  real, dimension(kb:ke+kh)                    :: uwxyik
+  real, dimension(kb:ke+kh)                    :: wthlxyk
+  real, dimension(kb:ke+kh)                    :: thlxyk
+  real, dimension(kb:ke+kh)                    :: wxyik
+  real, dimension(kb:ke+kh)                    :: uxyik
+  real, dimension(kb:ke+kh)                    :: upwpxyik
+  real, dimension(kb:ke+kh)                    :: wpthlpxyk
+
+  ! fluxes
+  real, dimension(ib:ie,kb:ke)                 :: upwptyik
+  real, dimension(ib:ie,kb:ke)                 :: wpthlptyk
+  real, dimension(ib:ie,kb:ke)                 :: wpsvptyk
+  real, dimension(ib:ie,kb:ke)                 :: uwtyik
+  real, dimension(ib:ie,kb:ke)                 :: wthltyk
+  real, dimension(ib:ie,kb:ke)                 :: wsvtyk
+  real, dimension(kb:ke+kh)                    :: upwptxyik
+  real, dimension(kb:ke+kh)                    :: wpthlptxyk
+  real, dimension(kb:ke+kh)                    :: uwtxyik
+  real, dimension(kb:ke+kh)                    :: wthltxyk
+
+  real, allocatable :: field(:,:), vars(:,:,:),varst(:,:,:),varstke(:,:),varsz(:,:),&
+                       varslice(:,:,:),varszt(:,:)
+  real    :: ttimedumppi,emom
+  integer :: i,j,k,ip,im,jp,jm,kp,km
+  integer :: writecounter = 1
+  integer :: reclength
+
+  if (.not. rk3step==3)  return
+
+  if (tsamplep > tsample) then
+
+    if (ltimedump .or. lstatsdump .or. lzdump .or. lztdump) then
+
+      ttimedumppi = 1./ttimedumpp 
+
+      !> Perform required interpolations for flux calculations
+      !  tg3315 for variable x and z-grids this needs to change
+      do k=kb,ke+kh
+        do j=jb,je
+          do i=ib,ie
+            uik(i,j,k) = 0.5*dzhi(k)*(um(i,j,k)*dzf(k-1) + um(i,j,k-1)*dzf(k))
+            wik(i,j,k) = 0.5*dxhi(i)*(wm(i,j,k)*dxf(i-1) + wm(i-1,j,k)*dxf(i))
+            if (ltempeq) then
+              thlk(i,j,k) = 0.5*dzhi(k)*(thlm(i,j,k)*dzf(k-1) + thlm(i,j,k-1)*dzf(k))
+            end if
+            if (nsv>0) then
+              svk(i,j,k) = 0.5*dzhi(k)*(svm(i,j,k,1)*dzf(k-1) + svm(i,j,k-1,1)*dzf(k))
+            end if
+          enddo
+        enddo 
+      enddo
+
+      !> SGS fluxes
+
+      do k=kb,ke
+         thlsgs(:,:,k) = 0.5 * (dzf(k-1)*ekh(:,:,k) + dzf(k)*ekh(:,:,k-1)) &
+                        * (svm(:,:,k,1)-svm(:,:,k-1,1)) * dzh2i(k)
+      end do
+
+      do k=kb,ke
+        do j=jb,je
+          do i=ib,ie
+            emom = ( dzf(k-1) * ( ekm(i,j,k)*dxf(i-1)  + ekm(i-1,j,k)*dxf(i) )  + & 
+                     dzf(k)  * ( ekm(i,j,k-1)*dxf(i-1) + ekm(i-1,j,k-1)*dxf(i) ) )*dxhi(i) * dzhiq(k)
+            usgs(i,j,k)  = emom * ( (um(i,j,k)-um(i,j,k-1)) *dzhi(k) &
+                        +(wm(i,j,k)-wm(i-1,j,k))  *dxhi(i))
+          end do
+        end do
+      end do
+
+      !!>> CALCS FOR INST. STATS
+      !> Note: More computationally efficient to spatially average mean quantities first &
+      !>       for time dependant stats, hence the .or.s.
+
+      !> Average in y-direction      
+      if (lstatsdump .or. ltimedump) then
+     
+        uy=0.
+        vy=0.
+        wy=0.
+        thly=0.
+        qty=0.
+        sca1y=0.
+        sca2y=0.
+        sca3y=0.
+        thlsgsy=0.
+        usgsy=0.
+ 
+        call avey_ibm(uy,um(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIu(ib:ie,jb:je,kb:ke),IIut(ib:ie,kb:ke))
+        call avey_ibm(vy,vm(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIv(ib:ie,jb:je,kb:ke),IIvt(ib:ie,kb:ke))
+        call avey_ibm(wy,wm(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+        call avey_ibm(thly,thlm(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke)) 
+        call avey_ibm(qty,qtm(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
+        call avey_ibm(uwyik,uik(ib:ie,jb:je,kb:ke)*wik(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIuw(ib:ie,jb:je,kb:ke),IIuwt(ib:ie,kb:ke))
+        call avey_ibm(wthlyk,wm(ib:ie,jb:je,kb:ke)*thlk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+        if (nsv>0) then
+          call avey_ibm(sca1y,svm(ib:ie,jb:je,kb:ke,1),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
+!          call avey_ibm(wmsvyk,svk(ib:ie,jb:je,kb:ke)*wm(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+!          call avey_ibm(sca3y,svm(ib:ie,jb:je,kb:ke,3),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
+        end if 
+        call avey_ibm(usgsy,usgs(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIuw(ib:ie,jb:je,kb:ke),IIuwt(ib:ie,kb:ke))
+        call avey_ibm(thlsgsy,thlsgs(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+
+      end if ! lstatsdump .or. ltimedump
+
+      if (lstatsdump) then
+
+        call avey_ibm(uwyik,uik(ib:ie,jb:je,kb:ke)*wik(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIuw(ib:ie,jb:je,kb:ke),IIuwt(ib:ie,kb:ke))
+        call avey_ibm(wthlyk,wm(ib:ie,jb:je,kb:ke)*thlk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+        call avey_ibm(uyik,uik(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIuw(ib:ie,jb:je,kb:ke),IIuwt(ib:ie,kb:ke))
+        call avey_ibm(wyik,wik(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIuw(ib:ie,jb:je,kb:ke),IIuwt(ib:ie,kb:ke))
+        call avey_ibm(thlyk,thlk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+
+        upwpyik = uwyik - uyik*wyik
+        wpthlpyk = wthlyk - wy*thlyk
+
+        where (IIwt==0)
+          wpthlpyk  = -999.                                                                         
+        endwhere
+
+        where (IIuwt==0)
+          upwpyik    = -999.
+        endwhere
+
+      end if ! lstatsdump
+
+      !> Average in x and y-direction
+      if (lzdump .or. lztdump) then
+
+        uxy=0.
+        vxy=0.
+        wxy=0.
+        thlxy=0.
+        qtxy=0.
+        sca1xy=0.
+        thlsgsxy=0.
+        usgsxy=0.
+
+        !> Spatial averages of mean quantities
+        call avexy_ibm(uxy(kb:ke+kh),um(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh))
+        call avexy_ibm(vxy(kb:ke+kh),vm(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh))
+        call avexy_ibm(wxy(kb:ke+kh),wm(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh))
+        if (ltempeq) then
+          call avexy_ibm(thlxy(kb:ke+kh),thlm(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh))
+        end if
+        if (lmoist) then
+          call avexy_ibm(qtxy(kb:ke+kh),qtm(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh))
+        end if
+        call avexy_ibm(usgsxy(kb:ke+kh),usgs(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh))
+        call avexy_ibm(thlsgsxy(kb:ke+kh),thlsgs(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh))
+
+      end if ! lzdump .or. ztdump
+
+      if (lzdump) then
+      
+        call avexy_ibm(uwxyik(kb:ke+kh),uik(ib:ie,jb:je,kb:ke+kh)*wik(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh))
+        call avexy_ibm(uxyik(kb:ke+kh),uik(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh))
+        call avexy_ibm(wxyik(kb:ke+kh),wik(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh))
+        call avexy_ibm(wthlxyk(kb:ke+kh),wm(ib:ie,jb:je,kb:ke+kh)*thlk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh))
+        call avexy_ibm(thlxyk(kb:ke+kh),thlk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh))
+
+        upwpxyik = uwxyik - uxyik*wxyik
+        wpthlpxyk = wthlxyk - wxy*thlxyk
+
+      end if ! lzdump
+
+      !!>> CALCS FOR TIME DEPENDANT STATS
+
+      !> Average in time
+      if (lztdump) then
+
+        uxyt(kb:ke+kh) = (uxyt(kb:ke+kh)*(ttimedumpp-tsamplep) + uxy(kb:ke+kh)*tsamplep)*ttimedumppi
+        vxyt(kb:ke+kh) = (vxyt(kb:ke+kh)*(ttimedumpp-tsamplep) + vxy(kb:ke+kh)*tsamplep)*ttimedumppi
+        wxyt(kb:ke+kh) = (wxyt(kb:ke+kh)*(ttimedumpp-tsamplep) + wxy(kb:ke+kh)*tsamplep)*ttimedumppi
+        thlxyt(kb:ke+kh) = (thlxyt(kb:ke+kh)*(ttimedumpp-tsamplep) + thlxy(kb:ke+kh)*tsamplep)*ttimedumppi
+        qtxyt(kb:ke+kh) = (qtxyt(kb:ke+kh)*(ttimedumpp-tsamplep) + qtxy(kb:ke+kh)*tsamplep)*ttimedumppi
+!        wthlxytk(kb:ke+kh) = (wthlxytk(kb:ke+kh)*(ttimedumpp-tsamplep) + wthlxyk(kb:ke+kh)*tsamplep)*ttimedumppi
+!        uwxytik(kb:ke+kh) = (uwxytik(kb:ke+kh)*(ttimedumpp-tsamplep) + uwxyik(kb:ke+kh)*tsamplep)*ttimedumppi
+        usgsxyt(kb:ke+kh) = (usgsxyt(kb:ke+kh)*(ttimedumpp-tsamplep) + usgsxy(kb:ke+kh)*tsamplep)*ttimedumppi                                                                                           
+        thlsgsxyt(kb:ke+kh) = (thlsgsxyt(kb:ke+kh)*(ttimedumpp-tsamplep) + thlsgsxy(kb:ke+kh)*tsamplep)*ttimedumppi
+
+      end if ! lztdump
+
+      if (ltimedump) then
+
+        uyt(ib:ie,kb:ke) = (uyt(ib:ie,kb:ke)*(ttimedumpp-tsamplep) + uy(ib:ie,kb:ke)*tsamplep)*ttimedumppi
+        vyt(ib:ie,kb:ke) = (vyt(ib:ie,kb:ke)*(ttimedumpp-tsamplep) + vy(ib:ie,kb:ke)*tsamplep)*ttimedumppi
+        wyt(ib:ie,kb:ke) = (wyt(ib:ie,kb:ke)*(ttimedumpp-tsamplep) + wy(ib:ie,kb:ke)*tsamplep)*ttimedumppi
+        thlyt(ib:ie,kb:ke) = (thlyt(ib:ie,kb:ke)*(ttimedumpp-tsamplep) + thly(ib:ie,kb:ke)*tsamplep)*ttimedumppi
+        qtyt(ib:ie,kb:ke) = (qtyt(ib:ie,kb:ke)*(ttimedumpp-tsamplep) + qty(ib:ie,kb:ke)*tsamplep)*ttimedumppi
+!        wthlytk(ib:ie,kb:ke) = (wthlytk(ib:ie,kb:ke)*(ttimedumpp-tsamplep) + wthlyk(ib:ie,kb:ke)*tsamplep)*ttimedumppi
+!        uwytik(ib:ie,kb:ke) = (uwytik(ib:ie,kb:ke)*(ttimedumpp-tsamplep) + uwyik(ib:ie,kb:ke)*tsamplep)*ttimedumppi
+        sca1yt(ib:ie,kb:ke) = (sca1yt(ib:ie,kb:ke)*(ttimedumpp-tsamplep) + sca1y(ib:ie,kb:ke)*tsamplep)*ttimedumppi
+        sca2yt(ib:ie,kb:ke) = (sca2yt(ib:ie,kb:ke)*(ttimedumpp-tsamplep) + sca2y(ib:ie,kb:ke)*tsamplep)*ttimedumppi
+        sca3yt(ib:ie,kb:ke) = (sca3yt(ib:ie,kb:ke)*(ttimedumpp-tsamplep) + sca3y(ib:ie,kb:ke)*tsamplep)*ttimedumppi
+        usgsyt(ib:ie,kb:ke) = (usgsyt(ib:ie,kb:ke)*(ttimedumpp-tsamplep) + usgsy(ib:ie,kb:ke)*tsamplep)*ttimedumppi
+        thlsgsyt(ib:ie,kb:ke) = (thlsgsyt(ib:ie,kb:ke)*(ttimedumpp-tsamplep) + thlsgsy(ib:ie,kb:ke)*tsamplep)*ttimedumppi
+
+      end if !ltimedump
+
+      if (lztdump .or. ltimedump) then
+
+        uwtik(:,:,kb:ke+kh) = (uwtik(:,:,kb:ke+kh)*(ttimedumpp-tsamplep) + wik(:,:,kb:ke+kh)*uik(:,:,kb:ke+kh)*tsamplep)*ttimedumppi
+        wthltk(ib:ie,jb:je,kb:ke+kh) = (wthltk(ib:ie,jb:je,kb:ke+kh)*(ttimedumpp-tsamplep) + thlk(ib:ie,jb:je,kb:ke+kh)*wm(ib:ie,jb:je,kb:ke+kh)*tsamplep)*ttimedumppi
+        utik(:,:,kb:ke+kh) = (utik(:,:,kb:ke+kh)*(ttimedumpp-tsamplep) + uik(:,:,kb:ke+kh)*tsamplep)*ttimedumppi
+        wtik(:,:,kb:ke+kh) = (wtik(:,:,kb:ke+kh)*(ttimedumpp-tsamplep) + wik(:,:,kb:ke+kh)*tsamplep)*ttimedumppi
+        wmt(ib:ie,jb:je,kb:ke+kh) = (wmt(ib:ie,jb:je,kb:ke+kh)*(ttimedumpp-tsamplep) + wm(ib:ie,jb:je,kb:ke+kh)*tsamplep)*ttimedumppi
+        thltk(ib:ie,jb:je,kb:ke+kh) = (thltk(ib:ie,jb:je,kb:ke+kh)*(ttimedumpp-tsamplep) + thlk(ib:ie,jb:je,kb:ke+kh)*tsamplep)*ttimedumppi
+        wsv1tk(ib:ie,jb:je,kb:ke+kh) =(wsv1tk(ib:ie,jb:je,kb:ke+kh)*(ttimedumpp-tsamplep) + wm(ib:ie,jb:je,kb:ke+kh)*svk(ib:ie,jb:je,kb:ke+kh)*tsamplep)*ttimedumppi
+
+        sv1tk(ib:ie,jb:je,kb:ke+kh) = (sv1tk(ib:ie,jb:je,kb:ke+kh)*(ttimedumpp-tsamplep) + svk(ib:ie,jb:je,kb:ke+kh)*tsamplep)*ttimedumppi
+
+      end if !lztdump .or. ltimedump
+
+!      where (IIwt==0)
+!        wpthlpyk  = -999
+!        wpthlpytk = -999
+!      endwhere
+
+!      where (IIuwt==0)
+!        upwpyik    = -999
+!        upwpytik   = -999
+!      endwhere
+
+      !> slice over purifier
+!      if (nprocs>7) then
+!      if (myid==7) then
+!        sca1y(ib:ie,kb:ke) = (sca1y(ib:ie,kb:ke)*(ttimedumpp-tsamplep) + svm(ib:ie,2,kb:ke,1)*tsamplep)*ttimedumppi  
+!      end if
+!      end if
+
+    end if ! ltimedump .or. lstatsdump .or. lzdump .or. lztdump
+
+    if (lslicedump) then
+      slice = (slice*(ttimedumpp-tsamplep) + (0.5*(svm(:,:,kb,1)+svm(:,:,kb+1,1)))*tsamplep)*ttimedumppi
+      slice2 = (slice2*(ttimedumpp-tsamplep) + (sum(svm(:,:,kb:kb+8,1),3)/9)*tsamplep)*ttimedumppi
+      slice3 = (slice3*(ttimedumpp-tsamplep) + (0.5*(svm(:,:,kb,2)+svm(:,:,kb+1,2)))*tsamplep)*ttimedumppi
+      slice4 = (slice4*(ttimedumpp-tsamplep) + (sum(svm(:,:,kb:kb+8,2),3)/9)*tsamplep)*ttimedumppi
+      slice5 = (slice5*(ttimedumpp-tsamplep) + (0.5*(svm(:,:,kb,3)+svm(:,:,kb+1,3)))*tsamplep)*ttimedumppi
+      slice6 = (slice6*(ttimedumpp-tsamplep) + (sum(svm(:,:,kb:kb+8,3),3)/9)*tsamplep)*ttimedumppi
+      slice7 = (slice7*(ttimedumpp-tsamplep) + um(:,:,kb)*tsamplep)*ttimedumppi
+      slice8 = (slice8*(ttimedumpp-tsamplep) + vm(:,:,kb)*tsamplep)*ttimedumppi
+    endif !lslicedump
+
+    if (lstatsdump) then
+      if (myid == 0) then
+
+        allocate(field(ib:ie,kb:ke)) 
+        allocate(vars(imax,khigh-klow+1,nstats))
+
+        vars(:,:,1) = uy(ib:ie,kb:ke)
+        vars(:,:,2) = vy(ib:ie,kb:ke)
+        vars(:,:,3) = wy(ib:ie,kb:ke)
+        vars(:,:,4) = thly(ib:ie,kb:ke)
+        vars(:,:,5) = qty(ib:ie,kb:ke)
+        vars(:,:,6) = sca1y(ib:ie,kb:ke)
+        vars(:,:,7) = sca2y(ib:ie,kb:ke)
+        vars(:,:,8) = sca3y(ib:ie,kb:ke)
+        vars(:,:,9) = upwpyik(ib:ie,kb:ke)
+        vars(:,:,10) = wpthlpyk(ib:ie,kb:ke)
+        vars(:,:,11) = usgsy(ib:ie,kb:ke)
+        vars(:,:,12) = thlsgsy(ib:ie,kb:ke)
+        vars(:,:,13) = uwyik(ib:ie,kb:ke)
+        vars(:,:,14) = wthlyk(ib:ie,kb:ke)
+
+        call writestat_nc(ncid,1,tncstat,(/timee/),nrec,.true.)
+        call writestat_nc(ncid,nstats,ncstaty,vars,nrec,imax,khigh-klow+1)
+
+        deallocate(field,vars)
+
+      endif !myid
+    endif !lstatsdump
+
+    if (lzdump) then
+      if (myid == 0) then
+        call writestat_nc(ncidz,1,tncstatz,(/timee/),nrecz,.true.)
+
+        allocate(varsz(khigh-klow+1,nstatz))
+          varsz(:,1)  = uxy(kb:ke)
+          varsz(:,2)  = vxy(kb:ke)
+          varsz(:,3)  = wxy(kb:ke)
+          varsz(:,4)  = thlxy(kb:ke)
+          varsz(:,5)  = qtxy(kb:ke)
+          varsz(:,6)  = upwpxyik(kb:ke)
+          varsz(:,7)  = wpthlpxyk(kb:ke)
+          varsz(:,8)  = usgsxy(kb:ke)
+          varsz(:,9)  = thlsgsxy(kb:ke) !wdthldtc(kb:ke)
+          varsz(:,10) = uwxyik(kb:ke)
+          varsz(:,11) = wthlxyk(kb:ke)
+          call writestat_1D_nc(ncidz,nstatz,ncstatxy,varsz,nrecz,khigh-klow+1)
+      end if !myid
+    end if !lzdump
+
+    if (ltkedump) then
+      !call genstats(tsamplep,ttimedumpp,umc,vmc,wmc)
+    endif
+    tsamplep = dt
+  else !timestatsdumpp < tsample
+
+    tsamplep = tsamplep + dt
+
+  endif
+
+  if (ttimedumpp > ttimedump) then
+    
+    if (lztdump) then   
+
+!      do k=kb,ke+kh
+!        udwdtik(ib:ie,jb:je,k) = (utik(ib:ie,jb:je,k)-utxyik(k))*(wtik(ib:ie,jb:je,k)-wtxyik(k))
+!        wdthldtk(ib:ie,jb:je,k) = (wmt(ib:ie,jb:je,k)-wmtxy(k))*(thltk(ib:ie,jb:je,k)-thltxyk(k))
+!      end do
+
+!      call avexy_ibm(wdthldtxyk(kb:ke+kh),wdthldtk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh))                                                           
+!     call avexy_ibm(udwdtxyik(kb:ke+kh),udwdtik(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh))
+
+      !> Advective flux
+      call avexy_ibm(wthltxyk(kb:ke+kh),wmt(ib:ie,jb:je,kb:ke+kh)*thltk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh))
+      call avexy_ibm(uwtxyik(kb:ke+kh),utik(ib:ie,jb:je,kb:ke+kh)*wtik(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh))
+
+      !> Turbulent fluxes
+      call avexy_ibm(wpthlptxyk(kb:ke+kh),wthltk(ib:ie,jb:je,kb:ke+kh)-wmt(ib:ie,jb:je,kb:ke+kh)*thltk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh))
+      call avexy_ibm(upwptxyik(kb:ke+kh),uwtik(ib:ie,jb:je,kb:ke+kh)-utik(ib:ie,jb:je,kb:ke+kh)*wtik(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh))
+
+      if (myid == 0) then
+        call writestat_nc(ncidzt,1,tncstatzt,(/timee/),nreczt,.true.)
+
+        allocate(varszt(khigh-klow+1,nstatzt))
+          varszt(:,1)  = uxyt(kb:ke)
+          varszt(:,2)  = vxyt(kb:ke)
+          varszt(:,3)  = wxyt(kb:ke)
+          varszt(:,4)  = thlxyt(kb:ke)
+          varszt(:,5)  = qtxy(kb:ke)
+          varszt(:,6)  = upwptxyik(kb:ke)
+          varszt(:,7)  = wpthlptxyk(kb:ke)
+          varszt(:,8)  = uwtxyik(kb:ke)
+          varszt(:,9)  = wthltxyk(kb:ke) !wdthldtc(kb:ke)
+          varszt(:,10) = usgsxyt(kb:ke) !wdthldtw(kb:ke)
+          varszt(:,11) = thlsgsxyt(kb:ke)
+          call writestat_1D_nc(ncidzt,nstatzt,ncstatxyt,varszt,nreczt,khigh-klow+1)
+      end if !myid
+    end if !lztdump
+
+    if (ltimedump) then
+
+!    call MPI_BCAST(sca1yt ,(ke+kh-(kb-kh))*(ie+ih-(ib-ih)),MY_REAL   ,7,comm3d,mpierr)
+
+      ! Turbulent flux
+      call avey_ibm(upwptyik,uwtik(ib:ie,jb:je,kb:ke)-utik(ib:ie,jb:je,kb:ke)*wtik(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIuw(ib:ie,jb:je,kb:ke),IIuwt(ib:ie,kb:ke))
+      call avey_ibm(wpthlptyk,wthltk(ib:ie,jb:je,kb:ke)-wmt(ib:ie,jb:je,kb:ke)*thltk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+      call avey_ibm(wpsvptyk,wsv1tk(ib:ie,jb:je,kb:ke)-wmt(ib:ie,jb:je,kb:ke)*sv1tk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+
+      ! Advective flux
+      call avey_ibm(uwtyik,utik(ib:ie,jb:je,kb:ke)*wtik(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIuw(ib:ie,jb:je,kb:ke),IIuwt(ib:ie,kb:ke))
+      call avey_ibm(wthltyk,wmt(ib:ie,jb:je,kb:ke)*thltk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+      call avey_ibm(wsvtyk,wmt(ib:ie,jb:je,kb:ke)*sv1tk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+
+      if (myid == 0) then
+          allocate(varst(imax,khigh-klow+1,nstat))
+          call writestat_nc(ncidt,1,tncstatt,(/timee/),nrect,.true.)
+          varst(:,:,1)  = uyt(ib:ie,kb:ke)
+          varst(:,:,2)  = vyt(ib:ie,kb:ke)
+          varst(:,:,3)  = wyt(ib:ie,kb:ke)
+          varst(:,:,4)  = thlyt(ib:ie,kb:ke)
+          varst(:,:,5)  = qtyt(ib:ie,kb:ke)
+          varst(:,:,6)  = sca1yt(ib:ie,kb:ke)
+          varst(:,:,7)  = wsvtyk(ib:ie,kb:ke)
+          varst(:,:,8)  = wpsvptyk(ib:ie,kb:ke)
+          varst(:,:,9)  = upwptyik(ib:ie,kb:ke)
+          varst(:,:,10) = wpthlptyk(ib:ie,kb:ke)
+          varst(:,:,11) = uwtyik(ib:ie,kb:ke)
+          varst(:,:,12) = wthltyk(ib:ie,kb:ke)
+          varst(:,:,13) = usgsyt(ib:ie,kb:ke)
+          varst(:,:,14) = thlsgsyt(ib:ie,kb:ke)
+          call writestat_nc(ncidt,nstat,ncstatyt,varst,nrect,imax,khigh-klow+1)
+        end if !myid
+      end if !ltimedump
+
+      if (ltkedump) then
+        call tkestatsdump
+        if (myid == 0) then
+          call writestat_nc(ncidtke,1,tncstattke,(/timee/),nrectke,.true.)
+          allocate(varstke(khigh-klow+1,nstattke))
+          varstke(:,1) = p_b(kb:ke+kh)
+          varstke(:,2) = t_p(kb:ke+kh)
+          varstke(:,3) = adv(kb:ke+kh)
+          varstke(:,4) = t_t(kb:ke+kh)
+          varstke(:,5) = t_sgs(kb:ke+kh)
+          varstke(:,6) = p_t(kb:ke+kh)
+          varstke(:,7) = t_v(kb:ke+kh)
+          varstke(:,8) = d_sgs(kb:ke+kh)              
+          call writestat_1D_nc(ncidtke,nstattke,ncstattke,varstke,nrectke,khigh-klow+1)
+        end if !myid
+      endif !ltkedump 
+
+      if (lslicedump) then
+
+        allocate(varslice(imax,jmax,nstatslice))
+        call writestat_nc(ncidslice,1,tncstatslice,(/timee/),nrecslice,.true.)
+
+        varslice(:,:,1) = slice(ib:ie,jb:je)
+        varslice(:,:,2) = slice2(ib:ie,jb:je)
+        varslice(:,:,3) = slice3(ib:ie,jb:je)   
+        varslice(:,:,4) = slice4(ib:ie,jb:je)   
+        varslice(:,:,5) = slice5(ib:ie,jb:je)   
+        varslice(:,:,6) = slice6(ib:ie,jb:je)   
+        varslice(:,:,7) = slice7(ib:ie,jb:je)   
+        varslice(:,:,8) = slice8(ib:ie,jb:je)
+
+!        write(*,*), myid
+!        write(*,*), 'ncidslice,1,tncstatslice,(/timee/),nrecslice,.true.', ncidslice,1,tncstatslice,(/timee/),nrecslice
+
+        call writestat_nc(ncidslice,nstatslice,ncstatslice,varslice,nrecslice,imax,jmax)
+
+!        deallocate(varslice)
+
+      endif
+
+!      if (myid==0) then
+        ! write the relevant data to data.txt (currently just friction velocity for lcoriol1d)
+!        write(6,*) 'Writing data to data.txt'
+!        open(unit=90,file='data.txt',position='append')
+!        write(90,'(3(6e14.6))') &
+!        timee, &
+!        sqrt(abs(FFFave)/((xh(ie+1)-xh(ib))*jtot*dy)), &
+!        sqrt(FFFabsave/((xh(ie+1)-xh(ib))*jtot*dy))
+!        close(90)        
+!      end if !myid
+
+      ttimedumpp = dt
+
+    else !ttimedumpp < ttimedump
+   
+      ttimedumpp = ttimedumpp + dt
+  
+    endif  
+!  endif
+
+  end subroutine statsdump
+   
+  !> tg3315 still under going work to be completed
+  subroutine tkestatsdump
+
+  use modfields,        only : u0,v0,w0,thl0,uav,vav,wav,uuav,vvav,wwav,uvav,uwav,vwav,thlav,thlthlav,pres0,thluav,thlvav,thlwav,&
+                               upupav,vpvpav,wpwpav,thlpthlpav,upvpav,upwpav,vpwpav,thlpupav,thlpvpav,thlpwpav,presav,&
+                               strain2av,disssgsav,t_vav,tvmx,tvmy,tvmz,tsgsmx1,tsgsmx2,tsgsmy1,tsgsmy2,tsgsmz1,t_sgsav,nusgsav,&
+                               tpm,t_pav,ttmx,ttmy,ttmz,t_tav,p_bav,d_sgsav,p_tav,tkeadv,tsgsmz1,tsgsmz2,t_t,t_v,t_p,t_sgs,d_sgs,&
+                               p_b,p_t,adv,IIc,IIcs
+  use modglobal,        only : ib,ie,ih,jb,je,jgb,jge,dy,jh,ke,kb,kh,rk3step,timee,cexpnr,lnetcdf,tsample,ttimedump,jtot,imax,dzf,&
+                               dzf,dzfi,dzhi,dxf,dxfi,dyi,dxhi,dy2i,grav,numol
+  use modmpi,           only : myid,cmyid,my_real,mpi_sum,avey_ibm,mpierr,comm3d,excjs,avexy_ibm
+  use modsurfdata,      only : thls
+  use modsubgrid,       only : ekh
+  implicit none
+
+  real, dimension(ib:ie,jb:je,kb:ke)  :: disssgsfl     ! average subgrid visc. * average rate of strain squared : 2*<nu_t>*<Sij>*<Sij>
+  real, dimension(ib:ie,jb:je,kb:ke)  :: dissresav     ! average resolved dissipation: 2*nu*<Sij'*Sij'> = 2*nu*( <Sij*Sij> - <Sij>*<Sij> )
+    real, dimension(ib:ie,jb:je,kb:ke)  :: tke           ! tke = 0.5*<ui'ui'>
+    real, dimension(ib:ie,jb:je,kb:ke)  :: mke           ! = <ui>d/dxj(<ui><uj>) + <ui>d/dxj(<ui'uj'>) = <ui>d/dxj(<ui*uj>)
+    real, dimension(ib:ie+1,jb  :je,  kb:ke)    :: dummyx
+    real, dimension(ib:ie,  jb-1:je+1,kb:ke)    :: dummyy
+    real, dimension(ib:ie,  jb  :je,  kb:ke+1)  :: dummyz
+
+  integer i,j,k,ip,im,jp,jm,kp,km,strainav2
+  real dummy
+
+    ! Tvav = (Tvm - <ui>*d/dxj(<Sij>)  ) + 2*nu*<Sij'Sij'>
+    ! Tvm = Tvmx + Tvmy + Tvmz -> therefore: subtraction, then interpolation,
+    ! then addition of 2*nu*<Sij'Sij'>
+    do k=kb,ke
+      km = k-1
+      kp = k+1
+      do j=jb,je
+        jp = j+1
+        jm = j-1
+        do i=ib,ie
+          im = i-1
+          ip = i+1
+
+!            t_vav(i,j,k) =  0.5*( (tvmx(i,j,k) - (                      &
+             dummyx(i,j,k) =  (                      &
+                              ( numol  * (uav(i+1,j,k)-uav(i,j,k))*dxfi(i) &
+                              -numol * (uav(i,j,k)-uav(i-1,j,k))*dxfi(i-1) ) * 2. * dxhi(i) &
+                              + &
+                              ( numol * ( (uav(i,jp,k)-uav(i,j,k))   *dyi &
+                              +(vav(i,jp,k)-vav(i-1,jp,k))*dxhi(i)) &
+                              - numol * ( (uav(i,j,k)-uav(i,jm,k))   *dyi &
+                              +(vav(i,j,k)-vav(i-1,j,k))  *dxhi(i)) &
+                              ) * dyi &
+                              + &
+                              ( numol * ( (uav(i,j,kp)-uav(i,j,k))   *dzhi(kp) &
+                              +(wav(i,j,kp)-wav(i-1,j,kp))*dxhi(i)) &
+                              - numol * ( (uav(i,j,k)-uav(i,j,km))   *dzhi(k) &
+                              +(wav(i,j,k)-wav(i-1,j,k))  *dxhi(i)) &
+                              ) *dzfi(k) )
+               ! y-direction
+               dummyy(i,j,k) =  (                        &
+                                ( numol * ( (vav(i+1,j,k)-vav(i,j,k))   *dxhi(i+1) &
+                                +(uav(i+1,j,k)-uav(i+1,jm,k))*dyi) &
+                                -numol * ( (vav(i,j,k)-vav(i-1,j,k))   *dxhi(i) &
+                                +(uav(i,j,k)-uav(i,jm,k))    *dyi) &
+                                ) * dxfi(i) &        ! = d/dx( Km*(dv/dx + du/dy) )
+                                + &
+                                (numol * (vav(i,jp,k)-vav(i,j,k)) &
+                                -numol * (vav(i,j,k)-vav(i,jm,k))  ) * 2. * dy2i &        ! =d/dy( 2*Km*(dv/dy) )
+                                + &
+                                ( numol * ( (vav(i,j,kp)-vav(i,j,k))    *dzhi(kp) &
+                                +(wav(i,j,kp)-wav(i,jm,kp))  *dyi) &
+                                -numol * ( (vav(i,j,k)-vav(i,j,km))    *dzhi(k) &
+                                +(wav(i,j,k)-wav(i,jm,k))    *dyi)   &
+                                ) * dzfi(k) )                    ! = d/dz( Km*(dv/dz + dw/dy) )
+               ! z-direction
+               dummyz(i,j,k) = (                        &
+                              ( numol * ( (wav(i+1,j,k)-wav(i,j,k))    *dxhi(i+1) &
+                              +(uav(i+1,j,k)-uav(i+1,j,km)) *dzhi(k) ) &
+                              -numol * ( (wav(i,j,k)-wav(i-1,j,k))    *dxhi(i) &
+                              +(uav(i,j,k)-uav(i,j,km))     *dzhi(k) ) &
+                             )*dxfi(i) &
+                             + &
+                             ( numol * ( (wav(i,jp,k)-wav(i,j,k))     *dyi &
+                             +(vav(i,jp,k)-vav(i,jp,km))   *dzhi(k) ) &
+                             -numol * ( (wav(i,j,k)-wav(i,jm,k))     *dyi &
+                             +(vav(i,j,k)-vav(i,j,km))     *dzhi(k) ) &
+                             )*dyi &
+                             + &
+                             ( numol * (wav(i,j,kp)-wav(i,j,k)) *dzfi(k) &
+                             -numol * (wav(i,j,k)-wav(i,j,km)) *dzfi(km) ) * 2. &
+                             * dzhi(k))
+
+               strainav2 =  ( &
+                            ((uav(ip,j,k)-uav(i,j,k))    *dxfi(i)     )**2    + &
+                            ((vav(i,jp,k)-vav(i,j,k))    *dyi         )**2    + &
+                            ((wav(i,j,kp)-wav(i,j,k))    *dzfi(k)     )**2    )
+
+               strainav2 = strainav2 + 0.125 * ( &
+                            ((wav(i,j,kp)-wav(im,j,kp))   *dxhi(i)     + &
+                            (uav(i,j,kp)-uav(i,j,k))      *dzhi(kp)  )**2    + &
+                            ((wav(i,j,k)-wav(im,j,k))     *dxhi(i)     + &
+                            (uav(i,j,k)-uav(i,j,km))      *dzhi(k)   )**2    + &
+                            ((wav(ip,j,k)-wav(i,j,k))     *dxhi(ip)     + &
+                            (uav(ip,j,k)-uav(ip,j,km))    *dzhi(k)   )**2    + &
+                            ((wav(ip,j,kp)-wav(i,j,kp))   *dxhi(ip)     + &
+                            (uav(ip,j,kp)-uav(ip,j,k))    *dzhi(kp)  )**2    )
+
+               strainav2 = strainav2 + 0.125 * ( &
+                            ((uav(i,jp,k)-uav(i,j,k))     *dyi     + &
+                            (vav(i,jp,k)-vav(im,jp,k))    *dxhi(i)        )**2    + &
+                            ((uav(i,j,k)-uav(i,jm,k))     *dyi     + &
+                            (vav(i,j,k)-vav(im,j,k))      *dxhi(i)        )**2    + &
+                            ((uav(ip,j,k)-uav(ip,jm,k))   *dyi     + &
+                            (vav(ip,j,k)-vav(i,j,k))      *dxhi(ip)       )**2    + &
+                            ((uav(ip,jp,k)-uav(ip,j,k))   *dyi     + &
+                            (vav(ip,jp,k)-vav(i,jp,k))    *dxhi(ip)       )**2    )
+
+               strainav2 = strainav2 + 0.125 * ( &
+                           ((vav(i,j,kp)-vav(i,j,k))    *dzhi(kp) + &
+                           (wav(i,j,kp)-wav(i,jm,kp))   *dyi        )**2    + &
+                           ((vav(i,j,k)-vav(i,j,km))    *dzhi(k)+ &
+                           (wav(i,j,k)-wav(i,jm,k))     *dyi        )**2    + &
+                           ((vav(i,jp,k)-vav(i,jp,km))  *dzhi(k)+ &
+                           (wav(i,jp,k)-wav(i,j,k))     *dyi        )**2    + &
+                           ((vav(i,jp,kp)-vav(i,jp,k))  *dzhi(kp) + &
+                           (wav(i,jp,kp)-wav(i,j,kp))   *dyi        )**2    )
+
+               dissresav(i,j,k) = 2.*numol  *(strain2av(i,j,k) - strainav2)  !resolved dissipation
+
+          end do
+        end do
+      end do
+
+      ! BC's 
+      tvmx   (ie+1,:,:) =  tvmx   (ie,:,:)
+      tsgsmx1(ie+1,:,:) =  tsgsmx1(ie,:,:)
+      tsgsmx2(ie+1,:,:) =  tsgsmx2(ie,:,:)
+      dummyx (ie+1,:,:) =  dummyx (ie,:,:)
+      ttmx   (ie+1,:,:) =  ttmx   (ie,:,:)
+      call excjs( tvmy   , ib,ie,jb,je,kb,ke,0,1)   ! jb-1 is not used
+      call excjs( tsgsmy1, ib,ie,jb,je,kb,ke,0,1)   ! jb-1 is not used
+      call excjs( tsgsmy2, ib,ie,jb,je,kb,ke,0,1)   ! jb-1 is not used
+      call excjs( dummyy,  ib,ie,jb,je,kb,ke,0,1)   ! jb-1 is not used
+      call excjs( ttmy   , ib,ie,jb,je,kb,ke,0,1)   ! jb-1 is not used
+      tvmz   (:,:,ke+1) =  tvmz   (:,:,ke)
+      tsgsmz1(:,:,ke+1) =  tsgsmz1(:,:,ke)
+      tsgsmz2(:,:,ke+1) =  tsgsmz2(:,:,ke)
+      dummyz (:,:,ke+1) =  dummyz(:,:,ke)
+      ttmz   (:,:,ke+1) =  ttmz   (:,:,ke)
+
+      do k=kb,ke
+        km = k-1
+        kp = k+1
+        do j=jb,je
+          jp = j+1
+          jm = j-1
+            do i=ib,ie
+             im = i-1
+             ip = i+1
+
+             ! Total viscous dissipation
+             t_vav(i,j,k) =  0.5*( (tvmx(i, j,k) - dummyx(i,j,k) *uav(i, j,k))  + &
+                             (tvmx(ip,j,k) - dummyx(ip,j,k)*uav(ip,j,k))) &
+                             + 0.5*( (tvmy(i,j, k) - dummyy(i,j,k) *vav(i,j, k))  + &
+                             (tvmy(i,jp,k) - dummyy(i,jp,k)*vav(i,jp,k))) &
+                             + 0.5*( (tvmz(i,j,k ) - dummyz(i,j,k) *wav(i,j,k ))  + &
+                             (tvmz(i,j,kp) - dummyz(i,j,kp)*wav(i,j,kp))) &
+                             + dissresav(i,j,k)         ! d/dxj(2*nu*<ui'Sij'>) = <u_i*d/dxj(2*nu*Sij')> +2*nu*<Sij'Sij'>
+
+!      Now the same for subgrid stress        
+!      <d/dxj(2*u_i'*nu_t*Sij)'> = <u_i'*d/dxj(2*nu_t*Sij)'> + <(2*nu_t*Sij)'*Sij'>
+!                                = <u_i*d/dxj(2*nu_t*Sij)> -
+!                                  <u_i>*<d/dxj(2*nu_t*Sij)>   + <2*nu_t*Sij*Sij> -
+!                                  <(2*nu_t*Sij)>*<Sij>
+!                                = <u_i*d/dxj(2*nu_t*Sij)> -
+!                                  <u_i>*<d/dxj(2*nu_t*Sij)>   + <2*nu_t*Sij*Sij> -
+!                                  2*<nu_t>*<Sij>*<Sij> - 2*<nu_t'*Sij'>*<Sij>
+
+
+     !---------------------------------------
+     !Total subgrid TKE
+     !---------------------------------------
+
+             ! Mean SGS dissipation
+             disssgsfl(i,j,k) = 2.*nusgsav(i,j,k)*strainav2 ! = 2*<nu_sgs>*<sij>*<sij>
+
+              
+             ! TKE
+             tke(i,j,k)       = 0.5*(0.5*(upupav(ip,j,k)+upupav(i,j,k)) + &
+                                  0.5*(vpvpav(i,jp,k)+vpvpav(i,j,k)) + &
+                                  0.5*(wpwpav(i,j,kp)+wpwpav(i,j,k)))
+
+             ! total SGS
+             t_sgsav(i,j,k) =  0.5*( (tsgsmx1(i,j,k) -  uav(i,j,k) *tsgsmx2(i,j,k)) + &
+                              (tsgsmx1(ip,j,k) - uav(ip,j,k)*tsgsmx2(ip,j,k))) &
+                               + & ! = <2*nu_t*SijSij> - <2*nu_t*Sij>*<Sij>
+                              0.5*( (tsgsmy1(i,j,k) -  vav(i,j,k) *tsgsmy2(i,j,k)) + &
+                              (tsgsmy1(i,jp,k) - vav(i,jp,k)*tsgsmy2(i,jp,k))) &
+                              + & ! = <2*nu_t*SijSij> - <2*nu_t*Sij>*<Sij>        
+                              0.5*( (tsgsmz1(i,j,k) -  vav(i,j,k) *tsgsmz2(i,j,k)) + &
+                              (tsgsmz1(i,j,kp) - vav(i,j,kp)*tsgsmz2(i,j,kp))) &
+                              + disssgsav(i,j,k) - disssgsfl(i,j,k)
+             ! -2*<nu_t'Sij'>*<Sij>  should still be added!
+             
+             ! SGS dissipation
+             d_sgsav(i,j,k)= - disssgsav(i,j,k) + disssgsfl(i,j,k)
+             ! +2*<nu_t'Sij'>*<Sij>  should still be added! (is compensated with above)
+
+
+     !---------------------------------------
+     !Total pressure TKE
+     !---------------------------------------
+
+             ! Pressure correlation term
+             ! - <uj'*dp'/dxj> = - <uj*dp/dxj> + <uj>*d<p>/dxj
+             t_pav(i,j,k)   = tpm(i,j,k) + &
+                              0.5*(uav(i,j,k)*(presav(i,j,k)-presav(i-1,j,k))*dxhi(i) + &
+                              uav(i+1,j,k)*(presav(i+1,j,k)-presav(i,j,k))*dxhi(i+1)) &
+                              + &
+                              0.5*(vav(i,j,k)*(presav(i,j,k)-presav(i,j-1,k))*dyi + &
+                              vav(i,j+1,k)*(presav(i,j+1,k)-presav(i,j,k))*dyi) &
+                              + &
+                              0.5*(wav(i,j,k)*(presav(i,j,k)-presav(i,j,k-1))*dzhi(k) + &
+                              wav(i,j,k+1)*(presav(i,j,k+1)-presav(i,j,k))*dzhi(k+1))
+                              ! - d/dxj(<0.5*ui'ui'uj'>) = -<uj'd/dxj(<0.5*ui'ui'>) + <ui'uj'><Sij>
+!                             = -<uj*d/dxj(0.5*ui'ui')> + <uj>*d/dxj(<0.5*ui'ui'> +
+!                             <ui'uj'><Sij>) 
+
+
+!            ttav(i,j,k)   = ttm(i,j,k) - 
+
+
+     !---------------------------------------
+     !Total advection TKE
+     !---------------------------------------
+
+!            <advection term N.S. times ui> = MKE + A - Pshear - Tt
+!            Tt = -<ui'd/dxj(ui'uj')> = -<d/dxj(0.5*ui'ui'uj')> = A + MKE - Pshear - Total
+
+             !Pshear =Ptav = -<ui'uj'>d/dxj(<Sij>) = -<ui'uj'>d<ui>/dxj
+
+             ! mechanical or shear production
+             p_tav(i,j,k)    = - ( &
+                               0.5 *(upupav(i,j,k)+upupav(ip,j,k))* (uav(ip,j,k)-uav(i,j,k))*dxfi(i)  + & ! <u'u'>*d<u>/dx     
+                               0.25*(upvpav(i,j,k)  *(uav(i, j, k)-uav(i, jm,k) )*dyi + &
+                               upvpav(i,jp,k) *(uav(i, jp,k)-uav(i, j, k) )*dyi + &
+                               upvpav(ip,j,k) *(uav(ip,j, k)-uav(ip,jm,k) )*dyi + &
+                               upvpav(ip,jp,k)*(uav(ip,jp,k)-uav(ip,j, k) )*dyi) + & ! <u'v'>*d<u>/dy
+                               0.25*(upwpav(i, j,k ) *(uav(i, j,k )-uav(i,j,km))*dzhi(k) + &
+                               upwpav(i, j,kp) *(uav(i, j,kp)-uav(i, j,k))*dzhi(kp) + &
+                               upwpav(ip,j,k ) *(uav(ip,j,k )-uav(ip,j,km))*dzhi(k) + &
+                               upwpav(ip,j,kp) *(uav(ip,j,kp)-uav(ip,j,k))*dzhi(kp)) + & ! <u'w'>*d<u>/dz
+                               0.25*(upvpav(i, j, k) *(vav(i, j, k)-vav(im,j,k))*dxhi(i) + &
+                               upvpav(ip,j, k) *(vav(ip,j, k)-vav(i, j,k))*dxhi(ip) + &
+                               upvpav(i, jp,k) *(vav(i,jp,k)-vav(im,jp,k))*dxhi(i) + &
+                               upvpav(ip,jp,k) *(vav(ip,jp,k)-vav(i,jp,k))*dxhi(ip)) + & ! <u'v'>*d<v>/dx
+                               0.5 *(vpvpav(i,j,k)+vpvpav(i,jp,k))*(vav(i,jp,k)-vav(i,j,k))*dyi + & ! <v'v'>*d<v>/dy
+                               0.5 *(vpvpav(i,j,k)+vpvpav(i,jp,k))*(vav(i,jp,k)-vav(i,j,k))*dyi + & ! <v'v'>*d<v>/dy
+                               0.25*(vpwpav(i,j ,k ) *(vav(i,j ,k )-vav(i,j,km))*dzhi(k) + &
+                               vpwpav(i,j ,kp) *(vav(i,j ,kp)-vav(i,j ,k))*dzhi(kp) + &
+                               vpwpav(i,jp,k ) *(vav(i,jp,k)-vav(i,jp,km))*dzhi(k) + &
+                               vpwpav(i,jp,kp) *(vav(i,jp,kp)-vav(i,jp,k))*dzhi(kp)) + & ! <v'w'>*d<v>/dz
+                               0.25*(upwpav(i, j, k) *(wav(i, j,k )-wav(im,j,k))*dxhi(i) + &
+                               upwpav(ip,j, k) *(wav(ip,j,k )-wav(i, j,k))*dxhi(ip) + &
+                               upwpav(i, j,kp) *(wav(i,j,kp)-wav(im,j,kp))*dxhi(i) + &
+                               upwpav(ip,j,kp) *(wav(ip,j,kp)-wav(i,j,kp))*dxhi(ip)) + & ! <u'w'>*d<w>/dx
+                               0.25*(vpwpav(i,j,k)  *(wav(i,j, k )-wav(i,jm,k ) )*dyi + &
+                               vpwpav(i,jp,k) *(wav(i,jp,k )-wav(i,j, k ) )*dyi + &
+                               vpwpav(ip,j,k) *(wav(i,j, kp)-wav(i,jm,kp) )*dyi + &
+                               vpwpav(ip,jp,k)*(wav(i,jp,kp)-wav(i,j, kp) )*dyi) + & ! <v'w'>*d<w>/dy
+                               0.5 *(wpwpav(i,j,k)+wpwpav(i,j,kp))*(wav(i,j,kp)-wav(i,j,k))*dzfi(k) ) ! <w'w'>*d<w>/dz 
+
+             ! Mean kinetic energy term (expected to be small).
+             mke(i,j,k)      = 0.5*(uav(ip,j,k)+uav(i,j,k))*(uuav(ip,j,k)-uuav(i,j,k))*dxfi(i)  +        & !<u>*d<uu>/dx          
+                               0.5*(uav(i, j,k)*(uvav(i ,jp,k)-uvav(i ,j,k))*dyi  + & ! <u>*d<uv>/dy                      
+                               uav(ip,j,k)*(uvav(ip,jp,k)-uvav(ip,j,k))*dyi) +        &
+                               0.5*(uav(i, j,k)*(uwav(i ,j,kp)-uwav(i ,j,k))*dzfi(k)  + & ! <u>*d<uw>/dz     
+                               uav(ip,j,k)*(uwav(ip,j,kp)-uwav(ip,j,k))*dzfi(k)) +        &
+                               0.5*(vav(i,j, k)*(uvav(ip,j ,k)-uvav(i,j ,k))*dxfi(i) + & ! <v>*d<uv>/dx
+                               vav(i,jp,k)*(uvav(ip,jp,k)-uvav(i,jp,k))*dxfi(i)) + &
+                               0.5*(vav(i,jp,k)+vav(i,j,k))*(vvav(i,jp,k)-vvav(i,j,k))*dyi +        & ! <v>*d<vv>/dy
+                               0.5*(vav(i,j ,k)*(vwav(i,j ,kp)-vwav(i,j ,k))*dzfi(k)  + & ! <v>*d<vw>/dz                      
+                               vav(i,jp,k)*(vwav(i,jp,kp)-vwav(i,jp,k))*dzfi(k)) + &
+                               0.5*(wav(i,j,k )*(uwav(ip,j,k )-uwav(i,j,k ))*dxfi(i) + & ! <w>*d<uw>/dx
+                               wav(i,j,kp)*(uwav(ip,j,kp)-uwav(i,j,kp))*dxfi(i)) +        &
+                               0.5*(wav(i,j,k )*(vwav(i,jp,k )-vwav(i,j,k ))*dyi  + & ! <w>*d<vw>/dy                      
+                               wav(i,j,kp)*(vwav(i,jp,kp)-vwav(i,j,kp))*dyi) +        &
+                               0.5*(wav(i,j,kp)+wav(i,j,k))*(wwav(i,j,kp)-wwav(i,j,k))*dzfi(k) ! <w>*d<ww>/dz  
+
+             ! Advection of TKE
+             tkeadv(i,j,k)   = 0.5*(uav(i, j,k)*(tke(i, j,k)-tke(im,j,k))*dxhi(i) + & ! <u>*de/dx
+                               uav(ip,j,k)*(tke(ip,j,k)-tke(i ,j,k))*dxhi(ip)) +            & !
+                               0.5*(vav(i, j,k)*(tke(i,j ,k)-tke(i,jm,k))*dyi     + & ! <v>*de/dy
+                               vav(i,jp,k)*(tke(i,jp,k)-tke(i,j ,k))*dyi) +            &
+                               0.5*(wav(i,j,k )*(tke(i,j,k )-tke(i,j,km))*dzhi(k) + & ! <w>*de/dz
+                               wav(i,j,kp)*(tke(i,j,kp)-tke(i,j,k ))*dzhi(kp))
+        
+             ! <advection term N.S. times ui> = MKE + A - Pshear - Tt
+             ! Tt = -<ui'd/dxj(ui'uj')> = -<d/dxj(0.5*ui'ui'uj')> = A      +    MKE   -
+             ! Pshear  -   Total
+             !                                                    = tkeadv +    mke   -
+             !                                                    p_tav   -   ttm
+             !        t_tav(i,j,k)   = tkeadv(i,j,k) + mke(i,j,k) - p_tav(i,j,k) - ttm(i,j,k)                 
+            
+             t_tav(i,j,k)   = tkeadv(i,j,k) + mke(i,j,k) - p_tav(i,j,k)  &
+                              - 0.5*(ttmx(i,j,k) + ttmx(ip,j,k))        &
+                              - 0.5*(ttmy(i,j,k) + ttmy(i,jp,k))        &
+                              - 0.5*(ttmz(i,j,k) + ttmz(i,j,kp))
+
+             p_bav(i,j,k)   = (grav/thls)*0.5*(thlpwpav(i,j,k)+thlpwpav(i,j,kp)) !use of thls here...????
+
+          end do
+        end do
+      end do    
+
+    ! need updating tg3315
+    call avexy_ibm(p_b(kb:ke+kh),p_bav(:,:,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc,IIcs)
+    call avexy_ibm(t_p(kb:ke+kh),t_pav(:,:,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc,IIcs)
+    call avexy_ibm(adv(kb:ke+kh),tkeadv(:,:,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc,IIcs)
+    call avexy_ibm(t_t(kb:ke+kh),t_tav(:,:,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc,IIcs)
+    call avexy_ibm(t_sgs(kb:ke+kh),t_sgsav(:,:,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc,IIcs)
+    call avexy_ibm(p_t(kb:ke+kh),p_tav(:,:,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc,IIcs)
+    call avexy_ibm(d_sgs(kb:ke+kh),d_sgsav(:,:,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc,IIcs)
+     call avexy_ibm(t_v(kb:ke+kh),t_vav(:,:,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc,IIcs)
+
+   end subroutine tkestatsdump
+
+  !-------------------------
+  !> Clean up when leaving the run
+  !------------------------
+
+  subroutine exitstatsdump
+      use modstat_nc, only : exitstat_nc
+      use modglobal, only  : lnetcdf,lslicedump
+    implicit none
+
+!       if (lstatsdump) then 
+!         call exitstat_nc(ncid)
+!       endif
+ 
+! will doing this ruin the averaging? ... try tg3315      
+!       if (ltimedump) then              
+!         call exitstat_nc(ncidt)
+!       endif
+
+!      if (ltkedump) then              
+!        call exitstat_nc(ncidtke)
+!      endif
+
+!      if (lslicedump) then              
+!        call exitstat_nc(ncidslice)
+!      endif
+
+
+  end subroutine exitstatsdump
+
+
+end module modstatsdump
