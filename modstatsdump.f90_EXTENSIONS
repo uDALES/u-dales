@@ -32,7 +32,7 @@ module modstatsdump
   !NetCDF variables
   integer :: ncidy,ncidyt,ncidtke,ncidxy,ncidslice,ncidxyt,nrecy=0,nrecyt=0,nrectke=0,nrecxy=0,&
              nrecslice=0,nrecxyt=0,nstatyt=14,nstaty=14,nstattke=8,nstatxy=14,nstatslice=8,&
-             nstatxyt=19,ncidt,nrect=0,nstatt=15
+             nstatxyt=20,ncidt,nrect=0,nstatt=15
   character(80) :: yname = 'ydump.xxx.nc'
   character(80) :: ytname = 'ytdump.xxx.nc'
   character(80) :: tkename = 'tkedump.xxx.nc'
@@ -209,14 +209,15 @@ contains
       call ncinfo(ncstatxyt( 9,:),'uwxyt'      ,'Kinematic mom. flux'         ,'m^2/s^2','mt'  )
       call ncinfo(ncstatxyt( 10,:),'wthlxyt'   ,'Kinematic heat flux'         ,'K m/s'  ,'mt'  )
       call ncinfo(ncstatxyt( 11,:),'vwxyt'     ,'Kinematic mom. flux'         ,'m^2/s^2','mt'  )
-      call ncinfo(ncstatxyt( 12,:),'usgsxyt'   ,'SGS mom. flux'               ,'m^2/s^2','mt'  )
-      call ncinfo(ncstatxyt( 13,:),'thlsgsxyt' ,'SGS heat flux'               ,'K m/s'  ,'mt'  )
-      call ncinfo(ncstatxyt( 14,:),'vsgsxyt'   ,'SGS mom. flux'               ,'K m/s'  ,'mt'  )
-      call ncinfo(ncstatxyt( 15,:),'thlpthlptxy','Temp. variance'             ,'K^2'    ,'tt'  )
-      call ncinfo(ncstatxyt( 16,:),'upuptxyc'  ,'u variance'                  ,'m^2/s^2','tt'  )
-      call ncinfo(ncstatxyt( 17,:),'vpvptxyc'  ,'v variance'                  ,'m^2/s^2','tt'  )
-      call ncinfo(ncstatxyt( 18,:),'wpwptxyc'  ,'w variance'                  ,'m^2/s^2','tt'  )
-      call ncinfo(ncstatxyt( 19,:),'tketxyc'   ,'tke'                         ,'m^2/s^2','tt'  )
+      call ncinfo(ncstatxyt( 12,:),'wwxyt'     ,'Kinematic mom. flux'         ,'m^2/s^2','mt'  )
+      call ncinfo(ncstatxyt( 13,:),'usgsxyt'   ,'SGS mom. flux'               ,'m^2/s^2','mt'  )
+      call ncinfo(ncstatxyt( 14,:),'thlsgsxyt' ,'SGS heat flux'               ,'K m/s'  ,'mt'  )
+      call ncinfo(ncstatxyt( 15,:),'vsgsxyt'   ,'SGS mom. flux'               ,'K m/s'  ,'mt'  )
+      call ncinfo(ncstatxyt( 16,:),'thlpthlptxy','Temp. variance'             ,'K^2'    ,'tt'  )
+      call ncinfo(ncstatxyt( 17,:),'upuptxyc'  ,'u variance'                  ,'m^2/s^2','tt'  )
+      call ncinfo(ncstatxyt( 18,:),'vpvptxyc'  ,'v variance'                  ,'m^2/s^2','tt'  )
+      call ncinfo(ncstatxyt( 19,:),'wpwptxyc'  ,'w variance'                  ,'m^2/s^2','tt'  )
+      call ncinfo(ncstatxyt( 20,:),'tketxyc'   ,'tke'                         ,'m^2/s^2','tt'  )
 
       if (myid==0) then      
         call open_nc(xytname, ncidxyt, nrecxyt, n3=khigh-klow+1)
@@ -429,6 +430,8 @@ contains
   real, dimension(ib:ie,kb:ke)                 :: wpthlptyk
   real, dimension(ib:ie,kb:ke)                 :: uwtyik
   real, dimension(ib:ie,kb:ke)                 :: wthltyk
+  
+  ! txy-averaged fields
   real, dimension(kb:ke+kh)                    :: upwptxyik
   real, dimension(kb:ke+kh)                    :: wpthlptxyk
   real, dimension(kb:ke+kh)                    :: thlpthlptxy
@@ -440,6 +443,7 @@ contains
   real, dimension(kb:ke+kh)                    :: uwtxyik
   real, dimension(kb:ke+kh)                    :: wthltxyk
   real, dimension(kb:ke+kh)                    :: vwtxyjk
+  real, dimension(kb:ke+kh)                    :: wwtxyk
 
   real, allocatable :: field(:,:), varsy(:,:,:),varsyt(:,:,:),varstke(:,:),varsxy(:,:),&
                        varslice(:,:,:),varsxyt(:,:),varst(:,:,:,:)
@@ -829,7 +833,7 @@ contains
       call avexy_ibm(wthltxyk(kb:ke+kh),wmt(ib:ie,jb:je,kb:ke+kh)*thltk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh))
       call avexy_ibm(uwtxyik(kb:ke+kh),utik(ib:ie,jb:je,kb:ke+kh)*wtik(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh))
       call avexy_ibm(vwtxyjk(kb:ke+kh),vtjk(ib:ie,jb:je,kb:ke+kh)*wtjk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIvw(ib:ie,jb:je,kb:ke+kh),IIvws(kb:ke+kh))
-
+      call avexy_ibm(wwtxyk(kb:ke+kh),wmt(ib:ie,jb:je,kb:ke+kh)*wmt(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh))
       !> Turbulent fluxes
       call avexy_ibm(wpthlptxyk(kb:ke+kh),wthltk(ib:ie,jb:je,kb:ke+kh)-wmt(ib:ie,jb:je,kb:ke+kh)*thltk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh))
       call avexy_ibm(upwptxyik(kb:ke+kh),uwtik(ib:ie,jb:je,kb:ke+kh)-utik(ib:ie,jb:je,kb:ke+kh)*wtik(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh))
@@ -856,14 +860,15 @@ contains
           varsxyt(:,9)  = uwtxyik(kb:ke)
           varsxyt(:,10) = wthltxyk(kb:ke) !wdthldtc(kb:ke)
           varsxyt(:,11) = vwtxyjk(kb:ke)
-          varsxyt(:,12) = usgsxyt(kb:ke) !wdthldtw(kb:ke)
-          varsxyt(:,13) = thlsgsxyt(kb:ke)
-          varsxyt(:,14) = vsgsxyt(kb:ke)
-          varsxyt(:,15) = thlpthlptxy(kb:ke)
-          varsxyt(:,16) = upuptxyc(kb:ke)
-          varsxyt(:,17) = vpvptxyc(kb:ke)
-          varsxyt(:,18) = wpwptxyc(kb:ke)
-          varsxyt(:,19) = tketxyc(kb:ke)
+          varsxyt(:,12) = wwtxyk(kb:ke) !wdthldtc(kb:ke)
+          varsxyt(:,13) = usgsxyt(kb:ke) !wdthldtw(kb:ke)
+          varsxyt(:,14) = thlsgsxyt(kb:ke)
+          varsxyt(:,15) = vsgsxyt(kb:ke)
+          varsxyt(:,16) = thlpthlptxy(kb:ke)
+          varsxyt(:,17) = upuptxyc(kb:ke)
+          varsxyt(:,18) = vpvptxyc(kb:ke)
+          varsxyt(:,19) = wpwptxyc(kb:ke)
+          varsxyt(:,20) = tketxyc(kb:ke)
           call writestat_1D_nc(ncidxyt,nstatxyt,ncstatxyt,varsxyt,nrecxyt,khigh-klow+1)
       end if !myid
     end if !lxytdump
