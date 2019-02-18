@@ -52,8 +52,8 @@ module modfields
    real, allocatable :: tfluxb(:,:,:)  !< heat
    real, allocatable :: qfluxb(:,:,:)  !< and moisture
    real, allocatable :: cth(:,:,:)     !< heat transfer coefficient
-  !tg3315 added variables (statistics, masking and others)
- 
+
+  !tg3315 added variables (statistics, masking and others) 
   integer, allocatable :: IIc(:,:,:)        !< Masking matrix for blocks at cell centres
   integer, allocatable :: IIu(:,:,:)        !< Masking matrix for blocks at x-direction half cells
   integer, allocatable :: IIv(:,:,:)        !< Masking matrix for blocks at y-direction half cells
@@ -93,7 +93,7 @@ module modfields
   real, allocatable :: wxyt(:)        
   real, allocatable :: thlxyt(:)        
   real, allocatable :: qtxyt(:)
-  real, allocatable :: pxyt(:)        
+  real, allocatable :: pxyt(:)  ! bss116      
   real, allocatable :: usgsxyt(:)
   real, allocatable :: thlsgsxyt(:)
   real, allocatable :: vsgsxyt(:)
@@ -134,6 +134,8 @@ module modfields
   real, allocatable :: sv2sgst(:,:,:)
   real, allocatable :: sv3sgst(:,:,:)
   real, allocatable :: sv4sgst(:,:,:)
+  real, allocatable :: qtt(:,:,:) ! bss116
+  real, allocatable :: pt(:,:,:)  ! bss116
 
   real, allocatable :: slice(:,:) 
   real, allocatable :: slice2(:,:) 
@@ -528,6 +530,8 @@ contains
     allocate(sv2sgst(ib:ie,jb:je,kb:ke+kh))
     allocate(sv3sgst(ib:ie,jb:je,kb:ke+kh))
     allocate(sv4sgst(ib:ie,jb:je,kb:ke+kh))
+    allocate(qtt(ib:ie,jb:je,kb:ke+kh))
+    allocate(pt(ib:ie,jb:je,kb:ke+kh))
 
     allocate(slice(ib:ie,jb:je))
     allocate(slice2(ib:ie,jb:je))
@@ -690,7 +694,7 @@ contains
     uwtik=0.;wthltk=0.;thlthlt=0.;uutc=0.;vvtc=0.;wwtc=0.;vwtjk=0.;utik=0.;wtik=0.;wtjk=0.;vtjk=0.;
     wmt=0.;thltk=0.;thlt=0.;slice=0.;slice2=0.;slice3=0.;slice4=0.;slice5=0.;utc=0.;vtc=0.;wtc=0.
     slice6=0.;slice7=0.;slice8=0.;umt=0.;vmt=0.;sv1t=0.;sv2t=0.;sv3t=0.;sv4t=0.;sv1tk=0.;sv2tk=0.;sv3tk=0.;sv4tk=0.
-    wsv1tk=0.;wsv2tk=0.;wsv3tk=0.;wsv4tk=0.;sv1sgst=0.;sv2sgst=0.;sv3sgst=0.;sv4sgst=0.
+    wsv1tk=0.;wsv2tk=0.;wsv3tk=0.;wsv4tk=0.;sv1sgst=0.;sv2sgst=0.;sv3sgst=0.;sv4sgst=0.;qtt=0.;pt=0.
 
     scar=0.;scarl=0.
 

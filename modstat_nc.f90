@@ -172,7 +172,8 @@ contains
                       dim_tt(2)= 0, dim_mt(2)= 0,dim_t0tt(3)=0,dim_m0tt(3)=0,dim_t0mt(3)=0,&
                       dim_m0mt(3)=0, dim_tt0t(3)=0, &
                       dim_mt0t(3)=0,dim_tm0t(3)=0,dim_0ttt(3)=0,dim_0mtt(3)=0,dim_0tmt(3)=0,&
-                      dim_tts(2)=0,dim_t0tts(3)=0,dim_0ttts(3)=0,dim_tttts(4)=0,dim_ttt0(3)=0 !tg3315 added last one
+                      dim_tts(2)=0,dim_t0tts(3)=0,dim_0ttts(3)=0,dim_tttts(4)=0,dim_ttt0(3)=0,& !tg3315 added last one
+                      dim_mtmt(4),dim_tmmt(4) !bss116
 
     integer :: iret, n, VarID
     !write(*,*) 'definenc'
@@ -203,6 +204,8 @@ contains
     dim_ttmt= (/xtID,ytID,zmID,timeId/)! zpoint
     dim_mttt= (/xmID,ytID,ztID,timeId/)! upoint
     dim_tmtt= (/xtID,ymID,ztId,timeId/)! ypoint
+    dim_mtmt= (/xmID,ytID,zmId,timeId/)! uw stats point bss116
+    dim_tmmt= (/xtID,ymID,zmId,timeId/)! vw stats point bss116
 
     dim_ttt0= (/xtID,ytID,ztID/)! stats point tg3315
 
@@ -262,6 +265,10 @@ contains
           iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_tmtt,VarID)
         case ('ttmt')
           iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_ttmt,VarID)
+        case ('mtmt')                                                   ! bss116
+          iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_mtmt,VarID)
+        case ('tmmt')                                                   ! bss116
+          iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_tmmt,VarID)
 !Soil fields
         case ('tts')
           iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_tts ,VarID)
