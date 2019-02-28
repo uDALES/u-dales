@@ -6,11 +6,7 @@ export DA_TOPDIR=$HOME/dales-urban
 export DA_UTILSDIR=$DA_TOPDIR/utils
 export DA_SRCDIR=$DA_TOPDIR/src
 export DA_EXPDIR=$DA_TOPDIR/exp
-if [ "$(hostname)" == 'cx2-login' ] ; then
-        export DA_WORKDIR=$SCRATCH
-else
-        export DA_WORKDIR=$WORK/dales-urban
-fi
+export DA_WORKDIR=$DA_TOPDIR/work
 
 export PATH=$PATH:$DA_UTILSDIR  # to call functions in utils from anywhere
 
