@@ -2,7 +2,7 @@
 
 ## set environment variables
 topdir=${DA_TOPDIR}
-utildir=${DA_UTILSDIR}
+#utildir=${DA_UTILSDIR}
 srcdir=${DA_SRCDIR}
 expdir=${DA_EXPDIR}
 workdir=${DA_WORKDIR}
