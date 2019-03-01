@@ -7,7 +7,7 @@
 !            e.g. walltypes needs to read 7+4*nlayers columns, offsets in reading facet properties also change accordingly
    module initfac
       use modglobal, only:ifinput, nblocks, nfcts, cexpnr, libm, bldT, rsmin, wsoil, wfc,&
-                          nwalllayers, block
+                          nwalllayers, block,lEB
      use modmpi, only:myid, comm3d, mpierr, MPI_INTEGER, MPI_DOUBLE_PRECISION, MY_REAL, nprocs, cmyid, MPI_REAL8, MPI_REAL4, MPI_SUM, mpi_logical
       implicit none
       public :: readfacetfiles
@@ -61,6 +61,7 @@
 
       subroutine readfacetfiles
       use modglobal, only: block
+      use modEB, only: qsat
       implicit none
 
       !use modglobal, only:block 
@@ -139,7 +140,8 @@
          !         block(n, 11)
          !   end do
          !   close (ifinput)
-
+  
+         if (lEB) then
 ! read facet areas
             open (ifinput, file='facetarea.inp.'//cexpnr)
             read (ifinput, '(a80)') chmess
@@ -149,6 +151,7 @@
             end do
             close (ifinput)
             write (*, *) "faca", faca
+         end if
 
             ! read wall & (green) roof types
             ! read once to determine number of types, allocate, read again
@@ -271,6 +274,7 @@
             facz0(0) = 0.00999; facz0h(0) = 0.00999; facalb(0) = 0.999; facem(0) = 0.999; facd(0,1)=0.999; facd(0,2)=0.999; facdi(0, 1) = 0.999; facdi(0, 2) = 0.999; facdi(0, 3) = 0.999; faccp(0, 1) = 999.; faccp(0, 2) = 999.
             faccp(0, 3) = 999.; faclami(0, 1) = 0.999; faclami(0, 2) = 0.999; faclami(0, 3) = 0.999; fackappa(0, 1) = 0.00000999; fackappa(0, 2) = 0.00000999; fackappa(0, 3) = 0.00000999; faclGR(0) = .false.
 
+          if (lEB) then
 !read viewfactors between facets
             open (ifinput, file='vf.inp.'//cexpnr, action="read", form="formatted")
             read (ifinput, '(a80)') chmess
@@ -296,6 +300,7 @@
                   netsw(n)
             end do
             close (ifinput)
+          end if
 
 ! read initial facet temepratures
             open (ifinput, file='Tfacinit.inp.'//cexpnr)
@@ -354,10 +359,16 @@
          call MPI_BCAST(fachf(0:nfcts), nfcts + 1, MY_REAL, 0, comm3d, mpierr)
          call MPI_BCAST(fachfi(0:nfcts), nfcts + 1, MY_REAL, 0, comm3d, mpierr)
          call MPI_BCAST(fachfsum(1:nfcts), nfcts, MY_REAL, 0, comm3d, mpierr)
+         ! standard plant & soil resistance for grass (Manickathan2018) in s/m
+         facf(:,4)=200.
+         facf(:,5)=50.
          call MPI_BCAST(facf(0:nfcts, 1:5), (nfcts + 1)*5, MY_REAL, 0, comm3d, mpierr)
          call MPI_BCAST(fachurel(0:nfcts), nfcts + 1, MY_REAL, 0, comm3d, mpierr)
          call MPI_BCAST(facwsoil(0:nfcts), nfcts + 1, MY_REAL, 0, comm3d, mpierr)
          call MPI_BCAST(faccth(0:nfcts), nfcts + 1, MY_REAL, 0, comm3d, mpierr)
+         do n = 1, nfcts
+         facqsat(n) = qsat(facT(n,1))
+         end do         
          call MPI_BCAST(facqsat(0:nfcts), nfcts + 1, MY_REAL, 0, comm3d, mpierr)
 
       end subroutine readfacetfiles
