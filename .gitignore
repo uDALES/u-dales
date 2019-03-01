@@ -7,3 +7,6 @@
 # Executables
 *.out
 dalesurban_*
+pre/output
+pre/temp
+            ewrite(*,*) ' m, j. il, iu, kl, ku',  m, j, il, iu, kl, ku
