@@ -83,6 +83,10 @@ program DALESURBAN      !Version 48
   call createpurifiers
   write(6,*) 'Finished determining purifiers'
 
+!  not necessary but abates the fact that temp field is randomised by randomisation of just velocity fields
+!  (because advection at start of time loop without being divergence free)
+!  call poisson
+
 !------------------------------------------------------
 !   3.0   MAIN TIME LOOP
 !------------------------------------------------------

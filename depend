@@ -31,6 +31,6 @@ wf_uno.o : wf_uno.f90 modibmdata.o modmpi.o modfields.o modsubgriddata.o modglob
 modinlet.o : modinlet.f90 modsave.o modsurfdata.o modmpi.o modfields.o modglobal.o modinletdata.o 
 modpois.o : modpois.f90 modibm.o modboundary.o modfields.o modmpi.o modglobal.o modforces.o
 modchem.o : modfields.o modglobal.o
-initfac.o : modglobal.o
+initfac.o : modglobal.o modEB.o
 cycred.o : cycred.f 
 fft.o : fft.f 
