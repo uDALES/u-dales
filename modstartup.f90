@@ -23,7 +23,7 @@ module modstartup
 
    integer(KIND=selected_int_kind(6)) :: irandom = 0 !    * number to seed the randomnizer with
    integer :: krand = huge(0)
-   real :: randu = 2.0, randthl = 0.1, randqt = 1e-5 !    * uvw,thl and qt amplitude of randomnization
+   real :: randu = 0.0, randthl = 0.0, randqt = 0.0 !    * uvw,thl and qt amplitude of randomnization
 
 contains
    subroutine startup
@@ -80,7 +80,7 @@ contains
          nblocks, ntrees, npurif
       namelist/BC/ &
          BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys,BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots,&
-         wtsurf, wttop, wqsurf, wsvsurfdum, wsvtopdum, thls, thl_top, qt_top, qts
+         wtsurf, wttop, wqsurf, wsvsurfdum, wsvtopdum, thls, thl_top, qt_top, qts, bctfxm, bctfxp, bctfym, bctfyp, bctfz
       namelist/INLET/ &
          Uinf, Vinf, di, dti, iplane, inletav, linletRA, lstoreplane, lreadminl, lfixinlet, lfixutauin, xS, yS, zS, &
          SS, sigS
