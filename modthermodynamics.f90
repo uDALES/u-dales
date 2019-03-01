@@ -55,7 +55,7 @@ contains
   !> Do moist thermodynamics.
   !! Calculate the liquid water content, do the microphysics, calculate the mean hydrostatic pressure, calculate the fields at the half levels, and finally calculate the virtual potential temperature.
   subroutine thermodynamics
-    use modglobal, only : lmoist, timee, kb, ke, kh, ib, ih, ie, jb, jh, je,rlv, cp, rslabs, rd, rv, libm
+    use modglobal, only : lmoist, timee, kb, ke, kh, ib, ih, ie, jb, jh, je,rlv, cp, rslabs, rd, rv, libm, eps1
     use modfields, only : thl0,thl0h,qt0,qt0h,ql0,ql0h,presf,presh,exnf,exnh,thvh,thv0h,qt0av,ql0av,thvf,rhof,IIc,IIw,IIcs,IIws
     use modmpi,    only : slabsum,avexy_ibm,myid
 !ILS13 added variables behind "exnh"
@@ -88,6 +88,9 @@ contains
 !    end if
 
     thvh(kb) = th0av(kb)*(1+(rv/rd-1)*qt0av(kb)-rv/rd*ql0av(kb)) ! override first level
+    if (abs(thvh(kb+1))<eps1) then
+      thvh(kb+1) = th0av(kb+1)*(1+(rv/rd-1)*qt0av(kb+1)-rv/rd*ql0av(kb+1)) ! override second level if all blocks at kb
+    end if
 !    where (thvh==0) !override slabs completely covered by blocks
 !      thvh = th0av(kb)*(1+(rv/rd-1)*qt0av(kb)-rv/rd*ql0av(kb))
 !    endwhere
@@ -239,7 +242,7 @@ contains
   subroutine diagfld
 
     use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,khc,nsv,zh,zf,rslabs,grav,rlv,cp,rd,rv,pref0
-    use modfields, only : u0,v0,w0,thl0,qt0,ql0,sv0,u0av,v0av,thl0av,qt0av,ql0av,sv0av, &
+    use modfields, only : u0,v0,thl0,qt0,ql0,sv0,u0av,v0av,thl0av,qt0av,ql0av,sv0av, &
          presf,presh,exnf,exnh,rhof,thvf,IIc,IIcs,IIu,IIus,IIv,IIvs,IIbl
     use modsurfdata,only : thls,ps
     use modmpi,    only : slabsum,myid,avexy_ibm
