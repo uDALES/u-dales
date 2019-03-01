@@ -106,11 +106,13 @@ contains
 
 !IMPORTANT: THESE LINES OF CODE SHOULD BE HERE BUT CAUSE TROUBLE! MAKE SURE BLOCK DOES NOT TOUCH BOUNDARY (EXCECPT ALL FLOORS)
 !SEE ALSO BELOW! (Like 40 lines or so)
-!         if ((myid == 0) .and. (block(n, 4) == jge)) then ! periodicity!
-!            nypluswall = nypluswall + 1
-!         elseif ((block(n, 3) == jgb) .and. (myid == nprocs - 1)) then ! periodicity!
-!            nyminwall = nyminwall + 1
-!         end if
+         if ((myid == 0) .and. (block(n, 4) == jge)) then ! periodicity!
+            nypluswall = nypluswall + 1
+         end if
+
+         if ((block(n, 3) == jgb) .and. (myid == nprocs - 1)) then ! periodicity!
+            nyminwall = nyminwall + 1
+         end if
 
          if ((ju < jb - 1) .or. (jl > je + 1)) then
             cycle
@@ -150,15 +152,17 @@ contains
          ju = block(n, 4) - myid*jmax
 
 !IMPORTANT: THESE LINES OF CODE SHOULD BE HERE BUT CAUSE TROUBLE! MAKE SURE BLOCK DOES NOT TOUCH BOUNDARY (EXCECPT ALL FLOORS)
-!         if ((myid == 0) .and. (block(n, 4) == jge)) then ! periodicity!
-!            iypluswall(pn, 1) = n
-!            iypluswall(pn, 2) = jb
-!            pn = pn + 1
-!         elseif ((block(n, 3) == jgb) .and. (myid == nprocs - 1)) then ! periodicity!
-!            iyminwall(mn, 1) = n
-!            iyminwall(mn, 2) = je
-!            mn = mn + 1
-!         end if
+         if ((myid == 0) .and. (block(n, 4) == jge)) then ! periodicity!
+            iypluswall(pn, 1) = n
+            iypluswall(pn, 2) = jb
+            pn = pn + 1
+         end if
+
+         if ((block(n, 3) == jgb) .and. (myid == nprocs - 1)) then ! periodicity!
+            iyminwall(mn, 1) = n
+            iyminwall(mn, 2) = je
+            mn = mn + 1
+         end if
 
          if ((ju < jb - 1) .or. (jl > je + 1)) then
             cycle
@@ -334,7 +338,10 @@ contains
       if (ltempeq) then
       if (iwalltemp == 1) then
          do n = 1, nypluswall ! loop over all shear x-walls
-            call ywallscalarplus(ih, jh, kh, thl0, thlp, bctfyp, iypluswall(n, 1))
+
+            !write(*,*), 'shape(iypluswall), nypluswall', shape(iypluswall), nypluswall
+
+            call ywallscalarplus(ih, jh, kh, thl0, thlp, bctfyp, n)
          end do
       else if (iwalltemp == 2) then
          do n = 1, nypluswall
@@ -348,7 +355,7 @@ contains
       if (lmoist) then
       if (iwallmoist == 1) then
          do n = 1, nypluswall ! loop over all shear x-walls
-            call ywallscalarplus(ih, jh, kh, qt0, qtp, bcqfyp, iypluswall(n, 1))
+            call ywallscalarplus(ih, jh, kh, qt0, qtp, bcqfyp, n)
          end do
       end if
       if ((ltempeq) .and. (iwallmoist == 2)) then
@@ -388,9 +395,7 @@ contains
       !fixed flux
       do k = kl, ku
          do i = il, iu
-            putout(i, j, k) = putout(i, j, k) + ( &
-                              0.5*(ekh(i, j, k) + ekh(i, j - 1, k))*(putin(i, j, k) - putin(i, j - 1, k))*dyi &
-                              - bcvaluep)*dyi
+            putout(i, j, k) = putout(i, j, k) + (0.5*(ekh(i, j, k) + ekh(i, j - 1, k))*(putin(i, j, k) - putin(i, j - 1, k))*dyi - bcvaluep)*dyi
          end do
       end do
    end subroutine ywallscalarplus
@@ -415,7 +420,7 @@ contains
       if (ltempeq) then
       if (iwalltemp == 1) then
          do n = 1, nyminwall !
-            call ywallscalarmin(ih, jh, kh, thl0, thlp, bctfym, iyminwall(n, 1))
+            call ywallscalarmin(ih, jh, kh, thl0, thlp, bctfym, n)
          end do
       else if (iwalltemp == 2) then
          do n = 1, nyminwall
@@ -429,7 +434,7 @@ contains
       if (lmoist) then
       if (iwallmoist == 1) then
          do n = 1, nyminwall !
-            call ywallscalarmin(ih, jh, kh, qt0, qtp, bcqfym, iyminwall(n, 1))
+            call ywallscalarmin(ih, jh, kh, qt0, qtp, bcqfym, n)
          end do
       end if
       if ((ltempeq) .and. (iwallmoist == 2)) then
@@ -518,7 +523,7 @@ contains
             k = block(ixwall(n), 7)
             if (faclGR(k)) then
            call wfGR(ih, jh, kh, qtp, qfluxb, cth, bcqfluxA, qt0, facqsat(k), fachurel(k), facf(k, 4), facf(k, 5), ixwall(n), 1, 52)
-               facef(k) = facef(k) + bcqfluxA
+                facef(k) = facef(k) + bcqfluxA
             end if
          end do
       end if
