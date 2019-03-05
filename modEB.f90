@@ -9,7 +9,7 @@ module modEB
    use modglobal
 
    implicit none
-   public :: EB, initEB, intqH, updateGR, qsat, dqsatdT
+   public :: EB, initEB, intqH, updateGR
    save
 
 contains
@@ -279,7 +279,7 @@ function gaussji(c,d,n) result(a)
 ! E = max(0,(1-vegetation%) * rhoa * (qa-qsat(TGR)*hu) * (1/(rs+ra))
 
       use modglobal, only:nfcts, rlv, rlvi, rhoa, cp, wfc, wwilt, wsoil, rsmin, GRLAI, tEB, rsmax, lconstW
-      use initfac, only:netSW, faccth, fachurel, faclGR, facwsoil, facf, facef, facT, facefi, facqsat, facdi, facain
+      use initfac, only:netSW, faccth, fachurel, faclGR, facwsoil, facf, facef, facT, facefi, facqsat, facdi, facain, qsat
 
       integer :: n
       real :: vfraction = 0.8 !fraction of GR covered in vegetation, should be made into a proper model parameter (-> modglobal)
@@ -313,20 +313,6 @@ function gaussji(c,d,n) result(a)
       end do
 
    end subroutine updateGR
-
-   real function qsat(T)
-      implicit none
-      real, intent(in) :: T
-      real :: gres
-      gres = 611.00*exp(17.27*(T - 273.15)/(T - 35.85)) ![Pa] Bolton 1980
-      qsat = 0.62198*0.01*gres/(1000-0.01*gres) ![kg/kg] Murphy & Koop 2005 !1000 can be replaced with actual air pressure if desired
-   end function qsat
-
-   real function dqsatdT(T)
-      implicit none
-      real, intent(in) :: T
-      dqsatdT = 0.1384832710e-2 + 0.7708409674e-4*(T - 300) + 0.2022064593e-5*(T - 300)**2 + 0.000000036561*(T - 300)**3 !expansion of qsat(T)
-   end function dqsatdt
 
    subroutine EB
     !calculates the energy balance for every facet

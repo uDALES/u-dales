@@ -1,6 +1,7 @@
 program.o : program.f90 modchem.o modstatsdump.o modfielddump.o modstat_nc.o modchecksim.o modpurifiers.o modtrees.o modibm.o modpois.o modforces.o modsubgrid.o modthermodynamics.o modboundary.o modsave.o modstartup.o modglobal.o modmpi.o initfac.o modEB.o
 modibm.o : modibm.f90 modboundary.o modsubgriddata.o modmpi.o modfields.o modsurfdata.o modglobal.o modibmdata.o initfac.o
-modEB.o : initfac.o modglobal.o 
+initfac.o : modglobal.o
+modEB.o : initfac.o modglobal.o
 modchecksim.o : modchecksim.f90 modsubgriddata.o modfields.o modmpi.o modglobal.o 
 modboundary.o : modboundary.f90 modsurfdata.o modsubgriddata.o modinlet.o modmpi.o modfields.o modinletdata.o modglobal.o 
 modthermodynamics.o : modthermodynamics.f90 modsurfdata.o modmpi.o modfields.o modglobal.o 
@@ -30,7 +31,6 @@ modibmdata.o : modibmdata.f90
 wf_uno.o : wf_uno.f90 modibmdata.o modmpi.o modfields.o modsubgriddata.o modglobal.o initfac.o
 modinlet.o : modinlet.f90 modsave.o modsurfdata.o modmpi.o modfields.o modglobal.o modinletdata.o 
 modpois.o : modpois.f90 modibm.o modboundary.o modfields.o modmpi.o modglobal.o modforces.o
-modchem.o : modfields.o modglobal.o
-initfac.o : modglobal.o modEB.o
+modchem.o : modchem.o modfields.o modglobal.o
 cycred.o : cycred.f 
 fft.o : fft.f 

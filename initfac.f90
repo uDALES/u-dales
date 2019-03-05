@@ -10,7 +10,7 @@
                           nwalllayers, block,lEB
      use modmpi, only:myid, comm3d, mpierr, MPI_INTEGER, MPI_DOUBLE_PRECISION, MY_REAL, nprocs, cmyid, MPI_REAL8, MPI_REAL4, MPI_SUM, mpi_logical
       implicit none
-      public :: readfacetfiles
+      public :: readfacetfiles,qsat,dqsatdT
       save
 
       !integer, allocatable :: block(:, :) !block coordinates and facet Nr corresponding to block faces
@@ -61,7 +61,6 @@
 
       subroutine readfacetfiles
       use modglobal, only: block
-      use modEB, only: qsat
       implicit none
 
       !use modglobal, only:block 
@@ -372,5 +371,19 @@
          call MPI_BCAST(facqsat(0:nfcts), nfcts + 1, MY_REAL, 0, comm3d, mpierr)
 
       end subroutine readfacetfiles
+
+      real function qsat(T)
+         implicit none
+         real, intent(in) :: T
+         real :: gres
+         gres = 611.00*exp(17.27*(T - 273.15)/(T - 35.85)) ![Pa] Bolton 1980
+         qsat = 0.62198*0.01*gres/(1000-0.01*gres) ![kg/kg] Murphy & Koop 2005 !1000 can be replaced with actual air pressure if desired                                                                   
+      end function qsat
+
+      real function dqsatdT(T)
+         implicit none
+         real, intent(in) :: T
+         dqsatdT = 0.1384832710e-2 + 0.7708409674e-4*(T - 300) + 0.2022064593e-5*(T - 300)**2 + 0.000000036561*(T - 300)**3 !expansion of qsat(T)
+      end function dqsatdt
 
    end module initfac
