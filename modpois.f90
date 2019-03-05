@@ -97,7 +97,7 @@ contains
                           linoutflow,libm
     use modmpi,    only : excjs
     use modboundary, only: bcpup
-    use modforces, only: masscorr
+!    use modibm,    only : ibmnorm
 
     implicit none
     real,allocatable :: pup(:,:,:), pvp(:,:,:), pwp(:,:,:)
@@ -180,13 +180,14 @@ contains
 !                                                                 |
 !-----------------------------------------------------------------|
 
-    use modfields, only : up, vp, wp, pres0
-    use modglobal, only : ib,ie,jb,je,kb,ke,dxhi,dyi,dzhi,linoutflow
-    use modmpi,    only : excj
+    use modfields, only : up, vp, wp, pres0, IIc, IIcs
+    use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,dxhi,dyi,dzhi,linoutflow,rslabs
+    use modmpi,    only : excj,slabsum, avexy_ibm
     use modboundary,only : bcp
     implicit none
     integer i,j,k
-
+    real, dimension(kb-kh:ke+kh) :: pij
+    real :: pijk
 
   ! Mathieu ATTTT: CHANGED!!! Loop removed!!!
 
@@ -233,15 +234,35 @@ contains
     end do
     end do
 
+    ! tg3315 02/02/2019
+    ! account for pressure offset that results from ill-defined problem in pressure
+    ! correction method when periodic horizontal BCs are applied. Arises within cyclic
+    ! reduction scheme (called by BLKTRI) and due to the numerics in PRODP in
+    ! cycred.f which define the BC in the periodic case. A linear offset existed in
+    ! the pressure correction term (p) and this can be controlled by subtracting
+    ! the volume averaged modified pressure from this value at all time steps.
+    ! Periodic: p - <p>_ijk
+    ! Makes no change on physical effect of modified pressure in code.
+
+    ! useful refs:
+    ! https://opensky.ucar.edu/islandora/object/technotes%3A98/datastream/PDF/download/citation.pdf
+    ! https://epubs.siam.org/doi/pdf/10.1137/0711042
+
+    pij =0.; pijk=0.;
+
+    if (.not. linoutflow) then
+      call slabsum(pij(kb:ke),kb,ke,p(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,ib,ie,jb,je,kb,ke)
+      pij = pij/rslabs
+      pijk = sum(pij(kb:ke))/(ke-kb)
+    end if
+
     do k=kb-1,ke+1
     do j=jb-1,je+1
     do i=ib-1,ie+1
-      pres0(i,j,k)=pres0(i,j,k)+p(i,j,k) ! update of the pressure: P_new = P_old + p
+      pres0(i,j,k)=pres0(i,j,k)+p(i,j,k)-pijk ! update of the pressure: P_new = P_old + p
     enddo
     enddo
     enddo
-
-
 
 !    do k=kb,ke
 !    do j=jb,je
