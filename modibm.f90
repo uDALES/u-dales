@@ -93,7 +93,7 @@ contains
 !!store index of block and index of the wall (since block might not be on this cpu, but is needed for x and z coords)
 !!check if wall is on next cpu but not on this
 !!check if wall is on last cpu but not on first (periodicity in y)
-!!check if wall is on first cpu but not on last (periodicity in y)
+!check if wall is on first cpu but not on last (periodicity in y)
 !!check if wall is on this cpu and another one on the next (i.e. both blocks end at cpu boundary, but touch each other)
 
       nyminwall = 0
@@ -108,17 +108,15 @@ contains
 !SEE ALSO BELOW! (Like 40 lines or so)
          if ((myid == 0) .and. (block(n, 4) == jge)) then ! periodicity!
             nypluswall = nypluswall + 1
-         end if
-
-         if ((block(n, 3) == jgb) .and. (myid == nprocs - 1)) then ! periodicity!
+         else if ((block(n, 3) == jgb) .and. (myid == (nprocs - 1))) then ! periodicity!
             nyminwall = nyminwall + 1
          end if
 
-         if ((ju < jb - 1) .or. (jl > je + 1)) then
+         if ((ju < (jb - 1)) .or. (jl > (je + 1))) then
             cycle
          end if
 
-         if (ju == jb - 1) then !block on previous cpu, north wall on this
+         if (ju == (jb - 1)) then !block on previous cpu, north wall on this
             nypluswall = nypluswall + 1 !
             cycle
          end if
@@ -156,19 +154,17 @@ contains
             iypluswall(pn, 1) = n
             iypluswall(pn, 2) = jb
             pn = pn + 1
-         end if
-
-         if ((block(n, 3) == jgb) .and. (myid == nprocs - 1)) then ! periodicity!
+         else if ((block(n, 3) == jgb) .and. (myid == (nprocs - 1))) then ! periodicity!
             iyminwall(mn, 1) = n
             iyminwall(mn, 2) = je
             mn = mn + 1
          end if
 
-         if ((ju < jb - 1) .or. (jl > je + 1)) then
+         if ((ju < (jb - 1)) .or. (jl > (je + 1))) then
             cycle
          end if
 
-         if (ju == jb - 1) then !block on previous cpu, north wall on this
+         if (ju == (jb - 1)) then !block on previous cpu, north wall on this
             iypluswall(pn, 1) = n
             iypluswall(pn, 2) = jb
             pn = pn + 1
@@ -566,9 +562,9 @@ contains
    subroutine ibmnorm
       use modglobal, only:ib, ie, ih, jb, je, jh, kb, ke, kh, rk3step, dt, libm, jmax, &
          nblocks, nsv, ltempeq, lmoist, nsv, rk3step, ih, kh, dt, totavtime, &
-         dxh, dzf, dy, ih, kh, jh
+         dxh, dzf, dy, ih, kh, jh, jge
       use modfields, only:up, vp, wp, um, vm, wm, u0, v0, w0, thl0, thlm, svp, svm, thlp, qtp, qt0, qtm
-      use modmpi, only:myid
+      use modmpi, only:myid, nprocs
       use initfac, only:block
       real, dimension(ib - ih:ie + ih, kb - kh:ke + kh)          ::  dummy
       real rk3coef, rk3coefi, timecomplibm, timecomplibmplusdti
@@ -585,11 +581,15 @@ contains
 
             jl = max(block(ixwall(n), 3) - myid*jmax, 1) !
             ju = min(block(ixwall(n), 4) - myid*jmax, jmax) !
-            kl = block(ixwall(n), 5)
+
+            !kl = block(ixwall(n), 5)
+            kl = kb 
+            ! tg3315 18.03.19 - use kb because for lEB buildings block starts at kb+1 but this leaves area underneath the buildings and horizontally between the roads where we have no block. Only leads to small velocities in these areas but this negates this issue. WARNING - for modelling overhangs this should be changed but this would also require another facade type etc. Similarly applied to y and z directions below.
             ku = block(ixwall(n), 6)
 
-            up(il, jl:ju, kl:ku) = -um(il, jl:ju, kl:ku)*rk3coefi
+            !up(il:iu, jl:ju, kl:ku) = -um(il:iu, jl:ju, kl:ku)*rk3coefi
             up(iu, jl:ju, kl:ku) = -um(iu, jl:ju, kl:ku)*rk3coefi
+            up(il, jl:ju, kl:ku) = -um(il, jl:ju, kl:ku)*rk3coefi
 
             up(il + 1:iu - 1, jl:ju, kl:ku) = 0. !internal velocity don't change or
             um(il + 1:iu - 1, jl:ju, kl:ku) = 0. !internal velocity = 0    or both?
@@ -597,14 +597,24 @@ contains
          end do ! 1,nxwallsnorm
 
          do n = 1, nyminwall
-            jl = max(block(iyminwall(n, 1), 3) - myid*jmax, 1) 
-            ju = min(block(iyminwall(n, 1), 4) - myid*jmax, jmax) + 1  
+
+            if ((myid == nprocs-1 .and. block(iyminwall(n, 1), 3) == 1)) then 
+              jl = jmax+1
+              ju = jmax+1
+            else
+              jl = max(block(iyminwall(n, 1), 3) - myid*jmax, 1)
+              ju = min(block(iyminwall(n, 1), 4) - myid*jmax, jmax) + 1  
+            end if
 
             il = block(iyminwall(n, 1), 1)
             iu = block(iyminwall(n, 1), 2)
-            kl = block(iyminwall(n, 1), 5)
+            !kl = block(iyminwall(n, 1), 5)
+            kl = kb ! tg3315 see comment for x-direction above
             ku = block(iyminwall(n, 1), 6)
 
+!            write(*,*), 'jl, ju, jmax, iyminwall(n,1)', jl, ju, jmax, iyminwall(n,1)
+
+!            vp(il:iu, jl:ju, kl:ku) = -vm(il:iu, jl:ju, kl:ku)*rk3coefi
             vp(il:iu, jl, kl:ku) = -vm(il:iu, jl, kl:ku)*rk3coefi
             vp(il:iu, ju, kl:ku) = -vm(il:iu, ju, kl:ku)*rk3coefi
 
@@ -613,14 +623,24 @@ contains
          end do  !1,nyminwall
 
          do n = 1, nypluswall
-            jl = max(block(iypluswall(n, 1), 3) - myid*jmax, 1) 
-            ju = min(block(iypluswall(n, 1), 4) - myid*jmax, jmax) + 1 
+
+            if (myid == 0 .and. block(iypluswall(n, 1), 4) == jge) then
+              jl = 0
+              ju = 0
+            else
+              jl = max(block(iypluswall(n, 1), 3) - myid*jmax, 1) ! should this not be able to be zero?
+              ju = min(block(iypluswall(n, 1), 4) - myid*jmax, jmax) + 1 
+            end if
 
             il = block(iypluswall(n, 1), 1)
             iu = block(iypluswall(n, 1), 2)
-            kl = block(iypluswall(n, 1), 5)
+            !kl = block(iypluswall(n, 1), 5)
+            kl = kb ! tg3315 see comment for x-direction above
             ku = block(iypluswall(n, 1), 6)
 
+            !write(*,*), 'jl, ju, jmax, iypluswall(n,1)', jl, ju, jmax, iypluswall(n,1)
+
+            !vp(il:iu, jl:ju, kl:ku) = -vm(il:iu, jl:ju, kl:ku)*rk3coefi
             vp(il:iu, jl, kl:ku) = -vm(il:iu, jl, kl:ku)*rk3coefi
             vp(il:iu, ju, kl:ku) = -vm(il:iu, ju, kl:ku)*rk3coefi
 
@@ -629,7 +649,8 @@ contains
          end do !1,nypluswall
 
          do n = 1, nxwall
-            kl = block(ixwall(n), 5)
+            !kl = block(ixwall(n), 5)
+            kl = kb ! tg3315 see comment for x-direction above
             ku = block(ixwall(n), 6) + 1
 
             il = block(ixwall(n), 1)
@@ -637,6 +658,7 @@ contains
             jl = max(block(ixwall(n), 3) - myid*jmax, 1)
             ju = min(block(ixwall(n), 4) - myid*jmax, jmax)
 
+            !wp(il:iu, jl:ju, kl:ku) = -wm(il:iu, jl:ju, kl:ku)*rk3coefi
             wp(il:iu, jl:ju, kl) = -wm(il:iu, jl:ju, kl)*rk3coefi
             wp(il:iu, jl:ju, ku) = -wm(il:iu, jl:ju, ku)*rk3coefi
 
@@ -649,7 +671,8 @@ contains
             do n = 1, nblocks
                il = block(n, 1)
                iu = block(n, 2)
-               kl = block(n, 5)
+               !kl = block(n, 5)
+               kl = kb ! tg3315 see comment for x-direction above
                ku = block(n, 6)
                jl = block(n, 3) - myid*jmax
                ju = block(n, 4) - myid*jmax
@@ -661,14 +684,11 @@ contains
                   thlp(il:iu, jl:ju, kl:ku) = 0.
 
                   !try setting internal T to fluid T
-                  if (.true.) then !ils13,19.07.17
-                     thlm(il:iu, jl, kl:ku) = thlm(il:iu, jl - 1, kl:ku)
-                     thlm(il:iu, ju, kl:ku) = thlm(il:iu, ju + 1, kl:ku)
-                     thlm(il:iu, jl:ju, ku) = thlm(il:iu, jl:ju, ku + 1)
-                     thlm(il, jl:ju, kl:ku) = thlm(il - 1, jl:ju, kl:ku)
-                     thlm(iu, jl:ju, kl:ku) = thlm(iu + 1, jl:ju, kl:ku)
-                  end if
-
+                  thlm(il:iu, jl, kl:ku) = thlm(il:iu, jl - 1, kl:ku)
+                  thlm(il:iu, ju, kl:ku) = thlm(il:iu, ju + 1, kl:ku)
+                  thlm(il, jl:ju, kl:ku) = thlm(il - 1, jl:ju, kl:ku)
+                  thlm(iu, jl:ju, kl:ku) = thlm(iu + 1, jl:ju, kl:ku)
+                  thlm(il:iu, jl:ju, ku) = thlm(il:iu, jl:ju, ku + 1)
                end if
             end do
          end if
@@ -677,7 +697,8 @@ contains
             do n = 1, nblocks
                il = block(n, 1)
                iu = block(n, 2)
-               kl = block(n, 5)
+               !kl = block(n, 5)
+               kl = kb ! tg3315 see comment for x-direction above
                ku = block(n, 6)
                jl = block(n, 3) - myid*jmax
                ju = block(n, 4) - myid*jmax
@@ -688,13 +709,11 @@ contains
                   if (jl < jb) jl = jb
                   qtp(il:iu, jl:ju, kl:ku) = 0.
 
-                  if (.true.) then
-                     qtm(il:iu, jl, kl:ku) = qtm(il:iu, jl - 1, kl:ku)
-                     qtm(il:iu, ju, kl:ku) = qtm(il:iu, ju + 1, kl:ku)
-                     qtm(il:iu, jl:ju, ku) = qtm(il:iu, jl:ju, ku + 1) 
-                     qtm(il, jl:ju, kl:ku) = qtm(il - 1, jl:ju, kl:ku)
-                     qtm(iu, jl:ju, kl:ku) = qtm(iu + 1, jl:ju, kl:ku)
-                  end if
+                  qtm(il:iu, jl, kl:ku) = qtm(il:iu, jl - 1, kl:ku)
+                  qtm(il:iu, ju, kl:ku) = qtm(il:iu, ju + 1, kl:ku)
+                  qtm(il, jl:ju, kl:ku) = qtm(il - 1, jl:ju, kl:ku)
+                  qtm(iu, jl:ju, kl:ku) = qtm(iu + 1, jl:ju, kl:ku)
+                  qtm(il:iu, jl:ju, ku) = qtm(il:iu, jl:ju, ku + 1)
 
                end if
             end do
@@ -704,7 +723,8 @@ contains
             do n = 1, nblocks
                il = block(n, 1)
                iu = block(n, 2)
-               kl = block(n, 5)
+               !kl = block(n, 5)
+               kl = kb ! tg3315 see comment for x-direction above
                ku = block(n, 6)
                jl = block(n, 3) - myid*jmax
                ju = block(n, 4) - myid*jmax
@@ -714,6 +734,14 @@ contains
                   if (ju > je) ju = je
                   if (jl < jb) jl = jb
                   svp(il:iu, jl:ju, kl:ku, :) = 0.
+
+              svp(il:iu,jl:ju,kl:ku,:) = 0.
+              svm(il, jl:ju, kl:ku, :) = svm(il - 1, jl:ju, kl:ku,:) ! tg3315 swapped these around with jl, ju as was getting values in buildings as blovks are split along x in real topology 
+              svm(iu, jl:ju, kl:ku, :) = svm(iu + 1, jl:ju, kl:ku,:)
+              svm(il:iu, jl, kl:ku, :) = svm(il:iu, jl - 1, kl:ku,:)
+              svm(il:iu, ju, kl:ku, :) = svm(il:iu, ju + 1, kl:ku,:)
+              svm(il:iu, jl:ju, ku, :) = svm(il:iu, jl:ju, ku + 1,:)
+
                end if
             end do
          end if
