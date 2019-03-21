@@ -1728,7 +1728,8 @@ contains
       do n = 1, nblocks
          il = block(n, 1)
          iu = block(n, 2)
-         kl = block(n, 5)
+         !kl = block(n, 5)
+         kl = kb ! tg3315 changed as buildings for lEB must start at kb+1 not kb with no block below
          ku = block(n, 6)
          jl = block(n, 3) - myid*jmax
          ju = block(n, 4) - myid*jmax
