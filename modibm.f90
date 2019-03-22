@@ -16,7 +16,7 @@ module modibm
 contains
    subroutine createwalls
       use modglobal, only:ib, ie, jb, je, jgb, jge, kb, ke, jmax, nblocks, &
-         nsv, cexpnr, ifinput, libm, ih, kh, lreadmean, iwallmom, iwalltemp, iwallmoist, rslabs, bldT
+         nsv, cexpnr, ifinput, libm, ih, kh, iwallmom, iwalltemp, iwallmoist, rslabs, bldT
       use modsurfdata, only:thls, qts, z0h, z0, thvs
       use modfields, only:sv0, svm, thl0, thlm, qtp, qt0, IIc, IIu, IIv, IIw, IIct, IIwt, IIcs, IIus, IIvs, IIws
       use modmpi, only:myid, comm3d, mpierr, MPI_INTEGER, MPI_DOUBLE_PRECISION, MY_REAL, nprocs, cmyid, &
@@ -625,8 +625,8 @@ contains
          do n = 1, nypluswall
 
             if (myid == 0 .and. block(iypluswall(n, 1), 4) == jge) then
-              jl = 0
-              ju = 0
+              jl = 1
+              ju = 1
             else
               jl = max(block(iypluswall(n, 1), 3) - myid*jmax, 1) ! should this not be able to be zero?
               ju = min(block(iypluswall(n, 1), 4) - myid*jmax, jmax) + 1 
