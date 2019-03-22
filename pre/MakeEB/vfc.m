@@ -3,7 +3,6 @@
 
 %% can facet 1 see facet 2
 
-
 centerweight=0.5;  %if center is sunlit, centerweight% of the facet are sunlit
 cornerweight=(1-centerweight)/4; %if 1 corner is sunlit, cornerweight% of the facet is sunlit
 
