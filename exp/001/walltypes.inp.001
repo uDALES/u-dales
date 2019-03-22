@@ -1,5 +1,5 @@
 # walltype, 3 layers per type where layer 1 is the outdoor side and layer 3 is indoor side
-#0=default dummy, -1=asphalt floors;-99=concrete bounding walls;1=concrete;2=bricks;3=stone;4=painted wood; 11=GR1; 12=GR2
+#0=default dummy, -1=asphalt floors;-101=concrete bounding walls;1=concrete;2=bricks;3=stone;4=painted wood; 11=GR1; 12=GR2
 # wallid   lGR    z0 [m]     z0h [m]     al [-]   em [-]   d1 [m]  d2 [m]  d3 [m]   rhocp1 [J/kgK]  rhocp2 [J/kgK]  rhocp3 [J/kgK]   l1 [W/(m K)]  l2 [W/(m K)]   l3 [W/(m K)]    k1 [W/(m K)]   k2 [W/(m K)]   k3 [W/(m K)]     k4 [W/(m K)]
     -101   0      0         0            0.5      0.85     0       0       0        0               0               0                0             0              0               0              0              0                0 
       -1   0      0.050     0.00035      0.5      0.85     0.10    0.20    0.20     1875000         1875000         1875000          0.75          0.75           0.75            0.0000004      0.0000004      0.0000004        0.0000004       
