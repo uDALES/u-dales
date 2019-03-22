@@ -143,8 +143,6 @@ module modglobal
    logical :: lwallfunc = .false. !<  switch that determines wether wall functions are used to compute the wall-shear stress
    logical :: lmassflowr = .false. !<  switch that determines wether u-velocity is corrected to get a fixed mass flow rate
    logical :: lstoreplane = .false. !<  switch that determines wether i-plane data is stored.
-   logical :: lstore3d = .false. !<  switch that determines wether 3d fields are stored in subdir's each trestart2.
-   logical :: lstorexz = .false. !<  switch that determines wether xz fields are stored in subdir's each trestart2.
    logical :: lstorexy = .false. !xy files stored
    logical :: lreadmean = .false. !<  switch that determines wether mean variables should be read from means#myid#.#expnr#
    logical :: lstat = .false.
