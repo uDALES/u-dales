@@ -46,7 +46,7 @@ contains
          lreadmean, iinletgen, inletav, lreadminl, Uinf, Vinf, linletRA, nblocks, ntrees, npurif, &
          lscalrec,lSIRANEinout,lscasrc,lscasrcl,lscasrcr,lydump,lytdump,lxydump,lxytdump,lslicedump,ltdump,ltkedump,lzerogradtop,&
          lzerogradtopscal, lbuoyancy, ltempeq, numol, prandtlmol, sun, Bowen, cd, decay, ud, Qpu, epu, numoli, prandtlmoli, &
-         lfixinlet, lfixutauin, lstore3d, lstorexz, startmean, pi, &
+         lfixinlet, lfixutauin, startmean, pi, &
          thlsrc, nkplane, kplane, nsvl, nsvp, ifixuinf, lvinf, tscale, ltempinout, lmoistinout,  &
          lwallfunc,lprofforc,lchem,k1,JNO2,rv,rd,tnextEB,tEB,dtEB,bldT,wsoil,wgrmax,wwilt,wfc,skyLW,GRLAI,rsmin,nfcts,lEB,lconstW, &
          BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys,BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots
@@ -71,7 +71,7 @@ contains
          iexpnr, lwarmstart, lstratstart, lfielddump, lreadscal, startfile, runtime, dtmax,  &
          trestart, tfielddump, fieldvars, tsample, tstatsdump, irandom, randthl, randqt, krand, nsv, courant, diffnr, ladaptive, &
          author, lper2inout, libm, ltrees, lnudge, tnudge, nnudge, lpurif, lles, lwallfunc, lmassflowr, lreadmean, &
-                startmean,lydump,lytdump,lxydump,lxytdump,lslicedump,ltdump,ltkedump,lscasrc,lscasrcl,lwalldist,lstore3d,lstorexz,&
+                startmean,lydump,lytdump,lxydump,lxytdump,lslicedump,ltdump,ltkedump,lscasrc,lscasrcl,lwalldist,&
                 randu, nkplane, kplane, nsvl, nsvp, ifixuinf, lvinf, tscale, dpdx
       namelist/DOMAIN/ &
          imax, jtot, kmax, &
@@ -240,8 +240,6 @@ contains
       write (*, *) "sec d"
       call MPI_BCAST(lmassflowr, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for turning on/off u-velocity correction for fixed mass flow rate
       call MPI_BCAST(lstoreplane, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for turning on/off for storing i-plane data to serve as inlet for future sim.
-      call MPI_BCAST(lstore3d, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for turning on/off storing 3d fields
-      call MPI_BCAST(lstorexz, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for turning on/off storing xz fields
       call MPI_BCAST(lreadmean, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for reading mean variables from means#MYID#.#EXPNR#
       call MPI_BCAST(lydump, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315 added switch for writing statistics files
       call MPI_BCAST(lytdump, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315 added switch for writing statistics files

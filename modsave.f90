@@ -33,7 +33,7 @@ contains
     use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,trestart,tnextrestart,dt_lim,timee,btime,xh,&
                           cexpnr,ntimee,rk3step,ifoutput,nsv,timeleft,dt,ntrun,totavtime,&
                           iinletgen,timee,runavtime,inletav,totinletav,linletRA,ltempeq,lmoist,jgb,jge,&
-                          dzf,dzfi,dzhi,dxf,dxfi,dyi,dxhi,nstore,numol,dy2i,grav,libm,jmax,nblocks,lreadmean
+                          dzf,dzfi,dzhi,dxf,dxfi,dyi,dxhi,nstore,numol,dy2i,grav,libm,jmax,nblocks
     use modmpi,    only : cmyid,myid,slabsum,excjs
     use modsubgriddata, only : ekm
     use modibmdata,   only  : ibmxforcevol
