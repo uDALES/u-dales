@@ -34,7 +34,7 @@ module modthermodynamics
   !   private
   public :: thermodynamics,calc_halflev
   public :: lqlnr
-  logical :: lqlnr    = .true. !< switch for ql calc. with Newton-Raphson (on/off)
+  logical :: lqlnr    = .false. !< switch for ql calc. with Newton-Raphson (on/off)
   real, allocatable :: th0av(:)
   real :: chi_half=0.5  !< set wet, dry or intermediate (default) mixing over the cloud edge
   real, allocatable :: thv0(:,:,:)
@@ -445,6 +445,7 @@ contains
     real, intent(out) :: ql(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
     real :: Tnr,qsatur,Tnr_old
     integer :: niter,nitert
+
     if (lqlnr) then
        !mc      calculation of T with Newton-Raphson method
        !mc      first guess is Tnr=tl
