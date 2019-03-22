@@ -4,7 +4,7 @@ close all
 clear all
 
 % expnr
-expnr = '002';
+expnr = '001';
 
 saveasnew     = true     ; %saves all date in a new folder with current datetime
 
@@ -28,8 +28,13 @@ dz = r.zsize/r.kmax;
 dh = r.zsize;
 ni = r.imax; nj = r.jtot; nk = r.kmax;
 
-%maximum size of floors and bounding walls (cells in each dimension)
-maxsize = 10; %ADD TO NAMOPTIONS EVENTUALY
+solaz = 30; % azimuth angle
+Z = 45; % zenith angle
+delta = 0.01; % small adjustment for position of rad corners
+centerweight = 0.5;
+cornerweight = (1-centerweight)/4;
+I = 800; % Direct solar irradiation [W/m2]
+Dsk = 300; % Diffuse incoming radiation [W/m2]
 pad=0;
 
 source = 1;
@@ -37,7 +42,14 @@ stretch = 'no';
 lwritefiles = 1;
 ltestplot = 1;
 lhqplot = 0;
-lradiation = 1;
+lradiation = 0;
+
+%maximum size of floors and bounding walls (cells in each dimension)
+if lradiation
+    maxsize = 10; %ADD TO NAMOPTIONS EVENTUALY
+else
+    maxsize = inf; 
+end
 
 %% initialising
 
@@ -66,46 +78,60 @@ copyfile('default/walltypes.inp.xxx',[outputdir '/walltypes.inp.' num2str(expnr)
 
 
 %% make grids
+
 makexygrid
 makezgrid
 
 %% make matrix with block heights
 
-topomask = zeros(ni,nj);
-topo = zeros(ni,nj);
+topomask = zeros(nj,ni);
+topo = zeros(nj,ni);
 
 for n = 1:size(blocks,1)
    
     topo(blocks(n,1):blocks(n,2),blocks(n,3):blocks(n,4)) = zh(blocks(n,6)+1);
     topomask(blocks(n,1):blocks(n,2),blocks(n,3):blocks(n,4)) = 1;
+    
 end
 
 %%
-makefacets
-block2fac
 
-if lradiation
-    addboundingwalls
-else
+if ~lradiation
+    
+    makefacets
+    block2fac
     nwallfcts = 0;
+    createfloors
+    
+else
+    
+    makefacets
+    block2fac
+    addboundingwalls
+    createfloors
+    addboundingwalls
+    vsolcalc
+    vfc
+    rayit
+    
 end
 
-createfloors
+%%
 
-%% Manually make facetarea
+% %% Manually make facetarea
+% 
+% fname = [outputdir '/facetarea.inp.' num2str(expnr)];
+% fileID = fopen(fname,'W');
+% fprintf(fileID, '# area of facets\n');
+% fclose(fileID);
+% dlmwrite(fname,A,'-append','delimiter',' ','precision','%4f')
 
-fname = [outputdir '/facetarea.inp.' num2str(expnr)];
-fileID = fopen(fname,'W');
-fprintf(fileID, '# area of facets\n');
-fclose(fileID);
-dlmwrite(fname,A,'-append','delimiter',' ','precision','%4f')
-
-%% Manually make Tfacinit
-
-Tnew = ones(nfcts,1)*288;
-
-fname = [outputdir '/Tfacinit.inp.' num2str(expnr)];
-fileID = fopen(fname,'W');
-fprintf(fileID, '# Initial facet tempereatures in radiative equilibrium\n');
-fclose(fileID);
-dlmwrite(fname,Tnew(:,1),'-append','delimiter',' ','precision','%4f')
+% %% Manually make Tfacinit
+% 
+% Tnew = ones(nfcts,1)*288;
+% 
+% fname = [outputdir '/Tfacinit.inp.' num2str(expnr)];
+% fileID = fopen(fname,'W');
+% fprintf(fileID, '# Initial facet tempereatures in radiative equilibrium\n');
+% fclose(fileID);
+% dlmwrite(fname,Tnew(:,1),'-append','delimiter',' ','precision','%4f')
