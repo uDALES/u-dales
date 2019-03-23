@@ -315,7 +315,7 @@ contains
     return
   end subroutine slabsum
 
-  subroutine avexy_ibm(aver,var,ib,ie,jb,je,kb,ke,ih,jh,kh,II,IIs)
+  subroutine avexy_ibm(aver,var,ib,ie,jb,je,kb,ke,ih,jh,kh,II,IIs,lnan)
     implicit none
 
     integer :: ib,ie,jb,je,kb,ke,ih,jh,kh
@@ -323,9 +323,11 @@ contains
     real    :: var(ib:ie,jb:je,kb:ke+kh)
     integer :: II(ib:ie,jb:je,kb:ke+kh)
     integer :: IIs(kb:ke+kh)
+    integer :: IId(kb:ke+kh)
     real    :: averl(kb:ke+kh)
     real    :: avers(kb:ke+kh)
     integer :: k
+    logical :: lnan
 
     averl       = 0.
     avers       = 0.
@@ -334,10 +336,24 @@ contains
       averl(k) = sum(var(ib:ie,jb:je,k)*II(ib:ie,jb:je,k))
     enddo
 
+    IId = IIs
+
+    ! tg3315 22.03.19 - if not calculating stats and all blocks on lowest layer...
+    ! should not be necessary but value at kb is used in modthermo so reasonable value must
+    ! be assigned. Potentially should leave as before and only account for in modthermo...
+    if ((.not. lnan) .and. (IId(kb)==0)) then
+      averl(kb) = sum(var(ib:ie,jb:je,kb))
+      IId(kb) = IId(ke)
+    end if
+
     call MPI_ALLREDUCE(averl, avers, ke+kh-kb+1,  MY_REAL, &
                           MPI_SUM, comm3d,mpierr)
-    
-    aver =  avers/IIs
+
+    where (IId==0)
+      aver = -999.
+    elsewhere
+      aver = avers/IId
+    endwhere
 
     return
   end subroutine avexy_ibm
@@ -377,7 +393,7 @@ contains
   real                    :: var(ib:ie,jb:je,kb:ke)
   integer                 :: II(ib:ie,jb:je,kb:ke)
   integer                 :: IIt(ib:ie,kb:ke)
-  logical                 :: lytdump
+  logical                 :: lytdump,lnan
 
   avero = 0.
   aver  = 0.

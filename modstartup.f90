@@ -670,11 +670,11 @@ contains
 
          thvh = 0.
 !              call slabsum(thvh,kb,ke,thv0h,ib-ih,ie+ih,jb-jh,je+jh,kb-kh,ke+kh,ib,ie,jb,je,kb,ke) !redefine halflevel thv using calculated thv
-               call avexy_ibm(thvh(kb:ke+kh),thv0h(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh))
+               call avexy_ibm(thvh(kb:ke+kh),thv0h(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
 !              thvh = thvh/rslabs
 
          thvf = 0.0
-              call avexy_ibm(thvf(kb:ke+kh),thv0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh))
+              call avexy_ibm(thvf(kb:ke+kh),thv0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
 !              call slabsum(thvf,kb,ke,thv0,ib-ih,ie+ih,jb-jh,je+jh,kb-kh,ke+kh,ib,ie,jb,je,kb,ke)
 !              thvf = thvf/rslabs
 
@@ -1063,11 +1063,11 @@ contains
 
             thvh = 0.
 !              call slabsum(thvh,kb,ke,thv0h,ib-ih,ie+ih,jb-jh,je+jh,kb-kh,ke+kh,ib,ie,jb,je,kb,ke) !redefine halflevel thv using calculated thv
-              call avexy_ibm(thvh(kb:ke+kh),thv0h(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh))
+              call avexy_ibm(thvh(kb:ke+kh),thv0h(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
 !              thvh = thvh/rslabs
 
             thvf = 0.0
-              call avexy_ibm(thvf(kb:ke+kh),thv0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh))
+              call avexy_ibm(thvf(kb:ke+kh),thv0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
 !              call slabsum(thvf,kb,ke,thv0,ib-ih,ie+ih,jb-jh,je+jh,kb-kh,ke+kh,ib,ie,jb,je,kb,ke)
 !              thvf = thvf/rslabs
 
@@ -1272,16 +1272,16 @@ contains
             sv0av = 0.
 
 !              call slabsum(u0av  ,kb,ke+kh,u0(:,:,kb:ke+kh)  ,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
-              call avexy_ibm(u0av(kb:ke+kh),u0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh))
+              call avexy_ibm(u0av(kb:ke+kh),u0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
 !              call slabsum(v0av  ,kb,ke+kh,v0(:,:,kb:ke+kh)  ,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
-              call avexy_ibm(v0av(kb:ke+kh),v0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh))
+              call avexy_ibm(v0av(kb:ke+kh),v0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
 !              call slabsum(thl0av,kb,ke+kh,thl0(:,:,kb:ke+kh),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
-              call avexy_ibm(thl0av(kb:ke+kh),thl0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh))
+              call avexy_ibm(thl0av(kb:ke+kh),thl0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
 !              call slabsum(qt0av,kb,ke+kh,qt0(:,:,kb:ke+kh),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
-              call avexy_ibm(qt0av(kb:ke+kh),qt0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh))
+              call avexy_ibm(qt0av(kb:ke+kh),qt0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
             do n = 1, nsv
 !                call slabsum(sv0av(kb,n),kb,ke+kh,sv0(ib-ih,jb-jh,kb,n),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
-              call avexy_ibm(sv0av(kb:ke+khc,n),sv0(ib:ie,jb:je,kb:ke+khc,n),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+khc),IIcs(kb:ke+khc))
+              call avexy_ibm(sv0av(kb:ke+khc,n),sv0(ib:ie,jb:je,kb:ke+khc,n),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+khc),IIcs(kb:ke+khc),.false.)
             end do
 
             ! CvH - only do this for fixed timestepping. In adaptive dt comes from restartfile
@@ -1645,7 +1645,7 @@ contains
    subroutine createmasks
       use modglobal, only:ib, ie, ih, ihc, jb, je, jh, jhc, kb, ke, kh, khc, rslabs, jmax, nblocks,&
          ifinput, cexpnr, libm, jtot, block
-      use modfields, only:IIc, IIu, IIv, IIw, IIuw, IIvw, IIct, IIwt, IIut, IIuwt, IIvt, IIcs, IIus, IIuws, IIvws, IIvs, IIws, IIbl, &
+      use modfields, only:IIc, IIu, IIv, IIw, IIuw, IIvw, IIct, IIwt, IIut, IIuwt, IIvt, IIcs, IIus, IIuws, IIvws, IIvs, IIws, &
          um, u0, vm, v0, wm, w0
       use modmpi, only:myid, comm3d, mpierr, MPI_INTEGER, MPI_DOUBLE_PRECISION, MY_REAL, nprocs, &
          cmyid, MPI_REAL8, MPI_REAL4, MPI_SUM, excjs
@@ -1822,30 +1822,30 @@ contains
       call MPI_ALLREDUCE(IIvd(ib:ie, kb:ke), IIvt(ib:ie, kb:ke), (ke - kb + 1)*(ie - ib + 1), MPI_INTEGER, MPI_SUM, comm3d, mpierr)
 
       ! masking matrix for switch if entire slab is blocks
-      if (IIcs(kb) == 0) then
-        IIbl = 0
-      else
-        IIbl = 1
-      end if
+      !if (IIcs(kb) == 0) then
+      !  IIbl = 0
+      !else
+      !  IIbl = 1
+      !end if
 
-      where (IIcs == 0)
-      IIcs = nint(rslabs)
-      endwhere
-      where (IIus == 0)
-      IIus = nint(rslabs)
-      endwhere
-      where (IIvs == 0)
-      IIvs = nint(rslabs)
-      endwhere
-      where (IIws == 0)
-      IIws = nint(rslabs)
-      endwhere
-      where (IIuws == 0)
-      IIuws = nint(rslabs)
-      endwhere
-      where (IIvws == 0)
-      IIvws = nint(rslabs)
-      endwhere
+      !where (IIcs == 0)
+      !IIcs = nint(rslabs)
+      !endwhere
+      !where (IIus == 0)
+      !IIus = nint(rslabs)
+      !endwhere
+      !where (IIvs == 0)
+      !IIvs = nint(rslabs)
+      !endwhere
+      !where (IIws == 0)
+      !IIws = nint(rslabs)
+      !endwhere
+      !where (IIuws == 0)
+      !IIuws = nint(rslabs)
+      !endwhere
+      !where (IIvws == 0)
+      !IIvws = nint(rslabs)
+      !endwhere
 
       ! use masking matrices to set 0 in blocks from start? tg3315 13/12/17
 !    um(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh) = IIu(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)*um(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
