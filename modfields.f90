@@ -71,7 +71,7 @@ module modfields
   integer, allocatable :: IIws(:)           !< 1-D Masking matrix for blocks at z-direction half cells that span ib:ie and 1:jtot
   integer, allocatable :: IIuws(:)          !< 1-D Masking matrix for blocks at x- and z-direction half cells that span ib:ie and 1:jtot
   integer, allocatable :: IIvws(:)          !< 1-D Masking matrix for blocks at y- and z-direction half cells that span ib:ie and 1:jtot
-  integer              :: IIbl = 1          !< Switch for if layer at kb is all blocks
+!  integer              :: IIbl = 1          !< Switch for if layer at kb is all blocks
 
   ! statistical fields following notation "[statistical name][averaging directions - x,y,z,t][position in grid - i,j,k]"
   real, allocatable :: uyt(:,:)        

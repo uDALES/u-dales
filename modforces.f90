@@ -641,6 +641,7 @@ endif
   subroutine nudge
     use modglobal,  only : kb,ke,lmoist,ltempeq,lnudge,tnudge,nnudge,numol,nsv
     use modfields,  only : thlp,qtp,svp,sv0av,thl0av,qt0av
+    use modmpi,     only : myid
     implicit none
     integer :: k
     real :: numoli
@@ -648,7 +649,7 @@ endif
     numoli = 1/numol
 
     if (lnudge .eqv. .false.) return
-   
+
     if (nsv>0) then
       do k=ke-nnudge,ke
         svp(:,:,k,1) = svp(:,:,k,1) - ( sv0av(k,1) - 0. ) / (tnudge/2 + (ke-k)*tnudge/nnudge)
