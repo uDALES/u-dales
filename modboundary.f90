@@ -117,7 +117,7 @@ contains
 
 !BCyT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       if (BCyT .eq. 1) then
-         call cyclicmj
+         call cyclichj
       else
          write (*, *) "WARNING: ABORT, lateral boundary type for temperature in y-direction undefined"
          stop
