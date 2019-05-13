@@ -12,48 +12,61 @@ else
 	exit 0
 fi
 
+datapath=${EPHEMERAL}
+# datapath = ${DA_WORKDIR}
+
+module load intel-suite udunits nco/4.6.2
+
 ## Merging fields along spatial axis.
 if [ $type == "field" ]; then
     
     echo "Merging fields along spatial axis."
     
     ## go to files directory
-    cd ${DA_WORKDIR}/${iexpnr}
+    cd ${datapath}/${iexpnr}
+    
+    ## call loop for *DUMPS
+    dumpslist=$(ls *dump.000.${iexpnr}.nc)
+    
+    for file in $dumpslist ; do
+    
+        dumps=${file%.000.${iexpnr}.nc}
 
-    ## call loop for FIELDDUMPS
-    dumps="fielddump"
-    # ymparam="v,ym"
-    ymparam="ym"
-    outfile="${dumps}.${iexpnr}.nc"
+        if [ $dumps == "fielddump" ]; then
+            # ymparam="ym"
+            ymparam="v,ym"
+            
+        elif [ $dumps == "tdump" ]; then
+            ymparam="vt,vpwpt,ym"
+            
+        elif [ $dumps == "slicedump" ]; then
+            ymparam="v_2,v_20,ym"
+        else
+            ymparam="ym"
+        fi
+        
+        outfile="${dumps}.${iexpnr}.nc"
 
-    echo "We are in ${DA_WORKDIR}/${iexpnr}."
-    echo "Merging ${dumps} files with ym-dependent variables ${ymparam}."
-    echo "Saving output to ${outfile}."
+        echo "We are in ${datapath}/${iexpnr}."
+        echo "Merging ${dumps} files with ym-dependent variables ${ymparam}."
+        echo "Saving output to ${outfile}."
 
-    . da_merge.sh $dumps $ymparam $outfile
-    echo "Merging done."
+        . da_merge.sh $dumps $ymparam $outfile
+        echo "Merging done."
 
-    ### SAME LOOP FOR SLICEDUMPS
-    # dumps=slicedump
-    # ymparam="v_2,v_20,ym"
-    # outfile="${dumps}.${iexpnr}.nc"
-    #
-    # echo "We are in ${DA_WORKDIR}/${iexpnr}.
-    # Merging ${dumps} files with ym-dependent variables ${ymparam}.
-    # Saving output to ${outfile}."
-    #
-    # . da_merge.sh $dumps $ymparam $outfile
-    #
-    # echo "Merging done."
+    done
+    
     
 elif  [ $type == "time" ]; then
 
     echo "Merging two fields along time."
     
     ## go to files directory
-    cd "${DA_WORKDIR}/${iexpnr2}"
+    cd "${datapath}/${iexpnr2}"
     
     ## call loop for *DUMPS
+    # dumpslist="ztdump.${iexpnr2}.nc"
+    # dumpslist="fielddump.${iexpnr2}.nc"
     dumpslist=$(ls *dump.${iexpnr2}.nc)
     # dumpslist="ztdump.${iexpnr2}.nc fielddump.${iexpnr2}.nc"
     
@@ -67,11 +80,14 @@ elif  [ $type == "time" ]; then
         # outfile="${dump}.${iexpnr2}-merged.nc"
         outfile=$file
         
-        echo "Merging ${dump} files. Saving output to ${DA_WORKDIR}/${iexpnr2}/${outfile}."
+        echo "Merging ${dump} files. Saving output to ${datapath}/${iexpnr2}/${outfile}."
         
         ncrcat "../${iexpnr1}/${dump}.${iexpnr1}.nc" "short-${file}" ${outfile}
         
         echo "Done merging ${dump}."    
+        
+        # rename so that this is not picked up as nc file
+        mv "short-${file}" "short-${file%.nc}"
         
         echo "Testing now for time overlap."
 
@@ -114,3 +130,5 @@ else
     echo "Something went wrong."
 
 fi
+
+module unload intel-suite udunits nco/4.6.2
