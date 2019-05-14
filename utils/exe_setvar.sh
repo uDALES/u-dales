@@ -10,11 +10,11 @@ location=${PLATFORM}
 
 ## set platform dependent variables
 
-if [ "$location" == "cx1" ] || [ "$location" == "cx2" ] ; then
-    exe=dalesurban_cx1
+if [ "$location" == "hpc" ] ||  [ "$location" == "cx1" ] || [ "$location" == "cx2" ] ; then
+    exe=dalesurban_hpc
     ncpu=12
-    nnode=10
-    walltime="48:00:00"
+    nnode=5
+    walltime="24:00:00"
     mem=20
     queue=""  # do not select a queue: line empty
     read modules < $utildir/dalesmodules # read in list of modules
