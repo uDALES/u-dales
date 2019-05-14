@@ -1,7 +1,7 @@
 export PS1='\[\e]2;\u@\h:$(pwd)\007\e]1;\h\007\]\u@\h:\w>'  # shows hostname
 
 # set environmental variables for dales
-export PLATFORM=cx1
+export PLATFORM=hpc
 export DA_TOPDIR=$HOME/dales-urban
 export DA_UTILSDIR=$DA_TOPDIR/utils
 export DA_SRCDIR=$DA_TOPDIR/src
