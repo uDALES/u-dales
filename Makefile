@@ -1,11 +1,11 @@
 # Set variables
 
-DEBUG=TRUE
+DEBUG=FALSE
 
 #---------- cx1 ----------------------------------------------------------#
 
-ifeq ($(PLATFORM),cx1)
-  TARGET=dalesurban_cx1
+ifeq ($(PLATFORM),hpc)
+  TARGET=dalesurban_hpc
   INCDIRS = $(MPI_HOME)/include
   LIBDIRS = $(MPI_HOME)/lib
   LIBS    = mpi
