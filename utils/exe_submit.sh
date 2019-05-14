@@ -30,7 +30,7 @@ else
 fi
 
 ## run on cx1 or cx2
-if [ "$location" == "cx1" ] || [ "$location" == "cx2" ] ; then
+if [ "$location" == "hpc" ] || [ "$location" == "cx1" ] || [ "$location" == "cx2" ] ; then
 
     ## note: necessary libraries have to be defined in the jobfile or bash profile
     ## copy generic job file to exp directory
