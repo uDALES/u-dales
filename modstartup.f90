@@ -1645,13 +1645,14 @@ contains
    subroutine createmasks
       use modglobal, only:ib, ie, ih, ihc, jb, je, jh, jhc, kb, ke, kh, khc, rslabs, jmax, nblocks,&
          ifinput, cexpnr, libm, jtot, block
-      use modfields, only:IIc, IIu, IIv, IIw, IIuw, IIvw, IIct, IIwt, IIut, IIuwt, IIvt, IIcs, IIus, IIuws, IIvws, IIvs, IIws, &
+      use modfields, only:IIc, IIu, IIv, IIw, IIuw, IIvw, IIuv, IIct, IIwt, IIut, IIuwt, IIvt,&
+         IIcs, IIus, IIuws, IIvws, IIuvs, IIvs, IIws, &
          um, u0, vm, v0, wm, w0
       use modmpi, only:myid, comm3d, mpierr, MPI_INTEGER, MPI_DOUBLE_PRECISION, MY_REAL, nprocs, &
          cmyid, MPI_REAL8, MPI_REAL4, MPI_SUM, excjs
 !      use initfac, only:block
       integer k, n, il, iu, jl, ju, kl, ku
-      integer :: IIcl(kb:ke + khc), IIul(kb:ke + khc), IIvl(kb:ke + khc), IIwl(kb:ke + khc), IIuwl(kb:ke + khc), IIvwl(kb:ke + khc)
+      integer :: IIcl(kb:ke + khc), IIul(kb:ke + khc), IIvl(kb:ke + khc), IIwl(kb:ke + khc), IIuwl(kb:ke + khc), IIvwl(kb:ke + khc), IIuvl(kb:ke + khc)
       integer :: IIcd(ib:ie, kb:ke)
       integer :: IIwd(ib:ie, kb:ke)
       integer :: IIuwd(ib:ie, kb:ke)
@@ -1668,12 +1669,14 @@ contains
          IIw(:, :, :) = 1
          IIuw(:, :, :) = 1
          IIvw(:, :, :) = 1
+         IIuv(:, :, :) = 1
          IIcs(:) = nint(rslabs)
          IIus(:) = nint(rslabs)
          IIvs(:) = nint(rslabs)
          IIws(:) = nint(rslabs)
          IIuws(:) = nint(rslabs)
          IIvws(:) = nint(rslabs)
+         IIuvs(:) = nint(rslabs)
          IIct(:, :) = jtot 
          IIut(:, :) = jtot
          IIvt(:, :) = jtot
@@ -1721,7 +1724,7 @@ contains
       call MPI_BCAST(block, 11*nblocks, MPI_INTEGER, 0, comm3d, mpierr)
 
 ! Create masking matrices
-      IIc = 1; IIu = 1; IIv = 1; IIct = 1; IIw = 1; IIuw = 1; IIvw = 1; IIwt = 1; IIut = 1; IIvt = 1; IIuwt = 1; IIcs = 1; IIus = 1; IIvs = 1; IIws = 1; IIuws = 1; IIvws = 1
+      IIc = 1; IIu = 1; IIv = 1; IIct = 1; IIw = 1; IIuw = 1; IIvw = 1; IIuv = 1; IIwt = 1; IIut = 1; IIvt = 1; IIuwt = 1; IIcs = 1; IIus = 1; IIvs = 1; IIws = 1; IIuws = 1; IIvws = 1; IIuvs = 1
 
       do n = 1, nblocks
          il = block(n, 1)
@@ -1745,11 +1748,13 @@ contains
                IIw(il:iu, jl:ju, kl:ku + 1) = 0
                IIuw(il:iu + 1, jl:ju, kl:ku + 1) = 0
                IIvw(il:iu, jl:ju, kl:ku + 1) = 0
+               IIuv(il:iu + 1, jl:ju, kl:ku) = 0
 
             else if (ju == jb - 1) then ! if end of block is in cell before proc
 
                IIv(il:iu, jb, kl:ku) = 0
                IIvw(il:iu, jb, kl:ku + 1) = 0
+               IIuv(il:iu + 1, jb, kl:ku) = 0
 
             else ! ju is in this proc...
                if (jl < jb) jl = jb
@@ -1761,6 +1766,7 @@ contains
                IIw(il:iu, jl:ju, kl:ku + 1) = 0
                IIuw(il:iu + 1, jl:ju, kl:ku + 1) = 0
                IIvw(il:iu, jl:ju + 1, kl:ku + 1) = 0
+               IIuv(il:iu + 1, jl:ju + 1, kl:ku) = 0
 
             end if
 
@@ -1794,6 +1800,7 @@ contains
          IIwl(k) = sum(IIw(ib:ie, jb:je, k))
          IIuwl(k) = sum(IIuw(ib:ie, jb:je, k))
          IIvwl(k) = sum(IIvw(ib:ie, jb:je, k))
+         IIuvl(k) = sum(IIuv(ib:ie, jb:je, k))
       enddo
 
       call MPI_ALLREDUCE(IIcl, IIcs, ke + khc - kb + 1, MPI_INTEGER, &
@@ -1807,6 +1814,8 @@ contains
       call MPI_ALLREDUCE(IIuwl, IIuws, ke + khc - kb + 1, MPI_INTEGER, &
                          MPI_SUM, comm3d, mpierr)
       call MPI_ALLREDUCE(IIvwl, IIvws, ke + khc - kb + 1, MPI_INTEGER, &
+                         MPI_SUM, comm3d, mpierr)
+      call MPI_ALLREDUCE(IIuvl, IIuvs, ke + khc - kb + 1, MPI_INTEGER, &
                          MPI_SUM, comm3d, mpierr)
 
       IIcd(ib:ie, kb:ke) = sum(IIc(ib:ie, jb:je, kb:ke), DIM=2)

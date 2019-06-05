@@ -60,6 +60,7 @@ module modfields
   integer, allocatable :: IIw(:,:,:)        !< Masking matrix for blocks at z-direction half cells
   integer, allocatable :: IIuw(:,:,:)       !< Masking matrix for blocks at x-and z-direction half cells
   integer, allocatable :: IIvw(:,:,:)       !< Masking matrix for blocks at y- and z-direction half cells
+  integer, allocatable :: IIuv(:,:,:)       !< Masking matrix for blocks at x- and y-direction half cells  
   integer, allocatable :: IIct(:,:)         !< 2-D Masking matrix for blocks at cell centre that span 1:jtot
   integer, allocatable :: IIwt(:,:)         !< 2-D Masking matrix for blocks at z-direction half cells that span 1:jtot
   integer, allocatable :: IIuwt(:,:)        !< 2-D Masking matrix for blocks at x- and z-direction half cells that span 1:jtot
@@ -71,6 +72,8 @@ module modfields
   integer, allocatable :: IIws(:)           !< 1-D Masking matrix for blocks at z-direction half cells that span ib:ie and 1:jtot
   integer, allocatable :: IIuws(:)          !< 1-D Masking matrix for blocks at x- and z-direction half cells that span ib:ie and 1:jtot
   integer, allocatable :: IIvws(:)          !< 1-D Masking matrix for blocks at y- and z-direction half cells that span ib:ie and 1:jtot
+  integer, allocatable :: IIuvs(:)          !< 1-D Masking matrix for blocks at x- and y-direction half cells that span ib:ie and 1:jtot
+
 !  integer              :: IIbl = 1          !< Switch for if layer at kb is all blocks
 
   ! statistical fields following notation "[statistical name][averaging directions - x,y,z,t][position in grid - i,j,k]"
@@ -105,10 +108,13 @@ module modfields
   real, allocatable :: vvtc(:,:,:)
   real, allocatable :: wwtc(:,:,:)
   real, allocatable :: vwtjk(:,:,:)
+  real, allocatable :: uvtij(:,:,:)
   real, allocatable :: utik(:,:,:)
   real, allocatable :: wtik(:,:,:)
   real, allocatable :: vtjk(:,:,:)
   real, allocatable :: wtjk(:,:,:)
+  real, allocatable :: utij(:,:,:)
+  real, allocatable :: vtij(:,:,:)
   real, allocatable :: wmt(:,:,:)
   real, allocatable :: thltk(:,:,:)
   real, allocatable :: thlt(:,:,:)
@@ -458,6 +464,7 @@ contains
     allocate(IIw(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
     allocate(IIuw(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
     allocate(IIvw(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
+    allocate(IIuv(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
     allocate(IIct(ib:ie,kb:ke))
     allocate(IIwt(ib:ie,kb:ke))
     allocate(IIuwt(ib:ie,kb:ke))
@@ -469,6 +476,7 @@ contains
     allocate(IIws(kb:ke+khc))
     allocate(IIuws(kb:ke+khc))
     allocate(IIvws(kb:ke+khc))
+    allocate(IIuvs(kb:ke+khc))
 
     allocate(uyt(ib:ie,kb:ke))
     allocate(uytik(ib:ie,kb:ke))
@@ -501,10 +509,13 @@ contains
     allocate(vvtc(ib:ie,jb:je,kb:ke+kh))
     allocate(wwtc(ib:ie,jb:je,kb:ke+kh))
     allocate(vwtjk(ib:ie,jb:je,kb:ke+kh))
+    allocate(uvtij(ib:ie,jb:je,kb:ke+kh))
     allocate(utik(ib:ie,jb:je,kb:ke+kh))
     allocate(wtik(ib:ie,jb:je,kb:ke+kh))
     allocate(vtjk(ib:ie,jb:je,kb:ke+kh))
     allocate(wtjk(ib:ie,jb:je,kb:ke+kh))
+    allocate(utij(ib:ie,jb:je,kb:ke+kh))
+    allocate(vtij(ib:ie,jb:je,kb:ke+kh))
     allocate(wmt(ib:ie,jb:je,kb:ke+kh))
     allocate(thltk(ib:ie,jb:je,kb:ke+kh))
     allocate(thlt(ib:ie,jb:je,kb:ke+kh))
@@ -691,7 +702,7 @@ contains
     uyt=0.;uytik=0.;vyt=0.;wyt=0.;wytik=0.;thlyt=0.;qtyt=0.;thlytk=0.;sca1yt=0.;sca2yt=0.;sca3yt=0.;thlsgsyt=0.;
     usgsyt=0.
     uxyt=0.;vxyt=0.;wxyt=0.;thlxyt=0.;qtxyt=0.;pxyt=0.;usgsxyt=0.;vsgsxyt=0.;thlsgsxyt=0.;
-    uwtik=0.;wthltk=0.;thlthlt=0.;uutc=0.;vvtc=0.;wwtc=0.;vwtjk=0.;utik=0.;wtik=0.;wtjk=0.;vtjk=0.;
+    uwtik=0.;wthltk=0.;thlthlt=0.;uutc=0.;vvtc=0.;wwtc=0.;vwtjk=0.;uvtij=0.;utik=0.;wtik=0.;wtjk=0.;vtjk=0.;utij=0.;vtij=0.;
     wmt=0.;thltk=0.;thlt=0.;slice=0.;slice2=0.;slice3=0.;slice4=0.;slice5=0.;utc=0.;vtc=0.;wtc=0.
     slice6=0.;slice7=0.;slice8=0.;umt=0.;vmt=0.;sv1t=0.;sv2t=0.;sv3t=0.;sv4t=0.;sv1tk=0.;sv2tk=0.;sv3tk=0.;sv4tk=0.
     wsv1tk=0.;wsv2tk=0.;wsv3tk=0.;wsv4tk=0.;sv1sgst=0.;sv2sgst=0.;sv3sgst=0.;sv4sgst=0.;qtt=0.;pt=0.
@@ -700,7 +711,7 @@ contains
 
     Rn=0.;qc=0.;lad=0.;clai=0.
 
-    IIc=1;IIu=1;IIv=1;IIct=1;IIw=1;IIuw=1;IIvw=1;IIuwt=1;IIut=1;IIvt=1;IIwt=1;IIcs=1;IIus=1;IIvs=1;IIws=1;IIuws=1;IIvws=1
+    IIc=1;IIu=1;IIv=1;IIct=1;IIw=1;IIuw=1;IIvw=1;IIuwt=1;IIut=1;IIvt=1;IIwt=1;IIcs=1;IIus=1;IIvs=1;IIws=1;IIuws=1;IIvws=1;IIuw=1;IIuvs=1
 
     uav=0.;vav=0.;wav=0.;thlav=0.;qtav=0.;svav=0.;viscratioav=0.;uuav=0.;vvav=0.
     wwav=0.;uvav=0.;uwav=0.;vwav=0.;sv2av=0.;thl2av=0.;ql2av=0.;qt2av=0.;presav=0.
