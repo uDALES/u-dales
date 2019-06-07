@@ -331,6 +331,9 @@ module modfields
   real              :: uouttot                      !< area-averaged outflow velocity (used in convective outflow BC) 
   real              :: wouttot                      !< area-averaveraged top velocity
   real              :: udef
+  real              :: vdef
+  real, allocatable :: vout(:)
+  real              :: vouttot
 
   real              :: thlsrcdt                     ! thlsrc -> thlsrcdt is used to solve 1-order ODE for thlsrc 
   real              :: dgdt                         ! g = dp/dx -> dgdt is used to solve 1-order ODE for dpdx 
@@ -433,6 +436,7 @@ contains
     allocate(svprof(kb:ke+kh,nsv))
     allocate(thlpcar(kb:ke+kh))
     allocate(uout(kb:ke))         ! height average outlet velocity (used in convective outflow BC)
+    allocate(vout(kb:ke))
     allocate(wout(ib:ie))         ! j -averaged top velocity
     allocate(friction(ib:ie))     ! line-averaged (along j) skin friction 
     allocate(momthick(ib:ie))     ! line-averaged (along j) momentum thickness 
@@ -694,7 +698,7 @@ contains
     !Exner function should be called in startup and just be initialised here
     qt0av=0.;ql0av=0.;thl0av=0.;u0av=0.;v0av=0.;sv0av=0.
     thlprof=0.;qtprof=0.;qlprof=0.;uprof=0.;vprof=0.;e12prof=0.;svprof=0.
-    ug=0.;vg=0.;pgx=0.;pgy=0.;dpdxl=0.;dpdyl=0.;wfls=0.;whls=0.;thlpcar = 0.;uout=0.;wout=0.;udef=0.;uouttot=0.;wouttot=0.
+    ug=0.;vg=0.;pgx=0.;pgy=0.;dpdxl=0.;dpdyl=0.;wfls=0.;whls=0.;thlpcar = 0.;uout=0.;vout=0.;wout=0.;udef=0.;vdef=0.;uouttot=0.;wouttot=0.;vouttot=0.
     dthldxls=0.;dthldyls=0.;dqtdxls=0.;dqtdyls=0.;dudxls=0.;dudyls=0.;dvdxls=0.;dvdyls=0.
     dthvdz=0.
     SW_up_TOA=0.;SW_dn_TOA=0.;LW_up_TOA=0.;LW_dn_TOA=0.

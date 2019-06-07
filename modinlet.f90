@@ -184,7 +184,7 @@ contains
   end subroutine initinlet
 
   subroutine inletgen
-    use modglobal,   only : ib,ie,jb,je,jgb,jge,kb,ke,zf,zh,dzf,dzhi,timee,btime,totavtime,rk3step,dt,numol,iplane,lles,iinletgen,inletav,runavtime,Uinf,lwallfunc,linletRA,totinletav,lstoreplane,nstore,prandtlmoli,numol,grav,lbuoyancy,lfixinlet,lmassflowr,lfixutauin
+    use modglobal,   only : ib,ie,jb,je,jgb,jge,kb,ke,zf,zh,dzf,dzhi,timee,btime,totavtime,rk3step,dt,numol,iplane,lles,iinletgen,inletav,runavtime,Uinf,lwallfunc,linletRA,totinletav,lstoreplane,nstore,prandtlmoli,numol,grav,lbuoyancy,lfixinlet,luflowr,lfixutauin
     use modfields,   only : u0,v0,w0,thl0,wm,uprof
     use modsurfdata, only : thls,thl_top
     use modsave,     only : writerestartfiles
@@ -742,7 +742,7 @@ contains
     totalu    = sum(uravdzf(kb:ke))/(zh(ke+1)-zh(kb))      ! Area-averaged outflow velocity
 
 ! rescale the instantaneous profile to keep mass flux constant (tot avoid pressure fluctuations)
-    if (lmassflowr ) then 
+    if (luflowr ) then 
       do k=kb,ke
         uinldzf(k) = Uinl(k)*dzf(k)
       end do
@@ -833,7 +833,7 @@ contains
      write(6,*) 'Inlet Gen: d*i, d*r=',displ(ib),displ(irecy)
      write(6,*) 'Inlet Gen: thetai,thetar',thetai,thetar
      write(6,*) 'Inlet Gen: thetati,thetatr',thetati,thetatr
-     if (lmassflowr ) then
+     if (luflowr ) then
        write(6,*) 'Inlet Gen: mass flux correction factor = ',scalef
 !       write(6,*) 'Inlet Gen: mass flux                   = ',totalreadu
        write(6,*) 'Inlet Gen: mass flux                   = ',totaluinl
@@ -932,7 +932,7 @@ contains
   end subroutine inletgen
  
   subroutine inletgennotemp
-    use modglobal,   only : ib,ie,jb,je,jgb,jge,kb,ke,zf,zh,dzf,dzhi,timee,btime,totavtime,rk3step,dt,numol,iplane,lles,iinletgen,inletav,runavtime,Uinf,lwallfunc,linletRA,totinletav,lstoreplane,nstore,lfixinlet,lfixutauin,lmassflowr
+    use modglobal,   only : ib,ie,jb,je,jgb,jge,kb,ke,zf,zh,dzf,dzhi,timee,btime,totavtime,rk3step,dt,numol,iplane,lles,iinletgen,inletav,runavtime,Uinf,lwallfunc,linletRA,totinletav,lstoreplane,nstore,lfixinlet,lfixutauin,luflowr
     use modfields,   only : u0,v0,w0,wm,uprof
     use modsave,     only : writerestartfiles
     use modmpi,      only : slabsum,myid
@@ -1308,7 +1308,7 @@ contains
       totalu = sum(uravdzf(kb:ke))/(zh(ke+1)-zh(kb))      ! Area-averaged outflow velocity
 
 ! correct instantaneous inflow velocity for constant mass-flux
-      if (lmassflowr ) then
+      if (luflowr ) then
         do k=kb,ke
           uinldzf(k) = Uinl(k)*dzf(k)     
         end do
@@ -1359,7 +1359,7 @@ contains
      write(6,*) 'Inlet Gen: deltar, deltai_test', dr, di_test
      write(6,*) 'Inlet Gen: d*i, d*r=',displ(ib),displ(irecy)
      write(6,*) 'Inlet Gen: thetai,thetar',thetai,thetar
-     if (lmassflowr ) then
+     if (luflowr ) then
        write(6,*) 'Inlet Gen: mass flux correction factor = ',scalef
 !       write(6,*) 'Inlet Gen: mass flux                   = ',totalreadu
        write(6,*) 'Inlet Gen: mass flux                   = ',totaluinl

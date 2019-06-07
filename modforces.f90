@@ -370,45 +370,75 @@ endif
 
   end subroutine fixthetainf
 
-  !> correct the u-velocity to get correct mass flow rate
-  subroutine masscorr
-
-    use modglobal, only : ib,ie,jb,je,ih,jh,kb,ke,kh,jgb,jge,dzf,zh,dy,dt,rk3step,massflowrate,&
-         jmax,libm,dt,rk3step,linoutflow,lmassflowr
-    use modfields, only : um,up,uout,uouttot,udef
-    use modmpi,    only : slabsum,myid
-
-    real, dimension(kb:ke)             :: uoutold
-    real rk3coef,rk3coefi,massflowrateold
-    integer i,j,k
-
-    if ((.not.linoutflow).and. (lmassflowr)) then
-       rk3coef = dt / (4. - dble(rk3step))
-       rk3coefi = 1 / rk3coef
-
-       udef = 0.
-       uout = 0.
-       uoutold = 0.
-       call slabsum(uout   ,kb,ke, up  ,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ie,ie,jb,je,kb,ke) ! determine horizontal (j) average outflow velocity diff
-       call slabsum(uoutold,kb,ke, um  ,ib-ih,ie+ih,jb-jh,je+jh,kb-kh,ke+kh,ie,ie,jb,je,kb,ke) ! determine horizontal (j) average outflow velocity old
-
-       do k=kb,ke
-          uout(k)    = rk3coef*uout(k)   *dzf(k)*dy  ! mass flow rate through each slab (density = 1000 kg/m3)
-          uoutold(k) =         uoutold(k)*dzf(k)*dy  ! mass flow rate through each slab (density = 1000 kg/m3) (previous time step)
-       end do
-       uouttot         = sum(uout(kb:ke))                 ! mass flow rate (at outlet)
-       massflowrateold = sum(uoutold(kb:ke))              ! mass flow rate (at outlet) (previous time step)
-       udef =  (massflowrate - (uouttot + massflowrateold))/(((jge-jgb+1)*dy)*(zh(ke+1)-zh(kb)))   !udef=massdef/(Area*density)
-       do k = kb,ke
-          do j = jb,je
-             do i = ib,ie
-                up(i,j,k) = up(i,j,k)  + udef*rk3coefi
-             end do
-          end do
-       end do
-
-    end if
-
+  !> correct the u-velocity to get correct mass flow rate
+  subroutine masscorr
+
+    use modglobal, only : ib,ie,jb,je,ih,jh,kb,ke,kh,jgb,jge,dzf,dxf,xh,zh,dy,dt,rk3step,uflowrate,vflowrate,&
+         jmax,libm,dt,rk3step,linoutflow,luflowr,lvflowr
+    use modfields, only : um,up,vm,vp,uout,uouttot,udef,vout,vouttot,vdef
+    use modmpi,    only : slabsum,myid
+
+    real, dimension(kb:ke)             :: uoutold
+    real, dimension(kb:ke)             :: voutold
+    real rk3coef,rk3coefi,uflowrateold,vflowrateold
+    integer i,j,k
+
+    if ((.not.linoutflow) .and. (luflowr)) then
+       rk3coef = dt / (4. - dble(rk3step))
+       rk3coefi = 1 / rk3coef
+
+       udef = 0.
+       uout = 0.
+       uoutold = 0.
+       call slabsum(uout   ,kb,ke, up  ,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ie,ie,jb,je,kb,ke) ! determine horizontal (j) average outflow velocity diff
+       call slabsum(uoutold,kb,ke, um  ,ib-ih,ie+ih,jb-jh,je+jh,kb-kh,ke+kh,ie,ie,jb,je,kb,ke) ! determine horizontal (j) average outflow velocity old
+
+       do k=kb,ke
+          uout(k)    = rk3coef*uout(k)   *dzf(k)*dy  ! mass flow rate through each slab (density = 1000 kg/m3)
+          uoutold(k) =         uoutold(k)*dzf(k)*dy  ! mass flow rate through each slab (density = 1000 kg/m3) (previous time step)
+       end do
+       uouttot         = sum(uout(kb:ke))                 ! mass flow rate (at outlet)
+       uflowrateold = sum(uoutold(kb:ke))              ! mass flow rate (at outlet) (previous time step)
+       udef =  (uflowrate - (uouttot + uflowrateold))/(((jge-jgb+1)*dy)*(zh(ke+1)-zh(kb)))   !udef=massdef/(Area*density)
+       do k = kb,ke
+          do j = jb,je
+             do i = ib,ie
+                up(i,j,k) = up(i,j,k)  + udef*rk3coefi
+             end do
+          end do
+       end do
+
+    end if
+
+    if ((.not.linoutflow) .and. (lvflowr)) then
+       rk3coef = dt / (4. - dble(rk3step))
+       rk3coefi = 1 / rk3coef
+
+       vdef = 0.
+       vout = 0.
+       voutold = 0.
+       call slabsum(vout   ,kb,ke, vp  ,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ie,ie,jb,je,kb,ke) ! determine horizontal (j) average outflow velocity diff
+       call slabsum(voutold,kb,ke, vm  ,ib-ih,ie+ih,jb-jh,je+jh,kb-kh,ke+kh,ie,ie,jb,je,kb,ke) ! determine horizontal (j) average outflow velocity old
+
+       do k=kb,ke
+         do i=ib,ie
+          vout(k)    = rk3coef*vout(k)   *dzf(k)*dxf(i)  ! mass flow rate through each slab (density = 1000 kg/m3)
+          voutold(k) =         voutold(k)*dzf(k)*dxf(i)  ! mass flow rate through each slab (density = 1000 kg/m3) (previous time step)
+         end do
+       end do
+       vouttot         = sum(vout(kb:ke))              ! mass flow rate (at outlet)
+       vflowrateold = sum(voutold(kb:ke))              ! mass flow rate (at outlet) (previous time step)
+       vdef =  (vflowrate - (vouttot + vflowrateold))/((xh(ie+1)-xh(ib))*(zh(ke+1)-zh(kb)))   !udef=massdef/(Area*density)
+       do k = kb,ke
+          do j = jb,je
+             do i = ib,ie
+                vp(i,j,k) = vp(i,j,k)  + vdef*rk3coefi
+             end do
+          end do
+       end do
+
+    end if
+
   end subroutine masscorr
   
   subroutine coriolis
