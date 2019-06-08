@@ -37,7 +37,7 @@ if [ $type == "field" ]; then
             ymparam="v,ym"
             
         elif [ $dumps == "tdump" ]; then
-            ymparam="vt,vpwpt,ym"
+            ymparam="vt,vpwpt,upvpt,ym"
             
         elif [ $dumps == "slicedump" ]; then
             ymparam="v_2,v_20,ym"
