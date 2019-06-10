@@ -421,10 +421,10 @@ endif
        call slabsum(voutold,kb,ke, vm  ,ib-ih,ie+ih,jb-jh,je+jh,kb-kh,ke+kh,ie,ie,jb,je,kb,ke) ! determine horizontal (j) average outflow velocity old
 
        do k=kb,ke
-         do i=ib,ie
-          vout(k)    = rk3coef*vout(k)   *dzf(k)*dxf(i)  ! mass flow rate through each slab (density = 1000 kg/m3)
-          voutold(k) =         voutold(k)*dzf(k)*dxf(i)  ! mass flow rate through each slab (density = 1000 kg/m3) (previous time step)
-         end do
+!         do i=ib,ie
+          vout(k)    = rk3coef*vout(k)   *dzf(k)*(xh(ie+1)-xh(ib))/(ie-ib)  ! mass flow rate through each slab (density = 1000 kg/m3)
+          voutold(k) =         voutold(k)*dzf(k)*(xh(ie+1)-xh(ib))/(ie-ib)  ! mass flow rate through each slab (density = 1000 kg/m3) (previous time step)
+!         end do
        end do
        vouttot         = sum(vout(kb:ke))              ! mass flow rate (at outlet)
        vflowrateold = sum(voutold(kb:ke))              ! mass flow rate (at outlet) (previous time step)
