@@ -109,7 +109,7 @@ contains
 
       else if (BCxT .eq. 2) then !inoutflow
 !do nothing, temperature is considered in inletgen and in iolet
-
+         call iohi
       else
          write (*, *) "WARNING: ABORT, lateral boundary type for temperature in x-direction undefined"
          stop
@@ -129,7 +129,7 @@ contains
 
       else if (BCxq .eq. 2) then !inoutflow
 !do nothing, humidity is considered in iolet
-
+        call ioqi
       else
          write (*, *) "WARNING: ABORT, lateral boundary type for humidity in x-direction undefined"
          stop
@@ -440,6 +440,36 @@ contains
       return
    end subroutine cyclicsi
    !!!!!!!!!!!end x/i periodic BC for scalars!!!!!!!!
+
+   !> Sets x/inlet-outlet boundary conditions for moisture
+   subroutine ioqi
+     use modglobal, only: ib, ie, jb, je, ih, jh, kb, ke, kh
+     use modfields, only: qt0, qtm, qtprof
+     integer k,j
+
+     do k = kb, ke
+       do j = jb, je
+         qt0(ib - 1, j, k) = 2*qtprof(k) - qt0(ib, j, k) !watch!
+         qtm(ib - 1, j, k) = 2*qtprof(k) - qtm(ib, j, k)
+       end do
+    end do
+     
+   end subroutine ioqi
+   
+   !> Sets x/in;et-outlet boundary conditions for temperature
+   subroutine iohi
+     use modglobal, only: ib, ie, jb, je, ih, jh, kb, ke, kh
+     use modfields, only: thl0, thlm, thlprof
+     integer k,j   
+
+     do k = kb, ke
+       do j = jb, je
+         thl0(ib - 1, j, k) = 2*thlprof(k) - thl0(ib, j, k) !watch!
+         thlm(ib - 1, j, k) = 2*thlprof(k) - thlm(ib, j, k)
+       end do
+    end do
+
+   end subroutine iohi
 
    !!!!!!!!!!! y/j periodic BC for scalars!!!!!!!!!!!
    !> Sets y/j periodic boundary conditions for the temperature
