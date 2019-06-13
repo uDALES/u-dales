@@ -445,6 +445,7 @@ contains
    subroutine ioqi
      use modglobal, only: ib, ie, jb, je, ih, jh, kb, ke, kh, dxhi, rk3step, dt
      use modfields, only: qt0, qtm, qtprof, uouttot
+     use modinletdata, only: ubulk
      integer k,j
      real rk3coef                                                                                   
 
@@ -457,9 +458,9 @@ contains
        end do
     end do
     
-    !WARNING uouttot is zero unless lmassflowr - and crashes if true...
-    qt0(ie + 1, :, :) = qt0(ie, :, :) - (qt0(ie + 1, :, :) - qt0(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
-    qtm(ie + 1, :, :) = qtm(ie, :, :) - (qtm(ie + 1, :, :) - qtm(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
+    !uouttot is zero unless lmassflowr 
+    qt0(ie + 1, :, :) = qt0(ie, :, :) - (qt0(ie + 1, :, :) - qt0(ie, :, :))*dxhi(ie + 1)*rk3coef*ubulk
+    qtm(ie + 1, :, :) = qtm(ie, :, :) - (qtm(ie + 1, :, :) - qtm(ie, :, :))*dxhi(ie + 1)*rk3coef*ubulk
 
    end subroutine ioqi
    
@@ -467,6 +468,7 @@ contains
    subroutine iohi
      use modglobal, only: ib, ie, jb, je, ih, jh, kb, ke, kh, dxhi, rk3step, dt
      use modfields, only: thl0, thlm, thlprof, uouttot
+     use modinletdata, only: ubulk
      integer k,j   
      real rk3coef                                                                                  
 
@@ -479,9 +481,8 @@ contains
        end do
     end do
 
-    !WARNING uouttot is zero unless lmassflowr - and crashes if true...
-    thl0(ie + 1, :, :) = thl0(ie, :, :) - (thl0(ie + 1, :, :) - thl0(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
-    thlm(ie + 1, :, :) = thlm(ie, :, :) - (thlm(ie + 1, :, :) - thlm(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
+    thl0(ie + 1, :, :) = thl0(ie, :, :) - (thl0(ie + 1, :, :) - thl0(ie, :, :))*dxhi(ie + 1)*rk3coef*ubulk
+    thlm(ie + 1, :, :) = thlm(ie, :, :) - (thlm(ie + 1, :, :) - thlm(ie, :, :))*dxhi(ie + 1)*rk3coef*ubulk
 
    end subroutine iohi
 
