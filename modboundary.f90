@@ -456,7 +456,8 @@ contains
          qtm(ib - 1, j, k) = 2*qtprof(k) - qtm(ib, j, k)
        end do
     end do
-     
+    
+    !WARNING uouttot is zero unless lmassflowr - and crashes if true...
     qt0(ie + 1, :, :) = qt0(ie, :, :) - (qt0(ie + 1, :, :) - qt0(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
     qtm(ie + 1, :, :) = qtm(ie, :, :) - (qtm(ie + 1, :, :) - qtm(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
 
@@ -478,6 +479,7 @@ contains
        end do
     end do
 
+    !WARNING uouttot is zero unless lmassflowr - and crashes if true...
     thl0(ie + 1, :, :) = thl0(ie, :, :) - (thl0(ie + 1, :, :) - thl0(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
     thlm(ie + 1, :, :) = thlm(ie, :, :) - (thlm(ie + 1, :, :) - thlm(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
 
