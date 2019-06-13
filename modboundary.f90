@@ -443,9 +443,12 @@ contains
 
    !> Sets x/inlet-outlet boundary conditions for moisture
    subroutine ioqi
-     use modglobal, only: ib, ie, jb, je, ih, jh, kb, ke, kh
-     use modfields, only: qt0, qtm, qtprof
+     use modglobal, only: ib, ie, jb, je, ih, jh, kb, ke, kh, dxhi, rk3step, dt
+     use modfields, only: qt0, qtm, qtprof, uouttot
      integer k,j
+     real rk3coef                                                                                   
+
+     rk3coef = dt/(4.-dble(rk3step))
 
      do k = kb, ke
        do j = jb, je
@@ -454,13 +457,19 @@ contains
        end do
     end do
      
+    qt0(ie + 1, :, :) = qt0(ie, :, :) - (qt0(ie + 1, :, :) - qt0(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
+    qtm(ie + 1, :, :) = qtm(ie, :, :) - (qtm(ie + 1, :, :) - qtm(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
+
    end subroutine ioqi
    
    !> Sets x/in;et-outlet boundary conditions for temperature
    subroutine iohi
-     use modglobal, only: ib, ie, jb, je, ih, jh, kb, ke, kh
-     use modfields, only: thl0, thlm, thlprof
+     use modglobal, only: ib, ie, jb, je, ih, jh, kb, ke, kh, dxhi, rk3step, dt
+     use modfields, only: thl0, thlm, thlprof, uouttot
      integer k,j   
+     real rk3coef                                                                                  
+
+     rk3coef = dt/(4.-dble(rk3step))
 
      do k = kb, ke
        do j = jb, je
@@ -468,6 +477,9 @@ contains
          thlm(ib - 1, j, k) = 2*thlprof(k) - thlm(ib, j, k)
        end do
     end do
+
+    thl0(ie + 1, :, :) = thl0(ie, :, :) - (thl0(ie + 1, :, :) - thl0(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
+    thlm(ie + 1, :, :) = thlm(ie, :, :) - (thlm(ie + 1, :, :) - thlm(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
 
    end subroutine iohi
 
