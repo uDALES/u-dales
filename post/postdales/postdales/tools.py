@@ -6,7 +6,6 @@ import copy
 import operator
 import numpy as np
 import pickle
-import citygenerator as cgen
 
 
 def environment():
