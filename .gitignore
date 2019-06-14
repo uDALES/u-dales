@@ -16,6 +16,9 @@ pre/temp
 # Byte-compiled / optimized / DLL files
 __pycache__/
 
+# jupyter notebook checkpoints
+.ipynb_checkpoints
+
 # Distribution / packaging
 build/
 dist/
