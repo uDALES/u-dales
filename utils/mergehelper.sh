@@ -102,7 +102,7 @@ elif  [ $type == "time" ]; then
 		# loop for when an overlap occured, check where the overlap finishes
 		if [[ $overlap -eq 1 ]] ; then  # if overlap has occured in previous times
 			if [[ $t -ge $tdouble ]] ; then  # current time step greater or equal to overlap time
-                    		tcont=$((counter+1))
+				tcont=$((counter+1))
 				overlap=0  # overlap time fixed, stop checking
 			fi
                 fi
