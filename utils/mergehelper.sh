@@ -97,11 +97,11 @@ elif  [ $type == "time" ]; then
         counter=0
 	tcut=""  # setting tcut to empty string, testing later whether it stays like that
         overlap=0  # setting overlap to false
-	for t in $times; do 
+	for t in $times; do
             if [[ $told -lt $t ]] ; then  # as long as monotone increase
 		# loop for when an overlap occured, check where the overlap finishes
 		if [[ $overlap -eq 1 ]] ; then  # if overlap has occured in previous times
-                	if [[ $t -ge $tdouble ]] ; then  # current time step greater or equal to overlap time
+			if [[ $t -ge $tdouble ]] ; then  # current time step greater or equal to overlap time
                     		tcont=$((counter+1))
 				overlap=0  # overlap time fixed, stop checking
 			fi
