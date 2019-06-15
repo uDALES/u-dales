@@ -95,23 +95,28 @@ elif  [ $type == "time" ]; then
 
         told=0
         counter=0
-
-        for t in $times; do 
-            if [[ $told -lt $t ]] ; then 
-                # loop for when there is an overlap where the overlap finishes
-                if [[ $t -eq $tdouble ]] ; then 
-                    tcont=$((counter+1))
+	tcut=""  # setting tcut to empty string, testing later whether it stays like that
+        overlap=0  # setting overlap to false
+	for t in $times; do 
+            if [[ $told -lt $t ]] ; then  # as long as monotone increase
+		# loop for when an overlap occured, check where the overlap finishes
+		if [[ $overlap -eq 1 ]] ; then  # if overlap has occured in previous times
+                	if [[ $t -ge $tdouble ]] ; then  # current time step greater or equal to overlap time
+                    		tcont=$((counter+1))
+				overlap=0  # overlap time fixed, stop checking
+			fi
                 fi
-            else
+            else  # not monotone!
                 tdouble=$told
                 tcut=$((counter-1))
+		overlap=1
             fi
             # increase counters
             told=$t
             ((counter++))
         done
         
-        if [[ ! -z $tcut ]] ; then
+        if [[ ! -z $tcut ]] ; then  # testing if tcut is not empty
             echo "Time overlap occurred."
             echo "Take field until time index $tcut and continue with index $tcont. Cutting file now." 
             
