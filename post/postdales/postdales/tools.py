@@ -598,8 +598,8 @@ def getcanyons(blocks, limits):
         # shift back
         canyons = blockshift(fullcanyons, limits, -xshift, -yshift)
     else:
-        canyons = limits
-        fullcanyons = limits
+        canyons = [limits]
+        fullcanyons = [limits]
         
     return canyons, fullcanyons
 
