@@ -75,14 +75,14 @@ Install the packages netcdf (also installs gcc and gfortran), open-mpi, fftw and
 brew install packagename
 ```
 
-You may also want to install the package nco, which is required for postprocessing in "pre-post", and ncview for easy visualisations of Dales-U output.
+You may also want to install the package nco, which is required for postprocessing in "pre-post", and ncview for easy visualisations of dales-urban output.
 
 Homebrew installs packages in "/usr/local/" directory, make sure this path (or whereever your packages are stored) is added to the Makefile as INCDIRS and/or LIBDIRS.
 
 
 ### Installing
 
-To get an executable version of Dales-U go to the directory "src/dales-urban" and compile by typing `make`.
+To get an executable version of dales-urban go to the directory "src/dales-urban" and compile by typing `make`.
 
 Don't forget to run a `make clean` after making changes to the source code or Makefile and before recompiling.
 
@@ -223,14 +223,22 @@ Explain how to run the automated tests for this system
 
 ## Contributing
 
-Please read [CONTRIBUTING.md](https://gist.github.com/PurpleBooth/b24679402957c63ec426) for details on our code of conduct, and the process for submitting pull requests to us.
+Please read [CONTRIBUTING.md](https://gitlab.com/dales-urbanists/dales-u/contributing.md) for details on our code of conduct, and the process for submitting pull requests to us.
 
 ## Authors
 
-* **Billie Thompson** - *Initial work* - [PurpleBooth](https://github.com/PurpleBooth)
+Dales-U is based on the [Dales](https://github.com/dalesteam/dales) model.
+
+Authors of the Dales-urban extension are
+
+* **Jasper Tomas** - *Initial work*
+* **Ivo Suter** - [Ivo](https://gitlab.com/ivsuter)
+* **Tom Grylls** - [Tom](https://gitlab.com/tomgrylls)
+* **Birgit Sützl** - [Birgit](https://gitlab.com/bss116)
+* **Maarten van Reeuwijk** - [Maarten](https://gitlab.com/mvanreeuwijk)
 
 See also the list of [contributors](https://github.com/your/project/contributors) who participated in this project.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
+This project is licensed under the GNU General Public License - see the [LICENSE.md](LICENSE.md) file for details
