@@ -2,23 +2,18 @@
 %close all
 
 %% add a bounding wall around the domain used in radiation calculations only
-%% make sure there is padding of at least 1 cell between buildings and domain edge!!
 %% THIS DOES NOT YET DEAL WITH PERIODIC GEOMETRY (I.E. CANYONS)
-
-
-%% derived quantities
-
 
 
 
 %% read files
 %blocks
-nheader=3
+nheader=2;
 try %in case file is empty -> no blocks
     
 %can use blocks instead of sliced blocks (bbri)  [I guess]
 %B = dlmread([tempdir '/blocks.inp.' num2str(expnr)],'',nheader,0);  %#il   iu   jl    ju   kl   ku  ttop  twest teast tnor tsou
-B = dlmread([tempdir '/bbri.inp'],'',nheader,0);  %#il   iu   jl    ju   kl   ku  ttop  twest teast tnor tsou
+B = dlmread([tempdir '/blocks.inp.' num2str(expnr)],'',nheader,0);  %#il   iu   jl    ju   kl   ku  ttop  twest teast tnor tsou
 catch
 B =[];
 end
@@ -61,6 +56,8 @@ remz=rem((height+1),maxsize);
 
 boundingwalls=zeros(2*nzw*(nxwalls+nywalls),7);
 boundingwallfacets=zeros(2*nzw*(nxwalls+nywalls),4);
+
+%%
 
 %in the west east north south
 %facing east west south north
@@ -139,7 +136,7 @@ for i=1:(nywalls*nzw)
 end
 
 if lwritefiles
-    fname = [outputdir '/boundingwalls.txt']; %it's not an input to the les
+    fname = [tempdir '/boundingwalls.txt']; %it's not an input to the les
     fileID = fopen(fname,'w');
     fprintf(fileID,'# %4s\n','bounding wall facets');
     fprintf(fileID,'# %4s\n','indeces & walltype');

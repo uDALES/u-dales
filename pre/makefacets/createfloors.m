@@ -7,32 +7,20 @@
 %CAREFUL, DON'T RUN MORE THAN ONCE. IT APPENDS TO FACETS.INP.XXX
 %                                      -------
 
-%% parameters
-
-%minsize=3; %desired minimum length floors should have (could be smaller (>=1) depending on geometry)
-% expnr=101;
-% nx=1024;
-% ny=960;
-% nz=110;
-% dx=1*ones(1,nx);
-% dy=1*ones(1,ny);
-% dz=1*ones(1,nz);
-% xc=dx/2:dx:(nx*dx-dx/2);
-% yc=dy/2:dy:(ny*dy-dy/2);
-% zc=dz/2:dz:(nz*dz-dz/2);
 
 
 %% read blocks
 %read blocks
 
-% nheader=3;
-% try %in case file is empty -> no blocks
-% B = dlmread(['../input/blocks.inp.' num2str(expnr)],'',nheader,0);  %#il   iu   jl    ju   kl   ku  ttop  twest teast tnor tsou
-% catch
-% B =[];
-% end
-
-B = blocks;
+nheader=2;
+try %in case file is empty -> no blocks
+    
+%can use blocks instead of sliced blocks (bbri)  [I guess]
+%B = dlmread([tempdir '/blocks.inp.' num2str(expnr)],'',nheader,0);  %#il   iu   jl    ju   kl   ku  ttop  twest teast tnor tsou
+B = dlmread([tempdir '/blocks.inp.' num2str(expnr)],'',nheader,0);  %#il   iu   jl    ju   kl   ku  ttop  twest teast tnor tsou
+catch
+B =[];
+end
 
 [nblocks, nbi]=size(B);  %number of blocks, number of block parameters
 
@@ -101,7 +89,7 @@ for i=1:nblocks
     yu=B(i,4);
     
     %west
-    if xl-1>=1 %not add domain edge
+    if xl-1>=1 %not at domain edge
         if BI(xl-1,yl)==0 % left neighbour is a floor
             c=c+1;
             M2(xl-1,yl:yu)=0; %set to 2 for later check if it is a corner
@@ -118,7 +106,7 @@ for i=1:nblocks
         end
     end
     %east
-    if xu+1<=nx %not add domain edge
+    if xu+1<=nx %not at domain edge
         if BI(xu+1,yl)==0
             c=c+1;
             M2(xu+1,yl:yu)=0;
@@ -134,7 +122,7 @@ for i=1:nblocks
         end
     end
     %north
-    if yu+1<=ny %not add domain edge
+    if yu+1<=ny %not aat domain edge
         if BI(xu,yu+1)==0
             c=c+1;
             M2(xl:xu,yu+1)=0;
@@ -150,14 +138,14 @@ for i=1:nblocks
         end
     end
     %south
-    if yl-1>=1 %not add domain edge
+    if yl-1>=1 %not at domain edge
         if BI(xu,yl-1)==0
             c=c+1;
             M2(xl:xu,yl-1)=0;
             iM(xl:xu,yl-1)=c;
             floors(c,:)=[xl xu yl-1 yl-1];
             if (yl-1>=1) && (xu+1<=nx) && (yu+1<=ny) && (xl-1>=1)
-                if BI(xl,yl-1)>0 %corner with an east wall
+                if BI(xl-1,yl-1)>0 %corner with an east wall
                     cornm(xl,yl-1)=15;
                 elseif BI(xu+1,yl-1)>0 %corner with a west wall
                     cornm(xu,yl-1)=10;
@@ -325,14 +313,63 @@ while ~isempty(ls)
     end
 end
 
+floors3=zeros(size(floors2,1),5);
+floors3(:,1:4)=floors2; %indeces
+floors3(:,5)=-1; %type
+
+
+%% merge floors in y, where possible and as long as smaller than maxsize, don't merge triple corners
+change=true;
+while change
+    change=false;
+    for j=1:size(floors3,1)
+        il=floors3(j,1);
+        iu=floors3(j,2);
+        jl=floors3(j,3);
+        ju=floors3(j,4);
+        if sum(sum(cornm(il:iu,jl:ju)))==0 %no triple corner somewhere on this floor facet, try to merge along y
+            
+            flu=find(floors3(:,1)==il & floors3(:,2)==iu & floors3(:,3)==ju+1); %floor with same x dimension on ju+1
+            fll=find(floors3(:,1)==il & floors3(:,2)==iu & floors3(:,4)==jl-1); %floor with same x dimension on jl-1
+            
+            if ~isempty(flu)
+                ilu=floors3(flu,1);
+                iuu=floors3(flu,2);
+                jlu=floors3(flu,3);
+                juu=floors3(flu,4);
+                if sum(sum(cornm(ilu:iuu,jlu:juu)))==0 && (floors3(flu,4)-floors3(j,3)+1<maxsize)
+                    floors3(j,4)=floors3(flu,4);
+                    floors3(flu,:)=[];
+                    change=true;
+                end  
+            elseif ~isempty(fll)
+                ill=floors3(fll,1);
+                iul=floors3(fll,2);
+                jll=floors3(fll,3);
+                jul=floors3(fll,4);
+                if sum(sum(cornm(ill:iul,jll:jul)))==0 && (floors3(j,4)-floors3(fll,3)+1<maxsize)
+                    floors3(j,3)=floors3(fll,3);
+                    floors3(fll,:)=[];
+                    change=true;
+                end
+            end
+            
+        end
+        if change
+        break    
+        end
+    end
+end
+nfloors=size(floors3,1);
+
 if ltestplot
     %rebuild indexmask and plot
     xc=xb+0.5; xc(end)=[];
     yc=yb+0.5; yc(end)=[];
     
     blub=zeros(nx,ny);
-    for i=1:size(floors2,1)
-        blub(floors2(i,1):floors2(i,2),floors2(i,3):floors2(i,4))=i;
+    for i=1:size(floors3,1)
+        blub(floors3(i,1):floors3(i,2),floors3(i,3):floors3(i,4))=i;
     end
     
     figure
@@ -341,14 +378,10 @@ if ltestplot
     title('floor indeces with borders outlined')
     set(gca,'YDir','normal')
     hold on
-    for i=1:size(floors2,1)
-        rectangle('Position',[xc(floors2(i,1))-0.5 yc(floors2(i,3))-0.5  xc(floors2(i,2))-xc(floors2(i,1))+1 yc(floors2(i,4))-yc(floors2(i,3))+1])
+    for i=1:size(floors3,1)
+        rectangle('Position',[xc(floors3(i,1))-0.5 yc(floors3(i,3))-0.5  xc(floors3(i,2))-xc(floors3(i,1))+1 yc(floors3(i,4))-yc(floors3(i,3))+1])
     end
 end
-
-floors3=zeros(size(floors2,1),5);
-floors3(:,1:4)=floors2; %indeces
-floors3(:,5)=-1; %type
 
 %% append fctl
 % fctl format: orientation, walltype, blockid, buildingid, isinternal
@@ -358,6 +391,8 @@ for j=1:size(floors3,1)
     fctl(end+1, :) = [1 , 1, -99, -99, 0, floors3(j,1), floors3(j,2)+1, floors3(j,3), floors3(j,4)+1, 1, 1];
 end
 %end
+
+
 %% write
 nfcts=size(fctl,1);
 
@@ -365,13 +400,13 @@ disp([num2str(nfcts) ' facets, of which: ' num2str(nblockfcts) ' from buildings,
 
 if lwritefiles
     
-    fname = [outputdir '/facetnumbers.inp.' num2str(expnr)]; %it's not an input to the les
+    fname = [tempdir '/facetnumbers.txt']; %it's not an input to the les
     fileID = fopen(fname,'w');
     fprintf(fileID,'# %4s %4s %4s %4s %4s \n','nblocks','nfloors','nblockfcts', ' nwallfcts', ' nfloorfcts');
     fprintf(fileID,'%6i %6i %6i %6i %6i\n', [nblocks nfloors nblockfcts nwallfcts nfloors]);
     fclose(fileID);
     
-    fname = [outputdir '/floors.txt'];
+    fname = [tempdir '/floors.txt'];
     %fname = 'floors.txt'; %it's not an input to the les
     fileID = fopen(fname,'w');
     fprintf(fileID,'# %4s\n','floor facets');
@@ -406,13 +441,27 @@ if lwritefiles
     else
     Btw=zeros(nfloors,6);
     end
-        
-    %#il   iu   jl    ju   kl   ku  fatop  fawest faeast fanor fasou
     
-    %increase the z index of all blocks by one
+
+    
+    %set z index of floors to 0
     Btw((nblocks+1):(nblocks+nfloors),:)=zeros(nfloors,6);
     Btw((nblocks+1):(nblocks+nfloors),1:4)=floors3(:,1:4);
     Btw(:,7:11)=zeros(nblocks+nfloors,5);
+    
+%     % add floors below buildings
+%     % do we need/want this? DALES will loop over more blocks but not really
+%     % do anything, on the other hand the statistics might look better?
+%     % If we use this, then the number of blocks in modibm should
+%     be different from the number of blocks in masking matrices to avoid
+%     looping. Also these blocks don't have corresponding facets and thus
+%     access element 0 of any facet array in DALES
+%     Btw(end+1:end+nblocks,:)=Btw(1:nblocks,:)
+%     Btw(end-nblocks+1:end,5:end)=zeros(nblocks,7)
+
+
+    
+    %#il   iu   jl    ju   kl   ku  fatop  fawest faeast fanor fasou
     %add the corresponding facets
     for i=1:nblockfcts %for blocks
         Btw(fctl(i,3),fctl(i,1)+6)=i;
@@ -423,17 +472,18 @@ if lwritefiles
         j=j+1;
     end
     
-    cd(tempdir)
-    copyfile bbri.inp bbri2.inp
-    fname = ['bbri.inp'];
+   % cd(tempdir)
+    %copyfile bbri.inp bbri2.inp
+    fname = [tempdir '/blocks.inp.' num2str(expnr)];
     fileID = fopen(fname,'W');
     fprintf(fileID, '# block location\n');
     fprintf(fileID, '#il    iu    jl     ju    kl    ku   corresp. facets\n');
     fclose(fileID);
     dlmwrite(fname,Btw,'-append','delimiter','\t','precision','%4i')
-    [SUCCESS,MESSAGE,MESSAGEID] = movefile('bbri.inp', ['blocks.inp.' num2str(expnr)]) ;
-    [SUCCESS,MESSAGE,MESSAGEID] = movefile('bbri2.inp', 'bbri.inp') ;
-    [SUCCESS,MESSAGE,MESSAGEID] = copyfile(['blocks.inp.' num2str(expnr)], [outputdir '/blocks.inp.' num2str(expnr)]) ;
+    [SUCCESS,MESSAGE,MESSAGEID] = copyfile([tempdir '/blocks.inp.' num2str(expnr)], [outputdir '/blocks.inp.' num2str(expnr)]);
+%     [SUCCESS,MESSAGE,MESSAGEID] = movefile('bbri.inp', ['blocks.inp.' num2str(expnr)]) ;
+%     [SUCCESS,MESSAGE,MESSAGEID] = movefile('bbri2.inp', 'bbri.inp') ;
+%     [SUCCESS,MESSAGE,MESSAGEID] = copyfile(['blocks.inp.' num2str(expnr)], [outputdir '/blocks.inp.' num2str(expnr)]) ;
     cd(parentdir)
 end
 
