@@ -38,7 +38,7 @@ source = 1;
 stretch = 'no';
 lwritefiles = 1;
 ltestplot = 1;
-lhqplot = 1;
+lhqplot = 0;
 
 lradiation = 1;
 
