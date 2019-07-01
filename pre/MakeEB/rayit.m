@@ -7,42 +7,8 @@
 
 %% derived quantities
 
-
-
-
-%% read files
-%blocks
-nheader=3;
-B = dlmread([outputdir '/blocks.inp.' num2str(expnr)],'',nheader,0);  %#il   iu   jl    ju   kl   ku  ttop  twest teast tnor tsou
-%floors
-nheader=3;
-G = dlmread([outputdir '/floors.txt'],'',nheader,0);  %#il   iu   jl    ju  type
-%facets
-nheader=1;
-F = dlmread([outputdir '/facets.inp.' num2str(expnr)],'',nheader,0);  %#   or     wl    blk    bld
-%wallazimuth
-nheader=0;
-wallaz = dlmread([outputdir '/wallaz.txt'],'',nheader,0);  %#   or     wl    blk    bld
-%view factors
-nheader=1;
-vf=dlmread([outputdir '/vf.inp.' num2str(expnr)],'',nheader,0);
-%environmental view factors and sky view factor
-nheader=1;
-svf=dlmread([outputdir '/svf.inp.' num2str(expnr)],'',nheader,0);
-%walltheta
-nheader=0;
-walltheta=dlmread([outputdir '/walltheta.txt'],'',nheader,0);
-%Sdir
-nheader=1;
-Sdir=dlmread([outputdir '/Sdir.txt'],'',nheader,0);
-
-
 [fct, wall] = loadfacets(expnr);
 
-
-[nblocks, nbi]=size(B);
-[nfcts, nfacprop]=size(F);
-[nfl, nflprop]=size(G);
 
 
 [sortt, sorti]=sort(F(:,1));  %sort by walltype
@@ -53,7 +19,6 @@ Sdir=dlmread([outputdir '/Sdir.txt'],'',nheader,0);
 %Z=35;          %zenith angle of the sun (could be function of time, location etc)
 Dsky=zeros(nfcts,1);
 Denv=zeros(nfcts,1);
-
 
 albedo=zeros(nfcts,1);
 emissivity=zeros(nfcts,1);
@@ -112,7 +77,7 @@ Kout=zeros(10,1);
 Kout(2)=sum(Koutinit);
 
 
-Kin=Kininit; %Kin adds up
+Kin=Kininit; %Kin §adds up
 Kinold=Kininit;
 Koutold=Koutinit; %Kout is wiped clean with every reflection
 Koutnew=zeros(nfcts,1);
@@ -163,7 +128,7 @@ while true
    Koutold=Koutnew; %overwrite reflected radiation with new value 
 end
 %%
-if lhqplot 
+if lhqplot
 scale=2;
 scalef=1.5;
 h= figure;
@@ -482,16 +447,18 @@ dlmwrite(fname,Tnew(:,k),'-append','delimiter',' ','precision','%4f')
  fileID = fopen(fname,'W');
  fprintf(fileID, '# Initial facet tempereatures in radiative equilibrium nudged to 288\n');
  fclose(fileID);
- blub=Tnew(:,k);
+ blub=Tnew(Tnew>0);
  blublub=mean(blub(:));
- blub=Tnew(:,k)-(Tnew(:,k)-blublub)*0.75-10;
+ blub=Tnew-(Tnew-blublub)*0.5;
+ blub(Tnew==0)=0;
  dlmwrite(fname,blub,'-append','delimiter',' ','precision','%4f')
-
 
 
 if ltestplot
     figure
+    hold on
     plot(Tnew(sorti,k)-Tinit(sorti),'r-x')
+    plot(blub(sorti,k)-Tinit(sorti),'b-x')
     xlabel('facet NR')
     ylabel('T_{end}-T_{init}')
     ax1 = gca; % current axes
@@ -524,46 +491,3 @@ if ltestplot
     ylabel('facet temperature')
     legend('15','41','51','58','68')
 end
-% figure
-% hold on
-% plot(Tnew(18,1:k))
-% plot(Tnew(28,1:k))
-% plot(Tnew(38,1:k))
-% plot(Tnew(48,1:k))
-% plot(Tnew(58,1:k))
-% plot(Tnew(68,1:k))
-% plot(Tnew(78,1:k))
-% plot(Tnew(88,1:k))
-% plot(Tnew(98,1:k))
-% xlabel('iteration')
-% ylabel('facet temperature')
-% legend('18','28','38','48','58','68','78','88','98')
-
-
-% while true
-%    count=count+1;
-%    for i=1:nfcts
-%        Lin=0;
-%        for j=1:nfcts %sum all the incoming radiation on i, originally reflected from all the other j facets ("radiation reflected on j" x "what perecentage does i take of j's vision")
-%        inc=Told(j)^4*emissivity(j)*sigma*vf(j,i);
-%        Lin=Lin+inc;
-%        end
-%    Lout=Lin*absorptivity(i)+Kin(i)+Lsky(i)-hc*(Told(i)-Tair);
-%
-%    check=(Lout/(emissivity(i)*sigma))^(1/4);
-%    if check-Told(i)>0.1
-%    Tnew(i)=Told(i)+Tincremental(i);
-%    Tincremental(i)=Tincremental(i)*0.5;
-%    elseif Told(i)-check>0.1
-%    Tnew(i)=Told(i)-Tincremental(i);
-%    Tincremental(i)=Tincremental(i)*0.5;
-%    end
-%
-%    end
-%
-%    if all(abs(Tnew-Told)<0.1) %all(Koutnew/Koutold<0.01)
-%        break
-%    end
-%    Told=Tnew;
-%
-% end

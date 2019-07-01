@@ -1,111 +1,3 @@
-% clear all
-% close all
-
-%% can facet 1 see facet 2
-
-centerweight=0.5;  %if center is sunlit, centerweight% of the facet are sunlit
-cornerweight=(1-centerweight)/4; %if 1 corner is sunlit, cornerweight% of the facet is sunlit
-
-%% read files
-
-% CHECK NHEADER NUMBERS WITH TEXT FILES
-%blocks
-nheader=2;
-try %in case file is empty -> no blocks
-BB = dlmread([outputdir '/blocks.inp.' num2str(expnr)],'',nheader,0);  %#il   iu   jl    ju   kl   ku  ttop  twest teast tnor tsou
-catch
-BB =[];
-end
-
-%blocks for intersection
-nheader=3;
-try %in case file is empty -> no blocks
-B = dlmread([tempdir '/bbri.inp'],'',nheader,0);  %#il   iu   jl    ju   kl   ku  ttop  twest teast tnor tsou
-catch
-B =[];
-end
-%floors
-nheader=3;
-%G = dlmread(['floors.inp.' num2str(expnr)],'',nheader,0);  %#il   iu   jl    ju  type
-G = dlmread([outputdir '/floors.txt'],'',nheader,0);  %#il   iu   jl    ju  type
-%bounding walls
-nheader=3;
-W = dlmread([outputdir '/boundingwalls.txt'],'',nheader,0);  %#il   iu   jl    ju  type
-%facets
-nheader=1;
-F = dlmread([outputdir '/facets.inp.' num2str(expnr)],'',nheader,0);  %#   or     wl    blk    bld
-
-
-[nblocks, nbi]=size(B);
-[nfcts, nfacprop]=size(F);
-[nfl, nflprop]=size(G);
-[nbw, nbwprop]=size(W);
-
-%% create blocks to test for intersection
-%
-bl=zeros(nblocks+nbw,6);
-for k=1:nblocks
-    xl=xb(B(k,1));
-    xu=xb(B(k,2)+1);
-    yl=yb(B(k,3));
-    yu=yb(B(k,4)+1);
-    zl=zb(B(k,5)+1);
-    zu=zb(B(k,6)+2);
-    bl(k,:)=[xl xu yl yu zl zu];
-end
-for k=1:nbw
-    fi3=F(k+(nfcts-nfl-nbw),1);
-    il=W(k,1);
-    iu=W(k,2);
-    jl=W(k,3);
-    ju=W(k,4);
-    kl=W(k,5)+1;
-    ku=W(k,6)+1;
-    if (fi3==2)
-        xl=xb(end);
-        xu=xb(end)+0.1;
-        yl=yb(jl);
-        yu=yb(ju+1);
-        zl=zb(kl);
-        zu=zb(ku+1);
-    elseif (fi3==3)
-        xl=xb(1)-0.1;
-        xu=xb(1);
-        yl=yb(jl);
-        yu=yb(ju+1);
-        zl=zb(kl);
-        zu=zb(ku+1);
-    elseif (fi3==4)
-        xl=xb(il);
-        xu=xb(iu+1);
-        yl=yb(1)-0.1;
-        yu=yb(1);
-        zl=zb(kl);
-        zu=zb(ku+1);
-    else %if (fi==5)
-        xl=xb(il);
-        xu=xb(iu+1);
-        yl=yb(end);
-        yu=yb(end)+0.1;
-        zl=zb(kl);
-        zu=zb(ku+1);
-    end
-    bl(k+nblocks,:)=[xl xu yl yu zl zu];
-end
-gl=zeros(nfl,6); %[xl xu yl yu zl zu] %space coordinates of floors
-for j=1:nfl
-    xl=xb(G(j,1));
-    xu=xb(G(j,2)+1);
-    yl=yb(G(j,3));
-    yu=yb(G(j,4)+1);
-    zl=0-0.1;
-    zu=0;
-    gl(j,:)=[xl xu yl yu zl zu];
-end
-
-
-
-
 
 %% View factors
 % Calculate fraction of facets seeing each other (not blocked)
@@ -292,52 +184,7 @@ for i=1:(nfcts-1)
                     end
                 end
             end
-            %             if (fi==1) %fi is horizontal, test if corner with a vertical wall
-            %              %e.g   j is west wall,      ixu==jx                    iz==jzl                    iyl>=jyl              iyl<=jyu                  iyu>=jyl              iyu<=jyu                  iyu>=jyl              iyl<=jyl                  iyu>=jyu              iyl<=jyu
-            %                 if  ( (fi2==2) && (coaa(3,1)==cobb(1,1)) && (coaa(1,3)==cobb(1,3)) && ( (coaa(1,2)>=cobb(1,2)&&coaa(1,2)<=cobb(4,2)) || (coaa(2,2)>=cobb(1,2)&&coaa(2,2)<=cobb(4,2)) || (coaa(2,2)>=cobb(1,2)&&coaa(1,2)<=cobb(1,2)) || (coaa(2,2)>=cobb(4,2)&&coaa(1,2)<=cobb(4,2))) )
-            %                     vcorner=[3 4 -1];
-            %                 elseif ((fi2==3) && (coaa(1,1)==cobb(1,1)) && (coaa(1,3)==cobb(1,3)) && ( (coaa(1,2)>=cobb(1,2)&&coaa(1,2)<=cobb(4,2)) || (coaa(2,2)>=cobb(1,2)&&coaa(2,2)<=cobb(4,2)) || (coaa(2,2)>=cobb(1,2)&&coaa(1,2)<=cobb(1,2)) || (coaa(2,2)>=cobb(4,2)&&coaa(1,2)<=cobb(4,2))) )
-            %                     vcorner=[1 4 1];
-            %                 elseif ((fi2==4) && (coaa(1,2)==cobb(1,2)))
-            %                     vcorner=[4 4 -1];
-            %                 elseif ((fi2==5) && (coaa(2,2)==cobb(1,2)))
-            %                     vcorner=[2 4 1];
-            %                 end
-            %             elseif (fi==2)
-            %                 if     ((fi2==4) && (coaa(1,2)==cobb(1,2)))
-            %                     vcorner=[1 3 1];
-            %                 elseif ((fi2==5) && (coaa(3,2)==cobb(1,2)))
-            %                     vcorner=[3 3 -1];
-            %                 elseif ((fi2==1) && (coaa(1,3)==cobb(1,3)))
-            %                     vcorner=[4 3 1];
-            %                 end
-            %             elseif (fi==3)
-            %                 if     ((fi2==4) && (coaa(1,2)==cobb(1,2)))
-            %                     vcorner=[1 1 -1];
-            %                 elseif ((fi2==5) && (coaa(3,2)==cobb(1,2)))
-            %                     vcorner=[3 1 1];
-            %                 elseif ((fi2==1) && (coaa(1,3)==cobb(1,3)))
-            %                     vcorner=[4 1 1];
-            %                 end
-            %             elseif (fi==4)
-            %                 if     ((fi2==2) && (coaa(3,1)==cobb(1,1)))
-            %                     vcorner=[3 1 1];
-            %                 elseif ((fi2==3) && (coaa(1,1)==cobb(1,1)))
-            %                     vcorner=[1 1 -1];
-            %                 elseif ((fi2==1) && (coaa(1,3)==cobb(1,3)))
-            %                     vcorner=[4 4 -1];
-            %                 end
-            %             elseif (fi==5)
-            %                 if     ((fi2==2) && (coaa(3,1)==cobb(1,1)))
-            %                     vcorner=[3 3 -1];
-            %                 elseif ((fi2==3) && (coaa(1,1)==cobb(1,1)))
-            %                     vcorner=[1 3 1];
-            %                 elseif ((fi2==1) && (coaa(1,3)==cobb(1,3)))
-            %                     vcorner=[4 2 1];
-            %                 end
-            %             end
-            
-            
+                 
             %calculate viewfactor
             [F12,F21]=ViewFactor(coaa,cobb,areaa,areab,glpo,vcorner);
             
@@ -363,12 +210,12 @@ end
 disp('done calculating vf')
 %%
 vfo=single(vf);
-pf1sf2o=single(pf1sf2);
+%pf1sf2o=single(pf1sf2);
 blub=sum(vfo,2);
 lblub=find(blub>1);
 if ~isempty(lblub)
 disp('max vf was:')
-max(blub)
+[maxvf,indexmaxvf] = max(blub)
 for i=1:length(lblub)
 vfo(lblub(i),:)=vfo(lblub(i),:)/blub(lblub(i));
 end
@@ -388,34 +235,38 @@ fclose(fileID);
 dlmwrite(fname,svf,'-append','delimiter',' ','precision','%4f')
 
 
-fname = [outputdir '/vf.inp.' num2str(expnr)];
-fileID = fopen(fname,'W');
-fprintf(fileID, '# view factors between facets\n');
-fclose(fileID);
-dlmwrite(fname,vfo,'-append','delimiter',' ','precision','%4f')
+ncid = netcdf.create([outputdir '/vf.nc.inp.' num2str(expnr)],'NC_WRITE');
+dimidrow = netcdf.defDim(ncid,'rows',nfcts);
+dimidcol = netcdf.defDim(ncid,'columns',nfcts);
+varid = netcdf.defVar(ncid,'view factor','NC_FLOAT',[dimidrow dimidcol]);
+netcdf.endDef(ncid);
+netcdf.putVar(ncid,varid,vfo);
+netcdf.close(ncid);
 
-fname = [outputdir '/pf1sf2.inp.' num2str(expnr)];
-fileID = fopen(fname,'W');
-fprintf(fileID, '# % facets see each other\n');
-fclose(fileID);
-dlmwrite(fname,pf1sf2o,'-append','delimiter',' ','precision','%4f')
+% fname = [outputdir '/vf.inp.' num2str(expnr)];
+% fileID = fopen(fname,'W');
+% fprintf(fileID, '# view factors between facets\n');
+% fclose(fileID);
+% dlmwrite(fname,vfo,'-append','delimiter',' ','precision','%4f')
+% 
+% ncid = netcdf.create([outputdir '/pf1sf2.nc.inp.' num2str(expnr)],'NC_WRITE');
+% dimidrow = netcdf.defDim(ncid,'rows',nfcts);
+% dimidcol = netcdf.defDim(ncid,'columns',nfcts);
+% varid = netcdf.defVar(ncid,'percentage f1 sees of f2','NC_FLOAT',[dimidrow dimidcol]);
+% netcdf.endDef(ncid);
+% netcdf.putVar(ncid,varid,pf1sf2o);
+% netcdf.close(ncid);
+
+% fname = [outputdir '/pf1sf2.inp.' num2str(expnr)];
+% fileID = fopen(fname,'W');
+% fprintf(fileID, '# % facets see each other\n');
+% fclose(fileID);
+% dlmwrite(fname,pf1sf2o,'-append','delimiter',' ','precision','%4f')
 
 fname = [outputdir '/facetarea.inp.' num2str(expnr)];
 fileID = fopen(fname,'W');
 fprintf(fileID, '# area of facets\n');
 fclose(fileID);
 dlmwrite(fname,A,'-append','delimiter',' ','precision','%4f')
-%
-%
-% fname = ['tvf.inp.' num2str(expnr)];
-% fileID = fopen(fname,'w');
-% fprintf(fileID, 'environmental and sky view factors\n');
-% fclose(fileID);
-% dlmwrite(fname,tvf,'-append','delimiter',' ','precision','%4f')
-%
-% fname = 'facet-area.txt';
-% fileID = fopen(fname,'w');
-% fprintf(fileID, 'facet areas [m2]\n');
-% fclose(fileID);
-% dlmwrite(fname ,area,'-append','delimiter',' ','precision','%4f')
+
 end

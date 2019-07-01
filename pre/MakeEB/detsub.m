@@ -4,7 +4,7 @@ function [ ndim, area, co] = detsub(i,F,BB,G,W,cornm,xb,yb,zb,delta)
 
 bi=F(i,3); %block index
 fi=F(i,1); %facet index
-ci=F(i,4); %building index (-1 for roads, -99 for bounding wall)
+ci=F(i,4); %building index (-1 for roads, -101 for bounding wall)
 
 il=-1; iu=-1;jl=-1;ju=-1;kl=-1;ku=-1;it=-1;jt=-1;kt=-1;
 co=-1;
@@ -15,8 +15,8 @@ area=-1;
 
 
 if (ci<=-100) %it is a bounding wall
-    kl=W(bi,5)+1;
-    ku=W(bi,6)+1;
+    kl=W(bi,5)+1+1;
+    ku=W(bi,6)+1+1;
     if (fi==2)  %east, facing west
         jl=W(bi,3);     %lower y index of floor facet 1
         ju=W(bi,4);     %upper y index of floor facet 1
@@ -150,7 +150,7 @@ else  % it is a floor, not a building
     iu=G(bi,2);     %upper x index of floor facet 1
     jl=G(bi,3);     %lower y index of floor facet 1
     ju=G(bi,4);     %upper y index of floor facet 1
-    z=0;
+    z=1;
     ndim=((iu-il)+1)*((ju-jl)+1);
     co=[(xb(iu+1)+xb(il))*.5, (yb(ju+1)+yb(jl))*.5  , z; ... %center
         xb(il)+delta        , yb(jl)+delta          , z; ... %4 corners

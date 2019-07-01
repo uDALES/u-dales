@@ -22,7 +22,7 @@ if sun  %calculation between facet 1 and the sun
     
     
     bi=F(i,3); %block index
-    ci=F(i,4); %building index (-1 for roads, -99 for bounding wall)
+    ci=F(i,4); %building index (-1 for roads, -101 for bounding wall)
     if ndima>testcrit  %also test corner, otherwise only test center
         
         for k=1:5
