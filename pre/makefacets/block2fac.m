@@ -2,9 +2,9 @@
 %close all
 
 %% read blocks
-nheader = 3;
+nheader = 2;
 try %in case file is empty -> no blocks
-blk = dlmread([tempdir '/bbri.inp'],'',nheader,0);
+blk = dlmread([tempdir '/blocks.inp.' num2str(expnr)],'',nheader,0);
 catch
 blk=[];
 end
@@ -34,84 +34,9 @@ nz=nk;
 
 
 
-% dxc=xc(2:end)-xc(1:(end-1));
-% xb=zeros(length(xc)+1,1);
-% xb(2:end-1)=xc(1:end-1)+dxc/2;
-% xb(1)=0;
-% xb(end)=xc(end)+dxc(end)/2;
-% dx=xb(2:end)-xb(1:(end-1));
-% 
-% dzc=zc(2:end)-zc(1:(end-1));
-% zb=zeros(length(zc)+1,1);
-% zb(2:end-1)=zc(1:end-1)+dzc/2;
-% zb(1)=0;
-% zb(end)=zc(end)+dzc(end)/2;
-% dz=zb(2:end)-zb(1:(end-1));
-% 
-% ny=ymax/dy;
-% dyc=dy*ones(1,ny-1);
-% yc=zeros(ny,1);
-% yc(2:end)=dy/2+cumsum(dyc);
-% yc(1)=dyy/2;
-% yb=zeros(length(yc)+1,1);
-% yb(1)=0;
-% yb(end)=ymax;
-% yb(2:end-1)=cumsum(dyc);
-% dy=yb(2:end)-yb(1:(end-1));
-
-
-%IC geometry
-% nx=512;
-% ny=480;
-% nz=100;
-% dx=2*ones(1,nx);
-% dy=2*ones(1,ny);
-% dz=1*ones(1,nz);
-% xb=[0 cumsum(dx)];
-% yb=[0 cumsum(dy)];
-% zb=[0 cumsum(dz)];
-
-%test geometry
-
-% nx = 13;
-% ny = 13;
-% nz = 4;
-% dx=1*ones(1,nx);
-% dy=1*ones(1,ny);
-% dz=1*ones(1,nz);
-% xb=[0 cumsum(dx)];
-% yb=[0 cumsum(dy)];
-% zb=[0 cumsum(dz)];
-
-% xc=dx; yc=dy; zc=dz;
-% for i=1:nx
-%     xc(i)=(xb(i)+xb(i+1))/2;
-% end
-% for i=1:ny
-%     yc(i)=(yb(i)+yb(i+1))/2;
-% end
-% for i=1:nz
-%     zc(i)=(zb(i)+zb(i+1))/2;
-% end
-
-
-% 
-% fname = ['xgrid.inp.' num2str(expnr)];
-% fileID = fopen(fname,'W');
-% fprintf(fileID, '# x-grid\n');
-% fclose(fileID);
-% dlmwrite(fname,xc','-append','delimiter',' ','precision','%4f')
-% 
-% fname = ['zgrid.inp.' num2str(expnr)];
-% fileID = fopen(fname,'W');
-% fprintf(fileID, '# x-grid\n');
-% fclose(fileID);
-% dlmwrite(fname,zc','-append','delimiter',' ','precision','%4f')
-
-
 
 %% create Mask-matrix
-%
+% this new mask is in x,y coordinates, not y,x coordinates as before
 M=zeros(nx,ny);
 IM=zeros(nx,ny);
 for i=1:size(blk,1)
@@ -123,6 +48,10 @@ for i=1:size(blk,1)
     IM(xl:xu,yl:yu)=i;
 end
 
+% figure
+% imagesc(M)
+% set(gca,'YDir','normal')
+
 %% define all facets
 
 % fctl format: orientation, walltype, blockid, buildingid, isinternal
@@ -132,7 +61,7 @@ top = 1; west = 2; east = 3; north = 4; south=5; bot = 6;
 
 il = 1; iu = 2;
 jl = 3; ju = 4;
-kl = 5; ku = 6;
+kl = 5; ku = 6;  
 
 nfcts=nblks*6;
 fctl=int32(zeros(nfcts,10));
@@ -190,70 +119,6 @@ for j=1:nblks
     end
 end
 
-%% carry out error checking on the facets
-
-% overlapping facets
-% floating facets
-
-%
-%         % check for facets that overlap
-%         if (fctl(i, 4+il) == fctl(j, 4+il))
-%             pi = [fctl
-%         end
-%         if (all(fctl(i, 4+(il:ku)) == fctl(j, 4+(il:ku))) && ~(i == j))
-%             nintern = nintern + 1;
-%             intern(nintern, 1) = i;
-%             intern(nintern, 2) = j;
-%             fctl(i, 4) = 1;
-%         end
-%     end
-% end
-
-%% determine internal interfaces and buildings
-
-% search for internal boundaries. Only need to check upper triangle of
-% interactions due to symmetry
-% ils13: double loop is slow, see alternative version below
-%
-% intern = zeros(nfcts, 2);
-% nintern = 0;
-%
-% for i=1:nfcts
-%     for j=(i+1):nfcts
-%         % check for facets at the same location.
-%         if (all(fctl(i, 5+(il:ku)) == fctl(j, 5+(il:ku))))
-%             nintern = nintern + 1;
-%             intern(nintern, 1) = i;
-%             intern(nintern, 2) = j;
-%             fctl(i, 5) = 1;
-%             fctl(j, 5) = 1;
-%         end
-%     end
-% end
-% toc
-% intern = intern(1:nintern,:);
-%% alternative determination of internal faces
-% intern=zeros(nfcts,2);
-% nintern=0;
-%
-% for i=1:nfcts
-%
-%     logi=fctl(i, 5+(il:ku)) == fctl(:,5+(il:ku)); %compare over all j
-%     list=find(sum(logi,2)==6); %find the j that matches
-%     toremove=find(list<=i);  %remove facets that have already been dealt with and itself
-%     list(toremove)=[];
-%     if isempty(list) %not an internal facet
-%         continue
-%     else
-%         nintern=nintern(end)+(1:length(list));
-%         intern(nintern,1)=i;
-%         intern(nintern,2)=list;
-%         fctl(i,5)=1;
-%         fctl(list,5)=1;
-%     end
-% end
-% toc
-% intern = intern(1:nintern,:);
 
 %% alternative after merging internal blocks
 disp('determine internal facets')
@@ -304,64 +169,7 @@ end
 nintern=sum(fctl(:,5));
 intern = intern(1:nintern,:);
 
-% find(fctl(:,1)==1 & fctl(:,5+il)<=fctl(i,5+iu)+1 & fctl(:,5+iu)>=fctl(i,5+iu)+1 & fctl(:,5+jl)<=fctl(i,5+jl) & fctl(:,5+ju)>=fctl(i,5+jl))
-%
-%% contagion algorithm to identify all the grouped blocks.
-% ils13: slow, see alternative below
-%
-% bblk0 = fctl(:, 3);
-% bblk1 = bblk0;
-%
-% done = false;
-% while (~done)
-%     % find all facets belonging to block associated with the facet in
-%     % the second column of intern, and replace these with the block id
-%     % from the facet in the first column (contagion)
-%
-%     for n = 1:nintern
-%        bblk1(bblk0(:,1)==bblk0(intern(n,2),1)) = bblk0(intern(n,1), 1);
-%     end
-%
-%     if (all(bblk1 == bblk0))
-%         done = true;
-%     end
-%     bblk0 = bblk1;
-% end
-% toc
-%
-% % assign building id to fctl
-% bblku = unique(bblk1);
-% nbld = length(bblku);
-% for n = 1:nbld
-%   fctl(bblk1 == bblku(n), 4) = n;
-% end
-
-
-
-%% alternative
-% fctl format: orientation, walltype, blockid, buildingid, isinternal
-%              il, jl, kl, iu, ju, ku
-
-% bblk0 = fctl(:, 3);
-% bblk1 = bblk0;
-% 
-% for n=1:nintern
-%     % find all facets belonging to block associated with the facet in
-%     % the second column of intern, and replace these with the block id
-%     % from the facet in the first column (contagion)
-%     list=find(bblk0==intern(n,2));
-%     bblk0(list)=bblk1(intern(n,1));
-%     bblk1=bblk0;
-% end
-% toc
-% 
-% % assign building id to fctl
-% bblku = unique(bblk1);
-% nbld = length(bblku);
-% for n = 1:nbld
-%     fctl(bblk1 == bblku(n), 4) = n;
-% end
-% toc
+%%
 tic
 disp('remove downward and internal facets')
 bblk0 = fctl(:, 3);
@@ -385,11 +193,51 @@ for n = 1:nbld
 end
 toc
 
-%% remove downward and internal facets
-%
+%% remove downward facets and internal facets
+% fctl format: orientation, walltype, blockid, buildingid, isinternal
+%              il, iu, jl, ju, kl, ku
 sel = find(fctl(:,1)~=bot & fctl(:,5)~=1);
 fctl = fctl(sel, :);
-nfcts=size(fctl);
+nfcts=size(fctl,1);
+
+%% remove facets at domain edge (not actually done)
+
+sel = find(~((fctl(:,6)==1 & fctl(:,7)==1) | (fctl(:,6)==ni+1 & fctl(:,7)==ni+1) | (fctl(:,8)==1 & fctl(:,9)==1) | (fctl(:,8)==nj+1 & fctl(:,9)==nj+1)));
+
+if lradiation && (length(sel)~=nfcts)
+myicon = imread('flamingos.jpg');
+h=msgbox("Flamingos!!",'Flamingos','custom',myicon);
+    
+myicon = imread('llama.jpg');
+h=msgbox("llama!!",'llama','custom',myicon);
+
+myicon = imread('sherlock.jpg');
+h=msgbox("sherlock is a good boy!!",'dog','custom',myicon);
+    
+cdata = get(0,'DefaultImageCData');
+cdata2=uint8(zeros(size(cdata,1),size(cdata,2),3));
+blub=(cdata - floor(cdata));
+cdata2(:,:,1)= uint8(blub/max(blub(:))*255);
+cdata2(:,:,2)= uint8(blub/max(blub(:))*255);
+cdata2(:,:,3)= uint8(blub/max(blub(:))*255);
+myicon=cdata2;
+h=msgbox("Rest of the code will likely crash",'Fluff','custom',myicon);    
+    
+myicon = imread('peppers.png');
+h=msgbox("Don't have blocks on the edge, when using radiation and/or the energy balance!!",'Ratatouille','custom',myicon);
+
+
+
+pause()
+end
+
+%this 2 lines would actually remove the facets on domain edge
+% fctl = fctl(sel, :);
+% nfcts=size(fctl);
+
+
+
+
 %% plot orientation, blocks, buildings and wall type
 if lhqplot
     figure

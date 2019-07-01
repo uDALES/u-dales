@@ -7,7 +7,7 @@ clear all
 
 %%
 
-expnr = '002';
+expnr = '001';
 %expnr = num2str(iexpnr);
 
 CPUS = 16;       % # cpus
@@ -71,6 +71,9 @@ da_pp.addvar(r, 'dpdy',0)           % dpdy
 
 % temperature
 da_pp.addvar(r, 'thl0',288)         % temperature at lowest level
+da_pp.addvar(r, 'qt0',0)
+da_pp.addvar(r, 'sv10',0)
+da_pp.addvar(r, 'sv20',0)
 da_pp.addvar(r, 'lapse',0)          % lapse rate Ks-1
 
 % other
@@ -198,8 +201,8 @@ if r.lmassflowr
     pqy = 0.0;
     vg(1:ke) = 0;
     ug(1:ke) = 0;
-    u(1:ke) = linspace(0,r.u0,ke);
-    v(1:ke) = linspace(0,r.v0,ke);
+    u(1:ke) = r.u0; %linspace(0,r.u0,ke);
+    v(1:ke) = r.v0; %linspace(0,r.v0,ke);
     disp(['forcing : massflowr'])
 elseif r.lprofforc
     pqx = 0.0;
@@ -240,7 +243,12 @@ if (r.lmassflowr+r.lprofforc+r.lcoriol+r.ldp)>1
     error('More than one forcing specified (listed above)')
 end
 
-% temperature
+% other
+qt0 = r.qt0;
+sv10 = r.sv10;
+sv20 = r.sv20;
+
+% temperature^M
 thl(1) = r.thl0;
 disp(['r.thl0 = ' num2str(r.thl0)])
 
@@ -403,7 +411,7 @@ stretchconst=2;
 stretch = 'tanh';
 source = 2;
 
-makezgrid
+makezgridOG
     
 else
     
@@ -480,7 +488,7 @@ fclose(lscale);
 disp(['... written lscale.inp.' expnr])
 
 %% Determine prof.inp
-qt0=0;
+%qt0=0;
 pr = zeros(length(zf),6);
 pr(:,1) = zf;
 pr(:,2) = thl;
@@ -548,6 +556,8 @@ if r.lchem
 end
 
 sc(:,1) = zf;
+sc(:,2) = sv10;
+sc(:,3) = sv20;
 scalar = fopen(['scalar.inp.' expnr], 'w');
 fprintf(scalar, '%-12s\n', '# SDBL flow');
 fprintf(scalar, '%-60s\n', '# z sca1 sca2 sca3 sca4');

@@ -42,31 +42,164 @@ for i=1:ni %loop over all x
             j=j+1; %check next j
             continue
         else
-            count=count+1;
+            
             yminl=j;
             
             heightgradient=diff(topo(j:end,i));
             
-            if isempty(heightgradient) 
+            if isempty(heightgradient) % if at the end of the y-direction (je)
             heightchangey=j;
-            elseif all(heightgradient==0)
+            elseif all(heightgradient==0) % same block/ floor until the end of the domain
             heightchangey=nj;    
             else
             heightchangey=find(heightgradient~=0,1)+j-1;  %last cell with same height as j (i.e. there is a height change betwen this and the next cell
             end
+            
+%            if topo(heightchangey,1)>0 && topo(heightchangey+1,1)>0 && heightgradient(heightchangey)<0 % same building different block height! % not interested as currently setting LOWER nonzero block change
 
-            ymaxl=heightchangey;
+            for jj=yminl+1:heightchangey
+                
+                % if there is a smaller block on the left or right and
+                % there is also a change in height between that block and
+                % it's neighbour.
+                
+%                 if ( i==1 ) 
+%                     
+%                     if ( ( any(topo(yminl-1:yminl,i+1)<topo(yminl-1:yminl,i) & topo(yminl-1:yminl,i+1)>0) ) && ( topo(yminl,i+1)~= topo(yminl-1,i+1) ) )
+%                 
+%                         heightchangey = jj-1;
+%                     
+%                     end
+%                     
+%                 elseif ( i==ni )
+%                     
+%                     if ( any(topo(yminl-1:yminl,i-1)<topo(yminl-1:yminl,i) & topo(yminl-1:yminl,i-1)>0) && ( topo(yminl,i-1)~= topo(yminl-1,i-1) ) )
+%                     
+%                         heightchangey = jj-1;
+%                     
+%                     end
+%                     
+%                 else
+%                     if ( any(topo(yminl-1:yminl,i-1)<topo(yminl-1:yminl,i) & topo(yminl-1:yminl,i-1)>0) && ( topo(yminl,i-1)~= topo(yminl-1,i-1) ) ) || ( ( any(topo(yminl-1:yminl,i+1)<topo(yminl-1:yminl,i) & topo(yminl-1:yminl,i+1)>0) ) && ( topo(yminl,i+1)~= topo(yminl-1,i+1) ) )
+%                     
+%                         heightchangey = jj-1; % overwrite heightchangey as we need to truncate block earlier!
+%                     
+%                     end
+%                     
+%                 end
+
+                if ( i==1 ) 
+                    
+                    if ( ( any(topo(jj-1:jj,i+1)>0) ) && ( topo(jj,i+1)~= topo(jj-1,i+1) ) )
+                
+                        1
+                        
+                        heightchangey = jj-1;
+                        
+                        break
+                    
+                    end
+                    
+                elseif ( i==ni )
+                    
+                    if ( any(topo(jj-1:jj,i-1)>0) && ( topo(jj,i-1)~= topo(jj-1,i-1) ) )
+                    
+                        2
+                        
+                        heightchangey = jj-1;
+                        
+                        break
+                    
+                    end
+                    
+                else
+                    
+                    if ( any(topo(jj-1:jj,i-1)>0) && ( topo(jj,i-1)~= topo(jj-1,i-1) ) ) || ( ( any(topo(jj-1:jj,i+1)>0) ) && ( topo(jj,i+1)~= topo(jj-1,i+1) ) )
+                        
+                        heightchangey = jj-1; % overwrite heightchangey as we need to truncate block earlier!
+                        
+                        break
+                    
+                    end
+                    
+                end
+
+                
+            end
+                
+            ymaxl=heightchangey;  % end of the current block (either floor or block with different height comes next)
             
-            j=heightchangey+1;
+            ztemp = zeros(6,1);
             
-            blchecked(yminl:ymaxl,xminl:xmaxl)=blchecked(yminl:ymaxl,xminl:xmaxl)+1;
-            indexmask(yminl:ymaxl,xminl:xmaxl)=count;
-            xmin(count)=xminl;
-            xmax(count)=xmaxl;
-            ymin(count)=yminl;
-            ymax(count)=ymaxl;
-            zmin(count)=0;
-            zmax(count)=topo(yminl,xminl)/dz;
+            % tg3315 changed from commented below as can have yminl==1 and
+            % ymaxl==nj
+            if yminl==1
+                ztemp(2,1) = NaN;
+            else
+                ztemp(2,1) = topo(yminl-1,xminl);
+            end
+            
+            if xminl==1
+                ztemp(3,1) = NaN;
+            else
+                ztemp(3,1) = topo(yminl,xminl-1);
+            end
+            
+            if xmaxl==ni
+                ztemp(4,1) = NaN;
+            else
+                ztemp(4,1) = topo(yminl,xminl+1);
+            end
+            
+            if ymaxl==nj
+                ztemp(5,1) = NaN;
+            else
+                ztemp(5,1) = topo(yminl+1,xminl);
+            end
+           
+%             if xminl==1 && yminl==1
+%                 ztemp(2,1) = NaN; ztemp(3,1) = NaN; ztemp(4,1) = topo(yminl,xmaxl+1); ztemp(5,1) = topo(ymaxl+1,xmaxl);
+%             elseif xmaxl==ni && yminl==1
+%                 ztemp(2,1) = NaN; ztemp(3,1) = topo(yminl,xminl-1); ztemp(4,1) = NaN; ztemp(5,1) = topo(ymaxl+1,xmaxl);
+%             elseif xminl==1 && ymaxl==nj
+%                 ztemp(2,1) = topo(yminl-1,xminl); ztemp(3,1) = NaN; ztemp(4,1) = topo(yminl,xmaxl+1); ztemp(5,1) = NaN;
+%             elseif xmaxl==ni && ymaxl==nj
+%                 ztemp(2,1) = topo(yminl-1,xminl); ztemp(3,1) = topo(yminl,xminl-1); ztemp(4,1) = NaN; ztemp(5,1) = NaN;
+%             elseif xminl==1
+%                 ztemp(2,1) = topo(yminl-1,xminl); ztemp(3,1) = NaN; ztemp(4,1) = topo(yminl,xmaxl+1); ztemp(5,1) = topo(ymaxl+1,xmaxl);
+%             elseif xaxl==ni
+%                 ztemp(2,1) = topo(yminl-1,xminl); ztemp(3,1) = topo(yminl,xminl-1); ztemp(4,1) = NaN; ztemp(5,1) = topo(ymaxl+1,xmaxl);
+%             elseif yminl==1
+%                 ztemp(2,1) = NaN; ztemp(3,1) = topo(yminl,xminl-1); ztemp(4,1) = topo(yminl,xmaxl+1); ztemp(5,1) = topo(ymaxl+1,xmaxl);
+%             elseif ymaxl==nj
+%                 ztemp(2,1) = topo(yminl-1,xminl); ztemp(3,1) = topo(yminl,xminl-1); ztemp(4,1) = topo(yminl,xmaxl+1); ztemp(5,1) = NaN;
+%             else
+%                 ztemp(2,1) = topo(yminl-1,xminl); ztemp(3,1) = topo(yminl,xminl-1); ztemp(4,1) = topo(yminl,xmaxl+1); ztemp(5,1) = topo(ymaxl+1,xmaxl);
+%             end
+            
+            zcuttemp = sort(ztemp(ztemp<topo(yminl, xminl) & ztemp>0));
+            zcut = [0; zcuttemp; topo(yminl,xminl)];
+            
+            for kc=1:size(zcut,1)-1
+                
+                count=count+1;
+                
+                blchecked(yminl:ymaxl,xminl:xmaxl)=blchecked(yminl:ymaxl,xminl:xmaxl)+1;
+                indexmask(yminl:ymaxl,xminl:xmaxl)=count;
+                xmin(count)=xminl;
+                xmax(count)=xmaxl;
+                ymin(count)=yminl;
+                ymax(count)=ymaxl;
+                if zcut(kc,1)==0
+                    zmin(count)=0;
+                else
+                    zmin(count)=zcut(kc,1)/dz+1;
+                end
+                zmax(count)=zcut(kc+1,1)/dz;
+                
+            end
+
+            j=heightchangey+1;  % move to index after current block
             
         end
     end
@@ -90,23 +223,25 @@ zmax((count+1):end)=[];
 disp(['Nr of blocks after cutting into y slices: ' num2str(count)])
 
 
+
 %% add y slices of same dimension, aggregate along x
 %keep old xmax etc.. to keep better track whats happening
 xmax2=xmax; ymax2=ymax; zmax2=zmax;
 xmin2=xmin; ymin2=ymin; zmin2=zmin;
 dsize=1;
 sizeold=count;
-while dsize>0  %do as long as there are unmerged blocks
+while dsize>0  %do as long as there are unmerged blocks % tg3315 need to also check here that you do not merge if they have a block above...!
     i=1;   
     while 1  %do along x
         a=xmax2(i);  %upper x index of this block
         bv=find(xmin2==(a+1));  %all blocks with a lower x bound 1 bigger than this blocks upper x bound
         b2=bv(ymin2(bv)==ymin2(i)); %all of those blocks with also the same lower y bound
-        if ~isempty(b2);
-            if (ymax2(b2)==ymax2(i)) && (zmax2(b2)==zmax2(i)) %if they also have the same upper y bound and the same height
+        b3=b2(zmin2(b2)==zmin2(i));
+        if ~isempty(b3);
+            if all(ymax2(b3)==ymax2(i)) && all(zmax2(b3)==zmax2(i)) && topo(ymin2(b3),xmin2(b3))==topo(ymin2(i),xmin2(i)) %&& all(zmin2(b2)==zmin2(i)) %if they also have the same upper y bound and the same height
 
-                xmax2(i)=xmax2(b2); %merge 
-                xmax2(b2)=[];ymax2(b2)=[];zmax2(b2)=[];xmin2(b2)=[];ymin2(b2)=[];zmin2(b2)=[]; %remove the just merged block from list of blocks
+                xmax2(i)=xmax2(b3); %merge 
+                xmax2(b3)=[];ymax2(b3)=[];zmax2(b3)=[];xmin2(b3)=[];ymin2(b3)=[];zmin2(b3)=[]; %remove the just merged block from list of blocks
             end
         end
         i=i+1; %check furhter along x
@@ -116,6 +251,7 @@ while dsize>0  %do as long as there are unmerged blocks
     end
     dsize=sizeold-length(xmax2);
     sizeold=length(xmax2);
+    
 end
 count2=sizeold;
 disp(['Nr of blocks after merging y slices of same size along x: ' num2str(count2)])
@@ -143,7 +279,31 @@ if ltestplot
     ylim([yh(1) yh(end)])
 title('after merging y slices of same size along x')
 end
-%%
+
+%% tg and bs 30.05.19 - try to split blocks vertically too
+
+% xmax25=xmax2; ymax25=ymax2; zmax25=zmax2;
+% xmin25=xmin2; ymin25=ymin2; zmin25=zmin2;
+% 
+% for i=1:ni %loop over all x
+
+
+%% At this point can form block file that works for old cold
+
+% Edit for NY in 1930s topology
+% dummy=ones(5,count2);
+% 
+% for k=1:length(zmax2)
+%     if zmax2(k)>12
+%         zmax2(k) = 12+round(12*rand(1));
+%     end
+% end
+% 
+% fileID = fopen([outputdir '/blocksOLD.inp.' num2str(expnr)],'w');
+% fprintf(fileID,'# Block data\n');
+% fprintf(fileID,'#  il\t   iu\t   jl\t   ju\t   kl\t   ku\t dtop\t dwest\t deast\t dnor\t dsou\n');
+% fprintf(fileID,'%5d\t%5d\t%5d\t%5d\t%5d\t%5d\t%5d\t%5d\t%5d\t%5d\t%5d\n',[xmin2';xmax2';ymin2';ymax2';zmin2';zmax2';dummy]);
+% fclose(fileID);
 
 %% split slices up according to rules in x and y, do z later
 xmin3=zeros(maxnrblocks,1);
@@ -160,9 +320,15 @@ ymax3(1:count2)=ymax2;
 zmin3(1:count2)=zmin2;
 zmax3(1:count2)=zmax2;
 
+if lradiation
+
 indexmask3=indexmask2;
 change=true;
 count3=count2;
+
+maxx = 0;
+cmax = 0;
+
 while change  %do until there is no changes anymore
     
     change=false;
@@ -171,6 +337,7 @@ while change  %do until there is no changes anymore
         %only have to check x-1 and x+1, since there can't be a
         %neightbour on y-1 or y+1 (due to the inital slicing along y)
         %index of blocks to the left
+        
         if ~(xmin3(c)==1) %on left domain boundary, don't need to check for neighbouring blocks
             illb=indexmask3(ymin3(c):ymax3(c),xmin3(c)-1);
             iillb=find(illb>0,1);
@@ -212,10 +379,57 @@ while change  %do until there is no changes anymore
             yminl=ymin3(ilb);
         end
         
-        %
-        %
+        if xmin(3)>maxx
+        maxx = xmin3(c);
+        maxx/ni
+        end
+
+        if c/count3>cmax
+            cmax=c/count3
+        end
         
-        if (yminr>ymin3(c)) %this block extends further (down) than reight neighbour, this block has to be split
+        %
+        %
+            
+        if (ymaxl<ymax3(c))% & zmax3(ilb)==zmax3(c)  %this block extends further (up) than left neighbour, this block has to be split
+            %x  x  x  x      %x  x  x  x
+            %x    [c] x      %x    [n] x
+            %x [l][c] x      %x [l][c] x
+            %x [l][c] x ===> %x [l][c] x
+            %x [l][c] x      %x [l][c] x
+            %x  x  x  x      %x  x  x  x
+            change=true;            %keep checking
+            count3=count3+1;        %add new block
+            ymin3(count3)=ymaxl+1;  %new block starts 1 above xmax of left neighbour
+            ymax3(count3)=ymax3(c); %new block ends at xmax of this block
+            xmin3(count3)=xmin3(c); %new block has same x coordinates as this block
+            xmax3(count3)=xmax3(c);
+            zmin3(count3)=zmin3(c); %keep the same heights
+            zmax3(count3)=zmax3(c);
+            indexmask3(ymin3(count3):ymax3(count3),xmin3(count3):xmax3(count3))=count3;
+            ymax3(c)=ymaxl;         %shorten this block
+            break                   %continue forloop from the start
+        
+        elseif (yminl>ymin3(c))% & zmin3(ilb)==zmin3(c)  %this block extends further (down) than left neighbour, this block has to be split
+            %x  x  x  x      %x  x  x  x
+            %x [l][c] x      %x [l][c] x
+            %x [l][c] x      %x [l][c] x
+            %x [l][c] x ===> %x [l][c] x
+            %x    [c] x      %x    [n] x
+            %x  x  x  x      %x  x  x  x
+            change=true; %keep checking
+            count3=count3+1; %add new block
+            ymin3(count3)=ymin3(c); %new block starts at same ymin as this
+            ymax3(count3)=yminl-1;  %new block ends 1 below ymin of left neighbour
+            xmin3(count3)=xmin3(c); %new block has same x coordinates as this block
+            xmax3(count3)=xmax3(c);
+            zmin3(count3)=zmin3(c); %keep the same heights
+            zmax3(count3)=zmax3(c);
+            indexmask3(ymin3(count3):ymax3(count3),xmin3(count3):xmax3(count3))=count3;  %overwrite the index in the indexmask with the new one
+            ymin3(c)=yminl;         %shorten this block
+            break                   %continue forloop from the start
+        
+        elseif (yminr>ymin3(c))% & zmin3(irb)==zmin3(c) %this block extends further (down) than reight neighbour, this block has to be split
             %x  x  x  x      %x  x  x  x
             %x [c][r] x      %x [c][r] x
             %x [c][r] x      %x [c][r] x
@@ -234,45 +448,7 @@ while change  %do until there is no changes anymore
             ymin3(c)=yminr;         %shorten this block
             break                   %continue for-loop from the start
             
-        elseif (yminl>ymin3(c))  %this block extends further (down) than left neighbour, this block has to be split
-            %x  x  x  x      %x  x  x  x
-            %x [l][c] x      %x [l][c] x
-            %x [l][c] x      %x [l][c] x
-            %x [l][c] x ===> %x [l][c] x
-            %x    [c] x      %x    [n] x
-            %x  x  x  x      %x  x  x  x
-            change=true; %keep checking
-            count3=count3+1; %add new block
-            ymin3(count3)=ymin3(c); %new block starts at same ymin as this
-            ymax3(count3)=yminl-1;  %new block ends 1 below ymin of left neighbour
-            xmin3(count3)=xmin3(c); %new block has same x coordinates as this block
-            xmax3(count3)=xmax3(c);
-            zmin3(count3)=zmin3(c); %keep the same heights
-            zmax3(count3)=zmax3(c);
-            indexmask3(ymin3(count3):ymax3(count3),xmin3(count3):xmax3(count3))=count3;  %overwrite the index in the indexmask with the new one
-            ymin3(c)=yminl;         %shorten this block
-            break                   %continue forloop from the start
-            
-        elseif (ymaxl<ymax3(c))  %this block extends further (up) than left neighbour, this block has to be split
-            %x  x  x  x      %x  x  x  x
-            %x    [c] x      %x    [n] x
-            %x [l][c] x      %x [l][c] x
-            %x [l][c] x ===> %x [l][c] x
-            %x [l][c] x      %x [l][c] x
-            %x  x  x  x      %x  x  x  x
-            change=true;            %keep checking
-            count3=count3+1;        %add new block
-            ymin3(count3)=ymaxl+1;  %new block starts 1 above xmax of left neighbour
-            ymax3(count3)=ymax3(c); %new block ends at xmax of this block
-            xmin3(count3)=xmin3(c); %new block has same x coordinates as this block
-            xmax3(count3)=xmax3(c);
-            zmin3(count3)=zmin3(c); %keep the same heights
-            zmax3(count3)=zmax3(c);
-            indexmask3(ymin3(count3):ymax3(count3),xmin3(count3):xmax3(count3))=count3;
-            ymax3(c)=ymaxl;         %shorten this block
-            break                   %continue forloop from the start
-            
-        elseif(ymaxr<ymax3(c)) %this block extends further (up) than reight neighbour, this block has to be split
+        elseif (ymaxr<ymax3(c))% & zmax3(irb)==zmax3(c) %this block extends further (up) than reight neighbour, this block has to be split
             %x  x  x  x      %x  x  x  x
             %x [c]    x      %x [n]    x
             %x [c][r] x      %x [c][r] x
@@ -292,6 +468,7 @@ while change  %do until there is no changes anymore
             break %continue forloop from the start
             
         end
+        
     end
     
     
@@ -315,15 +492,30 @@ end
 axis equal tight
 hold off
 title('after applying rules for radiation in x and y')
+
+end
+
+
+else
+    
+   count3 = count2;
+   xmin3 = xmin2;
+   xmax3 = xmax2;
+   ymin3 = ymin2;
+   ymax3 = ymax2;
+   zmin3 = zmin2;
+   zmax3 = zmax2;
+    
 end
 
 %% aggregate building internal blocks  (only rectangles)
 %  1 2 3 4     1 2 3 4
-%  5 6 7 8     5 6 6 7
+%  5 6 7 8     5i 6 6 7
 %  9 a b c  -> 8 6 6 9
 %  d e f g     a b c d
 
-%use that all neighbours have the same size in 1 dimension
+%use that all neighbours have the same size in 1 dimension % tg3315 mot
+%true now...
 
 datamean4=zeros(size(topomask));
 indexmask4=zeros(size(topomask));
@@ -350,26 +542,26 @@ for k=1:count3
     if xmin3(i)==1 %at edge
     temp1(:,1)=999999;    %dummy value
     else
-    temp1(:,1)=indexmask4(yind, xmin3(i)-1);    
+    temp1(:,1)=topo(yind,xmin3(i))-topo(yind,xmin3(i)-1); % tg3315 changed so do not get internal blocks with adjacent different sizes %indexmask4(yind, xmin3(i)-1);    
     end
     if xmax3(i)==ni %at edge
     temp1(:,2)=999999;     
     else
-    temp1(:,2)=indexmask4(yind, xmax3(i)+1);       
+    temp1(:,2)=topo(yind,xmax3(i))-topo(yind,xmax3(i)+1); %indexmask4(yind, xmax3(i)+1);       
     end
     if ymin3(i)==1 %at edge
     temp2(1,:) = 999999;    %dummy value   
     else 
-    temp2(1,:) = indexmask4(ymin3(i)-1,xind)    ;
+    temp2(1,:) = topo(ymin3(i),xind)-topo(ymin3(i)-1,xind); %indexmask4(ymin3(i)-1,xind)    ;
     end
     if ymax3(i)==nj %at edge
     temp2(2,:) = 999999;    %dummy value  
     else 
-    temp2(2,:) = indexmask4(ymax3(i)+1,xind)  ; 
+    temp2(2,:) = topo(ymax3(i),xind)-topo(ymax3(i)+1,xind); %indexmask4(ymax3(i)+1,xind)  ; 
     end
     
     temp=[temp1(:)' temp2(:)'];
-    if all(temp>0) %it's internal
+    if all(temp==0) % tg3315 switched this indexing around... %temp>0) %it's internal
         internalmask(yind,xind)=1;
     end
 end
@@ -387,7 +579,11 @@ hold off
 title('internal blocks after applying rules for radiation in x and y')
 end
 
+% tg3315 may need to develop this further for geometries with VERY uneven
+% roof tops... Currently will not allow internal blocks below but this does
+% satisy the radiation laws in ther vertical direction...
 
+% merge internal blocks
 count5=count3;
 xmin5=xmin3;
 xmax5=xmax3;
@@ -555,11 +751,74 @@ ymax2f=nj-ymin2+1;
 % fclose(fileID);
 
 
-wtmean=ones(5,count5);
+
+%write block file to extend with roads and bounding walls etc
+
+dummy=ones(5,count5);
+
+fileID = fopen([tempdir '/blocks.inp.' num2str(expnr)],'w');
+fprintf(fileID,'# Block data\n');
+fprintf(fileID,'#  il\t   iu\t   jl\t   ju\t   kl\t   ku\t dtop\t dwest\t deast\t dnor\t dsou\n');
+fprintf(fileID,'%5d\t%5d\t%5d\t%5d\t%5d\t%5d\t%5d\t%5d\t%5d\t%5d\t%5d\n',[xmin5';xmax5';ymin6';ymax6';zmin5';zmax5';dummy]);
+fclose(fileID);
+
+
+
+
+
+%write block file to use for test of ray intersection (without roads that will be added to blocks.inp)
+%already raise by 1 (because of roads, is done to blocks.inp.xxx later)
+%give each building a unique number, might differ from results in block2fac
+%but it doesn't matter
+
+%if source == 1 
+%if (size(B,1)<size(xmin5,1))
+%whichsource=1;
+%nbl=size(B,1);
+%blockindexmask=topoind;
+%else
+blockindexmask=dataind;   
+nbl=size(xmin5,1);
+%whichsource=2;
+%end
+%else
+%blockindexmask=dataind;
+%nbl=size(xmin5,1);
+%whichsource=2;
+%end
+buildingindexmask=bwlabel(blockindexmask);
+buildingindexlist=zeros(1,nbl);
+
+if ltestplot
+figure
+imagesc(buildingindexmask)
+axis equal tight
+hold off
+title('building indeces')
+set(gca,'YDir','normal')
+end
+
+%if whichsource == 1
+%    xuu=B(:,2);
+%    yuu=B(:,4);
+%    zuu=B(:,6);
+%elseif whichsource == 2
+    xuu=xmax5;
+    yuu=ymax6;
+    zuu=zmax5;
+%end
+        
+for i=1:nbl
+buildingindexlist(i)=buildingindexmask(yuu(i),xuu(i));    
+end
 
 fileID = fopen([tempdir '/bbri.inp'],'w');
-fprintf(fileID,'# Block data\n');
-fprintf(fileID,'# block indices,                     wall type\n');
-fprintf(fileID,'#  il\t   iu\t   jl\t   ju\t   kl\t   ku\t ttop\t twest\t teast\t tnor\t tsou\n');
-fprintf(fileID,'%5d\t%5d\t%5d\t%5d\t%5d\t%5d\t%5d\t%5d\t%5d\t%5d\t%5d\n',[xmin5';xmax5';ymin6';ymax6';zmin5';zmax5';wtmean]);
+fprintf(fileID,'# Block data for ray intersection\n');
+fprintf(fileID,'#  il\t   iu\t   jl\t   ju\t   kl\t   ku\t buildingindex\n');
+%if whichsource == 2
+ fprintf(fileID,'%5d\t%5d\t%5d\t%5d\t%5d\t%5d\t%5d\n',[xmin5';xmax5';ymin6';ymax6';zmin5'+1;zmax5'+1;buildingindexlist]);
+%elseif whichsource == 1
+%fprintf(fileID,'%5d\t%5d\t%5d\t%5d\t%5d\t%5d\t%5d\n',[B(:,1)';B(:,2)';B(:,3)';B(:,4)';B(:,5)';B(:,6)';buildingindexlist]);    
+%end
 fclose(fileID);
+
