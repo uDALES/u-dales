@@ -35,10 +35,10 @@ else()
     message(FATAL_ERROR "Only gfortran and ifort compilers supported")
 endif()
 
-find_package(NetCDF REQUIRED COMPONENTS F90)
-include_directories(${NETCDF_F90_INCLUDE_LIBRARIES})
-
 find_package(MPI REQUIRED)
+
+find_package(NetCDF REQUIRED COMPONENTS F90)
+include_directories(${NETCDF_F90_INCLUDE_DIRS})
 
 file(GLOB_RECURSE src_f77 "src/*.F")
 file(GLOB_RECURSE src_f90 "src/*.f90")
