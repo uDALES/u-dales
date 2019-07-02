@@ -7,3 +7,19 @@
 # Executables
 *.out
 dalesurban_*
+pre/output
+pre/temp
+
+# macOS specific
+.DS_Store
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+
+# jupyter notebook checkpoints
+.ipynb_checkpoints
+
+# Distribution / packaging
+build/
+dist/
+.eggs/
