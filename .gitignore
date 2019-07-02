@@ -9,6 +9,18 @@
 dalesurban_*
 pre/output
 pre/temp
+# Large output files
+work/
+
+# Links to restart files in work
+exp/*/init*
+
+# job files from HPC queues
+exp/*/job.*
+
+# additional files from compiling
+*.o
+*.mod
 
 # macOS specific
 .DS_Store
