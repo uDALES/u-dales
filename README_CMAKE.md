@@ -7,7 +7,7 @@ git clone https://github.com/uDALES/u-dales.git --branch dmey/cmake
 cd u-dales
 ```
 
-All the steps below assume that you are in the `u-dales` directory.
+All the steps below assume that you are in the `u-dales` directory. If you are building on the HPC at ICL, please see [Note for HPC users at ICL](#Note-for-HPC-users-at-ICL)
 
 ### Build instructions for Linux and macOS
 
@@ -24,15 +24,15 @@ $ make -j$(nproc)
 Where `$(nproc)` will use all the number of CPU cores/threads available on your system. Note that using the maximum number of CPU cores/threads available may not necessarily be the fastest way to build the software.
 
 
-#### Note for HPC users relying on the Modules package
+### Build instructions for HPC users
 
-If you are using the [Environment Modules package](http://modules.sourceforge.net/) for the dynamic modification of the user's environment via modulefiles, you will need to specify the path to the NetCDF manually after you loaded all the libraries required to compile uDALES. For example:
+If you are an HPC user, you are most likely using the [Environment Modules package](http://modules.sourceforge.net/) for the dynamic modification of the user's environment via modulefiles. In that case, you will need to specify the path to the NetCDF manually _after_ loading all the libraries required to compile uDALES. For example:
 
 ``` sh
 # This is an example, module names/versions may be different on your system
 module list # list currently enabled modules
 module avail # list available modules
-module load cmake netcdf4 openmpi gnu/8.1.0
+module load cmake netcdf4 openmpi gnu # This is an example, please check with the previous command for the exact name of the modules available on your system.
 ```
 
 If you do not know the location of NetCDF, you can locate it with the `nc-config --prefix`.
