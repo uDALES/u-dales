@@ -46,7 +46,10 @@ For the moment, if you want to compile uDALES on the HPC at ICL, please load use
 
 
 ``` sh
-module load intel-suite/2017.6 mpi/intel-2018 cmake/3.14.0
+module load intel-suite/2017.6 mpi/intel-2018 cmake/3.14.0 git/2.14.3
+git clone https://github.com/uDALES/u-dales.git --branch dmey/cmake
+cd u-dales
+mkdir build && cd build
 FC=mpiifort cmake -DNETCDF_DIR=/apps/netcdf/4.4.1-c -DNETCDF_FORTRAN_DIR=/apps/netcdf/4.4.4-fortran ..
 make -j$(nproc)
 ```
