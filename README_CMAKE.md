@@ -26,7 +26,7 @@ Where `$(nproc)` will use all the number of CPU cores/threads available on your 
 
 #### Note for HPC users relying on the Modules package
 
-If you are using the [Environment Modules package](http://modules.sourceforge.net/) for the dynamic modification of the user's environment via modulefiles, you will need to specify the path to the NetCDF manually after you loaded all the libraries required to compile WRF/WPS. For example:
+If you are using the [Environment Modules package](http://modules.sourceforge.net/) for the dynamic modification of the user's environment via modulefiles, you will need to specify the path to the NetCDF manually after you loaded all the libraries required to compile uDALES. For example:
 
 ``` sh
 # This is an example, module names/versions may be different on your system
