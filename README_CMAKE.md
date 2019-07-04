@@ -66,7 +66,7 @@ For the moment, if you want to compile uDALES on the HPC at ICL, [clone uDALES](
 
 
 ``` sh
-# The following assumes that you have no other modules installed on your environment.
+# The following assumes that you have no other modules loaded on your environment.
 module load intel-suite/2017.6 mpi/intel-2018 cmake/3.14.0 git/2.14.3
 mkdir build && cd build
 FC=mpiifort cmake -DNETCDF_DIR=/apps/netcdf/4.4.1-c -DNETCDF_FORTRAN_DIR=/apps/netcdf/4.4.4-fortran ..
