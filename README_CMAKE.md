@@ -30,7 +30,7 @@ To build the uDALES executable, from the `u-dales` repository, run the following
 
 ```sh
 $ mkdir build && cd build
-$ cmake -DCMAKE_BUILD_TYPE=Release ..
+$ cmake ..
 $ make -j$(nproc)
 ```
 
@@ -52,7 +52,7 @@ If you do not know the location of NetCDF, you can locate it with the `nc-config
 
 ``` sh
 $ mkdir build && cd build
-$ cmake -DCMAKE_INSTALL_PREFIX=install -DNETCDF_DIR=$NETCDF4_DIR -DNETCDF_FORTRAN_DIR=$DNETCDF_FORTRAN_DIR ..
+$ cmake -DNETCDF_DIR=$NETCDF4_DIR -DNETCDF_FORTRAN_DIR=$DNETCDF_FORTRAN_DIR ..
 $ make -j$(nproc)
 ```
 
@@ -72,3 +72,13 @@ mkdir build && cd build
 FC=mpiifort cmake -DNETCDF_DIR=/apps/netcdf/4.4.1-c -DNETCDF_FORTRAN_DIR=/apps/netcdf/4.4.4-fortran ..
 make -j$(nproc)
 ```
+
+### Build options
+
+By default uDALES will compile in `Release` mode. You can change this by specifying the option (or flag) at configure time. The general syntax for specifying an option in CMake is `-D<flag_name>=<flag_value>` where `<flag_name>` is the option/flag name and `<flag_value>` is the option/flag value. The following options can be specified when configuring uDALES:
+
+| Name                 | Options            | Default   | Description                                   |
+| -------------------- | ------------------ | --------- | --------------------------------------------- |
+| `CMAKE_BUILD_TYPE`   | `Release`, `Debug` | `Release` | Whether to optimise/build with debug flags    |
+| `NETCDF4_DIR`        | `<path>`           | -         | Path to NetCDF-C installation directory       |
+| `NETCDF_FORTRAN_DIR` | `<path>`           | -         | Path to NetCDF-Fortran installation directory |
