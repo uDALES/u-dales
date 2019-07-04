@@ -54,4 +54,7 @@ install:
   - popd
 
 script:
-  - touch test # TODO: add tests
+  - mkdir temp && pushd temp
+  - cp -r ../tests/examples/001/* .
+  - mpiexec -np 2 ../build/u-dales namoptions.001
+  - popd
