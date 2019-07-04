@@ -8,7 +8,7 @@ To install all the required dependencies, including support for MPI, run the fol
 
 ```sh
 sudo apt-get update && sudo apt-get upgrade -y
-sudo apt-get install -y git cmake gfortran libnetcdff-dev libmpich-dev
+sudo apt-get install -y git cmake gfortran libopenmpi-dev openmpi-bin libnetcdf-dev libnetcdff-dev
 ```
 
 After the installation is complete, continue with installing uDALES.
