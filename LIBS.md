@@ -1,6 +1,6 @@
 # Required libraries for uDALES
 
-This is helper guide on how to install all the required libraries to build uDALES from source on Ubuntu and macOS. We assume that you have administrative privileges on your computer. If you do not have administrative privileges you should request these libraries to be installed by your system administrator so that they can tare of this for you and manage updates on your behalf.
+This is a helper guide on how to install all the required libraries to build uDALES from source on Ubuntu or macOS. We assume that you have administrative privileges on your computer. If you do not have administrative privileges you should request these libraries to be installed by your system administrator so that they can tare of this for you and manage updates on your behalf.
 
 ## Ubuntu
 
