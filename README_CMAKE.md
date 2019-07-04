@@ -8,8 +8,6 @@ The following libraries are required on your system to install uDALES from sourc
 
 - [Git](https://git-scm.com/)
 - [CMake](https://cmake.org/)
-- [HDF5](https://support.hdfgroup.org/HDF5/)
-- [NetCDF-C](https://www.unidata.ucar.edu/downloads/netcdf/index.jsp)
 - [NetCDF-Fortran](https://www.unidata.ucar.edu/downloads/netcdf/index.jsp)
 - A Fortran compiler (e.g. [GNU Fortran compiler](https://gcc.gnu.org/wiki/GFortran))
 - An MPI library implementation (e.g. [MPICH](https://www.mpich.org/))
