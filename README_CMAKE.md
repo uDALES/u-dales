@@ -27,9 +27,9 @@ git clone https://github.com/uDALES/u-dales.git --branch dmey/cmake
 To build the uDALES executable, from the `u-dales` repository, run the following commands:
 
 ```sh
-$ mkdir build && cd build
-$ cmake ..
-$ make -j$(nproc)
+mkdir build && cd build
+cmake ..
+make -j$(nproc)
 ```
 
 Where `$(nproc)` will use all the number of CPU cores/threads available on your system. Note that using the maximum number of CPU cores/threads available may not necessarily be the fastest way to build the software.
@@ -49,9 +49,9 @@ module load cmake netcdf4 openmpi gnu # This is an example, please check with th
 If you do not know the location of NetCDF, you can locate it with the `nc-config --prefix`. Then, to build the uDALES executable, from the `u-dales` repository, run the following commands:
 
 ``` sh
-$ mkdir build && cd build
-$ cmake -DNETCDF_DIR=$NETCDF4_DIR -DNETCDF_FORTRAN_DIR=$DNETCDF_FORTRAN_DIR ..
-$ make -j$(nproc)
+mkdir build && cd build
+cmake -DNETCDF_DIR=$NETCDF4_DIR -DNETCDF_FORTRAN_DIR=$DNETCDF_FORTRAN_DIR ..
+make -j$(nproc)
 ```
 
 where `$NETCDF4_DIR` and `$DNETCDF_FORTRAN_DIR` are the absolute path to your NetCDF-C and NetCDF-Fortran installation directories.
