@@ -20,10 +20,10 @@ addons:
   apt:
     packages:
       - gfortran
-      - openmpi-bin
       - libopenmpi-dev
-      - libnetcdff-dev
+      - openmpi-bin
       - libnetcdf-dev
+      - libnetcdff-dev
 
 matrix:
     include:
