@@ -54,7 +54,7 @@ subroutine scalsource
   use initfac, only : block
 
   implicit none
-  integer :: i,j,k,n,il,iu,jl,ju,kl,ku
+  integer :: i,j,k,n,il,iu,jl,ju,kl,ku,ncan
   real :: xL
   real :: dyi
   real :: ra2 = 0.
@@ -126,17 +126,21 @@ subroutine scalsource
   ! Input passive scalar line sources
   if (lscasrcl .AND. nsv.gt.0) then
 
+  ncan = count(block(:,6)>0) !tg3315 update due to block at lowest level
+
     if (nblocks>0) then
 
-      do n = 1,nblocks+1
-        if (n == nblocks+1) then   ! Added to run for pollutant in first canyon
+      do n = 1,ncan+1
+        if (n == ncan+1) then   ! Added to run for pollutant in first canyon
 
-          xL = xh(block(1,1) - (block(2,1) - block(1,2)+1)/2)
+          !xL = xh(block(1,1) - (block(2,1) - block(1,2)+1)/2)
+          xL = xh(block(1,1)) - 0.5*(xh(block(2,1)) - xh(block(1,2)+1))
 !          ra2 = (i - (block(1,1) - (block(2,1) - block(1,2))/2.0))**2 + (k)**2 !tg3315 commented for chem validation
 
         else !cycle through all other canyons
 
-          xL = xh(block(n,2) + (block(2,1) - block(1,2)+1)/2)
+          !xL = xh(block(n,2) + (block(2,1) - block(1,2)+1)/2)
+          xL = xh(block(n,2)) + 0.5*(xh(block(2,1)) - xh(block(1,2)+1))
 !          ra2 =(xf(i) - xL)**2 + zf(k)**2
 
         end if
@@ -150,20 +154,20 @@ subroutine scalsource
               !scalsum = scalsum + dxf(i) * jmax * dy * dzf(k) * (SS/2*Pi*sigS**2) * exp(-ra2/(2*sigS**2))
 
               !tg3315 use this if we want to normalise th scalar conc.
-!              scalsum = scalsum + ( (SS/4.) * &
-!                        (erf((xh(i+1)-xL)/(sqrt(2.)*sigS)) - erf((xh(i)-xL)/(sqrt(2.)*sigS))) * &
-!                        (erf((zh(k+1)-zh(kb))/(sqrt(2.)*sigS)) - erf((zh(k)-zh(kb))/(sqrt(2.)*sigS))) + &
+              scalsum = scalsum + ( (SS/4.) * &
+                        (erf((xh(i+1)-xL)/(sqrt(2.)*sigS)) - erf((xh(i)-xL)/(sqrt(2.)*sigS))) * &
+                        (erf((zh(k+1)-zh(kb+1))/(sqrt(2.)*sigS)) - erf((zh(k)-zh(kb+1))/(sqrt(2.)*sigS))) + &
 ! (SS/4.) * &
-!                        (erf((xh(i+1)-xL)/(sqrt(2.)*sigS)) - erf((xh(i)-xL)/(sqrt(2.)*sigS))) * &
-!                        (erf((zh(k+1)+zh(kb))/(sqrt(2.)*sigS)) - erf((zh(k)+zh(kb))/(sqrt(2.)*sigS))) ) &
-!                        * dxfi(i) * dzfi(k)
+                        (erf((xh(i+1)-xL)/(sqrt(2.)*sigS)) - erf((xh(i)-xL)/(sqrt(2.)*sigS))) * &
+                        (erf((zh(k+1)+zh(kb+1))/(sqrt(2.)*sigS)) - erf((zh(k)+zh(kb+1))/(sqrt(2.)*sigS))) ) &
+                        * dxfi(i) * dzfi(k)
 
               svpp(i,jb-jh:je+jh,k,1) = svpp(i,jb-jh:je+jh,k,1) + ( (SS/4.) * &
                         (erf((xh(i+1)-xL)/(sqrt(2.)*sigS)) - erf((xh(i)-xL)/(sqrt(2.)*sigS))) * &
-                        (erf((zh(k+1)-zh(kb))/(sqrt(2.)*sigS)) - erf((zh(k)-zh(kb))/(sqrt(2.)*sigS))) + &
+                        (erf((zh(k+1)-zh(kb+1))/(sqrt(2.)*sigS)) - erf((zh(k)-zh(kb+1))/(sqrt(2.)*sigS))) + &
  (SS/4.) * &
                         (erf((xh(i+1)-xL)/(sqrt(2.)*sigS)) - erf((xh(i)-xL)/(sqrt(2.)*sigS))) * &
-                        (erf((zh(k+1)+zh(kb))/(sqrt(2.)*sigS)) - erf((zh(k)+zh(kb))/(sqrt(2.)*sigS))) ) &
+                        (erf((zh(k+1)+zh(kb+1))/(sqrt(2.)*sigS)) - erf((zh(k)+zh(kb+1))/(sqrt(2.)*sigS))) ) &
                         * dxfi(i) * dzfi(k)
 
 !            end if
@@ -199,11 +203,11 @@ subroutine scalsource
     if (lchem) then
       !svpp(:,:,:,1) = svpp(:,:,:,1)
       svp(:,:,:,1) = svp(:,:,:,1) + svpp(:,:,:,1)
-      svp(:,:,:,2) = svp(:,:,:,2) + 0.1518 * svpp(:,:,:,1)
+      !svp(:,:,:,2) = svp(:,:,:,2) + 0.1518 * svpp(:,:,:,1)
     else
-!      svpp(:,:,:,1) = svpp(:,:,:,1)/ scalsumt !tg3315 not normalised 07/11/2017
+      svpp(:,:,:,1) = svpp(:,:,:,1)/ scalsumt !tg3315 not normalised 07/11/2017
       svp(:,:,:,1) = svp(:,:,:,1) + svpp(:,:,:,1)
-      svp(:,:,:,2) = svp(:,:,:,2) + 0.1518 * svpp(:,:,:,1)
+      !svp(:,:,:,2) = svp(:,:,:,2) + 0.1518 * svpp(:,:,:,1)
     end if
 
     svpp = 0.
