@@ -105,7 +105,7 @@ contains
 
       else if (BCxm .eq. 5) then ! driver from driver gen (idriver == 2)
 
-         uouttot = ubulk
+         uouttot = ubulk ! does this hold for all forcings of precursor simulations? tg3315
 
          call drivergen
 
@@ -128,9 +128,8 @@ contains
 !BCxT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       if (BCxT .eq. 1) then
          call cyclichi
-
       else if (BCxT .eq. 2) then !inoutflow - will be overwritten unless BCxm == 1
-         call iohi
+         call iohi !  ! make sure uouttot is known and realistic
       else if (BCxT .eq. 3) then
          !do nothing, temperature is considered in iolet
       else
@@ -149,9 +148,8 @@ contains
 !BCxq!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       if (BCxq .eq. 1) then
          call cyclicqi
-
       else if (BCxq .eq. 2) then !inoutflow  - will be overwritten unless BCxm == 1
-        call ioqi
+        call ioqi ! tg3315 - make sure uouttot is known and realistic
       elseif (BCxq .eq. 3) then 
         !do nothing, temperature is considered in iolet
       else
@@ -170,10 +168,8 @@ contains
 !BCxs!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       if (BCxs .eq. 1) then
          call cyclicsi
-
       else if (BCxs .eq. 2) then !inoutflow  - will be overwritten unless BCxm == 1
-         call iosi
-
+         call iosi ! make sure uouttot is known and correct for the running set-up
       else if (BCxs .eq. 3) then
          ! do nothing - considered in iolet
 
@@ -181,7 +177,7 @@ contains
          call scalrec
 
       else if (BCxs .eq. 5) then !previously SIRANE - will be overwritten unless BCxm == 1
-         call scalSIRANE
+         call scalSIRANE !  make sure uouttot/ vouttot is known and realistic
 
       else
          write (*, *) "WARNING: ABORT, lateral boundary type for scalars in x-direction undefined"
@@ -222,7 +218,12 @@ contains
          call fluxtop(v0, ekm, 0.0)
          e120(:, :, ke + 1) = e12min ! free slip top wall
          e12m(:, :, ke + 1) = e12min
-         call inlettop
+         if (idriver==2) then ! does not use ddispdx, Uinf etc.
+           w0(:, :, ke + 1) = 0.0
+           wm(:, :, ke + 1) = 0.0
+         else
+           call inlettop ! for iinletgen...
+         end if
          call iolet  !ils13, 13.8.18: iolet also deals with lateral boundaries!!
       else
          write (*, *) "WARNING: ABORT, lateral boundary type for scalars in y-direction undefined"
@@ -245,7 +246,7 @@ contains
       if (BCtopq .eq. 1) then
          call fluxtop(qtm, ekh, wqtop)
          call fluxtop(qt0, ekh, wqtop)
-      else if (BCtopq .eq. 3) then
+      else if (BCtopq .eq. 2) then
          call valuetop(qtm, qt_top)
          call valuetop(qt0, qt_top)
       else
@@ -329,8 +330,8 @@ contains
             sv0(ib - 1, :, k, n) = 2*svprof(k, n) - sv0(ib, :, k, n)
             svm(ib - 1, :, k, n) = 2*svprof(k, n) - svm(ib, :, k, n)
          end do
-         sv0(ie + 1, :, :, n) = sv0(ie, :, :, n) - (sv0(ie + 1, :, :, n) - sv0(ie, :, :, n))*dxhi(ie + 1)*rk3coef*ubulk
-         svm(ie + 1, :, :, n) = svm(ie, :, :, n) - (svm(ie + 1, :, :, n) - svm(ie, :, :, n))*dxhi(ie + 1)*rk3coef*ubulk !changed from uouttot to ubulk here !tg3315 08/11/2017
+         sv0(ie + 1, :, :, n) = sv0(ie, :, :, n) - (sv0(ie + 1, :, :, n) - sv0(ie, :, :, n))*dxhi(ie + 1)*rk3coef*ubulk  ! tg3315 should be uouttot and will have to change depending on forcing
+         svm(ie + 1, :, :, n) = svm(ie, :, :, n) - (svm(ie + 1, :, :, n) - svm(ie, :, :, n))*dxhi(ie + 1)*rk3coef*ubulk
       enddo
 
       return
@@ -483,7 +484,7 @@ contains
     end do
     
     !uouttot is zero unless lmassflowr 
-    qt0(ie + 1, :, :) = qt0(ie, :, :) - (qt0(ie + 1, :, :) - qt0(ie, :, :))*dxhi(ie + 1)*rk3coef*ubulk
+    qt0(ie + 1, :, :) = qt0(ie, :, :) - (qt0(ie + 1, :, :) - qt0(ie, :, :))*dxhi(ie + 1)*rk3coef*ubulk ! tg3315 should be uouttot and will have to change depending on forcing
     qtm(ie + 1, :, :) = qtm(ie, :, :) - (qtm(ie + 1, :, :) - qtm(ie, :, :))*dxhi(ie + 1)*rk3coef*ubulk
 
    end subroutine ioqi
@@ -505,7 +506,7 @@ contains
        end do
     end do
 
-    thl0(ie + 1, :, :) = thl0(ie, :, :) - (thl0(ie + 1, :, :) - thl0(ie, :, :))*dxhi(ie + 1)*rk3coef*ubulk
+    thl0(ie + 1, :, :) = thl0(ie, :, :) - (thl0(ie + 1, :, :) - thl0(ie, :, :))*dxhi(ie + 1)*rk3coef*ubulk ! tg3315 should be uouttot and will have to change depending on forcing
     thlm(ie + 1, :, :) = thlm(ie, :, :) - (thlm(ie + 1, :, :) - thlm(ie, :, :))*dxhi(ie + 1)*rk3coef*ubulk
 
    end subroutine iohi
@@ -637,7 +638,7 @@ contains
       use modmpi, only:excjs, myid
       use modinletdata, only:u0inletbcold, v0inletbcold, w0inletbcold, uminletbc, vminletbc, wminletbc, totaluold, &
          t0inletbcold, tminletbc, u0driver, v0driver, w0driver, e120driver, thl0driver, qt0driver, umdriver, vmdriver, wmdriver,& 
-         e12mdriver, thlmdriver, qtmdriver
+         e12mdriver, thlmdriver, qtmdriver, sv0driver, svmdriver
 
       real rk3coef
 
@@ -699,8 +700,8 @@ contains
     elseif (idriver == 2) then
        do j=jb-1,je+1
           do k=kb,ke !tg3315 removed +1 following above...
-             u0(ib,j,k)=u0driver(j,k)
-             um(ib,j,k)=umdriver(j,k)
+             u0(ib,j,k)=u0driver(j,k) !max(0.,u0driver(j,k))
+             um(ib,j,k)=umdriver(j,k) !max(0.,umdriver(j,k))
 !             if(myid==0) then
 !                write(6,*) 'ib,j,k ', ib,j,k
 !                write(6,*) 'time'   , timee
@@ -708,36 +709,51 @@ contains
 !                write(6,*) 'u0(ib,j,k)', u0(ib,j,k)
 !                write(6,*) 'u0(ib+1,j,k)', u0(ib+1,j,k)
 !             end if
-             u0(ib-1,j,k)=2*u0(ib,j,k)-u0(ib+1,j,k)
-             um(ib-1,j,k)=2*um(ib,j,k)-um(ib+1,j,k)
+             u0(ib-1,j,k)= u0driver(j,k) !max(0.,2.*u0(ib,j,k)-u0(ib+1,j,k))
+             um(ib-1,j,k)= umdriver(j,k)  !max(0.,2.*um(ib,j,k)-um(ib+1,j,k))
 
-             v0(ib-1,j,k)   = v0driver(j,k) 
-             vm(ib-1,j,k)   = vmdriver(j,k)      
+             v0(ib,j,k)   = v0driver(j,k) !max(0.,v0driver(j,k))
+             vm(ib,j,k)   = vmdriver(j,k) !max(0.,vmdriver(j,k))
+             v0(ib-1,j,k)   = v0driver(j,k) !max(0.,v0driver(j,k))
+             vm(ib-1,j,k)   = vmdriver(j,k) !max(0.,vmdriver(j,k))
+
 
              ! to be changed in the future: e12 should be taken from recycle plane!
-             e120(ib-1,j,k) = e120driver(j,k)      ! extrapolate e12 from interior
-             e12m(ib-1,j,k) = e12mdriver(j,k)      ! extrapolate e12 from interior
+             !e120(ib-1,j,k) = e120driver(j,k)      ! extrapolate e12 from interior
+             !e12m(ib-1,j,k) = e12mdriver(j,k)      ! extrapolate e12 from interior
              
              do n=1,nsv
                 do m = 1,ihc
-                   sv0(ib-m,j,k,n) = 2*svprof(k,n) - sv0(ib+(m-1),j,k,n)
-                   svm(ib-m,j,k,n) = 2*svprof(k,n) - svm(ib+(m-1),j,k,n)
+                   sv0(ib-m,j,k,n) = sv0driver(j,k,n)
+                   svm(ib-m,j,k,n) = svmdriver(j,k,n)
+                   !sv0(ib-m,j,k,n) = 2*svprof(k,n) - sv0(ib+(m-1),j,k,n)
+                   !svm(ib-m,j,k,n) = 2*svprof(k,n) - svm(ib+(m-1),j,k,n)
                 enddo
              enddo
            end do
            do k=kb,ke+1
-             w0(ib-1,j,k)   = w0driver(j,k) ! tg3315 k loop was commented here but is needed 
-             wm(ib-1,j,k)   = wmdriver(j,k)
+             w0(ib-1,j,k)   = w0driver(j,k) !max(0.,w0driver(j,k)) ! tg3315 k loop was commented here but is needed 
+             wm(ib-1,j,k)   = wmdriver(j,k) !max(0.,wmdriver(j,k))
+             w0(ib,j,k)   = w0driver(j,k) !max(0.,w0driver(j,k)) ! tg3315 k loop was commented here but is needed 
+             wm(ib,j,k)   = wmdriver(j,k) !max(0.,wmdriver(j,k))
            end do
          !end do
        end do
+
+!       write(*,*) 'thl0driver', thl0driver(jb-1:je+1,kb:ke+1)
+!       write(*,*) 'thlmdriver', thlmdriver(jb-1:je+1,kb:ke+1) 
 
        ! Heat
        if (ltempeq ) then
           do j=jb-1,je+1
              do k=kb,ke+1
-                thl0(ib-1,j,k) = 2*thlprof(k) - thl0(ib, j, k) !thl0driver(j,k)
-                thlm(ib-1,j,k) = 2*thlprof(k) - thlm(ib, j, k) !thlmdriver(j,k)
+
+                thl0(ib,j,k) = thl0driver(j,k) !2*thlprof(k) - thl0(ib, j, k) !thl0driver(j,k)
+                thlm(ib,j,k) = thlmdriver(j,k) !2*thlprof(k) - thlm(ib, j, k) !thlmdriver(j,k)
+                thl0(ib-1,j,k) = thl0driver(j,k) !2*thlprof(k) - thl0(ib, j, k) !thl0driver(j,k)
+                thlm(ib-1,j,k) = thlmdriver(j,k) !2*thlprof(k) - thlm(ib, j, k) !thlmdriver(j,k)
+                !thlm(ib-1,j,k) = 2*thlm(ib,j,k) - thlm(ib+1,j,k)
+                !thl0(ib-1,j,k) = 2*thl0(ib,j,k) - thl0(ib+1,j,k)
                 !if(myid==0) then
                 !   write(6,'(A,2e20.12)') 'thl0 inlet boundary, ib-1, ib: ', thl0(ib-1,j,k), thl0(ib,j,k)
                 !endif
@@ -756,10 +772,16 @@ contains
        if (lmoist ) then
           do j=jb-1,je+1
              do k=kb,ke+1
-                qt0(ib-1,j,k) = 2*qtprof(k) - qt0(ib, j, k) !qt0driver(j,k)
+                qt0(ib,j,k) = qt0driver(j,k) !2*qtprof(k) - qt0(ib, j, k) !qt0driver(j,k)
 !                qt0(ib-1,j,k) = 2*qtprof(k) - qt0(ib,j,k)  !watch!
-                qtm(ib-1,j,k) = 2*qtprof(k) - qtm(ib, j, k) !qtmdriver(j,k)
+                qtm(ib,j,k) = qtmdriver(j,k) !2*qtprof(k) - qtm(ib, j, k) !qtmdriver(j,k)
 !                qtm(ib-1,j,k) = 2*qtprof(k) - qtm(ib,j,k)
+                qt0(ib-1,j,k) = qt0driver(j,k) !2*qtprof(k) - qt0(ib, j, k) !qt0driver(j,k)
+!                qt0(ib-1,j,k) = 2*qtprof(k) - qt0(ib,j,k)  !watch!
+                qtm(ib-1,j,k) = qtmdriver(j,k) !2*qtprof(k) - qtm(ib, j, k) !qtmdriver(j,k)
+!                qtm(ib-1,j,k) = 2*qtprof(k) - qtm(ib,j,k)
+!                qt0(ib-1,j,k) = 2*qt0(ib,j,k) - qt0(ib+1,j,k)
+!                qtm(ib-1,j,k) = 2*qtm(ib,j,k) - qtm(ib+1,j,k)
              end do
           end do
        end if
@@ -876,11 +898,11 @@ contains
                   pup(ib, j, k) = u0inletbc(j, k)*rk3coefi
                end do
             end do
-       elseif (idriver == 2) then ! used from Anton... but what is this actually doing? Do we have uinf always??? tg3315
+       elseif (idriver == 2) then
           do j=jb,je
              do i=ib,ie
                 pwp(i,j,kb)  = 0.
-                pwp(i,j,ke+kh)= (Uinf*ddispdx ) *rk3coefi ! tg3315 - idriver will not have Uinf
+                pwp(i,j,ke+kh)= 0. !(Uinf*ddispdx ) *rk3coefi ! tg3315 - idriver does not use Uinf ddisp etc.
              end do
           end do
           do k=kb,ke
@@ -913,6 +935,7 @@ contains
          do k = kb, ke
             do j = jb, je
                pup(ie + 1, j, k) = pup(ib, j, k) ! cyclic
+               !pup(ib - 1, j, k) = pup(ie, j, k) ! tg3315 is this condition not needed? Was not here before but I think exists in Dales4.0 in modpois...!?
             end do
          end do
       endif
