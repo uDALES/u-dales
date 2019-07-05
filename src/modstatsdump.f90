@@ -30,9 +30,9 @@ module modstatsdump
   save
 
   !NetCDF variables
-  integer :: ncidy,ncidyt,ncidtke,ncidxy,ncidslice,ncidxyt,nrecy=0,nrecyt=0,nrectke=0,nrecxy=0,&
-             nrecslice=0,nrecxyt=0,nstatyt=14,nstaty=14,nstattke=8,nstatxy=15,nstatslice=8,&
-             nstatxyt=23,ncidt,nrect=0,nstatt=15
+  integer :: ncidy,ncidyt,ncidtke,ncidxy,ncidslice,ncidxyt,ncidtr,nrecy=0,nrecyt=0,nrectke=0,nrecxy=0,nrectr=0,&
+             nrecslice=0,nrecxyt=0,nstatyt=24,nstaty=14,nstattke=8,nstatxy=15,nstatslice=8,&
+             nstatxyt=23,ncidt,nrect=0,nstatt=15,nstattr=6
   character(80) :: yname = 'ydump.xxx.nc'
   character(80) :: ytname = 'ytdump.xxx.nc'
   character(80) :: tkename = 'tkedump.xxx.nc'
@@ -40,6 +40,7 @@ module modstatsdump
   character(80) :: xytname = 'xytdump.xxx.nc'
   character(80) :: tname = 'tdump.xxx.xxx.nc'
   character(80) :: slicename = 'slicedump.xxx.xxx.nc'
+  character(80) :: trname = 'treedump.xxx.xxx.nc'
   character(80),dimension(1,4) :: tncstaty
   character(80),dimension(1,4) :: tncstatyt
   character(80),dimension(1,4) :: tncstattke
@@ -47,6 +48,7 @@ module modstatsdump
   character(80),dimension(1,4) :: tncstatslice
   character(80),dimension(1,4) :: tncstatxyt
   character(80),dimension(1,4) :: tncstatt
+  character(80),dimension(1,4) :: tncstattr
 
   integer :: klow,khigh,i,j,k
   real    :: tsamplep,tstatsdumpp,tsample,tstatsdump
@@ -60,14 +62,14 @@ contains
   subroutine initstatsdump
     use modmpi,   only : my_real,mpierr,comm3d,mpi_logical,mpi_integer,mpi_character,cmyid
     use modglobal,only : imax,jmax,kmax,cexpnr,ifnamopt,fname_options,kb,ke,ladaptive,btime,&
-                         nsv,lslicedump,lxytdump
+                         nsv,lslicedump,lxytdump,ltreedump
     use modstat_nc,only: open_nc, define_nc,ncinfo,writestat_dims_nc
-    use modfields,only : ncstaty,ncstatyt,ncstattke,ncstatxy,ncstatslice,ncstatxyt,ncstatt
+    use modfields,only : ncstaty,ncstatyt,ncstattke,ncstatxy,ncstatslice,ncstatxyt,ncstatt,ncstattr
     implicit none
     integer :: ierr
 
     namelist/NAMSTATSDUMP/ &
-         lydump,tsample,klow,khigh,tstatsdump,lytdump,ltkedump,lxydump,lxytdump,ltdump
+         lydump,tsample,klow,khigh,tstatsdump,lytdump,ltkedump,lxydump,lxytdump,ltdump,ltreedump
 
     allocate(ncstaty(nstaty,4))
     allocate(ncstatyt(nstatyt,4))
@@ -76,6 +78,7 @@ contains
     allocate(ncstatslice(nstatslice,4))
     allocate(ncstatxyt(nstatxyt,4))
     allocate(ncstatt(nstatt,4))
+    allocate(ncstattr(nstattr,4))
 
     klow=kb
     khigh=ke
@@ -103,6 +106,7 @@ contains
     call MPI_BCAST(ncstatxyt   ,80,MPI_CHARACTER,0,comm3d,mpierr)
     call MPI_BCAST(ncstatt     ,80,MPI_CHARACTER,0,comm3d,mpierr)
     call MPI_BCAST(ltdump      ,1,MPI_LOGICAL,0,comm3d,ierr)
+    call MPI_BCAST(ltreedump      ,1,MPI_LOGICAL,0,comm3d,ierr)
 
     !> Generate y-averaged NetCDF: ydump.xxx.nc  
     if(lydump) then
@@ -145,14 +149,28 @@ contains
       call ncinfo(ncstatyt( 4,:),'thlyt'      ,'Temperature'               ,'K'       ,'t0tt')
       call ncinfo(ncstatyt( 5,:),'qtyt'       ,'Moisture'                  ,'kg/kg'   ,'t0tt')
       call ncinfo(ncstatyt( 6,:),'sca1yt'     ,'Scalar field 1'            ,'kg/m^3'  ,'t0tt')
-      call ncinfo(ncstatyt( 7,:),'sca2yt'     ,'Scalar field 2'            ,'kg/m^3'  ,'t0tt')
-      call ncinfo(ncstatyt( 8,:),'sca3yt'     ,'Scalar field 3'            ,'kg/m^3'  ,'t0tt')
-      call ncinfo(ncstatyt( 9,:),'upwpyt'     ,'Turbulent mom. flux'       ,'m^2/s^2' ,'m0mt')
-      call ncinfo(ncstatyt( 10,:),'wpthlpyt'  ,'Turbulent heat flux'       ,'K m/s'   ,'t0mt')
+
+      call ncinfo(ncstatyt( 7,:),'upwpyt'     ,'Turbulent mom. flux'       ,'m^2/s^2' ,'m0mt')
+      call ncinfo(ncstatyt( 8,:),'wpthlpyt'  ,'Turbulent heat flux'       ,'K m/s'   ,'t0mt')
+      call ncinfo(ncstatyt( 9,:),'wpqtpyt'   ,'Turbulent moisture flux'   ,'kg/kg m/s','t0mt')
+      call ncinfo(ncstatyt( 10,:),'wpsca1tpyt','Turbulent scalar flux'     ,'M m/s'   ,'t0mt')
+
       call ncinfo(ncstatyt( 11,:),'uwyt'      ,'Kinematic mom. flux'       ,'m^2/s^2' ,'m0mt')
       call ncinfo(ncstatyt( 12,:),'wthlyt'    ,'Kinematic heat flux'       ,'K m/s'   ,'t0mt')
-      call ncinfo(ncstatyt( 13,:),'usgsyt'    ,'SGS mom. flux'             ,'m^2/s^2' ,'m0mt')
-      call ncinfo(ncstatyt( 14,:),'thlsgsyt'  ,'SGS heat flux'             ,'K m/s'   ,'t0mt')
+      call ncinfo(ncstatyt( 13,:),'wqtyt'     ,'Kinematic moisture flux'   ,'K m/s'   ,'t0mt')
+      call ncinfo(ncstatyt( 14,:),'wsca1yt'   ,'Kinematic scalar flux'     ,'K m/s'   ,'t0mt')
+
+      call ncinfo(ncstatyt( 15,:),'upupyt'     ,'mom. variance'             ,'m^2/s^2' ,'m0tt')
+      call ncinfo(ncstatyt( 16,:),'wpwpyt'     ,'mom. variance'             ,'m^2/s^2' ,'t0mt')
+      call ncinfo(ncstatyt( 17,:),'thlpthlpyt' ,'temp. variance'            ,'K^2'     ,'t0tt')
+      call ncinfo(ncstatyt( 18,:),'qtpqtpyt'   ,'moisture. variance'        ,'kg^2/kg^2','t0tt')
+      call ncinfo(ncstatyt( 19,:),'sca1tpsca1pyt','scalar. variance'        ,'M^2'     ,'t0tt')
+
+      call ncinfo(ncstatyt( 20,:),'usgsyt'    ,'SGS mom. flux'             ,'m^2/s^2' ,'m0mt')
+      call ncinfo(ncstatyt( 21,:),'wsgsyt'    ,'SGS mom. flux'             ,'m^2/s^2' ,'t0mt')
+      call ncinfo(ncstatyt( 22,:),'thlsgsyt'  ,'SGS heat flux'             ,'K m/s'   ,'t0mt')
+      call ncinfo(ncstatyt( 23,:),'qtsgsyt'   ,'SGS moisture flux'         ,'kg/kg m/s','t0mt')
+      call ncinfo(ncstatyt( 24,:),'sca1sgsyt' ,'SGS scalar flux'           ,'M m/s'   ,'t0mt')
 
       if (myid==0) then
         call open_nc(ytname, ncidyt, nrecyt, n1=imax, n3=khigh-klow+1)
@@ -266,6 +284,29 @@ contains
 !      end if
     end if
 
+    !> Generate time averaged NetCDF: tdump.xxx.nc
+    if (ltreedump) then
+ 
+      trname(10:12) = cmyid
+      trname(14:16) = cexpnr
+      call ncinfo(tncstattr(1,:),'time'      ,'Time'                        ,'s'      ,'time')
+      call ncinfo(ncstattr( 1,:),'tr_u'      ,'Drag in x'                   ,'m/s^2'  ,'tttt'  )
+      call ncinfo(ncstattr( 2,:),'tr_v'      ,'Drag in y'                   ,'m/s^2'  ,'tttt'  )
+      call ncinfo(ncstattr( 3,:),'tr_w'      ,'Drag in z'                   ,'m/s^2'  ,'tttt'  )
+      call ncinfo(ncstattr( 4,:),'tr_thl'    ,'Temp source/ sink'           ,'K/s'    ,'tttt'  )
+      call ncinfo(ncstattr( 5,:),'tr_qt'     ,'Moisture source sink'        ,'1/s'    ,'tttt'  )
+      call ncinfo(ncstattr( 6,:),'tr_sv'     ,'Scalar source sink'          ,'kg/m^3s','tttt'  )
+
+!      if (myid==0) then      
+        call open_nc(trname, ncidtr, nrectr, n1=imax, n2=jmax, n3=khigh-klow+1)
+        if (nrectr==0) then
+          call define_nc( ncidtr, 1, tncstattr)
+          call writestat_dims_nc(ncidtr)
+        end if
+        call define_nc( ncidtr, nstattr, ncstattr)
+!      end if
+    end if
+
     !> Generate time, y and x averaged NetCDF for tke budget: tkedump.xxx.nc
     if (ltkedump) then
     
@@ -335,17 +376,18 @@ contains
                                IIc,IIu,IIv,IIw,IIuw,IIvw,IIct,IIwt,IIut,IIvt,IIuwt,IIuv,&
                                IIcs,IIws,IIus,IIvs,IIuws,IIvws,IIuvs,&
                                slice,slice2,slice3,slice4,slice5,slice6,slice7,slice8,&
-                               uyt,vyt,wyt,thlyt,qtyt,&
-                               sca1yt,sca2yt,sca3yt,thlsgsyt,usgsyt,&
+                               vyt,uyt,wyt,thlyt,qtyt,&
+                               sca1yt,sca2yt,sca3yt,thlsgsyt,qtsgsyt,svsgsyt,usgsyt,wsgsyt,&
                                usgsxyt,thlsgsxyt,vsgsxyt,uwtik,vwtjk,uvtij,utik,wtik,wtjk,vtjk,utij,vtij,&
-                               wthltk,thlthlt,wmt,thltk,thlt,uxyt,vxyt,wxyt,thlxyt,&
-                               ncstatxyt,qtxyt,pxyt,ncstatt,uutc,vvtc,wwtc,utc,vtc,wtc,&
+                               wthltk,wqttk,thlthlt,qtqtt,svsvt,wmt,thltk,qttk,thlt,uxyt,vxyt,wxyt,thlxyt,&
+                               ncstatxyt,qtxyt,pxyt,ncstatt,ncstattr,uutc,vvtc,wwtc,utc,vtc,wtc,&
                                umt,vmt,sv1t,sv2t,sv3t,sv4t,sv1tk,sv2tk,sv3tk,sv4tk,wsv1tk,wsv2tk,wsv3tk,wsv4tk,&
-                               sv1sgst,sv2sgst,sv3sgst,sv4sgst,qtt,pt
+                               sv1sgst,sv2sgst,sv3sgst,sv4sgst,qtt,pt,&
+                               tr_u,tr_ut,tr_v,tr_vt,tr_w,tr_wt,tr_thl,tr_thlt,tr_qt,tr_qtt,tr_sv,tr_svt
   use modglobal,        only : ib,ie,ih,ihc,xf,xh,jb,je,jhc,jgb,jge,dy,dyi,jh,ke,kb,kh,khc,rk3step,&
-                               timee,cexpnr,tsample,tstatsdump,jtot,imax,jmax,dzf,&
+                               timee,cexpnr,tsample,tstatsdump,jtot,imax,jmax,dzf,ltreedump,&
                                ltempeq,zh,dxf,dzf,lmassflowr,dzh2i,lprofforc,lscasrcl,&
-                               lslicedump,lchem,dzhi,dzhiq,dxhi,massflowrate,lmoist,nsv
+                               lslicedump,lchem,dzhi,dzfi,dzhiq,dxhi,massflowrate,lmoist,nsv
 !  use modsubgriddata,   only : ekm,sbshr
   use modstat_nc,       only : writestat_nc,writestat_1D_nc
   use modmpi,           only : myid,cmyid,my_real,mpi_sum,avey_ibm,mpierr,&
@@ -362,6 +404,7 @@ contains
 !  real, dimension(ib:ie,jb:je,kb:ke)     :: vmc
 !  real, dimension(ib:ie,jb:je,kb:ke)     :: wmc
   real, dimension(ib:ie,jb:je,kb:ke+kh)     :: thlk
+  real, dimension(ib:ie,jb:je,kb:ke+kh)     :: qtk
   real, dimension(ib:ie,jb:je,kb:ke+kh)     :: uik
   real, dimension(ib:ie,jb:je,kb:ke+kh)     :: wik
   real, dimension(ib:ie,jb:je,kb:ke+kh)     :: vjk
@@ -374,8 +417,10 @@ contains
 
   ! SGS fluxes
   real, dimension(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)     :: thlsgs
+  real, dimension(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)     :: qtsgs
   real, dimension(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)     :: usgs
   real, dimension(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)     :: vsgs
+  real, dimension(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)     :: wsgs
 
   ! t-averaged fields
   real, dimension(ib:ie,jb:je,kb:ke+kh)        :: sv1k
@@ -411,21 +456,38 @@ contains
   real, dimension(ib:ie,kb:ke)                 :: sca2y
   real, dimension(ib:ie,kb:ke)                 :: sca3y
   real, dimension(ib:ie,kb:ke)                 :: usgsy
+  real, dimension(ib:ie,kb:ke)                 :: wsgsy
   real, dimension(ib:ie,kb:ke)                 :: thlsgsy
+  real, dimension(ib:ie,kb:ke)                 :: qtsgsy
+  real, dimension(ib:ie,kb:ke)                 :: svsgsy
 
   real, dimension(ib:ie,kb:ke)                 :: uwyik
   real, dimension(ib:ie,kb:ke)                 :: wthlyk
+  real, dimension(ib:ie,kb:ke)                 :: wqtyk
+  real, dimension(ib:ie,kb:ke)                 :: wsvyk
   real, dimension(ib:ie,kb:ke)                 :: wyik
   real, dimension(ib:ie,kb:ke)                 :: uyik
   real, dimension(ib:ie,kb:ke)                 :: thlyk
   real, dimension(ib:ie,kb:ke)                 :: upwpyik
-  real, dimension(ib:ie,kb:ke)                 :: wpthlpyk 
+  real, dimension(ib:ie,kb:ke)                 :: wpthlpyk
 
   ! ty-averaged fluxes
   real, dimension(ib:ie,kb:ke)                 :: upwptyik
   real, dimension(ib:ie,kb:ke)                 :: wpthlptyk
+  real, dimension(ib:ie,kb:ke)                 :: wpqtptyk
+  real, dimension(ib:ie,kb:ke)                 :: wpsvptyk
+
+  real, dimension(ib:ie,kb:ke)                 :: upuptyc
+  real, dimension(ib:ie,kb:ke)                 :: vpvptyc
+  real, dimension(ib:ie,kb:ke)                 :: wpwptyc
+  real, dimension(ib:ie,kb:ke)                 :: qtpqtpty
+  real, dimension(ib:ie,kb:ke)                 :: thlpthlpty
+  real, dimension(ib:ie,kb:ke)                 :: svpsvpty
+
   real, dimension(ib:ie,kb:ke)                 :: uwtyik
   real, dimension(ib:ie,kb:ke)                 :: wthltyk
+  real, dimension(ib:ie,kb:ke)                 :: wqttyk
+  real, dimension(ib:ie,kb:ke)                 :: wsvtyk
 
   ! xy-averaged fields
   real, dimension(kb:ke+kh)                    :: uxy
@@ -468,7 +530,7 @@ contains
   real, dimension(kb:ke+kh)                    :: uvtxyij
 
   real, allocatable :: field(:,:), varsy(:,:,:),varsyt(:,:,:),varstke(:,:),varsxy(:,:),&
-                       varslice(:,:,:),varsxyt(:,:),varst(:,:,:,:)
+                       varslice(:,:,:),varsxyt(:,:),varst(:,:,:,:),varstr(:,:,:,:)
   real    :: tstatsdumppi,emom
   integer :: i,j,k,ip,im,jp,jm,kp,km
   integer :: writecounter = 1
@@ -516,6 +578,16 @@ contains
        end do
      end do
 
+     do k=kb,ke
+       do j=jb,je
+         do i=ib,ie
+           wsgs(i,j,k) = ( ekm(i,j,k) * (wm(i,j,k+1)-wm(i,j,k)) *dzfi(k) &
+                     -ekm(i,j,k-1)* (wm(i,j,k)-wm(i,j,k-1)) *dzfi(k-1) ) * 2. &
+                     * dzhi(k) ! tg3315 check this
+         end do
+       end do
+     end do
+
     if (ltempeq) then
       do k=kb,ke+kh
         do j=jb,je
@@ -531,8 +603,23 @@ contains
       end do
     end if
 
-    if (nsv>0) then
+    if (lmoist) then
       do k=kb,ke+kh
+        do j=jb,je
+          do i=ib,ie
+              qtk(i,j,k) = 0.5*dzhi(k)*(qtm(i,j,k)*dzf(k-1) + qtm(i,j,k-1)*dzf(k))
+          end do
+        end do
+      end do
+      do k=kb,ke
+        !> SGS fluxes
+        qtsgs(:,:,k) = 0.5 * (dzf(k-1)*ekh(:,:,k) + dzf(k)*ekh(:,:,k-1)) &
+                        * (qtm(:,:,k)-qtm(:,:,k-1)) * dzh2i(k)
+      end do
+    end if
+
+    if (nsv>0) then
+      do k=kb,ke
         do j=jb,je
           do i=ib,ie
               sv1k(i,j,k) = 0.5*dzhi(k)*(svm(i,j,k,1)*dzf(k-1) + svm(i,j,k-1,1)*dzf(k))
@@ -540,8 +627,8 @@ contains
         end do
       end do
       do k=kb,ke
-        sv1sgs(:,:,k) = 0.5 * (dzf(k-1)*ekh(:,:,k) + dzf(k)*ekh(:,:,k-1)) &
-                        * (svm(:,:,k,1)-svm(:,:,k-1,1)) * dzh2i(k)
+        sv1sgs(ib:ie,jb:je,k) = 0.5 * (dzf(k-1)*ekh(ib:ie,jb:je,k) + dzf(k)*ekh(ib:ie,jb:je,k-1)) &
+                        * (svm(ib:ie,jb:je,k,1)-svm(ib:ie,jb:je,k-1,1)) * dzh2i(k)
       end do
     end if
 
@@ -554,8 +641,8 @@ contains
         end do
       end do
       do k=kb,ke
-        sv2sgs(:,:,k) = 0.5 * (dzf(k-1)*ekh(:,:,k) + dzf(k)*ekh(:,:,k-1)) &
-                        * (svm(:,:,k,2)-svm(:,:,k-1,2)) * dzh2i(k)
+        sv2sgs(ib:ie,jb:je,k) = 0.5 * (dzf(k-1)*ekh(ib:ie,jb:je,k) + dzf(k)*ekh(ib:ie,jb:je,k-1)) &
+                        * (svm(ib:ie,jb:je,k,2)-svm(ib:ie,jb:je,k-1,2)) * dzh2i(k)
       end do
     end if
 
@@ -568,8 +655,8 @@ contains
         end do
       end do
       do k=kb,ke
-        sv3sgs(:,:,k) = 0.5 * (dzf(k-1)*ekh(:,:,k) + dzf(k)*ekh(:,:,k-1)) &
-                        * (svm(:,:,k,3)-svm(:,:,k-1,3)) * dzh2i(k)
+        sv3sgs(ib:ie,jb:je,k) = 0.5 * (dzf(k-1)*ekh(ib:ie,jb:je,k) + dzf(k)*ekh(ib:ie,jb:je,k-1)) &
+                        * (svm(ib:ie,jb:je,k,3)-svm(ib:ie,jb:je,k-1,3)) * dzh2i(k)
       end do
     end if
 
@@ -582,8 +669,8 @@ contains
         end do
       end do
       do k=kb,ke
-        sv4sgs(:,:,k) = 0.5 * (dzf(k-1)*ekh(:,:,k) + dzf(k)*ekh(:,:,k-1)) &
-                        * (svm(:,:,k,4)-svm(:,:,k-1,4)) * dzh2i(k)
+        sv4sgs(ib:ie,jb:je,k) = 0.5 * (dzf(k-1)*ekh(ib:ie,jb:je,k) + dzf(k)*ekh(ib:ie,jb:je,k-1)) &
+                        * (svm(ib:ie,jb:je,k,4)-svm(ib:ie,jb:je,k-1,4)) * dzh2i(k)
       end do
     end if
 
@@ -594,19 +681,29 @@ contains
       !> Average in y-direction      
       if (lydump .or. lytdump) then
      
-        uy=0.;vy=0.;wy=0.;thly=0.;qty=0.;sca1y=0.;sca2y=0.;sca3y=0.;thlsgsy=0.;usgsy=0.
- 
+        uy=0.;vy=0.;wy=0.;uwyik=0.;usgsy=0.;wsgsy=0.;thly=0.;wthlyk=0.;thlsgsy=0.
+        qty=0.;wqtyk=0.;qtsgsy=0.;sca1y=0.;wsvyk=0.;svsgsy=0.;sca2y=0.;sca3y=0.
+
         call avey_ibm(uy,um(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIu(ib:ie,jb:je,kb:ke),IIut(ib:ie,kb:ke))
         call avey_ibm(vy,vm(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIv(ib:ie,jb:je,kb:ke),IIvt(ib:ie,kb:ke))
         call avey_ibm(wy,wm(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
-        call avey_ibm(thly,thlm(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke)) 
+        call avey_ibm(uwyik,uik(ib:ie,jb:je,kb:ke)*wik(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIuw(ib:ie,jb:je,kb:ke),IIuwt(ib:ie,kb:ke))
+        call avey_ibm(usgsy,usgs(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIuw(ib:ie,jb:je,kb:ke),IIuwt(ib:ie,kb:ke))
+        call avey_ibm(wsgsy,wsgs(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+        if (ltempeq) then
+          call avey_ibm(thly,thlm(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke)) 
+          call avey_ibm(wthlyk,wm(ib:ie,jb:je,kb:ke)*thlk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+          call avey_ibm(thlsgsy,thlsgs(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+        end if
         if (lmoist) then
           call avey_ibm(qty,qtm(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
+          call avey_ibm(wqtyk,wm(ib:ie,jb:je,kb:ke)*qtk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+          call avey_ibm(qtsgsy,qtsgs(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
         end if
-        call avey_ibm(uwyik,uik(ib:ie,jb:je,kb:ke)*wik(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIuw(ib:ie,jb:je,kb:ke),IIuwt(ib:ie,kb:ke))
-        call avey_ibm(wthlyk,wm(ib:ie,jb:je,kb:ke)*thlk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
-        if (nsv>0) then
+        if(nsv>0) then
           call avey_ibm(sca1y,svm(ib:ie,jb:je,kb:ke,1),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
+          call avey_ibm(wsvyk,wm(ib:ie,jb:je,kb:ke)*sv1k(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+          call avey_ibm(svsgsy,sv1sgs(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
         end if
         if (nsv>1) then
           call avey_ibm(sca2y,svm(ib:ie,jb:je,kb:ke,2),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
@@ -614,12 +711,12 @@ contains
         if (nsv>2) then
           call avey_ibm(sca3y,svm(ib:ie,jb:je,kb:ke,3),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
         end if 
-        call avey_ibm(usgsy,usgs(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIuw(ib:ie,jb:je,kb:ke),IIuwt(ib:ie,kb:ke))
-        call avey_ibm(thlsgsy,thlsgs(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
       end if ! lydump .or. lytdump
 
 
       if (lydump) then
+
+        uwyik=0.;wthlyk=0.;uyik=0.;wyik=0.;thlyk=0.
 
         call avey_ibm(uwyik,uik(ib:ie,jb:je,kb:ke)*wik(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIuw(ib:ie,jb:je,kb:ke),IIuwt(ib:ie,kb:ke))
         call avey_ibm(wthlyk,wm(ib:ie,jb:je,kb:ke)*thlk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
@@ -646,7 +743,7 @@ contains
       !> Average in x and y-direction
       if (lxydump .or. lxytdump) then
 
-        uxy=0.;vxy=0.;wxy=0.;thlxy=0.;qtxy=0.;pxy=0.;sca1xy=0.;thlsgsxy=0.;usgsxy=0.;vsgsxy=0.
+        uxy=0.;vxy=0.;wxy=0.;thlxy=0.;qtxy=0.;pxy=0.;usgsxy=0.;thlsgsxy=0.;sca1xy=0.;vsgsxy=0.
 
         !> Spatial averages of mean quantities
         call avexy_ibm(uxy(kb:ke+kh),um(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.true.)
@@ -667,6 +764,8 @@ contains
 
       if (lxydump) then
       
+        uwxyik=0.;vwxyjk=0.;uxyik=0.;wxyik=0.;vxyjk=0.;wthlxyk=0.;thlxyk=0.
+
         call avexy_ibm(uwxyik(kb:ke+kh),uik(ib:ie,jb:je,kb:ke+kh)*wik(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh),.true.)
         call avexy_ibm(vwxyjk(kb:ke+kh),vjk(ib:ie,jb:je,kb:ke+kh)*wjk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIvw(ib:ie,jb:je,kb:ke+kh),IIvws(kb:ke+kh),.true.)
         call avexy_ibm(uxyik(kb:ke+kh),uik(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh),.true.)
@@ -700,26 +799,40 @@ contains
 
       !> Average 2-D fields in time
       if (lytdump) then
-
-        uyt(ib:ie,kb:ke) = (uyt(ib:ie,kb:ke)*(tstatsdumpp-tsamplep) + uy(ib:ie,kb:ke)*tsamplep)*tstatsdumppi
+        if (myid==0) then
         vyt(ib:ie,kb:ke) = (vyt(ib:ie,kb:ke)*(tstatsdumpp-tsamplep) + vy(ib:ie,kb:ke)*tsamplep)*tstatsdumppi
+        uyt(ib:ie,kb:ke) = (uyt(ib:ie,kb:ke)*(tstatsdumpp-tsamplep) + uy(ib:ie,kb:ke)*tsamplep)*tstatsdumppi
         wyt(ib:ie,kb:ke) = (wyt(ib:ie,kb:ke)*(tstatsdumpp-tsamplep) + wy(ib:ie,kb:ke)*tsamplep)*tstatsdumppi
-        thlyt(ib:ie,kb:ke) = (thlyt(ib:ie,kb:ke)*(tstatsdumpp-tsamplep) + thly(ib:ie,kb:ke)*tsamplep)*tstatsdumppi
-        qtyt(ib:ie,kb:ke) = (qtyt(ib:ie,kb:ke)*(tstatsdumpp-tsamplep) + qty(ib:ie,kb:ke)*tsamplep)*tstatsdumppi
-        sca1yt(ib:ie,kb:ke) = (sca1yt(ib:ie,kb:ke)*(tstatsdumpp-tsamplep) + sca1y(ib:ie,kb:ke)*tsamplep)*tstatsdumppi
-        sca2yt(ib:ie,kb:ke) = (sca2yt(ib:ie,kb:ke)*(tstatsdumpp-tsamplep) + sca2y(ib:ie,kb:ke)*tsamplep)*tstatsdumppi
-        sca3yt(ib:ie,kb:ke) = (sca3yt(ib:ie,kb:ke)*(tstatsdumpp-tsamplep) + sca3y(ib:ie,kb:ke)*tsamplep)*tstatsdumppi
         usgsyt(ib:ie,kb:ke) = (usgsyt(ib:ie,kb:ke)*(tstatsdumpp-tsamplep) + usgsy(ib:ie,kb:ke)*tsamplep)*tstatsdumppi
-        thlsgsyt(ib:ie,kb:ke) = (thlsgsyt(ib:ie,kb:ke)*(tstatsdumpp-tsamplep) + thlsgsy(ib:ie,kb:ke)*tsamplep)*tstatsdumppi
+        wsgsyt(ib:ie,kb:ke) = (wsgsyt(ib:ie,kb:ke)*(tstatsdumpp-tsamplep) + wsgsy(ib:ie,kb:ke)*tsamplep)*tstatsdumppi
+        if (ltempeq) then
+          thlyt(ib:ie,kb:ke) = (thlyt(ib:ie,kb:ke)*(tstatsdumpp-tsamplep) + thly(ib:ie,kb:ke)*tsamplep)*tstatsdumppi
+          thlsgsyt(ib:ie,kb:ke) = (thlsgsyt(ib:ie,kb:ke)*(tstatsdumpp-tsamplep) + thlsgsy(ib:ie,kb:ke)*tsamplep)*tstatsdumppi
+        end if
+        if (lmoist) then
+          qtyt(ib:ie,kb:ke) = (qtyt(ib:ie,kb:ke)*(tstatsdumpp-tsamplep) + qty(ib:ie,kb:ke)*tsamplep)*tstatsdumppi
+          qtsgsyt(ib:ie,kb:ke) = (qtsgsyt(ib:ie,kb:ke)*(tstatsdumpp-tsamplep) + qtsgsy(ib:ie,kb:ke)*tsamplep)*tstatsdumppi
+        end if
+        if (nsv>0) then
+          sca1yt(ib:ie,kb:ke) = (sca1yt(ib:ie,kb:ke)*(tstatsdumpp-tsamplep) + sca1y(ib:ie,kb:ke)*tsamplep)*tstatsdumppi
+          svsgsyt(ib:ie,kb:ke) = (svsgsyt(ib:ie,kb:ke)*(tstatsdumpp-tsamplep) + svsgsy(ib:ie,kb:ke)*tsamplep)*tstatsdumppi
+        end if
+        if (nsv>1) then
+          sca2yt(ib:ie,kb:ke) = (sca2yt(ib:ie,kb:ke)*(tstatsdumpp-tsamplep) + sca2y(ib:ie,kb:ke)*tsamplep)*tstatsdumppi
+        end if
+        if (nsv>2) then
+          sca3yt(ib:ie,kb:ke) = (sca3yt(ib:ie,kb:ke)*(tstatsdumpp-tsamplep) + sca3y(ib:ie,kb:ke)*tsamplep)*tstatsdumppi
+        end if
+        end if ! myid
       end if !lytdump
 
       ! Average 3-D fields in time
+      ! tg3315 may be possible to do less calculations by splitting up
+      ! some calcs not necessary for xyt or yt...
       if (lxytdump .or. lytdump .or. ltdump) then
         uwtik(:,:,kb:ke+kh) = (uwtik(:,:,kb:ke+kh)*(tstatsdumpp-tsamplep) + wik(:,:,kb:ke+kh)*uik(:,:,kb:ke+kh)*tsamplep)*tstatsdumppi
         vwtjk(:,:,kb:ke+kh) = (vwtjk(:,:,kb:ke+kh)*(tstatsdumpp-tsamplep) + wjk(:,:,kb:ke+kh)*vjk(:,:,kb:ke+kh)*tsamplep)*tstatsdumppi
         uvtij(:,:,kb:ke+kh) = (uvtij(:,:,kb:ke+kh)*(tstatsdumpp-tsamplep) + uij(:,:,kb:ke+kh)*vij(:,:,kb:ke+kh)*tsamplep)*tstatsdumppi
-        wthltk(ib:ie,jb:je,kb:ke+kh) = (wthltk(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + thlk(ib:ie,jb:je,kb:ke+kh)*wm(ib:ie,jb:je,kb:ke+kh)*tsamplep)*tstatsdumppi
-        thlthlt(ib:ie,jb:je,kb:ke+kh) = (thlthlt(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + thlm(ib:ie,jb:je,kb:ke+kh)*thlm(ib:ie,jb:je,kb:ke+kh)*tsamplep)*tstatsdumppi
         uutc(ib:ie,jb:je,kb:ke+kh) = (uutc(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + uc(ib:ie,jb:je,kb:ke+kh)*uc(ib:ie,jb:je,kb:ke+kh)*tsamplep)*tstatsdumppi
         vvtc(ib:ie,jb:je,kb:ke+kh) = (vvtc(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + vc(ib:ie,jb:je,kb:ke+kh)*vc(ib:ie,jb:je,kb:ke+kh)*tsamplep)*tstatsdumppi
         wwtc(ib:ie,jb:je,kb:ke+kh) = (wwtc(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + wc(ib:ie,jb:je,kb:ke+kh)*wc(ib:ie,jb:je,kb:ke+kh)*tsamplep)*tstatsdumppi
@@ -729,23 +842,43 @@ contains
         wtjk(:,:,kb:ke+kh) = (wtjk(:,:,kb:ke+kh)*(tstatsdumpp-tsamplep) + wjk(:,:,kb:ke+kh)*tsamplep)*tstatsdumppi
         utij(:,:,kb:ke+kh) = (utij(:,:,kb:ke+kh)*(tstatsdumpp-tsamplep) + uij(:,:,kb:ke+kh)*tsamplep)*tstatsdumppi
         vtij(:,:,kb:ke+kh) = (vtij(:,:,kb:ke+kh)*(tstatsdumpp-tsamplep) + vij(:,:,kb:ke+kh)*tsamplep)*tstatsdumppi
+        umt(ib:ie,jb:je,kb:ke+kh) = (umt(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + um(ib:ie,jb:je,kb:ke+kh)*tsamplep)*tstatsdumppi
+        vmt(ib:ie,jb:je,kb:ke+kh) = (vmt(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + vm(ib:ie,jb:je,kb:ke+kh)*tsamplep)*tstatsdumppi
         wmt(ib:ie,jb:je,kb:ke+kh) = (wmt(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + wm(ib:ie,jb:je,kb:ke+kh)*tsamplep)*tstatsdumppi
-        thltk(ib:ie,jb:je,kb:ke+kh) = (thltk(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + thlk(ib:ie,jb:je,kb:ke+kh)*tsamplep)*tstatsdumppi
-        thlt(ib:ie,jb:je,kb:ke+kh) = (thlt(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + thlm(ib:ie,jb:je,kb:ke+kh)*tsamplep)*tstatsdumppi
-        utc(ib:ie,jb:je,kb:ke+kh) = (utc(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + uc(ib:ie,jb:je,kb:ke+kh)*tsamplep)*tstatsdumppi
+        utc(ib:ie,jb:je,kb:ke+kh) = (utc(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + uc(ib:ie,jb:je,kb:ke+kh)*tsamplep)*tstatsdumppi                                                                 
         vtc(ib:ie,jb:je,kb:ke+kh) = (vtc(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + vc(ib:ie,jb:je,kb:ke+kh)*tsamplep)*tstatsdumppi
         wtc(ib:ie,jb:je,kb:ke+kh) = (wtc(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + wc(ib:ie,jb:je,kb:ke+kh)*tsamplep)*tstatsdumppi
+
+        pt(ib:ie,jb:je,kb:ke+kh) = (pt(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + pres0(ib:ie,jb:je,kb:ke+kh)*tsamplep)*tstatsdumppi 
+
+        if (ltempeq) then
+          wthltk(ib:ie,jb:je,kb:ke+kh) = (wthltk(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + thlk(ib:ie,jb:je,kb:ke+kh)*wm(ib:ie,jb:je,kb:ke+kh)*tsamplep)*tstatsdumppi
+          thlthlt(ib:ie,jb:je,kb:ke+kh) = (thlthlt(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + thlm(ib:ie,jb:je,kb:ke+kh)*thlm(ib:ie,jb:je,kb:ke+kh)*tsamplep)*tstatsdumppi
+          thltk(ib:ie,jb:je,kb:ke+kh) = (thltk(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + thlk(ib:ie,jb:je,kb:ke+kh)*tsamplep)*tstatsdumppi
+          thlt(ib:ie,jb:je,kb:ke+kh) = (thlt(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + thlm(ib:ie,jb:je,kb:ke+kh)*tsamplep)*tstatsdumppi
+        end if
+
+        if (lmoist) then
+          wqttk(ib:ie,jb:je,kb:ke+kh) = (wqttk(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + qtk(ib:ie,jb:je,kb:ke+kh)*wm(ib:ie,jb:je,kb:ke+kh)*tsamplep)*tstatsdumppi
+          qtqtt(ib:ie,jb:je,kb:ke+kh) = (qtqtt(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + qtm(ib:ie,jb:je,kb:ke+kh)*qtm(ib:ie,jb:je,kb:ke+kh)*tsamplep)*tstatsdumppi
+          qttk(ib:ie,jb:je,kb:ke+kh) = (qttk(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + qtk(ib:ie,jb:je,kb:ke+kh)*tsamplep)*tstatsdumppi
+          qtt(ib:ie,jb:je,kb:ke+kh) = (qtt(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + qtm(ib:ie,jb:je,kb:ke+kh)*tsamplep)*tstatsdumppi
+        end if
+
+        if (nsv>0) then
+          sv1t(ib:ie,jb:je,kb:ke+kh) = (sv1t(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + svm(ib:ie,jb:je,kb:ke+kh,1)*tsamplep)*tstatsdumppi
+          sv1tk(ib:ie,jb:je,kb:ke+kh) = (sv1tk(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + sv1k(ib:ie,jb:je,kb:ke+kh)*tsamplep)*tstatsdumppi
+          wsv1tk(ib:ie,jb:je,kb:ke+kh) = (wsv1tk(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + wm(ib:ie,jb:je,kb:ke+kh)*sv1k(ib:ie,jb:je,kb:ke+kh)*tsamplep)*tstatsdumppi
+          sv1sgst(ib:ie,jb:je,kb:ke+kh) = (sv1sgst(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + sv1sgs(ib:ie,jb:je,kb:ke+kh)*tsamplep)*tstatsdumppi
+          svsvt(ib:ie,jb:je,kb:ke+kh) = (svsvt(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + svm(ib:ie,jb:je,kb:ke+kh,1)*svm(ib:ie,jb:je,kb:ke+kh,1)*tsamplep)*tstatsdumppi
+        end if
 
       end if !lxytdump .or. lytdump
 
       ! Other 3-D fields specifically for tdump
-      if (ltdump) then
-        umt(ib:ie,jb:je,kb:ke+kh) = (umt(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + um(ib:ie,jb:je,kb:ke+kh)*tsamplep)*tstatsdumppi
-        vmt(ib:ie,jb:je,kb:ke+kh) = (vmt(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + vm(ib:ie,jb:je,kb:ke+kh)*tsamplep)*tstatsdumppi
+      !if (ltdump) then
         ! bss116 already calculated above
         ! wmt(ib:ie,jb:je,kb:ke+kh) = (wmt(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + wm(ib:ie,jb:je,kb:ke+kh)*tsamplep)*tstatsdumppi
-        qtt(ib:ie,jb:je,kb:ke+kh) = (qtt(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + qtm(ib:ie,jb:je,kb:ke+kh)*tsamplep)*tstatsdumppi
-        pt(ib:ie,jb:je,kb:ke+kh) = (pt(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + pres0(ib:ie,jb:je,kb:ke+kh)*tsamplep)*tstatsdumppi
         ! sv1t(ib:ie,jb:je,kb:ke+kh) = (sv1t(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + svm(ib:ie,jb:je,kb:ke+kh,1)*tsamplep)*tstatsdumppi
         ! sv2t(ib:ie,jb:je,kb:ke+kh) = (sv2t(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + svm(ib:ie,jb:je,kb:ke+kh,2)*tsamplep)*tstatsdumppi
         ! sv3t(ib:ie,jb:je,kb:ke+kh) = (sv3t(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + svm(ib:ie,jb:je,kb:ke+kh,3)*tsamplep)*tstatsdumppi
@@ -762,7 +895,22 @@ contains
         ! sv2sgst(ib:ie,jb:je,kb:ke+kh) = (sv2sgst(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + sv2sgs(ib:ie,jb:je,kb:ke+kh)*tsamplep)*tstatsdumppi
         ! sv3sgst(ib:ie,jb:je,kb:ke+kh) = (sv3sgst(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + sv3sgs(ib:ie,jb:je,kb:ke+kh)*tsamplep)*tstatsdumppi
         ! sv4sgst(ib:ie,jb:je,kb:ke+kh) = (sv4sgst(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + sv4sgs(ib:ie,jb:je,kb:ke+kh)*tsamplep)*tstatsdumppi
-      end if ! ltdump
+      !end if ! ltdump
+
+      if (ltreedump) then
+        tr_ut(ib:ie,jb:je,kb:ke) = (tr_ut(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_u(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
+        tr_vt(ib:ie,jb:je,kb:ke) = (tr_vt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_v(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
+        tr_wt(ib:ie,jb:je,kb:ke) = (tr_wt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_w(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
+        if (ltempeq) then
+          tr_thlt(ib:ie,jb:je,kb:ke) = (tr_thlt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_thl(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
+        end if
+        if (lmoist) then
+          tr_qtt(ib:ie,jb:je,kb:ke) = (tr_qtt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_qt(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
+        end if
+        if (nsv>0) then
+          tr_svt(ib:ie,jb:je,kb:ke) = (tr_svt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_sv(ib:ie,jb:je,kb:ke,1)*tsamplep)*tstatsdumppi
+        end if
+      end if
 
 !      where (IIuwt==0)
 !        upwpyik    = -999
@@ -798,12 +946,14 @@ contains
         allocate(field(ib:ie,kb:ke)) 
         allocate(varsy(imax,khigh-klow+1,nstaty))
 
+        varsy = 0.
+
         varsy(:,:,1) = uy(ib:ie,kb:ke)
         varsy(:,:,2) = vy(ib:ie,kb:ke)
         varsy(:,:,3) = wy(ib:ie,kb:ke)
         varsy(:,:,4) = thly(ib:ie,kb:ke)
         varsy(:,:,5) = qty(ib:ie,kb:ke)
-        varsy(:,:,6) = sca1y(ib:ie,kb:ke)
+        varsy(:,:,6) = sca1y(ib:ie,kb:ke) 
         varsy(:,:,7) = sca2y(ib:ie,kb:ke)
         varsy(:,:,8) = sca3y(ib:ie,kb:ke)
         varsy(:,:,9) = upwpyik(ib:ie,kb:ke)
@@ -919,29 +1069,64 @@ contains
 
       ! Turbulent flux
       call avey_ibm(upwptyik,uwtik(ib:ie,jb:je,kb:ke)-utik(ib:ie,jb:je,kb:ke)*wtik(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIuw(ib:ie,jb:je,kb:ke),IIuwt(ib:ie,kb:ke))
-      call avey_ibm(wpthlptyk,wthltk(ib:ie,jb:je,kb:ke)-wmt(ib:ie,jb:je,kb:ke)*thltk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
-
-      ! Advective flux
       call avey_ibm(uwtyik,utik(ib:ie,jb:je,kb:ke)*wtik(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIuw(ib:ie,jb:je,kb:ke),IIuwt(ib:ie,kb:ke))
-      call avey_ibm(wthltyk,wmt(ib:ie,jb:je,kb:ke)*thltk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+      call avey_ibm(upuptyc,uutc(ib:ie,jb:je,kb:ke)-utc(ib:ie,jb:je,kb:ke)*utc(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
+      call avey_ibm(vpvptyc,vvtc(ib:ie,jb:je,kb:ke)-vtc(ib:ie,jb:je,kb:ke)*vtc(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))                                           
+      call avey_ibm(wpwptyc,wwtc(ib:ie,jb:je,kb:ke)-wtc(ib:ie,jb:je,kb:ke)*wtc(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
+
+      if (ltempeq) then
+        call avey_ibm(wpthlptyk,wthltk(ib:ie,jb:je,kb:ke)-wmt(ib:ie,jb:je,kb:ke)*thltk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+        call avey_ibm(wthltyk,wmt(ib:ie,jb:je,kb:ke)*thltk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+        call avey_ibm(thlpthlpty,thlthlt(ib:ie,jb:je,kb:ke)-thlt(ib:ie,jb:je,kb:ke)*thlt(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
+      end if
+
+      if (lmoist) then
+        call avey_ibm(wpqtptyk,wqttk(ib:ie,jb:je,kb:ke)-wmt(ib:ie,jb:je,kb:ke)*qttk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+        call avey_ibm(wqttyk,wmt(ib:ie,jb:je,kb:ke)*qttk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+        call avey_ibm(qtpqtpty,qtqtt(ib:ie,jb:je,kb:ke)-qtt(ib:ie,jb:je,kb:ke)*qtt(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
+      end if
+
+      if (nsv>0) then
+        call avey_ibm(wpsvptyk,wsv1tk(ib:ie,jb:je,kb:ke)-wmt(ib:ie,jb:je,kb:ke)*sv1tk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+        call avey_ibm(wsvtyk,wmt(ib:ie,jb:je,kb:ke)*sv1tk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+        call avey_ibm(svpsvpty,svsvt(ib:ie,jb:je,kb:ke)-sv1t(ib:ie,jb:je,kb:ke)*sv1t(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
+      end if
 
       if (myid == 0) then
-          allocate(varsyt(imax,khigh-klow+1,nstaty))
+          allocate(varsyt(imax,khigh-klow+1,nstatyt))
+          varsyt = 0.
+
           call writestat_nc(ncidyt,1,tncstatyt,(/timee/),nrecyt,.true.)
+
           varsyt(:,:,1)  = uyt(ib:ie,kb:ke)
           varsyt(:,:,2)  = vyt(ib:ie,kb:ke)
           varsyt(:,:,3)  = wyt(ib:ie,kb:ke)
           varsyt(:,:,4)  = thlyt(ib:ie,kb:ke)
           varsyt(:,:,5)  = qtyt(ib:ie,kb:ke)
           varsyt(:,:,6)  = sca1yt(ib:ie,kb:ke)
-          varsyt(:,:,7)  = sca2yt(ib:ie,kb:ke)
-          varsyt(:,:,8)  = sca3yt(ib:ie,kb:ke)
-          varsyt(:,:,9)  = upwptyik(ib:ie,kb:ke)
-          varsyt(:,:,10) = wpthlptyk(ib:ie,kb:ke)
+
+          varsyt(:,:,7)  = upwptyik(ib:ie,kb:ke)
+          varsyt(:,:,8)  = wpthlptyk(ib:ie,kb:ke)
+          varsyt(:,:,9)  = wpqtptyk(ib:ie,kb:ke)
+          varsyt(:,:,10) = wpsvptyk(ib:ie,kb:ke)
+
           varsyt(:,:,11) = uwtyik(ib:ie,kb:ke)
           varsyt(:,:,12) = wthltyk(ib:ie,kb:ke)
-          varsyt(:,:,13) = usgsyt(ib:ie,kb:ke)
-          varsyt(:,:,14) = thlsgsyt(ib:ie,kb:ke)
+          varsyt(:,:,13) = wqttyk(ib:ie,kb:ke)
+          varsyt(:,:,14) = wsvtyk(ib:ie,kb:ke)
+
+          varsyt(:,:,15) = upuptyc(ib:ie,kb:ke)
+          varsyt(:,:,16) = wpwptyc(ib:ie,kb:ke)
+          varsyt(:,:,17) = thlpthlpty(ib:ie,kb:ke)
+          varsyt(:,:,18) = qtpqtpty(ib:ie,kb:ke)
+          varsyt(:,:,19) = svpsvpty(ib:ie,kb:ke)
+
+          varsyt(:,:,20) = usgsyt(ib:ie,kb:ke)
+          varsyt(:,:,21) = wsgsyt(ib:ie,kb:ke)
+          varsyt(:,:,22) = thlsgsyt(ib:ie,kb:ke)
+          varsyt(:,:,23) = qtsgsyt(ib:ie,kb:ke)
+          varsyt(:,:,24) = svsgsyt(ib:ie,kb:ke)
+
           call writestat_nc(ncidyt,nstatyt,ncstatyt,varsyt,nrecyt,imax,khigh-klow+1)
         end if !myid
       end if !lytdump
@@ -987,6 +1172,23 @@ contains
           call writestat_nc(ncidt,nstatt,ncstatt,varst,nrect,imax,jmax,khigh-klow+1)
 !        end if !myid
          deallocate(varst)
+      end if !ltdump
+
+    ! Final calculations and write t-averaged statistics for the trees
+    if (ltreedump) then
+
+!      if (myid == 0) then
+          allocate(varstr(imax,jmax,khigh-klow+1,nstattr))
+          call writestat_nc(ncidtr,1,tncstattr,(/timee/),nrectr,.true.)
+          varstr(:,:,:,1)  = tr_ut(ib:ie,jb:je,kb:ke)
+          varstr(:,:,:,2)  = tr_vt(ib:ie,jb:je,kb:ke)
+          varstr(:,:,:,3)  = tr_wt(ib:ie,jb:je,kb:ke)
+          varstr(:,:,:,4)  = tr_thlt(ib:ie,jb:je,kb:ke)
+          varstr(:,:,:,5)  = tr_qtt(ib:ie,jb:je,kb:ke)
+          varstr(:,:,:,6)  = tr_svt(ib:ie,jb:je,kb:ke)
+          call writestat_nc(ncidtr,nstattr,ncstattr,varstr,nrectr,imax,jmax,khigh-klow+1)
+!        end if !myid
+         deallocate(varstr)
       end if !ltdump
 
       if (ltkedump) then
