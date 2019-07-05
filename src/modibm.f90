@@ -58,10 +58,10 @@ contains
          if (ju > je) ju=je !tg3315 and bss116 added 23.10.18 as bad allocation otherwise
          if (jl < jb) jl=jb
          do sc = 1, nsv
-            sv0(il:iu, jl:ju, kl:ku, sc) = 0. !internal
-            svm(il:iu, jl:ju, kl:ku, sc) = 0. !internal
+            !sv0(il:iu, jl:ju, kl:ku, sc) = svprof(kl:ku)  !internal ! tg3315 commented to avoid flux at startup
+            !svm(il:iu, jl:ju, kl:ku, sc) = svprof(kl:ku)  !internal
          end do
-         thl0(il:iu, jl:ju, kl:ku) = bldT !internal
+         thl0(il:iu, jl:ju, kl:ku) = bldT !internal ! make sure bldT is equal to init thl prof
          thlm(il:iu, jl:ju, kl:ku) = bldT !internal
       end do
 
@@ -214,10 +214,10 @@ contains
 
    subroutine xwallfun
       use modglobal, only:dzf, dzhiq, dzhi, dxf, dxfi, dxhi, dyi, lles, nsv, numol, ltempeq, lmoist, &
-         ih, jh, kh, ihc, jhc, khc, dxh, dy, dt, totavtime, rk3step, ib, ie, kb, ke, iwallmom, iwalltemp, iwallmoist, nblocks
+         ih, jh, kh, ihc, jhc, khc, dxh, dy, dt, totavtime, rk3step, ib, ie, kb, ke, iwallmom, iwalltemp, iwallmoist, iwallscal, nblocks
       use modfields, only:um, up, v0, w0, vp, wp, shear, thl0, thlp, qt0, qtp, sv0, svp, momfluxb, tfluxb, exnf, cth, qfluxb
       use initfac, only:fachf, block, faclGR, facef, facqsat, fachurel, facf, facT, facz0,facz0h
-      integer i, j, k, n, nc, jl, ju, kl, ku, im, jm, jp, km
+      integer i, j, k, n, nc, jl, ju, kl, ku, im, jm, jp, km, m
       if (iwallmom == 1) then !fixed flux
       !not implemented
       else if (iwallmom == 2) then !wall function
@@ -269,6 +269,16 @@ contains
       end if
       end if
 
+      if (nsv>0) then
+      if (iwallscal == 1) then !fixed flux
+         do n = 1, nxwall 
+            do m= 1, nsv
+               call xwallscalar(ihc, jhc, khc, sv0(:,:,:,m), svp(:,:,:,m), 0., 0., ixwall(n))
+            end do
+         end do
+      end if
+      end if
+
    end subroutine xwallfun
 
    subroutine xwallscalar(hi, hj, hk, putin, putout, bcvaluem, bcvaluep, n)
@@ -315,12 +325,12 @@ contains
 
    subroutine ywallfunplus
       use modglobal, only:dzf, dzhiq, dzhi, dxf, dxhi, dy, dyi, nsv, lles, numol, ltempeq, lmoist, &
-         je, jb, ih, jh, kh, ihc, jhc, khc, iwallmom, iwallmoist, iwalltemp, nblocks
+         je, jb, ih, jh, kh, ihc, jhc, khc, iwallmom, iwallmoist, iwalltemp, iwallscal, nblocks
       use modfields, only:u0, w0, up, wp, shear, thlp, thl0, qtp, qt0, sv0, svp, tfluxb, momfluxb, exnf, cth, qfluxb
       use modsubgriddata, only:ekm
       use modmpi, only:myid
       use initfac, only:fachf, block, faclGR, facqsat, facef, fachurel, facf, facT, facz0, facz0h
-      integer i, j, k, n, nc, il, iu, kl, ku, im, jm, km
+      integer i, j, k, n, nc, il, iu, kl, ku, im, jm, km, m
 
       if (iwallmom == 1) then !fixed flux
       !not implemented
@@ -365,6 +375,16 @@ contains
       end if
       end if
 
+      if (nsv>0) then
+      if (iwallscal == 1) then
+         do n = 1, nypluswall ! loop over all shear x-walls
+            do m = 1, nsv
+               call ywallscalarplus(ihc, jhc, khc, sv0(:,:,:,m), svp(:,:,:,m), 0., n)
+            end do
+         end do
+      end if
+      end if
+
    end subroutine ywallfunplus
 
    subroutine ywallscalarplus(hi, hj, hk, putin, putout, bcvaluep, n)
@@ -398,11 +418,11 @@ contains
 
    subroutine ywallfunmin
       use modglobal, only:dxf, dxhi, dy, dyi, dzhiq, dzf, dzhi, lles, nsv, numol, ltempeq, lmoist, &
-         ih, jh, kh, ihc, jhc, khc, iwallmom, iwalltemp, iwallmoist, nblocks
+         ih, jh, kh, ihc, jhc, khc, iwallmom, iwalltemp, iwallmoist, iwallscal, nblocks
       use modfields, only:u0, w0, up, wp, shear, thl0, thlp, qt0, qtp, sv0, svp, tfluxb, momfluxb, exnf, cth, qfluxb
       use initfac, only:fachf, block, faclGR, facqsat, facef, fachurel, facf, facT, facz0, facz0h
       !      use modsurfdata,     only : wtsurf
-      integer i, j, k, n, nc, il, iu, kl, ku, im, jp, km
+      integer i, j, k, n, nc, il, iu, kl, ku, im, jp, km, m
 
       if (iwallmom == 1) then
       !fixed flux, not implemented
@@ -444,6 +464,16 @@ contains
       end if
       end if
 
+      if (nsv>0) then
+      if (iwallscal == 1) then
+         do n = 1, nyminwall !
+            do m = 1, nsv
+               call ywallscalarmin(ihc, jhc, khc, sv0(:,:,:,m), svp(:,:,:,m), 0., n)
+            end do
+         end do
+      end if
+      end if
+
    end subroutine ywallfunmin
 
    subroutine ywallscalarmin(hi, hj, hk, putin, putout, bcvaluem, n)
@@ -480,11 +510,11 @@ contains
 
    subroutine zwallfun
       use modglobal, only:dzf, dzfi, dzhi, dzhiq, dxf, dxfi, dxhi, dyi, nsv, lles, numol, ltempeq, lmoist, &
-         ih, jh, kh, ihc, jhc, khc, iwallmom, iwalltemp, iwallmoist
+         ih, jh, kh, ihc, jhc, khc, iwallmom, iwalltemp, iwallmoist, iwallscal
       use modfields, only:u0, v0, up, vp, shear, thl0, thlp, qt0, qtp, sv0, svp, tfluxb, momfluxb, exnf, cth, qfluxb
       use modmpi, only:myid
       use initfac, only:fachf, block, faclGR, facef, facqsat, fachurel, facf, facT, facz0, facz0h
-      integer i, j, k, n, nc, il, iu, jl, ju, im, jm, km
+      integer i, j, k, n, nc, il, iu, jl, ju, im, jm, km, m
 
       if (iwallmom == 1) then
       !fixed flux
@@ -525,6 +555,16 @@ contains
       end if
       end if
 
+      if (nsv>0) then
+      if (iwallscal == 1) then
+         do n = 1, nxwall ! loop over all shear x-walls
+            do m = 1, nsv
+               call zwallscalar(ihc, jhc, khc, sv0(:,:,:,m), svp(:,:,:,m), 0., ixwall(n))
+            end do
+         end do
+      end if
+      end if
+
    end subroutine zwallfun
 
    subroutine zwallscalar(hi, hj, hk, putin, putout, bcvalue, n)
@@ -561,7 +601,7 @@ contains
 
    subroutine ibmnorm
       use modglobal, only:ib, ie, ih, jb, je, jh, kb, ke, kh, rk3step, dt, libm, jmax, &
-         nblocks, nsv, ltempeq, lmoist, nsv, rk3step, ih, kh, dt, totavtime, &
+         nblocks, nsv, ltempeq, lmoist, rk3step, ih, kh, dt, totavtime, &
          dxh, dzf, dy, ih, kh, jh, jge
       use modfields, only:up, vp, wp, um, vm, wm, u0, v0, w0, thl0, thlm, svp, svm, thlp, qtp, qt0, qtm
       use modmpi, only:myid, nprocs
@@ -684,10 +724,12 @@ contains
                   thlp(il:iu, jl:ju, kl:ku) = 0.
 
                   !try setting internal T to fluid T
-                  thlm(il:iu, jl, kl:ku) = thlm(il:iu, jl - 1, kl:ku)
-                  thlm(il:iu, ju, kl:ku) = thlm(il:iu, ju + 1, kl:ku)
                   thlm(il, jl:ju, kl:ku) = thlm(il - 1, jl:ju, kl:ku)
                   thlm(iu, jl:ju, kl:ku) = thlm(iu + 1, jl:ju, kl:ku)
+                  thlm(il:iu, jl, kl:ku) = thlm(il:iu, jl - 1, kl:ku)
+                  thlm(il:iu, ju, kl:ku) = thlm(il:iu, ju + 1, kl:ku)
+                  !thlm(il, jl:ju, kl:ku) = thlm(il - 1, jl:ju, kl:ku)
+                  !thlm(iu, jl:ju, kl:ku) = thlm(iu + 1, jl:ju, kl:ku)
                   thlm(il:iu, jl:ju, ku) = thlm(il:iu, jl:ju, ku + 1)
                end if
             end do
@@ -709,10 +751,12 @@ contains
                   if (jl < jb) jl = jb
                   qtp(il:iu, jl:ju, kl:ku) = 0.
 
-                  qtm(il:iu, jl, kl:ku) = qtm(il:iu, jl - 1, kl:ku)
-                  qtm(il:iu, ju, kl:ku) = qtm(il:iu, ju + 1, kl:ku)
                   qtm(il, jl:ju, kl:ku) = qtm(il - 1, jl:ju, kl:ku)
                   qtm(iu, jl:ju, kl:ku) = qtm(iu + 1, jl:ju, kl:ku)
+                  qtm(il:iu, jl, kl:ku) = qtm(il:iu, jl - 1, kl:ku)
+                  qtm(il:iu, ju, kl:ku) = qtm(il:iu, ju + 1, kl:ku)
+                  !qtm(il, jl:ju, kl:ku) = qtm(il - 1, jl:ju, kl:ku)
+                  !qtm(iu, jl:ju, kl:ku) = qtm(iu + 1, jl:ju, kl:ku)
                   qtm(il:iu, jl:ju, ku) = qtm(il:iu, jl:ju, ku + 1)
 
                end if
@@ -1001,9 +1045,9 @@ contains
    subroutine bottom 
       !kind of obsolete when road facets are being used
       !vegetated floor not added (could simply be copied from vegetated horizontal facets)
-      use modglobal, only:ib, ie, ih, jh, kh, jb, je, kb, numol, prandtlmol, dzh, &
-         dxf, dxhi, dzf, dzfi, numoli, ltempeq, khc, lmoist, BCbotT, BCbotq, BCbotm, dzh2i
-      use modfields, only : u0,v0,e120,um,vm,w0,wm,e12m,thl0,qt0,sv0,thlm,qtm,svm,up,vp,thlp,qtp,shear,momfluxb,tfluxb,cth
+      use modglobal, only:ib, ie, ih, jh, kh, jb, je, kb, numol, prandtlmol, dzh, nsv, &
+         dxf, dxhi, dzf, dzfi, numoli, ltempeq, khc, lmoist, BCbotT, BCbotq, BCbotm, BCbots, dzh2i
+      use modfields, only : u0,v0,e120,um,vm,w0,wm,e12m,thl0,qt0,sv0,thlm,qtm,svm,up,vp,thlp,qtp,svp,shear,momfluxb,tfluxb,cth
       use modsurfdata, only:thlflux, qtflux, svflux, ustar, thvs, qts, wtsurf, wqsurf, thls, z0, z0h
       use modsubgriddata, only:ekm, ekh
       use modmpi, only:myid
@@ -1055,6 +1099,26 @@ contains
           stop
          end if !
       end if !lmoist
+
+      if (nsv>0) then
+         if (BCbots.eq.1) then !neumann/fixed flux bc for moisture
+            do j = jb, je
+               do i = ib, ie
+                  do m = 1, nsv
+                      svp(i, j, kb, m) = svp(i, j, kb, m) + ( &
+                                      0.5*(dzf(kb - 1)*ekh(i, j, kb) + dzf(kb)*ekh(i, j, kb - 1)) &
+                                     *(sv0(i, j, kb, m) - sv0(i, j, kb - 1, m)) &
+                                     *dzh2i(kb) &
+                                     + 0. &
+                                     )*dzfi(kb)
+                  end do
+               end do
+            end do
+         else
+          write (*, *) "WARNING: ABORT, bottom boundary type for scalars undefined"  
+          stop
+         end if !
+      end if
 
       e120(:, :, kb - 1) = e120(:, :, kb)
       e12m(:, :, kb - 1) = e12m(:, :, kb)
