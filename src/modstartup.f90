@@ -41,7 +41,7 @@ contains
          lwarmstart, lstratstart, lfielddump, lreadscal, startfile, tfielddump, fieldvars, tsample, tstatsdump, trestart, &
          nsv, imax, jtot, kmax, xsize, ysize, xlat, xlon, xday, xtime, lwalldist, &
          lmoist, lcoriol, igrw_damp, geodamptime, ifnamopt, fname_options, &
-         xS,yS,zS,SS,sigS,iwallmom,iwalltemp,iwallmoist,iadv_mom,iadv_tke,iadv_thl,iadv_qt,iadv_sv,courant,diffnr,ladaptive,author,&
+         xS,yS,zS,SS,sigS,iwallmom,iwalltemp,iwallmoist,iwallscal,iadv_mom,iadv_tke,iadv_thl,iadv_qt,iadv_sv,courant,diffnr,ladaptive,author,&
          linoutflow, lper2inout, libm, ltrees, lnudge, tnudge, nnudge, lpurif, lles, lmassflowr, massflowrate, lstoreplane, iplane, &
          lreadmean, iinletgen, inletav, lreadminl, Uinf, Vinf, linletRA, nblocks, ntrees, npurif, &
          lscalrec,lSIRANEinout,lscasrc,lscasrcl,lscasrcr,lydump,lytdump,lxydump,lxytdump,lslicedump,ltdump,ltreedump,ltkedump,lzerogradtop,&
@@ -87,7 +87,7 @@ contains
          Uinf, Vinf, di, dti, iplane, inletav, linletRA, lstoreplane, lreadminl, lfixinlet, lfixutauin, xS, yS, zS, &
          SS, sigS,idriver,tdriverstart,driverjobnr,dtdriver,driverstore
       namelist/WALLS/ &
-         iwallmom, iwalltemp, iwallmoist
+         iwallmom, iwalltemp, iwallmoist, iwallscal
       namelist/ENERGYBALANCE/ &
          lEB, lconstW, dtEB, nfcts, bldT, wsoil, wgrmax, wwilt, wfc, skyLW, GRLAI, rsmin
       namelist/PHYSICS/ &
@@ -254,6 +254,7 @@ contains
       call MPI_BCAST(lreadminl, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for reading mean inlet/recycle plane profiles (Uinl,Urec,Wrec)
       call MPI_BCAST(iwalltemp, 1, MPI_INTEGER, 0, comm3d, mpierr) ! case (integer) for wall treatment for temperature (1=no wall function/fixed flux, 2=no wall function/fixed value, 3=uno)
       call MPI_BCAST(iwallmoist, 1, MPI_INTEGER, 0, comm3d, mpierr) ! case (integer) for wall treatment for moisture (1=no wall function/fixed flux, 2=no wall function/fixed value, 3=uno)
+      call MPI_BCAST(iwallscal, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(iwallmom, 1, MPI_INTEGER, 0, comm3d, mpierr) ! case (integer) for wall treatment for momentum (1=no wall function, 2=werner-wengle, 3=uno)
       write (*, *) "sec d"
       call MPI_BCAST(lmassflowr, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for turning on/off u-velocity correction for fixed mass flow rate
@@ -506,6 +507,7 @@ contains
 
 
 !choosing inoutflow in x requires switches to be set
+! tg3315 - these could be moved to init boundary
       if (BCxm .eq. 2) then
          write (*, *) "inoutflow conditions, setting appropriate switches (1)"
          iinletgen = 1
