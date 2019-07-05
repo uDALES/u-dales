@@ -44,8 +44,8 @@ contains
          xS,yS,zS,SS,sigS,iwallmom,iwalltemp,iwallmoist,iadv_mom,iadv_tke,iadv_thl,iadv_qt,iadv_sv,courant,diffnr,ladaptive,author,&
          linoutflow, lper2inout, libm, ltrees, lnudge, tnudge, nnudge, lpurif, lles, lmassflowr, massflowrate, lstoreplane, iplane, &
          lreadmean, iinletgen, inletav, lreadminl, Uinf, Vinf, linletRA, nblocks, ntrees, npurif, &
-         lscalrec,lSIRANEinout,lscasrc,lscasrcl,lscasrcr,lydump,lytdump,lxydump,lxytdump,lslicedump,ltdump,ltkedump,lzerogradtop,&
-         lzerogradtopscal, lbuoyancy, ltempeq, numol, prandtlmol, Qstar, lad, lsize, r_s, cd, dec, ud, Qpu, epu, numoli, prandtlmoli, &
+         lscalrec,lSIRANEinout,lscasrc,lscasrcl,lscasrcr,lydump,lytdump,lxydump,lxytdump,lslicedump,ltdump,ltreedump,ltkedump,lzerogradtop,&
+         lzerogradtopscal, lbuoyancy, ltempeq, numol, prandtlmol, Qstar, dQdt, lad, lsize, r_s, cd, dec, ud, Qpu, epu, numoli, prandtlmoli, &
          lfixinlet, lfixutauin, startmean, pi, &
          thlsrc, nkplane, kplane, nsvl, nsvp, ifixuinf, lvinf, tscale, ltempinout, lmoistinout,  &
          lwallfunc,lprofforc,lchem,k1,JNO2,rv,rd,tnextEB,tEB,dtEB,bldT,wsoil,wgrmax,wwilt,wfc,skyLW,GRLAI,rsmin,nfcts,lEB,lconstW, &
@@ -95,7 +95,7 @@ contains
          lcoriol, igrw_damp, massflowrate, numol, prandtlmol, Qpu, epu, &
          lbuoyancy, ltempeq, lprofforc, lqlnr, lchem, k1, JNO2
       namelist/TREES/ &
-         cd, dec, ud, lad, Qstar, lsize, r_s
+         cd, dec, ud, lad, Qstar, dQdt, lsize, r_s, ltreedump
       namelist/DYNAMICS/ &
          iadv_mom, iadv_tke, iadv_thl, iadv_qt, iadv_sv
 
@@ -265,6 +265,7 @@ contains
       call MPI_BCAST(lxytdump, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315 added switch for writing statistics files
       call MPI_BCAST(lslicedump, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315 added switch for writing statistics files
       call MPI_BCAST(ltdump, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315 added switch for writing statistics files
+      call MPI_BCAST(ltreedump, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315 added switch for writing statistics files
       call MPI_BCAST(ltkedump, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315 added switch for writing tke budget files
       call MPI_BCAST(iplane, 1, MPI_INTEGER, 0, comm3d, mpierr) ! J.Tomas: ib+iplane is the i-plane that is stored if lstoreplane is .true.
       call MPI_BCAST(startfile, 50, MPI_CHARACTER, 0, comm3d, mpierr)
@@ -342,6 +343,7 @@ contains
       call MPI_BCAST(numol, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(prandtlmol, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(Qstar, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(dQdt, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(lsize, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(lad, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(r_s, 1, MY_REAL, 0, comm3d, mpierr)
@@ -595,7 +597,7 @@ contains
          idriver,dtdriver,driverstore,tdriverstart,tdriverdump        
       use modsubgriddata, only:ekm, ekh
       use modsurfdata, only:wtsurf, wqsurf, wsvsurf, &
-         thls, thvs, ps, qts, svs
+         thls, thvs, ps, qts, svs, sv_top
 !            use modsurface,        only : surface,dthldz
       use modboundary, only:boundary, tqaver
       use modmpi, only:slabsum, myid, comm3d, mpierr, my_real, avexy_ibm
@@ -608,7 +610,7 @@ contains
          storeu0driver,storev0driver,storew0driver,storee120driver,storethl0driver,storeqt0driver,&
          nstepreaddriver
       use modinlet, only:readinletfile
-      use moddriver, only : readdriverfile,initdriver
+      use moddriver, only : readdriverfile,initdriver,drivergen
 
       integer i, j, k, n
 
@@ -1001,8 +1003,9 @@ contains
 !                  end do
 !              endif
 
-              call slabsum(uaverage,kb,ke,u0,ib-1,ie+1,jb-1,je+1,kb-1,ke+1,ib,ie,jb,je,kb,ke)
-              uaverage = uaverage / ((ie-ib+1)*(jge-jgb+1))  ! this gives the i-j-averaged velocity (only correct for equidistant grid?)
+              !call slabsum(uaverage,kb,ke,u0,ib-1,ie+1,jb-1,je+1,kb-1,ke+1,ib,ie,jb,je,kb,ke)
+              !uaverage = uaverage / ((ie-ib+1)*(jge-jgb+1))  ! this gives the i-j-averaged velocity (only correct for equidistant grid?)
+              call avexy_ibm(uaverage(kb:ke+kh),u0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
               do k=kb,ke
                 uaverage(k) = uaverage(k)*dzf(k)
               end do
@@ -1057,7 +1060,19 @@ contains
                   end do
                end do
             end do
-            
+          
+            if (nsv>0) then !tg3315 set these variables here for now and repeat for warmstart
+
+              allocate(sv_top(1:nsv))
+              sv_top(:) = svprof(ke,1:nsv)
+
+              call MPI_BCAST(sv_top, nsv, MY_REAL, 0, comm3d, mpierr)
+
+              write(*,*) 'svprof', svprof
+              write(*,*) 'sv_top', sv_top
+
+            end if
+ 
             !do n = 1,nsv
             !  do j = jb - jhc, je + jhc
             !    do i = ib - ihc, ie + ihc
@@ -1314,6 +1329,22 @@ contains
                call MPI_BCAST(qtprof, kmax, MY_REAL, 0, comm3d, mpierr)
                call MPI_BCAST(svprof, (ke + kh - (kb - kh))*nsv, MY_REAL, 0, comm3d, mpierr)
 
+            elseif (idriver==2) then ! idriver
+
+               call readdriverfile
+               call drivergen
+
+              !call slabsum(uaverage,kb,ke,u0,ib-1,ie+1,jb-1,je+1,kb-1,ke+1,ib,ie,jb,je,kb,ke)
+              !uaverage = uaverage / ((ie-ib+1)*(jge-jgb+1))  ! this gives the i-j-averaged velocity (only correct for equidistant grid?)
+              call avexy_ibm(uaverage(kb:ke+kh),u0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
+              do k=kb,ke
+                uaverage(k) = uaverage(k)*dzf(k)
+              end do
+              ubulk = sum(uaverage(kb:ke))/(zh(ke+1)-zh(kb)) !volume-averaged u-velocity
+              if (myid==0) then
+                 write(6,*) 'Modstartup: ubulk=',ubulk
+              end if
+
             else if (linoutflow) then ! restart of inoutflow simulation: reproduce inlet boundary condition from restartfile
                do j = jb - 1, je + 1
                   do k = kb, ke + 1
@@ -1336,7 +1367,43 @@ contains
                end do
                ubulk = sum(uaverage(kb:ke))/(zh(ke + 1) - zh(kb)) ! volume-averaged u-velocity
                write (6, *) 'Modstartup: ubulk=', ubulk
-            endif ! end if lper2inout
+            else ! else per2per... read svprof regardless...
+
+            ! tg3315 read svprof (but do not use regardless of above...)
+              svprof = 0.
+              if (myid == 0) then
+                 if (nsv > 0) then
+                    open (ifinput, file='scalar.inp.'//cexpnr)
+                    read (ifinput, '(a80)') chmess
+                    read (ifinput, '(a80)') chmess
+                    do k = kb, ke
+                       read (ifinput, *) &
+                          height(k), &
+                          (svprof(k, n), n=1, nsv)
+                    end do
+                    open (ifinput, file='scalar.inp.'//cexpnr)
+                    write (6, *) 'height   sv(1) --------- sv(nsv) '
+                    do k = ke, kb, -1
+                       write (6, *) &
+                          height(k), &
+                          (svprof(k, n), n=1, nsv)
+                    end do
+
+                 end if
+              end if ! end if myid==0
+
+              call MPI_BCAST(svprof, (ke + kh - (kb - kh))*nsv, MY_REAL, 0, comm3d, mpierr)
+          
+              if (nsv>0) then !tg3315 set these variables here for now and repeat for warmstart
+
+                allocate(sv_top(1:nsv))
+                sv_top(:) = svprof(ke,1:nsv)
+
+                call MPI_BCAST(sv_top, nsv, MY_REAL, 0, comm3d, mpierr)
+
+              end if
+
+            end if ! end if lper2inout
 
             u0av = 0.0
             v0av = 0.0
@@ -1355,7 +1422,7 @@ contains
               call avexy_ibm(qt0av(kb:ke+kh),qt0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
             do n = 1, nsv
 !                call slabsum(sv0av(kb,n),kb,ke+kh,sv0(ib-ih,jb-jh,kb,n),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
-              call avexy_ibm(sv0av(kb:ke+khc,n),sv0(ib:ie,jb:je,kb:ke+khc,n),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+khc),IIcs(kb:ke+khc),.false.)
+              call avexy_ibm(sv0av(kb:ke+kh,n),sv0(ib:ie,jb:je,kb:ke+kh,n),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.) !tg3315 need up to khc?
             end do
 
             ! CvH - only do this for fixed timestepping. In adaptive dt comes from restartfile
