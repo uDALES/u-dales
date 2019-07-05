@@ -8,7 +8,8 @@
    module initfac
       use modglobal, only:ifinput, nblocks, nfcts, cexpnr, libm, bldT, rsmin, wsoil, wfc,&
                           nwalllayers, block,lEB
-     use modmpi, only:myid, comm3d, mpierr, MPI_INTEGER, MPI_DOUBLE_PRECISION, MY_REAL, nprocs, cmyid, MPI_REAL8, MPI_REAL4, MPI_SUM, mpi_logical
+      use modmpi, only:myid, comm3d, mpierr, MPI_INTEGER, MPI_DOUBLE_PRECISION, MY_REAL, nprocs, cmyid, MPI_REAL8, MPI_REAL4, MPI_SUM, mpi_logical
+      use netcdf
       implicit none
       public :: readfacetfiles,qsat,dqsatdT
       save
@@ -60,7 +61,7 @@
    contains
 
       subroutine readfacetfiles
-      use modglobal, only: block
+      use modglobal, only: block, cexpnr
       implicit none
 
       !use modglobal, only:block 
@@ -71,9 +72,10 @@
 !read netsw.inp.xxx (if sun is not constant, K needs to be calculated at every EB-timestep)
 !read tfacinit.inp.xxx
 !use modglobal, only : nblocks, nfcts, cexpnr, ifinput
-
+         character (len = 13) :: FILE_VF = 'vf.nc.inp.xxx'
+         integer :: ncid, varid
          integer :: n = 0, i = 0, j = 0, k = 0, io = 0
-
+         integer :: iret
          !allocate (block(nblocks, 11))
          allocate (faclGR(0:nfcts))
          allocate (facz0(0:nfcts)) !0 is the default value (e.g. for internal walls)
@@ -274,13 +276,31 @@
             faccp(0, 3) = 999.; faclami(0, 1) = 0.999; faclami(0, 2) = 0.999; faclami(0, 3) = 0.999; fackappa(0, 1) = 0.00000999; fackappa(0, 2) = 0.00000999; fackappa(0, 3) = 0.00000999; faclGR(0) = .false.
 
           if (lEB) then
+! !read viewfactors between facets
+!             open (ifinput, file='vf.inp.'//cexpnr, action="read", form="formatted")
+!             read (ifinput, '(a80)') chmess
+!             do n = 1, nfcts
+!                read (ifinput, *) (vf(n, i), i=1, nfcts)
+!             end do
+!             close (ifinput)
+
 !read viewfactors between facets
-            open (ifinput, file='vf.inp.'//cexpnr, action="read", form="formatted")
-            read (ifinput, '(a80)') chmess
-            do n = 1, nfcts
-               read (ifinput, *) (vf(n, i), i=1, nfcts)
-            end do
-            close (ifinput)
+            !open (ifinput, file='vf.inp.'//cexpnr, action="read", form="formatted")
+            !read (ifinput, '(a80)') chmess
+            !do n = 1, nfcts
+            !   read (ifinput, *) (vf(n, i), i=1, nfcts)
+            !end do
+            !close (ifinput)
+ 
+            ! Open the file. NF90_NOWRITE tells netCDF we want read-only access to
+            ! the file.
+            FILE_VF = 'vf.nc.inp.'//cexpnr
+            iret = nf90_open(FILE_VF, NF90_NOWRITE, ncid) ! Get the varid of the data variable, based on its name.
+            iret = nf90_inq_varid(ncid, "view factor", varid) 
+            ! Read the data.
+            iret = nf90_get_var(ncid, varid, vf)
+            write(*,*) "vf(1,6),vf(1,7),vf(6,1),vf(7,1)",vf(1,6),vf(1,7),vf(6,1),vf(7,1)
+
 
 ! read skyviewfactors
             open (ifinput, file='svf.inp.'//cexpnr)
