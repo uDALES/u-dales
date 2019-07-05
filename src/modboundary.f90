@@ -21,7 +21,7 @@ contains
    !>
    subroutine initboundary
       use modglobal, only:ib, kb, ke, kh, kmax, pi, zf, iplane
-      use modinletdata, only:irecy
+      use modinletdata, only:irecy,irecydriver
       implicit none
 
       real    :: zspb, zspt
@@ -42,6 +42,8 @@ contains
       end do
       tsc(ke + 1) = tsc(ke)
       irecy = ib + iplane
+    irecydriver = iplane! + ib
+
    end subroutine initboundary
 
    !>
@@ -49,12 +51,13 @@ contains
    subroutine boundary
 
       use modglobal, only:ib, ie, ih, jb, je, jgb, jge, jh, kb, ke, kh, linoutflow, dzf, zh, dy, &
-         timee, ltempeq, lmoist, BCxm, BCym, BCxT, BCyT, BCxq, BCyq, BCxs, BCys, BCtopm, BCtopT, BCtopq, BCtops, e12min
+         timee, ltempeq, lmoist, BCxm, BCym, BCxT, BCyT, BCxq, BCyq, BCxs, BCys, BCtopm, BCtopT, BCtopq, BCtops, e12min, idriver
       use modfields, only:u0, v0, w0, um, vm, wm, thl0, thlm, qt0, qtm, uout, uouttot, e120, e12m
       use modsubgriddata, only:ekh, ekm
       use modsurfdata, only:thl_top, qt_top, sv_top, wttop, wqtop, wsvtop
       use modmpi, only:myid, slabsum
       use modinlet, only:inletgen, inletgennotemp
+      use moddriver, only : drivergen
       use modinletdata, only:irecy, ubulk, iangle
 !    use modsurface, only : getobl
       implicit none
@@ -65,6 +68,10 @@ contains
       if (BCxm .eq. 1) then  !periodic
          call cyclicmi
 
+         if (idriver == 1) then ! write driver files
+           call drivergen
+         end if
+
       else if (BCxm .eq. 2) then !previously iinletgen 1
          uouttot = cos(iangle)*ubulk
          if (ltempeq) then
@@ -73,13 +80,18 @@ contains
             call inletgennotemp
          end if
 
-      else if (BCxm .eq. 3) then !previously iinletgen 2
+         ! iolet - called due to BCtopm = 3
+
+      else if (BCxm .eq. 3) then ! previously iinletgen 2
+
          uouttot = cos(iangle)*ubulk
          if (ltempeq) then
             call inletgen
          else
             call inletgennotemp
          end if
+
+         ! iolet - called due to BCtopm = 3
 
       else if (BCxm .eq. 4) then !previously (inoutflow without iinlet)
          uouttot = cos(iangle)*ubulk
@@ -88,6 +100,16 @@ contains
          else
             call inletgennotemp
          end if
+
+         ! iolet - called due to BCtopm = 3
+
+      else if (BCxm .eq. 5) then ! driver from driver gen (idriver == 2)
+
+         uouttot = ubulk
+
+         call drivergen
+
+         ! iolet - called due to BCtopm = 3
 
       else
          write (*, *) "WARNING: ABORT, lateral boundary type for veloctiy in x-direciton undefined"
@@ -107,9 +129,10 @@ contains
       if (BCxT .eq. 1) then
          call cyclichi
 
-      else if (BCxT .eq. 2) then !inoutflow
-!do nothing, temperature is considered in inletgen and in iolet
+      else if (BCxT .eq. 2) then !inoutflow - will be overwritten unless BCxm == 1
          call iohi
+      else if (BCxT .eq. 3) then
+         !do nothing, temperature is considered in iolet
       else
          write (*, *) "WARNING: ABORT, lateral boundary type for temperature in x-direction undefined"
          stop
@@ -127,9 +150,10 @@ contains
       if (BCxq .eq. 1) then
          call cyclicqi
 
-      else if (BCxq .eq. 2) then !inoutflow
-!do nothing, humidity is considered in iolet
+      else if (BCxq .eq. 2) then !inoutflow  - will be overwritten unless BCxm == 1
         call ioqi
+      elseif (BCxq .eq. 3) then 
+        !do nothing, temperature is considered in iolet
       else
          write (*, *) "WARNING: ABORT, lateral boundary type for humidity in x-direction undefined"
          stop
@@ -147,16 +171,16 @@ contains
       if (BCxs .eq. 1) then
          call cyclicsi
 
-      else if (BCxs .eq. 2) then !
-!do nothing, scalars are considere in iolet
+      else if (BCxs .eq. 2) then !inoutflow  - will be overwritten unless BCxm == 1
+         call iosi
 
-      else if (BCxs .eq. 3) then !scalinout
-         call scalinout
+      else if (BCxs .eq. 3) then
+         ! do nothing - considered in iolet
 
-      else if (BCxs .eq. 4) then !scalrec
+      else if (BCxs .eq. 4) then !scalrec - will be overwritten unless BCxm == 1
          call scalrec
 
-      else if (BCxs .eq. 5) then !previously SIRANE
+      else if (BCxs .eq. 5) then !previously SIRANE - will be overwritten unless BCxm == 1
          call scalSIRANE
 
       else
@@ -291,7 +315,7 @@ contains
 
 
    !> Sets lateral periodic boundary conditions for the scalars
-   subroutine scalinout
+   subroutine iosi
       use modglobal, only:ib, ie, jb, je, ih, jh, kb, ke, kh, nsv, dt, rk3step, dxhi, ltempeq, &
          ihc, jhc, khc, dy
       use modfields, only:sv0, svm, svprof, uouttot
@@ -310,7 +334,7 @@ contains
       enddo
 
       return
-   end subroutine scalinout
+   end subroutine iosi
 
    subroutine scalrec
       use modglobal, only:ib, ie, jb, je, ih, jh, kb, ke, kh, nsv, dt, rk3step, dxhi, ltempeq, &
@@ -607,12 +631,13 @@ contains
    !>set inlet and outlet boundary conditions in i-direction
    subroutine iolet
 
-      use modglobal, only:dxhi, dxhci, xh, zh, ib, ie, jb, je, ih, jh, kb, ke, kh, nsv, rk3step, dt, iinletgen, ltempeq, lmoist, ihc
+      use modglobal, only:dxhi, dxhci, xh, zh, ib, ie, jb, je, ih, jh, kb, ke, kh, nsv, rk3step, dt, iinletgen, ltempeq, lmoist, ihc, idriver
       use modfields, only:u0, um, v0, vm, w0, wm, e120, e12m, thl0, thlm, qt0, qtm, sv0, svm, uprof, vprof, e12prof, thlprof, &
          qtprof, svprof, uouttot, wouttot
       use modmpi, only:excjs, myid
       use modinletdata, only:u0inletbcold, v0inletbcold, w0inletbcold, uminletbc, vminletbc, wminletbc, totaluold, &
-         t0inletbcold, tminletbc
+         t0inletbcold, tminletbc, u0driver, v0driver, w0driver, e120driver, thl0driver, qt0driver, umdriver, vmdriver, wmdriver,& 
+         e12mdriver, thlmdriver, qtmdriver
 
       real rk3coef
 
@@ -670,7 +695,76 @@ contains
             end do
          end if
 
-      else ! (if iinetgen==0)
+        ! Driver inlet
+    elseif (idriver == 2) then
+       do j=jb-1,je+1
+          do k=kb,ke !tg3315 removed +1 following above...
+             u0(ib,j,k)=u0driver(j,k)
+             um(ib,j,k)=umdriver(j,k)
+!             if(myid==0) then
+!                write(6,*) 'ib,j,k ', ib,j,k
+!                write(6,*) 'time'   , timee
+!                write(6,*) 'u0(ib-1,j,k)', u0(ib-1,j,k)
+!                write(6,*) 'u0(ib,j,k)', u0(ib,j,k)
+!                write(6,*) 'u0(ib+1,j,k)', u0(ib+1,j,k)
+!             end if
+             u0(ib-1,j,k)=2*u0(ib,j,k)-u0(ib+1,j,k)
+             um(ib-1,j,k)=2*um(ib,j,k)-um(ib+1,j,k)
+
+             v0(ib-1,j,k)   = v0driver(j,k) 
+             vm(ib-1,j,k)   = vmdriver(j,k)      
+
+             ! to be changed in the future: e12 should be taken from recycle plane!
+             e120(ib-1,j,k) = e120driver(j,k)      ! extrapolate e12 from interior
+             e12m(ib-1,j,k) = e12mdriver(j,k)      ! extrapolate e12 from interior
+             
+             do n=1,nsv
+                do m = 1,ihc
+                   sv0(ib-m,j,k,n) = 2*svprof(k,n) - sv0(ib+(m-1),j,k,n)
+                   svm(ib-m,j,k,n) = 2*svprof(k,n) - svm(ib+(m-1),j,k,n)
+                enddo
+             enddo
+           end do
+           do k=kb,ke+1
+             w0(ib-1,j,k)   = w0driver(j,k) ! tg3315 k loop was commented here but is needed 
+             wm(ib-1,j,k)   = wmdriver(j,k)
+           end do
+         !end do
+       end do
+
+       ! Heat
+       if (ltempeq ) then
+          do j=jb-1,je+1
+             do k=kb,ke+1
+                thl0(ib-1,j,k) = 2*thlprof(k) - thl0(ib, j, k) !thl0driver(j,k)
+                thlm(ib-1,j,k) = 2*thlprof(k) - thlm(ib, j, k) !thlmdriver(j,k)
+                !if(myid==0) then
+                !   write(6,'(A,2e20.12)') 'thl0 inlet boundary, ib-1, ib: ', thl0(ib-1,j,k), thl0(ib,j,k)
+                !endif
+             end do
+          end do
+       end if
+ 
+!       if(myid==0) then
+!          write(6,'(A,e20.12)') 'thl0 inlet boundary, thl0(ib-1,jb,20): ',thl0(ib-1,jb,20)
+!          write(6,'(A,e20.12)') 'thlp inlet boundary, thlp(ib-1,jb,20): ',thlp(ib-1,jb,20)
+!          write(6,'(A,e20.12)') 'thl0 inlet boundary, thl0(ib,jb,20): ',thl0(ib,jb,20)
+!          write(6,'(A,e20.12)') 'thlp inlet boundary, thlp(ib,jb,20): ',thlp(ib,jb,20)
+
+!       end if
+
+       if (lmoist ) then
+          do j=jb-1,je+1
+             do k=kb,ke+1
+                qt0(ib-1,j,k) = 2*qtprof(k) - qt0(ib, j, k) !qt0driver(j,k)
+!                qt0(ib-1,j,k) = 2*qtprof(k) - qt0(ib,j,k)  !watch!
+                qtm(ib-1,j,k) = 2*qtprof(k) - qtm(ib, j, k) !qtmdriver(j,k)
+!                qtm(ib-1,j,k) = 2*qtprof(k) - qtm(ib,j,k)
+             end do
+          end do
+       end if
+
+       else ! (if iinetgen==0)
 
          do j = jb - 1, je + 1
             do k = kb, ke + 1
@@ -753,10 +847,10 @@ contains
    subroutine bcpup(pup, pvp, pwp, rk3coef)
 
       use modglobal, only:ib, ie, jb, je, ih, jh, kb, ke, kh, linoutflow, dxfi, iinletgen, &
-         Uinf, libm, jmax
+         Uinf, libm, jmax, idriver
       use modfields, only:pres0, up, vp, wp, um, w0, u0, uouttot
       use modmpi, only:excjs, myid
-      use modinletdata, only:irecy, u0inletbc, ddispdx
+      use modinletdata, only:irecy, u0inletbc, ddispdx, u0driver 
 
       real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb:ke + kh), intent(inout) :: pup
       real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb:ke + kh), intent(inout) :: pvp
@@ -768,7 +862,7 @@ contains
       integer i, j, k
 
       rk3coefi = 1./rk3coef
-      if (linoutflow) then
+      if (linoutflow) then ! is this switch still in use???
          if ((iinletgen == 1) .or. (iinletgen == 2)) then
             do j = jb, je
                do i = ib, ie
@@ -782,6 +876,19 @@ contains
                   pup(ib, j, k) = u0inletbc(j, k)*rk3coefi
                end do
             end do
+       elseif (idriver == 2) then ! used from Anton... but what is this actually doing? Do we have uinf always??? tg3315
+          do j=jb,je
+             do i=ib,ie
+                pwp(i,j,kb)  = 0.
+                pwp(i,j,ke+kh)= (Uinf*ddispdx ) *rk3coefi ! tg3315 - idriver will not have Uinf
+             end do
+          end do
+          do k=kb,ke
+             do j=jb,je
+                pup(ie+1,j,k) = - (u0(ie+1,j,k)-u0(ie,j,k))*dxfi(ie)*uouttot + um(ie+1,j,k)*rk3coefi   ! du/dt +u*du/dx=0 -> pup(i)=um(i)/rk3coef -um(i)*(um(i)-um(i-1))/dxf(i-1)
+                pup(ib,j,k) = u0driver(j,k)*rk3coefi
+             end do
+          end do 
          else ! if not iinletgen
             do j = jb, je
                do i = ib, ie

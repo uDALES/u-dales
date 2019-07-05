@@ -166,14 +166,15 @@ subroutine tstep_integrate
 
 
   use modglobal, only : ib,ie,jb,jgb,je,kb,ke,nsv,dt,rk3step,e12min,lmoist,timee,ntrun,&
-                        linoutflow, iinletgen,ltempeq,nsvl,nsvp,&
-                        dzf,dzhi,dzf,dxhi,dxf,ifixuinf,thlsrc,lchem
+                        linoutflow, iinletgen,ltempeq,nsvl,nsvp,idriver,&
+                        dzf,dzhi,dzf,dxhi,dxf,ifixuinf,thlsrc,lmassflowr,lchem
   use modmpi, only    : cmyid,myid,nprocs
   use modfields, only : u0,um,up,v0,vm,vp,w0,wm,wp,&
                         thl0,thlm,thlp,qt0,qtm,qtp,e120,e12m,e12p,sv0,svm,svp,uouttot,&
                         wouttot,dpdxl,dgdt,momfluxb,tfluxb,qfluxb
   use modinletdata, only: totalu,di_test,dr,thetar,thetai,displ,irecy, &
-                          dti_test,dtr,thetati,thetatr,q0,lmoi,lmor,utaui,utaur
+                          dti_test,dtr,thetati,thetatr,q0,lmoi,lmor,utaui,utaur,&
+                          storetdriver, nstepread, nstepreaddriver, irecydriver
   use modsubgriddata, only : loneeqn,ekm,ekh
   use modchem, only : chem
 
@@ -252,7 +253,7 @@ subroutine tstep_integrate
 
   
   if (linoutflow) then
-    if (iinletgen == 0) then
+    if ((iinletgen == 0) .and. (idriver /= 2)) then
       u0(ie+1,jb:je,kb:ke) = um(ie+1,jb:je,kb:ke)  + rk3coef * up(ie+1,jb:je,kb:ke)
     else
       u0(ib-1,jb:je,kb:ke) = um(ib-1,jb:je,kb:ke)  + rk3coef * up(ib-1,jb:je,kb:ke)
@@ -267,9 +268,15 @@ subroutine tstep_integrate
         open(unit=11,file='monitor'//cmyid//'.txt',position='append')
         if (iinletgen == 1) then 
           write(11,3001) timee
-        else 
+        elseif (idriver == 1) then
+          write(11, '(I4)') nstepreaddriver
+          write(11, 3001) timee, u0(irecydriver,1,32)
+        elseif (idriver == 2) then
+          write(11, '(I4)') nstepreaddriver
+          write(11, 3001) timee, storetdriver(nstepreaddriver), u0(irecydriver, 1, 32)              
+        else
           write(11,3001) timee
-        end if  
+        end if
 3001    format (13(6e14.6))
         close(11)
 

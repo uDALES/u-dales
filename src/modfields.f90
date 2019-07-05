@@ -74,6 +74,12 @@ module modfields
   integer, allocatable :: IIvws(:)          !< 1-D Masking matrix for blocks at y- and z-direction half cells that span ib:ie and 1:jtot
   integer, allocatable :: IIuvs(:)          !< 1-D Masking matrix for blocks at x- and y-direction half cells that span ib:ie and 1:jtot
 
+  real, allocatable :: Rn(:)
+  real, allocatable :: clai(:)
+  real, allocatable :: qc(:)
+  real, allocatable :: qa(:)
+  real, allocatable :: ladz(:)
+
 !  integer              :: IIbl = 1          !< Switch for if layer at kb is all blocks
 
   ! statistical fields following notation "[statistical name][averaging directions - x,y,z,t][position in grid - i,j,k]"
@@ -331,18 +337,10 @@ module modfields
   real              :: uouttot                      !< area-averaged outflow velocity (used in convective outflow BC) 
   real              :: wouttot                      !< area-averaveraged top velocity
   real              :: udef
-  real              :: vdef
-  real, allocatable :: vout(:)
-  real              :: vouttot
 
   real              :: thlsrcdt                     ! thlsrc -> thlsrcdt is used to solve 1-order ODE for thlsrc 
   real              :: dgdt                         ! g = dp/dx -> dgdt is used to solve 1-order ODE for dpdx 
   real              :: dpdx = 0.                   ! dpdx given in namoptions
-
-  real, allocatable :: Rn(:)          
-  real, allocatable :: qc(:)         
-  real, allocatable :: lad(:)                       ! leaf areas density m^-1
-  real, allocatable :: clai(:)                      ! cumulative leaf aread index
 
   character(80), allocatable :: ncname(:,:)
   character(80), allocatable :: ncstaty(:,:)
@@ -436,7 +434,6 @@ contains
     allocate(svprof(kb:ke+kh,nsv))
     allocate(thlpcar(kb:ke+kh))
     allocate(uout(kb:ke))         ! height average outlet velocity (used in convective outflow BC)
-    allocate(vout(kb:ke))
     allocate(wout(ib:ie))         ! j -averaged top velocity
     allocate(friction(ib:ie))     ! line-averaged (along j) skin friction 
     allocate(momthick(ib:ie))     ! line-averaged (along j) momentum thickness 
@@ -445,11 +442,6 @@ contains
     allocate(SW_dn_TOA(ib-ih:ie+ih,jb-jh:je+jh))
     allocate(LW_up_TOA(ib-ih:ie+ih,jb-jh:je+jh))
     allocate(LW_dn_TOA(ib-ih:ie+ih,jb-jh:je+jh))
-
-    allocate(Rn(kb:ke+kh))
-    allocate(qc(kb:ke+kh))
-    allocate(lad(kb:ke+kh))
-    allocate(clai(kb:ke+kh))
 
     ! allocate averaged variables
     allocate(uav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
@@ -481,6 +473,12 @@ contains
     allocate(IIuws(kb:ke+khc))
     allocate(IIvws(kb:ke+khc))
     allocate(IIuvs(kb:ke+khc))
+
+    allocate(qc(1:ke))
+    allocate(qa(1:ke))
+    allocate(ladz(1:ke))
+    allocate(Rn(1:ke))
+    allocate(clai(1:ke))
 
     allocate(uyt(ib:ie,kb:ke))
     allocate(uytik(ib:ie,kb:ke))
@@ -698,7 +696,7 @@ contains
     !Exner function should be called in startup and just be initialised here
     qt0av=0.;ql0av=0.;thl0av=0.;u0av=0.;v0av=0.;sv0av=0.
     thlprof=0.;qtprof=0.;qlprof=0.;uprof=0.;vprof=0.;e12prof=0.;svprof=0.
-    ug=0.;vg=0.;pgx=0.;pgy=0.;dpdxl=0.;dpdyl=0.;wfls=0.;whls=0.;thlpcar = 0.;uout=0.;vout=0.;wout=0.;udef=0.;vdef=0.;uouttot=0.;wouttot=0.;vouttot=0.
+    ug=0.;vg=0.;pgx=0.;pgy=0.;dpdxl=0.;dpdyl=0.;wfls=0.;whls=0.;thlpcar = 0.;uout=0.;wout=0.;udef=0.;uouttot=0.;wouttot=0.
     dthldxls=0.;dthldyls=0.;dqtdxls=0.;dqtdyls=0.;dudxls=0.;dudyls=0.;dvdxls=0.;dvdyls=0.
     dthvdz=0.
     SW_up_TOA=0.;SW_dn_TOA=0.;LW_up_TOA=0.;LW_dn_TOA=0.
@@ -713,9 +711,9 @@ contains
 
     scar=0.;scarl=0.
 
-    Rn=0.;qc=0.;lad=0.;clai=0.
-
     IIc=1;IIu=1;IIv=1;IIct=1;IIw=1;IIuw=1;IIvw=1;IIuwt=1;IIut=1;IIvt=1;IIwt=1;IIcs=1;IIus=1;IIvs=1;IIws=1;IIuws=1;IIvws=1;IIuw=1;IIuvs=1
+
+    clai=0.;Rn=0.;qc=0.;qa=0.;ladz=0.
 
     uav=0.;vav=0.;wav=0.;thlav=0.;qtav=0.;svav=0.;viscratioav=0.;uuav=0.;vvav=0.
     wwav=0.;uvav=0.;uwav=0.;vwav=0.;sv2av=0.;thl2av=0.;ql2av=0.;qt2av=0.;presav=0.

@@ -344,8 +344,8 @@ contains
                                sv1sgst,sv2sgst,sv3sgst,sv4sgst,qtt,pt
   use modglobal,        only : ib,ie,ih,ihc,xf,xh,jb,je,jhc,jgb,jge,dy,dyi,jh,ke,kb,kh,khc,rk3step,&
                                timee,cexpnr,tsample,tstatsdump,jtot,imax,jmax,dzf,&
-                               ltempeq,zh,dxf,dzf,dzh2i,lprofforc,lscasrcl,&
-                               lslicedump,lchem,dzhi,dzhiq,dxhi,lmoist,nsv
+                               ltempeq,zh,dxf,dzf,lmassflowr,dzh2i,lprofforc,lscasrcl,&
+                               lslicedump,lchem,dzhi,dzhiq,dxhi,massflowrate,lmoist,nsv
 !  use modsubgriddata,   only : ekm,sbshr
   use modstat_nc,       only : writestat_nc,writestat_1D_nc
   use modmpi,           only : myid,cmyid,my_real,mpi_sum,avey_ibm,mpierr,&
