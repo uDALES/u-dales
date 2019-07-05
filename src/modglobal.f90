@@ -139,6 +139,7 @@ module modglobal
    logical :: ltkedump = .false. !tg3315
   logical :: lslicedump= .false.  !<  switch to output slices in the xy-plane every tstatsdump
   logical :: ltdump    = .false.      !<  switch to output time-averaged statistics every tstatsdump
+  logical :: ltreedump    = .false.
 
    logical :: lreadminl = .false. !<  switch for reading mean inlet/recycle plane profiles (used in inletgenerator)
    logical :: lwallfunc = .false. !<  switch that determines wether wall functions are used to compute the wall-shear stress
@@ -239,7 +240,7 @@ module modglobal
   integer, allocatable :: tree(:,:)             !< field with data from tree.inp.xxx
   integer :: ntree_max = 0 
   !real, allocatable :: ladz(:)                  !< field with leaf area density data
-  real    :: cd = 0., ud = 0., Qstar = 0., dec = 0., lad = 0., lsize = 0., r_s = 0.  !< current set of parameters for tree model
+  real    :: cd = 0., ud = 0., Qstar = 0., dQdt = 0., dec = 0., lad = 0., lsize = 0., r_s = 0.  !< current set of parameters for tree model
 
   logical :: lnudge = .false.                   !< switch for applying nudging at the top of the domain
   real    :: tnudge = 50.                       !< time scale for nudging

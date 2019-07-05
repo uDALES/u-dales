@@ -80,10 +80,24 @@ module modfields
   real, allocatable :: qa(:)
   real, allocatable :: ladz(:)
 
+  real, allocatable :: tr_u(:,:,:)
+  real, allocatable :: tr_v(:,:,:)
+  real, allocatable :: tr_w(:,:,:)
+  real, allocatable :: tr_qt(:,:,:)
+  real, allocatable :: tr_thl(:,:,:)
+  real, allocatable :: tr_sv(:,:,:,:)
+
+  real, allocatable :: tr_ut(:,:,:)
+  real, allocatable :: tr_vt(:,:,:)
+  real, allocatable :: tr_wt(:,:,:)
+  real, allocatable :: tr_qtt(:,:,:)
+  real, allocatable :: tr_thlt(:,:,:)
+  real, allocatable :: tr_svt(:,:,:)
+
 !  integer              :: IIbl = 1          !< Switch for if layer at kb is all blocks
 
   ! statistical fields following notation "[statistical name][averaging directions - x,y,z,t][position in grid - i,j,k]"
-  real, allocatable :: uyt(:,:)        
+  real, allocatable :: uyt(:,:) 
   real, allocatable :: uytik(:,:)
   real, allocatable :: vyt(:,:)        
   real, allocatable :: wyt(:,:)        
@@ -95,7 +109,10 @@ module modfields
   real, allocatable :: sca2yt(:,:)     
   real, allocatable :: sca3yt(:,:)     
   real, allocatable :: thlsgsyt(:,:)     
-  real, allocatable :: usgsyt(:,:)     
+  real, allocatable :: qtsgsyt(:,:)
+  real, allocatable :: usgsyt(:,:) 
+  real, allocatable :: wsgsyt(:,:)    
+  real, allocatable :: svsgsyt(:,:)
 
   real, allocatable :: uxyt(:)        
   real, allocatable :: vxyt(:)        
@@ -109,7 +126,10 @@ module modfields
 
   real, allocatable :: uwtik(:,:,:)
   real, allocatable :: wthltk(:,:,:)
+  real, allocatable :: wqttk(:,:,:)
   real, allocatable :: thlthlt(:,:,:)
+  real, allocatable :: qtqtt(:,:,:)
+  real, allocatable :: svsvt(:,:,:)
   real, allocatable :: uutc(:,:,:)
   real, allocatable :: vvtc(:,:,:)
   real, allocatable :: wwtc(:,:,:)
@@ -123,6 +143,7 @@ module modfields
   real, allocatable :: vtij(:,:,:)
   real, allocatable :: wmt(:,:,:)
   real, allocatable :: thltk(:,:,:)
+  real, allocatable :: qttk(:,:,:)
   real, allocatable :: thlt(:,:,:)
   real, allocatable :: utc(:,:,:)
   real, allocatable :: vtc(:,:,:)
@@ -350,6 +371,7 @@ module modfields
   character(80), allocatable :: ncstatxyt(:,:)
   character(80), allocatable :: ncstatslice(:,:)
   character(80), allocatable :: ncstatt(:,:)
+  character(80), allocatable :: ncstattr(:,:)
 
   integer, allocatable :: wall(:,:,:,:)             !< wall(ic,jc,kc,1-5) gives the global indices of the wall closest to cell center ic,jc,kc. The 4th and 5th integer gives the corresponding shear components
 
@@ -480,6 +502,20 @@ contains
     allocate(Rn(1:ke))
     allocate(clai(1:ke))
 
+    allocate(tr_u(ib:ie,jb:je,kb:ke))
+    allocate(tr_v(ib:ie,jb:je,kb:ke))
+    allocate(tr_w(ib:ie,jb:je,kb:ke))
+    allocate(tr_qt(ib:ie,jb:je,kb:ke))
+    allocate(tr_thl(ib:ie,jb:je,kb:ke))
+    allocate(tr_sv(ib:ie,jb:je,kb:ke,1:nsv))
+
+    allocate(tr_ut(ib:ie,jb:je,kb:ke))
+    allocate(tr_vt(ib:ie,jb:je,kb:ke))
+    allocate(tr_wt(ib:ie,jb:je,kb:ke))
+    allocate(tr_qtt(ib:ie,jb:je,kb:ke))
+    allocate(tr_thlt(ib:ie,jb:je,kb:ke))
+    allocate(tr_svt(ib:ie,jb:je,kb:ke))
+
     allocate(uyt(ib:ie,kb:ke))
     allocate(uytik(ib:ie,kb:ke))
     allocate(vyt(ib:ie,kb:ke))
@@ -493,6 +529,9 @@ contains
     allocate(sca3yt(ib:ie,kb:ke))
     allocate(usgsyt(ib:ie,kb:ke))
     allocate(thlsgsyt(ib:ie,kb:ke))
+    allocate(qtsgsyt(ib:ie,kb:ke))
+    allocate(wsgsyt(ib:ie,kb:ke))
+    allocate(svsgsyt(ib:ie,kb:ke))
 
     allocate(uxyt(kb:ke+kh))
     allocate(vxyt(kb:ke+kh))
@@ -506,7 +545,10 @@ contains
 
     allocate(uwtik(ib:ie,jb:je,kb:ke+kh))
     allocate(wthltk(ib:ie,jb:je,kb:ke+kh))
+    allocate(wqttk(ib:ie,jb:je,kb:ke+kh))
     allocate(thlthlt(ib:ie,jb:je,kb:ke+kh))
+    allocate(qtqtt(ib:ie,jb:je,kb:ke+kh))
+    allocate(svsvt(ib:ie,jb:je,kb:ke+kh))
     allocate(uutc(ib:ie,jb:je,kb:ke+kh))
     allocate(vvtc(ib:ie,jb:je,kb:ke+kh))
     allocate(wwtc(ib:ie,jb:je,kb:ke+kh))
@@ -520,6 +562,7 @@ contains
     allocate(vtij(ib:ie,jb:je,kb:ke+kh))
     allocate(wmt(ib:ie,jb:je,kb:ke+kh))
     allocate(thltk(ib:ie,jb:je,kb:ke+kh))
+    allocate(qttk(ib:ie,jb:je,kb:ke+kh))
     allocate(thlt(ib:ie,jb:je,kb:ke+kh))
     allocate(utc(ib:ie,jb:je,kb:ke+kh))
     allocate(vtc(ib:ie,jb:je,kb:ke+kh))
@@ -701,11 +744,11 @@ contains
     dthvdz=0.
     SW_up_TOA=0.;SW_dn_TOA=0.;LW_up_TOA=0.;LW_dn_TOA=0.
 
-    uyt=0.;uytik=0.;vyt=0.;wyt=0.;wytik=0.;thlyt=0.;qtyt=0.;thlytk=0.;sca1yt=0.;sca2yt=0.;sca3yt=0.;thlsgsyt=0.;
+    uyt=0.;uytik=0.;vyt=0.;wyt=0.;wytik=0.;thlyt=0.;qtyt=0.;thlytk=0.;sca1yt=0.;sca2yt=0.;sca3yt=0.;thlsgsyt=0.;wsgsyt=0.;qtsgsyt=0.;svsgsyt=0.
     usgsyt=0.
     uxyt=0.;vxyt=0.;wxyt=0.;thlxyt=0.;qtxyt=0.;pxyt=0.;usgsxyt=0.;vsgsxyt=0.;thlsgsxyt=0.;
-    uwtik=0.;wthltk=0.;thlthlt=0.;uutc=0.;vvtc=0.;wwtc=0.;vwtjk=0.;uvtij=0.;utik=0.;wtik=0.;wtjk=0.;vtjk=0.;utij=0.;vtij=0.;
-    wmt=0.;thltk=0.;thlt=0.;slice=0.;slice2=0.;slice3=0.;slice4=0.;slice5=0.;utc=0.;vtc=0.;wtc=0.
+    uwtik=0.;wthltk=0.;wqttk=0.;thlthlt=0.;qtqtt=0.;svsvt=0.;uutc=0.;vvtc=0.;wwtc=0.;vwtjk=0.;uvtij=0.;utik=0.;wtik=0.;wtjk=0.;vtjk=0.;utij=0.;vtij=0.;
+    wmt=0.;thltk=0.;qttk=0.;thlt=0.;slice=0.;slice2=0.;slice3=0.;slice4=0.;slice5=0.;utc=0.;vtc=0.;wtc=0.
     slice6=0.;slice7=0.;slice8=0.;umt=0.;vmt=0.;sv1t=0.;sv2t=0.;sv3t=0.;sv4t=0.;sv1tk=0.;sv2tk=0.;sv3tk=0.;sv4tk=0.
     wsv1tk=0.;wsv2tk=0.;wsv3tk=0.;wsv4tk=0.;sv1sgst=0.;sv2sgst=0.;sv3sgst=0.;sv4sgst=0.;qtt=0.;pt=0.
 
@@ -713,7 +756,7 @@ contains
 
     IIc=1;IIu=1;IIv=1;IIct=1;IIw=1;IIuw=1;IIvw=1;IIuwt=1;IIut=1;IIvt=1;IIwt=1;IIcs=1;IIus=1;IIvs=1;IIws=1;IIuws=1;IIvws=1;IIuw=1;IIuvs=1
 
-    clai=0.;Rn=0.;qc=0.;qa=0.;ladz=0.
+    clai=0.;Rn=0.;qc=0.;qa=0.;ladz=0.;tr_u=0.;tr_v=0.;tr_w=0.;tr_thl=0.;tr_qt=0.;tr_sv=0.;tr_ut=0.;tr_vt=0.;tr_wt=0.;tr_thlt=0.;tr_qtt=0.;tr_svt=0.
 
     uav=0.;vav=0.;wav=0.;thlav=0.;qtav=0.;svav=0.;viscratioav=0.;uuav=0.;vvav=0.
     wwav=0.;uvav=0.;uwav=0.;vwav=0.;sv2av=0.;thl2av=0.;ql2av=0.;qt2av=0.;presav=0.
