@@ -75,6 +75,8 @@ module modglobal
    real    :: tfielddump !<
    real    :: tsample !<     tg3315
    real    :: tstatsdump !<     tg3315
+   real    :: tsamplep !<     tg3315
+   real    :: tstatsdumpp !<     tg3315
    real    :: tnextrestart !<     * each trestart sec. a restart file is written to disk
    real    :: tscale !       timescale: domain height*Uinf/utau**2
    real    :: tnextfielddump !<
@@ -199,7 +201,7 @@ module modglobal
    real             :: prandtlmol !< Prandtl number (for air at 300K). Fluid property!
    real             :: prandtlmoli !< Inverse of Prandtl number
 
-   integer          :: iwallmom = 2, iwalltemp = 1, iwallmoist = 1
+   integer          :: iwallmom = 2, iwalltemp = 1, iwallmoist = 1, iwallscal = 1
 
    real, parameter :: rhow = 0.998e3 !<    * Density of water
    real, parameter :: pref0 = 1.e5 !<    *standard pressure used in exner function.
@@ -241,6 +243,7 @@ module modglobal
   integer :: ntree_max = 0 
   !real, allocatable :: ladz(:)                  !< field with leaf area density data
   real    :: cd = 0., ud = 0., Qstar = 0., dQdt = 0., dec = 0., lad = 0., lsize = 0., r_s = 0.  !< current set of parameters for tree model
+  real    :: tr_A = 0.
 
   logical :: lnudge = .false.                   !< switch for applying nudging at the top of the domain
   real    :: tnudge = 50.                       !< time scale for nudging
