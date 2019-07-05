@@ -51,8 +51,10 @@ contains
    subroutine boundary
 
       use modglobal, only:ib, ie, ih, jb, je, jgb, jge, jh, kb, ke, kh, linoutflow, dzf, zh, dy, &
-         timee, ltempeq, lmoist, BCxm, BCym, BCxT, BCyT, BCxq, BCyq, BCxs, BCys, BCtopm, BCtopT, BCtopq, BCtops, e12min, idriver
-      use modfields, only:u0, v0, w0, um, vm, wm, thl0, thlm, qt0, qtm, uout, uouttot, e120, e12m
+         timee, ltempeq, lmoist, BCxm, BCym, BCxT, BCyT, BCxq, BCyq, BCxs, BCys, BCtopm, BCtopT,&
+         BCtopq, BCtops, e12min, idriver, lmassflowr
+      use modfields, only:u0, v0, w0, um, vm, wm, thl0, thlm, qt0, qtm, uout, uouttot, e120, e12m,&
+                          u0av
       use modsubgriddata, only:ekh, ekm
       use modsurfdata, only:thl_top, qt_top, sv_top, wttop, wqtop, wsvtop
       use modmpi, only:myid, slabsum
@@ -61,7 +63,19 @@ contains
       use modinletdata, only:irecy, ubulk, iangle
 !    use modsurface, only : getobl
       implicit none
+      real, dimension(kb:ke) :: uaverage
       integer i, k
+
+     ! if not using massflowrate need to set outflow velocity
+     if (.not. lmassflowr) then
+        !ubulk = sum(u0av)/(ke-kb+1)
+        do k = kb, ke
+           uaverage(k) = u0av(k)*dzf(k)                                                        
+        end do
+        uouttot = sum(uaverage(kb:ke))/(zh(ke + 1) - zh(kb)) 
+     else
+        uouttot = ubulk
+     end if
 
 !BCxm!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !periodic or inflow/outflow conditions for momentum
@@ -330,8 +344,8 @@ contains
             sv0(ib - 1, :, k, n) = 2*svprof(k, n) - sv0(ib, :, k, n)
             svm(ib - 1, :, k, n) = 2*svprof(k, n) - svm(ib, :, k, n)
          end do
-         sv0(ie + 1, :, :, n) = sv0(ie, :, :, n) - (sv0(ie + 1, :, :, n) - sv0(ie, :, :, n))*dxhi(ie + 1)*rk3coef*ubulk  ! tg3315 should be uouttot and will have to change depending on forcing
-         svm(ie + 1, :, :, n) = svm(ie, :, :, n) - (svm(ie + 1, :, :, n) - svm(ie, :, :, n))*dxhi(ie + 1)*rk3coef*ubulk
+         sv0(ie + 1, :, :, n) = sv0(ie, :, :, n) - (sv0(ie + 1, :, :, n) - sv0(ie, :, :, n))*dxhi(ie + 1)*rk3coef*uouttot  ! tg3315 should be uouttot and will have to change depending on forcing
+         svm(ie + 1, :, :, n) = svm(ie, :, :, n) - (svm(ie + 1, :, :, n) - svm(ie, :, :, n))*dxhi(ie + 1)*rk3coef*uouttot
       enddo
 
       return
@@ -484,8 +498,8 @@ contains
     end do
     
     !uouttot is zero unless lmassflowr 
-    qt0(ie + 1, :, :) = qt0(ie, :, :) - (qt0(ie + 1, :, :) - qt0(ie, :, :))*dxhi(ie + 1)*rk3coef*ubulk ! tg3315 should be uouttot and will have to change depending on forcing
-    qtm(ie + 1, :, :) = qtm(ie, :, :) - (qtm(ie + 1, :, :) - qtm(ie, :, :))*dxhi(ie + 1)*rk3coef*ubulk
+    qt0(ie + 1, :, :) = qt0(ie, :, :) - (qt0(ie + 1, :, :) - qt0(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot ! tg3315 should be uouttot and will have to change depending on forcing
+    qtm(ie + 1, :, :) = qtm(ie, :, :) - (qtm(ie + 1, :, :) - qtm(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
 
    end subroutine ioqi
    
@@ -506,8 +520,8 @@ contains
        end do
     end do
 
-    thl0(ie + 1, :, :) = thl0(ie, :, :) - (thl0(ie + 1, :, :) - thl0(ie, :, :))*dxhi(ie + 1)*rk3coef*ubulk ! tg3315 should be uouttot and will have to change depending on forcing
-    thlm(ie + 1, :, :) = thlm(ie, :, :) - (thlm(ie + 1, :, :) - thlm(ie, :, :))*dxhi(ie + 1)*rk3coef*ubulk
+    thl0(ie + 1, :, :) = thl0(ie, :, :) - (thl0(ie + 1, :, :) - thl0(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot ! tg3315 should be uouttot and will have to change depending on forcing
+    thlm(ie + 1, :, :) = thlm(ie, :, :) - (thlm(ie + 1, :, :) - thlm(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
 
    end subroutine iohi
 
@@ -748,10 +762,10 @@ contains
           do j=jb-1,je+1
              do k=kb,ke+1
 
-                thl0(ib,j,k) = thl0driver(j,k) !2*thlprof(k) - thl0(ib, j, k) !thl0driver(j,k)
-                thlm(ib,j,k) = thlmdriver(j,k) !2*thlprof(k) - thlm(ib, j, k) !thlmdriver(j,k)
-                thl0(ib-1,j,k) = thl0driver(j,k) !2*thlprof(k) - thl0(ib, j, k) !thl0driver(j,k)
-                thlm(ib-1,j,k) = thlmdriver(j,k) !2*thlprof(k) - thlm(ib, j, k) !thlmdriver(j,k)
+                thl0(ib,j,k) = thl0driver(j,k)
+                thlm(ib,j,k) = thlmdriver(j,k)
+                thl0(ib-1,j,k) = thl0driver(j,k)
+                thlm(ib-1,j,k) = thlmdriver(j,k)
                 !thlm(ib-1,j,k) = 2*thlm(ib,j,k) - thlm(ib+1,j,k)
                 !thl0(ib-1,j,k) = 2*thl0(ib,j,k) - thl0(ib+1,j,k)
                 !if(myid==0) then
@@ -772,13 +786,13 @@ contains
        if (lmoist ) then
           do j=jb-1,je+1
              do k=kb,ke+1
-                qt0(ib,j,k) = qt0driver(j,k) !2*qtprof(k) - qt0(ib, j, k) !qt0driver(j,k)
+                qt0(ib,j,k) = qt0driver(j,k)
 !                qt0(ib-1,j,k) = 2*qtprof(k) - qt0(ib,j,k)  !watch!
-                qtm(ib,j,k) = qtmdriver(j,k) !2*qtprof(k) - qtm(ib, j, k) !qtmdriver(j,k)
+                qtm(ib,j,k) = qtmdriver(j,k)
 !                qtm(ib-1,j,k) = 2*qtprof(k) - qtm(ib,j,k)
-                qt0(ib-1,j,k) = qt0driver(j,k) !2*qtprof(k) - qt0(ib, j, k) !qt0driver(j,k)
+                qt0(ib-1,j,k) = qt0driver(j,k)
 !                qt0(ib-1,j,k) = 2*qtprof(k) - qt0(ib,j,k)  !watch!
-                qtm(ib-1,j,k) = qtmdriver(j,k) !2*qtprof(k) - qtm(ib, j, k) !qtmdriver(j,k)
+                qtm(ib-1,j,k) = qtmdriver(j,k)
 !                qtm(ib-1,j,k) = 2*qtprof(k) - qtm(ib,j,k)
 !                qt0(ib-1,j,k) = 2*qt0(ib,j,k) - qt0(ib+1,j,k)
 !                qtm(ib-1,j,k) = 2*qtm(ib,j,k) - qtm(ib+1,j,k)
@@ -1044,7 +1058,6 @@ contains
 
    subroutine fluxtop(field, ek, flux)
       use modglobal, only:ib, ie, ih, jb, je, jh, kb, ke, kh, dzf, dzh, dzhi, eps1
-
       real, intent(inout) :: field(ib - ih:ie + ih, jb - jh:je + jh, kb - kh:ke + kh)
       real, intent(in)    ::    ek(ib - ih:ie + ih, jb - jh:je + jh, kb - kh:ke + kh)
       real, intent(in)    :: flux
