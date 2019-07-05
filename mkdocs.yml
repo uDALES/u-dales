@@ -1,0 +1,62 @@
+# Project information
+site_name: 'uDALES'
+site_description: 'TODO:'
+site_author: 'The uDALES Team'
+site_url: 'https://uDALES.github.io/u-dales/0YiO263pFxExSdkMvWfId3qkVUSF4dREFnwM1jQD9y1KvzeAVAWzGykQemUrkJCM/html/index.html'
+
+# Repository
+repo_name: 'u-dales'
+repo_url: 'https://github.com/uDALES/u-dales'
+edit_uri:  '' # disable 'Edit this page' option (https://www.mkdocs.org/user-guide/configuration/#edit_uri)
+
+# Copyright
+copyright: 'The uDALES Team'
+
+# Configuration
+theme:
+  name: 'material'
+  language: 'en'
+  palette:
+    primary: 'light-blue'
+    accent: 'pink'
+  font:
+    text: 'Roboto'
+    code: 'Roboto Mono'
+
+
+# Extensions
+markdown_extensions:
+  - pymdownx.arithmatex
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.critic
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_generator: !!python/name:pymdownx.emoji.to_svg
+  - pymdownx.inlinehilite
+  - pymdownx.magiclink
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+  - codehilite:
+      guess_lang: false
+  - toc:
+      permalink: true
+  - footnotes
+  - pymdownx.mark
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tasklist
+
+extra_javascript:
+  - 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-MML-AM_CHTML'
+
+# Page tree
+nav:
+  - Home: index.md
+  - Scientific docs : scientific/example.md
+  - Software docs: software/index.html

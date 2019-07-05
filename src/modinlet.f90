@@ -1489,7 +1489,7 @@ contains
     real, intent(out)                  :: output     ! momentum thickness
     real :: B     = 5.0       ! Wake parameter
     real :: C     = 0.5       ! Coles parameter
-    real :: kappa = 0.41      ! Von kárán constant
+    real :: kappa = 0.41      ! Von kï¿½rï¿½n constant
     real :: lam               ! = Uinf/ustar
    
     lam = Uinf / ustar
@@ -1510,7 +1510,7 @@ contains
     real, intent(out)                  :: output     ! momentum thickness
     real :: B     = 5.0       ! Wake parameter
     real :: C     = 0.5       ! Coles parameter
-    real :: kappa = 0.41      ! Von kárán constant
+    real :: kappa = 0.41      ! Von kï¿½rï¿½n constant
     real :: cmo   = 0.702     ! constant in MO theory (0.135*5.2)
     real :: lam               ! = Uinf/ustar
 
@@ -1600,7 +1600,7 @@ contains
        real    :: ustar,blth
        real    :: B     = 5.0       ! Wake parameter
        real    :: C     = 0.5       ! Coles parameter
-       real    :: kappa = 0.41      ! Von kárán constant
+       real    :: kappa = 0.41      ! Von kï¿½rï¿½n constant
        real    :: lam               ! = Uinf/ustar
        integer :: i
    
@@ -1634,7 +1634,7 @@ contains
        real    :: ustar,tstar,blth
        real    :: B     = 5.0       ! Wake parameter
        real    :: C     = 0.5       ! Coles parameter
-       real    :: kappa = 0.41      ! Von kármán constant
+       real    :: kappa = 0.41      ! Von kï¿½rmï¿½n constant
        real    :: cmo   = 0.702     ! constant in MO theory (0.135*5.2)
        real    :: lam               ! = Uinf/ustar
        real    :: func,dfunc,utaunu,lmo
@@ -1752,7 +1752,7 @@ contains
 !       integer :: k
        real :: B     = 5.0       ! Wake parameter
        real :: C     = 0.5       ! Coles parameter
-       real :: kappa = 0.41      ! Von kárán constant
+       real :: kappa = 0.41      ! Von kï¿½rï¿½n constant
        real :: lam               ! = Uinf/ustar
 
        lam = Uinf / ustar
@@ -1775,7 +1775,7 @@ contains
 !       integer :: k
        real :: B     = 5.0       ! Wake parameter
        real :: C     = 0.5       ! Coles parameter
-       real :: kappa = 0.41      ! Von kárán constant
+       real :: kappa = 0.41      ! Von kï¿½rï¿½n constant
        real :: cmo   = 0.702     ! Constant in MO theory (0.135*5.2)
        real :: lam               ! = Uinf/ustar
        real :: func,dfunc,utaunu
