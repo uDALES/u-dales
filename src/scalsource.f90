@@ -55,7 +55,7 @@ subroutine scalsource
 
   implicit none
   integer :: i,j,k,n,il,iu,jl,ju,kl,ku,ncan
-  real :: xL
+  real :: xL, zL
   real :: dyi
   real :: ra2 = 0.
   real :: scalsum = 0.
@@ -128,9 +128,11 @@ subroutine scalsource
 
   ncan = count(block(:,6)>0) !tg3315 update due to block at lowest level
 
+  zL = zf(kb+1)
+
     if (nblocks>0) then
 
-      do n = 1,ncan+1
+      do n = 1,ncan-1 ! not ncan and ncan+1 because we do not want release in first and last canyon for BCxs==2
         if (n == ncan+1) then   ! Added to run for pollutant in first canyon
 
           !xL = xh(block(1,1) - (block(2,1) - block(1,2)+1)/2)
@@ -140,11 +142,10 @@ subroutine scalsource
         else !cycle through all other canyons
 
           !xL = xh(block(n,2) + (block(2,1) - block(1,2)+1)/2)
-          xL = xh(block(n,2)) + 0.5*(xh(block(2,1)) - xh(block(1,2)+1))
+          xL = xh(block(n,2)+1) + 0.5*(xh(block(2,1)) - xh(block(1,2)+1))
 !          ra2 =(xf(i) - xL)**2 + zf(k)**2
 
-        end if
-
+       end if
 
         do i=ib,ie
           do k=kb,ke
@@ -153,21 +154,21 @@ subroutine scalsource
 
               !scalsum = scalsum + dxf(i) * jmax * dy * dzf(k) * (SS/2*Pi*sigS**2) * exp(-ra2/(2*sigS**2))
 
-              !tg3315 use this if we want to normalise th scalar conc.
-              scalsum = scalsum + ( (SS/4.) * &
-                        (erf((xh(i+1)-xL)/(sqrt(2.)*sigS)) - erf((xh(i)-xL)/(sqrt(2.)*sigS))) * &
-                        (erf((zh(k+1)-zh(kb+1))/(sqrt(2.)*sigS)) - erf((zh(k)-zh(kb+1))/(sqrt(2.)*sigS))) + &
-! (SS/4.) * &
-                        (erf((xh(i+1)-xL)/(sqrt(2.)*sigS)) - erf((xh(i)-xL)/(sqrt(2.)*sigS))) * &
-                        (erf((zh(k+1)+zh(kb+1))/(sqrt(2.)*sigS)) - erf((zh(k)+zh(kb+1))/(sqrt(2.)*sigS))) ) &
-                        * dxfi(i) * dzfi(k)
+              !tg3315 use this if we want to normalise th scalar conc. !sums values in building too...
+!              scalsum = scalsum + dy * (je - jb +1) * ( (SS/4.) * &
+!                        (erf((xh(i+1)-xL)/(sqrt(2.)*sigS)) - erf((xh(i)-xL)/(sqrt(2.)*sigS))) * &
+!                        (erf((zh(k+1)-zh(kb+1))/(sqrt(2.)*sigS)) - erf((zh(k)-zh(kb+1))/(sqrt(2.)*sigS))) + &
+!                        (SS/4.) * &
+!                        (erf((xh(i+1)-xL)/(sqrt(2.)*sigS)) - erf((xh(i)-xL)/(sqrt(2.)*sigS))) * &
+!                        (erf((zh(k+1)+zh(kb+1))/(sqrt(2.)*sigS)) - erf((zh(k)+zh(kb+1))/(sqrt(2.)*sigS))) )
+!                        * dxfi(i) * dzfi(k)
 
-              svpp(i,jb-jh:je+jh,k,1) = svpp(i,jb-jh:je+jh,k,1) + ( (SS/4.) * &
+              svp(i,jb:je,k,1) = svp(i,jb:je,k,1) + ( (SS/4.) * & ! SS in g/ms... no normalisation
                         (erf((xh(i+1)-xL)/(sqrt(2.)*sigS)) - erf((xh(i)-xL)/(sqrt(2.)*sigS))) * &
-                        (erf((zh(k+1)-zh(kb+1))/(sqrt(2.)*sigS)) - erf((zh(k)-zh(kb+1))/(sqrt(2.)*sigS))) + &
- (SS/4.) * &
+                        (erf((zh(k+1)-zL)/(sqrt(2.)*sigS)) - erf((zh(k)-zL)/(sqrt(2.)*sigS))) + &
+                        (SS/4.) * & ! reflection from ground...
                         (erf((xh(i+1)-xL)/(sqrt(2.)*sigS)) - erf((xh(i)-xL)/(sqrt(2.)*sigS))) * &
-                        (erf((zh(k+1)+zh(kb+1))/(sqrt(2.)*sigS)) - erf((zh(k)+zh(kb+1))/(sqrt(2.)*sigS))) ) &
+                        (erf((zh(k)-2*(zh(k)-zh(kb+1))-zL)/(sqrt(2.)*sigS)) - erf((zh(k+1)-2*(zh(k+1)-zh(kb+1))-zL)/(sqrt(2.)*sigS))) ) &
                         * dxfi(i) * dzfi(k)
 
 !            end if
@@ -181,7 +182,7 @@ subroutine scalsource
       do n=1,nblocks
         il = block(n,1)
         iu = block(n,2)
-        kl = block(n,5)
+        kl = kb
         ku = block(n,6)
         jl = block(n,3)-myid*jmax
         ju = block(n,4)-myid*jmax
@@ -190,25 +191,25 @@ subroutine scalsource
         else
           if (ju > je) ju=je
           if (jl < jb) jl=jb
-          svpp(il:iu,jl:ju,kl:ku,:) = 0.
+          svp(il:iu,jl:ju,kl:ku,:) = 0.
         end if
       end do
     end if !libm
 
     ! Normalise scalar field to 1/s
-    call MPI_ALLREDUCE(scalsum,scalsumt,1,MY_REAL,MPI_SUM,comm3d,mpierr)
+!    call MPI_ALLREDUCE(scalsum,scalsumt,1,MY_REAL,MPI_SUM,comm3d,mpierr)
 
 !    write(*,*), 'scalsum', scalsum
 
-    if (lchem) then
+!    if (lchem) then
       !svpp(:,:,:,1) = svpp(:,:,:,1)
-      svp(:,:,:,1) = svp(:,:,:,1) + svpp(:,:,:,1)
+!      svp(:,:,:,1) = svp(:,:,:,1) + svpp(:,:,:,1)
       !svp(:,:,:,2) = svp(:,:,:,2) + 0.1518 * svpp(:,:,:,1)
-    else
-      svpp(:,:,:,1) = svpp(:,:,:,1)/ scalsumt !tg3315 not normalised 07/11/2017
-      svp(:,:,:,1) = svp(:,:,:,1) + svpp(:,:,:,1)
+!    else
+!      svpp(:,:,:,1) = svpp(:,:,:,1)/ scalsumt !tg3315 not normalised 07/11/2017
+!      svp(:,:,:,1) = svp(:,:,:,1) + svpp(:,:,:,1)
       !svp(:,:,:,2) = svp(:,:,:,2) + 0.1518 * svpp(:,:,:,1)
-    end if
+!    end if
 
     svpp = 0.
     scalsum = 0.
