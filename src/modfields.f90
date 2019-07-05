@@ -78,12 +78,15 @@ module modfields
   real, allocatable :: clai(:)
   real, allocatable :: qc(:)
   real, allocatable :: qa(:)
-  real, allocatable :: ladz(:)
+  real, allocatable :: ladzf(:)
+  real, allocatable :: ladzh(:)
 
   real, allocatable :: tr_u(:,:,:)
   real, allocatable :: tr_v(:,:,:)
   real, allocatable :: tr_w(:,:,:)
   real, allocatable :: tr_qt(:,:,:)
+  real, allocatable :: tr_qtR(:,:,:)
+  real, allocatable :: tr_qtA(:,:,:)
   real, allocatable :: tr_thl(:,:,:)
   real, allocatable :: tr_sv(:,:,:,:)
 
@@ -91,8 +94,11 @@ module modfields
   real, allocatable :: tr_vt(:,:,:)
   real, allocatable :: tr_wt(:,:,:)
   real, allocatable :: tr_qtt(:,:,:)
+  real, allocatable :: tr_qtRt(:,:,:)
+  real, allocatable :: tr_qtAt(:,:,:)
   real, allocatable :: tr_thlt(:,:,:)
-  real, allocatable :: tr_svt(:,:,:)
+  real, allocatable :: tr_sv1t(:,:,:)
+  real, allocatable :: tr_sv2t(:,:,:)
 
 !  integer              :: IIbl = 1          !< Switch for if layer at kb is all blocks
 
@@ -112,7 +118,8 @@ module modfields
   real, allocatable :: qtsgsyt(:,:)
   real, allocatable :: usgsyt(:,:) 
   real, allocatable :: wsgsyt(:,:)    
-  real, allocatable :: svsgsyt(:,:)
+  real, allocatable :: sv1sgsyt(:,:)
+  real, allocatable :: sv2sgsyt(:,:)
 
   real, allocatable :: uxyt(:)        
   real, allocatable :: vxyt(:)        
@@ -129,7 +136,8 @@ module modfields
   real, allocatable :: wqttk(:,:,:)
   real, allocatable :: thlthlt(:,:,:)
   real, allocatable :: qtqtt(:,:,:)
-  real, allocatable :: svsvt(:,:,:)
+  real, allocatable :: sv1sv1t(:,:,:)
+  real, allocatable :: sv2sv2t(:,:,:)
   real, allocatable :: uutc(:,:,:)
   real, allocatable :: vvtc(:,:,:)
   real, allocatable :: wwtc(:,:,:)
@@ -498,7 +506,8 @@ contains
 
     allocate(qc(1:ke))
     allocate(qa(1:ke))
-    allocate(ladz(1:ke))
+    allocate(ladzf(1:ke))
+    allocate(ladzh(1:ke))
     allocate(Rn(1:ke))
     allocate(clai(1:ke))
 
@@ -506,6 +515,8 @@ contains
     allocate(tr_v(ib:ie,jb:je,kb:ke))
     allocate(tr_w(ib:ie,jb:je,kb:ke))
     allocate(tr_qt(ib:ie,jb:je,kb:ke))
+    allocate(tr_qtR(ib:ie,jb:je,kb:ke))
+    allocate(tr_qtA(ib:ie,jb:je,kb:ke))
     allocate(tr_thl(ib:ie,jb:je,kb:ke))
     allocate(tr_sv(ib:ie,jb:je,kb:ke,1:nsv))
 
@@ -513,8 +524,11 @@ contains
     allocate(tr_vt(ib:ie,jb:je,kb:ke))
     allocate(tr_wt(ib:ie,jb:je,kb:ke))
     allocate(tr_qtt(ib:ie,jb:je,kb:ke))
+    allocate(tr_qtRt(ib:ie,jb:je,kb:ke))
+    allocate(tr_qtAt(ib:ie,jb:je,kb:ke))
     allocate(tr_thlt(ib:ie,jb:je,kb:ke))
-    allocate(tr_svt(ib:ie,jb:je,kb:ke))
+    allocate(tr_sv1t(ib:ie,jb:je,kb:ke))
+    allocate(tr_sv2t(ib:ie,jb:je,kb:ke))
 
     allocate(uyt(ib:ie,kb:ke))
     allocate(uytik(ib:ie,kb:ke))
@@ -531,7 +545,8 @@ contains
     allocate(thlsgsyt(ib:ie,kb:ke))
     allocate(qtsgsyt(ib:ie,kb:ke))
     allocate(wsgsyt(ib:ie,kb:ke))
-    allocate(svsgsyt(ib:ie,kb:ke))
+    allocate(sv1sgsyt(ib:ie,kb:ke))
+    allocate(sv2sgsyt(ib:ie,kb:ke))
 
     allocate(uxyt(kb:ke+kh))
     allocate(vxyt(kb:ke+kh))
@@ -548,7 +563,9 @@ contains
     allocate(wqttk(ib:ie,jb:je,kb:ke+kh))
     allocate(thlthlt(ib:ie,jb:je,kb:ke+kh))
     allocate(qtqtt(ib:ie,jb:je,kb:ke+kh))
-    allocate(svsvt(ib:ie,jb:je,kb:ke+kh))
+    allocate(sv1sv1t(ib:ie,jb:je,kb:ke+kh))
+    allocate(sv2sv2t(ib:ie,jb:je,kb:ke+kh))
+
     allocate(uutc(ib:ie,jb:je,kb:ke+kh))
     allocate(vvtc(ib:ie,jb:je,kb:ke+kh))
     allocate(wwtc(ib:ie,jb:je,kb:ke+kh))
@@ -744,10 +761,10 @@ contains
     dthvdz=0.
     SW_up_TOA=0.;SW_dn_TOA=0.;LW_up_TOA=0.;LW_dn_TOA=0.
 
-    uyt=0.;uytik=0.;vyt=0.;wyt=0.;wytik=0.;thlyt=0.;qtyt=0.;thlytk=0.;sca1yt=0.;sca2yt=0.;sca3yt=0.;thlsgsyt=0.;wsgsyt=0.;qtsgsyt=0.;svsgsyt=0.
+    uyt=0.;uytik=0.;vyt=0.;wyt=0.;wytik=0.;thlyt=0.;qtyt=0.;thlytk=0.;sca1yt=0.;sca2yt=0.;sca3yt=0.;thlsgsyt=0.;wsgsyt=0.;qtsgsyt=0.;sv1sgsyt=0.;sv2sgsyt=0.
     usgsyt=0.
     uxyt=0.;vxyt=0.;wxyt=0.;thlxyt=0.;qtxyt=0.;pxyt=0.;usgsxyt=0.;vsgsxyt=0.;thlsgsxyt=0.;
-    uwtik=0.;wthltk=0.;wqttk=0.;thlthlt=0.;qtqtt=0.;svsvt=0.;uutc=0.;vvtc=0.;wwtc=0.;vwtjk=0.;uvtij=0.;utik=0.;wtik=0.;wtjk=0.;vtjk=0.;utij=0.;vtij=0.;
+    uwtik=0.;wthltk=0.;wqttk=0.;thlthlt=0.;qtqtt=0.;sv1sv1t=0.;sv2sv2t=0.;uutc=0.;vvtc=0.;wwtc=0.;vwtjk=0.;uvtij=0.;utik=0.;wtik=0.;wtjk=0.;vtjk=0.;utij=0.;vtij=0.;
     wmt=0.;thltk=0.;qttk=0.;thlt=0.;slice=0.;slice2=0.;slice3=0.;slice4=0.;slice5=0.;utc=0.;vtc=0.;wtc=0.
     slice6=0.;slice7=0.;slice8=0.;umt=0.;vmt=0.;sv1t=0.;sv2t=0.;sv3t=0.;sv4t=0.;sv1tk=0.;sv2tk=0.;sv3tk=0.;sv4tk=0.
     wsv1tk=0.;wsv2tk=0.;wsv3tk=0.;wsv4tk=0.;sv1sgst=0.;sv2sgst=0.;sv3sgst=0.;sv4sgst=0.;qtt=0.;pt=0.
@@ -756,7 +773,7 @@ contains
 
     IIc=1;IIu=1;IIv=1;IIct=1;IIw=1;IIuw=1;IIvw=1;IIuwt=1;IIut=1;IIvt=1;IIwt=1;IIcs=1;IIus=1;IIvs=1;IIws=1;IIuws=1;IIvws=1;IIuw=1;IIuvs=1
 
-    clai=0.;Rn=0.;qc=0.;qa=0.;ladz=0.;tr_u=0.;tr_v=0.;tr_w=0.;tr_thl=0.;tr_qt=0.;tr_sv=0.;tr_ut=0.;tr_vt=0.;tr_wt=0.;tr_thlt=0.;tr_qtt=0.;tr_svt=0.
+    clai=0.;Rn=0.;qc=0.;qa=0.;ladzf=0.;ladzh=0.;tr_u=0.;tr_v=0.;tr_w=0.;tr_thl=0.;tr_qt=0.;tr_qtR=0.;tr_qtA=0.;tr_sv=0.;tr_ut=0.;tr_vt=0.;tr_wt=0.;tr_thlt=0.;tr_qtt=0.;tr_qtRt=0.;tr_qtAt=0.;tr_sv1t=0.;tr_sv2t=0.
 
     uav=0.;vav=0.;wav=0.;thlav=0.;qtav=0.;svav=0.;viscratioav=0.;uuav=0.;vvav=0.
     wwav=0.;uvav=0.;uwav=0.;vwav=0.;sv2av=0.;thl2av=0.;ql2av=0.;qt2av=0.;presav=0.
