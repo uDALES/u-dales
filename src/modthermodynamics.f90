@@ -131,6 +131,7 @@ contains
     use modglobal, only : lmoist,ib,ie,jb,je,kb,ke,kh,zf,zh,dzh,rlv,rd,rv,cp,eps1
     use modfields, only : thl0,thl0h,ql0,ql0h,qt0,qt0h,sv0,exnf,exnh,thv0h,dthvdz
     use modsurfdata,only : dthldz,dqtdz
+    use modmpi, only : myid
 
     implicit none
 
@@ -300,7 +301,7 @@ contains
 
     do n=1,nsv
 !       call slabsum(sv0av(kb,n),kb,ke+kh,sv0(ib-ih,jb-jh,kb,n),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
-    call avexy_ibm(sv0av(kb:ke+khc,n),sv0(ib:ie,jb:je,kb:ke+khc,n),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+khc),IIcs(kb:ke+khc),.false.)
+    call avexy_ibm(sv0av(kb:ke+kh,n),sv0(ib:ie,jb:je,kb:ke+kh,n),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
     end do
 !    sv0av = sv0av/rslabs
 
