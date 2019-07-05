@@ -52,8 +52,8 @@ contains
     integer ibc1,ibc2,kbc1,kbc2,ksen
 !    real dxhl(ie+ih-(ib-ih)+1),dxl(ie+ih-(ib-ih)+1),dzl(ke+kh-(kb-kh)+1),dzhl(ke+kh-(kb-kh))
     real dxhl(ie+ih-(ib-ih))
-    real dxl(ie+ih-(ib-ih)+1) ! tg3315 array bound problem
-    real dzl(ke+kh-(kb-kh)+1)
+    real dxl(ie+ih-(ib-ih)) ! tg3315 array bound problem
+    real dzl(ke+kh-(kb-kh))
     real dzhl(ke+kh-(kb-kh))
 
     call fillps
@@ -73,7 +73,7 @@ contains
     kbc2 = 1
 
     dxhl = dxh
-    dzl  = dzf      !
+    dzl  = dzf 
     dxl  = dxf
 !    dzl  = dzf(kb:ke+1)     ! dzf is actually length(kb-1:ke+1), but first cell is not needed
     dzhl = dzh
