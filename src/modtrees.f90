@@ -10,7 +10,7 @@ save
 contains
     subroutine createtrees
     use modglobal,  only : ltrees,ntrees,tree,cexpnr,ifinput,zh,zf,dzh,dzfi,dzhi,dzf,Qstar,&
-                           dec,lad,kb,ke,cp,rhoa,ntree_max
+                           dec,lad,kb,ke,cp,rhoa,ntree_max,dQdt
     use modfields,  only : um,vm,wm,thlm,qt0,svp,up,vp,wp,thlp,qtp,Rn,clai,qc,qa,ladz
     use modmpi,     only : myid,MPI_INTEGER,comm3d,mpierr,MY_REAL
     use modsurfdata,only : wtsurf
@@ -128,7 +128,7 @@ contains
       ! incorporate the distributed storage term
       do k = 1,ntree_max
         Rq = qc(k)/Qstar
-        qa(k) = (1 - Rq*0.11) * qc(k) - Rq*12.3
+        qa(k) = (1 - Rq*0.11) * qc(k) - 0.11*Rq*dQdt + Rq*12.3
       end do
 
       write(*,*) 'ntree_max', ntree_max
@@ -141,8 +141,8 @@ contains
     end if
 
     !apply storage to reset wtsurf and bctfz
-    wtsurf = 0. !-((1-0.7)*Qstar-38)/(rhoa*cp)
-    bctfz = 0. !-((1-0.7)*Qstar-38)/(rhoa*cp)
+    wtsurf = -((1-0.7)*Qstar-0.33*dQdt+38)/(rhoa*cp)
+    bctfz  = -((1-0.7)*Qstar-0.33*dQdt+38)/(rhoa*cp)
 
     write(*,*) 'wtsurf', wtsurf
     write(*,*) 'bctfz', bctfz
@@ -160,8 +160,9 @@ contains
     subroutine trees
     use modglobal,  only : ib,ie,jb,je,kb,ke,dzf,numol,prandtlmol,rlv,cp,jtot,tree,&
                            ntrees,ltrees,jtot,cd,ud,lmoist,nsv,dxf,dy,dzf,dzfi,zf,&
-                           ltempeq,pref0,r_s,lad,rhoa,ntree_max,lsize,Qstar
-    use modfields,  only : um,vm,wm,thlm,qtm,svp,up,vp,wp,thlp,qtp,svm,Rn,qc,qa,thlm,clai,ladz
+                           ltempeq,pref0,r_s,lad,rhoa,ntree_max,lsize,Qstar,dQdt
+    use modfields,  only : um,vm,wm,thlm,qtm,svp,up,vp,wp,thlp,qtp,svm,Rn,qc,qa,thlm,clai,ladz,&
+                           tr_u,tr_v,tr_w,tr_qt,tr_thl,tr_sv
     use modmpi,     only : myid,nprocs
     use modsurfdata,only : wtsurf
     use modibmdata, only : bctfz
@@ -200,10 +201,14 @@ contains
           do j = jl,ju
             do i = il,iu
               ! could do (il:iu,jl:ju,kl:ku)...?
-              wp(i,j,k) = wp(i,j,k) - cd * ladz(ntree_max-(ku-k)) * wm(i,j,k) * &
+              tr_w(i,j,k) = - cd * ladz(ntree_max-(ku-k)) * wm(i,j,k) * &
                          sqrt( wm(i,j,k)**2 &
                         + (0.25*(um(i,j,k) + um(i+1,j,k) + um(i,j,k-1) + um(i+1,j,k-1)))**2 &
                         + (0.25*(vm(i,j,k) + vm(i,j+1,k) + vm(i,j,k-1) + vm(i,j+1,k-1)))**2 )
+              wp(i,j,k) = wp(i,j,k) + tr_w(i,j,k) !cd * ladz(ntree_max-(ku-k)) * wm(i,j,k) * &
+                        ! sqrt( wm(i,j,k)**2 &
+                        !+ (0.25*(um(i,j,k) + um(i+1,j,k) + um(i,j,k-1) + um(i+1,j,k-1)))**2 &
+                        !+ (0.25*(vm(i,j,k) + vm(i,j+1,k) + vm(i,j,k-1) + vm(i,j+1,k-1)))**2 )
             end do
           end do
         end do
@@ -225,10 +230,14 @@ contains
         do k = kl,ku
           do j = jl,ju
             do i = il,iu
-              vp(i,j,k) = vp(i,j,k) - cd * ladz(ntree_max-(ku-k)) * vm(i,j,k) * &
+              tr_v(i,j,k) = - cd * ladz(ntree_max-(ku-k)) * vm(i,j,k) * &
                            sqrt( vm(i,j,k)**2 &
                           + (0.25*(um(i,j,k) + um(i+1,j,k) + um(i,j-1,k) + um(i+1,j-1,k)))**2 &
                           + (0.25*(wm(i,j,k) + wm(i,j,k+1) + wm(i,j-1,k) + wm(i,j-1,k+1)))**2 )
+              vp(i,j,k) = vp(i,j,k) + tr_v(i,j,k) !- cd * ladz(ntree_max-(ku-k)) * vm(i,j,k) * &
+                          ! sqrt( vm(i,j,k)**2 &
+                          !+ (0.25*(um(i,j,k) + um(i+1,j,k) + um(i,j-1,k) + um(i+1,j-1,k)))**2 &
+                          !+ (0.25*(wm(i,j,k) + wm(i,j,k+1) + wm(i,j-1,k) + wm(i,j-1,k+1)))**2 )
             end do
           end do
         end do
@@ -250,10 +259,14 @@ contains
         do k = kl,ku
           do j = jl,ju
             do i = il,iu
-              up(i,j,k) = up(i,j,k) - cd * ladz(ntree_max-(ku-k)) * um(i,j,k) * &
+              tr_u(i,j,k) = - cd * ladz(ntree_max-(ku-k)) * um(i,j,k) * &
                            sqrt( um(i,j,k)**2 &
                           + (0.25*(vm(i,j,k) + vm(i,j+1,k) + vm(i-1,j,k) + vm(i-1,j+1,k)))**2 &
                           + (0.25*(wm(i,j,k) + wm(i,j,k+1) + wm(i-1,j,k) + wm(i-1,j,k+1)))**2 )
+              up(i,j,k) = up(i,j,k) + tr_u(i,j,k) ! - cd * ladz(ntree_max-(ku-k)) * um(i,j,k) * &
+                          ! sqrt( um(i,j,k)**2 &
+                          !+ (0.25*(vm(i,j,k) + vm(i,j+1,k) + vm(i-1,j,k) + vm(i-1,j+1,k)))**2 &
+                          !+ (0.25*(wm(i,j,k) + wm(i,j,k+1) + wm(i-1,j,k) + wm(i-1,j,k+1)))**2 )
             end do
           end do
         end do
@@ -316,8 +329,11 @@ contains
 
                  qh = qa(ntree_max-(ku-k))/(dzf(k)*ladz(ntree_max-(ku-k))) - qe
 
-                 qtp(i,j,k) = qtp(i,j,k) + ladz(ntree_max-(ku-k))*qe/(rhoa*rlv)
-                 thlp(i,j,k) = thlp(i,j,k) + ladz(ntree_max-(ku-k))*qh/(rhoa*cp)
+                 tr_qt(i,j,k) = ladz(ntree_max-(ku-k))*qe/(rhoa*rlv)
+                 tr_thl(i,j,k) = ladz(ntree_max-(ku-k))*qh/(rhoa*cp)
+
+                 qtp(i,j,k) = qtp(i,j,k) + tr_qt(i,j,k) !ladz(ntree_max-(ku-k))*qe/(rhoa*rlv)
+                 thlp(i,j,k) = thlp(i,j,k) + tr_thl(i,j,k) !ladz(ntree_max-(ku-k))*qh/(rhoa*cp)
 
               end do
             end do
@@ -326,7 +342,7 @@ contains
       
       Rq = Rn(ntree_max+1-(ku+1-kl)) / Qstar
 
-      shade = 0. !( (1 - Rq*0.11 ) * Rn(ntree_max+1-(ku+1-kl) ) - Rq*12.3 )/ (rhoa*cp)
+      shade = ( (1 - Rq*0.11 ) * Rn(ntree_max+1-(ku+1-kl) ) -0.11*Rq*dQdt + Rq*12.3 )/ (rhoa*cp)
 
       !write(*,*) 'Rn(ntree_max+1-(ku-kl) )', Rn(ntree_max+1-(ku+1-kl) )
       !write(*,*) 'shade', shade
@@ -391,7 +407,9 @@ contains
             do k = kl,ku
               do j = jl,ju
                 do i = il,iu
-                  svp(i,j,k,m) = svp(i,j,k,m) - svm(i,j,k,m) * ladz(ntree_max-(ku-k)) * ud
+                  tr_sv(i,j,k,m) = - svm(i,j,k,m) * ladz(ntree_max-(ku-k)) * ud
+                  svp(i,j,k,m) = svp(i,j,k,m) + tr_sv(i,j,k,m)
+                  !svp(i,j,k,m) = svp(i,j,k,m) - svm(i,j,k,m) * ladz(ntree_max-(ku-k)) * ud
                 end do
               end do
             end do
