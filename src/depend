@@ -1,4 +1,4 @@
-program.o : program.f90 modstatsdump.o modfielddump.o modstat_nc.o modchecksim.o modEB.o initfac.o modpurifiers.o modtrees.o modibm.o modpois.o modforces.o modsubgrid.o modthermodynamics.o modboundary.o modsave.o modstartup.o modglobal.o modmpi.o 
+modglobal.o : modglobal.f90 modmpi.o 
 modibm.o : modibm.f90 modsubgriddata.o initfac.o modmpi.o modfields.o modsurfdata.o modglobal.o modibmdata.o 
 modchecksim.o : modchecksim.f90 modsubgriddata.o modfields.o modmpi.o modglobal.o 
 modboundary.o : modboundary.f90 moddriver.o modinlet.o modmpi.o modsurfdata.o modsubgriddata.o modfields.o modinletdata.o modglobal.o 
@@ -20,18 +20,18 @@ advec_2nd.o : advec_2nd.f90 modmpi.o initfac.o modibmdata.o modibm.o modfields.o
 advec_upw.o : advec_upw.f90 modfields.o modglobal.o 
 modforces.o : modforces.f90 modmpi.o modsurfdata.o modibmdata.o modfields.o modglobal.o 
 modmpi.o : modmpi.f90 
-moddriver.o : moddriver.f90 modsave.o modmpi.o modfields.o modglobal.o modinletdata.o 
-modinlet.o : modinlet.f90 modsave.o modsurfdata.o modmpi.o modfields.o modglobal.o modinletdata.o 
-modstat_nc.o : modstat_nc.f90 modglobal.o modmpi.o 
-modsurfdata.o : modsurfdata.f90 
-modglobal.o : modglobal.f90 modmpi.o 
-modsubgriddata.o : modsubgriddata.f90 
 modstartup.o : modstartup.f90 modsubgriddata.o moddriver.o modibmdata.o modinletdata.o modinlet.o modmpi.o modsubgrid.o modthermodynamics.o modboundary.o modpois.o modfields.o modsurfdata.o modglobal.o 
+program.o : program.f90 modstatsdump.o modfielddump.o modstat_nc.o modchecksim.o modEB.o initfac.o modpurifiers.o modtrees.o modibm.o modpois.o modforces.o modsubgrid.o modthermodynamics.o modboundary.o modsave.o modstartup.o modglobal.o modmpi.o 
+modsurfdata.o : modsurfdata.f90 
+modsubgriddata.o : modsubgriddata.f90 
 tstep.o : tstep.f90 modchem.o modinletdata.o modmpi.o modsubgriddata.o modfields.o modglobal.o 
-modpurifiers.o : modpurifiers.f90 modfields.o modmpi.o modglobal.o 
+moddriver.o : moddriver.f90 modsave.o modmpi.o modfields.o modglobal.o modinletdata.o 
 advection.o : advection.f90 modsubgriddata.o modfields.o modglobal.o 
+modpurifiers.o : modpurifiers.f90 modfields.o modmpi.o modglobal.o 
+modstat_nc.o : modstat_nc.f90 modglobal.o modmpi.o 
 modibmdata.o : modibmdata.f90 
 wf_uno.o : wf_uno.f90 modibmdata.o initfac.o modmpi.o modsubgriddata.o modglobal.o 
+modinlet.o : modinlet.f90 modsave.o modsurfdata.o modmpi.o modfields.o modglobal.o modinletdata.o 
 modpois.o : modpois.f90 modboundary.o modfields.o modmpi.o modglobal.o 
 modchem.o : modchem.f90 modfields.o modglobal.o 
 cycred.o : cycred.f 
