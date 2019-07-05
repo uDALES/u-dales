@@ -51,7 +51,10 @@ contains
     implicit none
     integer ibc1,ibc2,kbc1,kbc2,ksen
 !    real dxhl(ie+ih-(ib-ih)+1),dxl(ie+ih-(ib-ih)+1),dzl(ke+kh-(kb-kh)+1),dzhl(ke+kh-(kb-kh))
-    real dxhl(ie+ih-(ib-ih)),dxl(ie+ih-(ib-ih)),dzl(ke+kh-(kb-kh)),dzhl(ke+kh-(kb-kh))
+    real dxhl(ie+ih-(ib-ih))
+    real dxl(ie+ih-(ib-ih)+1) ! tg3315 array bound problem
+    real dzl(ke+kh-(kb-kh)+1)
+    real dzhl(ke+kh-(kb-kh))
 
     call fillps
 !    call solmpj(p)
@@ -68,9 +71,10 @@ contains
   endif
     kbc1 = 1
     kbc2 = 1
-    dxl  = dxf
+
     dxhl = dxh
-    dzl  = dzf      ! 
+    dzl  = dzf      !
+    dxl  = dxf
 !    dzl  = dzf(kb:ke+1)     ! dzf is actually length(kb-1:ke+1), but first cell is not needed
     dzhl = dzh
     ksen = kmax/nprocs
@@ -243,6 +247,8 @@ contains
     ! the volume averaged modified pressure from this value at all time steps.
     ! Periodic: p - <p>_ijk
     ! Makes no change on physical effect of modified pressure in code.
+
+    ! tg3315 - update 24/06/19 -- there is a missing term in the application of the periodic BCs for pup, could this be part of the problem? Test with this to see if can avoid use of pijk below.
 
     ! useful refs:
     ! https://opensky.ucar.edu/islandora/object/technotes%3A98/datastream/PDF/download/citation.pdf
