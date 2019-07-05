@@ -180,6 +180,7 @@ module modinletdata
     real, allocatable :: storethl0driver(:,:,:)
     real, allocatable :: storee120driver(:,:,:)
     real, allocatable :: storeqt0driver(:,:,:)
+    real, allocatable :: storesv0driver(:,:,:,:)
     real, allocatable :: storetdriver(:)
     real, allocatable :: u0driver(:,:)
     real, allocatable :: v0driver(:,:)
@@ -188,6 +189,7 @@ module modinletdata
     real, allocatable :: tdriver(:)
     real, allocatable :: thl0driver(:,:)
     real, allocatable :: qt0driver(:,:)
+    real, allocatable :: sv0driver(:,:,:)
 
     real, allocatable :: storeumdriver(:,:,:)
     real, allocatable :: umdriver(:,:)
@@ -201,6 +203,8 @@ module modinletdata
     real, allocatable :: thlmdriver(:,:)
     real, allocatable :: storeqtmdriver(:,:,:)
     real, allocatable :: qtmdriver(:,:)
+    real, allocatable :: storesvmdriver(:,:,:,:)
+    real, allocatable :: svmdriver(:,:,:)
     
     integer :: irecydriver
     integer :: nstepreaddriver=0
