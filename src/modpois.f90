@@ -51,7 +51,8 @@ contains
     implicit none
     integer ibc1,ibc2,kbc1,kbc2,ksen
 !    real dxhl(ie+ih-(ib-ih)+1),dxl(ie+ih-(ib-ih)+1),dzl(ke+kh-(kb-kh)+1),dzhl(ke+kh-(kb-kh))
-    real dxhl(ie+ih-(ib-ih)),dxl(ie+ih-(ib-ih)),dzl(ke+kh-(kb-kh)),dzhl(ke+kh-(kb-kh))
+!    real dxhl(ie+ih-(ib-ih)),dxl(ie+ih-(ib-ih)),dzl(ke+kh-(kb-kh)),dzhl(ke+kh-(kb-kh))
+    real dxhl(ib:ie+ih),dxl(ib-ih:ie+ih),dzhl(kb:ke+kh),dzl(kb-kh:ke+kh)
 
     call fillps
 !    call solmpj(p)
@@ -571,7 +572,7 @@ contains
 ! authors: m.j.b.m. pourquie, b.j. boersma
 
       integer i, j, k, ksen
-      real rhs(0:imax+1,0:jmax+1,0:kmax+1),dx(0:IMAX+1),dxh(0:IMAX+1),dy
+      real rhs(0:imax+1,0:jmax+1,0:kmax+1),dx(0:IMAX+1),dxh(1:IMAX+1),dy
 !     real rhs2(imax,jtot,ksen)
       real, allocatable, dimension(:,:,:) ::  rhs2
 !     real help(imax,jmax,kmax)
@@ -612,8 +613,10 @@ contains
 
       pi=4.*atan(1.)
       do i=1,imax
-         a(i) =  1./(dx(i)*dxh(i-1))
-         c(i) =  1./(dx(i)*dxh(i))
+!         a(i) =  1./(dx(i)*dxh(i-1))
+!         c(i) =  1./(dx(i)*dxh(i))
+         a(i) =  1./(dx(i)*dxh(i))
+         c(i) =  1./(dx(i)*dxh(i+1))
          b(i) =  - (a(i) + c(i))
       enddo
 
