@@ -119,8 +119,8 @@ else
             uh=j*nzw-1;
         end
         for i=1:nywalls
-            boundingwalls(2*nxwalls+(i-1)*nzw+j,:)=[(i-1)*maxsize+1 i*maxsize ny ny 0 height -101];
-            boundingwalls(2*nxwalls+(nxwalls-1)*nzw*2+j,:)=[(i-1)*maxsize+1 i*maxsize 1 1 0 height -101];
+            boundingwalls(2*nzw*nxwalls+(i-1)*nzw+j,:)=[(i-1)*maxsize+1 i*maxsize ny ny lh uh -101];
+            boundingwalls(2*nzw*nxwalls+(i-1)*nzw+j+nywalls*nzw,:)=[(i-1)*maxsize+1 i*maxsize 1 1 lh uh -101];
         end
     end
 end
