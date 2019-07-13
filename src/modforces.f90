@@ -376,7 +376,7 @@ endif
     use modglobal, only : ib,ie,jb,je,ih,jh,kb,ke,kh,jgb,jge,dzf,dxf,xh,zh,dy,dt,rk3step,uflowrate,vflowrate,&
          jmax,libm,dt,rk3step,linoutflow,luflowr,lvflowr
     use modfields, only : um,up,vm,vp,uout,uouttot,udef,vout,vouttot,vdef
-    use modmpi,    only : slabsum,myid
+    use modmpi,    only : slabsum,myid,comm3d,mpierr,nprocs,MY_REAL
 
     real, dimension(kb:ke)             :: uoutold
     real, dimension(kb:ke)             :: voutold
@@ -417,8 +417,19 @@ endif
        vdef = 0.
        vout = 0.
        voutold = 0.
-       call slabsum(vout   ,kb,ke, vp  ,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ie,ie,jb,je,kb,ke) ! determine horizontal (j) average outflow velocity diff
-       call slabsum(voutold,kb,ke, vm  ,ib-ih,ie+ih,jb-jh,je+jh,kb-kh,ke+kh,ie,ie,jb,je,kb,ke) ! determine horizontal (j) average outflow velocity old
+
+       if (myid==nprocs-1) then
+          do k=kb,ke
+             vout = sum(vp(ib:ie,je,k))
+             voutold = sum(vm(ib:ie,je,k))
+          end do
+       end if
+
+       call MPI_BCAST(vout ,ke-kb+1,MY_REAL ,nprocs-1,comm3d,mpierr)          
+       call MPI_BCAST(voutold ,ke-kb+1,MY_REAL ,nprocs-1,comm3d,mpierr)
+
+!         call slabsum(vout   ,kb,ke, vp  ,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ie,ie,jb,je,kb,ke) ! determine horizontal (j) average outflow velocity diff
+!         call slabsum(voutold,kb,ke, vm  ,ib-ih,ie+ih,jb-jh,je+jh,kb-kh,ke+kh,ie,ie,jb,je,kb,ke) ! determine horizontal (j) average outflow velocity old
 
        do k=kb,ke
 !         do i=ib,ie
