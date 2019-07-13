@@ -428,9 +428,6 @@ endif
        call MPI_BCAST(vout ,ke-kb+1,MY_REAL ,nprocs-1,comm3d,mpierr)          
        call MPI_BCAST(voutold ,ke-kb+1,MY_REAL ,nprocs-1,comm3d,mpierr)
 
-!         call slabsum(vout   ,kb,ke, vp  ,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ie,ie,jb,je,kb,ke) ! determine horizontal (j) average outflow velocity diff
-!         call slabsum(voutold,kb,ke, vm  ,ib-ih,ie+ih,jb-jh,je+jh,kb-kh,ke+kh,ie,ie,jb,je,kb,ke) ! determine horizontal (j) average outflow velocity old
-
        do k=kb,ke
 !         do i=ib,ie
           vout(k)    = rk3coef*vout(k)   *dzf(k)*(xh(ie+1)-xh(ib))/(ie-ib)  ! mass flow rate through each slab (density = 1000 kg/m3)
