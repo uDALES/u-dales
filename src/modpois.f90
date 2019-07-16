@@ -52,7 +52,6 @@ contains
     integer ibc1,ibc2,kbc1,kbc2,ksen
 !    real dxhl(ie+ih-(ib-ih)+1),dxl(ie+ih-(ib-ih)+1),dzl(ke+kh-(kb-kh)+1),dzhl(ke+kh-(kb-kh))
 !    real dxhl(ie+ih-(ib-ih)),dxl(ie+ih-(ib-ih)),dzl(ke+kh-(kb-kh)),dzhl(ke+kh-(kb-kh))
-    real dxhl(ib:ie+ih),dxl(ib-ih:ie+ih),dzhl(kb:ke+kh),dzl(kb-kh:ke+kh)
 
     call fillps
 !    call solmpj(p)
@@ -69,13 +68,9 @@ contains
   endif
     kbc1 = 1
     kbc2 = 1
-    dxl  = dxf
-    dxhl = dxh
-    dzl  = dzf      ! 
-!    dzl  = dzf(kb:ke+1)     ! dzf is actually length(kb-1:ke+1), but first cell is not needed
-    dzhl = dzh
     ksen = kmax/nprocs
-    call poisr(p,dxl,dxhl,dy,dzl,dzhl, &
+
+    call poisr(p,dxf,dxh,dy,dzf,dzh, &
                        ibc1,ibc2,kbc1,kbc2,ksen)
     call tderive
 
@@ -611,6 +606,11 @@ contains
 
 !     call sumchk3(rhs,imax,jmax,kmax,1,1)
 
+      write(*,*) 'dx', dx(1:imax+1)
+      write(*,*) 'dxh', dxh(1:imax+1)
+      write(*,*) 'dz', dz
+      write(*,*) 'dzh', dzh 
+
       pi=4.*atan(1.)
       do i=1,imax
 !         a(i) =  1./(dx(i)*dxh(i-1))
@@ -619,6 +619,10 @@ contains
          c(i) =  1./(dx(i)*dxh(i+1))
          b(i) =  - (a(i) + c(i))
       enddo
+
+      write(*,*) 'a', a
+      write(*,*) 'b', b
+      write(*,*) 'c', c
 
       if((ibc1).eq.1)then
 ! Neumann
@@ -664,6 +668,11 @@ contains
          cz(k) =  1./(dz(k)*dzh(k+1))
          bz(k) =  - (az(k) + cz(k))
       enddo
+
+      write(*,*) 'az', az
+      write(*,*) 'bz', bz
+      write(*,*) 'cz', cz
+
 !
 ! BC:
 !
