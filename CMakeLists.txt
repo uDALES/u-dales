@@ -26,11 +26,11 @@ if (NOT CMAKE_BUILD_TYPE)
 endif()
 
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
-    set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fdefault-real-8 -ffree-line-length-none -cpp -ffpe-trap=inv,zero,ov")
+    set(CMAKE_Fortran_FLAGS "-fdefault-real-8 -ffree-line-length-none -cpp -ffpe-trap=inv,zero,ov")
     set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS} -g -fbounds-check -finit-real=nan -fbacktrace  -Wextra")
     set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS} -O3 -g -fbacktrace")
 elseif(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
-    set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -r8 -fpp -WB -fpe0 -extend_source -mcmodel=medium")
+    set(CMAKE_Fortran_FLAGS "-r8 -fpp -WB -fpe0 -extend_source -mcmodel=medium -heap-arrays 10")
     set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS} -g -traceback -CB -warn unused")
     set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS} -O3 -g -traceback")
 else()
@@ -42,10 +42,23 @@ find_package(MPI REQUIRED)
 find_package(NetCDF REQUIRED COMPONENTS F90)
 include_directories(${NETCDF_F90_INCLUDE_DIRS})
 
-# FIXME: list files instead of using glob -- do during uDALES clean-up.
-file(GLOB_RECURSE src_f77 "src/*.F")
-file(GLOB_RECURSE src_f90 "src/*.f90")
+file(GLOB_RECURSE src_f90 "src/*.f90" CONFIGURE_DEPENDS)
 
-add_executable(u-dales ${src_f77} ${src_f90})
+add_subdirectory(external)
+
+ExternalProject_Get_Property(fishpack-cmake-project binary_dir)
+set(FISHPACK_LIBRARY ${binary_dir}/src/${CMAKE_SHARED_LIBRARY_PREFIX}fishpack_shared${CMAKE_SHARED_LIBRARY_SUFFIX})
+message(STATUS ${binary_dir}/src/${CMAKE_SHARED_LIBRARY_PREFIX}fishpack_shared${CMAKE_SHARED_LIBRARY_SUFFIX})
+ExternalProject_Get_Property(vfftpack-cmake-project binary_dir)
+set(VFFTPACK_LIBRARY ${binary_dir}/${CMAKE_SHARED_LIBRARY_PREFIX}vfftpack_shared${CMAKE_SHARED_LIBRARY_SUFFIX})
+
+add_executable(u-dales ${src_f90})
+
+target_link_libraries(u-dales ${CMLIB_CMAKE_LIBRARY})
 target_link_libraries(u-dales MPI::MPI_Fortran)
 target_link_libraries(u-dales ${NETCDF_F90_LIBRARIES})
+target_link_libraries(u-dales ${FISHPACK_LIBRARY})
+target_link_libraries(u-dales ${VFFTPACK_LIBRARY})
+
+add_dependencies(u-dales fishpack-cmake-project)
+add_dependencies(u-dales vfftpack-cmake-project)
