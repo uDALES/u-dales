@@ -42,7 +42,7 @@ find_package(MPI REQUIRED)
 find_package(NetCDF REQUIRED COMPONENTS F90)
 include_directories(${NETCDF_F90_INCLUDE_DIRS})
 
-file(GLOB_RECURSE src_f90 "src/*.f90" CONFIGURE_DEPENDS)
+file(GLOB_RECURSE src_f90 "src/*.f90")
 
 add_subdirectory(external)
 
