@@ -22,6 +22,7 @@ ExternalProject_Add(fishpack-cmake-project
     CMAKE_ARGS
         -DCMAKE_Fortran_COMPILER=${CMAKE_Fortran_COMPILER}
         -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+        -DUSE_REAL8=ON
         -DTESTS=OFF
     INSTALL_COMMAND ""
 )

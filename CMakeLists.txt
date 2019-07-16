@@ -26,11 +26,11 @@ if (NOT CMAKE_BUILD_TYPE)
 endif()
 
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
-    set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fdefault-real-8 -ffree-line-length-none -cpp -ffpe-trap=inv,zero,ov")
-    set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS} -g -fbounds-check -finit-real=nan -fbacktrace  -Wextra") #-fbounds-check
+    set(CMAKE_Fortran_FLAGS "-fdefault-real-8 -ffree-line-length-none -cpp -ffpe-trap=inv,zero,ov")
+    set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS} -g -fbounds-check -finit-real=nan -fbacktrace  -Wextra")
     set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS} -O3 -g -fbacktrace")
 elseif(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
-    set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -r8 -fpp -WB -fpe0 -extend_source -mcmodel=medium -heap-arrays 10")
+    set(CMAKE_Fortran_FLAGS "-r8 -fpp -WB -fpe0 -extend_source -mcmodel=medium -heap-arrays 10")
     set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS} -g -traceback -CB -warn unused")
     set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS} -O3 -g -traceback")
 else()
@@ -42,8 +42,7 @@ find_package(MPI REQUIRED)
 find_package(NetCDF REQUIRED COMPONENTS F90)
 include_directories(${NETCDF_F90_INCLUDE_DIRS})
 
-# FIXME: list files instead of using glob -- do during uDALES clean-up.
-file(GLOB_RECURSE src_f90 "src/*.f90")
+file(GLOB_RECURSE src_f90 "src/*.f90" CONFIGURE_DEPENDS)
 
 add_subdirectory(external)
 
