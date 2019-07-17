@@ -58,8 +58,8 @@ def main(branch_a: str, branch_b: str, build_type: str):
         for path_to_exe in path_to_exes:
             # Create path to out folder
             output_dir = PROJ_DIR / 'tests' / 'outputs' / case_dir.name / path_to_exe.name
-            # Always start afresh
-            shutil.rmtree(output_dir, ignore_errors=True)
+            # Always start afresh. Remove all files and folders under the case dir.
+            shutil.rmtree(output_dir.parent(), ignore_errors=True)
             shutil.copytree(case_dir, output_dir)
             namelist = "namoptions." + case_dir.name
 

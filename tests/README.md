@@ -5,7 +5,8 @@ TODO: Add multiple test cases.
 
 Requirements Python 3.5 or above
 
+E.g.
 ```
-pip install -r requirements.txt
-python3 tests/run_tests.py master dmey/comp-tests Release
+pip3 install -r requirements.txt
+python3 tests/run_tests.py dmey/external-libs dmey/comp-tests Release
 ```
