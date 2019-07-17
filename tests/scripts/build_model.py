@@ -28,9 +28,11 @@ from pathlib import Path
 
 def build_from_branch(branch_name: str, path_to_proj_dir: Path, build_type: str, clean_build_dir=False) -> str:
     subprocess.run(['git', 'checkout', branch_name])
-    path_to_build_dir = path_to_proj_dir / 'build' / branch_name.replace('/', '_') # Common branch names use / as user separator.
+    # Common branch names use / as user separator.
+    path_to_build_dir = path_to_proj_dir / 'build' / branch_name.replace('/', '_')
     build(path_to_proj_dir, path_to_build_dir, build_type, clean_build_dir=False)
     return path_to_build_dir
+
 
 def build(path_to_proj_dir: Path, path_to_build_dir: Path, build_type: str, clean_build_dir=False) -> None:
     if clean_build_dir:
@@ -38,11 +40,13 @@ def build(path_to_proj_dir: Path, path_to_build_dir: Path, build_type: str, clea
     if not path_to_build_dir.is_dir():
         path_to_build_dir.mkdir(parents=True)
 
-    subprocess.run(['cmake', f'-DCMAKE_BUILD_TYPE={build_type}', path_to_proj_dir, '-LA'], cwd=path_to_build_dir)
+    subprocess.run(
+        ['cmake', f'-DCMAKE_BUILD_TYPE={build_type}', path_to_proj_dir, '-LA'], cwd=path_to_build_dir)
 
     cpu_count = str(os.cpu_count())
     subprocess.run(['cmake', '--build', '.', '--', '-j', cpu_count], cwd=path_to_build_dir)
     return None
+
 
 if __name__ == "__main__":
     pass

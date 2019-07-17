@@ -53,26 +53,28 @@ def main(branch_a: str, branch_b: str, build_type: str):
         path_to_exes.append(path_to_exe)
 
     # Run model and store outputs
-    for case_dir in (PROJ_DIR / 'tests' / 'cases').iterdir():
-        output_dirs = []
+    for test_case_dir in (PROJ_DIR / 'tests' / 'cases').iterdir():
+        outputs_case_dir = PROJ_DIR / 'tests' / 'outputs' / test_case_dir.name
+        # Always start afresh.
+        shutil.rmtree(outputs_case_dir, ignore_errors=True)
+
+        model_output_dirs = []
         for path_to_exe in path_to_exes:
             # Create path to out folder
-            output_dir = PROJ_DIR / 'tests' / 'outputs' / case_dir.name / path_to_exe.name
-            # Always start afresh. Remove all files and folders under the case dir.
-            shutil.rmtree(output_dir.parent(), ignore_errors=True)
-            shutil.copytree(case_dir, output_dir)
-            namelist = "namoptions." + case_dir.name
+            model_output_dir = outputs_case_dir / path_to_exe.name
+            shutil.copytree(test_case_dir, model_output_dir)
+            namelist = "namoptions." + test_case_dir.name
 
             # Run model
             # FIXME: make num proc func of sys used.
             subprocess.run(['mpiexec', '-np', '2', path_to_exe / 'u-dales',
-                            namelist], cwd=output_dir)
-            output_dirs.append(output_dir)
+                            namelist], cwd=model_output_dir)
+            model_output_dirs.append(model_output_dir)
 
         # FIXME: concatenate filedumps.
-        compare_outputs.compare(output_dirs[0] / f'fielddump.001.{case_dir.name}.nc',
-                                output_dirs[1] / f'fielddump.001.{case_dir.name}.nc',
-                                output_dirs[0].parent)
+        compare_outputs.compare(model_output_dirs[0] / f'fielddump.001.{test_case_dir.name}.nc',
+                                model_output_dirs[1] / f'fielddump.001.{test_case_dir.name}.nc',
+                                model_output_dirs[0].parent)
 
 
 if __name__ == "__main__":
