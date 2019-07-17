@@ -46,20 +46,14 @@ matrix:
           env: BUILD_TYPE=Release
 
 before_install:
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew update                     ; fi
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew install gcc netcdf open-mpi; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew update                            ; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew install gcc netcdf open-mpi python; fi
 
-install:
-  - mkdir build && pushd build
-  - cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE ..
-  - cmake --build .
-  - popd
+  install:
+    - pip install -r tests/requirements.txt
 
 script:
-  - mkdir temp && pushd temp
-  - cp -r ../tests/examples/001/* .
-  - mpiexec -np 2 ../build/u-dales namoptions.001
-  - popd
+  - python tests/run_tests.py
 
 before_deploy:
   - pip3 install graphviz ford mkdocs-material
