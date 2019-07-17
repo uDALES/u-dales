@@ -53,7 +53,7 @@ before_install:
     - pip install -r tests/requirements.txt
 
 script:
-  - python tests/run_tests.py
+  - python3 tests/run_tests.py master dmey/comp-tests $BUILD_TYPE
 
 before_deploy:
   - pip3 install graphviz ford mkdocs-material

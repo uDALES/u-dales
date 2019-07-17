@@ -7,5 +7,5 @@ Requirements Python 3.5 or above
 
 ```
 pip install -r requirements.txt
-python3 tests/run_tests.py master dmey/external-libs Release
+python3 tests/run_tests.py master dmey/comp-tests Release
 ```
