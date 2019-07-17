@@ -45,16 +45,15 @@ def main(branch_a: str, branch_b: str, build_type: str):
             f'The operating system {platform.system()} is not currently suppoorted.')
 
     # Build executables
-    path_to_exe_a = build_model.build_from_branch(
-        branch_a, PROJ_DIR, build_type)
-    path_to_exe_b = build_model.build_from_branch(
-        branch_b, PROJ_DIR, build_type)
-
-    # We always compare between two branches -- i.e. two executables.
-    path_to_exes = [path_to_exe_a, path_to_exe_b]
+    path_to_exes = []
+    for branch in [branch_a, branch_b]:
+        path_to_exe = build_model.build_from_branch(
+            branch, PROJ_DIR, build_type)
+        # We always compare between two branches -- i.e. two executables.
+        path_to_exes.append(path_to_exe)
 
     # Run model and store outputs
-    for case_dir in (PROJ_DIR / 'tests' / 'examples').iterdir():
+    for case_dir in (PROJ_DIR / 'tests' / 'cases').iterdir():
         output_dirs = []
         for path_to_exe in path_to_exes:
             # Create path to out folder
@@ -65,14 +64,15 @@ def main(branch_a: str, branch_b: str, build_type: str):
             namelist = "namoptions." + case_dir.name
 
             # Run model
-            subprocess.run(['mpiexec', '-np', '2', path_to_exe /
-                            'u-dales', namelist], cwd=output_dir)
+            # FIXME: make num proc func of sys used.
+            subprocess.run(['mpiexec', '-np', '2', path_to_exe / 'u-dales',
+                            namelist], cwd=output_dir)
             output_dirs.append(output_dir)
 
-        print(output_dir)
-
-        compare_outputs.compare(output_dirs[0] / 'fielddump.001.001.nc',
-                                output_dirs[1] / 'fielddump.001.001.nc', output_dirs[0].parent)
+        # FIXME: concatenate filedumps.
+        compare_outputs.compare(output_dirs[0] / f'fielddump.001.{case_dir.name}.nc',
+                                output_dirs[1] / f'fielddump.001.{case_dir.name}.nc',
+                                output_dirs[0].parent)
 
 
 if __name__ == "__main__":
@@ -82,4 +82,3 @@ if __name__ == "__main__":
     parser.add_argument('build_type', help='TODO')
     args = parser.parse_args()
     main(args.branch_a, args.branch_b, args.build_type)
-
