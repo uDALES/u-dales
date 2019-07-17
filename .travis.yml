@@ -49,8 +49,8 @@ before_install:
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew update                            ; fi
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew install gcc netcdf open-mpi python; fi
 
-  install:
-    - pip install -r tests/requirements.txt
+install:
+  - pip install -r tests/requirements.txt
 
 script:
   - python3 tests/run_tests.py master dmey/comp-tests $BUILD_TYPE
