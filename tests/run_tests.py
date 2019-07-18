@@ -28,6 +28,7 @@ import platform
 import subprocess
 import shutil
 import argparse
+import warnings
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -43,6 +44,12 @@ def main(branch_a: str, branch_b: str, build_type: str):
     if platform.system() not in ['Linux', 'Darwin']:
         raise RuntimeError(
             f'The operating system {platform.system()} is not currently suppoorted.')
+
+    if branch_a == branch_b:
+        warnings.warn(
+            'branch_a and branch_b are the same. Skipping regression tests')
+        _ = build_model.build_from_branch(branch_a, PROJ_DIR, build_type)
+        return
 
     # Build executables
     path_to_exes = []

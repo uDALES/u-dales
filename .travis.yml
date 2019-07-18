@@ -53,7 +53,8 @@ install:
   - pip3 install -r tests/requirements.txt
 
 script:
-  - python3 tests/run_tests.py master dmey/comp-tests $BUILD_TYPE
+  # Always tests against master as our reference branch.
+  - python3 tests/run_tests.py master $TRAVIS_BRANCH $BUILD_TYPE
 
 before_deploy:
   - pip3 install graphviz ford mkdocs-material
