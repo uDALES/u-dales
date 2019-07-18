@@ -54,7 +54,7 @@ install:
 
 script:
   # Always tests against master as our reference branch.
-  - python3 tests/run_tests.py master $TRAVIS_BRANCH $BUILD_TYPE
+  - python3 tests/run_tests.py master $TRAVIS_COMMIT $BUILD_TYPE
 
 before_deploy:
   - pip3 install graphviz ford mkdocs-material
