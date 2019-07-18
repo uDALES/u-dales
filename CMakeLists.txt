@@ -47,10 +47,9 @@ file(GLOB_RECURSE src_f90 "src/*.f90")
 add_subdirectory(external)
 
 ExternalProject_Get_Property(fishpack-cmake-project binary_dir)
-set(FISHPACK_LIBRARY ${binary_dir}/src/${CMAKE_SHARED_LIBRARY_PREFIX}fishpack_shared${CMAKE_SHARED_LIBRARY_SUFFIX})
-message(STATUS ${binary_dir}/src/${CMAKE_SHARED_LIBRARY_PREFIX}fishpack_shared${CMAKE_SHARED_LIBRARY_SUFFIX})
+set(FISHPACK_LIBRARY ${binary_dir}/src/${CMAKE_STATIC_LIBRARY_PREFIX}fishpack_static${CMAKE_STATIC_LIBRARY_SUFFIX})
 ExternalProject_Get_Property(vfftpack-cmake-project binary_dir)
-set(VFFTPACK_LIBRARY ${binary_dir}/${CMAKE_SHARED_LIBRARY_PREFIX}vfftpack_shared${CMAKE_SHARED_LIBRARY_SUFFIX})
+set(VFFTPACK_LIBRARY ${binary_dir}/${CMAKE_STATIC_LIBRARY_PREFIX}vfftpack_static${CMAKE_STATIC_LIBRARY_SUFFIX})
 
 add_executable(u-dales ${src_f90})
 
