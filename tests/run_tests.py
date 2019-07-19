@@ -74,13 +74,13 @@ def main(branch_a: str, branch_b: str, build_type: str):
 
             # Run model
             # FIXME: make num proc func of sys used.
-            subprocess.run(['mpiexec', '-np', '2', path_to_exe / 'u-dales',
+            subprocess.run(['mpiexec', '-np', '1', path_to_exe / 'u-dales',
                             namelist], cwd=model_output_dir)
             model_output_dirs.append(model_output_dir)
 
         # FIXME: concatenate filedumps.
-        compare_outputs.compare(model_output_dirs[0] / f'fielddump.001.{test_case_dir.name}.nc',
-                                model_output_dirs[1] / f'fielddump.001.{test_case_dir.name}.nc',
+        compare_outputs.compare(model_output_dirs[0] / f'fielddump.000.{test_case_dir.name}.nc',
+                                model_output_dirs[1] / f'fielddump.000.{test_case_dir.name}.nc',
                                 model_output_dirs[0].parent)
 
 
