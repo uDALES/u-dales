@@ -36,3 +36,7 @@ build/
 dist/
 .eggs/
 temp/
+
+outputs/
+
+.vscode/
