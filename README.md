@@ -1,244 +1,86 @@
-# Dales-U
+## Installation
 
-This is a starter kit for using the Dales-Urban model. It has the basic repository (dales-u) that contains everything you need to run Dales-U. Within it are the two submodules "pre-post" and "dales-urban" in the src directory. These libraries are currently under development and are repositories themselves. In [How keep the submodules up to date](https://gitlab.com/bss116/dales-u#how-to-keep-the-submodules-up-to-date) you find instructions on how to make sure you always have the latest version of the libraries.
-
-
-## Getting Started
-
-### Get a copy of the repository
-
-* To get a copy of Dales-U just for your local machine go to the directory you want to store it in and use
-
-```
-git clone --recurse-submodules git@gitlab.com:dales-urbanists/dales-u.git
-```
-
-* To be able to push your changes to a remote repository, fork the project on GitLab: [Dales-U](https://gitlab.com/dales-urbanists/dales-u). 
-
-Go to your fork, copy the ssh link (`git@gitlab.com:USERNAME/REPOSITORY.git`) and copy the project to your local machine by using
-
-```
-git clone --recurse-submodules git@gitlab.com:USERNAME/REPOSITORY.git
-```
-
-Then go to all submodules and checkout the branch you want to work on, e.g.
-
-```
-git checkout master
-```
-
-To keep your repository of Dales-U in sync with the original, check out how to [sync a fork](https://help.github.com/articles/syncing-a-fork).
+If you are building on the HPC at ICL, please see [Note for HPC users at ICL](#Note-for-HPC-users-at-ICL).
 
 ### Prerequisites
 
-Dales requires several packages installed on your local machine. The packages are gcc, gfortran, make, netcdf, open-mpi and fftw.
+The following libraries are required on your system to install uDALES from source:
 
-#### Prerequisites on high performace clusters
+- [Git](https://git-scm.com/)
+- [CMake](https://cmake.org/)
+- [NetCDF-Fortran](https://www.unidata.ucar.edu/downloads/netcdf/index.jsp)
+- A Fortran compiler (e.g. [GNU Fortran compiler](https://gcc.gnu.org/wiki/GFortran))
+- An MPI library implementation (e.g. [MPICH](https://www.mpich.org/))
 
-Load the required packages by using
+The above libraries should be available from your system's package manager (e.g. APT, yum, Homebrew, etc.).  If you do not have the latest version of these libraries installed on your system, please see the [Libraries page](LIBS.md).
 
-```
-module load packagename
-```
+### Download
 
-The file "dalesmodules" in the utils directory provides a list of all required packages.
-
-#### Prerequisites on macOS
-
-We recommend installing the packages via [homebrew](https://brew.sh/). If you do not have homebrew, first check that XCode is installed by typing
+Clone or download uDALES from the GitHub repository at https://github.com/uDALES/u-dales:
 
 ```
-xcode-select -p
-``` 
-
-If you get an error, install it with
-
-```
-xcode-select --install
+git clone https://github.com/uDALES/u-dales.git
 ```
 
-Then install homebrew with 
+### Build on Linux and macOS
 
-```
-/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+To build the uDALES executable, from the `u-dales` repository, run the following commands:
 
-```
-To test whether homebrew is installed type
-
-```
-brew doctor
+```sh
+mkdir build && cd build
+cmake ..
+make -j$(nproc)
 ```
 
-Install the packages netcdf (also installs gcc and gfortran), open-mpi, fftw and make (should be already installed) with
-
-```
-brew install packagename
-```
-
-You may also want to install the package nco, which is required for postprocessing in "pre-post", and ncview for easy visualisations of dales-urban output.
-
-Homebrew installs packages in "/usr/local/" directory, make sure this path (or whereever your packages are stored) is added to the Makefile as INCDIRS and/or LIBDIRS.
+Where `$(nproc)` will use all the number of CPU cores/threads available on your system. Note that using the maximum number of CPU cores/threads available may not necessarily be the fastest way to build the software.
 
 
-### Installing
+### Build on HPCs
 
-To get an executable version of dales-urban go to the directory "src/dales-urban" and compile by typing `make`.
+If you are an HPC user, you are, most likely, using the [Environment Modules package](http://modules.sourceforge.net/) for the dynamic modification of the user's environment via modulefiles. In that case, you will need to specify the path to the NetCDF manually _after_ loading all the libraries required to compile uDALES. For example:
 
-Don't forget to run a `make clean` after making changes to the source code or Makefile and before recompiling.
-
-## How to keep the submodules up-to-date
-
-The current submodules are "pre-post" and "dales-urban" in the src directory.
-
-First set the following git shortcuts
-
-```
-git config --global status.submoduleSummary true
-git config --global pull.rebase true
-git config --global alias.pula 'pull --rebase --recurse-submodules'
-git config --global alias.puls 'submodule update --remote --rebase'
-git config --global alias.spush 'push --recurse-submodules=on-demand'
+``` sh
+# This is an example, module names/versions may be different on your system
+module list # list currently enabled modules
+module avail # list available modules
+module load cmake netcdf4 openmpi gnu # This is an example, please check with the previous command for the exact name of the modules available on your system.
 ```
 
-and check these configurations with `git config --list`.
+If you do not know the location of NetCDF, you can locate it with the `nc-config --prefix`. Then, to build the uDALES executable, from the `u-dales` repository, run the following commands:
 
-### Update the repository
-
-#### To update the submodules only
-
-* Go to the submodule and use 
-
-```
-git pull
+``` sh
+mkdir build && cd build
+cmake -DNETCDF_DIR=$NETCDF4_DIR -DNETCDF_FORTRAN_DIR=$DNETCDF_FORTRAN_DIR ..
+make -j$(nproc)
 ```
 
-or
+where `$NETCDF4_DIR` and `$DNETCDF_FORTRAN_DIR` are the absolute path to your NetCDF-C and NetCDF-Fortran installation directories.
 
-* From the main repository (Dales-U) use
 
-```
-git puls
-``` 
+#### Note for HPC users at ICL
 
-to get latest version of all submodules or just use
+There is an issue with how the libraries are loaded and added to the `PATH`. This issue has been reported and should be resolved soon.
+For the moment, if you want to compile uDALES on the HPC at ICL, [clone uDALES](#Download) and, from the `u-dales` repository, use the following workaround instead:
 
-```
-git puls modulename
-``` 
 
-to update the submodule modulename.
-
-* To just check which updates are available you can go to the submodule directory and use
-
-```
-git fetch
-git status
+``` sh
+# The following assumes that you have no other modules loaded on your environment.
+module load intel-suite/2017.6 mpi/intel-2018 cmake/3.14.0 git/2.14.3
+mkdir build && cd build
+FC=mpiifort cmake -DNETCDF_DIR=/apps/netcdf/4.4.1-c -DNETCDF_FORTRAN_DIR=/apps/netcdf/4.4.4-fortran ..
+make -j$(nproc)
 ```
 
-#### To update the main repository only
+### Build options
 
-* From the main repository use
+By default uDALES will compile in `Release` mode. You can change this by specifying the option (or flag) at configure time. The general syntax for specifying an option in CMake is `-D<flag_name>=<flag_value>` where `<flag_name>` is the option/flag name and `<flag_value>` is the option/flag value. The following options can be specified when configuring uDALES:
 
-```
-git pull
-```
+| Name                 | Options            | Default   | Description                                   |
+| -------------------- | ------------------ | --------- | --------------------------------------------- |
+| `CMAKE_BUILD_TYPE`   | `Release`, `Debug` | `Release` | Whether to optimise/build with debug flags    |
+| `NETCDF4_DIR`        | `<path>`           | -         | Path to NetCDF-C installation directory       |
+| `NETCDF_FORTRAN_DIR` | `<path>`           | -         | Path to NetCDF-Fortran installation directory |
 
-#### To update both the main repository and all submodules
+## Docs
 
-* From the main repository use
-
-```
-git pula
-```
-
-### Publish changes in the repository
-
-Changes to the submodule need to be reported in two steps.
-1) The submodule needs to be updated.
-2) The main repository (Dales-U) needs to be told to use the updated version of the submodule.
-
-#### Push changes of the submodule
-
-Changes to the submodule need to be added directly from within it.
-Go to the submodule directory and track your changes with
-
-```
-git add changedfile
-git commit -m "change message"
-```
-then use
-
-```
-git pull
-git push
-```
-
-to update the submodule.
-If you want to tell the main repository to update to this version of the submodule, go to the main repository and add the newest changes with
-
-```
-git add submodule
-git commit -m "Updated submodule to newest version"
-```
-
-and then push the change with
-
-```
-git pull
-git push
-```
-
-This is the recommended workflow because it is the easiest way to separate changes to the library (e.g. the Dales source code) and changes to the repository (e.g. tracking new experiment setups).
-
-#### Push changes of the main repository only
-
-If you make changes in the main repository and the submodule, but you do not want to update to the newest version of the submodule yet (e.g. because the changes are unstable), you can just push your changes of the main repository using
-
-```
-git pull
-git push
-```
-
-from the main repository. It will then update the files but switch to the newest version of the submodule unless you commit these changes too (see above).
-
-#### Push changes of the main repository and submodules
-
-When you have committed changes in both the main repository and the submodules you can push them at once by using
-
-```
-git pula
-git spush
-```
-
-from the main repository.
-Remember that the main repository needs to know which version of the submodule to use.
-If you want to update the repository to a new version of the submodule it needs to be added and committed in the repository too. (Check it with `git status`).
-
-
-## Running the tests
-
-**_Template needs to be completed from here_**
-
-Explain how to run the automated tests for this system
-
-## Contributing
-
-Please read [CONTRIBUTING.md](https://gitlab.com/dales-urbanists/dales-u/contributing.md) for details on our code of conduct, and the process for submitting pull requests to us.
-
-## Authors
-
-Dales-U is based on the [Dales](https://github.com/dalesteam/dales) model.
-
-Authors of the Dales-urban extension are
-
-* **Jasper Tomas** - *Initial work*
-* **Ivo Suter** - [Ivo](https://gitlab.com/ivsuter)
-* **Tom Grylls** - [Tom](https://gitlab.com/tomgrylls)
-* **Birgit Sützl** - [Birgit](https://gitlab.com/bss116)
-* **Maarten van Reeuwijk** - [Maarten](https://gitlab.com/mvanreeuwijk)
-
-See also the list of [contributors](https://github.com/your/project/contributors) who participated in this project.
-
-## License
-
-This project is licensed under the GNU General Public License - see the [LICENSE.md](LICENSE.md) file for details
+WIP at: https://uDALES.github.io/u-dales/0YiO263pFxExSdkMvWfId3qkVUSF4dREFnwM1jQD9y1KvzeAVAWzGykQemUrkJCM/html/index.html
