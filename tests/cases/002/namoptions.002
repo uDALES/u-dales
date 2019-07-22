@@ -1,12 +1,12 @@
 &RUN
 iexpnr     =  002
-runtime    =  3601
+runtime    =  100
 lwarmstart =  .false.
 lstratstart=  .false.
 lreadscal  =  .false.
 startfile  =  'initd00094979_xxx.052'
 trestart   =  3600.
-tfielddump =  100.
+tfielddump =  10.
 fieldvars  =  'u0,v0,w0'
 lydump     =  .true.
 tsample    =  2.

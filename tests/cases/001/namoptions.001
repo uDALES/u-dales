@@ -1,12 +1,12 @@
 &RUN
 iexpnr     =  001
-runtime    =  30
+runtime    =  5
 lwarmstart =  .false.
 lstratstart=  .false.
 lreadscal  =  .false.
 startfile  =  'initd00094979_xxx.052'
 trestart   =  3600.
-tfielddump =  5.
+tfielddump =  1.
 fieldvars  =  'u0,v0,w0'
 lydump     =  .true.
 tsample    =  2.
@@ -66,7 +66,7 @@ qts        =  0.0
 &ENERGYBALANCE
 lEB        = .true.
 lconstW    = .true.
-dtEB       = 5.
+dtEB       = 1.
 nfcts      = 123
 bldT       = 301.0
 wsoil      = 314.0
