@@ -53,6 +53,9 @@ install:
   - pip3 install -r tests/requirements.txt
 
 script:
+  # Travis clones only the history leading to the tip of a single branch (https://stackoverflow.com/a/44036486).
+  - git remote set-branches --add origin master
+  - git fetch origin master
   # Always tests against master as our reference branch.
   - python3 tests/run_tests.py master $TRAVIS_COMMIT $BUILD_TYPE
 
