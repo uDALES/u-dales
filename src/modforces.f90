@@ -420,8 +420,8 @@ endif
 
        if (myid==nprocs-1) then
           do k=kb,ke
-             vout = sum(vp(ib:ie,je,k))
-             voutold = sum(vm(ib:ie,je,k))
+             vout(k) = sum(vp(ib:ie,je,k))
+             voutold(k) = sum(vm(ib:ie,je,k))
           end do
        end if
 
@@ -430,12 +430,12 @@ endif
 
        do k=kb,ke
 !         do i=ib,ie
-          vout(k)    = rk3coef*vout(k)   *dzf(k)*(xh(ie+1)-xh(ib))/(ie-ib)  ! mass flow rate through each slab (density = 1000 kg/m3)
-          voutold(k) =         voutold(k)*dzf(k)*(xh(ie+1)-xh(ib))/(ie-ib)  ! mass flow rate through each slab (density = 1000 kg/m3) (previous time step)
+          vout(k)    = rk3coef*vout(k)   *dzf(k)*(xh(ie+1)-xh(ib))/(ie+1-ib)  ! mass flow rate through each slab (density = 1000 kg/m3)
+          voutold(k) =         voutold(k)*dzf(k)*(xh(ie+1)-xh(ib))/(ie+1-ib)  ! mass flow rate through each slab (density = 1000 kg/m3) (previous time step)
 !         end do
        end do
-       vouttot         = sum(vout(kb:ke))              ! mass flow rate (at outlet)
-       vflowrateold = sum(voutold(kb:ke))              ! mass flow rate (at outlet) (previous time step)
+       vouttot       = sum(vout(kb:ke))              ! mass flow rate (at outlet)
+       vflowrateold  = sum(voutold(kb:ke))              ! mass flow rate (at outlet) (previous time step)
        vdef =  (vflowrate - (vouttot + vflowrateold))/((xh(ie+1)-xh(ib))*(zh(ke+1)-zh(kb)))   !udef=massdef/(Area*density)
        do k = kb,ke
           do j = jb,je
