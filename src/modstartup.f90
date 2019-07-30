@@ -436,7 +436,7 @@ contains
       !-----------------------------------------------------------------|
 
       use modsurfdata, only:wtsurf, wqsurf, qts, ps
-            use modglobal, only : imax,kmax,jtot,ysize,xsize,dtmax,runtime, startfile,lwarmstart,lstratstart,BCxm,BCxT,BCxq,BCxs,BCtopm,iinletgen,linoutflow,iwalltemp,iwallmom,ltempeq
+            use modglobal, only : imax,kmax,jtot,ysize,xsize,dtmax,runtime, startfile,lwarmstart,lstratstart,BCxm,BCxT,BCxq,BCxs,BCtopm,iinletgen,linoutflow,iwalltemp,iwallmom,ltempeq,BCbotm
       use modmpi, only:myid, nprocs, mpierr, comm3d, MPI_INTEGER, MPI_LOGICAL
 
 
@@ -485,6 +485,7 @@ contains
       ! Switch to ensure that neutral wall function is called when ltempeq=false and if iwalltemp==1 (constant flux and therefore wall temp is not resolved.
       if ((ltempeq .eqv. .false.) .or. (iwalltemp==1)) then
          iwallmom = 3
+         BCbotm = 3
       end if
 
 !choosing inoutflow in x requires switches to be set
