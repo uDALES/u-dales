@@ -1,8 +1,8 @@
-SUBROUTINE wfmneutral(hi,hj,hk,iout1,iout2,iot,iomomflux,utang1,utang2,z0,n,ind,wforient)
+SUBROUTINE wfmneutral(hi,hj,hk,iout1,iout2,iomomflux,utang1,utang2,z0,n,ind,wforient)
    !wfuno
    !calculating wall function for momentum and scalars following Cai2012&Uno1995, extension of Louis 1979 method to rough walls
    !fluxes in m2/s2 and Km/s
-   USE modglobal, ONLY : dzf,dzfi,dzh2i,dzhi,dzhiq,dy,dyi,dy2i,dyi5,dxf,dxh,dxfi,dxhi,dxh2i,ib,ie,jb,je,kb,ke,fkar,grav,jmax,rk3step,kmax,jge,jgb
+   USE modglobal, ONLY : dzf,dzfi,dzh2i,dzhi,dzhiq,dy,dyi,dy2i,dyi5,dxf,dxh,dxfi,dxhi,dxh2i,ib,ie,jb,je,kb,ke,fkar,jmax,rk3step,kmax,jge,jgb
    USE modsubgriddata, ONLY:ekh, ekm
    USE modmpi, ONLY:myid
    USE initfac, ONLY:block
@@ -643,7 +643,6 @@ end if
       iu = ie
       jl = jb
       ju = je
-
 
       delta = 0.5*dzf(k) !might need attention on streched grids! as well as the dzfi when updating up
             logdz = LOG(delta/z0)
