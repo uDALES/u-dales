@@ -27,20 +27,20 @@ echo "#PBS -l select=${nnode}:ncpus=${ncpu}:mem=${mem}" >> job.${exp}
 ## load modules required for the execution
 echo "module load intel-suite/2017.6 mpi/intel-2018" >> job.${exp}
 
-## copy files to temporary directory
-echo "mkdir $EPHEMERAL/${exp}" >> job.${exp}
-echo "cp ${inputdir}/* $EPHEMERAL/${exp}" >> job.${exp}
+## copy files to execution and output directory
+echo "mkdir ${outdir}" >> job.${exp}
+echo "cp ${inputdir}/* ${outdir}" >> job.${exp}
 
-## go to execution directory. This is important, otherwise warmstart inps cannot be read!
-echo "cd $EPHEMERAL/${exp}" >> job.${exp}
+## go to execution and output directory
+echo "cd ${outdir}" >> job.${exp}
 
 ## execute program with mpi
-echo "mpiexec -n $(( ${ncpu} * ${nnode} )) ${executable} $EPHEMERAL/${exp}/namoptions.${exp} > $EPHEMERAL/${exp}/output.${exp} 2>&1" >> job.${exp}
+echo "mpiexec -n $(( ${ncpu} * ${nnode} )) ${executable} ${outdir}/namoptions.${exp} > ${outdir}/output.${exp} 2>&1" >> job.${exp}
 
-## merge output files from cores to one file
+## merge output files from several cpus to one file
 echo "${utilspath}/mergehelper.sh ${exp} " >> job.${exp}
 
-## submit job file to queue
+## submit job.exp file to queue
 qsub job.${exp}
 
 echo "job.${exp} submitted."
