@@ -12,10 +12,10 @@ A uDALES simulation can be manually started from a directory that contains all i
 
 ``` sh
 cd exp/006
-mpiexec -n ${ncpu} ../../build/u-dales namoptions.006 > output.006 2>&1
+mpiexec -n NPROC ../../build/u-dales namoptions.006 > output.006 2>&1
 ```
 
-Where `${ncpu}` is the number of CPU cores the simulation will use.
+Where `NPROC` is the number of CPUs to use in the simulation (e.g. 2).
 
 Two scripts are available in the directory `tools/utils` that will set this up automatically. The script `local_execute.sh` is for execution on your local machine and `hpc_execute.sh` for simulations on the ICL HPC. Copy the script into the simulation directory `exp/exp_id` and execute it from there:
 

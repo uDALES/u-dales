@@ -1,33 +1,37 @@
 #!/bin/bash
 
+set -xe
+
+this_dir=$(pwd)
+exp_dir=$(dirname $this_dir)
+proj_dir=$(dirname $exp_dir)
+
+## Chnage the following paths based on your configuration
+path_to_exe=${proj_dir}/build/u-dales
+path_to_utils=${proj_dir}/tools/utils
+NCPU=2
+
 ## automatically set the experiment number via path
-cdir=$(pwd)
-exp="${cdir: -3}"
+inputdir=${this_dir}
+exp="${inputdir: -3}"
 echo "experiment number: ${exp}"
-
-## some default parameters, changes can be made here
-topdir=${DA_TOPDIR}
-executable=${topdir}/u-dales/build/release/u-dales
-utilspath=${topdir}/u-dales/tools/utils
-ncpu=2
-
-## directories
-outdir=${DA_TOPDIR}/data/${exp}
-inputdir=$(pwd)
+outdir=${proj_dir}/data/${exp}
 
 echo "starting job.${exp}."
 
 ## copy files to output directory
-mkdir $outdir
+mkdir -p $outdir
 cp ${inputdir}/* $outdir
 
 ## go to execution and output directory
-cd $outdir
+pushd $outdir
 
 ## execute program with mpi
-mpiexec -n ${ncpu} ${executable} ${inputdir}/namoptions.${exp} > ${outdir}/output.${exp} 2>&1
+mpiexec -n ${NCPU} ${path_to_exe} namoptions.${exp} > output.${exp} 2>&1
 
 ## merge output files from cores to one file
-${utilspath}/mergehelper.sh ${exp}
+${path_to_utils}/mergehelper.sh ${exp}
+
+popd
 
 echo "job.${exp} done."
