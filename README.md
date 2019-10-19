@@ -4,7 +4,7 @@ TODO: uDALES is...
 
 ## Installing
 
-See the [installation instructions](INSTALL.md)
+See the [installation instructions](INSTALL.md).
 
 ## Running
 

@@ -4,7 +4,14 @@
 #   continue with old sim: "da_prep 1 1 w"
 #   continue with new sim  "da_prep 2 1 w"
 
-set -o errexit   #exit on error
+set -xe
+
+if [ -z $DA_EXPDIR_SRC ]; then
+  DA_EXPDIR_SRC=$DA_EXPDIR
+fi;
+if [ -z $DA_WORKDIR_SRC ]; then
+  DA_WORKDIR_SRC=$DA_WORKDIR
+fi;
 
 if (( $# < 2 ))
 then
@@ -49,7 +56,7 @@ else
   echo "Creating target work directory, $tar, in $DA_WORKDIR"
 fi
 
-if [ ! -d $DA_EXPDIR/$src ]; then  #test if original simulation exists
+if [ ! -d $DA_EXPDIR_SRC/$src ]; then  #test if original simulation exists
   echo "original simulation $src does not exist in $DA_EXPDIR"
   echo "exit"
   exit 1
@@ -66,21 +73,21 @@ case $case in
      1)  #target folder didn't exist or just overwrite all files
             for i in "${tocopy[@]}"
             do
-		cp $DA_EXPDIR/$src$i$src $DA_EXPDIR/$tar$i$tar 2>/dev/null || :
+		cp $DA_EXPDIR_SRC/$src$i$src $DA_EXPDIR/$tar$i$tar 2>/dev/null || :
 		#echo $i
             done
           ;; 
      2)  #don't overwrite files in target folder #cp -n does not overwrite an existing file
             for i in "${tocopy[@]}"
             do
-		cp -n $DA_EXPDIR/$src$i$src $DA_EXPDIR/$tar$i$tar 2>/dev/null || :
+		cp -n $DA_EXPDIR_SRC/$src$i$src $DA_EXPDIR/$tar$i$tar 2>/dev/null || :
 		#echo $i
             done
           ;; 
      3)  #ask for every file if to overwrite or not
             for i in "${tocopy[@]}"
             do
-		cp -i $DA_EXPDIR/$src$i$src $DA_EXPDIR/$tar$i$tar 2>/dev/null || :
+		cp -i $DA_EXPDIR_SRC/$src$i$src $DA_EXPDIR/$tar$i$tar 2>/dev/null || :
 		#echo $i
             done
           ;; 
@@ -99,36 +106,36 @@ case $case in
      1)  #target folder didn't exist or just overwrite all files
             for i in "${tocopy[@]}"
             do
-		cp $DA_EXPDIR/$src$i$src $DA_EXPDIR/$tar$i$tar 2>/dev/null || :
+		cp $DA_EXPDIR_SRC/$src$i$src $DA_EXPDIR/$tar$i$tar 2>/dev/null || :
 		#echo $i
             done
           ;; 
      2)  #don't overwrite files in target folder #cp -n does not overwrite an existing file
             for i in "${tocopy[@]}"
             do
-		cp -n $DA_EXPDIR/$src$i$src $DA_EXPDIR/$tar$i$tar 2>/dev/null || :
+		cp -n $DA_EXPDIR_SRC/$src$i$src $DA_EXPDIR/$tar$i$tar 2>/dev/null || :
 		#echo $i
             done
           ;; 
      3)  #ask for every file if to overwrite or not
             for i in "${tocopy[@]}"
             do
-		cp -i $DA_EXPDIR/$src$i$src $DA_EXPDIR/$tar$i$tar 2>/dev/null || :
+		cp -i $DA_EXPDIR_SRC/$src$i$src $DA_EXPDIR/$tar$i$tar 2>/dev/null || :
 		#echo $i
             done
           ;; 
 esac
 
 ### copy newest warmstart files
-startfilen=$(ls -t $DA_WORKDIR/$src"/initd"* | head -1)
+startfilen=$(ls -t $DA_WORKDIR_SRC/$src"/initd"* | head -1)
 if [ -z "$startfilen" ]; then
-echo "no restart files found in $DA_WORKDIR/$src"
+echo "no restart files found in $DA_WORKDIR_SRC/$src"
 echo "exit"
 exit 1
 fi
 startfilen=${startfilen##*/}  # retain the part after the last slash
 startfilen=${startfilen%_*}   # retain the part before the underscore
-cp $DA_WORKDIR/$src"/"*$startfilen* $DA_WORKDIR/$tar
+cp $DA_WORKDIR_SRC/$src"/"*$startfilen* $DA_WORKDIR/$tar
 for f in $DA_WORKDIR/$tar/*.$src; do 
 mv $f "${f%.$src}.$tar"
 done
@@ -143,4 +150,4 @@ rm $DA_EXPDIR/$tar"/namoptions."$tar".bak"
 fi
 
 ## copy executable scripts too
-cp $DA_EXPDIR/$src/*"execute"* $DA_EXPDIR/$tar
+cp $DA_EXPDIR_SRC/$src/*"execute"* $DA_EXPDIR/$tar
