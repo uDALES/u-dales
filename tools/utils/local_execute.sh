@@ -1,21 +1,32 @@
 #!/bin/bash
 
-set -xe
+set -e
 
-this_dir=$(pwd)
-exp_dir=$(dirname $this_dir)
-proj_dir=$(dirname $exp_dir)
 
-## Chnage the following paths based on your configuration
-path_to_exe=${proj_dir}/build/u-dales
-path_to_utils=${proj_dir}/tools/utils
-NCPU=2
+if (( $# < 1 ))
+then
+ echo "The experiment ID must be set."
+ exit
+fi
+
+exp=$(printf "%03.0f" $1)    #pad argument 1 (target simulation) with zeros
+
+if [ -z $NCPU ]; then
+  NCPU=1
+fi;
+if [ -z $DA_TOPDIR ]; then
+  echo "DA_TOPDIR must be set"
+  exit
+fi;
+
+path_to_exe=${DA_TOPDIR}/u-dales/build/u-dales
+path_to_utils=${DA_TOPDIR}/u-dales/tools/utils
+
 
 ## automatically set the experiment number via path
-inputdir=${this_dir}
-exp="${inputdir: -3}"
+inputdir=${DA_EXPDIR}/${exp}
 echo "experiment number: ${exp}"
-outdir=${proj_dir}/data/${exp}
+outdir=${DA_WORKDIR}/${exp}
 
 echo "starting job.${exp}."
 

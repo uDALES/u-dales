@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -e
+
 if (( $# == 1 )) ; then
     iexpnr=$1
     type="field"
@@ -12,10 +14,14 @@ else
 	exit 0
 fi
 
-datapath=${EPHEMERAL}
-# datapath = ${DA_WORKDIR}
+datapath=${DA_WORKDIR}
+path_to_utils=${DA_TOPDIR}/u-dales/tools/utils
 
-module load intel-suite udunits nco/4.6.2
+if [ -z $LOCAL_EXECUTE ]; then
+    datapath=${EPHEMERAL}
+    module load intel-suite udunits nco/4.6.2
+    echo "cluster"
+fi;
 
 ## Merging fields along spatial axis.
 if [ $type == "field" ]; then
@@ -51,7 +57,7 @@ if [ $type == "field" ]; then
         echo "Merging ${dumps} files with ym-dependent variables ${ymparam}."
         echo "Saving output to ${outfile}."
 
-        . da_merge.sh $dumps $ymparam $outfile
+        ${path_to_utils}/da_merge.sh $dumps $ymparam $outfile
         echo "Merging done."
 
     done
@@ -136,4 +142,6 @@ else
 
 fi
 
-module unload intel-suite udunits nco/4.6.2
+if [ -z $LOCAL_EXECUTE ]; then
+    module unload intel-suite udunits nco/4.6.2
+fi;

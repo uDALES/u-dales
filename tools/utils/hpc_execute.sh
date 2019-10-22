@@ -6,9 +6,8 @@ exp="${cdir: -3}"
 echo "experiment number: ${exp}"
 
 ## some default parameters, changes can be made here
-topdir=${DA_TOPDIR}
-executable=${topdir}/u-dales/build/release/u-dales
-utilspath=${topdir}/u-dales/tools/utils
+executable=${DA_TOPDIR}/u-dales/build/u-dales
+utilspath=${DA_TOPDIR}/u-dales/tools/utils
 ncpu=12
 
 ## HPC specific

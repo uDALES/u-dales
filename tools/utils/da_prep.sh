@@ -45,14 +45,14 @@ if [ -d $DA_EXPDIR/$tar ]; then  #check if target simulation already exists. If 
   exit 1
   fi
 else
-mkdir $DA_EXPDIR/$tar
+mkdir -p $DA_EXPDIR/$tar
 fi
 echo "continuing"
 
 if [ -d $DA_WORKDIR/$tar ]; then
   echo "target directory $tar already exists in $DA_WORKDIR"
 else
-  mkdir $DA_WORKDIR/$tar
+  mkdir -p $DA_WORKDIR/$tar
   echo "Creating target work directory, $tar, in $DA_WORKDIR"
 fi
 
