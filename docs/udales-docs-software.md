@@ -5,7 +5,7 @@ project_github: https://github.com/uDALES/u-dales
 summary: TODO:
 github: https://github.com/uDALES
 src_dir: ../src
-output_dir: ../build/html/software
+output_dir: ../build/html/udales-docs-software
 media_dir: assets
 docmark: \!
 predocmark: \!!
