@@ -95,48 +95,34 @@ popd
 Where `$(nproc)` will use all the number of CPU cores/threads available on your system. Note that using the maximum number of CPU cores/threads available may not necessarily be the fastest way to build the software, therefore you may want to manually specify the number of CPU cores/threads to use manually.
 
 
-### Build on HPC
+### Build on HPCs
 
-If you are an HPC user, you are, most likely, using the [Environment Modules package](http://modules.sourceforge.net/) for the dynamic modification of the user's environment via modulefiles. In that case, you will need to specify the path to the NetCDF manually _after_ loading all the libraries required to compile uDALES. For example:
+If you are an HPC user you are likely using the [Environment Modules package](http://modules.sourceforge.net/) for the dynamic modification of the user's environment via modulefiles and therefore you may need to hint CMake the PATH to NetCDF (see below how).
+
+Here we show how to compile uDALES using the [HPC at ICL](https://www.imperial.ac.uk/admin-services/ict/self-service/research-support/rcs/) as an example, therefore please note that the specific names/versions installed on your system may be different.
 
 ``` sh
 # This is an example, module names/versions may be different on your system
-module list # list currently enabled modules
+module list # list currently enabled modules -- should be empty!
 module avail # list available modules
-module load cmake netcdf4 openmpi gnu # This is an example, please check with the previous command for the exact name of the modules available on your system.
+# This is an example, please check with the previous command for the exact name of the modules available on your system. This will load NetCDF compiled with Intel Suite 2019.4 and add the correct version of icc and ifort to the PATH.
+module load git/2.14.3 cmake/3.14.0 netcdf/4.7.2-c netcdf/4.5.2-fortran
 ```
 
-If you do not know the location of NetCDF, you can locate it with the `nc-config --prefix`. Then, to build the uDALES executable, from the `u-dales` repository, run the following commands:
+Then, to build the uDALES executable, from the `u-dales` repository, run the following commands:
 
 ``` sh
 # We assume you are running the following commands from the uDALES project directory.
 # I.e. the one you set up earlier with Cookiecutter.
 mkdir u-dales/build
 pushd u-dales/build
-cmake -DNETCDF_DIR=$NETCDF4_DIR -DNETCDF_FORTRAN_DIR=$DNETCDF_FORTRAN_DIR ..
+cmake -DNETCDF_DIR=$(nc-config --prefix) -DNETCDF_FORTRAN_DIR=$(nf-config --prefix) -LA ..
 make -j$(nproc)
 popd
 ```
 
-where `$NETCDF4_DIR` and `$DNETCDF_FORTRAN_DIR` are the absolute path to your NetCDF-C and NetCDF-Fortran installation directories.
+where `NETCDF_DIR` and `NETCDF_FORTRAN_DIR` indicates the absolute path to your NetCDF-C and NetCDF-Fortran installation directories. Here, we use the utilities `nc-config` and `nf-config` to hint CMake the location of NetCDF, but you can simply pass the absolute path to the NetCDF-C and NetCDF-Fortran manually instead.
 
-#### Note for ICL users
-If you are an HPC user at ICL, please note that while there is an issue with how the libraries are loaded and added to the `PATH` on This issue has been reported and should be resolved 'soon'. As a workaround, you can use the following instead:
-
-
-``` sh
-# The following assumes that you have no other modules loaded on your environment.
-module load intel-suite/2017.6 mpi/intel-2018 cmake/3.14.0 git/2.14.3
-
-# We assume you are running the following commands from the uDALES project directory.
-# I.e. the one you set up earlier with Cookiecutter.
-mkdir u-dales/build
-pushd u-dales/build
-cmake ..
-FC=mpiifort cmake -DNETCDF_DIR=/apps/netcdf/4.4.1-c -DNETCDF_FORTRAN_DIR=/apps/netcdf/4.4.4-fortran ..
-make -j$(nproc)
-popd
-```
 
 ### Build defaults/options
 
