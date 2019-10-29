@@ -82,7 +82,7 @@ set (NETCDF_C_INCLUDE_DIRS ${NETCDF_INCLUDE_DIR})
 
 find_library (NETCDF_LIBRARY NAMES netcdf
   HINTS "${NETCDF_DIR}/lib"
-  PATH_SUFFIXES "x86_64-linux-gnu"
+  PATH_SUFFIXES ["x86_64-linux-gnu", ""]
   )
 mark_as_advanced (NETCDF_LIBRARY)
 
@@ -106,7 +106,7 @@ macro (NetCDF_check_interface lang header libs)
     find_library (NETCDF_${lang}_LIBRARY NAMES ${libs}
       HINTS "${NetCDF_lib_dirs}"
             "${NETCDF_FORTRAN_DIR}/lib"
-      PATH_SUFFIXES "x86_64-linux-gnu"
+      PATH_SUFFIXES ["x86_64-linux-gnu", ""]
       ${USE_DEFAULT_PATHS})
 
     mark_as_advanced (NETCDF_${lang}_INCLUDE_DIR NETCDF_${lang}_LIBRARY)
