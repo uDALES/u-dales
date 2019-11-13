@@ -4,7 +4,7 @@
 echo "starting job.${exp}."
 
 ## load modules required for the execution
-module load intel-suite/2017.6 mpi/intel-2018
+module load git/2.14.3 cmake/3.14.0 netcdf/4.5.2-fortran
 
 ## copy files to execution and output directory
 mkdir $EPHEMERAL/${exp}

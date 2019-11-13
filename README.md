@@ -4,6 +4,19 @@ This is the development repository for the uDALES (urban Dutch Atmospheric Large
 
 **If you are new to uDALES, please follow our [getting started guide](https://udales.github.io/u-dales/0YiO263pFxExSdkMvWfId3qkVUSF4dREFnwM1jQD9y1KvzeAVAWzGykQemUrkJCM/html/udales-getting-started).**
 
+## Installation
+
+If you are new to uDALES or need to set up experiments, please see our [getting started guide](https://udales.github.io/u-dales/0YiO263pFxExSdkMvWfId3qkVUSF4dREFnwM1jQD9y1KvzeAVAWzGykQemUrkJCM/html/udales-getting-started). If you are looking to develop the code instead, you can install uDALES on Linux, macOS, and WSL with the following commands:
+
+``` sh
+mkdir -p build/release
+pushd build/release
+cmake ../..
+make
+```
+
+To know more about build options, see [build/default options](https://udales.github.io/u-dales/0YiO263pFxExSdkMvWfId3qkVUSF4dREFnwM1jQD9y1KvzeAVAWzGykQemUrkJCM/html/udales-getting-started/#build-defaultsoptions).
+
 ## Documentation
 
 WIP at: https://uDALES.github.io/u-dales/0YiO263pFxExSdkMvWfId3qkVUSF4dREFnwM1jQD9y1KvzeAVAWzGykQemUrkJCM/html/index.html

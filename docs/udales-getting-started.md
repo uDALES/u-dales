@@ -83,11 +83,12 @@ This creates a Git repository for your own projects named `<PROJECT_NAME>` with 
 On standard systems and configurations, you can build uDALES with the following commands:
 
 ```sh
-# We assume you are running the following commands from the uDALES project directory.
-# I.e. the one you set up earlier with Cookiecutter.
-mkdir u-dales/build
-pushd u-dales/build
-cmake ..
+# We assume you are running the following commands from your
+# Cookiecutter directory.
+
+mkdir -p u-dales/build/release # in case you want to later create a build/debug
+pushd u-dales/build/release
+cmake ../..
 make -j$(nproc)
 popd
 ```
@@ -109,14 +110,14 @@ module avail # list available modules
 module load git/2.14.3 cmake/3.14.0 netcdf/4.5.2-fortran
 ```
 
-Then, to build the uDALES executable, from the `u-dales` repository, run the following commands:
+Then, to build the uDALES executable, run the following commands:
 
 ``` sh
-# We assume you are running the following commands from the uDALES project directory.
-# I.e. the one you set up earlier with Cookiecutter.
-mkdir u-dales/build
-pushd u-dales/build
-cmake -DNETCDF_DIR=$(nc-config --prefix) -DNETCDF_FORTRAN_DIR=$(nf-config --prefix) -LA ..
+# We assume you are running the following commands from your
+# Cookiecutter directory.
+mkdir -p u-dales/build/release
+pushd u-dales/build/release
+cmake -DNETCDF_DIR=$(nc-config --prefix) -DNETCDF_FORTRAN_DIR=$(nf-config --prefix) -LA ../..
 make -j$(nproc)
 popd
 ```
@@ -140,8 +141,9 @@ By default uDALES will compile in `Release` mode. You can change this by specify
 To set up a new simulation, `da_prep.sh` in `u-dales/tools/utils` is used to create a new simulation setup `new_exp_id` based on another simulation `old_exp_id`. All `exp_ids` are three digit numbers, e.g. 001, and are stored in directories of that name. Scripts requires several variables to be set up. You can do this by copying and pasting the snippet below or by including it in a bash script (or bash profile if you are unlikely to change them).
 
 ``` sh
-# We assume you are running the following commands from the uDALES project directory.
-# I.e. the one you set up earlier with Cookiecutter.
+# We assume you are running the following commands from your
+# Cookiecutter directory.
+
 export DA_TOPDIR=$(pwd) # This is your top level directory (i.e. Cookiecutter).
 export DA_EXPDIR=$(pwd)/experiments #  The top-level directory of the simulation setups.
 export DA_WORKDIR=$(pwd)/outputs # Output directory
@@ -160,10 +162,13 @@ export DA_WORKDIR_SRC=$(pwd)/u-dales/outputs
 Now to set-up a new experiment based on a previous example (here we use case `999`), run:
 
 ``` sh
+# We assume you are running the following commands from your
+# Cookiecutter directory.
+
 # General syntax: da_prep.sh new_exp_id old_exp_id
 # To set up a new simulation starting from the restart files of another simulation
 # ("warmstart"), use the 'w' flag. E.g.: da_prep.sh new_exp_id old_exp_id w
-./u-dales/tools/utils/da_prep.sh 999 999
+./u-dales/tools/utils/da_prep.sh 998 999
 ```
 
 ## Run
@@ -171,9 +176,12 @@ Now to set-up a new experiment based on a previous example (here we use case `99
 The scripts `local_execute.sh` and `hpc_execute.sh` in `u-dales/tools/utils` are used as wrappers to run simulations on your local machine and HPC at ICL respectively. These scripts contain several helpers to run the simulations and merge outputs from several CPUs into a single file (see [Post-processing](./udales-post-processing.md) for more info about the individual scripts).
 
 ``` sh
+# We assume you are running the following commands from your
+# Cookiecutter directory.
+
 # General syntax: local_execute.sh exp_id
 # To run on HPC at ICL, run `hpc_execute.sh` instead.
-./u-dales/tools/utils/local_execute.sh 999
+./u-dales/tools/utils/local_execute.sh 998
 ```
 
 ## What's next?

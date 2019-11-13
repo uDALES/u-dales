@@ -19,7 +19,8 @@ if [ -z $DA_TOPDIR ]; then
   exit
 fi;
 
-path_to_exe=${DA_TOPDIR}/u-dales/build/u-dales
+# This should really be an arg and not harcoded!
+path_to_exe=${DA_TOPDIR}/u-dales/build/release/u-dales
 path_to_utils=${DA_TOPDIR}/u-dales/tools/utils
 
 
