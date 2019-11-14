@@ -6,7 +6,7 @@ This is the development repository for the uDALES (urban Dutch Atmospheric Large
 
 ## Installation
 
-If you are new to uDALES or need to set up experiments, please see our [getting started guide](https://udales.github.io/u-dales/0YiO263pFxExSdkMvWfId3qkVUSF4dREFnwM1jQD9y1KvzeAVAWzGykQemUrkJCM/html/udales-getting-started). If you are looking to develop the code instead, you can install uDALES on Linux, macOS, and WSL with the following commands:
+If you are new to uDALES or need to set up your own experiments, please see our [getting started guide](https://udales.github.io/u-dales/0YiO263pFxExSdkMvWfId3qkVUSF4dREFnwM1jQD9y1KvzeAVAWzGykQemUrkJCM/html/udales-getting-started). If you are looking to develop the code instead, you can install uDALES on Linux, macOS, and WSL with the following commands:
 
 ``` sh
 mkdir -p build/release
@@ -16,6 +16,17 @@ make
 ```
 
 To know more about build options, see [build/default options](https://udales.github.io/u-dales/0YiO263pFxExSdkMvWfId3qkVUSF4dREFnwM1jQD9y1KvzeAVAWzGykQemUrkJCM/html/udales-getting-started/#build-defaultsoptions).
+
+
+## Usage
+
+A uDALES simulation needs to be executed from a directory containing all required input files, see for instance `examples/999`.
+Execute a uDALES simulation with the following commands:
+
+``` sh
+mpiexec -n <NCPU> <PATH-TO-EXECUTABLE> <NAMOPTIONS-FILE>
+```
+
 
 ## Documentation
 
