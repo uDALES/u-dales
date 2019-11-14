@@ -108,7 +108,7 @@ Here we show how to compile uDALES using the [HPC at ICL](https://www.imperial.a
 module list # list currently enabled modules -- should be empty!
 module avail # list available modules
 # This is an example, please check with the previous command for the exact name of the modules available on your system. This will load NetCDF compiled with Intel Suite 2019.4 and add the correct version of icc and ifort to the PATH.
-module load git/2.14.3 cmake/3.14.0 netcdf/4.5.2-fortran
+module load intel-suite/2017.6 mpi/intel-2018 cmake/3.14.0 git/2.14.3
 ```
 
 Then, to build the uDALES executable, run the following commands:
@@ -118,7 +118,7 @@ Then, to build the uDALES executable, run the following commands:
 # top-level project directory.
 mkdir -p u-dales/build/release
 pushd u-dales/build/release
-cmake -DNETCDF_DIR=$(nc-config --prefix) -DNETCDF_FORTRAN_DIR=$(nf-config --prefix) -LA ../..
+FC=mpiifort cmake -DNETCDF_DIR=/apps/netcdf/4.4.1-c -DNETCDF_FORTRAN_DIR=/apps/netcdf/4.4.4-fortran ../..
 make
 popd
 ```
