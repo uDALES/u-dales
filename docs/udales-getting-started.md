@@ -178,12 +178,13 @@ The scripts `local_execute.sh` and `hpc_execute.sh` in `u-dales/tools/utils` are
 
 ``` sh
 # We assume you are running the following commands from your
-# Cookiecutter directory.
+# top-level project directory.
 
 # General syntax: local_execute.sh exp_id
-# To run on HPC at ICL, run `hpc_execute.sh` instead.
 ./u-dales/tools/utils/local_execute.sh 009
 ```
+
+To run simulations on HPCs using the `hpc_execute.sh` wrapper, follow the guidance in [HPC notes](./udales-hpc-notes.md).
 
 ## What's next?
 
