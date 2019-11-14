@@ -33,7 +33,7 @@ cd experiments/009
 Copy the wrapper script to the current directory using:
 
 ``` sh
-cp u-dales/tools/utils/hpc_execute.sh .
+cp ../../u-dales/tools/utils/hpc_execute.sh .
 ```
 
 Next you can modify parameters set within the script. You may want to adapt the numbers of processors and nodes used for the experiments, or modify the walltime.
