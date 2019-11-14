@@ -1,6 +1,6 @@
 # Getting Started
 
-Getting started with uDALES to set up your own experiments is straightforward. This guide goes through the steps required to [install](#installation) uDALES, and [set-up](#set-up) and [run](#run) a simple exmaple.
+Getting started with uDALES to set up your own experiments is straightforward. This guide goes through the steps required to [install](#installation) uDALES, and [set-up](#set-up) and [run](#run) a simple example.
 
 ## Prerequisites
 
@@ -78,13 +78,15 @@ This creates a Git repository for your own projects named `<PROJECT_NAME>` with 
 └── u-dales     # uDALES model development repository (submodule).
 ```
 
+In the next steps we will assume your current working directory is the top-level project directory you just created with Cookiecutter.
+
 ### Build on common systems
 
 On standard systems and configurations, you can build uDALES with the following commands:
 
 ```sh
 # We assume you are running the following commands from your
-# Cookiecutter directory.
+# top-level project directory.
 
 mkdir -p u-dales/build/release # in case you want to later create a build/debug
 pushd u-dales/build/release
@@ -97,7 +99,7 @@ You can compile in parallel mode by passing Make the `j` flag followed by the nu
 
 ### Build on HPCs
 
-If you are an HPC user you are likely using the [Environment Modules package](http://modules.sourceforge.net/) for the dynamic modification of the user's environment via modulefiles and therefore you may need to hint CMake the PATH to NetCDF (see below how).
+If you are a High Performance Cluster (HPC) user you are likely using the [Environment Modules package](http://modules.sourceforge.net/) for the dynamic modification of the user's environment via modulefiles and therefore you may need to hint CMake the PATH to NetCDF (see below how).
 
 Here we show how to compile uDALES using the [HPC at ICL](https://www.imperial.ac.uk/admin-services/ict/self-service/research-support/rcs/) as an example, therefore please note that the specific names/versions installed on your system may be different.
 
@@ -113,7 +115,7 @@ Then, to build the uDALES executable, run the following commands:
 
 ``` sh
 # We assume you are running the following commands from your
-# Cookiecutter directory.
+# top-level project directory.
 mkdir -p u-dales/build/release
 pushd u-dales/build/release
 cmake -DNETCDF_DIR=$(nc-config --prefix) -DNETCDF_FORTRAN_DIR=$(nf-config --prefix) -LA ../..
@@ -141,9 +143,9 @@ To set up a new simulation, `da_prep.sh` in `u-dales/tools/utils` is used to cre
 
 ``` sh
 # We assume you are running the following commands from your
-# Cookiecutter directory.
+# top-level project directory.
 
-export DA_TOPDIR=$(pwd) # This is your top level directory (i.e. Cookiecutter).
+export DA_TOPDIR=$(pwd) # This is your top-level project directory.
 export DA_EXPDIR=$(pwd)/experiments #  The top-level directory of the simulation setups.
 export DA_WORKDIR=$(pwd)/outputs # Output directory
 
@@ -158,16 +160,16 @@ export DA_WORKDIR_SRC=$(pwd)/u-dales/outputs
 ```
 
 
-Now to set-up a new experiment based on a previous example (here we use case `999`), run:
+Now to set-up a new experiment (here we use case `009`) based on a previous example (here we use case `999`), run:
 
 ``` sh
 # We assume you are running the following commands from your
-# Cookiecutter directory.
+# top-level project directory.
 
 # General syntax: da_prep.sh new_exp_id old_exp_id
 # To set up a new simulation starting from the restart files of another simulation
 # ("warmstart"), use the 'w' flag. E.g.: da_prep.sh new_exp_id old_exp_id w
-./u-dales/tools/utils/da_prep.sh 998 999
+./u-dales/tools/utils/da_prep.sh 009 999
 ```
 
 ## Run
@@ -180,7 +182,7 @@ The scripts `local_execute.sh` and `hpc_execute.sh` in `u-dales/tools/utils` are
 
 # General syntax: local_execute.sh exp_id
 # To run on HPC at ICL, run `hpc_execute.sh` instead.
-./u-dales/tools/utils/local_execute.sh 998
+./u-dales/tools/utils/local_execute.sh 009
 ```
 
 ## What's next?
