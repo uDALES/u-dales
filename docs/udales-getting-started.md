@@ -89,12 +89,11 @@ On standard systems and configurations, you can build uDALES with the following 
 mkdir -p u-dales/build/release # in case you want to later create a build/debug
 pushd u-dales/build/release
 cmake ../..
-make -j$(nproc)
+make
 popd
 ```
 
-Where `$(nproc)` will use all the number of CPU cores/threads available on your system. Note that using the maximum number of CPU cores/threads available may not necessarily be the fastest way to build the software, therefore you may want to manually specify the number of CPU cores/threads to use manually.
-
+You can compile in parallel mode by passing Make the `j` flag followed by the number of CPU cores to use. For exmaple, to compile with 2 cores do `make -j2`.
 
 ### Build on HPCs
 
@@ -118,11 +117,11 @@ Then, to build the uDALES executable, run the following commands:
 mkdir -p u-dales/build/release
 pushd u-dales/build/release
 cmake -DNETCDF_DIR=$(nc-config --prefix) -DNETCDF_FORTRAN_DIR=$(nf-config --prefix) -LA ../..
-make -j$(nproc)
+make
 popd
 ```
 
-where `NETCDF_DIR` and `NETCDF_FORTRAN_DIR` indicates the absolute path to your NetCDF-C and NetCDF-Fortran installation directories. Here, we use the utilities `nc-config` and `nf-config` to hint CMake the location of NetCDF, but you can simply pass the absolute path to the NetCDF-C and NetCDF-Fortran manually instead.
+where `NETCDF_DIR` and `NETCDF_FORTRAN_DIR` indicates the absolute path to your NetCDF-C and NetCDF-Fortran installation directories. Here, we use the utilities `nc-config` and `nf-config` to hint CMake the location of NetCDF, but you can simply pass the absolute path to the NetCDF-C and NetCDF-Fortran manually instead. You can compile in parallel mode by passing Make the `j` flag followed by the number of CPU cores to use. For exmaple, to compile with 2 cores do `make -j2`.
 
 
 ### Build defaults/options
