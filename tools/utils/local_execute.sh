@@ -49,7 +49,7 @@ pushd $outdir
 mpiexec -n ${NCPU} ${DA_BUILD} namoptions.${exp} > output.${exp} 2>&1
 
 ## merge output files from cores to one file
-${DA_UTILSDIR}/mergehelper.sh ${outdir}
+${DA_UTILSDIR}/da_concatenate.sh ${outdir}
 
 popd
 
