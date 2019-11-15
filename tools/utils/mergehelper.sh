@@ -15,15 +15,16 @@ else
 fi
 
 datapath=${DA_WORKDIR}
-# Absolute path to this script
-script=$(readlink -f "$0")
-# Absolute path this script is in, thus /home/user/bin
-path_to_utils=$(dirname "$script")  # assume same utils dir for da_merge.sh
+# Absolute path to this script directory
+pushd $(dirname "${0}") > /dev/null
+scriptdir=$(pwd -L)  # Use "pwd -P" for the path without links
+popd > /dev/null
+path_to_utils=${scriptdir}  # assume same utils dir for da_merge.sh
 
 if [ -z $LOCAL_EXECUTE ]; then
+    echo "cluster"
     datapath=${EPHEMERAL}
     module load intel-suite udunits nco/4.6.2
-    echo "cluster"
 fi;
 
 ## Merging fields along spatial axis.
