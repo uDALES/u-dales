@@ -1,13 +1,12 @@
 ## Post-processing
 
-The scripts `da_merge.sh` and `mergehelper.sh` in the directory `tools/utils` can be used to merge the output of netcdf files into a single netcdf file.
-This can be used to concatenate the output of serveral cpus from one simulation to a single file, or to append the output files of a simulation to the output files of another simulation.
+The scripts `da_append.sh`, `da_concatenate.sh` in the directory `tools/utils` can be used to merge the output of netcdf files into a single netcdf file. The file `da_merge.sh` is also needed because it is used by these scripts.
 
-* Concatenate output files of a single simulation:
+* To concatenate the output of serveral cpus from one simulation to a single file, use:
 ``` sh
-mergehelper.sh exp_id
+da_concatenate.sh <path-to-exp-outputs>
 ```
-* Appending output files of two simulations:
+* To append the output files of a simulation to the output files of another simulation, use:
 ``` sh
-mergehelper.sh exp1_id exp2_id
+da_append.sh <path-to-exp-outputs1> <path-to-exp-outputs2>
 ```
