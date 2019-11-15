@@ -126,7 +126,7 @@ case $case in
           ;; 
 esac
 
-### copy newest warmstart files
+### link newest warmstart files
 startfilen=$(ls -t $DA_WORKDIR_SRC/$src"/initd"* | head -1)
 if [ -z "$startfilen" ]; then
 echo "no restart files found in $DA_WORKDIR_SRC/$src"
@@ -135,11 +135,16 @@ exit 1
 fi
 startfilen=${startfilen##*/}  # retain the part after the last slash
 startfilen=${startfilen%_*}   # retain the part before the underscore
-cp $DA_WORKDIR_SRC/$src"/"*$startfilen* $DA_WORKDIR/$tar
-for f in $DA_WORKDIR/$tar/*.$src; do 
+ln -s $DA_WORKDIR_SRC/$src"/"*$startfilen* $DA_EXPDIR/$tar/
+for f in $DA_EXPDIR/$tar/*.$src; do 
 mv $f "${f%.$src}.$tar"
 done
-ln -s $DA_WORKDIR/$tar"/"*$startfilen* $DA_EXPDIR/$tar/
+# we do not copy files because it promtps errors in mac. a link is enough.
+# cp $DA_WORKDIR_SRC/$src"/"*$startfilen* $DA_WORKDIR/$tar
+# for f in $DA_WORKDIR/$tar/*.$src; do 
+# mv $f "${f%.$src}.$tar"
+# done
+# ln -s $DA_WORKDIR/$tar"/"*$startfilen* $DA_EXPDIR/$tar/
 
 sed -i.bak -e '/lwarmstart/s/.*/lwarmstart =  .true./g' $DA_EXPDIR/$tar"/namoptions."$tar #set warmstart to true in namoptions
 sed -i.bak -e "/iexpnr/s/.*/iexpnr     =  $tar/g" $DA_EXPDIR/$tar"/namoptions."$tar  #change experiment number in namoptions
@@ -150,4 +155,4 @@ rm $DA_EXPDIR/$tar"/namoptions."$tar".bak"
 fi
 
 ## copy executable scripts too
-cp $DA_EXPDIR_SRC/$src/*"execute"* $DA_EXPDIR/$tar
+# cp $DA_EXPDIR_SRC/$src/*"execute"* $DA_EXPDIR/$tar
