@@ -125,6 +125,7 @@ popd
 
 where `NETCDF_DIR` and `NETCDF_FORTRAN_DIR` indicates the absolute path to your NetCDF-C and NetCDF-Fortran installation directories. Here, we use the utilities `nc-config` and `nf-config` to hint CMake the location of NetCDF, but you can simply pass the absolute path to the NetCDF-C and NetCDF-Fortran manually instead. You can compile in parallel mode by passing Make the `j` flag followed by the number of CPU cores to use. For exmaple, to compile with 2 cores do `make -j2`.
 
+For details on how to build uDALES on High Performance Clusters (HPCs), see [HPC notes](./udales-hpc-notes.md)
 
 ### Build defaults/options
 
@@ -149,9 +150,6 @@ export DA_TOPDIR=$(pwd) # This is your top-level project directory.
 export DA_EXPDIR=$(pwd)/experiments #  The top-level directory of the simulation setups.
 export DA_WORKDIR=$(pwd)/outputs # Output directory
 
-export LOCAL_EXECUTE=1 # Do not set when executing on ICL HPC (used by `mergehelper.sh`).
-export NCPU=2 # Change this to the number of CPUs you want to use.
-
 # If source directories (DA_EXPDIR_SRC, DA_WORKDIR_SRC) are not set,
 # the experiment set-up folder will be copied from the same target directory.
 # I.e. DA_EXPDIR_SRC==DA_EXPDIR and DA_WORKDIR_SRC==DA_WORKDIR.
@@ -175,6 +173,20 @@ Now to set-up a new experiment (here we use case `009`) based on a previous exam
 ## Run
 
 The scripts `local_execute.sh` and `hpc_execute.sh` in `u-dales/tools/utils` are used as wrappers to run simulations on your local machine and HPC at ICL respectively. These scripts contain several helpers to run the simulations and merge outputs from several CPUs into a single file (see [Post-processing](./udales-post-processing.md) for more info about the individual scripts).
+
+The scripts require several variables to be set up. If you have already set some of these in setting up a new simulation, you only need to copy and paste the variables below that are not yet set up.
+
+``` sh
+# We assume you are running the following commands from your
+# top-level project directory.
+
+export DA_TOPDIR=$(pwd) # This is your top-level project directory.
+export DA_EXPDIR=$(pwd)/experiments #  The top-level directory of the simulation setups.
+export DA_WORKDIR=$(pwd)/outputs # Output directory
+
+export LOCAL_EXECUTE=1 # Do not set when executing on ICL HPC (used by `mergehelper.sh`).
+export NCPU=2 # Change this to the number of CPUs you want to use.
+```
 
 ``` sh
 # We assume you are running the following commands from your
