@@ -15,7 +15,10 @@ else
 fi
 
 datapath=${DA_WORKDIR}
-path_to_utils=${DA_TOPDIR}/u-dales/tools/utils
+# Absolute path to this script
+script=$(readlink -f "$0")
+# Absolute path this script is in, thus /home/user/bin
+path_to_utils=$(dirname "$script")  # assume same utils dir for da_merge.sh
 
 if [ -z $LOCAL_EXECUTE ]; then
     datapath=${EPHEMERAL}
