@@ -157,7 +157,9 @@ The scripts require several variables to be set up. If you have already set some
 export DA_TOPDIR=$(pwd) # This is your top-level project directory.
 export DA_EXPDIR=$(pwd)/experiments #  The top-level directory of the simulation setups.
 export DA_WORKDIR=$(pwd)/outputs # Output directory
+export DA_UTILSDIR=$(pwd)/u-dales/tools/utils # Directory of utils scripts
 
+export DA_BUILD=$(pwd)/u-dales/build/release/u-dales # Executable
 export LOCAL_EXECUTE=1 # Do not set when executing on ICL HPC (used by `mergehelper.sh`).
 export NCPU=2 # Change this to the number of CPUs you want to use.
 ```

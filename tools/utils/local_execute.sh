@@ -14,15 +14,22 @@ exp=$(printf "%03.0f" $1)    #pad argument 1 (target simulation) with zeros
 if [ -z $NCPU ]; then
   NCPU=1
 fi;
-if [ -z $DA_TOPDIR ]; then
-  echo "DA_TOPDIR must be set"
+if [ -z $DA_WORKDIR ]; then
+  echo "DA_WORKDIR must be set"
   exit
 fi;
-
-# This should really be an arg and not harcoded!
-path_to_exe=${DA_TOPDIR}/u-dales/build/release/u-dales
-path_to_utils=${DA_TOPDIR}/u-dales/tools/utils
-
+if [ -z $DA_EXPDIR ]; then
+  echo "DA_EXPDIR must be set"
+  exit
+fi;
+if [ -z $DA_UTILSDIR ]; then
+  echo "DA_UTILSDIR must be set"
+  exit
+fi;
+if [ -z $DA_BUILD ]; then
+  echo "DA_BUILD must be set"
+  exit
+fi;
 
 ## automatically set the experiment number via path
 inputdir=${DA_EXPDIR}/${exp}
@@ -39,10 +46,10 @@ cp ${inputdir}/* $outdir
 pushd $outdir
 
 ## execute program with mpi
-mpiexec -n ${NCPU} ${path_to_exe} namoptions.${exp} > output.${exp} 2>&1
+mpiexec -n ${NCPU} ${DA_BUILD} namoptions.${exp} > output.${exp} 2>&1
 
 ## merge output files from cores to one file
-${path_to_utils}/mergehelper.sh ${exp}
+${DA_UTILSDIR}/mergehelper.sh ${outdir}
 
 popd
 
