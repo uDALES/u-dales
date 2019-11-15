@@ -90,7 +90,7 @@ On standard systems and configurations, you can build uDALES with the following 
 
 mkdir -p u-dales/build/release # in case you want to later create a build/debug
 pushd u-dales/build/release
-cmake ../..
+cmake -LA ../..
 make
 popd
 ```
@@ -118,7 +118,7 @@ Then, to build the uDALES executable, run the following commands:
 # top-level project directory.
 mkdir -p u-dales/build/release
 pushd u-dales/build/release
-FC=mpiifort cmake -DNETCDF_DIR=/apps/netcdf/4.4.1-c -DNETCDF_FORTRAN_DIR=/apps/netcdf/4.4.4-fortran ../..
+FC=mpiifort cmake -DNETCDF_DIR=/apps/netcdf/4.4.1-c -DNETCDF_FORTRAN_DIR=/apps/netcdf/4.4.4-fortran -LA ../..
 make
 popd
 ```
