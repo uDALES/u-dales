@@ -95,11 +95,35 @@ make
 popd
 ```
 
-You can compile in parallel mode by passing Make the `j` flag followed by the number of CPU cores to use. For exmaple, to compile with 2 cores do `make -j2`.
+You can compile in parallel mode by passing Make the `j` flag followed by the number of CPU cores to use. For example, to compile with 2 cores do `make -j2`.
 
 ### Build on HPCs
 
-For details on how to build uDALES on High Performance Clusters (HPCs), see [HPC notes](./udales-hpc-notes.md)
+If you are a High Performance Cluster (HPC) user you are likely using the [Environment Modules package](http://modules.sourceforge.net/) for the dynamic modification of the user's environment via modulefiles and therefore you may need to hint CMake the PATH to NetCDF (see below how).
+
+Here we show how to compile uDALES using the [HPC at ICL](https://www.imperial.ac.uk/admin-services/ict/self-service/research-support/rcs/) as an example, therefore please note that the specific names/versions installed on your system may be different.
+
+``` sh
+# This is an example, module names/versions may be different on your system
+module list # list currently enabled modules -- should be empty!
+module avail # list available modules
+# This is an example, please check with the previous command for the exact name of the modules available on your system. This will load NetCDF compiled with Intel Suite 2019.4 and add the correct version of icc and ifort to the PATH.
+module load intel-suite/2017.6 mpi/intel-2018 cmake/3.14.0 git/2.14.3
+```
+
+Then, to build the uDALES executable, run the following commands:
+
+``` sh
+# We assume you are running the following commands from your
+# top-level project directory.
+mkdir -p u-dales/build/release
+pushd u-dales/build/release
+FC=mpiifort cmake -DNETCDF_DIR=/apps/netcdf/4.4.1-c -DNETCDF_FORTRAN_DIR=/apps/netcdf/4.4.4-fortran -LA ../..
+make
+popd
+```
+
+where `NETCDF_DIR` and `NETCDF_FORTRAN_DIR` indicates the absolute path to your NetCDF-C and NetCDF-Fortran installation directories. Here, we use the utilities `nc-config` and `nf-config` to hint CMake the location of NetCDF, but you can simply pass the absolute path to the NetCDF-C and NetCDF-Fortran manually instead. You can compile in parallel mode by passing Make the `j` flag followed by the number of CPU cores to use. For example, to compile with 2 cores do `make -j2`.
 
 ### Build defaults/options
 
@@ -122,13 +146,17 @@ To set up a new simulation, `da_prep.sh` in `u-dales/tools/utils` is used to cre
 
 export DA_TOPDIR=$(pwd) # This is your top-level project directory.
 export DA_EXPDIR=$(pwd)/experiments #  The top-level directory of the simulation setups.
-export DA_WORKDIR=$(pwd)/outputs # Output directory
+export DA_WORKDIR=$(pwd)/outputs # Output top-level directory
 
 # If source directories (DA_EXPDIR_SRC, DA_WORKDIR_SRC) are not set,
 # the experiment set-up folder will be copied from the same target directory.
 # I.e. DA_EXPDIR_SRC==DA_EXPDIR and DA_WORKDIR_SRC==DA_WORKDIR.
 export DA_EXPDIR_SRC=$(pwd)/u-dales/examples
 export DA_WORKDIR_SRC=$(pwd)/u-dales/outputs
+
+# If you set up a new experiment on HPC, use:
+export DA_WORKDIR=$EPHEMERAL # Output top-level directory on HPC
+export DA_WORKDIR_SRC=$EPHEMERAL
 ```
 
 
@@ -146,33 +174,31 @@ Now to set-up a new experiment (here we use case `009`) based on a previous exam
 
 ## Run
 
-The script `local_execute.sh` in `u-dales/tools/utils` is used as wrapper to run simulations on your local machine. The scripts contains several helpers to run the simulations and merge outputs from several CPUs into a single file (see [Post-processing](./udales-post-processing.md) for more info about the individual scripts).
+The scripts `local_execute.sh` and `hpc_execute.sh` in `u-dales/tools/utils` are used as wrappers to run simulations on your local machine and HPC at ICL respectively. These scripts contain several helpers to run the simulations and merge outputs from several CPUs into a single file (see [Post-processing](./udales-post-processing.md) for more info about the individual scripts).
 
-The scripts require several variables to be set up. If you have already set some of these in setting up a new simulation, you only need to copy and paste the variables below that are not yet set up.
+The scripts require several variables to be set up. Below is an example setup to copy and paste. For guidance on how to set the parameters on HPC, have a look at [Job sizing guidance](https://www.imperial.ac.uk/admin-services/ict/self-service/research-support/rcs/computing/job-sizing-guidance/). You can also specify these parameters in a `config.sh` file within the experiment directory, which is then read by the scripts.
+
+``` sh
+export DA_UTILSDIR=$DA_TOPDIR/u-dales/tools/utils # Directory of utils scripts
+export DA_BUILD=$DA_TOPDIR/u-dales/build/release/u-dales # Build file
+export NCPU=2 # Number of CPUs to use for a simulation
+
+# If you run the simulation on HPC, you also need to specify:
+export NNODE=5 # Number of nodes to use for a simulation
+export WALLTIME="24:00:00" # Maximum runtime for simulation in hours:minutes:seconds
+export MEM="20gb" # Memory request per node
+```
+
+Then, to start the simulation, run:
 
 ``` sh
 # We assume you are running the following commands from your
 # top-level project directory.
 
-export DA_TOPDIR=$(pwd) # This is your top-level project directory.
-export DA_EXPDIR=$(pwd)/experiments #  The top-level directory of the simulation setups.
-export DA_WORKDIR=$(pwd)/outputs # Output directory
-export DA_UTILSDIR=$(pwd)/u-dales/tools/utils # Directory of utils scripts
-
-export DA_BUILD=$(pwd)/u-dales/build/release/u-dales # Executable
-export LOCAL_EXECUTE=1 # Do not set when executing on ICL HPC (used by `mergehelper.sh`).
-export NCPU=2 # Change this to the number of CPUs you want to use.
+# General syntax: local_execute.sh exp_directory
+# To run on HPC at ICL, run `hpc_execute.sh` instead.
+./u-dales/tools/utils/local_execute.sh experiments/009
 ```
-
-``` sh
-# We assume you are running the following commands from your
-# top-level project directory.
-
-# General syntax: local_execute.sh exp_id
-./u-dales/tools/utils/local_execute.sh 009
-```
-
-To run simulations on HPCs you can use the similar wrapper script `hpc_execute.sh` in `u-dales/tools/utils`. For details follow the guidance in [HPC notes](./udales-hpc-notes.md).
 
 ## What's next?
 
