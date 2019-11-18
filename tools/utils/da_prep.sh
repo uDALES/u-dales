@@ -154,5 +154,5 @@ rm $DA_EXPDIR/$tar"/namoptions."$tar".bak"
 
 fi
 
-## copy executable scripts too
-# cp $DA_EXPDIR_SRC/$src/*"execute"* $DA_EXPDIR/$tar
+## copy config script for execution
+cp $DA_EXPDIR_SRC/$src/config.sh $DA_EXPDIR/$tar
