@@ -3,8 +3,6 @@
 ## call: dumptype, ym-variables(list separated by comma, no space, include ym), out.nc
 ## e.g. da_merge.sh fielddump v,ym out.nc
 
-module load intel-suite
-
 if (( $# == 3 )) ; then
 	dumps=$1
 	ymparam=$2
