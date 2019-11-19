@@ -20,11 +20,10 @@ To know more about build options, see [build/default options](https://udales.git
 
 ## Usage
 
-A uDALES simulation needs to be executed from a directory containing all required input files, see for instance `examples/999`.
-Execute a uDALES simulation with the following commands:
+A uDALES simulation needs to be executed from a directory containing all required input files. Examples of experiments and required inputs are in the `examples` directory. To run a uDALES simulation you need to specify the number of cpus `<NCPU>`, the path to the build file `<BUILD>` and the simulation configuration file `<NAMOPTIONS>` and execute the simulation with the following command:
 
 ``` sh
-mpiexec -n <NCPU> <PATH-TO-EXECUTABLE> <NAMOPTIONS-FILE>
+mpiexec -n <NCPU> <BUILD> <NAMOPTIONS>
 ```
 
 
