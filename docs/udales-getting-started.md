@@ -4,7 +4,7 @@ Getting started with uDALES to set up your own experiments is straightforward. T
 
 ## Prerequisites
 
-uDALES is supported to run on Linux, macOS and Windows Subsystem for Linux (WSL). Please ensure that the latest version of the following libraries and software are avalable on your system:
+uDALES is supported to run on Linux, macOS and Windows Subsystem for Linux (WSL). Please ensure that the latest version of the following libraries and software are available on your system:
 
 - [Git](https://git-scm.com/).
 - [CMake](https://cmake.org/).
@@ -30,7 +30,7 @@ sudo apt-get install -y git cmake gfortran libopenmpi-dev openmpi-bin libnetcdf-
 
 ### macOS
 
-On macOS, use [Homebrew](https://docs.brew.sh) to to install the required libraries. If you do not have Homebrew installed on your system, install it from the [Homebrew installation page](https://docs.brew.sh/Installation) then, to install all the required dependencies, including support for MPI, run the following commands from your terminal prompt:
+On macOS, use [Homebrew](https://docs.brew.sh) to install the required libraries. If you do not have Homebrew installed on your system, install it from the [Homebrew installation page](https://docs.brew.sh/Installation) then, to install all the required dependencies, including support for MPI, run the following commands from your terminal prompt:
 
 ```sh
 brew update
@@ -74,7 +74,7 @@ This creates a Git repository for your own projects named `<PROJECT_NAME>` with 
 ├── experiments # Configuration files grouped by experiment number.
 │   └── <N>     # Any configurations files needed by uDALES to run experiment <N>.
 │   └── ...
-├── tools       # Additional or specialized tools other then the ones already included with uDALES.
+├── tools       # Additional or specialized tools other then the ones included with uDALES.
 └── u-dales     # uDALES model development repository (submodule).
 ```
 
@@ -104,7 +104,6 @@ If you are a High Performance Cluster (HPC) user you are likely using the [Envir
 Here we show how to compile uDALES using the [HPC at ICL](https://www.imperial.ac.uk/admin-services/ict/self-service/research-support/rcs/) as an example, therefore please note that the specific names/versions installed on your system may be different.
 
 ``` sh
-# This is an example, module names/versions may be different on your system
 module list # list currently enabled modules -- should be empty!
 module avail # list available modules
 ```
@@ -121,6 +120,7 @@ Then, to build the uDALES executable, run the following commands:
 ``` sh
 # We assume you are running the following commands from your
 # top-level project directory.
+
 mkdir -p u-dales/build/release
 pushd u-dales/build/release
 FC=mpiifort cmake -DNETCDF_DIR=/apps/netcdf/4.4.1-c -DNETCDF_FORTRAN_DIR=/apps/netcdf/4.4.4-fortran -LA ../..
@@ -182,7 +182,7 @@ Now to set-up a new experiment (here we use case `009`) based on a previous exam
 
 The scripts `local_execute.sh` and `hpc_execute.sh` in `u-dales/tools/utils` are used as wrappers to run simulations on your local machine and HPC at ICL respectively. These scripts contain several helpers to run the simulations and merge outputs from several CPUs into a single file (see [Post-processing](./udales-post-processing.md) for more info about the individual scripts).
 
-The scripts require several variables to be set up. Below is an example setup to copy and paste. You can also specify these parameters in a `config.sh` file within the experiment directory, which is then read by the scripts.
+The scripts require several variables to be set up. Below is an example setup for copying and pasting. You can also specify these parameters in a `config.sh` file within the experiment directory, which is then read by the scripts.
 
 ### Run on common systems
 
