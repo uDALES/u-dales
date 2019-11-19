@@ -144,7 +144,6 @@ To set up a new simulation, `da_prep.sh` in `u-dales/tools/utils` is used to cre
 # We assume you are running the following commands from your
 # top-level project directory.
 
-export DA_TOPDIR=$(pwd) # This is your top-level project directory.
 export DA_EXPDIR=$(pwd)/experiments #  The top-level directory of the simulation setups.
 export DA_WORKDIR=$(pwd)/outputs # Output top-level directory
 
@@ -153,12 +152,14 @@ export DA_WORKDIR=$(pwd)/outputs # Output top-level directory
 # I.e. DA_EXPDIR_SRC==DA_EXPDIR and DA_WORKDIR_SRC==DA_WORKDIR.
 export DA_EXPDIR_SRC=$(pwd)/u-dales/examples
 export DA_WORKDIR_SRC=$(pwd)/u-dales/outputs
+```
 
-# If you set up a new experiment on HPC, use:
+If you set up a new experiment on HPC, also use:
+
+``` sh
 export DA_WORKDIR=$EPHEMERAL # Output top-level directory on HPC
 export DA_WORKDIR_SRC=$EPHEMERAL
 ```
-
 
 Now to set-up a new experiment (here we use case `009`) based on a previous example (here we use case `999`), run:
 
@@ -176,17 +177,18 @@ Now to set-up a new experiment (here we use case `009`) based on a previous exam
 
 The scripts `local_execute.sh` and `hpc_execute.sh` in `u-dales/tools/utils` are used as wrappers to run simulations on your local machine and HPC at ICL respectively. These scripts contain several helpers to run the simulations and merge outputs from several CPUs into a single file (see [Post-processing](./udales-post-processing.md) for more info about the individual scripts).
 
-The scripts require several variables to be set up. Below is an example setup to copy and paste. For guidance on how to set the parameters on HPC, have a look at [Job sizing guidance](https://www.imperial.ac.uk/admin-services/ict/self-service/research-support/rcs/computing/job-sizing-guidance/). You can also specify these parameters in a `config.sh` file within the experiment directory, which is then read by the scripts.
+The scripts require several variables to be set up. Below is an example setup to copy and paste. You can also specify these parameters in a `config.sh` file within the experiment directory, which is then read by the scripts.
+
+### Run on common systems
 
 ``` sh
-export DA_UTILSDIR=$DA_TOPDIR/u-dales/tools/utils # Directory of utils scripts
-export DA_BUILD=$DA_TOPDIR/u-dales/build/release/u-dales # Build file
-export NCPU=2 # Number of CPUs to use for a simulation
+# We assume you are running the following commands from your
+# top-level project directory.
 
-# If you run the simulation on HPC, you also need to specify:
-export NNODE=5 # Number of nodes to use for a simulation
-export WALLTIME="24:00:00" # Maximum runtime for simulation in hours:minutes:seconds
-export MEM="20gb" # Memory request per node
+export DA_UTILSDIR=$(pwd)/u-dales/tools/utils # Directory of utils scripts
+export DA_BUILD=$(pwd)/u-dales/build/release/u-dales # Build file
+export NCPU=2 # Number of CPUs to use for a simulation
+export DA_WORKDIR=$(pwd)/outputs # Output top-level directory
 ```
 
 Then, to start the simulation, run:
@@ -196,8 +198,30 @@ Then, to start the simulation, run:
 # top-level project directory.
 
 # General syntax: local_execute.sh exp_directory
-# To run on HPC at ICL, run `hpc_execute.sh` instead.
 ./u-dales/tools/utils/local_execute.sh experiments/009
+```
+
+### Run on HPCs
+
+``` sh
+export DA_UTILSDIR=$(pwd)/u-dales/tools/utils # Directory of utils scripts
+export DA_BUILD=$(pwd)/u-dales/build/release/u-dales # Build file
+export NCPU=12 # Number of CPUs to use for a simulation
+
+export NNODE=5 # Number of nodes to use for a simulation
+export WALLTIME="24:00:00" # Maximum runtime for simulation in hours:minutes:seconds
+export MEM="20gb" # Memory request per node
+```
+
+For guidance on how to set the parameters on HPC, have a look at [Job sizing guidance](https://www.imperial.ac.uk/admin-services/ict/self-service/research-support/rcs/computing/job-sizing-guidance/).
+Then, to start the simulation, run:
+
+``` sh
+# We assume you are running the following commands from your
+# top-level project directory.
+
+# General syntax: hpc_execute.sh exp_directory
+./u-dales/tools/utils/hpc_execute.sh experiments/009
 ```
 
 ## What's next?
