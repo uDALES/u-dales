@@ -59,7 +59,6 @@ extra_javascript:
 nav:
   - Home: index.md
   - Getting Started: udales-getting-started.md
-  - Notes for HPCs: udales-hpc-notes.md
   - Pre-processing: udales-pre-processing.md
   - Post-processing: udales-post-processing.md
   - Scientific docs : udales-docs-scientific.md
