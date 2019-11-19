@@ -110,7 +110,9 @@ module avail # list available modules
 ```
 
 ``` sh
-# This is an example, please check with the previous command for the exact name of the modules available on your system. This will load NetCDF compiled with Intel Suite 2019.4 and add the correct version of icc and ifort to the PATH.
+# This is an example, please check with the previous command for the exact name of the
+# modules available on your system. This will load NetCDF compiled with Intel Suite
+# 2019.4 and add the correct version of icc and ifort to the PATH.
 module load intel-suite/2017.6 mpi/intel-2018 cmake/3.14.0 git/2.14.3
 ```
 
