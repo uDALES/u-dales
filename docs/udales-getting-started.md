@@ -209,11 +209,11 @@ Then, to start the simulation, run:
 ``` sh
 export DA_UTILSDIR=$(pwd)/u-dales/tools/utils # Directory of utils scripts
 export DA_BUILD=$(pwd)/u-dales/build/release/u-dales # Build file
-export NCPU=12 # Number of CPUs to use for a simulation
+export NCPU=2 # Number of CPUs to use for a simulation
 
-export NNODE=5 # Number of nodes to use for a simulation
-export WALLTIME="24:00:00" # Maximum runtime for simulation in hours:minutes:seconds
-export MEM="20gb" # Memory request per node
+export NNODE=1 # Number of nodes to use for a simulation
+export WALLTIME="00:30:00" # Maximum runtime for simulation in hours:minutes:seconds
+export MEM="2gb" # Memory request per node
 ```
 
 For guidance on how to set the parameters on HPC, have a look at [Job sizing guidance](https://www.imperial.ac.uk/admin-services/ict/self-service/research-support/rcs/computing/job-sizing-guidance/).
