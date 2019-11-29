@@ -231,6 +231,7 @@ module modglobal
    real    :: xlat = 50. !<    *latitude  in degrees.
    real    :: xlon = 0. !<    *longitude in degrees.
 
+
    !scalar source in fluid domain
    integer :: xS = 0, yS = 0, zS = 0
    real    :: SS = 0.
@@ -253,12 +254,18 @@ module modglobal
   integer, allocatable :: purif(:,:)            !< field with data from purif.inp.xxx
   real    :: Qpu = 0., epu = 0.                 !< flowrate and efficiency of purifiers
 
+   ! Poisson solver
+   integer, parameter :: POISS_FFT = 0, &
+                         POISS_CYC = 1
+
+   integer :: ipoiss   = POISS_CYC
+
    !Advection scheme
 
-   integer :: iadv_mom = 2, iadv_tke = -1, iadv_thl = -1, iadv_qt = -1, iadv_sv(100) = -1
    integer, parameter :: iadv_upw = 1
    integer, parameter :: iadv_cd2 = 2
    integer, parameter :: iadv_kappa = 7
+   integer :: iadv_mom = 2, iadv_tke = -1, iadv_thl = -1, iadv_qt = -1, iadv_sv(100) = -1
 
    logical :: lmoist = .false. !<   switch to calculate moisture fields
    ! Global variables (modvar.f90)
