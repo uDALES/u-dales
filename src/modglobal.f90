@@ -231,7 +231,6 @@ module modglobal
    real    :: xlat = 50. !<    *latitude  in degrees.
    real    :: xlon = 0. !<    *longitude in degrees.
 
-
    !scalar source in fluid domain
    integer :: xS = 0, yS = 0, zS = 0
    real    :: SS = 0.
@@ -261,7 +260,6 @@ module modglobal
    integer :: ipoiss   = POISS_CYC
 
    !Advection scheme
-
    integer, parameter :: iadv_upw = 1
    integer, parameter :: iadv_cd2 = 2
    integer, parameter :: iadv_kappa = 7

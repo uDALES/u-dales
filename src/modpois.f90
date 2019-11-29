@@ -46,7 +46,7 @@ contains
   end subroutine initpois
 
   subroutine poisson
-    use modglobal, only : ib,ie,ih,kb,ke,kh,kmax,dxh,dxf,dy,dzf,dzh,linoutflow,iinletgen, ipoiss, POISS_FFT, POISS_CYC
+    use modglobal, only : ib,ie,ih,kb,ke,kh,kmax,dxh,dxf,dy,dzf,dzh,linoutflow,iinletgen,ipoiss,POISS_FFT,POISS_CYC
     use modmpi, only : myid,nprocs,barrou
     implicit none
     integer ibc1,ibc2,kbc1,kbc2,ksen
@@ -83,6 +83,7 @@ contains
                  ibc1,ibc2,kbc1,kbc2,ksen)
     case default
        write(*,*) "Invalid choice for Poisson solver"
+       stop
     end select
 
     call tderive
@@ -191,14 +192,14 @@ contains
 
     use modfields, only : up, vp, wp, pres0, IIc, IIcs
     use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,dxhi,dyi,dzhi,linoutflow,rslabs
-    use modmpi,    only : myid, excj,slabsum, avexy_ibm
+    use modmpi,    only : myid,excj,slabsum,avexy_ibm
     use modboundary,only : bcp
     implicit none
     integer i,j,k
     real, dimension(kb-kh:ke+kh) :: pij
-    logical, dimension(ib:ie, jb:je, kb:ke) :: pnan
+!    logical, dimension(ib:ie, jb:je, kb:ke) :: pnan
     real :: pijk
-    integer :: ipnan
+!    integer :: ipnan
 
   ! Mathieu ATTTT: CHANGED!!! Loop removed!!!
 

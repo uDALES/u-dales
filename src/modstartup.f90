@@ -543,7 +543,6 @@ contains
       end if
 
       ! check the Poisson solver setting w.r.t. x-grid
-
       d(1:imax-1) = dxf(ib+1:ie) - dxf(ib:ie-1)
       inequi = any(abs(d)>dxf(ib)*1e-5)
 
