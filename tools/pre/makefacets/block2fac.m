@@ -4,7 +4,8 @@
 %% read blocks
 nheader = 2;
 try %in case file is empty -> no blocks
-blk = dlmread([tempdir '/blocks.inp.' num2str(expnr)],'',nheader,0);
+%blk = dlmread([tempdir '/blocks.inp.' num2str(expnr)],'',nheader,0);
+blk = obj.blocks;
 catch
 blk=[];
 end
@@ -17,9 +18,9 @@ end
 %some dummy grid properties since these are currently not loaded
 
 
-xc=dlmread([outputdir '/xgrid.inp.' num2str(expnr)],'',2,0);
+xc=obj.xf;
 nx=length(xc);
-zc=dlmread([outputdir '/zgrid.inp.' num2str(expnr)],'',2,0);
+zc=obj.zf;
 nz=length(zc);
 
 xb=xh;
@@ -209,6 +210,8 @@ toc
 sel = find(fctl(:,1)~=bot & fctl(:,5)~=1);
 fctl = fctl(sel, :);
 nfcts=size(fctl,1);
+
+obj.blocks = blk;
 
 %% remove facets at domain edge (not actually done)
 
@@ -422,12 +425,6 @@ end
 nfcts = size(fctl,1);
 nblockfcts=nfcts;
 
-if lwritefiles
-    
-    fname = [outputdir '/facets.inp.' num2str(expnr)];
-    
-    fileID = fopen(fname,'w');
-    fprintf(fileID,'# %4s %6s %6s %6s\n','or', 'wl', 'blk', 'bld');
-    fprintf(fileID,'%6d %6d %6d %6d\n', fctl(:, 1:4)');
-    fclose(fileID);
-end
+% so and tg - new array that recreates what original script wrote to
+% facets.inp.xxx
+obj.facets = fctl;

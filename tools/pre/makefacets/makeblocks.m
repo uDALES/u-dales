@@ -756,17 +756,15 @@ ymax2f=nj-ymin2+1;
 
 %write block file to extend with roads and bounding walls etc
 
-dummy=ones(5,count5);
+dummy=ones(count5,5);
 
-fileID = fopen([tempdir '/blocks.inp.' num2str(expnr)],'w');
-fprintf(fileID,'# Block data\n');
-fprintf(fileID,'#  il\t   iu\t   jl\t   ju\t   kl\t   ku\t dtop\t dwest\t deast\t dnor\t dsou\n');
-fprintf(fileID,'%5d\t%5d\t%5d\t%5d\t%5d\t%5d\t%5d\t%5d\t%5d\t%5d\t%5d\n',[xmin5';xmax5';ymin6';ymax6';zmin5';zmax5';dummy]);
-fclose(fileID);
+%fileID = fopen([tempdir '/blocks.inp.' num2str(expnr)],'w');
+%fprintf(fileID,'# Block data\n');
+%fprintf(fileID,'#  il\t   iu\t   jl\t   ju\t   kl\t   ku\t dtop\t dwest\t deast\t dnor\t dsou\n');
+%fprintf(fileID,'%5d\t%5d\t%5d\t%5d\t%5d\t%5d\t%5d\t%5d\t%5d\t%5d\t%5d\n',[xmin5';xmax5';ymin6';ymax6';zmin5';zmax5';dummy]);
+%fclose(fileID);
 
-
-
-
+obj.blocks = [xmin5 xmax5 ymin6 ymax6 zmin5 zmax5 dummy];
 
 %write block file to use for test of ray intersection (without roads that will be added to blocks.inp)
 %already raise by 1 (because of roads, is done to blocks.inp.xxx later)
@@ -814,13 +812,14 @@ for i=1:nbl
 buildingindexlist(i)=buildingindexmask(yuu(i),xuu(i));    
 end
 
-fileID = fopen([tempdir '/bbri.inp'],'w');
-fprintf(fileID,'# Block data for ray intersection\n');
-fprintf(fileID,'#  il\t   iu\t   jl\t   ju\t   kl\t   ku\t buildingindex\n');
-%if whichsource == 2
- fprintf(fileID,'%5d\t%5d\t%5d\t%5d\t%5d\t%5d\t%5d\n',[xmin5';xmax5';ymin6';ymax6';zmin5'+1;zmax5'+1;buildingindexlist]);
-%elseif whichsource == 1
-%fprintf(fileID,'%5d\t%5d\t%5d\t%5d\t%5d\t%5d\t%5d\n',[B(:,1)';B(:,2)';B(:,3)';B(:,4)';B(:,5)';B(:,6)';buildingindexlist]);    
-%end
-fclose(fileID);
+%fileID = fopen([tempdir '/bbri.inp'],'w');
+%fprintf(fileID,'# Block data for ray intersection\n');
+%fprintf(fileID,'#  il\t   iu\t   jl\t   ju\t   kl\t   ku\t buildingindex\n');
+%%if whichsource == 2
+% fprintf(fileID,'%5d\t%5d\t%5d\t%5d\t%5d\t%5d\t%5d\n',[xmin5';xmax5';ymin6';ymax6';zmin5'+1;zmax5'+1;buildingindexlist]);
+%%elseif whichsource == 1
+%%fprintf(fileID,'%5d\t%5d\t%5d\t%5d\t%5d\t%5d\t%5d\n',[B(:,1)';B(:,2)';B(:,3)';B(:,4)';B(:,5)';B(:,6)';buildingindexlist]);    
+%%end
+%fclose(fileID);
 
+bbri = [xmin5  xmax5  ymin6 ymax6 zmin5+1 zmax5+1 buildingindexlist'];

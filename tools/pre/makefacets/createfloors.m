@@ -17,7 +17,8 @@ try %in case file is empty -> no blocks
     
 %can use blocks instead of sliced blocks (bbri)  [I guess]
 %B = dlmread([tempdir '/blocks.inp.' num2str(expnr)],'',nheader,0);  %#il   iu   jl    ju   kl   ku  ttop  twest teast tnor tsou
-B = dlmread([tempdir '/blocks.inp.' num2str(expnr)],'',nheader,0);  %#il   iu   jl    ju   kl   ku  ttop  twest teast tnor tsou
+%B = dlmread([tempdir '/blocks.inp.' num2str(expnr)],'',nheader,0);  %#il   iu   jl    ju   kl   ku  ttop  twest teast tnor tsou
+B = obj.blocks;
 catch
 B =[];
 end
@@ -397,24 +398,23 @@ nfcts=size(fctl,1);
 
 disp([num2str(nfcts) ' facets, of which: ' num2str(nblockfcts) ' from buildings, ' num2str(nwallfcts) ' from walls, ' num2str(nfloors) ' from floors.'])
 
-if lwritefiles
+%if lwritefiles
+%    
+%    fname = [tempdir '/facetnumbers.txt']; %it's not an input to the les
+%    fileID = fopen(fname,'w');
+%    fprintf(fileID,'# %4s %4s %4s %4s %4s \n','nblocks','nfloors','nblockfcts', ' nwallfcts', ' nfloorfcts');
+%    fprintf(fileID,'%6i %6i %6i %6i %6i\n', [nblocks nfloors nblockfcts nwallfcts nfloors]);
+%    fclose(fileID);
     
-    fname = [tempdir '/facetnumbers.txt']; %it's not an input to the les
-    fileID = fopen(fname,'w');
-    fprintf(fileID,'# %4s %4s %4s %4s %4s \n','nblocks','nfloors','nblockfcts', ' nwallfcts', ' nfloorfcts');
-    fprintf(fileID,'%6i %6i %6i %6i %6i\n', [nblocks nfloors nblockfcts nwallfcts nfloors]);
-    fclose(fileID);
-    
-    fname = [tempdir '/floors.txt'];
-    %fname = 'floors.txt'; %it's not an input to the les
-    fileID = fopen(fname,'w');
-    fprintf(fileID,'# %4s\n','floor facets');
-    fprintf(fileID,'# %4s\n','indeces & walltype');
-    fprintf(fileID,'# %4s %6s %6s %6s %6s\n','il', 'iu', 'jl', 'ju', 't');
-    fprintf(fileID,'%6d %6d %6d %6d %3d\n', floors3(:, 1:5)');
-    fclose(fileID);
-    
-    
+%    fname = [tempdir '/floors.txt'];
+%    %fname = 'floors.txt'; %it's not an input to the les
+%    fileID = fopen(fname,'w');
+%    fprintf(fileID,'# %4s\n','floor facets');
+%    fprintf(fileID,'# %4s\n','indeces & walltype');
+%    fprintf(fileID,'# %4s %6s %6s %6s %6s\n','il', 'iu', 'jl', 'ju', 't');
+%    fprintf(fileID,'%6d %6d %6d %6d %3d\n', floors3(:, 1:5)');
+%    fclose(fileID);
+       
     floors2=zeros(size(floors3,1),4);
     floors2(:,1)=1;   %orientation
     floors2(:,2)=-1;  %type
@@ -425,13 +425,14 @@ if lwritefiles
         floors2(i,3)=i;
     end
     
-    dlmwrite([outputdir '/facets.inp.' num2str(expnr)],floors2,'delimiter',' ','precision','%7d','-append')
-    
-    
-end
+%    dlmwrite([outputdir '/facets.inp.' num2str(expnr)],floors2,'delimiter',' ','precision','%7d','-append')
+ 
+obj.facets(end+1:end+size(floors2,1),1:4) = floors2;
+
+%end
 
 %% write blocks & floorblocks
-if lwritefiles
+%if lwritefiles
     
     if nblocks>0
     Btw=B(:,1:6);
@@ -473,18 +474,20 @@ if lwritefiles
     
    % cd(tempdir)
     %copyfile bbri.inp bbri2.inp
-    fname = [tempdir '/blocks.inp.' num2str(expnr)];
-    fileID = fopen(fname,'W');
-    fprintf(fileID, '# block location\n');
-    fprintf(fileID, '#il    iu    jl     ju    kl    ku   corresp. facets\n');
-    fclose(fileID);
-    dlmwrite(fname,Btw,'-append','delimiter','\t','precision','%4i')
-    [SUCCESS,MESSAGE,MESSAGEID] = copyfile([tempdir '/blocks.inp.' num2str(expnr)], [outputdir '/blocks.inp.' num2str(expnr)]);
+    %fname = [tempdir '/blocks.inp.' num2str(expnr)];
+    %fileID = fopen(fname,'W');
+    %fprintf(fileID, '# block location\n');
+    %fprintf(fileID, '#il    iu    jl     ju    kl    ku   corresp. facets\n');
+    %fclose(fileID);
+    %dlmwrite(fname,Btw,'-append','delimiter','\t','precision','%4i')
+    %[SUCCESS,MESSAGE,MESSAGEID] = copyfile([tempdir '/blocks.inp.' num2str(expnr)], [outputdir '/blocks.inp.' num2str(expnr)]);
 %     [SUCCESS,MESSAGE,MESSAGEID] = movefile('bbri.inp', ['blocks.inp.' num2str(expnr)]) ;
 %     [SUCCESS,MESSAGE,MESSAGEID] = movefile('bbri2.inp', 'bbri.inp') ;
 %     [SUCCESS,MESSAGE,MESSAGEID] = copyfile(['blocks.inp.' num2str(expnr)], [outputdir '/blocks.inp.' num2str(expnr)]) ;
-    cd(parentdir)
-end
+    %cd(parentdir)
+%end
+
+obj.blocks(end+1:end+size(Btw,1),1:11) = Btw;
 
 %% plot all facets
 

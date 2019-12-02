@@ -13,15 +13,20 @@
 echo "exp no.?"
 read iexpnr
 
+DA_GITDIR=$(git rev-parse --show-toplevel)
+DA_EXPDIR=$DA_GITDIR/experiments
+DA_PREDIR=$DA_GITDIR/u-dales/tools/pre
+export PATH=$DA_PREDIR:$PATH
+
 cd $DA_EXPDIR/$iexpnr
 
 ####### set iexpnir in matlab file
 
-sed -i "/expnr = '/s/.*/expnr = '$iexpnr';/g" $DA_PREDIR"/da_inp.m"
+sed -i '' "/expnr = '/s/.*/expnr = '$iexpnr';/g" $DA_PREDIR"/da_inp.m"
 
 ###### set # CPUS from execute to test domain size !edit : should maybe multiply by nnode
 
-sed -i "/CPUS = /s/.*/CPUS = $(grep -m 1 'ncpu=' execute.sh | cut -d "=" -f 2 | cut -d " " -f 1 | tr -d ' ');       % # cpus/g" $DA_PREDIR"/da_inp.m"
+sed -i '' "/CPUS = /s/.*/CPUS = $(grep -m 1 'ncpu=' execute.sh | cut -d "=" -f 2 | cut -d " " -f 1 | tr -d ' ');       % # cpus/g" $DA_PREDIR"/da_inp.m"
 
 ###### RUN MATLAB SCRIPT FOR .inp. files
 
@@ -31,7 +36,11 @@ matlab -nodesktop -nosplash -r "da_inp; quit"
 cd $DA_EXPDIR/$iexpnr
 
 ##### alter files in namoptions (thl_top, nblocks etc.)
-let nblocks=$(wc -l < $DA_EXPDIR/$iexpnr/blocks.inp.$iexpnr)
-let nblocks=$nblocks-2
-sed -i "/nblocks/s/.*/nblocks     = $nblocks/g" $DA_EXPDIR/$iexpnr"/namoptions."$iexpnr
+nblocks=$(wc -l < $DA_EXPDIR/$iexpnr/blocks.inp.$iexpnr)
+nblocks=(($nblocks-2))
+sed -i '' "/nblocks/s/.*/nblocks    = $nblocks/g" $DA_EXPDIR/$iexpnr"/namoptions."$iexpnr
+
+nfcts=$(wc -l < $DA_EXPDIR/$iexpnr/facets.inp.$iexpnr)
+nfcts=$(($nfcts-1))
+sed -i '' "/nfcts/s/.*/nfcts      = $nfcts/g" $DA_EXPDIR/$iexpnr"/namoptions."$iexpnr
 
