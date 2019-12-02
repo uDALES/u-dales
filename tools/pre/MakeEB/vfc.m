@@ -234,7 +234,6 @@ fprintf(fileID, '# sky view factors\n');
 fclose(fileID);
 dlmwrite(fname,svf,'-append','delimiter',' ','precision','%4f')
 
-
 ncid = netcdf.create([outputdir '/vf.nc.inp.' num2str(expnr)],'NC_WRITE');
 dimidrow = netcdf.defDim(ncid,'rows',nfcts);
 dimidcol = netcdf.defDim(ncid,'columns',nfcts);

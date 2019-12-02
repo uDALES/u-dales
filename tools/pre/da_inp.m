@@ -5,12 +5,12 @@ clear all
 
 %DA_TOPDIR =system('$DA_EXPDIR') %cd('$DA_EXPDIR') %Set directory to create folder with
 
-%%
+%% Setup
 
-expnr = '001';
+expnr = '010';
 %expnr = num2str(iexpnr);
 
-CPUS = 16;       % # cpus
+CPUS = 2;       % # cpus
 % # cpus, set from execution
 
 DA_EXPDIR = getenv('DA_EXPDIR');
@@ -19,11 +19,11 @@ DA_PREDIR = getenv('DA_PREDIR');
 
 addpath([DA_PREDIR '/']);
 exppath=[DA_EXPDIR '/'];
-r=da_pp(expnr,exppath);
+r=da_pp(expnr,exppath); % Object to hold the simulation parameters
 
 cd([DA_EXPDIR '/' expnr])
 
-%% set default values in case values not present in namoption.expnr
+%% Domain
 
 da_pp.addvar(r, 'imax',64)                    % # cells in x-direction
 da_pp.addvar(r, 'xsize',64)                   % Domain size in x-direction
@@ -101,8 +101,6 @@ da_pp.addvar(r, 'lchem' ,0)               % switch for chemistry
 da_pp.addvar(r, 'NOb' ,0)
 da_pp.addvar(r, 'NO2b' ,0)
 da_pp.addvar(r, 'O3b' ,0)
-
-%% tree
 
 %% Trees - units in grid size scale from actual size before inputting
 if r.ltrees
@@ -257,12 +255,13 @@ for k = 1:ke-1
     thl(k+1) = thl(k)+ r.lapse*hz/ke;
 end
 
+thl_top = thl(ke)+(thl(ke)-thl(ke-1))/2;
+display(['thl_top =' num2str(thl(ke)+(thl(ke)-thl(ke-1)))])
+
 % others
 wfls(1:ke) = r.w_s;
 dthlrad(1:ke) = r.R;
 
-thl_top = thl(ke)+(thl(ke)-thl(ke-1))/2;
-display(['thl_top =' num2str(thl(ke)+(thl(ke)-thl(ke-1)))])
 
 %% Plots
 
@@ -363,7 +362,7 @@ end
 %% zgrid calc
 
 if r.lzstretch
-    
+
 %     zgrid=r.dzlin/2:r.dzlin:r.nlin;
 %     nzn=length(zgrid);
 %     
@@ -686,11 +685,17 @@ elseif r.lcube
     for n = 1:nrows
         for nn = 0:ncolumns-1
             
+%             bl((n-1)*ncolumns+nn+1,1) = -0.5*r.blockwidth + (2*n-1) * r.blockwidth + 1;
+%             bl((n-1)*ncolumns+nn+1,2) = bl((n-1)*ncolumns+nn+1,1) + r.blockwidth - 1;
+%             bl((n-1)*ncolumns+nn+1,5) = 0;
+%             bl((n-1)*ncolumns+nn+1,6) = ceil(r.blockwidth*(h/ie)/(hz/ke));
+%             bl((n-1)*ncolumns+nn+1,3) = jb + nn * r.blockwidth*2;
+%             bl((n-1)*ncolumns+nn+1,4) = bl((n-1)*ncolumns+nn+1,3) + r.blockwidth - 1;
             bl((n-1)*ncolumns+nn+1,1) = -0.5*r.blockwidth + (2*n-1) * r.blockwidth + 1;
             bl((n-1)*ncolumns+nn+1,2) = bl((n-1)*ncolumns+nn+1,1) + r.blockwidth - 1;
             bl((n-1)*ncolumns+nn+1,5) = 0;
             bl((n-1)*ncolumns+nn+1,6) = ceil(r.blockwidth*(h/ie)/(hz/ke));
-            bl((n-1)*ncolumns+nn+1,3) = jb + nn * r.blockwidth*2;
+            bl((n-1)*ncolumns+nn+1,3) = jb + r.blockwidth/2 + nn * r.blockwidth*2;
             bl((n-1)*ncolumns+nn+1,4) = bl((n-1)*ncolumns+nn+1,3) + r.blockwidth - 1;
             
         end

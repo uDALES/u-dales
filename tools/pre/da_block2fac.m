@@ -4,7 +4,7 @@ close all
 clear all
 
 % expnr
-expnr = '001';
+expnr = '010';
 
 saveasnew     = true     ; %saves all date in a new folder with current datetime
 
@@ -23,7 +23,9 @@ dx = r.xsize/r.imax;
 dy = r.ysize/r.jtot;
 dz = r.zsize/r.kmax;
 dh = r.zsize;
-ni = r.imax; nj = r.jtot; nk = r.kmax;
+ni = r.imax; 
+nj = r.jtot; 
+nk = r.kmax;
 
 solaz = 135; % azimuth angle
 Z = 28.4066; % zenith angle
@@ -106,16 +108,18 @@ end
 %run check
 %checkprep
 %
-parentdir = '/projects/dales-u/pre-post/pre/';
+%parentdir = '/projects/dales-u/pre-post/pre/';
+%parentdir = '~/u-dales-testing/u-dales/tools/pre/';
+parentdir = DA_PREDIR;
 cd(parentdir)
 
 addpath(genpath(parentdir))  %add all subdirectories to path
 
 if saveasnew
     starttime=datetime;
-    outputdir = [parentdir 'output/' datestr(starttime,'yyyy-mm-dd') '-' datestr(starttime,'HH-MM')];
-    inputdir = [parentdir 'input/' datestr(starttime,'yyyy-mm-dd') '-' datestr(starttime,'HH-MM')]; 
-    tempdir = [parentdir 'temp/' datestr(starttime,'yyyy-mm-dd') '-' datestr(starttime,'HH-MM')];
+    outputdir = [parentdir '/output/' datestr(starttime,'yyyy-mm-dd') '-' datestr(starttime,'HH-MM')];
+    inputdir = [parentdir '/input/' datestr(starttime,'yyyy-mm-dd') '-' datestr(starttime,'HH-MM')]; 
+    tempdir = [parentdir '/temp/' datestr(starttime,'yyyy-mm-dd') '-' datestr(starttime,'HH-MM')];
     mkdir(outputdir)
     mkdir(tempdir)
     clear starttime

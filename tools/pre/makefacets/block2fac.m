@@ -69,7 +69,17 @@ for j=1:nblks
     for k=top:bot
         i=(j-1)*6+k;
         fctl(i,1)=k; % orientation
-        fctl(i,2)=blk(j, 6 + min(k,5)); % wall id
+        % SO added
+        if num2str(expnr) == "010"
+            if i == 1
+                fctl(i,2) = 11;
+            else
+                fctl(i,2)=blk(j, 6 + min(k,5)); % wall id
+            end
+        else
+            fctl(i,2) = blk(j, 6 + min(k,5));
+        end
+        %
         fctl(i,3)=j; % blockid
         
         switch(k)
@@ -407,7 +417,6 @@ if lhqplot
     %%
 end
 %% write list of all facets
-
 
 % type = type(sel);
 nfcts = size(fctl,1);

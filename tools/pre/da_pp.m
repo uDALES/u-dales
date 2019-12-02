@@ -42,8 +42,7 @@ classdef da_pp < dynamicprops
             cd(dapath);
             obj.path = pwd;
             
-            
-            expstr = num2str( expnr, '%3.3d');
+            expstr = num2str(expnr, '%3.3d');
             fid = fopen(['namoptions.', expstr]);
             
             if (fid == -1)

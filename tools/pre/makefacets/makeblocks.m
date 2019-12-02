@@ -703,7 +703,7 @@ h1=gca;
 h1.Position=[0.08 0.1100 0.78 0.8150];
 xlim([xh(1) xh(end)])
 ylim([yh(1) yh(end)])
-caxis([0 maxh])
+caxis([0 1])
 xlabel('x [m]','Interpreter','latex','FontSize',12)
 ylabel('y [m]','Interpreter','latex','FontSize',12)
 

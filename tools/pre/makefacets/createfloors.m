@@ -233,7 +233,6 @@ while any(M2(:)>0)
     end
 end
 
-
 % if ltestplot
 % figure
 % imagesc(xb,yb,M2')
@@ -505,7 +504,7 @@ if lhqplot
     set(h,'renderer','painters');
     %set(h,'renderer','opengl');
     cmap = colormap('parula');
-    
+    title("facets")
     for i=1:nfcts
         switch fctl(i, 1)
             case {top, bot}
@@ -521,13 +520,13 @@ if lhqplot
                 y = [yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl))];
                 z = [zb(fctl(i, 5+kl)), zb(fctl(i, 5+kl)), zb(fctl(i, 5+ku)), zb(fctl(i, 5+ku))];
         end
-        if (i==99)
-            x=[9, 10, 11 , 9];
-            y=[8,  8, 9 , 9];
-        elseif (i==103)
-            x=[10, 11, 11, 10];
-            y=[7, 7, 9, 8];
-        end
+%         if (i==99)
+%             x=[9, 10, 11 , 9];
+%             y=[8,  8, 9 , 9];
+%         elseif (i==103)
+%             x=[10, 11, 11, 10];
+%             y=[7, 7, 9, 8];
+%         end
         if(fctl(i,3)<0)
             add=5;
         else
@@ -552,7 +551,7 @@ if lhqplot
             case north
                 d(2) = a*dy(1);
         end
-     %   t=text(mean(x)+d(1), mean(y)+d(2), mean(z)+d(3), num2str(i), 'horizontalalignment', 'center','Interpreter','latex','Fontsize',12);
+        t=text(mean(x)+d(1), mean(y)+d(2), mean(z)+d(3), num2str(i), 'horizontalalignment', 'center','Interpreter','latex','Fontsize',12);
         hold on
     end
     view(3)
@@ -561,7 +560,7 @@ if lhqplot
     xlim([0 xb(end)])
     ylim([0 yb(end)])
     %zlim([0 72])   % 
-    zlim([0 3])
+    zlim([0 zb(end)])
     
     set(gca,'TickLabelInterpreter','latex')
     set(gca,'FontSize',12*scalef)
