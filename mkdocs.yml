@@ -58,5 +58,8 @@ extra_javascript:
 # Page tree
 nav:
   - Home: index.md
-  - Scientific docs : scientific/example.md
-  - Software docs: software/index.html
+  - Getting Started: udales-getting-started.md
+  - Pre-processing: udales-pre-processing.md
+  - Post-processing: udales-post-processing.md
+  - Scientific docs : udales-docs-scientific.md
+  - Software docs: udales-docs-software/index.html
