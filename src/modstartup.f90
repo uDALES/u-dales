@@ -42,7 +42,7 @@ contains
          nsv, imax, jtot, kmax, xsize, ysize, xlat, xlon, xday, xtime, lwalldist, &
          lmoist, lcoriol, igrw_damp, geodamptime, ifnamopt, fname_options, &
          xS,yS,zS,SS,sigS,iwallmom,iwalltemp,iwallmoist,iadv_mom,iadv_tke,iadv_thl,iadv_qt,iadv_sv,courant,diffnr,ladaptive,author,&
-         linoutflow, lper2inout, libm, ltrees, lnudge, tnudge, nnudge, lpurif, lles, luflowr, lvflowr, uflowrate, vflowrate ,lstoreplane, iplane, &
+         linoutflow, lper2inout, libm, ltrees, lnudge, tnudge, nnudge, lpurif, lles, luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, uflowrate, vflowrate ,lstoreplane, iplane, &
          lreadmean, iinletgen, inletav, lreadminl, Uinf, Vinf, linletRA, nblocks, ntrees, npurif, &
          lscalrec,lSIRANEinout,lscasrc,lscasrcl,lscasrcr,lydump,lytdump,lxydump,lxytdump,lslicedump,ltdump,ltkedump,lzerogradtop,&
          lzerogradtopscal, lbuoyancy, ltempeq, numol, prandtlmol, sun, Bowen, cd, decay, ud, Qpu, epu, numoli, prandtlmoli, &
@@ -70,7 +70,7 @@ contains
       namelist/RUN/ &
          iexpnr, lwarmstart, lstratstart, lfielddump, lreadscal, startfile, runtime, dtmax,  &
          trestart, tfielddump, fieldvars, tsample, tstatsdump, irandom, randthl, randqt, krand, nsv, courant, diffnr, ladaptive, &
-         author, lper2inout, libm, ltrees, lnudge, tnudge, nnudge, lpurif, lles, lwallfunc, luflowr, lvflowr, lreadmean, &
+         author, lper2inout, libm, ltrees, lnudge, tnudge, nnudge, lpurif, lles, lwallfunc, luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, lreadmean, &
                 startmean,lydump,lytdump,lxydump,lxytdump,lslicedump,ltdump,ltkedump,lscasrc,lscasrcl,lwalldist,&
                 randu, nkplane, kplane, nsvl, nsvp, ifixuinf, lvinf, tscale, dpdx
       namelist/DOMAIN/ &
@@ -238,8 +238,10 @@ contains
       call MPI_BCAST(iwallmoist, 1, MPI_INTEGER, 0, comm3d, mpierr) ! case (integer) for wall treatment for moisture (1=no wall function/fixed flux, 2=no wall function/fixed value, 3=uno)
       call MPI_BCAST(iwallmom, 1, MPI_INTEGER, 0, comm3d, mpierr) ! case (integer) for wall treatment for momentum (1=no wall function, 2=werner-wengle, 3=uno)
       write (*, *) "sec d"
-      call MPI_BCAST(luflowr, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for turning on/off u-velocity correction for fixed mass flow rate
-      call MPI_BCAST(lvflowr, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315: added switch for turning on/off v-velocity correction for fixed mass flow rate
+      call MPI_BCAST(luoutflowr, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for turning on/off u-velocity correction for fixed mass outflow rate
+      call MPI_BCAST(lvoutflowr, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315: added switch for turning on/off v-velocity correction for fixed mass outflow rate
+      call MPI_BCAST(luvolflowr, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! bss166: added switch for turning on/off u-velocity correction for fixed volume flow rate
+      call MPI_BCAST(lvvolflowr, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! bss116: added switch for turning on/off v-velocity correction for fixed volume flow rate
       call MPI_BCAST(lstoreplane, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for turning on/off for storing i-plane data to serve as inlet for future sim.
       call MPI_BCAST(lreadmean, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for reading mean variables from means#MYID#.#EXPNR#
       call MPI_BCAST(lydump, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315 added switch for writing statistics files

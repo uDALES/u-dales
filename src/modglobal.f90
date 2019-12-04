@@ -141,8 +141,10 @@ module modglobal
 
    logical :: lreadminl = .false. !<  switch for reading mean inlet/recycle plane profiles (used in inletgenerator)
    logical :: lwallfunc = .false. !<  switch that determines wether wall functions are used to compute the wall-shear stress
-   logical :: luflowr = .false. !<  switch that determines wether u-velocity is corrected to get a fixed mass flow rate
-   logical :: lvflowr = .false. !<  switch that determines wether u-velocity is corrected to get a fixed mass flow rate
+   logical :: luoutflowr = .false. !<  switch that determines wether u-velocity is corrected to get a fixed outflow rate
+   logical :: lvoutflowr = .false. !<  switch that determines wether u-velocity is corrected to get a fixed outflow rate
+   logical :: luvolflowr = .false. !<  switch that determines wether u-velocity is corrected to get a fixed volume flow rate
+   logical :: lvvolflowr = .false. !<  switch that determines wether u-velocity is corrected to get a fixed volume flow rate
    logical :: lstoreplane = .false. !<  switch that determines wether i-plane data is stored.
    logical :: lstorexy = .false. !xy files stored
    logical :: lreadmean = .false. !<  switch that determines wether mean variables should be read from means#myid#.#expnr#
@@ -218,8 +220,8 @@ module modglobal
    logical :: lcoriol = .false. !<  switch for coriolis force
    integer :: igrw_damp = 2 !< switch to enable gravity wave damping
    real    :: geodamptime = 7200. !< time scale for nudging to geowind in sponge layer, prevents oscillations
-   real    :: uflowrate = 1. !< fixed mass flow rate used for u-velocity correction
-   real    :: vflowrate = 1. !< fixed mass flow rate used for v-velocity correction
+   real    :: uflowrate = 1. !< fixed flow rate used for u-velocity correction
+   real    :: vflowrate = 1. !< fixed flow rate used for v-velocity correction
    real    :: Uinf = 0. !< fixed U_inf (used in inlet generator), also in conjunction with ifixuinf
    real    :: Vinf = 0. !fixed V_inf
    real    :: inletav = 0. !< averaging interval for inlet generator

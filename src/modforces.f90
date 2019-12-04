@@ -374,7 +374,7 @@ endif
   subroutine masscorr
 
     use modglobal, only : ib,ie,jb,je,ih,jh,kb,ke,kh,jgb,jge,dzf,dxf,xh,zh,dy,dt,rk3step,uflowrate,vflowrate,&
-         jmax,libm,dt,rk3step,linoutflow,luflowr,lvflowr
+         jmax,libm,dt,rk3step,linoutflow,luoutflowr,lvoutflowr,luvolflowr,lvvolflowr
     use modfields, only : um,up,vm,vp,uout,uouttot,udef,vout,vouttot,vdef
     use modmpi,    only : slabsum,myid,comm3d,mpierr,nprocs,MY_REAL
 
@@ -383,7 +383,7 @@ endif
     real rk3coef,rk3coefi,uflowrateold,vflowrateold
     integer i,j,k
 
-    if ((.not.linoutflow) .and. (luflowr)) then
+    if ((.not.linoutflow) .and. (luoutflowr)) then
        rk3coef = dt / (4. - dble(rk3step))
        rk3coefi = 1 / rk3coef
 
@@ -410,7 +410,7 @@ endif
 
     end if
 
-    if ((.not.linoutflow) .and. (lvflowr)) then
+    if ((.not.linoutflow) .and. (lvoutflowr)) then
        rk3coef = dt / (4. - dble(rk3step))
        rk3coefi = 1 / rk3coef
 
