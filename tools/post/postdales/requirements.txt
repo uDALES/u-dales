@@ -1,0 +1,4 @@
+numpy
+matplotlib
+netCDF4
+f90nml
