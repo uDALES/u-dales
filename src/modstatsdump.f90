@@ -31,7 +31,7 @@ module modstatsdump
 
   !NetCDF variables
   integer :: ncidy,ncidyt,ncidtke,ncidxy,ncidslice,ncidxyt,nrecy=0,nrecyt=0,nrectke=0,nrecxy=0,&
-             nrecslice=0,nrecxyt=0,nstatyt=14,nstaty=14,nstattke=8,nstatxy=15,nstatslice=8,&
+             nrecslice=0,nrecxyt=0,nstatyt=14,nstaty=14,nstattke=8,nstatxy=17,nstatslice=8,&
              nstatxyt=23,ncidt,nrect=0,nstatt=15
   character(80) :: yname = 'ydump.xxx.nc'
   character(80) :: ytname = 'ytdump.xxx.nc'
@@ -184,6 +184,8 @@ contains
       call ncinfo(ncstatxy(13,:),'uwxyik'  ,'Advective mom. flux'         ,'m^2/s^2','mt'  ) 
       call ncinfo(ncstatxy(14,:),'wthlxy'  ,'Advective heat flux'         ,'K m/s'  ,'mt'  )
       call ncinfo(ncstatxy(15,:),'vwxy'    ,'Advective mom. flux'         ,'m^2/s^2','mt'  )
+      call ncinfo(ncstatxy(16,:),'dpdx'    ,'Pressure grad. forcing in x' ,'m^2/s^2','tt'  )
+      call ncinfo(ncstatxy(17,:),'dpdy'    ,'Pressure grad. forcing in y' ,'m^2/s^2','tt'  )
       if (myid==0) then      
         call open_nc(xyname, ncidxy, nrecxy, n3=khigh-klow+1)
         if (nrecxy==0) then
@@ -341,7 +343,7 @@ contains
                                wthltk,thlthlt,wmt,thltk,thlt,uxyt,vxyt,wxyt,thlxyt,&
                                ncstatxyt,qtxyt,pxyt,ncstatt,uutc,vvtc,wwtc,utc,vtc,wtc,&
                                umt,vmt,sv1t,sv2t,sv3t,sv4t,sv1tk,sv2tk,sv3tk,sv4tk,wsv1tk,wsv2tk,wsv3tk,wsv4tk,&
-                               sv1sgst,sv2sgst,sv3sgst,sv4sgst,qtt,pt
+                               sv1sgst,sv2sgst,sv3sgst,sv4sgst,qtt,pt,udef,vdef
   use modglobal,        only : ib,ie,ih,ihc,xf,xh,jb,je,jhc,jgb,jge,dy,dyi,jh,ke,kb,kh,khc,rk3step,&
                                timee,cexpnr,tsample,tstatsdump,jtot,imax,jmax,dzf,&
                                ltempeq,zh,dxf,dzf,dzh2i,lprofforc,lscasrcl,&
@@ -842,7 +844,8 @@ contains
           varsxy(:,13) = uwxyik(kb:ke)
           varsxy(:,14) = wthlxyk(kb:ke)
           varsxy(:,15) = vwxyjk(kb:ke)
-
+          varsxy(:,16) = udef
+          varsxy(:,17) = vdef
           call writestat_1D_nc(ncidxy,nstatxy,ncstatxy,varsxy,nrecxy,khigh-klow+1)
       end if !myid
     end if !lxydump
