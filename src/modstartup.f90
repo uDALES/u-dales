@@ -555,7 +555,7 @@ contains
          zf, zh, dzf, dzh, rv, rd, grav, cp, rlv, pref0, om23_gs, jgb, jge, Uinf, Vinf, dy, &
          rslabs, e12min, dzh, dtheta, dqt, dsv, cexpnr, ifinput, lwarmstart, lstratstart, trestart, numol, &
          ladaptive, tnextrestart, jmax, linoutflow, lper2inout, iinletgen, lreadminl, &
-         uflowrate, vflowrate, ltempeq, prandtlmoli, freestreamav, &
+         ltempeq, prandtlmoli, freestreamav, &
          tnextfielddump, tfielddump, tsample, tstatsdump, startfile, lprofforc, lchem, k1, JNO2
       use modsubgriddata, only:ekm, ekh
       use modsurfdata, only:wtsurf, wqsurf, wsvsurf, &
@@ -575,7 +575,6 @@ contains
       real, allocatable :: height(:), th0av(:)
       real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb:ke + kh) :: thv0
       real, dimension(kb:ke) :: uaverage ! volume averaged u-velocity
-      real, dimension(kb:ke) :: vaverage ! volume averaged u-velocity
       real, dimension(kb:ke) :: uaverager ! recycle plane
       real, dimension(kb:ke) :: uaveragei ! inlet plane
       real, dimension(kb:ke) :: taverager ! recycle plane
@@ -830,25 +829,6 @@ contains
             u0 = um
             v0 = vm
             w0 = wm
-
-            uaverage = 0.
-            call slabsum(uaverage, kb, ke, um, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1, ib, ie, jb, je, kb, ke)
-            do k = kb, ke
-               uaverage(k) = uprof(k)*dzf(k)
-            end do
-            ubulk = sum(uaverage(kb:ke))/(zh(ke + 1) - zh(kb)) ! volume-averaged u-velocity
-            uflowrate = ubulk*(jge - jgb + 1)*dy*(zh(ke + 1) - zh(kb)) !tg3315 changed to vol flow rate 08/11/2017
-            
-            vaverage = 0.
-            call slabsum(vaverage, kb, ke, vm, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1, ib, ie, jb, je, kb, ke)
-            do k = kb, ke
-               vaverage(k) = vprof(k)*dzf(k)
-            end do
-            vbulk = sum(vaverage(kb:ke))/(zh(ke + 1) - zh(kb)) ! volume-averaged u-velocity
-            vflowrate = vbulk*(jge - jgb + 1)*dy*(zh(ke + 1) - zh(kb)) !tg3315 changed to vol flow rate 08/11/2017            
-
-            write (6, *) 'Modstartup: uflowrate=', uflowrate
-            write (6, *) 'Modstartup: vflowrate=', vflowrate
 
             ! Set average inlet profile to initial inlet profile in case of inletgenerator mode
             if (iinletgen == 1) then
