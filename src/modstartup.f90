@@ -42,14 +42,16 @@ contains
          nsv, imax, jtot, kmax, xsize, ysize, xlat, xlon, xday, xtime, lwalldist, &
          lmoist, lcoriol, igrw_damp, geodamptime, ifnamopt, fname_options, &
          xS,yS,zS,SS,sigS,iwallmom,iwalltemp,iwallmoist,iadv_mom,iadv_tke,iadv_thl,iadv_qt,iadv_sv,courant,diffnr,ladaptive,author,&
-         linoutflow, lper2inout, libm, ltrees, lnudge, tnudge, nnudge, lpurif, lles, luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, uflowrate, vflowrate ,lstoreplane, iplane, &
+         linoutflow, lper2inout, libm, ltrees, lnudge, tnudge, nnudge, lpurif, lles, luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, &
+         uflowrate, vflowrate ,lstoreplane, iplane, &
          lreadmean, iinletgen, inletav, lreadminl, Uinf, Vinf, linletRA, nblocks, ntrees, npurif, &
          lscalrec,lSIRANEinout,lscasrc,lscasrcl,lscasrcr,lydump,lytdump,lxydump,lxytdump,lslicedump,ltdump,ltkedump,lzerogradtop,&
          lzerogradtopscal, lbuoyancy, ltempeq, numol, prandtlmol, sun, Bowen, cd, decay, ud, Qpu, epu, numoli, prandtlmoli, &
          lfixinlet, lfixutauin, startmean, pi, &
          thlsrc, nkplane, kplane, nsvl, nsvp, ifixuinf, lvinf, tscale, ltempinout, lmoistinout,  &
          lwallfunc,lprofforc,lchem,k1,JNO2,rv,rd,tnextEB,tEB,dtEB,bldT,wsoil,wgrmax,wwilt,wfc,skyLW,GRLAI,rsmin,nfcts,lEB,lconstW, &
-         BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys,BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots
+         BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys, &
+         BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots
       use modsurfdata, only:z0, z0h,  wtsurf, wttop, wqtop, wqsurf, wsvsurf, wsvtop, wsvsurfdum, wsvtopdum, ps, thvs, thls, thl_top, qt_top, qts 
 !            use modsurface,        only : initsurface
       use modfields, only:initfields, dpdx, ncname

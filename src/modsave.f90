@@ -82,11 +82,11 @@ contains
       write(ifoutput)  timee,  dt
       
       if (myid==0) then
-        write(*,*), '-------------------------'
-        write(*,*), 'Saving initd restart file'
-        write(*,*), 'ntrun ::: ', ntrun
-        write(*,*), 'timee ::: ', timee
-        write(*,*), '-------------------------'
+        write(*,*) '-------------------------'
+        write(*,*) 'Saving initd restart file'
+        write(*,*) 'ntrun ::: ', ntrun
+        write(*,*) 'timee ::: ', timee
+        write(*,*) '-------------------------'
       endif
       
       close (ifoutput)
