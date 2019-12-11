@@ -399,7 +399,9 @@ endif
        end do
        uouttot         = sum(uout(kb:ke))                 ! mass flow rate (at outlet)
        uflowrateold = sum(uoutold(kb:ke))              ! mass flow rate (at outlet) (previous time step)
-       udef =  (uflowrate - (uouttot + uflowrateold))/(((jge-jgb+1)*dy)*(zh(ke+1)-zh(kb)))   !udef=massdef/(Area*density)
+
+       udef =  uflowrate - ((uouttot + uflowrateold)/(((jge-jgb+1)*dy)*(zh(ke+1)-zh(kb)))) ! flow correction to match outflow rate
+
        do k = kb,ke
           do j = jb,je
              do i = ib,ie
@@ -436,7 +438,7 @@ endif
        end do
        vouttot       = sum(vout(kb:ke))              ! mass flow rate (at outlet)
        vflowrateold  = sum(voutold(kb:ke))              ! mass flow rate (at outlet) (previous time step)
-       vdef =  (vflowrate - (vouttot + vflowrateold))/((xh(ie+1)-xh(ib))*(zh(ke+1)-zh(kb)))   !udef=massdef/(Area*density)
+       vdef =  vflowrate - ((vouttot + vflowrateold)/((xh(ie+1)-xh(ib))*(zh(ke+1)-zh(kb)))) ! flow correction to match outflow rate
        do k = kb,ke
           do j = jb,je
              do i = ib,ie
