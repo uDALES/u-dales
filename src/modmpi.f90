@@ -410,4 +410,23 @@ contains
  
   end subroutine avey_ibm
 
+  subroutine sumy_ibm(sumy,var,ib,ie,jb,je,kb,ke,II)
+    ! This routine sums up a variable over the y direction,
+    ! only including the fluid cells.
+    implicit none
+    integer                 :: ib,ie,jb,je,kb,ke
+    real                    :: sumy(ib:ie,kb:ke)
+    real                    :: sumproc(ib:ie,kb:ke)
+    real                    :: var(ib:ie,jb:je,kb:ke)
+    integer                 :: II(ib:ie,jb:je,kb:ke)
+
+    sumproc = 0.
+    sumy  = 0.
+
+    sumproc = sum(var(ib:ie,jb:je,kb:ke)*II(ib:ie,jb:je,kb:ke), DIM=2)
+
+    call MPI_ALLREDUCE(sumproc(ib:ie,kb:ke), sumy(ib:ie,kb:ke), (ke-kb+1)*(ie-ib+1), MY_REAL,MPI_SUM, comm3d,mpierr)
+
+    end subroutine sumy_ibm
+
 end module
