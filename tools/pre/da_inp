@@ -37,7 +37,7 @@ cd $DA_EXPDIR/$iexpnr
 
 ##### alter files in namoptions (thl_top, nblocks etc.)
 nblocks=$(wc -l < $DA_EXPDIR/$iexpnr/blocks.inp.$iexpnr)
-nblocks=(($nblocks-2))
+nblocks=$(($nblocks-2))
 sed -i '' "/nblocks/s/.*/nblocks    = $nblocks/g" $DA_EXPDIR/$iexpnr"/namoptions."$iexpnr
 
 nfcts=$(wc -l < $DA_EXPDIR/$iexpnr/facets.inp.$iexpnr)

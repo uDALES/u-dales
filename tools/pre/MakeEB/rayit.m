@@ -8,9 +8,6 @@
 %% derived quantities
 
 [fct, wall] = loadfacets(expnr);
-
-
-
 [sortt, sorti]=sort(F(:,1));  %sort by walltype
 
 %% shortwave

@@ -28,3 +28,4 @@ da_pp.generate_trees(r, true);
 da_pp.generate_purifs(r, true);
 da_pp.plot_domain(r);
 % plot vertical profiles
+% Pause after plotting

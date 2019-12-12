@@ -18,12 +18,12 @@ end
 %some dummy grid properties since these are currently not loaded
 
 
-xc=obj.xf;
-nx=length(xc);
-zc=obj.zf;
-nz=length(zc);
+xc = obj.xf;
+nx = length(xc);
+zc = obj.zf;
+nz = length(zc);
 
-xb=xh;
+xb = xh;
 zb=zh;
 yb=yh;
 dx=ones(ni,1)*dx;

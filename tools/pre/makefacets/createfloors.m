@@ -392,7 +392,7 @@ for j=1:size(floors3,1)
 end
 %end
 
-
+disp(fctl)
 %% write
 nfcts=size(fctl,1);
 
@@ -435,11 +435,11 @@ obj.facets(end+1:end+size(floors2,1),1:4) = floors2;
 %if lwritefiles
     
     if nblocks>0
-    Btw=B(:,1:6);
-    %increase the z index of all blocks by one
-    Btw(:,5:6)=Btw(:,5:6)+1;
+        Btw=B(:,1:6);
+        %increase the z index of all blocks by one
+        Btw(:,5:6)=Btw(:,5:6)+1;
     else
-    Btw=zeros(nfloors,6);
+        Btw=zeros(nfloors,6);
     end
     
 
@@ -487,7 +487,10 @@ obj.facets(end+1:end+size(floors2,1),1:4) = floors2;
     %cd(parentdir)
 %end
 
-obj.blocks(end+1:end+size(Btw,1),1:11) = Btw;
+disp(obj.blocks)
+%obj.blocks(end+1:end+size(Btw,1),1:11) = Btw;
+obj.blocks = Btw;
+disp(obj.blocks)
 
 %% plot all facets
 

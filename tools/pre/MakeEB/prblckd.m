@@ -15,12 +15,10 @@ function [ prcntgblckd ] = prblckd(i,j,coa,ndima,sun,v1,cob,ndimb,F,centerweight
 %nblocks         = number of blocks
 %nbw             = number of bounding walls
 %bl              = list of blocks
-testcrit=0; %=4;
-prcntgblckd=0;
-flag=0;
-if sun  %calculation between facet 1 and the sun
-    
-    
+testcrit = 0; %=4;
+prcntgblckd = 0;
+flag = 0;
+if sun  %calculation between facet 1 and the sun    
     bi=F(i,3); %block index
     ci=F(i,4); %building index (-1 for roads, -101 for bounding wall)
     if ndima>testcrit  %also test corner, otherwise only test center
@@ -270,7 +268,5 @@ else %calculation between facet 1 and facet 2
         else %facets can't possibly see each other
             prcntgblckd=1;
         end
-    end
-    
-    
+    end    
 end

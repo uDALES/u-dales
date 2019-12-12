@@ -730,7 +730,7 @@ classdef da_pp < dynamicprops
                 da_pp.vsolc(obj, false, false)
                 da_pp.vfc(obj, true)
                 da_pp.rayit(obj, false, false, true)
-                da_pp.generate_Tfacinit(obj, false, true)
+                %da_pp.generate_Tfacinit(obj, false, true)
             end
             
             if lwritefile
@@ -4938,7 +4938,7 @@ classdef da_pp < dynamicprops
             itermaxrelloc = zeros(300, 1);
             moep = zeros(obj.nfcts, 20);
             blub = zeros(obj.nfcts, 20);
-            moep(:, 1) = Kininit;
+            moep(:,1) = Kininit;
             while true
                 count = count + 1;
                 for i = 1:obj.nfcts
@@ -5215,13 +5215,17 @@ classdef da_pp < dynamicprops
             
             
             Tterminate = 0; %Terminate if the absolute temperature change between iterations is equal or below this value
-            %somewhat redundant since this basically means all the facets are within the tolerance         
-            absorptivity = obj.emissivity;       
+            %somewhat redundant since this basically means all the facets are within the tolerance
+            
+            
+            absorptivity = obj.emissivity;
+            
+            
             sigma = 5.67e-8;
             Lsk = 350;
-            hc = 0;  %(rho*cp)/R    ~(1.2*1000)/100=12   R~100
+            hc  =0;  %(rho*cp)/R    ~(1.2*1000)/100=12   R~100
             
-            Tinit = ones(obj.nfcts, 1) * Tinitial;
+            Tinit = ones(obj.nfcts,1) * Tinitial;
             Lsky = Lsk .* obj.svf;
             
             %Loutinit=emissivity.*sigma.*Tinit.^4;
@@ -5264,7 +5268,7 @@ classdef da_pp < dynamicprops
                 Told = Tnew(:,k);                
                 %plot(1:nfcts,Tnew(:,k),'-x')
                 
-                if change <= Tterminate %maxchange<=Tterminate
+                if change <= Tterminate%maxchange<=Tterminate
                     break
                 elseif k > 99
                     break
@@ -5321,7 +5325,7 @@ classdef da_pp < dynamicprops
             fileID = fopen(fname, 'W');
             fprintf(fileID, '# Initial facet tempereatures in radiative equilibrium\n');
             fclose(fileID);
-            dlmwrite(fname, obj.Tfacinit, '-append','delimiter',' ','precision','%4f')
+            dlmwrite(fname, obj.Tfacinit,'-append','delimiter',' ','precision','%4f')
             
 %             fname = ['Tfacinitnudged.inp.' obj.expnr];
 %             fileID = fopen(fname, 'W');

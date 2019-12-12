@@ -15,7 +15,7 @@ nheader=2;
 try %in case file is empty -> no blocks
 B = dlmread([tempdir '/bbri.inp'],'',nheader,0);  %#il   iu   jl    ju   kl   ku  ttop  twest teast tnor tsou building-id
 catch
-B =[];
+B = [];
 end
 
 %floors
