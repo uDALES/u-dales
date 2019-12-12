@@ -830,6 +830,20 @@ contains
             v0 = vm
             w0 = wm
 
+            uaverage = 0.
+            ! call slabsum(uaverage, kb, ke, um, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1, ib, ie, jb, je, kb, ke)
+            do k = kb, ke
+               uaverage(k) = uprof(k)*dzf(k)
+            end do
+            ubulk = sum(uaverage(kb:ke))/(zh(ke + 1) - zh(kb)) ! averaged u-velocity inflow profile
+
+            vaverage = 0.
+            ! call slabsum(vaverage, kb, ke, vm, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1, ib, ie, jb, je, kb, ke)
+            do k = kb, ke
+               vaverage(k) = vprof(k)*dzf(k)
+            end do
+            vbulk = sum(vaverage(kb:ke))/(zh(ke + 1) - zh(kb)) ! averaged u-velocity inflow profile
+
             ! Set average inlet profile to initial inlet profile in case of inletgenerator mode
             if (iinletgen == 1) then
 
