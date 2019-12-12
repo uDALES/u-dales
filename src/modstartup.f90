@@ -555,7 +555,7 @@ contains
          zf, zh, dzf, dzh, rv, rd, grav, cp, rlv, pref0, om23_gs, jgb, jge, Uinf, Vinf, dy, &
          rslabs, e12min, dzh, dtheta, dqt, dsv, cexpnr, ifinput, lwarmstart, lstratstart, trestart, numol, &
          ladaptive, tnextrestart, jmax, linoutflow, lper2inout, iinletgen, lreadminl, &
-         ltempeq, prandtlmoli, freestreamav, &
+         uflowrate, vflowrate,ltempeq, prandtlmoli, freestreamav, &
          tnextfielddump, tfielddump, tsample, tstatsdump, startfile, lprofforc, lchem, k1, JNO2
       use modsubgriddata, only:ekm, ekh
       use modsurfdata, only:wtsurf, wqsurf, wsvsurf, &
@@ -575,6 +575,7 @@ contains
       real, allocatable :: height(:), th0av(:)
       real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb:ke + kh) :: thv0
       real, dimension(kb:ke) :: uaverage ! volume averaged u-velocity
+      real, dimension(kb:ke) :: vaverage ! volume averaged v-velocity
       real, dimension(kb:ke) :: uaverager ! recycle plane
       real, dimension(kb:ke) :: uaveragei ! inlet plane
       real, dimension(kb:ke) :: taverager ! recycle plane
