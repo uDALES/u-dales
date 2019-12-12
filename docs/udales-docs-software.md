@@ -4,8 +4,8 @@ author: The uDALES Team
 project_github: https://github.com/uDALES/u-dales
 summary: TODO:
 github: https://github.com/uDALES
-src_dir: ../../src
-output_dir: ../../build/html/software
+src_dir: ../src
+output_dir: ../build/html/udales-docs-software
 media_dir: assets
 docmark: \!
 predocmark: \!!
@@ -23,3 +23,6 @@ md_extensions: markdown.extensions.toc
                markdown.extensions.smarty
 print_creation_date: true
 ---
+
+
+

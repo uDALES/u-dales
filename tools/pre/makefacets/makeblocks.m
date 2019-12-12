@@ -239,9 +239,11 @@ while dsize>0  %do as long as there are unmerged blocks % tg3315 need to also ch
         b3=b2(zmin2(b2)==zmin2(i));
         if ~isempty(b3);
             if all(ymax2(b3)==ymax2(i)) && all(zmax2(b3)==zmax2(i)) && topo(ymin2(b3),xmin2(b3))==topo(ymin2(i),xmin2(i)) %&& all(zmin2(b2)==zmin2(i)) %if they also have the same upper y bound and the same height
-
-                xmax2(i)=xmax2(b3); %merge 
-                xmax2(b3)=[];ymax2(b3)=[];zmax2(b3)=[];xmin2(b3)=[];ymin2(b3)=[];zmin2(b3)=[]; %remove the just merged block from list of blocks
+                % additional check to make sure we do not merge blocks in a way that causes internal-external facets at this point
+                if (topo(max(1,ymin2(b3)-1),xmax2(b3))==topo(max(1,ymin2(i)-1),xmax2(i))) && (topo(min(ymax2(b3)+1,nj),xmax2(b3))==topo(min(ymax2(i)+1,nj),xmax2(i)))
+                    xmax2(i)=xmax2(b3); %merge 
+                    xmax2(b3)=[];ymax2(b3)=[];zmax2(b3)=[];xmin2(b3)=[];ymin2(b3)=[];zmin2(b3)=[]; %remove the just merged block from list of blocks
+                end
             end
         end
         i=i+1; %check furhter along x
