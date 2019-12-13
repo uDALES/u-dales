@@ -441,9 +441,9 @@ contains
                               dtmax,runtime,startfile,lwarmstart,lstratstart,&
                               BCxm,BCxT,BCxq,BCxs,BCtopm,BCbotm,&
                               iinletgen,linoutflow,ltempeq,iwalltemp,iwallmom,&
-                              ipoiss,POISS_FFT,POISS_CYC,
+                              ipoiss,POISS_FFT,POISS_CYC
       use modmpi, only      : myid, nprocs, mpierr, comm3d, MPI_INTEGER, MPI_LOGICAL
-
+      implicit none
       real :: d(1:imax-1)
       logical :: inequi
 
@@ -480,7 +480,6 @@ contains
       end if
 
       !Check Namoptions
-
       if (runtime < 0) stop 'runtime out of range/not set'
       if (dtmax < 0) stop 'dtmax out of range/not set '
       if (ps < 0) stop 'psout of range/not set'
@@ -497,7 +496,7 @@ contains
          BCbotm = 3
       end if
 
-!choosing inoutflow in x requires switches to be set
+      !choosing inoutflow in x requires switches to be set
       if (BCxm .eq. 2) then
          write (*, *) "inoutflow conditions, setting appropriate switches (1)"
          iinletgen = 1
@@ -517,8 +516,8 @@ contains
          write (*, *) "inoutflow conditions, setting appropriate switches (2)"
 
          iinletgen = 2
-!see modstartup for conditions that apply with inletgenerators
-!move to modstartup
+         !see modstartup for conditions that apply with inletgenerators
+         !move to modstartup
          BCxT = 2 !temperature is considered in inletgen & iolet
          BCxq = 2 !humidity is considered in iolet
          BCxs = 2 !scalars are considered in iolet
@@ -535,8 +534,8 @@ contains
          write (*, *) "inoutflow conditions, setting appropriate switches (0)"
 
          iinletgen = 0
-!see modstartup for conditions that apply with inletgenerators
-!move to modstartup
+         !see modstartup for conditions that apply with inletgenerators
+         !move to modstartup
          BCxT = 2 !temperature is considered in inletgen & iolet
          BCxq = 2 !humidity is considered in iolet
          BCxs = 2 !scalars are considered in iolet
