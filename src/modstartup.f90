@@ -436,9 +436,13 @@ contains
       !                                                                 |
       !-----------------------------------------------------------------|
 
-      use modsurfdata, only:wtsurf, wqsurf, qts, ps
-      use modglobal, only : imax,kmax,jtot,ysize,xsize,dtmax,runtime, startfile,lwarmstart,lstratstart,BCxm,BCxT,BCxq,BCxs,BCtopm,iinletgen,linoutflow,ipoiss,POISS_FFT,POISS_CYC, imax,dxf,ib,ie
-      use modmpi, only:myid, nprocs, mpierr, comm3d, MPI_INTEGER, MPI_LOGICAL
+      use modsurfdata, only : wtsurf, wqsurf, qts, ps
+      use modglobal, only   : imax,kmax,jtot,ysize,xsize,dxf,ib,ie,&
+                              dtmax,runtime,startfile,lwarmstart,lstratstart,&
+                              BCxm,BCxT,BCxq,BCxs,BCtopm,BCbotm,&
+                              iinletgen,linoutflow,ltempeq,iwalltemp,iwallmom,&
+                              ipoiss,POISS_FFT,POISS_CYC,
+      use modmpi, only      : myid, nprocs, mpierr, comm3d, MPI_INTEGER, MPI_LOGICAL
 
       real :: d(1:imax-1)
       logical :: inequi
@@ -487,6 +491,11 @@ contains
          if (startfile == '') stop 'no restartfile set'
       end if
 
+      ! Switch to ensure that neutral wall function is called when ltempeq=false and if iwalltemp==1 (constant flux and therefore wall temp is not resolved.
+      if ((ltempeq .eqv. .false.) .or. (iwalltemp==1)) then
+         iwallmom = 3
+         BCbotm = 3
+      end if
 
 !choosing inoutflow in x requires switches to be set
       if (BCxm .eq. 2) then
