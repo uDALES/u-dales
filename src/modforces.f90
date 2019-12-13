@@ -39,7 +39,8 @@ implicit none
 save
 private
 public :: forces, coriolis, lstend,fixuinf1,fixuinf2,fixthetainf,&
-          detfreestream,detfreestrtmp,nudge, masscorr
+          detfreestream,detfreestrtmp,nudge,&
+          masscorr,uoutletarea,voutletarea,fluidvolume
 contains
 
   subroutine forces
@@ -370,86 +371,295 @@ endif
 
   end subroutine fixthetainf
 
-  !> correct the u-velocity to get correct mass flow rate
   subroutine masscorr
+  !> correct the velocities to get prescribed flow rate
 
-    use modglobal, only : ib,ie,jb,je,ih,jh,kb,ke,kh,jgb,jge,dzf,dxf,xh,zh,dy,dt,rk3step,uflowrate,vflowrate,&
-         jmax,libm,dt,rk3step,linoutflow,luoutflowr,lvoutflowr,luvolflowr,lvvolflowr
-    use modfields, only : um,up,vm,vp,uout,uouttot,udef,vout,vouttot,vdef
-    use modmpi,    only : slabsum,myid,comm3d,mpierr,nprocs,MY_REAL
+    use modglobal, only : ib,ie,jb,je,ih,jh,kb,ke,dzf,dxf,dy,dt,rk3step,&
+                          uflowrate,vflowrate,linoutflow,&
+                          luoutflowr,lvoutflowr,luvolflowr,lvvolflowr
+    use modfields, only : um,up,vm,vp,uout,uouttot,udef,vout,vouttot,vdef,IIu,IIv
+    use modmpi,    only : myid,comm3d,mpierr,nprocs,MY_REAL,sumy_ibm
 
-    real, dimension(kb:ke)             :: uoutold
-    real, dimension(kb:ke)             :: voutold
-    real rk3coef,rk3coefi,uflowrateold,vflowrateold
-    integer i,j,k
+    real, dimension(ib:ie, kb:ke) :: uvol
+    real, dimension(ib:ie, kb:ke) :: uvolold
+    real, dimension(ib:ie, kb:ke) :: vvol
+    real, dimension(ib:ie, kb:ke) :: vvolold
+    real, dimension(kb:ke)        :: uoutold
+    real, dimension(kb:ke)        :: voutold
+    real                          rk3coef,rk3coefi,&
+                                  uoutflow,voutflow,&
+                                  uflowrateold,vflowrateold,&
+                                  uoutarea,voutarea,fluidvol
+    integer                       i,j,k
 
     if ((.not.linoutflow) .and. (luoutflowr)) then
-       rk3coef = dt / (4. - dble(rk3step))
-       rk3coefi = 1 / rk3coef
+      rk3coef = dt / (4. - dble(rk3step))
+      rk3coefi = 1 / rk3coef
 
-       udef = 0.
-       uout = 0.
-       uoutold = 0.
-       call slabsum(uout   ,kb,ke, up  ,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ie,ie,jb,je,kb,ke) ! determine horizontal (j) average outflow velocity diff
-       call slabsum(uoutold,kb,ke, um  ,ib-ih,ie+ih,jb-jh,je+jh,kb-kh,ke+kh,ie,ie,jb,je,kb,ke) ! determine horizontal (j) average outflow velocity old
+      udef = 0.
+      uout = 0.
+      uoutflow = 0.
+      uoutold = 0.
 
-       do k=kb,ke
-          uout(k)    = rk3coef*uout(k)   *dzf(k)*dy  ! mass flow rate through each slab (density = 1000 kg/m3)
-          uoutold(k) =         uoutold(k)*dzf(k)*dy  ! mass flow rate through each slab (density = 1000 kg/m3) (previous time step)
-       end do
-       uouttot         = sum(uout(kb:ke))                 ! mass flow rate (at outlet)
-       uflowrateold = sum(uoutold(kb:ke))              ! mass flow rate (at outlet) (previous time step)
+      ! integrate u fixed at outlet ie along y
+      call sumy_ibm(uout,up(ie,jb:je,kb:ke)*dy,ie,ie,jb,je,kb,ke,IIu(ie,jb:je,kb:ke))  ! u at current time step
+      call sumy_ibm(uoutold,um(ie,jb:je,kb:ke)*dy,ie,ie,jb,je,kb,ke,IIu(ie,jb:je,kb:ke))  ! u at previous time step
 
-       udef =  uflowrate - ((uouttot + uflowrateold)/(((jge-jgb+1)*dy)*(zh(ke+1)-zh(kb)))) ! flow correction to match outflow rate
+      ! integrate u in z
+      do k=kb,ke
+        uout(k) = rk3coef*uout(k)*dzf(k)
+        uoutold(k) = uoutold(k)*dzf(k)
+      end do
+      uoutflow = sum(uout(kb:ke))
+      uflowrateold = sum(uoutold(kb:ke))
 
-       do k = kb,ke
-          do j = jb,je
-             do i = ib,ie
-                up(i,j,k) = up(i,j,k)  + udef*rk3coefi
-             end do
-          end do
-       end do
+      ! calculate outlet area
+      call uoutletarea(uoutarea)
+
+      ! average over outflow area
+      uoutflow = uoutflow/uoutarea
+      uflowrateold = uflowrateold/uoutarea
+
+      ! flow correction to match outflow rate
+      udef = uflowrate - (uoutflow + uflowrateold)
+      do k = kb,ke
+        do j = jb,je
+            do i = ib,ie
+              up(i,j,k) = up(i,j,k) + udef*rk3coefi
+            end do
+        end do
+      end do
+
+      ! bss116 calculate uouttot which is used in modboundary.
+      ! this really should be in the routine directly!
+      uouttot = sum(uout(kb:ke))  ! mass flow rate at outlet
+
+    elseif ((.not.linoutflow) .and. (luvolflowr)) then
+      rk3coef = dt / (4. - dble(rk3step))
+      rk3coefi = 1 / rk3coef
+
+      udef = 0.
+      uout = 0.
+      uoutflow = 0.
+      uoutold = 0.
+      uvol = 0.
+      uvolold = 0.
+
+      ! integrate u in y
+      call sumy_ibm(uvol,up(ib:ie,jb:je,kb:ke)*dy,ib,ie,jb,je,kb,ke,IIu(ib:ie,jb:je,kb:ke))  ! u at current time step
+      call sumy_ibm(uvolold,um(ib:ie,jb:je,kb:ke)*dy,ib,ie,jb,je,kb,ke,IIu(ib:ie,jb:je,kb:ke))  ! u at previous time step
+
+      ! integrate u in x
+      do k=kb,ke
+        uout(k) = sum(uvol(ib:ie,k)*dxf(ib:ie))
+        uoutold(k) = sum(uvolold(ib:ie,k)*dxf(ib:ie))
+      end do
+
+      ! integrate u in z
+      do k=kb,ke
+        uout(k) = rk3coef*uout(k)*dzf(k)
+        uoutold(k) = uoutold(k)*dzf(k)
+      end do
+      uoutflow = sum(uout(kb:ke))
+      uflowrateold = sum(uoutold(kb:ke))
+
+      ! calculate fluid volume
+      call fluidvolume(fluidvol)
+
+      ! average over fluid volume
+      uoutflow = uoutflow/fluidvol
+      uflowrateold = uflowrateold/fluidvol
+
+      ! flow correction to match outflow rate
+      udef = uflowrate - (uoutflow + uflowrateold)
+
+      do k = kb,ke
+        do j = jb,je
+            do i = ib,ie
+              up(i,j,k) = up(i,j,k) + udef*rk3coefi
+            end do
+        end do
+      end do
 
     end if
 
     if ((.not.linoutflow) .and. (lvoutflowr)) then
-       rk3coef = dt / (4. - dble(rk3step))
-       rk3coefi = 1 / rk3coef
+      rk3coef = dt / (4. - dble(rk3step))
+      rk3coefi = 1 / rk3coef
 
-       vdef = 0.
-       vout = 0.
-       voutold = 0.
+      vdef = 0.
+      vout = 0.
+      voutflow = 0.
+      voutold = 0.
 
-       if (myid==nprocs-1) then
-          do k=kb,ke
-             vout(k) = sum(vp(ib:ie,je,k))
-             voutold(k) = sum(vm(ib:ie,je,k))
-          end do
-       end if
+      ! integrate v fixed at outlet je along x
+      if (myid==nprocs-1) then
+        do k=kb,ke
+          vout(k) = sum(vp(ib:ie,je,k)*IIv(ib:ie,je,k)*dxf(ib:ie))  ! v at current time step
+          voutold(k) = sum(vm(ib:ie,je,k)*IIv(ib:ie,je,k)*dxf(ib:ie))  ! v at previous time step
+        end do
+      end if
 
-       call MPI_BCAST(vout ,ke-kb+1,MY_REAL ,nprocs-1,comm3d,mpierr)          
-       call MPI_BCAST(voutold ,ke-kb+1,MY_REAL ,nprocs-1,comm3d,mpierr)
+      call MPI_BCAST(vout,ke-kb+1,MY_REAL ,nprocs-1,comm3d,mpierr)
+      call MPI_BCAST(voutold,ke-kb+1,MY_REAL ,nprocs-1,comm3d,mpierr)
 
-       do k=kb,ke
-!         do i=ib,ie
-          vout(k)    = rk3coef*vout(k)   *dzf(k)*(xh(ie+1)-xh(ib))/(ie+1-ib)  ! mass flow rate through each slab (density = 1000 kg/m3)
-          voutold(k) =         voutold(k)*dzf(k)*(xh(ie+1)-xh(ib))/(ie+1-ib)  ! mass flow rate through each slab (density = 1000 kg/m3) (previous time step)
-!         end do
-       end do
-       vouttot       = sum(vout(kb:ke))              ! mass flow rate (at outlet)
-       vflowrateold  = sum(voutold(kb:ke))              ! mass flow rate (at outlet) (previous time step)
-       vdef =  vflowrate - ((vouttot + vflowrateold)/((xh(ie+1)-xh(ib))*(zh(ke+1)-zh(kb)))) ! flow correction to match outflow rate
-       do k = kb,ke
-          do j = jb,je
-             do i = ib,ie
-                vp(i,j,k) = vp(i,j,k)  + vdef*rk3coefi
-             end do
-          end do
-       end do
+      ! integrate v in z
+      do k=kb,ke
+        vout(k) = rk3coef*vout(k)*dzf(k)
+        voutold(k) = voutold(k)*dzf(k)
+      end do
+      voutflow = sum(vout(kb:ke))
+      vflowrateold = sum(voutold(kb:ke))
+
+      ! calculate outlet area
+      call voutletarea(voutarea)
+
+      ! average over outflow area
+      voutflow = voutflow/voutarea
+      vflowrateold = vflowrateold/voutarea
+
+      ! flow correction to match outflow rate
+      vdef = vflowrate - (voutflow + vflowrateold)
+      do k = kb,ke
+        do j = jb,je
+            do i = ib,ie
+              vp(i,j,k) = vp(i,j,k) + vdef*rk3coefi
+            end do
+        end do
+      end do
+
+    elseif ((.not.linoutflow) .and. (lvvolflowr)) then
+      rk3coef = dt / (4. - dble(rk3step))
+      rk3coefi = 1 / rk3coef
+
+      vdef = 0.
+      vout = 0.
+      voutflow = 0.
+      voutold = 0.
+      vvol = 0.
+      vvolold = 0.
+
+      ! integrate v in y
+      call sumy_ibm(vvol,vp(ib:ie,jb:je,kb:ke)*dy,ib,ie,jb,je,kb,ke,IIv(ib:ie,jb:je,kb:ke))  ! v at current time step
+      call sumy_ibm(vvolold,vm(ib:ie,jb:je,kb:ke)*dy,ib,ie,jb,je,kb,ke,IIv(ib:ie,jb:je,kb:ke))  ! v at previous time step
+
+      ! integrate v in x
+      do k=kb,ke
+        vout(k) = sum(vvol(ib:ie,k)*dxf(ib:ie))
+        voutold(k) = sum(vvolold(ib:ie,k)*dxf(ib:ie))
+      end do
+
+      ! integrate v in z
+      do k=kb,ke
+        vout(k) = rk3coef*vout(k)*dzf(k)
+        voutold(k) = voutold(k)*dzf(k)
+      end do
+      voutflow = sum(vout(kb:ke))
+      vflowrateold = sum(voutold(kb:ke))
+
+      ! calculate fluid volume
+      call fluidvolume(fluidvol)
+
+      ! average over fluid volume
+      voutflow = voutflow/fluidvol
+      vflowrateold = vflowrateold/fluidvol
+
+      ! flow correction to match outflow rate
+      vdef = vflowrate - (voutflow + vflowrateold)
+      do k = kb,ke
+        do j = jb,je
+            do i = ib,ie
+              vp(i,j,k) = vp(i,j,k) + vdef*rk3coefi
+            end do
+        end do
+      end do
 
     end if
 
   end subroutine masscorr
+
+  subroutine uoutletarea(area)
+  ! calculates outlet area of domain for u-velocity excluding blocks
+
+    use modglobal, only   : ib,ie,jb,je,kb,ke,dy,dzf
+    use modfields, only   : IIu
+    use modmpi, only      : sumy_ibm
+
+    implicit none
+    real, intent(out)       :: area
+    real, dimension(kb:ke)  :: sumy
+    integer                    k
+
+    sumy = 0.
+    ! integrate fluid area at outflow plane in y
+    call sumy_ibm(sumy,IIu(ie,jb:je,kb:ke)*dy,ie,ie,jb,je,kb,ke,IIu(ie,jb:je,kb:ke))
+
+    ! integrate fluid area at outflow plane in z
+    do k=kb,ke
+      sumy(k) = sumy(k)*dzf(k)
+    end do
+    area = sum(sumy(kb:ke))
+
+  end subroutine uoutletarea
+
+  subroutine voutletarea(area)
+  ! calculates outlet area of domain for v-velocity excluding blocks
+
+    use modglobal, only : ib,ie,jb,je,kb,ke,dxf,dzf
+    use modfields, only : IIv
+    use modmpi,    only : myid,comm3d,mpierr,nprocs,MY_REAL
+
+    implicit none
+    real, intent(out)       :: area
+    real, dimension(kb:ke)  :: sumx
+    integer                    k
+
+    sumx = 0.
+    ! integrate fluid area at outflow plane in x
+    if (myid==nprocs-1) then
+      do k=kb,ke
+        sumx(k) = sum(IIv(ib:ie,je,k)*dxf(ib:ie))
+      end do
+    end if
+
+    call MPI_BCAST(sumx,ke-kb+1,MY_REAL,nprocs-1,comm3d,mpierr)
+
+    ! integrate fluid area at outflow plane in z
+    do k=kb,ke
+      sumx(k) = sumx(k)*dzf(k)
+    end do
+    area = sum(sumx(kb:ke))
+
+  end subroutine voutletarea
+
+  subroutine fluidvolume(volume)
+  ! calculates fluid volume of domain excluding blocks
+
+    use modglobal, only   : ib,ie,jb,je,kb,ke,dy,dxf,dzf
+    use modfields, only   : IIu
+    use modmpi, only      : sumy_ibm
+
+    implicit none
+    real, intent(out)             :: volume
+    real, dimension(ib:ie,kb:ke)  :: sumy
+    real, dimension(kb:ke)        :: sumxy
+    integer                          k
+
+    sumy = 0.
+    sumxy = 0.
+
+    ! integrate fluid volume in y
+    call sumy_ibm(sumy,IIu(ib:ie,jb:je,kb:ke)*dy,ib,ie,jb,je,kb,ke,IIu(ib:ie,jb:je,kb:ke))
+
+    ! integrate fluid area in x
+    do k=kb,ke
+      sumxy(k) = sum(sumy(ib:ie,k)*dxf(ib:ie))
+    end do
+
+    ! integrate fluid area in z
+    volume = sum(sumxy(kb:ke)*dzf(kb:ke))
+
+  end subroutine fluidvolume
   
   subroutine coriolis
 
