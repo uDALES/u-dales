@@ -19,6 +19,7 @@ include(ExternalProject)
 ExternalProject_Add(fishpack-cmake-project
     GIT_REPOSITORY https://github.com/dmey/fishpack-cmake.git
     GIT_TAG dmey/cray-support
+    UPDATE_DISCONNECTED ${SKIP_UPDATE_EXTERNAL_PROJECTS}
     CMAKE_ARGS
         -DCMAKE_Fortran_COMPILER=${CMAKE_Fortran_COMPILER}
         -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
@@ -30,6 +31,7 @@ ExternalProject_Add(fishpack-cmake-project
 ExternalProject_Add(vfftpack-cmake-project
     GIT_REPOSITORY https://github.com/dmey/vfftpack-cmake.git
     GIT_TAG dmey/cray-support
+    UPDATE_DISCONNECTED ${SKIP_UPDATE_EXTERNAL_PROJECTS}
     CMAKE_ARGS
         -DCMAKE_Fortran_COMPILER=${CMAKE_Fortran_COMPILER}
         -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
