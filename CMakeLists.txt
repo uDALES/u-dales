@@ -34,17 +34,18 @@ find_package(MPI REQUIRED)
 
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
     set(CMAKE_Fortran_FLAGS "-fdefault-real-8 -ffree-line-length-none -cpp -ffpe-trap=inv,zero,ov")
-    set(CMAKE_Fortran_FLAGS_DEBUG "-g -Warray-bounds -finit-real=nan -fbacktrace  -Wextra")
+    set(CMAKE_Fortran_FLAGS_DEBUG "-O0 -g -Warray-bounds -finit-real=nan -fbacktrace  -Wextra")
     set(CMAKE_Fortran_FLAGS_RELEASE "-O3 -g -fbacktrace")
 elseif(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
     set(CMAKE_Fortran_FLAGS "-r8 -fpp -WB -fpe0 -extend_source -mcmodel=medium -heap-arrays 10")
-    set(CMAKE_Fortran_FLAGS_DEBUG "-g -traceback -warn unused")
+    set(CMAKE_Fortran_FLAGS_DEBUG "-O0 -g -traceback -warn unused")
     set(CMAKE_Fortran_FLAGS_RELEASE "-O3 -g -traceback")
 elseif(CMAKE_Fortran_COMPILER_ID MATCHES "Cray")
-    # FIXME: fix compiler flags -- find equvanet flags for Cray
-    set(CMAKE_Fortran_FLAGS "-s real64") #FIXME: Not cray# -fpp -fpe0
-    #set(CMAKE_Fortran_FLAGS_DEBUG "-g -O0 -traceback")
-    #set(CMAKE_Fortran_FLAGS_RELEASE "-O3 -dynamic -ftz -mcmodel=large -ip")
+    # https://pubs.cray.com/content/S-3901/8.5/cray-fortran-reference-manual-85
+    # TODO: add remaining optional flags when addressing https://github.com/uDALES/u-dales/issues/49
+    set(CMAKE_Fortran_FLAGS "-s real64 -N 1023 -eZ -K trap=denorm,divz,fp,inexact,inv,ovf,unf")
+    set(CMAKE_Fortran_FLAGS_DEBUG "-O0 -g")
+    set(CMAKE_Fortran_FLAGS_RELEASE "-O3")
 else()
     message(FATAL_ERROR "Only GNU, Intel, and Cray Fortran compilers are supported")
 endif()
