@@ -134,11 +134,12 @@ where `NETCDF_DIR` and `NETCDF_FORTRAN_DIR` indicates the absolute path to your 
 
 By default uDALES will compile in `Release` mode. You can change this by specifying the option (or flag) at configure time. The general syntax for specifying an option in CMake is `-D<flag_name>=<flag_value>` where `<flag_name>` is the option/flag name and `<flag_value>` is the option/flag value. The following options can be specified when configuring uDALES:
 
-| Name                 | Options            | Default   | Description                                   |
-| -------------------- | ------------------ | --------- | --------------------------------------------- |
-| `CMAKE_BUILD_TYPE`   | `Release`, `Debug` | `Release` | Whether to optimise/build with debug flags    |
-| `NETCDF4_DIR`        | `<path>`           | -         | Path to NetCDF-C installation directory       |
-| `NETCDF_FORTRAN_DIR` | `<path>`           | -         | Path to NetCDF-Fortran installation directory |
+| Name                            | Options            | Default   | Description                                   |
+| ------------------------------- | ------------------ | --------- | --------------------------------------------- |
+| `CMAKE_BUILD_TYPE`              | `Release`, `Debug` | `Release` | Whether to optimise/build with debug flags    |
+| `NETCDF4_DIR`                   | `<path>`           | -         | Path to NetCDF-C installation directory       |
+| `NETCDF_FORTRAN_DIR`            | `<path>`           | -         | Path to NetCDF-Fortran installation directory |
+| `SKIP_UPDATE_EXTERNAL_PROJECTS` | `ON`, `OFF`        | `OFF`     | Whether to skip updating external projects    |
 
 
 ## Set-up
