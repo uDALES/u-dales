@@ -43,7 +43,7 @@ elseif(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
 elseif(CMAKE_Fortran_COMPILER_ID MATCHES "Cray")
     # https://pubs.cray.com/content/S-3901/8.5/cray-fortran-reference-manual-85
     # TODO: add remaining optional flags when addressing https://github.com/uDALES/u-dales/issues/49
-    set(CMAKE_Fortran_FLAGS "-s real64 -N 1023 -eZ -K trap=denorm,divz,fp,inexact,inv,ovf,unf")
+    set(CMAKE_Fortran_FLAGS "-s real64 -N 1023 -K trap=denorm,divz,fp,inexact,inv,ovf,unf")
     set(CMAKE_Fortran_FLAGS_DEBUG "-O0 -g")
     set(CMAKE_Fortran_FLAGS_RELEASE "-O3")
 else()
