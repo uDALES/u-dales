@@ -227,6 +227,13 @@ contains
             k = block(ixwall(n), 9) !east side
             call wfuno(ih, jh, kh, vp, wp, thlp, momfluxb, tfluxb, cth, bcTfluxA, v0, w0, thl0, facT(k, 1), facz0(k), facz0h(k), ixwall(n), 1, 21)
          end do
+      else if (iwallmom == 3) then
+         do n = 1, nxwall
+            k = block(ixwall(n), 8) !west side
+            call wfmneutral(ih, jh, kh, vp, wp, momfluxb, v0, w0, facz0(k), ixwall(n), 1, 11)
+            k = block(ixwall(n), 9) !east side
+            call wfmneutral(ih, jh, kh, vp, wp, momfluxb, v0, w0, facz0(k), ixwall(n), 1, 21)
+        end do
       end if
 
       if (ltempeq) then
@@ -329,6 +336,11 @@ contains
          k = block(iypluswall(n, 1), 10) !upper y wall = north wall
          call wfuno(ih, jh, kh, up, wp, thlp, momfluxb, tfluxb, cth, bcTfluxA, u0, w0, thl0, facT(k,1), facz0(k), facz0h(k), iypluswall(n, 1), iypluswall(n, 2), 31)
       end do
+      else if (iwallmom == 3) then
+      do n = 1, nypluswall
+         k = block(iypluswall(n, 1), 10) !upper y wall = north wall
+         call wfmneutral(ih, jh, kh, up, wp, momfluxb, u0, w0, facz0(k), iypluswall(n, 1), iypluswall(n, 2), 31)
+      end do
       end if
 
       if (ltempeq) then
@@ -411,6 +423,11 @@ contains
       k = block(iyminwall(n, 1), 11)
       call wfuno(ih, jh, kh, up, wp, thlp, momfluxb, tfluxb, cth, bcTfluxA, u0, w0, thl0, facT(k,1), facz0(k), facz0h(k), iyminwall(n, 1), iyminwall(n, 2), 41)
       end do
+      else if (iwallmom == 3) then
+      do n = 1, nyminwall
+      k = block(iyminwall(n, 1), 11)
+      call wfmneutral(ih, jh, kh, up, wp, momfluxb, u0, w0, facz0(k), iyminwall(n, 1), iyminwall(n, 2), 41)
+      end do
       end if !
 
       if (ltempeq) then
@@ -492,6 +509,11 @@ contains
          do n = 1, nxwall
             k = block(ixwall(n), 7)
             call wfuno(ih, jh, kh, up, vp, thlp, momfluxb, tfluxb, cth, bcTfluxA, u0, v0, thl0, facT(k, 1), facz0(k), facz0h(k), ixwall(n), 1, 51)
+         end do
+      else if (iwallmom == 3) then
+         do n = 1, nxwall
+            k = block(ixwall(n), 7)
+            call wfmneutral(ih, jh, kh, up, vp, momfluxb, u0, v0, facz0(k), ixwall(n), 1, 51)
          end do
       end if
 
@@ -1012,6 +1034,8 @@ contains
       !momentum
       if (BCbotm.eq.2) then
       call wfuno(ih, jh, kh, up, vp, thlp, momfluxb, tfluxb, cth, bcTfluxA, u0, v0, thl0, thls, z0, z0h, 0, 1, 91)
+      elseif (BCbotm.eq.3) then
+      call wfmneutral(ih, jh, kh, up, vp, momfluxb, u0, v0, z0, 0, 1, 91)
       else
       write (*, *) "WARNING: ABORT, bottom boundary type for momentum undefined"
       stop
