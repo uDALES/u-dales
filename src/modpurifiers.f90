@@ -22,7 +22,7 @@ contains
 
       ! read global purifiers
       if(myid==0) then
-        write(*,*), '1, myid, npurif, lpurif, cexpnr', myid, npurif, lpurif, cexpnr
+        write(*,*) '1, myid, npurif, lpurif, cexpnr', myid, npurif, lpurif, cexpnr
         if (npurif>0) then
           open (ifinput,file='purifs.inp.'//cexpnr)
           read (ifinput,'(a80)') chmess
@@ -51,7 +51,7 @@ contains
                   purif(n,7)                 
           end do
         end if
-      write(*,*), 'Finished determining purifiers on myid == 0'
+      write(*,*) 'Finished determining purifiers on myid == 0'
       end if ! end if myid==0
 
       call MPI_BCAST(purif  ,7*npurif,MPI_INTEGER ,0,comm3d,mpierr)

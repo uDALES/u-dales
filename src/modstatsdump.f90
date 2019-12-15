@@ -1020,8 +1020,8 @@ contains
         varslice(:,:,7) = slice7   
         varslice(:,:,8) = slice8
 
-!        write(*,*), myid
-!        write(*,*), 'ncidslice,1,tncstatslice,(/timee/),nrecslice,.true.', ncidslice,1,tncstatslice,(/timee/),nrecslice
+!        write(*,*) myid
+!        write(*,*) 'ncidslice,1,tncstatslice,(/timee/),nrecslice,.true.', ncidslice,1,tncstatslice,(/timee/),nrecslice
 
         call writestat_nc(ncidslice,nstatslice,ncstatslice,varslice,nrecslice,imax,jmax)
 
