@@ -101,11 +101,11 @@ contains
     enddo
     thvf = 0.0
 
-    !write(*,*), "thv0",thv0
+    !write(*,*) "thv0",thv0
 !    call slabsum(thvf,kb,ke+kh,thv0,ib,ie+ih,jb,je+jh,kb,ke+kh,ib+ih,ie,jb+ih,je,kb,ke+kh)
 !    call slabsum(thvf,kb,ke+kh,thv0,ib,ie,jb,je,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
     call avexy_ibm(thvf(kb:ke+kh),thv0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
-!    write(*,*), 'IIc(2,2,:), myid' , IIc(12,2,:), myid
+!    write(*,*) 'IIc(2,2,:), myid' , IIc(12,2,:), myid
 
 !    where (thvf==0) !override slabs completely covered by blocks
 !      thvf = th0av(kb)*(1+(rv/rd-1)*qt0av(kb)-rv/rd*ql0av(kb))
@@ -294,8 +294,8 @@ contains
     exnh  = 1-grav*zh/(cp*thls)
     th0av  = thl0av + (rlv/cp)*ql0av/exnf
 
-    !write(*,*), 'thl0av',thl0av
-    !write(*,*), 'th0av',th0av
+    !write(*,*) 'thl0av',thl0av
+    !write(*,*) 'th0av',th0av
     
 
     do n=1,nsv

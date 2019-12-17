@@ -347,7 +347,7 @@ contains
       if (iwalltemp == 1) then
          do n = 1, nypluswall ! loop over all shear x-walls
 
-            !write(*,*), 'shape(iypluswall), nypluswall', shape(iypluswall), nypluswall
+            !write(*,*) 'shape(iypluswall), nypluswall', shape(iypluswall), nypluswall
 
             call ywallscalarplus(ih, jh, kh, thl0, thlp, bctfyp, n)
          end do
@@ -634,7 +634,7 @@ contains
             kl = kb ! tg3315 see comment for x-direction above
             ku = block(iyminwall(n, 1), 6)
 
-!            write(*,*), 'jl, ju, jmax, iyminwall(n,1)', jl, ju, jmax, iyminwall(n,1)
+!            write(*,*) 'jl, ju, jmax, iyminwall(n,1)', jl, ju, jmax, iyminwall(n,1)
 
 !            vp(il:iu, jl:ju, kl:ku) = -vm(il:iu, jl:ju, kl:ku)*rk3coefi
             vp(il:iu, jl, kl:ku) = -vm(il:iu, jl, kl:ku)*rk3coefi
@@ -660,7 +660,7 @@ contains
             kl = kb ! tg3315 see comment for x-direction above
             ku = block(iypluswall(n, 1), 6)
 
-            !write(*,*), 'jl, ju, jmax, iypluswall(n,1)', jl, ju, jmax, iypluswall(n,1)
+            !write(*,*) 'jl, ju, jmax, iypluswall(n,1)', jl, ju, jmax, iypluswall(n,1)
 
             !vp(il:iu, jl:ju, kl:ku) = -vm(il:iu, jl:ju, kl:ku)*rk3coefi
             vp(il:iu, jl, kl:ku) = -vm(il:iu, jl, kl:ku)*rk3coefi
