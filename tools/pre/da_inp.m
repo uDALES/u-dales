@@ -1,7 +1,8 @@
 %% da_inp
 
-expnr = '009';
+expnr = '011';
 ncpus = 2;
+LIDAR = 1;
 
 DA_EXPDIR = getenv('DA_EXPDIR');
 DA_PREDIR = getenv('DA_PREDIR');
@@ -28,14 +29,34 @@ disp(['Written lscal.inp.', r.expnr])
 da_pp.generate_prof(r);
 da_pp.write_prof(r);
 disp(['Written prof.inp.', r.expnr])
-da_pp.plot_profiles(r);
+%da_pp.plot_profiles(r);
 
 da_pp.generate_scalar(r);
 da_pp.write_scalar(r);
 disp(['Written scalar.inp.', r.expnr])
 
 %addpath(genpath(DA_PREDIR));
-da_pp.generate_blocks(r);
+
+if ~LIDAR
+    da_pp.generate_bl_from_namoptions(r)
+    da_pp.generate_topo_from_bl(r)
+else
+    sourcename = '/Users/samowens/LIDAR_SK/mean-gs-dis-rot.png';
+    % resolution of image [m/pixel]
+    dxinp=1; dyinp=1; dzinp=1;
+    % center of area of interest in original image [pixel]
+    centeri = 1460; centerj = 1400;
+    % magimum height in image [m]
+    maxh = 88;
+    %padding. A padding of 0 makes only sense for idealised cases. There should be no building at domain edge
+    pad = 5;
+    %objects smaller than this will be deleted
+    smallarea = round(150 / (r.dx * r.dy));
+    
+    da_pp.generate_topo_from_LIDAR(r, sourcename, dxinp, dyinp, centeri, centerj, maxh, pad, smallarea)
+end
+
+da_pp.makeblocks(r)
 da_pp.generate_facets(r);
 
 da_pp.write_blocks(r)
@@ -65,7 +86,7 @@ if r.lEB
     da_pp.write_vf(r)
     disp(['Written vf.nc.inp.', r.expnr])
     da_pp.write_facetarea(r)
-    disp(['Written facetarea.inp', r.expnr])
+    disp(['Written facetarea.inp.', r.expnr])
     da_pp.rayit(r)
     da_pp.write_netsw(r)
     disp(['Written netsw.inp.', r.expnr])

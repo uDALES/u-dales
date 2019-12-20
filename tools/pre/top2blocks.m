@@ -2,7 +2,7 @@
 
 %% initialising
 
-A=imread(['lidar_data/' sourcename]);  %read topo image
+A = imread(['lidar_data/' sourcename]);  %read topo image
 [njorig, niorig, ~]=size(A);
 
 

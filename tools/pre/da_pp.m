@@ -286,6 +286,16 @@ classdef da_pp < dynamicprops
             da_pp.addvar(obj, 'cornerweight', (1 - obj.centerweight) / 4);
             da_pp.addvar(obj, 'I', 184.8775); % Direct solar irradiation [W/m2] - previously I
             da_pp.addvar(obj, 'Dsk', 418.8041); % Diffuse incoming radiation [W/m2] - previously Dsk
+            
+            if obj.lEB
+                da_pp.addvar(obj, 'maxsize', 10); % Add to namoptions
+            else
+                da_pp.addvar(obj, 'maxsize', inf);
+            end
+            
+            da_pp.addvar(obj, 'blocks', []);
+            da_pp.addvar(obj, 'facets', []);
+            
         end
         
         function plot_profiles(obj)
@@ -545,7 +555,22 @@ classdef da_pp < dynamicprops
             end
         end
         
-        function generate_blocks(obj)
+        function generate_topo_from_bl(obj)
+            da_pp.addvar(obj, 'topomask', zeros(obj.jtot, obj.imax));
+            da_pp.addvar(obj, 'topo', zeros(obj.jtot, obj.imax));
+            
+            % if no blocks add lowest level
+            if isnan(obj.bl)
+                
+            else
+                for n = 1:size(obj.bl, 1)
+                    obj.topo(obj.bl(n,3):obj.bl(n,4),obj.bl(n,1):obj.bl(n,2)) = obj.zh(obj.bl(n,6) + 1);
+                    obj.topomask(obj.bl(n,3):obj.bl(n,4),obj.bl(n,1):obj.bl(n,2)) = 1;
+                end
+            end
+        end
+        
+        function generate_bl_from_namoptions(obj)
             %aspectratio = r.zh(r.blockheight+1)/(r.xh(r.canyonwidth+1)-r.xh(1));
             %aspectratio = obj.zh(obj.blockheight + 1) / (obj.xh(obj.canyonwidth + 1) - obj.xh(1));
             %nrows = ie/(r.blockwidth+r.canyonwidth);
@@ -664,17 +689,11 @@ classdef da_pp < dynamicprops
                 obj.bl(1:obj.nrows, 6) = obj.blockheight - 1; 
             end 
             
-            da_pp.addvar(obj, 'blocks', zeros(1,11));
-            da_pp.addvar(obj, 'facets', zeros(1,4));
+
             
             %maximum size of floors and bounding walls (cells in each dimension)
-            if obj.lEB
-                da_pp.addvar(obj, 'maxsize', 10); % Add to namoptions
-            else
-                da_pp.addvar(obj, 'maxsize', inf);
-            end
             
-            obj.blocks = obj.bl;
+            %obj.blocks = obj.bl;
             
             % if no blocks add lowest level
 %             if isnan(obj.blocks)
@@ -688,10 +707,345 @@ classdef da_pp < dynamicprops
             %bl2blocks_temp
             %makeblocks
             
-         
-            da_pp.makeblocks(obj)  
+            %da_pp.generate_topomask_from_blocks(obj)
+            %da_pp.makeblocks(obj)  
         end
-               
+        
+        function generate_topo_from_LIDAR(obj, sourcename, dxinp, dyinp, centeri, centerj, maxh, pad, smallarea)
+            A = imread(sourcename);  %read topo image
+            [njorig, niorig, ~] = size(A);
+            
+
+            % since its a greyscale image all 3 rgb channels have the same value
+            % substract value from 255 and scale by max value to get topography
+            topot = (255 - double(A(:,:,1))) / 255 * maxh;
+            
+            %if ltestplot
+                %figure; imagesc(topot)
+            %end
+            
+            % interpolate to a coarser grid if necessary
+            if obj.dx ~= dxinp || obj.dy ~= dyinp %can't use imresize, have to do it manually since x and y scaling might be different
+                xxxo = 0.5 * dxinp:dxinp:(niorig * dxinp); % original pixel centres
+                yyyo = 0.5 * dyinp:dyinp:(njorig * dyinp);
+                xxx = 0.5 * obj.dx:obj.dx:(niorig * dxinp); %desired pixel centres
+                yyy = 0.5 * obj.dy:obj.dy:(njorig * dxinp);
+                [X,Y] = meshgrid(xxx, yyy);
+                topot = interp2(yyyo, xxxo, topot', Y, X, 'nearest');
+                clear xxxo yyyo X Y
+            end
+            
+            %if ltestplot
+                %figure; imagesc(topot);
+            %end
+            
+            
+            % upper and lower coordinates to select
+            ip = round(centeri / obj.dx) + obj.imax / 2 - 1 - pad;
+            im = round(centeri / obj.dx) - obj.imax / 2 + pad;
+            jp = round(centerj / obj.dy) + obj.jtot / 2 - 1 - pad;
+            jm = round(centerj / obj.dy) - obj.jtot / 2 + pad;
+            
+            da_pp.addvar(obj, 'topo', zeros(obj.jtot, obj.imax));
+            obj.topo(pad + (1:(obj.jtot - 2 * pad)), pad + (1:(obj.imax - 2 * pad))) = topot(jm:jp, im:ip);
+            
+%             if ltestplot
+%                 figure; imagesc(xf,yf,topo)
+%             end
+            
+            % round height to grid
+            obj.topo = round(obj.topo / obj.dz) * obj.dz;
+            topoinit = obj.topo;
+            
+            
+            %% manual mainpulation of the topograpy come here, if necessary
+            %test for varying building height
+            % topo(170:180,173:209)=topo(170:180,173:209)+10;
+            % topo(180:184,291:331)=topo(180:184,291:331)+12.5;
+            % topo(143:148,173:214)=topo(143:148,173:214)+7.5;
+            
+            
+            %% processing
+            %% fill big holes
+            topoh = imfill(obj.topo, 'holes');
+            to = topoh - obj.topo;
+            toi = imbinarize(to);
+            
+            toi = bwareaopen(toi, smallarea);
+            topo = topoh - toi.*to;
+            clear to toi topoh topot
+            
+%             if ltestplot
+%                 figure; imagesc(xf,yf,topo); title('after filling holes')
+%             end
+            
+            % create building mask
+            da_pp.addvar(obj, 'topomask', imbinarize(topo));
+            
+            %% remove small objects
+            obj.topomask = bwareaopen(obj.topomask, smallarea);
+            
+            obj.topo = obj.topo .* obj.topomask;
+            
+%             if ltestplot
+%                 figure
+%                 imagesc(xf,yf,topo)
+%                 title('after removing small objects')
+%                 xlim([xh(1) xh(end)])
+%                 ylim([yh(1) yh(end)])
+%             end
+            
+            %% fill 1 cell gaps  %potentially problematic if the gap is between blocks of different height
+            
+            %function [mask, image ] = fillgaps( mask,image,nj,ni,pad)
+                %fills horizontal and vertical 1D gaps of width 1
+                while true
+                    change = false;
+                    for j = pad + 1:obj.jtot - pad - 1
+                        for i = pad + 1:obj.imax - pad - 1
+                            if j == 1 || i == 1 %do nothing at domain edge
+                                continue
+                                
+                            elseif sum(sum(obj.topomask(j-1:j,i-1:i+1))) == 5 && obj.topomask(j,i) == 0 && obj.topomask(j+1,i) == 0 %towards south. If it has 5 block neighbours, is not a block and j+1 is also not a block then fill the gap towards the south. remember that images are upside down, so j+1 is going down
+                                jj = j;
+                                while true
+                                    obj.topomask(jj, i)=1;
+                                    obj.topo(jj,i) = obj.topo(jj-1,i);
+                                    jj=jj+1;
+                                    if jj==obj.jtot %reached end of domain
+                                        break
+                                    end
+                                    if ~(sum(sum(obj.topomask(jj-1:jj,i-1:i+1)))==5 && obj.topomask(jj,i)==0 && obj.topomask(jj+1,i)==0)
+                                        break
+                                    end
+                                end
+                                change = true;
+                            elseif sum(sum(obj.topomask(j:j+1,i-1:i+1)))==5 && obj.topomask(j,i) == 0 && obj.topomask(j-1,i)==0 %towards north
+                                jj=j;
+                                while true
+                                    obj.topomask(jj,i)=1;
+                                    obj.topo(jj,i)=obj.topo(jj+1,i);
+                                    jj=jj-1;
+                                    if jj==1 %reached end of domain
+                                        break
+                                    end
+                                    if ~(sum(sum(obj.topomask(jj:jj+1,i-1:i+1)))==5 && obj.topomask(jj,i)==0 && obj.topomask(jj-1,i)==0)
+                                        break
+                                    end
+                                end
+                                change=true;
+                            elseif sum(sum(obj.topomask(j-1:j+1,i-1:i)))==5 && obj.topomask(j,i)==0 && obj.topomask(j,i+1)==0 %towards east
+                                ii=i;
+                                while true
+                                    obj.topomask(j,ii)=1;
+                                    obj.topo(j,ii)=obj.topo(j,ii-1);
+                                    ii=ii+1;
+                                    if ii==obj.imax %reached end of domain
+                                        break
+                                    end
+                                    if ~(sum(sum(obj.topomask(j-1:j+1,ii-1:ii)))==5 && obj.topomask(j,ii)==0 && obj.topomask(j,ii+1)==0)
+                                        break
+                                    end
+                                end
+                                change=true;
+                            elseif sum(sum(obj.topomask(j-1:j+1,i:i+1)))==5 && obj.topomask(j,i)==0 && obj.topomask(j,i-1)==0 %towards west
+                                ii=i;
+                                while true
+                                    obj.topomask(j,ii)=1;
+                                    obj.topo(j,ii)=obj.topo(j,ii+1);
+                                    ii=ii-1;
+                                    if ii==1 %reached end of domain
+                                        break
+                                    end
+                                    if ~(sum(sum(obj.topomask(j-1:j+1,ii:ii+1)))==5 && obj.topomask(j,ii)==0 && obj.topomask(j,ii-1)==0)
+                                        break
+                                    end
+                                end
+                            end
+                            
+                        end
+                        
+                        
+                    end
+                    if ~change
+                        break
+                    end
+                end
+            %end
+            
+            
+            %[topomask, topo] = fillgaps(topomask,topo,nj,ni,pad);
+%             if ltestplot
+%                 figure
+%                 imagesc(xf,yf,topo)
+%                 title('after filling gaps (size 1)')
+%                 xlim([xh(1) xh(end)])
+%                 ylim([yh(1) yh(end)])
+%             end
+            
+            % NEED TO IMPLEMENT SMOOTHBORDERS
+            %if pad == 0  %buildings to the edge, make sure there is no weird gaps at domain edge
+                %[topomask, topo] = smoothborders(obj.topomask, obj.topo,nj,ni,pad);
+            %end
+%             if ltestplot
+%                 figure
+%                 imagesc(xf,yf,topo)
+%                 title('after smoothing borders')
+%                 xlim([xh(1) xh(end)])
+%                 ylim([yh(1) yh(end)])
+%             end
+            
+            %% remove cells with only 1 neighbour
+            data = obj.topo;
+            datamask = obj.topomask;
+            
+            c2 = 1;
+            while c2 ~= 0  %repeat until there is no cell with only one neighbour left
+                c2 = 0;
+                for i = 2:obj.imax - 1
+                    for j = 2:obj.jtot - 1
+                        count = 0;
+                        if datamask(j,i) > 0
+                            c = datamask(j,i-1) + datamask(j,i+1) + datamask(j+1,i) + datamask(j-1,i);
+                            if c > 1
+                                continue
+                            else
+                                c2 = c2 + 1;
+                                datamask(j,i) = 0;
+                                data(j,i) = 0;
+                            end
+                        end
+                    end
+                end
+            end
+            
+            obj.topo = data;
+            obj.topomask = datamask;
+            
+%             if ltestplot
+%                 figure
+%                 title('after removing cells with only 1 neighbour')
+%                 imagesc(xf,yf,topo)
+%                 xlim([xh(1) xh(end)])
+%                 ylim([yh(1) yh(end)])
+%             end
+            %%
+            %if lhqplot
+                %cd(outputdir)
+                
+                h=figure;
+                hp1=subplot(1,2,1);
+                imagesc(obj.xf,obj.yf,flipud(topoinit))
+                set(gca,'YDir','normal','TickLabelInterpreter','latex')
+                xlim([obj.xh(1) obj.xh(end)])
+                ylim([obj.yh(1) obj.yh(end)])
+                caxis([0 45])
+                axis equal tight
+                xlabel('x [m]','Interpreter','latex','FontSize',12)
+                ylabel('y [m]','Interpreter','latex','FontSize',12)
+                hp1.XTick=[0 200 400 600 800 960];
+                hp1.YTick=[0 200 400 480];
+                set(gca,'TickLabelInterpreter','latex')
+                set(gca,'FontSize',12)
+                %set(gca,XTick,[0 200 400 600 800 960])
+                %set(gca,YTick,[0 200 400 480])
+                %set(gca,'YTickLabel',[]);
+                %set(gca,'XTickLabel',[]);
+                
+                hp2=subplot(1,2,2);
+                imagesc(obj.xf,obj.yf,flipud(obj.topo))
+                set(gca,'YDir','normal','TickLabelInterpreter','latex')
+                xlim([obj.xh(1) obj.xh(end)])
+                ylim([obj.yh(1) obj.yh(end)])
+                caxis([0 45])
+                axis equal tight
+                xlabel('x [m]','Interpreter','latex','FontSize',12)
+                set(gca,'YTickLabel',[]);
+                hp2.XTick=[0 200 400 600 800 960];
+                hp1.Position=[0.09 0.1100 0.35 0.8150];
+                hp2.Position=[0.511 0.1100 0.35 0.8150];
+                hcb=colorbar('Position',[0.92 0.425 0.03 0.15]);
+                colormap(flipud(bone)) %colormap(flipud(gray))
+                hcb.Label.Interpreter='latex';
+                hcb.TickLabelInterpreter='latex';
+                title(hcb,'height [m]','Interpreter','latex','FontSize',12)
+                set(gca,'TickLabelInterpreter','latex')
+                set(gca,'FontSize',12)
+                set(gcf, 'Color', 'w');
+                
+                %ylabel('y [m]','Interpreter','latex','FontSize',12)
+                %
+                %export_fig topocompbone -eps -png
+                %print -depsc2 ICtopocompbone.eps
+                %print -dpng ICtopocompbone.png
+                %print -dpdf ICtopocompbone.pdf
+                
+                %%
+                h=figure;
+                set(gcf,'units','centimeters','position',[0 0 14.5 14.5]);
+                set(h,'PaperPosition',[0 0 14.5 14.5]);
+                set(h,'PaperUnits','centimeters');
+                
+                imagesc(obj.xf,obj.yf,flipud(topoinit))
+                set(gca,'YDir','normal','TickLabelInterpreter','latex')
+                xlim([obj.xh(1) obj.xh(end)])
+                ylim([obj.yh(1) obj.yh(end)])
+                caxis([0 45])
+                axis equal tight
+                xlabel('','Interpreter','latex','FontSize',10)
+                ylabel('y [m]','Interpreter','latex','FontSize',10)
+                h.Children.YTick=[0 200 400 480];
+                set(gca,'XTickLabel',[]);
+                set(gca,'TickLabelInterpreter','latex')
+                set(gca,'FontSize',12)
+                colormap(flipud(bone)) %colormap(flipud(gray))
+                hcb=colorbar('northoutside');
+                hcb.Label.Interpreter='latex';
+                hcb.TickLabelInterpreter='latex';
+                title(hcb,'height [m]','Interpreter','latex','FontSize',10)
+                set(gca,'TickLabelInterpreter','latex')
+                set(gca,'FontSize',12)
+                set(gcf, 'Color', 'w');
+                %colormap(flipud(gray))
+                
+                %export_fig inittopobone -eps -png
+                
+                
+                h=figure;
+                set(gcf,'units','centimeters','position',[0 0 14.5 14.5]);
+                set(h,'PaperPosition',[0 0 14.5 14.5]);
+                set(h,'PaperUnits','centimeters');
+                imagesc(obj.xf,obj.yf,flipud(obj.topo))
+                set(gca,'YDir','normal','TickLabelInterpreter','latex')
+                xlim([obj.xh(1) obj.xh(end)])
+                ylim([obj.yh(1) obj.yh(end)])
+                caxis([0 45])
+                axis equal tight
+                h.Children.XTick=[0 200 400 600 800 960];
+                xlabel('x [m]','Interpreter','latex','FontSize',10)
+                ylabel('y [m]','Interpreter','latex','FontSize',10)
+                colormap(flipud(bone))
+                h.Children.YTick=[0 200 400 480];
+                %h.Position=[0.09 0.1100 0.35 0.8150];
+                %h.Position=[0.511 0.1100 0.35 0.8150];
+                %hcb=colorbar('Position',[0.92 0.425 0.03 0.15]);
+                set(gca,'TickLabelInterpreter','latex')
+                set(gca,'FontSize',10)
+                set(gcf, 'Color', 'w');
+                
+                %ylabel('y [m]','Interpreter','latex','FontSize',12)
+                %
+                %export_fig topobone -eps -png
+                
+                %cd(parentdir)
+            %end
+            
+            
+            %should probably write block.inp. here
+        end
+        
+        
+        
         function plot_bl(obj)
             figure
             title('Blocks (old)')
@@ -1157,21 +1511,7 @@ classdef da_pp < dynamicprops
         end
         
         function makeblocks(obj)
-            topomask = zeros(obj.jtot, obj.imax);
-            topo = zeros(obj.jtot, obj.imax);
-            
-            % if no blocks add lowest level
-            if isnan(obj.blocks)
-                
-            else
-                for n = 1:size(obj.blocks, 1)
-                    topo(obj.blocks(n,3):obj.blocks(n,4),obj.blocks(n,1):obj.blocks(n,2)) = obj.zh(obj.blocks(n,6) + 1);
-                    topomask(obj.blocks(n,3):obj.blocks(n,4),obj.blocks(n,1):obj.blocks(n,2)) = 1;
-                end
-            end
-            
-            
-            maxnrblocks=sum(topomask(:)); %allocate arrays with maximum size they can possibly have, reduce size later
+            maxnrblocks=sum(obj.topomask(:)); %allocate arrays with maximum size they can possibly have, reduce size later
             xmin = zeros(maxnrblocks,1); %store lower x bound of blocks
             xmax = zeros(maxnrblocks,1); %store upper x bound of blocks
             ymin = zeros(maxnrblocks,1); %store lower y bound of blocks
@@ -1179,8 +1519,8 @@ classdef da_pp < dynamicprops
             zmin = zeros(maxnrblocks,1); %store lower z bound of blocks
             zmax = zeros(maxnrblocks,1); %store upper z bound of blocks
             
-            blchecked=zeros(size(topomask)); %mask of blocks which have already been checked
-            indexmask=zeros(size(topomask)); %mask of the indeces of the (new) blocks
+            blchecked=zeros(size(obj.topomask)); %mask of blocks which have already been checked
+            indexmask=zeros(size(obj.topomask)); %mask of the indeces of the (new) blocks
             
             count=0;
             for i=1:obj.imax %loop over all x
@@ -1188,12 +1528,12 @@ classdef da_pp < dynamicprops
                 xmaxl = i;
                 j = 1;
                 while j <= obj.jtot %loop along j
-                    if topomask(j,i)==0 %not a building
+                    if obj.topomask(j,i)==0 %not a building
                         j = j + 1; %check next j
                         continue
                     else
                         yminl = j;                       
-                        heightgradient = diff(topo(j:end, i));                       
+                        heightgradient = diff(obj.topo(j:end, i));                       
                         if isempty(heightgradient) % if at the end of the y-direction (je)
                             heightchangey = j;
                         elseif all(heightgradient == 0) % same block/ floor until the end of the domain
@@ -1235,17 +1575,17 @@ classdef da_pp < dynamicprops
                             %                 end
                             
                             if (i == 1)
-                                if ((any(topo(jj-1:jj,i+1) > 0)) && (topo(jj, i+1) ~= topo(jj-1,i+1)))
+                                if ((any(obj.topo(jj-1:jj,i+1) > 0)) && (obj.topo(jj, i+1) ~= obj.topo(jj-1,i+1)))
                                     heightchangey = jj - 1;
                                     break                                  
                                 end                           
                             elseif (i == obj.imax)                               
-                                if ( any(topo(jj-1:jj,i-1) > 0) && ( topo(jj,i-1)~= topo(jj-1,i-1) ) )
+                                if ( any(obj.topo(jj-1:jj,i-1) > 0) && ( obj.topo(jj,i-1)~= obj.topo(jj-1,i-1) ) )
                                     heightchangey = jj-1;
                                     break                                   
                                 end                               
                             else                                
-                                if (any(topo(jj-1:jj,i-1) > 0) && (topo(jj,i-1) ~= topo(jj-1,i-1))) || ((any(topo(jj-1:jj,i+1)>0)) && (topo(jj,i+1)~= topo(jj-1,i+1)))                               
+                                if (any(obj.topo(jj-1:jj,i-1) > 0) && (obj.topo(jj,i-1) ~= obj.topo(jj-1,i-1))) || ((any(obj.topo(jj-1:jj,i+1)>0)) && (obj.topo(jj,i+1)~= obj.topo(jj-1,i+1)))                               
                                     heightchangey = jj-1; % overwrite heightchangey as we need to truncate block earlier!                                   
                                     break                                    
                                 end                                
@@ -1260,25 +1600,25 @@ classdef da_pp < dynamicprops
                         if yminl == 1
                             ztemp(2,1) = NaN;
                         else
-                            ztemp(2,1) = topo(yminl-1,xminl);
+                            ztemp(2,1) = obj.topo(yminl-1,xminl);
                         end
                         
                         if xminl == 1
                             ztemp(3,1) = NaN;
                         else
-                            ztemp(3,1) = topo(yminl,xminl-1);
+                            ztemp(3,1) = obj.topo(yminl,xminl-1);
                         end
                         
                         if xmaxl == obj.imax
                             ztemp(4,1) = NaN;
                         else
-                            ztemp(4,1) = topo(yminl,xminl+1);
+                            ztemp(4,1) = obj.topo(yminl,xminl+1);
                         end
                         
                         if ymaxl == obj.jtot
                             ztemp(5,1) = NaN;
                         else
-                            ztemp(5,1) = topo(yminl+1,xminl);
+                            ztemp(5,1) = obj.topo(yminl+1,xminl);
                         end
                         
                         %             if xminl==1 && yminl==1
@@ -1301,8 +1641,8 @@ classdef da_pp < dynamicprops
                         %                 ztemp(2,1) = topo(yminl-1,xminl); ztemp(3,1) = topo(yminl,xminl-1); ztemp(4,1) = topo(yminl,xmaxl+1); ztemp(5,1) = topo(ymaxl+1,xmaxl);
                         %             end
                         
-                        zcuttemp = sort(ztemp(ztemp<topo(yminl, xminl) & ztemp>0));
-                        zcut = [0; zcuttemp; topo(yminl,xminl)];
+                        zcuttemp = sort(ztemp(ztemp<obj.topo(yminl, xminl) & ztemp>0));
+                        zcut = [0; zcuttemp; obj.topo(yminl,xminl)];
                         
                         for kc=1:size(zcut,1)-1                           
                             count=count+1;                            
@@ -1358,9 +1698,9 @@ classdef da_pp < dynamicprops
                     b2 = bv(ymin2(bv)==ymin2(i)); %all of those blocks with also the same lower y bound
                     b3 = b2(zmin2(b2)==zmin2(i));
                     if ~isempty(b3)
-                        if all(ymax2(b3) == ymax2(i)) && all(zmax2(b3) == zmax2(i)) && topo(ymin2(b3),xmin2(b3)) == topo(ymin2(i), xmin2(i)) %&& all(zmin2(b2)==zmin2(i)) %if they also have the same upper y bound and the same height
+                        if all(ymax2(b3) == ymax2(i)) && all(zmax2(b3) == zmax2(i)) && obj.topo(ymin2(b3),xmin2(b3)) == obj.topo(ymin2(i), xmin2(i)) %&& all(zmin2(b2)==zmin2(i)) %if they also have the same upper y bound and the same height
                             % additional check to make sure we do not merge blocks in a way that causes internal-external facets at this point
-                            if (topo(max(1,ymin2(b3)-1),xmax2(b3)) == topo(max(1,ymin2(i)-1),xmax2(i))) && (topo(min(ymax2(b3)+1, obj.jtot),xmax2(b3)) == topo(min(ymax2(i)+1, obj.jtot), xmax2(i)))
+                            if (obj.topo(max(1,ymin2(b3)-1),xmax2(b3)) == obj.topo(max(1,ymin2(i)-1),xmax2(i))) && (obj.topo(min(ymax2(b3)+1, obj.jtot),xmax2(b3)) == obj.topo(min(ymax2(i)+1, obj.jtot), xmax2(i)))
                                 xmax2(i) = xmax2(b3); %merge
                                 xmax2(b3) = []; ymax2(b3) = []; zmax2(b3)  =[]; xmin2(b3) = []; ymin2(b3) = []; zmin2(b3) = []; %remove the just merged block from list of blocks
                             end
@@ -1378,10 +1718,10 @@ classdef da_pp < dynamicprops
             %disp(['Number of blocks after merging y slices of same size along x: ' num2str(count2)])
             
             %make fields again
-            datamean1=zeros(size(topomask));
-            datamean2=zeros(size(topomask));
-            datamean3=zeros(size(topomask));
-            indexmask2=zeros(size(topomask));
+            datamean1=zeros(size(obj.topomask));
+            datamean2=zeros(size(obj.topomask));
+            datamean3=zeros(size(obj.topomask));
+            indexmask2=zeros(size(obj.topomask));
             
             %make new matrices
             for i=1:count
@@ -1631,9 +1971,9 @@ classdef da_pp < dynamicprops
             %use that all neighbours have the same size in 1 dimension % tg3315 mot
             %true now...
             
-            datamean4 = zeros(size(topomask));
-            indexmask4 = zeros(size(topomask));
-            internalmask = zeros(size(topomask));
+            datamean4 = zeros(size(obj.topomask));
+            indexmask4 = zeros(size(obj.topomask));
+            internalmask = zeros(size(obj.topomask));
             
             
             for i = 1:count3
@@ -1655,22 +1995,22 @@ classdef da_pp < dynamicprops
                 if xmin3(i) == 1 %at edge
                     temp1(:,1) = 999999;    %dummy value
                 else
-                    temp1(:,1) = topo(yind,xmin3(i)) - topo(yind,xmin3(i)-1); % tg3315 changed so do not get internal blocks with adjacent different sizes %indexmask4(yind, xmin3(i)-1);
+                    temp1(:,1) = obj.topo(yind,xmin3(i)) - obj.topo(yind,xmin3(i)-1); % tg3315 changed so do not get internal blocks with adjacent different sizes %indexmask4(yind, xmin3(i)-1);
                 end
                 if xmax3(i) == obj.imax %at edge
                     temp1(:,2) = 999999;
                 else
-                    temp1(:,2) = topo(yind,xmax3(i)) - topo(yind,xmax3(i)+1); %indexmask4(yind, xmax3(i)+1);
+                    temp1(:,2) = obj.topo(yind,xmax3(i)) - obj.topo(yind,xmax3(i)+1); %indexmask4(yind, xmax3(i)+1);
                 end
                 if ymin3(i) == 1 %at edge
                     temp2(1,:) = 999999;    %dummy value
                 else
-                    temp2(1,:) = topo(ymin3(i),xind) - topo(ymin3(i)-1,xind); %indexmask4(ymin3(i)-1,xind)    ;
+                    temp2(1,:) = obj.topo(ymin3(i),xind) - obj.topo(ymin3(i)-1,xind); %indexmask4(ymin3(i)-1,xind)    ;
                 end
                 if ymax3(i) == obj.jtot %at edge
                     temp2(2,:) = 999999;    %dummy value
                 else
-                    temp2(2,:) = topo(ymax3(i),xind) - topo(ymax3(i)+1,xind); %indexmask4(ymax3(i)+1,xind)  ;
+                    temp2(2,:) = obj.topo(ymax3(i),xind) - obj.topo(ymax3(i)+1,xind); %indexmask4(ymax3(i)+1,xind)  ;
                 end
                 
                 temp=[temp1(:)' temp2(:)'];
@@ -1678,7 +2018,7 @@ classdef da_pp < dynamicprops
                     internalmask(yind,xind) = 1;
                 end
             end
-            externalmask = topomask - internalmask;
+            externalmask = obj.topomask - internalmask;
              
 %             if ltestplot
 %                 figure
@@ -1746,8 +2086,8 @@ classdef da_pp < dynamicprops
 %             end
             
             %make blocks
-            datamean5 = zeros(size(topomask));
-            dataind = zeros(size(topomask));
+            datamean5 = zeros(size(obj.topomask));
+            dataind = zeros(size(obj.topomask));
             for i = 1:count5
                 datamean5(ymin5(i):ymax5(i),xmin5(i):xmax5(i)) = zmax5(i);
                 dataind(ymin5(i):ymax5(i),xmin5(i):xmax5(i)) = i;
@@ -1860,6 +2200,7 @@ classdef da_pp < dynamicprops
             %fclose(fileID);
             
             obj.blocks = [xmin5 xmax5 ymin6 ymax6 zmin5 zmax5 dummy];
+           
             
             %write block file to use for test of ray intersection (without roads that will be added to blocks.inp)
             %already raise by 1 (because of roads, is done to blocks.inp.xxx later)
@@ -4753,10 +5094,10 @@ classdef da_pp < dynamicprops
                     if (cobb(1, 3) < coaa(1, 3)) %j starts lower than height of i
                         cobb(1, 3) = coaa(1, 3); %slice j on same height as i
                         cobb(4, 3) = coaa(1, 3); %slice j on same height as i
-                        pf1sf2u = 2 * cornerweight; %add 2*cornerweight since lower corner now is visible
+                        pf1sf2u = 2 * obj.cornerweight; %add 2*cornerweight since lower corner now is visible
                         nottested = 0;
                         if  cob(1,3) <= coaa(1, 3) %if center of j is lower than height also add centerweight
-                            pf1sf2u = 2 * cornerweight + centerweight;
+                            pf1sf2u = 2 * obj.cornerweight + obj.centerweight;
                         end
                     end
                     
@@ -4835,7 +5176,7 @@ classdef da_pp < dynamicprops
                         if (coaa(1, 3) < cobb(1, 3)) %i starts lower than height of j
                             coaa(1, 3) = cobb(1, 3); %slice i on same height as j
                             coaa(4, 3) = cobb(1, 3); %slice i on same height as j
-                            pf1sf2u = 2 * cornerweight; %add 2*cornerweight since lower corner now is visible
+                            pf1sf2u = 2 * obj.cornerweight; %add 2*cornerweight since lower corner now is visible
                             if  coa(1,3) <= cobb(1, 3) %if center of i is lower than height also add centerweight
                                 pf1sf2u = 2 * obj.cornerweight + obj.centerweight;
                             end
