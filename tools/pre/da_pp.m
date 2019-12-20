@@ -1,5 +1,5 @@
 classdef da_pp < dynamicprops
-    % Class for storing input parameters to uDALES.
+    % Class for pre-processing in uDALES 
     %
     properties (Hidden = true, SetAccess = protected)
         path;                    % Path to simulations.
@@ -165,7 +165,7 @@ classdef da_pp < dynamicprops
                 disp(['Possible jtot: ' num2str([2 3 4 5 6 7 8] * ncpus)])
                 error('No. CPUs does not fit j grid size')
             else
-                disp('cpus and jtot successful')
+                %disp('cpus and jtot successful')
             end
             
             % Blocks
@@ -174,7 +174,7 @@ classdef da_pp < dynamicprops
             da_pp.addvar(obj, 'lblocks', 0) % switch for infinite blocks
             if (not(obj.lcastro) && not(obj.lcube) && not(obj.lblocks))
                 da_pp.addvar(obj, 'lflat',1)
-                disp('No standard block config. setup so flat domain assumed.')
+                %disp('No standard block config. setup so flat domain assumed.')
             else
                 da_pp.addvar(obj, 'lflat',0)
             end
@@ -189,7 +189,7 @@ classdef da_pp < dynamicprops
             da_pp.addvar(obj, 'lcoriol', 0)    % switch for coriolis forcing
             if (not(obj.lmassflowr) && not(obj.lprofforc) && not(obj.lcoriol))
                 da_pp.addvar(obj, 'ldp', 1)
-                disp('No forcing switch config. setup so initial velocities and pressure gradients applied.')
+                %disp('No forcing switch config. setup so initial velocities and pressure gradients applied.')
             else
                 da_pp.addvar(obj, 'ldp', 0)
             end
@@ -221,16 +221,13 @@ classdef da_pp < dynamicprops
             da_pp.addvar(obj, 'Teast', 288)
             da_pp.addvar(obj, 'Tnorth', 288)
             da_pp.addvar(obj, 'Tsouth', 288)
-            
-            
-            
+                  
             % Pollutants/chemistry
             da_pp.addvar(obj, 'nsv', 0)
             da_pp.addvar(obj, 'lchem' , 0) % switch for chemistry
             da_pp.addvar(obj, 'NOb' , 0)
             da_pp.addvar(obj, 'NO2b', 0)
             da_pp.addvar(obj, 'O3b', 0)
-            
             
             % Trees
             da_pp.addvar(obj, 'ltrees', 0)
@@ -273,8 +270,8 @@ classdef da_pp < dynamicprops
                         disp(['Current width: ' num2str(obj.purif_dy + obj.purif_sp)])
                         error('Incorrect purifier layout')
                     else
-                        disp('Successful purifer layout')
-                        disp(['Number of purifiers: ' num2str(npurif*2+1)])
+                        %disp('Successful purifer layout')
+                        %disp(['Number of purifiers: ' num2str(npurif*2+1)])
                     end
                 else
                     error('Must use lblocks configuration to use purifiers')
@@ -291,15 +288,33 @@ classdef da_pp < dynamicprops
             da_pp.addvar(obj, 'Dsk', 418.8041); % Diffuse incoming radiation [W/m2] - previously Dsk
         end
         
-        function generate_xygrid(obj, lwritefile)
+        function plot_profiles(obj)
+            figure
+            subplot(141)
+            plot(obj.pr(:, 2), 1:obj.kmax)
+            title('Temperature')
+
+            subplot(142)
+            plot(obj.ls(:, 10), 1:obj.kmax)
+            title('Radiative forcing')
+
+            subplot(143)
+            plot(obj.ls(:, 6), 1:obj.kmax)
+            title('Subsidence')
+
+            subplot(144)
+            plot(obj.ls(:,2), 1:obj.kmax)
+            hold on
+            plot(obj.ls(:,3), 1:obj.kmax, 'r--')
+            title('Velocity')
+            legend('u', 'v')    
+        end
+        
+        function generate_xygrid(obj)
              da_pp.addvar(obj, 'xf', 0.5 * obj.dx : obj.dx : obj.xsize - 0.5 * obj.dx); 
              da_pp.addvar(obj, 'yf', 0.5 * obj.dy : obj.dy : obj.ysize - 0.5 * obj.dy);
              da_pp.addvar(obj, 'xh', 0 : obj.dx : obj.xsize);
              da_pp.addvar(obj, 'yh', 0 : obj.dy : obj.ysize);
-             
-             if lwritefile
-                da_pp.write_xgrid(obj);
-             end
         end
         
         function write_xgrid(obj)
@@ -308,10 +323,10 @@ classdef da_pp < dynamicprops
             fprintf(xgrid, '%12s\n', '#           ');
             fprintf(xgrid, '%-20.15f\n', obj.xf);
             fclose(xgrid);
-            disp(['... written xgrid.inp.' obj.expnr]) 
+            %disp(['... written xgrid.inp.' obj.expnr]) 
         end
         
-        function generate_zgrid(obj, lwritefile)
+        function generate_zgrid(obj)
             if ~obj.lzstretch
                 da_pp.addvar(obj, 'zf', 0.5 * obj.dz : obj.dz : obj.zsize - 0.5 * obj.dz);
                 da_pp.addvar(obj, 'zh', 0 : obj.dz : obj.zsize);
@@ -324,12 +339,8 @@ classdef da_pp < dynamicprops
                 elseif stretch == "2tanh"
                     da_pp.stretch_2tanh(obj, stretch)                   
                 else
-                    disp('Invalid stretch');
+                    error('Invalid stretch');
                 end
-            end
-            
-            if lwritefile
-                da_pp.write_zgrid(obj);
             end
         end
         
@@ -350,7 +361,7 @@ classdef da_pp < dynamicprops
                 obj.zh(il + 1:end) = obj.zh(il + 1) + (obj.zsize - obj.zh(il+1)) * (exp(gf * (0:1:ir) / (ir)) - 1)/(exp(gf) - 1); %dh has been replaced by zsize                
                 if (obj.zh(il+2) - obj.zh(il + 1)) < obj.dz
                     gf = gf - 0.01; %make sufficiently small steps to avoid an initial bump in dz
-                    disp(['Decreasing stretchconst to:' num2str(gf)])
+                    %disp(['Decreasing stretchconst to:' num2str(gf)])
                     
                 else
                     if (obj.zh(end) - obj.zh(end - 1)) > 3 * obj.dz
@@ -366,7 +377,7 @@ classdef da_pp < dynamicprops
                 obj.dzf(i) = obj.zh(i+1) - obj.zh(i);
             end
             
-            disp(['growth factor ~' num2str((obj.dzf(il+1)/obj.dzf(il)-1)*100) '-' num2str((obj.dzf(end)/obj.dzf(end-1)-1)*100) '%'])
+            %disp(['growth factor ~' num2str((obj.dzf(il+1)/obj.dzf(il)-1)*100) '-' num2str((obj.dzf(end)/obj.dzf(end-1)-1)*100) '%'])
         end
         
         function stretch_tanh(obj, stretchconst)
@@ -387,7 +398,7 @@ classdef da_pp < dynamicprops
 
             if (obj.zh(il + 2) - obj.zh(il + 1)) < obj.dz
                 gf = gf - 0.01; %make sufficiently small steps to avoid an initial bump in dz
-                disp(['Decreasing stretchconst to:' num2str(gf)])
+                %disp(['Decreasing stretchconst to:' num2str(gf)])
 
             else
                 if (obj.zh(end) - obj.zh(end - 1)) > 3 * obj.dz
@@ -403,7 +414,7 @@ classdef da_pp < dynamicprops
                 obj.dzf(i) = obj.zh(i+1) - obj.zh(i);
             end
 
-            disp(['growth factor ~' num2str((obj.dzf(il+1) / obj.dzf(il) - 1) * 100) '-' num2str((obj.dzf(end) / dzf(end-1)-1)*100) '%'])
+            %disp(['growth factor ~' num2str((obj.dzf(il+1) / obj.dzf(il) - 1) * 100) '-' num2str((obj.dzf(end) / dzf(end-1)-1)*100) '%'])
         end
         
         function stretch_2tanh(obj, stretchconst)
@@ -424,7 +435,7 @@ classdef da_pp < dynamicprops
                 
                 if (obj.zh(il + 2) - obj.zh(il + 1)) < obj.dz
                     gf = gf - 0.01; %make sufficiently small steps to avoid an initial bump in dz
-                    disp(['Decreasing stretchconst to:' num2str(gf)])
+                    %disp(['Decreasing stretchconst to:' num2str(gf)])
                     
                 else
                     if (max(diff(obj.zh))) > 3 * dz
@@ -438,7 +449,7 @@ classdef da_pp < dynamicprops
                 obj.zf(i) = (obj.zh(i) + obj.zh(i+1)) / 2 ;
                 obj.dzf(i) = obj.zh(i+1) - obj.zh(i);
             end            
-            disp(['growth factor ~' num2str((obj.dzf(il+1)/obj.dzf(il)-1)*100) '-' num2str((obj.dzf(end)/obj.dzf(end-1)-1)*100) '%'])            
+            %disp(['growth factor ~' num2str((obj.dzf(il+1)/obj.dzf(il)-1)*100) '-' num2str((obj.dzf(end)/obj.dzf(end-1)-1)*100) '%'])            
         end
         
         function write_zgrid(obj)
@@ -447,10 +458,10 @@ classdef da_pp < dynamicprops
             fprintf(zgrid, '%12s\n', '#           ');
             fprintf(zgrid, '%-20.15f\n', obj.zf);
             fclose(zgrid);
-            disp(['... written zgrid.inp.' obj.expnr]) 
+            %disp(['... written zgrid.inp.' obj.expnr]) 
         end
         
-        function generate_lscale(obj, lwritefile)
+        function generate_lscale(obj)
             if (obj.lmassflowr + obj.lprofforc + obj.lcoriol + obj.ldp) > 1
                 error('More than one forcing specified')
             end
@@ -466,10 +477,6 @@ classdef da_pp < dynamicprops
                 obj.ls(:,4) = obj.dpdx;
                 obj.ls(:,5) = obj.dpdy;
             end
-            
-            if lwritefile
-                da_pp.write_lscale(obj);
-            end
         end
         
         function write_lscale(obj)
@@ -478,10 +485,10 @@ classdef da_pp < dynamicprops
             fprintf(lscale, '%-60s\n', '# z uq vq pqx pqy wfls dqtdxls dqtdyls dqtdtls dthlrad');
             fprintf(lscale, '%-20.15f %-12.6f %-12.6f %-12.6f %-12.6f %-15.9f %-12.6f %-12.6f %-12.6f %-17.12f\n', obj.ls');
             fclose(lscale);
-            disp(['... written lscale.inp.' obj.expnr]) 
+            %disp(['... written lscale.inp.' obj.expnr]) 
         end
         
-        function generate_prof(obj, lwritefile)
+        function generate_prof(obj)
             da_pp.addvar(obj, 'pr', zeros(length(obj.zf), 6));
             obj.pr(:,1) = obj.zf;
             
@@ -500,10 +507,6 @@ classdef da_pp < dynamicprops
             obj.pr(:,4) = obj.u0;
             obj.pr(:,5) = obj.v0;
             %pr(:,6) = tke;
-            
-            if lwritefile
-                da_pp.write_prof(obj)
-            end
         end
         
         function write_prof(obj)
@@ -512,10 +515,10 @@ classdef da_pp < dynamicprops
             fprintf(prof, '%-60s\n', '# z thl qt u v tke');
             fprintf(prof, '%-20.15f %-12.6f %-12.6f %-12.6f %-12.6f %-12.6f\n', obj.pr');
             fclose(prof);
-            disp(['... written prof.inp.' obj.expnr])
+            %disp(['... written prof.inp.' obj.expnr])
         end
         
-        function generate_scalar(obj, lwritefile)
+        function generate_scalar(obj)
             if obj.lchem
                 % Do something
             else
@@ -529,26 +532,22 @@ classdef da_pp < dynamicprops
                 obj.sc(:,2) = obj.sv10;
                 obj.sc(:,3) = obj.sv20;
             end
-            
-            if lwritefile
-                if obj.nsv > 0
-                    da_pp.write_scalar(obj)
-                end
-            end
         end
         
         function write_scalar(obj)
-            scalar = fopen(['scalar.inp.' obj.expnr], 'w');
-            fprintf(scalar, '%-12s\n', '# SDBL flow');
-            fprintf(scalar, '%-60s\n', '# z sca1 sca2 sca3 sca4');
-            fprintf(scalar, '%-20.15f %-14.10f %-14.10f %-14.10f %-14.10f\n', obj.sc');
-            fclose(scalar);
-            disp(['... written scalar.inp.' obj.expnr]) 
+            if obj.nsv > 0
+                scalar = fopen(['scalar.inp.' obj.expnr], 'w');
+                fprintf(scalar, '%-12s\n', '# SDBL flow');
+                fprintf(scalar, '%-60s\n', '# z sca1 sca2 sca3 sca4');
+                fprintf(scalar, '%-20.15f %-14.10f %-14.10f %-14.10f %-14.10f\n', obj.sc');
+                fclose(scalar);
+                %disp(['... written scalar.inp.' obj.expnr])
+            end
         end
         
-        function generate_blocks(obj, lwritefile)
+        function generate_blocks(obj)
             %aspectratio = r.zh(r.blockheight+1)/(r.xh(r.canyonwidth+1)-r.xh(1));
-            aspectratio = obj.zh(obj.blockheight + 1) / (obj.xh(obj.canyonwidth + 1) - obj.xh(1));
+            %aspectratio = obj.zh(obj.blockheight + 1) / (obj.xh(obj.canyonwidth + 1) - obj.xh(1));
             %nrows = ie/(r.blockwidth+r.canyonwidth);
             da_pp.addvar(obj, 'nrows', obj.imax / (obj.blockwidth + obj.canyonwidth));
             
@@ -567,8 +566,8 @@ classdef da_pp < dynamicprops
                 disp(['Current width: ' num2str(obj.blockwidth + obj.canyonwidth)])
                 error('Incorrect block system')
             else
-                disp('Successful block network')
-                disp(['aspect ratio: ' num2str(aspectratio)])
+                %disp('Successful block network')
+                %disp(['aspect ratio: ' num2str(aspectratio)])
             end 
             
             if obj.lflat
@@ -602,12 +601,12 @@ classdef da_pp < dynamicprops
                                 %bl(length(nonzeros(bl(:,3)))+1,3) = jb + nn * r.blockwidth*2 - r.blockwidth/2;
                                 obj.bl(length(nonzeros(obj.bl(:,3))) + 1, 3) = obj.jmin + nn * obj.blockwidth * 2 - obj.blockwidth / 2;
                                 %bl(length(nonzeros(bl(:,4)))+1,4) = bl(length(nonzeros(bl(:,4)))+1,3) + r.blockwidth - 1;
-                                obj.bl(length(nonzeros(obj.bl(:,4))) + 1, 4) = bl(length(nonzeros(obj.bl(:,4))) + 1, 3) + obj.blockwidth - 1;
+                                obj.bl(length(nonzeros(obj.bl(:,4))) + 1, 4) = obj.bl(length(nonzeros(obj.bl(:,4))) + 1, 3) + obj.blockwidth - 1;
                             end
                             %bl(length(nonzeros(bl(:,1)))+1,1) = -0.5*r.blockwidth + (2*n-1) * r.blockwidth + 1;
                             obj.bl(length(nonzeros(obj.bl(:,1))) + 1, 1) = - 0.5 * obj.blockwidth + (2 * n - 1) * obj.blockwidth + 1;
                             %bl(length(nonzeros(bl(:,2)))+1,2) = bl(length(nonzeros(bl(:,2)))+1,1) + r.blockwidth - 1;
-                            obj.bl(length(nonzeros(obj.bl(:,2))) + 1, 2) = bl(length(nonzeros(obj.bl(:,2)))+1,1) + obj.blockwidth - 1;
+                            obj.bl(length(nonzeros(obj.bl(:,2))) + 1, 2) = obj.bl(length(nonzeros(obj.bl(:,2)))+1,1) + obj.blockwidth - 1;
                         end
                     end
                     for nn = 0:obj.ncolumns - 1
@@ -615,11 +614,11 @@ classdef da_pp < dynamicprops
                             %bl(length(nonzeros(bl(:,3)))+1,3) = jb + r.blockwidth + nn * r.blockwidth*2 - r.blockwidth/2;
                             obj.bl(length(nonzeros(obj.bl(:,3))) + 1, 3) = obj.jmin + obj.blockwidth + nn * obj.blockwidth * 2 - obj.blockwidth / 2;
                             %bl(length(nonzeros(bl(:,4)))+1,4) = bl(length(nonzeros(bl(:,4)))+1,3) + r.blockwidth - 1;
-                            obj.bl(length(nonzeros(obj.bl(:,4))) + 1, 4) = bl(length(nonzeros(obj.bl(:,4))) + 1,3) + obj.blockwidth - 1;
+                            obj.bl(length(nonzeros(obj.bl(:,4))) + 1, 4) = obj.bl(length(nonzeros(obj.bl(:,4))) + 1,3) + obj.blockwidth - 1;
                             %bl(length(nonzeros(bl(:,1)))+1,1) = -0.5*r.blockwidth + (2*n-1) * r.blockwidth + 1;
                             obj.bl(length(nonzeros(obj.bl(:,1))) + 1, 1) = - 0.5 * obj.blockwidth + (2 * n - 1) * obj.blockwidth + 1;
                             %bl(length(nonzeros(bl(:,2)))+1,2) = bl(length(nonzeros(bl(:,2)))+1,1) + r.blockwidth - 1;
-                            obj.bl(length(nonzeros(obj.bl(:,2))) + 1, 2) = bl(length(nonzeros(bl(:,2))) +1 , 1) + obj.blockwidth - 1;
+                            obj.bl(length(nonzeros(obj.bl(:,2))) + 1, 2) = obj.bl(length(nonzeros(obj.bl(:,2))) +1 , 1) + obj.blockwidth - 1;
                         end
 
                     end
@@ -668,23 +667,6 @@ classdef da_pp < dynamicprops
             da_pp.addvar(obj, 'blocks', zeros(1,11));
             da_pp.addvar(obj, 'facets', zeros(1,4));
             
-            dx = obj.xsize/obj.imax;
-            dy = obj.ysize/obj.jtot;
-            dz = obj.zsize/obj.kmax;
-            dh = obj.zsize;
-            ni = obj.imax;
-            nj = obj.jtot;
-            nk = obj.kmax;
-            zh = obj.zh;
-            xh=obj.xh;
-            yh=obj.yh;
-            dzf=obj.zh(2:end)-obj.zh(1:end-1);
-            
-            ltestplot = 0; % Put switches as input somewhere
-            lhqplot = 0;   % 
-            lradiation = obj.lEB;
-            expnr = obj.expnr;
-            
             %maximum size of floors and bounding walls (cells in each dimension)
             if obj.lEB
                 da_pp.addvar(obj, 'maxsize', 10); % Add to namoptions
@@ -693,9 +675,6 @@ classdef da_pp < dynamicprops
             end
             
             obj.blocks = obj.bl;
-            
-            topomask = zeros(nj,ni);
-            topo = zeros(nj,ni);
             
             % if no blocks add lowest level
 %             if isnan(obj.blocks)
@@ -709,47 +688,475 @@ classdef da_pp < dynamicprops
             %bl2blocks_temp
             %makeblocks
             
-            DA_PREDIR = getenv('DA_PREDIR');
-            da_pp.addvar(obj, 'walltypes', dlmread([DA_PREDIR, '/default/walltypes.inp.xxx'],'',3,0));
-            copyfile([DA_PREDIR, '/default/walltypes.inp.xxx'], ['walltypes.inp.', obj.expnr]);
-            %da_pp.addvar(obj, 'walltypes', dlmread(['walltypes.inp.', obj.expnr],'',3,0));
-            da_pp.makeblocks(obj, false, false)  
-            %block2fac
-            da_pp.block2fac(obj, false)
-            da_pp.addvar(obj, 'nboundingwallfacets', 0)
-            if obj.lEB
-                da_pp.addboundingwalls(obj)
-                %addboundingwalls
-            %else
-                %obj.nboundingwallfacets = 0;
-            end
-            %createfloors
-            da_pp.createfloors(obj, false, false);
-            
-            if obj.lEB
-                da_pp.vsolc(obj, false, false)
-                da_pp.vfc(obj, true)
-                da_pp.rayit(obj, false, false, true)
-                da_pp.generate_Tfacinit(obj, false, true)
-            end
-            
-            if lwritefile
-                da_pp.write_blocks(obj);
-            end
-            
-            if lwritefile
-                da_pp.write_facets(obj);
-            end
-            
-            if ~obj.lEB
-                if lwritefile
-                    da_pp.write_Tfac(obj); % switch in write Tfac
+         
+            da_pp.makeblocks(obj)  
+        end
+               
+        function plot_bl(obj)
+            figure
+            title('Blocks (old)')
+            view(52, 23)
+            if (obj.lcastro || obj.lcube || obj.lblocks)
+                for i = 1:size(obj.bl, 1)
+                    patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1)  obj.xh(obj.bl(i,1))], [obj.yh(obj.bl(i,3))  obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1)], [obj.zh(obj.bl(i,6)+1)  obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1)], [245 245 245] ./ 255)
+                    patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) ], [obj.yh(obj.bl(i,3))  obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3))], [obj.bl(i,5)  obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.bl(i,5)], [245 245 245] ./ 255)
+                    patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) ], [obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1)], [obj.bl(i,5)  obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.bl(i,5)], [245 245 245] ./ 255)
+                    patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) ], [obj.yh(obj.bl(i,4)+1)  obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3))], [obj.bl(i,5)  obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.bl(i,5)], [245 245 245] ./ 255)
+                    patch([obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) ], [obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1)], [obj.bl(i,5)  obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.bl(i,5)], [245 245 245] ./ 255)
+                    % patch([xh(1) xh(end) xh(end)  xh(1)], [yh(1)  yh(1) yh(end) yh(end)], [zh(1)  zh(1) zh(1) zh(1)], [245 245 245] ./ 255)
+                end
+                
+            elseif obj.lflat
+                
+            else
+                for i = 1:size(obj.bl, 1)
+                    patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,1))], [obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1)], [obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1)], 'w')
+                    patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) ], [obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3))], [obj.bl(i,5) obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.bl(i,5)], 'w')
+                    patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) ], [obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1)], [obj.bl(i,5) obj.zh(bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.bl(i,5)], 'w')
+                    patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1))], [obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3))], [obj.bl(i,5) obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.bl(i,5)], 'w')
+                    patch([obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) ], [obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1)], [obj.bl(i,5) obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.bl(i,5)], 'w')
                 end
             end
             
+            zlim([0 obj.zh(end)]); %/(r.blockheight-1))
+            xlim([0 obj.xh(end)]); %/(r.blockheight-1))
+            ylim([0 obj.yh(end)]); %/(r.blockheight-1))
+
+            set(gca,'ticklabelinterpreter','latex')
+            xlabel('x [m]','interpreter','latex')
+            ylabel('y [m]','interpreter','latex')
+            zlabel('z [m]','interpreter','latex')
+            set(gca,'BoxStyle','full','Box','on')
+            daspect([1 1 1])
+            
         end
         
-        function makeblocks(obj, ltestplot, lhqplot)
+        
+        function plot_blocks(obj)
+            figure
+            title('Blocks')
+            view(52, 23)
+        for i = 1:obj.nblockstotal
+            il = obj.blocks(i,1);
+            iu = obj.blocks(i,2);
+            jl = obj.blocks(i,3);
+            ju = obj.blocks(i,4);
+            kl = obj.blocks(i,5);
+            ku = obj.blocks(i,6);
+            
+            if i <= obj.nblocks
+%             if il == 0
+%                 il = il + 1;
+%             end
+%             if jl == 0
+%                 jl = jl + 1;
+%             end
+%             if kl == 0
+%                 kl = kl + 1;
+%             end
+%             if ku == 0
+%                 ku = ku + 1;
+%             end
+                           
+            patch([obj.xh(il)   obj.xh(iu+1) obj.xh(iu+1) obj.xh(il)]  , [obj.yh(jl)   obj.yh(jl)   obj.yh(ju+1) obj.yh(ju+1)], [obj.zh(ku+1) obj.zh(ku+1) obj.zh(ku+1) obj.zh(ku+1)], [245 245 245] ./ 255)
+            patch([obj.xh(il)   obj.xh(il)   obj.xh(iu+1) obj.xh(iu+1)], [obj.yh(jl)   obj.yh(jl)   obj.yh(jl)   obj.yh(jl)],   [obj.zh(kl)   obj.zh(ku+1) obj.zh(ku+1) obj.zh(kl)], [245 245 245] ./ 255)
+            patch([obj.xh(il)   obj.xh(il)   obj.xh(iu+1) obj.xh(iu+1)], [obj.yh(ju+1) obj.yh(ju+1) obj.yh(ju+1) obj.yh(ju+1)], [obj.zh(kl)   obj.zh(ku+1) obj.zh(ku+1) obj.zh(kl)], [245 245 245] ./ 255)
+            patch([obj.xh(il)   obj.xh(il)   obj.xh(il)   obj.xh(il)]  , [obj.yh(ju+1) obj.yh(ju+1) obj.yh(jl)   obj.yh(jl)],   [obj.zh(kl)   obj.zh(ku+1) obj.zh(ku+1) obj.zh(kl)], [245 245 245] ./ 255)
+            patch([obj.xh(iu+1) obj.xh(iu+1) obj.xh(iu+1) obj.xh(iu+1)], [obj.yh(jl)   obj.yh(jl)   obj.yh(ju+1) obj.yh(ju+1)], [obj.zh(kl)   obj.zh(ku+1) obj.zh(ku+1) obj.zh(kl)], [245 245 245] ./ 255)
+            
+            else
+            patch([obj.xh(il)   obj.xh(iu+1) obj.xh(iu+1) obj.xh(il)]  , [obj.yh(jl)   obj.yh(jl)   obj.yh(ju+1) obj.yh(ju+1)], [obj.zh(ku+1) obj.zh(ku+1) obj.zh(ku+1) obj.zh(ku+1)], [245 245 245] ./ 255)
+            patch([obj.xh(il)   obj.xh(il)   obj.xh(iu+1) obj.xh(iu+1)], [obj.yh(jl)   obj.yh(jl)   obj.yh(jl)   obj.yh(jl)],   [0            obj.zh(ku+1) obj.zh(ku+1)            0], [245 245 245] ./ 255)
+            patch([obj.xh(il)   obj.xh(il)   obj.xh(iu+1) obj.xh(iu+1)], [obj.yh(ju+1) obj.yh(ju+1) obj.yh(ju+1) obj.yh(ju+1)], [0            obj.zh(ku+1) obj.zh(ku+1)            0], [245 245 245] ./ 255)
+            patch([obj.xh(il)   obj.xh(il)   obj.xh(il)   obj.xh(il)]  , [obj.yh(ju+1) obj.yh(ju+1) obj.yh(jl)   obj.yh(jl)],   [0            obj.zh(ku+1) obj.zh(ku+1)            0], [245 245 245] ./ 255)
+            patch([obj.xh(iu+1) obj.xh(iu+1) obj.xh(iu+1) obj.xh(iu+1)], [obj.yh(jl)   obj.yh(jl)   obj.yh(ju+1) obj.yh(ju+1)], [0            obj.zh(ku+1) obj.zh(ku+1)            0], [245 245 245] ./ 255)    
+            end
+                
+        end
+            
+            zlim([0 obj.zh(end)]); %/(r.blockheight-1))
+            xlim([0 obj.xh(end)]); %/(r.blockheight-1))
+            ylim([0 obj.yh(end)]); %/(r.blockheight-1))
+
+            set(gca,'ticklabelinterpreter','latex')
+            xlabel('x [m]','interpreter','latex')
+            ylabel('y [m]','interpreter','latex')
+            zlabel('z [m]','interpreter','latex')
+            set(gca,'BoxStyle','full','Box','on')
+            daspect([1 1 1])
+        end
+        
+        function generate_facets(obj)
+            da_pp.block2fac(obj)
+            da_pp.addvar(obj, 'nboundingwallfacets', 0)
+            if obj.lEB
+                da_pp.addboundingwalls(obj)
+            end
+            da_pp.createfloors(obj);
+        end
+              
+        
+        function plot_facets(obj)
+            figure
+            cmap = colormap('parula');
+            top = 1; west = 2; east = 3; north = 4; south = 5; bot = 6;
+            for i = 1:obj.nfcts
+                il = obj.facets(i, 6); iu = obj.facets(i, 7);
+                jl = obj.facets(i, 8); ju = obj.facets(i, 9);
+                kl = obj.facets(i, 10); ku = obj.facets(i, 11);
+                if i <= obj.nblockfcts
+                switch obj.facets(i, 1)
+                    case {east, west}
+                        x = [obj.xh(il), obj.xh(il), obj.xh(il), obj.xh(il)];
+                        y = [obj.yh(jl), obj.yh(jl), obj.yh(ju), obj.yh(ju)];
+                        if kl == 0 && ku == 0
+                            z = [0, 0, 0, 0];
+                        elseif kl == 0 && ku ~= 0
+                            z = [0, obj.zh(ku), obj.zh(ku), 0];
+                        else
+                            z = [obj.zh(kl), obj.zh(ku), obj.zh(ku), obj.zh(kl)];
+                        end
+                    case {north, south}
+                        x = [obj.xh(il), obj.xh(iu), obj.xh(iu), obj.xh(il)];
+                        y = [obj.yh(jl), obj.yh(jl), obj.yh(jl), obj.yh(jl)];
+                        if kl == 0 && ku == 0
+                            z = [0, 0, 0, 0];
+                        elseif kl == 0 && ku ~= 0
+                            z = [0, 0, obj.xh(ku), obj.xh(ku)];
+                        else
+                            z = [obj.zh(kl), obj.zh(kl), obj.zh(ku), obj.zh(ku)];
+                        end
+                    case {top, bot}
+                        x = [obj.xh(il), obj.xh(iu), obj.xh(iu), obj.xh(il)];
+                        y = [obj.yh(jl), obj.yh(jl), obj.yh(ju), obj.yh(ju)];
+                        
+                        if kl == 0
+                            z = [0, 0, 0, 0];
+                        else
+                            z = [obj.zh(kl), obj.zh(kl), obj.zh(kl), obj.zh(kl)];
+                        end
+                end
+                
+                elseif i <= obj.nblockfcts + obj.nboundingwallfacets
+                switch obj.facets(i, 1)
+                    case east
+                        ju = ju + 1;
+                        kl = kl + 1;
+                        ku = ku + 2;
+                        x = [obj.xh(il), obj.xh(il), obj.xh(il), obj.xh(il)];
+                        y = [obj.yh(jl), obj.yh(jl), obj.yh(ju), obj.yh(ju)];
+                        if kl == 0 && ku == 0
+                            z = [0, 0, 0, 0];
+                        elseif kl == 0 && ku ~= 0
+                            z = [0, obj.zh(ku), obj.zh(ku), 0];
+                        else
+                            z = [obj.zh(kl), obj.zh(ku), obj.zh(ku), obj.zh(kl)];
+                        end
+                    case west
+                    il = il + 1;
+                    iu = iu + 1;
+                    ju = ju + 1;
+                    kl = kl + 1;  
+                    ku = ku + 2;
+                        x = [obj.xh(il), obj.xh(il), obj.xh(il), obj.xh(il)];
+                        y = [obj.yh(jl), obj.yh(jl), obj.yh(ju), obj.yh(ju)];
+                        if kl == 0 && ku == 0
+                            z = [0, 0, 0, 0];
+                        elseif kl == 0 && ku ~= 0
+                            z = [0, obj.zh(ku), obj.zh(ku), 0];
+                        else
+                            z = [obj.zh(kl), obj.zh(ku), obj.zh(ku), obj.zh(kl)];
+                        end
+
+
+                    case north
+                        iu = iu + 1;
+                        kl = kl + 1;
+                        ku = ku + 2;
+                        x = [obj.xh(il), obj.xh(iu), obj.xh(iu), obj.xh(il)];
+                        y = [obj.yh(jl), obj.yh(jl), obj.yh(jl), obj.yh(jl)];
+                        if kl == 0 && ku == 0
+                            z = [0, 0, 0, 0];
+                        elseif kl == 0 && ku ~= 0
+                            z = [0, 0, obj.xh(ku), obj.xh(ku)];
+                        else
+                            z = [obj.zh(kl), obj.zh(kl), obj.zh(ku), obj.zh(ku)];
+                        end
+                        
+                    case south
+                        iu = iu + 1;
+                        jl = jl + 1;
+                        ju = ju + 1;
+                        kl = kl + 1;
+                        ku = ku + 2;
+                        x = [obj.xh(il), obj.xh(iu), obj.xh(iu), obj.xh(il)];
+                        y = [obj.yh(jl), obj.yh(jl), obj.yh(jl), obj.yh(jl)];
+                        if kl == 0 && ku == 0
+                            z = [0, 0, 0, 0];
+                        elseif kl == 0 && ku ~= 0
+                            z = [0, 0, obj.xh(ku), obj.xh(ku)];
+                        else
+                            z = [obj.zh(kl), obj.zh(kl), obj.zh(ku), obj.zh(ku)];
+                        end
+                        
+                                          
+                    case {top, bot}
+                        x = [obj.xh(il), obj.xh(iu), obj.xh(iu), obj.xh(il)];
+                        y = [obj.yh(jl), obj.yh(jl), obj.yh(ju), obj.yh(ju)];
+                        
+                        if kl == 0
+                            z = [0, 0, 0, 0];
+                        else
+                            z = [obj.zh(kl), obj.zh(kl), obj.zh(kl), obj.zh(kl)];
+                        end    
+                end
+                
+                else
+                iu = iu + 1;
+                ju = ju + 1;
+                switch obj.facets(i, 1)
+                    case {east, west}
+                        x = [obj.xh(il), obj.xh(il), obj.xh(il), obj.xh(il)];
+                        y = [obj.yh(jl), obj.yh(jl), obj.yh(ju), obj.yh(ju)];
+                        if kl == 0 && ku == 0
+                            z = [0, 0, 0, 0];
+                        elseif kl == 0 && ku ~= 0
+                            z = [0, obj.zh(ku), obj.zh(ku), 0];
+                        else
+                            z = [obj.zh(kl), obj.zh(ku), obj.zh(ku), obj.zh(kl)];
+                        end
+                    case {north, south}
+                        x = [obj.xh(il), obj.xh(iu), obj.xh(iu), obj.xh(il)];
+                        y = [obj.yh(jl), obj.yh(jl), obj.yh(jl), obj.yh(jl)];
+                        if kl == 0 && ku == 0
+                            z = [0, 0, 0, 0];
+                        elseif kl == 0 && ku ~= 0
+                            z = [0, 0, obj.xh(ku), obj.xh(ku)];
+                        else
+                            z = [obj.zh(kl), obj.zh(kl), obj.zh(ku), obj.zh(ku)];
+                        end
+                    case {top, bot}
+                        x = [obj.xh(il), obj.xh(iu), obj.xh(iu), obj.xh(il)];
+                        y = [obj.yh(jl), obj.yh(jl), obj.yh(ju), obj.yh(ju)];
+                        
+                        if kl == 0
+                            z = [0, 0, 0, 0];
+                        else
+                            z = [obj.zh(kl), obj.zh(kl), obj.zh(kl), obj.zh(kl)];
+                        end
+                end    
+                    
+                    
+                end
+                %ci = min(floor(double(obj.facets(i, 2)) / double(max(obj.facets(:, 2))) * length(cmap)) + 1, length(cmap))
+                ci = 64;
+                patch(x,y,z, cmap(ci, :),'FaceLighting','none');
+                d = [0, 0, 0]; a = 0.25;
+                switch(obj.facets(i, 1))
+                    case top
+                        d(3) = a * obj.dz(1);
+                    case west
+                        d(1) = -a * obj.dx(1);
+                    case east
+                        d(1) = a * obj.dx(1);
+                    case south
+                        d(2) = -a * obj.dy(1);
+                    case north
+                        d(2) = a * obj.dy(1);
+                end
+                
+                text(mean(x) + d(1), mean(y) + d(2), mean(z) + d(3), num2str(i), 'horizontalalignment', 'center')
+                hold on
+                title('Facet number')
+            end
+            view(3)
+            xlabel('x')
+            ylabel('y')
+            zlabel('z')
+            axis equal
+            xlim([0 obj.xh(end)])
+            ylim([0 obj.yh(end)])
+            zlim([0 obj.zh(end)])
+        end
+            
+
+                       
+            %disp(obj.facets)
+%             figure
+%             cmap = colormap('parula');
+%             top = 1; west = 2; east = 3; north = 4; south = 5; bot = 6;
+%             il = 1; iu = 2; jl = 3; ju = 4; kl = 5; ku = 6;
+%             for i = 1:obj.nfcts
+%                 switch obj.facets(i, 1)
+%                     case {top, bot}
+%                         x = [obj.xh(obj.facets(i, 5+il)), obj.xh(obj.facets(i, 5+iu)), obj.xh(obj.facets(i, 5+iu)), obj.xh(obj.facets(i, 5+il))];
+%                         y = [obj.yh(obj.facets(i, 5+jl)), obj.yh(obj.facets(i, 5+jl)), obj.yh(obj.facets(i, 5+ju)), obj.yh(obj.facets(i, 5+ju))];
+%                         z = [obj.zh(obj.facets(i, 5+kl)), obj.zh(obj.facets(i, 5+kl)), obj.zh(obj.facets(i, 5+kl)), obj.zh(obj.facets(i, 5+kl))];
+%                     case {west, east}
+%                         x = [obj.xh(obj.facets(i, 5+il)), obj.xh(obj.facets(i, 5+il)), obj.xh(obj.facets(i, 5+il)), obj.xh(obj.facets(i, 5+il))];
+%                         y = [obj.yh(obj.facets(i, 5+jl)), obj.yh(obj.facets(i, 5+jl)), obj.yh(obj.facets(i, 5+ju)), obj.yh(obj.facets(i, 5+ju))];
+%                         z = [obj.zh(obj.facets(i, 5+kl)), obj.zh(obj.facets(i, 5+ku)), obj.zh(obj.facets(i, 5+ku)), obj.zh(obj.facets(i, 5+kl))];
+%                     case {north, south}
+%                         x = [obj.xh(obj.facets(i, 5+il)), obj.xh(obj.facets(i, 5+iu)), obj.xh(obj.facets(i, 5+iu)), obj.xh(obj.facets(i, 5+il))];
+%                         y = [obj.yh(obj.facets(i, 5+jl)), obj.yh(obj.facets(i, 5+jl)), obj.yh(obj.facets(i, 5+jl)), obj.yh(obj.facets(i, 5+jl))];
+%                         z = [obj.zh(obj.facets(i, 5+kl)), obj.zh(obj.facets(i, 5+kl)), obj.zh(obj.facets(i, 5+ku)), obj.zh(obj.facets(i, 5+ku))];
+%                 end
+%                 
+%                 subplot(1, 3, 1)
+%                 ci = min(floor(double(obj.facets(i, 1)) / 6 * length(cmap)) + 1, length(cmap));
+%                 patch(x,y,z, cmap(ci, :),'FaceLighting','none');
+%                 hold on
+%                 title('Orientation')
+%                 
+%                 subplot(1, 3, 2)
+%                 ci = min(floor(double(obj.facets(i, 3)) / obj.nblocks * length(cmap)) + 1, length(cmap));
+%                 patch(x,y,z, cmap(ci, :),'FaceLighting','none');
+%                 hold on
+%                 title('Blocks')
+%                 
+%                 subplot(1, 3, 3)
+%                 ci = min(floor(double(obj.facets(i, 4))/ obj.nbuildings * length(cmap)) + 1, length(cmap));
+%                 patch(x,y,z, cmap(ci, :),'FaceLighting','none');
+%                 hold on
+%                 title('Buildings')
+%             end
+            
+%             for n =1:3
+%                 subplot(1,3,n)
+%                 view(3)
+%                 xlabel('x')
+%                 ylabel('y')
+%                 zlabel('z')
+%                 axis equal
+%                 xlim([0 obj.xh(end)])
+%                 ylim([0 obj.yh(end)])
+%                 zlim([0 obj.zh(end)])
+%             end
+%             
+%             
+%             % Plot building map
+%             figure
+%             subplot(1,2,1)
+%             xlabel('x')
+%             ylabel('y')
+%             axis equal
+%             title('Building id')
+%             for i = find(obj.facets(:,1) == top)'
+%                 x = [obj.xh(obj.facets(i, 5+il)), obj.xh(obj.facets(i, 5+iu)), obj.xh(obj.facets(i, 5+iu)), obj.xh(obj.facets(i, 5+il))];
+%                 y = [obj.yh(obj.facets(i, 5+jl)), obj.yh(obj.facets(i, 5+jl)), obj.yh(obj.facets(i, 5+ju)), obj.yh(obj.facets(i, 5+ju))];
+%                 
+%                 ci = min(floor(double(obj.facets(i, 4)) / obj.nbuildings * length(cmap)) + 1, length(cmap));
+%                 patch(x, y, cmap(ci, :),'FaceLighting','none');
+%                 hold on
+%                 text(mean(x), mean(y), num2str(obj.facets(i, 4), '%8d'), ...
+%                     'horizontalalignment', 'center')
+%             end
+%            
+%             subplot(1,2,2);
+%             for i = 1:obj.nfcts
+%                 switch obj.facets(i, 1)
+%                     case {top, bot}
+%                         x = [obj.xh(obj.facets(i, 5+il)), obj.xh(obj.facets(i, 5+iu)), obj.xh(obj.facets(i, 5+iu)), obj.xh(obj.facets(i, 5+il))];
+%                         y = [obj.yh(obj.facets(i, 5+jl)), obj.yh(obj.facets(i, 5+jl)), obj.yh(obj.facets(i, 5+ju)), obj.yh(obj.facets(i, 5+ju))];
+%                         z = [obj.zh(obj.facets(i, 5+kl)), obj.zh(obj.facets(i, 5+kl)), obj.zh(obj.facets(i, 5+kl)), obj.zh(obj.facets(i, 5+kl))];
+%                     case {west, east}
+%                         x = [obj.xh(obj.facets(i, 5+il)), obj.xh(obj.facets(i, 5+il)), obj.xh(obj.facets(i, 5+il)), obj.xh(obj.facets(i, 5+il))];
+%                         y = [obj.yh(obj.facets(i, 5+jl)), obj.yh(obj.facets(i, 5+jl)), obj.yh(obj.facets(i, 5+ju)), obj.yh(obj.facets(i, 5+ju))];
+%                         z = [obj.zh(obj.facets(i, 5+kl)), obj.zh(obj.facets(i, 5+ku)), obj.zh(obj.facets(i, 5+ku)), obj.zh(obj.facets(i, 5+kl))];
+%                     case {north, south}
+%                         x = [obj.xh(obj.facets(i, 5+il)), obj.xh(obj.facets(i, 5+iu)), obj.xh(obj.facets(i, 5+iu)), obj.xh(obj.facets(i, 5+il))];
+%                         y = [obj.yh(obj.facets(i, 5+jl)), obj.yh(obj.facets(i, 5+jl)), obj.yh(obj.facets(i, 5+jl)), obj.yh(obj.facets(i, 5+jl))];
+%                         z = [obj.zh(obj.facets(i, 5+kl)), obj.zh(obj.facets(i, 5+kl)), obj.zh(obj.facets(i, 5+ku)), obj.zh(obj.facets(i, 5+ku))];
+%                 end
+%                 
+%                 ci = min(floor(double(obj.facets(i, 2)) / double(max(obj.facets(:, 2))) * length(cmap)) + 1, length(cmap));
+%                 patch(x,y,z, cmap(ci, :),'FaceLighting','none');
+%                 d = [0, 0, 0]; a = 0.25;
+%                 switch(obj.facets(i, 1))
+%                     case top
+%                         d(3) = a * obj.dz(1);
+%                     case west
+%                         d(1) = -a * obj.dx(1);
+%                     case east
+%                         d(1) = a * obj.dx(1);
+%                     case south
+%                         d(2) = -a * obj.dy(1);
+%                     case north
+%                         d(2) = a * obj.dy(1);
+%                 end
+%                 text(mean(x) + d(1), mean(y) + d(2), mean(z) + d(3), num2str(obj.facets(i, 2)), 'horizontalalignment', 'center')
+%                 hold on
+%                 title('Wall type')
+%             end
+%             
+%             view(3)
+%             xlabel('x')
+%             ylabel('y')
+%             zlabel('z')
+%             axis equal
+%             xlim([0 obj.xh(end)])
+%             ylim([0 obj.yh(end)])
+%             zlim([0 obj.zh(end)])
+%             % colorbar
+%             % return
+%             
+%             % Plot facets
+%             figure
+%             for i = 1:obj.nfcts
+%                 switch obj.facets(i, 1)
+%                     case {top, bot}
+%                         x = [obj.xh(obj.facets(i, 5+il)), obj.xh(obj.facets(i, 5+iu)), obj.xh(obj.facets(i, 5+iu)), obj.xh(obj.facets(i, 5+il))];
+%                         y = [obj.yh(obj.facets(i, 5+jl)), obj.yh(obj.facets(i, 5+jl)), obj.yh(obj.facets(i, 5+ju)), obj.yh(obj.facets(i, 5+ju))];
+%                         z = [obj.zh(obj.facets(i, 5+kl)), obj.zh(obj.facets(i, 5+kl)), obj.zh(obj.facets(i, 5+kl)), obj.zh(obj.facets(i, 5+kl))];
+%                     case {west, east}
+%                         x = [obj.xh(obj.facets(i, 5+il)), obj.xh(obj.facets(i, 5+il)), obj.xh(obj.facets(i, 5+il)), obj.xh(obj.facets(i, 5+il))];
+%                         y = [obj.yh(obj.facets(i, 5+jl)), obj.yh(obj.facets(i, 5+jl)), obj.yh(obj.facets(i, 5+ju)), obj.yh(obj.facets(i, 5+ju))];
+%                         z = [obj.zh(obj.facets(i, 5+kl)), obj.zh(obj.facets(i, 5+ku)), obj.zh(obj.facets(i, 5+ku)), obj.zh(obj.facets(i, 5+kl))];
+%                     case {north, south}
+%                         x = [obj.xh(obj.facets(i, 5+il)), obj.xh(obj.facets(i, 5+iu)), obj.xh(obj.facets(i, 5+iu)), obj.xh(obj.facets(i, 5+il))];
+%                         y = [obj.yh(obj.facets(i, 5+jl)), obj.yh(obj.facets(i, 5+jl)), obj.yh(obj.facets(i, 5+jl)), obj.yh(obj.facets(i, 5+jl))];
+%                         z = [obj.zh(obj.facets(i, 5+kl)), obj.zh(obj.facets(i, 5+kl)), obj.zh(obj.facets(i, 5+ku)), obj.zh(obj.facets(i, 5+ku))];
+%                 end
+%                 
+%                 ci = min(floor(double(obj.facets(i, 2)) / double(max(obj.facets(:, 2))) * length(cmap)) + 1, length(cmap));
+%                 patch(x,y,z, cmap(ci, :),'FaceLighting','none');
+%                 d = [0, 0, 0]; a = 0.25;
+%                 switch(fctl(i, 1))
+%                     case top
+%                         d(3) = a * obj.dz(1);
+%                     case west
+%                         d(1) = -a * obj.dx(1);
+%                     case east
+%                         d(1) = a * obj.dx(1);
+%                     case south
+%                         d(2) = -a * obj.dy(1);
+%                     case north
+%                         d(2) = a * obj.dy(1);
+%                 end
+%                 text(mean(x) + d(1), mean(y) + d(2), mean(z) + d(3), num2str(i), ...
+%                     'horizontalalignment', 'center')
+%                 hold on
+%                 title('facet nr')
+%             end
+%             view(3)
+%             xlabel('x')
+%             ylabel('y')
+%             zlabel('z')
+%             axis equal
+%             xlim([0 obj.xh(end)])
+%             ylim([0 obj.yh(end)])
+%             zlim([0 obj.zh(end)])
+        
+        
+        function generate_EB(obj, ltestplot, lhqplot, lwritefile)
+            %da_pp.addvar(obj, 'walltypes', dlmread(['walltypes.inp.', obj.expnr],'',3,0));
+            da_pp.vsolc(obj, ltestplot, lhqplot)
+            da_pp.vfc(obj, lwritefile)
+            da_pp.rayit(obj, ltestplot, lhqplot, lwritefile)
+            da_pp.generate_Tfacinit(obj, ltestplot, lwritefile)
+        end
+        
+        function makeblocks(obj)
             topomask = zeros(obj.jtot, obj.imax);
             topo = zeros(obj.jtot, obj.imax);
             
@@ -765,12 +1172,12 @@ classdef da_pp < dynamicprops
             
             
             maxnrblocks=sum(topomask(:)); %allocate arrays with maximum size they can possibly have, reduce size later
-            xmin=zeros(maxnrblocks,1); %store lower x bound of blocks
-            xmax=zeros(maxnrblocks,1); %store upper x bound of blocks
-            ymin=zeros(maxnrblocks,1); %store lower y bound of blocks
-            ymax=zeros(maxnrblocks,1); %store upper y bound of blocks
-            zmin=zeros(maxnrblocks,1); %store lower z bound of blocks
-            zmax=zeros(maxnrblocks,1); %store upper z bound of blocks
+            xmin = zeros(maxnrblocks,1); %store lower x bound of blocks
+            xmax = zeros(maxnrblocks,1); %store upper x bound of blocks
+            ymin = zeros(maxnrblocks,1); %store lower y bound of blocks
+            ymax = zeros(maxnrblocks,1); %store upper y bound of blocks
+            zmin = zeros(maxnrblocks,1); %store lower z bound of blocks
+            zmax = zeros(maxnrblocks,1); %store upper z bound of blocks
             
             blchecked=zeros(size(topomask)); %mask of blocks which have already been checked
             indexmask=zeros(size(topomask)); %mask of the indeces of the (new) blocks
@@ -916,14 +1323,14 @@ classdef da_pp < dynamicprops
                     end
                 end
             end
-            if ltestplot
-                figure
-                imagesc(xf,yf,indexmask)
-                set(gca,'YDir','normal')
-                xlim([xh(1) xh(end)])
-                ylim([yh(1) yh(end)])
-                title('after cutting into y slices')
-            end
+%             if ltestplot
+%                 figure
+%                 imagesc(xf,yf,indexmask)
+%                 set(gca,'YDir','normal')
+%                 xlim([xh(1) xh(end)])
+%                 ylim([yh(1) yh(end)])
+%                 title('after cutting into y slices')
+%             end
             
             %shorten arrays
             ymin((count+1):end)=[];
@@ -933,8 +1340,7 @@ classdef da_pp < dynamicprops
             zmin((count+1):end)=[];
             zmax((count+1):end)=[];
             
-            disp(zmax)
-            disp(['Number of blocks after cutting into y slices: ' num2str(count)])
+            %disp(['Number of blocks after cutting into y slices: ' num2str(count)])
             
             
             
@@ -969,7 +1375,7 @@ classdef da_pp < dynamicprops
                 sizeold = length(xmax2);               
             end
             count2 = sizeold;
-            disp(['Number of blocks after merging y slices of same size along x: ' num2str(count2)])
+            %disp(['Number of blocks after merging y slices of same size along x: ' num2str(count2)])
             
             %make fields again
             datamean1=zeros(size(topomask));
@@ -986,14 +1392,14 @@ classdef da_pp < dynamicprops
                 datamean2(ymin2(i):ymax2(i),xmin2(i):xmax2(i))=zmax2(i);
             end
             
-            if ltestplot
-                figure
-                imagesc(xf,yf,indexmask2)
-                set(gca,'YDir','normal')
-                xlim([xh(1) xh(end)])
-                ylim([yh(1) yh(end)])
-                title('after merging y slices of same size along x')
-            end
+%             if ltestplot
+%                 figure
+%                 imagesc(xf,yf,indexmask2)
+%                 set(gca,'YDir','normal')
+%                 xlim([xh(1) xh(end)])
+%                 ylim([yh(1) yh(end)])
+%                 title('after merging y slices of same size along x')
+%             end
             
             %% tg and bs 30.05.19 - try to split blocks vertically too
             
@@ -1184,7 +1590,7 @@ classdef da_pp < dynamicprops
                     
                     
                 end
-                disp(['Number of blocks after applying rules for radiation in x and y : ' num2str(count3)])
+                %disp(['Number of blocks after applying rules for radiation in x and y : ' num2str(count3)])
                 ymin3((count3+1):end)=[];
                 ymax3((count3+1):end)=[];
                 xmin3((count3+1):end)=[];
@@ -1193,18 +1599,18 @@ classdef da_pp < dynamicprops
                 zmax3((count3+1):end)=[];
                 
                 
-                if ltestplot
-                    figure
-                    imagesc(indexmask3)
-                    hold on
-                    for i = 1:count3-1
-                        rectangle('Position',[xmin3(i)-0.5 ymin3(i)-0.5 xmax3(i)-xmin3(i)+1 ymax3(i)-ymin3(i)+1])
-                    end
-                    axis equal tight
-                    hold off
-                    title('after applying rules for radiation in x and y')
-                    
-                end                               
+%                 if ltestplot
+%                     figure
+%                     imagesc(indexmask3)
+%                     hold on
+%                     for i = 1:count3-1
+%                         rectangle('Position',[xmin3(i)-0.5 ymin3(i)-0.5 xmax3(i)-xmin3(i)+1 ymax3(i)-ymin3(i)+1])
+%                     end
+%                     axis equal tight
+%                     hold off
+%                     title('after applying rules for radiation in x and y')
+%                     
+%                 end                               
             else               
                 count3 = count2;
                 xmin3 = xmin2;
@@ -1234,10 +1640,10 @@ classdef da_pp < dynamicprops
                 indexmask4(ymin3(i):ymax3(i), xmin3(i):xmax3(i))=i;
                 datamean4(ymin3(i):ymax3(i), xmin3(i):xmax3(i))=zmax3(i);
             end
-            if ltestplot
-                figure
-                imagesc(datamean4)
-            end
+%             if ltestplot
+%                 figure
+%                 imagesc(datamean4)
+%             end
             
             for k = 1:count3
                 i = indexmask4(ymin3(k), xmin3(k)); %index of this block (k = i ?might be unnecessary)
@@ -1274,17 +1680,17 @@ classdef da_pp < dynamicprops
             end
             externalmask = topomask - internalmask;
              
-            if ltestplot
-                figure
-                imagesc(indexmask4.*internalmask)
-                hold on
-                for i=1:count3-1
-                    rectangle('Position',[xmin3(i)-0.5 ymin3(i)-0.5 xmax3(i)-xmin3(i)+1 ymax3(i)-ymin3(i)+1])
-                end
-                axis equal tight
-                hold off
-                title('internal blocks after applying rules for radiation in x and y')
-            end
+%             if ltestplot
+%                 figure
+%                 imagesc(indexmask4.*internalmask)
+%                 hold on
+%                 for i=1:count3-1
+%                     rectangle('Position',[xmin3(i)-0.5 ymin3(i)-0.5 xmax3(i)-xmin3(i)+1 ymax3(i)-ymin3(i)+1])
+%                 end
+%                 axis equal tight
+%                 hold off
+%                 title('internal blocks after applying rules for radiation in x and y')
+%             end
             
             % tg3315 may need to develop this further for geometries with VERY uneven
             % roof tops... Currently will not allow internal blocks below but this does
@@ -1325,19 +1731,19 @@ classdef da_pp < dynamicprops
                     end                   
                 end
             end
-            disp(['Number of blocks after merging internal blocks along y: ' num2str(length(xmin5))])
+            %disp(['Number of blocks after merging internal blocks along y: ' num2str(length(xmin5))])
             
-            if ltestplot
-                figure
-                imagesc(indexmask5.*internalmask)
-                hold on
-                for i=1:count5
-                    rectangle('Position',[xmin5(i)-0.5 ymin5(i)-0.5 xmax5(i)-xmin5(i)+1 ymax5(i)-ymin5(i)+1])
-                end
-                axis equal tight
-                hold off
-                title('Internal blocks after merging internal blocks')
-            end
+%             if ltestplot
+%                 figure
+%                 imagesc(indexmask5.*internalmask)
+%                 hold on
+%                 for i=1:count5
+%                     rectangle('Position',[xmin5(i)-0.5 ymin5(i)-0.5 xmax5(i)-xmin5(i)+1 ymax5(i)-ymin5(i)+1])
+%                 end
+%                 axis equal tight
+%                 hold off
+%                 title('Internal blocks after merging internal blocks')
+%             end
             
             %make blocks
             datamean5 = zeros(size(topomask));
@@ -1347,33 +1753,33 @@ classdef da_pp < dynamicprops
                 dataind(ymin5(i):ymax5(i),xmin5(i):xmax5(i)) = i;
             end
                        
-            if ltestplot
-                figure
-                subplot(1,3,1)
-                imagesc(indexmask5)
-                hold on
-                for i=1:count5
-                    rectangle('Position',[xmin5(i)-0.5 ymin5(i)-0.5 xmax5(i)-xmin5(i)+1 ymax5(i)-ymin5(i)+1])
-                end
-                axis equal tight
-                hold off
-                title('index: blocks after merging merging internal blocks')
-                set(gca,'YDir','normal')
-                               
-                subplot(1,3,2)
-                imagesc(datamean5)
-                axis equal tight
-                hold off
-                title('height: blocks after merging merging internal blocks')
-                set(gca,'YDir','normal')
-                                
-                subplot(1,3,3)
-                imagesc(dataind)
-                axis equal tight
-                hold off
-                title('index: blocks after merging merging internal blocks')
-                set(gca,'YDir','normal')
-            end
+%             if ltestplot
+%                 figure
+%                 subplot(1,3,1)
+%                 imagesc(indexmask5)
+%                 hold on
+%                 for i=1:count5
+%                     rectangle('Position',[xmin5(i)-0.5 ymin5(i)-0.5 xmax5(i)-xmin5(i)+1 ymax5(i)-ymin5(i)+1])
+%                 end
+%                 axis equal tight
+%                 hold off
+%                 title('index: blocks after merging merging internal blocks')
+%                 set(gca,'YDir','normal')
+%                                
+%                 subplot(1,3,2)
+%                 imagesc(datamean5)
+%                 axis equal tight
+%                 hold off
+%                 title('height: blocks after merging merging internal blocks')
+%                 set(gca,'YDir','normal')
+%                                 
+%                 subplot(1,3,3)
+%                 imagesc(dataind)
+%                 axis equal tight
+%                 hold off
+%                 title('index: blocks after merging merging internal blocks')
+%                 set(gca,'YDir','normal')
+%             end
                         
             ymin6=ymin5;
             ymax6=ymax5;
@@ -1382,40 +1788,40 @@ classdef da_pp < dynamicprops
             zmin6=zmin5;
             zmax6=zmax5;
             
-            if lhqplot
-                cd(outputdir)
-                h=figure;
-                set(gcf,'units','centimeters','position',[0 0 14.5 14.5]);
-                set(h,'PaperPosition',[0 0 14.5 14.5]);
-                set(h,'PaperUnits','centimeters');
-                imagesc(xf,yf,flipud(datamean2))
-                set(gca,'YDir','normal','TickLabelInterpreter','latex')
-                h1=gca;
-                h1.Position=[0.08 0.1100 0.78 0.8150];
-                xlim([xh(1) xh(end)])
-                ylim([yh(1) yh(end)])
-                caxis([0 1])
-                xlabel('x [m]','Interpreter','latex','FontSize',12)
-                ylabel('y [m]','Interpreter','latex','FontSize',12)
-                
-                colormap(flipud(bone)) %colormap(flipud(gray))
-                hcb=colorbar('Position',[0.92 0.15 0.03 0.69]);
-                hcb.Label.Interpreter='latex';
-                hcb.TickLabelInterpreter='latex';
-                title(hcb,'height [m]','Interpreter','latex','FontSize',12)
-                
-                hold on
-                for i=1:count5-1
-                    rectangle('Position',[2*(xmin6(i))-4 960-2*(ymin6(i))+4-2*(ymax6(i)-ymin6(i)+1) 2*(xmax6(i)-xmin6(i)+1) 2*(ymax6(i)-ymin6(i)+1)])
-                end
-                axis equal tight
-                
-                hold off
-                
-                print -depsc2 topo.eps
-                print -dpng topo.png
-                cd(parentdir)
-            end
+%             if lhqplot
+%                 cd(outputdir)
+%                 h=figure;
+%                 set(gcf,'units','centimeters','position',[0 0 14.5 14.5]);
+%                 set(h,'PaperPosition',[0 0 14.5 14.5]);
+%                 set(h,'PaperUnits','centimeters');
+%                 imagesc(xf,yf,flipud(datamean2))
+%                 set(gca,'YDir','normal','TickLabelInterpreter','latex')
+%                 h1=gca;
+%                 h1.Position=[0.08 0.1100 0.78 0.8150];
+%                 xlim([xh(1) xh(end)])
+%                 ylim([yh(1) yh(end)])
+%                 caxis([0 1])
+%                 xlabel('x [m]','Interpreter','latex','FontSize',12)
+%                 ylabel('y [m]','Interpreter','latex','FontSize',12)
+%                 
+%                 colormap(flipud(bone)) %colormap(flipud(gray))
+%                 hcb=colorbar('Position',[0.92 0.15 0.03 0.69]);
+%                 hcb.Label.Interpreter='latex';
+%                 hcb.TickLabelInterpreter='latex';
+%                 title(hcb,'height [m]','Interpreter','latex','FontSize',12)
+%                 
+%                 hold on
+%                 for i=1:count5-1
+%                     rectangle('Position',[2*(xmin6(i))-4 960-2*(ymin6(i))+4-2*(ymax6(i)-ymin6(i)+1) 2*(xmax6(i)-xmin6(i)+1) 2*(ymax6(i)-ymin6(i)+1)])
+%                 end
+%                 axis equal tight
+%                 
+%                 hold off
+%                 
+%                 print -depsc2 topo.eps
+%                 print -dpng topo.png
+%                 cd(parentdir)
+%             end
             
             %% flip the whole y-dimension!!
             
@@ -1478,14 +1884,14 @@ classdef da_pp < dynamicprops
             buildingindexmask = bwlabel(blockindexmask);
             buildingindexlist = zeros(1,nbl);
             
-            if ltestplot
-                figure
-                imagesc(buildingindexmask)
-                axis equal tight
-                hold off
-                title('building indeces')
-                set(gca,'YDir','normal')
-            end
+%             if ltestplot
+%                 figure
+%                 imagesc(buildingindexmask)
+%                 axis equal tight
+%                 hold off
+%                 title('building indeces')
+%                 set(gca,'YDir','normal')
+%             end
             
             %if whichsource == 1
             %    xuu=B(:,2);
@@ -1513,12 +1919,12 @@ classdef da_pp < dynamicprops
             
             da_pp.addvar(obj, 'buildings', [xmin5  xmax5  ymin6 ymax6 zmin5+1 zmax5+1 buildingindexlist']);            
             obj.nblocks = size(obj.blocks, 1);
-            disp(['Number of blocks: ', num2str(obj.nblocks)])
+            %disp(['Number of blocks: ', num2str(obj.nblocks)])
         end
         
-        function block2fac(obj, lhqplot)
+        function block2fac(obj)
             %% read blocks
-            nheader = 2;
+            %nheader = 2;
             try %in case file is empty -> no blocks
                 %blk = dlmread([tempdir '/blocks.inp.' num2str(expnr)],'',nheader,0);
                 blk = obj.blocks;
@@ -1552,13 +1958,13 @@ classdef da_pp < dynamicprops
             % this new mask is in x,y coordinates, not y,x coordinates as before
             M = zeros(nx,ny);
             IM = zeros(nx,ny);
-            for i=1:size(blk,1)
-                xl=blk(i,1);
-                xu=blk(i,2);
-                yl=blk(i,3);
-                yu=blk(i,4);
-                M(xl:xu,yl:yu)=1;
-                IM(xl:xu,yl:yu)=i;
+            for i = 1:size(blk,1)
+                xl = blk(i,1);
+                xu = blk(i,2);
+                yl = blk(i,3);
+                yu = blk(i,4);
+                M(xl:xu, yl:yu) = 1;
+                IM(xl:xu, yl:yu) = i;
             end
             
             % figure
@@ -1636,6 +2042,7 @@ classdef da_pp < dynamicprops
             end
             
             
+            
             %% alternative after merging internal blocks
             %disp('determine internal facets')
             intern = zeros(nfcts, 2);
@@ -1685,7 +2092,7 @@ classdef da_pp < dynamicprops
             nintern = sum(fctl(:,5));
             intern = intern(1:nintern,:);
             
-            disp('remove downward and internal facets')
+            %disp('remove downward and internal facets')
             bblk0 = fctl(:, 3);
             bblk1 = bblk0;
             
@@ -1701,6 +2108,7 @@ classdef da_pp < dynamicprops
             % assign building id to fctl
             bblku = unique(bblk1);
             nbld = length(bblku);
+            da_pp.addvar(obj, 'nbuildings', length(bblku));
             for n = 1:nbld
                 fctl(bblk1 == bblku(n), 4) = n;
             end
@@ -1713,34 +2121,34 @@ classdef da_pp < dynamicprops
             nfcts=size(fctl,1);
             
             %obj.blocks = blk;
-            disp(obj.blocks);
             
             %% remove facets at domain edge (not actually done)
             
             sel = find(~((fctl(:,6) == 1 & fctl(:,7) == 1) | (fctl(:,6)== obj.imax + 1 & fctl(:,7) == obj.imax + 1) | (fctl(:,8) == 1 & fctl(:,9) == 1) | (fctl(:,8) == obj.jtot + 1 & fctl(:,9) == obj.jtot + 1)));
             
             if obj.lEB && (length(sel) ~= nfcts)
-                myicon = imread('flamingos.jpg');
-                h=msgbox("Flamingos!!",'Flamingos','custom',myicon);
-                
-                myicon = imread('llama.jpg');
-                h=msgbox("llama!!",'llama','custom',myicon);
-                
-                myicon = imread('sherlock.jpg');
-                h=msgbox("sherlock is a good boy!!",'dog','custom',myicon);
-                
-                cdata = get(0,'DefaultImageCData');
-                cdata2=uint8(zeros(size(cdata,1),size(cdata,2),3));
-                blub=(cdata - floor(cdata));
-                cdata2(:,:,1)= uint8(blub/max(blub(:))*255);
-                cdata2(:,:,2)= uint8(blub/max(blub(:))*255);
-                cdata2(:,:,3)= uint8(blub/max(blub(:))*255);
-                myicon=cdata2;
-                h=msgbox("Rest of the code will likely crash",'Fluff','custom',myicon);
-                
-                myicon = imread('peppers.png');
-                h=msgbox("Don't have blocks on the edge, when using radiation and/or the energy balance!!",'Ratatouille','custom',myicon);
-                pause()
+%                 myicon = imread('flamingos.jpg');
+%                 h=msgbox("Flamingos!!",'Flamingos','custom',myicon);
+%                 
+%                 myicon = imread('llama.jpg');
+%                 h=msgbox("llama!!",'llama','custom',myicon);
+%                 
+%                 myicon = imread('sherlock.jpg');
+%                 h=msgbox("sherlock is a good boy!!",'dog','custom',myicon);
+%                 
+%                 cdata = get(0,'DefaultImageCData');
+%                 cdata2=uint8(zeros(size(cdata,1),size(cdata,2),3));
+%                 blub=(cdata - floor(cdata));
+%                 cdata2(:,:,1)= uint8(blub/max(blub(:))*255);
+%                 cdata2(:,:,2)= uint8(blub/max(blub(:))*255);
+%                 cdata2(:,:,3)= uint8(blub/max(blub(:))*255);
+%                 myicon=cdata2;
+%                 h=msgbox("Rest of the code will likely crash",'Fluff','custom',myicon);
+%                 
+%                 myicon = imread('peppers.png');
+%                 h=msgbox("Don't have blocks on the edge, when using radiation and/or the energy balance!!",'Ratatouille','custom',myicon);
+%                 pause()
+                  error("Can't have blocks on edge of domain when using energy balance")
             end
             
             %this 2 lines would actually remove the facets on domain edge
@@ -1749,170 +2157,170 @@ classdef da_pp < dynamicprops
             
                         
             %% Plot orientation, blocks, buildings and wall type
-            if lhqplot
-                figure
-                cmap = colormap('parula');
-                for i=1:nfcts
-                    switch fctl(i, 1)
-                        case {top, bot}
-                            x = [xb(fctl(i, 5+il)), xb(fctl(i, 5+iu)), xb(fctl(i, 5+iu)), xb(fctl(i, 5+il))];
-                            y = [yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl)), yb(fctl(i, 5+ju)), yb(fctl(i, 5+ju))];
-                            z = [zb(fctl(i, 5+kl)), zb(fctl(i, 5+kl)), zb(fctl(i, 5+kl)), zb(fctl(i, 5+kl))];
-                        case {west, east}
-                            x = [xb(fctl(i, 5+il)), xb(fctl(i, 5+il)), xb(fctl(i, 5+il)), xb(fctl(i, 5+il))];
-                            y = [yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl)), yb(fctl(i, 5+ju)), yb(fctl(i, 5+ju))];
-                            z = [zb(fctl(i, 5+kl)), zb(fctl(i, 5+ku)), zb(fctl(i, 5+ku)), zb(fctl(i, 5+kl))];
-                        case {north, south}
-                            x = [xb(fctl(i, 5+il)), xb(fctl(i, 5+iu)), xb(fctl(i, 5+iu)), xb(fctl(i, 5+il))];
-                            y = [yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl))];
-                            z = [zb(fctl(i, 5+kl)), zb(fctl(i, 5+kl)), zb(fctl(i, 5+ku)), zb(fctl(i, 5+ku))];
-                    end
-                    
-                    subplot(1,3,1)
-                    ci = min(floor(double(fctl(i, 1))/6*length(cmap))+1, length(cmap));
-                    patch(x,y,z, cmap(ci, :),'FaceLighting','none');
-                    hold on
-                    title('orientation')
-                    
-                    subplot(1,3,2)
-                    ci = min(floor(double(fctl(i, 3))/nblks*length(cmap))+1, length(cmap));
-                    patch(x,y,z, cmap(ci, :),'FaceLighting','none');
-                    hold on
-                    title('blocks')
-                    
-                    subplot(1,3,3)
-                    ci = min(floor(double(fctl(i, 4))/nbld*length(cmap))+1, length(cmap));
-                    patch(x,y,z, cmap(ci, :),'FaceLighting','none');
-                    hold on
-                    title('buildings')
-                end
-                
-                for n =1:3
-                    subplot(1,3,n)
-                    view(3)
-                    xlabel('x')
-                    ylabel('y')
-                    zlabel('z')
-                    axis equal
-                    xlim([0 xb(end)])
-                    ylim([0 yb(end)])
-                    zlim([0 zb(end)])
-                end
-                
-                
-                % plot building map
-                figure
-                subplot(1,2,1)
-                for i = find(fctl(:,1) == top)'
-                    x = [xb(fctl(i, 5+il)), xb(fctl(i, 5+iu)), xb(fctl(i, 5+iu)), xb(fctl(i, 5+il))];
-                    y = [yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl)), yb(fctl(i, 5+ju)), yb(fctl(i, 5+ju))];
-                    
-                    ci = min(floor(double(fctl(i, 4))/nbld*length(cmap))+1, length(cmap));
-                    patch(x,y, cmap(ci, :),'FaceLighting','none');
-                    hold on
-                    text(mean(x), mean(y), num2str(fctl(i, 4), '%8d'), ...
-                        'horizontalalignment', 'center')
-                end
-                xlabel('x')
-                ylabel('y')
-                axis equal
-                title('building id')
-                
-                subplot(1,2,2);
-                for i=1:nfcts
-                    switch fctl(i, 1)
-                        case {top, bot}
-                            x = [xb(fctl(i, 5+il)), xb(fctl(i, 5+iu)), xb(fctl(i, 5+iu)), xb(fctl(i, 5+il))];
-                            y = [yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl)), yb(fctl(i, 5+ju)), yb(fctl(i, 5+ju))];
-                            z = [zb(fctl(i, 5+kl)), zb(fctl(i, 5+kl)), zb(fctl(i, 5+kl)), zb(fctl(i, 5+kl))];
-                        case {west, east}
-                            x = [xb(fctl(i, 5+il)), xb(fctl(i, 5+il)), xb(fctl(i, 5+il)), xb(fctl(i, 5+il))];
-                            y = [yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl)), yb(fctl(i, 5+ju)), yb(fctl(i, 5+ju))];
-                            z = [zb(fctl(i, 5+kl)), zb(fctl(i, 5+ku)), zb(fctl(i, 5+ku)), zb(fctl(i, 5+kl))];
-                        case {north, south}
-                            x = [xb(fctl(i, 5+il)), xb(fctl(i, 5+iu)), xb(fctl(i, 5+iu)), xb(fctl(i, 5+il))];
-                            y = [yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl))];
-                            z = [zb(fctl(i, 5+kl)), zb(fctl(i, 5+kl)), zb(fctl(i, 5+ku)), zb(fctl(i, 5+ku))];
-                    end
-                    
-                    ci = min(floor(double(fctl(i, 2))/double(max(fctl(:, 2)))*length(cmap))+1, length(cmap));
-                    patch(x,y,z, cmap(ci, :),'FaceLighting','none');
-                    d = [0, 0, 0]; a = 0.25;
-                    switch(fctl(i, 1))
-                        case top
-                            d(3) = a * dz(1);
-                        case west
-                            d(1) = -a*dx(1);
-                        case east
-                            d(1) = a*dx(1);
-                        case south
-                            d(2) = -a*dy(1);
-                        case north
-                            d(2) = a*dy(1);
-                    end
-                    text(mean(x)+d(1), mean(y)+d(2), mean(z)+d(3), num2str(fctl(i, 2)), ...
-                        'horizontalalignment', 'center')
-                    hold on
-                    title('wall type')
-                end
-                view(3)
-                xlabel('x')
-                ylabel('y')
-                zlabel('z')
-                axis equal
-                xlim([0 xb(end)])
-                ylim([0 yb(end)])
-                zlim([0 zb(end)])
-                % colorbar
-                % return
-                                
-                % Plot facets               
-                figure
-                for i=1:nfcts
-                    switch fctl(i, 1)
-                        case {top, bot}
-                            x = [xb(fctl(i, 5+il)), xb(fctl(i, 5+iu)), xb(fctl(i, 5+iu)), xb(fctl(i, 5+il))];
-                            y = [yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl)), yb(fctl(i, 5+ju)), yb(fctl(i, 5+ju))];
-                            z = [zb(fctl(i, 5+kl)), zb(fctl(i, 5+kl)), zb(fctl(i, 5+kl)), zb(fctl(i, 5+kl))];
-                        case {west, east}
-                            x = [xb(fctl(i, 5+il)), xb(fctl(i, 5+il)), xb(fctl(i, 5+il)), xb(fctl(i, 5+il))];
-                            y = [yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl)), yb(fctl(i, 5+ju)), yb(fctl(i, 5+ju))];
-                            z = [zb(fctl(i, 5+kl)), zb(fctl(i, 5+ku)), zb(fctl(i, 5+ku)), zb(fctl(i, 5+kl))];
-                        case {north, south}
-                            x = [xb(fctl(i, 5+il)), xb(fctl(i, 5+iu)), xb(fctl(i, 5+iu)), xb(fctl(i, 5+il))];
-                            y = [yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl))];
-                            z = [zb(fctl(i, 5+kl)), zb(fctl(i, 5+kl)), zb(fctl(i, 5+ku)), zb(fctl(i, 5+ku))];
-                    end
-                    
-                    ci = min(floor(double(fctl(i, 2))/double(max(fctl(:, 2)))*length(cmap))+1, length(cmap));
-                    patch(x,y,z, cmap(ci, :),'FaceLighting','none');
-                    d = [0, 0, 0]; a = 0.25;
-                    switch(fctl(i, 1))
-                        case top
-                            d(3) = a * dz(1);
-                        case west
-                            d(1) = -a*dx(1);
-                        case east
-                            d(1) = a*dx(1);
-                        case south
-                            d(2) = -a*dy(1);
-                        case north
-                            d(2) = a*dy(1);
-                    end
-                    text(mean(x)+d(1), mean(y)+d(2), mean(z)+d(3), num2str(i), ...
-                        'horizontalalignment', 'center')
-                    hold on
-                    title('facet nr')
-                end
-                view(3)
-                xlabel('x')
-                ylabel('y')
-                zlabel('z')
-                axis equal
-                xlim([0 xb(end)])
-                ylim([0 yb(end)])
-                zlim([0 zb(end)])               
-            end
+%             if lhqplot
+%                 figure
+%                 cmap = colormap('parula');
+%                 for i=1:nfcts
+%                     switch fctl(i, 1)
+%                         case {top, bot}
+%                             x = [xb(fctl(i, 5+il)), xb(fctl(i, 5+iu)), xb(fctl(i, 5+iu)), xb(fctl(i, 5+il))];
+%                             y = [yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl)), yb(fctl(i, 5+ju)), yb(fctl(i, 5+ju))];
+%                             z = [zb(fctl(i, 5+kl)), zb(fctl(i, 5+kl)), zb(fctl(i, 5+kl)), zb(fctl(i, 5+kl))];
+%                         case {west, east}
+%                             x = [xb(fctl(i, 5+il)), xb(fctl(i, 5+il)), xb(fctl(i, 5+il)), xb(fctl(i, 5+il))];
+%                             y = [yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl)), yb(fctl(i, 5+ju)), yb(fctl(i, 5+ju))];
+%                             z = [zb(fctl(i, 5+kl)), zb(fctl(i, 5+ku)), zb(fctl(i, 5+ku)), zb(fctl(i, 5+kl))];
+%                         case {north, south}
+%                             x = [xb(fctl(i, 5+il)), xb(fctl(i, 5+iu)), xb(fctl(i, 5+iu)), xb(fctl(i, 5+il))];
+%                             y = [yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl))];
+%                             z = [zb(fctl(i, 5+kl)), zb(fctl(i, 5+kl)), zb(fctl(i, 5+ku)), zb(fctl(i, 5+ku))];
+%                     end
+%                     
+%                     subplot(1,3,1)
+%                     ci = min(floor(double(fctl(i, 1))/6*length(cmap))+1, length(cmap));
+%                     patch(x,y,z, cmap(ci, :),'FaceLighting','none');
+%                     hold on
+%                     title('orientation')
+%                     
+%                     subplot(1,3,2)
+%                     ci = min(floor(double(fctl(i, 3))/nblks*length(cmap))+1, length(cmap));
+%                     patch(x,y,z, cmap(ci, :),'FaceLighting','none');
+%                     hold on
+%                     title('blocks')
+%                     
+%                     subplot(1,3,3)
+%                     ci = min(floor(double(fctl(i, 4))/nbld*length(cmap))+1, length(cmap));
+%                     patch(x,y,z, cmap(ci, :),'FaceLighting','none');
+%                     hold on
+%                     title('buildings')
+%                 end
+%                 
+%                 for n =1:3
+%                     subplot(1,3,n)
+%                     view(3)
+%                     xlabel('x')
+%                     ylabel('y')
+%                     zlabel('z')
+%                     axis equal
+%                     xlim([0 xb(end)])
+%                     ylim([0 yb(end)])
+%                     zlim([0 zb(end)])
+%                 end
+%                 
+%                 
+%                 % plot building map
+%                 figure
+%                 subplot(1,2,1)
+%                 for i = find(fctl(:,1) == top)'
+%                     x = [xb(fctl(i, 5+il)), xb(fctl(i, 5+iu)), xb(fctl(i, 5+iu)), xb(fctl(i, 5+il))];
+%                     y = [yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl)), yb(fctl(i, 5+ju)), yb(fctl(i, 5+ju))];
+%                     
+%                     ci = min(floor(double(fctl(i, 4))/nbld*length(cmap))+1, length(cmap));
+%                     patch(x,y, cmap(ci, :),'FaceLighting','none');
+%                     hold on
+%                     text(mean(x), mean(y), num2str(fctl(i, 4), '%8d'), ...
+%                         'horizontalalignment', 'center')
+%                 end
+%                 xlabel('x')
+%                 ylabel('y')
+%                 axis equal
+%                 title('building id')
+%                 
+%                 subplot(1,2,2);
+%                 for i=1:nfcts
+%                     switch fctl(i, 1)
+%                         case {top, bot}
+%                             x = [xb(fctl(i, 5+il)), xb(fctl(i, 5+iu)), xb(fctl(i, 5+iu)), xb(fctl(i, 5+il))];
+%                             y = [yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl)), yb(fctl(i, 5+ju)), yb(fctl(i, 5+ju))];
+%                             z = [zb(fctl(i, 5+kl)), zb(fctl(i, 5+kl)), zb(fctl(i, 5+kl)), zb(fctl(i, 5+kl))];
+%                         case {west, east}
+%                             x = [xb(fctl(i, 5+il)), xb(fctl(i, 5+il)), xb(fctl(i, 5+il)), xb(fctl(i, 5+il))];
+%                             y = [yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl)), yb(fctl(i, 5+ju)), yb(fctl(i, 5+ju))];
+%                             z = [zb(fctl(i, 5+kl)), zb(fctl(i, 5+ku)), zb(fctl(i, 5+ku)), zb(fctl(i, 5+kl))];
+%                         case {north, south}
+%                             x = [xb(fctl(i, 5+il)), xb(fctl(i, 5+iu)), xb(fctl(i, 5+iu)), xb(fctl(i, 5+il))];
+%                             y = [yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl))];
+%                             z = [zb(fctl(i, 5+kl)), zb(fctl(i, 5+kl)), zb(fctl(i, 5+ku)), zb(fctl(i, 5+ku))];
+%                     end
+%                     
+%                     ci = min(floor(double(fctl(i, 2))/double(max(fctl(:, 2)))*length(cmap))+1, length(cmap));
+%                     patch(x,y,z, cmap(ci, :),'FaceLighting','none');
+%                     d = [0, 0, 0]; a = 0.25;
+%                     switch(fctl(i, 1))
+%                         case top
+%                             d(3) = a * dz(1);
+%                         case west
+%                             d(1) = -a*dx(1);
+%                         case east
+%                             d(1) = a*dx(1);
+%                         case south
+%                             d(2) = -a*dy(1);
+%                         case north
+%                             d(2) = a*dy(1);
+%                     end
+%                     text(mean(x)+d(1), mean(y)+d(2), mean(z)+d(3), num2str(fctl(i, 2)), ...
+%                         'horizontalalignment', 'center')
+%                     hold on
+%                     title('wall type')
+%                 end
+%                 view(3)
+%                 xlabel('x')
+%                 ylabel('y')
+%                 zlabel('z')
+%                 axis equal
+%                 xlim([0 xb(end)])
+%                 ylim([0 yb(end)])
+%                 zlim([0 zb(end)])
+%                 % colorbar
+%                 % return
+%                                 
+%                 % Plot facets               
+%                 figure
+%                 for i=1:nfcts
+%                     switch fctl(i, 1)
+%                         case {top, bot}
+%                             x = [xb(fctl(i, 5+il)), xb(fctl(i, 5+iu)), xb(fctl(i, 5+iu)), xb(fctl(i, 5+il))];
+%                             y = [yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl)), yb(fctl(i, 5+ju)), yb(fctl(i, 5+ju))];
+%                             z = [zb(fctl(i, 5+kl)), zb(fctl(i, 5+kl)), zb(fctl(i, 5+kl)), zb(fctl(i, 5+kl))];
+%                         case {west, east}
+%                             x = [xb(fctl(i, 5+il)), xb(fctl(i, 5+il)), xb(fctl(i, 5+il)), xb(fctl(i, 5+il))];
+%                             y = [yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl)), yb(fctl(i, 5+ju)), yb(fctl(i, 5+ju))];
+%                             z = [zb(fctl(i, 5+kl)), zb(fctl(i, 5+ku)), zb(fctl(i, 5+ku)), zb(fctl(i, 5+kl))];
+%                         case {north, south}
+%                             x = [xb(fctl(i, 5+il)), xb(fctl(i, 5+iu)), xb(fctl(i, 5+iu)), xb(fctl(i, 5+il))];
+%                             y = [yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl))];
+%                             z = [zb(fctl(i, 5+kl)), zb(fctl(i, 5+kl)), zb(fctl(i, 5+ku)), zb(fctl(i, 5+ku))];
+%                     end
+%                     
+%                     ci = min(floor(double(fctl(i, 2))/double(max(fctl(:, 2)))*length(cmap))+1, length(cmap));
+%                     patch(x,y,z, cmap(ci, :),'FaceLighting','none');
+%                     d = [0, 0, 0]; a = 0.25;
+%                     switch(fctl(i, 1))
+%                         case top
+%                             d(3) = a * dz(1);
+%                         case west
+%                             d(1) = -a*dx(1);
+%                         case east
+%                             d(1) = a*dx(1);
+%                         case south
+%                             d(2) = -a*dy(1);
+%                         case north
+%                             d(2) = a*dy(1);
+%                     end
+%                     text(mean(x)+d(1), mean(y)+d(2), mean(z)+d(3), num2str(i), ...
+%                         'horizontalalignment', 'center')
+%                     hold on
+%                     title('facet nr')
+%                 end
+%                 view(3)
+%                 xlabel('x')
+%                 ylabel('y')
+%                 zlabel('z')
+%                 axis equal
+%                 xlim([0 xb(end)])
+%                 ylim([0 yb(end)])
+%                 zlim([0 zb(end)])               
+%             end
             % write list of all facets
             
             % type = type(sel);
@@ -1939,16 +2347,16 @@ classdef da_pp < dynamicprops
             
             if obj.nblocks > 0
                 if any(obj.blocks(:,1) == 1)
-                    disp('Building(s) at lower x domain edge')
+                    %disp('Building(s) at lower x domain edge')
                 end
                 if any(obj.blocks(:,2) == obj.imax)
-                    disp('Building(s) at upper x domain edge')
+                    %disp('Building(s) at upper x domain edge')
                 end
                 if any(obj.blocks(:,3) == 1)
-                    disp('Building(s) at lower y domain edge')
+                    %disp('Building(s) at lower y domain edge')
                 end
                 if any(obj.blocks(:,4) == obj.jtot)
-                    disp('Building(s) at upper y domain edge')
+                    %disp('Building(s) at upper y domain edge')
                 end
             end
             
@@ -2137,7 +2545,7 @@ classdef da_pp < dynamicprops
             end          
         end
         
-        function createfloors(obj, ltestplot, lhqplot)
+        function createfloors(obj)
             % Create floors
             % fill space between blocks with floors (streets etc.)
             % floors only have x and y coordinates, with building ID = -101
@@ -2191,18 +2599,18 @@ classdef da_pp < dynamicprops
             end
             NM = 1 - M;
             
-            if ltestplot
-                % figure
-                % imagesc(xb,yb,M')
-                % axis equal tight
-                % set(gca,'YDir','normal')
-                % title('building mask')
-                figure
-                imagesc(xb+1,yb-1,BI')
-                axis equal tight
-                set(gca,'YDir','normal')
-                title('building index mask')
-            end
+%             if ltestplot
+%                 % figure
+%                 % imagesc(xb,yb,M')
+%                 % axis equal tight
+%                 % set(gca,'YDir','normal')
+%                 % title('building mask')
+%                 figure
+%                 imagesc(xb+1,yb-1,BI')
+%                 axis equal tight
+%                 set(gca,'YDir','normal')
+%                 title('building index mask')
+%             end
             % make them around blocks first, with 1 blocksize wide
             %numbers indicate floors, "--" and "|" walls  (only 1 blocksize wide, just two
             %number used to make diagonal clear)
@@ -2311,32 +2719,32 @@ classdef da_pp < dynamicprops
             
             corm(iM > 0) = 1;
             
-            if ltestplot
-                % figure
-                % imagesc(xb,yb,M2')
-                % axis equal tight
-                % set(gca,'YDir','normal')
-                % title('floor mask after adding floors around buildings')
-                
-                figure
-                imagesc(xb,yb,iM')
-                axis equal tight
-                set(gca,'YDir','normal')
-                title('floor indeces after adding floors around buildings')
-                
-                figure
-                blub=corm'+NM'.*0.5;
-                imagesc(xb,yb,blub)
-                axis equal tight
-                set(gca,'YDir','normal')
-                title('mask of all corners floor-wall')
-                
-                figure
-                imagesc(xb,yb,obj.cornm')
-                axis equal tight
-                set(gca,'YDir','normal')
-                title('mask of all corners floor-wall-wall')
-            end
+%             if ltestplot
+%                 % figure
+%                 % imagesc(xb,yb,M2')
+%                 % axis equal tight
+%                 % set(gca,'YDir','normal')
+%                 % title('floor mask after adding floors around buildings')
+%                 
+%                 figure
+%                 imagesc(xb,yb,iM')
+%                 axis equal tight
+%                 set(gca,'YDir','normal')
+%                 title('floor indeces after adding floors around buildings')
+%                 
+%                 figure
+%                 blub=corm'+NM'.*0.5;
+%                 imagesc(xb,yb,blub)
+%                 axis equal tight
+%                 set(gca,'YDir','normal')
+%                 title('mask of all corners floor-wall')
+%                 
+%                 figure
+%                 imagesc(xb,yb,obj.cornm')
+%                 axis equal tight
+%                 set(gca,'YDir','normal')
+%                 title('mask of all corners floor-wall-wall')
+%             end
             
             %% remove identical facets in corners (if it's a 1x1 facet in both cases)
             %truncate matrix
@@ -2509,9 +2917,8 @@ classdef da_pp < dynamicprops
                 sizeold = size(obj.floorfacets, 1);
             end
             %%
-            disp(floors2)
-            disp(obj.floorfacets(:, 6:9))
-            disp(floors2 - obj.floorfacets(:, 6:9))
+
+            %disp(floors2 - obj.floorfacets(:, 6:9))
             
             
             ls = 999;
@@ -2548,9 +2955,7 @@ classdef da_pp < dynamicprops
                 end
             end
             
-            disp(floors2)
-            disp(obj.floorfacets(:, 6:9))
-            disp(floors2 - obj.floorfacets(:, 6:9))
+            %disp(floors2 - obj.floorfacets(:, 6:9))
             
             
             
@@ -2670,31 +3075,29 @@ classdef da_pp < dynamicprops
             nfloors=size(floors3,1);
             obj.nfloorfacets = size(obj.floorfacets, 1);
             
-            disp(floors3(:, 1:4))
-            disp(obj.floorfacets(:, 6:9))
-            disp(floors3(:, 1:4) - obj.floorfacets(:, 6:9))
+            %disp(floors3(:, 1:4) - obj.floorfacets(:, 6:9))
             
             
-            if ltestplot
-                %rebuild indexmask and plot
-                xc=xb+0.5; xc(end)=[];
-                yc=yb+0.5; yc(end)=[];
-                
-                blub=zeros(nx,ny);
-                for i=1:size(floors3,1)
-                    blub(floors3(i,1):floors3(i,2),floors3(i,3):floors3(i,4))=i;
-                end
-                
-                figure
-                imagesc(xc,yc,blub')
-                %axis equal tight
-                title('floor indeces with borders outlined')
-                set(gca,'YDir','normal')
-                hold on
-                for i=1:size(floors3,1)
-                    rectangle('Position',[xc(floors3(i,1))-0.5 yc(floors3(i,3))-0.5  xc(floors3(i,2))-xc(floors3(i,1))+1 yc(floors3(i,4))-yc(floors3(i,3))+1])
-                end
-            end
+%             if ltestplot
+%                 %rebuild indexmask and plot
+%                 xc=xb+0.5; xc(end)=[];
+%                 yc=yb+0.5; yc(end)=[];
+%                 
+%                 blub=zeros(nx,ny);
+%                 for i=1:size(floors3,1)
+%                     blub(floors3(i,1):floors3(i,2),floors3(i,3):floors3(i,4))=i;
+%                 end
+%                 
+%                 figure
+%                 imagesc(xc,yc,blub')
+%                 %axis equal tight
+%                 title('floor indeces with borders outlined')
+%                 set(gca,'YDir','normal')
+%                 hold on
+%                 for i=1:size(floors3,1)
+%                     rectangle('Position',[xc(floors3(i,1))-0.5 yc(floors3(i,3))-0.5  xc(floors3(i,2))-xc(floors3(i,1))+1 yc(floors3(i,4))-yc(floors3(i,3))+1])
+%                 end
+%             end
             
             %% append fctl
             % fctl format: orientation, walltype, blockid, buildingid, isinternal
@@ -2708,17 +3111,14 @@ classdef da_pp < dynamicprops
             
             for i = 1:obj.nfloorfacets
                obj.floorfacets(i, 1:5) = [1, -1, i, -1, 0]; % SO: block ID should be obj.nblocks + i
-               obj.floorfacets(i, 10:11) = [0, 0];
-               % Why is this done?
-               %obj.floorfacets(i, 6) = obj.floorfacets(i, 6) + 1;
-               %obj.floorfacets(i, 8) = obj.floorfacets(i, 8) + 1;              
+               obj.floorfacets(i, 10:11) = [0, 0];           
             end
                                    
-            obj.facets = [obj.facets; obj.floorfacets];
+            
             
                   
             obj.nfcts = obj.nblockfcts + obj.nboundingwallfacets + obj.nfloorfacets;
-            disp([num2str(obj.nfcts) ' facets, of which: ' num2str(obj.nblockfcts) ' from buildings, ' num2str(obj.nboundingwallfacets) ' from walls, ' num2str(obj.nfloorfacets) ' from floors.'])
+            %disp([num2str(obj.nfcts) ' facets, of which: ' num2str(obj.nblockfcts) ' from buildings, ' num2str(obj.nboundingwallfacets) ' from walls, ' num2str(obj.nfloorfacets) ' from floors.'])
             
             %if lwritefiles
             %
@@ -2800,109 +3200,114 @@ classdef da_pp < dynamicprops
                 obj.blocks(j, 7) = i;
                 j = j + 1;
             end
+            
+            % Done for plotting
+            %obj.floorfacets(:, 7) = obj.floorfacets(:, 7) + 1;
+            %obj.floorfacets(:, 9) = obj.floorfacets(:, 9) + 1;   
+            obj.facets = [obj.facets; obj.floorfacets];
                 
             da_pp.addvar(obj, 'nblockstotal', obj.nblocks + obj.nfloorfacets);
             
-            if lhqplot               
-                scale = 2;
-                scalef = 1.5;
-                il = 1; iu = 2;
-                jl = 3; ju = 4;
-                kl = 5; ku = 6;
-                h = figure;
-                set(gcf,'units','centimeters','position',[0 0 14.5*scale 14.5*scale]);
-                set(h,'PaperPosition',[0 0 14.5*scale 14.5*scale]);
-                set(h,'PaperUnits','centimeters');
-                set(h,'renderer','painters');
-                %set(h,'renderer','opengl');
-                cmap = colormap('parula');
-                title("facets")
-                for i=1:nfcts
-                    switch fctl(i, 1)
-                        case {top, bot}
-                            x = [xb(fctl(i, 5+il)), xb(fctl(i, 5+iu)), xb(fctl(i, 5+iu)), xb(fctl(i, 5+il))];
-                            y = [yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl)), yb(fctl(i, 5+ju)), yb(fctl(i, 5+ju))];
-                            z = [zb(fctl(i, 5+kl)), zb(fctl(i, 5+kl)), zb(fctl(i, 5+kl)), zb(fctl(i, 5+kl))];
-                        case {west, east}
-                            x = [xb(fctl(i, 5+il)), xb(fctl(i, 5+il)), xb(fctl(i, 5+il)), xb(fctl(i, 5+il))];
-                            y = [yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl)), yb(fctl(i, 5+ju)), yb(fctl(i, 5+ju))];
-                            z = [zb(fctl(i, 5+kl)), zb(fctl(i, 5+ku)), zb(fctl(i, 5+ku)), zb(fctl(i, 5+kl))];
-                        case {north, south}
-                            x = [xb(fctl(i, 5+il)), xb(fctl(i, 5+iu)), xb(fctl(i, 5+iu)), xb(fctl(i, 5+il))];
-                            y = [yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl))];
-                            z = [zb(fctl(i, 5+kl)), zb(fctl(i, 5+kl)), zb(fctl(i, 5+ku)), zb(fctl(i, 5+ku))];
-                    end
-                    %         if (i==99)
-                    %             x=[9, 10, 11 , 9];
-                    %             y=[8,  8, 9 , 9];
-                    %         elseif (i==103)
-                    %             x=[10, 11, 11, 10];
-                    %             y=[7, 7, 9, 8];
-                    %         end
-                    if(fctl(i,3)<0)
-                        add=5;
-                    else
-                        add=0;
-                    end
-                    ci = min(floor(double((fctl(i,1)+add))/11*length(cmap)), length(cmap));
-                    p=patch(x,y,z, cmap(ci, :),'FaceLighting','none');
-                    d = [0, 0, 0]; a = 0.2; b=-0.2;
-                    switch(fctl(i, 1))
-                        case top
-                            %d(3) = a * dz(1);
-                            d=[b*dx(1), b*dy(1), a*dz(1)];
-                        case west
-                            %d(1) = -a*dx(1);
-                            d=[-0.27*dx(1) b*dy(1) -b/2*dz(1)];
-                        case east
-                            %d(1) = a*dx(1);
-                            d=[0.42*dx(1) b*dy(1) -b/2*dz(1)];
-                        case south
-                            %d(2) = -a*dy(1);
-                            d=[b/2*dx(1) -a*dy(1) -b/2*dz(1)];
-                        case north
-                            d(2) = a*dy(1);
-                    end
-                    t=text(mean(x)+d(1), mean(y)+d(2), mean(z)+d(3), num2str(i), 'horizontalalignment', 'center','Interpreter','latex','Fontsize',12);
-                    hold on
-                end
-                view(3)
-                
-                axis equal
-                xlim([0 xb(end)])
-                ylim([0 yb(end)])
-                %zlim([0 72])   %
-                zlim([0 zb(end)])
-                
-                set(gca,'TickLabelInterpreter','latex')
-                set(gca,'FontSize',12*scalef)
-                %h1=gca;
-                % h1.Position=[0.08 0.1100 0.78 0.8150];
-                
-                %caxis([0 71])
-                xlabel('x [-]','Interpreter','latex','FontSize',12*scalef)
-                ylabel('y [-]','Interpreter','latex','FontSize',12*scalef)
-                zlabel('z [-]','Interpreter','latex','FontSize',12*scalef)
-                
-                %colormap(flipud(bone)) %colormap(flipud(gray))
-                
-                %hcb=colorbar('Position',[0.92 0.15 0.03 0.69]);
-                %hcb.Label.Interpreter='latex';
-                %hcb.TickLabelInterpreter='latex';
-                %title(hcb,'height [m]','Interpreter','latex','FontSize',12)
-                
-                
-                hold off
-                
-                %print -depsc2 facetindeces.eps
-                %print -dpng facetindeces.png
-                
-                set(gcf, 'Color', 'w');
-                %  export_fig facetindeces.eps    
-           end
+%             if lhqplot               
+%                 scale = 2;
+%                 scalef = 1.5;
+%                 il = 1; iu = 2;
+%                 jl = 3; ju = 4;
+%                 kl = 5; ku = 6;
+%                 h = figure;
+%                 set(gcf,'units','centimeters','position',[0 0 14.5*scale 14.5*scale]);
+%                 set(h,'PaperPosition',[0 0 14.5*scale 14.5*scale]);
+%                 set(h,'PaperUnits','centimeters');
+%                 set(h,'renderer','painters');
+%                 %set(h,'renderer','opengl');
+%                 cmap = colormap('parula');
+%                 title("facets")
+%                 for i=1:nfcts
+%                     switch fctl(i, 1)
+%                         case {top, bot}
+%                             x = [xb(fctl(i, 5+il)), xb(fctl(i, 5+iu)), xb(fctl(i, 5+iu)), xb(fctl(i, 5+il))];
+%                             y = [yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl)), yb(fctl(i, 5+ju)), yb(fctl(i, 5+ju))];
+%                             z = [zb(fctl(i, 5+kl)), zb(fctl(i, 5+kl)), zb(fctl(i, 5+kl)), zb(fctl(i, 5+kl))];
+%                         case {west, east}
+%                             x = [xb(fctl(i, 5+il)), xb(fctl(i, 5+il)), xb(fctl(i, 5+il)), xb(fctl(i, 5+il))];
+%                             y = [yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl)), yb(fctl(i, 5+ju)), yb(fctl(i, 5+ju))];
+%                             z = [zb(fctl(i, 5+kl)), zb(fctl(i, 5+ku)), zb(fctl(i, 5+ku)), zb(fctl(i, 5+kl))];
+%                         case {north, south}
+%                             x = [xb(fctl(i, 5+il)), xb(fctl(i, 5+iu)), xb(fctl(i, 5+iu)), xb(fctl(i, 5+il))];
+%                             y = [yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl)), yb(fctl(i, 5+jl))];
+%                             z = [zb(fctl(i, 5+kl)), zb(fctl(i, 5+kl)), zb(fctl(i, 5+ku)), zb(fctl(i, 5+ku))];
+%                     end
+%                     %         if (i==99)
+%                     %             x=[9, 10, 11 , 9];
+%                     %             y=[8,  8, 9 , 9];
+%                     %         elseif (i==103)
+%                     %             x=[10, 11, 11, 10];
+%                     %             y=[7, 7, 9, 8];
+%                     %         end
+%                     if(fctl(i,3)<0)
+%                         add=5;
+%                     else
+%                         add=0;
+%                     end
+%                     ci = min(floor(double((fctl(i,1)+add))/11*length(cmap)), length(cmap));
+%                     p=patch(x,y,z, cmap(ci, :),'FaceLighting','none');
+%                     d = [0, 0, 0]; a = 0.2; b=-0.2;
+%                     switch(fctl(i, 1))
+%                         case top
+%                             %d(3) = a * dz(1);
+%                             d=[b*dx(1), b*dy(1), a*dz(1)];
+%                         case west
+%                             %d(1) = -a*dx(1);
+%                             d=[-0.27*dx(1) b*dy(1) -b/2*dz(1)];
+%                         case east
+%                             %d(1) = a*dx(1);
+%                             d=[0.42*dx(1) b*dy(1) -b/2*dz(1)];
+%                         case south
+%                             %d(2) = -a*dy(1);
+%                             d=[b/2*dx(1) -a*dy(1) -b/2*dz(1)];
+%                         case north
+%                             d(2) = a*dy(1);
+%                     end
+%                     t=text(mean(x)+d(1), mean(y)+d(2), mean(z)+d(3), num2str(i), 'horizontalalignment', 'center','Interpreter','latex','Fontsize',12);
+%                     hold on
+%                 end
+%                 view(3)
+%                 
+%                 axis equal
+%                 xlim([0 xb(end)])
+%                 ylim([0 yb(end)])
+%                 %zlim([0 72])   %
+%                 zlim([0 zb(end)])
+%                 
+%                 set(gca,'TickLabelInterpreter','latex')
+%                 set(gca,'FontSize',12*scalef)
+%                 %h1=gca;
+%                 % h1.Position=[0.08 0.1100 0.78 0.8150];
+%                 
+%                 %caxis([0 71])
+%                 xlabel('x [-]','Interpreter','latex','FontSize',12*scalef)
+%                 ylabel('y [-]','Interpreter','latex','FontSize',12*scalef)
+%                 zlabel('z [-]','Interpreter','latex','FontSize',12*scalef)
+%                 
+%                 %colormap(flipud(bone)) %colormap(flipud(gray))
+%                 
+%                 %hcb=colorbar('Position',[0.92 0.15 0.03 0.69]);
+%                 %hcb.Label.Interpreter='latex';
+%                 %hcb.TickLabelInterpreter='latex';
+%                 %title(hcb,'height [m]','Interpreter','latex','FontSize',12)
+%                 
+%                 
+%                 hold off
+%                 
+%                 %print -depsc2 facetindeces.eps
+%                 %print -dpng facetindeces.png
+%                 
+%                 set(gcf, 'Color', 'w');
+%                 %  export_fig facetindeces.eps    
+%            end
         end
         
-        function vsolc(obj, ltestplot, lhqplot)
+        function vsolc(obj)
 %             % blocks
 %             nheader=2;
 %             try %in case file is empty -> no blocks
@@ -3064,26 +3469,26 @@ classdef da_pp < dynamicprops
                       
             %disp('done creating blocks to test for intersection')
             
-            if ltestplot
-                indexmask=zeros(size(indexmask));
-                for i=1:size(BB,1)
-                    il=BB(i,1);
-                    iu=BB(i,2);
-                    jl=BB(i,3);
-                    ju=BB(i,4);
-                    if BB(i,6)>0
-                        indexmask(jl:ju,il:iu)=i;
-                    end
-                end
-                figure
-                imagesc(indexmask)
-                set(gca,'YDir','normal')
-                
-            end
+%             if ltestplot
+%                 indexmask=zeros(size(indexmask));
+%                 for i=1:size(BB,1)
+%                     il=BB(i,1);
+%                     iu=BB(i,2);
+%                     jl=BB(i,3);
+%                     ju=BB(i,4);
+%                     if BB(i,6)>0
+%                         indexmask(jl:ju,il:iu)=i;
+%                     end
+%                 end
+%                 figure
+%                 imagesc(indexmask)
+%                 set(gca,'YDir','normal')
+%                 
+%             end
             
             %% Calculate Ray-Block-Intersection
             wsl = ones(obj.nfcts, 1); %potentially sunlit surface (not self shaded)
-            asl = zeros(obj.nfcts, 1); %sunlit area of facet
+            da_pp.addvar(obj, 'asl', zeros(obj.nfcts, 1)); %sunlit area of facet
             walltheta = zeros(obj.nfcts, 1); %theta
                        
             for i = 1:obj.nfcts
@@ -3104,15 +3509,14 @@ classdef da_pp < dynamicprops
                 %count how much area cannot see sun (i.e. view is blocked)
                 %[ as ] = prblckd(i,-999,co,ndim,true,v1,-999,-999,F,centerweight,cornerweight,nblocks,nbw,bl);
                 [ as ] = da_pp.prblckd(obj, i, -999, co, ndim, true, v1, -999, -999);
-                asl(i) = 1 - as; %fraction of facet in sunlight
+                obj.asl(i) = 1 - as; %fraction of facet in sunlight
+                
                 
             end
             
-            disp(asl)
-            
             %%
-            disp('done calculating Ray-Block-Intersection')
-            disp('assign wall theta')
+            %disp('done calculating Ray-Block-Intersection')
+            %disp('assign wall theta')
             %walltheta is called Xi in the thesis
             %wallaz is called Omega_i
             for i=1:obj.nfcts
@@ -3134,507 +3538,630 @@ classdef da_pp < dynamicprops
                 else
                     phi = 90; %vertical
                 end
-                obj.Sdir(i) = obj.I * cos((obj.Z - phi) / 360 * 2 * pi) * cos(walltheta(i) / 360 * 2 * pi) * asl(i);
+                obj.Sdir(i) = obj.I * cos((obj.Z - phi) / 360 * 2 * pi) * cos(walltheta(i) / 360 * 2 * pi) * obj.asl(i);
             end
             
-            fname = 'Sdir.txt';
-            fileID = fopen(fname,'w');
-            fprintf(fileID,'# %4s\n','Direct shortwave radiation reaching facets [W/m2]');
-            fprintf(fileID,'%6d\n', obj.Sdir);
-            fclose(fileID);
+%             fname = 'Sdir.txt';
+%             fileID = fopen(fname,'w');
+%             fprintf(fileID,'# %4s\n','Direct shortwave radiation reaching facets [W/m2]');
+%             fprintf(fileID,'%6d\n', obj.Sdir);
+%             fclose(fileID);
 
-            if ltestplot
-                
-                whichblock=17;
-                wbl=find(F(:,3)==whichblock & F(:,4)>0);
-                wfl=fctl(wbl,:);
-                scale=2;
-                scalef=1.5;
-                h=figure;
-                set(gcf,'units','centimeters','position',[2 2 2+14.5*scale 2+14.5*scale]);
-                set(h,'PaperPosition',[2 2 2+14.5*scale 2+14.5*scale]);
-                set(h,'PaperUnits','centimeters');
-                set(h,'renderer','painters');
-                
-                for i=1:nfcts
-                    bi=F(i,3); %block index
-                    fi=F(i,1); %facet index
+%             if ltestplot
+%                 % F is the first 4 columns of obj.facets
+%                 % G is floors, so floors(:, 1) = obj.floorfacets(:, 6)  - add 5
+%                 % BB is blocks so can just replace it with obj.blocks 
+%                 % W is boundingwalls, so boundingwalls(:, 1) = obj.boundingwallfacets(:, 6) - add 5 
+% %                 whichblock = 17;
+% %                 wbl = find(obj.facets(:,3) == whichblock & obj.facets(:,4) > 0);
+% %                 wfl = obj.facets(wbl, :);
+%                 scale=2;
+%                 scalef=1.5;
+%                 h=figure;
+%                 set(gcf,'units','centimeters','position',[2 2 2+14.5*scale 2+14.5*scale]);
+%                 set(h,'PaperPosition',[2 2 2+14.5*scale 2+14.5*scale]);
+%                 set(h,'PaperUnits','centimeters');
+%                 set(h,'renderer','painters');
+%                 
+%                 dx = ones(obj.imax, 1) * obj.dx;
+%                 dy = ones(obj.jtot, 1) * obj.dy;
+%                 dz = obj.dzf;
+%                 
+%                 for i=1:obj.nfcts
+%                     bi = obj.facets(i,3); %block index
+%                     fi = obj.facets(i,1); %orientation
+%                     
+%                     if (obj.facets(i,4) == -1) %it is a floor, not a building
+%                         il = obj.floorfacets(bi, 6);
+%                         iu = obj.floorfacets(bi, 7);
+%                         jl = obj.floorfacets(bi, 8);
+%                         ju = obj.floorfacets(bi, 9);
+%                         xl = obj.xh(il);
+%                         xu = obj.xh(iu+1);
+%                         yl = obj.yh(jl);
+%                         yu = obj.yh(ju+1);
+%                         zl = obj.zh(0+1+1); %no 0th index
+%                         zu = obj.zh(0+1+1);
+%                     elseif (obj.facets(i,4) == -101)  %it is a bounding wall
+%                         il = obj.boundingwallfacets(bi, 6);
+%                         iu = obj.boundingwallfacets(bi, 7);
+%                         jl = obj.boundingwallfacets(bi, 8);
+%                         ju = obj.boundingwallfacets(bi, 9);
+%                         kl = obj.boundingwallfacets(bi, 10) + 1;
+%                         ku = obj.boundingwallfacets(bi, 11) + 1 + 1;
+%                         
+%                         if (fi == 2)
+%                             xl = obj.xf(iu) + dx(iu) / 2;
+%                             xu = obj.xf(iu) + dx(iu);
+%                             yl = obj.yf(jl) - dy(jl) / 2;
+%                             yu = obj.yf(ju) + dy(ju) / 2;
+%                             zl = obj.zf(kl) - dz(kl) / 2;
+%                             zu = obj.zf(ku) + dz(ku) / 2;
+%                         elseif (fi == 3)
+%                             xl = obj.xf(il) - dx(il);
+%                             xu = obj.xf(il) - dx(il) / 2;
+%                             yl = obj.yf(jl) - dy(jl) / 2;
+%                             yu = obj.yf(ju) + dy(ju) / 2;
+%                             zl = obj.zf(kl) - dz(kl) / 2;
+%                             zu = obj.zf(ku) + dz(ku) / 2;
+%                         elseif (fi == 4)
+%                             xl = obj.xf(il) - dx(il) / 2;
+%                             xu = obj.xf(iu) + dx(iu) / 2;
+%                             yl = obj.yf(jl) - dy(jl);
+%                             yu = obj.yf(jl) - dy(jl) / 2;
+%                             zl = obj.zf(kl) - dz(kl) / 2;
+%                             zu = obj.zf(ku) + dz(ku) / 2;
+%                         else %if (fi==5)
+%                             xl = obj.xf(il) - dx(il) / 2;
+%                             xu = obj.xf(iu) + dx(iu) / 2;
+%                             yl = obj.yf(ju) + dy(ju) / 2;
+%                             yu = obj.yf(ju) + dy(ju);
+%                             zl = obj.zf(kl) - dz(kl) / 2;
+%                             zu = obj.zf(ku) + dz(ku) / 2;
+%                         end
+%                     else
+%                         il = obj.blocks(bi, 1);
+%                         iu = obj.blocks(bi, 2);
+%                         jl = obj.blocks(bi, 3);
+%                         ju = obj.blocks(bi, 4);
+%                         kl = obj.blocks(bi, 5) + 1; %no 0th index
+%                         ku = obj.blocks(bi, 6) + 1; %no 0th index
+%                         
+%                         xl = obj.xh(il);
+%                         xu = obj.xh(iu + 1);
+%                         yl = obj.yf(jl);
+%                         yu = obj.yf(ju + 1);
+%                         zl = obj.xh(kl) - 0.25; %move a bit down for better plots
+%                         zu = obj.xh(ku + 1);
+%                     end
+%                     
+%                     switch obj.facets(i, 1)
+%                         case {1} %top
+%                             x = [xl, xu, xu, xl];
+%                             y = [yl, yl, yu, yu];
+%                             z = [zu, zu, zu, zu];
+%                         case {2} %west
+%                             x = [xl, xl, xl, xl];
+%                             y = [yl, yl, yu, yu];
+%                             z = [zl, zu, zu, zl];
+%                         case {3} %east
+%                             x = [xu, xu, xu, xu];
+%                             y = [yl, yl, yu, yu];
+%                             z = [zl, zu, zu, zl];
+%                         case {4} %north
+%                             x = [xl, xl, xu, xu];
+%                             y = [yu, yu, yu, yu];
+%                             z = [zl, zu, zu, zl];
+%                         case {5} %south
+%                             x = [xl, xl, xu, xu];
+%                             y = [yl, yl, yl, yl];
+%                             z = [zl, zu, zu, zl];
+%                     end
+%                     
+%                     %shaded vs non-shaded
+%                     cs = obj.asl(i) * [0.75 0.75 0.75] + [0.25 0.25 0.25];
+%                     
+%                     patch(x,y,z, cs,'FaceLighting','none');
+%                     hold on
+%                 end
+%                 
+%                 for i=1:size(wfl,1)
+%                     xl=xb(wfl(i,6));
+%                     xu=xb(wfl(i,7));
+%                     yl=yb(wfl(i,8));
+%                     yu=yb(wfl(i,9));
+%                     zl=zb(wfl(i,10)+1);
+%                     zu=zb(wfl(i,11)+1);
+%                     
+%                     if (wsl(wbl(i))) %if not self shaded
+%                         switch wfl(i,1)
+%                             case 1
+%                                 quiver3(xl,yl,zu,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
+%                                 quiver3(xl,yu,zu,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
+%                                 quiver3(xu,yu,zu,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
+%                                 quiver3(xu,yl,zu,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
+%                                 quiver3((xu+xl)/2,(yl+yu)/2,zu,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
+%                             case 2
+%                                 quiver3(xl,yl,zu,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
+%                                 quiver3(xl,yu,zu,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
+%                                 quiver3(xl,yu,zl,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
+%                                 quiver3(xl,yl,zl,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
+%                                 quiver3(xl,(yl+yu)/2,(zl+zu)/2,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
+%                             case 3
+%                                 quiver3(xu,yl,zu,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
+%                                 quiver3(xu,yu,zu,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
+%                                 quiver3(xu,yu,zl,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
+%                                 quiver3(xu,yl,zl,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
+%                                 quiver3(xu,(yl+yu)/2,(zl+zu)/2,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
+%                             case 4
+%                                 quiver3(xl,yu,zu,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
+%                                 quiver3(xl,yu,zl,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
+%                                 quiver3(xu,yu,zl,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
+%                                 quiver3(xu,yu,zu,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
+%                                 quiver3((xu+xl)/2,yu,(zu+zl)/2,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
+%                             case 5
+%                                 quiver3(xl,yl,zu,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
+%                                 quiver3(xl,yl,zl,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
+%                                 quiver3(xu,yu,zl,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
+%                                 quiver3(xu,yl,zu,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
+%                                 quiver3((xu+xl)/2,yl,(zu+zl)/2,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
+%                         end
+%                     end
+%                     
+%                 end
+%                 %asl(wbl)
+%                 
+%                 
+%                 view(v1)
+%                 axis equal
+%                 xlim([-1 xb(end)+1])
+%                 ylim([-1 yb(end)+1])
+%                 %IC25
+%                 %zlim([0 72])
+%                 zlim([0 max(zmax5+1)+5])
+%                 set(gca,'TickLabelInterpreter','latex')
+%                 set(gca,'FontSize',12*scalef)
+%                 xlabel('x [m]','Interpreter','latex','FontSize',12*scalef)
+%                 ylabel('y [m]','Interpreter','latex','FontSize',12*scalef)
+%                 zlabel('z [m]','Interpreter','latex','FontSize',12*scalef)
+%                 set(gcf, 'Color', 'c');
+%                 % export_fig shading.eps
+%             end
+        end       
+        
+        function plot_shading(obj)
+            scale = 2;
+            scalef = 1.5;
+            h = figure;
+            view(3);
+            xlabel('x')
+            ylabel('y')
+            zlabel('z')
+            axis equal
+            set(gcf,'units','centimeters','position', [2 2 2+14.5*scale 2+14.5*scale/2]);
+            set(h,'PaperPosition',[2 2 2+14.5*scale 2+14.5*scale/2]);
+            set(h,'PaperUnits','centimeters');
+            set(h,'renderer','painters');
+            
+            %plotshadowline
+            
+            dx = ones(obj.imax, 1) * obj.dx;
+            dy = ones(obj.jtot, 1) * obj.dy;
+            dz = obj.dzf;
+            
+            for i=1:obj.nfcts
+                bi = obj.facets(i,3); %block index
+                fi = obj.facets(i,1); %facet index
+                % F is the first 4 columns of obj.facets
+                % G is floors, so floors(:, 1) = obj.floorfacets(:, 6)  - add 5
+                % BB is blocks so can just replace it with obj.blocks
+                % W is boundingwalls, so boundingwalls(:, 1) = obj.boundingwallfacets(:, 6) - add 5
+                if (obj.facets(i,4) < 0 && obj.facets(i,4) > -100) %it is a floor, not a building
+                    il = obj.floorfacets(bi, 6);
+                    iu = obj.floorfacets(bi, 7);
+                    jl = obj.floorfacets(bi, 8);
+                    ju = obj.floorfacets(bi, 9);
+                    xl = obj.xf(il) - 0.5 * dx(il);
+                    xu = obj.xf(iu) + 0.5 * dx(iu);
+                    yl = obj.yf(jl) - 0.5 * dy(jl);
+                    yu = obj.yf(ju) + 0.5 * dy(ju);
+                    zl = 0;
+                    zu = 0;
+                elseif (obj.facets(i,4) <= -100)  %it is a bounding wall
+                    il = obj.boundingwallfacets(bi, 6);
+                    iu = obj.boundingwallfacets(bi, 7);
+                    jl = obj.boundingwallfacets(bi, 8);
+                    ju = obj.boundingwallfacets(bi, 9);
+                    kl = obj.boundingwallfacets(bi, 10) + 1;
+                    ku = obj.boundingwallfacets(bi, 11) + 1;
                     
-                    if (F(i,4)==-1) %it is a floor, not a building
-                        il=G(bi,1);
-                        iu=G(bi,2);
-                        jl=G(bi,3);
-                        ju=G(bi,4);
-                        xl=xb(il);
-                        xu=xb(iu+1);
-                        yl=yb(jl);
-                        yu=yb(ju+1);
-                        zl=zb(0+1+1); %no 0th index
-                        zu=zb(0+1+1);
-                    elseif (F(i,4)==-101)  %it is a bounding wall
-                        il=W(bi,1);
-                        iu=W(bi,2);
-                        jl=W(bi,3);
-                        ju=W(bi,4);
-                        kl=W(bi,5)+1;
-                        ku=W(bi,6)+1+1;
-                        
-                        if (fi==2)
-                            xl=xc(iu)+dx(iu)/2;
-                            xu=xc(iu)+dx(iu);
-                            yl=yc(jl)-dy(jl)/2;
-                            yu=yc(ju)+dy(ju)/2;
-                            zl=zc(kl)-dz(kl)/2;
-                            zu=zc(ku)+dz(ku)/2;
-                        elseif (fi==3)
-                            xl=xc(il)-dx(il);
-                            xu=xc(il)-dx(il)/2;
-                            yl=yc(jl)-dy(jl)/2;
-                            yu=yc(ju)+dy(ju)/2;
-                            zl=zc(kl)-dz(kl)/2;
-                            zu=zc(ku)+dz(ku)/2;
-                        elseif (fi==4)
-                            xl=xc(il)-dx(il)/2;
-                            xu=xc(iu)+dx(iu)/2;
-                            yl=yc(jl)-dy(jl);
-                            yu=yc(jl)-dy(jl)/2;
-                            zl=zc(kl)-dz(kl)/2;
-                            zu=zc(ku)+dz(ku)/2;
-                        else %if (fi==5)
-                            xl=xc(il)-dx(il)/2;
-                            xu=xc(iu)+dx(iu)/2;
-                            yl=yc(ju)+dy(ju)/2;
-                            yu=yc(ju)+dy(ju);
-                            zl=zc(kl)-dz(kl)/2;
-                            zu=zc(ku)+dz(ku)/2;
-                        end
-                    else
-                        il=BB(bi,1);
-                        iu=BB(bi,2);
-                        jl=BB(bi,3);
-                        ju=BB(bi,4);
-                        kl=BB(bi,5)+1; %no 0th index
-                        ku=BB(bi,6)+1; %no 0th index
-                        
-                        xl=xb(il);
-                        xu=xb(iu+1);
-                        yl=yc(jl);
-                        yu=yc(ju+1);
-                        zl=zb(kl)-0.25; %move a bit down for better plots
-                        zu=zb(ku+1);
+                    if (fi == 2)
+                        xl = obj.xf(iu) + 0.5 * dx(iu);
+                        xu = obj.xf(iu) + 0.5 * dx(iu);
+                        yl = obj.yf(jl) - 0.5 * dy(jl);
+                        yu = obj.yf(ju) + 0.5 * dy(ju);
+                        zl = obj.zf(kl) - 0.5 * dz(kl);
+                        zu = obj.zf(ku) + 0.5 * dz(ku);
+                    elseif (fi == 3)
+                        xl = obj.xf(il) - dx(il);
+                        xu = obj.xf(il) - 0.5 * dx(il);
+                        yl = obj.yf(jl) - 0.5 * dy(jl);
+                        yu = obj.yf(ju) + 0.5 * dy(ju);
+                        zl = obj.zf(kl) - 0.5 * dz(kl);
+                        zu = obj.zf(ku) + 0.5 * dz(ku);
+                    elseif (fi==4)
+                        xl = obj.xf(il) - 0.5 * dx(il);
+                        xu = obj.xf(iu) + 0.5 * dx(iu);
+                        yl = obj.yf(jl) - dy(jl);
+                        yu = obj.yf(jl) - 0.5 * dy(jl);
+                        zl = obj.zf(kl) - 0.5 * dz(kl);
+                        zu = obj.zf(ku) + 0.5 * dz(ku);
+                    else %if (fi==5)
+                        xl = obj.xf(il) - 0.5 * dx(il);
+                        xu = obj.xf(iu) + 0.5 * dx(iu);
+                        yl = obj.yf(ju) + 0.5 * dy(ju);
+                        yu = obj.yf(ju) + dy(ju);
+                        zl = obj.zf(kl) - 0.5 * dz(kl);
+                        zu = obj.zf(ku) + 0.5 * dz(ku);
                     end
+                else
+                    il = obj.blocks(bi, 1);
+                    iu = obj.blocks(bi, 2);
+                    jl = obj.blocks(bi, 3);
+                    ju = obj.blocks(bi, 4);
+                    kl = obj.blocks(bi, 5) + 1;
+                    ku = obj.blocks(bi, 6) + 1;
                     
-                    switch F(i, 1)
-                        case {1} %top
-                            x = [xl, xu, xu, xl];
-                            y = [yl, yl, yu, yu];
-                            z = [zu, zu, zu, zu];
-                        case {2} %west
-                            x = [xl, xl, xl, xl];
-                            y = [yl, yl, yu, yu];
-                            z = [zl, zu, zu, zl];
-                        case {3} %east
-                            x = [xu, xu, xu, xu];
-                            y = [yl, yl, yu, yu];
-                            z = [zl, zu, zu, zl];
-                        case {4} %north
-                            x = [xl, xl, xu, xu];
-                            y = [yu, yu, yu, yu];
-                            z = [zl, zu, zu, zl];
-                        case {5} %south
-                            x = [xl, xl, xu, xu];
-                            y = [yl, yl, yl, yl];
-                            z = [zl, zu, zu, zl];
-                    end
-                    
-                    %shaded vs non-shaded
-                    cs=asl(i)*[0.75 0.75 0.75] + [0.25 0.25 0.25];
-                    
-                    patch(x,y,z, cs,'FaceLighting','none');
-                    hold on
+                    xl = obj.xf(il) - 0.5 * dx(il);
+                    xu = obj.xf(iu) + 0.5 * dx(iu);
+                    yl = obj.yf(jl) - 0.5 * dy(jl);
+                    yu = obj.yf(ju) + 0.5 * dy(ju);
+                    zl = obj.zf(kl) - 0.5 * dz(kl);
+                    zu = obj.zf(ku) + 0.5 * dz(ku);
                 end
                 
-                for i=1:size(wfl,1)
-                    xl=xb(wfl(i,6));
-                    xu=xb(wfl(i,7));
-                    yl=yb(wfl(i,8));
-                    yu=yb(wfl(i,9));
-                    zl=zb(wfl(i,10)+1);
-                    zu=zb(wfl(i,11)+1);
-                    
-                    if (wsl(wbl(i))) %if not self shaded
-                        switch wfl(i,1)
-                            case 1
-                                quiver3(xl,yl,zu,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
-                                quiver3(xl,yu,zu,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
-                                quiver3(xu,yu,zu,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
-                                quiver3(xu,yl,zu,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
-                                quiver3((xu+xl)/2,(yl+yu)/2,zu,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
-                            case 2
-                                quiver3(xl,yl,zu,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
-                                quiver3(xl,yu,zu,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
-                                quiver3(xl,yu,zl,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
-                                quiver3(xl,yl,zl,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
-                                quiver3(xl,(yl+yu)/2,(zl+zu)/2,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
-                            case 3
-                                quiver3(xu,yl,zu,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
-                                quiver3(xu,yu,zu,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
-                                quiver3(xu,yu,zl,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
-                                quiver3(xu,yl,zl,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
-                                quiver3(xu,(yl+yu)/2,(zl+zu)/2,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
-                            case 4
-                                quiver3(xl,yu,zu,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
-                                quiver3(xl,yu,zl,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
-                                quiver3(xu,yu,zl,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
-                                quiver3(xu,yu,zu,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
-                                quiver3((xu+xl)/2,yu,(zu+zl)/2,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
-                            case 5
-                                quiver3(xl,yl,zu,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
-                                quiver3(xl,yl,zl,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
-                                quiver3(xu,yu,zl,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
-                                quiver3(xu,yl,zu,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
-                                quiver3((xu+xl)/2,yl,(zu+zl)/2,v1(1),v1(2),v1(3),15.123,'r','LineWidth',2,'MaxHeadSize',1)
-                        end
-                    end
-                    
+                switch obj.facets(i, 1)
+                    case {1} %top
+                        x = [xl, xu, xu, xl];
+                        y = [yl, yl, yu, yu];
+                        z = [zu, zu, zu, zu];
+                    case {2} %west
+                        x = [xl, xl, xl, xl];
+                        y = [yl, yl, yu, yu];
+                        z = [zl, zu, zu, zl];
+                    case {3} %east
+                        x = [xu, xu, xu, xu];
+                        y = [yl, yl, yu, yu];
+                        z = [zl, zu, zu, zl];
+                    case {4} %north
+                        x = [xl, xl, xu, xu];
+                        y = [yu, yu, yu, yu];
+                        z = [zl, zu, zu, zl];
+                    case {5} %south
+                        x = [xl, xl, xu, xu];
+                        y = [yl, yl, yl, yl];
+                        z = [zl, zu, zu, zl];
                 end
-                asl(wbl)
+                
+                %shaded vs non-shaded
+                greymax = 0.15; %maximum percent of blackness, [1 1 1] is white;
+                cs = obj.asl(i) * [1-greymax 1-greymax 1-greymax] + [greymax greymax greymax];
+                patch(x, y, z, cs,'FaceLighting','none');
+                hold on
+                
+                %quiver3(face(92,1,2,1),face(92,1,2,2),face(92,1,2,3), v1(1),v1(2),v1(3), 8);
+                %quiver3(face(92,1,3,1),face(92,1,3,2),face(92,1,3,3), v1(1),v1(2),v1(3), 8);
+                % quiver3(face(92,2,2,1),face(92,2,2,2),face(92,2,2,3), v1(1),v1(2),v1(3), 8);
+                %  quiver3(face(92,2,3,1),face(92,2,3,2),face(92,2,3,3), v1(1),v1(2),v1(3), 8);
                 
                 
-                view(v1)
-                axis equal
-                xlim([-1 xb(end)+1])
-                ylim([-1 yb(end)+1])
-                %IC25
-                %zlim([0 72])
-                zlim([0 max(zmax5+1)+5])
-                set(gca,'TickLabelInterpreter','latex')
-                set(gca,'FontSize',12*scalef)
-                xlabel('x [m]','Interpreter','latex','FontSize',12*scalef)
-                ylabel('y [m]','Interpreter','latex','FontSize',12*scalef)
-                zlabel('z [m]','Interpreter','latex','FontSize',12*scalef)
-                set(gcf, 'Color', 'c');
-                % export_fig shading.eps
+                %   title('sunlit fraction')
             end
+            
+            %HS=scatter3(shadowscatter(:,1),shadowscatter(:,2),shadowscatter(:,3),'filled','dk');
+            
+            %                 ffv=134;
+            %                 quiver3((xb(fctl(ffv, 6))+xb(fctl(ffv, 7)))/2,(yb(fctl(ffv, 8))+yb(fctl(ffv, 9)))/2,zb(fctl(ffv, 10))+0.05,v1(1),v1(2),v1(3),3,'r','LineWidth',2,'MaxHeadSize',1)
+            %                 quiver3(xb(fctl(ffv, 6)),yb(fctl(ffv, 8)),zb(fctl(ffv, 10))+0.05,v1(1),v1(2),v1(3),1.5,'r','LineWidth',2,'MaxHeadSize',1)
+            %                 quiver3(xb(fctl(ffv, 7)),yb(fctl(ffv, 8)),zb(fctl(ffv, 10))+0.05,v1(1),v1(2),v1(3),0.5,'r','LineWidth',2,'MaxHeadSize',1)
+            %                 quiver3(xb(fctl(ffv, 6)),yb(fctl(ffv, 9)),zb(fctl(ffv, 10))+0.05,v1(1),v1(2),v1(3),3,'r','LineWidth',2,'MaxHeadSize',1)
+            %                 quiver3(xb(fctl(ffv, 7)),yb(fctl(ffv, 9)),zb(fctl(ffv, 10))+0.05,v1(1),v1(2),v1(3),3,'r','LineWidth',2,'MaxHeadSize',1)
+            %
+            %                 greycm=zeros(9,3);
+            %                 cticks=zeros(9,1);
+            %                 ctickl=zeros(9,1);
+            %                 for l=0:8
+            %                     cs=l*0.125*[1-greymax 1-greymax 1-greymax] + [greymax greymax greymax];
+            %                     cticks(l+1)=0.15+(l)*0.85/9+0.85/18;
+            %                     ctickl(l+1)=l*0.125;
+            %                     greycm(l+1,:)=cs;
+            %                 end
+            %                 cm=colormap(greycm);
+            %                 c=colorbar;
+            %                 c.Title.Interpreter='latex';
+            %                 set(c, 'TickLabelInterpreter', 'latex')
+            %                 set(c,'FontSize',12*scalef)
+            %                 caxis([0.15 1])
+            %                 c.Ticks=cticks
+            %                 c.TickDirection='out'
+            %                 c.TickLabels=num2cell(ctickl)
+            %                 c.Title.String='$f_{\mathrm{e}}$ $[-]$'
+            %                 %c.Position(1)=c.Position(1)+0.00
+            %                 c.Position(2)=c.Position(2)+0.02
+            %                 c.Position(4)=c.Position(4)-0.2
+            %
+            %                 view(3)
+            %                 axis equal
+            %                 xlim([0 xb(end)])
+            %                 ylim([0 yb(end)])
+            %                 % zlim([0 72])
+            %                 zlim([0 max(zmax5)])
+            %                 set(gca,'TickLabelInterpreter','latex')
+            %                 set(gca,'FontSize',12*scalef)
+            %                 %h1=gca;
+            %                 % h1.Position=[0.08 0.1100 0.78 0.8150];
+            %                 %caxis([0 71])
+            %                 xlabel('x [-]','Interpreter','latex','FontSize',12*scalef)
+            %                 ylabel('y [-]','Interpreter','latex','FontSize',12*scalef)
+            %                 zlabel('z [-]','Interpreter','latex','FontSize',12*scalef)
+            %                 set(gcf, 'Color', 'w');
+            %export_fig facetshadowalt.eps
+            
             
             %%
-            %cs
-            if lhqplot
-                scale=2;
-                scalef=1.5;
-                h=figure;
-                set(gcf,'units','centimeters','position',[2 2 2+14.5*scale 2+14.5*scale/2]);
-                set(h,'PaperPosition',[2 2 2+14.5*scale 2+14.5*scale/2]);
-                set(h,'PaperUnits','centimeters');
-                set(h,'renderer','painters');
-                
-                plotshadowline
-                
-                for i=1:nfcts
-                    bi=F(i,3); %block index
-                    fi=F(i,1); %facet index
+            scale=2;
+            scalef=1.5;
+            h=figure;
+            %cm=colormap(MPL_gist_heat(31:end,:));
+            %cm=colormap(MPL_viridis(30:end,:));
+            %cm=colormap(flipud(perscolormaps('MPL_BuPu')));
+            %cm=colormap(cm(1:end-2,:));
+            
+            set(gcf,'units','centimeters','position', [2 2 2+14.5*scale 2+14.5*scale/2]);
+            set(h,'PaperPosition',[2 2 2+14.5*scale 2+14.5*scale/2]);
+            set(h,'PaperUnits','centimeters');
+            set(h,'renderer','painters');
+            
+            for i=1:obj.nfcts
+                bi = obj.facets(i,3); %block index
+                fi = obj.facets(i,1); %facet index
+                % F is the first 4 columns of obj.facets
+                % G is floors, so floors(:, 1) = obj.floorfacets(:, 6)  - add 5
+                % BB is blocks so can just replace it with obj.blocks
+                % W is boundingwalls, so boundingwalls(:, 1) = obj.boundingwallfacets(:, 6) - add 5
+                if (obj.facets(i,4) < 0 && obj.facets(i,4) > -100) %it is a floor, not a building
+                    il = obj.floorfacets(bi, 6);
+                    iu = obj.floorfacets(bi, 7);
+                    jl = obj.floorfacets(bi, 8);
+                    ju = obj.floorfacets(bi, 9);
+                    xl = obj.xf(il) - 0.5 * dx(il);
+                    xu = obj.xf(iu) + 0.5 * dx(iu);
+                    yl = obj.yf(jl) - 0.5 * dy(jl);
+                    yu = obj.yf(ju) + 0.5 * dy(ju);
+                    zl = 0;
+                    zu = 0;
+                elseif (obj.facets(i,4) <= -100)  %it is a bounding wall
+                    il = obj.boundingwallfacets(bi, 6);
+                    iu = obj.boundingwallfacets(bi, 7);
+                    jl = obj.boundingwallfacets(bi, 8);
+                    ju = obj.boundingwallfacets(bi, 9);
+                    kl = obj.boundingwallfacets(bi, 10) + 1;
+                    ku = obj.boundingwallfacets(bi, 11) + 1;
                     
-                    if (F(i,4)<0 && F(i,4)>-100) %it is a floor, not a building
-                        il=G(bi,1);
-                        iu=G(bi,2);
-                        jl=G(bi,3);
-                        ju=G(bi,4);
-                        xl=xc(il)-dx(il)/2;
-                        xu=xc(iu)+dx(iu)/2;
-                        yl=yc(jl)-dy(jl)/2;
-                        yu=yc(ju)+dy(ju)/2;
-                        zl=0;
-                        zu=0;
-                    elseif (F(i,4)<=-100)  %it is a bounding wall
-                        il=W(bi,1);
-                        iu=W(bi,2);
-                        jl=W(bi,3);
-                        ju=W(bi,4);
-                        kl=W(bi,5)+1;
-                        ku=W(bi,6)+1;
-                        
-                        if (fi==2)
-                            xl=xc(iu)+dx(iu)/2;
-                            xu=xc(iu)+dx(iu);
-                            yl=yc(jl)-dy(jl)/2;
-                            yu=yc(ju)+dy(ju)/2;
-                            zl=zc(kl)-dz(kl)/2;
-                            zu=zc(ku)+dz(ku)/2;
-                        elseif (fi==3)
-                            xl=xc(il)-dx(il);
-                            xu=xc(il)-dx(il)/2;
-                            yl=yc(jl)-dy(jl)/2;
-                            yu=yc(ju)+dy(ju)/2;
-                            zl=zc(kl)-dz(kl)/2;
-                            zu=zc(ku)+dz(ku)/2;
-                        elseif (fi==4)
-                            xl=xc(il)-dx(il)/2;
-                            xu=xc(iu)+dx(iu)/2;
-                            yl=yc(jl)-dy(jl);
-                            yu=yc(jl)-dy(jl)/2;
-                            zl=zc(kl)-dz(kl)/2;
-                            zu=zc(ku)+dz(ku)/2;
-                        else %if (fi==5)
-                            xl=xc(il)-dx(il)/2;
-                            xu=xc(iu)+dx(iu)/2;
-                            yl=yc(ju)+dy(ju)/2;
-                            yu=yc(ju)+dy(ju);
-                            zl=zc(kl)-dz(kl)/2;
-                            zu=zc(ku)+dz(ku)/2;
-                        end
-                    else
-                        il=BB(bi,1);
-                        iu=BB(bi,2);
-                        jl=BB(bi,3);
-                        ju=BB(bi,4);
-                        kl=BB(bi,5)+1;
-                        ku=BB(bi,6)+1;
-                        
-                        xl=xc(il)-dx(il)/2;
-                        xu=xc(iu)+dx(iu)/2;
-                        yl=yc(jl)-dy(jl)/2;
-                        yu=yc(ju)+dy(ju)/2;
-                        zl=zc(kl)-dz(kl)/2;
-                        zu=zc(ku)+dz(ku)/2;
+                    if (fi == 2)
+                        xl = obj.xf(iu) + 0.5 * dx(iu);
+                        xu = obj.xf(iu) + 0.5 * dx(iu);
+                        yl = obj.yf(jl) - 0.5 * dy(jl);
+                        yu = obj.yf(ju) + 0.5 * dy(ju);
+                        zl = obj.zf(kl) - 0.5 * dz(kl);
+                        zu = obj.zf(ku) + 0.5 * dz(ku);
+                    elseif (fi == 3)
+                        xl = obj.xf(il) - dx(il);
+                        xu = obj.xf(il) - 0.5 * dx(il);
+                        yl = obj.yf(jl) - 0.5 * dy(jl);
+                        yu = obj.yf(ju) + 0.5 * dy(ju);
+                        zl = obj.zf(kl) - 0.5 * dz(kl);
+                        zu = obj.zf(ku) + 0.5 * dz(ku);
+                    elseif (fi==4)
+                        xl = obj.xf(il) - 0.5 * dx(il);
+                        xu = obj.xf(iu) + 0.5 * dx(iu);
+                        yl = obj.yf(jl) - dy(jl);
+                        yu = obj.yf(jl) - 0.5 * dy(jl);
+                        zl = obj.zf(kl) - 0.5 * dz(kl);
+                        zu = obj.zf(ku) + 0.5 * dz(ku);
+                    else %if (fi==5)
+                        xl = obj.xf(il) - 0.5 * dx(il);
+                        xu = obj.xf(iu) + 0.5 * dx(iu);
+                        yl = obj.yf(ju) + 0.5 * dy(ju);
+                        yu = obj.yf(ju) + dy(ju);
+                        zl = obj.zf(kl) - 0.5 * dz(kl);
+                        zu = obj.zf(ku) + 0.5 * dz(ku);
                     end
+                else
+                    il = obj.blocks(bi, 1);
+                    iu = obj.blocks(bi, 2);
+                    jl = obj.blocks(bi, 3);
+                    ju = obj.blocks(bi, 4);
+                    kl = obj.blocks(bi, 5) + 1;
+                    ku = obj.blocks(bi, 6) + 1;
                     
-                    switch F(i, 1)
-                        case {1} %top
-                            x = [xl, xu, xu, xl];
-                            y = [yl, yl, yu, yu];
-                            z = [zu, zu, zu, zu];
-                        case {2} %west
-                            x = [xl, xl, xl, xl];
-                            y = [yl, yl, yu, yu];
-                            z = [zl, zu, zu, zl];
-                        case {3} %east
-                            x = [xu, xu, xu, xu];
-                            y = [yl, yl, yu, yu];
-                            z = [zl, zu, zu, zl];
-                        case {4} %north
-                            x = [xl, xl, xu, xu];
-                            y = [yu, yu, yu, yu];
-                            z = [zl, zu, zu, zl];
-                        case {5} %south
-                            x = [xl, xl, xu, xu];
-                            y = [yl, yl, yl, yl];
-                            z = [zl, zu, zu, zl];
-                    end
-                    
-                    %shaded vs non-shaded
-                    greymax=0.15; %maximum percent of blackness, [1 1 1] is white;
-                    cs=asl(i)*[1-greymax 1-greymax 1-greymax] + [greymax greymax greymax];
-                    patch(x,y,z, cs,'FaceLighting','none');
-                    hold on
-                    %quiver3(face(92,1,2,1),face(92,1,2,2),face(92,1,2,3), v1(1),v1(2),v1(3), 8);
-                    %quiver3(face(92,1,3,1),face(92,1,3,2),face(92,1,3,3), v1(1),v1(2),v1(3), 8);
-                    % quiver3(face(92,2,2,1),face(92,2,2,2),face(92,2,2,3), v1(1),v1(2),v1(3), 8);
-                    %  quiver3(face(92,2,3,1),face(92,2,3,2),face(92,2,3,3), v1(1),v1(2),v1(3), 8);
-                    
-                    
-                    %   title('sunlit fraction')
+                    xl = obj.xf(il) - 0.5 * dx(il);
+                    xu = obj.xf(iu) + 0.5 * dx(iu);
+                    yl = obj.yf(jl) - 0.5 * dy(jl);
+                    yu = obj.yf(ju) + 0.5 * dy(ju);
+                    zl = obj.zf(kl) - 0.5 * dz(kl);
+                    zu = obj.zf(ku) + 0.5 * dz(ku);
                 end
-                HS=scatter3(shadowscatter(:,1),shadowscatter(:,2),shadowscatter(:,3),'filled','dk');
                 
-                ffv=134;
-                quiver3((xb(fctl(ffv, 6))+xb(fctl(ffv, 7)))/2,(yb(fctl(ffv, 8))+yb(fctl(ffv, 9)))/2,zb(fctl(ffv, 10))+0.05,v1(1),v1(2),v1(3),3,'r','LineWidth',2,'MaxHeadSize',1)
-                quiver3(xb(fctl(ffv, 6)),yb(fctl(ffv, 8)),zb(fctl(ffv, 10))+0.05,v1(1),v1(2),v1(3),1.5,'r','LineWidth',2,'MaxHeadSize',1)
-                quiver3(xb(fctl(ffv, 7)),yb(fctl(ffv, 8)),zb(fctl(ffv, 10))+0.05,v1(1),v1(2),v1(3),0.5,'r','LineWidth',2,'MaxHeadSize',1)
-                quiver3(xb(fctl(ffv, 6)),yb(fctl(ffv, 9)),zb(fctl(ffv, 10))+0.05,v1(1),v1(2),v1(3),3,'r','LineWidth',2,'MaxHeadSize',1)
-                quiver3(xb(fctl(ffv, 7)),yb(fctl(ffv, 9)),zb(fctl(ffv, 10))+0.05,v1(1),v1(2),v1(3),3,'r','LineWidth',2,'MaxHeadSize',1)
-                
-                greycm=zeros(9,3);
-                cticks=zeros(9,1);
-                ctickl=zeros(9,1);
-                for l=0:8
-                    cs=l*0.125*[1-greymax 1-greymax 1-greymax] + [greymax greymax greymax];
-                    cticks(l+1)=0.15+(l)*0.85/9+0.85/18;
-                    ctickl(l+1)=l*0.125;
-                    greycm(l+1,:)=cs;
+                switch obj.facets(i, 1)
+                    case {1} %top
+                        x = [xl, xu, xu, xl];
+                        y = [yl, yl, yu, yu];
+                        z = [zu, zu, zu, zu];
+                    case {2} %west
+                        x = [xl, xl, xl, xl];
+                        y = [yl, yl, yu, yu];
+                        z = [zl, zu, zu, zl];
+                    case {3} %east
+                        x = [xu, xu, xu, xu];
+                        y = [yl, yl, yu, yu];
+                        z = [zl, zu, zu, zl];
+                    case {4} %north
+                        x = [xl, xl, xu, xu];
+                        y = [yu, yu, yu, yu];
+                        z = [zl, zu, zu, zl];
+                    case {5} %south
+                        x = [xl, xl, xu, xu];
+                        y = [yl, yl, yl, yl];
+                        z = [zl, zu, zu, zl];
                 end
-                cm=colormap(greycm);
-                c=colorbar;
-                c.Title.Interpreter='latex';
-                set(c, 'TickLabelInterpreter', 'latex')
-                set(c,'FontSize',12*scalef)
-                caxis([0.15 1])
-                c.Ticks=cticks
-                c.TickDirection='out'
-                c.TickLabels=num2cell(ctickl)
-                c.Title.String='$f_{\mathrm{e}}$ $[-]$'
-                %c.Position(1)=c.Position(1)+0.00
-                c.Position(2)=c.Position(2)+0.02
-                c.Position(4)=c.Position(4)-0.2
+                %shaded vs non-shaded
+                %cs=Sdir(i)/I*[0.85 0.85 0.85] + [0.15 0.15 0.15];
+                cm = colormap('parula');
+                cs = cm(max(1, min(size(cm,1), round(obj.Sdir(i) / obj.I * size(cm, 1)))),:);
                 
-                view(3)
-                axis equal
-                xlim([0 xb(end)])
-                ylim([0 yb(end)])
-                % zlim([0 72])
-                zlim([0 max(zmax5)])
-                set(gca,'TickLabelInterpreter','latex')
-                set(gca,'FontSize',12*scalef)
-                %h1=gca;
-                % h1.Position=[0.08 0.1100 0.78 0.8150];
-                %caxis([0 71])
-                xlabel('x [-]','Interpreter','latex','FontSize',12*scalef)
-                ylabel('y [-]','Interpreter','latex','FontSize',12*scalef)
-                zlabel('z [-]','Interpreter','latex','FontSize',12*scalef)
-                set(gcf, 'Color', 'w');
-                %export_fig facetshadowalt.eps
-                
-                
-                %%
-                scale=2;
-                scalef=1.5;
-                h=figure;
-                %cm=colormap(MPL_gist_heat(31:end,:));
-                %cm=colormap(MPL_viridis(30:end,:));
-                cm=colormap(flipud(perscolormaps('MPL_BuPu')));
-                cm=colormap(cm(1:end-2,:));
-                
-                set(gcf,'units','centimeters','position',[2 2 2+14.5*scale 2+14.5*scale/2]);
-                set(h,'PaperPosition',[2 2 2+14.5*scale 2+14.5*scale/2]);
-                set(h,'PaperUnits','centimeters');
-                set(h,'renderer','painters');
-                for i=1:nfcts
-                    bi=F(i,3); %block index
-                    fi=F(i,1); %facet index
-                    
-                    if (F(i,4)<0 && F(i,4)>-100) %it is a floor, not a building
-                        il=G(bi,1);
-                        iu=G(bi,2);
-                        jl=G(bi,3);
-                        ju=G(bi,4);
-                        xl=xc(il)-dx(il)/2;
-                        xu=xc(iu)+dx(iu)/2;
-                        yl=yc(jl)-dy(jl)/2;
-                        yu=yc(ju)+dy(ju)/2;
-                        zl=0;
-                        zu=0;
-                    elseif (F(i,4)<=-100)  %it is a bounding wall
-                        il=W(bi,1);
-                        iu=W(bi,2);
-                        jl=W(bi,3);
-                        ju=W(bi,4);
-                        kl=W(bi,5)+1;
-                        ku=W(bi,6)+1;
-                        
-                        if (fi==2)
-                            xl=xc(iu)+dx(iu)/2;
-                            xu=xc(iu)+dx(iu);
-                            yl=yc(jl)-dy(jl)/2;
-                            yu=yc(ju)+dy(ju)/2;
-                            zl=zc(kl)-dz(kl)/2;
-                            zu=zc(ku)+dz(ku)/2;
-                        elseif (fi==3)
-                            xl=xc(il)-dx(il);
-                            xu=xc(il)-dx(il)/2;
-                            yl=yc(jl)-dy(jl)/2;
-                            yu=yc(ju)+dy(ju)/2;
-                            zl=zc(kl)-dz(kl)/2;
-                            zu=zc(ku)+dz(ku)/2;
-                        elseif (fi==4)
-                            xl=xc(il)-dx(il)/2;
-                            xu=xc(iu)+dx(iu)/2;
-                            yl=yc(jl)-dy(jl);
-                            yu=yc(jl)-dy(jl)/2;
-                            zl=zc(kl)-dz(kl)/2;
-                            zu=zc(ku)+dz(ku)/2;
-                        else %if (fi==5)
-                            xl=xc(il)-dx(il)/2;
-                            xu=xc(iu)+dx(iu)/2;
-                            yl=yc(ju)+dy(ju)/2;
-                            yu=yc(ju)+dy(ju);
-                            zl=zc(kl)-dz(kl)/2;
-                            zu=zc(ku)+dz(ku)/2;
-                        end
-                    else
-                        il=B(bi,1);
-                        iu=B(bi,2);
-                        jl=B(bi,3);
-                        ju=B(bi,4);
-                        kl=B(bi,5)+1;
-                        ku=B(bi,6)+1;
-                        
-                        xl=xc(il)-dx(il)/2;
-                        xu=xc(iu)+dx(iu)/2;
-                        yl=yc(jl)-dy(jl)/2;
-                        yu=yc(ju)+dy(ju)/2;
-                        zl=zc(kl)-dz(kl)/2;
-                        zu=zc(ku)+dz(ku)/2;
-                    end
-                    
-                    switch F(i, 1)
-                        case {1} %top
-                            x = [xl, xu, xu, xl];
-                            y = [yl, yl, yu, yu];
-                            z = [zu, zu, zu, zu];
-                        case {2} %west
-                            x = [xl, xl, xl, xl];
-                            y = [yl, yl, yu, yu];
-                            z = [zl, zu, zu, zl];
-                        case {3} %east
-                            x = [xu, xu, xu, xu];
-                            y = [yl, yl, yu, yu];
-                            z = [zl, zu, zu, zl];
-                        case {4} %north
-                            x = [xl, xl, xu, xu];
-                            y = [yu, yu, yu, yu];
-                            z = [zl, zu, zu, zl];
-                        case {5} %south
-                            x = [xl, xl, xu, xu];
-                            y = [yl, yl, yl, yl];
-                            z = [zl, zu, zu, zl];
-                    end
-                    if (i==99)
-                        x=[9, 10, 11 , 9];
-                        y=[8,  8, 9 , 9];
-                    elseif (i==103)
-                        x=[10, 11, 11, 10];
-                        y=[7, 7, 9, 8];
-                    end
-                    %shaded vs non-shaded
-                    %cs=Sdir(i)/I*[0.85 0.85 0.85] + [0.15 0.15 0.15];
-                    cs=cm(max(1,min(size(cm,1),round(Sdir(i)/I*size(cm,1)))),:);
-                    
-                    patch(x,y,z, cs,'FaceLighting','none');
-                    hold on
-                    %        quiver3(face(92,1,2,1),face(92,1,2,2),face(92,1,2,3), v1(1),v1(2),v1(3), 1);
-                    %        quiver3(face(92,1,3,1),face(92,1,3,2),face(92,1,3,3), v1(1),v1(2),v1(3), 1);
-                    %        quiver3(face(92,2,2,1),face(92,2,2,2),face(92,2,2,3), v1(1),v1(2),v1(3), 1);
-                    %        quiver3(face(92,2,3,1),face(92,2,3,2),face(92,2,3,3), v1(1),v1(2),v1(3), 1);
-                    %   title('Sdir')
-                end
-                c=colorbar;
-                c.Title.Interpreter='latex';
-                set(c, 'TickLabelInterpreter', 'latex')
-                set(c,'FontSize',12*scalef)
-                c.Title.String='$S$ $[\mathrm{W}\mathrm{m}^{-2}]$'
-                %c.Position(1)=c.Position(1)+0.00
-                c.Position(2)=c.Position(2)+0.02
-                c.Position(4)=c.Position(4)-0.2
-                
-                
-                caxis([0 I])
-                view(3)
-                axis equal
-                xlim([0 xb(end)])
-                ylim([0 yb(end)])
-                % zlim([0 72])
-                zlim([0 3])
-                set(gca,'TickLabelInterpreter','latex')
-                set(gca,'FontSize',12*scalef)
-                %h1=gca;
-                % h1.Position=[0.08 0.1100 0.78 0.8150];
-                %caxis([0 71])
-                xlabel('x [-]','Interpreter','latex','FontSize',12*scalef)
-                ylabel('y [-]','Interpreter','latex','FontSize',12*scalef)
-                zlabel('z [-]','Interpreter','latex','FontSize',12*scalef)
-                set(gcf, 'Color', 'w');
-                %export_fig facetSdir.eps
+                patch(x,y,z, cs,'FaceLighting','none');
+                hold on
+                %        quiver3(face(92,1,2,1),face(92,1,2,2),face(92,1,2,3), v1(1),v1(2),v1(3), 1);
+                %        quiver3(face(92,1,3,1),face(92,1,3,2),face(92,1,3,3), v1(1),v1(2),v1(3), 1);
+                %        quiver3(face(92,2,2,1),face(92,2,2,2),face(92,2,2,3), v1(1),v1(2),v1(3), 1);
+                %        quiver3(face(92,2,3,1),face(92,2,3,2),face(92,2,3,3), v1(1),v1(2),v1(3), 1);
+                %   title('Sdir')
                 
             end
+            
+            
+            
+            %                 for i=1:nfcts
+            %                     bi=F(i,3); %block index
+            %                     fi=F(i,1); %facet index
+            %
+            %                     if (F(i,4)<0 && F(i,4)>-100) %it is a floor, not a building
+            %                         il=G(bi,1);
+            %                         iu=G(bi,2);
+            %                         jl=G(bi,3);
+            %                         ju=G(bi,4);
+            %                         xl=xc(il)-dx(il)/2;
+            %                         xu=xc(iu)+dx(iu)/2;
+            %                         yl=yc(jl)-dy(jl)/2;
+            %                         yu=yc(ju)+dy(ju)/2;
+            %                         zl=0;
+            %                         zu=0;
+            %                     elseif (F(i,4)<=-100)  %it is a bounding wall
+            %                         il=W(bi,1);
+            %                         iu=W(bi,2);
+            %                         jl=W(bi,3);
+            %                         ju=W(bi,4);
+            %                         kl=W(bi,5)+1;
+            %                         ku=W(bi,6)+1;
+            %
+            %                         if (fi==2)
+            %                             xl=xc(iu)+dx(iu)/2;
+            %                             xu=xc(iu)+dx(iu);
+            %                             yl=yc(jl)-dy(jl)/2;
+            %                             yu=yc(ju)+dy(ju)/2;
+            %                             zl=zc(kl)-dz(kl)/2;
+            %                             zu=zc(ku)+dz(ku)/2;
+            %                         elseif (fi==3)
+            %                             xl=xc(il)-dx(il);
+            %                             xu=xc(il)-dx(il)/2;
+            %                             yl=yc(jl)-dy(jl)/2;
+            %                             yu=yc(ju)+dy(ju)/2;
+            %                             zl=zc(kl)-dz(kl)/2;
+            %                             zu=zc(ku)+dz(ku)/2;
+            %                         elseif (fi==4)
+            %                             xl=xc(il)-dx(il)/2;
+            %                             xu=xc(iu)+dx(iu)/2;
+            %                             yl=yc(jl)-dy(jl);
+            %                             yu=yc(jl)-dy(jl)/2;
+            %                             zl=zc(kl)-dz(kl)/2;
+            %                             zu=zc(ku)+dz(ku)/2;
+            %                         else %if (fi==5)
+            %                             xl=xc(il)-dx(il)/2;
+            %                             xu=xc(iu)+dx(iu)/2;
+            %                             yl=yc(ju)+dy(ju)/2;
+            %                             yu=yc(ju)+dy(ju);
+            %                             zl=zc(kl)-dz(kl)/2;
+            %                             zu=zc(ku)+dz(ku)/2;
+            %                         end
+            %                     else
+            %                         il=B(bi,1);
+            %                         iu=B(bi,2);
+            %                         jl=B(bi,3);
+            %                         ju=B(bi,4);
+            %                         kl=B(bi,5)+1;
+            %                         ku=B(bi,6)+1;
+            %
+            %                         xl=xc(il)-dx(il)/2;
+            %                         xu=xc(iu)+dx(iu)/2;
+            %                         yl=yc(jl)-dy(jl)/2;
+            %                         yu=yc(ju)+dy(ju)/2;
+            %                         zl=zc(kl)-dz(kl)/2;
+            %                         zu=zc(ku)+dz(ku)/2;
+            %                     end
+            %
+            %                     switch F(i, 1)
+            %                         case {1} %top
+            %                             x = [xl, xu, xu, xl];
+            %                             y = [yl, yl, yu, yu];
+            %                             z = [zu, zu, zu, zu];
+            %                         case {2} %west
+            %                             x = [xl, xl, xl, xl];
+            %                             y = [yl, yl, yu, yu];
+            %                             z = [zl, zu, zu, zl];
+            %                         case {3} %east
+            %                             x = [xu, xu, xu, xu];
+            %                             y = [yl, yl, yu, yu];
+            %                             z = [zl, zu, zu, zl];
+            %                         case {4} %north
+            %                             x = [xl, xl, xu, xu];
+            %                             y = [yu, yu, yu, yu];
+            %                             z = [zl, zu, zu, zl];
+            %                         case {5} %south
+            %                             x = [xl, xl, xu, xu];
+            %                             y = [yl, yl, yl, yl];
+            %                             z = [zl, zu, zu, zl];
+            %                     end
+            %                     if (i==99)
+            %                         x=[9, 10, 11 , 9];
+            %                         y=[8,  8, 9 , 9];
+            %                     elseif (i==103)
+            %                         x=[10, 11, 11, 10];
+            %                         y=[7, 7, 9, 8];
+            %                     end
+            %
+            %                 end
+            
+            
+            
+            
+            c=colorbar;
+            c.Title.Interpreter='latex';
+            set(c, 'TickLabelInterpreter', 'latex')
+            set(c,'FontSize',12*scalef)
+            c.Title.String = '$S$ $[\mathrm{W}\mathrm{m}^{-2}]$';
+            %c.Position(1)=c.Position(1)+0.00
+            c.Position(2)=c.Position(2)+0.02;
+            c.Position(4)=c.Position(4)-0.2;
+            
+            
+            caxis([0 obj.I])
+            view(3)
+            axis equal
+            xlim([0 obj.xh(end)])
+            ylim([0 obj.yh(end)])
+            % zlim([0 72])
+            zlim([0 obj.zh(end)])
+            set(gca,'TickLabelInterpreter','latex')
+            set(gca,'FontSize',12*scalef)
+            %h1=gca;
+            % h1.Position=[0.08 0.1100 0.78 0.8150];
+            %caxis([0 71])
+            xlabel('x [-]','Interpreter','latex','FontSize',12*scalef)
+            ylabel('y [-]','Interpreter','latex','FontSize',12*scalef)
+            zlabel('z [-]','Interpreter','latex','FontSize',12*scalef)
+            set(gcf, 'Color', 'w');
+            %export_fig facetSdir.eps      
         end
         
         function [ndim, area, co] = detsub(obj, i)
@@ -4713,14 +5240,14 @@ classdef da_pp < dynamicprops
                         % round to 1promille accuracy? i.e. cut smaller 1promille completely
                         % this violates reciprocity though
                         
-                        vf(i,j)  = F12 * c;
+                        vf(i,j) = F12 * c;
                         vf(j,i) = F21 * c;
                         %   vf(i,j)=floor(F12*c*100)/100;
                         %  vf(j,i)=floor(F21*c*100)/100;
                     end
                 end
             end
-            disp('done calculating vf')
+            %disp('done calculating vf')
             
             %%
             da_pp.addvar(obj, 'vfo', single(vf));
@@ -4737,19 +5264,18 @@ classdef da_pp < dynamicprops
             da_pp.addvar(obj, 'svf', max(1 - sum(obj.vfo, 2), 0));
             % end
             %% write
-            if lwritefile
-                da_pp.write_viewfactor(obj);               
-            end
         end
         
                
-        function write_viewfactor(obj)
+        function write_svf(obj)
             fname = ['svf.inp.' num2str(obj.expnr)];
             fileID = fopen(fname,'W');
             fprintf(fileID, '# sky view factors\n');
             fclose(fileID);
             dlmwrite(fname, obj.svf, '-append','delimiter',' ','precision','%4f')
-            
+        end
+        
+        function write_vf(obj)
             ncid = netcdf.create(['vf.nc.inp.' num2str(obj.expnr)], 'NC_WRITE');
             dimidrow = netcdf.defDim(ncid,'rows', obj.nfcts);
             dimidcol = netcdf.defDim(ncid,'columns', obj.nfcts);
@@ -4757,7 +5283,7 @@ classdef da_pp < dynamicprops
             netcdf.endDef(ncid);
             netcdf.putVar(ncid,varid,obj.vfo);
             netcdf.close(ncid);
-            
+        end    
             % fname = [outputdir '/vf.inp.' num2str(expnr)];
             % fileID = fopen(fname,'W');
             % fprintf(fileID, '# view factors between facets\n');
@@ -4777,7 +5303,7 @@ classdef da_pp < dynamicprops
             % fprintf(fileID, '# % facets see each other\n');
             % fclose(fileID);
             % dlmwrite(fname,pf1sf2o,'-append','delimiter',' ','precision','%4f')
-            
+        function write_facetarea(obj)
             fname = ['facetarea.inp.' num2str(obj.expnr)];
             fileID = fopen(fname,'W');
             fprintf(fileID, '# area of facets\n');
@@ -4785,7 +5311,7 @@ classdef da_pp < dynamicprops
             dlmwrite(fname, obj.facetarea,'-append','delimiter',' ','precision','%4f')
         end
         
-        function rayit(obj, ltestplot, lhqplot, lwritefile)
+        function rayit(obj)
             function [fct, wall] = loadfacets()
                 %M = dlmread(['facets.inp.' num2str(expnr)],'',1,0);
                 vars = {'or', 'wlid', 'blk', 'bld'};
@@ -4882,36 +5408,36 @@ classdef da_pp < dynamicprops
             %diffuse flux from sky and other walls
             Kinnew = zeros(obj.nfcts, 1);
             
-            Kininit = (1 - obj.albedo) .* (obj.Sdir + obj.Dsk .* obj.svf);
+            da_pp.addvar(obj, 'Kininit', (1 - obj.albedo) .* (obj.Sdir + obj.Dsk .* obj.svf));
             Koutinit = obj.albedo .* (obj.Sdir + obj.Dsk .* obj.svf);
             
-            if ltestplot
-                figure
-                a=(1-albedo).*Sdir;
-                b=(1-albedo).*Dsk.*svf;
-                plot(1:nfcts,a(sorti),1:nfcts,b(sorti))
-                ax1 = gca; % current axes
-                set(ax1,'Xtick',1:1:nfcts)
-                xticklabels(sortt)
-                ax1_pos = ax1.Position; % position of first axes
-                xlabel('orientation')
-                ylabel('S and D')
-                ax2 = axes('Position',ax1_pos,...
-                    'YAxisLocation', 'right',...
-                    'XAxisLocation', 'top', ...
-                    'Color', 'None');
-                set (ax2, 'XLim', get (ax1, 'XLim'), 'Layer', 'top');
-                set (ax2, 'YLim', get (ax1, 'YLim'), 'Layer', 'top');
-                set(ax2,'Xtick',1:1:nfcts)
-                set(ax2,'Xticklabels',sorti)
-                set(ax2,'FontSize',8)
-                xlabel('facet index')
-            end
+%             if ltestplot
+%                 figure
+%                 a=(1-albedo).*Sdir;
+%                 b=(1-albedo).*Dsk.*svf;
+%                 plot(1:nfcts,a(sorti),1:nfcts,b(sorti))
+%                 ax1 = gca; % current axes
+%                 set(ax1,'Xtick',1:1:nfcts)
+%                 xticklabels(sortt)
+%                 ax1_pos = ax1.Position; % position of first axes
+%                 xlabel('orientation')
+%                 ylabel('S and D')
+%                 ax2 = axes('Position',ax1_pos,...
+%                     'YAxisLocation', 'right',...
+%                     'XAxisLocation', 'top', ...
+%                     'Color', 'None');
+%                 set (ax2, 'XLim', get (ax1, 'XLim'), 'Layer', 'top');
+%                 set (ax2, 'YLim', get (ax1, 'YLim'), 'Layer', 'top');
+%                 set(ax2,'Xtick',1:1:nfcts)
+%                 set(ax2,'Xticklabels',sorti)
+%                 set(ax2,'FontSize',8)
+%                 xlabel('facet index')
+%             end
             
             %total radiation absorbed and reflected
-            sum(Kininit + Koutinit);
+            sum(obj.Kininit + Koutinit);
             %total radiation absorbed
-            sum(Kininit);
+            sum(obj.Kininit);
             %total radiation reflected
             sum(Koutinit);
             
@@ -4923,8 +5449,8 @@ classdef da_pp < dynamicprops
             Kout(2) = sum(Koutinit);
             
             
-            da_pp.addvar(obj, 'Kin', Kininit); %Kin §adds up
-            Kinold = Kininit;
+            da_pp.addvar(obj, 'Kin', obj.Kininit); %Kin §adds up
+            Kinold = obj.Kininit;
             Koutold = Koutinit; %Kout is wiped clean with every reflection
             Koutnew = zeros(obj.nfcts, 1);
             Kintemp = zeros(obj.nfcts, 1);
@@ -4938,7 +5464,7 @@ classdef da_pp < dynamicprops
             itermaxrelloc = zeros(300, 1);
             moep = zeros(obj.nfcts, 20);
             blub = zeros(obj.nfcts, 20);
-            moep(:, 1) = Kininit;
+            moep(:, 1) = obj.Kininit;
             while true
                 count = count + 1;
                 for i = 1:obj.nfcts
@@ -4963,7 +5489,7 @@ classdef da_pp < dynamicprops
                 % end
                 moep(:, count + 1) = obj.Kin;
                 if (max((obj.Kin - Kinold) ./ Kinold) < 0.01)
-                    disp(['reached relative tolerance after ' num2str(count) ' iterations'])
+                    %disp(['reached relative tolerance after ' num2str(count) ' iterations'])
                     break
                 end
                 %    if (max(Koutnew-Koutold)<0.01 )
@@ -4974,209 +5500,204 @@ classdef da_pp < dynamicprops
                 Koutold = Koutnew; %overwrite reflected radiation with new value
             end
             %%
-            if lhqplot
-                scale=2;
-                scalef=1.5;
-                h= figure;
-                set(gcf,'units','centimeters','position',[0 0 14.5*scale 14.5*scale]);
-                set(h,'PaperPosition',[0 0 14.5*scale 14.5*scale]);
-                set(h,'PaperUnits','centimeters');
-                set(h,'renderer','painters');
-                select=140:-1:6;
-                select=[1:5 select];
-                hs1=subplot(1,2,1)
-                hold on
-                stylez={':x';':o';':d';':s';':+'};
-                cm=hsv;
-                colint=floor(length(cm)/5);
-                for k=1:length(select)
-                    h=select(k);
-                    plot(0:1:count,moep(h,1:count+1),stylez{F(h,1)},'color',cm(1+F(h,1)*colint,:),'Linewidth',2)
-                end
-                xlim([0 count])
-                xlabel('iteration $n$','Interpreter','latex','FontSize',18)
-                ylabel('$K^{\downarrow}$ [Wm$^{-2}$]','Interpreter','latex','FontSize',18)
-                xticks(0:count)
-                xticklabels({'init' '1' '2' '3' '4' '5'})
-                set(hs1,'TickLabelInterpreter','latex')
-                set(hs1,'FontSize',12)
-                hs=subplot(1,2,2);
-                for r=2:count+1
-                    blub(:,r)=((moep(:,r)-moep(:,r-1))./moep(:,r-1));
-                end
-                blub(:,1)=NaN;
-                hold on
-                for k=1:length(select)
-                    h=select(k);
-                    plot(0:1:count,blub(h,1:count+1),stylez{F(h,1)},'color',cm(1+F(h,1)*colint,:),'Linewidth',2)
-                end
-                plot([0 count],[0.01 0.01],'k:','Linewidth',2)
-                xlim([0 count])
-                xlabel('iteration $n$','Interpreter','latex','FontSize',18)
-                xticks(0:count)
-                xticklabels({'init' '1' '2' '3' '4' '5'})
-                ylabel('$(K^{\downarrow}_n-K^{\downarrow}_{n-1})/K^{\downarrow}_{n-1}$ [-]','Interpreter','latex','FontSize',18)
-                hs.YScale='log';
-                ylim([0.0001 10])
-                yticklabels({'0.0001' '0.001' '0.01' '0.1' '1' '10'})
-                set(hs,'TickLabelInterpreter','latex')
-                set(hs,'FontSize',12)
-                set(gcf, 'Color', 'w');
-                legend('roof/road','west','east','north','south','Location','NorthEast')
-                export_fig rayswcov.eps
-            end
-            
-            if lhqplot
-                scale=2;
-                scalef=1.5;
-                h= figure;
-                set(gcf,'units','centimeters','position',[0 0 14.5*scale 14.5*scale]);
-                set(h,'PaperPosition',[0 0 14.5*scale 14.5*scale]);
-                set(h,'PaperUnits','centimeters');
-                set(h,'renderer','painters');
-                a=(1-albedo).*Sdir;
-                b=(1-albedo).*Dsk.*svf;
-                plot(1:nfcts,Kin(sorti),'x',1:nfcts,Kininit(sorti),'+',1:nfcts,a(sorti),'o',1:nfcts,b(sorti),'d')
-                legend('Total K','Initial K','Initial Sdir','Initial D')
-                ax1 = gca; % current axes
-                set(ax1,'Xtick',1:1:nfcts)
-                set(ax1,'FontSize',9)
-                xticklabels(sortt)
-                ax1_pos = ax1.Position; % position of first axes
-                xlabel('orientation','Interpreter','latex','FontSize',12)
-                ylabel('Radiation [$W/m^2$]','Interpreter','latex','FontSize',12)
-                ax2 = axes('Position',ax1_pos,...
-                    'YAxisLocation', 'right',...
-                    'XAxisLocation', 'top', ...
-                    'Color', 'None');
-                set (ax2, 'XLim', get (ax1, 'XLim'), 'Layer', 'top');
-                set (ax2, 'YLim', get (ax1, 'YLim'), 'Layer', 'top');
-                set(ax2,'YTickLabel','')
-                set(ax2,'Xtick',1:3:nfcts)
-                set(ax2,'Xticklabels',sorti(1:3:nfcts),'TickLabelInterpreter','latex')
-                set(ax2,'FontSize',9)
-                xl2=xlabel('facet index','FontSize',12);
-                xl2.Position(2)=xl2.Position(2)+15;
-                offset = repmat(ax2.YTick(end)+20,1,numel(ax2.XTick));
-                % create new lables:
-                % text(ax1.XTick(2:3:nfcts),offset,num2str(sorti(2:3:nfcts)),'HorizontalAlign','center','FontSize',9,'Interpreter','latex')
-                
-                offset = repmat(ax2.YTick(end)+30,1,numel(ax2.XTick)-1);
-                % create new lables:
-                %   text(ax1.XTick(3:3:nfcts),offset,num2str(sorti(3:3:nfcts)),'HorizontalAlign','center','FontSize',9,'Interpreter','latex')
-                set(gcf, 'Color', 'w');
-                export_fig shortwaveit.eps
-                
-                
-                scale=2;
-                scalef=1.5;
-                h= figure;
-                set(gcf,'units','centimeters','position',[0 0 14.5*scale 14.5*scale]);
-                set(h,'PaperPosition',[0 0 14.5*scale 14.5*scale]);
-                set(h,'PaperUnits','centimeters');
-                set(h,'renderer','painters');
-                a=(1-albedo).*Sdir;
-                b=(1-albedo).*Dsk.*svf;
-                plot(1:nfcts,blub(sorti,2),'x',1:nfcts,blub(sorti,3),'+',1:nfcts,blub(sorti,4),'o',1:nfcts,blub(sorti,5),'d',1:nfcts,blub(sorti,6),'s')
-                legend('Total K','Initial K','Initial Sdir','Initial D')
-                ax1 = gca; % current axes
-                ax1.YScale='log';
-                set(ax1,'Xtick',1:1:nfcts)
-                set(ax1,'FontSize',9)
-                xticklabels(sortt)
-                ax1_pos = ax1.Position; % position of first axes
-                xlabel('orientation','Interpreter','latex','FontSize',12)
-                ylabel('Radiation [$W/m^2$]','Interpreter','latex','FontSize',12)
-                ax2 = axes('Position',ax1_pos,...
-                    'YAxisLocation', 'right',...
-                    'XAxisLocation', 'top', ...
-                    'Color', 'None');
-                set (ax2, 'XLim', get (ax1, 'XLim'), 'Layer', 'top');
-                set (ax2, 'YLim', get (ax1, 'YLim'), 'Layer', 'top');
-                set(ax2,'YTickLabel','')
-                %set(ax2,'Xtick',1:3:nfcts)
-                %set(ax2,'Xticklabels',sorti(1:3:nfcts),'TickLabelInterpreter','latex')
-                set(ax2,'Xticklabels','','TickLabelInterpreter','latex')
-                set(ax2,'FontSize',9)
-                xl2=xlabel('facet index','FontSize',12);
-                xl2.Position(2)=xl2.Position(2)+15;
-                offset = repmat(ax2.YTick(end)+20,1,numel(ax2.XTick));
-                % create new lables:
-                % text(ax1.XTick(2:3:nfcts),offset,num2str(sorti(2:3:nfcts)),'HorizontalAlign','center','FontSize',9,'Interpreter','latex')
-                
-                offset = repmat(ax2.YTick(end)+30,1,numel(ax2.XTick)-1);
-                % create new lables:
-                %   text(ax1.XTick(3:3:nfcts),offset,num2str(sorti(3:3:nfcts)),'HorizontalAlign','center','FontSize',9,'Interpreter','latex')
-                set(gcf, 'Color', 'w');
-                export_fig shortwaveit2.eps
-                
-                % ax3 = axes('Position',ax1_pos,...
-                %     'YAxisLocation', 'right',...
-                %     'XAxisLocation', 'top', ...
-                %     'Color', 'None');
-                % set (ax3, 'XLim', get (ax1, 'XLim'), 'Layer', 'top');
-                % set (ax3, 'YLim', get (ax1, 'YLim'), 'Layer', 'top');
-                % ax3.YTickLabel='';
-                % ax3.YTick=''
-                % set(ax3,'Xtick',2:2:nfcts)
-                % set(ax3,'Xticklabels',sorti(2:2:nfcts))
-                % set(ax3,'FontSize',8)
-                % box(ax3(1),'off')
-                % ax3.TickLength=[0;0]
-                %ax3.Position(4)=ax3.Position(4)*1.02;
-                
-                
-                
-                
-                
-                figure
-                plot(Kin(sorti)./Kininit(sorti))
-                ax1 = gca; % current axes
-                set(ax1,'Xtick',1:1:nfcts)
-                xticklabels(sortt)
-                ax1_pos = ax1.Position; % position of first axes
-                xlabel('orientation')
-                ylabel('K/Kinit')
-                ax2 = axes('Position',ax1_pos,...
-                    'YAxisLocation', 'right',...
-                    'XAxisLocation', 'top', ...
-                    'Color', 'None');
-                set (ax2, 'XLim', get (ax1, 'XLim'), 'Layer', 'top');
-                set (ax2, 'YLim', get (ax1, 'YLim'), 'Layer', 'top');
-                set(ax2,'Xtick',1:1:nfcts)
-                set(ax2,'Xticklabels',sorti)
-                set(ax2,'FontSize',8)
-                xlabel('facet index')
-                
-                figure
-                plot(Kin(sorti)-Kininit(sorti))
-                ax1 = gca; % current axes
-                set(ax1,'Xtick',1:1:nfcts)
-                xticklabels(sortt)
-                ax1_pos = ax1.Position; % position of first axes
-                xlabel('orientation')
-                ylabel('K-Kinit')
-                ax2 = axes('Position',ax1_pos,...
-                    'YAxisLocation', 'right',...
-                    'XAxisLocation', 'top', ...
-                    'Color', 'None');
-                set (ax2, 'XLim', get (ax1, 'XLim'), 'Layer', 'top');
-                set (ax2, 'YLim', get (ax1, 'YLim'), 'Layer', 'top');
-                set(ax2,'Xtick',1:1:nfcts)
-                set(ax2,'Xticklabels',sorti)
-                set(ax2,'FontSize',8)
-                xlabel('facet index')
-                
-            end
-            %%
-            
-            if lwritefile
-               da_pp.write_radiation(obj); 
-            end
+            %if lhqplot
+%                 scale=2;
+%                 scalef=1.5;
+%                 h= figure;
+%                 set(gcf,'units','centimeters','position',[0 0 14.5*scale 14.5*scale]);
+%                 set(h,'PaperPosition',[0 0 14.5*scale 14.5*scale]);
+%                 set(h,'PaperUnits','centimeters');
+%                 set(h,'renderer','painters');
+%                 select=140:-1:6;
+%                 select=[1:5 select];
+%                 hs1=subplot(1,2,1)
+%                 hold on
+%                 stylez={':x';':o';':d';':s';':+'};
+%                 cm=hsv;
+%                 colint=floor(length(cm)/5);
+%                 for k=1:length(select)
+%                     h=select(k);
+%                     plot(0:1:count,moep(h,1:count+1),stylez{obj.facets(h,1)},'color',cm(1+obj.facets(h,1)*colint,:),'Linewidth',2)
+%                 end
+%                 xlim([0 count])
+%                 xlabel('iteration $n$','Interpreter','latex','FontSize',18)
+%                 ylabel('$K^{\downarrow}$ [Wm$^{-2}$]','Interpreter','latex','FontSize',18)
+%                 xticks(0:count)
+%                 xticklabels({'init' '1' '2' '3' '4' '5'})
+%                 set(hs1,'TickLabelInterpreter','latex')
+%                 set(hs1,'FontSize',12)
+%                 hs=subplot(1,2,2);
+%                 for r=2:count+1
+%                     blub(:,r)=((moep(:,r)-moep(:,r-1))./moep(:,r-1));
+%                 end
+%                 blub(:,1)=NaN;
+%                 hold on
+%                 for k=1:length(select)
+%                     h=select(k);
+%                     plot(0:1:count,blub(h,1:count+1),stylez{obj.facets(h,1)},'color',cm(1+obj.facets(h,1)*colint,:),'Linewidth',2)
+%                 end
+%                 plot([0 count],[0.01 0.01],'k:','Linewidth',2)
+%                 xlim([0 count])
+%                 xlabel('iteration $n$','Interpreter','latex','FontSize',18)
+%                 xticks(0:count)
+%                 xticklabels({'init' '1' '2' '3' '4' '5'})
+%                 ylabel('$(K^{\downarrow}_n-K^{\downarrow}_{n-1})/K^{\downarrow}_{n-1}$ [-]','Interpreter','latex','FontSize',18)
+%                 hs.YScale='log';
+%                 ylim([0.0001 10])
+%                 yticklabels({'0.0001' '0.001' '0.01' '0.1' '1' '10'})
+%                 set(hs,'TickLabelInterpreter','latex')
+%                 set(hs,'FontSize',12)
+%                 set(gcf, 'Color', 'w');
+%                 legend('roof/road','west','east','north','south','Location','NorthEast')
+%                 %export_fig rayswcov.eps
+%             %end
+%             
+%             %if lhqplot
+%                 scale=2;
+%                 scalef=1.5;
+%                 h= figure;
+%                 set(gcf,'units','centimeters','position',[0 0 14.5*scale 14.5*scale]);
+%                 set(h,'PaperPosition',[0 0 14.5*scale 14.5*scale]);
+%                 set(h,'PaperUnits','centimeters');
+%                 set(h,'renderer','painters');
+%                 a=(1-obj.albedo).*obj.Sdir;
+%                 b=(1-obj.albedo).*obj.Dsk.*obj.svf;
+%                 plot(1:obj.nfcts,obj.Kin(sorti),'x',1:obj.nfcts, obj.Kininit(sorti),'+',1:obj.nfcts,a(sorti),'o',1:obj.nfcts,b(sorti),'d')
+%                 legend('Total K','Initial K','Initial Sdir','Initial D')
+%                 ax1 = gca; % current axes
+%                 set(ax1,'Xtick',1:1:obj.nfcts)
+%                 set(ax1,'FontSize',9)
+%                 xticklabels(sortt)
+%                 ax1_pos = ax1.Position; % position of first axes
+%                 xlabel('orientation','Interpreter','latex','FontSize',12)
+%                 ylabel('Radiation [$W/m^2$]','Interpreter','latex','FontSize',12)
+%                 ax2 = axes('Position',ax1_pos,...
+%                     'YAxisLocation', 'right',...
+%                     'XAxisLocation', 'top', ...
+%                     'Color', 'None');
+%                 set (ax2, 'XLim', get (ax1, 'XLim'), 'Layer', 'top');
+%                 set (ax2, 'YLim', get (ax1, 'YLim'), 'Layer', 'top');
+%                 set(ax2,'YTickLabel','')
+%                 set(ax2,'Xtick',1:3:obj.nfcts)
+%                 set(ax2,'Xticklabels',sorti(1:3:obj.nfcts),'TickLabelInterpreter','latex')
+%                 set(ax2,'FontSize',9)
+%                 xl2=xlabel('facet index','FontSize',12);
+%                 xl2.Position(2)=xl2.Position(2)+15;
+%                 offset = repmat(ax2.YTick(end)+20,1,numel(ax2.XTick));
+%                 % create new lables:
+%                 % text(ax1.XTick(2:3:nfcts),offset,num2str(sorti(2:3:nfcts)),'HorizontalAlign','center','FontSize',9,'Interpreter','latex')
+%                 
+%                 offset = repmat(ax2.YTick(end)+30,1,numel(ax2.XTick)-1);
+%                 % create new lables:
+%                 %   text(ax1.XTick(3:3:nfcts),offset,num2str(sorti(3:3:nfcts)),'HorizontalAlign','center','FontSize',9,'Interpreter','latex')
+%                 set(gcf, 'Color', 'w');
+%                 %export_fig shortwaveit.eps
+%                 
+%                 
+%                 scale=2;
+%                 scalef=1.5;
+%                 h= figure;
+%                 set(gcf,'units','centimeters','position',[0 0 14.5*scale 14.5*scale]);
+%                 set(h,'PaperPosition',[0 0 14.5*scale 14.5*scale]);
+%                 set(h,'PaperUnits','centimeters');
+%                 set(h,'renderer','painters');
+%                 a=(1-obj.albedo).*obj.Sdir;
+%                 b=(1-obj.albedo).*obj.Dsk.*obj.svf;
+%                 plot(1:obj.nfcts,blub(sorti,2),'x',1:obj.nfcts,blub(sorti,3),'+',1:obj.nfcts,blub(sorti,4),'o',1:obj.nfcts,blub(sorti,5),'d',1:obj.nfcts,blub(sorti,6),'s')
+%                 legend('Total K','Initial K','Initial Sdir','Initial D')
+%                 ax1 = gca; % current axes
+%                 ax1.YScale='log';
+%                 set(ax1,'Xtick',1:1:obj.nfcts)
+%                 set(ax1,'FontSize',9)
+%                 xticklabels(sortt)
+%                 ax1_pos = ax1.Position; % position of first axes
+%                 xlabel('orientation','Interpreter','latex','FontSize',12)
+%                 ylabel('Radiation [$W/m^2$]','Interpreter','latex','FontSize',12)
+%                 ax2 = axes('Position',ax1_pos,...
+%                     'YAxisLocation', 'right',...
+%                     'XAxisLocation', 'top', ...
+%                     'Color', 'None');
+%                 set (ax2, 'XLim', get (ax1, 'XLim'), 'Layer', 'top');
+%                 set (ax2, 'YLim', get (ax1, 'YLim'), 'Layer', 'top');
+%                 set(ax2,'YTickLabel','')
+%                 %set(ax2,'Xtick',1:3:nfcts)
+%                 %set(ax2,'Xticklabels',sorti(1:3:nfcts),'TickLabelInterpreter','latex')
+%                 set(ax2,'Xticklabels','','TickLabelInterpreter','latex')
+%                 set(ax2,'FontSize',9)
+%                 xl2=xlabel('facet index','FontSize',12);
+%                 xl2.Position(2)=xl2.Position(2)+15;
+%                 offset = repmat(ax2.YTick(end)+20,1,numel(ax2.XTick));
+%                 % create new lables:
+%                 % text(ax1.XTick(2:3:nfcts),offset,num2str(sorti(2:3:nfcts)),'HorizontalAlign','center','FontSize',9,'Interpreter','latex')
+%                 
+%                 offset = repmat(ax2.YTick(end)+30,1,numel(ax2.XTick)-1);
+%                 % create new lables:
+%                 %   text(ax1.XTick(3:3:nfcts),offset,num2str(sorti(3:3:nfcts)),'HorizontalAlign','center','FontSize',9,'Interpreter','latex')
+%                 set(gcf, 'Color', 'w');
+%                 %export_fig shortwaveit2.eps
+%                 
+%                 % ax3 = axes('Position',ax1_pos,...
+%                 %     'YAxisLocation', 'right',...
+%                 %     'XAxisLocation', 'top', ...
+%                 %     'Color', 'None');
+%                 % set (ax3, 'XLim', get (ax1, 'XLim'), 'Layer', 'top');
+%                 % set (ax3, 'YLim', get (ax1, 'YLim'), 'Layer', 'top');
+%                 % ax3.YTickLabel='';
+%                 % ax3.YTick=''
+%                 % set(ax3,'Xtick',2:2:nfcts)
+%                 % set(ax3,'Xticklabels',sorti(2:2:nfcts))
+%                 % set(ax3,'FontSize',8)
+%                 % box(ax3(1),'off')
+%                 % ax3.TickLength=[0;0]
+%                 %ax3.Position(4)=ax3.Position(4)*1.02;
+%                 
+%                 
+%                 
+%                 
+%                 
+%                 figure
+%                 plot(obj.Kin(sorti)./obj.Kininit(sorti))
+%                 ax1 = gca; % current axes
+%                 set(ax1,'Xtick',1:1:obj.nfcts)
+%                 xticklabels(sortt)
+%                 ax1_pos = ax1.Position; % position of first axes
+%                 xlabel('orientation')
+%                 ylabel('K/Kinit')
+%                 ax2 = axes('Position',ax1_pos,...
+%                     'YAxisLocation', 'right',...
+%                     'XAxisLocation', 'top', ...
+%                     'Color', 'None');
+%                 set (ax2, 'XLim', get (ax1, 'XLim'), 'Layer', 'top');
+%                 set (ax2, 'YLim', get (ax1, 'YLim'), 'Layer', 'top');
+%                 set(ax2,'Xtick',1:1:obj.nfcts)
+%                 set(ax2,'Xticklabels',sorti)
+%                 set(ax2,'FontSize',8)
+%                 xlabel('facet index')
+%                 
+%                 figure
+%                 plot(obj.Kin(sorti)-obj.Kininit(sorti))
+%                 ax1 = gca; % current axes
+%                 set(ax1,'Xtick',1:1:obj.nfcts)
+%                 xticklabels(sortt)
+%                 ax1_pos = ax1.Position; % position of first axes
+%                 xlabel('orientation')
+%                 ylabel('K-Kinit')
+%                 ax2 = axes('Position',ax1_pos,...
+%                     'YAxisLocation', 'right',...
+%                     'XAxisLocation', 'top', ...
+%                     'Color', 'None');
+%                 set (ax2, 'XLim', get (ax1, 'XLim'), 'Layer', 'top');
+%                 set (ax2, 'YLim', get (ax1, 'YLim'), 'Layer', 'top');
+%                 set(ax2,'Xtick',1:1:obj.nfcts)
+%                 set(ax2,'Xticklabels',sorti)
+%                 set(ax2,'FontSize',8)
+%                 xlabel('facet index')
+%                 
+            %end
         end
         
         
-        function write_radiation(obj)
+        function write_netsw(obj)
             fname = ['netsw.inp.' obj.expnr];
             fileID = fopen(fname, 'w');
             fprintf(fileID,'# %4s\n','net shortwave on facets [W/m2] (including reflections and diffusive)');
@@ -5185,7 +5706,7 @@ classdef da_pp < dynamicprops
         end
         
         
-        function generate_Tfacinit(obj, ltestplot, lwritefile)
+        function generate_Tfacinit(obj)
             %% Inital Temperature and longwave
             %solve energy budget equation in an initial steady state
             %assume 0 wall heatflux
@@ -5273,47 +5794,43 @@ classdef da_pp < dynamicprops
             
             da_pp.addvar(obj, 'Tfacinit', Tnew(:, k));
             
-            if ltestplot
-                figure
-                hold on
-                plot(Tnew(sorti,k)-Tinit(sorti),'r-x')
-                plot(blub(sorti,k)-Tinit(sorti),'b-x')
-                xlabel('facet NR')
-                ylabel('T_{end}-T_{init}')
-                ax1 = gca; % current axes
-                set(ax1,'Xtick',1:1:nfcts)
-                xticklabels(sortt)
-                ax1_pos = ax1.Position; % position of first axes
-                xlabel('orientation')
-                ylabel('T_{new}-T_{init}')
-                ax2 = axes('Position',ax1_pos,...
-                    'YAxisLocation', 'right',...
-                    'XAxisLocation', 'top', ...
-                    'Color', 'None');
-                set (ax2, 'XLim', get (ax1, 'XLim'), 'Layer', 'top');
-                set (ax2, 'YLim', get (ax1, 'YLim'), 'Layer', 'top');
-                set(ax2,'Xtick',1:1:nfcts)
-                set(ax2,'Xticklabels',sorti)
-                set(ax2,'FontSize',8)
-                xlabel('facet index')
-                
-                
-                
-                figure
-                hold on
-                plot(Tnew(15,1:k),'-x')
-                plot(Tnew(41,1:k),'-x')
-                plot(Tnew(51,1:k),'-x')
-                plot(Tnew(58,1:k),'-x')
-                plot(Tnew(68,1:k),'-x')
-                xlabel('iteration')
-                ylabel('facet temperature')
-                legend('15','41','51','58','68')
-            end
-            
-            if lwritefile
-                da_pp.write_Tfacinit(obj)
-            end            
+%             if ltestplot
+%                 figure
+%                 hold on
+%                 plot(Tnew(sorti,k)-Tinit(sorti),'r-x')
+%                 plot(blub(sorti,k)-Tinit(sorti),'b-x')
+%                 xlabel('facet NR')
+%                 ylabel('T_{end}-T_{init}')
+%                 ax1 = gca; % current axes
+%                 set(ax1,'Xtick',1:1:nfcts)
+%                 xticklabels(sortt)
+%                 ax1_pos = ax1.Position; % position of first axes
+%                 xlabel('orientation')
+%                 ylabel('T_{new}-T_{init}')
+%                 ax2 = axes('Position',ax1_pos,...
+%                     'YAxisLocation', 'right',...
+%                     'XAxisLocation', 'top', ...
+%                     'Color', 'None');
+%                 set (ax2, 'XLim', get (ax1, 'XLim'), 'Layer', 'top');
+%                 set (ax2, 'YLim', get (ax1, 'YLim'), 'Layer', 'top');
+%                 set(ax2,'Xtick',1:1:nfcts)
+%                 set(ax2,'Xticklabels',sorti)
+%                 set(ax2,'FontSize',8)
+%                 xlabel('facet index')
+%                 
+%                 
+%                 
+%                 figure
+%                 hold on
+%                 plot(Tnew(15,1:k),'-x')
+%                 plot(Tnew(41,1:k),'-x')
+%                 plot(Tnew(51,1:k),'-x')
+%                 plot(Tnew(58,1:k),'-x')
+%                 plot(Tnew(68,1:k),'-x')
+%                 xlabel('iteration')
+%                 ylabel('facet temperature')
+%                 legend('15','41','51','58','68')
+%             end        
         end
         
         function write_Tfacinit(obj)
@@ -5341,7 +5858,7 @@ classdef da_pp < dynamicprops
             fprintf(blocks, '#  il\t   iu\t   jl\t   ju\t   kl\t   ku\t dtop\t dwest\t deast\t dnor\t dsou\n');
             fprintf(blocks, '%4d\t%4d\t%4d\t%4d\t%4d\t%4d\t%4d\t%4d\t%4d\t%4d\t%4d\n', obj.blocks');
             fclose(blocks);
-            disp(['... written blocks.inp.' obj.expnr])
+            %disp(['... written blocks.inp.' obj.expnr])
         end
         
         function write_facets(obj)
@@ -5375,10 +5892,10 @@ classdef da_pp < dynamicprops
             fprintf(tree_write, '%-60s\n', '#  il  iu  jl  ju  kl  ku');
             fprintf(tree_write, '%-3.0f %-3.0f %-3.0f %-3.0f %-3.0f %-3.0f\n', obj.trees');
             fclose(tree_write);
-            disp(['... written trees.inp.' obj.expnr]) 
+            %disp(['... written trees.inp.' obj.expnr]) 
         end
         
-        function generate_purifs(obj, lwritefile)
+        function generate_purifs(obj)
             % Uses obj.bl, so should be run after having run
             % generate_blocks (or reading in a blocks file)
             da_pp.addvar(obj, 'nrows', obj.imax / (obj.blockwidth + obj.canyonwidth));
@@ -5433,12 +5950,12 @@ classdef da_pp < dynamicprops
             fprintf(purif_write, '%-60s\n', '#  il  iu  jl  ju  kl  ku  ipu');
             fprintf(purif_write, '%-3.0f %-3.0f %-3.0f %-3.0f %-3.0f %-3.0f %-3.0f\n', obj.purifs');
             fclose(purif_write);
-            disp(['... written purifs.inp.' obj.expnr]) 
+            %disp(['... written purifs.inp.' obj.expnr]) 
         end
         
         function plot_domain(obj)
             figure
-            view(52,23)
+            view(52, 23)
             if (obj.lcastro || obj.lcube || obj.lblocks)
                 for i = 1:size(obj.bl, 1)
                     patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1)  obj.xh(obj.bl(i,1))], [obj.yh(obj.bl(i,3))  obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1)], [obj.zh(obj.bl(i,6)+1)  obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1)], [245 245 245] ./ 255)

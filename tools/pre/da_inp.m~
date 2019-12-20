@@ -15,7 +15,6 @@ r = da_pp(expnr, exppath);
 da_pp.addvar(r, 'walltypes', dlmread(['walltypes.inp.', expnr],'',3,0));
 da_pp.set_defaults(r, ncpus);
 
-
 da_pp.generate_xygrid(r);
 da_pp.write_xgrid(r)
 disp(['Written xgrid.inp.', r.expnr])
@@ -28,8 +27,6 @@ disp(['Written lscal.inp.', r.expnr])
 da_pp.generate_prof(r);
 da_pp.write_prof(r);
 disp(['Written prof.inp.', r.expnr])
-da_pp.plot_profiles(r);
-
 da_pp.generate_scalar(r);
 da_pp.write_scalar(r);
 disp(['Written scalar.inp.', r.expnr])
@@ -42,9 +39,8 @@ da_pp.write_blocks(r)
 disp(['Written blocks.inp.', r.expnr])
 da_pp.write_facets(r)
 disp(['Written facets.inp.', r.expnr])
-da_pp.plot_blocks(r)
-da_pp.plot_facets(r)
-
+%da_pp.plot_facets(r)
+%da_pp.plot_blocks(r)
 
 if r.ltrees
     da_pp.generate_trees(r, true);
@@ -58,24 +54,26 @@ end
 
 if r.lEB
     da_pp.vsolc(r)
-    da_pp.plot_shading(r)
+    %da_pp.plot_shading(r)
     da_pp.vfc(r)
     da_pp.write_svf(r)
-    disp(['Written svf.inp.', r.expnr])
-    da_pp.write_vf(r)
     disp(['Written vf.nc.inp.', r.expnr])
-    da_pp.write_facetarea(r)
+    disp(['Written svf.inp.', r.expnr])
     disp(['Written facetarea.inp', r.expnr])
     da_pp.rayit(r)
     da_pp.write_netsw(r)
     disp(['Written netsw.inp.', r.expnr])
     da_pp.generate_Tfacinit(r)
 else
-    da_pp.addvar(r, 'Tfacinit', ones(r.nfcts,1) * 288);
+    da_pp.addvar(r, 'Tfacinit', ones(r.nfcts,1) * 288));
 end
 
 da_pp.write_Tfacinit(r)
 disp(['Written Tfacinit.inp.', r.expnr])
 
-disp('Check plots and press a key to continue...')
-pause
+% 
+% 
+% 
+% da_pp.plot_domain(r);
+% plot vertical profiles
+% Pause after plotting
