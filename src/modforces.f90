@@ -40,7 +40,7 @@ module modforces
   private
   public :: forces, coriolis, lstend,fixuinf1,fixuinf2,fixthetainf,&
             detfreestream,detfreestrtmp,nudge,&
-            masscorr,uoutletarea,voutletarea,fluidvolume
+            masscorr,uoutletarea,voutletarea,fluidvolume,calcfluidvolumes
   contains
 
   subroutine forces
@@ -371,7 +371,8 @@ module modforces
     use modglobal, only : ib,ie,jb,je,ih,jh,kb,ke,dzf,dxf,dy,dt,rk3step,&
                           uflowrate,vflowrate,linoutflow,&
                           luoutflowr,lvoutflowr,luvolflowr,lvvolflowr
-    use modfields, only : um,up,vm,vp,uout,uouttot,udef,vout,vouttot,vdef,IIu,IIv
+    use modfields, only : um,up,vm,vp,uout,uouttot,udef,vout,vouttot,vdef,&
+                          uoutarea,voutarea,fluidvol,IIu,IIv
     use modmpi,    only : myid,comm3d,mpierr,nprocs,MY_REAL,sumy_ibm
 
     real, dimension(ib:ie, kb:ke) :: uvol
@@ -382,8 +383,7 @@ module modforces
     real, dimension(kb:ke)        :: voutold
     real                          rk3coef,rk3coefi,&
                                   uoutflow,voutflow,&
-                                  uflowrateold,vflowrateold,&
-                                  uoutarea,voutarea,fluidvol
+                                  uflowrateold,vflowrateold
     integer                       i,j,k
 
     if ((.not.linoutflow) .and. (luoutflowr)) then
@@ -406,9 +406,6 @@ module modforces
       end do
       uoutflow = sum(uout(kb:ke))
       uflowrateold = sum(uoutold(kb:ke))
-
-      ! calculate outlet area
-      call uoutletarea(uoutarea)
 
       ! average over outflow area
       uoutflow = uoutflow/uoutarea
@@ -457,9 +454,6 @@ module modforces
       uoutflow = sum(uout(kb:ke))
       uflowrateold = sum(uoutold(kb:ke))
 
-      ! calculate fluid volume
-      call fluidvolume(fluidvol)
-
       ! average over fluid volume
       uoutflow = uoutflow/fluidvol
       uflowrateold = uflowrateold/fluidvol
@@ -505,9 +499,6 @@ module modforces
       voutflow = sum(vout(kb:ke))
       vflowrateold = sum(voutold(kb:ke))
 
-      ! calculate outlet area
-      call voutletarea(voutarea)
-
       ! average over outflow area
       voutflow = voutflow/voutarea
       vflowrateold = vflowrateold/voutarea
@@ -550,9 +541,6 @@ module modforces
       end do
       voutflow = sum(vout(kb:ke))
       vflowrateold = sum(voutold(kb:ke))
-
-      ! calculate fluid volume
-      call fluidvolume(fluidvol)
 
       ! average over fluid volume
       voutflow = voutflow/fluidvol
@@ -654,6 +642,26 @@ module modforces
     volume = sum(sumxy(kb:ke)*dzf(kb:ke))
 
   end subroutine fluidvolume
+
+  subroutine calcfluidvolumes
+    !> calculates fluid volume and outlet areas, excluding blocks
+    !> and saves it to variables from modfields
+
+    use modfields, only : uoutarea, voutarea, fluidvol
+    implicit none
+    real :: volume
+
+    ! calculate outlet area
+    call uoutletarea(volume)
+    uoutarea = volume
+    ! calculate outlet area
+    call voutletarea(volume)
+    voutarea = volume
+    ! calculate fluid volume
+    call fluidvolume(volume)
+    fluidvol = volume
+
+  end subroutine calcfluidvolumes
 
   subroutine coriolis
 

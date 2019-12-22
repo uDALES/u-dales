@@ -63,6 +63,7 @@ module modstartup
       use modinlet, only:initinlet
       use modinletdata, only:di, dr, di_test, dti, iangledeg, iangle
       use modibmdata, only:bctfxm, bctfxp, bctfym, bctfyp, bctfz
+      use modforces, only: calcfluidvolumes
 
       implicit none
       integer :: ierr
@@ -412,6 +413,8 @@ module modstartup
       write (6, *) 'Determine masking matrices'
       call createmasks ! determine walls/blocks
       write (6, *) 'Finished determining masking matrices'
+      ! calculate fluid volume and outlet areas, needs masking matrices
+      call calcfluidvolumes
 
       call readinitfiles
       write (*, *) "done readinitfiles"
