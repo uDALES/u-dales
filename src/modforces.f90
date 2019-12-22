@@ -576,7 +576,7 @@ module modforces
     ! calculates outlet area of domain for u-velocity excluding blocks
 
     use modglobal, only   : ib,ie,jb,je,kb,ke,dy,dzf
-    use modfields, only   : IIu
+    use modfields, only   : IIc
     use modmpi, only      : sumy_ibm
 
     implicit none
@@ -586,7 +586,7 @@ module modforces
 
     sumy = 0.
     ! integrate fluid area at outflow plane in y
-    call sumy_ibm(sumy,IIu(ie,jb:je,kb:ke)*dy,ie,ie,jb,je,kb,ke,IIu(ie,jb:je,kb:ke))
+    call sumy_ibm(sumy,IIc(ie,jb:je,kb:ke)*dy,ie,ie,jb,je,kb,ke,IIc(ie,jb:je,kb:ke))
 
     ! integrate fluid area at outflow plane in z
     do k=kb,ke
@@ -600,7 +600,7 @@ module modforces
     ! calculates outlet area of domain for v-velocity excluding blocks
 
     use modglobal, only : ib,ie,jb,je,kb,ke,dxf,dzf
-    use modfields, only : IIv
+    use modfields, only : IIc
     use modmpi,    only : myid,comm3d,mpierr,nprocs,MY_REAL
 
     implicit none
@@ -612,7 +612,7 @@ module modforces
     ! integrate fluid area at outflow plane in x
     if (myid==nprocs-1) then
       do k=kb,ke
-        sumx(k) = sum(IIv(ib:ie,je,k)*dxf(ib:ie))
+        sumx(k) = sum(IIc(ib:ie,je,k)*dxf(ib:ie))
       end do
     end if
 
@@ -630,7 +630,7 @@ module modforces
     ! calculates fluid volume of domain excluding blocks
 
     use modglobal, only   : ib,ie,jb,je,kb,ke,dy,dxf,dzf
-    use modfields, only   : IIu
+    use modfields, only   : IIc
     use modmpi, only      : sumy_ibm
 
     implicit none
@@ -643,7 +643,7 @@ module modforces
     sumxy = 0.
 
     ! integrate fluid volume in y
-    call sumy_ibm(sumy,IIu(ib:ie,jb:je,kb:ke)*dy,ib,ie,jb,je,kb,ke,IIu(ib:ie,jb:je,kb:ke))
+    call sumy_ibm(sumy,IIc(ib:ie,jb:je,kb:ke)*dy,ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke))
 
     ! integrate fluid area in x
     do k=kb,ke
