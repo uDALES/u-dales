@@ -396,7 +396,7 @@ module modforces
       uoutold = 0.
 
       ! integrate u fixed at outlet ie along y
-      call sumy_ibm(uout,up(ie,jb:je,kb:ke)*dy,ie,ie,jb,je,kb,ke,IIu(ie,jb:je,kb:ke))  ! u at current time step
+      call sumy_ibm(uout,up(ie,jb:je,kb:ke)*dy,ie,ie,jb,je,kb,ke,IIu(ie,jb:je,kb:ke))  ! u tendency at previous time step
       call sumy_ibm(uoutold,um(ie,jb:je,kb:ke)*dy,ie,ie,jb,je,kb,ke,IIu(ie,jb:je,kb:ke))  ! u at previous time step
 
       ! integrate u in z
@@ -440,7 +440,7 @@ module modforces
       uvolold = 0.
 
       ! integrate u in y
-      call sumy_ibm(uvol,up(ib:ie,jb:je,kb:ke)*dy,ib,ie,jb,je,kb,ke,IIu(ib:ie,jb:je,kb:ke))  ! u at current time step
+      call sumy_ibm(uvol,up(ib:ie,jb:je,kb:ke)*dy,ib,ie,jb,je,kb,ke,IIu(ib:ie,jb:je,kb:ke))  ! u tendency at previous time step
       call sumy_ibm(uvolold,um(ib:ie,jb:je,kb:ke)*dy,ib,ie,jb,je,kb,ke,IIu(ib:ie,jb:je,kb:ke))  ! u at previous time step
 
       ! integrate u in x
@@ -489,7 +489,7 @@ module modforces
       ! integrate v fixed at outlet je along x
       if (myid==nprocs-1) then
         do k=kb,ke
-          vout(k) = sum(vp(ib:ie,je,k)*IIv(ib:ie,je,k)*dxf(ib:ie))  ! v at current time step
+          vout(k) = sum(vp(ib:ie,je,k)*IIv(ib:ie,je,k)*dxf(ib:ie))  ! v tendency at previous time step
           voutold(k) = sum(vm(ib:ie,je,k)*IIv(ib:ie,je,k)*dxf(ib:ie))  ! v at previous time step
         end do
       end if
@@ -534,7 +534,7 @@ module modforces
       vvolold = 0.
 
       ! integrate v in y
-      call sumy_ibm(vvol,vp(ib:ie,jb:je,kb:ke)*dy,ib,ie,jb,je,kb,ke,IIv(ib:ie,jb:je,kb:ke))  ! v at current time step
+      call sumy_ibm(vvol,vp(ib:ie,jb:je,kb:ke)*dy,ib,ie,jb,je,kb,ke,IIv(ib:ie,jb:je,kb:ke))  ! v tendency at previous time step
       call sumy_ibm(vvolold,vm(ib:ie,jb:je,kb:ke)*dy,ib,ie,jb,je,kb,ke,IIv(ib:ie,jb:je,kb:ke))  ! v at previous time step
 
       ! integrate v in x
