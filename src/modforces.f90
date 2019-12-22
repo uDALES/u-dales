@@ -80,7 +80,7 @@ module modforces
     ! thvsi = 1./thvsi
 
  
-       !write(*,*), 'thvh',thvh
+       !write(*,*) 'thvh',thvh
        do k=kb+1,ke
           do j=jb,je
              do i=ib,ie
@@ -267,7 +267,7 @@ module modforces
     if ((ifixuinf==1) .and. (rk3step==3)) then
 
       ! rk3coef = dt / (4. - dble(rk3step))
-    
+
       ! do j =jb,je
       !   do i =ib,ie
       !     utop = utop + 0.5*(u0(i,j,ke)+u0(i+1,j,ke))*dxf(i)
