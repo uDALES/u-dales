@@ -70,13 +70,8 @@ contains
       endif
       kbc1 = 1
       kbc2 = 1
-      dxl  = dxf
-      dxhl = dxh
-      dzl  = dzf      ! 
-      !    dzl  = dzf(kb:ke+1)     ! dzf is actually length(kb-1:ke+1), but first cell is not needed
-      dzhl = dzh
       ksen = kmax/nprocs
-      call poisr(p,dxl,dxhl,dy,dzl,dzhl, &
+      call poisr(p,dxf,dxh,dy,dzf,dzh, &
                  ibc1,ibc2,kbc1,kbc2,ksen)
     case default
        write(*,*) "Invalid choice for Poisson solver"
