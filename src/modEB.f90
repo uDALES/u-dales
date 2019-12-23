@@ -181,7 +181,7 @@ function gaussji(c,d,n) result(a)
          !sum over all processors since a facet can be split onto more than one processor
          fachfsum = 0.
          facefsum = 0.
-         call MPI_ALLREDUCE(fachf(0:nfcts), fachfsum(0:nfcts), nfcts + 1, MY_REAL, MPI_SUM, comm3d, mpierr)
+         call MPI_ALLREDUCE(fachf(1:nfcts), fachfsum(1:nfcts), nfcts, MY_REAL, MPI_SUM, comm3d, mpierr)
          call MPI_ALLREDUCE(facef(1:nfcts), facefsum(1:nfcts), nfcts, MY_REAL, MPI_SUM, comm3d, mpierr)
 
          if (myid == 0) then
