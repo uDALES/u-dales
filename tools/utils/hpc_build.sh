@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+set -ex
 
 # Usage: hpc_build.sh [icl, archer, cca, common] [debug, release]
 
@@ -17,6 +17,10 @@ NPROC=2
 system=$1
 build_type=$2
 
+echo "--- Debug info: BEFORE LOADING MODULES ---"
+echo "module list: " `module list`
+echo "module avail: " `module avail`
+echo " --- "
 
 if [ $system == "icl" ]
 then
@@ -27,7 +31,10 @@ then
 
 elif [ $system == "archer" ]
 then
-    echo "Configuration not currently available"
+    module load cmake/3.16.0 git cray-mpich cray-netcdf
+    FC=ftn
+    NETCDF_DIR=
+    NETCDF_FORTRAN_DIR=
 
 elif [ $system == "cca" ]
 then
@@ -46,6 +53,15 @@ else
     echo "This configuration is not avalable"
     exit 1
 fi
+    # Debug info
+echo "--- Debug info: AFTER LOADING MODULES ---"
+echo "env: " `env`
+echo "PATH: " ${PATH}
+echo "module list: " `module list`
+echo "module avail: " `module avail`
+echo "nc-config --all: " `nc-config --all`
+echo "nf-config --all: " `nf-config --all`
+echo " --- "
 
 # Configure and Build
 path_to_build_dir="$(pwd)/build/$build_type"
