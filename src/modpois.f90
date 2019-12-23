@@ -50,12 +50,9 @@ contains
     use modmpi, only : myid,nprocs,barrou
     implicit none
     integer ibc1,ibc2,kbc1,kbc2,ksen
-!    real dxhl(ie+ih-(ib-ih)+1),dxl(ie+ih-(ib-ih)+1),dzl(ke+kh-(kb-kh)+1),dzhl(ke+kh-(kb-kh))
-    real dxhl(ie+ih-(ib-ih)),dxl(ie+ih-(ib-ih)),dzl(ke+kh-(kb-kh)),dzhl(ke+kh-(kb-kh))
 
     call fillps
-!    call solmpj(p)
-!   p = 0.
+
 !  ibc?=1: neumann
 !  ibc?=2: periodic
 !  ibc?=3: dirichlet
@@ -294,31 +291,6 @@ contains
     enddo
     enddo
     enddo
-
-!    do k=kb,ke
-!    do j=jb,je
-!    do i=ib,ie
-!      up(i,j,k) = up(i,j,k)-(p(i,j,k)-p(i-1,j,k))*dxhi(i)           ! see equation 5.82 (u is computed from the mass conservation)
-!      vp(i,j,k) = vp(i,j,k)-(p(i,j,k)-p(i,j-1,k))*dyi
-!      wp(i,j,k) = wp(i,j,k)-(p(i,j,k)-p(i,j,k-1))*dzhi(k)
-!    end do
-!    end do
-!    end do
-!    wp(ib:ie,jb:je,kb+1) = wp(ib:ie,jb:je,kb+1) - &
-!                             (p(ib:ie,jb:je,kb+1)-p(ib:ie,jb:je,kb))*dzhi(kb+1)
-!
-!    if (linoutflow ) then
-!        up(ie+1,jb:je,kb:ke) = up(ie+1,jb:je,kb:ke) - &
-!                              (p(ie+1,jb:je,kb:ke)-p(ie,jb:je,kb:ke))*dxhi(ie+1)  ! see equation 5.82 (u is comp from mass conserv.)
-!    end if  
-!
-!    do k=kb-1,ke+1
-!    do j=jb-1,je+1
-!    do i=ib-1,ie+1
-!      pres0(i,j,k)=pres0(i,j,k)+p(i,j,k) ! update of the pressure: P_new = P_old + p
-!    enddo
-!    enddo
-!    enddo
 
     return
   end subroutine tderive
@@ -575,8 +547,6 @@ contains
 
 ! subroutine poisr
 
-!     SUBROUTINE poisr(rhs,dx,dxh,dy,dz,dzh,imax,jmax,kmax, &
-!                      ibc1,ibc2,kbc1,kbc2,jtot,ksen)
       SUBROUTINE poisr(rhs,dx,dxh,dy,dz,dzh, &
                        ibc1,ibc2,kbc1,kbc2,ksen)
 !
@@ -602,31 +572,17 @@ contains
 ! authors: m.j.b.m. pourquie, b.j. boersma
 
       integer i, j, k, ksen
-      real rhs(0:imax+1,0:jmax+1,0:kmax+1),dx(0:IMAX+1),dxh(0:IMAX+1),dy
-!     real rhs2(imax,jtot,ksen)
+      real rhs(0:imax+1,0:jmax+1,0:kmax+1),dx(0:IMAX+1),dxh(1:IMAX+1),dy
       real, allocatable, dimension(:,:,:) ::  rhs2
-!     real help(imax,jmax,kmax)
-!     real work(2*imax*jmax*kmax)
       real, allocatable, dimension(:) ::  work
       integer  ier, iperio, kperio
       integer  ibc1,ibc2,kbc1,kbc2
-!      real dz(0:kmax+1),dzh(0:kmax+1),pi
-!      real dz(0:kmax+1),dzh(0:kmax),pi
-!      real dz(0:kmax),dzh(0:kmax),pi          ! original version
       real dz(0:kmax+1),dzh(1:kmax+1),pi       !   dz: kb-1:ke+1,  dzh: kb:ke+1
       real a(imax),b(imax),c(imax),bin(imax)
       real az(kmax),bz(kmax),cz(kmax)
-! PAR
-!     real yrt(jmax)
       real yrt(jtot)
-! PAR
-!     real vfftj(imax*kmax,jmax)
-!     real vfftj(imax*ksen,jtot)
       real, allocatable, dimension(:,:) ::  vfftj
-!     real  y(imax,kmax)
       real, allocatable, dimension(:,:) ::  y
-! PAR
-!     real wj(jmax+15)
       real wj(jtot+15)
       real   angle, tst
       integer ipos, jv
@@ -639,12 +595,10 @@ contains
       allocate(vfftj(imax*ksen,jtot))
       allocate(y(imax,kmax))
 
-!     call sumchk3(rhs,imax,jmax,kmax,1,1)
-
       pi=4.*atan(1.)
       do i=1,imax
-         a(i) =  1./(dx(i)*dxh(i-1))
-         c(i) =  1./(dx(i)*dxh(i))
+         a(i) =  1./(dx(i)*dxh(i))
+         c(i) =  1./(dx(i)*dxh(i+1))
          b(i) =  - (a(i) + c(i))
       enddo
 
@@ -692,6 +646,7 @@ contains
          cz(k) =  1./(dz(k)*dzh(k+1))
          bz(k) =  - (az(k) + cz(k))
       enddo
+
 !
 ! BC:
 !

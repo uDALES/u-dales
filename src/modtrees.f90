@@ -27,7 +27,7 @@ contains
 
       ! read global trees
       if(myid==0) then
-        write(*,*), '1, myid, ntrees, ltrees, cexpnr', myid, ntrees, ltrees, cexpnr
+        write(*,*) '1, myid, ntrees, ltrees, cexpnr', myid, ntrees, ltrees, cexpnr
         if (ntrees>0) then
           open (ifinput,file='trees.inp.'//cexpnr)
           read (ifinput,'(a80)') chmess
@@ -138,11 +138,11 @@ contains
     ! Tree drag
     if (ltrees .eqv. .false.) return
 
-    !write(*,*), 'myid, ntrees', myid, ntrees
+    !write(*,*) 'myid, ntrees', myid, ntrees
  
     do n = 1,ntrees
      
-    !  write(*,*), 'myid2, tree(n,1), tree(n,2), tree(n,3), tree(n,4), tree(n,5), tree(n,6)', myid, tree(n,1), tree(n,2), tree(n,3), tree(n,4), tree(n,5), tree(n,6)
+    !  write(*,*) 'myid2, tree(n,1), tree(n,2), tree(n,3), tree(n,4), tree(n,5), tree(n,6)', myid, tree(n,1), tree(n,2), tree(n,3), tree(n,4), tree(n,5), tree(n,6)
  
       ! w drag
       il = tree(n,1)
