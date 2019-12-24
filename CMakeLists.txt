@@ -34,7 +34,7 @@ find_package(MPI REQUIRED)
 
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
     # FIXME: add `denormal` to `CMAKE_Fortran_FLAGS`?
-    set(CMAKE_Fortran_FLAGS "-fdefault-real-8 -ffree-line-length-none -ffpe-trap=invalid,zero,overflow,underflow,denormal")
+    set(CMAKE_Fortran_FLAGS "-fdefault-real-8 -ffree-line-length-none -ffpe-trap=invalid,zero,overflow,underflow")
     set(CMAKE_Fortran_FLAGS_DEBUG "-O0 -g -fbacktrace -finit-real=nan -fcheck=all -Wextra -Wconversion -pedantic")
     set(CMAKE_Fortran_FLAGS_RELEASE "-O3")
 elseif(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
