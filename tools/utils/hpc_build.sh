@@ -31,10 +31,10 @@ then
 
 elif [ $system == "archer" ]
 then
-    module load cmake/3.16.0 git cray-mpich cray-netcdf
-    FC=ftn
-    NETCDF_DIR=
-    NETCDF_FORTRAN_DIR=
+    module load cmake/3.10.2 cray-netcdf
+    FC=
+    NETCDF_DIR=/opt/cray/netcdf/4.4.1.1/CRAY/8.3
+    NETCDF_FORTRAN_DIR=/opt/cray/netcdf/4.4.1.1/CRAY/8.3
 
 elif [ $system == "cca" ]
 then
