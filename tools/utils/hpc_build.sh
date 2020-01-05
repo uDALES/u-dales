@@ -8,19 +8,18 @@ if [ ! -d src ]; then
     exit 1
 fi
 
-
 capitalize() {
     echo $* | sed -e "s/\b\(.\)/\u\1/g"
 }
 
-NPROC=2
+echo "--- Debug info ---"
+echo "env: " `env`
+echo "PATH: " ${PATH}
+
+NPROC=2 # TODO: make into a arg var.
 system=$1
 build_type=$2
 
-echo "--- Debug info: BEFORE LOADING MODULES ---"
-echo "module list: " `module list`
-echo "module avail: " `module avail`
-echo " --- "
 
 if [ $system == "icl" ]
 then
@@ -53,15 +52,7 @@ else
     echo "This configuration is not avalable"
     exit 1
 fi
-    # Debug info
-echo "--- Debug info: AFTER LOADING MODULES ---"
-echo "env: " `env`
-echo "PATH: " ${PATH}
-echo "module list: " `module list`
-echo "module avail: " `module avail`
-echo "nc-config --all: " `nc-config --all`
-echo "nf-config --all: " `nf-config --all`
-echo " --- "
+
 
 # Configure and Build
 path_to_build_dir="$(pwd)/build/$build_type"
