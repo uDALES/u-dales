@@ -1,8 +1,8 @@
 %% da_inp
 
-expnr = '011';
+expnr = '009';
 ncpus = 2;
-LIDAR = 1;
+LIDAR = 0;
 
 DA_EXPDIR = getenv('DA_EXPDIR');
 DA_PREDIR = getenv('DA_PREDIR');
@@ -41,17 +41,17 @@ if ~LIDAR
     da_pp.generate_bl_from_namoptions(r)
     da_pp.generate_topo_from_bl(r)
 else
-    sourcename = '/Users/samowens/LIDAR_SK/mean-gs-dis-rot.png';
+    sourcename;
     % resolution of image [m/pixel]
-    dxinp=1; dyinp=1; dzinp=1;
+    dxinp; dyinp; dzinp;
     % center of area of interest in original image [pixel]
-    centeri = 1460; centerj = 1400;
+    centeri; centerj;
     % magimum height in image [m]
-    maxh = 88;
+    maxh;
     %padding. A padding of 0 makes only sense for idealised cases. There should be no building at domain edge
-    pad = 5;
+    pad;
     %objects smaller than this will be deleted
-    smallarea = round(150 / (r.dx * r.dy));
+    smallarea;
     
     da_pp.generate_topo_from_LIDAR(r, sourcename, dxinp, dyinp, centeri, centerj, maxh, pad, smallarea)
 end
