@@ -19,7 +19,7 @@ subroutine createscals
     open (ifinput, file='scals.inp.'//cexpnr)
 
     do j=jb,jtot
-      read(ifinput, *), scar(:,j)
+      read(ifinput, *) scar(:,j)
     end do
 
     scarl(ib:ie,jb:je) = scar(ib:ie,jb+myid*jmax:je+myid*jmax)
@@ -194,7 +194,7 @@ subroutine scalsource
     ! Normalise scalar field to 1/s
     call MPI_ALLREDUCE(scalsum,scalsumt,1,MY_REAL,MPI_SUM,comm3d,mpierr)
 
-!    write(*,*), 'scalsum', scalsum
+!    write(*,*) 'scalsum', scalsum
 
     if (lchem) then
       !svpp(:,:,:,1) = svpp(:,:,:,1)

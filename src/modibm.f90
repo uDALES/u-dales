@@ -227,6 +227,13 @@ contains
             k = block(ixwall(n), 9) !east side
             call wfuno(ih, jh, kh, vp, wp, thlp, momfluxb, tfluxb, cth, bcTfluxA, v0, w0, thl0, facT(k, 1), facz0(k), facz0h(k), ixwall(n), 1, 21)
          end do
+      else if (iwallmom == 3) then
+         do n = 1, nxwall
+            k = block(ixwall(n), 8) !west side
+            call wfmneutral(ih, jh, kh, vp, wp, momfluxb, v0, w0, facz0(k), ixwall(n), 1, 11)
+            k = block(ixwall(n), 9) !east side
+            call wfmneutral(ih, jh, kh, vp, wp, momfluxb, v0, w0, facz0(k), ixwall(n), 1, 21)
+        end do
       end if
 
       if (ltempeq) then
@@ -329,13 +336,18 @@ contains
          k = block(iypluswall(n, 1), 10) !upper y wall = north wall
          call wfuno(ih, jh, kh, up, wp, thlp, momfluxb, tfluxb, cth, bcTfluxA, u0, w0, thl0, facT(k,1), facz0(k), facz0h(k), iypluswall(n, 1), iypluswall(n, 2), 31)
       end do
+      else if (iwallmom == 3) then
+      do n = 1, nypluswall
+         k = block(iypluswall(n, 1), 10) !upper y wall = north wall
+         call wfmneutral(ih, jh, kh, up, wp, momfluxb, u0, w0, facz0(k), iypluswall(n, 1), iypluswall(n, 2), 31)
+      end do
       end if
 
       if (ltempeq) then
       if (iwalltemp == 1) then
          do n = 1, nypluswall ! loop over all shear x-walls
 
-            !write(*,*), 'shape(iypluswall), nypluswall', shape(iypluswall), nypluswall
+            !write(*,*) 'shape(iypluswall), nypluswall', shape(iypluswall), nypluswall
 
             call ywallscalarplus(ih, jh, kh, thl0, thlp, bctfyp, n)
          end do
@@ -410,6 +422,11 @@ contains
       do n = 1, nyminwall
       k = block(iyminwall(n, 1), 11)
       call wfuno(ih, jh, kh, up, wp, thlp, momfluxb, tfluxb, cth, bcTfluxA, u0, w0, thl0, facT(k,1), facz0(k), facz0h(k), iyminwall(n, 1), iyminwall(n, 2), 41)
+      end do
+      else if (iwallmom == 3) then
+      do n = 1, nyminwall
+      k = block(iyminwall(n, 1), 11)
+      call wfmneutral(ih, jh, kh, up, wp, momfluxb, u0, w0, facz0(k), iyminwall(n, 1), iyminwall(n, 2), 41)
       end do
       end if !
 
@@ -492,6 +509,11 @@ contains
          do n = 1, nxwall
             k = block(ixwall(n), 7)
             call wfuno(ih, jh, kh, up, vp, thlp, momfluxb, tfluxb, cth, bcTfluxA, u0, v0, thl0, facT(k, 1), facz0(k), facz0h(k), ixwall(n), 1, 51)
+         end do
+      else if (iwallmom == 3) then
+         do n = 1, nxwall
+            k = block(ixwall(n), 7)
+            call wfmneutral(ih, jh, kh, up, vp, momfluxb, u0, v0, facz0(k), ixwall(n), 1, 51)
          end do
       end if
 
@@ -612,7 +634,7 @@ contains
             kl = kb ! tg3315 see comment for x-direction above
             ku = block(iyminwall(n, 1), 6)
 
-!            write(*,*), 'jl, ju, jmax, iyminwall(n,1)', jl, ju, jmax, iyminwall(n,1)
+!            write(*,*) 'jl, ju, jmax, iyminwall(n,1)', jl, ju, jmax, iyminwall(n,1)
 
 !            vp(il:iu, jl:ju, kl:ku) = -vm(il:iu, jl:ju, kl:ku)*rk3coefi
             vp(il:iu, jl, kl:ku) = -vm(il:iu, jl, kl:ku)*rk3coefi
@@ -638,7 +660,7 @@ contains
             kl = kb ! tg3315 see comment for x-direction above
             ku = block(iypluswall(n, 1), 6)
 
-            !write(*,*), 'jl, ju, jmax, iypluswall(n,1)', jl, ju, jmax, iypluswall(n,1)
+            !write(*,*) 'jl, ju, jmax, iypluswall(n,1)', jl, ju, jmax, iypluswall(n,1)
 
             !vp(il:iu, jl:ju, kl:ku) = -vm(il:iu, jl:ju, kl:ku)*rk3coefi
             vp(il:iu, jl, kl:ku) = -vm(il:iu, jl, kl:ku)*rk3coefi
@@ -1012,6 +1034,8 @@ contains
       !momentum
       if (BCbotm.eq.2) then
       call wfuno(ih, jh, kh, up, vp, thlp, momfluxb, tfluxb, cth, bcTfluxA, u0, v0, thl0, thls, z0, z0h, 0, 1, 91)
+      elseif (BCbotm.eq.3) then
+      call wfmneutral(ih, jh, kh, up, vp, momfluxb, u0, v0, z0, 0, 1, 91)
       else
       write (*, *) "WARNING: ABORT, bottom boundary type for momentum undefined"
       stop

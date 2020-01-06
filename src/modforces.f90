@@ -79,7 +79,7 @@ contains
 ! thvsi = 1./thvsi
 
  
-       !write(*,*), 'thvh',thvh
+       !write(*,*) 'thvh',thvh
        do k=kb+1,ke
           do j=jb,je
              do i=ib,ie
@@ -308,8 +308,8 @@ else
     enddo
 endif
 !      if (myid==0) then
-!        write(*,*), "freestream", freestream
-!        write(*,*), "Uinf", Uinf
+!        write(*,*) "freestream", freestream
+!        write(*,*) "Uinf", Uinf
 !        open(unit=11,file='freestr.txt',position='append')
 !        write(11,3003) timee,freestream
 !3003    format (13(6e20.12))

@@ -40,17 +40,21 @@ matrix:
           env: BUILD_TYPE=Release
         - os: osx
           language: generic
+          osx_image: xcode11.2
           env: BUILD_TYPE=Debug
         - os: osx
           language: generic
+          osx_image: xcode11.2
           env: BUILD_TYPE=Release
 
 before_install:
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew update                     ; fi
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew install gcc netcdf open-mpi; fi
+  - if [[ $TRAVIS_OS_NAME == osx ]]; then brew update && brew upgrade gcc python; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew install netcdf open-mpi; fi
+  - which python3
+  - python3 --version
 
 install:
-  - pip3 install -r tests/requirements.txt
+  - python3 -m pip install -r tests/requirements.txt
 
 script:
   # Travis clones only the history leading to the tip of a single branch (https://stackoverflow.com/a/44036486).
@@ -60,7 +64,7 @@ script:
   - python3 tests/run_tests.py master $TRAVIS_COMMIT $BUILD_TYPE
 
 before_deploy:
-  - pip3 install graphviz ford mkdocs-material
+  - python3 -m pip install graphviz ford mkdocs-material
   - mkdocs build --site-dir build/html
   - ford docs/udales-docs-software.md
   - mkdir -p temp/html/0YiO263pFxExSdkMvWfId3qkVUSF4dREFnwM1jQD9y1KvzeAVAWzGykQemUrkJCM

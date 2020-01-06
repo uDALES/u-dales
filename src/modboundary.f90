@@ -30,7 +30,7 @@ contains
       ! Sponge layer
       if (ksp == -1) then
          !      ksp  = min(3*kmax/4,kmax - 15)
-         ksp = (kb - 1) + min(3*kmax/4, kmax - 15)
+         ksp = (kb - 1) + max(min(3*kmax/4, kmax - 15),1)
       end if
 
       zspb = zf(ksp)
