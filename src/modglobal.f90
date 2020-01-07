@@ -253,12 +253,17 @@ module modglobal
   integer, allocatable :: purif(:,:)            !< field with data from purif.inp.xxx
   real    :: Qpu = 0., epu = 0.                 !< flowrate and efficiency of purifiers
 
-   !Advection scheme
+   ! Poisson solver
+   integer, parameter :: POISS_FFT = 0, &
+                         POISS_CYC = 1
 
-   integer :: iadv_mom = 2, iadv_tke = -1, iadv_thl = -1, iadv_qt = -1, iadv_sv(100) = -1
+   integer :: ipoiss   = POISS_CYC
+
+   !Advection scheme
    integer, parameter :: iadv_upw = 1
    integer, parameter :: iadv_cd2 = 2
    integer, parameter :: iadv_kappa = 7
+   integer :: iadv_mom = 2, iadv_tke = -1, iadv_thl = -1, iadv_qt = -1, iadv_sv(100) = -1
 
    logical :: lmoist = .false. !<   switch to calculate moisture fields
    ! Global variables (modvar.f90)

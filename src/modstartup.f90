@@ -41,7 +41,7 @@ contains
          lwarmstart, lstratstart, lfielddump, lreadscal, startfile, tfielddump, fieldvars, tsample, tstatsdump, trestart, &
          nsv, imax, jtot, kmax, xsize, ysize, xlat, xlon, xday, xtime, lwalldist, &
          lmoist, lcoriol, igrw_damp, geodamptime, ifnamopt, fname_options, &
-         xS,yS,zS,SS,sigS,iwallmom,iwalltemp,iwallmoist,iadv_mom,iadv_tke,iadv_thl,iadv_qt,iadv_sv,courant,diffnr,ladaptive,author,&
+         xS,yS,zS,SS,sigS,iwallmom,iwalltemp,iwallmoist,ipoiss,iadv_mom,iadv_tke,iadv_thl,iadv_qt,iadv_sv,courant,diffnr,ladaptive,author,&
          linoutflow, lper2inout, libm, ltrees, lnudge, tnudge, nnudge, lpurif, lles, luflowr, lvflowr, uflowrate, vflowrate ,lstoreplane, iplane, &
          lreadmean, iinletgen, inletav, lreadminl, Uinf, Vinf, linletRA, nblocks, ntrees, npurif, &
          lscalrec,lSIRANEinout,lscasrc,lscasrcl,lscasrcr,lydump,lytdump,lxydump,lxytdump,lslicedump,ltdump,ltkedump,lzerogradtop,&
@@ -93,7 +93,7 @@ contains
          lcoriol, igrw_damp, uflowrate, vflowrate, numol, prandtlmol, sun, Bowen, cd, decay, ud, Qpu, epu, &
          lbuoyancy, ltempeq, lprofforc, lqlnr, lchem, k1, JNO2
       namelist/DYNAMICS/ &
-         iadv_mom, iadv_tke, iadv_thl, iadv_qt, iadv_sv
+         iadv_mom, iadv_tke, iadv_thl, iadv_qt, iadv_sv, ipoiss
 
       if (myid == 0) then
          if (command_argument_count() >= 1) then
@@ -378,6 +378,7 @@ contains
       call MPI_BCAST(courant, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(diffnr, 1, MY_REAL, 0, comm3d, mpierr)
 
+      call MPI_BCAST(ipoiss, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(iadv_mom, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(iadv_tke, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(iadv_thl, 1, MPI_INTEGER, 0, comm3d, mpierr)
@@ -435,10 +436,16 @@ contains
       !                                                                 |
       !-----------------------------------------------------------------|
 
-      use modsurfdata, only:wtsurf, wqsurf, qts, ps
-            use modglobal, only : imax,kmax,jtot,ysize,xsize,dtmax,runtime, startfile,lwarmstart,lstratstart,BCxm,BCxT,BCxq,BCxs,BCtopm,iinletgen,linoutflow,iwalltemp,iwallmom,ltempeq,BCbotm
-      use modmpi, only:myid, nprocs, mpierr, comm3d, MPI_INTEGER, MPI_LOGICAL
-
+      use modsurfdata, only : wtsurf, wqsurf, qts, ps
+      use modglobal, only   : imax,kmax,jtot,ysize,xsize,dxf,ib,ie,&
+                              dtmax,runtime,startfile,lwarmstart,lstratstart,&
+                              BCxm,BCxT,BCxq,BCxs,BCtopm,BCbotm,&
+                              iinletgen,linoutflow,ltempeq,iwalltemp,iwallmom,&
+                              ipoiss,POISS_FFT,POISS_CYC
+      use modmpi, only      : myid, nprocs, mpierr, comm3d, MPI_INTEGER, MPI_LOGICAL
+      implicit none
+      real :: d(1:imax-1)
+      logical :: inequi
 
       if (mod(jtot, nprocs) /= 0) then
          if (myid == 0) then
@@ -450,15 +457,17 @@ contains
          stop
       end if
 
-      !if(mod(imax,nprocs)/=0)then
-      !  if(myid==0)then
-      !    write(6,*)'STOP ERROR IN NUMBER OF PROCESSORS'
-      !    write(6,*)'nprocs must divide imax!!! '
-      !    write(6,*)'nprocs and imax are: ',nprocs,imax
-      !  end if
-      !  call MPI_FINALIZE(mpierr)
-      !  stop
-      !end if
+      if (ipoiss==POISS_FFT) then
+        if(mod(imax,nprocs)/=0)then
+          if(myid==0)then
+            write(6,*)'STOP ERROR IN NUMBER OF PROCESSORS'
+            write(6,*)'nprocs must divide imax!!! '
+            write(6,*)'nprocs and imax are: ',nprocs,imax
+          end if
+          call MPI_FINALIZE(mpierr)
+          stop
+        end if
+      end if
 
       if (mod(kmax, nprocs) /= 0) then
          if (myid == 0) then
@@ -471,7 +480,6 @@ contains
       end if
 
       !Check Namoptions
-
       if (runtime < 0) stop 'runtime out of range/not set'
       if (dtmax < 0) stop 'dtmax out of range/not set '
       if (ps < 0) stop 'psout of range/not set'
@@ -488,7 +496,7 @@ contains
          BCbotm = 3
       end if
 
-!choosing inoutflow in x requires switches to be set
+      !choosing inoutflow in x requires switches to be set
       if (BCxm .eq. 2) then
          write (*, *) "inoutflow conditions, setting appropriate switches (1)"
          iinletgen = 1
@@ -508,8 +516,8 @@ contains
          write (*, *) "inoutflow conditions, setting appropriate switches (2)"
 
          iinletgen = 2
-!see modstartup for conditions that apply with inletgenerators
-!move to modstartup
+         !see modstartup for conditions that apply with inletgenerators
+         !move to modstartup
          BCxT = 2 !temperature is considered in inletgen & iolet
          BCxq = 2 !humidity is considered in iolet
          BCxs = 2 !scalars are considered in iolet
@@ -526,8 +534,8 @@ contains
          write (*, *) "inoutflow conditions, setting appropriate switches (0)"
 
          iinletgen = 0
-!see modstartup for conditions that apply with inletgenerators
-!move to modstartup
+         !see modstartup for conditions that apply with inletgenerators
+         !move to modstartup
          BCxT = 2 !temperature is considered in inletgen & iolet
          BCxq = 2 !humidity is considered in iolet
          BCxs = 2 !scalars are considered in iolet
@@ -540,6 +548,20 @@ contains
          call MPI_BCAST(BCtopm, 1, MPI_INTEGER, 0, comm3d, mpierr)
          call MPI_BCAST(linoutflow, 1, MPI_LOGICAL, 0, comm3d, mpierr)
 
+      end if
+
+      ! check the Poisson solver setting w.r.t. x-grid
+      d(1:imax-1) = dxf(ib+1:ie) - dxf(ib:ie-1)
+      inequi = any(abs(d)>dxf(ib)*1e-5)
+
+      if ((.not. inequi) .and. (ipoiss == POISS_CYC) .and. (.not. linoutflow)) then
+         write(*, *) "WARNING: consider using FFT poisson solver for better performance!"
+      end if
+
+      if ((ipoiss == POISS_FFT) .and. (inequi)) then
+         write(*, *) "ERROR: POISS_FFT requires equidistant grid. Aborting..."
+         call MPI_FINALIZE(mpierr)
+         stop
       end if
 
    end subroutine checkinitvalues
