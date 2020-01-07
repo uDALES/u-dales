@@ -45,7 +45,7 @@ elseif(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
     set(CMAKE_Fortran_FLAGS_RELEASE "-O3")
 elseif(CMAKE_Fortran_COMPILER_ID MATCHES "Cray")
     # https://pubs.cray.com/content/S-3901/8.5/cray-fortran-reference-manual-85
-    set(CMAKE_Fortran_FLAGS "-G0 -s real64 -N 1023 -K trap=divz,inv,ovf,unf")
+    set(CMAKE_Fortran_FLAGS "-G0 -s real64 -N 1023 -K trap=divz,inv,ovf")
     set(CMAKE_Fortran_FLAGS_DEBUG "-O0 -ei -R bcdps -m 0")
     set(CMAKE_Fortran_FLAGS_RELEASE "-O3")
 else()
