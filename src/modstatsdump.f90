@@ -842,7 +842,6 @@ contains
           varsxy(:,13) = uwxyik(kb:ke)
           varsxy(:,14) = wthlxyk(kb:ke)
           varsxy(:,15) = vwxyjk(kb:ke)
-
           call writestat_1D_nc(ncidxy,nstatxy,ncstatxy,varsxy,nrecxy,khigh-klow+1)
       end if !myid
     end if !lxydump

@@ -17,15 +17,15 @@
 module modstartup
 
    implicit none
-! private
-! public :: startup,trestart
+   ! private
+   ! public :: startup,trestart
    save
 
    integer(KIND=selected_int_kind(6)) :: irandom = 0 !    * number to seed the randomnizer with
    integer :: krand = huge(0)
    real :: randu = 0.0, randthl = 0.0, randqt = 0.0 !    * uvw,thl and qt amplitude of randomnization
 
-contains
+   contains
    subroutine startup
 
       !-----------------------------------------------------------------|
@@ -42,16 +42,18 @@ contains
          nsv, imax, jtot, kmax, xsize, ysize, xlat, xlon, xday, xtime, lwalldist, &
          lmoist, lcoriol, igrw_damp, geodamptime, ifnamopt, fname_options, &
          xS,yS,zS,SS,sigS,iwallmom,iwalltemp,iwallmoist,ipoiss,iadv_mom,iadv_tke,iadv_thl,iadv_qt,iadv_sv,courant,diffnr,ladaptive,author,&
-         linoutflow, lper2inout, libm, ltrees, lnudge, tnudge, nnudge, lpurif, lles, luflowr, lvflowr, uflowrate, vflowrate ,lstoreplane, iplane, &
+         linoutflow, lper2inout, libm, ltrees, lnudge, tnudge, nnudge, lpurif, lles, luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, &
+         uflowrate, vflowrate ,lstoreplane, iplane, &
          lreadmean, iinletgen, inletav, lreadminl, Uinf, Vinf, linletRA, nblocks, ntrees, npurif, &
          lscalrec,lSIRANEinout,lscasrc,lscasrcl,lscasrcr,lydump,lytdump,lxydump,lxytdump,lslicedump,ltdump,ltkedump,lzerogradtop,&
          lzerogradtopscal, lbuoyancy, ltempeq, numol, prandtlmol, sun, Bowen, cd, decay, ud, Qpu, epu, numoli, prandtlmoli, &
          lfixinlet, lfixutauin, startmean, pi, &
          thlsrc, nkplane, kplane, nsvl, nsvp, ifixuinf, lvinf, tscale, ltempinout, lmoistinout,  &
          lwallfunc,lprofforc,lchem,k1,JNO2,rv,rd,tnextEB,tEB,dtEB,bldT,wsoil,wgrmax,wwilt,wfc,skyLW,GRLAI,rsmin,nfcts,lEB,lconstW, &
-         BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys,BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots
+         BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys, &
+         BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots
       use modsurfdata, only:z0, z0h,  wtsurf, wttop, wqtop, wqsurf, wsvsurf, wsvtop, wsvsurfdum, wsvtopdum, ps, thvs, thls, thl_top, qt_top, qts 
-!            use modsurface,        only : initsurface
+      ! use modsurface,        only : initsurface
       use modfields, only:initfields, dpdx, ncname
       use modpois, only:initpois
       use modboundary, only:initboundary, ksp
@@ -61,6 +63,7 @@ contains
       use modinlet, only:initinlet
       use modinletdata, only:di, dr, di_test, dti, iangledeg, iangle
       use modibmdata, only:bctfxm, bctfxp, bctfym, bctfyp, bctfz
+      use modforces, only: calcfluidvolumes
 
       implicit none
       integer :: ierr
@@ -70,7 +73,7 @@ contains
       namelist/RUN/ &
          iexpnr, lwarmstart, lstratstart, lfielddump, lreadscal, startfile, runtime, dtmax,  &
          trestart, tfielddump, fieldvars, tsample, tstatsdump, irandom, randthl, randqt, krand, nsv, courant, diffnr, ladaptive, &
-         author, lper2inout, libm, ltrees, lnudge, tnudge, nnudge, lpurif, lles, lwallfunc, luflowr, lvflowr, lreadmean, &
+         author, lper2inout, libm, ltrees, lnudge, tnudge, nnudge, lpurif, lles, lwallfunc, luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, lreadmean, &
                 startmean,lydump,lytdump,lxydump,lxytdump,lslicedump,ltdump,ltkedump,lscasrc,lscasrcl,lwalldist,&
                 randu, nkplane, kplane, nsvl, nsvp, ifixuinf, lvinf, tscale, dpdx
       namelist/DOMAIN/ &
@@ -238,8 +241,10 @@ contains
       call MPI_BCAST(iwallmoist, 1, MPI_INTEGER, 0, comm3d, mpierr) ! case (integer) for wall treatment for moisture (1=no wall function/fixed flux, 2=no wall function/fixed value, 3=uno)
       call MPI_BCAST(iwallmom, 1, MPI_INTEGER, 0, comm3d, mpierr) ! case (integer) for wall treatment for momentum (1=no wall function, 2=werner-wengle, 3=uno)
       write (*, *) "sec d"
-      call MPI_BCAST(luflowr, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for turning on/off u-velocity correction for fixed mass flow rate
-      call MPI_BCAST(lvflowr, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315: added switch for turning on/off v-velocity correction for fixed mass flow rate
+      call MPI_BCAST(luoutflowr, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for turning on/off u-velocity correction for fixed mass outflow rate
+      call MPI_BCAST(lvoutflowr, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315: added switch for turning on/off v-velocity correction for fixed mass outflow rate
+      call MPI_BCAST(luvolflowr, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! bss166: added switch for turning on/off u-velocity correction for fixed volume flow rate
+      call MPI_BCAST(lvvolflowr, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! bss116: added switch for turning on/off v-velocity correction for fixed volume flow rate
       call MPI_BCAST(lstoreplane, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for turning on/off for storing i-plane data to serve as inlet for future sim.
       call MPI_BCAST(lreadmean, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for reading mean variables from means#MYID#.#EXPNR#
       call MPI_BCAST(lydump, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315 added switch for writing statistics files
@@ -395,8 +400,8 @@ contains
       write (*, *) "done initboundayi"
       call initthermodynamics
       write (*, *) "done initthermodynamics"
-!!depreated!!
-!            call initsurface
+      !!depreated!!
+      ! call initsurface
       write (*, *) "done initsurface"
       call initsubgrid
       write (*, *) "done initsubgrid"
@@ -409,6 +414,8 @@ contains
       write (6, *) 'Determine masking matrices'
       call createmasks ! determine walls/blocks
       write (6, *) 'Finished determining masking matrices'
+      ! calculate fluid volume and outlet areas, needs masking matrices
+      call calcfluidvolumes
 
       call readinitfiles
       write (*, *) "done readinitfiles"
@@ -496,7 +503,7 @@ contains
          BCbotm = 3
       end if
 
-      !choosing inoutflow in x requires switches to be set
+      ! choosing inoutflow in x requires switches to be set
       if (BCxm .eq. 2) then
          write (*, *) "inoutflow conditions, setting appropriate switches (1)"
          iinletgen = 1
@@ -516,8 +523,8 @@ contains
          write (*, *) "inoutflow conditions, setting appropriate switches (2)"
 
          iinletgen = 2
-         !see modstartup for conditions that apply with inletgenerators
-         !move to modstartup
+         ! see modstartup for conditions that apply with inletgenerators
+         ! move to modstartup
          BCxT = 2 !temperature is considered in inletgen & iolet
          BCxq = 2 !humidity is considered in iolet
          BCxs = 2 !scalars are considered in iolet
@@ -534,8 +541,8 @@ contains
          write (*, *) "inoutflow conditions, setting appropriate switches (0)"
 
          iinletgen = 0
-         !see modstartup for conditions that apply with inletgenerators
-         !move to modstartup
+         ! see modstartup for conditions that apply with inletgenerators
+         ! move to modstartup
          BCxT = 2 !temperature is considered in inletgen & iolet
          BCxq = 2 !humidity is considered in iolet
          BCxs = 2 !scalars are considered in iolet
@@ -578,12 +585,12 @@ contains
          zf, zh, dzf, dzh, rv, rd, grav, cp, rlv, pref0, om23_gs, jgb, jge, Uinf, Vinf, dy, &
          rslabs, e12min, dzh, dtheta, dqt, dsv, cexpnr, ifinput, lwarmstart, lstratstart, trestart, numol, &
          ladaptive, tnextrestart, jmax, linoutflow, lper2inout, iinletgen, lreadminl, &
-         uflowrate, vflowrate, ltempeq, prandtlmoli, freestreamav, &
+         uflowrate, vflowrate,ltempeq, prandtlmoli, freestreamav, &
          tnextfielddump, tfielddump, tsample, tstatsdump, startfile, lprofforc, lchem, k1, JNO2
       use modsubgriddata, only:ekm, ekh
       use modsurfdata, only:wtsurf, wqsurf, wsvsurf, &
          thls, thvs, ps, qts, svs
-!            use modsurface,        only : surface,dthldz
+      ! use modsurface,        only : surface,dthldz
       use modboundary, only:boundary, tqaver
       use modmpi, only:slabsum, myid, comm3d, mpierr, my_real, avexy_ibm
       use modthermodynamics, only:thermodynamics, calc_halflev
@@ -598,7 +605,7 @@ contains
       real, allocatable :: height(:), th0av(:)
       real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb:ke + kh) :: thv0
       real, dimension(kb:ke) :: uaverage ! volume averaged u-velocity
-      real, dimension(kb:ke) :: vaverage ! volume averaged u-velocity
+      real, dimension(kb:ke) :: vaverage ! volume averaged v-velocity
       real, dimension(kb:ke) :: uaverager ! recycle plane
       real, dimension(kb:ke) :: uaveragei ! inlet plane
       real, dimension(kb:ke) :: taverager ! recycle plane
@@ -699,14 +706,14 @@ contains
          end do
 
          thvh = 0.
-!              call slabsum(thvh,kb,ke,thv0h,ib-ih,ie+ih,jb-jh,je+jh,kb-kh,ke+kh,ib,ie,jb,je,kb,ke) !redefine halflevel thv using calculated thv
-               call avexy_ibm(thvh(kb:ke+kh),thv0h(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
-!              thvh = thvh/rslabs
+         ! call slabsum(thvh,kb,ke,thv0h,ib-ih,ie+ih,jb-jh,je+jh,kb-kh,ke+kh,ib,ie,jb,je,kb,ke) ! redefine halflevel thv using calculated thv
+         call avexy_ibm(thvh(kb:ke+kh),thv0h(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+         ! thvh = thvh/rslabs
 
          thvf = 0.0
-              call avexy_ibm(thvf(kb:ke+kh),thv0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
-!              call slabsum(thvf,kb,ke,thv0,ib-ih,ie+ih,jb-jh,je+jh,kb-kh,ke+kh,ib,ie,jb,je,kb,ke)
-!              thvf = thvf/rslabs
+         call avexy_ibm(thvf(kb:ke+kh),thv0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+         ! call slabsum(thvf,kb,ke,thv0,ib-ih,ie+ih,jb-jh,je+jh,kb-kh,ke+kh,ib,ie,jb,je,kb,ke)
+         ! thvf = thvf/rslabs
 
       else !if not lstratstart
 
@@ -799,8 +806,8 @@ contains
 
             ekh(:, :, ke + 1) = ekh(:, :, ke) ! also for start up
 
-!ILS13 30.11.17, added, not sure if necessary
-!ILS13 30.11.1, commented
+            ! ILS13 30.11.17, added, not sure if necessary
+            ! ILS13 30.11.1, commented
             do j = jb - jh, je + jh
                do i = ib - ih, ie + ih
                   thl0(i, j, ke + 1) = thl0(i, j, ke)
@@ -855,23 +862,18 @@ contains
             w0 = wm
 
             uaverage = 0.
-            call slabsum(uaverage, kb, ke, um, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1, ib, ie, jb, je, kb, ke)
+            ! call slabsum(uaverage, kb, ke, um, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1, ib, ie, jb, je, kb, ke)
             do k = kb, ke
                uaverage(k) = uprof(k)*dzf(k)
             end do
-            ubulk = sum(uaverage(kb:ke))/(zh(ke + 1) - zh(kb)) ! volume-averaged u-velocity
-            uflowrate = ubulk*(jge - jgb + 1)*dy*(zh(ke + 1) - zh(kb)) !tg3315 changed to vol flow rate 08/11/2017
-            
+            ubulk = sum(uaverage(kb:ke))/(zh(ke + 1) - zh(kb)) ! averaged u-velocity inflow profile
+
             vaverage = 0.
-            call slabsum(vaverage, kb, ke, vm, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1, ib, ie, jb, je, kb, ke)
+            ! call slabsum(vaverage, kb, ke, vm, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1, ib, ie, jb, je, kb, ke)
             do k = kb, ke
                vaverage(k) = vprof(k)*dzf(k)
             end do
-            vbulk = sum(vaverage(kb:ke))/(zh(ke + 1) - zh(kb)) ! volume-averaged u-velocity
-            vflowrate = vbulk*(jge - jgb + 1)*dy*(zh(ke + 1) - zh(kb)) !tg3315 changed to vol flow rate 08/11/2017            
-
-            write (6, *) 'Modstartup: uflowrate=', uflowrate
-            write (6, *) 'Modstartup: vflowrate=', vflowrate
+            vbulk = sum(vaverage(kb:ke))/(zh(ke + 1) - zh(kb)) ! averaged u-velocity inflow profile
 
             ! Set average inlet profile to initial inlet profile in case of inletgenerator mode
             if (iinletgen == 1) then
@@ -1102,14 +1104,14 @@ contains
             end do
 
             thvh = 0.
-!              call slabsum(thvh,kb,ke,thv0h,ib-ih,ie+ih,jb-jh,je+jh,kb-kh,ke+kh,ib,ie,jb,je,kb,ke) !redefine halflevel thv using calculated thv
-              call avexy_ibm(thvh(kb:ke+kh),thv0h(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
-!              thvh = thvh/rslabs
+            ! call slabsum(thvh,kb,ke,thv0h,ib-ih,ie+ih,jb-jh,je+jh,kb-kh,ke+kh,ib,ie,jb,je,kb,ke) ! redefine halflevel thv using calculated thv
+            call avexy_ibm(thvh(kb:ke+kh),thv0h(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+            ! thvh = thvh/rslabs
 
             thvf = 0.0
-              call avexy_ibm(thvf(kb:ke+kh),thv0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
-!              call slabsum(thvf,kb,ke,thv0,ib-ih,ie+ih,jb-jh,je+jh,kb-kh,ke+kh,ib,ie,jb,je,kb,ke)
-!              thvf = thvf/rslabs
+            call avexy_ibm(thvf(kb:ke+kh),thv0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+            ! call slabsum(thvf,kb,ke,thv0,ib-ih,ie+ih,jb-jh,je+jh,kb-kh,ke+kh,ib,ie,jb,je,kb,ke)
+            ! thvf = thvf/rslabs
 
             ! Set average inlet profile to initial inlet profile in case of inletgenerator mode
             uaverage = 0.
@@ -1129,7 +1131,7 @@ contains
                waverage = waverage/((ie - ib + 1)*(jge - jgb + 1)) ! this gives the i-j-averaged w-velocity (only correct for equidistant grid?)
                if (ltempeq) then
                   call slabsum(taveragei, kb, ke, thl0, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1, ib, ie, jb, je, kb, ke)
-         call slabsum(taverager, kb, ke, thl0, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1, irecy - 1, irecy - 1, jb, je, kb, ke)
+                  call slabsum(taverager, kb, ke, thl0, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1, irecy - 1, irecy - 1, jb, je, kb, ke)
                   taveragei = taveragei/((ie - ib + 1)*(jge - jgb + 1)) ! this gives the j-averaged temperature at the inlet
                   taverager = taverager/(jge - jgb + 1) ! this gives the j-averaged temperature at the recycle plane
                end if
@@ -1311,16 +1313,16 @@ contains
             th0av = 0.0
             sv0av = 0.
 
-!              call slabsum(u0av  ,kb,ke+kh,u0(:,:,kb:ke+kh)  ,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
-              call avexy_ibm(u0av(kb:ke+kh),u0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
-!              call slabsum(v0av  ,kb,ke+kh,v0(:,:,kb:ke+kh)  ,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
-              call avexy_ibm(v0av(kb:ke+kh),v0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
-!              call slabsum(thl0av,kb,ke+kh,thl0(:,:,kb:ke+kh),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
-              call avexy_ibm(thl0av(kb:ke+kh),thl0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
-!              call slabsum(qt0av,kb,ke+kh,qt0(:,:,kb:ke+kh),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
-              call avexy_ibm(qt0av(kb:ke+kh),qt0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+            ! call slabsum(u0av  ,kb,ke+kh,u0(:,:,kb:ke+kh)  ,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
+            call avexy_ibm(u0av(kb:ke+kh),u0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
+            ! call slabsum(v0av  ,kb,ke+kh,v0(:,:,kb:ke+kh)  ,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
+            call avexy_ibm(v0av(kb:ke+kh),v0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
+            ! call slabsum(thl0av,kb,ke+kh,thl0(:,:,kb:ke+kh),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
+            call avexy_ibm(thl0av(kb:ke+kh),thl0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+            ! call slabsum(qt0av,kb,ke+kh,qt0(:,:,kb:ke+kh),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
+            call avexy_ibm(qt0av(kb:ke+kh),qt0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
             do n = 1, nsv
-!                call slabsum(sv0av(kb,n),kb,ke+kh,sv0(ib-ih,jb-jh,kb,n),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
+               ! call slabsum(sv0av(kb,n),kb,ke+kh,sv0(ib-ih,jb-jh,kb,n),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
               call avexy_ibm(sv0av(kb:ke+khc,n),sv0(ib:ie,jb:je,kb:ke+khc,n),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+khc),IIcs(kb:ke+khc),.false.)
             end do
 
@@ -1503,7 +1505,7 @@ contains
          svprof = 0.
       end if
 
-! read mean variables if asked for by lreadmean
+      ! read mean variables if asked for by lreadmean
       name2 = 'means   .'
       name2(6:8) = cmyid
       name2(10:12) = cexpnr
@@ -1537,7 +1539,7 @@ contains
          close (ifinput)
          write (6, *) 'Total averaging time so far: ', totavtime
 
-!     read <x'y'>_SGS to file.
+         ! read <x'y'>_SGS to file.
          name2 = 'SGS__   .'
          name2(6:8) = cmyid
          name2(10:12) = cexpnr
@@ -1560,7 +1562,7 @@ contains
 
       end if
 
-! read mean profiles for inlet generator
+      ! read mean profiles for inlet generator
       if (lreadminl) then
          if (.not. lzinzsim) then
             name4 = 'meaninlet.   '
@@ -1644,7 +1646,7 @@ contains
       call exitmpi
 
    end subroutine exitmodules
-!----------------------------------------------------------------
+
    subroutine randomnize(field, klev, ampl, ir, ihl, jhl)
 
       use modmpi, only:myid, nprocs
@@ -1690,7 +1692,7 @@ contains
          um, u0, vm, v0, wm, w0
       use modmpi, only:myid, comm3d, mpierr, MPI_INTEGER, MPI_DOUBLE_PRECISION, MY_REAL, nprocs, &
          cmyid, MPI_REAL8, MPI_REAL4, MPI_SUM, excjs
-!      use initfac, only:block
+      ! use initfac, only:block
       integer k, n, il, iu, jl, ju, kl, ku
       integer :: IIcl(kb:ke + khc), IIul(kb:ke + khc), IIvl(kb:ke + khc), IIwl(kb:ke + khc), IIuwl(kb:ke + khc), IIvwl(kb:ke + khc), IIuvl(kb:ke + khc)
       integer :: IIcd(ib:ie, kb:ke)
@@ -1763,7 +1765,7 @@ contains
 
       call MPI_BCAST(block, 11*nblocks, MPI_INTEGER, 0, comm3d, mpierr)
 
-! Create masking matrices
+      ! Create masking matrices
       IIc = 1; IIu = 1; IIv = 1; IIct = 1; IIw = 1; IIuw = 1; IIvw = 1; IIuv = 1; IIwt = 1; IIut = 1; IIvt = 1; IIuwt = 1; IIcs = 1; IIus = 1; IIvs = 1; IIws = 1; IIuws = 1; IIvws = 1; IIuvs = 1
 
       do n = 1, nblocks
@@ -1811,15 +1813,15 @@ contains
             end if
 
             ! ensure that ghost cells know where blocks are !tg3315 this is not necessary
-!          if (jl<jb+jh)  IIc(il:iu,je+jh,kl:ku) = 0
-!          if (jl<jb+jhc) IIc(il:iu,je+jhc,kl:ku) = 0
-!          if (ju>je-jh)  IIc(il:iu,jb-jh,kl:ku) = 0
-!          if (ju>je-jhc) IIc(il:iu,jb-jhc,kl:ku) = 0
+            ! if (jl<jb+jh)  IIc(il:iu,je+jh,kl:ku) = 0
+            ! if (jl<jb+jhc) IIc(il:iu,je+jhc,kl:ku) = 0
+            ! if (ju>je-jh)  IIc(il:iu,jb-jh,kl:ku) = 0
+            ! if (ju>je-jhc) IIc(il:iu,jb-jhc,kl:ku) = 0
 
-!          if (il<ib+ih)  IIc(ie+ih,jl:ju,kl:ku) = 0
-!          if (il<ib+ihc) IIc(ie+ihc,jl:ju,kl:ku) = 0
-!          if (iu>ie-ih)  IIc(ib-ih,jl:ju,kl:ku) = 0
-!          if (iu>ie-ihc) IIc(ib-ihc,jl:ju,kl:ku) = 0
+            ! if (il<ib+ih)  IIc(ie+ih,jl:ju,kl:ku) = 0
+            ! if (il<ib+ihc) IIc(ie+ihc,jl:ju,kl:ku) = 0
+            ! if (iu>ie-ih)  IIc(ib-ih,jl:ju,kl:ku) = 0
+            ! if (iu>ie-ihc) IIc(ib-ihc,jl:ju,kl:ku) = 0
 
          end if
       end do
@@ -1866,7 +1868,7 @@ contains
 
       call MPI_ALLREDUCE(IIwd(ib:ie, kb:ke), IIwt(ib:ie, kb:ke), (ke - kb + 1)*(ie - ib + 1), MPI_INTEGER, MPI_SUM, comm3d, mpierr)
       call MPI_ALLREDUCE(IIcd(ib:ie, kb:ke), IIct(ib:ie, kb:ke), (ke - kb + 1)*(ie - ib + 1), MPI_INTEGER, MPI_SUM, comm3d, mpierr)
-     call MPI_ALLREDUCE(IIuwd(ib:ie, kb:ke), IIuwt(ib:ie, kb:ke), (ke - kb + 1)*(ie - ib + 1), MPI_INTEGER, MPI_SUM, comm3d, mpierr)
+      call MPI_ALLREDUCE(IIuwd(ib:ie, kb:ke), IIuwt(ib:ie, kb:ke), (ke - kb + 1)*(ie - ib + 1), MPI_INTEGER, MPI_SUM, comm3d, mpierr)
       call MPI_ALLREDUCE(IIud(ib:ie, kb:ke), IIut(ib:ie, kb:ke), (ke - kb + 1)*(ie - ib + 1), MPI_INTEGER, MPI_SUM, comm3d, mpierr)
       call MPI_ALLREDUCE(IIvd(ib:ie, kb:ke), IIvt(ib:ie, kb:ke), (ke - kb + 1)*(ie - ib + 1), MPI_INTEGER, MPI_SUM, comm3d, mpierr)
 
@@ -1897,13 +1899,13 @@ contains
       !endwhere
 
       ! use masking matrices to set 0 in blocks from start? tg3315 13/12/17
-!    um(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh) = IIu(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)*um(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
-!    vm(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh) = IIv(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)*vm(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
-!    wm(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh) = IIw(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)*wm(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
+      ! um(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh) = IIu(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)*um(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
+      ! vm(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh) = IIv(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)*vm(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
+      ! wm(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh) = IIw(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)*wm(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
 
-!    u0 = um
-!    v0 = vm
-!    w0 = wm
+      ! u0 = um
+      ! v0 = vm
+      ! w0 = wm
 
    end subroutine createmasks
 
