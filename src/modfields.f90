@@ -339,6 +339,10 @@ module modfields
   real              :: dgdt                         ! g = dp/dx -> dgdt is used to solve 1-order ODE for dpdx 
   real              :: dpdx = 0.                   ! dpdx given in namoptions
 
+  real              :: uoutarea                     !< area of domain u-outlet
+  real              :: voutarea                     !< area of domain v-outlet
+  real              :: fluidvol                     !< fluid volume (excluding blocks)
+
   real, allocatable :: Rn(:)          
   real, allocatable :: qc(:)         
   real, allocatable :: lad(:)                       ! leaf areas density m^-1
@@ -735,6 +739,8 @@ contains
     t_vav=0.;tvmx=0.;tvmy=0.;tvmz=0.;tpm=0.;ttmx=0.;ttmy=0.;ttmz=0.;t_sgsav=0.;p_tav=0.
     tsgsmx1=0.;tsgsmy1=0.;tsgsmz1=0.;tsgsmx2=0.;tsgsmy2=0.;tsgsmz2=0.
     t_pav=0.;t_tav=0.;p_bav=0.;d_sgsav=0.;tkeadv=0.;t_p=0.;t_v=0.;t_t=0.;t_sgs=0.;p_t=0.;p_b=0.;d_sgs=0.;adv=0.
+    ! domain fluid volume and area calculations
+    uoutarea=0.;voutarea=0.;fluidvol=0.
   end subroutine initfields
 
   !> Deallocate the fields

@@ -30,7 +30,7 @@ contains
       ! Sponge layer
       if (ksp == -1) then
          !      ksp  = min(3*kmax/4,kmax - 15)
-         ksp = (kb - 1) + min(3*kmax/4, kmax - 15)
+         ksp = (kb - 1) + max(min(3*kmax/4, kmax - 15),1)
       end if
 
       zspb = zf(ksp)
@@ -201,7 +201,7 @@ contains
          call inlettop
          call iolet  !ils13, 13.8.18: iolet also deals with lateral boundaries!!
       else
-         write (*, *) "WARNING: ABORT, lateral boundary type for scalars in y-direction undefined"
+         write (*, *) "WARNING: ABORT, top boundary type for velocity undefined"
          stop
       end if
 
@@ -213,7 +213,7 @@ contains
          call valuetop(thlm, thl_top)
          call valuetop(thl0, thl_top)
       else
-         write (*, *) "WARNING: ABORT, lateral boundary type for scalars in y-direction undefined"
+         write (*, *) "WARNING: ABORT, top boundary type for temperature undefined"
          stop
       end if
 
@@ -221,11 +221,11 @@ contains
       if (BCtopq .eq. 1) then
          call fluxtop(qtm, ekh, wqtop)
          call fluxtop(qt0, ekh, wqtop)
-      else if (BCtopq .eq. 3) then
+      else if (BCtopq .eq. 2) then
          call valuetop(qtm, qt_top)
          call valuetop(qt0, qt_top)
       else
-         write (*, *) "WARNING: ABORT, lateral boundary type for scalars in y-direction undefined"
+         write (*, *) "WARNING: ABORT, top boundary type for humidity undefined"
          stop
       end if
 
@@ -237,7 +237,7 @@ contains
          call valuetopscal(sv_top)
          call valuetopscal(sv_top)
       else
-         write (*, *) "WARNING: ABORT, lateral boundary type for scalars in y-direction undefined"
+         write (*, *) "WARNING: ABORT, top boundary type for scalars undefined"
          stop
       end if
 

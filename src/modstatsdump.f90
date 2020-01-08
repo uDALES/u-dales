@@ -842,7 +842,6 @@ contains
           varsxy(:,13) = uwxyik(kb:ke)
           varsxy(:,14) = wthlxyk(kb:ke)
           varsxy(:,15) = vwxyjk(kb:ke)
-
           call writestat_1D_nc(ncidxy,nstatxy,ncstatxy,varsxy,nrecxy,khigh-klow+1)
       end if !myid
     end if !lxydump
@@ -1020,8 +1019,8 @@ contains
         varslice(:,:,7) = slice7   
         varslice(:,:,8) = slice8
 
-!        write(*,*), myid
-!        write(*,*), 'ncidslice,1,tncstatslice,(/timee/),nrecslice,.true.', ncidslice,1,tncstatslice,(/timee/),nrecslice
+!        write(*,*) myid
+!        write(*,*) 'ncidslice,1,tncstatslice,(/timee/),nrecslice,.true.', ncidslice,1,tncstatslice,(/timee/),nrecslice
 
         call writestat_nc(ncidslice,nstatslice,ncstatslice,varslice,nrecslice,imax,jmax)
 
