@@ -63,8 +63,8 @@ da_pp.write_blocks(r)
 disp(['Written blocks.inp.', r.expnr])
 da_pp.write_facets(r)
 disp(['Written facets.inp.', r.expnr])
-da_pp.plot_blocks(r)
-da_pp.plot_facets(r)
+%da_pp.plot_blocks(r)
+%da_pp.plot_facets(r)
 
 
 if r.ltrees
@@ -90,11 +90,9 @@ if r.lEB
     da_pp.rayit(r)
     da_pp.write_netsw(r)
     disp(['Written netsw.inp.', r.expnr])
-    da_pp.generate_Tfacinit(r)
-else
-    da_pp.addvar(r, 'Tfacinit', ones(r.nfcts,1) * 288);
 end
 
+da_pp.generate_Tfacinit(r)
 da_pp.write_Tfacinit(r)
 disp(['Written Tfacinit.inp.', r.expnr])
 

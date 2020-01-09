@@ -294,8 +294,7 @@ classdef da_pp < dynamicprops
             end
             
             da_pp.addvar(obj, 'blocks', []);
-            da_pp.addvar(obj, 'facets', []);
-            
+            da_pp.addvar(obj, 'facets', []);           
         end
         
         function plot_profiles(obj)
@@ -574,7 +573,7 @@ classdef da_pp < dynamicprops
             %aspectratio = r.zh(r.blockheight+1)/(r.xh(r.canyonwidth+1)-r.xh(1));
             %aspectratio = obj.zh(obj.blockheight + 1) / (obj.xh(obj.canyonwidth + 1) - obj.xh(1));
             %nrows = ie/(r.blockwidth+r.canyonwidth);
-            da_pp.addvar(obj, 'nrows', obj.imax / (obj.blockwidth + obj.canyonwidth));
+            da_pp.addvar(obj, 'nrows', zeros(obj.imax / (obj.blockwidth + obj.canyonwidth)));
             
             if obj.lflat
     
@@ -6047,7 +6046,7 @@ classdef da_pp < dynamicprops
         end
         
         
-        function generate_Tfacinit(obj)
+        function generate_Tfacinit(obj, iss)
             %% Inital Temperature and longwave
             %solve energy budget equation in an initial steady state
             %assume 0 wall heatflux
@@ -6058,83 +6057,88 @@ classdef da_pp < dynamicprops
             %assume absorbtivity is equal to emissivity
             %=>
             %K+L=H
-            Tair = 300;  %K, air temperature
-            Tinitial = 300; %K, initial facet temperature
-            
-            % Tinc=1*ones(nfcts,1); %incremental temperature change of facets if not in equilibrium
-            % tolerance=2.5;  %W/m2, if below this threshold, change will be made to facet temperature
-            
-            Tinc = 2 * ones(obj.nfcts, 1); %incremental temperature change of facets if not in equilibrium
-            tolerance = 2.5 * Tinc(1);  %W/m2, if below this threshold, change will be made to facet temperature
-            %the two are somewhat related, an increase of 1K will result in a longwave
-            %change of approximately 5W/m2, e.g.:
-            %if we are 4.56K off we correct approximately  (1-5/22.8)*2 = 1.5616
-            %now we are 3K off and correct approximately for (1-5/15)*2 = 1.3333
-            %now we are 1.6666 off and we correct for 0.8 (had we corrected for 2 at
-            %this step, we would have overshot and the solution would oscilate)
-            %now we are satisfied at 0.866 off which is less than 1degree
-            %if for any
-            
-            
-            Tterminate = 0; %Terminate if the absolute temperature change between iterations is equal or below this value
-            %somewhat redundant since this basically means all the facets are within the tolerance         
-            absorptivity = obj.emissivity;       
-            sigma = 5.67e-8;
-            Lsk = 350;
-            hc = 0;  %(rho*cp)/R    ~(1.2*1000)/100=12   R~100
-            
-            Tinit = ones(obj.nfcts, 1) * Tinitial;
-            Lsky = Lsk .* obj.svf;
-            
-            %Loutinit=emissivity.*sigma.*Tinit.^4;
-            Told = Tinit;
-            Tnew = zeros(obj.nfcts, 100);
-            Lin = zeros(obj.nfcts, 1);
-            %b
-            k = 0;
-            while true  %what happens to the reflected longwave? i.e. (1-absorptivity)*Lin
-                %for k=1:10
-                %count=count+1;              
-                k = k + 1;
-                %maxchange=0;
-                change = 0;
-                Lin(:) = 0;               
-                for i = 1:obj.nfcts
-                    for j = 1:obj.nfcts %sum all the incoming radiation on i, originally reflected from all the other j facets ("radiation reflected on j" x "what perecentage does i take of j's vision")
-                        inc = Told(j)^4 * obj.emissivity(j) * sigma * obj.vfo(j, i) * obj.facetarea(j) / obj.facetarea(i);
-                        Lin(i) = Lin(i) + inc;
+            if iss
+                Tair = 300;  %K, air temperature
+                Tinitial = 300; %K, initial facet temperature
+                
+                % Tinc=1*ones(nfcts,1); %incremental temperature change of facets if not in equilibrium
+                % tolerance=2.5;  %W/m2, if below this threshold, change will be made to facet temperature
+                
+                Tinc = 2 * ones(obj.nfcts, 1); %incremental temperature change of facets if not in equilibrium
+                tolerance = 2.5 * Tinc(1);  %W/m2, if below this threshold, change will be made to facet temperature
+                %the two are somewhat related, an increase of 1K will result in a longwave
+                %change of approximately 5W/m2, e.g.:
+                %if we are 4.56K off we correct approximately  (1-5/22.8)*2 = 1.5616
+                %now we are 3K off and correct approximately for (1-5/15)*2 = 1.3333
+                %now we are 1.6666 off and we correct for 0.8 (had we corrected for 2 at
+                %this step, we would have overshot and the solution would oscilate)
+                %now we are satisfied at 0.866 off which is less than 1degree
+                %if for any
+                
+                
+                Tterminate = 0; %Terminate if the absolute temperature change between iterations is equal or below this value
+                %somewhat redundant since this basically means all the facets are within the tolerance
+                absorptivity = obj.emissivity;
+                sigma = 5.67e-8;
+                Lsk = 350;
+                hc = 0;  %(rho*cp)/R    ~(1.2*1000)/100=12   R~100
+                
+                Tinit = ones(obj.nfcts, 1) * Tinitial;
+                Lsky = Lsk .* obj.svf;
+                
+                %Loutinit=emissivity.*sigma.*Tinit.^4;
+                Told = Tinit;
+                Tnew = zeros(obj.nfcts, 100);
+                Lin = zeros(obj.nfcts, 1);
+                %b
+                k = 0;
+                while true  %what happens to the reflected longwave? i.e. (1-absorptivity)*Lin
+                    %for k=1:10
+                    %count=count+1;
+                    k = k + 1;
+                    %maxchange=0;
+                    change = 0;
+                    Lin(:) = 0;
+                    for i = 1:obj.nfcts
+                        for j = 1:obj.nfcts %sum all the incoming radiation on i, originally reflected from all the other j facets ("radiation reflected on j" x "what perecentage does i take of j's vision")
+                            inc = Told(j)^4 * obj.emissivity(j) * sigma * obj.vfo(j, i) * obj.facetarea(j) / obj.facetarea(i);
+                            Lin(i) = Lin(i) + inc;
+                        end
+                        
+                        %calculate energy balance
+                        eb = obj.Kin(i) + absorptivity(i) * (Lin(i) + Lsky(i)) - hc * (Told(i) - Tair) - obj.emissivity(i) * sigma * Told(i)^4;
+                        
+                        if eb < -tolerance %if energy balance is negative, facet is too hot
+                            
+                            Tnew(i,k) = Told(i) - Tinc(i) * (1 + tolerance / eb); %remove incremental temperature, scale by deviation from accepted tolerance in W/m2
+                            
+                        elseif eb > tolerance
+                            Tnew(i, k) = Told(i) + Tinc(i) * (1 - tolerance / eb);
+                        else %do nothing, within tolerance
+                            Tnew(i, k) = Told(i);
+                        end
+                        
+                        % maxchange=max(maxchange,abs(Tnew(i,k)-Told(i)));
+                        change = change + abs(Tnew(i, k) - Told(i));
+                        
                     end
                     
-                    %calculate energy balance
-                    eb = obj.Kin(i) + absorptivity(i) * (Lin(i) + Lsky(i)) - hc * (Told(i) - Tair) - obj.emissivity(i) * sigma * Told(i)^4;
+                    Told = Tnew(:,k);
+                    %plot(1:nfcts,Tnew(:,k),'-x')
                     
-                    if eb < -tolerance %if energy balance is negative, facet is too hot
-                        
-                        Tnew(i,k) = Told(i) - Tinc(i) * (1 + tolerance / eb); %remove incremental temperature, scale by deviation from accepted tolerance in W/m2
-                        
-                    elseif eb > tolerance
-                        Tnew(i, k) = Told(i) + Tinc(i) * (1 - tolerance / eb);
-                    else %do nothing, within tolerance
-                        Tnew(i, k) = Told(i);
+                    if change <= Tterminate %maxchange<=Tterminate
+                        break
+                    elseif k > 99
+                        break
                     end
-                    
-                    % maxchange=max(maxchange,abs(Tnew(i,k)-Told(i)));
-                    change = change + abs(Tnew(i, k) - Told(i));
-                    
                 end
-                
-                Told = Tnew(:,k);                
-                %plot(1:nfcts,Tnew(:,k),'-x')
-                
-                if change <= Tterminate %maxchange<=Tterminate
-                    break
-                elseif k > 99
-                    break
-                end
+            
+            
+                da_pp.addvar(obj, 'Tfacinit', Tnew(:, k));
+                        
+            else 
+                da_pp.addvar(obj, 'Tfacinit', 288 * ones(obj.nfcts, 1));
             end
-            
-            da_pp.addvar(obj, 'Tfacinit', Tnew(:, k));
-            
 %             if ltestplot
 %                 figure
 %                 hold on

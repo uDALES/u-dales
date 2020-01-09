@@ -13,9 +13,14 @@
 echo "exp no.?"
 read iexpnr
 
-DA_GITDIR=$(git rev-parse --show-toplevel)
-DA_EXPDIR=$DA_GITDIR/experiments
-DA_PREDIR=$DA_GITDIR/u-dales/tools/pre
+# Assuming running from top-level project directory.
+if [ -f config.sh ]; then
+    source config.sh
+fi
+
+#DA_GITDIR=$(git rev-parse --show-toplevel)
+#DA_EXPDIR=$DA_GITDIR/experiments
+#DA_PREDIR=$DA_GITDIR/u-dales/tools/pre
 export PATH=$DA_PREDIR:$PATH
 
 cd $DA_EXPDIR/$iexpnr
