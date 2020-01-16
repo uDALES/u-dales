@@ -26,7 +26,6 @@ lscasrcl   = .false.
 libm       = .true.
 ltrees     = .false.
 lpurif     = .false.
-ifixuinf   = 1
 /
 
 &DOMAIN
