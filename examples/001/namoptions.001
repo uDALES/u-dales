@@ -26,7 +26,6 @@ lscasrcl   = .false.
 libm       = .true.
 ltrees     = .false.
 lpurif     = .false.
-lmassflowr = .false.
 ifixuinf   = 1
 /
 
@@ -104,7 +103,6 @@ ps         =  101500.00
 lmoist     =  .false.
 lcoriol    =  .false.
 lprofforc  =  .false.
-massflowrate = 12544
 Qpu        =  5
 epu        =  0.85
 numol      =  1.5e-5
