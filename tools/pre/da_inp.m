@@ -1,8 +1,9 @@
 %% da_inp
-
-expnr = '009';
+% This script is run by the bash script da_inp. It used to generate the
+% necessary input files for uDALES.
+tic
+expnr = '100';
 ncpus = 2;
-LIDAR = 0;
 
 DA_EXPDIR = getenv('DA_EXPDIR');
 DA_PREDIR = getenv('DA_PREDIR');
@@ -35,37 +36,46 @@ da_pp.generate_scalar(r);
 da_pp.write_scalar(r);
 disp(['Written scalar.inp.', r.expnr])
 
-%addpath(genpath(DA_PREDIR));
-
-if ~LIDAR
-    da_pp.generate_bl_from_namoptions(r)
-    da_pp.generate_topo_from_bl(r)
+if ~r.llidar
+    if r.lflat % no blocks
+        disp('Flat domain')
+        da_pp.addvar(r, 'bl', [])
+    else
+        if (r.lcastro || r.lcube || r.lblocks)
+            disp('Generating blocks from namoptions')
+            da_pp.generate_bl_from_namoptions(r)
+        elseif r.lblocksfile
+            disp('Generating blocks from file')
+            da_pp.generate_bl_from_file(r) 
+        end
+        da_pp.generate_topo_from_bl(r)
+    end
 else
-    sourcename;
-    % resolution of image [m/pixel]
-    dxinp; dyinp; dzinp;
-    % center of area of interest in original image [pixel]
-    centeri; centerj;
-    % magimum height in image [m]
-    maxh;
-    %padding. A padding of 0 makes only sense for idealised cases. There should be no building at domain edge
-    pad;
-    %objects smaller than this will be deleted
-    smallarea;
-    
-    da_pp.generate_topo_from_LIDAR(r, sourcename, dxinp, dyinp, centeri, centerj, maxh, pad, smallarea)
+    da_pp.generate_topo_from_LIDAR(r)
 end
 
-da_pp.makeblocks(r)
-da_pp.generate_facets(r);
+if ~r.lflat
+    da_pp.makeblocks(r)
+    da_pp.block2fac(r)
+    da_pp.addvar(r, 'nboundingwallfacets', 0)
+    if r.lEB
+        da_pp.addboundingwalls(r)
+    end
+else
+    da_pp.addvar(r, 'blocks', []);
+    da_pp.addvar(r, 'buildings', []);
+    da_pp.addvar(r, 'facets', []);
+    da_pp.addvar(r, 'nblockfcts', 0);
+    da_pp.addvar(r, 'nboundingwallfacets', 0)
+    da_pp.addvar(r, 'boundingwallfacets', [])
+end
+
+da_pp.createfloors(r);
 
 da_pp.write_blocks(r)
 disp(['Written blocks.inp.', r.expnr])
 da_pp.write_facets(r)
 disp(['Written facets.inp.', r.expnr])
-%da_pp.plot_blocks(r)
-%da_pp.plot_facets(r)
-
 
 if r.ltrees
     da_pp.generate_trees(r, true);
@@ -79,8 +89,9 @@ end
 
 if r.lEB
     da_pp.vsolc(r)
-    da_pp.plot_shading(r)
+    disp('Done vsolc')
     da_pp.vfc(r)
+    disp('Done vfc')
     da_pp.write_svf(r)
     disp(['Written svf.inp.', r.expnr])
     da_pp.write_vf(r)
@@ -88,13 +99,12 @@ if r.lEB
     da_pp.write_facetarea(r)
     disp(['Written facetarea.inp.', r.expnr])
     da_pp.rayit(r)
+    disp('Done rayit')
     da_pp.write_netsw(r)
     disp(['Written netsw.inp.', r.expnr])
 end
 
-da_pp.generate_Tfacinit(r)
+da_pp.generate_Tfacinit(r, r.lEB)
 da_pp.write_Tfacinit(r)
 disp(['Written Tfacinit.inp.', r.expnr])
-
-disp('Check plots and press a key to continue...')
-pause
+toc
