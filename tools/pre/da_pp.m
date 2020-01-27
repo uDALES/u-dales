@@ -151,113 +151,10 @@ classdef da_pp < dynamicprops
         end
         
         function set_defaults(obj, ncpus)
-            % Domain
-            da_pp.addvar(obj, 'imax', 64)  % # cells in x-direction
-            da_pp.addvar(obj, 'xsize', 64) % Domain size in x-direction
-            da_pp.addvar(obj, 'jtot', 64)  % # cells in j-direction
-            da_pp.addvar(obj, 'ysize', 64) % Domain size in y-direction
-            da_pp.addvar(obj, 'kmax', 32)  % # cells in k-direction
-            da_pp.addvar(obj, 'zsize', 32) % Domain size in z-direction
-            da_pp.addvar(obj, 'imin', 1)
-            da_pp.addvar(obj, 'jmin', 1)
-            da_pp.addvar(obj, 'kmin', 1)
-            da_pp.addvar(obj, 'dx', obj.xsize / obj.imax)
-            da_pp.addvar(obj, 'dy', obj.ysize / obj.jtot)
-            da_pp.addvar(obj, 'dz', obj.zsize / obj.kmax)
-            da_pp.addvar(obj, 'lzstretch', 0) % switch for stretching z grid
-            da_pp.addvar(obj, 'stretchconst', 0)
-            
-            % LIDAR parameters
-            da_pp.addvar(obj, 'llidar', 0)
-            da_pp.addvar(obj, 'sourcename', '')
-            da_pp.addvar(obj, 'dxinp', 1) % resolution of image [m/pixel]
-            da_pp.addvar(obj, 'dyinp', 1)
-            da_pp.addvar(obj, 'dzinp', 1)
-            da_pp.addvar(obj, 'centeri', 0) % center of area of interest in original image [pixel]
-            da_pp.addvar(obj, 'centerj', 0)
-            da_pp.addvar(obj, 'maxh', 0) % magimum height of buildings in image [m]
-            da_pp.addvar(obj, 'pad', 5) % padding. A padding of 0 makes only sense for idealised cases. There should be no building at domain edge
-            da_pp.addvar(obj, 'smallarea', round(150 / (obj.dx * obj.dy))) % objects smaller than this will be deleted
-            
-            if ceil(obj.jtot / ncpus) ~= floor (obj.jtot / ncpus)
-                disp(['Possible jtot: ' num2str([2 3 4 5 6 7 8] * ncpus)])
-                error('No. CPUs does not fit j grid size')
-            else
-                %disp('cpus and jtot successful')
-            end
-            
-            % Blocks
-            da_pp.addvar(obj, 'lblocksfile', 0) % switch for using blocks from a file
-            da_pp.addvar(obj, 'blocksfile', '') % name of blocks file
-            
-            da_pp.addvar(obj, 'lcastro', 0) % switch for staggered cubes
-            da_pp.addvar(obj, 'lcube', 0)   % switch for linear cubes
-            da_pp.addvar(obj, 'lblocks', 0) % switch for infinite blocks
-            da_pp.addvar(obj, 'lflat', 0) % switch for flat domain
-
-            %da_pp.addvar(obj, 'bl', [])
-            da_pp.addvar(obj, 'blocks', [])
-
-            da_pp.addvar(obj, 'blockheight', 16) % block height
-            da_pp.addvar(obj, 'blockwidth', 16)  % block width
-            da_pp.addvar(obj, 'canyonwidth', 16) % canyonwidth
-            
-            % Profiles
-            %da_pp.addvar(obj, 'lmassflowr', 0) % switch for constant mass
-            %flow rate.
-            da_pp.addvar(obj, 'luoutflowr', 0) % switch for constant volume flow rate in u.
-            da_pp.addvar(obj, 'lvoutflowr', 0) % switch for constant volume flow rate in u.
-            da_pp.addvar(obj, 'luvolflowr', 0) % switch for constant volume flow rate in u.
-            da_pp.addvar(obj, 'lvvolflowr', 0) % switch for constant volume flow rate in v. 
-            da_pp.addvar(obj, 'lprofforc', 0)  % switch for 1D geostrophic forcing
-            da_pp.addvar(obj, 'lcoriol', 0)    % switch for coriolis forcing
-            if (not(obj.luoutflowr) && not(obj.lvoutflowr) && not(obj.luvolflowr) && not(obj.lvvolflowr) && not(obj.lprofforc) && not(obj.lcoriol))
-                da_pp.addvar(obj, 'ldp', 1)
-                %disp('No forcing switch config. setup so initial velocities and pressure gradients applied.')
-            else
-                da_pp.addvar(obj, 'ldp', 0)
-            end
-            
-            % For forcing, need to check the value given in physics namelist 
-
-            da_pp.addvar(obj, 'u0', 0) % initial u-velocity - also applied as geostrophic term where applicable
-            da_pp.addvar(obj, 'v0', 0) % initial v-velocity - also applied as geostrophic term where applicable
-            
-            da_pp.addvar(obj, 'dpdx', 0) % dp/dx [Pa/m]
-            da_pp.addvar(obj, 'dpdy', 0) % dp/dy [Pa/m]
-
-            % 
-            da_pp.addvar(obj, 'thl0', 288) % temperature at lowest level
-            da_pp.addvar(obj, 'qt0', 0)    % specific humidity
-            
-            
-            da_pp.addvar(obj, 'sv10', 0)   % scalar
-            da_pp.addvar(obj, 'sv20', 0)   % scalar
-            da_pp.addvar(obj, 'lapse', 0)  % lapse rate [K/s]
-            
-            % Other
-            da_pp.addvar(obj, 'w_s',0) % subsidence [*units?*]
-            da_pp.addvar(obj, 'R',0)   % radiative forcing [*units?*]
-
-            % Walls
-            da_pp.addvar(obj, 'z0horiz', 0.01)
-            da_pp.addvar(obj, 'z0hhoriz', 0.000067)
-            da_pp.addvar(obj, 'Thoriz', 288)
-            da_pp.addvar(obj, 'Twest', 288)
-            da_pp.addvar(obj, 'Teast', 288)
-            da_pp.addvar(obj, 'Tnorth', 288)
-            da_pp.addvar(obj, 'Tsouth', 288)
-                  
-            % Pollutants/chemistry
-            da_pp.addvar(obj, 'nsv', 0)
-            da_pp.addvar(obj, 'lchem' , 0) % switch for chemistry
-            da_pp.addvar(obj, 'NOb' , 0)
-            da_pp.addvar(obj, 'NO2b', 0)
-            da_pp.addvar(obj, 'O3b', 0)
-            
-            % Trees
-            da_pp.addvar(obj, 'ltrees', 0)
+            %% &RUN
+            da_pp.addvar(obj, 'ltrees', 0) % switch for trees (not implemented)
             if obj.ltrees
+                error('Trees not currently implemented')
                 da_pp.addvar(obj, 'tree_dz',0)
                 da_pp.addvar(obj, 'tree_dx',0)
                 da_pp.addvar(obj, 'tree_h',0)
@@ -269,15 +166,12 @@ classdef da_pp < dynamicprops
                 da_pp.addvar(obj, 'ww',0)
                 da_pp.addvar(obj, 'lw',0)
                 da_pp.addvar(obj, 'nt2',0)
-
-                % Different cases?
             end
-
-            
-            % Purifiers
-            da_pp.addvar(obj, 'lpurif', 0)
+              
+            da_pp.addvar(obj, 'lpurif', 0) % switch for purifiers (not implemented)
             if obj.lpurif
-                if obj.lblocks
+                error('Purifiers not currently implemented')
+                if obj.lcanyons
                     da_pp.addvar(obj, 'purif_dz', 1)  % purifier starting point from bottom
                     da_pp.addvar(obj, 'purif_dx', 3)  % distance from block
                     da_pp.addvar(obj, 'purif_h', 3)   % purifier height
@@ -300,27 +194,123 @@ classdef da_pp < dynamicprops
                         %disp(['Number of purifiers: ' num2str(npurif*2+1)])
                     end
                 else
-                    error('Must use lblocks configuration to use purifiers')
+                    error('Must use lcanyons configuration to use purifiers')
                 end
             end
             
-            % EB
-            da_pp.addvar(obj, 'solaz', 135); % azimuth angle
-            da_pp.addvar(obj, 'Z', 28.4066); % zenith angle
-            %da_pp.addvar(obj, 'delta', 0.01); % small adjustment for position of rad corners
-            da_pp.addvar(obj, 'centerweight', 12 / 32);
-            da_pp.addvar(obj, 'cornerweight', (1 - obj.centerweight) / 4);
-            da_pp.addvar(obj, 'I', 184.8775); % Direct solar irradiation [W/m2]
-            da_pp.addvar(obj, 'Dsk', 418.8041); % Diffuse incoming radiation [W/m2]
+            da_pp.addvar(obj, 'nsv', 0)    % number of scalar variables (not implemented)
+            if obj.nsv > 0
+                error('Scalar variables not currently implemented')
+            end
             
+            da_pp.addvar(obj, 'luoutflowr', 0) % switch that determines whether u-velocity is corrected to get a fixed outflow rate 
+            da_pp.addvar(obj, 'lvoutflowr', 0) % switch that determines whether v-velocity is corrected to get a fixed outflow rate.
+            da_pp.addvar(obj, 'luvolflowr', 0) % switch that determines whether u-velocity is corrected to get a fixed volume flow rate.
+            da_pp.addvar(obj, 'lvvolflowr', 0) % switch that determines whether v-velocity is corrected to get a fixed volume flow rate. 
+     
+            %% &DOMAIN
+            da_pp.addvar(obj, 'imax', 64)  % # cells in x-direction
+            da_pp.addvar(obj, 'xsize', 64) % domain size in x-direction
+            da_pp.addvar(obj, 'jtot', 64)  % # cells in y-direction
+            da_pp.addvar(obj, 'ysize', 64) % domain size in y-direction
+            da_pp.addvar(obj, 'kmax', 96)  % # cells in z-direction
+            
+            if ceil(obj.jtot / ncpus) ~= floor (obj.jtot / ncpus)
+                disp(['Possible jtot: ' num2str([2 3 4 5 6 7 8] * ncpus)])
+                error('No. CPUs does not fit j grid size')
+            end
+
+            da_pp.addvar(obj, 'dx', obj.xsize / obj.imax)
+            da_pp.addvar(obj, 'dy', obj.ysize / obj.jtot)
+            da_pp.addvar(obj, 'dz', obj.zsize / obj.kmax)
+            
+            %% &ENERGYBALANCE
+            da_pp.addvar(obj, 'lEB', 0)
             if obj.lEB
                 da_pp.addvar(obj, 'maxsize', 10); % Add to namoptions
             else
                 da_pp.addvar(obj, 'maxsize', inf);
             end
             
-            %da_pp.addvar(obj, 'blocks', []);
-            da_pp.addvar(obj, 'facets', []);           
+            %% &PHYSICS
+            da_pp.addvar(obj, 'lchem' , 0) % switch for chemistry (not implemented)
+            da_pp.addvar(obj, 'lprofforc', 0)  % switch for 1D geostrophic forcing
+            da_pp.addvar(obj, 'lcoriol', 0)    % switch for coriolis forcing
+            
+            if (not(obj.luoutflowr) && not(obj.lvoutflowr) && not(obj.luvolflowr) && not(obj.lvvolflowr) && not(obj.lprofforc) && not(obj.lcoriol))
+                da_pp.addvar(obj, 'ldp', 1)
+                %disp('No forcing switch config. setup so initial velocities and pressure gradients applied.')
+            else
+                da_pp.addvar(obj, 'ldp', 0)
+            end
+            
+            %% &INPS
+            da_pp.addvar(obj, 'zsize', 96) % domain size in z-direction
+            da_pp.addvar(obj, 'lzstretch', 0) % switch for stretching z grid
+            if obj.lzstretch
+                da_pp.addvar(obj, 'stretchconst', 0.01)
+                da_pp.addvar(obj, 'lstretchexp', 0)
+                da_pp.addvar(obj, 'lstretchtanh', 0)
+                da_pp.addvar(obj, 'lstretch2tanh', 0)
+            end
+            
+            da_pp.addvar(obj, 'u0', 0) % initial u-velocity - also applied as geostrophic term where applicable
+            da_pp.addvar(obj, 'v0', 0) % initial v-velocity - also applied as geostrophic term where applicable
+            da_pp.addvar(obj, 'dpdx', 0) % dp/dx [Pa/m]
+            da_pp.addvar(obj, 'dpdy', 0) % dp/dy [Pa/m]
+            da_pp.addvar(obj, 'thl0', 288) % temperature at lowest level
+            da_pp.addvar(obj, 'qt0', 0)    % specific humidity
+            da_pp.addvar(obj, 'sv10', 0)   % scalar
+            da_pp.addvar(obj, 'sv20', 0)   % scalar
+            da_pp.addvar(obj, 'lapse', 0)  % lapse rate [K/s]
+            da_pp.addvar(obj, 'w_s',0) % subsidence [*units?*]
+            da_pp.addvar(obj, 'R',0)   % radiative forcing [*units?*]
+            
+            % Blocks
+            da_pp.addvar(obj, 'lblocksfile', 0) % switch for using blocks from a file
+            if obj.lblocksfile
+                da_pp.addvar(obj, 'blocksfile', '') % name of blocks file
+            end
+            
+            da_pp.addvar(obj, 'lflat', 0) % switch for flat domain
+            da_pp.addvar(obj, 'lcube', 0)   % switch for linear cubes
+            da_pp.addvar(obj, 'lcastro', 0) % switch for staggered cubes
+            da_pp.addvar(obj, 'lcanyons', 0) % switch for infinite canyons
+            
+            if (obj.lcube || obj.lcastro || obj.lcanyons)
+                da_pp.addvar(obj, 'blockheight', 16) % block height
+                da_pp.addvar(obj, 'blockwidth', 16)  % block width
+                %if obj.lcanyons
+                    da_pp.addvar(obj, 'canyonwidth', 16) % canyonwidth
+                %end
+            end
+
+            da_pp.addvar(obj, 'llidar', 0)
+            if obj.llidar
+                da_pp.addvar(obj, 'sourcename', '')
+                da_pp.addvar(obj, 'dxinp', 1) % resolution of image [m/pixel]
+                da_pp.addvar(obj, 'dyinp', 1)
+                da_pp.addvar(obj, 'dzinp', 1)
+                da_pp.addvar(obj, 'centeri', 0) % center of area of interest in original image [pixel]
+                da_pp.addvar(obj, 'centerj', 0)
+                da_pp.addvar(obj, 'maxh', 0) % magimum height of buildings in image [m]
+                da_pp.addvar(obj, 'pad', 5) % padding. A padding of 0 makes only sense for idealised cases. There should be no building at domain edge
+                da_pp.addvar(obj, 'smallarea', round(150 / (obj.dx * obj.dy))) % objects smaller than this will be deleted
+            end
+            
+            if obj.lEB
+                da_pp.addvar(obj, 'solaz', 135); % azimuth angle
+                da_pp.addvar(obj, 'Z', 28.4066); % zenith angle
+                da_pp.addvar(obj, 'centerweight', 12 / 32);
+                da_pp.addvar(obj, 'cornerweight', (1 - obj.centerweight) / 4);
+                da_pp.addvar(obj, 'I', 184.8775); % Direct solar irradiation [W/m2]
+                da_pp.addvar(obj, 'Dsk', 418.8041); % Diffuse incoming radiation [W/m2]
+            end
+            
+            da_pp.addvar(obj, 'nblocks', 0)
+            da_pp.addvar(obj, 'nfcts', 0)
+            da_pp.addvar(obj, 'blocks', [])
+            da_pp.addvar(obj, 'facets', [])           
         end
         
         function plot_profiles(obj)
@@ -380,26 +370,26 @@ classdef da_pp < dynamicprops
         end
         
         function stretch_exp(obj)
-            il = round(obj.maxh / obj.dz); % so: what should maxh be replaced with?
+            il = round(obj.maxh / obj.dzlin);
             ir  = obj.kmax - il;
             
             da_pp.addvar(obj, 'zf', zeros(obj.kmax, 1));
             da_pp.addvar(obj, 'dzf', zeros(obj.kmax, 1));
             da_pp.addvar(obj, 'zh', zeros(obj.kmax+1, 1));
             
-            obj.zf(1:il) = obj.dz / 2 : obj.dz : obj.maxh; % so: what should maxh be replaced with?
-            obj.zh(1:il+1) = 0 : obj.dz : obj.maxh; % so: what should maxh be replaced with?
+            obj.zf(1:il) = 0.5 * obj.dzlin : obj.dzlin : obj.maxh;
+            obj.zh(1:il+1) = 0 : obj.dzlin : obj.maxh;
             
             gf = obj.stretchconst;
             
             while true
                 obj.zh(il + 1:end) = obj.zh(il + 1) + (obj.zsize - obj.zh(il+1)) * (exp(gf * (0:1:ir) / (ir)) - 1)/(exp(gf) - 1); %dh has been replaced by zsize                
-                if (obj.zh(il+2) - obj.zh(il + 1)) < obj.dz
+                if (obj.zh(il+2) - obj.zh(il + 1)) < obj.dzlin
                     gf = gf - 0.01; %make sufficiently small steps to avoid an initial bump in dz
                     disp(['Decreasing stretchconst to:' num2str(gf)])
                     
                 else
-                    if (obj.zh(end) - obj.zh(end - 1)) > 3 * obj.dz
+                    if (obj.zh(end) - obj.zh(end - 1)) > 3 * obj.dzlin
                         disp('WARNING: final grid spacing large! Consider reducing domain height')
                     end
                     break
@@ -416,27 +406,27 @@ classdef da_pp < dynamicprops
         end
         
         function stretch_tanh(obj)
-            il = round(obj.maxh / obj.dz); % so: what should maxh be replaced with?
-            ir  = obj.kmax - il;
+            il = round(obj.maxh / obj.dzlin); % Number of points before the stretching
+            ir  = obj.kmax - il; % Number of points being stretched
             
             da_pp.addvar(obj, 'zf', zeros(obj.kmax, 1));
             da_pp.addvar(obj, 'dzf', zeros(obj.kmax, 1));
-            da_pp.addvar(obj, 'zh', zeros(obj.kmax+1, 1));
+            da_pp.addvar(obj, 'zh', zeros(obj.kmax + 1, 1));
             
-            obj.zf(1:il) = obj.dz / 2 : obj.dz : obj.maxh; % so: what should maxh be replaced with?
-            obj.zh(1:il+1) = 0 : obj.dz : obj.maxh; % so: what should maxh be replaced with?
+            obj.zf(1:il) = 0.5 * obj.dzlin : obj.dzlin : obj.maxh; % so: what should maxh be replaced with?
+            obj.zh(1:il+1) = 0 : obj.dzlin : obj.maxh; % so: what should maxh be replaced with?
             
             gf = obj.stretchconst;
 
             while true
                 obj.zh(il + 1:end) = obj.zh(il + 1) + (obj.zsize - obj.zh(il + 1)) * (1 - tanh(gf * (1 - 2 * (0:1:ir)' / (2*ir))) / tanh(gf));
 
-            if (obj.zh(il + 2) - obj.zh(il + 1)) < obj.dz
+            if (obj.zh(il + 2) - obj.zh(il + 1)) < obj.dzlin
                 gf = gf - 0.01; %make sufficiently small steps to avoid an initial bump in dz
-                %disp(['Decreasing stretchconst to:' num2str(gf)])
+                disp(['Decreasing stretchconst to:' num2str(gf)])
 
             else
-                if (obj.zh(end) - obj.zh(end - 1)) > 3 * obj.dz
+                if (obj.zh(end) - obj.zh(end - 1)) > 3 * obj.dzlin
                 disp('WARNING: final grid spacing large! Consider reducing domain height') 
                 end
                 break
@@ -445,7 +435,7 @@ classdef da_pp < dynamicprops
             end
 
             for i = 1:obj.kmax
-                obj.zf(i) = (obj.zh(i) + obj.zh(i+1)) / 2 ;
+                obj.zf(i) = 0.5 * (obj.zh(i) + obj.zh(i+1));
                 obj.dzf(i) = obj.zh(i+1) - obj.zh(i);
             end
 
@@ -627,7 +617,7 @@ classdef da_pp < dynamicprops
                 %disp(['aspect ratio: ' num2str(aspectratio)])
             end 
             
-            jmin = obj.jmin;
+            %jmin = obj.jmin;
             
             %if obj.lflat
                 %bl = [];
@@ -648,7 +638,7 @@ classdef da_pp < dynamicprops
                         if mod(n, 2) == 0
                             if nn == 0
                                 %bl(length(nonzeros(bl(:,3)))+1,3) = jb;
-                                bl(length(nonzeros(bl(:,3))) + 1, 3) = jmin;
+                                bl(length(nonzeros(bl(:,3))) + 1, 3) = 1;
                                 %bl(length(nonzeros(bl(:,4))) + 1, 4) = r.blockwidth/2;
                                 bl(length(nonzeros(bl(:,4))) + 1, 4) = 0.5 * blockwidth;
                             elseif nn == ncolumns
@@ -658,7 +648,7 @@ classdef da_pp < dynamicprops
                                 bl(length(nonzeros(bl(:,4))) + 1, 4) = jtot;
                             else
                                 %bl(length(nonzeros(bl(:,3)))+1,3) = jb + nn * r.blockwidth*2 - r.blockwidth/2;
-                                bl(length(nonzeros(bl(:,3))) + 1, 3) = jmin + nn * blockwidth * 2 - 0.5 * blockwidth;
+                                bl(length(nonzeros(bl(:,3))) + 1, 3) = 1 + nn * blockwidth * 2 - 0.5 * blockwidth;
                                 %bl(length(nonzeros(bl(:,4)))+1,4) = bl(length(nonzeros(bl(:,4)))+1,3) + r.blockwidth - 1;
                                 bl(length(nonzeros(bl(:,4))) + 1, 4) = bl(length(nonzeros(bl(:,4))) + 1, 3) + blockwidth - 1;
                             end
@@ -671,7 +661,7 @@ classdef da_pp < dynamicprops
                     for nn = 0:ncolumns - 1
                         if mod(n,2) ~= 0
                             %bl(length(nonzeros(bl(:,3)))+1,3) = jb + r.blockwidth + nn * r.blockwidth*2 - r.blockwidth/2;
-                            bl(length(nonzeros(bl(:,3))) + 1, 3) = jmin + blockwidth + nn * blockwidth * 2 - 0.5 * blockwidth;
+                            bl(length(nonzeros(bl(:,3))) + 1, 3) = 1 + blockwidth + nn * blockwidth * 2 - 0.5 * blockwidth;
                             %bl(length(nonzeros(bl(:,4)))+1,4) = bl(length(nonzeros(bl(:,4)))+1,3) + r.blockwidth - 1;
                             bl(length(nonzeros(bl(:,4))) + 1, 4) = bl(length(nonzeros(bl(:,4))) + 1, 3) + blockwidth - 1;
                             %bl(length(nonzeros(bl(:,1)))+1,1) = -0.5*r.blockwidth + (2*n-1) * r.blockwidth + 1;
@@ -704,13 +694,13 @@ classdef da_pp < dynamicprops
                         %bl((n-1)*ncolumns+nn+1,6) = ceil(r.blockwidth*(h/ie)/(hz/ke));
                         bl((n - 1) * ncolumns + nn + 1, 6) = ceil(blockwidth * (xsize / imax) / (zsize / kmax));
                         %bl((n-1)*ncolumns+nn+1,3) = jb + r.blockwidth/2 + nn * r.blockwidth*2;
-                        bl((n - 1) * ncolumns + nn + 1, 3) = jmin + blockwidth / 2 + nn * blockwidth * 2;
+                        bl((n - 1) * ncolumns + nn + 1, 3) = 1 + blockwidth / 2 + nn * blockwidth * 2;
                         %bl((n-1)*ncolumns+nn+1,4) = bl((n-1)*ncolumns+nn+1,3) + r.blockwidth - 1;
                         bl((n - 1) * ncolumns + nn + 1, 4) = bl((n - 1) * ncolumns + nn + 1, 3) + blockwidth - 1;
                     end
                 end
 
-            elseif obj.lblocks % should be lcanyons;
+            elseif obj.lcanyons % should be lcanyons;
                 %bl = zeros(nrows, 13);
                 bl = zeros(nrows, 13);
                 %bl(1:nrows,1) = (r.canyonwidth/2+1:r.canyonwidth+r.blockwidth:ie-r.canyonwidth/2)';
@@ -718,7 +708,7 @@ classdef da_pp < dynamicprops
                 %bl(1:nrows,2) = bl(1:nrows,1) + r.blockwidth - 1;
                 bl(1:nrows, 2) = bl(1:nrows, 1) + blockwidth - 1;
                 %bl(:,3) = jb;
-                bl(:, 3) = jmin;
+                bl(:, 3) = 1;
                 %bl(:,4) = je;
                 bl(:, 4) = jtot;
                 bl(:, 5) = 0;
@@ -1433,7 +1423,7 @@ end
             figure
             title('Blocks (old)')
             view(52, 23)
-            if (obj.lcastro || obj.lcube || obj.lblocks)
+            if (obj.lcastro || obj.lcube || obj.lcanyons)
                 for i = 1:size(obj.bl, 1)
                     patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1)  obj.xh(obj.bl(i,1))], [obj.yh(obj.bl(i,3))  obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1)], [obj.zh(obj.bl(i,6)+1)  obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1)], [245 245 245] ./ 255)
                     patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) ], [obj.yh(obj.bl(i,3))  obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3))], [obj.bl(i,5)  obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.bl(i,5)], [245 245 245] ./ 255)
@@ -2588,7 +2578,7 @@ end
             blocks(:, [5,6]) = blocks(:,[5,6]) + 1; % indices for k start at zero?
             %end
             %obj.blocks = blocks;
-            disp(blocks)
+            %disp(blocks)
                             
             %% create Mask-matrix
             % this new mask is in x,y coordinates, not y,x coordinates as before
@@ -3356,18 +3346,22 @@ end
             obj.nfcts = obj.nblockfcts + obj.nboundingwallfacets + nfloorfacets;
             obj.facets = [obj.facets; floorfacets];
             obj.blocks = blocks;
-            floorfacets
-            blocks
             da_pp.addvar(obj, 'floorfacets', floorfacets)
             da_pp.addvar(obj, 'nfloorfacets', nfloorfacets)
             da_pp.addvar(obj, 'nblockstotal', obj.nblocks + nfloorfacets);
         end
         
         function vsolc(obj)
+%             if obj.lflat
+%                 da_pp.addvar(obj, 'asl', ones(obj.nfcts, 1))
+%                 da_pp.addvar(obj, 'Sdir', ones(obj.nfcts, 1) * obj.I * cos((obj.Z) / 360 * 2 * pi));
+%                 return;
+%             end
+                
             xh = obj.xh;
             yh = obj.yh;
             zh = obj.zh;
-            blocks = obj.blocks; nblocks = obj.nblocks
+            blocks = obj.blocks; nblocks = obj.nblocks;
             facets = obj.facets; nfcts  = obj.nfcts;
             floorfacets = obj.floorfacets; nfloorfacets = obj.nfloorfacets;
             boundingwallfacets = obj.boundingwallfacets; nboundingwallfacets = obj.nboundingwallfacets; nbw = obj.nboundingwallfacets;
@@ -6086,7 +6080,7 @@ end
         
         function generate_trees(obj, lwritefile)
             da_pp.addvar(obj, 'nrows', obj.imax / (obj.blockwidth + obj.canyonwidth));
-            if obj.lblocks
+            if obj.lcanyons
                 if obj.ltrees
                    % Implement trees - haven't done so far because in
                    % da_inp, xh is being changed.
@@ -6114,7 +6108,7 @@ end
             % Uses obj.bl, so should be run after having run
             % generate_blocks (or reading in a blocks file)
             da_pp.addvar(obj, 'nrows', obj.imax / (obj.blockwidth + obj.canyonwidth));
-            if obj.lblocks
+            if obj.lcanyons
                 if obj.lpurif
                     %purifs = zeros(obj.nrows * 2 * obj.npurif, 7);
                     da_pp.addvar(obj, 'purifs', zeros(obj.nrows * 2 * obj.npurif, 7));
@@ -6171,7 +6165,7 @@ end
         function plot_domain(obj)
             figure
             view(52, 23)
-            if (obj.lcastro || obj.lcube || obj.lblocks)
+            if (obj.lcastro || obj.lcube || obj.lcanyons)
                 for i = 1:size(obj.bl, 1)
                     patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1)  obj.xh(obj.bl(i,1))], [obj.yh(obj.bl(i,3))  obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1)], [obj.zh(obj.bl(i,6)+1)  obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1)], [245 245 245] ./ 255)
                     patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) ], [obj.yh(obj.bl(i,3))  obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3))], [obj.bl(i,5)  obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.bl(i,5)], [245 245 245] ./ 255)

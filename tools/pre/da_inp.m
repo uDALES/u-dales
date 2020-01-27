@@ -2,7 +2,7 @@
 % This script is run by the bash script da_inp. It used to generate the
 % necessary input files for uDALES.
 tic
-expnr = '100';
+expnr = '001';
 ncpus = 2;
 
 DA_EXPDIR = getenv('DA_EXPDIR');
@@ -38,10 +38,9 @@ disp(['Written scalar.inp.', r.expnr])
 
 if ~r.llidar
     if r.lflat % no blocks
-        disp('Flat domain')
         da_pp.addvar(r, 'bl', [])
     else
-        if (r.lcastro || r.lcube || r.lblocks)
+        if (r.lcastro || r.lcube || r.lcanyons)
             disp('Generating blocks from namoptions')
             da_pp.generate_bl_from_namoptions(r)
         elseif r.lblocksfile
@@ -71,7 +70,6 @@ else
 end
 
 da_pp.createfloors(r);
-
 da_pp.write_blocks(r)
 disp(['Written blocks.inp.', r.expnr])
 da_pp.write_facets(r)
