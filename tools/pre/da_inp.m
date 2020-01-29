@@ -1,8 +1,7 @@
 %% da_inp
 % This script is run by the bash script da_inp. It used to generate the
 % necessary input files for uDALES.
-tic
-expnr = '001';
+expnr = '400';
 ncpus = 2;
 
 DA_EXPDIR = getenv('DA_EXPDIR');
@@ -32,9 +31,11 @@ da_pp.write_prof(r);
 disp(['Written prof.inp.', r.expnr])
 %da_pp.plot_profiles(r);
 
-da_pp.generate_scalar(r);
-da_pp.write_scalar(r);
-disp(['Written scalar.inp.', r.expnr])
+if r.lchem
+    da_pp.generate_scalar(r);
+    da_pp.write_scalar(r);
+    disp(['Written scalar.inp.', r.expnr])
+end
 
 if ~r.llidar
     if r.lflat % no blocks
@@ -65,7 +66,7 @@ else
     da_pp.addvar(r, 'buildings', []);
     da_pp.addvar(r, 'facets', []);
     da_pp.addvar(r, 'nblockfcts', 0);
-    da_pp.addvar(r, 'nboundingwallfacets', 0)
+    da_pp.addvar(r, 'nboundingwallfacets', 0) % lflat not currently compatible with lEB
     da_pp.addvar(r, 'boundingwallfacets', [])
 end
 
@@ -75,15 +76,16 @@ disp(['Written blocks.inp.', r.expnr])
 da_pp.write_facets(r)
 disp(['Written facets.inp.', r.expnr])
 
-if r.ltrees
-    da_pp.generate_trees(r, true);
-    disp(['Written trees.inp.', r.expnr])
-end
+% if r.ltrees
+%     da_pp.generate_trees(r);
+%     da_pp.write_trees(r);
+%     disp(['Written trees.inp.', r.expnr])
+% end
 
-if r.lpurif
-    da_pp.generate_purifs(r, true);
-    disp(['Written purifs.inp.', r.expnr])
-end
+% if r.lpurif
+%     da_pp.generate_purifs(r, true);
+%     disp(['Written purifs.inp.', r.expnr])
+% end
 
 if r.lEB
     da_pp.vsolc(r)
@@ -105,4 +107,3 @@ end
 da_pp.generate_Tfacinit(r, r.lEB)
 da_pp.write_Tfacinit(r)
 disp(['Written Tfacinit.inp.', r.expnr])
-toc

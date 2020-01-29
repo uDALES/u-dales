@@ -32,40 +32,54 @@ da_pp.write_prof(r);
 disp(['Written prof.inp.', r.expnr])
 %da_pp.plot_profiles(r);
 
-da_pp.generate_scalar(r);
-da_pp.write_scalar(r);
-disp(['Written scalar.inp.', r.expnr])
+if r.lchem
+    da_pp.generate_scalar(r);
+    da_pp.write_scalar(r);
+    disp(['Written scalar.inp.', r.expnr])
+end
 
 if ~r.llidar
-    if r.flat
-        da_pp.addvar(r, 'bl'
-    elseif (r.lcastro || r.lcube || r.lblocks || r.lflat)
-        disp('Generating blocks from namoptions')
-        da_pp.generate_bl_from_namoptions(r)
-    elseif r.lblocksfile
-       disp('Generating blocks from file')
-       da_pp.generate_bl_from_file(r) 
+    if r.lflat % no blocks
+        da_pp.addvar(r, 'bl', [])
+    else
+        if (r.lcastro || r.lcube || r.lcanyons)
+            disp('Generating blocks from namoptions')
+            da_pp.generate_bl_from_namoptions(r)
+        elseif r.lblocksfile
+            disp('Generating blocks from file')
+            da_pp.generate_bl_from_file(r) 
+        end
+        da_pp.generate_topo_from_bl(r)
     end
-    
-    da_pp.generate_topo_from_bl(r)
 else
     da_pp.generate_topo_from_LIDAR(r)
 end
 
-if ~r.flat
+if ~r.lflat
     da_pp.makeblocks(r)
+    da_pp.block2fac(r)
+    da_pp.addvar(r, 'nboundingwallfacets', 0)
+    if r.lEB
+        da_pp.addboundingwalls(r)
+    end
 else
-    
+    da_pp.addvar(r, 'blocks', []);
+    da_pp.addvar(r, 'buildings', []);
+    da_pp.addvar(r, 'facets', []);
+    da_pp.addvar(r, 'nblockfcts', 0);
+    da_pp.addvar(r, 'nboundingwallfacets', 0) % lflat not currently compatible with lEB
+    da_pp.addvar(r, 'boundingwallfacets', [])
 end
 
-
+da_pp.createfloors(r);
 da_pp.write_blocks(r)
 disp(['Written blocks.inp.', r.expnr])
 da_pp.write_facets(r)
 disp(['Written facets.inp.', r.expnr])
 
 if r.ltrees
-    da_pp.generate_trees(r, true);
+    da_pp.generate_trees(r);
+    da_pp.write_trees
     disp(['Written trees.inp.', r.expnr])
 end
 
