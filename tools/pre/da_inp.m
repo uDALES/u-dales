@@ -28,12 +28,9 @@ disp(['Written lscal.inp.', r.expnr])
 da_pp.generate_prof(r);
 da_pp.write_prof(r);
 disp(['Written prof.inp.', r.expnr])
-
-if r.lchem
-    da_pp.generate_scalar(r);
-    da_pp.write_scalar(r);
-    disp(['Written scalar.inp.', r.expnr])
-end
+da_pp.generate_scalar(r);
+da_pp.write_scalar(r);
+disp(['Written scalar.inp.', r.expnr])
 
 if ~r.llidar
     if r.lflat

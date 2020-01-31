@@ -509,11 +509,13 @@ classdef da_pp < dynamicprops
         
         function generate_scalar(obj)
             da_pp.addvar(obj, 'sc', zeros(length(obj.zf), 5));
-            obj.sc(:,1) = obj.zf;
-            obj.sc(:,2) = obj.NOb;
-            obj.sc(:,3) = obj.NO2b;
-            obj.sc(:,4) = obj.O3b;
-            obj.sc(:,5) = obj.NOb + obj.NO2b;
+            if obj.lchem
+                obj.sc(:,1) = obj.zf;
+                obj.sc(:,2) = obj.NOb;
+                obj.sc(:,3) = obj.NO2b;
+                obj.sc(:,4) = obj.O3b;
+                obj.sc(:,5) = obj.NOb + obj.NO2b;
+            end
         end
         
         function write_scalar(obj)
