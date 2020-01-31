@@ -140,12 +140,12 @@ module modglobal
   logical :: ltdump    = .false.      !<  switch to output time-averaged statistics every tstatsdump
 
    logical :: lreadminl = .false. !<  switch for reading mean inlet/recycle plane profiles (used in inletgenerator)
-   logical :: lwallfunc = .false. !<  switch that determines wether wall functions are used to compute the wall-shear stress
-   logical :: luoutflowr = .false. !<  switch that determines wether u-velocity is corrected to get a fixed outflow rate
-   logical :: lvoutflowr = .false. !<  switch that determines wether u-velocity is corrected to get a fixed outflow rate
-   logical :: luvolflowr = .false. !<  switch that determines wether u-velocity is corrected to get a fixed volume flow rate
-   logical :: lvvolflowr = .false. !<  switch that determines wether u-velocity is corrected to get a fixed volume flow rate
-   logical :: lstoreplane = .false. !<  switch that determines wether i-plane data is stored.
+   logical :: lwallfunc = .false. !<  switch that determines whether wall functions are used to compute the wall-shear stress
+   logical :: luoutflowr = .false. !<  switch that determines whether u-velocity is corrected to get a fixed outflow rate
+   logical :: lvoutflowr = .false. !<  switch that determines whether u-velocity is corrected to get a fixed outflow rate
+   logical :: luvolflowr = .false. !<  switch that determines whether u-velocity is corrected to get a fixed volume flow rate
+   logical :: lvvolflowr = .false. !<  switch that determines whether u-velocity is corrected to get a fixed volume flow rate
+   logical :: lstoreplane = .false. !<  switch that determines whether i-plane data is stored.
    logical :: lstorexy = .false. !xy files stored
    logical :: lreadmean = .false. !<  switch that determines wether mean variables should be read from means#myid#.#expnr#
    logical :: lstat = .false.

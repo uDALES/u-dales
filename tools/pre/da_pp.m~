@@ -83,27 +83,7 @@ classdef da_pp < dynamicprops
             cd(obj.cpath); % tg3315 23.04.18 - so does not change directory everytime
             
         end
-        
-        
-        
-        %make grid
-        
-        %do other things
-        %  function f = loadfd(obj, field, vars, varargin)
-        
-        % Loads field files into struct obj.bd.(svar)
-        % loadfd(obj, field, vars, varargin)
-        %
-        % field       : Name of field, e.g. 'F000100s'.
-        % vars        : Cell arrary or requested variables.
-        %               E.g. {'u', 'w'}.
-        % varargin{1} : Custom name for property. (string).
-        
-        
-        %  end
-        
-        % ------------------------------------------------------- %
-        
+                       
         function addvar(obj, lhs, var)
             % Install a variable in the object.
             % addvar(obj, lhs, var)
@@ -117,9 +97,7 @@ classdef da_pp < dynamicprops
                 obj.(lhs) = var;
             end
             
-        end
-        
-        % ------------------------------------------------------- %
+        end        
         
         function gopath(obj)
             % Go to simulation path.
@@ -128,16 +106,12 @@ classdef da_pp < dynamicprops
             cd(obj.path);
         end
         
-        % ------------------------------------------------------- %
-        
         function gohome(obj)
             % Go to work path.
             % gohome(obj)
             
             cd(obj.cpath);
         end
-        
-        % ------------------------------------------------------- %
         
         function chcpath(obj, newpath)
             
@@ -155,44 +129,44 @@ classdef da_pp < dynamicprops
             da_pp.addvar(obj, 'ltrees', 0) % switch for trees (not implemented)
             if obj.ltrees
                 error('Trees not currently implemented')
-                da_pp.addvar(obj, 'tree_dz',0)
-                da_pp.addvar(obj, 'tree_dx',0)
-                da_pp.addvar(obj, 'tree_h',0)
-                da_pp.addvar(obj, 'tree_w',0)
-                da_pp.addvar(obj, 'tree_b',0)
-
-                da_pp.addvar(obj, 'nt1',0)
-                da_pp.addvar(obj, 'md',0)
-                da_pp.addvar(obj, 'ww',0)
-                da_pp.addvar(obj, 'lw',0)
-                da_pp.addvar(obj, 'nt2',0)
+%                 da_pp.addvar(obj, 'tree_dz',0)
+%                 da_pp.addvar(obj, 'tree_dx',0)
+%                 da_pp.addvar(obj, 'tree_h',0)
+%                 da_pp.addvar(obj, 'tree_w',0)
+%                 da_pp.addvar(obj, 'tree_b',0)
+% 
+%                 da_pp.addvar(obj, 'nt1',0)
+%                 da_pp.addvar(obj, 'md',0)
+%                 da_pp.addvar(obj, 'ww',0)
+%                 da_pp.addvar(obj, 'lw',0)
+%                 da_pp.addvar(obj, 'nt2',0)
             end
               
             da_pp.addvar(obj, 'lpurif', 0) % switch for purifiers (not implemented)
             if obj.lpurif
                 error('Purifiers not currently implemented')
-                if obj.lcanyons
-                    da_pp.addvar(obj, 'purif_dz', 1)  % purifier starting point from bottom
-                    da_pp.addvar(obj, 'purif_dx', 3)  % distance from block
-                    da_pp.addvar(obj, 'purif_h', 3)   % purifier height
-                    da_pp.addvar(obj, 'purif_w', 0)   % purifier width
-                    da_pp.addvar(obj, 'purif_dy', 1)  % depth of purifier (in y)
-                    da_pp.addvar(obj, 'purif_sp', 31) % spacing between purifiers
-                    da_pp.addvar(obj, 'purif_i', 1)   % case for purifier (1 = +ve x, 2 = -ve x, 3 = +ve y etc.)
-                    da_pp.addvar(obj, 'npurif', obj.jtot / (obj.npurif_dy + obj.purif_sp))
-
-                    if ceil(npurif) ~= floor(npurif)
-                        lp = 0:obj.tot / 2;
-                        indp = rem(obj.jtot / 2, lp) == 0;
-                        errp = ([lp(indp); (obj.jtot / 2) ./ lp(indp)]);
-                        disp('Purifier layout does not fit grid')
-                        disp(['sum widths to: ' num2str(errp(1,:))])
-                        disp(['Current width: ' num2str(obj.purif_dy + obj.purif_sp)])
-                        error('Incorrect purifier layout')
-                    end
-                else
-                    error('Must use lcanyons configuration to use purifiers')
-                end
+%                 if obj.lcanyons
+%                     da_pp.addvar(obj, 'purif_dz', 1)  % purifier starting point from bottom
+%                     da_pp.addvar(obj, 'purif_dx', 3)  % distance from block
+%                     da_pp.addvar(obj, 'purif_h', 3)   % purifier height
+%                     da_pp.addvar(obj, 'purif_w', 0)   % purifier width
+%                     da_pp.addvar(obj, 'purif_dy', 1)  % depth of purifier (in y)
+%                     da_pp.addvar(obj, 'purif_sp', 31) % spacing between purifiers
+%                     da_pp.addvar(obj, 'purif_i', 1)   % case for purifier (1 = +ve x, 2 = -ve x, 3 = +ve y etc.)
+%                     da_pp.addvar(obj, 'npurif', obj.jtot / (obj.npurif_dy + obj.purif_sp))
+% 
+%                     if ceil(npurif) ~= floor(npurif)
+%                         lp = 0:obj.tot / 2;
+%                         indp = rem(obj.jtot / 2, lp) == 0;
+%                         errp = ([lp(indp); (obj.jtot / 2) ./ lp(indp)]);
+%                         disp('Purifier layout does not fit grid')
+%                         disp(['sum widths to: ' num2str(errp(1,:))])
+%                         disp(['Current width: ' num2str(obj.purif_dy + obj.purif_sp)])
+%                         error('Incorrect purifier layout')
+%                     end
+%                 else
+%                     error('Must use lcanyons configuration to use purifiers')
+%                 end
             end
             
             da_pp.addvar(obj, 'nsv', 0)    % number of scalar variables (not implemented)
@@ -260,8 +234,13 @@ classdef da_pp < dynamicprops
             da_pp.addvar(obj, 'dpdy', 0) % dp/dy [Pa/m]
             da_pp.addvar(obj, 'thl0', 288) % temperature at lowest level
             da_pp.addvar(obj, 'qt0', 0)    % specific humidity
-            da_pp.addvar(obj, 'sv10', 0)   % scalar
-            da_pp.addvar(obj, 'sv20', 0)   % scalar
+            
+            if obj.lchem > 0
+                da_pp.addvar(obj, 'NOb', 0) % initial concentration of NO            
+                da_pp.addvar(obj, 'NO2b', 0) % initial concentration of NO2
+                da_pp.addvar(obj, 'O3b', 0) % initial concentration of O3
+            end
+
             da_pp.addvar(obj, 'lapse', 0)  % lapse rate [K/s]
             da_pp.addvar(obj, 'w_s',0) % subsidence [*units?*]
             da_pp.addvar(obj, 'R',0)   % radiative forcing [*units?*]
@@ -273,6 +252,11 @@ classdef da_pp < dynamicprops
             end
             
             da_pp.addvar(obj, 'lflat', 0) % switch for flat domain
+            
+            if (obj.lEB && obj.lflat)
+                error('Energy balance currently not implemented for flat domain')
+            end
+            
             da_pp.addvar(obj, 'lcube', 0)   % switch for linear cubes
             da_pp.addvar(obj, 'lcastro', 0) % switch for staggered cubes
             da_pp.addvar(obj, 'lcanyons', 0) % switch for infinite canyons
@@ -633,7 +617,8 @@ classdef da_pp < dynamicprops
         end
         
         function generate_bl_from_file(obj)
-            obj.bl = dlmread(obj.blocksfile, '', 2, 0);
+            bl = dlmread(obj.blocksfile, '', 2, 0);
+            da_pp.addvar(obj, 'bl', bl)
         end
         
         function generate_topo_from_LIDAR(obj)
@@ -862,8 +847,7 @@ classdef da_pp < dynamicprops
                 end
             end
         end
-        
-        
+               
         function plot_bl(obj)
             figure
             title('Blocks (old)')
@@ -902,8 +886,7 @@ classdef da_pp < dynamicprops
             daspect([1 1 1])
             
         end
-        
-        
+                
         function plot_blocks(obj)
             figure
             title('Blocks')
@@ -942,17 +925,7 @@ classdef da_pp < dynamicprops
         set(gca,'BoxStyle','full','Box','on')
         daspect([1 1 1])
         end
-        
-%         function generate_facets(obj)
-%             da_pp.block2fac(obj)
-%             da_pp.addvar(obj, 'nboundingwallfacets', 0)
-%             if obj.lEB
-%                 da_pp.addboundingwalls(obj)
-%             end
-%             da_pp.createfloors(obj);
-%         end
-              
-        
+                             
         function plot_facets(obj)
             figure
             cmap = colormap('parula');
@@ -1135,8 +1108,7 @@ classdef da_pp < dynamicprops
             ylim([0 obj.yh(end)])
             zlim([0 obj.zh(end)])
         end
-            
-        
+                    
         function makeblocks(obj)
             topomask = obj.topomask;
             topo = obj.topo;
@@ -2482,7 +2454,7 @@ classdef da_pp < dynamicprops
                 % floors is floors, so floors(:, 1) = obj.floorfacets(:, 6)  - add 5
                 % blocks is blocks so can just replace it with obj.blocks
                 % boundingwalls is boundingwalls, so boundingwalls(:, 1) = obj.boundingwallfacets(:, 6) - add 5
-                if (obj.facets(i,4) < 0 && obj.facets(i,4) > -100) %it is a floor, not a building
+                if (obj.facets(i,4) <= -100)  %it is a bounding wall
                     il = obj.floorfacets(bi, 6);
                     iu = obj.floorfacets(bi, 7);
                     jl = obj.floorfacets(bi, 8);
@@ -2493,7 +2465,8 @@ classdef da_pp < dynamicprops
                     yu = obj.yf(ju) + 0.5 * dy(ju);
                     zl = 0;
                     zu = 0;
-                elseif (obj.facets(i,4) <= -100)  %it is a bounding wall
+                elseif (obj.facets(i,4) < 0 && obj.facets(i,4) > -100) %it is a floor, not a building
+                    i
                     il = obj.boundingwallfacets(bi, 6);
                     iu = obj.boundingwallfacets(bi, 7);
                     jl = obj.boundingwallfacets(bi, 8);
@@ -2530,6 +2503,8 @@ classdef da_pp < dynamicprops
                         zl = obj.zf(kl) - 0.5 * dz(kl);
                         zu = obj.zf(ku) + 0.5 * dz(ku);
                     end
+                    disp([il, iu, jl, ju, kl, ku])
+                    disp([xl, xu, yl, yu, zl, zu])
                 else
                     il = obj.blocks(bi, 1);
                     iu = obj.blocks(bi, 2);
@@ -2889,8 +2864,716 @@ classdef da_pp < dynamicprops
             set(gcf, 'Color', 'w');
             %export_fig facetSdir.eps      
         end
-        
+               
+        function vfc(obj)
+            xh = obj.xh;
+            yh = obj.yh;
+            zh = obj.zh;
+            blocks = obj.blocks; nblocks = obj.nblocks;
+            facets = obj.facets; nfcts  = obj.nfcts;
+            floorfacets = obj.floorfacets;  floors = floorfacets(:, 6:end); %nfloorfacets = obj.nfloorfacets;
+            boundingwallfacets = obj.boundingwallfacets; boundingwalls = boundingwallfacets(:, 6:end); nboundingwallfacets = obj.nboundingwallfacets; %nbw = nboundingwallfacets;
+            blocks_phys = obj.blocks_phys;
+            cornm = obj.cornm;
+            centerweight = obj.centerweight; cornerweight = obj.cornerweight; delta = 0.01;
 
+            %% View factors
+            % Calculate fraction of facets seeing each other (not blocked)
+            % Calculate orientation, no overlap on orthogonal planes
+            % calculate viewfactors
+            vf = zeros(nfcts, nfcts);            
+            pf1sf2 = zeros(nfcts, nfcts);
+            A = zeros(nfcts, 1);
+            %tim = zeros(obj.nfcts - 1, 1);
+            %%
+            %do dummy parallelisation by starting multiple matlab and only iterate over
+            %a fraction and then write to file and merge files
+            for i = 1:(nfcts - 1)
+                bi = facets(i, 3); %block index
+                fi = facets(i, 1); %facet index
+                ci = facets(i, 4); %building index (-1 for roads, -99 for bounding wall)
+                %[ndima, areaa, coa] = da_pp.detsub(obj, i);
+                
+                [ ndima, areaa, coa] = da_pp.detsub(i,facets,blocks,floors,boundingwalls,cornm,xh,yh,zh,delta);
+                for j = (i + 1):nfcts
+                    bi2 = facets(j, 3); %block index
+                    fi2 = facets(j, 1); %facet index
+                    ci2 = facets(j, 4); %building index (-1 for roads, -99 for bounding wall)
+                    if ((fi2 == fi) || ((ci2 * bi2) == (ci * bi)))  %facets looking in same direction or on same block&building (ci*bi is unique), bi alone could also be a floor or a bounding wall
+                        continue
+                    end
+                    
+                    %[ndimb, areab, cob] = da_pp.detsub(obj, j);
+                    [ ndimb, areab, cob] = da_pp.detsub(j,facets,blocks,floors,boundingwalls,cornm,xh,yh,zh,delta);
+                    %[prblckdij] = da_pp.prblckd(obj, i, j, coa, ndima, false, -999, cob, ndimb);
+                    [prblckdij] = da_pp.prblckd(i,j,coa,ndima,false,-999,cob,ndimb,facets,centerweight,cornerweight,nblocks,nboundingwallfacets,blocks_phys);
+                    c = 1 - prblckdij;
+                    pf1sf2(i, j) = c;
+                    pf1sf2(j, i) = c;
+                    A(i) = areaa;
+                    A(j) = areab;
+                    
+                    if prblckdij < 0.98 %view is not blocked, vf calclation
+                        if (prblckdij >= (2 * cornerweight - eps)) %at least two corners have to be blocked, otherwise it cannot possibly be blocked by itself
+                            %slice up
+                            %pf1sf2u also has to include check for center, in case center is
+                            %blocked
+                            [coaa, cobb, pf1sf2u] = da_pp.slice(fi, fi2, coa, cob, cornerweight, centerweight);
+                            c = c + pf1sf2u;
+                            pf1sf2(i, j) = c;
+                            pf1sf2(j, i) = c;
+                        else
+                            coaa = coa(6:9, :);
+                            cobb = cob(6:9, :);
+                        end
+                        
+                        %determine if they form a corner/have common edge
+                        %determine the vertices pair that forms that corner
+                        vcorner = [0, 0, 1]; %corner vertices for i and j & sign of correction (as always, clockwise from bottom left)
+                        glpo = 6; %order of gauss-legendre polynomial
+                        glpop = 15; %more accurate, order of gauss-legendre polynomial
+                        if (fi == 1) %fi is horizontal, test if corner with a vertical wall
+                            if  (fi2 == 2)
+                                if all(coaa(4, :) == cobb(1, :)) && all(coaa(3, :) == cobb(4, :)) %they share one edge completely
+                                    vcorner = [3, 4, -1];
+                                    glpo = glpop;
+                                    % elseif (coaa(4,1)==cobb(1,1)) && (coaa(4,3)==cobb(1,3)) %they potentially share parts of an edge
+                                    %     glpo=18;  %NEEDS TO BE AN EVEN NUMBER!!!
+                                end
+                            elseif (fi2 == 3)
+                                if all(coaa(1, :) == cobb(1, :)) && all(coaa(2, :) == cobb(4, :)) %they share one edge completely
+                                    vcorner = [1, 4, 1];
+                                    glpo = glpop;
+                                    % elseif (coaa(1,1)==cobb(1,1)) && (coaa(1,3)==cobb(1,3)) %they potentially share parts of an edge
+                                    %     glpo=18;
+                                end
+                            elseif (fi2==4)
+                                if all(coaa(1,:) == cobb(1,:)) && all(coaa(4,:)==cobb(4,:)) %they share one edge completely
+                                    corner = [4, 4, -1];
+                                    glpo = glpop;
+                                    %  elseif (coaa(1,2)==cobb(1,2)) && (coaa(1,3)==cobb(1,3)) %they potentially share parts of an edge
+                                    %      glpo=18;
+                                end
+                            elseif (fi2 == 5)
+                                if all(coaa(2, :) == cobb(1,:)) && all(coaa(3, :) == cobb(4, :)) %they share one edge completely
+                                    vcorner = [2, 4, 1];
+                                    glpo = glpop;
+                                    %  elseif (coaa(2,2)==cobb(1,2)) && (coaa(2,3)==cobb(1,3)) %they potentially share parts of an edge
+                                    %      glpo=18;
+                                end
+                            end
+                        elseif (fi == 2)
+                            if  (fi2 == 4)
+                                if all(coaa(1, :) == cobb(4, :)) && all(coaa(2, :) == cobb(3, :)) %they share one edge completely
+                                    vcorner = [1, 3, 1];
+                                    glpo = glpop;
+                                elseif (coaa(1, 1) == cobb(4, 1)) && (coaa(1, 2) ==cobb(4, 2)) %they potentially share parts of an edge                                   
+                                    glpo = 18;
+                                end
+                            elseif (fi2 == 5)
+                                if all(coaa(4, :) == cobb(4, :)) && all(coaa(3, :) == cobb(3, :)) %they share one edge completely
+                                    vcorner = [3, 3, -1];
+                                    glpo = glpop;
+                                elseif (coaa(4,1)==cobb(4,1)) && (coaa(4,2)==cobb(4,2)) %they potentially share parts of an edge
+                                    glpo = 18;
+                                end
+                            elseif (fi2 == 1)
+                                if all(coaa(1, :) == cobb(4, :)) && all(coaa(4, :) == cobb(3, :)) %they share one edge completely
+                                    vcorner = [4, 3, -1];
+                                    glpo = glpop;
+                                    %                    elseif (coaa(1,1)==cobb(4,1)) && (coaa(1,3)==cobb(4,3)) %they potentially share parts of an edge
+                                    %                        glpo=18;
+                                end
+                            end
+                        elseif (fi == 3)
+                            if  (fi2 == 4)
+                                if all(coaa(1, :) == cobb(1, :)) && all(coaa(2, :) == cobb(2,:)) %they share one edge completely
+                                    vcorner = [1, 1, -1];
+                                    glpo = glpop;
+                                elseif (coaa(1,1)==cobb(1,1)) && (coaa(1,2)==cobb(1,2)) %they potentially share parts of an edge
+                                    glpo = 18;
+                                end
+                            elseif (fi2 == 5)
+                                if all(coaa(4, :) == cobb(1, :)) && all(coaa(3, :) == cobb(2, :)) %they share one edge completely
+                                    vcorner = [3, 1, 1];
+                                    glpo = glpop;
+                                elseif (coaa(4, 1) == cobb(1, 1)) && (coaa(4, 2) == cobb(1, 2)) %they potentially share parts of an edge
+                                    glpo = 18;
+                                end
+                            elseif (fi2 == 1)
+                                if all(coaa(1, :) == cobb(1, :)) && all(coaa(4, :) == cobb(2, :)) %they share one edge completely
+                                    vcorner = [4, 1, 1];
+                                    glpo = glpop;
+                                    %  elseif (coaa(1,1)==cobb(1,1)) && (coaa(1,3)==cobb(1,3)) %they potentially share parts of an edge
+                                    %      glpo=18;
+                                end
+                            end
+                        elseif (fi == 4)
+                            if  (fi2 == 2)
+                                if all(coaa(4, :) == cobb(1, :)) && all(coaa(3, :) == cobb(2, :)) %they share one edge completely
+                                    vcorner = [3, 1, 1];
+                                    glpo = glpop;
+                                elseif (coaa(4, 1) == cobb(1, 1)) && (coaa(4, 2) == cobb(1, 2)) %they potentially share parts of an edge
+                                    glpo = 18;
+                                end
+                            elseif (fi2 == 3)
+                                if all(coaa(1, :) == cobb(1, :)) && all(coaa(2, :) == cobb(2, :)) %they share one edge completely
+                                    vcorner = [1, 1, -1];
+                                    glpo = glpop;
+                                elseif (coaa(1, 1) == cobb(1, 1)) && (coaa(1, 2) == cobb(1, 2)) %they potentially share parts of an edge
+                                    glpo = 18;
+                                end
+                            elseif (fi2 == 1)
+                                if all(coaa(1, :) == cobb(1, :)) && all(coaa(4, :) == cobb(4, :)) %they share one edge completely
+                                    vcorner = [4, 4, -1];
+                                    glpo = glpop;
+                                    %    elseif (coaa(1,2)==cobb(1,2)) && (coaa(1,3)==cobb(1,3)) %they potentially share parts of an edge
+                                    %       glpo=18;
+                                end
+                            end
+                        elseif (fi == 5)
+                            if  (fi2 == 2)
+                                if all(coaa(4, :) == cobb(4, :)) && all(coaa(3, :) == cobb(3, :)) %they share one edge completely
+                                    vcorner = [3, 3, -1];
+                                    glpo = glpop;
+                                elseif (coaa(4, 1) == cobb(4, 1)) && (coaa(4, 2) == cobb(4, 2)) %they potentially share parts of an edge
+                                    glpo = 18;
+                                end
+                            elseif (fi2 == 3)
+                                if all(coaa(1, :) == cobb(4, :)) && all(coaa(2, :) == cobb(3, :)) %they share one edge completely
+                                    vcorner = [1, 3, 1];
+                                    glpo = glpop;
+                                elseif (coaa(1, 1) == cobb(4, 1)) && (coaa(1, 2) == cobb(4, 2)) %they potentially share parts of an edge
+                                    glpo = 18;
+                                end
+                            elseif (fi2 == 1)
+                                if all(coaa(1, :) == cobb(2, :)) && all(coaa(4, :) == cobb(3, :)) %they share one edge completely
+                                    vcorner = [4, 2, 1];
+                                    glpo = glpop;
+                                    % elseif (coaa(1,2)==cobb(2,2)) && (coaa(1,3)==cobb(2,3)) %they potentially share parts of an edge
+                                    %     glpo=18
+                                end
+                            end
+                        end
+                        
+                        %calculate viewfactor
+                        [F12, F21] = da_pp.ViewFactor(coaa, cobb, areaa, areab, glpo, vcorner);
+                        %increase glpo if view factors are big
+                        if F12 > 0.5 || F21 > 0.5
+                            [F12, F21] = da_pp.ViewFactor(coaa, cobb, areaa, areab, glpo + 10, vcorner);
+                        end
+                        
+                        
+                        % round to 1promille accuracy? i.e. cut smaller 1promille completely
+                        % this violates reciprocity though
+                        
+                        vf(i,j) = F12 * c;
+                        vf(j,i) = F21 * c;
+                        %   vf(i,j)=floor(F12*c*100)/100;
+                        %  vf(j,i)=floor(F21*c*100)/100;
+                    end
+                end
+            end
+
+            vf = single(vf);
+            %pf1sf2o=single(pf1sf2);
+            blub = sum(vf, 2);
+            lblub = find(blub > 1);
+            if ~isempty(lblub)
+                %[maxvf, indexmaxvf] = max(blub);
+                for i = 1:length(lblub)
+                    vf(lblub(i), :) = vf(lblub(i),:)/blub(lblub(i));
+                end
+            end
+            da_pp.addvar(obj, 'vf', vf)
+            da_pp.addvar(obj, 'svf', max(1 - sum(vf, 2), 0));
+            da_pp.addvar(obj, 'facetarea', A);
+        end
+                    
+        function write_svf(obj)
+            fname = ['svf.inp.' num2str(obj.expnr)];
+            fileID = fopen(fname,'W');
+            fprintf(fileID, '# sky view factors\n');
+            fclose(fileID);
+            dlmwrite(fname, obj.svf, '-append','delimiter',' ','precision','%4f')
+        end
+        
+        function write_vf(obj)
+            ncid = netcdf.create(['vf.nc.inp.' num2str(obj.expnr)], 'NC_WRITE');
+            dimidrow = netcdf.defDim(ncid,'rows', obj.nfcts);
+            dimidcol = netcdf.defDim(ncid,'columns', obj.nfcts);
+            varid = netcdf.defVar(ncid,'view factor','NC_FLOAT',[dimidrow dimidcol]);
+            netcdf.endDef(ncid);
+            netcdf.putVar(ncid,varid,obj.vf);
+            netcdf.close(ncid);
+        end    
+
+        function write_facetarea(obj)
+            fname = ['facetarea.inp.' num2str(obj.expnr)];
+            fileID = fopen(fname,'W');
+            fprintf(fileID, '# area of facets\n');
+            fclose(fileID);
+            dlmwrite(fname, obj.facetarea,'-append','delimiter',' ','precision','%4f')
+        end
+        
+        function rayit(obj)
+            facets = obj.facets;
+            walltypes = obj.walltypes;
+             function [fct, wall] = loadfacets()
+                %M = dlmread(['facets.inp.' num2str(expnr)],'',1,0);
+                vars = {'or', 'wlid', 'blk', 'bld'};
+                for n = 1:length(vars)
+                    fct.(vars{n}) = facets(:, n);
+                end
+                
+                %disp(obj.walltypes)
+                %M = dlmread(['walltypes.inp.', obj.expnr],'',3,0);
+                %disp(M)
+                % wallid  lGR   z0 [m]     z0h [m]     al [-]   em [-]   d1 [m]  d2 [m]    cp1 [J/kgK]  cp2 [J/kgK]   l1 [W/(m K)]  l2 [W/(m K)]    k1 [W/(m K)]    k1 [W/(m K)]
+                vars = {'id','lGR','z0','z0h','al', 'em', 'd1', 'd2', 'cp1', 'cp2', 'l1', 'l2', 'k1', 'k2'};
+                for n = 1:length(vars)
+                    wall.(vars{n}) = walltypes(:, n);
+                end
+                
+                % check whether all referenced wall ids have been defined
+                idref = unique(fct.wlid);
+                iddef = unique(wall.id');
+                
+                if length(wall.id) > length(iddef)
+                    disp('ERROR: multiple definitions of a wall id')
+                    return
+                end
+                if length(idref) > length(iddef)
+                    disp('ERROR: more walltypes used than defined')
+                    return
+                end
+                
+                
+                % assign the wall type to each of the facets -- this way it is easy to know
+                % in which structure the proporties can be found.
+                fct.wltp = zeros(size(fct.or));
+                
+                for m = 1:size(fct.wlid, 1)
+                    if fct.wlid(m) >= 0 && fct.wlid(m) <= 10 && any(ismember(iddef, fct.wlid(m)))
+                        fct.wltp(n) = 1; %normal
+                    elseif fct.wlid(m) > 10 && any(ismember(iddef, fct.wlid(m)))
+                        fct.wltp(n) = 2; %Green roof
+                    elseif fct.wlid(m) < 0 && any(ismember(iddef, fct.wlid(m)))
+                        if fct.wlid(m) <= -99
+                            fct.wltp(n) = 3; %bounding wall
+                        else
+                            fct.wltp(n) = 4; %floor
+                        end
+                    else
+                        disp(['ERROR: walltype of facet ',num2str(m),' not defined'])
+                    end
+                end
+                
+                
+                for n = 1:length(idref)
+                    if (ismember(idref(n), wall.id))
+                        fct.wltp(fct.wlid == idref(n)) = 1;
+                    elseif (ismember(idref(n), gr.id))
+                        fct.wltp(fct.wlid == idref(n)) = 2;
+                    else
+                        sprintf('ERROR. wall id %8d not defined. Correct wall and greenroof property input files', idref(n))
+                        return
+                    end
+                end
+            end
+            
+            
+        %facets = obj.facets;    
+        [fct, wall] = loadfacets();
+        
+        
+        
+        %[sortt, sorti]=sort(facets(:,1));  %sort by walltype
+        
+        %% shortwave
+        %
+        
+        %Z=35;          %zenith angle of the sun (could be function of time, location etc)
+        %Dsky=zeros(obj.nfcts,1);
+        %Denv=zeros(nfcts,1);
+        nfcts = obj.nfcts;
+        albedo = zeros(nfcts,1);
+        emissivity = zeros(nfcts,1);
+        Sdir = obj.Sdir;
+        Dsk = obj.Dsk;
+        svf = obj.svf;
+        
+        for i=1:nfcts
+            j=find(fct.wlid(i)==wall.id);
+            albedo(i)=wall.al(j);
+            emissivity(i)=wall.em(j);
+        end
+        da_pp.addvar(obj, 'emissivity', emissivity);
+        
+        %isroof
+        isnotroof=ones(nfcts,1);
+        isnotroof(find(facets(:,1)==1 & facets(:,4)>0))=0;
+        
+        %diffuse flux from sky and other walls
+        Kinnew=zeros(nfcts,1);
+        
+        Kininit=(1-albedo).*(Sdir+Dsk.*svf);
+        Koutinit=albedo.*(Sdir+Dsk.*svf);       
+        
+        %total radiation absorbed and reflected
+        sum(Kininit+Koutinit);
+        %total radiation absorbed
+        sum(Kininit);
+        %total radiation reflected
+        sum(Koutinit);
+        
+        
+        
+        totincrease=zeros(10,1);
+        increase=zeros(10,1);
+        Kout=zeros(10,1);
+        Kout(2)=sum(Koutinit);
+        
+        
+        Kin=Kininit; %Kin §adds up
+        Kinold=Kininit;
+        Koutold=Koutinit; %Kout is wiped clean with every reflection
+        Koutnew=zeros(nfcts,1);
+        Kintemp=zeros(nfcts,1);
+        Kouttemp=zeros(nfcts,1);
+        count=0;
+        storerad=zeros(nfcts,nfcts);
+        Kiterin=zeros(300,1);
+        Kiterout=zeros(300,1);
+        itermaxdiff=zeros(300,1);
+        itermaxdiffloc=zeros(300,1);
+        itermaxrelloc=zeros(300,1);
+        moep=zeros(nfcts,20);
+        blub=zeros(nfcts,20);
+        moep(:,1)=Kininit;
+        
+        A = obj.facetarea;
+        vf = obj.vf;
+        while true
+            count=count+1;
+            for i=1:nfcts
+                Kintemp(i)=0;
+                Kouttemp(i)=0;
+                for j=1:nfcts %sum all the incoming radiation on i, originally reflected from all the other j facets ("radiation reflected on j" x "what perecentage does i take of j's vision")
+                    inc=Koutold(j)*A(j)/A(i)*vf(j,i);  %[W/m2]
+                    storerad(i,j)=inc;
+                    Kintemp(i)=Kintemp(i)+(1-albedo(i))*inc;
+                    Kouttemp(i)=Kouttemp(i)+albedo(i)*inc;
+                end
+                Kin(i)=Kin(i)+Kintemp(i); %add newly absorbed radiation to already existing one
+                Koutnew(i)=Kouttemp(i); %save newly reflected radiation for next iteration
+            end
+            % Kiterin(count)=Kin(1);
+            % Kiterout(count)=Koutnew(1);
+            % [itermaxdiff(count),itermaxdiffloc(count)]=max(Kintemp(i));
+            % [~,itermaxrelloc(count)]=max(Koutnew./Koutold);
+            % max(Koutnew./Koutold)
+            % if all(Koutnew./Koutold<0.01)
+            %     break
+            % end
+            moep(:, count+1) = Kin;
+            if (max((Kin - Kinold) ./ Kinold) < 0.01)
+                break
+            end
+            %    if (max(Koutnew-Koutold)<0.01 )
+            %        disp('reached absolute tolerance')
+            %        break
+            %    end
+            Kinold = Kin;
+            Koutold = Koutnew; %overwrite reflected radiation with new value
+        end
+    
+        da_pp.addvar(obj, 'Kin', Kin);
+        end
+                
+        function write_netsw(obj)
+            fname = ['netsw.inp.' obj.expnr];
+            fileID = fopen(fname, 'w');
+            fprintf(fileID,'# %4s\n','net shortwave on facets [W/m2] (including reflections and diffusive)');
+            fprintf(fileID,'%6d\n', obj.Kin);
+            fclose(fileID);   
+        end
+              
+        function generate_Tfacinit(obj, iss)
+            %% Inital Temperature and longwave
+            %if iss = true, solve energy budget equation in an initial steady state
+            %assume 0 wall heatflux
+            %assume 0 latent heatflux
+            %assume constant air temperature and heat transfer coefficient
+            %assume constant longwave
+            %solve for Tinit and Linit
+            %assume absorbtivity is equal to emissivity
+            %=>
+            %K+L=H
+            if iss
+                nfcts = obj.nfcts;
+                
+                Tair = 300;  %K, air temperature
+                Tinitial = 300; %K, initial facet temperature
+                
+                % Tinc=1*ones(nfcts,1); %incremental temperature change of facets if not in equilibrium
+                % tolerance=2.5;  %W/m2, if below this threshold, change will be made to facet temperature
+                
+                Tinc = 2 * ones(nfcts, 1); %incremental temperature change of facets if not in equilibrium
+                tolerance = 2.5 * Tinc(1);  %W/m2, if below this threshold, change will be made to facet temperature
+                %the two are somewhat related, an increase of 1K will result in a longwave
+                %change of approximately 5W/m2, e.g.:
+                %if we are 4.56K off we correct approximately  (1-5/22.8)*2 = 1.5616
+                %now we are 3K off and correct approximately for (1-5/15)*2 = 1.3333
+                %now we are 1.6666 off and we correct for 0.8 (had we corrected for 2 at
+                %this step, we would have overshot and the solution would oscilate)
+                %now we are satisfied at 0.866 off which is less than 1degree
+                %if for any
+                
+                
+                Tterminate = 0; %Terminate if the absolute temperature change between iterations is equal or below this value
+                %somewhat redundant since this basically means all the facets are within the tolerance
+                
+                vf = obj.vf;
+                svf = obj.svf;
+                facetarea = obj.facetarea;
+                Kin = obj.Kin;
+                emissivity = obj.emissivity;
+                absorptivity = obj.emissivity;
+                sigma = 5.67e-8;
+                Lsk = 350;
+                hc = 0;  %(rho*cp)/R    ~(1.2*1000)/100=12   R~100
+                
+                Tinit = ones(nfcts, 1) * Tinitial;
+                Lsky = Lsk .* svf;
+                
+                %Loutinit=emissivity.*sigma.*Tinit.^4;
+                Told = Tinit;
+                Tnew = zeros(nfcts, 100);
+                Lin = zeros(nfcts, 1);
+                %b
+                k = 0;
+                while true  %what happens to the reflected longwave? i.e. (1-absorptivity)*Lin
+                    %for k=1:10
+                    %count=count+1;
+                    k = k + 1;
+                    %maxchange=0;
+                    change = 0;
+                    Lin(:) = 0;
+                    for i = 1:nfcts
+                        for j = 1:nfcts %sum all the incoming radiation on i, originally reflected from all the other j facets ("radiation reflected on j" x "what perecentage does i take of j's vision")
+                            inc = Told(j)^4 * emissivity(j) * sigma * vf(j, i) * facetarea(j) / facetarea(i);
+                            Lin(i) = Lin(i) + inc;
+                        end
+                        
+                        %calculate energy balance
+                        eb = Kin(i) + absorptivity(i) * (Lin(i) + Lsky(i)) - hc * (Told(i) - Tair) - emissivity(i) * sigma * Told(i)^4;
+                        
+                        if eb < -tolerance %if energy balance is negative, facet is too hot
+                            
+                            Tnew(i,k) = Told(i) - Tinc(i) * (1 + tolerance / eb); %remove incremental temperature, scale by deviation from accepted tolerance in W/m2
+                            
+                        elseif eb > tolerance
+                            Tnew(i, k) = Told(i) + Tinc(i) * (1 - tolerance / eb);
+                        else %do nothing, within tolerance
+                            Tnew(i, k) = Told(i);
+                        end
+                        
+                        % maxchange=max(maxchange,abs(Tnew(i,k)-Told(i)));
+                        change = change + abs(Tnew(i, k) - Told(i));
+                        
+                    end
+                    
+                    Told = Tnew(:,k);
+                    %plot(1:nfcts,Tnew(:,k),'-x')
+                    
+                    if change <= Tterminate %maxchange<=Tterminate
+                        break
+                    elseif k > 99
+                        break
+                    end
+                end
+            
+            
+                da_pp.addvar(obj, 'Tfacinit', Tnew(:, k));
+                        
+            else 
+                da_pp.addvar(obj, 'Tfacinit', 288 * ones(obj.nfcts, 1));
+            end
+%             if ltestplot
+%                 figure
+%                 hold on
+%                 plot(Tnew(sorti,k)-Tinit(sorti),'r-x')
+%                 plot(blub(sorti,k)-Tinit(sorti),'b-x')
+%                 xlabel('facet NR')
+%                 ylabel('T_{end}-T_{init}')
+%                 ax1 = gca; % current axes
+%                 set(ax1,'Xtick',1:1:nfcts)
+%                 xticklabels(sortt)
+%                 ax1_pos = ax1.Position; % position of first axes
+%                 xlabel('orientation')
+%                 ylabel('T_{new}-T_{init}')
+%                 ax2 = axes('Position',ax1_pos,...
+%                     'YAxisLocation', 'right',...
+%                     'XAxisLocation', 'top', ...
+%                     'Color', 'None');
+%                 set (ax2, 'XLim', get (ax1, 'XLim'), 'Layer', 'top');
+%                 set (ax2, 'YLim', get (ax1, 'YLim'), 'Layer', 'top');
+%                 set(ax2,'Xtick',1:1:nfcts)
+%                 set(ax2,'Xticklabels',sorti)
+%                 set(ax2,'FontSize',8)
+%                 xlabel('facet index')
+%                 
+%                 
+%                 
+%                 figure
+%                 hold on
+%                 plot(Tnew(15,1:k),'-x')
+%                 plot(Tnew(41,1:k),'-x')
+%                 plot(Tnew(51,1:k),'-x')
+%                 plot(Tnew(58,1:k),'-x')
+%                 plot(Tnew(68,1:k),'-x')
+%                 xlabel('iteration')
+%                 ylabel('facet temperature')
+%                 legend('15','41','51','58','68')
+%             end        
+        end
+        
+        function write_Tfacinit(obj)
+            fname = ['Tfacinit.inp.', obj.expnr];
+            fileID = fopen(fname, 'W');
+            fprintf(fileID, '# Initial facet tempereatures in radiative equilibrium\n');
+            fclose(fileID);
+            dlmwrite(fname, obj.Tfacinit, '-append','delimiter',' ','precision','%4f')
+            
+%             fname = ['Tfacinitnudged.inp.' obj.expnr];
+%             fileID = fopen(fname, 'W');
+%             fprintf(fileID, '# Initial facet tempereatures in radiative equilibrium nudged to 288\n');
+%             fclose(fileID);
+%             blub = Tnew(Tnew > 0);
+%             blublub = mean(blub(:));
+%             blub = Tnew - (Tnew - blublub) * 0.5;
+%             blub(Tnew == 0) = 0;
+%             dlmwrite(fname, blub, '-append', 'delimiter',' ','precision','%4f')
+        end
+                       
+        function write_blocks(obj)
+            blocks = fopen( ['blocks.inp.' obj.expnr], 'w');
+            fprintf(blocks, '# Block data\n');
+            fprintf(blocks, '#  il\t   iu\t   jl\t   ju\t   kl\t   ku\t dtop\t dwest\t deast\t dnor\t dsou\n');
+            fprintf(blocks, '%4d\t%4d\t%4d\t%4d\t%4d\t%4d\t%4d\t%4d\t%4d\t%4d\t%4d\n', obj.blocks');
+            fclose(blocks);
+        end
+        
+        function write_facets(obj)
+            fname = ['facets.inp.' num2str(obj.expnr)];
+            fileID = fopen(fname,'w');
+            fprintf(fileID,'# %4s %6s %6s %6s\n','or', 'wl', 'blk', 'bld');
+            fprintf(fileID,'%6d %6d %6d %6d\n', obj.facets(:, 1:4)');
+            fclose(fileID); 
+        end
+        
+        function generate_trees(obj) % not implemented
+            da_pp.addvar(obj, 'nrows', obj.imax / (obj.blockwidth + obj.canyonwidth));
+            if obj.lcanyons
+               da_pp.addvar(obj, 'trees', zeros(obj.nrows, 6));
+            end
+        end
+        
+        function write_trees(obj)
+            tree_write = fopen( ['trees.inp.' obj.expnr], 'w');
+            fprintf(tree_write, '%-12s\n', '# Tree location');
+            fprintf(tree_write, '%-60s\n', '#  il  iu  jl  ju  kl  ku');
+            fprintf(tree_write, '%-3.0f %-3.0f %-3.0f %-3.0f %-3.0f %-3.0f\n', obj.trees');
+            fclose(tree_write);
+        end
+        
+        function generate_purifs(obj) % not implemented
+            da_pp.addvar(obj, 'nrows', obj.imax / (obj.blockwidth + obj.canyonwidth));
+            if obj.lcanyons
+                if obj.lpurif
+                    %purifs = zeros(obj.nrows * 2 * obj.npurif, 7);
+                    da_pp.addvar(obj, 'purifs', zeros(obj.nrows * 2 * obj.npurif, 7));
+                    for i = 1:obj.nrows
+                        for j = 1:obj.npurif
+                            obj.purifs((i - 1) * obj.npurif + j,1) = obj.bl(obj.nrows + i, 2) - obj.purif_dx - obj.purif_w;
+                            obj.purifs((i - 1) * obj.npurif + j,2) = obj.bl(nrows+i,2) - obj.purif_dx;
+                            if j==1
+                                %obj.purifs((i - 1) * obj.npurif + j, 3) = ((je/npurif)/2);
+                                obj.purifs((i - 1) * obj.npurif + j, 3) = ((obj.jtot / obj. npurif) / 2);
+                                obj.purifs((i - 1) * obj.npurif + j, 4) = obj.purifs((i - 1) * obj.npurif + j, 3) + obj.purif_dy;
+                            else
+                                obj.purifs((i - 1) * obj.npurif + j, 3) = obj.purifs((i - 1) * obj.npurif + j - 1, 3) + obj.purif_dy + obj.purif_sp;
+                                obj.purifs((i - 1) * obj.npurif + j, 4) = obj.purifs((i - 1) * obj.npurif + j - 1, 4) + obj.purif_dy + obj.purif_sp;
+                            end
+                        end
+                    end
+                    for i = 1:obj.nrows
+                        for j = 1:obj.npurif
+                            obj.purifs(obj.nrows * obj.npurif + (i - 1) * obj.npurif + j,1) =  obj.bl(obj.nrows + 1 + i, 1) + obj.purif_dx;
+                            obj.purifs(obj.nrows * obj.npurif + (i - 1) * obj.npurif + j,2) =  obj.bl(obj.nrows + 1 + i, 1) + obj.purif_dx + obj.purif_w;
+                            if j == 1
+                                obj.purifs(obj.nrows * obj.npurif + (i - 1) * obj.npurif + j, 3) = ((obj.tot / obj.npurif) / 2);
+                                obj.purifs(obj.nrows * obj.npurif + (i - 1) * obj.npurif + j, 4) = obj.purifs(( i - 1) * obj.npurif + j, 3) + obj.purif_dy;
+                            else
+                                obj.purifs(obj.nrows * obj.npurif + (i - 1) * obj.npurif + j, 3) = obj.purifs((i - 1) * obj.npurif + j - 1, 3) + obj.purif_dy + obj.purif_sp;
+                                obj.purifs(obj.nrows * obj.npurif + (i - 1) * obj.npurif + j, 4) = obj.purifs((i - 1) * obj.npurif + j - 1, 4) + obj.purif_dy + obj.purif_sp;
+                            end
+                        end
+                    end
+
+                    obj.purifs(:,5) = obj.purif_dz;
+                    obj.purifs(:,6) = obj.purif_dz + obj.purif_h;
+                    obj.purifs(:,7) = obj.purif_i;
+                end
+            end
+            
+            if lwritefile
+                if obj.lpurif
+                    da_pp.write_purifs(obj)
+                end
+            end
+        end
+        
+        function write_purifs(obj)
+            purif_write = fopen( ['purifs.inp.' obj.expnr], 'w');
+            fprintf(purif_write, '%-12s\n', '# Purifier location');
+            fprintf(purif_write, '%-60s\n', '#  il  iu  jl  ju  kl  ku  ipu');
+            fprintf(purif_write, '%-3.0f %-3.0f %-3.0f %-3.0f %-3.0f %-3.0f %-3.0f\n', obj.purifs');
+            fclose(purif_write);
+        end
+        
+    end
+    
+    methods (Static, Access = protected)
+        
+        function data = loadvar(filename, svar)
+            
+            % Load netcdf data.
+            % loadvar(filename, svar)
+            %
+            % filename : Name of file (string).
+            % svar     : Variable name (string).
+            %
+            % data     : Array of doubles.
+            
+            data = [];
+            ncid = netcdf.open(filename,'NC_NOWRITE');
+            [~, nvars] = netcdf.inq(ncid);
+            found = false;
+            for n=0:nvars-1
+                if (strcmp(netcdf.inqVar(ncid,n),svar))
+                    data = netcdf.getVar(ncid,n);
+                    found = true;
+                end
+            end
+            netcdf.close(ncid);
+            
+            if (~found)
+                disp(['variable ', svar, ' not found!']);
+            end
+        end
+        
         function [coaa, cobb, pf1sf2u] = slice(fi,fi2,coa,cob,cornerweight,centerweight)
             %in case one facet cuts through
             %the plane of the other facet:
@@ -3220,1205 +3903,7 @@ classdef da_pp < dynamicprops
                 end
             end          
         end
-        
-        function vfc(obj)
-            xh = obj.xh;
-            yh = obj.yh;
-            zh = obj.zh;
-            blocks = obj.blocks; nblocks = obj.nblocks;
-            facets = obj.facets; nfcts  = obj.nfcts;
-            floorfacets = obj.floorfacets;  floors = floorfacets(:, 6:end); %nfloorfacets = obj.nfloorfacets;
-            boundingwallfacets = obj.boundingwallfacets; boundingwalls = boundingwallfacets(:, 6:end); nboundingwallfacets = obj.nboundingwallfacets; %nbw = nboundingwallfacets;
-            blocks_phys = obj.blocks_phys;
-            cornm = obj.cornm;
-            centerweight = obj.centerweight; cornerweight = obj.cornerweight; delta = 0.01;
-
-            %% View factors
-            % Calculate fraction of facets seeing each other (not blocked)
-            % Calculate orientation, no overlap on orthogonal planes
-            % calculate viewfactors
-            vf = zeros(nfcts, nfcts);            
-            pf1sf2 = zeros(nfcts, nfcts);
-            A = zeros(nfcts, 1);
-            %tim = zeros(obj.nfcts - 1, 1);
-            %%
-            %do dummy parallelisation by starting multiple matlab and only iterate over
-            %a fraction and then write to file and merge files
-            for i = 1:(nfcts - 1)
-                bi = facets(i, 3); %block index
-                fi = facets(i, 1); %facet index
-                ci = facets(i, 4); %building index (-1 for roads, -99 for bounding wall)
-                %[ndima, areaa, coa] = da_pp.detsub(obj, i);
-                
-                [ ndima, areaa, coa] = da_pp.detsub(i,facets,blocks,floors,boundingwalls,cornm,xh,yh,zh,delta);
-                for j = (i + 1):nfcts
-                    bi2 = facets(j, 3); %block index
-                    fi2 = facets(j, 1); %facet index
-                    ci2 = facets(j, 4); %building index (-1 for roads, -99 for bounding wall)
-                    if ((fi2 == fi) || ((ci2 * bi2) == (ci * bi)))  %facets looking in same direction or on same block&building (ci*bi is unique), bi alone could also be a floor or a bounding wall
-                        continue
-                    end
-                    
-                    %[ndimb, areab, cob] = da_pp.detsub(obj, j);
-                    [ ndimb, areab, cob] = da_pp.detsub(j,facets,blocks,floors,boundingwalls,cornm,xh,yh,zh,delta);
-                    %[prblckdij] = da_pp.prblckd(obj, i, j, coa, ndima, false, -999, cob, ndimb);
-                    [prblckdij] = da_pp.prblckd(i,j,coa,ndima,false,-999,cob,ndimb,facets,centerweight,cornerweight,nblocks,nboundingwallfacets,blocks_phys);
-                    c = 1 - prblckdij;
-                    pf1sf2(i, j) = c;
-                    pf1sf2(j, i) = c;
-                    A(i) = areaa;
-                    A(j) = areab;
-                    
-                    if prblckdij < 0.98 %view is not blocked, vf calclation
-                        if (prblckdij >= (2 * cornerweight - eps)) %at least two corners have to be blocked, otherwise it cannot possibly be blocked by itself
-                            %slice up
-                            %pf1sf2u also has to include check for center, in case center is
-                            %blocked
-                            [coaa, cobb, pf1sf2u] = da_pp.slice(fi, fi2, coa, cob, cornerweight, centerweight);
-                            c = c + pf1sf2u;
-                            pf1sf2(i, j) = c;
-                            pf1sf2(j, i) = c;
-                        else
-                            coaa = coa(6:9, :);
-                            cobb = cob(6:9, :);
-                        end
-                        
-                        %determine if they form a corner/have common edge
-                        %determine the vertices pair that forms that corner
-                        vcorner = [0, 0, 1]; %corner vertices for i and j & sign of correction (as always, clockwise from bottom left)
-                        glpo = 6; %order of gauss-legendre polynomial
-                        glpop = 15; %more accurate, order of gauss-legendre polynomial
-                        if (fi == 1) %fi is horizontal, test if corner with a vertical wall
-                            if  (fi2 == 2)
-                                if all(coaa(4, :) == cobb(1, :)) && all(coaa(3, :) == cobb(4, :)) %they share one edge completely
-                                    vcorner = [3, 4, -1];
-                                    glpo = glpop;
-                                    % elseif (coaa(4,1)==cobb(1,1)) && (coaa(4,3)==cobb(1,3)) %they potentially share parts of an edge
-                                    %     glpo=18;  %NEEDS TO BE AN EVEN NUMBER!!!
-                                end
-                            elseif (fi2 == 3)
-                                if all(coaa(1, :) == cobb(1, :)) && all(coaa(2, :) == cobb(4, :)) %they share one edge completely
-                                    vcorner = [1, 4, 1];
-                                    glpo = glpop;
-                                    % elseif (coaa(1,1)==cobb(1,1)) && (coaa(1,3)==cobb(1,3)) %they potentially share parts of an edge
-                                    %     glpo=18;
-                                end
-                            elseif (fi2==4)
-                                if all(coaa(1,:) == cobb(1,:)) && all(coaa(4,:)==cobb(4,:)) %they share one edge completely
-                                    corner = [4, 4, -1];
-                                    glpo = glpop;
-                                    %  elseif (coaa(1,2)==cobb(1,2)) && (coaa(1,3)==cobb(1,3)) %they potentially share parts of an edge
-                                    %      glpo=18;
-                                end
-                            elseif (fi2 == 5)
-                                if all(coaa(2, :) == cobb(1,:)) && all(coaa(3, :) == cobb(4, :)) %they share one edge completely
-                                    vcorner = [2, 4, 1];
-                                    glpo = glpop;
-                                    %  elseif (coaa(2,2)==cobb(1,2)) && (coaa(2,3)==cobb(1,3)) %they potentially share parts of an edge
-                                    %      glpo=18;
-                                end
-                            end
-                        elseif (fi == 2)
-                            if  (fi2 == 4)
-                                if all(coaa(1, :) == cobb(4, :)) && all(coaa(2, :) == cobb(3, :)) %they share one edge completely
-                                    vcorner = [1, 3, 1];
-                                    glpo = glpop;
-                                elseif (coaa(1, 1) == cobb(4, 1)) && (coaa(1, 2) ==cobb(4, 2)) %they potentially share parts of an edge                                   
-                                    glpo = 18;
-                                end
-                            elseif (fi2 == 5)
-                                if all(coaa(4, :) == cobb(4, :)) && all(coaa(3, :) == cobb(3, :)) %they share one edge completely
-                                    vcorner = [3, 3, -1];
-                                    glpo = glpop;
-                                elseif (coaa(4,1)==cobb(4,1)) && (coaa(4,2)==cobb(4,2)) %they potentially share parts of an edge
-                                    glpo = 18;
-                                end
-                            elseif (fi2 == 1)
-                                if all(coaa(1, :) == cobb(4, :)) && all(coaa(4, :) == cobb(3, :)) %they share one edge completely
-                                    vcorner = [4, 3, -1];
-                                    glpo = glpop;
-                                    %                    elseif (coaa(1,1)==cobb(4,1)) && (coaa(1,3)==cobb(4,3)) %they potentially share parts of an edge
-                                    %                        glpo=18;
-                                end
-                            end
-                        elseif (fi == 3)
-                            if  (fi2 == 4)
-                                if all(coaa(1, :) == cobb(1, :)) && all(coaa(2, :) == cobb(2,:)) %they share one edge completely
-                                    vcorner = [1, 1, -1];
-                                    glpo = glpop;
-                                elseif (coaa(1,1)==cobb(1,1)) && (coaa(1,2)==cobb(1,2)) %they potentially share parts of an edge
-                                    glpo = 18;
-                                end
-                            elseif (fi2 == 5)
-                                if all(coaa(4, :) == cobb(1, :)) && all(coaa(3, :) == cobb(2, :)) %they share one edge completely
-                                    vcorner = [3, 1, 1];
-                                    glpo = glpop;
-                                elseif (coaa(4, 1) == cobb(1, 1)) && (coaa(4, 2) == cobb(1, 2)) %they potentially share parts of an edge
-                                    glpo = 18;
-                                end
-                            elseif (fi2 == 1)
-                                if all(coaa(1, :) == cobb(1, :)) && all(coaa(4, :) == cobb(2, :)) %they share one edge completely
-                                    vcorner = [4, 1, 1];
-                                    glpo = glpop;
-                                    %  elseif (coaa(1,1)==cobb(1,1)) && (coaa(1,3)==cobb(1,3)) %they potentially share parts of an edge
-                                    %      glpo=18;
-                                end
-                            end
-                        elseif (fi == 4)
-                            if  (fi2 == 2)
-                                if all(coaa(4, :) == cobb(1, :)) && all(coaa(3, :) == cobb(2, :)) %they share one edge completely
-                                    vcorner = [3, 1, 1];
-                                    glpo = glpop;
-                                elseif (coaa(4, 1) == cobb(1, 1)) && (coaa(4, 2) == cobb(1, 2)) %they potentially share parts of an edge
-                                    glpo = 18;
-                                end
-                            elseif (fi2 == 3)
-                                if all(coaa(1, :) == cobb(1, :)) && all(coaa(2, :) == cobb(2, :)) %they share one edge completely
-                                    vcorner = [1, 1, -1];
-                                    glpo = glpop;
-                                elseif (coaa(1, 1) == cobb(1, 1)) && (coaa(1, 2) == cobb(1, 2)) %they potentially share parts of an edge
-                                    glpo = 18;
-                                end
-                            elseif (fi2 == 1)
-                                if all(coaa(1, :) == cobb(1, :)) && all(coaa(4, :) == cobb(4, :)) %they share one edge completely
-                                    vcorner = [4, 4, -1];
-                                    glpo = glpop;
-                                    %    elseif (coaa(1,2)==cobb(1,2)) && (coaa(1,3)==cobb(1,3)) %they potentially share parts of an edge
-                                    %       glpo=18;
-                                end
-                            end
-                        elseif (fi == 5)
-                            if  (fi2 == 2)
-                                if all(coaa(4, :) == cobb(4, :)) && all(coaa(3, :) == cobb(3, :)) %they share one edge completely
-                                    vcorner = [3, 3, -1];
-                                    glpo = glpop;
-                                elseif (coaa(4, 1) == cobb(4, 1)) && (coaa(4, 2) == cobb(4, 2)) %they potentially share parts of an edge
-                                    glpo = 18;
-                                end
-                            elseif (fi2 == 3)
-                                if all(coaa(1, :) == cobb(4, :)) && all(coaa(2, :) == cobb(3, :)) %they share one edge completely
-                                    vcorner = [1, 3, 1];
-                                    glpo = glpop;
-                                elseif (coaa(1, 1) == cobb(4, 1)) && (coaa(1, 2) == cobb(4, 2)) %they potentially share parts of an edge
-                                    glpo = 18;
-                                end
-                            elseif (fi2 == 1)
-                                if all(coaa(1, :) == cobb(2, :)) && all(coaa(4, :) == cobb(3, :)) %they share one edge completely
-                                    vcorner = [4, 2, 1];
-                                    glpo = glpop;
-                                    % elseif (coaa(1,2)==cobb(2,2)) && (coaa(1,3)==cobb(2,3)) %they potentially share parts of an edge
-                                    %     glpo=18
-                                end
-                            end
-                        end
-                        
-                        %calculate viewfactor
-                        [F12, F21] = da_pp.ViewFactor(coaa, cobb, areaa, areab, glpo, vcorner);
-                        %increase glpo if view factors are big
-                        if F12 > 0.5 || F21 > 0.5
-                            [F12, F21] = da_pp.ViewFactor(coaa, cobb, areaa, areab, glpo + 10, vcorner);
-                        end
-                        
-                        
-                        % round to 1promille accuracy? i.e. cut smaller 1promille completely
-                        % this violates reciprocity though
-                        
-                        vf(i,j) = F12 * c;
-                        vf(j,i) = F21 * c;
-                        %   vf(i,j)=floor(F12*c*100)/100;
-                        %  vf(j,i)=floor(F21*c*100)/100;
-                    end
-                end
-            end
-
-            vf = single(vf);
-            %pf1sf2o=single(pf1sf2);
-            blub = sum(vf, 2);
-            lblub = find(blub > 1);
-            if ~isempty(lblub)
-                %[maxvf, indexmaxvf] = max(blub);
-                for i = 1:length(lblub)
-                    vf(lblub(i), :) = vf(lblub(i),:)/blub(lblub(i));
-                end
-            end
-            da_pp.addvar(obj, 'vf', vf)
-            da_pp.addvar(obj, 'svf', max(1 - sum(vf, 2), 0));
-            da_pp.addvar(obj, 'facetarea', A);
-        end
-                    
-        function write_svf(obj)
-            fname = ['svf.inp.' num2str(obj.expnr)];
-            fileID = fopen(fname,'W');
-            fprintf(fileID, '# sky view factors\n');
-            fclose(fileID);
-            dlmwrite(fname, obj.svf, '-append','delimiter',' ','precision','%4f')
-        end
-        
-        function write_vf(obj)
-            ncid = netcdf.create(['vf.nc.inp.' num2str(obj.expnr)], 'NC_WRITE');
-            dimidrow = netcdf.defDim(ncid,'rows', obj.nfcts);
-            dimidcol = netcdf.defDim(ncid,'columns', obj.nfcts);
-            varid = netcdf.defVar(ncid,'view factor','NC_FLOAT',[dimidrow dimidcol]);
-            netcdf.endDef(ncid);
-            netcdf.putVar(ncid,varid,obj.vf);
-            netcdf.close(ncid);
-        end    
-
-        function write_facetarea(obj)
-            fname = ['facetarea.inp.' num2str(obj.expnr)];
-            fileID = fopen(fname,'W');
-            fprintf(fileID, '# area of facets\n');
-            fclose(fileID);
-            dlmwrite(fname, obj.facetarea,'-append','delimiter',' ','precision','%4f')
-        end
-        
-%         function rayit(obj)
-%             function [fct, wall] = loadfacets()
-%                 %M = dlmread(['facets.inp.' num2str(expnr)],'',1,0);
-%                 vars = {'or', 'wlid', 'blk', 'bld'};
-%                 for n = 1:length(vars)
-%                     fct.(vars{n}) = obj.facets(:, n);
-%                 end
-%                 
-%                 %disp(obj.walltypes)
-%                 %M = dlmread(['walltypes.inp.', obj.expnr],'',3,0);
-%                 %disp(M)
-%                 % wallid  lGR   z0 [m]     z0h [m]     al [-]   em [-]   d1 [m]  d2 [m]    cp1 [J/kgK]  cp2 [J/kgK]   l1 [W/(m K)]  l2 [W/(m K)]    k1 [W/(m K)]    k1 [W/(m K)]
-%                 vars = {'id','lGR','z0','z0h','al', 'em', 'd1', 'd2', 'cp1', 'cp2', 'l1', 'l2', 'k1', 'k2'};
-%                 for n = 1:length(vars)
-%                     wall.(vars{n}) = obj.walltypes(:, n);
-%                 end
-%                 
-%                 % check whether all referenced wall ids have been defined
-%                 idref = unique(fct.wlid);
-%                 iddef = unique(wall.id');
-%                 
-%                 if length(wall.id) > length(iddef)
-%                     disp('ERROR: multiple definitions of a wall id')
-%                     return
-%                 end
-%                 if length(idref) > length(iddef)
-%                     disp('ERROR: more walltypes used than defined')
-%                     return
-%                 end
-%                 
-%                 
-%                 % assign the wall type to each of the facets -- this way it is easy to know
-%                 % in which structure the proporties can be found.
-%                 fct.wltp = zeros(size(fct.or));
-%                 
-%                 for m = 1:size(fct.wlid, 1)
-%                     if fct.wlid(m) >= 0 && fct.wlid(m) <= 10 && any(ismember(iddef, fct.wlid(m)))
-%                         fct.wltp(n) = 1; %normal
-%                     elseif fct.wlid(m) > 10 && any(ismember(iddef, fct.wlid(m)))
-%                         fct.wltp(n) = 2; %Green roof
-%                     elseif fct.wlid(m) < 0 && any(ismember(iddef, fct.wlid(m)))
-%                         if fct.wlid(m) <= -99
-%                             fct.wltp(n) = 3; %bounding wall
-%                         else
-%                             fct.wltp(n) = 4; %floor
-%                         end
-%                     else
-%                         disp(['ERROR: walltype of facet ',num2str(m),' not defined'])
-%                     end
-%                 end
-%                 
-%                 
-%                 for n = 1:length(idref)
-%                     if (ismember(idref(n), wall.id))
-%                         fct.wltp(fct.wlid == idref(n)) = 1;
-%                     elseif (ismember(idref(n), gr.id))
-%                         fct.wltp(fct.wlid == idref(n)) = 2;
-%                     else
-%                         sprintf('ERROR. wall id %8d not defined. Correct wall and greenroof property input files', idref(n))
-%                         return
-%                     end
-%                 end
-%             end
-%             
-%             
-%             
-%             %% iterate shortwave and longwave radiation
-%             %% iterate over every facet and over entire system until energy is balanced
-%                         
-%             %% derived quantities
-%             
-%             [fct, wall] = loadfacets();
-%             [sortt, sorti] = sort(obj.facets(:, 1));  %sort by walltype
-%             
-%             %% shortwave
-%             %
-%             
-%             %Z=35;          %zenith angle of the sun (could be function of time, location etc)
-%             Dsky = zeros(obj.nfcts, 1);
-%             Denv = zeros(obj.nfcts, 1);
-%             
-%             da_pp.addvar(obj, 'albedo', zeros(obj.nfcts, 1));
-%             da_pp.addvar(obj, 'emissivity', zeros(obj.nfcts, 1));
-%             
-%             for i = 1:obj.nfcts
-%                 j = find(fct.wlid(i)==wall.id);
-%                 obj.albedo(i) = wall.al(j);
-%                 obj.emissivity(i) = wall.em(j);
-%             end
-%             
-%             %isroof
-%             isnotroof = ones(obj.nfcts,1);
-%             isnotroof(find(obj.facets(:, 1) == 1 & obj.facets(:,4) > 0)) = 0;
-%             
-%             %diffuse flux from sky and other walls
-%             Kinnew = zeros(obj.nfcts, 1);
-%             
-%             da_pp.addvar(obj, 'Kininit', (1 - obj.albedo) .* (obj.Sdir + obj.Dsk .* obj.svf));
-%             Koutinit = obj.albedo .* (obj.Sdir + obj.Dsk .* obj.svf);
-%             
-% %             if ltestplot
-% %                 figure
-% %                 a=(1-albedo).*Sdir;
-% %                 b=(1-albedo).*Dsk.*svf;
-% %                 plot(1:nfcts,a(sorti),1:nfcts,b(sorti))
-% %                 ax1 = gca; % current axes
-% %                 set(ax1,'Xtick',1:1:nfcts)
-% %                 xticklabels(sortt)
-% %                 ax1_pos = ax1.Position; % position of first axes
-% %                 xlabel('orientation')
-% %                 ylabel('S and D')
-% %                 ax2 = axes('Position',ax1_pos,...
-% %                     'YAxisLocation', 'right',...
-% %                     'XAxisLocation', 'top', ...
-% %                     'Color', 'None');
-% %                 set (ax2, 'XLim', get (ax1, 'XLim'), 'Layer', 'top');
-% %                 set (ax2, 'YLim', get (ax1, 'YLim'), 'Layer', 'top');
-% %                 set(ax2,'Xtick',1:1:nfcts)
-% %                 set(ax2,'Xticklabels',sorti)
-% %                 set(ax2,'FontSize',8)
-% %                 xlabel('facet index')
-% %             end
-%             
-%             %total radiation absorbed and reflected
-%             sum(obj.Kininit + Koutinit);
-%             %total radiation absorbed
-%             sum(obj.Kininit);
-%             %total radiation reflected
-%             sum(Koutinit);
-%             
-%             
-%             
-%             totincrease = zeros(10, 1);
-%             increase = zeros(10, 1);
-%             Kout = zeros(10, 1);
-%             Kout(2) = sum(Koutinit);
-%             
-%             
-%             da_pp.addvar(obj, 'Kin', obj.Kininit); %Kin §adds up
-%             Kinold = obj.Kininit;
-%             Koutold = Koutinit; %Kout is wiped clean with every reflection
-%             Koutnew = zeros(obj.nfcts, 1);
-%             Kintemp = zeros(obj.nfcts, 1);
-%             Kouttemp = zeros(obj.nfcts, 1);
-%             count = 0;
-%             storerad = zeros(obj.nfcts, obj.nfcts);
-%             Kiterin = zeros(300, 1);
-%             Kiterout = zeros(300, 1);
-%             itermaxdiff = zeros(300, 1);
-%             itermaxdiffloc = zeros(300, 1);
-%             itermaxrelloc = zeros(300, 1);
-%             moep = zeros(obj.nfcts, 20);
-%             blub = zeros(obj.nfcts, 20);
-%             moep(:, 1) = obj.Kininit;
-%             
-%             A = obj.facetarea;
-%             albedo = obj.albedo;
-%             vfo = obj.vfo;
-%             while true
-%                 count = count + 1;
-%                 for i = 1:obj.nfcts
-%                     Kintemp(i) = 0;
-%                     Kouttemp(i) = 0;
-%                     for j = 1:obj.nfcts %sum all the incoming radiation on i, originally reflected from all the other j facets ("radiation reflected on j" x "what perecentage does i take of j's vision")
-%                         inc = Koutold(j) * A(j) / A(i) * vfo(j,i);  %[W/m2]
-%                         storerad(i, j) = inc;
-%                         Kintemp(i) = Kintemp(i) + (1 - albedo(i)) * inc;
-%                         Kouttemp(i) = Kouttemp(i) + albedo(i) * inc;
-%                     end
-%                     obj.Kin(i) = obj.Kin(i) + Kintemp(i); %add newly absorbed radiation to already existing one
-%                     Koutnew(i) = Kouttemp(i); %save newly reflected radiation for next iteration
-%                 end
-%                 % Kiterin(count)=Kin(1);
-%                 % Kiterout(count)=Koutnew(1);
-%                 % [itermaxdiff(count),itermaxdiffloc(count)]=max(Kintemp(i));
-%                 % [~,itermaxrelloc(count)]=max(Koutnew./Koutold);
-%                 % max(Koutnew./Koutold)
-%                 % if all(Koutnew./Koutold<0.01)
-%                 %     break
-%                 % end
-%                 moep(:, count + 1) = obj.Kin;
-%                 if (max((obj.Kin - Kinold) ./ Kinold) < 0.01)
-%                     %disp(['reached relative tolerance after ' num2str(count) ' iterations'])
-%                     break
-%                 end
-%                 %    if (max(Koutnew-Koutold)<0.01 )
-%                 %        disp('reached absolute tolerance')
-%                 %        break
-%                 %    end
-%                 Kinold = obj.Kin;
-%                 Koutold = Koutnew; %overwrite reflected radiation with new value
-%             end
-%             %%
-%             %if lhqplot
-% %                 scale=2;
-% %                 scalef=1.5;
-% %                 h= figure;
-% %                 set(gcf,'units','centimeters','position',[0 0 14.5*scale 14.5*scale]);
-% %                 set(h,'PaperPosition',[0 0 14.5*scale 14.5*scale]);
-% %                 set(h,'PaperUnits','centimeters');
-% %                 set(h,'renderer','painters');
-% %                 select=140:-1:6;
-% %                 select=[1:5 select];
-% %                 hs1=subplot(1,2,1)
-% %                 hold on
-% %                 stylez={':x';':o';':d';':s';':+'};
-% %                 cm=hsv;
-% %                 colint=floor(length(cm)/5);
-% %                 for k=1:length(select)
-% %                     h=select(k);
-% %                     plot(0:1:count,moep(h,1:count+1),stylez{obj.facets(h,1)},'color',cm(1+obj.facets(h,1)*colint,:),'Linewidth',2)
-% %                 end
-% %                 xlim([0 count])
-% %                 xlabel('iteration $n$','Interpreter','latex','FontSize',18)
-% %                 ylabel('$K^{\downarrow}$ [Wm$^{-2}$]','Interpreter','latex','FontSize',18)
-% %                 xticks(0:count)
-% %                 xticklabels({'init' '1' '2' '3' '4' '5'})
-% %                 set(hs1,'TickLabelInterpreter','latex')
-% %                 set(hs1,'FontSize',12)
-% %                 hs=subplot(1,2,2);
-% %                 for r=2:count+1
-% %                     blub(:,r)=((moep(:,r)-moep(:,r-1))./moep(:,r-1));
-% %                 end
-% %                 blub(:,1)=NaN;
-% %                 hold on
-% %                 for k=1:length(select)
-% %                     h=select(k);
-% %                     plot(0:1:count,blub(h,1:count+1),stylez{obj.facets(h,1)},'color',cm(1+obj.facets(h,1)*colint,:),'Linewidth',2)
-% %                 end
-% %                 plot([0 count],[0.01 0.01],'k:','Linewidth',2)
-% %                 xlim([0 count])
-% %                 xlabel('iteration $n$','Interpreter','latex','FontSize',18)
-% %                 xticks(0:count)
-% %                 xticklabels({'init' '1' '2' '3' '4' '5'})
-% %                 ylabel('$(K^{\downarrow}_n-K^{\downarrow}_{n-1})/K^{\downarrow}_{n-1}$ [-]','Interpreter','latex','FontSize',18)
-% %                 hs.YScale='log';
-% %                 ylim([0.0001 10])
-% %                 yticklabels({'0.0001' '0.001' '0.01' '0.1' '1' '10'})
-% %                 set(hs,'TickLabelInterpreter','latex')
-% %                 set(hs,'FontSize',12)
-% %                 set(gcf, 'Color', 'w');
-% %                 legend('roof/road','west','east','north','south','Location','NorthEast')
-% %                 %export_fig rayswcov.eps
-% %             %end
-% %             
-% %             %if lhqplot
-% %                 scale=2;
-% %                 scalef=1.5;
-% %                 h= figure;
-% %                 set(gcf,'units','centimeters','position',[0 0 14.5*scale 14.5*scale]);
-% %                 set(h,'PaperPosition',[0 0 14.5*scale 14.5*scale]);
-% %                 set(h,'PaperUnits','centimeters');
-% %                 set(h,'renderer','painters');
-% %                 a=(1-obj.albedo).*obj.Sdir;
-% %                 b=(1-obj.albedo).*obj.Dsk.*obj.svf;
-% %                 plot(1:obj.nfcts,obj.Kin(sorti),'x',1:obj.nfcts, obj.Kininit(sorti),'+',1:obj.nfcts,a(sorti),'o',1:obj.nfcts,b(sorti),'d')
-% %                 legend('Total K','Initial K','Initial Sdir','Initial D')
-% %                 ax1 = gca; % current axes
-% %                 set(ax1,'Xtick',1:1:obj.nfcts)
-% %                 set(ax1,'FontSize',9)
-% %                 xticklabels(sortt)
-% %                 ax1_pos = ax1.Position; % position of first axes
-% %                 xlabel('orientation','Interpreter','latex','FontSize',12)
-% %                 ylabel('Radiation [$W/m^2$]','Interpreter','latex','FontSize',12)
-% %                 ax2 = axes('Position',ax1_pos,...
-% %                     'YAxisLocation', 'right',...
-% %                     'XAxisLocation', 'top', ...
-% %                     'Color', 'None');
-% %                 set (ax2, 'XLim', get (ax1, 'XLim'), 'Layer', 'top');
-% %                 set (ax2, 'YLim', get (ax1, 'YLim'), 'Layer', 'top');
-% %                 set(ax2,'YTickLabel','')
-% %                 set(ax2,'Xtick',1:3:obj.nfcts)
-% %                 set(ax2,'Xticklabels',sorti(1:3:obj.nfcts),'TickLabelInterpreter','latex')
-% %                 set(ax2,'FontSize',9)
-% %                 xl2=xlabel('facet index','FontSize',12);
-% %                 xl2.Position(2)=xl2.Position(2)+15;
-% %                 offset = repmat(ax2.YTick(end)+20,1,numel(ax2.XTick));
-% %                 % create new lables:
-% %                 % text(ax1.XTick(2:3:nfcts),offset,num2str(sorti(2:3:nfcts)),'HorizontalAlign','center','FontSize',9,'Interpreter','latex')
-% %                 
-% %                 offset = repmat(ax2.YTick(end)+30,1,numel(ax2.XTick)-1);
-% %                 % create new lables:
-% %                 %   text(ax1.XTick(3:3:nfcts),offset,num2str(sorti(3:3:nfcts)),'HorizontalAlign','center','FontSize',9,'Interpreter','latex')
-% %                 set(gcf, 'Color', 'w');
-% %                 %export_fig shortwaveit.eps
-% %                 
-% %                 
-% %                 scale=2;
-% %                 scalef=1.5;
-% %                 h= figure;
-% %                 set(gcf,'units','centimeters','position',[0 0 14.5*scale 14.5*scale]);
-% %                 set(h,'PaperPosition',[0 0 14.5*scale 14.5*scale]);
-% %                 set(h,'PaperUnits','centimeters');
-% %                 set(h,'renderer','painters');
-% %                 a=(1-obj.albedo).*obj.Sdir;
-% %                 b=(1-obj.albedo).*obj.Dsk.*obj.svf;
-% %                 plot(1:obj.nfcts,blub(sorti,2),'x',1:obj.nfcts,blub(sorti,3),'+',1:obj.nfcts,blub(sorti,4),'o',1:obj.nfcts,blub(sorti,5),'d',1:obj.nfcts,blub(sorti,6),'s')
-% %                 legend('Total K','Initial K','Initial Sdir','Initial D')
-% %                 ax1 = gca; % current axes
-% %                 ax1.YScale='log';
-% %                 set(ax1,'Xtick',1:1:obj.nfcts)
-% %                 set(ax1,'FontSize',9)
-% %                 xticklabels(sortt)
-% %                 ax1_pos = ax1.Position; % position of first axes
-% %                 xlabel('orientation','Interpreter','latex','FontSize',12)
-% %                 ylabel('Radiation [$W/m^2$]','Interpreter','latex','FontSize',12)
-% %                 ax2 = axes('Position',ax1_pos,...
-% %                     'YAxisLocation', 'right',...
-% %                     'XAxisLocation', 'top', ...
-% %                     'Color', 'None');
-% %                 set (ax2, 'XLim', get (ax1, 'XLim'), 'Layer', 'top');
-% %                 set (ax2, 'YLim', get (ax1, 'YLim'), 'Layer', 'top');
-% %                 set(ax2,'YTickLabel','')
-% %                 %set(ax2,'Xtick',1:3:nfcts)
-% %                 %set(ax2,'Xticklabels',sorti(1:3:nfcts),'TickLabelInterpreter','latex')
-% %                 set(ax2,'Xticklabels','','TickLabelInterpreter','latex')
-% %                 set(ax2,'FontSize',9)
-% %                 xl2=xlabel('facet index','FontSize',12);
-% %                 xl2.Position(2)=xl2.Position(2)+15;
-% %                 offset = repmat(ax2.YTick(end)+20,1,numel(ax2.XTick));
-% %                 % create new lables:
-% %                 % text(ax1.XTick(2:3:nfcts),offset,num2str(sorti(2:3:nfcts)),'HorizontalAlign','center','FontSize',9,'Interpreter','latex')
-% %                 
-% %                 offset = repmat(ax2.YTick(end)+30,1,numel(ax2.XTick)-1);
-% %                 % create new lables:
-% %                 %   text(ax1.XTick(3:3:nfcts),offset,num2str(sorti(3:3:nfcts)),'HorizontalAlign','center','FontSize',9,'Interpreter','latex')
-% %                 set(gcf, 'Color', 'w');
-% %                 %export_fig shortwaveit2.eps
-% %                 
-% %                 % ax3 = axes('Position',ax1_pos,...
-% %                 %     'YAxisLocation', 'right',...
-% %                 %     'XAxisLocation', 'top', ...
-% %                 %     'Color', 'None');
-% %                 % set (ax3, 'XLim', get (ax1, 'XLim'), 'Layer', 'top');
-% %                 % set (ax3, 'YLim', get (ax1, 'YLim'), 'Layer', 'top');
-% %                 % ax3.YTickLabel='';
-% %                 % ax3.YTick=''
-% %                 % set(ax3,'Xtick',2:2:nfcts)
-% %                 % set(ax3,'Xticklabels',sorti(2:2:nfcts))
-% %                 % set(ax3,'FontSize',8)
-% %                 % box(ax3(1),'off')
-% %                 % ax3.TickLength=[0;0]
-% %                 %ax3.Position(4)=ax3.Position(4)*1.02;
-% %                 
-% %                 
-% %                 
-% %                 
-% %                 
-% %                 figure
-% %                 plot(obj.Kin(sorti)./obj.Kininit(sorti))
-% %                 ax1 = gca; % current axes
-% %                 set(ax1,'Xtick',1:1:obj.nfcts)
-% %                 xticklabels(sortt)
-% %                 ax1_pos = ax1.Position; % position of first axes
-% %                 xlabel('orientation')
-% %                 ylabel('K/Kinit')
-% %                 ax2 = axes('Position',ax1_pos,...
-% %                     'YAxisLocation', 'right',...
-% %                     'XAxisLocation', 'top', ...
-% %                     'Color', 'None');
-% %                 set (ax2, 'XLim', get (ax1, 'XLim'), 'Layer', 'top');
-% %                 set (ax2, 'YLim', get (ax1, 'YLim'), 'Layer', 'top');
-% %                 set(ax2,'Xtick',1:1:obj.nfcts)
-% %                 set(ax2,'Xticklabels',sorti)
-% %                 set(ax2,'FontSize',8)
-% %                 xlabel('facet index')
-% %                 
-% %                 figure
-% %                 plot(obj.Kin(sorti)-obj.Kininit(sorti))
-% %                 ax1 = gca; % current axes
-% %                 set(ax1,'Xtick',1:1:obj.nfcts)
-% %                 xticklabels(sortt)
-% %                 ax1_pos = ax1.Position; % position of first axes
-% %                 xlabel('orientation')
-% %                 ylabel('K-Kinit')
-% %                 ax2 = axes('Position',ax1_pos,...
-% %                     'YAxisLocation', 'right',...
-% %                     'XAxisLocation', 'top', ...
-% %                     'Color', 'None');
-% %                 set (ax2, 'XLim', get (ax1, 'XLim'), 'Layer', 'top');
-% %                 set (ax2, 'YLim', get (ax1, 'YLim'), 'Layer', 'top');
-% %                 set(ax2,'Xtick',1:1:obj.nfcts)
-% %                 set(ax2,'Xticklabels',sorti)
-% %                 set(ax2,'FontSize',8)
-% %                 xlabel('facet index')
-% %                 
-%             %end
-%         end
-
-        function rayit(obj)
-            facets = obj.facets;
-            walltypes = obj.walltypes;
-             function [fct, wall] = loadfacets()
-                %M = dlmread(['facets.inp.' num2str(expnr)],'',1,0);
-                vars = {'or', 'wlid', 'blk', 'bld'};
-                for n = 1:length(vars)
-                    fct.(vars{n}) = facets(:, n);
-                end
-                
-                %disp(obj.walltypes)
-                %M = dlmread(['walltypes.inp.', obj.expnr],'',3,0);
-                %disp(M)
-                % wallid  lGR   z0 [m]     z0h [m]     al [-]   em [-]   d1 [m]  d2 [m]    cp1 [J/kgK]  cp2 [J/kgK]   l1 [W/(m K)]  l2 [W/(m K)]    k1 [W/(m K)]    k1 [W/(m K)]
-                vars = {'id','lGR','z0','z0h','al', 'em', 'd1', 'd2', 'cp1', 'cp2', 'l1', 'l2', 'k1', 'k2'};
-                for n = 1:length(vars)
-                    wall.(vars{n}) = walltypes(:, n);
-                end
-                
-                % check whether all referenced wall ids have been defined
-                idref = unique(fct.wlid);
-                iddef = unique(wall.id');
-                
-                if length(wall.id) > length(iddef)
-                    disp('ERROR: multiple definitions of a wall id')
-                    return
-                end
-                if length(idref) > length(iddef)
-                    disp('ERROR: more walltypes used than defined')
-                    return
-                end
-                
-                
-                % assign the wall type to each of the facets -- this way it is easy to know
-                % in which structure the proporties can be found.
-                fct.wltp = zeros(size(fct.or));
-                
-                for m = 1:size(fct.wlid, 1)
-                    if fct.wlid(m) >= 0 && fct.wlid(m) <= 10 && any(ismember(iddef, fct.wlid(m)))
-                        fct.wltp(n) = 1; %normal
-                    elseif fct.wlid(m) > 10 && any(ismember(iddef, fct.wlid(m)))
-                        fct.wltp(n) = 2; %Green roof
-                    elseif fct.wlid(m) < 0 && any(ismember(iddef, fct.wlid(m)))
-                        if fct.wlid(m) <= -99
-                            fct.wltp(n) = 3; %bounding wall
-                        else
-                            fct.wltp(n) = 4; %floor
-                        end
-                    else
-                        disp(['ERROR: walltype of facet ',num2str(m),' not defined'])
-                    end
-                end
-                
-                
-                for n = 1:length(idref)
-                    if (ismember(idref(n), wall.id))
-                        fct.wltp(fct.wlid == idref(n)) = 1;
-                    elseif (ismember(idref(n), gr.id))
-                        fct.wltp(fct.wlid == idref(n)) = 2;
-                    else
-                        sprintf('ERROR. wall id %8d not defined. Correct wall and greenroof property input files', idref(n))
-                        return
-                    end
-                end
-            end
-            
-            
-        %facets = obj.facets;    
-        [fct, wall] = loadfacets();
-        
-        
-        
-        %[sortt, sorti]=sort(facets(:,1));  %sort by walltype
-        
-        %% shortwave
-        %
-        
-        %Z=35;          %zenith angle of the sun (could be function of time, location etc)
-        %Dsky=zeros(obj.nfcts,1);
-        %Denv=zeros(nfcts,1);
-        nfcts = obj.nfcts;
-        albedo=zeros(nfcts,1);
-        emissivity=zeros(nfcts,1);
-        Sdir = obj.Sdir;
-        Dsk = obj.Dsk;
-        svf = obj.svf;
-        
-        for i=1:nfcts
-            j=find(fct.wlid(i)==wall.id);
-            albedo(i)=wall.al(j);
-            emissivity(i)=wall.em(j);
-        end
-        da_pp.addvar(obj, 'emissivity', emissivity);
-        
-        %isroof
-        isnotroof=ones(nfcts,1);
-        isnotroof(find(facets(:,1)==1 & facets(:,4)>0))=0;
-        
-        %diffuse flux from sky and other walls
-        Kinnew=zeros(nfcts,1);
-        
-        Kininit=(1-albedo).*(Sdir+Dsk.*svf);
-        Koutinit=albedo.*(Sdir+Dsk.*svf);
-        
-        %     if ltestplot
-        %         figure
-        %         a=(1-albedo).*Sdir;
-        %         b=(1-albedo).*Dsk.*svf;
-        %         plot(1:nfcts,a(sorti),1:nfcts,b(sorti))
-        %         ax1 = gca; % current axes
-        %         set(ax1,'Xtick',1:1:nfcts)
-        %         xticklabels(sortt)
-        %         ax1_pos = ax1.Position; % position of first axes
-        %         xlabel('orientation')
-        %         ylabel('S and D')
-        %         ax2 = axes('Position',ax1_pos,...
-        %             'YAxisLocation', 'right',...
-        %             'XAxisLocation', 'top', ...
-        %             'Color', 'None');
-        %         set (ax2, 'XLim', get (ax1, 'XLim'), 'Layer', 'top');
-        %         set (ax2, 'YLim', get (ax1, 'YLim'), 'Layer', 'top');
-        %         set(ax2,'Xtick',1:1:nfcts)
-        %         set(ax2,'Xticklabels',sorti)
-        %         set(ax2,'FontSize',8)
-        %         xlabel('facet index')
-        %     end
-        
-        %total radiation absorbed and reflected
-        sum(Kininit+Koutinit);
-        %total radiation absorbed
-        sum(Kininit);
-        %total radiation reflected
-        sum(Koutinit);
-        
-        
-        
-        totincrease=zeros(10,1);
-        increase=zeros(10,1);
-        Kout=zeros(10,1);
-        Kout(2)=sum(Koutinit);
-        
-        
-        Kin=Kininit; %Kin §adds up
-        Kinold=Kininit;
-        Koutold=Koutinit; %Kout is wiped clean with every reflection
-        Koutnew=zeros(nfcts,1);
-        Kintemp=zeros(nfcts,1);
-        Kouttemp=zeros(nfcts,1);
-        count=0;
-        storerad=zeros(nfcts,nfcts);
-        Kiterin=zeros(300,1);
-        Kiterout=zeros(300,1);
-        itermaxdiff=zeros(300,1);
-        itermaxdiffloc=zeros(300,1);
-        itermaxrelloc=zeros(300,1);
-        moep=zeros(nfcts,20);
-        blub=zeros(nfcts,20);
-        moep(:,1)=Kininit;
-        
-        A = obj.facetarea;
-        vf = obj.vf;
-        while true
-            count=count+1;
-            for i=1:nfcts
-                Kintemp(i)=0;
-                Kouttemp(i)=0;
-                for j=1:nfcts %sum all the incoming radiation on i, originally reflected from all the other j facets ("radiation reflected on j" x "what perecentage does i take of j's vision")
-                    inc=Koutold(j)*A(j)/A(i)*vf(j,i);  %[W/m2]
-                    storerad(i,j)=inc;
-                    Kintemp(i)=Kintemp(i)+(1-albedo(i))*inc;
-                    Kouttemp(i)=Kouttemp(i)+albedo(i)*inc;
-                end
-                Kin(i)=Kin(i)+Kintemp(i); %add newly absorbed radiation to already existing one
-                Koutnew(i)=Kouttemp(i); %save newly reflected radiation for next iteration
-            end
-            % Kiterin(count)=Kin(1);
-            % Kiterout(count)=Koutnew(1);
-            % [itermaxdiff(count),itermaxdiffloc(count)]=max(Kintemp(i));
-            % [~,itermaxrelloc(count)]=max(Koutnew./Koutold);
-            % max(Koutnew./Koutold)
-            % if all(Koutnew./Koutold<0.01)
-            %     break
-            % end
-            moep(:,count+1)=Kin;
-            if (max((Kin-Kinold)./Kinold)<0.01)
-                disp(['reached relative tolerance after ' num2str(count) ' iterations'])
-                break
-            end
-            %    if (max(Koutnew-Koutold)<0.01 )
-            %        disp('reached absolute tolerance')
-            %        break
-            %    end
-            Kinold=Kin;
-            Koutold=Koutnew; %overwrite reflected radiation with new value
-        end
-    
-        da_pp.addvar(obj, 'Kin', Kin);
-        end
-        
-        
-        function write_netsw(obj)
-            fname = ['netsw.inp.' obj.expnr];
-            fileID = fopen(fname, 'w');
-            fprintf(fileID,'# %4s\n','net shortwave on facets [W/m2] (including reflections and diffusive)');
-            fprintf(fileID,'%6d\n', obj.Kin);
-            fclose(fileID);   
-        end
-        
-        
-        function generate_Tfacinit(obj, iss)
-            %% Inital Temperature and longwave
-            %solve energy budget equation in an initial steady state
-            %assume 0 wall heatflux
-            %assume 0 latent heatflux
-            %assume constant air temperature and heat transfer coefficient
-            %assume constant longwave
-            %solve for Tinit and Linit
-            %assume absorbtivity is equal to emissivity
-            %=>
-            %K+L=H
-            if iss
-                nfcts = obj.nfcts;
-                
-                Tair = 300;  %K, air temperature
-                Tinitial = 300; %K, initial facet temperature
-                
-                % Tinc=1*ones(nfcts,1); %incremental temperature change of facets if not in equilibrium
-                % tolerance=2.5;  %W/m2, if below this threshold, change will be made to facet temperature
-                
-                Tinc = 2 * ones(nfcts, 1); %incremental temperature change of facets if not in equilibrium
-                tolerance = 2.5 * Tinc(1);  %W/m2, if below this threshold, change will be made to facet temperature
-                %the two are somewhat related, an increase of 1K will result in a longwave
-                %change of approximately 5W/m2, e.g.:
-                %if we are 4.56K off we correct approximately  (1-5/22.8)*2 = 1.5616
-                %now we are 3K off and correct approximately for (1-5/15)*2 = 1.3333
-                %now we are 1.6666 off and we correct for 0.8 (had we corrected for 2 at
-                %this step, we would have overshot and the solution would oscilate)
-                %now we are satisfied at 0.866 off which is less than 1degree
-                %if for any
-                
-                
-                Tterminate = 0; %Terminate if the absolute temperature change between iterations is equal or below this value
-                %somewhat redundant since this basically means all the facets are within the tolerance
-                
-                vf = obj.vf;
-                svf = obj.svf;
-                facetarea = obj.facetarea;
-                Kin = obj.Kin;
-                emissivity = obj.emissivity;
-                absorptivity = obj.emissivity;
-                sigma = 5.67e-8;
-                Lsk = 350;
-                hc = 0;  %(rho*cp)/R    ~(1.2*1000)/100=12   R~100
-                
-                Tinit = ones(nfcts, 1) * Tinitial;
-                Lsky = Lsk .* svf;
-                
-                %Loutinit=emissivity.*sigma.*Tinit.^4;
-                Told = Tinit;
-                Tnew = zeros(nfcts, 100);
-                Lin = zeros(nfcts, 1);
-                %b
-                k = 0;
-                while true  %what happens to the reflected longwave? i.e. (1-absorptivity)*Lin
-                    %for k=1:10
-                    %count=count+1;
-                    k = k + 1;
-                    %maxchange=0;
-                    change = 0;
-                    Lin(:) = 0;
-                    for i = 1:nfcts
-                        for j = 1:nfcts %sum all the incoming radiation on i, originally reflected from all the other j facets ("radiation reflected on j" x "what perecentage does i take of j's vision")
-                            inc = Told(j)^4 * emissivity(j) * sigma * vf(j, i) * facetarea(j) / facetarea(i);
-                            Lin(i) = Lin(i) + inc;
-                        end
-                        
-                        %calculate energy balance
-                        eb = Kin(i) + absorptivity(i) * (Lin(i) + Lsky(i)) - hc * (Told(i) - Tair) - emissivity(i) * sigma * Told(i)^4;
-                        
-                        if eb < -tolerance %if energy balance is negative, facet is too hot
-                            
-                            Tnew(i,k) = Told(i) - Tinc(i) * (1 + tolerance / eb); %remove incremental temperature, scale by deviation from accepted tolerance in W/m2
-                            
-                        elseif eb > tolerance
-                            Tnew(i, k) = Told(i) + Tinc(i) * (1 - tolerance / eb);
-                        else %do nothing, within tolerance
-                            Tnew(i, k) = Told(i);
-                        end
-                        
-                        % maxchange=max(maxchange,abs(Tnew(i,k)-Told(i)));
-                        change = change + abs(Tnew(i, k) - Told(i));
-                        
-                    end
-                    
-                    Told = Tnew(:,k);
-                    %plot(1:nfcts,Tnew(:,k),'-x')
-                    
-                    if change <= Tterminate %maxchange<=Tterminate
-                        break
-                    elseif k > 99
-                        break
-                    end
-                end
-            
-            
-                da_pp.addvar(obj, 'Tfacinit', Tnew(:, k));
-                        
-            else 
-                da_pp.addvar(obj, 'Tfacinit', 288 * ones(obj.nfcts, 1));
-            end
-%             if ltestplot
-%                 figure
-%                 hold on
-%                 plot(Tnew(sorti,k)-Tinit(sorti),'r-x')
-%                 plot(blub(sorti,k)-Tinit(sorti),'b-x')
-%                 xlabel('facet NR')
-%                 ylabel('T_{end}-T_{init}')
-%                 ax1 = gca; % current axes
-%                 set(ax1,'Xtick',1:1:nfcts)
-%                 xticklabels(sortt)
-%                 ax1_pos = ax1.Position; % position of first axes
-%                 xlabel('orientation')
-%                 ylabel('T_{new}-T_{init}')
-%                 ax2 = axes('Position',ax1_pos,...
-%                     'YAxisLocation', 'right',...
-%                     'XAxisLocation', 'top', ...
-%                     'Color', 'None');
-%                 set (ax2, 'XLim', get (ax1, 'XLim'), 'Layer', 'top');
-%                 set (ax2, 'YLim', get (ax1, 'YLim'), 'Layer', 'top');
-%                 set(ax2,'Xtick',1:1:nfcts)
-%                 set(ax2,'Xticklabels',sorti)
-%                 set(ax2,'FontSize',8)
-%                 xlabel('facet index')
-%                 
-%                 
-%                 
-%                 figure
-%                 hold on
-%                 plot(Tnew(15,1:k),'-x')
-%                 plot(Tnew(41,1:k),'-x')
-%                 plot(Tnew(51,1:k),'-x')
-%                 plot(Tnew(58,1:k),'-x')
-%                 plot(Tnew(68,1:k),'-x')
-%                 xlabel('iteration')
-%                 ylabel('facet temperature')
-%                 legend('15','41','51','58','68')
-%             end        
-        end
-        
-        function write_Tfacinit(obj)
-            fname = ['Tfacinit.inp.', obj.expnr];
-            fileID = fopen(fname, 'W');
-            fprintf(fileID, '# Initial facet tempereatures in radiative equilibrium\n');
-            fclose(fileID);
-            dlmwrite(fname, obj.Tfacinit, '-append','delimiter',' ','precision','%4f')
-            
-%             fname = ['Tfacinitnudged.inp.' obj.expnr];
-%             fileID = fopen(fname, 'W');
-%             fprintf(fileID, '# Initial facet tempereatures in radiative equilibrium nudged to 288\n');
-%             fclose(fileID);
-%             blub = Tnew(Tnew > 0);
-%             blublub = mean(blub(:));
-%             blub = Tnew - (Tnew - blublub) * 0.5;
-%             blub(Tnew == 0) = 0;
-%             dlmwrite(fname, blub, '-append', 'delimiter',' ','precision','%4f')
-        end
-        
                
-        function write_blocks(obj)
-            blocks = fopen( ['blocks.inp.' obj.expnr], 'w');
-            fprintf(blocks, '# Block data\n');
-            fprintf(blocks, '#  il\t   iu\t   jl\t   ju\t   kl\t   ku\t dtop\t dwest\t deast\t dnor\t dsou\n');
-            fprintf(blocks, '%4d\t%4d\t%4d\t%4d\t%4d\t%4d\t%4d\t%4d\t%4d\t%4d\t%4d\n', obj.blocks');
-            fclose(blocks);
-            %disp(['... written blocks.inp.' obj.expnr])
-        end
-        
-        function write_facets(obj)
-            fname = ['facets.inp.' num2str(obj.expnr)];
-            fileID = fopen(fname,'w');
-            fprintf(fileID,'# %4s %6s %6s %6s\n','or', 'wl', 'blk', 'bld');
-            fprintf(fileID,'%6d %6d %6d %6d\n', obj.facets(:, 1:4)');
-            fclose(fileID); 
-        end
-        
-        function generate_trees(obj, lwritefile)
-            da_pp.addvar(obj, 'nrows', obj.imax / (obj.blockwidth + obj.canyonwidth));
-            if obj.lcanyons
-                if obj.ltrees
-                   % Implement trees - haven't done so far because in
-                   % da_inp, xh is being changed.
-                   da_pp.addvar(obj, 'trees', zeros(obj.nrows, 6));
-                end
-            end
-            
-            if lwritefile
-                if obj.ltrees
-                    da_pp.write_trees(obj)
-                end
-            end
-        end
-        
-        function write_trees(obj)
-            tree_write = fopen( ['trees.inp.' obj.expnr], 'w');
-            fprintf(tree_write, '%-12s\n', '# Tree location');
-            fprintf(tree_write, '%-60s\n', '#  il  iu  jl  ju  kl  ku');
-            fprintf(tree_write, '%-3.0f %-3.0f %-3.0f %-3.0f %-3.0f %-3.0f\n', obj.trees');
-            fclose(tree_write);
-            %disp(['... written trees.inp.' obj.expnr]) 
-        end
-        
-        function generate_purifs(obj)
-            % Uses obj.bl, so should be run after having run
-            % generate_blocks (or reading in a blocks file)
-            da_pp.addvar(obj, 'nrows', obj.imax / (obj.blockwidth + obj.canyonwidth));
-            if obj.lcanyons
-                if obj.lpurif
-                    %purifs = zeros(obj.nrows * 2 * obj.npurif, 7);
-                    da_pp.addvar(obj, 'purifs', zeros(obj.nrows * 2 * obj.npurif, 7));
-                    for i = 1:obj.nrows
-                        for j = 1:obj.npurif
-                            obj.purifs((i - 1) * obj.npurif + j,1) = obj.bl(obj.nrows + i, 2) - obj.purif_dx - obj.purif_w;
-                            obj.purifs((i - 1) * obj.npurif + j,2) = obj.bl(nrows+i,2) - obj.purif_dx;
-                            if j==1
-                                %obj.purifs((i - 1) * obj.npurif + j, 3) = ((je/npurif)/2);
-                                obj.purifs((i - 1) * obj.npurif + j, 3) = ((obj.jtot / obj. npurif) / 2);
-                                obj.purifs((i - 1) * obj.npurif + j, 4) = obj.purifs((i - 1) * obj.npurif + j, 3) + obj.purif_dy;
-                            else
-                                obj.purifs((i - 1) * obj.npurif + j, 3) = obj.purifs((i - 1) * obj.npurif + j - 1, 3) + obj.purif_dy + obj.purif_sp;
-                                obj.purifs((i - 1) * obj.npurif + j, 4) = obj.purifs((i - 1) * obj.npurif + j - 1, 4) + obj.purif_dy + obj.purif_sp;
-                            end
-                        end
-                    end
-                    for i = 1:obj.nrows
-                        for j = 1:obj.npurif
-                            obj.purifs(obj.nrows * obj.npurif + (i - 1) * obj.npurif + j,1) =  obj.bl(obj.nrows + 1 + i, 1) + obj.purif_dx;
-                            obj.purifs(obj.nrows * obj.npurif + (i - 1) * obj.npurif + j,2) =  obj.bl(obj.nrows + 1 + i, 1) + obj.purif_dx + obj.purif_w;
-                            if j == 1
-                                obj.purifs(obj.nrows * obj.npurif + (i - 1) * obj.npurif + j, 3) = ((obj.tot / obj.npurif) / 2);
-                                obj.purifs(obj.nrows * obj.npurif + (i - 1) * obj.npurif + j, 4) = obj.purifs(( i - 1) * obj.npurif + j, 3) + obj.purif_dy;
-                            else
-                                obj.purifs(obj.nrows * obj.npurif + (i - 1) * obj.npurif + j, 3) = obj.purifs((i - 1) * obj.npurif + j - 1, 3) + obj.purif_dy + obj.purif_sp;
-                                obj.purifs(obj.nrows * obj.npurif + (i - 1) * obj.npurif + j, 4) = obj.purifs((i - 1) * obj.npurif + j - 1, 4) + obj.purif_dy + obj.purif_sp;
-                            end
-                        end
-                    end
-
-                    obj.purifs(:,5) = obj.purif_dz;
-                    obj.purifs(:,6) = obj.purif_dz + obj.purif_h;
-                    obj.purifs(:,7) = obj.purif_i;
-                end
-            end
-            
-            if lwritefile
-                if obj.lpurif
-                    da_pp.write_purifs(obj)
-                end
-            end
-        end
-        
-        function write_purifs(obj)
-            purif_write = fopen( ['purifs.inp.' obj.expnr], 'w');
-            fprintf(purif_write, '%-12s\n', '# Purifier location');
-            fprintf(purif_write, '%-60s\n', '#  il  iu  jl  ju  kl  ku  ipu');
-            fprintf(purif_write, '%-3.0f %-3.0f %-3.0f %-3.0f %-3.0f %-3.0f %-3.0f\n', obj.purifs');
-            fclose(purif_write);
-            %disp(['... written purifs.inp.' obj.expnr]) 
-        end
-        
-        function plot_domain(obj)
-            figure
-            view(52, 23)
-            if (obj.lcastro || obj.lcube || obj.lcanyons)
-                for i = 1:size(obj.bl, 1)
-                    patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1)  obj.xh(obj.bl(i,1))], [obj.yh(obj.bl(i,3))  obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1)], [obj.zh(obj.bl(i,6)+1)  obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1)], [245 245 245] ./ 255)
-                    patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) ], [obj.yh(obj.bl(i,3))  obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3))], [obj.bl(i,5)  obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.bl(i,5)], [245 245 245] ./ 255)
-                    patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) ], [obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1)], [obj.bl(i,5)  obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.bl(i,5)], [245 245 245] ./ 255)
-                    patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) ], [obj.yh(obj.bl(i,4)+1)  obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3))], [obj.bl(i,5)  obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.bl(i,5)], [245 245 245] ./ 255)
-                    patch([obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) ], [obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1)], [obj.bl(i,5)  obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.bl(i,5)], [245 245 245] ./ 255)
-                    % patch([xh(1) xh(end) xh(end)  xh(1)], [yh(1)  yh(1) yh(end) yh(end)], [zh(1)  zh(1) zh(1) zh(1)], [245 245 245] ./ 255)
-                end
-
-            elseif obj.lflat
-
-            else
-                for i = 1:size(obj.bl, 1)
-                    patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,1))], [obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1)], [obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1)], 'w')
-                    patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) ], [obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3))], [obj.bl(i,5) obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.bl(i,5)], 'w')
-                    patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) ], [obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1)], [obj.bl(i,5) obj.zh(bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.bl(i,5)], 'w')
-                    patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1))], [obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3))], [obj.bl(i,5) obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.bl(i,5)], 'w')
-                    patch([obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) ], [obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1)], [obj.bl(i,5) obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.bl(i,5)], 'w')
-                end
-            end
-
-            if obj.ltrees
-                for i = 1:size(obj.trees,1)
-                    patch([obj.xh(obj.trees(i,1)) obj.xh(obj.trees(i,2)+1) obj.xh(obj.trees(i,2)+1)  obj.xh(obj.trees(i,1))], [obj.yh(obj.trees(i,3)) obj.yh(obj.trees(i,3)) obj.yh(obj.trees(i,4)+1) obj.yh(obj.trees(i,4)+1)], [obj.zh(obj.trees(i,6)+1) obj.zh(obj.trees(i,6)+1) obj.zh(obj.trees(i,6)+1) obj.zh(obj.trees(i,6)+1)], [128 229 78] ./ 255)
-                    patch([obj.xh(obj.trees(i,1)) obj.xh(obj.trees(i,1)) obj.xh(obj.trees(i,2)+1) obj.xh(obj.trees(i,2)+1) ], [obj.yh(obj.trees(i,3)) obj.yh(obj.trees(i,3)) obj.yh(obj.trees(i,3)) obj.yh(obj.trees(i,3))], [obj.zh(obj.trees(i,5)) obj.zh(obj.trees(i,6)+1) obj.zh(obj.trees(i,6)+1) obj.zh(obj.trees(i,5))], [128 229 78] ./ 255)
-                    patch([obj.xh(obj.trees(i,1)) obj.xh(obj.trees(i,1)) obj.xh(obj.trees(i,2)+1) obj.xh(obj.trees(i,2)+1) ], [obj.yh(obj.trees(i,4)+1) obj.yh(obj.trees(i,4)+1) obj.yh(obj.trees(i,4)+1) obj.yh(obj.trees(i,4)+1)], [obj.zh(obj.trees(i,5)) obj.zh(obj.trees(i,6)+1) obj.zh(obj.trees(i,6)+1) obj.zh(obj.trees(i,5))],[128 229 78] ./ 255 )
-                    patch([obj.xh(obj.trees(i,1)) obj.xh(obj.trees(i,1)) obj.xh(trees(i,1)) obj.xh(trees(i,1)) ], [obj.yh(obj.trees(i,4)+1) obj.yh(obj.trees(i,4)+1) obj.yh(obj.trees(i,3)) obj.yh(obj.trees(i,3))], [obj.zh(obj.trees(i,5)) obj.zh(obj.trees(i,6)+1) obj.zh(obj.trees(i,6)+1) obj.zh(obj.trees(i,5))],[128 229 78] ./ 255 )
-                    patch([obj.xh(obj.trees(i,2)+1) obj.xh(obj.trees(i,2)+1) obj.xh(obj.trees(i,2)+1) obj.xh(obj.trees(i,2)+1)], [obj.yh(obj.trees(i,3)) obj.yh(obj.trees(i,3)) obj.yh(obj.trees(i,4)+1) obj.yh(obj.trees(i,4)+1)], [obj.zh(obj.trees(i,5)) obj.zh(obj.trees(i,6)+1) obj.zh(obj.trees(i,6)+1) obj.zh(obj.trees(i,5))], [128 229 78] ./ 255)
-
-                end
-            end
-
-            if obj.lpurif
-                for i = 1:size(obj.purifs,1)
-                    patch([obj.xh(obj.purifs(i,1)) obj.xh(obj.purifs(i,2)+1) obj.xh(obj.purifs(i,2)+1) obj.xh(obj.purifs(i,1))], [obj.yh(obj.purifs(i,3)) obj.yh(obj.purifs(i,3)) obj.yh(obj.purifs(i,4)+1) obj.yh(obj.purifs(i,4)+1)], [obj.zh(obj.purifs(i,6)+1) obj.zh(obj.purifs(i,6)+1) obj.zh(obj.purifs(i,6)+1) obj.zh(obj.purifs(i,6)+1)], [245 245 245] ./ 255)
-                    patch([obj.xh(obj.purifs(i,1)) obj.xh(obj.purifs(i,1)) obj.xh(obj.purifs(i,2)+1) obj.xh(obj.purifs(i,2)+1)], [obj.yh(obj.purifs(i,3)) obj.yh(obj.purifs(i,3)) obj.yh(purifs(i,3)) obj.yh(obj.purifs(i,3))], [obj.zh(obj.purifs(i,5)) obj.zh(obj.purifs(i,6)+1) obj.zh(obj.purifs(i,6)+1) obj.zh(obj.purifs(i,5))], [245 245 245] ./ 255)
-                    patch([obj.xh(obj.purifs(i,1)) obj.xh(obj.purifs(i,1)) obj.xh(obj.purifs(i,2)+1) obj.xh(obj.purifs(i,2)+1)], [obj.yh(obj.purifs(i,4)+1) obj.yh(obj.purifs(i,4)+1) obj.yh(obj.purifs(i,4)+1) obj.yh(obj.purifs(i,4)+1)], [obj.zh(obj.purifs(i,5)) obj.zh(obj.purifs(i,6)+1) obj.zh(obj.purifs(i,6)+1) obj.zh(obj.purifs(i,5))], [245 245 245] ./ 255)
-                    patch([obj.xh(obj.purifs(i,1)) obj.xh(obj.purifs(i,1)) obj.xh(obj.purifs(i,1)) obj.xh(obj.purifs(i,1))], [obj.yh(obj.purifs(i,4)+1) obj.yh(obj.purifs(i,4)+1) obj.yh(obj.purifs(i,3)) obj.yh(obj.purifs(i,3))], [obj.zh(obj.purifs(i,5)) obj.zh(obj.purifs(i,6)+1) obj.zh(obj.purifs(i,6)+1) obj.zh(obj.purifs(i,5))], [245 245 245] ./ 255)
-                    patch([obj.xh(obj.purifs(i,2)+1) obj.xh(obj.purifs(i,2)+1) obj.xh(obj.purifs(i,2)+1) obj.xh(obj.purifs(i,2)+1)], [obj.yh(obj.purifs(i,3)) obj.yh(obj.purifs(i,3)) obj.yh(obj.purifs(i,4)+1) obj.yh(obj.purifs(i,4)+1)], [obj.zh(obj.purifs(i,5)) obj.zh(obj.purifs(i,6)+1) obj.zh(obj.purifs(i,6)+1) obj.zh(obj.purifs(i,5))], [245 245 245] ./ 255)
-
-                end
-            end
-
-            zlim([0 obj.zh(end)]); %/(r.blockheight-1))
-            xlim([0 obj.xh(end)]); %/(r.blockheight-1))
-            ylim([0 obj.yh(end)]); %/(r.blockheight-1))
-
-            set(gca,'ticklabelinterpreter','latex')
-            xlabel('x [m]','interpreter','latex')
-            ylabel('y [m]','interpreter','latex')
-            zlabel('z [m]','interpreter','latex')
-            set(gca,'BoxStyle','full','Box','on')
-            daspect([1 1 1])
-        end     
-    end
-    
-    methods (Static, Access = protected)
-        
-        function data = loadvar(filename, svar)
-            
-            % Load netcdf data.
-            % loadvar(filename, svar)
-            %
-            % filename : Name of file (string).
-            % svar     : Variable name (string).
-            %
-            % data     : Array of doubles.
-            
-            data = [];
-            ncid = netcdf.open(filename,'NC_NOWRITE');
-            [~, nvars] = netcdf.inq(ncid);
-            found = false;
-            for n=0:nvars-1
-                if (strcmp(netcdf.inqVar(ncid,n),svar))
-                    data = netcdf.getVar(ncid,n);
-                    found = true;
-                end
-            end
-            netcdf.close(ncid);
-            
-            if (~found)
-                disp(['variable ', svar, ' not found!']);
-            end
-        end
-        
         function [ prcntgblckd ] = prblckd(i,j,coa,ndima,sun,v1,cob,ndimb,facets,centerweight,cornerweight,nblocks,nbw,bl)
             %prcntgblckd     = percentage of view blocked
             %i               = index of facet 1

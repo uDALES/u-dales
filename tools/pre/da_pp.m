@@ -129,44 +129,44 @@ classdef da_pp < dynamicprops
             da_pp.addvar(obj, 'ltrees', 0) % switch for trees (not implemented)
             if obj.ltrees
                 error('Trees not currently implemented')
-                da_pp.addvar(obj, 'tree_dz',0)
-                da_pp.addvar(obj, 'tree_dx',0)
-                da_pp.addvar(obj, 'tree_h',0)
-                da_pp.addvar(obj, 'tree_w',0)
-                da_pp.addvar(obj, 'tree_b',0)
-
-                da_pp.addvar(obj, 'nt1',0)
-                da_pp.addvar(obj, 'md',0)
-                da_pp.addvar(obj, 'ww',0)
-                da_pp.addvar(obj, 'lw',0)
-                da_pp.addvar(obj, 'nt2',0)
+%                 da_pp.addvar(obj, 'tree_dz',0)
+%                 da_pp.addvar(obj, 'tree_dx',0)
+%                 da_pp.addvar(obj, 'tree_h',0)
+%                 da_pp.addvar(obj, 'tree_w',0)
+%                 da_pp.addvar(obj, 'tree_b',0)
+% 
+%                 da_pp.addvar(obj, 'nt1',0)
+%                 da_pp.addvar(obj, 'md',0)
+%                 da_pp.addvar(obj, 'ww',0)
+%                 da_pp.addvar(obj, 'lw',0)
+%                 da_pp.addvar(obj, 'nt2',0)
             end
               
             da_pp.addvar(obj, 'lpurif', 0) % switch for purifiers (not implemented)
             if obj.lpurif
                 error('Purifiers not currently implemented')
-                if obj.lcanyons
-                    da_pp.addvar(obj, 'purif_dz', 1)  % purifier starting point from bottom
-                    da_pp.addvar(obj, 'purif_dx', 3)  % distance from block
-                    da_pp.addvar(obj, 'purif_h', 3)   % purifier height
-                    da_pp.addvar(obj, 'purif_w', 0)   % purifier width
-                    da_pp.addvar(obj, 'purif_dy', 1)  % depth of purifier (in y)
-                    da_pp.addvar(obj, 'purif_sp', 31) % spacing between purifiers
-                    da_pp.addvar(obj, 'purif_i', 1)   % case for purifier (1 = +ve x, 2 = -ve x, 3 = +ve y etc.)
-                    da_pp.addvar(obj, 'npurif', obj.jtot / (obj.npurif_dy + obj.purif_sp))
-
-                    if ceil(npurif) ~= floor(npurif)
-                        lp = 0:obj.tot / 2;
-                        indp = rem(obj.jtot / 2, lp) == 0;
-                        errp = ([lp(indp); (obj.jtot / 2) ./ lp(indp)]);
-                        disp('Purifier layout does not fit grid')
-                        disp(['sum widths to: ' num2str(errp(1,:))])
-                        disp(['Current width: ' num2str(obj.purif_dy + obj.purif_sp)])
-                        error('Incorrect purifier layout')
-                    end
-                else
-                    error('Must use lcanyons configuration to use purifiers')
-                end
+%                 if obj.lcanyons
+%                     da_pp.addvar(obj, 'purif_dz', 1)  % purifier starting point from bottom
+%                     da_pp.addvar(obj, 'purif_dx', 3)  % distance from block
+%                     da_pp.addvar(obj, 'purif_h', 3)   % purifier height
+%                     da_pp.addvar(obj, 'purif_w', 0)   % purifier width
+%                     da_pp.addvar(obj, 'purif_dy', 1)  % depth of purifier (in y)
+%                     da_pp.addvar(obj, 'purif_sp', 31) % spacing between purifiers
+%                     da_pp.addvar(obj, 'purif_i', 1)   % case for purifier (1 = +ve x, 2 = -ve x, 3 = +ve y etc.)
+%                     da_pp.addvar(obj, 'npurif', obj.jtot / (obj.npurif_dy + obj.purif_sp))
+% 
+%                     if ceil(npurif) ~= floor(npurif)
+%                         lp = 0:obj.tot / 2;
+%                         indp = rem(obj.jtot / 2, lp) == 0;
+%                         errp = ([lp(indp); (obj.jtot / 2) ./ lp(indp)]);
+%                         disp('Purifier layout does not fit grid')
+%                         disp(['sum widths to: ' num2str(errp(1,:))])
+%                         disp(['Current width: ' num2str(obj.purif_dy + obj.purif_sp)])
+%                         error('Incorrect purifier layout')
+%                     end
+%                 else
+%                     error('Must use lcanyons configuration to use purifiers')
+%                 end
             end
             
             da_pp.addvar(obj, 'nsv', 0)    % number of scalar variables (not implemented)
@@ -240,8 +240,7 @@ classdef da_pp < dynamicprops
                 da_pp.addvar(obj, 'NO2b', 0) % initial concentration of NO2
                 da_pp.addvar(obj, 'O3b', 0) % initial concentration of O3
             end
-%             da_pp.addvar(obj, 'sv10', 0)   % scalar
-%             da_pp.addvar(obj, 'sv20', 0)   % scalar
+
             da_pp.addvar(obj, 'lapse', 0)  % lapse rate [K/s]
             da_pp.addvar(obj, 'w_s',0) % subsidence [*units?*]
             da_pp.addvar(obj, 'R',0)   % radiative forcing [*units?*]
@@ -618,7 +617,8 @@ classdef da_pp < dynamicprops
         end
         
         function generate_bl_from_file(obj)
-            obj.bl = dlmread(obj.blocksfile, '', 2, 0);
+            bl = dlmread(obj.blocksfile, '', 2, 0);
+            da_pp.addvar(obj, 'bl', bl)
         end
         
         function generate_topo_from_LIDAR(obj)
@@ -935,152 +935,149 @@ classdef da_pp < dynamicprops
                 jl = obj.facets(i, 8); ju = obj.facets(i, 9);
                 kl = obj.facets(i, 10); ku = obj.facets(i, 11);
                 if i <= obj.nblockfcts
-                switch obj.facets(i, 1)
-                    case {east, west}
-                        x = [obj.xh(il), obj.xh(il), obj.xh(il), obj.xh(il)];
-                        y = [obj.yh(jl), obj.yh(jl), obj.yh(ju), obj.yh(ju)];
-                        if kl == 0 && ku == 0
-                            z = [0, 0, 0, 0];
-                        elseif kl == 0 && ku ~= 0
-                            z = [0, obj.zh(ku), obj.zh(ku), 0];
-                        else
-                            z = [obj.zh(kl), obj.zh(ku), obj.zh(ku), obj.zh(kl)];
-                        end
-                    case {north, south}
-                        x = [obj.xh(il), obj.xh(iu), obj.xh(iu), obj.xh(il)];
-                        y = [obj.yh(jl), obj.yh(jl), obj.yh(jl), obj.yh(jl)];
-                        if kl == 0 && ku == 0
-                            z = [0, 0, 0, 0];
-                        elseif kl == 0 && ku ~= 0
-                            z = [0, 0, obj.xh(ku), obj.xh(ku)];
-                        else
-                            z = [obj.zh(kl), obj.zh(kl), obj.zh(ku), obj.zh(ku)];
-                        end
-                    case {top, bot}
-                        x = [obj.xh(il), obj.xh(iu), obj.xh(iu), obj.xh(il)];
-                        y = [obj.yh(jl), obj.yh(jl), obj.yh(ju), obj.yh(ju)];
-                        
-                        if kl == 0
-                            z = [0, 0, 0, 0];
-                        else
-                            z = [obj.zh(kl), obj.zh(kl), obj.zh(kl), obj.zh(kl)];
-                        end
-                end
-                
+                    switch obj.facets(i, 1)
+                        case {east, west}
+                            x = [obj.xh(il), obj.xh(il), obj.xh(il), obj.xh(il)];
+                            y = [obj.yh(jl), obj.yh(jl), obj.yh(ju), obj.yh(ju)];
+                            if kl == 0 && ku == 0
+                                z = [0, 0, 0, 0];
+                            elseif kl == 0 && ku ~= 0
+                                z = [0, obj.zh(ku), obj.zh(ku), 0];
+                            else
+                                z = [obj.zh(kl), obj.zh(ku), obj.zh(ku), obj.zh(kl)];
+                            end
+                        case {north, south}
+                            x = [obj.xh(il), obj.xh(iu), obj.xh(iu), obj.xh(il)];
+                            y = [obj.yh(jl), obj.yh(jl), obj.yh(jl), obj.yh(jl)];
+                            if kl == 0 && ku == 0
+                                z = [0, 0, 0, 0];
+                            elseif kl == 0 && ku ~= 0
+                                z = [0, 0, obj.xh(ku), obj.xh(ku)];
+                            else
+                                z = [obj.zh(kl), obj.zh(kl), obj.zh(ku), obj.zh(ku)];
+                            end
+                        case {top, bot}
+                            x = [obj.xh(il), obj.xh(iu), obj.xh(iu), obj.xh(il)];
+                            y = [obj.yh(jl), obj.yh(jl), obj.yh(ju), obj.yh(ju)];
+                            
+                            if kl == 0
+                                z = [0, 0, 0, 0];
+                            else
+                                z = [obj.zh(kl), obj.zh(kl), obj.zh(kl), obj.zh(kl)];
+                            end
+                    end
+                    
                 elseif i <= obj.nblockfcts + obj.nboundingwallfacets
-                switch obj.facets(i, 1)
-                    case east
-                        ju = ju + 1;
-                        kl = kl + 1;
-                        ku = ku + 2;
-                        x = [obj.xh(il), obj.xh(il), obj.xh(il), obj.xh(il)];
-                        y = [obj.yh(jl), obj.yh(jl), obj.yh(ju), obj.yh(ju)];
-                        if kl == 0 && ku == 0
-                            z = [0, 0, 0, 0];
-                        elseif kl == 0 && ku ~= 0
-                            z = [0, obj.zh(ku), obj.zh(ku), 0];
-                        else
-                            z = [obj.zh(kl), obj.zh(ku), obj.zh(ku), obj.zh(kl)];
-                        end
-                    case west
-                    il = il + 1;
+                    switch obj.facets(i, 1)
+                        case east
+                            ju = ju + 1;
+                            kl = kl + 1;
+                            ku = ku + 2;
+                            x = [obj.xh(il), obj.xh(il), obj.xh(il), obj.xh(il)];
+                            y = [obj.yh(jl), obj.yh(jl), obj.yh(ju), obj.yh(ju)];
+                            if kl == 0 && ku == 0
+                                z = [0, 0, 0, 0];
+                            elseif kl == 0 && ku ~= 0
+                                z = [0, obj.zh(ku), obj.zh(ku), 0];
+                            else
+                                z = [obj.zh(kl), obj.zh(ku), obj.zh(ku), obj.zh(kl)];
+                            end
+                        case west
+                            il = il + 1;
+                            iu = iu + 1;
+                            ju = ju + 1;
+                            kl = kl + 1;
+                            ku = ku + 2;
+                            x = [obj.xh(il), obj.xh(il), obj.xh(il), obj.xh(il)];
+                            y = [obj.yh(jl), obj.yh(jl), obj.yh(ju), obj.yh(ju)];
+                            if kl == 0 && ku == 0
+                                z = [0, 0, 0, 0];
+                            elseif kl == 0 && ku ~= 0
+                                z = [0, obj.zh(ku), obj.zh(ku), 0];
+                            else
+                                z = [obj.zh(kl), obj.zh(ku), obj.zh(ku), obj.zh(kl)];
+                            end
+                            
+                            
+                        case north
+                            iu = iu + 1;
+                            kl = kl + 1;
+                            ku = ku + 2;
+                            x = [obj.xh(il), obj.xh(iu), obj.xh(iu), obj.xh(il)];
+                            y = [obj.yh(jl), obj.yh(jl), obj.yh(jl), obj.yh(jl)];
+                            if kl == 0 && ku == 0
+                                z = [0, 0, 0, 0];
+                            elseif kl == 0 && ku ~= 0
+                                z = [0, 0, obj.xh(ku), obj.xh(ku)];
+                            else
+                                z = [obj.zh(kl), obj.zh(kl), obj.zh(ku), obj.zh(ku)];
+                            end
+                            
+                        case south
+                            iu = iu + 1;
+                            jl = jl + 1;
+                            ju = ju + 1;
+                            kl = kl + 1;
+                            ku = ku + 2;
+                            x = [obj.xh(il), obj.xh(iu), obj.xh(iu), obj.xh(il)];
+                            y = [obj.yh(jl), obj.yh(jl), obj.yh(jl), obj.yh(jl)];
+                            if kl == 0 && ku == 0
+                                z = [0, 0, 0, 0];
+                            elseif kl == 0 && ku ~= 0
+                                z = [0, 0, obj.xh(ku), obj.xh(ku)];
+                            else
+                                z = [obj.zh(kl), obj.zh(kl), obj.zh(ku), obj.zh(ku)];
+                            end
+                            
+                            
+                        case {top, bot}
+                            x = [obj.xh(il), obj.xh(iu), obj.xh(iu), obj.xh(il)];
+                            y = [obj.yh(jl), obj.yh(jl), obj.yh(ju), obj.yh(ju)];
+                            
+                            if kl == 0
+                                z = [0, 0, 0, 0];
+                            else
+                                z = [obj.zh(kl), obj.zh(kl), obj.zh(kl), obj.zh(kl)];
+                            end                            
+                    end
+                else
                     iu = iu + 1;
                     ju = ju + 1;
-                    kl = kl + 1;  
-                    ku = ku + 2;
-                        x = [obj.xh(il), obj.xh(il), obj.xh(il), obj.xh(il)];
-                        y = [obj.yh(jl), obj.yh(jl), obj.yh(ju), obj.yh(ju)];
-                        if kl == 0 && ku == 0
-                            z = [0, 0, 0, 0];
-                        elseif kl == 0 && ku ~= 0
-                            z = [0, obj.zh(ku), obj.zh(ku), 0];
-                        else
-                            z = [obj.zh(kl), obj.zh(ku), obj.zh(ku), obj.zh(kl)];
-                        end
-
-
-                    case north
-                        iu = iu + 1;
-                        kl = kl + 1;
-                        ku = ku + 2;
-                        x = [obj.xh(il), obj.xh(iu), obj.xh(iu), obj.xh(il)];
-                        y = [obj.yh(jl), obj.yh(jl), obj.yh(jl), obj.yh(jl)];
-                        if kl == 0 && ku == 0
-                            z = [0, 0, 0, 0];
-                        elseif kl == 0 && ku ~= 0
-                            z = [0, 0, obj.xh(ku), obj.xh(ku)];
-                        else
-                            z = [obj.zh(kl), obj.zh(kl), obj.zh(ku), obj.zh(ku)];
-                        end
-                        
-                    case south
-                        iu = iu + 1;
-                        jl = jl + 1;
-                        ju = ju + 1;
-                        kl = kl + 1;
-                        ku = ku + 2;
-                        x = [obj.xh(il), obj.xh(iu), obj.xh(iu), obj.xh(il)];
-                        y = [obj.yh(jl), obj.yh(jl), obj.yh(jl), obj.yh(jl)];
-                        if kl == 0 && ku == 0
-                            z = [0, 0, 0, 0];
-                        elseif kl == 0 && ku ~= 0
-                            z = [0, 0, obj.xh(ku), obj.xh(ku)];
-                        else
-                            z = [obj.zh(kl), obj.zh(kl), obj.zh(ku), obj.zh(ku)];
-                        end
-                        
-                                          
-                    case {top, bot}
-                        x = [obj.xh(il), obj.xh(iu), obj.xh(iu), obj.xh(il)];
-                        y = [obj.yh(jl), obj.yh(jl), obj.yh(ju), obj.yh(ju)];
-                        
-                        if kl == 0
-                            z = [0, 0, 0, 0];
-                        else
-                            z = [obj.zh(kl), obj.zh(kl), obj.zh(kl), obj.zh(kl)];
-                        end    
-                end
-                
-                else
-                iu = iu + 1;
-                ju = ju + 1;
-                switch obj.facets(i, 1)
-                    case {east, west}
-                        x = [obj.xh(il), obj.xh(il), obj.xh(il), obj.xh(il)];
-                        y = [obj.yh(jl), obj.yh(jl), obj.yh(ju), obj.yh(ju)];
-                        if kl == 0 && ku == 0
-                            z = [0, 0, 0, 0];
-                        elseif kl == 0 && ku ~= 0
-                            z = [0, obj.zh(ku), obj.zh(ku), 0];
-                        else
-                            z = [obj.zh(kl), obj.zh(ku), obj.zh(ku), obj.zh(kl)];
-                        end
-                    case {north, south}
-                        x = [obj.xh(il), obj.xh(iu), obj.xh(iu), obj.xh(il)];
-                        y = [obj.yh(jl), obj.yh(jl), obj.yh(jl), obj.yh(jl)];
-                        if kl == 0 && ku == 0
-                            z = [0, 0, 0, 0];
-                        elseif kl == 0 && ku ~= 0
-                            z = [0, 0, obj.xh(ku), obj.xh(ku)];
-                        else
-                            z = [obj.zh(kl), obj.zh(kl), obj.zh(ku), obj.zh(ku)];
-                        end
-                    case {top, bot}
-                        x = [obj.xh(il), obj.xh(iu), obj.xh(iu), obj.xh(il)];
-                        y = [obj.yh(jl), obj.yh(jl), obj.yh(ju), obj.yh(ju)];
-                        
-                        if kl == 0
-                            z = [0, 0, 0, 0];
-                        else
-                            z = [obj.zh(kl), obj.zh(kl), obj.zh(kl), obj.zh(kl)];
-                        end
-                end    
-                    
-                    
+                    switch obj.facets(i, 1)
+                        case {east, west}
+                            x = [obj.xh(il), obj.xh(il), obj.xh(il), obj.xh(il)];
+                            y = [obj.yh(jl), obj.yh(jl), obj.yh(ju), obj.yh(ju)];
+                            if kl == 0 && ku == 0
+                                z = [0, 0, 0, 0];
+                            elseif kl == 0 && ku ~= 0
+                                z = [0, obj.zh(ku), obj.zh(ku), 0];
+                            else
+                                z = [obj.zh(kl), obj.zh(ku), obj.zh(ku), obj.zh(kl)];
+                            end
+                        case {north, south}
+                            x = [obj.xh(il), obj.xh(iu), obj.xh(iu), obj.xh(il)];
+                            y = [obj.yh(jl), obj.yh(jl), obj.yh(jl), obj.yh(jl)];
+                            if kl == 0 && ku == 0
+                                z = [0, 0, 0, 0];
+                            elseif kl == 0 && ku ~= 0
+                                z = [0, 0, obj.xh(ku), obj.xh(ku)];
+                            else
+                                z = [obj.zh(kl), obj.zh(kl), obj.zh(ku), obj.zh(ku)];
+                            end
+                        case {top, bot}
+                            x = [obj.xh(il), obj.xh(iu), obj.xh(iu), obj.xh(il)];
+                            y = [obj.yh(jl), obj.yh(jl), obj.yh(ju), obj.yh(ju)];
+                            
+                            if kl == 0
+                                z = [0, 0, 0, 0];
+                            else
+                                z = [obj.zh(kl), obj.zh(kl), obj.zh(kl), obj.zh(kl)];
+                            end
+                    end
                 end
                 %ci = min(floor(double(obj.facets(i, 2)) / double(max(obj.facets(:, 2))) * length(cmap)) + 1, length(cmap))
-                ci = 64;
-                patch(x,y,z, cmap(ci, :),'FaceLighting','none');
+                ci = 1;
+                patch(x,y,z, [245 245 245] ./ 255,'FaceLighting','none');
                 d = [0, 0, 0]; a = 0.25;
                 switch(obj.facets(i, 1))
                     case top
@@ -1095,9 +1092,9 @@ classdef da_pp < dynamicprops
                         d(2) = a * obj.dy(1);
                 end
                 
-                text(mean(x) + d(1), mean(y) + d(2), mean(z) + d(3), num2str(i), 'horizontalalignment', 'center')
+                %text(mean(x) + d(1), mean(y) + d(2), mean(z) + d(3), num2str(i), 'horizontalalignment', 'center')
                 hold on
-                title('Facet number')
+                title('Facets')
             end
             view(3)
             xlabel('x')
@@ -2449,23 +2446,16 @@ classdef da_pp < dynamicprops
             
             for i=1:obj.nfcts
                 bi = obj.facets(i,3); %block index
+
                 fi = obj.facets(i,1); %facet index
                 % facets is the first 4 columns of obj.facets
                 % floors is floors, so floors(:, 1) = obj.floorfacets(:, 6)  - add 5
                 % blocks is blocks so can just replace it with obj.blocks
                 % boundingwalls is boundingwalls, so boundingwalls(:, 1) = obj.boundingwallfacets(:, 6) - add 5
-                if (obj.facets(i,4) < 0 && obj.facets(i,4) > -100) %it is a floor, not a building
-                    il = obj.floorfacets(bi, 6);
-                    iu = obj.floorfacets(bi, 7);
-                    jl = obj.floorfacets(bi, 8);
-                    ju = obj.floorfacets(bi, 9);
-                    xl = obj.xf(il) - 0.5 * dx(il);
-                    xu = obj.xf(iu) + 0.5 * dx(iu);
-                    yl = obj.yf(jl) - 0.5 * dy(jl);
-                    yu = obj.yf(ju) + 0.5 * dy(ju);
-                    zl = 0;
-                    zu = 0;
-                elseif (obj.facets(i,4) <= -100)  %it is a bounding wall
+ 
+                if (obj.facets(i,4) <= -100)  %it is a bounding wall
+                    i
+                    fi
                     il = obj.boundingwallfacets(bi, 6);
                     iu = obj.boundingwallfacets(bi, 7);
                     jl = obj.boundingwallfacets(bi, 8);
@@ -2502,6 +2492,21 @@ classdef da_pp < dynamicprops
                         zl = obj.zf(kl) - 0.5 * dz(kl);
                         zu = obj.zf(ku) + 0.5 * dz(ku);
                     end
+                    disp([il, iu, jl, ju, kl, ku])
+                    disp([xl, xu, yl, yu, zl, zu])
+                    
+                elseif (obj.facets(i,4) < 0 && obj.facets(i,4) > -100) %it is a floor, not a building
+                    il = obj.floorfacets(bi, 6);
+                    iu = obj.floorfacets(bi, 7);
+                    jl = obj.floorfacets(bi, 8);
+                    ju = obj.floorfacets(bi, 9);
+                    %xl = obj.xf(il) - 0.5 * dx(il);
+                    xu = obj.xf(iu) + 0.5 * dx(iu);
+                    yl = obj.yf(jl) - 0.5 * dy(jl);
+                    yu = obj.yf(ju) + 0.5 * dy(ju);
+                    zl = 0;
+                    zu = 0;
+                    
                 else
                     il = obj.blocks(bi, 1);
                     iu = obj.blocks(bi, 2);
@@ -2861,337 +2866,7 @@ classdef da_pp < dynamicprops
             set(gcf, 'Color', 'w');
             %export_fig facetSdir.eps      
         end
-        
-        function [coaa, cobb, pf1sf2u] = slice(fi,fi2,coa,cob,cornerweight,centerweight)
-            %in case one facet cuts through
-            %the plane of the other facet:
-            %                    |          .-----------.
-            %   ---------------  |    .or.  |           |
-            %                    |          | . . . . . |.------.
-            %                    |          |___________||      |
-            %                                            |______|
-            %
-            % if this is the case slice facet up (max 2 slices) -> coaa/cobb
-            % count the number of slices -> m
-            % increase the percentage they see of each other, since the two corners were blocked but now
-            % they are not included in the vf-calculation anymore -> pf1sf2u
-            
-            
-            %1=top,2=west face,3=east face,4=north face, 5=south face
-            pf1sf2u = 0;
-            coaa = coa(6:9, :);
-            cobb = cob(6:9, :);
-            nottested = 1; %necessary to check for i and j (alternatively the if's in each case could be combined)
-            if ((fi*fi2 == 6) || (fi * fi2 == 20)) %opposite each other, do nothing;
-                return
-            elseif (fi == 1) %fi2=2,3,4,5
-                
-                if (cobb(1, 3) < coaa(1, 3)) %j starts lower than height of i
-                    cobb(1, 3) = coaa(1, 3); %slice j on same height as i
-                    cobb(4, 3) = coaa(1, 3); %slice j on same height as i
-                    pf1sf2u = 2 * cornerweight; %add 2*cornerweight since lower corner now is visible
-                    nottested = 0;
-                    if  cob(1,3) <= coaa(1, 3) %if center of j is lower than height also add centerweight
-                        pf1sf2u = 2 * cornerweight + centerweight;
-                    end
-                end
-                
-            elseif (fi == 2) %fi2=1,4,5
-                if (((fi2 == 1) && (coaa(1, 1) < cobb(4, 1))) || (((fi2 == 4) || (fi2 == 5))&& (coaa(1, 1) < cobb(4, 1))))%my x<xmax
-                    cobb(3, 1) = coaa(1, 1);
-                    cobb(4, 1) = coaa(1, 1);
-                    pf1sf2u = 2 * cornerweight;
-                    nottested = 0;
-                    if coaa(1, 1) <= cob(1, 1) %if j center is east of i wall
-                        pf1sf2u = 2 * cornerweight + centerweight;
-                    end
-                    % elseif (((fi2==4) || (fi2==5))&& (coa(1,1)<cob(4,1)))
-                    %     cobb=cob(2:5,:);
-                    %     cobb(3,1)=coaa(1,1);
-                    %     cobb(4,1)=coaa(1,1);
-                    %     pf1sf2u=2*cornerweight;
-                end
-            elseif (fi == 3) %fi2=1,4,5
-                if (((fi2 == 1) && (coaa(1, 1) > cobb(1, 1))) || (((fi2 == 4) || (fi2 == 5)) && (coaa(1, 1) > cobb(1, 1)))) %my x>xmin
-                    cobb(1, 1) = coaa(1, 1);
-                    cobb(2, 1) = coaa(1, 1);
-                    pf1sf2u = 2 * cornerweight;
-                    nottested = 0;
-                    if coaa(1, 1) >= cob(1, 1) %if j center is west of i wall
-                        pf1sf2u = 2 * cornerweight + centerweight  ;
-                    end
-                    % elseif (((fi2==4) || (fi2==5)) && (coa(1,1)>cob(1,1)))
-                    %     cobb=cob(2:5,:);
-                    %     cobb(1,1)=coaa(1,1);
-                    %     cobb(2,1)=coaa(1,1);
-                    %     pf1sf2u=2*cornerweight;
-                end
-                
-            elseif (fi == 4) %fi2=1,2,3
-                if ((fi2 == 1) && (coaa(1, 2) > cobb(1, 2))) %my y>ymin
-                    cobb(1, 2) = coaa(1, 2);
-                    cobb(4, 2) = coaa(1, 2);
-                    pf1sf2u = 2 * cornerweight;
-                    nottested = 0;
-                    if coaa(1, 2) >= cob(1, 2) %if j center is south of i wall
-                        pf1sf2u = 2 * cornerweight + centerweight;
-                    end
-                elseif (((fi2 == 2) || (fi2 == 3)) && (coaa(1, 2) > cobb(1, 2)))
-                    
-                    cobb(1, 2) = coaa(1, 2);
-                    cobb(2, 2) = coaa(1, 2);
-                    pf1sf2u = 2 * cornerweight;
-                    nottested = 0;
-                    if coaa(1, 2) >= cob(1, 2) %if j center is south of i wall
-                        pf1sf2u = 2 * cornerweight + centerweight;
-                    end
-                end
-                
-            elseif (fi == 5) %fi2=1,2,3
-                if ((fi2 == 1) && (coaa(1, 2) < cobb(2, 2))) %my y<ymax
-                    cobb(2, 2) = coaa(1, 2);
-                    cobb(3, 2) = coaa(1, 2);
-                    pf1sf2u = 2 * cornerweight;
-                    nottested = 0;
-                    if coaa(1, 2) <= cob(1, 2) %if j center is north of i wall
-                        pf1sf2u = 2 * cornerweight + centerweight;
-                    end
-                elseif (((fi2 == 2) || (fi2 == 3)) && (coaa(1, 2) < cobb(3, 2))) %ILS13 11.11.17, was cobb(2,2)
-                    cobb(3,2) = coaa(1,2);
-                    cobb(4,2) = coaa(1,2);
-                    pf1sf2u = 2 * cornerweight;
-                    nottested = 0;
-                    if coaa(1, 2) <= cob(1, 2) %if j center is north of i wall
-                        pf1sf2u = 2 * cornerweight + centerweight;
-                    end
-                end
-            end
-            if nottested
-                if (fi2 == 1)  %fi=2,3,4,5
-                    if (coaa(1, 3) < cobb(1, 3)) %i starts lower than height of j
-                        coaa(1, 3) = cobb(1, 3); %slice i on same height as j
-                        coaa(4, 3) = cobb(1, 3); %slice i on same height as j
-                        pf1sf2u = 2 * cornerweight; %add 2*cornerweight since lower corner now is visible
-                        if  coa(1,3) <= cobb(1, 3) %if center of i is lower than height also add centerweight
-                            pf1sf2u = 2 * cornerweight + centerweight;
-                        end
-                    end
-                    %end
-                    
-                elseif (fi2 == 2) %fi=1,4,5
-                    if (((fi == 1) && (cobb(1, 1) < coaa(4, 1))) || (((fi == 4) || (fi == 5))&& (cobb(1, 1)<coaa(4, 1))))%my x<xmax
-                        coaa(3, 1)=cobb(1, 1);
-                        coaa(4, 1)=cobb(1, 1);
-                        pf1sf2u = 2 * cornerweight;
-                        
-                        if cobb(1, 1) <= coa(1, 1) %if i center is east of j wall
-                            pf1sf2u = 2 * cornerweight + centerweight;
-                        end
-                        
-                    end
-                    
-                elseif (fi2 == 3) %fi=1,4,5
-                    if (((fi == 1) && (cobb(1, 1) > coaa(1, 1))) || (((fi == 4) || (fi == 5)) && (cobb(1, 1) > coaa(1, 1)))) %my x>xmin
-                        coaa(1, 1) = cobb(1, 1);
-                        coaa(2, 1) = cobb(1, 1);
-                        pf1sf2u = 2 * cornerweight;
-                        if cobb(1, 1) >= coa(1, 1) %if i center is west of j wall
-                            pf1sf2u = 2 * cornerweight + centerweight;
-                        end
-                    end
-                    
-                elseif (fi2 == 4) %fi=1,2,3
-                    if ((fi == 1) && (cobb(1, 2) > coaa(1, 2))) %my y>ymin
-                        coaa(1, 2) = cobb(1, 2);
-                        coaa(4, 2) = cobb(1, 2);
-                        pf1sf2u = 2 * cornerweight;
-                        if cobb(1, 2) >= coa(1, 2) %if i center is south of j wall
-                            pf1sf2u = 2 * cornerweight + centerweight;
-                        end
-                    elseif (((fi == 2) || (fi == 3)) && (cobb(1, 2) > coaa(1, 2)))
-                        coaa(1, 2) = cobb(1, 2);
-                        coaa(2, 2) = cobb(1, 2);
-                        pf1sf2u = 2 * cornerweight;
-                        if cobb(1,2) >= coa(1,2) %if i center is south of j wall
-                            pf1sf2u = 2 * cornerweight + centerweight  ;
-                        end
-                    end
-                elseif (fi2 == 5)  %fi=1,2,3
-                    if ((fi == 1) && (cobb(1, 2) < coaa(2, 2))) %my y<ymax
-                        coaa(2, 2) = cobb(1,2);
-                        coaa(3,2) = cobb(1,2);
-                        pf1sf2u = 2 * cornerweight;
-                        if cobb(1, 2) <= coa(1, 2) %if j center is north of i wall
-                            pf1sf2u = 2 * cornerweight + centerweight;
-                        end
-                    elseif (((fi == 2) || (fi == 3)) && (cobb(1, 2) < coaa(2, 2)))
-                        coaa(3, 2) = cobb(1, 2);
-                        coaa(4, 2) = cobb(1, 2);
-                        pf1sf2u = 2 * cornerweight;
-                        if cob(1, 2) <= cob(1, 2) %if j center is north of i wall
-                            pf1sf2u = 2 * cornerweight + centerweight;
-                        end
-                    end
-                end
-            end
-        end
-        
-        function [F12, F21, A1, A2] = ViewFactor(C1, C2, A1, A2, GP, vcorner)
-            %ViewFactor calculates view factors between two planar surfaces in 3D.
-            %   [F12,F21,A1,A2] = ViewFactor(C1,C2) returns the view factors between
-            %   planer surfaces whose vertices are stored in coordinate arrays
-            %   C1 and C2.  Cn are of the form [x1,y1,z1; x2,y2,z2; x3,y3,z3;....],
-            %   where (xn,yn,zn) is the coordinate of the nth vertex.  The vertices
-            %   should be in order as  encountered on a trip around the perimeter, and
-            %   each vertex should be counted only once. The integration is carried
-            %   out with 7-point Gauss-Legendre quadrature.
-            
-            %
-            % adapted from  Matt Fig, Date: 09/20/2016
-            
-            if nargin < 3
-                GP = 7;
-            end
-            [A, W] = Gauss(GP); % Weights and abscissa for Gauss-Legendre quadrature
-            
-            if vcorner(1) == 0
-                L1 = 4; %size(C1,1);   % Number of vertices.
-                L2=[4 4 4 4];
-                %L2=[size(C2,1) size(C2,1) size(C2,1) size(C2,1)];
-                % Close the boundary.
-                C1(5,:) = C1(1,:);
-                C2(5,:) = C2(1,:);
-                cc = 0;
-            else
-                dorder=[1 2 3 4];
-                L1 = 4; %size(C1,1);   % Number of vertices.
-                L2=[4 4 4 3];
-                order1=circshift(dorder,4-vcorner(1));
-                order2=circshift(dorder,4-vcorner(2));
-                C1=C1(order1,:);
-                C2=C2(order2,:);
-                C1(5,:) = C1(1,:);
-                C2(5,:) = C2(1,:);
-                Lc=norm(C1(4,:)-C1(1,:));
-                cc = Lc^2*(1.5-log(Lc))*4*sign(vcorner(3));
-            end
-            
-            % A1 = rectarea3d(C1);
-            % A2 = rectarea3d(C2);
-            % A1 = polyarea3d(C1);
-            % A2 = polyarea3d(C2);
-            S=0;
-            
-            for ii = 1:L1 % Loop over segment pairs.
-                P1 = C1(ii,:);
-                P2 = C1(ii+1,:);
-                
-                for jj = 1:L2(ii)
-                    SM = 0;
-                    P3 = C2(jj,:);
-                    P4 = C2(jj+1,:);
-                    % Next perform the Gauss-Legendre quadrature
-                    for kk = 1:GP
-                        SM = SM + sum(W(kk)*W.*F(A(kk),A,P1,P2,P3,P4));
-                    end
-                    
-                    S = S + SM;
-                end
-            end
-            
-            %Calculation of the view factors
-            %cp = cross(C1(2,:) - C1(1,:),C1(3,:) - C1(1,:));
-            %A1 = polyarea3d(C1,cp/(norm(cp)));
-            %cp = cross(C2(2,:)-C2(1,:),C2(3,:)-C2(1,:));
-            %A2 = polyarea3d(C2,cp/(norm(cp)));
-            
-            F12 = (abs(S+cc))/(8*pi*A1);
-            F21 = (abs(S+cc))/(8*pi*A2);
-            
-            function INT  = F(s,t,P1,P2,P3,P4)
-                % Integrand for contour integral.  We parameterize the linesegments on
-                % s,t=[-1,1] for easy 2D Gaussian quadrature..
-                % Parametric equations for the first line segment.
-                t_ = (t+1)/2;
-                x1 = P1(1)+(P2(1)-P1(1))*t_;
-                y1 = P1(2)+(P2(2)-P1(2))*t_;
-                z1 = P1(3)+(P2(3)-P1(3))*t_;
-                % Parametric equations for the second line segment.
-                s_ = (s+1)/2;
-                x2 = P3(1)+(P4(1)-P3(1))*s_;
-                y2 = P3(2)+(P4(2)-P3(2))*s_;
-                z2 = P3(3)+(P4(3)-P3(3))*s_;
-                % Distance between seg 1 and seg 2.
-                R = sqrt((x2-x1).^2 + (y2-y1).^2 + (z2-z1).^2);
-                % The integrand
-                INT = log(R)*((P2(1)-P1(1))*(P4(1)-P3(1))+(P2(2)-P1(2))*...
-                    (P4(2)-P3(2))+(P2(3)-P1(3))*(P4(3)-P3(3)));
-                
-                
-                % function [area] = polyarea3d(V,N)
-                % % Calculates the area of the polygon given by the matrix of vertices and
-                % % the normal vector N.  This assumes the vertices are closed, i.e., the
-                % % last row in V is equal to the first row.  Algorithm developed by
-                % % Daniel Sunday and available in c++ here:
-                % % http://geomalgorithms.com/a01-_area.html
-                % n = size(V,1)-1;
-                % % select largest abs coordinate to ignore for projection
-                % ax = abs(N(1));
-                % ay = abs(N(2));
-                % az = abs(N(3));
-                %
-                % if (ax > ay)&&(ax > az)
-                %     area = (sum(V(2:n,2) .* (V(3:n+1,3) - V(1:n-1,3))) + ...
-                %            (V(n+1,2) .* (V(2,3) - V(n,3))))/ (2 * N(1));
-                % elseif (ay > az)&&(ay > ax)
-                %     area = (sum((V(2:n,3) .* (V(3:n+1,1) - V(1:n-1,1)))) + ...
-                %            (V(n+1,3) * (V(2,1) - V(n,1))))/ (2 * N(2));
-                % else
-                %     area = (sum((V(2:n,1) .* (V(3:n+1,2) - V(1:n-1,2)))) + ...
-                %            (V(n+1,1) * (V(2,2) - V(n,2))))/(2 * N(3));
-                % end
-                
-                % function [area] = rectarea3d(V)
-                % % if only rectangles are used
-                % %area=(0.2+norm(V(1,:)-V(2,:)))*(0.2+norm(V(2,:)-V(3,:)));
-                % l1=norm(V(1,:)-V(2,:));
-                % l2=norm(V(2,:)-V(3,:));
-                % area=l1*l2;
-            end
-            
-            function [abscissa, weights] = Gauss(n)
-                % Generates the abscissa and weights for a Gauss-Legendre quadrature.
-                % Reference:  Numerical Recipes in Fortran 77, Cornell press.
-                abscissa = zeros(n,1);  % Preallocations.
-                weights = abscissa;
-                m = (n+1)/2;
-                for iii=1:m
-                    z = cos(pi*(iii-.25)/(n+.5)); % Initial estimate.
-                    z1 = z+1;
-                    
-                    while abs(z-z1)>eps
-                        p1 = 1;
-                        p2 = 0;
-                        
-                        for jjj = 1:n
-                            p3 = p2;
-                            p2 = p1;
-                            p1 = ((2*jjj-1)*z*p2-(jjj-1)*p3)/jjj; % The Legendre polynomial.
-                        end
-                        
-                        pp = n*(z*p1-p2)/(z^2-1);   % The L.P. derivative.
-                        z1 = z;
-                        z = z1-p1/pp;
-                    end
-                    
-                    abscissa(iii) = -z;      % Build up the abscissas.
-                    abscissa(n+1-iii) = z;
-                    weights(iii) = 2/((1-z^2)*(pp^2));  % Build up the weights.
-                    weights(n+1-iii) = weights(iii);
-                end
-            end          
-        end
-        
+               
         function vfc(obj)
             xh = obj.xh;
             yh = obj.yh;
@@ -3524,8 +3199,8 @@ classdef da_pp < dynamicprops
         %Dsky=zeros(obj.nfcts,1);
         %Denv=zeros(nfcts,1);
         nfcts = obj.nfcts;
-        albedo=zeros(nfcts,1);
-        emissivity=zeros(nfcts,1);
+        albedo = zeros(nfcts,1);
+        emissivity = zeros(nfcts,1);
         Sdir = obj.Sdir;
         Dsk = obj.Dsk;
         svf = obj.svf;
@@ -3545,30 +3220,7 @@ classdef da_pp < dynamicprops
         Kinnew=zeros(nfcts,1);
         
         Kininit=(1-albedo).*(Sdir+Dsk.*svf);
-        Koutinit=albedo.*(Sdir+Dsk.*svf);
-        
-        %     if ltestplot
-        %         figure
-        %         a=(1-albedo).*Sdir;
-        %         b=(1-albedo).*Dsk.*svf;
-        %         plot(1:nfcts,a(sorti),1:nfcts,b(sorti))
-        %         ax1 = gca; % current axes
-        %         set(ax1,'Xtick',1:1:nfcts)
-        %         xticklabels(sortt)
-        %         ax1_pos = ax1.Position; % position of first axes
-        %         xlabel('orientation')
-        %         ylabel('S and D')
-        %         ax2 = axes('Position',ax1_pos,...
-        %             'YAxisLocation', 'right',...
-        %             'XAxisLocation', 'top', ...
-        %             'Color', 'None');
-        %         set (ax2, 'XLim', get (ax1, 'XLim'), 'Layer', 'top');
-        %         set (ax2, 'YLim', get (ax1, 'YLim'), 'Layer', 'top');
-        %         set(ax2,'Xtick',1:1:nfcts)
-        %         set(ax2,'Xticklabels',sorti)
-        %         set(ax2,'FontSize',8)
-        %         xlabel('facet index')
-        %     end
+        Koutinit=albedo.*(Sdir+Dsk.*svf);       
         
         %total radiation absorbed and reflected
         sum(Kininit+Koutinit);
@@ -3626,17 +3278,16 @@ classdef da_pp < dynamicprops
             % if all(Koutnew./Koutold<0.01)
             %     break
             % end
-            moep(:,count+1)=Kin;
-            if (max((Kin-Kinold)./Kinold)<0.01)
-                disp(['reached relative tolerance after ' num2str(count) ' iterations'])
+            moep(:, count+1) = Kin;
+            if (max((Kin - Kinold) ./ Kinold) < 0.01)
                 break
             end
             %    if (max(Koutnew-Koutold)<0.01 )
             %        disp('reached absolute tolerance')
             %        break
             %    end
-            Kinold=Kin;
-            Koutold=Koutnew; %overwrite reflected radiation with new value
+            Kinold = Kin;
+            Koutold = Koutnew; %overwrite reflected radiation with new value
         end
     
         da_pp.addvar(obj, 'Kin', Kin);
@@ -3652,7 +3303,7 @@ classdef da_pp < dynamicprops
               
         function generate_Tfacinit(obj, iss)
             %% Inital Temperature and longwave
-            %solve energy budget equation in an initial steady state
+            %if iss = true, solve energy budget equation in an initial steady state
             %assume 0 wall heatflux
             %assume 0 latent heatflux
             %assume constant air temperature and heat transfer coefficient
@@ -3824,7 +3475,7 @@ classdef da_pp < dynamicprops
             fclose(fileID); 
         end
         
-        function generate_trees(obj)
+        function generate_trees(obj) % not implemented
             da_pp.addvar(obj, 'nrows', obj.imax / (obj.blockwidth + obj.canyonwidth));
             if obj.lcanyons
                da_pp.addvar(obj, 'trees', zeros(obj.nrows, 6));
@@ -3839,9 +3490,7 @@ classdef da_pp < dynamicprops
             fclose(tree_write);
         end
         
-        function generate_purifs(obj)
-            % Uses obj.bl, so should be run after having run
-            % generate_blocks (or reading in a blocks file)
+        function generate_purifs(obj) % not implemented
             da_pp.addvar(obj, 'nrows', obj.imax / (obj.blockwidth + obj.canyonwidth));
             if obj.lcanyons
                 if obj.lpurif
@@ -3896,64 +3545,6 @@ classdef da_pp < dynamicprops
             fclose(purif_write);
         end
         
-        function plot_domain(obj)
-            figure
-            view(52, 23)
-            if (obj.lcastro || obj.lcube || obj.lcanyons)
-                for i = 1:size(obj.bl, 1)
-                    patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1)  obj.xh(obj.bl(i,1))], [obj.yh(obj.bl(i,3))  obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1)], [obj.zh(obj.bl(i,6)+1)  obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1)], [245 245 245] ./ 255)
-                    patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) ], [obj.yh(obj.bl(i,3))  obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3))], [obj.bl(i,5)  obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.bl(i,5)], [245 245 245] ./ 255)
-                    patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) ], [obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1)], [obj.bl(i,5)  obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.bl(i,5)], [245 245 245] ./ 255)
-                    patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) ], [obj.yh(obj.bl(i,4)+1)  obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3))], [obj.bl(i,5)  obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.bl(i,5)], [245 245 245] ./ 255)
-                    patch([obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) ], [obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1)], [obj.bl(i,5)  obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.bl(i,5)], [245 245 245] ./ 255)
-                    % patch([xh(1) xh(end) xh(end)  xh(1)], [yh(1)  yh(1) yh(end) yh(end)], [zh(1)  zh(1) zh(1) zh(1)], [245 245 245] ./ 255)
-                end
-
-            elseif obj.lflat
-
-            else
-                for i = 1:size(obj.bl, 1)
-                    patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,1))], [obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1)], [obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1)], 'w')
-                    patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) ], [obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3))], [obj.bl(i,5) obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.bl(i,5)], 'w')
-                    patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) ], [obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1)], [obj.bl(i,5) obj.zh(bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.bl(i,5)], 'w')
-                    patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1))], [obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3))], [obj.bl(i,5) obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.bl(i,5)], 'w')
-                    patch([obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) ], [obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1)], [obj.bl(i,5) obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.bl(i,5)], 'w')
-                end
-            end
-
-            if obj.ltrees
-                for i = 1:size(obj.trees,1)
-                    patch([obj.xh(obj.trees(i,1)) obj.xh(obj.trees(i,2)+1) obj.xh(obj.trees(i,2)+1)  obj.xh(obj.trees(i,1))], [obj.yh(obj.trees(i,3)) obj.yh(obj.trees(i,3)) obj.yh(obj.trees(i,4)+1) obj.yh(obj.trees(i,4)+1)], [obj.zh(obj.trees(i,6)+1) obj.zh(obj.trees(i,6)+1) obj.zh(obj.trees(i,6)+1) obj.zh(obj.trees(i,6)+1)], [128 229 78] ./ 255)
-                    patch([obj.xh(obj.trees(i,1)) obj.xh(obj.trees(i,1)) obj.xh(obj.trees(i,2)+1) obj.xh(obj.trees(i,2)+1) ], [obj.yh(obj.trees(i,3)) obj.yh(obj.trees(i,3)) obj.yh(obj.trees(i,3)) obj.yh(obj.trees(i,3))], [obj.zh(obj.trees(i,5)) obj.zh(obj.trees(i,6)+1) obj.zh(obj.trees(i,6)+1) obj.zh(obj.trees(i,5))], [128 229 78] ./ 255)
-                    patch([obj.xh(obj.trees(i,1)) obj.xh(obj.trees(i,1)) obj.xh(obj.trees(i,2)+1) obj.xh(obj.trees(i,2)+1) ], [obj.yh(obj.trees(i,4)+1) obj.yh(obj.trees(i,4)+1) obj.yh(obj.trees(i,4)+1) obj.yh(obj.trees(i,4)+1)], [obj.zh(obj.trees(i,5)) obj.zh(obj.trees(i,6)+1) obj.zh(obj.trees(i,6)+1) obj.zh(obj.trees(i,5))],[128 229 78] ./ 255 )
-                    patch([obj.xh(obj.trees(i,1)) obj.xh(obj.trees(i,1)) obj.xh(trees(i,1)) obj.xh(trees(i,1)) ], [obj.yh(obj.trees(i,4)+1) obj.yh(obj.trees(i,4)+1) obj.yh(obj.trees(i,3)) obj.yh(obj.trees(i,3))], [obj.zh(obj.trees(i,5)) obj.zh(obj.trees(i,6)+1) obj.zh(obj.trees(i,6)+1) obj.zh(obj.trees(i,5))],[128 229 78] ./ 255 )
-                    patch([obj.xh(obj.trees(i,2)+1) obj.xh(obj.trees(i,2)+1) obj.xh(obj.trees(i,2)+1) obj.xh(obj.trees(i,2)+1)], [obj.yh(obj.trees(i,3)) obj.yh(obj.trees(i,3)) obj.yh(obj.trees(i,4)+1) obj.yh(obj.trees(i,4)+1)], [obj.zh(obj.trees(i,5)) obj.zh(obj.trees(i,6)+1) obj.zh(obj.trees(i,6)+1) obj.zh(obj.trees(i,5))], [128 229 78] ./ 255)
-
-                end
-            end
-
-            if obj.lpurif
-                for i = 1:size(obj.purifs,1)
-                    patch([obj.xh(obj.purifs(i,1)) obj.xh(obj.purifs(i,2)+1) obj.xh(obj.purifs(i,2)+1) obj.xh(obj.purifs(i,1))], [obj.yh(obj.purifs(i,3)) obj.yh(obj.purifs(i,3)) obj.yh(obj.purifs(i,4)+1) obj.yh(obj.purifs(i,4)+1)], [obj.zh(obj.purifs(i,6)+1) obj.zh(obj.purifs(i,6)+1) obj.zh(obj.purifs(i,6)+1) obj.zh(obj.purifs(i,6)+1)], [245 245 245] ./ 255)
-                    patch([obj.xh(obj.purifs(i,1)) obj.xh(obj.purifs(i,1)) obj.xh(obj.purifs(i,2)+1) obj.xh(obj.purifs(i,2)+1)], [obj.yh(obj.purifs(i,3)) obj.yh(obj.purifs(i,3)) obj.yh(purifs(i,3)) obj.yh(obj.purifs(i,3))], [obj.zh(obj.purifs(i,5)) obj.zh(obj.purifs(i,6)+1) obj.zh(obj.purifs(i,6)+1) obj.zh(obj.purifs(i,5))], [245 245 245] ./ 255)
-                    patch([obj.xh(obj.purifs(i,1)) obj.xh(obj.purifs(i,1)) obj.xh(obj.purifs(i,2)+1) obj.xh(obj.purifs(i,2)+1)], [obj.yh(obj.purifs(i,4)+1) obj.yh(obj.purifs(i,4)+1) obj.yh(obj.purifs(i,4)+1) obj.yh(obj.purifs(i,4)+1)], [obj.zh(obj.purifs(i,5)) obj.zh(obj.purifs(i,6)+1) obj.zh(obj.purifs(i,6)+1) obj.zh(obj.purifs(i,5))], [245 245 245] ./ 255)
-                    patch([obj.xh(obj.purifs(i,1)) obj.xh(obj.purifs(i,1)) obj.xh(obj.purifs(i,1)) obj.xh(obj.purifs(i,1))], [obj.yh(obj.purifs(i,4)+1) obj.yh(obj.purifs(i,4)+1) obj.yh(obj.purifs(i,3)) obj.yh(obj.purifs(i,3))], [obj.zh(obj.purifs(i,5)) obj.zh(obj.purifs(i,6)+1) obj.zh(obj.purifs(i,6)+1) obj.zh(obj.purifs(i,5))], [245 245 245] ./ 255)
-                    patch([obj.xh(obj.purifs(i,2)+1) obj.xh(obj.purifs(i,2)+1) obj.xh(obj.purifs(i,2)+1) obj.xh(obj.purifs(i,2)+1)], [obj.yh(obj.purifs(i,3)) obj.yh(obj.purifs(i,3)) obj.yh(obj.purifs(i,4)+1) obj.yh(obj.purifs(i,4)+1)], [obj.zh(obj.purifs(i,5)) obj.zh(obj.purifs(i,6)+1) obj.zh(obj.purifs(i,6)+1) obj.zh(obj.purifs(i,5))], [245 245 245] ./ 255)
-
-                end
-            end
-
-            zlim([0 obj.zh(end)]); %/(r.blockheight-1))
-            xlim([0 obj.xh(end)]); %/(r.blockheight-1))
-            ylim([0 obj.yh(end)]); %/(r.blockheight-1))
-
-            set(gca,'ticklabelinterpreter','latex')
-            xlabel('x [m]','interpreter','latex')
-            ylabel('y [m]','interpreter','latex')
-            zlabel('z [m]','interpreter','latex')
-            set(gca,'BoxStyle','full','Box','on')
-            daspect([1 1 1])
-        end     
     end
     
     methods (Static, Access = protected)
@@ -3985,6 +3576,336 @@ classdef da_pp < dynamicprops
             end
         end
         
+        function [coaa, cobb, pf1sf2u] = slice(fi,fi2,coa,cob,cornerweight,centerweight)
+            %in case one facet cuts through
+            %the plane of the other facet:
+            %                    |          .-----------.
+            %   ---------------  |    .or.  |           |
+            %                    |          | . . . . . |.------.
+            %                    |          |___________||      |
+            %                                            |______|
+            %
+            % if this is the case slice facet up (max 2 slices) -> coaa/cobb
+            % count the number of slices -> m
+            % increase the percentage they see of each other, since the two corners were blocked but now
+            % they are not included in the vf-calculation anymore -> pf1sf2u
+            
+            
+            %1=top,2=west face,3=east face,4=north face, 5=south face
+            pf1sf2u = 0;
+            coaa = coa(6:9, :);
+            cobb = cob(6:9, :);
+            nottested = 1; %necessary to check for i and j (alternatively the if's in each case could be combined)
+            if ((fi*fi2 == 6) || (fi * fi2 == 20)) %opposite each other, do nothing;
+                return
+            elseif (fi == 1) %fi2=2,3,4,5
+                
+                if (cobb(1, 3) < coaa(1, 3)) %j starts lower than height of i
+                    cobb(1, 3) = coaa(1, 3); %slice j on same height as i
+                    cobb(4, 3) = coaa(1, 3); %slice j on same height as i
+                    pf1sf2u = 2 * cornerweight; %add 2*cornerweight since lower corner now is visible
+                    nottested = 0;
+                    if  cob(1,3) <= coaa(1, 3) %if center of j is lower than height also add centerweight
+                        pf1sf2u = 2 * cornerweight + centerweight;
+                    end
+                end
+                
+            elseif (fi == 2) %fi2=1,4,5
+                if (((fi2 == 1) && (coaa(1, 1) < cobb(4, 1))) || (((fi2 == 4) || (fi2 == 5))&& (coaa(1, 1) < cobb(4, 1))))%my x<xmax
+                    cobb(3, 1) = coaa(1, 1);
+                    cobb(4, 1) = coaa(1, 1);
+                    pf1sf2u = 2 * cornerweight;
+                    nottested = 0;
+                    if coaa(1, 1) <= cob(1, 1) %if j center is east of i wall
+                        pf1sf2u = 2 * cornerweight + centerweight;
+                    end
+                    % elseif (((fi2==4) || (fi2==5))&& (coa(1,1)<cob(4,1)))
+                    %     cobb=cob(2:5,:);
+                    %     cobb(3,1)=coaa(1,1);
+                    %     cobb(4,1)=coaa(1,1);
+                    %     pf1sf2u=2*cornerweight;
+                end
+            elseif (fi == 3) %fi2=1,4,5
+                if (((fi2 == 1) && (coaa(1, 1) > cobb(1, 1))) || (((fi2 == 4) || (fi2 == 5)) && (coaa(1, 1) > cobb(1, 1)))) %my x>xmin
+                    cobb(1, 1) = coaa(1, 1);
+                    cobb(2, 1) = coaa(1, 1);
+                    pf1sf2u = 2 * cornerweight;
+                    nottested = 0;
+                    if coaa(1, 1) >= cob(1, 1) %if j center is west of i wall
+                        pf1sf2u = 2 * cornerweight + centerweight  ;
+                    end
+                    % elseif (((fi2==4) || (fi2==5)) && (coa(1,1)>cob(1,1)))
+                    %     cobb=cob(2:5,:);
+                    %     cobb(1,1)=coaa(1,1);
+                    %     cobb(2,1)=coaa(1,1);
+                    %     pf1sf2u=2*cornerweight;
+                end
+                
+            elseif (fi == 4) %fi2=1,2,3
+                if ((fi2 == 1) && (coaa(1, 2) > cobb(1, 2))) %my y>ymin
+                    cobb(1, 2) = coaa(1, 2);
+                    cobb(4, 2) = coaa(1, 2);
+                    pf1sf2u = 2 * cornerweight;
+                    nottested = 0;
+                    if coaa(1, 2) >= cob(1, 2) %if j center is south of i wall
+                        pf1sf2u = 2 * cornerweight + centerweight;
+                    end
+                elseif (((fi2 == 2) || (fi2 == 3)) && (coaa(1, 2) > cobb(1, 2)))
+                    
+                    cobb(1, 2) = coaa(1, 2);
+                    cobb(2, 2) = coaa(1, 2);
+                    pf1sf2u = 2 * cornerweight;
+                    nottested = 0;
+                    if coaa(1, 2) >= cob(1, 2) %if j center is south of i wall
+                        pf1sf2u = 2 * cornerweight + centerweight;
+                    end
+                end
+                
+            elseif (fi == 5) %fi2=1,2,3
+                if ((fi2 == 1) && (coaa(1, 2) < cobb(2, 2))) %my y<ymax
+                    cobb(2, 2) = coaa(1, 2);
+                    cobb(3, 2) = coaa(1, 2);
+                    pf1sf2u = 2 * cornerweight;
+                    nottested = 0;
+                    if coaa(1, 2) <= cob(1, 2) %if j center is north of i wall
+                        pf1sf2u = 2 * cornerweight + centerweight;
+                    end
+                elseif (((fi2 == 2) || (fi2 == 3)) && (coaa(1, 2) < cobb(3, 2))) %ILS13 11.11.17, was cobb(2,2)
+                    cobb(3,2) = coaa(1,2);
+                    cobb(4,2) = coaa(1,2);
+                    pf1sf2u = 2 * cornerweight;
+                    nottested = 0;
+                    if coaa(1, 2) <= cob(1, 2) %if j center is north of i wall
+                        pf1sf2u = 2 * cornerweight + centerweight;
+                    end
+                end
+            end
+            if nottested
+                if (fi2 == 1)  %fi=2,3,4,5
+                    if (coaa(1, 3) < cobb(1, 3)) %i starts lower than height of j
+                        coaa(1, 3) = cobb(1, 3); %slice i on same height as j
+                        coaa(4, 3) = cobb(1, 3); %slice i on same height as j
+                        pf1sf2u = 2 * cornerweight; %add 2*cornerweight since lower corner now is visible
+                        if  coa(1,3) <= cobb(1, 3) %if center of i is lower than height also add centerweight
+                            pf1sf2u = 2 * cornerweight + centerweight;
+                        end
+                    end
+                    %end
+                    
+                elseif (fi2 == 2) %fi=1,4,5
+                    if (((fi == 1) && (cobb(1, 1) < coaa(4, 1))) || (((fi == 4) || (fi == 5))&& (cobb(1, 1)<coaa(4, 1))))%my x<xmax
+                        coaa(3, 1)=cobb(1, 1);
+                        coaa(4, 1)=cobb(1, 1);
+                        pf1sf2u = 2 * cornerweight;
+                        
+                        if cobb(1, 1) <= coa(1, 1) %if i center is east of j wall
+                            pf1sf2u = 2 * cornerweight + centerweight;
+                        end
+                        
+                    end
+                    
+                elseif (fi2 == 3) %fi=1,4,5
+                    if (((fi == 1) && (cobb(1, 1) > coaa(1, 1))) || (((fi == 4) || (fi == 5)) && (cobb(1, 1) > coaa(1, 1)))) %my x>xmin
+                        coaa(1, 1) = cobb(1, 1);
+                        coaa(2, 1) = cobb(1, 1);
+                        pf1sf2u = 2 * cornerweight;
+                        if cobb(1, 1) >= coa(1, 1) %if i center is west of j wall
+                            pf1sf2u = 2 * cornerweight + centerweight;
+                        end
+                    end
+                    
+                elseif (fi2 == 4) %fi=1,2,3
+                    if ((fi == 1) && (cobb(1, 2) > coaa(1, 2))) %my y>ymin
+                        coaa(1, 2) = cobb(1, 2);
+                        coaa(4, 2) = cobb(1, 2);
+                        pf1sf2u = 2 * cornerweight;
+                        if cobb(1, 2) >= coa(1, 2) %if i center is south of j wall
+                            pf1sf2u = 2 * cornerweight + centerweight;
+                        end
+                    elseif (((fi == 2) || (fi == 3)) && (cobb(1, 2) > coaa(1, 2)))
+                        coaa(1, 2) = cobb(1, 2);
+                        coaa(2, 2) = cobb(1, 2);
+                        pf1sf2u = 2 * cornerweight;
+                        if cobb(1,2) >= coa(1,2) %if i center is south of j wall
+                            pf1sf2u = 2 * cornerweight + centerweight  ;
+                        end
+                    end
+                elseif (fi2 == 5)  %fi=1,2,3
+                    if ((fi == 1) && (cobb(1, 2) < coaa(2, 2))) %my y<ymax
+                        coaa(2, 2) = cobb(1,2);
+                        coaa(3,2) = cobb(1,2);
+                        pf1sf2u = 2 * cornerweight;
+                        if cobb(1, 2) <= coa(1, 2) %if j center is north of i wall
+                            pf1sf2u = 2 * cornerweight + centerweight;
+                        end
+                    elseif (((fi == 2) || (fi == 3)) && (cobb(1, 2) < coaa(2, 2)))
+                        coaa(3, 2) = cobb(1, 2);
+                        coaa(4, 2) = cobb(1, 2);
+                        pf1sf2u = 2 * cornerweight;
+                        if cob(1, 2) <= cob(1, 2) %if j center is north of i wall
+                            pf1sf2u = 2 * cornerweight + centerweight;
+                        end
+                    end
+                end
+            end
+        end
+        
+        function [F12, F21, A1, A2] = ViewFactor(C1, C2, A1, A2, GP, vcorner)
+            %ViewFactor calculates view factors between two planar surfaces in 3D.
+            %   [F12,F21,A1,A2] = ViewFactor(C1,C2) returns the view factors between
+            %   planer surfaces whose vertices are stored in coordinate arrays
+            %   C1 and C2.  Cn are of the form [x1,y1,z1; x2,y2,z2; x3,y3,z3;....],
+            %   where (xn,yn,zn) is the coordinate of the nth vertex.  The vertices
+            %   should be in order as  encountered on a trip around the perimeter, and
+            %   each vertex should be counted only once. The integration is carried
+            %   out with 7-point Gauss-Legendre quadrature.
+            
+            %
+            % adapted from  Matt Fig, Date: 09/20/2016
+            
+            if nargin < 3
+                GP = 7;
+            end
+            [A, W] = Gauss(GP); % Weights and abscissa for Gauss-Legendre quadrature
+            
+            if vcorner(1) == 0
+                L1 = 4; %size(C1,1);   % Number of vertices.
+                L2=[4 4 4 4];
+                %L2=[size(C2,1) size(C2,1) size(C2,1) size(C2,1)];
+                % Close the boundary.
+                C1(5,:) = C1(1,:);
+                C2(5,:) = C2(1,:);
+                cc = 0;
+            else
+                dorder=[1 2 3 4];
+                L1 = 4; %size(C1,1);   % Number of vertices.
+                L2=[4 4 4 3];
+                order1=circshift(dorder,4-vcorner(1));
+                order2=circshift(dorder,4-vcorner(2));
+                C1=C1(order1,:);
+                C2=C2(order2,:);
+                C1(5,:) = C1(1,:);
+                C2(5,:) = C2(1,:);
+                Lc=norm(C1(4,:)-C1(1,:));
+                cc = Lc^2*(1.5-log(Lc))*4*sign(vcorner(3));
+            end
+            
+            % A1 = rectarea3d(C1);
+            % A2 = rectarea3d(C2);
+            % A1 = polyarea3d(C1);
+            % A2 = polyarea3d(C2);
+            S=0;
+            
+            for ii = 1:L1 % Loop over segment pairs.
+                P1 = C1(ii,:);
+                P2 = C1(ii+1,:);
+                
+                for jj = 1:L2(ii)
+                    SM = 0;
+                    P3 = C2(jj,:);
+                    P4 = C2(jj+1,:);
+                    % Next perform the Gauss-Legendre quadrature
+                    for kk = 1:GP
+                        SM = SM + sum(W(kk)*W.*F(A(kk),A,P1,P2,P3,P4));
+                    end
+                    
+                    S = S + SM;
+                end
+            end
+            
+            %Calculation of the view factors
+            %cp = cross(C1(2,:) - C1(1,:),C1(3,:) - C1(1,:));
+            %A1 = polyarea3d(C1,cp/(norm(cp)));
+            %cp = cross(C2(2,:)-C2(1,:),C2(3,:)-C2(1,:));
+            %A2 = polyarea3d(C2,cp/(norm(cp)));
+            
+            F12 = (abs(S+cc))/(8*pi*A1);
+            F21 = (abs(S+cc))/(8*pi*A2);
+            
+            function INT  = F(s,t,P1,P2,P3,P4)
+                % Integrand for contour integral.  We parameterize the linesegments on
+                % s,t=[-1,1] for easy 2D Gaussian quadrature..
+                % Parametric equations for the first line segment.
+                t_ = (t+1)/2;
+                x1 = P1(1)+(P2(1)-P1(1))*t_;
+                y1 = P1(2)+(P2(2)-P1(2))*t_;
+                z1 = P1(3)+(P2(3)-P1(3))*t_;
+                % Parametric equations for the second line segment.
+                s_ = (s+1)/2;
+                x2 = P3(1)+(P4(1)-P3(1))*s_;
+                y2 = P3(2)+(P4(2)-P3(2))*s_;
+                z2 = P3(3)+(P4(3)-P3(3))*s_;
+                % Distance between seg 1 and seg 2.
+                R = sqrt((x2-x1).^2 + (y2-y1).^2 + (z2-z1).^2);
+                % The integrand
+                INT = log(R)*((P2(1)-P1(1))*(P4(1)-P3(1))+(P2(2)-P1(2))*...
+                    (P4(2)-P3(2))+(P2(3)-P1(3))*(P4(3)-P3(3)));
+                
+                
+                % function [area] = polyarea3d(V,N)
+                % % Calculates the area of the polygon given by the matrix of vertices and
+                % % the normal vector N.  This assumes the vertices are closed, i.e., the
+                % % last row in V is equal to the first row.  Algorithm developed by
+                % % Daniel Sunday and available in c++ here:
+                % % http://geomalgorithms.com/a01-_area.html
+                % n = size(V,1)-1;
+                % % select largest abs coordinate to ignore for projection
+                % ax = abs(N(1));
+                % ay = abs(N(2));
+                % az = abs(N(3));
+                %
+                % if (ax > ay)&&(ax > az)
+                %     area = (sum(V(2:n,2) .* (V(3:n+1,3) - V(1:n-1,3))) + ...
+                %            (V(n+1,2) .* (V(2,3) - V(n,3))))/ (2 * N(1));
+                % elseif (ay > az)&&(ay > ax)
+                %     area = (sum((V(2:n,3) .* (V(3:n+1,1) - V(1:n-1,1)))) + ...
+                %            (V(n+1,3) * (V(2,1) - V(n,1))))/ (2 * N(2));
+                % else
+                %     area = (sum((V(2:n,1) .* (V(3:n+1,2) - V(1:n-1,2)))) + ...
+                %            (V(n+1,1) * (V(2,2) - V(n,2))))/(2 * N(3));
+                % end
+                
+                % function [area] = rectarea3d(V)
+                % % if only rectangles are used
+                % %area=(0.2+norm(V(1,:)-V(2,:)))*(0.2+norm(V(2,:)-V(3,:)));
+                % l1=norm(V(1,:)-V(2,:));
+                % l2=norm(V(2,:)-V(3,:));
+                % area=l1*l2;
+            end
+            
+            function [abscissa, weights] = Gauss(n)
+                % Generates the abscissa and weights for a Gauss-Legendre quadrature.
+                % Reference:  Numerical Recipes in Fortran 77, Cornell press.
+                abscissa = zeros(n,1);  % Preallocations.
+                weights = abscissa;
+                m = (n+1)/2;
+                for iii=1:m
+                    z = cos(pi*(iii-.25)/(n+.5)); % Initial estimate.
+                    z1 = z+1;
+                    
+                    while abs(z-z1)>eps
+                        p1 = 1;
+                        p2 = 0;
+                        
+                        for jjj = 1:n
+                            p3 = p2;
+                            p2 = p1;
+                            p1 = ((2*jjj-1)*z*p2-(jjj-1)*p3)/jjj; % The Legendre polynomial.
+                        end
+                        
+                        pp = n*(z*p1-p2)/(z^2-1);   % The L.P. derivative.
+                        z1 = z;
+                        z = z1-p1/pp;
+                    end
+                    
+                    abscissa(iii) = -z;      % Build up the abscissas.
+                    abscissa(n+1-iii) = z;
+                    weights(iii) = 2/((1-z^2)*(pp^2));  % Build up the weights.
+                    weights(n+1-iii) = weights(iii);
+                end
+            end          
+        end
+               
         function [ prcntgblckd ] = prblckd(i,j,coa,ndima,sun,v1,cob,ndimb,facets,centerweight,cornerweight,nblocks,nbw,bl)
             %prcntgblckd     = percentage of view blocked
             %i               = index of facet 1

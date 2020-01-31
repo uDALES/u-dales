@@ -1,7 +1,7 @@
 %% da_inp
 % This script is run by the bash script da_inp. It used to generate the
 % necessary input files for uDALES.
-expnr = '400';
+expnr = '150';
 ncpus = 2;
 
 DA_EXPDIR = getenv('DA_EXPDIR');
@@ -16,7 +16,6 @@ r = da_pp(expnr, exppath);
 da_pp.addvar(r, 'walltypes', dlmread(['walltypes.inp.', expnr],'',3,0));
 da_pp.set_defaults(r, ncpus);
 
-
 da_pp.generate_xygrid(r);
 da_pp.write_xgrid(r)
 disp(['Written xgrid.inp.', r.expnr])
@@ -29,7 +28,6 @@ disp(['Written lscal.inp.', r.expnr])
 da_pp.generate_prof(r);
 da_pp.write_prof(r);
 disp(['Written prof.inp.', r.expnr])
-%da_pp.plot_profiles(r);
 
 if r.lchem
     da_pp.generate_scalar(r);
@@ -38,7 +36,7 @@ if r.lchem
 end
 
 if ~r.llidar
-    if r.lflat % no blocks
+    if r.lflat
         da_pp.addvar(r, 'bl', [])
     else
         if (r.lcastro || r.lcube || r.lcanyons)
@@ -51,6 +49,7 @@ if ~r.llidar
         da_pp.generate_topo_from_bl(r)
     end
 else
+    disp('Generating blocks from LIDAR data')
     da_pp.generate_topo_from_LIDAR(r)
 end
 
@@ -75,17 +74,6 @@ da_pp.write_blocks(r)
 disp(['Written blocks.inp.', r.expnr])
 da_pp.write_facets(r)
 disp(['Written facets.inp.', r.expnr])
-
-% if r.ltrees
-%     da_pp.generate_trees(r);
-%     da_pp.write_trees(r);
-%     disp(['Written trees.inp.', r.expnr])
-% end
-
-% if r.lpurif
-%     da_pp.generate_purifs(r, true);
-%     disp(['Written purifs.inp.', r.expnr])
-% end
 
 if r.lEB
     da_pp.vsolc(r)
