@@ -42,3 +42,6 @@ outputs/
 .vscode/
 
 data/
+
+# Matlab artifacts
+*.m~
