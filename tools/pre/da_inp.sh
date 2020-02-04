@@ -24,13 +24,12 @@ export PATH=$DA_PREDIR:$PATH
 
 cd $DA_EXPDIR/$iexpnr
 
-####### set iexpnir in matlab file
-
-sed -i'' -e "/expnr = '/s/.*/expnr = '$iexpnr';/g" $DA_PREDIR"/da_inp.m"
-
-###### set # CPUS from execute to test domain size !edit : should maybe multiply by nnode 
-
-sed -i'' -e "/CPUS = /s/.*/CPUS = $(grep -m 1 'ncpu=' ../../u-dales/tools/utils/local_execute.sh | cut -d "=" -f 2 | cut -d " " -f 1 | tr -d ' ');       % # cpus/g" $DA_PREDIR"/da_inp.m"
+if [[ "$OSTYPE" == "darwin"* ]]; then
+	####### set iexpnir in matlab file
+	sed -i '' "/expnr = '/s/.*/expnr = '$iexpnr';/g" $DA_PREDIR"/da_inp.m"
+	###### set # CPUS from execute to test domain size !edit : should maybe multiply by nnode
+	sed -i '' "/CPUS = /s/.*/CPUS = $(grep -m 1 'ncpu=' ../../u-dales/tools/utils/local_execute.sh | cut -d "=" -f 2 | cut -d " " -f 1 | tr -d ' ');       % # cpus/g" $DA_PREDIR"/da_inp.m"
+fi 
 
 ###### RUN MATLAB SCRIPT FOR .inp. files
 
@@ -44,20 +43,20 @@ nblocks=$(wc -l < $DA_EXPDIR/$iexpnr/blocks.inp.$iexpnr)
 nblocks=$(($nblocks-2))
 
 if grep -q nblocks $DA_EXPDIR/$iexpnr"/namoptions."$iexpnr; then
-	sed -i'' -e "/nblocks/s/.*/nblocks    =  $nblocks/g" $DA_EXPDIR/$iexpnr"/namoptions."$iexpnr
+	sed -i '' "/nblocks/s/.*/nblocks    =  $nblocks/g" $DA_EXPDIR/$iexpnr"/namoptions."$iexpnr
 else
-	sed -i'' -e "/&DOMAIN/a \ 
-nblocks    =  $nblocks
-" $DA_EXPDIR/$iexpnr"/namoptions."$iexpnr
+	sed -i '' '/&DOMAIN/a\'$'\n''nblocks    =  '$nblocks''$'\n' $DA_EXPDIR/$iexpnr"/namoptions."$iexpnr
 fi
 
 nfcts=$(wc -l < $DA_EXPDIR/$iexpnr/facets.inp.$iexpnr)
 nfcts=$(($nfcts-1))
 
 if grep -q nfcts $DA_EXPDIR/$iexpnr"/namoptions."$iexpnr; then
-	sed -i'' -e "/nfcts/s/.*/nfcts      = $nfcts/g" $DA_EXPDIR/$iexpnr"/namoptions."$iexpnr
+	if [[ "$OSTYPE" == "darwin"* ]]; then
+		sed -i '' "/nfcts/s/.*/nfcts      = $nfcts/g" $DA_EXPDIR/$iexpnr"/namoptions."$iexpnr
+	fi
 else
-	sed -i'' -e "/&ENERGYBALANCE/a \ 
-nfcts      = $nfcts
-" $DA_EXPDIR/$iexpnr"/namoptions."$iexpnr
+	if [[ "$OSTYPE" == "darwin"* ]]; then
+		sed -i '' '/&ENERGYBALANCE/a\'$'\n''nfcts      = '$nfcts''$'\n' $DA_EXPDIR/$iexpnr"/namoptions."$iexpnr
+	fi
 fi
