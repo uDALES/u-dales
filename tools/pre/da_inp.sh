@@ -24,17 +24,22 @@ export PATH=$DA_PREDIR:$PATH
 
 cd $DA_EXPDIR/$iexpnr
 
-if [[ "$OSTYPE" == "darwin"* ]]; then
-	sedi="sed -i ''"
-elif [[ "$OSTYPE" == "linux-gnu" ]]; then
-	sedi="sed -i"
-fi
+#if [[ "$OSTYPE" == "darwin"* ]]; then
+#	sedi="sed -i ''"
+#elif [[ "$OSTYPE" == "linux-gnu" ]]; then
+#	sedi="sed -i"
+#fi
+
+function sedi { if [[ "$OSTYPE" == "darwin"* ]]; then
+        		sed -i '' "$1" "$2"
+		elif [[ "$OSTYPE" == "linux-gnu" ]]; then
+        		sed -i "$1" "$2"
+		fi;}
 
 ####### set iexpnir in matlab file
-$sedi "/expnr = '/s/.*/expnr = '$iexpnr';/g" $DA_PREDIR"/da_inp.m"
+sedi "/expnr = '/s/.*/expnr = '$iexpnr';/g" $DA_PREDIR"/da_inp.m"
 ###### set # CPUS from execute to test domain size !edit : should maybe multiply by nnode
-$sedi  "/CPUS = /s/.*/CPUS = $(grep -m 1 'ncpu=' ../../u-dales/tools/utils/local_execute.sh | cut -d "=" -f 2 | cut -d " " -f 1 | tr -d ' ');       % # cpus/g" $DA_PREDIR"/da_inp.m"
-#fi 
+sedi  "/CPUS = /s/.*/CPUS = $(grep -m 1 'ncpu=' ../../u-dales/tools/utils/local_execute.sh | cut -d "=" -f 2 | cut -d " " -f 1 | tr -d ' ');       % # cpus/g" $DA_PREDIR"/da_inp.m" 
 
 ###### RUN MATLAB SCRIPT FOR .inp. files
 
@@ -48,20 +53,16 @@ nblocks=$(wc -l < $DA_EXPDIR/$iexpnr/blocks.inp.$iexpnr)
 nblocks=$(($nblocks-2))
 
 if grep -q nblocks $DA_EXPDIR/$iexpnr"/namoptions."$iexpnr; then
-	$sedi "/nblocks/s/.*/nblocks    =  $nblocks/g" $DA_EXPDIR/$iexpnr"/namoptions."$iexpnr
+	sedi "/nblocks/s/.*/nblocks    =  $nblocks/g" $DA_EXPDIR/$iexpnr"/namoptions."$iexpnr
 else
-	$sedi '/&DOMAIN/a\'$'\n''nblocks    =  '$nblocks''$'\n' $DA_EXPDIR/$iexpnr"/namoptions."$iexpnr
+	sedi '/&DOMAIN/a\'$'\n''nblocks    =  '$nblocks''$'\n' $DA_EXPDIR/$iexpnr"/namoptions."$iexpnr
 fi
 
 nfcts=$(wc -l < $DA_EXPDIR/$iexpnr/facets.inp.$iexpnr)
 nfcts=$(($nfcts-1))
 
 if grep -q nfcts $DA_EXPDIR/$iexpnr"/namoptions."$iexpnr; then
-	if [[ "$OSTYPE" == "darwin"* ]]; then
-		$sedi "/nfcts/s/.*/nfcts      = $nfcts/g" $DA_EXPDIR/$iexpnr"/namoptions."$iexpnr
-	fi
+	sedi "/nfcts/s/.*/nfcts      = $nfcts/g" $DA_EXPDIR/$iexpnr"/namoptions."$iexpnr
 else
-	if [[ "$OSTYPE" == "darwin"* ]]; then
-		$sedi '/&ENERGYBALANCE/a\'$'\n''nfcts      = '$nfcts''$'\n' $DA_EXPDIR/$iexpnr"/namoptions."$iexpnr
-	fi
+	sedi '/&ENERGYBALANCE/a\'$'\n''nfcts      = '$nfcts''$'\n' $DA_EXPDIR/$iexpnr"/namoptions."$iexpnr
 fi
