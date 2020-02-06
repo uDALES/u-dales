@@ -115,14 +115,14 @@ The following parameters relate to generating `blocks.inp`. Only one of the foll
 
 ## Instructions
 
-The `da_inp.sh` bash script in `u-dales/tools/pre` acts as a wrapper around the matlab pre-processing routines.
+The `da_inp.sh` bash script in `u-dales/tools` acts as a wrapper around the matlab pre-processing routines.
 
 ```sh
 # We assume you are running the following commands from your
 # top-level project directory.
 
 # General syntax: da_inp.sh exp_id
-./u-dales/tools/pre/da_inp.sh 009
+./u-dales/tools/da_inp.sh 009
 ```
 
 This will write the necessary input files according to the parameters in `namoptions.inp.009`, as well as writing the correct number of blocks and facets.
