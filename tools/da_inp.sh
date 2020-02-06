@@ -26,9 +26,9 @@ function sedi { if [[ "$OSTYPE" == "darwin"* ]]; then
 		fi;}
 
 ####### set iexpnir in matlab file
-sedi "/expnr = '/s/.*/expnr = '$iexpnr';/g" $DA_PREDIR"/da_inp.m"
+sedi "/expnr = '/s/.*/expnr = '$iexpnr';/g" $DA_TOOLSDIR"/write_input_files.m"
 ###### set # CPUS from execute to test domain size !edit : should maybe multiply by nnode
-sedi  "/CPUS = /s/.*/CPUS = $(grep -m 1 'ncpu=' ../../u-dales/tools/utils/local_execute.sh | cut -d "=" -f 2 | cut -d " " -f 1 | tr -d ' ');       % # cpus/g" $DA_PREDIR"/da_inp.m" 
+sedi  "/CPUS = /s/.*/CPUS = $(grep -m 1 'ncpu=' ../../u-dales/tools/utils/local_execute.sh | cut -d "=" -f 2 | cut -d " " -f 1 | tr -d ' ');       % # cpus/g" $DA_TOOLSDIR"/write_input_files.m" 
 
 ###### RUN MATLAB SCRIPT FOR .inp. files
 

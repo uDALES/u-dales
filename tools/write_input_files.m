@@ -1,7 +1,7 @@
 %% write_input_files
 % This script is run by the bash script da_inp.sh It used to generate the
 % necessary input files for uDALES.
-expnr = '100';
+expnr = '200';
 ncpus = 2;
 
 DA_EXPDIR = getenv('DA_EXPDIR');
@@ -10,7 +10,7 @@ addpath([DA_TOOLSDIR '/']);
 exppath = [DA_EXPDIR '/'];
 cd([DA_EXPDIR '/' expnr])
 
-copyfile([DA_EXPDIR, '/walltypes.inp.'], ['walltypes.inp.', expnr]);
+copyfile([DA_TOOLSDIR, '/walltypes.inp.'], ['walltypes.inp.', expnr]);
 
 r = preprocessing(expnr, exppath);
 preprocessing.addvar(r, 'walltypes', dlmread(['walltypes.inp.', expnr],'',3,0));
