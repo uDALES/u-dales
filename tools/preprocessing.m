@@ -1,4 +1,4 @@
-classdef da_pp < dynamicprops
+classdef preprocessing < dynamicprops
     % Class for pre-processing in uDALES 
     %
     properties (Hidden = true, SetAccess = protected)
@@ -8,13 +8,9 @@ classdef da_pp < dynamicprops
         expnr;
     end
     
-    properties (SetAccess = protected)
-        g = 9.81;                % Gravitational acceleration.
-        
-    end
     methods (Static)
         
-        function obj = da_pp(expnr, varargin)
+        function obj = preprocessing(expnr, varargin)
             % Class constructor.
             %
             % expnr       : Integer equal to simulation number.
@@ -126,34 +122,34 @@ classdef da_pp < dynamicprops
         
         function set_defaults(obj, ncpus)
             %% &RUN
-            da_pp.addvar(obj, 'ltrees', 0) % switch for trees (not implemented)
+            preprocessing.addvar(obj, 'ltrees', 0) % switch for trees (not implemented)
             if obj.ltrees
                 error('Trees not currently implemented')
-%                 da_pp.addvar(obj, 'tree_dz',0)
-%                 da_pp.addvar(obj, 'tree_dx',0)
-%                 da_pp.addvar(obj, 'tree_h',0)
-%                 da_pp.addvar(obj, 'tree_w',0)
-%                 da_pp.addvar(obj, 'tree_b',0)
+%                 preprocessing.addvar(obj, 'tree_dz',0)
+%                 preprocessing.addvar(obj, 'tree_dx',0)
+%                 preprocessing.addvar(obj, 'tree_h',0)
+%                 preprocessing.addvar(obj, 'tree_w',0)
+%                 preprocessing.addvar(obj, 'tree_b',0)
 % 
-%                 da_pp.addvar(obj, 'nt1',0)
-%                 da_pp.addvar(obj, 'md',0)
-%                 da_pp.addvar(obj, 'ww',0)
-%                 da_pp.addvar(obj, 'lw',0)
-%                 da_pp.addvar(obj, 'nt2',0)
+%                 preprocessing.addvar(obj, 'nt1',0)
+%                 preprocessing.addvar(obj, 'md',0)
+%                 preprocessing.addvar(obj, 'ww',0)
+%                 preprocessing.addvar(obj, 'lw',0)
+%                 preprocessing.addvar(obj, 'nt2',0)
             end
               
-            da_pp.addvar(obj, 'lpurif', 0) % switch for purifiers (not implemented)
+            preprocessing.addvar(obj, 'lpurif', 0) % switch for purifiers (not implemented)
             if obj.lpurif
                 error('Purifiers not currently implemented')
 %                 if obj.lcanyons
-%                     da_pp.addvar(obj, 'purif_dz', 1)  % purifier starting point from bottom
-%                     da_pp.addvar(obj, 'purif_dx', 3)  % distance from block
-%                     da_pp.addvar(obj, 'purif_h', 3)   % purifier height
-%                     da_pp.addvar(obj, 'purif_w', 0)   % purifier width
-%                     da_pp.addvar(obj, 'purif_dy', 1)  % depth of purifier (in y)
-%                     da_pp.addvar(obj, 'purif_sp', 31) % spacing between purifiers
-%                     da_pp.addvar(obj, 'purif_i', 1)   % case for purifier (1 = +ve x, 2 = -ve x, 3 = +ve y etc.)
-%                     da_pp.addvar(obj, 'npurif', obj.jtot / (obj.npurif_dy + obj.purif_sp))
+%                     preprocessing.addvar(obj, 'purif_dz', 1)  % purifier starting point from bottom
+%                     preprocessing.addvar(obj, 'purif_dx', 3)  % distance from block
+%                     preprocessing.addvar(obj, 'purif_h', 3)   % purifier height
+%                     preprocessing.addvar(obj, 'purif_w', 0)   % purifier width
+%                     preprocessing.addvar(obj, 'purif_dy', 1)  % depth of purifier (in y)
+%                     preprocessing.addvar(obj, 'purif_sp', 31) % spacing between purifiers
+%                     preprocessing.addvar(obj, 'purif_i', 1)   % case for purifier (1 = +ve x, 2 = -ve x, 3 = +ve y etc.)
+%                     preprocessing.addvar(obj, 'npurif', obj.jtot / (obj.npurif_dy + obj.purif_sp))
 % 
 %                     if ceil(npurif) ~= floor(npurif)
 %                         lp = 0:obj.tot / 2;
@@ -169,130 +165,130 @@ classdef da_pp < dynamicprops
 %                 end
             end
             
-            da_pp.addvar(obj, 'nsv', 0)    % number of scalar variables (not implemented)
+            preprocessing.addvar(obj, 'nsv', 0)    % number of scalar variables (not implemented)
             if obj.nsv > 0
                 error('Scalar variables not currently implemented')
             end
             
-            da_pp.addvar(obj, 'luoutflowr', 0) % switch that determines whether u-velocity is corrected to get a fixed outflow rate 
-            da_pp.addvar(obj, 'lvoutflowr', 0) % switch that determines whether v-velocity is corrected to get a fixed outflow rate.
-            da_pp.addvar(obj, 'luvolflowr', 0) % switch that determines whether u-velocity is corrected to get a fixed volume flow rate.
-            da_pp.addvar(obj, 'lvvolflowr', 0) % switch that determines whether v-velocity is corrected to get a fixed volume flow rate. 
+            preprocessing.addvar(obj, 'luoutflowr', 0) % switch that determines whether u-velocity is corrected to get a fixed outflow rate 
+            preprocessing.addvar(obj, 'lvoutflowr', 0) % switch that determines whether v-velocity is corrected to get a fixed outflow rate.
+            preprocessing.addvar(obj, 'luvolflowr', 0) % switch that determines whether u-velocity is corrected to get a fixed volume flow rate.
+            preprocessing.addvar(obj, 'lvvolflowr', 0) % switch that determines whether v-velocity is corrected to get a fixed volume flow rate. 
      
             %% &DOMAIN
-            da_pp.addvar(obj, 'imax', 64)  % # cells in x-direction
-            da_pp.addvar(obj, 'xsize', 64) % domain size in x-direction
-            da_pp.addvar(obj, 'jtot', 64)  % # cells in y-direction
-            da_pp.addvar(obj, 'ysize', 64) % domain size in y-direction
-            da_pp.addvar(obj, 'kmax', 96)  % # cells in z-direction
+            preprocessing.addvar(obj, 'imax', 64)  % # cells in x-direction
+            preprocessing.addvar(obj, 'xsize', 64) % domain size in x-direction
+            preprocessing.addvar(obj, 'jtot', 64)  % # cells in y-direction
+            preprocessing.addvar(obj, 'ysize', 64) % domain size in y-direction
+            preprocessing.addvar(obj, 'kmax', 96)  % # cells in z-direction
             
             if ceil(obj.jtot / ncpus) ~= floor (obj.jtot / ncpus)
                 disp(['Possible jtot: ' num2str([2 3 4 5 6 7 8] * ncpus)])
                 error('No. CPUs does not fit j grid size')
             end
 
-            da_pp.addvar(obj, 'dx', obj.xsize / obj.imax)
-            da_pp.addvar(obj, 'dy', obj.ysize / obj.jtot)
-            da_pp.addvar(obj, 'dz', obj.zsize / obj.kmax)
+            preprocessing.addvar(obj, 'dx', obj.xsize / obj.imax)
+            preprocessing.addvar(obj, 'dy', obj.ysize / obj.jtot)
+            preprocessing.addvar(obj, 'dz', obj.zsize / obj.kmax)
             
             %% &ENERGYBALANCE
-            da_pp.addvar(obj, 'lEB', 0)
+            preprocessing.addvar(obj, 'lEB', 0)
             
             %% &PHYSICS
-            da_pp.addvar(obj, 'lchem' , 0) % switch for chemistry (not implemented)
-            da_pp.addvar(obj, 'lprofforc', 0)  % switch for 1D geostrophic forcing
-            da_pp.addvar(obj, 'lcoriol', 0)    % switch for coriolis forcing
+            preprocessing.addvar(obj, 'lchem' , 0) % switch for chemistry (not implemented)
+            preprocessing.addvar(obj, 'lprofforc', 0)  % switch for 1D geostrophic forcing
+            preprocessing.addvar(obj, 'lcoriol', 0)    % switch for coriolis forcing
             
             if (not(obj.luoutflowr) && not(obj.lvoutflowr) && not(obj.luvolflowr) && not(obj.lvvolflowr) && not(obj.lprofforc) && not(obj.lcoriol))
-                da_pp.addvar(obj, 'ldp', 1)
+                preprocessing.addvar(obj, 'ldp', 1)
                 disp('No forcing switch config. setup so initial velocities and pressure gradients applied.')
             else
-                da_pp.addvar(obj, 'ldp', 0)
+                preprocessing.addvar(obj, 'ldp', 0)
             end
             
             %% &INPS
-            da_pp.addvar(obj, 'zsize', 96) % domain size in z-direction
-            da_pp.addvar(obj, 'lzstretch', 0) % switch for stretching z grid
+            preprocessing.addvar(obj, 'zsize', 96) % domain size in z-direction
+            preprocessing.addvar(obj, 'lzstretch', 0) % switch for stretching z grid
             
             if obj.lEB
-                da_pp.addvar(obj, 'maxsize', 10); % maximum size of facets
+                preprocessing.addvar(obj, 'maxsize', 10); % maximum size of facets
             else
-                da_pp.addvar(obj, 'maxsize', inf);
+                preprocessing.addvar(obj, 'maxsize', inf);
             end
             
             if obj.lzstretch
-                da_pp.addvar(obj, 'stretchconst', 0.01)
-                da_pp.addvar(obj, 'lstretchexp', 0)
-                da_pp.addvar(obj, 'lstretchtanh', 0)
-                da_pp.addvar(obj, 'lstretch2tanh', 0)
+                preprocessing.addvar(obj, 'stretchconst', 0.01)
+                preprocessing.addvar(obj, 'lstretchexp', 0)
+                preprocessing.addvar(obj, 'lstretchtanh', 0)
+                preprocessing.addvar(obj, 'lstretch2tanh', 0)
             end
             
-            da_pp.addvar(obj, 'u0', 0) % initial u-velocity - also applied as geostrophic term where applicable
-            da_pp.addvar(obj, 'v0', 0) % initial v-velocity - also applied as geostrophic term where applicable
-            da_pp.addvar(obj, 'tke', 0)
-            da_pp.addvar(obj, 'dpdx', 0) % dp/dx [Pa/m]
-            da_pp.addvar(obj, 'dpdy', 0) % dp/dy [Pa/m]
-            da_pp.addvar(obj, 'thl0', 288) % temperature at lowest level
-            da_pp.addvar(obj, 'qt0', 0)    % specific humidity
+            preprocessing.addvar(obj, 'u0', 0) % initial u-velocity - also applied as geostrophic term where applicable
+            preprocessing.addvar(obj, 'v0', 0) % initial v-velocity - also applied as geostrophic term where applicable
+            preprocessing.addvar(obj, 'tke', 0)
+            preprocessing.addvar(obj, 'dpdx', 0) % dp/dx [Pa/m]
+            preprocessing.addvar(obj, 'dpdy', 0) % dp/dy [Pa/m]
+            preprocessing.addvar(obj, 'thl0', 288) % temperature at lowest level
+            preprocessing.addvar(obj, 'qt0', 0)    % specific humidity
             
             if obj.lchem > 0
-                da_pp.addvar(obj, 'NOb', 0) % initial concentration of NO            
-                da_pp.addvar(obj, 'NO2b', 0) % initial concentration of NO2
-                da_pp.addvar(obj, 'O3b', 0) % initial concentration of O3
+                preprocessing.addvar(obj, 'NOb', 0) % initial concentration of NO            
+                preprocessing.addvar(obj, 'NO2b', 0) % initial concentration of NO2
+                preprocessing.addvar(obj, 'O3b', 0) % initial concentration of O3
             end
 
-            da_pp.addvar(obj, 'lapse', 0)  % lapse rate [K/s]
-            da_pp.addvar(obj, 'w_s',0) % subsidence [*units?*]
-            da_pp.addvar(obj, 'R',0)   % radiative forcing [*units?*]
+            preprocessing.addvar(obj, 'lapse', 0)  % lapse rate [K/s]
+            preprocessing.addvar(obj, 'w_s',0) % subsidence [*units?*]
+            preprocessing.addvar(obj, 'R',0)   % radiative forcing [*units?*]
             
             % Blocks
-            da_pp.addvar(obj, 'lblocksfile', 0) % switch for using blocks from a file
+            preprocessing.addvar(obj, 'lblocksfile', 0) % switch for using blocks from a file
             if obj.lblocksfile
-                da_pp.addvar(obj, 'blocksfile', '') % name of blocks file
+                preprocessing.addvar(obj, 'blocksfile', '') % name of blocks file
             end
             
-            da_pp.addvar(obj, 'lflat', 0) % switch for flat domain
+            preprocessing.addvar(obj, 'lflat', 0) % switch for flat domain
             
             if (obj.lEB && obj.lflat)
                 error('Energy balance currently not implemented for flat domain')
             end
             
-            da_pp.addvar(obj, 'lcube', 0)   % switch for linear cubes
-            da_pp.addvar(obj, 'lcastro', 0) % switch for staggered cubes
-            da_pp.addvar(obj, 'lcanyons', 0) % switch for infinite canyons
+            preprocessing.addvar(obj, 'lcube', 0)   % switch for linear cubes
+            preprocessing.addvar(obj, 'lcastro', 0) % switch for staggered cubes
+            preprocessing.addvar(obj, 'lcanyons', 0) % switch for infinite canyons
             
             if (obj.lcube || obj.lcastro || obj.lcanyons)
-                da_pp.addvar(obj, 'blockheight', 16) % block height
-                da_pp.addvar(obj, 'blockwidth', 16)  % block width
-                da_pp.addvar(obj, 'canyonwidth', 16) % canyonwidth
+                preprocessing.addvar(obj, 'blockheight', 16) % block height
+                preprocessing.addvar(obj, 'blockwidth', 16)  % block width
+                preprocessing.addvar(obj, 'canyonwidth', 16) % canyonwidth
             end
 
-            da_pp.addvar(obj, 'llidar', 0)
+            preprocessing.addvar(obj, 'llidar', 0)
             if obj.llidar
-                da_pp.addvar(obj, 'sourcename', '')
-                da_pp.addvar(obj, 'dxinp', 1) % resolution of image [m/pixel]
-                da_pp.addvar(obj, 'dyinp', 1)
-                da_pp.addvar(obj, 'dzinp', 1)
-                da_pp.addvar(obj, 'centeri', 0) % center of area of interest in original image [pixel]
-                da_pp.addvar(obj, 'centerj', 0)
-                da_pp.addvar(obj, 'maxh', 0) % magimum height of buildings in image [m]
-                da_pp.addvar(obj, 'pad', 5) % padding. A padding of 0 makes only sense for idealised cases. There should be no building at domain edge
-                da_pp.addvar(obj, 'smallarea', round(150 / (obj.dx * obj.dy))) % objects smaller than this will be deleted
+                preprocessing.addvar(obj, 'sourcename', '')
+                preprocessing.addvar(obj, 'dxinp', 1) % resolution of image [m/pixel]
+                preprocessing.addvar(obj, 'dyinp', 1)
+                preprocessing.addvar(obj, 'dzinp', 1)
+                preprocessing.addvar(obj, 'centeri', 0) % center of area of interest in original image [pixel]
+                preprocessing.addvar(obj, 'centerj', 0)
+                preprocessing.addvar(obj, 'maxh', 0) % magimum height of buildings in image [m]
+                preprocessing.addvar(obj, 'pad', 5) % padding. A padding of 0 makes only sense for idealised cases. There should be no building at domain edge
+                preprocessing.addvar(obj, 'smallarea', round(150 / (obj.dx * obj.dy))) % objects smaller than this will be deleted
             end
             
             if obj.lEB
-                da_pp.addvar(obj, 'solaz', 135); % azimuth angle
-                da_pp.addvar(obj, 'Z', 28.4066); % zenith angle
-                da_pp.addvar(obj, 'centerweight', 12 / 32);
-                da_pp.addvar(obj, 'cornerweight', (1 - obj.centerweight) / 4);
-                da_pp.addvar(obj, 'I', 184.8775); % Direct solar irradiation [W/m2]
-                da_pp.addvar(obj, 'Dsk', 418.8041); % Diffuse incoming radiation [W/m2]
+                preprocessing.addvar(obj, 'solaz', 135); % azimuth angle
+                preprocessing.addvar(obj, 'Z', 28.4066); % zenith angle
+                preprocessing.addvar(obj, 'centerweight', 12 / 32);
+                preprocessing.addvar(obj, 'cornerweight', (1 - obj.centerweight) / 4);
+                preprocessing.addvar(obj, 'I', 184.8775); % Direct solar irradiation [W/m2]
+                preprocessing.addvar(obj, 'Dsk', 418.8041); % Diffuse incoming radiation [W/m2]
             end
             
-            da_pp.addvar(obj, 'nblocks', 0)
-            da_pp.addvar(obj, 'nfcts', 0)
-            da_pp.addvar(obj, 'blocks', [])
-            da_pp.addvar(obj, 'facets', [])           
+            preprocessing.addvar(obj, 'nblocks', 0)
+            preprocessing.addvar(obj, 'nfcts', 0)
+            preprocessing.addvar(obj, 'blocks', [])
+            preprocessing.addvar(obj, 'facets', [])           
         end
         
         function plot_profiles(obj)
@@ -318,10 +314,10 @@ classdef da_pp < dynamicprops
         end
         
         function generate_xygrid(obj)
-             da_pp.addvar(obj, 'xf', 0.5 * obj.dx : obj.dx : obj.xsize - 0.5 * obj.dx); 
-             da_pp.addvar(obj, 'yf', 0.5 * obj.dy : obj.dy : obj.ysize - 0.5 * obj.dy);
-             da_pp.addvar(obj, 'xh', 0 : obj.dx : obj.xsize);
-             da_pp.addvar(obj, 'yh', 0 : obj.dy : obj.ysize);
+             preprocessing.addvar(obj, 'xf', 0.5 * obj.dx : obj.dx : obj.xsize - 0.5 * obj.dx); 
+             preprocessing.addvar(obj, 'yf', 0.5 * obj.dy : obj.dy : obj.ysize - 0.5 * obj.dy);
+             preprocessing.addvar(obj, 'xh', 0 : obj.dx : obj.xsize);
+             preprocessing.addvar(obj, 'yh', 0 : obj.dy : obj.ysize);
         end
         
         function write_xgrid(obj)
@@ -334,16 +330,16 @@ classdef da_pp < dynamicprops
         
         function generate_zgrid(obj)
             if ~obj.lzstretch
-                da_pp.addvar(obj, 'zf', 0.5 * obj.dz:obj.dz:obj.zsize - 0.5 * obj.dz);
-                da_pp.addvar(obj, 'zh', 0:obj.dz:obj.zsize);
-                da_pp.addvar(obj, 'dzf', obj.zh(2:end) - obj.zh(1:end - 1));
+                preprocessing.addvar(obj, 'zf', 0.5 * obj.dz:obj.dz:obj.zsize - 0.5 * obj.dz);
+                preprocessing.addvar(obj, 'zh', 0:obj.dz:obj.zsize);
+                preprocessing.addvar(obj, 'dzf', obj.zh(2:end) - obj.zh(1:end - 1));
             else
                 if obj.lstretchexp
-                   da_pp.stretch_exp(obj)
+                   preprocessing.stretch_exp(obj)
                 elseif obj.lstretchtanh
-                    da_pp.stretch_tanh(obj)
+                    preprocessing.stretch_tanh(obj)
                 elseif obj.lstretch2tanh
-                    da_pp.stretch_2tanh(obj)                   
+                    preprocessing.stretch_2tanh(obj)                   
                 else
                     error('Invalid stretch');
                 end
@@ -354,9 +350,9 @@ classdef da_pp < dynamicprops
             il = round(obj.maxh / obj.dzlin);
             ir  = obj.kmax - il;
             
-            da_pp.addvar(obj, 'zf', zeros(obj.kmax, 1));
-            da_pp.addvar(obj, 'dzf', zeros(obj.kmax, 1));
-            da_pp.addvar(obj, 'zh', zeros(obj.kmax+1, 1));
+            preprocessing.addvar(obj, 'zf', zeros(obj.kmax, 1));
+            preprocessing.addvar(obj, 'dzf', zeros(obj.kmax, 1));
+            preprocessing.addvar(obj, 'zh', zeros(obj.kmax+1, 1));
             
             obj.zf(1:il) = 0.5 * obj.dzlin : obj.dzlin : obj.maxh;
             obj.zh(1:il+1) = 0 : obj.dzlin : obj.maxh;
@@ -385,9 +381,9 @@ classdef da_pp < dynamicprops
             il = round(obj.maxh / obj.dzlin);
             ir  = obj.kmax - il;
             
-            da_pp.addvar(obj, 'zf', zeros(obj.kmax, 1));
-            da_pp.addvar(obj, 'dzf', zeros(obj.kmax, 1));
-            da_pp.addvar(obj, 'zh', zeros(obj.kmax + 1, 1));
+            preprocessing.addvar(obj, 'zf', zeros(obj.kmax, 1));
+            preprocessing.addvar(obj, 'dzf', zeros(obj.kmax, 1));
+            preprocessing.addvar(obj, 'zh', zeros(obj.kmax + 1, 1));
             
             obj.zf(1:il) = 0.5 * obj.dzlin : obj.dzlin : obj.maxh;
             obj.zh(1:il+1) = 0 : obj.dzlin : obj.maxh;
@@ -418,9 +414,9 @@ classdef da_pp < dynamicprops
             il = round(obj.maxh / obj.dzlin); 
             ir  = obj.kmax - il;
             
-            da_pp.addvar(obj, 'zf', zeros(obj.kmax, 1));
-            da_pp.addvar(obj, 'dzf', zeros(obj.kmax, 1));
-            da_pp.addvar(obj, 'zh', zeros(obj.kmax+1, 1));
+            preprocessing.addvar(obj, 'zf', zeros(obj.kmax, 1));
+            preprocessing.addvar(obj, 'dzf', zeros(obj.kmax, 1));
+            preprocessing.addvar(obj, 'zh', zeros(obj.kmax+1, 1));
             
             obj.zf(1:il) = 0.5 * obj.dzlin:obj.dzlin:obj.maxh;
             obj.zh(1:il+1) = 0:obj.dzlin:obj.maxh;
@@ -457,7 +453,7 @@ classdef da_pp < dynamicprops
                 error('More than one forcing type specified')
             end
             
-            da_pp.addvar(obj, 'ls', zeros(length(obj.zf), 10));
+            preprocessing.addvar(obj, 'ls', zeros(length(obj.zf), 10));
             obj.ls(:,1) = obj.zf;
             obj.ls(:,6) = obj.w_s;
             obj.ls(:,10) = obj.R;
@@ -479,7 +475,7 @@ classdef da_pp < dynamicprops
         end
         
         function generate_prof(obj)
-            da_pp.addvar(obj, 'pr', zeros(length(obj.zf), 6));
+            preprocessing.addvar(obj, 'pr', zeros(length(obj.zf), 6));
             obj.pr(:,1) = obj.zf;
             
             if obj.lapse
@@ -508,7 +504,7 @@ classdef da_pp < dynamicprops
         end
         
         function generate_scalar(obj)
-            da_pp.addvar(obj, 'sc', zeros(length(obj.zf), 5));
+            preprocessing.addvar(obj, 'sc', zeros(length(obj.zf), 5));
             if obj.lchem
                 obj.sc(:,1) = obj.zf;
                 obj.sc(:,2) = obj.NOb;
@@ -527,8 +523,8 @@ classdef da_pp < dynamicprops
         end
         
         function generate_topo_from_bl(obj)
-            da_pp.addvar(obj, 'topomask', zeros(obj.jtot, obj.imax));
-            da_pp.addvar(obj, 'topo', zeros(obj.jtot, obj.imax));            
+            preprocessing.addvar(obj, 'topomask', zeros(obj.jtot, obj.imax));
+            preprocessing.addvar(obj, 'topo', zeros(obj.jtot, obj.imax));            
             for n = 1:size(obj.bl, 1)
                 obj.topo(obj.bl(n,3):obj.bl(n,4),obj.bl(n,1):obj.bl(n,2)) = obj.zh(obj.bl(n,6) + 1);
                 obj.topomask(obj.bl(n,3):obj.bl(n,4),obj.bl(n,1):obj.bl(n,2)) = 1;
@@ -615,12 +611,12 @@ classdef da_pp < dynamicprops
                 bl(1:nrows, 6) = blockheight - 1; 
             end 
             
-            da_pp.addvar(obj, 'bl', bl)
+            preprocessing.addvar(obj, 'bl', bl)
         end
         
         function generate_bl_from_file(obj)
             bl = dlmread(obj.blocksfile, '', 2, 0);
-            da_pp.addvar(obj, 'bl', bl)
+            preprocessing.addvar(obj, 'bl', bl)
         end
         
         function generate_topo_from_LIDAR(obj)
@@ -770,8 +766,8 @@ classdef da_pp < dynamicprops
             
             topo=data;
             topomask=datamask;
-            da_pp.addvar(obj, 'topo', topo)
-            da_pp.addvar(obj, 'topomask', topomask)
+            preprocessing.addvar(obj, 'topo', topo)
+            preprocessing.addvar(obj, 'topomask', topomask)
             
             function [mask, image ] = fillgaps( mask,image,nj,ni,pad)
                 %fills horizontal and vertical 1D gaps of width 1
@@ -1587,7 +1583,7 @@ classdef da_pp < dynamicprops
             
             obj.nblocks = size(blocks, 1);
             obj.blocks = blocks;
-            da_pp.addvar(obj, 'buildings', [xmin5  xmax5  ymin6 ymax6 zmin5+1 zmax5+1 buildingindexlist']);            
+            preprocessing.addvar(obj, 'buildings', [xmin5  xmax5  ymin6 ymax6 zmin5+1 zmax5+1 buildingindexlist']);            
         end
         
         function block2fac(obj)
@@ -1735,7 +1731,7 @@ classdef da_pp < dynamicprops
             % assign building id to facets
             bblku = unique(bblk1);
             nbld = length(bblku);
-            da_pp.addvar(obj, 'nbuildings', length(bblku));
+            preprocessing.addvar(obj, 'nbuildings', length(bblku));
             for n = 1:nbld
                 facets(bblk1 == bblku(n), 4) = n;
             end
@@ -1756,7 +1752,7 @@ classdef da_pp < dynamicprops
 
             
             obj.nfcts = size(facets,1);
-            da_pp.addvar(obj, 'nblockfcts', size(facets, 1))   
+            preprocessing.addvar(obj, 'nblockfcts', size(facets, 1))   
             obj.facets = facets;
         end
         
@@ -1885,7 +1881,7 @@ classdef da_pp < dynamicprops
 %                 boundingwallfacets(2 * (nxwalls * nzw) + (nywalls * nzw) + i, 11) = boundingwallfacets(2 * (nxwalls * nzw) + (nywalls * nzw) + i, 11) + 2;
             end
             obj.facets(end + 1:end + nboundingwallfacets, :) = boundingwallfacets;
-            da_pp.addvar(obj, 'boundingwallfacets', boundingwallfacets);
+            preprocessing.addvar(obj, 'boundingwallfacets', boundingwallfacets);
             obj.nboundingwallfacets = nboundingwallfacets;
         end
         
@@ -2208,7 +2204,7 @@ classdef da_pp < dynamicprops
                     end
                 end
                 
-                da_pp.addvar(obj, 'cornm', cornm);
+                preprocessing.addvar(obj, 'cornm', cornm);
                 nfloorfacets = size(floorfacets, 1);
                 
                 for i = 1:nfloorfacets
@@ -2249,9 +2245,9 @@ classdef da_pp < dynamicprops
             obj.nfcts = obj.nblockfcts + obj.nboundingwallfacets + nfloorfacets;
             obj.facets = [obj.facets; floorfacets];
             obj.blocks = blocks;
-            da_pp.addvar(obj, 'floorfacets', floorfacets)
-            da_pp.addvar(obj, 'nfloorfacets', nfloorfacets)
-            da_pp.addvar(obj, 'nblockstotal', obj.nblocks + nfloorfacets);
+            preprocessing.addvar(obj, 'floorfacets', floorfacets)
+            preprocessing.addvar(obj, 'nfloorfacets', nfloorfacets)
+            preprocessing.addvar(obj, 'nblockstotal', obj.nblocks + nfloorfacets);
         end
         
         function vsolc(obj)
@@ -2308,7 +2304,7 @@ classdef da_pp < dynamicprops
             %% create blocks to test for intersection
             % coordinates in physical space (not indeces)
             % blocks is blocks so can just replace it with obj.blocks 
-            %da_pp.addvar(obj, 'blocks_phys', zeros(obj.nblocks + obj.nboundingwallfacets, 6));
+            %preprocessing.addvar(obj, 'blocks_phys', zeros(obj.nblocks + obj.nboundingwallfacets, 6));
             blocks_phys = zeros(nblocks + nboundingwallfacets, 6);
             for k = 1:nblocks
                 xl = xh(blocks(k, 1));
@@ -2361,7 +2357,7 @@ classdef da_pp < dynamicprops
                 blocks_phys(k + nblocks, :) = [xl, xu, yl, yu, zl, zu];
             end
             
-            da_pp.addvar(obj, 'blocks_phys', blocks_phys);
+            preprocessing.addvar(obj, 'blocks_phys', blocks_phys);
             boundingwalls = boundingwallfacets(:, 6:end);
             
             gl = zeros(nfloorfacets, 6); %[xl xu yl yu zl zu] %space coordinates of floors
@@ -2392,7 +2388,7 @@ classdef da_pp < dynamicprops
                 % get facet center and corners
                 cornm = obj.cornm;
                 delta = 0.01;
-                [ndim, ~, co] = da_pp.detsub(i,facets,blocks,floors,boundingwalls,cornm,xh,yh,zh,delta);
+                [ndim, ~, co] = preprocessing.detsub(i,facets,blocks,floors,boundingwalls,cornm,xh,yh,zh,delta);
                 %ndim=(dim1*dim2), number of cells of that facet
                 %co = returns xyz-coordinates of center and 4 corners clockwise from
                 %bottom left slightly shifter and
@@ -2400,7 +2396,7 @@ classdef da_pp < dynamicprops
                 %bottom left
                 
                 %count how much area cannot see sun (i.e. view is blocked)
-                [ as ] = da_pp.prblckd(i,-999,co,ndim,true,v1,-999,-999,facets,centerweight,cornerweight,nblocks,nboundingwallfacets,blocks_phys);
+                [ as ] = preprocessing.prblckd(i,-999,co,ndim,true,v1,-999,-999,facets,centerweight,cornerweight,nblocks,nboundingwallfacets,blocks_phys);
                 asl(i) = 1 - as; %fraction of facet in sunlight
             end
 
@@ -2428,8 +2424,8 @@ classdef da_pp < dynamicprops
                 Sdir(i) = I * cos((Z - phi) / 360 * 2 * pi) * cos(walltheta(i) / 360 * 2 * pi) * asl(i);
             end
             
-            da_pp.addvar(obj, 'asl', asl);
-            da_pp.addvar(obj, 'Sdir', Sdir);
+            preprocessing.addvar(obj, 'asl', asl);
+            preprocessing.addvar(obj, 'Sdir', Sdir);
         end       
         
         function plot_shading(obj)
@@ -2902,9 +2898,9 @@ classdef da_pp < dynamicprops
                 bi = facets(i, 3); %block index
                 fi = facets(i, 1); %facet index
                 ci = facets(i, 4); %building index (-1 for roads, -99 for bounding wall)
-                %[ndima, areaa, coa] = da_pp.detsub(obj, i);
+                %[ndima, areaa, coa] = preprocessing.detsub(obj, i);
                 
-                [ ndima, areaa, coa] = da_pp.detsub(i,facets,blocks,floors,boundingwalls,cornm,xh,yh,zh,delta);
+                [ ndima, areaa, coa] = preprocessing.detsub(i,facets,blocks,floors,boundingwalls,cornm,xh,yh,zh,delta);
                 for j = (i + 1):nfcts
                     bi2 = facets(j, 3); %block index
                     fi2 = facets(j, 1); %facet index
@@ -2913,10 +2909,10 @@ classdef da_pp < dynamicprops
                         continue
                     end
                     
-                    %[ndimb, areab, cob] = da_pp.detsub(obj, j);
-                    [ ndimb, areab, cob] = da_pp.detsub(j,facets,blocks,floors,boundingwalls,cornm,xh,yh,zh,delta);
-                    %[prblckdij] = da_pp.prblckd(obj, i, j, coa, ndima, false, -999, cob, ndimb);
-                    [prblckdij] = da_pp.prblckd(i,j,coa,ndima,false,-999,cob,ndimb,facets,centerweight,cornerweight,nblocks,nboundingwallfacets,blocks_phys);
+                    %[ndimb, areab, cob] = preprocessing.detsub(obj, j);
+                    [ ndimb, areab, cob] = preprocessing.detsub(j,facets,blocks,floors,boundingwalls,cornm,xh,yh,zh,delta);
+                    %[prblckdij] = preprocessing.prblckd(obj, i, j, coa, ndima, false, -999, cob, ndimb);
+                    [prblckdij] = preprocessing.prblckd(i,j,coa,ndima,false,-999,cob,ndimb,facets,centerweight,cornerweight,nblocks,nboundingwallfacets,blocks_phys);
                     c = 1 - prblckdij;
                     pf1sf2(i, j) = c;
                     pf1sf2(j, i) = c;
@@ -2928,7 +2924,7 @@ classdef da_pp < dynamicprops
                             %slice up
                             %pf1sf2u also has to include check for center, in case center is
                             %blocked
-                            [coaa, cobb, pf1sf2u] = da_pp.slice(fi, fi2, coa, cob, cornerweight, centerweight);
+                            [coaa, cobb, pf1sf2u] = preprocessing.slice(fi, fi2, coa, cob, cornerweight, centerweight);
                             c = c + pf1sf2u;
                             pf1sf2(i, j) = c;
                             pf1sf2(j, i) = c;
@@ -3067,10 +3063,10 @@ classdef da_pp < dynamicprops
                         end
                         
                         %calculate viewfactor
-                        [F12, F21] = da_pp.ViewFactor(coaa, cobb, areaa, areab, glpo, vcorner);
+                        [F12, F21] = preprocessing.ViewFactor(coaa, cobb, areaa, areab, glpo, vcorner);
                         %increase glpo if view factors are big
                         if F12 > 0.5 || F21 > 0.5
-                            [F12, F21] = da_pp.ViewFactor(coaa, cobb, areaa, areab, glpo + 10, vcorner);
+                            [F12, F21] = preprocessing.ViewFactor(coaa, cobb, areaa, areab, glpo + 10, vcorner);
                         end
                         
                         
@@ -3095,9 +3091,9 @@ classdef da_pp < dynamicprops
                     vf(lblub(i), :) = vf(lblub(i),:)/blub(lblub(i));
                 end
             end
-            da_pp.addvar(obj, 'vf', vf)
-            da_pp.addvar(obj, 'svf', max(1 - sum(vf, 2), 0));
-            da_pp.addvar(obj, 'facetarea', A);
+            preprocessing.addvar(obj, 'vf', vf)
+            preprocessing.addvar(obj, 'svf', max(1 - sum(vf, 2), 0));
+            preprocessing.addvar(obj, 'facetarea', A);
         end
                     
         function write_svf(obj)
@@ -3218,7 +3214,7 @@ classdef da_pp < dynamicprops
             albedo(i)=wall.al(j);
             emissivity(i)=wall.em(j);
         end
-        da_pp.addvar(obj, 'emissivity', emissivity);
+        preprocessing.addvar(obj, 'emissivity', emissivity);
         
         %isroof
         isnotroof=ones(nfcts,1);
@@ -3298,7 +3294,7 @@ classdef da_pp < dynamicprops
             Koutold = Koutnew; %overwrite reflected radiation with new value
         end
     
-        da_pp.addvar(obj, 'Kin', Kin);
+        preprocessing.addvar(obj, 'Kin', Kin);
         end
                 
         function write_netsw(obj)
@@ -3405,10 +3401,10 @@ classdef da_pp < dynamicprops
                 end
             
             
-                da_pp.addvar(obj, 'Tfacinit', Tnew(:, k));
+                preprocessing.addvar(obj, 'Tfacinit', Tnew(:, k));
                         
             else 
-                da_pp.addvar(obj, 'Tfacinit', 288 * ones(obj.nfcts, 1));
+                preprocessing.addvar(obj, 'Tfacinit', 288 * ones(obj.nfcts, 1));
             end
 %             if ltestplot
 %                 figure
@@ -3484,9 +3480,9 @@ classdef da_pp < dynamicprops
         end
         
         function generate_trees(obj) % not implemented
-            da_pp.addvar(obj, 'nrows', obj.imax / (obj.blockwidth + obj.canyonwidth));
+            preprocessing.addvar(obj, 'nrows', obj.imax / (obj.blockwidth + obj.canyonwidth));
             if obj.lcanyons
-               da_pp.addvar(obj, 'trees', zeros(obj.nrows, 6));
+               preprocessing.addvar(obj, 'trees', zeros(obj.nrows, 6));
             end
         end
         
@@ -3499,11 +3495,11 @@ classdef da_pp < dynamicprops
         end
         
         function generate_purifs(obj) % not implemented
-            da_pp.addvar(obj, 'nrows', obj.imax / (obj.blockwidth + obj.canyonwidth));
+            preprocessing.addvar(obj, 'nrows', obj.imax / (obj.blockwidth + obj.canyonwidth));
             if obj.lcanyons
                 if obj.lpurif
                     %purifs = zeros(obj.nrows * 2 * obj.npurif, 7);
-                    da_pp.addvar(obj, 'purifs', zeros(obj.nrows * 2 * obj.npurif, 7));
+                    preprocessing.addvar(obj, 'purifs', zeros(obj.nrows * 2 * obj.npurif, 7));
                     for i = 1:obj.nrows
                         for j = 1:obj.npurif
                             obj.purifs((i - 1) * obj.npurif + j,1) = obj.bl(obj.nrows + i, 2) - obj.purif_dx - obj.purif_w;
@@ -3540,7 +3536,7 @@ classdef da_pp < dynamicprops
             
             if lwritefile
                 if obj.lpurif
-                    da_pp.write_purifs(obj)
+                    preprocessing.write_purifs(obj)
                 end
             end
         end
@@ -3945,7 +3941,7 @@ classdef da_pp < dynamicprops
                                 continue
                             end
                             
-                            [flag,dint] = da_pp.rbi(facetpoint, v1, bl(n,:));
+                            [flag,dint] = preprocessing.rbi(facetpoint, v1, bl(n,:));
                             
                             intersection = facetpoint + dint*v1;
                             if intersection(3)<facetpoint(3) %downstream direction of sun, thus not blocking the sun
@@ -3964,7 +3960,7 @@ classdef da_pp < dynamicprops
                         if ~flag
                             for m=1:nbw %check if any bounding wall intersects
                                 
-                                [flag,dint] = da_pp.rbi(facetpoint, v1, bl(m+nblocks,:));
+                                [flag,dint] = preprocessing.rbi(facetpoint, v1, bl(m+nblocks,:));
                                 
                                 intersection = facetpoint + dint*v1;
                                 
@@ -3991,7 +3987,7 @@ classdef da_pp < dynamicprops
                             continue
                         end
                         
-                        [flag,dint] = da_pp.rbi(facetpoint, v1, bl(n,:));
+                        [flag,dint] = preprocessing.rbi(facetpoint, v1, bl(n,:));
                         
                         intersection = facetpoint + dint*v1;
                         if intersection(3)<facetpoint(3) %downstream direction of sun, thus not blocking the sun
@@ -4007,7 +4003,7 @@ classdef da_pp < dynamicprops
                     if ~flag
                         for k=1:nbw %check if any bounding wall intersects
                             
-                            [flag,dint] = da_pp.rbi(facetpoint, v1, bl(k+nblocks,:));
+                            [flag,dint] = preprocessing.rbi(facetpoint, v1, bl(k+nblocks,:));
                             
                             intersection = facetpoint + dint*v1;
                             
@@ -4094,7 +4090,7 @@ classdef da_pp < dynamicprops
                                     continue
                                 end
                                 
-                                [flag,dints] = da_pp.rbi(facetpoint, v1, bl(n,:));
+                                [flag,dints] = preprocessing.rbi(facetpoint, v1, bl(n,:));
                                 
                                 if dints<=(0+eps)  %intersection is downstream
                                     flag=0;
@@ -4166,7 +4162,7 @@ classdef da_pp < dynamicprops
                                 continue
                             end
                             
-                            [flag,dints] = da_pp.rbi(facetpoint, v1, bl(n,:));
+                            [flag,dints] = preprocessing.rbi(facetpoint, v1, bl(n,:));
                             
                             if dints<=0  %intersection is downstream
                                 flag=0;

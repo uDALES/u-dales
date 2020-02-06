@@ -1,10 +1,8 @@
 #!/bin/bash                                                                                        
 # script for setting key namoptions and writing *.inp.* files
-# variables not specified in namoptions can be set here. It updates these in da_inp.m and then runs the matlab code to produce the required text files.
+# variables not specified in namoptions can be set here. It updates these in write_input_files.m and then runs the matlab code to produce the required text files.
 
-# tg3315 20/07/2017
-
-# edit needs to be done so is irrespective of white spaces
+# tg3315 20/07/2017, modified by SO 06/02/20
 
 # NOTES 
 # (1) if no forcing found in namoptions then applies the initial velocities and uses the pressure terms
@@ -13,22 +11,13 @@
 iexpnr=$1
 
 # Assuming running from top-level project directory.
-if [ -f experiments/config.sh ]; then
-    source config.sh
+if [ -f ./experiments/$iexpnr/config.sh ]; then
+    	echo "found config.sh"
+	source ./experiments/$iexpnr/config.sh
 fi
 
-#DA_GITDIR=$(git rev-parse --show-toplevel)
-#DA_EXPDIR=$DA_GITDIR/experiments
-#DA_PREDIR=$DA_GITDIR/u-dales/tools/pre
-export PATH=$DA_PREDIR:$PATH
-
+export PATH=$DA_TOOLSDIR:$PATH
 cd $DA_EXPDIR/$iexpnr
-
-#if [[ "$OSTYPE" == "darwin"* ]]; then
-#	sedi="sed -i ''"
-#elif [[ "$OSTYPE" == "linux-gnu" ]]; then
-#	sedi="sed -i"
-#fi
 
 function sedi { if [[ "$OSTYPE" == "darwin"* ]]; then
         		sed -i '' "$1" "$2"
@@ -43,9 +32,8 @@ sedi  "/CPUS = /s/.*/CPUS = $(grep -m 1 'ncpu=' ../../u-dales/tools/utils/local_
 
 ###### RUN MATLAB SCRIPT FOR .inp. files
 
-#octave $DA_TOPDIR/bin/da_inp.m
-cd $DA_PREDIR/
-matlab -nodesktop -nosplash -r "da_inp; quit"
+cd $DA_TOOLSDIR/
+matlab -nodesktop -nosplash -r "write_input_files; quit"
 cd $DA_EXPDIR/$iexpnr
 
 ##### alter files in namoptions (thl_top, nblocks etc.)
