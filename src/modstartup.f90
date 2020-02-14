@@ -48,7 +48,7 @@ module modstartup
          lscalrec,lSIRANEinout,lscasrc,lscasrcl,lscasrcr,lydump,lytdump,lxydump,lxytdump,lslicedump,ltdump,ltkedump,lzerogradtop,&
          lzerogradtopscal, lbuoyancy, ltempeq, numol, prandtlmol, sun, Bowen, cd, decay, ud, Qpu, epu, numoli, prandtlmoli, &
          lfixinlet, lfixutauin, startmean, pi, &
-         thlsrc, nkplane, kplane, nsvl, nsvp, ifixuinf, lvinf, tscale, ltempinout, lmoistinout,  &
+         thlsrc, ifixuinf, lvinf, tscale, ltempinout, lmoistinout,  &
          lwallfunc,lprofforc,lchem,k1,JNO2,rv,rd,tnextEB,tEB,dtEB,bldT,wsoil,wgrmax,wwilt,wfc,skyLW,GRLAI,rsmin,nfcts,lEB,lconstW, &
          BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys, &
          BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots
@@ -75,7 +75,7 @@ module modstartup
          trestart, tfielddump, fieldvars, tsample, tstatsdump, irandom, randthl, randqt, krand, nsv, courant, diffnr, ladaptive, &
          author, lper2inout, libm, ltrees, lnudge, tnudge, nnudge, lpurif, lles, lwallfunc, luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, lreadmean, &
                 startmean,lydump,lytdump,lxydump,lxytdump,lslicedump,ltdump,ltkedump,lscasrc,lscasrcl,lwalldist,&
-                randu, nkplane, kplane, nsvl, nsvp, ifixuinf, lvinf, tscale, dpdx
+                randu, ifixuinf, lvinf, tscale, dpdx
       namelist/DOMAIN/ &
          imax, jtot, kmax, &
          xsize, ysize, &
@@ -275,10 +275,7 @@ module modstartup
       call MPI_BCAST(ifixuinf, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(lvinf, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(dpdx, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(nsvp, 1, MPI_INTEGER, 0, comm3d, mpierr)
-      call MPI_BCAST(nsvl, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(tscale, 1, MY_REAL, 0, comm3d, mpierr)
-      !nsv=nsvl+nsvp
       call MPI_BCAST(imax, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(jtot, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(kmax, 1, MPI_INTEGER, 0, comm3d, mpierr)
@@ -373,8 +370,6 @@ module modstartup
       call MPI_BCAST(npurif, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(irandom, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(krand, 1, MPI_INTEGER, 0, comm3d, mpierr)
-      call MPI_BCAST(nkplane, 1, MPI_INTEGER, 0, comm3d, mpierr)
-      call MPI_BCAST(kplane, nkplane, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(randthl, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(randu, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(randqt, 1, MY_REAL, 0, comm3d, mpierr)
