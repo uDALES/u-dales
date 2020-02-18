@@ -111,14 +111,14 @@ module modglobal
    logical :: linoutflow = .false. !<  switch for periodic BC in both horizontal directions (false) or inflow/outflow in i and periodic in j.
    logical :: lzerogradtop = .false. !<  switch for zero gradient BC's at top wall (iinletgen 1 and 2 are seperate).
    logical :: lzerogradtopscal = .false. !
-   logical :: lbuoyancy = .true. !<  switch for buoyancy force in modforces
-   logical :: ltempeq = .true. !<  switch for solving temperature equation (either with or without buoyancy term)
+   logical :: lbuoyancy = .false. !<  switch for buoyancy force in modforces
+   logical :: ltempeq = .false. !<  switch for solving temperature equation (either with or without buoyancy term)
    logical :: lscalrec = .false. !<
    logical :: lSIRANEinout=.false. !<  
    logical :: ltempinout = .false. !<  seperate switch for inflow/outflow BC for temperature (only necessary when linoutflow.eqv..false.).
    logical :: lmoistinout = .false. !<  seperate switch for inflow/outflow BC for moisture (only necessary when linoutflow.eqv..false.).
    logical :: lper2inout = .false. !<  switch that determines type of restart: .true. means switching from periodic to in/outflow: inlet profile is read from prof.inp
-   logical :: libm = .false. !<  switch that determines wether the Immersed Boundary Method is turned on
+   logical :: libm = .true. !<  switch that determines wether the Immersed Boundary Method is turned on
    logical :: ltrees = .false. !
    logical :: lpurif = .false.
    logical :: lwalldist = .false. !<  switch that determines wether the wall distances should be computed
@@ -138,7 +138,7 @@ module modglobal
   logical :: ltdump    = .false.      !<  switch to output time-averaged statistics every tstatsdump
 
    logical :: lreadminl = .false. !<  switch for reading mean inlet/recycle plane profiles (used in inletgenerator)
-   logical :: lwallfunc = .false. !<  switch that determines wether wall functions are used to compute the wall-shear stress
+   logical :: lwallfunc = .true. !<  switch that determines wether wall functions are used to compute the wall-shear stress
    logical :: luoutflowr = .false. !<  switch that determines wether u-velocity is corrected to get a fixed outflow rate
    logical :: lvoutflowr = .false. !<  switch that determines wether u-velocity is corrected to get a fixed outflow rate
    logical :: luvolflowr = .false. !<  switch that determines wether u-velocity is corrected to get a fixed volume flow rate

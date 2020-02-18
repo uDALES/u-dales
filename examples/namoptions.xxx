@@ -35,7 +35,7 @@ nsv         = 0
 lreadscal   = .false.
 lscasrc     = .false.
 lscasrcl    = .false.
-libm        = .false.
+libm        = .true.
 ltrees      = .false.
 lpurif      = .false.
 author      = ''
@@ -46,7 +46,7 @@ diffnr      = 0.25
 lnudge      = .false.
 tnudge      = 50.
 nnudge      = 10
-lwallfunc   = .false.
+lwallfunc   = .true.
 lreadmean   = .false.
 !startmean   = 
 lwalldist   = .false.
@@ -143,12 +143,12 @@ iwallmoist  = 1
 /  
 
 &PHYSICS
-lbuoyancy   = .true.
-ltempeq     = .true.
+lbuoyancy   = .false.
+ltempeq     = .false.
+lmoist      = .false.
 z0          = 0.1
 z0h         = 0.1
 ps          = -1
-lmoist      = .false.
 lcoriol     = .false.
 lprofforc   = .false.
 Qpu         = 0.
