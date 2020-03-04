@@ -228,7 +228,7 @@ module modglobal
    real    :: om23 !<    *2.*omega_earth*sin(lat)
    real    :: om22_gs !<    *2.*omega_earth*cos(lat)
    real    :: om23_gs !<    *2.*omega_earth*sin(lat)
-   real    :: xlat = 50. !<    *latitude  in degrees.
+   real    :: xlat = 52. !<    *latitude  in degrees.
    real    :: xlon = 0. !<    *longitude in degrees.
 
    !scalar source in fluid domain
