@@ -260,9 +260,9 @@ module modglobal
    integer :: ipoiss   = POISS_CYC
 
    !Advection scheme
-   integer, parameter :: iadv_upw = 1
-   integer, parameter :: iadv_cd2 = 2
-   integer, parameter :: iadv_kappa = 7
+   integer, parameter :: iadv_upw = 1  !< first order upwind scheme
+   integer, parameter :: iadv_cd2 = 2  !< second order central difference scheme
+   integer, parameter :: iadv_kappa = 7  !< Kappa scheme
    integer :: iadv_mom = 2, iadv_tke = -1, iadv_thl = -1, iadv_qt = -1, iadv_sv(100) = -1
 
    logical :: lmoist = .false. !<   switch to calculate moisture fields
