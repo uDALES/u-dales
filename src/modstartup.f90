@@ -22,7 +22,7 @@ module modstartup
    save
 
    integer(KIND=selected_int_kind(6)) :: irandom = 0 !    * number to seed the randomnizer with
-   integer :: krand = huge(0)
+   integer :: krand = huge(0)  ! returns the largest integer that is not an infinity
    real :: randu = 0.0, randthl = 0.0, randqt = 0.0 !    * uvw,thl and qt amplitude of randomnization
 
    contains
