@@ -17,7 +17,7 @@ module modibm
    subroutine createwalls
       use modglobal, only:ib, ie, jb, je, jgb, jge, kb, ke, jmax, nblocks, &
          nsv, cexpnr, ifinput, libm, ih, kh, iwallmom, iwalltemp, iwallmoist, rslabs, bldT
-      use modsurfdata, only:thls, qts, z0h, z0, thvs
+      use modsurfdata, only:thls, z0h, z0, thvs
       use modfields, only:sv0, svm, thl0, thlm, qtp, qt0, IIc, IIu, IIv, IIw, IIct, IIwt, IIcs, IIus, IIvs, IIws
       use modmpi, only:myid, comm3d, mpierr, MPI_INTEGER, MPI_DOUBLE_PRECISION, MY_REAL, nprocs, cmyid, &
          MPI_REAL8, MPI_REAL4, MPI_SUM
@@ -1024,7 +1024,7 @@ module modibm
       use modglobal, only:ib, ie, ih, jh, kh, jb, je, kb, numol, prandtlmol, dzh, &
          dxf, dxhi, dzf, dzfi, numoli, ltempeq, khc, lmoist, BCbotT, BCbotq, BCbotm, dzh2i
       use modfields, only : u0,v0,e120,um,vm,w0,wm,e12m,thl0,qt0,sv0,thlm,qtm,svm,up,vp,thlp,qtp,shear,momfluxb,tfluxb,cth
-      use modsurfdata, only:thlflux, qtflux, svflux, ustar, thvs, qts, wtsurf, wqsurf, thls, z0, z0h
+      use modsurfdata, only:thlflux, qtflux, svflux, ustar, thvs, wtsurf, wqsurf, thls, z0, z0h
       use modsubgriddata, only:ekm, ekh
       use modmpi, only:myid
       implicit none
