@@ -94,9 +94,9 @@ module modstartup
       namelist/PHYSICS/ &
          z0, z0h, ps, lmoist, &
          lcoriol, igrw_damp, uflowrate, vflowrate, numol, prandtlmol, sun, Bowen, cd, decay, ud, Qpu, epu, &
-         lbuoyancy, ltempeq, lprofforc, lqlnr, lchem, k1, JNO2
+         lbuoyancy, ltempeq, lprofforc, lchem, k1, JNO2
       namelist/DYNAMICS/ &
-         iadv_mom, iadv_tke, iadv_thl, iadv_qt, iadv_sv, ipoiss
+         lqlnr, iadv_mom, iadv_tke, iadv_thl, iadv_qt, iadv_sv, ipoiss
 
       if (myid == 0) then
          if (command_argument_count() >= 1) then

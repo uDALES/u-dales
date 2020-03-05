@@ -163,13 +163,13 @@ Bowen       = 0.
 cd          = 0.
 decay       = 0.
 ud          = 0.
-lqlnr       = .false.
 lchem       = .false.
 k1          = 0.
 JNO2        = 0.
 /
 
 &DYNAMICS
+lqlnr       = .false.
 iadv_mom    = 2
 iadv_tke    = -1
 iadv_thl    = -1
