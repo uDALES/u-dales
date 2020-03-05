@@ -7,13 +7,13 @@
 !
 module modibm
    use modibmdata
-!use wf_uno
+   !use wf_uno
    implicit none
    save
    public :: createwalls, ibmwallfun, xwallfun, ywallfunplus, ywallfunmin, &
              zwallfun, ibmnorm, nearwall, bottom
 
-contains
+   contains
    subroutine createwalls
       use modglobal, only:ib, ie, jb, je, jgb, jge, kb, ke, jmax, nblocks, &
          nsv, cexpnr, ifinput, libm, ih, kh, iwallmom, iwalltemp, iwallmoist, rslabs, bldT
@@ -31,7 +31,7 @@ contains
 
       if (.not. libm) return
 
-! check if walls are at least 2 cells in each dimension
+      ! check if walls are at least 2 cells in each dimension
       do n = 1, nblocks
          dbi = block(n, 2) - block(n, 1)
          dbj = block(n, 4) - block(n, 3)
@@ -42,8 +42,8 @@ contains
          end if
       end do
 
-! For all blocks set the internal concentrations to zero and internal
-! temperature to building temperature
+      ! For all blocks set the internal concentrations to zero and internal
+      ! temperature to building temperature
       do n = 1, nblocks
          il = block(n, 1)
          iu = block(n, 2)
@@ -89,12 +89,12 @@ contains
          end if
       end do
 
-!!new approach both y walls#################################################
-!!store index of block and index of the wall (since block might not be on this cpu, but is needed for x and z coords)
-!!check if wall is on next cpu but not on this
-!!check if wall is on last cpu but not on first (periodicity in y)
-!check if wall is on first cpu but not on last (periodicity in y)
-!!check if wall is on this cpu and another one on the next (i.e. both blocks end at cpu boundary, but touch each other)
+      !!new approach both y walls#################################################
+      !!store index of block and index of the wall (since block might not be on this cpu, but is needed for x and z coords)
+      !!check if wall is on next cpu but not on this
+      !!check if wall is on last cpu but not on first (periodicity in y)
+      !check if wall is on first cpu but not on last (periodicity in y)
+      !!check if wall is on this cpu and another one on the next (i.e. both blocks end at cpu boundary, but touch each other)
 
       nyminwall = 0
       nypluswall = 0
@@ -104,8 +104,8 @@ contains
          jl = block(n, 3) - myid*jmax
          ju = block(n, 4) - myid*jmax
 
-!IMPORTANT: THESE LINES OF CODE SHOULD BE HERE BUT CAUSE TROUBLE! MAKE SURE BLOCK DOES NOT TOUCH BOUNDARY (EXCECPT ALL FLOORS)
-!SEE ALSO BELOW! (Like 40 lines or so)
+         !IMPORTANT: THESE LINES OF CODE SHOULD BE HERE BUT CAUSE TROUBLE! MAKE SURE BLOCK DOES NOT TOUCH BOUNDARY (EXCECPT ALL FLOORS)
+         !SEE ALSO BELOW! (Like 40 lines or so)
          if ((myid == 0) .and. (block(n, 4) == jge)) then ! periodicity!
             nypluswall = nypluswall + 1
          else if ((block(n, 3) == jgb) .and. (myid == (nprocs - 1))) then ! periodicity!
@@ -149,7 +149,7 @@ contains
          jl = block(n, 3) - myid*jmax
          ju = block(n, 4) - myid*jmax
 
-!IMPORTANT: THESE LINES OF CODE SHOULD BE HERE BUT CAUSE TROUBLE! MAKE SURE BLOCK DOES NOT TOUCH BOUNDARY (EXCECPT ALL FLOORS)
+         !IMPORTANT: THESE LINES OF CODE SHOULD BE HERE BUT CAUSE TROUBLE! MAKE SURE BLOCK DOES NOT TOUCH BOUNDARY (EXCECPT ALL FLOORS)
          if ((myid == 0) .and. (block(n, 4) == jge)) then ! periodicity!
             iypluswall(pn, 1) = n
             iypluswall(pn, 2) = jb
@@ -192,8 +192,6 @@ contains
       end do
 
    end subroutine createwalls
-
-!!##########################################################################
 
    subroutine ibmwallfun
       use modglobal, only:libm
@@ -302,8 +300,8 @@ contains
       kl = block(n, 5) ! starting k-index
       ku = block(n, 6) ! ending k-index
 
-!fixed flux
-!remove standard diffusion term, add flux=bcvalue
+      !fixed flux
+      !remove standard diffusion term, add flux=bcvalue
       do k = kl, ku
          do j = jl, ju
             putout(iee, j, k) = putout(iee, j, k) + ( &
@@ -634,9 +632,9 @@ contains
             kl = kb ! tg3315 see comment for x-direction above
             ku = block(iyminwall(n, 1), 6)
 
-!            write(*,*) 'jl, ju, jmax, iyminwall(n,1)', jl, ju, jmax, iyminwall(n,1)
+            ! write(*,*) 'jl, ju, jmax, iyminwall(n,1)', jl, ju, jmax, iyminwall(n,1)
 
-!            vp(il:iu, jl:ju, kl:ku) = -vm(il:iu, jl:ju, kl:ku)*rk3coefi
+            ! vp(il:iu, jl:ju, kl:ku) = -vm(il:iu, jl:ju, kl:ku)*rk3coefi
             vp(il:iu, jl, kl:ku) = -vm(il:iu, jl, kl:ku)*rk3coefi
             vp(il:iu, ju, kl:ku) = -vm(il:iu, ju, kl:ku)*rk3coefi
 
@@ -772,11 +770,11 @@ contains
 
    end subroutine ibmnorm
 
-!> Determines the distance to the nearest wall for each cell center (used in v. Driest damping function)
-!> Output is a field with minimal distance to wall for each cell center
-!ILS13,10.07.17, not being called anymore
-!only for smagorinsky
-!indeces of walls are wrong (xwallsglobal etc don't exist anymore)
+   !> Determines the distance to the nearest wall for each cell center (used in v. Driest damping function)
+   !> Output is a field with minimal distance to wall for each cell center
+   !ILS13,10.07.17, not being called anymore
+   !only for smagorinsky
+   !indeces of walls are wrong (xwallsglobal etc don't exist anymore)
    subroutine nearwall
 
       use modglobal, only:ib, ie, jb, je, jgb, jge, jmax, kb, ke, xh, xf, dy, zh, zf, lwarmstart, nblocks, libm, lzerogradtop, lwalldist
@@ -791,15 +789,15 @@ contains
       real, allocatable :: distxf(:, :), distxh(:, :), distyf(:, :), distyh(:, :), distzf(:, :), distzh(:, :), &
                            distxf2(:, :), distxh2(:, :), distyf2(:, :), distyh2(:, :), distzf2(:, :), distzh2(:, :), distance(:)
       real distx, disty, distz ! distx is the distance to nearest x-wall, etc.
-!    integer, allocatable :: optie(:)
+      ! integer, allocatable :: optie(:)
       integer ic, jc, kc, i, j, k, optie, il, iu, jl, ju, kl, ku, n
 
-!  if (lwarmstart .or. lles.eqv..false. .or. lvreman) then
+      ! if (lwarmstart .or. lles.eqv..false. .or. lvreman) then
       if (((lsmagorinsky) .or. (loneeqn)) .and. (lwalldist)) then
       if (myid == 0) then
          write (6, *) 'Computing wall distances'
       end if
-!  if (lles.eqv..false. .or. lvreman) then
+      ! if (lles.eqv..false. .or. lvreman) then
       mindist = 1.0e10
 
       allocate (ux0all(ib - 1:ie + 1, jgb - 1:jge + 1, kb - 1:ke + 1)) ! This contains ux0 + the lower and (possibly) the upper wall
@@ -824,8 +822,8 @@ contains
       vy0all = 0
       wz0all = 0
 
-! Determine for each cell face if an x/y/z-wall is present
-! from immersed boundaries
+      ! Determine for each cell face if an x/y/z-wall is present
+      ! from immersed boundaries
 
       if (libm) then
          ! do loop over blocks
@@ -858,7 +856,7 @@ contains
 
       end if ! libm = .true.
 
-! add the global walls (probably upper and lower wall, or only lower wall)
+      ! add the global walls (probably upper and lower wall, or only lower wall)
       if (lzerogradtop) then
          do i = ib, ie
          do j = jgb, jge
@@ -875,7 +873,7 @@ contains
       end if
 
       write (6, *) 'Determing distance matrices, proc=', myid
-! Determine x-distance matrices:
+      ! Determine x-distance matrices:
       do ic = ib, ie ! cell-center index
       do i = ib, ie + 1 ! vertex-index (1 more than cell centers)
          distxh(ic, i) = xf(ic) - xh(i)
@@ -888,7 +886,7 @@ contains
       end do
       end do
 
-! Determine y-distance matrices:
+      ! Determine y-distance matrices:
       do jc = jb, je ! cell-center index
       do j = jgb, jge + 1 ! vertex-index (1 more than cell centers) (global index to make sure distance to all cells is determined)
          distyh(jc, j) = (jc + myid*jmax - j)*dy + 0.5*dy
@@ -901,7 +899,7 @@ contains
       end do
       end do
 
-! Determine z-distance matrices:
+      ! Determine z-distance matrices:
       do kc = kb, ke ! cell-center index
       do k = kb, ke + 1 ! vertex-index (1 more than cell centers)
          distzh(kc, k) = zf(kc) - zh(k)
@@ -924,12 +922,12 @@ contains
       write (6, *) 'Finished determing distance matrices, proc=', myid
       write (6, *) 'determing distance to nearest wall for each cell center, proc=', myid
 
-! Loop over cells (ic,jc,kc) for which minimal wall-to-cell-center-distance needs to be determined
-!  do jc=jgb,jge
+      ! Loop over cells (ic,jc,kc) for which minimal wall-to-cell-center-distance needs to be determined
+      !  do jc=jgb,jge
       do kc = kb, ke
       do jc = jb, je
       do ic = ib, ie
-! Determine distance between cc of cell (ic,jc,kc) and faces of all cells (i,j,k)
+         ! Determine distance between cc of cell (ic,jc,kc) and faces of all cells (i,j,k)
          do k = kb, ke + 1 ! Level ke+1 is computed in a separate loop (only necessary with upper wall-> global approach=faster)
          do j = jgb, jge + 1 ! loop goes up to jge+1 because jge+1 contains the last vy0-wall
          do i = ib, ie + 1 ! loop goes up to ie+1 because ie+1 contains the last ux0-wall
@@ -949,10 +947,10 @@ contains
             else ! no walls are present in cell (i,j,k) -> distance does not need to be determined for this cell
                cycle ! go to next cell (i,j,k)
             end if
-! determine minimal wall distance between cc of (ic,jc,kc) and faces of cell (i,j,k)
+            ! determine minimal wall distance between cc of (ic,jc,kc) and faces of cell (i,j,k)
             distance = (/mindist(ic, jc, kc), distx, disty, distz/)
             optie = minloc(distance, 1)
-!        write(6,*) 'optie=', optie
+            ! write(6,*) 'optie=', optie
 
             if (optie == 1) then
                cycle
@@ -960,7 +958,7 @@ contains
                mindist(ic, jc, kc) = distx
                wall(ic, jc, kc, 2) = j
                wall(ic, jc, kc, 3) = k
-!        wall(ic,jc,kc,4) = 1     ! This means the wall closest to the cc of (ic,jc,kc) is at an x-wall at (i,j,k)
+               ! wall(ic,jc,kc,4) = 1     ! This means the wall closest to the cc of (ic,jc,kc) is at an x-wall at (i,j,k)
                if (ic >= i) then
                   wall(ic, jc, kc, 1) = i
                   wall(ic, jc, kc, 4) = 5 ! shear component index (variable: shear)
@@ -974,7 +972,7 @@ contains
                mindist(ic, jc, kc) = disty
                wall(ic, jc, kc, 1) = i
                wall(ic, jc, kc, 3) = k
-!        wall(ic,jc,kc,4) = 2     ! This means the wall closest to the cc of (ic,jc,kc) is at a y-wall at (i,j,k)
+               ! wall(ic,jc,kc,4) = 2     ! This means the wall closest to the cc of (ic,jc,kc) is at a y-wall at (i,j,k)
                if (jc + myid*jmax >= j) then
                   wall(ic, jc, kc, 2) = j
                   wall(ic, jc, kc, 4) = 1 ! shear component index (variable: shear)
@@ -988,7 +986,7 @@ contains
                mindist(ic, jc, kc) = distz
                wall(ic, jc, kc, 1) = i
                wall(ic, jc, kc, 2) = j
-!        wall(ic,jc,kc,4) = 3     ! This means the wall closest to the cc of (ic,jc,kc) is at a z-wall at (i,j,k)
+               ! wall(ic,jc,kc,4) = 3     ! This means the wall closest to the cc of (ic,jc,kc) is at a z-wall at (i,j,k)
                if (kc >= k) then
                   wall(ic, jc, kc, 3) = k
                   wall(ic, jc, kc, 4) = 3 ! shear component index (variable: shear)
@@ -999,17 +997,17 @@ contains
                   wall(ic, jc, kc, 5) = 8 ! shear component index (variable: shear)
                end if
             end if
-!      mindist(ic,jc+myid*jmax,kc)=min(mindist(ic,jc+myid*jmax,kc),distx,disty,distz)   ! global j index
+         ! mindist(ic,jc+myid*jmax,kc)=min(mindist(ic,jc+myid*jmax,kc),distx,disty,distz)   ! global j index
          end do
          end do
          end do
-!    if (myid==0) write(6,*) 'finished for cell (ic,jc,kc)=',ic,jc,kc
+      ! if (myid==0) write(6,*) 'finished for cell (ic,jc,kc)=',ic,jc,kc
       end do
       end do
       end do
 
       write (6, *) 'Finished determing distance to nearest wall for each cell center, proc=', myid
-!  write(6,*) 'mindist(ib,jb+myid*jmax,kb),mindist(ib,je+myid*jmax,kb)',mindist(ib,jb+myid*jmax,kb),mindist(ib,je+myid*jmax,kb)
+      ! write(6,*) 'mindist(ib,jb+myid*jmax,kb),mindist(ib,je+myid*jmax,kb)',mindist(ib,jb+myid*jmax,kb),mindist(ib,je+myid*jmax,kb)
 
       else
       return
