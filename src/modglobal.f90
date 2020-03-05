@@ -118,14 +118,14 @@ module modglobal
    logical :: ltempinout = .false. !<  seperate switch for inflow/outflow BC for temperature (only necessary when linoutflow.eqv..false.).
    logical :: lmoistinout = .false. !<  seperate switch for inflow/outflow BC for moisture (only necessary when linoutflow.eqv..false.).
    logical :: lper2inout = .false. !<  switch that determines type of restart: .true. means switching from periodic to in/outflow: inlet profile is read from prof.inp
-   logical :: libm = .true. !<  switch that determines wether the Immersed Boundary Method is turned on
+   logical :: libm = .true. !<  switch that determines whether the Immersed Boundary Method is turned on
    logical :: ltrees = .false. !
    logical :: lpurif = .false.
-   logical :: lwalldist = .false. !<  switch that determines wether the wall distances should be computed
-   logical :: lles = .true. !<  switch that determines wether the subgrid model is turned on or constant ekm and ekh are used (DNS)
-   logical :: linletRA = .false. !<  switch that determines wether a Running Average should be used (.true.) in inlet generator
-   logical :: lfixinlet = .false. !<  switch that determines wether the average inlet profiles can evolve or not (only used when iinletgen=1,2)
-   logical :: lfixutauin = .false. !<  switch that determines wether the utau is kept fixed at the inlet (only used when iinletgen=1,2)
+   logical :: lwalldist = .false. !<  switch that determines whether the wall distances should be computed
+   logical :: lles = .true. !<  switch that determines whether the subgrid model is turned on or constant ekm and ekh are used (DNS)
+   logical :: linletRA = .false. !<  switch that determines whether a Running Average should be used (.true.) in inlet generator
+   logical :: lfixinlet = .false. !<  switch that determines whether the average inlet profiles can evolve or not (only used when iinletgen=1,2)
+   logical :: lfixutauin = .false. !<  switch that determines whether the utau is kept fixed at the inlet (only used when iinletgen=1,2)
    logical :: lscasrc = .false. !
    logical :: lscasrcl = .false. !tg3315
    logical :: lydump= .false.  !<  switch to output y-averaged statistics every tsample
@@ -138,14 +138,14 @@ module modglobal
   logical :: ltdump    = .false.      !<  switch to output time-averaged statistics every tstatsdump
 
    logical :: lreadminl = .false. !<  switch for reading mean inlet/recycle plane profiles (used in inletgenerator)
-   logical :: lwallfunc = .true. !<  switch that determines wether wall functions are used to compute the wall-shear stress
-   logical :: luoutflowr = .false. !<  switch that determines wether u-velocity is corrected to get a fixed outflow rate
-   logical :: lvoutflowr = .false. !<  switch that determines wether u-velocity is corrected to get a fixed outflow rate
-   logical :: luvolflowr = .false. !<  switch that determines wether u-velocity is corrected to get a fixed volume flow rate
-   logical :: lvvolflowr = .false. !<  switch that determines wether u-velocity is corrected to get a fixed volume flow rate
-   logical :: lstoreplane = .false. !<  switch that determines wether i-plane data is stored.
+   logical :: lwallfunc = .true. !<  switch that determines whether wall functions are used to compute the wall-shear stress
+   logical :: luoutflowr = .false. !<  switch that determines whether u-velocity is corrected to get a fixed outflow rate
+   logical :: lvoutflowr = .false. !<  switch that determines whether u-velocity is corrected to get a fixed outflow rate
+   logical :: luvolflowr = .false. !<  switch that determines whether u-velocity is corrected to get a fixed volume flow rate
+   logical :: lvvolflowr = .false. !<  switch that determines whether u-velocity is corrected to get a fixed volume flow rate
+   logical :: lstoreplane = .false. !<  switch that determines whether i-plane data is stored.
    logical :: lstorexy = .false. !xy files stored
-   logical :: lreadmean = .false. !<  switch that determines wether mean variables should be read from means#myid#.#expnr#
+   logical :: lreadmean = .false. !<  switch that determines whether mean variables should be read from means#myid#.#expnr#
    logical :: lstat = .false.
    logical :: lEB = .false.
    logical :: lwriteEBfiles = .true.

@@ -91,23 +91,23 @@ Possible advection schemes:
 | lscasrc | .false. | .true., .false. |  *Description missing* | |
 | lscasrcl | .false. | .true., .false. |  *Description missing* | |
 | lper2inout | .false. | .true., .false. | Switch that determines type of restart: .true. means switching from periodic to in/outflow: inlet profile is read from `prof.inp`.  *Is this working?* | |
-| lles | .true. | .true., .false. | Switch that determines wether the subgrid model is turned on or constant ekm and ekh are used (DNS) | - |
+| lles | .true. | .true., .false. | Switch that determines whether the subgrid model is turned on or constant ekm and ekh are used (DNS) | - |
 | diffnr | 0.25 | | | |
 | lnudge | .false. | | switch for applying nudging at the top of the domain | |
 | tnudge | 50. | | time scale for nudging | |
 | nnudge | 10 | | | |
-| lwallfunc | .true. | | switch that determines wether wall functions are used to compute the wall-shear stress | |
-| lreadmean | .false. | | switch that determines wether mean variables should be read from means#myid#.#expnr# | |
+| lwallfunc | .true. | | switch that determines whether wall functions are used to compute the wall-shear stress | |
+| lreadmean | .false. | | switch that determines whether mean variables should be read from means#myid#.#expnr# | |
 | startmean | | | | |
-| lwalldist | .false. | | switch that determines wether the wall distances should be computed | |
+| lwalldist | .false. | | switch that determines whether the wall distances should be computed | |
 | dpdx | 0. | | *Does this still work?* | |
-| libm | .true. | | switch that determines wether the Immersed Boundary Method is turned on | |
+| libm | .true. | | switch that determines whether the Immersed Boundary Method is turned on | |
 | ltrees | .false. | | | |
 | lpurif | .false. | | | |
-| luoutflowr | .false. | | switch that determines wether u-velocity is corrected to get a fixed outflow rate | |
-| lvoutflowr | .false. | | switch that determines wether u-velocity is corrected to get a fixed outflow rate | |
-| luvolflowr | .false. | | switch that determines wether u-velocity is corrected to get a fixed volume flow rate | |
-| lvvolflowr | .false. | | switch that determines wether u-velocity is corrected to get a fixed volume flow rate | |
+| luoutflowr | .false. | | switch that determines whether u-velocity is corrected to get a fixed outflow rate | |
+| lvoutflowr | .false. | | switch that determines whether u-velocity is corrected to get a fixed outflow rate | |
+| luvolflowr | .false. | | switch that determines whether u-velocity is corrected to get a fixed volume flow rate | |
+| lvvolflowr | .false. | | switch that determines whether u-velocity is corrected to get a fixed volume flow rate | |
 | ifixuinf | 0 | | | |
 | lvinf | .false. | | use Vinf instead of Uinf for the fixed velocity at infinity | |
 | tscale | | | timescale: domain height*Uinf/utau**2 | |
