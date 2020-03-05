@@ -6,18 +6,6 @@ dtmax       = 20
 lwarmstart  = .false.
 lstratstart = .false.
 startfile   = ''
-lfielddump  = .false.
-!tfielddump  =
-fieldvars   = ''
-!tsample     =
-!tstatsdump  =
-ltdump      = .false.
-lydump      = .false.
-lytdump     = .false.
-lxydump     = .false.
-lxytdump    = .false.
-lslicedump  = .false.
-ltkedump    = .false.
 irandom     = 0
 randqt      = 0.
 randthl     = 0.
@@ -36,8 +24,6 @@ lreadscal   = .false.
 lscasrc     = .false.
 lscasrcl    = .false.
 libm        = .true.
-ltrees      = .false.
-lpurif      = .false.
 author      = ''
 courant     = -1
 lper2inout  = .false.
@@ -53,20 +39,72 @@ lwalldist   = .false.
 dpdx        = 0.
 /
 
+&OUTPUT
+lfielddump  = .false.
+!tfielddump  =
+fieldvars   = ''
+ltdump      = .false.
+lydump      = .false.
+lytdump     = .false.
+lxydump     = .false.
+lxytdump    = .false.
+lslicedump  = .false.
+ltkedump    = .false.
+!tstatsdump  =
+!tsample     =
+/
+
 &DOMAIN
 imax        = 64
 jtot        = 64
 kmax        = 96
 xsize       = -1
 ysize       = -1
-nblocks     = 0
-ntrees      = 0
-npurif      = 0
 xlat        = 52.
 xlon        = 0.
 xday        = 1.
 xtime       = 0.
 ksp         = -1
+/
+
+&PHYSICS
+lbuoyancy   = .false.
+ltempeq     = .false.
+lmoist      = .false.
+ps          = -1
+lcoriol     = .false.
+lprofforc   = .false.
+igrw_damp   = 2
+uflowrate   = 1.
+vflowrate   = 1.
+z0          = 0.1
+z0h         = 0.1
+/
+
+&DYNAMICS
+lqlnr       = .false.
+iadv_mom    = 2
+iadv_tke    = -1
+iadv_thl    = -1
+iadv_qt     = -1
+iadv_sv     = -1
+ipoiss      = 1
+/
+
+&NAMSUBGRID
+lsmagorinsky = .false.
+lmason      = .false.
+lvreman     = .false.
+lbuoycorr   = .false.
+loneeqn     = .false.
+ldelta      = .false.
+cn          = 0.76
+c_vreman    = 0.07
+cs          = -1.
+cf          = 2.5
+Rigc        = 0.25
+Prandtl     = 0.333
+nmason      = 2
 /
 
 &BC
@@ -102,11 +140,18 @@ bctfyp      = 0.
 bctfz       = 0.
 /
 
+&WALLS
+nblocks     = 0
+nfcts       = -1
+iwallmom    = 2
+iwalltemp   = 1
+iwallmoist  = 1
+/
+
 &ENERGYBALANCE
 lEB         = .false.
 lconstW     = .false.
 dtEB        = 10.
-nfcts       = -1
 bldT        = 0.
 wsoil       = 0.
 wgrmax      = 450.
@@ -115,6 +160,26 @@ wfc         = 313.
 skyLW       = 0.
 GRLAI       = 2.
 rsmin       = 110. 
+/
+
+&TREES
+ltrees      = .false.
+ntrees      = 0
+sun         = 0.
+Bowen       = 0.
+cd          = 0.
+decay       = 0.
+ud          = 0.
+/
+
+&CHEMISTRY
+lchem       = .false.
+k1          = 0.
+JNO2        = 0.
+lpurif      = .false.
+npurif      = 0
+Qpu         = 0.
+epu         = 0.
 /
 
 &INLET
@@ -134,62 +199,6 @@ lfixutauin  = .false.
 lreadminl   = .false.
 di          = 0.09
 !dti         =
-/
-
-&WALLS
-iwallmom    = 2
-iwalltemp   = 1
-iwallmoist  = 1
-/  
-
-&PHYSICS
-lbuoyancy   = .false.
-ltempeq     = .false.
-lmoist      = .false.
-z0          = 0.1
-z0h         = 0.1
-ps          = -1
-lcoriol     = .false.
-lprofforc   = .false.
-Qpu         = 0.
-epu         = 0.
-igrw_damp   = 2
-uflowrate   = 1.
-vflowrate   = 1.
-sun         = 0.
-Bowen       = 0.
-cd          = 0.
-decay       = 0.
-ud          = 0.
-lchem       = .false.
-k1          = 0.
-JNO2        = 0.
-/
-
-&DYNAMICS
-lqlnr       = .false.
-iadv_mom    = 2
-iadv_tke    = -1
-iadv_thl    = -1
-iadv_qt     = -1
-iadv_sv     = -1
-ipoiss      = 1
-/
-
-&NAMSUBGRID
-lsmagorinsky = .false.
-lmason      = .false.
-lvreman     = .false.
-lbuoycorr   = .false.
-loneeqn     = .false.
-ldelta      = .false.
-cn          = 0.76
-c_vreman    = 0.07
-cs          = -1.
-cf          = 2.5
-Rigc        = 0.25
-Prandtl     = 0.333
-nmason      = 2
 /
 
 &NAMCHECKSIM

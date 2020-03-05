@@ -71,32 +71,49 @@ module modstartup
       !declare namelists
 
       namelist/RUN/ &
-         iexpnr, lwarmstart, lstratstart, lfielddump, lreadscal, startfile, runtime, dtmax,  &
-         trestart, tfielddump, fieldvars, tsample, tstatsdump, irandom, randthl, randqt, krand, nsv, courant, diffnr, ladaptive, &
-         author, lper2inout, libm, ltrees, lnudge, tnudge, nnudge, lpurif, lles, lwallfunc, luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, lreadmean, &
-                startmean,lydump,lytdump,lxydump,lxytdump,lslicedump,ltdump,ltkedump,lscasrc,lscasrcl,lwalldist,&
-                randu, ifixuinf, lvinf, tscale, dpdx
+         iexpnr, lwarmstart, lstratstart, startfile, &
+         runtime, dtmax, trestart, ladaptive, &
+         irandom, randu, randthl, randqt, krand, &
+         nsv, courant, diffnr, author, &
+         libm, lles, lwallfunc, &
+         lnudge, tnudge, nnudge, &
+         luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, &
+         ifixuinf, lvinf, tscale, dpdx, lper2inout, lwalldist, &
+         lreadmean, startmean, lreadscal, lscasrc, lscasrcl
       namelist/DOMAIN/ &
-         imax, jtot, kmax, &
-         xsize, ysize, &
-         xlat, xlon, xday, xtime, ksp, &
-         nblocks, ntrees, npurif
-      namelist/BC/ &
-         BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys,BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots,&
-         wtsurf, wttop, wqsurf, wsvsurfdum, wsvtopdum, thls, thl_top, qt_top, qts, bctfxm, bctfxp, bctfym, bctfyp, bctfz
-      namelist/INLET/ &
-         Uinf, Vinf, di, dti, iplane, inletav, linletRA, lstoreplane, lreadminl, lfixinlet, lfixutauin, xS, yS, zS, &
-         SS, sigS
-      namelist/WALLS/ &
-         iwallmom, iwalltemp, iwallmoist
-      namelist/ENERGYBALANCE/ &
-         lEB, lconstW, dtEB, nfcts, bldT, wsoil, wgrmax, wwilt, wfc, skyLW, GRLAI, rsmin
+         imax, jtot, kmax, xsize, ysize, &
+         xlat, xlon, xday, xtime, ksp 
       namelist/PHYSICS/ &
-         z0, z0h, ps, lmoist, &
-         lcoriol, igrw_damp, uflowrate, vflowrate, sun, Bowen, cd, decay, ud, Qpu, epu, &
-         lbuoyancy, ltempeq, lprofforc, lchem, k1, JNO2
+         ps, igrw_damp, lmoist, lcoriol, lbuoyancy, ltempeq, &
+         lprofforc, uflowrate, vflowrate, z0, z0h
       namelist/DYNAMICS/ &
-         lqlnr, iadv_mom, iadv_tke, iadv_thl, iadv_qt, iadv_sv, ipoiss
+         lqlnr, ipoiss, &
+         iadv_mom, iadv_tke, iadv_thl, iadv_qt, iadv_sv
+      namelist/BC/ &
+         BCxm, BCxT, BCxq, BCxs, &
+         BCym, BCyT, BCyq, BCys, &
+         BCtopm, BCtopT, BCtopq, BCtops, &
+         BCbotm, BCbotT, BCbotq, BCbots, &
+         bctfxm, bctfxp, bctfym, bctfyp, bctfz, &
+         wtsurf, wttop, wqsurf, wsvsurfdum, wsvtopdum, &
+         thls, thl_top, qt_top, qts
+      namelist/INLET/ &
+         Uinf, Vinf, di, dti, iplane, inletav, linletRA, &
+         lstoreplane, lreadminl, lfixinlet, lfixutauin, &
+         xS, yS, zS, SS, sigS
+      namelist/WALLS/ &
+         nblocks, nfcts, iwallmom, iwalltemp, iwallmoist
+      namelist/ENERGYBALANCE/ &
+         lEB, lconstW, dtEB, bldT, wsoil, wgrmax, wwilt, wfc, &
+         skyLW, GRLAI, rsmin
+      namelist/TREES/ &
+         ltrees, ntrees, sun, Bowen, cd, decay, ud
+      namelist/CHEMISTRY/ &
+         lchem, k1, JNO2, lpurif, npurif, Qpu, epu
+      namelist/OUTPUT/ &
+         lfielddump, tfielddump, fieldvars, &
+         ltdump, lydump, lytdump, lxydump, lxytdump, &
+         lslicedump, ltkedump, tstatsdump, tsample
 
       if (myid == 0) then
          if (command_argument_count() >= 1) then
@@ -126,6 +143,24 @@ module modstartup
             stop 'ERROR: Problem in namoptions DOMAIN'
          endif
          write (6, DOMAIN)
+         rewind (ifnamopt)
+
+         read (ifnamopt, PHYSICS, iostat=ierr)
+         if (ierr > 0) then
+            print *, 'Problem in namoptions PHYSICS'
+            print *, 'iostat error: ', ierr
+            stop 'ERROR: Problem in namoptions PHYSICS'
+         endif
+         write (6, PHYSICS)
+         rewind (ifnamopt)
+
+         read (ifnamopt, DYNAMICS, iostat=ierr)
+         if (ierr > 0) then
+            print *, 'Problem in namoptions DYNAMICS'
+            print *, 'iostat error: ', ierr
+            stop 'ERROR: Problem in namoptions DYNAMICS'
+         endif
+         write (6, DYNAMICS)
          rewind (ifnamopt)
 
          read (ifnamopt, BC, iostat=ierr)
@@ -164,22 +199,31 @@ module modstartup
          write (6, ENERGYBALANCE)
          rewind (ifnamopt)
 
-         read (ifnamopt, PHYSICS, iostat=ierr)
+         read (ifnamopt, TREES, iostat=ierr)
          if (ierr > 0) then
-            print *, 'Problem in namoptions PHYSICS'
+            print *, 'Problem in namoptions TREES'
             print *, 'iostat error: ', ierr
-            stop 'ERROR: Problem in namoptions PHYSICS'
+            stop 'ERROR: Problem in namoptions TREES'
          endif
-         write (6, PHYSICS)
+         write (6, TREES)
          rewind (ifnamopt)
 
-         read (ifnamopt, DYNAMICS, iostat=ierr)
+         read (ifnamopt, CHEMISTRY, iostat=ierr)
          if (ierr > 0) then
-            print *, 'Problem in namoptions DYNAMICS'
+            print *, 'Problem in namoptions CHEMISTRY'
             print *, 'iostat error: ', ierr
-            stop 'ERROR: Problem in namoptions DYNAMICS'
+            stop 'ERROR: Problem in namoptions CHEMISTRY'
          endif
-         write (6, DYNAMICS)
+         write (6, CHEMISTRY)
+         rewind (ifnamopt)
+
+         read (ifnamopt, OUTPUT, iostat=ierr)
+         if (ierr > 0) then
+            print *, 'Problem in namoptions OUTPUT'
+            print *, 'iostat error: ', ierr
+            stop 'ERROR: Problem in namoptions OUTPUT'
+         endif
+         write (6, OUTPUT)
          close (ifnamopt)
       end if
 

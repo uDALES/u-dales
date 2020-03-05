@@ -14,10 +14,6 @@ This list refers to the original code-base [DALES](https://github.com/dalesteam/
 | xday | 1. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | xtime | 0. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | ksp | -1 | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). (Setting to -1 calculates default value) | |
-| nblocks | 0 | `INTEGER` | Number of blocks specified in `blocks.inp`. | - |
-| **ntrees** | 0 | `INTEGER` | Number of trees specified in `trees.inp`. (*Not supported in current version.*) | - |
-| **npurif** | 0 | `INTEGER` | Number of air purifiers specified in `purifs.inp`. (*Not supported in current version.*) | - |
-
 
 # Namelist DYNAMICS
 
@@ -37,7 +33,7 @@ Possible advection schemes:
 | iadv_thl | -1 | 2, 7 | Advection scheme for temperature. Also in [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | - |
 | iadv_qt | -1 | 2 | Advection scheme for moisture. Also in [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | - |
 | iadv_sv | -1 | 1, 2, 7 | Advection scheme for scalars. Also in [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | - |
-| **ipoiss** | 1 | 0, 1 | Poisson solver. 0 = Fast Fourier Transformation, 1 = Cyclic reduction scheme. *Should we change default to 0?* | - |
+| **ipoiss** | 1 | 0, 1 | Poisson solver. 0 = Fast Fourier Transformation, 1 = Cyclic reduction scheme. *Default will change to 0 in the future.* | - |
 
 
 # Namelist PHYSICS
@@ -53,16 +49,6 @@ Possible advection schemes:
 | uflowrate | 1. | `REAL` | U-velocity flow rate for out- or volume-flow forcing. | m/s |
 | vflowrate | 1. | `REAL` | V-velocity flow rate out- or volume-flow forcing. | m/s |
 | lprofforc | .false. | .true., .false. | Switch for nudging flow to a profile (forcing). | - |
-| sun | 0. | | Tree model parameter. (*Not supported in current version.*) | |
-| Bowen | 0. | | Tree model parameter. (*Not supported in current version.*) | |
-| cd | 0. | | Tree model parameter. (*Not supported in current version.*) | |
-| decay | 0. | | Tree model parameter. (*Not supported in current version.*) | |
-| ud | 0. | | Tree model parameter. (*Not supported in current version.*) | |
-| lchem | .false. | | Switch for basic chemistry. (*Not supported in current version.*) | |
-| k1 | 0. | | Rate constant (O3 + NO -> NO2 + 02 ). Chemistry model parameter. (*Not supported in current version.*) | |
-| JNO2 | 0. | | NO2 photolysis rate. Chemistry model parameter. (*Not supported in current version.*) | |
-| Qpu | 0. | | Purifiers flow rate. (*Not supported in current version.*) | |
-| epu | 0. | | Purifiers efficiency. (*Not supported in current version.*) | |
 | **z0** | 0.1 | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). Default changed from -1. | |
 | **z0h** | 0.1 | | | |
 
@@ -78,7 +64,7 @@ Possible advection schemes:
 | startfile | '' | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | **trestart** | | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | irandom | 0 | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
-| krand | *kmax* | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). Setting now value will return kmax. | |
+| krand | | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). Setting no value will return kmax. | |
 | **randu** | 0. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). Default changed from 0.5 | |
 | **randthl** | 0. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). Default changed from 0.1 | |
 | **randqt** | | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). Default changed from 1e-5. | |
@@ -102,8 +88,6 @@ Possible advection schemes:
 | lwalldist | .false. | | switch that determines whether the wall distances should be computed | |
 | dpdx | 0. | | *Does this still work?* | |
 | libm | .true. | | switch that determines whether the Immersed Boundary Method is turned on | |
-| ltrees | .false. | | | |
-| lpurif | .false. | | | |
 | luoutflowr | .false. | | switch that determines whether u-velocity is corrected to get a fixed outflow rate | |
 | lvoutflowr | .false. | | switch that determines whether u-velocity is corrected to get a fixed outflow rate | |
 | luvolflowr | .false. | | switch that determines whether u-velocity is corrected to get a fixed volume flow rate | |
@@ -111,19 +95,23 @@ Possible advection schemes:
 | ifixuinf | 0 | | | |
 | lvinf | .false. | | use Vinf instead of Uinf for the fixed velocity at infinity | |
 | tscale | | | timescale: domain height*Uinf/utau**2 | |
-| lfielddump | .false. | | Switch for instantaneous field output. | |
-| tfielddump | | | Output time for fields. | |
-| fieldvars | '' | Any of the given labels, several are seperated by a comma: u0,v0,w0,th,ql,qt,p0,s1,s2,s3,s4,s5 | Variable names of fields. | |
-| tsample | | | Sample time for statistics. | |
-| tstatsdump | | Output time for statistics. | | |
-| ltdump | .false. | | Switch to output time-averaged statistics. | |
-| lydump | .false. | | Switch to output y-averaged statistics. | |
-| lytdump | .false. | | Switch to output y- and time- averaged statistics. | |
-| lxydump | .false. | | Switch to output x- and y- averaged statistics. | |
-| lxytdump | .false. | | Switch to output x-, y- and time-averaged statistics. | |
-| lslicedump | .false. | | Switch to output slices in the xy-plane. | |
-| ltkedump | .false. | | *Not supported in the current version.* | |
 
+# Namelist OUTPUT
+
+| Name | Default | Possible values | Description | Unit |
+| ---- | ------- | --------------- | ----------- | ---- |
+| lfielddump | .false. | .true., .false. | Switch for instantaneous field output. | - |
+| **tfielddump** | | | Output time for fields. | s |
+| fieldvars | '' | Any of the given labels, several are seperated by a comma: u0,v0,w0,th,ql,qt,p0,s1,s2,s3,s4,s5 | Variable names of fields. | - |
+| **tsample** | | | Sample time for statistics. | s |
+| **tstatsdump** | | | Output time for statistics. | s |
+| ltdump | .false. | .true., .false. | Switch to output time-averaged statistics. | - |
+| lydump | .false. | .true., .false. | Switch to output y-averaged statistics. | - |
+| lytdump | .false. | .true., .false. | Switch to output y- and time- averaged statistics. | - |
+| lxydump | .false. | .true., .false. | Switch to output x- and y- averaged statistics. | - |
+| lxytdump | .false. | .true., .false. | Switch to output x-, y- and time-averaged statistics. | - |
+| lslicedump | .false. | .true., .false. | Switch to output slices in the xy-plane. | - |
+| ltkedump | .false. | .true., .false. | *Not supported in the current version.* | - |
 
 # Namelist NAMSUBGRID
 
@@ -165,7 +153,6 @@ Possible advection schemes:
 | lEB | .false. | .true., .false. | Switch for using the facet energy balance. | - |
 | **lconstW** | .false. | .true., .false. | *Description missing.* | - |
 | dtEB | 10. | `REAL` | Time interval between calculations of facet energy balance. | s |
-| nfcts | -1 | `INTEGER` | Number of facets specified in `facets.inp`. | - |
 | bldT | 0. | `REAL` | Internal temperature of the buildings, currently also ground temperature at a depth equal to floor facet thickness. | K |
 | wsoil | 0. | `REAL` | Water content of soil. | kg/m3 |
 | wgrmax | 450. | `REAL` | Maximum water content. | kg/m3 |
@@ -186,14 +173,43 @@ Possible advection schemes:
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
-| **iwallmom** | 2 | 2, 3 (1 currently not implemented) | Building wall momentum flux. *SHould we change default to 3?* | - |
+| nblocks | 0 | `INTEGER` | Number of blocks specified in `blocks.inp`. | - |
+| nfcts | -1 | `INTEGER` | Number of facets specified in `facets.inp`. | - |
+| **iwallmom** | 2 | 2, 3 (1 currently not implemented) | Building wall momentum flux. *Default will change to 3 in the future.* | - |
 | iwalltemp | 1 | 1, 2 |  Building wall temperature flux. | - |
 | iwallmoist | 1 | 1, 2 |  Building wall moisture flux. | - |
 
+# Namelist TREES
+
+*Not supported in current version.*
+
+| Name | Default | Possible values | Description | Unit |
+| ---- | ------- | --------------- | ----------- | ---- |
+| ltrees | .false. | .true., .false. | Switch for modelling trees. | |
+| ntrees | 0 | `INTEGER` | Number of trees specified in `trees.inp`. | - |
+| sun | 0. | | Tree model parameter. | |
+| Bowen | 0. | | Tree model parameter. | |
+| cd | 0. | | Tree model parameter. | |
+| decay | 0. | | Tree model parameter. | |
+| ud | 0. | | Tree model parameter. | |
+
+# Namelist CHEMISTRY
+
+*Not supported in current version.*
+
+| Name | Default | Possible values | Description | Unit |
+| ---- | ------- | --------------- | ----------- | ---- |
+| lchem | .false. | .true., .false. | Switch for basic chemistry. | - |
+| k1 | 0. | | Rate constant (O3 + NO -> NO2 + 02 ). Chemistry model parameter. | |
+| JNO2 | 0. | | NO2 photolysis rate. Chemistry model parameter. | |
+| lpurif | .false. | .true., .false. | Switch for modelling air purifiers. | - |
+| npurif | 0 | `INTEGER` | Number of air purifiers specified in `purifs.inp`. | - |
+| Qpu | 0. | | Purifiers flow rate. | |
+| epu | 0. | | Purifiers efficiency. | |
 
 # Namelist INLET
 
-*Work in Progress. This section currently only lists default values as defined in the code, their functionality needs to be checked!*
+*Not supported in current version.*
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
