@@ -6,6 +6,7 @@ lstratstart=  .false.
 lreadscal  =  .false.
 startfile  =  'initd00094979_xxx.052'
 trestart   =  3600.
+lfielddump =  .true.
 tfielddump =  1.
 fieldvars  =  'u0,v0,w0'
 lydump     =  .true.
@@ -98,8 +99,6 @@ lcoriol    =  .false.
 lprofforc  =  .false.
 Qpu        =  5
 epu        =  0.85
-numol      =  1.5e-5
-prandtlmol =  0.71
 lbuoyancy  = .true.
 ltempeq    = .true.
 igrw_damp  = 0
@@ -125,26 +124,4 @@ cs          = 0.2
 
 &NAMCHECKSIM
 tcheck      = 0
-/
-
-&INPS
-zsize       = 64
-lzstretch   = .false.
-nlin        = 32
-dzlin       = 1
-gf          = 1.005
-lcastro     = .false.
-lcube       = .false.
-lblocks     = .false.
-blockheight = 8
-blockwidth  = 8
-canyonwidth = 8
-u0          = 2
-v0          = 0
-dpdx        = 0.0001
-dpdy        = 0
-thl0        = 288
-lapse       = 0.
-w_s         = 0
-R           = 0.
 /
