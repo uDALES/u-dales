@@ -192,13 +192,12 @@ module modglobal
    real :: grqs = 0. !saturation humidity of green roof
    real :: grdqdt = 0. !gradient of saturation humidity for green roof
 
-   real             :: numol !< kinematic viscosity for couette flow Re=5000 (Re=Uinf*H/(2*nu)) H=1, Uinf=1
-   real             :: numoli !< 1/numol
+   real, parameter :: numol = 1.5e-5 !< kinematic viscosity for couette flow Re=5000 (Re=Uinf*H/(2*nu)) H=1, Uinf=1
+   real, parameter :: numoli = 1./numol !< 1/numol
+   real, parameter :: prandtlmol = 0.71 !< Prandtl number (for air at 300K). Fluid property!
+   real, parameter :: prandtlmoli = 1./prandtlmol !< Inverse of Prandtl number
 
-   real             :: prandtlmol !< Prandtl number (for air at 300K). Fluid property!
-   real             :: prandtlmoli !< Inverse of Prandtl number
-
-   integer          :: iwallmom = 2, iwalltemp = 1, iwallmoist = 1
+   integer         :: iwallmom = 2, iwalltemp = 1, iwallmoist = 1
 
    real, parameter :: rhow = 0.998e3 !<    * Density of water
    real, parameter :: pref0 = 1.e5 !<    *standard pressure used in exner function.

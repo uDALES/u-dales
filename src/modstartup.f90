@@ -46,7 +46,7 @@ module modstartup
          uflowrate, vflowrate ,lstoreplane, iplane, &
          lreadmean, iinletgen, inletav, lreadminl, Uinf, Vinf, linletRA, nblocks, ntrees, npurif, &
          lscalrec,lSIRANEinout,lscasrc,lscasrcl,lscasrcr,lydump,lytdump,lxydump,lxytdump,lslicedump,ltdump,ltkedump,lzerogradtop,&
-         lzerogradtopscal, lbuoyancy, ltempeq, numol, prandtlmol, sun, Bowen, cd, decay, ud, Qpu, epu, numoli, prandtlmoli, &
+         lzerogradtopscal, lbuoyancy, ltempeq, sun, Bowen, cd, decay, ud, Qpu, epu, &
          lfixinlet, lfixutauin, startmean, pi, &
          thlsrc, ifixuinf, lvinf, tscale, ltempinout, lmoistinout,  &
          lwallfunc,lprofforc,lchem,k1,JNO2,rv,rd,tnextEB,tEB,dtEB,bldT,wsoil,wgrmax,wwilt,wfc,skyLW,GRLAI,rsmin,nfcts,lEB,lconstW, &
@@ -93,7 +93,7 @@ module modstartup
          lEB, lconstW, dtEB, nfcts, bldT, wsoil, wgrmax, wwilt, wfc, skyLW, GRLAI, rsmin
       namelist/PHYSICS/ &
          z0, z0h, ps, lmoist, &
-         lcoriol, igrw_damp, uflowrate, vflowrate, numol, prandtlmol, sun, Bowen, cd, decay, ud, Qpu, epu, &
+         lcoriol, igrw_damp, uflowrate, vflowrate, sun, Bowen, cd, decay, ud, Qpu, epu, &
          lbuoyancy, ltempeq, lprofforc, lchem, k1, JNO2
       namelist/DYNAMICS/ &
          lqlnr, iadv_mom, iadv_tke, iadv_thl, iadv_qt, iadv_sv, ipoiss
@@ -325,8 +325,6 @@ module modstartup
       call MPI_BCAST(vflowrate, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(Uinf, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(Vinf, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(numol, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(prandtlmol, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(sun, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(Bowen, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(cd, 1, MY_REAL, 0, comm3d, mpierr)
@@ -338,12 +336,7 @@ module modstartup
       call MPI_BCAST(dti, 1, MY_REAL, 0, comm3d, mpierr)
       dr = di ! initial value is needed
       di_test = di ! initial value is needed
-      numoli = 1./numol
-      prandtlmoli = 1./prandtlmol
       write (*, *) "sec g"
-
-      call MPI_BCAST(numoli, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(prandtlmoli, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(iangledeg, 1, MY_REAL, 0, comm3d, mpierr)
       iangle = iangledeg*pi/180.
       call MPI_BCAST(inletav, 1, MY_REAL, 0, comm3d, mpierr)
