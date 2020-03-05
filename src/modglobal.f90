@@ -47,7 +47,7 @@ module modglobal
    integer ::  ke
    integer ::  nsv = 0 !< Number of additional scalar fields
    integer ::  nvar = 0
-  character(50) :: fieldvars = ''
+   character(50) :: fieldvars = ''
 
    integer ::  ih = 3
    integer ::  jh = 3
@@ -67,7 +67,7 @@ module modglobal
    integer, parameter :: longint = 8
    logical :: lwarmstart = .false. !<   flag for "cold" or "warm" start
    logical :: lstratstart = .false.
-   logical :: lfielddump = .true. !!< switch to enable the fielddump (on/off)  
+   logical :: lfielddump = .false. !< switch to enable the fielddump
    logical :: lreadscal = .false. !<   flag for reading scalar pollutant field (warm start)
    real    :: trestart !<     * each trestart sec. a restart file is written to disk
    real    :: tfielddump !<
@@ -76,7 +76,7 @@ module modglobal
    real    :: tnextrestart !<     * each trestart sec. a restart file is written to disk
    real    :: tscale !       timescale: domain height*Uinf/utau**2
    real    :: tnextfielddump !<
-   character(90) :: startfile !<    * name of the restart file
+   character(90) :: startfile = '' !<    * name of the restart file
 
    !Switches for boundary conditions
    !momentum (m), temperature (T), humidity (q) and scalars (s)

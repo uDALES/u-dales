@@ -111,7 +111,7 @@ Possible advection schemes:
 | ifixuinf | 0 | | | |
 | lvinf | .false. | | use Vinf instead of Uinf for the fixed velocity at infinity | |
 | tscale | | | timescale: domain height*Uinf/utau**2 | |
-| lfielddump | .true. | | Switch for instantaneous field output. | |
+| lfielddump | .false. | | Switch for instantaneous field output. | |
 | tfielddump | | | Output time for fields. | |
 | fieldvars | '' | Any of the given labels, several are seperated by a comma: u0,v0,w0,th,ql,qt,p0,s1,s2,s3,s4,s5 | Variable names of fields. | |
 | tsample | | | Sample time for statistics. | |
