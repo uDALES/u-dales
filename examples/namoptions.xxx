@@ -32,7 +32,6 @@ diffnr      = 0.25
 lnudge      = .false.
 tnudge      = 50.
 nnudge      = 10
-lwallfunc   = .true.
 lreadmean   = .false.
 !startmean   = 
 lwalldist   = .false.
@@ -77,8 +76,6 @@ lprofforc   = .false.
 igrw_damp   = 2
 uflowrate   = 1.
 vflowrate   = 1.
-z0          = 0.1
-z0h         = 0.1
 /
 
 &DYNAMICS
@@ -124,20 +121,22 @@ BCbotm      = 2
 BCbotT      = 2 
 BCbotq      = 1 
 BCbots      = 1
-wtsurf      = 0.
-wqsurf      = 0.
-thls        = -1.
-thl_top     = -1.
-qt_top      = -1.
-qts         = -1.   
-wttop       = 0.
-!wsvsurfdum  =
-!wsvtopdum   =
 bctfxm      = 0.
 bctfxp      = 0.
 bctfym      = 0.
 bctfyp      = 0.
 bctfz       = 0.
+thl_top     = -1.
+qt_top      = -1.
+wttop       = 0.
+qts         = -1.
+!wsvsurfdum  =
+!wsvtopdum   =
+wtsurf      = -1.
+wqsurf      = -1.
+thls        = -1.
+z0          = -1.
+z0h         = -1.
 /
 
 &WALLS
@@ -199,6 +198,7 @@ lfixutauin  = .false.
 lreadminl   = .false.
 di          = 0.09
 !dti         =
+lwallfunc   = .true.
 /
 
 &NAMCHECKSIM

@@ -75,7 +75,7 @@ module modstartup
          runtime, dtmax, trestart, ladaptive, &
          irandom, randu, randthl, randqt, krand, &
          nsv, courant, diffnr, author, &
-         libm, lles, lwallfunc, &
+         libm, lles, &
          lnudge, tnudge, nnudge, &
          luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, &
          ifixuinf, lvinf, tscale, dpdx, lper2inout, lwalldist, &
@@ -85,7 +85,7 @@ module modstartup
          xlat, xlon, xday, xtime, ksp 
       namelist/PHYSICS/ &
          ps, igrw_damp, lmoist, lcoriol, lbuoyancy, ltempeq, &
-         lprofforc, uflowrate, vflowrate, z0, z0h
+         lprofforc, uflowrate, vflowrate,
       namelist/DYNAMICS/ &
          lqlnr, ipoiss, &
          iadv_mom, iadv_tke, iadv_thl, iadv_qt, iadv_sv
@@ -95,12 +95,12 @@ module modstartup
          BCtopm, BCtopT, BCtopq, BCtops, &
          BCbotm, BCbotT, BCbotq, BCbots, &
          bctfxm, bctfxp, bctfym, bctfyp, bctfz, &
-         wtsurf, wttop, wqsurf, wsvsurfdum, wsvtopdum, &
-         thls, thl_top, qt_top, qts
+         wttop, thl_top, qt_top, qts, wsvsurfdum, wsvtopdum, &
+         wtsurf, wqsurf, thls, z0, z0h
       namelist/INLET/ &
          Uinf, Vinf, di, dti, iplane, inletav, linletRA, &
          lstoreplane, lreadminl, lfixinlet, lfixutauin, &
-         xS, yS, zS, SS, sigS
+         xS, yS, zS, SS, sigS, lwallfunc
       namelist/WALLS/ &
          nblocks, nfcts, iwallmom, iwalltemp, iwallmoist
       namelist/ENERGYBALANCE/ &

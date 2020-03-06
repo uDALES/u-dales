@@ -37,8 +37,6 @@ ltempeq    = .true.
 lmoist     = .true.
 ps         = 101500.00
 igrw_damp  = 0
-z0         = 0.01
-z0h        = 0.000067
 /
 
 &DYNAMICS
@@ -74,6 +72,8 @@ BCbots     =  1
 wtsurf     =  0.                      
 wqsurf     =  0.
 thls       =  288.
+z0         = 0.01
+z0h        = 0.000067
 thl_top    =  288.
 qt_top     =  0.0
 qts        =  0.0 
