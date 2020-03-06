@@ -46,11 +46,20 @@ Possible advection schemes:
 | lmoist | .false. | .true., .false. | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). Default switched to .false. | - |
 | ltempeq | .false. | .true., .false. | Switch for solving temperature equation. | - |
 | lbuoyancy | .false. | .true., .false. | Switch for buoyancy force in temperature equation. | - |
+| lprofforc | .false. | .true., .false. | Switch for nudging flow to a profile (forcing). | - |
+| luoutflowr | .false. | | switch that determines whether u-velocity is corrected to get a fixed outflow rate | |
+| lvoutflowr | .false. | | switch that determines whether u-velocity is corrected to get a fixed outflow rate | |
+| luvolflowr | .false. | | switch that determines whether u-velocity is corrected to get a fixed volume flow rate | |
+| lvvolflowr | .false. | | switch that determines whether u-velocity is corrected to get a fixed volume flow rate | |
 | uflowrate | 1. | `REAL` | U-velocity flow rate for out- or volume-flow forcing. | m/s |
 | vflowrate | 1. | `REAL` | V-velocity flow rate out- or volume-flow forcing. | m/s |
-| lprofforc | .false. | .true., .false. | Switch for nudging flow to a profile (forcing). | - |
-| **z0** | 0.1 | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). Default changed from -1. | |
-| **z0h** | 0.1 | | | |
+| ifixuinf | 0 | 1, 2 | Choice for free stream forcing. (0 = nothing) | |
+| lvinf | .false. | | use Vinf instead of Uinf for the fixed velocity at infinity | |
+| tscale | | | timescale: domain height*Uinf/utau**2 | |
+| lnudge | .false. | | switch for applying nudging at the top of the domain | |
+| tnudge | 50. | | time scale for nudging | |
+| nnudge | 10 | | | |
+| dpdx | 0. | | Constant pressure gradient forcing in x. | |
 
 
 # Namelist RUN
@@ -61,6 +70,7 @@ Possible advection schemes:
 | runtime | 300 | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | dtmax | 20 | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | lwarmstart | .false. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
+| lper2inout | .false. | .true., .false. | Switch that determines type of restart: .true. means switching from periodic to in/outflow: inlet profile is read from `prof.inp`. | |
 | startfile | '' | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | **trestart** | | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | irandom | 0 | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
@@ -72,29 +82,17 @@ Possible advection schemes:
 | ladaptive | .false. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | courant | -1 | | Default sets it to 1.5 or 1.1 (if Kappa or upwind scheme is used). These are different values than in [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | author | '' | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
-| lreadscal | .false. | .true., .false. | Switch for reading scalar pollutant field (warm start) *Is this working?* | - |
-| lstratstart | .false. | .true., .false. | *Description missing* | |
-| lscasrc | .false. | .true., .false. |  *Description missing* | |
-| lscasrcl | .false. | .true., .false. |  *Description missing* | |
-| lper2inout | .false. | .true., .false. | Switch that determines type of restart: .true. means switching from periodic to in/outflow: inlet profile is read from `prof.inp`.  *Is this working?* | |
 | lles | .true. | .true., .false. | Switch that determines whether the subgrid model is turned on or constant ekm and ekh are used (DNS) | - |
-| diffnr | 0.25 | | | |
-| lnudge | .false. | | switch for applying nudging at the top of the domain | |
-| tnudge | 50. | | time scale for nudging | |
-| nnudge | 10 | | | |
-| lwallfunc | .true. | | switch that determines whether wall functions are used to compute the wall-shear stress | |
+| **lreadscal** | .false. | .true., .false. | Switch for reading scalar pollutant field (warm start) | - |
+| **lstratstart** | .false. | .true., .false. | *Description missing* | |
+| **lscasrc** | .false. | .true., .false. |  *Description missing* | |
+| **lscasrcl** | .false. | .true., .false. |  *Description missing* | |
+| **diffnr** | 0.25 | | | |
 | lreadmean | .false. | | switch that determines whether mean variables should be read from means#myid#.#expnr# | |
 | startmean | | | | |
 | lwalldist | .false. | | switch that determines whether the wall distances should be computed | |
-| dpdx | 0. | | *Does this still work?* | |
-| libm | .true. | | switch that determines whether the Immersed Boundary Method is turned on | |
-| luoutflowr | .false. | | switch that determines whether u-velocity is corrected to get a fixed outflow rate | |
-| lvoutflowr | .false. | | switch that determines whether u-velocity is corrected to get a fixed outflow rate | |
-| luvolflowr | .false. | | switch that determines whether u-velocity is corrected to get a fixed volume flow rate | |
-| lvvolflowr | .false. | | switch that determines whether u-velocity is corrected to get a fixed volume flow rate | |
-| ifixuinf | 0 | | | |
-| lvinf | .false. | | use Vinf instead of Uinf for the fixed velocity at infinity | |
-| tscale | | | timescale: domain height*Uinf/utau**2 | |
+| libm | .true. | | Switch that determines whether the Immersed Boundary Method is turned on. *Deprecated. Will be removed in the future.* | |
+
 
 # Namelist OUTPUT
 
@@ -143,7 +141,38 @@ Possible advection schemes:
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
-| | | | | |
+| BCxm | 1 | | | |
+| BCxT | 1 | | | |
+| BCxq | 1 | | | |
+| BCxs | 1 | | | |
+| BCym | 1 | | | |
+| BCyT | 1 | | | |
+| BCyq | 1 | | | |
+| BCys | 1 | | | |
+| BCtopm | 1 | | | |
+| BCtopT | 1 | | | |
+| BCtopq | 1 | | | |
+| BCtops | 1 | | | |
+| BCbotm | 2 | | | |
+| BCbotT | 2 | | | |
+| BCbotq | 1 | | | |
+| BCbots | 1 | | | |
+| bctfxm | 0. | | | |
+| bctfxp | 0. | | | |
+| bctfym | 0. | | | |
+| bctfyp | 0. | | | |
+| bctfz | 0. | | | |
+| thl_top | -1. | | | |
+| qt_top | -1. | | | |
+| wttop | 0. | | | |
+| qts | -1. | | | |
+| wsvsurfdum | | | | |
+| wsvtopdum | | | | |
+| wtsurf | -1. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). *Currently need to be set to reasonable values for subroutine bottom.* | |
+| wqsurf | -1. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). *Currently need to be set to reasonable values for subroutine bottom.* | |
+| thls | -1. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). *Currently need to be set to reasonable values for subroutine bottom.* | |
+| z0 | -1. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). *Currently need to be set to reasonable values for subroutine bottom.* | |
+| z0h | -1. | | Facet roughness length for heat. *Currently need to be set to reasonable values for subroutine bottom.* | |
 
 
 # Namelist ENERGYBALANCE
@@ -229,3 +258,4 @@ Possible advection schemes:
 | lreadminl | .false. | | | |
 | di | 0.09 | | | |
 | dti | | | | |
+| lwallfunc | .true. | | Switch that determines whether wall functions are used to compute the wall-shear stress. *Deprecated, only in use in modinlet. Will be removed in the future.* | |
