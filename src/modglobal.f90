@@ -285,7 +285,6 @@ module modglobal
    real :: timee !<     * elapsed time since the "cold" start
    !      integer(kind=longint) :: btime             !<     * time of (re)start
    real :: btime !<     * time of (re)start
-   real :: startmean !
    real :: runavtime !<     * time of starting running average
    integer :: ntimee !<     * number of timesteps since the cold start
    integer :: ntrun !<     * number of timesteps since the start of the run

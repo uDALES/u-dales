@@ -23,7 +23,6 @@ lper2inout  = .false.
 lles        = .true.
 diffnr      = 0.25
 lreadmean   = .false.
-!startmean   = 
 lwalldist   = .false.
 /
 

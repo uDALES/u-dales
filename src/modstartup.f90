@@ -47,7 +47,7 @@ module modstartup
          lreadmean, iinletgen, inletav, lreadminl, Uinf, Vinf, linletRA, nblocks, ntrees, npurif, &
          lscalrec,lSIRANEinout,lscasrc,lscasrcl,lscasrcr,lydump,lytdump,lxydump,lxytdump,lslicedump,ltdump,ltkedump,lzerogradtop,&
          lzerogradtopscal, lbuoyancy, ltempeq, sun, Bowen, cd, decay, ud, Qpu, epu, &
-         lfixinlet, lfixutauin, startmean, pi, &
+         lfixinlet, lfixutauin, pi, &
          thlsrc, ifixuinf, lvinf, tscale, ltempinout, lmoistinout,  &
          lwallfunc,lprofforc,lchem,k1,JNO2,rv,rd,tnextEB,tEB,dtEB,bldT,wsoil,wgrmax,wwilt,wfc,skyLW,GRLAI,rsmin,nfcts,lEB,lconstW, &
          BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys, &
@@ -77,7 +77,7 @@ module modstartup
          nsv, courant, diffnr, author, &
          libm, lles, &
          lper2inout, lwalldist, &
-         lreadmean, startmean, lreadscal, lscasrc, lscasrcl
+         lreadmean, lreadscal, lscasrc, lscasrcl
       namelist/DOMAIN/ &
          imax, jtot, kmax, xsize, ysize, &
          xlat, xlon, xday, xtime, ksp 
@@ -365,7 +365,6 @@ module modstartup
       call MPI_BCAST(wttop, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(wqtop, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(thlsrc, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(startmean, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(uflowrate, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(vflowrate, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(Uinf, 1, MY_REAL, 0, comm3d, mpierr)
