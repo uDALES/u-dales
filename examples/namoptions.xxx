@@ -1,8 +1,8 @@
 &RUN
 iexpnr      = 0
-runtime     = 300
-!trestart    =
-dtmax       = 20
+runtime     = 300.
+trestart    = 10000.
+dtmax       = 20.
 ladaptive   = .false.
 lwarmstart  = .false.
 lstratstart = .false.
@@ -28,7 +28,7 @@ lwalldist   = .false.
 
 &OUTPUT
 lfielddump  = .false.
-!tfielddump  =
+tfielddump  = 10000.
 fieldvars   = ''
 ltdump      = .false.
 lydump      = .false.
@@ -37,8 +37,8 @@ lxydump     = .false.
 lxytdump    = .false.
 lslicedump  = .false.
 ltkedump    = .false.
-!tstatsdump  =
-!tsample     =
+tstatsdump  = 10000.
+tsample     = 5.
 /
 
 &DOMAIN
