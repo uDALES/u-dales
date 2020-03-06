@@ -53,30 +53,14 @@ lvreman     = .true.
 /
 
 &BC
-BCxm       =  1
-BCxT       =  1 
-BCxq       =  1 
-BCxs       =  1 
-BCym       =  1 
-BCyT       =  1 
-BCyq       =  1 
-BCys       =  1 
-BCtopm     =  1 
-BCtopT     =  1 
-BCtopq     =  1 
-BCtops     =  1 
-BCbotm     =  2
-BCbotT     =  2 
-BCbotq     =  1 
-BCbots     =  1
-wtsurf     =  0.                      
-wqsurf     =  0.
-thls       =  288.
+wtsurf     = 0.                      
+wqsurf     = 0.
+thls       = 288.
 z0         = 0.01
 z0h        = 0.000067
-thl_top    =  288.
-qt_top     =  0.0
-qts        =  0.0 
+thl_top    = 288.
+qt_top     = 0.0
+qts        = 0.0 
 /
 
 &WALLS
