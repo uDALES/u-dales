@@ -76,16 +76,17 @@ module modstartup
          irandom, randu, randthl, randqt, krand, &
          nsv, courant, diffnr, author, &
          libm, lles, &
-         lnudge, tnudge, nnudge, &
-         luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, &
-         ifixuinf, lvinf, tscale, dpdx, lper2inout, lwalldist, &
+         lper2inout, lwalldist, &
          lreadmean, startmean, lreadscal, lscasrc, lscasrcl
       namelist/DOMAIN/ &
          imax, jtot, kmax, xsize, ysize, &
          xlat, xlon, xday, xtime, ksp 
       namelist/PHYSICS/ &
          ps, igrw_damp, lmoist, lcoriol, lbuoyancy, ltempeq, &
-         lprofforc, uflowrate, vflowrate,
+         lprofforc, ifixuinf, lvinf, tscale, dpdx, &
+         luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, &
+         uflowrate, vflowrate, &
+         lnudge, tnudge, nnudge
       namelist/DYNAMICS/ &
          lqlnr, ipoiss, &
          iadv_mom, iadv_tke, iadv_thl, iadv_qt, iadv_sv

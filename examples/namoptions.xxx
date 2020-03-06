@@ -3,6 +3,7 @@ iexpnr      = 0
 runtime     = 300
 !trestart    =
 dtmax       = 20
+ladaptive   = .false.
 lwarmstart  = .false.
 lstratstart = .false.
 startfile   = ''
@@ -11,14 +12,6 @@ randqt      = 0.
 randthl     = 0.
 randu       = 0.
 !krand       =
-ladaptive   = .false.
-luoutflowr  = .false.
-lvoutflowr  = .false.
-luvolflowr  = .false.
-lvvolflowr  = .false.
-ifixuinf    = 0
-lvinf       = .false.
-!tscale      =
 nsv         = 0
 lreadscal   = .false.
 lscasrc     = .false.
@@ -29,13 +22,9 @@ courant     = -1
 lper2inout  = .false.
 lles        = .true.
 diffnr      = 0.25
-lnudge      = .false.
-tnudge      = 50.
-nnudge      = 10
 lreadmean   = .false.
 !startmean   = 
 lwalldist   = .false.
-dpdx        = 0.
 /
 
 &OUTPUT
@@ -71,11 +60,22 @@ lbuoyancy   = .false.
 ltempeq     = .false.
 lmoist      = .false.
 ps          = -1
+igrw_damp   = 2
 lcoriol     = .false.
 lprofforc   = .false.
-igrw_damp   = 2
+dpdx        = 0.
 uflowrate   = 1.
 vflowrate   = 1.
+ifixuinf    = 0
+lvinf       = .false.
+!tscale      =
+luoutflowr  = .false.
+lvoutflowr  = .false.
+luvolflowr  = .false.
+lvvolflowr  = .false.
+lnudge      = .false.
+tnudge      = 50.
+nnudge      = 10
 /
 
 &DYNAMICS
