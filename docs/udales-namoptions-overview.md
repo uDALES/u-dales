@@ -33,7 +33,7 @@ Possible advection schemes:
 | iadv_thl | -1 | 2, 7 | Advection scheme for temperature. Also in [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | - |
 | iadv_qt | -1 | 2 | Advection scheme for moisture. Also in [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | - |
 | iadv_sv | -1 | 1, 2, 7 | Advection scheme for scalars. Also in [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | - |
-| **ipoiss** | 1 | 0, 1 | Poisson solver. 0 = Fast Fourier Transformation, 1 = Cyclic reduction scheme. *Default will change to 0 in the future.* | - |
+| ipoiss | 1 | 0, 1 | Poisson solver. 0 = Fast Fourier Transformation, 1 = Cyclic reduction scheme. *Default will change to 0 in the future.* | - |
 
 
 # Namelist PHYSICS
@@ -78,7 +78,7 @@ Possible advection schemes:
 | krand | | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). Setting no value will return kmax. | |
 | **randu** | 0. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). Default changed from 0.5 | |
 | **randthl** | 0. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). Default changed from 0.1 | |
-| **randqt** | | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). Default changed from 1e-5. | |
+| **randqt** | 0. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). Default changed from 1e-5. | |
 | ladaptive | .false. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | courant | -1 | | Default sets it to 1.5 or 1.1 (if Kappa or upwind scheme is used). These are different values than in [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | **diffnr** | 0.25 | | Diffusion number? Used to determine adaptive time step. | |
@@ -86,10 +86,10 @@ Possible advection schemes:
 | lles | .true. | .true., .false. | Switch that determines whether the subgrid model is turned on or constant ekm and ekh are used (DNS) | - |
 | libm | .true. | | Switch that determines whether the Immersed Boundary Method is turned on. *Deprecated. Will be removed in the future.* | |
 | nsv | 0 | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
-| **lreadscal** | .false. | .true., .false. | Switch for reading scalar pollutant field (warm start) | - |
+| lreadscal | .false. | .true., .false. | Switch for reading scalar pollutant field (warm start) | - |
 | **lscasrc** | .false. | .true., .false. |  *Description missing* | |
 | **lscasrcl** | .false. | .true., .false. |  *Description missing* | |
-| **lreadmean** | .false. | | Switch that determines whether mean variables should be read from means#myid#.#expnr# | |
+| lreadmean | .false. | | Switch that determines whether mean variables should be read from means#myid#.#expnr# | |
 | **lwalldist** | .false. | | Switch that determines whether the wall distances should be computed | |
 
 
@@ -140,33 +140,33 @@ Possible advection schemes:
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
-| BCxm | 1 | | | |
-| BCxT | 1 | | | |
-| BCxq | 1 | | | |
-| BCxs | 1 | | | |
-| BCym | 1 | | | |
-| BCyT | 1 | | | |
-| BCyq | 1 | | | |
-| BCys | 1 | | | |
-| BCtopm | 1 | | | |
-| BCtopT | 1 | | | |
-| BCtopq | 1 | | | |
-| BCtops | 1 | | | |
-| BCbotm | 2 | | | |
-| BCbotT | 2 | | | |
-| BCbotq | 1 | | | |
-| BCbots | 1 | | | |
-| bctfxm | 0. | | | |
-| bctfxp | 0. | | | |
-| bctfym | 0. | | | |
-| bctfyp | 0. | | | |
-| bctfz | 0. | | | |
-| thl_top | -1. | | | |
-| qt_top | -1. | | | |
-| wttop | 0. | | | |
-| qts | -1. | | | |
-| wsvsurfdum | | | | |
-| wsvtopdum | | | | |
+| BCxm | 1 | | Domain boundary condition for momentum in x. | |
+| BCxT | 1 | | Domain boundary condition for temperature in x. | |
+| BCxq | 1 | | Domain boundary condition for humidity in x. | |
+| BCxs | 1 | | Domain boundary condition for scalars in x. | |
+| BCym | 1 | | Domain boundary condition for momentum in y. | |
+| BCyT | 1 | | Domain boundary condition for temperature in y. | |
+| BCyq | 1 | | Domain boundary condition for humidity in y. | |
+| BCys | 1 | | Domain boundary condition for scalars in y. | |
+| BCtopm | 1 | | Boundary condition for momentum at domain top. | |
+| BCtopT | 1 | | Boundary condition for temperature at domain top. | |
+| BCtopq | 1 | | Boundary condition for humidity at domain top. | |
+| BCtops | 1 | | Boundary condition for scalars at domain top. | |
+| BCbotm | 2 | | Boundary condition for momentum at domain bottom. | |
+| BCbotT | 2 | | Boundary condition for temperature at domain bottom. | |
+| BCbotq | 1 | | Boundary condition for humidity at domain bottom. | |
+| BCbots | 1 | | Boundary condition for scalars at domain bottom. | |
+| bctfxm | 0. | | Bounary Condition Temperature Flux X-minus-wall. | |
+| bctfxp | 0. | | Bounary Condition Temperature Flux X-plus-wall. | |
+| bctfym | 0. | | Bounary Condition Temperature Flux Y-minus-wall. | |
+| bctfyp | 0. | | Bounary Condition Temperature Flux y-plus-wall. | |
+| bctfz | 0. | | Bounary Condition Temperature Flux z top-wall. | |
+| thl_top | -1. | | Temperature at the top boundary. | |
+| qt_top | -1. | | Humidity at the top boundary. | |
+| wttop | 0. | | Temperature flux at the top boundary. | |
+| qts | -1. | | Used in modthermodynamics to get a BC for the moisture profile. | |
+| wsvsurfdum | | | Scalar boundary conditions bottom. | |
+| wsvtopdum | | | Scalar boundary conditions top. | |
 | wtsurf | -1. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). *Currently need to be set to reasonable values for subroutine bottom.* | |
 | wqsurf | -1. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). *Currently need to be set to reasonable values for subroutine bottom.* | |
 | thls | -1. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). *Currently need to be set to reasonable values for subroutine bottom.* | |
