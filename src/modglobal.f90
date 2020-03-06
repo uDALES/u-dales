@@ -69,14 +69,6 @@ module modglobal
    logical :: lstratstart = .false.
    logical :: lfielddump = .false. !< switch to enable the fielddump
    logical :: lreadscal = .false. !<   flag for reading scalar pollutant field (warm start)
-   real    :: trestart !<     * each trestart sec. a restart file is written to disk
-   real    :: tfielddump !<
-   real    :: tsample !<     tg3315
-   real    :: tstatsdump !<     tg3315
-   real    :: tnextrestart !<     * each trestart sec. a restart file is written to disk
-   real    :: tscale !       timescale: domain height*Uinf/utau**2
-   real    :: tnextfielddump !<
-   character(90) :: startfile = '' !<    * name of the restart file
 
    !Switches for boundary conditions
    !momentum (m), temperature (T), humidity (q) and scalars (s)
@@ -270,6 +262,16 @@ module modglobal
    real :: xtime = 0. !<     * GMT time
    real :: runtime = 300. !<     * simulation time in secs
    real :: dtmax = 20. !<     * maximum time integration interval
+
+   real    :: trestart = 10000. !<     * each trestart sec. a restart file is written to disk. bss116: per default do not write restart files
+   real    :: tfielddump = 10000. !< Time step for field outputs
+   real    :: tsample = 5. !<    Sample time steps for statistics
+   real    :: tstatsdump = 10000. !< Time step for statistics outputs tg3315
+   real    :: tnextrestart !<     * each trestart sec. a restart file is written to disk
+   real    :: tscale !       timescale: domain height*Uinf/utau**2
+   real    :: tnextfielddump !<
+   character(90) :: startfile = '' !<    * name of the restart file
+
    real :: totavtime = 0. !<    * the total time over which the values are averaged in meansXXX.XXX
    real :: dtEB = 10. !time interval between calculations of facet energy balance
    real :: tEB = 0. !time of last calculation of facet energy balance
