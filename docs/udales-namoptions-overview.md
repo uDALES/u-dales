@@ -72,26 +72,25 @@ Possible advection schemes:
 | lwarmstart | .false. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | lper2inout | .false. | .true., .false. | Switch that determines type of restart: .true. means switching from periodic to in/outflow: inlet profile is read from `prof.inp`. | |
 | startfile | '' | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
-| **trestart** | | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
+| **lstratstart** | .false. | .true., .false. | *Description missing* | |
+| trestart | 10000. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | irandom | 0 | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | krand | | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). Setting no value will return kmax. | |
 | **randu** | 0. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). Default changed from 0.5 | |
 | **randthl** | 0. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). Default changed from 0.1 | |
 | **randqt** | | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). Default changed from 1e-5. | |
-| nsv | 0 | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | ladaptive | .false. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | courant | -1 | | Default sets it to 1.5 or 1.1 (if Kappa or upwind scheme is used). These are different values than in [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
+| **diffnr** | 0.25 | | Diffusion number? Used to determine adaptive time step. | |
 | author | '' | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | lles | .true. | .true., .false. | Switch that determines whether the subgrid model is turned on or constant ekm and ekh are used (DNS) | - |
+| libm | .true. | | Switch that determines whether the Immersed Boundary Method is turned on. *Deprecated. Will be removed in the future.* | |
+| nsv | 0 | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | **lreadscal** | .false. | .true., .false. | Switch for reading scalar pollutant field (warm start) | - |
-| **lstratstart** | .false. | .true., .false. | *Description missing* | |
 | **lscasrc** | .false. | .true., .false. |  *Description missing* | |
 | **lscasrcl** | .false. | .true., .false. |  *Description missing* | |
-| **diffnr** | 0.25 | | | |
-| lreadmean | .false. | | switch that determines whether mean variables should be read from means#myid#.#expnr# | |
-| startmean | | | | |
-| lwalldist | .false. | | switch that determines whether the wall distances should be computed | |
-| libm | .true. | | Switch that determines whether the Immersed Boundary Method is turned on. *Deprecated. Will be removed in the future.* | |
+| **lreadmean** | .false. | | Switch that determines whether mean variables should be read from means#myid#.#expnr# | |
+| **lwalldist** | .false. | | Switch that determines whether the wall distances should be computed | |
 
 
 # Namelist OUTPUT
@@ -99,10 +98,10 @@ Possible advection schemes:
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
 | lfielddump | .false. | .true., .false. | Switch for instantaneous field output. | - |
-| **tfielddump** | | | Output time for fields. | s |
+| tfielddump | 10000. | | Output time for fields. | s |
 | fieldvars | '' | Any of the given labels, several are seperated by a comma: u0,v0,w0,th,ql,qt,p0,s1,s2,s3,s4,s5 | Variable names of fields. | - |
-| **tsample** | | | Sample time for statistics. | s |
-| **tstatsdump** | | | Output time for statistics. | s |
+| tsample | 5. | | Sample time for statistics. | s |
+| tstatsdump | 10000. | | Output time for statistics. | s |
 | ltdump | .false. | .true., .false. | Switch to output time-averaged statistics. | - |
 | lydump | .false. | .true., .false. | Switch to output y-averaged statistics. | - |
 | lytdump | .false. | .true., .false. | Switch to output y- and time- averaged statistics. | - |
@@ -204,7 +203,7 @@ Possible advection schemes:
 | ---- | ------- | --------------- | ----------- | ---- |
 | nblocks | 0 | `INTEGER` | Number of blocks specified in `blocks.inp`. | - |
 | nfcts | -1 | `INTEGER` | Number of facets specified in `facets.inp`. | - |
-| **iwallmom** | 2 | 2, 3 (1 currently not implemented) | Building wall momentum flux. *Default will change to 3 in the future.* | - |
+| iwallmom | 2 | 2, 3 (1 currently not implemented) | Building wall momentum flux. *Default will change to 3 in the future.* | - |
 | iwalltemp | 1 | 1, 2 |  Building wall temperature flux. | - |
 | iwallmoist | 1 | 1, 2 |  Building wall moisture flux. | - |
 
