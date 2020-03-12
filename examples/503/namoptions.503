@@ -1,0 +1,52 @@
+&RUN
+iexpnr     = 503
+runtime    = 14
+trestart   = 13
+ladaptive  = .true.
+randu      = 0.01
+/
+
+&OUTPUT
+lxytdump   = .true.
+tsample    = 2.0
+tstatsdump = 10
+/
+
+&DOMAIN
+imax       = 64
+jtot       = 64
+kmax       = 64
+xsize      = 128
+ysize      = 128
+/
+
+&BC
+wtsurf     = 0.0
+wqsurf     = 0.0
+thls       = 288.0
+z0         = 0.01
+z0h        = 6.7e-05
+/
+
+&WALLS
+nblocks    = 41
+nfcts      = 57                             
+iwallmom   = 3
+/  
+
+&PHYSICS
+ps         = 101500.0
+igrw_damp  = 0
+uflowrate  = 1.5
+vflowrate  = 1.5
+luvolflowr = .true.
+lvvolflowr = .true.
+/
+
+&DYNAMICS
+ipoiss     = 0
+/
+
+&NAMSUBGRID
+lvreman    = .true.
+/
