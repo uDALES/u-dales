@@ -76,9 +76,9 @@ Possible advection schemes:
 | trestart | 10000. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | irandom | 0 | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | krand | | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). Setting no value will return kmax. | |
-| **randu** | 0. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). Default changed from 0.5 | |
-| **randthl** | 0. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). Default changed from 0.1 | |
-| **randqt** | 0. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). Default changed from 1e-5. | |
+| randu | 0. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). Default changed from 0.5 | |
+| randthl | 0. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). Default changed from 0.1 | |
+| randqt | 0. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). Default changed from 1e-5. | |
 | ladaptive | .false. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | courant | -1 | | Default sets it to 1.5 or 1.1 (if Kappa or upwind scheme is used). These are different values than in [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | **diffnr** | 0.25 | | Diffusion number? Used to determine adaptive time step. | |
@@ -90,7 +90,7 @@ Possible advection schemes:
 | **lscasrc** | .false. | .true., .false. |  *Description missing* | |
 | **lscasrcl** | .false. | .true., .false. |  *Description missing* | |
 | lreadmean | .false. | | Switch that determines whether mean variables should be read from means#myid#.#expnr# | |
-| **lwalldist** | .false. | | Switch that determines whether the wall distances should be computed | |
+| lwalldist | .false. | | Switch that determines whether the wall distances should be computed for the subgrid models. *Potentially deprecated. May be removed in the future.* | |
 
 
 # Namelist OUTPUT
@@ -179,7 +179,7 @@ Possible advection schemes:
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
 | lEB | .false. | .true., .false. | Switch for using the facet energy balance. | - |
-| **lconstW** | .false. | .true., .false. | *Description missing.* | - |
+| lconstW | .false. | .true., .false. | Switch whether soil moisture is assumed as constant in time (.true.) or the evaporated water is from the soil (.false.). | - |
 | dtEB | 10. | `REAL` | Time interval between calculations of facet energy balance. | s |
 | bldT | 0. | `REAL` | Internal temperature of the buildings, currently also ground temperature at a depth equal to floor facet thickness. | K |
 | wsoil | 0. | `REAL` | Water content of soil. | kg/m3 |
