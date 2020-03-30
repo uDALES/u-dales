@@ -113,9 +113,13 @@ The following parameters relate to generating `blocks.inp`. Only one of the foll
 - `canyonwidth`: width of canyon (cells). Default: 16.
 
 
-## Instructions
+## Developer's guide
 
-The `da_inp.sh` bash script in `u-dales/tools` acts as a wrapper around the matlab pre-processing routines.
+The `u-dales/tools/preprocessing.m` matlab class contains the functionality for preprocessing. The constructor reads the parameters in `namoptions` and stores them as member variables, and defines default variables for those not specified. These are then used in the member functions. In these member functions, additional data structures are also stored as member variables, including those used repeatedly and those eventually written to files, so that one can easily view and manipulate them using the matlab IDE.
+
+The `u-dales/tools/write_input_files.m` matlab script calls member functions of `preprocessing.m` in order to write the necessary input files for uDALES. It is intended to be as short and readable as possible, with the goal being that a developer can edit for a particular purpose, perhaps by calling a member function they have added to `preprocessing.m`. It will work simply as a normal script using the matlab IDE, but when doing this, ensure that `DA_EXPDIR = <top level directory>/<expnr>/` and `DA_TOOLSDIR = <top level directory>/u-dales/tools/` are defined.
+
+The `u-dales/tools/da_inp.sh` shell script acts as a wrapper around `write_input_files.m`. Before running the matlab script, it will run the shell script `config.sh` located in the experiment directory, which defines environmental variables `DA_EXPDIR` and `DA_TOOLSDIR`. After running the script, it will also write the correct number of blocks and facets to `namoptions`. It is intended to be run from the top level project directory.
 
 ```sh
 # We assume you are running the following commands from your
@@ -124,5 +128,3 @@ The `da_inp.sh` bash script in `u-dales/tools` acts as a wrapper around the matl
 # General syntax: da_inp.sh exp_id
 ./u-dales/tools/da_inp.sh 009
 ```
-
-This will write the necessary input files according to the parameters in `namoptions.inp.009`, as well as writing the correct number of blocks and facets.
