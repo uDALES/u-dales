@@ -12,10 +12,6 @@ randqt      = 0.
 randthl     = 0.
 randu       = 0.
 !krand       =
-nsv         = 0
-lreadscal   = .false.
-lscasrc     = .false.
-lscasrcl    = .false.
 libm        = .true.
 author      = ''
 courant     = -1
@@ -160,6 +156,18 @@ GRLAI       = 2.
 rsmin       = 110. 
 /
 
+&SCALARS
+nsv         = 0
+lreadscal   = .false.
+lscasrc     = .false.
+lscasrcl    = .false.
+xS          = 0
+yS          = 0
+zS          = 0
+SS          = 0.
+sigS        = 0.
+/
+
 &TREES
 ltrees      = .false.
 ntrees      = 0
@@ -184,11 +192,6 @@ epu         = 0.
 Uinf        = 0.
 Vinf        = 0.
 inletav     = 0.
-xS          = 0
-yS          = 0
-zS          = 0
-SS          = 0.
-sigS        = 0.
 lstoreplane = .false.
 !iplane      =
 linletRA    = .false.
