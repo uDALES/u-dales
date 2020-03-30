@@ -35,7 +35,6 @@ Possible advection schemes:
 | iadv_sv | -1 | 1, 2, 7 | Advection scheme for scalars. Also in [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | - |
 | ipoiss | 1 | 0, 1 | Poisson solver. 0 = Fast Fourier Transformation, 1 = Cyclic reduction scheme. *Default will change to 0 in the future.* | - |
 
-
 # Namelist PHYSICS
 
 | Name | Default | Possible values | Description | Unit |
@@ -61,7 +60,6 @@ Possible advection schemes:
 | nnudge | 10 | | | |
 | dpdx | 0. | | Constant pressure gradient forcing in x. | |
 
-
 # Namelist RUN
 
 | Name | Default | Possible values | Description | Unit |
@@ -85,13 +83,8 @@ Possible advection schemes:
 | author | '' | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | lles | .true. | .true., .false. | Switch that determines whether the subgrid model is turned on or constant ekm and ekh are used (DNS) | - |
 | libm | .true. | | Switch that determines whether the Immersed Boundary Method is turned on. *Deprecated. Will be removed in the future.* | |
-| nsv | 0 | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
-| lreadscal | .false. | .true., .false. | Switch for reading scalar pollutant field (warm start) | - |
-| **lscasrc** | .false. | .true., .false. |  *Description missing* | |
-| **lscasrcl** | .false. | .true., .false. |  *Description missing* | |
 | lreadmean | .false. | | Switch that determines whether mean variables should be read from means#myid#.#expnr# | |
 | lwalldist | .false. | | Switch that determines whether the wall distances should be computed for the subgrid models. *Potentially deprecated. May be removed in the future.* | |
-
 
 # Namelist OUTPUT
 
@@ -128,13 +121,11 @@ Possible advection schemes:
 | cs | -1 | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | nmason | 2 | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 
-
 # Namelist NAMCHECKSIM
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
 | tcheck | 0 | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
-
 
 # Namelist BC
 
@@ -173,7 +164,6 @@ Possible advection schemes:
 | z0 | -1. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). *Currently need to be set to reasonable values for subroutine bottom.* | |
 | z0h | -1. | | Facet roughness length for heat. *Currently need to be set to reasonable values for subroutine bottom.* | |
 
-
 # Namelist ENERGYBALANCE
 
 | Name | Default | Possible values | Description | Unit |
@@ -189,7 +179,6 @@ Possible advection schemes:
 | skyLW | 0. | `REAL` | Long-wave radiation from the sky. | |
 | GRLAI | 2. | `REAL` | Leaf area index of a green roof. | |
 | rsmin | 110. | `REAL` | Minimum resistance of soil/plant. | |
-
 
 # Namelist WALLS
 
@@ -207,9 +196,23 @@ Possible advection schemes:
 | iwalltemp | 1 | 1, 2 |  Building wall temperature flux. | - |
 | iwallmoist | 1 | 1, 2 |  Building wall moisture flux. | - |
 
+# Namelist SCALARS
+
+| Name | Default | Possible values | Description | Unit |
+| ---- | ------- | --------------- | ----------- | ---- |
+| nsv | 0 | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
+| lreadscal | .false. | .true., .false. | Switch for reading scalar pollutant field (warm start). *Deprecated, will be removed in the future.* | - |
+| **lscasrc** | .false. | .true., .false. |  *Description missing* | |
+| **lscasrcl** | .false. | .true., .false. |  *Description missing* | |
+| xS | 0 | | | |
+| yS | 0 | | | |
+| zS | 0 | | | |
+| SS | 0. | | | |
+| sigS | 0. | | | |
+
 # Namelist TREES
 
-*Not supported in current version.*
+*This section will be updated with the next version.*
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
@@ -223,7 +226,7 @@ Possible advection schemes:
 
 # Namelist CHEMISTRY
 
-*Not supported in current version.*
+*This section will be updated with the next version.*
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
@@ -237,18 +240,13 @@ Possible advection schemes:
 
 # Namelist INLET
 
-*Not supported in current version.*
+*This section will be updated with the next version.*
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
 | Uinf | 0. | | | |
 | Vinf | 0. | | | |
 | inletav | 0. | | | |
-| xS | 0 | | | |
-| yS | 0 | | | |
-| zS | 0 | | | |
-| SS | 0. | | | |
-| sigS | 0. | | | |
 | lstoreplane | .false. | | | |
 | iplane | | | | |
 | linletRA | .false. | | | |

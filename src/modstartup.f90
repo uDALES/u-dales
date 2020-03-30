@@ -74,10 +74,10 @@ module modstartup
          iexpnr, lwarmstart, lstratstart, startfile, &
          runtime, dtmax, trestart, ladaptive, &
          irandom, randu, randthl, randqt, krand, &
-         nsv, courant, diffnr, author, &
+         courant, diffnr, author, &
          libm, lles, &
          lper2inout, lwalldist, &
-         lreadmean, lreadscal, lscasrc, lscasrcl
+         lreadmean
       namelist/DOMAIN/ &
          imax, jtot, kmax, xsize, ysize, &
          xlat, xlon, xday, xtime, ksp 
@@ -101,12 +101,15 @@ module modstartup
       namelist/INLET/ &
          Uinf, Vinf, di, dti, iplane, inletav, linletRA, &
          lstoreplane, lreadminl, lfixinlet, lfixutauin, &
-         xS, yS, zS, SS, sigS, lwallfunc
+         lwallfunc
       namelist/WALLS/ &
          nblocks, nfcts, iwallmom, iwalltemp, iwallmoist
       namelist/ENERGYBALANCE/ &
          lEB, lconstW, dtEB, bldT, wsoil, wgrmax, wwilt, wfc, &
          skyLW, GRLAI, rsmin
+      namelist/SCALARS/ &
+         lreadscal, lscasrc, lscasrcl, &
+         nsv, xS, yS, zS, SS, sigS
       namelist/TREES/ &
          ltrees, ntrees, sun, Bowen, cd, decay, ud
       namelist/CHEMISTRY/ &
@@ -198,6 +201,15 @@ module modstartup
             stop 'ERROR: Problem in namoptions EB'
          endif
          write (6, ENERGYBALANCE)
+         rewind (ifnamopt)
+
+         read (ifnamopt, SCALARS, iostat=ierr)
+         if (ierr > 0) then
+            print *, 'Problem in namoptions SCALARS'
+            print *, 'iostat error: ', ierr
+            stop 'ERROR: Problem in namoptions SCALARS'
+         endif
+         write (6, SCALARS)
          rewind (ifnamopt)
 
          read (ifnamopt, TREES, iostat=ierr)
