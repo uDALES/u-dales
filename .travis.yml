@@ -25,38 +25,38 @@ addons:
       - libnetcdf-dev
       - libnetcdff-dev
       - graphviz
+  homebrew:
+    packages:
+      - netcdf
+      - open-mpi
 
 matrix:
     include:
         - os: linux
-          dist: xenial
+          dist: bionic
           sudo: false
           python: 3.7
           env: BUILD_TYPE=Debug
         - os: linux
-          dist: xenial
+          dist: bionic
           sudo: false
           python: 3.7
           env: BUILD_TYPE=Release
-        - os: osx
-          language: generic
+        - language: minimal
+          os: osx
           osx_image: xcode11.2
           env: BUILD_TYPE=Debug
-        - os: osx
-          language: generic
+        - language: minimal
+          os: osx
           osx_image: xcode11.2
           env: BUILD_TYPE=Release
 
 before_install:
-  - if [[ $TRAVIS_OS_NAME == osx ]]; then brew update; fi
-  - if [[ $TRAVIS_OS_NAME == osx ]]; then brew unlink python@2; fi
-  - if [[ $TRAVIS_OS_NAME == osx ]]; then brew upgrade gcc python; fi
-  - if [[ $TRAVIS_OS_NAME == osx ]]; then brew install netcdf open-mpi; fi
-  - which python3
+  - gfortran --version
   - python3 --version
 
 install:
-  - python3 -m pip install -r tests/requirements.txt
+  - python3 -m pip install -r requirements.txt
 
 script:
   # Travis clones only the history leading to the tip of a single branch (https://stackoverflow.com/a/44036486).
