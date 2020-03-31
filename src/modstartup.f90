@@ -22,7 +22,7 @@ module modstartup
    save
 
    integer(KIND=selected_int_kind(6)) :: irandom = 0 !    * number to seed the randomnizer with
-   integer :: krand = huge(0)
+   integer :: krand = huge(0)  ! returns the largest integer that is not an infinity
    real :: randu = 0.0, randthl = 0.0, randqt = 0.0 !    * uvw,thl and qt amplitude of randomnization
 
    contains
@@ -46,9 +46,9 @@ module modstartup
          uflowrate, vflowrate ,lstoreplane, iplane, &
          lreadmean, iinletgen, inletav, lreadminl, Uinf, Vinf, linletRA, nblocks, ntrees, npurif, &
          lscalrec,lSIRANEinout,lscasrc,lscasrcl,lscasrcr,lydump,lytdump,lxydump,lxytdump,lslicedump,ltdump,ltkedump,lzerogradtop,&
-         lzerogradtopscal, lbuoyancy, ltempeq, numol, prandtlmol, sun, Bowen, cd, decay, ud, Qpu, epu, numoli, prandtlmoli, &
-         lfixinlet, lfixutauin, startmean, pi, &
-         thlsrc, nkplane, kplane, nsvl, nsvp, ifixuinf, lvinf, tscale, ltempinout, lmoistinout,  &
+         lzerogradtopscal, lbuoyancy, ltempeq, sun, Bowen, cd, decay, ud, Qpu, epu, &
+         lfixinlet, lfixutauin, pi, &
+         thlsrc, ifixuinf, lvinf, tscale, ltempinout, lmoistinout,  &
          lwallfunc,lprofforc,lchem,k1,JNO2,rv,rd,tnextEB,tEB,dtEB,bldT,wsoil,wgrmax,wwilt,wfc,skyLW,GRLAI,rsmin,nfcts,lEB,lconstW, &
          BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys, &
          BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots
@@ -71,32 +71,53 @@ module modstartup
       !declare namelists
 
       namelist/RUN/ &
-         iexpnr, lwarmstart, lstratstart, lfielddump, lreadscal, startfile, runtime, dtmax,  &
-         trestart, tfielddump, fieldvars, tsample, tstatsdump, irandom, randthl, randqt, krand, nsv, courant, diffnr, ladaptive, &
-         author, lper2inout, libm, ltrees, lnudge, tnudge, nnudge, lpurif, lles, lwallfunc, luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, lreadmean, &
-                startmean,lydump,lytdump,lxydump,lxytdump,lslicedump,ltdump,ltkedump,lscasrc,lscasrcl,lwalldist,&
-                randu, nkplane, kplane, nsvl, nsvp, ifixuinf, lvinf, tscale, dpdx
+         iexpnr, lwarmstart, lstratstart, startfile, &
+         runtime, dtmax, trestart, ladaptive, &
+         irandom, randu, randthl, randqt, krand, &
+         courant, diffnr, author, &
+         libm, lles, &
+         lper2inout, lwalldist, &
+         lreadmean
       namelist/DOMAIN/ &
-         imax, jtot, kmax, &
-         xsize, ysize, &
-         xlat, xlon, xday, xtime, ksp, &
-         nblocks, ntrees, npurif
-      namelist/BC/ &
-         BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys,BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots,&
-         wtsurf, wttop, wqsurf, wsvsurfdum, wsvtopdum, thls, thl_top, qt_top, qts, bctfxm, bctfxp, bctfym, bctfyp, bctfz
-      namelist/INLET/ &
-         Uinf, Vinf, di, dti, iplane, inletav, linletRA, lstoreplane, lreadminl, lfixinlet, lfixutauin, xS, yS, zS, &
-         SS, sigS
-      namelist/WALLS/ &
-         iwallmom, iwalltemp, iwallmoist
-      namelist/ENERGYBALANCE/ &
-         lEB, lconstW, dtEB, nfcts, bldT, wsoil, wgrmax, wwilt, wfc, skyLW, GRLAI, rsmin
+         imax, jtot, kmax, xsize, ysize, &
+         xlat, xlon, xday, xtime, ksp 
       namelist/PHYSICS/ &
-         z0, z0h, ps, lmoist, &
-         lcoriol, igrw_damp, uflowrate, vflowrate, numol, prandtlmol, sun, Bowen, cd, decay, ud, Qpu, epu, &
-         lbuoyancy, ltempeq, lprofforc, lqlnr, lchem, k1, JNO2
+         ps, igrw_damp, lmoist, lcoriol, lbuoyancy, ltempeq, &
+         lprofforc, ifixuinf, lvinf, tscale, dpdx, &
+         luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, &
+         uflowrate, vflowrate, &
+         lnudge, tnudge, nnudge
       namelist/DYNAMICS/ &
-         iadv_mom, iadv_tke, iadv_thl, iadv_qt, iadv_sv, ipoiss
+         lqlnr, ipoiss, &
+         iadv_mom, iadv_tke, iadv_thl, iadv_qt, iadv_sv
+      namelist/BC/ &
+         BCxm, BCxT, BCxq, BCxs, &
+         BCym, BCyT, BCyq, BCys, &
+         BCtopm, BCtopT, BCtopq, BCtops, &
+         BCbotm, BCbotT, BCbotq, BCbots, &
+         bctfxm, bctfxp, bctfym, bctfyp, bctfz, &
+         wttop, thl_top, qt_top, qts, wsvsurfdum, wsvtopdum, &
+         wtsurf, wqsurf, thls, z0, z0h
+      namelist/INLET/ &
+         Uinf, Vinf, di, dti, iplane, inletav, linletRA, &
+         lstoreplane, lreadminl, lfixinlet, lfixutauin, &
+         lwallfunc
+      namelist/WALLS/ &
+         nblocks, nfcts, iwallmom, iwalltemp, iwallmoist
+      namelist/ENERGYBALANCE/ &
+         lEB, lconstW, dtEB, bldT, wsoil, wgrmax, wwilt, wfc, &
+         skyLW, GRLAI, rsmin
+      namelist/SCALARS/ &
+         lreadscal, lscasrc, lscasrcl, &
+         nsv, xS, yS, zS, SS, sigS
+      namelist/TREES/ &
+         ltrees, ntrees, sun, Bowen, cd, decay, ud
+      namelist/CHEMISTRY/ &
+         lchem, k1, JNO2, lpurif, npurif, Qpu, epu
+      namelist/OUTPUT/ &
+         lfielddump, tfielddump, fieldvars, &
+         ltdump, lydump, lytdump, lxydump, lxytdump, &
+         lslicedump, ltkedump, tstatsdump, tsample
 
       if (myid == 0) then
          if (command_argument_count() >= 1) then
@@ -126,6 +147,24 @@ module modstartup
             stop 'ERROR: Problem in namoptions DOMAIN'
          endif
          write (6, DOMAIN)
+         rewind (ifnamopt)
+
+         read (ifnamopt, PHYSICS, iostat=ierr)
+         if (ierr > 0) then
+            print *, 'Problem in namoptions PHYSICS'
+            print *, 'iostat error: ', ierr
+            stop 'ERROR: Problem in namoptions PHYSICS'
+         endif
+         write (6, PHYSICS)
+         rewind (ifnamopt)
+
+         read (ifnamopt, DYNAMICS, iostat=ierr)
+         if (ierr > 0) then
+            print *, 'Problem in namoptions DYNAMICS'
+            print *, 'iostat error: ', ierr
+            stop 'ERROR: Problem in namoptions DYNAMICS'
+         endif
+         write (6, DYNAMICS)
          rewind (ifnamopt)
 
          read (ifnamopt, BC, iostat=ierr)
@@ -164,22 +203,40 @@ module modstartup
          write (6, ENERGYBALANCE)
          rewind (ifnamopt)
 
-         read (ifnamopt, PHYSICS, iostat=ierr)
+         read (ifnamopt, SCALARS, iostat=ierr)
          if (ierr > 0) then
-            print *, 'Problem in namoptions PHYSICS'
+            print *, 'Problem in namoptions SCALARS'
             print *, 'iostat error: ', ierr
-            stop 'ERROR: Problem in namoptions PHYSICS'
+            stop 'ERROR: Problem in namoptions SCALARS'
          endif
-         write (6, PHYSICS)
+         write (6, SCALARS)
          rewind (ifnamopt)
 
-         read (ifnamopt, DYNAMICS, iostat=ierr)
+         read (ifnamopt, TREES, iostat=ierr)
          if (ierr > 0) then
-            print *, 'Problem in namoptions DYNAMICS'
+            print *, 'Problem in namoptions TREES'
             print *, 'iostat error: ', ierr
-            stop 'ERROR: Problem in namoptions DYNAMICS'
+            stop 'ERROR: Problem in namoptions TREES'
          endif
-         write (6, DYNAMICS)
+         write (6, TREES)
+         rewind (ifnamopt)
+
+         read (ifnamopt, CHEMISTRY, iostat=ierr)
+         if (ierr > 0) then
+            print *, 'Problem in namoptions CHEMISTRY'
+            print *, 'iostat error: ', ierr
+            stop 'ERROR: Problem in namoptions CHEMISTRY'
+         endif
+         write (6, CHEMISTRY)
+         rewind (ifnamopt)
+
+         read (ifnamopt, OUTPUT, iostat=ierr)
+         if (ierr > 0) then
+            print *, 'Problem in namoptions OUTPUT'
+            print *, 'iostat error: ', ierr
+            stop 'ERROR: Problem in namoptions OUTPUT'
+         endif
+         write (6, OUTPUT)
          close (ifnamopt)
       end if
 
@@ -275,10 +332,7 @@ module modstartup
       call MPI_BCAST(ifixuinf, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(lvinf, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(dpdx, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(nsvp, 1, MPI_INTEGER, 0, comm3d, mpierr)
-      call MPI_BCAST(nsvl, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(tscale, 1, MY_REAL, 0, comm3d, mpierr)
-      !nsv=nsvl+nsvp
       call MPI_BCAST(imax, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(jtot, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(kmax, 1, MPI_INTEGER, 0, comm3d, mpierr)
@@ -323,13 +377,10 @@ module modstartup
       call MPI_BCAST(wttop, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(wqtop, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(thlsrc, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(startmean, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(uflowrate, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(vflowrate, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(Uinf, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(Vinf, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(numol, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(prandtlmol, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(sun, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(Bowen, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(cd, 1, MY_REAL, 0, comm3d, mpierr)
@@ -341,12 +392,7 @@ module modstartup
       call MPI_BCAST(dti, 1, MY_REAL, 0, comm3d, mpierr)
       dr = di ! initial value is needed
       di_test = di ! initial value is needed
-      numoli = 1./numol
-      prandtlmoli = 1./prandtlmol
       write (*, *) "sec g"
-
-      call MPI_BCAST(numoli, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(prandtlmoli, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(iangledeg, 1, MY_REAL, 0, comm3d, mpierr)
       iangle = iangledeg*pi/180.
       call MPI_BCAST(inletav, 1, MY_REAL, 0, comm3d, mpierr)
@@ -373,8 +419,6 @@ module modstartup
       call MPI_BCAST(npurif, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(irandom, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(krand, 1, MPI_INTEGER, 0, comm3d, mpierr)
-      call MPI_BCAST(nkplane, 1, MPI_INTEGER, 0, comm3d, mpierr)
-      call MPI_BCAST(kplane, nkplane, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(randthl, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(randu, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(randqt, 1, MY_REAL, 0, comm3d, mpierr)

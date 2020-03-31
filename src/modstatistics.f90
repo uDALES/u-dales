@@ -152,7 +152,7 @@ contains
                                tvmx,tvmy,tvmz,strain2av,tsgsmx1,tsgsmx2,tsgsmy1,tsgsmy2,&
                                tsgsmz1,tsgsmz2,pres0
   use modglobal,        only : ib,ie,ih,jb,je,jgb,jge,dy,jh,ke,kb,kh,rk3step,cexpnr,tsample,tstatsdump,dzf,zh,dxf,dzf,numol,&
-                               dzfi,dxfi,dyi,startmean,dy2i,dxfiq,dxhiq,dyiq,dzfi5,dzh,dzf,dzhi,dzhiq,dxf,dxhi
+                               dzfi,dxfi,dyi,dy2i,dxfiq,dxhiq,dyiq,dzfi5,dzh,dzf,dzhi,dzhiq,dxf,dxhi
   use modstat_nc,       only : writestat_nc
   use modsurfdata,      only : thls
   use modsubgriddata,   only : ekm
