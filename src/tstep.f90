@@ -166,7 +166,7 @@ subroutine tstep_integrate
 
 
   use modglobal, only : ib,ie,jb,jgb,je,kb,ke,nsv,dt,rk3step,e12min,lmoist,timee,ntrun,&
-                        linoutflow, iinletgen,ltempeq,nsvl,nsvp,&
+                        linoutflow, iinletgen,ltempeq,&
                         dzf,dzhi,dzf,dxhi,dxf,ifixuinf,thlsrc,lchem
   use modmpi, only    : cmyid,myid,nprocs
   use modfields, only : u0,um,up,v0,vm,vp,w0,wm,wp,&

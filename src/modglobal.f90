@@ -46,10 +46,8 @@ module modglobal
    integer ::  kb
    integer ::  ke
    integer ::  nsv = 0 !< Number of additional scalar fields
-   integer ::  nsvl = 0
-   integer ::  nsvp = 0
    integer ::  nvar = 0
-  character(50) :: fieldvars = ''
+   character(50) :: fieldvars = ''
 
    integer ::  ih = 3
    integer ::  jh = 3
@@ -69,16 +67,8 @@ module modglobal
    integer, parameter :: longint = 8
    logical :: lwarmstart = .false. !<   flag for "cold" or "warm" start
    logical :: lstratstart = .false.
-   logical :: lfielddump = .true. !!< switch to enable the fielddump (on/off)  
+   logical :: lfielddump = .false. !< switch to enable the fielddump
    logical :: lreadscal = .false. !<   flag for reading scalar pollutant field (warm start)
-   real    :: trestart !<     * each trestart sec. a restart file is written to disk
-   real    :: tfielddump !<
-   real    :: tsample !<     tg3315
-   real    :: tstatsdump !<     tg3315
-   real    :: tnextrestart !<     * each trestart sec. a restart file is written to disk
-   real    :: tscale !       timescale: domain height*Uinf/utau**2
-   real    :: tnextfielddump !<
-   character(90) :: startfile !<    * name of the restart file
 
    !Switches for boundary conditions
    !momentum (m), temperature (T), humidity (q) and scalars (s)
@@ -113,21 +103,21 @@ module modglobal
    logical :: linoutflow = .false. !<  switch for periodic BC in both horizontal directions (false) or inflow/outflow in i and periodic in j.
    logical :: lzerogradtop = .false. !<  switch for zero gradient BC's at top wall (iinletgen 1 and 2 are seperate).
    logical :: lzerogradtopscal = .false. !
-   logical :: lbuoyancy = .true. !<  switch for buoyancy force in modforces
-   logical :: ltempeq = .true. !<  switch for solving temperature equation (either with or without buoyancy term)
+   logical :: lbuoyancy = .false. !<  switch for buoyancy force in modforces
+   logical :: ltempeq = .false. !<  switch for solving temperature equation (either with or without buoyancy term)
    logical :: lscalrec = .false. !<
    logical :: lSIRANEinout=.false. !<  
    logical :: ltempinout = .false. !<  seperate switch for inflow/outflow BC for temperature (only necessary when linoutflow.eqv..false.).
    logical :: lmoistinout = .false. !<  seperate switch for inflow/outflow BC for moisture (only necessary when linoutflow.eqv..false.).
    logical :: lper2inout = .false. !<  switch that determines type of restart: .true. means switching from periodic to in/outflow: inlet profile is read from prof.inp
-   logical :: libm = .false. !<  switch that determines wether the Immersed Boundary Method is turned on
+   logical :: libm = .true. !<  switch that determines whether the Immersed Boundary Method is turned on
    logical :: ltrees = .false. !
    logical :: lpurif = .false.
-   logical :: lwalldist = .false. !<  switch that determines wether the wall distances should be computed
-   logical :: lles = .true. !<  switch that determines wether the subgrid model is turned on or constant ekm and ekh are used (DNS)
-   logical :: linletRA = .false. !<  switch that determines wether a Running Average should be used (.true.) in inlet generator
-   logical :: lfixinlet = .false. !<  switch that determines wether the average inlet profiles can evolve or not (only used when iinletgen=1,2)
-   logical :: lfixutauin = .false. !<  switch that determines wether the utau is kept fixed at the inlet (only used when iinletgen=1,2)
+   logical :: lwalldist = .false. !<  switch that determines whether the wall distances should be computed
+   logical :: lles = .true. !<  switch that determines whether the subgrid model is turned on or constant ekm and ekh are used (DNS)
+   logical :: linletRA = .false. !<  switch that determines whether a Running Average should be used (.true.) in inlet generator
+   logical :: lfixinlet = .false. !<  switch that determines whether the average inlet profiles can evolve or not (only used when iinletgen=1,2)
+   logical :: lfixutauin = .false. !<  switch that determines whether the utau is kept fixed at the inlet (only used when iinletgen=1,2)
    logical :: lscasrc = .false. !
    logical :: lscasrcl = .false. !tg3315
    logical :: lydump= .false.  !<  switch to output y-averaged statistics every tsample
@@ -140,18 +130,18 @@ module modglobal
   logical :: ltdump    = .false.      !<  switch to output time-averaged statistics every tstatsdump
 
    logical :: lreadminl = .false. !<  switch for reading mean inlet/recycle plane profiles (used in inletgenerator)
-   logical :: lwallfunc = .false. !<  switch that determines whether wall functions are used to compute the wall-shear stress
+   logical :: lwallfunc = .true. !<  switch that determines whether wall functions are used to compute the wall-shear stress
    logical :: luoutflowr = .false. !<  switch that determines whether u-velocity is corrected to get a fixed outflow rate
    logical :: lvoutflowr = .false. !<  switch that determines whether u-velocity is corrected to get a fixed outflow rate
    logical :: luvolflowr = .false. !<  switch that determines whether u-velocity is corrected to get a fixed volume flow rate
    logical :: lvvolflowr = .false. !<  switch that determines whether u-velocity is corrected to get a fixed volume flow rate
    logical :: lstoreplane = .false. !<  switch that determines whether i-plane data is stored.
    logical :: lstorexy = .false. !xy files stored
-   logical :: lreadmean = .false. !<  switch that determines wether mean variables should be read from means#myid#.#expnr#
+   logical :: lreadmean = .false. !<  switch that determines whether mean variables should be read from means#myid#.#expnr#
    logical :: lstat = .false.
    logical :: lEB = .false.
    logical :: lwriteEBfiles = .true.
-   logical :: lconstW = .false.
+   logical :: lconstW = .false.  ! The evaporated water can be removed from the soil (lconstW=false) or the soil moisture can be assumed as constant in time (lconstW=true)
 !  logical :: ifixuinf   = .true. !dpdxl relaxed to have Uinf 1. dpdx = (1/dt)*(Uh-Uinf)2. d/dt(dpdx) = 1/tau*(Uh-Uinf)
    integer :: ifixuinf = 0
    logical :: lvinf = .false. !use Vinf instead of Uinf for the fixed velocity at infinity
@@ -194,13 +184,12 @@ module modglobal
    real :: grqs = 0. !saturation humidity of green roof
    real :: grdqdt = 0. !gradient of saturation humidity for green roof
 
-   real             :: numol !< kinematic viscosity for couette flow Re=5000 (Re=Uinf*H/(2*nu)) H=1, Uinf=1
-   real             :: numoli !< 1/numol
+   real, parameter :: numol = 1.5e-5 !< kinematic viscosity for couette flow Re=5000 (Re=Uinf*H/(2*nu)) H=1, Uinf=1
+   real, parameter :: numoli = 1./numol !< 1/numol
+   real, parameter :: prandtlmol = 0.71 !< Prandtl number (for air at 300K). Fluid property!
+   real, parameter :: prandtlmoli = 1./prandtlmol !< Inverse of Prandtl number
 
-   real             :: prandtlmol !< Prandtl number (for air at 300K). Fluid property!
-   real             :: prandtlmoli !< Inverse of Prandtl number
-
-   integer          :: iwallmom = 2, iwalltemp = 1, iwallmoist = 1
+   integer         :: iwallmom = 2, iwalltemp = 1, iwallmoist = 1
 
    real, parameter :: rhow = 0.998e3 !<    * Density of water
    real, parameter :: pref0 = 1.e5 !<    *standard pressure used in exner function.
@@ -230,7 +219,7 @@ module modglobal
    real    :: om23 !<    *2.*omega_earth*sin(lat)
    real    :: om22_gs !<    *2.*omega_earth*cos(lat)
    real    :: om23_gs !<    *2.*omega_earth*sin(lat)
-   real    :: xlat = 50. !<    *latitude  in degrees.
+   real    :: xlat = 52. !<    *latitude  in degrees.
    real    :: xlon = 0. !<    *longitude in degrees.
 
    !scalar source in fluid domain
@@ -262,9 +251,9 @@ module modglobal
    integer :: ipoiss   = POISS_CYC
 
    !Advection scheme
-   integer, parameter :: iadv_upw = 1
-   integer, parameter :: iadv_cd2 = 2
-   integer, parameter :: iadv_kappa = 7
+   integer, parameter :: iadv_upw = 1  !< first order upwind scheme
+   integer, parameter :: iadv_cd2 = 2  !< second order central difference scheme
+   integer, parameter :: iadv_kappa = 7  !< Kappa scheme
    integer :: iadv_mom = 2, iadv_tke = -1, iadv_thl = -1, iadv_qt = -1, iadv_sv(100) = -1
 
    logical :: lmoist = .false. !<   switch to calculate moisture fields
@@ -273,6 +262,16 @@ module modglobal
    real :: xtime = 0. !<     * GMT time
    real :: runtime = 300. !<     * simulation time in secs
    real :: dtmax = 20. !<     * maximum time integration interval
+
+   real    :: trestart = 10000. !<     * each trestart sec. a restart file is written to disk. bss116: per default do not write restart files
+   real    :: tfielddump = 10000. !< Time step for field outputs
+   real    :: tsample = 5. !<    Sample time steps for statistics
+   real    :: tstatsdump = 10000. !< Time step for statistics outputs tg3315
+   real    :: tnextrestart !<     * each trestart sec. a restart file is written to disk
+   real    :: tscale !       timescale: domain height*Uinf/utau**2
+   real    :: tnextfielddump !<
+   character(90) :: startfile = '' !<    * name of the restart file
+
    real :: totavtime = 0. !<    * the total time over which the values are averaged in meansXXX.XXX
    real :: dtEB = 10. !time interval between calculations of facet energy balance
    real :: tEB = 0. !time of last calculation of facet energy balance
@@ -288,7 +287,6 @@ module modglobal
    real :: timee !<     * elapsed time since the "cold" start
    !      integer(kind=longint) :: btime             !<     * time of (re)start
    real :: btime !<     * time of (re)start
-   real :: startmean !
    real :: runavtime !<     * time of starting running average
    integer :: ntimee !<     * number of timesteps since the cold start
    integer :: ntrun !<     * number of timesteps since the start of the run
@@ -307,9 +305,6 @@ module modglobal
    character(3) cexpnr
 
    real :: thlsrc = 0.
-
-   integer :: kplane(100) ! k-index of planes that are stored in time
-   integer :: nkplane = 0 ! number of kplanes being stored
 
    ! modphsgrd.f90
 

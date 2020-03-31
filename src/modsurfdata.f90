@@ -69,19 +69,19 @@ SAVE
   real, allocatable :: svs   (:)        !<  Surface scalar concentration [-]
   real, allocatable :: sv_top (:)       ! top scalar concentration concentrations
 
-  real              :: z0    = 0.1       !<  Surface roughness length [m]
-  real              :: z0h   = 0.1      !<  Surface roughness for heat [m]
+  real              :: z0    = -1.       !<  Surface roughness length [m]
+  real              :: z0h   = -1.      !<  Surface roughness for heat [m]
   ! prescribed surface fluxes
   real              :: Cmav             !<  Average drag coefficient for momentum [-]
   real              :: Csav             !<  Average drag coefficient for scalars [-]
   real              :: horvel           !<  Average horizontal velocity at first level
 
 
-  real              :: wtsurf = 0.      !<  Prescribed kinematic temperature flux [K m/s]
+  real              :: wtsurf = -1.      !<  Prescribed kinematic temperature flux [K m/s]
   real              :: wttop  = 0.
 
   real              :: wqtop  = 0.
-  real              :: wqsurf = 0.      !<  Prescribed kinematic moisture flux [kg/kg m/s]
+  real              :: wqsurf = -1.      !<  Prescribed kinematic moisture flux [kg/kg m/s]
 
   real, allocatable :: wsvsurf(:) !<  Prescribed surface scalar(n) flux [- m/s]
   real, allocatable :: wsvtop(:)
