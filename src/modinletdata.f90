@@ -172,4 +172,40 @@ module modinletdata
     integer :: inlfactor     !< ratio of number of processors in this sim and in inlet data files (only used for inletgen==2)    
     logical :: lzinzsim = .true.      ! lzinzsim is .true. when inlet zgrid equals sim zgrid
     
+! Inlet driver simulation variables - idriver - ae1212
+
+    real, allocatable :: storeu0driver(:,:,:)
+    real, allocatable :: storev0driver(:,:,:)
+    real, allocatable :: storew0driver(:,:,:)
+    real, allocatable :: storethl0driver(:,:,:)
+    real, allocatable :: storee120driver(:,:,:)
+    real, allocatable :: storeqt0driver(:,:,:)
+    real, allocatable :: storesv0driver(:,:,:,:)
+    real, allocatable :: storetdriver(:)
+    real, allocatable :: u0driver(:,:)
+    real, allocatable :: v0driver(:,:)
+    real, allocatable :: w0driver(:,:)
+    real, allocatable :: e120driver(:,:)
+    real, allocatable :: tdriver(:)
+    real, allocatable :: thl0driver(:,:)
+    real, allocatable :: qt0driver(:,:)
+    real, allocatable :: sv0driver(:,:,:)
+
+    real, allocatable :: storeumdriver(:,:,:)
+    real, allocatable :: umdriver(:,:)
+    real, allocatable :: storevmdriver(:,:,:)
+    real, allocatable :: vmdriver(:,:)
+    real, allocatable :: storewmdriver(:,:,:)
+    real, allocatable :: wmdriver(:,:)
+    real, allocatable :: storee12mdriver(:,:,:)
+    real, allocatable :: e12mdriver(:,:)
+    real, allocatable :: storethlmdriver(:,:,:)
+    real, allocatable :: thlmdriver(:,:)
+    real, allocatable :: storeqtmdriver(:,:,:)
+    real, allocatable :: qtmdriver(:,:)
+    real, allocatable :: storesvmdriver(:,:,:,:)
+    real, allocatable :: svmdriver(:,:,:)
+    
+    integer :: irecydriver
+    integer :: nstepreaddriver=0
 end module

@@ -100,6 +100,7 @@ module modglobal
    integer :: BCbots = 1
 
    integer :: iinletgen = 0 !<  0: no inletgen, 1: turb. inlet generator (Lund (1998)), 2: read inlet from file
+   integer :: idriver = 0 !<  0: no inlet driver store, 1: Save inlet driver data, 2: read inlet driver data from file
    logical :: linoutflow = .false. !<  switch for periodic BC in both horizontal directions (false) or inflow/outflow in i and periodic in j.
    logical :: lzerogradtop = .false. !<  switch for zero gradient BC's at top wall (iinletgen 1 and 2 are seperate).
    logical :: lzerogradtopscal = .false. !
@@ -223,14 +224,12 @@ module modglobal
    real    :: xlon = 0. !<    *longitude in degrees.
 
    !scalar source in fluid domain
-   integer :: xS = 0, yS = 0, zS = 0
+   real, allocatable :: xSa(:)
+   real, allocatable :: ySa(:)
+   real, allocatable :: zSa(:)
+   real    :: xS = 0., yS = 0., zS = 0.
    real    :: SS = 0.
    real    :: sigS = 0.
-
-  !trees
-  integer, allocatable :: tree(:,:)             !< field with data from tree.inp.xxx
-  real, allocatable :: ladt(:)                  !< field with leaf area density data
-  real    :: cd = 0., ud = 0., Rshade = 0., sun = 0., decay = 0.,Bowen = 0.   !< current set of parameters for tree model
 
   logical :: lnudge = .false.                   !< switch for applying nudging at the top of the domain
   real    :: tnudge = 50.                       !< time scale for nudging
@@ -239,10 +238,6 @@ module modglobal
   !chemistry
   logical :: lchem = .false.    ! switch for basic chemistry
   real    :: k1 = 0., JNO2 = 0.   ! k1 = rate constant (O3 + NO -> NO2 + 02 ), JNO2 = NO2 photolysis rate
-
-  !purifiers
-  integer, allocatable :: purif(:,:)            !< field with data from purif.inp.xxx
-  real    :: Qpu = 0., epu = 0.                 !< flowrate and efficiency of purifiers
 
    ! Poisson solver
    integer, parameter :: POISS_FFT = 0, &
@@ -291,8 +286,13 @@ module modglobal
    integer :: ntimee !<     * number of timesteps since the cold start
    integer :: ntrun !<     * number of timesteps since the start of the run
    real    :: timeleft
-
    logical :: ladaptive = .false. !<    * adaptive timestepping on or off
+
+   real    :: tdriverstart = 0.   !<     * time at which to start recording inlet driver file (only necessary if idriver == 1)                                                                            
+   real    :: tdriverdump         !<     * time in inlet driver simulation at which data dumps are made (idriver == 1)
+   real    :: dtdriver = 0.1      !<     * time frequency at which inlet driver data dumps are made (idriver == 1)
+   integer :: driverstore         !<     * number of stored driver steps for inlet (automatically calculated)
+   integer :: driverjobnr         !<     * Job number of the driver inlet generation run (idriver == 2)
 
    real    :: courant = -1.
    real    :: diffnr = 0.25
@@ -305,6 +305,9 @@ module modglobal
    character(3) cexpnr
 
    real :: thlsrc = 0.
+
+   integer :: kplane(100) ! k-index of planes that are stored in time
+   integer :: nkplane = 0 ! number of kplanes being stored
 
    ! modphsgrd.f90
 
