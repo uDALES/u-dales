@@ -190,7 +190,7 @@ module modglobal
    real, parameter :: prandtlmol = 0.71 !< Prandtl number (for air at 300K). Fluid property!
    real, parameter :: prandtlmoli = 1./prandtlmol !< Inverse of Prandtl number
 
-   integer         :: iwallmom = 2, iwalltemp = 1, iwallmoist = 1
+   integer         :: iwallmom = 2, iwalltemp = 1, iwallmoist = 1, iwallscal = 1
 
    real, parameter :: rhow = 0.998e3 !<    * Density of water
    real, parameter :: pref0 = 1.e5 !<    *standard pressure used in exner function.

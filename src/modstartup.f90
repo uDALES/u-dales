@@ -224,15 +224,6 @@ module modstartup
          write (6, SCALARS)
          rewind (ifnamopt)
 
-         read (ifnamopt, TREES, iostat=ierr)
-         if (ierr > 0) then
-            print *, 'Problem in namoptions TREES'
-            print *, 'iostat error: ', ierr
-            stop 'ERROR: Problem in namoptions TREES'
-         endif
-         write (6, TREES)
-         rewind (ifnamopt)
-
          read (ifnamopt, CHEMISTRY, iostat=ierr)
          if (ierr > 0) then
             print *, 'Problem in namoptions CHEMISTRY'
@@ -688,6 +679,7 @@ module modstartup
       real, allocatable :: height(:), th0av(:)
       real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb:ke + kh) :: thv0
       real, dimension(kb:ke) :: uaverage ! volume averaged u-velocity
+      real, dimension(kb:ke) :: vaverage ! volume averaged v-velocity
       real, dimension(kb:ke) :: uaverager ! recycle plane
       real, dimension(kb:ke) :: uaveragei ! inlet plane
       real, dimension(kb:ke) :: taverager ! recycle plane

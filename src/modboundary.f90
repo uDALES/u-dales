@@ -52,7 +52,7 @@ contains
 
       use modglobal, only:ib, ie, ih, jb, je, jgb, jge, jh, kb, ke, kh, linoutflow, dzf, zh, dy, &
          timee, ltempeq, lmoist, BCxm, BCym, BCxT, BCyT, BCxq, BCyq, BCxs, BCys, BCtopm, BCtopT,&
-         BCtopq, BCtops, e12min, idriver, lmassflowr
+         BCtopq, BCtops, e12min, idriver, luvolflowr, luoutflowr
       use modfields, only:u0, v0, w0, um, vm, wm, thl0, thlm, qt0, qtm, uout, uouttot, e120, e12m,&
                           u0av
       use modsubgriddata, only:ekh, ekm
@@ -67,7 +67,7 @@ contains
       integer i, k
 
      ! if not using massflowrate need to set outflow velocity
-     if (.not. lmassflowr) then
+     if ((.not. luvolflowr) .and. (.not. luoutflowr)) then
         !ubulk = sum(u0av)/(ke-kb+1)
         do k = kb, ke
            uaverage(k) = u0av(k)*dzf(k)                                                        

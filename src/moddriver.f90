@@ -106,7 +106,7 @@ contains
   end subroutine initdriver
 
 subroutine drivergen
-    use modglobal,   only : ib,ie,jb,je,jgb,jge,kb,ke,zf,zh,dzf,dzhi,timee,btime,totavtime,rk3step,dt,numol,iplane,lles,idriver,inletav,runavtime,Uinf,lwallfunc,linletRA,totinletav,lstoreplane,nstore,driverstore,prandtlmoli,numol,grav,lbuoyancy,lfixinlet,lmassflowr,lfixutauin,tdriverstart,dtdriver,tdriverdump,ltempeq,lmoist,nsv
+    use modglobal,   only : ib,ie,jb,je,jgb,jge,kb,ke,zf,zh,dzf,dzhi,timee,btime,totavtime,rk3step,dt,numol,iplane,lles,idriver,inletav,runavtime,Uinf,lwallfunc,linletRA,totinletav,lstoreplane,nstore,driverstore,prandtlmoli,numol,grav,lbuoyancy,lfixinlet,lfixutauin,tdriverstart,dtdriver,tdriverdump,ltempeq,lmoist,nsv
     use modfields,   only : u0,v0,w0,e120,thl0,qt0,wm,uprof
     !use modsurfdata, only : thls,thl_top
     use modsave,     only : writerestartfiles
