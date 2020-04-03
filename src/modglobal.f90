@@ -59,8 +59,6 @@ module modglobal
    integer :: nblocks = 0 ! no. of blocks in IBM
    integer, allocatable :: block(:,:)
    integer :: nfcts = -1 ! no. of wall facets
-   integer :: ntrees = 0
-   integer :: npurif = 0
    integer ::  iplane ! ib+iplane is the plane that is stored when lstoreplane=.true.
    integer ::  nstore = 1002 ! number of rk steps in inletfile. This should be a multiple of three!
    character(90) :: fname_options = 'namoptions'
@@ -112,8 +110,6 @@ module modglobal
    logical :: lmoistinout = .false. !<  seperate switch for inflow/outflow BC for moisture (only necessary when linoutflow.eqv..false.).
    logical :: lper2inout = .false. !<  switch that determines type of restart: .true. means switching from periodic to in/outflow: inlet profile is read from prof.inp
    logical :: libm = .true. !<  switch that determines whether the Immersed Boundary Method is turned on
-   logical :: ltrees = .false. !
-   logical :: lpurif = .false.
    logical :: lwalldist = .false. !<  switch that determines whether the wall distances should be computed
    logical :: lles = .true. !<  switch that determines whether the subgrid model is turned on or constant ekm and ekh are used (DNS)
    logical :: linletRA = .false. !<  switch that determines whether a Running Average should be used (.true.) in inlet generator
@@ -127,8 +123,8 @@ module modglobal
    logical :: lxytdump   = .false.  !<  switch to output x-, y- and time-averaged statistics every tstatsdump
    logical :: lscasrcr  = .false.  !<  switch for network of point sources at lowest level
    logical :: ltkedump = .false. !tg3315
-  logical :: lslicedump= .false.  !<  switch to output slices in the xy-plane every tstatsdump
-  logical :: ltdump    = .false.      !<  switch to output time-averaged statistics every tstatsdump
+   logical :: lslicedump= .false.  !<  switch to output slices in the xy-plane every tstatsdump
+   logical :: ltdump    = .false.      !<  switch to output time-averaged statistics every tstatsdump
 
    logical :: lreadminl = .false. !<  switch for reading mean inlet/recycle plane profiles (used in inletgenerator)
    logical :: lwallfunc = .true. !<  switch that determines whether wall functions are used to compute the wall-shear stress

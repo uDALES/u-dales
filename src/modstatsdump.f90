@@ -32,7 +32,7 @@ module modstatsdump
   !NetCDF variables
   integer :: ncidy,ncidyt,ncidtke,ncidxy,ncidslice,ncidxyt,nrecy=0,nrecyt=0,nrectke=0,nrecxy=0,&
              nrecslice=0,nrecxyt=0,nstatyt=34,nstaty=14,nstattke=8,nstatxy=15,nstatslice=8,&
-             nstatxyt=23,ncidt,nrect=0,nstatt=36
+             nstatxyt=23,ncidt,nrect=0,nstatt=32
   character(80) :: yname = 'ydump.xxx.nc'
   character(80) :: ytname = 'ytdump.xxx.nc'
   character(80) :: tkename = 'tkedump.xxx.nc'
@@ -300,10 +300,10 @@ contains
       call ncinfo(ncstatt(31,:),'sv3sgs'   ,'SGS flux 3'                  ,'gm/s'   ,'ttmt'  )
       call ncinfo(ncstatt(32,:),'sv4sgs'   ,'SGS flux 4'                  ,'gm/s'   ,'ttmt'  )
 
-      call ncinfo(ncstatt(33,:),'sca1t_max','Max concentration field 1'   ,'g/m^3'  ,'tttt'  )
-      call ncinfo(ncstatt(34,:),'sca2t_max','Max concentration field 2'   ,'g/m^3'  ,'tttt'  )
-      call ncinfo(ncstatt(35,:),'sca3t_max','Max concentration field 3'   ,'g/m^3'  ,'tttt'  )
-      call ncinfo(ncstatt(36,:),'sca4t_max','Max concentration field 4'   ,'g/m^3'  ,'tttt'  )      ! call ncinfo(ncstatt( 15,:),'sv3sgs'   ,'SGS flux 3'                  ,'gm/s'   ,'ttmt'  )      ! call ncinfo(ncstatt( 15,:),'sv3sgs'   ,'SGS flux 3'                  ,'gm/s'   ,'ttmt'  )
+      ! call ncinfo(ncstatt(33,:),'sca1t_max','Max concentration field 1'   ,'g/m^3'  ,'tttt'  )
+      ! call ncinfo(ncstatt(34,:),'sca2t_max','Max concentration field 2'   ,'g/m^3'  ,'tttt'  )
+      ! call ncinfo(ncstatt(35,:),'sca3t_max','Max concentration field 3'   ,'g/m^3'  ,'tttt'  )
+      ! call ncinfo(ncstatt(36,:),'sca4t_max','Max concentration field 4'   ,'g/m^3'  ,'tttt'  )
 
 !      if (myid==0) then      
         call open_nc(tname, ncidt, nrect, n1=imax, n2=jmax, n3=khigh-klow+1)
@@ -390,7 +390,7 @@ contains
                                wthltk,wqttk,thlthlt,qtqtt,sv1sv1t,sv2sv2t,sv3sv3t,sv4sv4t,wmt,thltk,qttk,thlt,uxyt,vxyt,wxyt,thlxyt,&
                                ncstatxyt,qtxyt,pxyt,ncstatt,uutc,vvtc,wwtc,utc,vtc,wtc,&
                                umt,vmt,sv1t,sv2t,sv3t,sv4t,sv1tk,sv2tk,sv3tk,sv4tk,wsv1tk,wsv2tk,wsv3tk,wsv4tk,&
-                               sv1sgst,sv2sgst,sv3sgst,sv4sgst,qtt,pt,sv1max,sv2max,sv3max,sv4max,PSSt
+                               sv1sgst,sv2sgst,sv3sgst,sv4sgst,qtt,pt,PSSt !,sv1max,sv2max,sv3max,sv4max
   use modglobal,        only : ib,ie,ih,ihc,xf,xh,jb,je,jhc,jgb,jge,dy,dyi,jh,ke,kb,kh,khc,rk3step,&
                                timee,cexpnr,tsample,tstatsdump,jtot,imax,jmax,dzf,&
                                ltempeq,zh,dxf,dzf,dzh2i,lprofforc,lscasrcl,&
@@ -1023,7 +1023,7 @@ contains
           wsv1tk(ib:ie,jb:je,kb:ke+kh) = (wsv1tk(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + wm(ib:ie,jb:je,kb:ke+kh)*sv1k(ib:ie,jb:je,kb:ke+kh)*tsamplep)*tstatsdumppi
           sv1sgst(ib:ie,jb:je,kb:ke+kh) = (sv1sgst(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + sv1sgs(ib:ie,jb:je,kb:ke+kh)*tsamplep)*tstatsdumppi
           sv1sv1t(ib:ie,jb:je,kb:ke+kh) = (sv1sv1t(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + svm(ib:ie,jb:je,kb:ke+kh,1)*svm(ib:ie,jb:je,kb:ke+kh,1)*tsamplep)*tstatsdumppi
-          sv1max(ib:ie,jb:je,kb:ke) = max(sv1max(ib:ie,jb:je,kb:ke),svm(ib:ie,jb:je,kb:ke,1))
+          ! sv1max(ib:ie,jb:je,kb:ke) = max(sv1max(ib:ie,jb:je,kb:ke),svm(ib:ie,jb:je,kb:ke,1))
         end if
 
         if ((lchem .eqv. .true.) .and. (nsv>2)) then
@@ -1036,7 +1036,7 @@ contains
           wsv2tk(ib:ie,jb:je,kb:ke+kh) = (wsv2tk(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + wm(ib:ie,jb:je,kb:ke+kh)*sv2k(ib:ie,jb:je,kb:ke+kh)*tsamplep)*tstatsdumppi
           sv2sgst(ib:ie,jb:je,kb:ke+kh) = (sv2sgst(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + sv2sgs(ib:ie,jb:je,kb:ke+kh)*tsamplep)*tstatsdumppi
           sv2sv2t(ib:ie,jb:je,kb:ke+kh) = (sv2sv2t(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + svm(ib:ie,jb:je,kb:ke+kh,2)*svm(ib:ie,jb:je,kb:ke+kh,2)*tsamplep)*tstatsdumppi
-          sv2max(ib:ie,jb:je,kb:ke) = max(sv2max(ib:ie,jb:je,kb:ke),svm(ib:ie,jb:je,kb:ke,2))
+          ! sv2max(ib:ie,jb:je,kb:ke) = max(sv2max(ib:ie,jb:je,kb:ke),svm(ib:ie,jb:je,kb:ke,2))
         end if
 
         if (nsv>2) then
@@ -1045,7 +1045,7 @@ contains
           wsv3tk(ib:ie,jb:je,kb:ke+kh) = (wsv3tk(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + wm(ib:ie,jb:je,kb:ke+kh)*sv3k(ib:ie,jb:je,kb:ke+kh)*tsamplep)*tstatsdumppi
           sv3sgst(ib:ie,jb:je,kb:ke+kh) = (sv3sgst(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + sv3sgs(ib:ie,jb:je,kb:ke+kh)*tsamplep)*tstatsdumppi
           sv3sv3t(ib:ie,jb:je,kb:ke+kh) = (sv3sv3t(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + svm(ib:ie,jb:je,kb:ke+kh,3)*svm(ib:ie,jb:je,kb:ke+kh,3)*tsamplep)*tstatsdumppi
-          sv3max(ib:ie,jb:je,kb:ke) = max(sv3max(ib:ie,jb:je,kb:ke),svm(ib:ie,jb:je,kb:ke,3))
+          ! sv3max(ib:ie,jb:je,kb:ke) = max(sv3max(ib:ie,jb:je,kb:ke),svm(ib:ie,jb:je,kb:ke,3))
         end if
 
         if (nsv>3) then
@@ -1054,7 +1054,7 @@ contains
           wsv4tk(ib:ie,jb:je,kb:ke+kh) = (wsv4tk(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + wm(ib:ie,jb:je,kb:ke+kh)*sv4k(ib:ie,jb:je,kb:ke+kh)*tsamplep)*tstatsdumppi
           sv4sgst(ib:ie,jb:je,kb:ke+kh) = (sv4sgst(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + sv4sgs(ib:ie,jb:je,kb:ke+kh)*tsamplep)*tstatsdumppi
           sv4sv4t(ib:ie,jb:je,kb:ke+kh) = (sv4sv4t(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + svm(ib:ie,jb:je,kb:ke+kh,4)*svm(ib:ie,jb:je,kb:ke+kh,4)*tsamplep)*tstatsdumppi
-          sv4max(ib:ie,jb:je,kb:ke) = max(sv4max(ib:ie,jb:je,kb:ke),svm(ib:ie,jb:je,kb:ke,4))
+          ! sv4max(ib:ie,jb:je,kb:ke) = max(sv4max(ib:ie,jb:je,kb:ke),svm(ib:ie,jb:je,kb:ke,4))
         end if
 
       end if !lxytdump .or. lytdump .or. ltdump
@@ -1421,10 +1421,10 @@ contains
           varst(:,:,:,31) = sv3sgst(ib:ie,jb:je,kb:ke)
           varst(:,:,:,32) = sv4sgst(ib:ie,jb:je,kb:ke)
 
-          varst(:,:,:,33) = sv1max(ib:ie,jb:je,kb:ke)
-          varst(:,:,:,34) = sv2max(ib:ie,jb:je,kb:ke)
-          varst(:,:,:,35) = sv3max(ib:ie,jb:je,kb:ke)
-          varst(:,:,:,36) = sv4max(ib:ie,jb:je,kb:ke)
+          ! varst(:,:,:,33) = sv1max(ib:ie,jb:je,kb:ke)
+          ! varst(:,:,:,34) = sv2max(ib:ie,jb:je,kb:ke)
+          ! varst(:,:,:,35) = sv3max(ib:ie,jb:je,kb:ke)
+          ! varst(:,:,:,36) = sv4max(ib:ie,jb:je,kb:ke)
 
           call writestat_nc(ncidt,nstatt,ncstatt,varst,nrect,imax,jmax,khigh-klow+1)
 !        end if !myid

@@ -67,7 +67,7 @@ contains
       integer i, k
 
      ! if not using massflowrate need to set outflow velocity
-     if ((.not. luvolflowr) .and. (.not. luoutflowr)) then
+     if (.not. luvolflowr) then
         !ubulk = sum(u0av)/(ke-kb+1)
         do k = kb, ke
            uaverage(k) = u0av(k)*dzf(k)                                                        
@@ -75,12 +75,14 @@ contains
         ! need a method to know if we have all blocks at lowest cell kb
         ! assuming this for now (hence kb+1)
         uouttot = sum(uaverage(kb:ke))/(zh(ke + 1) - zh(kb+1)) 
+     elseif (luoutflowr) then
+        ! do nothing - calculated in modforces
      else
         uouttot = ubulk
      end if
 
-!BCxm!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!periodic or inflow/outflow conditions for momentum
+     !BCxm!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+     !periodic or inflow/outflow conditions for momentum
       if (BCxm .eq. 1) then  !periodic
          call cyclicmi
 
@@ -131,8 +133,8 @@ contains
          stop
       end if
 
-!BCym!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!currently BC in y is always periodic for momentum
+      !BCym!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !currently BC in y is always periodic for momentum
       if (BCym .eq. 1) then
          call cyclicmj
       else
@@ -140,7 +142,7 @@ contains
          stop
       end if
 
-!BCxT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !BCxT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       if (BCxT .eq. 1) then
          call cyclichi
 
@@ -153,7 +155,7 @@ contains
          stop
       end if
 
-!BCyT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !BCyT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       if (BCyT .eq. 1) then
          call cyclichj
       else
@@ -161,7 +163,7 @@ contains
          stop
       end if
 
-!BCxq!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !BCxq!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       if (BCxq .eq. 1) then
          call cyclicqi
       else if (BCxq .eq. 2) then !inoutflow  - will be overwritten unless BCxm == 1
@@ -173,7 +175,7 @@ contains
          stop
       end if
 
-!BCyq!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !BCyq!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       if (BCyq .eq. 1) then
          call cyclicqj
       else
@@ -181,7 +183,7 @@ contains
          stop
       end if
 
-!BCys!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !BCys!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       if (BCys .eq. 1) then
          call cyclicsj
       elseif (BCys .eq. 5) then
@@ -191,7 +193,7 @@ contains
          stop
       end if
 
-!BCxs!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !BCxs!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       if (BCxs .eq. 1) then
          call cyclicsi
       else if (BCxs .eq. 2) then !inoutflow  - will be overwritten unless BCxm == 1
@@ -210,9 +212,9 @@ contains
          stop
       end if
 
-!BCtopm!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !BCtopm!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       if (BCtopm .eq. 1) then
-!free-slip = zero-flux
+         !free-slip = zero-flux
          call fluxtop(um, ekm, 0.0)
          call fluxtop(u0, ekm, 0.0)
          call fluxtop(vm, ekm, 0.0)
@@ -222,7 +224,7 @@ contains
          w0(:, :, ke + 1) = 0.0
          wm(:, :, ke + 1) = 0.0
       else if (BCtopm .eq. 2) then
-!no-slip = zero velocity at wall
+         !no-slip = zero velocity at wall
          call valuetop(um, 0.0)
          call valuetop(u0, 0.0)
          call valuetop(vm, 0.0)
@@ -248,7 +250,7 @@ contains
          stop
       end if
 
-!BCtopT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !BCtopT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       if (BCtopT .eq. 1) then
          call fluxtop(thlm, ekh, wttop)
          call fluxtop(thl0, ekh, wttop)
@@ -260,7 +262,7 @@ contains
          stop
       end if
 
-!BCtopq!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !BCtopq!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       if (BCtopq .eq. 1) then
          call fluxtop(qtm, ekh, wqtop)
          call fluxtop(qt0, ekh, wqtop)
@@ -272,7 +274,7 @@ contains
          stop
       end if
 
-!BCtops!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !BCtops!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       if (BCtops .eq. 1) then
          call fluxtopscal(wsvtop)
          call fluxtopscal(wsvtop)
@@ -714,94 +716,70 @@ contains
             end do
          end if
 
-        ! Driver inlet
+    ! Driver inlet
     elseif (idriver == 2) then
        do j=jb-1,je+1
-          do k=kb,ke !tg3315 removed +1 following above...
-             u0(ib,j,k)=u0driver(j,k) !max(0.,u0driver(j,k))
-             um(ib,j,k)=umdriver(j,k) !max(0.,umdriver(j,k))
-!             if(myid==0) then
-!                write(6,*) 'ib,j,k ', ib,j,k
-!                write(6,*) 'time'   , timee
-!                write(6,*) 'u0(ib-1,j,k)', u0(ib-1,j,k)
-!                write(6,*) 'u0(ib,j,k)', u0(ib,j,k)
-!                write(6,*) 'u0(ib+1,j,k)', u0(ib+1,j,k)
-!             end if
-             u0(ib-1,j,k)= u0driver(j,k) !max(0.,2.*u0(ib,j,k)-u0(ib+1,j,k))
-             um(ib-1,j,k)= umdriver(j,k)  !max(0.,2.*um(ib,j,k)-um(ib+1,j,k))
+         do k=kb,ke !tg3315 removed +1 following above...
+           u0(ib,j,k)=u0driver(j,k) !max(0.,u0driver(j,k))
+           um(ib,j,k)=umdriver(j,k) !max(0.,umdriver(j,k))
+           u0(ib-1,j,k)= u0driver(j,k) !max(0.,2.*u0(ib,j,k)-u0(ib+1,j,k))
+           um(ib-1,j,k)= umdriver(j,k)  !max(0.,2.*um(ib,j,k)-um(ib+1,j,k))
 
-             v0(ib,j,k)   = v0driver(j,k) !max(0.,v0driver(j,k))
-             vm(ib,j,k)   = vmdriver(j,k) !max(0.,vmdriver(j,k))
-             v0(ib-1,j,k)   = v0driver(j,k) !max(0.,v0driver(j,k))
-             vm(ib-1,j,k)   = vmdriver(j,k) !max(0.,vmdriver(j,k))
+           v0(ib,j,k)   = v0driver(j,k) !max(0.,v0driver(j,k))
+           vm(ib,j,k)   = vmdriver(j,k) !max(0.,vmdriver(j,k))
+           v0(ib-1,j,k)   = v0driver(j,k) !max(0.,v0driver(j,k))
+           vm(ib-1,j,k)   = vmdriver(j,k) !max(0.,vmdriver(j,k))
 
-
-             ! to be changed in the future: e12 should be taken from recycle plane!
-             !e120(ib-1,j,k) = e120driver(j,k)      ! extrapolate e12 from interior
-             !e12m(ib-1,j,k) = e12mdriver(j,k)      ! extrapolate e12 from interior
+           ! to be changed in the future: e12 should be taken from recycle plane!
+           !e120(ib-1,j,k) = e120driver(j,k)      ! extrapolate e12 from interior
+           !e12m(ib-1,j,k) = e12mdriver(j,k)      ! extrapolate e12 from interior
              
-             do n=1,nsv
-                do m = 1,ihc
-                   sv0(ib-m,j,k,n) = sv0driver(j,k,n)
-                   svm(ib-m,j,k,n) = svmdriver(j,k,n)
-                   !sv0(ib-m,j,k,n) = 2*svprof(k,n) - sv0(ib+(m-1),j,k,n)
-                   !svm(ib-m,j,k,n) = 2*svprof(k,n) - svm(ib+(m-1),j,k,n)
-                enddo
-                sv0(ib,j,k,n) = sv0driver(j,k,n)
-                svm(ib,j,k,n) = svmdriver(j,k,n)
-             enddo
-           end do
-           do k=kb,ke+1
-             w0(ib-1,j,k)   = w0driver(j,k) !max(0.,w0driver(j,k)) ! tg3315 k loop was commented here but is needed 
-             wm(ib-1,j,k)   = wmdriver(j,k) !max(0.,wmdriver(j,k))
-             w0(ib,j,k)   = w0driver(j,k) !max(0.,w0driver(j,k)) ! tg3315 k loop was commented here but is needed 
-             wm(ib,j,k)   = wmdriver(j,k) !max(0.,wmdriver(j,k))
-           end do
-         !end do
+           do n=1,nsv
+              do m = 1,ihc
+                 sv0(ib-m,j,k,n) = sv0driver(j,k,n)
+                 svm(ib-m,j,k,n) = svmdriver(j,k,n)
+                 !sv0(ib-m,j,k,n) = 2*svprof(k,n) - sv0(ib+(m-1),j,k,n)
+                 !svm(ib-m,j,k,n) = 2*svprof(k,n) - svm(ib+(m-1),j,k,n)
+              enddo
+              sv0(ib,j,k,n) = sv0driver(j,k,n)
+              svm(ib,j,k,n) = svmdriver(j,k,n)
+           enddo
+         end do
+         do k=kb,ke+1
+           w0(ib-1,j,k)   = w0driver(j,k) !max(0.,w0driver(j,k))
+           wm(ib-1,j,k)   = wmdriver(j,k) !max(0.,wmdriver(j,k))
+           w0(ib,j,k)   = w0driver(j,k) !max(0.,w0driver(j,k))
+           wm(ib,j,k)   = wmdriver(j,k) !max(0.,wmdriver(j,k))
+         end do
        end do
-
-!       write(*,*) 'thl0driver', thl0driver(jb-1:je+1,kb:ke+1)
-!       write(*,*) 'thlmdriver', thlmdriver(jb-1:je+1,kb:ke+1) 
 
        ! Heat
        if (ltempeq ) then
           do j=jb-1,je+1
              do k=kb,ke+1
-
                 thl0(ib,j,k) = thl0driver(j,k)
                 thlm(ib,j,k) = thlmdriver(j,k)
                 thl0(ib-1,j,k) = thl0driver(j,k)
                 thlm(ib-1,j,k) = thlmdriver(j,k)
                 !thlm(ib-1,j,k) = 2*thlm(ib,j,k) - thlm(ib+1,j,k)
                 !thl0(ib-1,j,k) = 2*thl0(ib,j,k) - thl0(ib+1,j,k)
-                !if(myid==0) then
-                !   write(6,'(A,2e20.12)') 'thl0 inlet boundary, ib-1, ib: ', thl0(ib-1,j,k), thl0(ib,j,k)
-                !endif
              end do
           end do
        end if
- 
-!       if(myid==0) then
-!          write(6,'(A,e20.12)') 'thl0 inlet boundary, thl0(ib-1,jb,20): ',thl0(ib-1,jb,20)
-!          write(6,'(A,e20.12)') 'thlp inlet boundary, thlp(ib-1,jb,20): ',thlp(ib-1,jb,20)
-!          write(6,'(A,e20.12)') 'thl0 inlet boundary, thl0(ib,jb,20): ',thl0(ib,jb,20)
-!          write(6,'(A,e20.12)') 'thlp inlet boundary, thlp(ib,jb,20): ',thlp(ib,jb,20)
-
-!       end if
 
        if (lmoist ) then
           do j=jb-1,je+1
              do k=kb,ke+1
                 qt0(ib,j,k) = qt0driver(j,k)
-!                qt0(ib-1,j,k) = 2*qtprof(k) - qt0(ib,j,k)  !watch!
+                ! qt0(ib-1,j,k) = 2*qtprof(k) - qt0(ib,j,k)
                 qtm(ib,j,k) = qtmdriver(j,k)
-!                qtm(ib-1,j,k) = 2*qtprof(k) - qtm(ib,j,k)
+                ! qtm(ib-1,j,k) = 2*qtprof(k) - qtm(ib,j,k)
                 qt0(ib-1,j,k) = qt0driver(j,k)
-!                qt0(ib-1,j,k) = 2*qtprof(k) - qt0(ib,j,k)  !watch!
+                ! qt0(ib-1,j,k) = 2*qtprof(k) - qt0(ib,j,k)  !watch!
                 qtm(ib-1,j,k) = qtmdriver(j,k)
-!                qtm(ib-1,j,k) = 2*qtprof(k) - qtm(ib,j,k)
-!                qt0(ib-1,j,k) = 2*qt0(ib,j,k) - qt0(ib+1,j,k)
-!                qtm(ib-1,j,k) = 2*qtm(ib,j,k) - qtm(ib+1,j,k)
+                ! qtm(ib-1,j,k) = 2*qtprof(k) - qtm(ib,j,k)
+                ! qt0(ib-1,j,k) = 2*qt0(ib,j,k) - qt0(ib+1,j,k)
+                ! qtm(ib-1,j,k) = 2*qtm(ib,j,k) - qtm(ib+1,j,k)
              end do
           end do
        end if
@@ -895,6 +873,7 @@ contains
       end do
 
       return
+
    end subroutine iolet
 
    !>set boundary conditions pup,pvp,pwp in subroutine fillps in modpois.f90
@@ -916,7 +895,7 @@ contains
       integer i, j, k
 
       rk3coefi = 1./rk3coef
-      if (linoutflow) then ! is this switch still in use???
+      if (linoutflow) then
          if ((iinletgen == 1) .or. (iinletgen == 2)) then
             do j = jb, je
                do i = ib, ie

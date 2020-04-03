@@ -115,10 +115,10 @@ module modfields
   real, allocatable :: sv2sv2t(:,:,:)
   real, allocatable :: sv3sv3t(:,:,:)
   real, allocatable :: sv4sv4t(:,:,:)
-  real, allocatable :: sv1max(:,:,:)
-  real, allocatable :: sv2max(:,:,:)
-  real, allocatable :: sv3max(:,:,:)
-  real, allocatable :: sv4max(:,:,:)
+  ! real, allocatable :: sv1max(:,:,:)
+  ! real, allocatable :: sv2max(:,:,:)
+  ! real, allocatable :: sv3max(:,:,:)
+  ! real, allocatable :: sv4max(:,:,:)
   real, allocatable :: PSSt(:,:,:)
   real, allocatable :: uutc(:,:,:)
   real, allocatable :: vvtc(:,:,:)
@@ -531,10 +531,10 @@ contains
     allocate(sv2sv2t(ib:ie,jb:je,kb:ke+kh))
     allocate(sv3sv3t(ib:ie,jb:je,kb:ke+kh))
     allocate(sv4sv4t(ib:ie,jb:je,kb:ke+kh))
-    allocate(sv1max(ib:ie,jb:je,kb:ke+kh))
-    allocate(sv2max(ib:ie,jb:je,kb:ke+kh))
-    allocate(sv3max(ib:ie,jb:je,kb:ke+kh))
-    allocate(sv4max(ib:ie,jb:je,kb:ke+kh))
+    ! allocate(sv1max(ib:ie,jb:je,kb:ke+kh))
+    ! allocate(sv2max(ib:ie,jb:je,kb:ke+kh))
+    ! allocate(sv3max(ib:ie,jb:je,kb:ke+kh))
+    ! allocate(sv4max(ib:ie,jb:je,kb:ke+kh))
     allocate(PSSt(ib:ie,jb:je,kb:ke+kh))
 
     allocate(uutc(ib:ie,jb:je,kb:ke+kh))
@@ -739,7 +739,7 @@ contains
     wmt=0.;thltk=0.;qttk=0.;thlt=0.;slice=0.;slice2=0.;slice3=0.;slice4=0.;slice5=0.;utc=0.;vtc=0.;wtc=0.
     slice6=0.;slice7=0.;slice8=0.;umt=0.;vmt=0.;sv1t=0.;sv2t=0.;sv3t=0.;sv4t=0.;sv1tk=0.;sv2tk=0.;sv3tk=0.;sv4tk=0.
     wsv1tk=0.;wsv2tk=0.;wsv3tk=0.;wsv4tk=0.;sv1sgst=0.;sv2sgst=0.;sv3sgst=0.;sv4sgst=0.;qtt=0.;pt=0.
-    sv1max = 0.; sv2max = 0.; sv3max = 0.; sv4max = 0.; PSSt = 0.
+    PSSt = 0. !sv1max = 0.; sv2max = 0.; sv3max = 0.; sv4max = 0.
 
     scar=0.;scarl=0.
 

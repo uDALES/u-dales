@@ -6,25 +6,27 @@
 subroutine createscals
 
   use modglobal,  only : nsv,ib,ie,jb,je,kb,ke,ih,jh,kh,lscasrcr,cexpnr,ifinput,imax,jmax,jtot,&
-                         libm,nblocks,xSa,ySa,zSa,lscasrc
+                         libm,nblocks,xSa,ySa,zSa,lscasrc,xS,yS,zS
   use modfields,  only : scar,scarl
   use modmpi,     only : myid,MY_REAL,comm3d,mpierr
   use initfac,    only : block
   implicit none
   integer :: i,j,k,n,m,p,il,iu,jl,ju,ku
 
-    if (lscasrc) then
-      allocate(xSa(1:nsv))
-      allocate(ySa(1:nsv))
-      allocate(zSa(1:nsv))
+  if (lscasrc) then
+    allocate(xSa(1:nsv))
+    allocate(ySa(1:nsv))
+    allocate(zSa(1:nsv))
 
-!      xSa(1:nsv) = (/ 110.9*2., 114.9*2., 150.*2., 150.*2., 110.9*2. /)
-!      ySa(1:nsv) = (/ 77.5*2 , 79.8*2 , 90.*2, 100.*2, 44.*2   /)
-      xSa(1:nsv) = (/ 453., 463., 523., 539., 407. /)
-      ySa(1:nsv) = (/ 375., 371., 327., 341., 325. /)
-      zSa(1:nsv) = (/ 4.   , 4.   , 4. , 4.  , 4.  /)
+    ! hard code point source locations
+    ! xSa(1:nsv) = (/ 453., 463., 523., 539., 407. /)
+    ! ySa(1:nsv) = (/ 375., 371., 327., 341., 325. /)
+    ! zSa(1:nsv) = (/ 4.   , 4.   , 4. , 4.  , 4.  /)
 
-    end if
+    ! all point sources from position defined in namoptions
+    xSa = xS; ySa = yS; zSa = zS
+
+  end if
 
   if (lscasrcr .AND. nsv.gt.0) then
 

@@ -42,9 +42,9 @@ module modstartup
          nsv, imax, jtot, kmax, xsize, ysize, xlat, xlon, xday, xtime, lwalldist, &
          lmoist, lcoriol, igrw_damp, geodamptime, ifnamopt, fname_options, &
          xS,yS,zS,SS,sigS,iwallmom,iwalltemp,iwallmoist,iwallscal,ipoiss,iadv_mom,iadv_tke,iadv_thl,iadv_qt,iadv_sv,courant,diffnr,ladaptive,author,&
-         linoutflow, lper2inout, libm, ltrees, lnudge, tnudge, nnudge, lpurif, lles, luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, &
+         linoutflow, lper2inout, libm, lnudge, tnudge, nnudge, lles, luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, &
          uflowrate, vflowrate, lstoreplane, iplane, &
-         lreadmean, iinletgen, inletav, lreadminl, Uinf, Vinf, linletRA, nblocks, ntrees, npurif, &
+         lreadmean, iinletgen, inletav, lreadminl, Uinf, Vinf, linletRA, nblocks, &
          lscalrec,lSIRANEinout,lscasrc,lscasrcl,lscasrcr,lydump,lytdump,lxydump,lxytdump,lslicedump,ltdump,ltkedump,lzerogradtop,&
          lzerogradtopscal, lbuoyancy, ltempeq, &
          lfixinlet, lfixutauin, pi, &
@@ -260,11 +260,9 @@ module modstartup
       call MPI_BCAST(ltempeq, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for solving adv/diff equation for temperature
       call MPI_BCAST(lper2inout, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for restart periodic flow to inoutflow
       call MPI_BCAST(libm, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for turning on/off IBM method
-      call MPI_BCAST(ltrees, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lnudge, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(nnudge, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(tnudge, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(lpurif, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lwalldist, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for computing wall distances
       call MPI_BCAST(lles, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for turning on/off LES functionality (subgrid model)
       call MPI_BCAST(linletRA, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for turning on/off Running Average in inletgenerator
@@ -1064,23 +1062,26 @@ module modstartup
 
                call readdriverfile
 
-!              if(myid==0) then
-!                 write(*,*) 'Driver inlet velocity'
-!                 do n=1,driverstore
-!                    write (*,'(f9.2,e20.12)') storetdriver(n),     storeu0driver(1,32,n)
-!                  end do
-!              endif
+               ! if(myid==0) then
+                 ! write(*,*) 'Driver inlet velocity'
+                 ! do n=1,driverstore
+                   ! write (*,'(f9.2,e20.12)') storetdriver(n),     storeu0driver(1,32,n)
+                 ! end do
+               ! endif
 
-              !call slabsum(uaverage,kb,ke,u0,ib-1,ie+1,jb-1,je+1,kb-1,ke+1,ib,ie,jb,je,kb,ke)
-              !uaverage = uaverage / ((ie-ib+1)*(jge-jgb+1))  ! this gives the i-j-averaged velocity (only correct for equidistant grid?)
+              ! call slabsum(uaverage,kb,ke,u0,ib-1,ie+1,jb-1,je+1,kb-1,ke+1,ib,ie,jb,je,kb,ke)
+              ! uaverage = uaverage / ((ie-ib+1)*(jge-jgb+1))  ! this gives the i-j-averaged velocity (only correct for equidistant grid?)
+
               call avexy_ibm(uaverage(kb:ke+kh),u0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
               do k=kb,ke
                 uaverage(k) = uaverage(k)*dzf(k)
               end do
               ubulk = sum(uaverage(kb:ke))/(zh(ke+1)-zh(kb)) !volume-averaged u-velocity
+
               if (myid==0) then
                  write(6,*) 'Modstartup: ubulk=',ubulk
               end if
+
             end if
 
             !---------------------------------------------------------------
