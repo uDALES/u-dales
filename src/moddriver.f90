@@ -367,13 +367,13 @@ contains
     end if
 
     ! write(ifoutput)  (((storeu0driver (j,k,n),j=jb,je),k=kb,ke),  n=1,nstore) ! Nested implied do-loop
-    if(myid==0) then
-      write(6,'(A,e20.12)') 'Writing u0 to file. u0(irecydriver,je,ke)', u0(irecydriver,je,ke)
-      write(6,'(A,e20.12)') 'u0(irecydriver,jb,kb)', u0(irecydriver,jb,kb)
-      write(6,'(A,e20.12)') 'Writing thl0 to file. thl0(irecydriver-1,je,ke)', thl0(irecydriver-1,je,ke)
-      write(6,'(A,e20.12)') 'thl0(irecydriver-1,jb,kb)', thl0(irecydriver-1,jb,kb)
+    !if(myid==0) then
+      !write(6,'(A,e20.12)') 'Writing u0 to file. u0(irecydriver,je,ke)', u0(irecydriver,je,ke)
+      !write(6,'(A,e20.12)') 'u0(irecydriver,jb,kb)', u0(irecydriver,jb,kb)
+      !write(6,'(A,e20.12)') 'Writing thl0 to file. thl0(irecydriver-1,je,ke)', thl0(irecydriver-1,je,ke)
+      !write(6,'(A,e20.12)') 'thl0(irecydriver-1,jb,kb)', thl0(irecydriver-1,jb,kb)
       ! write(6,*) 'irecydriver, je, ke, ib, jb, kb', irecydriver, je, ke, ib, jb, kb 
-    end if
+    !end if
     write(11,rec=nstepreaddriver)  (u0(irecydriver,:,:))      
     close (unit=11)
   
