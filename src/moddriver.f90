@@ -130,12 +130,12 @@ contains
         ! tdriverdump = timee
         tdriverdump = tdriverstart
         ! tdriverstart = timee   !Update tdriverstart to the actual recorded value
-        if(myid==0) then
-          write(6,*) '======================================'
-          write(6,*) '*** Starting recording inlet data! ***'
-          write(6,*) 'Inlet driver recording variables:'
-          write(6,'(A,F9.2,A,I4,A,F12.9)') 'Starting time: ',tdriverdump,' Stored time steps: ',driverstore,'     Inlet record intervals: ',dtdriver
-        endif
+        if (myid==0) then
+          write(6,*) '=================================================================='
+          write(6,*) '*** Starting to save data for driver simulation ***'
+          write(6,*) 'Driver recording variables:'
+          write(6,'(A,F9.2,A,I4,A,F12.9)') ' Starting time: ',tdriverdump,' Stored time steps: ',driverstore,'     Inlet record intervals: ',dtdriver
+        end if
       end if
       if(rk3step==3) then
         nstepreaddriver = nstepreaddriver + 1
@@ -502,12 +502,15 @@ contains
     integer :: j,k,m,n,js,jf,jfdum,jsdum
     character(24) :: name
 
+    write(*,*) '========================================================================'
+    write(*,*) '*** Reading precursor driver simulation ***'
+
     name = 'tdriver_   .'
     ! write (name(13:16)  ,'(i4.4)') nfile
     name(9:11)= '000'
     ! write (name(18:20)  ,'(i3.3)') filen
     write (name(13:15)   ,'(i3.3)') driverjobnr
-    write(6,*) 'Reading Time stamp: ', name
+    write(6,*) 'Reading time stamps: ', name
     write(6,*) 'driverstore: ', driverstore
     inquire(file=name,size=filesize)
     if(myid==0) then
@@ -529,7 +532,7 @@ contains
         elseif (IOS<0) then
           write(6,*) 'n =', n
         end if
-        !write(6,'(A,e20.12)') 'Reading t:', storetdriver(n)
+        write(6,'(A,e20.12)') ' Reading t:', storetdriver(n)
       end if
     end do
     storetdriver = storetdriver + timee !tg3315 added in case using a warmstart...
