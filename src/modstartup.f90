@@ -101,11 +101,12 @@ module modstartup
          wttop, thl_top, qt_top, qts, wsvsurfdum, wsvtopdum, &
          wtsurf, wqsurf, thls, z0, z0h
       namelist/INLET/ &
-         Uinf, Vinf, di, dti, iplane, inletav, linletRA, &
+         Uinf, Vinf, di, dti, inletav, linletRA, &
          lstoreplane, lreadminl, lfixinlet, lfixutauin, &
          lwallfunc
       namelist/DRIVER/ &
-         idriver, tdriverstart, driverjobnr, dtdriver, driverstore
+         idriver, tdriverstart, driverjobnr, dtdriver, &
+         driverstore, iplane
       namelist/WALLS/ &
          nblocks, nfcts, iwallmom, iwalltemp, iwallmoist, iwallscal
       namelist/ENERGYBALANCE/ &
