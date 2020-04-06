@@ -529,7 +529,7 @@ contains
         elseif (IOS<0) then
           write(6,*) 'n =', n
         end if
-        write(6,'(A,e20.12)') 'Reading t:', storetdriver(n)
+        !write(6,'(A,e20.12)') 'Reading t:', storetdriver(n)
       end if
     end do
     storetdriver = storetdriver + timee !tg3315 added in case using a warmstart...
@@ -553,11 +553,11 @@ contains
         ! write(6, '(A,e20.12)') 'Reading u(irecydriver, jb, kb)', storeu0driver(jb,kb,n)
       ! endif
     end do
-    if(myid==0) then
-      do k=ke,kb,-1
-        write(6, '(A,e20.12)') 'Reading u(ib,1,:)', storeu0driver(jb,k,1)
-      end do
-    end if
+    ! if(myid==0) then
+      ! do k=ke,kb,-1
+      !   write(6, '(A,e20.12)') 'Reading u(ib,1,:)', storeu0driver(jb,k,1)
+      ! end do
+    ! end if
     close (unit=11)
       
     name = 'vdriver_   .'
@@ -614,11 +614,11 @@ contains
       do n = 1,driverstore
         read(11,rec=n)  ((storethl0driver (j,k,n),j=jb-jh,je+jh),k=kb-kh,ke+kh)
       end do
-      if(myid==0) then
-        do k=ke,kb,-1
-          write(6, '(A,e20.12)') 'Reading thl0(ib,1,:)', storethl0driver(jb,k,1)
-        end do
-      end if
+      !if(myid==0) then
+      !  do k=ke,kb,-1
+      !    write(6, '(A,e20.12)') 'Reading thl0(ib,1,:)', storethl0driver(jb,k,1)
+      !  end do
+      !end if
 
       close (unit=11)
     end if
