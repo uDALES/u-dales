@@ -132,9 +132,10 @@ contains
         ! tdriverstart = timee   !Update tdriverstart to the actual recorded value
         if (myid==0) then
           write(6,*) '=================================================================='
-          write(6,*) '*** Starting to save data for driver simulation ***'
+          write(6,*) '*** Starting to write data for driver simulation ***'
           write(6,*) 'Driver recording variables:'
           write(6,'(A,F9.2,A,I4,A,F12.9)') ' Starting time: ',tdriverdump,' Stored time steps: ',driverstore,'     Inlet record intervals: ',dtdriver
+          write(6,*) '=================================================================='
         end if
       end if
       if(rk3step==3) then
@@ -146,7 +147,7 @@ contains
    
     elseif (idriver == 2) then
 
-      ! if (.not. (rk3step==1)) return
+      ! if (.not. rk3step==1) return 
       if (timee>maxval(storetdriver)) then
         if(myid==0) then
           write(6,'(A,F9.2,A,F9.2)') 'timee: ',timee,'     Final inlet driver time:',maxval(storetdriver)
@@ -158,7 +159,7 @@ contains
       elapsrec = storetdriver(x) - timee
       if(myid==0) then
         ! if(rk3step==1) then
-        write(6,*) '============ Inlet interpolating ============='
+        ! write(6,*) '============ Inlet interpolating ============='
         ! write(6,*) 'Inlet interpolation time = ', elapsrec
         ! write(6,'(A,F9.4)') 'Inlet driver time stamp (x)  = ', storetdriver(x)
         ! write(6,'(A,F9.4)') 'Inlet driver time stamp (x+1) = ', storetdriver(x+1)
@@ -169,6 +170,11 @@ contains
       end if
 
       if (abs(elapsrec) < eps) then
+
+        if ((myid==0) .and. (rk3step==1)) then
+          write(*,'(A,I5,A,F10.3,A)') '======= Inputs loaded from driver tstep ',x,' (at ',storetdriver(x),'s) ======='
+        end if
+
         u0driver(:,:) = storeu0driver(:,:,x)
         v0driver(:,:) = storev0driver(:,:,x)
         w0driver(:,:) = storew0driver(:,:,x)
@@ -183,6 +189,11 @@ contains
           sv0driver(:,:,:) = storesv0driver(:,:,:,x)
         end if
       elseif ((elapsrec > 0.) .and. (x == 1)) then
+     
+        if ((myid==0) .and. (rk3step==1)) then
+          write(*,'(A,F10.3,A)') '======= Inputs loaded from the proceeding driver tstep 1 (at ',storetdriver(x),'s) ======='
+        end if
+
         u0driver(:,:) = storeu0driver(:,:,x)
         v0driver(:,:) = storev0driver(:,:,x)
         w0driver(:,:) = storew0driver(:,:,x)
@@ -197,6 +208,11 @@ contains
           sv0driver(:,:,:) = storesv0driver(:,:,:,x)
         end if
       elseif (elapsrec < 0.) then
+
+        if ((myid==0) .and. (rk3step==1)) then
+          write(*,'(A,I5,A,F10.3,A,I5,A,F10.3,A)') '======= Inputs interpolated from driver tsteps ',x,' (',storetdriver(x),' s) and ',x+1,' (',storetdriver(x+1),' s) ======='
+        end if
+
         dtint = (timee-storetdriver(x))/(storetdriver(x+1)-storetdriver(x))
         ! if(myid==0) then
         ! write(6,'(A,I4)') 'x: ', x
@@ -219,6 +235,11 @@ contains
           sv0driver(:,:,:) = storesv0driver(:,:,:,x) + (storesv0driver(:,:,:,x+1)-storesv0driver(:,:,:,x))*dtint
         end if
       elseif (elapsrec > 0.) then
+
+        if ((myid==0) .and. (rk3step==1)) then
+          write(*,'(A,I5,A,F10.3,A,I5,A,F10.3,A)') '======= Inputs interpolated from driver tsteps ',x,' (', storetdriver(x),' s) and ',x-1,' (',storetdriver(x-1),' s) ======='
+        end if
+
         dtint = (timee-storetdriver(x-1))/(storetdriver(x)-storetdriver(x-1))
         u0driver(:,:) = storeu0driver(:,:,x-1) + (storeu0driver(:,:,x)-storeu0driver(:,:,x-1))*dtint
         v0driver(:,:) = storev0driver(:,:,x-1) + (storev0driver(:,:,x)-storev0driver(:,:,x-1))*dtint
@@ -322,8 +343,8 @@ contains
     ! end if
 
     if(myid==0) then
-      write(6,*) '============ Inlet Driver writing ============'
-      write(*,*) 'Inlet driver step: ', nstepreaddriver
+      write(6,*) '============ Writing driver files ============'
+      write(*,*) 'Driver timestep: ', nstepreaddriver
     end if
 
     if(myid==0) then
@@ -349,7 +370,7 @@ contains
 
       write(11,rec=nstepreaddriver)  ( timee-tdriverstart)
       close (unit=11)
-      write(*,*) 't writing' , timee-tdriverstart
+      write(*,*) 'Driver time:' , timee-tdriverstart
     end if
     
     name = 'udriver_   .'
@@ -502,18 +523,22 @@ contains
     integer :: j,k,m,n,js,jf,jfdum,jsdum
     character(24) :: name
 
-    write(*,*) '========================================================================'
-    write(*,*) '*** Reading precursor driver simulation ***'
+    if (myid==0) then
+      write(*,*) '========================================================================'
+      write(*,*) '*** Reading precursor driver simulation ***'
+    end if
 
     name = 'tdriver_   .'
     ! write (name(13:16)  ,'(i4.4)') nfile
     name(9:11)= '000'
     ! write (name(18:20)  ,'(i3.3)') filen
     write (name(13:15)   ,'(i3.3)') driverjobnr
-    write(6,*) 'Reading time stamps: ', name
-    write(6,*) 'driverstore: ', driverstore
+
     inquire(file=name,size=filesize)
+
     if(myid==0) then
+      write(6,*) 'Reading time stamps: ', name
+      write(6,*) 'driverstore: ', driverstore
       write(6,*) 'File size of time in bytes (/8) = ', filesize
     endif
     ! driverstore = driverstore/4.
@@ -538,7 +563,6 @@ contains
     storetdriver = storetdriver + timee !tg3315 added in case using a warmstart...
     close (unit=11)
     ! write(*,*) 'storetdriver', storetdriver
-    write(*,*) 'driverstore', driverstore
     ! end if
     name = 'udriver_   .'
     ! write (name(13:16)  ,'(i4.4)') nfile
