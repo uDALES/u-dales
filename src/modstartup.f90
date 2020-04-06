@@ -1081,6 +1081,10 @@ module modstartup
                  write(6,*) 'Modstartup: ubulk=',ubulk
               end if
 
+            elseif (idriver==1) then
+
+              call drivergen
+
             end if
 
             !---------------------------------------------------------------
@@ -1182,11 +1186,12 @@ module modstartup
 
             ekh(:, :, ke + 1) = ekh(:, :, ke) ! also for start up
 
-            if(idriver==1) then                                                                   
+            if (idriver==1) then                                                                   
               !driverstore = (timeleft - tdriverstart)/dtdriver + 1
               !if(myid==0) then
               !  write(*,*) 'driverstore: ', driverstore
               !end if
+              call drivergen
               tdriverdump = tdriverstart
             endif
 

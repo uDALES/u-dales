@@ -125,12 +125,12 @@ contains
       ! if (.not. (rk3step==3)) return
       if (.not. (timee>=tdriverstart)) return
       if (.not. (timee>=tdriverdump)) return
-      if (nstepreaddriver>driverstore) return
+      if (nstepreaddriver>=driverstore) return
       if (nstepreaddriver==0) then
         ! tdriverdump = timee
         tdriverdump = tdriverstart
         ! tdriverstart = timee   !Update tdriverstart to the actual recorded value
-        if (myid==0) then
+        if ((myid==0) .and. (rk3step==3)) then
           write(6,*) '=================================================================='
           write(6,*) '*** Starting to write data for driver simulation ***'
           write(6,*) 'Driver recording variables:'
@@ -147,7 +147,7 @@ contains
    
     elseif (idriver == 2) then
 
-      ! if (.not. rk3step==1) return 
+      ! if (.not. rk3step==1) return
       if (timee>maxval(storetdriver)) then
         if(myid==0) then
           write(6,'(A,F9.2,A,F9.2)') 'timee: ',timee,'     Final inlet driver time:',maxval(storetdriver)
@@ -451,7 +451,7 @@ contains
     ! close (unit=11)
 
     if (ltempeq ) then
-      name = 'Tdriver_   .'
+      name = 'hdriver_   .'
       ! write (name(13:16)  ,'(i4.4)') nfile
       name(9:11)= cmyid
       name(13:15)= cexpnr
@@ -630,7 +630,7 @@ contains
     ! close (unit=11)
 
     if (ltempeq ) then
-      name = 'Tdriver_   .'
+      name = 'hdriver_   .'
       ! write (name(13:16)  ,'(i4.4)') nfile
       name(9:11)= cmyid
       ! write (name(18:20)  ,'(i3.3)') filen
