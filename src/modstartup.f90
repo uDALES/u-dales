@@ -48,7 +48,7 @@ module modstartup
          lscalrec,lSIRANEinout,lscasrc,lscasrcl,lscasrcr,lydump,lytdump,lxydump,lxytdump,lslicedump,ltdump,ltkedump,lzerogradtop,&
          lzerogradtopscal, lbuoyancy, ltempeq, &
          lfixinlet, lfixutauin, pi, &
-         thlsrc, nkplane, kplane, ifixuinf, lvinf, tscale, ltempinout, lmoistinout,  &
+         thlsrc, ifixuinf, lvinf, tscale, ltempinout, lmoistinout,  &
          lwallfunc,lprofforc,lchem,k1,JNO2,rv,rd,tnextEB,tEB,dtEB,bldT,wsoil,wgrmax,wwilt,wfc,skyLW,GRLAI,rsmin,nfcts,lEB,lconstW, &
          BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys, &
          BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots, &
@@ -105,8 +105,7 @@ module modstartup
          lstoreplane, lreadminl, lfixinlet, lfixutauin, &
          lwallfunc
       namelist/DRIVER/ &
-         idriver, tdriverstart, driverjobnr, dtdriver, driverstore, &
-         nkplane, kplane
+         idriver, tdriverstart, driverjobnr, dtdriver, driverstore
       namelist/WALLS/ &
          nblocks, nfcts, iwallmom, iwalltemp, iwallmoist, iwallscal
       namelist/ENERGYBALANCE/ &
@@ -418,8 +417,6 @@ module modstartup
 
       call MPI_BCAST(irandom, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(krand, 1, MPI_INTEGER, 0, comm3d, mpierr)
-      call MPI_BCAST(nkplane, 1, MPI_INTEGER, 0, comm3d, mpierr)
-      call MPI_BCAST(kplane, nkplane, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(randthl, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(randu, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(randqt, 1, MY_REAL, 0, comm3d, mpierr)

@@ -302,9 +302,6 @@ module modglobal
 
    real :: thlsrc = 0.
 
-   integer :: kplane(100) ! k-index of planes that are stored in time
-   integer :: nkplane = 0 ! number of kplanes being stored
-
    ! modphsgrd.f90
 
    real :: dy !<  grid spacing in y-direction
