@@ -54,7 +54,7 @@ Possible advection schemes:
 | vflowrate | 1. | `REAL` | V-velocity flow rate out- or volume-flow forcing. | m/s |
 | ifixuinf | 0 | 1, 2 | Choice for free stream forcing. (0 = nothing) | |
 | lvinf | .false. | | use Vinf instead of Uinf for the fixed velocity at infinity | |
-| tscale | | | timescale: domain height*Uinf/utau**2 | |
+| tscale | | | timescale: domain height*Uinf/utau\*\*2 | |
 | lnudge | .false. | | switch for applying nudging at the top of the domain | |
 | tnudge | 50. | | time scale for nudging | |
 | nnudge | 10 | | | |
@@ -195,6 +195,7 @@ Possible advection schemes:
 | iwallmom | 2 | 2, 3 (1 currently not implemented) | Building wall momentum flux. *Default will change to 3 in the future.* | - |
 | iwalltemp | 1 | 1, 2 |  Building wall temperature flux. | - |
 | iwallmoist | 1 | 1, 2 |  Building wall moisture flux. | - |
+| iwallscal | 1 | 1, 2 | Building wall scalar flux | - |
 
 # Namelist SCALARS
 
@@ -210,19 +211,16 @@ Possible advection schemes:
 | SS | 0. | | | |
 | sigS | 0. | | | |
 
-# Namelist TREES
-
-*This section will be updated with the next version.*
+# Namelist DRIVER
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
-| ltrees | .false. | .true., .false. | Switch for modelling trees. | |
-| ntrees | 0 | `INTEGER` | Number of trees specified in `trees.inp`. | - |
-| sun | 0. | | Tree model parameter. | |
-| Bowen | 0. | | Tree model parameter. | |
-| cd | 0. | | Tree model parameter. | |
-| decay | 0. | | Tree model parameter. | |
-| ud | 0. | | Tree model parameter. | |
+| idriver | 0 | 0, 1, 2 | Options for running precursor driver simulations where \*driver\* files will be written (`= 1`) and reading a completed driver simulation as the inlet to a simulation (`= 2`). Default (`= 0`) will do neither. | - |
+| tdriverstart | 0. | `REAL` | Time at which \*driver\* files start being written. In use for `idriver = 1`. | s |
+| dtdriver | 0. | `REAL` | Timestep at which \*driver\* file planes are written. In use for `idriver = 1`. | s |
+| iplane | - | `INTEGER` | Index of the position on the x-axis of the plane that will be written to \*driver\* files. In use for `idriver = 1`. | |
+| driverstore | 0. | `INTEGER` | Number of timesteps (`idriver = 1`) to be written to \*driver\* files or (`idriver = 2`) contained in \*driver\* files to be read. | - |
+| driverjobnr | - | - | Job number of the \*driver\* files to be read. These files should be copied into the experiments folder of the driven simulation. In use for `idriver = 2`. | - |
 
 # Namelist CHEMISTRY
 
@@ -233,10 +231,6 @@ Possible advection schemes:
 | lchem | .false. | .true., .false. | Switch for basic chemistry. | - |
 | k1 | 0. | | Rate constant (O3 + NO -> NO2 + 02 ). Chemistry model parameter. | |
 | JNO2 | 0. | | NO2 photolysis rate. Chemistry model parameter. | |
-| lpurif | .false. | .true., .false. | Switch for modelling air purifiers. | - |
-| npurif | 0 | `INTEGER` | Number of air purifiers specified in `purifs.inp`. | - |
-| Qpu | 0. | | Purifiers flow rate. | |
-| epu | 0. | | Purifiers efficiency. | |
 
 # Namelist INLET
 
@@ -248,7 +242,6 @@ Possible advection schemes:
 | Vinf | 0. | | | |
 | inletav | 0. | | | |
 | lstoreplane | .false. | | | |
-| iplane | | | | |
 | linletRA | .false. | | | |
 | lfixinlet | .false. | | | |
 | lfixutauin | .false. | | | |
