@@ -292,8 +292,8 @@ contains
           svmdriver = sv0driver
         end if
       end if
-      if (rk3step==3) then
-        nstepreaddriver = nstepreaddriver +1
+      if ((rk3step==3) .and. (timee > storetdriver(nstepreaddriver)) then
+        nstepreaddriver = nstepreaddriver + 1
       end if
 
     else

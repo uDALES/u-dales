@@ -272,8 +272,8 @@ subroutine tstep_integrate
           write(11, '(I4)') nstepreaddriver
           write(11, 3001) timee, u0(irecydriver,1,32)
         elseif (idriver == 2) then
-          write(11, '(I4)') nstepreaddriver+1
-          write(11, 3001) timee, storetdriver(nstepreaddriver+1), u0(irecydriver, 1, 32)              
+          write(11, '(I4)') nstepreaddriver
+          write(11, 3001) timee, storetdriver(nstepreaddriver), u0(irecydriver, 1, 32)              
         else
           write(11,3001) timee
         end if
