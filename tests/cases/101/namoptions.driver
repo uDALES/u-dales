@@ -1,5 +1,5 @@
 &RUN
-iexpnr      = 102
+iexpnr      = 101
 runtime     = 5.
 trestart    = 1000
 dtmax       = 1
