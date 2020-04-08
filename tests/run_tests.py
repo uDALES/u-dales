@@ -74,6 +74,7 @@ def main(branch_a: str, branch_b: str, build_type: str):
 
             # Run model
             # FIXME: make num proc func of sys used.
+            print(f'Running uDALES in: {path_to_exe}')
             subprocess.run(['mpiexec', '-np', '1', path_to_exe / 'u-dales',
                             namelist], cwd=model_output_dir)
             model_output_dirs.append(model_output_dir)
