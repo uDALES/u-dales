@@ -79,7 +79,7 @@ def main(branch_a: str, branch_b: str, build_type: str):
 
             if test_case_dir.name == '101':
                 # Run again with outputs from precursor simualton
-                namelist = "namoptions.driver"
+                namelist = "namoptions.driven"
                 # Run model
                 subprocess.run(['mpiexec', '-np', '2', path_to_exe / 'u-dales',
                                 namelist], cwd=model_output_dir)
