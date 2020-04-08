@@ -1,6 +1,6 @@
 &RUN
-iexpnr     =  101
-runtime     = 5
+iexpnr      = 101
+runtime     = 10.
 trestart    = 1000
 dtmax       = 1
 irandom     = 43
@@ -73,7 +73,7 @@ iwallmoist = 1
 
 &DRIVER
 idriver      = 1
-tdriverstart = 0.
+tdriverstart = 5.
 driverjobnr  = 001
 dtdriver     = 1.
 driverstore  = 6
