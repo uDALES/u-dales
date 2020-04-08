@@ -448,7 +448,7 @@ contains
     allocate(uprof(kb:ke+kh))
     allocate(vprof(kb:ke+kh))
     allocate(e12prof(kb:ke+kh))
-    allocate(sv0av(kb:ke+kh,nsv))
+    allocate(sv0av(kb:ke+khc,nsv))
     allocate(svprof(kb:ke+kh,nsv))
     allocate(thlpcar(kb:ke+kh))
     allocate(uout(kb:ke))         ! height average outlet velocity (used in convective outflow BC)
