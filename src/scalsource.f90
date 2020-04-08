@@ -13,10 +13,11 @@ subroutine createscals
   implicit none
   integer :: i,j,k,n,m,p,il,iu,jl,ju,ku
 
-  if (lscasrc) then
-    allocate(xSa(1:nsv))
-    allocate(ySa(1:nsv))
-    allocate(zSa(1:nsv))
+  ! if (lscasrc) then
+
+    ! allocate(xSa(1:nsv))
+    ! allocate(ySa(1:nsv))
+    ! allocate(zSa(1:nsv))
 
     ! hard code point source locations
     ! xSa(1:nsv) = (/ 453., 463., 523., 539., 407. /)
@@ -24,9 +25,9 @@ subroutine createscals
     ! zSa(1:nsv) = (/ 4.   , 4.   , 4. , 4.  , 4.  /)
 
     ! all point sources from position defined in namoptions
-    xSa = xS; ySa = yS; zSa = zS
+    ! xSa = xS; ySa = yS; zSa = zS
 
-  end if
+  ! end if
 
   if (lscasrcr .AND. nsv.gt.0) then
 
@@ -104,7 +105,7 @@ subroutine scalsource
       do j=jb,je
         do i=ib,ie
                
-            ra2 = (xf(i)-xSa(n))**2 + ((j+myid*jmax-0.5)*dy-ySa(n))**2 + (zf(k)-zSa(n))**2
+            ra2 = (xf(i)-xS)**2 + ((j+myid*jmax-0.5)*dy-yS)**2 + (zf(k)-zS)**2
 
           if (ra2 .LE. 9*sigS**2) then
               
