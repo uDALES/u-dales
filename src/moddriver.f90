@@ -188,6 +188,7 @@ contains
         if (nsv>0) then
           sv0driver(:,:,:) = storesv0driver(:,:,:,x)
         end if
+        nstepreaddriver = x
       elseif ((elapsrec > 0.) .and. (x == 1)) then
      
         if ((myid==0) .and. (rk3step==1)) then
@@ -207,6 +208,7 @@ contains
         if (nsv>0) then
           sv0driver(:,:,:) = storesv0driver(:,:,:,x)
         end if
+        nstepreaddriver = x
       elseif (elapsrec < 0.) then
 
         if ((myid==0) .and. (rk3step==1)) then
@@ -234,6 +236,7 @@ contains
         if (nsv>0) then
           sv0driver(:,:,:) = storesv0driver(:,:,:,x) + (storesv0driver(:,:,:,x+1)-storesv0driver(:,:,:,x))*dtint
         end if
+        nstepreaddriver = x
       elseif (elapsrec > 0.) then
 
         if ((myid==0) .and. (rk3step==1)) then
@@ -254,6 +257,7 @@ contains
         if (nsv>0) then
           sv0driver(:,:,:) = storesv0driver(:,:,:,x-1) + (storesv0driver(:,:,:,x)-storesv0driver(:,:,:,x-1))*dtint
         end if
+        nstepreaddriver = x
       end if
 
       ! if(myid==0) then
@@ -291,9 +295,6 @@ contains
         if (nsv>0) then
           svmdriver = sv0driver
         end if
-      end if
-      if ((rk3step==3) .and. (timee > storetdriver(nstepreaddriver))) then
-        nstepreaddriver = nstepreaddriver + 1
       end if
 
     else
