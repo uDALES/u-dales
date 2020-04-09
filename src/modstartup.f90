@@ -41,17 +41,18 @@ module modstartup
          lwarmstart, lstratstart, lfielddump, lreadscal, startfile, tfielddump, fieldvars, tsample, tstatsdump, trestart, &
          nsv, imax, jtot, kmax, xsize, ysize, xlat, xlon, xday, xtime, lwalldist, &
          lmoist, lcoriol, igrw_damp, geodamptime, ifnamopt, fname_options, &
-         xS,yS,zS,SS,sigS,iwallmom,iwalltemp,iwallmoist,ipoiss,iadv_mom,iadv_tke,iadv_thl,iadv_qt,iadv_sv,courant,diffnr,ladaptive,author,&
-         linoutflow, lper2inout, libm, ltrees, lnudge, tnudge, nnudge, lpurif, lles, luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, &
-         uflowrate, vflowrate ,lstoreplane, iplane, &
-         lreadmean, iinletgen, inletav, lreadminl, Uinf, Vinf, linletRA, nblocks, ntrees, npurif, &
+         xS,yS,zS,SS,sigS,iwallmom,iwalltemp,iwallmoist,iwallscal,ipoiss,iadv_mom,iadv_tke,iadv_thl,iadv_qt,iadv_sv,courant,diffnr,ladaptive,author,&
+         linoutflow, lper2inout, libm, lnudge, tnudge, nnudge, lles, luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, &
+         uflowrate, vflowrate, lstoreplane, iplane, &
+         lreadmean, iinletgen, inletav, lreadminl, Uinf, Vinf, linletRA, nblocks, &
          lscalrec,lSIRANEinout,lscasrc,lscasrcl,lscasrcr,lydump,lytdump,lxydump,lxytdump,lslicedump,ltdump,ltkedump,lzerogradtop,&
-         lzerogradtopscal, lbuoyancy, ltempeq, sun, Bowen, cd, decay, ud, Qpu, epu, &
+         lzerogradtopscal, lbuoyancy, ltempeq, &
          lfixinlet, lfixutauin, pi, &
          thlsrc, ifixuinf, lvinf, tscale, ltempinout, lmoistinout,  &
          lwallfunc,lprofforc,lchem,k1,JNO2,rv,rd,tnextEB,tEB,dtEB,bldT,wsoil,wgrmax,wwilt,wfc,skyLW,GRLAI,rsmin,nfcts,lEB,lconstW, &
          BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys, &
-         BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots
+         BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots, &
+         idriver,tdriverstart,driverjobnr,dtdriver,driverstore
       use modsurfdata, only:z0, z0h,  wtsurf, wttop, wqtop, wqsurf, wsvsurf, wsvtop, wsvsurfdum, wsvtopdum, ps, thvs, thls, thl_top, qt_top, qts 
       ! use modsurface,        only : initsurface
       use modfields, only:initfields, dpdx, ncname
@@ -64,6 +65,7 @@ module modstartup
       use modinletdata, only:di, dr, di_test, dti, iangledeg, iangle
       use modibmdata, only:bctfxm, bctfxp, bctfym, bctfyp, bctfz
       use modforces, only: calcfluidvolumes
+      use moddriver, only: initdriver
 
       implicit none
       integer :: ierr
@@ -99,21 +101,22 @@ module modstartup
          wttop, thl_top, qt_top, qts, wsvsurfdum, wsvtopdum, &
          wtsurf, wqsurf, thls, z0, z0h
       namelist/INLET/ &
-         Uinf, Vinf, di, dti, iplane, inletav, linletRA, &
+         Uinf, Vinf, di, dti, inletav, linletRA, &
          lstoreplane, lreadminl, lfixinlet, lfixutauin, &
          lwallfunc
+      namelist/DRIVER/ &
+         idriver, tdriverstart, driverjobnr, dtdriver, &
+         driverstore, iplane
       namelist/WALLS/ &
-         nblocks, nfcts, iwallmom, iwalltemp, iwallmoist
+         nblocks, nfcts, iwallmom, iwalltemp, iwallmoist, iwallscal
       namelist/ENERGYBALANCE/ &
          lEB, lconstW, dtEB, bldT, wsoil, wgrmax, wwilt, wfc, &
          skyLW, GRLAI, rsmin
       namelist/SCALARS/ &
-         lreadscal, lscasrc, lscasrcl, &
+         lreadscal, lscasrc, lscasrcl, lscasrcr, &
          nsv, xS, yS, zS, SS, sigS
-      namelist/TREES/ &
-         ltrees, ntrees, sun, Bowen, cd, decay, ud
       namelist/CHEMISTRY/ &
-         lchem, k1, JNO2, lpurif, npurif, Qpu, epu
+         lchem, k1, JNO2
       namelist/OUTPUT/ &
          lfielddump, tfielddump, fieldvars, &
          ltdump, lydump, lytdump, lxydump, lxytdump, &
@@ -186,6 +189,15 @@ module modstartup
          write (6, INLET)
          rewind (ifnamopt)
 
+         read (ifnamopt, DRIVER, iostat=ierr)
+         if (ierr > 0) then
+            print *, 'Problem in namoptions DRIVER'
+            print *, 'iostat error: ', ierr
+            stop 'ERROR: Problem in namoptions DRIVER'
+         endif
+         write (6, DRIVER)
+         rewind (ifnamopt)
+
          read (ifnamopt, WALLS, iostat=ierr)
          if (ierr > 0) then
             print *, 'ERROR: Problem in namoptions WALLS'
@@ -211,15 +223,6 @@ module modstartup
             stop 1
          endif
          write (6, SCALARS)
-         rewind (ifnamopt)
-
-         read (ifnamopt, TREES, iostat=ierr)
-         if (ierr > 0) then
-            print *, 'ERROR: Problem in namoptions TREES'
-            print *, 'iostat error: ', ierr
-            stop 1
-         endif
-         write (6, TREES)
          rewind (ifnamopt)
 
          read (ifnamopt, CHEMISTRY, iostat=ierr)
@@ -258,21 +261,24 @@ module modstartup
       call MPI_BCAST(ltempeq, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for solving adv/diff equation for temperature
       call MPI_BCAST(lper2inout, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for restart periodic flow to inoutflow
       call MPI_BCAST(libm, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for turning on/off IBM method
-      call MPI_BCAST(ltrees, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lnudge, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(nnudge, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(tnudge, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(lpurif, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lwalldist, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for computing wall distances
       call MPI_BCAST(lles, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for turning on/off LES functionality (subgrid model)
       call MPI_BCAST(linletRA, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for turning on/off Running Average in inletgenerator
       call MPI_BCAST(lfixinlet, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for keeping average inlet velocit and temp fixed at inlet (iinletgen=1,2)
       call MPI_BCAST(lfixutauin, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for keeping utau fixed at inlet (iinletgen=1,2)
-      call MPI_BCAST(xS, 1, MPI_INTEGER, 0, comm3d, mpierr)
-      call MPI_BCAST(yS, 1, MPI_INTEGER, 0, comm3d, mpierr)
-      call MPI_BCAST(zS, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(xS, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(yS, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(zS, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(SS, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(sigS, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(idriver    ,1,MPI_INTEGER,0,comm3d,mpierr)        ! ae1212: Added switch for driver inlet simulation                                                                         
+      call MPI_BCAST(tdriverstart,1,MY_REAL   ,0,comm3d,mpierr)        ! ae1212
+      call MPI_BCAST(driverjobnr,1,MPI_INTEGER,0,comm3d,mpierr)        ! ae1212
+      call MPI_BCAST(dtdriver   ,1,MY_REAL    ,0,comm3d,mpierr)        ! ae1212
+      call MPI_BCAST(driverstore,1,MPI_INTEGER ,0,comm3d,mpierr)
       write (*, *) "sec BC"
          call MPI_BCAST(BCxm, 1, MPI_INTEGER, 0, comm3d, mpierr)
          call MPI_BCAST(BCxT, 1, MPI_INTEGER, 0, comm3d, mpierr)
@@ -297,6 +303,7 @@ module modstartup
       call MPI_BCAST(lreadminl, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for reading mean inlet/recycle plane profiles (Uinl,Urec,Wrec)
       call MPI_BCAST(iwalltemp, 1, MPI_INTEGER, 0, comm3d, mpierr) ! case (integer) for wall treatment for temperature (1=no wall function/fixed flux, 2=no wall function/fixed value, 3=uno)
       call MPI_BCAST(iwallmoist, 1, MPI_INTEGER, 0, comm3d, mpierr) ! case (integer) for wall treatment for moisture (1=no wall function/fixed flux, 2=no wall function/fixed value, 3=uno)
+      call MPI_BCAST(iwallscal, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(iwallmom, 1, MPI_INTEGER, 0, comm3d, mpierr) ! case (integer) for wall treatment for momentum (1=no wall function, 2=werner-wengle, 3=uno)
       write (*, *) "sec d"
       call MPI_BCAST(luoutflowr, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for turning on/off u-velocity correction for fixed mass outflow rate
@@ -334,6 +341,7 @@ module modstartup
       call MPI_BCAST(lvinf, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(dpdx, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(tscale, 1, MY_REAL, 0, comm3d, mpierr)
+
       call MPI_BCAST(imax, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(jtot, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(kmax, 1, MPI_INTEGER, 0, comm3d, mpierr)
@@ -382,13 +390,6 @@ module modstartup
       call MPI_BCAST(vflowrate, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(Uinf, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(Vinf, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(sun, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(Bowen, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(cd, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(decay, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(ud, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(Qpu, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(epu, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(di, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(dti, 1, MY_REAL, 0, comm3d, mpierr)
       dr = di ! initial value is needed
@@ -416,8 +417,6 @@ module modstartup
       call MPI_BCAST(GRLAI, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(rsmin, 1, MY_REAL, 0, comm3d, mpierr)
 
-      call MPI_BCAST(ntrees, 1, MPI_INTEGER, 0, comm3d, mpierr)
-      call MPI_BCAST(npurif, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(irandom, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(krand, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(randthl, 1, MY_REAL, 0, comm3d, mpierr)
@@ -454,6 +453,8 @@ module modstartup
       write (*, *) "done initpois"
       call initinlet ! added by J. Tomas: initialize inlet generator
       write (*, *) "done initinlet"
+      call initdriver  ! added by ae1212: initialise driver inlet                             
+      write(*,*) "done initdriver"
       call checkinitvalues
       write (*, *) "done checkinitvalues"
       write (6, *) 'Determine masking matrices'
@@ -495,6 +496,7 @@ module modstartup
                               iinletgen,linoutflow,ltempeq,iwalltemp,iwallmom,&
                               ipoiss,POISS_FFT,POISS_CYC
       use modmpi, only      : myid, nprocs, mpierr, comm3d, MPI_INTEGER, MPI_LOGICAL
+      use modglobal, only   : idriver
       implicit none
       real :: d(1:imax-1)
       logical :: inequi
@@ -567,12 +569,13 @@ module modstartup
       end if
 
       ! choosing inoutflow in x requires switches to be set
+      ! tg3315 - these could be moved to init boundary
       if (BCxm .eq. 2) then
          write (*, *) "inoutflow conditions, setting appropriate switches (1)"
          iinletgen = 1
-         BCxT = 2 !temperature is considered in inletgen & iolet
-         BCxq = 2 !humidity is considered in iolet
-         BCxs = 2 !scalars are considered in iolet
+         BCxT = 3 !temperature is considered in inletgen & iolet
+         BCxq = 3 !humidity is considered in iolet
+         BCxs = 3 !scalars are considered in iolet
          BCtopm = 3 !velocity at top determined by topm
          linoutflow = .true.
          call MPI_BCAST(iinletgen, 1, MPI_INTEGER, 0, comm3d, mpierr)
@@ -588,9 +591,9 @@ module modstartup
          iinletgen = 2
          ! see modstartup for conditions that apply with inletgenerators
          ! move to modstartup
-         BCxT = 2 !temperature is considered in inletgen & iolet
-         BCxq = 2 !humidity is considered in iolet
-         BCxs = 2 !scalars are considered in iolet
+         BCxT = 3 !temperature is considered in inletgen & iolet
+         BCxq = 3 !humidity is considered in iolet
+         BCxs = 3 !scalars are considered in iolet
          BCtopm = 3 !velocity at top determined by topm
          linoutflow = .true.
          call MPI_BCAST(iinletgen, 1, MPI_INTEGER, 0, comm3d, mpierr)
@@ -606,12 +609,31 @@ module modstartup
          iinletgen = 0
          ! see modstartup for conditions that apply with inletgenerators
          ! move to modstartup
-         BCxT = 2 !temperature is considered in inletgen & iolet
-         BCxq = 2 !humidity is considered in iolet
-         BCxs = 2 !scalars are considered in iolet
+         BCxT = 3 !temperature is considered in inletgen & iolet
+         BCxq = 3 !humidity is considered in iolet
+         BCxs = 3 !scalars are considered in iolet
          BCtopm = 3 !velocity at top determined by topm
          linoutflow = .true.
          call MPI_BCAST(iinletgen, 1, MPI_INTEGER, 0, comm3d, mpierr)
+         call MPI_BCAST(BCxT, 1, MPI_INTEGER, 0, comm3d, mpierr)
+         call MPI_BCAST(BCxq, 1, MPI_INTEGER, 0, comm3d, mpierr)
+         call MPI_BCAST(BCxs, 1, MPI_INTEGER, 0, comm3d, mpierr)
+         call MPI_BCAST(BCtopm, 1, MPI_INTEGER, 0, comm3d, mpierr)
+         call MPI_BCAST(linoutflow, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+
+      else if (BCxm .eq. 5) then
+
+         write (*, *) "inoutflow conditions and idriver, setting appropriate switches (0)"
+
+         iinletgen = 0
+         idriver = 2
+         BCxT = 3 !temperature is considered in inletgen & iolet
+         BCxq = 3 !humidity is considered in iolet
+         BCxs = 3 !scalars are considered in iolet
+         BCtopm = 3 !velocity at top determined by topm
+         linoutflow = .true.
+         call MPI_BCAST(iinletgen, 1, MPI_INTEGER, 0, comm3d, mpierr)
+         call MPI_BCAST(idriver, 1, MPI_INTEGER, 0, comm3d, mpierr)
          call MPI_BCAST(BCxT, 1, MPI_INTEGER, 0, comm3d, mpierr)
          call MPI_BCAST(BCxq, 1, MPI_INTEGER, 0, comm3d, mpierr)
          call MPI_BCAST(BCxs, 1, MPI_INTEGER, 0, comm3d, mpierr)
@@ -649,10 +671,11 @@ module modstartup
          rslabs, e12min, dzh, dtheta, dqt, dsv, cexpnr, ifinput, lwarmstart, lstratstart, trestart, numol, &
          ladaptive, tnextrestart, jmax, linoutflow, lper2inout, iinletgen, lreadminl, &
          uflowrate, vflowrate,ltempeq, prandtlmoli, freestreamav, &
-         tnextfielddump, tfielddump, tsample, tstatsdump, startfile, lprofforc, lchem, k1, JNO2
+         tnextfielddump, tfielddump, tsample, tstatsdump, startfile, lprofforc, lchem, k1, JNO2,&
+         idriver,dtdriver,driverstore,tdriverstart,tdriverdump        
       use modsubgriddata, only:ekm, ekh
       use modsurfdata, only:wtsurf, wqsurf, wsvsurf, &
-         thls, thvs, ps, qts, svs
+         thls, thvs, ps, qts, svs, sv_top
       ! use modsurface,        only : surface,dthldz
       use modboundary, only:boundary, tqaver
       use modmpi, only:slabsum, myid, comm3d, mpierr, my_real, avexy_ibm
@@ -660,8 +683,12 @@ module modstartup
       use modinletdata, only:Uinl, Urec, Wrec, u0inletbc, v0inletbc, w0inletbc, ubulk, irecy, Utav, Ttav, &
          uminletbc, vminletbc, wminletbc, u0inletbcold, v0inletbcold, w0inletbcold, &
          storeu0inletbc, storev0inletbc, storew0inletbc, nstepread, nfile, Tinl, &
-         Trec, tminletbc, t0inletbcold, t0inletbc, storet0inletbc, utaui, ttaui, iangle
+         Trec, tminletbc, t0inletbcold, t0inletbc, storet0inletbc, utaui, ttaui, iangle,&
+         u0driver,v0driver,w0driver,e120driver,tdriver,thl0driver,qt0driver,storetdriver,&
+         storeu0driver,storev0driver,storew0driver,storee120driver,storethl0driver,storeqt0driver,&
+         nstepreaddriver
       use modinlet, only:readinletfile
+      use moddriver, only: readdriverfile,initdriver,drivergen
 
       integer i, j, k, n
 
@@ -1049,7 +1076,35 @@ module modstartup
                end do
                ubulk = sum(uaverage(kb:ke))/(zh(ke + 1) - zh(kb)) ! volume-averaged u-velocity
                write (6, *) 'Modstartup: ubulk=', ubulk
-            end if ! iinletgen
+            elseif (idriver==2) then ! idriver
+
+               call readdriverfile
+
+               ! if(myid==0) then
+                 ! write(*,*) 'Driver inlet velocity'
+                 ! do n=1,driverstore
+                   ! write (*,'(f9.2,e20.12)') storetdriver(n),     storeu0driver(1,32,n)
+                 ! end do
+               ! endif
+
+              ! call slabsum(uaverage,kb,ke,u0,ib-1,ie+1,jb-1,je+1,kb-1,ke+1,ib,ie,jb,je,kb,ke)
+              ! uaverage = uaverage / ((ie-ib+1)*(jge-jgb+1))  ! this gives the i-j-averaged velocity (only correct for equidistant grid?)
+
+              call avexy_ibm(uaverage(kb:ke),u0(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke),IIus(kb:ke),.false.)
+              do k=kb,ke
+                uaverage(k) = uaverage(k)*dzf(k)
+              end do
+              ubulk = sum(uaverage(kb:ke))/(zh(ke+1)-zh(kb)) !volume-averaged u-velocity
+
+              if (myid==0) then
+                 write(6,*) 'Modstartup: ubulk=',ubulk
+              end if
+
+            elseif (idriver==1) then
+
+              call drivergen
+
+            end if
 
             !---------------------------------------------------------------
             !  1.2 randomnize fields
@@ -1096,7 +1151,19 @@ module modstartup
                   end do
                end do
             end do
-            
+          
+            if (nsv>0) then !tg3315 set these variables here for now and repeat for warmstart
+
+              allocate(sv_top(1:nsv))
+              sv_top(:) = svprof(ke,1:nsv)
+
+              call MPI_BCAST(sv_top, nsv, MY_REAL, 0, comm3d, mpierr)
+
+              write(*,*) 'svprof', svprof
+              write(*,*) 'sv_top', sv_top
+
+            end if
+ 
             !do n = 1,nsv
             !  do j = jb - jhc, je + jhc
             !    do i = ib - ihc, ie + ihc
@@ -1137,6 +1204,15 @@ module modstartup
             ekh(:, :, :) = numol*prandtlmoli !tg3315 added because wttop using ekh in modboundary which is called in startup
 
             ekh(:, :, ke + 1) = ekh(:, :, ke) ! also for start up
+
+            if (idriver==1) then                                                                   
+              !driverstore = (timeleft - tdriverstart)/dtdriver + 1
+              !if(myid==0) then
+              !  write(*,*) 'driverstore: ', driverstore
+              !end if
+              call drivergen
+              tdriverdump = tdriverstart
+            endif
 
             !ILS13 reintroduced thv
             call calc_halflev
@@ -1297,7 +1373,24 @@ module modstartup
                end do
                ubulk = sum(uaverage(kb:ke))/(zh(ke + 1) - zh(kb)) ! volume-averaged u-velocity
                write (6, *) 'Modstartup: ubulk=', ubulk
-            end if ! iinletgen!
+
+            elseif (idriver==2) then ! idriver
+
+               call readdriverfile
+               call drivergen
+
+              !call slabsum(uaverage,kb,ke,u0,ib-1,ie+1,jb-1,je+1,kb-1,ke+1,ib,ie,jb,je,kb,ke)
+              !uaverage = uaverage / ((ie-ib+1)*(jge-jgb+1))  ! this gives the i-j-averaged velocity (only correct for equidistant grid?)
+              call avexy_ibm(uaverage(kb:ke),u0(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke),IIus(kb:ke),.false.)
+              do k=kb,ke
+                uaverage(k) = uaverage(k)*dzf(k)
+              end do
+              ubulk = sum(uaverage(kb:ke))/(zh(ke+1)-zh(kb)) !volume-averaged u-velocity
+              if (myid==0) then
+                 write(6,*) 'Modstartup: ubulk=',ubulk
+              end if
+
+            end if ! iinletgen/idriver
 
             if (lper2inout) then ! if the restart starts from a periodic simulation to in/outflow, lper2inout should be set to .true.
                if (myid == 0) then
@@ -1367,7 +1460,43 @@ module modstartup
                end do
                ubulk = sum(uaverage(kb:ke))/(zh(ke + 1) - zh(kb)) ! volume-averaged u-velocity
                write (6, *) 'Modstartup: ubulk=', ubulk
-            endif ! end if lper2inout
+            else ! else per2per... read svprof regardless...
+
+            ! tg3315 read svprof (but do not use regardless of above...)
+              svprof = 0.
+              if (myid == 0) then
+                 if (nsv > 0) then
+                    open (ifinput, file='scalar.inp.'//cexpnr)
+                    read (ifinput, '(a80)') chmess
+                    read (ifinput, '(a80)') chmess
+                    do k = kb, ke
+                       read (ifinput, *) &
+                          height(k), &
+                          (svprof(k, n), n=1, nsv)
+                    end do
+                    open (ifinput, file='scalar.inp.'//cexpnr)
+                    write (6, *) 'height   sv(1) --------- sv(nsv) '
+                    do k = ke, kb, -1
+                       write (6, *) &
+                          height(k), &
+                          (svprof(k, n), n=1, nsv)
+                    end do
+
+                 end if
+              end if ! end if myid==0
+
+              call MPI_BCAST(svprof, (ke + kh - (kb - kh))*nsv, MY_REAL, 0, comm3d, mpierr)
+          
+              if (nsv>0) then !tg3315 set these variables here for now and repeat for warmstart
+
+                allocate(sv_top(1:nsv))
+                sv_top(:) = svprof(ke,1:nsv)
+
+                call MPI_BCAST(sv_top, nsv, MY_REAL, 0, comm3d, mpierr)
+
+              end if
+
+            end if ! end if lper2inout
 
             u0av = 0.0
             v0av = 0.0
@@ -1386,7 +1515,7 @@ module modstartup
             call avexy_ibm(qt0av(kb:ke+kh),qt0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
             do n = 1, nsv
                ! call slabsum(sv0av(kb,n),kb,ke+kh,sv0(ib-ih,jb-jh,kb,n),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
-              call avexy_ibm(sv0av(kb:ke+khc,n),sv0(ib:ie,jb:je,kb:ke+khc,n),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+khc),IIcs(kb:ke+khc),.false.)
+               call avexy_ibm(sv0av(kb:ke+khc,n),sv0(ib:ie,jb:je,kb:ke+khc,n),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+khc),IIcs(kb:ke+khc),.false.)
             end do
 
             ! CvH - only do this for fixed timestepping. In adaptive dt comes from restartfile

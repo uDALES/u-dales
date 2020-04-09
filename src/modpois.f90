@@ -267,6 +267,9 @@ contains
     ! Periodic: p - <p>_ijk
     ! Makes no change on physical effect of modified pressure in code.
 
+    ! tg3315 - update 24/06/19 -- there is a missing term in the application of the periodic BCs for pup, could this be part of the problem? Test with this to see if can avoid use of pijk below.
+    ! refer to mvr for necessity of this
+
     ! useful refs:
     ! https://opensky.ucar.edu/islandora/object/technotes%3A98/datastream/PDF/download/citation.pdf
     ! https://epubs.siam.org/doi/pdf/10.1137/0711042
@@ -1120,6 +1123,3 @@ contains
 
 
 end module modpois
-
-
-
