@@ -81,10 +81,15 @@ def main(branch_a: str, branch_b: str, build_type: str):
                 namelist = "namoptions.driven"
                 run_udales(path_to_exe, namelist, model_output_dir, model_output_dirs)
 
+        if test_case_dir.name == '001':
+            # Scalar outputs are only outputted for this case
+            quantities = ['u', 'v', 'w', 'sca1']
+        else:
+            quantities = ['u', 'v', 'w']
         # TODO: concatenate filedumps?
         compare_outputs.compare(model_output_dirs[0] / f'fielddump.000.{test_case_dir.name}.nc',
                                 model_output_dirs[1] / f'fielddump.000.{test_case_dir.name}.nc',
-                                model_output_dirs[0].parent)
+                                model_output_dirs[0].parent, quantities)
 
 def run_udales(path_to_exe: Path, namelist: str, model_output_dir: str, 
                model_output_dirs: list, cpu_count=None) -> None:
@@ -92,7 +97,7 @@ def run_udales(path_to_exe: Path, namelist: str, model_output_dir: str,
         cpu_count = str(os.cpu_count())
     print(f'Running uDALES in: {path_to_exe}')
     try:
-        subprocess.run(['mpiexec', '-np', '2', path_to_exe / 'u-dales',
+        subprocess.run(['mpiexec', '-np', cpu_count, path_to_exe / 'u-dales',
                         namelist], cwd=model_output_dir, check=True)
     except:
         print(f'Could not run case uDALES in {path_to_exe} for namelist {namelist}')
