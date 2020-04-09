@@ -127,114 +127,115 @@ module modstartup
 
          open (ifnamopt, file=fname_options, status='old', iostat=ierr)
          if (ierr /= 0) then
+            print *, 'ERROR: Namoptions does not exist'
             print *, 'iostat error: ', ierr
-            stop 'ERROR:Namoptions does not exist'
+            stop 1
          end if
 
          read (ifnamopt, RUN, iostat=ierr)
          if (ierr > 0) then
-            print *, 'Problem in namoptions RUN'
+            print *, 'ERROR: Problem in namoptions RUN'
             print *, 'iostat error: ', ierr
-            stop 'ERROR: Problem in namoptions RUN'
+            stop 1
          endif
          write (6, RUN)
          rewind (ifnamopt)
 
          read (ifnamopt, DOMAIN, iostat=ierr)
          if (ierr > 0) then
-            print *, 'Problem in namoptions DOMAIN'
+            print *, 'ERROR: Problem in namoptions DOMAIN'
             print *, 'iostat error: ', ierr
-            stop 'ERROR: Problem in namoptions DOMAIN'
+            stop 1
          endif
          write (6, DOMAIN)
          rewind (ifnamopt)
 
          read (ifnamopt, PHYSICS, iostat=ierr)
          if (ierr > 0) then
-            print *, 'Problem in namoptions PHYSICS'
+            print *, 'ERROR: Problem in namoptions PHYSICS'
             print *, 'iostat error: ', ierr
-            stop 'ERROR: Problem in namoptions PHYSICS'
+            stop 1
          endif
          write (6, PHYSICS)
          rewind (ifnamopt)
 
          read (ifnamopt, DYNAMICS, iostat=ierr)
          if (ierr > 0) then
-            print *, 'Problem in namoptions DYNAMICS'
+            print *, 'ERROR: Problem in namoptions DYNAMICS'
             print *, 'iostat error: ', ierr
-            stop 'ERROR: Problem in namoptions DYNAMICS'
+            stop 1
          endif
          write (6, DYNAMICS)
          rewind (ifnamopt)
 
          read (ifnamopt, BC, iostat=ierr)
          if (ierr > 0) then
-            print *, 'Problem in namoptions BC'
+            print *, 'ERROR: Problem in namoptions BC'
             print *, 'iostat error: ', ierr
-            stop 'ERROR: Problem in namoptions BC'
+            stop 1
          endif
          write (6, BC)
          rewind (ifnamopt)
 
          read (ifnamopt, INLET, iostat=ierr)
          if (ierr > 0) then
-            print *, 'Problem in namoptions INLET'
+            print *, 'ERROR: Problem in namoptions INLET'
             print *, 'iostat error: ', ierr
-            stop 'ERROR: Problem in namoptions INLET'
+            stop 1
          endif
          write (6, INLET)
          rewind (ifnamopt)
 
          read (ifnamopt, WALLS, iostat=ierr)
          if (ierr > 0) then
-            print *, 'Problem in namoptions WALLS'
+            print *, 'ERROR: Problem in namoptions WALLS'
             print *, 'iostat error: ', ierr
-            stop 'ERROR: Problem in namoptions WALLS'
+            stop 1
          endif
          write (6, WALLS)
          rewind (ifnamopt)
 
          read (ifnamopt, ENERGYBALANCE, iostat=ierr)
          if (ierr > 0) then
-            print *, 'Problem in namoptions EB'
+            print *, 'ERROR: Problem in namoptions EB'
             print *, 'iostat error: ', ierr
-            stop 'ERROR: Problem in namoptions EB'
+            stop 1
          endif
          write (6, ENERGYBALANCE)
          rewind (ifnamopt)
 
          read (ifnamopt, SCALARS, iostat=ierr)
          if (ierr > 0) then
-            print *, 'Problem in namoptions SCALARS'
+            print *, 'ERROR: Problem in namoptions SCALARS'
             print *, 'iostat error: ', ierr
-            stop 'ERROR: Problem in namoptions SCALARS'
+            stop 1
          endif
          write (6, SCALARS)
          rewind (ifnamopt)
 
          read (ifnamopt, TREES, iostat=ierr)
          if (ierr > 0) then
-            print *, 'Problem in namoptions TREES'
+            print *, 'ERROR: Problem in namoptions TREES'
             print *, 'iostat error: ', ierr
-            stop 'ERROR: Problem in namoptions TREES'
+            stop 1
          endif
          write (6, TREES)
          rewind (ifnamopt)
 
          read (ifnamopt, CHEMISTRY, iostat=ierr)
          if (ierr > 0) then
-            print *, 'Problem in namoptions CHEMISTRY'
+            print *, 'ERROR: Problem in namoptions CHEMISTRY'
             print *, 'iostat error: ', ierr
-            stop 'ERROR: Problem in namoptions CHEMISTRY'
+            stop 1
          endif
          write (6, CHEMISTRY)
          rewind (ifnamopt)
 
          read (ifnamopt, OUTPUT, iostat=ierr)
          if (ierr > 0) then
-            print *, 'Problem in namoptions OUTPUT'
+            print *, 'ERROR: Problem in namoptions OUTPUT'
             print *, 'iostat error: ', ierr
-            stop 'ERROR: Problem in namoptions OUTPUT'
+            stop 1
          endif
          write (6, OUTPUT)
          close (ifnamopt)
@@ -505,7 +506,7 @@ module modstartup
             write (6, *) 'nprocs and jtot are: ', nprocs, jtot
          end if
          call MPI_FINALIZE(mpierr)
-         stop
+         stop 1
       end if
 
       if (ipoiss==POISS_FFT) then
@@ -516,7 +517,7 @@ module modstartup
             write(6,*)'nprocs and imax are: ',nprocs,imax
           end if
           call MPI_FINALIZE(mpierr)
-          stop
+          stop 1
         end if
       end if
 
@@ -527,18 +528,36 @@ module modstartup
             write (6, *) 'nprocs and kmax are: ', nprocs, kmax
          end if
          call MPI_FINALIZE(mpierr)
-         stop
+         stop 1
       end if
 
       !Check Namoptions
-      if (runtime < 0) stop 'runtime out of range/not set'
-      if (dtmax < 0) stop 'dtmax out of range/not set '
-      if (ps < 0) stop 'psout of range/not set'
-      if (xsize < 0) stop 'xsize out of range/not set'
-      if (ysize < 0) stop 'ysize out of range/not set '
+      if (runtime < 0) then
+         print *, 'ERROR: runtime out of range/not set'
+         stop 1
+      end if
+      if (dtmax < 0) then
+         print *, 'ERROR: dtmax out of range/not set'
+         stop 1
+      end if
+      if (ps < 0) then
+         print *, 'ERROR: psout of range/not set'
+         stop 1
+      end if
+      if (xsize < 0) then
+         print *, 'ERROR: xsize out of range/not set'
+         stop 1
+      end if
+      if (ysize < 0) then
+         print *, 'ERROR: ysize out of range/not set'
+         stop 1
+      end if
 
       if ((lwarmstart) .or. (lstratstart)) then
-         if (startfile == '') stop 'no restartfile set'
+         if (startfile == '') then 
+            print *, 'ERROR: no restartfile set'
+            stop 1
+         end if
       end if
 
       ! Switch to ensure that neutral wall function is called when ltempeq=false and if iwalltemp==1 (constant flux and therefore wall temp is not resolved.
@@ -612,7 +631,7 @@ module modstartup
       if ((ipoiss == POISS_FFT) .and. (inequi)) then
          write(*, *) "ERROR: POISS_FFT requires equidistant grid. Aborting..."
          call MPI_FINALIZE(mpierr)
-         stop
+         stop 1
       end if
 
    end subroutine checkinitvalues

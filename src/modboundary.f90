@@ -90,8 +90,8 @@ contains
          end if
 
       else
-         write (*, *) "WARNING: ABORT, lateral boundary type for veloctiy in x-direciton undefined"
-         stop
+         write (*, *) "ERROR: lateral boundary type for veloctiy in x-direciton undefined"
+         stop 1
       end if
 
 !BCym!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -99,8 +99,8 @@ contains
       if (BCym .eq. 1) then
          call cyclicmj
       else
-         write (*, *) "WARNING: ABORT, lateral boundary type for velocity in y-direction undefined"
-         stop
+         write (*, *) "ERROR: lateral boundary type for velocity in y-direction undefined"
+         stop 1
       end if
 
 !BCxT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -111,16 +111,16 @@ contains
 !do nothing, temperature is considered in inletgen and in iolet
          call iohi
       else
-         write (*, *) "WARNING: ABORT, lateral boundary type for temperature in x-direction undefined"
-         stop
+         write (*, *) "ERROR: lateral boundary type for temperature in x-direction undefined"
+         stop 1
       end if
 
 !BCyT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       if (BCyT .eq. 1) then
          call cyclichj
       else
-         write (*, *) "WARNING: ABORT, lateral boundary type for temperature in y-direction undefined"
-         stop
+         write (*, *) "ERROR: lateral boundary type for temperature in y-direction undefined"
+         stop 1
       end if
 
 !BCxq!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -131,16 +131,16 @@ contains
 !do nothing, humidity is considered in iolet
         call ioqi
       else
-         write (*, *) "WARNING: ABORT, lateral boundary type for humidity in x-direction undefined"
-         stop
+         write (*, *) "ERROR: lateral boundary type for humidity in x-direction undefined"
+         stop 1
       end if
 
 !BCyq!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       if (BCyq .eq. 1) then
          call cyclicqj
       else
-         write (*, *) "WARNING: ABORT, lateral boundary type for humidity in y-direction undefined"
-         stop
+         write (*, *) "ERROR: lateral boundary type for humidity in y-direction undefined"
+         stop 1
       end if
 
 !BCxs!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -160,16 +160,16 @@ contains
          call scalSIRANE
 
       else
-         write (*, *) "WARNING: ABORT, lateral boundary type for scalars in x-direction undefined"
-         stop
+         write (*, *) "ERROR: lateral boundary type for scalars in x-direction undefined"
+         stop 1
       end if
 
 !BCys!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       if (BCys .eq. 1) then
          call cyclicsj
       else
-         write (*, *) "WARNING: ABORT, lateral boundary type for scalars in y-direction undefined"
-         stop
+         write (*, *) "ERROR: lateral boundary type for scalars in y-direction undefined"
+         stop 1
       end if
 
 !BCtopm!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -201,8 +201,8 @@ contains
          call inlettop
          call iolet  !ils13, 13.8.18: iolet also deals with lateral boundaries!!
       else
-         write (*, *) "WARNING: ABORT, top boundary type for velocity undefined"
-         stop
+         write (*, *) "ERROR: top boundary type for velocity undefined"
+         stop 1
       end if
 
 !BCtopT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -213,8 +213,8 @@ contains
          call valuetop(thlm, thl_top)
          call valuetop(thl0, thl_top)
       else
-         write (*, *) "WARNING: ABORT, top boundary type for temperature undefined"
-         stop
+         write (*, *) "ERROR: top boundary type for temperature undefined"
+         stop 1
       end if
 
 !BCtopq!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -225,8 +225,8 @@ contains
          call valuetop(qtm, qt_top)
          call valuetop(qt0, qt_top)
       else
-         write (*, *) "WARNING: ABORT, top boundary type for humidity undefined"
-         stop
+         write (*, *) "ERROR: top boundary type for humidity undefined"
+         stop 1
       end if
 
 !BCtops!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -237,8 +237,8 @@ contains
          call valuetopscal(sv_top)
          call valuetopscal(sv_top)
       else
-         write (*, *) "WARNING: ABORT, top boundary type for scalars undefined"
-         stop
+         write (*, *) "ERROR: top boundary type for scalars undefined"
+         stop 1
       end if
 
    end subroutine boundary
@@ -905,7 +905,8 @@ contains
             qtp(:, :, k) = qtp(:, :, k) - (qt0(:, :, k) - qt0av(k))*tsc(k)
          end do
       case default
-         stop "no gravity wave damping option selected"
+         print *, "ERROR: no gravity wave damping option selected"
+         stop 1
       end select
 
       return
