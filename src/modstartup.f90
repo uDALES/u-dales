@@ -340,7 +340,7 @@ module modstartup
       call MPI_BCAST(lvinf, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(dpdx, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(tscale, 1, MY_REAL, 0, comm3d, mpierr)
-      !nsv=nsvl+nsvp
+
       call MPI_BCAST(imax, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(jtot, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(kmax, 1, MPI_INTEGER, 0, comm3d, mpierr)
