@@ -11,10 +11,10 @@ ladaptive   = .true.
 /
 
 &OUTPUT
-lfielddump  = .true.
+lfielddump  = .false.
 tfielddump  = 4.
 fieldvars   = 'u0,v0,w0'
-ltdump      = .true.
+ltdump      = .false.
 lydump      = .false.
 lytdump     = .false.
 lxydump     = .false.
