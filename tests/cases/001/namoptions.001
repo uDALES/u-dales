@@ -74,9 +74,9 @@ iwallmoist = 1
 &SCALARS
 nsv        = 1
 lscasrc    = .true.
-xS         = 10
-yS         = 32
-zS         = 4
+xS         = 7
+yS         = 15
+zS         = 2
 SS         = 1
 sigS       = 0.5
 /
