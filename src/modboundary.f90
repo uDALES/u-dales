@@ -67,7 +67,9 @@ contains
       integer i, k
 
      ! if not using massflowrate need to set outflow velocity
-     if (.not. luvolflowr) then
+     if (luoutflowr) then
+        ! do nothing - calculated in modforces
+     elseif (.not. luvolflowr) then
         !ubulk = sum(u0av)/(ke-kb+1)
         do k = kb, ke
            uaverage(k) = u0av(k)*dzf(k)                                                        
@@ -75,8 +77,6 @@ contains
         ! need a method to know if we have all blocks at lowest cell kb
         ! assuming this for now (hence kb+1)
         uouttot = sum(uaverage(kb:ke))/(zh(ke + 1) - zh(kb+1)) 
-     elseif (luoutflowr) then
-        ! do nothing - calculated in modforces
      else
         uouttot = ubulk
      end if
