@@ -21,7 +21,7 @@ contains
    !>
    subroutine initboundary
       use modglobal, only:ib, kb, ke, kh, kmax, pi, zf, iplane
-      use modinletdata, only:irecy
+      use modinletdata, only:irecy,irecydriver
       implicit none
 
       real    :: zspb, zspt
@@ -42,6 +42,8 @@ contains
       end do
       tsc(ke + 1) = tsc(ke)
       irecy = ib + iplane
+      irecydriver = iplane! + ib
+
    end subroutine initboundary
 
    !>
@@ -49,21 +51,44 @@ contains
    subroutine boundary
 
       use modglobal, only:ib, ie, ih, jb, je, jgb, jge, jh, kb, ke, kh, linoutflow, dzf, zh, dy, &
-         timee, ltempeq, lmoist, BCxm, BCym, BCxT, BCyT, BCxq, BCyq, BCxs, BCys, BCtopm, BCtopT, BCtopq, BCtops, e12min
-      use modfields, only:u0, v0, w0, um, vm, wm, thl0, thlm, qt0, qtm, uout, uouttot, e120, e12m
+         timee, ltempeq, lmoist, BCxm, BCym, BCxT, BCyT, BCxq, BCyq, BCxs, BCys, BCtopm, BCtopT,&
+         BCtopq, BCtops, e12min, idriver, luvolflowr, luoutflowr
+      use modfields, only:u0, v0, w0, um, vm, wm, thl0, thlm, qt0, qtm, uout, uouttot, e120, e12m,&
+                          u0av
       use modsubgriddata, only:ekh, ekm
       use modsurfdata, only:thl_top, qt_top, sv_top, wttop, wqtop, wsvtop
       use modmpi, only:myid, slabsum
       use modinlet, only:inletgen, inletgennotemp
+      use moddriver, only : drivergen
       use modinletdata, only:irecy, ubulk, iangle
 !    use modsurface, only : getobl
       implicit none
+      real, dimension(kb:ke) :: uaverage
       integer i, k
 
-!BCxm!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!periodic or inflow/outflow conditions for momentum
+     ! if not using massflowrate need to set outflow velocity
+     if (luoutflowr) then
+        ! do nothing - calculated in modforces
+     elseif (.not. luvolflowr) then
+        !ubulk = sum(u0av)/(ke-kb+1)
+        do k = kb, ke
+           uaverage(k) = u0av(k)*dzf(k)                                                        
+        end do
+        ! need a method to know if we have all blocks at lowest cell kb
+        ! assuming this for now (hence kb+1)
+        uouttot = sum(uaverage(kb:ke))/(zh(ke + 1) - zh(kb+1)) 
+     else
+        uouttot = ubulk
+     end if
+
+     !BCxm!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+     !periodic or inflow/outflow conditions for momentum
       if (BCxm .eq. 1) then  !periodic
          call cyclicmi
+
+         if (idriver == 1) then ! write driver files
+           call drivergen
+         end if
 
       else if (BCxm .eq. 2) then !previously iinletgen 1
          uouttot = cos(iangle)*ubulk
@@ -73,13 +98,17 @@ contains
             call inletgennotemp
          end if
 
-      else if (BCxm .eq. 3) then !previously iinletgen 2
+         ! iolet - called due to BCtopm = 3
+
+      else if (BCxm .eq. 3) then ! previously iinletgen 2
          uouttot = cos(iangle)*ubulk
          if (ltempeq) then
             call inletgen
          else
             call inletgennotemp
          end if
+
+         ! iolet - called due to BCtopm = 3
 
       else if (BCxm .eq. 4) then !previously (inoutflow without iinlet)
          uouttot = cos(iangle)*ubulk
@@ -89,13 +118,23 @@ contains
             call inletgennotemp
          end if
 
+         ! iolet - called due to BCtopm = 3
+
+      else if (BCxm .eq. 5) then ! driver from drivergen (idriver == 2)
+
+         uouttot = ubulk ! does this hold for all forcings of precursor simulations? tg3315
+
+         call drivergen
+
+         ! iolet - called due to BCtopm = 3
+
       else
          write (*, *) "WARNING: ABORT, lateral boundary type for veloctiy in x-direciton undefined"
          stop
       end if
 
-!BCym!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!currently BC in y is always periodic for momentum
+      !BCym!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !currently BC in y is always periodic for momentum
       if (BCym .eq. 1) then
          call cyclicmj
       else
@@ -103,19 +142,20 @@ contains
          stop
       end if
 
-!BCxT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !BCxT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       if (BCxT .eq. 1) then
          call cyclichi
 
-      else if (BCxT .eq. 2) then !inoutflow
-!do nothing, temperature is considered in inletgen and in iolet
-         call iohi
+      else if (BCxT .eq. 2) then !inoutflow - will be overwritten unless BCxm == 1
+         call iohi    ! make sure uouttot is known and realistic
+      else if (BCxT .eq. 3) then
+         !do nothing, temperature is considered in iolet
       else
          write (*, *) "WARNING: ABORT, lateral boundary type for temperature in x-direction undefined"
          stop
       end if
 
-!BCyT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !BCyT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       if (BCyT .eq. 1) then
          call cyclichj
       else
@@ -123,19 +163,19 @@ contains
          stop
       end if
 
-!BCxq!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !BCxq!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       if (BCxq .eq. 1) then
          call cyclicqi
-
-      else if (BCxq .eq. 2) then !inoutflow
-!do nothing, humidity is considered in iolet
-        call ioqi
+      else if (BCxq .eq. 2) then !inoutflow  - will be overwritten unless BCxm == 1
+        call ioqi ! tg3315 - make sure uouttot is known and realistic
+      elseif (BCxq .eq. 3) then 
+        !do nothing, temperature is considered in iolet
       else
          write (*, *) "WARNING: ABORT, lateral boundary type for humidity in x-direction undefined"
          stop
       end if
 
-!BCyq!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !BCyq!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       if (BCyq .eq. 1) then
          call cyclicqj
       else
@@ -143,38 +183,38 @@ contains
          stop
       end if
 
-!BCxs!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !BCys!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      if (BCys .eq. 1) then
+         call cyclicsj
+      elseif (BCys .eq. 5) then
+         ! done in scalSIRANE
+      else
+         write (*, *) "WARNING: ABORT, lateral boundary type for scalars in y-direction undefined"
+         stop
+      end if
+
+      !BCxs!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       if (BCxs .eq. 1) then
          call cyclicsi
+      else if (BCxs .eq. 2) then !inoutflow  - will be overwritten unless BCxm == 1
+         call iosi ! make sure uouttot is known and correct for the running set-up
+      else if (BCxs .eq. 3) then
+         ! do nothing - considered in iolet
 
-      else if (BCxs .eq. 2) then !
-!do nothing, scalars are considere in iolet
-
-      else if (BCxs .eq. 3) then !scalinout
-         call scalinout
-
-      else if (BCxs .eq. 4) then !scalrec
+      else if (BCxs .eq. 4) then !scalrec - will be overwritten unless BCxm == 1
          call scalrec
 
-      else if (BCxs .eq. 5) then !previously SIRANE
-         call scalSIRANE
+      else if (BCxs .eq. 5) then !previously SIRANE - will be overwritten unless BCxm == 1
+         call scalSIRANE !  make sure uouttot/ vouttot is known and realistic
 
       else
          write (*, *) "WARNING: ABORT, lateral boundary type for scalars in x-direction undefined"
          stop
       end if
 
-!BCys!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      if (BCys .eq. 1) then
-         call cyclicsj
-      else
-         write (*, *) "WARNING: ABORT, lateral boundary type for scalars in y-direction undefined"
-         stop
-      end if
-
-!BCtopm!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !BCtopm!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       if (BCtopm .eq. 1) then
-!free-slip = zero-flux
+         !free-slip = zero-flux
          call fluxtop(um, ekm, 0.0)
          call fluxtop(u0, ekm, 0.0)
          call fluxtop(vm, ekm, 0.0)
@@ -184,7 +224,7 @@ contains
          w0(:, :, ke + 1) = 0.0
          wm(:, :, ke + 1) = 0.0
       else if (BCtopm .eq. 2) then
-!no-slip = zero velocity at wall
+         !no-slip = zero velocity at wall
          call valuetop(um, 0.0)
          call valuetop(u0, 0.0)
          call valuetop(vm, 0.0)
@@ -198,14 +238,19 @@ contains
          call fluxtop(v0, ekm, 0.0)
          e120(:, :, ke + 1) = e12min ! free slip top wall
          e12m(:, :, ke + 1) = e12min
-         call inlettop
+         if (idriver==2) then ! does not use ddispdx, Uinf etc.
+           w0(:, :, ke + 1) = 0.0
+           wm(:, :, ke + 1) = 0.0
+         else
+           call inlettop ! for iinletgen...
+         end if
          call iolet  !ils13, 13.8.18: iolet also deals with lateral boundaries!!
       else
          write (*, *) "WARNING: ABORT, top boundary type for velocity undefined"
          stop
       end if
 
-!BCtopT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !BCtopT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       if (BCtopT .eq. 1) then
          call fluxtop(thlm, ekh, wttop)
          call fluxtop(thl0, ekh, wttop)
@@ -217,7 +262,7 @@ contains
          stop
       end if
 
-!BCtopq!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !BCtopq!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       if (BCtopq .eq. 1) then
          call fluxtop(qtm, ekh, wqtop)
          call fluxtop(qt0, ekh, wqtop)
@@ -229,7 +274,7 @@ contains
          stop
       end if
 
-!BCtops!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !BCtops!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       if (BCtops .eq. 1) then
          call fluxtopscal(wsvtop)
          call fluxtopscal(wsvtop)
@@ -291,7 +336,7 @@ contains
 
 
    !> Sets lateral periodic boundary conditions for the scalars
-   subroutine scalinout
+   subroutine iosi
       use modglobal, only:ib, ie, jb, je, ih, jh, kb, ke, kh, nsv, dt, rk3step, dxhi, ltempeq, &
          ihc, jhc, khc, dy
       use modfields, only:sv0, svm, svprof, uouttot
@@ -305,12 +350,12 @@ contains
             sv0(ib - 1, :, k, n) = 2*svprof(k, n) - sv0(ib, :, k, n)
             svm(ib - 1, :, k, n) = 2*svprof(k, n) - svm(ib, :, k, n)
          end do
-         sv0(ie + 1, :, :, n) = sv0(ie, :, :, n) - (sv0(ie + 1, :, :, n) - sv0(ie, :, :, n))*dxhi(ie + 1)*rk3coef*ubulk
-         svm(ie + 1, :, :, n) = svm(ie, :, :, n) - (svm(ie + 1, :, :, n) - svm(ie, :, :, n))*dxhi(ie + 1)*rk3coef*ubulk !changed from uouttot to ubulk here !tg3315 08/11/2017
+         sv0(ie + 1, :, :, n) = sv0(ie, :, :, n) - (sv0(ie + 1, :, :, n) - sv0(ie, :, :, n))*dxhi(ie + 1)*rk3coef*uouttot  ! tg3315 should be uouttot and will have to change depending on forcing
+         svm(ie + 1, :, :, n) = svm(ie, :, :, n) - (svm(ie + 1, :, :, n) - svm(ie, :, :, n))*dxhi(ie + 1)*rk3coef*uouttot
       enddo
 
       return
-   end subroutine scalinout
+   end subroutine iosi
 
    subroutine scalrec
       use modglobal, only:ib, ie, jb, je, ih, jh, kb, ke, kh, nsv, dt, rk3step, dxhi, ltempeq, &
@@ -459,8 +504,8 @@ contains
     end do
     
     !uouttot is zero unless lmassflowr 
-    qt0(ie + 1, :, :) = qt0(ie, :, :) - (qt0(ie + 1, :, :) - qt0(ie, :, :))*dxhi(ie + 1)*rk3coef*ubulk
-    qtm(ie + 1, :, :) = qtm(ie, :, :) - (qtm(ie + 1, :, :) - qtm(ie, :, :))*dxhi(ie + 1)*rk3coef*ubulk
+    qt0(ie + 1, :, :) = qt0(ie, :, :) - (qt0(ie + 1, :, :) - qt0(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot ! tg3315 should be uouttot and will have to change depending on forcing
+    qtm(ie + 1, :, :) = qtm(ie, :, :) - (qtm(ie + 1, :, :) - qtm(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
 
    end subroutine ioqi
    
@@ -481,8 +526,8 @@ contains
        end do
     end do
 
-    thl0(ie + 1, :, :) = thl0(ie, :, :) - (thl0(ie + 1, :, :) - thl0(ie, :, :))*dxhi(ie + 1)*rk3coef*ubulk
-    thlm(ie + 1, :, :) = thlm(ie, :, :) - (thlm(ie + 1, :, :) - thlm(ie, :, :))*dxhi(ie + 1)*rk3coef*ubulk
+    thl0(ie + 1, :, :) = thl0(ie, :, :) - (thl0(ie + 1, :, :) - thl0(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot ! tg3315 should be uouttot and will have to change depending on forcing
+    thlm(ie + 1, :, :) = thlm(ie, :, :) - (thlm(ie + 1, :, :) - thlm(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
 
    end subroutine iohi
 
@@ -607,15 +652,16 @@ contains
    !>set inlet and outlet boundary conditions in i-direction
    subroutine iolet
 
-      use modglobal, only:dxhi, dxhci, xh, zh, ib, ie, jb, je, ih, jh, kb, ke, kh, nsv, rk3step, dt, iinletgen, ltempeq, lmoist, ihc
+      use modglobal, only:dxhi, dxhci, xh, zh, ib, ie, jb, je, ih, jh, kb, ke, kh, nsv, rk3step, dt, iinletgen, ltempeq, lmoist, ihc, idriver, dy, dzf, jtot, zh
       use modfields, only:u0, um, v0, vm, w0, wm, e120, e12m, thl0, thlm, qt0, qtm, sv0, svm, uprof, vprof, e12prof, thlprof, &
          qtprof, svprof, uouttot, wouttot
-      use modmpi, only:excjs, myid
+      use modmpi, only:excjs, myid, slabsum
       use modinletdata, only:u0inletbcold, v0inletbcold, w0inletbcold, uminletbc, vminletbc, wminletbc, totaluold, &
-         t0inletbcold, tminletbc
+         t0inletbcold, tminletbc, u0driver, v0driver, w0driver, e120driver, thl0driver, qt0driver, umdriver, vmdriver, wmdriver,& 
+         e12mdriver, thlmdriver, qtmdriver, sv0driver, svmdriver
 
       real rk3coef
-
+      real, dimension(kb:ke) :: uin
       integer n, i, j, k, m
 
       rk3coef = dt/(4.-dble(rk3step))
@@ -670,7 +716,75 @@ contains
             end do
          end if
 
-      else ! (if iinetgen==0)
+    ! Driver inlet
+    elseif (idriver == 2) then
+       do j=jb-1,je+1
+         do k=kb,ke !tg3315 removed +1 following above...
+           u0(ib,j,k)=u0driver(j,k) !max(0.,u0driver(j,k))
+           um(ib,j,k)=umdriver(j,k) !max(0.,umdriver(j,k))
+           u0(ib-1,j,k)= u0driver(j,k) !max(0.,2.*u0(ib,j,k)-u0(ib+1,j,k))
+           um(ib-1,j,k)= umdriver(j,k)  !max(0.,2.*um(ib,j,k)-um(ib+1,j,k))
+
+           v0(ib,j,k)   = v0driver(j,k) !max(0.,v0driver(j,k))
+           vm(ib,j,k)   = vmdriver(j,k) !max(0.,vmdriver(j,k))
+           v0(ib-1,j,k)   = v0driver(j,k) !max(0.,v0driver(j,k))
+           vm(ib-1,j,k)   = vmdriver(j,k) !max(0.,vmdriver(j,k))
+
+           ! to be changed in the future: e12 should be taken from recycle plane!
+           !e120(ib-1,j,k) = e120driver(j,k)      ! extrapolate e12 from interior
+           !e12m(ib-1,j,k) = e12mdriver(j,k)      ! extrapolate e12 from interior
+             
+           do n=1,nsv
+              do m = 1,ihc
+                 sv0(ib-m,j,k,n) = sv0driver(j,k,n)
+                 svm(ib-m,j,k,n) = svmdriver(j,k,n)
+                 !sv0(ib-m,j,k,n) = 2*svprof(k,n) - sv0(ib+(m-1),j,k,n)
+                 !svm(ib-m,j,k,n) = 2*svprof(k,n) - svm(ib+(m-1),j,k,n)
+              enddo
+              sv0(ib,j,k,n) = sv0driver(j,k,n)
+              svm(ib,j,k,n) = svmdriver(j,k,n)
+           enddo
+         end do
+         do k=kb,ke+1
+           w0(ib-1,j,k)   = w0driver(j,k) !max(0.,w0driver(j,k))
+           wm(ib-1,j,k)   = wmdriver(j,k) !max(0.,wmdriver(j,k))
+           w0(ib,j,k)   = w0driver(j,k) !max(0.,w0driver(j,k))
+           wm(ib,j,k)   = wmdriver(j,k) !max(0.,wmdriver(j,k))
+         end do
+       end do
+
+       ! Heat
+       if (ltempeq ) then
+          do j=jb-1,je+1
+             do k=kb,ke+1
+                thl0(ib,j,k) = thl0driver(j,k)
+                thlm(ib,j,k) = thlmdriver(j,k)
+                thl0(ib-1,j,k) = thl0driver(j,k)
+                thlm(ib-1,j,k) = thlmdriver(j,k)
+                !thlm(ib-1,j,k) = 2*thlm(ib,j,k) - thlm(ib+1,j,k)
+                !thl0(ib-1,j,k) = 2*thl0(ib,j,k) - thl0(ib+1,j,k)
+             end do
+          end do
+       end if
+
+       if (lmoist ) then
+          do j=jb-1,je+1
+             do k=kb,ke+1
+                qt0(ib,j,k) = qt0driver(j,k)
+                ! qt0(ib-1,j,k) = 2*qtprof(k) - qt0(ib,j,k)
+                qtm(ib,j,k) = qtmdriver(j,k)
+                ! qtm(ib-1,j,k) = 2*qtprof(k) - qtm(ib,j,k)
+                qt0(ib-1,j,k) = qt0driver(j,k)
+                ! qt0(ib-1,j,k) = 2*qtprof(k) - qt0(ib,j,k)  !watch!
+                qtm(ib-1,j,k) = qtmdriver(j,k)
+                ! qtm(ib-1,j,k) = 2*qtprof(k) - qtm(ib,j,k)
+                ! qt0(ib-1,j,k) = 2*qt0(ib,j,k) - qt0(ib+1,j,k)
+                ! qtm(ib-1,j,k) = 2*qtm(ib,j,k) - qtm(ib+1,j,k)
+             end do
+          end do
+       end if
+
+       else ! (if iinetgen==0)
 
          do j = jb - 1, je + 1
             do k = kb, ke + 1
@@ -720,6 +834,18 @@ contains
          wm(ib - 1, :, :) = -wm(ib, :, :)
       end if ! iinletgen==1 .or. iinletgen==2
 
+      ! tg3315 added to ensure that uouttot matches driven inflow regardless of forcing
+      ! set up assuming we have a block at lowest cell kb
+      if (idriver==2) then
+         uin = 0.
+         uouttot = 0.
+         call slabsum(uin,kb,ke,um,ib-ih,ie+ih,jb-jh,je+jh,kb-kh,ke+kh,ie,ie,jb,je,kb,ke) ! determine horizontal (j) average outflow velocity old
+         do k=kb,ke
+            uin(k) = uin(k)*dzf(k)*dy  ! flow rate through each slab at ib
+         end do
+         uouttot = sum(uin(kb+1:ke))/((zh(ke+1)-zh(kb+1))*jtot*dy)     ! convective outflow velocity
+      end if
+
       ! Outlet
       ! Momentum
       v0(ie + 1, :, :) = v0(ie, :, :) - (v0(ie + 1, :, :) - v0(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
@@ -747,16 +873,17 @@ contains
       end do
 
       return
+
    end subroutine iolet
 
    !>set boundary conditions pup,pvp,pwp in subroutine fillps in modpois.f90
    subroutine bcpup(pup, pvp, pwp, rk3coef)
 
       use modglobal, only:ib, ie, jb, je, ih, jh, kb, ke, kh, linoutflow, dxfi, iinletgen, &
-         Uinf, libm, jmax
+         Uinf, libm, jmax, idriver
       use modfields, only:pres0, up, vp, wp, um, w0, u0, uouttot
       use modmpi, only:excjs, myid
-      use modinletdata, only:irecy, u0inletbc, ddispdx
+      use modinletdata, only:irecy, u0inletbc, ddispdx, u0driver 
 
       real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb:ke + kh), intent(inout) :: pup
       real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb:ke + kh), intent(inout) :: pvp
@@ -782,6 +909,19 @@ contains
                   pup(ib, j, k) = u0inletbc(j, k)*rk3coefi
                end do
             end do
+       elseif (idriver == 2) then
+          do j=jb,je
+             do i=ib,ie
+                pwp(i,j,kb)  = 0.
+                pwp(i,j,ke+kh)= 0. !(Uinf*ddispdx ) *rk3coefi ! tg3315 - idriver does not use Uinf ddisp etc.
+             end do
+          end do
+          do k=kb,ke
+             do j=jb,je
+                pup(ie+1,j,k) = - (u0(ie+1,j,k)-u0(ie,j,k))*dxfi(ie)*uouttot + um(ie+1,j,k)*rk3coefi   ! du/dt +u*du/dx=0 -> pup(i)=um(i)/rk3coef -um(i)*(um(i)-um(i-1))/dxf(i-1)
+                pup(ib,j,k) = u0driver(j,k)*rk3coefi
+             end do
+          end do 
          else ! if not iinletgen
             do j = jb, je
                do i = ib, ie
@@ -806,6 +946,7 @@ contains
          do k = kb, ke
             do j = jb, je
                pup(ie + 1, j, k) = pup(ib, j, k) ! cyclic
+               !pup(ib - 1, j, k) = pup(ie, j, k) ! tg3315 is this condition not needed? Was not here before but I think exists in Dales4.0 in modpois...!?
             end do
          end do
       endif

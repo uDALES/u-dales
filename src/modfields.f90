@@ -77,7 +77,7 @@ module modfields
 !  integer              :: IIbl = 1          !< Switch for if layer at kb is all blocks
 
   ! statistical fields following notation "[statistical name][averaging directions - x,y,z,t][position in grid - i,j,k]"
-  real, allocatable :: uyt(:,:)        
+  real, allocatable :: uyt(:,:) 
   real, allocatable :: uytik(:,:)
   real, allocatable :: vyt(:,:)        
   real, allocatable :: wyt(:,:)        
@@ -89,7 +89,12 @@ module modfields
   real, allocatable :: sca2yt(:,:)     
   real, allocatable :: sca3yt(:,:)     
   real, allocatable :: thlsgsyt(:,:)     
-  real, allocatable :: usgsyt(:,:)     
+  real, allocatable :: qtsgsyt(:,:)
+  real, allocatable :: usgsyt(:,:) 
+  real, allocatable :: wsgsyt(:,:)    
+  real, allocatable :: sv1sgsyt(:,:)
+  real, allocatable :: sv2sgsyt(:,:)
+  real, allocatable :: sv3sgsyt(:,:)
 
   real, allocatable :: uxyt(:)        
   real, allocatable :: vxyt(:)        
@@ -103,7 +108,18 @@ module modfields
 
   real, allocatable :: uwtik(:,:,:)
   real, allocatable :: wthltk(:,:,:)
+  real, allocatable :: wqttk(:,:,:)
   real, allocatable :: thlthlt(:,:,:)
+  real, allocatable :: qtqtt(:,:,:)
+  real, allocatable :: sv1sv1t(:,:,:)
+  real, allocatable :: sv2sv2t(:,:,:)
+  real, allocatable :: sv3sv3t(:,:,:)
+  real, allocatable :: sv4sv4t(:,:,:)
+  ! real, allocatable :: sv1max(:,:,:)
+  ! real, allocatable :: sv2max(:,:,:)
+  ! real, allocatable :: sv3max(:,:,:)
+  ! real, allocatable :: sv4max(:,:,:)
+  real, allocatable :: PSSt(:,:,:)
   real, allocatable :: uutc(:,:,:)
   real, allocatable :: vvtc(:,:,:)
   real, allocatable :: wwtc(:,:,:)
@@ -117,6 +133,7 @@ module modfields
   real, allocatable :: vtij(:,:,:)
   real, allocatable :: wmt(:,:,:)
   real, allocatable :: thltk(:,:,:)
+  real, allocatable :: qttk(:,:,:)
   real, allocatable :: thlt(:,:,:)
   real, allocatable :: utc(:,:,:)
   real, allocatable :: vtc(:,:,:)
@@ -343,11 +360,6 @@ module modfields
   real              :: voutarea                     !< area of domain v-outlet
   real              :: fluidvol                     !< fluid volume (excluding blocks)
 
-  real, allocatable :: Rn(:)          
-  real, allocatable :: qc(:)         
-  real, allocatable :: lad(:)                       ! leaf areas density m^-1
-  real, allocatable :: clai(:)                      ! cumulative leaf aread index
-
   character(80), allocatable :: ncname(:,:)
   character(80), allocatable :: ncstaty(:,:)
   character(80), allocatable :: ncstatyt(:,:)
@@ -436,7 +448,7 @@ contains
     allocate(uprof(kb:ke+kh))
     allocate(vprof(kb:ke+kh))
     allocate(e12prof(kb:ke+kh))
-    allocate(sv0av(kb:ke+kh,nsv))
+    allocate(sv0av(kb:ke+khc,nsv))
     allocate(svprof(kb:ke+kh,nsv))
     allocate(thlpcar(kb:ke+kh))
     allocate(uout(kb:ke))         ! height average outlet velocity (used in convective outflow BC)
@@ -449,11 +461,6 @@ contains
     allocate(SW_dn_TOA(ib-ih:ie+ih,jb-jh:je+jh))
     allocate(LW_up_TOA(ib-ih:ie+ih,jb-jh:je+jh))
     allocate(LW_dn_TOA(ib-ih:ie+ih,jb-jh:je+jh))
-
-    allocate(Rn(kb:ke+kh))
-    allocate(qc(kb:ke+kh))
-    allocate(lad(kb:ke+kh))
-    allocate(clai(kb:ke+kh))
 
     ! allocate averaged variables
     allocate(uav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
@@ -499,6 +506,11 @@ contains
     allocate(sca3yt(ib:ie,kb:ke))
     allocate(usgsyt(ib:ie,kb:ke))
     allocate(thlsgsyt(ib:ie,kb:ke))
+    allocate(qtsgsyt(ib:ie,kb:ke))
+    allocate(wsgsyt(ib:ie,kb:ke))
+    allocate(sv1sgsyt(ib:ie,kb:ke))
+    allocate(sv2sgsyt(ib:ie,kb:ke))
+    allocate(sv3sgsyt(ib:ie,kb:ke))
 
     allocate(uxyt(kb:ke+kh))
     allocate(vxyt(kb:ke+kh))
@@ -512,7 +524,19 @@ contains
 
     allocate(uwtik(ib:ie,jb:je,kb:ke+kh))
     allocate(wthltk(ib:ie,jb:je,kb:ke+kh))
+    allocate(wqttk(ib:ie,jb:je,kb:ke+kh))
     allocate(thlthlt(ib:ie,jb:je,kb:ke+kh))
+    allocate(qtqtt(ib:ie,jb:je,kb:ke+kh))
+    allocate(sv1sv1t(ib:ie,jb:je,kb:ke+kh))
+    allocate(sv2sv2t(ib:ie,jb:je,kb:ke+kh))
+    allocate(sv3sv3t(ib:ie,jb:je,kb:ke+kh))
+    allocate(sv4sv4t(ib:ie,jb:je,kb:ke+kh))
+    ! allocate(sv1max(ib:ie,jb:je,kb:ke+kh))
+    ! allocate(sv2max(ib:ie,jb:je,kb:ke+kh))
+    ! allocate(sv3max(ib:ie,jb:je,kb:ke+kh))
+    ! allocate(sv4max(ib:ie,jb:je,kb:ke+kh))
+    allocate(PSSt(ib:ie,jb:je,kb:ke+kh))
+
     allocate(uutc(ib:ie,jb:je,kb:ke+kh))
     allocate(vvtc(ib:ie,jb:je,kb:ke+kh))
     allocate(wwtc(ib:ie,jb:je,kb:ke+kh))
@@ -526,6 +550,7 @@ contains
     allocate(vtij(ib:ie,jb:je,kb:ke+kh))
     allocate(wmt(ib:ie,jb:je,kb:ke+kh))
     allocate(thltk(ib:ie,jb:je,kb:ke+kh))
+    allocate(qttk(ib:ie,jb:je,kb:ke+kh))
     allocate(thlt(ib:ie,jb:je,kb:ke+kh))
     allocate(utc(ib:ie,jb:je,kb:ke+kh))
     allocate(vtc(ib:ie,jb:je,kb:ke+kh))
@@ -707,17 +732,16 @@ contains
     dthvdz=0.
     SW_up_TOA=0.;SW_dn_TOA=0.;LW_up_TOA=0.;LW_dn_TOA=0.
 
-    uyt=0.;uytik=0.;vyt=0.;wyt=0.;wytik=0.;thlyt=0.;qtyt=0.;thlytk=0.;sca1yt=0.;sca2yt=0.;sca3yt=0.;thlsgsyt=0.;
+    uyt=0.;uytik=0.;vyt=0.;wyt=0.;wytik=0.;thlyt=0.;qtyt=0.;thlytk=0.;sca1yt=0.;sca2yt=0.;sca3yt=0.;thlsgsyt=0.;wsgsyt=0.;qtsgsyt=0.;sv1sgsyt=0.;sv2sgsyt=0.;sv3sgsyt=0.
     usgsyt=0.
     uxyt=0.;vxyt=0.;wxyt=0.;thlxyt=0.;qtxyt=0.;pxyt=0.;usgsxyt=0.;vsgsxyt=0.;thlsgsxyt=0.;
-    uwtik=0.;wthltk=0.;thlthlt=0.;uutc=0.;vvtc=0.;wwtc=0.;vwtjk=0.;uvtij=0.;utik=0.;wtik=0.;wtjk=0.;vtjk=0.;utij=0.;vtij=0.;
-    wmt=0.;thltk=0.;thlt=0.;slice=0.;slice2=0.;slice3=0.;slice4=0.;slice5=0.;utc=0.;vtc=0.;wtc=0.
+    uwtik=0.;wthltk=0.;wqttk=0.;thlthlt=0.;qtqtt=0.;sv1sv1t=0.;sv2sv2t=0.;sv3sv3t=0.;sv4sv4t=0.;uutc=0.;vvtc=0.;wwtc=0.;vwtjk=0.;uvtij=0.;utik=0.;wtik=0.;wtjk=0.;vtjk=0.;utij=0.;vtij=0.;
+    wmt=0.;thltk=0.;qttk=0.;thlt=0.;slice=0.;slice2=0.;slice3=0.;slice4=0.;slice5=0.;utc=0.;vtc=0.;wtc=0.
     slice6=0.;slice7=0.;slice8=0.;umt=0.;vmt=0.;sv1t=0.;sv2t=0.;sv3t=0.;sv4t=0.;sv1tk=0.;sv2tk=0.;sv3tk=0.;sv4tk=0.
     wsv1tk=0.;wsv2tk=0.;wsv3tk=0.;wsv4tk=0.;sv1sgst=0.;sv2sgst=0.;sv3sgst=0.;sv4sgst=0.;qtt=0.;pt=0.
+    PSSt = 0. !sv1max = 0.; sv2max = 0.; sv3max = 0.; sv4max = 0.
 
     scar=0.;scarl=0.
-
-    Rn=0.;qc=0.;lad=0.;clai=0.
 
     IIc=1;IIu=1;IIv=1;IIct=1;IIw=1;IIuw=1;IIvw=1;IIuwt=1;IIut=1;IIvt=1;IIwt=1;IIcs=1;IIus=1;IIvs=1;IIws=1;IIuws=1;IIvws=1;IIuw=1;IIuvs=1
 
