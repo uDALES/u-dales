@@ -75,7 +75,7 @@ contains
                  ibc1,ibc2,kbc1,kbc2,ksen)
     case default
        write(*,*) "Invalid choice for Poisson solver"
-       stop
+       stop 1
     end select
 
     call tderive

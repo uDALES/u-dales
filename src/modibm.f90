@@ -1075,8 +1075,8 @@ module modibm
       elseif (BCbotm.eq.3) then
       call wfmneutral(ih, jh, kh, up, vp, momfluxb, u0, v0, z0, 0, 1, 91)
       else
-      write (*, *) "WARNING: ABORT, bottom boundary type for momentum undefined"
-      stop
+      write (*, *) "ERROR: bottom boundary type for momentum undefined"
+      stop 1
       end if
  
       if (ltempeq) then
@@ -1095,8 +1095,8 @@ module modibm
          else if (BCbotT.eq.2) then !wall function bc for temperature (fixed temperature)
             call wfuno(ih, jh, kh, up, vp, thlp, momfluxb, tfluxb, cth, bcTfluxA, u0, v0, thl0, thls, z0, z0h, 0, 1, 92)
          else
-         write (*, *) "WARNING: ABORT, bottom boundary type for temperature undefined"
-         stop
+         write (*, *) "ERROR: bottom boundary type for temperature undefined"
+         stop 1
          end if
       end if ! ltempeq
 
@@ -1113,8 +1113,8 @@ module modibm
                end do
             end do
          else
-          write (*, *) "WARNING: ABORT, bottom boundary type for moisture undefined"  
-          stop
+          write (*, *) "ERROR: bottom boundary type for moisture undefined"  
+          stop 1
          end if !
       end if !lmoist
 
