@@ -254,10 +254,10 @@ classdef preprocessing < dynamicprops
             end
             
             preprocessing.addvar(obj, 'lcube', 0)   % switch for linear cubes
-            preprocessing.addvar(obj, 'lcastro', 0) % switch for staggered cubes
+            preprocessing.addvar(obj, 'lstaggered', 0) % switch for staggered cubes
             preprocessing.addvar(obj, 'lcanyons', 0) % switch for infinite canyons
             
-            if (obj.lcube || obj.lcastro || obj.lcanyons)
+            if (obj.lcube || obj.lstaggered || obj.lcanyons)
                 preprocessing.addvar(obj, 'blockheight', 16) % block height
                 preprocessing.addvar(obj, 'blockwidth', 16)  % block width
                 preprocessing.addvar(obj, 'canyonwidth', 16) % canyonwidth
@@ -503,25 +503,6 @@ classdef preprocessing < dynamicprops
             fclose(prof);
         end
         
-        function generate_scalar(obj)
-            preprocessing.addvar(obj, 'sc', zeros(length(obj.zf), 5));
-            if obj.lchem
-                obj.sc(:,1) = obj.zf;
-                obj.sc(:,2) = obj.NOb;
-                obj.sc(:,3) = obj.NO2b;
-                obj.sc(:,4) = obj.O3b;
-                obj.sc(:,5) = obj.NOb + obj.NO2b;
-            end
-        end
-        
-        function write_scalar(obj)
-            scalar = fopen(['scalar.inp.' obj.expnr], 'w');
-            fprintf(scalar, '%-12s\n', '# SDBL flow');
-            fprintf(scalar, '%-60s\n', '# z sca1 sca2 sca3 sca4');
-            fprintf(scalar, '%-20.15f %-14.10f %-14.10f %-14.10f %-14.10f\n', obj.sc');
-            fclose(scalar);
-        end
-        
         function generate_topo_from_bl(obj)
             preprocessing.addvar(obj, 'topomask', zeros(obj.jtot, obj.imax));
             preprocessing.addvar(obj, 'topo', zeros(obj.jtot, obj.imax));            
@@ -549,7 +530,7 @@ classdef preprocessing < dynamicprops
                 error('Incorrect block system')
             end 
 
-            if obj.lcastro
+            if obj.lstaggered
                 nrows = imax / (blockwidth * 2);
                 ncolumns = jtot / (blockwidth * 2);
                 bl = zeros(nrows * ncolumns + nrows / 2, 13);
@@ -850,7 +831,7 @@ classdef preprocessing < dynamicprops
             figure
             title('Blocks (old)')
             view(52, 23)
-            if (obj.lcastro || obj.lcube || obj.lcanyons)
+            if (obj.lstaggered || obj.lcube || obj.lcanyons)
                 for i = 1:size(obj.bl, 1)
                     patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1)  obj.xh(obj.bl(i,1))], [obj.yh(obj.bl(i,3))  obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1)], [obj.zh(obj.bl(i,6)+1)  obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1)], [245 245 245] ./ 255)
                     patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) ], [obj.yh(obj.bl(i,3))  obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3))], [obj.bl(i,5)  obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.bl(i,5)], [245 245 245] ./ 255)
@@ -3477,78 +3458,7 @@ classdef preprocessing < dynamicprops
             fprintf(fileID,'# %4s %6s %6s %6s\n','or', 'wl', 'blk', 'bld');
             fprintf(fileID,'%6d %6d %6d %6d\n', obj.facets(:, 1:4)');
             fclose(fileID); 
-        end
-        
-        function generate_trees(obj) % not implemented
-            preprocessing.addvar(obj, 'nrows', obj.imax / (obj.blockwidth + obj.canyonwidth));
-            if obj.lcanyons
-               preprocessing.addvar(obj, 'trees', zeros(obj.nrows, 6));
-            end
-        end
-        
-        function write_trees(obj)
-            tree_write = fopen( ['trees.inp.' obj.expnr], 'w');
-            fprintf(tree_write, '%-12s\n', '# Tree location');
-            fprintf(tree_write, '%-60s\n', '#  il  iu  jl  ju  kl  ku');
-            fprintf(tree_write, '%-3.0f %-3.0f %-3.0f %-3.0f %-3.0f %-3.0f\n', obj.trees');
-            fclose(tree_write);
-        end
-        
-        function generate_purifs(obj) % not implemented
-            preprocessing.addvar(obj, 'nrows', obj.imax / (obj.blockwidth + obj.canyonwidth));
-            if obj.lcanyons
-                if obj.lpurif
-                    %purifs = zeros(obj.nrows * 2 * obj.npurif, 7);
-                    preprocessing.addvar(obj, 'purifs', zeros(obj.nrows * 2 * obj.npurif, 7));
-                    for i = 1:obj.nrows
-                        for j = 1:obj.npurif
-                            obj.purifs((i - 1) * obj.npurif + j,1) = obj.bl(obj.nrows + i, 2) - obj.purif_dx - obj.purif_w;
-                            obj.purifs((i - 1) * obj.npurif + j,2) = obj.bl(nrows+i,2) - obj.purif_dx;
-                            if j==1
-                                %obj.purifs((i - 1) * obj.npurif + j, 3) = ((je/npurif)/2);
-                                obj.purifs((i - 1) * obj.npurif + j, 3) = ((obj.jtot / obj. npurif) / 2);
-                                obj.purifs((i - 1) * obj.npurif + j, 4) = obj.purifs((i - 1) * obj.npurif + j, 3) + obj.purif_dy;
-                            else
-                                obj.purifs((i - 1) * obj.npurif + j, 3) = obj.purifs((i - 1) * obj.npurif + j - 1, 3) + obj.purif_dy + obj.purif_sp;
-                                obj.purifs((i - 1) * obj.npurif + j, 4) = obj.purifs((i - 1) * obj.npurif + j - 1, 4) + obj.purif_dy + obj.purif_sp;
-                            end
-                        end
-                    end
-                    for i = 1:obj.nrows
-                        for j = 1:obj.npurif
-                            obj.purifs(obj.nrows * obj.npurif + (i - 1) * obj.npurif + j,1) =  obj.bl(obj.nrows + 1 + i, 1) + obj.purif_dx;
-                            obj.purifs(obj.nrows * obj.npurif + (i - 1) * obj.npurif + j,2) =  obj.bl(obj.nrows + 1 + i, 1) + obj.purif_dx + obj.purif_w;
-                            if j == 1
-                                obj.purifs(obj.nrows * obj.npurif + (i - 1) * obj.npurif + j, 3) = ((obj.tot / obj.npurif) / 2);
-                                obj.purifs(obj.nrows * obj.npurif + (i - 1) * obj.npurif + j, 4) = obj.purifs(( i - 1) * obj.npurif + j, 3) + obj.purif_dy;
-                            else
-                                obj.purifs(obj.nrows * obj.npurif + (i - 1) * obj.npurif + j, 3) = obj.purifs((i - 1) * obj.npurif + j - 1, 3) + obj.purif_dy + obj.purif_sp;
-                                obj.purifs(obj.nrows * obj.npurif + (i - 1) * obj.npurif + j, 4) = obj.purifs((i - 1) * obj.npurif + j - 1, 4) + obj.purif_dy + obj.purif_sp;
-                            end
-                        end
-                    end
-
-                    obj.purifs(:,5) = obj.purif_dz;
-                    obj.purifs(:,6) = obj.purif_dz + obj.purif_h;
-                    obj.purifs(:,7) = obj.purif_i;
-                end
-            end
-            
-            if lwritefile
-                if obj.lpurif
-                    preprocessing.write_purifs(obj)
-                end
-            end
-        end
-        
-        function write_purifs(obj)
-            purif_write = fopen( ['purifs.inp.' obj.expnr], 'w');
-            fprintf(purif_write, '%-12s\n', '# Purifier location');
-            fprintf(purif_write, '%-60s\n', '#  il  iu  jl  ju  kl  ku  ipu');
-            fprintf(purif_write, '%-3.0f %-3.0f %-3.0f %-3.0f %-3.0f %-3.0f %-3.0f\n', obj.purifs');
-            fclose(purif_write);
-        end
-        
+        end       
     end
     
     methods (Static, Access = protected)
