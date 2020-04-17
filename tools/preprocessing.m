@@ -227,27 +227,29 @@ classdef preprocessing < dynamicprops
             preprocessing.addvar(obj, 'qt0', 0)    % specific humidity
 
             preprocessing.addvar(obj, 'nsv', 0)         % number of scalar variables (not implemented)
-            preprocessing.addvar(obj, 'sv10', 0)        % first scalar variable initial/ background conc.
-            preprocessing.addvar(obj, 'sv20', 0)        % second scalar variable initial/ background conc.
-            preprocessing.addvar(obj, 'sv30', 0)        % third scalar variable initial/ background conc.
-            preprocessing.addvar(obj, 'sv40', 0)        % fourth scalar variable initial/ background conc.
-            preprocessing.addvar(obj, 'sv50', 0)        % fifth scalar variable initial/ background conc.
-            preprocessing.addvar(obj, 'lscasrc', 0)     % switch for scalar point source
-            preprocessing.addvar(obj, 'lscasrcl', 0)    % switch for scalar line source
-            preprocessing.addvar(obj, 'lscasrcr', 0)    % switch for network of scalar point source
-            preprocessing.addvar(obj, 'xS', -1)         % x-position of scalar point source [m]
-            preprocessing.addvar(obj, 'yS', -1)         % y-position of scalar point source [m]
-            preprocessing.addvar(obj, 'xS', -1)         % z-position of scalar point source [m]
-            preprocessing.addvar(obj, 'SS', -1)         % source strength of scalar line/ point source
-            preprocessing.addvar(obj, 'sigS', -1)       % standard deviation/ spread of scalar line/ point source
-            if ((obj.lscasrc) && any([obj.xS==-1 obj.yS==-1 obj.zS==-1 obj.SS==-1 obj.sigS==-1]))
-                error('Must set non-zero xS, yS, zS, SS and sigS for scalar point source')
-            end
-            if ((obj.lscasrcl) && any([obj.SS==-1 obj.sigS==-1]))
-                error('Must set non-zero SS and sigS for scalar line source')
-            end
-            if obj.lscasrcr
-                error('Network of point sources not currently implemented')
+            if obj.nsv>0
+                preprocessing.addvar(obj, 'sv10', 0)        % first scalar variable initial/ background conc.
+                preprocessing.addvar(obj, 'sv20', 0)        % second scalar variable initial/ background conc.
+                preprocessing.addvar(obj, 'sv30', 0)        % third scalar variable initial/ background conc.
+                preprocessing.addvar(obj, 'sv40', 0)        % fourth scalar variable initial/ background conc.
+            	preprocessing.addvar(obj, 'sv50', 0)        % fifth scalar variable initial/ background conc.
+            	preprocessing.addvar(obj, 'lscasrc', 0)     % switch for scalar point source
+            	preprocessing.addvar(obj, 'lscasrcl', 0)    % switch for scalar line source
+            	preprocessing.addvar(obj, 'lscasrcr', 0)    % switch for network of scalar point source
+            	preprocessing.addvar(obj, 'xS', -1)         % x-position of scalar point source [m]
+            	preprocessing.addvar(obj, 'yS', -1)         % y-position of scalar point source [m]
+            	preprocessing.addvar(obj, 'xS', -1)         % z-position of scalar point source [m]
+           	 preprocessing.addvar(obj, 'SS', -1)         % source strength of scalar line/ point source
+            	preprocessing.addvar(obj, 'sigS', -1)       % standard deviation/ spread of scalar line/ point source
+            	if ((obj.lscasrc) && any([obj.xS==-1 obj.yS==-1 obj.zS==-1 obj.SS==-1 obj.sigS==-1]))
+                    error('Must set non-zero xS, yS, zS, SS and sigS for scalar point source')
+            	end
+            	if ((obj.lscasrcl) && any([obj.SS==-1 obj.sigS==-1]))
+                    error('Must set non-zero SS and sigS for scalar line source')
+            	end
+            	if obj.lscasrcr
+                    error('Network of point sources not currently implemented')
+            	end
             end
 
             preprocessing.addvar(obj, 'lapse', 0)  % lapse rate [K/s]
