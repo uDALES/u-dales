@@ -1,0 +1,156 @@
+&RUN
+iexpnr     =  001
+runtime    =  3601
+lwarmstart =  .false.
+lstratstart=  .false.
+lreadscal  =  .false.
+startfile  =  'initd00094979_xxx.052'
+trestart   =  3600.
+tfielddump =  100.
+fieldvars  =  'u0,v0,w0'
+lydump     =  .true.
+tsample    =  2.
+lytdump    =  .true.
+lxydump    =  .true.
+lxytdump   =  .true.
+tstatsdump =  100.
+ladaptive  = .true.
+irandom    =  43
+randqt     =  2.5e-5
+randthl    =  0.00
+randu      =  0.01
+nsv        =  0
+dtmax      =  2
+lscasrc    = .false.
+lscasrcl   = .false.
+libm       = .true.
+ltrees     = .false.
+lpurif     = .false.
+/
+
+&DOMAIN
+imax       =  128
+jtot       =  128
+kmax       =  64
+xsize      =  128
+ysize      =  128
+nblocks     = 145
+ntrees     =  0
+npurif     =  0
+/
+
+&BC
+BCxm       =  1
+BCxT       =  1 
+BCxq       =  1 
+BCxs       =  1 
+BCym       =  1 
+BCyT       =  1 
+BCyq       =  1 
+BCys       =  1 
+BCtopm     =  1 
+BCtopT     =  1 
+BCtopq     =  1 
+BCtops     =  1 
+BCbotm     =  2
+BCbotT     =  2 
+BCbotq     =  1 
+BCbots     =  1
+wtsurf     =  0.                                                                                     
+wqsurf     =  0.0
+thls       =  288.
+thl_top    =  288.
+qt_top     =  0.0
+qts        =  0.0 
+/
+
+&ENERGYBALANCE
+lEB        = .false.
+lconstW    = .true.
+dtEB       = 60.
+nfcts      = 217
+bldT       = 301.0
+wsoil      = 314.0
+wgrmax     = 451.0
+wwilt      = 172.0
+wfc        = 314.0
+skyLW      = 201.0
+GRLAI      = 2.1
+rsmin      = 200.0 
+/
+
+&INLET
+Uinf       = 3.
+Vinf       = 0.
+xS         = 0
+yS         = 0
+zS         = 0
+SS         = 0.
+sigS       = 0.
+/
+
+&WALLS                                         
+iwallmom   = 2                                 
+iwalltemp  = 2                        
+iwallmoist = 1                                 
+/  
+
+&PHYSICS
+z0         =  0.01
+z0h        =  0.000067
+ps         =  101500.00
+lmoist     =  .false.
+lcoriol    =  .false.
+lprofforc  =  .false.
+Qpu        =  5
+epu        =  0.85
+numol      =  1.5e-5
+prandtlmol =  0.71
+lbuoyancy  = .false.
+ltempeq    = .false.
+igrw_damp  = 0
+/
+
+&DYNAMICS
+iadv_mom    =  2
+iadv_tke    =  2
+iadv_thl    =  2
+iadv_qt     =  2
+iadv_sv     =  7
+/
+
+&NAMSUBGRID
+lsmagorinsky = .false.
+lvreman     = .true.
+loneeqn     = .false.
+ldelta      = .false.
+cn          = 0.76
+c_vreman    = 0.07
+cs          = 0.2
+/
+
+&NAMCHECKSIM
+tcheck      = 0
+/
+
+&INPS
+zsize       = 64
+lzstretch   = .false.
+nlin        = 32
+dzlin       = 1
+gf          = 1.005
+lcastro     = .true.
+lcube       = .false.
+lblocks     = .false.
+blockheight = 16
+blockwidth  = 16
+canyonwidth = 16
+u0          = 2
+v0          = 0
+dpdx        = 0.0001
+dpdy        = 0
+thl0        = 288
+lapse       = 0.
+w_s         = 0
+R           = 0.
+/
