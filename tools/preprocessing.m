@@ -216,6 +216,14 @@ classdef preprocessing < dynamicprops
                 preprocessing.addvar(obj, 'lstretchexp', 0)
                 preprocessing.addvar(obj, 'lstretchtanh', 0)
                 preprocessing.addvar(obj, 'lstretch2tanh', 0)
+                preprocessing.addvar(obj, 'hlin', 0)
+                preprocessing.addvar(obj, 'dzlin', 0)
+            end
+
+            if (obj.lzstretch && obj.llidar)
+                if (obj.hlin<obj.maxh)
+                    error('hlin must be smaller or equal to maxh to ensure that building heights are defined on linear part of zgrid.')
+                end
             end
             
             preprocessing.addvar(obj, 'u0', 0) % initial u-velocity - also applied as geostrophic term where applicable
@@ -367,15 +375,15 @@ classdef preprocessing < dynamicprops
         end
         
         function stretch_exp(obj)
-            il = round(obj.maxh / obj.dzlin);
+            il = round(obj.hlin / obj.dzlin);
             ir  = obj.kmax - il;
             
             preprocessing.addvar(obj, 'zf', zeros(obj.kmax, 1));
             preprocessing.addvar(obj, 'dzf', zeros(obj.kmax, 1));
             preprocessing.addvar(obj, 'zh', zeros(obj.kmax+1, 1));
             
-            obj.zf(1:il) = 0.5 * obj.dzlin : obj.dzlin : obj.maxh;
-            obj.zh(1:il+1) = 0 : obj.dzlin : obj.maxh;
+            obj.zf(1:il) = 0.5 * obj.dzlin : obj.dzlin : obj.hlin;
+            obj.zh(1:il+1) = 0 : obj.dzlin : obj.hlin;
             
             gf = obj.stretchconst;
             
@@ -398,15 +406,15 @@ classdef preprocessing < dynamicprops
         end
         
         function stretch_tanh(obj)
-            il = round(obj.maxh / obj.dzlin);
+            il = round(obj.hlin / obj.dzlin);
             ir  = obj.kmax - il;
             
             preprocessing.addvar(obj, 'zf', zeros(obj.kmax, 1));
             preprocessing.addvar(obj, 'dzf', zeros(obj.kmax, 1));
             preprocessing.addvar(obj, 'zh', zeros(obj.kmax + 1, 1));
             
-            obj.zf(1:il) = 0.5 * obj.dzlin : obj.dzlin : obj.maxh;
-            obj.zh(1:il+1) = 0 : obj.dzlin : obj.maxh;
+            obj.zf(1:il) = 0.5 * obj.dzlin : obj.dzlin : obj.hlin;
+            obj.zh(1:il+1) = 0 : obj.dzlin : obj.hlin;
             
             gf = obj.stretchconst;
 
@@ -431,15 +439,15 @@ classdef preprocessing < dynamicprops
         end
         
         function stretch_2tanh(obj)
-            il = round(obj.maxh / obj.dzlin); 
+            il = round(obj.hlin / obj.dzlin); 
             ir  = obj.kmax - il;
             
             preprocessing.addvar(obj, 'zf', zeros(obj.kmax, 1));
             preprocessing.addvar(obj, 'dzf', zeros(obj.kmax, 1));
             preprocessing.addvar(obj, 'zh', zeros(obj.kmax+1, 1));
             
-            obj.zf(1:il) = 0.5 * obj.dzlin:obj.dzlin:obj.maxh;
-            obj.zh(1:il+1) = 0:obj.dzlin:obj.maxh;
+            obj.zf(1:il) = 0.5 * obj.dzlin:obj.dzlin:obj.hlin;
+            obj.zh(1:il+1) = 0:obj.dzlin:obj.hlin;
             gf = obj.stretchconst;
             
             while true
