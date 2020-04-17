@@ -1,7 +1,7 @@
 %% write_input_files
 % This script is run by the bash script da_inp.sh It used to generate the
 % necessary input files for uDALES.
-expnr = '300';
+expnr = '101';
 ncpus = 2;
 
 DA_EXPDIR = getenv('DA_EXPDIR');
@@ -28,6 +28,11 @@ disp(['Written lscal.inp.', r.expnr])
 preprocessing.generate_prof(r);
 preprocessing.write_prof(r);
 disp(['Written prof.inp.', r.expnr])
+if r.nsv>0
+    preprocessing.generate_scalar(r);
+    preprocessing.write_scalar(r);
+    disp(['Written scalar.inp.', r.expnr])
+end
 
 if ~r.llidar
     if r.lflat

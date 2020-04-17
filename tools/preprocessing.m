@@ -164,12 +164,7 @@ classdef preprocessing < dynamicprops
 %                     error('Must use lcanyons configuration to use purifiers')
 %                 end
             end
-            
-            preprocessing.addvar(obj, 'nsv', 0)    % number of scalar variables (not implemented)
-            if obj.nsv > 0
-                error('Scalar variables not currently implemented')
-            end
-            
+
             preprocessing.addvar(obj, 'luoutflowr', 0) % switch that determines whether u-velocity is corrected to get a fixed outflow rate 
             preprocessing.addvar(obj, 'lvoutflowr', 0) % switch that determines whether v-velocity is corrected to get a fixed outflow rate.
             preprocessing.addvar(obj, 'luvolflowr', 0) % switch that determines whether u-velocity is corrected to get a fixed volume flow rate.
@@ -230,11 +225,29 @@ classdef preprocessing < dynamicprops
             preprocessing.addvar(obj, 'dpdy', 0) % dp/dy [Pa/m]
             preprocessing.addvar(obj, 'thl0', 288) % temperature at lowest level
             preprocessing.addvar(obj, 'qt0', 0)    % specific humidity
-            
-            if obj.lchem > 0
-                preprocessing.addvar(obj, 'NOb', 0) % initial concentration of NO            
-                preprocessing.addvar(obj, 'NO2b', 0) % initial concentration of NO2
-                preprocessing.addvar(obj, 'O3b', 0) % initial concentration of O3
+
+            preprocessing.addvar(obj, 'nsv', 0)         % number of scalar variables (not implemented)
+            preprocessing.addvar(obj, 'sv10', 0)        % first scalar variable initial/ background conc.
+            preprocessing.addvar(obj, 'sv20', 0)        % second scalar variable initial/ background conc.
+            preprocessing.addvar(obj, 'sv30', 0)        % third scalar variable initial/ background conc.
+            preprocessing.addvar(obj, 'sv40', 0)        % fourth scalar variable initial/ background conc.
+            preprocessing.addvar(obj, 'sv50', 0)        % fifth scalar variable initial/ background conc.
+            preprocessing.addvar(obj, 'lscasrc', 0)     % switch for scalar point source
+            preprocessing.addvar(obj, 'lscasrcl', 0)    % switch for scalar line source
+            preprocessing.addvar(obj, 'lscasrcr', 0)    % switch for network of scalar point source
+            preprocessing.addvar(obj, 'xS', -1)         % x-position of scalar point source [m]
+            preprocessing.addvar(obj, 'yS', -1)         % y-position of scalar point source [m]
+            preprocessing.addvar(obj, 'xS', -1)         % z-position of scalar point source [m]
+            preprocessing.addvar(obj, 'SS', -1)         % source strength of scalar line/ point source
+            preprocessing.addvar(obj, 'sigS', -1)       % standard deviation/ spread of scalar line/ point source
+            if ((obj.lscasrc) && any([obj.xS==-1 obj.yS==-1 obj.zS==-1 obj.SS==-1 obj.sigS==-1]))
+                error('Must set non-zero xS, yS, zS, SS and sigS for scalar point source')
+            end
+            if ((obj.lscasrcl) && any([obj.SS==-1 obj.sigS==-1]))
+                error('Must set non-zero SS and sigS for scalar line source')
+            end
+            if obj.lscasrcr
+                error('Network of point sources not currently implemented')
             end
 
             preprocessing.addvar(obj, 'lapse', 0)  % lapse rate [K/s]
@@ -256,6 +269,9 @@ classdef preprocessing < dynamicprops
             preprocessing.addvar(obj, 'lcube', 0)   % switch for linear cubes
             preprocessing.addvar(obj, 'lstaggered', 0) % switch for staggered cubes
             preprocessing.addvar(obj, 'lcanyons', 0) % switch for infinite canyons
+            if (obj.lscasrcl && not(obj.lcanyons))
+                error('Scalar line sources only implemented for lcanyons')
+            end
             
             if (obj.lcube || obj.lstaggered || obj.lcanyons)
                 preprocessing.addvar(obj, 'blockheight', 16) % block height
@@ -501,6 +517,34 @@ classdef preprocessing < dynamicprops
             fprintf(prof, '%-60s\n', '# z thl qt u v tke');
             fprintf(prof, '%-20.15f %-12.6f %-12.6f %-12.6f %-12.6f %-12.6f\n', obj.pr');
             fclose(prof);
+        end
+
+        function generate_scalar(obj)	
+            preprocessing.addvar(obj, 'sc', zeros(length(obj.zf), obj.nsv+1));	
+            obj.sc(:,1) = obj.zf;
+            if obj.nsv>0
+                obj.sc(:,2) = obj.sv10;
+            end
+            if obj.nsv>1
+                obj.sc(:,3) = obj.sv20;
+            end
+            if obj.nsv>2
+                obj.sc(:,4) = obj.sv30;
+            end
+            if obj.nsv>3	
+                obj.sc(:,5) = obj.sv40;	
+            end
+            if obj.nsv>4
+                obj.sc(:,6) = obj.sv50;           
+            end
+        end	
+
+        function write_scalar(obj)	
+            scalar = fopen(['scalar.inp.' obj.expnr], 'w');	
+            fprintf(scalar, '%-12s\n', '# SDBL flow');
+            fprintf(scalar, '%-60s\n', '# z scaN,  N=1,2...nsv');	
+            fprintf(scalar, ['%-20.15f' repmat(' %-14.10f',[1,obj.nsv])  '\n'], obj.sc');	
+            fclose(scalar);	
         end
         
         function generate_topo_from_bl(obj)
