@@ -271,8 +271,10 @@ classdef preprocessing < dynamicprops
             preprocessing.addvar(obj, 'lcube', 0)   % switch for linear cubes
             preprocessing.addvar(obj, 'lstaggered', 0) % switch for staggered cubes
             preprocessing.addvar(obj, 'lcanyons', 0) % switch for infinite canyons
-            if (obj.lscasrcl && not(obj.lcanyons))
-                error('Scalar line sources only implemented for lcanyons')
+            if obj.nsv>0
+                if (obj.lscasrcl && not(obj.lcanyons))
+                    error('Scalar line sources only implemented for lcanyons')
+                end
             end
             
             if (obj.lcube || obj.lstaggered || obj.lcanyons)
