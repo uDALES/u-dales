@@ -1802,12 +1802,12 @@ classdef preprocessing < dynamicprops
             blocks = obj.blocks;
             height = floor(median(blocks(:, 6)));
                    
-            nxwalls = ceil(jtot / maxsize)
-            remx = rem(jtot, maxsize)
-            nywalls = ceil(imax / maxsize)
-            remy = rem(imax, maxsize)
-            nzw = ceil((height + 1) / maxsize)
-            remz = rem((height + 1), maxsize)
+            nxwalls = ceil(jtot / maxsize);
+            remx = rem(jtot, maxsize);
+            nywalls = ceil(imax / maxsize);
+            remy = rem(imax, maxsize);
+            nzw = ceil((height + 1) / maxsize);
+            remz = rem((height + 1), maxsize);
             
             nboundingwallfacets = 2 * nzw * (nxwalls + nywalls);
             boundingwallfacets = zeros(nboundingwallfacets, 11);
