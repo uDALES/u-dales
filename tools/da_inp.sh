@@ -41,9 +41,9 @@ nblocks=$(wc -l < $DA_EXPDIR/$iexpnr/blocks.inp.$iexpnr)
 nblocks=$(($nblocks-2))
 
 if grep -q nblocks $DA_EXPDIR/$iexpnr"/namoptions."$iexpnr; then
-	sedi "/nblocks/s/.*/nblocks    =  $nblocks/g" $DA_EXPDIR/$iexpnr"/namoptions."$iexpnr
+	sedi "/nblocks/s/.*/nblocks    = $nblocks/g" $DA_EXPDIR/$iexpnr"/namoptions."$iexpnr
 else
-	sedi '/&DOMAIN/a\'$'\n''nblocks    =  '$nblocks''$'\n' $DA_EXPDIR/$iexpnr"/namoptions."$iexpnr
+	sedi '/&DOMAIN/a\'$'\n''nblocks    = '$nblocks''$'\n' $DA_EXPDIR/$iexpnr"/namoptions."$iexpnr
 fi
 
 nfcts=$(wc -l < $DA_EXPDIR/$iexpnr/facets.inp.$iexpnr)

@@ -93,7 +93,7 @@ case $case in
           ;; 
 esac
 sed -i.bak -e '/lwarmstart/s/.*/lwarmstart =  .false./g' $DA_EXPDIR/$tar"/namoptions."$tar  #set warmstart to false in namoptions
-sed -i.bak -e "/iexpnr/s/.*/iexpnr     =  $tar/g" $DA_EXPDIR/$tar"/namoptions."$tar  #change experiment number in namoptions
+sed -i.bak -e "/iexpnr/s/.*/iexpnr      = $tar/g" $DA_EXPDIR/$tar"/namoptions."$tar  #change experiment number in namoptions
 
 rm $DA_EXPDIR/$tar"/namoptions."$tar".bak"	
 	
@@ -147,7 +147,7 @@ done
 # ln -s $DA_WORKDIR/$tar"/"*$startfilen* $DA_EXPDIR/$tar/
 
 sed -i.bak -e '/lwarmstart/s/.*/lwarmstart =  .true./g' $DA_EXPDIR/$tar"/namoptions."$tar #set warmstart to true in namoptions
-sed -i.bak -e "/iexpnr/s/.*/iexpnr     =  $tar/g" $DA_EXPDIR/$tar"/namoptions."$tar  #change experiment number in namoptions
+sed -i.bak -e "/iexpnr/s/.*/iexpnr      = $tar/g" $DA_EXPDIR/$tar"/namoptions."$tar  #change experiment number in namoptions
 sed -i.bak -e "/startfile/s/.*/startfile  =  '$startfilen\_xxx.$tar'/g" $DA_EXPDIR/$tar"/namoptions."$tar # change startfile to newest restartfiles
 
 rm $DA_EXPDIR/$tar"/namoptions."$tar".bak"
