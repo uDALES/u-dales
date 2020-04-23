@@ -1,8 +1,8 @@
 &RUN
 iexpnr      = 201
-runtime     = 2004.
-trestart    = 2000.
-dtmax       = 2.
+runtime     = 11.
+trestart    = 10.
+dtmax       = 1.
 irandom     = 43
 randqt      = 2.5e-5
 randthl     = 0.001
@@ -12,15 +12,15 @@ ladaptive   = .true.
 
 &OUTPUT
 lfielddump  = .true.
-tfielddump  = 1000.
-fieldvars   = 'u0,v0,w0,th,s1'
-ltdump      = .false.
+tfielddump  = 10.
+fieldvars   = 'u0,v0,w0,th'
+ltdump      = .true.
 lydump      = .false.
-lytdump     = .true.
+lytdump     = .false.
 lxydump     = .false.
-lxytdump    = .false.
-tstatsdump  = 500.
-tsample     = 5.
+lxytdump    = .true.
+tstatsdump  = 10.
+tsample     = 1.
 /
 
 &DOMAIN
@@ -82,7 +82,7 @@ nsv        = 0
 &ENERGYBALANCE
 lEB        = .true.
 lconstW    = .true.
-dtEB       = 100.
+dtEB       = 2.
 bldT       = 301.0
 wsoil      = 314.0
 wgrmax     = 451.0

@@ -1,7 +1,7 @@
 &RUN
 iexpnr     =  501
-runtime     = 2004.
-trestart    = 2000.
+runtime     = 11.
+trestart    = 10.
 dtmax       = 2.
 irandom     = 43
 randqt      = 2.5e-5
@@ -12,15 +12,15 @@ ladaptive   = .true.
 
 &OUTPUT
 lfielddump  = .true.
-tfielddump  = 1000.
+tfielddump  = 10.
 fieldvars   = 'u0,v0,w0,th'
 ltdump      = .false.
 lydump      = .false.
 lytdump     = .false.
 lxydump     = .true.
 lxytdump    = .true.
-tstatsdump  = 500.
-tsample     = 5.
+tstatsdump  = 10.
+tsample     = 1.
 /
 
 &DOMAIN
@@ -67,8 +67,8 @@ BCtopT     =  2
 /
 
 &WALLS
-nblocks    = 59
-nfcts      = 123                            
+nblocks    =  49
+nfcts      = 113
 iwallmom   = 2                                 
 iwalltemp  = 2                        
 iwallmoist = 1                                 
@@ -76,9 +76,9 @@ iwallmoist = 1
 
 &DRIVER
 idriver      = 1
-tdriverstart = 1000.
-dtdriver     = 2.
-driverstore  = 501
+tdriverstart = 5.
+dtdriver     = 1.
+driverstore  = 6
 iplane       = 64
 /
 
