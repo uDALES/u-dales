@@ -93,7 +93,7 @@ module modglobal
    !at the bottom (bot) !the bottom BC are defacto useless, since they will be covered by a road facet
    !1 = flux, 2 = wall function
    integer :: BCbotm = 2
-   integer :: BCbotT = 2
+   integer :: BCbotT = 1
    integer :: BCbotq = 1
    integer :: BCbots = 1
 
