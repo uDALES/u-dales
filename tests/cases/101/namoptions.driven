@@ -1,6 +1,6 @@
 &RUN
-iexpnr      = 001
-runtime     = 5
+iexpnr      = 101
+runtime     = 5.
 trestart    = 1000
 dtmax       = 1
 irandom     = 43
@@ -13,12 +13,12 @@ ladaptive   = .true.
 &OUTPUT
 lfielddump  = .true.
 tfielddump  = 4.
-fieldvars   = 'u0,v0,w0,s1'
+fieldvars   = 'u0,v0,w0'
 ltdump      = .true.
-lydump      = .true.
-lytdump     = .true.
-lxydump     = .true.
-lxytdump    = .true.
+lydump      = .false.
+lytdump     = .false.
+lxydump     = .false.
+lxytdump    = .false.
 tstatsdump  = 4.
 tsample     = 2.
 /
@@ -60,7 +60,8 @@ z0         =  0.01
 z0h        =  0.000067
 thl_top    =  288.
 qt_top     =  0.0
-qts        =  0.0 
+qts        =  0.0
+BCxm       =  5 
 /
 
 &WALLS
@@ -71,14 +72,10 @@ iwalltemp  = 2
 iwallmoist = 1                                 
 /
 
-&SCALARS
-nsv        = 1
-lscasrc    = .true.
-xS         = 7
-yS         = 15
-zS         = 2
-SS         = 1
-sigS       = 0.5
+&DRIVER
+idriver      = 2
+driverjobnr  = 101
+driverstore  = 6
 /
 
 &ENERGYBALANCE

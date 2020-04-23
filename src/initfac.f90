@@ -91,10 +91,12 @@
          allocate (facain(0:nfcts))
          allocate (facets(nfcts, 4))
 
-         allocate (vf(1:nfcts, 1:nfcts))
-         allocate (svf(1:nfcts))
-         allocate (netsw(1:nfcts))
-         allocate (facLWin(1:nfcts))
+         if (lEB .eqv. .true.) then
+           allocate (vf(1:nfcts, 1:nfcts))
+           allocate (svf(1:nfcts))
+           allocate (netsw(1:nfcts))
+           allocate (facLWin(1:nfcts))
+         end if
 
          allocate (Tfacinit(1:nfcts))
          allocate (facT(0:nfcts, nwalllayers+1))
@@ -116,7 +118,9 @@
          !block = 0; 
          faclGR = .false.; facz0 = 0.; facz0h = 0.; facalb = 0.; facem = 0.; facd=0.; facdi = 0.; faccp = 0.
          faclami = 0.; fackappa = 0.; faca = 0.; facain = 0; facets = 0
-         vf = 0.; svf = 0.; netsw = 0.; facLWin = 0.
+         if (lEB .eqv. .true.) then
+          vf = 0.; svf = 0.; netsw = 0.; facLWin = 0.
+         end if
          Tfacinit = 0.; facT = 0.; facTdash = 0.
          facef = 0.; facefi = 0.; facefsum = 0.; fachf = 0.; fachfi = 0.; fachfsum = 0.
          facf = 0.; fachurel = 0.; facwsoil = 0.; faccth = 0.; facqsat = 0.; 
@@ -365,8 +369,10 @@
          call MPI_BCAST(facain(0:nfcts), nfcts + 1, MPI_Integer, 0, comm3d, mpierr)
          call MPI_BCAST(facets, 4*nfcts, MPI_Integer, 0, comm3d, mpierr)
          !walltypes is broadcast further up
-         call MPI_BCAST(svf(1:nfcts), nfcts, MY_REAL, 0, comm3d, mpierr)
-         call MPI_BCAST(netsw(1:nfcts), nfcts, MY_REAL, 0, comm3d, mpierr)
+         if (lEB .eqv. .true.) then
+           call MPI_BCAST(svf(1:nfcts), nfcts, MY_REAL, 0, comm3d, mpierr)
+           call MPI_BCAST(netsw(1:nfcts), nfcts, MY_REAL, 0, comm3d, mpierr)
+         end if
          !facLWin currently not being broadcast..
          !vf currently not being broadcast
          call MPI_BCAST(Tfacinit(1:nfcts), nfcts, MY_REAL, 0, comm3d, mpierr)

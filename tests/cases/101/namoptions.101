@@ -1,6 +1,6 @@
 &RUN
-iexpnr      = 001
-runtime     = 5
+iexpnr      = 101
+runtime     = 10.
 trestart    = 1000
 dtmax       = 1
 irandom     = 43
@@ -11,14 +11,14 @@ ladaptive   = .true.
 /
 
 &OUTPUT
-lfielddump  = .true.
+lfielddump  = .false.
 tfielddump  = 4.
-fieldvars   = 'u0,v0,w0,s1'
-ltdump      = .true.
-lydump      = .true.
-lytdump     = .true.
-lxydump     = .true.
-lxytdump    = .true.
+fieldvars   = 'u0,v0,w0'
+ltdump      = .false.
+lydump      = .false.
+lytdump     = .false.
+lxydump     = .false.
+lxytdump    = .false.
 tstatsdump  = 4.
 tsample     = 2.
 /
@@ -71,14 +71,13 @@ iwalltemp  = 2
 iwallmoist = 1                                 
 /
 
-&SCALARS
-nsv        = 1
-lscasrc    = .true.
-xS         = 7
-yS         = 15
-zS         = 2
-SS         = 1
-sigS       = 0.5
+&DRIVER
+idriver      = 1
+tdriverstart = 5.
+driverjobnr  = 001
+dtdriver     = 1.
+driverstore  = 6
+iplane       = 64
 /
 
 &ENERGYBALANCE

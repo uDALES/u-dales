@@ -54,9 +54,9 @@ contains
       open(ifnamopt,file=fname_options,status='old',iostat=ierr)
       read (ifnamopt,NAMCHECKSIM,iostat=ierr)
       if (ierr > 0) then
-        print *, 'Problem in namoptions NAMCHECKSIM'
+        print *, 'ERROR: Problem in namoptions NAMCHECKSIM'
         print *, 'iostat error: ', ierr
-        stop 'ERROR: Problem in namoptions NAMCHECKSIM'
+        stop 1
       endif
       write(6 ,NAMCHECKSIM)
       close(ifnamopt)
