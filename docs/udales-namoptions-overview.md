@@ -144,7 +144,7 @@ Possible advection schemes:
 | BCtopq | 1 | | Boundary condition for humidity at domain top. | |
 | BCtops | 1 | | Boundary condition for scalars at domain top. | |
 | BCbotm | 2 | | Boundary condition for momentum at domain bottom. | |
-| BCbotT | 2 | | Boundary condition for temperature at domain bottom. | |
+| BCbotT | 1 | | Boundary condition for temperature at domain bottom. | |
 | BCbotq | 1 | | Boundary condition for humidity at domain bottom. | |
 | BCbots | 1 | | Boundary condition for scalars at domain bottom. | |
 | bctfxm | 0. | | Bounary Condition Temperature Flux X-minus-wall. | |
