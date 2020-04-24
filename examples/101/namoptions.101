@@ -1,10 +1,9 @@
 &RUN
-iexpnr     =  101
+iexpnr      = 101
 runtime     = 11.
 trestart    = 10.
 dtmax       = 1.
 irandom     = 43
-randqt      = 2.5e-5
 randthl     = 0.001
 randu       = 0.01
 ladaptive   = .true.
@@ -14,40 +13,32 @@ ladaptive   = .true.
 lfielddump  = .true.
 tfielddump  = 10.
 fieldvars   = 'u0,v0,w0,th,s1'
-ltdump      = .false.
-lydump      = .false.
 lytdump     = .true.
-lxydump     = .false.
-lxytdump    = .false.
 tstatsdump  = 10.
 tsample     = 1.
 /
 
 &DOMAIN
-imax       = 64
-jtot       = 64
-kmax       = 64
-xsize      = 64
-ysize      = 64
+imax        = 64
+jtot        = 64
+kmax        = 64
+xsize       = 64
+ysize       = 64
 /
 
 &PHYSICS
-lbuoyancy  = .true.
-ltempeq    = .true.
-lmoist     = .false.
-ps         = 101500.00
-igrw_damp  = 0
-luvolflowr = .true.
-uflowrate  = 1.5
+lbuoyancy   = .true.
+ltempeq     = .true.
+ps          = 101500.00
+igrw_damp   = 0
+luvolflowr  = .true.
+uflowrate   = 1.5
 /
 
 &DYNAMICS
-iadv_mom    =  2
-iadv_tke    =  2
-iadv_thl    =  2
-iadv_qt     =  2
-iadv_sv     =  7
-ipoiss      =  1
+iadv_thl    = 2
+iadv_sv     = 7
+ipoiss      = 0
 /
 
 &NAMSUBGRID
@@ -55,44 +46,28 @@ lvreman     = .true.
 /
 
 &BC
-wtsurf     =  0.                      
-wqsurf     =  0.
-thls       =  295.
-z0         =  0.01
-z0h        =  0.000067
-thl_top    =  285.
-qt_top     =  0.0
-qts        =  0.0
-BCtopT     =  2 
+wtsurf      = 0.                      
+wqsurf      = 0.
+thls        = 295.
+z0          = 0.01
+z0h         = 0.000067
+thl_top     = 285.
+BCtopT      = 2
+BCbotT      = 1
 /
 
 &WALLS
-nblocks    =  9
-nfcts      = 17
-iwallmom   = 2                                 
-iwalltemp  = 2                        
-iwallmoist = 1                                 
+nblocks     = 9
+nfcts       = 17
+iwallmom    = 2
+iwalltemp   = 2
 /
 
 &SCALARS
-nsv        = 1
-lscasrcl   = .true.
-SS         = 1.
-sigS       = 0.5
-/
-
-&ENERGYBALANCE
-lEB        = .false.
-lconstW    = .true.
-dtEB       = 50.
-bldT       = 301.0
-wsoil      = 314.0
-wgrmax     = 451.0
-wwilt      = 172.0
-wfc        = 314.0
-skyLW      = 201.0
-GRLAI      = 2.1
-rsmin      = 200.0 
+nsv         = 1
+lscasrcl    = .true.
+SS          = 1.
+sigS        = 0.5
 /
 
 &INPS
