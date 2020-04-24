@@ -1,64 +1,64 @@
 &RUN
-iexpnr      = 002
-runtime     = 11.
-trestart    = 10.
-dtmax       = 1.
-irandom     = 43
-randu       = 0.01
-ladaptive   = .true.
+iexpnr       = 002
+runtime      = 11.
+trestart     = 10.
+dtmax        = 1.
+irandom      = 43
+randu        = 0.01
+ladaptive    = .true.
 /
 
 &OUTPUT
-lfielddump  = .true.
-tfielddump  = 10.
-fieldvars   = 'u0,v0,w0'
-lxydump     = .true.
-lxytdump    = .true.
-tstatsdump  = 10.
-tsample     = 1.
+lfielddump   = .true.
+tfielddump   = 10.
+fieldvars    = 'u0,v0,w0'
+lxydump      = .true.
+lxytdump     = .true.
+tstatsdump   = 10.
+tsample      = 1.
 /
 
 &DOMAIN
-imax        = 64
-jtot        = 64
-kmax        = 64
-xsize       = 64
-ysize       = 64
+imax         = 64
+jtot         = 64
+kmax         = 64
+xsize        = 64
+ysize        = 64
 /
 
 &PHYSICS
-ps          = 101500.00
-igrw_damp   = 0
+ps           = 101500.00
+igrw_damp    = 0
 /
 
 &DYNAMICS
-ipoiss      = 0
+ipoiss       = 0
 /
 
 &NAMSUBGRID
-lvreman     = .true.
+lvreman      = .true.
 /
 
 &BC
-wtsurf     =  0.
-wqsurf     =  0.
-thls       =  288.
-z0         =  0.01
-z0h        =  0.000067
+wtsurf       = 0.
+wqsurf       = 0.
+thls         = 288.
+z0           = 0.01
+z0h          = 0.000067
 /
 
 &WALLS
-nblocks    = 17
-nfcts      = 33
-iwallmom   = 3
+nblocks      = 17
+nfcts        = 33
+iwallmom     = 3
 /
 
 &INPS
-lcube       = .true.
-zsize       = 64
-blockheight = 16
-blockwidth  = 16
-canyonwidth = 16
-dpdx        = 0.0001
-u0          = 2.
+lcube        = .true.
+zsize        = 64
+blockheight  = 16
+blockwidth   = 16
+canyonwidth  = 16
+dpdx         = 0.0001
+u0           = 2.
 /

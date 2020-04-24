@@ -1,84 +1,83 @@
 &RUN
-iexpnr      = 501
-runtime     = 11.
-trestart    = 10.
-dtmax       = 2.
-irandom     = 43
-randthl     = 0.001
-randu       = 0.01
-ladaptive   = .true.
+iexpnr       = 501
+runtime      = 11.
+trestart     = 10.
+dtmax        = 2.
+irandom      = 43
+randthl      = 0.001
+randu        = 0.01
+ladaptive    = .true.
 /
 
 &OUTPUT
-lfielddump  = .true.
-tfielddump  = 10.
-fieldvars   = 'u0,v0,w0,th'
-lxydump     = .true.
-lxytdump    = .true.
-tstatsdump  = 10.
-tsample     = 1.
+lfielddump   = .true.
+tfielddump   = 10.
+fieldvars    = 'u0,v0,w0,th'
+lxydump      = .true.
+lxytdump     = .true.
+tstatsdump   = 10.
+tsample      = 1.
 /
 
 &DOMAIN
-imax        = 64
-jtot        = 64
-kmax        = 64
-xsize       = 64
-ysize       = 64
+imax         = 64
+jtot         = 64
+kmax         = 64
+xsize        = 64
+ysize        = 64
 /
 
 &PHYSICS
-lbuoyancy   = .true.
-ltempeq     = .true.
-ps          = 101500.00
-igrw_damp   = 0
-luvolflowr  = .true.
-uflowrate   = 1.5
+lbuoyancy    = .true.
+ltempeq      = .true.
+ps           = 101500.00
+igrw_damp    = 0
+luvolflowr   = .true.
+uflowrate    = 1.5
 /
 
 &DYNAMICS
-iadv_mom    = 2
-iadv_thl    = 2
-iadv_sv     = 7
-ipoiss      = 0
+iadv_mom     = 2
+iadv_thl     = 2
+iadv_sv      = 7
+ipoiss       = 0
 /
 
 &NAMSUBGRID
-lvreman     = .true.
+lvreman      = .true.
 /
 
 &BC
-wtsurf      = 0.                      
-wqsurf      = 0.
-thls        = 295.
-z0          = 0.01
-z0h         = 0.000067
-thl_top     = 285.
-BCtopT      = 2
-BCbotT      = 1
+wtsurf       = 0.                      
+wqsurf       = 0.
+thls         = 295.
+z0           = 0.01
+z0h          = 0.000067
+thl_top      = 285.
+BCtopT       = 2
 /
 
 &WALLS
-nblocks     = 49
-nfcts       = 113
-iwallmom    = 2
-iwalltemp   = 2
+nblocks      = 49
+nfcts        = 113
+iwallmom     = 2
+iwalltemp    = 2
 /
 
 &DRIVER
-idriver     = 1
+idriver      = 1
 tdriverstart = 5.
-dtdriver    = 1.
-driverstore = 6
-iplane      = 64
+dtdriver     = 1.
+driverstore  = 6
+iplane       = 64
 /
 
 &INPS
-lcube       = .true.
-zsize       = 64
-blockheight = 8
-blockwidth  = 8
-canyonwidth = 8
-thl0        = 290.
-u0          = 2.
+lcube        = .true.
+zsize        = 64
+blockheight  = 8
+blockwidth   = 8
+canyonwidth  = 8
+thl0         = 290.
+u0           = 2.
 /
