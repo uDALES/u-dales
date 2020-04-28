@@ -1,6 +1,6 @@
 # Pre-processing
 
-This guide explains how to set up the input files of your simulation. The idea is that you already have a simulation set up, and now you want to modify some of the parameters of your simulation. If you do not have a simulation yet, have a look at [Set-up(./udales-getting-started.md#set-up)] in our getting started guide.
+This guide explains how to set up the input files of your simulation. The idea is that you already have a simulation set up, and now you want to modify some of the parameters of your simulation. If you do not have a simulation yet, have a look at the sSet-up(https://github.com/uDALES/u-dales/blob/master/docs/udales-getting-started.md#set-up)] section in our getting started guide.
 
 The parameters of the simulation are set in the `namoptions` file of your experiment. Some parameter changes require the additional [input files](#Input-files) to be re-written, which will be done automatically by the pre-processing. The next section provides an overview of these parameters.
 
@@ -97,7 +97,7 @@ The following parameters relate to generating `blocks.inp`. Only one of the foll
 
 ## Run
 
-The `da_inp.sh` shell script is a wrapper around the MATALB pre-processing functions of `preprocessing.m`. For more info about the functions see [Developer's guide](#Developer's-guide). The script requires several variables to be set up. Below is an example setup for copying and pasting. You can also specify these parameters in a `config.sh` file within the experiment directory, which is then read by the scripts.
+The `da_inp.sh` shell script is a wrapper around the MATALB pre-processing functions of `preprocessing.m`. For more info about the functions see [Developer's guide](#developers-guide). The script requires several variables to be set up. Below is an example setup for copying and pasting. You can also specify these parameters in a `config.sh` file within the experiment directory, which is then read by the scripts.
 
 ``` sh
 # We assume you are running the following commands from your
