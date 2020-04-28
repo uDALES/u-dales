@@ -914,11 +914,11 @@ contains
     integer jv
     integer i, j, k
     !real dzl(ke+kh-(kb-kh)),dzhl(ke+kh-(kb-kh))
-    real dzl(0:kmax+1),dzhl(0:kmax+1)
+    real dzl(0:kmax+1),dzhl(1:kmax+1)
 
     dxi = dxfi(1)
     dzl(0:kmax+1) = dzf(kb-kh:ke+kh)
-    dzhl(0:kmax+1) = dzh(kb-kh:ke+kh)
+    dzhl(1:kmax+1) = dzh(kb:ke+kh)
 
     i1 = imax+1
     j1 = jmax+1
