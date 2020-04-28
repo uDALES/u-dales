@@ -1,25 +1,8 @@
 # Pre-processing
 
-## Input files
+This guide explains how to set up the input files of your simulation. The idea is that you already have a simulation set up, and now you want to modify some of the parameters of your simulation. If you do not have a simulation yet, have a look at [Set-up(./udales-getting-started.md#set-up)] in our getting started guide.
 
-uDALES requires a number of input files, all suffixed by the experiment number, which is omitted in the following documentation. The `namoptions.inp` file contains a list of parameters for uDALES and the pre-processing routines, and the pre-processing is intended to run using solely this file (with some exceptions). The input files are:
-
-- `xgrid.inp`: x grid values.
-- `zgrid.inp`: z grid values.
-- `prof.inp`: initial profiles of e.g. u, v, w, T.
-- `lscale.inp`: large-scale forcings.
-- `blocks.inp`: block position and corresponding facets.
-- `facets.inp`: facet orientation and corresponding block.
-- `Tfacinit.inp`: initial facet temperatures.
-- `walltypes.inp`: a description of the properties of different types of facet (this is copied to the experiment directory automatically).
-
-If using scalars, `scalar.inp` is also required to specifiy the initial scalar profiles.
-When using the energy balance, the following additional files are required:
-
-- `facetarea.inp`: areas of facets.
-- `vf.nc.inp`: view factors of facets (stored as a netcdf file).
-- `scf.inp`: sky view factor of facets.
-- `netsw.inp`: net shortwave radiation on facets.
+The parameters of the simulation are set in the `namoptions` file of your experiment. Some parameter changes require the additional [input files](#Input-files) to be re-written, which will be done automatically by the pre-processing. The next section provides an overview of these parameters.
 
 ## Pre-processing parameters
 Some parameters used by uDALES are also used in the pre-processing. They are the following:
@@ -112,12 +95,33 @@ The following parameters relate to generating `blocks.inp`. Only one of the foll
 - `blockwidth`: width of blocks (cells). Default: 16.
 - `canyonwidth`: width of canyon (cells). Default: 16.
 
+## Run
+
+The `da_inp.sh` shell script is a wrapper around the MATALB pre-processing functions of `preprocessing.m`. For more info about the functions see [Developer's guide](#Developer's-guide). The script requires several variables to be set up. Below is an example setup for copying and pasting. You can also specify these parameters in a `config.sh` file within the experiment directory, which is then read by the scripts.
+
+``` sh
+# We assume you are running the following commands from your
+# top-level project directory.
+
+export DA_TOOLSDIR=$(pwd)/u-dales/tools # Directory of the scripts
+export DA_EXPDIR=$(pwd)/experiments #  The top-level directory of the simulation setups
+```
+
+Then, to start the pre-processing, run:
+
+``` sh
+# We assume you are running the following commands from your
+# top-level project directory.
+
+# General syntax: da_inp.sh exp_id
+./u-dales/tools/da_inp.sh 009
+```
 
 ## Developer's guide
 
 The `u-dales/tools/preprocessing.m` matlab class contains the functionality for preprocessing. The constructor reads the parameters in `namoptions` and stores them as member variables, and defines default variables for those not specified. These are then used in the member functions. In these member functions, additional data structures are also stored as member variables, including those used repeatedly and those eventually written to files, so that one can easily view and manipulate them using the matlab IDE.
 
-The `u-dales/tools/write_input_files.m` matlab script calls member functions of `preprocessing.m` in order to write the necessary input files for uDALES. It is intended to be as short and readable as possible, with the goal being that a developer can edit for a particular purpose, perhaps by calling a member function they have added to `preprocessing.m`. It will work simply as a normal script using the matlab IDE, but when doing this, ensure that `DA_EXPDIR = <top level directory>/<expnr>/` and `DA_TOOLSDIR = <top level directory>/u-dales/tools/` are defined.
+The `u-dales/tools/write_input_files.m` matlab script calls member functions of `preprocessing.m` in order to write the necessary input files for uDALES. It is intended to be as short and readable as possible, with the goal being that a developer can edit for a particular purpose, perhaps by calling a member function they have added to `preprocessing.m`. It will work simply as a normal script using the matlab IDE, but when doing this, ensure that `DA_EXPDIR = <top level directory>/experiments/` and `DA_TOOLSDIR = <top level directory>/u-dales/tools/` are defined.
 
 The `u-dales/tools/da_inp.sh` shell script acts as a wrapper around `write_input_files.m`. Before running the matlab script, it will run the shell script `config.sh` located in the experiment directory, which defines environmental variables `DA_EXPDIR` and `DA_TOOLSDIR`. After running the script, it will also write the correct number of blocks and facets to `namoptions`. It is intended to be run from the top level project directory.
 
@@ -128,3 +132,24 @@ The `u-dales/tools/da_inp.sh` shell script acts as a wrapper around `write_input
 # General syntax: da_inp.sh exp_id
 ./u-dales/tools/da_inp.sh 009
 ```
+
+### Input files
+
+uDALES requires a number of input files, all suffixed by the experiment number, which is omitted in the following documentation. The `namoptions.inp` file contains a list of parameters for uDALES and the pre-processing routines, and the pre-processing is intended to run using solely this file (with some exceptions). The input files are:
+
+- `xgrid.inp`: x grid values.
+- `zgrid.inp`: z grid values.
+- `prof.inp`: initial profiles of e.g. u, v, w, T.
+- `lscale.inp`: large-scale forcings.
+- `blocks.inp`: block position and corresponding facets.
+- `facets.inp`: facet orientation and corresponding block.
+- `Tfacinit.inp`: initial facet temperatures.
+- `walltypes.inp`: a description of the properties of different types of facet (this is copied to the experiment directory automatically).
+
+If using scalars, `scalar.inp` is also required to specifiy the initial scalar profiles.
+When using the energy balance, the following additional files are required:
+
+- `facetarea.inp`: areas of facets.
+- `vf.nc.inp`: view factors of facets (stored as a netcdf file).
+- `scf.inp`: sky view factor of facets.
+- `netsw.inp`: net shortwave radiation on facets.
