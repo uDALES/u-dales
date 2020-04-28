@@ -50,7 +50,6 @@ z0h          = 0.000067
 &WALLS
 nblocks      = 1
 nfcts        = 1
-iwallmom     = 3
 /
 
 &ENERGYBALANCE

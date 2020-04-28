@@ -50,7 +50,6 @@ z0h          = 0.000067
 &WALLS
 nblocks      = 17
 nfcts        = 33
-iwallmom     = 3
 /
 
 &INPS

@@ -186,13 +186,13 @@ Possible advection schemes:
 
 2 = flux determined by wall function involving temperature
 
-3 = flux determined by neutral wall function (no temperature)
+3 = flux determined by neutral wall function (set automatically if `ltempeq = .false.`)
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
 | nblocks | 0 | `INTEGER` | Number of blocks specified in `blocks.inp`. | - |
 | nfcts | -1 | `INTEGER` | Number of facets specified in `facets.inp`. | - |
-| iwallmom | 2 | 2, 3 (1 currently not implemented) | Building wall momentum flux. *Default will change to 3 in the future.* | - |
+| iwallmom | 2 | 2, 3 (1 currently not implemented) | Building wall momentum flux. | - |
 | iwalltemp | 1 | 1, 2 |  Building wall temperature flux. | - |
 | iwallmoist | 1 | 1, 2 |  Building wall moisture flux. | - |
 | iwallscal | 1 | 1, 2 | Building wall scalar flux | - |

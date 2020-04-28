@@ -58,7 +58,6 @@ BCtopT       = 2
 &WALLS
 nblocks      = 87
 nfcts        = 144
-iwallmom     = 2
 iwalltemp    = 2
 /
 
