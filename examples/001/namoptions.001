@@ -1,100 +1,65 @@
 &RUN
-iexpnr     =  001
-runtime     = 11.
-trestart    = 10.
-dtmax       = 1.
-irandom     = 43
-randqt      = 2.5e-5
-randthl     = 0.001
-randu       = 0.01
-ladaptive   = .true.
+iexpnr       = 001
+runtime      = 11.
+trestart     = 10.
+dtmax        = 1.
+irandom      = 43
+randu        = 0.01
+ladaptive    = .true.
 /
 
 &OUTPUT
-lfielddump  = .true.
-tfielddump  = 10.
-fieldvars   = 'u0,v0,w0'
-ltdump      = .false.
-lydump      = .false.
-lytdump     = .false.
-lxydump     = .true.
-lxytdump    = .true.
-tstatsdump  = 10.
-tsample     = 1.
+lfielddump   = .true.
+tfielddump   = 10.
+fieldvars    = 'u0,v0,w0'
+lxydump      = .true.
+lxytdump     = .true.
+tstatsdump   = 10.
+tsample      = 1.
 /
 
 &DOMAIN
-imax       = 64
-jtot       = 64
-kmax       = 64
-xsize      = 64
-ysize      = 64
+imax         = 64
+jtot         = 64
+kmax         = 64
+xsize        = 64
+ysize        = 64
 /
 
 &PHYSICS
-lbuoyancy  = .false.
-ltempeq    = .false.
-lmoist     = .false.
-ps         = 101500.00
-igrw_damp  = 0
+ps           = 101500.00
+igrw_damp    = 0
 /
 
 &DYNAMICS
-iadv_mom    =  2
-iadv_tke    =  2
-iadv_thl    =  2
-iadv_qt     =  2
-iadv_sv     =  7
-ipoiss      =  1
+ipoiss       = 0
 /
 
 &NAMSUBGRID
-lvreman     = .true.
+lvreman      = .true.
 /
 
 &BC
-wtsurf     =  0.                      
-wqsurf     =  0.
-thls       =  288.
-z0         =  0.01
-z0h        =  0.000067
-thl_top    =  288.
-qt_top     =  0.0
-qts        =  0.0 
+wtsurf       = 0.
+wqsurf       = 0.
+thls         = 288.
+z0           = 0.01
+z0h          = 0.000067
 /
 
 &WALLS
-nblocks    =  1
-nfcts      = 1
-iwallmom   = 2                                 
-iwalltemp  = 1                        
-iwallmoist = 1                                 
-/
-
-&SCALARS
-nsv        = 0
+nblocks      = 1
+nfcts        = 1
+iwallmom     = 3
 /
 
 &ENERGYBALANCE
-lEB        = .false.
-lconstW    = .true.
-dtEB       = 50.
-bldT       = 301.0
-wsoil      = 314.0
-wgrmax     = 451.0
-wwilt      = 172.0
-wfc        = 314.0
-skyLW      = 201.0
-GRLAI      = 2.1
-rsmin      = 200.0 
+bldT       = 301.
 /
 
 &INPS
-lflat       = .true.
-zsize       = 64
-blockheight = 16
-blockwidth  = 16
-canyonwidth = 16
-dpdx        = 0.0001
-u0          = 2.
+lflat        = .true.
+zsize        = 64
+dpdx         = 0.0001
+u0           = 2.
 /
