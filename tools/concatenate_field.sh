@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 
 ## call: dumptype, ym-variables(list separated by comma, no space, include ym), out.nc
-## e.g. da_merge.sh fielddump v,ym out.nc
+## e.g. concatenate_field.sh fielddump v,ym out.nc
 
 if (( $# == 3 )) ; then
 	dumps=$1
 	ymparam=$2
 	outfile=$3
 else
-	echo "Wrong function call. Call da_merge dumptype ym-variables out.nc"
+	echo "Wrong function call. Call concatenate_field.sh dumptype ym-variables out.nc"
 	exit 1
 fi
 
@@ -29,14 +29,14 @@ if (( n > 1 )) ; then
         rm fieldtmp2.nc
         
     else
-        ## start with the ym-variables and merge them into a new file
+        ## start with the ym-variables and gather them in a new file
         for file in ${dumps}.*.*.nc; do
                 ncpdq -64 -a ym,time,zt,zm,xt,xm -v ${ymparam} ${file} "tmp1${file#${dumps}}"
         done
         ncrcat -64 tmp1.*.nc fieldtmp1.nc
         rm tmp1.*.nc
 
-        ## take only remaining variables and merge them into a new file
+        ## take only remaining variables and gather them in a new file
         for file in ${dumps}.*.*.nc; do
             ncpdq -64 -a yt,time,zt,zm,xt,xm -C -x -v ${ymparam} ${file} "tmp${file#${dumps}}"
         done

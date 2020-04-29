@@ -5,6 +5,7 @@ This guide explains how to set up the input files of your simulation. The idea i
 The parameters of the simulation are set in the `namoptions` file of your experiment. Some parameter changes require the additional [input files](#Input-files) to be re-written, which will be done automatically by the pre-processing. The next section provides an overview of these parameters.
 
 ## Pre-processing parameters
+
 Some parameters used by uDALES are also used in the pre-processing. They are the following:
 
 ### `&RUN`
@@ -35,8 +36,9 @@ Note `luoutflowr` should not be used with `luvolflowr`, and similarly with `lvou
 - `lcoriol`: switch for coriolis force. Default: false.
 - `lprofforc`: switch for nudging flow to a profile. Default: false.
 - `lchem`: switch for chemistry.
- 
+
 ### `&INPS`
+
 The parameters under the `&INPS` header are used only in the pre-processing.
 
 - `zsize`: size of domain in z direction (metres).
@@ -116,6 +118,8 @@ Then, to start the pre-processing, run:
 # General syntax: da_inp.sh exp_id
 ./u-dales/tools/da_inp.sh 009
 ```
+
+Replace 009 with the number of your simulation.
 
 ## Developer's guide
 

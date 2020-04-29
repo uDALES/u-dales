@@ -14,16 +14,16 @@ fi
 pushd $(dirname "${0}") > /dev/null
 scriptdir=$(pwd -L)
 popd > /dev/null
-utilsdir=${scriptdir}  # assume same utils dir for da_merge.sh
+toolsdir=${scriptdir}  # assume same directory for concatenate_field.sh
 
 if [ -z $LOCAL_EXECUTE ]; then
     echo "cluster"
     module load intel-suite udunits nco/4.6.2
 fi;
 
-## Merging fields along spatial axis.
+## Gathering fields along spatial axis.
 
-echo "Merging fields along spatial axis."
+echo "Gathering fields along spatial axis."
 
 ## go to files directory
 cd ${datapath}
@@ -51,10 +51,10 @@ for file in $dumpslist ; do
     outfile="${dumps}.${expnr}.nc"
 
     echo "We are in ${datapath}."
-    echo "Merging ${dumps} files with ym-dependent variables ${ymparam}."
+    echo "Gathering ${dumps} files with ym-dependent variables ${ymparam}."
     echo "Saving output to ${outfile}."
 
-    ${utilsdir}/da_merge.sh $dumps $ymparam $outfile
+    ${toolsdir}/concatenate_field.sh $dumps $ymparam $outfile
     echo "Merging done."
 
 done
