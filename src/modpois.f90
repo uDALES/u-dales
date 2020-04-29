@@ -914,11 +914,11 @@ contains
     integer jv
     integer i, j, k
     !real dzl(ke+kh-(kb-kh)),dzhl(ke+kh-(kb-kh))
-    real dzl(0:kmax+1),dzhl(0:kmax+1)
+    real dzl(0:kmax+1),dzhl(1:kmax+1)
 
     dxi = dxfi(1)
     dzl(0:kmax+1) = dzf(kb-kh:ke+kh)
-    dzhl(0:kmax+1) = dzh(kb-kh:ke+kh)
+    dzhl(1:kmax+1) = dzh(kb:ke+kh)
 
     i1 = imax+1
     j1 = jmax+1
@@ -933,7 +933,7 @@ contains
 
   ! re-distributed p1:
 
-    allocate(rhobf(1:kmax), rhobh(1:kmax))
+    allocate(rhobf(1:kmax), rhobh(1:kmax+1))
     allocate(xyzrt(0:i1,0:j1,0:k1),xrt(0:i1),yrt(0:jtot+1))
     allocate(a(0:kmax+1),b(0:kmax+1),c(0:kmax+1))
     allocate(FFTI(imax),FFTJ(jtot),winew(2*imax+15),wjnew(2*jtot+15))
