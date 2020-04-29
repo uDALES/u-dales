@@ -75,7 +75,7 @@ contains
                  ibc1,ibc2,kbc1,kbc2,ksen)
     case default
        write(*,*) "Invalid choice for Poisson solver"
-       stop
+       stop 1
     end select
 
     call tderive
@@ -266,6 +266,9 @@ contains
     ! the volume averaged modified pressure from this value at all time steps.
     ! Periodic: p - <p>_ijk
     ! Makes no change on physical effect of modified pressure in code.
+
+    ! tg3315 - update 24/06/19 -- there is a missing term in the application of the periodic BCs for pup, could this be part of the problem? Test with this to see if can avoid use of pijk below.
+    ! refer to mvr for necessity of this
 
     ! useful refs:
     ! https://opensky.ucar.edu/islandora/object/technotes%3A98/datastream/PDF/download/citation.pdf
@@ -911,11 +914,11 @@ contains
     integer jv
     integer i, j, k
     !real dzl(ke+kh-(kb-kh)),dzhl(ke+kh-(kb-kh))
-    real dzl(0:kmax+1),dzhl(0:kmax+1)
+    real dzl(0:kmax+1),dzhl(1:kmax+1)
 
     dxi = dxfi(1)
     dzl(0:kmax+1) = dzf(kb-kh:ke+kh)
-    dzhl(0:kmax+1) = dzh(kb-kh:ke+kh)
+    dzhl(1:kmax+1) = dzh(kb:ke+kh)
 
     i1 = imax+1
     j1 = jmax+1
@@ -930,7 +933,7 @@ contains
 
   ! re-distributed p1:
 
-    allocate(rhobf(1:kmax), rhobh(1:kmax))
+    allocate(rhobf(1:kmax), rhobh(1:kmax+1))
     allocate(xyzrt(0:i1,0:j1,0:k1),xrt(0:i1),yrt(0:jtot+1))
     allocate(a(0:kmax+1),b(0:kmax+1),c(0:kmax+1))
     allocate(FFTI(imax),FFTJ(jtot),winew(2*imax+15),wjnew(2*jtot+15))
@@ -1120,6 +1123,3 @@ contains
 
 
 end module modpois
-
-
-

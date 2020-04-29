@@ -59,8 +59,6 @@ module modglobal
    integer :: nblocks = 0 ! no. of blocks in IBM
    integer, allocatable :: block(:,:)
    integer :: nfcts = -1 ! no. of wall facets
-   integer :: ntrees = 0
-   integer :: npurif = 0
    integer ::  iplane ! ib+iplane is the plane that is stored when lstoreplane=.true.
    integer ::  nstore = 1002 ! number of rk steps in inletfile. This should be a multiple of three!
    character(90) :: fname_options = 'namoptions'
@@ -95,11 +93,12 @@ module modglobal
    !at the bottom (bot) !the bottom BC are defacto useless, since they will be covered by a road facet
    !1 = flux, 2 = wall function
    integer :: BCbotm = 2
-   integer :: BCbotT = 2
+   integer :: BCbotT = 1
    integer :: BCbotq = 1
    integer :: BCbots = 1
 
    integer :: iinletgen = 0 !<  0: no inletgen, 1: turb. inlet generator (Lund (1998)), 2: read inlet from file
+   integer :: idriver = 0 !<  0: no inlet driver store, 1: Save inlet driver data, 2: read inlet driver data from file
    logical :: linoutflow = .false. !<  switch for periodic BC in both horizontal directions (false) or inflow/outflow in i and periodic in j.
    logical :: lzerogradtop = .false. !<  switch for zero gradient BC's at top wall (iinletgen 1 and 2 are seperate).
    logical :: lzerogradtopscal = .false. !
@@ -111,8 +110,6 @@ module modglobal
    logical :: lmoistinout = .false. !<  seperate switch for inflow/outflow BC for moisture (only necessary when linoutflow.eqv..false.).
    logical :: lper2inout = .false. !<  switch that determines type of restart: .true. means switching from periodic to in/outflow: inlet profile is read from prof.inp
    logical :: libm = .true. !<  switch that determines whether the Immersed Boundary Method is turned on
-   logical :: ltrees = .false. !
-   logical :: lpurif = .false.
    logical :: lwalldist = .false. !<  switch that determines whether the wall distances should be computed
    logical :: lles = .true. !<  switch that determines whether the subgrid model is turned on or constant ekm and ekh are used (DNS)
    logical :: linletRA = .false. !<  switch that determines whether a Running Average should be used (.true.) in inlet generator
@@ -126,8 +123,8 @@ module modglobal
    logical :: lxytdump   = .false.  !<  switch to output x-, y- and time-averaged statistics every tstatsdump
    logical :: lscasrcr  = .false.  !<  switch for network of point sources at lowest level
    logical :: ltkedump = .false. !tg3315
-  logical :: lslicedump= .false.  !<  switch to output slices in the xy-plane every tstatsdump
-  logical :: ltdump    = .false.      !<  switch to output time-averaged statistics every tstatsdump
+   logical :: lslicedump= .false.  !<  switch to output slices in the xy-plane every tstatsdump
+   logical :: ltdump    = .false.      !<  switch to output time-averaged statistics every tstatsdump
 
    logical :: lreadminl = .false. !<  switch for reading mean inlet/recycle plane profiles (used in inletgenerator)
    logical :: lwallfunc = .true. !<  switch that determines whether wall functions are used to compute the wall-shear stress
@@ -189,7 +186,7 @@ module modglobal
    real, parameter :: prandtlmol = 0.71 !< Prandtl number (for air at 300K). Fluid property!
    real, parameter :: prandtlmoli = 1./prandtlmol !< Inverse of Prandtl number
 
-   integer         :: iwallmom = 2, iwalltemp = 1, iwallmoist = 1
+   integer         :: iwallmom = 2, iwalltemp = 1, iwallmoist = 1, iwallscal = 1
 
    real, parameter :: rhow = 0.998e3 !<    * Density of water
    real, parameter :: pref0 = 1.e5 !<    *standard pressure used in exner function.
@@ -223,14 +220,12 @@ module modglobal
    real    :: xlon = 0. !<    *longitude in degrees.
 
    !scalar source in fluid domain
-   integer :: xS = 0, yS = 0, zS = 0
+   real, allocatable :: xSa(:)
+   real, allocatable :: ySa(:)
+   real, allocatable :: zSa(:)
+   real    :: xS = 0., yS = 0., zS = 0.
    real    :: SS = 0.
    real    :: sigS = 0.
-
-  !trees
-  integer, allocatable :: tree(:,:)             !< field with data from tree.inp.xxx
-  real, allocatable :: ladt(:)                  !< field with leaf area density data
-  real    :: cd = 0., ud = 0., Rshade = 0., sun = 0., decay = 0.,Bowen = 0.   !< current set of parameters for tree model
 
   logical :: lnudge = .false.                   !< switch for applying nudging at the top of the domain
   real    :: tnudge = 50.                       !< time scale for nudging
@@ -239,10 +234,6 @@ module modglobal
   !chemistry
   logical :: lchem = .false.    ! switch for basic chemistry
   real    :: k1 = 0., JNO2 = 0.   ! k1 = rate constant (O3 + NO -> NO2 + 02 ), JNO2 = NO2 photolysis rate
-
-  !purifiers
-  integer, allocatable :: purif(:,:)            !< field with data from purif.inp.xxx
-  real    :: Qpu = 0., epu = 0.                 !< flowrate and efficiency of purifiers
 
    ! Poisson solver
    integer, parameter :: POISS_FFT = 0, &
@@ -291,8 +282,13 @@ module modglobal
    integer :: ntimee !<     * number of timesteps since the cold start
    integer :: ntrun !<     * number of timesteps since the start of the run
    real    :: timeleft
-
    logical :: ladaptive = .false. !<    * adaptive timestepping on or off
+
+   real    :: tdriverstart = 0.   !<     * time at which to start recording inlet driver file (only necessary if idriver == 1)                                                                            
+   real    :: tdriverdump         !<     * time in inlet driver simulation at which data dumps are made (idriver == 1)
+   real    :: dtdriver = 0.1      !<     * time frequency at which inlet driver data dumps are made (idriver == 1)
+   integer :: driverstore         !<     * number of stored driver steps for inlet (automatically calculated)
+   integer :: driverjobnr         !<     * Job number of the driver inlet generation run (idriver == 2)
 
    real    :: courant = -1.
    real    :: diffnr = 0.25

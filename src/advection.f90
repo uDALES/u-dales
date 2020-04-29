@@ -20,7 +20,8 @@ subroutine advection
       call advecv_2nd(v0, vp)
       call advecw_2nd(w0, wp)
    case default
-      stop "Unknown advection scheme "
+      print *, "ERROR: Unknown advection scheme"
+      stop 1
    end select
 
    if (loneeqn) then
@@ -28,7 +29,8 @@ subroutine advection
       case (iadv_cd2)
          call advecc_2nd(ih, jh, kh, e120, e12p)
       case default
-         stop "Unknown advection scheme "
+         print *, "ERROR: Unknown advection scheme"
+         stop 1 
       end select
    end if
 
@@ -38,7 +40,8 @@ subroutine advection
    case (iadv_kappa)
       call advecc_kappa(ihc, jhc, khc, thl0, thlp)
    case default
-      stop "Unknown advection scheme "
+      print *, "ERROR: Unknown advection scheme"
+      stop 1
    end select
 
    if (lmoist) then
@@ -46,7 +49,8 @@ subroutine advection
       case (iadv_cd2)
          call advecc_2nd(ih, jh, kh, qt0, qtp)
       case default
-         stop "Unknown advection scheme "
+         print *, "ERROR: Unknown advection scheme"
+         stop 1
       end select
    end if
    do n = 1, nsv
@@ -58,7 +62,8 @@ subroutine advection
       case (iadv_upw)
          call advecc_upw(ihc, jhc, khc, sv0(:, :, :, n), svp(:, :, :, n))
       case default
-         stop "Unknown advection scheme "
+         print *, "ERROR: Unknown advection scheme"
+         stop 1
       end select
    end do
 

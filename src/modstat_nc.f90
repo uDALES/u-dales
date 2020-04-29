@@ -311,8 +311,8 @@ contains
 
         case default
         write(*,*) 'nvar', nvar, sx(n,:)
-        print *, 'ABORTING: Bad dimensional information ',sx(n,:)
-        stop
+        print *, 'ERROR: Bad dimensional information ',sx(n,:)
+        stop 1
         ! call appl_abort(0)
       end select
       if (iret/=0) then
@@ -497,8 +497,8 @@ contains
 
     if(status /= nf90_noerr) then
       print *, trim(nf90_strerror(status))
-      write(*,*) 'status',  status !tg3315 added to get error code
-      stop "Stopped"
+      write(*,*) 'ERROR: status',  status !tg3315 added to get error code
+      stop 1
     end if
 
   end subroutine nchandle_error
