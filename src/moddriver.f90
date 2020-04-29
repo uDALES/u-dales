@@ -27,13 +27,13 @@ contains
     real    :: pfi, epsi
     integer :: k
 
-    ! if(idriver==1) then
-    ! driverstore = (timeleft - tdriverstart)/dtdriver + 1
-    ! if(myid==0) then
-      ! write(*,*) 'driverstore: ', driverstore
-    ! end if
-    ! tdriverdump = tdriverstart
-    ! endif
+    if(idriver==1) then
+      ! driverstore = (timeleft - tdriverstart)/dtdriver + 1
+      ! if(myid==0) then
+        ! write(*,*) 'driverstore: ', driverstore
+      ! end if
+      tdriverdump = 0.
+   endif
 
     if (idriver==1) then
       allocate(storetdriver(1:driverstore))

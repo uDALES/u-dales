@@ -637,7 +637,7 @@ contains
       tnextrestart = trestart
       tnextfielddump = tfielddump
 !    tnextstatsdump = tstatsdump
-      timeleft = btime + runtime
+      timeleft = runtime ! tg3315 previously btime + runtime
 
    end subroutine initglobal
 
