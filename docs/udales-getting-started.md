@@ -19,14 +19,12 @@ On local systems, these software and libraries should be available from your sys
 
 On high performance computing (HPC) clusters, these software and libraries should have already been installed. Please refer to the specific documentation to load the above software and libraries. Alternatively, you can install all the required packages easily after installing [Linuxbrew](https://docs.brew.sh/Homebrew-on-Linux) and using the instructions for [macOS](#macos).
 
-
 ### Linux/WSL (Ubuntu)
 
 ```sh
 sudo apt-get update && sudo apt-get upgrade -y
 sudo apt-get install -y git cmake gfortran libopenmpi-dev openmpi-bin libnetcdf-dev libnetcdff-dev nco python3 python3-pip
 ```
-
 
 ### macOS
 
@@ -36,7 +34,6 @@ On macOS, use [Homebrew](https://docs.brew.sh) to install the required libraries
 brew update
 brew install git cmake gcc netcdf open-mpi nco python3
 ```
-
 
 ## Installation
 
@@ -141,7 +138,6 @@ By default uDALES will compile in `Release` mode. You can change this by specify
 | `NETCDF_FORTRAN_DIR`            | `<path>`           | -         | Path to NetCDF-Fortran installation directory |
 | `SKIP_UPDATE_EXTERNAL_PROJECTS` | `ON`, `OFF`        | `OFF`     | Whether to skip updating external projects    |
 
-
 ## Set-up
 
 To set up a new simulation, `da_prep.sh` in `u-dales/tools/utils` is used to create a new simulation setup `new_exp_id` based on another simulation `old_exp_id`. All `exp_ids` are three digit numbers, e.g. 001, and are stored in directories of that name. Scripts requires several variables to be set up. You can do this by copying and pasting the snippet below or by including it in a bash script (or bash profile if you are unlikely to change them).
@@ -176,7 +172,7 @@ Now to set-up a new experiment (here we use case `009`) based on a previous exam
 # General syntax: da_prep.sh new_exp_id old_exp_id
 # To set up a new simulation starting from the restart files of another simulation
 # ("warmstart"), use the 'w' flag. E.g.: da_prep.sh new_exp_id old_exp_id w
-./u-dales/tools/utils/da_prep.sh 009 999
+./u-dales/tools/da_prep.sh 009 999
 ```
 
 ## Run
@@ -191,7 +187,7 @@ The scripts require several variables to be set up. Below is an example setup fo
 # We assume you are running the following commands from your
 # top-level project directory.
 
-export DA_UTILSDIR=$(pwd)/u-dales/tools/utils # Directory of utils scripts
+export DA_TOOLSDIR=$(pwd)/u-dales/tools # Directory of utils scripts
 export DA_BUILD=$(pwd)/u-dales/build/release/u-dales # Build file
 export NCPU=2 # Number of CPUs to use for a simulation
 export DA_WORKDIR=$(pwd)/outputs # Output top-level directory
@@ -204,13 +200,13 @@ Then, to start the simulation, run:
 # top-level project directory.
 
 # General syntax: local_execute.sh exp_directory
-./u-dales/tools/utils/local_execute.sh experiments/009
+./u-dales/tools/local_execute.sh experiments/009
 ```
 
 ### Run on HPCs
 
 ``` sh
-export DA_UTILSDIR=$(pwd)/u-dales/tools/utils # Directory of utils scripts
+export DA_TOOLSDIR=$(pwd)/u-dales/tools # Directory of utils scripts
 export DA_BUILD=$(pwd)/u-dales/build/release/u-dales # Build file
 export NCPU=2 # Number of CPUs to use for a simulation
 
@@ -227,7 +223,7 @@ Then, to start the simulation, run:
 # top-level project directory.
 
 # General syntax: hpc_execute.sh exp_directory
-./u-dales/tools/utils/hpc_execute.sh experiments/009
+./u-dales/tools/hpc_execute.sh experiments/009
 ```
 
 ## What's next?

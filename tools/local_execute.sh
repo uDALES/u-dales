@@ -35,8 +35,8 @@ if [ -z $DA_BUILD ]; then
     echo "Executable DA_BUILD must be set"
     exit
 fi;
-if [ -z $DA_UTILSDIR ]; then
-    echo "Utils directory DA_UTILSDIR must be set"
+if [ -z $DA_TOOLSDIR ]; then
+    echo "Script directory DA_TOOLSDIR must be set"
     exit
 fi;
 
@@ -57,7 +57,7 @@ mpiexec -n $NCPU $DA_BUILD namoptions.$exp > output.$exp 2>&1
 
 ## merge output files from cores to one file
 export LOCAL_EXECUTE=1
-$DA_UTILSDIR/da_concatenate.sh $outdir
+$DA_TOOLSDIR/da_concatenate.sh $outdir
 
 popd
 
