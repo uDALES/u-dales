@@ -21,11 +21,11 @@ tsample      = 1.
 /
 
 &DOMAIN
-imax         = 64
-jtot         = 64
-kmax         = 64
-xsize        = 64
-ysize        = 64
+imax         = 128
+jtot         = 128
+kmax         = 128
+xsize        = 128
+ysize        = 128
 /
 
 &PHYSICS
@@ -64,8 +64,8 @@ qts          = 0.0
 /
 
 &WALLS
-nblocks      = 599
-nfcts        = 881
+nblocks    = 261
+nfcts      = 421
 iwalltemp    = 2
 /
 
@@ -84,22 +84,14 @@ rsmin        = 200.0
 /
 
 &INPS
-llidar       = .true.
+zsize        = 160
+lblocksfile  = .true.
+blocksfile   = buildings.201
 lzstretch    = .true.
 stretchconst = 0.01
 lstretchexp  = .true.
-hlin         = 32
+hlin         = 40
 dzlin        = 1
-zsize        = 80
 thl0         = 290.
 u0           = 1.5
-sourcename   = DAPPLE7.png
-dxinp        = 1
-dyinp        = 1
-dzinp        = 1
-centeri      = 200
-centerj      = 200
-maxh         = 25
-pad          = 3
-smallarea    = 150
 /

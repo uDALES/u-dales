@@ -37,7 +37,7 @@ igrw_damp    = 0
 iadv_mom     = 2
 iadv_thl     = 2
 iadv_sv      = 7
-ipoiss       = 0
+ipoiss       = 1
 /
 
 &NAMSUBGRID
@@ -56,8 +56,8 @@ BCtopT       = 2
 /
 
 &WALLS
-nblocks      = 87
-nfcts        = 144
+nblocks    = 324
+nfcts      = 524
 iwalltemp    = 2
 /
 
@@ -68,9 +68,17 @@ driverstore  = 6
 /
 
 &INPS
-lblocksfile  = .true.
-blocksfile   = build.502
 zsize        = 64
+llidar       = .true.
+sourcename   = DAPPLE7.png
+dxinp        = 1
+dyinp        = 1
+dzinp        = 1
+centeri      = 400
+centerj      = 400
+maxh         = 25
+pad          = 3
+smallarea    = 150
 thl0         = 290.
 u0           = 2.
 /
