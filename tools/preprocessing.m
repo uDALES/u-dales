@@ -184,8 +184,7 @@ classdef preprocessing < dynamicprops
 
             preprocessing.addvar(obj, 'dx', obj.xsize / obj.imax)
             preprocessing.addvar(obj, 'dy', obj.ysize / obj.jtot)
-            preprocessing.addvar(obj, 'dz', obj.zsize / obj.kmax)
-            
+
             %% &ENERGYBALANCE
             preprocessing.addvar(obj, 'lEB', 0)
             
@@ -204,13 +203,6 @@ classdef preprocessing < dynamicprops
             %% &INPS
             preprocessing.addvar(obj, 'zsize', 96) % domain size in z-direction
             preprocessing.addvar(obj, 'lzstretch', 0) % switch for stretching z grid
-            
-            if obj.lEB
-                preprocessing.addvar(obj, 'maxsize', 10); % maximum size of facets
-            else
-                preprocessing.addvar(obj, 'maxsize', inf);
-            end
-            
             if obj.lzstretch
                 preprocessing.addvar(obj, 'stretchconst', 0.01)
                 preprocessing.addvar(obj, 'lstretchexp', 0)
@@ -218,12 +210,15 @@ classdef preprocessing < dynamicprops
                 preprocessing.addvar(obj, 'lstretch2tanh', 0)
                 preprocessing.addvar(obj, 'hlin', 0)
                 preprocessing.addvar(obj, 'dzlin', 0)
+                preprocessing.addvar(obj, 'dz', obj.dzlin)
+            else
+                preprocessing.addvar(obj, 'dz', obj.zsize / obj.kmax)
             end
 
-            if (obj.lzstretch && obj.llidar)
-                if (obj.hlin<obj.maxh)
-                    error('hlin must be smaller or equal to maxh to ensure that building heights are defined on linear part of zgrid.')
-                end
+            if obj.lEB
+                preprocessing.addvar(obj, 'maxsize', 10); % maximum size of facets
+            else
+                preprocessing.addvar(obj, 'maxsize', inf);
             end
             
             preprocessing.addvar(obj, 'u0', 0) % initial u-velocity - also applied as geostrophic term where applicable
@@ -299,7 +294,7 @@ classdef preprocessing < dynamicprops
                 preprocessing.addvar(obj, 'dzinp', 1)
                 preprocessing.addvar(obj, 'centeri', 0) % center of area of interest in original image [pixel]
                 preprocessing.addvar(obj, 'centerj', 0)
-                preprocessing.addvar(obj, 'maxh', 0) % magimum height of buildings in image [m]
+                preprocessing.addvar(obj, 'maxh', 0) % maximum height of buildings in image [m]
                 preprocessing.addvar(obj, 'pad', 5) % padding. A padding of 0 makes only sense for idealised cases. There should be no building at domain edge
                 preprocessing.addvar(obj, 'smallarea', round(150 / (obj.dx * obj.dy))) % objects smaller than this will be deleted
             end
@@ -1142,11 +1137,16 @@ classdef preprocessing < dynamicprops
         end
                     
         function makeblocks(obj)
+
             topomask = obj.topomask;
             topo = obj.topo;
             imax = obj.imax;
             jtot = obj.jtot;
             dz = obj.dz;
+
+            if (obj.lzstretch && (max(max(topo))>obj.hlin))
+            	error('ERROR: hlin must be greater than the maximum vertical building index')
+            end
             
             maxnrblocks = sum(topomask(:)); %allocate arrays with maximum size they can possibly have, reduce size later
             xmin = zeros(maxnrblocks,1); %store lower x bound of blocks
