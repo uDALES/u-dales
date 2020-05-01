@@ -545,7 +545,6 @@ contains
     ! driverstore = driverstore/4.
     ! write(6,*) 'driverstore: ', driverstore
     inquire(iolength=filesize)(timee-tdriverstart)
-    write(*,*) 'filesize' , filesize
     open(unit=11,file=name,form='unformatted',status='old',action='read',access='direct',recl=filesize,IOSTAT=IOS)
     if(myid==0) then
       if (IOS > 0) then
