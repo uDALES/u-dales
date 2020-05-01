@@ -265,7 +265,13 @@ classdef preprocessing < dynamicprops
             if obj.lblocksfile
                 preprocessing.addvar(obj, 'blocksfile', '') % name of blocks file
             end
-            
+           
+            % Blocks
+            preprocessing.addvar(obj, 'ltxtblocks', 0) % switch for using blocks from a file
+            if obj.ltxtblocks
+                preprocessing.addvar(obj, 'txtblocksfile', '') % name of blocks file
+            end
+ 
             preprocessing.addvar(obj, 'lflat', 0) % switch for flat domain
             
             if (obj.lEB && obj.lflat)
@@ -563,7 +569,15 @@ classdef preprocessing < dynamicprops
                 obj.topomask(obj.bl(n,3):obj.bl(n,4),obj.bl(n,1):obj.bl(n,2)) = 1;
             end
         end
-        
+
+        function generate_topo_from_txt(obj)
+            preprocessing.addvar(obj, 'topomask', zeros(obj.jtot, obj.imax));
+            preprocessing.addvar(obj, 'topo', zeros(obj.jtot, obj.imax));
+            topo_dum = load([obj.txtblocksfile],'-ascii');
+            obj.topo = topo_dum;
+            obj.topomask(topo_dum>0) = 1;
+        end
+ 
         function generate_bl_from_namoptions(obj)
             imax = obj.imax;
             jtot = obj.jtot;

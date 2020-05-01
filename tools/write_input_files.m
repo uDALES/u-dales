@@ -1,7 +1,7 @@
 %% write_input_files
 % This script is run by the bash script da_inp.sh It used to generate the
 % necessary input files for uDALES.
-expnr = '201';
+expnr = '401';
 ncpus = 2;
 
 DA_EXPDIR = getenv('DA_EXPDIR');
@@ -37,6 +37,8 @@ end
 if ~r.llidar
     if r.lflat
         preprocessing.addvar(r, 'bl', [])
+    elseif r.ltxtblocks
+        preprocessing.generate_topo_from_txt(r)
     else
         if (r.lstaggered || r.lcube || r.lcanyons)
             disp('Generating blocks from namoptions')
