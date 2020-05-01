@@ -192,10 +192,11 @@ classdef preprocessing < dynamicprops
             preprocessing.addvar(obj, 'lchem' , 0) % switch for chemistry (not implemented)
             preprocessing.addvar(obj, 'lprofforc', 0)  % switch for 1D geostrophic forcing
             preprocessing.addvar(obj, 'lcoriol', 0)    % switch for coriolis forcing
-            
-            if (not(obj.luoutflowr) && not(obj.lvoutflowr) && not(obj.luvolflowr) && not(obj.lvvolflowr) && not(obj.lprofforc) && not(obj.lcoriol))
+            preprocessing.addvar(obj, 'idriver', 0)    % case for driver simulations | 1 - writes driver files | 2 - reads driver files          
+ 
+            if (not(obj.luoutflowr) && not(obj.lvoutflowr) && not(obj.luvolflowr) && not(obj.lvvolflowr) && not(obj.lprofforc) && not(obj.lcoriol) && (obj.idriver~=2))
                 preprocessing.addvar(obj, 'ldp', 1)
-                disp('No forcing switch config. setup so initial velocities and pressure gradients applied.')
+                disp('No forcing switch config. setup and not a driven simulation so initial velocities and pressure gradients applied.')
             else
                 preprocessing.addvar(obj, 'ldp', 0)
             end
