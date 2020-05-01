@@ -48,12 +48,7 @@ z0h          = 0.000067
 /
 
 &WALLS
-nblocks      = 1
-nfcts        = 1
-/
-
-&ENERGYBALANCE
-bldT       = 301.
+nfcts        = 0
 /
 
 &INPS
