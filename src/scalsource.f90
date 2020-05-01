@@ -194,13 +194,13 @@ subroutine scalsource
                         (erf((zh(k)-2*(zh(k)-zh(kb+1))-zL)/(sqrt(2.)*sigS)) - erf((zh(k+1)-2*(zh(k+1)-zh(kb+1))-zL)/(sqrt(2.)*sigS))) ) &
                         * dxfi(i) * dzfi(k)
 
-              svp(i,jb:je,k,3) = svp(i,jb:je,k,3) + ( (SS/4.) * & ! SS in g/ms... no normalisation
-                        (erf((xh(i+1)-xL)/(sqrt(2.)*sigS)) - erf((xh(i)-xL)/(sqrt(2.)*sigS))) * &
-                        (erf((zh(k+1)-zL)/(sqrt(2.)*sigS)) - erf((zh(k)-zL)/(sqrt(2.)*sigS))) + &
-                        (SS/4.) * & ! reflection from ground...
-                        (erf((xh(i+1)-xL)/(sqrt(2.)*sigS)) - erf((xh(i)-xL)/(sqrt(2.)*sigS))) * &
-                        (erf((zh(k)-2*(zh(k)-zh(kb+1))-zL)/(sqrt(2.)*sigS)) - erf((zh(k+1)-2*(zh(k+1)-zh(kb+1))-zL)/(sqrt(2.)*sigS))) ) &
-                        * dxfi(i) * dzfi(k)
+              !svp(i,jb:je,k,3) = svp(i,jb:je,k,3) + ( (SS/4.) * & ! SS in g/ms... no normalisation
+              !          (erf((xh(i+1)-xL)/(sqrt(2.)*sigS)) - erf((xh(i)-xL)/(sqrt(2.)*sigS))) * &
+              !          (erf((zh(k+1)-zL)/(sqrt(2.)*sigS)) - erf((zh(k)-zL)/(sqrt(2.)*sigS))) + &
+              !          (SS/4.) * & ! reflection from ground...
+              !          (erf((xh(i+1)-xL)/(sqrt(2.)*sigS)) - erf((xh(i)-xL)/(sqrt(2.)*sigS))) * &
+              !          (erf((zh(k)-2*(zh(k)-zh(kb+1))-zL)/(sqrt(2.)*sigS)) - erf((zh(k+1)-2*(zh(k+1)-zh(kb+1))-zL)/(sqrt(2.)*sigS))) ) &
+              !          * dxfi(i) * dzfi(k)
 
 !            end if
           end do
