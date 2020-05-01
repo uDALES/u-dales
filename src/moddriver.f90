@@ -32,7 +32,7 @@ contains
       ! if(myid==0) then
         ! write(*,*) 'driverstore: ', driverstore
       ! end if
-      tdriverdump = 0.
+      tdriverdump = tdriverstart
    endif
 
     if (idriver==1) then
@@ -515,7 +515,7 @@ contains
 
   subroutine readdriverfile
     use modfields, only : u0,sv0
-    use modglobal, only : ib,jb,je,jmax,kb,ke,kh,jhc,khc,cexpnr,ifinput,driverstore,ltempeq,lmoist,zh,jgb,jge,jh,driverjobnr,nsv,timee
+    use modglobal, only : ib,jb,je,jmax,kb,ke,kh,jhc,khc,cexpnr,ifinput,driverstore,ltempeq,lmoist,zh,jgb,jge,jh,driverjobnr,nsv,timee,tdriverstart
     use modmpi,    only : cmyid,myid,nprocs,slabsum,excjs
     use modinletdata, only : storetdriver,storeu0driver,storev0driver,storew0driver,storethl0driver,storeqt0driver,storesv0driver,nfile
     implicit none
@@ -544,7 +544,9 @@ contains
     endif
     ! driverstore = driverstore/4.
     ! write(6,*) 'driverstore: ', driverstore
-    open(unit=11,file=name,form='unformatted',status='old',action='read',access='direct',recl=8,IOSTAT=IOS)
+    inquire(iolength=filesize)(timee-tdriverstart)
+    write(*,*) 'filesize' , filesize
+    open(unit=11,file=name,form='unformatted',status='old',action='read',access='direct',recl=filesize,IOSTAT=IOS)
     if(myid==0) then
       if (IOS > 0) then
         write(6,*) 'IOS = ',IOS
