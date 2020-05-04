@@ -169,6 +169,7 @@ Possible advection schemes:
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
 | lEB | .false. | .true., .false. | Switch for using the facet energy balance. | - |
+| lwriteEBfiles | .false. | .true., .false. | Switch for writing facet temperatures and energy budget to file. | - |
 | lconstW | .false. | .true., .false. | Switch whether soil moisture is assumed as constant in time (.true.) or the evaporated water is from the soil (.false.). | - |
 | dtEB | 10. | `REAL` | Time interval between calculations of facet energy balance. | s |
 | bldT | 0. | `REAL` | Internal temperature of the buildings, currently also ground temperature at a depth equal to floor facet thickness. | K |
