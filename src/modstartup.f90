@@ -49,7 +49,7 @@ module modstartup
          lzerogradtopscal, lbuoyancy, ltempeq, &
          lfixinlet, lfixutauin, pi, &
          thlsrc, ifixuinf, lvinf, tscale, ltempinout, lmoistinout,  &
-         lwallfunc,lprofforc,lchem,k1,JNO2,rv,rd,tnextEB,tEB,dtEB,bldT,wsoil,wgrmax,wwilt,wfc,skyLW,GRLAI,rsmin,nfcts,lEB,lconstW, &
+         lwallfunc,lprofforc,lchem,k1,JNO2,rv,rd,tnextEB,tEB,dtEB,bldT,wsoil,wgrmax,wwilt,wfc,skyLW,GRLAI,rsmin,nfcts,lEB,lwriteEBfiles,lconstW, &
          BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys, &
          BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots, &
          idriver,tdriverstart,driverjobnr,dtdriver,driverstore
@@ -110,7 +110,7 @@ module modstartup
       namelist/WALLS/ &
          nblocks, nfcts, iwallmom, iwalltemp, iwallmoist, iwallscal
       namelist/ENERGYBALANCE/ &
-         lEB, lconstW, dtEB, bldT, wsoil, wgrmax, wwilt, wfc, &
+         lEB, lwriteEBfiles, lconstW, dtEB, bldT, wsoil, wgrmax, wwilt, wfc, &
          skyLW, GRLAI, rsmin
       namelist/SCALARS/ &
          lreadscal, lscasrc, lscasrcl, lscasrcr, &
@@ -407,6 +407,7 @@ module modstartup
 
       call MPI_BCAST(lconstW, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lEB, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(lwriteEBfiles, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(wsoil, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(wgrmax, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(wwilt, 1, MY_REAL, 0, comm3d, mpierr)
