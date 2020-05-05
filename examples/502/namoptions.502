@@ -19,11 +19,11 @@ tsample      = 1.
 /
 
 &DOMAIN
-imax         = 64
-jtot         = 64
+imax         = 128
+jtot         = 128
 kmax         = 64
-xsize        = 64
-ysize        = 64
+xsize        = 128
+ysize        = 128
 /
 
 &PHYSICS
@@ -56,8 +56,8 @@ BCtopT       = 2
 /
 
 &WALLS
-nblocks    = 324
-nfcts      = 524
+nblocks      = 879
+nfcts        = 1436
 iwalltemp    = 2
 /
 
