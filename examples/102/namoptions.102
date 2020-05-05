@@ -60,7 +60,7 @@ z0           = 0.01
 z0h          = 0.000067
 thl_top      = 288.
 BCxs         = 2
-
+/
 
 &WALLS
 nblocks      = 55
