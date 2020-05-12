@@ -129,6 +129,14 @@ Possible advection schemes:
 
 # Namelist BC
 
+Switches for boundary conditions: momentum (m), temperature (T), humidity (q) and scalars (s).
+
+Lateral BCs (BCx, BCy): 1 = periodic, > 1 special in/outflow conditions
+
+BCs at the top (BCtop): 1 = freeslip, 2 = noslip, 3 = determined by inflow conditions
+
+BCs at the bottom (BCbot; only effective if not covered with road facets): 1 = flux, 2 = wall function
+
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
 | BCxm | 1 | | Domain boundary condition for momentum in x. | |
