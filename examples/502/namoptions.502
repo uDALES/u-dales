@@ -14,6 +14,7 @@ lfielddump   = .true.
 tfielddump   = 4.
 fieldvars    = 'u0,v0,w0'
 ltdump       = .true.
+lxytdump     = .true.
 tstatsdump   = 4.
 tsample      = 1.
 /
@@ -45,13 +46,13 @@ lvreman      = .true.
 /
 
 &BC
-wtsurf       = 0.                      
+wtsurf       = 0.
 wqsurf       = 0.
 thls         = 300.
 z0           = 0.01
 z0h          = 0.000067
 thl_top      = 285.
-BCxm         = 5 
+BCxm         = 5
 BCtopT       = 2
 /
 

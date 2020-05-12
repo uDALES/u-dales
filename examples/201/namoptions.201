@@ -37,7 +37,7 @@ igrw_damp    = 0
 lcoriol      = .true.
 lnudge       = .true.
 tnudge       = 10800.
-nnudge       = 64 
+nnudge       = 64
 /
 
 &DYNAMICS
@@ -53,7 +53,7 @@ lvreman      = .true.
 /
 
 &BC
-wtsurf       = 0.                      
+wtsurf       = 0.
 wqsurf       = 0.
 thls         = 288.
 z0           = 0.01
@@ -64,8 +64,8 @@ qts          = 0.0
 /
 
 &WALLS
-nblocks    = 261
-nfcts      = 421
+nblocks      = 261
+nfcts        = 421
 iwalltemp    = 2
 /
 
@@ -80,7 +80,7 @@ wwilt        = 172.0
 wfc          = 314.0
 skyLW        = 201.0
 GRLAI        = 2.1
-rsmin        = 200.0 
+rsmin        = 200.0
 /
 
 &INPS

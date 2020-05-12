@@ -1,7 +1,7 @@
 &RUN
 iexpnr       = 501
-runtime      = 1001.
-trestart     = 1000.
+runtime      = 101.
+trestart     = 100.
 dtmax        = 2.
 irandom      = 43
 randthl      = 0.001
@@ -10,12 +10,8 @@ ladaptive    = .true.
 /
 
 &OUTPUT
-lfielddump   = .true.
-tfielddump   = 1000.
-fieldvars    = 'u0,v0,w0,th'
-lxydump      = .true.
 lxytdump     = .true.
-tstatsdump   = 1000.
+tstatsdump   = 100.
 tsample      = 10.
 /
 

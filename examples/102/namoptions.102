@@ -15,7 +15,7 @@ ladaptive    = .true.
 lfielddump   = .true.
 tfielddump   = 10.
 fieldvars    = 'u0,v0,w0,th,s1'
-lytdump      = .true.
+lxytdump     = .true.
 tstatsdump   = 10.
 tsample      = 1.
 /
@@ -40,7 +40,6 @@ vflowrate    = 0.3
 /
 
 &DYNAMICS
-iadv_mom     = 2
 iadv_thl     = 2
 iadv_sv      = 7
 ipoiss       = 0
@@ -53,7 +52,7 @@ lvreman      = .true.
 &BC
 wtsurf       = -0.01
 wttop        = -0.01
-bctfz        = -0.01                      
+bctfz        = -0.01
 wqsurf       = 0.
 thls         = 288.
 z0           = 0.01

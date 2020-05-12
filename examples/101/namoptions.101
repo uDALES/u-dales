@@ -13,6 +13,7 @@ ladaptive    = .true.
 lfielddump   = .true.
 tfielddump   = 10.
 fieldvars    = 'u0,v0,w0,th,s1'
+lydump       = .true.
 lytdump      = .true.
 tstatsdump   = 10.
 tsample      = 1.
@@ -46,7 +47,7 @@ lvreman      = .true.
 /
 
 &BC
-wtsurf       = 0.                      
+wtsurf       = 0.
 wqsurf       = 0.
 thls         = 295.
 z0           = 0.01
