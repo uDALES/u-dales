@@ -18,8 +18,6 @@ Other variables:
 - large scale forcings (subsidence, volumetric sources)
 - nudging
 - chemistry
-- trees
-- purifiers
 - energy balance specifics - wall types, green roofs, radiation etc.
 
 The following simulations are examples in which we combined several different features from above. We will explain the setup and parameters for each of them. A comprehensive description of all parameters can be found in the [Namoptions overview](./udales-namoptions-overview.md) page.
@@ -57,7 +55,7 @@ The simulation uses periodic lateral boundary conditions by default.
 
 #### Constant pressure gradient
 
-A constant pressure gradient in x and initial wind speed of u = 2 m/s are set by
+A constant pressure gradient in x and initial uniform wind speed profile of u = 2 m/s are set by
 
 ```fortran
 &INPS
@@ -93,7 +91,7 @@ blockwidth   = 16
 canyonwidth  = 16
 ```
 
-The corresponding number of blocks (including blocks on the floor) and block facets are:
+The corresponding number of blocks (including blocks on the floor) and block facets are (these are updated automatically by the preprocessing routine):
 
 ```fortran
 &WALLS
@@ -112,6 +110,9 @@ This simulation has "infinite canyons" along the y-axis as buildings. We set thi
 ```fortran
 &INPS
 lcanyons     = .true.
+blockheight  = 16
+blockwidth   = 16
+canyonwidth  = 16
 ```
 
 #### Outputs (2)
@@ -160,16 +161,15 @@ iadv_thl     = 2
 
 #### Isothermal boundary conditions for temperature
 
-A fixed temperature at the roof top (`thls`) and the top of the domain (`tthl_top`) with no-slip boundary conditions are set by
+The temperature on the facets is set by the values in `Tfacinit.f90` (288 K in this case). These temperatures do not change as the energy balance is not used as a default (`lEB = .false.`). A fixed temperature at the the top of the domain (`tthl_top`) is set by
 
 ```fortran
 &BC
-thls         = 295.
 thl_top      = 285.
 BCtopT       = 2
 ```
 
-The temperature at the building walls is determined by wall functions:
+The temperature flux between the building walls and surrounding air is determined by wall functions:
 
 ```fortran
 &WALLS
@@ -231,7 +231,7 @@ vflowrate    = 0.3
 
 #### Constant thermal flux boundary conditions for temperature
 
-The temperature is determined by a constant thermal flux from the roads, building roofs and the top of the domain:
+The temperature is determined by a constant thermal flux from the roads, building roofs and the top of the domain (`iwalltemp = 1` by default):
 
 ```fortran
 &BC
@@ -242,10 +242,13 @@ bctfz        = -0.01
 
 #### Passive scalars point source
 
-The simulation contains a scalar field with two scalar point sources:
+The simulation contains a scalar field with a scalar point source:
 
 ```fortran
 &SCALARS
+lscasrc      = .true.
+SS           = 1.
+sigS         = 0.5
 xS           = 4.
 yS           = 8.
 zS           = 3.
@@ -259,6 +262,8 @@ The scalar concentration is not determined by periodic boundary conditions like 
 &BC
 BCxs         = 2
 ```
+
+The inlet profile is determined by the profile found in `scalar.inp.102` (defaults to 0. if unspecified)
 
 #### Warmstart
 
@@ -305,7 +310,7 @@ hlin         = 40
 dzlin        = 1
 ```
 
-`zsize` is an initial target value for the final domain height and `hlin` determines how many non-stretched grid cells there are at the lower end of the domain. Make sure to always use non-stretched grid cells whereever buildings are present.
+`zsize` is an initial target value for the final domain height and `hlin` determines how many non-stretched grid cells there are at the lower end of the domain. Make sure to always use non-stretched grid cells whereever buildings are present. `dzlin` specifies the resolution for the non-stretched grid cells. `lstretchexp` specifies the exponential grid stretching function to be used.
 
 #### Outputs (4)
 
@@ -359,19 +364,33 @@ The advection scheme for moisture is specified by:
 iadv_qt      = 2
 ```
 
-and domain top- and bottom-boundary values are chosen:
+and domain top- values are chosen:
 
 ```fortran
 &BC
 qt_top       = 0.0
-qts          = 0.0
 ```
 
 #### Coriolis forcing and nudging
 
+A coriolis force is specified:
+
 ```fortran
 &PHYSICS
 lcoriol      = .true.
+```
+
+The geostrophic velocity is defined by default as a uniform profile of the initial velocity:
+
+```fortran
+&INPS
+u0           = 1.5
+```
+
+Nudging is applied in the top 64 cells of the domain with a relaxation timescale of 10800 seconds:
+
+```fortran
+&PHYSICS
 lnudge       = .true.
 tnudge       = 10800.
 nnudge       = 64
@@ -433,15 +452,3 @@ All boundary conditions (momentum, temperature) are therefore set to inflow-outf
 &BC
 BCxm         = 5
 ```
-
-## Simulation with trees
-
-### 801
-
-This simulation is can be found on the branch `tomgrylls/trees-driver-patch`.
-
-## Simulation with air purifiers
-
-### 901
-
-This simulation is can be found on the branch `tomgrylls/trees-driver-patch`.
