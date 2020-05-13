@@ -67,6 +67,7 @@ qts          = 0.0
 nblocks      = 261
 nfcts        = 421
 iwalltemp    = 2
+iwallmoist   = 2
 /
 
 &ENERGYBALANCE

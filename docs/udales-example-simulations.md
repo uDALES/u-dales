@@ -335,9 +335,12 @@ GRLAI        = 2.1
 rsmin        = 200.0
 ```
 
+For that we also need to use wall functions for temperature and moisture at the building facets:
+
 ```fortran
 &WALLS
 iwalltemp    = 2
+iwallmoist   = 2
 ```
 
 #### Moisture
