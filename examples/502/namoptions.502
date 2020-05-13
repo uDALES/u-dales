@@ -57,8 +57,8 @@ BCtopT       = 2
 /
 
 &WALLS
-nblocks      = 879
-nfcts        = 1436
+nblocks    = 629
+nfcts      = 1024
 iwalltemp    = 2
 /
 
@@ -78,7 +78,7 @@ dzinp        = 1
 centeri      = 400
 centerj      = 400
 maxh         = 25
-pad          = 3
+pad          = 10
 smallarea    = 150
 thl0         = 290.
 u0           = 2.
