@@ -27,11 +27,11 @@ contains
     real    :: pfi, epsi
     integer :: k
 
-    if(idriver==1) then
-      ! driverstore = (timeleft - tdriverstart)/dtdriver + 1
-      ! if(myid==0) then
-        ! write(*,*) 'driverstore: ', driverstore
-      ! end if
+    if (idriver==1) then
+      if (tdriverstart < timee) then
+        print *, 'ERROR: tdriverstart must be greater than the elapsed time at the start of the simulation'
+        stop 1
+      end if
       tdriverdump = tdriverstart
    endif
 
@@ -61,6 +61,7 @@ contains
       irecydriver = iplane!+ib        ! index of recycle plane from driver simulation equals iplane (read from namoptions)
 
     else if (idriver == 2) then
+
       allocate(storetdriver(1:driverstore))
       allocate(storeu0driver(jb-jh:je+jh,kb-kh:ke+kh,1:driverstore))
       allocate(storeumdriver(jb-jh:je+jh,kb-kh:ke+kh,1:driverstore))
