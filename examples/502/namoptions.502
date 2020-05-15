@@ -11,11 +11,11 @@ ladaptive    = .true.
 
 &OUTPUT
 lfielddump   = .true.
-tfielddump   = 50.
-fieldvars    = 'u0,v0,w0'
+tfielddump   = 5.
+fieldvars    = 'u0,v0,w0,th'
 ltdump       = .true.
 lxytdump     = .true.
-tstatsdump   = 50.
+tstatsdump   = 49.
 tsample      = 1.
 /
 
