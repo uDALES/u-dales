@@ -20,7 +20,7 @@ Other variables:
 - chemistry
 - energy balance specifics - wall types, green roofs, radiation etc.
 
-The following simulations are examples in which we combined several different features from above. We will explain the setup and parameters for each of them. A comprehensive description of all parameters can be found in the [Namoptions overview](./udales-namoptions-overview.md) page.
+The following simulations are examples in which we combined several different features from above. We will explain the setup and parameters for each of them. A comprehensive description of all parameters can be found in the [Namoptions overview](./udales-namoptions-overview.md) page. Note that real simulations will need to run for much longer than we showcased in the examples.
 
 Please note that setting up these parameters also requires running the pre-processing routines, as some of the setups need to be in additional input files - see [Pre-processing](./udales-pre-processing.md).
 
@@ -409,11 +409,13 @@ To save the output of a simulation into files that can be read by another simula
 ```fortran
 &DRIVER
 idriver      = 1
-tdriverstart = 5.
-dtdriver     = 1.
-driverstore  = 6
+tdriverstart = 49.
+dtdriver     = 0.5
+driverstore  = 101
 iplane       = 128
 ```
+
+`iplane` sets the index of the y-z plane we store (here this is equal to the outlet plane), and `(driverstore-1)*dtdriver` determines for how long you can run the driven simulation. The time when we start recording the planes should therefore be `tdriverstart` <= `runtime` - `(driverstore-1)*dtdriver`. More information on these parameters is in the documentation on [simulation setup](./udales-simulation-setup.md).
 
 ### 502
 
@@ -443,12 +445,28 @@ This simulation is forced by the data from the stored outlet plane of simulation
 &DRIVER
 idriver      = 2
 driverjobnr  = 501
-driverstore  = 6
+driverstore  = 101
 ```
 
-All boundary conditions (momentum, temperature) are therefore set to inflow-outflow:
+The runtime of this simulation is restricted by the simulation time of the driver output, which is `(driverstore-1)*dtdriver` of the precursor simulation `501`. The maximum runtime we can set is therefore
+
+```fortran
+runtime      = 50.
+dtmax        = 0.5
+```
+
+and we want to set `dtmax` = `dtdriver` (`501`) to avoid interpolation of the driver snapshots.
+
+All boundary conditions (momentum, temperature) are set to inflow-outflow by:
 
 ```fortran
 &BC
 BCxm         = 5
+```
+
+for which we will also need to use the cyclic reduction scheme of the poisson solver:
+
+```fortran
+&DYNAMICS
+ipoiss       = 1
 ```

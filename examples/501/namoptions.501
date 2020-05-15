@@ -2,7 +2,7 @@
 iexpnr       = 501
 runtime      = 101.
 trestart     = 100.
-dtmax        = 2.
+dtmax        = 0.5
 irandom      = 43
 randthl      = 0.001
 randu        = 0.01
@@ -12,7 +12,7 @@ ladaptive    = .true.
 &OUTPUT
 lxytdump     = .true.
 tstatsdump   = 100.
-tsample      = 10.
+tsample      = 5.
 /
 
 &DOMAIN
@@ -33,9 +33,7 @@ uflowrate    = 1.5
 /
 
 &DYNAMICS
-iadv_mom     = 2
 iadv_thl     = 2
-iadv_sv      = 7
 ipoiss       = 0
 /
 
@@ -61,9 +59,9 @@ iwalltemp    = 2
 
 &DRIVER
 idriver      = 1
-tdriverstart = 5.
-dtdriver     = 1.
-driverstore  = 6
+tdriverstart = 49.
+dtdriver     = 0.5
+driverstore  = 101
 iplane       = 128
 /
 

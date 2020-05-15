@@ -1,8 +1,8 @@
 &RUN
 iexpnr       = 502
-runtime      = 5.
+runtime      = 50.
 trestart     = 1000.
-dtmax        = 1.
+dtmax        = 0.5
 irandom      = 43
 randthl      = 0.001
 randu        = 0.01
@@ -11,11 +11,11 @@ ladaptive    = .true.
 
 &OUTPUT
 lfielddump   = .true.
-tfielddump   = 4.
+tfielddump   = 50.
 fieldvars    = 'u0,v0,w0'
 ltdump       = .true.
 lxytdump     = .true.
-tstatsdump   = 4.
+tstatsdump   = 50.
 tsample      = 1.
 /
 
@@ -35,9 +35,7 @@ igrw_damp    = 0
 /
 
 &DYNAMICS
-iadv_mom     = 2
 iadv_thl     = 2
-iadv_sv      = 7
 ipoiss       = 1
 /
 
@@ -57,15 +55,15 @@ BCtopT       = 2
 /
 
 &WALLS
-nblocks    = 629
-nfcts      = 1024
+nblocks      = 629
+nfcts        = 1024
 iwalltemp    = 2
 /
 
 &DRIVER
 idriver      = 2
 driverjobnr  = 501
-driverstore  = 6
+driverstore  = 101
 /
 
 &INPS
