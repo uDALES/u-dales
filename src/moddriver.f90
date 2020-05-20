@@ -19,7 +19,7 @@ save
 
 contains
   subroutine initdriver
-    use modglobal, only : ih,ib,ie,jh,jb,je,kb,ke,kh,jhc,khc,idriver,iplane,xf,lstoreplane,nstore,Uinf,ltempeq,lmoist,pi,zf,zh,driverstore,tdriverstart,tdriverdump,timeleft,dtdriver,nsv
+    use modglobal, only : ih,ib,ie,jh,jb,je,kb,ke,kh,jhc,khc,idriver,iplane,xf,lstoreplane,nstore,Uinf,ltempeq,lmoist,pi,zf,zh,driverstore,tdriverstart,tdriverdump,timeleft,dtdriver,nsv,timee
     use modfields, only : um
     use modmpi, only : myid,nprocs
 
