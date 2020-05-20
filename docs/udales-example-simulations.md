@@ -267,7 +267,7 @@ The inlet profile is determined by the profile found in `scalar.inp.102` (defaul
 
 #### Warmstart
 
-The simulation is continued from a previous simulation with a similar setup. The restart files (`initd` and `inits` for scalars) containing all relevant field data is saved in the example directory.
+The simulation is continued from a previous simulation with a similar setup. The restart files (`initd` and `inits` for scalars) containing all relevant field data is saved in the example directory. These files are currently not included in the directory and can be downloaded from [this link](https://imperiallondon.sharepoint.com/:f:/s/uDALES/EoJoOEQ3TV9Ekvl8zZa1PnYBYMbIsROVEttojEL-xAOWQA?e=KjX4cO) (access currently only Imperial College London internal).
 
 ```fortran
 &RUN
@@ -470,3 +470,5 @@ for which we will also need to use the cyclic reduction scheme of the poisson so
 &DYNAMICS
 ipoiss       = 1
 ```
+
+The driver input files are currently not included in the directory and can be downloaded from [this link](https://imperiallondon.sharepoint.com/:f:/s/uDALES/EoJoOEQ3TV9Ekvl8zZa1PnYBYMbIsROVEttojEL-xAOWQA?e=KjX4cO) (access currently only Imperial College London internal).
