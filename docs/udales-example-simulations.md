@@ -268,6 +268,7 @@ The inlet profile is determined by the profile found in `scalar.inp.102` (defaul
 #### Warmstart
 
 The simulation is continued from a previous simulation with a similar setup. The restart files (`initd` and `inits` for scalars) containing all relevant field data is saved in the example directory. These files are currently not included in the directory and can be downloaded from [this link](https://imperiallondon.sharepoint.com/:f:/s/uDALES/EoJoOEQ3TV9Ekvl8zZa1PnYBYMbIsROVEttojEL-xAOWQA?e=KjX4cO) (access currently only Imperial College London internal).
+A warmstart simulation is required to have the same basic setup as the simulation is based on, including the numbers of CPUs it is run with. The example warmstart files are run on two CPUs, therefore this simulation will also require two CPUs.
 
 ```fortran
 &RUN
@@ -281,6 +282,20 @@ For a warmstart containing scalar concentration fields you need to additionally 
 &SCALARS
 lreadscal    = .true.
 ```
+
+#### Coldstart
+
+This describes an alternative, if the warmstart files are not available.
+Run the simulation with recommended runtime of >= 1000 s and save the restart files by setting the restart time accordingly:
+
+```fortran
+&RUN
+lwarmstart   = .false.
+runtime      = 1001.
+trestart     = 1000.
+```
+
+Then, change the switches as described above, and make sure `startfile` matches the name of your restart files.
 
 ## Simulation using energy balance
 
@@ -472,3 +487,4 @@ ipoiss       = 1
 ```
 
 The driver input files are currently not included in the directory and can be downloaded from [this link](https://imperiallondon.sharepoint.com/:f:/s/uDALES/EoJoOEQ3TV9Ekvl8zZa1PnYBYMbIsROVEttojEL-xAOWQA?e=KjX4cO) (access currently only Imperial College London internal).
+Alternatively, the `*driver*` files from simulation 501 can be used by copying them into the directory of 502. For that we recommend to set the `runtime` to at least 1000 s, and `tdriverstart` accordingly with `tdriverstart` <= `runtime` - `(driverstore-1)*dtdriver`.
