@@ -267,7 +267,7 @@ The inlet profile is determined by the profile found in `scalar.inp.102` (defaul
 
 #### Warmstart
 
-The simulation is continued from a previous simulation with a similar setup. The restart files (`initd` and `inits` for scalars) containing all relevant field data is saved in the example directory. These files are currently not included in the directory and can be downloaded from [this link](https://imperiallondon.sharepoint.com/:f:/s/uDALES/EoJoOEQ3TV9Ekvl8zZa1PnYBYMbIsROVEttojEL-xAOWQA?e=KjX4cO) (access currently only Imperial College London internal).
+The simulation is continued from a previous simulation with a similar setup. The restart files (`initd` and `inits` for scalars) containing all relevant field data is saved in the example directory. These files are currently not included in the directory and can be downloaded from [this link](https://www.dropbox.com/sh/ypttfugo426g101/AABTkSJPDeUwSA6VIxiSUG1Aa?dl=0).
 A warmstart simulation is required to have the same basic setup as the simulation is based on, including the numbers of CPUs it is run with. The example warmstart files are run on two CPUs, therefore this simulation will also require two CPUs.
 
 ```fortran
@@ -486,5 +486,5 @@ for which we will also need to use the cyclic reduction scheme of the poisson so
 ipoiss       = 1
 ```
 
-The driver input files are currently not included in the directory and can be downloaded from [this link](https://imperiallondon.sharepoint.com/:f:/s/uDALES/EoJoOEQ3TV9Ekvl8zZa1PnYBYMbIsROVEttojEL-xAOWQA?e=KjX4cO) (access currently only Imperial College London internal).
+The driver input files are currently not included in the directory and can be downloaded from [this link](https://www.dropbox.com/sh/ypttfugo426g101/AABTkSJPDeUwSA6VIxiSUG1Aa?dl=0).
 Alternatively, the `*driver*` files from simulation 501 can be used by copying them into the directory of 502. For that we recommend to set the `runtime` to at least 1000 s, and `tdriverstart` accordingly with `tdriverstart` <= `runtime` - `(driverstore-1)*dtdriver`.
