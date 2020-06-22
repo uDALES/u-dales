@@ -9,9 +9,6 @@ ladaptive    = .true.
 /
 
 &OUTPUT
-lfielddump   = .true.
-tfielddump   = 10.
-fieldvars    = 'u0,v0,w0'
 lxydump      = .true.
 lxytdump     = .true.
 tstatsdump   = 10.

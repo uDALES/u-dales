@@ -1,28 +1,152 @@
 # Example simulations
 
-uDALES can simulate a very large variety of urban case studies.
-The main variables are:
+uDALES simulates a large variety of urban case studies. Here we showcase a few examples ([List of examples](#list-of-examples)) with different atmospheric stabilities and various setups (overview in [Table 1](#main-simulation-set-up-options)) to help you get started.
 
-- domain (size, equidistant or stretched grid, morphology)
-- forcing in x and y (pressure gradient, volume flow rate, outflow rate, free stream velocity, driven, coriolis)
-- lateral momentum BCs (periodic, driver)
-- lateral scalar BCs (periodic, inflow-outflow, driver)
-- scalar bottom BC/IBM (zero flux, constant flux, iso, energy balance)
-- scalar top BC (zero flux, constant flux, iso)
-- passive scalar sources (point, line, network)
-- outputs (fielddump, averaging times, statsdumps)
+A complete list of options can be found in the [Namoptions overview](./udales-namoptions-overview.md) document. In some cases, parameters require manual set-up (see [Pre-processing](./udales-pre-processing.md) and are indicated as such in Table 1. These pre-processing steps have already been performed for the examples below such that you can run the simulations just as they are.
 
-Other variables:
+Note that we limited the simulation time to just a few minutes for demonstration, if you are looking to conduct realistic simulations, you need a much longer simulation time.
 
-- initial conditions (initial profiles)
-- large scale forcings (subsidence, volumetric sources)
-- nudging
-- chemistry
-- energy balance specifics - wall types, green roofs, radiation etc.
+## Prerequisites
 
-The following simulations are examples in which we combined several different features from above. We will explain the setup and parameters for each of them. A comprehensive description of all parameters can be found in the [Namoptions overview](./udales-namoptions-overview.md) page. Note that real simulations will need to run for much longer than we showcased in the examples.
+All examples below assume that you have installed uDALES as per our [getting started guide](./udales-getting-started.md) and set up the paths to [run simulations](./udales-getting-started.md/#run).
 
-Please note that setting up these parameters also requires running the pre-processing routines, as some of the setups need to be in additional input files - see [Pre-processing](./udales-pre-processing.md).
+Example cases are located under `u-dales/examples`.
+
+All examples are run using the following command:
+
+```sh
+# We assume you are running the following commands from your
+# top-level project directory.
+
+# General syntax: local_execute.sh exp_directory
+./u-dales/tools/utils/local_execute.sh examples/001
+```
+
+If you want to make changes to any of the examples, e.g. increasing the runtime, follow the [set-up steps](./udales-getting-started.md/#set-up) in the getting started guide to obtain a copy of the simulation setup first.
+
+## List of examples
+
+- [Main simulation set-up options](#main-simulation-set-up-options)
+- [Standard simulation setup](#standard-simulation-setup)
+- [Neutral simulations](#neutral-simulations)
+  - [001](#001)
+    - [No buildings, bottom surface roughness](#no-buildings-bottom-surface-roughness)
+    - [Constant pressure gradient](#constant-pressure-gradient)
+    - [Output: instantaneous fields](#output:-instantaneous-fields)
+  - [002](#002)
+    - [Aligned cuboid buildings](#aligned-cuboid-buildings)
+- [Non-neutral simulations](#non-neutral-simulations)
+  - [101](#101)
+    - [Infinite canyon buildings](#infinite-canyon-buildings)
+    - [Output: space-time averaged profiles](#output:-space-time-averaged-profiles)
+    - [Volume flow rate forcing in x](#volume-flow-rate-forcing-in-x)
+    - [Temperature](#temperature)
+    - [Isothermal BC for temperature](#isothermal-bc-for-temperature)
+    - [Passive scalars line source](#passive-scalars-line-source)
+    - [Output: instantaneous fields for temperature and scalars](#output:-instantaneous-fields-for-temperature-and-scalars)
+  - [102](#102)
+    - [Staggered cuboid buildings](#staggered-cuboid-buildings)
+    - [Volume flow rate forcing in x and y](#volume-flow-rate-forcing-in-x-and-y)
+    - [Constant thermal flux BC for temperature](#constant-thermal-flux-bc-for-temperature)
+    - [Passive scalars point source](#passive-scalars-point-source)
+    - [Scalar inflow-outflow BC](#scalar-inflow-outflow-bc)
+    - [Warmstart](#warmstart)
+    - [Coldstart](#coldstart)
+- [Energy balance simulation](#energy-balance-simulation)
+  - [201](#201)
+    - [Pre-defined buildings](#pre-defined-buildings)
+    - [Grid-stretching in z](#grid-stretching-in-z)
+    - [Output: time averaged fields](#output:-time-averaged-fields)
+    - [Energy Balance](#energy-balance-1)
+    - [Moisture](#moisture)
+    - [Coriolis forcing and nudging](#coriolis-forcing-and-nudging)
+- [Driver simulation](#driver-simulation)
+  - [501](#501)
+    - [Driver/precursor simulation](#driverprecursor-simulation)
+  - [502](#502)
+    - [Buildings from LIDAR image](#buildings-from-lidar-image)
+    - [Driven simulation](#driven-simulation)
+
+## Main simulation set-up options
+
+Table 1: Main setups of urban case studies and reference example simulation(s).
+| Type               | Setting               | Requires pre-processing | Example simulation |
+| ------------------ | --------------------- | ----------------------- | ------------------ |
+| Domain             | size and resolution   | yes | all |
+| Domain             | equidistant grid      | yes | 001, 002, 101, 102, 501, 502 |
+| Domain             | stretched z-grid      | yes | 201 |
+| Domain             | warmstart     | no | 102 |
+| Morphology         | no buildings          | yes | 001 |
+| Morphology         | infinite canyon builings | yes | 101 |
+| Morphology         | aligned cuboid buildings | yes | 002, 501 |
+| Morphology         | staggered cuboid buildings | yes | 102 |
+| Morphology         | pre-defined buildings | yes | 201 |
+| Morphology         | LIDAR-image buildings | yes | 502 |
+| Forcing            | pressure gradient     | yes | 001 |
+| Forcing            | volume flow rate      | no | 101, 102, 501 |
+| Forcing            | outflow rate          | no | -- |
+| Forcing            | free stream velocity  | no | -- |
+| Forcing            | Coriolis and nudging  | yes | 201 |
+| Forcing            | driving data          | no | 502 |
+| Lateral momentum boundary conditions (BCs) | periodic | no | 001, 002, 101, 102, 201, 501 |
+| Lateral momentum BCs | driving data | yes | 502 |
+| Passive scalar source | point source | yes | 102 |
+| Passive scalar source | line source | yes | 101 |
+| Passive scalar source | source network | yes | -- |
+| Lateral scalar BCs | periodic | no | 101, 501 |
+| Lateral scalar BCs | inflow-outflow | no | 102 |
+| Surface and top scalar BCs | zero flux | no | -- |
+| Surface and top scalar BCs | constant flux | no | 102 |
+| Surface and top scalar BCs | isothermal | no | 101, 501 |
+| Surface and top scalar BCs | energy balance | yes | 201 |
+| Output | instantaneous fields | no | 001, 101, 102, 201, 502 |
+| Output | time-averaged fields | no | 201, 502 |
+| Output | space-averaged (along y) fields | no | 101 |
+| Output |space-averaged (along x,y) profiles | no | 002, 102, 201, 501, 502 |
+
+## Standard simulation setup
+
+The below setups are required for any type of simulation.
+The simulation domain varies amongst the example simulations and is set-up for example by
+
+```fortran
+&DOMAIN
+imax         = 64
+jtot         = 64
+kmax         = 64
+xsize        = 64
+ysize        = 64
+&INPS
+zsize        = 64
+```
+
+We also set an initial profile for u-wind velocity (and other variables if they are used) of e.g. u = 2 m/s by
+
+```fortran
+&INPS
+u0           = 2.
+```
+
+and add some random perturbations to the initial field, such that turbulence develops faster:
+
+```fortran
+randu        = 0.01
+```
+
+Changes in the domain and initial profiles require pre-processing.
+
+Further, we recommend running the simulations with adaptive time-stepping, the Fast-Fourier-Transformation algorithm in the poisson solver (*this will become default in the future*) and using the Vreman sub-grid model:
+
+```fortran
+&RUN
+ladaptive    = .true.
+&DYNAMICS
+ipoiss       = 0
+&NAMSUBGRID
+lvreman      = .true.
+```
+
+Further information on these parameters is in the [Namoptions overview](./udales-namoptions-overview.md), and more on the required pre-processing steps is found in [Pre-processing](./udales-pre-processing.md).
 
 ## Neutral simulations
 
@@ -55,24 +179,22 @@ The simulation uses periodic lateral boundary conditions by default.
 
 #### Constant pressure gradient
 
-A constant pressure gradient in x and initial uniform wind speed profile of u = 2 m/s are set by
+A constant pressure gradient in x is set by
 
 ```fortran
 &INPS
 dpdx         = 0.0001
-u0           = 2.
 ```
 
-#### Outputs
+#### Output: instantaneous fields
 
-The simulation output contains the 3D instantaneous fields of u, v, and w, and 1D instantaneous and time-averaged vertical profiles. We specify this by setting:
+The simulation output contains the 3D instantaneous fields of u, v, and w. The output is produced after every 10 seconds of simulation runtime. We specify this by setting:
 
 ```fortran
 &OUTPUT
 lfielddump   = .true.
 fieldvars    = 'u0,v0,w0'
-lxydump      = .true.
-lxytdump     = .true.
+tfielddump   = 10.
 ```
 
 ### 002
@@ -99,6 +221,18 @@ nblocks      = 17
 nfcts        = 33
 ```
 
+#### Output: space-time averaged profiles
+
+The simulation output contains 1D space-averaged and space-time-averaged vertical profiles. The output is produced after every 10 seconds of simulation runtime and the time-average uses a sample time step of 1 second. We specify this by setting:
+
+ ```fortran
+&OUTPUT
+lxydump      = .true.
+lxytdump     = .true.
+tstatsdump   = 10.
+tsample      = 1.
+```
+
 ## Non-neutral simulations
 
 ### 101
@@ -115,9 +249,9 @@ blockwidth   = 16
 canyonwidth  = 16
 ```
 
-#### Outputs (2)
+#### Output: space-averaged along y
 
-Because there is no change in building geometry along y, it makes sense to look at the y-averaged 2D statistics:
+Because there is no change in building geometry along y, it makes sense to look at the 2D statistics space-averaged along the y direction (with and without time-averaging):
 
 ```fortran
 &OUTPUT
@@ -125,7 +259,7 @@ lydump       = .true.
 lytdump      = .true.
 ```
 
-#### Volume flow rate forcing
+#### Volume flow rate forcing in x
 
 The simulation is driven by a fixed volume-flow rate forcing, which prescribes the domain-average velocity of u = 1.5 m/s:
 
@@ -159,7 +293,7 @@ and specify the advection scheme for temperature:
 iadv_thl     = 2
 ```
 
-#### Isothermal boundary conditions for temperature
+#### Isothermal BC for temperature
 
 The temperature on the facets is set by the values in `Tfacinit.f90` (288 K in this case). These temperatures do not change as the energy balance is not used as a default (`lEB = .false.`). A fixed temperature at the the top of the domain (`tthl_top`) is set by
 
@@ -195,9 +329,9 @@ and by specifying the scalar advection scheme:
 iadv_sv      = 7
 ```
 
-#### Outputs (3)
+#### Output: instantaneous fields for temperature and scalars
 
-The temperature and scalar concentration are also outputs of the instantaneous fields:
+We added the temperature and scalar concentration to the instantaneous fields:
 
 ```fortran
 &OUTPUT
@@ -217,7 +351,7 @@ The simulation has staggered cuboid buildings, which can be set up using
 lstaggered   = .true.
 ```
 
-#### Volume flow rate forcing (2)
+#### Volume flow rate forcing in x and y
 
 The simulation is driven by a fixed volume-flow rate forcing for u and v:
 
@@ -229,7 +363,7 @@ lvvolflowr   = .true.
 vflowrate    = 0.3
 ```
 
-#### Constant thermal flux boundary conditions for temperature
+#### Constant thermal flux BC for temperature
 
 The temperature is determined by a constant thermal flux from the roads, building roofs and the top of the domain (`iwalltemp = 1` by default):
 
@@ -254,7 +388,7 @@ yS           = 8.
 zS           = 3.
 ```
 
-#### Scalar inflow-outflow boundary conditions
+#### Scalar inflow-outflow BC
 
 The scalar concentration is not determined by periodic boundary conditions like momentum and temperature, but leaves the domain at the outflow plane:
 
@@ -267,7 +401,9 @@ The inlet profile is determined by the profile found in `scalar.inp.102` (defaul
 
 #### Warmstart
 
-The simulation is continued from a previous simulation with a similar setup. The restart files (`initd` and `inits` for scalars) containing all relevant field data is saved in the example directory. These files are currently not included in the directory and can be downloaded from [this link](https://www.dropbox.com/sh/ypttfugo426g101/AABTkSJPDeUwSA6VIxiSUG1Aa?dl=0).
+The simulation is continued from a previous simulation with a similar setup. The restart files (`initd` and `inits` for scalars) containing all relevant field data is saved in the example directory.
+The restart files are currently not included in the directory and can be downloaded [examples_warmstart_102.zip](https://www.dropbox.com/sh/20rsgpt0gh09gr7/AABuoCFtn6_zFTxx4k8pKqvLa?dl=1) or from the command line (Linux/macOS) with `wget -O examples_warmstart_102.zip "https://www.dropbox.com/sh/20rsgpt0gh09gr7/AABuoCFtn6_zFTxx4k8pKqvLa?dl=1"`.
+
 A warmstart simulation is required to have the same basic setup as the simulation is based on, including the numbers of CPUs it is run with. The example warmstart files are run on two CPUs, therefore this simulation will also require two CPUs.
 
 ```fortran
@@ -297,7 +433,7 @@ trestart     = 1000.
 
 Then, change the switches as described above, and make sure `startfile` matches the name of your restart files.
 
-## Simulation using energy balance
+## Energy balance simulation
 
 ### 201
 
@@ -325,20 +461,20 @@ hlin         = 40
 dzlin        = 1
 ```
 
-`zsize` is an initial target value for the final domain height and `hlin` determines how many non-stretched grid cells there are at the lower end of the domain. Make sure to always use non-stretched grid cells whereever buildings are present. `dzlin` specifies the resolution for the non-stretched grid cells. `lstretchexp` specifies the exponential grid stretching function to be used.
+`zsize` is an initial target value for the final domain height and `hlin` determines how many non-stretched grid cells there are at the lower end of the domain. Make sure to always use non-stretched grid cells wherever buildings are present. `dzlin` specifies the resolution for the non-stretched grid cells. `lstretchexp` specifies the exponential grid stretching function to be used.
 
-#### Outputs (4)
+#### Output: time averaged fields
 
-3D time averaged output fields:
+We add 3D output fields that are averaged in time:
 
 ```fortran
 &OUTPUT
 ltdump       = .true.
 ```
 
-#### Energybalance
+#### Energy Balance
 
-The simulations solves the surface energybalance.
+The simulations solves the surface energy balance.
 
 ```fortran
 &ENERGYBALANCE
@@ -486,5 +622,5 @@ for which we will also need to use the cyclic reduction scheme of the poisson so
 ipoiss       = 1
 ```
 
-The driver input files are currently not included in the directory and can be downloaded from [this link](https://www.dropbox.com/sh/ypttfugo426g101/AABTkSJPDeUwSA6VIxiSUG1Aa?dl=0).
+The driver input files are currently not included in the directory and can be downloaded [examples_driver_501.zip](https://www.dropbox.com/sh/spld3hqipqe17j1/AAA0cuzW3qc9ftY6dvHcSSL8a?dl=1) or from the command line (Linux/macOS) with `wget -O examples_driver_501.zip "https://www.dropbox.com/sh/spld3hqipqe17j1/AAA0cuzW3qc9ftY6dvHcSSL8a?dl=1"`
 Alternatively, the `*driver*` files from simulation 501 can be used by copying them into the directory of 502. For that we recommend to set the `runtime` to at least 1000 s, and `tdriverstart` accordingly with `tdriverstart` <= `runtime` - `(driverstore-1)*dtdriver`.
