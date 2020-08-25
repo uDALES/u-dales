@@ -89,10 +89,10 @@ Table 1: Main setups of urban case studies and reference example simulation(s).
 | Forcing            | Coriolis and nudging  | yes | 201 |
 | Forcing            | driving data          | no | 502 |
 | Lateral momentum boundary conditions (BCs) | periodic | no | 001, 002, 101, 102, 201, 501 |
-| Lateral momentum BCs | driving data | yes | 502 |
-| Passive scalar source | point source | yes | 102 |
-| Passive scalar source | line source | yes | 101 |
-| Passive scalar source | source network | yes | -- |
+| Lateral momentum BCs | driving data | no | 502 |
+| Passive scalar source | point source | no | 102 |
+| Passive scalar source | line source | no | 101 |
+| Passive scalar source | source network | no | -- |
 | Lateral scalar BCs | periodic | no | 101, 501 |
 | Lateral scalar BCs | inflow-outflow | no | 102 |
 | Surface and top scalar BCs | zero flux | no | -- |
