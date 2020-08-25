@@ -2,7 +2,7 @@
 
 uDALES simulates a large variety of urban case studies. Here we showcase a few examples ([List of examples](#list-of-examples)) with different atmospheric stabilities and various setups (overview in [Table 1](#main-simulation-set-up-options)) to help you get started.
 
-A complete list of options can be found in the [Namoptions overview](./udales-namoptions-overview.md) document. In some cases, parameters require manual set-up (see [Pre-processing](./udales-pre-processing.md) and are indicated as such in Table 1. These pre-processing steps have already been performed for the examples below such that you can run the simulations just as they are.
+A complete list of options can be found in the [Namoptions overview](./udales-namoptions-overview.md) document. In some cases, parameters require manual set-up (see [Pre-processing](./udales-pre-processing.md)) and are indicated as such in Table 1. These pre-processing steps have already been performed for the examples below such that you can run the simulations just as they are.
 
 Note that we limited the simulation time to just a few minutes for demonstration, if you are looking to conduct realistic simulations, you need a much longer simulation time.
 
@@ -32,18 +32,19 @@ If you want to make changes to any of the examples, e.g. increasing the runtime,
   - [001](#001)
     - [No buildings, bottom surface roughness](#no-buildings-bottom-surface-roughness)
     - [Constant pressure gradient](#constant-pressure-gradient)
-    - [Output: instantaneous fields](#output:-instantaneous-fields)
+    - [Output: instantaneous fields](#output-instantaneous-fields)
   - [002](#002)
     - [Aligned cuboid buildings](#aligned-cuboid-buildings)
+    - [Output: space-time averaged profiles](#Output-space-time-averaged-profiles)
 - [Non-neutral simulations](#non-neutral-simulations)
   - [101](#101)
     - [Infinite canyon buildings](#infinite-canyon-buildings)
-    - [Output: space-time averaged profiles](#output:-space-time-averaged-profiles)
+    - [Output: space-time averaged along y](#output-space-averaged-along-y)
     - [Volume flow rate forcing in x](#volume-flow-rate-forcing-in-x)
     - [Temperature](#temperature)
     - [Isothermal BC for temperature](#isothermal-bc-for-temperature)
     - [Passive scalars line source](#passive-scalars-line-source)
-    - [Output: instantaneous fields for temperature and scalars](#output:-instantaneous-fields-for-temperature-and-scalars)
+    - [Output: instantaneous fields for temperature and scalars](#output-instantaneous-fields-for-temperature-and-scalars)
   - [102](#102)
     - [Staggered cuboid buildings](#staggered-cuboid-buildings)
     - [Volume flow rate forcing in x and y](#volume-flow-rate-forcing-in-x-and-y)
@@ -56,7 +57,7 @@ If you want to make changes to any of the examples, e.g. increasing the runtime,
   - [201](#201)
     - [Pre-defined buildings](#pre-defined-buildings)
     - [Grid-stretching in z](#grid-stretching-in-z)
-    - [Output: time averaged fields](#output:-time-averaged-fields)
+    - [Output: time averaged fields](#output-time-averaged-fields)
     - [Energy Balance](#energy-balance-1)
     - [Moisture](#moisture)
     - [Coriolis forcing and nudging](#coriolis-forcing-and-nudging)
@@ -199,11 +200,11 @@ tfielddump   = 10.
 
 ### 002
 
-This simulation has a similar setup to `001`.
+This simulation has a similar setup to `001` and additionally contains buildings.
 
 #### Aligned cuboid buildings
 
-Additionally, it contains aligned cube-shaped buildings, which can be automatically added by the pre-processing by setting:
+The simulation contains aligned cube-shaped buildings, which can be automatically added by the pre-processing by setting:
 
 ```fortran
 &INPS
