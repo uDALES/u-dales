@@ -344,6 +344,19 @@ fieldvars    = 'u0,v0,w0,th,s1'
 
 The basic setup of this simulation is similar to `101`.
 
+#### Prerequisites for warmstart simulation
+
+The simulation is continued from a previous simulation with a similar setup. The restart files (`initd` and `inits` for scalars) containing all relevant field data is saved in the example directory.
+The restart files are currently not included in the directory and can be downloaded [examples_warmstart_102.zip](https://www.dropbox.com/sh/20rsgpt0gh09gr7/AABuoCFtn6_zFTxx4k8pKqvLa?dl=1) or from the command line (Linux/macOS) with
+
+``` sh
+wget -O examples_warmstart_102.zip "https://www.dropbox.com/sh/20rsgpt0gh09gr7/AABuoCFtn6_zFTxx4k8pKqvLa?dl=1".
+```
+
+A warmstart simulation is required to have the same basic setup as the simulation is based on, including the numbers of CPUs it is run with. The example warmstart files are run on two CPUs, therefore this simulation will also require two CPUs.
+An alternative to running this simulation based on the previous output is described under [Coldstart](#Coldstart).
+
+
 #### Staggered cuboid buildings
 
 The simulation has staggered cuboid buildings, which can be set up using
@@ -403,16 +416,15 @@ The inlet profile is determined by the profile found in `scalar.inp.102` (defaul
 
 #### Warmstart
 
-The simulation is continued from a previous simulation with a similar setup. The restart files (`initd` and `inits` for scalars) containing all relevant field data is saved in the example directory.
-The restart files are currently not included in the directory and can be downloaded [examples_warmstart_102.zip](https://www.dropbox.com/sh/20rsgpt0gh09gr7/AABuoCFtn6_zFTxx4k8pKqvLa?dl=1) or from the command line (Linux/macOS) with `wget -O examples_warmstart_102.zip "https://www.dropbox.com/sh/20rsgpt0gh09gr7/AABuoCFtn6_zFTxx4k8pKqvLa?dl=1"`.
-
-A warmstart simulation is required to have the same basic setup as the simulation is based on, including the numbers of CPUs it is run with. The example warmstart files are run on two CPUs, therefore this simulation will also require two CPUs.
+A warmstart simulation requires setting
 
 ```fortran
 &RUN
 lwarmstart   = .true.
 startfile    = 'initd00003199_xxx.102'
 ```
+
+where the name of the `startfile` needs to match the name of the restart files (xxx instead of processor number).
 
 For a warmstart containing scalar concentration fields you need to additionally set
 
@@ -572,6 +584,16 @@ iplane       = 128
 
 ### 502
 
+#### Prerequisites simulation with external forcing
+
+The driver input files are currently not included in the directory and can be downloaded [examples_driver_501.zip](https://www.dropbox.com/sh/spld3hqipqe17j1/AAA0cuzW3qc9ftY6dvHcSSL8a?dl=1) or from the command line (Linux/macOS) with
+
+``` sh
+wget -O examples_driver_501.zip "https://www.dropbox.com/sh/spld3hqipqe17j1/AAA0cuzW3qc9ftY6dvHcSSL8a?dl=1"
+```
+
+These `*driver*` files need to be in the same place as the other input files. Alternatively, the `*driver*` files from simulation 501 can be used by copying them into the directory of 502. For that we recommend to set the `runtime` to at least 1000 s, and `tdriverstart` accordingly with `tdriverstart` <= `runtime` - `(driverstore-1)*dtdriver`.
+
 #### Buildings from LIDAR image
 
 The buildings of this simulation are generated from a grey-scale image of the buildings and their heights.
@@ -623,6 +645,3 @@ for which we will also need to use the cyclic reduction scheme of the poisson so
 &DYNAMICS
 ipoiss       = 1
 ```
-
-The driver input files are currently not included in the directory and can be downloaded [examples_driver_501.zip](https://www.dropbox.com/sh/spld3hqipqe17j1/AAA0cuzW3qc9ftY6dvHcSSL8a?dl=1) or from the command line (Linux/macOS) with `wget -O examples_driver_501.zip "https://www.dropbox.com/sh/spld3hqipqe17j1/AAA0cuzW3qc9ftY6dvHcSSL8a?dl=1"`
-Alternatively, the `*driver*` files from simulation 501 can be used by copying them into the directory of 502. For that we recommend to set the `runtime` to at least 1000 s, and `tdriverstart` accordingly with `tdriverstart` <= `runtime` - `(driverstore-1)*dtdriver`.
