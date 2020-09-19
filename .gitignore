@@ -1,5 +1,6 @@
 # build directory and compiled objects
 build/
+temp/
 *.o
 *.mod
 

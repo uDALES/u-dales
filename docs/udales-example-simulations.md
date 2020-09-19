@@ -28,7 +28,9 @@ If you want to make any changes to the example simulations, e.g. changing the do
 
 Below is a list of common setups and options for urban case studies. A complete list of all options available with uDALES can be found in the [Namoptions overview](./udales-namoptions-overview.md) document.
 
+
 Table 1: Main setups of urban case studies and reference example simulation(s).
+
 | Type               | Setting               | Requires pre-processing | Example simulation |
 | ------------------ | --------------------- | ----------------------- | ------------------ |
 | Domain             | size and resolution   | yes | all |
