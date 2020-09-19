@@ -30,8 +30,8 @@ for file in *dump.000.${expnr}.nc ; do
 
     if [ -f $file ]; then
 
-        ## Merging fields along spatial axis.
-        echo "Merging fields along spatial axis."
+        ## Gathering fields along spatial axis.
+        echo "Gathering fields along spatial axis."
 
         dumps=${file%.000.${expnr}.nc}
 
@@ -51,7 +51,7 @@ for file in *dump.000.${expnr}.nc ; do
         outfile="${dumps}.${expnr}.nc"
 
         echo "We are in ${datapath}."
-        echo "Merging ${dumps} files with ym-dependent variables ${ymparam}."
+        echo "Gathering ${dumps} files with ym-dependent variables ${ymparam}."
         echo "Saving output to ${outfile}."
 
         ${utilsdir}/da_merge.sh $dumps $ymparam $outfile
