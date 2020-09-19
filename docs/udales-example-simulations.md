@@ -8,7 +8,7 @@ Note that we limited the simulation time to just a few minutes for demonstration
 
 ## Prerequisites
 
-All examples below assume that you have installed uDALES as per our [getting started guide](./udales-getting-started.md) and set up the paths to [run simulations](./udales-getting-started.md/#run).
+All examples below assume that you have installed uDALES as per our [getting started guide](./udales-getting-started.md) and set up the paths up to and including [run simulations](./udales-getting-started.md/#run).
 
 Example cases are located under `u-dales/examples`.
 
@@ -19,7 +19,7 @@ All examples are run using the following command:
 # top-level project directory.
 
 # General syntax: local_execute.sh exp_directory
-./u-dales/tools/utils/local_execute.sh examples/001
+./u-dales/tools/utils/local_execute.sh u-dales/examples/001
 ```
 
 If you want to make changes to any of the examples, e.g. increasing the runtime, follow the [set-up steps](./udales-getting-started.md/#set-up) in the getting started guide to obtain a copy of the simulation setup first.
