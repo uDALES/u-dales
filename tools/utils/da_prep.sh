@@ -155,4 +155,10 @@ rm $DA_EXPDIR/$tar"/namoptions."$tar".bak"
 fi
 
 ## copy config script for execution
-cp $DA_EXPDIR_SRC/$src/config.sh $DA_EXPDIR/$tar
+config_script=$DA_EXPDIR_SRC/$src/config.sh
+if [[ -f $config_script ]]
+ then
+  cp $config_script $DA_EXPDIR/$tar
+else
+  echo 'Skipping config file (no file available for copying).'
+fi
