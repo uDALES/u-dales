@@ -4,7 +4,7 @@
 #   continue with old sim: "da_prep 1 1 w"
 #   continue with new sim  "da_prep 2 1 w"
 
-set -xe
+set -e
 
 if [ -z $DA_EXPDIR_SRC ]; then
   DA_EXPDIR_SRC=$DA_EXPDIR
