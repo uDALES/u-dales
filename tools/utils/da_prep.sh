@@ -150,6 +150,17 @@ if [ -f $dfile ]; then
     echo "Added links to driverfiles."
 fi
 
+# Copy pngs
+pngs=$DA_WORKDIR_SRC/$src"/"?*".png"
+for dfile in $pngs ; do
+    if [ -f $dfile ]; then
+      cp $dfile $DA_EXPDIR/$tar/
+    fi
+  done
+if [ -f $dfile ]; then
+    echo "Added pngs."
+fi
+
 # copy config script for execution
 config_script=$DA_EXPDIR_SRC/$src/config.sh
 if [ -f $config_script ] ; then

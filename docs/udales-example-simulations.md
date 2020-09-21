@@ -4,39 +4,13 @@ uDALES simulates a large variety of urban case studies. Here we showcase a few e
 
 Note that we limited the simulation time to just a few minutes for demonstration, if you are looking to conduct realistic simulations, you need a much longer simulation time.
 
-## Prerequisites
+## Assumptions
 
-All examples below assume that you have installed uDALES as per our [getting started guide](./udales-getting-started.md).
+- [x] Install uDALES as described in [installation instructions](./udales-getting-started.md/#installation).
+- [x] Set up examples as described in [Set-up instructions](./udales-getting-started.md/#set-up).
+- [x] Run examples as described in [Run instructions](./udales-getting-started.md/#run).
 
-Set up the paths and variables for running the simulation, for example with the following:
-
-```sh
-# We assume you are running the following commands from your
-# top-level project directory.
-
-export DA_UTILSDIR=$(pwd)/u-dales/tools/utils # Directory of utils scripts
-export DA_BUILD=$(pwd)/u-dales/build/release/u-dales # Build file
-export NCPU=2 # Number of CPUs to use for a simulation
-export DA_WORKDIR=$(pwd)/outputs # Output top-level directory
-```
-
-## Run
-
-Example cases are located under `u-dales/examples`.
-
-All examples are run using the following command:
-
-```sh
-# We assume you are running the following commands from your
-# top-level project directory.
-
-# General syntax: local_execute.sh exp_directory
-./u-dales/tools/utils/local_execute.sh u-dales/examples/001
-```
-
-## Customising simulations
-
-If you want to make any changes to the example simulations, e.g. changing the domain size, follow the [set-up steps](./udales-getting-started.md/#set-up) in the getting started guide to obtain a copy of the simulation setup and make the changes to your copy of the setup. You may need to run some pre-processing steps (see [Pre-processing](./udales-pre-processing.md)) before running the simulation. These cases are indicated as such in [Table 1](#main-simulation-set-up-options).
+You may need to run some pre-processing steps (see [Pre-processing](./udales-pre-processing.md)) before running the simulation. These cases are indicated as such in [Table 1](#main-simulation-set-up-options).
 
 ## Main simulation set-up options
 
@@ -76,7 +50,7 @@ Table 1: Main setups of urban case studies and reference example simulation(s).
 | Output | instantaneous fields | no | 001, 101, 102, 201, 502 |
 | Output | time-averaged fields | no | 201, 502 |
 | Output | space-averaged (along y) fields | no | 101 |
-| Output |space-averaged (along x,y) profiles | no | 002, 102, 201, 501, 502 |
+| Output | space-averaged (along x,y) profiles | no | 002, 102, 201, 501, 502 |
 
 ## List of examples
 
@@ -369,7 +343,7 @@ The restart files are currently not included in the directory and can be downloa
 
 # Download required files
 pushd u-dales/examples/102/
-wget -O examples_warmstart_102.zip "https://www.dropbox.com/sh/20rsgpt0gh09gr7/AABuoCFtn6_zFTxx4k8pKqvLa?dl=1"
+curl -o examples_warmstart_102.zip -L https://www.dropbox.com/sh/20rsgpt0gh09gr7/AABuoCFtn6_zFTxx4k8pKqvLa?dl=1
 unzip examples_warmstart_102.zip
 popd
 ```
@@ -612,8 +586,8 @@ The driver input files are currently not included in the directory and can be do
 # From top-level project directory.
 
 # Download required files
-pushd u-dales/examples/502/
-wget -O examples_driver_501.zip "https://www.dropbox.com/sh/spld3hqipqe17j1/AAA0cuzW3qc9ftY6dvHcSSL8a?dl=1"
+pushd experiments/502/
+curl -o examples_driver_501.zip -L https://www.dropbox.com/sh/spld3hqipqe17j1/AAA0cuzW3qc9ftY6dvHcSSL8a?dl=1
 unzip examples_driver_501.zip
 popd
 ```
