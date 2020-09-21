@@ -342,7 +342,7 @@ The restart files are currently not included in the directory and can be downloa
 # From top-level project directory.
 
 # Download required files
-pushd u-dales/examples/102/
+pushd experiments/102/
 curl -o examples_warmstart_102.zip -L https://www.dropbox.com/sh/20rsgpt0gh09gr7/AABuoCFtn6_zFTxx4k8pKqvLa?dl=1
 unzip examples_warmstart_102.zip
 popd
