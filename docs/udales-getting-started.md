@@ -153,7 +153,7 @@ export DA_WORKDIR=$(pwd)/outputs # Output top-level directory
 # the experiment set-up folder will be copied from the same target directory.
 # I.e. DA_EXPDIR_SRC==DA_EXPDIR and DA_WORKDIR_SRC==DA_WORKDIR.
 export DA_EXPDIR_SRC=$(pwd)/u-dales/examples
-export DA_WORKDIR_SRC=$(pwd)/u-dales/outputs
+export DA_WORKDIR_SRC=$(pwd)/u-dales/examples
 ```
 
 If you set up a new experiment on HPC, also use:

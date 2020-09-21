@@ -6,7 +6,21 @@ Note that we limited the simulation time to just a few minutes for demonstration
 
 ## Prerequisites
 
-All examples below assume that you have installed uDALES as per our [getting started guide](./udales-getting-started.md) and set up the paths up to and including [run simulations](./udales-getting-started.md/#run).
+All examples below assume that you have installed uDALES as per our [getting started guide](./udales-getting-started.md).
+
+Set up the paths and variables for running the simulation, for example with the following:
+
+```sh
+# We assume you are running the following commands from your
+# top-level project directory.
+
+export DA_UTILSDIR=$(pwd)/u-dales/tools/utils # Directory of utils scripts
+export DA_BUILD=$(pwd)/u-dales/build/release/u-dales # Build file
+export NCPU=2 # Number of CPUs to use for a simulation
+export DA_WORKDIR=$(pwd)/outputs # Output top-level directory
+```
+
+## Run
 
 Example cases are located under `u-dales/examples`.
 
@@ -27,7 +41,6 @@ If you want to make any changes to the example simulations, e.g. changing the do
 ## Main simulation set-up options
 
 Below is a list of common setups and options for urban case studies. A complete list of all options available with uDALES can be found in the [Namoptions overview](./udales-namoptions-overview.md) document.
-
 
 Table 1: Main setups of urban case studies and reference example simulation(s).
 
@@ -352,6 +365,9 @@ The simulation is continued from a previous simulation with a similar setup. The
 The restart files are currently not included in the directory and can be downloaded [examples_warmstart_102.zip](https://www.dropbox.com/sh/20rsgpt0gh09gr7/AABuoCFtn6_zFTxx4k8pKqvLa?dl=1) or from the command line (Linux/macOS) with
 
 ``` sh
+# From top-level project directory.
+
+# Download required files
 pushd u-dales/examples/102/
 wget -O examples_warmstart_102.zip "https://www.dropbox.com/sh/20rsgpt0gh09gr7/AABuoCFtn6_zFTxx4k8pKqvLa?dl=1"
 unzip examples_warmstart_102.zip
@@ -593,6 +609,9 @@ iplane       = 128
 The driver input files are currently not included in the directory and can be downloaded [examples_driver_501.zip](https://www.dropbox.com/sh/spld3hqipqe17j1/AAA0cuzW3qc9ftY6dvHcSSL8a?dl=1) or from the command line (Linux/macOS) with
 
 ``` sh
+# From top-level project directory.
+
+# Download required files
 pushd u-dales/examples/502/
 wget -O examples_driver_501.zip "https://www.dropbox.com/sh/spld3hqipqe17j1/AAA0cuzW3qc9ftY6dvHcSSL8a?dl=1"
 unzip examples_driver_501.zip
