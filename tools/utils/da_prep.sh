@@ -115,14 +115,14 @@ elif [ $start == "w" ]; then
   fi
 
   # scalar warmstart files
-  startfilen=$(ls -t $DA_WORKDIR_SRC/$src"/inits"* | head -1)
-  if [ -z "$startfilen" ]; then
+  scalarfilen=$(ls -t $DA_WORKDIR_SRC/$src"/inits"* | head -1)
+  if [ -z "$scalarfilen" ]; then
     echo "Info: no scalar restart files found in $DA_WORKDIR_SRC/$src."
   else
     # create links
-    startfilen=${startfilen##*/}  # retain the part after the last slash
-    startfilen=${startfilen%_*}   # retain the part before the underscore
-    ln -s $DA_WORKDIR_SRC/$src"/"*$startfilen* $DA_EXPDIR/$tar/
+    scalarfilen=${scalarfilen##*/}  # retain the part after the last slash
+    scalarfilen=${scalarfilen%_*}   # retain the part before the underscore
+    ln -s $DA_WORKDIR_SRC/$src"/"*$scalarfilen* $DA_EXPDIR/$tar/
   fi
 
   # rename links
@@ -131,12 +131,15 @@ elif [ $start == "w" ]; then
   done
   echo "Creating links to warmstart files in $DA_WORKDIR_SRC/$src."
 
-  sed -i.bak -e '/lwarmstart/s/.*/lwarmstart =  .true./g' $DA_EXPDIR/$tar"/namoptions."$tar #set warmstart to true in namoptions
-  sed -i.bak -e "/startfile/s/.*/startfile  =  '$startfilen\_xxx.$tar'/g" $DA_EXPDIR/$tar"/namoptions."$tar # change startfile to newest restartfiles
+  sed -i.bak -e '/lwarmstart/s/.*/lwarmstart   = .true./g' $DA_EXPDIR/$tar"/namoptions."$tar # set warmstart to true in namoptions
+  sed -i.bak -e "/startfile/s/.*/startfile    = '$startfilen\_xxx.$tar'/g" $DA_EXPDIR/$tar"/namoptions."$tar # change startfile to newest restartfiles
   rm $DA_EXPDIR/$tar"/namoptions."$tar".bak"
+  # Note that this only works if lwarmstart and startfile are defined in namoptions!
+  # TODO: If they are not defined under RUN section in namoptions, add them!
+  echo "Warning! Check that lwarmstart = .true. and startfile = '${startfilen}_xxx.${tar}' in namoptions. If not, add them to the RUN section."
 fi
 
-## copy config script for execution
+# copy config script for execution
 config_script=$DA_EXPDIR_SRC/$src/config.sh
 if [[ -f $config_script ]]
  then
