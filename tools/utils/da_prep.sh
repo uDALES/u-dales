@@ -139,16 +139,6 @@ elif [ $start == "w" ]; then
   echo "Warning! Check that lwarmstart = .true. and startfile = '${startfilen}_xxx.${tar}' in namoptions. If not, add them to the RUN section."
 fi
 
-# link any available driver files (without renaming)
-driverfiles=$DA_WORKDIR_SRC/$src"/"?"driver_"*
-for dfile in $driverfiles ; do
-    if [ -f $dfile ]; then
-      ln -s $dfile $DA_EXPDIR/$tar/
-    fi
-  done
-if [ -f $dfile ]; then
-    echo "Added links to driverfiles."
-fi
 
 # Copy pngs
 pngs=$DA_WORKDIR_SRC/$src"/"?*".png"
