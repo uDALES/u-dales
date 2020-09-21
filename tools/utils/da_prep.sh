@@ -99,16 +99,33 @@ if [ $start == "c" ]; then
   sed -i.bak -e '/lwarmstart/s/.*/lwarmstart =  .false./g' $DA_EXPDIR/$tar"/namoptions."$tar
   rm $DA_EXPDIR/$tar"/namoptions."$tar".bak"
 # warmstart: link newest warmstart files
+
 elif [ $start == "w" ]; then
+  # momentum warmstart files (minimum requirement for warmstarts)
   startfilen=$(ls -t $DA_WORKDIR_SRC/$src"/initd"* | head -1)
   if [ -z "$startfilen" ]; then
     echo "no restart files found in $DA_WORKDIR_SRC/$src"
     echo "exit"
     exit 1
+  else
+    # create links
+    startfilen=${startfilen##*/}  # retain the part after the last slash
+    startfilen=${startfilen%_*}   # retain the part before the underscore
+    ln -s $DA_WORKDIR_SRC/$src"/"*$startfilen* $DA_EXPDIR/$tar/
   fi
-  startfilen=${startfilen##*/}  # retain the part after the last slash
-  startfilen=${startfilen%_*}   # retain the part before the underscore
-  ln -s $DA_WORKDIR_SRC/$src"/"*$startfilen* $DA_EXPDIR/$tar/
+
+  # scalar warmstart files
+  startfilen=$(ls -t $DA_WORKDIR_SRC/$src"/inits"* | head -1)
+  if [ -z "$startfilen" ]; then
+    echo "Info: no scalar restart files found in $DA_WORKDIR_SRC/$src."
+  else
+    # create links
+    startfilen=${startfilen##*/}  # retain the part after the last slash
+    startfilen=${startfilen%_*}   # retain the part before the underscore
+    ln -s $DA_WORKDIR_SRC/$src"/"*$startfilen* $DA_EXPDIR/$tar/
+  fi
+
+  # rename links
   for f in $DA_EXPDIR/$tar/*.$src; do
     mv $f "${f%.$src}.$tar"
   done
