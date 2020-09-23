@@ -56,8 +56,10 @@ pushd $outdir
 mpiexec -n $NCPU $DA_BUILD namoptions.$exp > output.$exp 2>&1
 
 ## merge output files from cores to one file
-export LOCAL_EXECUTE=1
-$DA_UTILSDIR/da_concatenate.sh $outdir
+if (($NCPU > 1 )); then
+    export LOCAL_EXECUTE=1
+    $DA_UTILSDIR/da_concatenate.sh $outdir
+fi
 
 popd
 

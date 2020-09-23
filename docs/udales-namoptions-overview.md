@@ -68,7 +68,7 @@ Possible advection schemes:
 | runtime | 300 | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | dtmax | 20 | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | lwarmstart | .false. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
-| lper2inout | .false. | .true., .false. | Switch that determines type of restart: .true. means switching from periodic to in/outflow: inlet profile is read from `prof.inp`. | |
+| lper2inout | .false. | .true., .false. | Switch that determines type of restart: .true. means switching from periodic to in/outflow: inlet profile is read from `prof.inp`. *Potentially deprecated. May be removed in the future.* | |
 | startfile | '' | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | **lstratstart** | .false. | .true., .false. | *Description missing* | |
 | trestart | 10000. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
@@ -83,7 +83,7 @@ Possible advection schemes:
 | author | '' | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | lles | .true. | .true., .false. | Switch that determines whether the subgrid model is turned on or constant ekm and ekh are used (DNS) | - |
 | libm | .true. | | Switch that determines whether the Immersed Boundary Method is turned on. *Deprecated. Will be removed in the future.* | |
-| lreadmean | .false. | | Switch that determines whether mean variables should be read from means#myid#.#expnr# | |
+| lreadmean | .false. | | Switch that determines whether mean variables should be read from means#myid#.#expnr# *Potentially deprecated. May be removed in the future.* | |
 | lwalldist | .false. | | Switch that determines whether the wall distances should be computed for the subgrid models. *Potentially deprecated. May be removed in the future.* | |
 
 # Namelist OUTPUT
@@ -128,6 +128,14 @@ Possible advection schemes:
 | tcheck | 0 | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 
 # Namelist BC
+
+Switches for boundary conditions: momentum (m), temperature (T), humidity (q) and scalars (s).
+
+Lateral BCs (BCx, BCy): 1 = periodic, > 1 special in/outflow conditions
+
+BCs at the top (BCtop): 1 = freeslip, 2 = noslip, 3 = determined by inflow conditions
+
+BCs at the bottom (BCbot; only effective if not covered with road facets): 1 = flux, 2 = wall function
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
@@ -186,13 +194,13 @@ Possible advection schemes:
 
 2 = flux determined by wall function involving temperature
 
-3 = flux determined by neutral wall function (no temperature)
+3 = flux determined by neutral wall function (set automatically if `ltempeq = .false.`)
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
 | nblocks | 0 | `INTEGER` | Number of blocks specified in `blocks.inp`. | - |
 | nfcts | -1 | `INTEGER` | Number of facets specified in `facets.inp`. | - |
-| iwallmom | 2 | 2, 3 (1 currently not implemented) | Building wall momentum flux. *Default will change to 3 in the future.* | - |
+| iwallmom | 2 | 2, 3 (1 currently not implemented) | Building wall momentum flux. | - |
 | iwalltemp | 1 | 1, 2 |  Building wall temperature flux. | - |
 | iwallmoist | 1 | 1, 2 |  Building wall moisture flux. | - |
 | iwallscal | 1 | 1, 2 | Building wall scalar flux | - |
