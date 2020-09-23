@@ -1,0 +1,98 @@
+&RUN
+iexpnr       = 201
+runtime      = 11.
+trestart     = 10.
+dtmax        = 1.
+irandom      = 43
+randqt       = 2.5e-5
+randthl      = 0.001
+randu        = 0.01
+ladaptive    = .true.
+/
+
+&OUTPUT
+lfielddump   = .true.
+tfielddump   = 10.
+fieldvars    = 'u0,v0,w0,th'
+ltdump       = .true.
+lxytdump     = .true.
+tstatsdump   = 10.
+tsample      = 1.
+/
+
+&DOMAIN
+imax         = 128
+jtot         = 128
+kmax         = 128
+xsize        = 128
+ysize        = 128
+/
+
+&PHYSICS
+lbuoyancy    = .true.
+ltempeq      = .true.
+lmoist       = .true.
+ps           = 101500.00
+igrw_damp    = 0
+lcoriol      = .true.
+lnudge       = .true.
+tnudge       = 10800.
+nnudge       = 64
+/
+
+&DYNAMICS
+iadv_mom     = 2
+iadv_thl     = 2
+iadv_qt      = 2
+iadv_sv      = 7
+ipoiss       = 0
+/
+
+&NAMSUBGRID
+lvreman      = .true.
+/
+
+&BC
+wtsurf       = 0.
+wqsurf       = 0.
+thls         = 288.
+z0           = 0.01
+z0h          = 0.000067
+thl_top      = 288.
+qt_top       = 0.0
+qts          = 0.0
+/
+
+&WALLS
+nblocks      = 261
+nfcts        = 421
+iwalltemp    = 2
+iwallmoist   = 2
+/
+
+&ENERGYBALANCE
+lEB          = .true.
+lconstW      = .true.
+dtEB         = 2.
+bldT         = 301.0
+wsoil        = 314.0
+wgrmax       = 451.0
+wwilt        = 172.0
+wfc          = 314.0
+skyLW        = 201.0
+GRLAI        = 2.1
+rsmin        = 200.0
+/
+
+&INPS
+zsize        = 160
+lblocksfile  = .true.
+blocksfile   = buildings.201
+lzstretch    = .true.
+stretchconst = 0.01
+lstretchexp  = .true.
+hlin         = 40
+dzlin        = 1
+thl0         = 290.
+u0           = 1.5
+/

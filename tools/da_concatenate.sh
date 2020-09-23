@@ -21,41 +21,43 @@ if [ -z $LOCAL_EXECUTE ]; then
     module load intel-suite udunits nco/4.6.2
 fi;
 
-## Gathering fields along spatial axis.
-
-echo "Gathering fields along spatial axis."
-
 ## go to files directory
 cd ${datapath}
 
 ## call loop for *DUMPS
-dumpslist=$(ls *dump.000.${expnr}.nc)
 
-for file in $dumpslist ; do
+for file in *dump.000.${expnr}.nc ; do
 
-    dumps=${file%.000.${expnr}.nc}
+    if [ -f $file ]; then
 
-    if [ $dumps == "fielddump" ]; then
-        # ymparam="ym"
-        ymparam="v,ym"
-        
-    elif [ $dumps == "tdump" ]; then
-        ymparam="vt,vpwpt,upvpt,ym"
-        
-    elif [ $dumps == "slicedump" ]; then
-        ymparam="v_2,v_20,ym"
-    else
-        ymparam="ym"
+        ## Gathering fields along spatial axis.
+        echo "Gathering fields along spatial axis."
+
+        dumps=${file%.000.${expnr}.nc}
+
+        if [ $dumps == "fielddump" ]; then
+            # ymparam="ym"
+            ymparam="v,ym"
+
+        elif [ $dumps == "tdump" ]; then
+            ymparam="vt,vpwpt,upvpt,ym"
+
+        elif [ $dumps == "slicedump" ]; then
+            ymparam="v_2,v_20,ym"
+        else
+            ymparam="ym"
+        fi
+
+        outfile="${dumps}.${expnr}.nc"
+
+        echo "We are in ${datapath}."
+        echo "Gathering ${dumps} files with ym-dependent variables ${ymparam}."
+        echo "Saving output to ${outfile}."
+
+        ${toolsdir}/concatenate_field.sh $dumps $ymparam $outfile
+        echo "Merging done."
+
     fi
-    
-    outfile="${dumps}.${expnr}.nc"
-
-    echo "We are in ${datapath}."
-    echo "Gathering ${dumps} files with ym-dependent variables ${ymparam}."
-    echo "Saving output to ${outfile}."
-
-    ${toolsdir}/concatenate_field.sh $dumps $ymparam $outfile
-    echo "Merging done."
 
 done
 

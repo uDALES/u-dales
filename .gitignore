@@ -1,47 +1,15 @@
-# Compiled Object files
-*.o
-
-# Fortran module files
-*.mod
-
-# Executables
-*.out
-dalesurban_*
-pre/output
-pre/temp
-# Large output files
-work/
-
-# Links to restart files in work
-exp/*/init*
-
-# job files from HPC queues
-exp/*/job.*
-
-# additional files from compiling
+# build directory and compiled objects
+build/
+temp/
 *.o
 *.mod
+
+# Restart and driver files
+examples/*/init*
+examples/*/*driver*
 
 # macOS specific
 .DS_Store
-
-# Byte-compiled / optimized / DLL files
-__pycache__/
-
-# jupyter notebook checkpoints
-.ipynb_checkpoints
-
-# Distribution / packaging
-build/
-dist/
-.eggs/
-temp/
-
-outputs/
-
-.vscode/
-
-data/
 
 # Matlab artifacts
 *.m~

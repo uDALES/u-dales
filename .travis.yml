@@ -78,5 +78,5 @@ deploy:
  github_token: $GITHUB_TOKEN
  local_dir: temp/html
  on:
-   all_branches: true
+   branch: master
    condition: $TRAVIS_OS_NAME = 'linux' && $BUILD_TYPE = 'Release'

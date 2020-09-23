@@ -153,7 +153,7 @@ export DA_WORKDIR=$(pwd)/outputs # Output top-level directory
 # the experiment set-up folder will be copied from the same target directory.
 # I.e. DA_EXPDIR_SRC==DA_EXPDIR and DA_WORKDIR_SRC==DA_WORKDIR.
 export DA_EXPDIR_SRC=$(pwd)/u-dales/examples
-export DA_WORKDIR_SRC=$(pwd)/u-dales/outputs
+export DA_WORKDIR_SRC=$(pwd)/u-dales/examples
 ```
 
 If you set up a new experiment on HPC, also use:
@@ -163,7 +163,7 @@ export DA_WORKDIR=$EPHEMERAL # Output top-level directory on HPC
 export DA_WORKDIR_SRC=$EPHEMERAL
 ```
 
-Now to set-up a new experiment (here we use case `009`) based on a previous example (here we use case `999`), run:
+Now to set-up a new experiment (here we use case `009`) based on a previous example (here we use case `001`), run:
 
 ``` sh
 # We assume you are running the following commands from your
@@ -172,7 +172,7 @@ Now to set-up a new experiment (here we use case `009`) based on a previous exam
 # General syntax: da_prep.sh new_exp_id old_exp_id
 # To set up a new simulation starting from the restart files of another simulation
 # ("warmstart"), use the 'w' flag. E.g.: da_prep.sh new_exp_id old_exp_id w
-./u-dales/tools/da_prep.sh 009 999
+./u-dales/tools/da_prep.sh 009 001
 ```
 
 ## Run
