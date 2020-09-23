@@ -5,9 +5,9 @@ temp/
 *.mod
 
 # Restart and driver files
-examples/Example simulation input files/
-# expamples/*/init*
-# examples/*/*driver*
+examples/*/init*
+examples/*/*driver*
+
 
 # macOS specific
 .DS_Store
