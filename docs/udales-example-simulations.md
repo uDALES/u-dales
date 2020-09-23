@@ -613,7 +613,7 @@ The driver input files are currently not included in the directory and can be do
 
 # Download required files
 pushd u-dales/examples/502/
-wget -O examples_driver_501.zip "https://www.dropbox.com/sh/spld3hqipqe17j1/AAA0cuzW3qc9ftY6dvHcSSL8a?dl=1"
+curl -o examples_driver_501.zip -L https://www.dropbox.com/sh/spld3hqipqe17j1/AAA0cuzW3qc9ftY6dvHcSSL8a?dl=1
 unzip examples_driver_501.zip
 popd
 ```
