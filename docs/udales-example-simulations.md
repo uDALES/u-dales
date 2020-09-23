@@ -369,7 +369,7 @@ The restart files are currently not included in the directory and can be downloa
 
 # Download required files
 pushd u-dales/examples/102/
-wget -O examples_warmstart_102.zip "https://www.dropbox.com/sh/20rsgpt0gh09gr7/AABuoCFtn6_zFTxx4k8pKqvLa?dl=1"
+curl -o examples_warmstart_102.zip -L https://www.dropbox.com/sh/20rsgpt0gh09gr7/AABuoCFtn6_zFTxx4k8pKqvLa?dl=1
 unzip examples_warmstart_102.zip
 popd
 ```
