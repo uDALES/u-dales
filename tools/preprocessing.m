@@ -1241,6 +1241,7 @@ classdef preprocessing < dynamicprops
                             ztemp(5,1) = topo(yminl+1, xminl);
                         end
                         zcuttemp = sort(ztemp(ztemp<topo(yminl, xminl) & ztemp>0));
+                        zcuttemp = unique(zcuttemp);
                         zcut = [0; zcuttemp; topo(yminl,xminl)];
                         for kc = 1:size(zcut, 1)-1                           
                             count = count+1;                            
