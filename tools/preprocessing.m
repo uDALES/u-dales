@@ -2260,7 +2260,8 @@ classdef preprocessing < dynamicprops
                 nfloorfacets = size(floorfacets, 1);
                 
                 for i = 1:nfloorfacets
-                    floorfacets(i, 1:5) = [1, -1, i, -1, 0]; % SO: block ID should be nblocks + i
+                    %floorfacets(i, 1:5) = [1, -1, i, -1, 0]; % SO: block ID should be nblocks + i
+                    floorfacets(i, 1:5) = [1, -1, nblocks + i, -1, 0];
                     floorfacets(i, 10:11) = [0, 0];
                 end
                 
@@ -2440,7 +2441,7 @@ classdef preprocessing < dynamicprops
                 % get facet center and corners
                 cornm = obj.cornm;
                 delta = 0.01;
-                [ndim, ~, co] = preprocessing.detsub(i,facets,blocks,floors,boundingwalls,cornm,xh,yh,zh,delta);
+                [ndim, ~, co] = preprocessing.detsub(i,facets,blocks,floors,boundingwalls,cornm,nblocks,xh,yh,zh,delta);
                 %ndim=(dim1*dim2), number of cells of that facet
                 %co = returns xyz-coordinates of center and 4 corners clockwise from
                 %bottom left slightly shifter and
@@ -2952,7 +2953,7 @@ classdef preprocessing < dynamicprops
                 ci = facets(i, 4); %building index (-1 for roads, -99 for bounding wall)
                 %[ndima, areaa, coa] = preprocessing.detsub(obj, i);
                 
-                [ ndima, areaa, coa] = preprocessing.detsub(i,facets,blocks,floors,boundingwalls,cornm,xh,yh,zh,delta);
+                [ ndima, areaa, coa] = preprocessing.detsub(i,facets,blocks,floors,boundingwalls,cornm,nblocks,xh,yh,zh,delta);
                 for j = (i + 1):nfcts
                     bi2 = facets(j, 3); %block index
                     fi2 = facets(j, 1); %facet index
@@ -2962,7 +2963,7 @@ classdef preprocessing < dynamicprops
                     end
                     
                     %[ndimb, areab, cob] = preprocessing.detsub(obj, j);
-                    [ ndimb, areab, cob] = preprocessing.detsub(j,facets,blocks,floors,boundingwalls,cornm,xh,yh,zh,delta);
+                    [ ndimb, areab, cob] = preprocessing.detsub(j,facets,blocks,floors,boundingwalls,cornm,nblocks,xh,yh,zh,delta);
                     %[prblckdij] = preprocessing.prblckd(obj, i, j, coa, ndima, false, -999, cob, ndimb);
                     [prblckdij] = preprocessing.prblckd(i,j,coa,ndima,false,-999,cob,ndimb,facets,centerweight,cornerweight,nblocks,nboundingwallfacets,blocks_phys);
                     c = 1 - prblckdij;
@@ -4251,7 +4252,7 @@ classdef preprocessing < dynamicprops
             % end;
         end
         
-        function [ ndim, area, co] = detsub(i,facets,blocks,floors,boundingwalls,cornm,xb,yb,zb,delta)
+        function [ ndim, area, co] = detsub(i,facets,blocks,floors,boundingwalls,cornm,nblocks,xb,yb,zb,delta)
             % returns ndim=(dim1*dim2), area, center & corner of every facet (could be preprocessed and
             % saved)
             
@@ -4399,10 +4400,11 @@ classdef preprocessing < dynamicprops
                 end
                 
             else  % it is a floor, not a building
-                il=floors(bi,1);     %lower x index of floor facet 1
-                iu=floors(bi,2);     %upper x index of floor facet 1
-                jl=floors(bi,3);     %lower y index of floor facet 1
-                ju=floors(bi,4);     %upper y index of floor facet 1
+                bif = bi - nblocks; % index in floor list
+                il=floors(bif,1);     %lower x index of floor facet 1
+                iu=floors(bif,2);     %upper x index of floor facet 1
+                jl=floors(bif,3);     %lower y index of floor facet 1
+                ju=floors(bif,4);     %upper y index of floor facet 1
                 z=1;
                 ndim=((iu-il)+1)*((ju-jl)+1);
                 co=[(xb(iu+1)+xb(il))*.5, (yb(ju+1)+yb(jl))*.5  , z; ... %center
