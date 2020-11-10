@@ -178,3 +178,6 @@ Each row describes a wall type, with the first 6 columns being: wall type id, a 
 
 For examples, please refer to the [example simulations](udales-example-simulations.md)
 
+### Visualising geometries
+
+There are a number of functions in the `preprocessing` class that can be called from the Matlab editor in order to visualise the geometry: `plot_bl` plots the buildings, `plot_blocks` plots the buildings and the roads, and `plot_facets` plots all the facets.
