@@ -180,4 +180,4 @@ For examples, please refer to the [example simulations](udales-example-simulatio
 
 ### Visualising geometries
 
-There are a number of functions in the `preprocessing` class that can be called from the Matlab editor in order to visualise the geometry: `plot_bl` plots the buildings, `plot_blocks` plots the buildings and the roads, and `plot_facets` plots all the facets.
+There are a number of functions in the `preprocessing` class that can be called from the Matlab editor in order to visualise the geometry. Assuming the instance of the preprocessing class is named `r`, `plot_bl(r)` plots the buildings, `plot_blocks(r)` plots the buildings and the roads, and `plot_facets(r)` plots all the facets.
