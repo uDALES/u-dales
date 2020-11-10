@@ -78,6 +78,8 @@ The following parameters relate to generating `blocks.inp`. Only one of the foll
 
 - `lblocksfile`: switch for generating blocks from a given file.
 - `blocksfile`: name of blocks file (must be specified if `lblocksfile` is used).
+- `ltxtblocks`: switch for generating blocks from a 2D ascii array
+- `txtblocksfile`: name of blocks file (must be specified if `ltxtblocks` is used).
 
 #### Generate blocks from LIDAR data
 
