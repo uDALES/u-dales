@@ -32,3 +32,11 @@ We assume that simulation 1 was run before simulation 2, i.e. the time steps of 
 ```
 
 Replace 009 and 010 with the numbers of your simulations.
+
+## Different output files explained
+
+The output files generated depend on the parameters specified under `&OUPUT` in [namoptions](udales-namoptions-overview.md), and the name of the output file(s) matches the name of the switch, e.g. if `lxytdump` is selected for experiment `009` then there will be an output file called `xytdump.009.nc`. If `lfielddump` is selected, note that there will be a `fielddump` file for each cpu.
+
+## Reading output files
+
+These output files are in netcdf format, and so it is possible to obtain a description of any particular file using the command `ncdisp('<top-level-directory>/outputs/009/xytdump.009.nc')` in Matlab. To read a variable, one can use e.g. `u = ncread(<top-level-directory>/outputs/009/xytdump.009.nc', 'uxyt')`
