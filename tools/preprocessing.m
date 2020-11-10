@@ -895,7 +895,7 @@ classdef preprocessing < dynamicprops
                
         function plot_bl(obj)
             figure
-            title('Blocks (old)')
+            %title('Blocks', 'interpreter','latex')
             view(52, 23)
             if (obj.lstaggered || obj.lcube || obj.lcanyons)
                 for i = 1:size(obj.bl, 1)
@@ -924,51 +924,55 @@ classdef preprocessing < dynamicprops
             ylim([0 obj.yh(end)]); %/(r.blockheight-1))
 
             set(gca,'ticklabelinterpreter','latex')
-            xlabel('x [m]','interpreter','latex')
-            ylabel('y [m]','interpreter','latex')
-            zlabel('z [m]','interpreter','latex')
+            xlabel('x (m)','interpreter','latex')
+            ylabel('y (m)','interpreter','latex')
+            zlabel('z (m)','interpreter','latex')
             set(gca,'BoxStyle','full','Box','on')
             daspect([1 1 1])
+            grid on
+            set(gca, 'FontSize', 16)
             
         end
                 
         function plot_blocks(obj)
             figure
-            title('Blocks')
+            %title('Blocks', 'interpreter', 'latex')
             view(52, 23)
-        for i = 1:obj.nblockstotal
-            il = obj.blocks(i,1);
-            iu = obj.blocks(i,2);
-            jl = obj.blocks(i,3);
-            ju = obj.blocks(i,4);
-            kl = obj.blocks(i,5);
-            ku = obj.blocks(i,6);
+            for i = 1:obj.nblockstotal
+                il = obj.blocks(i,1);
+                iu = obj.blocks(i,2);
+                jl = obj.blocks(i,3);
+                ju = obj.blocks(i,4);
+                kl = obj.blocks(i,5);
+                ku = obj.blocks(i,6);
+                
+                if i <= obj.nblocks
+                    patch([obj.xh(il)   obj.xh(iu+1) obj.xh(iu+1) obj.xh(il)]  , [obj.yh(jl)   obj.yh(jl)   obj.yh(ju+1) obj.yh(ju+1)], [obj.zh(ku+1) obj.zh(ku+1) obj.zh(ku+1) obj.zh(ku+1)], [245 245 245] ./ 255)
+                    patch([obj.xh(il)   obj.xh(il)   obj.xh(iu+1) obj.xh(iu+1)], [obj.yh(jl)   obj.yh(jl)   obj.yh(jl)   obj.yh(jl)],   [obj.zh(kl)   obj.zh(ku+1) obj.zh(ku+1) obj.zh(kl)], [245 245 245] ./ 255)
+                    patch([obj.xh(il)   obj.xh(il)   obj.xh(iu+1) obj.xh(iu+1)], [obj.yh(ju+1) obj.yh(ju+1) obj.yh(ju+1) obj.yh(ju+1)], [obj.zh(kl)   obj.zh(ku+1) obj.zh(ku+1) obj.zh(kl)], [245 245 245] ./ 255)
+                    patch([obj.xh(il)   obj.xh(il)   obj.xh(il)   obj.xh(il)]  , [obj.yh(ju+1) obj.yh(ju+1) obj.yh(jl)   obj.yh(jl)],   [obj.zh(kl)   obj.zh(ku+1) obj.zh(ku+1) obj.zh(kl)], [245 245 245] ./ 255)
+                    patch([obj.xh(iu+1) obj.xh(iu+1) obj.xh(iu+1) obj.xh(iu+1)], [obj.yh(jl)   obj.yh(jl)   obj.yh(ju+1) obj.yh(ju+1)], [obj.zh(kl)   obj.zh(ku+1) obj.zh(ku+1) obj.zh(kl)], [245 245 245] ./ 255)
+                else
+                    patch([obj.xh(il)   obj.xh(iu+1) obj.xh(iu+1) obj.xh(il)]  , [obj.yh(jl)   obj.yh(jl)   obj.yh(ju+1) obj.yh(ju+1)], [obj.zh(ku+1) obj.zh(ku+1) obj.zh(ku+1) obj.zh(ku+1)], [245 245 245] ./ 255)
+                    patch([obj.xh(il)   obj.xh(il)   obj.xh(iu+1) obj.xh(iu+1)], [obj.yh(jl)   obj.yh(jl)   obj.yh(jl)   obj.yh(jl)],   [0            obj.zh(ku+1) obj.zh(ku+1)            0], [245 245 245] ./ 255)
+                    patch([obj.xh(il)   obj.xh(il)   obj.xh(iu+1) obj.xh(iu+1)], [obj.yh(ju+1) obj.yh(ju+1) obj.yh(ju+1) obj.yh(ju+1)], [0            obj.zh(ku+1) obj.zh(ku+1)            0], [245 245 245] ./ 255)
+                    patch([obj.xh(il)   obj.xh(il)   obj.xh(il)   obj.xh(il)]  , [obj.yh(ju+1) obj.yh(ju+1) obj.yh(jl)   obj.yh(jl)],   [0            obj.zh(ku+1) obj.zh(ku+1)            0], [245 245 245] ./ 255)
+                    patch([obj.xh(iu+1) obj.xh(iu+1) obj.xh(iu+1) obj.xh(iu+1)], [obj.yh(jl)   obj.yh(jl)   obj.yh(ju+1) obj.yh(ju+1)], [0            obj.zh(ku+1) obj.zh(ku+1)            0], [245 245 245] ./ 255)
+                end
+            end
             
-            if i <= obj.nblocks             
-                patch([obj.xh(il)   obj.xh(iu+1) obj.xh(iu+1) obj.xh(il)]  , [obj.yh(jl)   obj.yh(jl)   obj.yh(ju+1) obj.yh(ju+1)], [obj.zh(ku+1) obj.zh(ku+1) obj.zh(ku+1) obj.zh(ku+1)], [245 245 245] ./ 255)
-                patch([obj.xh(il)   obj.xh(il)   obj.xh(iu+1) obj.xh(iu+1)], [obj.yh(jl)   obj.yh(jl)   obj.yh(jl)   obj.yh(jl)],   [obj.zh(kl)   obj.zh(ku+1) obj.zh(ku+1) obj.zh(kl)], [245 245 245] ./ 255)
-                patch([obj.xh(il)   obj.xh(il)   obj.xh(iu+1) obj.xh(iu+1)], [obj.yh(ju+1) obj.yh(ju+1) obj.yh(ju+1) obj.yh(ju+1)], [obj.zh(kl)   obj.zh(ku+1) obj.zh(ku+1) obj.zh(kl)], [245 245 245] ./ 255)
-                patch([obj.xh(il)   obj.xh(il)   obj.xh(il)   obj.xh(il)]  , [obj.yh(ju+1) obj.yh(ju+1) obj.yh(jl)   obj.yh(jl)],   [obj.zh(kl)   obj.zh(ku+1) obj.zh(ku+1) obj.zh(kl)], [245 245 245] ./ 255)
-                patch([obj.xh(iu+1) obj.xh(iu+1) obj.xh(iu+1) obj.xh(iu+1)], [obj.yh(jl)   obj.yh(jl)   obj.yh(ju+1) obj.yh(ju+1)], [obj.zh(kl)   obj.zh(ku+1) obj.zh(ku+1) obj.zh(kl)], [245 245 245] ./ 255)
-            else
-                patch([obj.xh(il)   obj.xh(iu+1) obj.xh(iu+1) obj.xh(il)]  , [obj.yh(jl)   obj.yh(jl)   obj.yh(ju+1) obj.yh(ju+1)], [obj.zh(ku+1) obj.zh(ku+1) obj.zh(ku+1) obj.zh(ku+1)], [245 245 245] ./ 255)
-                patch([obj.xh(il)   obj.xh(il)   obj.xh(iu+1) obj.xh(iu+1)], [obj.yh(jl)   obj.yh(jl)   obj.yh(jl)   obj.yh(jl)],   [0            obj.zh(ku+1) obj.zh(ku+1)            0], [245 245 245] ./ 255)
-                patch([obj.xh(il)   obj.xh(il)   obj.xh(iu+1) obj.xh(iu+1)], [obj.yh(ju+1) obj.yh(ju+1) obj.yh(ju+1) obj.yh(ju+1)], [0            obj.zh(ku+1) obj.zh(ku+1)            0], [245 245 245] ./ 255)
-                patch([obj.xh(il)   obj.xh(il)   obj.xh(il)   obj.xh(il)]  , [obj.yh(ju+1) obj.yh(ju+1) obj.yh(jl)   obj.yh(jl)],   [0            obj.zh(ku+1) obj.zh(ku+1)            0], [245 245 245] ./ 255)
-                patch([obj.xh(iu+1) obj.xh(iu+1) obj.xh(iu+1) obj.xh(iu+1)], [obj.yh(jl)   obj.yh(jl)   obj.yh(ju+1) obj.yh(ju+1)], [0            obj.zh(ku+1) obj.zh(ku+1)            0], [245 245 245] ./ 255)
-            end   
-        end
-        
-        zlim([0 obj.zh(end)]); %/(r.blockheight-1))
-        xlim([0 obj.xh(end)]); %/(r.blockheight-1))
-        ylim([0 obj.yh(end)]); %/(r.blockheight-1))
-        
-        set(gca,'ticklabelinterpreter','latex')
-        xlabel('x [m]','interpreter','latex')
-        ylabel('y [m]','interpreter','latex')
-        zlabel('z [m]','interpreter','latex')
-        set(gca,'BoxStyle','full','Box','on')
-        daspect([1 1 1])
+            zlim([0 obj.zh(end)]); %/(r.blockheight-1))
+            xlim([0 obj.xh(end)]); %/(r.blockheight-1))
+            ylim([0 obj.yh(end)]); %/(r.blockheight-1))
+            
+            set(gca,'ticklabelinterpreter','latex')
+            xlabel('x (m)','interpreter','latex')
+            ylabel('y (m)','interpreter','latex')
+            zlabel('z (m)','interpreter','latex')
+            set(gca,'BoxStyle','full','Box','on')
+            daspect([1 1 1])
+            set(gca, 'FontSize', 16)
+            grid on
         end
                              
         function plot_facets(obj)
@@ -1138,17 +1142,21 @@ classdef preprocessing < dynamicprops
                 end
                 
                 %text(mean(x) + d(1), mean(y) + d(2), mean(z) + d(3), num2str(i), 'horizontalalignment', 'center')
-                hold on
-                title('Facets')
+                %hold on
+                %title('Facets')
             end
-            view(3)
-            xlabel('x')
-            ylabel('y')
-            zlabel('z')
-            axis equal
+            view(52, 23)
+            set(gca,'ticklabelinterpreter','latex')
+            xlabel('x (m)', 'interpreter', 'latex')
+            ylabel('y (m)', 'interpreter', 'latex')
+            zlabel('z (m)', 'interpreter', 'latex')
+            set(gca,'BoxStyle','full','Box','on')
+            daspect([1 1 1])
             xlim([0 obj.xh(end)])
             ylim([0 obj.yh(end)])
             zlim([0 obj.zh(end)])
+            set(gca, 'FontSize', 16)
+            grid on
         end
                     
         function makeblocks(obj)
