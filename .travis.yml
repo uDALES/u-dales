@@ -29,6 +29,7 @@ addons:
     packages:
       - netcdf
       - open-mpi
+      - gcc@9
 
 matrix:
     include:
@@ -66,6 +67,8 @@ script:
   # Travis clones only the history leading to the tip of a single branch (https://stackoverflow.com/a/44036486).
   - git remote set-branches --add origin master
   - git fetch origin master
+  # We only support gfortran up to version 9 due to fishpack
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; export FC=gfortran-9; fi
   # Always tests against master as our reference branch.
   - python3 tests/run_tests.py master $TRAVIS_COMMIT $BUILD_TYPE
 
