@@ -318,7 +318,210 @@ classdef preprocessing < dynamicprops
             preprocessing.addvar(obj, 'nblocks', 0)
             preprocessing.addvar(obj, 'nfcts', 0)
             preprocessing.addvar(obj, 'blocks', [])
-            preprocessing.addvar(obj, 'facets', [])           
+            preprocessing.addvar(obj, 'facets', [])
+            
+            preprocessing.generate_walltypes(obj)
+            
+        end
+        
+        function generate_walltypes(obj)
+            K = 3; % Number of wall layers - currently restricted to 3
+            walltypes = [];
+            
+            % Bounding walls (bw)
+            id_bw  = -101;
+            lGR_bw = 0;
+            z0_bw  = 0;
+            z0h_bw = 0;
+            al_bw  = 0.5;
+            em_bw  = 0.85;
+            D_bw   = 0.;
+            d_bw   = D_bw / K;
+            C_bw   = 0.;
+            l_bw   = 0.;
+            k_bw   = 0.;
+            bw = [id_bw, lGR_bw, z0_bw, z0h_bw, al_bw, em_bw, d_bw * ones(1,K), C_bw * ones(1,K), l_bw * ones(1,K), k_bw * ones(1,K+1)];
+            walltypes = [walltypes; bw];
+                      
+            % Floors (f)
+            id_f  = -1;
+            lGR_f = 0;
+            z0_f  = 0.05;
+            z0h_f = 0.00035;
+            al_f  = 0.5;
+            em_f  = 0.85;
+            %D_f   = 0.5;
+            %df   = D_f / K;
+            C_f   = 1.875e6;
+            l_f   = 0.75;
+            k_f   = 0.4e-6;
+            f =  [id_f, lGR_f, z0_f, z0h_f, al_f, em_f, 0.1, 0.2, 0.2, C_f * ones(1,K), l_f * ones(1,K), k_f * ones(1,K+1)];
+            walltypes = [walltypes; f];
+            
+            % Dummy (dm)
+            id_dm  = 0;
+            lGR_dm = 0;
+            z0_dm  = 0;
+            z0h_dm = 0;
+            al_dm  = 0;
+            em_dm  = 0;
+            D_dm   = 0.3;
+            d_dm = D_dm / K;
+            C_dm = 1.875e6;
+            l_dm = 0.75;
+            k_dm = 0.4e-6;
+            dm = [id_dm, lGR_dm, z0_dm, z0h_dm, al_dm, em_dm, d_dm * ones(1,K), C_dm * ones(1,K), l_dm * ones(1,K), k_dm * ones(1,K+1)];
+            walltypes = [walltypes; dm];
+            
+            % Concrete (c)
+            id_c  = 1;
+            lGR_c = 0;
+            z0_c  = 0.05;
+            z0h_c = 0.00035;
+            al_c = 0.5;
+            em_c = 0.85;           
+            D_c = 0.36;
+            d_c = D_c / K;
+            C_c = 2.5e6;
+            l_c = 1;
+            k_c = 0.4e-6;
+            c = [id_c, lGR_c, z0_c, z0h_c, al_c, em_c, d_c * ones(1,K), C_c * ones(1,K), l_c * ones(1,K), k_c * ones(1,K+1)];
+            walltypes = [walltypes; c];
+            
+            % Brick (b)
+            id_b  = 2;
+            lGR_b = 0;
+            z0_b  = 0.05;
+            z0h_b = 0.00035;
+            al_b = 0.5;
+            em_b = 0.85;           
+            D_b = 0.36;
+            d_b = D_b / K;
+            C_b = 2.766667e6;
+            l_b = 0.83;
+            k_b = 0.3e-6;
+            b = [id_b, lGR_b, z0_b, z0h_b, al_b, em_b, d_b * ones(1,K), C_b * ones(1,K), l_b * ones(1,K), k_b * ones(1,K+1)];
+            walltypes = [walltypes; b];
+            
+            % Stone (s)
+            id_s  = 3;
+            lGR_s = 0;
+            z0_s  = 0.05;
+            z0h_s = 0.00035;
+            al_s = 0.5;
+            em_s = 0.85;           
+            D_s = 0.36;
+            d_s = D_s / K;
+            C_s = 2.19e6;
+            l_s = 2.19;
+            k_s = 1e-6;
+            s = [id_s, lGR_s, z0_s, z0h_s, al_s, em_s, d_s * ones(1,K), C_s * ones(1,K), l_s * ones(1,K), k_s * ones(1,K+1)];
+            walltypes = [walltypes; s];
+            
+            % Wood (w)
+            id_w  = 4;
+            lGR_w = 0;
+            z0_w  = 0.05;
+            z0h_w = 0.00035;
+            al_w = 0.5;
+            em_w = 0.85;           
+            D_w = 0.36;
+            d_w = D_w / K;
+            C_w = 1e6;
+            l_w = 0.1;
+            k_w = 0.1e-6;
+            w = [id_w, lGR_w, z0_w, z0h_w, al_w, em_w, d_w * ones(1,K), C_w * ones(1,K), l_w * ones(1,K), k_w * ones(1,K+1)];
+            walltypes = [walltypes; w];
+            
+            % GR1
+            id_GR1 = 11;
+            lGR_GR1 = 1;
+            z0_GR1 = 0.05;
+            z0h_GR1 = 0.00035;
+            al_GR1 = 0.25;
+            em_GR1 = 0.95;
+            D_GR1 = 0.6;
+            d_GR1 = D_GR1 / K;
+            C_GR1 = 5e6;
+            l_GR1 = 2;
+            k_GR1 = 0.4e-6;
+            GR1 = [id_GR1, lGR_GR1, z0_GR1, z0h_GR1, al_GR1, em_GR1, d_GR1 * ones(1,K), C_GR1 * ones(1,K), l_GR1 * ones(1,K), k_GR1 * ones(1,K+1)];
+            walltypes = [walltypes; GR1];
+            
+            % GR2
+            id_GR2 = 12;
+            lGR_GR2 = 1;
+            z0_GR2 = 0.05;
+            z0h_GR2 = 0.00035;
+            al_GR2 = 0.35;
+            em_GR2 = 0.90;
+            D_GR2 = 0.6;
+            d_GR2 = D_GR2 / K;
+            C_GR2 = 2e6;
+            l_GR2 = 0.8;
+            k_GR2 = 0.4e-6;
+            GR2 = [id_GR2, lGR_GR2, z0_GR2, z0h_GR2, al_GR2, em_GR2, d_GR2 * ones(1,K), C_GR2 * ones(1,K), l_GR2 * ones(1,K), k_GR2 * ones(1,K+1)];
+            walltypes = [walltypes; GR2];
+            
+            preprocessing.addvar(obj, 'walltypes', walltypes);
+        end
+            
+        function write_walltypes(obj)
+            K = 3; %nwalllayers
+            
+            fname = ['walltypes.inp.', obj.expnr];
+            
+            dheaderstring = '';
+            for k=1:K
+                dheaderstring = [dheaderstring, sprintf('  d%d [m]',k)];
+            end
+            
+            Cheaderstring = '';
+            for k=1:K
+                Cheaderstring = [Cheaderstring, sprintf('  C%d [J/(K m^3)]', k)];
+            end
+            
+            lheaderstring = '';
+            for k=1:K
+                lheaderstring = [lheaderstring, sprintf('  l%d [W/(m K)]', k)];
+            end
+            
+            kheaderstring = '';
+            for k=1:K+1
+                kheaderstring = [kheaderstring, sprintf('  k%d [W/(m K)]', k)];
+            end
+            
+            fileID = fopen(fname,'W');
+            fprintf(fileID, '# walltype, K layers per type where layer 1 is the outdoor side and layer K is indoor side\n');
+            fprintf(fileID, '# 0=default dummy, -1=asphalt floors;-101=concrete bounding walls;1=concrete;2=bricks;3=stone;4=painted wood;5=roof;11=GR1; 12=GR2\n');
+            fprintf(fileID, ['# wallid  lGR  z0 [m]  z0h [m]  al [-]  em [-]', dheaderstring, Cheaderstring, lheaderstring, kheaderstring, '\n']);
+            
+            valstring1 = '%8d  %3d  %6.2f  %7.5f  %6.2f  %6.2f';
+            
+            valstring2 = '';
+            for k=1:K
+                valstring2 = [valstring2, '  %6.2f'];
+            end
+            for k=1:K
+                valstring2 = [valstring2, '  %14.0f'];
+            end
+            for k=1:K
+                valstring2 = [valstring2, ' %13.4f'];
+            end
+            for k=1:K+1
+                valstring2 = [valstring2, ' %13.8f'];
+            end
+            
+            valstring = [valstring1, valstring2];
+            
+            [nwalltypes, ~] = size(obj.walltypes);
+            
+            for i = 1:nwalltypes
+                fprintf(fileID, sprintf(valstring, obj.walltypes(i,:)));
+                fprintf(fileID, '\n');
+            end
+                
+            fclose(fileID);
         end
         
         function plot_profiles(obj)

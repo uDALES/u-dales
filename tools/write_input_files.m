@@ -10,11 +10,14 @@ addpath([DA_TOOLSDIR '/']);
 exppath = [DA_EXPDIR '/'];
 cd([DA_EXPDIR '/' expnr])
 
-copyfile([DA_TOOLSDIR, '/walltypes.inp.'], ['walltypes.inp.', expnr]);
-
 r = preprocessing(expnr, exppath);
-preprocessing.addvar(r, 'walltypes', dlmread(['walltypes.inp.', expnr],'',3,0));
 preprocessing.set_defaults(r, ncpus);
+
+if isfile(['walltypes.inp.', expnr])
+    r.walltypes = dlmread(['walltypes.inp.', expnr],'',3,0);
+else
+    preprocessing.write_walltypes(r)
+end
 
 preprocessing.generate_xygrid(r);
 preprocessing.write_xgrid(r)
