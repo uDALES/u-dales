@@ -68,7 +68,7 @@ script:
   - git remote set-branches --add origin master
   - git fetch origin master
   # We only support gfortran up to version 9 due to fishpack
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; export FC=gfortran-9; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then export FC=gfortran-9; fi
   # Always tests against master as our reference branch.
   - python3 tests/run_tests.py master $TRAVIS_COMMIT $BUILD_TYPE
 
