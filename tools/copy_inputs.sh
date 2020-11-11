@@ -1,8 +1,8 @@
 #!/bin/bash
 # examples:
-# new sim: "da_prep 2 1" or "da_prep 2 1 c"
-# continue with old sim: "da_prep 1 1 w"
-# continue with new sim  "da_prep 2 1 w"
+# new sim: "copy_inputs.sh 2 1" or "copy_inputs.sh 2 1 c"
+# continue with old sim: "copy_inputs.sh 1 1 w"
+# continue with new sim  "copy_inputs.sh 2 1 w"
 
 set -e
 

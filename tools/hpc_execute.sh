@@ -45,7 +45,7 @@ echo "pushd $outdir" >> job.$exp
 echo "mpiexec -n $(( $NCPU * $NNODE )) $DA_BUILD $outdir/namoptions.$exp > $outdir/output.$exp 2>&1" >> job.$exp
 
 ## gather output files from cores in a single file
-echo "$DA_TOOLSDIR/da_concatenate.sh $outdir " >> job.$exp
+echo "$DA_TOOLSDIR/gather_outputs.sh $outdir " >> job.$exp
 
 ## submit job.exp file to queue
 qsub job.$exp

@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 
 ## call: dumptype, ym-variables(list separated by comma, no space, include ym), out.nc
-## e.g. concatenate_field.sh fielddump v,ym out.nc
+## e.g. nco_concatenate_field.sh fielddump v,ym out.nc
 
 if (( $# == 3 )) ; then
 	dumps=$1
 	ymparam=$2
 	outfile=$3
 else
-	echo "Wrong function call. Call concatenate_field.sh dumptype ym-variables out.nc"
+	echo "Wrong function call. Call nco_concatenate_field.sh dumptype ym-variables out.nc"
 	exit 1
 fi
 

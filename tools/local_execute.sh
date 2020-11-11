@@ -58,7 +58,7 @@ mpiexec -n $NCPU $DA_BUILD namoptions.$exp > output.$exp 2>&1
 ## gather output files from cores in a single file
 if (($NCPU > 1 )); then
     export LOCAL_EXECUTE=1
-    $DA_TOOLSDIR/da_concatenate.sh $outdir
+    $DA_TOOLSDIR/gather_outputs.sh $outdir
 fi
 
 popd

@@ -1,6 +1,6 @@
 #!/bin/bash                                                                                        
 # script for setting key namoptions and writing *.inp.* files
-# variables not specified in namoptions can be set here. It updates these in write_input_files.m and then runs the matlab code to produce the required text files.
+# variables not specified in namoptions can be set here. It updates these in write_inputs.m and then runs the matlab code to produce the required text files.
 
 # tg3315 20/07/2017, modified by SO 06/02/20
 
@@ -28,12 +28,12 @@ function sedi { if [[ "$OSTYPE" == "darwin"* ]]; then
 ####### set iexpnir in matlab file
 sedi "/expnr = '/s/.*/expnr = '$iexpnr';/g" $DA_TOOLSDIR"/write_input_files.m"
 ###### set # CPUS from execute to test domain size !edit : should maybe multiply by nnode (bss116: yes! this needs to change)
-sedi  "/CPUS = /s/.*/CPUS = $(grep -m 1 'ncpu=' ../../u-dales/tools/local_execute.sh | cut -d "=" -f 2 | cut -d " " -f 1 | tr -d ' ');       % # cpus/g" $DA_TOOLSDIR"/write_input_files.m"
+sedi  "/CPUS = /s/.*/CPUS = $(grep -m 1 'ncpu=' ../../u-dales/tools/local_execute.sh | cut -d "=" -f 2 | cut -d " " -f 1 | tr -d ' ');       % # cpus/g" $DA_TOOLSDIR"/write_inputs.m"
 
 ###### RUN MATLAB SCRIPT FOR .inp. files
 
 cd $DA_TOOLSDIR/
-matlab -nodesktop -nosplash -r "write_input_files; quit"
+matlab -nodesktop -nosplash -r "write_inputs; quit"
 cd $DA_EXPDIR/$iexpnr
 
 ##### alter files in namoptions (thl_top, nblocks etc.)
