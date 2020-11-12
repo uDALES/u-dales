@@ -1,8 +1,8 @@
 #!/bin/bash
 # examples:
-# new sim: "da_prep 2 1" or "da_prep 2 1 c"
-# continue with old sim: "da_prep 1 1 w"
-# continue with new sim  "da_prep 2 1 w"
+# new sim: "copy_inputs.sh 2 1" or "copy_inputs.sh 2 1 c"
+# continue with old sim: "copy_inputs.sh 1 1 w"
+# continue with new sim  "copy_inputs.sh 2 1 w"
 
 set -e
 
@@ -63,7 +63,7 @@ if [ ! -d $DA_EXPDIR_SRC/$src ]; then
 fi
 
 # list of files to copy
-declare -a tocopy=("/namoptions." "/lscale.inp." "/prof.inp." "/scalar.inp." "/xgrid.inp." "/zgrid.inp." "/blocks.inp." "/purifs.inp." "/trees.inp." "/scals.inp." "/lad.inp." "/facetarea.inp." "/facetnumbers.inp." "/facets.inp." "/netsw.inp." "/pf1sf2.inp." "/svf.inp." "/Tfacinit.inp." "/Tfacinitnudged.inp." "/vf.inp." "/walltypes.inp.")
+declare -a tocopy=("/namoptions." "/lscale.inp." "/prof.inp." "/scalar.inp." "/xgrid.inp." "/zgrid.inp." "/blocks.inp." "/purifs.inp." "/trees.inp." "/scals.inp." "/lad.inp." "/facetarea.inp." "/facetnumbers.inp." "/facets.inp." "/netsw.inp." "/pf1sf2.inp." "/svf.inp." "/Tfacinit.inp." "/Tfacinitnudged.inp." "/vf.nc.inp." "/walltypes.inp.")
 
 # copy and rename files
 case $case in

@@ -51,11 +51,11 @@ module modibm
          ku = block(n, 6)
          jl = block(n, 3) - myid*jmax
          ju = block(n, 4) - myid*jmax
-
-         if ((ju < jb - 1) .or. (jl > je + 1)) then
+		 
+         if ((ju < jb - 1) .or. (jl > je + 1)) then ! The block is entirely out of this partition
             cycle
          end if
-         if (ju > je) ju=je !tg3315 and bss116 added 23.10.18 as bad allocation otherwise
+         if (ju > je) ju=je !tg3315 and bss116 added 23.10.18 as bad allocation otherwise.
          if (jl < jb) jl=jb
          do sc = 1, nsv
             !sv0(il:iu, jl:ju, kl:ku, sc) = svprof(kl:ku)  !internal ! tg3315 commented to avoid flux at startup
@@ -64,7 +64,7 @@ module modibm
          thl0(il:iu, jl:ju, kl:ku) = bldT !internal ! make sure bldT is equal to init thl prof
          thlm(il:iu, jl:ju, kl:ku) = bldT !internal
       end do
-
+      
       nxwall = 0
       do n = 1, nblocks ! first x and z walls
          if (block(n, 4) < jb + myid*jmax) then ! no x-wall/z-wall in the range of this proc
