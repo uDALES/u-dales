@@ -1,0 +1,37 @@
+#!/bin/bash                                                                                        
+# script for setting key namoptions and writing *.inp.* files
+# variables not specified in namoptions can be set here. It updates these in da_inp.m and then runs the matlab code to produce the required text files.
+
+# tg3315 20/07/2017
+
+# edit needs to be done so is irrespective of white spaces
+
+# NOTES 
+# (1) if no forcing found in namoptions then applies the initial velocities and uses the pressure terms
+# (2) if libm is false it should overwrite and produce no blocks
+
+echo "exp no.?"
+read iexpnr
+
+cd $DA_EXPDIR/$iexpnr
+
+####### set iexpnir in matlab file
+
+sed -i "/expnr = '/s/.*/expnr = '$iexpnr';/g" $DA_PREDIR"/da_inp.m"
+
+###### set # CPUS from execute to test domain size !edit : should maybe multiply by nnode
+
+sed -i "/CPUS = /s/.*/CPUS = $(grep -m 1 'ncpu=' execute.sh | cut -d "=" -f 2 | cut -d " " -f 1 | tr -d ' ');       % # cpus/g" $DA_PREDIR"/da_inp.m"
+
+###### RUN MATLAB SCRIPT FOR .inp. files
+
+#octave $DA_TOPDIR/bin/da_inp.m
+cd $DA_PREDIR/
+matlab -nodesktop -nosplash -r "da_inp; quit"
+cd $DA_EXPDIR/$iexpnr
+
+##### alter files in namoptions (thl_top, nblocks etc.)
+let nblocks=$(wc -l < $DA_EXPDIR/$iexpnr/blocks.inp.$iexpnr)
+let nblocks=$nblocks-2
+sed -i "/nblocks/s/.*/nblocks     = $nblocks/g" $DA_EXPDIR/$iexpnr"/namoptions."$iexpnr
+

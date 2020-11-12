@@ -31,7 +31,7 @@ module modstat_nc
     use netcdf
     use modmpi, only : myid
     implicit none
-    integer, save :: timeID=0, ztID=0, zmID=0, xtID=0, xmID=0, ytID=0, ymID=0, ztsID=0, fctID=0, lyrID=0
+    integer, save :: timeID=0, ztID=0, zmID=0, xtID=0, xmID=0, ytID=0, ymID=0, ztsID=0
     real(kind=4) :: nc_fillvalue = -999.
 !> The only interface necessary to write data to netcdf, regardless of the dimensions.
     interface writestat_nc
@@ -56,11 +56,11 @@ contains
 ! ----------------------------------------------------------------------
 !> Subroutine Open_NC: Opens a NetCDF File and identifies starting record
 !
-  subroutine open_nc (fname, ncid,nrec,n1, n2, n3, ns, nfcts, nlyrs)
+  subroutine open_nc (fname, ncid,nrec,n1, n2, n3, ns)
     use modglobal, only : author,version,timee
     implicit none
     integer, intent (out) :: ncid,nrec
-    integer, optional, intent (in) :: n1, n2, n3, ns, nfcts, nlyrs
+    integer, optional, intent (in) :: n1, n2, n3, ns
     character (len=40), intent (in) :: fname
 
     character (len=12):: date='',time=''
@@ -116,16 +116,6 @@ contains
         iret=nf90_put_att(ncID,VarID,'longname','Soil level depth of cell centers')
         iret=nf90_put_att(ncID,VarID,'units','m')
       end if
-      if (present(nfcts)) then
-        iret = nf90_def_dim(ncID, 'fct', nfcts, fctID)
-        iret = nf90_def_var(ncID, 'fct',NF90_INT,(/fctID/) ,VarID)
-        iret=nf90_put_att(ncID,VarID,'longname','Facet number')
-      end if
-      if (present(nlyrs)) then
-        iret = nf90_def_dim(ncID, 'lyr', nlyrs, lyrID)
-        iret = nf90_def_var(ncID, 'lyr',NF90_INT,(/lyrID/) ,VarID)
-        iret=nf90_put_att(ncID,VarID,'longname','Number of wall layers')
-      end if
 
     else
        nrec = 0
@@ -159,9 +149,6 @@ contains
        if (present(ns)) then
          iret = nf90_inq_dimid(ncid,'zts',ztsId)
        end if
-       if (present(nfcts)) then
-         iret = nf90_inq_dimid(ncid,'fct',fctId)
-       end if
     end if
     nrec = ncall
     iret = nf90_sync(ncid)
@@ -186,8 +173,7 @@ contains
                       dim_m0mt(3)=0, dim_tt0t(3)=0, &
                       dim_mt0t(3)=0,dim_tm0t(3)=0,dim_0ttt(3)=0,dim_0mtt(3)=0,dim_0tmt(3)=0,&
                       dim_tts(2)=0,dim_t0tts(3)=0,dim_0ttts(3)=0,dim_tttts(4)=0,dim_ttt0(3)=0,& !tg3315 added last one
-                      dim_mtmt(4),dim_tmmt(4),dim_mmtt(4),& !bss116
-                      dim_ft(2), dim_flt(3)!SO
+                      dim_mtmt(4),dim_tmmt(4),dim_mmtt(4) !bss116
 
     integer :: iret, n, VarID
     !write(*,*) 'definenc'
@@ -199,9 +185,6 @@ contains
     iret = nf90_inq_dimid(ncid,'zt',ztId)
     iret = nf90_inq_dimid(ncid,'zm',zmId)
     iret = nf90_inq_dimid(ncid,'zts',ztsId)
-    iret = nf90_inq_dimid(ncid,'fct',fctId) ! so4718 for energy balance output
-    iret = nf90_inq_dimid(ncid,'lyr',lyrId) ! so4718 for energy balance output
-    
     iret = nf90_redef(ncid) 
     dim_tt = (/ztId,timeId/)
     dim_mt = (/zmId,timeId/)
@@ -231,10 +214,6 @@ contains
     dim_t0tts= (/xtID,ztsID,timeId/)! thermo soil point
     dim_0ttts= (/ytID,ztsID,timeId/)! thermo point
     dim_tttts= (/xtID,ytID,ztsID,timeId/)! thermo point
-    
-    dim_ft = (/fctID,timeId/)
-    dim_flt = (/fctID,lyrID,timeId/)
-    
     do n=1,nVar
 !      write(*,*) 'n', n
 !      write(*,*) "dummyline1"
@@ -302,13 +281,6 @@ contains
           iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_0ttts,VarID)
         case ('tttts')
           iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_tttts,VarID)
-       
-!Facet information
-		case ('ft')
-		  iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_ft,VarID)
-		case ('flt')
-		  iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_flt,VarID)
-
         case default
         write(*,*) 'nvar', nvar, sx(n,:)
         print *, 'ERROR: Bad dimensional information ',sx(n,:)

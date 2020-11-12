@@ -14,7 +14,7 @@ Set up the paths and variables for running the simulation, for example with the 
 # We assume you are running the following commands from your
 # top-level project directory.
 
-export DA_TOOLSDIR=$(pwd)/u-dales/tools # Directory of scripts
+export DA_UTILSDIR=$(pwd)/u-dales/tools/utils # Directory of utils scripts
 export DA_BUILD=$(pwd)/u-dales/build/release/u-dales # Build file
 export NCPU=2 # Number of CPUs to use for a simulation
 export DA_WORKDIR=$(pwd)/outputs # Output top-level directory
@@ -31,7 +31,7 @@ All examples are run using the following command:
 # top-level project directory.
 
 # General syntax: local_execute.sh exp_directory
-./u-dales/tools/local_execute.sh u-dales/examples/001
+./u-dales/tools/utils/local_execute.sh u-dales/examples/001
 ```
 
 ## Customising simulations

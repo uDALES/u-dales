@@ -10,13 +10,6 @@ module modEB
 
    implicit none
    public :: EB, initEB, intqH, updateGR
-   
-   integer :: nstatT=1, nstatEB=5, ncidT, ncidEB, nrecT=0, nrecEB=0
-   character(80), allocatable :: ncstatT(:,:), ncstatEB(:,:)
-   character(80) :: Tname = "facT.xxx.nc", EBname = 'facEB.xxx.nc'
-   character(80),dimension(1,4) :: tncstatT, tncstatEB
-   real, allocatable :: varsT(:,:,:), varsEB(:,:)
-   
    save
 
 contains
@@ -210,7 +203,6 @@ function gaussji(c,d,n) result(a)
       use modglobal, only:AM, BM,CM,DM,EM,FM,GM, HM, IDM, inAM, bb,w,dumv,Tdash, bldT, nfcts,nwalllayers
       use initfac, only:facdi, faccp, faclami, fackappa, netsw, facem, fachf, facef, fachfi, facT, facLWin, facain,facefi,facwsoil,facf,facets,facTdash,facqsat,facf,fachurel  
       use modmpi, only:myid, comm3d, mpierr, MPI_INTEGER, MPI_DOUBLE_PRECISION, MY_REAL, nprocs, cmyid, MPI_REAL8, MPI_REAL4, MPI_SUM
-      use modstat_nc,only: open_nc, define_nc,ncinfo,writestat_dims_nc
       integer :: i,j,k,l,m,n
       real :: dum
       allocate(AM(1:nwalllayers+1,1:nwalllayers+1))
@@ -248,40 +240,6 @@ function gaussji(c,d,n) result(a)
       !inAM=matinv3(AM)
       !!or
       !inAM=gaussji(AM,IDM,nwalllayers+1)
-      
-      ! write facet temperatures to facT.xxx.nc, and energies to facEB.xxx.nc  
-      if (lwriteEBfiles) then
-		Tname(6:8) = cexpnr
-		EBname(7:9) = cexpnr
-	
-		allocate(ncstatT(nstatT,4))
-		call ncinfo(tncstatT(1,:),'t', 'Time', 's', 'time')
-		call ncinfo(ncstatT( 1,:),'T' ,'Temperature', 'K','flt')
-
-		allocate(ncstatEB(nstatEB,4))
-		call ncinfo(tncstatEB(1,:),'t', 'Time', 's', 'time')
-		call ncinfo(ncstatEB( 1,:),'netsw', 'Shortwave radiation', 'W','ft')
-		call ncinfo(ncstatEB( 2,:),'LWin', 'Longwave radiation', 'W','ft')
-		call ncinfo(ncstatEB( 3,:),'hf', 'Sensible heat flux', 'W','ft')
-		call ncinfo(ncstatEB( 4,:),'ef', 'Latent heat flux', 'W','ft')
-		call ncinfo(ncstatEB( 5,:),'WGR','Moisture?', 'W','ft')
-		
-		
-		if (myid==0) then      
-			call open_nc(Tname, ncidT, nrecT, nfcts=nfcts, nlyrs=nwalllayers)
-			call open_nc(EBname, ncidEB, nrecEB, nfcts=nfcts)
-			if (nrecT==0) then
-				call define_nc( ncidT, 1, tncstatT)
-				call writestat_dims_nc(ncidT)
-			end if
-			if (nrecT==0) then
-				call define_nc( ncidEB, 1, tncstatEB)
-				call writestat_dims_nc(ncidEB)
-			end if
-			call define_nc( ncidT, nstatT, ncstatT)
-			call define_nc( ncidEB, nstatEB, ncstatEB)
-		endif !myid==0
-	end if
 
    end subroutine initEB
 
@@ -361,7 +319,6 @@ function gaussji(c,d,n) result(a)
      use modglobal, only: nfcts, boltz, tEB, AM, BM,CM,DM,EM,FM,GM,HM, inAM, bb,w, dumv,Tdash, timee, tnextEB, rk3step, rhoa, cp, lEB, ntrun, lwriteEBfiles,nwalllayers
      use initfac, only: faclami, netsw, facem, fachf, facef, fachfi, facT, facLWin, facain,facefi,facf,facets,facTdash,facqsat,facwsoil,facf,fachurel,facd,facdi,fackappa
      use modmpi, only: myid, comm3d, mpierr, MPI_INTEGER, MPI_DOUBLE_PRECISION, MY_REAL, nprocs, cmyid, MPI_REAL8, MPI_REAL4, MPI_SUM
-     use modstat_nc, only : writestat_nc, writestat_1D_nc, writestat_2D_nc
       real  :: ca = 0., cb = 0., cc = 0., cd = 0., ce = 0., cf = 0.
       real  :: ab = 0.
       integer :: l, n, m,i,j
@@ -450,81 +407,61 @@ function gaussji(c,d,n) result(a)
                end if
             end do
 
-          if (lwriteEBfiles) then
-			if (myid == 0) then
-				allocate(varsT(nfcts,nwalllayers,nstatT))
-				varsT(:,:,1) = facT(1:nfcts,1:nwalllayers)
-				call writestat_nc(ncidT,1,tncstatT,(/timee/),nrecT,.true.)
-				call writestat_2D_nc(ncidT,nstatT,ncstatT,varsT,nrecT,nfcts,nwalllayers)
-				deallocate(varsT)
-				
-				allocate(varsEB(nfcts,nstatEB))
-				varsEB(:,1) = netsw(1:nfcts)
-				varsEB(:,2) = facLWin(1:nfcts)
-				varsEB(:,3) = fachfi(1:nfcts)
-				varsEB(:,4) = facefi(1:nfcts)
-				varsEB(:,5) = facwsoil(1:nfcts)
-				call writestat_nc(ncidEB,1,tncstatEB,(/timee/),nrecEB,.true.)
-				call writestat_1D_nc(ncidEB,nstatEB,ncstatEB,varsEB,nrecEB,nfcts)
-				deallocate(varsEB)
+            if (lwriteEBfiles) then
+               name = 'tEB____________.txt'
+               open (unit=11, file=name, position='append')
+               write (11, '(1(F10.4,:,","))') tEB
+               close (11)
 
-			  endif !myid
+               name = 'dummy__________.csv'
+               write (name(6:15), '(F10.4)') timee
 
-!            if (lwriteEBfiles) then
-!               name = 'tEB____________.txt'
-!               open (unit=11, file=name, position='append')
-!               write (11, '(1(F10.4,:,","))') tEB
-!               close (11)
-
-!               name = 'dummy__________.csv'
-!               write (name(6:15), '(F10.4)') timee
-
-!               write (name(1:5), '(A5)') 'netsw'
-!               open (unit=11, file=name, position='append')
-!               write (11, '(249(F10.4,:,","))') netsw(1:nfcts)
-!               close (11)
-!               write (name(1:5), '(A5)') 'LWin_'
-!               open (unit=11, file=name, position='append')
-!               write (11, '(249(F10.4,:,","))') facLWin(1:nfcts)
-!               close (11)
-!               write (name(1:5), '(A5)') 'hf___'
-!               open (unit=11, file=name, position='append')
-!               write (11, '(249(F10.4,:,","))') fachfi(1:nfcts)
-!               close (11)
-!               write (name(1:5), '(A5)') 'ef___'
-!               open (unit=11, file=name, position='append')
-!               write (11, '(249(F10.4,:,","))') facefi(1:nfcts)
-!               close (11)
-!               write (name(1:5), '(A5)') 'WGR__'
-!               open (unit=11, file=name, position='append')
-!               write (11, '(249(F10.4,:,","))') facwsoil(1:nfcts)
-!               close (11)
-!               write (name(1:5), '(A5)') 'facT1'
-!               open (unit=11, file=name, position='append')
-!               write (11, '(249(F10.4,:,","))') facT(1:nfcts, 1)
-!               close (11)
-!               write (name(1:5), '(A5)') 'facT2'
-!               open (unit=11, file=name, position='append')
-!               write (11, '(249(F10.4,:,","))') facT(1:nfcts, 2)
-!               close (11)
-!               write (name(1:5), '(A5)') 'facT3'
-!               open (unit=11, file=name, position='append')
-!               write (11, '(249(F10.4,:,","))') facT(1:nfcts, 3)
-!               close (11)
-!               write (name(1:5), '(A5)') 'faTd1'
-!               open (unit=11, file=name, position='append')
-!               write (11, '(249(F10.4,:,","))') facTdash(1:nfcts, 1)
-!               write (name(1:5), '(A5)') 'faTd2'
-!               open (unit=11, file=name, position='append')
-!               write (11, '(249(F10.4,:,","))') facTdash(1:nfcts, 2)
-!               write (name(1:5), '(A5)') 'faTd3'
-!               open (unit=11, file=name, position='append')
-!               write (11, '(249(F10.4,:,","))') facTdash(1:nfcts, 3)
-!               close (11)
-!               write (name(1:5), '(A5)') 'faTd4'
-!               open (unit=11, file=name, position='append')
-!               write (11, '(249(F10.4,:,","))') facTdash(1:nfcts, 4)
-!               close (11)
+               write (name(1:5), '(A5)') 'netsw'
+               open (unit=11, file=name, position='append')
+               write (11, '(249(F10.4,:,","))') netsw(1:nfcts)
+               close (11)
+               write (name(1:5), '(A5)') 'LWin_'
+               open (unit=11, file=name, position='append')
+               write (11, '(249(F10.4,:,","))') facLWin(1:nfcts)
+               close (11)
+               write (name(1:5), '(A5)') 'hf___'
+               open (unit=11, file=name, position='append')
+               write (11, '(249(F10.4,:,","))') fachfi(1:nfcts)
+               close (11)
+               write (name(1:5), '(A5)') 'ef___'
+               open (unit=11, file=name, position='append')
+               write (11, '(249(F10.4,:,","))') facefi(1:nfcts)
+               close (11)
+               write (name(1:5), '(A5)') 'WGR__'
+               open (unit=11, file=name, position='append')
+               write (11, '(249(F10.4,:,","))') facwsoil(1:nfcts)
+               close (11)
+               write (name(1:5), '(A5)') 'facT1'
+               open (unit=11, file=name, position='append')
+               write (11, '(249(F10.4,:,","))') facT(1:nfcts, 1)
+               close (11)
+               write (name(1:5), '(A5)') 'facT2'
+               open (unit=11, file=name, position='append')
+               write (11, '(249(F10.4,:,","))') facT(1:nfcts, 2)
+               close (11)
+               write (name(1:5), '(A5)') 'facT3'
+               open (unit=11, file=name, position='append')
+               write (11, '(249(F10.4,:,","))') facT(1:nfcts, 3)
+               close (11)
+               write (name(1:5), '(A5)') 'faTd1'
+               open (unit=11, file=name, position='append')
+               write (11, '(249(F10.4,:,","))') facTdash(1:nfcts, 1)
+               write (name(1:5), '(A5)') 'faTd2'
+               open (unit=11, file=name, position='append')
+               write (11, '(249(F10.4,:,","))') facTdash(1:nfcts, 2)
+               write (name(1:5), '(A5)') 'faTd3'
+               open (unit=11, file=name, position='append')
+               write (11, '(249(F10.4,:,","))') facTdash(1:nfcts, 3)
+               close (11)
+               write (name(1:5), '(A5)') 'faTd4'
+               open (unit=11, file=name, position='append')
+               write (11, '(249(F10.4,:,","))') facTdash(1:nfcts, 4)
+               close (11)
             end if
 
             tEB = timee !set time of last calculation of energy balance to current time

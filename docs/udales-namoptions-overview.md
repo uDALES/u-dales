@@ -1,8 +1,6 @@
-# Namoptions overview
-
 This list refers to the original code-base [DALES](https://github.com/dalesteam/dales). The latest version of the namoptions overview of DALES is documented [here](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf).
 
-## Namelist DOMAIN
+# Namelist DOMAIN
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
@@ -17,7 +15,7 @@ This list refers to the original code-base [DALES](https://github.com/dalesteam/
 | xtime | 0. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | ksp | -1 | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). (Setting to -1 calculates default value) | |
 
-## Namelist DYNAMICS
+# Namelist DYNAMICS
 
 Possible advection schemes:
 
@@ -37,7 +35,7 @@ Possible advection schemes:
 | iadv_sv | -1 | 1, 2, 7 | Advection scheme for scalars. Also in [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | - |
 | ipoiss | 1 | 0, 1 | Poisson solver. 0 = Fast Fourier Transformation, 1 = Cyclic reduction scheme. *Default will change to 0 in the future.* | - |
 
-## Namelist PHYSICS
+# Namelist PHYSICS
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
@@ -62,7 +60,7 @@ Possible advection schemes:
 | nnudge | 10 | | | |
 | dpdx | 0. | | Constant pressure gradient forcing in x. | |
 
-## Namelist RUN
+# Namelist RUN
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
@@ -88,7 +86,7 @@ Possible advection schemes:
 | lreadmean | .false. | | Switch that determines whether mean variables should be read from means#myid#.#expnr# *Potentially deprecated. May be removed in the future.* | |
 | lwalldist | .false. | | Switch that determines whether the wall distances should be computed for the subgrid models. *Potentially deprecated. May be removed in the future.* | |
 
-## Namelist OUTPUT
+# Namelist OUTPUT
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
@@ -105,7 +103,7 @@ Possible advection schemes:
 | lslicedump | .false. | .true., .false. | Switch to output slices in the xy-plane. | - |
 | ltkedump | .false. | .true., .false. | *Not supported in the current version.* | - |
 
-## Namelist NAMSUBGRID
+# Namelist NAMSUBGRID
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
@@ -123,13 +121,13 @@ Possible advection schemes:
 | cs | -1 | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | nmason | 2 | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 
-## Namelist NAMCHECKSIM
+# Namelist NAMCHECKSIM
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
 | tcheck | 0 | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 
-## Namelist BC
+# Namelist BC
 
 Switches for boundary conditions: momentum (m), temperature (T), humidity (q) and scalars (s).
 
@@ -174,12 +172,11 @@ BCs at the bottom (BCbot; only effective if not covered with road facets): 1 = f
 | z0 | -1. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). *Currently need to be set to reasonable values for subroutine bottom.* | |
 | z0h | -1. | | Facet roughness length for heat. *Currently need to be set to reasonable values for subroutine bottom.* | |
 
-## Namelist ENERGYBALANCE
+# Namelist ENERGYBALANCE
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
 | lEB | .false. | .true., .false. | Switch for using the facet energy balance. | - |
-| lwriteEBfiles | .false. | .true., .false. | Switch for writing facet temperatures and energy budget to file. | - |
 | lconstW | .false. | .true., .false. | Switch whether soil moisture is assumed as constant in time (.true.) or the evaporated water is from the soil (.false.). | - |
 | dtEB | 10. | `REAL` | Time interval between calculations of facet energy balance. | s |
 | bldT | 0. | `REAL` | Internal temperature of the buildings, currently also ground temperature at a depth equal to floor facet thickness. | K |
@@ -191,7 +188,7 @@ BCs at the bottom (BCbot; only effective if not covered with road facets): 1 = f
 | GRLAI | 2. | `REAL` | Leaf area index of a green roof. | |
 | rsmin | 110. | `REAL` | Minimum resistance of soil/plant. | |
 
-## Namelist WALLS
+# Namelist WALLS
 
 1 = fixed flux
 
@@ -208,7 +205,7 @@ BCs at the bottom (BCbot; only effective if not covered with road facets): 1 = f
 | iwallmoist | 1 | 1, 2 |  Building wall moisture flux. | - |
 | iwallscal | 1 | 1, 2 | Building wall scalar flux | - |
 
-## Namelist SCALARS
+# Namelist SCALARS
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
@@ -222,7 +219,7 @@ BCs at the bottom (BCbot; only effective if not covered with road facets): 1 = f
 | SS | 0. | | | |
 | sigS | 0. | | | |
 
-## Namelist DRIVER
+# Namelist DRIVER
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
@@ -233,7 +230,7 @@ BCs at the bottom (BCbot; only effective if not covered with road facets): 1 = f
 | driverstore | 0. | `INTEGER` | Number of timesteps (`idriver = 1`) to be written to \*driver\* files or (`idriver = 2`) contained in \*driver\* files to be read. | - |
 | driverjobnr | - | - | Job number of the \*driver\* files to be read. These files should be copied into the experiments folder of the driven simulation. In use for `idriver = 2`. | - |
 
-## Namelist CHEMISTRY
+# Namelist CHEMISTRY
 
 *This section will be updated with the next version.*
 
@@ -243,7 +240,7 @@ BCs at the bottom (BCbot; only effective if not covered with road facets): 1 = f
 | k1 | 0. | | Rate constant (O3 + NO -> NO2 + 02 ). Chemistry model parameter. | |
 | JNO2 | 0. | | NO2 photolysis rate. Chemistry model parameter. | |
 
-## Namelist INLET
+# Namelist INLET
 
 *This section will be updated with the next version.*
 

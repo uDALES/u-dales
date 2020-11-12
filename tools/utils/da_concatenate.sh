@@ -14,7 +14,7 @@ fi
 pushd $(dirname "${0}") > /dev/null
 scriptdir=$(pwd -L)
 popd > /dev/null
-toolsdir=${scriptdir}  # assume same directory for nco_concatenate_field.sh
+utilsdir=${scriptdir}  # assume same utils dir for da_merge.sh
 
 if [ -z $LOCAL_EXECUTE ]; then
     echo "cluster"
@@ -54,7 +54,7 @@ for file in *dump.000.${expnr}.nc ; do
         echo "Gathering ${dumps} files with ym-dependent variables ${ymparam}."
         echo "Saving output to ${outfile}."
 
-        ${toolsdir}/nco_concatenate_field.sh $dumps $ymparam $outfile
+        ${utilsdir}/da_merge.sh $dumps $ymparam $outfile
         echo "Merging done."
 
     fi

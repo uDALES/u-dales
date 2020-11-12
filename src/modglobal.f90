@@ -137,7 +137,7 @@ module modglobal
    logical :: lreadmean = .false. !<  switch that determines whether mean variables should be read from means#myid#.#expnr#
    logical :: lstat = .false.
    logical :: lEB = .false.
-   logical :: lwriteEBfiles = .false.
+   logical :: lwriteEBfiles = .true.
    logical :: lconstW = .false.  ! The evaporated water can be removed from the soil (lconstW=false) or the soil moisture can be assumed as constant in time (lconstW=true)
 !  logical :: ifixuinf   = .true. !dpdxl relaxed to have Uinf 1. dpdx = (1/dt)*(Uh-Uinf)2. d/dt(dpdx) = 1/tau*(Uh-Uinf)
    integer :: ifixuinf = 0
