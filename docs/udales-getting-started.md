@@ -6,13 +6,13 @@ Getting started with uDALES to set up your own experiments is straightforward. T
 
 uDALES is supported to run on Linux, macOS and Windows Subsystem for Linux (WSL). Please ensure that the latest version of the following libraries and software are available on your system:
 
-- [Git](https://git-scm.com/).
-- [CMake](https://cmake.org/).
-- [NetCDF-Fortran](https://www.unidata.ucar.edu/downloads/netcdf/index.jsp).
-- A Fortran compiler (e.g. [GNU Fortran compiler](https://gcc.gnu.org/wiki/GFortran)).
-- An MPI library implementation (e.g. [MPICH](https://www.mpich.org/)).
+- [Git](https://git-scm.com/) >= 2.
+- [CMake](https://cmake.org/) >= 3.9.
+- [NetCDF-Fortran](https://www.unidata.ucar.edu/downloads/netcdf/index.jsp) >= 4.
+- [GNU](https://gcc.gnu.org/wiki/GFortran) <= 9, [Intel](https://software.intel.com/content/www/us/en/develop/documentation/fortran-compiler-developer-guide-and-reference/top.html), or [Cray](https://pubs.cray.com/) Fortran compiler.
+- A recenet version of [MPICH](https://www.mpich.org/) or [Open-MPI](https://www.open-mpi.org/).
 - [netCDF Operators](https://github.com/nco/nco) (NCO).
-- [Python](https://www.python.org/) 3.5 or above.
+- [Python](https://www.python.org/) >= 3.5.
 - A [GitHub](https://github.com) account.
 
 On local systems, these software and libraries should be available from your system's package manager (e.g. APT, yum, Homebrew, etc.) and examples on how to install all the required libraries for Linux/WSL and macOS are given below.
