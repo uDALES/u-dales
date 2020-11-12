@@ -8,7 +8,8 @@ temp/
 examples/*/init*
 examples/*/*driver*
 
-
 # macOS specific
 .DS_Store
 
+# Matlab artifacts
+*.m~
