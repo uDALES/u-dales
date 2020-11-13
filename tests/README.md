@@ -1,8 +1,6 @@
 # Tests
 
-This is readme is a work-in-progress for testing the uDALES software.
-
-
+The following are integration tests run on CI at every commit but can also be run locally.
 
 ## Requirements
 
@@ -27,9 +25,3 @@ python3 run_tests.py dmey/external-libs dmey/comp-tests Release
 Tests outputs are saved under `tests/outputs` and currently include a boxplot of approximate errors for `u`, `v`, and `w`.
 
 These tests are already automatically executed at each commit through CI.
-
------
-
-
-TODO: Add integration tests against ref datasets.
-TODO: Add multiple test cases.
