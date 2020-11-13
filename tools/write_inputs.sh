@@ -26,7 +26,7 @@ function sedi { if [[ "$OSTYPE" == "darwin"* ]]; then
 		fi;}
 
 ####### set iexpnir in matlab file
-sedi "/expnr = '/s/.*/expnr = '$iexpnr';/g" $DA_TOOLSDIR"/write_input_files.m"
+sedi "/expnr = '/s/.*/expnr = '$iexpnr';/g" $DA_TOOLSDIR"/write_inputs.m"
 ###### set # CPUS from execute to test domain size !edit : should maybe multiply by nnode (bss116: yes! this needs to change)
 sedi  "/CPUS = /s/.*/CPUS = $(grep -m 1 'ncpu=' ../../u-dales/tools/local_execute.sh | cut -d "=" -f 2 | cut -d " " -f 1 | tr -d ' ');       % # cpus/g" $DA_TOOLSDIR"/write_inputs.m"
 
@@ -37,20 +37,32 @@ matlab -nodesktop -nosplash -r "write_inputs; quit"
 cd $DA_EXPDIR/$iexpnr
 
 ##### alter files in namoptions (thl_top, nblocks etc.)
-nblocks=$(wc -l < $DA_EXPDIR/$iexpnr/blocks.inp.$iexpnr)
-nblocks=$(($nblocks-2))
+### Blocks
 
-if grep -q nblocks $DA_EXPDIR/$iexpnr"/namoptions."$iexpnr; then
-	sedi "/nblocks/s/.*/nblocks    = $nblocks/g" $DA_EXPDIR/$iexpnr"/namoptions."$iexpnr
+if [ -f $DA_EXPDIR/$iexpnr/blocks.inp.$iexpnr ]; then
+	nblocks=$(wc -l < $DA_EXPDIR/$iexpnr/blocks.inp.$iexpnr)
+	nblocks=$(($nblocks-2))
 else
-	sedi '/&DOMAIN/a\'$'\n''nblocks    = '$nblocks''$'\n' $DA_EXPDIR/$iexpnr"/namoptions."$iexpnr
+	nblocks=0
 fi
 
-nfcts=$(wc -l < $DA_EXPDIR/$iexpnr/facets.inp.$iexpnr)
-nfcts=$(($nfcts-1))
+if grep -q nblocks $DA_EXPDIR/$iexpnr"/namoptions."$iexpnr; then
+	sedi "/nblocks/s/.*/nblocks      = $nblocks/g" $DA_EXPDIR/$iexpnr"/namoptions."$iexpnr
+else
+	sedi '/&WALLS/a\'$'\n''nblocks      = '$nblocks''$'\n' $DA_EXPDIR/$iexpnr"/namoptions."$iexpnr
+fi
+
+### Facets
+
+if [ -f $DA_EXPDIR/$iexpnr/blocks.inp.$iexpnr ]; then
+	nfcts=$(wc -l < $DA_EXPDIR/$iexpnr/facets.inp.$iexpnr)
+	nfcts=$(($nfcts-1))
+else
+	nfcts=0
+fi
 
 if grep -q nfcts $DA_EXPDIR/$iexpnr"/namoptions."$iexpnr; then
-	sedi "/nfcts/s/.*/nfcts      = $nfcts/g" $DA_EXPDIR/$iexpnr"/namoptions."$iexpnr
+	sedi "/nfcts/s/.*/nfcts        = $nfcts/g" $DA_EXPDIR/$iexpnr"/namoptions."$iexpnr
 else
-	sedi '/&ENERGYBALANCE/a\'$'\n''nfcts      = '$nfcts''$'\n' $DA_EXPDIR/$iexpnr"/namoptions."$iexpnr
+	sedi '/&WALLS/a\'$'\n''nfcts        = '$nfcts''$'\n' $DA_EXPDIR/$iexpnr"/namoptions."$iexpnr
 fi
