@@ -65,279 +65,276 @@
       implicit none
 
       !use modglobal, only:block
-!read initial&unchangeable facet values from files
-!read blocks and facet Nr corresponding to block faces (Order: Top, West, East, North, South)
-!define facets with properties and initial temperature
-!read facets.inp.xxx facetarea.inp.xxx vf.inp.xxx walltypes.inp.xxx
-!read netsw.inp.xxx (if sun is not constant, K needs to be calculated at every EB-timestep)
-!read tfacinit.inp.xxx
-!use modglobal, only : nblocks, nfcts, cexpnr, ifinput
-         character (len = 13) :: FILE_VF = 'vf.nc.inp.xxx'
-         integer :: ncid, varid
-         integer :: n = 0, i = 0, j = 0, k = 0, io = 0
-         integer :: iret
-         !allocate (block(nblocks, 11))
-         allocate (faclGR(0:nfcts))
-         allocate (facz0(0:nfcts)) !0 is the default value (e.g. for internal walls)
-         allocate (facz0h(0:nfcts))
-         allocate (facalb(0:nfcts))
-         allocate (facem(0:nfcts))
-         allocate (facdi(0:nfcts, nwalllayers))
-         allocate (facd(0:nfcts, nwalllayers))
-         allocate (faccp(0:nfcts, nwalllayers))
-         allocate (faclami(0:nfcts, nwalllayers))
-         allocate (fackappa(0:nfcts, nwalllayers+1))
-         allocate (faca(0:nfcts))
-         allocate (facain(0:nfcts))
-         allocate (facets(nfcts, 4))
+      !read initial&unchangeable facet values from files
+      !read blocks and facet Nr corresponding to block faces (Order: Top, West, East, North, South)
+      !define facets with properties and initial temperature
+      !read facets.inp.xxx facetarea.inp.xxx vf.inp.xxx walltypes.inp.xxx
+      !read netsw.inp.xxx (if sun is not constant, K needs to be calculated at every EB-timestep)
+      !read tfacinit.inp.xxx
+      !use modglobal, only : nblocks, nfcts, cexpnr, ifinput
+      character (len = 13) :: FILE_VF = 'vf.nc.inp.xxx'
+      integer :: ncid, varid
+      integer :: n = 0, i = 0, j = 0, k = 0, io = 0
+      integer :: iret
 
-         if (lEB .eqv. .true.) then
-           allocate (vf(1:nfcts, 1:nfcts))
-           allocate (svf(1:nfcts))
-           allocate (netsw(1:nfcts))
-           allocate (facLWin(1:nfcts))
-         end if
+      if (.not.(nfcts > 0)) return
 
-         allocate (Tfacinit(1:nfcts))
-         allocate (facT(0:nfcts, nwalllayers+1))
-         allocate (facTdash(1:nfcts,nwalllayers+1))
+      !allocate (block(nblocks, 11))
+      allocate (faclGR(0:nfcts))
+      allocate (facz0(0:nfcts)) !0 is the default value (e.g. for internal walls)
+      allocate (facz0h(0:nfcts))
+      allocate (facalb(0:nfcts))
+      allocate (facem(0:nfcts))
+      allocate (facdi(0:nfcts, nwalllayers))
+      allocate (facd(0:nfcts, nwalllayers))
+      allocate (faccp(0:nfcts, nwalllayers))
+      allocate (faclami(0:nfcts, nwalllayers))
+      allocate (fackappa(0:nfcts, nwalllayers+1))
+      allocate (faca(0:nfcts))
+      allocate (facain(0:nfcts))
+      allocate (facets(nfcts, 4))
 
-         allocate (facef(1:nfcts))
-         allocate (facefi(1:nfcts))
-         allocate (facefsum(1:nfcts))
-         allocate (fachf(0:nfcts))
-         allocate (fachfi(0:nfcts))
-         allocate (fachfsum(1:nfcts))
+      if (lEB .eqv. .true.) then
+        allocate (vf(1:nfcts, 1:nfcts))
+        allocate (svf(1:nfcts))
+        allocate (netsw(1:nfcts))
+        allocate (facLWin(1:nfcts))
+      end if
 
-         allocate (facf(0:nfcts, 5))
-         allocate (fachurel(0:nfcts))
-         allocate (facwsoil(0:nfcts))
-         allocate (faccth(0:nfcts))
-         allocate (facqsat(0:nfcts))
+      allocate (Tfacinit(1:nfcts))
+      allocate (facT(0:nfcts, nwalllayers+1))
+      allocate (facTdash(1:nfcts,nwalllayers+1))
+      allocate (facef(1:nfcts))
+      allocate (facefi(1:nfcts))
+      allocate (facefsum(1:nfcts))
+      allocate (fachf(0:nfcts))
+      allocate (fachfi(0:nfcts))
+      allocate (fachfsum(1:nfcts))
+      allocate (facf(0:nfcts, 5))
+      allocate (fachurel(0:nfcts))
+      allocate (facwsoil(0:nfcts))
+      allocate (faccth(0:nfcts))
+      allocate (facqsat(0:nfcts))
 
-         !block = 0;
-         faclGR = .false.; facz0 = 0.; facz0h = 0.; facalb = 0.; facem = 0.; facd=0.; facdi = 0.; faccp = 0.
-         faclami = 0.; fackappa = 0.; faca = 0.; facain = 0; facets = 0
-         if (lEB .eqv. .true.) then
-          vf = 0.; svf = 0.; netsw = 0.; facLWin = 0.
-         end if
-         Tfacinit = 0.; facT = 0.; facTdash = 0.
-         facef = 0.; facefi = 0.; facefsum = 0.; fachf = 0.; fachfi = 0.; fachfsum = 0.
-         facf = 0.; fachurel = 0.; facwsoil = 0.; faccth = 0.; facqsat = 0.;
+      !block = 0;
+      faclGR = .false.; facz0 = 0.; facz0h = 0.; facalb = 0.; facem = 0.; facd=0.; facdi = 0.; faccp = 0.
+      faclami = 0.; fackappa = 0.; faca = 0.; facain = 0; facets = 0
+      if (lEB .eqv. .true.) then
+        vf = 0.; svf = 0.; netsw = 0.; facLWin = 0.
+      end if
+      Tfacinit = 0.; facT = 0.; facTdash = 0.
+      facef = 0.; facefi = 0.; facefsum = 0.; fachf = 0.; fachfi = 0.; fachfsum = 0.
+      facf = 0.; fachurel = 0.; facwsoil = 0.; faccth = 0.; facqsat = 0.;
 
-         if (myid == 0 .and. libm) then ! read blocks corner coordinates and facet-Nr correspoinding to the block sides
-         !   open (ifinput, file='blocks.inp.'//cexpnr)
-         !   read (ifinput, '(a80)') chmess
-         !   read (ifinput, '(a80)') chmess
-         !   do n = 1, nblocks
-               !blockfile is :ilow iheigh jlow jheigh klow kheigh facTop facWest facEast facNorth facSouth
-         !      read (ifinput, *) &
-         !         block(n, 1), &
-         !         block(n, 2), &
-         !         block(n, 3), &
-         !         block(n, 4), &
-         !         block(n, 5), &
-         !         block(n, 6), &
-         !         block(n, 7), &
-         !         block(n, 8), &
-         !         block(n, 9), &
-         !         block(n, 10), &
-         !         block(n, 11)
-         !   end do
-         !   close (ifinput)
+      if (myid == 0 .and. libm) then ! read blocks corner coordinates and facet-Nr correspoinding to the block sides
+      !   open (ifinput, file='blocks.inp.'//cexpnr)
+      !   read (ifinput, '(a80)') chmess
+      !   read (ifinput, '(a80)') chmess
+      !   do n = 1, nblocks
+      !     blockfile is :ilow iheigh jlow jheigh klow kheigh facTop facWest facEast facNorth facSouth
+      !     read (ifinput, *) &
+      !         block(n, 1), &
+      !         block(n, 2), &
+      !         block(n, 3), &
+      !         block(n, 4), &
+      !         block(n, 5), &
+      !         block(n, 6), &
+      !         block(n, 7), &
+      !         block(n, 8), &
+      !         block(n, 9), &
+      !         block(n, 10), &
+      !         block(n, 11)
+      !   end do
+      !   close (ifinput)
 
-         if (lEB) then
-! read facet areas
-            open (ifinput, file='facetarea.inp.'//cexpnr)
+        if (lEB) then
+        ! read facet areas
+          open (ifinput, file='facetarea.inp.'//cexpnr)
+          read (ifinput, '(a80)') chmess
+          do n = 1, nfcts
+            read (ifinput, *) &
+              faca(n)
+          end do
+          close (ifinput)
+          write (*, *) "faca", faca
+        end if !lEB
+
+        ! read wall & (green) roof types
+        ! read once to determine number of types, allocate, read again
+        nwalltypes = -3 !3 lines as headers
+        open (ifinput, file='walltypes.inp.'//cexpnr)
+        do
+          read (ifinput, *, iostat=io)
+          if (io /= 0) exit
+          nwalltypes = nwalltypes + 1
+        end do
+        close (ifinput)
+      end if !(myid == 0 .and. libm)
+
+      call MPI_BCAST(nwalltypes, 1, MPI_Integer, 0, comm3d, mpierr)
+      allocate (walltypes(1:nwalltypes, 19))  !19 = 7+4*3
+
+      if (myid == 0) then
+        walltypes = 0.
+        open (ifinput, file='walltypes.inp.'//cexpnr)
+        read (ifinput, '(a80)') chmess
+        read (ifinput, '(a80)') chmess
+        read (ifinput, '(a80)') chmess
+
+        do n = 1, nwalltypes
+           read (ifinput, *) &
+             walltypes(n, 1), &
+             walltypes(n, 2), &
+             walltypes(n, 3), &
+             walltypes(n, 4), &
+             walltypes(n, 5), &
+             walltypes(n, 6), &
+             walltypes(n, 7), &
+             walltypes(n, 8), &
+             walltypes(n, 9), &
+             walltypes(n, 10), &
+             walltypes(n, 11), &
+             walltypes(n, 12), &
+             walltypes(n, 13), &
+             walltypes(n, 14), &
+             walltypes(n, 15), &
+             walltypes(n, 16), &
+             walltypes(n, 17), &
+             walltypes(n, 18), &
+             walltypes(n, 19)
+          end do
+          close (ifinput)
+        end if !myid==0
+
+        call MPI_BCAST(nwalltypes, 1, MPI_Integer, 0, comm3d, mpierr)
+        call MPI_BCAST(walltypes, 19*nwalltypes, MY_REAL, 0, comm3d, mpierr)
+
+        !create an array mapping walltypes to sequential integers for indexing
+        !e.g. lets assume walltype -3,-1,1,2,3 and 5 are defined.
+        !index: [-3,-2,-1,0,1,2,3,4,5]  -> [-3,-2,-1,0,1,2,3,4,5]
+        !value: [ 0, 0, 0,0,0,0,0,0,0]  -> [ 1, 0, 2,0,3,4,5,0,6]
+        allocate (typeloc(int(minval(walltypes(:, 1))):int(maxval(walltypes(:, 1)))))
+
+        if (myid .eq. 0) then  !all the read processes just need to be done on one processor
+          typeloc = 0
+          do n = 1, nwalltypes
+            typeloc(int(walltypes(n, 1))) = n
+          end do
+
+          ! read the facets
+          open (ifinput, file='facets.inp.'//cexpnr)
+          read (ifinput, '(a80)') chmess
+          !orientation, walltype, block in block.inp, original block/building
+          do n = 1, nfcts
+            read (ifinput, *) &
+              facets(n, 1), &
+              facets(n, 2), &
+              facets(n, 3), &
+              facets(n, 4)
+          end do
+          close (ifinput)
+
+          ! calculate the number of indeces per facet in both dimensions (~area)
+          do n = 1, nfcts
+            if (facets(n, 1) .eq. 1) then
+              facain(n) = (block(facets(n, 3), 2) - block(facets(n, 3), 1) + 1)*(block(facets(n, 3), 4) - block(facets(n, 3), 3) + 1)
+            else if (facets(n, 1) .eq. 2) then
+              facain(n) = (block(facets(n, 3), 6) - block(facets(n, 3), 5) + 1)*(block(facets(n, 3), 4) - block(facets(n, 3), 3) + 1)
+            else if (facets(n, 1) .eq. 3) then
+              facain(n) = (block(facets(n, 3), 6) - block(facets(n, 3), 5) + 1)*(block(facets(n, 3), 4) - block(facets(n, 3), 3) + 1)
+            else if (facets(n, 1) .eq. 4) then
+              facain(n) = (block(facets(n, 3), 2) - block(facets(n, 3), 1) + 1)*(block(facets(n, 3), 6) - block(facets(n, 3), 5) + 1)
+            else if (facets(n, 1) .eq. 5) then
+              facain(n) = (block(facets(n, 3), 2) - block(facets(n, 3), 1) + 1)*(block(facets(n, 3), 6) - block(facets(n, 3), 5) + 1)
+            end if
+          end do
+
+          ! assign the facet properties to their own arrays
+          do n = 1, nfcts
+            i = typeloc(facets(n, 2))
+            faclGR(n) = (abs(walltypes(i, 2) - 1.00) < 1.0D-5) !logic for green surface, conversion from real to logical
+            facz0(n) = walltypes(i, 3)  !surface momentum roughness
+            facz0h(n) = walltypes(i, 4) !surface heat & moisture roughness
+            facalb(n) = walltypes(i, 5) !surface shortwave albedo
+            facem(n) = walltypes(i, 6)  !surface longwave emissivity
+
+            if (facets(n, 2) .lt. -100) then !it's a bounding wall
+              do j = 1, nwalllayers !bounding walls don't need properties
+                facdi(n, j) = 0.   !bounding walls have no energy balance
+                facd(n,j)=0.       !bounding walls have no thickness
+                faclami(n, j) = 0. !bounding walls have no energy balance
+                faccp(n, j) = 0.   !bounding walls have no heat capacity
+              end do
+            else
+              do j = 1, nwalllayers !for all layers
+                facdi(n, j) = 1/walltypes(i, j + 6) !inverse of facet thickness of layer j
+                facd(n,j) = walltypes(i,j+6) !facet thickness of layer j
+                faclami(n, j) = 1/walltypes(i, j+12) !inverse of heat conductivity of layer j
+                faccp(n, j) = walltypes(i, j+9) !specific heat capacity of layer j
+              end do
+            end if
+
+            do j= 1,nwalllayers+1
+              fackappa(n, j) = walltypes(i, j+15) !heat duffusivity of layer 1
+            end do
+          end do
+
+          if (lEB) then
+            ! read viewfactors between facets
+            ! Open the file. NF90_NOWRITE tells netCDF we want read-only access to
+            ! the file.
+            FILE_VF = 'vf.nc.inp.'//cexpnr
+            iret = nf90_open(FILE_VF, NF90_NOWRITE, ncid) ! Get the varid of the data variable, based on its name.
+            iret = nf90_inq_varid(ncid, "view factor", varid)
+            ! Read the data.
+            iret = nf90_get_var(ncid, varid, vf)
+            write(*,*) "vf(1,6),vf(1,7),vf(6,1),vf(7,1)",vf(1,6),vf(1,7),vf(6,1),vf(7,1)
+
+            ! read skyviewfactors
+            open (ifinput, file='svf.inp.'//cexpnr)
             read (ifinput, '(a80)') chmess
             do n = 1, nfcts
-               read (ifinput, *) &
-                  faca(n)
-            end do
-            close (ifinput)
-            write (*, *) "faca", faca
-         end if
-
-            ! read wall & (green) roof types
-            ! read once to determine number of types, allocate, read again
-            nwalltypes = -3 !3 lines as headers
-            open (ifinput, file='walltypes.inp.'//cexpnr)
-            do
-               read (ifinput, *, iostat=io)
-               if (io /= 0) exit
-               nwalltypes = nwalltypes + 1
-            end do
-            close (ifinput)
-         end if
-         call MPI_BCAST(nwalltypes, 1, MPI_Integer, 0, comm3d, mpierr)
-         allocate (walltypes(1:nwalltypes, 19))  !19 = 7+4*3
-
-         if (myid == 0) then
-            walltypes = 0.
-
-            open (ifinput, file='walltypes.inp.'//cexpnr)
-            read (ifinput, '(a80)') chmess
-            read (ifinput, '(a80)') chmess
-            read (ifinput, '(a80)') chmess
-
-            do n = 1, nwalltypes
-               read (ifinput, *) &
-                  walltypes(n, 1), &
-                  walltypes(n, 2), &
-                  walltypes(n, 3), &
-                  walltypes(n, 4), &
-                  walltypes(n, 5), &
-                  walltypes(n, 6), &
-                  walltypes(n, 7), &
-                  walltypes(n, 8), &
-                  walltypes(n, 9), &
-                  walltypes(n, 10), &
-                  walltypes(n, 11), &
-                  walltypes(n, 12), &
-                  walltypes(n, 13), &
-                  walltypes(n, 14), &
-                  walltypes(n, 15), &
-                  walltypes(n, 16), &
-                  walltypes(n, 17), &
-                  walltypes(n, 18), &
-                  walltypes(n, 19)
-            end do
-            close (ifinput)
-
-         end if !myid==0
-         call MPI_BCAST(nwalltypes, 1, MPI_Integer, 0, comm3d, mpierr)
-         call MPI_BCAST(walltypes, 19*nwalltypes, MY_REAL, 0, comm3d, mpierr)
-
-         !create an array mapping walltypes to sequential integers for indexing
-         !e.g. lets assume walltype -3,-1,1,2,3 and 5 are defined.
-         !index: [-3,-2,-1,0,1,2,3,4,5]  -> [-3,-2,-1,0,1,2,3,4,5]
-         !value: [ 0, 0, 0,0,0,0,0,0,0]  -> [ 1, 0, 2,0,3,4,5,0,6]
-         allocate (typeloc(int(minval(walltypes(:, 1))):int(maxval(walltypes(:, 1)))))
-
-         if (myid .eq. 0) then  !all the read processes just need to be done on one processor
-            typeloc = 0
-            do n = 1, nwalltypes
-               typeloc(int(walltypes(n, 1))) = n
-            end do
-
-            ! read the facets
-            if (nfcts > 0) then
-              open (ifinput, file='facets.inp.'//cexpnr)
-              read (ifinput, '(a80)') chmess
-              !orientation, walltype, block in block.inp, original block/building
-              do n = 1, nfcts
-                read (ifinput, *) &
-                  facets(n, 1), &
-                  facets(n, 2), &
-                  facets(n, 3), &
-                  facets(n, 4)
-                end do
+              read (ifinput, *) &
+                svf(n)
+              end do
               close (ifinput)
 
-              ! calculate the number of indeces per facet in both dimensions (~area)
+              ! read net shortwave radiation
+              open (ifinput, file='netsw.inp.'//cexpnr)
+              read (ifinput, '(a80)') chmess
               do n = 1, nfcts
-                if (facets(n, 1) .eq. 1) then
-                  facain(n) = (block(facets(n, 3), 2) - block(facets(n, 3), 1) + 1)*(block(facets(n, 3), 4) - block(facets(n, 3), 3) + 1)
-                else if (facets(n, 1) .eq. 2) then
-                  facain(n) = (block(facets(n, 3), 6) - block(facets(n, 3), 5) + 1)*(block(facets(n, 3), 4) - block(facets(n, 3), 3) + 1)
-                else if (facets(n, 1) .eq. 3) then
-                  facain(n) = (block(facets(n, 3), 6) - block(facets(n, 3), 5) + 1)*(block(facets(n, 3), 4) - block(facets(n, 3), 3) + 1)
-                else if (facets(n, 1) .eq. 4) then
-                  facain(n) = (block(facets(n, 3), 2) - block(facets(n, 3), 1) + 1)*(block(facets(n, 3), 6) - block(facets(n, 3), 5) + 1)
-                else if (facets(n, 1) .eq. 5) then
-                  facain(n) = (block(facets(n, 3), 2) - block(facets(n, 3), 1) + 1)*(block(facets(n, 3), 6) - block(facets(n, 3), 5) + 1)
-                end if
-              end do
-
-              ! assign the facet properties to their own arrays
-              do n = 1, nfcts
-                i = typeloc(facets(n, 2))
-                faclGR(n) = (abs(walltypes(i, 2) - 1.00) < 1.0D-5) !logic for green surface, conversion from real to logical
-                facz0(n) = walltypes(i, 3)  !surface momentum roughness
-                facz0h(n) = walltypes(i, 4) !surface heat & moisture roughness
-                facalb(n) = walltypes(i, 5) !surface shortwave albedo
-                facem(n) = walltypes(i, 6)  !surface longwave emissivity
-
-                if (facets(n, 2) .lt. -100) then !it's a bounding wall
-                  do j = 1, nwalllayers !bounding walls don't need properties
-                    facdi(n, j) = 0.   !bounding walls have no energy balance
-                    facd(n,j)=0.       !bounding walls have no thickness
-                    faclami(n, j) = 0. !bounding walls have no energy balance
-                    faccp(n, j) = 0.   !bounding walls have no heat capacity
-                  end do
-                else
-                  do j = 1, nwalllayers !for all layers
-                    facdi(n, j) = 1/walltypes(i, j + 6) !inverse of facet thickness of layer j
-                    facd(n,j) = walltypes(i,j+6) !facet thickness of layer j
-                    faclami(n, j) = 1/walltypes(i, j+12) !inverse of heat conductivity of layer j
-                    faccp(n, j) = walltypes(i, j+9) !specific heat capacity of layer j
-                  end do
-                end if
-
-                do j= 1,nwalllayers+1
-                  fackappa(n, j) = walltypes(i, j+15) !heat duffusivity of layer 1
-                end do
-              end do
-
-              if (lEB) then
-                ! read viewfactors between facets
-                ! Open the file. NF90_NOWRITE tells netCDF we want read-only access to
-                ! the file.
-                FILE_VF = 'vf.nc.inp.'//cexpnr
-                iret = nf90_open(FILE_VF, NF90_NOWRITE, ncid) ! Get the varid of the data variable, based on its name.
-                iret = nf90_inq_varid(ncid, "view factor", varid)
-                ! Read the data.
-                iret = nf90_get_var(ncid, varid, vf)
-                write(*,*) "vf(1,6),vf(1,7),vf(6,1),vf(7,1)",vf(1,6),vf(1,7),vf(6,1),vf(7,1)
-
-                ! read skyviewfactors
-                open (ifinput, file='svf.inp.'//cexpnr)
-                read (ifinput, '(a80)') chmess
-                do n = 1, nfcts
                 read (ifinput, *) &
-                  svf(n)
-                end do
-                close (ifinput)
-
-                ! read net shortwave radiation
-                open (ifinput, file='netsw.inp.'//cexpnr)
-                read (ifinput, '(a80)') chmess
-                do n = 1, nfcts
-                  read (ifinput, *) &
                   netsw(n)
-                end do
-                close (ifinput)
-              end if !lEB
-
-              if ((lEB) .or. (iwalltemp == 2)) then
-                ! read initial facet temepratures
-                open (ifinput, file='Tfacinit.inp.'//cexpnr)
-                read (ifinput, '(a80)') chmess
-                do n = 1, nfcts
-                  read (ifinput, *) &
-                    Tfacinit(n)
-                  end do
-                close (ifinput)
-
-                do n = 1, nfcts
-                  facT(n, 1) = Tfacinit(n) !building surfaces is given an initial temperature
-                  facT(n, nwalllayers+1) = bldT !inner most layer has the same temperature as the building interior
-                  do j = 2,nwalllayers
-                    facT(n, j) = Tfacinit(n)-(Tfacinit(n)-bldT)/nwalllayers*(j-1) !scale linearly inside the wall
-                  end do
-                end do
-
-              end if !((lEB) .or. (iwalltemp == 2))
-
-              ! assign initial soil moisture (only outermost layer)
-              do n = 1, nfcts
-                if (faclGR(n)) then
-                 facwsoil(n) = wsoil
-                 fachurel(n) = 0.5*(1. - cos(3.14159*wsoil/wfc))
-                end if
               end do
+              close (ifinput)
+            end if !lEB
 
-            end if !nfcts>0
+            if ((lEB) .or. (iwalltemp == 2)) then
+              ! read initial facet temepratures
+              open (ifinput, file='Tfacinit.inp.'//cexpnr)
+              read (ifinput, '(a80)') chmess
+              do n = 1, nfcts
+                read (ifinput, *) &
+                  Tfacinit(n)
+              end do
+              close (ifinput)
+
+              do n = 1, nfcts
+                facT(n, 1) = Tfacinit(n) !building surfaces is given an initial temperature
+                facT(n, nwalllayers+1) = bldT !inner most layer has the same temperature as the building interior
+                do j = 2,nwalllayers
+                  facT(n, j) = Tfacinit(n)-(Tfacinit(n)-bldT)/nwalllayers*(j-1) !scale linearly inside the wall
+                end do
+              end do
+            end if !((lEB) .or. (iwalltemp == 2))
+
+            ! assign initial soil moisture (only outermost layer)
+            do n = 1, nfcts
+              if (faclGR(n)) then
+                facwsoil(n) = wsoil
+                fachurel(n) = 0.5*(1. - cos(3.14159*wsoil/wfc))
+              end if
+            end do
 
             !give some dummy values for block internal facets (i.e. facets with walltype 0)
             facT(0, 1) = 288.; facT(0, 2) = 288.; facT(0, 3) = 288.; facT(0, 4) = 299. !default facet temperature (i.e. internal walls)
@@ -389,6 +386,7 @@
          facqsat(n) = qsat(facT(n,1))
          end do
          call MPI_BCAST(facqsat(0:nfcts), nfcts + 1, MY_REAL, 0, comm3d, mpierr)
+
 
       end subroutine readfacetfiles
 

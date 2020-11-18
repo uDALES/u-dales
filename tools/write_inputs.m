@@ -14,12 +14,6 @@ cd([DA_EXPDIR '/' expnr])
 r = preprocessing(expnr, exppath);
 preprocessing.set_defaults(r, ncpus);
 
-if isfile(['walltypes.inp.', expnr])
-    r.walltypes = dlmread(['walltypes.inp.', expnr],'',3,0);
-else
-    preprocessing.write_walltypes(r)
-end
-
 preprocessing.generate_xygrid(r);
 preprocessing.write_xgrid(r)
 disp(['Written xgrid.inp.', r.expnr])
@@ -39,7 +33,7 @@ if r.nsv>0
     disp(['Written scalar.inp.', r.expnr])
 end
 
-if ~r.lflat   
+if ~r.lflat  
     if r.llidar
         disp('Generating blocks from LIDAR data')
         preprocessing.generate_topo_from_LIDAR(r)      
@@ -71,6 +65,13 @@ if ~r.lflat
     disp(['Written blocks.inp.', r.expnr])
     preprocessing.write_facets(r)
     disp(['Written facets.inp.', r.expnr])
+    
+    if isfile(['walltypes.inp.', expnr])
+        r.walltypes = dlmread(['walltypes.inp.', expnr],'',3,0);
+    else
+        preprocessing.write_walltypes(r)
+        disp(['Written walltypes.inp.', r.expnr])
+    end
     
     if r.lEB
         preprocessing.vsolc(r)
