@@ -61,7 +61,7 @@ before_install:
   - python3 --version
 
 install:
-  - python3 -m pip install -r tests/requirements.txt
+  - python3 -m pip install numpy netCDF4 matplotlib
 
 script:
   # Travis clones only the history leading to the tip of a single branch (https://stackoverflow.com/a/44036486).

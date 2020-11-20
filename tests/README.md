@@ -13,7 +13,6 @@ Where `<branch_a>` and `<branch_b>` are the two branches you want to compare and
 
 E.g.
 ```
-pip3 install -r requirements.txt
 python3 run_tests.py dmey/external-libs dmey/comp-tests Release
 ```
 
