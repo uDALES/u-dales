@@ -60,8 +60,16 @@ nav:
   - Home: index.md
   - Getting Started: udales-getting-started.md
   - Examples: udales-example-simulations.md
-  - Configuration: udales-namoptions-overview.md
-  - Pre-processing: udales-pre-processing.md
-  - Post-processing: udales-post-processing.md
-  - Scientific docs : udales-docs-scientific.md
+  - "User's docs":
+    - Set-up: udales-simulation-setup.md
+    - Configuration: udales-namoptions-overview.md
+    - Pre-processing: udales-pre-processing.md
+    - Post-processing: udales-post-processing.md
+  - Publication list: udales-pub-list.md
   - Software docs: udales-docs-software/index.html
+
+plugins:
+  - search
+  - bibtex:
+      bib_file: "docs/references.bib"
+      cite_style: "pandoc"

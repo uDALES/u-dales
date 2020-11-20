@@ -1,5 +1,22 @@
 # Development notes
 
+## Set up
+
+Install all packages described in the [prerequisites section](./docs/udales-getting-started.md#prerequisites) plus [Graphviz](https://graphviz.org/) for generating graphs in the code viewer. E.g. installing all the required packages using Ubuntu's APT:
+
+```sh
+sudo apt update && sudo apt install -y gfortran libopenmpi-dev openmpi-bin libnetcdf-dev libnetcdff-dev graphviz
+```
+
+Then, to set up the development environment for testing and doc generation, download the [latest version of Miniconda](https://docs.conda.io/en/latest/miniconda.html) and installed the required dependency with:
+
+```
+conda env create -f environment.yml
+```
+
+Then activate with `conda activate udales`.
+
+
 ## Installation
 
 To install uDALES on Linux, macOS, and WSL, use the following commands from the command prompt:
@@ -27,6 +44,13 @@ mpiexec -n <NCPU> <BUILD> <NAMOPTIONS>
 
 Please refer to [Test docs](tests/README.md).
 
+
+## Documentation
+
+```
+mkdocs build --site-dir build/html
+ford docs/udales-docs-software.md
+```
 
 ## Versioning
 

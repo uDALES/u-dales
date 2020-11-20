@@ -2,14 +2,9 @@
 
 The following are integration tests run on CI at every commit but can also be run locally.
 
-## Requirements
-
-- Python 3.5 or above
-- Python libraries (see requirements.txt)
-
 ## How to run tests
 
-Make sure you have the required Python libraries installed on your system, then from you command line, run the following command:
+Make sure you have the required Python libraries installed on your system (see [DEVELOP.md](../DEVELOP.md)), then from you command line, run the following command:
 
 ```
 python3 run_tests.py <branch_a> <branch_b> <build_type>

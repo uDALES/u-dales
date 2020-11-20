@@ -1,0 +1,17 @@
+name: udales
+channels:
+  - defaults
+dependencies:
+  - python=3.8
+  - pip
+  # Tests
+  - numpy
+  - netCDF4
+  - matplotlib
+  - pip:
+    # Docs
+    - graphviz
+    - mkdocs-material
+    - mkdocs-material-extensions
+    - mkdocs-bibtex
+    - ford

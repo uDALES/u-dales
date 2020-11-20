@@ -32,7 +32,7 @@ On macOS, use [Homebrew](https://docs.brew.sh) to install the required libraries
 
 ```sh
 brew update
-brew install git cmake gcc netcdf open-mpi nco python3
+brew install git cmake gcc@9 netcdf open-mpi nco python3
 ```
 
 ## Installation
