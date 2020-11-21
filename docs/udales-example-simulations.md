@@ -1,6 +1,6 @@
 # Example simulations
 
-uDALES simulates a large variety of urban case studies. Here we showcase a few examples ([List of examples](#list-of-examples)) with different atmospheric stabilities and various setups (overview in [Table 1](#main-simulation-set-up-options)) to help you get started.
+uDALES simulates a large variety of urban case studies. Here we showcase a few examples ([List of examples](#list-of-examples)) with different atmospheric stabilities and various setups (overview in [Table 1](#main-simulation-set-up-options)) to help you get started. The setups are in the `namoptions` file of your simulation.
 
 Note that we limited the simulation time to just a few minutes for demonstration, if you are looking to conduct realistic simulations, you need a much longer simulation time.
 
@@ -40,7 +40,7 @@ If you want to make any changes to the example simulations, e.g. changing the do
 
 ## Main simulation set-up options
 
-Below is a list of common setups and options for urban case studies. A complete list of all options available with uDALES can be found in the [Namoptions overview](./udales-namoptions-overview.md) document.
+Below is a list of common setups and options for urban case studies. A complete list of all options available with uDALES can be found in the [Configuration](./udales-namoptions-overview.md) document.
 
 Table 1: Main setups of urban case studies and reference example simulation(s).
 
