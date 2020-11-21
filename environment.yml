@@ -1,6 +1,4 @@
 name: udales
-channels:
-  - defaults
 dependencies:
   - python=3.8
   - pip
