@@ -1,8 +1,8 @@
 &RUN
 iexpnr       = 501
-runtime      = 152.
-trestart     = 150.
-dtmax        = 0.5
+runtime      = 31.
+trestart     = 30.
+dtmax        = 0.15
 irandom      = 43
 randthl      = 0.001
 randu        = 0.01
@@ -11,7 +11,7 @@ ladaptive    = .true.
 
 &OUTPUT
 lxytdump     = .true.
-tstatsdump   = 150.
+tstatsdump   = 30.
 tsample      = 5.
 /
 
@@ -59,8 +59,8 @@ iwalltemp    = 2
 
 &DRIVER
 idriver      = 1
-tdriverstart = 50.
-dtdriver     = 0.5
+tdriverstart = 0
+dtdriver     = 0.15
 driverstore  = 201
 iplane       = 128
 /
