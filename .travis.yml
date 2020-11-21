@@ -61,7 +61,7 @@ before_install:
   - python3 --version
 
 install:
-  - python3 -m pip install -r tests/requirements.txt
+  - python3 -m pip install numpy netCDF4 matplotlib
 
 script:
   # Travis clones only the history leading to the tip of a single branch (https://stackoverflow.com/a/44036486).
@@ -73,7 +73,7 @@ script:
   - python3 tests/run_tests.py master $TRAVIS_COMMIT $BUILD_TYPE
 
 before_deploy:
-  - python3 -m pip install graphviz ford mkdocs-material
+  - python3 -m pip install graphviz ford mkdocs-material mkdocs-material-extensions mkdocs-bibtex
   - mkdocs build --site-dir build/html
   - ford docs/udales-docs-software.md
   - mkdir -p temp/html/0YiO263pFxExSdkMvWfId3qkVUSF4dREFnwM1jQD9y1KvzeAVAWzGykQemUrkJCM

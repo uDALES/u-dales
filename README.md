@@ -1,52 +1,21 @@
 # uDALES [![Build Status](https://travis-ci.com/uDALES/u-dales.svg?token=3tqUbxqJuLtozjxqDymC&branch=master)](https://travis-ci.com/uDALES/u-dales)
 
-This is the development repository for the uDALES (urban Dutch Atmospheric Large Eddy Simulation) model. It contains the uDALES software source-code, tests, documentation, and examples with tools to pre- and post-process inputs/outputs.
-
-**If you are new to uDALES, please follow our [getting started guide](https://udales.github.io/u-dales/0YiO263pFxExSdkMvWfId3qkVUSF4dREFnwM1jQD9y1KvzeAVAWzGykQemUrkJCM/html/udales-getting-started).**
-
-## Installation
-
-If you are new to uDALES or need to set up your own experiments, please see our [getting started guide](https://udales.github.io/u-dales/0YiO263pFxExSdkMvWfId3qkVUSF4dREFnwM1jQD9y1KvzeAVAWzGykQemUrkJCM/html/udales-getting-started). If you are looking to develop the code instead, you can install uDALES on Linux, macOS, and WSL with the following commands:
-
-``` sh
-mkdir -p build/release
-pushd build/release
-cmake ../..
-make
-```
-
-To know more about build options, see [build/default options](https://udales.github.io/u-dales/0YiO263pFxExSdkMvWfId3qkVUSF4dREFnwM1jQD9y1KvzeAVAWzGykQemUrkJCM/html/udales-getting-started/#build-defaultsoptions).
-
-
-## Usage
-
-A uDALES simulation needs to be executed from a directory containing all required input files. Examples of experiments and required inputs are in the `examples` directory. To run a uDALES simulation you need to specify the number of cpus `<NCPU>`, the path to the build file `<BUILD>` and the simulation configuration file `<NAMOPTIONS>` and execute the simulation with the following command:
-
-``` sh
-mpiexec -n <NCPU> <BUILD> <NAMOPTIONS>
-```
-
+This is the development repository for the uDALES (urban Dutch Atmospheric Large Eddy Simulation) model. It contains the uDALES software source-code, tests, documentation, and examples with tools to pre- and post-process inputs and outputs. **If you are new to uDALES, please follow our [getting started guide](https://udales.github.io/u-dales/0YiO263pFxExSdkMvWfId3qkVUSF4dREFnwM1jQD9y1KvzeAVAWzGykQemUrkJCM/html/udales-getting-started).**
 
 ## Documentation
 
-Currently work in progress: see [this link](https://uDALES.github.io/u-dales/0YiO263pFxExSdkMvWfId3qkVUSF4dREFnwM1jQD9y1KvzeAVAWzGykQemUrkJCM/html/index.html).
+For User's guides and general reference documentation, please see the [uDALES website](https://udales.github.io/u-dales/0YiO263pFxExSdkMvWfId3qkVUSF4dREFnwM1jQD9y1KvzeAVAWzGykQemUrkJCM/html/), starting from the [getting started guide](https://udales.github.io/u-dales/0YiO263pFxExSdkMvWfId3qkVUSF4dREFnwM1jQD9y1KvzeAVAWzGykQemUrkJCM/html/udales-getting-started).
 
-
-## Testing
-
-TODO: add info about current testing and CI.
-
+If you are a developer, please also refer to the [development notes](DEVELOP.md).
 
 ## Contributing
 
-TODO:
-
-## Versioning
-
-TODO: need create first release as soon as cleanup is complete.
+If you are looking to contribute, please read our [Contributors' guide](CONTRIBUTING.md) for details.
 
 ## Copyright and License
 
-FIXME: need authorship and year
+General DALES copyright applies for any files part of the original DALES distribution and are marked as such at the beginning of each file.
 
-This project is licensed under the GNU General Public License - see the [LICENSE.md](LICENSE.md) file for details
+Additional files provided in uDALES are copyrighted "the uDALES Team" and are marked as such at the beginning of each file.
+
+All files are licensed under the GNU General Public License. See [LICENSE.txt](LICENSE.txt).

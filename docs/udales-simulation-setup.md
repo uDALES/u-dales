@@ -1,10 +1,19 @@
-# Boundary Conditions
+# Simulation setup
+
+This document contains some notes on setting up uDALES simulations. A complete list of all parameters and switches is documented under [Configuration](./udales-namoptions-overview.md).
+
+## Table of contents
+
+- [Boundary Conditions](#Boundary-Conditions)
+- [Driver simulations](#Driver-simulations)
+
+## Boundary Conditions
 
 The boundary conditions for uDALES are specified under the `&BC` header in `namoptions.inp`.
 
-## Momentum
+### Momentum
 
-### Top
+#### Top
 
 Determined by `BCtopm`. Possible values:
 
@@ -12,7 +21,7 @@ Determined by `BCtopm`. Possible values:
 - 2: no-slip, i.e. zero velocity.
 - 3: determined by inflow conditions.
 
-### Bottom (below floor facets)
+#### Bottom (below floor facets)
 
 These are de facto useless, as the bottom of the domain is covered by floor facets. Determined by `BCbotm`. Possible values:
 
@@ -20,7 +29,7 @@ These are de facto useless, as the bottom of the domain is covered by floor face
 - 2: flux given by wall function involving temperature.
 - 3: flux given by neutral wall function.
 
-### Walls
+#### Walls
 
 Determined by `iwallmom`. Possible values:
 
@@ -28,54 +37,54 @@ Determined by `iwallmom`. Possible values:
 - 2: flux given by wall function involving temperature.
 - 3: flux given by neutral wall function.
 
-### x
+#### x
 
 Determined by `BCxm`. Possible values:
 
 - 1: periodic
 - 2/3/4: inflow/outflow (write more on this)
 
-### y
+#### y
 
 Only possible value is 1: periodic.
 
-## Temperature
+### Temperature
 
 Only required when `ltempeq = .true.`
 
-### Top
+#### Top
 
 Determined by `BCtopT`. Possible values:
 
 - 1: constant flux given by `wttop`.
 - 2: constant temperature given by `thl_top`.
 
-### Bottom
+##### Bottom
 
 Determined by `BCbotT`. Possible values:
 
 - 1: constant flux given by `wtsurf`.
 - 2: flux given by wall function. Temperature of ghost cells below floor facets given by `thls`.
 
-### Walls
+#### Walls
 
 Determined by `iwalltemp`. Possible values:
 
 - 1: constant flux given by `bctfxm` and `bctfxp` for x-walls, `bctfym` and `bctfyp` for y-walls, and `bctfz` for z-walls. (write more on this - what are x/y/z-walls)
 - 2: flux given by wall function involving temperature.
 
-## Moisture
+### Moisture
 
-## Scalars
+### Scalars
 
-# Driver simulations
+## Driver simulations
 
 The options for running precursor and driven simulations are specified under the `&DRIVER` header in namoptions.xxx. This provides two model functionalities:
 
 1) To run a precursor simulation where instantaneous y-z planes at a specified index in the x-direction (`iplane`) are written every `dtdriver` seconds to output files (named \*driver\*).
 2) To run a driven simulation where the inlet y-z plane (at `i=ib-1` and `i=ib`) is determined by reading the \*driver\* files of a precursor simulation that has already been run.
 
-## Running precursor simulations
+### Running precursor simulations
 
 Precursor simulations are indicated by first setting `idriver = 1` in namoptions.xxx. The set-up of the precursor simulation is then up to the users discretion. The other variables to specify are:
 
@@ -88,7 +97,7 @@ Outputs:
 
 - A file for each prognostic variable (e.g. `u0`, `v0`, `w0`, `thl0` (if `ltempeq = .true.`) etc.) for each processor.The file names follow '$var"driver\_"$nproc"."$expnr' where $var indicates the variable (NOTE: h is potential temperature under this convention). These files will hold the corresponding instantaneous y-z planes over the specified time period and are to be used to drive a driven simulation.
 
-## Running driven simulations
+### Running driven simulations
 
 It is necessary to first have run a simulation following the above instructions. Driven simulations are initiated by setting `idriver = 2`. The following are guidelines for setting up the driven simulation:
 

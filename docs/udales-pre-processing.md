@@ -180,7 +180,7 @@ Each row describes a facet, with columns giving the orientation, wall type id, b
 
 Each row describes a wall type, with the first 6 columns being: wall type id, a boolean for whether it is a 'green' facet or not, momentum roughness length, heat roughness length, albedo, and emissivity. Assuming that each facet is composed of 3 layers, the next 3 columns give the thickness of each, the next 3 give the volumetric heat capacity, the next 3 give the heat conductivity, and the final 4 give the thermal diffusivity at each interface between the layers.
 
-For examples, please refer to the [example simulations](udales-example-simulations.md)
+For examples, please refer to the [example simulations](./udales-example-simulations.md).
 
 ### Visualising geometries
 
