@@ -1,6 +1,6 @@
 &RUN
 iexpnr       = 502
-runtime      = 50.
+runtime      = 100.
 trestart     = 1000.
 dtmax        = 0.5
 irandom      = 43
@@ -15,7 +15,7 @@ tfielddump   = 5.
 fieldvars    = 'u0,v0,w0,th'
 ltdump       = .true.
 lxytdump     = .true.
-tstatsdump   = 49.
+tstatsdump   = 99.
 tsample      = 1.
 /
 
@@ -63,7 +63,7 @@ iwalltemp    = 2
 &DRIVER
 idriver      = 2
 driverjobnr  = 501
-driverstore  = 101
+driverstore  = 201
 /
 
 &INPS

@@ -1,7 +1,7 @@
 &RUN
 iexpnr       = 102
 lwarmstart   = .true.
-startfile    = 'initd00003199_xxx.102'
+startfile    = 'initd00003172_xxx.102'
 runtime      = 11.
 trestart     = 10.
 dtmax        = 1.

@@ -441,7 +441,7 @@ A warmstart simulation requires setting
 ```fortran
 &RUN
 lwarmstart   = .true.
-startfile    = 'initd00003199_xxx.102'
+startfile    = 'initd00003172_xxx.102'
 ```
 
 where the name of the `startfile` needs to match the name of the restart files (xxx instead of processor number).
@@ -646,13 +646,13 @@ This simulation is forced by the data from the stored outlet plane of simulation
 &DRIVER
 idriver      = 2
 driverjobnr  = 501
-driverstore  = 101
+driverstore  = 201
 ```
 
 The runtime of this simulation is restricted by the simulation time of the driver output, which is `(driverstore-1)*dtdriver` of the precursor simulation `501`. The maximum runtime we can set is therefore
 
 ```fortran
-runtime      = 50.
+runtime      = 100.
 dtmax        = 0.5
 ```
 
