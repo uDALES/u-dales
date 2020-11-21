@@ -177,7 +177,7 @@ Now to set-up a new experiment (here we use case `009`) based on a previous exam
 
 ## Run
 
-The scripts `local_execute.sh` and `hpc_execute.sh` in `u-dales/tools/utils` are used as wrappers to run simulations on your local machine and HPC at ICL respectively. These scripts contain several helpers to run the simulations and merge outputs from several CPUs into a single file (see [Post-processing](./udales-post-processing.md) for more info about the individual scripts).
+The scripts `local_execute.sh` and `hpc_execute.sh` in `u-dales/tools` are used as wrappers to run simulations on your local machine and HPC at ICL respectively. These scripts contain several helpers to run the simulations and merge outputs from several CPUs into a single file (see [Post-processing](./udales-post-processing.md) for more info about the individual scripts).
 
 The scripts require several variables to be set up. Below is an example setup for copying and pasting. You can also specify these parameters in a `config.sh` file within the experiment directory, which is then read by the scripts.
 
@@ -187,7 +187,7 @@ The scripts require several variables to be set up. Below is an example setup fo
 # We assume you are running the following commands from your
 # top-level project directory.
 
-export DA_TOOLSDIR=$(pwd)/u-dales/tools # Directory of utils scripts
+export DA_TOOLSDIR=$(pwd)/u-dales/tools # Directory of scripts
 export DA_BUILD=$(pwd)/u-dales/build/release/u-dales # Build file
 export NCPU=2 # Number of CPUs to use for a simulation
 export DA_WORKDIR=$(pwd)/outputs # Output top-level directory
@@ -228,4 +228,4 @@ Then, to start the simulation, run:
 
 ## What's next?
 
-This simple guide is meant to allow you to get started based on an existing example. To learn more about pre- and post-processing steps in uDALES, please see the [Pre-processing](./udales-pre-processing.md) and [Post-processing](./udales-post-processing.md) pages.
+This simple guide is meant to allow you to get started based on an existing example. We set up several [example simulations](./udales-example-simulations.md) to get you started. To learn more about pre- and post-processing steps in uDALES, please see the [pre-processing](./udales-pre-processing.md) and [post-processing](./udales-post-processing.md) pages.
