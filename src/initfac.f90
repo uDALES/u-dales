@@ -279,6 +279,10 @@
             end do
           end do
 
+          !give some dummy values for block internal facets (i.e. facets with walltype 0)
+          facz0(0) = 0.00999; facz0h(0) = 0.00999; facalb(0) = 0.999; facem(0) = 0.999; facd(0,1)=0.999; facd(0,2)=0.999; facdi(0, 1) = 0.999; facdi(0, 2) = 0.999; facdi(0, 3) = 0.999; faccp(0, 1) = 999.; faccp(0, 2) = 999.
+          faccp(0, 3) = 999.; faclami(0, 1) = 0.999; faclami(0, 2) = 0.999; faclami(0, 3) = 0.999; fackappa(0, 1) = 0.00000999; fackappa(0, 2) = 0.00000999; fackappa(0, 3) = 0.00000999; faclGR(0) = .false.
+
           if (lEB) then
             ! read viewfactors between facets
             ! Open the file. NF90_NOWRITE tells netCDF we want read-only access to
@@ -326,6 +330,7 @@
                   facT(n, j) = Tfacinit(n)-(Tfacinit(n)-bldT)/nwalllayers*(j-1) !scale linearly inside the wall
                 end do
               end do
+              facT(0, 1) = 288.; facT(0, 2) = 288.; facT(0, 3) = 288.; facT(0, 4) = 299. !default facet temperature (i.e. internal walls)
             end if !((lEB) .or. (iwalltemp == 2))
 
             ! assign initial soil moisture (only outermost layer)
@@ -335,11 +340,6 @@
                 fachurel(n) = 0.5*(1. - cos(3.14159*wsoil/wfc))
               end if
             end do
-
-            !give some dummy values for block internal facets (i.e. facets with walltype 0)
-            facT(0, 1) = 288.; facT(0, 2) = 288.; facT(0, 3) = 288.; facT(0, 4) = 299. !default facet temperature (i.e. internal walls)
-            facz0(0) = 0.00999; facz0h(0) = 0.00999; facalb(0) = 0.999; facem(0) = 0.999; facd(0,1)=0.999; facd(0,2)=0.999; facdi(0, 1) = 0.999; facdi(0, 2) = 0.999; facdi(0, 3) = 0.999; faccp(0, 1) = 999.; faccp(0, 2) = 999.
-            faccp(0, 3) = 999.; faclami(0, 1) = 0.999; faclami(0, 2) = 0.999; faclami(0, 3) = 0.999; fackappa(0, 1) = 0.00000999; fackappa(0, 2) = 0.00000999; fackappa(0, 3) = 0.00000999; faclGR(0) = .false.
 
          end if !(myid .eq. 0)
 
