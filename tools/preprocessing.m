@@ -2365,10 +2365,25 @@ classdef preprocessing < dynamicprops
                         ls = find(M2(i, :) == 1);
                         if ~isempty(ls)
                             first = ls(1);
+                            %if length(ls) > 1
+                            %	last = ls(find(diff(ls)~=1, 1));
+                            % 
+                            %       if isempty(last)
+                            %           last = min(jtot,first + maxsize - 1);
+                            %       else
+                            %           last = min(last,first + maxsize - 1);
+                            %       end
                             if length(ls) > 1
                                 last = ls(find(diff(ls)~=1, 1));
                                 if isempty(last)
-                                    last = min(jtot,first + maxsize - 1);
+                                    % this means there is a floor all the way to the domain edge,
+                                    % but it ignores that there could already be a floor that borders a block
+                                    % solution: check whether there already is a floor
+                                    if sum(M2(i,ls(end)+1:jtot))==0
+                                        last = min(ls(end),first + maxsize - 1);
+                                    else
+                                        last = min(jtot,first + maxsize - 1); %create floor to the domain end or as long as the limit allows
+                                    end
                                 else
                                     last = min(last,first + maxsize - 1);
                                 end
