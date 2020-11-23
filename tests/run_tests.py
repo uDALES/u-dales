@@ -101,7 +101,7 @@ def run_udales(path_to_exe: Path, namelist: str, model_output_dir: str,
                         namelist], cwd=model_output_dir, check=True)
     except:
         print(f'Could not run case uDALES in {path_to_exe} for namelist {namelist}')
-        sys.exit()
+        sys.exit(1)
     model_output_dirs.append(model_output_dir)
 
 

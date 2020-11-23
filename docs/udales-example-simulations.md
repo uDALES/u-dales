@@ -1,6 +1,6 @@
 # Example simulations
 
-uDALES simulates a large variety of urban case studies. Here we showcase a few examples ([List of examples](#list-of-examples)) with different atmospheric stabilities and various setups (overview in [Table 1](#main-simulation-set-up-options)) to help you get started.
+uDALES simulates a large variety of urban case studies. Here we showcase a few examples ([List of examples](#list-of-examples)) with different atmospheric stabilities and various setups (overview in [Table 1](#main-simulation-set-up-options)) to help you get started. The setups are in the `namoptions` file of your simulation.
 
 Note that we limited the simulation time to just a few minutes for demonstration, if you are looking to conduct realistic simulations, you need a much longer simulation time.
 
@@ -40,7 +40,7 @@ If you want to make any changes to the example simulations, e.g. changing the do
 
 ## Main simulation set-up options
 
-Below is a list of common setups and options for urban case studies. A complete list of all options available with uDALES can be found in the [Namoptions overview](./udales-namoptions-overview.md) document.
+Below is a list of common setups and options for urban case studies. A complete list of all options available with uDALES can be found in the [Configuration](./udales-namoptions-overview.md) document.
 
 Table 1: Main setups of urban case studies and reference example simulation(s).
 
@@ -441,7 +441,7 @@ A warmstart simulation requires setting
 ```fortran
 &RUN
 lwarmstart   = .true.
-startfile    = 'initd00003199_xxx.102'
+startfile    = 'initd00003172_xxx.102'
 ```
 
 where the name of the `startfile` needs to match the name of the restart files (xxx instead of processor number).
@@ -594,9 +594,9 @@ To save the output of a simulation into files that can be read by another simula
 ```fortran
 &DRIVER
 idriver      = 1
-tdriverstart = 49.
-dtdriver     = 0.5
-driverstore  = 101
+tdriverstart = 0
+dtdriver     = 0.15
+driverstore  = 201
 iplane       = 128
 ```
 
@@ -646,14 +646,14 @@ This simulation is forced by the data from the stored outlet plane of simulation
 &DRIVER
 idriver      = 2
 driverjobnr  = 501
-driverstore  = 101
+driverstore  = 201
 ```
 
 The runtime of this simulation is restricted by the simulation time of the driver output, which is `(driverstore-1)*dtdriver` of the precursor simulation `501`. The maximum runtime we can set is therefore
 
 ```fortran
-runtime      = 50.
-dtmax        = 0.5
+runtime      = 30.
+dtmax        = 0.15
 ```
 
 and we want to set `dtmax` = `dtdriver` (`501`) to avoid interpolation of the driver snapshots.
