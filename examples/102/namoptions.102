@@ -62,8 +62,8 @@ BCxs         = 2
 /
 
 &WALLS
-nblocks      = 55
-nfcts        = 127
+nblocks      = 49
+nfcts        = 121
 /
 
 &SCALARS
