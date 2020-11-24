@@ -1,5 +1,5 @@
-# walltype, K layers per type where layer 1 is the outdoor side and layer K is indoor side
-# 0=default dummy, -1=asphalt floors;-101=concrete bounding walls;1=concrete;2=bricks;3=stone;4=painted wood;5=roof;11=GR1; 12=GR2
+# walltype, 3 layers per type where layer 1 is the outdoor side and layer 3 is indoor side
+# 0=default dummy, -1=asphalt floors;-101=concrete bounding walls;1=concrete;2=bricks;3=stone;4=painted wood;11=GR1; 12=GR2
 # wallid  lGR  z0 [m]  z0h [m]  al [-]  em [-]  d1 [m]  d2 [m]  d3 [m]  C1 [J/(K m^3)]  C2 [J/(K m^3)]  C3 [J/(K m^3)]  l1 [W/(m K)]  l2 [W/(m K)]  l3 [W/(m K)]  k1 [W/(m K)]  k2 [W/(m K)]  k3 [W/(m K)]  k4 [W/(m K)]
     -101    0    0.00  0.00000    0.50    0.85    0.00    0.00    0.00               0               0               0        0.0000        0.0000        0.0000    0.00000000    0.00000000    0.00000000    0.00000000
       -1    0    0.05  0.00035    0.50    0.85    0.10    0.20    0.20         1875000         1875000         1875000        0.7500        0.7500        0.7500    0.00000040    0.00000040    0.00000040    0.00000040
