@@ -188,6 +188,9 @@ classdef preprocessing < dynamicprops
             %% &ENERGYBALANCE
             preprocessing.addvar(obj, 'lEB', 0)
             
+            %% &WALLS
+            preprocessing.addvar(obj, 'iwalltemp', 1)
+            
             %% &PHYSICS
             preprocessing.addvar(obj, 'lchem' , 0) % switch for chemistry (not implemented)
             preprocessing.addvar(obj, 'lprofforc', 0)  % switch for 1D geostrophic forcing
@@ -317,8 +320,6 @@ classdef preprocessing < dynamicprops
             
             preprocessing.addvar(obj, 'nblocks', 0)
             preprocessing.addvar(obj, 'nfcts', 0)
-            preprocessing.addvar(obj, 'blocks', [])
-            preprocessing.addvar(obj, 'facets', [])
             
             preprocessing.generate_walltypes(obj)
             
@@ -1110,16 +1111,14 @@ classdef preprocessing < dynamicprops
                     % patch([xh(1) xh(end) xh(end)  xh(1)], [yh(1)  yh(1) yh(end) yh(end)], [zh(1)  zh(1) zh(1) zh(1)], [245 245 245] ./ 255)
                 end
                 
-            elseif obj.lflat
-                
             else
-                for i = 1:size(obj.bl, 1)
-                    patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,1))], [obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1)], [obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1)], 'w')
-                    patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) ], [obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3))], [obj.bl(i,5) obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.bl(i,5)], 'w')
-                    patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) ], [obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1)], [obj.bl(i,5) obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.bl(i,5)], 'w')
-                    patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1))], [obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3))], [obj.bl(i,5) obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.bl(i,5)], 'w')
-                    patch([obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) ], [obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1)], [obj.bl(i,5) obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.bl(i,5)], 'w')
-                end
+%                 for i = 1:size(obj.bl, 1)
+%                     patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,1))], [obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1)], [obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1)], 'w')
+%                     patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) ], [obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3))], [obj.bl(i,5) obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.bl(i,5)], 'w')
+%                     patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) ], [obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1)], [obj.bl(i,5) obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.bl(i,5)], 'w')
+%                     patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1))], [obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3))], [obj.bl(i,5) obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.bl(i,5)], 'w')
+%                     patch([obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) ], [obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1)], [obj.bl(i,5) obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.bl(i,5)], 'w')
+%                 end
             end
             
             zlim([0 obj.zh(end)]); %/(r.blockheight-1))
@@ -1141,26 +1140,29 @@ classdef preprocessing < dynamicprops
             figure
             %title('Blocks', 'interpreter', 'latex')
             view(52, 23)
-            for i = 1:obj.nblockstotal
-                il = obj.blocks(i,1);
-                iu = obj.blocks(i,2);
-                jl = obj.blocks(i,3);
-                ju = obj.blocks(i,4);
-                kl = obj.blocks(i,5);
-                ku = obj.blocks(i,6);
-                
-                if i <= obj.nblocks
-                    patch([obj.xh(il)   obj.xh(iu+1) obj.xh(iu+1) obj.xh(il)]  , [obj.yh(jl)   obj.yh(jl)   obj.yh(ju+1) obj.yh(ju+1)], [obj.zh(ku+1) obj.zh(ku+1) obj.zh(ku+1) obj.zh(ku+1)], [245 245 245] ./ 255)
-                    patch([obj.xh(il)   obj.xh(il)   obj.xh(iu+1) obj.xh(iu+1)], [obj.yh(jl)   obj.yh(jl)   obj.yh(jl)   obj.yh(jl)],   [obj.zh(kl)   obj.zh(ku+1) obj.zh(ku+1) obj.zh(kl)], [245 245 245] ./ 255)
-                    patch([obj.xh(il)   obj.xh(il)   obj.xh(iu+1) obj.xh(iu+1)], [obj.yh(ju+1) obj.yh(ju+1) obj.yh(ju+1) obj.yh(ju+1)], [obj.zh(kl)   obj.zh(ku+1) obj.zh(ku+1) obj.zh(kl)], [245 245 245] ./ 255)
-                    patch([obj.xh(il)   obj.xh(il)   obj.xh(il)   obj.xh(il)]  , [obj.yh(ju+1) obj.yh(ju+1) obj.yh(jl)   obj.yh(jl)],   [obj.zh(kl)   obj.zh(ku+1) obj.zh(ku+1) obj.zh(kl)], [245 245 245] ./ 255)
-                    patch([obj.xh(iu+1) obj.xh(iu+1) obj.xh(iu+1) obj.xh(iu+1)], [obj.yh(jl)   obj.yh(jl)   obj.yh(ju+1) obj.yh(ju+1)], [obj.zh(kl)   obj.zh(ku+1) obj.zh(ku+1) obj.zh(kl)], [245 245 245] ./ 255)
-                else
-                    patch([obj.xh(il)   obj.xh(iu+1) obj.xh(iu+1) obj.xh(il)]  , [obj.yh(jl)   obj.yh(jl)   obj.yh(ju+1) obj.yh(ju+1)], [obj.zh(ku+1) obj.zh(ku+1) obj.zh(ku+1) obj.zh(ku+1)], [245 245 245] ./ 255)
-                    patch([obj.xh(il)   obj.xh(il)   obj.xh(iu+1) obj.xh(iu+1)], [obj.yh(jl)   obj.yh(jl)   obj.yh(jl)   obj.yh(jl)],   [0            obj.zh(ku+1) obj.zh(ku+1)            0], [245 245 245] ./ 255)
-                    patch([obj.xh(il)   obj.xh(il)   obj.xh(iu+1) obj.xh(iu+1)], [obj.yh(ju+1) obj.yh(ju+1) obj.yh(ju+1) obj.yh(ju+1)], [0            obj.zh(ku+1) obj.zh(ku+1)            0], [245 245 245] ./ 255)
-                    patch([obj.xh(il)   obj.xh(il)   obj.xh(il)   obj.xh(il)]  , [obj.yh(ju+1) obj.yh(ju+1) obj.yh(jl)   obj.yh(jl)],   [0            obj.zh(ku+1) obj.zh(ku+1)            0], [245 245 245] ./ 255)
-                    patch([obj.xh(iu+1) obj.xh(iu+1) obj.xh(iu+1) obj.xh(iu+1)], [obj.yh(jl)   obj.yh(jl)   obj.yh(ju+1) obj.yh(ju+1)], [0            obj.zh(ku+1) obj.zh(ku+1)            0], [245 245 245] ./ 255)
+            
+            if ~obj.lflat
+                for i = 1:obj.nblockstotal
+                    il = obj.blocks(i,1);
+                    iu = obj.blocks(i,2);
+                    jl = obj.blocks(i,3);
+                    ju = obj.blocks(i,4);
+                    kl = obj.blocks(i,5);
+                    ku = obj.blocks(i,6);
+                    
+                    if i <= obj.nblocks
+                        patch([obj.xh(il)   obj.xh(iu+1) obj.xh(iu+1) obj.xh(il)]  , [obj.yh(jl)   obj.yh(jl)   obj.yh(ju+1) obj.yh(ju+1)], [obj.zh(ku+1) obj.zh(ku+1) obj.zh(ku+1) obj.zh(ku+1)], [245 245 245] ./ 255)
+                        patch([obj.xh(il)   obj.xh(il)   obj.xh(iu+1) obj.xh(iu+1)], [obj.yh(jl)   obj.yh(jl)   obj.yh(jl)   obj.yh(jl)],   [obj.zh(kl)   obj.zh(ku+1) obj.zh(ku+1) obj.zh(kl)], [245 245 245] ./ 255)
+                        patch([obj.xh(il)   obj.xh(il)   obj.xh(iu+1) obj.xh(iu+1)], [obj.yh(ju+1) obj.yh(ju+1) obj.yh(ju+1) obj.yh(ju+1)], [obj.zh(kl)   obj.zh(ku+1) obj.zh(ku+1) obj.zh(kl)], [245 245 245] ./ 255)
+                        patch([obj.xh(il)   obj.xh(il)   obj.xh(il)   obj.xh(il)]  , [obj.yh(ju+1) obj.yh(ju+1) obj.yh(jl)   obj.yh(jl)],   [obj.zh(kl)   obj.zh(ku+1) obj.zh(ku+1) obj.zh(kl)], [245 245 245] ./ 255)
+                        patch([obj.xh(iu+1) obj.xh(iu+1) obj.xh(iu+1) obj.xh(iu+1)], [obj.yh(jl)   obj.yh(jl)   obj.yh(ju+1) obj.yh(ju+1)], [obj.zh(kl)   obj.zh(ku+1) obj.zh(ku+1) obj.zh(kl)], [245 245 245] ./ 255)
+                    else
+                        patch([obj.xh(il)   obj.xh(iu+1) obj.xh(iu+1) obj.xh(il)]  , [obj.yh(jl)   obj.yh(jl)   obj.yh(ju+1) obj.yh(ju+1)], [obj.zh(ku+1) obj.zh(ku+1) obj.zh(ku+1) obj.zh(ku+1)], [245 245 245] ./ 255)
+                        patch([obj.xh(il)   obj.xh(il)   obj.xh(iu+1) obj.xh(iu+1)], [obj.yh(jl)   obj.yh(jl)   obj.yh(jl)   obj.yh(jl)],   [0            obj.zh(ku+1) obj.zh(ku+1)            0], [245 245 245] ./ 255)
+                        patch([obj.xh(il)   obj.xh(il)   obj.xh(iu+1) obj.xh(iu+1)], [obj.yh(ju+1) obj.yh(ju+1) obj.yh(ju+1) obj.yh(ju+1)], [0            obj.zh(ku+1) obj.zh(ku+1)            0], [245 245 245] ./ 255)
+                        patch([obj.xh(il)   obj.xh(il)   obj.xh(il)   obj.xh(il)]  , [obj.yh(ju+1) obj.yh(ju+1) obj.yh(jl)   obj.yh(jl)],   [0            obj.zh(ku+1) obj.zh(ku+1)            0], [245 245 245] ./ 255)
+                        patch([obj.xh(iu+1) obj.xh(iu+1) obj.xh(iu+1) obj.xh(iu+1)], [obj.yh(jl)   obj.yh(jl)   obj.yh(ju+1) obj.yh(ju+1)], [0            obj.zh(ku+1) obj.zh(ku+1)            0], [245 245 245] ./ 255)
+                    end
                 end
             end
             
@@ -1180,173 +1182,177 @@ classdef preprocessing < dynamicprops
                              
         function plot_facets(obj)
             figure
-            cmap = colormap('parula');
-            top = 1; west = 2; east = 3; north = 4; south = 5; bot = 6;
-            for i = 1:obj.nfcts
-                il = obj.facets(i, 6); iu = obj.facets(i, 7);
-                jl = obj.facets(i, 8); ju = obj.facets(i, 9);
-                kl = obj.facets(i, 10); ku = obj.facets(i, 11);
-                if i <= obj.nblockfcts
-                    switch obj.facets(i, 1)
-                        case {east, west}
-                            x = [obj.xh(il), obj.xh(il), obj.xh(il), obj.xh(il)];
-                            y = [obj.yh(jl), obj.yh(jl), obj.yh(ju), obj.yh(ju)];
-                            if kl == 0 && ku == 0
-                                z = [0, 0, 0, 0];
-                            elseif kl == 0 && ku ~= 0
-                                z = [0, obj.zh(ku), obj.zh(ku), 0];
-                            else
-                                z = [obj.zh(kl), obj.zh(ku), obj.zh(ku), obj.zh(kl)];
-                            end
-                        case {north, south}
-                            x = [obj.xh(il), obj.xh(iu), obj.xh(iu), obj.xh(il)];
-                            y = [obj.yh(jl), obj.yh(jl), obj.yh(jl), obj.yh(jl)];
-                            if kl == 0 && ku == 0
-                                z = [0, 0, 0, 0];
-                            elseif kl == 0 && ku ~= 0
-                                z = [0, 0, obj.xh(ku), obj.xh(ku)];
-                            else
-                                z = [obj.zh(kl), obj.zh(kl), obj.zh(ku), obj.zh(ku)];
-                            end
-                        case {top, bot}
-                            x = [obj.xh(il), obj.xh(iu), obj.xh(iu), obj.xh(il)];
-                            y = [obj.yh(jl), obj.yh(jl), obj.yh(ju), obj.yh(ju)];
-                            
-                            if kl == 0
-                                z = [0, 0, 0, 0];
-                            else
-                                z = [obj.zh(kl), obj.zh(kl), obj.zh(kl), obj.zh(kl)];
-                            end
+            %cmap = colormap('parula');
+            
+            if ~obj.lflat           
+                top = 1; west = 2; east = 3; north = 4; south = 5; bot = 6;
+                for i = 1:obj.nfcts
+                    il = obj.facets(i, 6); iu = obj.facets(i, 7);
+                    jl = obj.facets(i, 8); ju = obj.facets(i, 9);
+                    kl = obj.facets(i, 10); ku = obj.facets(i, 11);
+                    if i <= obj.nblockfcts
+                        switch obj.facets(i, 1)
+                            case {east, west}
+                                x = [obj.xh(il), obj.xh(il), obj.xh(il), obj.xh(il)];
+                                y = [obj.yh(jl), obj.yh(jl), obj.yh(ju), obj.yh(ju)];
+                                if kl == 0 && ku == 0
+                                    z = [0, 0, 0, 0];
+                                elseif kl == 0 && ku ~= 0
+                                    z = [0, obj.zh(ku), obj.zh(ku), 0];
+                                else
+                                    z = [obj.zh(kl), obj.zh(ku), obj.zh(ku), obj.zh(kl)];
+                                end
+                            case {north, south}
+                                x = [obj.xh(il), obj.xh(iu), obj.xh(iu), obj.xh(il)];
+                                y = [obj.yh(jl), obj.yh(jl), obj.yh(jl), obj.yh(jl)];
+                                if kl == 0 && ku == 0
+                                    z = [0, 0, 0, 0];
+                                elseif kl == 0 && ku ~= 0
+                                    z = [0, 0, obj.xh(ku), obj.xh(ku)];
+                                else
+                                    z = [obj.zh(kl), obj.zh(kl), obj.zh(ku), obj.zh(ku)];
+                                end
+                            case {top, bot}
+                                x = [obj.xh(il), obj.xh(iu), obj.xh(iu), obj.xh(il)];
+                                y = [obj.yh(jl), obj.yh(jl), obj.yh(ju), obj.yh(ju)];
+                                
+                                if kl == 0
+                                    z = [0, 0, 0, 0];
+                                else
+                                    z = [obj.zh(kl), obj.zh(kl), obj.zh(kl), obj.zh(kl)];
+                                end
+                        end
+                        
+                    elseif i <= obj.nblockfcts + obj.nboundingwallfacets
+                        switch obj.facets(i, 1)
+                            case east
+                                ju = ju + 1;
+                                kl = kl + 1;
+                                ku = ku + 2;
+                                x = [obj.xh(il), obj.xh(il), obj.xh(il), obj.xh(il)];
+                                y = [obj.yh(jl), obj.yh(jl), obj.yh(ju), obj.yh(ju)];
+                                if kl == 0 && ku == 0
+                                    z = [0, 0, 0, 0];
+                                elseif kl == 0 && ku ~= 0
+                                    z = [0, obj.zh(ku), obj.zh(ku), 0];
+                                else
+                                    z = [obj.zh(kl), obj.zh(ku), obj.zh(ku), obj.zh(kl)];
+                                end
+                            case west
+                                il = il + 1;
+                                iu = iu + 1;
+                                ju = ju + 1;
+                                kl = kl + 1;
+                                ku = ku + 2;
+                                x = [obj.xh(il), obj.xh(il), obj.xh(il), obj.xh(il)];
+                                y = [obj.yh(jl), obj.yh(jl), obj.yh(ju), obj.yh(ju)];
+                                if kl == 0 && ku == 0
+                                    z = [0, 0, 0, 0];
+                                elseif kl == 0 && ku ~= 0
+                                    z = [0, obj.zh(ku), obj.zh(ku), 0];
+                                else
+                                    z = [obj.zh(kl), obj.zh(ku), obj.zh(ku), obj.zh(kl)];
+                                end
+                                
+                                
+                            case north
+                                iu = iu + 1;
+                                kl = kl + 1;
+                                ku = ku + 2;
+                                x = [obj.xh(il), obj.xh(iu), obj.xh(iu), obj.xh(il)];
+                                y = [obj.yh(jl), obj.yh(jl), obj.yh(jl), obj.yh(jl)];
+                                if kl == 0 && ku == 0
+                                    z = [0, 0, 0, 0];
+                                elseif kl == 0 && ku ~= 0
+                                    z = [0, 0, obj.xh(ku), obj.xh(ku)];
+                                else
+                                    z = [obj.zh(kl), obj.zh(kl), obj.zh(ku), obj.zh(ku)];
+                                end
+                                
+                            case south
+                                iu = iu + 1;
+                                jl = jl + 1;
+                                ju = ju + 1;
+                                kl = kl + 1;
+                                ku = ku + 2;
+                                x = [obj.xh(il), obj.xh(iu), obj.xh(iu), obj.xh(il)];
+                                y = [obj.yh(jl), obj.yh(jl), obj.yh(jl), obj.yh(jl)];
+                                if kl == 0 && ku == 0
+                                    z = [0, 0, 0, 0];
+                                elseif kl == 0 && ku ~= 0
+                                    z = [0, 0, obj.xh(ku), obj.xh(ku)];
+                                else
+                                    z = [obj.zh(kl), obj.zh(kl), obj.zh(ku), obj.zh(ku)];
+                                end
+                                
+                                
+                            case {top, bot}
+                                x = [obj.xh(il), obj.xh(iu), obj.xh(iu), obj.xh(il)];
+                                y = [obj.yh(jl), obj.yh(jl), obj.yh(ju), obj.yh(ju)];
+                                
+                                if kl == 0
+                                    z = [0, 0, 0, 0];
+                                else
+                                    z = [obj.zh(kl), obj.zh(kl), obj.zh(kl), obj.zh(kl)];
+                                end
+                        end
+                    else
+                        iu = iu + 1;
+                        ju = ju + 1;
+                        switch obj.facets(i, 1)
+                            case {east, west}
+                                x = [obj.xh(il), obj.xh(il), obj.xh(il), obj.xh(il)];
+                                y = [obj.yh(jl), obj.yh(jl), obj.yh(ju), obj.yh(ju)];
+                                if kl == 0 && ku == 0
+                                    z = [0, 0, 0, 0];
+                                elseif kl == 0 && ku ~= 0
+                                    z = [0, obj.zh(ku), obj.zh(ku), 0];
+                                else
+                                    z = [obj.zh(kl), obj.zh(ku), obj.zh(ku), obj.zh(kl)];
+                                end
+                            case {north, south}
+                                x = [obj.xh(il), obj.xh(iu), obj.xh(iu), obj.xh(il)];
+                                y = [obj.yh(jl), obj.yh(jl), obj.yh(jl), obj.yh(jl)];
+                                if kl == 0 && ku == 0
+                                    z = [0, 0, 0, 0];
+                                elseif kl == 0 && ku ~= 0
+                                    z = [0, 0, obj.xh(ku), obj.xh(ku)];
+                                else
+                                    z = [obj.zh(kl), obj.zh(kl), obj.zh(ku), obj.zh(ku)];
+                                end
+                            case {top, bot}
+                                x = [obj.xh(il), obj.xh(iu), obj.xh(iu), obj.xh(il)];
+                                y = [obj.yh(jl), obj.yh(jl), obj.yh(ju), obj.yh(ju)];
+                                
+                                if kl == 0
+                                    z = [0, 0, 0, 0];
+                                else
+                                    z = [obj.zh(kl), obj.zh(kl), obj.zh(kl), obj.zh(kl)];
+                                end
+                        end
+                    end
+                    %ci = min(floor(double(obj.facets(i, 2)) / double(max(obj.facets(:, 2))) * length(cmap)) + 1, length(cmap))
+                    ci = 1;
+                    patch(x,y,z, [245 245 245] ./ 255,'FaceLighting','none');
+                    d = [0, 0, 0]; a = 0.25;
+                    switch(obj.facets(i, 1))
+                        case top
+                            d(3) = a * obj.dz(1);
+                        case west
+                            d(1) = -a * obj.dx(1);
+                        case east
+                            d(1) = a * obj.dx(1);
+                        case south
+                            d(2) = -a * obj.dy(1);
+                        case north
+                            d(2) = a * obj.dy(1);
                     end
                     
-                elseif i <= obj.nblockfcts + obj.nboundingwallfacets
-                    switch obj.facets(i, 1)
-                        case east
-                            ju = ju + 1;
-                            kl = kl + 1;
-                            ku = ku + 2;
-                            x = [obj.xh(il), obj.xh(il), obj.xh(il), obj.xh(il)];
-                            y = [obj.yh(jl), obj.yh(jl), obj.yh(ju), obj.yh(ju)];
-                            if kl == 0 && ku == 0
-                                z = [0, 0, 0, 0];
-                            elseif kl == 0 && ku ~= 0
-                                z = [0, obj.zh(ku), obj.zh(ku), 0];
-                            else
-                                z = [obj.zh(kl), obj.zh(ku), obj.zh(ku), obj.zh(kl)];
-                            end
-                        case west
-                            il = il + 1;
-                            iu = iu + 1;
-                            ju = ju + 1;
-                            kl = kl + 1;
-                            ku = ku + 2;
-                            x = [obj.xh(il), obj.xh(il), obj.xh(il), obj.xh(il)];
-                            y = [obj.yh(jl), obj.yh(jl), obj.yh(ju), obj.yh(ju)];
-                            if kl == 0 && ku == 0
-                                z = [0, 0, 0, 0];
-                            elseif kl == 0 && ku ~= 0
-                                z = [0, obj.zh(ku), obj.zh(ku), 0];
-                            else
-                                z = [obj.zh(kl), obj.zh(ku), obj.zh(ku), obj.zh(kl)];
-                            end
-                            
-                            
-                        case north
-                            iu = iu + 1;
-                            kl = kl + 1;
-                            ku = ku + 2;
-                            x = [obj.xh(il), obj.xh(iu), obj.xh(iu), obj.xh(il)];
-                            y = [obj.yh(jl), obj.yh(jl), obj.yh(jl), obj.yh(jl)];
-                            if kl == 0 && ku == 0
-                                z = [0, 0, 0, 0];
-                            elseif kl == 0 && ku ~= 0
-                                z = [0, 0, obj.xh(ku), obj.xh(ku)];
-                            else
-                                z = [obj.zh(kl), obj.zh(kl), obj.zh(ku), obj.zh(ku)];
-                            end
-                            
-                        case south
-                            iu = iu + 1;
-                            jl = jl + 1;
-                            ju = ju + 1;
-                            kl = kl + 1;
-                            ku = ku + 2;
-                            x = [obj.xh(il), obj.xh(iu), obj.xh(iu), obj.xh(il)];
-                            y = [obj.yh(jl), obj.yh(jl), obj.yh(jl), obj.yh(jl)];
-                            if kl == 0 && ku == 0
-                                z = [0, 0, 0, 0];
-                            elseif kl == 0 && ku ~= 0
-                                z = [0, 0, obj.xh(ku), obj.xh(ku)];
-                            else
-                                z = [obj.zh(kl), obj.zh(kl), obj.zh(ku), obj.zh(ku)];
-                            end
-                            
-                            
-                        case {top, bot}
-                            x = [obj.xh(il), obj.xh(iu), obj.xh(iu), obj.xh(il)];
-                            y = [obj.yh(jl), obj.yh(jl), obj.yh(ju), obj.yh(ju)];
-                            
-                            if kl == 0
-                                z = [0, 0, 0, 0];
-                            else
-                                z = [obj.zh(kl), obj.zh(kl), obj.zh(kl), obj.zh(kl)];
-                            end                            
-                    end
-                else
-                    iu = iu + 1;
-                    ju = ju + 1;
-                    switch obj.facets(i, 1)
-                        case {east, west}
-                            x = [obj.xh(il), obj.xh(il), obj.xh(il), obj.xh(il)];
-                            y = [obj.yh(jl), obj.yh(jl), obj.yh(ju), obj.yh(ju)];
-                            if kl == 0 && ku == 0
-                                z = [0, 0, 0, 0];
-                            elseif kl == 0 && ku ~= 0
-                                z = [0, obj.zh(ku), obj.zh(ku), 0];
-                            else
-                                z = [obj.zh(kl), obj.zh(ku), obj.zh(ku), obj.zh(kl)];
-                            end
-                        case {north, south}
-                            x = [obj.xh(il), obj.xh(iu), obj.xh(iu), obj.xh(il)];
-                            y = [obj.yh(jl), obj.yh(jl), obj.yh(jl), obj.yh(jl)];
-                            if kl == 0 && ku == 0
-                                z = [0, 0, 0, 0];
-                            elseif kl == 0 && ku ~= 0
-                                z = [0, 0, obj.xh(ku), obj.xh(ku)];
-                            else
-                                z = [obj.zh(kl), obj.zh(kl), obj.zh(ku), obj.zh(ku)];
-                            end
-                        case {top, bot}
-                            x = [obj.xh(il), obj.xh(iu), obj.xh(iu), obj.xh(il)];
-                            y = [obj.yh(jl), obj.yh(jl), obj.yh(ju), obj.yh(ju)];
-                            
-                            if kl == 0
-                                z = [0, 0, 0, 0];
-                            else
-                                z = [obj.zh(kl), obj.zh(kl), obj.zh(kl), obj.zh(kl)];
-                            end
-                    end
-                end
-                %ci = min(floor(double(obj.facets(i, 2)) / double(max(obj.facets(:, 2))) * length(cmap)) + 1, length(cmap))
-                ci = 1;
-                patch(x,y,z, [245 245 245] ./ 255,'FaceLighting','none');
-                d = [0, 0, 0]; a = 0.25;
-                switch(obj.facets(i, 1))
-                    case top
-                        d(3) = a * obj.dz(1);
-                    case west
-                        d(1) = -a * obj.dx(1);
-                    case east
-                        d(1) = a * obj.dx(1);
-                    case south
-                        d(2) = -a * obj.dy(1);
-                    case north
-                        d(2) = a * obj.dy(1);
+                    %text(mean(x) + d(1), mean(y) + d(2), mean(z) + d(3), num2str(i), 'horizontalalignment', 'center')
+                    %hold on
+                    %title('Facets')
                 end
                 
-                %text(mean(x) + d(1), mean(y) + d(2), mean(z) + d(3), num2str(i), 'horizontalalignment', 'center')
-                %hold on
-                %title('Facets')
             end
             view(52, 23)
             set(gca,'ticklabelinterpreter','latex')
@@ -1363,7 +1369,6 @@ classdef preprocessing < dynamicprops
         end
                     
         function makeblocks(obj)
-
             topomask = obj.topomask;
             topo = obj.topo;
             imax = obj.imax;
@@ -1846,8 +1851,8 @@ classdef preprocessing < dynamicprops
             end
             
             obj.nblocks = size(blocks, 1);
-            obj.blocks = blocks;
-            preprocessing.addvar(obj, 'buildings', [xmin5  xmax5  ymin6 ymax6 zmin5+1 zmax5+1 buildingindexlist']);            
+            preprocessing.addvar(obj, 'blocks', blocks)
+            preprocessing.addvar(obj, 'buildings', [xmin5  xmax5  ymin6 ymax6 zmin5+1 zmax5+1 buildingindexlist'])
         end
         
         function block2fac(obj)
@@ -2014,10 +2019,9 @@ classdef preprocessing < dynamicprops
                   error("Can't have blocks on edge of domain when using energy balance")
             end
 
-            
-            obj.nfcts = size(facets,1);
-            preprocessing.addvar(obj, 'nblockfcts', size(facets, 1))   
-            obj.facets = facets;
+            obj.nfcts = size(facets, 1);
+            preprocessing.addvar(obj, 'facets', facets)
+            preprocessing.addvar(obj, 'nblockfcts', size(facets, 1))
         end
         
         function addboundingwalls(obj)
@@ -2146,7 +2150,7 @@ classdef preprocessing < dynamicprops
             end
             obj.facets(end + 1:end + nboundingwallfacets, :) = boundingwallfacets;
             preprocessing.addvar(obj, 'boundingwallfacets', boundingwallfacets);
-            obj.nboundingwallfacets = nboundingwallfacets;
+            preprocessing.addvar(obj, 'nboundingwallfacets', nboundingwallfacets);
         end
         
         function createfloors(obj)
@@ -2162,351 +2166,296 @@ classdef preprocessing < dynamicprops
             % isinternal, il, iu, jl, ju, kl, ku
             
             blocks = obj.blocks;
+            nblocks = obj.nblocks;
+            M = ones(imax, jtot);
+            BI = zeros(imax, jtot); %block index mask
+            corm = zeros(imax, jtot); %mask with all wall-floor corners
+            cornm = zeros(imax, jtot);
             
-            if obj.lflat
-                if maxsize ~= inf
-                    nfloorfacets_x = ceil(imax / maxsize);
-                    nfloorfacets_y = ceil(jtot / maxsize);
-                    nfloorfacets = nfloorfacets_x * nfloorfacets_y;
-                    floorfacets = zeros(nfloorfacets, 11);
-                    for i = 1:nfloorfacets_x - 1
-                        xl = (i - 1) * maxsize + 1;
-                        xu = i * maxsize;
-                        for j = 1:nfloorfacets_y - 1
-                            yl = (j - 1) * maxsize + 1;
-                            yu = j * maxsize;
-                            floorfacets((i - 1) * nfloorfacets_y + j, :) = [1, -1, i, -1, 0, xl, xu, yl, yu, 0, 0];
-                            blocks((i - 1) * nfloorfacets_y + j, :) = [xl, xu, yl, yu, 0, 0, (i - 1) * nfloorfacets_y + j, 0, 0, 0];
-                        end
-                    end
-                    i = nfloorfacets_x;
-                    rem_x = rem(imax, maxsize);
-                    xl = imax - rem_x + 1;
-                    xu = imax;
-                    for j = 1:nfloorfacets_y - 1
-                        yl = (j - 1) * maxsize + 1;
-                        yu = j * maxsize;
-                        floorfacets((i - 1) * nfloorfacets_y + j, :) = [1, -1, i, -1, 0, xl, xu, yl, yu, 0, 0];
-                        blocks((i - 1) * nfloorfacets_y + j, :) = [xl, xu, yl, yu, 0, 0, (i - 1) * nfloorfacets_y + j, 0, 0, 0];
-                    end
-                    j = nfloorfacets_y;
-                    rem_y = rem(jtot, maxsize);
-                    yl = jtot - rem_y + 1;
-                    yu = jtot;
-                    for i = 1:nfloorfacets_x - 1
-                        xl = (i - 1) * maxsize + 1;
-                        xu = i * maxsize;
-                        floorfacets((i - 1) * nfloorfacets_y + j, :) = [1, -1, i, -1, 0, xl, xu, yl, yu, 0, 0];
-                        blocks((i - 1) * nfloorfacets_y + j, :) = [xl, xu, yl, yu, 0, 0, (i - 1) * nfloorfacets_y + j, 0, 0, 0];
-                    end
-                    
-                    i = nfloorfacets_x;
-                    j = nfloorfacets_y;
-                    xl = imax - rem_x + 1;
-                    xu = imax;
-                    yl = jtot - rem_y + 1;
-                    yu = jtot;
-                    floorfacets((i - 1) * nfloorfacets_y + j, :) = [1, -1, i, -1, 0, xl, xu, yl, yu, 0, 0];
-                    blocks((i - 1) * nfloorfacets_y + j, :) = [xl, xu, yl, yu, 0, 0, (i - 1) * nfloorfacets_y + j, 0, 0, 0];
-                    
-                else
-                    nfloorfacets = 1;
-                    floorfacets = [1, -1, 1, -1, 0, 1, imax, 1, jtot, 0, 0];
-                    blocks = [1, imax, 1, jtot, 0, 0, 1, 0, 0, 0, 0];
-                end
-
-            else
-                nblocks = obj.nblocks;
-                M = ones(imax, jtot);
-                BI = zeros(imax, jtot); %block index mask
-                corm = zeros(imax, jtot); %mask with all wall-floor corners
-                cornm = zeros(imax, jtot);
-                
-                for i = 1:nblocks
-                    xl = blocks(i,1);
-                    xu = blocks(i,2);
-                    yl = blocks(i,3);
-                    yu = blocks(i,4);
-                    M(xl:xu, yl:yu) = 0;
-                    BI(xl:xu, yl:yu) = i;
-                end
-                NM = 1 - M;
-                
-                % make them around blocks first, with 1 blocksize wide
-                %numbers indicate floors, "--" and "|" walls  (only 1 blocksize wide, just two
-                %number used to make diagonal clear)
-                %
-                %   ----------------------
-                % |
-                % |    -------------------
-                % |   |3311111111111111111
-                % |   |3311111111111111111
-                % |   |22
-                % |   |22
-                % |   |22
-                %after detsub
-                %   ----------------------
-                % |
-                % |    -------------------
-                % |   |2111111111111111111
-                % |   |2211111111111111111
-                % |   |22
-                % |   |22
-                % |   |22
-                
-                maxblocks = sum(M(:)); %there cant be more blocks then number of grid cells
-                %floors = NaN(maxblocks,4); %allocate a maximum size for floors, reduce size later. xy coordinates of corners, counterclockwise, starting nortwest
-                floorfacets = [zeros(maxblocks, 5), NaN(maxblocks, 4), zeros(maxblocks, 2)];
-                c = 0;
-                M2 = M;
-                iM = zeros(size(M)); %save indeces
-                for i = 1:nblocks
-                    xl = blocks(i, 1);
-                    xu = blocks(i, 2);
-                    yl = blocks(i, 3);
-                    yu = blocks(i, 4);
-                    
-                    %west
-                    if xl - 1 >= 1 %not at domain edge
-                        if BI(xl - 1, yl) == 0 % left neighbour is a floor
-                            c = c + 1;
-                            M2(xl - 1, yl:yu) = 0; %set to 2 for later check if it is a corner
-                            iM(xl - 1, yl:yu) = c;
-                            floorfacets(c, 6:9) = [xl - 1, xl - 1, yl, yu];
-                            if (yl - 1 >= 1) && (xu + 1 <= imax) && (yu + 1 <= jtot) && (xl - 1 >= 1)
-                                if BI(xl - 1, yl - 1) > 0 %corner with a north wall
-                                    cornm(xl - 1, yl) = 8;
-                                elseif BI(xl - 1, yu + 1) > 0 %corner with a south wall
-                                    cornm(xl - 1, yu) = 10;
-                                end
-                            end
-                        end
-                    end
-                    %east
-                    if xu + 1 <= imax %not at domain edge
-                        if BI(xu + 1, yl) == 0
-                            c = c + 1;
-                            M2(xu + 1, yl:yu) = 0;
-                            iM(xu + 1, yl:yu) = c;
-                            floorfacets(c, 6:9) = [xu + 1, xu + 1, yl, yu];
-                            if (yl - 1 >= 1) && (xu + 1 <= imax) && (yu + 1 <= jtot) && (xl - 1 >= 1)
-                                if BI(xu + 1, yl - 1) > 0 %corner with a north wall
-                                    cornm(xu + 1, yl) = 12;
-                                elseif BI(xu+1, yu + 1) > 0  %corner with a south wall
-                                    cornm(xu+1, yu) = 15;
-                                end
-                            end
-                        end
-                    end
-                    %north
-                    if yu + 1 <= jtot %not aat domain edge
-                        if BI(xu, yu + 1) == 0
-                            c = c + 1;
-                            M2(xl:xu, yu + 1) = 0;
-                            iM(xl:xu, yu + 1) = c;
-                            floorfacets(c, 6:9) = [xl, xu, yu + 1, yu + 1];
-                            if (yl - 1 >= 1) && (xu + 1 <= imax) && (yu + 1 <= jtot) && (xl - 1 >= 1)
-                                if BI(xl - 1, yu + 1) > 0 %corner with an east wall
-                                    cornm(xl, yu + 1) = 12;
-                                elseif BI(xu + 1, yu + 1) > 0 %corner with a west wall
-                                    cornm(xu, yu + 1) = 8;
-                                end
-                            end
-                        end
-                    end
-                    %south
-                    if yl - 1 >= 1 %not at domain edge
-                        if BI(xu, yl - 1) == 0
-                            c = c + 1;
-                            M2(xl:xu, yl - 1) = 0;
-                            iM(xl:xu, yl - 1) = c;
-                            %floors(c, :) = [xl, xu, yl - 1, yl - 1];
-                            floorfacets(c, 6:9) = [xl, xu, yl - 1, yl - 1];
-                            if (yl - 1 >= 1) && (xu + 1 <= imax) && (yu + 1 <= jtot) && (xl - 1 >= 1)
-                                if BI(xl - 1, yl - 1) > 0 %corner with an east wall
-                                    cornm(xl , yl - 1) = 15;
-                                elseif BI(xu + 1, yl - 1) > 0 %corner with a west wall
-                                    cornm(xu, yl - 1) = 10;
-                                end
-                            end
-                        end
-                    end
-                end
-                
-                corm(iM > 0) = 1;
-                
-                
-                %% remove identical facets in corners (if it's a 1x1 facet in both cases)
-                %truncate matrix
-                lnan2 = find(isnan(floorfacets(:,6)));
-                if ~isempty(lnan2)
-                    floorfacets(lnan2(1):lnan2(end), :) = [];
-                end
-                
-                floorfacets = unique(floorfacets,'rows','stable');
-                nfloorfacets = size(floorfacets, 1);
-                count = 1;
-                while count <= nfloorfacets
-                    i = count;
-                    if sum(floorfacets(:, 6) <= floorfacets(i, 6) & floorfacets(:, 7) >= floorfacets(i, 7) & floorfacets(:, 8) <= floorfacets(i, 8) & floorfacets(:, 9) >= floorfacets(i, 9)) > 1
-                        floorfacets(i, :) = []; %this floor is contained within another and can be removed
-                        nfloorfacets = nfloorfacets - 1;
-                    else
-                        count = count + 1;
-                    end
-                end
-                
-                
-                c = size(floorfacets,1);
-                %% Make floors
-                % make them in 1D first (fixed x, along y)               
-                while any(M2(:) > 0)
-                    for i = 1:imax
-                        ls = find(M2(i, :) == 1);
-                        if ~isempty(ls)
-                            first = ls(1);
-                            if length(ls) > 1
-                                last = ls(find(diff(ls)~=1, 1));
-                                if isempty(last)
-                                    last = min(jtot,first + maxsize - 1);
-                                else
-                                    last = min(last,first + maxsize - 1);
-                                end
-                            else
-                                last = first;
-                            end
-                            c = c + 1;
-                            floorfacets(c, :) = [NaN(1, 5), i, i, first, last, NaN(1, 2)];
-                            M2(i, first:last) = 0;
-                            iM(i, first:last) = c;
-                        end
-                    end
-                end
-                
-                lnan2 = find(isnan(floorfacets(:,6)));
-                if ~isempty(lnan2)
-                    floorfacets(lnan2(1):lnan2(end), :) = [];
-                end
-                
-                nslice = size(floorfacets, 1);
-                dsize = 1;
-                sizeold = nslice;
-                while dsize>0
-                    i = 1;
-                    while 1
-                        a = floorfacets(i, 7);
-                        if corm(a, floorfacets(i, 8)) %his is a floor that belongs to a corner with a wall, don't merge with others
-                            i = i + 1;
-                            continue
-                        end
-                        bv = find(floorfacets(:, 6) == (a + 1)); %all floors with xl == this floors xu+1
-                        b2 = bv(find((floorfacets(bv, 8) == floorfacets(i, 8)) & (floorfacets(bv, 9) == floorfacets(i, 9)))); %all of these floors witch also have the same y dimensions (should only be one)
-                        if ~isempty(b2) && ~corm(floorfacets(b2, 6), floorfacets(b2, 8))
-                            floorfacets(i, 7) = floorfacets(b2, 7);
-                            floorfacets(b2, :) = [];
-                        end
-                        i = i + 1;
-                        if i >= size(floorfacets, 1)
-                            break
-                        end
-                    end
-                    dsize = sizeold - size(floorfacets, 1);
-                    sizeold = size(floorfacets, 1);
-                end
-                
-                ls = 999;
-                while ~isempty(ls)
-                    nfloorfacets = size(floorfacets, 1);
-                    ls = find(floorfacets(:, 7) - floorfacets(:, 6) > maxsize);
-                    floorfacets = [floorfacets; NaN(length(ls), 11)];
-                    for i = 1:length(ls)
-                        ind = ls(i);
-                        floorfacets(nfloorfacets + i, :) = floorfacets(ind, :);
-                        floorfacets(ind, 7) = floorfacets(ind, 6) + maxsize - 1;
-                        floorfacets(nfloorfacets + i, 6) = floorfacets(ind, 7) + 1;
-                    end
-                end
-                
-                % merge floors in y, where possible and as long as smaller than maxsize, don't merge triple corners
-                change = true;
-                while change
-                    change = false;
-                    for j = 1:size(floorfacets, 1)
-                        il = floorfacets(j, 6);
-                        iu = floorfacets(j, 7);
-                        jl = floorfacets(j, 8);
-                        ju = floorfacets(j, 9);
-                        if sum(sum(cornm(il:iu, jl:ju))) == 0 %no triple corner somewhere on this floor facet, try to merge along y
-                            flu = find(floorfacets(:, 6) == il & floorfacets(:, 7) == iu & floorfacets(:, 8) == ju + 1); %floor with same x dimension on ju+1
-                            fll = find(floorfacets(:, 6) == il & floorfacets(:, 7) == iu & floorfacets(:, 9) == jl-1); %floor with same x dimension on jl-1
-                            if ~isempty(flu)
-                                ilu = floorfacets(flu, 6);
-                                iuu = floorfacets(flu, 7);
-                                jlu = floorfacets(flu, 8);
-                                juu = floorfacets(flu, 9);
-                                if sum(sum(cornm(ilu:iuu, jlu:juu))) == 0 && (floorfacets(flu, 9) - floorfacets(j, 8) + 1 < maxsize)
-                                    floorfacets(j, 9) = floorfacets(flu, 9);
-                                    floorfacets(flu, :) = [];
-                                    change = true;
-                                end
-                            elseif ~isempty(fll)
-                                ill = floorfacets(fll, 6);
-                                iul = floorfacets(fll, 7);
-                                jll = floorfacets(fll, 8);
-                                jul = floorfacets(fll, 9);
-                                if sum(sum(cornm(ill:iul, jll:jul))) == 0 && (floorfacets(j, 9) - floorfacets(fll, 8) + 1 < maxsize)
-                                    floorfacets(j, 8) = floorfacets(fll, 8);
-                                    floorfacets(fll, :) = [];
-                                    change = true;
-                                end
-                            end
-                            
-                        end
-                        if change
-                            break
-                        end
-                    end
-                end
-                
-                preprocessing.addvar(obj, 'cornm', cornm);
-                nfloorfacets = size(floorfacets, 1);
-                
-                for i = 1:nfloorfacets
-                    %floorfacets(i, 1:5) = [1, -1, i, -1, 0]; % SO: block ID should be nblocks + i
-                    floorfacets(i, 1:5) = [1, -1, nblocks + i, -1, 0];
-                    floorfacets(i, 10:11) = [0, 0];
-                end
-                
-
-                %disp([num2str(obj.nfcts) ' facets, of which: ' num2str(obj.nblockfcts) ' from buildings, ' num2str(obj.nboundingwallfacets) ' from walls, ' num2str(obj.nfloorfacets) ' from floors.'])
-                
-                nblocks = obj.nblocks;
-                blocks(:, 5:6) = blocks(:, 5:6) + 1;
-                
-                blocks(nblocks + 1 : nblocks + nfloorfacets, :) = zeros(nfloorfacets, 11);
-                blocks(nblocks + 1 : nblocks + nfloorfacets, 1:6) = floorfacets(:, 6:11);
-                blocks(:, 7:11) = zeros(nblocks + nfloorfacets, 5);
-                
-                facets = obj.facets;
-                for i = 1:obj.nblockfcts
-                    blocks(facets(i, 3), facets(i, 1) + 6) = i;
-                end
-                
-                % add floors below buildings
-                % do we need/want this? DALES will loop over more blocks but not really
-                % do anything, on the other hand the statistics might look better?
-                % If we use this, then the number of blocks in modibm should
-                % be different from the number of blocks in masking matrices to avoid
-                % looping. Also these blocks don't have corresponding facets and thus
-                % access element 0 of any facet array in DALES
-                
-                j = nblocks + 1;
-                for i = (obj.nblockfcts + obj.nboundingwallfacets + 1):(obj.nblockfcts + obj.nboundingwallfacets + nfloorfacets) %for floors
-                    blocks(j, 7) = i;
-                    j = j + 1;
-                end
-            
+            for i = 1:nblocks
+                xl = blocks(i,1);
+                xu = blocks(i,2);
+                yl = blocks(i,3);
+                yu = blocks(i,4);
+                M(xl:xu, yl:yu) = 0;
+                BI(xl:xu, yl:yu) = i;
             end
+            NM = 1 - M;
+            
+            % make them around blocks first, with 1 blocksize wide
+            %numbers indicate floors, "--" and "|" walls  (only 1 blocksize wide, just two
+            %number used to make diagonal clear)
+            %
+            %   ----------------------
+            % |
+            % |    -------------------
+            % |   |3311111111111111111
+            % |   |3311111111111111111
+            % |   |22
+            % |   |22
+            % |   |22
+            %after detsub
+            %   ----------------------
+            % |
+            % |    -------------------
+            % |   |2111111111111111111
+            % |   |2211111111111111111
+            % |   |22
+            % |   |22
+            % |   |22
+            
+            maxblocks = sum(M(:)); %there cant be more blocks then number of grid cells
+            %floors = NaN(maxblocks,4); %allocate a maximum size for floors, reduce size later. xy coordinates of corners, counterclockwise, starting nortwest
+            floorfacets = [zeros(maxblocks, 5), NaN(maxblocks, 4), zeros(maxblocks, 2)];
+            c = 0;
+            M2 = M;
+            iM = zeros(size(M)); %save indeces
+            for i = 1:nblocks
+                xl = blocks(i, 1);
+                xu = blocks(i, 2);
+                yl = blocks(i, 3);
+                yu = blocks(i, 4);
+                
+                %west
+                if xl - 1 >= 1 %not at domain edge
+                    if BI(xl - 1, yl) == 0 % left neighbour is a floor
+                        c = c + 1;
+                        M2(xl - 1, yl:yu) = 0; %set to 2 for later check if it is a corner
+                        iM(xl - 1, yl:yu) = c;
+                        floorfacets(c, 6:9) = [xl - 1, xl - 1, yl, yu];
+                        if (yl - 1 >= 1) && (xu + 1 <= imax) && (yu + 1 <= jtot) && (xl - 1 >= 1)
+                            if BI(xl - 1, yl - 1) > 0 %corner with a north wall
+                                cornm(xl - 1, yl) = 8;
+                            elseif BI(xl - 1, yu + 1) > 0 %corner with a south wall
+                                cornm(xl - 1, yu) = 10;
+                            end
+                        end
+                    end
+                end
+                %east
+                if xu + 1 <= imax %not at domain edge
+                    if BI(xu + 1, yl) == 0
+                        c = c + 1;
+                        M2(xu + 1, yl:yu) = 0;
+                        iM(xu + 1, yl:yu) = c;
+                        floorfacets(c, 6:9) = [xu + 1, xu + 1, yl, yu];
+                        if (yl - 1 >= 1) && (xu + 1 <= imax) && (yu + 1 <= jtot) && (xl - 1 >= 1)
+                            if BI(xu + 1, yl - 1) > 0 %corner with a north wall
+                                cornm(xu + 1, yl) = 12;
+                            elseif BI(xu+1, yu + 1) > 0  %corner with a south wall
+                                cornm(xu+1, yu) = 15;
+                            end
+                        end
+                    end
+                end
+                %north
+                if yu + 1 <= jtot %not aat domain edge
+                    if BI(xu, yu + 1) == 0
+                        c = c + 1;
+                        M2(xl:xu, yu + 1) = 0;
+                        iM(xl:xu, yu + 1) = c;
+                        floorfacets(c, 6:9) = [xl, xu, yu + 1, yu + 1];
+                        if (yl - 1 >= 1) && (xu + 1 <= imax) && (yu + 1 <= jtot) && (xl - 1 >= 1)
+                            if BI(xl - 1, yu + 1) > 0 %corner with an east wall
+                                cornm(xl, yu + 1) = 12;
+                            elseif BI(xu + 1, yu + 1) > 0 %corner with a west wall
+                                cornm(xu, yu + 1) = 8;
+                            end
+                        end
+                    end
+                end
+                %south
+                if yl - 1 >= 1 %not at domain edge
+                    if BI(xu, yl - 1) == 0
+                        c = c + 1;
+                        M2(xl:xu, yl - 1) = 0;
+                        iM(xl:xu, yl - 1) = c;
+                        %floors(c, :) = [xl, xu, yl - 1, yl - 1];
+                        floorfacets(c, 6:9) = [xl, xu, yl - 1, yl - 1];
+                        if (yl - 1 >= 1) && (xu + 1 <= imax) && (yu + 1 <= jtot) && (xl - 1 >= 1)
+                            if BI(xl - 1, yl - 1) > 0 %corner with an east wall
+                                cornm(xl , yl - 1) = 15;
+                            elseif BI(xu + 1, yl - 1) > 0 %corner with a west wall
+                                cornm(xu, yl - 1) = 10;
+                            end
+                        end
+                    end
+                end
+            end
+            
+            corm(iM > 0) = 1;
+            
+            
+            %% remove identical facets in corners (if it's a 1x1 facet in both cases)
+            %truncate matrix
+            lnan2 = find(isnan(floorfacets(:,6)));
+            if ~isempty(lnan2)
+                floorfacets(lnan2(1):lnan2(end), :) = [];
+            end
+            
+            floorfacets = unique(floorfacets,'rows','stable');
+            nfloorfacets = size(floorfacets, 1);
+            count = 1;
+            while count <= nfloorfacets
+                i = count;
+                if sum(floorfacets(:, 6) <= floorfacets(i, 6) & floorfacets(:, 7) >= floorfacets(i, 7) & floorfacets(:, 8) <= floorfacets(i, 8) & floorfacets(:, 9) >= floorfacets(i, 9)) > 1
+                    floorfacets(i, :) = []; %this floor is contained within another and can be removed
+                    nfloorfacets = nfloorfacets - 1;
+                else
+                    count = count + 1;
+                end
+            end
+            
+            
+            c = size(floorfacets,1);
+            %% Make floors
+            % make them in 1D first (fixed x, along y)
+            while any(M2(:) > 0)
+                for i = 1:imax
+                    ls = find(M2(i, :) == 1);
+                    if ~isempty(ls)
+                        first = ls(1);
+                        if length(ls) > 1
+                            last = ls(find(diff(ls)~=1, 1));
+                            if isempty(last)
+                                last = min(jtot,first + maxsize - 1);
+                            else
+                                last = min(last,first + maxsize - 1);
+                            end
+                        else
+                            last = first;
+                        end
+                        c = c + 1;
+                        floorfacets(c, :) = [NaN(1, 5), i, i, first, last, NaN(1, 2)];
+                        M2(i, first:last) = 0;
+                        iM(i, first:last) = c;
+                    end
+                end
+            end
+            
+            lnan2 = find(isnan(floorfacets(:,6)));
+            if ~isempty(lnan2)
+                floorfacets(lnan2(1):lnan2(end), :) = [];
+            end
+            
+            nslice = size(floorfacets, 1);
+            dsize = 1;
+            sizeold = nslice;
+            while dsize>0
+                i = 1;
+                while 1
+                    a = floorfacets(i, 7);
+                    if corm(a, floorfacets(i, 8)) %his is a floor that belongs to a corner with a wall, don't merge with others
+                        i = i + 1;
+                        continue
+                    end
+                    bv = find(floorfacets(:, 6) == (a + 1)); %all floors with xl == this floors xu+1
+                    b2 = bv(find((floorfacets(bv, 8) == floorfacets(i, 8)) & (floorfacets(bv, 9) == floorfacets(i, 9)))); %all of these floors witch also have the same y dimensions (should only be one)
+                    if ~isempty(b2) && ~corm(floorfacets(b2, 6), floorfacets(b2, 8))
+                        floorfacets(i, 7) = floorfacets(b2, 7);
+                        floorfacets(b2, :) = [];
+                    end
+                    i = i + 1;
+                    if i >= size(floorfacets, 1)
+                        break
+                    end
+                end
+                dsize = sizeold - size(floorfacets, 1);
+                sizeold = size(floorfacets, 1);
+            end
+            
+            ls = 999;
+            while ~isempty(ls)
+                nfloorfacets = size(floorfacets, 1);
+                ls = find(floorfacets(:, 7) - floorfacets(:, 6) > maxsize);
+                floorfacets = [floorfacets; NaN(length(ls), 11)];
+                for i = 1:length(ls)
+                    ind = ls(i);
+                    floorfacets(nfloorfacets + i, :) = floorfacets(ind, :);
+                    floorfacets(ind, 7) = floorfacets(ind, 6) + maxsize - 1;
+                    floorfacets(nfloorfacets + i, 6) = floorfacets(ind, 7) + 1;
+                end
+            end
+            
+            % merge floors in y, where possible and as long as smaller than maxsize, don't merge triple corners
+            change = true;
+            while change
+                change = false;
+                for j = 1:size(floorfacets, 1)
+                    il = floorfacets(j, 6);
+                    iu = floorfacets(j, 7);
+                    jl = floorfacets(j, 8);
+                    ju = floorfacets(j, 9);
+                    if sum(sum(cornm(il:iu, jl:ju))) == 0 %no triple corner somewhere on this floor facet, try to merge along y
+                        flu = find(floorfacets(:, 6) == il & floorfacets(:, 7) == iu & floorfacets(:, 8) == ju + 1); %floor with same x dimension on ju+1
+                        fll = find(floorfacets(:, 6) == il & floorfacets(:, 7) == iu & floorfacets(:, 9) == jl-1); %floor with same x dimension on jl-1
+                        if ~isempty(flu)
+                            ilu = floorfacets(flu, 6);
+                            iuu = floorfacets(flu, 7);
+                            jlu = floorfacets(flu, 8);
+                            juu = floorfacets(flu, 9);
+                            if sum(sum(cornm(ilu:iuu, jlu:juu))) == 0 && (floorfacets(flu, 9) - floorfacets(j, 8) + 1 < maxsize)
+                                floorfacets(j, 9) = floorfacets(flu, 9);
+                                floorfacets(flu, :) = [];
+                                change = true;
+                            end
+                        elseif ~isempty(fll)
+                            ill = floorfacets(fll, 6);
+                            iul = floorfacets(fll, 7);
+                            jll = floorfacets(fll, 8);
+                            jul = floorfacets(fll, 9);
+                            if sum(sum(cornm(ill:iul, jll:jul))) == 0 && (floorfacets(j, 9) - floorfacets(fll, 8) + 1 < maxsize)
+                                floorfacets(j, 8) = floorfacets(fll, 8);
+                                floorfacets(fll, :) = [];
+                                change = true;
+                            end
+                        end
+                        
+                    end
+                    if change
+                        break
+                    end
+                end
+            end
+            
+            preprocessing.addvar(obj, 'cornm', cornm);
+            nfloorfacets = size(floorfacets, 1);
+            
+            for i = 1:nfloorfacets
+                %floorfacets(i, 1:5) = [1, -1, i, -1, 0]; % SO: block ID should be nblocks + i
+                floorfacets(i, 1:5) = [1, -1, nblocks + i, -1, 0];
+                floorfacets(i, 10:11) = [0, 0];
+            end
+            
+            
+            %disp([num2str(obj.nfcts) ' facets, of which: ' num2str(obj.nblockfcts) ' from buildings, ' num2str(obj.nboundingwallfacets) ' from walls, ' num2str(obj.nfloorfacets) ' from floors.'])
+            
+            nblocks = obj.nblocks;
+            blocks(:, 5:6) = blocks(:, 5:6) + 1;
+            
+            blocks(nblocks + 1 : nblocks + nfloorfacets, :) = zeros(nfloorfacets, 11);
+            blocks(nblocks + 1 : nblocks + nfloorfacets, 1:6) = floorfacets(:, 6:11);
+            blocks(:, 7:11) = zeros(nblocks + nfloorfacets, 5);
+            
+            facets = obj.facets;
+            for i = 1:obj.nblockfcts
+                blocks(facets(i, 3), facets(i, 1) + 6) = i;
+            end
+            
+            % add floors below buildings
+            % do we need/want this? DALES will loop over more blocks but not really
+            % do anything, on the other hand the statistics might look better?
+            % If we use this, then the number of blocks in modibm should
+            % be different from the number of blocks in masking matrices to avoid
+            % looping. Also these blocks don't have corresponding facets and thus
+            % access element 0 of any facet array in DALES
+            
+            j = nblocks + 1;
+            for i = (obj.nblockfcts + obj.nboundingwallfacets + 1):(obj.nblockfcts + obj.nboundingwallfacets + nfloorfacets) %for floors
+                blocks(j, 7) = i;
+                j = j + 1;
+            end
+            
             obj.nfcts = obj.nblockfcts + obj.nboundingwallfacets + nfloorfacets;
             obj.facets = [obj.facets; floorfacets];
             obj.blocks = blocks;
@@ -2516,7 +2465,6 @@ classdef preprocessing < dynamicprops
         end
         
         function vsolc(obj)
-            % Need to be modified for lflat.          
             xh = obj.xh;
             yh = obj.yh;
             zh = obj.zh;
