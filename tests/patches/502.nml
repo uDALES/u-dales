@@ -1,12 +1,12 @@
 &RUN
-runtime = 2.5
+runtime = 1.
 /
 
 &OUTPUT
-tfielddump = 2
-tstatsdump = 2
+tfielddump = 1.
+tstatsdump = 1.
 /
 
 &DRIVER
-driverstore  = 21
+driverstore  = 11
 /

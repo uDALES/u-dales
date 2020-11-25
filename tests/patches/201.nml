@@ -1,8 +1,8 @@
 &RUN
-runtime = 5.
+runtime = 1.
 /
 
 &OUTPUT
-tfielddump = 4.
-tstatsdump = 4.
+tfielddump = 1.
+tstatsdump = 1.
 /
