@@ -1,0 +1,12 @@
+&RUN
+runtime = 2.5
+/
+
+&OUTPUT
+tfielddump = 2
+tstatsdump = 2
+/
+
+&DRIVER
+driverstore  = 21
+/

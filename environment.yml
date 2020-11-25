@@ -8,6 +8,7 @@ dependencies:
   - numpy
   - netCDF4
   - matplotlib
+  - f90nml
   - pip:
     # Docs
     - graphviz

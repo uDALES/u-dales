@@ -1,0 +1,12 @@
+&RUN
+runtime = 3.
+/
+
+&OUTPUT
+tstatsdump = 2.
+tsample      = 1.
+/
+
+&DRIVER
+driverstore  = 21
+/

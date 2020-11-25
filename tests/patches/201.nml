@@ -1,0 +1,8 @@
+&RUN
+runtime = 5.
+/
+
+&OUTPUT
+tfielddump = 4.
+tstatsdump = 4.
+/

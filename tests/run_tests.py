@@ -32,9 +32,8 @@ import shutil
 import argparse
 import warnings
 
-import numpy as np
-import matplotlib.pyplot as plt
 
+import f90nml
 
 from scripts import compare_outputs, build_model
 
@@ -57,12 +56,25 @@ def main(branch_a: str, branch_b: str, build_type: str):
     path_to_exes = []
     for branch in [branch_a, branch_b]:
         path_to_exe = build_model.build_from_branch(
-            branch, PROJ_DIR, build_type)
+            branch, PROJ_DIR, build_type, skip_build=False)
         # We always compare between two branches -- i.e. two executables.
         path_to_exes.append(path_to_exe)
 
     # Run model and store outputs
-    for test_case_dir in (PROJ_DIR / 'tests' / 'cases').iterdir():
+    excluded_cases = []
+    precursor_sims = ['501']
+    driver_sims = ['502']
+
+    for patch in (PROJ_DIR / 'tests'/ 'patches').iterdir():
+        case_id = patch.stem
+
+        if case_id in excluded_cases:
+            print(f'Skipping tests for case {case_id}')
+            continue
+
+        print(f'Running tests for example {case_id}')
+
+        test_case_dir = PROJ_DIR / 'examples'/ case_id
         outputs_case_dir = PROJ_DIR / 'tests' / 'outputs' / test_case_dir.name
         # Always start afresh.
         shutil.rmtree(outputs_case_dir, ignore_errors=True)
@@ -72,24 +84,28 @@ def main(branch_a: str, branch_b: str, build_type: str):
             # Create path to out folder
             model_output_dir = outputs_case_dir / path_to_exe.name
             shutil.copytree(test_case_dir, model_output_dir)
-            namelist = "namoptions." + test_case_dir.name
+
+            # Apply test namelist patches to exmaples to reduce runtime
+            nml = model_output_dir / f'namoptions.{case_id}'
+            nml_patch = f90nml.read(patch)
+            nml_patched = model_output_dir / f'namoptions.{case_id}.patch'
+            f90nml.patch(nml, nml_patch, nml_patched)
+            namelist = nml_patched.name      
+
+            # For driver sims we need to copy all files in first from the precursor simulation.
+            if case_id in driver_sims:
+                for f_name in (model_output_dir.parents[1] / '501' / model_output_dir.name).glob('*driver*'):
+                    shutil.copy(f_name, model_output_dir.parents[1] / '502' / model_output_dir.name)
 
             run_udales(path_to_exe, namelist, model_output_dir, model_output_dirs)
 
-            if test_case_dir.name == '101':
-                # Run again with outputs from precursor simualton
-                namelist = "namoptions.driven"
-                run_udales(path_to_exe, namelist, model_output_dir, model_output_dirs)
-
-        if test_case_dir.name == '001':
-            # Scalar outputs are only outputted for this case
-            quantities = ['u', 'v', 'w', 'sca1']
-        else:
+        # We do not compare precursor sims
+        if not case_id in precursor_sims:
             quantities = ['u', 'v', 'w']
-        # TODO: concatenate filedumps?
-        compare_outputs.compare(model_output_dirs[0] / f'fielddump.000.{test_case_dir.name}.nc',
-                                model_output_dirs[1] / f'fielddump.000.{test_case_dir.name}.nc',
-                                model_output_dirs[0].parent, quantities)
+            # TODO: concatenate filedumps?
+            compare_outputs.compare(model_output_dirs[0] / f'fielddump.000.{test_case_dir.name}.nc',
+                                    model_output_dirs[1] / f'fielddump.000.{test_case_dir.name}.nc',
+                                    model_output_dirs[0].parent, quantities)
 
 def run_udales(path_to_exe: Path, namelist: str, model_output_dir: str, 
                model_output_dirs: list, cpu_count=None) -> None:
@@ -98,7 +114,8 @@ def run_udales(path_to_exe: Path, namelist: str, model_output_dir: str,
     print(f'Running uDALES in: {path_to_exe}')
     try:
         subprocess.run(['mpiexec', '-np', cpu_count, path_to_exe / 'u-dales',
-                        namelist], cwd=model_output_dir, check=True)
+                        namelist], cwd=model_output_dir, check=True, 
+                        stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
     except:
         print(f'Could not run case uDALES in {path_to_exe} for namelist {namelist}')
         sys.exit(1)

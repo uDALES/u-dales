@@ -1,6 +1,8 @@
 # build directory and compiled objects
 build/
 temp/
+tests/outputs/
+.vscode/
 *.o
 *.mod
 
@@ -13,3 +15,6 @@ examples/*/*driver*
 
 # Matlab artifacts
 *.m~
+
+# Python
+*.pyc
