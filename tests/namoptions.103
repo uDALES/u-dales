@@ -42,6 +42,7 @@ igrw_damp    = 0
 &DYNAMICS
 iadv_thl     = 2
 iadv_qt      = 2
+ipoiss       = 0
 /
 
 &NAMSUBGRID
