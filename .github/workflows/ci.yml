@@ -17,6 +17,7 @@ jobs:
     - uses: mstachniuk/ci-skip@v1
       with:
         fail-fast: true
+        exit-code: 0 # We know we want to skip it
 
     - name: Install system dependencies
       run: bash .github/scripts/install_deps.sh
@@ -59,4 +60,3 @@ jobs:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: temp/html
         force_orphan: true
-
