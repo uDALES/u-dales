@@ -493,8 +493,8 @@ classdef preprocessing < dynamicprops
             end
 
             fileID = fopen(fname,'W');
-            fprintf(fileID, '# walltype, K layers per type where layer 1 is the outdoor side and layer K is indoor side\n');
-            fprintf(fileID, '# 0=default dummy, -1=asphalt floors;-101=concrete bounding walls;1=concrete;2=bricks;3=stone;4=painted wood;5=roof;11=GR1; 12=GR2\n');
+            fprintf(fileID, ['# walltype, ', num2str(K), ' layers per type where layer 1 is the outdoor side and layer ', num2str(K), ' is indoor side\n']);
+            fprintf(fileID, '# 0=default dummy, -1=asphalt floors;-101=concrete bounding walls;1=concrete;2=bricks;3=stone;4=painted wood;11=GR1; 12=GR2\n');
             fprintf(fileID, ['# wallid  lGR  z0 [m]  z0h [m]  al [-]  em [-]', dheaderstring, Cheaderstring, lheaderstring, kheaderstring, '\n']);
 
             valstring1 = '%8d  %3d  %6.2f  %7.5f  %6.2f  %6.2f';
