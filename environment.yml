@@ -10,6 +10,10 @@ dependencies:
   - netCDF4
   - matplotlib
   - f90nml
+  # Docs
+  - graphviz
+  - mkdocs-material
+  - mkdocs-material-extensions
   - pip:
     - mkdocs-bibtex
     - ford
