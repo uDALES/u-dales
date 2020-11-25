@@ -68,5 +68,8 @@ iwallmoist   = 2
 /
 
 &INPS
+zsize        = 8
 lfloors      = .true.
+u0           = 2
+dpdx         = 0.0001
 /
