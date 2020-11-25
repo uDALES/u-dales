@@ -4,6 +4,7 @@ on: [push, pull_request]
 
 jobs:
   main:
+    # https://stackoverflow.com/a/59775665/8893833
     if: "!contains(github.event.commits[0].message, '[skip ci]')"
     name: ${{ matrix.os }} ${{ matrix.build-type }}
     runs-on: ${{ matrix.os }}
@@ -15,7 +16,7 @@ jobs:
     
     steps:
     - name: Check-out project
-    - uses: actions/checkout@v2
+      uses: actions/checkout@v2
 
     - name: Set up repository
       # Clone all history leading to the tip of a single branch
