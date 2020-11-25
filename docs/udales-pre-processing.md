@@ -100,8 +100,9 @@ The following parameters relate to generating `blocks.inp`. Only one of the foll
 
 - `lflat`: switch for no blocks. Default: false.
 - `lcube`: switch for linear cubes. Default: false.
-- `lcastro`: switch for staggered cubes. Default: false.
+- `lstaggered`: switch for staggered cubes. Default: false.
 - `lcanyons`: switch for inifite canyons. Default: false.
+- `lfloors`: switch for just floor facets. Default: false.
 - `blockheight`: height of blocks (cells). Default: 16.
 - `blockwidth`: width of blocks (cells). Default: 16.
 - `canyonwidth`: width of canyon (cells). Default: 16.

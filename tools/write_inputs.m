@@ -33,26 +33,32 @@ if r.nsv>0
     disp(['Written scalar.inp.', r.expnr])
 end
 
-if ~r.lflat  
-    if r.llidar
-        disp('Generating blocks from LIDAR data')
-        preprocessing.generate_topo_from_LIDAR(r)      
-    elseif r.ltxtblocks
-         disp('Generating blocks from text')
-         preprocessing.generate_topo_from_txt(r)
-    else
-        if (r.lstaggered || r.lcube || r.lcanyons)
-            disp('Generating blocks from namoptions')
-            preprocessing.generate_bl_from_namoptions(r)
-        elseif r.lblocksfile
-            disp('Generating blocks from file')
-            preprocessing.generate_bl_from_file(r) 
+if ~r.lflat
+    if ~r.lfloors
+        if r.llidar
+            disp('Generating blocks from LIDAR data')
+            preprocessing.generate_topo_from_LIDAR(r)      
+        elseif r.ltxtblocks
+            disp('Generating blocks from text')
+            preprocessing.generate_topo_from_txt(r)
+        else
+            if (r.lstaggered || r.lcube || r.lcanyons)
+                disp('Generating blocks from namoptions')
+                preprocessing.generate_bl_from_namoptions(r)
+            elseif r.lblocksfile
+                disp('Generating blocks from file')
+                preprocessing.generate_bl_from_file(r) 
+            end
+            preprocessing.generate_topo_from_bl(r)        
         end
-        preprocessing.generate_topo_from_bl(r)        
-    end
     
-    preprocessing.makeblocks(r)
-    preprocessing.block2fac(r)
+        preprocessing.makeblocks(r)
+        preprocessing.block2fac(r)
+    else
+        preprocessing.addvar(r, 'blocks', [])
+        preprocessing.addvar(r, 'facets', [])
+        preprocessing.addvar(r, 'nblockfcts', 0)
+    end
     
     if r.lEB
         preprocessing.addboundingwalls(r)
