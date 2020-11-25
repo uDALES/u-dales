@@ -41,10 +41,8 @@ nnudge       = 64
 /
 
 &DYNAMICS
-iadv_mom     = 2
 iadv_thl     = 2
 iadv_qt      = 2
-iadv_sv      = 7
 ipoiss       = 0
 /
 
