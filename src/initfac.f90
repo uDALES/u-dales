@@ -57,11 +57,13 @@
       integer, allocatable :: typeloc(:) !array to match the walltype to sequential integers for indexing
       integer              :: nwalltypes = 0 !number of different walltypes, will be determined automatically
       character(80)        :: chmess !dummy character string
+      integer              :: nwallprops
 
    contains
 
       subroutine readfacetfiles
       use modglobal, only: block, cexpnr, iwalltemp
+      use modsurfdata, only: thls
       implicit none
 
       !use modglobal, only:block
@@ -74,11 +76,12 @@
       !use modglobal, only : nblocks, nfcts, cexpnr, ifinput
       character (len = 13) :: FILE_VF = 'vf.nc.inp.xxx'
       integer :: ncid, varid
-      integer :: n = 0, i = 0, j = 0, k = 0, io = 0
+      integer :: n = 0, m = 0, i = 0, j = 0, k = 0, io = 0
       integer :: iret
 
       if (.not.(nfcts > 0)) return
 
+      nwallprops = 6 + 4*nwalllayers+1
       !allocate (block(nblocks, 11))
       allocate (faclGR(0:nfcts))
       allocate (facz0(0:nfcts)) !0 is the default value (e.g. for internal walls)
@@ -172,7 +175,7 @@
       end if !(myid == 0 .and. libm)
 
       call MPI_BCAST(nwalltypes, 1, MPI_Integer, 0, comm3d, mpierr)
-      allocate (walltypes(1:nwalltypes, 19))  !19 = 7+4*3
+      allocate (walltypes(1:nwalltypes, nwallprops))
 
       if (myid == 0) then
         walltypes = 0.
@@ -182,32 +185,13 @@
         read (ifinput, '(a80)') chmess
 
         do n = 1, nwalltypes
-           read (ifinput, *) &
-             walltypes(n, 1), &
-             walltypes(n, 2), &
-             walltypes(n, 3), &
-             walltypes(n, 4), &
-             walltypes(n, 5), &
-             walltypes(n, 6), &
-             walltypes(n, 7), &
-             walltypes(n, 8), &
-             walltypes(n, 9), &
-             walltypes(n, 10), &
-             walltypes(n, 11), &
-             walltypes(n, 12), &
-             walltypes(n, 13), &
-             walltypes(n, 14), &
-             walltypes(n, 15), &
-             walltypes(n, 16), &
-             walltypes(n, 17), &
-             walltypes(n, 18), &
-             walltypes(n, 19)
-          end do
-          close (ifinput)
-        end if !myid==0
+          read (ifinput, *) (walltypes(n, m), m=1,nwallprops)
+        end do
+        close (ifinput)
+      end if !myid==0
 
         call MPI_BCAST(nwalltypes, 1, MPI_Integer, 0, comm3d, mpierr)
-        call MPI_BCAST(walltypes, 19*nwalltypes, MY_REAL, 0, comm3d, mpierr)
+        call MPI_BCAST(walltypes, nwallprops*nwalltypes, MY_REAL, 0, comm3d, mpierr)
 
         !create an array mapping walltypes to sequential integers for indexing
         !e.g. lets assume walltype -3,-1,1,2,3 and 5 are defined.
@@ -330,7 +314,11 @@
                   facT(n, j) = Tfacinit(n)-(Tfacinit(n)-bldT)/nwalllayers*(j-1) !scale linearly inside the wall
                 end do
               end do
-              facT(0, 1) = 288.; facT(0, 2) = 288.; facT(0, 3) = 288.; facT(0, 4) = 299. !default facet temperature (i.e. internal walls)
+
+              do n = 1,nwalllayers
+                 facT(0, n) = thls
+              end do
+              facT(0, nwalllayers+1) = bldT
             end if !((lEB) .or. (iwalltemp == 2))
 
             ! assign initial soil moisture (only outermost layer)
