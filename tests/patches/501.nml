@@ -3,7 +3,7 @@ runtime = 1.5
 /
 
 &OUTPUT
-tstatsdump = 1.5
+tstatsdump = 1.35
 tsample      = 1.
 /
 
