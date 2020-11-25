@@ -38,6 +38,7 @@ jobs:
         python3 tests/run_tests.py master $GITHUB_SHA ${{ matrix.build-type}}
 
   gh-pages:
+    if: "! contains(toJSON(github.event.commits.*.message), '[skip-ci]')"
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
