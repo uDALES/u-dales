@@ -85,7 +85,7 @@ def main(branch_a: str, branch_b: str, build_type: str):
             model_output_dir = outputs_case_dir / path_to_exe.name
             shutil.copytree(test_case_dir, model_output_dir)
 
-            # Apply test namelist patches to exmaples to reduce runtime
+            # Apply test namelist patches to examples to reduce runtime
             nml = model_output_dir / f'namoptions.{case_id}'
             nml_patch = f90nml.read(patch)
             nml_patched = model_output_dir / f'namoptions.{case_id}.patch'
@@ -101,11 +101,10 @@ def main(branch_a: str, branch_b: str, build_type: str):
 
         # We do not compare precursor sims
         if not case_id in precursor_sims:
-            quantities = ['u', 'v', 'w']
             # TODO: concatenate filedumps?
             compare_outputs.compare(model_output_dirs[0] / f'fielddump.000.{test_case_dir.name}.nc',
                                     model_output_dirs[1] / f'fielddump.000.{test_case_dir.name}.nc',
-                                    model_output_dirs[0].parent, quantities)
+                                    model_output_dirs[0].parent)
 
 def run_udales(path_to_exe: Path, namelist: str, model_output_dir: str, 
                model_output_dirs: list, cpu_count=None) -> None:

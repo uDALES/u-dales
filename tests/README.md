@@ -6,11 +6,12 @@ Tests are run directly using configuration files from the `examples` folder but 
 
 ## How to run tests
 
-Make sure you have the required Python libraries installed on your system (see [DEVELOP.md](../DEVELOP.md)), and activate the `udales` conda environment, then from you command line, run the following command:
+Make sure you have the required Python libraries installed on your system (see [DEVELOP.md](../DEVELOP.md)) and activate the `udales` conda environment. Then, to run the tests run the following commands:
 
 ```
 python run_tests.py <branch_a> <branch_b> <build_type>
 ```
+
 Where `<branch_a>` and `<branch_b>` are the two branches you want to compare and `<build_type>` is either `Debug` or `Release`.
 
 E.g.
@@ -18,5 +19,5 @@ E.g.
 python run_tests.py master dmey/patch-1 Release
 ```
 
-Tests outputs are saved under `tests/outputs` and currently include a boxplot of approximate errors for `u`, `v`, and `w`.
+Tests outputs are saved under `tests/outputs` and currently include a boxplots of approximate errors for all four dimensional (3D space + time) quantities included in the uDALES output netCDF files.
 

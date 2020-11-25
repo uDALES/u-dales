@@ -29,21 +29,26 @@ to standard output.
 
 from pathlib import Path
 
-from typing import List
+from typing import List, Tuple
 
 import netCDF4 as nc
-import numpy as np
 import matplotlib.pyplot as plt
 
 
-def compare(path_to_ds_a: Path, path_to_ds_b: Path, path_to_fig_dir: Path, quantities: list) -> None:
-    diffs = calc_diff(path_to_ds_a, path_to_ds_b, quantities)
+def compare(path_to_ds_a: Path, path_to_ds_b: Path, path_to_fig_dir: Path) -> None:
+    diffs, quantities = calc_diff(path_to_ds_a, path_to_ds_b)
     plot(diffs, path_to_fig_dir, quantities)
 
 
-def calc_diff(path_to_ds_a: Path, path_to_ds_b: Path, quantities: List[str]) -> List[nc.Dataset]:
+def calc_diff(path_to_ds_a: Path, path_to_ds_b: Path) -> Tuple[List[nc.Dataset], List]:
     ds_a = nc.Dataset(path_to_ds_a)
     ds_b = nc.Dataset(path_to_ds_b)
+    ds_a_vars = list(ds_a.variables)
+    ds_b_vars = list(ds_b.variables)
+    assert ds_a_vars == ds_b_vars, 'Datasets must contain the same number of variables'
+    # Atomatically compute variables to compare based on those contained in the output files.
+    # Assumes all vars of interests are four dimentional (3D space + time).
+    quantities = [var for var in ds_a_vars if len(ds_a[var].shape) == 4 ]
     diffs = []
     for quantity in quantities:
         diff = (ds_a[quantity][:] - ds_b[quantity][:]).ravel()
@@ -51,7 +56,7 @@ def calc_diff(path_to_ds_a: Path, path_to_ds_b: Path, quantities: List[str]) -> 
         print(
             f'Standard deviation of approximate error for {quantity}: {diff.std()}')
         diffs.append(diff)
-    return diffs
+    return diffs, quantities
 
 
 def plot(diffs: List[nc.Dataset], path_to_fig_dir: Path, quantities:list) -> None:
