@@ -61,12 +61,19 @@ def main(branch_a: str, branch_b: str, build_type: str):
         path_to_exes.append(path_to_exe)
 
     # Run model and store outputs
+    test_cases = (PROJ_DIR / 'tests'/ 'cases').iterdir()
+    patched_example_cases = (PROJ_DIR / 'tests'/ 'patches').iterdir()
+    run_and_compare(test_cases, path_to_exes, is_patch=False)
+    run_and_compare(patched_example_cases, path_to_exes, is_patch=True)
+
+
+def run_and_compare(cases_dir, path_to_exes, is_patch=False):
     excluded_cases = []
     precursor_sims = ['501']
     driver_sims = ['502']
 
-    for patch in (PROJ_DIR / 'tests'/ 'patches').iterdir():
-        case_id = patch.stem
+    for case_path in cases_dir:
+        case_id = case_path.stem
 
         if case_id in excluded_cases:
             print(f'Skipping tests for case {case_id}')
@@ -74,7 +81,11 @@ def main(branch_a: str, branch_b: str, build_type: str):
 
         print(f'Running tests for example {case_id}')
 
-        test_case_dir = PROJ_DIR / 'examples'/ case_id
+        if is_patch:
+            test_case_dir = PROJ_DIR / 'examples'/ case_id
+        else:
+            test_case_dir = case_path
+
         outputs_case_dir = PROJ_DIR / 'tests' / 'outputs' / test_case_dir.name
         # Always start afresh.
         shutil.rmtree(outputs_case_dir, ignore_errors=True)
@@ -85,12 +96,15 @@ def main(branch_a: str, branch_b: str, build_type: str):
             model_output_dir = outputs_case_dir / path_to_exe.name
             shutil.copytree(test_case_dir, model_output_dir)
 
-            # Apply test namelist patches to examples to reduce runtime
-            nml = model_output_dir / f'namoptions.{case_id}'
-            nml_patch = f90nml.read(patch)
-            nml_patched = model_output_dir / f'namoptions.{case_id}.patch'
-            f90nml.patch(nml, nml_patch, nml_patched)
-            namelist = nml_patched.name      
+            if is_patch:
+                # Apply test namelist patches to examples to reduce runtime
+                nml = model_output_dir / f'namoptions.{case_id}'
+                nml_patch = f90nml.read(case_path)
+                nml_patched = model_output_dir / f'namoptions.{case_id}.patch'
+                f90nml.patch(nml, nml_patch, nml_patched)
+                namelist = nml_patched.name
+            else:
+                 namelist = f'namoptions.{case_id}'
 
             # For driver sims we need to copy all files in first from the precursor simulation.
             if case_id in driver_sims:
