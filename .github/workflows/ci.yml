@@ -4,7 +4,7 @@ on: [push, pull_request]
 
 jobs:
   main:
-    if: "! contains(toJSON(github.event.commits.*.message), '[skip-ci]')"
+    if: "!contains(github.event.commits[0].message, '[skip ci]')"
     name: ${{ matrix.os }} ${{ matrix.build-type }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -12,12 +12,17 @@ jobs:
       matrix:
         os: ['ubuntu-latest']
         build-type: ['Release']
+    
     steps:
+    - name: Check-out project
     - uses: actions/checkout@v2
-    - uses: mstachniuk/ci-skip@v1
-      with:
-        fail-fast: true
-        exit-code: 0 # We know we want to skip it
+
+    - name: Set up repository
+      # Clone all history leading to the tip of a single branch
+      # See https://stackoverflow.com/a/44036486.
+      run: |
+        git remote set-branches --add origin master
+        git fetch origin master
 
     - name: Install system dependencies
       run: bash .github/scripts/install_deps.sh
@@ -28,13 +33,6 @@ jobs:
         auto-update-conda: true
         activate-environment: udales
         environment-file: environment.yml
-
-    - name: Set up repository
-      # Clone all history leading to the tip of a single branch
-      # See https://stackoverflow.com/a/44036486.
-      run: |
-        git remote set-branches --add origin master
-        git fetch origin master
 
     - name: Build and test uDALES
       # 'shell' required to activate environment.
