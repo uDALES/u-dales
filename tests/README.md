@@ -10,7 +10,7 @@ Tests are run and can be modified in two different ways by:
 
 ## How to run tests
 
-Make sure you have the required Python libraries installed on your system (see [DEVELOP.md](../DEVELOP.md)) and activate the `udales` conda environment. Then, to run the tests run the following commands:
+Make sure you have the required Python libraries installed on your system (see [DEVELOP.md](../DEVELOP.md)) and activate the `udales` conda environment. Then, to run the tests run the following commands from the `tests` directory:
 
 ```
 python run_tests.py <branch_a> <branch_b> <build_type>
