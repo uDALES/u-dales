@@ -9,8 +9,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ['ubuntu-latest', 'macos-latest']
-        build-type: ['Debug', 'Release']
+        os: ['ubuntu-latest']
+        build-type: ['Release']
     steps:
     - uses: actions/checkout@v2
     - uses: conda-incubator/setup-miniconda@v2
