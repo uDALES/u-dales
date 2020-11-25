@@ -1019,8 +1019,8 @@ classdef preprocessing < dynamicprops
 
             topo=data;
             topomask=datamask;
-            preprocessing.addvar(obj, 'topo', topo)
-            preprocessing.addvar(obj, 'topomask', topomask)
+            preprocessing.addvar(obj, 'topo', flipud(topo))
+            preprocessing.addvar(obj, 'topomask', flipud(topomask))
 
             function [mask, image ] = fillgaps( mask,image,nj,ni,pad)
                 %fills horizontal and vertical 1D gaps of width 1
