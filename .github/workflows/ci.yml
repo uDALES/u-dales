@@ -13,56 +13,7 @@ jobs:
         os: ['ubuntu-latest']
         build-type: ['Release']
     steps:
-    - uses: actions/checkout@v2
-    - uses: conda-incubator/setup-miniconda@v2
-      with:
-        auto-update-conda: true
-        activate-environment: udales
-        environment-file: environment.yml
-
-    - name: Install dependencies
-      run: bash .github/workflows/install_deps.sh
-
-    - name: Add master
-      # Clone all history leading to the tip of a single branch (https://stackoverflow.com/a/44036486).
-      run: |
-        git remote set-branches --add origin master
-        git fetch origin master
-
-    - name: Build and test uDALES
-      # 'shell' required to activate environment.
-      # See https://github.com/conda-incubator/setup-miniconda#IMPORTANT.
-      shell: bash -l {0}
-      run: |
-        if [ ${{ matrix.os }} = 'macos-latest' ]; then export FC=gfortran-9; fi
-        python3 tests/run_tests.py master $GITHUB_SHA ${{ matrix.build-type}}
-
-  gh-pages:
-    if: "! contains(toJSON(github.event.commits.*.message), '[skip-ci]')"
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    - uses: conda-incubator/setup-miniconda@v2
-      with:
-        auto-update-conda: true
-        activate-environment: udales
-        environment-file: environment.yml
-
-    - name: Install dependencies
-      run: bash .github/workflows/install_deps.sh
-
-    - name: Build docs
-      shell: bash -l {0}
-      run: |
-        mkdocs build --site-dir build/html
-        ford docs/udales-docs-software.md
-        mkdir -p temp/html/0YiO263pFxExSdkMvWfId3qkVUSF4dREFnwM1jQD9y1KvzeAVAWzGykQemUrkJCM
-        mv build/html temp/html/0YiO263pFxExSdkMvWfId3qkVUSF4dREFnwM1jQD9y1KvzeAVAWzGykQemUrkJCM
-
-    - name: Publish docs
-      if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-      uses: peaceiris/actions-gh-pages@v3
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: temp/html
-        force_orphan: true
+    - name: Dump GitHub context
+      env:
+        GITHUB_CONTEXT: ${{ toJson(github) }}
+      run: echo "$GITHUB_CONTEXT"
