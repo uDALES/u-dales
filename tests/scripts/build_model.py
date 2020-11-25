@@ -26,11 +26,12 @@ import subprocess
 from pathlib import Path
 
 
-def build_from_branch(branch_name: str, path_to_proj_dir: Path, build_type: str, clean_build_dir=False) -> str:
+def build_from_branch(branch_name: str, path_to_proj_dir: Path, build_type: str, clean_build_dir=False, skip_build=False) -> str:
     subprocess.run(['git', 'checkout', branch_name])
     # Common branch names use / as user separator.
     path_to_build_dir = path_to_proj_dir / 'build' / branch_name.replace('/', '_')
-    build(path_to_proj_dir, path_to_build_dir, build_type, clean_build_dir=False)
+    if not skip_build:
+        build(path_to_proj_dir, path_to_build_dir, build_type, clean_build_dir=False)
     return path_to_build_dir
 
 
