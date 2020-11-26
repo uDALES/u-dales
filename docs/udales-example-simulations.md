@@ -479,6 +479,8 @@ Then, change the switches as described above, and make sure `startfile` matches 
 
 ### 201
 
+![sample](./assets/images/sample.png)
+
 #### Pre-defined buildings
 
 The buildings are read in by a file containing the block geometries:
