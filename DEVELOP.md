@@ -8,7 +8,7 @@ Install all packages described for uDALES in the [prerequisites section](./docs/
 sudo apt update && sudo apt install -y gfortran libopenmpi-dev openmpi-bin libnetcdf-dev libnetcdff-dev graphviz
 ```
 
-Then, to set up the development environment for testing and doc generation, download the [latest version of Miniconda](https://docs.conda.io/en/latest/miniconda.html) and install the required dependency with:
+Then, to set up the development environment for testing and generating the docs, download the [latest version of Miniconda](https://docs.conda.io/en/latest/miniconda.html) and install the required dependencies with:
 
 ```sh
 conda env create -f environment.yml
