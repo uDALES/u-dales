@@ -2,7 +2,7 @@
 
 ## Set up
 
-Install all packages described for uDALES in the [prerequisites section](./docs/udales-getting-started.md#prerequisites), plus optionally [Graphviz](https://graphviz.org/) for generating graphs in the code viewer. E.g. installing all the required packages using Ubuntu's APT:
+Install all required packages for uDALES described in the [prerequisites section](./docs/udales-getting-started.md#prerequisites), plus optionally [Graphviz](https://graphviz.org/) for generating graphs in the code viewer. E.g. installing all the required packages using Ubuntu's APT:
 
 ```sh
 sudo apt update && sudo apt install -y gfortran libopenmpi-dev openmpi-bin libnetcdf-dev libnetcdff-dev graphviz
