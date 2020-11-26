@@ -1,9 +1,11 @@
+<!-- omit in toc -->
 # Example simulations
 
 uDALES simulates a large variety of urban case studies. Here we showcase a few examples ([List of examples](#list-of-examples)) with different atmospheric stabilities and various setups (overview in [Table 1](#main-simulation-set-up-options)) to help you get started. The setups are in the `namoptions` file of your simulation.
 
 Note that we limited the simulation time to just a few minutes for demonstration, if you are looking to conduct realistic simulations, you need a much longer simulation time.
 
+<!-- omit in toc -->
 ## Prerequisites
 
 All examples below assume that you have installed uDALES as per our [getting started guide](./udales-getting-started.md).
@@ -20,6 +22,7 @@ export NCPU=2 # Number of CPUs to use for a simulation
 export DA_WORKDIR=$(pwd)/outputs # Output top-level directory
 ```
 
+<!-- omit in toc -->
 ## Run
 
 Example cases are located under `u-dales/examples`.
@@ -34,50 +37,53 @@ All examples are run using the following command:
 ./u-dales/tools/local_execute.sh u-dales/examples/001
 ```
 
+<!-- omit in toc -->
 ## Customising simulations
 
 If you want to make any changes to the example simulations, e.g. changing the domain size, follow the [set-up steps](./udales-getting-started.md/#set-up) in the getting started guide to obtain a copy of the simulation setup and make the changes to your copy of the setup. You may need to run some pre-processing steps (see [Pre-processing](./udales-pre-processing.md)) before running the simulation. These cases are indicated as such in [Table 1](#main-simulation-set-up-options).
 
+<!-- omit in toc -->
 ## Main simulation set-up options
 
 Below is a list of common setups and options for urban case studies. A complete list of all options available with uDALES can be found in the [Configuration](./udales-namoptions-overview.md) document.
 
 Table 1: Main setups of urban case studies and reference example simulation(s).
 
-| Type               | Setting               | Requires pre-processing | Example simulation |
-| ------------------ | --------------------- | ----------------------- | ------------------ |
-| Domain             | size and resolution   | yes | all |
-| Domain             | equidistant grid      | yes | 001, 002, 101, 102, 501, 502 |
-| Domain             | stretched z-grid      | yes | 201 |
-| Domain             | warmstart     | no | 102 |
-| Morphology         | no buildings          | yes | 001 |
-| Morphology         | infinite canyon builings | yes | 101 |
-| Morphology         | aligned cuboid buildings | yes | 002, 501 |
-| Morphology         | staggered cuboid buildings | yes | 102 |
-| Morphology         | pre-defined buildings | yes | 201 |
-| Morphology         | LIDAR-image buildings | yes | 502 |
-| Forcing            | pressure gradient     | yes | 001 |
-| Forcing            | volume flow rate      | no | 101, 102, 501 |
-| Forcing            | outflow rate          | no | -- |
-| Forcing            | free stream velocity  | no | -- |
-| Forcing            | Coriolis and nudging  | yes | 201 |
-| Forcing            | driving data          | no | 502 |
-| Lateral momentum boundary conditions (BCs) | periodic | no | 001, 002, 101, 102, 201, 501 |
-| Lateral momentum BCs | driving data | no | 502 |
-| Passive scalar source | point source | no | 102 |
-| Passive scalar source | line source | no | 101 |
-| Passive scalar source | source network | no | -- |
-| Lateral scalar BCs | periodic | no | 101, 501 |
-| Lateral scalar BCs | inflow-outflow | no | 102 |
-| Surface and top scalar BCs | zero flux | no | -- |
-| Surface and top scalar BCs | constant flux | no | 102 |
-| Surface and top scalar BCs | isothermal | no | 101, 501 |
-| Surface and top scalar BCs | energy balance | yes | 201 |
-| Output | instantaneous fields | no | 001, 101, 102, 201, 502 |
-| Output | time-averaged fields | no | 201, 502 |
-| Output | space-averaged (along y) fields | no | 101 |
-| Output |space-averaged (along x,y) profiles | no | 002, 102, 201, 501, 502 |
+| Type                                       | Setting                             | Requires pre-processing | Example simulation           |
+| ------------------------------------------ | ----------------------------------- | ----------------------- | ---------------------------- |
+| Domain                                     | size and resolution                 | yes                     | all                          |
+| Domain                                     | equidistant grid                    | yes                     | 001, 002, 101, 102, 501, 502 |
+| Domain                                     | stretched z-grid                    | yes                     | 201                          |
+| Domain                                     | warmstart                           | no                      | 102                          |
+| Morphology                                 | no buildings                        | yes                     | 001                          |
+| Morphology                                 | infinite canyon builings            | yes                     | 101                          |
+| Morphology                                 | aligned cuboid buildings            | yes                     | 002, 501                     |
+| Morphology                                 | staggered cuboid buildings          | yes                     | 102                          |
+| Morphology                                 | pre-defined buildings               | yes                     | 201                          |
+| Morphology                                 | LIDAR-image buildings               | yes                     | 502                          |
+| Forcing                                    | pressure gradient                   | yes                     | 001                          |
+| Forcing                                    | volume flow rate                    | no                      | 101, 102, 501                |
+| Forcing                                    | outflow rate                        | no                      | --                           |
+| Forcing                                    | free stream velocity                | no                      | --                           |
+| Forcing                                    | Coriolis and nudging                | yes                     | 201                          |
+| Forcing                                    | driving data                        | no                      | 502                          |
+| Lateral momentum boundary conditions (BCs) | periodic                            | no                      | 001, 002, 101, 102, 201, 501 |
+| Lateral momentum BCs                       | driving data                        | no                      | 502                          |
+| Passive scalar source                      | point source                        | no                      | 102                          |
+| Passive scalar source                      | line source                         | no                      | 101                          |
+| Passive scalar source                      | source network                      | no                      | --                           |
+| Lateral scalar BCs                         | periodic                            | no                      | 101, 501                     |
+| Lateral scalar BCs                         | inflow-outflow                      | no                      | 102                          |
+| Surface and top scalar BCs                 | zero flux                           | no                      | --                           |
+| Surface and top scalar BCs                 | constant flux                       | no                      | 102                          |
+| Surface and top scalar BCs                 | isothermal                          | no                      | 101, 501                     |
+| Surface and top scalar BCs                 | energy balance                      | yes                     | 201                          |
+| Output                                     | instantaneous fields                | no                      | 001, 101, 102, 201, 502      |
+| Output                                     | time-averaged fields                | no                      | 201, 502                     |
+| Output                                     | space-averaged (along y) fields     | no                      | 101                          |
+| Output                                     | space-averaged (along x,y) profiles | no                      | 002, 102, 201, 501, 502      |
 
+<!-- omit in toc -->
 ## List of examples
 
 - [Standard simulation setup](#standard-simulation-setup)
@@ -88,17 +94,18 @@ Table 1: Main setups of urban case studies and reference example simulation(s).
     - [Output: instantaneous fields](#output-instantaneous-fields)
   - [002](#002)
     - [Aligned cuboid buildings](#aligned-cuboid-buildings)
-    - [Output: space-time averaged profiles](#Output-space-time-averaged-profiles)
+    - [Output: space-time averaged profiles](#output-space-time-averaged-profiles)
 - [Non-neutral simulations](#non-neutral-simulations)
   - [101](#101)
     - [Infinite canyon buildings](#infinite-canyon-buildings)
-    - [Output: space-time averaged along y](#output-space-averaged-along-y)
+    - [Output: space-averaged along y](#output-space-averaged-along-y)
     - [Volume flow rate forcing in x](#volume-flow-rate-forcing-in-x)
     - [Temperature](#temperature)
     - [Isothermal BC for temperature](#isothermal-bc-for-temperature)
     - [Passive scalars line source](#passive-scalars-line-source)
     - [Output: instantaneous fields for temperature and scalars](#output-instantaneous-fields-for-temperature-and-scalars)
   - [102](#102)
+    - [Prerequisites for warmstart simulation](#prerequisites-for-warmstart-simulation)
     - [Staggered cuboid buildings](#staggered-cuboid-buildings)
     - [Volume flow rate forcing in x and y](#volume-flow-rate-forcing-in-x-and-y)
     - [Constant thermal flux BC for temperature](#constant-thermal-flux-bc-for-temperature)
@@ -111,13 +118,14 @@ Table 1: Main setups of urban case studies and reference example simulation(s).
     - [Pre-defined buildings](#pre-defined-buildings)
     - [Grid-stretching in z](#grid-stretching-in-z)
     - [Output: time averaged fields](#output-time-averaged-fields)
-    - [Energy Balance](#energy-balance-1)
+    - [Energy Balance](#energy-balance)
     - [Moisture](#moisture)
     - [Coriolis forcing and nudging](#coriolis-forcing-and-nudging)
 - [Driver simulation](#driver-simulation)
   - [501](#501)
     - [Driver/precursor simulation](#driverprecursor-simulation)
   - [502](#502)
+    - [Prerequisites simulation with external forcing](#prerequisites-simulation-with-external-forcing)
     - [Buildings from LIDAR image](#buildings-from-lidar-image)
     - [Driven simulation](#driven-simulation)
 
@@ -242,7 +250,7 @@ nfcts        = 33
 
 The simulation output contains 1D space-averaged and space-time-averaged vertical profiles. The output is produced after every 10 seconds of simulation runtime and the time-average uses a sample time step of 1 second. We specify this by setting:
 
- ```fortran
+```fortran
 &OUTPUT
 lxydump      = .true.
 lxytdump     = .true.
