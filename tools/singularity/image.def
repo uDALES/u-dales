@@ -1,0 +1,12 @@
+Bootstrap: docker
+From: ubuntu:18.04
+
+%post
+    set -ex
+
+    # Install dependecies
+    apt-get -y update
+    apt-get -y install gfortran libopenmpi-dev openmpi-bin libnetcdf-dev libnetcdff-dev cmake git
+
+    # Cleanup
+    rm -rf /var/lib/apt/lists/*

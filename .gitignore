@@ -5,6 +5,10 @@ tests/outputs/
 .vscode/
 *.o
 *.mod
+image.sif
+*.log
+*.nc
+monitor*.txt
 
 # Restart and driver files
 examples/*/init*
