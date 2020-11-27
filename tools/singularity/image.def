@@ -6,7 +6,7 @@ From: ubuntu:18.04
 
     # Install dependecies
     apt-get -y update
-    apt-get -y install gfortran libopenmpi-dev openmpi-bin libnetcdf-dev libnetcdff-dev cmake git
+    apt-get -y install gfortran libmpich-dev libnetcdf-dev libnetcdff-dev cmake git
 
     # Cleanup
     rm -rf /var/lib/apt/lists/*

@@ -12,9 +12,10 @@ NPROC=2 # TODO: make into a arg var.
 
 BUILD_TYPE=$1
 
-ROOT_DIR=$(pwd)
+#ROOT_DIR=$(pwd)
+ROOT_DIR=$PBS_O_WORKDIR
 SIF_PATH=$ROOT_DIR/tools/singularity/image.sif
-PATH_TO_BUILD_DIR="$(pwd)/build/$BUILD_TYPE"
+PATH_TO_BUILD_DIR=$ROOT_DIR/build/$BUILD_TYPE
 
 mkdir -p $PATH_TO_BUILD_DIR
 
