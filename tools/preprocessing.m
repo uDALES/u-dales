@@ -1950,6 +1950,18 @@ classdef preprocessing < dynamicprops
                 switch(facets(i, 1))
                     %only one test necessary, since the whole edge is internal, or not
                     %remember that facets stores facet coordinates, not block coordinates
+                    case 1
+                        ids = find(ismember(facets(:,[1,6:9]), facets(i,[1,6:9]),'rows'));
+                        if length(ids) ~= 1
+                              kcurrent = facets(i,5+kl);
+                              ks = facets(ids, 5+kl);
+                              if kcurrent == min(ks)
+                                  facets(i,5) = 1;
+                                  intern(j,1) = facets(i, 3);
+                                  intern(j,2) = IM(facets(i, 5 + il), facets(i, 5 + jl));
+                                  j = j + 1;
+                              end
+                        end
                     case 2
                         if facets(i, 5 + il) - 1 >= 1 %not at the domain edge
                             if M(facets(i, 5 + il) - 1 , facets(i, 5 + jl))
