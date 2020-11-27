@@ -129,7 +129,7 @@ contains
          ! iolet - called due to BCtopm = 3
 
       else
-         write (*, *) "ERROR: lateral boundary type for veloctiy in x-direciton undefined"
+         write(0, *) "ERROR: lateral boundary type for veloctiy in x-direciton undefined"
          stop 1
       end if
 
@@ -138,7 +138,7 @@ contains
       if (BCym .eq. 1) then
          call cyclicmj
       else
-         write (*, *) "ERROR: lateral boundary type for velocity in y-direction undefined"
+         write(0, *) "ERROR: lateral boundary type for velocity in y-direction undefined"
          stop 1
       end if
 
@@ -151,7 +151,7 @@ contains
       else if (BCxT .eq. 3) then
          !do nothing, temperature is considered in iolet
       else
-         write (*, *) "ERROR: lateral boundary type for temperature in x-direction undefined"
+         write(0, *) "ERROR: lateral boundary type for temperature in x-direction undefined"
          stop 1
       end if
 
@@ -159,7 +159,7 @@ contains
       if (BCyT .eq. 1) then
          call cyclichj
       else
-         write (*, *) "ERROR: lateral boundary type for temperature in y-direction undefined"
+         write(0, *) "ERROR: lateral boundary type for temperature in y-direction undefined"
          stop 1
       end if
 
@@ -171,7 +171,7 @@ contains
       elseif (BCxq .eq. 3) then 
         !do nothing, temperature is considered in iolet
       else
-         write (*, *) "ERROR: lateral boundary type for humidity in x-direction undefined"
+         write(0, *) "ERROR: lateral boundary type for humidity in x-direction undefined"
          stop 1
       end if
 
@@ -179,7 +179,7 @@ contains
       if (BCyq .eq. 1) then
          call cyclicqj
       else
-         write (*, *) "ERROR: lateral boundary type for humidity in y-direction undefined"
+         write(0, *) "ERROR: lateral boundary type for humidity in y-direction undefined"
          stop 1
       end if
 
@@ -189,8 +189,8 @@ contains
       elseif (BCys .eq. 5) then
          ! done in scalSIRANE
       else
-         write (*, *) "WARNING: ABORT, lateral boundary type for scalars in y-direction undefined"
-         stop
+         write(0, *) "ERROR: lateral boundary type for scalars in y-direction undefined"
+         stop 1
       end if
 
       !BCxs!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -208,7 +208,7 @@ contains
          call scalSIRANE !  make sure uouttot/ vouttot is known and realistic
 
       else
-         write (*, *) "ERROR: lateral boundary type for scalars in x-direction undefined"
+         write(0, *) "ERROR: lateral boundary type for scalars in x-direction undefined"
          stop 1
       end if
 
@@ -246,7 +246,7 @@ contains
          end if
          call iolet  !ils13, 13.8.18: iolet also deals with lateral boundaries!!
       else
-         write (*, *) "ERROR: top boundary type for velocity undefined"
+         write(0, *) "ERROR: top boundary type for velocity undefined"
          stop 1
       end if
 
@@ -258,7 +258,7 @@ contains
          call valuetop(thlm, thl_top)
          call valuetop(thl0, thl_top)
       else
-         write (*, *) "ERROR: top boundary type for temperature undefined"
+         write(0, *) "ERROR: top boundary type for temperature undefined"
          stop 1
       end if
 
@@ -270,7 +270,7 @@ contains
          call valuetop(qtm, qt_top)
          call valuetop(qt0, qt_top)
       else
-         write (*, *) "ERROR: top boundary type for humidity undefined"
+         write(0, *) "ERROR: top boundary type for humidity undefined"
          stop 1
       end if
 
@@ -282,7 +282,7 @@ contains
          call valuetopscal(sv_top)
          call valuetopscal(sv_top)
       else
-         write (*, *) "ERROR: top boundary type for scalars undefined"
+         write(0, *) "ERROR: top boundary type for scalars undefined"
          stop 1
       end if
 
@@ -1046,7 +1046,7 @@ contains
             qtp(:, :, k) = qtp(:, :, k) - (qt0(:, :, k) - qt0av(k))*tsc(k)
          end do
       case default
-         print *, "ERROR: no gravity wave damping option selected"
+         write(0, *) "ERROR: no gravity wave damping option selected"
          stop 1
       end select
 

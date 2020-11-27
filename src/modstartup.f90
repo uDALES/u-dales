@@ -130,15 +130,15 @@ module modstartup
 
          open (ifnamopt, file=fname_options, status='old', iostat=ierr)
          if (ierr /= 0) then
-            print *, 'ERROR: Namoptions does not exist'
-            print *, 'iostat error: ', ierr
+            write(0, *) 'ERROR: Namoptions does not exist'
+            write(0, *) 'iostat error: ', ierr
             stop 1
          end if
 
          read (ifnamopt, RUN, iostat=ierr)
          if (ierr > 0) then
-            print *, 'ERROR: Problem in namoptions RUN'
-            print *, 'iostat error: ', ierr
+            write(0, *) 'ERROR: Problem in namoptions RUN'
+            write(0, *) 'iostat error: ', ierr
             stop 1
          endif
          write (6, RUN)
@@ -146,8 +146,8 @@ module modstartup
 
          read (ifnamopt, DOMAIN, iostat=ierr)
          if (ierr > 0) then
-            print *, 'ERROR: Problem in namoptions DOMAIN'
-            print *, 'iostat error: ', ierr
+            write(0, *) 'ERROR: Problem in namoptions DOMAIN'
+            write(0, *) 'iostat error: ', ierr
             stop 1
          endif
          write (6, DOMAIN)
@@ -155,8 +155,8 @@ module modstartup
 
          read (ifnamopt, PHYSICS, iostat=ierr)
          if (ierr > 0) then
-            print *, 'ERROR: Problem in namoptions PHYSICS'
-            print *, 'iostat error: ', ierr
+            write(0, *) 'ERROR: Problem in namoptions PHYSICS'
+            write(0, *) 'iostat error: ', ierr
             stop 1
          endif
          write (6, PHYSICS)
@@ -164,8 +164,8 @@ module modstartup
 
          read (ifnamopt, DYNAMICS, iostat=ierr)
          if (ierr > 0) then
-            print *, 'ERROR: Problem in namoptions DYNAMICS'
-            print *, 'iostat error: ', ierr
+            write(0, *) 'ERROR: Problem in namoptions DYNAMICS'
+            write(0, *) 'iostat error: ', ierr
             stop 1
          endif
          write (6, DYNAMICS)
@@ -173,8 +173,8 @@ module modstartup
 
          read (ifnamopt, BC, iostat=ierr)
          if (ierr > 0) then
-            print *, 'ERROR: Problem in namoptions BC'
-            print *, 'iostat error: ', ierr
+            write(0, *) 'ERROR: Problem in namoptions BC'
+            write(0, *) 'iostat error: ', ierr
             stop 1
          endif
          write (6, BC)
@@ -182,8 +182,8 @@ module modstartup
 
          read (ifnamopt, INLET, iostat=ierr)
          if (ierr > 0) then
-            print *, 'ERROR: Problem in namoptions INLET'
-            print *, 'iostat error: ', ierr
+            write(0, *) 'ERROR: Problem in namoptions INLET'
+            write(0, *) 'iostat error: ', ierr
             stop 1
          endif
          write (6, INLET)
@@ -191,8 +191,8 @@ module modstartup
 
          read (ifnamopt, DRIVER, iostat=ierr)
          if (ierr > 0) then
-            print *, 'Problem in namoptions DRIVER'
-            print *, 'iostat error: ', ierr
+            write(0, *) 'Problem in namoptions DRIVER'
+            write(0, *) 'iostat error: ', ierr
             stop 'ERROR: Problem in namoptions DRIVER'
          endif
          write (6, DRIVER)
@@ -200,8 +200,8 @@ module modstartup
 
          read (ifnamopt, WALLS, iostat=ierr)
          if (ierr > 0) then
-            print *, 'ERROR: Problem in namoptions WALLS'
-            print *, 'iostat error: ', ierr
+            write(0, *) 'ERROR: Problem in namoptions WALLS'
+            write(0, *) 'iostat error: ', ierr
             stop 1
          endif
          write (6, WALLS)
@@ -209,8 +209,8 @@ module modstartup
 
          read (ifnamopt, ENERGYBALANCE, iostat=ierr)
          if (ierr > 0) then
-            print *, 'ERROR: Problem in namoptions EB'
-            print *, 'iostat error: ', ierr
+            write(0, *) 'ERROR: Problem in namoptions EB'
+            write(0, *) 'iostat error: ', ierr
             stop 1
          endif
          write (6, ENERGYBALANCE)
@@ -218,8 +218,8 @@ module modstartup
 
          read (ifnamopt, SCALARS, iostat=ierr)
          if (ierr > 0) then
-            print *, 'ERROR: Problem in namoptions SCALARS'
-            print *, 'iostat error: ', ierr
+            write(0, *) 'ERROR: Problem in namoptions SCALARS'
+            write(0, *) 'iostat error: ', ierr
             stop 1
          endif
          write (6, SCALARS)
@@ -227,8 +227,8 @@ module modstartup
 
          read (ifnamopt, CHEMISTRY, iostat=ierr)
          if (ierr > 0) then
-            print *, 'ERROR: Problem in namoptions CHEMISTRY'
-            print *, 'iostat error: ', ierr
+            write(0, *) 'ERROR: Problem in namoptions CHEMISTRY'
+            write(0, *) 'iostat error: ', ierr
             stop 1
          endif
          write (6, CHEMISTRY)
@@ -236,8 +236,8 @@ module modstartup
 
          read (ifnamopt, OUTPUT, iostat=ierr)
          if (ierr > 0) then
-            print *, 'ERROR: Problem in namoptions OUTPUT'
-            print *, 'iostat error: ', ierr
+            write(0, *) 'ERROR: Problem in namoptions OUTPUT'
+            write(0, *) 'iostat error: ', ierr
             stop 1
          endif
          write (6, OUTPUT)
@@ -504,9 +504,9 @@ module modstartup
 
       if (mod(jtot, nprocs) /= 0) then
          if (myid == 0) then
-            write (6, *) 'STOP ERROR IN NUMBER OF PROCESSORS'
-            write (6, *) 'nprocs must divide jtot!!! '
-            write (6, *) 'nprocs and jtot are: ', nprocs, jtot
+            write (0, *) 'STOP ERROR IN NUMBER OF PROCESSORS'
+            write (0, *) 'nprocs must divide jtot!!! '
+            write (0, *) 'nprocs and jtot are: ', nprocs, jtot
          end if
          call MPI_FINALIZE(mpierr)
          stop 1
@@ -515,9 +515,9 @@ module modstartup
       if (ipoiss==POISS_FFT) then
         if(mod(imax,nprocs)/=0)then
           if(myid==0)then
-            write(6,*)'STOP ERROR IN NUMBER OF PROCESSORS'
-            write(6,*)'nprocs must divide imax!!! '
-            write(6,*)'nprocs and imax are: ',nprocs,imax
+            write(0,*)'STOP ERROR IN NUMBER OF PROCESSORS'
+            write(0,*)'nprocs must divide imax!!! '
+            write(0,*)'nprocs and imax are: ',nprocs,imax
           end if
           call MPI_FINALIZE(mpierr)
           stop 1
@@ -526,9 +526,9 @@ module modstartup
 
       if (mod(kmax, nprocs) /= 0) then
          if (myid == 0) then
-            write (6, *) 'STOP ERROR IN NUMBER OF PROCESSORS'
-            write (6, *) 'nprocs must divide kmax!!! '
-            write (6, *) 'nprocs and kmax are: ', nprocs, kmax
+            write (0, *) 'STOP ERROR IN NUMBER OF PROCESSORS'
+            write (0, *) 'nprocs must divide kmax!!! '
+            write (0, *) 'nprocs and kmax are: ', nprocs, kmax
          end if
          call MPI_FINALIZE(mpierr)
          stop 1
@@ -536,29 +536,29 @@ module modstartup
 
       !Check Namoptions
       if (runtime < 0) then
-         print *, 'ERROR: runtime out of range/not set'
+         write(0, *) 'ERROR: runtime out of range/not set'
          stop 1
       end if
       if (dtmax < 0) then
-         print *, 'ERROR: dtmax out of range/not set'
+         write(0, *) 'ERROR: dtmax out of range/not set'
          stop 1
       end if
       if (ps < 0) then
-         print *, 'ERROR: psout of range/not set'
+         write(0, *) 'ERROR: psout of range/not set'
          stop 1
       end if
       if (xsize < 0) then
-         print *, 'ERROR: xsize out of range/not set'
+         write(0, *) 'ERROR: xsize out of range/not set'
          stop 1
       end if
       if (ysize < 0) then
-         print *, 'ERROR: ysize out of range/not set'
+         write(0, *) 'ERROR: ysize out of range/not set'
          stop 1
       end if
 
       if ((lwarmstart) .or. (lstratstart)) then
          if (startfile == '') then 
-            print *, 'ERROR: no restartfile set'
+            write(0, *) 'ERROR: no restartfile set'
             stop 1
          end if
       end if

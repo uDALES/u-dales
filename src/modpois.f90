@@ -74,7 +74,7 @@ contains
       call poisr(p,dxf,dxh,dy,dzf,dzh, &
                  ibc1,ibc2,kbc1,kbc2,ksen)
     case default
-       write(*,*) "Invalid choice for Poisson solver"
+      write(0, *) "Invalid choice for Poisson solver"
        stop 1
     end select
 
