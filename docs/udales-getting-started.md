@@ -199,6 +199,8 @@ The scripts `local_execute.sh` and `hpc_execute.sh` in `u-dales/tools` are used 
 
 The scripts require several variables to be set up. Below is an example setup for copying and pasting. You can also specify these parameters in a `config.sh` file within the experiment directory, which is then read by the scripts.
 
+Note that you need to choose the number of CPUs you are using to run the simulation such that the number of grid cells in the y-direction (`jtot` parameter in the `namoptions` input file) is a multiple of the number of CPUs.
+
 ### Run on common systems
 
 ``` sh
