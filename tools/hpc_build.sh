@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -ex
 
-# Usage: hpc_build.sh [icl, archer, cca, common] [debug, release]
+# Usage: ./tools/hpc_build.sh [icl, archer, cca, common] [debug, release]
 
 if [ ! -d src ]; then
     echo "Please run this script from the project folder"

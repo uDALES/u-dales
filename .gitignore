@@ -6,6 +6,8 @@ tests/outputs/
 *.o
 *.mod
 
+outputs/
+
 # Restart and driver files
 examples/*/init*
 examples/*/*driver*
