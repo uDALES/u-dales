@@ -48,6 +48,35 @@ mkdocs build --site-dir build/html
 ford docs/udales-docs-software.md
 ```
 
+### Input plots
+
+TODO:
+
+### Output plots
+
+Run the following script to run and generate all output plots currently included in docs.
+
+```
+./tools/examples/run_and_plot_examples.sh
+```
+
+The GIF used in the `README.md` is created using the `plot_animation` function in `tools/examples/plot_examples.py`. To reproduce the plot, fist create a copy of case `201` and name it `201_extended`, then modify the following parameters in the `201_extended` namelist and run uDALES:
+
+```fortran
+&RUN
+runtime      = 10000.
+/
+
+&OUTPUT
+tfielddump   = 500.
+tstatsdump   = 500.
+tsample      = 100.
+/
+```
+
+To uncomment the `plot_animation` function in `tools/examples/plot_examples.py` and run.
+
+
 ## Versioning
 
 This project uses [semantic versioning](https://semver.org/).

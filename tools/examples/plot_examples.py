@@ -45,4 +45,4 @@ if __name__ == "__main__":
     output_dir = Path(__file__).parents[2] / 'outputs'
     print(output_dir.resolve())
     plot_static(cases=cases, output_dir=output_dir)
-    plot_animation(case='502', output_dir=output_dir)
+    #plot_animation(case='201_extended', output_dir=output_dir)
