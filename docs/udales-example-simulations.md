@@ -224,6 +224,8 @@ tfielddump   = 10.
 
 ### 002
 
+![blocks.002](./assets/images/blocks.002.png)
+
 This simulation has a similar setup to `001` and additionally contains buildings.
 
 #### Aligned cuboid buildings
@@ -261,6 +263,8 @@ tsample      = 1.
 ## Non-neutral simulations
 
 ### 101
+
+![blocks.101](./assets/images/blocks.101.png)
 
 #### Infinite canyon buildings
 
@@ -364,6 +368,8 @@ fieldvars    = 'u0,v0,w0,th,s1'
 ```
 
 ### 102
+
+![blocks.102](./assets/images/blocks.102.png)
 
 The basic setup of this simulation is similar to `101`.
 
@@ -479,6 +485,8 @@ Then, change the switches as described above, and make sure `startfile` matches 
 
 ### 201
 
+![blocks.201](./assets/images/blocks.201.png)
+
 #### Pre-defined buildings
 
 The buildings are read in by a file containing the block geometries:
@@ -593,6 +601,8 @@ nnudge       = 64
 
 ### 501
 
+![blocks.501](./assets/images/blocks.501.png)
+
 This simulation is similar to `101` but does not contain any scalars. It is used as the precursor simulation for simulation `502`.
 
 #### Driver/precursor simulation
@@ -611,6 +621,8 @@ iplane       = 128
 `iplane` sets the index of the y-z plane we store (here this is equal to the outlet plane), and `(driverstore-1)*dtdriver` determines for how long you can run the driven simulation. The time when we start recording the planes should therefore be `tdriverstart` <= `runtime` - `(driverstore-1)*dtdriver`. More information on these parameters is in the documentation on [simulation setup](./udales-simulation-setup.md).
 
 ### 502
+
+![blocks.502](./assets/images/blocks.502.png)
 
 #### Prerequisites simulation with external forcing
 
