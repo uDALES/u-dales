@@ -1,8 +1,8 @@
-# uDALES [![CI](https://github.com/uDALES/u-dales/workflows/CI/badge.svg)](https://github.com/uDALES/u-dales/actions)
-
 <div align="center">
-<img src="docs/assets/images/201_extended.gif" alt="uDALES" height="160" width="160"> 
+<img src="docs/assets/images/201_extended.gif" alt="uDALES" height="256" width="256"> 
 </div>
+
+# uDALES [![CI](https://github.com/uDALES/u-dales/workflows/CI/badge.svg)](https://github.com/uDALES/u-dales/actions)
 
 This is the development repository for the uDALES (urban Dutch Atmospheric Large Eddy Simulation) model. It contains the uDALES software source-code, tests, documentation, and examples with tools to pre- and post-process inputs and outputs. **If you are new to uDALES, please follow our [getting started guide](https://udales.github.io/u-dales/0YiO263pFxExSdkMvWfId3qkVUSF4dREFnwM1jQD9y1KvzeAVAWzGykQemUrkJCM/html/udales-getting-started).**
 
