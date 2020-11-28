@@ -23,13 +23,14 @@ def plot_animation(case=str, output_dir=Path) -> None:
     # https://brushingupscience.com/2016/06/21/matplotlib-animations-the-easy-way/
 
     def animate(i=int) -> None:
+        print(f'Drawing frame {i}')
         img.set_data(ds['u'].isel(yt=-1).isel(time=i))
-        ax.set_title('Time: {:3.0f} s'.format(times[i].values))
 
     print(f'Plotting gif animaton for case {case}')
     ds = xr.open_dataset(output_dir / case / f'fielddump.{case}.nc')
-    fig, ax = plt.subplots(figsize=(8, 4))
-    img = ax.imshow(ds['u'].isel(yt=-1).isel(time=1))
+    ds = ds.isel(time=slice(10, None)) # Remove the first timesteps
+    fig, ax = plt.subplots(figsize=(4, 4))
+    img = ax.imshow(ds['u'].isel(yt=64).isel(time=1))
 
     times = list(ds['u'].time)
     anim = FuncAnimation(
@@ -38,11 +39,13 @@ def plot_animation(case=str, output_dir=Path) -> None:
     ax.set_ylabel('z in m')
     ax.set_xlabel('x in m')
     plt.draw()
+    plt.axis('off')
+    plt.tight_layout()
     anim.save(output_dir / case / f'{case}.gif', writer='imagemagick')
 
 if __name__ == "__main__":
+    PROJ_DIR = Path(__file__).parents[2]
+    output_dir = PROJ_DIR / 'outputs'
     cases = ['001', '101', '102', '201', '502']
-    output_dir = Path(__file__).parents[2] / 'outputs'
-    print(output_dir.resolve())
     plot_static(cases=cases, output_dir=output_dir)
     #plot_animation(case='201_extended', output_dir=output_dir)
