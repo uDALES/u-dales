@@ -37,7 +37,7 @@ module modibm
          dbj = block(n, 4) - block(n, 3)
          dbk = block(n, 6) - block(n, 5)
          if (any((/dbi, dbj, dbk/) < 1)) then
-            write (*, *) "blocks not at least 2 cells in each dimension, or upper limit < lower limit"
+            write(6, *) "blocks not at least 2 cells in each dimension, or upper limit < lower limit"
             !stop  !ils13 19.07.17, don't stop for now
          end if
       end do
@@ -1075,7 +1075,7 @@ module modibm
       elseif (BCbotm.eq.3) then
       call wfmneutral(ih, jh, kh, up, vp, momfluxb, u0, v0, z0, 0, 1, 91)
       else
-      write (*, *) "ERROR: bottom boundary type for momentum undefined"
+      write(0, *) "ERROR: bottom boundary type for momentum undefined"
       stop 1
       end if
  
@@ -1095,7 +1095,7 @@ module modibm
          else if (BCbotT.eq.2) then !wall function bc for temperature (fixed temperature)
             call wfuno(ih, jh, kh, up, vp, thlp, momfluxb, tfluxb, cth, bcTfluxA, u0, v0, thl0, thls, z0, z0h, 0, 1, 92)
          else
-         write (*, *) "ERROR: bottom boundary type for temperature undefined"
+         write(0, *) "ERROR: bottom boundary type for temperature undefined"
          stop 1
          end if
       end if ! ltempeq
@@ -1113,7 +1113,7 @@ module modibm
                end do
             end do
          else
-          write (*, *) "ERROR: bottom boundary type for moisture undefined"  
+          write(0, *) "ERROR: bottom boundary type for moisture undefined"  
           stop 1
          end if !
       end if !lmoist
@@ -1133,8 +1133,8 @@ module modibm
                end do
             end do
          else
-          write (*, *) "WARNING: ABORT, bottom boundary type for scalars undefined"  
-          stop
+          write(0, *) "ERROR: bottom boundary type for scalars undefined"  
+          stop 1
          end if !
       end if
 

@@ -85,8 +85,8 @@ contains
        open(ifnamopt,file=fname_options,status='old',iostat=ierr)
        read (ifnamopt,NAMSTATSDUMP,iostat=ierr)
        if (ierr > 0) then
-          print *, 'ERROR: Problem in namoptions NAMSTATSDUMP'
-          print *, 'iostat error: ', ierr
+          write(0, *) 'ERROR: Problem in namoptions NAMSTATSDUMP'
+          write(0, *) 'iostat error: ', ierr
           stop 1
        endif
        write(6 ,NAMSTATSDUMP)
