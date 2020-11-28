@@ -57,8 +57,6 @@ for file in *dump.000.${expnr}.nc ; do
         ${toolsdir}/nco_concatenate_field.sh $dumps $ymparam $outfile
         echo "Merging done."
 
-        echo "Clean up..."
-        rm -rf $dumps.*.${expnr}.nc
     fi
 
 done
