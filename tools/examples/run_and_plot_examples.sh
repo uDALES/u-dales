@@ -16,7 +16,7 @@ export DA_BUILD=$(pwd)/build/release/u-dales
 export NCPU=4
 export DA_WORKDIR=$(pwd)/outputs
 
-for example in 001 #002 101 102 201 501 502
+for example in 001 002 101 102 201 501 502
 do
     if [[ $example == 102 ]]; then
         # Download required files for warmstart simulation
