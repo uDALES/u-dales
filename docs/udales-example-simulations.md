@@ -222,6 +222,8 @@ fieldvars    = 'u0,v0,w0'
 tfielddump   = 10.
 ```
 
+![001 outputs](./assets/images/001.png)
+
 ### 002
 
 ![blocks.002](./assets/images/blocks.002.png)
@@ -367,6 +369,8 @@ We added the temperature and scalar concentration to the instantaneous fields:
 fieldvars    = 'u0,v0,w0,th,s1'
 ```
 
+![101 outputs](./assets/images/101.png)
+
 ### 102
 
 ![blocks.102](./assets/images/blocks.102.png)
@@ -480,6 +484,8 @@ trestart     = 1000.
 ```
 
 Then, change the switches as described above, and make sure `startfile` matches the name of your restart files.
+
+![102 outputs](./assets/images/102.png)
 
 ## Energy balance simulation
 
@@ -597,6 +603,8 @@ tnudge       = 10800.
 nnudge       = 64
 ```
 
+![201 outputs](./assets/images/201.png)
+
 ## Driver simulation
 
 ### 501
@@ -691,3 +699,5 @@ for which we will also need to use the cyclic reduction scheme of the poisson so
 &DYNAMICS
 ipoiss       = 1
 ```
+
+![502 outputs](./assets/images/502.png)
