@@ -80,4 +80,5 @@ pad          = 10
 smallarea    = 150
 thl0         = 290.
 u0           = 2.
+Tfacinit     = 288
 /
