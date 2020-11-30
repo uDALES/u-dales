@@ -77,4 +77,5 @@ blockwidth   = 16
 canyonwidth  = 16
 thl0         = 290.
 u0           = 1.5
+Tfacinit     = 288
 /
