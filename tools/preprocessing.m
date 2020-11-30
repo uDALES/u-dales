@@ -320,7 +320,8 @@ classdef preprocessing < dynamicprops
                 preprocessing.addvar(obj, 'Dsk', 418.8041); % Diffuse incoming radiation [W/m2]
             end
             preprocessing.addvar(obj, 'Tfacinit', obj.thl0) % Initial facet temperatures.
-
+            preprocessing.addvar(obj, 'nwalllayers', 3) % Number of facet layers
+            
             preprocessing.addvar(obj, 'nblocks', 0)
             preprocessing.addvar(obj, 'nfcts', 0)
 
@@ -329,7 +330,7 @@ classdef preprocessing < dynamicprops
         end
 
         function generate_walltypes(obj)
-            K = 3; % Number of wall layers - currently restricted to 3
+            K = obj.nwalllayers;
             walltypes = [];
 
             % Bounding walls (bw)
@@ -471,7 +472,7 @@ classdef preprocessing < dynamicprops
         end
 
         function write_walltypes(obj)
-            K = 3; %nwalllayers
+            K = obj.nwalllayers;
 
             fname = ['walltypes.inp.', obj.expnr];
 
