@@ -355,12 +355,17 @@ classdef preprocessing < dynamicprops
             z0h_f = 0.00035;
             al_f  = 0.5;
             em_f  = 0.85;
-            %D_f   = 0.5;
-            %df   = D_f / K;
+            D_f   = 0.5;
+            d_f   = D_f / K;
             C_f   = 1.875e6;
             l_f   = 0.75;
             k_f   = 0.4e-6;
-            f =  [id_f, lGR_f, z0_f, z0h_f, al_f, em_f, 0.1, 0.2, 0.2, C_f * ones(1,K), l_f * ones(1,K), k_f * ones(1,K+1)];
+            if (K == 3)
+                % Reproduce the original walltypes.inp (d_f not constant for each layer)
+                f =  [id_f, lGR_f, z0_f, z0h_f, al_f, em_f, 0.1, 0.2, 0.2, C_f * ones(1,K), l_f * ones(1,K), k_f * ones(1,K+1)];
+            else
+                f =  [id_f, lGR_f, z0_f, z0h_f, al_f, em_f, d_f * ones(1,K), C_f * ones(1,K), l_f * ones(1,K), k_f * ones(1,K+1)];
+            end
             walltypes = [walltypes; f];
 
             % Dummy (dm)
