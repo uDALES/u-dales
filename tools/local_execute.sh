@@ -47,9 +47,6 @@ outdir=$DA_WORKDIR/$exp
 
 echo "Starting job for case $exp..."
 
-## always start afresh
-rm -rf $outdir/*.log $outdir/*.nc 
-
 ## copy files to output directory
 mkdir -p $outdir
 cp ./* $outdir
