@@ -371,7 +371,9 @@ fieldvars    = 'u0,v0,w0,th,s1'
 
 ### 102
 
-![blocks.102](./assets/images/blocks.102.png)
+|                    Domain                     |                         2D output                          |                         3D output                          |
+| :-------------------------------------------: | :--------------------------------------------------------: | :--------------------------------------------------------: |
+| ![blocks.102](./assets/images/blocks.102.png) | ![102 outputs](./assets/images/fielddump_slice_2D.102.png) | ![102 outputs](./assets/images/fielddump_slice_3D.102.png) |
 
 The basic setup of this simulation is similar to `101`.
 
@@ -482,9 +484,6 @@ trestart     = 1000.
 ```
 
 Then, change the switches as described above, and make sure `startfile` matches the name of your restart files.
-
-
-![102 outputs](./assets/images/fielddump_slice_2D.102.png)![102 outputs](./assets/images/fielddump_slice_3D.102.png)
 
 
 ## Energy balance simulation
