@@ -63,7 +63,7 @@ where `<CASE_NUMBER>` is e.g. `201`. Plots are then saved in their respective ex
 Run the following script to run and generate outputs for all example cases:
 
 ```sh
-./tools/examples/run_and_plot_examples.sh
+./tools/examples/run_examples.sh
 ```
 
 Then, to create a sample plot for case `201` run the following from your command line (requires MATLAB):

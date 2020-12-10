@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-# Runs and plots cases in the examples folders.
-# Data and plots are saved under outputs.
+# Runs cases in the examples folders.
+# Data are saved under outputs.
 # Usage: ./tools/examples/run_and_plot_examples.sh
 
 set -e
@@ -18,6 +18,9 @@ export DA_WORKDIR=$(pwd)/outputs
 
 for example in 001 002 101 102 201 501 502
 do
+    # Always start from afresh
+    rm -rf $DA_WORKDIR/$example
+
     if [[ $example == 102 ]]; then
         # Download required files for warmstart simulation
         mkdir -p $DA_WORKDIR/$example
@@ -41,5 +44,4 @@ do
     fi
 
     ./tools/local_execute.sh examples/$example
-
 done
