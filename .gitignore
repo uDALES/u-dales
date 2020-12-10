@@ -6,6 +6,7 @@ tests/outputs/
 *.o
 *.mod
 outputs/
+examples/*/blocks.*.png
 
 # Restart and driver files
 examples/*/init*
