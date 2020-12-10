@@ -69,7 +69,7 @@ Run the following script to run and generate outputs for all example cases:
 Then, to create a sample plot for case `201` run the following from your command line (requires MATLAB):
 
 ```sh
-matlab -nosplash -nodesktop -r "cd('tools/examples'); run('plot_fielddump_slice.m'); exit"
+matlab -nosplash -nodesktop -r "cd('tools/examples'); plot_fielddump_slice('102','u','y',32,1); quit"
 ```
 
 To uncomment the `plot_animation` function in `tools/examples/plot_examples.py` and run.
