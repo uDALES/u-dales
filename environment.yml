@@ -7,7 +7,6 @@ dependencies:
   - pip
   # Tests
   - numpy
-  - xarray
   - netCDF4
   - matplotlib
   - f90nml
