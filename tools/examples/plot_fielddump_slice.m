@@ -30,7 +30,6 @@ time_id = length(time);
 %% Load blocks
 blocks = dlmread([exp_dir, '/blocks.inp.', expnr],'',2,0);
 
-set(groot, 'defaultAxesTickLabelInterpreter','latex'); set(groot, 'defaultLegendInterpreter','latex');
 %% Plot slice
 f_2D = figure('visible', 'off');
 
@@ -81,6 +80,7 @@ c.TickLabelInterpreter = 'latex';
 field_max = max(abs(squeeze(field(:,:,:,time_id))), [], 'all');
 caxis([-field_max, field_max]);
 set(gca, 'FontSize', 12)
+set(gca,'ticklabelinterpreter','latex')
 
 % Plot blocks slice
 % Assumes all buildings have kl = 1 (no stacks of blocks).
@@ -88,7 +88,7 @@ set(gca, 'FontSize', 12)
 
 clr = [0.75, 0.75, 0.75];
 if (slice_var == 'x')
-    for i = 1:length(blocks)
+    for i = 1:size(blocks,1)
         il = blocks(i,1);
         iu = blocks(i,2);
         jl = blocks(i,3);
@@ -103,7 +103,7 @@ if (slice_var == 'x')
         end
     end
 elseif (slice_var == 'y')
-    for i = 1:length(blocks)
+    for i = 1:size(blocks,1)
         il = blocks(i,1);
         iu = blocks(i,2);
         jl = blocks(i,3);
@@ -212,6 +212,7 @@ c.FontSize = 12;
 field_max = max(abs(squeeze(field(:,:,:,time_id))), [], 'all');
 caxis([-field_max, field_max]);
 set(gca, 'FontSize', 12)
+set(gca,'ticklabelinterpreter','latex')
 
 filename = ['fielddump_slice_3D_', expnr, '_', field_name, '(', slice_var, '=', num2str(slice_val), 'm,t=', num2str(time(time_id)), 's)'];
 saveas(f_3D,[exp_dir, '/', filename, '.png'])
