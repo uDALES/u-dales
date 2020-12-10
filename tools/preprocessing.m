@@ -1102,15 +1102,15 @@ classdef preprocessing < dynamicprops
         function plot_bl(obj)
             figure
             %title('Blocks', 'interpreter','latex')
-            view([-1,-1,1])
+            view(3)
             if (obj.lstaggered || obj.lcube || obj.lcanyons)
-                clr_bl = [0.95,0.95,0.95];
+                clr = [0.85,0.85,0.85];
                 for i = 1:size(obj.bl, 1)
-                    patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1)  obj.xh(obj.bl(i,1))], [obj.yh(obj.bl(i,3))  obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1)], [obj.zh(obj.bl(i,6)+1)  obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1)], clr_bl)
-                    patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) ], [obj.yh(obj.bl(i,3))  obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3))], [obj.bl(i,5)  obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.bl(i,5)], clr_bl)
-                    patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) ], [obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1)], [obj.bl(i,5)  obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.bl(i,5)], clr_bl)
-                    patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) ], [obj.yh(obj.bl(i,4)+1)  obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3))], [obj.bl(i,5)  obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.bl(i,5)], clr_bl)
-                    patch([obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) ], [obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1)], [obj.bl(i,5)  obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.bl(i,5)], clr_bl)
+                    patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1)  obj.xh(obj.bl(i,1))], [obj.yh(obj.bl(i,3))  obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1)], [obj.zh(obj.bl(i,6)+1)  obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1)], clr)
+                    patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) ], [obj.yh(obj.bl(i,3))  obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3))], [obj.bl(i,5)  obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.bl(i,5)], clr)
+                    patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) ], [obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1)], [obj.bl(i,5)  obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.bl(i,5)], clr)
+                    patch([obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) obj.xh(obj.bl(i,1)) ], [obj.yh(obj.bl(i,4)+1)  obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3))], [obj.bl(i,5)  obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.bl(i,5)], clr)
+                    patch([obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) obj.xh(obj.bl(i,2)+1) ], [obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,3)) obj.yh(obj.bl(i,4)+1) obj.yh(obj.bl(i,4)+1)], [obj.bl(i,5)  obj.zh(obj.bl(i,6)+1) obj.zh(obj.bl(i,6)+1) obj.bl(i,5)], clr)
                     % patch([xh(1) xh(end) xh(end)  xh(1)], [yh(1)  yh(1) yh(end) yh(end)], [zh(1)  zh(1) zh(1) zh(1)], [245 245 245] ./ 255)
                 end
 
@@ -1129,24 +1129,23 @@ classdef preprocessing < dynamicprops
             ylim([0 obj.yh(end)]); %/(r.blockheight-1))
 
             set(gca,'ticklabelinterpreter','latex')
-            xlabel('x (m)','interpreter','latex')
-            ylabel('y (m)','interpreter','latex')
-            zlabel('z (m)','interpreter','latex')
+            xlabel('$x(\mathrm{m})$','interpreter','latex')
+            ylabel('$y(\mathrm{m})$','interpreter','latex')
+            zlabel('$z(\mathrm{m})$','interpreter','latex')
             set(gca,'BoxStyle','full','Box','on')
             daspect([1 1 1])
             grid on
-            set(gca, 'FontSize', 16)
+            set(gca, 'FontSize', 12)
 
         end
 
         function plot_blocks(obj)
             figure
             %title('Blocks', 'interpreter', 'latex')
-            view([-1,-1,1])
+            view(3)
 
             if ~obj.lflat
-                clr_bl = [0.95,0.95,0.95];
-                clr_fl = [0.75,0.75,0.75];
+                clr = [0.85, 0.85, 0.85];
                 for i = 1:obj.nblockstotal
                     il = obj.blocks(i,1);
                     iu = obj.blocks(i,2);
@@ -1156,17 +1155,17 @@ classdef preprocessing < dynamicprops
                     ku = obj.blocks(i,6);
 
                     if i <= obj.nblocks
-                        patch([obj.xh(il)   obj.xh(iu+1) obj.xh(iu+1) obj.xh(il)]  , [obj.yh(jl)   obj.yh(jl)   obj.yh(ju+1) obj.yh(ju+1)], [obj.zh(ku+1) obj.zh(ku+1) obj.zh(ku+1) obj.zh(ku+1)], clr_bl)
-                        patch([obj.xh(il)   obj.xh(il)   obj.xh(iu+1) obj.xh(iu+1)], [obj.yh(jl)   obj.yh(jl)   obj.yh(jl)   obj.yh(jl)],   [obj.zh(kl)   obj.zh(ku+1) obj.zh(ku+1) obj.zh(kl)], clr_bl)
-                        patch([obj.xh(il)   obj.xh(il)   obj.xh(iu+1) obj.xh(iu+1)], [obj.yh(ju+1) obj.yh(ju+1) obj.yh(ju+1) obj.yh(ju+1)], [obj.zh(kl)   obj.zh(ku+1) obj.zh(ku+1) obj.zh(kl)], clr_bl)
-                        patch([obj.xh(il)   obj.xh(il)   obj.xh(il)   obj.xh(il)]  , [obj.yh(ju+1) obj.yh(ju+1) obj.yh(jl)   obj.yh(jl)],   [obj.zh(kl)   obj.zh(ku+1) obj.zh(ku+1) obj.zh(kl)], clr_bl)
-                        patch([obj.xh(iu+1) obj.xh(iu+1) obj.xh(iu+1) obj.xh(iu+1)], [obj.yh(jl)   obj.yh(jl)   obj.yh(ju+1) obj.yh(ju+1)], [obj.zh(kl)   obj.zh(ku+1) obj.zh(ku+1) obj.zh(kl)], clr_bl)
+                        patch([obj.xh(il)   obj.xh(iu+1) obj.xh(iu+1) obj.xh(il)]  , [obj.yh(jl)   obj.yh(jl)   obj.yh(ju+1) obj.yh(ju+1)], [obj.zh(ku+1) obj.zh(ku+1) obj.zh(ku+1) obj.zh(ku+1)], clr)
+                        patch([obj.xh(il)   obj.xh(il)   obj.xh(iu+1) obj.xh(iu+1)], [obj.yh(jl)   obj.yh(jl)   obj.yh(jl)   obj.yh(jl)],   [obj.zh(kl)   obj.zh(ku+1) obj.zh(ku+1) obj.zh(kl)], clr)
+                        patch([obj.xh(il)   obj.xh(il)   obj.xh(iu+1) obj.xh(iu+1)], [obj.yh(ju+1) obj.yh(ju+1) obj.yh(ju+1) obj.yh(ju+1)], [obj.zh(kl)   obj.zh(ku+1) obj.zh(ku+1) obj.zh(kl)], clr)
+                        patch([obj.xh(il)   obj.xh(il)   obj.xh(il)   obj.xh(il)]  , [obj.yh(ju+1) obj.yh(ju+1) obj.yh(jl)   obj.yh(jl)],   [obj.zh(kl)   obj.zh(ku+1) obj.zh(ku+1) obj.zh(kl)], clr)
+                        patch([obj.xh(iu+1) obj.xh(iu+1) obj.xh(iu+1) obj.xh(iu+1)], [obj.yh(jl)   obj.yh(jl)   obj.yh(ju+1) obj.yh(ju+1)], [obj.zh(kl)   obj.zh(ku+1) obj.zh(ku+1) obj.zh(kl)], clr)
                     else
-                        patch([obj.xh(il)   obj.xh(iu+1) obj.xh(iu+1) obj.xh(il)]  , [obj.yh(jl)   obj.yh(jl)   obj.yh(ju+1) obj.yh(ju+1)], [obj.zh(ku+1) obj.zh(ku+1) obj.zh(ku+1) obj.zh(ku+1)], clr_fl)
-                        patch([obj.xh(il)   obj.xh(il)   obj.xh(iu+1) obj.xh(iu+1)], [obj.yh(jl)   obj.yh(jl)   obj.yh(jl)   obj.yh(jl)],   [0            obj.zh(ku+1) obj.zh(ku+1)            0], clr_fl)
-                        patch([obj.xh(il)   obj.xh(il)   obj.xh(iu+1) obj.xh(iu+1)], [obj.yh(ju+1) obj.yh(ju+1) obj.yh(ju+1) obj.yh(ju+1)], [0            obj.zh(ku+1) obj.zh(ku+1)            0], clr_fl)
-                        patch([obj.xh(il)   obj.xh(il)   obj.xh(il)   obj.xh(il)]  , [obj.yh(ju+1) obj.yh(ju+1) obj.yh(jl)   obj.yh(jl)],   [0            obj.zh(ku+1) obj.zh(ku+1)            0], clr_fl)
-                        patch([obj.xh(iu+1) obj.xh(iu+1) obj.xh(iu+1) obj.xh(iu+1)], [obj.yh(jl)   obj.yh(jl)   obj.yh(ju+1) obj.yh(ju+1)], [0            obj.zh(ku+1) obj.zh(ku+1)            0], clr_fl)
+                        patch([obj.xh(il)   obj.xh(iu+1) obj.xh(iu+1) obj.xh(il)]  , [obj.yh(jl)   obj.yh(jl)   obj.yh(ju+1) obj.yh(ju+1)], [obj.zh(ku+1) obj.zh(ku+1) obj.zh(ku+1) obj.zh(ku+1)], clr)
+                        patch([obj.xh(il)   obj.xh(il)   obj.xh(iu+1) obj.xh(iu+1)], [obj.yh(jl)   obj.yh(jl)   obj.yh(jl)   obj.yh(jl)],   [0            obj.zh(ku+1) obj.zh(ku+1)            0], clr)
+                        patch([obj.xh(il)   obj.xh(il)   obj.xh(iu+1) obj.xh(iu+1)], [obj.yh(ju+1) obj.yh(ju+1) obj.yh(ju+1) obj.yh(ju+1)], [0            obj.zh(ku+1) obj.zh(ku+1)            0], clr)
+                        patch([obj.xh(il)   obj.xh(il)   obj.xh(il)   obj.xh(il)]  , [obj.yh(ju+1) obj.yh(ju+1) obj.yh(jl)   obj.yh(jl)],   [0            obj.zh(ku+1) obj.zh(ku+1)            0], clr)
+                        patch([obj.xh(iu+1) obj.xh(iu+1) obj.xh(iu+1) obj.xh(iu+1)], [obj.yh(jl)   obj.yh(jl)   obj.yh(ju+1) obj.yh(ju+1)], [0            obj.zh(ku+1) obj.zh(ku+1)            0], clr)
                     end
                 end
             end
@@ -1176,12 +1175,12 @@ classdef preprocessing < dynamicprops
             ylim([0 obj.yh(end)]); %/(r.blockheight-1))
 
             set(gca,'ticklabelinterpreter','latex')
-            xlabel('x (m)','interpreter','latex')
-            ylabel('y (m)','interpreter','latex')
-            zlabel('z (m)','interpreter','latex')
+            xlabel('$x(\mathrm{m})$','interpreter','latex')
+            ylabel('$y(\mathrm{m})$','interpreter','latex')
+            zlabel('$z(\mathrm{m})$','interpreter','latex')
             set(gca,'BoxStyle','full','Box','on')
             daspect([1 1 1])
-            set(gca, 'FontSize', 16)
+            set(gca, 'FontSize', 12)
             grid on
         end
 
@@ -1191,15 +1190,12 @@ classdef preprocessing < dynamicprops
 
             if ~obj.lflat
                 top = 1; west = 2; east = 3; north = 4; south = 5; bot = 6;
-                clr_bl = [0.95,0.95,0.95];
-                clr_fl = [0.75,0.75,0.75];
-                clr_bw = [0.85,0.85,0.85];
+                clr = [0.85,0.85,0.85];
                 for i = 1:obj.nfcts
                     il = obj.facets(i, 6); iu = obj.facets(i, 7);
                     jl = obj.facets(i, 8); ju = obj.facets(i, 9);
                     kl = obj.facets(i, 10); ku = obj.facets(i, 11);
                     if i <= obj.nblockfcts
-                        clr = clr_bl;
                         switch obj.facets(i, 1)
                             case {east, west}
                                 x = [obj.xh(il), obj.xh(il), obj.xh(il), obj.xh(il)];
@@ -1233,7 +1229,6 @@ classdef preprocessing < dynamicprops
                         end
 
                     elseif i <= obj.nblockfcts + obj.nboundingwallfacets
-                        clr = clr_bw;
                         switch obj.facets(i, 1)
                             case east
                                 ju = ju + 1;
@@ -1307,7 +1302,6 @@ classdef preprocessing < dynamicprops
                                 end
                         end
                     else
-                        clr = clr_fl;
                         iu = iu + 1;
                         ju = ju + 1;
                         switch obj.facets(i, 1)
@@ -1364,17 +1358,17 @@ classdef preprocessing < dynamicprops
                 end
 
             end
-            view([-1,-1,1])
+            view(3)
             set(gca,'ticklabelinterpreter','latex')
-            xlabel('x (m)', 'interpreter', 'latex')
-            ylabel('y (m)', 'interpreter', 'latex')
-            zlabel('z (m)', 'interpreter', 'latex')
+            xlabel('$x(\mathrm{m})$','interpreter','latex')
+            ylabel('$y(\mathrm{m})$','interpreter','latex')
+            zlabel('$z(\mathrm{m})$','interpreter','latex')
             set(gca,'BoxStyle','full','Box','on')
             daspect([1 1 1])
             xlim([0 obj.xh(end)])
             ylim([0 obj.yh(end)])
             zlim([0 obj.zh(end)])
-            set(gca, 'FontSize', 16)
+            set(gca, 'FontSize', 12)
             grid on
         end
 
