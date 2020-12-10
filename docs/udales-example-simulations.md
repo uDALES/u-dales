@@ -3,7 +3,7 @@
 
 uDALES simulates a large variety of urban case studies. Here we showcase a few examples ([List of examples](#list-of-examples)) with different atmospheric stabilities and various setups (overview in [Table 1](#main-simulation-set-up-options)) to help you get started. The setups are in the `namoptions` file of your simulation.
 
-Note that we limited the simulation time to just a few minutes for demonstration, if you are looking to conduct realistic simulations, you need a much longer simulation time.
+Note that we limited the simulation time to just a few minutes for demonstration, if you are looking to conduct realistic simulations, you need a much longer simulation time. If you wish to run all examples automatically and plot inputs and outputs as shown in this guide, you can follow the instructors detailed in the  our [development notes](https://github.com/uDALES/u-dales/blob/master/DEVELOP.md) instead.  
 
 <!-- omit in toc -->
 ## Prerequisites
