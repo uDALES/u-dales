@@ -13,7 +13,7 @@ fi
 
 export DA_TOOLSDIR=$(pwd)/tools
 export DA_BUILD=$(pwd)/build/release/u-dales
-export NCPU=4
+export NCPU=2
 export DA_WORKDIR=$(pwd)/outputs
 
 for example in 001 002 101 102 201 501 502
