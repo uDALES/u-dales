@@ -484,6 +484,9 @@ trestart     = 1000.
 Then, change the switches as described above, and make sure `startfile` matches the name of your restart files.
 
 
+![102 outputs](./assets/images/fielddump_slice_2D.102.png)![102 outputs](./assets/images/fielddump_slice_2D.102.png)
+
+
 ## Energy balance simulation
 
 ### 201
@@ -600,7 +603,6 @@ tnudge       = 10800.
 nnudge       = 64
 ```
 
-![201 outputs](./assets/images/fielddump_slice_2D.201.png)![201 outputs](./assets/images/fielddump_slice_2D.201.png)
 
 ## Driver simulation
 
