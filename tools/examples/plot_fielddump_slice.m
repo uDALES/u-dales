@@ -1,12 +1,12 @@
+function plot_fielddump_slice(expnr, field_var, slice_var, slice_id, time_id)
+
 % Plots a slice of fielddump in 2D and 3D.
-%% Usage: matlab -nosplash -nodesktop -r "cd('tools/examples'); run('plot_fielddump_slice.m'); exit"
+%% Usage: matlab -nosplash -nodesktop -r "cd('tools/examples'); plot_fielddump_slice('$expnr','$field_var','$slice_var',$slice_id,$time_id); quit"
 
-
-expnr = '102';
 this_dir = pwd;
 exp_dir = [this_dir, '/../../outputs/', expnr];
 filepath = [exp_dir, '/fielddump.', expnr, '.nc'];
-
+field = ncread(filepath, field_var);
 zt = ncread(filepath, 'zt');
 xt = ncread(filepath, 'xt');
 yt = ncread(filepath, 'yt');
@@ -20,24 +20,17 @@ dx = xm(2); dy = ym(2); dz = zm(2);
 xh = [xm; xm(end) + dx]; yh = [ym; ym(end) + dy]; zh = [zm; zm(end) + dz];
 xf = xt; yf = yt; zf = zt;
 
-%% Define variable, slice location, and time
-field_name = 'u';
-field = ncread(filepath, field_name);
-slice_var = 'y';
-slice_id = floor(length(yf) / 2);
-time_id = length(time);
-
 %% Load blocks
 blocks = dlmread([exp_dir, '/blocks.inp.', expnr],'',2,0);
 
 %% Plot slice
 f_2D = figure('visible', 'off');
 
-if (field_name == 'u')
+if (field_var == 'u')
     x = xh(1:end-1) - 0.5*dx; y = yf - 0.5*dy; z = zf - 0.5*dz;
-elseif (field_name == 'v')
+elseif (field_var == 'v')
     x = xf - 0.5*dx; y = yh(1:end-1) - 0.5*dy; z = zf - 0.5*dz;
-elseif (field_name == 'w')
+elseif (field_var == 'w')
     x = xf - 0.5*dx; y = yf - 0.5*dy; z = zh(1:end-1) - 0.5*dz;
 end
 
@@ -68,7 +61,7 @@ elseif (slice_var == 'z')
 end
 
 shading interp
-title(['$', field_name, '(', slice_var, '=', num2str(slice_val), '\mathrm{m}, t=', num2str(time(time_id)), '\mathrm{s})$'], 'interpreter', 'latex')
+title(['$', field_var, '(', slice_var, '=', num2str(slice_val), '\mathrm{m}, t=', num2str(time(time_id)), '\mathrm{s})$'], 'interpreter', 'latex')
 cmap = redblue();
 colormap(cmap)
 c = colorbar;
@@ -134,7 +127,7 @@ elseif (slice_var == 'z')
     end
 end
 
-filename = ['fielddump_slice_2D_', expnr, '_', field_name, '(', slice_var, '=', num2str(slice_val), 'm,t=', num2str(time(time_id)), 's)'];
+filename = ['fielddump_slice_2D_', expnr, '_', field_var, '(', slice_var, '=', num2str(slice_val), 'm,t=', num2str(time(time_id)), 's)'];
 saveas(f_2D,[exp_dir, '/', filename, '.png'])
 
 %% Plot slice in 3D space
@@ -175,11 +168,11 @@ zlabel('$z$', 'interpreter', 'latex')
 
 % Plot slice
 
-if (field_name == 'u')
+if (field_var == 'u')
     x = xh(1:end-1) - 0.5*dx; y = yf - 0.5*dy; z = zf - 0.5*dz;
-elseif (field_name == 'v')
+elseif (field_var == 'v')
     x = xf - 0.5*dx; y = yh(1:end-1) - 0.5*dy; z = zf - 0.5*dz;
-elseif (field_name == 'w')
+elseif (field_var == 'w')
     x = xf - 0.5*dx; y = yf - 0.5*dy; z = zh(1:end-1) - 0.5*dz;
 end
 
@@ -201,7 +194,7 @@ elseif (slice_var == 'z')
 end
 
 set(s, 'FaceColor', 'interp', 'EdgeColor', 'none', 'FaceLighting', 'flat', 'AmbientStrength', 1)
-title(['$', field_name, '(', slice_var, '=', num2str(slice_val), '\mathrm{m}, t=', num2str(time(time_id)), '\mathrm{s})$'], 'interpreter', 'latex')
+title(['$', field_var, '(', slice_var, '=', num2str(slice_val), '\mathrm{m}, t=', num2str(time(time_id)), '\mathrm{s})$'], 'interpreter', 'latex')
 cmap = redblue();
 colormap(cmap)
 c = colorbar;
@@ -214,7 +207,7 @@ caxis([-field_max, field_max]);
 set(gca, 'FontSize', 12)
 set(gca,'ticklabelinterpreter','latex')
 
-filename = ['fielddump_slice_3D_', expnr, '_', field_name, '(', slice_var, '=', num2str(slice_val), 'm,t=', num2str(time(time_id)), 's)'];
+filename = ['fielddump_slice_3D_', expnr, '_', field_var, '(', slice_var, '=', num2str(slice_val), 'm,t=', num2str(time(time_id)), 's)'];
 saveas(f_3D,[exp_dir, '/', filename, '.png'])
 
 function c = redblue(m)
@@ -251,4 +244,6 @@ else
     b = flipud(r);
 end
 c = [r g b];
+end
+
 end
