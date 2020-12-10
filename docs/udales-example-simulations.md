@@ -371,7 +371,7 @@ fieldvars    = 'u0,v0,w0,th,s1'
 
 ### 102
 
-|                    Domain                     |                         2D output                          |                         3D output                          |
+|                    Domain                     |                         Output slice                          |                         3D output                          |
 | :-------------------------------------------: | :--------------------------------------------------------: | :--------------------------------------------------------: |
 | ![blocks.102](./assets/images/blocks.102.png) | ![102 outputs](./assets/images/fielddump_slice_2D.102.png) | ![102 outputs](./assets/images/fielddump_slice_3D.102.png) |
 
