@@ -1,8 +1,11 @@
 % Plots a slice of fielddump in 2D and 3D.
+%% Usage: matlab -nosplash -nodesktop -r "cd('tools/examples'); run('plot_fielddump_slice.m'); exit"
+
 
 expnr = '102';
-DA_WORKDIR = getenv('DA_WORKDIR');
-filepath = [DA_WORKDIR, '/', expnr, '/fielddump.', expnr, '.nc'];
+this_dir = pwd;
+exp_dir = [this_dir, '/../../outputs/', expnr];
+filepath = [exp_dir, '/fielddump.', expnr, '.nc'];
 
 zt = ncread(filepath, 'zt');
 xt = ncread(filepath, 'xt');
@@ -25,7 +28,7 @@ slice_id = floor(length(yf) / 2);
 time_id = length(time);
 
 %% Load blocks
-blocks = dlmread([DA_WORKDIR, '/', expnr, '/blocks.inp.', expnr],'',2,0);
+blocks = dlmread([exp_dir, '/blocks.inp.', expnr],'',2,0);
 
 set(groot, 'defaultAxesTickLabelInterpreter','latex'); set(groot, 'defaultLegendInterpreter','latex');
 %% Plot slice
@@ -132,7 +135,7 @@ elseif (slice_var == 'z')
 end
 
 filename = ['fielddump_slice_2D_', expnr, '_', field_name, '(', slice_var, '=', num2str(slice_val), 'm,t=', num2str(time(time_id)), 's)'];
-saveas(f_2D,[filename, '.png'])
+saveas(f_2D,[exp_dir, '/', filename, '.png'])
 
 %% Plot slice in 3D space
 f_3D = figure('visible', 'off');
@@ -211,7 +214,7 @@ caxis([-field_max, field_max]);
 set(gca, 'FontSize', 12)
 
 filename = ['fielddump_slice_3D_', expnr, '_', field_name, '(', slice_var, '=', num2str(slice_val), 'm,t=', num2str(time(time_id)), 's)'];
-saveas(f_3D,[filename, '.png'])
+saveas(f_3D,[exp_dir, '/', filename, '.png'])
 
 function c = redblue(m)
 %REDBLUE    Shades of red and blue color map
