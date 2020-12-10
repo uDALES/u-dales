@@ -222,7 +222,6 @@ fieldvars    = 'u0,v0,w0'
 tfielddump   = 10.
 ```
 
-![001 outputs](./assets/images/001.png)
 
 ### 002
 
@@ -369,7 +368,6 @@ We added the temperature and scalar concentration to the instantaneous fields:
 fieldvars    = 'u0,v0,w0,th,s1'
 ```
 
-![101 outputs](./assets/images/101.png)
 
 ### 102
 
@@ -485,7 +483,6 @@ trestart     = 1000.
 
 Then, change the switches as described above, and make sure `startfile` matches the name of your restart files.
 
-![102 outputs](./assets/images/102.png)
 
 ## Energy balance simulation
 
@@ -603,7 +600,7 @@ tnudge       = 10800.
 nnudge       = 64
 ```
 
-![201 outputs](./assets/images/201.png)
+![201 outputs](./assets/images/fielddump_slice_2D.201.png)![201 outputs](./assets/images/fielddump_slice_2D.201.png)
 
 ## Driver simulation
 
@@ -628,9 +625,8 @@ iplane       = 128
 
 `iplane` sets the index of the y-z plane we store (here this is equal to the outlet plane), and `(driverstore-1)*dtdriver` determines for how long you can run the driven simulation. The time when we start recording the planes should therefore be `tdriverstart` <= `runtime` - `(driverstore-1)*dtdriver`. More information on these parameters is in the documentation on [simulation setup](./udales-simulation-setup.md).
 
-### 502
 
-![blocks.502](./assets/images/blocks.502.png)
+### 502
 
 #### Prerequisites simulation with external forcing
 
@@ -699,5 +695,3 @@ for which we will also need to use the cyclic reduction scheme of the poisson so
 &DYNAMICS
 ipoiss       = 1
 ```
-
-![502 outputs](./assets/images/502.png)

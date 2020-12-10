@@ -43,7 +43,3 @@ do
     ./tools/local_execute.sh examples/$example
 
 done
-
-eval "$(conda shell.bash hook)"
-conda activate udales
-python tools/examples/plot_examples.py
