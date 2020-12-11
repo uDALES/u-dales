@@ -53,6 +53,33 @@ brew update
 brew install git cmake gcc@9 netcdf open-mpi nco python3
 ```
 
+### Singularity
+
+If you have [Singularity](https://sylabs.io/) available on your system, you can use the provided scripts under `tools/singularity` to build and run uDALES cases locally or on HPC environments. This is undoubtedly the easiest way to build and run cases in uDALES as all dependencies are provided and uDALES will compile out of the box.
+
+To build and download the Singularity image use:
+
+```sh
+singularity build --remote tools/singularity/image.sif tools/singularity/image.def
+```
+
+then, to install uDALES use:
+
+```sh
+# udales_build.sh <NPROC> [Debug, Release]
+./tools/singularity/udales_build.sh 2 Release
+```
+
+Finally, to run an example case use:
+
+```sh
+# udales_run.sh <NPROC> <BUILD_TYPE> <PATH_TO_CASE> <NAMELIST>
+./tools/singularity/udales_run.sh 2 Release examples/001 namoptions.001
+```
+
+If you are looking to run the build and run commands on HPC, we have provided a sample script under `tools/singularity/udales_pbs_submit.sh`.
+
+
 ## Installation
 
 The installation and set-up of uDALES is straightforward thanks to the use of a [Cookiecutter repository](https://github.com/uDALES/cookiecutter-u-dales) to create a project template for uDALES with a generic folder structure set-up that you can later use to set up your own experiments.

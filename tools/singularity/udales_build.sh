@@ -1,22 +1,20 @@
 #!/usr/bin/env bash
 set -e
 
-# Usage: ./tools/build_udales.sh [Debug, Release]
+# Usage: udales_build.sh <NPROC> [Debug, Release]
+# e.g. ./tools/singularity/udales_build.sh 2 Release
 
-if [ ! -d src ]; then
-    echo "Please run this script from the project folder"
-    exit 1
-fi
+NPROC=$1
+BUILD_TYPE=$2
 
-NPROC=2 # TODO: make into a arg var.
-
-BUILD_TYPE=$1
-
-#ROOT_DIR=$(pwd)
-ROOT_DIR=$PBS_O_WORKDIR
-SIF_PATH=$ROOT_DIR/tools/singularity/image.sif
+# https://stackoverflow.com/a/246128/8893833
+THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+SIF_PATH=$THIS_DIR/image.sif
+ROOT_DIR=$THIS_DIR/../..
 PATH_TO_BUILD_DIR=$ROOT_DIR/build/$BUILD_TYPE
 
+# Always clean up
+rm -rf $PATH_TO_BUILD_DIR
 mkdir -p $PATH_TO_BUILD_DIR
 
 singularity exec --containall \
