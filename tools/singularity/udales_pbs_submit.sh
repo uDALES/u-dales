@@ -11,5 +11,5 @@ CASE_ID=201
 BUILD_TYPE=Release
 
 cd $PBS_O_WORKDIR
-$PBS_O_WORKDIR/tools/singularity/udales_build.sh $BUILD_TYPE
+$PBS_O_WORKDIR/tools/singularity/udales_build.sh 2 $BUILD_TYPE
 $PBS_O_WORKDIR/tools/singularity/udales_run.sh 32 $BUILD_TYPE examples/$CASE_ID namoptions.$CASE_ID
