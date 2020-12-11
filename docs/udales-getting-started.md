@@ -4,18 +4,36 @@ Getting started with uDALES to set up your own experiments is straightforward. T
 
 ## Prerequisites
 
+### uDALES
+
 uDALES is supported to run on Linux, macOS and Windows Subsystem for Linux (WSL). Please ensure that the latest version of the following libraries and software are available on your system:
 
-- [Git](https://git-scm.com/) >= 2.
 - [CMake](https://cmake.org/) >= 3.9.
 - [NetCDF-Fortran](https://www.unidata.ucar.edu/downloads/netcdf/index.jsp) >= 4.
 - [GNU](https://gcc.gnu.org/wiki/GFortran) <= 9, [Intel](https://software.intel.com/content/www/us/en/develop/documentation/fortran-compiler-developer-guide-and-reference/top.html), or [Cray](https://pubs.cray.com/) Fortran compiler.
 - A recenet version of [MPICH](https://www.mpich.org/) or [Open-MPI](https://www.open-mpi.org/).
-- [netCDF Operators](https://github.com/nco/nco) (NCO).
-- [Python](https://www.python.org/) >= 3.5.
-- A [GitHub](https://github.com) account.
 
-On local systems, these software and libraries should be available from your system's package manager (e.g. APT, yum, Homebrew, etc.) and examples on how to install all the required libraries for Linux/WSL and macOS are given below.
+### Project setup
+
+This guide helps you set up a project template for uDALES with a generic folder structure set-up that you can later use to set up your own experiments. For this you also need:
+
+- [Git](https://git-scm.com/) >= 2.
+- A [GitHub](https://github.com) account. (optional)
+- [Python](https://www.python.org/) >= 3.6.
+
+### Pre-processing
+
+When you create your own experiments, you will need to set up specific input files. We have a system in place that does that for you, written in MATLAB. Information can be found under [pre-processing](./udales-pre-processing.md) and is not discussed in the getting-started set-up.
+
+- [MATLAB](https://www.mathworks.com/products/matlab.html)
+
+### Post-processing
+
+For better organised netcdf output files, you will need:
+
+- [netCDF Operators](https://github.com/nco/nco) (NCO).
+
+On local systems, these software and libraries (except MATLAB) should be available from your system's package manager (e.g. APT, yum, Homebrew, etc.) and examples on how to install all the required libraries for Linux/WSL and macOS are given below.
 
 On high performance computing (HPC) clusters, these software and libraries should have already been installed. Please refer to the specific documentation to load the above software and libraries. Alternatively, you can install all the required packages easily after installing [Linuxbrew](https://docs.brew.sh/Homebrew-on-Linux) and using the instructions for [macOS](#macos).
 
@@ -55,7 +73,7 @@ Then, to create a new uDALES project within the current working directory:
 cookiecutter https://github.com/uDALES/cookiecutter-u-dales
 ```
 
-and fill in the required fields when prompted. `<PROJECT_NAME>` is the name of the generated project directory and `<GITHUB_PROJECT_REMOTE>` is the URL to your remote GitHub account. E.g.:
+and fill in the required fields when prompted. `<PROJECT_NAME>` is the name of the generated project directory and `<GITHUB_PROJECT_REMOTE>` is the URL to your remote GitHub account (this is optional, you can just press the return key to leave this empty). E.g.:
 
 ``` sh
 directory_name [<PROJECT_NAME>]: neutral_experiments
@@ -180,6 +198,8 @@ Now to set-up a new experiment (here we use case `009`) based on a previous exam
 The scripts `local_execute.sh` and `hpc_execute.sh` in `u-dales/tools` are used as wrappers to run simulations on your local machine and HPC at ICL respectively. These scripts contain several helpers to run the simulations and merge outputs from several CPUs into a single file (see [Post-processing](./udales-post-processing.md) for more info about the individual scripts).
 
 The scripts require several variables to be set up. Below is an example setup for copying and pasting. You can also specify these parameters in a `config.sh` file within the experiment directory, which is then read by the scripts.
+
+Note that you need to choose the number of CPUs you are using to run the simulation such that the number of grid cells in the y-direction (`jtot` parameter in the `namoptions` input file) is a multiple of the number of CPUs.
 
 ### Run on common systems
 

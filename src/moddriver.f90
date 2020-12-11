@@ -29,7 +29,7 @@ contains
 
     if (idriver==1) then
       if (tdriverstart < timee) then
-        print *, 'ERROR: tdriverstart must be greater than the elapsed time at the start of the simulation'
+        write(0, *) 'ERROR: tdriverstart must be greater than the elapsed time at the start of the simulation'
         stop 1
       end if
       tdriverdump = tdriverstart
@@ -151,8 +151,8 @@ contains
       ! if (.not. rk3step==1) return
       if (timee>maxval(storetdriver)) then
         if(myid==0) then
-          write(6,'(A,F9.2,A,F9.2)') 'timee: ',timee,'     Final inlet driver time:',maxval(storetdriver)
-          write(6,'(A,I4,A,I4)') 'Inlet driver step: ',nstepreaddriver,'     Total inlet driver steps:',driverstore
+          write(0,'(A,F9.2,A,F9.2)') 'timee: ',timee,'     Final inlet driver time:',maxval(storetdriver)
+          write(0,'(A,I4,A,I4)') 'Inlet driver step: ',nstepreaddriver,'     Total inlet driver steps:',driverstore
         end if
         stop 'Time in simulation has exceeded the inlet information - no more inlet data available!'
       end if

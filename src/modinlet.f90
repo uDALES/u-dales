@@ -2238,13 +2238,13 @@ contains
 
       open(ifinput,file=namezinfo,status='old',iostat=ierr)
         if (ierr /= 0) then
-          print *, 'ERROR: zgrid.inf does not exist'
+          write(0, *) 'ERROR: zgrid.inf does not exist'
           stop 1
         end if
         read (ifinput,INFO,iostat=ierr)
         if (ierr > 0) then
-          print *, 'Problem in zgrid.inf INFO'
-          print *, 'iostat error: ', ierr
+          write(0, *) 'Problem in zgrid.inf INFO'
+          write(0, *) 'iostat error: ', ierr
           stop 1
         endif
         write(6,INFO)

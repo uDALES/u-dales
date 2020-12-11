@@ -5,6 +5,8 @@ tests/outputs/
 .vscode/
 *.o
 *.mod
+outputs/
+examples/*/blocks.*.png
 
 # Restart and driver files
 examples/*/init*

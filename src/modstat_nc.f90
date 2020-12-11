@@ -310,8 +310,8 @@ contains
 		  iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_flt,VarID)
 
         case default
-        write(*,*) 'nvar', nvar, sx(n,:)
-        print *, 'ERROR: Bad dimensional information ',sx(n,:)
+        write(0, *) 'nvar', nvar, sx(n,:)
+        write(0, *) 'ERROR: Bad dimensional information ',sx(n,:)
         stop 1
         ! call appl_abort(0)
       end select
@@ -496,8 +496,8 @@ contains
     integer, intent(in) :: status
 
     if(status /= nf90_noerr) then
-      print *, trim(nf90_strerror(status))
-      write(*,*) 'ERROR: status',  status !tg3315 added to get error code
+      write(0, *) trim(nf90_strerror(status))
+      write(0, *) 'ERROR: status',  status
       stop 1
     end if
 
