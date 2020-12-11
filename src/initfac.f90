@@ -63,7 +63,6 @@
 
       subroutine readfacetfiles
       use modglobal, only: block, cexpnr, iwalltemp
-      use modsurfdata, only: thls
       implicit none
 
       !use modglobal, only:block
