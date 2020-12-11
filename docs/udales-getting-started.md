@@ -77,7 +77,7 @@ Finally, to run an example case use:
 ./tools/singularity/udales_run.sh 2 Release examples/001 namoptions.001
 ```
 
-If you are looking to run the build and run commands on HPC, we have provided a sample script under `tools/singularity/udales_pbs_submit.sh`.
+If you are looking to run the build and run commands on HPC, we have provided a sample script under `tools/singularity/udales_pbs_submit.sh`, you can modify and run it with `qsub tools/singularity/udales_pbs_submit.sh`.
 
 
 ## Installation
