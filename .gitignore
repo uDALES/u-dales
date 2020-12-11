@@ -5,6 +5,10 @@ tests/outputs/
 .vscode/
 *.o
 *.mod
+image.sif
+*.log
+*.nc
+monitor*.txt
 outputs/
 examples/*/blocks.*.png
 

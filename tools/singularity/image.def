@@ -1,0 +1,12 @@
+Bootstrap: docker
+From: ubuntu:18.04
+
+%post
+    set -ex
+
+    # Install dependecies
+    apt-get -y update
+    apt-get -y install gfortran libmpich-dev libnetcdf-dev libnetcdff-dev cmake git nco
+
+    # Cleanup
+    rm -rf /var/lib/apt/lists/*
