@@ -629,6 +629,8 @@ iplane       = 128
 
 ### 502
 
+![blocks.502](./assets/images/blocks.502.png)
+
 #### Prerequisites simulation with external forcing
 
 The driver input files are currently not included in the directory and can be downloaded [examples_driver_501.zip](https://www.dropbox.com/sh/spld3hqipqe17j1/AAA0cuzW3qc9ftY6dvHcSSL8a?dl=1) or from the command line (Linux/macOS) with
