@@ -3,7 +3,7 @@
 
 uDALES simulates a large variety of urban case studies. Here we showcase a few examples ([List of examples](#list-of-examples)) with different atmospheric stabilities and various setups (overview in [Table 1](#main-simulation-set-up-options)) to help you get started. The setups are in the `namoptions` file of your simulation.
 
-Note that we limited the simulation time to just a few minutes for demonstration, if you are looking to conduct realistic simulations, you need a much longer simulation time.
+Note that we limited the simulation time to just a few minutes for demonstration, if you are looking to conduct realistic simulations, you need a much longer simulation time. If you wish to run all examples automatically and plot inputs and outputs as shown in this guide, follow the instructions detailed in the  [development notes](https://github.com/uDALES/u-dales/blob/master/DEVELOP.md) instead.
 
 <!-- omit in toc -->
 ## Prerequisites
@@ -222,7 +222,10 @@ fieldvars    = 'u0,v0,w0'
 tfielddump   = 10.
 ```
 
+
 ### 002
+
+![blocks.002](./assets/images/blocks.002.png)
 
 This simulation has a similar setup to `001` and additionally contains buildings.
 
@@ -261,6 +264,8 @@ tsample      = 1.
 ## Non-neutral simulations
 
 ### 101
+
+![blocks.101](./assets/images/blocks.101.png)
 
 #### Infinite canyon buildings
 
@@ -363,7 +368,12 @@ We added the temperature and scalar concentration to the instantaneous fields:
 fieldvars    = 'u0,v0,w0,th,s1'
 ```
 
+
 ### 102
+
+|                    Domain                     |                         Output slice                          |                         3D output                          |
+| :-------------------------------------------: | :--------------------------------------------------------: | :--------------------------------------------------------: |
+| ![blocks.102](./assets/images/blocks.102.png) | ![102 outputs](./assets/images/fielddump_slice_2D.102.png) | ![102 outputs](./assets/images/fielddump_slice_3D.102.png) |
 
 The basic setup of this simulation is similar to `101`.
 
@@ -475,9 +485,12 @@ trestart     = 1000.
 
 Then, change the switches as described above, and make sure `startfile` matches the name of your restart files.
 
+
 ## Energy balance simulation
 
 ### 201
+
+![blocks.201](./assets/images/blocks.201.png)
 
 #### Pre-defined buildings
 
@@ -589,9 +602,12 @@ tnudge       = 10800.
 nnudge       = 64
 ```
 
+
 ## Driver simulation
 
 ### 501
+
+![blocks.501](./assets/images/blocks.501.png)
 
 This simulation is similar to `101` but does not contain any scalars. It is used as the precursor simulation for simulation `502`.
 
@@ -609,6 +625,7 @@ iplane       = 128
 ```
 
 `iplane` sets the index of the y-z plane we store (here this is equal to the outlet plane), and `(driverstore-1)*dtdriver` determines for how long you can run the driven simulation. The time when we start recording the planes should therefore be `tdriverstart` <= `runtime` - `(driverstore-1)*dtdriver`. More information on these parameters is in the documentation on [simulation setup](./udales-simulation-setup.md).
+
 
 ### 502
 

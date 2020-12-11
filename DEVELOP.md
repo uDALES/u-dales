@@ -48,6 +48,31 @@ mkdocs build --site-dir build/html
 ford docs/udales-docs-software.md
 ```
 
+### Examples input plots
+
+To create domain plots of the examples, run the following from your command line (requires MATLAB):
+
+```sh
+ matlab -nosplash -nodesktop -r "cd('tools/examples'); plot_blocks('<CASE_NUMBER>'); quit"
+```
+
+where `<CASE_NUMBER>` is e.g. `201`. Plots are then saved in their respective example folders.   
+
+### Examples outputs and plots
+
+Run the following script to run and generate outputs for all example cases:
+
+```sh
+./tools/examples/run_examples.sh
+```
+
+Then, to create a sample plot for case `102` run the following from your command line (requires MATLAB):
+
+```sh
+matlab -nosplash -nodesktop -r "cd('tools/examples'); plot_fielddump_slice('102','u','y',32,1); quit"
+```
+
+
 ## Versioning
 
 This project uses [semantic versioning](https://semver.org/).

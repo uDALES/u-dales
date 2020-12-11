@@ -9,6 +9,8 @@ image.sif
 *.log
 *.nc
 monitor*.txt
+outputs/
+examples/*/blocks.*.png
 
 # Restart and driver files
 examples/*/init*
