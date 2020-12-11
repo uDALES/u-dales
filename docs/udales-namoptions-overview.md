@@ -190,6 +190,7 @@ BCs at the bottom (BCbot; only effective if not covered with road facets): 1 = f
 | skyLW | 0. | `REAL` | Long-wave radiation from the sky. | |
 | GRLAI | 2. | `REAL` | Leaf area index of a green roof. | |
 | rsmin | 110. | `REAL` | Minimum resistance of soil/plant. | |
+| nwalllayers | 3 | `INTEGER` | Number of layers making up each facet. | |
 
 ## Namelist WALLS
 
