@@ -60,7 +60,7 @@ The parameters under the `&INPS` header are used only in the pre-processing.
 - `dpdx`: pressure gradient in x direction (Pa/m). Default: 0.
 - `dpdy`: pressure gradient in y direction (Pa/m). Default: 0.
 - `thl0`: temperature at z = 0. Default: 288.
-- `Tfacinit`: facet temperature, or if `lEB = .true.` then initial facet temperature. Default: `thl0`.
+- `facT`: facet temperature, or if `lEB = .true.` then initial facet temperature. Default: 288.
 - `qt0`: specific humidity at z = 0. Default: 0.
 - `lapse`: lapse rate (K/m). Default: 0.
 - `w_s`: subsidence. Default: 0.
