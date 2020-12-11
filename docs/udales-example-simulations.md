@@ -309,11 +309,12 @@ lbuoyancy    = .true.
 ltempeq      = .true.
 ```
 
-set an initial temperature profile
+set an initial temperature profile and initial facet temperature.
 
 ```fortran
 &INPS
 thl0         = 290.
+Tfacinit     = 288.
 ```
 
 and specify the advection scheme for temperature:
