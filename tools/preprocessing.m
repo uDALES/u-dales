@@ -319,7 +319,7 @@ classdef preprocessing < dynamicprops
                 preprocessing.addvar(obj, 'I', 184.8775); % Direct solar irradiation [W/m2]
                 preprocessing.addvar(obj, 'Dsk', 418.8041); % Diffuse incoming radiation [W/m2]
             end
-            preprocessing.addvar(obj, 'Tfacinit', obj.thl0) % Initial facet temperatures.
+            preprocessing.addvar(obj, 'facT', 288.) % Initial facet temperatures.
             preprocessing.addvar(obj, 'nwalllayers', 3) % Number of facet layers
             
             preprocessing.addvar(obj, 'nblocks', 0)
@@ -3691,9 +3691,9 @@ classdef preprocessing < dynamicprops
                         break
                     end
                 end
-                preprocessing.addvar(obj, 'Tfacinit_array', Tnew(:, k));
+                preprocessing.addvar(obj, 'Tfacinit', Tnew(:, k));
             else
-                preprocessing.addvar(obj, 'Tfacinit_array', obj.Tfacinit * ones(obj.nfcts, 1));
+                preprocessing.addvar(obj, 'Tfacinit', obj.facT * ones(obj.nfcts, 1));
             end
 %             if ltestplot
 %                 figure
@@ -3739,7 +3739,7 @@ classdef preprocessing < dynamicprops
             fileID = fopen(fname, 'W');
             fprintf(fileID, '# Initial facet tempereatures in radiative equilibrium\n');
             fclose(fileID);
-            dlmwrite(fname, obj.Tfacinit_array, '-append','delimiter',' ','precision','%4f')
+            dlmwrite(fname, obj.Tfacinit, '-append','delimiter',' ','precision','%4f')
 
 %             fname = ['Tfacinitnudged.inp.' obj.expnr];
 %             fileID = fopen(fname, 'W');

@@ -316,9 +316,9 @@
               end do
 
               do n = 1,nwalllayers
-                 facT(0, n) = thls
+                 facT(0, n) = 288.
               end do
-              facT(0, nwalllayers+1) = bldT
+              facT(0, nwalllayers+1) = 299.
             end if !((lEB) .or. (iwalltemp == 2))
 
             ! assign initial soil moisture (only outermost layer)
