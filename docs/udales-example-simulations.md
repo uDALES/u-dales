@@ -309,7 +309,7 @@ lbuoyancy    = .true.
 ltempeq      = .true.
 ```
 
-set an initial temperature profile
+set an initial temperature profile (using the surface temperature `thl0` and the default lapse rate)
 
 ```fortran
 &INPS
@@ -325,7 +325,7 @@ iadv_thl     = 2
 
 #### Isothermal BC for temperature
 
-The temperature on the facets is set by the values in `Tfacinit.f90` (288 K in this case). These temperatures do not change as the energy balance is not used as a default (`lEB = .false.`). A fixed temperature at the the top of the domain (`tthl_top`) is set by
+The temperature on the facets is set by the values in `Tfacinit.f90` (288 K in this case). These temperatures do not change as the energy balance is not used as a default (`lEB = .false.`). A fixed temperature at the the top of the domain (`thl_top`) is set by
 
 ```fortran
 &BC
@@ -628,6 +628,8 @@ iplane       = 128
 
 
 ### 502
+
+![blocks.502](./assets/images/blocks.502.png)
 
 #### Prerequisites simulation with external forcing
 

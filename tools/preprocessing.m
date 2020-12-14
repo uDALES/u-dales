@@ -319,7 +319,9 @@ classdef preprocessing < dynamicprops
                 preprocessing.addvar(obj, 'I', 184.8775); % Direct solar irradiation [W/m2]
                 preprocessing.addvar(obj, 'Dsk', 418.8041); % Diffuse incoming radiation [W/m2]
             end
-
+            preprocessing.addvar(obj, 'facT', 288.) % Initial facet temperatures.
+            preprocessing.addvar(obj, 'nwalllayers', 3) % Number of facet layers
+            
             preprocessing.addvar(obj, 'nblocks', 0)
             preprocessing.addvar(obj, 'nfcts', 0)
 
@@ -328,7 +330,7 @@ classdef preprocessing < dynamicprops
         end
 
         function generate_walltypes(obj)
-            K = 3; % Number of wall layers - currently restricted to 3
+            K = obj.nwalllayers;
             walltypes = [];
 
             % Bounding walls (bw)
@@ -353,12 +355,17 @@ classdef preprocessing < dynamicprops
             z0h_f = 0.00035;
             al_f  = 0.5;
             em_f  = 0.85;
-            %D_f   = 0.5;
-            %df   = D_f / K;
+            D_f   = 0.5;
+            d_f   = D_f / K;
             C_f   = 1.875e6;
             l_f   = 0.75;
             k_f   = 0.4e-6;
-            f =  [id_f, lGR_f, z0_f, z0h_f, al_f, em_f, 0.1, 0.2, 0.2, C_f * ones(1,K), l_f * ones(1,K), k_f * ones(1,K+1)];
+            if (K == 3)
+                % Reproduce the original walltypes.inp (d_f not constant for each layer)
+                f =  [id_f, lGR_f, z0_f, z0h_f, al_f, em_f, 0.1, 0.2, 0.2, C_f * ones(1,K), l_f * ones(1,K), k_f * ones(1,K+1)];
+            else
+                f =  [id_f, lGR_f, z0_f, z0h_f, al_f, em_f, d_f * ones(1,K), C_f * ones(1,K), l_f * ones(1,K), k_f * ones(1,K+1)];
+            end
             walltypes = [walltypes; f];
 
             % Dummy (dm)
@@ -470,7 +477,7 @@ classdef preprocessing < dynamicprops
         end
 
         function write_walltypes(obj)
-            K = 3; %nwalllayers
+            K = obj.nwalllayers;
 
             fname = ['walltypes.inp.', obj.expnr];
 
@@ -1019,8 +1026,8 @@ classdef preprocessing < dynamicprops
 
             topo=data;
             topomask=datamask;
-            preprocessing.addvar(obj, 'topo', topo)
-            preprocessing.addvar(obj, 'topomask', topomask)
+            preprocessing.addvar(obj, 'topo', flipud(topo))
+            preprocessing.addvar(obj, 'topomask', flipud(topomask))
 
             function [mask, image ] = fillgaps( mask,image,nj,ni,pad)
                 %fills horizontal and vertical 1D gaps of width 1
@@ -1951,6 +1958,18 @@ classdef preprocessing < dynamicprops
                 switch(facets(i, 1))
                     %only one test necessary, since the whole edge is internal, or not
                     %remember that facets stores facet coordinates, not block coordinates
+                    case 1
+                        ids = find(ismember(facets(:,[1,6:9]), facets(i,[1,6:9]),'rows'));
+                        if length(ids) ~= 1
+                              kcurrent = facets(i,5+kl);
+                              ks = facets(ids, 5+kl);
+                              if kcurrent == min(ks)
+                                  facets(i,5) = 1;
+                                  intern(j,1) = facets(i, 3);
+                                  intern(j,2) = IM(facets(i, 5 + il), facets(i, 5 + jl));
+                                  j = j + 1;
+                              end
+                        end
                     case 2
                         if facets(i, 5 + il) - 1 >= 1 %not at the domain edge
                             if M(facets(i, 5 + il) - 1 , facets(i, 5 + jl))
@@ -3672,12 +3691,9 @@ classdef preprocessing < dynamicprops
                         break
                     end
                 end
-
-
                 preprocessing.addvar(obj, 'Tfacinit', Tnew(:, k));
-
             else
-                preprocessing.addvar(obj, 'Tfacinit', 288 * ones(obj.nfcts, 1));
+                preprocessing.addvar(obj, 'Tfacinit', obj.facT * ones(obj.nfcts, 1));
             end
 %             if ltestplot
 %                 figure
