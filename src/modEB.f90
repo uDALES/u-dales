@@ -10,8 +10,8 @@ module modEB
 
    implicit none
    public :: EB, initEB, intqH, updateGR
-   
-   integer :: nstatT=1, nstatEB=5, ncidT, ncidEB, nrecT=0, nrecEB=0
+
+   integer :: nstatT=2, nstatEB=5, ncidT, ncidEB, nrecT=0, nrecEB=0
    character(80), allocatable :: ncstatT(:,:), ncstatEB(:,:)
    character(80) :: Tname = "facT.xxx.nc", EBname = 'facEB.xxx.nc'
    character(80),dimension(1,4) :: tncstatT, tncstatEB
@@ -243,13 +243,16 @@ function gaussji(c,d,n) result(a)
       m=m+1
       end do
       AM(1,1)=1.0
-      inAM = matinv4(AM)
+      if (nwalllayers == 3) then
+        inAM = matinv4(AM)
       !!alternatively
       !inAM=matinv3(AM)
       !!or
-      !inAM=gaussji(AM,IDM,nwalllayers+1)
-      
-      ! write facet temperatures to facT.xxx.nc, and energies to facEB.xxx.nc  
+      else
+        inAM=gaussji(AM,IDM,nwalllayers+1)
+      end if
+
+      ! write facet temperatures to facT.xxx.nc, and energies to facEB.xxx.nc
       if (lwriteEBfiles) then
 		Tname(6:8) = cexpnr
 		EBname(7:9) = cexpnr
@@ -257,6 +260,7 @@ function gaussji(c,d,n) result(a)
 		allocate(ncstatT(nstatT,4))
 		call ncinfo(tncstatT(1,:),'t', 'Time', 's', 'time')
 		call ncinfo(ncstatT( 1,:),'T' ,'Temperature', 'K','flt')
+    call ncinfo(ncstatT( 2,:),'dTdz','Temperature gradient','K/m','flt' )
 
 		allocate(ncstatEB(nstatEB,4))
 		call ncinfo(tncstatEB(1,:),'t', 'Time', 's', 'time')
@@ -265,10 +269,10 @@ function gaussji(c,d,n) result(a)
 		call ncinfo(ncstatEB( 3,:),'hf', 'Sensible heat flux', 'W','ft')
 		call ncinfo(ncstatEB( 4,:),'ef', 'Latent heat flux', 'W','ft')
 		call ncinfo(ncstatEB( 5,:),'WGR','Moisture?', 'W','ft')
-		
-		
-		if (myid==0) then      
-			call open_nc(Tname, ncidT, nrecT, nfcts=nfcts, nlyrs=nwalllayers)
+
+
+		if (myid==0) then
+			call open_nc(Tname, ncidT, nrecT, nfcts=nfcts, nlyrs=nwalllayers+1)
 			call open_nc(EBname, ncidEB, nrecEB, nfcts=nfcts)
 			if (nrecT==0) then
 				call define_nc( ncidT, 1, tncstatT)
@@ -436,8 +440,11 @@ function gaussji(c,d,n) result(a)
                   FM = CM + matmul(DM,HM)
                   GM = matmul(EM,HM)
                   HM = FM-GM*tEB
-
-                 GM = matinv4(HM)
+                  if (nwalllayers == 3) then
+                     GM = matinv4(HM)
+                  else
+                     GM = gaussji(HM,IDM,nwalllayers+1)
+                  end if
                  !instead of inverting matrix HM and multiplying by GM (=HM^-1) it would be waster to do a  left matrix division HM\x is faster than (HM^-1)*x
                   dumv = matmul(GM, (matmul(FM,facT(n,:))+w))
 
@@ -452,10 +459,11 @@ function gaussji(c,d,n) result(a)
 
           if (lwriteEBfiles) then
 			if (myid == 0) then
-				allocate(varsT(nfcts,nwalllayers,nstatT))
-				varsT(:,:,1) = facT(1:nfcts,1:nwalllayers)
+				allocate(varsT(nfcts,nwalllayers+1,nstatT))
+				varsT(:,:,1) = facT(1:nfcts,1:nwalllayers+1)
+        varsT(:,:,2) = facTdash(1:nfcts,1:nwalllayers+1)
 				call writestat_nc(ncidT,1,tncstatT,(/timee/),nrecT,.true.)
-				call writestat_2D_nc(ncidT,nstatT,ncstatT,varsT,nrecT,nfcts,nwalllayers)
+				call writestat_2D_nc(ncidT,nstatT,ncstatT,varsT,nrecT,nfcts,nwalllayers+1)
 				deallocate(varsT)
 				
 				allocate(varsEB(nfcts,nstatEB))
@@ -537,7 +545,7 @@ function gaussji(c,d,n) result(a)
             end do
          end if !myid==0
          write (*, *) "bcasting facT"
-         call MPI_BCAST(facT(0:nfcts, 1:4), 4*(nfcts + 1), MY_REAL, 0, comm3d, mpierr)
+         call MPI_BCAST(facT(0:nfcts, 1:nwalllayers+1), (nwalllayers+1)*(nfcts + 1), MY_REAL, 0, comm3d, mpierr)
          call MPI_BCAST(tnextEB, 1, MY_REAL, 0, comm3d, mpierr)
          call MPI_BCAST(facqsat(0:nfcts), nfcts + 1, MY_REAL, 0, comm3d, mpierr)
          call MPI_BCAST(facf(0:nfcts, 1:5), (nfcts + 1)*5, MY_REAL, 0, comm3d, mpierr)
