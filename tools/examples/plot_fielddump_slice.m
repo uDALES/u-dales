@@ -40,24 +40,24 @@ if (slice_var == 'x')
     axis equal
     xlim([yh(1), y(end)])
     ylim([zh(1), z(end)])
-    xlabel('$y$ in m', 'interpreter', 'latex')
-    ylabel('$z$ in m', 'interpreter', 'latex')
+    xlabel('$y$ [m]', 'interpreter', 'latex')
+    ylabel('$z$ [m]', 'interpreter', 'latex')
 elseif (slice_var == 'y')
     slice_val = y(slice_id)+0.5*dy;
     pcolor(x,z,squeeze(field(:,slice_id,:,time_id))')
     axis equal
     xlim([xh(1), x(end)])
     ylim([zh(1), z(end)])
-    xlabel('$x$ in m', 'interpreter', 'latex')
-    ylabel('$z$ in m', 'interpreter', 'latex')
+    xlabel('$x$ [m]', 'interpreter', 'latex')
+    ylabel('$z$ [m]', 'interpreter', 'latex')
 elseif (slice_var == 'z')
     slice_val = z(slice_id)+0.5*dz;
     pcolor(x,y,squeeze(field(:,:,slice_id,time_id))')
     axis equal
     xlim([xh(1), x(end)])
     ylim([yh(1), y(end)])
-    xlabel('$x$ in m', 'interpreter', 'latex')
-    ylabel('$y$ in m', 'interpreter', 'latex')
+    xlabel('$x$ [m]', 'interpreter', 'latex')
+    ylabel('$y$ [m]', 'interpreter', 'latex')
 end
 
 shading interp
@@ -162,13 +162,13 @@ view(3)
 xlim([xh(1), xh(end)])
 ylim([yh(1), yh(end)])
 zlim([zh(1), zh(end)])
-xlabel('$x$ in m', 'interpreter', 'latex')
+xlabel('$x$ [m]', 'interpreter', 'latex')
 hXLabel = get(gca,'XLabel');
 set(hXLabel,'rotation', 30)
-ylabel('$y$ in m', 'interpreter', 'latex')
+ylabel('$y$ [m]', 'interpreter', 'latex')
 hYLabel = get(gca,'YLabel');
 set(hYLabel,'rotation', -35)
-zlabel('$z$ in m', 'interpreter', 'latex')
+zlabel('$z$ [m]', 'interpreter', 'latex')
 
 % Plot slice
 
