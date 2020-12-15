@@ -164,7 +164,7 @@ ylim([yh(1), yh(end)])
 zlim([zh(1), zh(end)])
 xlabel('$x$ [m]', 'interpreter', 'latex')
 hXLabel = get(gca,'XLabel');
-set(hXLabel,'rotation', 30)
+set(hXLabel,'rotation', 25)
 ylabel('$y$ [m]', 'interpreter', 'latex')
 hYLabel = get(gca,'YLabel');
 set(hYLabel,'rotation', -35)
