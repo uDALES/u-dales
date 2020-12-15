@@ -40,32 +40,32 @@ if (slice_var == 'x')
     axis equal
     xlim([yh(1), y(end)])
     ylim([zh(1), z(end)])
-    xlabel('$y$', 'interpreter', 'latex')
-    ylabel('$z$', 'interpreter', 'latex')
+    xlabel('$y$ [m]', 'interpreter', 'latex')
+    ylabel('$z$ [m]', 'interpreter', 'latex')
 elseif (slice_var == 'y')
     slice_val = y(slice_id)+0.5*dy;
     pcolor(x,z,squeeze(field(:,slice_id,:,time_id))')
     axis equal
     xlim([xh(1), x(end)])
     ylim([zh(1), z(end)])
-    xlabel('$x$', 'interpreter', 'latex')
-    ylabel('$z$', 'interpreter', 'latex')
+    xlabel('$x$ [m]', 'interpreter', 'latex')
+    ylabel('$z$ [m]', 'interpreter', 'latex')
 elseif (slice_var == 'z')
     slice_val = z(slice_id)+0.5*dz;
     pcolor(x,y,squeeze(field(:,:,slice_id,time_id))')
     axis equal
     xlim([xh(1), x(end)])
     ylim([yh(1), y(end)])
-    xlabel('$x$', 'interpreter', 'latex')
-    ylabel('$y$', 'interpreter', 'latex')
+    xlabel('$x$ [m]', 'interpreter', 'latex')
+    ylabel('$y$ [m]', 'interpreter', 'latex')
 end
 
 shading interp
-title(['$', field_var, '(', slice_var, '=', num2str(slice_val), '\mathrm{m}, t=', num2str(time(time_id)), '\mathrm{s})$'], 'interpreter', 'latex')
+title(['$', field_var, '(', slice_var, '=', num2str(slice_val), '\mathrm{\ m}, t=', num2str(time(time_id)), '\mathrm{\ s})$'], 'interpreter', 'latex')
 cmap = redblue();
 colormap(cmap)
 c = colorbar;
-c.Title.String = 'm/s';
+c.Title.String = '$\mathrm{\ m\ s^{-1}}$';
 c.Title.Interpreter = 'latex';
 c.TickLabelInterpreter = 'latex';
 c.FontSize = 12;
@@ -162,9 +162,13 @@ view(3)
 xlim([xh(1), xh(end)])
 ylim([yh(1), yh(end)])
 zlim([zh(1), zh(end)])
-xlabel('$x$', 'interpreter', 'latex')
-ylabel('$y$', 'interpreter', 'latex')
-zlabel('$z$', 'interpreter', 'latex')
+xlabel('$x$ [m]', 'interpreter', 'latex')
+hXLabel = get(gca,'XLabel');
+set(hXLabel,'rotation', 25)
+ylabel('$y$ [m]', 'interpreter', 'latex')
+hYLabel = get(gca,'YLabel');
+set(hYLabel,'rotation', -35)
+zlabel('$z$ [m]', 'interpreter', 'latex')
 
 % Plot slice
 
@@ -194,11 +198,11 @@ elseif (slice_var == 'z')
 end
 
 set(s, 'FaceColor', 'interp', 'EdgeColor', 'none', 'FaceLighting', 'flat', 'AmbientStrength', 1)
-title(['$', field_var, '(', slice_var, '=', num2str(slice_val), '\mathrm{m}, t=', num2str(time(time_id)), '\mathrm{s})$'], 'interpreter', 'latex')
+title(['$', field_var, '(', slice_var, '=', num2str(slice_val), '\mathrm{\ m}, t=', num2str(time(time_id)), '\mathrm{\ s})$'], 'interpreter', 'latex')
 cmap = redblue();
 colormap(cmap)
 c = colorbar;
-c.Title.String = 'm/s';
+c.Title.String = '$\mathrm{\ m\ s^{-1}}$';
 c.Title.Interpreter = 'latex';
 c.TickLabelInterpreter = 'latex';
 c.FontSize = 12;
