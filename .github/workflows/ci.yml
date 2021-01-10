@@ -49,13 +49,11 @@ jobs:
       run: |
         mkdocs build --site-dir build/html
         ford docs/udales-docs-software.md
-        mkdir -p temp/html/0YiO263pFxExSdkMvWfId3qkVUSF4dREFnwM1jQD9y1KvzeAVAWzGykQemUrkJCM
-        mv build/html temp/html/0YiO263pFxExSdkMvWfId3qkVUSF4dREFnwM1jQD9y1KvzeAVAWzGykQemUrkJCM
 
     - name: Publish docs
       if: matrix.os == 'ubuntu-latest' && matrix.build-type == 'Release' && github.event_name == 'push' && github.ref == 'refs/heads/master'
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: temp/html
+        publish_dir: build/html/
         force_orphan: true

@@ -27,7 +27,7 @@ cmake ../..
 make
 ```
 
-To know more about build options, please see [build/default options](https://udales.github.io/u-dales/0YiO263pFxExSdkMvWfId3qkVUSF4dREFnwM1jQD9y1KvzeAVAWzGykQemUrkJCM/html/udales-getting-started/#build-defaultsoptions).
+To know more about build options, please see [build/default options](https://udales.github.io/u-dales/udales-getting-started/#build-defaultsoptions).
 
 ## Running
 
