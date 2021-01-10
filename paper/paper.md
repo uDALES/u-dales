@@ -24,7 +24,7 @@ authors:
     affiliation: "3, 1"
   - name: Maarten van Reeuwijk
     orcid: 0000-0003-4840-5050
-    affiliation: 3
+    affiliation: 1
 affiliations:
  - name: Department of Civil and Environmental Engineering, Imperial College London, London, UK
    index: 1
@@ -41,7 +41,7 @@ bibliography: paper.bib
 
 With continuing urbanization, challenges associated with the urban environment such as air quality, heat islands, pedestrian thermal comfort, and wind loads on tall buildings, are increasingly relevant. Our ability to realistically capture processes such as the transport of heat, moisture, momentum and pollutants, and those of radiative transfer in urban environments is key to understanding and facing these challenges [@Oke2017]. The turbulent nature of the urban flow field and the inherent heterogeneity and wide range of scales associated with the urban environment result in a complex modelling problem. Large-eddy simulation (LES) is an approach to turbulence modelling used in computational fluid dynamics to simulate turbulent flows over a wide range of spatial and temporal scales. LES is one of the most promising tools to model the interactions typical of urban areas due to its ability to resolve the urban flow field at resolutions of $O$(1 m, 0.1 s), over spatial domains of $O$(100 m), and time periods of $O$(1 h). Although there are many scalable LES models for atmospheric flows, to our knowledge, only few are capable of explicitly representing buildings and of modelling the full range of urban processes (e.g. PALM-4U @Resler2017; @Maronga2020; or OpenFoam @Weller1998).
 
-uDALES (urban Dutch Atmospheric LES) is an extension of DALES (Dutch Atmospheric LES; @Heus2010, @Tomas2015), capable of modelling urban environments at the microclimate scale with wet thermodynamics (Table 1). The uDALES framework includes tools to enable users to model a wide variety of idealized and complex urban morphologies [@Stzl2020]. uDALES uses an Arakawa C-grid and typically uses second-order central-differencing schemes. For scalar quantities, e.g. for pollution concentration, it is possible to use a kappa-scheme for advection to ensure positivity. A third-order Runge-Kutta time integration scheme is applied. The immersed boundary method is used to represent buildings [@Pourquie2009] and wall functions to represent the surface scalar fluxes and shear stresses at the immersed boundaries [@Cai2011; @Cai2012; @Uno1995]. The code uses Fast-Fourier transforms to efficiently solve the Poisson solver for pressure and is fully parallelized using MPI.
+uDALES (urban Dutch Atmospheric LES) is an extension of DALES (Dutch Atmospheric LES; @Heus2010, @Tomas2015), capable of modelling urban environments at the microclimate scale with wet thermodynamics (Table 1). The uDALES framework includes tools to enable users to model a wide variety of idealized and complex urban morphologies [@Sutzl2020]. uDALES uses an Arakawa C-grid and typically uses second-order central-differencing schemes. For scalar quantities, e.g. for pollution concentration, it is possible to use a kappa-scheme for advection to ensure positivity. A third-order Runge-Kutta time integration scheme is applied. The immersed boundary method is used to represent buildings [@Pourquie2009] and wall functions to represent the surface scalar fluxes and shear stresses at the immersed boundaries [@Cai2011; @Cai2012; @Uno1995]. The code uses Fast-Fourier transforms to efficiently solve the Poisson solver for pressure and is fully parallelized using MPI.
 
 A novel surface energy balance model has been implemented in a two-way-coupled manner [@Suter2018] and includes the effect of turbulent exchange of heat between the surface and the air, as well as radiation and thermal conduction within the surface. uDALES has tools for modelling shortwave and longwave radiative fluxes following a radiosity approach (similar to @Aoyagi2011; @Resler2017), including calculation of direct solar radiation and view factors [@RammohanRao1996], considering shading and multiple reflections. 
 
@@ -51,7 +51,7 @@ The modelling capabilities of uDALES outlined above, combined with the ability t
 
 | Research application                                         | Reference                             |
 | ------------------------------------------------------------ | ------------------------------------- |
-| Urban boundary layers/ boundary-layer meteorology            | @Grylls2019; @Stzl2020                |
+| Urban boundary layers/ boundary-layer meteorology            | @Grylls2019; @Sutzl2020                |
 | Urban climate (radiation, green roofs and walls, trees etc.) | @Suter2018; @Suter2021; @Grylls2021   |
 | Pollution dispersion/ urban air quality                      | @Grylls2019;  @Grylls2020             |
 | Buoyancy/ convective and stable conditions                   | @Grylls2019; @Grylls2020; @Grylls2021 |
