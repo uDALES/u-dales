@@ -79,6 +79,10 @@ def run_and_compare(cases_dir, path_to_exes, is_patch=False):
             print(f'Skipping tests for case {case_id}')
             continue
 
+        if case_id == '502' and platform == "darwin": # FIXME: need to re-enable this. See #131.
+            print('Skipping test for case 502 on macOS, see #131')
+            continue
+
         print(f'Running tests for example {case_id}')
 
         if is_patch:
