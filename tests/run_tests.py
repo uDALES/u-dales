@@ -72,7 +72,7 @@ def run_and_compare(cases_dir, path_to_exes, is_patch=False):
     precursor_sims = ['501']
     driver_sims = ['502']
 
-    for case_path in cases_dir:
+    for case_path in sorted(cases_dir):
         case_id = case_path.stem
 
         if case_id in excluded_cases:
