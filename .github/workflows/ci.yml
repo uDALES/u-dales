@@ -11,8 +11,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ['ubuntu-latest']
-        build-type: ['Release']
+        os: ['ubuntu-latest', 'macos-latest']
+        build-type: ['Debug', 'Release']
     
     steps:
     - name: Check-out project
@@ -41,7 +41,7 @@ jobs:
       shell: bash -l {0}
       run: |
         if [ ${{ matrix.os }} = 'macos-latest' ]; then export FC=gfortran-9; fi
-        python3 tests/run_tests.py master $GITHUB_SHA ${{ matrix.build-type}}
+        python3 -u tests/run_tests.py master $GITHUB_SHA ${{ matrix.build-type}}
 
     - name: Build docs
       if: matrix.os == 'ubuntu-latest' && matrix.build-type == 'Release'
