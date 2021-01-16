@@ -9,7 +9,7 @@ dependencies:
   - numpy
   - netCDF4
   - matplotlib
-  - f90nml
+  - f90nml==1.1.2
   # Docs
   - graphviz
   - mkdocs-material
