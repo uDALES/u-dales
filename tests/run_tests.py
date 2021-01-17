@@ -68,7 +68,8 @@ def main(branch_a: str, branch_b: str, build_type: str):
 
 
 def run_and_compare(cases_dir, path_to_exes, is_patch=False):
-    excluded_cases = []
+    excluded_cases = ['501', '502']
+    excluded_platforms = ['Darwin']
     precursor_sims = ['501']
     driver_sims = ['502']
 
@@ -76,8 +77,9 @@ def run_and_compare(cases_dir, path_to_exes, is_patch=False):
         case_id = case_path.stem
 
         if case_id in excluded_cases:
-            print(f'Skipping tests for case {case_id}')
-            continue
+            if platform.system() in excluded_platforms:
+                print(f'Skipping tests for case {case_id} on {excluded_platforms}')
+                continue
 
         print(f'Running tests for example {case_id}')
 
