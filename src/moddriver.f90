@@ -282,7 +282,7 @@ contains
       ! thlmdriver = thl0driver
       ! qtmdriver = qt0driver
 
-      if (rk3step==1) then
+      if (rk3step <= 1) then
         umdriver = u0driver
         vmdriver = v0driver
         wmdriver = w0driver
