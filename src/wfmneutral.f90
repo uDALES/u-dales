@@ -139,7 +139,7 @@ SUBROUTINE wfmneutral(hi,hj,hk,iout1,iout2,iomomflux,utang1,utang2,z0,n,ind,wfor
       END DO
 
       !w west bottom edge
-      k = block(n, 6)  ! ending k-index
+      k = block(n, 5)  ! ending k-index
       if (k.gt.0) then
       km = k - 1
       DO j = jl, ju
@@ -248,7 +248,7 @@ SUBROUTINE wfmneutral(hi,hj,hk,iout1,iout2,iomomflux,utang1,utang2,z0,n,ind,wfor
       END DO
 
      !w east edge bot
-      k = block(n, 6)  ! 
+      k = block(n, 5)  ! 
       if (k.gt.0) then
       DO j = jl, ju
          utang2Int = utang2(i, j, k)
@@ -349,7 +349,7 @@ SUBROUTINE wfmneutral(hi,hj,hk,iout1,iout2,iomomflux,utang1,utang2,z0,n,ind,wfor
       END DO
 
 !w north edge bot
-      k = block(n, 6) 
+      k = block(n, 5) 
      if (k.gt.0) then
       DO i = il, iu
          utang2Int = utang2(i, j, k)
@@ -458,7 +458,7 @@ DO k = kl, ku
       END DO
 
 !w south edge bot
-      k = block(n, 6)
+      k = block(n, 5)
       if (k.gt.0) then 
       DO i = il, iu
          utang2Int = utang2(i, j, k)
@@ -516,7 +516,8 @@ DO k = kl, ku
       END DO
 
 !u top edge east
-  DO j = jl, ju
+      i = block(n, 2) + 1
+      DO j = jl, ju
          utang1Int = utang1(i, j, k)
          dummy = (utang1Int**2)*fkar2/(logdz2)
          bcmomflux = SIGN(dummy, utang1Int)

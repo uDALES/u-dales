@@ -354,7 +354,7 @@ end if
       END DO
 
       !w west bottom edge
-      k = block(n, 6)  ! ending k-index
+      k = block(n, 5)  ! ending k-index
       if (k.gt.0) then
       km = k - 1
       DO j = jl, ju
@@ -494,7 +494,7 @@ end if
       END DO
 
      !w east edge bot
-      k = block(n, 6)  ! 
+      k = block(n, 5)  ! 
       if (k.gt.0) then
       DO j = jl, ju
          utang1Int = (utang1(i, j, k) + utang1(i, j + 1, k) + utang1(i, j + 1, k - 1) + utang1(i, j, k - 1))*0.25
@@ -623,7 +623,7 @@ end if
       END DO
 
 !w north edge bot
-      k = block(n, 6) 
+      k = block(n, 5) 
      if (k.gt.0) then
       DO i = il, iu
          utang1Int = (utang1(i, j, k) + utang1(i, j, k - 1) + utang1(i + 1, j, k) + utang1(i + 1, j, k - 1))*0.25
@@ -760,7 +760,7 @@ DO k = kl, ku
       END DO
 
 !w south edge bot
-      k = block(n, 6)
+      k = block(n, 5)
       if (k.gt.0) then 
       DO i = il, iu
          utang1Int = (utang1(i, j, k) + utang1(i, j, k - 1) + utang1(i + 1, j, k) + utang1(i + 1, j, k - 1))*0.25
@@ -833,7 +833,8 @@ DO k = kl, ku
       END DO
 
 !u top edge east
-  DO j = jl, ju
+      i = block(n, 2) + 1
+      DO j = jl, ju
          utang1Int = utang1(i, j, k)
          utang2Int = (utang2(i, j, k) + utang2(i - 1, j, k) + utang2(i, j + 1, k) + utang2(i - 1, j + 1, k))*0.25
          utangInt = max(umin, (utang1Int**2 + utang2Int**2))
