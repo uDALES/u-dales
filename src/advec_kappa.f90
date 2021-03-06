@@ -4,16 +4,35 @@
 !! \par Authors
 !! \see Hundsdorfer et al 1995
 !!
-!! For advection of scalars that need to be strictly monotone (for example chemically reacting species) the kappa scheme has been implemented:
+!! For advection of scalars that need to be strictly monotone (for example chemically reacting species)
+!! the kappa scheme has been implemented:
 !! \latexonly
 !! \begin{eqnarray}
 !!  F_{i-\frac{1}{2}}^{\kappa} &=& \fav{u}_{i-\frac{1}{2}}
 !!  \left[\phi_{i-1}+\frac{1}{2}\kappa_{i-\frac{1}{2}}\left(\phi_{i-1}-\phi_{i-2}\right)\right],
-!! \end{eqnarrayl}
-!! in case $\fav{u}>0$. $\kappa_{i-\smfrac{1}{2}}$ serves as a switch between higher order advection and first order upwind in case of strong upwind gradients of $\phi$.
+!! \end{eqnarray}
+!! in case $\fav{u}>0$. $\kappa_{i-\smfrac{1}{2}}$ serves as a switch between higher order advection and
+!! first order upwind in case of strong upwind gradients of $\phi$.
 !! \endlatexonly
 !! This makes the scheme monotone, but also rather dissipative.
 !!
+!  This file is part of DALES.
+!
+! DALES is free software; you can redistribute it and/or modify
+! it under the terms of the GNU General Public License as published by
+! the Free Software Foundation; either version 3 of the License, or
+! (at your option) any later version.
+!
+! DALES is distributed in the hope that it will be useful,
+! but WITHOUT ANY WARRANTY; without even the implied warranty of
+! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+! GNU General Public License for more details.
+!
+! You should have received a copy of the GNU General Public License
+! along with this program.  If not, see <http://www.gnu.org/licenses/>.
+!
+!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
+!
 
 !> Advection at cell center
   subroutine advecc_kappa(hi, hj, hk, var, varp)
