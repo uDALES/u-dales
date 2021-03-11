@@ -1,6 +1,6 @@
 # Getting Started
 
-Getting started with uDALES to set up your own experiments is straightforward. This guide goes through the steps required to [install](#installation) uDALES, and [set-up](#set-up) and [run](#run) a simple example.
+Getting started with uDALES to set up your own experiments is straightforward. This guide goes through the steps required to [install](#installation) uDALES, and [set-up](#set-up) and [run](#run) a simple example. Results are outputted in netCDF format, for a quick inspection you can use GUI tools such as [Panoply](https://www.giss.nasa.gov/tools/panoply/). To learn more about pre- and post-processing steps see the [what's next section](#whats-next).
 
 
 ## Singularity
