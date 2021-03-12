@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+   
+    <meta name="description" content="Documentation for uDALES">
+   
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>modchecksim.f90 &ndash; uDALES</title>
+
+    <link href="../css/bootstrap.min.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <link href="../css/font-awesome.min.css" rel="stylesheet">
+    <link href="../css/local.css" rel="stylesheet">
+    
+    <link  href="../tipuesearch/tipuesearch.css" rel="stylesheet">
+    
+    
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    
+    <script src="../js/jquery-2.1.3.min.js"></script>
+    <script src="../js/svg-pan-zoom.min.js"></script>
+
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+        
+            <li class="dropdown hidden-xs visible-sm visible-md hidden-lg">
+              <a href="#" class="dropdown-toggle"
+              data-toggle="dropdown" role="button"
+              aria-haspopup="true"
+     aria-expanded="false">Contents <span class="caret"></span></a>
+        <ul class="dropdown-menu">
+          
+              
+            <li><a href="../lists/files.html">Source Files</a></li>
+        
+        
+        
+            <li><a href="../lists/modules.html">Modules</a></li>
+        
+            
+                                
+            <li><a href="../lists/procedures.html">Procedures</a></li>
+        
+               
+            <li><a href="../lists/types.html">Derived Types</a></li>
+        
+        
+            <li><a href="../program/dalesurban.html">Program</a></li>
+      
+            </ul>
+            </li>
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/files.html">Source Files</a></li>
+
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/modules.html">Modules</a></li>
+
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/procedures.html">Procedures</a></li>
+
+                             
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/types.html">Derived Types</a></li>
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../program/dalesurban.html">Program</a></li>
+
+          </ul>
+        
+        <form action="../search.html" class="navbar-form navbar-right" role="search">
+        <div class="form-group">
+          <input type="text" class="form-control" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+        </div>
+<!--
+        <button type="submit" class="btn btn-default">Submit</button>
+-->
+        </form>
+        
+        </div><!--/.nav-collapse -->
+      </div>
+    </nav>
+
+    <div class="container">
+    
+  
+  <div class="row">
+    <h1>modchecksim.f90
+    <small>Source File</small>
+    
+    </h1>
+    
+<div class="row">
+  <div class="col-lg-12">
+<div class="well well-sm">
+  <ul class="list-inline" style="margin-bottom:0px;display:inline">
+     
+     
+     
+     
+    
+    
+     <li><i class="fa fa-list-ol"></i>
+       <a data-toggle="tooltip"
+    data-placement="bottom" data-html="true"
+    title=" 1.1% of total for source files.">151 statements</a>
+     </li> 
+     
+     
+     
+    <li><i class="fa fa-code"></i><a href="../src/modchecksim.f90"> Source File</a></li>
+     
+     
+  </ul>
+  <ol class="breadcrumb in-well text-right">
+  
+    
+  
+     <li class="active">modchecksim.f90</li>
+  </ol>
+</div>
+</div>
+</div>
+<script>
+  $(function () {
+  $('[data-toggle="tooltip"]').tooltip()
+  })
+</script>
+
+  </div>
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+    
+<div id="sidebar">
+  
+<h3>Contents</h3>
+ 
+
+
+
+
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#mods-0">Modules</a></h3></div>
+  <div id="mods-0" class="panel-collapse collapse">
+    <div class="list-group">
+      
+      <a class="list-group-item" href="../module/modchecksim.html">modchecksim</a>
+      
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../sourcefile/modchecksim.f90.html#src">modchecksim.f90</a>
+  </div>
+</div>
+
+
+
+</div>
+
+    </div>
+    <div class="col-md-9" id='text'>
+      
+      <br>
+    
+    <div class="panel panel-default">
+      <div class="panel-heading">
+  <h3 class="panel-title">This file depends on</h3>
+      </div>
+      <div class="panel-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.40.1 (20161225.0304)
+ -->
+<!-- Title: sourcefile~~modchecksim.f90~~EfferentGraph Pages: 1 -->
+<svg id="sourcefilemodchecksimf90EfferentGraph" width="511pt" height="112pt"
+ viewBox="0.00 0.00 511.00 112.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="sourcefile~~modchecksim.f90~~EfferentGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 108)">
+<title>sourcefile~~modchecksim.f90~~EfferentGraph</title>
+<polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-108 507,-108 507,4 -4,4"/>
+<!-- sourcefile~modchecksim.f90 -->
+<g id="sourcefile~~modchecksim.f90~~EfferentGraph_node1" class="node">
+<title>sourcefile~modchecksim.f90</title>
+<polygon fill="none" stroke="#000000" points="503,-64 396,-64 396,-40 503,-40 503,-64"/>
+<text text-anchor="middle" x="449.5" y="-49.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#000000">modchecksim.f90</text>
+</g>
+<!-- sourcefile~modsubgriddata.f90 -->
+<g id="sourcefile~~modchecksim.f90~~EfferentGraph_node2" class="node">
+<title>sourcefile~modsubgriddata.f90</title>
+<g id="a_sourcefile~~modchecksim.f90~~EfferentGraph_node2"><a xlink:href=".././sourcefile/modsubgriddata.f90.html" xlink:title="modsubgriddata.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="360,-104 239,-104 239,-80 360,-80 360,-104"/>
+<text text-anchor="middle" x="299.5" y="-89.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modsubgriddata.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modchecksim.f90&#45;&gt;sourcefile~modsubgriddata.f90 -->
+<g id="sourcefile~~modchecksim.f90~~EfferentGraph_edge1" class="edge">
+<title>sourcefile~modchecksim.f90&#45;&gt;sourcefile~modsubgriddata.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M404.4951,-64.0013C388.8445,-68.1748 371.1076,-72.9046 354.7261,-77.273"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="353.4927,-73.9796 344.7322,-79.9381 355.2964,-80.7432 353.4927,-73.9796"/>
+</g>
+<!-- sourcefile~modmpi.f90 -->
+<g id="sourcefile~~modchecksim.f90~~EfferentGraph_node3" class="node">
+<title>sourcefile~modmpi.f90</title>
+<g id="a_sourcefile~~modchecksim.f90~~EfferentGraph_node3"><a xlink:href=".././sourcefile/modmpi.f90.html" xlink:title="modmpi.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="77,-44 0,-44 0,-20 77,-20 77,-44"/>
+<text text-anchor="middle" x="38.5" y="-29.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modmpi.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modchecksim.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~modchecksim.f90~~EfferentGraph_edge2" class="edge">
+<title>sourcefile~modchecksim.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M299.5,-52C225.5499,-46.7997 139.8683,-40.1061 87.4321,-35.9337"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="87.6481,-32.4399 77.4015,-35.1341 87.0917,-39.4178 87.6481,-32.4399"/>
+</g>
+<!-- sourcefile~modglobal.f90 -->
+<g id="sourcefile~~modchecksim.f90~~EfferentGraph_node4" class="node">
+<title>sourcefile~modglobal.f90</title>
+<g id="a_sourcefile~~modchecksim.f90~~EfferentGraph_node4"><a xlink:href=".././sourcefile/modglobal.f90.html" xlink:title="modglobal.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="203,-24 113,-24 113,0 203,0 203,-24"/>
+<text text-anchor="middle" x="158" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modglobal.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modchecksim.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~modchecksim.f90~~EfferentGraph_edge3" class="edge">
+<title>sourcefile~modchecksim.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M395.9807,-53.8194C367.328,-54.3347 331.4523,-54.2469 299.5,-52"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M299.5,-52C263.7355,-49.485 224.6258,-37.691 196.6049,-27.5558"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="197.7727,-24.256 187.1797,-24.058 195.3372,-30.8187 197.7727,-24.256"/>
+</g>
+<!-- sourcefile~modfields.f90 -->
+<g id="sourcefile~~modchecksim.f90~~EfferentGraph_node5" class="node">
+<title>sourcefile~modfields.f90</title>
+<g id="a_sourcefile~~modchecksim.f90~~EfferentGraph_node5"><a xlink:href=".././sourcefile/modfields.f90.html" xlink:title="modfields.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="342,-24 257,-24 257,0 342,0 342,-24"/>
+<text text-anchor="middle" x="299.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modfields.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modchecksim.f90&#45;&gt;sourcefile~modfields.f90 -->
+<g id="sourcefile~~modchecksim.f90~~EfferentGraph_edge4" class="edge">
+<title>sourcefile~modchecksim.f90&#45;&gt;sourcefile~modfields.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M404.4951,-39.9987C387.9755,-35.5935 369.1314,-30.5684 352.0104,-26.0028"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="352.7237,-22.5707 342.1595,-23.3759 350.92,-29.3344 352.7237,-22.5707"/>
+</g>
+<!-- sourcefile~modglobal.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~modchecksim.f90~~EfferentGraph_edge5" class="edge">
+<title>sourcefile~modglobal.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#00ffff" stroke-dasharray="5,2" d="M112.8222,-19.5611C104.4581,-20.961 95.6884,-22.4287 87.2244,-23.8453"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="86.3848,-20.437 77.0997,-25.5398 87.5403,-27.341 86.3848,-20.437"/>
+</g>
+<!-- sourcefile~modfields.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~modchecksim.f90~~EfferentGraph_edge6" class="edge">
+<title>sourcefile~modfields.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#7f00ff" stroke-dasharray="5,2" d="M256.6613,-12C243.0467,-12 227.7899,-12 213.4194,-12"/>
+<polygon fill="#7f00ff" stroke="#7f00ff" points="213.1484,-8.5001 203.1484,-12 213.1483,-15.5001 213.1484,-8.5001"/>
+</g>
+</g>
+</svg>
+</div><div><a type="button" class="graph-help" data-toggle="modal" href="#graph-help-text">Help</a></div><div class="modal fade" id="graph-help-text" tabindex="-1" role="dialog"><div class="modal-dialog modal-lg" role="document"><div class="modal-content"><div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button><h4 class="modal-title" id="-graph-help-label">Graph Key</h4></div><div class="modal-body">
+    <p>Nodes of different colours represent the following: </p>
+    <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.40.1 (20161225.0304)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="202pt" height="32pt"
+ viewBox="0.00 0.00 201.50 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28)">
+<title>Graph Key</title>
+<polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-28 197.5,-28 197.5,4 -4,4"/>
+<!-- Source File -->
+<g id="node1" class="node">
+<title>Source File</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="71,-24 0,-24 0,0 71,0 71,-24"/>
+<text text-anchor="middle" x="35.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">Source File</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node2" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="#000000" points="193.5,-24 89.5,-24 89.5,0 193.5,0 193.5,-24"/>
+<text text-anchor="middle" x="141.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#000000">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+    
+    <p>Solid arrows point from a file to a file which it depends on. A file
+    is dependent upon another if the latter must be compiled before the former
+    can be. Where possible, edges connecting nodes are given different colours to make them easier to distinguish in large graphs.
+    </p>
+    </div></div></div></div>
+      </div>
+    </div>
+    
+      
+    <div class="panel panel-default">
+      <div class="panel-heading">
+  <h3 class="panel-title">Files dependent on this one</h3>
+      </div>
+      <div class="panel-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.40.1 (20161225.0304)
+ -->
+<!-- Title: sourcefile~~modchecksim.f90~~AfferentGraph Pages: 1 -->
+<svg id="sourcefilemodchecksimf90AfferentGraph" width="230pt" height="32pt"
+ viewBox="0.00 0.00 230.00 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="sourcefile~~modchecksim.f90~~AfferentGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 28)">
+<title>sourcefile~~modchecksim.f90~~AfferentGraph</title>
+<polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-28 226,-28 226,4 -4,4"/>
+<!-- sourcefile~modchecksim.f90 -->
+<g id="sourcefile~~modchecksim.f90~~AfferentGraph_node1" class="node">
+<title>sourcefile~modchecksim.f90</title>
+<polygon fill="none" stroke="#000000" points="107,-24 0,-24 0,0 107,0 107,-24"/>
+<text text-anchor="middle" x="53.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#000000">modchecksim.f90</text>
+</g>
+<!-- sourcefile~program.f90 -->
+<g id="sourcefile~~modchecksim.f90~~AfferentGraph_node2" class="node">
+<title>sourcefile~program.f90</title>
+<g id="a_sourcefile~~modchecksim.f90~~AfferentGraph_node2"><a xlink:href=".././sourcefile/program.f90.html" xlink:title="program.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="222,-24 143,-24 143,0 222,0 222,-24"/>
+<text text-anchor="middle" x="182.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">program.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~program.f90&#45;&gt;sourcefile~modchecksim.f90 -->
+<g id="sourcefile~~modchecksim.f90~~AfferentGraph_edge1" class="edge">
+<title>sourcefile~program.f90&#45;&gt;sourcefile~modchecksim.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M142.7431,-12C134.6554,-12 125.9559,-12 117.2739,-12"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="117.1278,-8.5001 107.1277,-12 117.1277,-15.5001 117.1278,-8.5001"/>
+</g>
+</g>
+</svg>
+</div><div><a type="button" class="graph-help" data-toggle="modal" href="#graph-help-text">Help</a></div><div class="modal fade" id="graph-help-text" tabindex="-1" role="dialog"><div class="modal-dialog modal-lg" role="document"><div class="modal-content"><div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button><h4 class="modal-title" id="-graph-help-label">Graph Key</h4></div><div class="modal-body">
+    <p>Nodes of different colours represent the following: </p>
+    <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.40.1 (20161225.0304)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="202pt" height="32pt"
+ viewBox="0.00 0.00 201.50 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28)">
+<title>Graph Key</title>
+<polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-28 197.5,-28 197.5,4 -4,4"/>
+<!-- Source File -->
+<g id="node1" class="node">
+<title>Source File</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="71,-24 0,-24 0,0 71,0 71,-24"/>
+<text text-anchor="middle" x="35.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">Source File</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node2" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="#000000" points="193.5,-24 89.5,-24 89.5,0 193.5,0 193.5,-24"/>
+<text text-anchor="middle" x="141.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#000000">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+    
+    <p>Solid arrows point from a file to a file which it depends on. A file
+    is dependent upon another if the latter must be compiled before the former
+    can be. Where possible, edges connecting nodes are given different colours to make them easier to distinguish in large graphs.
+    </p>
+    </div></div></div></div>
+      </div>
+    </div>
+      
+      <br>
+
+    <section class="visible-xs visible-sm hidden-md">
+      
+<h3>Contents</h3>
+ 
+
+
+
+
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#mods-1">Modules</a></h3></div>
+  <div id="mods-1" class="panel-collapse collapse">
+    <div class="list-group">
+      
+      <a class="list-group-item" href="../module/modchecksim.html">modchecksim</a>
+      
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../sourcefile/modchecksim.f90.html#src">modchecksim.f90</a>
+  </div>
+</div>
+
+
+
+    </section>
+    <br class="visible-xs visible-sm hidden-md">
+
+    <section>
+      <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="hl"><pre><span></span><a name="ln-1"></a><span class="c">!&gt; \file modchecksim.f90</span>
+<a name="ln-2"></a><span class="c">!!  Monitors Courant and Peclet numbers, and divergence.</span>
+<a name="ln-3"></a>
+<a name="ln-4"></a><span class="c">!&gt;</span>
+<a name="ln-5"></a><span class="c">!!  Monitors Courant and Peclet numbers, and divergence.</span>
+<a name="ln-6"></a><span class="c">!&gt;</span>
+<a name="ln-7"></a><span class="c">!!  These numbers are put out to screen either every tcheck seconds, or every time step (if tcheck=0).</span>
+<a name="ln-8"></a><span class="c">!!  \autor Jasper Tomas, TU Delft, June 4th 2015</span>
+<a name="ln-9"></a><span class="c">!!  \author Thijs Heus,MPI-M</span>
+<a name="ln-10"></a><span class="c">!!  \author Hans Cuijpers, KNMI</span>
+<a name="ln-11"></a><span class="c">!!  \par Revision list</span>
+<a name="ln-12"></a><span class="c">!  This file is part of DALES.</span>
+<a name="ln-13"></a><span class="c">!</span>
+<a name="ln-14"></a><span class="c">! DALES is free software; you can redistribute it and/or modify</span>
+<a name="ln-15"></a><span class="c">! it under the terms of the GNU General Public License as published by</span>
+<a name="ln-16"></a><span class="c">! the Free Software Foundation; either version 3 of the License, or</span>
+<a name="ln-17"></a><span class="c">! (at your option) any later version.</span>
+<a name="ln-18"></a><span class="c">!</span>
+<a name="ln-19"></a><span class="c">! DALES is distributed in the hope that it will be useful,</span>
+<a name="ln-20"></a><span class="c">! but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<a name="ln-21"></a><span class="c">! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</span>
+<a name="ln-22"></a><span class="c">! GNU General Public License for more details.</span>
+<a name="ln-23"></a><span class="c">!</span>
+<a name="ln-24"></a><span class="c">! You should have received a copy of the GNU General Public License</span>
+<a name="ln-25"></a><span class="c">! along with this program.  If not, see &lt;http://www.gnu.org/licenses/&gt;.</span>
+<a name="ln-26"></a><span class="c">!</span>
+<a name="ln-27"></a><span class="c">!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI</span>
+<a name="ln-28"></a><span class="c">!</span>
+<a name="ln-29"></a><span class="c">!</span>
+<a name="ln-30"></a><span class="k">module </span><span class="n">modchecksim</span>
+<a name="ln-31"></a>  <span class="k">use </span><span class="n">modglobal</span><span class="p">,</span> <span class="k">only</span> <span class="p">:</span> <span class="n">longint</span>
+<a name="ln-32"></a>
+<a name="ln-33"></a>  <span class="k">implicit none</span>
+<a name="ln-34"></a><span class="k">  private</span>
+<a name="ln-35"></a><span class="k">  public </span><span class="n">initchecksim</span><span class="p">,</span><span class="n">checksim</span>
+<a name="ln-36"></a>
+<a name="ln-37"></a>  <span class="kt">real</span>    <span class="kd">::</span> <span class="n">tcheck</span> <span class="o">=</span> <span class="mf">0.</span>
+<a name="ln-38"></a>  <span class="c">!integer(kind=longint) :: tnext = 3600.,itcheck</span>
+<a name="ln-39"></a>  <span class="kt">real</span>    <span class="kd">::</span> <span class="n">tnext</span> <span class="o">=</span> <span class="mf">0.</span>
+<a name="ln-40"></a>  <span class="kt">real</span>    <span class="kd">::</span> <span class="n">dtmn</span> <span class="o">=</span><span class="mf">0.</span><span class="p">,</span><span class="n">ndt</span> <span class="o">=</span><span class="mf">0.</span>
+<a name="ln-41"></a>
+<a name="ln-42"></a>  <span class="k">save</span>
+<a name="ln-43"></a><span class="k">contains</span>
+<a name="ln-44"></a><span class="c">!&gt; Initializing Checksim. Read out the namelist, initializing the variables</span>
+<a name="ln-45"></a>  <span class="k">subroutine </span><span class="n">initchecksim</span>
+<a name="ln-46"></a>    <span class="k">use </span><span class="n">modglobal</span><span class="p">,</span> <span class="k">only</span> <span class="p">:</span> <span class="n">ifnamopt</span><span class="p">,</span> <span class="n">fname_options</span><span class="p">,</span><span class="n">dtmax</span><span class="p">,</span><span class="n">ladaptive</span><span class="p">,</span><span class="n">btime</span>
+<a name="ln-47"></a>    <span class="k">use </span><span class="n">modmpi</span><span class="p">,</span>    <span class="k">only</span> <span class="p">:</span> <span class="n">myid</span><span class="p">,</span><span class="n">my_real</span><span class="p">,</span><span class="n">comm3d</span><span class="p">,</span><span class="n">mpierr</span>
+<a name="ln-48"></a>    <span class="k">implicit none</span>
+<a name="ln-49"></a><span class="k">    </span><span class="kt">integer</span> <span class="kd">::</span> <span class="n">ierr</span>
+<a name="ln-50"></a>    <span class="k">namelist</span><span class="o">/</span><span class="n">NAMCHECKSIM</span><span class="o">/</span> <span class="p">&amp;</span>
+<a name="ln-51"></a>    <span class="n">tcheck</span>
+<a name="ln-52"></a>
+<a name="ln-53"></a>    <span class="k">if</span><span class="p">(</span><span class="n">myid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="k">then</span>
+<a name="ln-54"></a><span class="k">      open</span><span class="p">(</span><span class="n">ifnamopt</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="n">fname_options</span><span class="p">,</span><span class="n">status</span><span class="o">=</span><span class="s1">&#39;old&#39;</span><span class="p">,</span><span class="n">iostat</span><span class="o">=</span><span class="n">ierr</span><span class="p">)</span>
+<a name="ln-55"></a>      <span class="k">read</span> <span class="p">(</span><span class="n">ifnamopt</span><span class="p">,</span><span class="n">NAMCHECKSIM</span><span class="p">,</span><span class="n">iostat</span><span class="o">=</span><span class="n">ierr</span><span class="p">)</span>
+<a name="ln-56"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">ierr</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-57"></a><span class="k">        write</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s1">&#39;ERROR: Problem in namoptions NAMCHECKSIM&#39;</span>
+<a name="ln-58"></a>        <span class="k">write</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s1">&#39;iostat error: &#39;</span><span class="p">,</span> <span class="n">ierr</span>
+<a name="ln-59"></a>        <span class="k">stop </span><span class="mi">1</span>
+<a name="ln-60"></a>      <span class="k">endif</span>
+<a name="ln-61"></a><span class="k">      write</span><span class="p">(</span><span class="mi">6</span> <span class="p">,</span><span class="n">NAMCHECKSIM</span><span class="p">)</span>
+<a name="ln-62"></a>      <span class="k">close</span><span class="p">(</span><span class="n">ifnamopt</span><span class="p">)</span>
+<a name="ln-63"></a>
+<a name="ln-64"></a>      <span class="k">if</span> <span class="p">((.</span><span class="nb">not</span><span class="p">.</span> <span class="n">ladaptive</span><span class="p">)</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="p">(</span><span class="n">tcheck</span> <span class="o">&lt;</span> <span class="n">dtmax</span><span class="p">))</span> <span class="k">then</span>
+<a name="ln-65"></a><span class="k">        </span><span class="n">tcheck</span> <span class="o">=</span> <span class="n">dtmax</span>
+<a name="ln-66"></a>      <span class="k">end if</span>
+<a name="ln-67"></a><span class="k">    end if</span>
+<a name="ln-68"></a>
+<a name="ln-69"></a><span class="k">    call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">tcheck</span>     <span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">MY_REAL</span>   <span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="n">comm3d</span><span class="p">,</span><span class="n">mpierr</span><span class="p">)</span>
+<a name="ln-70"></a><span class="c">!    itcheck = floor(tcheck/tres)</span>
+<a name="ln-71"></a>    <span class="n">tnext</span> <span class="o">=</span> <span class="n">tcheck</span><span class="o">+</span><span class="n">btime</span>
+<a name="ln-72"></a>
+<a name="ln-73"></a>
+<a name="ln-74"></a>  <span class="k">end subroutine </span><span class="n">initchecksim</span>
+<a name="ln-75"></a><span class="c">!&gt;Run checksim. Timekeeping, and output</span>
+<a name="ln-76"></a>  <span class="k">subroutine </span><span class="n">checksim</span>
+<a name="ln-77"></a>    <span class="k">use </span><span class="n">modglobal</span><span class="p">,</span> <span class="k">only</span> <span class="p">:</span> <span class="n">timee</span><span class="p">,</span> <span class="n">rk3step</span><span class="p">,</span> <span class="n">dt_lim</span><span class="p">,</span><span class="n">dt</span>
+<a name="ln-78"></a>    <span class="k">use </span><span class="n">modmpi</span><span class="p">,</span>    <span class="k">only</span> <span class="p">:</span> <span class="n">myid</span>
+<a name="ln-79"></a>    <span class="k">implicit none</span>
+<a name="ln-80"></a><span class="k">    </span><span class="kt">character</span><span class="p">(</span><span class="mi">20</span><span class="p">)</span> <span class="kd">::</span> <span class="n">timeday</span>
+<a name="ln-81"></a>    <span class="k">if</span> <span class="p">(</span><span class="n">timee</span> <span class="o">==</span><span class="mf">0.0</span><span class="p">)</span> <span class="k">return</span>
+<a name="ln-82"></a><span class="k">    if</span> <span class="p">(</span><span class="n">rk3step</span><span class="o">/=</span><span class="mi">3</span><span class="p">)</span> <span class="k">return</span>
+<a name="ln-83"></a><span class="k">    </span><span class="n">dtmn</span> <span class="o">=</span> <span class="n">dtmn</span> <span class="o">+</span><span class="n">dt</span><span class="p">;</span> <span class="n">ndt</span> <span class="o">=</span><span class="n">ndt</span><span class="o">+</span><span class="mf">1.</span>
+<a name="ln-84"></a>    <span class="k">if</span><span class="p">(</span><span class="n">timee</span><span class="o">&lt;</span><span class="n">tnext</span><span class="p">)</span> <span class="k">return</span>
+<a name="ln-85"></a><span class="k">    </span><span class="n">tnext</span> <span class="o">=</span> <span class="n">tnext</span><span class="o">+</span><span class="n">tcheck</span>
+<a name="ln-86"></a>    <span class="n">dtmn</span>  <span class="o">=</span> <span class="n">dtmn</span> <span class="o">/</span> <span class="n">ndt</span>
+<a name="ln-87"></a>    <span class="k">if</span> <span class="p">(</span><span class="n">myid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-88"></a><span class="k">      call </span><span class="nb">date_and_time</span><span class="p">(</span><span class="nb">time</span><span class="o">=</span><span class="n">timeday</span><span class="p">)</span>
+<a name="ln-89"></a>      <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;=================================================================&#39;</span>
+<a name="ln-90"></a>      <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="s1">&#39;(3A,F9.2,A,F12.9)&#39;</span><span class="p">)</span> <span class="s1">&#39;Time of Day: &#39;</span><span class="p">,</span> <span class="n">timeday</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="mi">10</span><span class="p">),</span><span class="s1">&#39;    Time of Simulation: &#39;</span><span class="p">,</span> <span class="n">timee</span><span class="p">,</span> <span class="s1">&#39;    dt: &#39;</span><span class="p">,</span><span class="n">dtmn</span>
+<a name="ln-91"></a>    <span class="k">end if</span>
+<a name="ln-92"></a><span class="k">    call </span><span class="n">calccourant</span>
+<a name="ln-93"></a>    <span class="k">call </span><span class="n">calcdiffnr</span>
+<a name="ln-94"></a>    <span class="k">call </span><span class="n">chkdiv</span>
+<a name="ln-95"></a>    <span class="n">dtmn</span>  <span class="o">=</span> <span class="mf">0.</span>
+<a name="ln-96"></a>    <span class="n">ndt</span>   <span class="o">=</span> <span class="mf">0.</span>
+<a name="ln-97"></a>
+<a name="ln-98"></a>  <span class="k">end subroutine </span><span class="n">checksim</span>
+<a name="ln-99"></a><span class="c">!&gt;      Calculates the courant number as in max(w)*deltat/deltaz</span>
+<a name="ln-100"></a>  <span class="k">subroutine </span><span class="n">calccourant</span>
+<a name="ln-101"></a>    <span class="k">use </span><span class="n">modglobal</span><span class="p">,</span> <span class="k">only</span> <span class="p">:</span> <span class="n">ib</span><span class="p">,</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="p">,</span><span class="n">kh</span><span class="p">,</span><span class="n">dxhi</span><span class="p">,</span><span class="n">dyi</span><span class="p">,</span><span class="n">dzhi</span><span class="p">,</span><span class="n">dt</span><span class="p">,</span><span class="n">timee</span>
+<a name="ln-102"></a>    <span class="k">use </span><span class="n">modfields</span><span class="p">,</span> <span class="k">only</span> <span class="p">:</span> <span class="n">um</span><span class="p">,</span><span class="n">vm</span><span class="p">,</span><span class="n">wm</span>
+<a name="ln-103"></a>    <span class="k">use </span><span class="n">modmpi</span><span class="p">,</span>    <span class="k">only</span> <span class="p">:</span> <span class="n">myid</span><span class="p">,</span><span class="n">comm3d</span><span class="p">,</span><span class="n">mpierr</span><span class="p">,</span><span class="n">mpi_max</span><span class="p">,</span><span class="n">my_real</span>
+<a name="ln-104"></a>    <span class="k">implicit none</span>
+<a name="ln-105"></a>
+<a name="ln-106"></a>
+<a name="ln-107"></a><span class="k">    </span><span class="kt">real</span>          <span class="kd">::</span> <span class="n">courtotl</span><span class="p">,</span> <span class="n">courtot</span>
+<a name="ln-108"></a>    <span class="kt">integer</span>       <span class="kd">::</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span>
+<a name="ln-109"></a>
+<a name="ln-110"></a>    <span class="n">courtotl</span> <span class="o">=</span> <span class="mf">0.0</span>
+<a name="ln-111"></a>    <span class="n">courtot</span>  <span class="o">=</span> <span class="mf">0.0</span>
+<a name="ln-112"></a>    <span class="k">do </span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span>
+<a name="ln-113"></a>      <span class="k">do </span><span class="n">j</span><span class="o">=</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span>
+<a name="ln-114"></a>        <span class="k">do </span><span class="n">i</span><span class="o">=</span><span class="n">ib</span><span class="p">,</span><span class="n">ie</span>
+<a name="ln-115"></a>          <span class="n">courtotl</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">courtotl</span><span class="p">,(</span><span class="n">um</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">dxhi</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">+</span> <span class="n">vm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">dyi</span> <span class="o">+</span> <span class="n">wm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">dzhi</span><span class="p">(</span><span class="n">k</span><span class="p">))</span><span class="o">*</span><span class="n">dtmn</span><span class="p">)</span>
+<a name="ln-116"></a>        <span class="k">end do</span>
+<a name="ln-117"></a><span class="k">      end do</span>
+<a name="ln-118"></a><span class="k">    end do</span>
+<a name="ln-119"></a>
+<a name="ln-120"></a><span class="k">    call </span><span class="n">MPI_ALLREDUCE</span><span class="p">(</span><span class="n">courtotl</span><span class="p">,</span><span class="n">courtot</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">MY_REAL</span><span class="p">,</span><span class="n">MPI_MAX</span><span class="p">,</span><span class="n">comm3d</span><span class="p">,</span><span class="n">mpierr</span><span class="p">)</span>
+<a name="ln-121"></a>    <span class="k">if</span> <span class="p">(</span><span class="n">myid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-122"></a><span class="k">      write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="s1">&#39;(A,ES10.2)&#39;</span><span class="p">)</span> <span class="s1">&#39;Courant numbers (x,y,z,tot):&#39;</span><span class="p">,</span><span class="n">courtot</span>
+<a name="ln-123"></a>    <span class="k">end if</span>
+<a name="ln-124"></a>
+<a name="ln-125"></a><span class="k">    return</span>
+<a name="ln-126"></a><span class="k">  end subroutine </span><span class="n">calccourant</span>
+<a name="ln-127"></a>
+<a name="ln-128"></a><span class="c">!&gt; Calculates the diffusion number as max(ekm) *deltat/deltax**2</span>
+<a name="ln-129"></a>  <span class="k">subroutine </span><span class="n">calcdiffnr</span>
+<a name="ln-130"></a>
+<a name="ln-131"></a>    <span class="k">use </span><span class="n">modglobal</span><span class="p">,</span>      <span class="k">only</span> <span class="p">:</span> <span class="n">ib</span><span class="p">,</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="p">,</span><span class="n">kh</span><span class="p">,</span><span class="n">dxh2i</span><span class="p">,</span><span class="n">dy2i</span><span class="p">,</span><span class="n">dzh</span><span class="p">,</span><span class="n">dt</span><span class="p">,</span><span class="n">timee</span>
+<a name="ln-132"></a>    <span class="k">use </span><span class="n">modsubgriddata</span><span class="p">,</span> <span class="k">only</span> <span class="p">:</span> <span class="n">ekm</span><span class="p">,</span><span class="n">ekh</span>
+<a name="ln-133"></a>    <span class="k">use </span><span class="n">modmpi</span><span class="p">,</span>         <span class="k">only</span> <span class="p">:</span> <span class="n">myid</span><span class="p">,</span><span class="n">comm3d</span><span class="p">,</span><span class="n">mpierr</span><span class="p">,</span><span class="n">mpi_max</span><span class="p">,</span><span class="n">my_real</span>
+<a name="ln-134"></a>    <span class="k">implicit none</span>
+<a name="ln-135"></a>
+<a name="ln-136"></a>
+<a name="ln-137"></a><span class="k">    </span><span class="kt">real </span><span class="n">diffnrtotl</span><span class="p">,</span><span class="n">diffnrtot</span>
+<a name="ln-138"></a>    <span class="kt">integer</span>       <span class="kd">::</span> <span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span>
+<a name="ln-139"></a>
+<a name="ln-140"></a>    <span class="n">diffnrtotl</span> <span class="o">=</span> <span class="mf">0.</span>
+<a name="ln-141"></a>    <span class="n">diffnrtot</span>  <span class="o">=</span> <span class="mf">0.</span>
+<a name="ln-142"></a>    <span class="k">do </span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span>
+<a name="ln-143"></a>    <span class="k">do </span><span class="n">j</span><span class="o">=</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span>
+<a name="ln-144"></a>    <span class="k">do </span><span class="n">i</span><span class="o">=</span><span class="n">ib</span><span class="p">,</span><span class="n">ie</span>
+<a name="ln-145"></a><span class="c">!      diffnrtotl = max(diffnrtotl,  ekm(i,j,k)*(1/dzh(k)**2 + dxh2i(i) + dy2i)*dtmn )  ! or should I interpolate ekm to the correct position?</span>
+<a name="ln-146"></a>      <span class="n">diffnrtotl</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">diffnrtotl</span><span class="p">,</span>  <span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="n">dzh</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">dxh2i</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">+</span> <span class="n">dy2i</span><span class="p">)</span><span class="o">*</span><span class="n">dtmn</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-147"></a>                                    <span class="n">ekh</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="n">dzh</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">dxh2i</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">+</span> <span class="n">dy2i</span><span class="p">)</span><span class="o">*</span><span class="n">dtmn</span> <span class="p">)</span>  <span class="c">! or should I interpolate ekm to the correct position?</span>
+<a name="ln-148"></a>    <span class="k">end do</span>
+<a name="ln-149"></a><span class="k">    end do</span>
+<a name="ln-150"></a><span class="k">    end do</span>
+<a name="ln-151"></a>
+<a name="ln-152"></a><span class="k">    call </span><span class="n">MPI_ALLREDUCE</span><span class="p">(</span><span class="n">diffnrtotl</span><span class="p">,</span><span class="n">diffnrtot</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">MY_REAL</span><span class="p">,</span><span class="n">MPI_MAX</span><span class="p">,</span><span class="n">comm3d</span><span class="p">,</span><span class="n">mpierr</span><span class="p">)</span>
+<a name="ln-153"></a>    <span class="k">if</span> <span class="p">(</span><span class="n">myid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-154"></a><span class="k">      write</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="s1">&#39;(A,ES10.2)&#39;</span><span class="p">)</span> <span class="s1">&#39;Diffusion number:&#39;</span><span class="p">,</span><span class="n">diffnrtot</span>
+<a name="ln-155"></a>    <span class="k">end if</span>
+<a name="ln-156"></a>
+<a name="ln-157"></a><span class="k">    return</span>
+<a name="ln-158"></a><span class="k">  end subroutine </span><span class="n">calcdiffnr</span>
+<a name="ln-159"></a>
+<a name="ln-160"></a>  <span class="c">!ils13, 13.08.18: currently unused, not called</span>
+<a name="ln-161"></a>  <span class="c">!&gt; tg3315 27/02/18 - was not outputting cell Peclet number so added this to give cell Reynolds number</span>
+<a name="ln-162"></a>  <span class="k">subroutine </span><span class="n">calcreyn</span>
+<a name="ln-163"></a>
+<a name="ln-164"></a>    <span class="k">use </span><span class="n">modglobal</span><span class="p">,</span> <span class="k">only</span> <span class="p">:</span> <span class="n">ib</span><span class="p">,</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span><span class="p">,</span><span class="n">ke</span><span class="p">,</span><span class="n">kb</span><span class="p">,</span><span class="n">dy</span><span class="p">,</span><span class="n">dxh</span><span class="p">,</span><span class="n">dzh</span>
+<a name="ln-165"></a>    <span class="k">use </span><span class="n">modfields</span><span class="p">,</span> <span class="k">only</span> <span class="p">:</span> <span class="n">u0</span><span class="p">,</span><span class="n">v0</span><span class="p">,</span><span class="n">w0</span>
+<a name="ln-166"></a>    <span class="k">use </span><span class="n">modmpi</span><span class="p">,</span>    <span class="k">only</span> <span class="p">:</span> <span class="n">myid</span><span class="p">,</span><span class="n">comm3d</span><span class="p">,</span><span class="n">mpi_sum</span><span class="p">,</span><span class="n">mpi_max</span><span class="p">,</span><span class="n">my_real</span><span class="p">,</span><span class="n">mpierr</span>
+<a name="ln-167"></a>    <span class="k">use </span><span class="n">modsubgriddata</span><span class="p">,</span> <span class="k">only</span> <span class="p">:</span> <span class="n">ekm</span><span class="p">,</span><span class="n">ekh</span>
+<a name="ln-168"></a>    <span class="k">implicit none</span>
+<a name="ln-169"></a>
+<a name="ln-170"></a><span class="k">    </span><span class="kt">real </span><span class="n">reyntotl</span><span class="p">,</span><span class="n">reyntot</span>
+<a name="ln-171"></a>    <span class="kt">integer</span>       <span class="kd">::</span> <span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span>
+<a name="ln-172"></a>
+<a name="ln-173"></a>    <span class="n">reyntotl</span> <span class="o">=</span> <span class="mf">0.</span>
+<a name="ln-174"></a>    <span class="n">reyntot</span>  <span class="o">=</span> <span class="mf">0.</span>
+<a name="ln-175"></a>    <span class="k">do </span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span>
+<a name="ln-176"></a>      <span class="k">do </span><span class="n">j</span><span class="o">=</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span>
+<a name="ln-177"></a>        <span class="k">do </span><span class="n">i</span><span class="o">=</span><span class="n">ib</span><span class="p">,</span><span class="n">ie</span>
+<a name="ln-178"></a>      <span class="n">reyntotl</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">reyntotl</span><span class="p">,</span>  <span class="n">u0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span> <span class="o">*</span> <span class="n">dxh</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">/</span> <span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">),</span> <span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span> <span class="o">*</span> <span class="n">dy</span> <span class="o">/</span> <span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">),</span>  <span class="p">&amp;</span>
+<a name="ln-179"></a>                                    <span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span> <span class="o">*</span> <span class="n">dzh</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">/</span> <span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">))</span>  <span class="c">! or should I interpolate ekm to the correct position?</span>
+<a name="ln-180"></a>        <span class="k">end do</span>
+<a name="ln-181"></a><span class="k">      end do</span>
+<a name="ln-182"></a><span class="k">    end do</span>
+<a name="ln-183"></a>
+<a name="ln-184"></a><span class="k">    call </span><span class="n">MPI_ALLREDUCE</span><span class="p">(</span><span class="n">reyntotl</span><span class="p">,</span><span class="n">reyntot</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">MY_REAL</span><span class="p">,</span><span class="n">MPI_MAX</span><span class="p">,</span><span class="n">comm3d</span><span class="p">,</span><span class="n">mpierr</span><span class="p">)</span>
+<a name="ln-185"></a>    <span class="k">if</span> <span class="p">(</span><span class="n">myid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-186"></a><span class="k">      write</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="s1">&#39;(A,ES10.2)&#39;</span><span class="p">)</span> <span class="s1">&#39;Cell Reynolds number:&#39;</span><span class="p">,</span><span class="n">reyntot</span>
+<a name="ln-187"></a>    <span class="k">end if</span>
+<a name="ln-188"></a>
+<a name="ln-189"></a><span class="k">  end subroutine </span><span class="n">calcreyn</span>
+<a name="ln-190"></a>
+<a name="ln-191"></a><span class="c">!&gt; Checks local and total divergence</span>
+<a name="ln-192"></a>  <span class="k">subroutine </span><span class="n">chkdiv</span>
+<a name="ln-193"></a>
+<a name="ln-194"></a>    <span class="k">use </span><span class="n">modglobal</span><span class="p">,</span> <span class="k">only</span> <span class="p">:</span> <span class="n">ib</span><span class="p">,</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span><span class="p">,</span><span class="n">ke</span><span class="p">,</span><span class="n">kb</span><span class="p">,</span><span class="n">dxf</span><span class="p">,</span><span class="n">dxfi</span><span class="p">,</span><span class="n">dy</span><span class="p">,</span><span class="n">dzf</span>
+<a name="ln-195"></a>    <span class="k">use </span><span class="n">modfields</span><span class="p">,</span> <span class="k">only</span> <span class="p">:</span> <span class="n">u0</span><span class="p">,</span><span class="n">v0</span><span class="p">,</span><span class="n">w0</span><span class="c">!,divergentie</span>
+<a name="ln-196"></a>    <span class="k">use </span><span class="n">modmpi</span><span class="p">,</span>    <span class="k">only</span> <span class="p">:</span> <span class="n">myid</span><span class="p">,</span><span class="n">comm3d</span><span class="p">,</span><span class="n">mpi_sum</span><span class="p">,</span><span class="n">mpi_max</span><span class="p">,</span><span class="n">my_real</span><span class="p">,</span><span class="n">mpierr</span>
+<a name="ln-197"></a>    <span class="k">implicit none</span>
+<a name="ln-198"></a>
+<a name="ln-199"></a>
+<a name="ln-200"></a>
+<a name="ln-201"></a><span class="k">    </span><span class="kt">real </span><span class="n">div</span><span class="p">,</span> <span class="n">divmax</span><span class="p">,</span> <span class="n">divtot</span>
+<a name="ln-202"></a>    <span class="kt">real </span><span class="n">divmaxl</span><span class="p">,</span> <span class="n">divtotl</span>
+<a name="ln-203"></a>    <span class="kt">integer </span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span>
+<a name="ln-204"></a>
+<a name="ln-205"></a>    <span class="n">divmax</span> <span class="o">=</span> <span class="mf">0.</span>
+<a name="ln-206"></a>    <span class="n">divtot</span> <span class="o">=</span> <span class="mf">0.</span>
+<a name="ln-207"></a>    <span class="n">divmaxl</span><span class="o">=</span> <span class="mf">0.</span>
+<a name="ln-208"></a>    <span class="n">divtotl</span><span class="o">=</span> <span class="mf">0.</span>
+<a name="ln-209"></a>
+<a name="ln-210"></a>    <span class="k">do </span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span>
+<a name="ln-211"></a>    <span class="k">do </span><span class="n">j</span><span class="o">=</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span>
+<a name="ln-212"></a>    <span class="k">do </span><span class="n">i</span><span class="o">=</span><span class="n">ib</span><span class="p">,</span><span class="n">ie</span>
+<a name="ln-213"></a>      <span class="n">div</span> <span class="o">=</span> <span class="p">&amp;</span>
+<a name="ln-214"></a>                <span class="p">(</span><span class="n">u0</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span> <span class="o">-</span> <span class="n">u0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span> <span class="p">)</span><span class="o">*</span><span class="n">dxfi</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">+</span> <span class="p">&amp;</span>
+<a name="ln-215"></a>                <span class="p">(</span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">k</span><span class="p">)</span> <span class="o">-</span> <span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span> <span class="p">)</span><span class="o">/</span><span class="n">dy</span> <span class="o">+</span> <span class="p">&amp;</span>
+<a name="ln-216"></a>                <span class="p">(</span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span> <span class="p">)</span><span class="o">/</span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+<a name="ln-217"></a><span class="c">!      divergentie(i,j,k)=div</span>
+<a name="ln-218"></a>      <span class="n">divmaxl</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">divmaxl</span><span class="p">,</span><span class="nb">abs</span><span class="p">(</span><span class="n">div</span><span class="p">))</span>
+<a name="ln-219"></a>      <span class="n">divtotl</span> <span class="o">=</span> <span class="n">divtotl</span> <span class="o">+</span> <span class="n">div</span><span class="o">*</span><span class="n">dxf</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">*</span><span class="n">dy</span><span class="o">*</span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+<a name="ln-220"></a>    <span class="k">end do</span>
+<a name="ln-221"></a><span class="k">    end do</span>
+<a name="ln-222"></a><span class="k">    end do</span>
+<a name="ln-223"></a>
+<a name="ln-224"></a><span class="k">    call </span><span class="n">MPI_ALLREDUCE</span><span class="p">(</span><span class="n">divtotl</span><span class="p">,</span> <span class="n">divtot</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>    <span class="n">MY_REAL</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-225"></a>                          <span class="n">MPI_SUM</span><span class="p">,</span> <span class="n">comm3d</span><span class="p">,</span><span class="n">mpierr</span><span class="p">)</span>
+<a name="ln-226"></a>    <span class="k">call </span><span class="n">MPI_ALLREDUCE</span><span class="p">(</span><span class="n">divmaxl</span><span class="p">,</span> <span class="n">divmax</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>    <span class="n">MY_REAL</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-227"></a>                          <span class="n">MPI_MAX</span><span class="p">,</span> <span class="n">comm3d</span><span class="p">,</span><span class="n">mpierr</span><span class="p">)</span>
+<a name="ln-228"></a>
+<a name="ln-229"></a>    <span class="k">if</span><span class="p">(</span><span class="n">myid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="k">then</span>
+<a name="ln-230"></a><span class="k">      write</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="s1">&#39;(A,2ES11.2)&#39;</span><span class="p">)</span><span class="s1">&#39;divmax, divtot = &#39;</span><span class="p">,</span> <span class="n">divmax</span><span class="p">,</span> <span class="n">divtot</span>
+<a name="ln-231"></a>    <span class="k">end if</span>
+<a name="ln-232"></a>
+<a name="ln-233"></a><span class="k">    return</span>
+<a name="ln-234"></a><span class="k">  end subroutine </span><span class="n">chkdiv</span>
+<a name="ln-235"></a>
+<a name="ln-236"></a><span class="k">end module </span><span class="n">modchecksim</span>
+</pre></div>
+
+    </section>
+    </div>
+  </div>
+
+  
+    <hr>    
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+      <div class="row">
+        <div class="col-xs-6 col-md-4"><p>&copy; 2021 
+                                          </p></div>
+        <div class="col-xs-6 col-md-4 col-md-push-4">
+          <p class="text-right">
+            Documentation generated by 
+            <a href="https://github.com/cmacmackin/ford">FORD</a>
+            
+          </p>
+        </div>
+        <div class="col-xs-12 col-md-4 col-md-pull-4"><p class="text-center"> uDALES was developed by The uDALES Team</p></div>
+      </div>
+      <br>
+      </div> <!-- /container -->    
+    </footer>
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+<!--
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+-->
+    <script src="../js/bootstrap.min.js"></script>
+    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+    <script src="../js/ie10-viewport-bug-workaround.js"></script>
+
+    <!-- MathJax JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } },
+        jax: ['input/TeX','input/MathML','output/HTML-CSS'],
+        extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']
+      });
+    </script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+    <script src="../tipuesearch/tipuesearch_content.js"></script>
+    <script src="../tipuesearch/tipuesearch_set.js"></script>
+    <script src="../tipuesearch/tipuesearch.js"></script>
+    
+    
+  </body>
+</html>

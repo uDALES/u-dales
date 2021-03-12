@@ -1,0 +1,1486 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+   
+    <meta name="description" content="Documentation for uDALES">
+   
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>moddriver.f90 &ndash; uDALES</title>
+
+    <link href="../css/bootstrap.min.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <link href="../css/font-awesome.min.css" rel="stylesheet">
+    <link href="../css/local.css" rel="stylesheet">
+    
+    <link  href="../tipuesearch/tipuesearch.css" rel="stylesheet">
+    
+    
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    
+    <script src="../js/jquery-2.1.3.min.js"></script>
+    <script src="../js/svg-pan-zoom.min.js"></script>
+
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+        
+            <li class="dropdown hidden-xs visible-sm visible-md hidden-lg">
+              <a href="#" class="dropdown-toggle"
+              data-toggle="dropdown" role="button"
+              aria-haspopup="true"
+     aria-expanded="false">Contents <span class="caret"></span></a>
+        <ul class="dropdown-menu">
+          
+              
+            <li><a href="../lists/files.html">Source Files</a></li>
+        
+        
+        
+            <li><a href="../lists/modules.html">Modules</a></li>
+        
+            
+                                
+            <li><a href="../lists/procedures.html">Procedures</a></li>
+        
+               
+            <li><a href="../lists/types.html">Derived Types</a></li>
+        
+        
+            <li><a href="../program/dalesurban.html">Program</a></li>
+      
+            </ul>
+            </li>
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/files.html">Source Files</a></li>
+
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/modules.html">Modules</a></li>
+
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/procedures.html">Procedures</a></li>
+
+                             
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/types.html">Derived Types</a></li>
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../program/dalesurban.html">Program</a></li>
+
+          </ul>
+        
+        <form action="../search.html" class="navbar-form navbar-right" role="search">
+        <div class="form-group">
+          <input type="text" class="form-control" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+        </div>
+<!--
+        <button type="submit" class="btn btn-default">Submit</button>
+-->
+        </form>
+        
+        </div><!--/.nav-collapse -->
+      </div>
+    </nav>
+
+    <div class="container">
+    
+  
+  <div class="row">
+    <h1>moddriver.f90
+    <small>Source File</small>
+    
+    </h1>
+    
+<div class="row">
+  <div class="col-lg-12">
+<div class="well well-sm">
+  <ul class="list-inline" style="margin-bottom:0px;display:inline">
+     
+     
+     
+     
+    
+    
+     <li><i class="fa fa-list-ol"></i>
+       <a data-toggle="tooltip"
+    data-placement="bottom" data-html="true"
+    title=" 3.2% of total for source files.">452 statements</a>
+     </li> 
+     
+     
+     
+    <li><i class="fa fa-code"></i><a href="../src/moddriver.f90"> Source File</a></li>
+     
+     
+  </ul>
+  <ol class="breadcrumb in-well text-right">
+  
+    
+  
+     <li class="active">moddriver.f90</li>
+  </ol>
+</div>
+</div>
+</div>
+<script>
+  $(function () {
+  $('[data-toggle="tooltip"]').tooltip()
+  })
+</script>
+
+  </div>
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+    
+<div id="sidebar">
+  
+<h3>Contents</h3>
+ 
+
+
+
+
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#mods-0">Modules</a></h3></div>
+  <div id="mods-0" class="panel-collapse collapse">
+    <div class="list-group">
+      
+      <a class="list-group-item" href="../module/moddriver.html">moddriver</a>
+      
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../sourcefile/moddriver.f90.html#src">moddriver.f90</a>
+  </div>
+</div>
+
+
+
+</div>
+
+    </div>
+    <div class="col-md-9" id='text'>
+      
+      <br>
+    
+    <div class="panel panel-default">
+      <div class="panel-heading">
+  <h3 class="panel-title">This file depends on</h3>
+      </div>
+      <div class="panel-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.40.1 (20161225.0304)
+ -->
+<!-- Title: sourcefile~~moddriver.f90~~EfferentGraph Pages: 1 -->
+<svg id="sourcefilemoddriverf90EfferentGraph" width="610pt" height="355pt"
+ viewBox="0.00 0.00 610.00 355.22" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="sourcefile~~moddriver.f90~~EfferentGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 351.2172)">
+<title>sourcefile~~moddriver.f90~~EfferentGraph</title>
+<polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-351.2172 606,-351.2172 606,4 -4,4"/>
+<!-- sourcefile~moddriver.f90 -->
+<g id="sourcefile~~moddriver.f90~~EfferentGraph_node1" class="node">
+<title>sourcefile~moddriver.f90</title>
+<polygon fill="none" stroke="#000000" points="602,-267 514,-267 514,-243 602,-243 602,-267"/>
+<text text-anchor="middle" x="558" y="-252.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#000000">moddriver.f90</text>
+</g>
+<!-- sourcefile~modinletdata.f90 -->
+<g id="sourcefile~~moddriver.f90~~EfferentGraph_node2" class="node">
+<title>sourcefile~modinletdata.f90</title>
+<g id="a_sourcefile~~moddriver.f90~~EfferentGraph_node2"><a xlink:href=".././sourcefile/modinletdata.f90.html" xlink:title="modinletdata.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="351.5,-310 247.5,-310 247.5,-286 351.5,-286 351.5,-310"/>
+<text text-anchor="middle" x="299.5" y="-295.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modinletdata.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~moddriver.f90&#45;&gt;sourcefile~modinletdata.f90 -->
+<g id="sourcefile~~moddriver.f90~~EfferentGraph_edge2" class="edge">
+<title>sourcefile~moddriver.f90&#45;&gt;sourcefile~modinletdata.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M437,-338C418.2262,-340.9688 372.8253,-326.1209 339.3032,-313.6807"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="340.3523,-310.3358 329.7604,-310.0865 337.885,-316.8866 340.3523,-310.3358"/>
+</g>
+<!-- sourcefile~modfields.f90 -->
+<g id="sourcefile~~moddriver.f90~~EfferentGraph_node3" class="node">
+<title>sourcefile~modfields.f90</title>
+<g id="a_sourcefile~~moddriver.f90~~EfferentGraph_node3"><a xlink:href=".././sourcefile/modfields.f90.html" xlink:title="modfields.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="342,-268 257,-268 257,-244 342,-244 342,-268"/>
+<text text-anchor="middle" x="299.5" y="-253.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modfields.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~moddriver.f90&#45;&gt;sourcefile~modfields.f90 -->
+<g id="sourcefile~~moddriver.f90~~EfferentGraph_edge1" class="edge">
+<title>sourcefile~moddriver.f90&#45;&gt;sourcefile~modfields.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M547.5521,-267.1983C528.3023,-288.382 484.8068,-330.44 437,-338"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M437,-338C393.8761,-344.8194 398.2724,-298.0095 360,-277 356.738,-275.2094 353.2949,-273.528 349.7737,-271.9579"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="350.9205,-268.6448 340.3416,-268.0632 348.2488,-275.1149 350.9205,-268.6448"/>
+</g>
+<!-- sourcefile~modglobal.f90 -->
+<g id="sourcefile~~moddriver.f90~~EfferentGraph_node4" class="node">
+<title>sourcefile~modglobal.f90</title>
+<g id="a_sourcefile~~moddriver.f90~~EfferentGraph_node4"><a xlink:href=".././sourcefile/modglobal.f90.html" xlink:title="modglobal.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="203,-206 113,-206 113,-182 203,-182 203,-206"/>
+<text text-anchor="middle" x="158" y="-191.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modglobal.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~moddriver.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~moddriver.f90~~EfferentGraph_edge4" class="edge">
+<title>sourcefile~moddriver.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M437,-338C376.639,-347.5452 358.9265,-352.2498 299.5,-338"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M299.5,-338C272.0932,-331.4282 261.4355,-336.0578 239,-319 203.0659,-291.6792 178.4753,-243.4969 166.4665,-215.6065"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="169.6803,-214.2194 162.6137,-206.3255 163.2152,-216.9032 169.6803,-214.2194"/>
+</g>
+<!-- sourcefile~modsave.f90 -->
+<g id="sourcefile~~moddriver.f90~~EfferentGraph_node5" class="node">
+<title>sourcefile~modsave.f90</title>
+<g id="a_sourcefile~~moddriver.f90~~EfferentGraph_node5"><a xlink:href=".././sourcefile/modsave.f90.html" xlink:title="modsave.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="478,-184 396,-184 396,-160 478,-160 478,-184"/>
+<text text-anchor="middle" x="437" y="-169.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modsave.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~moddriver.f90&#45;&gt;sourcefile~modsave.f90 -->
+<g id="sourcefile~~moddriver.f90~~EfferentGraph_edge3" class="edge">
+<title>sourcefile~moddriver.f90&#45;&gt;sourcefile~modsave.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M540.4056,-242.9311C520.0636,-228.9775 486.3887,-205.8782 463.0186,-189.8475"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="464.8419,-186.8539 454.6157,-184.0835 460.8822,-192.6264 464.8419,-186.8539"/>
+</g>
+<!-- sourcefile~modmpi.f90 -->
+<g id="sourcefile~~moddriver.f90~~EfferentGraph_node6" class="node">
+<title>sourcefile~modmpi.f90</title>
+<g id="a_sourcefile~~moddriver.f90~~EfferentGraph_node6"><a xlink:href=".././sourcefile/modmpi.f90.html" xlink:title="modmpi.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="77,-206 0,-206 0,-182 77,-182 77,-206"/>
+<text text-anchor="middle" x="38.5" y="-191.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modmpi.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~moddriver.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~moddriver.f90~~EfferentGraph_edge5" class="edge">
+<title>sourcefile~moddriver.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M299.5,-338C272.0932,-331.4282 264.6076,-330.7717 239,-319 171.5443,-287.991 99.2523,-238.3484 62.6794,-211.9193"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="64.7375,-209.0884 54.593,-206.0321 60.6174,-214.7475 64.7375,-209.0884"/>
+</g>
+<!-- sourcefile~modfields.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~moddriver.f90~~EfferentGraph_edge6" class="edge">
+<title>sourcefile~modfields.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#cbff00" stroke-dasharray="5,2" d="M262.0856,-243.8955C254.3786,-241.1565 246.369,-238.1272 239,-235 222.2183,-227.8784 204.0661,-218.8225 189.2075,-211.034"/>
+<polygon fill="#cbff00" stroke="#cbff00" points="190.4406,-207.7262 179.9664,-206.1319 187.1603,-213.9101 190.4406,-207.7262"/>
+</g>
+<!-- sourcefile~modglobal.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~moddriver.f90~~EfferentGraph_edge7" class="edge">
+<title>sourcefile~modglobal.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#00ff66" stroke-dasharray="5,2" d="M112.8222,-194C104.4581,-194 95.6884,-194 87.2244,-194"/>
+<polygon fill="#00ff66" stroke="#00ff66" points="87.0997,-190.5001 77.0997,-194 87.0997,-197.5001 87.0997,-190.5001"/>
+</g>
+<!-- sourcefile~modsave.f90&#45;&gt;sourcefile~modinletdata.f90 -->
+<g id="sourcefile~~moddriver.f90~~EfferentGraph_edge10" class="edge">
+<title>sourcefile~modsave.f90&#45;&gt;sourcefile~modinletdata.f90</title>
+<path fill="none" stroke="#0066ff" stroke-dasharray="5,2" d="M431.1745,-184.251C420.2301,-206.0058 394.5508,-251.4858 360,-277 357.9261,-278.5315 355.7316,-279.9578 353.4553,-281.2854"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="351.6685,-278.2678 344.3523,-285.9309 354.8504,-284.5028 351.6685,-278.2678"/>
+</g>
+<!-- sourcefile~modsave.f90&#45;&gt;sourcefile~modfields.f90 -->
+<g id="sourcefile~~moddriver.f90~~EfferentGraph_edge9" class="edge">
+<title>sourcefile~modsave.f90&#45;&gt;sourcefile~modfields.f90</title>
+<path fill="none" stroke="#0066ff" stroke-dasharray="5,2" d="M424.9373,-184.1942C410.5728,-198.1308 385.3261,-220.8365 360,-235 356.8038,-236.7875 353.4285,-238.4626 349.9732,-240.0247"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="348.5858,-236.8111 340.7078,-243.8953 351.2841,-243.2702 348.5858,-236.8111"/>
+</g>
+<!-- sourcefile~modsave.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~moddriver.f90~~EfferentGraph_edge12" class="edge">
+<title>sourcefile~modsave.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#0066ff" stroke-dasharray="5,2" d="M400.5931,-159.9359C387.8975,-156.3023 373.459,-152.8024 360,-151 306.6981,-143.8619 291.1846,-138.0072 239,-151 218.982,-155.984 198.4777,-166.9383 183.1074,-176.5425"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="181.1883,-173.6154 174.6933,-181.986 184.9906,-179.4927 181.1883,-173.6154"/>
+</g>
+<!-- sourcefile~modsave.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~moddriver.f90~~EfferentGraph_edge14" class="edge">
+<title>sourcefile~modsave.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#0066ff" stroke-dasharray="5,2" d="M431.7507,-159.7247C421.5625,-137.599 396.8245,-91.4342 360,-71 320.576,-49.1234 200.1103,-35.889 158,-52"/>
+<path fill="none" stroke="#0066ff" stroke-dasharray="5,2" d="M158,-52C101.8707,-72.7007 64.2995,-138.0703 47.8926,-172.4246"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="44.6623,-171.0719 43.6551,-181.6188 51.0196,-174.002 44.6623,-171.0719"/>
+</g>
+<!-- sourcefile~modsurfdata.f90 -->
+<g id="sourcefile~~moddriver.f90~~EfferentGraph_node7" class="node">
+<title>sourcefile~modsurfdata.f90</title>
+<g id="a_sourcefile~~moddriver.f90~~EfferentGraph_node7"><a xlink:href=".././sourcefile/modsurfdata.f90.html" xlink:title="modsurfdata.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="350,-24 249,-24 249,0 350,0 350,-24"/>
+<text text-anchor="middle" x="299.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modsurfdata.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modsave.f90&#45;&gt;sourcefile~modsurfdata.f90 -->
+<g id="sourcefile~~moddriver.f90~~EfferentGraph_edge13" class="edge">
+<title>sourcefile~modsave.f90&#45;&gt;sourcefile~modsurfdata.f90</title>
+<path fill="none" stroke="#0066ff" stroke-dasharray="5,2" d="M433.0431,-159.9226C424.0392,-134.1691 399.6741,-73.3315 360,-38 356.098,-34.5251 351.661,-31.4623 347.0044,-28.7752"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="348.3537,-25.5331 337.8616,-24.0611 345.1457,-31.7548 348.3537,-25.5331"/>
+</g>
+<!-- sourcefile~modsubgriddata.f90 -->
+<g id="sourcefile~~moddriver.f90~~EfferentGraph_node8" class="node">
+<title>sourcefile~modsubgriddata.f90</title>
+<g id="a_sourcefile~~moddriver.f90~~EfferentGraph_node8"><a xlink:href=".././sourcefile/modsubgriddata.f90.html" xlink:title="modsubgriddata.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="360,-226 239,-226 239,-202 360,-202 360,-226"/>
+<text text-anchor="middle" x="299.5" y="-211.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modsubgriddata.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modsave.f90&#45;&gt;sourcefile~modsubgriddata.f90 -->
+<g id="sourcefile~~moddriver.f90~~EfferentGraph_edge11" class="edge">
+<title>sourcefile~modsave.f90&#45;&gt;sourcefile~modsubgriddata.f90</title>
+<path fill="none" stroke="#0066ff" stroke-dasharray="5,2" d="M397.598,-184.0355C382.3515,-188.6926 364.7343,-194.0739 348.6724,-198.9801"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="347.449,-195.694 338.9077,-201.9627 349.494,-202.3887 347.449,-195.694"/>
+</g>
+<!-- sourcefile~modibmdata.f90 -->
+<g id="sourcefile~~moddriver.f90~~EfferentGraph_node9" class="node">
+<title>sourcefile~modibmdata.f90</title>
+<g id="a_sourcefile~~moddriver.f90~~EfferentGraph_node9"><a xlink:href=".././sourcefile/modibmdata.f90.html" xlink:title="modibmdata.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="350,-184 249,-184 249,-160 350,-160 350,-184"/>
+<text text-anchor="middle" x="299.5" y="-169.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modibmdata.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modsave.f90&#45;&gt;sourcefile~modibmdata.f90 -->
+<g id="sourcefile~~moddriver.f90~~EfferentGraph_edge15" class="edge">
+<title>sourcefile~modsave.f90&#45;&gt;sourcefile~modibmdata.f90</title>
+<path fill="none" stroke="#0066ff" stroke-dasharray="5,2" d="M395.7455,-172C384.7326,-172 372.5928,-172 360.7532,-172"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="360.4618,-168.5001 350.4618,-172 360.4618,-175.5001 360.4618,-168.5001"/>
+</g>
+<!-- sourcefile~initfac.f90 -->
+<g id="sourcefile~~moddriver.f90~~EfferentGraph_node10" class="node">
+<title>sourcefile~initfac.f90</title>
+<g id="a_sourcefile~~moddriver.f90~~EfferentGraph_node10"><a xlink:href=".././sourcefile/initfac.f90.html" xlink:title="initfac.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="332.5,-104 266.5,-104 266.5,-80 332.5,-80 332.5,-104"/>
+<text text-anchor="middle" x="299.5" y="-89.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">initfac.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modsave.f90&#45;&gt;sourcefile~initfac.f90 -->
+<g id="sourcefile~~moddriver.f90~~EfferentGraph_edge8" class="edge">
+<title>sourcefile~modsave.f90&#45;&gt;sourcefile~initfac.f90</title>
+<path fill="none" stroke="#0066ff" stroke-dasharray="5,2" d="M421.6927,-159.8427C406.581,-148.1902 382.5307,-130.5656 360,-118 353.8283,-114.558 347.1098,-111.2624 340.4684,-108.2431"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="341.4295,-104.8429 330.8657,-104.0323 338.6184,-111.2536 341.4295,-104.8429"/>
+</g>
+<!-- sourcefile~initfac.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~moddriver.f90~~EfferentGraph_edge17" class="edge">
+<title>sourcefile~initfac.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#7f00ff" stroke-dasharray="5,2" d="M266.4062,-103.7751C257.1958,-107.6945 247.4167,-112.4889 239,-118 214.5993,-133.977 190.7569,-157.6041 175.3306,-174.2646"/>
+<polygon fill="#7f00ff" stroke="#7f00ff" points="172.601,-172.0642 168.4682,-181.8197 177.7826,-176.7707 172.601,-172.0642"/>
+</g>
+<!-- sourcefile~initfac.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~moddriver.f90~~EfferentGraph_edge16" class="edge">
+<title>sourcefile~initfac.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#7f00ff" stroke-dasharray="5,2" d="M271.9326,-79.999C236.9915,-65.5177 178.8032,-44.0409 158,-52"/>
+</g>
+</g>
+</svg>
+</div><div><a type="button" class="graph-help" data-toggle="modal" href="#graph-help-text">Help</a></div><div class="modal fade" id="graph-help-text" tabindex="-1" role="dialog"><div class="modal-dialog modal-lg" role="document"><div class="modal-content"><div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button><h4 class="modal-title" id="-graph-help-label">Graph Key</h4></div><div class="modal-body">
+    <p>Nodes of different colours represent the following: </p>
+    <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.40.1 (20161225.0304)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="202pt" height="32pt"
+ viewBox="0.00 0.00 201.50 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28)">
+<title>Graph Key</title>
+<polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-28 197.5,-28 197.5,4 -4,4"/>
+<!-- Source File -->
+<g id="node1" class="node">
+<title>Source File</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="71,-24 0,-24 0,0 71,0 71,-24"/>
+<text text-anchor="middle" x="35.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">Source File</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node2" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="#000000" points="193.5,-24 89.5,-24 89.5,0 193.5,0 193.5,-24"/>
+<text text-anchor="middle" x="141.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#000000">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+    
+    <p>Solid arrows point from a file to a file which it depends on. A file
+    is dependent upon another if the latter must be compiled before the former
+    can be. Where possible, edges connecting nodes are given different colours to make them easier to distinguish in large graphs.
+    </p>
+    </div></div></div></div>
+      </div>
+    </div>
+    
+      
+    <div class="panel panel-default">
+      <div class="panel-heading">
+  <h3 class="panel-title">Files dependent on this one</h3>
+      </div>
+      <div class="panel-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.40.1 (20161225.0304)
+ -->
+<!-- Title: sourcefile~~moddriver.f90~~AfferentGraph Pages: 1 -->
+<svg id="sourcefilemoddriverf90AfferentGraph" width="634pt" height="166pt"
+ viewBox="0.00 0.00 634.00 165.83" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="sourcefile~~moddriver.f90~~AfferentGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 161.8291)">
+<title>sourcefile~~moddriver.f90~~AfferentGraph</title>
+<polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-161.8291 630,-161.8291 630,4 -4,4"/>
+<!-- sourcefile~moddriver.f90 -->
+<g id="sourcefile~~moddriver.f90~~AfferentGraph_node1" class="node">
+<title>sourcefile~moddriver.f90</title>
+<polygon fill="none" stroke="#000000" points="88,-77.8291 0,-77.8291 0,-53.8291 88,-53.8291 88,-77.8291"/>
+<text text-anchor="middle" x="44" y="-63.4291" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#000000">moddriver.f90</text>
+</g>
+<!-- sourcefile~modboundary.f90 -->
+<g id="sourcefile~~moddriver.f90~~AfferentGraph_node2" class="node">
+<title>sourcefile~modboundary.f90</title>
+<g id="a_sourcefile~~moddriver.f90~~AfferentGraph_node2"><a xlink:href=".././sourcefile/modboundary.f90.html" xlink:title="modboundary.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="230,-57.8291 124,-57.8291 124,-33.8291 230,-33.8291 230,-57.8291"/>
+<text text-anchor="middle" x="177" y="-43.4291" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modboundary.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modboundary.f90&#45;&gt;sourcefile~moddriver.f90 -->
+<g id="sourcefile~~moddriver.f90~~AfferentGraph_edge1" class="edge">
+<title>sourcefile~modboundary.f90&#45;&gt;sourcefile~moddriver.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M123.6702,-53.8487C115.3468,-55.1003 106.7367,-56.395 98.3901,-57.6502"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="97.7449,-54.2077 88.3766,-59.1559 98.7859,-61.1299 97.7449,-54.2077"/>
+</g>
+<!-- sourcefile~modstartup.f90 -->
+<g id="sourcefile~~moddriver.f90~~AfferentGraph_node3" class="node">
+<title>sourcefile~modstartup.f90</title>
+<g id="a_sourcefile~~moddriver.f90~~AfferentGraph_node3"><a xlink:href=".././sourcefile/modstartup.f90.html" xlink:title="modstartup.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="502,-77.8291 408,-77.8291 408,-53.8291 502,-53.8291 502,-77.8291"/>
+<text text-anchor="middle" x="455" y="-63.4291" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modstartup.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modstartup.f90&#45;&gt;sourcefile~moddriver.f90 -->
+<g id="sourcefile~~moddriver.f90~~AfferentGraph_edge2" class="edge">
+<title>sourcefile~modstartup.f90&#45;&gt;sourcefile~moddriver.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M314.5,-85.8291C239.5153,-85.715 153.1555,-78.0047 98.5841,-72.1923"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="98.7591,-68.6909 88.4406,-71.0947 98.006,-75.6502 98.7591,-68.6909"/>
+</g>
+<!-- sourcefile~modstartup.f90&#45;&gt;sourcefile~modboundary.f90 -->
+<g id="sourcefile~~moddriver.f90~~AfferentGraph_edge5" class="edge">
+<title>sourcefile~modstartup.f90&#45;&gt;sourcefile~modboundary.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M407.7628,-75.9826C380.6133,-80.9549 345.7905,-85.8767 314.5,-85.8291"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M314.5,-85.8291C278.5194,-85.7744 239.2752,-72.9972 211.9572,-61.9001"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="213.0357,-58.5571 202.4604,-57.9144 210.3267,-65.0117 213.0357,-58.5571"/>
+</g>
+<!-- sourcefile~modsubgrid.f90 -->
+<g id="sourcefile~~moddriver.f90~~AfferentGraph_node4" class="node">
+<title>sourcefile~modsubgrid.f90</title>
+<g id="a_sourcefile~~moddriver.f90~~AfferentGraph_node4"><a xlink:href=".././sourcefile/modsubgrid.f90.html" xlink:title="modsubgrid.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="363,-137.8291 266,-137.8291 266,-113.8291 363,-113.8291 363,-137.8291"/>
+<text text-anchor="middle" x="314.5" y="-123.4291" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modsubgrid.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modstartup.f90&#45;&gt;sourcefile~modsubgrid.f90 -->
+<g id="sourcefile~~moddriver.f90~~AfferentGraph_edge10" class="edge">
+<title>sourcefile~modstartup.f90&#45;&gt;sourcefile~modsubgrid.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M426.5677,-77.971C405.1434,-87.1202 375.5605,-99.7535 352.1686,-109.7429"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="350.7119,-106.5591 342.89,-113.7053 353.4611,-112.9967 350.7119,-106.5591"/>
+</g>
+<!-- sourcefile~modpois.f90 -->
+<g id="sourcefile~~moddriver.f90~~AfferentGraph_node6" class="node">
+<title>sourcefile~modpois.f90</title>
+<g id="a_sourcefile~~moddriver.f90~~AfferentGraph_node6"><a xlink:href=".././sourcefile/modpois.f90.html" xlink:title="modpois.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="354,-57.8291 275,-57.8291 275,-33.8291 354,-33.8291 354,-57.8291"/>
+<text text-anchor="middle" x="314.5" y="-43.4291" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modpois.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modstartup.f90&#45;&gt;sourcefile~modpois.f90 -->
+<g id="sourcefile~~moddriver.f90~~AfferentGraph_edge12" class="edge">
+<title>sourcefile~modstartup.f90&#45;&gt;sourcefile~modpois.f90</title>
+<path fill="none" stroke="#0000ff" stroke-dasharray="5,2" d="M407.8247,-59.1138C393.84,-57.1231 378.4829,-54.937 364.3355,-52.9231"/>
+<polygon fill="#0000ff" stroke="#0000ff" points="364.6782,-49.4367 354.2847,-51.4924 363.6916,-56.3669 364.6782,-49.4367"/>
+</g>
+<!-- sourcefile~modsubgrid.f90&#45;&gt;sourcefile~modboundary.f90 -->
+<g id="sourcefile~~moddriver.f90~~AfferentGraph_edge3" class="edge">
+<title>sourcefile~modsubgrid.f90&#45;&gt;sourcefile~modboundary.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M291.1725,-113.647C283.1442,-109.369 274.131,-104.4709 266,-99.8291 245.2831,-88.0024 222.2697,-74.016 204.8352,-63.241"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="206.6113,-60.2241 196.2684,-57.9275 202.9217,-66.1728 206.6113,-60.2241"/>
+</g>
+<!-- sourcefile~program.f90 -->
+<g id="sourcefile~~moddriver.f90~~AfferentGraph_node5" class="node">
+<title>sourcefile~program.f90</title>
+<g id="a_sourcefile~~moddriver.f90~~AfferentGraph_node5"><a xlink:href=".././sourcefile/program.f90.html" xlink:title="program.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="626,-97.8291 547,-97.8291 547,-73.8291 626,-73.8291 626,-97.8291"/>
+<text text-anchor="middle" x="586.5" y="-83.4291" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">program.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~program.f90&#45;&gt;sourcefile~modboundary.f90 -->
+<g id="sourcefile~~moddriver.f90~~AfferentGraph_edge4" class="edge">
+<title>sourcefile~program.f90&#45;&gt;sourcefile~modboundary.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M573.6586,-73.7179C551.5533,-53.9355 503.9497,-15.883 455,-5.8291"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M455,-5.8291C372.4889,11.118 274.7467,-13.0207 219.9007,-30.5129"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="218.5914,-27.2585 210.1723,-33.6903 220.7648,-33.9125 218.5914,-27.2585"/>
+</g>
+<!-- sourcefile~program.f90&#45;&gt;sourcefile~modstartup.f90 -->
+<g id="sourcefile~~moddriver.f90~~AfferentGraph_edge7" class="edge">
+<title>sourcefile~program.f90&#45;&gt;sourcefile~modstartup.f90</title>
+<path fill="none" stroke="#00ffff" stroke-dasharray="5,2" d="M546.6888,-79.7742C535.814,-78.1202 523.8117,-76.2948 512.1741,-74.5248"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="512.4911,-71.0328 502.0784,-72.9893 511.4385,-77.9533 512.4911,-71.0328"/>
+</g>
+<!-- sourcefile~program.f90&#45;&gt;sourcefile~modsubgrid.f90 -->
+<g id="sourcefile~~moddriver.f90~~AfferentGraph_edge8" class="edge">
+<title>sourcefile~program.f90&#45;&gt;sourcefile~modsubgrid.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M546.9489,-91.6455C501.3653,-98.3489 425.9985,-109.4323 373.4848,-117.1549"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="372.6866,-113.7345 363.3023,-118.6523 373.7052,-120.66 372.6866,-113.7345"/>
+</g>
+<!-- sourcefile~program.f90&#45;&gt;sourcefile~modpois.f90 -->
+<g id="sourcefile~~moddriver.f90~~AfferentGraph_edge11" class="edge">
+<title>sourcefile~program.f90&#45;&gt;sourcefile~modpois.f90</title>
+<path fill="none" stroke="#0000ff" stroke-dasharray="5,2" d="M455,-5.8291C415.9401,2.1934 371.8622,-14.7264 343.6633,-28.9772"/>
+<polygon fill="#0000ff" stroke="#0000ff" points="341.9625,-25.917 334.7392,-33.6678 345.2194,-32.1133 341.9625,-25.917"/>
+</g>
+<!-- sourcefile~modstatsdump.f90 -->
+<g id="sourcefile~~moddriver.f90~~AfferentGraph_node7" class="node">
+<title>sourcefile~modstatsdump.f90</title>
+<g id="a_sourcefile~~moddriver.f90~~AfferentGraph_node7"><a xlink:href=".././sourcefile/modstatsdump.f90.html" xlink:title="modstatsdump.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="511,-157.8291 399,-157.8291 399,-133.8291 511,-133.8291 511,-157.8291"/>
+<text text-anchor="middle" x="455" y="-143.4291" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modstatsdump.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~program.f90&#45;&gt;sourcefile~modstatsdump.f90 -->
+<g id="sourcefile~~moddriver.f90~~AfferentGraph_edge13" class="edge">
+<title>sourcefile~program.f90&#45;&gt;sourcefile~modstatsdump.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M559.889,-97.971C540.0153,-107.0389 512.6408,-119.5292 490.8408,-129.4759"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="489.2163,-126.37 481.5714,-133.7053 492.122,-132.7384 489.2163,-126.37"/>
+</g>
+<!-- sourcefile~modpois.f90&#45;&gt;sourcefile~modboundary.f90 -->
+<g id="sourcefile~~moddriver.f90~~AfferentGraph_edge6" class="edge">
+<title>sourcefile~modpois.f90&#45;&gt;sourcefile~modboundary.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M274.7293,-45.8291C263.994,-45.8291 252.1047,-45.8291 240.4219,-45.8291"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="240.2426,-42.3292 230.2426,-45.8291 240.2425,-49.3292 240.2426,-42.3292"/>
+</g>
+<!-- sourcefile~modstatsdump.f90&#45;&gt;sourcefile~modsubgrid.f90 -->
+<g id="sourcefile~~moddriver.f90~~AfferentGraph_edge9" class="edge">
+<title>sourcefile~modstatsdump.f90&#45;&gt;sourcefile~modsubgrid.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M398.6628,-137.8096C390.3043,-136.6198 381.6721,-135.391 373.2654,-134.1943"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="373.55,-130.6996 363.1565,-132.7553 372.5635,-137.6298 373.55,-130.6996"/>
+</g>
+</g>
+</svg>
+</div><div><a type="button" class="graph-help" data-toggle="modal" href="#graph-help-text">Help</a></div><div class="modal fade" id="graph-help-text" tabindex="-1" role="dialog"><div class="modal-dialog modal-lg" role="document"><div class="modal-content"><div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button><h4 class="modal-title" id="-graph-help-label">Graph Key</h4></div><div class="modal-body">
+    <p>Nodes of different colours represent the following: </p>
+    <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.40.1 (20161225.0304)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="202pt" height="32pt"
+ viewBox="0.00 0.00 201.50 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28)">
+<title>Graph Key</title>
+<polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-28 197.5,-28 197.5,4 -4,4"/>
+<!-- Source File -->
+<g id="node1" class="node">
+<title>Source File</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="71,-24 0,-24 0,0 71,0 71,-24"/>
+<text text-anchor="middle" x="35.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">Source File</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node2" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="#000000" points="193.5,-24 89.5,-24 89.5,0 193.5,0 193.5,-24"/>
+<text text-anchor="middle" x="141.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#000000">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+    
+    <p>Solid arrows point from a file to a file which it depends on. A file
+    is dependent upon another if the latter must be compiled before the former
+    can be. Where possible, edges connecting nodes are given different colours to make them easier to distinguish in large graphs.
+    </p>
+    </div></div></div></div>
+      </div>
+    </div>
+      
+      <br>
+
+    <section class="visible-xs visible-sm hidden-md">
+      
+<h3>Contents</h3>
+ 
+
+
+
+
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#mods-1">Modules</a></h3></div>
+  <div id="mods-1" class="panel-collapse collapse">
+    <div class="list-group">
+      
+      <a class="list-group-item" href="../module/moddriver.html">moddriver</a>
+      
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../sourcefile/moddriver.f90.html#src">moddriver.f90</a>
+  </div>
+</div>
+
+
+
+    </section>
+    <br class="visible-xs visible-sm hidden-md">
+
+    <section>
+      <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="hl"><pre><span></span><a name="ln-1"></a><span class="c">!! moddriverinlet.f90 contains the set up for creating a driver simulation to use an inlet conditions for a following simulation/</span>
+<a name="ln-2"></a><span class="c">!! This creates a realistic turbulent inlet profiles as necessary.</span>
+<a name="ln-3"></a><span class="c">!! The fields are extracted from a specified plane and stored in</span>
+<a name="ln-4"></a><span class="c">!! respective files. These files are then used to create inlet</span>
+<a name="ln-5"></a><span class="c">!! conditions for a following simualtion. Fields are linearly</span>
+<a name="ln-6"></a><span class="c">!! interpolated in time where necessary.</span>
+<a name="ln-7"></a><span class="c">!! Code set up is adapted from modinlet.f90 since similar processes are involved</span>
+<a name="ln-8"></a>
+<a name="ln-9"></a><span class="c">!! \author Anton Esmail-Yakas, Imperial College London, August 5th 2017.</span>
+<a name="ln-10"></a><span class="c">!! Edited by tg3315, ICL, May 2019.</span>
+<a name="ln-11"></a><span class="c">!! \todo Documentation</span>
+<a name="ln-12"></a><span class="c">!!       Remove unecessary &quot;use&quot; variables</span>
+<a name="ln-13"></a><span class="c">!!       Remove unecessary commented lines</span>
+<a name="ln-14"></a><span class="k">module </span><span class="n">moddriver</span>
+<a name="ln-15"></a><span class="k">use </span><span class="n">modinletdata</span>
+<a name="ln-16"></a><span class="k">implicit none</span>
+<a name="ln-17"></a><span class="k">save</span>
+<a name="ln-18"></a><span class="k">  public</span> <span class="kd">::</span> <span class="n">initdriver</span><span class="p">,</span><span class="n">exitdriver</span><span class="p">,</span><span class="n">readdriverfile</span><span class="p">,</span><span class="n">drivergen</span>
+<a name="ln-19"></a>
+<a name="ln-20"></a><span class="k">contains</span>
+<a name="ln-21"></a><span class="k">  subroutine </span><span class="n">initdriver</span>
+<a name="ln-22"></a>    <span class="k">use </span><span class="n">modglobal</span><span class="p">,</span> <span class="k">only</span> <span class="p">:</span> <span class="n">ih</span><span class="p">,</span><span class="n">ib</span><span class="p">,</span><span class="n">ie</span><span class="p">,</span><span class="n">jh</span><span class="p">,</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="p">,</span><span class="n">kh</span><span class="p">,</span><span class="n">jhc</span><span class="p">,</span><span class="n">khc</span><span class="p">,</span><span class="n">idriver</span><span class="p">,</span><span class="n">iplane</span><span class="p">,</span><span class="n">xf</span><span class="p">,</span><span class="n">lstoreplane</span><span class="p">,</span><span class="n">nstore</span><span class="p">,</span><span class="n">Uinf</span><span class="p">,</span><span class="n">ltempeq</span><span class="p">,</span><span class="n">lmoist</span><span class="p">,</span><span class="n">pi</span><span class="p">,</span><span class="n">zf</span><span class="p">,</span><span class="n">zh</span><span class="p">,</span><span class="n">driverstore</span><span class="p">,</span><span class="n">tdriverstart</span><span class="p">,</span><span class="n">tdriverdump</span><span class="p">,</span><span class="n">timeleft</span><span class="p">,</span><span class="n">dtdriver</span><span class="p">,</span><span class="n">nsv</span><span class="p">,</span><span class="n">timee</span>
+<a name="ln-23"></a>    <span class="k">use </span><span class="n">modfields</span><span class="p">,</span> <span class="k">only</span> <span class="p">:</span> <span class="n">um</span>
+<a name="ln-24"></a>    <span class="k">use </span><span class="n">modmpi</span><span class="p">,</span> <span class="k">only</span> <span class="p">:</span> <span class="n">myid</span><span class="p">,</span><span class="n">nprocs</span>
+<a name="ln-25"></a>
+<a name="ln-26"></a>    <span class="k">implicit none</span>
+<a name="ln-27"></a><span class="k">    </span><span class="kt">real</span>    <span class="kd">::</span> <span class="n">pfi</span><span class="p">,</span> <span class="n">epsi</span>
+<a name="ln-28"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">k</span>
+<a name="ln-29"></a>
+<a name="ln-30"></a>    <span class="k">if</span> <span class="p">(</span><span class="n">idriver</span><span class="o">==</span><span class="mi">1</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-31"></a><span class="k">      if</span> <span class="p">(</span><span class="n">tdriverstart</span> <span class="o">&lt;</span> <span class="n">timee</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-32"></a><span class="k">        write</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s1">&#39;ERROR: tdriverstart must be greater than the elapsed time at the start of the simulation&#39;</span>
+<a name="ln-33"></a>        <span class="k">stop </span><span class="mi">1</span>
+<a name="ln-34"></a>      <span class="k">end if</span>
+<a name="ln-35"></a><span class="k">      </span><span class="n">tdriverdump</span> <span class="o">=</span> <span class="n">tdriverstart</span>
+<a name="ln-36"></a>   <span class="k">endif</span>
+<a name="ln-37"></a>
+<a name="ln-38"></a><span class="k">    if</span> <span class="p">(</span><span class="n">idriver</span><span class="o">==</span><span class="mi">1</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-39"></a><span class="k">      allocate</span><span class="p">(</span><span class="n">storetdriver</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">driverstore</span><span class="p">))</span>
+<a name="ln-40"></a>      <span class="k">allocate</span><span class="p">(</span><span class="n">storeu0driver</span><span class="p">(</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">driverstore</span><span class="p">))</span>
+<a name="ln-41"></a>      <span class="k">allocate</span><span class="p">(</span><span class="n">storeumdriver</span><span class="p">(</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">driverstore</span><span class="p">))</span>
+<a name="ln-42"></a>      <span class="k">allocate</span><span class="p">(</span><span class="n">storev0driver</span><span class="p">(</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">driverstore</span><span class="p">))</span>
+<a name="ln-43"></a>      <span class="k">allocate</span><span class="p">(</span><span class="n">storevmdriver</span><span class="p">(</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">driverstore</span><span class="p">))</span>
+<a name="ln-44"></a>      <span class="k">allocate</span><span class="p">(</span><span class="n">storew0driver</span><span class="p">(</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">driverstore</span><span class="p">))</span>
+<a name="ln-45"></a>      <span class="k">allocate</span><span class="p">(</span><span class="n">storewmdriver</span><span class="p">(</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">driverstore</span><span class="p">))</span>
+<a name="ln-46"></a>      <span class="c">!allocate(storee120driver(jb-jh:je+jh,kb-kh:ke+kh,1:driverstore))</span>
+<a name="ln-47"></a>      <span class="c">!allocate(storee12mdriver(jb-jh:je+jh,kb-kh:ke+kh,1:driverstore))</span>
+<a name="ln-48"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">ltempeq</span>  <span class="p">)</span> <span class="k">then</span>
+<a name="ln-49"></a><span class="k">        allocate</span><span class="p">(</span><span class="n">storethl0driver</span><span class="p">(</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">driverstore</span><span class="p">))</span>
+<a name="ln-50"></a>        <span class="k">allocate</span><span class="p">(</span><span class="n">storethlmdriver</span><span class="p">(</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">driverstore</span><span class="p">))</span>
+<a name="ln-51"></a>      <span class="k">end if</span>
+<a name="ln-52"></a><span class="k">      if</span> <span class="p">(</span><span class="n">lmoist</span>  <span class="p">)</span> <span class="k">then</span>
+<a name="ln-53"></a><span class="k">        allocate</span><span class="p">(</span><span class="n">storeqt0driver</span><span class="p">(</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">driverstore</span><span class="p">))</span>
+<a name="ln-54"></a>        <span class="k">allocate</span><span class="p">(</span><span class="n">storeqtmdriver</span><span class="p">(</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">driverstore</span><span class="p">))</span>
+<a name="ln-55"></a>      <span class="k">end if</span>
+<a name="ln-56"></a><span class="k">      if</span> <span class="p">(</span><span class="n">nsv</span><span class="o">&gt;</span><span class="mi">0</span>  <span class="p">)</span> <span class="k">then</span>
+<a name="ln-57"></a><span class="k">        allocate</span><span class="p">(</span><span class="n">storesv0driver</span><span class="p">(</span><span class="n">jb</span><span class="o">-</span><span class="n">jhc</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jhc</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">khc</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">khc</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">nsv</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">driverstore</span><span class="p">))</span>
+<a name="ln-58"></a>        <span class="k">allocate</span><span class="p">(</span><span class="n">storesvmdriver</span><span class="p">(</span><span class="n">jb</span><span class="o">-</span><span class="n">jhc</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jhc</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">khc</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">khc</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">nsv</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">driverstore</span><span class="p">))</span>
+<a name="ln-59"></a>      <span class="k">end if</span>
+<a name="ln-60"></a>
+<a name="ln-61"></a><span class="k">      </span><span class="n">irecydriver</span> <span class="o">=</span> <span class="n">iplane</span><span class="c">!+ib        ! index of recycle plane from driver simulation equals iplane (read from namoptions)</span>
+<a name="ln-62"></a>
+<a name="ln-63"></a>    <span class="k">else if</span> <span class="p">(</span><span class="n">idriver</span> <span class="o">==</span> <span class="mi">2</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-64"></a>
+<a name="ln-65"></a><span class="k">      allocate</span><span class="p">(</span><span class="n">storetdriver</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">driverstore</span><span class="p">))</span>
+<a name="ln-66"></a>      <span class="k">allocate</span><span class="p">(</span><span class="n">storeu0driver</span><span class="p">(</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">driverstore</span><span class="p">))</span>
+<a name="ln-67"></a>      <span class="k">allocate</span><span class="p">(</span><span class="n">storeumdriver</span><span class="p">(</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">driverstore</span><span class="p">))</span>
+<a name="ln-68"></a>      <span class="k">allocate</span><span class="p">(</span><span class="n">storev0driver</span><span class="p">(</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">driverstore</span><span class="p">))</span>
+<a name="ln-69"></a>      <span class="k">allocate</span><span class="p">(</span><span class="n">storevmdriver</span><span class="p">(</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">driverstore</span><span class="p">))</span>
+<a name="ln-70"></a>      <span class="k">allocate</span><span class="p">(</span><span class="n">storew0driver</span><span class="p">(</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">driverstore</span><span class="p">))</span>
+<a name="ln-71"></a>      <span class="k">allocate</span><span class="p">(</span><span class="n">storewmdriver</span><span class="p">(</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">driverstore</span><span class="p">))</span>
+<a name="ln-72"></a>      <span class="c">!allocate(storee120driver(jb-jh:je+jh,kb-kh:ke+kh,1:driverstore))</span>
+<a name="ln-73"></a>      <span class="c">!allocate(storee12mdriver(jb-jh:je+jh,kb-kh:ke+kh,1:driverstore))</span>
+<a name="ln-74"></a>      <span class="k">allocate</span><span class="p">(</span><span class="n">u0driver</span><span class="p">(</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+<a name="ln-75"></a>      <span class="k">allocate</span><span class="p">(</span><span class="n">v0driver</span><span class="p">(</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+<a name="ln-76"></a>      <span class="k">allocate</span><span class="p">(</span><span class="n">w0driver</span><span class="p">(</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+<a name="ln-77"></a>      <span class="c">!allocate(e120driver(jb-jh:je+jh,kb-kh:ke+kh))</span>
+<a name="ln-78"></a>      <span class="k">allocate</span><span class="p">(</span><span class="n">umdriver</span><span class="p">(</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+<a name="ln-79"></a>      <span class="k">allocate</span><span class="p">(</span><span class="n">vmdriver</span><span class="p">(</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+<a name="ln-80"></a>      <span class="k">allocate</span><span class="p">(</span><span class="n">wmdriver</span><span class="p">(</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+<a name="ln-81"></a>      <span class="c">!allocate(e12mdriver(jb-jh:je+jh,kb-kh:ke+kh))</span>
+<a name="ln-82"></a>
+<a name="ln-83"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">ltempeq</span> <span class="p">)</span> <span class="k">then</span>
+<a name="ln-84"></a><span class="k">        allocate</span><span class="p">(</span><span class="n">storethl0driver</span><span class="p">(</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">driverstore</span><span class="p">))</span>
+<a name="ln-85"></a>        <span class="k">allocate</span><span class="p">(</span><span class="n">storethlmdriver</span><span class="p">(</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">kh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">driverstore</span><span class="p">))</span>
+<a name="ln-86"></a>        <span class="k">allocate</span><span class="p">(</span><span class="n">thl0driver</span><span class="p">(</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+<a name="ln-87"></a>        <span class="k">allocate</span><span class="p">(</span><span class="n">thlmdriver</span><span class="p">(</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+<a name="ln-88"></a>      <span class="k">end if</span>
+<a name="ln-89"></a><span class="k">      if</span> <span class="p">(</span><span class="n">lmoist</span> <span class="p">)</span> <span class="k">then</span>
+<a name="ln-90"></a><span class="k">        allocate</span><span class="p">(</span><span class="n">storeqt0driver</span><span class="p">(</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">driverstore</span><span class="p">))</span>
+<a name="ln-91"></a>        <span class="k">allocate</span><span class="p">(</span><span class="n">storeqtmdriver</span><span class="p">(</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">driverstore</span><span class="p">))</span>
+<a name="ln-92"></a>        <span class="k">allocate</span><span class="p">(</span><span class="n">qt0driver</span><span class="p">(</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+<a name="ln-93"></a>        <span class="k">allocate</span><span class="p">(</span><span class="n">qtmdriver</span><span class="p">(</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+<a name="ln-94"></a>      <span class="k">end if</span>
+<a name="ln-95"></a><span class="k">      if</span> <span class="p">(</span><span class="n">nsv</span><span class="o">&gt;</span><span class="mi">0</span> <span class="p">)</span> <span class="k">then</span>
+<a name="ln-96"></a><span class="k">        allocate</span><span class="p">(</span><span class="n">storesv0driver</span><span class="p">(</span><span class="n">jb</span><span class="o">-</span><span class="n">jhc</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jhc</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">khc</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">khc</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">nsv</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">driverstore</span><span class="p">))</span>
+<a name="ln-97"></a>        <span class="k">allocate</span><span class="p">(</span><span class="n">storesvmdriver</span><span class="p">(</span><span class="n">jb</span><span class="o">-</span><span class="n">jhc</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jhc</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">khc</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">khc</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">nsv</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">driverstore</span><span class="p">))</span>
+<a name="ln-98"></a>        <span class="k">allocate</span><span class="p">(</span><span class="n">sv0driver</span><span class="p">(</span><span class="n">jb</span><span class="o">-</span><span class="n">jhc</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jhc</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">khc</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">khc</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">nsv</span><span class="p">))</span>
+<a name="ln-99"></a>        <span class="k">allocate</span><span class="p">(</span><span class="n">svmdriver</span><span class="p">(</span><span class="n">jb</span><span class="o">-</span><span class="n">jhc</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jhc</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">khc</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">khc</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">nsv</span><span class="p">))</span>
+<a name="ln-100"></a>      <span class="k">end if</span>
+<a name="ln-101"></a><span class="k">      </span><span class="n">irecydriver</span> <span class="o">=</span> <span class="n">iplane</span><span class="c">!+ib</span>
+<a name="ln-102"></a>    <span class="k">else</span>
+<a name="ln-103"></a><span class="k">      return</span>
+<a name="ln-104"></a><span class="k">    end if</span>
+<a name="ln-105"></a>
+<a name="ln-106"></a><span class="k">  end subroutine </span><span class="n">initdriver</span>
+<a name="ln-107"></a>
+<a name="ln-108"></a>  <span class="k">subroutine </span><span class="n">drivergen</span>
+<a name="ln-109"></a>    <span class="k">use </span><span class="n">modglobal</span><span class="p">,</span>   <span class="k">only</span> <span class="p">:</span> <span class="n">ib</span><span class="p">,</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span><span class="p">,</span><span class="n">jgb</span><span class="p">,</span><span class="n">jge</span><span class="p">,</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="p">,</span><span class="n">zf</span><span class="p">,</span><span class="n">zh</span><span class="p">,</span><span class="n">dzf</span><span class="p">,</span><span class="n">dzhi</span><span class="p">,</span><span class="n">timee</span><span class="p">,</span><span class="n">btime</span><span class="p">,</span><span class="n">totavtime</span><span class="p">,</span><span class="n">rk3step</span><span class="p">,&amp;</span>
+<a name="ln-110"></a>                            <span class="n">dt</span><span class="p">,</span><span class="n">numol</span><span class="p">,</span><span class="n">iplane</span><span class="p">,</span><span class="n">lles</span><span class="p">,</span><span class="n">idriver</span><span class="p">,</span><span class="n">inletav</span><span class="p">,</span><span class="n">runavtime</span><span class="p">,</span><span class="n">Uinf</span><span class="p">,</span><span class="n">lwallfunc</span><span class="p">,</span><span class="n">linletRA</span><span class="p">,&amp;</span>
+<a name="ln-111"></a>                            <span class="n">totinletav</span><span class="p">,</span><span class="n">lstoreplane</span><span class="p">,</span><span class="n">nstore</span><span class="p">,</span><span class="n">driverstore</span><span class="p">,</span><span class="n">prandtlmoli</span><span class="p">,</span><span class="n">numol</span><span class="p">,</span><span class="n">grav</span><span class="p">,</span><span class="n">lbuoyancy</span><span class="p">,&amp;</span>
+<a name="ln-112"></a>                            <span class="n">lfixinlet</span><span class="p">,</span><span class="n">lfixutauin</span><span class="p">,</span><span class="n">tdriverstart</span><span class="p">,</span><span class="n">dtdriver</span><span class="p">,</span><span class="n">tdriverdump</span><span class="p">,</span><span class="n">ltempeq</span><span class="p">,</span><span class="n">lmoist</span><span class="p">,</span><span class="n">nsv</span>
+<a name="ln-113"></a>    <span class="k">use </span><span class="n">modfields</span><span class="p">,</span>   <span class="k">only</span> <span class="p">:</span> <span class="n">u0</span><span class="p">,</span><span class="n">v0</span><span class="p">,</span><span class="n">w0</span><span class="p">,</span><span class="n">e120</span><span class="p">,</span><span class="n">thl0</span><span class="p">,</span><span class="n">qt0</span><span class="p">,</span><span class="n">wm</span><span class="p">,</span><span class="n">uprof</span>
+<a name="ln-114"></a>    <span class="k">use </span><span class="n">modsave</span><span class="p">,</span>     <span class="k">only</span> <span class="p">:</span> <span class="n">writerestartfiles</span>
+<a name="ln-115"></a>    <span class="k">use </span><span class="n">modmpi</span><span class="p">,</span>      <span class="k">only</span> <span class="p">:</span> <span class="n">slabsum</span><span class="p">,</span><span class="n">myid</span>
+<a name="ln-116"></a>    <span class="k">implicit none</span>
+<a name="ln-117"></a>
+<a name="ln-118"></a><span class="k">    </span><span class="kt">real</span> <span class="kd">::</span> <span class="n">inlrec</span>                              <span class="c">! time of last inlet record</span>
+<a name="ln-119"></a>    <span class="kt">real</span> <span class="kd">::</span> <span class="n">elapsrec</span>                            <span class="c">! time elapsed in this inlet record  </span>
+<a name="ln-120"></a>    <span class="kt">real</span> <span class="kd">::</span> <span class="n">dtint</span>                               <span class="c">! dt for linear interpolation</span>
+<a name="ln-121"></a>    <span class="kt">REAL</span><span class="o">*</span><span class="mi">8</span><span class="p">,</span> <span class="k">PARAMETER</span> <span class="kd">::</span> <span class="n">eps</span> <span class="o">=</span> <span class="mi">1</span><span class="n">d</span><span class="o">-</span><span class="mi">3</span>
+<a name="ln-122"></a>    <span class="kt">integer </span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">,</span><span class="n">kk</span><span class="p">,</span><span class="n">kdamp</span><span class="p">,</span><span class="n">x</span>
+<a name="ln-123"></a>
+<a name="ln-124"></a>    <span class="k">if</span> <span class="p">(</span><span class="n">idriver</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-125"></a>
+<a name="ln-126"></a>      <span class="c">! if (.not. (rk3step==3)) return</span>
+<a name="ln-127"></a>      <span class="k">if</span> <span class="p">(.</span><span class="nb">not</span><span class="p">.</span> <span class="p">(</span><span class="n">timee</span><span class="o">&gt;=</span><span class="n">tdriverstart</span><span class="p">))</span> <span class="k">return</span>
+<a name="ln-128"></a><span class="k">      if</span> <span class="p">(.</span><span class="nb">not</span><span class="p">.</span> <span class="p">(</span><span class="n">timee</span><span class="o">&gt;=</span><span class="n">tdriverdump</span><span class="p">))</span> <span class="k">return</span>
+<a name="ln-129"></a><span class="k">      if</span> <span class="p">(</span><span class="n">nstepreaddriver</span><span class="o">&gt;=</span><span class="n">driverstore</span><span class="p">)</span> <span class="k">return</span>
+<a name="ln-130"></a><span class="k">      if</span> <span class="p">(</span><span class="n">nstepreaddriver</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-131"></a>        <span class="c">! tdriverdump = timee</span>
+<a name="ln-132"></a>        <span class="n">tdriverdump</span> <span class="o">=</span> <span class="n">tdriverstart</span>
+<a name="ln-133"></a>        <span class="c">! tdriverstart = timee   !Update tdriverstart to the actual recorded value</span>
+<a name="ln-134"></a>        <span class="k">if</span> <span class="p">((</span><span class="n">myid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="p">(</span><span class="n">rk3step</span><span class="o">==</span><span class="mi">3</span><span class="p">))</span> <span class="k">then</span>
+<a name="ln-135"></a><span class="k">          write</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;==================================================================&#39;</span>
+<a name="ln-136"></a>          <span class="k">write</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;*** Starting to write data for driver simulation ***&#39;</span>
+<a name="ln-137"></a>          <span class="k">write</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;Driver recording variables:&#39;</span>
+<a name="ln-138"></a>          <span class="k">write</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="s1">&#39;(A,F9.2,A,I4,A,F12.9)&#39;</span><span class="p">)</span> <span class="s1">&#39; Starting time: &#39;</span><span class="p">,</span><span class="n">tdriverdump</span><span class="p">,</span><span class="s1">&#39; Stored time steps: &#39;</span><span class="p">,</span><span class="n">driverstore</span><span class="p">,</span><span class="s1">&#39;     Inlet record intervals: &#39;</span><span class="p">,</span><span class="n">dtdriver</span>
+<a name="ln-139"></a>          <span class="k">write</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;==================================================================&#39;</span>
+<a name="ln-140"></a>        <span class="k">end if</span>
+<a name="ln-141"></a><span class="k">      end if</span>
+<a name="ln-142"></a><span class="k">      if</span><span class="p">(</span><span class="n">rk3step</span><span class="o">==</span><span class="mi">3</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-143"></a><span class="k">        </span><span class="n">nstepreaddriver</span> <span class="o">=</span> <span class="n">nstepreaddriver</span> <span class="o">+</span> <span class="mi">1</span>
+<a name="ln-144"></a>        <span class="n">tdriverdump</span> <span class="o">=</span> <span class="n">tdriverdump</span> <span class="o">+</span> <span class="n">dtdriver</span>
+<a name="ln-145"></a>        <span class="c">! storetinlet(nstepreaddriver) = timee - tdriverstart</span>
+<a name="ln-146"></a>        <span class="k">call </span><span class="n">writedriverfile</span>
+<a name="ln-147"></a>      <span class="k">end if</span>
+<a name="ln-148"></a><span class="k">   </span>
+<a name="ln-149"></a><span class="k">    </span><span class="n">elseif</span> <span class="p">(</span><span class="n">idriver</span> <span class="o">==</span> <span class="mi">2</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-150"></a>
+<a name="ln-151"></a>      <span class="c">! if (.not. rk3step==1) return</span>
+<a name="ln-152"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">timee</span><span class="o">&gt;</span><span class="nb">maxval</span><span class="p">(</span><span class="n">storetdriver</span><span class="p">))</span> <span class="k">then</span>
+<a name="ln-153"></a><span class="k">        if</span><span class="p">(</span><span class="n">myid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-154"></a><span class="k">          write</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="s1">&#39;(A,F9.2,A,F9.2)&#39;</span><span class="p">)</span> <span class="s1">&#39;timee: &#39;</span><span class="p">,</span><span class="n">timee</span><span class="p">,</span><span class="s1">&#39;     Final inlet driver time:&#39;</span><span class="p">,</span><span class="nb">maxval</span><span class="p">(</span><span class="n">storetdriver</span><span class="p">)</span>
+<a name="ln-155"></a>          <span class="k">write</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="s1">&#39;(A,I4,A,I4)&#39;</span><span class="p">)</span> <span class="s1">&#39;Inlet driver step: &#39;</span><span class="p">,</span><span class="n">nstepreaddriver</span><span class="p">,</span><span class="s1">&#39;     Total inlet driver steps:&#39;</span><span class="p">,</span><span class="n">driverstore</span>
+<a name="ln-156"></a>        <span class="k">end if</span>
+<a name="ln-157"></a><span class="k">        stop</span> <span class="s1">&#39;Time in simulation has exceeded the inlet information - no more inlet data available!&#39;</span>
+<a name="ln-158"></a>      <span class="k">end if</span>
+<a name="ln-159"></a><span class="k">      </span><span class="n">x</span> <span class="o">=</span> <span class="nb">minloc</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">storetdriver</span><span class="o">-</span><span class="n">timee</span><span class="p">),</span><span class="mi">1</span><span class="p">)</span>
+<a name="ln-160"></a>      <span class="n">elapsrec</span> <span class="o">=</span> <span class="n">storetdriver</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">-</span> <span class="n">timee</span>
+<a name="ln-161"></a>      <span class="k">if</span><span class="p">(</span><span class="n">myid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-162"></a>        <span class="c">! if(rk3step==1) then</span>
+<a name="ln-163"></a>        <span class="c">! write(6,*) &#39;============ Inlet interpolating =============&#39;</span>
+<a name="ln-164"></a>        <span class="c">! write(6,*) &#39;Inlet interpolation time = &#39;, elapsrec</span>
+<a name="ln-165"></a>        <span class="c">! write(6,&#39;(A,F9.4)&#39;) &#39;Inlet driver time stamp (x)  = &#39;, storetdriver(x)</span>
+<a name="ln-166"></a>        <span class="c">! write(6,&#39;(A,F9.4)&#39;) &#39;Inlet driver time stamp (x+1) = &#39;, storetdriver(x+1)</span>
+<a name="ln-167"></a>        <span class="c">! write(6,&#39;(A,F9.4)&#39;) &#39;Inlet driver time stamp (x-1) = &#39;, storetdriver(x-1)</span>
+<a name="ln-168"></a>        <span class="c">! write(6,&#39;(A,E20.12)&#39;) &#39;Reading driver velocity: storeu0driver(je,ke,x) = &#39;, storeu0driver(je,ke,x)</span>
+<a name="ln-169"></a>        <span class="c">! write(6,*) &#39;Inlet step = &#39;,nstepreaddriver</span>
+<a name="ln-170"></a>        <span class="c">! end if</span>
+<a name="ln-171"></a>      <span class="k">end if</span>
+<a name="ln-172"></a>
+<a name="ln-173"></a><span class="k">      if</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">elapsrec</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">eps</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-174"></a>
+<a name="ln-175"></a><span class="k">        if</span> <span class="p">((</span><span class="n">myid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="p">(</span><span class="n">rk3step</span><span class="o">==</span><span class="mi">1</span><span class="p">))</span> <span class="k">then</span>
+<a name="ln-176"></a><span class="k">          write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="s1">&#39;(A,I5,A,F10.3,A)&#39;</span><span class="p">)</span> <span class="s1">&#39;======= Inputs loaded from driver tstep &#39;</span><span class="p">,</span><span class="n">x</span><span class="p">,</span><span class="s1">&#39; (at &#39;</span><span class="p">,</span><span class="n">storetdriver</span><span class="p">(</span><span class="n">x</span><span class="p">),</span><span class="s1">&#39;s) =======&#39;</span>
+<a name="ln-177"></a>        <span class="k">end if</span>
+<a name="ln-178"></a>
+<a name="ln-179"></a><span class="k">        </span><span class="n">u0driver</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="n">storeu0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">)</span>
+<a name="ln-180"></a>        <span class="n">v0driver</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="n">storev0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">)</span>
+<a name="ln-181"></a>        <span class="n">w0driver</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="n">storew0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">)</span>
+<a name="ln-182"></a>        <span class="c">!e120driver(:,:) = storee120driver(:,:,x)</span>
+<a name="ln-183"></a>        <span class="k">if</span> <span class="p">(</span><span class="n">ltempeq</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-184"></a><span class="k">          </span><span class="n">thl0driver</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="n">storethl0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">)</span>
+<a name="ln-185"></a>        <span class="k">end if</span>
+<a name="ln-186"></a><span class="k">        if</span> <span class="p">(</span><span class="n">lmoist</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-187"></a><span class="k">          </span><span class="n">qt0driver</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="n">storeqt0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">)</span>
+<a name="ln-188"></a>        <span class="k">end if</span>
+<a name="ln-189"></a><span class="k">        if</span> <span class="p">(</span><span class="n">nsv</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-190"></a><span class="k">          </span><span class="n">sv0driver</span><span class="p">(:,:,:)</span> <span class="o">=</span> <span class="n">storesv0driver</span><span class="p">(:,:,:,</span><span class="n">x</span><span class="p">)</span>
+<a name="ln-191"></a>        <span class="k">end if</span>
+<a name="ln-192"></a><span class="k">        </span><span class="n">nstepreaddriver</span> <span class="o">=</span> <span class="n">x</span>
+<a name="ln-193"></a>      <span class="n">elseif</span> <span class="p">((</span><span class="n">elapsrec</span> <span class="o">&gt;</span> <span class="mf">0.</span><span class="p">)</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="p">(</span><span class="n">x</span> <span class="o">==</span> <span class="mi">1</span><span class="p">))</span> <span class="k">then</span>
+<a name="ln-194"></a><span class="k">     </span>
+<a name="ln-195"></a><span class="k">        if</span> <span class="p">((</span><span class="n">myid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="p">(</span><span class="n">rk3step</span><span class="o">==</span><span class="mi">1</span><span class="p">))</span> <span class="k">then</span>
+<a name="ln-196"></a><span class="k">          write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="s1">&#39;(A,F10.3,A)&#39;</span><span class="p">)</span> <span class="s1">&#39;======= Inputs loaded from the proceeding driver tstep 1 (at &#39;</span><span class="p">,</span><span class="n">storetdriver</span><span class="p">(</span><span class="n">x</span><span class="p">),</span><span class="s1">&#39;s) =======&#39;</span>
+<a name="ln-197"></a>        <span class="k">end if</span>
+<a name="ln-198"></a>
+<a name="ln-199"></a><span class="k">        </span><span class="n">u0driver</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="n">storeu0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">)</span>
+<a name="ln-200"></a>        <span class="n">v0driver</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="n">storev0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">)</span>
+<a name="ln-201"></a>        <span class="n">w0driver</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="n">storew0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">)</span>
+<a name="ln-202"></a>        <span class="c">! e120driver(:,:) = storee120driver(:,:,x)</span>
+<a name="ln-203"></a>        <span class="k">if</span> <span class="p">(</span><span class="n">ltempeq</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-204"></a><span class="k">          </span><span class="n">thl0driver</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="n">storethl0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">)</span>
+<a name="ln-205"></a>        <span class="k">end if</span>
+<a name="ln-206"></a><span class="k">        if</span> <span class="p">(</span><span class="n">lmoist</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-207"></a><span class="k">          </span><span class="n">qt0driver</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="n">storeqt0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">)</span>
+<a name="ln-208"></a>        <span class="k">end if</span>
+<a name="ln-209"></a><span class="k">        if</span> <span class="p">(</span><span class="n">nsv</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-210"></a><span class="k">          </span><span class="n">sv0driver</span><span class="p">(:,:,:)</span> <span class="o">=</span> <span class="n">storesv0driver</span><span class="p">(:,:,:,</span><span class="n">x</span><span class="p">)</span>
+<a name="ln-211"></a>        <span class="k">end if</span>
+<a name="ln-212"></a><span class="k">        </span><span class="n">nstepreaddriver</span> <span class="o">=</span> <span class="n">x</span>
+<a name="ln-213"></a>      <span class="n">elseif</span> <span class="p">(</span><span class="n">elapsrec</span> <span class="o">&lt;</span> <span class="mf">0.</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-214"></a>
+<a name="ln-215"></a><span class="k">        if</span> <span class="p">((</span><span class="n">myid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="p">(</span><span class="n">rk3step</span><span class="o">==</span><span class="mi">1</span><span class="p">))</span> <span class="k">then</span>
+<a name="ln-216"></a><span class="k">          write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="s1">&#39;(A,I5,A,F10.3,A,I5,A,F10.3,A)&#39;</span><span class="p">)</span> <span class="s1">&#39;======= Inputs interpolated from driver tsteps &#39;</span><span class="p">,</span><span class="n">x</span><span class="p">,</span><span class="s1">&#39; (&#39;</span><span class="p">,</span><span class="n">storetdriver</span><span class="p">(</span><span class="n">x</span><span class="p">),</span><span class="s1">&#39; s) and &#39;</span><span class="p">,</span><span class="n">x</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="s1">&#39; (&#39;</span><span class="p">,</span><span class="n">storetdriver</span><span class="p">(</span><span class="n">x</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span><span class="s1">&#39; s) =======&#39;</span>
+<a name="ln-217"></a>        <span class="k">end if</span>
+<a name="ln-218"></a>
+<a name="ln-219"></a><span class="k">        </span><span class="n">dtint</span> <span class="o">=</span> <span class="p">(</span><span class="n">timee</span><span class="o">-</span><span class="n">storetdriver</span><span class="p">(</span><span class="n">x</span><span class="p">))</span><span class="o">/</span><span class="p">(</span><span class="n">storetdriver</span><span class="p">(</span><span class="n">x</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">-</span><span class="n">storetdriver</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+<a name="ln-220"></a>        <span class="c">! if(myid==0) then</span>
+<a name="ln-221"></a>        <span class="c">! write(6,&#39;(A,I4)&#39;) &#39;x: &#39;, x</span>
+<a name="ln-222"></a>        <span class="c">! write(6,&#39;(A,F9.4)&#39;) &#39;dtint: &#39;, dtint</span>
+<a name="ln-223"></a>        <span class="c">! write(6,&#39;(A,E20.12)&#39;) &#39;storeu0driver(1,32,x): &#39;, storeu0driver(1,32,x)</span>
+<a name="ln-224"></a>        <span class="c">! write(6,&#39;(A,E20.12)&#39;) &#39;storeu0driver(1,32,x+1): &#39;, storeu0driver(1,32,x+1)</span>
+<a name="ln-225"></a>        <span class="c">! write(6,&#39;(A,E20.12)&#39;) &#39;u0driver(1,32): &#39;,  storeu0driver(1,32,x) + (storeu0driver(1,32,x+1)-storeu0driver(1,32,x))*dtint</span>
+<a name="ln-226"></a>        <span class="c">! end if</span>
+<a name="ln-227"></a>        <span class="n">u0driver</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="n">storeu0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">storeu0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">-</span><span class="n">storeu0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">))</span><span class="o">*</span><span class="n">dtint</span>
+<a name="ln-228"></a>        <span class="n">v0driver</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="n">storev0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">storev0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">-</span><span class="n">storev0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">))</span><span class="o">*</span><span class="n">dtint</span>
+<a name="ln-229"></a>        <span class="n">w0driver</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="n">storew0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">storew0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">-</span><span class="n">storew0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">))</span><span class="o">*</span><span class="n">dtint</span>
+<a name="ln-230"></a>        <span class="c">! e120driver(:,:) = storee120driver(:,:,x) + (storee120driver(:,:,x+1)-storee120driver(:,:,x))*dtint</span>
+<a name="ln-231"></a>        <span class="k">if</span> <span class="p">(</span><span class="n">ltempeq</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-232"></a><span class="k">          </span><span class="n">thl0driver</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="n">storethl0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">storethl0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">-</span><span class="n">storethl0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">))</span><span class="o">*</span><span class="n">dtint</span>
+<a name="ln-233"></a>        <span class="k">end if</span>
+<a name="ln-234"></a><span class="k">        if</span> <span class="p">(</span><span class="n">lmoist</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-235"></a><span class="k">          </span><span class="n">qt0driver</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="n">storeqt0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">storeqt0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">-</span><span class="n">storeqt0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">))</span><span class="o">*</span><span class="n">dtint</span>
+<a name="ln-236"></a>        <span class="k">end if</span>
+<a name="ln-237"></a><span class="k">        if</span> <span class="p">(</span><span class="n">nsv</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-238"></a><span class="k">          </span><span class="n">sv0driver</span><span class="p">(:,:,:)</span> <span class="o">=</span> <span class="n">storesv0driver</span><span class="p">(:,:,:,</span><span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">storesv0driver</span><span class="p">(:,:,:,</span><span class="n">x</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">-</span><span class="n">storesv0driver</span><span class="p">(:,:,:,</span><span class="n">x</span><span class="p">))</span><span class="o">*</span><span class="n">dtint</span>
+<a name="ln-239"></a>        <span class="k">end if</span>
+<a name="ln-240"></a><span class="k">        </span><span class="n">nstepreaddriver</span> <span class="o">=</span> <span class="n">x</span>
+<a name="ln-241"></a>      <span class="n">elseif</span> <span class="p">(</span><span class="n">elapsrec</span> <span class="o">&gt;</span> <span class="mf">0.</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-242"></a>
+<a name="ln-243"></a><span class="k">        if</span> <span class="p">((</span><span class="n">myid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="p">(</span><span class="n">rk3step</span><span class="o">==</span><span class="mi">1</span><span class="p">))</span> <span class="k">then</span>
+<a name="ln-244"></a><span class="k">          write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="s1">&#39;(A,I5,A,F10.3,A,I5,A,F10.3,A)&#39;</span><span class="p">)</span> <span class="s1">&#39;======= Inputs interpolated from driver tsteps &#39;</span><span class="p">,</span><span class="n">x</span><span class="p">,</span><span class="s1">&#39; (&#39;</span><span class="p">,</span> <span class="n">storetdriver</span><span class="p">(</span><span class="n">x</span><span class="p">),</span><span class="s1">&#39; s) and &#39;</span><span class="p">,</span><span class="n">x</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="s1">&#39; (&#39;</span><span class="p">,</span><span class="n">storetdriver</span><span class="p">(</span><span class="n">x</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span><span class="s1">&#39; s) =======&#39;</span>
+<a name="ln-245"></a>        <span class="k">end if</span>
+<a name="ln-246"></a>
+<a name="ln-247"></a><span class="k">        </span><span class="n">dtint</span> <span class="o">=</span> <span class="p">(</span><span class="n">timee</span><span class="o">-</span><span class="n">storetdriver</span><span class="p">(</span><span class="n">x</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">/</span><span class="p">(</span><span class="n">storetdriver</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">-</span><span class="n">storetdriver</span><span class="p">(</span><span class="n">x</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+<a name="ln-248"></a>        <span class="n">u0driver</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="n">storeu0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">storeu0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">)</span><span class="o">-</span><span class="n">storeu0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">*</span><span class="n">dtint</span>
+<a name="ln-249"></a>        <span class="n">v0driver</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="n">storev0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">storev0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">)</span><span class="o">-</span><span class="n">storev0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">*</span><span class="n">dtint</span>
+<a name="ln-250"></a>        <span class="n">w0driver</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="n">storew0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">storew0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">)</span><span class="o">-</span><span class="n">storew0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">*</span><span class="n">dtint</span>
+<a name="ln-251"></a>        <span class="c">! e120driver(:,:) = storee120driver(:,:,x-1) + (storee120driver(:,:,x)-storee120driver(:,:,x-1))*dtint</span>
+<a name="ln-252"></a>        <span class="k">if</span> <span class="p">(</span><span class="n">ltempeq</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-253"></a><span class="k">          </span><span class="n">thl0driver</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="n">storethl0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">storethl0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">)</span><span class="o">-</span><span class="n">storethl0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">*</span><span class="n">dtint</span>
+<a name="ln-254"></a>        <span class="k">end if</span>
+<a name="ln-255"></a><span class="k">        if</span> <span class="p">(</span><span class="n">lmoist</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-256"></a><span class="k">          </span><span class="n">qt0driver</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="n">storeqt0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">storeqt0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">)</span><span class="o">-</span><span class="n">storeqt0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">*</span><span class="n">dtint</span>
+<a name="ln-257"></a>        <span class="k">end if</span>
+<a name="ln-258"></a><span class="k">        if</span> <span class="p">(</span><span class="n">nsv</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-259"></a><span class="k">          </span><span class="n">sv0driver</span><span class="p">(:,:,:)</span> <span class="o">=</span> <span class="n">storesv0driver</span><span class="p">(:,:,:,</span><span class="n">x</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">storesv0driver</span><span class="p">(:,:,:,</span><span class="n">x</span><span class="p">)</span><span class="o">-</span><span class="n">storesv0driver</span><span class="p">(:,:,:,</span><span class="n">x</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">*</span><span class="n">dtint</span>
+<a name="ln-260"></a>        <span class="k">end if</span>
+<a name="ln-261"></a><span class="k">        </span><span class="n">nstepreaddriver</span> <span class="o">=</span> <span class="n">x</span>
+<a name="ln-262"></a>      <span class="k">end if</span>
+<a name="ln-263"></a>
+<a name="ln-264"></a>      <span class="c">! if(myid==0) then</span>
+<a name="ln-265"></a>        <span class="c">! write(6,&#39;(A,F9.4)&#39;) &#39;Simulation time: &#39;, timee</span>
+<a name="ln-266"></a>        <span class="c">! write(6,&#39;(A,F9.4)&#39;) &#39;dtint: &#39;, dtint</span>
+<a name="ln-267"></a>        <span class="c">! write(6,*) &#39;Velocities interpolated:&#39;</span>
+<a name="ln-268"></a>        <span class="c">! write(6,&#39;(A,e20.12)&#39;) &#39;storeu0driver(je,ke,x-1): &#39;, storeu0driver(je,ke,x-1)</span>
+<a name="ln-269"></a>        <span class="c">! write(6,&#39;(A,e20.12)&#39;) &#39;storeu0driver(je,ke,x): &#39;, storeu0driver(je,ke,x)</span>
+<a name="ln-270"></a>        <span class="c">! write(6,&#39;(A,e20.12)&#39;) &#39;storeu0driver(je,ke,x+1): &#39;, storeu0driver(je,ke,x+1)</span>
+<a name="ln-271"></a>        <span class="c">! write(6,&#39;(A,e20.12)&#39;) &#39;Interpolated inlet velocity (jb,20): &#39;, u0driver(jb,20)</span>
+<a name="ln-272"></a>        <span class="c">! write(6,*) &#39;Temperatures interpolated:&#39;</span>
+<a name="ln-273"></a>        <span class="c">! write(6,&#39;(A,e20.12)&#39;) &#39;storethl0driver(je,20,x-1): &#39;, storethl0driver(jb,20,x-1)</span>
+<a name="ln-274"></a>        <span class="c">! write(6,&#39;(A,e20.12)&#39;) &#39;storethl0driver(je,20,x): &#39;, storethl0driver(jb,20,x)</span>
+<a name="ln-275"></a>        <span class="c">! write(6,&#39;(A,e20.12)&#39;) &#39;storethl0driver(je,20,x+1): &#39;, storethl0driver(jb,20,x+1)</span>
+<a name="ln-276"></a>        <span class="c">! write(6,&#39;(A,e20.12)&#39;) &#39;Interpolated inlet temperature (jb,20): &#39;, thl0driver(jb,20)</span>
+<a name="ln-277"></a>      <span class="c">! end if </span>
+<a name="ln-278"></a>
+<a name="ln-279"></a>      <span class="c">! umdriver = u0driver   ! MAYBE ITS BETTER TO WRITE THE M VARIABLES TO FILE TOO AND JUST READ THEM - THOUGH CURRENTLY THIS IS NOT DONE FOR RESTART FILES?? ae1212</span>
+<a name="ln-280"></a>      <span class="c">! vmdriver = v0driver   ! EDIT READ AND WRITE INLET FILES (AND CHECK MODBOUNDARY &amp; MODSURFACE) TO INCLUDE M VARIABLES</span>
+<a name="ln-281"></a>      <span class="c">! wmdriver = w0driver</span>
+<a name="ln-282"></a>      <span class="c">! thlmdriver = thl0driver</span>
+<a name="ln-283"></a>      <span class="c">! qtmdriver = qt0driver</span>
+<a name="ln-284"></a>
+<a name="ln-285"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">rk3step</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-286"></a><span class="k">        </span><span class="n">umdriver</span> <span class="o">=</span> <span class="n">u0driver</span>
+<a name="ln-287"></a>        <span class="n">vmdriver</span> <span class="o">=</span> <span class="n">v0driver</span>
+<a name="ln-288"></a>        <span class="n">wmdriver</span> <span class="o">=</span> <span class="n">w0driver</span>
+<a name="ln-289"></a>        <span class="c">!e12mdriver = e120driver</span>
+<a name="ln-290"></a>        <span class="k">if</span> <span class="p">(</span><span class="n">ltempeq</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-291"></a><span class="k">          </span><span class="n">thlmdriver</span> <span class="o">=</span> <span class="n">thl0driver</span>
+<a name="ln-292"></a>        <span class="k">end if</span>
+<a name="ln-293"></a><span class="k">        if</span> <span class="p">(</span><span class="n">lmoist</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-294"></a><span class="k">          </span><span class="n">qtmdriver</span> <span class="o">=</span> <span class="n">qt0driver</span>
+<a name="ln-295"></a>        <span class="k">end if</span>
+<a name="ln-296"></a><span class="k">        if</span> <span class="p">(</span><span class="n">nsv</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-297"></a><span class="k">          </span><span class="n">svmdriver</span> <span class="o">=</span> <span class="n">sv0driver</span>
+<a name="ln-298"></a>        <span class="k">end if</span>
+<a name="ln-299"></a><span class="k">      end if</span>
+<a name="ln-300"></a>
+<a name="ln-301"></a><span class="k">    else</span>
+<a name="ln-302"></a>
+<a name="ln-303"></a><span class="k">      return</span>
+<a name="ln-304"></a>
+<a name="ln-305"></a><span class="k">    end if</span>  <span class="c">! idrivergen</span>
+<a name="ln-306"></a>
+<a name="ln-307"></a>  <span class="k">end subroutine </span><span class="n">drivergen</span>
+<a name="ln-308"></a>
+<a name="ln-309"></a>  <span class="k">subroutine </span><span class="n">writedriverfile</span>
+<a name="ln-310"></a>    <span class="k">use </span><span class="n">modglobal</span><span class="p">,</span> <span class="k">only</span> <span class="p">:</span> <span class="n">timee</span><span class="p">,</span><span class="n">tdriverstart</span><span class="p">,</span><span class="n">ib</span><span class="p">,</span><span class="n">ie</span><span class="p">,</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span><span class="p">,</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="p">,</span><span class="n">kh</span><span class="p">,</span><span class="n">cexpnr</span><span class="p">,</span><span class="n">ifoutput</span><span class="p">,</span><span class="n">nstore</span><span class="p">,</span><span class="n">ltempeq</span><span class="p">,</span><span class="n">lmoist</span><span class="p">,</span><span class="n">driverstore</span><span class="p">,</span><span class="n">nsv</span>
+<a name="ln-311"></a>    <span class="k">use </span><span class="n">modfields</span><span class="p">,</span> <span class="k">only</span> <span class="p">:</span> <span class="n">u0</span><span class="p">,</span> <span class="n">v0</span><span class="p">,</span> <span class="n">w0</span><span class="p">,</span> <span class="n">e120</span><span class="p">,</span> <span class="n">thl0</span><span class="p">,</span> <span class="n">qt0</span><span class="p">,</span> <span class="n">um</span><span class="p">,</span> <span class="n">sv0</span>
+<a name="ln-312"></a>    <span class="k">use </span><span class="n">modmpi</span><span class="p">,</span>    <span class="k">only</span> <span class="p">:</span> <span class="n">cmyid</span><span class="p">,</span><span class="n">myid</span>
+<a name="ln-313"></a>    <span class="k">use </span><span class="n">modinletdata</span><span class="p">,</span> <span class="k">only</span> <span class="p">:</span> <span class="n">storetdriver</span><span class="p">,</span><span class="n">storeu0driver</span><span class="p">,</span><span class="n">storev0driver</span><span class="p">,</span><span class="n">storew0driver</span><span class="p">,</span><span class="n">storethl0driver</span><span class="p">,</span><span class="n">storeqt0driver</span><span class="p">,&amp;</span>
+<a name="ln-314"></a>                             <span class="n">storesv0driver</span><span class="p">,</span><span class="n">nfile</span><span class="p">,</span><span class="n">nstepreaddriver</span>
+<a name="ln-315"></a>    <span class="k">implicit none</span>
+<a name="ln-316"></a><span class="k">    </span><span class="kt">integer</span> <span class="kd">::</span> <span class="n">fileid</span><span class="p">,</span> <span class="n">IOS</span>
+<a name="ln-317"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">,</span><span class="n">n</span>
+<a name="ln-318"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">filesizet</span><span class="p">,</span> <span class="n">filesizev</span><span class="p">,</span> <span class="n">filesizetest1</span><span class="p">,</span> <span class="n">filesizetest2</span><span class="p">,</span> <span class="n">filesizes</span>
+<a name="ln-319"></a>    <span class="kt">character</span><span class="p">(</span><span class="mi">15</span><span class="p">)</span> <span class="kd">::</span> <span class="n">name</span>
+<a name="ln-320"></a>    <span class="kt">logical</span> <span class="kd">::</span> <span class="n">lexist</span>
+<a name="ln-321"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">arraysizetest</span><span class="p">(:,:)</span>
+<a name="ln-322"></a>    
+<a name="ln-323"></a>    <span class="k">allocate</span><span class="p">(</span><span class="n">arraysizetest</span><span class="p">(</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+<a name="ln-324"></a>
+<a name="ln-325"></a>    <span class="k">inquire</span><span class="p">(</span><span class="n">iolength</span><span class="o">=</span><span class="n">filesizet</span><span class="p">)(</span><span class="n">timee</span><span class="o">-</span><span class="n">tdriverstart</span><span class="p">)</span>
+<a name="ln-326"></a>    <span class="c">! inquire(iolength=filesizetest1)(timee)</span>
+<a name="ln-327"></a>    <span class="c">! inquire(iolength=filesizetest2)u0(1,1,1)</span>
+<a name="ln-328"></a>    <span class="k">inquire</span><span class="p">(</span><span class="n">iolength</span><span class="o">=</span><span class="n">filesizev</span><span class="p">)</span><span class="n">u0</span><span class="p">(</span><span class="n">irecydriver</span><span class="p">,:,:)</span>
+<a name="ln-329"></a>    <span class="k">inquire</span><span class="p">(</span><span class="n">iolength</span><span class="o">=</span><span class="n">filesizes</span><span class="p">)</span><span class="n">sv0</span><span class="p">(</span><span class="n">irecydriver</span><span class="p">,:,:,:)</span>
+<a name="ln-330"></a>    <span class="c">!!  </span>
+<a name="ln-331"></a>    <span class="c">! if((myid==0) .and. (nstepreaddriver==1)) then</span>
+<a name="ln-332"></a>      <span class="c">! write(6,*) &#39;inquire iolength &#39;, filesizet</span>
+<a name="ln-333"></a>      <span class="c">! write(6,*) &#39;inquire iolength test&#39;, filesizetest1</span>
+<a name="ln-334"></a>      <span class="c">! write(6,*) &#39;inquire iolength test u&#39;, filesizetest2 </span>
+<a name="ln-335"></a>    <span class="c">! end if</span>
+<a name="ln-336"></a>
+<a name="ln-337"></a>    <span class="c">! inquire(iolength=filesizetest1)arraysizetest(:,:)</span>
+<a name="ln-338"></a>    <span class="c">! filesizetest2 = (je-jb+2*jh)*(ke-kb+2*kh)</span>
+<a name="ln-339"></a>
+<a name="ln-340"></a>    <span class="c">! if((myid==0) .and. (nstepreaddriver==1)) then</span>
+<a name="ln-341"></a>      <span class="c">! write(6,*) &#39;je,jb,jh,ke,kb,kh&#39;, je,jb,jh,ke,kb,kh</span>
+<a name="ln-342"></a>      <span class="c">! write(6,*) &#39;inquire iolength test 1 &#39;, filesizetest1</span>
+<a name="ln-343"></a>      <span class="c">! write(6,*) &#39;inquire iolength test 2&#39;, filesizetest2</span>
+<a name="ln-344"></a>      <span class="c">! write(6,*) &#39;inquire iolength&#39;, filesizev</span>
+<a name="ln-345"></a>    <span class="c">! end if</span>
+<a name="ln-346"></a>
+<a name="ln-347"></a>    <span class="k">if</span><span class="p">(</span><span class="n">myid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-348"></a><span class="k">      write</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;============ Writing driver files ============&#39;</span>
+<a name="ln-349"></a>      <span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;Driver timestep: &#39;</span><span class="p">,</span> <span class="n">nstepreaddriver</span>
+<a name="ln-350"></a>    <span class="k">end if</span>
+<a name="ln-351"></a>
+<a name="ln-352"></a><span class="k">    if</span><span class="p">(</span><span class="n">myid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-353"></a><span class="k">      </span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;tdriver_   .&#39;</span>
+<a name="ln-354"></a>      <span class="n">name</span><span class="p">(</span><span class="mi">9</span><span class="p">:</span><span class="mi">11</span><span class="p">)</span><span class="o">=</span> <span class="n">cmyid</span>
+<a name="ln-355"></a>      <span class="n">name</span><span class="p">(</span><span class="mi">13</span><span class="p">:</span><span class="mi">15</span><span class="p">)</span><span class="o">=</span> <span class="n">cexpnr</span>
+<a name="ln-356"></a>      <span class="c">! name(15:18)= &#39;.txt&#39;</span>
+<a name="ln-357"></a>      <span class="k">inquire</span><span class="p">(</span><span class="k">file</span><span class="o">=</span><span class="n">name</span><span class="p">,</span><span class="n">exist</span><span class="o">=</span><span class="n">lexist</span><span class="p">)</span>
+<a name="ln-358"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">lexist</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-359"></a>      <span class="c">! write(6,*) &#39;Writing Time stamp to file: &#39;, name</span>
+<a name="ln-360"></a>        <span class="k">open</span>  <span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="n">name</span><span class="p">,</span><span class="n">form</span><span class="o">=</span><span class="s1">&#39;unformatted&#39;</span><span class="p">,</span><span class="n">status</span><span class="o">=</span><span class="s1">&#39;old&#39;</span><span class="p">,</span><span class="nb">access</span><span class="o">=</span><span class="s1">&#39;direct&#39;</span><span class="p">,</span><span class="n">recl</span><span class="o">=</span><span class="n">filesizet</span><span class="p">,</span><span class="n">action</span><span class="o">=</span><span class="s1">&#39;write&#39;</span><span class="p">)</span>
+<a name="ln-361"></a>      <span class="k">else</span>
+<a name="ln-362"></a>        <span class="c">! write(6,*) &#39;Creating Time stamp driver file: &#39;, name</span>
+<a name="ln-363"></a>        <span class="k">open</span>  <span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="n">name</span><span class="p">,</span><span class="n">form</span><span class="o">=</span><span class="s1">&#39;unformatted&#39;</span><span class="p">,</span><span class="n">status</span><span class="o">=</span><span class="s1">&#39;replace&#39;</span><span class="p">,</span><span class="nb">access</span><span class="o">=</span><span class="s1">&#39;direct&#39;</span><span class="p">,</span><span class="n">recl</span><span class="o">=</span><span class="n">filesizet</span><span class="p">,</span><span class="n">action</span><span class="o">=</span><span class="s1">&#39;write&#39;</span><span class="p">,</span><span class="n">IOSTAT</span><span class="o">=</span><span class="n">IOS</span><span class="p">)</span>
+<a name="ln-364"></a>        <span class="c">! if (IOS &gt; 0) then</span>
+<a name="ln-365"></a>          <span class="c">! write(6,*) &#39;IOS = &#39;,IOS</span>
+<a name="ln-366"></a>        <span class="c">! endif</span>
+<a name="ln-367"></a>      <span class="k">end if</span>
+<a name="ln-368"></a>
+<a name="ln-369"></a>      <span class="c">! write(*,*) &#39;filesizet&#39;, filesizet</span>
+<a name="ln-370"></a>      <span class="c">! write(ifoutput)  ( storetdriver (n),  n=1,nstore)</span>
+<a name="ln-371"></a>      <span class="c">! write(6,&#39;(A,F9.2)&#39;) &#39;Writing time stamp to file: &#39;, timee-tdriverstart</span>
+<a name="ln-372"></a>
+<a name="ln-373"></a>      <span class="k">write</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span><span class="n">rec</span><span class="o">=</span><span class="n">nstepreaddriver</span><span class="p">)</span>  <span class="p">(</span> <span class="n">timee</span><span class="o">-</span><span class="n">tdriverstart</span><span class="p">)</span>
+<a name="ln-374"></a>      <span class="k">close</span> <span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="mi">11</span><span class="p">)</span>
+<a name="ln-375"></a>      <span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;Driver time:&#39;</span> <span class="p">,</span> <span class="n">timee</span><span class="o">-</span><span class="n">tdriverstart</span>
+<a name="ln-376"></a>    <span class="k">end if</span>
+<a name="ln-377"></a><span class="k">    </span>
+<a name="ln-378"></a><span class="k">    </span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;udriver_   .&#39;</span>
+<a name="ln-379"></a>    <span class="c">! write (name(13:16)  ,&#39;(i4.4)&#39;) nfile</span>
+<a name="ln-380"></a>    <span class="n">name</span><span class="p">(</span><span class="mi">9</span><span class="p">:</span><span class="mi">11</span><span class="p">)</span><span class="o">=</span> <span class="n">cmyid</span>
+<a name="ln-381"></a>    <span class="n">name</span><span class="p">(</span><span class="mi">13</span><span class="p">:</span><span class="mi">15</span><span class="p">)</span><span class="o">=</span> <span class="n">cexpnr</span>
+<a name="ln-382"></a>    <span class="c">! name(15:18)= &#39;.txt&#39;</span>
+<a name="ln-383"></a>    <span class="k">inquire</span><span class="p">(</span><span class="k">file</span><span class="o">=</span><span class="n">name</span><span class="p">,</span><span class="n">exist</span><span class="o">=</span><span class="n">lexist</span><span class="p">)</span>
+<a name="ln-384"></a>    <span class="k">if</span> <span class="p">(</span><span class="n">lexist</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-385"></a>      <span class="c">! write(6,*) &#39;Writing Inlet u-velocity to file: &#39;, name</span>
+<a name="ln-386"></a>      <span class="k">open</span>  <span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="n">name</span><span class="p">,</span><span class="n">form</span><span class="o">=</span><span class="s1">&#39;unformatted&#39;</span><span class="p">,</span><span class="n">status</span><span class="o">=</span><span class="s1">&#39;old&#39;</span><span class="p">,</span><span class="nb">access</span><span class="o">=</span><span class="s1">&#39;direct&#39;</span><span class="p">,</span><span class="n">recl</span><span class="o">=</span><span class="n">filesizev</span><span class="p">,</span><span class="n">action</span><span class="o">=</span><span class="s1">&#39;write&#39;</span><span class="p">)</span>
+<a name="ln-387"></a>    <span class="k">else</span>
+<a name="ln-388"></a>      <span class="c">! write(6,*) &#39;Creating Inlet u-velocity inlet file: &#39;, name</span>
+<a name="ln-389"></a>      <span class="k">open</span>  <span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="n">name</span><span class="p">,</span><span class="n">form</span><span class="o">=</span><span class="s1">&#39;unformatted&#39;</span><span class="p">,</span><span class="n">status</span><span class="o">=</span><span class="s1">&#39;replace&#39;</span><span class="p">,</span><span class="nb">access</span><span class="o">=</span><span class="s1">&#39;direct&#39;</span><span class="p">,</span><span class="n">recl</span><span class="o">=</span><span class="n">filesizev</span><span class="p">,</span><span class="n">action</span><span class="o">=</span><span class="s1">&#39;write&#39;</span><span class="p">)</span>
+<a name="ln-390"></a>    <span class="k">end if</span>
+<a name="ln-391"></a>
+<a name="ln-392"></a>    <span class="c">! write(ifoutput)  (((storeu0driver (j,k,n),j=jb,je),k=kb,ke),  n=1,nstore) ! Nested implied do-loop</span>
+<a name="ln-393"></a>    <span class="c">!if(myid==0) then</span>
+<a name="ln-394"></a>      <span class="c">!write(6,&#39;(A,e20.12)&#39;) &#39;Writing u0 to file. u0(irecydriver,je,ke)&#39;, u0(irecydriver,je,ke)</span>
+<a name="ln-395"></a>      <span class="c">!write(6,&#39;(A,e20.12)&#39;) &#39;u0(irecydriver,jb,kb)&#39;, u0(irecydriver,jb,kb)</span>
+<a name="ln-396"></a>      <span class="c">!write(6,&#39;(A,e20.12)&#39;) &#39;Writing thl0 to file. thl0(irecydriver-1,je,ke)&#39;, thl0(irecydriver-1,je,ke)</span>
+<a name="ln-397"></a>      <span class="c">!write(6,&#39;(A,e20.12)&#39;) &#39;thl0(irecydriver-1,jb,kb)&#39;, thl0(irecydriver-1,jb,kb)</span>
+<a name="ln-398"></a>      <span class="c">! write(6,*) &#39;irecydriver, je, ke, ib, jb, kb&#39;, irecydriver, je, ke, ib, jb, kb </span>
+<a name="ln-399"></a>    <span class="c">!end if</span>
+<a name="ln-400"></a>    <span class="k">write</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span><span class="n">rec</span><span class="o">=</span><span class="n">nstepreaddriver</span><span class="p">)</span>  <span class="p">(</span><span class="n">u0</span><span class="p">(</span><span class="n">irecydriver</span><span class="p">,:,:))</span>      
+<a name="ln-401"></a>    <span class="k">close</span> <span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="mi">11</span><span class="p">)</span>
+<a name="ln-402"></a>  
+<a name="ln-403"></a>    <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;vdriver_   .&#39;</span>
+<a name="ln-404"></a>    <span class="c">! write (name(13:16)  ,&#39;(i4.4)&#39;) nfile</span>
+<a name="ln-405"></a>    <span class="n">name</span><span class="p">(</span><span class="mi">9</span><span class="p">:</span><span class="mi">11</span><span class="p">)</span><span class="o">=</span> <span class="n">cmyid</span>
+<a name="ln-406"></a>    <span class="n">name</span><span class="p">(</span><span class="mi">13</span><span class="p">:</span><span class="mi">15</span><span class="p">)</span><span class="o">=</span> <span class="n">cexpnr</span>
+<a name="ln-407"></a>    <span class="c">! name(15:18)= &#39;.txt&#39;</span>
+<a name="ln-408"></a>    <span class="k">inquire</span><span class="p">(</span><span class="k">file</span><span class="o">=</span><span class="n">name</span><span class="p">,</span><span class="n">exist</span><span class="o">=</span><span class="n">lexist</span><span class="p">)</span>
+<a name="ln-409"></a>    <span class="k">if</span> <span class="p">(</span><span class="n">lexist</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-410"></a>      <span class="c">! write(6,*) &#39;Writing Inlet v-velocity to file: &#39;, name</span>
+<a name="ln-411"></a>      <span class="k">open</span>  <span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="n">name</span><span class="p">,</span><span class="n">form</span><span class="o">=</span><span class="s1">&#39;unformatted&#39;</span><span class="p">,</span><span class="n">status</span><span class="o">=</span><span class="s1">&#39;old&#39;</span><span class="p">,</span><span class="n">action</span><span class="o">=</span><span class="s1">&#39;write&#39;</span><span class="p">,</span><span class="nb">access</span><span class="o">=</span><span class="s1">&#39;direct&#39;</span><span class="p">,</span><span class="n">recl</span><span class="o">=</span><span class="n">filesizev</span><span class="p">)</span>
+<a name="ln-412"></a>    <span class="k">else</span>
+<a name="ln-413"></a>      <span class="c">! write(6,*) &#39;Creating v-velocity inlet file: &#39;, name</span>
+<a name="ln-414"></a>      <span class="k">open</span>  <span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="n">name</span><span class="p">,</span><span class="n">form</span><span class="o">=</span><span class="s1">&#39;unformatted&#39;</span><span class="p">,</span><span class="n">status</span><span class="o">=</span><span class="s1">&#39;replace&#39;</span><span class="p">,</span><span class="nb">access</span><span class="o">=</span><span class="s1">&#39;direct&#39;</span><span class="p">,</span><span class="n">recl</span><span class="o">=</span><span class="n">filesizev</span><span class="p">,</span><span class="n">action</span><span class="o">=</span><span class="s1">&#39;write&#39;</span><span class="p">)</span>
+<a name="ln-415"></a>    <span class="k">end if</span>
+<a name="ln-416"></a>    <span class="c">! write(ifoutput)  (((storev0driver (j,k,n),j=jb,je),k=kb,ke),  n=1,nstore)</span>
+<a name="ln-417"></a>    <span class="c">! &#39;(F8.4)&#39;</span>
+<a name="ln-418"></a>    <span class="k">write</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span><span class="n">rec</span><span class="o">=</span><span class="n">nstepreaddriver</span><span class="p">)</span>  <span class="p">(</span><span class="n">v0</span><span class="p">(</span><span class="n">irecydriver</span><span class="p">,:,:))</span> <span class="c">!tg3315 removed irecydriver-1</span>
+<a name="ln-419"></a>    <span class="k">close</span> <span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="mi">11</span><span class="p">)</span>
+<a name="ln-420"></a> 
+<a name="ln-421"></a>    <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;wdriver_   .&#39;</span>
+<a name="ln-422"></a>    <span class="c">! write (name(13:16)  ,&#39;(i4.4)&#39;) nfile</span>
+<a name="ln-423"></a>    <span class="n">name</span><span class="p">(</span><span class="mi">9</span><span class="p">:</span><span class="mi">11</span><span class="p">)</span><span class="o">=</span> <span class="n">cmyid</span>
+<a name="ln-424"></a>    <span class="n">name</span><span class="p">(</span><span class="mi">13</span><span class="p">:</span><span class="mi">15</span><span class="p">)</span><span class="o">=</span> <span class="n">cexpnr</span>
+<a name="ln-425"></a>    <span class="c">! name(15:18)= &#39;.txt&#39;</span>
+<a name="ln-426"></a>    <span class="k">inquire</span><span class="p">(</span><span class="k">file</span><span class="o">=</span><span class="n">name</span><span class="p">,</span><span class="n">exist</span><span class="o">=</span><span class="n">lexist</span><span class="p">)</span>
+<a name="ln-427"></a>    <span class="k">if</span> <span class="p">(</span><span class="n">lexist</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-428"></a>      <span class="c">! write(6,*) &#39;Writing Inlet w-velocity to file: &#39;, name</span>
+<a name="ln-429"></a>      <span class="k">open</span>  <span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="n">name</span><span class="p">,</span><span class="n">form</span><span class="o">=</span><span class="s1">&#39;unformatted&#39;</span><span class="p">,</span><span class="n">status</span><span class="o">=</span><span class="s1">&#39;old&#39;</span><span class="p">,</span><span class="n">action</span><span class="o">=</span><span class="s1">&#39;write&#39;</span><span class="p">,</span><span class="nb">access</span><span class="o">=</span><span class="s1">&#39;direct&#39;</span><span class="p">,</span><span class="n">recl</span><span class="o">=</span><span class="n">filesizev</span><span class="p">)</span>
+<a name="ln-430"></a>    <span class="k">else</span>
+<a name="ln-431"></a>      <span class="c">! write(6,*) &#39;Creating w-velocity inlet file: &#39;, name</span>
+<a name="ln-432"></a>      <span class="k">open</span>  <span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="n">name</span><span class="p">,</span><span class="n">form</span><span class="o">=</span><span class="s1">&#39;unformatted&#39;</span><span class="p">,</span><span class="n">status</span><span class="o">=</span><span class="s1">&#39;replace&#39;</span><span class="p">,</span><span class="nb">access</span><span class="o">=</span><span class="s1">&#39;direct&#39;</span><span class="p">,</span><span class="n">recl</span><span class="o">=</span><span class="n">filesizev</span><span class="p">,</span><span class="n">action</span><span class="o">=</span><span class="s1">&#39;write&#39;</span><span class="p">)</span>
+<a name="ln-433"></a>    <span class="k">end if</span>
+<a name="ln-434"></a>    <span class="c">! write(ifoutput)  (((storew0driver (j,k,n),j=jb,je),k=kb,ke+1),n=1,nstore)</span>
+<a name="ln-435"></a>    <span class="k">write</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span><span class="n">rec</span><span class="o">=</span><span class="n">nstepreaddriver</span><span class="p">)</span>  <span class="p">(</span><span class="n">w0</span><span class="p">(</span><span class="n">irecydriver</span><span class="p">,:,:))</span> <span class="c">!tg3315 removed irecydriver-1</span>
+<a name="ln-436"></a>    <span class="k">close</span> <span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="mi">11</span><span class="p">)</span>
+<a name="ln-437"></a>
+<a name="ln-438"></a>    <span class="c">! name = &#39;edriver_   .&#39;</span>
+<a name="ln-439"></a>    <span class="c">! write (name(13:16)  ,&#39;(i4.4)&#39;) nfile</span>
+<a name="ln-440"></a>    <span class="c">! name(9:11)= cmyid</span>
+<a name="ln-441"></a>    <span class="c">! name(13:15)= cexpnr</span>
+<a name="ln-442"></a>    <span class="c">! name(15:18)= &#39;.txt&#39;</span>
+<a name="ln-443"></a>    <span class="c">! inquire(file=name,exist=lexist)</span>
+<a name="ln-444"></a>    <span class="c">! if (lexist) then</span>
+<a name="ln-445"></a>      <span class="c">! write(6,*) &#39;Writing Inlet w-velocity to file: &#39;, name</span>
+<a name="ln-446"></a>      <span class="c">! open(unit=11,file=name,form=&#39;unformatted&#39;,status=&#39;old&#39;,action=&#39;write&#39;,access=&#39;direct&#39;,recl=filesizev)</span>
+<a name="ln-447"></a>    <span class="c">! else</span>
+<a name="ln-448"></a>      <span class="c">! write(6,*) &#39;Creating w-velocity inlet file: &#39;, name</span>
+<a name="ln-449"></a>      <span class="c">! open(unit=11,file=name,form=&#39;unformatted&#39;,status=&#39;replace&#39;,access=&#39;direct&#39;,recl=filesizev,action=&#39;write&#39;)</span>
+<a name="ln-450"></a>    <span class="c">! end if</span>
+<a name="ln-451"></a>    <span class="c">! write(ifoutput)  (((storew0driver (j,k,n),j=jb,je),k=kb,ke+1),n=1,nstore)</span>
+<a name="ln-452"></a>    <span class="c">! write(11,rec=nstepreaddriver)  (e120(irecydriver,:,:)) !tg3315 removed irecydriver-1</span>
+<a name="ln-453"></a>    <span class="c">! close (unit=11)</span>
+<a name="ln-454"></a>
+<a name="ln-455"></a>    <span class="k">if</span> <span class="p">(</span><span class="n">ltempeq</span> <span class="p">)</span> <span class="k">then</span>
+<a name="ln-456"></a><span class="k">      </span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;hdriver_   .&#39;</span>
+<a name="ln-457"></a>      <span class="c">! write (name(13:16)  ,&#39;(i4.4)&#39;) nfile</span>
+<a name="ln-458"></a>      <span class="n">name</span><span class="p">(</span><span class="mi">9</span><span class="p">:</span><span class="mi">11</span><span class="p">)</span><span class="o">=</span> <span class="n">cmyid</span>
+<a name="ln-459"></a>      <span class="n">name</span><span class="p">(</span><span class="mi">13</span><span class="p">:</span><span class="mi">15</span><span class="p">)</span><span class="o">=</span> <span class="n">cexpnr</span>
+<a name="ln-460"></a>      <span class="c">! name(15:18)= &#39;.txt&#39;</span>
+<a name="ln-461"></a>      <span class="k">inquire</span><span class="p">(</span><span class="k">file</span><span class="o">=</span><span class="n">name</span><span class="p">,</span><span class="n">exist</span><span class="o">=</span><span class="n">lexist</span><span class="p">)</span>
+<a name="ln-462"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">lexist</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-463"></a>        <span class="c">! write(6,*) &#39;Writing Inlet temperature to file: &#39;, name</span>
+<a name="ln-464"></a>        <span class="k">open</span>  <span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="n">name</span><span class="p">,</span><span class="n">form</span><span class="o">=</span><span class="s1">&#39;unformatted&#39;</span><span class="p">,</span><span class="n">status</span><span class="o">=</span><span class="s1">&#39;old&#39;</span><span class="p">,</span><span class="n">action</span><span class="o">=</span><span class="s1">&#39;write&#39;</span><span class="p">,</span><span class="nb">access</span><span class="o">=</span><span class="s1">&#39;direct&#39;</span><span class="p">,</span><span class="n">recl</span><span class="o">=</span><span class="n">filesizev</span><span class="p">)</span>
+<a name="ln-465"></a>      <span class="k">else</span>
+<a name="ln-466"></a>        <span class="c">! write(6,*) &#39;Creating temperature inlet file: &#39;, name</span>
+<a name="ln-467"></a>        <span class="c">! write(6,*) &#39;Creating w-velocity inlet file: &#39;, name</span>
+<a name="ln-468"></a>        <span class="k">open</span>  <span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="n">name</span><span class="p">,</span><span class="n">form</span><span class="o">=</span><span class="s1">&#39;unformatted&#39;</span><span class="p">,</span><span class="n">status</span><span class="o">=</span><span class="s1">&#39;replace&#39;</span><span class="p">,</span><span class="nb">access</span><span class="o">=</span><span class="s1">&#39;direct&#39;</span><span class="p">,</span><span class="n">recl</span><span class="o">=</span><span class="n">filesizev</span><span class="p">,</span><span class="n">action</span><span class="o">=</span><span class="s1">&#39;write&#39;</span><span class="p">)</span>
+<a name="ln-469"></a>      <span class="k">end if</span>
+<a name="ln-470"></a>      <span class="c">! write(ifoutput)  (((storew0driver (j,k,n),j=jb,je),k=kb,ke+1),n=1,nstore)</span>
+<a name="ln-471"></a>      <span class="k">write</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span><span class="n">rec</span><span class="o">=</span><span class="n">nstepreaddriver</span><span class="p">)</span>  <span class="p">(</span><span class="n">thl0</span><span class="p">(</span><span class="n">irecydriver</span><span class="p">,:,:))</span> <span class="c">!tg3315 removed irecydriver-1</span>
+<a name="ln-472"></a>      <span class="k">close</span> <span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="mi">11</span><span class="p">)</span>
+<a name="ln-473"></a>    <span class="k">end if</span>
+<a name="ln-474"></a>
+<a name="ln-475"></a><span class="k">    if</span> <span class="p">(</span><span class="n">lmoist</span> <span class="p">)</span> <span class="k">then</span>
+<a name="ln-476"></a><span class="k">      </span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;qdriver_   .&#39;</span>
+<a name="ln-477"></a>      <span class="c">! write (name(13:16)  ,&#39;(i4.4)&#39;) nfile</span>
+<a name="ln-478"></a>      <span class="n">name</span><span class="p">(</span><span class="mi">9</span><span class="p">:</span><span class="mi">11</span><span class="p">)</span><span class="o">=</span> <span class="n">cmyid</span>
+<a name="ln-479"></a>      <span class="n">name</span><span class="p">(</span><span class="mi">13</span><span class="p">:</span><span class="mi">15</span><span class="p">)</span><span class="o">=</span> <span class="n">cexpnr</span>
+<a name="ln-480"></a>      <span class="c">! name(15:18)= &#39;.txt&#39;</span>
+<a name="ln-481"></a>      <span class="k">inquire</span><span class="p">(</span><span class="k">file</span><span class="o">=</span><span class="n">name</span><span class="p">,</span><span class="n">exist</span><span class="o">=</span><span class="n">lexist</span><span class="p">)</span>
+<a name="ln-482"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">lexist</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-483"></a>        <span class="c">! write(6,*) &#39;Writing Inlet temperature to file: &#39;, name</span>
+<a name="ln-484"></a>        <span class="k">open</span>  <span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="n">name</span><span class="p">,</span><span class="n">form</span><span class="o">=</span><span class="s1">&#39;unformatted&#39;</span><span class="p">,</span><span class="n">status</span><span class="o">=</span><span class="s1">&#39;old&#39;</span><span class="p">,</span><span class="n">action</span><span class="o">=</span><span class="s1">&#39;write&#39;</span><span class="p">,</span><span class="nb">access</span><span class="o">=</span><span class="s1">&#39;direct&#39;</span><span class="p">,</span><span class="n">recl</span><span class="o">=</span><span class="n">filesizev</span><span class="p">)</span>
+<a name="ln-485"></a>      <span class="k">else</span>
+<a name="ln-486"></a>        <span class="c">! write(6,*) &#39;Creating temperature inlet file: &#39;, name</span>
+<a name="ln-487"></a>        <span class="c">! write(6,*) &#39;Creating w-velocity inlet file: &#39;, name</span>
+<a name="ln-488"></a>        <span class="k">open</span>  <span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="n">name</span><span class="p">,</span><span class="n">form</span><span class="o">=</span><span class="s1">&#39;unformatted&#39;</span><span class="p">,</span><span class="n">status</span><span class="o">=</span><span class="s1">&#39;replace&#39;</span><span class="p">,</span><span class="nb">access</span><span class="o">=</span><span class="s1">&#39;direct&#39;</span><span class="p">,</span><span class="n">recl</span><span class="o">=</span><span class="n">filesizev</span><span class="p">,</span><span class="n">action</span><span class="o">=</span><span class="s1">&#39;write&#39;</span><span class="p">)</span>
+<a name="ln-489"></a>      <span class="k">end if</span>
+<a name="ln-490"></a>      <span class="c">! write(ifoutput)  (((storew0driver (j,k,n),j=jb,je),k=kb,ke+1),n=1,nstore)</span>
+<a name="ln-491"></a>      <span class="k">write</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span><span class="n">rec</span><span class="o">=</span><span class="n">nstepreaddriver</span><span class="p">)</span>  <span class="p">(</span><span class="n">qt0</span><span class="p">(</span><span class="n">irecydriver</span><span class="p">,:,:))</span> <span class="c">!tg3315 removed irecydriver-1</span>
+<a name="ln-492"></a>      <span class="k">close</span> <span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="mi">11</span><span class="p">)</span>
+<a name="ln-493"></a>    <span class="k">end if</span>
+<a name="ln-494"></a>
+<a name="ln-495"></a><span class="k">    if</span> <span class="p">(</span><span class="n">nsv</span><span class="o">&gt;</span><span class="mi">0</span> <span class="p">)</span> <span class="k">then</span>
+<a name="ln-496"></a><span class="k">      </span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;sdriver_   .&#39;</span>
+<a name="ln-497"></a>      <span class="c">! write (name(13:16)  ,&#39;(i4.4)&#39;) nfile</span>
+<a name="ln-498"></a>      <span class="n">name</span><span class="p">(</span><span class="mi">9</span><span class="p">:</span><span class="mi">11</span><span class="p">)</span><span class="o">=</span> <span class="n">cmyid</span>
+<a name="ln-499"></a>      <span class="n">name</span><span class="p">(</span><span class="mi">13</span><span class="p">:</span><span class="mi">15</span><span class="p">)</span><span class="o">=</span> <span class="n">cexpnr</span>
+<a name="ln-500"></a>      <span class="c">! name(15:18)= &#39;.txt&#39;</span>
+<a name="ln-501"></a>      <span class="k">inquire</span><span class="p">(</span><span class="k">file</span><span class="o">=</span><span class="n">name</span><span class="p">,</span><span class="n">exist</span><span class="o">=</span><span class="n">lexist</span><span class="p">)</span>
+<a name="ln-502"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">lexist</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-503"></a>        <span class="c">! write(6,*) &#39;Writing Inlet temperature to file: &#39;, name</span>
+<a name="ln-504"></a>        <span class="k">open</span>  <span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="n">name</span><span class="p">,</span><span class="n">form</span><span class="o">=</span><span class="s1">&#39;unformatted&#39;</span><span class="p">,</span><span class="n">status</span><span class="o">=</span><span class="s1">&#39;old&#39;</span><span class="p">,</span><span class="n">action</span><span class="o">=</span><span class="s1">&#39;write&#39;</span><span class="p">,</span><span class="nb">access</span><span class="o">=</span><span class="s1">&#39;direct&#39;</span><span class="p">,</span><span class="n">recl</span><span class="o">=</span><span class="n">filesizes</span><span class="p">)</span>
+<a name="ln-505"></a>      <span class="k">else</span>
+<a name="ln-506"></a>        <span class="c">! write(6,*) &#39;Creating temperature inlet file: &#39;, name</span>
+<a name="ln-507"></a>        <span class="c">! write(6,*) &#39;Creating w-velocity inlet file: &#39;, name</span>
+<a name="ln-508"></a>        <span class="k">open</span>  <span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="n">name</span><span class="p">,</span><span class="n">form</span><span class="o">=</span><span class="s1">&#39;unformatted&#39;</span><span class="p">,</span><span class="n">status</span><span class="o">=</span><span class="s1">&#39;replace&#39;</span><span class="p">,</span><span class="nb">access</span><span class="o">=</span><span class="s1">&#39;direct&#39;</span><span class="p">,</span><span class="n">recl</span><span class="o">=</span><span class="n">filesizes</span><span class="p">,</span><span class="n">action</span><span class="o">=</span><span class="s1">&#39;write&#39;</span><span class="p">)</span>
+<a name="ln-509"></a>      <span class="k">end if</span>
+<a name="ln-510"></a>      <span class="c">! write(ifoutput)  (((storew0driver (j,k,n),j=jb,je),k=kb,ke+1),n=1,nstore)</span>
+<a name="ln-511"></a>      <span class="k">write</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span><span class="n">rec</span><span class="o">=</span><span class="n">nstepreaddriver</span><span class="p">)</span>  <span class="p">(</span><span class="n">sv0</span><span class="p">(</span><span class="n">irecydriver</span><span class="p">,:,:,:))</span> <span class="c">!tg3315 removed irecydriver-1</span>
+<a name="ln-512"></a>      <span class="k">close</span> <span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="mi">11</span><span class="p">)</span>
+<a name="ln-513"></a>    <span class="k">end if</span>
+<a name="ln-514"></a>
+<a name="ln-515"></a><span class="k">  end subroutine </span><span class="n">writedriverfile</span>
+<a name="ln-516"></a>
+<a name="ln-517"></a>  <span class="k">subroutine </span><span class="n">readdriverfile</span>
+<a name="ln-518"></a>    <span class="k">use </span><span class="n">modfields</span><span class="p">,</span> <span class="k">only</span> <span class="p">:</span> <span class="n">u0</span><span class="p">,</span><span class="n">sv0</span>
+<a name="ln-519"></a>    <span class="k">use </span><span class="n">modglobal</span><span class="p">,</span> <span class="k">only</span> <span class="p">:</span> <span class="n">ib</span><span class="p">,</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span><span class="p">,</span><span class="n">jmax</span><span class="p">,</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="p">,</span><span class="n">kh</span><span class="p">,</span><span class="n">jhc</span><span class="p">,</span><span class="n">khc</span><span class="p">,</span><span class="n">cexpnr</span><span class="p">,</span><span class="n">ifinput</span><span class="p">,</span><span class="n">driverstore</span><span class="p">,</span><span class="n">ltempeq</span><span class="p">,</span><span class="n">lmoist</span><span class="p">,</span><span class="n">zh</span><span class="p">,</span><span class="n">jgb</span><span class="p">,</span><span class="n">jge</span><span class="p">,</span><span class="n">jh</span><span class="p">,</span><span class="n">driverjobnr</span><span class="p">,</span><span class="n">nsv</span><span class="p">,</span><span class="n">timee</span><span class="p">,</span><span class="n">tdriverstart</span>
+<a name="ln-520"></a>    <span class="k">use </span><span class="n">modmpi</span><span class="p">,</span>    <span class="k">only</span> <span class="p">:</span> <span class="n">cmyid</span><span class="p">,</span><span class="n">myid</span><span class="p">,</span><span class="n">nprocs</span><span class="p">,</span><span class="n">slabsum</span><span class="p">,</span><span class="n">excjs</span>
+<a name="ln-521"></a>    <span class="k">use </span><span class="n">modinletdata</span><span class="p">,</span> <span class="k">only</span> <span class="p">:</span> <span class="n">storetdriver</span><span class="p">,</span><span class="n">storeu0driver</span><span class="p">,</span><span class="n">storev0driver</span><span class="p">,</span><span class="n">storew0driver</span><span class="p">,</span><span class="n">storethl0driver</span><span class="p">,</span><span class="n">storeqt0driver</span><span class="p">,</span><span class="n">storesv0driver</span><span class="p">,</span><span class="n">nfile</span>
+<a name="ln-522"></a>    <span class="k">implicit none</span>
+<a name="ln-523"></a><span class="k">    </span><span class="kt">integer</span> <span class="kd">::</span> <span class="n">filen</span><span class="p">,</span><span class="n">filee</span>
+<a name="ln-524"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">fileid</span><span class="p">,</span> <span class="n">IOS</span><span class="p">,</span> <span class="n">filesize</span><span class="p">,</span> <span class="n">filesizes</span>
+<a name="ln-525"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">,</span><span class="n">m</span><span class="p">,</span><span class="n">n</span><span class="p">,</span><span class="n">js</span><span class="p">,</span><span class="n">jf</span><span class="p">,</span><span class="n">jfdum</span><span class="p">,</span><span class="n">jsdum</span>
+<a name="ln-526"></a>    <span class="kt">character</span><span class="p">(</span><span class="mi">24</span><span class="p">)</span> <span class="kd">::</span> <span class="n">name</span>
+<a name="ln-527"></a>
+<a name="ln-528"></a>    <span class="k">if</span> <span class="p">(</span><span class="n">myid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-529"></a><span class="k">      write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;========================================================================&#39;</span>
+<a name="ln-530"></a>      <span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;*** Reading precursor driver simulation ***&#39;</span>
+<a name="ln-531"></a>    <span class="k">end if</span>
+<a name="ln-532"></a>
+<a name="ln-533"></a><span class="k">    </span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;tdriver_   .&#39;</span>
+<a name="ln-534"></a>    <span class="c">! write (name(13:16)  ,&#39;(i4.4)&#39;) nfile</span>
+<a name="ln-535"></a>    <span class="n">name</span><span class="p">(</span><span class="mi">9</span><span class="p">:</span><span class="mi">11</span><span class="p">)</span><span class="o">=</span> <span class="s1">&#39;000&#39;</span>
+<a name="ln-536"></a>    <span class="c">! write (name(18:20)  ,&#39;(i3.3)&#39;) filen</span>
+<a name="ln-537"></a>    <span class="k">write</span> <span class="p">(</span><span class="n">name</span><span class="p">(</span><span class="mi">13</span><span class="p">:</span><span class="mi">15</span><span class="p">)</span>   <span class="p">,</span><span class="s1">&#39;(i3.3)&#39;</span><span class="p">)</span> <span class="n">driverjobnr</span>
+<a name="ln-538"></a>
+<a name="ln-539"></a>    <span class="k">inquire</span><span class="p">(</span><span class="k">file</span><span class="o">=</span><span class="n">name</span><span class="p">,</span><span class="n">size</span><span class="o">=</span><span class="n">filesize</span><span class="p">)</span>
+<a name="ln-540"></a>
+<a name="ln-541"></a>    <span class="k">if</span><span class="p">(</span><span class="n">myid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-542"></a><span class="k">      write</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;Reading time stamps: &#39;</span><span class="p">,</span> <span class="n">name</span>
+<a name="ln-543"></a>      <span class="k">write</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;driverstore: &#39;</span><span class="p">,</span> <span class="n">driverstore</span>
+<a name="ln-544"></a>      <span class="k">write</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;File size of time in bytes (/8) = &#39;</span><span class="p">,</span> <span class="n">filesize</span>
+<a name="ln-545"></a>    <span class="k">endif</span>
+<a name="ln-546"></a>    <span class="c">! driverstore = driverstore/4.</span>
+<a name="ln-547"></a>    <span class="c">! write(6,*) &#39;driverstore: &#39;, driverstore</span>
+<a name="ln-548"></a>    <span class="k">inquire</span><span class="p">(</span><span class="n">iolength</span><span class="o">=</span><span class="n">filesize</span><span class="p">)(</span><span class="n">timee</span><span class="o">-</span><span class="n">tdriverstart</span><span class="p">)</span>
+<a name="ln-549"></a>    <span class="k">open</span><span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="n">name</span><span class="p">,</span><span class="n">form</span><span class="o">=</span><span class="s1">&#39;unformatted&#39;</span><span class="p">,</span><span class="n">status</span><span class="o">=</span><span class="s1">&#39;old&#39;</span><span class="p">,</span><span class="n">action</span><span class="o">=</span><span class="s1">&#39;read&#39;</span><span class="p">,</span><span class="nb">access</span><span class="o">=</span><span class="s1">&#39;direct&#39;</span><span class="p">,</span><span class="n">recl</span><span class="o">=</span><span class="n">filesize</span><span class="p">,</span><span class="n">IOSTAT</span><span class="o">=</span><span class="n">IOS</span><span class="p">)</span>
+<a name="ln-550"></a>    <span class="k">if</span><span class="p">(</span><span class="n">myid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-551"></a><span class="k">      if</span> <span class="p">(</span><span class="n">IOS</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-552"></a><span class="k">        write</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;IOS = &#39;</span><span class="p">,</span><span class="n">IOS</span>
+<a name="ln-553"></a>      <span class="k">endif</span>
+<a name="ln-554"></a><span class="k">    endif</span>
+<a name="ln-555"></a><span class="k">    do </span><span class="n">n</span> <span class="o">=</span>  <span class="mi">1</span><span class="p">,</span> <span class="n">driverstore</span>
+<a name="ln-556"></a>      <span class="k">read</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="n">rec</span><span class="o">=</span><span class="n">n</span><span class="p">,</span> <span class="n">IOSTAT</span><span class="o">=</span><span class="n">IOS</span><span class="p">)</span> <span class="n">storetdriver</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+<a name="ln-557"></a>      <span class="k">if</span><span class="p">(</span><span class="n">myid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-558"></a><span class="k">        if</span><span class="p">(</span><span class="n">IOS</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-559"></a><span class="k">          write</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;IOS = &#39;</span><span class="p">,</span><span class="n">IOS</span>
+<a name="ln-560"></a>        <span class="n">elseif</span> <span class="p">(</span><span class="n">IOS</span><span class="o">&lt;</span><span class="mi">0</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-561"></a><span class="k">          write</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;n =&#39;</span><span class="p">,</span> <span class="n">n</span>
+<a name="ln-562"></a>        <span class="k">end if</span>
+<a name="ln-563"></a><span class="k">        write</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="s1">&#39;(A,e20.12)&#39;</span><span class="p">)</span> <span class="s1">&#39; Reading t:&#39;</span><span class="p">,</span> <span class="n">storetdriver</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+<a name="ln-564"></a>      <span class="k">end if</span>
+<a name="ln-565"></a><span class="k">    end do</span>
+<a name="ln-566"></a><span class="k">    </span><span class="n">storetdriver</span> <span class="o">=</span> <span class="n">storetdriver</span> <span class="o">+</span> <span class="n">timee</span> <span class="c">!tg3315 added in case using a warmstart...</span>
+<a name="ln-567"></a>    <span class="k">close</span> <span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="mi">11</span><span class="p">)</span>
+<a name="ln-568"></a>    <span class="c">! write(*,*) &#39;storetdriver&#39;, storetdriver</span>
+<a name="ln-569"></a>    <span class="c">! end if</span>
+<a name="ln-570"></a>    <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;udriver_   .&#39;</span>
+<a name="ln-571"></a>    <span class="c">! write (name(13:16)  ,&#39;(i4.4)&#39;) nfile</span>
+<a name="ln-572"></a>    <span class="n">name</span><span class="p">(</span><span class="mi">9</span><span class="p">:</span><span class="mi">11</span><span class="p">)</span><span class="o">=</span> <span class="n">cmyid</span>
+<a name="ln-573"></a>    <span class="c">! write (name(18:20)  ,&#39;(i3.3)&#39;) filen</span>
+<a name="ln-574"></a>    <span class="k">write</span> <span class="p">(</span><span class="n">name</span><span class="p">(</span><span class="mi">13</span><span class="p">:</span><span class="mi">15</span><span class="p">)</span>   <span class="p">,</span><span class="s1">&#39;(i3.3)&#39;</span><span class="p">)</span> <span class="n">driverjobnr</span>
+<a name="ln-575"></a>    <span class="k">write</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;Reading Driver u-velocity: &#39;</span><span class="p">,</span> <span class="n">name</span>
+<a name="ln-576"></a>    <span class="c">! inquire(file=name,recl=filesize)</span>
+<a name="ln-577"></a>    <span class="k">inquire</span><span class="p">(</span><span class="n">iolength</span><span class="o">=</span><span class="n">filesize</span><span class="p">)</span><span class="n">u0</span><span class="p">(</span><span class="n">ib</span><span class="p">,:,:)</span>
+<a name="ln-578"></a>    <span class="k">write</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;record length &#39;</span><span class="p">,</span><span class="n">filesize</span>        
+<a name="ln-579"></a>    <span class="k">open</span><span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="n">name</span><span class="p">,</span><span class="n">form</span><span class="o">=</span><span class="s1">&#39;unformatted&#39;</span><span class="p">,</span><span class="n">status</span><span class="o">=</span><span class="s1">&#39;old&#39;</span><span class="p">,</span><span class="n">action</span><span class="o">=</span><span class="s1">&#39;read&#39;</span><span class="p">,</span><span class="nb">access</span><span class="o">=</span><span class="s1">&#39;direct&#39;</span><span class="p">,</span><span class="n">recl</span><span class="o">=</span><span class="n">filesize</span><span class="p">)</span>
+<a name="ln-580"></a>    <span class="k">do </span><span class="n">n</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span><span class="n">driverstore</span>
+<a name="ln-581"></a>      <span class="k">read</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span><span class="n">rec</span><span class="o">=</span><span class="n">n</span><span class="p">)</span>  <span class="p">((</span><span class="n">storeu0driver</span> <span class="p">(</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">,</span><span class="n">n</span><span class="p">),</span><span class="n">j</span><span class="o">=</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">,</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">),</span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">,</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<a name="ln-582"></a>      <span class="c">! if(myid==0) then</span>
+<a name="ln-583"></a>        <span class="c">! write(6, &#39;(A,e20.12)&#39;) &#39;Reading u(irecydriver, jb, kb)&#39;, storeu0driver(jb,kb,n)</span>
+<a name="ln-584"></a>      <span class="c">! endif</span>
+<a name="ln-585"></a>    <span class="k">end do</span>
+<a name="ln-586"></a>    <span class="c">! if(myid==0) then</span>
+<a name="ln-587"></a>      <span class="c">! do k=ke,kb,-1</span>
+<a name="ln-588"></a>      <span class="c">!   write(6, &#39;(A,e20.12)&#39;) &#39;Reading u(ib,1,:)&#39;, storeu0driver(jb,k,1)</span>
+<a name="ln-589"></a>      <span class="c">! end do</span>
+<a name="ln-590"></a>    <span class="c">! end if</span>
+<a name="ln-591"></a>    <span class="k">close</span> <span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="mi">11</span><span class="p">)</span>
+<a name="ln-592"></a>      
+<a name="ln-593"></a>    <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;vdriver_   .&#39;</span>
+<a name="ln-594"></a>    <span class="c">! write (name(13:16)  ,&#39;(i4.4)&#39;) nfile</span>
+<a name="ln-595"></a>    <span class="n">name</span><span class="p">(</span><span class="mi">9</span><span class="p">:</span><span class="mi">11</span><span class="p">)</span><span class="o">=</span> <span class="n">cmyid</span>
+<a name="ln-596"></a>    <span class="c">! write (name(18:20)  ,&#39;(i3.3)&#39;) filen</span>
+<a name="ln-597"></a>    <span class="k">write</span> <span class="p">(</span><span class="n">name</span><span class="p">(</span><span class="mi">13</span><span class="p">:</span><span class="mi">15</span><span class="p">)</span>   <span class="p">,</span><span class="s1">&#39;(i3.3)&#39;</span><span class="p">)</span> <span class="n">driverjobnr</span>
+<a name="ln-598"></a>    <span class="k">write</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;Reading Driver v-velocity: &#39;</span><span class="p">,</span> <span class="n">name</span>
+<a name="ln-599"></a>    <span class="c">! inquire(file=name,recl=filesize)</span>
+<a name="ln-600"></a>    <span class="c">! inquire(iolength=filesize)u0(ib,:,:)</span>
+<a name="ln-601"></a>    <span class="k">open</span><span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="n">name</span><span class="p">,</span><span class="n">form</span><span class="o">=</span><span class="s1">&#39;unformatted&#39;</span><span class="p">,</span><span class="n">status</span><span class="o">=</span><span class="s1">&#39;old&#39;</span><span class="p">,</span><span class="n">action</span><span class="o">=</span><span class="s1">&#39;read&#39;</span><span class="p">,</span><span class="nb">access</span><span class="o">=</span><span class="s1">&#39;direct&#39;</span><span class="p">,</span><span class="n">recl</span><span class="o">=</span><span class="n">filesize</span><span class="p">)</span>
+<a name="ln-602"></a>    <span class="k">do </span><span class="n">n</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span><span class="n">driverstore</span>
+<a name="ln-603"></a>      <span class="k">read</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span><span class="n">rec</span><span class="o">=</span><span class="n">n</span><span class="p">)</span>  <span class="p">((</span><span class="n">storev0driver</span> <span class="p">(</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">,</span><span class="n">n</span><span class="p">),</span><span class="n">j</span><span class="o">=</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">,</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">),</span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">,</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<a name="ln-604"></a>    <span class="k">end do</span>
+<a name="ln-605"></a><span class="k">    close</span> <span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="mi">11</span><span class="p">)</span>
+<a name="ln-606"></a>
+<a name="ln-607"></a>    <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;wdriver_   .&#39;</span>
+<a name="ln-608"></a>    <span class="c">! write (name(13:16)  ,&#39;(i4.4)&#39;) nfile</span>
+<a name="ln-609"></a>    <span class="n">name</span><span class="p">(</span><span class="mi">9</span><span class="p">:</span><span class="mi">11</span><span class="p">)</span><span class="o">=</span> <span class="n">cmyid</span>
+<a name="ln-610"></a>    <span class="c">! write (name(18:20)  ,&#39;(i3.3)&#39;) filen</span>
+<a name="ln-611"></a>    <span class="k">write</span> <span class="p">(</span><span class="n">name</span><span class="p">(</span><span class="mi">13</span><span class="p">:</span><span class="mi">15</span><span class="p">)</span>   <span class="p">,</span><span class="s1">&#39;(i3.3)&#39;</span><span class="p">)</span> <span class="n">driverjobnr</span>
+<a name="ln-612"></a>    <span class="k">write</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;Reading Driver w-velocity: &#39;</span><span class="p">,</span> <span class="n">name</span>
+<a name="ln-613"></a>    <span class="c">! inquire(file=name,recl=filesize)</span>
+<a name="ln-614"></a>    <span class="c">! inquire(iolength=filesize)u0(ib,:,:)</span>
+<a name="ln-615"></a>    <span class="k">open</span><span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="n">name</span><span class="p">,</span><span class="n">form</span><span class="o">=</span><span class="s1">&#39;unformatted&#39;</span><span class="p">,</span><span class="n">status</span><span class="o">=</span><span class="s1">&#39;old&#39;</span><span class="p">,</span><span class="n">action</span><span class="o">=</span><span class="s1">&#39;read&#39;</span><span class="p">,</span><span class="nb">access</span><span class="o">=</span><span class="s1">&#39;direct&#39;</span><span class="p">,</span><span class="n">recl</span><span class="o">=</span><span class="n">filesize</span><span class="p">)</span>
+<a name="ln-616"></a>    <span class="k">do </span><span class="n">n</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span><span class="n">driverstore</span>
+<a name="ln-617"></a>      <span class="k">read</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span><span class="n">rec</span><span class="o">=</span><span class="n">n</span><span class="p">)</span>  <span class="p">((</span><span class="n">storew0driver</span> <span class="p">(</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">,</span><span class="n">n</span><span class="p">),</span><span class="n">j</span><span class="o">=</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">,</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">),</span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">,</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<a name="ln-618"></a>    <span class="k">end do</span>
+<a name="ln-619"></a><span class="k">    close</span> <span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="mi">11</span><span class="p">)</span>
+<a name="ln-620"></a>
+<a name="ln-621"></a>    <span class="c">!name = &#39;edriver_   .&#39;</span>
+<a name="ln-622"></a>    <span class="c">! write (name(13:16)  ,&#39;(i4.4)&#39;) nfile</span>
+<a name="ln-623"></a>    <span class="c">! name(9:11)= cmyid</span>
+<a name="ln-624"></a>    <span class="c">! write (name(18:20)  ,&#39;(i3.3)&#39;) filen</span>
+<a name="ln-625"></a>    <span class="c">! write (name(13:15)   ,&#39;(i3.3)&#39;) driverjobnr</span>
+<a name="ln-626"></a>    <span class="c">! write(6,*) &#39;Reading Driver turbulent kinetic energy: &#39;, name</span>
+<a name="ln-627"></a>    <span class="c">! inquire(file=name,recl=filesize)</span>
+<a name="ln-628"></a>    <span class="c">! inquire(iolength=filesize)u0(ib,:,:)</span>
+<a name="ln-629"></a>    <span class="c">! open(unit=11,file=name,form=&#39;unformatted&#39;,status=&#39;old&#39;,action=&#39;read&#39;,access=&#39;direct&#39;,recl=filesize)</span>
+<a name="ln-630"></a>    <span class="c">! do n = 1,driverstore</span>
+<a name="ln-631"></a>    <span class="c">! read(11,rec=n)  ((storee120driver (j,k,n),j=jb-jh,je+jh),k=kb-kh,ke+kh)</span>
+<a name="ln-632"></a>    <span class="c">! enddo</span>
+<a name="ln-633"></a>    <span class="c">! close (unit=11)</span>
+<a name="ln-634"></a>
+<a name="ln-635"></a>    <span class="k">if</span> <span class="p">(</span><span class="n">ltempeq</span> <span class="p">)</span> <span class="k">then</span>
+<a name="ln-636"></a><span class="k">      </span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;hdriver_   .&#39;</span>
+<a name="ln-637"></a>      <span class="c">! write (name(13:16)  ,&#39;(i4.4)&#39;) nfile</span>
+<a name="ln-638"></a>      <span class="n">name</span><span class="p">(</span><span class="mi">9</span><span class="p">:</span><span class="mi">11</span><span class="p">)</span><span class="o">=</span> <span class="n">cmyid</span>
+<a name="ln-639"></a>      <span class="c">! write (name(18:20)  ,&#39;(i3.3)&#39;) filen</span>
+<a name="ln-640"></a>      <span class="k">write</span> <span class="p">(</span><span class="n">name</span><span class="p">(</span><span class="mi">13</span><span class="p">:</span><span class="mi">15</span><span class="p">)</span>   <span class="p">,</span><span class="s1">&#39;(i3.3)&#39;</span><span class="p">)</span> <span class="n">driverjobnr</span>
+<a name="ln-641"></a>      <span class="k">write</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;Reading Driver temperature: &#39;</span><span class="p">,</span> <span class="n">name</span>
+<a name="ln-642"></a>      <span class="c">! inquire(file=name,recl=filesize)</span>
+<a name="ln-643"></a>      <span class="k">open</span><span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="n">name</span><span class="p">,</span><span class="n">form</span><span class="o">=</span><span class="s1">&#39;unformatted&#39;</span><span class="p">,</span><span class="n">status</span><span class="o">=</span><span class="s1">&#39;old&#39;</span><span class="p">,</span><span class="n">action</span><span class="o">=</span><span class="s1">&#39;read&#39;</span><span class="p">,</span><span class="nb">access</span><span class="o">=</span><span class="s1">&#39;direct&#39;</span><span class="p">,</span><span class="n">recl</span><span class="o">=</span><span class="n">filesize</span><span class="p">)</span>
+<a name="ln-644"></a>      <span class="k">do </span><span class="n">n</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span><span class="n">driverstore</span>
+<a name="ln-645"></a>        <span class="k">read</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span><span class="n">rec</span><span class="o">=</span><span class="n">n</span><span class="p">)</span>  <span class="p">((</span><span class="n">storethl0driver</span> <span class="p">(</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">,</span><span class="n">n</span><span class="p">),</span><span class="n">j</span><span class="o">=</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">,</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">),</span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">,</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<a name="ln-646"></a>      <span class="k">end do</span>
+<a name="ln-647"></a>      <span class="c">!if(myid==0) then</span>
+<a name="ln-648"></a>      <span class="c">!  do k=ke,kb,-1</span>
+<a name="ln-649"></a>      <span class="c">!    write(6, &#39;(A,e20.12)&#39;) &#39;Reading thl0(ib,1,:)&#39;, storethl0driver(jb,k,1)</span>
+<a name="ln-650"></a>      <span class="c">!  end do</span>
+<a name="ln-651"></a>      <span class="c">!end if</span>
+<a name="ln-652"></a>
+<a name="ln-653"></a>      <span class="k">close</span> <span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="mi">11</span><span class="p">)</span>
+<a name="ln-654"></a>    <span class="k">end if</span>
+<a name="ln-655"></a>
+<a name="ln-656"></a><span class="k">    if</span> <span class="p">(</span><span class="n">lmoist</span> <span class="p">)</span> <span class="k">then</span>
+<a name="ln-657"></a><span class="k">      </span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;qdriver_   .&#39;</span>
+<a name="ln-658"></a>      <span class="c">! write (name(13:16)  ,&#39;(i4.4)&#39;) nfile</span>
+<a name="ln-659"></a>      <span class="n">name</span><span class="p">(</span><span class="mi">9</span><span class="p">:</span><span class="mi">11</span><span class="p">)</span><span class="o">=</span> <span class="n">cmyid</span>
+<a name="ln-660"></a>      <span class="c">! write (name(18:20)  ,&#39;(i3.3)&#39;) filen</span>
+<a name="ln-661"></a>      <span class="k">write</span> <span class="p">(</span><span class="n">name</span><span class="p">(</span><span class="mi">13</span><span class="p">:</span><span class="mi">15</span><span class="p">)</span>   <span class="p">,</span><span class="s1">&#39;(i3.3)&#39;</span><span class="p">)</span> <span class="n">driverjobnr</span>
+<a name="ln-662"></a>      <span class="k">write</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;Reading Driver moisture: &#39;</span><span class="p">,</span> <span class="n">name</span>
+<a name="ln-663"></a>      <span class="c">! inquire(file=name,recl=filesize)</span>
+<a name="ln-664"></a>      <span class="k">open</span><span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="n">name</span><span class="p">,</span><span class="n">form</span><span class="o">=</span><span class="s1">&#39;unformatted&#39;</span><span class="p">,</span><span class="n">status</span><span class="o">=</span><span class="s1">&#39;old&#39;</span><span class="p">,</span><span class="n">action</span><span class="o">=</span><span class="s1">&#39;read&#39;</span><span class="p">,</span><span class="nb">access</span><span class="o">=</span><span class="s1">&#39;direct&#39;</span><span class="p">,</span><span class="n">recl</span><span class="o">=</span><span class="n">filesize</span><span class="p">)</span>
+<a name="ln-665"></a>      <span class="k">do </span><span class="n">n</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span><span class="n">driverstore</span>
+<a name="ln-666"></a>        <span class="k">read</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span><span class="n">rec</span><span class="o">=</span><span class="n">n</span><span class="p">)</span>  <span class="p">((</span><span class="n">storeqt0driver</span> <span class="p">(</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">,</span><span class="n">n</span><span class="p">),</span><span class="n">j</span><span class="o">=</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">,</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">),</span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">,</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<a name="ln-667"></a>      <span class="k">end do</span>
+<a name="ln-668"></a><span class="k">      close</span> <span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="mi">11</span><span class="p">)</span>
+<a name="ln-669"></a>    <span class="k">end if</span>
+<a name="ln-670"></a>
+<a name="ln-671"></a><span class="k">    if</span> <span class="p">(</span><span class="n">nsv</span><span class="o">&gt;</span><span class="mi">0</span> <span class="p">)</span> <span class="k">then</span>
+<a name="ln-672"></a><span class="k">      </span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;sdriver_   .&#39;</span>
+<a name="ln-673"></a>      <span class="c">! write (name(13:16)  ,&#39;(i4.4)&#39;) nfile</span>
+<a name="ln-674"></a>      <span class="n">name</span><span class="p">(</span><span class="mi">9</span><span class="p">:</span><span class="mi">11</span><span class="p">)</span><span class="o">=</span> <span class="n">cmyid</span>
+<a name="ln-675"></a>      <span class="c">! write (name(18:20)  ,&#39;(i3.3)&#39;) filen</span>
+<a name="ln-676"></a>      <span class="k">write</span> <span class="p">(</span><span class="n">name</span><span class="p">(</span><span class="mi">13</span><span class="p">:</span><span class="mi">15</span><span class="p">)</span>   <span class="p">,</span><span class="s1">&#39;(i3.3)&#39;</span><span class="p">)</span> <span class="n">driverjobnr</span>
+<a name="ln-677"></a>      <span class="k">write</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;Reading Driver scalar: &#39;</span><span class="p">,</span> <span class="n">name</span>
+<a name="ln-678"></a>      <span class="c">! inquire(file=name,recl=filesize)</span>
+<a name="ln-679"></a>      <span class="k">inquire</span><span class="p">(</span><span class="n">iolength</span><span class="o">=</span><span class="n">filesizes</span><span class="p">)</span><span class="n">sv0</span><span class="p">(</span><span class="n">ib</span><span class="p">,:,:,:)</span>
+<a name="ln-680"></a>      <span class="k">open</span><span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="n">name</span><span class="p">,</span><span class="n">form</span><span class="o">=</span><span class="s1">&#39;unformatted&#39;</span><span class="p">,</span><span class="n">status</span><span class="o">=</span><span class="s1">&#39;old&#39;</span><span class="p">,</span><span class="n">action</span><span class="o">=</span><span class="s1">&#39;read&#39;</span><span class="p">,</span><span class="nb">access</span><span class="o">=</span><span class="s1">&#39;direct&#39;</span><span class="p">,</span><span class="n">recl</span><span class="o">=</span><span class="n">filesizes</span><span class="p">)</span>
+<a name="ln-681"></a>      <span class="k">do </span><span class="n">n</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span><span class="n">driverstore</span>
+<a name="ln-682"></a>        <span class="k">read</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span><span class="n">rec</span><span class="o">=</span><span class="n">n</span><span class="p">)</span>  <span class="p">(((</span><span class="n">storesv0driver</span> <span class="p">(</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">,</span><span class="n">m</span><span class="p">,</span><span class="n">n</span><span class="p">),</span><span class="n">j</span><span class="o">=</span><span class="n">jb</span><span class="o">-</span><span class="n">jhc</span><span class="p">,</span><span class="n">je</span><span class="o">+</span><span class="n">jhc</span><span class="p">),</span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="o">-</span><span class="n">khc</span><span class="p">,</span><span class="n">ke</span><span class="o">+</span><span class="n">khc</span><span class="p">),</span><span class="n">m</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">nsv</span><span class="p">)</span>
+<a name="ln-683"></a>      <span class="k">end do</span>
+<a name="ln-684"></a><span class="k">      close</span> <span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+<a name="ln-685"></a>    <span class="k">end if</span>
+<a name="ln-686"></a>
+<a name="ln-687"></a><span class="k">  end subroutine </span><span class="n">readdriverfile</span>
+<a name="ln-688"></a>
+<a name="ln-689"></a>  <span class="k">subroutine </span><span class="n">exitdriver</span>
+<a name="ln-690"></a>    <span class="k">use </span><span class="n">modglobal</span><span class="p">,</span>      <span class="k">only</span> <span class="p">:</span> <span class="n">idriver</span><span class="p">,</span><span class="n">lstoreplane</span><span class="p">,</span><span class="n">ltempeq</span><span class="p">,</span><span class="n">lmoist</span><span class="p">,</span><span class="n">nsv</span>
+<a name="ln-691"></a>
+<a name="ln-692"></a>    <span class="k">if</span> <span class="p">(</span><span class="n">idriver</span><span class="o">==</span><span class="mi">1</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-693"></a><span class="k">      if</span> <span class="p">(</span><span class="n">lstoreplane</span> <span class="p">)</span> <span class="k">then </span>
+<a name="ln-694"></a><span class="k">        deallocate</span><span class="p">(</span><span class="n">storetdriver</span><span class="p">,</span><span class="n">storeu0driver</span><span class="p">,</span><span class="n">storev0driver</span><span class="p">,</span><span class="n">storew0driver</span><span class="p">)</span><span class="c">!,storee120driver)</span>
+<a name="ln-695"></a>        <span class="k">if</span> <span class="p">(</span><span class="n">ltempeq</span> <span class="p">)</span> <span class="k">then</span>
+<a name="ln-696"></a><span class="k">          deallocate</span><span class="p">(</span><span class="n">storethl0driver</span><span class="p">)</span>
+<a name="ln-697"></a>        <span class="k">end if</span>
+<a name="ln-698"></a><span class="k">        if</span> <span class="p">(</span><span class="n">lmoist</span> <span class="p">)</span> <span class="k">then</span>
+<a name="ln-699"></a><span class="k">          deallocate</span><span class="p">(</span><span class="n">storeqt0driver</span><span class="p">)</span>
+<a name="ln-700"></a>        <span class="k">end if</span>
+<a name="ln-701"></a><span class="k">        if</span> <span class="p">(</span><span class="n">nsv</span><span class="o">&gt;</span><span class="mi">0</span> <span class="p">)</span> <span class="k">then</span>
+<a name="ln-702"></a><span class="k">          deallocate</span><span class="p">(</span><span class="n">storesv0driver</span><span class="p">)</span>
+<a name="ln-703"></a>        <span class="k">end if</span>
+<a name="ln-704"></a><span class="k">      end if </span>
+<a name="ln-705"></a><span class="k">    else if</span> <span class="p">(</span><span class="n">idriver</span> <span class="o">==</span> <span class="mi">2</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-706"></a><span class="k">      deallocate</span><span class="p">(</span><span class="n">storetdriver</span><span class="p">,</span> <span class="n">storeu0driver</span><span class="p">,</span><span class="n">storev0driver</span><span class="p">,</span><span class="n">storew0driver</span><span class="p">,</span><span class="n">u0driver</span><span class="p">,</span><span class="n">v0driver</span><span class="p">,</span><span class="n">w0driver</span><span class="p">)</span> <span class="c">!,e120driver,storee120driver)</span>
+<a name="ln-707"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">ltempeq</span> <span class="p">)</span> <span class="k">then</span>
+<a name="ln-708"></a><span class="k">        deallocate</span><span class="p">(</span><span class="n">storethl0driver</span><span class="p">,</span><span class="n">thl0driver</span><span class="p">)</span>
+<a name="ln-709"></a>      <span class="k">end if</span>
+<a name="ln-710"></a><span class="k">      if</span> <span class="p">(</span><span class="n">lmoist</span> <span class="p">)</span> <span class="k">then</span>
+<a name="ln-711"></a><span class="k">        deallocate</span><span class="p">(</span><span class="n">storeqt0driver</span><span class="p">,</span><span class="n">qt0driver</span><span class="p">)</span>
+<a name="ln-712"></a>      <span class="k">end if</span>
+<a name="ln-713"></a><span class="k">      if</span> <span class="p">(</span><span class="n">nsv</span><span class="o">&gt;</span><span class="mi">0</span> <span class="p">)</span> <span class="k">then</span>
+<a name="ln-714"></a><span class="k">        deallocate</span><span class="p">(</span><span class="n">storesv0driver</span><span class="p">,</span><span class="n">sv0driver</span><span class="p">)</span>
+<a name="ln-715"></a>      <span class="k">end if</span>
+<a name="ln-716"></a><span class="k">    end if</span>
+<a name="ln-717"></a>
+<a name="ln-718"></a><span class="k">  end subroutine </span><span class="n">exitdriver</span>
+<a name="ln-719"></a>
+<a name="ln-720"></a><span class="k">end module</span>
+</pre></div>
+
+    </section>
+    </div>
+  </div>
+
+  
+    <hr>    
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+      <div class="row">
+        <div class="col-xs-6 col-md-4"><p>&copy; 2021 
+                                          </p></div>
+        <div class="col-xs-6 col-md-4 col-md-push-4">
+          <p class="text-right">
+            Documentation generated by 
+            <a href="https://github.com/cmacmackin/ford">FORD</a>
+            
+          </p>
+        </div>
+        <div class="col-xs-12 col-md-4 col-md-pull-4"><p class="text-center"> uDALES was developed by The uDALES Team</p></div>
+      </div>
+      <br>
+      </div> <!-- /container -->    
+    </footer>
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+<!--
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+-->
+    <script src="../js/bootstrap.min.js"></script>
+    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+    <script src="../js/ie10-viewport-bug-workaround.js"></script>
+
+    <!-- MathJax JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } },
+        jax: ['input/TeX','input/MathML','output/HTML-CSS'],
+        extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']
+      });
+    </script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+    <script src="../tipuesearch/tipuesearch_content.js"></script>
+    <script src="../tipuesearch/tipuesearch_set.js"></script>
+    <script src="../tipuesearch/tipuesearch.js"></script>
+    
+    
+  </body>
+</html>

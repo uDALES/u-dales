@@ -1,0 +1,1789 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+   
+    <meta name="description" content="Documentation for uDALES">
+   
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>modmpi.f90 &ndash; uDALES</title>
+
+    <link href="../css/bootstrap.min.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <link href="../css/font-awesome.min.css" rel="stylesheet">
+    <link href="../css/local.css" rel="stylesheet">
+    
+    <link  href="../tipuesearch/tipuesearch.css" rel="stylesheet">
+    
+    
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    
+    <script src="../js/jquery-2.1.3.min.js"></script>
+    <script src="../js/svg-pan-zoom.min.js"></script>
+
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+        
+            <li class="dropdown hidden-xs visible-sm visible-md hidden-lg">
+              <a href="#" class="dropdown-toggle"
+              data-toggle="dropdown" role="button"
+              aria-haspopup="true"
+     aria-expanded="false">Contents <span class="caret"></span></a>
+        <ul class="dropdown-menu">
+          
+              
+            <li><a href="../lists/files.html">Source Files</a></li>
+        
+        
+        
+            <li><a href="../lists/modules.html">Modules</a></li>
+        
+            
+                                
+            <li><a href="../lists/procedures.html">Procedures</a></li>
+        
+               
+            <li><a href="../lists/types.html">Derived Types</a></li>
+        
+        
+            <li><a href="../program/dalesurban.html">Program</a></li>
+      
+            </ul>
+            </li>
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/files.html">Source Files</a></li>
+
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/modules.html">Modules</a></li>
+
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/procedures.html">Procedures</a></li>
+
+                             
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/types.html">Derived Types</a></li>
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../program/dalesurban.html">Program</a></li>
+
+          </ul>
+        
+        <form action="../search.html" class="navbar-form navbar-right" role="search">
+        <div class="form-group">
+          <input type="text" class="form-control" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+        </div>
+<!--
+        <button type="submit" class="btn btn-default">Submit</button>
+-->
+        </form>
+        
+        </div><!--/.nav-collapse -->
+      </div>
+    </nav>
+
+    <div class="container">
+    
+  
+  <div class="row">
+    <h1>modmpi.f90
+    <small>Source File</small>
+    
+    </h1>
+    
+<div class="row">
+  <div class="col-lg-12">
+<div class="well well-sm">
+  <ul class="list-inline" style="margin-bottom:0px;display:inline">
+     
+     
+     
+     
+    
+    
+     <li><i class="fa fa-list-ol"></i>
+       <a data-toggle="tooltip"
+    data-placement="bottom" data-html="true"
+    title=" 1.8% of total for source files.">253 statements</a>
+     </li> 
+     
+     
+     
+    <li><i class="fa fa-code"></i><a href="../src/modmpi.f90"> Source File</a></li>
+     
+     
+  </ul>
+  <ol class="breadcrumb in-well text-right">
+  
+    
+  
+     <li class="active">modmpi.f90</li>
+  </ol>
+</div>
+</div>
+</div>
+<script>
+  $(function () {
+  $('[data-toggle="tooltip"]').tooltip()
+  })
+</script>
+
+  </div>
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+    
+<div id="sidebar">
+  
+<h3>Contents</h3>
+ 
+
+
+
+
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#mods-0">Modules</a></h3></div>
+  <div id="mods-0" class="panel-collapse collapse">
+    <div class="list-group">
+      
+      <a class="list-group-item" href="../module/modmpi.html">modmpi</a>
+      
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../sourcefile/modmpi.f90.html#src">modmpi.f90</a>
+  </div>
+</div>
+
+
+
+</div>
+
+    </div>
+    <div class="col-md-9" id='text'>
+      
+      <br>
+    
+      
+    <div class="panel panel-default">
+      <div class="panel-heading">
+  <h3 class="panel-title">Files dependent on this one</h3>
+      </div>
+      <div class="panel-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.40.1 (20161225.0304)
+ -->
+<!-- Title: sourcefile~~modmpi.f90~~AfferentGraph Pages: 1 -->
+<svg id="sourcefilemodmpif90AfferentGraph" width="641pt" height="695pt"
+ viewBox="0.00 0.00 641.00 695.15" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="sourcefile~~modmpi.f90~~AfferentGraph" class="graph" transform="scale(.5391 .5391) rotate(0) translate(4 1285.4372)">
+<title>sourcefile~~modmpi.f90~~AfferentGraph</title>
+<polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-1285.4372 1185,-1285.4372 1185,4 -4,4"/>
+<!-- sourcefile~modmpi.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_node1" class="node">
+<title>sourcefile~modmpi.f90</title>
+<polygon fill="none" stroke="#000000" points="77,-577.1382 0,-577.1382 0,-553.1382 77,-553.1382 77,-577.1382"/>
+<text text-anchor="middle" x="38.5" y="-562.7382" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#000000">modmpi.f90</text>
+</g>
+<!-- sourcefile~initfac.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_node2" class="node">
+<title>sourcefile~initfac.f90</title>
+<g id="a_sourcefile~~modmpi.f90~~AfferentGraph_node2"><a xlink:href=".././sourcefile/initfac.f90.html" xlink:title="initfac.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="319,-227.1382 253,-227.1382 253,-203.1382 319,-203.1382 319,-227.1382"/>
+<text text-anchor="middle" x="286" y="-212.7382" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">initfac.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~initfac.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge1" class="edge">
+<title>sourcefile~initfac.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M260.6297,-227.1696C253.3291,-231.1519 245.5697,-235.9158 239,-241.1382 196.8738,-274.6252 200.6119,-298.2714 158,-331.1382"/>
+</g>
+<!-- sourcefile~modglobal.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_node6" class="node">
+<title>sourcefile~modglobal.f90</title>
+<g id="a_sourcefile~~modmpi.f90~~AfferentGraph_node6"><a xlink:href=".././sourcefile/modglobal.f90.html" xlink:title="modglobal.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="203,-577.1382 113,-577.1382 113,-553.1382 203,-553.1382 203,-577.1382"/>
+<text text-anchor="middle" x="158" y="-562.7382" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modglobal.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~initfac.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge43" class="edge">
+<title>sourcefile~initfac.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#fff400" stroke-dasharray="5,2" d="M274.8161,-227.4915C264.2274,-239.7777 248.5662,-259.5704 239,-279.1382 193.8015,-371.5924 169.869,-493.5533 161.4977,-542.9493"/>
+<polygon fill="#fff400" stroke="#fff400" points="158.0359,-542.4313 159.8629,-552.8674 164.9427,-543.5698 158.0359,-542.4313"/>
+</g>
+<!-- sourcefile~modforces.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_node3" class="node">
+<title>sourcefile~modforces.f90</title>
+<g id="a_sourcefile~~modmpi.f90~~AfferentGraph_node3"><a xlink:href=".././sourcefile/modforces.f90.html" xlink:title="modforces.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="487.5,-419.1382 397.5,-419.1382 397.5,-395.1382 487.5,-395.1382 487.5,-419.1382"/>
+<text text-anchor="middle" x="442.5" y="-404.7382" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modforces.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modforces.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge2" class="edge">
+<title>sourcefile~modforces.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M399.1199,-395.083C320.0739,-373.1793 160.4352,-329.2599 158,-331.1382"/>
+</g>
+<!-- sourcefile~modforces.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge46" class="edge">
+<title>sourcefile~modforces.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#fff400" stroke-dasharray="5,2" d="M397.4357,-409.3719C364.0614,-412.973 318.8671,-422.1266 286,-445.1382"/>
+</g>
+<!-- sourcefile~modfields.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_node27" class="node">
+<title>sourcefile~modfields.f90</title>
+<g id="a_sourcefile~~modmpi.f90~~AfferentGraph_node27"><a xlink:href=".././sourcefile/modfields.f90.html" xlink:title="modfields.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="328.5,-659.1382 243.5,-659.1382 243.5,-635.1382 328.5,-635.1382 328.5,-659.1382"/>
+<text text-anchor="middle" x="286" y="-644.7382" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modfields.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modforces.f90&#45;&gt;sourcefile~modfields.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge97" class="edge">
+<title>sourcefile~modforces.f90&#45;&gt;sourcefile~modfields.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M421.2744,-419.3314C404.8244,-429.7951 382.6096,-446.305 369,-466.1382 339.1769,-509.5991 356.2394,-531.8286 333,-579.1382 324.6716,-596.0926 312.4825,-613.589 302.6045,-626.5879"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="299.5885,-624.7647 296.2109,-634.8067 305.1136,-629.0628 299.5885,-624.7647"/>
+</g>
+<!-- sourcefile~moddriver.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_node4" class="node">
+<title>sourcefile~moddriver.f90</title>
+<g id="a_sourcefile~~modmpi.f90~~AfferentGraph_node4"><a xlink:href=".././sourcefile/moddriver.f90.html" xlink:title="moddriver.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="641.5,-659.1382 553.5,-659.1382 553.5,-635.1382 641.5,-635.1382 641.5,-659.1382"/>
+<text text-anchor="middle" x="597.5" y="-644.7382" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">moddriver.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~moddriver.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge3" class="edge">
+<title>sourcefile~moddriver.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M591.1847,-634.815C579.5523,-613.5558 552.5469,-570.4183 516,-551.1382 425.0966,-503.1826 379.31,-570.2241 286,-527.1382"/>
+</g>
+<!-- sourcefile~moddriver.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge45" class="edge">
+<title>sourcefile~moddriver.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#fff400" stroke-dasharray="5,2" d="M585.3304,-635.1139C570.2837,-620.9061 543.3025,-597.513 516,-584.1382 485.6999,-569.2949 475.2331,-573.3214 442.5,-565.1382"/>
+</g>
+<!-- sourcefile~modsave.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_node25" class="node">
+<title>sourcefile~modsave.f90</title>
+<g id="a_sourcefile~~modmpi.f90~~AfferentGraph_node25"><a xlink:href=".././sourcefile/modsave.f90.html" xlink:title="modsave.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="483.5,-781.1382 401.5,-781.1382 401.5,-757.1382 483.5,-757.1382 483.5,-781.1382"/>
+<text text-anchor="middle" x="442.5" y="-766.7382" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modsave.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~moddriver.f90&#45;&gt;sourcefile~modsave.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge89" class="edge">
+<title>sourcefile~moddriver.f90&#45;&gt;sourcefile~modsave.f90</title>
+<path fill="none" stroke="#ff007a" stroke-dasharray="5,2" d="M587.8729,-659.4695C567.3282,-685.7292 520.6725,-745.0429 516,-748.1382 509.1569,-752.6713 501.33,-756.2398 493.3942,-759.0452"/>
+<polygon fill="#ff007a" stroke="#ff007a" points="492.1997,-755.752 483.7189,-762.1023 494.3088,-762.4267 492.1997,-755.752"/>
+</g>
+<!-- sourcefile~moddriver.f90&#45;&gt;sourcefile~modfields.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge98" class="edge">
+<title>sourcefile~moddriver.f90&#45;&gt;sourcefile~modfields.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M555.321,-659.1795C524.2948,-667.7535 481.0006,-679.1294 442.5,-687.1382"/>
+</g>
+<!-- sourcefile~modboundary.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_node5" class="node">
+<title>sourcefile~modboundary.f90</title>
+<g id="a_sourcefile~~modmpi.f90~~AfferentGraph_node5"><a xlink:href=".././sourcefile/modboundary.f90.html" xlink:title="modboundary.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="785,-773.1382 679,-773.1382 679,-749.1382 785,-749.1382 785,-773.1382"/>
+<text text-anchor="middle" x="732" y="-758.7382" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modboundary.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modboundary.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge4" class="edge">
+<title>sourcefile~modboundary.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M597.5,-927.1382C535.456,-961.5104 501.0532,-925.1078 442.5,-965.1382"/>
+</g>
+<!-- sourcefile~modboundary.f90&#45;&gt;sourcefile~moddriver.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge37" class="edge">
+<title>sourcefile~modboundary.f90&#45;&gt;sourcefile~moddriver.f90</title>
+<path fill="none" stroke="#ff7a00" stroke-dasharray="5,2" d="M721.6245,-749.0288C705.8438,-731.065 674.3229,-696.9227 643,-673.1382 639.042,-670.1327 634.7014,-667.2261 630.3218,-664.5129"/>
+<polygon fill="#ff7a00" stroke="#ff7a00" points="631.7792,-661.3092 621.3872,-659.2458 628.2243,-667.3393 631.7792,-661.3092"/>
+</g>
+<!-- sourcefile~modboundary.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge47" class="edge">
+<title>sourcefile~modboundary.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#fff400" stroke-dasharray="5,2" d="M699.8005,-773.1844C692.4259,-776.9157 685.0001,-781.5503 679,-787.1382 626.3124,-836.2062 660.4788,-892.2481 597.5,-927.1382"/>
+<path fill="none" stroke="#fff400" stroke-dasharray="5,2" d="M597.5,-927.1382C537.2405,-960.5218 509.7185,-942.2164 442.5,-927.1382"/>
+</g>
+<!-- sourcefile~modinlet.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_node17" class="node">
+<title>sourcefile~modinlet.f90</title>
+<g id="a_sourcefile~~modmpi.f90~~AfferentGraph_node17"><a xlink:href=".././sourcefile/modinlet.f90.html" xlink:title="modinlet.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="637.5,-820.1382 557.5,-820.1382 557.5,-796.1382 637.5,-796.1382 637.5,-820.1382"/>
+<text text-anchor="middle" x="597.5" y="-805.7382" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modinlet.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modboundary.f90&#45;&gt;sourcefile~modinlet.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge78" class="edge">
+<title>sourcefile~modboundary.f90&#45;&gt;sourcefile~modinlet.f90</title>
+<path fill="none" stroke="#0066ff" stroke-dasharray="5,2" d="M697.3629,-773.2418C680.4193,-779.1627 659.8313,-786.357 641.7607,-792.6716"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="640.3053,-789.4726 632.0197,-796.0755 642.6146,-796.0807 640.3053,-789.4726"/>
+</g>
+<!-- sourcefile~modboundary.f90&#45;&gt;sourcefile~modfields.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge99" class="edge">
+<title>sourcefile~modboundary.f90&#45;&gt;sourcefile~modfields.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M717.0536,-749.0439C693.4112,-730.8573 645.1607,-697.4922 597.5,-687.1382"/>
+</g>
+<!-- sourcefile~modglobal.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge5" class="edge">
+<title>sourcefile~modglobal.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M112.8222,-565.1382C104.4581,-565.1382 95.6884,-565.1382 87.2244,-565.1382"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="87.0997,-561.6383 77.0997,-565.1382 87.0997,-568.6383 87.0997,-561.6383"/>
+</g>
+<!-- sourcefile~wf_gr.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_node7" class="node">
+<title>sourcefile~wf_gr.f90</title>
+<g id="a_sourcefile~~modmpi.f90~~AfferentGraph_node7"><a xlink:href=".././sourcefile/wf_gr.f90.html" xlink:title="wf_gr.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="473,-137.1382 412,-137.1382 412,-113.1382 473,-113.1382 473,-137.1382"/>
+<text text-anchor="middle" x="442.5" y="-122.7382" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">wf_gr.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~wf_gr.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge6" class="edge">
+<title>sourcefile~wf_gr.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M411.9018,-116.6148C366.7226,-104.0729 287.3165,-82.2135 286,-83.1382"/>
+</g>
+<!-- sourcefile~wf_gr.f90&#45;&gt;sourcefile~initfac.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge32" class="edge">
+<title>sourcefile~wf_gr.f90&#45;&gt;sourcefile~initfac.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M411.8949,-133.5685C398.329,-137.9038 382.434,-143.8265 369,-151.1382 345.9993,-163.6567 322.6286,-182.3261 306.5727,-196.2746"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="304.0518,-193.8318 298.884,-203.0808 308.6917,-199.0732 304.0518,-193.8318"/>
+</g>
+<!-- sourcefile~wf_gr.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge48" class="edge">
+<title>sourcefile~wf_gr.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#fff400" stroke-dasharray="5,2" d="M411.9219,-119.9039C371.4732,-113.7669 303.2711,-106.4052 286,-123.1382"/>
+</g>
+<!-- sourcefile~modeb.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_node8" class="node">
+<title>sourcefile~modeb.f90</title>
+<g id="a_sourcefile~~modmpi.f90~~AfferentGraph_node8"><a xlink:href=".././sourcefile/modeb.f90.html" xlink:title="modEB.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="478,-1135.1382 407,-1135.1382 407,-1111.1382 478,-1111.1382 478,-1135.1382"/>
+<text text-anchor="middle" x="442.5" y="-1120.7382" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modEB.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modeb.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge7" class="edge">
+<title>sourcefile~modeb.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M406.6965,-1113.0721C361.4353,-1100.413 288.9961,-1080.4002 286,-1081.1382"/>
+</g>
+<!-- sourcefile~modeb.f90&#45;&gt;sourcefile~initfac.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge33" class="edge">
+<title>sourcefile~modeb.f90&#45;&gt;sourcefile~initfac.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M406.8628,-1121.6282C392.8731,-1119.0963 378.0325,-1113.6064 369,-1102.1382 309.7552,-1026.9174 383.3448,-322.5846 333,-241.1382 331.2349,-238.2827 329.0368,-235.7161 326.5624,-233.4137"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="328.5496,-230.5281 318.4668,-227.2741 324.3197,-236.1056 328.5496,-230.5281"/>
+</g>
+<!-- sourcefile~modeb.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge49" class="edge">
+<title>sourcefile~modeb.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#fff400" stroke-dasharray="5,2" d="M406.6782,-1116.6553C394.2126,-1113.4465 380.485,-1108.7876 369,-1102.1382 349.6878,-1090.9572 351.1397,-1080.1354 333,-1067.1382 313.9342,-1053.4774 301.7451,-1060.5225 286,-1043.1382"/>
+</g>
+<!-- sourcefile~modstat_nc.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_node26" class="node">
+<title>sourcefile~modstat_nc.f90</title>
+<g id="a_sourcefile~~modmpi.f90~~AfferentGraph_node26"><a xlink:href=".././sourcefile/modstat_nc.f90.html" xlink:title="modstat_nc.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="333,-1133.1382 239,-1133.1382 239,-1109.1382 333,-1109.1382 333,-1133.1382"/>
+<text text-anchor="middle" x="286" y="-1118.7382" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modstat_nc.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modeb.f90&#45;&gt;sourcefile~modstat_nc.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge95" class="edge">
+<title>sourcefile~modeb.f90&#45;&gt;sourcefile~modstat_nc.f90</title>
+<path fill="none" stroke="#ff003d" stroke-dasharray="5,2" d="M406.9877,-1122.6843C388.2323,-1122.4447 364.7517,-1122.1446 343.479,-1121.8727"/>
+<polygon fill="#ff003d" stroke="#ff003d" points="343.2877,-1118.3701 333.2437,-1121.7419 343.1981,-1125.3695 343.2877,-1118.3701"/>
+</g>
+<!-- sourcefile~advec_2nd.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_node9" class="node">
+<title>sourcefile~advec_2nd.f90</title>
+<g id="a_sourcefile~~modmpi.f90~~AfferentGraph_node9"><a xlink:href=".././sourcefile/advec_2nd.f90.html" xlink:title="advec_2nd.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="643,-177.1382 552,-177.1382 552,-153.1382 643,-153.1382 643,-177.1382"/>
+<text text-anchor="middle" x="597.5" y="-162.7382" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">advec_2nd.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~advec_2nd.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge8" class="edge">
+<title>sourcefile~advec_2nd.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M568.5113,-152.9586C562.3731,-149.2704 556.4219,-144.6886 552,-139.1382 517.5695,-95.9204 555.8609,-58.4049 516,-20.1382 491.6601,3.2283 475.9425,-5.6123 442.5,-1.1382"/>
+</g>
+<!-- sourcefile~advec_2nd.f90&#45;&gt;sourcefile~initfac.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge26" class="edge">
+<title>sourcefile~advec_2nd.f90&#45;&gt;sourcefile~initfac.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M551.8254,-158.6454C520.4623,-155.7475 478.211,-154.9517 442.5,-165.1382"/>
+</g>
+<!-- sourcefile~advec_2nd.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge51" class="edge">
+<title>sourcefile~advec_2nd.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#fff400" stroke-dasharray="5,2" d="M584.7177,-177.2499C569.5,-191.0302 542.7649,-213.2837 516,-226.1382 455.1709,-255.3528 422.7675,-223.3615 369,-264.1382 343.6115,-283.3925 351.7241,-300.3561 333,-326.1382 296.1939,-376.8183 276.2516,-380.7846 239,-431.1382 211.0659,-468.8971 183.9411,-516.7275 169.2579,-543.8342"/>
+<polygon fill="#fff400" stroke="#fff400" points="166.0771,-542.3597 164.4328,-552.8262 172.2452,-545.6696 166.0771,-542.3597"/>
+</g>
+<!-- sourcefile~modibm.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_node16" class="node">
+<title>sourcefile~modibm.f90</title>
+<g id="a_sourcefile~~modmpi.f90~~AfferentGraph_node16"><a xlink:href=".././sourcefile/modibm.f90.html" xlink:title="modibm.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="481,-297.1382 404,-297.1382 404,-273.1382 481,-273.1382 481,-297.1382"/>
+<text text-anchor="middle" x="442.5" y="-282.7382" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modibm.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~advec_2nd.f90&#45;&gt;sourcefile~modibm.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge76" class="edge">
+<title>sourcefile~advec_2nd.f90&#45;&gt;sourcefile~modibm.f90</title>
+<path fill="none" stroke="#00a3ff" stroke-dasharray="5,2" d="M589.9979,-177.304C577.1779,-197.1425 549.1971,-236.5118 516,-259.1382 508.3614,-264.3445 499.5672,-268.6234 490.7777,-272.0992"/>
+<polygon fill="#00a3ff" stroke="#00a3ff" points="489.4895,-268.8435 481.2969,-275.5615 491.8907,-275.4187 489.4895,-268.8435"/>
+</g>
+<!-- sourcefile~advec_2nd.f90&#45;&gt;sourcefile~modfields.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge101" class="edge">
+<title>sourcefile~advec_2nd.f90&#45;&gt;sourcefile~modfields.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M593.9805,-177.2113C585.5166,-206.6726 563.8491,-284.7016 552,-351.1382 539.5518,-420.934 562.5058,-614.6253 516,-668.1382 493.8676,-693.6053 475.5334,-680.2667 442.5,-687.1382"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M442.5,-687.1382C398.5835,-696.2735 348.4496,-678.3772 317.0125,-663.6625"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="318.4086,-660.4496 307.884,-659.2314 315.3518,-666.747 318.4086,-660.4496"/>
+</g>
+<!-- sourcefile~program.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_node10" class="node">
+<title>sourcefile~program.f90</title>
+<g id="a_sourcefile~~modmpi.f90~~AfferentGraph_node10"><a xlink:href=".././sourcefile/program.f90.html" xlink:title="program.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="1181,-773.1382 1102,-773.1382 1102,-749.1382 1181,-749.1382 1181,-773.1382"/>
+<text text-anchor="middle" x="1141.5" y="-758.7382" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">program.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~program.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge9" class="edge">
+<title>sourcefile~program.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M732,-1277.1382C672.2354,-1275.882 657.0543,-1271.9746 597.5,-1277.1382"/>
+</g>
+<!-- sourcefile~program.f90&#45;&gt;sourcefile~initfac.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge27" class="edge">
+<title>sourcefile~program.f90&#45;&gt;sourcefile~initfac.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M1136.7301,-749.0275C1122.0555,-712.8383 1074.6336,-603.537 1010,-531.1382"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M1010,-531.1382C945.6299,-459.0344 950.5739,-417.7641 869.5,-365.1382"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M869.5,-365.1382C832.116,-340.8718 823.8462,-332.9875 785,-311.1382 762.1318,-298.2758 753.4297,-300.2764 732,-285.1382"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M732,-285.1382C671.4726,-242.3809 707.8963,-179.9183 643,-144.1382 603.7684,-122.5081 485.5809,-152.8495 442.5,-165.1382"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M442.5,-165.1382C409.398,-171.6712 401.1811,-173.9995 369,-184.1382 354.7152,-188.6386 339.2898,-194.2001 325.658,-199.3645"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="324.1743,-196.1849 316.0908,-203.0339 326.681,-202.7206 324.1743,-196.1849"/>
+</g>
+<!-- sourcefile~program.f90&#45;&gt;sourcefile~modforces.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge35" class="edge">
+<title>sourcefile~program.f90&#45;&gt;sourcefile~modforces.f90</title>
+<path fill="none" stroke="#ff3d00" stroke-dasharray="5,2" d="M597.5,-365.1382C592.1491,-365.1497 537.4603,-380.2556 494.5409,-392.3455"/>
+<polygon fill="#ff3d00" stroke="#ff3d00" points="493.4279,-389.0228 484.7544,-395.1073 495.3291,-395.7597 493.4279,-389.0228"/>
+</g>
+<!-- sourcefile~program.f90&#45;&gt;sourcefile~modboundary.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge40" class="edge">
+<title>sourcefile~program.f90&#45;&gt;sourcefile~modboundary.f90</title>
+<path fill="none" stroke="#ffb700" stroke-dasharray="5,2" d="M869.5,-761.1382C845.4026,-757.7868 818.699,-757.1039 795.2837,-757.496"/>
+<polygon fill="#ffb700" stroke="#ffb700" points="795.0384,-754.0007 785.1237,-757.7355 795.2034,-760.9987 795.0384,-754.0007"/>
+</g>
+<!-- sourcefile~program.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge52" class="edge">
+<title>sourcefile~program.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#fff400" stroke-dasharray="5,2" d="M869.5,-365.1382C768.1003,-299.3185 718.3886,-364.8782 597.5,-365.1382"/>
+<path fill="none" stroke="#fff400" stroke-dasharray="5,2" d="M597.5,-365.1382C560.2025,-367.9767 553.1084,-348.8422 516,-344.1382 451.1853,-335.922 427.4359,-314.9202 369,-344.1382 345.1486,-356.0639 349.8607,-371.4783 333,-392.1382 313.0938,-416.5298 311.6622,-426.8992 286,-445.1382"/>
+</g>
+<!-- sourcefile~program.f90&#45;&gt;sourcefile~modeb.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge72" class="edge">
+<title>sourcefile~program.f90&#45;&gt;sourcefile~modeb.f90</title>
+<path fill="none" stroke="#8eff00" stroke-dasharray="5,2" d="M1139.0199,-773.5267C1124.4664,-845.6332 1049.4486,-1209.0765 1010,-1239.1382"/>
+<path fill="none" stroke="#8eff00" stroke-dasharray="5,2" d="M1010,-1239.1382C935.8633,-1295.6338 688.8173,-1181.8239 597.5,-1163.1382"/>
+<path fill="none" stroke="#8eff00" stroke-dasharray="5,2" d="M597.5,-1163.1382C560.398,-1155.1485 518.7722,-1144.3003 488.0069,-1135.917"/>
+<polygon fill="#8eff00" stroke="#8eff00" points="488.5817,-1132.4454 478.0121,-1133.1761 486.7304,-1139.1962 488.5817,-1132.4454"/>
+</g>
+<!-- sourcefile~modchecksim.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_node13" class="node">
+<title>sourcefile~modchecksim.f90</title>
+<g id="a_sourcefile~~modmpi.f90~~AfferentGraph_node13"><a xlink:href=".././sourcefile/modchecksim.f90.html" xlink:title="modchecksim.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="496,-377.1382 389,-377.1382 389,-353.1382 496,-353.1382 496,-377.1382"/>
+<text text-anchor="middle" x="442.5" y="-362.7382" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modchecksim.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~program.f90&#45;&gt;sourcefile~modchecksim.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge73" class="edge">
+<title>sourcefile~program.f90&#45;&gt;sourcefile~modchecksim.f90</title>
+<path fill="none" stroke="#00ffa3" stroke-dasharray="5,2" d="M597.5,-365.1382C567.542,-365.2026 534.3269,-365.211 506.3531,-365.1999"/>
+<polygon fill="#00ffa3" stroke="#00ffa3" points="506.3016,-361.7 496.2999,-365.195 506.2982,-368.7 506.3016,-361.7"/>
+</g>
+<!-- sourcefile~modfielddump.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_node14" class="node">
+<title>sourcefile~modfielddump.f90</title>
+<g id="a_sourcefile~~modmpi.f90~~AfferentGraph_node14"><a xlink:href=".././sourcefile/modfielddump.f90.html" xlink:title="modfielddump.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="498,-1215.1382 387,-1215.1382 387,-1191.1382 498,-1191.1382 498,-1215.1382"/>
+<text text-anchor="middle" x="442.5" y="-1200.7382" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modfielddump.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~program.f90&#45;&gt;sourcefile~modfielddump.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge74" class="edge">
+<title>sourcefile~program.f90&#45;&gt;sourcefile~modfielddump.f90</title>
+<path fill="none" stroke="#00ffe0" stroke-dasharray="5,2" d="M1010,-1239.1382C992.1391,-1254.9178 820.263,-1283.3416 732,-1277.1382"/>
+<path fill="none" stroke="#00ffe0" stroke-dasharray="5,2" d="M732,-1277.1382C685.1841,-1275.3824 560.3212,-1239.2683 490.8453,-1218.152"/>
+<polygon fill="#00ffe0" stroke="#00ffe0" points="491.5987,-1214.7226 481.0125,-1215.1512 489.5554,-1221.4178 491.5987,-1214.7226"/>
+</g>
+<!-- sourcefile~modstatsdump.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_node15" class="node">
+<title>sourcefile~modstatsdump.f90</title>
+<g id="a_sourcefile~~modmpi.f90~~AfferentGraph_node15"><a xlink:href=".././sourcefile/modstatsdump.f90.html" xlink:title="modstatsdump.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="1066,-953.1382 954,-953.1382 954,-929.1382 1066,-929.1382 1066,-953.1382"/>
+<text text-anchor="middle" x="1010" y="-938.7382" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modstatsdump.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~program.f90&#45;&gt;sourcefile~modstatsdump.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge75" class="edge">
+<title>sourcefile~program.f90&#45;&gt;sourcefile~modstatsdump.f90</title>
+<path fill="none" stroke="#00e0ff" stroke-dasharray="5,2" d="M1132.6677,-773.228C1110.49,-803.5853 1052.2708,-883.277 1024.7789,-920.9084"/>
+<polygon fill="#00e0ff" stroke="#00e0ff" points="1021.8668,-918.9616 1018.7938,-929.101 1027.5191,-923.0909 1021.8668,-918.9616"/>
+</g>
+<!-- sourcefile~program.f90&#45;&gt;sourcefile~modibm.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge77" class="edge">
+<title>sourcefile~program.f90&#45;&gt;sourcefile~modibm.f90</title>
+<path fill="none" stroke="#00a3ff" stroke-dasharray="5,2" d="M732,-285.1382C658.759,-237.0764 551.0513,-254.4601 489.7611,-270.4517"/>
+<polygon fill="#00a3ff" stroke="#00a3ff" points="488.7108,-267.1099 479.9705,-273.098 490.5374,-273.8674 488.7108,-267.1099"/>
+</g>
+<!-- sourcefile~modpois.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_node18" class="node">
+<title>sourcefile~modpois.f90</title>
+<g id="a_sourcefile~~modmpi.f90~~AfferentGraph_node18"><a xlink:href=".././sourcefile/modpois.f90.html" xlink:title="modpois.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="909,-813.1382 830,-813.1382 830,-789.1382 909,-789.1382 909,-813.1382"/>
+<text text-anchor="middle" x="869.5" y="-798.7382" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modpois.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~program.f90&#45;&gt;sourcefile~modpois.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge80" class="edge">
+<title>sourcefile~program.f90&#45;&gt;sourcefile~modpois.f90</title>
+<path fill="none" stroke="#0028ff" stroke-dasharray="5,2" d="M1010,-761.1382C973.0206,-761.1382 932.5867,-774.1143 904.6298,-785.2851"/>
+<polygon fill="#0028ff" stroke="#0028ff" points="903.1985,-782.0894 895.2875,-789.1369 905.8667,-788.5609 903.1985,-782.0894"/>
+</g>
+<!-- sourcefile~modstartup.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_node19" class="node">
+<title>sourcefile~modstartup.f90</title>
+<g id="a_sourcefile~~modmpi.f90~~AfferentGraph_node19"><a xlink:href=".././sourcefile/modstartup.f90.html" xlink:title="modstartup.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="1057,-733.1382 963,-733.1382 963,-709.1382 1057,-709.1382 1057,-733.1382"/>
+<text text-anchor="middle" x="1010" y="-718.7382" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modstartup.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~program.f90&#45;&gt;sourcefile~modstartup.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge82" class="edge">
+<title>sourcefile~program.f90&#45;&gt;sourcefile~modstartup.f90</title>
+<path fill="none" stroke="#1400ff" stroke-dasharray="5,2" d="M1102.0457,-749.1369C1088.7745,-745.1 1073.7922,-740.5426 1059.8291,-736.2953"/>
+<polygon fill="#1400ff" stroke="#1400ff" points="1060.4668,-732.831 1049.881,-733.2693 1058.4296,-739.528 1060.4668,-732.831"/>
+</g>
+<!-- sourcefile~modthermodynamics.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_node21" class="node">
+<title>sourcefile~modthermodynamics.f90</title>
+<g id="a_sourcefile~~modmpi.f90~~AfferentGraph_node21"><a xlink:href=".././sourcefile/modthermodynamics.f90.html" xlink:title="modthermodynamics.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="516,-499.1382 369,-499.1382 369,-475.1382 516,-475.1382 516,-499.1382"/>
+<text text-anchor="middle" x="442.5" y="-484.7382" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modthermodynamics.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~program.f90&#45;&gt;sourcefile~modthermodynamics.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge83" class="edge">
+<title>sourcefile~program.f90&#45;&gt;sourcefile~modthermodynamics.f90</title>
+<path fill="none" stroke="#8e00ff" stroke-dasharray="5,2" d="M1010,-531.1382C881.288,-400.5843 773.8961,-581.0934 597.5,-531.1382"/>
+<path fill="none" stroke="#8e00ff" stroke-dasharray="5,2" d="M597.5,-531.1382C562.9755,-521.6181 524.2163,-510.6155 494.0929,-501.9941"/>
+<polygon fill="#8e00ff" stroke="#8e00ff" points="494.804,-498.5571 484.2267,-499.1673 492.8758,-505.2864 494.804,-498.5571"/>
+</g>
+<!-- sourcefile~modsubgrid.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_node22" class="node">
+<title>sourcefile~modsubgrid.f90</title>
+<g id="a_sourcefile~~modmpi.f90~~AfferentGraph_node22"><a xlink:href=".././sourcefile/modsubgrid.f90.html" xlink:title="modsubgrid.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="918,-733.1382 821,-733.1382 821,-709.1382 918,-709.1382 918,-733.1382"/>
+<text text-anchor="middle" x="869.5" y="-718.7382" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modsubgrid.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~program.f90&#45;&gt;sourcefile~modsubgrid.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge85" class="edge">
+<title>sourcefile~program.f90&#45;&gt;sourcefile~modsubgrid.f90</title>
+<path fill="none" stroke="#cc00ff" stroke-dasharray="5,2" d="M1101.7943,-761.1382C1075.7038,-761.1382 1040.8203,-761.1382 1010,-761.1382"/>
+<path fill="none" stroke="#cc00ff" stroke-dasharray="5,2" d="M1010,-761.1382C973.0206,-761.1382 932.5867,-748.162 904.6298,-736.9912"/>
+<polygon fill="#cc00ff" stroke="#cc00ff" points="905.8667,-733.7154 895.2875,-733.1395 903.1985,-740.187 905.8667,-733.7154"/>
+</g>
+<!-- sourcefile~program.f90&#45;&gt;sourcefile~modsave.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge91" class="edge">
+<title>sourcefile~program.f90&#45;&gt;sourcefile~modsave.f90</title>
+<path fill="none" stroke="#ff007a" stroke-dasharray="5,2" d="M1010,-761.1382C947.5556,-761.1382 931.3492,-769.7399 869.5,-761.1382"/>
+<path fill="none" stroke="#ff007a" stroke-dasharray="5,2" d="M869.5,-761.1382C831.171,-755.8076 823.4113,-744.8397 785,-740.1382 738.2379,-734.4146 725.8298,-734.9976 679,-740.1382 662.7076,-741.9266 659.177,-745.5024 643,-748.1382 592.6323,-756.3447 534.5974,-762.0154 493.9685,-765.3767"/>
+<polygon fill="#ff007a" stroke="#ff007a" points="493.4556,-761.9067 483.7706,-766.2021 494.0204,-768.8838 493.4556,-761.9067"/>
+</g>
+<!-- sourcefile~program.f90&#45;&gt;sourcefile~modstat_nc.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge93" class="edge">
+<title>sourcefile~program.f90&#45;&gt;sourcefile~modstat_nc.f90</title>
+<path fill="none" stroke="#ff003d" stroke-dasharray="5,2" d="M597.5,-1163.1382C530.1549,-1148.6359 511.3888,-1163.2621 442.5,-1163.1382"/>
+</g>
+<!-- sourcefile~wfmneutral.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_node11" class="node">
+<title>sourcefile~wfmneutral.f90</title>
+<g id="a_sourcefile~~modmpi.f90~~AfferentGraph_node11"><a xlink:href=".././sourcefile/wfmneutral.f90.html" xlink:title="wfmneutral.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="489.5,-53.1382 395.5,-53.1382 395.5,-29.1382 489.5,-29.1382 489.5,-53.1382"/>
+<text text-anchor="middle" x="442.5" y="-38.7382" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">wfmneutral.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~wfmneutral.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge10" class="edge">
+<title>sourcefile~wfmneutral.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M395.4278,-45.1995C362.3256,-49.9891 318.3446,-60.4216 286,-83.1382"/>
+</g>
+<!-- sourcefile~wfmneutral.f90&#45;&gt;sourcefile~initfac.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge29" class="edge">
+<title>sourcefile~wfmneutral.f90&#45;&gt;sourcefile~initfac.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M395.2554,-48.2866C385.8143,-51.3795 376.5062,-55.8057 369,-62.1382 340.7391,-85.9801 350.5612,-104.6002 333,-137.1382 322.3665,-156.8403 309.1157,-178.6126 299.3968,-194.1361"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="296.2312,-192.5944 293.8569,-202.9198 302.152,-196.3287 296.2312,-192.5944"/>
+</g>
+<!-- sourcefile~wfmneutral.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge53" class="edge">
+<title>sourcefile~wfmneutral.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#fff400" stroke-dasharray="5,2" d="M395.2131,-50.9151C386.1779,-53.8044 377.0395,-57.4836 369,-62.1382 349.6878,-73.3192 350.9217,-83.842 333,-97.1382 313.8281,-111.362 303.1451,-106.5273 286,-123.1382"/>
+<path fill="none" stroke="#fff400" stroke-dasharray="5,2" d="M286,-123.1382C258.8208,-149.4705 253.7316,-159.2802 239,-194.1382 232.0439,-210.5978 178.7594,-465.3427 162.6188,-542.9016"/>
+<polygon fill="#fff400" stroke="#fff400" points="159.1262,-542.5065 160.5168,-553.0096 165.9796,-543.9317 159.1262,-542.5065"/>
+</g>
+<!-- sourcefile~scalsource.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_node12" class="node">
+<title>sourcefile~scalsource.f90</title>
+<g id="a_sourcefile~~modmpi.f90~~AfferentGraph_node12"><a xlink:href=".././sourcefile/scalsource.f90.html" xlink:title="scalsource.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="487.5,-217.1382 397.5,-217.1382 397.5,-193.1382 487.5,-193.1382 487.5,-217.1382"/>
+<text text-anchor="middle" x="442.5" y="-202.7382" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">scalsource.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~scalsource.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge11" class="edge">
+<title>sourcefile~scalsource.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M405.5657,-217.1547C373.892,-227.4078 327.0124,-242.46 286,-255.1382"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M286,-255.1382C265.1764,-261.5754 258.4187,-259.2398 239,-269.1382 198.6092,-289.7267 192.739,-302.0089 158,-331.1382"/>
+</g>
+<!-- sourcefile~scalsource.f90&#45;&gt;sourcefile~initfac.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge30" class="edge">
+<title>sourcefile~scalsource.f90&#45;&gt;sourcefile~initfac.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M397.2337,-208.0306C375.8218,-209.3988 350.3768,-211.0246 329.2306,-212.3758"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="328.9879,-208.8841 319.2315,-213.0148 329.4344,-215.8699 328.9879,-208.8841"/>
+</g>
+<!-- sourcefile~scalsource.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge54" class="edge">
+<title>sourcefile~scalsource.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#fff400" stroke-dasharray="5,2" d="M397.7665,-217.1678C387.8709,-220.8449 377.7393,-225.4597 369,-231.1382 349.492,-243.8138 349.5929,-252.8314 333,-269.1382 292.6138,-308.8279 270.9245,-308.3712 239,-355.1382 197.024,-416.6298 172.6623,-502.9143 162.9471,-543.0249"/>
+<polygon fill="#fff400" stroke="#fff400" points="159.5215,-542.3029 160.642,-552.8384 166.3361,-543.9037 159.5215,-542.3029"/>
+</g>
+<!-- sourcefile~scalsource.f90&#45;&gt;sourcefile~modfields.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge102" class="edge">
+<title>sourcefile~scalsource.f90&#45;&gt;sourcefile~modfields.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M419.14,-217.2886C402.2144,-227.4174 380.3812,-243.5064 369,-264.1382 300.9377,-387.5218 382.5452,-447.2243 333,-579.1382 326.3772,-596.7712 314.1911,-614.1977 303.8871,-626.9946"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="301.1846,-624.7705 297.4651,-634.691 306.5593,-629.2552 301.1846,-624.7705"/>
+</g>
+<!-- sourcefile~modchecksim.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge12" class="edge">
+<title>sourcefile~modchecksim.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M420.6466,-352.9643C368.6452,-325.8081 236.0728,-267.4873 158,-331.1382"/>
+</g>
+<!-- sourcefile~modchecksim.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge55" class="edge">
+<title>sourcefile~modchecksim.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#fff400" stroke-dasharray="5,2" d="M391.8398,-377.1511C384.0263,-379.7017 376.1764,-382.6881 369,-386.1382 328.2098,-405.7482 323.0753,-419.1802 286,-445.1382"/>
+</g>
+<!-- sourcefile~modchecksim.f90&#45;&gt;sourcefile~modfields.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge103" class="edge">
+<title>sourcefile~modchecksim.f90&#45;&gt;sourcefile~modfields.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M388.6457,-372.8631C381.245,-375.9679 374.36,-380.2497 369,-386.1382 310.2632,-450.6659 366.5446,-498.5864 333,-579.1382 325.6684,-596.7438 313.2835,-614.395 303.0673,-627.3003"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="300.3553,-625.0878 296.7419,-635.0474 305.7775,-629.515 300.3553,-625.0878"/>
+</g>
+<!-- sourcefile~modfielddump.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge13" class="edge">
+<title>sourcefile~modfielddump.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M286,-1161.1382C263.6971,-1141.3726 183.2256,-1137.0053 158,-1121.1382"/>
+</g>
+<!-- sourcefile~modfielddump.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge56" class="edge">
+<title>sourcefile~modfielddump.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#fff400" stroke-dasharray="5,2" d="M386.7408,-1193.6106C348.1214,-1186.0207 301.0533,-1174.4789 286,-1161.1382"/>
+<path fill="none" stroke="#fff400" stroke-dasharray="5,2" d="M286,-1161.1382C269.1378,-1146.1943 252.8684,-1159.8954 239,-1142.1382 169.745,-1053.4636 159.6872,-683.2 158.2405,-587.6932"/>
+<polygon fill="#fff400" stroke="#fff400" points="161.737,-587.3977 158.1034,-577.4454 154.7376,-587.4914 161.737,-587.3977"/>
+</g>
+<!-- sourcefile~modfielddump.f90&#45;&gt;sourcefile~modstat_nc.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge94" class="edge">
+<title>sourcefile~modfielddump.f90&#45;&gt;sourcefile~modstat_nc.f90</title>
+<path fill="none" stroke="#ff003d" stroke-dasharray="5,2" d="M400.1614,-1191.0401C389.6541,-1187.2681 378.6463,-1182.6277 369,-1177.1382 350.8985,-1166.837 350.1894,-1158.8984 333,-1147.1382 328.5915,-1144.1221 323.8028,-1141.154 319.0246,-1138.3634"/>
+<polygon fill="#ff003d" stroke="#ff003d" points="320.3821,-1135.1109 309.9519,-1133.2499 316.945,-1141.209 320.3821,-1135.1109"/>
+</g>
+<!-- sourcefile~modfielddump.f90&#45;&gt;sourcefile~modfields.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge104" class="edge">
+<title>sourcefile~modfielddump.f90&#45;&gt;sourcefile~modfields.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M419.1574,-1190.9782C402.2409,-1180.8443 380.4115,-1164.7533 369,-1144.1382 302.467,-1023.9448 357.543,-972.3074 333,-837.1382 321.8319,-775.6306 302.4432,-704.4042 292.4165,-669.1915"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="295.7491,-668.1157 289.6248,-659.4703 289.021,-670.0479 295.7491,-668.1157"/>
+</g>
+<!-- sourcefile~modstatsdump.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge14" class="edge">
+<title>sourcefile~modstatsdump.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M1002.9121,-953.2965C967.7897,-1011.8438 805.7329,-1262.5029 597.5,-1277.1382"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M597.5,-1277.1382C528.8686,-1283.0888 511.1851,-1282.4329 442.5,-1277.1382"/>
+</g>
+<!-- sourcefile~modstatsdump.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge57" class="edge">
+<title>sourcefile~modstatsdump.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#fff400" stroke-dasharray="5,2" d="M732,-1081.1382C672.267,-1078.8254 657.2772,-1080.8811 597.5,-1081.1382"/>
+<path fill="none" stroke="#fff400" stroke-dasharray="5,2" d="M597.5,-1081.1382C537.9499,-1081.3943 410.0353,-984.2936 369,-941.1382 345.9755,-916.9242 356.9461,-898.4411 333,-875.1382 316.1908,-858.7805 305.5186,-864.1439 286,-851.1382"/>
+</g>
+<!-- sourcefile~modstatsdump.f90&#45;&gt;sourcefile~modsubgrid.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge86" class="edge">
+<title>sourcefile~modstatsdump.f90&#45;&gt;sourcefile~modsubgrid.f90</title>
+<path fill="none" stroke="#cc00ff" stroke-dasharray="5,2" d="M1007.0259,-928.6793C998.5176,-895.3749 971.2004,-803.0269 918,-747.1382 915.0358,-744.0242 911.6152,-741.2016 907.99,-738.6642"/>
+<polygon fill="#cc00ff" stroke="#cc00ff" points="909.6214,-735.5574 899.2791,-733.2581 905.9302,-741.5052 909.6214,-735.5574"/>
+</g>
+<!-- sourcefile~modstatistics.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_node23" class="node">
+<title>sourcefile~modstatistics.f90</title>
+<g id="a_sourcefile~~modmpi.f90~~AfferentGraph_node23"><a xlink:href=".././sourcefile/modstatistics.f90.html" xlink:title="modstatistics.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="494,-1093.1382 391,-1093.1382 391,-1069.1382 494,-1069.1382 494,-1093.1382"/>
+<text text-anchor="middle" x="442.5" y="-1078.7382" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modstatistics.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modstatsdump.f90&#45;&gt;sourcefile~modstatistics.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge88" class="edge">
+<title>sourcefile~modstatsdump.f90&#45;&gt;sourcefile~modstatistics.f90</title>
+<path fill="none" stroke="#ff00f4" stroke-dasharray="5,2" d="M597.5,-1081.1382C566.8232,-1081.2701 532.7309,-1081.2845 504.3484,-1081.26"/>
+<polygon fill="#ff00f4" stroke="#ff00f4" points="504.1706,-1077.7599 494.1669,-1081.2493 504.1632,-1084.7599 504.1706,-1077.7599"/>
+</g>
+<!-- sourcefile~modstatsdump.f90&#45;&gt;sourcefile~modstat_nc.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge96" class="edge">
+<title>sourcefile~modstatsdump.f90&#45;&gt;sourcefile~modstat_nc.f90</title>
+<path fill="none" stroke="#ff003d" stroke-dasharray="5,2" d="M597.5,-1081.1382C551.7178,-1081.3351 557.1144,-1123.9973 516,-1144.1382 485.6999,-1158.9814 476.2404,-1163.1989 442.5,-1163.1382"/>
+<path fill="none" stroke="#ff003d" stroke-dasharray="5,2" d="M442.5,-1163.1382C400.489,-1163.0626 354.2356,-1148.7826 322.9857,-1136.8963"/>
+<polygon fill="#ff003d" stroke="#ff003d" points="323.9791,-1133.5267 313.3912,-1133.1423 321.4284,-1140.0455 323.9791,-1133.5267"/>
+</g>
+<!-- sourcefile~modstatsdump.f90&#45;&gt;sourcefile~modfields.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge105" class="edge">
+<title>sourcefile~modstatsdump.f90&#45;&gt;sourcefile~modfields.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M998.9004,-953.3612C962.8735,-991.5083 844.99,-1104.4622 732,-1081.1382"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M732,-1081.1382C631.0543,-1072.106 609.9835,-1024.2617 552,-941.1382 521.8441,-897.9075 554.29,-864.3617 516,-828.1382 491.4896,-804.9506 469.7004,-829.1022 442.5,-809.1382"/>
+</g>
+<!-- sourcefile~modibm.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge15" class="edge">
+<title>sourcefile~modibm.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M417.6922,-273.0287C386.4803,-259.4582 331.4609,-241.0849 286,-255.1382"/>
+</g>
+<!-- sourcefile~modibm.f90&#45;&gt;sourcefile~initfac.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge34" class="edge">
+<title>sourcefile~modibm.f90&#45;&gt;sourcefile~initfac.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M415.5967,-273.1047C389.8428,-261.5854 350.8032,-244.1236 322.3029,-231.3759"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="323.6335,-228.137 313.076,-227.2488 320.7754,-234.5269 323.6335,-228.137"/>
+</g>
+<!-- sourcefile~modibm.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge58" class="edge">
+<title>sourcefile~modibm.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#fff400" stroke-dasharray="5,2" d="M403.6678,-292.8302C391.5086,-296.7284 378.7382,-302.5353 369,-311.1382 342.1871,-334.8251 351.8873,-352.7528 333,-383.1382 314.7456,-412.5054 314.3257,-425.3062 286,-445.1382"/>
+<path fill="none" stroke="#fff400" stroke-dasharray="5,2" d="M286,-445.1382C242.5443,-475.5634 198.9765,-520.1272 175.5597,-545.5129"/>
+<polygon fill="#fff400" stroke="#fff400" points="172.8469,-543.2933 168.6907,-553.0389 178.0172,-548.0123 172.8469,-543.2933"/>
+</g>
+<!-- sourcefile~modibm.f90&#45;&gt;sourcefile~modfields.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge106" class="edge">
+<title>sourcefile~modibm.f90&#45;&gt;sourcefile~modfields.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M419.7146,-297.204C402.8606,-307.3873 380.8551,-323.5858 369,-344.1382 316.2047,-435.6658 372.0349,-480.95 333,-579.1382 325.9545,-596.8602 313.5587,-614.507 303.2658,-627.3811"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="300.5552,-625.1668 296.883,-635.1048 305.9512,-629.626 300.5552,-625.1668"/>
+</g>
+<!-- sourcefile~modinlet.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge16" class="edge">
+<title>sourcefile~modinlet.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M593.3259,-820.409C583.8231,-846.521 558.0841,-907.9116 516,-941.1382 489.029,-962.4326 470.8682,-945.744 442.5,-965.1382"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M442.5,-965.1382C435.9409,-969.6224 339.6223,-1052.7478 333,-1057.1382 313.4513,-1070.0985 308.774,-1075.5285 286,-1081.1382"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M286,-1081.1382C271.5319,-1084.7019 170.6128,-1129.0717 158,-1121.1382"/>
+</g>
+<!-- sourcefile~modinlet.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge59" class="edge">
+<title>sourcefile~modinlet.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#fff400" stroke-dasharray="5,2" d="M590.7408,-820.268C571.2145,-853.521 511.6856,-942.6576 442.5,-927.1382"/>
+<path fill="none" stroke="#fff400" stroke-dasharray="5,2" d="M442.5,-927.1382C437.7845,-926.0804 290.0217,-853.8179 286,-851.1382"/>
+</g>
+<!-- sourcefile~modinlet.f90&#45;&gt;sourcefile~modsave.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge90" class="edge">
+<title>sourcefile~modinlet.f90&#45;&gt;sourcefile~modsave.f90</title>
+<path fill="none" stroke="#ff007a" stroke-dasharray="5,2" d="M557.1802,-797.9932C537.7548,-793.1055 514.2452,-787.1902 493.5818,-781.991"/>
+<polygon fill="#ff007a" stroke="#ff007a" points="494.2487,-778.5498 483.6969,-779.5038 492.5406,-785.3382 494.2487,-778.5498"/>
+</g>
+<!-- sourcefile~modinlet.f90&#45;&gt;sourcefile~modfields.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge107" class="edge">
+<title>sourcefile~modinlet.f90&#45;&gt;sourcefile~modfields.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M559.1998,-820.1661C525.2137,-828.3163 475.9089,-833.659 442.5,-809.1382"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M442.5,-809.1382C415.2996,-789.1742 395.882,-810.5288 369,-790.1382 327.6995,-758.8109 303.3653,-700.5229 292.6125,-668.8999"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="295.9034,-667.7021 289.4816,-659.2753 289.2468,-669.8676 295.9034,-667.7021"/>
+</g>
+<!-- sourcefile~modpois.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge17" class="edge">
+<title>sourcefile~modpois.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M869.1559,-813.2075C867.3405,-856.2289 855.9758,-1004.3432 785,-1095.1382 755.2796,-1133.1577 445.8723,-1277.514 442.5,-1277.1382"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M442.5,-1277.1382C299.2306,-1260.7311 280.0659,-1197.9186 158,-1121.1382"/>
+</g>
+<!-- sourcefile~modpois.f90&#45;&gt;sourcefile~modboundary.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge42" class="edge">
+<title>sourcefile~modpois.f90&#45;&gt;sourcefile~modboundary.f90</title>
+<path fill="none" stroke="#ffb700" stroke-dasharray="5,2" d="M829.7293,-789.5685C815.2854,-785.3667 798.7527,-780.5571 783.4443,-776.1038"/>
+<polygon fill="#ffb700" stroke="#ffb700" points="784.1752,-772.6714 773.5956,-773.2387 782.2199,-779.3928 784.1752,-772.6714"/>
+</g>
+<!-- sourcefile~modpois.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge61" class="edge">
+<title>sourcefile~modpois.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#fff400" stroke-dasharray="5,2" d="M732,-839.1382C673.3751,-852.6612 697.7704,-916.2392 643,-941.1382 561.6806,-978.1065 529.6621,-946.6901 442.5,-927.1382"/>
+</g>
+<!-- sourcefile~modpois.f90&#45;&gt;sourcefile~modfields.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge109" class="edge">
+<title>sourcefile~modpois.f90&#45;&gt;sourcefile~modfields.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M829.7195,-813.1067C802.3865,-821.0896 765.1824,-831.484 732,-839.1382"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M732,-839.1382C662.6949,-855.1248 694.456,-755.2406 643,-706.1382 627.1457,-691.0091 618.915,-691.7905 597.5,-687.1382"/>
+</g>
+<!-- sourcefile~modstartup.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge18" class="edge">
+<title>sourcefile~modstartup.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M1006.6535,-708.8774C994.7257,-667.1856 950.6117,-528.9475 869.5,-447.1382"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M869.5,-447.1382C794.0125,-371.0015 736.7897,-389.4461 679,-299.1382 640.8802,-239.5684 677.6966,-205.7646 643,-144.1382 589.3018,-48.7621 550.9871,-15.6522 442.5,-1.1382"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M442.5,-1.1382C364.367,6.6984 350.2597,-38.0066 286,-83.1382"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M286,-83.1382C266.4646,-96.8585 254.5186,-90.9985 239,-109.1382 170.7234,-188.9468 238.48,-263.6542 158,-331.1382"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M158,-331.1382C88.9123,-389.0695 55.2719,-497.0365 43.5264,-543.2414"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="40.0899,-542.5606 41.1167,-553.1056 46.8899,-544.2218 40.0899,-542.5606"/>
+</g>
+<!-- sourcefile~modstartup.f90&#45;&gt;sourcefile~modforces.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge36" class="edge">
+<title>sourcefile~modstartup.f90&#45;&gt;sourcefile~modforces.f90</title>
+<path fill="none" stroke="#ff3d00" stroke-dasharray="5,2" d="M869.5,-447.1382C781.648,-364.0951 718.1401,-454.8893 597.5,-447.1382"/>
+<path fill="none" stroke="#ff3d00" stroke-dasharray="5,2" d="M597.5,-447.1382C576.6473,-447.4907 526.9682,-433.6809 489.4311,-422.1937"/>
+<polygon fill="#ff3d00" stroke="#ff3d00" points="490.2758,-418.7915 479.6881,-419.1816 488.2082,-425.4792 490.2758,-418.7915"/>
+</g>
+<!-- sourcefile~modstartup.f90&#45;&gt;sourcefile~moddriver.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge38" class="edge">
+<title>sourcefile~modstartup.f90&#45;&gt;sourcefile~moddriver.f90</title>
+<path fill="none" stroke="#ff7a00" stroke-dasharray="5,2" d="M732,-607.1382C713.7351,-601.6607 667.5128,-617.8402 634.3558,-631.2379"/>
+<polygon fill="#ff7a00" stroke="#ff7a00" points="632.8767,-628.0617 624.9581,-635.1006 635.5379,-634.5361 632.8767,-628.0617"/>
+</g>
+<!-- sourcefile~modstartup.f90&#45;&gt;sourcefile~modboundary.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge41" class="edge">
+<title>sourcefile~modstartup.f90&#45;&gt;sourcefile~modboundary.f90</title>
+<path fill="none" stroke="#ffb700" stroke-dasharray="5,2" d="M869.5,-681.1382C846.4294,-679.2154 840.4612,-687.5997 821,-700.1382 802.241,-712.2243 803.2434,-722.287 785,-735.1382 780.2228,-738.5034 774.9445,-741.6593 769.6254,-744.5322"/>
+<polygon fill="#ffb700" stroke="#ffb700" points="768.027,-741.4185 760.7164,-749.0869 771.2135,-747.6512 768.027,-741.4185"/>
+</g>
+<!-- sourcefile~modstartup.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge60" class="edge">
+<title>sourcefile~modstartup.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#fff400" stroke-dasharray="5,2" d="M597.5,-447.1382C528.2862,-448.3083 342.7064,-405.4356 286,-445.1382"/>
+</g>
+<!-- sourcefile~modstartup.f90&#45;&gt;sourcefile~modinlet.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge79" class="edge">
+<title>sourcefile~modstartup.f90&#45;&gt;sourcefile~modinlet.f90</title>
+<path fill="none" stroke="#0066ff" stroke-dasharray="5,2" d="M869.5,-681.1382C781.1719,-673.7766 756.8755,-697.8126 679,-740.1382 655.1478,-753.1019 631.758,-773.6645 616.1975,-788.7869"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="613.4361,-786.5969 608.813,-796.13 618.3719,-791.5606 613.4361,-786.5969"/>
+</g>
+<!-- sourcefile~modstartup.f90&#45;&gt;sourcefile~modpois.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge81" class="edge">
+<title>sourcefile~modstartup.f90&#45;&gt;sourcefile~modpois.f90</title>
+<path fill="none" stroke="#0028ff" stroke-dasharray="5,2" d="M980.8634,-733.154C972.0182,-737.1992 962.4182,-742.0017 954,-747.1382 936.6968,-757.6959 934.9929,-764.0881 918,-775.1382 913.2946,-778.198 908.1945,-781.2228 903.1288,-784.0674"/>
+<polygon fill="#0028ff" stroke="#0028ff" points="901.2489,-781.1057 894.1402,-788.9618 904.5964,-787.2534 901.2489,-781.1057"/>
+</g>
+<!-- sourcefile~modstartup.f90&#45;&gt;sourcefile~modthermodynamics.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge84" class="edge">
+<title>sourcefile~modstartup.f90&#45;&gt;sourcefile~modthermodynamics.f90</title>
+<path fill="none" stroke="#8e00ff" stroke-dasharray="5,2" d="M979.9256,-709.0726C951.8914,-698.6747 908.6416,-684.779 869.5,-681.1382"/>
+<path fill="none" stroke="#8e00ff" stroke-dasharray="5,2" d="M869.5,-681.1382C826.0499,-677.0966 823.7113,-651.2797 785,-631.1382 762.0611,-619.203 756.7683,-614.5659 732,-607.1382"/>
+<path fill="none" stroke="#8e00ff" stroke-dasharray="5,2" d="M732,-607.1382C666.2327,-587.4154 663.5628,-549.8471 597.5,-531.1382"/>
+</g>
+<!-- sourcefile~modstartup.f90&#45;&gt;sourcefile~modsubgrid.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge87" class="edge">
+<title>sourcefile~modstartup.f90&#45;&gt;sourcefile~modsubgrid.f90</title>
+<path fill="none" stroke="#cc00ff" stroke-dasharray="5,2" d="M962.8247,-721.1382C951.8382,-721.1382 940.0048,-721.1382 928.5762,-721.1382"/>
+<polygon fill="#cc00ff" stroke="#cc00ff" points="928.2304,-717.6383 918.2304,-721.1382 928.2303,-724.6383 928.2304,-717.6383"/>
+</g>
+<!-- sourcefile~modstartup.f90&#45;&gt;sourcefile~modfields.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge108" class="edge">
+<title>sourcefile~modstartup.f90&#45;&gt;sourcefile~modfields.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M732,-607.1382C654.9458,-584.0305 623.2171,-588.7291 552,-626.1382 530.2346,-637.5711 536.8619,-655.1294 516,-668.1382 487.3697,-685.9911 475.5334,-680.2667 442.5,-687.1382"/>
+</g>
+<!-- sourcefile~tstep.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_node20" class="node">
+<title>sourcefile~tstep.f90</title>
+<g id="a_sourcefile~~modmpi.f90~~AfferentGraph_node20"><a xlink:href=".././sourcefile/tstep.f90.html" xlink:title="tstep.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="627,-739.1382 568,-739.1382 568,-715.1382 627,-715.1382 627,-739.1382"/>
+<text text-anchor="middle" x="597.5" y="-724.7382" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">tstep.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~tstep.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge19" class="edge">
+<title>sourcefile~tstep.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M586.8074,-739.392C576.9371,-751.1031 562.2928,-769.5321 552,-787.1382 531.7065,-821.8508 548.679,-846.7102 516,-870.1382 474.3193,-900.0195 324.6791,-855.4618 286,-889.1382"/>
+</g>
+<!-- sourcefile~tstep.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge63" class="edge">
+<title>sourcefile~tstep.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#fff400" stroke-dasharray="5,2" d="M586.7727,-715.1291C576.8778,-703.6418 562.2169,-685.5394 552,-668.1382 531.4347,-633.1118 546.8177,-610.5966 516,-584.1382 490.4001,-562.1595 475.2331,-573.3214 442.5,-565.1382"/>
+</g>
+<!-- sourcefile~tstep.f90&#45;&gt;sourcefile~modfields.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge111" class="edge">
+<title>sourcefile~tstep.f90&#45;&gt;sourcefile~modfields.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M575.834,-715.0712C546.0058,-699.9474 490.5237,-677.1484 442.5,-687.1382"/>
+</g>
+<!-- sourcefile~modchem.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_node30" class="node">
+<title>sourcefile~modchem.f90</title>
+<g id="a_sourcefile~~modmpi.f90~~AfferentGraph_node30"><a xlink:href=".././sourcefile/modchem.f90.html" xlink:title="modchem.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="486,-739.1382 399,-739.1382 399,-715.1382 486,-715.1382 486,-739.1382"/>
+<text text-anchor="middle" x="442.5" y="-724.7382" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modchem.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~tstep.f90&#45;&gt;sourcefile~modchem.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge118" class="edge">
+<title>sourcefile~tstep.f90&#45;&gt;sourcefile~modchem.f90</title>
+<path fill="none" stroke="#0066ff" stroke-dasharray="5,2" d="M567.9808,-727.1382C547.7677,-727.1382 520.3754,-727.1382 496.3409,-727.1382"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="496.2767,-723.6383 486.2767,-727.1382 496.2767,-730.6383 496.2767,-723.6383"/>
+</g>
+<!-- sourcefile~modthermodynamics.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge20" class="edge">
+<title>sourcefile~modthermodynamics.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M405.4216,-499.2202C362.6689,-512.7424 296.8525,-532.1493 286,-527.1382"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M286,-527.1382C191.5419,-483.5221 240.3833,-267.5954 158,-331.1382"/>
+</g>
+<!-- sourcefile~modthermodynamics.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge64" class="edge">
+<title>sourcefile~modthermodynamics.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#fff400" stroke-dasharray="5,2" d="M429.3696,-499.3581C403.7704,-521.8165 344.5544,-567.1935 286,-565.1382"/>
+<path fill="none" stroke="#fff400" stroke-dasharray="5,2" d="M286,-565.1382C262.1189,-564.2999 235.7161,-564.1659 213.1235,-564.2924"/>
+<polygon fill="#fff400" stroke="#fff400" points="213.0078,-560.793 203.034,-564.3672 213.0598,-567.7928 213.0078,-560.793"/>
+</g>
+<!-- sourcefile~modthermodynamics.f90&#45;&gt;sourcefile~modfields.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge112" class="edge">
+<title>sourcefile~modthermodynamics.f90&#45;&gt;sourcefile~modfields.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M430.7371,-499.1642C403.8867,-526.6151 337.8801,-594.0978 305.1042,-627.6067"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="302.3898,-625.3764 297.8994,-634.9726 307.394,-630.2711 302.3898,-625.3764"/>
+</g>
+<!-- sourcefile~modsubgrid.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge21" class="edge">
+<title>sourcefile~modsubgrid.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M843.7722,-733.2197C836.1726,-737.2349 828.0162,-742.0042 821,-747.1382 802.991,-760.3159 803.6862,-769.9397 785,-782.1382 742.4283,-809.9292 713.3995,-787.7034 679,-825.1382 642.4749,-864.886 679.756,-901.6037 643,-941.1382 584.9765,-1003.5478 368.7424,-1060.7573 286,-1081.1382"/>
+</g>
+<!-- sourcefile~modsubgrid.f90&#45;&gt;sourcefile~modboundary.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge39" class="edge">
+<title>sourcefile~modsubgrid.f90&#45;&gt;sourcefile~modboundary.f90</title>
+<path fill="none" stroke="#ffb700" stroke-dasharray="5,2" d="M828.2455,-733.1395C814.2341,-737.2155 798.3985,-741.8223 783.6777,-746.1047"/>
+<polygon fill="#ffb700" stroke="#ffb700" points="782.3249,-742.853 773.7007,-749.0071 784.2803,-749.5744 782.3249,-742.853"/>
+</g>
+<!-- sourcefile~modsubgrid.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge66" class="edge">
+<title>sourcefile~modsubgrid.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#fff400" stroke-dasharray="5,2" d="M846.7499,-709.0616C838.6077,-704.7079 829.3751,-699.735 821,-695.1382 781.2268,-673.3079 775.1333,-659.2089 732,-645.1382"/>
+<path fill="none" stroke="#fff400" stroke-dasharray="5,2" d="M732,-645.1382C605.0929,-603.7391 572.0033,-597.514 442.5,-565.1382"/>
+<path fill="none" stroke="#fff400" stroke-dasharray="5,2" d="M442.5,-565.1382C375.5271,-546.3604 355.5127,-567.5781 286,-565.1382"/>
+</g>
+<!-- sourcefile~modsubgrid.f90&#45;&gt;sourcefile~modfields.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge114" class="edge">
+<title>sourcefile~modsubgrid.f90&#45;&gt;sourcefile~modfields.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M732,-645.1382C672.4633,-625.7164 658.697,-700.4329 597.5,-687.1382"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M597.5,-687.1382C530.1814,-672.5136 509.9451,-673.1085 442.5,-687.1382"/>
+</g>
+<!-- sourcefile~modstatistics.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge22" class="edge">
+<title>sourcefile~modstatistics.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M390.6515,-1074.9738C359.8112,-1072.8216 320.1642,-1072.7229 286,-1081.1382"/>
+</g>
+<!-- sourcefile~modstatistics.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge67" class="edge">
+<title>sourcefile~modstatistics.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#fff400" stroke-dasharray="5,2" d="M390.6625,-1074.8634C350.705,-1068.917 299.9831,-1058.577 286,-1043.1382"/>
+<path fill="none" stroke="#fff400" stroke-dasharray="5,2" d="M286,-1043.1382C222.8038,-973.3627 174.0005,-672.731 161.2631,-587.6507"/>
+<polygon fill="#fff400" stroke="#fff400" points="164.6925,-586.9155 159.7675,-577.5349 157.7678,-587.9393 164.6925,-586.9155"/>
+</g>
+<!-- sourcefile~modstatistics.f90&#45;&gt;sourcefile~modstat_nc.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge92" class="edge">
+<title>sourcefile~modstatistics.f90&#45;&gt;sourcefile~modstat_nc.f90</title>
+<path fill="none" stroke="#ff003d" stroke-dasharray="5,2" d="M395.5448,-1093.1395C379.0621,-1097.3523 360.3613,-1102.1321 343.1359,-1106.5348"/>
+<polygon fill="#ff003d" stroke="#ff003d" points="342.0141,-1103.2089 333.1923,-1109.0763 343.7476,-1109.9909 342.0141,-1103.2089"/>
+</g>
+<!-- sourcefile~modstatistics.f90&#45;&gt;sourcefile~modfields.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge115" class="edge">
+<title>sourcefile~modstatistics.f90&#45;&gt;sourcefile~modfields.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M438.151,-1069.0776C416.698,-1009.5851 322.0552,-747.1252 293.9168,-669.0926"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="297.0869,-667.566 290.4022,-659.3462 290.502,-669.9406 297.0869,-667.566"/>
+</g>
+<!-- sourcefile~wf_uno.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_node24" class="node">
+<title>sourcefile~wf_uno.f90</title>
+<g id="a_sourcefile~~modmpi.f90~~AfferentGraph_node24"><a xlink:href=".././sourcefile/wf_uno.f90.html" xlink:title="wf_uno.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="477.5,-95.1382 407.5,-95.1382 407.5,-71.1382 477.5,-71.1382 477.5,-95.1382"/>
+<text text-anchor="middle" x="442.5" y="-80.7382" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">wf_uno.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~wf_uno.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge23" class="edge">
+<title>sourcefile~wf_uno.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M407.3476,-72.444C373.1616,-64.3223 321.3525,-58.309 286,-83.1382"/>
+</g>
+<!-- sourcefile~wf_uno.f90&#45;&gt;sourcefile~initfac.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge28" class="edge">
+<title>sourcefile~wf_uno.f90&#45;&gt;sourcefile~initfac.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M407.1803,-88.3621C394.3508,-91.4656 380.2544,-96.3803 369,-104.1382 335.2442,-127.4065 309.655,-168.8714 296.3144,-194.004"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="293.1143,-192.574 291.6588,-203.0684 299.341,-195.7721 293.1143,-192.574"/>
+</g>
+<!-- sourcefile~wf_uno.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge69" class="edge">
+<title>sourcefile~wf_uno.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#fff400" stroke-dasharray="5,2" d="M407.1776,-88.0321C366.5157,-94.355 303.1199,-106.5517 286,-123.1382"/>
+</g>
+<!-- sourcefile~modsave.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge24" class="edge">
+<title>sourcefile~modsave.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M426.263,-781.2533C411.0505,-792.8155 387.8891,-810.9686 369,-828.1382 352.0219,-843.5707 351.4631,-851.5172 333,-865.1382 314.1258,-879.0625 303.6895,-873.7367 286,-889.1382"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M286,-889.1382C197.1832,-966.4674 257.6833,-1183.8398 158,-1121.1382"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M158,-1121.1382C64.7467,-1062.4811 43.2671,-683.5746 39.2911,-587.3385"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="42.7857,-587.1299 38.8978,-577.2742 35.791,-587.4033 42.7857,-587.1299"/>
+</g>
+<!-- sourcefile~modsave.f90&#45;&gt;sourcefile~initfac.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge31" class="edge">
+<title>sourcefile~modsave.f90&#45;&gt;sourcefile~initfac.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M401.2792,-766.2839C389.1139,-763.3438 376.9441,-757.928 369,-748.1382 297.8291,-660.4314 393.78,-336.3409 333,-241.1382 331.1935,-238.3086 328.9657,-235.7608 326.4707,-233.4713"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="328.4343,-230.5686 318.3386,-227.3547 324.2265,-236.1628 328.4343,-230.5686"/>
+</g>
+<!-- sourcefile~modsave.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge70" class="edge">
+<title>sourcefile~modsave.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#fff400" stroke-dasharray="5,2" d="M427.4852,-781.2337C393.5007,-807.9326 311.6538,-868.232 286,-851.1382"/>
+</g>
+<!-- sourcefile~modsave.f90&#45;&gt;sourcefile~modfields.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge117" class="edge">
+<title>sourcefile~modsave.f90&#45;&gt;sourcefile~modfields.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M401.3182,-762.046C390.2348,-758.9254 378.6538,-754.4714 369,-748.1382 337.4771,-727.458 311.9166,-691.0902 297.8533,-668.1008"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="300.8241,-666.2486 292.7097,-659.4364 294.8049,-669.822 300.8241,-666.2486"/>
+</g>
+<!-- sourcefile~modstat_nc.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge25" class="edge">
+<title>sourcefile~modstat_nc.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M238.8358,-1132.6715C213.0793,-1136.2793 181.7012,-1136.0464 158,-1121.1382"/>
+</g>
+<!-- sourcefile~modstat_nc.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge71" class="edge">
+<title>sourcefile~modstat_nc.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#fff400" stroke-dasharray="5,2" d="M274.3244,-1109.0083C263.3711,-1096.8878 247.4478,-1077.2142 239,-1057.1382 202.2087,-969.7039 169.0463,-671.388 160.2638,-587.34"/>
+<polygon fill="#fff400" stroke="#fff400" points="163.7411,-586.94 159.2301,-577.3535 156.7783,-587.6607 163.7411,-586.94"/>
+</g>
+<!-- sourcefile~modfields.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge44" class="edge">
+<title>sourcefile~modfields.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#fff400" stroke-dasharray="5,2" d="M267.1132,-635.0388C245.5596,-621.231 210.1168,-598.5255 185.4987,-582.7545"/>
+<polygon fill="#fff400" stroke="#fff400" points="187.2727,-579.7344 176.9643,-577.2872 183.4967,-585.6286 187.2727,-579.7344"/>
+</g>
+<!-- sourcefile~advec_kappa.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_node28" class="node">
+<title>sourcefile~advec_kappa.f90</title>
+<g id="a_sourcefile~~modmpi.f90~~AfferentGraph_node28"><a xlink:href=".././sourcefile/advec_kappa.f90.html" xlink:title="advec_kappa.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="494,-659.1382 391,-659.1382 391,-635.1382 494,-635.1382 494,-659.1382"/>
+<text text-anchor="middle" x="442.5" y="-644.7382" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">advec_kappa.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~advec_kappa.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge62" class="edge">
+<title>sourcefile~advec_kappa.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#fff400" stroke-dasharray="5,2" d="M391.401,-635.0964C383.7232,-632.5608 376.0297,-629.5865 369,-626.1382 327.8987,-605.9766 331.7518,-566.7441 286,-565.1382"/>
+</g>
+<!-- sourcefile~advec_kappa.f90&#45;&gt;sourcefile~modfields.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge110" class="edge">
+<title>sourcefile~advec_kappa.f90&#45;&gt;sourcefile~modfields.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M390.8223,-647.1382C374.1592,-647.1382 355.6719,-647.1382 338.9205,-647.1382"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="338.7466,-643.6383 328.7465,-647.1382 338.7465,-650.6383 338.7466,-643.6383"/>
+</g>
+<!-- sourcefile~advection.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_node29" class="node">
+<title>sourcefile~advection.f90</title>
+<g id="a_sourcefile~~modmpi.f90~~AfferentGraph_node29"><a xlink:href=".././sourcefile/advection.f90.html" xlink:title="advection.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="485,-617.1382 400,-617.1382 400,-593.1382 485,-593.1382 485,-617.1382"/>
+<text text-anchor="middle" x="442.5" y="-602.7382" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">advection.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~advection.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge68" class="edge">
+<title>sourcefile~advection.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#fff400" stroke-dasharray="5,2" d="M411.6077,-593.0408C380.4524,-581.8486 330.702,-566.7072 286,-565.1382"/>
+</g>
+<!-- sourcefile~advection.f90&#45;&gt;sourcefile~modfields.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge116" class="edge">
+<title>sourcefile~advection.f90&#45;&gt;sourcefile~modfields.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M399.7357,-616.6149C380.8449,-621.6846 358.4535,-627.6938 338.5555,-633.0338"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="337.4636,-629.7029 328.7126,-635.6754 339.2781,-636.4637 337.4636,-629.7029"/>
+</g>
+<!-- sourcefile~modchem.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge50" class="edge">
+<title>sourcefile~modchem.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#fff400" stroke-dasharray="5,2" d="M398.979,-734.8348C388.6078,-737.9154 377.9596,-742.1986 369,-748.1382 319.9983,-780.6225 334.9249,-883.7381 286,-851.1382"/>
+<path fill="none" stroke="#fff400" stroke-dasharray="5,2" d="M286,-851.1382C193.2494,-789.3361 166.9734,-643.2667 160.1781,-587.3996"/>
+<polygon fill="#fff400" stroke="#fff400" points="163.6265,-586.7429 159.0357,-577.1944 156.67,-587.5217 163.6265,-586.7429"/>
+</g>
+<!-- sourcefile~modchem.f90&#45;&gt;sourcefile~modfields.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge100" class="edge">
+<title>sourcefile~modchem.f90&#45;&gt;sourcefile~modfields.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M402.8844,-715.0526C391.7043,-711.1284 379.6814,-706.409 369,-701.1382 348.3182,-690.9325 326.5189,-676.5936 310.4532,-665.2561"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="312.3277,-662.2935 302.1611,-659.3117 308.2492,-667.9827 312.3277,-662.2935"/>
+</g>
+<!-- sourcefile~advec_upw.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_node31" class="node">
+<title>sourcefile~advec_upw.f90</title>
+<g id="a_sourcefile~~modmpi.f90~~AfferentGraph_node31"><a xlink:href=".././sourcefile/advec_upw.f90.html" xlink:title="advec_upw.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="488,-861.1382 397,-861.1382 397,-837.1382 488,-837.1382 488,-861.1382"/>
+<text text-anchor="middle" x="442.5" y="-846.7382" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">advec_upw.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~advec_upw.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge65" class="edge">
+<title>sourcefile~advec_upw.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#fff400" stroke-dasharray="5,2" d="M403.0174,-861.1995C369.0986,-869.0411 320.3707,-874.0403 286,-851.1382"/>
+</g>
+<!-- sourcefile~advec_upw.f90&#45;&gt;sourcefile~modfields.f90 -->
+<g id="sourcefile~~modmpi.f90~~AfferentGraph_edge113" class="edge">
+<title>sourcefile~advec_upw.f90&#45;&gt;sourcefile~modfields.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M396.6705,-839.1775C386.7139,-835.3979 376.8314,-830.2184 369,-823.1382 322.0152,-780.6598 299.332,-705.9971 290.5563,-669.0784"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="293.9689,-668.3007 288.354,-659.316 287.1405,-669.8411 293.9689,-668.3007"/>
+</g>
+</g>
+</svg>
+</div><script>var pansourcefilemodmpif90AfferentGraph = svgPanZoom('#sourcefilemodmpif90AfferentGraph', {zoomEnabled: true,controlIconsEnabled: true, fit: true, center: true,}); </script><div><a type="button" class="graph-help" data-toggle="modal" href="#graph-help-text">Help</a></div><div class="modal fade" id="graph-help-text" tabindex="-1" role="dialog"><div class="modal-dialog modal-lg" role="document"><div class="modal-content"><div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button><h4 class="modal-title" id="-graph-help-label">Graph Key</h4></div><div class="modal-body">
+    <p>Nodes of different colours represent the following: </p>
+    <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.40.1 (20161225.0304)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="202pt" height="32pt"
+ viewBox="0.00 0.00 201.50 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28)">
+<title>Graph Key</title>
+<polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-28 197.5,-28 197.5,4 -4,4"/>
+<!-- Source File -->
+<g id="node1" class="node">
+<title>Source File</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="71,-24 0,-24 0,0 71,0 71,-24"/>
+<text text-anchor="middle" x="35.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">Source File</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node2" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="#000000" points="193.5,-24 89.5,-24 89.5,0 193.5,0 193.5,-24"/>
+<text text-anchor="middle" x="141.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#000000">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+    
+    <p>Solid arrows point from a file to a file which it depends on. A file
+    is dependent upon another if the latter must be compiled before the former
+    can be. Where possible, edges connecting nodes are given different colours to make them easier to distinguish in large graphs.
+    </p>
+    </div></div></div></div>
+      </div>
+    </div>
+      
+      <br>
+
+    <section class="visible-xs visible-sm hidden-md">
+      
+<h3>Contents</h3>
+ 
+
+
+
+
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#mods-1">Modules</a></h3></div>
+  <div id="mods-1" class="panel-collapse collapse">
+    <div class="list-group">
+      
+      <a class="list-group-item" href="../module/modmpi.html">modmpi</a>
+      
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../sourcefile/modmpi.f90.html#src">modmpi.f90</a>
+  </div>
+</div>
+
+
+
+    </section>
+    <br class="visible-xs visible-sm hidden-md">
+
+    <section>
+      <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="hl"><pre><span></span><a name="ln-1"></a><span class="c">!&gt; \file modmpi.f90</span>
+<a name="ln-2"></a><span class="c">!!  Layer to deal with the parallelization.</span>
+<a name="ln-3"></a>
+<a name="ln-4"></a><span class="c">!&gt;</span>
+<a name="ln-5"></a><span class="c">!!  Layer to deal with the parallelization.</span>
+<a name="ln-6"></a><span class="c">!&gt;</span>
+<a name="ln-7"></a><span class="c">!!  \author Matthieu Pourquie, TU Delft</span>
+<a name="ln-8"></a><span class="c">!!  \par Revision list</span>
+<a name="ln-9"></a><span class="c">!!  \todo Documentation</span>
+<a name="ln-10"></a><span class="c">!!  \todo 2D/3D parallelization</span>
+<a name="ln-11"></a><span class="c">!!  \todo Include interfaces for MPI_ALLREDUCE, MPI_ALLTOALL, MPI_BCAST,</span>
+<a name="ln-12"></a><span class="c">!! MPI_SENDRECV to get rid of pure mpi calls in the code</span>
+<a name="ln-13"></a><span class="c">!  This file is part of DALES.</span>
+<a name="ln-14"></a><span class="c">!</span>
+<a name="ln-15"></a><span class="c">! DALES is free software; you can redistribute it and/or modify</span>
+<a name="ln-16"></a><span class="c">! it under the terms of the GNU General Public License as published by</span>
+<a name="ln-17"></a><span class="c">! the Free Software Foundation; either version 3 of the License, or</span>
+<a name="ln-18"></a><span class="c">! (at your option) any later version.</span>
+<a name="ln-19"></a><span class="c">!</span>
+<a name="ln-20"></a><span class="c">! DALES is distributed in the hope that it will be useful,</span>
+<a name="ln-21"></a><span class="c">! but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<a name="ln-22"></a><span class="c">! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</span>
+<a name="ln-23"></a><span class="c">! GNU General Public License for more details.</span>
+<a name="ln-24"></a><span class="c">!</span>
+<a name="ln-25"></a><span class="c">! You should have received a copy of the GNU General Public License</span>
+<a name="ln-26"></a><span class="c">! along with this program.  If not, see &lt;http://www.gnu.org/licenses/&gt;.</span>
+<a name="ln-27"></a><span class="c">!</span>
+<a name="ln-28"></a><span class="c">!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI</span>
+<a name="ln-29"></a><span class="c">!</span>
+<a name="ln-30"></a>
+<a name="ln-31"></a>
+<a name="ln-32"></a>
+<a name="ln-33"></a><span class="k">module </span><span class="n">modmpi</span>
+<a name="ln-34"></a><span class="k">use </span><span class="n">mpi</span>
+<a name="ln-35"></a><span class="k">implicit none</span>
+<a name="ln-36"></a><span class="k">save</span>
+<a name="ln-37"></a><span class="k">  </span><span class="kt">integer </span><span class="n">comm3d</span>
+<a name="ln-38"></a>  <span class="kt">integer </span><span class="n">nbrtop</span>
+<a name="ln-39"></a>  <span class="kt">integer </span><span class="n">nbrbottom</span>
+<a name="ln-40"></a>  <span class="kt">integer </span><span class="n">myid</span>
+<a name="ln-41"></a>  <span class="kt">integer </span><span class="n">nprocs</span>
+<a name="ln-42"></a>  <span class="kt">integer </span><span class="n">mpierr</span>
+<a name="ln-43"></a>  <span class="kt">integer </span><span class="n">my_real</span>
+<a name="ln-44"></a>  <span class="kt">real    </span><span class="n">CPU_program</span>    <span class="c">!end time</span>
+<a name="ln-45"></a>  <span class="kt">real    </span><span class="n">CPU_program0</span>   <span class="c">!start time</span>
+<a name="ln-46"></a>
+<a name="ln-47"></a>   <span class="kt">character</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="kd">::</span> <span class="n">cmyid</span>
+<a name="ln-48"></a>
+<a name="ln-49"></a><span class="k">contains</span>
+<a name="ln-50"></a><span class="k">  subroutine </span><span class="n">initmpi</span>
+<a name="ln-51"></a>    <span class="k">implicit none</span>
+<a name="ln-52"></a><span class="k">    </span><span class="kt">integer </span><span class="n">dims</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<a name="ln-53"></a>    <span class="kt">logical </span><span class="n">periods</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<a name="ln-54"></a>    <span class="kt">integer </span><span class="n">periods2</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<a name="ln-55"></a>
+<a name="ln-56"></a>    <span class="k">call </span><span class="n">MPI_INIT</span><span class="p">(</span><span class="n">mpierr</span><span class="p">)</span>
+<a name="ln-57"></a>    <span class="n">MY_REAL</span> <span class="o">=</span> <span class="n">MPI_DOUBLE_PRECISION</span>  <span class="c">!MPI_REAL8 should be the same..</span>
+<a name="ln-58"></a>    <span class="k">call </span><span class="n">MPI_COMM_RANK</span><span class="p">(</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">myid</span><span class="p">,</span> <span class="n">mpierr</span> <span class="p">)</span>
+<a name="ln-59"></a>    <span class="k">call </span><span class="n">MPI_COMM_SIZE</span><span class="p">(</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">nprocs</span><span class="p">,</span> <span class="n">mpierr</span> <span class="p">)</span>
+<a name="ln-60"></a><span class="c">! Specify the # procs in each direction.</span>
+<a name="ln-61"></a><span class="c">! specifying a 0 means that MPI will try to find a useful # procs in</span>
+<a name="ln-62"></a><span class="c">! the corresponding  direction,</span>
+<a name="ln-63"></a>
+<a name="ln-64"></a><span class="c">! specifying 1 means only 1 processor in this direction, meaning that</span>
+<a name="ln-65"></a><span class="c">! we have in fact a grid of (at most) 2 dimensions left. This is used</span>
+<a name="ln-66"></a><span class="c">! when we want the array index range in 1 particular direction to be</span>
+<a name="ln-67"></a><span class="c">! present on all processors in the grid</span>
+<a name="ln-68"></a>
+<a name="ln-69"></a>    <span class="n">dims</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-70"></a>
+<a name="ln-71"></a>
+<a name="ln-72"></a><span class="c">! directions 1 and 2 are chosen periodic</span>
+<a name="ln-73"></a>
+<a name="ln-74"></a>
+<a name="ln-75"></a>    <span class="n">periods</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">=</span> <span class="p">.</span><span class="n">true</span><span class="p">.</span>
+<a name="ln-76"></a><span class="c">! Soares 20080115</span>
+<a name="ln-77"></a>    <span class="n">periods2</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">=</span> <span class="mi">1</span>
+<a name="ln-78"></a>
+<a name="ln-79"></a><span class="c">! find suitable # procs in each direction</span>
+<a name="ln-80"></a>
+<a name="ln-81"></a>    <span class="k">call </span><span class="n">MPI_DIMS_CREATE</span><span class="p">(</span> <span class="n">nprocs</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dims</span><span class="p">,</span> <span class="n">mpierr</span> <span class="p">)</span>
+<a name="ln-82"></a>
+<a name="ln-83"></a><span class="c">! create the Cartesian communicator, denoted by the integer comm3d</span>
+<a name="ln-84"></a>
+<a name="ln-85"></a>    <span class="c">! BUG - Thijs, Harm</span>
+<a name="ln-86"></a>    <span class="c">!call MPI_CART_CREATE(MPI_COMM_WORLD, 1, dims, periods,.false., &amp;</span>
+<a name="ln-87"></a>    <span class="c">!                    comm3d, ierr )</span>
+<a name="ln-88"></a>
+<a name="ln-89"></a>    <span class="k">call </span><span class="n">MPI_CART_CREATE</span><span class="p">(</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dims</span><span class="p">,</span> <span class="n">periods</span><span class="p">,.</span><span class="n">true</span><span class="p">.,</span> <span class="p">&amp;</span>
+<a name="ln-90"></a>                        <span class="n">comm3d</span><span class="p">,</span> <span class="n">mpierr</span> <span class="p">)</span>
+<a name="ln-91"></a>
+<a name="ln-92"></a><span class="c">! Soares 20080115</span>
+<a name="ln-93"></a><span class="c">!     call MPI_CART_CREATE(MPI_COMM_WORLD, 1, dims, periods2,1, &amp;</span>
+<a name="ln-94"></a><span class="c">!                         comm3d, mpierr )</span>
+<a name="ln-95"></a>
+<a name="ln-96"></a><span class="c">! Get my processor number in this communicator</span>
+<a name="ln-97"></a>
+<a name="ln-98"></a>    <span class="k">call </span><span class="n">MPI_COMM_RANK</span><span class="p">(</span> <span class="n">comm3d</span><span class="p">,</span> <span class="n">myid</span><span class="p">,</span> <span class="n">mpierr</span> <span class="p">)</span>
+<a name="ln-99"></a>
+<a name="ln-100"></a>
+<a name="ln-101"></a><span class="c">! when applying boundary conditions, we need to know which processors</span>
+<a name="ln-102"></a><span class="c">! are neighbours in all 3 directions</span>
+<a name="ln-103"></a>
+<a name="ln-104"></a>
+<a name="ln-105"></a><span class="c">! these are determined with the aid of the MPI routine MPI_CART_SHIFT,</span>
+<a name="ln-106"></a>
+<a name="ln-107"></a>    <span class="k">call </span><span class="n">MPI_CART_SHIFT</span><span class="p">(</span> <span class="n">comm3d</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>  <span class="mi">1</span><span class="p">,</span> <span class="n">nbrbottom</span><span class="p">,</span> <span class="n">nbrtop</span><span class="p">,</span>   <span class="n">mpierr</span> <span class="p">)</span>
+<a name="ln-108"></a>
+<a name="ln-109"></a><span class="c">! determine some useful MPI datatypes for sending/receiving data</span>
+<a name="ln-110"></a>
+<a name="ln-111"></a>     <span class="k">write</span><span class="p">(</span><span class="n">cmyid</span><span class="p">,</span><span class="s1">&#39;(i3.3)&#39;</span><span class="p">)</span> <span class="n">myid</span>
+<a name="ln-112"></a>
+<a name="ln-113"></a>    <span class="k">if</span><span class="p">(</span><span class="n">myid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="k">then</span>
+<a name="ln-114"></a><span class="k">      </span><span class="n">CPU_program0</span> <span class="o">=</span> <span class="n">MPI_Wtime</span><span class="p">()</span>
+<a name="ln-115"></a>    <span class="k">end if</span>
+<a name="ln-116"></a>
+<a name="ln-117"></a><span class="k">    write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="s1">&#39;nprocs = &#39;</span><span class="p">,</span> <span class="n">nprocs</span>
+<a name="ln-118"></a>  <span class="k">end subroutine </span><span class="n">initmpi</span>
+<a name="ln-119"></a>
+<a name="ln-120"></a><span class="c">!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!</span>
+<a name="ln-121"></a>
+<a name="ln-122"></a>  <span class="k">subroutine </span><span class="n">exitmpi</span>
+<a name="ln-123"></a>    <span class="k">implicit none</span>
+<a name="ln-124"></a>
+<a name="ln-125"></a>
+<a name="ln-126"></a><span class="k">    if</span><span class="p">(</span><span class="n">myid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="k">then</span>
+<a name="ln-127"></a><span class="k">      </span><span class="n">CPU_program</span> <span class="o">=</span> <span class="n">MPI_Wtime</span><span class="p">()</span> <span class="o">-</span> <span class="n">CPU_program0</span>
+<a name="ln-128"></a>      <span class="k">write</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="s1">&#39;TOTAL CPU time = &#39;</span><span class="p">,</span> <span class="n">CPU_program</span>
+<a name="ln-129"></a>    <span class="k">end if</span>
+<a name="ln-130"></a>
+<a name="ln-131"></a><span class="k">    call </span><span class="n">MPI_Comm_free</span><span class="p">(</span> <span class="n">comm3d</span><span class="p">,</span> <span class="n">mpierr</span> <span class="p">)</span>
+<a name="ln-132"></a>    <span class="k">call </span><span class="n">MPI_FINALIZE</span><span class="p">(</span><span class="n">mpierr</span><span class="p">)</span>
+<a name="ln-133"></a>  <span class="k">end subroutine </span><span class="n">exitmpi</span>
+<a name="ln-134"></a>
+<a name="ln-135"></a>  <span class="k">subroutine </span><span class="n">barrou</span><span class="p">()</span>
+<a name="ln-136"></a>    <span class="k">implicit none</span>
+<a name="ln-137"></a><span class="k">    call </span><span class="n">MPI_BARRIER</span><span class="p">(</span><span class="n">comm3d</span><span class="p">,</span><span class="n">mpierr</span><span class="p">)</span>
+<a name="ln-138"></a>
+<a name="ln-139"></a>  <span class="k">return</span>
+<a name="ln-140"></a><span class="k">  end subroutine </span><span class="n">barrou</span>
+<a name="ln-141"></a>
+<a name="ln-142"></a>
+<a name="ln-143"></a>
+<a name="ln-144"></a>  <span class="k">subroutine </span><span class="n">excj</span><span class="p">(</span> <span class="n">a</span><span class="p">,</span> <span class="n">sx</span><span class="p">,</span> <span class="n">ex</span><span class="p">,</span> <span class="n">sy</span><span class="p">,</span> <span class="n">ey</span><span class="p">,</span> <span class="n">sz</span><span class="p">,</span><span class="n">ez</span><span class="p">)</span>
+<a name="ln-145"></a>    <span class="k">implicit none</span>
+<a name="ln-146"></a>
+<a name="ln-147"></a><span class="k">  </span><span class="kt">integer </span><span class="n">sx</span><span class="p">,</span> <span class="n">ex</span><span class="p">,</span> <span class="n">sy</span><span class="p">,</span> <span class="n">ey</span><span class="p">,</span> <span class="n">sz</span><span class="p">,</span> <span class="n">ez</span>
+<a name="ln-148"></a>  <span class="kt">real </span><span class="n">a</span><span class="p">(</span><span class="n">sx</span><span class="p">:</span><span class="n">ex</span><span class="p">,</span> <span class="n">sy</span><span class="p">:</span><span class="n">ey</span><span class="p">,</span> <span class="n">sz</span><span class="p">:</span><span class="n">ez</span><span class="p">)</span>
+<a name="ln-149"></a>  <span class="kt">integer </span><span class="n">iiget</span><span class="p">,</span> <span class="n">status</span><span class="p">(</span><span class="n">MPI_STATUS_SIZE</span><span class="p">)</span>
+<a name="ln-150"></a>  <span class="kt">integer </span><span class="n">ii</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">k</span>
+<a name="ln-151"></a>  <span class="kt">real</span><span class="p">,</span><span class="k">allocatable</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:)</span> <span class="kd">::</span> <span class="n">buffj1</span><span class="p">,</span><span class="n">buffj2</span><span class="p">,</span><span class="n">buffj3</span><span class="p">,</span><span class="n">buffj4</span>
+<a name="ln-152"></a>  <span class="n">iiget</span> <span class="o">=</span> <span class="p">(</span><span class="n">ex</span> <span class="o">-</span> <span class="n">sx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">ez</span> <span class="o">-</span> <span class="n">sz</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+<a name="ln-153"></a>
+<a name="ln-154"></a>  <span class="k">allocate</span><span class="p">(</span> <span class="n">buffj1</span><span class="p">(</span><span class="n">iiget</span><span class="p">),&amp;</span>
+<a name="ln-155"></a>            <span class="n">buffj2</span><span class="p">(</span><span class="n">iiget</span><span class="p">),&amp;</span>
+<a name="ln-156"></a>            <span class="n">buffj3</span><span class="p">(</span><span class="n">iiget</span><span class="p">),&amp;</span>
+<a name="ln-157"></a>            <span class="n">buffj4</span><span class="p">(</span><span class="n">iiget</span><span class="p">))</span>
+<a name="ln-158"></a>
+<a name="ln-159"></a>
+<a name="ln-160"></a>
+<a name="ln-161"></a>  <span class="k">if</span><span class="p">(</span><span class="n">nbrtop</span><span class="o">/=</span><span class="n">MPI_PROC_NULL</span><span class="p">)</span><span class="k">then</span>
+<a name="ln-162"></a><span class="k">    do </span><span class="n">k</span><span class="o">=</span><span class="n">sz</span><span class="p">,</span><span class="n">ez</span>
+<a name="ln-163"></a>    <span class="k">do </span><span class="n">i</span><span class="o">=</span><span class="n">sx</span><span class="p">,</span><span class="n">ex</span>
+<a name="ln-164"></a>      <span class="n">ii</span> <span class="o">=</span> <span class="n">i</span> <span class="o">-</span> <span class="n">sx</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">+</span> <span class="p">(</span><span class="n">k</span> <span class="o">-</span> <span class="n">sz</span> <span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">ex</span> <span class="o">-</span> <span class="n">sx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+<a name="ln-165"></a>      <span class="n">buffj1</span><span class="p">(</span><span class="n">ii</span><span class="p">)</span> <span class="o">=</span> <span class="n">a</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">ey</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">k</span><span class="p">)</span>
+<a name="ln-166"></a>    <span class="k">enddo</span>
+<a name="ln-167"></a><span class="k">    enddo</span>
+<a name="ln-168"></a><span class="k">  endif</span>
+<a name="ln-169"></a><span class="k">  call </span><span class="n">MPI_SENDRECV</span><span class="p">(</span>  <span class="n">buffj1</span><span class="p">,</span>  <span class="n">ii</span>    <span class="p">,</span> <span class="n">MY_REAL</span><span class="p">,</span> <span class="n">nbrtop</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-170"></a>                      <span class="n">buffj2</span><span class="p">,</span>  <span class="n">iiget</span> <span class="p">,</span> <span class="n">MY_REAL</span><span class="p">,</span> <span class="n">nbrbottom</span><span class="p">,</span>  <span class="mi">4</span><span class="p">,</span>      <span class="p">&amp;</span>
+<a name="ln-171"></a>                      <span class="n">comm3d</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">mpierr</span> <span class="p">)</span>
+<a name="ln-172"></a>  <span class="k">if</span><span class="p">(</span><span class="n">nbrbottom</span><span class="o">/=</span><span class="n">MPI_PROC_NULL</span><span class="p">)</span><span class="k">then</span>
+<a name="ln-173"></a><span class="k">    do </span><span class="n">k</span><span class="o">=</span><span class="n">sz</span><span class="p">,</span><span class="n">ez</span>
+<a name="ln-174"></a>    <span class="k">do </span><span class="n">i</span><span class="o">=</span><span class="n">sx</span><span class="p">,</span><span class="n">ex</span>
+<a name="ln-175"></a>      <span class="n">ii</span> <span class="o">=</span> <span class="n">i</span> <span class="o">-</span> <span class="n">sx</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">+</span> <span class="p">(</span><span class="n">k</span> <span class="o">-</span> <span class="n">sz</span> <span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">ex</span> <span class="o">-</span> <span class="n">sx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+<a name="ln-176"></a>      <span class="n">a</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">sy</span><span class="p">,</span><span class="n">k</span><span class="p">)</span> <span class="o">=</span> <span class="n">buffj2</span><span class="p">(</span><span class="n">ii</span><span class="p">)</span>
+<a name="ln-177"></a>    <span class="k">enddo</span>
+<a name="ln-178"></a><span class="k">    enddo</span>
+<a name="ln-179"></a><span class="k">  endif</span>
+<a name="ln-180"></a>
+<a name="ln-181"></a><span class="c">!   call barrou()</span>
+<a name="ln-182"></a>
+<a name="ln-183"></a>  <span class="k">if</span><span class="p">(</span><span class="n">nbrbottom</span><span class="o">/=</span><span class="n">MPI_PROC_NULL</span><span class="p">)</span><span class="k">then</span>
+<a name="ln-184"></a><span class="k">    do </span><span class="n">k</span><span class="o">=</span><span class="n">sz</span><span class="p">,</span><span class="n">ez</span>
+<a name="ln-185"></a>    <span class="k">do </span><span class="n">i</span><span class="o">=</span><span class="n">sx</span><span class="p">,</span><span class="n">ex</span>
+<a name="ln-186"></a>      <span class="n">ii</span> <span class="o">=</span> <span class="n">i</span> <span class="o">-</span> <span class="n">sx</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">+</span> <span class="p">(</span><span class="n">k</span> <span class="o">-</span> <span class="n">sz</span> <span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">ex</span> <span class="o">-</span> <span class="n">sx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+<a name="ln-187"></a>      <span class="n">buffj3</span><span class="p">(</span><span class="n">ii</span><span class="p">)</span> <span class="o">=</span> <span class="n">a</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">sy</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">k</span><span class="p">)</span>
+<a name="ln-188"></a>    <span class="k">enddo</span>
+<a name="ln-189"></a><span class="k">    enddo</span>
+<a name="ln-190"></a><span class="k">  endif</span>
+<a name="ln-191"></a><span class="k">  call </span><span class="n">MPI_SENDRECV</span><span class="p">(</span>  <span class="n">buffj3</span><span class="p">,</span>  <span class="n">ii</span>    <span class="p">,</span> <span class="n">MY_REAL</span><span class="p">,</span> <span class="n">nbrbottom</span><span class="p">,</span>  <span class="mi">5</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-192"></a>                          <span class="n">buffj4</span><span class="p">,</span>  <span class="n">iiget</span> <span class="p">,</span> <span class="n">MY_REAL</span><span class="p">,</span> <span class="n">nbrtop</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-193"></a>                          <span class="n">comm3d</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">mpierr</span> <span class="p">)</span>
+<a name="ln-194"></a>  <span class="k">if</span><span class="p">(</span><span class="n">nbrtop</span><span class="o">/=</span><span class="n">MPI_PROC_NULL</span><span class="p">)</span><span class="k">then</span>
+<a name="ln-195"></a><span class="k">    do </span><span class="n">k</span><span class="o">=</span><span class="n">sz</span><span class="p">,</span><span class="n">ez</span>
+<a name="ln-196"></a>    <span class="k">do </span><span class="n">i</span><span class="o">=</span><span class="n">sx</span><span class="p">,</span><span class="n">ex</span>
+<a name="ln-197"></a>      <span class="n">ii</span> <span class="o">=</span> <span class="n">i</span> <span class="o">-</span> <span class="n">sx</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">+</span> <span class="p">(</span><span class="n">k</span> <span class="o">-</span> <span class="n">sz</span> <span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">ex</span> <span class="o">-</span> <span class="n">sx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+<a name="ln-198"></a>      <span class="n">a</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">ey</span><span class="p">,</span><span class="n">k</span><span class="p">)</span> <span class="o">=</span> <span class="n">buffj4</span><span class="p">(</span><span class="n">ii</span><span class="p">)</span>
+<a name="ln-199"></a>    <span class="k">enddo</span>
+<a name="ln-200"></a><span class="k">    enddo</span>
+<a name="ln-201"></a><span class="k">  endif</span>
+<a name="ln-202"></a>
+<a name="ln-203"></a><span class="c">!   call barrou()</span>
+<a name="ln-204"></a>  <span class="k">deallocate</span> <span class="p">(</span><span class="n">buffj1</span><span class="p">,</span><span class="n">buffj2</span><span class="p">,</span><span class="n">buffj3</span><span class="p">,</span><span class="n">buffj4</span><span class="p">)</span>
+<a name="ln-205"></a>
+<a name="ln-206"></a>  <span class="k">return</span>
+<a name="ln-207"></a><span class="k">  end subroutine </span><span class="n">excj</span>
+<a name="ln-208"></a>
+<a name="ln-209"></a>  <span class="c">! tg3315 - does some transfer of ghost cell information in the y-direction.</span>
+<a name="ln-210"></a>  <span class="c">! nbrbottom is cpu below and nbrtop is cpu above</span>
+<a name="ln-211"></a>  <span class="c">! MPI_PROC_NULL = -2???</span>
+<a name="ln-212"></a>  <span class="k">subroutine </span><span class="n">excjs</span><span class="p">(</span> <span class="n">a</span><span class="p">,</span> <span class="n">sx</span><span class="p">,</span> <span class="n">ex</span><span class="p">,</span> <span class="n">sy</span><span class="p">,</span> <span class="n">ey</span><span class="p">,</span> <span class="n">sz</span><span class="p">,</span><span class="n">ez</span><span class="p">,</span><span class="n">ih</span><span class="p">,</span><span class="n">jh</span><span class="p">)</span>
+<a name="ln-213"></a>    <span class="k">implicit none</span>
+<a name="ln-214"></a><span class="k">  </span><span class="kt">integer </span><span class="n">sx</span><span class="p">,</span> <span class="n">ex</span><span class="p">,</span> <span class="n">sy</span><span class="p">,</span> <span class="n">ey</span><span class="p">,</span> <span class="n">sz</span><span class="p">,</span> <span class="n">ez</span><span class="p">,</span> <span class="n">ih</span><span class="p">,</span> <span class="n">jh</span>
+<a name="ln-215"></a>  <span class="kt">real </span><span class="n">a</span><span class="p">(</span><span class="n">sx</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ex</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span> <span class="n">sy</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">ey</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span> <span class="n">sz</span><span class="p">:</span><span class="n">ez</span><span class="p">)</span>
+<a name="ln-216"></a>  <span class="kt">integer </span><span class="n">status</span><span class="p">(</span><span class="n">MPI_STATUS_SIZE</span><span class="p">),</span> <span class="n">iiget</span>
+<a name="ln-217"></a>  <span class="kt">integer </span><span class="n">ii</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span>
+<a name="ln-218"></a>  <span class="kt">real</span><span class="p">,</span><span class="k">allocatable</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:)</span> <span class="kd">::</span> <span class="n">buffj1</span><span class="p">,</span><span class="n">buffj2</span><span class="p">,</span><span class="n">buffj3</span><span class="p">,</span><span class="n">buffj4</span>
+<a name="ln-219"></a>  <span class="n">iiget</span> <span class="o">=</span> <span class="n">jh</span><span class="o">*</span><span class="p">(</span><span class="n">ex</span> <span class="o">-</span> <span class="n">sx</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">+</span> <span class="mi">2</span><span class="o">*</span><span class="n">ih</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">ez</span> <span class="o">-</span> <span class="n">sz</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+<a name="ln-220"></a>
+<a name="ln-221"></a>  <span class="k">allocate</span><span class="p">(</span> <span class="n">buffj1</span><span class="p">(</span><span class="n">iiget</span><span class="p">),&amp;</span>
+<a name="ln-222"></a>            <span class="n">buffj2</span><span class="p">(</span><span class="n">iiget</span><span class="p">),&amp;</span>
+<a name="ln-223"></a>            <span class="n">buffj3</span><span class="p">(</span><span class="n">iiget</span><span class="p">),&amp;</span>
+<a name="ln-224"></a>            <span class="n">buffj4</span><span class="p">(</span><span class="n">iiget</span><span class="p">))</span>
+<a name="ln-225"></a>
+<a name="ln-226"></a>  <span class="k">if</span><span class="p">(</span><span class="n">nbrtop</span><span class="o">/=</span><span class="n">MPI_PROC_NULL</span><span class="p">)</span><span class="k">then</span>
+<a name="ln-227"></a><span class="k">    </span><span class="n">ii</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-228"></a>    <span class="k">do </span><span class="n">j</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">jh</span>
+<a name="ln-229"></a>    <span class="k">do </span><span class="n">k</span><span class="o">=</span><span class="n">sz</span><span class="p">,</span><span class="n">ez</span>
+<a name="ln-230"></a>    <span class="k">do </span><span class="n">i</span><span class="o">=</span><span class="n">sx</span><span class="o">-</span><span class="n">ih</span><span class="p">,</span><span class="n">ex</span><span class="o">+</span><span class="n">ih</span>
+<a name="ln-231"></a>      <span class="n">ii</span> <span class="o">=</span> <span class="n">ii</span> <span class="o">+</span> <span class="mi">1</span>
+<a name="ln-232"></a>      <span class="n">buffj1</span><span class="p">(</span><span class="n">ii</span><span class="p">)</span> <span class="o">=</span> <span class="n">a</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">ey</span><span class="o">-</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">k</span><span class="p">)</span> <span class="c">! tg3315 buffj1 is je-jhc ghost cells on myid</span>
+<a name="ln-233"></a>    <span class="k">enddo</span>
+<a name="ln-234"></a><span class="k">    enddo</span>
+<a name="ln-235"></a><span class="k">    enddo</span>
+<a name="ln-236"></a><span class="k">  endif</span>
+<a name="ln-237"></a>
+<a name="ln-238"></a><span class="k">  call </span><span class="n">MPI_SENDRECV</span><span class="p">(</span>  <span class="n">buffj1</span><span class="p">,</span>  <span class="n">ii</span>    <span class="p">,</span> <span class="n">MY_REAL</span><span class="p">,</span> <span class="n">nbrtop</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-239"></a>                           <span class="n">buffj2</span><span class="p">,</span>  <span class="n">iiget</span> <span class="p">,</span> <span class="n">MY_REAL</span><span class="p">,</span> <span class="n">nbrbottom</span><span class="p">,</span>  <span class="mi">4</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-240"></a>                           <span class="n">comm3d</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">mpierr</span> <span class="p">)</span>
+<a name="ln-241"></a>
+<a name="ln-242"></a>  <span class="c">! tg3315 sends this to nbrtop and pulls buffj2 from nbrbottom! send and receive process that is good for executing chain shifts.</span>
+<a name="ln-243"></a>
+<a name="ln-244"></a>  <span class="k">if</span><span class="p">(</span><span class="n">nbrbottom</span><span class="o">/=</span><span class="n">MPI_PROC_NULL</span><span class="p">)</span><span class="k">then</span>
+<a name="ln-245"></a><span class="k">    </span><span class="n">ii</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-246"></a>    <span class="k">do </span><span class="n">j</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">jh</span>
+<a name="ln-247"></a>    <span class="k">do </span><span class="n">k</span><span class="o">=</span><span class="n">sz</span><span class="p">,</span><span class="n">ez</span>
+<a name="ln-248"></a>    <span class="k">do </span><span class="n">i</span><span class="o">=</span><span class="n">sx</span><span class="o">-</span><span class="n">ih</span><span class="p">,</span><span class="n">ex</span><span class="o">+</span><span class="n">ih</span>
+<a name="ln-249"></a>      <span class="n">ii</span> <span class="o">=</span> <span class="n">ii</span> <span class="o">+</span> <span class="mi">1</span>
+<a name="ln-250"></a>      <span class="n">a</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">sy</span><span class="o">-</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span> <span class="o">=</span> <span class="n">buffj2</span><span class="p">(</span><span class="n">ii</span><span class="p">)</span> <span class="c">! set the previous ghost cells to buffj2 (last cells of nbrbottom I think)</span>
+<a name="ln-251"></a>    <span class="k">enddo</span>
+<a name="ln-252"></a><span class="k">    enddo</span>
+<a name="ln-253"></a><span class="k">    enddo</span>
+<a name="ln-254"></a><span class="k">  endif</span>
+<a name="ln-255"></a>
+<a name="ln-256"></a><span class="c">!   call barrou()</span>
+<a name="ln-257"></a>
+<a name="ln-258"></a>  <span class="c">! repeats this process for other way round</span>
+<a name="ln-259"></a>
+<a name="ln-260"></a>  <span class="k">if</span><span class="p">(</span><span class="n">nbrbottom</span><span class="o">/=</span><span class="n">MPI_PROC_NULL</span><span class="p">)</span><span class="k">then</span>
+<a name="ln-261"></a><span class="k">    </span><span class="n">ii</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-262"></a>    <span class="k">do </span><span class="n">j</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">jh</span>
+<a name="ln-263"></a>    <span class="k">do </span><span class="n">k</span><span class="o">=</span><span class="n">sz</span><span class="p">,</span><span class="n">ez</span>
+<a name="ln-264"></a>    <span class="k">do </span><span class="n">i</span><span class="o">=</span><span class="n">sx</span><span class="o">-</span><span class="n">ih</span><span class="p">,</span><span class="n">ex</span><span class="o">+</span><span class="n">ih</span>
+<a name="ln-265"></a>      <span class="n">ii</span> <span class="o">=</span> <span class="n">ii</span> <span class="o">+</span> <span class="mi">1</span>
+<a name="ln-266"></a>      <span class="n">buffj3</span><span class="p">(</span><span class="n">ii</span><span class="p">)</span> <span class="o">=</span> <span class="n">a</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">sy</span><span class="o">+</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">k</span><span class="p">)</span>
+<a name="ln-267"></a>    <span class="k">enddo</span>
+<a name="ln-268"></a><span class="k">    enddo</span>
+<a name="ln-269"></a><span class="k">    enddo</span>
+<a name="ln-270"></a><span class="k">  endif</span>
+<a name="ln-271"></a><span class="k">  call </span><span class="n">MPI_SENDRECV</span><span class="p">(</span>  <span class="n">buffj3</span><span class="p">,</span>  <span class="n">ii</span>    <span class="p">,</span> <span class="n">MY_REAL</span><span class="p">,</span> <span class="n">nbrbottom</span><span class="p">,</span>  <span class="mi">5</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-272"></a>                          <span class="n">buffj4</span><span class="p">,</span>  <span class="n">iiget</span> <span class="p">,</span> <span class="n">MY_REAL</span><span class="p">,</span> <span class="n">nbrtop</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-273"></a>                          <span class="n">comm3d</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">mpierr</span> <span class="p">)</span>
+<a name="ln-274"></a>  <span class="k">if</span><span class="p">(</span><span class="n">nbrtop</span><span class="o">/=</span><span class="n">MPI_PROC_NULL</span><span class="p">)</span><span class="k">then</span>
+<a name="ln-275"></a><span class="k">    </span><span class="n">ii</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-276"></a>    <span class="k">do </span><span class="n">j</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">jh</span>
+<a name="ln-277"></a>    <span class="k">do </span><span class="n">k</span><span class="o">=</span><span class="n">sz</span><span class="p">,</span><span class="n">ez</span>
+<a name="ln-278"></a>    <span class="k">do </span><span class="n">i</span><span class="o">=</span><span class="n">sx</span><span class="o">-</span><span class="n">ih</span><span class="p">,</span><span class="n">ex</span><span class="o">+</span><span class="n">ih</span>
+<a name="ln-279"></a>      <span class="n">ii</span> <span class="o">=</span> <span class="n">ii</span> <span class="o">+</span> <span class="mi">1</span>
+<a name="ln-280"></a>      <span class="n">a</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">ey</span><span class="o">+</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span> <span class="o">=</span> <span class="n">buffj4</span><span class="p">(</span><span class="n">ii</span><span class="p">)</span>
+<a name="ln-281"></a>    <span class="k">enddo</span>
+<a name="ln-282"></a><span class="k">    enddo</span>
+<a name="ln-283"></a><span class="k">    enddo</span>
+<a name="ln-284"></a><span class="k">  endif</span>
+<a name="ln-285"></a>
+<a name="ln-286"></a><span class="c">!   call barrou()</span>
+<a name="ln-287"></a>  <span class="k">deallocate</span> <span class="p">(</span><span class="n">buffj1</span><span class="p">,</span><span class="n">buffj2</span><span class="p">,</span><span class="n">buffj3</span><span class="p">,</span><span class="n">buffj4</span><span class="p">)</span>
+<a name="ln-288"></a>
+<a name="ln-289"></a>  <span class="k">return</span>
+<a name="ln-290"></a><span class="k">  end subroutine </span><span class="n">excjs</span>
+<a name="ln-291"></a>
+<a name="ln-292"></a>  <span class="k">subroutine </span><span class="n">slabsum</span><span class="p">(</span><span class="n">aver</span><span class="p">,</span><span class="n">ks</span><span class="p">,</span><span class="n">kf</span><span class="p">,</span><span class="n">var</span><span class="p">,</span><span class="n">ib</span><span class="p">,</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="p">,</span><span class="n">ibs</span><span class="p">,</span><span class="n">ies</span><span class="p">,</span><span class="n">jbs</span><span class="p">,</span><span class="n">jes</span><span class="p">,</span><span class="n">kbs</span><span class="p">,</span><span class="n">kes</span><span class="p">)</span>
+<a name="ln-293"></a>    <span class="k">implicit none</span>
+<a name="ln-294"></a>
+<a name="ln-295"></a><span class="k">    </span><span class="kt">integer</span> <span class="kd">::</span> <span class="n">ks</span><span class="p">,</span><span class="n">kf</span>
+<a name="ln-296"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ib</span><span class="p">,</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="p">,</span><span class="n">ibs</span><span class="p">,</span><span class="n">ies</span><span class="p">,</span><span class="n">jbs</span><span class="p">,</span><span class="n">jes</span><span class="p">,</span><span class="n">kbs</span><span class="p">,</span><span class="n">kes</span>
+<a name="ln-297"></a>    <span class="kt">real</span>    <span class="kd">::</span> <span class="n">aver</span><span class="p">(</span><span class="n">ks</span><span class="p">:</span><span class="n">kf</span><span class="p">)</span>
+<a name="ln-298"></a>    <span class="kt">real</span>    <span class="kd">::</span> <span class="n">var</span> <span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<a name="ln-299"></a>    <span class="kt">real</span>    <span class="kd">::</span> <span class="n">averl</span><span class="p">(</span><span class="n">ks</span><span class="p">:</span><span class="n">kf</span><span class="p">)</span>
+<a name="ln-300"></a>    <span class="kt">real</span>    <span class="kd">::</span> <span class="n">avers</span><span class="p">(</span><span class="n">ks</span><span class="p">:</span><span class="n">kf</span><span class="p">)</span>
+<a name="ln-301"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">k</span>
+<a name="ln-302"></a>
+<a name="ln-303"></a>    <span class="n">averl</span>       <span class="o">=</span> <span class="mf">0.</span>
+<a name="ln-304"></a>    <span class="n">avers</span>       <span class="o">=</span> <span class="mf">0.</span>
+<a name="ln-305"></a>
+<a name="ln-306"></a>    <span class="k">do </span><span class="n">k</span><span class="o">=</span><span class="n">kbs</span><span class="p">,</span><span class="n">kes</span>
+<a name="ln-307"></a>      <span class="n">averl</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">var</span><span class="p">(</span><span class="n">ibs</span><span class="p">:</span><span class="n">ies</span><span class="p">,</span><span class="n">jbs</span><span class="p">:</span><span class="n">jes</span><span class="p">,</span><span class="n">k</span><span class="p">))</span>
+<a name="ln-308"></a>    <span class="k">enddo</span>
+<a name="ln-309"></a>
+<a name="ln-310"></a><span class="k">    call </span><span class="n">MPI_ALLREDUCE</span><span class="p">(</span><span class="n">averl</span><span class="p">,</span> <span class="n">avers</span><span class="p">,</span> <span class="n">kf</span><span class="o">-</span><span class="n">ks</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span>  <span class="n">MY_REAL</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-311"></a>                          <span class="n">MPI_SUM</span><span class="p">,</span> <span class="n">comm3d</span><span class="p">,</span><span class="n">mpierr</span><span class="p">)</span>
+<a name="ln-312"></a>
+<a name="ln-313"></a>    <span class="n">aver</span> <span class="o">=</span> <span class="n">aver</span> <span class="o">+</span> <span class="n">avers</span>
+<a name="ln-314"></a>
+<a name="ln-315"></a>    <span class="k">return</span>
+<a name="ln-316"></a><span class="k">  end subroutine </span><span class="n">slabsum</span>
+<a name="ln-317"></a>
+<a name="ln-318"></a>  <span class="k">subroutine </span><span class="n">avexy_ibm</span><span class="p">(</span><span class="n">aver</span><span class="p">,</span><span class="n">var</span><span class="p">,</span><span class="n">ib</span><span class="p">,</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="p">,</span><span class="n">ih</span><span class="p">,</span><span class="n">jh</span><span class="p">,</span><span class="n">kh</span><span class="p">,</span><span class="n">II</span><span class="p">,</span><span class="n">IIs</span><span class="p">,</span><span class="n">lnan</span><span class="p">)</span>
+<a name="ln-319"></a>    <span class="k">implicit none</span>
+<a name="ln-320"></a>
+<a name="ln-321"></a><span class="k">    </span><span class="kt">integer</span> <span class="kd">::</span> <span class="n">ib</span><span class="p">,</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="p">,</span><span class="n">ih</span><span class="p">,</span><span class="n">jh</span><span class="p">,</span><span class="n">kh</span>
+<a name="ln-322"></a>    <span class="kt">real</span>    <span class="kd">::</span> <span class="n">aver</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<a name="ln-323"></a>    <span class="kt">real</span>    <span class="kd">::</span> <span class="n">var</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<a name="ln-324"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">II</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<a name="ln-325"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">IIs</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<a name="ln-326"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">IId</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<a name="ln-327"></a>    <span class="kt">real</span>    <span class="kd">::</span> <span class="n">averl</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<a name="ln-328"></a>    <span class="kt">real</span>    <span class="kd">::</span> <span class="n">avers</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<a name="ln-329"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">k</span>
+<a name="ln-330"></a>    <span class="kt">logical</span> <span class="kd">::</span> <span class="n">lnan</span>
+<a name="ln-331"></a>
+<a name="ln-332"></a>    <span class="n">averl</span>       <span class="o">=</span> <span class="mf">0.</span>
+<a name="ln-333"></a>    <span class="n">avers</span>       <span class="o">=</span> <span class="mf">0.</span>
+<a name="ln-334"></a>
+<a name="ln-335"></a>    <span class="k">do </span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span>
+<a name="ln-336"></a>      <span class="n">averl</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">var</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">II</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">k</span><span class="p">))</span>
+<a name="ln-337"></a>    <span class="k">enddo</span>
+<a name="ln-338"></a>
+<a name="ln-339"></a><span class="k">    </span><span class="n">IId</span> <span class="o">=</span> <span class="n">IIs</span>
+<a name="ln-340"></a>
+<a name="ln-341"></a>    <span class="c">! tg3315 22.03.19 - if not calculating stats and all blocks on lowest layer...</span>
+<a name="ln-342"></a>    <span class="c">! should not be necessary but value at kb is used in modthermo so reasonable value must</span>
+<a name="ln-343"></a>    <span class="c">! be assigned. Potentially should leave as before and only account for in modthermo...</span>
+<a name="ln-344"></a>    <span class="k">if</span> <span class="p">((.</span><span class="nb">not</span><span class="p">.</span> <span class="n">lnan</span><span class="p">)</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="p">(</span><span class="n">IId</span><span class="p">(</span><span class="n">kb</span><span class="p">)</span><span class="o">==</span><span class="mi">0</span><span class="p">))</span> <span class="k">then</span>
+<a name="ln-345"></a><span class="k">      </span><span class="n">averl</span><span class="p">(</span><span class="n">kb</span><span class="p">)</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">var</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">))</span>
+<a name="ln-346"></a>      <span class="n">IId</span><span class="p">(</span><span class="n">kb</span><span class="p">)</span> <span class="o">=</span> <span class="n">IId</span><span class="p">(</span><span class="n">ke</span><span class="p">)</span>
+<a name="ln-347"></a>    <span class="k">end if</span>
+<a name="ln-348"></a>
+<a name="ln-349"></a><span class="k">    call </span><span class="n">MPI_ALLREDUCE</span><span class="p">(</span><span class="n">averl</span><span class="p">,</span> <span class="n">avers</span><span class="p">,</span> <span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="o">-</span><span class="n">kb</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span>  <span class="n">MY_REAL</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-350"></a>                          <span class="n">MPI_SUM</span><span class="p">,</span> <span class="n">comm3d</span><span class="p">,</span><span class="n">mpierr</span><span class="p">)</span>
+<a name="ln-351"></a>
+<a name="ln-352"></a>    <span class="k">where</span> <span class="p">(</span><span class="n">IId</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span>
+<a name="ln-353"></a>      <span class="n">aver</span> <span class="o">=</span> <span class="o">-</span><span class="mi">99</span><span class="mf">9.</span>
+<a name="ln-354"></a>    <span class="n">elsewhere</span>
+<a name="ln-355"></a>      <span class="n">aver</span> <span class="o">=</span> <span class="n">avers</span><span class="o">/</span><span class="n">IId</span>
+<a name="ln-356"></a>    <span class="k">endwhere</span>
+<a name="ln-357"></a>
+<a name="ln-358"></a><span class="k">    return</span>
+<a name="ln-359"></a><span class="k">  end subroutine </span><span class="n">avexy_ibm</span>
+<a name="ln-360"></a>
+<a name="ln-361"></a>  <span class="k">subroutine </span><span class="n">slabsumi</span><span class="p">(</span><span class="n">aver</span><span class="p">,</span><span class="n">iis</span><span class="p">,</span><span class="n">iif</span><span class="p">,</span><span class="n">var</span><span class="p">,</span><span class="n">ib</span><span class="p">,</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="p">,</span><span class="n">ibs</span><span class="p">,</span><span class="n">ies</span><span class="p">,</span><span class="n">jbs</span><span class="p">,</span><span class="n">jes</span><span class="p">,</span><span class="n">kbs</span><span class="p">,</span><span class="n">kes</span><span class="p">)</span>
+<a name="ln-362"></a>    <span class="k">implicit none</span>
+<a name="ln-363"></a>
+<a name="ln-364"></a><span class="k">    </span><span class="kt">integer</span> <span class="kd">::</span> <span class="n">iis</span><span class="p">,</span><span class="n">iif</span>
+<a name="ln-365"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ib</span><span class="p">,</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="p">,</span><span class="n">ibs</span><span class="p">,</span><span class="n">ies</span><span class="p">,</span><span class="n">jbs</span><span class="p">,</span><span class="n">jes</span><span class="p">,</span><span class="n">kbs</span><span class="p">,</span><span class="n">kes</span>
+<a name="ln-366"></a>    <span class="kt">real</span>    <span class="kd">::</span> <span class="n">aver</span><span class="p">(</span><span class="n">iis</span><span class="p">:</span><span class="n">iif</span><span class="p">)</span>
+<a name="ln-367"></a>    <span class="kt">real</span>    <span class="kd">::</span> <span class="n">var</span> <span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<a name="ln-368"></a>    <span class="kt">real</span>    <span class="kd">::</span> <span class="n">averl</span><span class="p">(</span><span class="n">iis</span><span class="p">:</span><span class="n">iif</span><span class="p">)</span>
+<a name="ln-369"></a>    <span class="kt">real</span>    <span class="kd">::</span> <span class="n">avers</span><span class="p">(</span><span class="n">iis</span><span class="p">:</span><span class="n">iif</span><span class="p">)</span>
+<a name="ln-370"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">i</span>
+<a name="ln-371"></a>
+<a name="ln-372"></a>    <span class="n">averl</span>       <span class="o">=</span> <span class="mf">0.</span>
+<a name="ln-373"></a>    <span class="n">avers</span>       <span class="o">=</span> <span class="mf">0.</span>
+<a name="ln-374"></a>
+<a name="ln-375"></a>    <span class="k">do </span><span class="n">i</span><span class="o">=</span><span class="n">ibs</span><span class="p">,</span><span class="n">ies</span>
+<a name="ln-376"></a>      <span class="n">averl</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">var</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">jbs</span><span class="p">:</span><span class="n">jes</span><span class="p">,</span><span class="n">kbs</span><span class="p">:</span><span class="n">kes</span><span class="p">))</span>
+<a name="ln-377"></a>    <span class="k">enddo</span>
+<a name="ln-378"></a>
+<a name="ln-379"></a><span class="k">    call </span><span class="n">MPI_ALLREDUCE</span><span class="p">(</span><span class="n">averl</span><span class="p">,</span> <span class="n">avers</span><span class="p">,</span> <span class="n">iif</span><span class="o">-</span><span class="n">iis</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span>  <span class="n">MY_REAL</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-380"></a>                          <span class="n">MPI_SUM</span><span class="p">,</span> <span class="n">comm3d</span><span class="p">,</span><span class="n">mpierr</span><span class="p">)</span>
+<a name="ln-381"></a>
+<a name="ln-382"></a>    <span class="n">aver</span> <span class="o">=</span> <span class="n">aver</span> <span class="o">+</span> <span class="n">avers</span>
+<a name="ln-383"></a>
+<a name="ln-384"></a>    <span class="k">return</span>
+<a name="ln-385"></a><span class="k">  end subroutine </span><span class="n">slabsumi</span>
+<a name="ln-386"></a>
+<a name="ln-387"></a>  <span class="c">!Could make this so it has cases like if the input is 1,2 or 3D...</span>
+<a name="ln-388"></a>  <span class="k">subroutine </span><span class="n">avey_ibm</span><span class="p">(</span><span class="n">aver</span><span class="p">,</span><span class="n">var</span><span class="p">,</span><span class="n">ib</span><span class="p">,</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="p">,</span><span class="n">II</span><span class="p">,</span><span class="n">IIt</span><span class="p">)</span>
+<a name="ln-389"></a>  <span class="k">implicit none</span>
+<a name="ln-390"></a><span class="k">  </span><span class="kt">integer</span>                 <span class="kd">::</span> <span class="n">ib</span><span class="p">,</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span>
+<a name="ln-391"></a>  <span class="kt">real</span>                    <span class="kd">::</span> <span class="n">aver</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<a name="ln-392"></a>  <span class="kt">real</span>                    <span class="kd">::</span> <span class="n">avero</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<a name="ln-393"></a>  <span class="kt">real</span>                    <span class="kd">::</span> <span class="n">var</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<a name="ln-394"></a>  <span class="kt">integer</span>                 <span class="kd">::</span> <span class="n">II</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<a name="ln-395"></a>  <span class="kt">integer</span>                 <span class="kd">::</span> <span class="n">IIt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<a name="ln-396"></a>  <span class="kt">logical</span>                 <span class="kd">::</span> <span class="n">lytdump</span><span class="p">,</span><span class="n">lnan</span>
+<a name="ln-397"></a>
+<a name="ln-398"></a>  <span class="n">avero</span> <span class="o">=</span> <span class="mf">0.</span>
+<a name="ln-399"></a>  <span class="n">aver</span>  <span class="o">=</span> <span class="mf">0.</span>
+<a name="ln-400"></a>
+<a name="ln-401"></a>  <span class="n">avero</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">var</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span><span class="o">*</span><span class="n">II</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">),</span> <span class="nb">DIM</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<a name="ln-402"></a>
+<a name="ln-403"></a>  <span class="k">call </span><span class="n">MPI_ALLREDUCE</span><span class="p">(</span><span class="n">avero</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">),</span> <span class="n">aver</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">),</span> <span class="p">(</span><span class="n">ke</span><span class="o">-</span><span class="n">kb</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">ie</span><span class="o">-</span><span class="n">ib</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span> <span class="n">MY_REAL</span><span class="p">,</span><span class="n">MPI_SUM</span><span class="p">,</span> <span class="n">comm3d</span><span class="p">,</span><span class="n">mpierr</span><span class="p">)</span>
+<a name="ln-404"></a>
+<a name="ln-405"></a>  <span class="k">where</span> <span class="p">(</span><span class="n">IIt</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span>
+<a name="ln-406"></a>    <span class="n">aver</span> <span class="o">=</span> <span class="o">-</span><span class="mi">99</span><span class="mf">9.</span>
+<a name="ln-407"></a>  <span class="n">elsewhere</span>
+<a name="ln-408"></a>    <span class="n">aver</span> <span class="o">=</span> <span class="n">aver</span><span class="o">/</span><span class="n">IIt</span>
+<a name="ln-409"></a>  <span class="k">endwhere</span>
+<a name="ln-410"></a><span class="k"> </span>
+<a name="ln-411"></a><span class="k">  end subroutine </span><span class="n">avey_ibm</span>
+<a name="ln-412"></a>
+<a name="ln-413"></a>  <span class="k">subroutine </span><span class="n">sumy_ibm</span><span class="p">(</span><span class="n">sumy</span><span class="p">,</span><span class="n">var</span><span class="p">,</span><span class="n">ib</span><span class="p">,</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="p">,</span><span class="n">II</span><span class="p">)</span>
+<a name="ln-414"></a>    <span class="c">! This routine sums up a variable over the y direction,</span>
+<a name="ln-415"></a>    <span class="c">! only including the fluid cells.</span>
+<a name="ln-416"></a>    <span class="k">implicit none</span>
+<a name="ln-417"></a><span class="k">    </span><span class="kt">integer</span>                 <span class="kd">::</span> <span class="n">ib</span><span class="p">,</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span>
+<a name="ln-418"></a>    <span class="kt">real</span>                    <span class="kd">::</span> <span class="n">sumy</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<a name="ln-419"></a>    <span class="kt">real</span>                    <span class="kd">::</span> <span class="n">sumproc</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<a name="ln-420"></a>    <span class="kt">real</span>                    <span class="kd">::</span> <span class="n">var</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<a name="ln-421"></a>    <span class="kt">integer</span>                 <span class="kd">::</span> <span class="n">II</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<a name="ln-422"></a>
+<a name="ln-423"></a>    <span class="n">sumproc</span> <span class="o">=</span> <span class="mf">0.</span>
+<a name="ln-424"></a>    <span class="n">sumy</span>  <span class="o">=</span> <span class="mf">0.</span>
+<a name="ln-425"></a>
+<a name="ln-426"></a>    <span class="n">sumproc</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">var</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span><span class="o">*</span><span class="n">II</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">),</span> <span class="nb">DIM</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<a name="ln-427"></a>
+<a name="ln-428"></a>    <span class="k">call </span><span class="n">MPI_ALLREDUCE</span><span class="p">(</span><span class="n">sumproc</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">),</span> <span class="n">sumy</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">),</span> <span class="p">(</span><span class="n">ke</span><span class="o">-</span><span class="n">kb</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">ie</span><span class="o">-</span><span class="n">ib</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span> <span class="n">MY_REAL</span><span class="p">,</span><span class="n">MPI_SUM</span><span class="p">,</span> <span class="n">comm3d</span><span class="p">,</span><span class="n">mpierr</span><span class="p">)</span>
+<a name="ln-429"></a>
+<a name="ln-430"></a>    <span class="k">end subroutine </span><span class="n">sumy_ibm</span>
+<a name="ln-431"></a>
+<a name="ln-432"></a><span class="k">end module</span>
+</pre></div>
+
+    </section>
+    </div>
+  </div>
+
+  
+    <hr>    
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+      <div class="row">
+        <div class="col-xs-6 col-md-4"><p>&copy; 2021 
+                                          </p></div>
+        <div class="col-xs-6 col-md-4 col-md-push-4">
+          <p class="text-right">
+            Documentation generated by 
+            <a href="https://github.com/cmacmackin/ford">FORD</a>
+            
+          </p>
+        </div>
+        <div class="col-xs-12 col-md-4 col-md-pull-4"><p class="text-center"> uDALES was developed by The uDALES Team</p></div>
+      </div>
+      <br>
+      </div> <!-- /container -->    
+    </footer>
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+<!--
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+-->
+    <script src="../js/bootstrap.min.js"></script>
+    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+    <script src="../js/ie10-viewport-bug-workaround.js"></script>
+
+    <!-- MathJax JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } },
+        jax: ['input/TeX','input/MathML','output/HTML-CSS'],
+        extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']
+      });
+    </script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+    <script src="../tipuesearch/tipuesearch_content.js"></script>
+    <script src="../tipuesearch/tipuesearch_set.js"></script>
+    <script src="../tipuesearch/tipuesearch.js"></script>
+    
+    
+  </body>
+</html>

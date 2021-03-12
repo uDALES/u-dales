@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+   
+    <meta name="description" content="Documentation for uDALES">
+   
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>updateGR &ndash; uDALES</title>
+
+    <link href="../css/bootstrap.min.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <link href="../css/font-awesome.min.css" rel="stylesheet">
+    <link href="../css/local.css" rel="stylesheet">
+    
+    <link  href="../tipuesearch/tipuesearch.css" rel="stylesheet">
+    
+    
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    
+    <script src="../js/jquery-2.1.3.min.js"></script>
+    <script src="../js/svg-pan-zoom.min.js"></script>
+
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+        
+            <li class="dropdown hidden-xs visible-sm visible-md hidden-lg">
+              <a href="#" class="dropdown-toggle"
+              data-toggle="dropdown" role="button"
+              aria-haspopup="true"
+     aria-expanded="false">Contents <span class="caret"></span></a>
+        <ul class="dropdown-menu">
+          
+              
+            <li><a href="../lists/files.html">Source Files</a></li>
+        
+        
+        
+            <li><a href="../lists/modules.html">Modules</a></li>
+        
+            
+                                
+            <li><a href="../lists/procedures.html">Procedures</a></li>
+        
+               
+            <li><a href="../lists/types.html">Derived Types</a></li>
+        
+        
+            <li><a href="../program/dalesurban.html">Program</a></li>
+      
+            </ul>
+            </li>
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/files.html">Source Files</a></li>
+
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/modules.html">Modules</a></li>
+
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/procedures.html">Procedures</a></li>
+
+                             
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/types.html">Derived Types</a></li>
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../program/dalesurban.html">Program</a></li>
+
+          </ul>
+        
+        <form action="../search.html" class="navbar-form navbar-right" role="search">
+        <div class="form-group">
+          <input type="text" class="form-control" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+        </div>
+<!--
+        <button type="submit" class="btn btn-default">Submit</button>
+-->
+        </form>
+        
+        </div><!--/.nav-collapse -->
+      </div>
+    </nav>
+
+    <div class="container">
+    
+  
+  <div class="row">
+    <h1>updateGR
+      <small>Subroutine</small>
+    
+    </h1>
+    
+<div class="row">
+  <div class="col-lg-12">
+<div class="well well-sm">
+  <ul class="list-inline" style="margin-bottom:0px;display:inline">
+     
+     
+     
+     
+    
+    
+     <li><i class="fa fa-list-ol"></i>
+       <a data-toggle="tooltip"
+    data-placement="bottom" data-html="true"
+    title=" 0.2% of total for procedures.">23 statements</a>
+     </li> 
+     
+     
+     
+    <li><i class="fa fa-code"></i><a href="../src/modEB.f90"> Source File</a></li>
+     
+     
+  </ul>
+  <ol class="breadcrumb in-well text-right">
+  
+    
+     <li><a href='../sourcefile/modeb.f90.html'>modEB.f90</a></li>
+    
+     <li><a href='../module/modeb.html'>modEB</a></li>
+    
+  
+     <li class="active">updateGR</li>
+  </ol>
+</div>
+</div>
+</div>
+<script>
+  $(function () {
+  $('[data-toggle="tooltip"]').tooltip()
+  })
+</script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+    
+<div id="sidebar">
+  
+<h3>Contents</h3>
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/updategr.html#src">updateGR</a>
+  </div>
+</div>
+
+
+
+</div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    <h2>
+public subroutine updateGR()
+    
+    
+   
+</h2>
+    
+  
+    <div class="panel panel-default">
+      <div class="panel-heading">
+  <h3 class="panel-title">Uses</h3>
+      </div>
+      <ul class="list-group">
+      
+      <li class="list-group-item">
+  <ul class="list-inline">
+    
+    <li><a href='../module/modglobal.html'>modglobal</a></li>
+    
+    <li><a href='../module/initfac.html'>initfac</a></li>
+    
+  </ul>
+      </li>
+      
+      
+      
+      <li class="list-group-item">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.40.1 (20161225.0304)
+ -->
+<!-- Title: proc~~updategr~~UsesGraph Pages: 1 -->
+<svg id="procupdategrUsesGraph" width="360pt" height="116pt"
+ viewBox="0.00 0.00 360.00 116.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~updategr~~UsesGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 112)">
+<title>proc~~updategr~~UsesGraph</title>
+<polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-112 356,-112 356,4 -4,4"/>
+<!-- proc~updategr -->
+<g id="proc~~updategr~~UsesGraph_node1" class="node">
+<title>proc~updategr</title>
+<polygon fill="none" stroke="#000000" points="352,-87 286,-87 286,-63 352,-63 352,-87"/>
+<text text-anchor="middle" x="319" y="-72.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#000000">updateGR</text>
+</g>
+<!-- module~modglobal -->
+<g id="proc~~updategr~~UsesGraph_node2" class="node">
+<title>module~modglobal</title>
+<g id="a_proc~~updategr~~UsesGraph_node2"><a xlink:href=".././module/modglobal.html" xlink:title="modglobal">
+<polygon fill="#337ab7" stroke="#337ab7" points="160,-108 90,-108 90,-84 160,-84 160,-108"/>
+<text text-anchor="middle" x="125" y="-93.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modglobal</text>
+</a>
+</g>
+</g>
+<!-- proc~updategr&#45;&gt;module~modglobal -->
+<g id="proc~~updategr~~UsesGraph_edge1" class="edge">
+<title>proc~updategr&#45;&gt;module~modglobal</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M285.6502,-78.61C253.8019,-82.0575 205.5632,-87.2792 170.2561,-91.1011"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="169.7718,-87.633 160.2066,-92.189 170.5252,-94.5924 169.7718,-87.633"/>
+</g>
+<!-- module~initfac -->
+<g id="proc~~updategr~~UsesGraph_node3" class="node">
+<title>module~initfac</title>
+<g id="a_proc~~updategr~~UsesGraph_node3"><a xlink:href=".././module/initfac.html" xlink:title="initfac">
+<polygon fill="#337ab7" stroke="#337ab7" points="250,-67 196,-67 196,-43 250,-43 250,-67"/>
+<text text-anchor="middle" x="223" y="-52.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">initfac</text>
+</a>
+</g>
+</g>
+<!-- proc~updategr&#45;&gt;module~initfac -->
+<g id="proc~~updategr~~UsesGraph_edge2" class="edge">
+<title>proc~updategr&#45;&gt;module~initfac</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M285.9622,-68.1171C277.6335,-66.382 268.6369,-64.5077 260.1223,-62.7338"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="260.5565,-59.2492 250.0528,-60.636 259.1287,-66.1021 260.5565,-59.2492"/>
+</g>
+<!-- module~initfac&#45;&gt;module~modglobal -->
+<g id="proc~~updategr~~UsesGraph_edge4" class="edge">
+<title>module~initfac&#45;&gt;module~modglobal</title>
+<path fill="none" stroke="#00ffff" stroke-dasharray="5,2" d="M195.9616,-66.312C185.8832,-70.5284 174.2419,-75.3988 163.3404,-79.9596"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="161.8829,-76.7754 154.0086,-83.8638 164.5846,-83.233 161.8829,-76.7754"/>
+</g>
+<!-- module~modmpi -->
+<g id="proc~~updategr~~UsesGraph_node4" class="node">
+<title>module~modmpi</title>
+<g id="a_proc~~updategr~~UsesGraph_node4"><a xlink:href=".././module/modmpi.html" xlink:title="modmpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="153.5,-66 96.5,-66 96.5,-42 153.5,-42 153.5,-66"/>
+<text text-anchor="middle" x="125" y="-51.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modmpi</text>
+</a>
+</g>
+</g>
+<!-- module~initfac&#45;&gt;module~modmpi -->
+<g id="proc~~updategr~~UsesGraph_edge5" class="edge">
+<title>module~initfac&#45;&gt;module~modmpi</title>
+<path fill="none" stroke="#00ffff" stroke-dasharray="5,2" d="M195.9616,-54.7241C186.001,-54.6225 174.5137,-54.5052 163.7227,-54.3951"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="163.6979,-50.8948 153.6627,-54.2925 163.6264,-57.8944 163.6979,-50.8948"/>
+</g>
+<!-- netcdf -->
+<g id="proc~~updategr~~UsesGraph_node5" class="node">
+<title>netcdf</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="152,-24 98,-24 98,0 152,0 152,-24"/>
+<text text-anchor="middle" x="125" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">netcdf</text>
+</g>
+<!-- module~initfac&#45;&gt;netcdf -->
+<g id="proc~~updategr~~UsesGraph_edge3" class="edge">
+<title>module~initfac&#45;&gt;netcdf</title>
+<path fill="none" stroke="#00ffff" stroke-dasharray="5,2" d="M195.9616,-43.1362C185.3388,-38.4752 172.9797,-33.0523 161.5806,-28.0507"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="162.8539,-24.7873 152.2903,-23.9743 160.0413,-31.1974 162.8539,-24.7873"/>
+</g>
+<!-- mpi -->
+<g id="proc~~updategr~~UsesGraph_node6" class="node">
+<title>mpi</title>
+<g id="a_proc~~updategr~~UsesGraph_node6"><a xlink:href="http://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node410.htm" xlink:title="mpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-66 0,-66 0,-42 54,-42 54,-66"/>
+<text text-anchor="middle" x="27" y="-51.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">mpi</text>
+</a>
+</g>
+</g>
+<!-- module~modmpi&#45;&gt;mpi -->
+<g id="proc~~updategr~~UsesGraph_edge6" class="edge">
+<title>module~modmpi&#45;&gt;mpi</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M96.3909,-54C86.3911,-54 75.0122,-54 64.4029,-54"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="64.1298,-50.5001 54.1297,-54 64.1297,-57.5001 64.1298,-50.5001"/>
+</g>
+</g>
+</svg>
+</div><div><a type="button" class="graph-help" data-toggle="modal" href="#graph-help-text">Help</a></div><div class="modal fade" id="graph-help-text" tabindex="-1" role="dialog"><div class="modal-dialog modal-lg" role="document"><div class="modal-content"><div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button><h4 class="modal-title" id="-graph-help-label">Graph Key</h4></div><div class="modal-body">
+    <p>Nodes of different colours represent the following: </p>
+    <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.40.1 (20161225.0304)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="517pt" height="32pt"
+ viewBox="0.00 0.00 517.00 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28)">
+<title>Graph Key</title>
+<polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-28 513,-28 513,4 -4,4"/>
+<!-- Module -->
+<g id="node1" class="node">
+<title>Module</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-24 0,-24 0,0 54,0 54,-24"/>
+<text text-anchor="middle" x="27" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">Module</text>
+</g>
+<!-- Submodule -->
+<g id="node2" class="node">
+<title>Submodule</title>
+<polygon fill="#5bc0de" stroke="#5bc0de" points="145.5,-24 72.5,-24 72.5,0 145.5,0 145.5,-24"/>
+<text text-anchor="middle" x="109" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">Submodule</text>
+</g>
+<!-- Subroutine -->
+<g id="node3" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="234.5,-24 163.5,-24 163.5,0 234.5,0 234.5,-24"/>
+<text text-anchor="middle" x="199" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node4" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="311,-24 253,-24 253,0 311,0 311,-24"/>
+<text text-anchor="middle" x="282" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">Function</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="387,-24 329,-24 329,0 387,0 387,-24"/>
+<text text-anchor="middle" x="358" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="#000000" points="509,-24 405,-24 405,0 509,0 509,-24"/>
+<text text-anchor="middle" x="457" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#000000">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+    
+    <p>Solid arrows point from a submodule to the (sub)module which it is
+    descended from. Dashed arrows point from a module or program unit to 
+    modules which it uses. Where possible, edges connecting nodes are given different colours to make them easier to distinguish in large graphs.
+    </p>
+    </div></div></div></div>
+      </li>
+      
+      </ul>
+    </div>
+    
+
+
+    
+
+    <h3>Arguments</h3>
+    
+    <em>None</em>
+    <br>
+    
+    
+    
+    <br>
+    
+    
+    <div class="panel panel-default">
+      <div class="panel-heading">
+  <h3 class="panel-title">Calls</h3>
+      </div>
+      <div class="panel-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.40.1 (20161225.0304)
+ -->
+<!-- Title: proc~~updategr~~CallsGraph Pages: 1 -->
+<svg id="procupdategrCallsGraph" width="164pt" height="32pt"
+ viewBox="0.00 0.00 164.00 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~updategr~~CallsGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 28)">
+<title>proc~~updategr~~CallsGraph</title>
+<polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-28 160,-28 160,4 -4,4"/>
+<!-- proc~updategr -->
+<g id="proc~~updategr~~CallsGraph_node1" class="node">
+<title>proc~updategr</title>
+<polygon fill="none" stroke="#000000" points="66,-24 0,-24 0,0 66,0 66,-24"/>
+<text text-anchor="middle" x="33" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#000000">updateGR</text>
+</g>
+<!-- proc~qsat -->
+<g id="proc~~updategr~~CallsGraph_node2" class="node">
+<title>proc~qsat</title>
+<g id="a_proc~~updategr~~CallsGraph_node2"><a xlink:href=".././proc/qsat.html" xlink:title="qsat">
+<polygon fill="#d94e8f" stroke="#d94e8f" points="156,-24 102,-24 102,0 156,0 156,-24"/>
+<text text-anchor="middle" x="129" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">qsat</text>
+</a>
+</g>
+</g>
+<!-- proc~updategr&#45;&gt;proc~qsat -->
+<g id="proc~~updategr~~CallsGraph_edge1" class="edge">
+<title>proc~updategr&#45;&gt;proc~qsat</title>
+<path fill="none" stroke="#ff0000" d="M66.0378,-12C74.3665,-12 83.3631,-12 91.8777,-12"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="91.9472,-15.5001 101.9472,-12 91.9472,-8.5001 91.9472,-15.5001"/>
+</g>
+</g>
+</svg>
+</div><div><a type="button" class="graph-help" data-toggle="modal" href="#graph-help-text">Help</a></div><div class="modal fade" id="graph-help-text" tabindex="-1" role="dialog"><div class="modal-dialog modal-lg" role="document"><div class="modal-content"><div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button><h4 class="modal-title" id="-graph-help-label">Graph Key</h4></div><div class="modal-body">
+    <p>Nodes of different colours represent the following: </p>
+    <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.40.1 (20161225.0304)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="599pt" height="32pt"
+ viewBox="0.00 0.00 598.50 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28)">
+<title>Graph Key</title>
+<polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-28 594.5,-28 594.5,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="71,-24 0,-24 0,0 71,0 71,-24"/>
+<text text-anchor="middle" x="35.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="147.5,-24 89.5,-24 89.5,0 147.5,0 147.5,-24"/>
+<text text-anchor="middle" x="118.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="227,-24 166,-24 166,0 227,0 227,-24"/>
+<text text-anchor="middle" x="196.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">Interface</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node4" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="392,-24 245,-24 245,0 392,0 392,-24"/>
+<text text-anchor="middle" x="318.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="468.5,-24 410.5,-24 410.5,0 468.5,0 468.5,-24"/>
+<text text-anchor="middle" x="439.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="#000000" points="590.5,-24 486.5,-24 486.5,0 590.5,0 590.5,-24"/>
+<text text-anchor="middle" x="538.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#000000">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+    
+    <p>Solid arrows point from a procedure to one which it calls. Dashed 
+    arrows point from an interface to procedures which implement that interface.
+    This could include the module procedures in a generic interface or the
+    implementation in a submodule of an interface in a parent module. Where possible, edges connecting nodes are given different colours to make them easier to distinguish in large graphs.
+    </p>
+    </div></div></div></div>
+      </div>
+    </div>
+     
+     
+    <div class="panel panel-default">
+      <div class="panel-heading">
+  <h3 class="panel-title">Called by</h3>
+      </div>
+      <div class="panel-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.40.1 (20161225.0304)
+ -->
+<!-- Title: proc~~updategr~~CalledByGraph Pages: 1 -->
+<svg id="procupdategrCalledByGraph" width="285pt" height="32pt"
+ viewBox="0.00 0.00 285.00 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~updategr~~CalledByGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 28)">
+<title>proc~~updategr~~CalledByGraph</title>
+<polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-28 281,-28 281,4 -4,4"/>
+<!-- proc~updategr -->
+<g id="proc~~updategr~~CalledByGraph_node1" class="node">
+<title>proc~updategr</title>
+<polygon fill="none" stroke="#000000" points="277,-24 211,-24 211,0 277,0 277,-24"/>
+<text text-anchor="middle" x="244" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#000000">updateGR</text>
+</g>
+<!-- proc~eb -->
+<g id="proc~~updategr~~CalledByGraph_node2" class="node">
+<title>proc~eb</title>
+<g id="a_proc~~updategr~~CalledByGraph_node2"><a xlink:href=".././proc/eb.html" xlink:title="EB">
+<polygon fill="#d9534f" stroke="#d9534f" points="175,-24 121,-24 121,0 175,0 175,-24"/>
+<text text-anchor="middle" x="148" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">EB</text>
+</a>
+</g>
+</g>
+<!-- proc~eb&#45;&gt;proc~updategr -->
+<g id="proc~~updategr~~CalledByGraph_edge1" class="edge">
+<title>proc~eb&#45;&gt;proc~updategr</title>
+<path fill="none" stroke="#ff0000" d="M175.253,-12C183.2215,-12 192.1346,-12 200.8338,-12"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="200.8783,-15.5001 210.8782,-12 200.8782,-8.5001 200.8783,-15.5001"/>
+</g>
+<!-- program~dalesurban -->
+<g id="proc~~updategr~~CalledByGraph_node3" class="node">
+<title>program~dalesurban</title>
+<g id="a_proc~~updategr~~CalledByGraph_node3"><a xlink:href=".././program/dalesurban.html" xlink:title="DALESURBAN">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="85,-24 0,-24 0,0 85,0 85,-24"/>
+<text text-anchor="middle" x="42.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">DALESURBAN</text>
+</a>
+</g>
+</g>
+<!-- program~dalesurban&#45;&gt;proc~eb -->
+<g id="proc~~updategr~~CalledByGraph_edge2" class="edge">
+<title>program~dalesurban&#45;&gt;proc~eb</title>
+<path fill="none" stroke="#ff0000" d="M85.1068,-12C93.5509,-12 102.3554,-12 110.6101,-12"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="110.7036,-15.5001 120.7036,-12 110.7035,-8.5001 110.7036,-15.5001"/>
+</g>
+</g>
+</svg>
+</div><div><a type="button" class="graph-help" data-toggle="modal" href="#graph-help-text">Help</a></div><div class="modal fade" id="graph-help-text" tabindex="-1" role="dialog"><div class="modal-dialog modal-lg" role="document"><div class="modal-content"><div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button><h4 class="modal-title" id="-graph-help-label">Graph Key</h4></div><div class="modal-body">
+    <p>Nodes of different colours represent the following: </p>
+    <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.40.1 (20161225.0304)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="599pt" height="32pt"
+ viewBox="0.00 0.00 598.50 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28)">
+<title>Graph Key</title>
+<polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-28 594.5,-28 594.5,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="71,-24 0,-24 0,0 71,0 71,-24"/>
+<text text-anchor="middle" x="35.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="147.5,-24 89.5,-24 89.5,0 147.5,0 147.5,-24"/>
+<text text-anchor="middle" x="118.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="227,-24 166,-24 166,0 227,0 227,-24"/>
+<text text-anchor="middle" x="196.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">Interface</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node4" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="392,-24 245,-24 245,0 392,0 392,-24"/>
+<text text-anchor="middle" x="318.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="468.5,-24 410.5,-24 410.5,0 468.5,0 468.5,-24"/>
+<text text-anchor="middle" x="439.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="#000000" points="590.5,-24 486.5,-24 486.5,0 590.5,0 590.5,-24"/>
+<text text-anchor="middle" x="538.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#000000">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+    
+    <p>Solid arrows point from a procedure to one which it calls. Dashed 
+    arrows point from an interface to procedures which implement that interface.
+    This could include the module procedures in a generic interface or the
+    implementation in a submodule of an interface in a parent module. Where possible, edges connecting nodes are given different colours to make them easier to distinguish in large graphs.
+    </p>
+    </div></div></div></div>
+      </div>
+    </div>
+     
+    <br>
+
+    <section class="visible-xs visible-sm hidden-md">
+      
+<h3>Contents</h3>
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/updategr.html#src">updateGR</a>
+  </div>
+</div>
+
+
+
+    </section>
+    <br class="visible-xs visible-sm hidden-md">
+
+    
+
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+
+
+    
+    
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="highlight"><pre><span></span>   <span class="k">subroutine </span><span class="n">updateGR</span>
+<span class="c">!updates soil and vegetation resistance to evaporation</span>
+<span class="c">!updates soil moisture</span>
+<span class="c">!</span>
+<span class="c">! based on ERA40 surface scheme</span>
+<span class="c">! van den Hurk 2000</span>
+<span class="c">! plants</span>
+<span class="c">! E = max(0,vegetation% * rhoa * (qa-qsat(TGR)) * 1/(rc+ra)) !no dew!!</span>
+<span class="c">! rc=rsmin/LAI*f1(K)*f2(WGS)*f3(D)*f4(T)</span>
+<span class="c">! ra,qa,qsat</span>
+<span class="c">! f3(D) is 1 for small plants</span>
+<span class="c">! bare soil</span>
+<span class="c">! E = max(0,(1-vegetation%) * rhoa * (qa-qsat(TGR)*hu) * (1/(rs+ra))</span>
+
+      <span class="k">use </span><span class="n">modglobal</span><span class="p">,</span> <span class="k">only</span><span class="p">:</span><span class="n">nfcts</span><span class="p">,</span> <span class="n">rlv</span><span class="p">,</span> <span class="n">rlvi</span><span class="p">,</span> <span class="n">rhoa</span><span class="p">,</span> <span class="n">cp</span><span class="p">,</span> <span class="n">wfc</span><span class="p">,</span> <span class="n">wwilt</span><span class="p">,</span> <span class="n">wsoil</span><span class="p">,</span> <span class="n">rsmin</span><span class="p">,</span> <span class="n">GRLAI</span><span class="p">,</span> <span class="n">tEB</span><span class="p">,</span> <span class="n">rsmax</span><span class="p">,</span> <span class="n">lconstW</span>
+      <span class="k">use </span><span class="n">initfac</span><span class="p">,</span> <span class="k">only</span><span class="p">:</span><span class="n">netSW</span><span class="p">,</span> <span class="n">faccth</span><span class="p">,</span> <span class="n">fachurel</span><span class="p">,</span> <span class="n">faclGR</span><span class="p">,</span> <span class="n">facwsoil</span><span class="p">,</span> <span class="n">facf</span><span class="p">,</span> <span class="n">facef</span><span class="p">,</span> <span class="n">facT</span><span class="p">,</span> <span class="n">facefi</span><span class="p">,</span> <span class="n">facqsat</span><span class="p">,</span> <span class="n">facdi</span><span class="p">,</span> <span class="n">facain</span><span class="p">,</span> <span class="n">qsat</span>
+
+      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">n</span>
+      <span class="kt">real</span> <span class="kd">::</span> <span class="n">vfraction</span> <span class="o">=</span> <span class="mf">0.8</span> <span class="c">!fraction of GR covered in vegetation, should be made into a proper model parameter (-&gt; modglobal)</span>
+      <span class="kt">real</span> <span class="kd">::</span> <span class="n">dum</span>
+      <span class="k">do </span><span class="n">n</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nfcts</span>
+
+         <span class="k">if</span> <span class="p">(</span><span class="n">faclGR</span><span class="p">(</span><span class="n">n</span><span class="p">))</span> <span class="k">then</span>
+             <span class="c">!facefi is actually the accumulated moisture flux, has to be converted to energy flux to calculate temperature</span>
+             <span class="c">!yet actually the moisture flux is needed for water budget, i.e. currently many operations cancel each other e.g. X*Lv/Lv  </span>
+             <span class="c">!facefi is the sum over all gridcells of a facet, thus has to be averaged by dividing by number of cells in that facet</span>
+             <span class="c">!units of facefi are kgW/kgA*m/s </span>
+             <span class="n">facefi</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="o">=</span> <span class="n">facefi</span><span class="p">(</span><span class="n">n</span><span class="p">)</span><span class="o">/</span><span class="n">tEB</span><span class="o">/</span><span class="n">facain</span><span class="p">(</span><span class="n">n</span><span class="p">)</span><span class="o">*</span><span class="n">rhoa</span><span class="o">*</span><span class="n">rlv</span> <span class="c">!mean heat flux since last EB calculation (time average)</span>
+
+            <span class="k">if</span> <span class="p">(.</span><span class="nb">not</span><span class="p">.</span> <span class="n">lconstW</span><span class="p">)</span> <span class="k">then</span> <span class="c">!remove water from soil</span>
+               <span class="n">facwsoil</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">facwsoil</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="o">+</span> <span class="n">facefi</span><span class="p">(</span><span class="n">n</span><span class="p">)</span><span class="o">*</span><span class="n">tEB</span><span class="o">*</span><span class="n">rlvi</span><span class="o">*</span><span class="n">facdi</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="mf">0.</span><span class="p">)</span> <span class="c">!ils13, careful this assumes water only being present in the first layer!!!</span>
+            <span class="k">end if</span>
+            
+            <span class="c">!update canopy resistance used in wf_gr</span>
+            <span class="n">fachurel</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="nb">cos</span><span class="p">(</span><span class="mf">3.14159</span><span class="o">*</span><span class="n">facwsoil</span><span class="p">(</span><span class="n">n</span><span class="p">)</span><span class="o">/</span><span class="n">wfc</span><span class="p">))),</span> <span class="mf">0.</span><span class="p">)</span> <span class="c">!relative humidity above soil</span>
+            <span class="n">facf</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">=</span> <span class="mf">1.</span><span class="o">/</span><span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="p">(</span><span class="mf">0.004</span><span class="o">*</span><span class="n">netSW</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.05</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="mf">0.81</span><span class="o">*</span><span class="p">(</span><span class="mf">0.004</span><span class="o">*</span><span class="n">netSW</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)))</span> <span class="c">!f1</span>
+            <span class="n">facf</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="o">=</span> <span class="mf">1.</span><span class="o">/</span><span class="nb">min</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="mf">0.001</span><span class="p">,</span> <span class="p">(</span><span class="n">facwsoil</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="o">-</span> <span class="n">wwilt</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">wfc</span> <span class="o">-</span> <span class="n">wwilt</span><span class="p">)),</span> <span class="mf">1.0</span><span class="p">)</span> <span class="c">!f2</span>
+            <span class="c">!f3 drops out because it is for high vegetation only</span>
+            <span class="n">facf</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="o">=</span> <span class="mf">1.</span><span class="o">/</span><span class="nb">max</span><span class="p">((</span><span class="mi">1</span> <span class="o">-</span> <span class="mf">0.0016</span><span class="o">*</span><span class="p">(</span><span class="mi">298</span><span class="o">-</span><span class="n">facT</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span><span class="o">**</span><span class="mi">2</span><span class="p">),</span> <span class="mf">0.001</span><span class="p">)</span> <span class="c">!f4</span>
+            <span class="c">!store resistance for plants</span>
+            <span class="n">facf</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">rsmin</span><span class="o">/</span><span class="n">GRLAI</span><span class="o">*</span><span class="n">facf</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">facf</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">*</span><span class="n">facf</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">rsmax</span><span class="p">)</span>
+            <span class="c">!store resistance for soil</span>
+            <span class="n">facf</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">rsmin</span><span class="o">*</span><span class="n">facf</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">rsmax</span><span class="p">)</span>
+            <span class="n">dum</span> <span class="o">=</span> <span class="n">facT</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">facqsat</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="o">=</span> <span class="n">qsat</span><span class="p">(</span><span class="n">dum</span><span class="p">)</span>
+         <span class="k">end if</span>
+<span class="k">      end do</span>
+
+<span class="k">   end subroutine </span><span class="n">updateGR</span>
+</pre></div>
+
+    </section>
+    <br>
+    
+    
+    </div>
+  </div>
+
+
+    <hr>    
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+      <div class="row">
+        <div class="col-xs-6 col-md-4"><p>&copy; 2021 
+                                          </p></div>
+        <div class="col-xs-6 col-md-4 col-md-push-4">
+          <p class="text-right">
+            Documentation generated by 
+            <a href="https://github.com/cmacmackin/ford">FORD</a>
+            
+          </p>
+        </div>
+        <div class="col-xs-12 col-md-4 col-md-pull-4"><p class="text-center"> uDALES was developed by The uDALES Team</p></div>
+      </div>
+      <br>
+      </div> <!-- /container -->    
+    </footer>
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+<!--
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+-->
+    <script src="../js/bootstrap.min.js"></script>
+    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+    <script src="../js/ie10-viewport-bug-workaround.js"></script>
+
+    <!-- MathJax JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } },
+        jax: ['input/TeX','input/MathML','output/HTML-CSS'],
+        extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']
+      });
+    </script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+    <script src="../tipuesearch/tipuesearch_content.js"></script>
+    <script src="../tipuesearch/tipuesearch_set.js"></script>
+    <script src="../tipuesearch/tipuesearch.js"></script>
+    
+    
+  </body>
+</html>

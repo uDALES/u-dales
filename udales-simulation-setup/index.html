@@ -1,0 +1,895 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="TODO:">
+      
+      
+      
+        <meta name="author" content="The uDALES Team">
+      
+      
+        <link rel="canonical" href="https://uDALES.github.io/u-dales/udales-simulation-setup/">
+      
+      <link rel="shortcut icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-7.0.5">
+    
+    
+      
+        <title>Set-up - uDALES</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.77f3fd56.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.7fa14f5b.min.css">
+        
+          
+          
+          <meta name="theme-color" content="#02a6f2">
+        
+      
+    
+    
+    
+      
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700%7CRoboto+Mono&display=fallback">
+        <style>:root{--md-text-font-family:"Roboto";--md-code-font-family:"Roboto Mono"}</style>
+      
+    
+    
+    
+    
+      
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="" data-md-color-primary="light-blue" data-md-color-accent="pink">
+      
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#simulation-setup" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="https://uDALES.github.io/u-dales" title="uDALES" class="md-header__button md-logo" aria-label="uDALES">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            uDALES
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Set-up
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    <div class="md-header__options">
+      
+    </div>
+    
+      <label class="md-header__button md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+      </label>
+      
+<div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" data-md-state="active" required>
+      <label class="md-search__icon md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </label>
+      <button type="reset" class="md-search__icon md-icon" aria-label="Clear" tabindex="-1">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
+      </button>
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        
+<a href="https://github.com/uDALES/u-dales" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M439.55 236.05L244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    u-dales
+  </div>
+</a>
+      </div>
+    
+  </nav>
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="https://uDALES.github.io/u-dales" title="uDALES" class="md-nav__button md-logo" aria-label="uDALES">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
+
+    </a>
+    uDALES
+  </label>
+  
+    <div class="md-nav__source">
+      
+<a href="https://github.com/uDALES/u-dales" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M439.55 236.05L244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    u-dales
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        Home
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-getting-started/" class="md-nav__link">
+        Getting Started
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-example-simulations/" class="md-nav__link">
+        Examples
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+    
+  
+  
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_4" type="checkbox" id="__nav_4" checked>
+      
+      <label class="md-nav__link" for="__nav_4">
+        User's docs
+        <span class="md-nav__icon md-icon"></span>
+      </label>
+      <nav class="md-nav" aria-label="User's docs" data-md-level="1">
+        <label class="md-nav__title" for="__nav_4">
+          <span class="md-nav__icon md-icon"></span>
+          User's docs
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Set-up
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        Set-up
+      </a>
+      
+        
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#table-of-contents" class="md-nav__link">
+    Table of contents
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#boundary-conditions" class="md-nav__link">
+    Boundary Conditions
+  </a>
+  
+    <nav class="md-nav" aria-label="Boundary Conditions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#momentum" class="md-nav__link">
+    Momentum
+  </a>
+  
+    <nav class="md-nav" aria-label="Momentum">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#top" class="md-nav__link">
+    Top
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bottom-below-floor-facets" class="md-nav__link">
+    Bottom (below floor facets)
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#walls" class="md-nav__link">
+    Walls
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#x" class="md-nav__link">
+    x
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#y" class="md-nav__link">
+    y
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#temperature" class="md-nav__link">
+    Temperature
+  </a>
+  
+    <nav class="md-nav" aria-label="Temperature">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#top_1" class="md-nav__link">
+    Top
+  </a>
+  
+    <nav class="md-nav" aria-label="Top">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bottom" class="md-nav__link">
+    Bottom
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#walls_1" class="md-nav__link">
+    Walls
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#moisture" class="md-nav__link">
+    Moisture
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scalars" class="md-nav__link">
+    Scalars
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#driver-simulations" class="md-nav__link">
+    Driver simulations
+  </a>
+  
+    <nav class="md-nav" aria-label="Driver simulations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#running-precursor-simulations" class="md-nav__link">
+    Running precursor simulations
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#running-driven-simulations" class="md-nav__link">
+    Running driven simulations
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-namoptions-overview/" class="md-nav__link">
+        Configuration
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-pre-processing/" class="md-nav__link">
+        Pre-processing
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-post-processing/" class="md-nav__link">
+        Post-processing
+      </a>
+    </li>
+  
+
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-pub-list/" class="md-nav__link">
+        Publication list
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-docs-software/index.html" class="md-nav__link">
+        Software docs
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#table-of-contents" class="md-nav__link">
+    Table of contents
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#boundary-conditions" class="md-nav__link">
+    Boundary Conditions
+  </a>
+  
+    <nav class="md-nav" aria-label="Boundary Conditions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#momentum" class="md-nav__link">
+    Momentum
+  </a>
+  
+    <nav class="md-nav" aria-label="Momentum">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#top" class="md-nav__link">
+    Top
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bottom-below-floor-facets" class="md-nav__link">
+    Bottom (below floor facets)
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#walls" class="md-nav__link">
+    Walls
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#x" class="md-nav__link">
+    x
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#y" class="md-nav__link">
+    y
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#temperature" class="md-nav__link">
+    Temperature
+  </a>
+  
+    <nav class="md-nav" aria-label="Temperature">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#top_1" class="md-nav__link">
+    Top
+  </a>
+  
+    <nav class="md-nav" aria-label="Top">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bottom" class="md-nav__link">
+    Bottom
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#walls_1" class="md-nav__link">
+    Walls
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#moisture" class="md-nav__link">
+    Moisture
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scalars" class="md-nav__link">
+    Scalars
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#driver-simulations" class="md-nav__link">
+    Driver simulations
+  </a>
+  
+    <nav class="md-nav" aria-label="Driver simulations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#running-precursor-simulations" class="md-nav__link">
+    Running precursor simulations
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#running-driven-simulations" class="md-nav__link">
+    Running driven simulations
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          <div class="md-content" data-md-component="content">
+            <article class="md-content__inner md-typeset">
+              
+                
+                
+                <h1 id="simulation-setup">Simulation setup<a class="headerlink" href="#simulation-setup" title="Permanent link">&para;</a></h1>
+<p>This document contains some notes on setting up uDALES simulations. A complete list of all parameters and switches is documented under <a href="../udales-namoptions-overview/">Configuration</a>.</p>
+<h2 id="table-of-contents">Table of contents<a class="headerlink" href="#table-of-contents" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="#Boundary-Conditions">Boundary Conditions</a></li>
+<li><a href="#Driver-simulations">Driver simulations</a></li>
+</ul>
+<h2 id="boundary-conditions">Boundary Conditions<a class="headerlink" href="#boundary-conditions" title="Permanent link">&para;</a></h2>
+<p>The boundary conditions for uDALES are specified under the <code>&amp;BC</code> header in <code>namoptions.inp</code>.</p>
+<h3 id="momentum">Momentum<a class="headerlink" href="#momentum" title="Permanent link">&para;</a></h3>
+<h4 id="top">Top<a class="headerlink" href="#top" title="Permanent link">&para;</a></h4>
+<p>Determined by <code>BCtopm</code>. Possible values:</p>
+<ul>
+<li>1: free-slip, i.e. zero flux.</li>
+<li>2: no-slip, i.e. zero velocity.</li>
+<li>3: determined by inflow conditions.</li>
+</ul>
+<h4 id="bottom-below-floor-facets">Bottom (below floor facets)<a class="headerlink" href="#bottom-below-floor-facets" title="Permanent link">&para;</a></h4>
+<p>These are de facto useless, as the bottom of the domain is covered by floor facets. Determined by <code>BCbotm</code>. Possible values:</p>
+<ul>
+<li>1: free slip, i.e. zero flux.</li>
+<li>2: flux given by wall function involving temperature.</li>
+<li>3: flux given by neutral wall function.</li>
+</ul>
+<h4 id="walls">Walls<a class="headerlink" href="#walls" title="Permanent link">&para;</a></h4>
+<p>Determined by <code>iwallmom</code>. Possible values:</p>
+<ul>
+<li>1: free-slip, i.e. zero flux.</li>
+<li>2: flux given by wall function involving temperature.</li>
+<li>3: flux given by neutral wall function.</li>
+</ul>
+<h4 id="x">x<a class="headerlink" href="#x" title="Permanent link">&para;</a></h4>
+<p>Determined by <code>BCxm</code>. Possible values:</p>
+<ul>
+<li>1: periodic</li>
+<li>&#8532;/4: inflow/outflow (write more on this)</li>
+</ul>
+<h4 id="y">y<a class="headerlink" href="#y" title="Permanent link">&para;</a></h4>
+<p>Only possible value is 1: periodic.</p>
+<h3 id="temperature">Temperature<a class="headerlink" href="#temperature" title="Permanent link">&para;</a></h3>
+<p>Only required when <code>ltempeq = .true.</code></p>
+<h4 id="top_1">Top<a class="headerlink" href="#top_1" title="Permanent link">&para;</a></h4>
+<p>Determined by <code>BCtopT</code>. Possible values:</p>
+<ul>
+<li>1: constant flux given by <code>wttop</code>.</li>
+<li>2: constant temperature given by <code>thl_top</code>.</li>
+</ul>
+<h5 id="bottom">Bottom<a class="headerlink" href="#bottom" title="Permanent link">&para;</a></h5>
+<p>Determined by <code>BCbotT</code>. Possible values:</p>
+<ul>
+<li>1: constant flux given by <code>wtsurf</code>.</li>
+<li>2: flux given by wall function. Temperature of ghost cells below floor facets given by <code>thls</code>.</li>
+</ul>
+<h4 id="walls_1">Walls<a class="headerlink" href="#walls_1" title="Permanent link">&para;</a></h4>
+<p>Determined by <code>iwalltemp</code>. Possible values:</p>
+<ul>
+<li>1: constant flux given by <code>bctfxm</code> and <code>bctfxp</code> for x-walls, <code>bctfym</code> and <code>bctfyp</code> for y-walls, and <code>bctfz</code> for z-walls. (write more on this - what are x/y/z-walls)</li>
+<li>2: flux given by wall function involving temperature.</li>
+</ul>
+<h3 id="moisture">Moisture<a class="headerlink" href="#moisture" title="Permanent link">&para;</a></h3>
+<h3 id="scalars">Scalars<a class="headerlink" href="#scalars" title="Permanent link">&para;</a></h3>
+<h2 id="driver-simulations">Driver simulations<a class="headerlink" href="#driver-simulations" title="Permanent link">&para;</a></h2>
+<p>The options for running precursor and driven simulations are specified under the <code>&amp;DRIVER</code> header in namoptions.xxx. This provides two model functionalities:</p>
+<p>1) To run a precursor simulation where instantaneous y-z planes at a specified index in the x-direction (<code>iplane</code>) are written every <code>dtdriver</code> seconds to output files (named *driver*).
+2) To run a driven simulation where the inlet y-z plane (at <code>i=ib-1</code> and <code>i=ib</code>) is determined by reading the *driver* files of a precursor simulation that has already been run.</p>
+<h3 id="running-precursor-simulations">Running precursor simulations<a class="headerlink" href="#running-precursor-simulations" title="Permanent link">&para;</a></h3>
+<p>Precursor simulations are indicated by first setting <code>idriver = 1</code> in namoptions.xxx. The set-up of the precursor simulation is then up to the users discretion. The other variables to specify are:</p>
+<ul>
+<li><code>tdriverstart</code> - specifies the number of seconds after which the *driver* files will start being written. If the precursor simulation is not a warm start then it is recommended to allow a sufficient amount of time for the flow field to develop to the desired state before starting to write to the *driver* files.</li>
+<li><code>dtdriver</code> specifies the timestep in seconds at which the y-z planes are written to the *driver* files. It is important to set this to be small (ideally <code>dtdriver = dt</code>) in order to reduce the requirement to interpolate these fields in the resulting driven simulation. However, depending on the case, this can be made larger with the advantage being a reduction in size of the *driver* files that are produced.</li>
+<li><code>iplane</code> is the index in the x-direction that you want to save the instantaneous y-z planes. For many cases the expected value is <code>iplane = ie</code> so that the outlet of the precursor simulation is saved.</li>
+<li><code>driverstore</code> is the number of timesteps that the user wants to write to the *driver* files. The total simulation time should therefore be equal or greater to <code>tdriverstart + (driverstore-1)*dtdriver</code> seconds to ensure that the writing process completes. The driven simulation based off this precursor will be limited to a maximum run time of <code>(driverstore-1)*dtdriver</code> seconds (unless multiple precursors are run using warm starts).</li>
+</ul>
+<p>Outputs:</p>
+<ul>
+<li>A file for each prognostic variable (e.g. <code>u0</code>, <code>v0</code>, <code>w0</code>, <code>thl0</code> (if <code>ltempeq = .true.</code>) etc.) for each processor.The file names follow '<span><span class="MathJax_Preview">var"driver\_"</span><script type="math/tex">var"driver\_"</script></span>nproc"."$expnr' where $var indicates the variable (NOTE: h is potential temperature under this convention). These files will hold the corresponding instantaneous y-z planes over the specified time period and are to be used to drive a driven simulation.</li>
+</ul>
+<h3 id="running-driven-simulations">Running driven simulations<a class="headerlink" href="#running-driven-simulations" title="Permanent link">&para;</a></h3>
+<p>It is necessary to first have run a simulation following the above instructions. Driven simulations are initiated by setting <code>idriver = 2</code>. The following are guidelines for setting up the driven simulation:</p>
+<ul>
+<li>The driven simulation must have the same <code>jtot</code>, <code>ysize</code>, <code>kmax</code> and <code>zgrid.inp.xxx</code> as its corresponding precursor simulation.</li>
+<li>The driven simulation must use the same number of cores as the precursor simulation.</li>
+<li>It is not necessary to apply a forcing to the driven simulation due to the enforced inlet-outlet boundary conditions.</li>
+<li><code>BCxm = 5</code> is the current index to enforce the required inlet-outlet boundary conditions. Boundary conditions in the x-direction for other prognostic variables will be overwritten by this and therefore do not need to be set. <strong>!! we could automate this at a later date if suitable !!</strong>.</li>
+<li>The *driver* files from the precursor simulation must be copied from its output directory to the experiments directory of the driven simulation. For example, if the precursor is 001 and the driven simulation is 002 and you are working from the top uDALES directory: <code>cp outputs/001/*driver* experiments/002/</code>.</li>
+<li><code>driverstore</code> must be equal to or less than the number of timesteps saved in the *driver* files (equivalent value of <code>driverstore</code> in the precursor simulation).</li>
+<li><code>driverjobnr</code> must equal the job number of the corresponding precursor simulation. Following the above example: <code>driverjobnr = 001</code>.</li>
+<li><code>runtime</code> must equal <code>(driverstore-1)*dtdriver</code> seconds or less where <code>dtdriver</code> is from the precursor simulation. If this time limit is exceeded the simulation will be stopped as there will be no more data available to determine the inlet.</li>
+<li>NOTE: It is important that buildings are not positioned too close to the downwind edge of the domain. The vortices and wakes downwind in the nearfield of the buildings can cause errors alongside the convective outflow boundary condition. The necessary distance is case specific. If this distance is too small a typical error will be that high velocities are found at the domain edge and these lead to slow simulations and dt tending to nought.</li>
+</ul>
+                
+              
+              
+                
+
+
+              
+            </article>
+          </div>
+        </div>
+      </main>
+      
+        
+<footer class="md-footer">
+  
+    <nav class="md-footer__inner md-grid" aria-label="Footer">
+      
+        <a href="../udales-example-simulations/" class="md-footer__link md-footer__link--prev" rel="prev">
+          <div class="md-footer__button md-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+          </div>
+          <div class="md-footer__title">
+            <div class="md-ellipsis">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              Examples
+            </div>
+          </div>
+        </a>
+      
+      
+        <a href="../udales-namoptions-overview/" class="md-footer__link md-footer__link--next" rel="next">
+          <div class="md-footer__title">
+            <div class="md-ellipsis">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              Configuration
+            </div>
+          </div>
+          <div class="md-footer__button md-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z"/></svg>
+          </div>
+        </a>
+      
+    </nav>
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-footer-copyright">
+        
+          <div class="md-footer-copyright__highlight">
+            The uDALES Team
+          </div>
+        
+        Made with
+        <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+          Material for MkDocs
+        </a>
+        
+      </div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    <script id="__config" type="application/json">{"base": "..", "features": [], "translations": {"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing"}, "search": "../assets/javascripts/workers/search.fb4a9340.min.js", "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.5cf3e710.min.js"></script>
+      
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+      
+    
+  </body>
+</html>

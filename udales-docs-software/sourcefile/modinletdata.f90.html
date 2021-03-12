@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+   
+    <meta name="description" content="Documentation for uDALES">
+   
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>modinletdata.f90 &ndash; uDALES</title>
+
+    <link href="../css/bootstrap.min.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <link href="../css/font-awesome.min.css" rel="stylesheet">
+    <link href="../css/local.css" rel="stylesheet">
+    
+    <link  href="../tipuesearch/tipuesearch.css" rel="stylesheet">
+    
+    
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    
+    <script src="../js/jquery-2.1.3.min.js"></script>
+    <script src="../js/svg-pan-zoom.min.js"></script>
+
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+        
+            <li class="dropdown hidden-xs visible-sm visible-md hidden-lg">
+              <a href="#" class="dropdown-toggle"
+              data-toggle="dropdown" role="button"
+              aria-haspopup="true"
+     aria-expanded="false">Contents <span class="caret"></span></a>
+        <ul class="dropdown-menu">
+          
+              
+            <li><a href="../lists/files.html">Source Files</a></li>
+        
+        
+        
+            <li><a href="../lists/modules.html">Modules</a></li>
+        
+            
+                                
+            <li><a href="../lists/procedures.html">Procedures</a></li>
+        
+               
+            <li><a href="../lists/types.html">Derived Types</a></li>
+        
+        
+            <li><a href="../program/dalesurban.html">Program</a></li>
+      
+            </ul>
+            </li>
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/files.html">Source Files</a></li>
+
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/modules.html">Modules</a></li>
+
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/procedures.html">Procedures</a></li>
+
+                             
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/types.html">Derived Types</a></li>
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../program/dalesurban.html">Program</a></li>
+
+          </ul>
+        
+        <form action="../search.html" class="navbar-form navbar-right" role="search">
+        <div class="form-group">
+          <input type="text" class="form-control" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+        </div>
+<!--
+        <button type="submit" class="btn btn-default">Submit</button>
+-->
+        </form>
+        
+        </div><!--/.nav-collapse -->
+      </div>
+    </nav>
+
+    <div class="container">
+    
+  
+  <div class="row">
+    <h1>modinletdata.f90
+    <small>Source File</small>
+    
+    </h1>
+    
+<div class="row">
+  <div class="col-lg-12">
+<div class="well well-sm">
+  <ul class="list-inline" style="margin-bottom:0px;display:inline">
+     
+     
+     
+     
+    
+    
+     <li><i class="fa fa-list-ol"></i>
+       <a data-toggle="tooltip"
+    data-placement="bottom" data-html="true"
+    title=" 1.3% of total for source files.">185 statements</a>
+     </li> 
+     
+     
+     
+    <li><i class="fa fa-code"></i><a href="../src/modinletdata.f90"> Source File</a></li>
+     
+     
+  </ul>
+  <ol class="breadcrumb in-well text-right">
+  
+    
+  
+     <li class="active">modinletdata.f90</li>
+  </ol>
+</div>
+</div>
+</div>
+<script>
+  $(function () {
+  $('[data-toggle="tooltip"]').tooltip()
+  })
+</script>
+
+  </div>
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+    
+<div id="sidebar">
+  
+<h3>Contents</h3>
+ 
+
+
+
+
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#mods-0">Modules</a></h3></div>
+  <div id="mods-0" class="panel-collapse collapse">
+    <div class="list-group">
+      
+      <a class="list-group-item" href="../module/modinletdata.html">modinletdata</a>
+      
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../sourcefile/modinletdata.f90.html#src">modinletdata.f90</a>
+  </div>
+</div>
+
+
+
+</div>
+
+    </div>
+    <div class="col-md-9" id='text'>
+      
+      <br>
+    
+      
+    <div class="panel panel-default">
+      <div class="panel-heading">
+  <h3 class="panel-title">Files dependent on this one</h3>
+      </div>
+      <div class="panel-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.40.1 (20161225.0304)
+ -->
+<!-- Title: sourcefile~~modinletdata.f90~~AfferentGraph Pages: 1 -->
+<svg id="sourcefilemodinletdataf90AfferentGraph" width="641pt" height="140pt"
+ viewBox="0.00 0.00 641.00 140.09" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="sourcefile~~modinletdata.f90~~AfferentGraph" class="graph" transform="scale(.7186 .7186) rotate(0) translate(4 190.9401)">
+<title>sourcefile~~modinletdata.f90~~AfferentGraph</title>
+<polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-190.9401 888,-190.9401 888,4 -4,4"/>
+<!-- sourcefile~modinletdata.f90 -->
+<g id="sourcefile~~modinletdata.f90~~AfferentGraph_node1" class="node">
+<title>sourcefile~modinletdata.f90</title>
+<polygon fill="none" stroke="#000000" points="104,-86.9401 0,-86.9401 0,-62.9401 104,-62.9401 104,-86.9401"/>
+<text text-anchor="middle" x="52" y="-72.5401" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#000000">modinletdata.f90</text>
+</g>
+<!-- sourcefile~modinlet.f90 -->
+<g id="sourcefile~~modinletdata.f90~~AfferentGraph_node2" class="node">
+<title>sourcefile~modinlet.f90</title>
+<g id="a_sourcefile~~modinletdata.f90~~AfferentGraph_node2"><a xlink:href=".././sourcefile/modinlet.f90.html" xlink:title="modinlet.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="342,-84.9401 262,-84.9401 262,-60.9401 342,-60.9401 342,-84.9401"/>
+<text text-anchor="middle" x="302" y="-70.5401" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modinlet.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modinlet.f90&#45;&gt;sourcefile~modinletdata.f90 -->
+<g id="sourcefile~~modinletdata.f90~~AfferentGraph_edge1" class="edge">
+<title>sourcefile~modinlet.f90&#45;&gt;sourcefile~modinletdata.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M261.8332,-73.2614C222.0537,-73.5796 160.5715,-74.0715 114.4236,-74.4407"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="114.2038,-70.9422 104.2322,-74.5222 114.2599,-77.942 114.2038,-70.9422"/>
+</g>
+<!-- sourcefile~modsave.f90 -->
+<g id="sourcefile~~modinletdata.f90~~AfferentGraph_node8" class="node">
+<title>sourcefile~modsave.f90</title>
+<g id="a_sourcefile~~modinletdata.f90~~AfferentGraph_node8"><a xlink:href=".././sourcefile/modsave.f90.html" xlink:title="modsave.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="222,-126.9401 140,-126.9401 140,-102.9401 222,-102.9401 222,-126.9401"/>
+<text text-anchor="middle" x="181" y="-112.5401" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modsave.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modinlet.f90&#45;&gt;sourcefile~modsave.f90 -->
+<g id="sourcefile~~modinletdata.f90~~AfferentGraph_edge21" class="edge">
+<title>sourcefile~modinlet.f90&#45;&gt;sourcefile~modsave.f90</title>
+<path fill="none" stroke="#ff00da" stroke-dasharray="5,2" d="M267.3263,-84.9756C254.289,-89.5009 239.282,-94.7099 225.475,-99.5025"/>
+<polygon fill="#ff00da" stroke="#ff00da" points="223.9782,-96.3171 215.6788,-102.9028 226.2736,-102.9301 223.9782,-96.3171"/>
+</g>
+<!-- sourcefile~modsubgrid.f90 -->
+<g id="sourcefile~~modinletdata.f90~~AfferentGraph_node3" class="node">
+<title>sourcefile~modsubgrid.f90</title>
+<g id="a_sourcefile~~modinletdata.f90~~AfferentGraph_node3"><a xlink:href=".././sourcefile/modsubgrid.f90.html" xlink:title="modsubgrid.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="621,-166.9401 524,-166.9401 524,-142.9401 621,-142.9401 621,-166.9401"/>
+<text text-anchor="middle" x="572.5" y="-152.5401" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modsubgrid.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modsubgrid.f90&#45;&gt;sourcefile~modinletdata.f90 -->
+<g id="sourcefile~~modinletdata.f90~~AfferentGraph_edge2" class="edge">
+<title>sourcefile~modsubgrid.f90&#45;&gt;sourcefile~modinletdata.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M523.5517,-152.75C469.3063,-150.8327 379.2713,-149.1627 302,-154.9401"/>
+</g>
+<!-- sourcefile~modboundary.f90 -->
+<g id="sourcefile~~modinletdata.f90~~AfferentGraph_node6" class="node">
+<title>sourcefile~modboundary.f90</title>
+<g id="a_sourcefile~~modinletdata.f90~~AfferentGraph_node6"><a xlink:href=".././sourcefile/modboundary.f90.html" xlink:title="modboundary.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="488,-46.9401 382,-46.9401 382,-22.9401 488,-22.9401 488,-46.9401"/>
+<text text-anchor="middle" x="435" y="-32.5401" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modboundary.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modsubgrid.f90&#45;&gt;sourcefile~modboundary.f90 -->
+<g id="sourcefile~~modinletdata.f90~~AfferentGraph_edge16" class="edge">
+<title>sourcefile~modsubgrid.f90&#45;&gt;sourcefile~modboundary.f90</title>
+<path fill="none" stroke="#0091ff" stroke-dasharray="5,2" d="M546.387,-142.9057C538.8553,-138.9233 530.8325,-134.1601 524,-128.9401 495.2482,-106.9736 467.4592,-75.4576 450.794,-55.0919"/>
+<polygon fill="#0091ff" stroke="#0091ff" points="453.3611,-52.6993 444.3625,-47.1068 447.9095,-57.0903 453.3611,-52.6993"/>
+</g>
+<!-- sourcefile~modstartup.f90 -->
+<g id="sourcefile~~modinletdata.f90~~AfferentGraph_node4" class="node">
+<title>sourcefile~modstartup.f90</title>
+<g id="a_sourcefile~~modinletdata.f90~~AfferentGraph_node4"><a xlink:href=".././sourcefile/modstartup.f90.html" xlink:title="modstartup.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="760,-106.9401 666,-106.9401 666,-82.9401 760,-82.9401 760,-106.9401"/>
+<text text-anchor="middle" x="713" y="-92.5401" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modstartup.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modstartup.f90&#45;&gt;sourcefile~modinletdata.f90 -->
+<g id="sourcefile~~modinletdata.f90~~AfferentGraph_edge3" class="edge">
+<title>sourcefile~modstartup.f90&#45;&gt;sourcefile~modinletdata.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M435,-114.9401C373.2736,-114.7854 363.5194,-149.8863 302,-154.9401"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M302,-154.9401C248.4028,-159.343 233.7518,-165.3947 181,-154.9401"/>
+</g>
+<!-- sourcefile~modstartup.f90&#45;&gt;sourcefile~modinlet.f90 -->
+<g id="sourcefile~~modinletdata.f90~~AfferentGraph_edge9" class="edge">
+<title>sourcefile~modstartup.f90&#45;&gt;sourcefile~modinlet.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M572.5,-114.9401C511.5422,-110.6141 496.1109,-115.0932 435,-114.9401"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M435,-114.9401C416.8413,-114.8946 374.3077,-100.4858 342.1935,-88.5596"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="343.1922,-85.1961 332.6001,-84.9568 340.7311,-91.7492 343.1922,-85.1961"/>
+</g>
+<!-- sourcefile~modstartup.f90&#45;&gt;sourcefile~modsubgrid.f90 -->
+<g id="sourcefile~~modinletdata.f90~~AfferentGraph_edge12" class="edge">
+<title>sourcefile~modstartup.f90&#45;&gt;sourcefile~modsubgrid.f90</title>
+<path fill="none" stroke="#ffda00" stroke-dasharray="5,2" d="M684.5677,-107.082C663.1434,-116.2311 633.5605,-128.8644 610.1686,-138.8539"/>
+<polygon fill="#ffda00" stroke="#ffda00" points="608.7119,-135.67 600.89,-142.8162 611.4611,-142.1076 608.7119,-135.67"/>
+</g>
+<!-- sourcefile~moddriver.f90 -->
+<g id="sourcefile~~modinletdata.f90~~AfferentGraph_node5" class="node">
+<title>sourcefile~moddriver.f90</title>
+<g id="a_sourcefile~~modinletdata.f90~~AfferentGraph_node5"><a xlink:href=".././sourcefile/moddriver.f90.html" xlink:title="moddriver.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="346,-126.9401 258,-126.9401 258,-102.9401 346,-102.9401 346,-126.9401"/>
+<text text-anchor="middle" x="302" y="-112.5401" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">moddriver.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modstartup.f90&#45;&gt;sourcefile~moddriver.f90 -->
+<g id="sourcefile~~modinletdata.f90~~AfferentGraph_edge15" class="edge">
+<title>sourcefile~modstartup.f90&#45;&gt;sourcefile~moddriver.f90</title>
+<path fill="none" stroke="#00ff91" stroke-dasharray="5,2" d="M435,-114.9401C409.038,-114.875 380.2251,-114.8671 356.0739,-114.8787"/>
+<polygon fill="#00ff91" stroke="#00ff91" points="356.0285,-111.3786 346.0307,-114.8847 356.0328,-118.3786 356.0285,-111.3786"/>
+</g>
+<!-- sourcefile~modstartup.f90&#45;&gt;sourcefile~modboundary.f90 -->
+<g id="sourcefile~~modinletdata.f90~~AfferentGraph_edge18" class="edge">
+<title>sourcefile~modstartup.f90&#45;&gt;sourcefile~modboundary.f90</title>
+<path fill="none" stroke="#0091ff" stroke-dasharray="5,2" d="M665.703,-106.7446C638.5342,-112.2502 603.7121,-117.1551 572.5,-114.9401"/>
+<path fill="none" stroke="#0091ff" stroke-dasharray="5,2" d="M572.5,-114.9401C525.0205,-111.5706 479.1497,-76.4786 454.2412,-53.9045"/>
+<polygon fill="#0091ff" stroke="#0091ff" points="456.6152,-51.3327 446.9152,-47.0712 451.8406,-56.4516 456.6152,-51.3327"/>
+</g>
+<!-- sourcefile~modpois.f90 -->
+<g id="sourcefile~~modinletdata.f90~~AfferentGraph_node11" class="node">
+<title>sourcefile~modpois.f90</title>
+<g id="a_sourcefile~~modinletdata.f90~~AfferentGraph_node11"><a xlink:href=".././sourcefile/modpois.f90.html" xlink:title="modpois.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="612,-86.9401 533,-86.9401 533,-62.9401 612,-62.9401 612,-86.9401"/>
+<text text-anchor="middle" x="572.5" y="-72.5401" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modpois.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modstartup.f90&#45;&gt;sourcefile~modpois.f90 -->
+<g id="sourcefile~~modinletdata.f90~~AfferentGraph_edge25" class="edge">
+<title>sourcefile~modstartup.f90&#45;&gt;sourcefile~modpois.f90</title>
+<path fill="none" stroke="#0000ff" stroke-dasharray="5,2" d="M665.8247,-88.2247C651.84,-86.234 636.4829,-84.048 622.3355,-82.0341"/>
+<polygon fill="#0000ff" stroke="#0000ff" points="622.6782,-78.5477 612.2847,-80.6034 621.6916,-85.4778 622.6782,-78.5477"/>
+</g>
+<!-- sourcefile~moddriver.f90&#45;&gt;sourcefile~modinletdata.f90 -->
+<g id="sourcefile~~modinletdata.f90~~AfferentGraph_edge4" class="edge">
+<title>sourcefile~moddriver.f90&#45;&gt;sourcefile~modinletdata.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M275.664,-127.0347C245.9203,-140.088 199.2847,-158.5638 181,-154.9401"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M181,-154.9401C137.7586,-146.3703 95.9487,-114.8426 72.1621,-94.0187"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="74.3039,-91.2376 64.5274,-87.1545 69.6238,-96.4431 74.3039,-91.2376"/>
+</g>
+<!-- sourcefile~moddriver.f90&#45;&gt;sourcefile~modsave.f90 -->
+<g id="sourcefile~~modinletdata.f90~~AfferentGraph_edge20" class="edge">
+<title>sourcefile~moddriver.f90&#45;&gt;sourcefile~modsave.f90</title>
+<path fill="none" stroke="#ff00da" stroke-dasharray="5,2" d="M257.9739,-114.9401C249.7111,-114.9401 241.0046,-114.9401 232.5375,-114.9401"/>
+<polygon fill="#ff00da" stroke="#ff00da" points="232.3743,-111.4402 222.3742,-114.9401 232.3742,-118.4402 232.3743,-111.4402"/>
+</g>
+<!-- sourcefile~modboundary.f90&#45;&gt;sourcefile~modinletdata.f90 -->
+<g id="sourcefile~~modinletdata.f90~~AfferentGraph_edge5" class="edge">
+<title>sourcefile~modboundary.f90&#45;&gt;sourcefile~modinletdata.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M394.797,-22.9387C336.9958,-7.7064 227.7187,13.4896 140,-13.9401 113.6224,-22.1884 88.2026,-41.4297 71.5245,-56.1138"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="69.118,-53.5714 64.0734,-62.8882 73.827,-58.7508 69.118,-53.5714"/>
+</g>
+<!-- sourcefile~modboundary.f90&#45;&gt;sourcefile~modinlet.f90 -->
+<g id="sourcefile~~modinletdata.f90~~AfferentGraph_edge8" class="edge">
+<title>sourcefile~modboundary.f90&#45;&gt;sourcefile~modinlet.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M392.918,-46.9635C380.0613,-50.6368 365.7905,-54.7142 352.4386,-58.529"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="351.0998,-55.2714 342.4461,-61.384 353.0229,-62.0021 351.0998,-55.2714"/>
+</g>
+<!-- sourcefile~modboundary.f90&#45;&gt;sourcefile~moddriver.f90 -->
+<g id="sourcefile~~modinletdata.f90~~AfferentGraph_edge14" class="edge">
+<title>sourcefile~modboundary.f90&#45;&gt;sourcefile~moddriver.f90</title>
+<path fill="none" stroke="#00ff91" stroke-dasharray="5,2" d="M418.3831,-46.9759C400.8304,-59.4439 372.1313,-79.1391 346,-93.9401 343.3601,-95.4353 340.5969,-96.9235 337.7966,-98.3774"/>
+<polygon fill="#00ff91" stroke="#00ff91" points="336.2037,-95.2607 328.832,-102.8705 339.3403,-101.5187 336.2037,-95.2607"/>
+</g>
+<!-- sourcefile~tstep.f90 -->
+<g id="sourcefile~~modinletdata.f90~~AfferentGraph_node7" class="node">
+<title>sourcefile~tstep.f90</title>
+<g id="a_sourcefile~~modinletdata.f90~~AfferentGraph_node7"><a xlink:href=".././sourcefile/tstep.f90.html" xlink:title="tstep.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="210.5,-46.9401 151.5,-46.9401 151.5,-22.9401 210.5,-22.9401 210.5,-46.9401"/>
+<text text-anchor="middle" x="181" y="-32.5401" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">tstep.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~tstep.f90&#45;&gt;sourcefile~modinletdata.f90 -->
+<g id="sourcefile~~modinletdata.f90~~AfferentGraph_edge6" class="edge">
+<title>sourcefile~tstep.f90&#45;&gt;sourcefile~modinletdata.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M151.4048,-44.1169C136.3569,-48.7829 117.6818,-54.5736 100.595,-59.8718"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="99.2723,-56.6175 90.7575,-62.9222 101.3455,-63.3035 99.2723,-56.6175"/>
+</g>
+<!-- sourcefile~modsave.f90&#45;&gt;sourcefile~modinletdata.f90 -->
+<g id="sourcefile~~modinletdata.f90~~AfferentGraph_edge7" class="edge">
+<title>sourcefile~modsave.f90&#45;&gt;sourcefile~modinletdata.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M142.2957,-102.9387C129.2769,-98.9019 114.5794,-94.3445 100.8818,-90.0972"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="101.7108,-86.6899 91.1228,-87.0712 99.6376,-93.3759 101.7108,-86.6899"/>
+</g>
+<!-- sourcefile~modstatsdump.f90 -->
+<g id="sourcefile~~modinletdata.f90~~AfferentGraph_node9" class="node">
+<title>sourcefile~modstatsdump.f90</title>
+<g id="a_sourcefile~~modinletdata.f90~~AfferentGraph_node9"><a xlink:href=".././sourcefile/modstatsdump.f90.html" xlink:title="modstatsdump.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="769,-186.9401 657,-186.9401 657,-162.9401 769,-162.9401 769,-186.9401"/>
+<text text-anchor="middle" x="713" y="-172.5401" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modstatsdump.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modstatsdump.f90&#45;&gt;sourcefile~modsubgrid.f90 -->
+<g id="sourcefile~~modinletdata.f90~~AfferentGraph_edge11" class="edge">
+<title>sourcefile~modstatsdump.f90&#45;&gt;sourcefile~modsubgrid.f90</title>
+<path fill="none" stroke="#ffda00" stroke-dasharray="5,2" d="M656.6628,-166.9205C648.3043,-165.7307 639.6721,-164.5019 631.2654,-163.3053"/>
+<polygon fill="#ffda00" stroke="#ffda00" points="631.55,-159.8106 621.1565,-161.8663 630.5635,-166.7407 631.55,-159.8106"/>
+</g>
+<!-- sourcefile~program.f90 -->
+<g id="sourcefile~~modinletdata.f90~~AfferentGraph_node10" class="node">
+<title>sourcefile~program.f90</title>
+<g id="a_sourcefile~~modinletdata.f90~~AfferentGraph_node10"><a xlink:href=".././sourcefile/program.f90.html" xlink:title="program.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="884,-126.9401 805,-126.9401 805,-102.9401 884,-102.9401 884,-126.9401"/>
+<text text-anchor="middle" x="844.5" y="-112.5401" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">program.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~program.f90&#45;&gt;sourcefile~modsubgrid.f90 -->
+<g id="sourcefile~~modinletdata.f90~~AfferentGraph_edge10" class="edge">
+<title>sourcefile~program.f90&#45;&gt;sourcefile~modsubgrid.f90</title>
+<path fill="none" stroke="#ffda00" stroke-dasharray="5,2" d="M804.9489,-120.7564C759.3653,-127.4599 683.9985,-138.5432 631.4848,-146.2658"/>
+<polygon fill="#ffda00" stroke="#ffda00" points="630.6866,-142.8455 621.3023,-147.7633 631.7052,-149.771 630.6866,-142.8455"/>
+</g>
+<!-- sourcefile~program.f90&#45;&gt;sourcefile~modstartup.f90 -->
+<g id="sourcefile~~modinletdata.f90~~AfferentGraph_edge13" class="edge">
+<title>sourcefile~program.f90&#45;&gt;sourcefile~modstartup.f90</title>
+<path fill="none" stroke="#48ff00" stroke-dasharray="5,2" d="M804.6888,-108.8851C793.814,-107.2312 781.8117,-105.4057 770.1741,-103.6357"/>
+<polygon fill="#48ff00" stroke="#48ff00" points="770.4911,-100.1438 760.0784,-102.1003 769.4385,-107.0642 770.4911,-100.1438"/>
+</g>
+<!-- sourcefile~program.f90&#45;&gt;sourcefile~modboundary.f90 -->
+<g id="sourcefile~~modinletdata.f90~~AfferentGraph_edge17" class="edge">
+<title>sourcefile~program.f90&#45;&gt;sourcefile~modboundary.f90</title>
+<path fill="none" stroke="#0091ff" stroke-dasharray="5,2" d="M572.5,-34.9401C548.3377,-33.192 521.7246,-32.8299 498.4007,-33.0295"/>
+<polygon fill="#0091ff" stroke="#0091ff" points="498.2375,-29.5312 488.2808,-33.1524 498.3226,-36.5307 498.2375,-29.5312"/>
+</g>
+<!-- sourcefile~program.f90&#45;&gt;sourcefile~modsave.f90 -->
+<g id="sourcefile~~modinletdata.f90~~AfferentGraph_edge22" class="edge">
+<title>sourcefile~program.f90&#45;&gt;sourcefile~modsave.f90</title>
+<path fill="none" stroke="#ff00da" stroke-dasharray="5,2" d="M831.6586,-102.8288C809.5533,-83.0465 761.9497,-44.9939 713,-34.9401"/>
+<path fill="none" stroke="#ff00da" stroke-dasharray="5,2" d="M713,-34.9401C651.8324,-22.3768 634.7817,-39.4459 572.5,-34.9401"/>
+<path fill="none" stroke="#ff00da" stroke-dasharray="5,2" d="M572.5,-34.9401C533.9029,-32.1477 526.4113,-18.6416 488,-13.9401 385.1595,-1.3525 349.3412,-3.0381 258,-51.9401 236.4152,-63.4961 215.126,-81.5702 200.4229,-95.4012"/>
+<polygon fill="#ff00da" stroke="#ff00da" points="197.7448,-93.1212 192.972,-102.5802 202.6017,-98.1621 197.7448,-93.1212"/>
+</g>
+<!-- sourcefile~program.f90&#45;&gt;sourcefile~modstatsdump.f90 -->
+<g id="sourcefile~~modinletdata.f90~~AfferentGraph_edge23" class="edge">
+<title>sourcefile~program.f90&#45;&gt;sourcefile~modstatsdump.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M817.889,-127.082C798.0153,-136.1498 770.6408,-148.6401 748.8408,-158.5868"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="747.2163,-155.4809 739.5714,-162.8162 750.122,-161.8493 747.2163,-155.4809"/>
+</g>
+<!-- sourcefile~program.f90&#45;&gt;sourcefile~modpois.f90 -->
+<g id="sourcefile~~modinletdata.f90~~AfferentGraph_edge24" class="edge">
+<title>sourcefile~program.f90&#45;&gt;sourcefile~modpois.f90</title>
+<path fill="none" stroke="#0000ff" stroke-dasharray="5,2" d="M713,-34.9401C673.9401,-26.9175 629.8622,-43.8373 601.6633,-58.0881"/>
+<polygon fill="#0000ff" stroke="#0000ff" points="599.9625,-55.028 592.7392,-62.7788 603.2194,-61.2242 599.9625,-55.028"/>
+</g>
+<!-- sourcefile~modpois.f90&#45;&gt;sourcefile~modboundary.f90 -->
+<g id="sourcefile~~modinletdata.f90~~AfferentGraph_edge19" class="edge">
+<title>sourcefile~modpois.f90&#45;&gt;sourcefile~modboundary.f90</title>
+<path fill="none" stroke="#0091ff" stroke-dasharray="5,2" d="M532.7293,-63.3704C518.2854,-59.1685 501.7527,-54.359 486.4443,-49.9057"/>
+<polygon fill="#0091ff" stroke="#0091ff" points="487.1752,-46.4733 476.5956,-47.0406 485.2199,-53.1946 487.1752,-46.4733"/>
+</g>
+</g>
+</svg>
+</div><script>var pansourcefilemodinletdataf90AfferentGraph = svgPanZoom('#sourcefilemodinletdataf90AfferentGraph', {zoomEnabled: true,controlIconsEnabled: true, fit: true, center: true,}); </script><div><a type="button" class="graph-help" data-toggle="modal" href="#graph-help-text">Help</a></div><div class="modal fade" id="graph-help-text" tabindex="-1" role="dialog"><div class="modal-dialog modal-lg" role="document"><div class="modal-content"><div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button><h4 class="modal-title" id="-graph-help-label">Graph Key</h4></div><div class="modal-body">
+    <p>Nodes of different colours represent the following: </p>
+    <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.40.1 (20161225.0304)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="202pt" height="32pt"
+ viewBox="0.00 0.00 201.50 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28)">
+<title>Graph Key</title>
+<polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-28 197.5,-28 197.5,4 -4,4"/>
+<!-- Source File -->
+<g id="node1" class="node">
+<title>Source File</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="71,-24 0,-24 0,0 71,0 71,-24"/>
+<text text-anchor="middle" x="35.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">Source File</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node2" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="#000000" points="193.5,-24 89.5,-24 89.5,0 193.5,0 193.5,-24"/>
+<text text-anchor="middle" x="141.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#000000">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+    
+    <p>Solid arrows point from a file to a file which it depends on. A file
+    is dependent upon another if the latter must be compiled before the former
+    can be. Where possible, edges connecting nodes are given different colours to make them easier to distinguish in large graphs.
+    </p>
+    </div></div></div></div>
+      </div>
+    </div>
+      
+      <br>
+
+    <section class="visible-xs visible-sm hidden-md">
+      
+<h3>Contents</h3>
+ 
+
+
+
+
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#mods-1">Modules</a></h3></div>
+  <div id="mods-1" class="panel-collapse collapse">
+    <div class="list-group">
+      
+      <a class="list-group-item" href="../module/modinletdata.html">modinletdata</a>
+      
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../sourcefile/modinletdata.f90.html#src">modinletdata.f90</a>
+  </div>
+</div>
+
+
+
+    </section>
+    <br class="visible-xs visible-sm hidden-md">
+
+    <section>
+      <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="hl"><pre><span></span><a name="ln-1"></a><span class="c">!!</span>
+<a name="ln-2"></a><span class="c">!!  \author Jasper Tomas,TU Delft, 31 March 2014</span>
+<a name="ln-3"></a><span class="c">!!  \par Revision list</span>
+<a name="ln-4"></a><span class="c">!!  \todo Documentation</span>
+<a name="ln-5"></a><span class="c">!</span>
+<a name="ln-6"></a>
+<a name="ln-7"></a><span class="k">module </span><span class="n">modinletdata</span>
+<a name="ln-8"></a>  <span class="k">implicit none</span>
+<a name="ln-9"></a><span class="k">  save</span>
+<a name="ln-10"></a>
+<a name="ln-11"></a><span class="k">    </span><span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">storeu0inletbc</span><span class="p">(:,:,:)</span>
+<a name="ln-12"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">storev0inletbc</span><span class="p">(:,:,:)</span>
+<a name="ln-13"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">storew0inletbc</span><span class="p">(:,:,:)</span>
+<a name="ln-14"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">storet0inletbc</span><span class="p">(:,:,:)</span>
+<a name="ln-15"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">u0rot</span><span class="p">(:,:,:)</span>    <span class="c">! dummy variable to eventually rotate u0 in horizontal plane</span>
+<a name="ln-16"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">v0rot</span><span class="p">(:,:,:)</span>    <span class="c">! dummy variable to eventually rotate v0 in horizontal plane</span>
+<a name="ln-17"></a>
+<a name="ln-18"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">Utav</span><span class="p">(:,:)</span>       <span class="c">!&lt; j-averaged and time averaged mean velocity</span>
+<a name="ln-19"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">QLtav</span><span class="p">(:,:)</span>       <span class="c">!&lt; j-averaged and time averaged mean velocity</span>
+<a name="ln-20"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">QTtav</span><span class="p">(:,:)</span>       <span class="c">!&lt; j-averaged and time averaged mean velocity</span>
+<a name="ln-21"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">Ttav</span><span class="p">(:,:)</span>       <span class="c">!&lt; j-averaged and time averaged mean temperature</span>
+<a name="ln-22"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">uaver</span><span class="p">(:,:)</span>     <span class="c">!&lt; j-averaged  mean velocity</span>
+<a name="ln-23"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">taver</span><span class="p">(:,:)</span>     <span class="c">!&lt; j-averaged  mean temperature</span>
+<a name="ln-24"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">u0inletbc</span><span class="p">(:,:)</span>  <span class="c">!&lt; final computed inlet bc for u</span>
+<a name="ln-25"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">v0inletbc</span><span class="p">(:,:)</span>  <span class="c">!&lt; final computed inlet bc for v</span>
+<a name="ln-26"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">w0inletbc</span><span class="p">(:,:)</span>  <span class="c">!&lt; final computed inlet bc for t</span>
+<a name="ln-27"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">t0inletbc</span><span class="p">(:,:)</span>  <span class="c">!&lt; final computed inlet bc for w</span>
+<a name="ln-28"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">u0inletbcold</span><span class="p">(:,:)</span>  <span class="c">!&lt; old final computed inlet bc for u</span>
+<a name="ln-29"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">v0inletbcold</span><span class="p">(:,:)</span>  <span class="c">!&lt; old final computed inlet bc for v</span>
+<a name="ln-30"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">w0inletbcold</span><span class="p">(:,:)</span>  <span class="c">!&lt; old final computed inlet bc for w</span>
+<a name="ln-31"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">t0inletbcold</span><span class="p">(:,:)</span>  <span class="c">!&lt; old final computed inlet bc for t</span>
+<a name="ln-32"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">uminletbc</span><span class="p">(:,:)</span>  <span class="c">!&lt; final computed inlet bc for u</span>
+<a name="ln-33"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">vminletbc</span><span class="p">(:,:)</span>  <span class="c">!&lt; final computed inlet bc for v</span>
+<a name="ln-34"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">wminletbc</span><span class="p">(:,:)</span>  <span class="c">!&lt; final computed inlet bc for w</span>
+<a name="ln-35"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">tminletbc</span><span class="p">(:,:)</span>  <span class="c">!&lt; final computed inlet bc for t</span>
+<a name="ln-36"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">Uinl</span><span class="p">(:)</span>   <span class="c">!&lt; mean inlet u-velocity (time-averaged and y-averaged)</span>
+<a name="ln-37"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">QLinl</span><span class="p">(:)</span>   <span class="c">!&lt; mean inlet u-velocity (time-averaged and y-averaged)</span>
+<a name="ln-38"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">QTinl</span><span class="p">(:)</span>   <span class="c">!&lt; mean inlet u-velocity (time-averaged and y-averaged)</span>
+<a name="ln-39"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">Winl</span><span class="p">(:)</span>   <span class="c">!&lt; mean inlet w-velocity  (time-averaged and y-averaged)</span>
+<a name="ln-40"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">Tinl</span><span class="p">(:)</span>   <span class="c">!&lt; mean inlet temperature  (time-averaged and y-averaged)</span>
+<a name="ln-41"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">Urec</span><span class="p">(:)</span>   <span class="c">!&lt; mean recycle u-velocity (time-averaged and y-averaged)</span>
+<a name="ln-42"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">QLrec</span><span class="p">(:)</span>   <span class="c">!&lt; mean recycle u-velocity (time-averaged and y-averaged)</span>
+<a name="ln-43"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">QTrec</span><span class="p">(:)</span>   <span class="c">!&lt; mean recycle u-velocity (time-averaged and y-averaged)</span>
+<a name="ln-44"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">Wrec</span><span class="p">(:)</span>   <span class="c">!&lt; mean recycle w-velocity  (time-averaged and y-averaged)</span>
+<a name="ln-45"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">Trec</span><span class="p">(:)</span>   <span class="c">!&lt; mean recycle temperature  (time-averaged and y-averaged)</span>
+<a name="ln-46"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">zirf</span><span class="p">(:)</span>      <span class="c">!&lt; zf-coordinate at recycle station (inner scaling)</span>
+<a name="ln-47"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">ziif</span><span class="p">(:)</span>      <span class="c">!&lt; zf-coordinate at inlet station (inner scaling)</span>
+<a name="ln-48"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">zirh</span><span class="p">(:)</span>      <span class="c">!&lt; zh-coordinate at recycle station (inner scaling)</span>
+<a name="ln-49"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">ziih</span><span class="p">(:)</span>      <span class="c">!&lt; zh-coordinate at inlet station (inner scaling)</span>
+<a name="ln-50"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">zorf</span><span class="p">(:)</span>      <span class="c">!&lt; zf-coordinate at recycle station (outer scaling)</span>
+<a name="ln-51"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">zoif</span><span class="p">(:)</span>      <span class="c">!&lt; zf-coordinate at inlet station (outer scaling)</span>
+<a name="ln-52"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">zorh</span><span class="p">(:)</span>      <span class="c">!&lt; zh-coordinate at recycle station (outer scaling)</span>
+<a name="ln-53"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">zoih</span><span class="p">(:)</span>      <span class="c">!&lt; zh-coordinate at inlet station (outer scaling)</span>
+<a name="ln-54"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">zotr</span><span class="p">(:)</span>      <span class="c">!&lt; zf-coordinate at recycle station (temperature outer scaling)</span>
+<a name="ln-55"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">zoti</span><span class="p">(:)</span>      <span class="c">!&lt; zf-coordinate at inlet station (temperature outer scaling)</span>
+<a name="ln-56"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">displ</span><span class="p">(:)</span>     <span class="c">!&lt; displacement thickness</span>
+<a name="ln-57"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">displold</span><span class="p">(:)</span>  <span class="c">!&lt; old displacement thickness</span>
+<a name="ln-58"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">upupavinl</span><span class="p">(:)</span>   <span class="c">!&lt; j-averaged time-averaged u&#39;u&#39; at the inlet</span>
+<a name="ln-59"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">vpvpavinl</span><span class="p">(:)</span>   <span class="c">!&lt; j-averaged time-averaged v&#39;v&#39; at the inlet</span>
+<a name="ln-60"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">wpwpavinl</span><span class="p">(:)</span>   <span class="c">!&lt; j-averaged time-averaged w&#39;w&#39; at the inlet</span>
+<a name="ln-61"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">upwpavinl</span><span class="p">(:)</span>   <span class="c">!&lt; j-averaged time-averaged u&#39;w&#39; at the inlet</span>
+<a name="ln-62"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">thlpthlpavinl</span><span class="p">(:)</span> <span class="c">!&lt; j-averaged time-averaged thl&#39;thl&#39; at the inlet</span>
+<a name="ln-63"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">thlpupavinl</span><span class="p">(:)</span>   <span class="c">!&lt; j-averaged time-averaged thl&#39;u&#39; at the inlet</span>
+<a name="ln-64"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">thlpwpavinl</span><span class="p">(:)</span>   <span class="c">!&lt; j-averaged time-averaged thl&#39;w&#39; at the inlet</span>
+<a name="ln-65"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">qlpqlpavinl</span><span class="p">(:)</span> <span class="c">!&lt; j-averaged time-averaged thl&#39;thl&#39; at the inlet</span>
+<a name="ln-66"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">qlpupavinl</span><span class="p">(:)</span>   <span class="c">!&lt; j-averaged time-averaged thl&#39;u&#39; at the inlet</span>
+<a name="ln-67"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">qlpwpavinl</span><span class="p">(:)</span>   <span class="c">!&lt; j-averaged time-averaged thl&#39;w&#39; at the inlet</span>
+<a name="ln-68"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">qtpqtpavinl</span><span class="p">(:)</span> <span class="c">!&lt; j-averaged time-averaged thl&#39;thl&#39; at the inlet</span>
+<a name="ln-69"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">qtpupavinl</span><span class="p">(:)</span>   <span class="c">!&lt; j-averaged time-averaged thl&#39;u&#39; at the inlet</span>
+<a name="ln-70"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">qtpwpavinl</span><span class="p">(:)</span>   <span class="c">!&lt; j-averaged time-averaged thl&#39;w&#39; at the inlet</span>
+<a name="ln-71"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">zfin</span><span class="p">(:)</span>                       <span class="c">! zf from inlet simulation </span>
+<a name="ln-72"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">zhin</span><span class="p">(:)</span>                       <span class="c">! zh from inlet simulation </span>
+<a name="ln-73"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">dzfin</span><span class="p">(:)</span>                      <span class="c">! dzf from inlet simulation </span>
+<a name="ln-74"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">dzhin</span><span class="p">(:)</span>                      <span class="c">! dzh from inlet simulation </span>
+<a name="ln-75"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">heavif</span><span class="p">(:)</span>          <span class="c">!&lt; Heaviside function for u,v </span>
+<a name="ln-76"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">heavih</span><span class="p">(:)</span>          <span class="c">!&lt; Heaviside function for w </span>
+<a name="ln-77"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">heavit</span><span class="p">(:)</span>          <span class="c">!&lt; Heaviside function for t </span>
+<a name="ln-78"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">loclowif</span><span class="p">(:)</span>   <span class="c">!&lt; index of lower zir at full level</span>
+<a name="ln-79"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">locupif</span><span class="p">(:)</span>    <span class="c">!&lt; index of upper zir at full level</span>
+<a name="ln-80"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">loclowih</span><span class="p">(:)</span>   <span class="c">!&lt; index of lower zir at half level</span>
+<a name="ln-81"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">locupih</span><span class="p">(:)</span>    <span class="c">!&lt; index of upper zir at half level</span>
+<a name="ln-82"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">loclowof</span><span class="p">(:)</span>   <span class="c">!&lt; index of lower zor at full level</span>
+<a name="ln-83"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">locupof</span><span class="p">(:)</span>    <span class="c">!&lt; index of upper zor at full level</span>
+<a name="ln-84"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">loclowoh</span><span class="p">(:)</span>   <span class="c">!&lt; index of lower zor at half level</span>
+<a name="ln-85"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">locupoh</span><span class="p">(:)</span>    <span class="c">!&lt; index of upper zor at half level</span>
+<a name="ln-86"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">loclowot</span><span class="p">(:)</span>   <span class="c">!&lt; index of lower zot at full level</span>
+<a name="ln-87"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">locupot</span><span class="p">(:)</span>    <span class="c">!&lt; index of upper zot at full level</span>
+<a name="ln-88"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">linlf</span><span class="p">(:)</span>      <span class="c">!&lt; index of lower zfin </span>
+<a name="ln-89"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">linuf</span><span class="p">(:)</span>      <span class="c">!&lt; index of upper zfin </span>
+<a name="ln-90"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">linlh</span><span class="p">(:)</span>      <span class="c">!&lt; index of lower zhin </span>
+<a name="ln-91"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">linuh</span><span class="p">(:)</span>      <span class="c">!&lt; index of upper zhin </span>
+<a name="ln-92"></a>    
+<a name="ln-93"></a>    <span class="kt">real</span> <span class="kd">::</span> <span class="n">di</span><span class="o">=</span><span class="mf">0.09</span>        <span class="c">!&lt; delta at inlet  (should be prescribed in namoptions!)  corresponds to critertion 0.99</span>
+<a name="ln-94"></a><span class="c">!    real :: di=0.12        !&lt; delta at inlet  (should be prescribed in namoptions!)  corresponds to critertion 1.0</span>
+<a name="ln-95"></a><span class="c">!    real :: di=0.0645        !&lt; delta at inlet  (should be prescribed in namoptions!) corresponds to criterion 0.95</span>
+<a name="ln-96"></a><span class="c">!    real :: di=0.100       !&lt; delta at inlet  (should be prescribed in namoptions!)</span>
+<a name="ln-97"></a>    <span class="kt">real</span> <span class="kd">::</span> <span class="n">di_test</span>          <span class="c">!&lt; measured delta at the inlet</span>
+<a name="ln-98"></a>    <span class="kt">real</span> <span class="kd">::</span> <span class="n">dti_test</span>         <span class="c">!&lt; measured deltat at the inlet</span>
+<a name="ln-99"></a>    <span class="kt">real</span> <span class="kd">::</span> <span class="n">dr</span>        <span class="c">!&lt; delta at recycle station</span>
+<a name="ln-100"></a>    <span class="kt">real</span> <span class="kd">::</span> <span class="n">dti</span>       <span class="c">!&lt; delta_t at inlet</span>
+<a name="ln-101"></a>    <span class="kt">real</span> <span class="kd">::</span> <span class="n">dtr</span>       <span class="c">!&lt; delta_t at recycle</span>
+<a name="ln-102"></a>    <span class="kt">real</span> <span class="kd">::</span> <span class="n">thetai</span>    <span class="c">!&lt; momentum thickness at inlet</span>
+<a name="ln-103"></a>    <span class="kt">real</span> <span class="kd">::</span> <span class="n">thetar</span>    <span class="c">!&lt; momentum thickness at recycle</span>
+<a name="ln-104"></a>    <span class="kt">real</span> <span class="kd">::</span> <span class="n">thetati</span>   <span class="c">!&lt; enthalpy thickness at inlet</span>
+<a name="ln-105"></a>    <span class="kt">real</span> <span class="kd">::</span> <span class="n">thetatr</span>   <span class="c">!&lt; enthalpy thickness at recycle</span>
+<a name="ln-106"></a>    <span class="kt">real</span> <span class="kd">::</span> <span class="n">utaui</span>     <span class="c">!&lt; u_tau at inlet</span>
+<a name="ln-107"></a>    <span class="kt">real</span> <span class="kd">::</span> <span class="n">utaur</span>     <span class="c">!&lt; u_tau at recycle</span>
+<a name="ln-108"></a>    <span class="kt">real</span> <span class="kd">::</span> <span class="n">ttaui</span>     <span class="c">!&lt; t_tau at inlet</span>
+<a name="ln-109"></a>    <span class="kt">real</span> <span class="kd">::</span> <span class="n">ttaur</span>     <span class="c">!&lt; t_tau at recycle</span>
+<a name="ln-110"></a>    <span class="kt">real</span> <span class="kd">::</span> <span class="n">lmoi</span>      <span class="c">!&lt; Obukhov length at inlet</span>
+<a name="ln-111"></a>    <span class="kt">real</span> <span class="kd">::</span> <span class="n">lmor</span>      <span class="c">!&lt; Obukhov length at recycle</span>
+<a name="ln-112"></a>    <span class="kt">real</span> <span class="kd">::</span> <span class="n">q0</span>        <span class="c">!&lt; wall heat flux at recycle</span>
+<a name="ln-113"></a>    <span class="kt">real</span> <span class="kd">::</span> <span class="n">deltat</span><span class="o">=</span><span class="mf">0.</span>  <span class="c">!&lt; full time step (set to zero at start of sim)</span>
+<a name="ln-114"></a>    <span class="kt">real</span> <span class="kd">::</span> <span class="n">ubulk</span><span class="o">=</span><span class="mf">0.</span>   <span class="c">!&lt; Bulk velocity (to be determined at first time step)   </span>
+<a name="ln-115"></a>    <span class="kt">real</span> <span class="kd">::</span> <span class="n">totalu</span><span class="o">=</span><span class="mf">0.</span>  <span class="c">!&lt; Bulk velocity inlet</span>
+<a name="ln-116"></a>    <span class="kt">real</span> <span class="kd">::</span> <span class="n">totaluold</span><span class="o">=</span><span class="mf">0.</span>  <span class="c">!&lt; old bulk velocity inlet</span>
+<a name="ln-117"></a>    <span class="kt">real</span> <span class="kd">::</span> <span class="n">ddispdx</span><span class="o">=</span><span class="mf">0.</span>    <span class="c">!&lt; spatial variation of displacement thickness (d/dx(delta*))</span>
+<a name="ln-118"></a>    <span class="kt">real</span> <span class="kd">::</span> <span class="n">ddispdxold</span><span class="o">=</span><span class="mf">0.</span> <span class="c">!&lt; old ddispdx</span>
+<a name="ln-119"></a>    <span class="kt">real</span> <span class="kd">::</span> <span class="n">wtop</span><span class="o">=</span><span class="mf">0.</span>       <span class="c">!&lt; mean vertical velocity at top read from zgrid.inf</span>
+<a name="ln-120"></a>    <span class="kt">real</span> <span class="kd">::</span> <span class="n">xfm</span>       <span class="c">!&lt; mean (xf)</span>
+<a name="ln-121"></a>    <span class="kt">real</span> <span class="kd">::</span> <span class="n">xf2m</span>      <span class="c">!&lt; mean (xf^2)</span>
+<a name="ln-122"></a><span class="c">!    real :: dtin=0.0055  !&lt; time step used in inletgenerator</span>
+<a name="ln-123"></a>    <span class="kt">real</span> <span class="kd">::</span> <span class="n">dtin</span>      <span class="c">!&lt; time step used in inletgenerator</span>
+<a name="ln-124"></a>    <span class="kt">real</span> <span class="kd">::</span> <span class="n">elapstep</span><span class="o">=</span><span class="mf">0.</span>  <span class="c">!&lt; elapsed time in this time step. (used in time interpolation whe reading inletfiles)</span>
+<a name="ln-125"></a>    <span class="kt">real</span> <span class="kd">::</span> <span class="n">totalreadu</span> <span class="c">!&lt; bulk velocity of inlet data (computed once at first time step)</span>
+<a name="ln-126"></a>    <span class="kt">real</span> <span class="kd">::</span> <span class="n">iangle</span>    <span class="c">!&lt; inflow angle in radians (change with respect to inlet velocity that is read in)</span>
+<a name="ln-127"></a>    <span class="kt">real</span> <span class="kd">::</span> <span class="n">iangledeg</span><span class="o">=</span><span class="mf">0.</span> <span class="c">!&lt; inflow angle in degrees (change with respect to inlet velocity that is read in)</span>
+<a name="ln-128"></a>
+<a name="ln-129"></a><span class="c">! Needed for interpolation in y-direction</span>
+<a name="ln-130"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">jgbin</span>
+<a name="ln-131"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">jgein</span>
+<a name="ln-132"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">jgtotinl</span>      <span class="c">!&lt; total number of cells in y-direction of inlet files (all procs together)   </span>
+<a name="ln-133"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">jbin</span>
+<a name="ln-134"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">jein</span>
+<a name="ln-135"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">jtotin</span>
+<a name="ln-136"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">jbdum</span>
+<a name="ln-137"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">jedum</span>
+<a name="ln-138"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">jtotdum</span>
+<a name="ln-139"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">filenumstart</span>
+<a name="ln-140"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">filenumend</span>
+<a name="ln-141"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">filestoread</span>
+<a name="ln-142"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">procinlo</span>
+<a name="ln-143"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">procinup</span>
+<a name="ln-144"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">jend</span>
+<a name="ln-145"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">jgend</span>
+<a name="ln-146"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">jbeg</span>
+<a name="ln-147"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">jgbeg</span>
+<a name="ln-148"></a>
+<a name="ln-149"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">yh</span><span class="p">(:)</span>
+<a name="ln-150"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">yf</span><span class="p">(:)</span>
+<a name="ln-151"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">yhin</span><span class="p">(:)</span>
+<a name="ln-152"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">yfin</span><span class="p">(:)</span>
+<a name="ln-153"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">yhdum</span><span class="p">(:)</span>
+<a name="ln-154"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">yfdum</span><span class="p">(:)</span>
+<a name="ln-155"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">ylocupf</span><span class="p">(:)</span>
+<a name="ln-156"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">yloclowf</span><span class="p">(:)</span>
+<a name="ln-157"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">ylocuph</span><span class="p">(:)</span>
+<a name="ln-158"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">yloclowh</span><span class="p">(:)</span>
+<a name="ln-159"></a>    
+<a name="ln-160"></a>    <span class="kt">real</span> <span class="kd">::</span> <span class="n">dyin</span>
+<a name="ln-161"></a>
+<a name="ln-162"></a>
+<a name="ln-163"></a> 
+<a name="ln-164"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">irecy</span>  <span class="c">!&lt; ib + irecy is the i-index of recycle station</span>
+<a name="ln-165"></a>    
+<a name="ln-166"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">nfile</span><span class="o">=</span><span class="mi">0</span>   <span class="c">!&lt; file number to be read or written</span>
+<a name="ln-167"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">nstepread</span><span class="o">=</span><span class="mi">1</span>   <span class="c">!&lt; time step number in file containing inlet plane</span>
+<a name="ln-168"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">rk3stepin</span><span class="o">=</span><span class="mi">1</span>   <span class="c">!&lt; rk3step in inlet plane data</span>
+<a name="ln-169"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">kbin</span>
+<a name="ln-170"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">kein</span>    
+<a name="ln-171"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">nprocsinl</span>     <span class="c">!&lt; number of procs at used in inletdata files (only used for inletgen==2)    </span>
+<a name="ln-172"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">inlfactor</span>     <span class="c">!&lt; ratio of number of processors in this sim and in inlet data files (only used for inletgen==2)    </span>
+<a name="ln-173"></a>    <span class="kt">logical</span> <span class="kd">::</span> <span class="n">lzinzsim</span> <span class="o">=</span> <span class="p">.</span><span class="n">true</span><span class="p">.</span>      <span class="c">! lzinzsim is .true. when inlet zgrid equals sim zgrid</span>
+<a name="ln-174"></a>    
+<a name="ln-175"></a><span class="c">! Inlet driver simulation variables - idriver - ae1212</span>
+<a name="ln-176"></a>
+<a name="ln-177"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">storeu0driver</span><span class="p">(:,:,:)</span>
+<a name="ln-178"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">storev0driver</span><span class="p">(:,:,:)</span>
+<a name="ln-179"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">storew0driver</span><span class="p">(:,:,:)</span>
+<a name="ln-180"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">storethl0driver</span><span class="p">(:,:,:)</span>
+<a name="ln-181"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">storee120driver</span><span class="p">(:,:,:)</span>
+<a name="ln-182"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">storeqt0driver</span><span class="p">(:,:,:)</span>
+<a name="ln-183"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">storesv0driver</span><span class="p">(:,:,:,:)</span>
+<a name="ln-184"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">storetdriver</span><span class="p">(:)</span>
+<a name="ln-185"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">u0driver</span><span class="p">(:,:)</span>
+<a name="ln-186"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">v0driver</span><span class="p">(:,:)</span>
+<a name="ln-187"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">w0driver</span><span class="p">(:,:)</span>
+<a name="ln-188"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">e120driver</span><span class="p">(:,:)</span>
+<a name="ln-189"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">tdriver</span><span class="p">(:)</span>
+<a name="ln-190"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">thl0driver</span><span class="p">(:,:)</span>
+<a name="ln-191"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">qt0driver</span><span class="p">(:,:)</span>
+<a name="ln-192"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">sv0driver</span><span class="p">(:,:,:)</span>
+<a name="ln-193"></a>
+<a name="ln-194"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">storeumdriver</span><span class="p">(:,:,:)</span>
+<a name="ln-195"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">umdriver</span><span class="p">(:,:)</span>
+<a name="ln-196"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">storevmdriver</span><span class="p">(:,:,:)</span>
+<a name="ln-197"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">vmdriver</span><span class="p">(:,:)</span>
+<a name="ln-198"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">storewmdriver</span><span class="p">(:,:,:)</span>
+<a name="ln-199"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">wmdriver</span><span class="p">(:,:)</span>
+<a name="ln-200"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">storee12mdriver</span><span class="p">(:,:,:)</span>
+<a name="ln-201"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">e12mdriver</span><span class="p">(:,:)</span>
+<a name="ln-202"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">storethlmdriver</span><span class="p">(:,:,:)</span>
+<a name="ln-203"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">thlmdriver</span><span class="p">(:,:)</span>
+<a name="ln-204"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">storeqtmdriver</span><span class="p">(:,:,:)</span>
+<a name="ln-205"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">qtmdriver</span><span class="p">(:,:)</span>
+<a name="ln-206"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">storesvmdriver</span><span class="p">(:,:,:,:)</span>
+<a name="ln-207"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">svmdriver</span><span class="p">(:,:,:)</span>
+<a name="ln-208"></a>    
+<a name="ln-209"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">irecydriver</span>
+<a name="ln-210"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">nstepreaddriver</span><span class="o">=</span><span class="mi">0</span>
+<a name="ln-211"></a><span class="k">end module</span>
+</pre></div>
+
+    </section>
+    </div>
+  </div>
+
+  
+    <hr>    
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+      <div class="row">
+        <div class="col-xs-6 col-md-4"><p>&copy; 2021 
+                                          </p></div>
+        <div class="col-xs-6 col-md-4 col-md-push-4">
+          <p class="text-right">
+            Documentation generated by 
+            <a href="https://github.com/cmacmackin/ford">FORD</a>
+            
+          </p>
+        </div>
+        <div class="col-xs-12 col-md-4 col-md-pull-4"><p class="text-center"> uDALES was developed by The uDALES Team</p></div>
+      </div>
+      <br>
+      </div> <!-- /container -->    
+    </footer>
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+<!--
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+-->
+    <script src="../js/bootstrap.min.js"></script>
+    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+    <script src="../js/ie10-viewport-bug-workaround.js"></script>
+
+    <!-- MathJax JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } },
+        jax: ['input/TeX','input/MathML','output/HTML-CSS'],
+        extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']
+      });
+    </script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+    <script src="../tipuesearch/tipuesearch_content.js"></script>
+    <script src="../tipuesearch/tipuesearch_set.js"></script>
+    <script src="../tipuesearch/tipuesearch.js"></script>
+    
+    
+  </body>
+</html>

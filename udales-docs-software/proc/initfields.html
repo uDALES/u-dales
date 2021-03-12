@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+   
+    <meta name="description" content="Documentation for uDALES">
+   
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>initfields &ndash; uDALES</title>
+
+    <link href="../css/bootstrap.min.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <link href="../css/font-awesome.min.css" rel="stylesheet">
+    <link href="../css/local.css" rel="stylesheet">
+    
+    <link  href="../tipuesearch/tipuesearch.css" rel="stylesheet">
+    
+    
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    
+    <script src="../js/jquery-2.1.3.min.js"></script>
+    <script src="../js/svg-pan-zoom.min.js"></script>
+
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+        
+            <li class="dropdown hidden-xs visible-sm visible-md hidden-lg">
+              <a href="#" class="dropdown-toggle"
+              data-toggle="dropdown" role="button"
+              aria-haspopup="true"
+     aria-expanded="false">Contents <span class="caret"></span></a>
+        <ul class="dropdown-menu">
+          
+              
+            <li><a href="../lists/files.html">Source Files</a></li>
+        
+        
+        
+            <li><a href="../lists/modules.html">Modules</a></li>
+        
+            
+                                
+            <li><a href="../lists/procedures.html">Procedures</a></li>
+        
+               
+            <li><a href="../lists/types.html">Derived Types</a></li>
+        
+        
+            <li><a href="../program/dalesurban.html">Program</a></li>
+      
+            </ul>
+            </li>
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/files.html">Source Files</a></li>
+
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/modules.html">Modules</a></li>
+
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/procedures.html">Procedures</a></li>
+
+                             
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/types.html">Derived Types</a></li>
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../program/dalesurban.html">Program</a></li>
+
+          </ul>
+        
+        <form action="../search.html" class="navbar-form navbar-right" role="search">
+        <div class="form-group">
+          <input type="text" class="form-control" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+        </div>
+<!--
+        <button type="submit" class="btn btn-default">Submit</button>
+-->
+        </form>
+        
+        </div><!--/.nav-collapse -->
+      </div>
+    </nav>
+
+    <div class="container">
+    
+  
+  <div class="row">
+    <h1>initfields
+      <small>Subroutine</small>
+    
+    </h1>
+    
+<div class="row">
+  <div class="col-lg-12">
+<div class="well well-sm">
+  <ul class="list-inline" style="margin-bottom:0px;display:inline">
+     
+     
+     
+     
+    
+    
+     <li><i class="fa fa-list-ol"></i>
+       <a data-toggle="tooltip"
+    data-placement="bottom" data-html="true"
+    title=" 4.5% of total for procedures.">580 statements</a>
+     </li> 
+     
+     
+     
+    <li><i class="fa fa-code"></i><a href="../src/modfields.f90"> Source File</a></li>
+     
+     
+  </ul>
+  <ol class="breadcrumb in-well text-right">
+  
+    
+     <li><a href='../sourcefile/modfields.f90.html'>modfields.f90</a></li>
+    
+     <li><a href='../module/modfields.html'>modfields</a></li>
+    
+  
+     <li class="active">initfields</li>
+  </ol>
+</div>
+</div>
+</div>
+<script>
+  $(function () {
+  $('[data-toggle="tooltip"]').tooltip()
+  })
+</script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+    
+<div id="sidebar">
+  
+<h3>Contents</h3>
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/initfields.html#src">initfields</a>
+  </div>
+</div>
+
+
+
+</div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    <h2>
+public subroutine initfields()
+    
+    
+   
+</h2>
+    
+  
+    <div class="panel panel-default">
+      <div class="panel-heading">
+  <h3 class="panel-title">Uses</h3>
+      </div>
+      <ul class="list-group">
+      
+      <li class="list-group-item">
+  <ul class="list-inline">
+    
+    <li><a href='../module/modglobal.html'>modglobal</a></li>
+    
+  </ul>
+      </li>
+      
+      
+      
+      <li class="list-group-item">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.40.1 (20161225.0304)
+ -->
+<!-- Title: proc~~initfields~~UsesGraph Pages: 1 -->
+<svg id="procinitfieldsUsesGraph" width="172pt" height="32pt"
+ viewBox="0.00 0.00 172.00 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~initfields~~UsesGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 28)">
+<title>proc~~initfields~~UsesGraph</title>
+<polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-28 168,-28 168,4 -4,4"/>
+<!-- proc~initfields -->
+<g id="proc~~initfields~~UsesGraph_node1" class="node">
+<title>proc~initfields</title>
+<polygon fill="none" stroke="#000000" points="164,-24 106,-24 106,0 164,0 164,-24"/>
+<text text-anchor="middle" x="135" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#000000">initfields</text>
+</g>
+<!-- module~modglobal -->
+<g id="proc~~initfields~~UsesGraph_node2" class="node">
+<title>module~modglobal</title>
+<g id="a_proc~~initfields~~UsesGraph_node2"><a xlink:href=".././module/modglobal.html" xlink:title="modglobal">
+<polygon fill="#337ab7" stroke="#337ab7" points="70,-24 0,-24 0,0 70,0 70,-24"/>
+<text text-anchor="middle" x="35" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modglobal</text>
+</a>
+</g>
+</g>
+<!-- proc~initfields&#45;&gt;module~modglobal -->
+<g id="proc~~initfields~~UsesGraph_edge1" class="edge">
+<title>proc~initfields&#45;&gt;module~modglobal</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M105.807,-12C97.7686,-12 88.8568,-12 80.1437,-12"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="80.0707,-8.5001 70.0706,-12 80.0706,-15.5001 80.0707,-8.5001"/>
+</g>
+</g>
+</svg>
+</div><div><a type="button" class="graph-help" data-toggle="modal" href="#graph-help-text">Help</a></div><div class="modal fade" id="graph-help-text" tabindex="-1" role="dialog"><div class="modal-dialog modal-lg" role="document"><div class="modal-content"><div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button><h4 class="modal-title" id="-graph-help-label">Graph Key</h4></div><div class="modal-body">
+    <p>Nodes of different colours represent the following: </p>
+    <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.40.1 (20161225.0304)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="517pt" height="32pt"
+ viewBox="0.00 0.00 517.00 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28)">
+<title>Graph Key</title>
+<polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-28 513,-28 513,4 -4,4"/>
+<!-- Module -->
+<g id="node1" class="node">
+<title>Module</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-24 0,-24 0,0 54,0 54,-24"/>
+<text text-anchor="middle" x="27" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">Module</text>
+</g>
+<!-- Submodule -->
+<g id="node2" class="node">
+<title>Submodule</title>
+<polygon fill="#5bc0de" stroke="#5bc0de" points="145.5,-24 72.5,-24 72.5,0 145.5,0 145.5,-24"/>
+<text text-anchor="middle" x="109" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">Submodule</text>
+</g>
+<!-- Subroutine -->
+<g id="node3" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="234.5,-24 163.5,-24 163.5,0 234.5,0 234.5,-24"/>
+<text text-anchor="middle" x="199" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node4" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="311,-24 253,-24 253,0 311,0 311,-24"/>
+<text text-anchor="middle" x="282" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">Function</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="387,-24 329,-24 329,0 387,0 387,-24"/>
+<text text-anchor="middle" x="358" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="#000000" points="509,-24 405,-24 405,0 509,0 509,-24"/>
+<text text-anchor="middle" x="457" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#000000">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+    
+    <p>Solid arrows point from a submodule to the (sub)module which it is
+    descended from. Dashed arrows point from a module or program unit to 
+    modules which it uses. Where possible, edges connecting nodes are given different colours to make them easier to distinguish in large graphs.
+    </p>
+    </div></div></div></div>
+      </li>
+      
+      </ul>
+    </div>
+    
+
+
+    
+
+    <h3>Arguments</h3>
+    
+    <em>None</em>
+    <br>
+    
+    
+    
+    <br>
+    
+    
+     
+    <div class="panel panel-default">
+      <div class="panel-heading">
+  <h3 class="panel-title">Called by</h3>
+      </div>
+      <div class="panel-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.40.1 (20161225.0304)
+ -->
+<!-- Title: proc~~initfields~~CalledByGraph Pages: 1 -->
+<svg id="procinitfieldsCalledByGraph" width="277pt" height="32pt"
+ viewBox="0.00 0.00 277.00 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~initfields~~CalledByGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 28)">
+<title>proc~~initfields~~CalledByGraph</title>
+<polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-28 273,-28 273,4 -4,4"/>
+<!-- proc~initfields -->
+<g id="proc~~initfields~~CalledByGraph_node1" class="node">
+<title>proc~initfields</title>
+<polygon fill="none" stroke="#000000" points="269,-24 211,-24 211,0 269,0 269,-24"/>
+<text text-anchor="middle" x="240" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#000000">initfields</text>
+</g>
+<!-- proc~startup -->
+<g id="proc~~initfields~~CalledByGraph_node2" class="node">
+<title>proc~startup</title>
+<g id="a_proc~~initfields~~CalledByGraph_node2"><a xlink:href=".././proc/startup.html" xlink:title="startup">
+<polygon fill="#d9534f" stroke="#d9534f" points="175,-24 121,-24 121,0 175,0 175,-24"/>
+<text text-anchor="middle" x="148" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">startup</text>
+</a>
+</g>
+</g>
+<!-- proc~startup&#45;&gt;proc~initfields -->
+<g id="proc~~initfields~~CalledByGraph_edge1" class="edge">
+<title>proc~startup&#45;&gt;proc~initfields</title>
+<path fill="none" stroke="#ff0000" d="M175.1054,-12C183.094,-12 192.0028,-12 200.5978,-12"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="200.8433,-15.5001 210.8432,-12 200.8432,-8.5001 200.8433,-15.5001"/>
+</g>
+<!-- program~dalesurban -->
+<g id="proc~~initfields~~CalledByGraph_node3" class="node">
+<title>program~dalesurban</title>
+<g id="a_proc~~initfields~~CalledByGraph_node3"><a xlink:href=".././program/dalesurban.html" xlink:title="DALESURBAN">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="85,-24 0,-24 0,0 85,0 85,-24"/>
+<text text-anchor="middle" x="42.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">DALESURBAN</text>
+</a>
+</g>
+</g>
+<!-- program~dalesurban&#45;&gt;proc~startup -->
+<g id="proc~~initfields~~CalledByGraph_edge2" class="edge">
+<title>program~dalesurban&#45;&gt;proc~startup</title>
+<path fill="none" stroke="#ff0000" d="M85.1068,-12C93.5509,-12 102.3554,-12 110.6101,-12"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="110.7036,-15.5001 120.7036,-12 110.7035,-8.5001 110.7036,-15.5001"/>
+</g>
+</g>
+</svg>
+</div><div><a type="button" class="graph-help" data-toggle="modal" href="#graph-help-text">Help</a></div><div class="modal fade" id="graph-help-text" tabindex="-1" role="dialog"><div class="modal-dialog modal-lg" role="document"><div class="modal-content"><div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button><h4 class="modal-title" id="-graph-help-label">Graph Key</h4></div><div class="modal-body">
+    <p>Nodes of different colours represent the following: </p>
+    <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.40.1 (20161225.0304)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="599pt" height="32pt"
+ viewBox="0.00 0.00 598.50 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28)">
+<title>Graph Key</title>
+<polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-28 594.5,-28 594.5,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="71,-24 0,-24 0,0 71,0 71,-24"/>
+<text text-anchor="middle" x="35.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="147.5,-24 89.5,-24 89.5,0 147.5,0 147.5,-24"/>
+<text text-anchor="middle" x="118.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="227,-24 166,-24 166,0 227,0 227,-24"/>
+<text text-anchor="middle" x="196.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">Interface</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node4" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="392,-24 245,-24 245,0 392,0 392,-24"/>
+<text text-anchor="middle" x="318.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="468.5,-24 410.5,-24 410.5,0 468.5,0 468.5,-24"/>
+<text text-anchor="middle" x="439.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="#000000" points="590.5,-24 486.5,-24 486.5,0 590.5,0 590.5,-24"/>
+<text text-anchor="middle" x="538.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#000000">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+    
+    <p>Solid arrows point from a procedure to one which it calls. Dashed 
+    arrows point from an interface to procedures which implement that interface.
+    This could include the module procedures in a generic interface or the
+    implementation in a submodule of an interface in a parent module. Where possible, edges connecting nodes are given different colours to make them easier to distinguish in large graphs.
+    </p>
+    </div></div></div></div>
+      </div>
+    </div>
+     
+    <br>
+
+    <section class="visible-xs visible-sm hidden-md">
+      
+<h3>Contents</h3>
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/initfields.html#src">initfields</a>
+  </div>
+</div>
+
+
+
+    </section>
+    <br class="visible-xs visible-sm hidden-md">
+
+    
+
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+
+
+    
+    
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">initfields</span>
+
+    <span class="k">use </span><span class="n">modglobal</span><span class="p">,</span> <span class="k">only</span> <span class="p">:</span> <span class="n">ib</span><span class="p">,</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span><span class="p">,</span><span class="n">ih</span><span class="p">,</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="p">,</span><span class="n">kh</span><span class="p">,</span><span class="n">nsv</span><span class="p">,</span><span class="n">jtot</span><span class="p">,</span><span class="n">imax</span><span class="p">,</span><span class="n">jmax</span><span class="p">,</span><span class="n">kmax</span><span class="p">,&amp;</span>
+         <span class="n">ihc</span><span class="p">,</span><span class="n">jhc</span><span class="p">,</span><span class="n">khc</span><span class="c">!, iadv_kappa,iadv_sv</span>
+    <span class="c">! Allocation of prognostic variables</span>
+    <span class="k">implicit none</span>
+
+<span class="k">    allocate</span><span class="p">(</span><span class="n">worksave</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">imax</span><span class="o">*</span><span class="n">jmax</span><span class="o">*</span><span class="n">kmax</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">um</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">vm</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">wm</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">thlm</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">e12m</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">qtm</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">u0</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">v0</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">w0</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">pres0</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">thl0</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">thl0h</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">qt0h</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">e120</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">qt0</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">ql0</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">up</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">vp</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">wp</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">thlp</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">e12p</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">qtp</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">svm</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ihc</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ihc</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jhc</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jhc</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">khc</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">khc</span><span class="p">,</span><span class="n">nsv</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">sv0</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ihc</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ihc</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jhc</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jhc</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">khc</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">khc</span><span class="p">,</span><span class="n">nsv</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">svp</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ihc</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ihc</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jhc</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jhc</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">khc</span><span class="p">,</span><span class="n">nsv</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">svpp</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ihc</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ihc</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jhc</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jhc</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">khc</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span> 
+
+    <span class="c">! Allocation of diagnostic variables</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">mindist</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">thv0h</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">whls</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">presf</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">presh</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">exnf</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">exnh</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">thvf</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">thvh</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">rhof</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">qt0av</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">ql0av</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">thl0av</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">u0av</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">v0av</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">ug</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">vg</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">pgx</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">pgy</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">dpdxl</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">dpdyl</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">dthldxls</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">dthldyls</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">dqtdxls</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">dqtdyls</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">dqtdtls</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">dudxls</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">dudyls</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">dvdxls</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">dvdyls</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">wfls</span>  <span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">ql0h</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">dthvdz</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">thlprof</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">qtprof</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">qlprof</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">uprof</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">vprof</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">e12prof</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">sv0av</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">khc</span><span class="p">,</span><span class="n">nsv</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">svprof</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">,</span><span class="n">nsv</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">thlpcar</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">uout</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>         <span class="c">! height average outlet velocity (used in convective outflow BC)</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">vout</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">wout</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">))</span>         <span class="c">! j -averaged top velocity</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">friction</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">))</span>     <span class="c">! line-averaged (along j) skin friction </span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">momthick</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">))</span>     <span class="c">! line-averaged (along j) momentum thickness </span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">displthick</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">))</span>   <span class="c">! line-averaged (along j) displacement thickness </span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">SW_up_TOA</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">SW_dn_TOA</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">LW_up_TOA</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">LW_dn_TOA</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">))</span>
+
+    <span class="c">! allocate averaged variables</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">uav</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">vav</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">wav</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">thlav</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">qtav</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">qlav</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">presav</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">svav</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">nsv</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">viscratioav</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+
+    <span class="k">allocate</span><span class="p">(</span><span class="n">IIc</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ihc</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ihc</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jhc</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jhc</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">khc</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">IIu</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ihc</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ihc</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jhc</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jhc</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">khc</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">IIv</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ihc</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ihc</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jhc</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jhc</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">khc</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">IIw</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ihc</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ihc</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jhc</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jhc</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">khc</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">IIuw</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ihc</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ihc</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jhc</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jhc</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">khc</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">IIvw</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ihc</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ihc</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jhc</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jhc</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">khc</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">IIuv</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ihc</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ihc</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jhc</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jhc</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">khc</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">IIct</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">IIwt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">IIuwt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">IIut</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">IIvt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">IIcs</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">khc</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">IIus</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">khc</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">IIvs</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">khc</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">IIws</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">khc</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">IIuws</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">khc</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">IIvws</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">khc</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">IIuvs</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">khc</span><span class="p">))</span>
+
+    <span class="k">allocate</span><span class="p">(</span><span class="n">uyt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">uytik</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">vyt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">wyt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">wytik</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">thlyt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">qtyt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">thlytk</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">sca1yt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">sca2yt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">sca3yt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">usgsyt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">thlsgsyt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">qtsgsyt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">wsgsyt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">sv1sgsyt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">sv2sgsyt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">sv3sgsyt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+
+    <span class="k">allocate</span><span class="p">(</span><span class="n">uxyt</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">vxyt</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">wxyt</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">thlxyt</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">qtxyt</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">pxyt</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">usgsxyt</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">thlsgsxyt</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">vsgsxyt</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+
+    <span class="k">allocate</span><span class="p">(</span><span class="n">uwtik</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">wthltk</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">wqttk</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">thlthlt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">qtqtt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">sv1sv1t</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">sv2sv2t</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">sv3sv3t</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">sv4sv4t</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="c">! allocate(sv1max(ib:ie,jb:je,kb:ke+kh))</span>
+    <span class="c">! allocate(sv2max(ib:ie,jb:je,kb:ke+kh))</span>
+    <span class="c">! allocate(sv3max(ib:ie,jb:je,kb:ke+kh))</span>
+    <span class="c">! allocate(sv4max(ib:ie,jb:je,kb:ke+kh))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">PSSt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+
+    <span class="k">allocate</span><span class="p">(</span><span class="n">uutc</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">vvtc</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">wwtc</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">vwtjk</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">uvtij</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">utik</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">wtik</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">vtjk</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">wtjk</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">utij</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">vtij</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">wmt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">thltk</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">qttk</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">thlt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">utc</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">vtc</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">wtc</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+
+    <span class="k">allocate</span><span class="p">(</span><span class="n">umt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">vmt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">sv1t</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">sv2t</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">sv3t</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">sv4t</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">sv1tk</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">sv2tk</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">sv3tk</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">sv4tk</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">wsv1tk</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">wsv2tk</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">wsv3tk</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">wsv4tk</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">sv1sgst</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">sv2sgst</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">sv3sgst</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">sv4sgst</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">qtt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">pt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+
+    <span class="k">allocate</span><span class="p">(</span><span class="n">slice</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">slice2</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">slice3</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">))</span>  
+    <span class="k">allocate</span><span class="p">(</span><span class="n">slice4</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">slice5</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">))</span> 
+    <span class="k">allocate</span><span class="p">(</span><span class="n">slice6</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">))</span>  
+    <span class="k">allocate</span><span class="p">(</span><span class="n">slice7</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">slice8</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">))</span>
+
+    <span class="k">allocate</span><span class="p">(</span><span class="n">scar</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">jtot</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">scarl</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">))</span>
+
+    <span class="k">allocate</span><span class="p">(</span><span class="n">thl2av</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">ql2av</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">qt2av</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">sv2av</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">nsv</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">umint</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">vmint</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">wmint</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">uuav</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">vvav</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">wwav</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">uvav</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span>   <span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">uwav</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span>   <span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">vwav</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span>   <span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+
+    <span class="k">allocate</span><span class="p">(</span><span class="n">thluav</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span>   <span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span>   <span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">thlvav</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span>   <span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span>   <span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">thlwav</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span>   <span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span>   <span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">thlthlav</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span>   <span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span>   <span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">qluav</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span>   <span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span>   <span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">qlvav</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span>   <span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span>   <span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">qlwav</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span>   <span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span>   <span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">qtuav</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span>   <span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span>   <span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">qtvav</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span>   <span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span>   <span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">qtwav</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span>   <span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span>   <span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">svuav</span> <span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span>   <span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span>   <span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">nsv</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">svvav</span> <span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span>   <span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span>   <span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">nsv</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">svwav</span> <span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span>   <span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span>   <span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">nsv</span><span class="p">))</span>
+
+    <span class="c">! &lt;x&#39;x&gt; ( = &lt;xx&gt; -&lt;x&gt;&lt;x&gt; )</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">upupav</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">vpvpav</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">wpwpav</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">upvpav</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span>   <span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">upwpav</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span>   <span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">vpwpav</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span>   <span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+
+    <span class="k">allocate</span><span class="p">(</span><span class="n">thlpthlpav</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">thlpupav</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span>   <span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span>   <span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">thlpvpav</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span>   <span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span>   <span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">thlpwpav</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span>   <span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span>   <span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">qlpqlpav</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">qlpupav</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span>   <span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span>   <span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">qlpvpav</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span>   <span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span>   <span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">qlpwpav</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span>   <span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span>   <span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">qtpqtpav</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">qtpupav</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span>   <span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span>   <span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">qtpvpav</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span>   <span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span>   <span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">qtpwpav</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span>   <span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span>   <span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">svpsvpav</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">nsv</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">svpupav</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span>   <span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span>   <span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">nsv</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">svpvpav</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span>   <span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span>   <span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">nsv</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">svpwpav</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span>   <span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span>   <span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">nsv</span><span class="p">))</span>
+ 
+<span class="c">! Subgrid</span>
+
+    <span class="k">allocate</span><span class="p">(</span><span class="n">uusgsav</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">vvsgsav</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">wwsgsav</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">uwsgsav</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span>   <span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">thlusgsav</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span>   <span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span>   <span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">thlwsgsav</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span>   <span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span>   <span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">qlusgsav</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span>   <span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span>   <span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">qlwsgsav</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span>   <span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span>   <span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">qtusgsav</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span>   <span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span>   <span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">qtwsgsav</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span>   <span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span>   <span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">tkesgsav</span> <span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span>   <span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span>   <span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span>   <span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">svusgsav</span> <span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span>   <span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span>   <span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">nsv</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">svwsgsav</span> <span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span>   <span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span>   <span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">nsv</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">nusgsav</span>  <span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span>   <span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span>   <span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span>   <span class="p">))</span>
+
+<span class="c">! resolved dissipation</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">strain2av</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">disssgsav</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+
+<span class="c">! TKE budget terms</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">tvmx</span>  <span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">tvmy</span>  <span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">tvmz</span>  <span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">tpm</span>   <span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">ttmx</span>  <span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span>    <span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">ttmy</span>  <span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span>  <span class="n">jb</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">ttmz</span>  <span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span>  <span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span>    <span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">tsgsmx1</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">tsgsmy1</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">tsgsmz1</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">tsgsmx2</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">tsgsmy2</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">tsgsmz2</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span>
+    
+    <span class="k">allocate</span><span class="p">(</span><span class="n">t_pav</span>  <span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">t_vav</span>  <span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">t_tav</span>  <span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">t_sgsav</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">p_tav</span>  <span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">p_bav</span>  <span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">d_sgsav</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">tkeadv</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+
+    <span class="k">allocate</span><span class="p">(</span><span class="n">t_p</span>    <span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">t_v</span>    <span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">t_t</span>    <span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">t_sgs</span>  <span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">p_t</span>    <span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">p_b</span>    <span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">d_sgs</span>  <span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">adv</span>    <span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+
+    <span class="c">! allocate wall shear-stress terms (immersed boundaries)</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">shear</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">:</span><span class="mi">12</span><span class="p">))</span>    <span class="c">! halo is set to 1</span>
+<span class="c">!     allocate(shear(ib:ie,jb-1:je+1,kb:ke,12)</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">momfluxb</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+  <span class="c">!  write(*,*) &quot;allocate momfluxb, indeces:&quot;,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh </span>
+   <span class="k">allocate</span><span class="p">(</span><span class="n">tfluxb</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+    <span class="k">allocate</span><span class="p">(</span><span class="n">qfluxb</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+   <span class="k">allocate</span><span class="p">(</span><span class="n">cth</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+
+
+    <span class="n">momfluxb</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">tfluxb</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">qfluxb</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">cth</span><span class="o">=</span><span class="mf">0.</span>
+
+
+    <span class="k">allocate</span><span class="p">(</span><span class="n">wall</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">,</span><span class="mi">5</span><span class="p">))</span>              <span class="c">! </span>
+
+    <span class="n">um</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">u0</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">up</span><span class="o">=</span><span class="mf">0.</span>
+    <span class="n">vm</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">v0</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">vp</span><span class="o">=</span><span class="mf">0.</span>
+    <span class="n">wm</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">w0</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">wp</span><span class="o">=</span><span class="mf">0.</span>
+    <span class="n">pres0</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span>
+    <span class="n">thlm</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">thl0</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">thlp</span><span class="o">=</span><span class="mf">0.</span>
+    <span class="n">qtm</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">qt0</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">qtp</span><span class="o">=</span><span class="mf">0.</span>
+    <span class="n">e12m</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">e120</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">e12p</span><span class="o">=</span><span class="mf">0.</span>
+    <span class="n">svm</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">sv0</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">svp</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">svpp</span><span class="o">=</span><span class="mf">0.</span>
+
+    <span class="n">ql0</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">qt0h</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span>
+    <span class="n">thv0h</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">thl0h</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span>
+    <span class="n">mindist</span><span class="o">=</span><span class="mf">1.0e10</span><span class="p">;</span>
+    <span class="n">presf</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">presh</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">exnf</span><span class="o">=</span><span class="mf">1.</span><span class="p">;</span><span class="n">exnh</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">thvf</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">thvh</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">rhof</span><span class="o">=</span><span class="mf">0.</span>    <span class="c">! OG   </span>
+    <span class="c">!Exner function should be called in startup and just be initialised here</span>
+    <span class="n">qt0av</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">ql0av</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">thl0av</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">u0av</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">v0av</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">sv0av</span><span class="o">=</span><span class="mf">0.</span>
+    <span class="n">thlprof</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">qtprof</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">qlprof</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">uprof</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">vprof</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">e12prof</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">svprof</span><span class="o">=</span><span class="mf">0.</span>
+    <span class="n">ug</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">vg</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">pgx</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">pgy</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">dpdxl</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">dpdyl</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">wfls</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">whls</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">thlpcar</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span><span class="n">uout</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">vout</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">wout</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">udef</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">vdef</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">uouttot</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">wouttot</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">vouttot</span><span class="o">=</span><span class="mf">0.</span>
+    <span class="n">dthldxls</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">dthldyls</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">dqtdxls</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">dqtdyls</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">dudxls</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">dudyls</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">dvdxls</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">dvdyls</span><span class="o">=</span><span class="mf">0.</span>
+    <span class="n">dthvdz</span><span class="o">=</span><span class="mf">0.</span>
+    <span class="n">SW_up_TOA</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">SW_dn_TOA</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">LW_up_TOA</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">LW_dn_TOA</span><span class="o">=</span><span class="mf">0.</span>
+
+    <span class="n">uyt</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">uytik</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">vyt</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">wyt</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">wytik</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">thlyt</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">qtyt</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">thlytk</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">sca1yt</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">sca2yt</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">sca3yt</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">thlsgsyt</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">wsgsyt</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">qtsgsyt</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">sv1sgsyt</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">sv2sgsyt</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">sv3sgsyt</span><span class="o">=</span><span class="mf">0.</span>
+    <span class="n">usgsyt</span><span class="o">=</span><span class="mf">0.</span>
+    <span class="n">uxyt</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">vxyt</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">wxyt</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">thlxyt</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">qtxyt</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">pxyt</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">usgsxyt</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">vsgsxyt</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">thlsgsxyt</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span>
+    <span class="n">uwtik</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">wthltk</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">wqttk</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">thlthlt</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">qtqtt</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">sv1sv1t</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">sv2sv2t</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">sv3sv3t</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">sv4sv4t</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">uutc</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">vvtc</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">wwtc</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">vwtjk</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">uvtij</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">utik</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">wtik</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">wtjk</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">vtjk</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">utij</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">vtij</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span>
+    <span class="n">wmt</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">thltk</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">qttk</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">thlt</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">slice</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">slice2</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">slice3</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">slice4</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">slice5</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">utc</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">vtc</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">wtc</span><span class="o">=</span><span class="mf">0.</span>
+    <span class="n">slice6</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">slice7</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">slice8</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">umt</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">vmt</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">sv1t</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">sv2t</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">sv3t</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">sv4t</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">sv1tk</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">sv2tk</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">sv3tk</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">sv4tk</span><span class="o">=</span><span class="mf">0.</span>
+    <span class="n">wsv1tk</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">wsv2tk</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">wsv3tk</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">wsv4tk</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">sv1sgst</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">sv2sgst</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">sv3sgst</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">sv4sgst</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">qtt</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">pt</span><span class="o">=</span><span class="mf">0.</span>
+    <span class="n">PSSt</span> <span class="o">=</span> <span class="mf">0.</span> <span class="c">!sv1max = 0.; sv2max = 0.; sv3max = 0.; sv4max = 0.</span>
+
+    <span class="n">scar</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">scarl</span><span class="o">=</span><span class="mf">0.</span>
+
+    <span class="n">IIc</span><span class="o">=</span><span class="mi">1</span><span class="p">;</span><span class="n">IIu</span><span class="o">=</span><span class="mi">1</span><span class="p">;</span><span class="n">IIv</span><span class="o">=</span><span class="mi">1</span><span class="p">;</span><span class="n">IIct</span><span class="o">=</span><span class="mi">1</span><span class="p">;</span><span class="n">IIw</span><span class="o">=</span><span class="mi">1</span><span class="p">;</span><span class="n">IIuw</span><span class="o">=</span><span class="mi">1</span><span class="p">;</span><span class="n">IIvw</span><span class="o">=</span><span class="mi">1</span><span class="p">;</span><span class="n">IIuwt</span><span class="o">=</span><span class="mi">1</span><span class="p">;</span><span class="n">IIut</span><span class="o">=</span><span class="mi">1</span><span class="p">;</span><span class="n">IIvt</span><span class="o">=</span><span class="mi">1</span><span class="p">;</span><span class="n">IIwt</span><span class="o">=</span><span class="mi">1</span><span class="p">;</span><span class="n">IIcs</span><span class="o">=</span><span class="mi">1</span><span class="p">;</span><span class="n">IIus</span><span class="o">=</span><span class="mi">1</span><span class="p">;</span><span class="n">IIvs</span><span class="o">=</span><span class="mi">1</span><span class="p">;</span><span class="n">IIws</span><span class="o">=</span><span class="mi">1</span><span class="p">;</span><span class="n">IIuws</span><span class="o">=</span><span class="mi">1</span><span class="p">;</span><span class="n">IIvws</span><span class="o">=</span><span class="mi">1</span><span class="p">;</span><span class="n">IIuw</span><span class="o">=</span><span class="mi">1</span><span class="p">;</span><span class="n">IIuvs</span><span class="o">=</span><span class="mi">1</span>
+
+    <span class="n">uav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">vav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">wav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">thlav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">qtav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">svav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">viscratioav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">uuav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">vvav</span><span class="o">=</span><span class="mf">0.</span>
+    <span class="n">wwav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">uvav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">uwav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">vwav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">sv2av</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">thl2av</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">ql2av</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">qt2av</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">presav</span><span class="o">=</span><span class="mf">0.</span>
+    <span class="n">thluav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">thlvav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">thlwav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">thlthlav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">svuav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">svvav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">svwav</span><span class="o">=</span><span class="mf">0.</span>
+    <span class="n">shear</span><span class="o">=</span><span class="mf">0.</span>
+    <span class="n">upupav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">vpvpav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">wpwpav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">thlpthlpav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">qlpqlpav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">qtpqtpav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">svpsvpav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">upvpav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">upwpav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">vpwpav</span><span class="o">=</span><span class="mf">0.</span>
+    <span class="n">thlpupav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">thlpvpav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">thlpwpav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">qlpupav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">qlpvpav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">qlpwpav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">qtpwpav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">qtpvpav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">qtpupav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">svpupav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">svpvpav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">svpwpav</span><span class="o">=</span><span class="mf">0.</span>
+    <span class="n">umint</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">vmint</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">wmint</span><span class="o">=</span><span class="mf">0.</span>
+<span class="c">! SGS</span>
+    <span class="n">uusgsav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">vvsgsav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">wwsgsav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">uwsgsav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">thlusgsav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">thlwsgsav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">qlusgsav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">qlwsgsav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">qtwsgsav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">qtusgsav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span>
+    <span class="n">svusgsav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">svwsgsav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">tkesgsav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">nusgsav</span><span class="o">=</span><span class="mf">0.</span>
+<span class="c">! Resolved dissipation </span>
+    <span class="n">strain2av</span><span class="o">=</span><span class="mf">0.</span>
+<span class="c">! Subgrid dissipation </span>
+    <span class="n">disssgsav</span><span class="o">=</span><span class="mf">0.</span>
+<span class="c">! TKE budget</span>
+    <span class="n">t_vav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">tvmx</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">tvmy</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">tvmz</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">tpm</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">ttmx</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">ttmy</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">ttmz</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">t_sgsav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">p_tav</span><span class="o">=</span><span class="mf">0.</span>
+    <span class="n">tsgsmx1</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">tsgsmy1</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">tsgsmz1</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">tsgsmx2</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">tsgsmy2</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">tsgsmz2</span><span class="o">=</span><span class="mf">0.</span>
+    <span class="n">t_pav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">t_tav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">p_bav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">d_sgsav</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">tkeadv</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">t_p</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">t_v</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">t_t</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">t_sgs</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">p_t</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">p_b</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">d_sgs</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">adv</span><span class="o">=</span><span class="mf">0.</span>
+    <span class="c">! domain fluid volume and area calculations</span>
+    <span class="n">uoutarea</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">voutarea</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">fluidvol</span><span class="o">=</span><span class="mf">0.</span>
+  <span class="k">end subroutine </span><span class="n">initfields</span>
+</pre></div>
+
+    </section>
+    <br>
+    
+    
+    </div>
+  </div>
+
+
+    <hr>    
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+      <div class="row">
+        <div class="col-xs-6 col-md-4"><p>&copy; 2021 
+                                          </p></div>
+        <div class="col-xs-6 col-md-4 col-md-push-4">
+          <p class="text-right">
+            Documentation generated by 
+            <a href="https://github.com/cmacmackin/ford">FORD</a>
+            
+          </p>
+        </div>
+        <div class="col-xs-12 col-md-4 col-md-pull-4"><p class="text-center"> uDALES was developed by The uDALES Team</p></div>
+      </div>
+      <br>
+      </div> <!-- /container -->    
+    </footer>
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+<!--
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+-->
+    <script src="../js/bootstrap.min.js"></script>
+    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+    <script src="../js/ie10-viewport-bug-workaround.js"></script>
+
+    <!-- MathJax JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } },
+        jax: ['input/TeX','input/MathML','output/HTML-CSS'],
+        extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']
+      });
+    </script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+    <script src="../tipuesearch/tipuesearch_content.js"></script>
+    <script src="../tipuesearch/tipuesearch_set.js"></script>
+    <script src="../tipuesearch/tipuesearch.js"></script>
+    
+    
+  </body>
+</html>

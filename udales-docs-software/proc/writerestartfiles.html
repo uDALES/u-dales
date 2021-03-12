@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+   
+    <meta name="description" content="Documentation for uDALES">
+   
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>writerestartfiles &ndash; uDALES</title>
+
+    <link href="../css/bootstrap.min.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <link href="../css/font-awesome.min.css" rel="stylesheet">
+    <link href="../css/local.css" rel="stylesheet">
+    
+    <link  href="../tipuesearch/tipuesearch.css" rel="stylesheet">
+    
+    
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    
+    <script src="../js/jquery-2.1.3.min.js"></script>
+    <script src="../js/svg-pan-zoom.min.js"></script>
+
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+        
+            <li class="dropdown hidden-xs visible-sm visible-md hidden-lg">
+              <a href="#" class="dropdown-toggle"
+              data-toggle="dropdown" role="button"
+              aria-haspopup="true"
+     aria-expanded="false">Contents <span class="caret"></span></a>
+        <ul class="dropdown-menu">
+          
+              
+            <li><a href="../lists/files.html">Source Files</a></li>
+        
+        
+        
+            <li><a href="../lists/modules.html">Modules</a></li>
+        
+            
+                                
+            <li><a href="../lists/procedures.html">Procedures</a></li>
+        
+               
+            <li><a href="../lists/types.html">Derived Types</a></li>
+        
+        
+            <li><a href="../program/dalesurban.html">Program</a></li>
+      
+            </ul>
+            </li>
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/files.html">Source Files</a></li>
+
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/modules.html">Modules</a></li>
+
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/procedures.html">Procedures</a></li>
+
+                             
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/types.html">Derived Types</a></li>
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../program/dalesurban.html">Program</a></li>
+
+          </ul>
+        
+        <form action="../search.html" class="navbar-form navbar-right" role="search">
+        <div class="form-group">
+          <input type="text" class="form-control" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+        </div>
+<!--
+        <button type="submit" class="btn btn-default">Submit</button>
+-->
+        </form>
+        
+        </div><!--/.nav-collapse -->
+      </div>
+    </nav>
+
+    <div class="container">
+    
+  
+  <div class="row">
+    <h1>writerestartfiles
+      <small>Subroutine</small>
+    
+    </h1>
+    
+<div class="row">
+  <div class="col-lg-12">
+<div class="well well-sm">
+  <ul class="list-inline" style="margin-bottom:0px;display:inline">
+     
+     
+     
+     
+    
+    
+     <li><i class="fa fa-list-ol"></i>
+       <a data-toggle="tooltip"
+    data-placement="bottom" data-html="true"
+    title=" 0.5% of total for procedures.">65 statements</a>
+     </li> 
+     
+     
+     
+    <li><i class="fa fa-code"></i><a href="../src/modsave.f90"> Source File</a></li>
+     
+     
+  </ul>
+  <ol class="breadcrumb in-well text-right">
+  
+    
+     <li><a href='../sourcefile/modsave.f90.html'>modsave.f90</a></li>
+    
+     <li><a href='../module/modsave.html'>modsave</a></li>
+    
+  
+     <li class="active">writerestartfiles</li>
+  </ol>
+</div>
+</div>
+</div>
+<script>
+  $(function () {
+  $('[data-toggle="tooltip"]').tooltip()
+  })
+</script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+    
+<div id="sidebar">
+  
+<h3>Contents</h3>
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/writerestartfiles.html#src">writerestartfiles</a>
+  </div>
+</div>
+
+
+
+</div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    <h2>
+public subroutine writerestartfiles()
+    
+    
+   
+</h2>
+    
+  
+    <div class="panel panel-default">
+      <div class="panel-heading">
+  <h3 class="panel-title">Uses</h3>
+      </div>
+      <ul class="list-group">
+      
+      <li class="list-group-item">
+  <ul class="list-inline">
+    
+    <li><a href='../module/modsurfdata.html'>modsurfdata</a></li>
+    
+    <li><a href='../module/modfields.html'>modfields</a></li>
+    
+    <li><a href='../module/modglobal.html'>modglobal</a></li>
+    
+    <li><a href='../module/modmpi.html'>modmpi</a></li>
+    
+    <li><a href='../module/modsubgriddata.html'>modsubgriddata</a></li>
+    
+    <li><a href='../module/modibmdata.html'>modibmdata</a></li>
+    
+    <li><a href='../module/initfac.html'>initfac</a></li>
+    
+    <li><a href='../module/modinletdata.html'>modinletdata</a></li>
+    
+  </ul>
+      </li>
+      
+      
+      
+      <li class="list-group-item">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.40.1 (20161225.0304)
+ -->
+<!-- Title: proc~~writerestartfiles~~UsesGraph Pages: 1 -->
+<svg id="procwriterestartfilesUsesGraph" width="436pt" height="322pt"
+ viewBox="0.00 0.00 436.00 322.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~writerestartfiles~~UsesGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 318)">
+<title>proc~~writerestartfiles~~UsesGraph</title>
+<polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-318 432,-318 432,4 -4,4"/>
+<!-- proc~writerestartfiles -->
+<g id="proc~~writerestartfiles~~UsesGraph_node1" class="node">
+<title>proc~writerestartfiles</title>
+<polygon fill="none" stroke="#000000" points="428,-171 332,-171 332,-147 428,-147 428,-171"/>
+<text text-anchor="middle" x="380" y="-156.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#000000">writerestartfiles</text>
+</g>
+<!-- module~initfac -->
+<g id="proc~~writerestartfiles~~UsesGraph_node2" class="node">
+<title>module~initfac</title>
+<g id="a_proc~~writerestartfiles~~UsesGraph_node2"><a xlink:href=".././module/initfac.html" xlink:title="initfac">
+<polygon fill="#337ab7" stroke="#337ab7" points="273,-272 219,-272 219,-248 273,-248 273,-272"/>
+<text text-anchor="middle" x="246" y="-257.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">initfac</text>
+</a>
+</g>
+</g>
+<!-- proc~writerestartfiles&#45;&gt;module~initfac -->
+<g id="proc~~writerestartfiles~~UsesGraph_edge1" class="edge">
+<title>proc~writerestartfiles&#45;&gt;module~initfac</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M368.2829,-171.2071C352.7404,-186.9717 323.9953,-214.6748 296,-234 291.3702,-237.196 286.2977,-240.268 281.2149,-243.1104"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="279.318,-240.1556 272.1483,-247.9561 282.6175,-246.3292 279.318,-240.1556"/>
+</g>
+<!-- module~modibmdata -->
+<g id="proc~~writerestartfiles~~UsesGraph_node3" class="node">
+<title>module~modibmdata</title>
+<g id="a_proc~~writerestartfiles~~UsesGraph_node3"><a xlink:href=".././module/modibmdata.html" xlink:title="modibmdata">
+<polygon fill="#337ab7" stroke="#337ab7" points="286.5,-192 205.5,-192 205.5,-168 286.5,-168 286.5,-192"/>
+<text text-anchor="middle" x="246" y="-177.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modibmdata</text>
+</a>
+</g>
+</g>
+<!-- proc~writerestartfiles&#45;&gt;module~modibmdata -->
+<g id="proc~~writerestartfiles~~UsesGraph_edge4" class="edge">
+<title>proc~writerestartfiles&#45;&gt;module~modibmdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M331.6229,-166.5815C320.3733,-168.3445 308.3628,-170.2267 297.0038,-172.0069"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="296.1333,-168.6005 286.7958,-173.6066 297.2171,-175.5161 296.1333,-168.6005"/>
+</g>
+<!-- module~modmpi -->
+<g id="proc~~writerestartfiles~~UsesGraph_node4" class="node">
+<title>module~modmpi</title>
+<g id="a_proc~~writerestartfiles~~UsesGraph_node4"><a xlink:href=".././module/modmpi.html" xlink:title="modmpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="153.5,-314 96.5,-314 96.5,-290 153.5,-290 153.5,-314"/>
+<text text-anchor="middle" x="125" y="-299.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modmpi</text>
+</a>
+</g>
+</g>
+<!-- proc~writerestartfiles&#45;&gt;module~modmpi -->
+<g id="proc~~writerestartfiles~~UsesGraph_edge3" class="edge">
+<title>proc~writerestartfiles&#45;&gt;module~modmpi</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M375.5744,-171.2685C365.7109,-196.6486 339.3203,-254.7369 296,-281 255.8432,-305.3451 200.6248,-307.7277 163.9229,-305.9297"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="163.8249,-302.417 153.6277,-305.2921 163.3922,-309.4036 163.8249,-302.417"/>
+</g>
+<!-- module~modsubgriddata -->
+<g id="proc~~writerestartfiles~~UsesGraph_node5" class="node">
+<title>module~modsubgriddata</title>
+<g id="a_proc~~writerestartfiles~~UsesGraph_node5"><a xlink:href=".././module/modsubgriddata.html" xlink:title="modsubgriddata">
+<polygon fill="#337ab7" stroke="#337ab7" points="296,-150 196,-150 196,-126 296,-126 296,-150"/>
+<text text-anchor="middle" x="246" y="-135.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modsubgriddata</text>
+</a>
+</g>
+</g>
+<!-- proc~writerestartfiles&#45;&gt;module~modsubgriddata -->
+<g id="proc~~writerestartfiles~~UsesGraph_edge5" class="edge">
+<title>proc~writerestartfiles&#45;&gt;module~modsubgriddata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M331.6229,-151.4185C323.3251,-150.1181 314.6133,-148.7528 306.0544,-147.4115"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="306.5324,-143.9438 296.111,-145.8532 305.4485,-150.8594 306.5324,-143.9438"/>
+</g>
+<!-- module~modglobal -->
+<g id="proc~~writerestartfiles~~UsesGraph_node6" class="node">
+<title>module~modglobal</title>
+<g id="a_proc~~writerestartfiles~~UsesGraph_node6"><a xlink:href=".././module/modglobal.html" xlink:title="modglobal">
+<polygon fill="#337ab7" stroke="#337ab7" points="160,-230 90,-230 90,-206 160,-206 160,-230"/>
+<text text-anchor="middle" x="125" y="-215.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modglobal</text>
+</a>
+</g>
+</g>
+<!-- proc~writerestartfiles&#45;&gt;module~modglobal -->
+<g id="proc~~writerestartfiles~~UsesGraph_edge6" class="edge">
+<title>proc~writerestartfiles&#45;&gt;module~modglobal</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M360.8061,-171.1463C344.2961,-180.9567 319.4953,-194.209 296,-201 254.5719,-212.9742 205.4102,-216.8461 170.4561,-217.9479"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="169.9982,-214.4581 160.0887,-218.2068 170.173,-221.456 169.9982,-214.4581"/>
+</g>
+<!-- module~modsurfdata -->
+<g id="proc~~writerestartfiles~~UsesGraph_node7" class="node">
+<title>module~modsurfdata</title>
+<g id="a_proc~~writerestartfiles~~UsesGraph_node7"><a xlink:href=".././module/modsurfdata.html" xlink:title="modsurfdata">
+<polygon fill="#337ab7" stroke="#337ab7" points="286.5,-108 205.5,-108 205.5,-84 286.5,-84 286.5,-108"/>
+<text text-anchor="middle" x="246" y="-93.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modsurfdata</text>
+</a>
+</g>
+</g>
+<!-- proc~writerestartfiles&#45;&gt;module~modsurfdata -->
+<g id="proc~~writerestartfiles~~UsesGraph_edge7" class="edge">
+<title>proc~writerestartfiles&#45;&gt;module~modsurfdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M357.0235,-146.9982C340.2512,-138.3634 316.8906,-126.597 296,-117 292.3973,-115.345 288.627,-113.6662 284.8417,-112.0163"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="286.0584,-108.7298 275.4884,-108.0045 283.299,-115.163 286.0584,-108.7298"/>
+</g>
+<!-- module~modinletdata -->
+<g id="proc~~writerestartfiles~~UsesGraph_node8" class="node">
+<title>module~modinletdata</title>
+<g id="a_proc~~writerestartfiles~~UsesGraph_node8"><a xlink:href=".././module/modinletdata.html" xlink:title="modinletdata">
+<polygon fill="#337ab7" stroke="#337ab7" points="288,-66 204,-66 204,-42 288,-42 288,-66"/>
+<text text-anchor="middle" x="246" y="-51.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modinletdata</text>
+</a>
+</g>
+</g>
+<!-- proc~writerestartfiles&#45;&gt;module~modinletdata -->
+<g id="proc~~writerestartfiles~~UsesGraph_edge2" class="edge">
+<title>proc~writerestartfiles&#45;&gt;module~modinletdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M370.5741,-146.955C356.1475,-129.1876 326.987,-95.8155 296,-75 293.7335,-73.4775 291.3389,-72.0304 288.8743,-70.6613"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="290.2505,-67.4353 279.7468,-66.0487 287.0933,-73.6829 290.2505,-67.4353"/>
+</g>
+<!-- module~modfields -->
+<g id="proc~~writerestartfiles~~UsesGraph_node9" class="node">
+<title>module~modfields</title>
+<g id="a_proc~~writerestartfiles~~UsesGraph_node9"><a xlink:href=".././module/modfields.html" xlink:title="modfields">
+<polygon fill="#337ab7" stroke="#337ab7" points="278.5,-24 213.5,-24 213.5,0 278.5,0 278.5,-24"/>
+<text text-anchor="middle" x="246" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">modfields</text>
+</a>
+</g>
+</g>
+<!-- proc~writerestartfiles&#45;&gt;module~modfields -->
+<g id="proc~~writerestartfiles~~UsesGraph_edge8" class="edge">
+<title>proc~writerestartfiles&#45;&gt;module~modfields</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M374.8683,-146.887C363.865,-122.238 335.7349,-65.8087 296,-33 293.4227,-30.8719 290.5986,-28.9302 287.6459,-27.1641"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="289.0017,-23.9232 278.5196,-22.3819 285.7527,-30.1236 289.0017,-23.9232"/>
+</g>
+<!-- module~initfac&#45;&gt;module~modmpi -->
+<g id="proc~~writerestartfiles~~UsesGraph_edge11" class="edge">
+<title>module~initfac&#45;&gt;module~modmpi</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M218.8452,-269.4256C202.5015,-275.0986 181.4364,-282.4105 163.4061,-288.6689"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="162.0502,-285.4347 153.7508,-292.0204 164.3456,-292.0476 162.0502,-285.4347"/>
+</g>
+<!-- module~initfac&#45;&gt;module~modglobal -->
+<g id="proc~~writerestartfiles~~UsesGraph_edge10" class="edge">
+<title>module~initfac&#45;&gt;module~modglobal</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M218.8452,-250.5744C204.2838,-245.52 185.9744,-239.1647 169.4027,-233.4125"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="170.4827,-230.0826 159.8879,-230.1098 168.1872,-236.6955 170.4827,-230.0826"/>
+</g>
+<!-- netcdf -->
+<g id="proc~~writerestartfiles~~UsesGraph_node11" class="node">
+<title>netcdf</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="152,-272 98,-272 98,-248 152,-248 152,-272"/>
+<text text-anchor="middle" x="125" y="-257.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">netcdf</text>
+</g>
+<!-- module~initfac&#45;&gt;netcdf -->
+<g id="proc~~writerestartfiles~~UsesGraph_edge9" class="edge">
+<title>module~initfac&#45;&gt;netcdf</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M218.8452,-260C202.1091,-260 180.4219,-260 162.1126,-260"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="162.0642,-256.5001 152.0641,-260 162.0641,-263.5001 162.0642,-256.5001"/>
+</g>
+<!-- mpi -->
+<g id="proc~~writerestartfiles~~UsesGraph_node10" class="node">
+<title>mpi</title>
+<g id="a_proc~~writerestartfiles~~UsesGraph_node10"><a xlink:href="http://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node410.htm" xlink:title="mpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-314 0,-314 0,-290 54,-290 54,-314"/>
+<text text-anchor="middle" x="27" y="-299.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">mpi</text>
+</a>
+</g>
+</g>
+<!-- module~modmpi&#45;&gt;mpi -->
+<g id="proc~~writerestartfiles~~UsesGraph_edge12" class="edge">
+<title>module~modmpi&#45;&gt;mpi</title>
+<path fill="none" stroke="#7fff00" stroke-dasharray="5,2" d="M96.3909,-302C86.3911,-302 75.0122,-302 64.4029,-302"/>
+<polygon fill="#7fff00" stroke="#7fff00" points="64.1298,-298.5001 54.1297,-302 64.1297,-305.5001 64.1298,-298.5001"/>
+</g>
+</g>
+</svg>
+</div><div><a type="button" class="graph-help" data-toggle="modal" href="#graph-help-text">Help</a></div><div class="modal fade" id="graph-help-text" tabindex="-1" role="dialog"><div class="modal-dialog modal-lg" role="document"><div class="modal-content"><div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button><h4 class="modal-title" id="-graph-help-label">Graph Key</h4></div><div class="modal-body">
+    <p>Nodes of different colours represent the following: </p>
+    <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.40.1 (20161225.0304)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="517pt" height="32pt"
+ viewBox="0.00 0.00 517.00 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28)">
+<title>Graph Key</title>
+<polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-28 513,-28 513,4 -4,4"/>
+<!-- Module -->
+<g id="node1" class="node">
+<title>Module</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-24 0,-24 0,0 54,0 54,-24"/>
+<text text-anchor="middle" x="27" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">Module</text>
+</g>
+<!-- Submodule -->
+<g id="node2" class="node">
+<title>Submodule</title>
+<polygon fill="#5bc0de" stroke="#5bc0de" points="145.5,-24 72.5,-24 72.5,0 145.5,0 145.5,-24"/>
+<text text-anchor="middle" x="109" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">Submodule</text>
+</g>
+<!-- Subroutine -->
+<g id="node3" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="234.5,-24 163.5,-24 163.5,0 234.5,0 234.5,-24"/>
+<text text-anchor="middle" x="199" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node4" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="311,-24 253,-24 253,0 311,0 311,-24"/>
+<text text-anchor="middle" x="282" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">Function</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="387,-24 329,-24 329,0 387,0 387,-24"/>
+<text text-anchor="middle" x="358" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="#000000" points="509,-24 405,-24 405,0 509,0 509,-24"/>
+<text text-anchor="middle" x="457" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#000000">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+    
+    <p>Solid arrows point from a submodule to the (sub)module which it is
+    descended from. Dashed arrows point from a module or program unit to 
+    modules which it uses. Where possible, edges connecting nodes are given different colours to make them easier to distinguish in large graphs.
+    </p>
+    </div></div></div></div>
+      </li>
+      
+      </ul>
+    </div>
+    
+
+
+    
+
+    <h3>Arguments</h3>
+    
+    <em>None</em>
+    <br>
+    
+    
+    
+    <br>
+    
+    
+     
+    <div class="panel panel-default">
+      <div class="panel-heading">
+  <h3 class="panel-title">Called by</h3>
+      </div>
+      <div class="panel-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.40.1 (20161225.0304)
+ -->
+<!-- Title: proc~~writerestartfiles~~CalledByGraph Pages: 1 -->
+<svg id="procwriterestartfilesCalledByGraph" width="641pt" height="99pt"
+ viewBox="0.00 0.00 641.00 99.06" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~writerestartfiles~~CalledByGraph" class="graph" transform="scale(.9712 .9712) rotate(0) translate(4 98)">
+<title>proc~~writerestartfiles~~CalledByGraph</title>
+<polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-98 656,-98 656,4 -4,4"/>
+<!-- proc~writerestartfiles -->
+<g id="proc~~writerestartfiles~~CalledByGraph_node1" class="node">
+<title>proc~writerestartfiles</title>
+<polygon fill="none" stroke="#000000" points="652,-66 556,-66 556,-42 652,-42 652,-66"/>
+<text text-anchor="middle" x="604" y="-51.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#000000">writerestartfiles</text>
+</g>
+<!-- proc~inletgen -->
+<g id="proc~~writerestartfiles~~CalledByGraph_node2" class="node">
+<title>proc~inletgen</title>
+<g id="a_proc~~writerestartfiles~~CalledByGraph_node2"><a xlink:href=".././proc/inletgen.html" xlink:title="inletgen">
+<polygon fill="#d9534f" stroke="#d9534f" points="499.5,-66 443.5,-66 443.5,-42 499.5,-42 499.5,-66"/>
+<text text-anchor="middle" x="471.5" y="-51.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">inletgen</text>
+</a>
+</g>
+</g>
+<!-- proc~inletgen&#45;&gt;proc~writerestartfiles -->
+<g id="proc~~writerestartfiles~~CalledByGraph_edge3" class="edge">
+<title>proc~inletgen&#45;&gt;proc~writerestartfiles</title>
+<path fill="none" stroke="#ff0000" d="M499.5998,-54C512.9976,-54 529.5531,-54 545.501,-54"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="545.8541,-57.5001 555.8541,-54 545.8541,-50.5001 545.8541,-57.5001"/>
+</g>
+<!-- proc~inletgennotemp -->
+<g id="proc~~writerestartfiles~~CalledByGraph_node3" class="node">
+<title>proc~inletgennotemp</title>
+<g id="a_proc~~writerestartfiles~~CalledByGraph_node3"><a xlink:href=".././proc/inletgennotemp.html" xlink:title="inletgennotemp">
+<polygon fill="#d9534f" stroke="#d9534f" points="520,-24 423,-24 423,0 520,0 520,-24"/>
+<text text-anchor="middle" x="471.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">inletgennotemp</text>
+</a>
+</g>
+</g>
+<!-- proc~inletgennotemp&#45;&gt;proc~writerestartfiles -->
+<g id="proc~~writerestartfiles~~CalledByGraph_edge2" class="edge">
+<title>proc~inletgennotemp&#45;&gt;proc~writerestartfiles</title>
+<path fill="none" stroke="#ff0000" d="M509.4692,-24.0355C524.0227,-28.6487 540.8178,-33.9724 556.1772,-38.8411"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="555.4351,-42.2774 566.0253,-41.9627 557.5503,-35.6046 555.4351,-42.2774"/>
+</g>
+<!-- program~dalesurban -->
+<g id="proc~~writerestartfiles~~CalledByGraph_node4" class="node">
+<title>program~dalesurban</title>
+<g id="a_proc~~writerestartfiles~~CalledByGraph_node4"><a xlink:href=".././program/dalesurban.html" xlink:title="DALESURBAN">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="85,-68 0,-68 0,-44 85,-44 85,-68"/>
+<text text-anchor="middle" x="42.5" y="-53.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">DALESURBAN</text>
+</a>
+</g>
+</g>
+<!-- program~dalesurban&#45;&gt;proc~writerestartfiles -->
+<g id="proc~~writerestartfiles~~CalledByGraph_edge1" class="edge">
+<title>program~dalesurban&#45;&gt;proc~writerestartfiles</title>
+<path fill="none" stroke="#ff0000" d="M83.2324,-68.0234C124.5928,-79.1563 190.6758,-94 249,-94 249,-94 249,-94 355,-94 428.8179,-94 447.3722,-88.202 520,-75 529.8722,-73.2055 540.3071,-70.919 550.34,-68.5192"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="551.3273,-71.8808 560.2032,-66.0957 549.6569,-65.083 551.3273,-71.8808"/>
+</g>
+<!-- proc~boundary -->
+<g id="proc~~writerestartfiles~~CalledByGraph_node5" class="node">
+<title>proc~boundary</title>
+<g id="a_proc~~writerestartfiles~~CalledByGraph_node5"><a xlink:href=".././proc/boundary.html" xlink:title="boundary">
+<polygon fill="#d9534f" stroke="#d9534f" points="387,-47 323,-47 323,-23 387,-23 387,-47"/>
+<text text-anchor="middle" x="355" y="-32.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">boundary</text>
+</a>
+</g>
+</g>
+<!-- program~dalesurban&#45;&gt;proc~boundary -->
+<g id="proc~~writerestartfiles~~CalledByGraph_edge7" class="edge">
+<title>program~dalesurban&#45;&gt;proc~boundary</title>
+<path fill="none" stroke="#ff0000" d="M85.2965,-53.1241C145.0618,-49.1078 252.8743,-41.8628 312.4871,-37.8569"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="312.9399,-41.3344 322.6827,-37.1717 312.4705,-34.3502 312.9399,-41.3344"/>
+</g>
+<!-- proc~startup -->
+<g id="proc~~writerestartfiles~~CalledByGraph_node7" class="node">
+<title>proc~startup</title>
+<g id="a_proc~~writerestartfiles~~CalledByGraph_node7"><a xlink:href=".././proc/startup.html" xlink:title="startup">
+<polygon fill="#d9534f" stroke="#d9534f" points="175,-28 121,-28 121,-4 175,-4 175,-28"/>
+<text text-anchor="middle" x="148" y="-13.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">startup</text>
+</a>
+</g>
+</g>
+<!-- program~dalesurban&#45;&gt;proc~startup -->
+<g id="proc~~writerestartfiles~~CalledByGraph_edge9" class="edge">
+<title>program~dalesurban&#45;&gt;proc~startup</title>
+<path fill="none" stroke="#ff0000" d="M74.1535,-43.9987C85.8391,-39.5681 99.1785,-34.5105 111.2755,-29.924"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="112.5457,-33.1856 120.6553,-26.3677 110.064,-26.6403 112.5457,-33.1856"/>
+</g>
+<!-- proc~boundary&#45;&gt;proc~inletgen -->
+<g id="proc~~writerestartfiles~~CalledByGraph_edge4" class="edge">
+<title>proc~boundary&#45;&gt;proc~inletgen</title>
+<path fill="none" stroke="#ff0000" d="M387.1425,-40.2421C401.4797,-42.5804 418.4774,-45.3525 433.4449,-47.7936"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="432.9921,-51.2659 443.4251,-49.4213 434.1189,-44.3572 432.9921,-51.2659"/>
+</g>
+<!-- proc~boundary&#45;&gt;proc~inletgennotemp -->
+<g id="proc~~writerestartfiles~~CalledByGraph_edge5" class="edge">
+<title>proc~boundary&#45;&gt;proc~inletgennotemp</title>
+<path fill="none" stroke="#00ff00" d="M387.1425,-28.6543C395.1677,-27.0699 404.0265,-25.3209 412.8963,-23.5698"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="413.7386,-26.9712 422.8713,-21.6005 412.3827,-20.1037 413.7386,-26.9712"/>
+</g>
+<!-- proc~readinitfiles -->
+<g id="proc~~writerestartfiles~~CalledByGraph_node6" class="node">
+<title>proc~readinitfiles</title>
+<g id="a_proc~~writerestartfiles~~CalledByGraph_node6"><a xlink:href=".././proc/readinitfiles.html" xlink:title="readinitfiles">
+<polygon fill="#d9534f" stroke="#d9534f" points="287,-28 211,-28 211,-4 287,-4 287,-28"/>
+<text text-anchor="middle" x="249" y="-13.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">readinitfiles</text>
+</a>
+</g>
+</g>
+<!-- proc~readinitfiles&#45;&gt;proc~boundary -->
+<g id="proc~~writerestartfiles~~CalledByGraph_edge6" class="edge">
+<title>proc~readinitfiles&#45;&gt;proc~boundary</title>
+<path fill="none" stroke="#ff0000" d="M287.2684,-22.8594C295.5317,-24.3406 304.314,-25.9148 312.7208,-27.4216"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="312.2681,-30.8962 322.7287,-29.2155 313.5031,-24.006 312.2681,-30.8962"/>
+</g>
+<!-- proc~startup&#45;&gt;proc~readinitfiles -->
+<g id="proc~~writerestartfiles~~CalledByGraph_edge8" class="edge">
+<title>proc~startup&#45;&gt;proc~readinitfiles</title>
+<path fill="none" stroke="#ff0000" d="M175.0661,-16C182.9618,-16 191.8395,-16 200.631,-16"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="200.8478,-19.5001 210.8477,-16 200.8477,-12.5001 200.8478,-19.5001"/>
+</g>
+</g>
+</svg>
+</div><script>var panprocwriterestartfilesCalledByGraph = svgPanZoom('#procwriterestartfilesCalledByGraph', {zoomEnabled: true,controlIconsEnabled: true, fit: true, center: true,}); </script><div><a type="button" class="graph-help" data-toggle="modal" href="#graph-help-text">Help</a></div><div class="modal fade" id="graph-help-text" tabindex="-1" role="dialog"><div class="modal-dialog modal-lg" role="document"><div class="modal-content"><div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button><h4 class="modal-title" id="-graph-help-label">Graph Key</h4></div><div class="modal-body">
+    <p>Nodes of different colours represent the following: </p>
+    <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.40.1 (20161225.0304)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="599pt" height="32pt"
+ viewBox="0.00 0.00 598.50 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28)">
+<title>Graph Key</title>
+<polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-28 594.5,-28 594.5,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="71,-24 0,-24 0,0 71,0 71,-24"/>
+<text text-anchor="middle" x="35.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="147.5,-24 89.5,-24 89.5,0 147.5,0 147.5,-24"/>
+<text text-anchor="middle" x="118.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="227,-24 166,-24 166,0 227,0 227,-24"/>
+<text text-anchor="middle" x="196.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">Interface</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node4" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="392,-24 245,-24 245,0 392,0 392,-24"/>
+<text text-anchor="middle" x="318.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="468.5,-24 410.5,-24 410.5,0 468.5,0 468.5,-24"/>
+<text text-anchor="middle" x="439.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#ffffff">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="#000000" points="590.5,-24 486.5,-24 486.5,0 590.5,0 590.5,-24"/>
+<text text-anchor="middle" x="538.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="#000000">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+    
+    <p>Solid arrows point from a procedure to one which it calls. Dashed 
+    arrows point from an interface to procedures which implement that interface.
+    This could include the module procedures in a generic interface or the
+    implementation in a submodule of an interface in a parent module. Where possible, edges connecting nodes are given different colours to make them easier to distinguish in large graphs.
+    </p>
+    </div></div></div></div>
+      </div>
+    </div>
+     
+    <br>
+
+    <section class="visible-xs visible-sm hidden-md">
+      
+<h3>Contents</h3>
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/writerestartfiles.html#src">writerestartfiles</a>
+  </div>
+</div>
+
+
+
+    </section>
+    <br class="visible-xs visible-sm hidden-md">
+
+    
+
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+
+
+    
+    
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">writerestartfiles</span>
+    <span class="k">use </span><span class="n">modsurfdata</span><span class="p">,</span><span class="k">only</span><span class="p">:</span> <span class="n">ustar</span><span class="p">,</span><span class="n">thlflux</span><span class="p">,</span><span class="n">qtflux</span><span class="p">,</span><span class="n">svflux</span><span class="p">,</span><span class="n">dudz</span><span class="p">,</span><span class="n">dvdz</span><span class="p">,</span><span class="n">dthldz</span><span class="p">,</span><span class="n">dqtdz</span><span class="p">,</span><span class="n">ps</span><span class="p">,</span><span class="n">thls</span><span class="p">,</span><span class="n">qts</span><span class="p">,</span><span class="n">thvs</span><span class="p">,</span><span class="n">oblav</span>
+
+    <span class="k">use </span><span class="n">modfields</span><span class="p">,</span> <span class="k">only</span> <span class="p">:</span> <span class="n">u0</span><span class="p">,</span><span class="n">v0</span><span class="p">,</span><span class="n">w0</span><span class="p">,</span><span class="n">thl0</span><span class="p">,</span><span class="n">qt0</span><span class="p">,</span><span class="n">ql0</span><span class="p">,</span><span class="n">ql0h</span><span class="p">,</span><span class="n">e120</span><span class="p">,</span><span class="n">dthvdz</span><span class="p">,</span><span class="n">presf</span><span class="p">,</span><span class="n">presh</span><span class="p">,</span><span class="n">sv0</span><span class="p">,</span><span class="n">mindist</span><span class="p">,</span><span class="n">wall</span><span class="p">,&amp;</span>
+                          <span class="n">uav</span><span class="p">,</span><span class="n">vav</span><span class="p">,</span><span class="n">wav</span><span class="p">,</span><span class="n">uuav</span><span class="p">,</span><span class="n">vvav</span><span class="p">,</span><span class="n">wwav</span><span class="p">,</span><span class="n">uvav</span><span class="p">,</span><span class="n">uwav</span><span class="p">,</span><span class="n">vwav</span><span class="p">,</span><span class="n">thlav</span><span class="p">,</span><span class="n">thl2av</span><span class="p">,</span><span class="n">qtav</span><span class="p">,</span><span class="n">qlav</span><span class="p">,</span><span class="n">ql2av</span><span class="p">,</span><span class="n">qt2av</span><span class="p">,</span><span class="n">svav</span><span class="p">,</span><span class="n">sv2av</span><span class="p">,</span><span class="n">momthick</span><span class="p">,&amp;</span>
+                          <span class="n">friction</span><span class="p">,</span><span class="n">displthick</span><span class="p">,</span><span class="n">pres0</span><span class="p">,</span><span class="n">viscratioav</span><span class="p">,</span><span class="n">thluav</span><span class="p">,</span><span class="n">thlvav</span><span class="p">,</span><span class="n">thlwav</span><span class="p">,</span><span class="n">qtuav</span><span class="p">,</span><span class="n">qtvav</span><span class="p">,</span><span class="n">qtwav</span><span class="p">,</span><span class="n">qluav</span><span class="p">,</span><span class="n">qlvav</span><span class="p">,</span><span class="n">qlwav</span><span class="p">,</span><span class="n">svuav</span><span class="p">,</span><span class="n">svvav</span><span class="p">,</span><span class="n">svwav</span><span class="p">,&amp;</span>
+                          <span class="n">upupav</span><span class="p">,</span><span class="n">vpvpav</span><span class="p">,</span><span class="n">wpwpav</span><span class="p">,</span><span class="n">thlpthlpav</span><span class="p">,</span><span class="n">qlpqlpav</span><span class="p">,</span><span class="n">qtpqtpav</span><span class="p">,</span><span class="n">svpsvpav</span><span class="p">,</span><span class="n">upvpav</span><span class="p">,</span><span class="n">upwpav</span><span class="p">,</span><span class="n">vpwpav</span><span class="p">,</span><span class="n">thlpupav</span><span class="p">,</span><span class="n">thlpvpav</span><span class="p">,&amp;</span>
+                          <span class="n">thlpwpav</span><span class="p">,</span><span class="n">qlpupav</span><span class="p">,</span><span class="n">qlpvpav</span><span class="p">,</span><span class="n">qlpwpav</span><span class="p">,</span><span class="n">qtpupav</span><span class="p">,</span><span class="n">qtpvpav</span><span class="p">,</span><span class="n">qtpwpav</span><span class="p">,</span><span class="n">svpupav</span><span class="p">,</span><span class="n">svpvpav</span><span class="p">,</span><span class="n">svpwpav</span><span class="p">,</span><span class="n">presav</span><span class="p">,&amp;</span>
+                          <span class="n">uusgsav</span><span class="p">,</span><span class="n">vvsgsav</span><span class="p">,</span><span class="n">wwsgsav</span><span class="p">,</span><span class="n">uwsgsav</span><span class="p">,</span><span class="n">thlusgsav</span><span class="p">,</span><span class="n">thlwsgsav</span><span class="p">,</span><span class="n">qlusgsav</span><span class="p">,</span><span class="n">qlwsgsav</span><span class="p">,</span><span class="n">qtusgsav</span><span class="p">,</span><span class="n">qtwsgsav</span><span class="p">,</span><span class="n">svusgsav</span><span class="p">,</span><span class="n">svwsgsav</span><span class="p">,</span><span class="n">tkesgsav</span><span class="p">,&amp;</span>
+                          <span class="n">strain2av</span><span class="p">,</span><span class="n">disssgsav</span><span class="p">,</span><span class="n">t_vav</span><span class="p">,</span><span class="n">tvmx</span><span class="p">,</span><span class="n">tvmy</span><span class="p">,</span><span class="n">tvmz</span><span class="p">,</span><span class="n">tsgsmx1</span><span class="p">,</span><span class="n">tsgsmx2</span><span class="p">,</span><span class="n">tsgsmy1</span><span class="p">,</span><span class="n">tsgsmy2</span><span class="p">,</span><span class="n">tsgsmz1</span><span class="p">,&amp;</span>
+                          <span class="n">tsgsmz2</span><span class="p">,</span><span class="n">t_sgsav</span><span class="p">,</span><span class="n">nusgsav</span><span class="p">,</span><span class="n">tpm</span><span class="p">,</span><span class="n">t_pav</span><span class="p">,</span><span class="n">ttmx</span><span class="p">,</span><span class="n">ttmy</span><span class="p">,</span><span class="n">ttmz</span><span class="p">,</span><span class="n">t_tav</span><span class="p">,</span><span class="n">p_bav</span><span class="p">,</span><span class="n">d_sgsav</span><span class="p">,</span><span class="n">p_tav</span><span class="p">,</span><span class="n">tkeadv</span>
+    <span class="k">use </span><span class="n">modglobal</span><span class="p">,</span> <span class="k">only</span> <span class="p">:</span> <span class="n">ib</span><span class="p">,</span><span class="n">ie</span><span class="p">,</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span><span class="p">,</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="p">,</span><span class="n">kh</span><span class="p">,</span><span class="n">trestart</span><span class="p">,</span><span class="n">tnextrestart</span><span class="p">,</span><span class="n">dt_lim</span><span class="p">,</span><span class="n">timee</span><span class="p">,</span><span class="n">btime</span><span class="p">,</span><span class="n">xh</span><span class="p">,&amp;</span>
+                          <span class="n">cexpnr</span><span class="p">,</span><span class="n">ntimee</span><span class="p">,</span><span class="n">rk3step</span><span class="p">,</span><span class="n">ifoutput</span><span class="p">,</span><span class="n">nsv</span><span class="p">,</span><span class="n">timeleft</span><span class="p">,</span><span class="n">dt</span><span class="p">,</span><span class="n">ntrun</span><span class="p">,</span><span class="n">totavtime</span><span class="p">,&amp;</span>
+                          <span class="n">iinletgen</span><span class="p">,</span><span class="n">timee</span><span class="p">,</span><span class="n">runavtime</span><span class="p">,</span><span class="n">inletav</span><span class="p">,</span><span class="n">totinletav</span><span class="p">,</span><span class="n">linletRA</span><span class="p">,</span><span class="n">ltempeq</span><span class="p">,</span><span class="n">lmoist</span><span class="p">,</span><span class="n">jgb</span><span class="p">,</span><span class="n">jge</span><span class="p">,&amp;</span>
+                          <span class="n">dzf</span><span class="p">,</span><span class="n">dzfi</span><span class="p">,</span><span class="n">dzhi</span><span class="p">,</span><span class="n">dxf</span><span class="p">,</span><span class="n">dxfi</span><span class="p">,</span><span class="n">dyi</span><span class="p">,</span><span class="n">dxhi</span><span class="p">,</span><span class="n">nstore</span><span class="p">,</span><span class="n">numol</span><span class="p">,</span><span class="n">dy2i</span><span class="p">,</span><span class="n">grav</span><span class="p">,</span><span class="n">libm</span><span class="p">,</span><span class="n">jmax</span><span class="p">,</span><span class="n">nblocks</span>
+    <span class="k">use </span><span class="n">modmpi</span><span class="p">,</span>    <span class="k">only</span> <span class="p">:</span> <span class="n">cmyid</span><span class="p">,</span><span class="n">myid</span><span class="p">,</span><span class="n">slabsum</span><span class="p">,</span><span class="n">excjs</span>
+    <span class="k">use </span><span class="n">modsubgriddata</span><span class="p">,</span> <span class="k">only</span> <span class="p">:</span> <span class="n">ekm</span>
+    <span class="k">use </span><span class="n">modibmdata</span><span class="p">,</span>   <span class="k">only</span>  <span class="p">:</span> <span class="n">ibmxforcevol</span>
+    <span class="k">use </span><span class="n">initfac</span> <span class="p">,</span> <span class="k">only</span> <span class="p">:</span> <span class="k">block</span>
+<span class="k">    use </span><span class="n">modinletdata</span><span class="p">,</span> <span class="k">only</span>   <span class="p">:</span> <span class="n">Urec</span><span class="p">,</span><span class="n">Wrec</span><span class="p">,</span><span class="n">Uinl</span><span class="p">,</span><span class="n">Utav</span><span class="p">,</span><span class="n">QLinl</span><span class="p">,</span><span class="n">QTinl</span><span class="p">,</span><span class="n">QLrec</span><span class="p">,</span><span class="n">QTrec</span><span class="p">,</span><span class="n">QTtav</span><span class="p">,</span><span class="n">QLtav</span><span class="p">,</span><span class="n">Ttav</span><span class="p">,</span><span class="n">upupavinl</span><span class="p">,</span><span class="n">vpvpavinl</span><span class="p">,</span><span class="n">wpwpavinl</span><span class="p">,</span><span class="n">upwpavinl</span><span class="p">,&amp;</span>
+                               <span class="n">thlpthlpavinl</span><span class="p">,</span><span class="n">thlpupavinl</span><span class="p">,</span><span class="n">thlpwpavinl</span><span class="p">,</span><span class="n">qlpqlpavinl</span><span class="p">,</span><span class="n">qlpupavinl</span><span class="p">,</span><span class="n">qlpwpavinl</span><span class="p">,</span><span class="n">qtpqtpavinl</span><span class="p">,</span><span class="n">qtpupavinl</span><span class="p">,</span><span class="n">qtpwpavinl</span><span class="p">,</span><span class="n">Tinl</span><span class="p">,</span><span class="n">Trec</span><span class="p">,</span><span class="n">nstepread</span>
+
+    <span class="k">implicit none</span>
+<span class="k">    </span><span class="kt">logical</span> <span class="kd">::</span> <span class="n">lexitnow</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
+    <span class="kt">integer </span><span class="n">imin</span><span class="p">,</span><span class="n">ihour</span>
+    <span class="kt">integer </span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">,</span><span class="n">n</span><span class="p">,</span><span class="n">im</span><span class="p">,</span><span class="n">ip</span><span class="p">,</span><span class="n">jm</span><span class="p">,</span><span class="n">jp</span><span class="p">,</span><span class="n">jpp</span><span class="p">,</span><span class="n">km</span><span class="p">,</span><span class="n">kp</span><span class="p">,</span><span class="n">kpp</span><span class="p">,</span><span class="n">il</span><span class="p">,</span><span class="n">iu</span><span class="p">,</span><span class="n">jl</span><span class="p">,</span><span class="n">ju</span><span class="p">,</span><span class="n">kl</span><span class="p">,</span><span class="n">ku</span>
+    <span class="kt">character</span><span class="p">(</span><span class="mi">21</span><span class="p">)</span> <span class="n">name</span><span class="p">,</span><span class="n">name2</span><span class="p">,</span><span class="n">name3</span><span class="p">,</span><span class="n">name4</span><span class="p">,</span><span class="n">linkname</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">timee</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="k">return</span>
+<span class="c">!    if (rk3step /=3) return</span>
+    <span class="k">if</span> <span class="p">((</span><span class="n">iinletgen</span><span class="o">==</span><span class="mi">2</span><span class="p">)</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="p">(</span><span class="n">nstepread</span><span class="o">==</span><span class="n">nstore</span><span class="p">))</span> <span class="k">then</span>                <span class="c">! This overrules the need for rk3step to be 3 in case of reading inletfiles</span>
+      <span class="k">write</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;Writing restartfiles after reading in new inletfiles&#39;</span>
+    <span class="k">else</span>
+<span class="k">      if</span> <span class="p">(</span><span class="n">rk3step</span> <span class="o">/=</span><span class="mi">3</span><span class="p">)</span> <span class="k">return</span>   <span class="c">! Normal check</span>
+    <span class="k">end if</span>
+
+<span class="k">    </span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;exit_now.&#39;</span><span class="o">//</span><span class="n">cexpnr</span>
+    <span class="k">inquire</span><span class="p">(</span><span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">name</span><span class="p">),</span> <span class="n">EXIST</span><span class="o">=</span><span class="n">lexitnow</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="p">(((</span><span class="n">timee</span><span class="o">&gt;=</span><span class="n">tnextrestart</span><span class="p">))</span> <span class="p">.</span><span class="nb">or</span><span class="p">.</span> <span class="p">((</span><span class="n">lexitnow</span><span class="p">)</span> <span class="p">.</span><span class="nb">or</span><span class="p">.</span> <span class="p">(</span><span class="n">nstepread</span> <span class="o">==</span> <span class="n">nstore</span><span class="o">+</span><span class="mi">1</span><span class="p">)))</span> <span class="k">then</span>
+<span class="k">      </span><span class="n">tnextrestart</span> <span class="o">=</span> <span class="n">tnextrestart</span><span class="o">+</span><span class="n">trestart</span>
+    
+      <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;initd        _   .&#39;</span>
+      <span class="k">write</span> <span class="p">(</span><span class="n">name</span><span class="p">(</span><span class="mi">6</span><span class="p">:</span><span class="mi">13</span><span class="p">)</span>  <span class="p">,</span><span class="s1">&#39;(i8.8)&#39;</span><span class="p">)</span> <span class="n">ntrun</span>
+      <span class="n">name</span><span class="p">(</span><span class="mi">15</span><span class="p">:</span><span class="mi">17</span><span class="p">)</span><span class="o">=</span> <span class="n">cmyid</span>
+      <span class="n">name</span><span class="p">(</span><span class="mi">19</span><span class="p">:</span><span class="mi">21</span><span class="p">)</span><span class="o">=</span> <span class="n">cexpnr</span>
+      <span class="k">open</span>  <span class="p">(</span><span class="n">ifoutput</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="n">name</span><span class="p">,</span><span class="n">form</span><span class="o">=</span><span class="s1">&#39;unformatted&#39;</span><span class="p">,</span><span class="n">status</span><span class="o">=</span><span class="s1">&#39;replace&#39;</span><span class="p">)</span>
+
+      <span class="k">write</span><span class="p">(</span><span class="n">ifoutput</span><span class="p">)</span>  <span class="p">(((</span><span class="n">mindist</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">),</span><span class="n">i</span><span class="o">=</span><span class="n">ib</span><span class="p">,</span><span class="n">ie</span>  <span class="p">),</span><span class="n">j</span><span class="o">=</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span>      <span class="p">),</span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span>   <span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">ifoutput</span><span class="p">)</span>  <span class="p">((((</span><span class="n">wall</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">,</span><span class="n">n</span><span class="p">),</span><span class="n">i</span><span class="o">=</span><span class="n">ib</span><span class="p">,</span><span class="n">ie</span>  <span class="p">),</span><span class="n">j</span><span class="o">=</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span>      <span class="p">),</span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span>   <span class="p">),</span><span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="mi">5</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">ifoutput</span><span class="p">)</span>  <span class="p">(((</span><span class="n">u0</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">),</span><span class="n">i</span><span class="o">=</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">,</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">),</span><span class="n">j</span><span class="o">=</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">,</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">),</span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">ifoutput</span><span class="p">)</span>  <span class="p">(((</span><span class="n">v0</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">),</span><span class="n">i</span><span class="o">=</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">,</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">),</span><span class="n">j</span><span class="o">=</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">,</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">),</span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">ifoutput</span><span class="p">)</span>  <span class="p">(((</span><span class="n">w0</span>    <span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">),</span><span class="n">i</span><span class="o">=</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">,</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">),</span><span class="n">j</span><span class="o">=</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">,</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">),</span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">ifoutput</span><span class="p">)</span>  <span class="p">(((</span><span class="n">pres0</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">),</span><span class="n">i</span><span class="o">=</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">,</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">),</span><span class="n">j</span><span class="o">=</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">,</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">),</span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">ifoutput</span><span class="p">)</span>  <span class="p">(((</span><span class="n">thl0</span>  <span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">),</span><span class="n">i</span><span class="o">=</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">,</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">),</span><span class="n">j</span><span class="o">=</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">,</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">),</span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">ifoutput</span><span class="p">)</span>  <span class="p">(((</span><span class="n">e120</span>  <span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">),</span><span class="n">i</span><span class="o">=</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">,</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">),</span><span class="n">j</span><span class="o">=</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">,</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">),</span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">ifoutput</span><span class="p">)</span>  <span class="p">(((</span><span class="n">ekm</span>   <span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">),</span><span class="n">i</span><span class="o">=</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">,</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">),</span><span class="n">j</span><span class="o">=</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">,</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">),</span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">ifoutput</span><span class="p">)</span>  <span class="p">(((</span><span class="n">qt0</span>   <span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">),</span><span class="n">i</span><span class="o">=</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">,</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">),</span><span class="n">j</span><span class="o">=</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">,</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">),</span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">ifoutput</span><span class="p">)</span>  <span class="p">(((</span><span class="n">ql0</span>   <span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">),</span><span class="n">i</span><span class="o">=</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">,</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">),</span><span class="n">j</span><span class="o">=</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">,</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">),</span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">ifoutput</span><span class="p">)</span>  <span class="p">(((</span><span class="n">ql0h</span>  <span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">),</span><span class="n">i</span><span class="o">=</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">,</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">),</span><span class="n">j</span><span class="o">=</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">,</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">),</span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">ifoutput</span><span class="p">)</span>  <span class="n">timee</span><span class="p">,</span>  <span class="n">dt</span>
+      
+      <span class="k">if</span> <span class="p">(</span><span class="n">myid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span> <span class="k">then</span>
+<span class="k">        write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;-------------------------&#39;</span>
+        <span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;Saving initd restart file&#39;</span>
+        <span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;ntrun ::: &#39;</span><span class="p">,</span> <span class="n">ntrun</span>
+        <span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;timee ::: &#39;</span><span class="p">,</span> <span class="n">timee</span>
+        <span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;-------------------------&#39;</span>
+      <span class="k">endif</span>
+<span class="k">      </span>
+<span class="k">      close</span> <span class="p">(</span><span class="n">ifoutput</span><span class="p">)</span>
+
+      <span class="k">if</span> <span class="p">(</span><span class="n">nsv</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">)</span> <span class="k">then</span>
+<span class="k">        </span><span class="n">name</span>  <span class="o">=</span> <span class="s1">&#39;inits        _   .&#39;</span>
+        <span class="k">write</span> <span class="p">(</span><span class="n">name</span><span class="p">(</span><span class="mi">6</span><span class="p">:</span><span class="mi">13</span><span class="p">)</span> <span class="p">,</span><span class="s1">&#39;(i8.8)&#39;</span><span class="p">)</span> <span class="n">ntrun</span>
+        <span class="n">name</span><span class="p">(</span><span class="mi">15</span><span class="p">:</span><span class="mi">17</span><span class="p">)</span> <span class="o">=</span> <span class="n">cmyid</span>
+        <span class="n">name</span><span class="p">(</span><span class="mi">19</span><span class="p">:</span><span class="mi">21</span><span class="p">)</span> <span class="o">=</span> <span class="n">cexpnr</span>
+        <span class="k">open</span>  <span class="p">(</span><span class="n">ifoutput</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="n">name</span><span class="p">,</span><span class="n">form</span><span class="o">=</span><span class="s1">&#39;unformatted&#39;</span><span class="p">)</span>
+        <span class="k">write</span><span class="p">(</span><span class="n">ifoutput</span><span class="p">)</span> <span class="p">((((</span><span class="n">sv0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">,</span><span class="n">n</span><span class="p">),</span><span class="n">i</span><span class="o">=</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">,</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">),</span><span class="n">j</span><span class="o">=</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">,</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">),</span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">),</span><span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">nsv</span><span class="p">)</span>
+        <span class="k">write</span><span class="p">(</span><span class="n">ifoutput</span><span class="p">)</span>  <span class="n">timee</span>
+
+        <span class="k">close</span> <span class="p">(</span><span class="n">ifoutput</span><span class="p">)</span>
+      <span class="k">end if</span>
+
+<span class="k">      if</span> <span class="p">(</span><span class="n">myid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span> <span class="k">then</span>
+<span class="k">        write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="s1">&#39;(A,F15.7,A,I4)&#39;</span><span class="p">)</span> <span class="s1">&#39;dump at time = &#39;</span><span class="p">,</span><span class="n">timee</span><span class="p">,</span><span class="s1">&#39; unit = &#39;</span><span class="p">,</span><span class="n">ifoutput</span>
+      <span class="k">end if</span>
+
+<span class="k">    end if</span>
+
+<span class="k">  end subroutine </span><span class="n">writerestartfiles</span>
+</pre></div>
+
+    </section>
+    <br>
+    
+    
+    </div>
+  </div>
+
+
+    <hr>    
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+      <div class="row">
+        <div class="col-xs-6 col-md-4"><p>&copy; 2021 
+                                          </p></div>
+        <div class="col-xs-6 col-md-4 col-md-push-4">
+          <p class="text-right">
+            Documentation generated by 
+            <a href="https://github.com/cmacmackin/ford">FORD</a>
+            
+          </p>
+        </div>
+        <div class="col-xs-12 col-md-4 col-md-pull-4"><p class="text-center"> uDALES was developed by The uDALES Team</p></div>
+      </div>
+      <br>
+      </div> <!-- /container -->    
+    </footer>
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+<!--
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+-->
+    <script src="../js/bootstrap.min.js"></script>
+    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+    <script src="../js/ie10-viewport-bug-workaround.js"></script>
+
+    <!-- MathJax JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } },
+        jax: ['input/TeX','input/MathML','output/HTML-CSS'],
+        extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']
+      });
+    </script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+    <script src="../tipuesearch/tipuesearch_content.js"></script>
+    <script src="../tipuesearch/tipuesearch_set.js"></script>
+    <script src="../tipuesearch/tipuesearch.js"></script>
+    
+    
+  </body>
+</html>
