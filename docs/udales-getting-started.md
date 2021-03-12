@@ -1,13 +1,19 @@
 # Getting Started
 
-Getting started with uDALES to set up your own experiments is straightforward. This guide goes through the steps required to [install](#installation) uDALES, and [set-up](#set-up) and [run](#run) a simple example.
+Getting started with uDALES to set up your own experiments is straightforward. This guide goes through the steps required to [install](#installation) uDALES, and [set-up](#set-up) and [run](#run) a simple example. Results are outputted in netCDF format, for a quick inspection you can use GUI tools such as [Panoply](https://www.giss.nasa.gov/tools/panoply/) or [ncview](http://meteora.ucsd.edu/~pierce/ncview_home_page.html). To learn more about pre- and post-processing steps see the [what's next section](#whats-next).
 
 
 ## Singularity
 
-If you have [Singularity](https://sylabs.io/) available on your system, you can use the provided scripts under `tools/singularity` to build and run uDALES cases locally or on HPC environments, for other options, see the sections below. The use of Singularity is undoubtedly the easiest way to build and run cases in uDALES as all dependencies are provided and uDALES will compile out of the box. Furthermore, users wishing to achieve a reasonable level of scientific reproducibility may archive software, tools, and data with their Singularity image containing OS and external libraries to an open access repository (e.g. [Meyer et al., 2020](https://doi.org/10.1029/2019MS001961)).
+If you have [Singularity](https://sylabs.io/) available on your system, you can use the provided scripts under `tools/singularity` to build and run uDALES cases locally or on HPC environments, for other options, see the sections below. If you are looking for information on how to install or use Singularity on your system, please refer to the [Singularity documentation ](https://sylabs.io/docs). The use of Singularity is undoubtedly the easiest way to build and run cases in uDALES as all dependencies are provided and uDALES will compile out of the box. Furthermore, users wishing to achieve a reasonable level of scientific reproducibility may archive software, tools, and data with their Singularity image containing OS and external libraries to an open access repository (e.g. [Meyer et al., 2020](https://doi.org/10.1029/2019MS001961)).
 
-To build and download the Singularity image use:
+First clone the uDALES repository with:
+
+```sh
+https://github.com/uDALES/u-dales.git
+```
+
+Then, to build and download the Singularity image use:
 
 ```sh
 singularity build --remote tools/singularity/image.sif tools/singularity/image.def
@@ -30,7 +36,7 @@ Finally, to run an example case use:
 If you are looking to run the build and run commands on HPC, we have provided a sample script under `tools/singularity/udales_pbs_submit.sh`, you can modify and run it with `qsub tools/singularity/udales_pbs_submit.sh`.
 
 
-## Prerequisites
+## Prerequisites when not using Singularity
 
 ### uDALES
 
