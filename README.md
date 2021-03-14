@@ -17,6 +17,14 @@ If you are a developer, please also refer to the [development notes](DEVELOP.md)
 
 If you are looking to contribute, please read our [Contributors' guide](CONTRIBUTING.md) for details.
 
+## Overview
+
+With continuing urbanization, challenges associated with the urban environment such as air quality, heat islands, pedestrian thermal comfort, and wind loads on tall buildings, are increasingly relevant. Our ability to realistically capture processes such as the transport of heat, moisture, momentum and pollutants, and those of radiative transfer in urban environments is key to understanding and facing these challenges.
+
+The turbulent nature of the urban flow field and the inherent heterogeneity and wide range of scales associated with the urban environment result in a complex modelling problem. Large-eddy simulation (LES) is an approach to turbulence modelling used in computational fluid dynamics to simulate turbulent flows over a wide range of spatial and temporal scales. LES is one of the most promising tools to model the interactions typical of urban areas due to its ability to resolve the urban flow field at resolutions of $O$(1 m, 0.1 s), over spatial domains of $O$(100 m), and time periods of $O$(1 h). Although there are many scalable LES models for atmospheric flows, to our knowledge, only few are capable of explicitly representing buildings and of modelling the full range of urban processes.
+
+uDALES is capable of modelling urban environments at the microclimate scale including wet thermodynamics, idealized and complex morphologies, urban surface energy balance and real-time pollution dispersion.
+
 ## Copyright and License
 
 General DALES copyright applies for any files part of the original DALES distribution and are marked as such at the beginning of each file.
