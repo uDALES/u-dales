@@ -1,5 +1,4 @@
 # uDALES (https://github.com/uDALES/u-dales).
-# Copyright (C) 2019 D. Meyer.
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,6 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+# Copyright (C) 2019 the uDALES Team.
 
 cmake_minimum_required(VERSION 3.9)
 project(uDALES Fortran)
