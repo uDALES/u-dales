@@ -9,7 +9,7 @@ This is the development repository for the uDALES (urban Dutch Atmospheric Large
 
 ## Overview
 
-With continuing urbanization, challenges associated with the urban environment such as air quality, heat islands, pedestrian thermal comfort, and wind loads on tall buildings, are increasingly relevant. Our ability to realistically capture processes such as the transport of heat, moisture, momentum and pollutants, and those of radiative transfer in urban environments is key to understanding and facing these challenges.
+With continuing urbanization, challenges associated with the urban environment such as air quality, heat islands, pedestrian thermal comfort, and wind loads on tall buildings, are increasingly relevant. Our ability to realistically capture processes such as the transport of heat, moisture, momentum and pollutants, and those of radiative transfer in urban environments is key to understanding and facing these challenges (Oke et al., 2017).
 
 The turbulent nature of the urban flow field and the inherent heterogeneity and wide range of scales associated with the urban environment result in a complex modelling problem. Large-eddy simulation (LES) is an approach to turbulence modelling used in computational fluid dynamics to simulate turbulent flows over a wide range of spatial and temporal scales. LES is one of the most promising tools to model the interactions typical of urban areas due to its ability to resolve the urban flow field at resolutions of _O_(1 m, 0.1 s), over spatial domains of _O_(100 m), and time periods of _O_(1 h). Although there are many scalable LES models for atmospheric flows, to our knowledge, only few are capable of explicitly representing buildings and of modelling the full range of urban processes (e.g. PALM-4U; Resler et al. 2017; Maronga et al. 2020; or OpenFoam; Weller et al. 1998)..
 
@@ -27,7 +27,6 @@ Table: uDALES research applications.
 | Urban climate (radiation, green roofs and walls, trees etc.) | Suter (2018); Suter et al. (2021); Grylls & van Reeuwijk (2021)                 |
 | Pollution dispersion/ urban air quality                      | Grylls et al. (2019);  Grylls (2020)                                            |
 | Buoyancy/ convective and stable conditions                   | Suter (2018); Grylls et al. (2019); Grylls (2020); Grylls & van Reeuwijk (2021) |
-|------------------------------------------------------------- | ------------------------------------------------------------------------------- |
 
 uDALES has been validated against both field and experimental studies and evaluated against other numerical models. The dynamic core, DALES, has been used to study atmospheric processes for over 30 years being validated extensively in the process and used in several atmospheric intercomparison studies (Nieuwstadt and Brost 1986; Heus et al. 2010). The use of the immersed boundary method to model obstacles was validated by Tomas et al. (2016). The wall functions and three-dimensional surface energy balance model was validated by Suter (2018). The ability to model pollutuon dispersion in both idealised and realistic morphologies was been validated by Grylls et al. (2019) and Grylls (2020).
 
@@ -61,8 +60,7 @@ Grylls, T., & van Reeuwijk, M. (2021). Tree model with drag, transpiration, shad
 
 Oke, T. R., Mills, G., Christen, A., & Voogt, J. A. (2017). Urban climates. Cambridge University Press. https://doi.org/10.1017/9781139016476
 
-Suter, I. (2018). Simulating the impact of blue-green infrastructure on the microclimate of
-126 urban areas. https://doi.org/10.25560/78715
+Suter, I. (2018). Simulating the impact of blue-green infrastructure on the microclimate of urban areas. https://doi.org/10.25560/78715
 
 Suter, I., Grylls, T., Sützl, B. S., & van Reeuwijk, M. (2021). uDALES 1.0.0: A large-eddy simulation model for urban environments. In Geoscientific Model Development. Copernicus GmbH.
 
