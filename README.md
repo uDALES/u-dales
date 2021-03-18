@@ -17,9 +17,7 @@ uDALES is capable of modelling urban environments at the microclimate scale incl
 
 ## Publications and validation
 
-To-date, uDALES has been used for a number of research applications:
-
-Table: uDALES research applications.
+To-date, uDALES has been used to study a number of research questions:
 
 | Research application                                         | Reference                                                                       |
 | ------------------------------------------------------------ | ------------------------------------------------------------------------------- |
@@ -28,7 +26,7 @@ Table: uDALES research applications.
 | Pollution dispersion/ urban air quality                      | Grylls et al. (2019);  Grylls (2020)                                            |
 | Buoyancy/ convective and stable conditions                   | Suter (2018); Grylls et al. (2019); Grylls (2020); Grylls & van Reeuwijk (2021) |
 
-uDALES has been validated against both field and experimental studies and evaluated against other numerical models. The dynamic core, DALES, has been used to study atmospheric processes for over 30 years being validated extensively in the process and used in several atmospheric intercomparison studies (Nieuwstadt and Brost 1986; Heus et al. 2010). The use of the immersed boundary method to model obstacles was validated by Tomas et al. (2016). The wall functions and three-dimensional surface energy balance model was validated by Suter (2018). The ability to model pollutuon dispersion in both idealised and realistic morphologies was been validated by Grylls et al. (2019) and Grylls (2020).
+uDALES has been validated against both field and experimental studies and evaluated against other numerical models. The dynamic core, DALES, has been used to study atmospheric processes for over 30 years, being validated extensively in the process and used in several atmospheric intercomparison studies (Nieuwstadt and Brost 1986; Heus et al. 2010). The use of the immersed boundary method to model obstacles was validated by Tomas et al. (2016). The wall functions and three-dimensional surface energy balance model was validated by Suter (2018). The ability to model pollutuon dispersion in both idealised and realistic morphologies was been validated by Grylls et al. (2019) and Grylls (2020).
 
 ## Documentation
 
