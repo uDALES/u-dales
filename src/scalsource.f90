@@ -1,5 +1,4 @@
 !> \file scalsource.f90
-!!tg3315, 8 Apr 2016 
 
 !> Input point, line or planar scalars
 !  This file is part of uDALES.
