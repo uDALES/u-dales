@@ -9,7 +9,7 @@ This is the development repository for the uDALES (urban Dutch Atmospheric Large
 
 ## Documentation
 
-**If you are new to uDALES, please follow our [getting started guide](https://udales.github.io/u-dales/0YiO263pFxExSdkMvWfId3qkVUSF4dREFnwM1jQD9y1KvzeAVAWzGykQemUrkJCM/html/udales-getting-started).** For User's guides and general reference documentation, please see the [uDALES website](https://udales.github.io/u-dales/0YiO263pFxExSdkMvWfId3qkVUSF4dREFnwM1jQD9y1KvzeAVAWzGykQemUrkJCM/html/).
+**If you are new to uDALES, please follow our [getting started guide](https://udales.github.io/u-dales/udales-getting-started).** For User's guides and general reference documentation, please see the [uDALES website](https://udales.github.io/u-dales/).
 
 If you are a developer, please also refer to the [development notes](DEVELOP.md).
 

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 # uDALES (https://github.com/uDALES/u-dales).
-# Copyright (C) 2019 D. Meyer.
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,6 +14,8 @@
 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+# Copyright (C) 2019 the uDALES Team.
 
 
 """Test uDALES
@@ -68,16 +69,18 @@ def main(branch_a: str, branch_b: str, build_type: str):
 
 
 def run_and_compare(cases_dir, path_to_exes, is_patch=False):
-    excluded_cases = []
+    excluded_cases = ['501', '502']
+    excluded_platforms = ['Darwin']
     precursor_sims = ['501']
     driver_sims = ['502']
 
-    for case_path in cases_dir:
+    for case_path in sorted(cases_dir):
         case_id = case_path.stem
 
         if case_id in excluded_cases:
-            print(f'Skipping tests for case {case_id}')
-            continue
+            if platform.system() in excluded_platforms:
+                print(f'Skipping tests for case {case_id} on {excluded_platforms}')
+                continue
 
         print(f'Running tests for example {case_id}')
 
@@ -121,15 +124,13 @@ def run_and_compare(cases_dir, path_to_exes, is_patch=False):
                                     model_output_dirs[0].parent)
 
 def run_udales(path_to_exe: Path, namelist: str, model_output_dir: str, 
-               model_output_dirs: list, cpu_count=None) -> None:
-    if cpu_count is None:
-        cpu_count = str(os.cpu_count())
+               model_output_dirs: list, cpu_count=2) -> None:
     print(f'Running uDALES in: {path_to_exe}')
     try:
-        subprocess.run(['mpiexec', '-np', cpu_count, path_to_exe / 'u-dales',
-                        namelist], cwd=model_output_dir, check=True, 
-                        stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
-    except:
+        subprocess.run(['mpiexec', '-np', str(cpu_count), path_to_exe / 'u-dales',
+                        namelist], cwd=model_output_dir, check=True,
+                        stdout=subprocess.DEVNULL)
+    except subprocess.CalledProcessError:
         print(f'Could not run case uDALES in {path_to_exe} for namelist {namelist}')
         sys.exit(1)
     model_output_dirs.append(model_output_dir)
