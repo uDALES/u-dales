@@ -66,6 +66,8 @@ nav:
     - Pre-processing: udales-pre-processing.md
     - Post-processing: udales-post-processing.md
   - Publication list: udales-pub-list.md
+  - Development notes: DEVELOP.md
+  - How to contribute: CONTRIBUTING.md
   - Software docs: udales-docs-software/index.html
 
 plugins:
