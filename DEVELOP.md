@@ -2,7 +2,7 @@
 
 ## Set up
 
-Install all required packages for uDALES described in the [prerequisites section](./docs/udales-getting-started.md#prerequisites), plus optionally [Graphviz](https://graphviz.org/) for generating graphs in the code viewer. E.g. installing all the required packages using Ubuntu's APT:
+Install all required packages for uDALES described in the [prerequisites section](https://udales.github.io/u-dales/udales-getting-started/#prerequisites-when-not-using-singularity), plus optionally [Graphviz](https://graphviz.org/) for generating graphs in the code viewer. E.g. installing all the required packages using Ubuntu's APT:
 
 ```sh
 sudo apt update && sudo apt install -y gfortran libopenmpi-dev openmpi-bin libnetcdf-dev libnetcdff-dev graphviz
@@ -39,7 +39,7 @@ mpiexec -n <NCPU> <BUILD> <NAMOPTIONS>
 
 ## Testing
 
-Please refer to [Test docs](tests/README.md).
+Please refer to [Test docs](https://github.com/uDALES/u-dales/blob/master/tests/README.md).
 
 ## Documentation
 
