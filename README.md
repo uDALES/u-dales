@@ -52,7 +52,7 @@ Heus, T., van Heerwaarden, C. C., Jonker, H. J. J., Siebesma, A. P., Axelsen, S.
 
 Grylls, T., Cornec, C. M. A. L., Salizzoni, P., Soulhac, L., Stettler, M. E. J., & van Reeuwijk, M. (2019). Evaluation of an operational air quality model using large-eddy simulation. Atmospheric Environment: X, 3, 100041. https://doi.org/10.1016/j.aeaoa.2019.100041
 
-Grylls, T. (2020). Simulating air pollution in the urban microclimate.
+Grylls, T. (2020). Simulating air pollution in the urban microclimate, Imperial College London, PhD thesis.
 
 Grylls, T., Suter, I., & van Reeuwijk, M. (2020). Steady-state large-eddy simulations of convective and stable urban boundary layers. Boundary-Layer Meteorology, 175(3), 309-341. https://doi.org/10.1007/s10546-020-00508-x
 
@@ -64,7 +64,7 @@ Oke, T. R., Mills, G., Christen, A., & Voogt, J. A. (2017). Urban climates. Camb
 
 Resler, J., Krč, P., Belda, M., Juruš, P., Benešová, N., Lopata, J., Vlček, O., Damašková, D., Eben, K., Derbek, P., Maronga, B., & Kanani-Sühring, F. (2017). PALM-USM v1.0: A new urban surface model integrated into the PALM large120 eddy simulation model. Geoscientific Model Development, 10(10), 3635–3659. https://doi.org/10.5194/gmd-10-3635-2017
 
-Suter, I. (2018). Simulating the impact of blue-green infrastructure on the microclimate of urban areas. https://doi.org/10.25560/78715
+Suter, I. (2018). Simulating the impact of blue-green infrastructure on the microclimate of urban areas. Imperial College London, PhD thesis. https://doi.org/10.25560/78715
 
 Suter, I., Grylls, T., Sützl, B. S., & van Reeuwijk, M. (2021). uDALES 1.0.0: A large-eddy simulation model for urban environments. In Geoscientific Model Development. Copernicus GmbH.
 
