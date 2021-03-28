@@ -13,7 +13,7 @@ With continuing urbanization, challenges associated with the urban environment s
 
 The turbulent nature of the urban flow field and the inherent heterogeneity and wide range of scales associated with the urban environment result in a complex modelling problem. uDALES is a large-eddy simulation (LES) model for urban environments. LES is an approach to turbulence modelling used in computational fluid dynamics to simulate turbulent flows over a wide range of spatial and temporal scales. LES is one of the most promising tools to model the interactions typical of urban areas due to its ability to resolve the urban flow field at resolutions of _O_(1 m, 0.1 s), over spatial domains of _O_(100 m), and time periods of _O_(10 h). Although there are many scalable LES models for atmospheric flows, to our knowledge, only few are capable of explicitly representing buildings and of modelling the full range of urban processes (e.g. PALM-4U; Resler et al. 2017; Maronga et al. 2020; or OpenFoam; Weller et al. 1998).
 
-uDALES is capable of modelling urban environments at the microclimate scale including wet thermodynamics, idealized and complex morphologies, three-dimensional urban surface energy balance and real-time pollution dispersion.
+uDALES is capable of modelling urban environments at the microclimate scale including wet thermodynamics, idealized and complex morphologies, three-dimensional urban surface energy balance and urban air quality (emission, dispersion and reaction).
 
 ## Publications and validation
 
