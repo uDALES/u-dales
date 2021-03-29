@@ -51,7 +51,7 @@ The modelling capabilities of uDALES outlined above, combined with the ability t
 
 | Research application                                         | Reference                                         |
 | ------------------------------------------------------------ | ------------------------------------------------- |
-| Urban boundary layers/ boundary-layer meteorology            | @Grylls2019; @Sutzl2021                           |
+| Urban boundary layers/ boundary-layer meteorology            | @Grylls2019; @Sutzl2021; @Sutzl2021thesis         |
 | Urban climate (radiation, green roofs and walls, trees etc.) | @Suter2018; @Suter2021; @Grylls2021               |
 | Pollution dispersion/ urban air quality                      | @Grylls2019;  @Grylls2020                         |
 | Buoyancy/ convective and stable conditions                   | @Suter2018; @Grylls2020b; @Grylls2020; @Grylls2021 |

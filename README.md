@@ -21,7 +21,7 @@ To-date, uDALES has been used to study a number of research questions:
 
 | Research application                                         | Reference                                                                       |
 | ------------------------------------------------------------ | ------------------------------------------------------------------------------- |
-| Urban boundary layers/ boundary-layer meteorology            | Grylls et al. (2019); Sützl et al. (2021)                                       |
+| Urban boundary layers/ boundary-layer meteorology            | Grylls et al. (2019); Sützl et al. (2021); Sützl (2021)                                      |
 | Urban climate (radiation, green roofs and walls, trees etc.) | Suter (2018); Suter et al. (2021); Grylls & van Reeuwijk (2021)                 |
 | Pollution dispersion/ urban air quality                      | Grylls et al. (2019);  Grylls (2020)                                            |
 | Buoyancy/ convective and stable conditions                   | Suter (2018); Grylls et al. (2020); Grylls (2020); Grylls & van Reeuwijk (2021) |
@@ -67,6 +67,8 @@ Resler, J., Krč, P., Belda, M., Juruš, P., Benešová, N., Lopata, J., Vlček,
 Suter, I. (2018). Simulating the impact of blue-green infrastructure on the microclimate of urban areas. Imperial College London, PhD thesis. https://doi.org/10.25560/78715
 
 Suter, I., Grylls, T., Sützl, B. S., & van Reeuwijk, M. (2021). uDALES 1.0.0: A large-eddy simulation model for urban environments. In Geoscientific Model Development. Copernicus GmbH.
+
+Sützl, B. S. (2021). Rising from the ground: Distributed drag parameterization of urban environments for numerical weather prediction. Imperial College London, PhD thesis.
 
 Sützl, B. S., Rooney, G. G., & van Reeuwijk, M. (2021). Drag distribution in idealized heterogeneous urban environments. Boundary-Layer Meteorology, 178, 225-248. https://doi.org/10.1007/s10546-020-00567-0
 
