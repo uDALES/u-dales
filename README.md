@@ -26,7 +26,7 @@ To-date, uDALES has been used to study a number of research questions:
 | Pollution dispersion/ urban air quality                      | Grylls et al. (2019);  Grylls (2020)                                            |
 | Buoyancy/ convective and stable conditions                   | Suter (2018); Grylls et al. (2020); Grylls (2020); Grylls & van Reeuwijk (2021) |
 
-uDALES has been validated against both field and experimental studies and evaluated against other numerical models. The dynamic core, [DALES](https://github.com/dalesteam/dales), has been used to study atmospheric processes for over 30 years, being validated extensively in the process and used in several atmospheric intercomparison studies (Heus et al. 2010). The use of the immersed boundary method to model obstacles was validated by Tomas et al. (2016). The wall functions and three-dimensional surface energy balance model was validated by Suter (2018). The ability to model pollutuon dispersion in both idealised and realistic morphologies was been validated by Grylls et al. (2019) and Grylls (2020).
+uDALES has been validated against both field and experimental studies and evaluated against other numerical models. The dynamic core, [DALES](https://github.com/dalesteam/dales), has been used to study atmospheric processes for over 30 years, being validated extensively in the process and used in several atmospheric intercomparison studies (Heus et al. 2010). The immersed boundary method, which is used to model obstacles in the fluid domain, was implemented into DALES and validated by Pourquie et al. (2009) and Tomas et al. (2015). The wall functions and three-dimensional surface energy balance model was validated by Suter (2018). The ability to model pollutuon dispersion in both idealised and realistic morphologies was been validated by Grylls et al. (2019) and Grylls (2020).
 
 ## Documentation
 
@@ -61,6 +61,8 @@ Grylls, T., & van Reeuwijk, M. (2021). Tree model with drag, transpiration, shad
 Maronga, B., Banzhaf, S., Burmeister, C., Esch, T., Forkel, R., Fröhlich, D., Fuka, V., Gehrke, K. F., Geletič, J., Giersch, S., Gronemeier, T., Groß, G., Heldens, W., Hellsten, A., Hoffmann, F., Inagaki, A., Kadasch, E., Kanani-Sühring, F., Ketelsen, K., Raasch, S. (2020). Overview of the PALM model system 6.0. Geoscientific Model Development, 13(3), 1335–1372. https://doi.org/10.5194/gmd-13-1335-2020
 
 Oke, T. R., Mills, G., Christen, A., & Voogt, J. A. (2017). Urban climates. Cambridge University Press. https://doi.org/10.1017/9781139016476
+
+Pourquie, M. B. J. M., Breugem, W. P., & Boersma, B. J. (2009). Some issues related to the use of immersed boundary methods to represent square obstacles. International Journal for Multiscale Computational Engineering, 7(6). https://doi.org/10.1615/IntJMultCompEng.v7.i6.30
 
 Resler, J., Krč, P., Belda, M., Juruš, P., Benešová, N., Lopata, J., Vlček, O., Damašková, D., Eben, K., Derbek, P., Maronga, B., & Kanani-Sühring, F. (2017). PALM-USM v1.0: A new urban surface model integrated into the PALM large120 eddy simulation model. Geoscientific Model Development, 10(10), 3635–3659. https://doi.org/10.5194/gmd-10-3635-2017
 
