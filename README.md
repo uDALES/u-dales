@@ -46,6 +46,10 @@ Additional files provided in uDALES are copyrighted "the uDALES Team" and are ma
 
 All files are licensed under the GNU General Public License. See [LICENSE.txt](LICENSE.txt).
 
+## Acknowledgements
+
+The dynamic core of uDALES derives from the Dutch Atmospheric Large-Eddy Simulation ([DALES](https://github.com/dalesteam/dales)) model. We would like to acknowledge the work of the contributors to DALES over the years (Heus et al. 2010) and specifically the work of J. Tomas, M. Pourquie and H. Jonker in implementing the immersed boundary method into DALES.
+
 ## References
 
 Heus, T., van Heerwaarden, C. C., Jonker, H. J. J., Siebesma, A. P., Axelsen, S., van den Dries, K., Geoffroy, O., Moene, A. F., Pino, D., Roode, S. R. de, & de Arellano, J. V.-G. (2010). Formulation of the dutch atmospheric large-eddy simulation (DALES) and overview of its applications. Geoscientific Model Development, 3(2), 415–444. https://doi.org/10.5194/gmd-3-415-2010
