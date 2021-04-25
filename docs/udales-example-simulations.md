@@ -494,7 +494,7 @@ Then, change the switches as described above, and make sure `startfile` matches 
 
 #### Pre-defined buildings
 
-The buildings are read in by a file containing the block geometries:
+The buildings are read in by a file containing the block geometries (more information on blocks in uDALES can be found under docs/set-up):
 
 ```fortran
 &INPS
