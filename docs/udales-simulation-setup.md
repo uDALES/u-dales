@@ -5,6 +5,7 @@ This document contains some notes on setting up uDALES simulations. A complete l
 ## Table of contents
 
 - [Boundary Conditions](#Boundary-Conditions)
+- [Buildings and blocks](#Buildings-and-blocks)
 - [Driver simulations](#Driver-simulations)
 
 ## Boundary Conditions
@@ -76,6 +77,12 @@ Determined by `iwalltemp`. Possible values:
 ### Moisture
 
 ### Scalars
+
+## Buildings and blocks
+
+uDALES uses the immersed boundary method (IBM) to capture buildings in the fluid domain. The implementation of the IBM supports grid-conforming obstacles and therefore uDALES is able to model cuboid building forms. Both idealised and realistic urban morphologies can be captured via this implementation and can be automatically generated using uDALES' pre-processing routines (see [pre-processing](./udales-pre-processing.md)).
+
+The information for the positions of the blocks in the fluid domain is found in `blocks.inp.xxx`. Columns 1 to 6 in `blocks.inp.xxx` denote the start and end positions of the blocks using cell centres as reference points. For example, `il` is the position of the west-most block in the x-direction and `zu` is the position of the top block in the z-direction. Each row therefore provides the three-dimensional indices required to position one block. Columns 7 to 10 indicate the corrsponding facets, which are detailed in the input file `facets.inp.xxx`. The facets file indicates the orientation of the facet, the wall type (corresponding to a row of `walltypes.inp.xxx` and therefore indicating the roughness length, heat capacity etc. of that surface) and its block number. Finally `Tfacinit.inp.xxx` indicates the initial temperature of each facet where applicable.
 
 ## Driver simulations
 
