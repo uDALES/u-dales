@@ -7,6 +7,17 @@ This is the development repository for the uDALES (urban Dutch Atmospheric Large
 <img src="docs/assets/images/fielddump_slice_3D.102.png" alt="uDALES" height="256"> 
 </div>
 
+---
+
+- [Overview](#overview)
+- [Publications and validation](#publications-and-validation)
+- [Documentation](#documentation)
+- [How to cite](#how-to-cite)
+- [Contributing](#contributing)
+- [Copyright and license](#copyright-and-license)
+- [Acknowledgements](#acknowledgements)
+- [References](#references)
+
 ## Overview
 
 With continuing urbanization, challenges associated with the urban environment such as air quality, heat islands, pedestrian thermal comfort, and wind loads on tall buildings, are increasingly relevant. Our ability to realistically capture processes such as the transport of heat, moisture, momentum and pollutants, and those of radiative transfer in urban environments is key to understanding and facing these challenges (Oke et al., 2017).
@@ -34,11 +45,35 @@ uDALES has been validated against both field and experimental studies and evalua
 
 If you are a developer, please also refer to the [development notes](DEVELOP.md).
 
+## How to cite
+
+When using the uDALES please cite as:
+
+> Grylls, T., Suter, I., Sützl, B., Owens, S., Meyer, D., & van Reeuwijk, M. (2021). uDALES: large-eddy-simulation software for urban flow, dispersion, and microclimate modelling. Journal of Open Source Software, 6(63), 3055, https://doi.org/10.21105/joss.03055
+
+
+```bibtex
+@article{Grylls2021,
+  doi = {10.21105/joss.03055},
+  url = {https://doi.org/10.21105/joss.03055},
+  year = {2021},
+  publisher = {The Open Journal},
+  volume = {6},
+  number = {63},
+  pages = {3055},
+  author = {Tom Grylls and Ivo Suter and Birgit S. Sützl and Sam Owens and David Meyer and Maarten van Reeuwijk},
+  title = {uDALES: large-eddy-simulation software for urban flow, dispersion, and microclimate modelling},
+  journal = {Journal of Open Source Software}
+}
+```
+
+If you are looking to also cite a specific version of the software, you can find correposding version-specific DOIs on [Zenodo](10.5281/zenodo.5111496).
+
 ## Contributing
 
 If you are looking to contribute, please read our [Contributors' guide](CONTRIBUTING.md) for details.
 
-## Copyright and License
+## Copyright and license
 
 General DALES copyright applies for any files part of the original DALES distribution and are marked as such at the beginning of each file.
 
