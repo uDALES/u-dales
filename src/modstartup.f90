@@ -69,7 +69,7 @@ module modstartup
          lwallfunc,lprofforc,lchem,k1,JNO2,rv,rd,tnextEB,tEB,dtEB,bldT,wsoil,wgrmax,wwilt,wfc,skyLW,GRLAI,rsmin,nfcts,lEB,lwriteEBfiles,nwalllayers,lconstW, &
          BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys, &
          BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots, &
-         idriver,tdriverstart,driverjobnr,dtdriver,driverstore
+         idriver,tdriverstart,driverjobnr,dtdriver,driverstore,lsdriver
       use modsurfdata, only:z0, z0h,  wtsurf, wttop, wqtop, wqsurf, wsvsurf, wsvtop, wsvsurfdum, wsvtopdum, ps, thvs, thls, thl_top, qt_top, qts 
       ! use modsurface,        only : initsurface
       use modfields, only:initfields, dpdx, ncname
@@ -123,7 +123,7 @@ module modstartup
          lwallfunc
       namelist/DRIVER/ &
          idriver, tdriverstart, driverjobnr, dtdriver, &
-         driverstore, iplane
+         driverstore, iplane, lsdriver
       namelist/WALLS/ &
          nblocks, nfcts, iwallmom, iwalltemp, iwallmoist, iwallscal
       namelist/ENERGYBALANCE/ &
@@ -296,6 +296,7 @@ module modstartup
       call MPI_BCAST(driverjobnr,1,MPI_INTEGER,0,comm3d,mpierr)        ! ae1212
       call MPI_BCAST(dtdriver   ,1,MY_REAL    ,0,comm3d,mpierr)        ! ae1212
       call MPI_BCAST(driverstore,1,MPI_INTEGER ,0,comm3d,mpierr)
+      call MPI_BCAST(lsdriver   ,1,MPI_LOGICAL,0,comm3d,mpierr)
       write (*, *) "sec BC"
          call MPI_BCAST(BCxm, 1, MPI_INTEGER, 0, comm3d, mpierr)
          call MPI_BCAST(BCxT, 1, MPI_INTEGER, 0, comm3d, mpierr)

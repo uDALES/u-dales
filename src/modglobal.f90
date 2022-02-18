@@ -289,6 +289,7 @@ module modglobal
    real    :: dtdriver = 0.1      !<     * time frequency at which inlet driver data dumps are made (idriver == 1)
    integer :: driverstore         !<     * number of stored driver steps for inlet (automatically calculated)
    integer :: driverjobnr         !<     * Job number of the driver inlet generation run (idriver == 2)
+   logical :: lsdriver            !<     * switch for reading scalar driver files
 
    real    :: courant = -1.
    real    :: diffnr = 0.25
