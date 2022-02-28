@@ -21,7 +21,6 @@ print_creation_date: true
 creation_date: %Y-%m-%d %H:%M %z
 md_extensions: markdown.extensions.toc
                markdown.extensions.smarty
-print_creation_date: true
 ---
 
 
