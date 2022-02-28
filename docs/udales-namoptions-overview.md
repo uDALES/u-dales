@@ -214,6 +214,7 @@ BCs at the bottom (BCbot; only effective if not covered with road facets): 1 = f
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
 | nsv | 0 | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
+| lsdriver | .false. | .true., .false. |  Switch for reading scalar driver files when `idriver = 2`. | - |
 | lreadscal | .false. | .true., .false. | Switch for reading scalar pollutant field (warm start). *Deprecated, will be removed in the future.* | - |
 | lscasrcr | .false. | .true., .false. |  Switch for 2-D network of point sources at lowest level as defined in scals.inp.xxx.  | - |
 | lscasrcl | .false. | .true., .false. |  Switch for passive scalar line source when using canyon geometry.  | - |
