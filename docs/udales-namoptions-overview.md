@@ -214,7 +214,6 @@ BCs at the bottom (BCbot; only effective if not covered with road facets): 1 = f
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
 | nsv | 0 | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
-| lsdriver | .false. | .true., .false. |  Switch for reading scalar driver files when `idriver = 2`. | - |
 | lreadscal | .false. | .true., .false. | Switch for reading scalar pollutant field (warm start). *Deprecated, will be removed in the future.* | - |
 | lscasrcr | .false. | .true., .false. |  Switch for 2-D network of point sources at lowest level as defined in scals.inp.xxx.  | - |
 | lscasrcl | .false. | .true., .false. |  Switch for passive scalar line source when using canyon geometry.  | - |
@@ -235,6 +234,7 @@ BCs at the bottom (BCbot; only effective if not covered with road facets): 1 = f
 | iplane | - | `INTEGER` | Index of the position on the x-axis of the plane that will be written to \*driver\* files. In use for `idriver = 1`. | |
 | driverstore | 0. | `INTEGER` | Number of timesteps (`idriver = 1`) to be written to \*driver\* files or (`idriver = 2`) contained in \*driver\* files to be read. | - |
 | driverjobnr | - | - | Job number of the \*driver\* files to be read. These files should be copied into the experiments folder of the driven simulation. In use for `idriver = 2`. | - |
+| lsdriver | .false. | .true., .false. |  Switch for reading scalar driver files. In use for `idriver = 2`. | - |
 
 ## Namelist CHEMISTRY
 
