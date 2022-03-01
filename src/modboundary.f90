@@ -667,7 +667,7 @@ contains
    !>set inlet and outlet boundary conditions in i-direction
    subroutine iolet
 
-      use modglobal, only:dxhi, dxhci, xh, zh, ib, ie, jb, je, ih, jh, kb, ke, kh, nsv, rk3step, dt, iinletgen, ltempeq, lmoist, ihc, idriver, dy, dzf, jtot, zh
+      use modglobal, only:dxhi, dxhci, xh, zh, ib, ie, jb, je, ih, jh, kb, ke, kh, nsv, rk3step, dt, iinletgen, ltempeq, lmoist, ihc, idriver, dy, dzf, jtot, zh, lsdriver
       use modfields, only:u0, um, v0, vm, w0, wm, e120, e12m, thl0, thlm, qt0, qtm, sv0, svm, uprof, vprof, e12prof, thlprof, &
          qtprof, svprof, uouttot, wouttot
       use modmpi, only:excjs, myid, slabsum
@@ -748,7 +748,7 @@ contains
            ! to be changed in the future: e12 should be taken from recycle plane!
            !e120(ib-1,j,k) = e120driver(j,k)      ! extrapolate e12 from interior
            !e12m(ib-1,j,k) = e12mdriver(j,k)      ! extrapolate e12 from interior
-             
+           if (lsdriver) then  
            do n=1,nsv
               do m = 1,ihc
                  sv0(ib-m,j,k,n) = sv0driver(j,k,n)
@@ -759,6 +759,7 @@ contains
               sv0(ib,j,k,n) = sv0driver(j,k,n)
               svm(ib,j,k,n) = svmdriver(j,k,n)
            enddo
+           end if
          end do
          do k=kb,ke+1
            w0(ib-1,j,k)   = w0driver(j,k) !max(0.,w0driver(j,k))

@@ -429,7 +429,7 @@ bctfz        = -0.01
 
 #### Passive scalars point source
 
-The simulation contains a scalar field with a scalar point source:
+The simulation contains a scalar field with a scalar point source. The position of the point source is set by the coordinates `xS`,`yS`, and `zS` (location in metres). The strength of the scalar source is set by `SS`, and the standard deviation of the source emission is `sigS`.
 
 ```fortran
 &SCALARS

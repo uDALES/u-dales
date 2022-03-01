@@ -37,7 +37,7 @@ save
 
 contains
   subroutine initdriver
-    use modglobal, only : ih,ib,ie,jh,jb,je,kb,ke,kh,jhc,khc,idriver,iplane,xf,lstoreplane,nstore,Uinf,ltempeq,lmoist,pi,zf,zh,driverstore,tdriverstart,tdriverdump,timeleft,dtdriver,nsv,timee
+    use modglobal, only : ih,ib,ie,jh,jb,je,kb,ke,kh,jhc,khc,idriver,iplane,xf,lstoreplane,nstore,Uinf,ltempeq,lmoist,pi,zf,zh,driverstore,tdriverstart,tdriverdump,timeleft,dtdriver,nsv,timee,lsdriver
     use modfields, only : um
     use modmpi, only : myid,nprocs
 
@@ -110,7 +110,7 @@ contains
         allocate(qt0driver(jb-jh:je+jh,kb-kh:ke+kh))
         allocate(qtmdriver(jb-jh:je+jh,kb-kh:ke+kh))
       end if
-      if (nsv>0 ) then
+      if (nsv>0 .and. lsdriver) then
         allocate(storesv0driver(jb-jhc:je+jhc,kb-khc:ke+khc,1:nsv,1:driverstore))
         allocate(storesvmdriver(jb-jhc:je+jhc,kb-khc:ke+khc,1:nsv,1:driverstore))
         allocate(sv0driver(jb-jhc:je+jhc,kb-khc:ke+khc,1:nsv))
@@ -127,7 +127,7 @@ contains
     use modglobal,   only : ib,ie,jb,je,jgb,jge,kb,ke,zf,zh,dzf,dzhi,timee,btime,totavtime,rk3step,&
                             dt,numol,iplane,lles,idriver,inletav,runavtime,Uinf,lwallfunc,linletRA,&
                             totinletav,lstoreplane,nstore,driverstore,prandtlmoli,numol,grav,lbuoyancy,&
-                            lfixinlet,lfixutauin,tdriverstart,dtdriver,tdriverdump,ltempeq,lmoist,nsv
+                            lfixinlet,lfixutauin,tdriverstart,dtdriver,tdriverdump,ltempeq,lmoist,nsv,lsdriver
     use modfields,   only : u0,v0,w0,e120,thl0,qt0,wm,uprof
     use modsave,     only : writerestartfiles
     use modmpi,      only : slabsum,myid
@@ -204,7 +204,7 @@ contains
         if (lmoist) then
           qt0driver(:,:) = storeqt0driver(:,:,x)
         end if
-        if (nsv>0) then
+        if (nsv>0 .and. lsdriver) then
           sv0driver(:,:,:) = storesv0driver(:,:,:,x)
         end if
         nstepreaddriver = x
@@ -224,7 +224,7 @@ contains
         if (lmoist) then
           qt0driver(:,:) = storeqt0driver(:,:,x)
         end if
-        if (nsv>0) then
+        if (nsv>0 .and. lsdriver) then
           sv0driver(:,:,:) = storesv0driver(:,:,:,x)
         end if
         nstepreaddriver = x
@@ -252,7 +252,7 @@ contains
         if (lmoist) then
           qt0driver(:,:) = storeqt0driver(:,:,x) + (storeqt0driver(:,:,x+1)-storeqt0driver(:,:,x))*dtint
         end if
-        if (nsv>0) then
+        if (nsv>0 .and. lsdriver) then
           sv0driver(:,:,:) = storesv0driver(:,:,:,x) + (storesv0driver(:,:,:,x+1)-storesv0driver(:,:,:,x))*dtint
         end if
         nstepreaddriver = x
@@ -273,7 +273,7 @@ contains
         if (lmoist) then
           qt0driver(:,:) = storeqt0driver(:,:,x-1) + (storeqt0driver(:,:,x)-storeqt0driver(:,:,x-1))*dtint
         end if
-        if (nsv>0) then
+        if (nsv>0 .and. lsdriver) then
           sv0driver(:,:,:) = storesv0driver(:,:,:,x-1) + (storesv0driver(:,:,:,x)-storesv0driver(:,:,:,x-1))*dtint
         end if
         nstepreaddriver = x
@@ -311,7 +311,7 @@ contains
         if (lmoist) then
           qtmdriver = qt0driver
         end if
-        if (nsv>0) then
+        if (nsv>0 .and. lsdriver) then
           svmdriver = sv0driver
         end if
       end if
@@ -325,7 +325,7 @@ contains
   end subroutine drivergen
 
   subroutine writedriverfile
-    use modglobal, only : timee,tdriverstart,ib,ie,ih,jb,je,jh,kb,ke,kh,cexpnr,ifoutput,nstore,ltempeq,lmoist,driverstore,nsv
+    use modglobal, only : timee,tdriverstart,ib,ie,ih,jb,je,jh,kb,ke,kh,cexpnr,ifoutput,nstore,ltempeq,lmoist,driverstore,nsv,lsdriver
     use modfields, only : u0, v0, w0, e120, thl0, qt0, um, sv0
     use modmpi,    only : cmyid,myid
     use modinletdata, only : storetdriver,storeu0driver,storev0driver,storew0driver,storethl0driver,storeqt0driver,&
@@ -534,7 +534,7 @@ contains
 
   subroutine readdriverfile
     use modfields, only : u0,sv0
-    use modglobal, only : ib,jb,je,jmax,kb,ke,kh,jhc,khc,cexpnr,ifinput,driverstore,ltempeq,lmoist,zh,jgb,jge,jh,driverjobnr,nsv,timee,tdriverstart
+    use modglobal, only : ib,jb,je,jmax,kb,ke,kh,jhc,khc,cexpnr,ifinput,driverstore,ltempeq,lmoist,zh,jgb,jge,jh,driverjobnr,nsv,timee,tdriverstart,lsdriver
     use modmpi,    only : cmyid,myid,nprocs,slabsum,excjs
     use modinletdata, only : storetdriver,storeu0driver,storev0driver,storew0driver,storethl0driver,storeqt0driver,storesv0driver,nfile
     implicit none
@@ -686,7 +686,7 @@ contains
       close (unit=11)
     end if
 
-    if (nsv>0 ) then
+    if (nsv>0 .and. lsdriver) then
       name = 'sdriver_   .'
       ! write (name(13:16)  ,'(i4.4)') nfile
       name(9:11)= cmyid
@@ -705,7 +705,7 @@ contains
   end subroutine readdriverfile
 
   subroutine exitdriver
-    use modglobal,      only : idriver,lstoreplane,ltempeq,lmoist,nsv
+    use modglobal,      only : idriver,lstoreplane,ltempeq,lmoist,nsv,lsdriver
 
     if (idriver==1) then
       if (lstoreplane ) then 
@@ -728,7 +728,7 @@ contains
       if (lmoist ) then
         deallocate(storeqt0driver,qt0driver)
       end if
-      if (nsv>0 ) then
+      if (nsv>0 .and. lsdriver) then
         deallocate(storesv0driver,sv0driver)
       end if
     end if

@@ -48,17 +48,17 @@ Possible advection schemes:
 | ltempeq | .false. | .true., .false. | Switch for solving temperature equation. | - |
 | lbuoyancy | .false. | .true., .false. | Switch for buoyancy force in temperature equation. | - |
 | lprofforc | .false. | .true., .false. | Switch for nudging flow to a profile (forcing). | - |
-| luoutflowr | .false. | | switch that determines whether u-velocity is corrected to get a fixed outflow rate | |
-| lvoutflowr | .false. | | switch that determines whether u-velocity is corrected to get a fixed outflow rate | |
-| luvolflowr | .false. | | switch that determines whether u-velocity is corrected to get a fixed volume flow rate | |
-| lvvolflowr | .false. | | switch that determines whether u-velocity is corrected to get a fixed volume flow rate | |
+| luoutflowr | .false. | .true., .false. | Switch that determines whether u-velocity is corrected to get a fixed outflow rate | |
+| lvoutflowr | .false. | .true., .false. | Switch that determines whether u-velocity is corrected to get a fixed outflow rate | |
+| luvolflowr | .false. | .true., .false. | Switch that determines whether u-velocity is corrected to get a fixed volume flow rate | |
+| lvvolflowr | .false. | .true., .false. | Switch that determines whether u-velocity is corrected to get a fixed volume flow rate | |
 | uflowrate | 1. | `REAL` | U-velocity flow rate for out- or volume-flow forcing. | m/s |
 | vflowrate | 1. | `REAL` | V-velocity flow rate out- or volume-flow forcing. | m/s |
 | ifixuinf | 0 | 1, 2 | Choice for free stream forcing. (0 = nothing) | |
-| lvinf | .false. | | use Vinf instead of Uinf for the fixed velocity at infinity | |
-| tscale | | | timescale: domain height*Uinf/utau\*\*2 | |
-| lnudge | .false. | | switch for applying nudging at the top of the domain | |
-| tnudge | 50. | | time scale for nudging | |
+| lvinf | .false. | .true., .false. | Use Vinf instead of Uinf for the fixed velocity at infinity | |
+| tscale | | | Timescale: domain height*Uinf/utau\*\*2 | |
+| lnudge | .false. | | Switch for applying nudging at the top of the domain | |
+| tnudge | 50. | | Time scale for nudging | |
 | nnudge | 10 | | | |
 | dpdx | 0. | | Constant pressure gradient forcing in x. | |
 
@@ -215,13 +215,14 @@ BCs at the bottom (BCbot; only effective if not covered with road facets): 1 = f
 | ---- | ------- | --------------- | ----------- | ---- |
 | nsv | 0 | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | lreadscal | .false. | .true., .false. | Switch for reading scalar pollutant field (warm start). *Deprecated, will be removed in the future.* | - |
-| **lscasrc** | .false. | .true., .false. |  *Description missing* | |
-| **lscasrcl** | .false. | .true., .false. |  *Description missing* | |
-| xS | 0 | | | |
-| yS | 0 | | | |
-| zS | 0 | | | |
-| SS | 0. | | | |
-| sigS | 0. | | | |
+| lscasrcr | .false. | .true., .false. |  Switch for 2-D network of point sources at lowest level as defined in scals.inp.xxx.  | - |
+| lscasrcl | .false. | .true., .false. |  Switch for passive scalar line source when using canyon geometry.  | - |
+| lscasrc | .false. | .true., .false. |  Switch for passive scalar point source defined by xS,yS,zS,SS,sigS. | - |
+| xS | 0 | `REAL` | Position of scalar source in x. | m |
+| yS | 0 | `REAL` | Position of scalar source in y. | m |
+| zS | 0 | `REAL` | Position of scalar source in z. | m |
+| SS | 0. | `REAL` | Strength of scalar source. | g/ms |
+| sigS | 0. | `REAL` | Standard deviation of scalar source. | m |
 
 ## Namelist DRIVER
 
@@ -233,6 +234,7 @@ BCs at the bottom (BCbot; only effective if not covered with road facets): 1 = f
 | iplane | - | `INTEGER` | Index of the position on the x-axis of the plane that will be written to \*driver\* files. In use for `idriver = 1`. | |
 | driverstore | 0. | `INTEGER` | Number of timesteps (`idriver = 1`) to be written to \*driver\* files or (`idriver = 2`) contained in \*driver\* files to be read. | - |
 | driverjobnr | - | - | Job number of the \*driver\* files to be read. These files should be copied into the experiments folder of the driven simulation. In use for `idriver = 2`. | - |
+| lsdriver | .false. | .true., .false. |  Switch for reading scalar driver files. In use for `idriver = 2`. | - |
 
 ## Namelist CHEMISTRY
 

@@ -269,15 +269,15 @@
               end do
             else
               do j = 1, nwalllayers !for all layers
-                facdi(n, j) = 1/walltypes(i, j + 6) !inverse of facet thickness of layer j
-                facd(n,j) = walltypes(i,j+6) !facet thickness of layer j
-                faclami(n, j) = 1/walltypes(i, j+12) !inverse of heat conductivity of layer j
-                faccp(n, j) = walltypes(i, j+9) !specific heat capacity of layer j
+               facdi(n, j) = 1 / walltypes(i, 6 + j) !inverse of facet thickness of layer j
+               facd(n, j) = walltypes(i, 6 + j) !facet thickness of layer j
+               faclami(n, j) = 1 / walltypes(i, 6 + 2 * nwalllayers + j) !inverse of heat conductivity of layer j
+               faccp(n, j) = walltypes(i, 6 + nwalllayers + j) !specific heat capacity of layer j
               end do
             end if
 
             do j= 1,nwalllayers+1
-              fackappa(n, j) = walltypes(i, j+15) !heat duffusivity of layer 1
+              fackappa(n, j) = walltypes(i, 6 + 3 * nwalllayers + j) !heat diffusivity of layer 1
             end do
           end do
 
