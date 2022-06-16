@@ -170,6 +170,6 @@ program DALESURBAN      !Version 48
   !call exitfielddump
   !call exitstatsdump     !tg3315
   !call exitmodules
-  call exittest
+  !call exittest
 
 end program DALESURBAN

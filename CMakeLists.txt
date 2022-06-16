@@ -62,11 +62,9 @@ add_subdirectory(external)
 
 ExternalProject_Get_Property(fishpack-cmake-project binary_dir)
 set(FISHPACK_LIBRARY ${binary_dir}/src/${CMAKE_STATIC_LIBRARY_PREFIX}fishpack_static${CMAKE_STATIC_LIBRARY_SUFFIX})
-message(STATUS "FISHPACK_LIBARY: ${FISHPACK_LIBRARY}")
 
 ExternalProject_Get_Property(vfftpack-cmake-project binary_dir)
 set(VFFTPACK_LIBRARY ${binary_dir}/${CMAKE_STATIC_LIBRARY_PREFIX}vfftpack_static${CMAKE_STATIC_LIBRARY_SUFFIX})
-message(STATUS "VFFTPACK_LIBARY: ${VFFTPACK_LIBRARY}")
 
 option(DOUBLE_PRECISION "Build 2decomp_fft with double precision" ON)
 if (DOUBLE_PRECISION)
