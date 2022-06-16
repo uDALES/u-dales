@@ -1,6 +1,6 @@
 !> \file modsave.f90
 !! Writes restart and data files.
-!> 
+!>
 !! modsave.f90 writes the restart and data files
 !!  \author Jasper Tomas, June 4th 2015
 !!  \todo documentation
@@ -48,7 +48,7 @@ contains
                           tsgsmz2,t_sgsav,nusgsav,tpm,t_pav,ttmx,ttmy,ttmz,t_tav,p_bav,d_sgsav,p_tav,tkeadv
     use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,trestart,tnextrestart,dt_lim,timee,btime,xh,&
                           cexpnr,ntimee,rk3step,ifoutput,nsv,timeleft,dt,ntrun,totavtime,&
-                          iinletgen,timee,runavtime,inletav,totinletav,linletRA,ltempeq,lmoist,jgb,jge,&
+                          iinletgen,timee,runavtime,inletav,totinletav,linletRA,ltempeq,lmoist,&
                           dzf,dzfi,dzhi,dxf,dxfi,dyi,dxhi,nstore,numol,dy2i,grav,libm,jmax,nblocks
     use modmpi,    only : cmyid,myid,slabsum,excjs
     use modsubgriddata, only : ekm
@@ -76,7 +76,7 @@ contains
 
     if (((timee>=tnextrestart)) .or. ((lexitnow) .or. (nstepread == nstore+1))) then
       tnextrestart = tnextrestart+trestart
-    
+
       name = 'initd        _   .'
       write (name(6:13)  ,'(i8.8)') ntrun
       name(15:17)= cmyid
@@ -96,7 +96,7 @@ contains
       write(ifoutput)  (((ql0   (i,j,k),i=ib-ih,ie+ih),j=jb-jh,je+jh),k=kb,ke+kh)
       write(ifoutput)  (((ql0h  (i,j,k),i=ib-ih,ie+ih),j=jb-jh,je+jh),k=kb,ke+kh)
       write(ifoutput)  timee,  dt
-      
+
       if (myid==0) then
         write(*,*) '-------------------------'
         write(*,*) 'Saving initd restart file'
@@ -104,7 +104,7 @@ contains
         write(*,*) 'timee ::: ', timee
         write(*,*) '-------------------------'
       endif
-      
+
       close (ifoutput)
 
       if (nsv>0) then

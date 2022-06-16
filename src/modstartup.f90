@@ -54,38 +54,39 @@ module modstartup
       !      Thijs Heus                   15/06/2007                    |
       !-----------------------------------------------------------------|
 
-      use modglobal, only:initglobal, iexpnr, runtime, dtmax,  &
-         lwarmstart, lstratstart, lfielddump, lreadscal, startfile, tfielddump, fieldvars, tsample, tstatsdump, trestart, &
-         nsv, imax, jtot, kmax, xsize, ysize, xlat, xlon, xday, xtime, lwalldist, &
-         lmoist, lcoriol, igrw_damp, geodamptime, ifnamopt, fname_options, &
-         xS,yS,zS,SS,sigS,iwallmom,iwalltemp,iwallmoist,iwallscal,ipoiss,iadv_mom,iadv_tke,iadv_thl,iadv_qt,iadv_sv,courant,diffnr,ladaptive,author,&
-         linoutflow, lper2inout, libm, lnudge, tnudge, nnudge, lles, luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, &
-         uflowrate, vflowrate, lstoreplane, iplane, &
-         lreadmean, iinletgen, inletav, lreadminl, Uinf, Vinf, linletRA, nblocks, &
-         lscalrec,lSIRANEinout,lscasrc,lscasrcl,lscasrcr,lydump,lytdump,lxydump,lxytdump,lslicedump,ltdump,ltkedump,lzerogradtop,&
-         lzerogradtopscal, lbuoyancy, ltempeq, &
-         lfixinlet, lfixutauin, pi, &
-         thlsrc, ifixuinf, lvinf, tscale, ltempinout, lmoistinout,  &
-         lwallfunc,lprofforc,lchem,k1,JNO2,rv,rd,tnextEB,tEB,dtEB,bldT,wsoil,wgrmax,wwilt,wfc,skyLW,GRLAI,rsmin,nfcts,lEB,lwriteEBfiles,nwalllayers,lconstW, &
-         BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys, &
-         BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots, &
-         idriver,tdriverstart,driverjobnr,dtdriver,driverstore,lsdriver
-      use modsurfdata, only:z0, z0h,  wtsurf, wttop, wqtop, wqsurf, wsvsurf, wsvtop, wsvsurfdum, wsvtopdum, ps, thvs, thls, thl_top, qt_top, qts 
-      ! use modsurface,        only : initsurface
-      use modfields, only:initfields, dpdx, ncname
-      use modpois, only:initpois
-      use modboundary, only:initboundary, ksp
-      use modthermodynamics, only:initthermodynamics, lqlnr, chi_half
-      use modsubgrid, only:initsubgrid
-      use modmpi, only:comm3d, myid, mpi_integer, mpi_logical, my_real, mpierr, mpi_character
-      use modinlet, only:initinlet
-      use modinletdata, only:di, dr, di_test, dti, iangledeg, iangle
-      use modibmdata, only:bctfxm, bctfxp, bctfym, bctfyp, bctfz
-      use modforces, only: calcfluidvolumes
-      use moddriver, only: initdriver
+      use modglobal,         only : initglobal, iexpnr, runtime, dtmax,  &
+                                    lwarmstart, lstratstart, lfielddump, lreadscal, startfile, tfielddump, fieldvars, tsample, tstatsdump, trestart, &
+                                    nsv, itot, jtot, kmax, xlength, ylength, xlat, xlon, xday, xtime, lwalldist, &
+                                    lmoist, lcoriol, igrw_damp, geodamptime, ifnamopt, fname_options, &
+                                    xS,yS,zS,SS,sigS,iwallmom,iwalltemp,iwallmoist,iwallscal,ipoiss,iadv_mom,iadv_tke,iadv_thl,iadv_qt,iadv_sv,courant,diffnr,ladaptive,author,&
+                                    linoutflow, lper2inout, libm, lnudge, tnudge, nnudge, lles, luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, &
+                                    uflowrate, vflowrate, lstoreplane, iplane, &
+                                    lreadmean, iinletgen, inletav, lreadminl, Uinf, Vinf, linletRA, nblocks, &
+                                    lscalrec,lSIRANEinout,lscasrc,lscasrcl,lscasrcr,lydump,lytdump,lxydump,lxytdump,lslicedump,ltdump,ltkedump,lzerogradtop,&
+                                    lzerogradtopscal, lbuoyancy, ltempeq, &
+                                    lfixinlet, lfixutauin, pi, &
+                                    thlsrc, ifixuinf, lvinf, tscale, ltempinout, lmoistinout,  &
+                                    lwallfunc,lprofforc,lchem,k1,JNO2,rv,rd,tnextEB,tEB,dtEB,bldT,wsoil,wgrmax,wwilt,wfc,skyLW,GRLAI,rsmin,nfcts,lEB,lwriteEBfiles,nwalllayers,lconstW, &
+                                    BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys, &
+                                    BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots, &
+                                    idriver,tdriverstart,driverjobnr,dtdriver,driverstore,lsdriver
+      use modsurfdata,       only : z0, z0h,  wtsurf, wttop, wqtop, wqsurf, wsvsurf, wsvtop, wsvsurfdum, wsvtopdum, ps, thvs, thls, thl_top, qt_top, qts
+      use modfields,         only : initfields, dpdx, ncname
+      use modpois,           only : initpois
+      use modboundary,       only : initboundary, ksp
+      use modthermodynamics, only : initthermodynamics, lqlnr, chi_half
+      use modsubgrid,        only : initsubgrid
+      use modmpi,            only : comm3d, myid, mpi_integer, mpi_logical, my_real, mpierr, mpi_character, nprocx, nprocy
+      use modinlet,          only : initinlet
+      use modinletdata,      only : di, dr, di_test, dti, iangledeg, iangle
+      use modibmdata,        only : bctfxm, bctfxp, bctfym, bctfyp, bctfz
+      use modforces,         only : calcfluidvolumes
+      use moddriver,         only : initdriver
+      use decomp_2d
 
       implicit none
       integer :: ierr
+      logical, dimension(3) :: periodic_bc
 
       !declare namelists
 
@@ -96,10 +97,11 @@ module modstartup
          courant, diffnr, author, &
          libm, lles, &
          lper2inout, lwalldist, &
-         lreadmean
+         lreadmean, &
+         nprocx, nprocy
       namelist/DOMAIN/ &
-         imax, jtot, kmax, xsize, ysize, &
-         xlat, xlon, xday, xtime, ksp 
+         itot, jtot, kmax, xlength, ylength, &
+         xlat, xlon, xday, xtime, ksp
       namelist/PHYSICS/ &
          ps, igrw_damp, lmoist, lcoriol, lbuoyancy, ltempeq, &
          lprofforc, ifixuinf, lvinf, tscale, dpdx, &
@@ -261,10 +263,25 @@ module modstartup
          close (ifnamopt)
       end if
 
+      call MPI_BCAST(nprocx ,1,MPI_INTEGER,0,comm3d,mpierr)
+      call MPI_BCAST(nprocy ,1,MPI_INTEGER,0,comm3d,mpierr)
+
       thvs = thls*(1.+(rv/rd - 1.)*qts)
 
+      periodic_bc(1) = .true. !change this to match linoutflow
+      periodic_bc(2) = .true.
+      periodic_bc(3) = .false.
+      call decomp_2d_init(itot,jtot,kmax,nprocx,nprocy,periodic_bc)
+      write(*,*) myid, nrank
+      myid = nrank
+
+      comm3d = DECOMP_2D_COMM_CART_Z
+
+      if (myid==0) then
+        write(*,*) nprocx, nprocy
+      end if
+
       write (*, *) "starting broadcast"
-      !broadcast namelists
       call MPI_BCAST(iexpnr, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(lwarmstart, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lstratstart, 1, MPI_LOGICAL, 0, comm3d, mpierr)
@@ -273,7 +290,6 @@ module modstartup
       call MPI_BCAST(lscasrc, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315
       call MPI_BCAST(lscasrcl, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315
       call MPI_BCAST(lscasrcr, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315
-
       call MPI_BCAST(lbuoyancy, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for buoyancy force in modforces
       call MPI_BCAST(ltempeq, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for solving adv/diff equation for temperature
       call MPI_BCAST(lper2inout, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for restart periodic flow to inoutflow
@@ -291,39 +307,34 @@ module modstartup
       call MPI_BCAST(zS, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(SS, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(sigS, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(idriver    ,1,MPI_INTEGER,0,comm3d,mpierr)        ! ae1212: Added switch for driver inlet simulation                                                                         
+      call MPI_BCAST(idriver    ,1,MPI_INTEGER,0,comm3d,mpierr)        ! ae1212: Added switch for driver inlet simulation
       call MPI_BCAST(tdriverstart,1,MY_REAL   ,0,comm3d,mpierr)        ! ae1212
       call MPI_BCAST(driverjobnr,1,MPI_INTEGER,0,comm3d,mpierr)        ! ae1212
       call MPI_BCAST(dtdriver   ,1,MY_REAL    ,0,comm3d,mpierr)        ! ae1212
       call MPI_BCAST(driverstore,1,MPI_INTEGER ,0,comm3d,mpierr)
       call MPI_BCAST(lsdriver   ,1,MPI_LOGICAL,0,comm3d,mpierr)
-      write (*, *) "sec BC"
-         call MPI_BCAST(BCxm, 1, MPI_INTEGER, 0, comm3d, mpierr)
-         call MPI_BCAST(BCxT, 1, MPI_INTEGER, 0, comm3d, mpierr)
-         call MPI_BCAST(BCxq, 1, MPI_INTEGER, 0, comm3d, mpierr)
-         call MPI_BCAST(BCxs, 1, MPI_INTEGER, 0, comm3d, mpierr)
-         call MPI_BCAST(BCym, 1, MPI_INTEGER, 0, comm3d, mpierr)                                                                                                                                                                             
-         call MPI_BCAST(BCyT, 1, MPI_INTEGER, 0, comm3d, mpierr)
-         call MPI_BCAST(BCyq, 1, MPI_INTEGER, 0, comm3d, mpierr)
-         call MPI_BCAST(BCys, 1, MPI_INTEGER, 0, comm3d, mpierr)
-         call MPI_BCAST(BCtopm, 1, MPI_INTEGER, 0, comm3d, mpierr)                                                         
-         call MPI_BCAST(BCtopT, 1, MPI_INTEGER, 0, comm3d, mpierr)
-         call MPI_BCAST(BCtopq, 1, MPI_INTEGER, 0, comm3d, mpierr)
-         call MPI_BCAST(BCtops, 1, MPI_INTEGER, 0, comm3d, mpierr)
-         call MPI_BCAST(BCbotm, 1, MPI_INTEGER, 0, comm3d, mpierr) 
-         call MPI_BCAST(BCbotT, 1, MPI_INTEGER, 0, comm3d, mpierr)
-         call MPI_BCAST(BCbotq, 1, MPI_INTEGER, 0, comm3d, mpierr)
-         call MPI_BCAST(BCbots, 1, MPI_INTEGER, 0, comm3d, mpierr)
-
-      write (*, *) "sec c"
-
+      call MPI_BCAST(BCxm, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(BCxT, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(BCxq, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(BCxs, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(BCym, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(BCyT, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(BCyq, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(BCys, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(BCtopm, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(BCtopT, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(BCtopq, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(BCtops, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(BCbotm, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(BCbotT, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(BCbotq, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(BCbots, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(lwallfunc, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for reading mean inlet/recycle plane profiles (Uinl,Urec,Wrec)
       call MPI_BCAST(lreadminl, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for reading mean inlet/recycle plane profiles (Uinl,Urec,Wrec)
       call MPI_BCAST(iwalltemp, 1, MPI_INTEGER, 0, comm3d, mpierr) ! case (integer) for wall treatment for temperature (1=no wall function/fixed flux, 2=no wall function/fixed value, 3=uno)
       call MPI_BCAST(iwallmoist, 1, MPI_INTEGER, 0, comm3d, mpierr) ! case (integer) for wall treatment for moisture (1=no wall function/fixed flux, 2=no wall function/fixed value, 3=uno)
       call MPI_BCAST(iwallscal, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(iwallmom, 1, MPI_INTEGER, 0, comm3d, mpierr) ! case (integer) for wall treatment for momentum (1=no wall function, 2=werner-wengle, 3=uno)
-      write (*, *) "sec d"
       call MPI_BCAST(luoutflowr, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for turning on/off u-velocity correction for fixed mass outflow rate
       call MPI_BCAST(lvoutflowr, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315: added switch for turning on/off v-velocity correction for fixed mass outflow rate
       call MPI_BCAST(luvolflowr, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! bss166: added switch for turning on/off u-velocity correction for fixed volume flow rate
@@ -345,11 +356,9 @@ module modstartup
       call MPI_BCAST(tfielddump, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(tsample, 1, MY_REAL, 0, comm3d, mpierr) !tg3315
       call MPI_BCAST(tstatsdump, 1, MY_REAL, 0, comm3d, mpierr) !tg3315
-
       call MPI_BCAST(tEB, 1, MY_REAL, 0, comm3d, mpierr)
       tnextEB = dtEB
       call MPI_BCAST(tnextEB, 1, MY_REAL, 0, comm3d, mpierr)
-
       call MPI_BCAST(dtmax, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(nsv, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(fieldvars, 50, MPI_CHARACTER, 0, comm3d, mpierr)
@@ -359,18 +368,15 @@ module modstartup
       call MPI_BCAST(lvinf, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(dpdx, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(tscale, 1, MY_REAL, 0, comm3d, mpierr)
-
-      call MPI_BCAST(imax, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(itot, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(jtot, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(kmax, 1, MPI_INTEGER, 0, comm3d, mpierr)
-      call MPI_BCAST(xsize, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(ysize, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(xlength, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(ylength, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(xlat, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(xlon, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(xday, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(xtime, 1, MY_REAL, 0, comm3d, mpierr)
-      write (*, *) "sec f"
-
       call MPI_BCAST(z0, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(z0h, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(bctfxm, 1, MY_REAL, 0, comm3d, mpierr)
@@ -378,14 +384,13 @@ module modstartup
       call MPI_BCAST(bctfym, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(bctfyp, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(bctfz, 1, MY_REAL, 0, comm3d, mpierr)
-
       call MPI_BCAST(wtsurf, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(wqsurf, 1, MY_REAL, 0, comm3d, mpierr)
       allocate (wsvsurf(1:nsv))
       wsvsurf = wsvsurfdum(1:nsv)
       call MPI_BCAST(wsvsurf(1:nsv), nsv, MY_REAL, 0, comm3d, mpierr)
       allocate (wsvtop(1:nsv))
-      wsvtop = wsvtopdum(1:nsv)                                                                   
+      wsvtop = wsvtopdum(1:nsv)
       call MPI_BCAST(wsvtop(1:nsv), nsv, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(ps, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(thvs, 1, MY_REAL, 0, comm3d, mpierr)
@@ -412,17 +417,13 @@ module modstartup
       call MPI_BCAST(dti, 1, MY_REAL, 0, comm3d, mpierr)
       dr = di ! initial value is needed
       di_test = di ! initial value is needed
-      write (*, *) "sec g"
       call MPI_BCAST(iangledeg, 1, MY_REAL, 0, comm3d, mpierr)
       iangle = iangledeg*pi/180.
       call MPI_BCAST(inletav, 1, MY_REAL, 0, comm3d, mpierr)
-
       call MPI_BCAST(lqlnr, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(ksp, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(nblocks, 1, MPI_INTEGER, 0, comm3d, mpierr) ! no. of blocks used in IBM
-
       call MPI_BCAST(nfcts, 1, MPI_INTEGER, 0, comm3d, mpierr)
-
       call MPI_BCAST(lconstW, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lEB, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lwriteEBfiles, 1, MPI_LOGICAL, 0, comm3d, mpierr)
@@ -436,59 +437,55 @@ module modstartup
       call MPI_BCAST(GRLAI, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(rsmin, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(nwalllayers, 1, MPI_INTEGER, 0, comm3d, mpierr)
-
       call MPI_BCAST(irandom, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(krand, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(randthl, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(randu, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(randqt, 1, MY_REAL, 0, comm3d, mpierr)
-
       call MPI_BCAST(ladaptive, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(courant, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(diffnr, 1, MY_REAL, 0, comm3d, mpierr)
-
       call MPI_BCAST(ipoiss, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(iadv_mom, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(iadv_tke, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(iadv_thl, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(iadv_qt, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(iadv_sv(1:nsv), nsv, MPI_INTEGER, 0, comm3d, mpierr)
-      !write(*,*) "sec h"
 
       ! Allocate and initialize core modules
       call initglobal
-      write (*, *) "done initglobal"
-      call initfields
-      write (*, *) "done initfields"
-      call initboundary
-      write (*, *) "done initboundayi"
-      call initthermodynamics
-      write (*, *) "done initthermodynamics"
-      !!depreated!!
-      ! call initsurface
-      write (*, *) "done initsurface"
-      call initsubgrid
-      write (*, *) "done initsubgrid"
-      call initpois
-      write (*, *) "done initpois"
-      call initinlet ! added by J. Tomas: initialize inlet generator
-      write (*, *) "done initinlet"
-      call initdriver  ! added by ae1212: initialise driver inlet                             
-      write(*,*) "done initdriver"
-      call checkinitvalues
-      write (*, *) "done checkinitvalues"
-      write (6, *) 'Determine masking matrices'
-      call createmasks ! determine walls/blocks
-      write (6, *) 'Finished determining masking matrices'
-      ! calculate fluid volume and outlet areas, needs masking matrices
-      call calcfluidvolumes
-
-      call readinitfiles
-      write (*, *) "done readinitfiles"
-      write (*, *) "done startup"
-
-      call createscals
-      write (*, *) "done create scals"
+      ! write (*, *) "done initglobal"
+      ! call initfields
+      ! write (*, *) "done initfields"
+      ! call initboundary
+      ! write (*, *) "done initboundayi"
+      ! call initthermodynamics
+      ! write (*, *) "done initthermodynamics"
+      ! !!depreated!!
+      ! ! call initsurface
+      ! write (*, *) "done initsurface"
+      ! call initsubgrid
+      ! write (*, *) "done initsubgrid"
+      ! call initpois
+      ! write (*, *) "done initpois"
+      ! call initinlet ! added by J. Tomas: initialize inlet generator
+      ! write (*, *) "done initinlet"
+      ! call initdriver  ! added by ae1212: initialise driver inlet
+      ! write(*,*) "done initdriver"
+      ! call checkinitvalues
+      ! write (*, *) "done checkinitvalues"
+      ! write (6, *) 'Determine masking matrices'
+      ! call createmasks ! determine walls/blocks
+      ! write (6, *) 'Finished determining masking matrices'
+      ! ! calculate fluid volume and outlet areas, needs masking matrices
+      ! call calcfluidvolumes
+      !
+      ! call readinitfiles
+      ! write (*, *) "done readinitfiles"
+      ! write (*, *) "done startup"
+      !
+      ! call createscals
+      ! write (*, *) "done create scals"
 
    end subroutine startup
 
@@ -510,44 +507,44 @@ module modstartup
       !-----------------------------------------------------------------|
 
       use modsurfdata, only : wtsurf, wqsurf, qts, ps
-      use modglobal, only   : imax,kmax,jtot,ysize,xsize,dxf,ib,ie,&
+      use modglobal, only   : itot,kmax,jtot,ylength,xlength,dxf,ib,ie,&
                               dtmax,runtime,startfile,lwarmstart,lstratstart,&
                               BCxm,BCxT,BCxq,BCxs,BCtopm,BCbotm,&
                               iinletgen,linoutflow,ltempeq,iwalltemp,iwallmom,&
                               ipoiss,POISS_FFT,POISS_CYC
-      use modmpi, only      : myid, nprocs, mpierr, comm3d, MPI_INTEGER, MPI_LOGICAL
+      use modmpi, only      : myid, comm3d, mpierr, MPI_INTEGER, MPI_LOGICAL, nprocx, nprocy
       use modglobal, only   : idriver
       implicit none
-      real :: d(1:imax-1)
+      real :: d(1:itot-1)
       logical :: inequi
 
-      if (mod(jtot, nprocs) /= 0) then
+      if (mod(jtot, nprocy) /= 0) then
          if (myid == 0) then
             write (0, *) 'STOP ERROR IN NUMBER OF PROCESSORS'
-            write (0, *) 'nprocs must divide jtot!!! '
-            write (0, *) 'nprocs and jtot are: ', nprocs, jtot
+            write (0, *) 'nprocy must divide jtot!!! '
+            write (0, *) 'nprocy and jtot are: ', nprocy, jtot
          end if
          call MPI_FINALIZE(mpierr)
          stop 1
       end if
 
       if (ipoiss==POISS_FFT) then
-        if(mod(imax,nprocs)/=0)then
+        if(mod(itot,nprocx)/=0)then
           if(myid==0)then
             write(0,*)'STOP ERROR IN NUMBER OF PROCESSORS'
-            write(0,*)'nprocs must divide imax!!! '
-            write(0,*)'nprocs and imax are: ',nprocs,imax
+            write(0,*)'nprocx must divide itot!!! '
+            write(0,*)'nprocx and itot are: ',nprocx,itot
           end if
           call MPI_FINALIZE(mpierr)
           stop 1
         end if
       end if
 
-      if (mod(kmax, nprocs) /= 0) then
+      if (mod(kmax, nprocy) /= 0) then ! Only when doing CR
          if (myid == 0) then
             write (0, *) 'STOP ERROR IN NUMBER OF PROCESSORS'
             write (0, *) 'nprocs must divide kmax!!! '
-            write (0, *) 'nprocs and kmax are: ', nprocs, kmax
+            write (0, *) 'nprocs and kmax are: ', nprocy, kmax
          end if
          call MPI_FINALIZE(mpierr)
          stop 1
@@ -566,17 +563,17 @@ module modstartup
          write(0, *) 'ERROR: psout of range/not set'
          stop 1
       end if
-      if (xsize < 0) then
-         write(0, *) 'ERROR: xsize out of range/not set'
+      if (xlength < 0) then
+         write(0, *) 'ERROR: xlength out of range/not set'
          stop 1
       end if
-      if (ysize < 0) then
-         write(0, *) 'ERROR: ysize out of range/not set'
+      if (ylength < 0) then
+         write(0, *) 'ERROR: ylength out of range/not set'
          stop 1
       end if
 
       if ((lwarmstart) .or. (lstratstart)) then
-         if (startfile == '') then 
+         if (startfile == '') then
             write(0, *) 'ERROR: no restartfile set'
             stop 1
          end if
@@ -663,7 +660,7 @@ module modstartup
       end if
 
       ! check the Poisson solver setting w.r.t. x-grid
-      d(1:imax-1) = dxf(ib+1:ie) - dxf(ib:ie-1)
+      d(1:itot-1) = dxf(ib+1:ie) - dxf(ib:ie-1)
       inequi = any(abs(d)>dxf(ib)*1e-5)
 
       if ((.not. inequi) .and. (ipoiss == POISS_CYC) .and. (.not. linoutflow)) then
@@ -692,7 +689,7 @@ module modstartup
          ladaptive, tnextrestart, jmax, linoutflow, lper2inout, iinletgen, lreadminl, &
          uflowrate, vflowrate,ltempeq, prandtlmoli, freestreamav, &
          tnextfielddump, tfielddump, tsample, tstatsdump, startfile, lprofforc, lchem, k1, JNO2,&
-         idriver,dtdriver,driverstore,tdriverstart,tdriverdump        
+         idriver,dtdriver,driverstore,tdriverstart,tdriverdump
       use modsubgriddata, only:ekm, ekh
       use modsurfdata, only:wtsurf, wqsurf, wsvsurf, &
          thls, thvs, ps, qts, svs, sv_top
@@ -1171,7 +1168,7 @@ module modstartup
                   end do
                end do
             end do
-          
+
             if (nsv>0) then !tg3315 set these variables here for now and repeat for warmstart
 
               allocate(sv_top(1:nsv))
@@ -1183,7 +1180,7 @@ module modstartup
               write(*,*) 'sv_top', sv_top
 
             end if
- 
+
             !do n = 1,nsv
             !  do j = jb - jhc, je + jhc
             !    do i = ib - ihc, ie + ihc
@@ -1225,7 +1222,7 @@ module modstartup
 
             ekh(:, :, ke + 1) = ekh(:, :, ke) ! also for start up
 
-            if (idriver==1) then                                                                   
+            if (idriver==1) then
               !driverstore = (timeleft - tdriverstart)/dtdriver + 1
               !if(myid==0) then
               !  write(*,*) 'driverstore: ', driverstore
@@ -1506,7 +1503,7 @@ module modstartup
               end if ! end if myid==0
 
               call MPI_BCAST(svprof, (ke + kh - (kb - kh))*nsv, MY_REAL, 0, comm3d, mpierr)
-          
+
               if (nsv>0) then !tg3315 set these variables here for now and repeat for warmstart
 
                 allocate(sv_top(1:nsv))
@@ -1931,7 +1928,7 @@ module modstartup
          IIuws(:) = nint(rslabs)
          IIvws(:) = nint(rslabs)
          IIuvs(:) = nint(rslabs)
-         IIct(:, :) = jtot 
+         IIct(:, :) = jtot
          IIut(:, :) = jtot
          IIvt(:, :) = jtot
          IIwt(:, :) = jtot

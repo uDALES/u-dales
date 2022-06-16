@@ -38,7 +38,9 @@ save
   integer nbrtop
   integer nbrbottom
   integer myid
-  integer nprocs
+  integer nprocs ! Remove
+  integer nprocx
+  integer nprocy
   integer mpierr
   integer my_real
   real    CPU_program    !end time
@@ -53,68 +55,69 @@ contains
     logical periods(1)
     integer periods2(1)
 
-    call MPI_INIT(mpierr)
-    MY_REAL = MPI_DOUBLE_PRECISION  !MPI_REAL8 should be the same..
-    call MPI_COMM_RANK( MPI_COMM_WORLD, myid, mpierr )
-    call MPI_COMM_SIZE( MPI_COMM_WORLD, nprocs, mpierr )
-! Specify the # procs in each direction.
-! specifying a 0 means that MPI will try to find a useful # procs in
-! the corresponding  direction,
-
-! specifying 1 means only 1 processor in this direction, meaning that
-! we have in fact a grid of (at most) 2 dimensions left. This is used
-! when we want the array index range in 1 particular direction to be
-! present on all processors in the grid
-
-    dims(1) = 0
-
-
-! directions 1 and 2 are chosen periodic
-
-
-    periods(1) = .true.
-! Soares 20080115
-    periods2(1) = 1
-
-! find suitable # procs in each direction
-
-    call MPI_DIMS_CREATE( nprocs, 1, dims, mpierr )
-
-! create the Cartesian communicator, denoted by the integer comm3d
-
-    ! BUG - Thijs, Harm
-    !call MPI_CART_CREATE(MPI_COMM_WORLD, 1, dims, periods,.false., &
-    !                    comm3d, ierr )
-
-    call MPI_CART_CREATE(MPI_COMM_WORLD, 1, dims, periods,.true., &
-                        comm3d, mpierr )
-
-! Soares 20080115
-!     call MPI_CART_CREATE(MPI_COMM_WORLD, 1, dims, periods2,1, &
+     call MPI_INIT(mpierr)
+     MY_REAL = MPI_DOUBLE_PRECISION  !MPI_REAL8 should be the same..
+     comm3d = MPI_COMM_WORLD
+     call MPI_COMM_RANK( MPI_COMM_WORLD, myid, mpierr )
+     call MPI_COMM_SIZE( MPI_COMM_WORLD, nprocs, mpierr )
+! ! Specify the # procs in each direction.
+! ! specifying a 0 means that MPI will try to find a useful # procs in
+! ! the corresponding  direction,
+!
+! ! specifying 1 means only 1 processor in this direction, meaning that
+! ! we have in fact a grid of (at most) 2 dimensions left. This is used
+! ! when we want the array index range in 1 particular direction to be
+! ! present on all processors in the grid
+!
+!     dims(1) = 0
+!
+!
+! ! directions 1 and 2 are chosen periodic
+!
+!
+!     periods(1) = .true.
+! ! Soares 20080115
+!     periods2(1) = 1
+!
+! ! find suitable # procs in each direction
+!
+!     call MPI_DIMS_CREATE( nprocs, 1, dims, mpierr )
+!
+! ! create the Cartesian communicator, denoted by the integer comm3d
+!
+!     ! BUG - Thijs, Harm
+!     !call MPI_CART_CREATE(MPI_COMM_WORLD, 1, dims, periods,.false., &
+!     !                    comm3d, ierr )
+!
+!     call MPI_CART_CREATE(MPI_COMM_WORLD, 1, dims, periods,.true., &
 !                         comm3d, mpierr )
-
-! Get my processor number in this communicator
-
-    call MPI_COMM_RANK( comm3d, myid, mpierr )
-
-
-! when applying boundary conditions, we need to know which processors
-! are neighbours in all 3 directions
-
-
-! these are determined with the aid of the MPI routine MPI_CART_SHIFT,
-
-    call MPI_CART_SHIFT( comm3d, 0,  1, nbrbottom, nbrtop,   mpierr )
-
-! determine some useful MPI datatypes for sending/receiving data
-
-     write(cmyid,'(i3.3)') myid
-
-    if(myid==0)then
-      CPU_program0 = MPI_Wtime()
-    end if
-
-    write(*,*)'nprocs = ', nprocs
+!
+! ! Soares 20080115
+! !     call MPI_CART_CREATE(MPI_COMM_WORLD, 1, dims, periods2,1, &
+! !                         comm3d, mpierr )
+!
+! ! Get my processor number in this communicator
+!
+!     call MPI_COMM_RANK( comm3d, myid, mpierr )
+!
+!
+! ! when applying boundary conditions, we need to know which processors
+! ! are neighbours in all 3 directions
+!
+!
+! ! these are determined with the aid of the MPI routine MPI_CART_SHIFT,
+!
+!     call MPI_CART_SHIFT( comm3d, 0,  1, nbrbottom, nbrtop,   mpierr )
+!
+! ! determine some useful MPI datatypes for sending/receiving data
+!
+!      write(cmyid,'(i3.3)') myid
+!
+     if(myid==0)then
+       CPU_program0 = MPI_Wtime()
+     end if
+!
+!     write(*,*)'nprocs = ', nprocs
   end subroutine initmpi
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -407,7 +410,7 @@ contains
   elsewhere
     aver = aver/IIt
   endwhere
- 
+
   end subroutine avey_ibm
 
   subroutine sumy_ibm(sumy,var,ib,ie,jb,je,kb,ke,II)

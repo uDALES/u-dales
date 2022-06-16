@@ -65,7 +65,7 @@ contains
    !! Execute boundary conditions
    subroutine boundary
 
-      use modglobal, only:ib, ie, ih, jb, je, jgb, jge, jh, kb, ke, kh, linoutflow, dzf, zh, dy, &
+      use modglobal, only:ib, ie, ih, jb, je, jh, kb, ke, kh, linoutflow, dzf, zh, dy, &
          timee, ltempeq, lmoist, BCxm, BCym, BCxT, BCyT, BCxq, BCyq, BCxs, BCys, BCtopm, BCtopT,&
          BCtopq, BCtops, e12min, idriver, luvolflowr, luoutflowr
       use modfields, only:u0, v0, w0, um, vm, wm, thl0, thlm, qt0, qtm, uout, uouttot, e120, e12m,&
@@ -87,11 +87,11 @@ contains
      elseif (.not. luvolflowr) then
         !ubulk = sum(u0av)/(ke-kb+1)
         do k = kb, ke
-           uaverage(k) = u0av(k)*dzf(k)                                                        
+           uaverage(k) = u0av(k)*dzf(k)
         end do
         ! need a method to know if we have all blocks at lowest cell kb
         ! assuming this for now (hence kb+1)
-        uouttot = sum(uaverage(kb:ke))/(zh(ke + 1) - zh(kb+1)) 
+        uouttot = sum(uaverage(kb:ke))/(zh(ke + 1) - zh(kb+1))
      else
         uouttot = ubulk
      end if
@@ -183,7 +183,7 @@ contains
          call cyclicqi
       else if (BCxq .eq. 2) then !inoutflow  - will be overwritten unless BCxm == 1
         call ioqi ! tg3315 - make sure uouttot is known and realistic
-      elseif (BCxq .eq. 3) then 
+      elseif (BCxq .eq. 3) then
         !do nothing, temperature is considered in iolet
       else
          write(0, *) "ERROR: lateral boundary type for humidity in x-direction undefined"
@@ -507,7 +507,7 @@ contains
      use modfields, only: qt0, qtm, qtprof, uouttot
      use modinletdata, only: ubulk
      integer k,j
-     real rk3coef                                                                                   
+     real rk3coef
 
      rk3coef = dt/(4.-dble(rk3step))
 
@@ -517,20 +517,20 @@ contains
          qtm(ib - 1, j, k) = 2*qtprof(k) - qtm(ib, j, k)
        end do
     end do
-    
-    !uouttot is zero unless lmassflowr 
+
+    !uouttot is zero unless lmassflowr
     qt0(ie + 1, :, :) = qt0(ie, :, :) - (qt0(ie + 1, :, :) - qt0(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot ! tg3315 should be uouttot and will have to change depending on forcing
     qtm(ie + 1, :, :) = qtm(ie, :, :) - (qtm(ie + 1, :, :) - qtm(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
 
    end subroutine ioqi
-   
+
    !> Sets x/in;et-outlet boundary conditions for temperature
    subroutine iohi
      use modglobal, only: ib, ie, jb, je, ih, jh, kb, ke, kh, dxhi, rk3step, dt
      use modfields, only: thl0, thlm, thlprof, uouttot
      use modinletdata, only: ubulk
-     integer k,j   
-     real rk3coef                                                                                  
+     integer k,j
+     real rk3coef
 
      rk3coef = dt/(4.-dble(rk3step))
 
@@ -672,7 +672,7 @@ contains
          qtprof, svprof, uouttot, wouttot
       use modmpi, only:excjs, myid, slabsum
       use modinletdata, only:u0inletbcold, v0inletbcold, w0inletbcold, uminletbc, vminletbc, wminletbc, totaluold, &
-         t0inletbcold, tminletbc, u0driver, v0driver, w0driver, e120driver, thl0driver, qt0driver, umdriver, vmdriver, wmdriver,& 
+         t0inletbcold, tminletbc, u0driver, v0driver, w0driver, e120driver, thl0driver, qt0driver, umdriver, vmdriver, wmdriver,&
          e12mdriver, thlmdriver, qtmdriver, sv0driver, svmdriver
 
       real rk3coef
@@ -748,7 +748,7 @@ contains
            ! to be changed in the future: e12 should be taken from recycle plane!
            !e120(ib-1,j,k) = e120driver(j,k)      ! extrapolate e12 from interior
            !e12m(ib-1,j,k) = e12mdriver(j,k)      ! extrapolate e12 from interior
-           if (lsdriver) then  
+           if (lsdriver) then
            do n=1,nsv
               do m = 1,ihc
                  sv0(ib-m,j,k,n) = sv0driver(j,k,n)
@@ -899,7 +899,7 @@ contains
          Uinf, libm, jmax, idriver
       use modfields, only:pres0, up, vp, wp, um, w0, u0, uouttot
       use modmpi, only:excjs, myid
-      use modinletdata, only:irecy, u0inletbc, ddispdx, u0driver 
+      use modinletdata, only:irecy, u0inletbc, ddispdx, u0driver
 
       real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb:ke + kh), intent(inout) :: pup
       real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb:ke + kh), intent(inout) :: pvp
@@ -937,7 +937,7 @@ contains
                 pup(ie+1,j,k) = - (u0(ie+1,j,k)-u0(ie,j,k))*dxfi(ie)*uouttot + um(ie+1,j,k)*rk3coefi   ! du/dt +u*du/dx=0 -> pup(i)=um(i)/rk3coef -um(i)*(um(i)-um(i-1))/dxf(i-1)
                 pup(ib,j,k) = u0driver(j,k)*rk3coefi
              end do
-          end do 
+          end do
          else ! if not iinletgen
             do j = jb, je
                do i = ib, ie
@@ -1132,7 +1132,7 @@ contains
    subroutine inlettop
 
       use modglobal, only:ib, ie, jb, je, kb, ke, ih, jh, kh, dzh, dzf, &
-         e12min, dxfi, dxf, dxhi, xh, jgb, jge, Uinf, dzfi
+         e12min, dxfi, dxf, dxhi, xh, jtot, Uinf, dzfi
       use modfields, only:w0, wm, wout, wouttot
       use modinletdata, only:Uinl, ddispdxold
       use modmpi, only:slabsumi, myid
@@ -1145,7 +1145,7 @@ contains
          wm(i, :, ke + 1) = Uinf*ddispdxold
       end do
       call slabsumi(wout, ib, ie, w0, ib - ih, ie + ih, jb - jh, je + jh, kb - kh, ke + kh, ib, ie, jb, je, ke + 1, ke + 1) ! determine vertical (j) average outflow velocity
-      nji = 1./(jge - jgb + 1)
+      nji = 1. / jtot
       do i = ib, ie
          wout(i) = wout(i)*dxf(i)*nji
       end do

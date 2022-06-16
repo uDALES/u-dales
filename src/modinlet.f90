@@ -1,7 +1,7 @@
 !! modinlet.f90 contains the method of Lund (1998) to a generate a turbulent inlet profile.
 !! The velocity is extracted from a recycle plane, rescaled, and used as inlet condition
-!! Note that due to the staggered grid arrangement the u-components are recycled from 
-!! cell(irecycl,:,:), while the v- and w- components are read from cell (irecycle-1,:,:). 
+!! Note that due to the staggered grid arrangement the u-components are recycled from
+!! cell(irecycl,:,:), while the v- and w- components are read from cell (irecycle-1,:,:).
 !! This is because the inlet condition is located at i=ib for u, and at i=ib-1 for v and w.
 !!
 !! Also the method of Kong (2000) is added to generate a turbulent temperature inlet profile
@@ -38,7 +38,7 @@ contains
     use modglobal, only : ih,ib,ie,jh,jb,je,kb,ke,kh,iinletgen,iplane,xf,lstoreplane,nstore,Uinf,ltempeq,pi,zf,zh
     use modfields, only : um
     use modmpi, only : myid,nprocs
-   
+
     implicit none
     real    :: pfi, epsi
     integer :: k
@@ -93,7 +93,7 @@ contains
     allocate(storeu0inletbc(jb:je,kb:ke,1:nstore))
     allocate(storev0inletbc(jb:je,kb:ke,1:nstore))
     allocate(storew0inletbc(jb:je,kb:ke+1,1:nstore))
-  end if 
+  end if
 
   epsi = 0.25*di
   do k=kb,ke
@@ -104,7 +104,7 @@ contains
       heavif(k) = 0.5* ( 1. - (pfi / epsi) - (1./pi)*sin(pi*pfi/epsi))
     elseif (pfi > epsi) then
       heavif(k) = 0.
-    end if  
+    end if
   end do
 
   do k=kb,ke+1
@@ -133,7 +133,7 @@ contains
     allocate(loclowot(kb:ke))
     allocate(locupot(kb:ke))
     allocate(heavit(kb:ke))
-  
+
     if (lstoreplane ) then
       allocate(storet0inletbc(jb:je,kb:ke,1:nstore))
     end if
@@ -150,7 +150,7 @@ contains
       end if
     end do
 
- 
+
   end if
 
   displ=0.
@@ -159,11 +159,11 @@ contains
   irecy = ib+iplane        ! index of recycle plane equals iplane (read from namoptions)
 
 
-  xfm  = sum(xf(ib:ie))/(ie-ib+1)            ! mean(xf) 
+  xfm  = sum(xf(ib:ie))/(ie-ib+1)            ! mean(xf)
   xf2m = sum(xf(ib:ie)**2.)/(ie-ib+1)        ! mean(xf^2)
-!  btime = timee                              ! this is done to make sure btime is set when avint is computed correctly at startup (only for RA) 
+!  btime = timee                              ! this is done to make sure btime is set when avint is computed correctly at startup (only for RA)
 
-  
+
   else if (iinletgen == 2) then
     allocate(storeu0inletbc(jb:je,kb:ke,1:nstore))
     allocate(storev0inletbc(jb:je,kb:ke,1:nstore))
@@ -187,27 +187,27 @@ contains
     end if
     !iangle = iangledeg * pi / 180.  ! convert degrees to radians
     irecy = ib+iplane
-  ! read coordinates of inletprofile  
+  ! read coordinates of inletprofile
     call readzincoord
 !    ddispdx      = 0.00038/Uinf        ! this value should becomputed from the w0 computed in the inletgenerator
-    ddispdx      = wtop/Uinf            ! wtop is read from zgrid.inf 
+    ddispdx      = wtop/Uinf            ! wtop is read from zgrid.inf
     ddispdxold   = ddispdx              ! this value should becomputed from the w0 computed in the inletgenerator
 !    inlfactor    = nprocs/nprocsinl     ! nprocs should be larger or equal to nprocsin!
 !    write(6,*) 'inlfactor= ',inlfactor
   else
    return
   end if
- 
+
   end subroutine initinlet
 
   subroutine inletgen
-    use modglobal,   only : ib,ie,jb,je,jgb,jge,kb,ke,zf,zh,dzf,dzhi,timee,btime,totavtime,rk3step,dt,numol,iplane,lles,iinletgen,inletav,runavtime,Uinf,lwallfunc,linletRA,totinletav,lstoreplane,nstore,prandtlmoli,numol,grav,lbuoyancy,lfixinlet,luvolflowr,lfixutauin
+    use modglobal,   only : ib,ie,jb,je,jtot,kb,ke,zf,zh,dzf,dzhi,timee,btime,totavtime,rk3step,dt,numol,iplane,lles,iinletgen,inletav,runavtime,Uinf,lwallfunc,linletRA,totinletav,lstoreplane,nstore,prandtlmoli,numol,grav,lbuoyancy,lfixinlet,luvolflowr,lfixutauin
     use modfields,   only : u0,v0,w0,thl0,wm,uprof
     use modsurfdata, only : thls,thl_top
     use modsave,     only : writerestartfiles
     use modmpi,      only : slabsum,myid
     implicit none
-   
+
     real,dimension(ib:ib,jb:je,kb:ke)   :: uinletbc2   ! dummy variable
     real,dimension(ib:ib,jb:je,kb:ke)   :: tinletbc2   ! dummy variable
     real,dimension(jb:je,kb:ke)   :: uprec             ! velocity fluctuation (up_rec = u0 - Urec)
@@ -222,12 +222,12 @@ contains
     real,dimension(jb:je,kb:ke+1) :: wpinlo            ! = gamma * (wprec   interpolated to zoi grid)
     real,dimension(kb:ke)   :: udiff                   ! difference between Uinl and Urec
 !    real,dimension(kb:ke)   :: Urecdiff                ! difference between Urec new and old
-    real,dimension(kb:ke)   :: urav                    ! j-averaged u-velocity (not time-averaged) 
-    real,dimension(kb:ke)   :: trav                    ! j-averaged temperature (not time-averaged) 
+    real,dimension(kb:ke)   :: urav                    ! j-averaged u-velocity (not time-averaged)
+    real,dimension(kb:ke)   :: trav                    ! j-averaged temperature (not time-averaged)
     real,dimension(kb:ke)   :: uravdzf                 ! j-averaged u-velocity (not time-averaged) times dzf
     real,dimension(kb:ke)   :: uinldzf                 ! j-averaged u-velocity (not time-averaged) times dzf
     real,dimension(kb:ke)   :: Urecdzf                 ! Urec times dzf
-    real,dimension(kb:ke+1) :: wrav                    ! j-averaged w-velocity (not time-averaged) 
+    real,dimension(kb:ke+1) :: wrav                    ! j-averaged w-velocity (not time-averaged)
     real,dimension(kb:ke)   :: Uinli                   ! = gamma * (Urec interpolated to ziif grid points)
     real,dimension(kb:ke+1) :: Winli                   ! = gamma * (Wrec interpolated to ziih grid points)
     real,dimension(kb:ke)   :: Tinli                   ! = lambda  * (Trec interpolated to ziif grid points)
@@ -283,8 +283,8 @@ contains
       avint  = inletav
     end if
     avinti = 1./avint
-    uaver=0. 
-    taver=0. 
+    uaver=0.
+    taver=0.
     do i=ib,ie
       call slabsum(uaver(i,:),kb,ke,  u0(i:i,jb:je,kb:ke),i,i,jb,je,kb,ke,i,i,jb,je,kb,ke)
       call slabsum(taver(i,:),kb,ke,thl0(i:i,jb:je,kb:ke),i,i,jb,je,kb,ke,i,i,jb,je,kb,ke)
@@ -295,11 +295,11 @@ contains
     trav=0.
     call slabsum(trav(kb:ke),  kb,ke,thl0(irecy-1:irecy-1,jb:je,kb:ke), irecy-1,irecy-1,jb,je,kb,ke,  irecy-1,irecy-1,jb,je,kb,ke)
 
-    uaver = uaver / (jge-jgb +1)                    ! average over j-direction
-    taver = taver / (jge-jgb +1)                    ! average over j-direction
+    uaver = uaver / jtot                    ! average over j-direction
+    taver = taver / jtot                    ! average over j-direction
     urav = uaver(irecy,:)
-    wrav = wrav / (jge-jgb +1)                    ! average over j-direction
-    trav = trav / (jge-jgb +1)                    ! average over j-direction
+    wrav = wrav / jtot                    ! average over j-direction
+    trav = trav / jtot                    ! average over j-direction
 
     do k=kb,ke
       Urec(k) =  urav(k)*deltat*avinti + (1.-deltat*avinti)*Urec(k)
@@ -314,24 +314,24 @@ contains
       Ttav(i,k) =  taver(i,k)*deltat*avinti + (1.-deltat*avinti)*Ttav(i,k)
     end do
     end do
-   
-!    Urec = Urec +(Uinf-Urec(ke))     ! make sure at the recycle plane the top velocity equals Uinf
-      
 
-!    Urecdiff = Urecdiff - Urec 
+!    Urec = Urec +(Uinf-Urec(ke))     ! make sure at the recycle plane the top velocity equals Uinf
+
+
+!    Urecdiff = Urecdiff - Urec
 !    if (myid==0) then
-!      write(6,*) 'Urec_old - Urec_new (kb+40)=',Urecdiff(kb+40) 
+!      write(6,*) 'Urec_old - Urec_new (kb+40)=',Urecdiff(kb+40)
 !    end if
 
 !! check if Urec contains NaN
 !    if (myid==0) then
-!      write(6,*) 'Checking Urec for NaN' 
+!      write(6,*) 'Checking Urec for NaN'
 !      do k=kb,ke
 !        if (ISNAN(Urec(k))) then
 !          write(6,*) 'Urec(k)=NaN at k=kb+', k-kb
 !        end if
 !      end do
-!      write(6,*) 'Finished checking Urec for NaN'  
+!      write(6,*) 'Finished checking Urec for NaN'
 !    end if
 
 
@@ -361,24 +361,24 @@ contains
       end do
     end do
 
- 
+
     if (lwallfunc) then
       call wallawinlet(Urec(kb),dzf(kb),numol,utaur2)    ! compute wall shear stress at recycle station
     else
       utaur2 = 2.*numol*Urec(kb)/dzf(kb)
     end if
     utaur = sqrt(abs(utaur2))                          ! compute utau at recycle station
-    ! heat flux at recycle station (isothermal wall) q = alpha * dT/dz = (nu/prandtl) * dT/dz 
-!    q0 = numol*prandtlmoli*(Trec(kb) - Trec(kb-1)) * dzhi(kb) 
-    q0 = numol*prandtlmoli*2*(Trec(kb) - thls) / dzf(kb) 
+    ! heat flux at recycle station (isothermal wall) q = alpha * dT/dz = (nu/prandtl) * dT/dz
+!    q0 = numol*prandtlmoli*(Trec(kb) - Trec(kb-1)) * dzhi(kb)
+    q0 = numol*prandtlmoli*2*(Trec(kb) - thls) / dzf(kb)
     ttaur = q0/utaur                ! ttau = q/(rho*cp*utau) =  (alpha *dT/dz) / utau
    ! compute momentum thickness at inlet and recycle plane
-  
+
    if(lbuoyancy) then
-     lmor = (thls* utaur**2 )/ (0.41 * grav * ttaur)      ! L = -T0*utau^3 / kappa*g*<w'T'> =  
+     lmor = (thls* utaur**2 )/ (0.41 * grav * ttaur)      ! L = -T0*utau^3 / kappa*g*<w'T'> =
 !     write(6,*) 'Initial dr,myid, utaur, ttaur, Lmor =', dr,myid,utaur,ttaur,lmor
 !     lmor = 0.3;
-     lmoi = (thls* utaui**2 )/ (0.41 * grav * ttaui)      ! L = -T0*utau^3 / kappa*g*<w'T'> = 
+     lmoi = (thls* utaui**2 )/ (0.41 * grav * ttaui)      ! L = -T0*utau^3 / kappa*g*<w'T'> =
 !     lmoi = 0.3;
 !     write(6,*) 'Initial di_test,myid, utaui, ttaui, Lmoi =', di_test,myid,utaui,ttaui,lmoi
      dr_old = dr
@@ -392,7 +392,7 @@ contains
      call momentumthicknessexp(thetar,Urec)
    else
 !     call blthickness(dr,utaur)                           ! Also needed for momentumthickness
-     call blthicknesst(dr,Urec,0.99)                        
+     call blthicknesst(dr,Urec,0.99)
 !     call momentumthickness(thetai,utaui,di)
 !     call momentumthickness(thetar,utaur,dr)
      call momentumthicknessexp(thetai,Uinl)
@@ -402,21 +402,21 @@ contains
    call enthalpythickness(thetatr,Trec,Urec)
 !   call blthickness(dr,utaur)
    call blthicknesst(dtr,Trec-thls,0.99)
-   ! compute utau at inlet from interior field 
+   ! compute utau at inlet from interior field
 !    if (thetai == 0.) then
-!      write(6,*) '!!! thetai = 0, myid=',myid  
+!      write(6,*) '!!! thetai = 0, myid=',myid
 !    else if (thetar == 0.) then
-!      write(6,*) '!!! thetar = 0, myid=',myid      
-!      thetar=0.00001 
+!      write(6,*) '!!! thetar = 0, myid=',myid
+!      thetar=0.00001
 !    else
 !      utaui = utaur* (thetar/thetai)**(1./8.)    ! See Lund (1998): 'Similar to Ludwig-Tillmann correlation'
-    if (.not.lfixutauin) then 
+    if (.not.lfixutauin) then
       utaui  = utaur* abs(thetar/thetai)**(1./8.)   ! See Lund (1998): 'Similar to Ludwig-Tillmann correlation'
     end if
     if (thetati == 0.) then
       thetati = 0.0000001
-    end if  
-    ttaui = ttaur*abs(thetatr/thetati)**(1./8.)   ! See Kong (2000):  
+    end if
+    ttaui = ttaur*abs(thetatr/thetati)**(1./8.)   ! See Kong (2000):
 !    end if
     gamm = utaui / utaur                          ! Gamma in Lund (1998)
     if (ttaur == 0.) then
@@ -425,15 +425,15 @@ contains
     lamb = ttaui / ttaur                          ! Lambda in Kong (2000)
 
    ! compute inner scaling coordinates
-    zirf = utaur*zf / numol                       ! inner scaling zf-coordinate at recycle station 
+    zirf = utaur*zf / numol                       ! inner scaling zf-coordinate at recycle station
     zirh = utaur*zh / numol                       ! inner scaling zh-coordinate at recycle station
-    ziif = utaui*zf / numol                       ! inner scaling zf-coordinate at inlet station 
-    ziih = utaui*zh / numol                       ! inner scaling zh-coordinate at inlet station 
-  
-   ! compute outer scaling coordinates   
-    zorf = zf / dr                                ! outer scaling zf-coor as measured from Uinldinate at recycle station 
-    zorh = zh / dr                                ! outer scaling zh-coordinate at recycle station 
-    zoif = zf / di                                ! outer scaling zf-coordinate at inlet station  (could be done once, actually..) 
+    ziif = utaui*zf / numol                       ! inner scaling zf-coordinate at inlet station
+    ziih = utaui*zh / numol                       ! inner scaling zh-coordinate at inlet station
+
+   ! compute outer scaling coordinates
+    zorf = zf / dr                                ! outer scaling zf-coor as measured from Uinldinate at recycle station
+    zorh = zh / dr                                ! outer scaling zh-coordinate at recycle station
+    zoif = zf / di                                ! outer scaling zf-coordinate at inlet station  (could be done once, actually..)
     zoih = zh / di                                ! outer scaling zf-coordinate at inlet station  (could be done once, actually..)
     zotr = zf / dtr                               ! temperature outer scaling zf-coordinate at recycle station
     zoti = zf / dti                               ! temperature outer scaling zf-coordinate at inlet station
@@ -522,12 +522,12 @@ contains
       if (locupif(k) == ke+1) then      ! indicator for extrapolation!
 !        Uinli(k) = Urec(ke) + (Urec(ke) - Urec(ke-1)) / (zirf(ke)-zirf(ke-1)) * (ziif(k)-zirf(ke))
         Uinli(k) = Urec(ke)
-        Tinli(k) = Trec(ke) 
+        Tinli(k) = Trec(ke)
       elseif (loclowif(k) == kb-1) then ! interprets this as extrapolation to bottom (use u=0 at z+=0)
         Uinli(k) = Urec(kb)/zirf(kb) * ziif(k)
-!        Tinli(k) = thls + Trec(kb)/zirf(kb)*ziif(k)  
-!        Tinli(k) = (Trec(kb)-thls)/zirf(kb)*ziif(k)  
-        Tinli(k) = thls + (Trec(kb)-thls)/zirf(kb)*ziif(k)  
+!        Tinli(k) = thls + Trec(kb)/zirf(kb)*ziif(k)
+!        Tinli(k) = (Trec(kb)-thls)/zirf(kb)*ziif(k)
+        Tinli(k) = thls + (Trec(kb)-thls)/zirf(kb)*ziif(k)
       else                            ! normal interpolation
         Uinli(k) = Urec(loclowif(k)) + (Urec(locupif(k)) - Urec(loclowif(k))) / (zirf(locupif(k)) - zirf(loclowif(k))) * (ziif(k) - zirf(loclowif(k)))
         Tinli(k) = Trec(loclowif(k)) + (Trec(locupif(k)) - Trec(loclowif(k))) / (zirf(locupif(k)) - zirf(loclowif(k))) * (ziif(k) - zirf(loclowif(k)))
@@ -565,7 +565,7 @@ contains
         tpinli(:,k) = tprec(:,loclowif(k)) + (tprec(:,locupif(k)) - tprec(:,loclowif(k))) / (zirf(locupif(k)) - zirf(loclowif(k))) * (ziif(k) - zirf(loclowif(k)))
       end if
     end do
-   
+
    ! compute w-fluctuation on zii grid
     do k=kb+1,ke+1
 !      if (locupih(k) == ke+1) then      ! indicator for extrapolation!
@@ -577,7 +577,7 @@ contains
       end if
     end do
 
- !! Finished with interpolating inner variables 
+ !! Finished with interpolating inner variables
  !! Continue with interpolating outer variables
    ! compute Urec on zoi grid
     do k=kb,ke
@@ -591,13 +591,13 @@ contains
         Uinlo(k) = Urec(loclowof(k)) + (Urec(locupof(k)) - Urec(loclowof(k))) / (zorf(locupof(k)) - zorf(loclowof(k))) * (zoif(k) - zorf(loclowof(k)))
       end if
     end do
-  
+
    ! compute Wrec on zii grid
     Winlo(kb) = 0.0                      ! corresponds to ground level
     do k=kb+1,ke+1
       if (locupoh(k) == ke+2) then     ! indicator for extrapolation!
 !        Winlo(k) = Wrec(ke+1) + (Wrec(ke+1) - Wrec(ke)) / (zorh(ke+1)-zorh(ke)) * (zoih(k)-zorh(ke+1))
-        Winlo(k) = Wrec(ke+1) 
+        Winlo(k) = Wrec(ke+1)
       else                            ! normal interpolation
         Winlo(k) = Wrec(loclowoh(k)) + (Wrec(locupoh(k)) - Wrec(loclowoh(k))) / (zorh(locupoh(k)) - zorh(loclowoh(k))) * (zoih(k) - zorh(loclowoh(k)))
       end if
@@ -641,7 +641,7 @@ contains
         Tinlo(k) = Trec(loclowot(k)) + (Trec(locupot(k)) - Trec(loclowot(k))) / (zotr(locupot(k)) - zotr(loclowot(k))) * (zoti(k) - zotr(loclowot(k)))
       end if
     end do
-   
+
    ! fluctuating temperature
     do k=kb,ke
       if (locupot(k) == ke+1) then      ! indicator for extrapolation!
@@ -653,22 +653,22 @@ contains
         tpinlo(:,k) = tprec(:,loclowot(k)) + (tprec(:,locupot(k)) - tprec(:,loclowot(k))) / (zotr(locupot(k)) - zotr(loclowot(k))) * (zoti(k) - zotr(loclowot(k)))
       end if
     end do
-     
+
  !! Finished interpolating out temperature
 !!!!! Finished Interpolation! !!!!!
 
 
    ! compute rescaled inner variables ! Winli = Winli (interpolation is enough)
-    Uinli = gamm* Uinli                   
-    Tinli = lamb* Tinli + (1.-lamb)*thls     ! this is different for isoflux wall!                   
+    Uinli = gamm* Uinli
+    Tinli = lamb* Tinli + (1.-lamb)*thls     ! this is different for isoflux wall!
     upinli = gamm* upinli
     vpinli = gamm* vpinli
-    wpinli = gamm* wpinli 
+    wpinli = gamm* wpinli
     tpinli = lamb* tpinli         ! See Kong (2000)
    ! compute rescaled outer variables ! Winlo = Winlo (interpolation is enough)
     Uinlo = gamm* Uinlo  + (1.- gamm)*Uinf
-    Tinlo = lamb* Tinlo  + (1.- lamb)*thl_top 
-!    Uinlo = gamm* Uinlo  + (1.- gamm)*Urec(ke) 
+    Tinlo = lamb* Tinlo  + (1.- lamb)*thl_top
+!    Uinlo = gamm* Uinlo  + (1.- gamm)*Urec(ke)
     upinlo = gamm* upinlo
     vpinlo = gamm* vpinlo
     wpinlo = gamm* wpinlo
@@ -690,38 +690,38 @@ contains
     wfunch = 0.5*(1. + tanh( alpha*(zoih-beta)/((1.-2.*beta)*zoih+beta) )/tanh(alpha) ) ! for half level height
     wfunct = 0.5*(1. + tanh( alpha*(zoti-beta)/((1.-2.*beta)*zoti+beta) )/tanh(alpha) ) ! for temperature (full level height)
     do k=kb,ke
-      if (wfuncf(k) .gt. 1.) then  
+      if (wfuncf(k) .gt. 1.) then
         wfuncf(k) = 1.
       end if
-      if (wfunct(k) .gt. 1.) then  
+      if (wfunct(k) .gt. 1.) then
         wfunct(k) = 1.
       end if
     end do
     do k=kb,ke+1
-      if (wfunch(k) .gt. 1.) then  
+      if (wfunch(k) .gt. 1.) then
         wfunch(k) = 1.
       end if
     end do
-    
 
- 
+
+
 !    write(6,*) 'maxval(wfuncf)=', maxval(wfuncf)
 !    write(6,*) 'maxval(wfunch)=', maxval(wfunch)
 
 
    ! Compute the velocity components for the inlet BC
-    do k=kb,ke  
+    do k=kb,ke
     do j=jb,je
 !      u0inletbc(j,k) = (Uinli(k)+ upinli(j,k))*(1.-wfuncf(k)) +  (Uinlo(k) + upinlo(j,k))* wfuncf(k)
-!      v0inletbc(j,k) =            vpinli(j,k) *(1.-wfuncf(k)) +              vpinlo(j,k) * wfuncf(k) 
-!      t0inletbc(j,k) = (Tinli(k)+ tpinli(j,k))*(1.-wfunct(k)) +  (Tinlo(k) + tpinlo(j,k))* wfunct(k)      
+!      v0inletbc(j,k) =            vpinli(j,k) *(1.-wfuncf(k)) +              vpinlo(j,k) * wfuncf(k)
+!      t0inletbc(j,k) = (Tinli(k)+ tpinli(j,k))*(1.-wfunct(k)) +  (Tinlo(k) + tpinlo(j,k))* wfunct(k)
       u0inletbc(j,k) = (Uinli(k)+ upinli(j,k)*heavif(k))*(1.-wfuncf(k)) +  (Uinlo(k) + upinlo(j,k)*heavif(k))* wfuncf(k)
-      v0inletbc(j,k) =            vpinli(j,k)*heavif(k) *(1.-wfuncf(k)) +              vpinlo(j,k)*heavif(k) * wfuncf(k) 
-      t0inletbc(j,k) = (Tinli(k)+ tpinli(j,k)*heavit(k))*(1.-wfunct(k)) +  (Tinlo(k) + tpinlo(j,k)*heavit(k))* wfunct(k)      
+      v0inletbc(j,k) =            vpinli(j,k)*heavif(k) *(1.-wfuncf(k)) +              vpinlo(j,k)*heavif(k) * wfuncf(k)
+      t0inletbc(j,k) = (Tinli(k)+ tpinli(j,k)*heavit(k))*(1.-wfunct(k)) +  (Tinlo(k) + tpinlo(j,k)*heavit(k))* wfunct(k)
     end do
     end do
-   
-    do k=kb,ke+1 
+
+    do k=kb,ke+1
     do j=jb,je
       w0inletbc(j,k) = (Winli(k)+ wpinli(j,k)*heavih(k))*(1-wfunch(k)) +  (Winlo(k) + wpinlo(j,k)*heavih(k))* wfunch(k)
     end do
@@ -731,7 +731,7 @@ contains
 
 !!    kdamp = kb + floor(0.75*(ke-kb+1))
 !    kdamp = kb + 144  ! => zf = 2.24
-!    do k=kdamp,ke  
+!    do k=kdamp,ke
 !    do j=jb,je
 !      if (u0inletbc(j,k) > Uinf) then
 !        u0inletbc(j,k) = Uinf
@@ -749,8 +749,8 @@ contains
     call slabsum(urav  ,kb,ke,uinletbc2 ,ib,ib,jb,je,kb,ke,ib,ib,jb,je,kb,ke)
     call slabsum(trav  ,kb,ke,tinletbc2 ,ib,ib,jb,je,kb,ke,ib,ib,jb,je,kb,ke)
 !    call slabsum(urav  ,kb,ke,u0 ,ib-1,ie+1,jb-1,je+1,kb-1,ke+1,ib,ib,jb,je,kb,ke)
-    urav = urav / (jge-jgb +1)                    ! average over j-direction
-    trav = trav / (jge-jgb +1)                    ! average over j-direction
+    urav = urav / jtot                    ! average over j-direction
+    trav = trav / jtot                    ! average over j-direction
 
 ! determine bulk velocity of new profile
     do k=kb,ke
@@ -759,13 +759,13 @@ contains
     totalu    = sum(uravdzf(kb:ke))/(zh(ke+1)-zh(kb))      ! Area-averaged outflow velocity
 
 ! rescale the instantaneous profile to keep mass flux constant (tot avoid pressure fluctuations)
-    if (luvolflowr ) then 
+    if (luvolflowr ) then
       do k=kb,ke
         uinldzf(k) = Uinl(k)*dzf(k)
       end do
       totaluinl = sum(uinldzf(kb:ke))/(zh(ke+1)-zh(kb))      ! Area-averaged inflow velocity
       scalef = totaluinl/totalu ! compute factor to scale the velocity profile with
-      u0inletbc(:,:) = u0inletbc(:,:)*scalef  ! rescale the velocity profile to have constant mass-flux 
+      u0inletbc(:,:) = u0inletbc(:,:)*scalef  ! rescale the velocity profile to have constant mass-flux
       urav(:) = urav(:)*scalef                ! also rescale the part that is added to the mean
     end if
 
@@ -781,7 +781,7 @@ contains
 !      end do
 !      urav(k) = urav(k)*Uinf/utop
 !    end do
-   
+
 !    u0inletbc = u0inletbc + (Uinf-utop)
 !    urav      = urav      + (Uinf-utop)
 
@@ -804,9 +804,9 @@ contains
 !    Uinl = Uinl +(Uinf-utop)     ! make sure at the inlet the mean top velocity equals Uinf
 !    uminletbc = uminletbc + (Uinf-utop)
 
-! write inletplane to array (and to file after 1000 time steps)   
-    if (lstoreplane ) then     
-      storeu0inletbc(:,:,nstepread) = u0inletbc(:,:) 
+! write inletplane to array (and to file after 1000 time steps)
+    if (lstoreplane ) then
+      storeu0inletbc(:,:,nstepread) = u0inletbc(:,:)
       storev0inletbc(:,:,nstepread) = v0inletbc(:,:)
       storew0inletbc(:,:,nstepread) = w0inletbc(:,:)
       storet0inletbc(:,:,nstepread) = t0inletbc(:,:)
@@ -814,11 +814,11 @@ contains
       if (nstepread == nstore+1) then
         nfile = nfile +1       ! next file number
         call writeinletfile    ! write 1000 time steps to file
-        call writerestartfiles 
-        nstepread = 1          ! reset counter 
-      end if   ! nstepread == 1001      
-    end if ! lstoreplane 
-    
+        call writerestartfiles
+        nstepread = 1          ! reset counter
+      end if   ! nstepread == 1001
+    end if ! lstoreplane
+
 
     if (rk3step==1) then
       uminletbc = u0inletbc
@@ -856,7 +856,7 @@ contains
        write(6,*) 'Inlet Gen: mass flux                   = ',totaluinl
      end if
    end if
-    
+
     elseif (iinletgen == 2) then
       if (myid==0) then
         write(6,*) 'nstepread=',nstepread
@@ -884,7 +884,7 @@ contains
       elseif (rk3stepin==3) then
         dtinrk = rk3coefin - (dtin/2.)
       end if
- 
+
       interval = dtinrk - elapstep
       elapstep = elapstep + deltat
       if (elapstep > dtinrk) then      ! use new value at next time step
@@ -925,7 +925,7 @@ contains
       uinletbc2(ib,jb:je,kb:ke) = u0inletbc(jb:je,kb:ke)  ! this is just a dummy variable to give uninletbc the right dimension in slabsum
       urav = 0.
       call slabsum(urav  ,kb,ke,uinletbc2 ,ib,ib,jb,je,kb,ke,ib,ib,jb,je,kb,ke)
-      urav = urav / (jge-jgb +1)                    ! average over j-direction
+      urav = urav / jtot                    ! average over j-direction
 
    ! determine bulk velocity of new (interpolated) profile
       do k=kb,ke
@@ -936,7 +936,7 @@ contains
    ! rescale the instantaneous profile to keep mass flux constant (tot avoid pressure fluctuations)
       scalef = totalreadu/totalu ! compute factor to scale the velocity profile with
       u0inletbc(:,:) = u0inletbc(:,:)*scalef  ! rescale the velocity profile to have constant mass-flux
-!! end of massflow correction of interpolated streamwise velocity 
+!! end of massflow correction of interpolated streamwise velocity
 
       if (rk3step==1) then
         uminletbc = u0inletbc
@@ -947,14 +947,14 @@ contains
     end if  ! iinletgen
 
   end subroutine inletgen
- 
+
   subroutine inletgennotemp
-    use modglobal,   only : ib,ie,jb,je,jgb,jge,kb,ke,zf,zh,dzf,dzhi,timee,btime,totavtime,rk3step,dt,numol,iplane,lles,iinletgen,inletav,runavtime,Uinf,lwallfunc,linletRA,totinletav,lstoreplane,nstore,lfixinlet,lfixutauin,luvolflowr
+    use modglobal,   only : ib,ie,jb,je,jb,jtot,kb,ke,zf,zh,dzf,dzhi,timee,btime,totavtime,rk3step,dt,numol,iplane,lles,iinletgen,inletav,runavtime,Uinf,lwallfunc,linletRA,totinletav,lstoreplane,nstore,lfixinlet,lfixutauin,luvolflowr
     use modfields,   only : u0,v0,w0,wm,uprof
     use modsave,     only : writerestartfiles
     use modmpi,      only : slabsum,myid
     implicit none
-   
+
     real,dimension(ib:ib,jb:je,kb:ke)   :: uinletbc2   ! dummy variable
     real,dimension(jb:je,kb:ke)   :: uprec             ! velocity fluctuation (up_rec = u0 - Urec)
     real,dimension(jb:je,kb:ke)   :: vprec             ! velocity fluctuation (vp_rec = v0 - 0)
@@ -965,11 +965,11 @@ contains
     real,dimension(jb:je,kb:ke+1) :: wpinlo            ! = gamma * (wprec   interpolated to zoi grid)
     real,dimension(kb:ke)   :: udiff                   ! difference between Uinl and Urec
 !    real,dimension(kb:ke)   :: Urecdiff                ! difference between Urec new and old
-    real,dimension(kb:ke)   :: urav                    ! j-averaged u-velocity (not time-averaged) 
+    real,dimension(kb:ke)   :: urav                    ! j-averaged u-velocity (not time-averaged)
     real,dimension(kb:ke)   :: uravdzf                 ! j-averaged u-velocity (not time-averaged) times dzf
     real,dimension(kb:ke)   :: uinldzf                 ! j-averaged u-velocity (not time-averaged) times dzf
     real,dimension(kb:ke)   :: Urecdzf                 ! Urec times dzf
-    real,dimension(kb:ke+1) :: wrav                    ! j-averaged w-velocity (not time-averaged) 
+    real,dimension(kb:ke+1) :: wrav                    ! j-averaged w-velocity (not time-averaged)
     real,dimension(kb:ke)   :: Uinli                   ! = gamma * (Urec interpolated to ziif grid points)
     real,dimension(kb:ke+1) :: Winli                   ! = gamma * (Wrec interpolated to ziih grid points)
     real,dimension(kb:ke)   :: Uinlo                   ! = gamma * (Urec interpolated to zioif grid points)
@@ -1018,7 +1018,7 @@ contains
       avint  = inletav
     end if
     avinti = 1./avint
-    uaver=0. 
+    uaver=0.
     do i=ib,ie
       call slabsum(uaver(i,:),kb,ke,u0(i:i,jb:je,kb:ke),i,i,jb,je,kb,ke,i,i,jb,je,kb,ke)
     end do
@@ -1026,9 +1026,9 @@ contains
     wrav=0.
     call slabsum(wrav(kb:ke+1),kb,ke,w0(irecy-1:irecy-1,jb:je,kb:ke+1),irecy-1,irecy-1,jb,je,kb,ke+1,irecy-1,irecy-1,jb,je,kb,ke+1)
 
-    uaver = uaver / (jge-jgb +1)                    ! average over j-direction
+    uaver = uaver / jtot                ! average over j-direction
     urav = uaver(irecy,:)
-    wrav = wrav / (jge-jgb +1)                    ! average over j-direction
+    wrav = wrav / jtot                 ! average over j-direction
 
     do k=kb,ke
       Urec(k) =  urav(k)*deltat*avinti + (1.-deltat*avinti)*Urec(k)
@@ -1041,7 +1041,7 @@ contains
       Utav(i,k) =  uaver(i,k)*deltat*avinti + (1.-deltat*avinti)*Utav(i,k)
     end do
     end do
-   
+
 
 
    ! compute velocity fluctuation at recycle station
@@ -1058,7 +1058,7 @@ contains
       end do
     end do
 
- 
+
     if (lwallfunc) then
       call wallawinlet(Urec(kb),dzf(kb),numol,utaur2)    ! compute wall shear stress at recycle station
     else
@@ -1066,31 +1066,31 @@ contains
     end if
     utaur = sqrt(abs(utaur2))                          ! compute utau at recycle station
    ! compute momentum thickness at inlet and recycle plane
-   
+
    dr_old = dr
 !   call blthickness(dr,utaur)                     ! also needed for thetar
-   call blthicknesst(dr,Urec,0.99)                 
+   call blthicknesst(dr,Urec,0.99)
 !   call momentumthickness(thetai,utaui,di)        ! di is kept fixed
-   call momentumthicknessexp(thetai,Uinl)       
+   call momentumthicknessexp(thetai,Uinl)
 !   call momentumthickness(thetar,utaur,dr)
-   call momentumthicknessexp(thetar,Urec)       
+   call momentumthicknessexp(thetar,Urec)
 !   call blthickness(dr,utaur)
-  
-    if (.not.lfixutauin) then 
+
+    if (.not.lfixutauin) then
       utaui  = utaur* abs(thetar/thetai)**(1./8.)   ! See Lund (1998): 'Similar to Ludwig-Tillmann correlation'
     end if
     gamm = utaui / utaur                          ! Gamma in Lund (1998)
 
    ! compute inner scaling coordinates
-    zirf = utaur*zf / numol                       ! inner scaling zf-coordinate at recycle station 
+    zirf = utaur*zf / numol                       ! inner scaling zf-coordinate at recycle station
     zirh = utaur*zh / numol                       ! inner scaling zh-coordinate at recycle station
-    ziif = utaui*zf / numol                       ! inner scaling zf-coordinate at inlet station 
-    ziih = utaui*zh / numol                       ! inner scaling zh-coordinate at inlet station 
-  
-   ! compute outer scaling coordinates   
-    zorf = zf / dr                                ! outer scaling zf-coor as measured from Uinldinate at recycle station 
-    zorh = zh / dr                                ! outer scaling zh-coordinate at recycle station 
-    zoif = zf / di                                ! outer scaling zf-coordinate at inlet station  (could be done once, actually..) 
+    ziif = utaui*zf / numol                       ! inner scaling zf-coordinate at inlet station
+    ziih = utaui*zh / numol                       ! inner scaling zh-coordinate at inlet station
+
+   ! compute outer scaling coordinates
+    zorf = zf / dr                                ! outer scaling zf-coor as measured from Uinldinate at recycle station
+    zorh = zh / dr                                ! outer scaling zh-coordinate at recycle station
+    zoif = zf / di                                ! outer scaling zf-coordinate at inlet station  (could be done once, actually..)
     zoih = zh / di                                ! outer scaling zf-coordinate at inlet station  (could be done once, actually..)
 
 !!!!! Interpolation starts here
@@ -1198,7 +1198,7 @@ contains
         vpinli(:,k) = vprec(:,loclowif(k)) + (vprec(:,locupif(k)) - vprec(:,loclowif(k))) / (zirf(locupif(k)) - zirf(loclowif(k))) * (ziif(k) - zirf(loclowif(k)))
       end if
     end do
-   
+
    ! compute w-fluctuation on zii grid
     do k=kb+1,ke+1
 !      if (locupih(k) == ke+1) then      ! indicator for extrapolation!
@@ -1210,7 +1210,7 @@ contains
       end if
     end do
 
- !! Finished with interpolating inner variables 
+ !! Finished with interpolating inner variables
  !! Continue with interpolating outer variables
    ! compute Urec on zoi grid
     do k=kb,ke
@@ -1224,13 +1224,13 @@ contains
         Uinlo(k) = Urec(loclowof(k)) + (Urec(locupof(k)) - Urec(loclowof(k))) / (zorf(locupof(k)) - zorf(loclowof(k))) * (zoif(k) - zorf(loclowof(k)))
       end if
     end do
-  
+
    ! compute Wrec on zii grid
     Winlo(kb) = 0.0                      ! corresponds to ground level
     do k=kb+1,ke+1
       if (locupoh(k) == ke+2) then     ! indicator for extrapolation!
 !        Winlo(k) = Wrec(ke+1) + (Wrec(ke+1) - Wrec(ke)) / (zorh(ke+1)-zorh(ke)) * (zoih(k)-zorh(ke+1))
-        Winlo(k) = Wrec(ke+1) 
+        Winlo(k) = Wrec(ke+1)
       else                            ! normal interpolation
         Winlo(k) = Wrec(loclowoh(k)) + (Wrec(locupoh(k)) - Wrec(loclowoh(k))) / (zorh(locupoh(k)) - zorh(loclowoh(k))) * (zoih(k) - zorh(loclowoh(k)))
       end if
@@ -1265,13 +1265,13 @@ contains
 
 
    ! compute rescaled inner variables ! Winli = Winli (interpolation is enough)
-    Uinli = gamm* Uinli                   
+    Uinli = gamm* Uinli
     upinli = gamm* upinli
     vpinli = gamm* vpinli
-    wpinli = gamm* wpinli 
+    wpinli = gamm* wpinli
    ! compute rescaled outer variables ! Winlo = Winlo (interpolation is enough)
     Uinlo = gamm* Uinlo  + (1.- gamm)*Uinf
-!    Uinlo = gamm* Uinlo  + (1.- gamm)*Urec(ke) 
+!    Uinlo = gamm* Uinlo  + (1.- gamm)*Urec(ke)
     upinlo = gamm* upinlo
     vpinlo = gamm* vpinlo
     wpinlo = gamm* wpinlo
@@ -1283,27 +1283,27 @@ contains
     wfuncf = 0.5*(1. + tanh( alpha*(zoif-beta)/((1.-2.*beta)*zoif+beta) )/tanh(alpha) ) ! for full level height
     wfunch = 0.5*(1. + tanh( alpha*(zoih-beta)/((1.-2.*beta)*zoih+beta) )/tanh(alpha) ) ! for half level height
     do k=kb,ke
-      if (wfuncf(k) .gt. 1.) then  
+      if (wfuncf(k) .gt. 1.) then
         wfuncf(k) = 1.
       end if
     end do
     do k=kb,ke+1
-      if (wfunch(k) .gt. 1.) then  
+      if (wfunch(k) .gt. 1.) then
         wfunch(k) = 1.
       end if
     end do
- 
+
 
    ! Compute the velocity components for the inlet BC
-    do k=kb,ke  
+    do k=kb,ke
     do j=jb,je
       u0inletbc(j,k) = (Uinli(k)+ upinli(j,k))*(1.-wfuncf(k)) +  (Uinlo(k) + upinlo(j,k))* wfuncf(k)
-      v0inletbc(j,k) =            vpinli(j,k) *(1.-wfuncf(k)) +              vpinlo(j,k) * wfuncf(k) 
+      v0inletbc(j,k) =            vpinli(j,k) *(1.-wfuncf(k)) +              vpinlo(j,k) * wfuncf(k)
     end do
     end do
 
 
-    do k=kb,ke+1 
+    do k=kb,ke+1
     do j=jb,je
       w0inletbc(j,k) = (Winli(k)+ wpinli(j,k))*(1-wfunch(k)) +  (Winlo(k) + wpinlo(j,k))* wfunch(k)
     end do
@@ -1316,7 +1316,7 @@ contains
     uinletbc2(ib,jb:je,kb:ke) = u0inletbc(jb:je,kb:ke)  ! this is just a dummy variable to give uninletbc the right dimension in slabsum
     urav = 0.
     call slabsum(urav  ,kb,ke,uinletbc2 ,ib,ib,jb,je,kb,ke,ib,ib,jb,je,kb,ke)
-    urav = urav / (jge-jgb +1)                    ! average over j-direction
+    urav = urav / jtot                   ! average over j-direction
 
 ! determine bulk velocity of new profile
       do k=kb,ke
@@ -1327,7 +1327,7 @@ contains
 ! correct instantaneous inflow velocity for constant mass-flux
       if (luvolflowr ) then
         do k=kb,ke
-          uinldzf(k) = Uinl(k)*dzf(k)     
+          uinldzf(k) = Uinl(k)*dzf(k)
         end do
         totaluinl = sum(uinldzf(kb:ke))/(zh(ke+1)-zh(kb))      ! Area-averaged inflow velocity that should be kept
         scalef = totaluinl/totalu ! compute factor to scale the velocity profile with
@@ -1342,9 +1342,9 @@ contains
       end do
     end if
 
-! write inletplane to array (and to file after 1000 time steps)   
-    if (lstoreplane ) then     
-      storeu0inletbc(:,:,nstepread) = u0inletbc(:,:) 
+! write inletplane to array (and to file after 1000 time steps)
+    if (lstoreplane ) then
+      storeu0inletbc(:,:,nstepread) = u0inletbc(:,:)
       storev0inletbc(:,:,nstepread) = v0inletbc(:,:)
       storew0inletbc(:,:,nstepread) = w0inletbc(:,:)
       nstepread = nstepread +1
@@ -1352,10 +1352,10 @@ contains
         nfile = nfile +1       ! next file number
         call writeinletfile    ! write 1000 time steps to file
         call writerestartfiles
-        nstepread = 1          ! reset counter 
-      end if   ! nstepread == 1001      
-    end if ! lstoreplane 
-    
+        nstepread = 1          ! reset counter
+      end if   ! nstepread == 1001
+    end if ! lstoreplane
+
 
     if (rk3step==1) then
       uminletbc = u0inletbc
@@ -1382,7 +1382,7 @@ contains
        write(6,*) 'Inlet Gen: mass flux                   = ',totaluinl
      end if
    end if
-    
+
     elseif (iinletgen == 2) then
       if (myid==0) then
         write(6,*) 'nstepread=',nstepread
@@ -1409,7 +1409,7 @@ contains
       elseif (rk3stepin==3) then
         dtinrk = rk3coefin - (dtin/2.)
       end if
- 
+
       interval = dtinrk - elapstep
       elapstep = elapstep + deltat
       if (elapstep > dtinrk) then      ! use new value at next time step
@@ -1446,7 +1446,7 @@ contains
       uinletbc2(ib,jb:je,kb:ke) = u0inletbc(jb:je,kb:ke)  ! this is just a dummy variable to give uninletbc the right dimension in slabsum
       urav = 0.
       call slabsum(urav  ,kb,ke,uinletbc2 ,ib,ib,jb,je,kb,ke,ib,ib,jb,je,kb,ke)
-      urav = urav / (jge-jgb +1)                    ! average over j-direction
+      urav = urav / jtot                    ! average over j-direction
 
    ! determine bulk velocity of new (interpolated) profile
       do k=kb,ke
@@ -1481,8 +1481,8 @@ contains
        real, intent(out)                  :: output  !< momentum thickness
        real, dimension(kb:ke)             :: mthick
 !       real    :: umax
-       integer :: k 
-     
+       integer :: k
+
 !      write(6,*) 'uinletbc(jb,ke),Uinl(ke)=', uinletbc(jb,ke),uinput(ke)
 !       umax = maxval(uinput)
        do k=kb,ke
@@ -1508,10 +1508,10 @@ contains
     real :: C     = 0.5       ! Coles parameter
     real :: kappa = 0.41      ! Von k�r�n constant
     real :: lam               ! = Uinf/ustar
-   
+
     lam = Uinf / ustar
     output = ((1. + C)/(kappa*lam) - (1./(( kappa**2)*(lam**2)))*(2. + 2.*C*(1.852/pi +1.) + (3./2.)*(C**2)))* blth
-    
+
   end subroutine momentumthickness
 
   subroutine momentumthicknessmo(output,ustar,blth,lmo)
@@ -1536,7 +1536,7 @@ contains
 
   end subroutine momentumthicknessmo
 
- 
+
   subroutine enthalpythickness(output,tinput,uinput)
 
     use modglobal, only : jb,kb,ke,dzf !,Uinf
@@ -1548,14 +1548,14 @@ contains
        real, dimension(kb:ke), intent(in) :: tinput  !< input temperature
        real, dimension(kb:ke), intent(in) :: uinput  !< input velocity
        real, intent(out)                  :: output  !< momentum thickness
-       real, dimension(kb:ke)             :: ethick 
+       real, dimension(kb:ke)             :: ethick
        real thlsdummy
-       integer :: k 
-       
+       integer :: k
+
        thlsdummy = thls
        if (tinput(ke) == thls) then
          thlsdummy = thls -0.000001
-       end if 
+       end if
        do k=kb,ke
 !         ethick(k) = (uinput(k)/uinput(ke)) * ((tinput(k) - tinput(ke)) /(thls - tinput(ke)) )*dzf(k)
          ethick(k) = (uinput(k)/uinput(ke)) * ((tinput(k) - tinput(ke)) /(thlsdummy - tinput(ke)) )*dzf(k)
@@ -1569,7 +1569,7 @@ contains
   end subroutine enthalpythickness
 
 
- 
+
   subroutine dispthicknessexp(output)
 ! output is an array of length (ib:ie)) containing displacement thickness values
     use modglobal, only : ib,ie,kb,ke,dzf,xf!,Uinf
@@ -1581,8 +1581,8 @@ contains
        real    :: dispm
        real    :: disp2m
        real    :: xfdispm
-       integer :: i,k 
-     
+       integer :: i,k
+
      ! write(6,*) 'Uinl(ke)=', uinput(ke)
        do i=ib,ie
 !       umax = maxval(Utav(i,:))
@@ -1596,7 +1596,7 @@ contains
 
        dispm  = sum(output(ib:ie))/(ie-ib+1)      ! mean(displacement)
        disp2m = sum(output(ib:ie)**2.)/(ie-ib+1)   ! mean(displacement^2)
-       xfdispm  = sum(xf(ib:ie)*output(ib:ie))/(ie-ib+1)     ! mean(xf*displ) 
+       xfdispm  = sum(xf(ib:ie)*output(ib:ie))/(ie-ib+1)     ! mean(xf*displ)
 
        ddispdx = (xfdispm - (xfm*dispm)) / (xf2m -xfm**2.)    ! this is d/dx(delta*)
 !       ddispdx = 0.    ! for the test
@@ -1620,13 +1620,13 @@ contains
        real    :: kappa = 0.41      ! Von k�r�n constant
        real    :: lam               ! = Uinf/ustar
        integer :: i
-   
+
 
        do i=ib,ie
          ustar     =  sqrt(abs(2*numol* Utav(i,kb)/dzf(kb)))              ! average streamwise friction
          lam       = Uinf / ustar
          blth      = (lam*numol/Uinf) * exp( kappa * (lam - B) - 2.*C)      ! See App. Lund et al.
-         output(i) = ((1. + C) / (kappa*lam) ) * blth                 
+         output(i) = ((1. + C) / (kappa*lam) ) * blth
        end do
        dispm  = sum(output(ib:ie))/(ie-ib+1)      ! mean(displacement)
        disp2m = sum(output(ib:ie)**2.)/(ie-ib+1)   ! mean(displacement^2)
@@ -1657,8 +1657,8 @@ contains
        real    :: func,dfunc,utaunu,lmo
        integer :: i,n
 
-       blth      = di      ! initial value 
-       do i=ib,ie      
+       blth      = di      ! initial value
+       do i=ib,ie
          ustar     = sqrt(abs(2.*numol* Utav(i,kb)/dzf(kb)))              ! average streamwise friction at x-location
          tstar     = numol*prandtlmoli* 2.*(Ttav(i,kb)-thls)/(dzf(kb)*ustar)    ! average shear temp. at x-location
          lmo       = (thls*ustar**2)/(kappa*grav*tstar)                  ! obukhov length at this x-location
@@ -1736,8 +1736,8 @@ contains
 !!       real, dimension(kb:ke)             :: mthick
 !       real                               :: ucrit
 !!       real                               :: umax
-!       integer :: k 
-!     
+!       integer :: k
+!
 !!     umax = maxval(uinput)
 !     ucrit = uinput(ke)*criterion  ! Velocity at which BL-thickness is reached
 !!     ucrit = umax*criterion  ! Velocity at which BL-thickness is reached
@@ -1746,7 +1746,7 @@ contains
 !         if (k==kb) then
 !           output = zh(kb)+ (zf(k)-zh(k))/uinput(k)*ucrit ! interpolate z to BL-height
 !           exit
-!         else  
+!         else
 !           output = zf(k-1) + (zf(k)-zf(k-1))/(uinput(k)-uinput(k-1))*(ucrit-uinput(k-1)) ! interpolate z to BL-height
 !           exit
 !         end if
@@ -1754,7 +1754,7 @@ contains
 !         output = zf(ke)      ! maximum BL thickness
 !       end if
 !     end do
-!   end subroutine blthickness 
+!   end subroutine blthickness
 
   subroutine blthickness(output,ustar)
 
@@ -1779,7 +1779,7 @@ contains
 
   subroutine blthicknessmo(output,ustar,lmo)
 ! This routine compute the BL thicknes for a buoyancy affected boundary layer:
-! Newton-Raphson method is used 
+! Newton-Raphson method is used
     use modglobal, only : numol,Uinf
     implicit none
 
@@ -1797,8 +1797,8 @@ contains
        real :: lam               ! = Uinf/ustar
        real :: func,dfunc,utaunu
        integer :: n
-       
-       utaunu = ustar / numol 
+
+       utaunu = ustar / numol
        lam = Uinf / ustar
 !       write(6,*) 'Initial delta, Lmo =', output,lmo
        do n=1,10
@@ -1896,7 +1896,7 @@ contains
   end subroutine writeinletfile
 
   subroutine readinletfile
-    use modglobal, only : ib,jb,je,jmax,kb,ke,cexpnr,ifinput,nstore,ltempeq,ntrun,zh,jgb,jge,jh 
+    use modglobal, only : ib,jb,je,jmax,kb,ke,cexpnr,ifinput,nstore,ltempeq,ntrun,zh,jtot,jh
     use modmpi,    only : cmyid,myid,nprocs,slabsum,excjs
 !    use modinletdata, only : storeu0inletbc,storev0inletbc,storew0inletbc,nfile
 
@@ -1922,7 +1922,7 @@ contains
     character(24) name
       jfdum = jbdum-1  ! initial value
       do fileid = filenumstart, filenumstart+(filestoread-1)
-        if (filen == -1) then 
+        if (filen == -1) then
           filen = nprocsinl-1                      ! -1 means the last proc (periodic)
         else
           filen = fileid - floor(real(fileid)/real(nprocsinl))*nprocsinl  ! loop over proc's
@@ -1964,8 +1964,8 @@ contains
         end if
         jsdum = jfdum + 1
         jfdum = jsdum + (jf-js)
-!        if (jsdum >= 3) write(6,*) 'myid, jsdum = ',myid, jsdum 
-!        if (jfdum >= 3) write(6,*) 'myid, jfdum = ',myid, jfdum 
+!        if (jsdum >= 3) write(6,*) 'myid, jsdum = ',myid, jsdum
+!        if (jfdum >= 3) write(6,*) 'myid, jfdum = ',myid, jfdum
 
  !!! put values from original in dummy variable
         storeu0indum(jsdum:jfdum,:,:)    = storeu0inold(js:jf,:,:)      ! s: start  f: final
@@ -2177,7 +2177,7 @@ contains
 
 
   end subroutine zinterpolatet
- 
+
   subroutine zinterpolatet1d(input,output)
   use modglobal,      only : jb,je,kb,ke,zf,nstore
   use modsurfdata,     only : thls
@@ -2236,9 +2236,9 @@ contains
 
 
   subroutine readzincoord
-  use modglobal,   only :  kb,ke,kh,ifinput,zf,zh,ysize,jb,je,dy
-  use modmpi,      only :  myid, mpi_integer,comm3d,mpierr,my_real,nprocs  
-  implicit none     
+  use modglobal,   only :  kb,ke,kh,ifinput,zf,zh,ylength,jb,je,dy
+  use modmpi,      only :  myid, mpi_integer,comm3d,mpierr,my_real,nprocs
+  implicit none
   character(72) chmess
   character(20) namezinlet
   character(20) namezinfo
@@ -2249,9 +2249,9 @@ contains
 
   namezinlet = 'zgrid.inl'
   namezinfo  = 'zgrid.inf'
- 
+
     if (myid==0) then
-  
+
 
       open(ifinput,file=namezinfo,status='old',iostat=ierr)
         if (ierr /= 0) then
@@ -2325,19 +2325,19 @@ contains
     call MPI_BCAST(dzhin,kein-kbin+2,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(lzinzsim,1,MPI_INTEGER      ,0,comm3d,mpierr)
 
-    
-    if (.not.lzinzsim) then 
+
+    if (.not.lzinzsim) then
       if (myid==0) then
         write(6,*) 'zgrid.inl does not equal zgrid.inp: Inlet will be interpolated in z'
       end if
-!      allocate(linlf(kbin:kein)) 
-!      allocate(linuf(kbin:kein)) 
-!      allocate(linlh(kbin:kein+1)) 
-!      allocate(linuh(kbin:kein+1)) 
-      allocate(linlf(kb:ke)) 
-      allocate(linuf(kb:ke)) 
-      allocate(linlh(kb:ke+1)) 
-      allocate(linuh(kb:ke+1)) 
+!      allocate(linlf(kbin:kein))
+!      allocate(linuf(kbin:kein))
+!      allocate(linlh(kbin:kein+1))
+!      allocate(linuh(kbin:kein+1))
+      allocate(linlf(kb:ke))
+      allocate(linuf(kb:ke))
+      allocate(linlh(kb:ke+1))
+      allocate(linuh(kb:ke+1))
    ! zf
       do k=kb,ke
         do kk=kbin,kein
@@ -2366,38 +2366,38 @@ contains
       end do
 
      else  ! lzinzsim  -> grids are equal
-       if (myid==0) then 
+       if (myid==0) then
          write(6,*) 'zgrid.inl equals zgrid.inp: Inlet will not be interpolated in z'
        end if
      end if
-    
+
 ! Now prepare everything for interpolation in y-direction
      jgbin = 1
      jgein = jgbin + jgtotinl -1
      jtotin = jgtotinl / nprocsinl
      jbin = 1
      jein = 1 + jtotin -1
-     ysizeproc = ysize/nprocs
-     dyin = ysize / jgtotinl
+     ysizeproc = ylength/nprocs
+     dyin = ylength / jgtotinl
      jbdum = 1
      jtotdum = ceiling(ysizeproc/real(dyin))+1                    ! dummy indices
      jedum = jbdum + jtotdum-1
-     
-!     allocate(yf   (jb    :je)) 
-     allocate(yf   (jb    :je+1)) 
-     allocate(yh   (jb    :je+1)) 
-     allocate(yfin (jgbin :jgein+1)) 
-     allocate(yhin (jgbin-1 :jgein+1)) 
-!     allocate(yfdum(jbdum :jedum)) 
-     allocate(yfdum(jbdum :jedum+1)) 
-     allocate(yhdum(jbdum :jedum+1)) 
+
+!     allocate(yf   (jb    :je))
+     allocate(yf   (jb    :je+1))
+     allocate(yh   (jb    :je+1))
+     allocate(yfin (jgbin :jgein+1))
+     allocate(yhin (jgbin-1 :jgein+1))
+!     allocate(yfdum(jbdum :jedum))
+     allocate(yfdum(jbdum :jedum+1))
+     allocate(yhdum(jbdum :jedum+1))
      allocate(yloclowf(jb:je+1))
      allocate(ylocupf (jb:je+1))
      allocate(yloclowh(jb:je+1))
      allocate(ylocuph (jb:je+1))
 
     ! make global y-grid (equidistant) for inlet data
-      
+
      do j = jgbin-1,jgein+1
        yhin(j) = (j-jgbin)*dyin
      end do
@@ -2406,21 +2406,21 @@ contains
      end do
     ! make new y-grid (equidistant)
      do j = jb,je+1
-       yh(j) = myid*(ysize/nprocs) + (j-jb)*dy
+       yh(j) = myid*(ylength/nprocs) + (j-jb)*dy
        yf(j) = yh(j) + 0.5*dy
      end do
 
    ! check which original cells are needed for interpolation
       do j=jgein+1,jgbin,-1
         if (yhin(j)<= yh(jb)) then
-          if (yfin(j)<= yf(jb)) then  
+          if (yfin(j)<= yf(jb)) then
             procinlo = floor(real(j-jgbin)/real(jtotin))      ! this is the first cell to consider
             filenumstart = procinlo
             jgbeg = j
             jbeg = j-(procinlo*jtotin)
 !            jend = jbeg+jtotdum-1
             jj = j+jtotdum-1
-!            procinup = floor((j-jgbin)/real(jtotin))     
+!            procinup = floor((j-jgbin)/real(jtotin))
 !            procinup = floor((j-jgbin+1)/real(jtotin))
             procinup = floor(real(jj-jgbin)/real(jtotin))
             filenumend = procinup
@@ -2437,11 +2437,11 @@ contains
               filenumend = procinup
               jend = jj-(procinup*jtotin)
               procinup = procinup-floor(real(procinup)/real(nprocsinl))*nprocsinl  !continue on first procinl again
-            else  
+            else
               procinlo = floor(real(j-jgbin-1)/real(jtotin))    ! One cell lower is needed
               filenumstart = procinlo
               jgbeg = j-1
-              jbeg = j-(procinlo*jtotin)-1         
+              jbeg = j-(procinlo*jtotin)-1
               jj = j+jtotdum-2
               procinup = floor(real(jj-jgbin)/real(jtotin))
               filenumend = procinup
@@ -2500,12 +2500,12 @@ contains
     if (ltempeq ) then
        deallocate(t0inletbc,tminletbc,t0inletbcold,loclowot,locupot,zotr,zoti,Tinl,Trec)
     end if
-    if (lstoreplane ) then 
+    if (lstoreplane ) then
       deallocate(storeu0inletbc,storev0inletbc,storew0inletbc)
        if (ltempeq ) then
          deallocate(storet0inletbc)
        end if
-    end if 
+    end if
   else if (iinletgen == 2) then
     deallocate(storeu0inletbc,storev0inletbc,storew0inletbc,u0inletbc,v0inletbc,w0inletbc,uminletbc,vminletbc,wminletbc,u0inletbcold,v0inletbcold,w0inletbcold)
     if (ltempeq ) then

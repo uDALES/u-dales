@@ -124,7 +124,7 @@ contains
   end subroutine initdriver
 
   subroutine drivergen
-    use modglobal,   only : ib,ie,jb,je,jgb,jge,kb,ke,zf,zh,dzf,dzhi,timee,btime,totavtime,rk3step,&
+    use modglobal,   only : ib,ie,jb,je,kb,ke,zf,zh,dzf,dzhi,timee,btime,totavtime,rk3step,&
                             dt,numol,iplane,lles,idriver,inletav,runavtime,Uinf,lwallfunc,linletRA,&
                             totinletav,lstoreplane,nstore,driverstore,prandtlmoli,numol,grav,lbuoyancy,&
                             lfixinlet,lfixutauin,tdriverstart,dtdriver,tdriverdump,ltempeq,lmoist,nsv,lsdriver
@@ -134,7 +134,7 @@ contains
     implicit none
 
     real :: inlrec                              ! time of last inlet record
-    real :: elapsrec                            ! time elapsed in this inlet record  
+    real :: elapsrec                            ! time elapsed in this inlet record
     real :: dtint                               ! dt for linear interpolation
     REAL*8, PARAMETER :: eps = 1d-3
     integer i,j,k,kk,kdamp,x
@@ -163,7 +163,7 @@ contains
         ! storetinlet(nstepreaddriver) = timee - tdriverstart
         call writedriverfile
       end if
-   
+
     elseif (idriver == 2) then
 
       ! if (.not. rk3step==1) return
@@ -209,7 +209,7 @@ contains
         end if
         nstepreaddriver = x
       elseif ((elapsrec > 0.) .and. (x == 1)) then
-     
+
         if ((myid==0) .and. (rk3step==1)) then
           write(*,'(A,F10.3,A)') '======= Inputs loaded from the proceeding driver tstep 1 (at ',storetdriver(x),'s) ======='
         end if
@@ -292,7 +292,7 @@ contains
         ! write(6,'(A,e20.12)') 'storethl0driver(je,20,x): ', storethl0driver(jb,20,x)
         ! write(6,'(A,e20.12)') 'storethl0driver(je,20,x+1): ', storethl0driver(jb,20,x+1)
         ! write(6,'(A,e20.12)') 'Interpolated inlet temperature (jb,20): ', thl0driver(jb,20)
-      ! end if 
+      ! end if
 
       ! umdriver = u0driver   ! MAYBE ITS BETTER TO WRITE THE M VARIABLES TO FILE TOO AND JUST READ THEM - THOUGH CURRENTLY THIS IS NOT DONE FOR RESTART FILES?? ae1212
       ! vmdriver = v0driver   ! EDIT READ AND WRITE INLET FILES (AND CHECK MODBOUNDARY & MODSURFACE) TO INCLUDE M VARIABLES
@@ -337,7 +337,7 @@ contains
     character(15) :: name
     logical :: lexist
     real, allocatable :: arraysizetest(:,:)
-    
+
     allocate(arraysizetest(jb-jh:je+jh,kb-kh:ke+kh))
 
     inquire(iolength=filesizet)(timee-tdriverstart)
@@ -345,11 +345,11 @@ contains
     ! inquire(iolength=filesizetest2)u0(1,1,1)
     inquire(iolength=filesizev)u0(irecydriver,:,:)
     inquire(iolength=filesizes)sv0(irecydriver,:,:,:)
-    !!  
+    !!
     ! if((myid==0) .and. (nstepreaddriver==1)) then
       ! write(6,*) 'inquire iolength ', filesizet
       ! write(6,*) 'inquire iolength test', filesizetest1
-      ! write(6,*) 'inquire iolength test u', filesizetest2 
+      ! write(6,*) 'inquire iolength test u', filesizetest2
     ! end if
 
     ! inquire(iolength=filesizetest1)arraysizetest(:,:)
@@ -392,7 +392,7 @@ contains
       close (unit=11)
       write(*,*) 'Driver time:' , timee-tdriverstart
     end if
-    
+
     name = 'udriver_   .'
     ! write (name(13:16)  ,'(i4.4)') nfile
     name(9:11)= cmyid
@@ -413,11 +413,11 @@ contains
       !write(6,'(A,e20.12)') 'u0(irecydriver,jb,kb)', u0(irecydriver,jb,kb)
       !write(6,'(A,e20.12)') 'Writing thl0 to file. thl0(irecydriver-1,je,ke)', thl0(irecydriver-1,je,ke)
       !write(6,'(A,e20.12)') 'thl0(irecydriver-1,jb,kb)', thl0(irecydriver-1,jb,kb)
-      ! write(6,*) 'irecydriver, je, ke, ib, jb, kb', irecydriver, je, ke, ib, jb, kb 
+      ! write(6,*) 'irecydriver, je, ke, ib, jb, kb', irecydriver, je, ke, ib, jb, kb
     !end if
-    write(11,rec=nstepreaddriver)  (u0(irecydriver,:,:))      
+    write(11,rec=nstepreaddriver)  (u0(irecydriver,:,:))
     close (unit=11)
-  
+
     name = 'vdriver_   .'
     ! write (name(13:16)  ,'(i4.4)') nfile
     name(9:11)= cmyid
@@ -435,7 +435,7 @@ contains
     ! '(F8.4)'
     write(11,rec=nstepreaddriver)  (v0(irecydriver,:,:)) !tg3315 removed irecydriver-1
     close (unit=11)
- 
+
     name = 'wdriver_   .'
     ! write (name(13:16)  ,'(i4.4)') nfile
     name(9:11)= cmyid
@@ -534,7 +534,7 @@ contains
 
   subroutine readdriverfile
     use modfields, only : u0,sv0
-    use modglobal, only : ib,jb,je,jmax,kb,ke,kh,jhc,khc,cexpnr,ifinput,driverstore,ltempeq,lmoist,zh,jgb,jge,jh,driverjobnr,nsv,timee,tdriverstart,lsdriver
+    use modglobal, only : ib,jb,je,jmax,kb,ke,kh,jhc,khc,cexpnr,ifinput,driverstore,ltempeq,lmoist,zh,jh,driverjobnr,nsv,timee,tdriverstart,lsdriver
     use modmpi,    only : cmyid,myid,nprocs,slabsum,excjs
     use modinletdata, only : storetdriver,storeu0driver,storev0driver,storew0driver,storethl0driver,storeqt0driver,storesv0driver,nfile
     implicit none
@@ -593,7 +593,7 @@ contains
     write(6,*) 'Reading Driver u-velocity: ', name
     ! inquire(file=name,recl=filesize)
     inquire(iolength=filesize)u0(ib,:,:)
-    write(6,*) 'record length ',filesize        
+    write(6,*) 'record length ',filesize
     open(unit=11,file=name,form='unformatted',status='old',action='read',access='direct',recl=filesize)
     do n = 1,driverstore
       read(11,rec=n)  ((storeu0driver (j,k,n),j=jb-jh,je+jh),k=kb-kh,ke+kh)
@@ -607,7 +607,7 @@ contains
       ! end do
     ! end if
     close (unit=11)
-      
+
     name = 'vdriver_   .'
     ! write (name(13:16)  ,'(i4.4)') nfile
     name(9:11)= cmyid
@@ -708,7 +708,7 @@ contains
     use modglobal,      only : idriver,lstoreplane,ltempeq,lmoist,nsv,lsdriver
 
     if (idriver==1) then
-      if (lstoreplane ) then 
+      if (lstoreplane ) then
         deallocate(storetdriver,storeu0driver,storev0driver,storew0driver)!,storee120driver)
         if (ltempeq ) then
           deallocate(storethl0driver)
@@ -719,7 +719,7 @@ contains
         if (nsv>0 ) then
           deallocate(storesv0driver)
         end if
-      end if 
+      end if
     else if (idriver == 2) then
       deallocate(storetdriver, storeu0driver,storev0driver,storew0driver,u0driver,v0driver,w0driver) !,e120driver,storee120driver)
       if (ltempeq ) then

@@ -33,7 +33,7 @@ endif()
 find_package(MPI REQUIRED)
 
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
-    set(CMAKE_Fortran_FLAGS "-g -fbacktrace -fdefault-real-8 -ffree-line-length-none -ffpe-trap=invalid,zero,overflow")
+    set(CMAKE_Fortran_FLAGS "-g -fbacktrace -fdefault-real-8 -ffree-line-length-none -ffpe-trap=invalid,zero,overflow -fallow-argument-mismatch -cpp")
     set(CMAKE_Fortran_FLAGS_DEBUG "-O0 -finit-real=nan -fcheck=all -Wextra -Wconversion -pedantic")
     set(CMAKE_Fortran_FLAGS_RELEASE "-O3")
 elseif(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
@@ -62,10 +62,29 @@ add_subdirectory(external)
 
 ExternalProject_Get_Property(fishpack-cmake-project binary_dir)
 set(FISHPACK_LIBRARY ${binary_dir}/src/${CMAKE_STATIC_LIBRARY_PREFIX}fishpack_static${CMAKE_STATIC_LIBRARY_SUFFIX})
+message(STATUS "FISHPACK_LIBARY: ${FISHPACK_LIBRARY}")
+
 ExternalProject_Get_Property(vfftpack-cmake-project binary_dir)
 set(VFFTPACK_LIBRARY ${binary_dir}/${CMAKE_STATIC_LIBRARY_PREFIX}vfftpack_static${CMAKE_STATIC_LIBRARY_SUFFIX})
+message(STATUS "VFFTPACK_LIBARY: ${VFFTPACK_LIBRARY}")
+
+option(DOUBLE_PRECISION "Build 2decomp_fft with double precision" ON)
+if (DOUBLE_PRECISION)
+  add_definitions("-DDOUBLE_PREC")
+endif()
+
+option(SINGLE_PRECISION_OUTPUT "Build 2decomp_fft with output in single precision" OFF)
+if (SINGLE_PRECISION_OUTPUT)
+  add_definitions("-DSAVE_SINGLE")
+endif()
+
+set(FFT_Choice "generic" CACHE STRING "FFT for 2decomp_fft (generic is the default)")
+set_property(CACHE FFT_Choice PROPERTY STRINGS generic)
+
+add_subdirectory(decomp2d)
 
 add_executable(u-dales ${src_f90})
+include_directories(decomp2d)
 
 target_link_libraries(u-dales ${CMLIB_CMAKE_LIBRARY})
 target_link_libraries(u-dales MPI::MPI_Fortran)
@@ -73,6 +92,11 @@ target_link_libraries(u-dales ${NETCDF_F90_LIBRARIES})
 target_link_libraries(u-dales ${FISHPACK_LIBRARY})
 target_link_libraries(u-dales ${VFFTPACK_LIBRARY})
 
+#target_link_libraries(u-dales ${CMAKE_SOURCE_DIR}/build/release/decomp2d/libdecomp2d.a)
+target_link_libraries(u-dales decomp2d)
+target_include_directories(u-dales PUBLIC $<TARGET_PROPERTY:decomp2d,BINARY_DIR>)
+#target_include_directories(u-dales PUBLIC ${CMAKE_SOURCE_DIR}/build/release/decomp2d/)
+
 add_dependencies(u-dales fishpack-cmake-project)
 add_dependencies(u-dales vfftpack-cmake-project)
-
+add_dependencies(u-dales decomp2d)

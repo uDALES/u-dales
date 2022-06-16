@@ -30,18 +30,19 @@ module modglobal
 
    integer :: poisrcheck = 0 ! switch to check if it is the first (RK) time step
    ! Simulation dimensions (parconst.f90)
-   integer :: imax = 64
+   integer :: itot = 64 ! Used to be called imax
    integer :: jtot = 64
    integer :: jmax
    integer :: jsen
-   integer :: kmax = 96
+   integer :: kmax = 96 ! Rename to ktot?
+   integer :: imax
    integer :: isen
    integer ::  ib
    integer ::  ie
    integer ::  jb
    integer ::  je
-   integer ::  jgb ! global j range
-   integer ::  jge ! global j range
+   integer ::  jgb ! global j range - remove eventually
+   integer ::  jge ! global j range - remove eventually
    integer ::  offset
    integer ::  kb
    integer ::  ke
@@ -76,7 +77,7 @@ module modglobal
    integer :: BCxT = 1
    integer :: BCxq = 1
    integer :: BCxs = 1
-   
+
    !y direction is currently alway periodic
    integer :: BCym = 1
    integer :: BCyT = 1
@@ -105,7 +106,7 @@ module modglobal
    logical :: lbuoyancy = .false. !<  switch for buoyancy force in modforces
    logical :: ltempeq = .false. !<  switch for solving temperature equation (either with or without buoyancy term)
    logical :: lscalrec = .false. !<
-   logical :: lSIRANEinout=.false. !<  
+   logical :: lSIRANEinout = .false. !<
    logical :: ltempinout = .false. !<  seperate switch for inflow/outflow BC for temperature (only necessary when linoutflow.eqv..false.).
    logical :: lmoistinout = .false. !<  seperate switch for inflow/outflow BC for moisture (only necessary when linoutflow.eqv..false.).
    logical :: lper2inout = .false. !<  switch that determines type of restart: .true. means switching from periodic to in/outflow: inlet profile is read from prof.inp
@@ -117,7 +118,7 @@ module modglobal
    logical :: lfixutauin = .false. !<  switch that determines whether the utau is kept fixed at the inlet (only used when iinletgen=1,2)
    logical :: lscasrc = .false. !
    logical :: lscasrcl = .false. !tg3315
-   logical :: lydump= .false.  !<  switch to output y-averaged statistics every tsample
+   logical :: lydump = .false.  !<  switch to output y-averaged statistics every tsample
    logical :: lytdump = .false.  !<  switch to output y- and time- averaged statistics every tstatsdump
    logical :: lxydump    = .false.  !<  switch to output x- and y-avewraged statistics every tsample
    logical :: lxytdump   = .false.  !<  switch to output x-, y- and time-averaged statistics every tstatsdump
@@ -284,7 +285,7 @@ module modglobal
    real    :: timeleft
    logical :: ladaptive = .false. !<    * adaptive timestepping on or off
 
-   real    :: tdriverstart = 0.   !<     * time at which to start recording inlet driver file (only necessary if idriver == 1)                                                                            
+   real    :: tdriverstart = 0.   !<     * time at which to start recording inlet driver file (only necessary if idriver == 1)
    real    :: tdriverdump         !<     * time in inlet driver simulation at which data dumps are made (idriver == 1)
    real    :: dtdriver = 0.1      !<     * time frequency at which inlet driver data dumps are made (idriver == 1)
    integer :: driverstore         !<     * number of stored driver steps for inlet (automatically calculated)
@@ -312,7 +313,7 @@ module modglobal
    real :: dyiq !<  1/(dy*4)
    real :: dyi5 !<  1/(dy*2)
    real :: dy2i !<  (1/dy)**2
-   
+
    integer :: nwalllayers = 3
    real, allocatable   :: AM(:,:), BM(:,:), CM(:,:), DM(:,:), EM(:,:), FM(:,:), GM(:,:), HM(:,:), inAM(:,:),IDM(:,:) !matrices for the facet energy balance
    real, allocatable   :: bb(:),w(:),dumv(:),Tdash(:) !vector for the facet energy balance
@@ -348,8 +349,8 @@ module modglobal
    real, allocatable :: dxh2i(:) !<  = 1/dxh^2
    real, allocatable :: xh(:) !<  height of half level [m]
    real, allocatable :: xf(:) !<  height of full level [m]
-   real :: xsize = -1. !<  domain size in x-direction
-   real :: ysize = -1. !<  domain size in y-direction
+   real :: xlength = -1. !<  domain size in x-direction
+   real :: ylength = -1. !<  domain size in y-direction
    real, allocatable :: delta(:, :) !<  (dx*dy*dz)**(1/3)
 
    logical :: lmomsubs = .false. !<  switch to apply subsidence on the momentum or not
@@ -360,7 +361,8 @@ contains
    !!
    !! Set courant number, calculate the grid sizes (both computational and physical), and set the coriolis parameter
    subroutine initglobal
-      use modmpi, only:nprocs, myid, comm3d, my_real, mpierr
+      use modmpi,   only : comm3d, my_real, mpierr, nprocx, nprocy
+      use decomp_2d
       implicit none
 
       integer :: advarr(4)
@@ -387,16 +389,15 @@ contains
 
       ! phsgrid
 
-      jmax = jtot/nprocs
-      isen = imax/nprocs
-      jsen = jmax
+      jmax = jtot/nprocy ! Only in z-pencil
+      imax = itot/nprocx ! Only in z-pencil
+      isen = imax ! Only in z-pencil - replace eventually so it is pencil-independent (in poisson)
+      jsen = jmax ! Only in z-pencil - replace eventually so it is pencil-independent (in poisson)
       !set the number of ghost cells. NB: This switch has to run in order of required ghost cells
       advarr = (/iadv_mom, iadv_tke, iadv_thl, iadv_qt/)
       if (any(advarr == iadv_kappa)) then
          ih = 2
          jh = 2
-         ! ih = 1
-         ! jh = 1
          kh = 1
       elseif (any(advarr == iadv_cd2) .or. any(iadv_sv(1:nsv) == iadv_cd2)) then
          ih = 1
@@ -414,15 +415,14 @@ contains
          khc = 2
       end if
 
-      offset = 1
-      ib = 2 - offset
-      ie = imax + 1 - offset
-      jb = 2 - offset
-      je = jmax + 1 - offset
+      ib = 1    ! Maybe remove all together and just use 1 throughout?
+      ie = imax ! Maybe remove all together and just use imax throughout?
+      jb = 1
+      je = jmax
       jgb = jb ! global j range (starting at the same as j as the processor j range)
-      jge = jtot + 1 - offset ! global j range
-      kb = 1 - offset
-      ke = kmax - offset
+      jge = jtot ! global j range
+      kb = 0 ! Should this be changed to 1?
+      ke = kmax - 1
 
       ! Global constants
 
@@ -453,7 +453,6 @@ contains
 
       ! Variables
       allocate (dsv(nsv))
-      write (cexpnr, '(i3.3)') iexpnr
 
       ! Create the physical grid variables
       allocate (dzf(kb - kh:ke + kh))
@@ -468,29 +467,29 @@ contains
       allocate (zh(kb:ke + kh))
       allocate (zf(kb:ke + kh))
 
-      allocate (dxf(ib - ih:ie + ih))
-      allocate (dxf2(ib - ih:ie + ih))
-      allocate (dxfi(ib - ih:ie + ih))
-      allocate (dxfiq(ib - ih:ie + ih))
-      allocate (dxfi5(ib - ih:ie + ih))
-      allocate (dxh(ib:ie + ih))
-      allocate (dxhi(ib:ie + ih))
-      allocate (dxhiq(ib:ie + ih))
-      allocate (dxh2i(ib:ie + ih))
-      allocate (xh(ib:ie + ih))
-      allocate (xf(ib:ie + ih))
-      allocate (delta(ib - ih:ie + ih, kb:ke + kh))
+      allocate (dxf(1-ih:itot+ih))
+      allocate (dxf2(1-ih:itot+ih))
+      allocate (dxfi(1-ih:itot+ih))
+      allocate (dxfiq(1-ih:itot+ih))
+      allocate (dxfi5(1-ih:itot+ih))
+      allocate (dxh(1:itot+ih))
+      allocate (dxhi(1:itot+ih))
+      allocate (dxhiq(1:itot+ih))
+      allocate (dxh2i(1:itot+ih))
+      allocate (xh(1:itot+ih))
+      allocate (xf(1:itot+ih))
+      allocate (delta(1-ih:itot+ih, kb:ke + kh))
 
-      rslabs = real(imax*jtot)
+      rslabs = real(itot*jtot)
 
-      dy = ysize/float(jtot)
+      dy = ylength/float(jtot)
 
       ! MPI
 
       ! Note, that the loop for reading zf and calculating zh
       ! has been split so that reading is only done on PE 1
 
-      if (myid == 0) then
+      if (nrank == 0) then
          open (ifinput, file='prof.inp.'//cexpnr)
          read (ifinput, '(a72)') chmess
          read (ifinput, '(a72)') chmess
@@ -505,17 +504,17 @@ contains
          read (ifinput, '(a72)') chmess
          read (ifinput, '(a72)') chmess
 
-         do i = ib, ie
+         do i = 1, itot
             read (ifinput, *) xf(i)
          end do
          close (ifinput)
 
-      end if ! end if myid==0
+      end if ! end if nrank==0
 
       ! MPI broadcast kmax elements from zf
       call MPI_BCAST(zf, kmax, MY_REAL, 0, comm3d, mpierr)
-      ! MPI broadcast imax elements from xf
-      call MPI_BCAST(xf, imax, MY_REAL, 0, comm3d, mpierr)
+      ! MPI broadcast itot elements from xf
+      call MPI_BCAST(xf, itot, MY_REAL, 0, comm3d, mpierr)
 
       zh(kb) = 0.0
       do k = kb, ke
@@ -535,25 +534,25 @@ contains
       end do
 
       ! j. tomas: same trick for x-direction...
-      xh(ib) = 0.0
-      do i = ib, ie
+      xh(1) = 0.0
+      do i = 1, itot
          xh(i + 1) = xh(i) + 2.0*(xf(i) - xh(i))
       end do
-      xf(ie + ih) = xf(ie) + 2.0*(xh(ie + ih) - xf(ie))
+      xf(itot + ih) = xf(itot) + 2.0*(xh(itot + ih) - xf(itot))
 
-      do i = ib, ie
+      do i = 1, itot
          dxf(i) = xh(i + 1) - xh(i)
       end do
-      dxf(ie + 1) = dxf(ie)
-      dxf(ib - 1) = dxf(ib)
+      dxf(itot + 1) = dxf(itot)
+      dxf(0) = dxf(1)
 
-      dxh(ib) = 2*xf(ib)
-      do i = ib + 1, ie + ih
+      dxh(1) = 2*xf(1)
+      do i = 2, itot + ih
          dxh(i) = xf(i) - xf(i - 1)
       end do
 
       do k = kb, ke + kh
-         do i = ib - ih, ie + ih
+         do i = 1 - ih, itot + ih
             delta(i, k) = (dxf(i)*dy*dzf(k))**(1./3.)
          end do
       end do
@@ -561,7 +560,7 @@ contains
       !--------------------------------------------------
       ! *** Check whether the grid is equidistant *****
       !--------------------------------------------------
-      
+
       !if (myid == 0) then
       !do k=kb,ke+kh
       !if (.not.(dzf(k).eq.dzf(1)))
@@ -597,44 +596,32 @@ contains
       ! Grid used in kappa scheme advection (extra ghost nodes)
       if (any(iadv_sv(1:nsv) == iadv_kappa)) then
          allocate (dzfc(kb - khc:ke + khc))
-         allocate (dxfc(ib - ihc:ie + ihc))
+         allocate (dxfc(1 - ihc:itot + ihc))
          allocate (dzfci(kb - khc:ke + khc))
-         allocate (dxfci(ib - ihc:ie + ihc))
+         allocate (dxfci(1 - ihc:itot + ihc))
          allocate (dzhci(kb - 1:ke + khc))
-         allocate (dxhci(ib - 1:ie + ihc))
+         allocate (dxhci(1 - 1:itot + ihc))
 
          dzfc(kb - kh:ke + kh) = dzf(kb - kh:ke + kh)
          dzfc(kb - khc) = dzfc(kb - kh)
          dzfc(ke + khc) = dzfc(ke + kh)
 
-         dxfc(ib - ih:ie + ih) = dxf(ib - ih:ie + ih)
-         dxfc(ib - ihc) = dxfc(ib - ih)
-         dxfc(ie + ihc) = dxfc(ie + ih)
+         dxfc(1 - ih:itot + ih) = dxf(1 - ih:itot + ih)
+         dxfc(1 - ihc) = dxfc(1 - ih)
+         dxfc(itot + ihc) = dxfc(itot + ih)
 
          dzhci(kb:ke + kh) = dzhi(kb:ke + kh)
          dzhci(kb - 1) = dzhci(kb)
          dzhci(ke + khc) = dzhci(ke + kh)
 
-         dxhci(ib:ie + ih) = dxhi(ib:ie + ih)
-         dxhci(ib - 1) = dxhci(ib)
-         dxhci(ie + ihc) = dxhci(ie + ih)
+         dxhci(1:itot + ih) = dxhi(1:itot + ih)
+         dxhci(0) = dxhci(1)
+         dxhci(itot + ihc) = dxhci(itot + ih)
 
          dzfci = 1./dzfc
          dxfci = 1./dxfc
       end if
 
-      if (myid == 0) then
-
-         write (6, *) 'lev    dz     zf      zh       dzh    delta(ib,k)'
-         do k = ke + 1, kb, -1
-            write (6, '(i4,5f8.5)') k, dzf(k), zf(k), zh(k), dzh(k), delta(ib, k)
-         end do
-         ! same for x:
-         write (6, *) 'lev    dxf     xf      xh       dxh    delta(i,kb)'
-         do i = ie + 1, ib, -1
-            write (6, '(i4,5f9.5)') i, dxf(i), xf(i), xh(i), dxh(i), delta(i, kb)
-         end do
-      end if
       tnextrestart = trestart
       tnextfielddump = tfielddump
 !    tnextstatsdump = tstatsdump

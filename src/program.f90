@@ -24,7 +24,8 @@ program DALESURBAN      !Version 48
 !!----------------------------------------------------------------
 !!     0.0    USE STATEMENTS FOR CORE MODULES
 !!----------------------------------------------------------------
-  use modmpi,            only : myid, initmpi
+  use modmpi,            only : initmpi
+  !use modtest,           only : inittest, exittest
   use modglobal,         only : rk3step,timeleft,ib,jb,kb,ke
   use modstartup,        only : startup,exitmodules
   use modsave,           only : writerestartfiles
@@ -48,34 +49,33 @@ program DALESURBAN      !Version 48
   !use modbudget,       only : initbudget, budgetstat, exitbudget
   implicit none
 
-
 !----------------------------------------------------------------
 !     1      READ NAMELISTS,INITIALISE GRID, CONSTANTS AND FIELDS
 !----------------------------------------------------------------
   call initmpi
-  write(*,*) "done initmpi"
   call startup
-  write(*,*) "done startup"
+  !write(*,*) "done startup"
+  !call inittest
 
 !---------------------------------------------------------
 !      2     INITIALIZE STATISTICAL ROUTINES AND ADD-ONS
 !---------------------------------------------------------
-  call initchecksim
-  call initstat_nc
+  !call initchecksim
+  !call initstat_nc
 
-  call initfielddump
-  call initstatsdump !tg3315
+  !call initfielddump
+  !call initstatsdump !tg3315
 
-  call readfacetfiles
-  call initEB
-  write(*,*) "done init stuff"
+  !call readfacetfiles
+  !call initEB
+  !write(*,*) "done init stuff"
 
-  write(6,*) 'Determine immersed walls'
-  call createwalls    ! determine walls/blocks
+  !write(6,*) 'Determine immersed walls'
+  !call createwalls    ! determine walls/blocks
  ! call nearwall       ! determine minimum distance and corresponding shear components, ils13 10.07.17, commented, not functional at the moment, not needed for vreman but for smag., fix in modibm
-  write(6,*) 'Finished determining immersed walls'
+  !write(6,*) 'Finished determining immersed walls'
 
-  call boundary  !ils13 22.06.2017 inserted boundary here to get values at ghost cells before iteration starts
+  !call boundary  !ils13 22.06.2017 inserted boundary here to get values at ghost cells before iteration starts
 
 !  not necessary but abates the fact that temp field is randomised by randomisation of just velocity fields
 !  (because advection at start of time loop without being divergence free)
@@ -84,81 +84,81 @@ program DALESURBAN      !Version 48
 !------------------------------------------------------
 !   3.0   MAIN TIME LOOP
 !------------------------------------------------------
-  write(*,*)'START myid ', myid
-  do while ((timeleft>0) .or. (rk3step < 3))
-    call tstep_update
+  !write(*,*)'START myid ', myid
+  !do while ((timeleft>0) .or. (rk3step < 3))
+    !call tstep_update
 
 !-----------------------------------------------------
 !   3.2   ADVECTION AND DIFFUSION
 !-----------------------------------------------------
-  
-    call advection                ! now also includes predicted pressure gradient term  
 
-    call subgrid
+    !call advection                ! now also includes predicted pressure gradient term
+
+    !call subgrid
 !-----------------------------------------------------
 !   3.3   THE SURFACE LAYER
 !-----------------------------------------------------
 
-    call bottom
+    !call bottom
 
 !-----------------------------------------------------
 !   3.4   REMAINING TERMS
 !-----------------------------------------------------
 
-    call coriolis       !remaining terms of ns equation
+    !call coriolis       !remaining terms of ns equation
 
-    call forces         !remaining terms of ns equation
+    !call forces         !remaining terms of ns equation
 
-    call lstend         !large scale forcings
+    !call lstend         !large scale forcings
 
-    call nudge          ! nudge top cells of fields to enforce steady-state 
+    !call nudge          ! nudge top cells of fields to enforce steady-state
 
-    call ibmwallfun     ! immersed boundary forcing: only shear forces.
+    !call ibmwallfun     ! immersed boundary forcing: only shear forces.
 
-    call masscorr       ! correct pred. velocity pup to get correct mass flow
-                                                                                         
-    call ibmnorm        ! immersed boundary forcing: set normal velocities to zero  
+    !call masscorr       ! correct pred. velocity pup to get correct mass flow
 
-    call EB
+    !call ibmnorm        ! immersed boundary forcing: set normal velocities to zero
 
-    call scalsource     ! adds continuous forces in specified region of domain                                                   
+    !call EB
+
+    !call scalsource     ! adds continuous forces in specified region of domain
 
 !------------------------------------------------------
 !   3.4   EXECUTE ADD ONS
 !------------------------------------------------------
-    call fixuinf2
+    !call fixuinf2
 
-    call fixuinf1
+    !call fixuinf1
 
 !-----------------------------------------------------------------------
 !   3.5  PRESSURE FLUCTUATIONS, TIME INTEGRATION AND BOUNDARY CONDITIONS
 !-----------------------------------------------------------------------
-    call grwdamp        !damping at top of the model
+    !call grwdamp        !damping at top of the model
 
-    call poisson
+    !call poisson
 
-    call tstep_integrate
+    !call tstep_integrate
 
-    call boundary
+    !call boundary
 
-    call fixthetainf
+    !call fixthetainf
 
 !-----------------------------------------------------
 !   3.6   LIQUID WATER CONTENT AND DIAGNOSTIC FIELDS
 !-----------------------------------------------------
-    call thermodynamics
+    !call thermodynamics
 
 !-----------------------------------------------------
 !   3.7  WRITE RESTARTFILES AND DO STATISTICS
 !------------------------------------------------------
 
-    call checksim
+    !call checksim
    ! call writedatafiles   ! write data files for later analysis
-    call writerestartfiles
-    call fielddump
-    call statsdump        ! tg3315
- 
-  end do
+    !call writerestartfiles
+    !call fielddump
+    !call statsdump        ! tg3315
+
+  !end do
 
 !-------------------------------------------------------
 !             END OF TIME LOOP
@@ -167,8 +167,9 @@ program DALESURBAN      !Version 48
 !--------------------------------------------------------
 !    4    FINALIZE ADD ONS AND THE MAIN PROGRAM
 !-------------------------------------------------------
-  call exitfielddump  
-  call exitstatsdump     !tg3315
-  call exitmodules
+  !call exitfielddump
+  !call exitstatsdump     !tg3315
+  !call exitmodules
+  call exittest
 
 end program DALESURBAN

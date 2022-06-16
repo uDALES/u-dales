@@ -55,25 +55,25 @@ module modfields
   real, allocatable, target :: sv0(:,:,:,:)     !<  scalar sv(n) at time step t
   real, allocatable :: svp(:,:,:,:)     !<  tendency of sv(n)
   real, allocatable :: svpp(:,:,:,:)
- 
+
   ! Diagnostic variables
   real, allocatable :: mindist(:,:,:)   !< minimal distance of cell center to a wall
 
   real, allocatable :: shear(:,:,:,:)   !<   wall shear (last rank indicates the type of shear componenten (uym, uyp, etc.)
 
-   real, allocatable :: momfluxb(:,:,:) !< fields for the wallfluxes of total momentum  
+   real, allocatable :: momfluxb(:,:,:) !< fields for the wallfluxes of total momentum
    real, allocatable :: tfluxb(:,:,:)  !< heat
    real, allocatable :: qfluxb(:,:,:)  !< and moisture
    real, allocatable :: cth(:,:,:)     !< heat transfer coefficient
 
-  !tg3315 added variables (statistics, masking and others) 
+  !tg3315 added variables (statistics, masking and others)
   integer, allocatable :: IIc(:,:,:)        !< Masking matrix for blocks at cell centres
   integer, allocatable :: IIu(:,:,:)        !< Masking matrix for blocks at x-direction half cells
   integer, allocatable :: IIv(:,:,:)        !< Masking matrix for blocks at y-direction half cells
   integer, allocatable :: IIw(:,:,:)        !< Masking matrix for blocks at z-direction half cells
   integer, allocatable :: IIuw(:,:,:)       !< Masking matrix for blocks at x-and z-direction half cells
   integer, allocatable :: IIvw(:,:,:)       !< Masking matrix for blocks at y- and z-direction half cells
-  integer, allocatable :: IIuv(:,:,:)       !< Masking matrix for blocks at x- and y-direction half cells  
+  integer, allocatable :: IIuv(:,:,:)       !< Masking matrix for blocks at x- and y-direction half cells
   integer, allocatable :: IIct(:,:)         !< 2-D Masking matrix for blocks at cell centre that span 1:jtot
   integer, allocatable :: IIwt(:,:)         !< 2-D Masking matrix for blocks at z-direction half cells that span 1:jtot
   integer, allocatable :: IIuwt(:,:)        !< 2-D Masking matrix for blocks at x- and z-direction half cells that span 1:jtot
@@ -90,31 +90,31 @@ module modfields
 !  integer              :: IIbl = 1          !< Switch for if layer at kb is all blocks
 
   ! statistical fields following notation "[statistical name][averaging directions - x,y,z,t][position in grid - i,j,k]"
-  real, allocatable :: uyt(:,:) 
+  real, allocatable :: uyt(:,:)
   real, allocatable :: uytik(:,:)
-  real, allocatable :: vyt(:,:)        
-  real, allocatable :: wyt(:,:)        
+  real, allocatable :: vyt(:,:)
+  real, allocatable :: wyt(:,:)
   real, allocatable :: wytik(:,:)
-  real, allocatable :: thlyt(:,:)      
-  real, allocatable :: qtyt(:,:)      
-  real, allocatable :: thlytk(:,:)      
-  real, allocatable :: sca1yt(:,:)     
-  real, allocatable :: sca2yt(:,:)     
-  real, allocatable :: sca3yt(:,:)     
-  real, allocatable :: thlsgsyt(:,:)     
+  real, allocatable :: thlyt(:,:)
+  real, allocatable :: qtyt(:,:)
+  real, allocatable :: thlytk(:,:)
+  real, allocatable :: sca1yt(:,:)
+  real, allocatable :: sca2yt(:,:)
+  real, allocatable :: sca3yt(:,:)
+  real, allocatable :: thlsgsyt(:,:)
   real, allocatable :: qtsgsyt(:,:)
-  real, allocatable :: usgsyt(:,:) 
-  real, allocatable :: wsgsyt(:,:)    
+  real, allocatable :: usgsyt(:,:)
+  real, allocatable :: wsgsyt(:,:)
   real, allocatable :: sv1sgsyt(:,:)
   real, allocatable :: sv2sgsyt(:,:)
   real, allocatable :: sv3sgsyt(:,:)
 
-  real, allocatable :: uxyt(:)        
-  real, allocatable :: vxyt(:)        
-  real, allocatable :: wxyt(:)        
-  real, allocatable :: thlxyt(:)        
+  real, allocatable :: uxyt(:)
+  real, allocatable :: vxyt(:)
+  real, allocatable :: wxyt(:)
+  real, allocatable :: thlxyt(:)
   real, allocatable :: qtxyt(:)
-  real, allocatable :: pxyt(:)  ! bss116      
+  real, allocatable :: pxyt(:)  ! bss116
   real, allocatable :: usgsxyt(:)
   real, allocatable :: thlsgsxyt(:)
   real, allocatable :: vsgsxyt(:)
@@ -164,7 +164,7 @@ module modfields
   real, allocatable :: sv4tk(:,:,:)
   real, allocatable :: wsv1tk(:,:,:)
   real, allocatable :: wsv2tk(:,:,:)
-  real, allocatable :: wsv3tk(:,:,:) 
+  real, allocatable :: wsv3tk(:,:,:)
   real, allocatable :: wsv4tk(:,:,:)
   real, allocatable :: sv1sgst(:,:,:)
   real, allocatable :: sv2sgst(:,:,:)
@@ -173,13 +173,13 @@ module modfields
   real, allocatable :: qtt(:,:,:) ! bss116
   real, allocatable :: pt(:,:,:)  ! bss116
 
-  real, allocatable :: slice(:,:) 
-  real, allocatable :: slice2(:,:) 
-  real, allocatable :: slice3(:,:) 
-  real, allocatable :: slice4(:,:) 
-  real, allocatable :: slice5(:,:) 
-  real, allocatable :: slice6(:,:) 
-  real, allocatable :: slice7(:,:) 
+  real, allocatable :: slice(:,:)
+  real, allocatable :: slice2(:,:)
+  real, allocatable :: slice3(:,:)
+  real, allocatable :: slice4(:,:)
+  real, allocatable :: slice5(:,:)
+  real, allocatable :: slice6(:,:)
+  real, allocatable :: slice7(:,:)
   real, allocatable :: slice8(:,:)
 
   ! fields for scalar sources
@@ -188,12 +188,12 @@ module modfields
 
   real, allocatable :: uav(:,:,:)       !<   time-averaged u-velocity
   real, allocatable :: vav(:,:,:)       !<   time-averaged u-velocity
-  real, allocatable :: wav(:,:,:)       !<   time-averaged u-velocity 
+  real, allocatable :: wav(:,:,:)       !<   time-averaged u-velocity
   real, allocatable :: thlav(:,:,:)     !<   time-averaged liquid temperature
   real, allocatable :: qtav(:,:,:)      !<   time-averaged specific humidity
   real, allocatable :: qlav(:,:,:)      !<   time-averaged liquid water
   real, allocatable :: presav(:,:,:)    !<   time-averaged pressure
-  real, allocatable :: svav(:,:,:,:)    !<   time-averaged scalar concentration 
+  real, allocatable :: svav(:,:,:,:)    !<   time-averaged scalar concentration
   real, allocatable :: viscratioav(:,:,:)    !<   time-averaged viscosity ratio; turb viscosity / molecular viscosity
   real, allocatable :: umint(:,:,:)     !<   um interpolated to cell-center
   real, allocatable :: vmint(:,:,:)     !<   vm interpolated to cell-center
@@ -265,7 +265,7 @@ module modfields
 ! Resolved dissipation 'terms'
   real, allocatable :: strain2av(:,:,:)  !<   <Sij*Sij> used to compute <Sij'*Sij'> = <Sij*Sij> - <S>ij*<S>ij
   real, allocatable :: disssgsav(:,:,:)  !<   mean subgrid dissipation: <nu_sgs*2.*Sij*Sij>
-                                         !<   which is used for resolved dissipation = nu*2*<Sij'*Sij'> 
+                                         !<   which is used for resolved dissipation = nu*2*<Sij'*Sij'>
 ! TKE budget terms:
   real, allocatable :: tvmx(:,:,:)        !<   needed for viscous transport: <u*d/dxj(2*nu*S1j)>
   real, allocatable :: tvmy(:,:,:)        !<   needed for viscous transport: <v*d/dxj(2*nu*S2j)>
@@ -288,8 +288,8 @@ module modfields
   real, allocatable :: p_tav(:,:,:)        !<   production by shear
   real, allocatable :: p_bav(:,:,:)        !<   production/destruction by buoyancy
   real, allocatable :: d_sgsav(:,:,:)      !<   dissipation by subgrid
-  real, allocatable :: tkeadv(:,:,:)       !<   advection of tke 
-  
+  real, allocatable :: tkeadv(:,:,:)       !<   advection of tke
+
 ! TKE budget results (written to tkedump): !tg3315
   real, allocatable :: t_v(:)            !<   viscous transport
   real, allocatable :: t_sgs(:)          !<   transport by subgrid
@@ -355,18 +355,18 @@ module modfields
   real, allocatable :: SW_up_TOA(:,:), SW_dn_TOA(:,:), LW_up_TOA(:,:), LW_dn_TOA(:,:)
   real, allocatable :: uout(:)                      !< height average outlet velocity (used in convective outflow BC)
   real, allocatable :: wout(:)                      !< j-averaged top velocity
-  real, allocatable :: friction(:)                  !< skin-friction coeff: from y-line-averaged shear 
-  real, allocatable :: momthick(:)                  !< momentum thickness: y-line average 
-  real, allocatable :: displthick(:)                !< displacement thickness: y-line average 
-  real              :: uouttot                      !< area-averaged outflow velocity (used in convective outflow BC) 
+  real, allocatable :: friction(:)                  !< skin-friction coeff: from y-line-averaged shear
+  real, allocatable :: momthick(:)                  !< momentum thickness: y-line average
+  real, allocatable :: displthick(:)                !< displacement thickness: y-line average
+  real              :: uouttot                      !< area-averaged outflow velocity (used in convective outflow BC)
   real              :: wouttot                      !< area-averaveraged top velocity
   real              :: udef
   real              :: vdef
   real, allocatable :: vout(:)
   real              :: vouttot
 
-  real              :: thlsrcdt                     ! thlsrc -> thlsrcdt is used to solve 1-order ODE for thlsrc 
-  real              :: dgdt                         ! g = dp/dx -> dgdt is used to solve 1-order ODE for dpdx 
+  real              :: thlsrcdt                     ! thlsrc -> thlsrcdt is used to solve 1-order ODE for thlsrc
+  real              :: dgdt                         ! g = dp/dx -> dgdt is used to solve 1-order ODE for dpdx
   real              :: dpdx = 0.                   ! dpdx given in namoptions
 
   real              :: uoutarea                     !< area of domain u-outlet
@@ -419,7 +419,7 @@ contains
     allocate(svm(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb-khc:ke+khc,nsv))
     allocate(sv0(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb-khc:ke+khc,nsv))
     allocate(svp(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc,nsv))
-    allocate(svpp(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc,1)) 
+    allocate(svpp(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc,1))
 
     ! Allocation of diagnostic variables
     allocate(mindist(ib:ie,jb:je,kb:ke))
@@ -467,9 +467,9 @@ contains
     allocate(uout(kb:ke))         ! height average outlet velocity (used in convective outflow BC)
     allocate(vout(kb:ke))
     allocate(wout(ib:ie))         ! j -averaged top velocity
-    allocate(friction(ib:ie))     ! line-averaged (along j) skin friction 
-    allocate(momthick(ib:ie))     ! line-averaged (along j) momentum thickness 
-    allocate(displthick(ib:ie))   ! line-averaged (along j) displacement thickness 
+    allocate(friction(ib:ie))     ! line-averaged (along j) skin friction
+    allocate(momthick(ib:ie))     ! line-averaged (along j) momentum thickness
+    allocate(displthick(ib:ie))   ! line-averaged (along j) displacement thickness
     allocate(SW_up_TOA(ib-ih:ie+ih,jb-jh:je+jh))
     allocate(SW_dn_TOA(ib-ih:ie+ih,jb-jh:je+jh))
     allocate(LW_up_TOA(ib-ih:ie+ih,jb-jh:je+jh))
@@ -592,10 +592,10 @@ contains
 
     allocate(slice(ib:ie,jb:je))
     allocate(slice2(ib:ie,jb:je))
-    allocate(slice3(ib:ie,jb:je))  
+    allocate(slice3(ib:ie,jb:je))
     allocate(slice4(ib:ie,jb:je))
-    allocate(slice5(ib:ie,jb:je)) 
-    allocate(slice6(ib:ie,jb:je))  
+    allocate(slice5(ib:ie,jb:je))
+    allocate(slice6(ib:ie,jb:je))
     allocate(slice7(ib:ie,jb:je))
     allocate(slice8(ib:ie,jb:je))
 
@@ -654,7 +654,7 @@ contains
     allocate(svpupav(ib:ie+ih,jb:je   ,kb:ke   ,1:nsv))
     allocate(svpvpav(ib:ie   ,jb:je+jh,kb:ke   ,1:nsv))
     allocate(svpwpav(ib:ie   ,jb:je   ,kb:ke+kh,1:nsv))
- 
+
 ! Subgrid
 
     allocate(uusgsav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
@@ -690,7 +690,7 @@ contains
     allocate(tsgsmx2(ib:ie+1,jb:je,kb:ke))
     allocate(tsgsmy2(ib:ie,jb-1:je+1,kb:ke))
     allocate(tsgsmz2(ib:ie,jb:je,kb:ke+1))
-    
+
     allocate(t_pav  (ib:ie,jb:je,kb:ke))
     allocate(t_vav  (ib:ie,jb:je,kb:ke))
     allocate(t_tav  (ib:ie,jb:je,kb:ke))
@@ -713,7 +713,7 @@ contains
     allocate(shear(ib-1:ie+1,jb-1:je+1,kb-1:ke+1,0:12))    ! halo is set to 1
 !     allocate(shear(ib:ie,jb-1:je+1,kb:ke,12)
     allocate(momfluxb(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-  !  write(*,*) "allocate momfluxb, indeces:",ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh 
+  !  write(*,*) "allocate momfluxb, indeces:",ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh
    allocate(tfluxb(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
     allocate(qfluxb(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
    allocate(cth(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
@@ -722,7 +722,7 @@ contains
     momfluxb=0.;tfluxb=0.;qfluxb=0.;cth=0.
 
 
-    allocate(wall(ib:ie,jb:je,kb:ke,5))              ! 
+    allocate(wall(ib:ie,jb:je,kb:ke,5))              !
 
     um=0.;u0=0.;up=0.
     vm=0.;v0=0.;vp=0.
@@ -736,7 +736,7 @@ contains
     ql0=0.;qt0h=0.;
     thv0h=0.;thl0h=0.;
     mindist=1.0e10;
-    presf=0.;presh=0.;exnf=1.;exnh=0.;thvf=0.;thvh=0.;rhof=0.    ! OG   
+    presf=0.;presh=0.;exnf=1.;exnh=0.;thvf=0.;thvh=0.;rhof=0.    ! OG
     !Exner function should be called in startup and just be initialised here
     qt0av=0.;ql0av=0.;thl0av=0.;u0av=0.;v0av=0.;sv0av=0.
     thlprof=0.;qtprof=0.;qlprof=0.;uprof=0.;vprof=0.;e12prof=0.;svprof=0.
@@ -768,9 +768,9 @@ contains
 ! SGS
     uusgsav=0.;vvsgsav=0.;wwsgsav=0.;uwsgsav=0.;thlusgsav=0.;thlwsgsav=0.;qlusgsav=0.;qlwsgsav=0.;qtwsgsav=0.;qtusgsav=0.;
     svusgsav=0.;svwsgsav=0.;tkesgsav=0.;nusgsav=0.
-! Resolved dissipation 
+! Resolved dissipation
     strain2av=0.
-! Subgrid dissipation 
+! Subgrid dissipation
     disssgsav=0.
 ! TKE budget
     t_vav=0.;tvmx=0.;tvmy=0.;tvmz=0.;tpm=0.;ttmx=0.;ttmy=0.;ttmz=0.;t_sgsav=0.;p_tav=0.

@@ -405,7 +405,7 @@ contains
 !
 ! Mathieu added ALL_ALL_j2 which transposes between j and k instead of i and k
 ! This was to be able to use solver poisr, maybe we should tidy this up later
-! on! ALL_ALL_j2 uses ksen which is NOT in the modules... it is provided in the 
+! on! ALL_ALL_j2 uses ksen which is NOT in the modules... it is provided in the
 ! header for this reason
 !
 
@@ -458,7 +458,7 @@ contains
        enddo
        enddo
        enddo
-       
+
 !
 !
        ii = 0
@@ -482,17 +482,17 @@ contains
        do j=jstart,jend
        do i=1,imax
           ii = ii + 1
-          ptrans(i,j,k) = bufout(ii) 
+          ptrans(i,j,k) = bufout(ii)
        enddo
        enddo
        enddo
 !
        enddo
-! 
+!
 !
        call barrou()
 !
-!  
+!
        elseif(iaction.eq.1)then
 !
        ii = 0
@@ -504,7 +504,7 @@ contains
        do j=jstart,jend
        do i=1,imax
           ii = ii + 1
-          bufin(ii)  = ptrans(i,j,k) 
+          bufin(ii)  = ptrans(i,j,k)
        enddo
        enddo
        enddo
@@ -519,7 +519,7 @@ contains
 !      bufout = bufin
 !
        call barrou()
-! 
+!
 !
        ii = 0
 !
@@ -530,12 +530,12 @@ contains
        do j=1,jmax
        do i=1,imax
           ii = ii + 1
-          p(i,j,k) = bufout(ii) 
+          p(i,j,k) = bufout(ii)
        enddo
        enddo
        enddo
        enddo
-! 
+!
 !
        call barrou()
        endif
@@ -552,7 +552,7 @@ contains
 ! includes jtot and ksen (calculated in poisson.f) in header
 !          help array rhst with dimensions (imax,jtot,ksen)
 !          ALL_ALL copy rhs to rhst and back for FFT's
-!           
+!
 !  ibc?=1: neumann
 !  ibc?=2: periodic
 !  ibc?=3: dirichlet
@@ -605,7 +605,7 @@ contains
          b(1)    = b(1)    + a(1)
       elseif(ibc1.eq.2)then
 ! periodic
-         b(1)    = b(1)    
+         b(1)    = b(1)
       elseif(ibc1.eq.3)then
 ! Dir
          b(1)    = b(1)    - a(1)
@@ -615,12 +615,12 @@ contains
 ! Neumann
          b(imax) = b(imax) + c(imax)
       elseif((ibc2).eq.2)then
-         b(imax) = b(imax) 
+         b(imax) = b(imax)
       elseif((ibc2).eq.3)then
 !         b(imax) = b(imax) - c(kmax)   ! Jasper T. : bug? Should be b(imax) - c(imax)?
-         b(imax) = b(imax) - c(imax) 
+         b(imax) = b(imax) - c(imax)
       endif
-      
+
 
       if(ibc1.ne.2)then
       c(imax) = 0.
@@ -629,7 +629,7 @@ contains
 !     do i=1,imax
 !        write(6,*)'i, abc(i)',i, a(i),b(i),c(i)
 !     enddo
-      
+
 !
 ! fill coefficients in k-direction
 
@@ -657,14 +657,14 @@ contains
          bz(1)    = bz(1)    + az(1)
       elseif(kbc1.eq.2)then
 ! periodic
-         bz(1)    = bz(1)    
+         bz(1)    = bz(1)
       endif
 
       if((kbc2).eq.1)then
 ! Neumann
          bz(kmax) = bz(kmax) + cz(kmax)
       elseif((kbc2).eq.2)then
-         bz(kmax) = bz(kmax) 
+         bz(kmax) = bz(kmax)
       elseif((kbc2).eq.3)then
 !
 ! p = 0.
@@ -684,7 +684,7 @@ contains
 ! PAR
 !     call vrffti(jmax,wj)
       call vrffti(jtot,wj)
-!         
+!
 
       yrt(1)=0.
 ! PAR
@@ -696,7 +696,7 @@ contains
 
       yrt(j-1)=(-4./(dy*dy))*(sin(float((j-1))*pi/(2.*jtot)))**2
       yrt(j)= yrt(j-1)
-      enddo 
+      enddo
 
 !     help = rhs
 !
@@ -783,7 +783,7 @@ contains
 !     write(6,*)'ier = ', ier, iperio, kperio
 !     if(ier.ne.0)stop 'IER'
       worksave = work
-      write(6,*) 'First time step in POISR, poisrcheck=', poisrcheck 
+      write(6,*) 'First time step in POISR, poisrcheck=', poisrcheck
       end if
       CALL BLKTRI(1,kperio,kmax,az,bz,cz,iperio,imax,a,bin,c,imax,y &
            ,ier,worksave)
@@ -795,8 +795,8 @@ contains
       do i=1,imax
          ipos=(k-1)*imax+i
 !PAR CHECK
-!        vfftj(ipos,j) = y(i,k) 
-         rhs(i,j,k) = y(i,k) 
+!        vfftj(ipos,j) = y(i,k)
+         rhs(i,j,k) = y(i,k)
       enddo
       enddo
 
@@ -839,7 +839,7 @@ contains
 
 !     call sumchk3(rhs,imax,jmax,kmax,2,1)
 
-      
+
       deallocate(rhs2)
       deallocate(work)
       deallocate(vfftj)
@@ -904,7 +904,7 @@ contains
     implicit none
     real :: dxi
     integer :: i1, j1, k1
-!   real, intent(inout), dimension(:,:,:) :: p1 
+!   real, intent(inout), dimension(:,:,:) :: p1
     real p1(0:imax+1,0:jmax+1,0:kmax+1)
 
     real, allocatable, dimension(:,:,:) :: d,p2
