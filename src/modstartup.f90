@@ -1215,7 +1215,7 @@ module modstartup
             wm = w0
             thlm = thl0
             qtm = qt0
-            svm = sv0
+            svm = sv0 ! What if nsv=0?
             e12m = e120
             ekm(:, :, :) = numol
             ekh(:, :, :) = numol*prandtlmoli !tg3315 added because wttop using ekh in modboundary which is called in startup

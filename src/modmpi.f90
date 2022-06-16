@@ -123,15 +123,17 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   subroutine exitmpi
+    use decomp_2d
     implicit none
-
 
     if(myid==0)then
       CPU_program = MPI_Wtime() - CPU_program0
       write(6,*)'TOTAL CPU time = ', CPU_program
     end if
 
-    call MPI_Comm_free( comm3d, mpierr )
+    !call MPI_Comm_free( comm3d, mpierr )
+    !call MPI_FINALIZE(mpierr)
+    call decomp_2d_finalize
     call MPI_FINALIZE(mpierr)
   end subroutine exitmpi
 

@@ -488,7 +488,8 @@ contains
 
       ! Note, that the loop for reading zf and calculating zh
       ! has been split so that reading is only done on PE 1
-
+      
+      write (cexpnr, '(i3.3)') iexpnr
       if (nrank == 0) then
          open (ifinput, file='prof.inp.'//cexpnr)
          read (ifinput, '(a72)') chmess
