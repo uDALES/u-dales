@@ -30,13 +30,20 @@ module modglobal
 
    integer :: poisrcheck = 0 ! switch to check if it is the first (RK) time step
    ! Simulation dimensions (parconst.f90)
-   integer :: itot = 64 ! Used to be called imax
-   integer :: jtot = 64
-   integer :: jmax
-   integer :: jsen
-   integer :: kmax = 96 ! Rename to ktot?
+   integer :: itot = 96 ! Used to be called imax
+   integer :: jtot = 96
+   integer :: ktot = 96 ! Rename to ktot?
    integer :: imax
+   integer :: imax1
+   integer :: imax2
    integer :: isen
+   integer :: jmax
+   integer :: jmax1
+   integer :: jmax2
+   integer :: jsen
+   integer :: kmax
+   integer :: kmax1
+   integer :: kmax2
    integer ::  ib
    integer ::  ie
    integer ::  jb
@@ -237,8 +244,9 @@ module modglobal
   real    :: k1 = 0., JNO2 = 0.   ! k1 = rate constant (O3 + NO -> NO2 + 02 ), JNO2 = NO2 photolysis rate
 
    ! Poisson solver
-   integer, parameter :: POISS_FFT = 0, &
-                         POISS_CYC = 1
+   integer, parameter :: POISS_FFT2D = 0, &
+                         POISS_CYC   = 1, &
+                         POISS_FFT3D = 2
 
    integer :: ipoiss   = POISS_CYC
 
@@ -349,8 +357,8 @@ module modglobal
    real, allocatable :: dxh2i(:) !<  = 1/dxh^2
    real, allocatable :: xh(:) !<  height of half level [m]
    real, allocatable :: xf(:) !<  height of full level [m]
-   real :: xlength = -1. !<  domain size in x-direction
-   real :: ylength = -1. !<  domain size in y-direction
+   real :: xlen = -1. !<  domain size in x-direction
+   real :: ylen = -1. !<  domain size in y-direction
    real, allocatable :: delta(:, :) !<  (dx*dy*dz)**(1/3)
 
    logical :: lmomsubs = .false. !<  switch to apply subsidence on the momentum or not
@@ -361,7 +369,7 @@ contains
    !!
    !! Set courant number, calculate the grid sizes (both computational and physical), and set the coriolis parameter
    subroutine initglobal
-      use modmpi,   only : comm3d, my_real, mpierr, nprocx, nprocy
+      use modmpi,   only : myid, comm3d, my_real, mpierr, nprocx, nprocy
       use decomp_2d
       implicit none
 
@@ -389,8 +397,8 @@ contains
 
       ! phsgrid
 
-      jmax = jtot/nprocy ! Only in z-pencil
-      imax = itot/nprocx ! Only in z-pencil
+      !jmax = jtot/nprocy ! Only in z-pencil and not true generally - uneven no.
+      !imax = itot/nprocx ! Only in z-pencil
       isen = imax ! Only in z-pencil - replace eventually so it is pencil-independent (in poisson)
       jsen = jmax ! Only in z-pencil - replace eventually so it is pencil-independent (in poisson)
       !set the number of ghost cells. NB: This switch has to run in order of required ghost cells
@@ -415,13 +423,31 @@ contains
          khc = 2
       end if
 
-      ib = 1    ! Maybe remove all together and just use 1 throughout?
-      ie = imax ! Maybe remove all together and just use imax throughout?
+      ! Eventually ib etc should be completely replaced.
+      ! All arrays start at 1, like in 2DECOMP, and end at e.g. zsize(1) = imax in old terminology
+      ib = 1    ! Remove eventually
       jb = 1
-      je = jmax
       jgb = jb ! global j range (starting at the same as j as the processor j range)
       jge = jtot ! global j range
-      kb = 0 ! Should this be changed to 1?
+      kb = 0 ! Make redundant
+
+      !kmax = ktot
+
+      ! Define indices in terms of 2DECOMP's. Subject to change! z=pencil 'special' for now, but could rename e.g. imax -> imax3
+      imax1 = xsize(1) !=itot
+      imax2 = ysize(1)
+      imax = zsize(1)
+
+      jmax1 = xsize(2)
+      jmax2 = ysize(2) !=jtot
+      jmax = zsize(2)
+
+      kmax1 = xsize(3)
+      kmax2 = ysize(3)
+      kmax = zsize(3)
+
+      ie = imax
+      je = jmax
       ke = kmax - 1
 
       ! Global constants
@@ -467,28 +493,28 @@ contains
       allocate (zh(kb:ke + kh))
       allocate (zf(kb:ke + kh))
 
-      allocate (dxf(1-ih:itot+ih))
-      allocate (dxf2(1-ih:itot+ih))
-      allocate (dxfi(1-ih:itot+ih))
-      allocate (dxfiq(1-ih:itot+ih))
-      allocate (dxfi5(1-ih:itot+ih))
-      allocate (dxh(1:itot+ih))
-      allocate (dxhi(1:itot+ih))
-      allocate (dxhiq(1:itot+ih))
-      allocate (dxh2i(1:itot+ih))
-      allocate (xh(1:itot+ih))
-      allocate (xf(1:itot+ih))
-      allocate (delta(1-ih:itot+ih, kb:ke + kh))
+      allocate (dxf(ib-ih:itot+ih))
+      allocate (dxf2(ib-ih:itot+ih))
+      allocate (dxfi(ib-ih:itot+ih))
+      allocate (dxfiq(ib-ih:itot+ih))
+      allocate (dxfi5(ib-ih:itot+ih))
+      allocate (dxh(ib:itot+ih))
+      allocate (dxhi(ib:itot+ih))
+      allocate (dxhiq(ib:itot+ih))
+      allocate (dxh2i(ib:itot+ih))
+      allocate (xh(ib:itot+ih))
+      allocate (xf(ib:itot+ih))
+      allocate (delta(ib-ih:itot+ih, kb:ke + kh))
 
       rslabs = real(itot*jtot)
 
-      dy = ylength/float(jtot)
+      dy = ylen/float(jtot)
 
       ! MPI
 
       ! Note, that the loop for reading zf and calculating zh
       ! has been split so that reading is only done on PE 1
-      
+
       write (cexpnr, '(i3.3)') iexpnr
       if (nrank == 0) then
          open (ifinput, file='prof.inp.'//cexpnr)
@@ -505,15 +531,15 @@ contains
          read (ifinput, '(a72)') chmess
          read (ifinput, '(a72)') chmess
 
-         do i = 1, itot
+         do i = ib, itot
             read (ifinput, *) xf(i)
          end do
          close (ifinput)
 
       end if ! end if nrank==0
 
-      ! MPI broadcast kmax elements from zf
-      call MPI_BCAST(zf, kmax, MY_REAL, 0, comm3d, mpierr)
+      ! MPI broadcast ktot elements from zf
+      call MPI_BCAST(zf, ktot, MY_REAL, 0, comm3d, mpierr)
       ! MPI broadcast itot elements from xf
       call MPI_BCAST(xf, itot, MY_REAL, 0, comm3d, mpierr)
 
@@ -535,25 +561,25 @@ contains
       end do
 
       ! j. tomas: same trick for x-direction...
-      xh(1) = 0.0
-      do i = 1, itot
+      xh(ib) = 0.0
+      do i = ib, itot
          xh(i + 1) = xh(i) + 2.0*(xf(i) - xh(i))
       end do
       xf(itot + ih) = xf(itot) + 2.0*(xh(itot + ih) - xf(itot))
 
-      do i = 1, itot
+      do i = ib, itot
          dxf(i) = xh(i + 1) - xh(i)
       end do
       dxf(itot + 1) = dxf(itot)
-      dxf(0) = dxf(1)
+      dxf(ib - 1) = dxf(ib)
 
-      dxh(1) = 2*xf(1)
+      dxh(ib) = 2*xf(ib)
       do i = 2, itot + ih
          dxh(i) = xf(i) - xf(i - 1)
       end do
 
       do k = kb, ke + kh
-         do i = 1 - ih, itot + ih
+         do i = ib - ih, itot + ih
             delta(i, k) = (dxf(i)*dy*dzf(k))**(1./3.)
          end do
       end do
@@ -597,26 +623,26 @@ contains
       ! Grid used in kappa scheme advection (extra ghost nodes)
       if (any(iadv_sv(1:nsv) == iadv_kappa)) then
          allocate (dzfc(kb - khc:ke + khc))
-         allocate (dxfc(1 - ihc:itot + ihc))
+         allocate (dxfc(ib - ihc:itot + ihc))
          allocate (dzfci(kb - khc:ke + khc))
-         allocate (dxfci(1 - ihc:itot + ihc))
+         allocate (dxfci(ib - ihc:itot + ihc))
          allocate (dzhci(kb - 1:ke + khc))
-         allocate (dxhci(1 - 1:itot + ihc))
+         allocate (dxhci(ib - 1:itot + ihc))
 
          dzfc(kb - kh:ke + kh) = dzf(kb - kh:ke + kh)
          dzfc(kb - khc) = dzfc(kb - kh)
          dzfc(ke + khc) = dzfc(ke + kh)
 
-         dxfc(1 - ih:itot + ih) = dxf(1 - ih:itot + ih)
-         dxfc(1 - ihc) = dxfc(1 - ih)
+         dxfc(ib - ih:itot + ih) = dxf(ib - ih:itot + ih)
+         dxfc(ib - ihc) = dxfc(ib - ih)
          dxfc(itot + ihc) = dxfc(itot + ih)
 
          dzhci(kb:ke + kh) = dzhi(kb:ke + kh)
          dzhci(kb - 1) = dzhci(kb)
          dzhci(ke + khc) = dzhci(ke + kh)
 
-         dxhci(1:itot + ih) = dxhi(1:itot + ih)
-         dxhci(0) = dxhci(1)
+         dxhci(ib:itot + ih) = dxhi(ib:itot + ih)
+         dxhci(ib - 1) = dxhci(ib)
          dxhci(itot + ihc) = dxhci(itot + ih)
 
          dzfci = 1./dzfc

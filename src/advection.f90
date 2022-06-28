@@ -1,4 +1,4 @@
-  
+
 !> \file advection.f90
 !!  Advection management
 
@@ -31,17 +31,27 @@ subroutine advection
 
    use modglobal, only:lmoist, nsv, iadv_mom, iadv_tke, iadv_thl, iadv_qt, iadv_sv, &
       iadv_cd2, iadv_kappa, iadv_upw, &
-      ltempeq, ih, jh, kh, ihc, jhc, khc
-   use modfields, only:u0, up, v0, vp, w0, wp, e120, e12p, thl0, thlp, qt0, qtp, sv0, svp
+      ltempeq, ih, jh, kh, ihc, jhc, khc, kb, ke
+   use modfields, only:u0, up, v0, vp, w0, wp, e120, e12p, thl0, thlp, qt0, qtp, sv0, svp, pres0, uh, vh, wh, pres0h
    use modsubgriddata, only:loneeqn
+   use decomp_2d
    implicit none
    integer :: n
+   !real(mytype), allocatable :: utest(:,:,:) ! Work array for advection halos
+   ! real(mytype), allocatable :: vh(:,:,:) ! Work array for advection halos
+   ! real(mytype), allocatable :: wh(:,:,:) ! Work array for advection halos
+   ! real(mytype), allocatable :: pres0h(:,:,:) ! Work array for advection halos
 
    select case (iadv_mom)
    case (iadv_cd2)
-      call advecu_2nd(u0, up)
-      call advecv_2nd(v0, vp)
-      call advecw_2nd(w0, wp)
+     !call update_halo(u0,uh(:,:,kb:ke),1)
+     !call update_halo(v0,vh(:,:,kb:ke),1)
+     !call update_halo(w0,wh(:,:,kb:ke),1)
+     !call update_halo(pres0,pres0h(:,:,kb:ke),1)
+     call advecu_2nd(u0,up)
+
+     call advecv_2nd(v0,vp)
+     call advecw_2nd(w0,wp)
    case default
       write(0, *) "ERROR: Unknown advection scheme"
       stop 1
@@ -53,7 +63,7 @@ subroutine advection
          call advecc_2nd(ih, jh, kh, e120, e12p)
       case default
          write(0, *) "ERROR: Unknown advection scheme"
-         stop 1 
+         stop 1
       end select
    end if
 

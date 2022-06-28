@@ -1,0 +1,3 @@
+[submodule "2decomp-fft"]
+	path = 2decomp-fft
+	url = https://github.com/uDALES/2decomp-fft.git

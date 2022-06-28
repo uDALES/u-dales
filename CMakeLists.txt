@@ -66,7 +66,7 @@ set(FISHPACK_LIBRARY ${binary_dir}/src/${CMAKE_STATIC_LIBRARY_PREFIX}fishpack_st
 ExternalProject_Get_Property(vfftpack-cmake-project binary_dir)
 set(VFFTPACK_LIBRARY ${binary_dir}/${CMAKE_STATIC_LIBRARY_PREFIX}vfftpack_static${CMAKE_STATIC_LIBRARY_SUFFIX})
 
-option(DOUBLE_PRECISION "Build 2decomp_fft with double precision" ON)
+option(DOUBLE_PRECISION "Build 2decomp_fft with double precision" OFF)
 if (DOUBLE_PRECISION)
   add_definitions("-DDOUBLE_PREC")
 endif()

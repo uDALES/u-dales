@@ -20,41 +20,51 @@
 !
 
 module modfields
-
+  use decomp_2d
   implicit none
   save
 
   ! Prognostic variables
 
-  real, allocatable :: worksave(:)      !<   Used in POISR!
-  real, allocatable :: um(:,:,:)        !<   x-component of velocity at time step t-1
-  real, allocatable :: vm(:,:,:)        !<   y-component of velocity at time step t-1
-  real, allocatable :: wm(:,:,:)        !<   z-component of velocity at time step t-1
-  real, allocatable :: thlm(:,:,:)      !<   liq. water pot. temperature at time step t-1
-  real, allocatable :: e12m(:,:,:)      !<   turb. kin. energy at time step t-1
-  real, allocatable :: qtm(:,:,:)       !<   total specific humidity at time step t
-  real, allocatable, target :: u0(:,:,:)        !<   x-component of velocity at time step t
-  real, allocatable, target :: v0(:,:,:)        !<   y-component of velocity at time step t
-  real, allocatable, target :: w0(:,:,:)        !<   z-component of velocity at time step t
-  real, allocatable, target :: pres0(:,:,:)     !<   pressure at time step t
-  real, allocatable, target :: thl0(:,:,:)      !<   liq. water pot. temperature at time step t
-  real, allocatable :: thl0h(:,:,:)     !<   3d-field of theta_l at half levels for kappa scheme
+  real(mytype), allocatable :: worksave(:)      !<   Used in POISR!
+  real(mytype), allocatable :: um(:,:,:)        !<   x-component of velocity at time step t-1
+  real(mytype), allocatable :: vm(:,:,:)        !<   y-component of velocity at time step t-1
+  real(mytype), allocatable :: wm(:,:,:)        !<   z-component of velocity at time step t-1
+  real(mytype), allocatable :: thlm(:,:,:)      !<   liq. water pot. temperature at time step t-1
+  real(mytype), allocatable :: e12m(:,:,:)      !<   turb. kin. energy at time step t-1
+  real(mytype), allocatable :: qtm(:,:,:)       !<   total specific humidity at time step t
+  real(mytype), allocatable, target :: u0(:,:,:)        !<   x-component of velocity at time step t
+  real(mytype), allocatable, target :: v0(:,:,:)        !<   y-component of velocity at time step t
+  real(mytype), allocatable, target :: w0(:,:,:)        !<   z-component of velocity at time step t
+  real(mytype), allocatable, target :: pres0(:,:,:)     !<   pressure at time step t
 
-  real, allocatable :: qt0h(:,:,:)      !<  3d-field of q_tot   at half levels for kappa scheme
-  real, allocatable :: e120(:,:,:)      !<   turb. kin. energy at time step t
-  real, allocatable, target :: qt0(:,:,:)       !<   total specific humidity at time step t
+  ! Halo cell arrays - subject to change!
+  real(mytype), allocatable :: uh(:,:,:)
+  real(mytype), allocatable :: vh(:,:,:)
+  real(mytype), allocatable :: wh(:,:,:)
+  real(mytype), allocatable :: pres0h(:,:,:)
 
-  real, allocatable :: up(:,:,:)        !<   tendency of um
-  real, allocatable :: vp(:,:,:)        !<   tendency of vm
-  real, allocatable :: wp(:,:,:)        !<   tendency of wm
-  real, allocatable :: thlp(:,:,:)      !<   tendency of thlm
-  real, allocatable :: e12p(:,:,:)      !<   tendency of e12m
-  real, allocatable :: qtp(:,:,:)       !<   tendency of qtm
+  real(mytype), allocatable, target :: u01(:,:,:)        !<   x-component of velocity at time step t-1
+  real(mytype), allocatable, target :: u02(:,:,:)        !<   x-component of velocity at time step t-1
 
-  real, allocatable :: svm(:,:,:,:)     !<  scalar sv(n) at time step t-1
-  real, allocatable, target :: sv0(:,:,:,:)     !<  scalar sv(n) at time step t
-  real, allocatable :: svp(:,:,:,:)     !<  tendency of sv(n)
-  real, allocatable :: svpp(:,:,:,:)
+  real(mytype), allocatable, target :: thl0(:,:,:)      !<   liq. water pot. temperature at time step t
+  real(mytype), allocatable :: thl0h(:,:,:)     !<   3d-field of theta_l at half levels for kappa scheme
+
+  real(mytype), allocatable :: qt0h(:,:,:)      !<  3d-field of q_tot   at half levels for kappa scheme
+  real(mytype), allocatable :: e120(:,:,:)      !<   turb. kin. energy at time step t
+  real(mytype), allocatable, target :: qt0(:,:,:)       !<   total specific humidity at time step t
+
+  real(mytype), allocatable :: up(:,:,:)        !<   tendency of um
+  real(mytype), allocatable :: vp(:,:,:)        !<   tendency of vm
+  real(mytype), allocatable :: wp(:,:,:)        !<   tendency of wm
+  real(mytype), allocatable :: thlp(:,:,:)      !<   tendency of thlm
+  real(mytype), allocatable :: e12p(:,:,:)      !<   tendency of e12m
+  real(mytype), allocatable :: qtp(:,:,:)       !<   tendency of qtm
+
+  real(mytype), allocatable :: svm(:,:,:,:)     !<  scalar sv(n) at time step t-1
+  real(mytype), allocatable, target :: sv0(:,:,:,:)     !<  scalar sv(n) at time step t
+  real(mytype), allocatable :: svp(:,:,:,:)     !<  tendency of sv(n)
+  real(mytype), allocatable :: svpp(:,:,:,:)
 
   ! Diagnostic variables
   real, allocatable :: mindist(:,:,:)   !< minimal distance of cell center to a wall
@@ -350,6 +360,8 @@ module modfields
   real, allocatable :: sv0av(:,:)                    !<   slab average of sv(n)
   real, allocatable :: svprof(:,:)                   !<   initial sv(n)-profile
   real, allocatable :: qlprof(:)
+  real, allocatable :: rhobf(:)
+  real, allocatable :: rhobh(:)
 
   real, allocatable :: thlpcar(:)                    !< prescribed radiatively forced thl tendency
   real, allocatable :: SW_up_TOA(:,:), SW_dn_TOA(:,:), LW_up_TOA(:,:), LW_dn_TOA(:,:)
@@ -374,6 +386,8 @@ module modfields
   real              :: fluidvol                     !< fluid volume (excluding blocks)
 
   character(80), allocatable :: ncname(:,:)
+  character(80), allocatable :: ncname1(:,:)
+  character(80), allocatable :: ncname2(:,:)
   character(80), allocatable :: ncstaty(:,:)
   character(80), allocatable :: ncstatyt(:,:)
   character(80), allocatable :: ncstattke(:,:)
@@ -388,101 +402,194 @@ contains
   !> Allocate and initialize the prognostic variables
   subroutine initfields
 
-    use modglobal, only : ib,ie,jb,je,ih,jh,kb,ke,kh,nsv,jtot,imax,jmax,kmax,&
+    use modglobal, only : ib,ie,jb,je,ih,jh,kb,ke,kh,nsv,itot,jtot,imax,jmax,ktot,imax1,jmax1,kmax1,imax2,jmax2,kmax2,&
          ihc,jhc,khc,ltdump,lytdump,lxytdump,lslicedump,ltkedump,ltempeq,lmoist,lchem,lscasrcr!, iadv_kappa,iadv_sv
+    use decomp_2d
     ! Allocation of prognostic variables
     implicit none
 
-    allocate(worksave(2*imax*jmax*kmax)) ! Maybe define in poisson
-    allocate(um(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-    allocate(vm(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-    allocate(wm(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-    allocate(u0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-    allocate(v0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-    allocate(w0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-    allocate(up(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
-    allocate(vp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
-    allocate(wp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
-    allocate(pres0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+
+    udef = 0.; vdef = 0.
+    allocate(worksave(2*imax*jmax*ktot)) ! Maybe define in poisson
+    ! Original
+    allocate(um(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); um = 0.
+    allocate(vm(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); vm = 0.
+    allocate(wm(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); wm = 0.
+    allocate(u0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); u0 = 0.
+    allocate(v0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); v0 = 0.
+    allocate(w0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); w0 = 0.
+    allocate(up(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)) ; up=0.
+    allocate(vp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)) ; vp = 0.
+    allocate(wp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))  ; wp = 0.
+    allocate(pres0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); pres0 = 0.
+
+    allocate(u01(0:imax1+1,0:jmax1+1,0:kmax1+1)); u01 = 0.
+    allocate(u02(0:imax2+1,0:jmax2+1,0:kmax2+1)); u02 = 0.
+
     ! Always have to allocate these, even if they are constant
     ! Maybe change this eventually
-    allocate(thlm(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-    allocate(thl0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-    allocate(thl0h(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-    allocate(thlp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
-    allocate(qtm(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-    allocate(qt0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-    allocate(ql0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-    allocate(qt0h(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-    allocate(qtp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
-    allocate(e12m(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-    allocate(e120(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-    allocate(e12p(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+    allocate(thlm(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); thlm = 0.
+    allocate(thl0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); thl0 = 0.
+    allocate(thl0h(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); thl0h = 0.
+    allocate(thlp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)); thlp = 0.
+    allocate(qtm(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); qtm = 0.
+    allocate(qt0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); qt0 = 0.
+    allocate(ql0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); ql0 = 0.
+    allocate(qt0h(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); qt0h = 0.
+    allocate(qtp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)); qtp = 0.
+    allocate(e12m(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); e12m = 0.
+    allocate(e120(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); e120 = 0.
+    allocate(e12p(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)); e12p = 0.
+    allocate(ql0h(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)); ql0h = 0.
+    allocate(dthvdz(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)); dthvdz = 0.
+    allocate(thv0h(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)); thv0h = 0.
+    allocate(mindist(ib:ie,jb:je,kb:ke)); mindist = 0.
 
     !if (nsv>0) then
-      allocate(svm(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb-khc:ke+khc,nsv))
-      allocate(sv0(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb-khc:ke+khc,nsv))
-      allocate(svp(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc,nsv))
-      allocate(svpp(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc,1))
+      allocate(svm(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb-khc:ke+khc,nsv)); svm = 0.
+      allocate(sv0(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb-khc:ke+khc,nsv)); sv0 = 0.
+      allocate(svp(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc,nsv)); svp = 0.
+      allocate(svpp(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc,1)); svpp = 0.
     !end if
+
+    !! Allocate 3D fields using 2DECOMP&FFT in z-pencil.
+    !! These arrays have dimensions zsize(1):zsize(2):zsize(3) = imax:jmax:ktot
+    ! call alloc_z(um); um = 0.
+    ! call alloc_z(vm); vm = 0.
+    ! call alloc_z(wm); wm = 0.
+    ! call alloc_z(u0); u0 = 0.
+    ! call alloc_z(v0); v0 = 0.
+    ! call alloc_z(w0); w0 = 0.
+    ! call alloc_z(up); up = 0.
+    ! call alloc_z(vp); vp = 0.
+    ! call alloc_z(wp); wp = 0.
+    ! call alloc_z(pres0); pres0 = 0.
+
+    ! allocate(uh(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); uh = 0.
+    ! allocate(vh(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); vh = 0.
+    ! allocate(wh(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); wh = 0.
+    ! allocate(pres0h(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); pres0h = 0.
+    ! ! Always have to allocate these, even if ltempeq/lmoist = .false.
+    ! call alloc_z(thlm); thlm = 0.
+    ! call alloc_z(thl0); thl0 = 0.
+    ! call alloc_z(thlp); thlp = 0.
+    ! call alloc_z(thl0h); thl0h = 0.
+    ! call alloc_z(thv0h); thv0h = 0.
+    ! call alloc_z(dthvdz); dthvdz = 0.
+    ! call alloc_z(qtm); qtm = 0.
+    ! call alloc_z(qt0); qt0 = 0.
+    ! call alloc_z(qtp); qtp = 0.
+    ! call alloc_z(qt0h); qt0h = 0.
+    ! call alloc_z(ql0h); ql0h = 0.
+    ! call alloc_z(e12m); e12m = 0.
+    ! call alloc_z(e120); e120 = 0.
+    ! call alloc_z(e12p); e12p = 0.
+    ! call alloc_z(svm); svm = 0.
+    ! call alloc_z(sv0); sv0 = 0.
+    ! call alloc_z(svp); svp = 0.
+    ! call alloc_z(svpp); svpp = 0.
+    ! allocate(svm(1-ihc:zsize(1)+ihc,1-jhc:zsize(2)+jhc,1-khc:zsize(2)+khc,nsv)); svm = 0.
+    ! allocate(sv0(1-ihc:zsize(1)+ihc,1-jhc:zsize(2)+jhc,1-khc:zsize(2)+khc,nsv)); sv0 = 0.
+    ! allocate(svp(1-ihc:zsize(1)+ihc,1-jhc:zsize(2)+jhc,1:zsize(2)+khc,nsv)); svp = 0.
+    ! allocate(svpp(1-ihc:zsize(1)+ihc,1-jhc:zsize(2)+jhc,1:zsize(2)+khc,1)); svpp = 0.
 
     ! Allocation of diagnostic variables
     ! Only used in nearwall in modibm, which is not being used any more
-    !allocate(mindist(ib:ie,jb:je,kb:ke))
-    allocate(thv0h(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
-    allocate(whls(kb:ke+kh))
-    allocate(presf(kb:ke+kh))
-    allocate(presh(kb:ke+kh))
-    allocate(exnf(kb:ke+kh))
-    allocate(exnh(kb:ke+kh))
-    allocate(thvf(kb:ke+kh))
-    allocate(thvh(kb:ke+kh))
-    allocate(rhof(kb:ke+kh))
-    allocate(qt0av(kb:ke+kh))
-    allocate(ql0av(kb:ke+kh))
-    allocate(thl0av(kb:ke+kh))
-    allocate(u0av(kb:ke+kh))
-    allocate(v0av(kb:ke+kh))
-    allocate(ug(kb:ke+kh))
-    allocate(vg(kb:ke+kh))
-    allocate(pgx(kb:ke+kh))
-    allocate(pgy(kb:ke+kh))
-    allocate(dpdxl(kb:ke+kh))
-    allocate(dpdyl(kb:ke+kh))
-    allocate(dthldxls(kb:ke+kh))
-    allocate(dthldyls(kb:ke+kh))
-    allocate(dqtdxls(kb:ke+kh))
-    allocate(dqtdyls(kb:ke+kh))
-    allocate(dqtdtls(kb:ke+kh))
-    allocate(dudxls(kb:ke+kh))
-    allocate(dudyls(kb:ke+kh))
-    allocate(dvdxls(kb:ke+kh))
-    allocate(dvdyls(kb:ke+kh))
-    allocate(wfls  (kb:ke+kh))
-    allocate(ql0h(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
-    allocate(dthvdz(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
-    allocate(thlprof(kb:ke+kh))
-    allocate(qtprof(kb:ke+kh))
-    allocate(qlprof(kb:ke+kh))
-    allocate(uprof(kb:ke+kh))
-    allocate(vprof(kb:ke+kh))
-    allocate(e12prof(kb:ke+kh))
-    allocate(sv0av(kb:ke+khc,nsv))
-    allocate(svprof(kb:ke+kh,nsv))
-    allocate(thlpcar(kb:ke+kh))
-    !allocate(uout(kb:ke))         ! height average outlet velocity (used in convective outflow BC)
-    !allocate(vout(kb:ke))
-    !allocate(wout(ib:ie))         ! j -averaged top velocity
-    !allocate(friction(ib:ie))     ! line-averaged (along j) skin friction
-    !allocate(momthick(ib:ie))     ! line-averaged (along j) momentum thickness
-    !allocate(displthick(ib:ie))   ! line-averaged (along j) displacement thickness
-    !allocate(SW_up_TOA(ib-ih:ie+ih,jb-jh:je+jh))
-    !allocate(SW_dn_TOA(ib-ih:ie+ih,jb-jh:je+jh))
-    !allocate(LW_up_TOA(ib-ih:ie+ih,jb-jh:je+jh))
-    !allocate(LW_dn_TOA(ib-ih:ie+ih,jb-jh:je+jh))
-    !allocate(viscratioav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+    allocate(whls(kb:ke+kh)); whls = 0.
+    allocate(presf(kb:ke+kh)); presf = 0.
+    allocate(presh(kb:ke+kh)); presh = 0.
+    allocate(exnf(kb:ke+kh)); exnf = 0.
+    allocate(exnh(kb:ke+kh)); exnh = 0.
+    allocate(thvf(kb:ke+kh)); thvf = 0.
+    allocate(thvh(kb:ke+kh)); thvh = 0.
+    allocate(rhof(kb:ke+kh)); rhof = 0.
+    allocate(qt0av(kb:ke+kh)); qt0av = 0.
+    allocate(ql0av(kb:ke+kh)); ql0av = 0.
+    allocate(thl0av(kb:ke+kh)); thl0av = 0.
+    allocate(u0av(kb:ke+kh)); u0av = 0.
+    allocate(v0av(kb:ke+kh)); v0av = 0.
+    allocate(ug(kb:ke+kh)); ug = 0.
+    allocate(vg(kb:ke+kh)); vg = 0.
+    allocate(pgx(kb:ke+kh)); pgx = 0.
+    allocate(pgy(kb:ke+kh)); pgy = 0.
+    allocate(dpdxl(kb:ke+kh)); dpdxl = 0.
+    allocate(dpdyl(kb:ke+kh)); dpdyl = 0.
+    allocate(dthldxls(kb:ke+kh)); dthldxls = 0.
+    allocate(dthldyls(kb:ke+kh)); dthldyls = 0.
+    allocate(dqtdxls(kb:ke+kh)); dqtdxls = 0.
+    allocate(dqtdyls(kb:ke+kh)); dqtdyls = 0.
+    allocate(dqtdtls(kb:ke+kh)); dqtdtls = 0.
+    allocate(dudxls(kb:ke+kh)); dudxls = 0.
+    allocate(dudyls(kb:ke+kh)); dudyls = 0.
+    allocate(dvdxls(kb:ke+kh)); dvdxls = 0.
+    allocate(dvdyls(kb:ke+kh)); dvdyls = 0.
+    allocate(wfls  (kb:ke+kh)); wfls = 0.
+    allocate(thlprof(kb:ke+kh)); thlprof = 0.
+    allocate(qtprof(kb:ke+kh)); qtprof = 0.
+    allocate(qlprof(kb:ke+kh)); qlprof = 0.
+    allocate(uprof(kb:ke+kh)); uprof = 0.
+    allocate(vprof(kb:ke+kh)); vprof = 0.
+    allocate(e12prof(kb:ke+kh)); e12prof = 0.
+    allocate(sv0av(kb:ke+khc,nsv)); sv0av = 0.
+    allocate(svprof(kb:ke+kh,nsv)); svprof = 0.
+    allocate(thlpcar(kb:ke+kh)); thlpcar = 0.
+    !allocate(uout(kb:ke)); uout = 0.         ! height average outlet velocity (used in convective outflow BC)
+    !allocate(vout(kb:ke)); vout = 0.
+    !allocate(wout(ib:ie)); wout = 0.;        ! j -averaged top velocity
+    !allocate(friction(ib:ie)); friction = 0. ! line-averaged (along j) skin friction
+    !allocate(momthick(ib:ie)); momthick = 0.     ! line-averaged (along j) momentum thickness
+    !allocate(displthick(ib:ie)); displthick = 0.   ! line-averaged (along j) displacement thickness
+    !allocate(SW_up_TOA(ib-ih:ie+ih,jb-jh:je+jh)); SW_up_TOA = 0.
+    !allocate(SW_dn_TOA(ib-ih:ie+ih,jb-jh:je+jh)); SW_dn_TOA = 0.
+    !allocate(LW_up_TOA(ib-ih:ie+ih,jb-jh:je+jh)); LW_up_TOA = 0.
+    !allocate(LW_dn_TOA(ib-ih:ie+ih,jb-jh:je+jh)); LW_dn_TOA = 0.
+    !allocate(viscratioav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); viscratioav = 0.
+    allocate(rhobf(kb:ke+kh)); rhobf = 1.
+    allocate(rhobh(kb:ke+kh)); rhobh = 1.
 
+    ! ! Allocate 1D (in z direction) fields manually with ghost cell at top
+    ! allocate(whls(ktot+kh)); whls = 0.
+    ! allocate(presf(ktot+kh)); presf = 0.
+    ! allocate(presh(ktot+kh)); presh = 0.
+    ! allocate(exnf(ktot+kh)); exnf = 0.
+    ! allocate(exnh(ktot+kh)); exnh = 0.
+    ! allocate(thvf(ktot+kh)); thvf = 0.
+    ! allocate(thvh(ktot+kh)); thvh = 0.
+    ! allocate(rhof(ktot+kh)); rhof = 0.
+    ! allocate(qt0av(ktot+kh)); qt0av = 0.
+    ! allocate(ql0av(ktot+kh)); ql0av = 0.
+    ! allocate(thl0av(ktot+kh)); thl0av = 0.
+    ! allocate(u0av(ktot+kh)); u0av = 0.
+    ! allocate(v0av(ktot+kh)); v0av = 0.
+    ! allocate(ug(ktot+kh)); ug = 0.
+    ! allocate(vg(ktot+kh)); vg = 0.
+    ! allocate(pgx(ktot+kh)); pgx = 0.
+    ! allocate(pgy(ktot+kh)); pgy = 0.
+    ! allocate(dpdxl(ktot+kh)); dpdxl = 0.
+    ! allocate(dpdyl(ktot+kh)); dpdyl = 0.
+    ! allocate(dthldxls(ktot+kh)); dthldxls = 0.
+    ! allocate(dthldyls(ktot+kh)); dthldyls = 0.
+    ! allocate(dqtdxls(ktot+kh)); dqtdxls = 0.
+    ! allocate(dqtdyls(ktot+kh)); dqtdyls = 0.
+    ! allocate(dqtdtls(ktot+kh)); dqtdtls = 0.
+    ! allocate(dudxls(ktot+kh)); dudxls = 0.
+    ! allocate(dudyls(ktot+kh)); dudyls = 0.
+    ! allocate(dvdxls(ktot+kh)); dvdxls = 0.
+    ! allocate(dvdyls(ktot+kh)); dvdyls = 0.
+    ! allocate(wfls(ktot+kh)); wfls = 0.
+    ! allocate(thlprof(ktot+kh)); thlprof = 0.
+    ! allocate(qtprof(ktot+kh)); qtprof = 0.
+    ! allocate(qlprof(ktot+kh)); qlprof = 0.
+    ! allocate(uprof(ktot+kh)); uprof = 0.
+    ! allocate(vprof(ktot+kh)); vprof = 0.
+    ! allocate(e12prof(ktot+kh)); e12prof = 0.
+    ! allocate(sv0av(ktot+kh,nsv)); sv0av = 0.
+    ! allocate(svprof(ktot+kh,nsv)); svprof = 0.
+    ! allocate(thlpcar(ktot+kh)); thlpcar = 0.
+    ! allocate(rhobf(ktot+kh)); rhobf = 0.
+    ! allocate(rhobh(ktot+kh)); rhobh = 0.
 
+    ! Probably remove these eventually....
     allocate(IIc(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
     allocate(IIu(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
     allocate(IIv(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
@@ -502,7 +609,9 @@ contains
     allocate(IIuws(kb:ke+khc))
     allocate(IIvws(kb:ke+khc))
     allocate(IIuvs(kb:ke+khc))
+    IIc=1;IIu=1;IIv=1;IIct=1;IIw=1;IIuw=1;IIvw=1;IIuwt=1;IIut=1;IIvt=1;IIwt=1;IIcs=1;IIus=1;IIvs=1;IIws=1;IIuws=1;IIvws=1;IIuw=1;IIuvs=1
 
+    ! Statistics - currenly not implemented.
     if (lytdump) then
       allocate(uyt(ib:ie,kb:ke))
       allocate(uytik(ib:ie,kb:ke))
@@ -522,6 +631,26 @@ contains
       allocate(sv1sgsyt(ib:ie,kb:ke))
       allocate(sv2sgsyt(ib:ie,kb:ke))
       allocate(sv3sgsyt(ib:ie,kb:ke))
+      uyt=0.;uytik=0.;vyt=0.;wyt=0.;wytik=0.;thlyt=0.;qtyt=0.;thlytk=0.;sca1yt=0.;sca2yt=0.;sca3yt=0.;usgsyt=0.;thlsgsyt=0.;wsgsyt=0.;qtsgsyt=0.;sv1sgsyt=0.;sv2sgsyt=0.;sv3sgsyt=0.
+
+      ! allocate(uyt(itot,ktot)); uyt = 0.
+      ! allocate(vyt(itot,ktot)); vyt = 0.
+      ! allocate(wyt(itot,ktot)); wyt = 0.
+      ! allocate(uytik(itot,ktot)); uytik = 0.
+      ! allocate(wytik(itot,ktot)); wytik = 0.
+      ! allocate(thlyt(itot,ktot)); thlyt = 0.
+      ! allocate(qtyt(itot,ktot)); qtyt = 0.
+      ! allocate(thlytk(itot,ktot)); thlytk = 0.
+      ! allocate(sca1yt(itot,ktot)); sca1yt = 0.
+      ! allocate(sca2yt(itot,ktot)); sca2yt = 0.
+      ! allocate(sca3yt(itot,ktot)); sca3yt = 0.
+      ! allocate(usgsyt(itot,ktot)); usgsyt = 0.
+      ! allocate(wsgsyt(itot,ktot)); wsgsyt = 0.
+      ! allocate(thlsgsyt(itot,ktot)); thlsgsyt = 0.
+      ! allocate(qtsgsyt(itot,ktot)); qtsgsyt = 0.
+      ! allocate(sv1sgsyt(itot,ktot)); sv1sgsyt = 0.
+      ! allocate(sv2sgsyt(itot,ktot)); sv2sgsyt = 0.
+      ! allocate(sv3sgsyt(itot,ktot)); sv3sgsyt = 0.
     end if
 
     if (lxytdump) then
@@ -534,6 +663,17 @@ contains
       allocate(usgsxyt(kb:ke+kh))
       allocate(thlsgsxyt(kb:ke+kh))
       allocate(vsgsxyt(kb:ke+kh))
+      uxyt=0.;vxyt=0.;wxyt=0.;thlxyt=0.;qtxyt=0.;pxyt=0.;usgsxyt=0.;vsgsxyt=0.;thlsgsxyt=0.;
+
+      ! allocate(uxyt(ktot+kh)); uxyt = 0.
+      ! allocate(vxyt(ktot+kh)); vxyt = 0.
+      ! allocate(wxyt(ktot+kh)); wxyt = 0.
+      ! allocate(thlxyt(ktot+kh)); thlxyt = 0.
+      ! allocate(qtxyt(ktot+kh)); qtxyt = 0.
+      ! allocate(pxyt(ktot+kh)); pxyt = 0.
+      ! allocate(usgsxyt(ktot+kh)); usgsxyt = 0.
+      ! allocate(thlsgsxyt(ktot+kh)); thlsgsxyt = 0.
+      ! allocate(vsgsxyt(ktot+kh)); vsgsxyt = 0.
     end if
 
     if (lxytdump .or. lytdump .or. ltdump) then
@@ -603,6 +743,10 @@ contains
       !if ((lchem .eqv. .true.) .and. (nsv>2)) then
         allocate(PSSt(ib:ie,jb:je,kb:ke+kh))
       !end if
+      uwtik=0.;wthltk=0.;wqttk=0.;thlthlt=0.;qtqtt=0.;sv1sv1t=0.;sv2sv2t=0.;sv3sv3t=0.;sv4sv4t=0.;uutc=0.;vvtc=0.;wwtc=0.;vwtjk=0.;uvtij=0.;utik=0.;wtik=0.;wtjk=0.;vtjk=0.;utij=0.;vtij=0.;
+      wmt=0.;thltk=0.;qttk=0.;thlt=0.;slice=0.;slice2=0.;slice3=0.;slice4=0.;slice5=0.;utc=0.;vtc=0.;wtc=0.
+      wsv1tk=0.;wsv2tk=0.;wsv3tk=0.;wsv4tk=0.;sv1sgst=0.;sv2sgst=0.;sv3sgst=0.;sv4sgst=0.;qtt=0.;pt=0.
+      PSSt = 0. !sv1max = 0.; sv2max = 0.; sv3max = 0.; sv4max = 0.
 
     end if
 
@@ -615,11 +759,13 @@ contains
       allocate(slice6(ib:ie,jb:je))
       allocate(slice7(ib:ie,jb:je))
       allocate(slice8(ib:ie,jb:je))
+      slice6=0.;slice7=0.;slice8=0.;umt=0.;vmt=0.;sv1t=0.;sv2t=0.;sv3t=0.;sv4t=0.;sv1tk=0.;sv2tk=0.;sv3tk=0.;sv4tk=0.
     end if
 
     if (lscasrcr .and. nsv>0) then
       allocate(scar(ib:ie,jb:jtot))
       allocate(scarl(ib:ie,jb:je))
+          scar=0.;scarl=0.
     end if
 
     if (ltkedump) then ! this is currently not usable
@@ -671,6 +817,15 @@ contains
       allocate(p_b    (kb:ke))
       allocate(d_sgs  (kb:ke))
       allocate(adv    (kb:ke))
+
+      uav=0.;vav=0.;wav=0.;thlav=0.;qtav=0.;svav=0.;;uuav=0.;vvav=0.
+      wwav=0.;uvav=0.;uwav=0.;vwav=0.;presav=0.
+      umint=0.;vmint=0.;wmint=0.
+
+      t_vav=0.;tvmx=0.;tvmy=0.;tvmz=0.;tpm=0.;ttmx=0.;ttmy=0.;ttmz=0.;t_sgsav=0.;p_tav=0.
+      tsgsmx1=0.;tsgsmy1=0.;tsgsmz1=0.;tsgsmx2=0.;tsgsmy2=0.;tsgsmz2=0.
+      t_pav=0.;t_tav=0.;p_bav=0.;d_sgsav=0.;tkeadv=0.;t_p=0.;t_v=0.;t_t=0.;t_sgs=0.;p_t=0.;p_b=0.;d_sgs=0.;adv=0.
+
     end if
 
     ! These don't seem to get used - potentially remove
@@ -691,6 +846,7 @@ contains
     !allocate(svuav (ib:ie+ih,jb:je   ,kb:ke   ,1:nsv))
     !allocate(svvav (ib:ie   ,jb:je+jh,kb:ke   ,1:nsv))
     !allocate(svwav (ib:ie   ,jb:je   ,kb:ke+kh,1:nsv))
+    !thluav=0.;thlvav=0.;thlwav=0.;thlthlav=0.;svuav=0.;svvav=0.;svwav=0.;sv2av=0.;thl2av=0.;ql2av=0.;qt2av=0.;
 
     ! <x'x> ( = <xx> -<x><x> )
     !allocate(upupav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
@@ -699,7 +855,6 @@ contains
     !allocate(upvpav(ib:ie+ih,jb:je+jh,kb:ke   ))
     !allocate(upwpav(ib:ie+ih,jb:je   ,kb:ke+kh))
     !allocate(vpwpav(ib:ie   ,jb:je+jh,kb:ke+kh))
-
     !allocate(thlpthlpav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
     !allocate(thlpupav(ib:ie+ih,jb:je   ,kb:ke   ))
     !allocate(thlpvpav(ib:ie   ,jb:je+jh,kb:ke   ))
@@ -716,6 +871,8 @@ contains
     !allocate(svpupav(ib:ie+ih,jb:je   ,kb:ke   ,1:nsv))
     !allocate(svpvpav(ib:ie   ,jb:je+jh,kb:ke   ,1:nsv))
     !allocate(svpwpav(ib:ie   ,jb:je   ,kb:ke+kh,1:nsv))
+    !upupav=0.;vpvpav=0.;wpwpav=0.;thlpthlpav=0.;qlpqlpav=0.;qtpqtpav=0.;svpsvpav=0.;upvpav=0.;upwpav=0.;vpwpav=0.
+    !thlpupav=0.;thlpvpav=0.;thlpwpav=0.;qlpupav=0.;qlpvpav=0.;qlpwpav=0.;qtpwpav=0.;qtpvpav=0.;qtpupav=0.;svpupav=0.;svpvpav=0.;svpwpav=0.
 
     ! Subgrid
     !allocate(uusgsav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
@@ -732,72 +889,24 @@ contains
     !allocate(svusgsav (ib:ie+ih,jb:je   ,kb:ke   ,1:nsv))
     !allocate(svwsgsav (ib:ie   ,jb:je   ,kb:ke+kh,1:nsv))
     !allocate(nusgsav  (ib:ie   ,jb:je   ,kb:ke   ))
+    !uusgsav=0.;vvsgsav=0.;wwsgsav=0.;uwsgsav=0.;thlusgsav=0.;thlwsgsav=0.;qlusgsav=0.;qlwsgsav=0.;qtwsgsav=0.;qtusgsav=0.;
+    !svusgsav=0.;svwsgsav=0.;tkesgsav=0.;nusgsav=0.
 
-    ! resolved dissipation
-    !allocate(strain2av(ib:ie,jb:je,kb:ke))
-    !allocate(disssgsav(ib:ie,jb:je,kb:ke))
+    !allocate(strain2av(ib:ie,jb:je,kb:ke))  ! resolved dissipation
+    !allocate(disssgsav(ib:ie,jb:je,kb:ke)) ! Subgrid dissipation
+    !strain2av=0.
+    !disssgsav=0.
 
     ! allocate wall shear-stress terms (immersed boundaries)
-    !allocate(shear(ib-1:ie+1,jb-1:je+1,kb-1:ke+1,0:12))    ! halo is set to 1
+    allocate(shear(ib-1:ie+1,jb-1:je+1,kb-1:ke+1,0:12))    ! halo is set to 1
     allocate(momfluxb(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
     allocate(tfluxb(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
     allocate(qfluxb(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
     allocate(cth(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
     allocate(wall(ib:ie,jb:je,kb:ke,5))
-
     momfluxb=0.;tfluxb=0.;qfluxb=0.;cth=0.
-    um=0.;u0=0.;up=0.
-    vm=0.;v0=0.;vp=0.
-    wm=0.;w0=0.;wp=0.
-    pres0=0.;
-    thlm=0.;thl0=0.;thlp=0.
-    qtm=0.;qt0=0.;qtp=0.
-    e12m=0.;e120=0.;e12p=0.
-    svm=0.;sv0=0.;svp=0.;svpp=0.
-
-    ql0=0.;qt0h=0.;
-    thv0h=0.;thl0h=0.;
-    mindist=1.0e10;
-    presf=0.;presh=0.;exnf=1.;exnh=0.;thvf=0.;thvh=0.;rhof=0.    ! OG
-    !Exner function should be called in startup and just be initialised here
-    qt0av=0.;ql0av=0.;thl0av=0.;u0av=0.;v0av=0.;sv0av=0.
-    thlprof=0.;qtprof=0.;qlprof=0.;uprof=0.;vprof=0.;e12prof=0.;svprof=0.
-    ug=0.;vg=0.;pgx=0.;pgy=0.;dpdxl=0.;dpdyl=0.;wfls=0.;whls=0.;thlpcar = 0.;uout=0.;vout=0.;wout=0.;udef=0.;vdef=0.;uouttot=0.;wouttot=0.;vouttot=0.
-    dthldxls=0.;dthldyls=0.;dqtdxls=0.;dqtdyls=0.;dudxls=0.;dudyls=0.;dvdxls=0.;dvdyls=0.
-    dthvdz=0.
-    SW_up_TOA=0.;SW_dn_TOA=0.;LW_up_TOA=0.;LW_dn_TOA=0.
-
-    uyt=0.;uytik=0.;vyt=0.;wyt=0.;wytik=0.;thlyt=0.;qtyt=0.;thlytk=0.;sca1yt=0.;sca2yt=0.;sca3yt=0.;thlsgsyt=0.;wsgsyt=0.;qtsgsyt=0.;sv1sgsyt=0.;sv2sgsyt=0.;sv3sgsyt=0.
-    usgsyt=0.
-    uxyt=0.;vxyt=0.;wxyt=0.;thlxyt=0.;qtxyt=0.;pxyt=0.;usgsxyt=0.;vsgsxyt=0.;thlsgsxyt=0.;
-    uwtik=0.;wthltk=0.;wqttk=0.;thlthlt=0.;qtqtt=0.;sv1sv1t=0.;sv2sv2t=0.;sv3sv3t=0.;sv4sv4t=0.;uutc=0.;vvtc=0.;wwtc=0.;vwtjk=0.;uvtij=0.;utik=0.;wtik=0.;wtjk=0.;vtjk=0.;utij=0.;vtij=0.;
-    wmt=0.;thltk=0.;qttk=0.;thlt=0.;slice=0.;slice2=0.;slice3=0.;slice4=0.;slice5=0.;utc=0.;vtc=0.;wtc=0.
-    slice6=0.;slice7=0.;slice8=0.;umt=0.;vmt=0.;sv1t=0.;sv2t=0.;sv3t=0.;sv4t=0.;sv1tk=0.;sv2tk=0.;sv3tk=0.;sv4tk=0.
-    wsv1tk=0.;wsv2tk=0.;wsv3tk=0.;wsv4tk=0.;sv1sgst=0.;sv2sgst=0.;sv3sgst=0.;sv4sgst=0.;qtt=0.;pt=0.
-    PSSt = 0. !sv1max = 0.; sv2max = 0.; sv3max = 0.; sv4max = 0.
-
-    scar=0.;scarl=0.
-
-    IIc=1;IIu=1;IIv=1;IIct=1;IIw=1;IIuw=1;IIvw=1;IIuwt=1;IIut=1;IIvt=1;IIwt=1;IIcs=1;IIus=1;IIvs=1;IIws=1;IIuws=1;IIvws=1;IIuw=1;IIuvs=1
-
-    uav=0.;vav=0.;wav=0.;thlav=0.;qtav=0.;svav=0.;viscratioav=0.;uuav=0.;vvav=0.
-    wwav=0.;uvav=0.;uwav=0.;vwav=0.;sv2av=0.;thl2av=0.;ql2av=0.;qt2av=0.;presav=0.
-    thluav=0.;thlvav=0.;thlwav=0.;thlthlav=0.;svuav=0.;svvav=0.;svwav=0.
     shear=0.
-    upupav=0.;vpvpav=0.;wpwpav=0.;thlpthlpav=0.;qlpqlpav=0.;qtpqtpav=0.;svpsvpav=0.;upvpav=0.;upwpav=0.;vpwpav=0.
-    thlpupav=0.;thlpvpav=0.;thlpwpav=0.;qlpupav=0.;qlpvpav=0.;qlpwpav=0.;qtpwpav=0.;qtpvpav=0.;qtpupav=0.;svpupav=0.;svpvpav=0.;svpwpav=0.
-    umint=0.;vmint=0.;wmint=0.
-! SGS
-    uusgsav=0.;vvsgsav=0.;wwsgsav=0.;uwsgsav=0.;thlusgsav=0.;thlwsgsav=0.;qlusgsav=0.;qlwsgsav=0.;qtwsgsav=0.;qtusgsav=0.;
-    svusgsav=0.;svwsgsav=0.;tkesgsav=0.;nusgsav=0.
-! Resolved dissipation
-    strain2av=0.
-! Subgrid dissipation
-    disssgsav=0.
-! TKE budget
-    t_vav=0.;tvmx=0.;tvmy=0.;tvmz=0.;tpm=0.;ttmx=0.;ttmy=0.;ttmz=0.;t_sgsav=0.;p_tav=0.
-    tsgsmx1=0.;tsgsmy1=0.;tsgsmz1=0.;tsgsmx2=0.;tsgsmy2=0.;tsgsmz2=0.
-    t_pav=0.;t_tav=0.;p_bav=0.;d_sgsav=0.;tkeadv=0.;t_p=0.;t_v=0.;t_t=0.;t_sgs=0.;p_t=0.;p_b=0.;d_sgs=0.;adv=0.
+
     ! domain fluid volume and area calculations
     uoutarea=0.;voutarea=0.;fluidvol=0.
   end subroutine initfields

@@ -28,25 +28,97 @@
 !
 
 module modpois
-
+use decomp_2d
+!use decomp_2d_fft
 implicit none
 private
 public :: initpois,poisson,exitpois,p
 save
 
-  real,allocatable :: p(:,:,:)   ! difference between p at previous and new step (p = P_new - P_old)
+  real(mytype), allocatable :: p(:,:,:)   ! difference between p at previous and new step (p = P_new - P_old)
+  real, allocatable :: xyzrt(:,:,:)
 
 contains
   subroutine initpois
-    use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh
+    use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,itot,jtot,ktot,dyi,dxfi,ipoiss,POISS_FFT2D,POISS_FFT3D,pi
+    use modmpi,    only : myidx, myidy
+    use modfields, only : rhobf
+    !use decomp_2d
+    !use decomp_2d_fft
     implicit none
+    real, allocatable :: xrt(:)
+    real, allocatable :: yrt(:)
+    real dxi, fac
+    integer i,j,k,iv,jv
 
-    allocate(p(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+
+    !allocate(p(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+    call alloc_z(p)
+
+    if (ipoiss == POISS_FFT2D) then
+      dxi = dxfi(1) ! Assumes equidistant in x
+      allocate(xrt(itot))
+      allocate(yrt(jtot))
+      allocate(xyzrt(itot,jtot,ktot)) ! Why allocate ghost cells?
+
+    ! Generate Eigenvalues xrt and yrt
+
+    !  I --> direction
+
+      fac = 1./(2.*itot)
+      do i=3,itot,2
+        xrt(i-1)=-4.*dxi*dxi*(sin(float((i-1))*pi*fac))**2
+        xrt(i)  = xrt(i-1)
+      end do
+      xrt(1    ) = 0.
+      xrt(itot ) = -4.*dxi*dxi
+
+    !  J --> direction
+
+      fac = 1./(2.*jtot)
+      do j=3,jtot,2
+        yrt(j-1)=-4.*dyi*dyi*(sin(float((j-1))*pi*fac))**2
+        yrt(j  )= yrt(j-1)
+      end do
+      yrt(1    ) = 0.
+      yrt(jtot ) = -4.*dyi*dyi
+
+    ! Generate tridiagonal matrix
+    ! SO: do this in loop for now but could be moved here eventually?
+     !  ! NOTE -- dzfm dzh are defined from 0 -- hence ..-1
+     !  do k=1,kmax
+     !    ! SB fixed the coefficients
+     !    a(k)=rhobh(k)/(dzl(k)*dzhl(k))
+     !    c(k)=rhobh(k+1)/(dzl(k)*dzhl(k+1))
+     !    b(k)=-(a(k)+c(k))
+     !  end do
+     ! b(1   )=b(1)+a(1)
+     !  a(1   )=0.
+     !  b(kmax)=b(kmax)+c(kmax)
+     !  c(kmax)=0.
+
+     !xyrt = 0.
+     ! SO: rhobf is not here in DALES 4.0 - fine because it is set to 1 currently but check.
+     do k=1,zsize(3)
+       do j=1,zsize(2)
+          jv = j + myidy*zsize(2)
+          do i=1,zsize(1)
+            iv = i + myidx*zsize(1)
+            xyzrt(i,j,k)= rhobf(k)*(xrt(iv)+yrt(jv))
+          end do
+        end do
+      end do
+
+    elseif (ipoiss == POISS_FFT3D) then
+      !call decomp_2d_fft_init
+      ! Define 3D FFT coefficients
+
+    end if
 
   end subroutine initpois
 
   subroutine poisson
-    use modglobal, only : ib,ie,ih,kb,ke,kh,kmax,dxh,dxf,dy,dzf,dzh,linoutflow,iinletgen,ipoiss,POISS_FFT,POISS_CYC
+    use modglobal, only : ib,ie,ih,kb,ke,kh,ktot,dxh,dxf,dy,dzf,dzh,linoutflow,iinletgen,ipoiss,POISS_FFT2D,POISS_FFT3D,POISS_CYC
     use modmpi, only : myid,nprocs,barrou
     implicit none
     integer ibc1,ibc2,kbc1,kbc2,ksen
@@ -58,8 +130,10 @@ contains
 !  ibc?=3: dirichlet
 
     select case (ipoiss)
-    case (POISS_FFT)
+    case (POISS_FFT2D)
       call solmpj(p)
+    case (POISS_FFT3D)
+
     case (POISS_CYC)
       if (linoutflow ) then
         ibc1 = 1      ! inlet
@@ -70,7 +144,7 @@ contains
       endif
       kbc1 = 1
       kbc2 = 1
-      ksen = kmax/nprocs
+      ksen = ktot/nprocs ! This needs changing - nprocs no longer defined
       call poisr(p,dxf,dxh,dy,dzf,dzh, &
                  ibc1,ibc2,kbc1,kbc2,ksen)
     case default
@@ -294,6 +368,7 @@ contains
   end subroutine tderive
 
 !ils13, 13.08.18: currently unused, not callled
+! SO: replaced by 2DECOMP routines
   subroutine ALL_ALL_j(p,ptrans,iaction)
 ! purpose: do all-to-all communication
 ! data are only distributed over the j-direction for p
@@ -847,7 +922,7 @@ contains
       return
   end subroutine poisr
 
- subroutine solmpj(p1)
+ subroutine solmpj(pz)
 ! version: working version, barrou's removed,
 !          correct timing fft's
 !          AAPC with MPI-provided routines
@@ -897,226 +972,192 @@ contains
 
 ! mpi-version, no master region for timing
 !              copy times all included
-   use modmpi,    only : myid,comm3d,mpierr,nprocs, barrou
-    use modglobal, only : imax,jmax,kmax,isen,jtot,pi,dyi,dzf,dzh, dxfi, kb, ke, kh
+    use modmpi,    only : myid,comm3d,mpierr,nprocs, barrou
+    use modglobal, only : imax,jmax,ktot,isen,itot,jtot,pi,dyi,dzf,dzh,dxfi, kb, ke, kh
 !, rhoa
-!    use modfields, only : rhobf, rhobh
+    use modfields, only : rhobf, rhobh
+    !use decomp_2d
     implicit none
-    real :: dxi
-    integer :: i1, j1, k1
+    !integer :: i1, j1, k1
 !   real, intent(inout), dimension(:,:,:) :: p1
-    real p1(0:imax+1,0:jmax+1,0:kmax+1)
-
-    real, allocatable, dimension(:,:,:) :: d,p2
-    real, allocatable, dimension(:,:,:) :: xyzrt
-    real, allocatable, dimension(:) :: xrt,yrt,a,b,c,FFTI,FFTJ,winew,wjnew, rhobf, rhobh
+    real(mytype) pz(zsize(1),zsize(2),zsize(3)) ! Pressure/work array in z-pencil
+    real(mytype), allocatable, dimension(:,:,:) :: px, py
+    real, allocatable, dimension(:,:,:) :: d
+    real, allocatable, dimension(:) :: a, b, c, FFTI, FFTJ, winew, wjnew
     real    z,ak,bk,bbk,fac
     integer jv
     integer i, j, k
-    !real dzl(ke+kh-(kb-kh)),dzhl(ke+kh-(kb-kh))
-    real dzl(0:kmax+1),dzhl(1:kmax+1)
+    real dxi
 
+    !allocate(py(ysize(1),ysize(2),ysize(3)), px(xsize(1),xsize(2),xsize(3)), d(imax,jmax,kmax))
+    call alloc_y(py)
+    call alloc_x(px)
+    call alloc_z(d)
+    allocate(a(ktot), b(ktot), c(ktot), FFTI(itot), FFTJ(jtot), winew(2*itot+15), wjnew(2*jtot+15))
     dxi = dxfi(1)
-    dzl(0:kmax+1) = dzf(kb-kh:ke+kh)
-    dzhl(1:kmax+1) = dzh(kb:ke+kh)
+    !real, allocatable, dimension(:,:,:) :: xyzrt
 
-    i1 = imax+1
-    j1 = jmax+1
-    k1 = kmax+1
+    !real dzl(ke+kh-(kb-kh)),dzhl(ke+kh-(kb-kh))
+    !real dzl(0:kmax+1),dzhl(1:kmax+1)
+    !dzl(0:kmax+1) = dzf(kb-kh:ke+kh) ! Adjust to account for kb = 0: change this?
+    !dzhl(1:kmax+1) = dzh(kb:ke+kh)
+
+    !i1 = imax+1
+    !j1 = jmax+1
+    !k1 = kmax+1
  !   allocate(p1(0:i1,0:j1,0:k1))
   ! p and d distributed equally:
-    allocate(d(imax,jmax,kmax))
+    !allocate(d(imax,jmax,kmax))
 
   ! re-distributed p:
 
-    allocate(p2(isen,jtot,kmax))
+    !allocate(p2(isen,jtot,kmax))
 
   ! re-distributed p1:
 
-    allocate(rhobf(1:kmax), rhobh(1:kmax+1))
-    allocate(xyzrt(0:i1,0:j1,0:k1),xrt(0:i1),yrt(0:jtot+1))
-    allocate(a(0:kmax+1),b(0:kmax+1),c(0:kmax+1))
-    allocate(FFTI(imax),FFTJ(jtot),winew(2*imax+15),wjnew(2*jtot+15))
+    !allocate(rhobf(1:kmax), rhobh(1:kmax+1))
+    !allocate(xyzrt(0:i1,0:j1,0:k1),xrt(0:i1),yrt(0:jtot+1))
+    !allocate(a(0:kmax+1), b(0:kmax+1), c(0:kmax+1))
+    !allocate(FFTI(itot),FFTJ(jtot),winew(2*itot+15),wjnew(2*jtot+15))
 
-    rhobf=1; rhobh = 1;
+    !rhobf=1; rhobh = 1;
 
-    call MPI_COMM_RANK( comm3d, myid, mpierr )
-    call MPI_COMM_SIZE( comm3d, nprocs, mpierr )
-    call rffti(imax,winew)
+    !call MPI_COMM_RANK( comm3d, myid, mpierr )
+    !call MPI_COMM_SIZE( comm3d, nprocs, mpierr )
+    call rffti(itot,winew)
     call rffti(jtot,wjnew)
-!     call barrou()
-  !FFT  ---> I direction
-    fac = 1./sqrt(imax*1.)
-    do k=1,kmax
-      do j=1,jmax
-          do i=1,imax
-            FFTI(i) =p1(i,j,k)
+
+
+    ! Generate tridiagonal matrix
+
+      ! NOTE -- dzfm dzh are defined from 0 -- hence ..-1
+      do k=1,ktot
+        ! SB fixed the coefficients
+        a(k) = rhobh(k)  /(dzf(k)*dzh(k))
+        c(k) = rhobh(k+1)/(dzf(k)*dzh(k+1))
+        b(k) = -(a(k)+c(k))
+      end do
+      b(1) = b(1)+a(1)
+      a(1) = 0.
+      b(ktot) = b(ktot)+c(ktot)
+      c(ktot) = 0.
+
+    call transpose_z_to_y(pz, py)
+    call transpose_y_to_x(py, px)
+
+    ! Now in x-pencil, do FFT in x-direction
+    fac = 1./sqrt(itot*1.)
+    do k=1,xsize(3)
+      do j=1,xsize(2)
+          do i=1,xsize(1)!itot
+            FFTI(i) = px(i,j,k)
           end do
-          call rfftf(imax,FFTI,winew)
-          do i=1,imax
-  ! ATT: First back to p1, then re-distribution!!!
-            p1(i,j,k)=FFTI(i)*fac
+          call rfftf(itot,FFTI,winew)
+          do i=1,xsize(1)
+            px(i,j,k) = FFTI(i)*fac
           end do
       end do
     end do
-    call ALL_ALL_j(p1,p2,0)
-  !FFT  ---> J direction
-    fac = 1./sqrt(jtot*1.)
-    do i=1,isen
-      do k=1,kmax
-          do j=1,jtot
-            FFTJ(j) =p2(i,j,k)
+
+    call transpose_x_to_y(px, py)
+
+    ! Now in y-pencil, do FFT in y-direction
+      fac = 1./sqrt(jtot*1.)
+      do i=1,ysize(1)
+        do k=1,ysize(3)
+          do j=1,ysize(2)!jtot
+            FFTJ(j) = py(i,j,k)
           end do
           call rfftf(jtot,FFTJ,wjnew)
-          do j=1,jtot
-  ! ATTT back to pl
-            p2(i,j,k)=FFTJ(j)*fac
+          do j=1,ysize(2)
+            py(i,j,k)=FFTJ(j)*fac
           end do
+        end do
       end do
-    end do
-!     call barrou()
-    call ALL_ALL_j(p1,p2,1)
-!     call barrou()
 
+    call transpose_y_to_z(py,pz)
 
-  ! Generate Eigenvalues  (xrt and yrt )
-
-  !  I --> direction
-
-
-    fac = 1./(2.*imax)
-    do i=3,imax,2
-      xrt(i-1)=-4.*dxi*dxi*(sin(float((i-1))*pi*fac))**2
-      xrt(i)  = xrt(i-1)
-    end do
-    xrt(1    ) = 0.
-    xrt(imax ) = -4.*dxi*dxi
-
-  !  J --> direction
-
-    fac = 1./(2.*jtot)
-    do j=3,jtot,2
-      yrt(j-1)=-4.*dyi*dyi*(sin(float((j-1))*pi*fac))**2
-      yrt(j  )= yrt(j-1)
-    end do
-    yrt(1    ) = 0.
-    yrt(jtot ) = -4.*dyi*dyi
-
-  ! Generate tridiagonal matrix
-
-    ! NOTE -- dzfm dzh are defined from 0 -- hence ..-1
-    do k=1,kmax
-      ! SB fixed the coefficients
-      a(k)=rhobh(k)/(dzl(k)*dzhl(k))
-      c(k)=rhobh(k+1)/(dzl(k)*dzhl(k+1))
-      b(k)=-(a(k)+c(k))
-    end do
-   b(1   )=b(1)+a(1)
-    a(1   )=0.
-    b(kmax)=b(kmax)+c(kmax)
-    c(kmax)=0.
-
-    do k=1,kmax
-    do j=1,jmax
-    jv = j + myid*jmax
-    do i=1,imax
-      xyzrt(i,j,k)= rhobf(k)*(xrt(i)+yrt(jv)) !!! LH
-    end do
-    end do
-    end do
-
-  ! SOLVE TRIDIAGONAL SYSTEMS WITH GAUSSIAN ELEMINATION
-    do j=1,jmax
-      jv = j + myid*jmax
-      do i=1,imax
-        z        = 1./(b(1)+xyzrt(i,j,1))
-        d(i,j,1) = c(1)*z
-        p1(i,j,1) = p1(i,j,1)*z
+    ! Now in z-pencil, solve system using Gaussian elimination
+    do j=1,zsize(2)
+      !jv = j + myidy*jmax
+      do i=1,zsize(1)
+        z         = 1./(b(1)+xyzrt(i,j,1))
+        d(i,j,1)  = c(1)*z
+        pz(i,j,1) = pz(i,j,1)*z
       end do
     end do
 
-    do k=2,kmax-1
-      do  j=1,jmax
-      jv = j + myid*jmax
-        do  i=1,imax
-          bbk      = b(k)+xyzrt(i,j,k)
-          z        = 1./(bbk-a(k)*d(i,j,k-1))
-          d(i,j,k) = c(k)*z
-          p1(i,j,k) = (p1(i,j,k)-a(k)*p1(i,j,k-1))*z
+    do k=2,zsize(3)-1
+      do j=1,zsize(2)
+        !jv = j + myid*jmax
+        do i=1,zsize(1)
+          bbk       = b(k)+xyzrt(i,j,k)
+          z         = 1./(bbk-a(k)*d(i,j,k-1))
+          d(i,j,k)  = c(k)*z
+          pz(i,j,k) = (pz(i,j,k)-a(k)*pz(i,j,k-1))*z
         end do
       end do
     end do
 
-
-
-    ak =a(kmax)
-    bk =b(kmax)
-    do j=1,jmax
-      jv = j + myid*jmax
-      do i=1,imax
-        bbk = bk +xyzrt(i,j,kmax)
-        z        = bbk-ak*d(i,j,kmax-1)
+    ak = a(ktot)
+    bk = b(ktot)
+    do j=1,zsize(2)
+      !jv = j + myid*jmax
+      do i=1,zsize(1)
+        bbk = bk + xyzrt(i,j,ktot)
+        z        = bbk-ak*d(i,j,ktot-1)
         if(z/=0.) then
-          p1(i,j,kmax) = (p1(i,j,kmax)-ak*p1(i,j,kmax-1))/z
+          pz(i,j,ktot) = (pz(i,j,ktot)-ak*pz(i,j,ktot-1))/z
         else
-          p1(i,j,kmax) =0.
+          pz(i,j,ktot) =0.
         end if
       end do
     end do
-   do k=kmax-1,1,-1
-      do j=1,jmax
-        do i=1,imax
-          p1(i,j,k) = p1(i,j,k)-d(i,j,k)*p1(i,j,k+1)
+   do k=zsize(3)-1,1,-1
+      do j=1,zsize(2)
+        do i=1,zsize(1)
+          pz(i,j,k) = pz(i,j,k)-d(i,j,k)*pz(i,j,k+1)
         end do
       end do
     end do
-!     call barrou()
 
-
-  ! MPI_ALL CALL!!!
-
-
-
-    call ALL_ALL_j(p1,p2,0)
-!     call barrou()
-
-
-  ! BACKWARD FFT ---> I direction
-
-
-  ! BACKWARD FFT ---> J direction
+    call transpose_z_to_y(pz,py)
+    ! Now in y-pencil, do backward FFT in y direction
 
     fac = 1./sqrt(jtot*1.)
-    do i=1,isen
-      do k=1,kmax
-        do j=1,jtot
-  ! ATT, ADAPTED!!!
-          FFTJ(j) =p2(i,j,k)
+    do i=1,ysize(1)
+      do k=1,ysize(3)
+        do j=1,ysize(2)!jtot
+            FFTJ(j) = py(i,j,k)
         end do
         call rfftb(jtot,FFTJ,wjnew)
         do j=1,jtot
-  ! ATT back to p2!!!
-          p2(i,j,k)=FFTJ(j)*fac
+          py(i,j,k) = FFTJ(j)*fac
         end do
       end do
     end do
-!     call barrou()
-    call ALL_ALL_j(p1,p2,1)
 
-    fac = 1./sqrt(imax*1.)
-    do k=1,kmax
-      do j=1,jmax
-        do i=1,imax
-          FFTI(i) =p1(i,j,k)
+   call transpose_y_to_x(py,px)
+  ! Now in x-pencil FFT, do backward FFT in x-direction
+
+    fac = 1./sqrt(itot*1.)
+    do k=1,xsize(3)
+      do j=1,xsize(2)
+        do i=1,xsize(1)
+          FFTI(i) = px(i,j,k)
         end do
-        call rfftb(imax,FFTI,winew)
-        do i=1,imax
-  ! ATT back to p1 !!!
-          p1(i,j,k)=FFTI(i)*fac
+        call rfftb(itot,FFTI,winew)
+        do i=1,xsize(1)
+          px(i,j,k) = FFTI(i)*fac
         end do
       end do
     end do
-   deallocate(d,p2,xyzrt,xrt,yrt,a,b,c,FFTI,FFTJ,winew,wjnew)
+
+    call transpose_x_to_y(px, py)
+    call transpose_y_to_z(py, pz)
+
+
+   deallocate(px,py,a,b,c,d,FFTI,FFTJ,winew,wjnew)
 !     call barrou()
     return
   end subroutine solmpj

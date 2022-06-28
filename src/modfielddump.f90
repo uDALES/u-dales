@@ -6,7 +6,7 @@
 !!  \author Jasper Tomas, TU Delft Match 31 2014
 !!  \author Thijs Heus,MPI-M
 !!  \par Revision list
-!! Possibility to write tecplot (formatted!!) file 
+!! Possibility to write tecplot (formatted!!) file
 !
 !  This file is part of DALES.
 !
@@ -28,47 +28,52 @@
 module modfielddump
 
   use modglobal, only : longint
-  use modfields, only : ncname
+  use modfields, only : ncname, ncname1, ncname2
   implicit none
   private
   PUBLIC :: initfielddump, fielddump,exitfielddump
   save
   !NetCDF variables
-  integer :: ncid,nrec = 0
+  integer :: ncid,ncid1,ncid2,nrec = 0
 !  real, pointer :: point
   type domainptr
     real, pointer :: point(:,:,:)
   end type domainptr
   type(domainptr), dimension(30) :: pfields
 
-  character(80) :: fname = 'fielddump.xxx.xxx.nc'
+  character(80) :: fname = 'fielddump.xxx.xxx.xxx.3.nc'
+  character(80) :: fname1 = 'fielddump.xxx.xxx.xxx.1.nc'
+  character(80) :: fname2 = 'fielddump.xxx.xxx.xxx.2.nc'
   !dimension(nvar,4) :: ncname
   character(80),dimension(1,4) :: tncname
-  
-  integer :: klow,khigh,n,nvar
+  character(80),dimension(1,4) :: tncname1
+  character(80),dimension(1,4) :: tncname2
+
+  integer :: klow,khigh,nvar
   logical :: ldiracc   = .false. !< switch for doing direct access writing (on/off)
-  logical :: lbinary   = .false. ! 
+  logical :: lbinary   = .false. !
 
 contains
  !> Initializing fielddump. Read out the namelist, initializing the variables
   subroutine initfielddump
-    use modmpi,   only   :myid,my_real,mpierr,comm3d,mpi_logical,mpi_integer,cmyid, mpi_character
-    use modglobal,only   :imax,jmax,kmax,cexpnr,ifnamopt,fname_options,dtmax,kb,ke, ladaptive,dt_lim,btime,nsv,fieldvars,ib,ie,jb,je,kb,ke, lfielddump
+    use modmpi,   only   :myid,my_real,mpierr,comm3d,mpi_logical,mpi_integer,cmyidx,cmyidy,mpi_character
+    use modglobal,only   :imax,jmax,kmax,imax1,jmax1,kmax1,imax2,jmax2,kmax2,cexpnr,ifnamopt,fname_options,dtmax,kb,ke, ladaptive,dt_lim,btime,nsv,fieldvars,ib,ie,jb,je,kb,ke, lfielddump,ktot
     use modstat_nc,only  : open_nc, define_nc,ncinfo,writestat_dims_nc
     use modfields, only  : u0,v0,w0,thl0,sv0,ql0,qt0,pres0
     implicit none
-    integer :: ierr
+    integer :: ierr, n
 
-  !  type(domainptr), dimension(nvar) :: pfields
+    !type(domainptr), dimension(nvar) :: pfields
 
-    nvar = (LEN(trim(fieldvars))+1)/3
-    
+    !nvar = (LEN(trim(fieldvars))+1)/3
+    nvar = 1
+
     if (nvar == 0) then
       lfielddump = .false.
       print *, 'empty fieldvars therefore lfielddump = .false. and no instantaneous fields outputted'
       return
     else
-      allocate(ncname(nvar,4)) 
+      allocate(ncname(nvar,4))
     end if
 
 
@@ -81,99 +86,153 @@ contains
     call MPI_BCAST(lfielddump  ,1,MPI_LOGICAL,0,comm3d,ierr)
     call MPI_BCAST(ldiracc     ,1,MPI_LOGICAL,0,comm3d,ierr)
     call MPI_BCAST(lbinary     ,1,MPI_LOGICAL,0,comm3d,ierr)
-    call MPI_BCAST(ncname     ,80,MPI_CHARACTER,0,comm3d,mpierr) 
+    call MPI_BCAST(ncname     ,80,MPI_CHARACTER,0,comm3d,mpierr)
     call MPI_BCAST(nvar       ,1,MPI_INTEGER,0,comm3d,mpierr)
 
     !    dt_lim = min(dt_lim,tnext)
 
     if(.not.(lfielddump)) return
 
-    fname(11:13) = cmyid
-    fname(15:17) = cexpnr
+    fname(11:13) = cmyidx
+    fname(15:17) = cmyidy
+    fname(19:21) = cexpnr
     call ncinfo(tncname(1,:),'time','Time','s','time')
 
     ! tg3315 reads in fields specified by fieldvars
-    do n=1,nvar
-      select case(fieldvars(3*n-2:3*n-1))
-        case('u0')
-        call ncinfo(ncname( n,:),'u','West-East velocity','m/s','mttt')
-        pfields(n)%point => u0(ib:ie,jb:je,kb:ke)
-        case('v0')
-        call ncinfo(ncname( n,:),'v','South-North velocity','m/s','tmtt')
-        pfields(n)%point => v0(ib:ie,jb:je,kb:ke)  
-        case('w0')
-        call ncinfo(ncname( n,:),'w','Vertical velocity','m/s','ttmt')
-        pfields(n)%point => w0(ib:ie,jb:je,kb:ke)  
-        case('th')
-        call ncinfo(ncname( n,:),'thl','Liquid water potential temperature','K','tttt')
-        pfields(n)%point => thl0(ib:ie,jb:je,kb:ke)  
-        case('ql')
-        call ncinfo(ncname( n,:),'ql','Liquid water mixing ratio','1e-5kg/kg','tttt')
-        pfields(n)%point => ql0(ib:ie,jb:je,kb:ke) 
-        case('qt')
-        call ncinfo(ncname( n,:),'qt','Total water mixing ratio','1e-5kg/kg','tttt')
-        pfields(n)%point => qt0(ib:ie,jb:je,kb:ke)
-        case('s1')
-        call ncinfo(ncname( n,:),'sca1','scalar 1','M','tttt')
-        pfields(n)%point => sv0(ib:ie,jb:je,kb:ke,1)
-        case('s2')
-        call ncinfo(ncname( n,:),'sca2','scalar 2','M','tttt')
-        pfields(n)%point => sv0(ib:ie,jb:je,kb:ke,2)
-        case('s3')
-        call ncinfo(ncname( n,:),'sca3','scalar 3','M','tttt')
-        pfields(n)%point => sv0(ib:ie,jb:je,kb:ke,3)
-        case('s4')
-        call ncinfo(ncname( n,:),'sca4','scalar 4','M','tttt')
-        pfields(n)%point => sv0(ib:ie,jb:je,kb:ke,4)
-        case('s5')
-        call ncinfo(ncname( n,:),'sca5','scalar 5','M','tttt')
-        pfields(n)%point => sv0(ib:ie,jb:je,kb:ke,5)
-        case('p0')
-        call ncinfo(ncname( n,:),'pres','pressure field','M','tttt')
-        pfields(n)%point => pres0(ib:ie,jb:je,kb:ke)
-        case default
-        call ncinfo(ncname( n,:),'u','West-East velocity','m/s','mttt')
-        pfields(n)%point => u0(ib:ie,jb:je,kb:ke)
-      end select
-    end do
- 
-    call open_nc( fname, ncid, nrec, n1=imax, n2=jmax, n3=khigh-klow+1)
+    ! do n=1,nvar
+    !   select case(fieldvars(3*n-2:3*n-1))
+    !     case('u0')
+    !     call ncinfo(ncname( n,:),'u','West-East velocity','m/s','mttt')
+    !     !pfields(n)%point => u0(ib:ie,jb:je,kb:ke)
+    !     case('v0')
+    !     call ncinfo(ncname( n,:),'v','South-North velocity','m/s','tmtt')
+    !     !pfields(n)%point => v0(ib:ie,jb:je,kb:ke)
+    !     case('w0')
+    !     call ncinfo(ncname( n,:),'w','Vertical velocity','m/s','ttmt')
+    !     !pfields(n)%point => w0(ib:ie,jb:je,kb:ke)
+    !     case('th')
+    !     call ncinfo(ncname( n,:),'thl','Liquid water potential temperature','K','tttt')
+    !     !pfields(n)%point => thl0(ib:ie,jb:je,kb:ke)
+    !     case('ql')
+    !     call ncinfo(ncname( n,:),'ql','Liquid water mixing ratio','1e-5kg/kg','tttt')
+    !     !pfields(n)%point => ql0(ib:ie,jb:je,kb:ke)
+    !     case('qt')
+    !     call ncinfo(ncname( n,:),'qt','Total water mixing ratio','1e-5kg/kg','tttt')
+    !     !pfields(n)%point => qt0(ib:ie,jb:je,kb:ke)
+    !     case('s1')
+    !     call ncinfo(ncname( n,:),'sca1','scalar 1','M','tttt')
+    !     !pfields(n)%point => sv0(ib:ie,jb:je,kb:ke,1)
+    !     case('s2')
+    !     call ncinfo(ncname( n,:),'sca2','scalar 2','M','tttt')
+    !     !pfields(n)%point => sv0(ib:ie,jb:je,kb:ke,2)
+    !     case('s3')
+    !     call ncinfo(ncname( n,:),'sca3','scalar 3','M','tttt')
+    !     !pfields(n)%point => sv0(ib:ie,jb:je,kb:ke,3)
+    !     case('s4')
+    !     call ncinfo(ncname( n,:),'sca4','scalar 4','M','tttt')
+    !     !pfields(n)%point => sv0(ib:ie,jb:je,kb:ke,4)
+    !     case('s5')
+    !     call ncinfo(ncname( n,:),'sca5','scalar 5','M','tttt')
+    !     !pfields(n)%point => sv0(ib:ie,jb:je,kb:ke,5)
+    !     case('p0')
+    !     call ncinfo(ncname( n,:),'pres','pressure field','M','tttt')
+    !     !pfields(n)%point => pres0(ib:ie,jb:je,kb:ke)
+    !     case default
+    !     call ncinfo(ncname( n,:),'u','West-East velocity','m/s','mttt')
+    !     !pfields(n)%point => u0(ib:ie,jb:je,kb:ke)
+    !   end select
+    ! end do
+
+    call ncinfo(ncname( n,:),'u','West-East velocity','m/s','mttt')
+    write(*,*) ncname
+
+    !write(*,*) "done defining pfields"
+
+    call open_nc( fname, ncid, nrec, n1=imax+2, n2=jmax+2, n3=khigh-klow+1)
     if (nrec==0) then
       call define_nc( ncid, 1, tncname)
-      call writestat_dims_nc(ncid)  
+      call writestat_dims_nc(ncid)
     end if
     call define_nc( ncid, nvar, ncname)
-      
-           call open_nc( fname, ncid, nrec, n1=imax, n2=jmax, n3=khigh-klow+1)
-!        call open_nc( fname, ncid, nrec, n1=imax+2, n2=jmax+2, n3=khigh-klow+1)  !if want to print ghostcells
 
-        if (nrec==0) then
-          write(*,*) "calling define_nc"
-          call define_nc( ncid, 1, tncname)
-          write(*,*) "calling writestat_dims_nc"
-          call writestat_dims_nc(ncid)  
-        end if
-       call define_nc( ncid, nvar, ncname)
+    write(*,*) "done defining nc file"
+
+    call open_nc( fname, ncid, nrec, n1=imax+2, n2=jmax+2, n3=khigh-klow+1)
+!        call open_nc( fname, ncid, nrec, n1=imax+2, n2=jmax+2, n3=khigh-klow+1)  !if want to print ghostcells
+    if (nrec==0) then
+      call define_nc( ncid, 1, tncname)
+      call writestat_dims_nc(ncid)
+    end if
+    call define_nc( ncid, nvar, ncname)
+
+
+       ! X-pencil
+
+       fname1(11:13) = cmyidx
+       fname1(15:17) = cmyidy
+       fname1(19:21) = cexpnr
+       call ncinfo(tncname1(1,:),'time','Time','s','time')
+       call ncinfo(ncname1(1,:),'u','West-East velocity','m/s','mttt')
+
+       !write(*,*) "done defining pfields"
+
+       call open_nc( fname1, ncid1, nrec, n1=imax1+2, n2=jmax1+2, n3=kmax1+2)
+
+       if (nrec==0) then
+         call define_nc( ncid1, 1, tncname1)
+         call writestat_dims_nc(ncid1)
+       end if
+       call define_nc( ncid1, nvar, ncname1)
+       call open_nc( fname1, ncid1, nrec, n1=imax1+2, n2=jmax1+2, n3=kmax1+2)
+       ! call open_nc( fname, ncid, nrec, n1=imax+2, n2=jmax+2, n3=khigh-klow+1)  !if want to print ghostcells
+       if (nrec==0) then
+         call define_nc( ncid1, 1, tncname1)
+         call writestat_dims_nc(ncid1)
+      end if
+      call define_nc( ncid1, nvar, ncname1)
+
+
+      ! Y-pencil
+
+      fname2(11:13) = cmyidx
+      fname2(15:17) = cmyidy
+      fname2(19:21) = cexpnr
+      call ncinfo(tncname2(1,:),'time','Time','s','time')
+      call ncinfo(ncname2( 1,:),'u','West-East velocity','m/s','mttt')
+
+      call open_nc( fname2, ncid2, nrec, n1=imax2+2, n2=jmax2+2, n3=kmax2+2)
+      if (nrec==0) then
+        call define_nc( ncid2, 1, tncname2)
+        call writestat_dims_nc(ncid2)
+      end if
+      call define_nc( ncid2, nvar, ncname2)
+      call open_nc( fname2, ncid2, nrec, n1=imax2+2, n2=jmax2+2, n3=kmax2+2)
+      ! call open_nc( fname, ncid, nrec, n1=imax+2, n2=jmax+2, n3=khigh-klow+1)  !if want to print ghostcells
+      if (nrec==0) then
+        call define_nc( ncid2, 1, tncname2)
+        call writestat_dims_nc(ncid2)
+     end if
+     call define_nc( ncid2, nvar, ncname2)
 
   end subroutine initfielddump
 
   !> Do fielddump. Collect data to truncated (2 byte) integers, and write them to file
   subroutine fielddump
-    use modfields, only : u0,v0,w0,thl0,qt0,ql0,sv0  !ILS13 21.04.2015 changed to u0 from um  etc
+    use modfields, only : u0,v0,w0,thl0,qt0,ql0,sv0,pres0,u01,u02  !ILS13 21.04.2015 changed to u0 from um  etc
     use modsurfdata,only : thls,qts,thvs
     use modglobal, only : ib,ie,ih,jb,je,jh,ke,kb,kh,rk3step,timee,dt_lim,cexpnr,ifoutput,imax,jmax,&
-                          tfielddump, tnextfielddump,nsv, lfielddump
+                          tfielddump, tnextfielddump,nsv, lfielddump, ktot,fieldvars, imax1,jmax1,kmax1,imax2,jmax2,kmax2
     !use modmpi,    only : myid,cmyid
     !use modsubgriddata, only : ekm,sbshr
     use modstat_nc, only : writestat_nc
     use modmpi, only : myid,cmyid
     implicit none
 
-    real, allocatable :: vars(:,:,:,:)
-    integer i,j,k
+    real, allocatable :: vars(:,:,:,:), vars1(:,:,:,:), vars2(:,:,:,:)
+    integer i,j,k,n
     integer :: writecounter = 1
- 
-    if (.not. (timee>=tnextfielddump)) return 
+
+    if (.not. (timee>=tnextfielddump)) return
 
     if (.not. lfielddump) return
 
@@ -181,16 +240,64 @@ contains
 
     tnextfielddump=tnextfielddump+tfielddump
 
-   allocate(vars(ib:ie,jb:je,kb:ke,nvar))
+   allocate(vars(ib-1:ie+1,jb-1:je+1,kb:ke,nvar))
+   allocate(vars1(0:imax1+2,0:jmax1+2,0:kmax1+2,nvar))
+   allocate(vars2(0:imax2+2,0:jmax2+2,0:kmax2+2,nvar))
+   !allocate(vars(imax,jmax,ktot,nvar))
+   write(*,*) "allocated vars"
 
-    do n=1,nvar
-      vars(ib:ie,jb:je,kb:ke,n) = pfields(n)%point
-    end do
+   ! ! SO
+   !  do n=1,nvar
+   !    vars(ib:ie,jb:je,kb:ke,n) = pfields(n)%point
+   !  end do
+
+    ! do n=1,nvar
+    !   select case(fieldvars(3*n-2:3*n-1))
+    !     case('u0')
+    !       vars(:,:,:,n) = u0(ib-1:ie+1,jb-1:je+1,kb-1:ke+1)
+    !     case('v0')
+    !       vars(:,:,:,n) = v0(ib-1:ie+1,jb-1:je+1,kb-1:ke+1)
+    !     case('w0')
+    !       vars(:,:,:,n) = w0(ib-1:ie+1,jb-1:je+1,kb-1:ke+1)
+    !     case('th')
+    !       vars(:,:,:,n) = thl0(ib:ie,jb:je,kb:ke)
+    !     case('ql')
+    !       vars(:,:,:,n) = ql0(ib:ie,jb:je,kb:ke)
+    !     case('qt')
+    !       vars(:,:,:,n) = qt0(ib:ie,jb:je,kb:ke)
+    !     case('s1')
+    !       vars(:,:,:,n) = sv0(ib:ie,jb:je,kb:ke,1)
+    !     case('s2')
+    !       vars(:,:,:,n) = sv0(ib:ie,jb:je,kb:ke,2)
+    !     case('s3')
+    !       vars(:,:,:,n) = sv0(ib:ie,jb:je,kb:ke,3)
+    !     case('s4')
+    !       vars(:,:,:,n) = sv0(ib:ie,jb:je,kb:ke,4)
+    !     case('s5')
+    !       vars(:,:,:,n) = sv0(ib:ie,jb:je,kb:ke,5)
+    !     case('p0')
+    !       vars(:,:,:,n) = pres0
+    !     case default
+    !       vars(:,:,:,n) = u0
+    !   end select
+    ! end do
+
+    vars(:,:,:,1) = u0(ib-1:ie+1,jb-1:je+1,kb-1:ke+1)
+    vars1(:,:,:,1) = u01(0:imax1+2,0:jmax1+2,0:kmax1+2)
+    vars2(:,:,:,2) = u02(0:imax2+2,0:jmax2+2,0:kmax2+2)
+
 
    call writestat_nc(ncid,1,tncname,(/timee/),nrec,.true.)
-         
-   call writestat_nc(ncid,nvar,ncname,vars,nrec,imax,jmax,khigh-klow+1)
-   deallocate(vars)
+   call writestat_nc(ncid,nvar,ncname,vars,nrec,imax+2,jmax+2,khigh-klow+1+2)
+
+   call writestat_nc(ncid1,1,tncname1,(/timee/),nrec,.true.)
+   call writestat_nc(ncid1,nvar,ncname1,vars,nrec,imax1+2,jmax1+2,kmax1+2)
+
+   call writestat_nc(ncid2,1,tncname2,(/timee/),nrec,.true.)
+   call writestat_nc(ncid2,nvar,ncname2,vars,nrec,imax2+2,jmax2+2,kmax2+2)
+
+
+   deallocate(vars, vars1, vars2)
 
   end subroutine fielddump
 

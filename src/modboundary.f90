@@ -306,7 +306,7 @@ contains
    subroutine closurebc
       use modsubgriddata, only:ekm, ekh
       use modglobal, only:ib, ie, jb, je, kb, ke, ih, jh, kh, numol, prandtlmoli, linoutflow, BCtopm
-      use modmpi, only:excjs
+      use modmpi, only:excjs,excis
       integer i, j
 
       ! Top and bottom
@@ -338,10 +338,12 @@ contains
          ekh(ib - 1, :, :) = ekh(ib, :, :)
          ekh(ie + 1, :, :) = ekh(ie, :, :)
       else
-         ekm(ib - 1, :, :) = ekm(ie, :, :) ! periodic
-         ekm(ie + 1, :, :) = ekm(ib, :, :)
-         ekh(ib - 1, :, :) = ekh(ie, :, :)
-         ekh(ie + 1, :, :) = ekh(ib, :, :)
+         ! ekm(ib - 1, :, :) = ekm(ie, :, :) ! periodic
+         ! ekm(ie + 1, :, :) = ekm(ib, :, :)
+         ! ekh(ib - 1, :, :) = ekh(ie, :, :)
+         ! ekh(ie + 1, :, :) = ekh(ib, :, :)
+         call excis(ekm, ib, ie, jb, je, kb - kh, ke + kh, ih, jh)
+         call excis(ekh, ib, ie, jb, je, kb - kh, ke + kh, ih, jh)
       end if
 
       call excjs(ekm, ib, ie, jb, je, kb - kh, ke + kh, ih, jh)
@@ -456,14 +458,18 @@ contains
    subroutine cyclichi
       use modglobal, only:ib, ie, jb, je, ih, jh, kb, ke, kh, nsv, dt, rk3step, dxhi, ihc, jhc, khc, dy
       use modfields, only:thl0, thlm
+      use modmpi, only:excis
       integer m
 
-      do m = 1, ih
-         thl0(ib - m, :, :) = thl0(ie + 1 - m, :, :)
-         thl0(ie + m, :, :) = thl0(ib - 1 + m, :, :)
-         thlm(ib - m, :, :) = thlm(ie + 1 - m, :, :)
-         thlm(ie + m, :, :) = thlm(ib - 1 + m, :, :)
-      end do
+      ! do m = 1, ih
+      !    thl0(ib - m, :, :) = thl0(ie + 1 - m, :, :)
+      !    thl0(ie + m, :, :) = thl0(ib - 1 + m, :, :)
+      !    thlm(ib - m, :, :) = thlm(ie + 1 - m, :, :)
+      !    thlm(ie + m, :, :) = thlm(ib - 1 + m, :, :)
+      ! end do
+
+      call excis(thl0, ib, ie, jb, je, kb, ke + kh, ih, jh)
+      call excis(thlm, ib, ie, jb, je, kb, ke + kh, ih, jh)
 
       return
    end subroutine cyclichi
@@ -472,14 +478,18 @@ contains
    subroutine cyclicqi
       use modglobal, only:ib, ie, jb, je, ih, jh, kb, ke, kh, nsv, dt, rk3step, dxhi, ihc, jhc, khc, dy
       use modfields, only:qt0, qtm
+      use modmpi, only: excis
       integer m
 
-      do m = 1, ih
-         qt0(ib - m, :, :) = qt0(ie + 1 - m, :, :)
-         qt0(ie + m, :, :) = qt0(ib - 1 + m, :, :)
-         qtm(ib - m, :, :) = qtm(ie + 1 - m, :, :)
-         qtm(ie + m, :, :) = qtm(ib - 1 + m, :, :)
-      end do
+      ! do m = 1, ih
+      !    qt0(ib - m, :, :) = qt0(ie + 1 - m, :, :)
+      !    qt0(ie + m, :, :) = qt0(ib - 1 + m, :, :)
+      !    qtm(ib - m, :, :) = qtm(ie + 1 - m, :, :)
+      !    qtm(ie + m, :, :) = qtm(ib - 1 + m, :, :)
+      ! end do
+
+      call excis(qt0, ib, ie, jb, je, kb, ke + kh, ih, jh)
+      call excis(qtm, ib, ie, jb, je, kb, ke + kh, ih, jh)
 
       return
    end subroutine cyclicqi
@@ -488,14 +498,20 @@ contains
    subroutine cyclicsi
       use modglobal, only:ib, ie, jb, je, ih, jh, kb, ke, kh, nsv, dt, rk3step, dxhi, ihc, jhc, khc, dy
       use modfields, only:sv0, svm
-      integer m
+      use modmpi, only:excis
+      integer m, n
 
-      do m = 1, ihc
-         sv0(ib - m, :, :, :) = sv0(ie + 1 - m, :, :, :)
-         sv0(ie + m, :, :, :) = sv0(ib - 1 + m, :, :, :)
-         svm(ib - m, :, :, :) = svm(ie + 1 - m, :, :, :)
-         svm(ie + m, :, :, :) = svm(ib - 1 + m, :, :, :)
-      end do
+      ! do m = 1, ihc
+      !    sv0(ib - m, :, :, :) = sv0(ie + 1 - m, :, :, :)
+      !    sv0(ie + m, :, :, :) = sv0(ib - 1 + m, :, :, :)
+      !    svm(ib - m, :, :, :) = svm(ie + 1 - m, :, :, :)
+      !    svm(ie + m, :, :, :) = svm(ib - 1 + m, :, :, :)
+      ! end do
+
+      do n = 1, nsv
+         call excis(sv0(:, :, :, n), ib, ie, jb, je, kb - khc, ke + khc, ihc, jhc)
+         call excis(svm(:, :, :, n), ib, ie, jb, je, kb - khc, ke + khc, ihc, jhc)
+      enddo
 
       return
    end subroutine cyclicsi
@@ -593,37 +609,65 @@ contains
       use modglobal, only:ib, ie, jb, je, ih, jh, kb, ke, kh, jmax
       use modfields, only:u0, um, v0, vm, w0, wm, e120, e12m
       use modsubgriddata, only:loneeqn, lsmagorinsky
+      use modmpi, only:excis
 
       integer n, m
 
-      do m = 1, ih
+      ! do m = 1, ih
+      !
+      !    u0(ib - m, :, :) = u0(ie + 1 - m, :, :)
+      !    u0(ie + m, :, :) = u0(ib - 1 + m, :, :)
+      !    v0(ib - m, :, :) = v0(ie + 1 - m, :, :)
+      !    v0(ie + m, :, :) = v0(ib - 1 + m, :, :)
+      !    w0(ib - m, :, :) = w0(ie + 1 - m, :, :)
+      !    w0(ie + m, :, :) = w0(ib - 1 + m, :, :)
+      !    um(ib - m, :, :) = um(ie + 1 - m, :, :)
+      !    um(ie + m, :, :) = um(ib - 1 + m, :, :)
+      !    vm(ib - m, :, :) = vm(ie + 1 - m, :, :)
+      !    vm(ie + m, :, :) = vm(ib - 1 + m, :, :)
+      !    wm(ib - m, :, :) = wm(ie + 1 - m, :, :)
+      !    wm(ie + m, :, :) = wm(ib - 1 + m, :, :)
+      !
+      !    e120(ib - m, :, :) = e120(ie + 1 - m, :, :)
+      !    e120(ie + m, :, :) = e120(ib - 1 + m, :, :)
+      !    e12m(ib - m, :, :) = e12m(ie + 1 - m, :, :)
+      !    e12m(ie + m, :, :) = e12m(ib - 1 + m, :, :)
+      !
+      ! end do
+      !
+      ! if (loneeqn) then
+      !    e120(ib - m, :, :) = e120(ie + 1 - m, :, :)
+      !    e120(ie + m, :, :) = e120(ib - 1 + m, :, :)
+      !    e12m(ib - m, :, :) = e12m(ie + 1 - m, :, :)
+      !    e12m(ie + m, :, :) = e12m(ib - 1 + m, :, :)
+      ! end if
 
-         u0(ib - m, :, :) = u0(ie + 1 - m, :, :)
-         u0(ie + m, :, :) = u0(ib - 1 + m, :, :)
-         v0(ib - m, :, :) = v0(ie + 1 - m, :, :)
-         v0(ie + m, :, :) = v0(ib - 1 + m, :, :)
-         w0(ib - m, :, :) = w0(ie + 1 - m, :, :)
-         w0(ie + m, :, :) = w0(ib - 1 + m, :, :)
-         um(ib - m, :, :) = um(ie + 1 - m, :, :)
-         um(ie + m, :, :) = um(ib - 1 + m, :, :)
-         vm(ib - m, :, :) = vm(ie + 1 - m, :, :)
-         vm(ie + m, :, :) = vm(ib - 1 + m, :, :)
-         wm(ib - m, :, :) = wm(ie + 1 - m, :, :)
-         wm(ie + m, :, :) = wm(ib - 1 + m, :, :)
+      ! Seems to not crash even when u0 defined without halo cells
+      ! call excis(u0, ib, ie, jb, je, kb, ke + kh, ih, jh)
+      ! call excis(v0, ib, ie, jb, je, kb, ke + kh, ih, jh)
+      ! call excis(w0, ib, ie, jb, je, kb, ke + kh, ih, jh)
+      ! call excis(um, ib, ie, jb, je, kb, ke + kh, ih, jh)
+      ! call excis(vm, ib, ie, jb, je, kb, ke + kh, ih, jh)
+      ! call excis(wm, ib, ie, jb, je, kb, ke + kh, ih, jh)
 
-         e120(ib - m, :, :) = e120(ie + 1 - m, :, :)
-         e120(ie + m, :, :) = e120(ib - 1 + m, :, :)
-         e12m(ib - m, :, :) = e12m(ie + 1 - m, :, :)
-         e12m(ie + m, :, :) = e12m(ib - 1 + m, :, :)
 
-      end do
+      ! Causing errors, not sure why, return later
+      ! if (loneeqn) then
+      !    call excis(e120, ib, ie, jb, je, kb, ke + kh, ih, jh)
+      !    call excis(e12m, ib, ie, jb, je, kb, ke + kh, ih, jh)
+      !    ! exchange shear components between processors
+      !    do n = 1, 12 ! for all 12 components
+      !       call excis(shear(:, :, :, n), ib, ie, jb, je, kb, ke, 0, 1)
+      !    end do
+      ! end if
+      !
+      ! if (lsmagorinsky) then
+      !    ! exchange shear components between processors
+      !    do n = 1, 12 ! for all 12 components
+      !       call excis(shear(:, :, :, n), ib, ie, jb, je, kb, ke, 0, 1)
+      !    end do
+      ! end if
 
-      if (loneeqn) then
-         e120(ib - m, :, :) = e120(ie + 1 - m, :, :)
-         e120(ie + m, :, :) = e120(ib - 1 + m, :, :)
-         e12m(ib - m, :, :) = e12m(ie + 1 - m, :, :)
-         e12m(ie + m, :, :) = e12m(ib - 1 + m, :, :)
-      end if
 
       return
    end subroutine cyclicmi
@@ -898,7 +942,7 @@ contains
       use modglobal, only:ib, ie, jb, je, ih, jh, kb, ke, kh, linoutflow, dxfi, iinletgen, &
          Uinf, libm, jmax, idriver
       use modfields, only:pres0, up, vp, wp, um, w0, u0, uouttot
-      use modmpi, only:excjs, myid
+      use modmpi, only:excjs, excis, myid
       use modinletdata, only:irecy, u0inletbc, ddispdx, u0driver
 
       real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb:ke + kh), intent(inout) :: pup
@@ -961,8 +1005,11 @@ contains
          end do
          do k = kb, ke
             do j = jb, je
-               pup(ie + 1, j, k) = pup(ib, j, k) ! cyclic
-               !pup(ib - 1, j, k) = pup(ie, j, k) ! tg3315 is this condition not needed? Was not here before but I think exists in Dales4.0 in modpois...!?
+               ! pup(ie + 1, j, k) = pup(ib, j, k) ! cyclic
+               ! !pup(ib - 1, j, k) = pup(ie, j, k) ! tg3315 is this condition not needed? Was not here before but I think exists in Dales4.0 in modpois...!?
+               call excis(pup, ib, ie, jb, je, kb, ke + kh, ih, jh) ! cyclic
+               call excis(pvp, ib, ie, jb, je, kb, ke + kh, ih, jh) ! cyclic
+               call excis(pwp, ib, ie, jb, je, kb, ke + kh, ih, jh) ! cyclic
             end do
          end do
       endif
@@ -978,7 +1025,7 @@ contains
 
       use modglobal, only:ib, ie, jb, je, ih, jh, kb, ke, kh, linoutflow, dxfi
       use modfields, only:pres0, up, u0, um, uouttot
-      use modmpi, only:excj
+      use modmpi, only:excj,exci
 
       real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb - kh:ke + kh), intent(inout) :: p !< pressure
       integer i, j, k
@@ -994,16 +1041,20 @@ contains
             enddo
          enddo
       else
-         do k = kb, ke
-            do j = jb, je
-               p(ib - 1, j, k) = p(ie, j, k)
-               p(ie + 1, j, k) = p(ib, j, k)
-            enddo
-         enddo
+         ! do k = kb, ke
+         !    do j = jb, je
+         !       p(ib - 1, j, k) = p(ie, j, k)
+         !       p(ie + 1, j, k) = p(ib, j, k)
+         !    enddo
+         ! enddo
+         call exci(p, ib-1, ie+1, jb-1, je+1, kb-1, ke+1) ! cyclic
+         call exci(pres0, ib-1, ie+1, jb-1, je+1, kb-1, ke+1) ! cyclic
       endif
 
       call excj(p, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1) ! cyclic
       call excj(pres0, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1) ! cyclic
+      ! Can be replaced by following?
+      !call excj(p, ib, ie, jb, je, kb - 1, ke + 1) etc
 
    end subroutine bcp
 

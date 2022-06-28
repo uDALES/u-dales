@@ -140,7 +140,7 @@ contains
 
         do while(xtimes(ncall+1) < timee - spacing(1.))
             ncall=ncall+1
-            if (ncall >= nrec) exit 
+            if (ncall >= nrec) exit
         end do
         deallocate(xtimes)
        end if
@@ -201,8 +201,8 @@ contains
     iret = nf90_inq_dimid(ncid,'zts',ztsId)
     iret = nf90_inq_dimid(ncid,'fct',fctId) ! so4718 for energy balance output
     iret = nf90_inq_dimid(ncid,'lyr',lyrId) ! so4718 for energy balance output
-    
-    iret = nf90_redef(ncid) 
+
+    iret = nf90_redef(ncid)
     dim_tt = (/ztId,timeId/)
     dim_mt = (/zmId,timeId/)
 
@@ -231,10 +231,10 @@ contains
     dim_t0tts= (/xtID,ztsID,timeId/)! thermo soil point
     dim_0ttts= (/ytID,ztsID,timeId/)! thermo point
     dim_tttts= (/xtID,ytID,ztsID,timeId/)! thermo point
-    
+
     dim_ft = (/fctID,timeId/)
     dim_flt = (/fctID,lyrID,timeId/)
-    
+
     do n=1,nVar
 !      write(*,*) 'n', n
 !      write(*,*) "dummyline1"
@@ -302,7 +302,7 @@ contains
           iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_0ttts,VarID)
         case ('tttts')
           iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_tttts,VarID)
-       
+
 !Facet information
 		case ('ft')
 		  iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_ft,VarID)
@@ -345,27 +345,29 @@ contains
    if (status /= nf90_noerr) call nchandle_error(status)
  end subroutine exitstat_nc
   subroutine writestat_dims_nc(ncid)
-    use modglobal, only : xf,xh,dy,zf,zh,jmax
-    use modmpi, only : myid
+    use modglobal, only : xf,xh,dy,zf,zh,jmax,imax
+    use modmpi, only : myidx, myidy
     implicit none
     integer, intent(in) :: ncid
     integer             :: i=0,iret,length,varid
     write(*,*) 'writestat_dims_nc'
     iret = nf90_inq_varid(ncid, 'xt', VarID)
     if (iret==0) iret=nf90_inquire_dimension(ncid, xtID, len=length)
-    !if (iret==0) iret = nf90_put_var(ncid, varID, zf(1:length),(/1/))
-    if (iret==0) iret = nf90_put_var(ncid, varID, xf(1:length),(/1/))
-    
+    !!if (iret==0) iret = nf90_put_var(ncid, varID, zf(1:length),(/1/))
+    !if (iret==0) iret = nf90_put_var(ncid, varID, xf(1:length),(/1/))
+    if (iret==0) iret = nf90_put_var(ncid, varID, (/(xf(i+imax*myidx),i=1,length)/),(/1/))
+
     iret = nf90_inq_varid(ncid, 'xm', VarID)
     if (iret==0) iret=nf90_inquire_dimension(ncid, xmID, len=length)
-    if (iret==0) iret = nf90_put_var(ncid, varID, xh(1:length),(/1/))
+    !if (iret==0) iret = nf90_put_var(ncid, varID, xh(1:length),(/1/))
+    if (iret==0) iret = nf90_put_var(ncid, varID, (/(xh(i+imax*myidx),i=1,length)/),(/1/))
 
     iret = nf90_inq_varid(ncid, 'yt', VarID)
     if (iret==0) iret=nf90_inquire_dimension(ncid, ytID, len=length)
-    if (iret==0) iret = nf90_put_var(ncid, varID, (/(dy*(0.5+i)+myid*jmax*dy,i=0,length-1)/),(/1/))
+    if (iret==0) iret = nf90_put_var(ncid, varID, (/(dy*(0.5+i)+myidy*jmax*dy,i=0,length-1)/),(/1/))
     iret = nf90_inq_varid(ncid, 'ym', VarID)
     if (iret==0) iret=nf90_inquire_dimension(ncid, ymID, len=length)
-    if (iret==0) iret = nf90_put_var(ncid, varID, (/(dy*i+myid*jmax*dy,i=0,length-1)/),(/1/))
+    if (iret==0) iret = nf90_put_var(ncid, varID, (/(dy*i+myidy*jmax*dy,i=0,length-1)/),(/1/))
 
     iret = nf90_inq_varid(ncid, 'zt', VarID)
     if (iret==0) iret=nf90_inquire_dimension(ncid,ztID, len=length)
@@ -437,7 +439,8 @@ contains
     implicit none
     integer, intent(in)                      :: ncid,nvar,dim1,dim2,dim3
     integer, intent(in)                      :: nrec
-    real,dimension(dim1,dim2,dim3,nvar),intent(in)       :: vars
+    !real,dimension(dim1,dim2,dim3,nvar),intent(in)       :: vars
+    real,intent(in)       :: vars(0:dim1-1,0:dim2-1,0:dim3-1,nvar)
     character(*), dimension(:,:),intent(in)  :: ncname
 
     integer :: iret,n,varid
@@ -455,7 +458,9 @@ contains
            !write(*,*) 'jmax',dim2
            !write(*,*) 'kmax',dim3
            !write(*,*) 'shape(vars)',shape(vars)
-      iret = nf90_put_var(ncid, VarID, vars(1:dim1,1:dim2,1:dim3,n),(/1,1,1,nrec/),(/dim1,dim2,dim3,1/))
+      !iret = nf90_put_var(ncid, VarID, vars(1:dim1,1:dim2,1:dim3,n),(/1,1,1,nrec/),(/dim1,dim2,dim3,1/))
+      iret = nf90_put_var(ncid, VarID, vars(:,:,:,n),(/1,1,1,nrec/),(/dim1,dim2,dim3,1/))
+
     end do
     iret = nf90_sync(ncid)
 

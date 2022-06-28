@@ -56,7 +56,7 @@ module modstartup
 
       use modglobal,         only : initglobal, iexpnr, runtime, dtmax,  &
                                     lwarmstart, lstratstart, lfielddump, lreadscal, startfile, tfielddump, fieldvars, tsample, tstatsdump, trestart, &
-                                    nsv, itot, jtot, kmax, xlength, ylength, xlat, xlon, xday, xtime, lwalldist, &
+                                    nsv, itot, jtot, ktot, xlen, ylen, xlat, xlon, xday, xtime, lwalldist, &
                                     lmoist, lcoriol, igrw_damp, geodamptime, ifnamopt, fname_options, &
                                     xS,yS,zS,SS,sigS,iwallmom,iwalltemp,iwallmoist,iwallscal,ipoiss,iadv_mom,iadv_tke,iadv_thl,iadv_qt,iadv_sv,courant,diffnr,ladaptive,author,&
                                     linoutflow, lper2inout, libm, lnudge, tnudge, nnudge, lles, luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, &
@@ -76,7 +76,7 @@ module modstartup
       use modboundary,       only : initboundary, ksp
       use modthermodynamics, only : initthermodynamics, lqlnr, chi_half
       use modsubgrid,        only : initsubgrid
-      use modmpi,            only : comm3d, myid, mpi_integer, mpi_logical, my_real, mpierr, mpi_character, nprocx, nprocy
+      use modmpi,            only : comm3d, myid, myidx, myidy, cmyid, cmyidx, cmyidy, mpi_integer, mpi_logical, my_real, mpierr, mpi_character, nprocx, nprocy, nbreast, nbrwest, nbrnorth, nbrsouth
       use modinlet,          only : initinlet
       use modinletdata,      only : di, dr, di_test, dti, iangledeg, iangle
       use modibmdata,        only : bctfxm, bctfxp, bctfym, bctfyp, bctfz
@@ -87,6 +87,7 @@ module modstartup
       implicit none
       integer :: ierr
       logical, dimension(3) :: periodic_bc
+      integer, dimension(2) :: myids
 
       !declare namelists
 
@@ -100,7 +101,7 @@ module modstartup
          lreadmean, &
          nprocx, nprocy
       namelist/DOMAIN/ &
-         itot, jtot, kmax, xlength, ylength, &
+         itot, jtot, ktot, xlen, ylen, &
          xlat, xlon, xday, xtime, ksp
       namelist/PHYSICS/ &
          ps, igrw_damp, lmoist, lcoriol, lbuoyancy, ltempeq, &
@@ -263,19 +264,34 @@ module modstartup
          close (ifnamopt)
       end if
 
-      call MPI_BCAST(nprocx ,1,MPI_INTEGER,0,comm3d,mpierr)
-      call MPI_BCAST(nprocy ,1,MPI_INTEGER,0,comm3d,mpierr)
+      call MPI_BCAST(itot,1,MPI_INTEGER,0,comm3d,mpierr)
+      call MPI_BCAST(jtot,1,MPI_INTEGER,0,comm3d,mpierr)
+      call MPI_BCAST(ktot,1,MPI_INTEGER,0,comm3d,mpierr)
+      call MPI_BCAST(nprocx,1,MPI_INTEGER,0,comm3d,mpierr)
+      call MPI_BCAST(nprocy,1,MPI_INTEGER,0,comm3d,mpierr)
 
       thvs = thls*(1.+(rv/rd - 1.)*qts)
+
+      !call init2decomp
 
       periodic_bc(1) = .true. !change this to match linoutflow
       periodic_bc(2) = .true.
       periodic_bc(3) = .false.
-      call decomp_2d_init(itot,jtot,kmax,nprocx,nprocy,periodic_bc)
-      write(*,*) myid, nrank
+      call decomp_2d_init(itot,jtot,ktot,nprocx,nprocy,periodic_bc)
       myid = nrank
+      write(cmyid,'(i3.3)') myid
 
       comm3d = DECOMP_2D_COMM_CART_Z
+      call MPI_CART_COORDS(comm3d,myid,2,myids,mpierr)
+      myidx = myids(1)
+      myidy = myids(2)
+      write(cmyidx,'(i3.3)') myidx
+      write(cmyidy,'(i3.3)') myidy
+
+      call MPI_CART_SHIFT(comm3d, 0,  1, nbrwest,  nbreast ,   mpierr)
+      call MPI_CART_SHIFT(comm3d, 1,  1, nbrsouth, nbrnorth,   mpierr)
+
+      write(*,*) myid, myidx, myidy
 
       if (myid==0) then
         write(*,*) nprocx, nprocy
@@ -370,9 +386,9 @@ module modstartup
       call MPI_BCAST(tscale, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(itot, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(jtot, 1, MPI_INTEGER, 0, comm3d, mpierr)
-      call MPI_BCAST(kmax, 1, MPI_INTEGER, 0, comm3d, mpierr)
-      call MPI_BCAST(xlength, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(ylength, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(ktot, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(xlen, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(ylen, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(xlat, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(xlon, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(xday, 1, MY_REAL, 0, comm3d, mpierr)
@@ -454,18 +470,18 @@ module modstartup
 
       ! Allocate and initialize core modules
       call initglobal
-      ! write (*, *) "done initglobal"
-      ! call initfields
-      ! write (*, *) "done initfields"
-      ! call initboundary
-      ! write (*, *) "done initboundayi"
+      write (*, *) "done initglobal"
+      call initfields
+      write (*, *) "done initfields"
+      call initboundary
+      write (*, *) "done initboundary"
       ! call initthermodynamics
       ! write (*, *) "done initthermodynamics"
       ! !!depreated!!
       ! ! call initsurface
       ! write (*, *) "done initsurface"
-      ! call initsubgrid
-      ! write (*, *) "done initsubgrid"
+      call initsubgrid
+      write (*, *) "done initsubgrid"
       ! call initpois
       ! write (*, *) "done initpois"
       ! call initinlet ! added by J. Tomas: initialize inlet generator
@@ -480,8 +496,8 @@ module modstartup
       ! ! calculate fluid volume and outlet areas, needs masking matrices
       ! call calcfluidvolumes
       !
-      ! call readinitfiles
-      ! write (*, *) "done readinitfiles"
+      call readinitfiles
+      write (*, *) "done readinitfiles"
       ! write (*, *) "done startup"
       !
       ! call createscals
@@ -507,11 +523,11 @@ module modstartup
       !-----------------------------------------------------------------|
 
       use modsurfdata, only : wtsurf, wqsurf, qts, ps
-      use modglobal, only   : itot,kmax,jtot,ylength,xlength,dxf,ib,ie,&
+      use modglobal, only   : itot,ktot,jtot,ylen,xlen,dxf,ib,ie,&
                               dtmax,runtime,startfile,lwarmstart,lstratstart,&
                               BCxm,BCxT,BCxq,BCxs,BCtopm,BCbotm,&
                               iinletgen,linoutflow,ltempeq,iwalltemp,iwallmom,&
-                              ipoiss,POISS_FFT,POISS_CYC
+                              ipoiss,POISS_FFT2D,POISS_FFT3D,POISS_CYC
       use modmpi, only      : myid, comm3d, mpierr, MPI_INTEGER, MPI_LOGICAL, nprocx, nprocy
       use modglobal, only   : idriver
       implicit none
@@ -528,7 +544,7 @@ module modstartup
          stop 1
       end if
 
-      if (ipoiss==POISS_FFT) then
+      if (ipoiss==POISS_FFT2D) then
         if(mod(itot,nprocx)/=0)then
           if(myid==0)then
             write(0,*)'STOP ERROR IN NUMBER OF PROCESSORS'
@@ -540,11 +556,11 @@ module modstartup
         end if
       end if
 
-      if (mod(kmax, nprocy) /= 0) then ! Only when doing CR
+      if (mod(ktot, nprocy) /= 0) then ! Only when doing CR
          if (myid == 0) then
             write (0, *) 'STOP ERROR IN NUMBER OF PROCESSORS'
-            write (0, *) 'nprocs must divide kmax!!! '
-            write (0, *) 'nprocs and kmax are: ', nprocy, kmax
+            write (0, *) 'nprocs must divide ktot!!! '
+            write (0, *) 'nprocs and ktot are: ', nprocy, ktot
          end if
          call MPI_FINALIZE(mpierr)
          stop 1
@@ -563,12 +579,12 @@ module modstartup
          write(0, *) 'ERROR: psout of range/not set'
          stop 1
       end if
-      if (xlength < 0) then
-         write(0, *) 'ERROR: xlength out of range/not set'
+      if (xlen < 0) then
+         write(0, *) 'ERROR: xlen out of range/not set'
          stop 1
       end if
-      if (ylength < 0) then
-         write(0, *) 'ERROR: ylength out of range/not set'
+      if (ylen < 0) then
+         write(0, *) 'ERROR: ylen out of range/not set'
          stop 1
       end if
 
@@ -667,7 +683,7 @@ module modstartup
          write(*, *) "WARNING: consider using FFT poisson solver for better performance!"
       end if
 
-      if ((ipoiss == POISS_FFT) .and. (inequi)) then
+      if ((ipoiss == POISS_FFT2D) .and. (inequi)) then
          write(*, *) "ERROR: POISS_FFT requires equidistant grid. Aborting..."
          call MPI_FINALIZE(mpierr)
          stop 1
@@ -686,16 +702,16 @@ module modstartup
             use modglobal,         only : ib,ie,ih,jb,je,jh,kb,ke,kh,khc,kmax,dtmax,dt,runtime,timeleft,timee,ntimee,ntrun,btime,dt_lim,nsv,&
          zf, zh, dzf, dzh, rv, rd, grav, cp, rlv, pref0, om23_gs, jgb, jge, Uinf, Vinf, dy, &
          rslabs, e12min, dzh, dtheta, dqt, dsv, cexpnr, ifinput, lwarmstart, lstratstart, trestart, numol, &
-         ladaptive, tnextrestart, jmax, linoutflow, lper2inout, iinletgen, lreadminl, &
+         ladaptive, tnextrestart, jmax, imax, xh, xf, linoutflow, lper2inout, iinletgen, lreadminl, &
          uflowrate, vflowrate,ltempeq, prandtlmoli, freestreamav, &
          tnextfielddump, tfielddump, tsample, tstatsdump, startfile, lprofforc, lchem, k1, JNO2,&
-         idriver,dtdriver,driverstore,tdriverstart,tdriverdump
+         idriver,dtdriver,driverstore,tdriverstart,tdriverdump,xlen,ylen
       use modsubgriddata, only:ekm, ekh
       use modsurfdata, only:wtsurf, wqsurf, wsvsurf, &
          thls, thvs, ps, qts, svs, sv_top
       ! use modsurface,        only : surface,dthldz
       use modboundary, only:boundary, tqaver
-      use modmpi, only:slabsum, myid, comm3d, mpierr, my_real, avexy_ibm
+      use modmpi, only:slabsum, myid, comm3d, mpierr, my_real, avexy_ibm, myidx, myidy
       use modthermodynamics, only:thermodynamics, calc_halflev
       use modinletdata, only:Uinl, Urec, Wrec, u0inletbc, v0inletbc, w0inletbc, ubulk, irecy, Utav, Ttav, &
          uminletbc, vminletbc, wminletbc, u0inletbcold, v0inletbcold, w0inletbcold, &
@@ -895,8 +911,8 @@ module modstartup
                thlm(i, j, k) = thlprof(k)
                qt0(i, j, k) = qtprof(k)
                qtm(i, j, k) = qtprof(k)
-               u0(i, j, k) = uprof(k)
-               um(i, j, k) = uprof(k)
+               !u0(i, j, k) = uprof(k)
+               !um(i, j, k) = uprof(k)
                v0(i, j, k) = vprof(k)
                vm(i, j, k) = vprof(k)
                w0(i, j, k) = 0.0
@@ -911,6 +927,15 @@ module modstartup
             end do
             end do
 
+            do k = kb, ke
+              do j = jb, je
+                do i = ib, ie
+                  u0(i, j, k) = uprof(k)
+                  um(i, j, k) = uprof(k)
+                end do
+              end do
+            end do
+
             ekh(:, :, ke + 1) = ekh(:, :, ke) ! also for start up
 
             ! ILS13 30.11.17, added, not sure if necessary
@@ -922,17 +947,17 @@ module modstartup
                end do
             end do
 
-            !! add random fluctuations
-            krand = min(krand, ke)
-            do k = kb, krand
-               call randomnize(um, k, randu, irandom, ih, jh)
-            end do
-            do k = kb, krand
-               call randomnize(vm, k, randu, irandom, ih, jh)
-            end do
-            do k = kb, krand
-               call randomnize(wm, k, randu, irandom, ih, jh)
-            end do
+            ! !! add random fluctuations
+            ! krand = min(krand, ke)
+            ! do k = kb, krand
+            !    call randomnize(um, k, randu, irandom, ih, jh)
+            ! end do
+            ! do k = kb, krand
+            !    call randomnize(vm, k, randu, irandom, ih, jh)
+            ! end do
+            ! do k = kb, krand
+            !    call randomnize(wm, k, randu, irandom, ih, jh)
+            ! end do
 
             !       do k=kb+1,ke-1
             !       do j=jb,je
@@ -963,6 +988,27 @@ module modstartup
             !       end do
             !       end do
             !       end do
+
+            ! SO: Manually override fields with TGV IC
+            ! do i = ib,ie
+            !   do j = jb,je
+            !     do k = kb,ke
+            !       um(i,j,k) =  cos(4.*atan(1.) * 2. * xh(i + myidx * imax) / ylen) * sin(4.*atan(1.) * 2. * (dy*(0.5+(j-1))+myidy*jmax*dy) / ylen)
+            !       vm(i,j,k) = -sin(4.*atan(1.) * 2. * xf(i + myidx * imax) / ylen) * cos(4.*atan(1.) * 2. * (dy*(j-1)+myidy*jmax*dy) / ylen)
+            !       wm(i,j,k) = 0.
+            !     end do
+            !   end do
+            ! end do
+
+            do i = ib,ie
+              do j = jb,je
+                do k = kb,ke
+                  um(i,j,k) = (i + myidx*imax) * (j + myidy*jmax)
+                  vm(i,j,k) = 0.
+                  wm(i,j,k) = 0.
+                end do
+              end do
+            end do
 
             u0 = um
             v0 = vm
@@ -1199,12 +1245,13 @@ module modstartup
          ! exnf = (presf/pref0)**(rd/cp)  !exner functions not in restart files
          ! anymore.. or at least not read
          ! exnh = (presh/pref0)**(rd/cp)
-
-            call boundary ! tg3315 17.10.17 having this in startup was causing issues for running with lmoist ! turned of when pot. temp = temp.
-            call thermodynamics ! turned off when pot. temp = temp.
-
-            call boundary
-            call thermodynamics ! turned off when pot. temp = temp.
+         !
+         ! call boundary ! tg3315 17.10.17 having this in startup was causing issues for running with lmoist ! turned of when pot. temp = temp.
+         ! SO: can't do this yet because uses u0 and it does not include halo cells
+         !    call thermodynamics ! turned off when pot. temp = temp.
+         !
+         !    call boundary
+         !    call thermodynamics ! turned off when pot. temp = temp.
 
          else !if lwarmstart
             write (*, *) "doing warmstart"

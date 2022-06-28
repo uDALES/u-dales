@@ -24,7 +24,7 @@ program DALESURBAN      !Version 48
 !!----------------------------------------------------------------
 !!     0.0    USE STATEMENTS FOR CORE MODULES
 !!----------------------------------------------------------------
-  use modmpi,            only : initmpi, exitmpi
+  use modmpi,            only : initmpi, exitmpi, myid
   !use modtest,           only : inittest, exittest
   use modglobal,         only : rk3step,timeleft,ib,jb,kb,ke
   use modstartup,        only : startup,exitmodules
@@ -60,10 +60,11 @@ program DALESURBAN      !Version 48
 !---------------------------------------------------------
 !      2     INITIALIZE STATISTICAL ROUTINES AND ADD-ONS
 !---------------------------------------------------------
-  !call initchecksim
-  !call initstat_nc
-
-  !call initfielddump
+  call initchecksim ! Could be deprecated
+  call initstat_nc ! Could be deprecated
+  write(*,*) "done inistat_nc"
+  call initfielddump
+  write(*,*) "done initfielddump"
   !call initstatsdump !tg3315
 
   !call readfacetfiles
@@ -84,10 +85,11 @@ program DALESURBAN      !Version 48
 !------------------------------------------------------
 !   3.0   MAIN TIME LOOP
 !------------------------------------------------------
-  !write(*,*)'START myid ', myid
-  !do while ((timeleft>0) .or. (rk3step < 3))
-    !call tstep_update
-
+  write(*,*)'START myid ', myid
+  do while ((timeleft>0) .or. (rk3step < 3))
+    !write(*,*) timeleft
+    call tstep_update
+    write(*,*) "done tstep_update"
 !-----------------------------------------------------
 !   3.2   ADVECTION AND DIFFUSION
 !-----------------------------------------------------
@@ -155,11 +157,12 @@ program DALESURBAN      !Version 48
     !call checksim
    ! call writedatafiles   ! write data files for later analysis
     !call writerestartfiles
-    !call fielddump
+    call fielddump
+    write(*,*) "done fielddump"
     !call statsdump        ! tg3315
 
-  !end do
-
+  end do
+  write(*,*) "done timestepping"
 !-------------------------------------------------------
 !             END OF TIME LOOP
 !-------------------------------------------------------
@@ -167,10 +170,12 @@ program DALESURBAN      !Version 48
 !--------------------------------------------------------
 !    4    FINALIZE ADD ONS AND THE MAIN PROGRAM
 !-------------------------------------------------------
-  !call exitfielddump
+  call exitfielddump
+  write(*,*) myid, "done exitfielddump"
   !call exitstatsdump     !tg3315
   !call exitmodules
   !call exittest
   call exitmpi
+  write(*,*) myid, "done exitmpi"
 
 end program DALESURBAN

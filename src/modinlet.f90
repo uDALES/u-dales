@@ -2236,7 +2236,7 @@ contains
 
 
   subroutine readzincoord
-  use modglobal,   only :  kb,ke,kh,ifinput,zf,zh,ylength,jb,je,dy
+  use modglobal,   only :  kb,ke,kh,ifinput,zf,zh,ylen,jb,je,dy
   use modmpi,      only :  myid, mpi_integer,comm3d,mpierr,my_real,nprocs
   implicit none
   character(72) chmess
@@ -2377,8 +2377,8 @@ contains
      jtotin = jgtotinl / nprocsinl
      jbin = 1
      jein = 1 + jtotin -1
-     ysizeproc = ylength/nprocs
-     dyin = ylength / jgtotinl
+     ysizeproc = ylen/nprocs
+     dyin = ylen / jgtotinl
      jbdum = 1
      jtotdum = ceiling(ysizeproc/real(dyin))+1                    ! dummy indices
      jedum = jbdum + jtotdum-1
@@ -2406,7 +2406,7 @@ contains
      end do
     ! make new y-grid (equidistant)
      do j = jb,je+1
-       yh(j) = myid*(ylength/nprocs) + (j-jb)*dy
+       yh(j) = myid*(ylen/nprocs) + (j-jb)*dy
        yf(j) = yh(j) + 0.5*dy
      end do
 
