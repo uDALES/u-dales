@@ -151,6 +151,11 @@ module modglobal
    integer :: ifixuinf = 0
    logical :: lvinf = .false. !use Vinf instead of Uinf for the fixed velocity at infinity
 
+   logical :: ibrank
+   logical :: ierank
+   logical :: jbrank
+   logical :: jerank
+
    real    :: freestreamav = 0. !
    real    :: freestrtmpav = 0. !
    !<  Global constants modconst.f90
@@ -407,6 +412,7 @@ contains
          ih = 2
          jh = 2
          kh = 1
+         ! SO: think this is inconsistent
       elseif (any(advarr == iadv_cd2) .or. any(iadv_sv(1:nsv) == iadv_cd2)) then
          ih = 1
          jh = 1
@@ -429,7 +435,7 @@ contains
       jb = 1
       jgb = jb ! global j range (starting at the same as j as the processor j range)
       jge = jtot ! global j range
-      kb = 0 ! Make redundant
+      kb = 1 ! Make redundant
 
       !kmax = ktot
 
@@ -448,7 +454,37 @@ contains
 
       ie = imax
       je = jmax
-      ke = kmax - 1
+      ke = kmax
+
+      decomp_main%zlevel = (/ih, jh, kh/)
+
+      write(*,*) "myid, zend", myid, zend
+
+      if (zstart(1) == 1) then
+        ibrank = .true.
+      else
+        ibrank = .false.
+      end if
+
+      if (zend(1) == itot) then
+        ierank = .true.
+      else
+        ierank = .false.
+      end if
+
+      if (zstart(2) == 1) then
+        jbrank = .true.
+      else
+        jbrank = .false.
+      end if
+
+      if (zend(2) == jtot) then
+        jerank = .true.
+      else
+        jerank = .false.
+      end if
+
+      !write(*,*) "myid, ibrank, ierank", myid, ibrank, ierank
 
       ! Global constants
 

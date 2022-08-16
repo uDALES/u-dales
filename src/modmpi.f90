@@ -57,16 +57,19 @@ save
 
 contains
   subroutine initmpi
+    use decomp_2d, only : nrank, nproc
     implicit none
-    integer dims(1)
-    logical periods(1)
-    integer periods2(1)
+    ! integer dims(1)
+    ! logical periods(1)
+    ! integer periods2(1)
 
      call MPI_INIT(mpierr)
      MY_REAL = MPI_DOUBLE_PRECISION  !MPI_REAL8 should be the same..
      comm3d = MPI_COMM_WORLD
-     call MPI_COMM_RANK( MPI_COMM_WORLD, myid, mpierr )
-     call MPI_COMM_SIZE( MPI_COMM_WORLD, nprocs, mpierr )
+     call MPI_COMM_RANK( MPI_COMM_WORLD, nrank, mpierr )
+     call MPI_COMM_SIZE( MPI_COMM_WORLD, nproc, mpierr )
+     myid = nrank
+     nprocs = nproc
 ! ! Specify the # procs in each direction.
 ! ! specifying a 0 means that MPI will try to find a useful # procs in
 ! ! the corresponding  direction,

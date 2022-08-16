@@ -37,19 +37,10 @@ subroutine advection
    use decomp_2d
    implicit none
    integer :: n
-   !real(mytype), allocatable :: utest(:,:,:) ! Work array for advection halos
-   ! real(mytype), allocatable :: vh(:,:,:) ! Work array for advection halos
-   ! real(mytype), allocatable :: wh(:,:,:) ! Work array for advection halos
-   ! real(mytype), allocatable :: pres0h(:,:,:) ! Work array for advection halos
 
    select case (iadv_mom)
    case (iadv_cd2)
-     !call update_halo(u0,uh(:,:,kb:ke),1)
-     !call update_halo(v0,vh(:,:,kb:ke),1)
-     !call update_halo(w0,wh(:,:,kb:ke),1)
-     !call update_halo(pres0,pres0h(:,:,kb:ke),1)
      call advecu_2nd(u0,up)
-
      call advecv_2nd(v0,vp)
      call advecw_2nd(w0,wp)
    case default

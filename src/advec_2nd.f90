@@ -101,63 +101,10 @@ subroutine advecu_2nd(putin, putout)
    use decomp_2d
    implicit none
 
-   !real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb - kh:ke + kh), intent(in)  :: putin !< Input: the u-field
-   !real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb:ke + kh), intent(inout) :: putout !< Output: the tendency
-   real(mytype), dimension(imax,jmax,ktot), intent(in) :: putin
-   real(mytype), dimension(imax,jmax,ktot), intent(inout) :: putout
-   ! real(mytype), dimension(0:imax+1,0:jmax+1,ktot), intent(in) :: uh
-   ! real(mytype), dimension(0:imax+1,0:jmax+1,ktot), intent(in) :: vh
-   ! real(mytype), dimension(0:imax+1,0:jmax+1,ktot), intent(in) :: wh
-   ! real(mytype), dimension(0:imax+1,0:jmax+1,ktot), intent(in) :: pres0h
-   ! real(mytype), allocatable :: putinh(:,:,:) ! Work array for advection halos
+   real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb - kh:ke + kh), intent(in)  :: putin !< Input: the u-field
+   real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb:ke + kh), intent(inout) :: putout !< Output: the tendency
 
    integer :: i, j, k, ip, im, jp, jm, kp, km, il, iu, jl, ju, kl, ku, n
-
-   !call update_halo(putin,putinh,1) ! putinh will be 0:imax+1,0:jmax+1,1:kmax - we don't have the top BC
-
-   ! do k = kb, ke
-   !    km = k - 1
-   !    kp = k + 1
-   !    do j = jb, je
-   !       jm = j - 1
-   !       jp = j + 1
-   !       do i = ib, ie
-   !          im = i - 1
-   !          ip = i + 1
-   !          putout(i,j,k) = putout(i,j,k) - ( &
-   !                            ( &
-   !                            (putinh(i,j,k) + putinh(ip,j,k))*(uh(i,j,k) + uh(ip,j,k)) &
-   !                            - (putinh(i,j,k) + putinh(im,j,k))*(uh(i,j,k) + uh(im,j,k)) & ! d(uu)/dx
-   !                            )*dxhiq(i) &
-   !                            + ( &
-   !                            (putinh(i,j,k) + putinh(i,jp,k))*(vh(i,jp,k) + vh(im,jp,k)) &
-   !                            - (putinh(i,j,k) + putinh(i,jm,k))*(vh(i,j,k) + vh(im,j,k)) & ! d(vu)/dy
-   !                            )*dyiq) &
-   !                            - ((pres0h(i,j,k) - pres0h(im,j,k))*dxhi(i)) ! - dp/dx
-   !
-   !       end do
-   !    end do
-   ! end do
-   !
-   ! ! Why is this done in another loop?
-   ! do j = jb, je
-   !    jm = j - 1
-   !    jp = j + 1
-   !    do i = ib, ie
-   !       im = i - 1
-   !       ip = i + 1
-   !       do k = kb, ke
-   !          km = k - 1
-   !          kp = k + 1
-   !          putout(i,j,k) = putout(i,j,k) - ( &
-   !                            (putinh(i,j,kp)*dzf(k) + putinh(i,j,k)*dzf(kp))*dzhi(kp) &
-   !                            *(wh(i,j,kp) + wh(im,j,kp)) &
-   !                            - (putinh(i,j,k)*dzf(km) + putinh(i,j,km)*dzf(k))*dzhi(k) &
-   !                            *(wh(i,j,k) + wh(im,j,k)) &
-   !                            )*0.5*dzfi5(k)
-   !       end do
-   !    end do
-   ! end do
 
    do k = kb, ke
       km = k - 1
@@ -286,7 +233,7 @@ subroutine advecw_2nd(putin, putout)
             im = i - 1
             ip = i + 1
 
-            putout(i, j, k) = -( &
+            putout(i, j, k) = putout(i, j, k) - ( &
                               ( &
                               (putin(ip, j, k)*dxf(i) + putin(i, j, k)*dxf(ip))*dxhi(ip) & ! d(uw)/dx
                               *(dzf(km)*u0(ip, j, k) + dzf(k)*u0(ip, j, km)) &

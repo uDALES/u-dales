@@ -24,7 +24,7 @@ program DALESURBAN      !Version 48
 !!----------------------------------------------------------------
 !!     0.0    USE STATEMENTS FOR CORE MODULES
 !!----------------------------------------------------------------
-  use modmpi,            only : initmpi, exitmpi, myid
+  use modmpi,            only : initmpi, exitmpi, myid, barrou
   !use modtest,           only : inittest, exittest
   use modglobal,         only : rk3step,timeleft,ib,jb,kb,ke
   use modstartup,        only : startup,exitmodules
@@ -76,16 +76,21 @@ program DALESURBAN      !Version 48
  ! call nearwall       ! determine minimum distance and corresponding shear components, ils13 10.07.17, commented, not functional at the moment, not needed for vreman but for smag., fix in modibm
   !write(6,*) 'Finished determining immersed walls'
 
-  !call boundary  !ils13 22.06.2017 inserted boundary here to get values at ghost cells before iteration starts
-
+  call boundary  !ils13 22.06.2017 inserted boundary here to get values at ghost cells before iteration starts
+  write(*,*) "done boundary"
 !  not necessary but abates the fact that temp field is randomised by randomisation of just velocity fields
 !  (because advection at start of time loop without being divergence free)
-!  call poisson
+  call poisson
+  write(*,*) "done poisson"
 
+  call fielddump
+  write(*,*) "done initial fielddump"
+  call barrou()
 !------------------------------------------------------
 !   3.0   MAIN TIME LOOP
 !------------------------------------------------------
-  write(*,*)'START myid ', myid
+  !write(*,*)'START myid ', myid
+  !do while (.false.)
   do while ((timeleft>0) .or. (rk3step < 3))
     !write(*,*) timeleft
     call tstep_update
@@ -94,9 +99,11 @@ program DALESURBAN      !Version 48
 !   3.2   ADVECTION AND DIFFUSION
 !-----------------------------------------------------
 
-    !call advection                ! now also includes predicted pressure gradient term
-
-    !call subgrid
+    call advection                ! now also includes predicted pressure gradient term
+    write(*,*) "done advection"
+    write(*,*) "doing subgrid"
+    call subgrid
+    write(*,*) "done subgrid"
 !-----------------------------------------------------
 !   3.3   THE SURFACE LAYER
 !-----------------------------------------------------
@@ -137,12 +144,12 @@ program DALESURBAN      !Version 48
 !-----------------------------------------------------------------------
     !call grwdamp        !damping at top of the model
 
-    !call poisson
-
-    !call tstep_integrate
-
-    !call boundary
-
+    call poisson
+    write(*,*) "done poisson"
+    call tstep_integrate
+    write(*,*) "done tstep_integrate"
+    call boundary
+    write(*,*) "done boundary"
     !call fixthetainf
 
 !-----------------------------------------------------
@@ -154,7 +161,7 @@ program DALESURBAN      !Version 48
 !   3.7  WRITE RESTARTFILES AND DO STATISTICS
 !------------------------------------------------------
 
-    !call checksim
+    call checksim
    ! call writedatafiles   ! write data files for later analysis
     !call writerestartfiles
     call fielddump
@@ -175,6 +182,7 @@ program DALESURBAN      !Version 48
   !call exitstatsdump     !tg3315
   !call exitmodules
   !call exittest
+
   call exitmpi
   write(*,*) myid, "done exitmpi"
 

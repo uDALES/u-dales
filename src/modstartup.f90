@@ -274,24 +274,30 @@ module modstartup
 
       !call init2decomp
 
-      periodic_bc(1) = .true. !change this to match linoutflow
+      !if (BCxm == 1) then
+        periodic_bc(1) = .true.
+      !else
+        !periodic_bc(1) = .false.
+      !end if
+
       periodic_bc(2) = .true.
       periodic_bc(3) = .false.
       call decomp_2d_init(itot,jtot,ktot,nprocx,nprocy,periodic_bc)
-      myid = nrank
+      !myid = nrank
       write(cmyid,'(i3.3)') myid
 
       comm3d = DECOMP_2D_COMM_CART_Z
+      write(*,*) "myid", myid
       call MPI_CART_COORDS(comm3d,myid,2,myids,mpierr)
+      write(*,*) "myids", myids
       myidx = myids(1)
       myidy = myids(2)
+      write(*,*) "myid", " myids", myid, myids
       write(cmyidx,'(i3.3)') myidx
       write(cmyidy,'(i3.3)') myidy
 
       call MPI_CART_SHIFT(comm3d, 0,  1, nbrwest,  nbreast ,   mpierr)
       call MPI_CART_SHIFT(comm3d, 1,  1, nbrsouth, nbrnorth,   mpierr)
-
-      write(*,*) myid, myidx, myidy
 
       if (myid==0) then
         write(*,*) nprocx, nprocy
@@ -488,8 +494,10 @@ module modstartup
       ! write (*, *) "done initinlet"
       ! call initdriver  ! added by ae1212: initialise driver inlet
       ! write(*,*) "done initdriver"
-      ! call checkinitvalues
-      ! write (*, *) "done checkinitvalues"
+      call checkinitvalues
+      write (*, *) "done checkinitvalues"
+      call initpois
+      write (*, *) "done initpois"
       ! write (6, *) 'Determine masking matrices'
       ! call createmasks ! determine walls/blocks
       ! write (6, *) 'Finished determining masking matrices'
@@ -653,6 +661,7 @@ module modstartup
          call MPI_BCAST(BCxs, 1, MPI_INTEGER, 0, comm3d, mpierr)
          call MPI_BCAST(BCtopm, 1, MPI_INTEGER, 0, comm3d, mpierr)
          call MPI_BCAST(linoutflow, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+         write(*,*) "linoutflow", linoutflow
 
       else if (BCxm .eq. 5) then
 
@@ -692,20 +701,20 @@ module modstartup
    end subroutine checkinitvalues
 
    subroutine readinitfiles
-      use modfields, only:u0, v0, w0, um, vm, wm, thlm, thl0, thl0h, qtm, qt0, qt0h, &
+      use modfields, only:u0, v0, w0, um, vm, wm, thlm, thl0, thl0h, qtm, qt0, qt0h, uinit, vinit, &
          ql0, ql0h, thv0h, sv0, svm, e12m, e120, &
          dudxls, dudyls, dvdxls, dvdyls, dthldxls, dthldyls, &
          dqtdxls, dqtdyls, dqtdtls, dpdx, dpdxl, dpdyl, &
          wfls, whls, ug, vg, pgx, pgy, uprof, vprof, thlprof, qtprof, e12prof, svprof, &
          v0av, u0av, qt0av, ql0av, thl0av, qt0av, sv0av, exnf, exnh, presf, presh, rhof, &
-         thlpcar, uav, thvh, thvf, IIc, IIcs, IIu, IIus, IIv, IIvs, IIw, IIws
+         thlpcar, uav, thvh, thvf, IIc, IIcs, IIu, IIus, IIv, IIvs, IIw, IIws, u0h
             use modglobal,         only : ib,ie,ih,jb,je,jh,kb,ke,kh,khc,kmax,dtmax,dt,runtime,timeleft,timee,ntimee,ntrun,btime,dt_lim,nsv,&
          zf, zh, dzf, dzh, rv, rd, grav, cp, rlv, pref0, om23_gs, jgb, jge, Uinf, Vinf, dy, &
          rslabs, e12min, dzh, dtheta, dqt, dsv, cexpnr, ifinput, lwarmstart, lstratstart, trestart, numol, &
          ladaptive, tnextrestart, jmax, imax, xh, xf, linoutflow, lper2inout, iinletgen, lreadminl, &
          uflowrate, vflowrate,ltempeq, prandtlmoli, freestreamav, &
          tnextfielddump, tfielddump, tsample, tstatsdump, startfile, lprofforc, lchem, k1, JNO2,&
-         idriver,dtdriver,driverstore,tdriverstart,tdriverdump,xlen,ylen
+         idriver,dtdriver,driverstore,tdriverstart,tdriverdump,xlen,ylen,itot,jtot
       use modsubgriddata, only:ekm, ekh
       use modsurfdata, only:wtsurf, wqsurf, wsvsurf, &
          thls, thvs, ps, qts, svs, sv_top
@@ -722,6 +731,7 @@ module modstartup
          nstepreaddriver
       use modinlet, only:readinletfile
       use moddriver, only: readdriverfile,initdriver,drivergen
+      use decomp_2d, only : exchange_halo_z, update_halo, decomp_main
 
       integer i, j, k, n
 
@@ -911,8 +921,8 @@ module modstartup
                thlm(i, j, k) = thlprof(k)
                qt0(i, j, k) = qtprof(k)
                qtm(i, j, k) = qtprof(k)
-               !u0(i, j, k) = uprof(k)
-               !um(i, j, k) = uprof(k)
+               u0(i, j, k) = uprof(k)
+               um(i, j, k) = uprof(k)
                v0(i, j, k) = vprof(k)
                vm(i, j, k) = vprof(k)
                w0(i, j, k) = 0.0
@@ -927,15 +937,6 @@ module modstartup
             end do
             end do
 
-            do k = kb, ke
-              do j = jb, je
-                do i = ib, ie
-                  u0(i, j, k) = uprof(k)
-                  um(i, j, k) = uprof(k)
-                end do
-              end do
-            end do
-
             ekh(:, :, ke + 1) = ekh(:, :, ke) ! also for start up
 
             ! ILS13 30.11.17, added, not sure if necessary
@@ -947,17 +948,17 @@ module modstartup
                end do
             end do
 
-            ! !! add random fluctuations
-            ! krand = min(krand, ke)
-            ! do k = kb, krand
-            !    call randomnize(um, k, randu, irandom, ih, jh)
-            ! end do
-            ! do k = kb, krand
-            !    call randomnize(vm, k, randu, irandom, ih, jh)
-            ! end do
-            ! do k = kb, krand
-            !    call randomnize(wm, k, randu, irandom, ih, jh)
-            ! end do
+            !! add random fluctuations
+            krand = min(krand, ke)
+            do k = kb, krand
+               call randomnize(um, k, randu, irandom, ih, jh)
+            end do
+            do k = kb, krand
+               call randomnize(vm, k, randu, irandom, ih, jh)
+            end do
+            do k = kb, krand
+               call randomnize(wm, k, randu, irandom, ih, jh)
+            end do
 
             !       do k=kb+1,ke-1
             !       do j=jb,je
@@ -989,30 +990,72 @@ module modstartup
             !       end do
             !       end do
 
-            ! SO: Manually override fields with TGV IC
-            ! do i = ib,ie
-            !   do j = jb,je
-            !     do k = kb,ke
-            !       um(i,j,k) =  cos(4.*atan(1.) * 2. * xh(i + myidx * imax) / ylen) * sin(4.*atan(1.) * 2. * (dy*(0.5+(j-1))+myidy*jmax*dy) / ylen)
-            !       vm(i,j,k) = -sin(4.*atan(1.) * 2. * xf(i + myidx * imax) / ylen) * cos(4.*atan(1.) * 2. * (dy*(j-1)+myidy*jmax*dy) / ylen)
-            !       wm(i,j,k) = 0.
-            !     end do
-            !   end do
-            ! end do
+            ! SO: Manually override fields
 
+            ! TGV
             do i = ib,ie
               do j = jb,je
                 do k = kb,ke
-                  um(i,j,k) = (i + myidx*imax) * (j + myidy*jmax)
-                  vm(i,j,k) = 0.
+                  um(i,j,k) = 1. * cos(4.*atan(1.) * 2. * xh(i + myidx * imax) / ylen) * sin(4.*atan(1.) * 2. * (dy*((0.5+(j-1))+myidy*jmax)) / ylen)
+                  u0(i,j,k) = um(i,j,k)
+                  uinit(i,j,k) = um(i,j,k)
+                  vm(i,j,k) = 1. *-sin(4.*atan(1.) * 2. * xf(i + myidx * imax) / ylen) * cos(4.*atan(1.) * 2. * (dy*((j-1)+myidy*jmax)) / ylen)
+                  v0(i,j,k) = vm(i,j,k)
+                  vinit(i,j,k) = vm(i,j,k)
                   wm(i,j,k) = 0.
+                  w0(i,j,k) = 0.
                 end do
               end do
             end do
 
-            u0 = um
-            v0 = vm
-            w0 = wm
+            ! ! zeros
+            ! do i = ib,ie
+            !   do j = jb,je
+            !     do k = kb,ke
+            !       um(i,j,k) = 0.
+            !       u0(i,j,k) = um(i,j,k)
+            !       uinit(i,j,k) = um(i,j,k)
+            !       vm(i,j,k) = 0.
+            !       v0(i,j,k) = vm(i,j,k)
+            !       vinit(i,j,k) = vm(i,j,k)
+            !       wm(i,j,k) = 0.
+            !       w0(i,j,k) = 0.
+            !     end do
+            !   end do
+            ! end do
+
+            ! ! ones
+            ! do i = ib,ie
+            !   do j = jb,je
+            !     do k = kb,ke
+            !       um(i,j,k) = 1.
+            !       u0(i,j,k) = um(i,j,k)
+            !       uinit(i,j,k) = um(i,j,k)
+            !       vm(i,j,k) = 1.
+            !       v0(i,j,k) = vm(i,j,k)
+            !       vinit(i,j,k) = vm(i,j,k)
+            !       wm(i,j,k) = 0.
+            !       w0(i,j,k) = 0.
+            !     end do
+            !   end do
+            ! end do
+
+            call exchange_halo_z(uinit)
+            call exchange_halo_z(vinit)
+
+
+            ! do i = ib,ie
+            !   do j = jb,je
+            !     do k = kb,ke
+            !       um(i,j,k) = (i + myidx*imax) * (j + myidy*jmax)
+            !       u0(i,j,k) = (i + myidx*imax) * (j + myidy*jmax)
+            !       vm(i,j,k) = 0.
+            !       v0(i,j,k) = 0.
+            !       wm(i,j,k) = 0.
+            !       w0(i,j,k) = 0.
+            !     end do
+            !   end do
+            ! end do
 
             uaverage = 0.
             ! call slabsum(uaverage, kb, ke, um, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1, ib, ie, jb, je, kb, ke)

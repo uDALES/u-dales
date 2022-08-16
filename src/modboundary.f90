@@ -67,19 +67,20 @@ contains
 
       use modglobal, only:ib, ie, ih, jb, je, jh, kb, ke, kh, linoutflow, dzf, zh, dy, &
          timee, ltempeq, lmoist, BCxm, BCym, BCxT, BCyT, BCxq, BCyq, BCxs, BCys, BCtopm, BCtopT,&
-         BCtopq, BCtops, e12min, idriver, luvolflowr, luoutflowr
+         BCtopq, BCtops, e12min, idriver, luvolflowr, luoutflowr, ihc, jhc, khc, nsv
       use modfields, only:u0, v0, w0, um, vm, wm, thl0, thlm, qt0, qtm, uout, uouttot, e120, e12m,&
-                          u0av
+                          u0av, sv0, svm
       use modsubgriddata, only:ekh, ekm
       use modsurfdata, only:thl_top, qt_top, sv_top, wttop, wqtop, wsvtop
       use modmpi, only:myid, slabsum
       use modinlet, only:inletgen, inletgennotemp
       use moddriver, only : drivergen
       use modinletdata, only:irecy, ubulk, iangle
+      use decomp_2d, only : exchange_halo_z
 !    use modsurface, only : getobl
       implicit none
       real, dimension(kb:ke) :: uaverage
-      integer i, k
+      integer i, k, n
 
      ! if not using massflowrate need to set outflow velocity
      if (luoutflowr) then
@@ -98,8 +99,17 @@ contains
 
      !BCxm!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
      !periodic or inflow/outflow conditions for momentum
+     !set halo cells first and then overwrite if inflow-outflow
+     call exchange_halo_z(u0)
+     call exchange_halo_z(v0)
+     call exchange_halo_z(w0)
+     call exchange_halo_z(um)
+     call exchange_halo_z(vm)
+     call exchange_halo_z(wm)
+     ! Need to also do loneeqn and lsmagorinsky if we decide to support them
+
       if (BCxm .eq. 1) then  !periodic
-         call cyclicmi
+         !call cyclicmi
 
          if (idriver == 1) then ! write driver files
            call drivergen
@@ -127,11 +137,11 @@ contains
 
       else if (BCxm .eq. 4) then !previously (inoutflow without iinlet)
          uouttot = cos(iangle)*ubulk
-         if (ltempeq) then
-            call inletgen
-         else
-            call inletgennotemp
-         end if
+         ! if (ltempeq) then
+         !    call inletgen
+         ! else
+         !    call inletgennotemp
+         ! end if
 
          ! iolet - called due to BCtopm = 3
 
@@ -151,15 +161,17 @@ contains
       !BCym!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !currently BC in y is always periodic for momentum
       if (BCym .eq. 1) then
-         call cyclicmj
+         !call cyclicmj
       else
          write(0, *) "ERROR: lateral boundary type for velocity in y-direction undefined"
          stop 1
       end if
 
       !BCxT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      call exchange_halo_z(thl0)
+      call exchange_halo_z(thlm)
       if (BCxT .eq. 1) then
-         call cyclichi
+         !call cyclichi
 
       else if (BCxT .eq. 2) then !inoutflow - will be overwritten unless BCxm == 1
          call iohi    ! make sure uouttot is known and realistic
@@ -172,15 +184,17 @@ contains
 
       !BCyT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       if (BCyT .eq. 1) then
-         call cyclichj
+         !call cyclichj
       else
          write(0, *) "ERROR: lateral boundary type for temperature in y-direction undefined"
          stop 1
       end if
 
       !BCxq!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      call exchange_halo_z(qt0)
+      call exchange_halo_z(qtm)
       if (BCxq .eq. 1) then
-         call cyclicqi
+         !call cyclicqi
       else if (BCxq .eq. 2) then !inoutflow  - will be overwritten unless BCxm == 1
         call ioqi ! tg3315 - make sure uouttot is known and realistic
       elseif (BCxq .eq. 3) then
@@ -192,7 +206,7 @@ contains
 
       !BCyq!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       if (BCyq .eq. 1) then
-         call cyclicqj
+         !call cyclicqj
       else
          write(0, *) "ERROR: lateral boundary type for humidity in y-direction undefined"
          stop 1
@@ -209,8 +223,13 @@ contains
       end if
 
       !BCxs!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      do n = 1, nsv
+         call exchange_halo_z(sv0(:, :, :, n), opt_zlevel=(/ihc,jhc,khc/))
+         call exchange_halo_z(svm(:, :, :, n), opt_zlevel=(/ihc,jhc,khc/))
+      enddo
+
       if (BCxs .eq. 1) then
-         call cyclicsi
+         !call cyclicsi
       else if (BCxs .eq. 2) then !inoutflow  - will be overwritten unless BCxm == 1
          call iosi ! make sure uouttot is known and correct for the running set-up
       else if (BCxs .eq. 3) then
@@ -253,7 +272,7 @@ contains
          call fluxtop(v0, ekm, 0.0)
          e120(:, :, ke + 1) = e12min ! free slip top wall
          e12m(:, :, ke + 1) = e12min
-         if (idriver==2) then ! does not use ddispdx, Uinf etc.
+         if (BCxm >= 4) then ! does not use ddispdx, Uinf etc.
            w0(:, :, ke + 1) = 0.0
            wm(:, :, ke + 1) = 0.0
          else
@@ -264,6 +283,10 @@ contains
          write(0, *) "ERROR: top boundary type for velocity undefined"
          stop 1
       end if
+
+      ! Bottom BC - move eventually
+      wm(:, :, kb) = 0.
+      w0(:, :, kb) = 0.
 
       !BCtopT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       if (BCtopT .eq. 1) then
@@ -304,50 +327,70 @@ contains
    end subroutine boundary
 
    subroutine closurebc
-      use modsubgriddata, only:ekm, ekh
-      use modglobal, only:ib, ie, jb, je, kb, ke, ih, jh, kh, numol, prandtlmoli, linoutflow, BCtopm
-      use modmpi, only:excjs,excis
-      integer i, j
+     use modsubgriddata, only:ekm, ekh
+     use modglobal, only:ib, ie, jb, je, kb, ke, ih, jh, kh, numol, prandtlmoli, linoutflow, BCtopm, ibrank, ierank, jbrank, jerank
+     use modmpi, only:excjs,excis
+     use decomp_2d, only : exchange_halo_z
+     integer i, j
 
-      ! Top and bottom
-      ! ils13, 13.8.18: what should it be for slip or mixed BCs ?
-      if ((BCtopm.eq.1) .or. (BCtopm.eq.3)) then !free-slip
-         do j = jb - 1, je + 1
-            do i = ib - 1, ie + 1
-               ekm(i, j, ke + 1) = ekm(i, j, ke) ! zero-gradient top wall
-               ekh(i, j, ke + 1) = ekh(i, j, ke) ! zero-gradient top wall
-               ekm(i, j, kb - 1) = 2.*numol - ekm(i, j, kb) ! no-slip lower wall
-               ekh(i, j, kb - 1) = (2.*numol*prandtlmoli) - ekh(i, j, kb) ! no-slip lower wall
-            end do
-         end do
-      else if (BCtopm.eq.2)  then !no-slip
-         do j = jb - 1, je + 1
-            do i = ib - 1, ie + 1
-               ekm(i, j, ke + 1) = 2.*numol - ekm(i, j, ke) ! no-slip top wall
-               ekh(i, j, ke + 1) = (2.*numol*prandtlmoli) - ekh(i, j, ke) ! no-slip top wall
-               ekm(i, j, kb - 1) = 2.*numol - ekm(i, j, kb) ! no-slip lower wall
-               ekh(i, j, kb - 1) = (2.*numol*prandtlmoli) - ekh(i, j, kb) ! no-slip lower wall
-            end do
-         end do
-      end if
+     call exchange_halo_z(ekm)
+     call exchange_halo_z(ekh)
 
-      ! horizontal BC's
-      if (linoutflow) then ! inflow/outflow
+     ! Top and bottom
+     ! ils13, 13.8.18: what should it be for slip or mixed BCs ?
+     if ((BCtopm.eq.1) .or. (BCtopm.eq.3)) then !free-slip
+       do j = jb - 1, je + 1
+         do i = ib - 1, ie + 1
+           ekm(i, j, ke + 1) = ekm(i, j, ke) ! zero-gradient top wall
+           ekh(i, j, ke + 1) = ekh(i, j, ke) ! zero-gradient top wall
+           ekm(i, j, kb - 1) = 2.*numol - ekm(i, j, kb) ! no-slip lower wall
+           ekh(i, j, kb - 1) = (2.*numol*prandtlmoli) - ekh(i, j, kb) ! no-slip lower wall
+         end do
+       end do
+     else if (BCtopm.eq.2)  then !no-slip
+       do j = jb - 1, je + 1
+         do i = ib - 1, ie + 1
+           ekm(i, j, ke + 1) = 2.*numol - ekm(i, j, ke) ! no-slip top wall
+           ekh(i, j, ke + 1) = (2.*numol*prandtlmoli) - ekh(i, j, ke) ! no-slip top wall
+           ekm(i, j, kb - 1) = 2.*numol - ekm(i, j, kb) ! no-slip lower wall
+           ekh(i, j, kb - 1) = (2.*numol*prandtlmoli) - ekh(i, j, kb) ! no-slip lower wall
+         end do
+       end do
+     end if
+
+     ! horizontal BC's
+     if (linoutflow) then ! inflow/outflow
+       if (ibrank) then
          ekm(ib - 1, :, :) = ekm(ib, :, :)
-         ekm(ie + 1, :, :) = ekm(ie, :, :)
          ekh(ib - 1, :, :) = ekh(ib, :, :)
-         ekh(ie + 1, :, :) = ekh(ie, :, :)
-      else
-         ! ekm(ib - 1, :, :) = ekm(ie, :, :) ! periodic
-         ! ekm(ie + 1, :, :) = ekm(ib, :, :)
-         ! ekh(ib - 1, :, :) = ekh(ie, :, :)
-         ! ekh(ie + 1, :, :) = ekh(ib, :, :)
-         call excis(ekm, ib, ie, jb, je, kb - kh, ke + kh, ih, jh)
-         call excis(ekh, ib, ie, jb, je, kb - kh, ke + kh, ih, jh)
-      end if
+       end if
 
-      call excjs(ekm, ib, ie, jb, je, kb - kh, ke + kh, ih, jh)
-      call excjs(ekh, ib, ie, jb, je, kb - kh, ke + kh, ih, jh)
+       if (ierank) then
+         ekm(ie + 1, :, :) = ekm(ie, :, :)
+         ekh(ie + 1, :, :) = ekh(ie, :, :)
+       end if
+
+       if (jbrank) then
+         ekm(:,jb-1,:) = ekm(:,jb,:)
+         ekh(:,jb-1,:) = ekh(:,jb,:)
+       end if
+
+       if (jerank) then
+         ekm(:,je+1,:) = ekm(:,je,:)
+         ekh(:,je+1,:) = ekh(:,je,:)
+       end if
+       ! else
+       !    ! ekm(ib - 1, :, :) = ekm(ie, :, :) ! periodic
+       !    ! ekm(ie + 1, :, :) = ekm(ib, :, :)
+       !    ! ekh(ib - 1, :, :) = ekh(ie, :, :)
+       !    ! ekh(ie + 1, :, :) = ekh(ib, :, :)
+       !    call excis(ekm, ib, ie, jb, je, kb - kh, ke + kh, ih, jh)
+       !    call excis(ekh, ib, ie, jb, je, kb - kh, ke + kh, ih, jh)
+     end if
+
+     ! call excjs(ekm, ib, ie, jb, je, kb - kh, ke + kh, ih, jh)
+     ! call excjs(ekh, ib, ie, jb, je, kb - kh, ke + kh, ih, jh)
+
 
    end subroutine closurebc
 
@@ -711,350 +754,627 @@ contains
    !>set inlet and outlet boundary conditions in i-direction
    subroutine iolet
 
-      use modglobal, only:dxhi, dxhci, xh, zh, ib, ie, jb, je, ih, jh, kb, ke, kh, nsv, rk3step, dt, iinletgen, ltempeq, lmoist, ihc, idriver, dy, dzf, jtot, zh, lsdriver
-      use modfields, only:u0, um, v0, vm, w0, wm, e120, e12m, thl0, thlm, qt0, qtm, sv0, svm, uprof, vprof, e12prof, thlprof, &
-         qtprof, svprof, uouttot, wouttot
-      use modmpi, only:excjs, myid, slabsum
-      use modinletdata, only:u0inletbcold, v0inletbcold, w0inletbcold, uminletbc, vminletbc, wminletbc, totaluold, &
+     use modglobal, only:dxhi, dxhci, xh, zh, ib, ie, jb, je, ih, jh, kb, ke, kh, nsv, rk3step, dt, iinletgen, ltempeq, lmoist, ihc, idriver, dy, dzf, jtot, zh, lsdriver, ibrank, ierank, jbrank, jerank, dyi
+     use modfields, only:u0, um, v0, vm, w0, wm, e120, e12m, thl0, thlm, qt0, qtm, sv0, svm, uprof, vprof, e12prof, thlprof, &
+         qtprof, svprof, uouttot, wouttot, uinit, vinit
+     use modmpi, only:excjs, myid, slabsum
+     use modinletdata, only:u0inletbcold, v0inletbcold, w0inletbcold, uminletbc, vminletbc, wminletbc, totaluold, &
          t0inletbcold, tminletbc, u0driver, v0driver, w0driver, e120driver, thl0driver, qt0driver, umdriver, vmdriver, wmdriver,&
          e12mdriver, thlmdriver, qtmdriver, sv0driver, svmdriver
 
-      real rk3coef
-      real, dimension(kb:ke) :: uin
-      integer n, i, j, k, m
+     real rk3coef
+     real, dimension(kb:ke) :: uin
+     integer n, i, j, k, m
 
-      rk3coef = dt/(4.-dble(rk3step))
+     rk3coef = dt/(4.-dble(rk3step))
 
-      ! Inlet boundary is located at ib (not ib-1)!
-
-      ! Inlet
-      if ((iinletgen == 1) .or. (iinletgen == 2)) then
+     ! Inlet
+     if (ibrank) then
+       if ((iinletgen == 1) .or. (iinletgen == 2)) then
          do j = jb, je
-            do k = kb, ke
-               u0(ib, j, k) = u0inletbcold(j, k)
-               um(ib, j, k) = uminletbc(j, k)
-               u0(ib - 1, j, k) = 2*u0(ib, j, k) - u0(ib + 1, j, k)
-               um(ib - 1, j, k) = 2*um(ib, j, k) - um(ib + 1, j, k)
+           do k = kb, ke
+             u0(ib, j, k) = u0inletbcold(j, k)
+             um(ib, j, k) = uminletbc(j, k)
+             u0(ib - 1, j, k) = 2*u0(ib, j, k) - u0(ib + 1, j, k)
+             um(ib - 1, j, k) = 2*um(ib, j, k) - um(ib + 1, j, k)
 
-               v0(ib - 1, j, k) = v0inletbcold(j, k)
-               vm(ib - 1, j, k) = vminletbc(j, k)
+             v0(ib - 1, j, k) = v0inletbcold(j, k)
+             vm(ib - 1, j, k) = vminletbc(j, k)
 
-               ! to be changed in the future: e12 should be taken from recycle plane!
-               e120(ib - 1, j, k) = e120(ib, j, k) ! extrapolate e12 from interior
-               e12m(ib - 1, j, k) = e12m(ib, j, k) ! extrapolate e12 from interior
+             ! to be changed in the future: e12 should be taken from recycle plane!
+             e120(ib - 1, j, k) = e120(ib, j, k) ! extrapolate e12 from interior
+             e12m(ib - 1, j, k) = e12m(ib, j, k) ! extrapolate e12 from interior
 
-               do n = 1, nsv
-                  do m = 1, ihc
-                     sv0(ib - m, j, k, n) = 2*svprof(k, n) - sv0(ib + (m - 1), j, k, n)
-                     svm(ib - m, j, k, n) = 2*svprof(k, n) - svm(ib + (m - 1), j, k, n)
-                  enddo
-               enddo
-            end do
-            do k = kb, ke + 1
-               w0(ib - 1, j, k) = w0inletbcold(j, k)
-               wm(ib - 1, j, k) = wminletbc(j, k)
-            end do
+             do n = 1, nsv
+               do m = 1, ihc
+                 sv0(ib - m, j, k, n) = 2*svprof(k, n) - sv0(ib + (m - 1), j, k, n)
+                 svm(ib - m, j, k, n) = 2*svprof(k, n) - svm(ib + (m - 1), j, k, n)
+               end do
+             end do
+           end do
+
+           do k = kb, ke + 1
+             w0(ib - 1, j, k) = w0inletbcold(j, k)
+             wm(ib - 1, j, k) = wminletbc(j, k)
+           end do
          end do
 
          ! Heat
          if (ltempeq) then
-            do k = kb, ke
-               do j = jb, je
-                  thl0(ib - 1, j, k) = t0inletbcold(j, k)
-                  thlm(ib - 1, j, k) = tminletbc(j, k)
-               end do
-            end do
+           do k = kb, ke
+             do j = jb, je
+               thl0(ib - 1, j, k) = t0inletbcold(j, k)
+               thlm(ib - 1, j, k) = tminletbc(j, k)
+             end do
+           end do
          end if
 
          if (lmoist) then
-            do k = kb, ke
-               do j = jb, je
-                  qt0(ib - 1, j, k) = 2*qtprof(k) - qt0(ib, j, k) !watch!
-                  qtm(ib - 1, j, k) = 2*qtprof(k) - qtm(ib, j, k)
-               end do
-            end do
+           do k = kb, ke
+             do j = jb, je
+               qt0(ib - 1, j, k) = 2*qtprof(k) - qt0(ib, j, k) !watch!
+               qtm(ib - 1, j, k) = 2*qtprof(k) - qtm(ib, j, k)
+             end do
+           end do
          end if
 
-    ! Driver inlet
-    elseif (idriver == 2) then
-       do j=jb-1,je+1
-         do k=kb,ke !tg3315 removed +1 following above...
-           u0(ib,j,k)=u0driver(j,k) !max(0.,u0driver(j,k))
-           um(ib,j,k)=umdriver(j,k) !max(0.,umdriver(j,k))
-           u0(ib-1,j,k)= u0driver(j,k) !max(0.,2.*u0(ib,j,k)-u0(ib+1,j,k))
-           um(ib-1,j,k)= umdriver(j,k)  !max(0.,2.*um(ib,j,k)-um(ib+1,j,k))
+       ! Driver inlet
+       elseif (idriver == 2) then
+         do j=jb-1,je+1
+           do k=kb,ke !tg3315 removed +1 following above...
+             u0(ib,j,k)=u0driver(j,k) !max(0.,u0driver(j,k))
+             um(ib,j,k)=umdriver(j,k) !max(0.,umdriver(j,k))
+             u0(ib-1,j,k)= u0driver(j,k) !max(0.,2.*u0(ib,j,k)-u0(ib+1,j,k))
+             um(ib-1,j,k)= umdriver(j,k)  !max(0.,2.*um(ib,j,k)-um(ib+1,j,k))
 
-           v0(ib,j,k)   = v0driver(j,k) !max(0.,v0driver(j,k))
-           vm(ib,j,k)   = vmdriver(j,k) !max(0.,vmdriver(j,k))
-           v0(ib-1,j,k)   = v0driver(j,k) !max(0.,v0driver(j,k))
-           vm(ib-1,j,k)   = vmdriver(j,k) !max(0.,vmdriver(j,k))
+             v0(ib,j,k)   = v0driver(j,k) !max(0.,v0driver(j,k))
+             vm(ib,j,k)   = vmdriver(j,k) !max(0.,vmdriver(j,k))
+             v0(ib-1,j,k)   = v0driver(j,k) !max(0.,v0driver(j,k))
+             vm(ib-1,j,k)   = vmdriver(j,k) !max(0.,vmdriver(j,k))
 
-           ! to be changed in the future: e12 should be taken from recycle plane!
-           !e120(ib-1,j,k) = e120driver(j,k)      ! extrapolate e12 from interior
-           !e12m(ib-1,j,k) = e12mdriver(j,k)      ! extrapolate e12 from interior
-           if (lsdriver) then
-           do n=1,nsv
-              do m = 1,ihc
-                 sv0(ib-m,j,k,n) = sv0driver(j,k,n)
-                 svm(ib-m,j,k,n) = svmdriver(j,k,n)
-                 !sv0(ib-m,j,k,n) = 2*svprof(k,n) - sv0(ib+(m-1),j,k,n)
-                 !svm(ib-m,j,k,n) = 2*svprof(k,n) - svm(ib+(m-1),j,k,n)
-              enddo
-              sv0(ib,j,k,n) = sv0driver(j,k,n)
-              svm(ib,j,k,n) = svmdriver(j,k,n)
-           enddo
-           end if
+             ! to be changed in the future: e12 should be taken from recycle plane!
+             !e120(ib-1,j,k) = e120driver(j,k)      ! extrapolate e12 from interior
+             !e12m(ib-1,j,k) = e12mdriver(j,k)      ! extrapolate e12 from interior
+             if (lsdriver) then
+               do n=1,nsv
+                 do m = 1,ihc
+                   sv0(ib-m,j,k,n) = sv0driver(j,k,n)
+                   svm(ib-m,j,k,n) = svmdriver(j,k,n)
+                   !sv0(ib-m,j,k,n) = 2*svprof(k,n) - sv0(ib+(m-1),j,k,n)
+                   !svm(ib-m,j,k,n) = 2*svprof(k,n) - svm(ib+(m-1),j,k,n)
+                 end do
+                 sv0(ib,j,k,n) = sv0driver(j,k,n)
+                 svm(ib,j,k,n) = svmdriver(j,k,n)
+               end do
+             end if !lsdriver
+           end do
+
+           do k=kb,ke+1
+             w0(ib-1,j,k)   = w0driver(j,k) !max(0.,w0driver(j,k))
+             wm(ib-1,j,k)   = wmdriver(j,k) !max(0.,wmdriver(j,k))
+             w0(ib,j,k)   = w0driver(j,k) !max(0.,w0driver(j,k))
+             wm(ib,j,k)   = wmdriver(j,k) !max(0.,wmdriver(j,k))
+           end do
          end do
-         do k=kb,ke+1
-           w0(ib-1,j,k)   = w0driver(j,k) !max(0.,w0driver(j,k))
-           wm(ib-1,j,k)   = wmdriver(j,k) !max(0.,wmdriver(j,k))
-           w0(ib,j,k)   = w0driver(j,k) !max(0.,w0driver(j,k))
-           wm(ib,j,k)   = wmdriver(j,k) !max(0.,wmdriver(j,k))
-         end do
-       end do
 
-       ! Heat
-       if (ltempeq ) then
-          do j=jb-1,je+1
+         ! Heat
+         if (ltempeq ) then
+           do j=jb-1,je+1
              do k=kb,ke+1
-                thl0(ib,j,k) = thl0driver(j,k)
-                thlm(ib,j,k) = thlmdriver(j,k)
-                thl0(ib-1,j,k) = thl0driver(j,k)
-                thlm(ib-1,j,k) = thlmdriver(j,k)
-                !thlm(ib-1,j,k) = 2*thlm(ib,j,k) - thlm(ib+1,j,k)
-                !thl0(ib-1,j,k) = 2*thl0(ib,j,k) - thl0(ib+1,j,k)
+               thl0(ib,j,k) = thl0driver(j,k)
+               thlm(ib,j,k) = thlmdriver(j,k)
+               thl0(ib-1,j,k) = thl0driver(j,k)
+               thlm(ib-1,j,k) = thlmdriver(j,k)
+               !thlm(ib-1,j,k) = 2*thlm(ib,j,k) - thlm(ib+1,j,k)
+               !thl0(ib-1,j,k) = 2*thl0(ib,j,k) - thl0(ib+1,j,k)
              end do
-          end do
-       end if
+           end do
+         end if
 
-       if (lmoist ) then
-          do j=jb-1,je+1
+         if (lmoist ) then
+           do j=jb-1,je+1
              do k=kb,ke+1
-                qt0(ib,j,k) = qt0driver(j,k)
-                ! qt0(ib-1,j,k) = 2*qtprof(k) - qt0(ib,j,k)
-                qtm(ib,j,k) = qtmdriver(j,k)
-                ! qtm(ib-1,j,k) = 2*qtprof(k) - qtm(ib,j,k)
-                qt0(ib-1,j,k) = qt0driver(j,k)
-                ! qt0(ib-1,j,k) = 2*qtprof(k) - qt0(ib,j,k)  !watch!
-                qtm(ib-1,j,k) = qtmdriver(j,k)
-                ! qtm(ib-1,j,k) = 2*qtprof(k) - qtm(ib,j,k)
-                ! qt0(ib-1,j,k) = 2*qt0(ib,j,k) - qt0(ib+1,j,k)
-                ! qtm(ib-1,j,k) = 2*qtm(ib,j,k) - qtm(ib+1,j,k)
+               qt0(ib,j,k) = qt0driver(j,k)
+               ! qt0(ib-1,j,k) = 2*qtprof(k) - qt0(ib,j,k)
+               qtm(ib,j,k) = qtmdriver(j,k)
+               ! qtm(ib-1,j,k) = 2*qtprof(k) - qtm(ib,j,k)
+               qt0(ib-1,j,k) = qt0driver(j,k)
+               ! qt0(ib-1,j,k) = 2*qtprof(k) - qt0(ib,j,k)  !watch!
+               qtm(ib-1,j,k) = qtmdriver(j,k)
+               ! qtm(ib-1,j,k) = 2*qtprof(k) - qtm(ib,j,k)
+               ! qt0(ib-1,j,k) = 2*qt0(ib,j,k) - qt0(ib+1,j,k)
+               ! qtm(ib-1,j,k) = 2*qtm(ib,j,k) - qtm(ib+1,j,k)
              end do
-          end do
-       end if
+           end do
+         end if ! lmoist
 
        else ! (if iinetgen==0)
-
          do j = jb - 1, je + 1
-            do k = kb, ke + 1
-               ! Momentum
-               u0(ib, j, k) = uprof(k)
-               um(ib, j, k) = uprof(k)
+           do k = kb, ke + 1
+             ! Momentum
 
-               v0(ib - 1, j, k) = 2*vprof(k) - v0(ib, j, k) ! (v(ib)+v(ib-1))/2 = vprof
-               vm(ib - 1, j, k) = 2*vprof(k) - vm(ib, j, k) ! (v(ib)+v(ib-1))/2 = vprof
+             ! ! Old
+             ! u0(ib, j, k) = uprof(k)
+             ! um(ib, j, k) = uprof(k)
+             ! u0(ib - 1, :, :) = 2*u0(ib, :, :) - u0(ib + 1, :, :) ! (u(ib+1)+u(ib-1))/2 = u(ib)
+             ! um(ib - 1, :, :) = 2*um(ib, :, :) - um(ib + 1, :, :) ! (u(ib+1)+u(ib-1))/2 = u(ib)
+             ! v0(ib - 1, j, k) = 2*vprof(k) - v0(ib, j, k) ! (v(ib)+v(ib-1))/2 = vprof
+             ! vm(ib - 1, j, k) = 2*vprof(k) - vm(ib, j, k) ! (v(ib)+v(ib-1))/2 = vprof
+             ! w0(ib - 1, j, k) = -w0(ib, j, k)
+             ! wm(ib - 1, j, k) = -wm(ib, j, k)
 
-               e120(ib - 1, j, k) = 2*e12prof(k) - e120(ib, j, k) ! (e12(ib)+e12(ib-1))/2=e12prof
-               e12m(ib - 1, j, k) = 2*e12prof(k) - e12m(ib, j, k) ! (e12(ib)+e12(ib-1))/2=e12prof
+             ! Convective
+             u0(ib-1, :, :) = u0(ib-1, :, :) - (u0(ib, :, :) - u0(ib-1, :, :))*dxhi(ib - 1)*rk3coef*u0(ib,:,:)
+             um(ib-1, :, :) = um(ib-1, :, :) - (um(ib, :, :) - um(ib-1, :, :))*dxhi(ib - 1)*rk3coef*u0(ib,:,:)
+             v0(ib-1, :, :) = v0(ib-1, :, :) - (v0(ib, :, :) - v0(ib-1, :, :))*dxhi(ib - 1)*rk3coef*u0(ib,:,:)
+             vm(ib-1, :, :) = vm(ib-1, :, :) - (vm(ib, :, :) - vm(ib-1, :, :))*dxhi(ib - 1)*rk3coef*u0(ib,:,:)
+             w0(ib-1, :, :) = w0(ib-1, :, :) - (w0(ib, :, :) - w0(ib-1, :, :))*dxhi(ib - 1)*rk3coef*u0(ib,:,:)
+             wm(ib-1, :, :) = wm(ib-1, :, :) - (wm(ib, :, :) - wm(ib-1, :, :))*dxhi(ib - 1)*rk3coef*u0(ib,:,:)
 
-               do n = 1, nsv
-                  do m = 1, ihc
-                     sv0(ib - m, j, k, n) = 2*svprof(k, n) - sv0(ib + (m - 1), j, k, n)
-                     svm(ib - m, j, k, n) = 2*svprof(k, n) - svm(ib + (m - 1), j, k, n)
-                  end do
+
+             ! ! Neumann
+             ! u0(ib - 1, j, k) = u0(ib,j,k)
+             ! um(ib - 1, j, k) = um(ib,j,k)
+             ! v0(ib - 1, j, k) = v0(ib,j,k)
+             ! vm(ib - 1, j, k) = vm(ib,j,k)
+             ! w0(ib - 1, j, k) = w0(ib,j,k)
+             ! wm(ib - 1, j, k) = wm(ib,j,k)
+
+             ! ! ICs (for debugging)
+             ! u0(ib - 1, j, k) = uinit(ib-1,j,k)
+             ! um(ib - 1, j, k) = uinit(ib-1,j,k)
+             ! v0(ib - 1, j, k) = vinit(ib-1,j,k)
+             ! vm(ib - 1, j, k) = vinit(ib-1,j,k)
+
+             e120(ib - 1, j, k) = 2*e12prof(k) - e120(ib, j, k) ! (e12(ib)+e12(ib-1))/2=e12prof
+             e12m(ib - 1, j, k) = 2*e12prof(k) - e12m(ib, j, k) ! (e12(ib)+e12(ib-1))/2=e12prof
+
+             do n = 1, nsv
+               do m = 1, ihc
+                 sv0(ib - m, j, k, n) = 2*svprof(k, n) - sv0(ib + (m - 1), j, k, n)
+                 svm(ib - m, j, k, n) = 2*svprof(k, n) - svm(ib + (m - 1), j, k, n)
                end do
-               !end if
-
-            enddo
-         enddo
+             end do
+           end do
+         end do
 
          ! Heat
          if (ltempeq) then
-            do j = jb - 1, je + 1
-               do k = kb, ke + 1
-                  thl0(ib - 1, j, k) = 2*thlprof(k) - thl0(ib, j, k)
-                  thlm(ib - 1, j, k) = 2*thlprof(k) - thlm(ib, j, k)
-               end do
-            end do
+           do j = jb - 1, je + 1
+             do k = kb, ke + 1
+               thl0(ib - 1, j, k) = 2*thlprof(k) - thl0(ib, j, k)
+               thlm(ib - 1, j, k) = 2*thlprof(k) - thlm(ib, j, k)
+             end do
+           end do
          end if
 
          if (lmoist) then
-            do j = jb - 1, je + 1
-               do k = kb, ke + 1
-                  qt0(ib - 1, j, k) = 2*qtprof(k) - qt0(ib, j, k)
-                  qtm(ib - 1, j, k) = 2*qtprof(k) - qtm(ib, j, k)
-               end do
-            end do
+           do j = jb - 1, je + 1
+             do k = kb, ke + 1
+               qt0(ib - 1, j, k) = 2*qtprof(k) - qt0(ib, j, k)
+               qtm(ib - 1, j, k) = 2*qtprof(k) - qtm(ib, j, k)
+             end do
+           end do
          end if
 
-         u0(ib - 1, :, :) = 2*u0(ib, :, :) - u0(ib + 1, :, :) ! (u(ib+1)+u(ib-1))/2 = u(ib)
-         um(ib - 1, :, :) = 2*um(ib, :, :) - um(ib + 1, :, :) ! (u(ib+1)+u(ib-1))/2 = u(ib)
-         w0(ib - 1, :, :) = -w0(ib, :, :) ! (w(ib)+w(ib-1))/2 = 0
-         wm(ib - 1, :, :) = -wm(ib, :, :)
-      end if ! iinletgen==1 .or. iinletgen==2
+       end if ! iinletgen==1 .or. iinletgen==2
+     end if
 
-      ! tg3315 added to ensure that uouttot matches driven inflow regardless of forcing
-      ! set up assuming we have a block at lowest cell kb
-      if (idriver==2) then
+     ! tg3315 added to ensure that uouttot matches driven inflow regardless of forcing
+     ! set up assuming we have a block at lowest cell kb
+     if (ierank) then
+       if (idriver==2) then
          uin = 0.
          uouttot = 0.
          call slabsum(uin,kb,ke,um,ib-ih,ie+ih,jb-jh,je+jh,kb-kh,ke+kh,ie,ie,jb,je,kb,ke) ! determine horizontal (j) average outflow velocity old
          do k=kb,ke
-            uin(k) = uin(k)*dzf(k)*dy  ! flow rate through each slab at ib
+           uin(k) = uin(k)*dzf(k)*dy  ! flow rate through each slab at ib
          end do
          uouttot = sum(uin(kb+1:ke))/((zh(ke+1)-zh(kb+1))*jtot*dy)     ! convective outflow velocity
-      end if
+       end if
+       ! Outlet
+       ! Momentum
 
-      ! Outlet
-      ! Momentum
-      v0(ie + 1, :, :) = v0(ie, :, :) - (v0(ie + 1, :, :) - v0(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
-      w0(ie + 1, :, :) = w0(ie, :, :) - (w0(ie + 1, :, :) - w0(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
-      vm(ie + 1, :, :) = vm(ie, :, :) - (vm(ie + 1, :, :) - vm(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
-      wm(ie + 1, :, :) = wm(ie, :, :) - (wm(ie + 1, :, :) - wm(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
-      e120(ie + 1, :, :) = e120(ie, :, :) - (e120(ie + 1, :, :) - e120(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
-      e12m(ie + 1, :, :) = e12m(ie, :, :) - (e12m(ie + 1, :, :) - e12m(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
+       ! ! convective
+       ! v0(ie + 1, :, :) = v0(ie, :, :) - (v0(ie + 1, :, :) - v0(ie, :, :))*dxhi(ie + 1)*rk3coef*u0(ie,:,:)
+       ! w0(ie + 1, :, :) = w0(ie, :, :) - (w0(ie + 1, :, :) - w0(ie, :, :))*dxhi(ie + 1)*rk3coef*u0(ie,:,:)
+       ! vm(ie + 1, :, :) = vm(ie, :, :) - (vm(ie + 1, :, :) - vm(ie, :, :))*dxhi(ie + 1)*rk3coef*u0(ie,:,:)
+       ! wm(ie + 1, :, :) = wm(ie, :, :) - (wm(ie + 1, :, :) - wm(ie, :, :))*dxhi(ie + 1)*rk3coef*u0(ie,:,:)
+       ! u0(ie + 1, :, :) = u0(ie, :, :) - (u0(ie + 1, :, :) - u0(ie, :, :))*dxhi(ie + 1)*rk3coef*u0(ie,:,:)
+       ! um(ie + 1, :, :) = um(ie, :, :) - (um(ie + 1, :, :) - um(ie, :, :))*dxhi(ie + 1)*rk3coef*u0(ie,:,:)
 
-      ! Heat
-      if (ltempeq) then
+       ! ! convective
+       ! v0(ie + 1, :, :) = v0(ie+1, :, :) - (v0(ie, :, :) - v0(ie-1, :, :))*dxhi(ie + 1)*rk3coef*u0(ie,:,:)
+       ! w0(ie + 1, :, :) = w0(ie+1, :, :) - (w0(ie, :, :) - w0(ie-1, :, :))*dxhi(ie + 1)*rk3coef*u0(ie,:,:)
+       ! vm(ie + 1, :, :) = vm(ie+1, :, :) - (vm(ie, :, :) - vm(ie-1, :, :))*dxhi(ie + 1)*rk3coef*u0(ie,:,:)
+       ! wm(ie + 1, :, :) = wm(ie+1, :, :) - (wm(ie, :, :) - wm(ie-1, :, :))*dxhi(ie + 1)*rk3coef*u0(ie,:,:)
+       ! u0(ie + 1, :, :) = u0(ie, :, :) - (u0(ie + 1, :, :) - u0(ie, :, :))*dxhi(ie + 1)*rk3coef*u0(ie,:,:)
+       ! um(ie + 1, :, :) = um(ie, :, :) - (um(ie + 1, :, :) - um(ie, :, :))*dxhi(ie + 1)*rk3coef*u0(ie,:,:)
+
+       ! convective
+       v0(ie + 1, :, :) = v0(ie+1, :, :) - (v0(ie+1, :, :) - v0(ie, :, :))*dxhi(ie + 1)*rk3coef*u0(ie,:,:)
+       w0(ie + 1, :, :) = w0(ie+1, :, :) - (w0(ie+1, :, :) - w0(ie, :, :))*dxhi(ie + 1)*rk3coef*u0(ie,:,:)
+       vm(ie + 1, :, :) = vm(ie+1, :, :) - (vm(ie+1, :, :) - vm(ie, :, :))*dxhi(ie + 1)*rk3coef*u0(ie,:,:)
+       wm(ie + 1, :, :) = wm(ie+1, :, :) - (wm(ie+1, :, :) - wm(ie, :, :))*dxhi(ie + 1)*rk3coef*u0(ie,:,:)
+
+       ! do j=jb,je ! maybe do central difference
+       !   v0(ie+1, j, :) = v0(ie+1, j, :) - (v0(ie+1, j+1, :) - v0(ie+1, j, :))*dxhi(ie+1)*rk3coef*v0(ie+1,j,:)
+       !   vm(ie+1, j, :) = vm(ie+1, j, :) - (vm(ie+1, j+1, :) - vm(ie+1, j, :))*dxhi(ie+1)*rk3coef*v0(ie+1,j,:)
+       ! end do
+
+       ! u gets updated in tstep
+
+       ! ! Neumann
+       ! u0(ie + 1, :, :) = u0(ie, :, :)
+       ! v0(ie + 1, :, :) = v0(ie, :, :)
+       ! w0(ie + 1, :, :) = w0(ie, :, :)
+       ! um(ie + 1, :, :) = um(ie, :, :)
+       ! vm(ie + 1, :, :) = vm(ie, :, :)
+       ! wm(ie + 1, :, :) = wm(ie, :, :)
+
+       ! ! ICs
+       ! u0(ie + 1, :, :) = uinit(ie+1, :, :)
+       ! um(ie + 1, :, :) = uinit(ie+1, :, :)
+       ! v0(ie + 1, :, :) = vinit(ie+1, :, :)
+       ! vm(ie + 1, :, :) = vinit(ie+1, :, :)
+       ! w0(ie + 1, :, :) = -w0(ie, :, :)
+       ! wm(ie + 1, :, :) = -wm(ie, :, :)
+
+
+       e120(ie + 1, :, :) = e120(ie, :, :) - (e120(ie + 1, :, :) - e120(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
+       e12m(ie + 1, :, :) = e12m(ie, :, :) - (e12m(ie + 1, :, :) - e12m(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
+
+       ! Heat
+       if (ltempeq) then
          thl0(ie + 1, :, :) = thl0(ie, :, :) - (thl0(ie + 1, :, :) - thl0(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
          thlm(ie + 1, :, :) = thlm(ie, :, :) - (thlm(ie + 1, :, :) - thlm(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
-      end if
+       end if
 
-      if (lmoist) then
+       if (lmoist) then
          qt0(ie + 1, :, :) = qt0(ie, :, :) - (qt0(ie + 1, :, :) - qt0(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
          qtm(ie + 1, :, :) = qtm(ie, :, :) - (qtm(ie + 1, :, :) - qtm(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
-      end if
+       end if
 
-      ! tg3315 !changed dxhi to dxhci!?
-      do n = 1, nsv
+       ! tg3315 !changed dxhi to dxhci!?
+       do n = 1, nsv
          sv0(ie + 1, :, :, n) = sv0(ie, :, :, n) - (sv0(ie + 1, :, :, n) - sv0(ie, :, :, n))*dxhci(ie + 1)*rk3coef*uouttot
          svm(ie + 1, :, :, n) = svm(ie, :, :, n) - (svm(ie + 1, :, :, n) - svm(ie, :, :, n))*dxhci(ie + 1)*rk3coef*uouttot
-      end do
+       end do
 
-      return
+     end if ! ierank
+
+     if (jbrank) then
+       ! ! convective
+       u0(:,jb-1,:) = u0(:,jb-1, :) - (u0(:,jb, :) - u0(:,jb-1, :))*dyi*rk3coef*v0(:,jb,:)
+       um(:,jb-1,:) = um(:,jb-1, :) - (um(:,jb, :) - um(:,jb-1, :))*dyi*rk3coef*v0(:,jb,:)
+       w0(:,jb-1,:) = w0(:,jb-1, :) - (w0(:,jb, :) - w0(:,jb-1, :))*dyi*rk3coef*v0(:,jb,:)
+       wm(:,jb-1,:) = wm(:,jb-1, :) - (wm(:,jb, :) - wm(:,jb-1, :))*dyi*rk3coef*v0(:,jb,:)
+       v0(:,jb-1,:) = v0(:,jb-1, :) - (v0(:,jb, :) - v0(:,jb-1, :))*dyi*rk3coef*v0(:,jb,:)
+       vm(:,jb-1,:) = vm(:,jb-1, :) - (vm(:,jb, :) - vm(:,jb-1, :))*dyi*rk3coef*v0(:,jb,:)
+
+       ! ! Neumann
+       ! v0(:,jb-1,:) = v0(:,jb,:)
+       ! vm(:,jb-1,:) = vm(:,jb,:)
+       ! u0(:,jb-1,:) = u0(:,jb,:)
+       ! um(:,jb-1,:) = um(:,jb,:)
+       ! w0(:,jb-1,:) = w0(:,jb,:)
+       ! wm(:,jb-1,:) = wm(:,jb,:)
+
+       ! ! ICs
+       ! v0(:,jb-1,:) = vinit(:,jb-1,:)
+       ! vm(:,jb-1,:) = vinit(:,jb-1,:)
+       ! u0(:,jb-1,:) = uinit(:,jb-1,:)
+       ! um(:,jb-1,:) = uinit(:,jb-1,:)
+       ! w0(:,jb-1,:) = -w0(:,jb,:)
+       ! wm(:,jb-1,:) = -wm(:,jb,:)
+     end if
+     !
+     if (jerank) then
+       ! convective
+       ! u0(:,je+1,:) = u0(:,je, :) - (u0(:,je+1, :) - u0(:,je, :))*dyi*rk3coef*v0(:,je,:)!uinit(:,je+1,:)
+       ! um(:,je+1,:) = um(:,je, :) - (um(:,je+1, :) - um(:,je, :))*dyi*rk3coef*v0(:,je,:)!uinit(:,je+1,:)
+       ! w0(:,je+1,:) = w0(:,je, :) - (w0(:,je+1, :) - w0(:,je, :))*dyi*rk3coef*v0(:,je,:)!uinit(:,je+1,:)
+       ! wm(:,je+1,:) = wm(:,je, :) - (wm(:,je+1, :) - wm(:,je, :))*dyi*rk3coef*v0(:,je,:)!uinit(:,je+1,:)
+
+       u0(:,je+1,:) = u0(:,je+1, :) - (u0(:,je+1, :) - u0(:,je, :))*dyi*rk3coef*v0(:,je,:)!uinit(:,je+1,:)
+       um(:,je+1,:) = um(:,je+1, :) - (um(:,je+1, :) - um(:,je, :))*dyi*rk3coef*v0(:,je,:)!uinit(:,je+1,:)
+       w0(:,je+1,:) = w0(:,je+1, :) - (w0(:,je+1, :) - w0(:,je, :))*dyi*rk3coef*v0(:,je,:)!uinit(:,je+1,:)
+       wm(:,je+1,:) = wm(:,je+1, :) - (wm(:,je+1, :) - wm(:,je, :))*dyi*rk3coef*v0(:,je,:)!uinit(:,je+1,:)
+
+       ! u0(:,je+1,:) = u0(:,je+1, :) - (u0(:,je+1, :) - u0(:,je, :))*dyi*rk3coef*v0(:,je,:)!uinit(:,je+1,:)
+       ! um(:,je+1,:) = um(:,je+1, :) - (um(:,je+1, :) - um(:,je, :))*dyi*rk3coef*v0(:,je,:)!uinit(:,je+1,:)
+       ! w0(:,je+1,:) = w0(:,je+1, :) - (w0(:,je+1, :) - w0(:,je, :))*dyi*rk3coef*v0(:,je,:)!uinit(:,je+1,:)
+       ! wm(:,je+1,:) = wm(:,je+1, :) - (wm(:,je+1, :) - wm(:,je, :))*dyi*rk3coef*v0(:,je,:)!uinit(:,je+1,:)
+
+       ! v0(:,je+1,:) = v0(:,je+1, :) - (v0(:,je+1, :) - v0(:,je, :))*dyi*rk3coef*v0(:,je,:)!uinit(:,je+1,:)
+       ! vm(:,je+1,:) = vm(:,je+1, :) - (vm(:,je+1, :) - vm(:,je, :))*dyi*rk3coef*v0(:,je,:)!uinit(:,je+1,:)
+       ! v gets updated in tstep
+       ! do i=ib,ie ! du/dx * u
+       !   u0(i,je+1,:) = u0(i,je+1,:) - (u0(i+1,je+1,:) - u0(i+1,je+1,:))*dxfi(i)*rk3coef*u0(i,je+1,:)
+
+       ! ! Neumann
+       ! u0(:,je+1,:) = u0(:,je,:)
+       ! um(:,je+1,:) = um(:,je,:)
+       ! w0(:,je+1,:) = w0(:,je,:)
+       ! wm(:,je+1,:) = wm(:,je,:)
+       ! v0(:,je+1,:) = v0(:,je,:)
+       ! vm(:,je+1,:) = vm(:,je,:)
+
+       ! ! ICs
+       ! u0(:,je+1,:) = uinit(:,je+1,:)
+       ! um(:,je+1,:) = uinit(:,je+1,:)
+       ! v0(:,je+1,:) = vinit(:,je+1,:)
+       ! vm(:,je+1,:) = vinit(:,je+1,:)
+       ! w0(:,je+1,:) = -w0(:,je,:)
+       ! wm(:,je+1,:) = -wm(:,je,:)
+
+     end if
+
+     return
 
    end subroutine iolet
 
    !>set boundary conditions pup,pvp,pwp in subroutine fillps in modpois.f90
    subroutine bcpup(pup, pvp, pwp, rk3coef)
 
-      use modglobal, only:ib, ie, jb, je, ih, jh, kb, ke, kh, linoutflow, dxfi, iinletgen, &
-         Uinf, libm, jmax, idriver
-      use modfields, only:pres0, up, vp, wp, um, w0, u0, uouttot
-      use modmpi, only:excjs, excis, myid
-      use modinletdata, only:irecy, u0inletbc, ddispdx, u0driver
+     use modglobal, only:ib, ie, jb, je, ih, jh, kb, ke, kh, linoutflow, dxfi, iinletgen, &
+     Uinf, libm, jmax, idriver, ibrank, ierank, jbrank, jerank, dyi
+     use modfields, only:pres0, up, vp, wp, um, vm, w0, u0, v0, uouttot, uinit, vinit
+     use modmpi, only:excjs, excis, myid
+     use modinletdata, only:irecy, u0inletbc, ddispdx, u0driver
+     use decomp_2d, only : exchange_halo_z
 
-      real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb:ke + kh), intent(inout) :: pup
-      real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb:ke + kh), intent(inout) :: pvp
-      real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb:ke + kh), intent(inout) :: pwp
+     real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb:ke + kh), intent(inout) :: pup
+     real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb:ke + kh), intent(inout) :: pvp
+     real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb:ke + kh), intent(inout) :: pwp
 
-      real, intent(in) :: rk3coef
-      real rk3coefi
+     real, intent(in) :: rk3coef
+     real rk3coefi
 
-      integer i, j, k
+     integer i, j, k
 
-      rk3coefi = 1./rk3coef
-      if (linoutflow) then
-         if ((iinletgen == 1) .or. (iinletgen == 2)) then
-            do j = jb, je
-               do i = ib, ie
-                  pwp(i, j, kb) = 0.
-                  pwp(i, j, ke + kh) = (Uinf*ddispdx)*rk3coefi
-               end do
-            end do
-            do k = kb, ke
-               do j = jb, je
-                  pup(ie + 1, j, k) = -(u0(ie + 1, j, k) - u0(ie, j, k))*dxfi(ie)*uouttot + um(ie + 1, j, k)*rk3coefi ! du/dt +u*du/dx=0 -> pup(i)=um(i)/rk3coef -um(i)*(um(i)-um(i-1))/dxf(i-1)
-                  pup(ib, j, k) = u0inletbc(j, k)*rk3coefi
-               end do
-            end do
-       elseif (idriver == 2) then
-          do j=jb,je
-             do i=ib,ie
-                pwp(i,j,kb)  = 0.
-                pwp(i,j,ke+kh)= 0. !(Uinf*ddispdx ) *rk3coefi ! tg3315 - idriver does not use Uinf ddisp etc.
-             end do
-          end do
-          do k=kb,ke
-             do j=jb,je
-                pup(ie+1,j,k) = - (u0(ie+1,j,k)-u0(ie,j,k))*dxfi(ie)*uouttot + um(ie+1,j,k)*rk3coefi   ! du/dt +u*du/dx=0 -> pup(i)=um(i)/rk3coef -um(i)*(um(i)-um(i-1))/dxf(i-1)
-                pup(ib,j,k) = u0driver(j,k)*rk3coefi
-             end do
-          end do
-         else ! if not iinletgen
-            do j = jb, je
-               do i = ib, ie
-                  pwp(i, j, kb) = 0.
-                  pwp(i, j, ke + kh) = 0.
-               end do
-            end do
-            do k = kb, ke
-               do j = jb, je
-                  pup(ie + 1, j, k) = -(u0(ie + 1, j, k) - u0(ie, j, k))*dxfi(ie)*uouttot + um(ie + 1, j, k)*rk3coefi ! du/dt +u*du/dx=0 -> pup(i)=um(i)/rk3coef -um(i)*(um(i)-um(i-1))/dxf(i-1)
-                  pup(ib, j, k) = pup(ib, j, k) - up(ib, j, k) ! pup(ib)= up(ib) + um(ib)/rk3coef, where up should be zero!
-               end do
-            end do
-         end if ! inletgen
-      else ! if not linoutflow
+     rk3coefi = 1./rk3coef
+
+     ! Note these are odd sized arrays because no. halo cells is not the same at top and bottom
+     ! but should be ok because level_z is just saying where to start communication
+     call exchange_halo_z(pup, opt_zlevel=(/ih,jh,0/))
+     call exchange_halo_z(pvp, opt_zlevel=(/ih,jh,0/))
+     call exchange_halo_z(pwp, opt_zlevel=(/ih,jh,0/))
+
+     if (linoutflow) then
+     !if (.false.) then
+       if ((iinletgen == 1) .or. (iinletgen == 2)) then
          do j = jb, je
-            do i = ib, ie
-               pwp(i, j, kb) = 0.
-               pwp(i, j, ke + kh) = 0.
-            end do
+           do i = ib, ie
+             pwp(i, j, kb) = 0.
+             pwp(i, j, ke + kh) = (Uinf*ddispdx)*rk3coefi
+           end do
          end do
-         do k = kb, ke
-            do j = jb, je
-               ! pup(ie + 1, j, k) = pup(ib, j, k) ! cyclic
-               ! !pup(ib - 1, j, k) = pup(ie, j, k) ! tg3315 is this condition not needed? Was not here before but I think exists in Dales4.0 in modpois...!?
-               call excis(pup, ib, ie, jb, je, kb, ke + kh, ih, jh) ! cyclic
-               call excis(pvp, ib, ie, jb, je, kb, ke + kh, ih, jh) ! cyclic
-               call excis(pwp, ib, ie, jb, je, kb, ke + kh, ih, jh) ! cyclic
-            end do
-         end do
-      endif
 
-      call excjs(pup, ib, ie, jb, je, kb, ke + kh, ih, jh) ! cyclic
-      call excjs(pvp, ib, ie, jb, je, kb, ke + kh, ih, jh) ! cyclic
-      call excjs(pwp, ib, ie, jb, je, kb, ke + kh, ih, jh) ! cyclic
+         if (ibrank) then
+           do k = kb, ke
+             do j = jb, je
+               pup(ib, j, k) = u0inletbc(j, k)*rk3coefi
+             end do
+           end do
+         end if
+
+         if (ierank) then
+           do k = kb, ke
+             do j = jb, je
+               pup(ie + 1, j, k) = -(u0(ie + 1, j, k) - u0(ie, j, k))*dxfi(ie)*uouttot + um(ie + 1, j, k)*rk3coefi ! du/dt +u*du/dx=0 -> pup(i)=um(i)/rk3coef -um(i)*(um(i)-um(i-1))/dxf(i-1)
+             end do
+           end do
+         end if
+
+       elseif (idriver == 2) then
+         do j=jb,je
+           do i=ib,ie
+             pwp(i,j,kb)  = 0.
+             pwp(i,j,ke+kh)= 0. !(Uinf*ddispdx ) *rk3coefi ! tg3315 - idriver does not use Uinf ddisp etc.
+           end do
+         end do
+
+         if (ibrank) then
+           do k=kb,ke
+             do j=jb,je
+               pup(ib,j,k) = u0driver(j,k)*rk3coefi
+             end do
+           end do
+         end if
+
+         if (ierank) then
+           do k=kb,ke
+             do j=jb,je
+               pup(ie+1,j,k) = - (u0(ie+1,j,k)-u0(ie,j,k))*dxfi(ie)*uouttot + um(ie+1,j,k)*rk3coefi   ! du/dt +u*du/dx=0 -> pup(i)=um(i)/rk3coef -um(i)*(um(i)-um(i-1))/dxf(i-1)
+             end do
+           end do
+         end if
+
+       else ! if not iinletgen
+         do j = jb, je
+           do i = ib, ie
+             pwp(i, j, kb) = 0.
+             pwp(i, j, ke + kh) = 0.
+           end do
+         end do
+
+         ! if (ibrank) then
+         !   do k = kb, ke
+         !     do j = jb-1, je+1
+         !       !pup(ib, j, k) = pup(ib, j, k) - up(ib, j, k) ! pup(ib)= up(ib) + um(ib)/rk3coef, where up should be zero!
+         !     end do
+         !   end do
+         ! end if
+         !
+         ! if (jbrank) then
+         !   do k = kb, ke
+         !     do i = ib-1, ie+1
+         !       !pvp(i, jb, k) = pvp(i, jb, k) - vp(i, jb, k) ! pup(ib)= up(ib) + um(ib)/rk3coef, where up should be zero!
+         !     end do
+         !   end do
+         ! end if
+
+         if (ierank) then
+           write(*,*) "setting east BC"
+           write(*,*) rk3coefi
+           do k = kb, ke
+             do j = jb-1, je+1
+               ! convective
+               pup(ie + 1, j, k) = um(ie + 1, j, k)*rk3coefi - (u0(ie + 1, j, k) - u0(ie, j, k))*dxfi(ie)*u0(ie,j,k) ! du/dt +u*du/dx=0 -> pup(i)=um(i)/rk3coef -um(i)*(um(i)-um(i-1))/dxf(i-1)
+               ! ! Neumann
+               ! pup(ie + 1, j, k) = pup(ie, j, k)
+               ! ! ICs
+               ! pup(ie+1,j,k) = uinit(ie+1,j,k)*rk3coefi
+             end do
+           end do
+
+         ! ! Not sure if necessary (or if quite correct)
+         !   do k = kb, ke
+         !     do j = jb, je
+         !       pup(ie + 1, j, k) = pup(ie+1,j,k) - (u0(ie + 1, j+1, k) - u0(ie + 1, j-1, k))*0.5*dyi*0.5*(v0(ie,j,k)+v0(ie+1,j,k))
+         !     end do
+         !   end do
+
+         end if
+
+         if (jerank) then
+           write(*,*) "setting north BC"
+           do k = kb, ke
+             do i = ib-1, ie+1
+               ! convective
+               pvp(i,je+1,k) = vm(i,je+1,k)*rk3coefi - (v0(i, je+1, k) - v0(i, je, k))*dyi*v0(i,je,k)
+               ! ! Neumann
+               ! pvp(i,je+1,k) = pvp(i,je,k)
+               ! ! ICs
+               ! pvp(i,je+1,k) = vinit(i,je+1,k)*rk3coefi
+             end do
+           end do
+
+         ! ! Not sure if necessary (or if quite correct)
+         !   do k = kb, ke
+         !     do i = ib, ie
+         !       pvp(i,je+1,k) = pvp(i,je+1,k) - (v0(i+1, je+1, k) - v0(i-1, je+1, k))*0.5*dxfi(i)*0.5*(u0(i,je,k)+u0(i,je+1,k))
+         !     end do
+         !   end do
+
+         end if
+
+       end if ! inletgen
+
+     else ! if not linoutflow
+       do j = jb, je
+         do i = ib, ie
+           pwp(i, j, kb) = 0.
+           pwp(i, j, ke + kh) = 0.
+         end do
+       end do
+       ! do k = kb, ke
+       !    do j = jb, je
+       !       ! pup(ie + 1, j, k) = pup(ib, j, k) ! cyclic
+       !       ! !pup(ib - 1, j, k) = pup(ie, j, k) ! tg3315 is this condition not needed? Was not here before but I think exists in Dales4.0 in modpois...!?
+       !       ! call excis(pup, ib, ie, jb, je, kb, ke + kh, ih, jh) ! cyclic
+       !       ! call excis(pvp, ib, ie, jb, je, kb, ke + kh, ih, jh) ! cyclic
+       !       ! call excis(pwp, ib, ie, jb, je, kb, ke + kh, ih, jh) ! cyclic
+       !    end do
+       ! end do
+     endif
+
+      ! call excjs(pup, ib, ie, jb, je, kb, ke + kh, ih, jh) ! cyclic
+      ! call excjs(pvp, ib, ie, jb, je, kb, ke + kh, ih, jh) ! cyclic
+      ! call excjs(pwp, ib, ie, jb, je, kb, ke + kh, ih, jh) ! cyclic
+
 
    end subroutine bcpup
 
    !>set pressure boundary conditions
    subroutine bcp(p)
 
-      use modglobal, only:ib, ie, jb, je, ih, jh, kb, ke, kh, linoutflow, dxfi
-      use modfields, only:pres0, up, u0, um, uouttot
-      use modmpi, only:excj,exci
+     use modglobal, only:ib, ie, jb, je, ih, jh, kb, ke, kh, linoutflow, dxfi, ibrank, ierank, jbrank, jerank, dyi
+     use modfields, only:pres0, up, u0, um, uouttot, vp, v0
+     use modmpi, only:excj,exci
+     use decomp_2d, only : exchange_halo_z
 
-      real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb - kh:ke + kh), intent(inout) :: p !< pressure
-      integer i, j, k
+     real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb - kh:ke + kh), intent(inout) :: p !< pressure
+     integer i, j, k
 
-      if (linoutflow) then
+     call exchange_halo_z(p)
+     call exchange_halo_z(pres0)
+
+     if (linoutflow) then
+     !if (.false.) then
+       if (ibrank) then
          do k = kb, ke
-            do j = jb, je
-               p(ib - 1, j, k) = p(ib, j, k) ! inflow:  dp/dn=0
-               pres0(ib - 1, j, k) = pres0(ib, j, k) ! inflow:  dp/dn=0
-               p(ie + 1, j, k) = -p(ie, j, k) ! outflow: p=0
-               pres0(ie + 1, j, k) = -pres0(ie, j, k) ! outflow: p=0
-               up(ie + 1, j, k) = -(u0(ie + 1, j, k) - u0(ie, j, k))*dxfi(ie)*uouttot
-            enddo
+           do j = jb-1, je+1
+             p(ib - 1, j, k) = p(ib, j, k)
+             pres0(ib - 1, j, k) = pres0(ib, j, k)
+           enddo
          enddo
-      else
-         ! do k = kb, ke
-         !    do j = jb, je
-         !       p(ib - 1, j, k) = p(ie, j, k)
-         !       p(ie + 1, j, k) = p(ib, j, k)
-         !    enddo
-         ! enddo
-         call exci(p, ib-1, ie+1, jb-1, je+1, kb-1, ke+1) ! cyclic
-         call exci(pres0, ib-1, ie+1, jb-1, je+1, kb-1, ke+1) ! cyclic
-      endif
+       end if
 
-      call excj(p, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1) ! cyclic
-      call excj(pres0, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1) ! cyclic
-      ! Can be replaced by following?
-      !call excj(p, ib, ie, jb, je, kb - 1, ke + 1) etc
+       if (ierank) then
+         do k = kb, ke
+           do j = jb-1, je+1
+             p(ie + 1, j, k) = p(ie, j, k)
+             pres0(ie + 1, j, k) = pres0(ie, j, k)
+
+             ! Convective
+             up(ie + 1, j, k) = -(u0(ie+1, j, k) - u0(ie, j, k))*dxfi(ie)*u0(ie,j,k)
+           enddo
+         enddo
+
+         ! ! Not sure if necessary (or if quite correct)
+         ! do k = kb, ke
+         !   do j = jb, je
+         !     up(ie + 1, j, k) = up(ie+1,j,k) - (u0(ie+1, j+1, k) - u0(ie+1, j, k))*dyi*v0(ie+1,j,k)
+         !   enddo
+         ! enddo
+
+       end if
+
+       if (jbrank) then
+         do k = kb, ke
+           do i = ib-1, ie+1
+             p(i,jb-1,k) = p(i,jb,k)
+             pres0(i,jb-1,k) = pres0(i,jb,k)
+           enddo
+         enddo
+       end if
+
+       if (jerank) then
+         do k = kb, ke
+           do i = ib-1, ie+1
+             p(i,je+1,k) = p(i,je,k)
+             pres0(i,je+1,k) = pres0(i,je,k)
+
+             ! Convective
+             vp(i, je+1, k) = -(v0(i, je+1, k) - v0(i, je, k))*dyi*v0(i,je,k)
+           enddo
+         enddo
+
+         ! ! Not sure if necessary (or if quite correct)
+         ! do k=kb,ke
+         !   do i=ib,ie
+         !     vp(i, je+1, k) = vp(i, je+1, k) - (v0(i+1, je+1, k) - v0(i, je+1, k))*dxfi(ie)*u0(i,je+1,k)
+         !   end do
+         ! end do
+
+       end if
+       !else
+       ! do k = kb, ke
+       !    do j = jb, je
+       !       p(ib - 1, j, k) = p(ie, j, k)
+       !       p(ie + 1, j, k) = p(ib, j, k)
+       !    enddo
+       ! enddo
+       ! call exci(p, ib-1, ie+1, jb-1, je+1, kb-1, ke+1) ! cyclic
+       ! call exci(pres0, ib-1, ie+1, jb-1, je+1, kb-1, ke+1) ! cyclic
+     endif
+
+     ! call excj(p, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1) ! cyclic
+     ! call excj(pres0, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1) ! cyclic
+     ! Can be replaced by following?
+     !call excj(p, ib, ie, jb, je, kb - 1, ke + 1) etc
 
    end subroutine bcp
 

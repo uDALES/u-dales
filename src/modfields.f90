@@ -26,45 +26,50 @@ module modfields
 
   ! Prognostic variables
 
-  real(mytype), allocatable :: worksave(:)      !<   Used in POISR!
-  real(mytype), allocatable :: um(:,:,:)        !<   x-component of velocity at time step t-1
-  real(mytype), allocatable :: vm(:,:,:)        !<   y-component of velocity at time step t-1
-  real(mytype), allocatable :: wm(:,:,:)        !<   z-component of velocity at time step t-1
-  real(mytype), allocatable :: thlm(:,:,:)      !<   liq. water pot. temperature at time step t-1
-  real(mytype), allocatable :: e12m(:,:,:)      !<   turb. kin. energy at time step t-1
-  real(mytype), allocatable :: qtm(:,:,:)       !<   total specific humidity at time step t
-  real(mytype), allocatable, target :: u0(:,:,:)        !<   x-component of velocity at time step t
-  real(mytype), allocatable, target :: v0(:,:,:)        !<   y-component of velocity at time step t
-  real(mytype), allocatable, target :: w0(:,:,:)        !<   z-component of velocity at time step t
-  real(mytype), allocatable, target :: pres0(:,:,:)     !<   pressure at time step t
+  real, allocatable :: worksave(:)      !<   Used in POISR!
+  real, allocatable :: um(:,:,:)        !<   x-component of velocity at time step t-1
+  real, allocatable :: vm(:,:,:)        !<   y-component of velocity at time step t-1
+  real, allocatable :: wm(:,:,:)        !<   z-component of velocity at time step t-1
+  real, allocatable :: thlm(:,:,:)      !<   liq. water pot. temperature at time step t-1
+  real, allocatable :: e12m(:,:,:)      !<   turb. kin. energy at time step t-1
+  real, allocatable :: qtm(:,:,:)       !<   total specific humidity at time step t
+  real, allocatable, target :: u0(:,:,:)        !<   x-component of velocity at time step t
+  real, allocatable, target :: v0(:,:,:)        !<   y-component of velocity at time step t
+  real, allocatable, target :: w0(:,:,:)        !<   z-component of velocity at time step t
+  real, allocatable, target :: pres0(:,:,:)     !<   pressure at time step t
+  real, allocatable, target :: div(:,:,:)
+
+  real, allocatable :: u0h(:,:,:)        !<   x-component of velocity at time step t
+  real, allocatable :: uinit(:,:,:)
+  real, allocatable :: vinit(:,:,:)
 
   ! Halo cell arrays - subject to change!
-  real(mytype), allocatable :: uh(:,:,:)
-  real(mytype), allocatable :: vh(:,:,:)
-  real(mytype), allocatable :: wh(:,:,:)
-  real(mytype), allocatable :: pres0h(:,:,:)
+  real, allocatable :: uh(:,:,:)
+  real, allocatable :: vh(:,:,:)
+  real, allocatable :: wh(:,:,:)
+  real, allocatable :: pres0h(:,:,:)
 
-  real(mytype), allocatable, target :: u01(:,:,:)        !<   x-component of velocity at time step t-1
-  real(mytype), allocatable, target :: u02(:,:,:)        !<   x-component of velocity at time step t-1
+  real, allocatable, target :: u01(:,:,:)        !<   x-component of velocity at time step t-1
+  real, allocatable, target :: u02(:,:,:)        !<   x-component of velocity at time step t-1
 
-  real(mytype), allocatable, target :: thl0(:,:,:)      !<   liq. water pot. temperature at time step t
-  real(mytype), allocatable :: thl0h(:,:,:)     !<   3d-field of theta_l at half levels for kappa scheme
+  real, allocatable, target :: thl0(:,:,:)      !<   liq. water pot. temperature at time step t
+  real, allocatable :: thl0h(:,:,:)     !<   3d-field of theta_l at half levels for kappa scheme
 
-  real(mytype), allocatable :: qt0h(:,:,:)      !<  3d-field of q_tot   at half levels for kappa scheme
-  real(mytype), allocatable :: e120(:,:,:)      !<   turb. kin. energy at time step t
-  real(mytype), allocatable, target :: qt0(:,:,:)       !<   total specific humidity at time step t
+  real, allocatable :: qt0h(:,:,:)      !<  3d-field of q_tot   at half levels for kappa scheme
+  real, allocatable :: e120(:,:,:)      !<   turb. kin. energy at time step t
+  real, allocatable, target :: qt0(:,:,:)       !<   total specific humidity at time step t
 
-  real(mytype), allocatable :: up(:,:,:)        !<   tendency of um
-  real(mytype), allocatable :: vp(:,:,:)        !<   tendency of vm
-  real(mytype), allocatable :: wp(:,:,:)        !<   tendency of wm
-  real(mytype), allocatable :: thlp(:,:,:)      !<   tendency of thlm
-  real(mytype), allocatable :: e12p(:,:,:)      !<   tendency of e12m
-  real(mytype), allocatable :: qtp(:,:,:)       !<   tendency of qtm
+  real, allocatable :: up(:,:,:)        !<   tendency of um
+  real, allocatable :: vp(:,:,:)        !<   tendency of vm
+  real, allocatable :: wp(:,:,:)        !<   tendency of wm
+  real, allocatable :: thlp(:,:,:)      !<   tendency of thlm
+  real, allocatable :: e12p(:,:,:)      !<   tendency of e12m
+  real, allocatable :: qtp(:,:,:)       !<   tendency of qtm
 
-  real(mytype), allocatable :: svm(:,:,:,:)     !<  scalar sv(n) at time step t-1
-  real(mytype), allocatable, target :: sv0(:,:,:,:)     !<  scalar sv(n) at time step t
-  real(mytype), allocatable :: svp(:,:,:,:)     !<  tendency of sv(n)
-  real(mytype), allocatable :: svpp(:,:,:,:)
+  real, allocatable :: svm(:,:,:,:)     !<  scalar sv(n) at time step t-1
+  real, allocatable, target :: sv0(:,:,:,:)     !<  scalar sv(n) at time step t
+  real, allocatable :: svp(:,:,:,:)     !<  tendency of sv(n)
+  real, allocatable :: svpp(:,:,:,:)
 
   ! Diagnostic variables
   real, allocatable :: mindist(:,:,:)   !< minimal distance of cell center to a wall
@@ -404,94 +409,86 @@ contains
 
     use modglobal, only : ib,ie,jb,je,ih,jh,kb,ke,kh,nsv,itot,jtot,imax,jmax,ktot,imax1,jmax1,kmax1,imax2,jmax2,kmax2,&
          ihc,jhc,khc,ltdump,lytdump,lxytdump,lslicedump,ltkedump,ltempeq,lmoist,lchem,lscasrcr!, iadv_kappa,iadv_sv
-    use decomp_2d
+    use decomp_2d, only : alloc_z
     ! Allocation of prognostic variables
     implicit none
 
 
     udef = 0.; vdef = 0.
     allocate(worksave(2*imax*jmax*ktot)) ! Maybe define in poisson
-    ! Original
-    allocate(um(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); um = 0.
-    allocate(vm(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); vm = 0.
-    allocate(wm(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); wm = 0.
-    allocate(u0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); u0 = 0.
-    allocate(v0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); v0 = 0.
-    allocate(w0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); w0 = 0.
+    ! ! Original
+    ! allocate(um(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); um = 0.
+    ! allocate(vm(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); vm = 0.
+    ! allocate(wm(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); wm = 0.
+    ! allocate(u0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); u0 = 0.
+    ! allocate(v0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); v0 = 0.
+    ! allocate(w0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); w0 = 0.
     allocate(up(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)) ; up=0.
     allocate(vp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)) ; vp = 0.
     allocate(wp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))  ; wp = 0.
-    allocate(pres0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); pres0 = 0.
-
-    allocate(u01(0:imax1+1,0:jmax1+1,0:kmax1+1)); u01 = 0.
-    allocate(u02(0:imax2+1,0:jmax2+1,0:kmax2+1)); u02 = 0.
-
-    ! Always have to allocate these, even if they are constant
-    ! Maybe change this eventually
-    allocate(thlm(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); thlm = 0.
-    allocate(thl0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); thl0 = 0.
-    allocate(thl0h(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); thl0h = 0.
+    ! allocate(pres0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); pres0 = 0.
+    !
+    ! ! Always have to allocate these, even if they are constant
+    ! ! Maybe change this eventually
+    ! allocate(thlm(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); thlm = 0.
+    ! allocate(thl0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); thl0 = 0.
+    ! allocate(thl0h(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); thl0h = 0.
     allocate(thlp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)); thlp = 0.
-    allocate(qtm(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); qtm = 0.
-    allocate(qt0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); qt0 = 0.
-    allocate(ql0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); ql0 = 0.
-    allocate(qt0h(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); qt0h = 0.
+    ! allocate(qtm(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); qtm = 0.
+    ! allocate(qt0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); qt0 = 0.
+    ! allocate(ql0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); ql0 = 0.
+    ! allocate(qt0h(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); qt0h = 0.
     allocate(qtp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)); qtp = 0.
-    allocate(e12m(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); e12m = 0.
-    allocate(e120(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); e120 = 0.
+    ! allocate(e12m(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); e12m = 0.
+    ! allocate(e120(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); e120 = 0.
     allocate(e12p(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)); e12p = 0.
     allocate(ql0h(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)); ql0h = 0.
     allocate(dthvdz(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)); dthvdz = 0.
     allocate(thv0h(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)); thv0h = 0.
-    allocate(mindist(ib:ie,jb:je,kb:ke)); mindist = 0.
+    ! allocate(mindist(ib:ie,jb:je,kb:ke)); mindist = 0.
 
+    !! Allocate 3D fields using 2DECOMP&FFT in z-pencil.
+    call alloc_z(um); um = 0.
+    call alloc_z(vm); vm = 0.
+    call alloc_z(wm); wm = 0.
+    call alloc_z(u0); u0 = 0.
+    call alloc_z(v0); v0 = 0.
+    call alloc_z(w0); w0 = 0.
+
+    call alloc_z(uinit); uinit = 0.
+    call alloc_z(vinit); vinit = 0.
+
+    ! call alloc_z(up); up = 0.
+    ! call alloc_z(vp); vp = 0.
+    ! call alloc_z(wp); wp = 0.
+    call alloc_z(pres0); pres0 = 0.
+
+    call alloc_z(div, opt_zlevel=(/0,0,0/))
+
+    ! Always have to allocate these, even if ltempeq/lmoist = .false.
+    call alloc_z(thlm); thlm = 0.
+    call alloc_z(thl0); thl0 = 0.
+    ! call alloc_z(thlp); thlp = 0.
+    call alloc_z(thl0h); thl0h = 0.
+    ! call alloc_z(thv0h); thv0h = 0.
+    ! call alloc_z(dthvdz); dthvdz = 0.
+    call alloc_z(qtm); qtm = 0.
+    call alloc_z(qt0); qt0 = 0.
+    ! call alloc_z(qtp); qtp = 0.
+    call alloc_z(qt0h); qt0h = 0.
+    ! call alloc_z(ql0h); ql0h = 0.
+    call alloc_z(e12m); e12m = 0.
+    call alloc_z(e120); e120 = 0.
+    ! call alloc_z(e12p); e12p = 0.
+    call alloc_z(mindist, opt_zlevel=(/0,0,0/)); mindist = 0.
+
+    ! These always have to be allocated differently?
     !if (nsv>0) then
       allocate(svm(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb-khc:ke+khc,nsv)); svm = 0.
       allocate(sv0(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb-khc:ke+khc,nsv)); sv0 = 0.
       allocate(svp(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc,nsv)); svp = 0.
       allocate(svpp(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc,1)); svpp = 0.
     !end if
-
-    !! Allocate 3D fields using 2DECOMP&FFT in z-pencil.
-    !! These arrays have dimensions zsize(1):zsize(2):zsize(3) = imax:jmax:ktot
-    ! call alloc_z(um); um = 0.
-    ! call alloc_z(vm); vm = 0.
-    ! call alloc_z(wm); wm = 0.
-    ! call alloc_z(u0); u0 = 0.
-    ! call alloc_z(v0); v0 = 0.
-    ! call alloc_z(w0); w0 = 0.
-    ! call alloc_z(up); up = 0.
-    ! call alloc_z(vp); vp = 0.
-    ! call alloc_z(wp); wp = 0.
-    ! call alloc_z(pres0); pres0 = 0.
-
-    ! allocate(uh(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); uh = 0.
-    ! allocate(vh(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); vh = 0.
-    ! allocate(wh(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); wh = 0.
-    ! allocate(pres0h(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); pres0h = 0.
-    ! ! Always have to allocate these, even if ltempeq/lmoist = .false.
-    ! call alloc_z(thlm); thlm = 0.
-    ! call alloc_z(thl0); thl0 = 0.
-    ! call alloc_z(thlp); thlp = 0.
-    ! call alloc_z(thl0h); thl0h = 0.
-    ! call alloc_z(thv0h); thv0h = 0.
-    ! call alloc_z(dthvdz); dthvdz = 0.
-    ! call alloc_z(qtm); qtm = 0.
-    ! call alloc_z(qt0); qt0 = 0.
-    ! call alloc_z(qtp); qtp = 0.
-    ! call alloc_z(qt0h); qt0h = 0.
-    ! call alloc_z(ql0h); ql0h = 0.
-    ! call alloc_z(e12m); e12m = 0.
-    ! call alloc_z(e120); e120 = 0.
-    ! call alloc_z(e12p); e12p = 0.
-    ! call alloc_z(svm); svm = 0.
-    ! call alloc_z(sv0); sv0 = 0.
-    ! call alloc_z(svp); svp = 0.
-    ! call alloc_z(svpp); svpp = 0.
-    ! allocate(svm(1-ihc:zsize(1)+ihc,1-jhc:zsize(2)+jhc,1-khc:zsize(2)+khc,nsv)); svm = 0.
-    ! allocate(sv0(1-ihc:zsize(1)+ihc,1-jhc:zsize(2)+jhc,1-khc:zsize(2)+khc,nsv)); sv0 = 0.
-    ! allocate(svp(1-ihc:zsize(1)+ihc,1-jhc:zsize(2)+jhc,1:zsize(2)+khc,nsv)); svp = 0.
-    ! allocate(svpp(1-ihc:zsize(1)+ihc,1-jhc:zsize(2)+jhc,1:zsize(2)+khc,1)); svpp = 0.
 
     ! Allocation of diagnostic variables
     ! Only used in nearwall in modibm, which is not being used any more
