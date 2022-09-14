@@ -167,7 +167,7 @@ subroutine tstep_integrate
 
   use modglobal, only : ib,ie,jb,jgb,je,kb,ke,nsv,dt,rk3step,e12min,lmoist,timee,ntrun,&
                         linoutflow, iinletgen,ltempeq,idriver,&
-                        dzf,dzhi,dzf,dxhi,dxf,ifixuinf,thlsrc,lchem,ibrank,ierank,jerank
+                        dzf,dzhi,dzf,dxhi,dxf,ifixuinf,thlsrc,lchem,ibrank,ierank,jerank,BCxm,BCym
   use modmpi, only    : cmyid,myid,nprocs
   use modfields, only : u0,um,up,v0,vm,vp,w0,wm,wp,&
                         thl0,thlm,thlp,qt0,qtm,qtp,e120,e12m,e12p,sv0,svm,svp,uouttot,&
@@ -254,11 +254,15 @@ subroutine tstep_integrate
 
   if (linoutflow) then
     if ((iinletgen == 0) .and. (idriver /= 2)) then
+      if (BCxm > 1) then
       if (ierank) then
         u0(ie+1,jb:je,kb:ke) = um(ie+1,jb:je,kb:ke)  + rk3coef * up(ie+1,jb:je,kb:ke)
       end if
+      end if
+      if (BCym > 1) then
       if (jerank) then
         v0(ib:ie,je+1,kb:ke) = vm(ib:ie,je+1,kb:ke)  + rk3coef * vp(ib:ie,je+1,kb:ke)
+      end if
       end if
 
     else

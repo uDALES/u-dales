@@ -158,15 +158,6 @@ contains
          stop 1
       end if
 
-      !BCym!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !currently BC in y is always periodic for momentum
-      if (BCym .eq. 1) then
-         !call cyclicmj
-      else
-         write(0, *) "ERROR: lateral boundary type for velocity in y-direction undefined"
-         stop 1
-      end if
-
       !BCxT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       call exchange_halo_z(thl0)
       call exchange_halo_z(thlm)
@@ -754,7 +745,7 @@ contains
    !>set inlet and outlet boundary conditions in i-direction
    subroutine iolet
 
-     use modglobal, only:dxhi, dxhci, xh, zh, ib, ie, jb, je, ih, jh, kb, ke, kh, nsv, rk3step, dt, iinletgen, ltempeq, lmoist, ihc, idriver, dy, dzf, jtot, zh, lsdriver, ibrank, ierank, jbrank, jerank, dyi
+     use modglobal, only:dxhi, dxhci, xh, zh, ib, ie, jb, je, ih, jh, kb, ke, kh, nsv, rk3step, dt, iinletgen, ltempeq, lmoist, ihc, idriver, dy, dzf, jtot, zh, lsdriver, ibrank, ierank, jbrank, jerank, dyi, dxfi, BCxm, BCym
      use modfields, only:u0, um, v0, vm, w0, wm, e120, e12m, thl0, thlm, qt0, qtm, sv0, svm, uprof, vprof, e12prof, thlprof, &
          qtprof, svprof, uouttot, wouttot, uinit, vinit
      use modmpi, only:excjs, myid, slabsum
@@ -769,6 +760,7 @@ contains
      rk3coef = dt/(4.-dble(rk3step))
 
      ! Inlet
+     if (BCxm > 1) then
      if (ibrank) then
        if ((iinletgen == 1) .or. (iinletgen == 2)) then
          do j = jb, je
@@ -903,28 +895,13 @@ contains
              ! w0(ib - 1, j, k) = -w0(ib, j, k)
              ! wm(ib - 1, j, k) = -wm(ib, j, k)
 
-             ! Convective
-             u0(ib-1, :, :) = u0(ib-1, :, :) - (u0(ib, :, :) - u0(ib-1, :, :))*dxhi(ib - 1)*rk3coef*u0(ib,:,:)
-             um(ib-1, :, :) = um(ib-1, :, :) - (um(ib, :, :) - um(ib-1, :, :))*dxhi(ib - 1)*rk3coef*u0(ib,:,:)
-             v0(ib-1, :, :) = v0(ib-1, :, :) - (v0(ib, :, :) - v0(ib-1, :, :))*dxhi(ib - 1)*rk3coef*u0(ib,:,:)
-             vm(ib-1, :, :) = vm(ib-1, :, :) - (vm(ib, :, :) - vm(ib-1, :, :))*dxhi(ib - 1)*rk3coef*u0(ib,:,:)
-             w0(ib-1, :, :) = w0(ib-1, :, :) - (w0(ib, :, :) - w0(ib-1, :, :))*dxhi(ib - 1)*rk3coef*u0(ib,:,:)
-             wm(ib-1, :, :) = wm(ib-1, :, :) - (wm(ib, :, :) - wm(ib-1, :, :))*dxhi(ib - 1)*rk3coef*u0(ib,:,:)
-
-
-             ! ! Neumann
-             ! u0(ib - 1, j, k) = u0(ib,j,k)
-             ! um(ib - 1, j, k) = um(ib,j,k)
-             ! v0(ib - 1, j, k) = v0(ib,j,k)
-             ! vm(ib - 1, j, k) = vm(ib,j,k)
-             ! w0(ib - 1, j, k) = w0(ib,j,k)
-             ! wm(ib - 1, j, k) = wm(ib,j,k)
-
-             ! ! ICs (for debugging)
-             ! u0(ib - 1, j, k) = uinit(ib-1,j,k)
-             ! um(ib - 1, j, k) = uinit(ib-1,j,k)
-             ! v0(ib - 1, j, k) = vinit(ib-1,j,k)
-             ! vm(ib - 1, j, k) = vinit(ib-1,j,k)
+             ! ICs (for debugging)
+             u0(ib,j,k) = uinit(ib,j,k)
+             um(ib,j,k) = uinit(ib,j,k)
+             u0(ib - 1, j, k) = uinit(ib-1,j,k)
+             um(ib - 1, j, k) = uinit(ib-1,j,k)
+             v0(ib - 1, j, k) = vinit(ib-1,j,k)
+             vm(ib - 1, j, k) = vinit(ib-1,j,k)
 
              e120(ib - 1, j, k) = 2*e12prof(k) - e120(ib, j, k) ! (e12(ib)+e12(ib-1))/2=e12prof
              e12m(ib - 1, j, k) = 2*e12prof(k) - e12m(ib, j, k) ! (e12(ib)+e12(ib-1))/2=e12prof
@@ -975,42 +952,17 @@ contains
        ! Outlet
        ! Momentum
 
-       ! ! convective
-       ! v0(ie + 1, :, :) = v0(ie, :, :) - (v0(ie + 1, :, :) - v0(ie, :, :))*dxhi(ie + 1)*rk3coef*u0(ie,:,:)
-       ! w0(ie + 1, :, :) = w0(ie, :, :) - (w0(ie + 1, :, :) - w0(ie, :, :))*dxhi(ie + 1)*rk3coef*u0(ie,:,:)
-       ! vm(ie + 1, :, :) = vm(ie, :, :) - (vm(ie + 1, :, :) - vm(ie, :, :))*dxhi(ie + 1)*rk3coef*u0(ie,:,:)
-       ! wm(ie + 1, :, :) = wm(ie, :, :) - (wm(ie + 1, :, :) - wm(ie, :, :))*dxhi(ie + 1)*rk3coef*u0(ie,:,:)
-       ! u0(ie + 1, :, :) = u0(ie, :, :) - (u0(ie + 1, :, :) - u0(ie, :, :))*dxhi(ie + 1)*rk3coef*u0(ie,:,:)
-       ! um(ie + 1, :, :) = um(ie, :, :) - (um(ie + 1, :, :) - um(ie, :, :))*dxhi(ie + 1)*rk3coef*u0(ie,:,:)
-
-       ! ! convective
-       ! v0(ie + 1, :, :) = v0(ie+1, :, :) - (v0(ie, :, :) - v0(ie-1, :, :))*dxhi(ie + 1)*rk3coef*u0(ie,:,:)
-       ! w0(ie + 1, :, :) = w0(ie+1, :, :) - (w0(ie, :, :) - w0(ie-1, :, :))*dxhi(ie + 1)*rk3coef*u0(ie,:,:)
-       ! vm(ie + 1, :, :) = vm(ie+1, :, :) - (vm(ie, :, :) - vm(ie-1, :, :))*dxhi(ie + 1)*rk3coef*u0(ie,:,:)
-       ! wm(ie + 1, :, :) = wm(ie+1, :, :) - (wm(ie, :, :) - wm(ie-1, :, :))*dxhi(ie + 1)*rk3coef*u0(ie,:,:)
-       ! u0(ie + 1, :, :) = u0(ie, :, :) - (u0(ie + 1, :, :) - u0(ie, :, :))*dxhi(ie + 1)*rk3coef*u0(ie,:,:)
-       ! um(ie + 1, :, :) = um(ie, :, :) - (um(ie + 1, :, :) - um(ie, :, :))*dxhi(ie + 1)*rk3coef*u0(ie,:,:)
+       ! ! convective (original)
+       ! v0(ie + 1, :, :) = v0(ie, :, :) - (v0(ie + 1, :, :) - v0(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
+       ! w0(ie + 1, :, :) = w0(ie, :, :) - (w0(ie + 1, :, :) - w0(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
+       ! vm(ie + 1, :, :) = vm(ie, :, :) - (vm(ie + 1, :, :) - vm(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
+       ! wm(ie + 1, :, :) = wm(ie, :, :) - (wm(ie + 1, :, :) - wm(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
 
        ! convective
-       v0(ie + 1, :, :) = v0(ie+1, :, :) - (v0(ie+1, :, :) - v0(ie, :, :))*dxhi(ie + 1)*rk3coef*u0(ie,:,:)
-       w0(ie + 1, :, :) = w0(ie+1, :, :) - (w0(ie+1, :, :) - w0(ie, :, :))*dxhi(ie + 1)*rk3coef*u0(ie,:,:)
-       vm(ie + 1, :, :) = vm(ie+1, :, :) - (vm(ie+1, :, :) - vm(ie, :, :))*dxhi(ie + 1)*rk3coef*u0(ie,:,:)
-       wm(ie + 1, :, :) = wm(ie+1, :, :) - (wm(ie+1, :, :) - wm(ie, :, :))*dxhi(ie + 1)*rk3coef*u0(ie,:,:)
-
-       ! do j=jb,je ! maybe do central difference
-       !   v0(ie+1, j, :) = v0(ie+1, j, :) - (v0(ie+1, j+1, :) - v0(ie+1, j, :))*dxhi(ie+1)*rk3coef*v0(ie+1,j,:)
-       !   vm(ie+1, j, :) = vm(ie+1, j, :) - (vm(ie+1, j+1, :) - vm(ie+1, j, :))*dxhi(ie+1)*rk3coef*v0(ie+1,j,:)
-       ! end do
-
-       ! u gets updated in tstep
-
-       ! ! Neumann
-       ! u0(ie + 1, :, :) = u0(ie, :, :)
-       ! v0(ie + 1, :, :) = v0(ie, :, :)
-       ! w0(ie + 1, :, :) = w0(ie, :, :)
-       ! um(ie + 1, :, :) = um(ie, :, :)
-       ! vm(ie + 1, :, :) = vm(ie, :, :)
-       ! wm(ie + 1, :, :) = wm(ie, :, :)
+       v0(ie + 1, :, :) = v0(ie+1, :, :) - (v0(ie+1, :, :) - v0(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
+       w0(ie + 1, :, :) = w0(ie+1, :, :) - (w0(ie+1, :, :) - w0(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
+       vm(ie + 1, :, :) = vm(ie+1, :, :) - (vm(ie+1, :, :) - vm(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
+       wm(ie + 1, :, :) = wm(ie+1, :, :) - (wm(ie+1, :, :) - wm(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
 
        ! ! ICs
        ! u0(ie + 1, :, :) = uinit(ie+1, :, :)
@@ -1042,63 +994,27 @@ contains
        end do
 
      end if ! ierank
+     end if ! BCxm
 
+     if (BCym > 1) then
      if (jbrank) then
-       ! ! convective
-       u0(:,jb-1,:) = u0(:,jb-1, :) - (u0(:,jb, :) - u0(:,jb-1, :))*dyi*rk3coef*v0(:,jb,:)
-       um(:,jb-1,:) = um(:,jb-1, :) - (um(:,jb, :) - um(:,jb-1, :))*dyi*rk3coef*v0(:,jb,:)
-       w0(:,jb-1,:) = w0(:,jb-1, :) - (w0(:,jb, :) - w0(:,jb-1, :))*dyi*rk3coef*v0(:,jb,:)
-       wm(:,jb-1,:) = wm(:,jb-1, :) - (wm(:,jb, :) - wm(:,jb-1, :))*dyi*rk3coef*v0(:,jb,:)
-       v0(:,jb-1,:) = v0(:,jb-1, :) - (v0(:,jb, :) - v0(:,jb-1, :))*dyi*rk3coef*v0(:,jb,:)
-       vm(:,jb-1,:) = vm(:,jb-1, :) - (vm(:,jb, :) - vm(:,jb-1, :))*dyi*rk3coef*v0(:,jb,:)
-
-       ! ! Neumann
-       ! v0(:,jb-1,:) = v0(:,jb,:)
-       ! vm(:,jb-1,:) = vm(:,jb,:)
-       ! u0(:,jb-1,:) = u0(:,jb,:)
-       ! um(:,jb-1,:) = um(:,jb,:)
-       ! w0(:,jb-1,:) = w0(:,jb,:)
-       ! wm(:,jb-1,:) = wm(:,jb,:)
-
-       ! ! ICs
-       ! v0(:,jb-1,:) = vinit(:,jb-1,:)
-       ! vm(:,jb-1,:) = vinit(:,jb-1,:)
-       ! u0(:,jb-1,:) = uinit(:,jb-1,:)
-       ! um(:,jb-1,:) = uinit(:,jb-1,:)
-       ! w0(:,jb-1,:) = -w0(:,jb,:)
-       ! wm(:,jb-1,:) = -wm(:,jb,:)
+       ! ICs
+       v0(:,jb,:) = vinit(:,jb,:)
+       vm(:,jb,:) = vinit(:,jb,:)
+       v0(:,jb-1,:) = vinit(:,jb-1,:)
+       vm(:,jb-1,:) = vinit(:,jb-1,:)
+       u0(:,jb-1,:) = uinit(:,jb-1,:)
+       um(:,jb-1,:) = uinit(:,jb-1,:)
+       w0(:,jb-1,:) = -w0(:,jb,:)
+       wm(:,jb-1,:) = -wm(:,jb,:)
      end if
      !
      if (jerank) then
-       ! convective
-       ! u0(:,je+1,:) = u0(:,je, :) - (u0(:,je+1, :) - u0(:,je, :))*dyi*rk3coef*v0(:,je,:)!uinit(:,je+1,:)
-       ! um(:,je+1,:) = um(:,je, :) - (um(:,je+1, :) - um(:,je, :))*dyi*rk3coef*v0(:,je,:)!uinit(:,je+1,:)
-       ! w0(:,je+1,:) = w0(:,je, :) - (w0(:,je+1, :) - w0(:,je, :))*dyi*rk3coef*v0(:,je,:)!uinit(:,je+1,:)
-       ! wm(:,je+1,:) = wm(:,je, :) - (wm(:,je+1, :) - wm(:,je, :))*dyi*rk3coef*v0(:,je,:)!uinit(:,je+1,:)
 
        u0(:,je+1,:) = u0(:,je+1, :) - (u0(:,je+1, :) - u0(:,je, :))*dyi*rk3coef*v0(:,je,:)!uinit(:,je+1,:)
        um(:,je+1,:) = um(:,je+1, :) - (um(:,je+1, :) - um(:,je, :))*dyi*rk3coef*v0(:,je,:)!uinit(:,je+1,:)
        w0(:,je+1,:) = w0(:,je+1, :) - (w0(:,je+1, :) - w0(:,je, :))*dyi*rk3coef*v0(:,je,:)!uinit(:,je+1,:)
        wm(:,je+1,:) = wm(:,je+1, :) - (wm(:,je+1, :) - wm(:,je, :))*dyi*rk3coef*v0(:,je,:)!uinit(:,je+1,:)
-
-       ! u0(:,je+1,:) = u0(:,je+1, :) - (u0(:,je+1, :) - u0(:,je, :))*dyi*rk3coef*v0(:,je,:)!uinit(:,je+1,:)
-       ! um(:,je+1,:) = um(:,je+1, :) - (um(:,je+1, :) - um(:,je, :))*dyi*rk3coef*v0(:,je,:)!uinit(:,je+1,:)
-       ! w0(:,je+1,:) = w0(:,je+1, :) - (w0(:,je+1, :) - w0(:,je, :))*dyi*rk3coef*v0(:,je,:)!uinit(:,je+1,:)
-       ! wm(:,je+1,:) = wm(:,je+1, :) - (wm(:,je+1, :) - wm(:,je, :))*dyi*rk3coef*v0(:,je,:)!uinit(:,je+1,:)
-
-       ! v0(:,je+1,:) = v0(:,je+1, :) - (v0(:,je+1, :) - v0(:,je, :))*dyi*rk3coef*v0(:,je,:)!uinit(:,je+1,:)
-       ! vm(:,je+1,:) = vm(:,je+1, :) - (vm(:,je+1, :) - vm(:,je, :))*dyi*rk3coef*v0(:,je,:)!uinit(:,je+1,:)
-       ! v gets updated in tstep
-       ! do i=ib,ie ! du/dx * u
-       !   u0(i,je+1,:) = u0(i,je+1,:) - (u0(i+1,je+1,:) - u0(i+1,je+1,:))*dxfi(i)*rk3coef*u0(i,je+1,:)
-
-       ! ! Neumann
-       ! u0(:,je+1,:) = u0(:,je,:)
-       ! um(:,je+1,:) = um(:,je,:)
-       ! w0(:,je+1,:) = w0(:,je,:)
-       ! wm(:,je+1,:) = wm(:,je,:)
-       ! v0(:,je+1,:) = v0(:,je,:)
-       ! vm(:,je+1,:) = vm(:,je,:)
 
        ! ! ICs
        ! u0(:,je+1,:) = uinit(:,je+1,:)
@@ -1109,6 +1025,7 @@ contains
        ! wm(:,je+1,:) = -wm(:,je,:)
 
      end if
+     end if
 
      return
 
@@ -1118,7 +1035,7 @@ contains
    subroutine bcpup(pup, pvp, pwp, rk3coef)
 
      use modglobal, only:ib, ie, jb, je, ih, jh, kb, ke, kh, linoutflow, dxfi, iinletgen, &
-     Uinf, libm, jmax, idriver, ibrank, ierank, jbrank, jerank, dyi
+     Uinf, libm, jmax, idriver, ibrank, ierank, jbrank, jerank, dyi, BCxm, BCym
      use modfields, only:pres0, up, vp, wp, um, vm, w0, u0, v0, uouttot, uinit, vinit
      use modmpi, only:excjs, excis, myid
      use modinletdata, only:irecy, u0inletbc, ddispdx, u0driver
@@ -1203,63 +1120,63 @@ contains
          !   do k = kb, ke
          !     do j = jb-1, je+1
          !       !pup(ib, j, k) = pup(ib, j, k) - up(ib, j, k) ! pup(ib)= up(ib) + um(ib)/rk3coef, where up should be zero!
+         !       pup(ib-1,j,k) = um(ib - 1, j, k)*rk3coefi - (u0(ib, j, k) - u0(ib-1, j, k))*dxfi(ib)*u0(ib,j,k) ! du/dt +u*du/dx=0 -> pup(i)=um(i)/rk3coef -um(i)*(um(i)-um(i-1))/dxf(i-1)
          !     end do
          !   end do
          ! end if
-         !
+
          ! if (jbrank) then
          !   do k = kb, ke
          !     do i = ib-1, ie+1
          !       !pvp(i, jb, k) = pvp(i, jb, k) - vp(i, jb, k) ! pup(ib)= up(ib) + um(ib)/rk3coef, where up should be zero!
+         !       pvp(i,jb-1,k) = vm(i,jb-1,k)*rk3coefi - (v0(i, jb, k) - v0(i, jb-1, k))*dyi*v0(i,jb,k)
          !     end do
          !   end do
          ! end if
 
+       if (BCxm > 1) then
+         if (ibrank) then
+           do k=kb,ke
+             do j=jb-1,je+1
+               pup(ib,j,k) = uinit(ib,j,k)*rk3coefi
+             end do
+           end do
+         end if
+
+         ! Put in specific switches
          if (ierank) then
-           write(*,*) "setting east BC"
-           write(*,*) rk3coefi
            do k = kb, ke
              do j = jb-1, je+1
                ! convective
-               pup(ie + 1, j, k) = um(ie + 1, j, k)*rk3coefi - (u0(ie + 1, j, k) - u0(ie, j, k))*dxfi(ie)*u0(ie,j,k) ! du/dt +u*du/dx=0 -> pup(i)=um(i)/rk3coef -um(i)*(um(i)-um(i-1))/dxf(i-1)
-               ! ! Neumann
-               ! pup(ie + 1, j, k) = pup(ie, j, k)
+               pup(ie + 1, j, k) = um(ie + 1, j, k)*rk3coefi - (u0(ie + 1, j, k) - u0(ie, j, k))*dxfi(ie)*uouttot!u0(ie,j,k) ! du/dt +u*du/dx=0 -> pup(i)=um(i)/rk3coef -um(i)*(um(i)-um(i-1))/dxf(i-1)
                ! ! ICs
                ! pup(ie+1,j,k) = uinit(ie+1,j,k)*rk3coefi
              end do
            end do
+         end if
+       end if ! BCxm
 
-         ! ! Not sure if necessary (or if quite correct)
-         !   do k = kb, ke
-         !     do j = jb, je
-         !       pup(ie + 1, j, k) = pup(ie+1,j,k) - (u0(ie + 1, j+1, k) - u0(ie + 1, j-1, k))*0.5*dyi*0.5*(v0(ie,j,k)+v0(ie+1,j,k))
-         !     end do
-         !   end do
-
+       if (BCym > 1) then
+         if (jbrank) then
+           do k = kb, ke
+             do i = ib-1, ie+1
+               pvp(i,jb,k) = vinit(i,jb,k)*rk3coefi
+             end do
+           end do
          end if
 
+         ! Put in specific switches
          if (jerank) then
-           write(*,*) "setting north BC"
            do k = kb, ke
              do i = ib-1, ie+1
                ! convective
                pvp(i,je+1,k) = vm(i,je+1,k)*rk3coefi - (v0(i, je+1, k) - v0(i, je, k))*dyi*v0(i,je,k)
-               ! ! Neumann
-               ! pvp(i,je+1,k) = pvp(i,je,k)
                ! ! ICs
                ! pvp(i,je+1,k) = vinit(i,je+1,k)*rk3coefi
              end do
            end do
-
-         ! ! Not sure if necessary (or if quite correct)
-         !   do k = kb, ke
-         !     do i = ib, ie
-         !       pvp(i,je+1,k) = pvp(i,je+1,k) - (v0(i+1, je+1, k) - v0(i-1, je+1, k))*0.5*dxfi(i)*0.5*(u0(i,je,k)+u0(i,je+1,k))
-         !     end do
-         !   end do
-
          end if
-
+       end if ! BCym
        end if ! inletgen
 
      else ! if not linoutflow
@@ -1269,28 +1186,15 @@ contains
            pwp(i, j, ke + kh) = 0.
          end do
        end do
-       ! do k = kb, ke
-       !    do j = jb, je
-       !       ! pup(ie + 1, j, k) = pup(ib, j, k) ! cyclic
-       !       ! !pup(ib - 1, j, k) = pup(ie, j, k) ! tg3315 is this condition not needed? Was not here before but I think exists in Dales4.0 in modpois...!?
-       !       ! call excis(pup, ib, ie, jb, je, kb, ke + kh, ih, jh) ! cyclic
-       !       ! call excis(pvp, ib, ie, jb, je, kb, ke + kh, ih, jh) ! cyclic
-       !       ! call excis(pwp, ib, ie, jb, je, kb, ke + kh, ih, jh) ! cyclic
-       !    end do
-       ! end do
+
      endif
-
-      ! call excjs(pup, ib, ie, jb, je, kb, ke + kh, ih, jh) ! cyclic
-      ! call excjs(pvp, ib, ie, jb, je, kb, ke + kh, ih, jh) ! cyclic
-      ! call excjs(pwp, ib, ie, jb, je, kb, ke + kh, ih, jh) ! cyclic
-
 
    end subroutine bcpup
 
    !>set pressure boundary conditions
    subroutine bcp(p)
 
-     use modglobal, only:ib, ie, jb, je, ih, jh, kb, ke, kh, linoutflow, dxfi, ibrank, ierank, jbrank, jerank, dyi
+     use modglobal, only:ib, ie, jb, je, ih, jh, kb, ke, kh, linoutflow, dxfi, ibrank, ierank, jbrank, jerank, dyi, BCxm, BCym
      use modfields, only:pres0, up, u0, um, uouttot, vp, v0
      use modmpi, only:excj,exci
      use decomp_2d, only : exchange_halo_z
@@ -1301,8 +1205,7 @@ contains
      call exchange_halo_z(p)
      call exchange_halo_z(pres0)
 
-     if (linoutflow) then
-     !if (.false.) then
+     if (BCxm > 1) then
        if (ibrank) then
          do k = kb, ke
            do j = jb-1, je+1
@@ -1319,19 +1222,14 @@ contains
              pres0(ie + 1, j, k) = pres0(ie, j, k)
 
              ! Convective
-             up(ie + 1, j, k) = -(u0(ie+1, j, k) - u0(ie, j, k))*dxfi(ie)*u0(ie,j,k)
+             ! Put in switch for convective/Dirichlet/Neumann
+             up(ie + 1, j, k) = -(u0(ie+1, j, k) - u0(ie, j, k))*dxfi(ie)*uouttot!u0(ie,j,k)
            enddo
          enddo
-
-         ! ! Not sure if necessary (or if quite correct)
-         ! do k = kb, ke
-         !   do j = jb, je
-         !     up(ie + 1, j, k) = up(ie+1,j,k) - (u0(ie+1, j+1, k) - u0(ie+1, j, k))*dyi*v0(ie+1,j,k)
-         !   enddo
-         ! enddo
-
        end if
+     end if
 
+     if (BCym > 1) then
        if (jbrank) then
          do k = kb, ke
            do i = ib-1, ie+1
@@ -1348,33 +1246,12 @@ contains
              pres0(i,je+1,k) = pres0(i,je,k)
 
              ! Convective
+             ! Put in switch for convective...
              vp(i, je+1, k) = -(v0(i, je+1, k) - v0(i, je, k))*dyi*v0(i,je,k)
            enddo
          enddo
-
-         ! ! Not sure if necessary (or if quite correct)
-         ! do k=kb,ke
-         !   do i=ib,ie
-         !     vp(i, je+1, k) = vp(i, je+1, k) - (v0(i+1, je+1, k) - v0(i, je+1, k))*dxfi(ie)*u0(i,je+1,k)
-         !   end do
-         ! end do
-
        end if
-       !else
-       ! do k = kb, ke
-       !    do j = jb, je
-       !       p(ib - 1, j, k) = p(ie, j, k)
-       !       p(ie + 1, j, k) = p(ib, j, k)
-       !    enddo
-       ! enddo
-       ! call exci(p, ib-1, ie+1, jb-1, je+1, kb-1, ke+1) ! cyclic
-       ! call exci(pres0, ib-1, ie+1, jb-1, je+1, kb-1, ke+1) ! cyclic
      endif
-
-     ! call excj(p, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1) ! cyclic
-     ! call excj(pres0, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1) ! cyclic
-     ! Can be replaced by following?
-     !call excj(p, ib, ie, jb, je, kb - 1, ke + 1) etc
 
    end subroutine bcp
 
@@ -1451,7 +1328,7 @@ contains
       if (abs(flux) .le. eps1) then !it's zero-flux, we don't need to do the calculation
          field(:, :, ke + 1) = field(:, :, ke)
       else
- field(:, :, ke + 1) = field(:, :, ke) + dzh(ke + 1)*flux/(dzhi(ke + 1)*(0.5*(dzf(ke)*ek(:, :, ke + 1) + dzf(ke + 1)*ek(:, :, ke))))
+         field(:, :, ke + 1) = field(:, :, ke) + dzh(ke + 1)*flux/(dzhi(ke + 1)*(0.5*(dzf(ke)*ek(:, :, ke + 1) + dzf(ke + 1)*ek(:, :, ke))))
       end if
       !
    end subroutine fluxtop

@@ -62,9 +62,8 @@ program DALESURBAN      !Version 48
 !---------------------------------------------------------
   call initchecksim ! Could be deprecated
   call initstat_nc ! Could be deprecated
-  write(*,*) "done inistat_nc"
   call initfielddump
-  write(*,*) "done initfielddump"
+  call fielddump
   !call initstatsdump !tg3315
 
   !call readfacetfiles
@@ -77,15 +76,14 @@ program DALESURBAN      !Version 48
   !write(6,*) 'Finished determining immersed walls'
 
   call boundary  !ils13 22.06.2017 inserted boundary here to get values at ghost cells before iteration starts
-  write(*,*) "done boundary"
+  ! call fielddump
+  ! write(*,*) "done fielddump after boundary"
 !  not necessary but abates the fact that temp field is randomised by randomisation of just velocity fields
 !  (because advection at start of time loop without being divergence free)
   call poisson
-  write(*,*) "done poisson"
 
   call fielddump
-  write(*,*) "done initial fielddump"
-  call barrou()
+
 !------------------------------------------------------
 !   3.0   MAIN TIME LOOP
 !------------------------------------------------------
@@ -94,16 +92,13 @@ program DALESURBAN      !Version 48
   do while ((timeleft>0) .or. (rk3step < 3))
     !write(*,*) timeleft
     call tstep_update
-    write(*,*) "done tstep_update"
 !-----------------------------------------------------
 !   3.2   ADVECTION AND DIFFUSION
 !-----------------------------------------------------
 
     call advection                ! now also includes predicted pressure gradient term
-    write(*,*) "done advection"
-    write(*,*) "doing subgrid"
+
     call subgrid
-    write(*,*) "done subgrid"
 !-----------------------------------------------------
 !   3.3   THE SURFACE LAYER
 !-----------------------------------------------------
@@ -145,11 +140,8 @@ program DALESURBAN      !Version 48
     !call grwdamp        !damping at top of the model
 
     call poisson
-    write(*,*) "done poisson"
     call tstep_integrate
-    write(*,*) "done tstep_integrate"
     call boundary
-    write(*,*) "done boundary"
     !call fixthetainf
 
 !-----------------------------------------------------
@@ -165,11 +157,9 @@ program DALESURBAN      !Version 48
    ! call writedatafiles   ! write data files for later analysis
     !call writerestartfiles
     call fielddump
-    write(*,*) "done fielddump"
     !call statsdump        ! tg3315
 
   end do
-  write(*,*) "done timestepping"
 !-------------------------------------------------------
 !             END OF TIME LOOP
 !-------------------------------------------------------
@@ -178,12 +168,9 @@ program DALESURBAN      !Version 48
 !    4    FINALIZE ADD ONS AND THE MAIN PROGRAM
 !-------------------------------------------------------
   call exitfielddump
-  write(*,*) myid, "done exitfielddump"
   !call exitstatsdump     !tg3315
   !call exitmodules
   !call exittest
-
   call exitmpi
-  write(*,*) myid, "done exitmpi"
 
 end program DALESURBAN

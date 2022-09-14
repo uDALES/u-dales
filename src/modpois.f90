@@ -59,7 +59,7 @@ save
 
 contains
   subroutine initpois
-    use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,imax,jmax,itot,jtot,ktot,dyi,dxfi,ipoiss,POISS_FFT2D,POISS_FFT3D,POISS_CYC,pi,dy,linoutflow,dzh,dzf,dxh,dxf
+    use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,imax,jmax,itot,jtot,ktot,dyi,dxfi,ipoiss,POISS_FFT2D,POISS_FFT3D,POISS_CYC,pi,dy,linoutflow,dzh,dzf,dxh,dxf,BCxm,BCym
     use modmpi,    only : myidx, myidy
     use modfields, only : rhobf, rhobh
     !use decomp_2d
@@ -74,9 +74,9 @@ contains
     allocate(pwp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
     call alloc_z(p)
     call alloc_z(rhs, opt_zlevel=(/0,0,0/))
-    call alloc_z(dpupdx, opt_zlevel=(/0,0,0/))
-    call alloc_z(dpvpdy, opt_zlevel=(/0,0,0/))
-    call alloc_z(dpwpdz, opt_zlevel=(/0,0,0/))
+    call alloc_z(dpupdx)
+    call alloc_z(dpvpdy)
+    call alloc_z(dpwpdz)
 
 
     if (ipoiss == POISS_FFT2D) then
@@ -92,8 +92,7 @@ contains
       kbc1 = 1 ! Neumann
 
       ! generate Eigenvalues xrt and yrt
-      if (.not. linoutflow) then
-        ! streamwise - periodic
+      if (BCxm == 1) then ! periodic
         fac = 1./(2.*itot)
         do i=3,itot,2
           xrt(i-1)=-4.*dxi*dxi*(sin(float((i-1))*pi*fac))**2
@@ -102,6 +101,17 @@ contains
         xrt(1    ) = 0.
         xrt(itot ) = -4.*dxi*dxi
 
+      else ! Neumann-Neumann
+        fac = 1./(2.*itot)
+        do i=1,itot
+          xrt(i)=-4.*dxi*dxi*(sin(float((i-1))*pi*fac))**2
+        end do
+
+        call dfftw_plan_r2r_1d(plan_r2fr_x,itot,Sxr,Sxfr,FFTW_REDFT10,FFTW_MEASURE)
+        call dfftw_plan_r2r_1d(plan_fr2r_x,itot,Sxfr,Sxr,FFTW_REDFT01,FFTW_MEASURE)
+      end if
+
+      if (BCym == 1) then ! periodic
         fac = 1./(2.*jtot)
         do j=3,jtot,2
           yrt(j-1)=-4.*dyi*dyi*(sin(float((j-1))*pi*fac))**2
@@ -110,34 +120,20 @@ contains
         yrt(1    ) = 0.
         yrt(jtot ) = -4.*dyi*dyi
 
-        ! top - Neumann
-        kbc2 = 1
-
-      else
-        ! streamise - Neumann
-        fac = 1./(2.*itot)
-        do i=1,itot
-          xrt(i)=-4.*dxi*dxi*(sin(float((i-1))*pi*fac))**2
-          !xrt(i)=-4.*dxi*dxi*(sin(float((i))*pi*fac))**2
-        end do
-
+      else ! Neumann-Neumann
         fac = 1./(2.*jtot)
         do j=1,jtot
           yrt(j)=-4.*dyi*dyi*(sin(float((j-1))*pi*fac))**2
           !yrt(j)=-4.*dyi*dyi*(sin(float((j))*pi*fac))**2
         end do
 
-        ! top - Dirichlet
-        !kbc2 = 3
-        kbc2 = 1
-        ! Could also set a Dirichlet BC on the inlet at the top, like in SPARKLE?
-
-        call dfftw_plan_r2r_1d(plan_r2fr_x,itot,Sxr,Sxfr,FFTW_REDFT10,FFTW_MEASURE)
         call dfftw_plan_r2r_1d(plan_r2fr_y,jtot,Syr,Syfr,FFTW_REDFT10,FFTW_MEASURE)
-        call dfftw_plan_r2r_1d(plan_fr2r_x,itot,Sxfr,Sxr,FFTW_REDFT01,FFTW_MEASURE)
         call dfftw_plan_r2r_1d(plan_fr2r_y,jtot,Syfr,Syr,FFTW_REDFT01,FFTW_MEASURE)
-
       end if
+
+      ! top - Neumann
+      kbc2 = 1
+      ! Could also set a Dirichlet BC on the inlet at the top, like in SPARKLE?
 
       ! ! spanwise - periodic
       ! fac = 1./(2.*jtot)
@@ -355,13 +351,19 @@ contains
     do k=kb,ke
       do j=jb,je
         do i=ib,ie
-          dpupdx(i,j,k) = (pup(i+1,j,k)-pup(i,j,k)) * dxfi(i)
-          dpvpdy(i,j,k) = (pvp(i,j+1,k)-pvp(i,j,k)) * dyi
-          dpwpdz(i,j,k) = (pwp(i,j,k+1)-pwp(i,j,k)) * dzfi(k)
-
           p(i,j,k)  =  ( pup(i+1,j,k)-pup(i,j,k) ) * dxfi(i) &         ! see equation 5.72
                           +( pvp(i,j+1,k)-pvp(i,j,k) ) * dyi &
                           +( pwp(i,j,k+1)-pwp(i,j,k) ) * dzfi(k)
+        end do
+      end do
+    end do
+
+    do k=kb-1,ke
+      do j=jb-1,je
+        do i=ib-1,ie
+          dpupdx(i,j,k) = (pup(i+1,j,k)-pup(i,j,k)) * dxfi(i)
+          dpvpdy(i,j,k) = (pvp(i,j+1,k)-pvp(i,j,k)) * dyi
+          dpwpdz(i,j,k) = (pwp(i,j,k+1)-pwp(i,j,k)) * dzfi(k)
         end do
       end do
     end do
@@ -526,23 +528,25 @@ contains
       end do
     end do
 
-    if (linoutflow) then
-      if (ierank) then
-        do j=jb,je
-          do k=kb,ke
-            up(ie+1,j,k) = up(ie+1,j,k)-(p(ie+1,j,k)-p(ie,j,k))*dxhi(i)
-          end do
-        end do
-      end if
-
-      if (jerank) then
-        do i=ib,ie
-          do k=kb,ke
-            vp(i,je+1,k) = vp(i,je+1,k)-(p(i,je+1,k)-p(i,je,k))*dyi
-          end do
-        end do
-      end if
-    end if
+    ! if (BCxm > 1) then
+    !   if (ierank) then
+    !     do j=jb,je
+    !       do k=kb,ke
+    !         up(ie+1,j,k) = up(ie+1,j,k)-(p(ie+1,j,k)-p(ie,j,k))*dxhi(i)
+    !       end do
+    !     end do
+    !   end if
+    ! end if
+    !
+    ! if (BCym > 1) then
+    !   if (jerank) then
+    !     do i=ib,ie
+    !       do k=kb,ke
+    !         vp(i,je+1,k) = vp(i,je+1,k)-(p(i,je+1,k)-p(i,je,k))*dyi
+    !       end do
+    !     end do
+    !   end if
+    ! end if
 
 
     ! tg3315 02/02/2019
@@ -579,7 +583,6 @@ contains
         enddo
       enddo
     enddo
-
 
     ! if (linoutflow) then
     !   if (ibrank) then
@@ -1181,7 +1184,7 @@ contains
   ! mpi-version, no master region for timing
   !              copy times all included
     use modmpi,    only : myid,comm3d,mpierr,nprocs, barrou
-    use modglobal, only : imax,jmax,ktot,isen,itot,jtot,pi,dyi,dzf,dzh,dxfi, kb, ke, kh,kmax, ib, ie, jb, je, kb, ke, linoutflow, ierank, jerank, ibrank, jbrank
+    use modglobal, only : imax,jmax,ktot,isen,itot,jtot,pi,dyi,dzf,dzh,dxfi, kb, ke, kh,kmax, ib, ie, jb, je, kb, ke, linoutflow, ierank, jerank, ibrank, jbrank, BCxm, BCym
     use modfields, only : rhobf, rhobh
 
     implicit none
@@ -1201,42 +1204,25 @@ contains
 
     rhs = pz
 
-    allocate(d(imax,jmax,kmax), FFTI(itot), FFTJ(jtot))
+    allocate(d(imax,jmax,kmax))
 
-    if (.not. linoutflow) then
+    if (BCxm == 1) then
+      allocate(FFTI(itot))
       allocate(winew(2*itot+15))
       call rffti(itot,winew)
-      allocate(wjnew(2*jtot+15))
-      call rffti(jtot,wjnew)
-    else
-      allocate(winew(3*itot+15))
-      call costi(itot,winew)
-      allocate(wjnew(3*jtot+15))
-      call costi(jtot,wjnew)
     end if
 
-    ! allocate(wjnew(2*jtot+15))
-    ! call rffti(jtot,wjnew)
-
-    ! ! Generate tridiagonal matrix
-    !   do k=1,ktot
-    !     ! SB fixed the coefficients
-    !     a(k) = rhobh(k)  /(dzf(k)*dzh(k))
-    !     c(k) = rhobh(k+1)/(dzf(k)*dzh(k+1))
-    !     b(k) = -(a(k)+c(k))
-    !   end do
-    !   b(1) = b(1)+a(1)
-    !   a(1) = 0.
-    !   b(ktot) = b(ktot)+c(ktot)
-    !   c(ktot) = 0.
+    if (BCym == 1) then
+      allocate(FFTJ(jtot))
+      allocate(wjnew(2*jtot+15))
+      call rffti(jtot,wjnew)
+    end if
 
     call transpose_z_to_y(pz, py)
     call transpose_y_to_x(py, px)
 
-    !if (jbrank .and. ibrank) write(*,*) "nrank, p(:,1,1): ", nrank, px(:,1,1)
-
     ! Now in x-pencil, do FFT in x-direction
-    if (.not. linoutflow) then
+    if (BCxm == 1) then
       fac = 1./sqrt(itot*1.)
       do k=1,xsize(3)
         do j=1,xsize(2)
@@ -1274,7 +1260,7 @@ contains
     call transpose_x_to_y(px, py)
 
     ! Now in y-pencil, do FFT in y-direction
-    if (.not. linoutflow) then
+    if (BCym == 1) then
       fac = 1./sqrt(jtot*1.)
       do i=1,ysize(1)
         do k=1,ysize(3)
@@ -1358,22 +1344,10 @@ contains
       end do
     end do
 
-    ! do j = 1,zsize(2)
-    !   do i = 1,zsize(1)
-    !     call tridiagonal(a, (b + xyzrt(i,j,:)), c, pz(i,j,:), vout)
-    !     pz(i,j,:) = vout
-    !   end do
-    ! end do
-
     call transpose_z_to_y(pz,py)
 
-    call transpose_y_to_x(py,px)
-    !if (jbrank .and. ibrank) write(*,*) "p(:,1,1): ", px(:,1,1)
-    call transpose_x_to_y(px,py)
-
-
     ! Now in y-pencil, do backward FFT in y direction
-    if (.not. linoutflow) then
+    if (BCym == 1) then
       fac = 1./sqrt(jtot*1.)
       do i=1,ysize(1)
         do k=1,ysize(3)
@@ -1411,7 +1385,7 @@ contains
     call transpose_y_to_x(py,px)
 
     ! Now in x-pencil, do backward FFT in x-direction
-    if (.not. linoutflow) then
+    if (BCxm == 1) then
       fac = 1./sqrt(itot*1.)
       do k=1,xsize(3)
         do j=1,xsize(2)
@@ -1447,41 +1421,16 @@ contains
 
     end if
 
-    !if (jbrank .and. ibrank) write(*,*) "p(:,1,1): ", px(:,1,1)
-
     call transpose_x_to_y(px, py)
     call transpose_y_to_z(py, pz)
 
     p(ib:ie,jb:je,kb:ke) = pz
 
-    deallocate(px,py,pz,d,FFTI,FFTJ,winew,wjnew)
+    deallocate(px,py,pz,d)
+    if (BCxm == 1) deallocate(FFTI, winew)
+    if (BCym == 1) deallocate(FFTJ, wjnew)
 
     return
   end subroutine solmpj
-
-  SUBROUTINE tridiagonal(a, b, c, r, u)
-  real, dimension(:), intent(in)  :: a,b,c,r
-  real, dimension(:), intent(out) :: u
-  real, dimension(size(b)) :: gam
-  integer :: n, j, k
-  real    :: bet
-
-  n = size(b)
-
-  ! Forward substitution
-  bet = b(1)
-  u(1) = r(1) / bet
-  do j = 2, n
-    gam(j) = c(j-1) / bet
-    bet = b(j) - a(j-1) * gam(j)
-    u(j) = (r(j) - a(j-1) * u(j-1)) / bet
-  end do
-
-  ! Backward substitution
-  do j = n-1, 1, -1
-    u(j) = u(j) - gam(j+1) * u(j+1)
-  end do
-END SUBROUTINE tridiagonal
-
 
 end module modpois

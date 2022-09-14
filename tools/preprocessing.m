@@ -188,7 +188,7 @@ classdef preprocessing < dynamicprops
             preprocessing.addvar(obj, 'lvvolflowr', 0) % switch that determines whether v-velocity is corrected to get a fixed volume flow rate.
 
             %% &DOMAIN
-            preprocessing.addvar(obj, 'imax', 64)  % # cells in x-direction
+            preprocessing.addvar(obj, 'itot', 64)  % # cells in x-direction
             preprocessing.addvar(obj, 'xlen', 64) % domain size in x-direction
             preprocessing.addvar(obj, 'jtot', 64)  % # cells in y-direction
             preprocessing.addvar(obj, 'ylen', 64) % domain size in y-direction
@@ -199,7 +199,7 @@ classdef preprocessing < dynamicprops
                 error('No. CPUs does not fit j grid size')
             end
 
-            preprocessing.addvar(obj, 'dx', obj.xlen / obj.imax)
+            preprocessing.addvar(obj, 'dx', obj.xlen / obj.itot)
             preprocessing.addvar(obj, 'dy', obj.ylen / obj.jtot)
 
             %% &ENERGYBALANCE
@@ -792,8 +792,8 @@ classdef preprocessing < dynamicprops
         end
 
         function generate_topo_from_bl(obj)
-            preprocessing.addvar(obj, 'topomask', zeros(obj.jtot, obj.imax));
-            preprocessing.addvar(obj, 'topo', zeros(obj.jtot, obj.imax));
+            preprocessing.addvar(obj, 'topomask', zeros(obj.jtot, obj.itot));
+            preprocessing.addvar(obj, 'topo', zeros(obj.jtot, obj.itot));
             for n = 1:size(obj.bl, 1)
                 obj.topo(obj.bl(n,3):obj.bl(n,4),obj.bl(n,1):obj.bl(n,2)) = obj.zh(obj.bl(n,6) + 1);
                 obj.topomask(obj.bl(n,3):obj.bl(n,4),obj.bl(n,1):obj.bl(n,2)) = 1;
@@ -801,25 +801,25 @@ classdef preprocessing < dynamicprops
         end
 
         function generate_topo_from_txt(obj)
-            preprocessing.addvar(obj, 'topomask', zeros(obj.jtot, obj.imax));
-            preprocessing.addvar(obj, 'topo', zeros(obj.jtot, obj.imax));
+            preprocessing.addvar(obj, 'topomask', zeros(obj.jtot, obj.itot));
+            preprocessing.addvar(obj, 'topo', zeros(obj.jtot, obj.itot));
             topo_dum = load([obj.txtblocksfile],'-ascii');
             obj.topo = topo_dum;
             obj.topomask(topo_dum>0) = 1;
         end
 
         function generate_bl_from_namoptions(obj)
-            imax = obj.imax;
+            itot = obj.itot;
             jtot = obj.jtot;
             blockwidth = obj.blockwidth;
             blockheight = obj.blockheight;
             canyonwidth = obj.canyonwidth;
-            nrows =  imax / (blockwidth + canyonwidth);
+            nrows =  itot / (blockwidth + canyonwidth);
 
             if ceil(nrows) ~= floor(nrows)
-                l = 0:0.5 * imax;
-                ind = rem(0.5 * imax, l) == 0;
-                err = ([l(ind); (0.5 * imax) ./ l(ind)]);
+                l = 0:0.5 * itot;
+                ind = rem(0.5 * itot, l) == 0;
+                err = ([l(ind); (0.5 * itot) ./ l(ind)]);
                 disp('Block system does not fit grid')
                 disp(['sum widths to: ' num2str(err(1,:))])
                 disp(['Current width: ' num2str(blockwidth + canyonwidth)])
@@ -827,7 +827,7 @@ classdef preprocessing < dynamicprops
             end
 
             if obj.lstaggered
-                nrows = imax / (blockwidth * 2);
+                nrows = itot / (blockwidth * 2);
                 ncolumns = jtot / (blockwidth * 2);
                 bl = zeros(nrows * ncolumns + nrows / 2, 13);
                 bl(:, 5) = 0;
@@ -864,7 +864,7 @@ classdef preprocessing < dynamicprops
             elseif obj.lcube
                 xlen = obj.xlen; zsize = obj.zsize;
                 ktot = obj.ktot;
-                nrows = imax / (blockwidth * 2);
+                nrows = itot / (blockwidth * 2);
                 ncolumns = jtot / (blockwidth * 2);
                 bl = zeros(nrows * ncolumns, 13);
                 for n = 1 : nrows
@@ -872,7 +872,7 @@ classdef preprocessing < dynamicprops
                         bl((n - 1) * ncolumns + nn + 1, 1) = -0.5 * blockwidth + (2 * n - 1) * blockwidth + 1;
                         bl((n - 1) * ncolumns + nn + 1, 2) = bl((n - 1) * ncolumns + nn + 1, 1) + blockwidth - 1;
                         bl((n - 1) * ncolumns + nn + 1, 5) = 0;
-                        bl((n - 1) * ncolumns + nn + 1, 6) = ceil(blockwidth * (xlen / imax) / (zsize / ktot));
+                        bl((n - 1) * ncolumns + nn + 1, 6) = ceil(blockwidth * (xlen / itot) / (zsize / ktot));
                         bl((n - 1) * ncolumns + nn + 1, 3) = 1 + blockwidth / 2 + nn * blockwidth * 2;
                         bl((n - 1) * ncolumns + nn + 1, 4) = bl((n - 1) * ncolumns + nn + 1, 3) + blockwidth - 1;
                     end
@@ -880,7 +880,7 @@ classdef preprocessing < dynamicprops
 
             elseif obj.lcanyons
                 bl = zeros(nrows, 13);
-                bl(1:nrows, 1) = (0.5 * canyonwidth + 1 : canyonwidth + blockwidth : imax - 0.5 * canyonwidth)';
+                bl(1:nrows, 1) = (0.5 * canyonwidth + 1 : canyonwidth + blockwidth : itot - 0.5 * canyonwidth)';
                 bl(1:nrows, 2) = bl(1:nrows, 1) + blockwidth - 1;
                 bl(:, 3) = 1;
                 bl(:, 4) = jtot;
@@ -901,7 +901,7 @@ classdef preprocessing < dynamicprops
             dx = obj.dx;
             dy = obj.dy;
             dz = obj.dz;
-            ni = obj.imax;
+            ni = obj.itot;
             nj = obj.jtot;
             dxinp =obj.dxinp;
             dyinp = obj.dyinp;
@@ -1399,7 +1399,7 @@ classdef preprocessing < dynamicprops
         function makeblocks(obj)
             topomask = obj.topomask;
             topo = obj.topo;
-            imax = obj.imax;
+            itot = obj.itot;
             jtot = obj.jtot;
             dz = obj.dz;
 
@@ -1419,7 +1419,7 @@ classdef preprocessing < dynamicprops
             indexmask=zeros(size(topomask)); %mask of the indeces of the (new) blocks
 
             count = 0;
-            for i = 1:imax %loop over all x
+            for i = 1:itot %loop over all x
                 xminl = i;
                 xmaxl = i;
                 j = 1;
@@ -1443,7 +1443,7 @@ classdef preprocessing < dynamicprops
                                     heightchangey = jj - 1;
                                     break
                                 end
-                            elseif (i == imax)
+                            elseif (i == itot)
                                 if (any(topo(jj-1:jj,i-1) > 0) && (topo(jj,i-1)~= topo(jj-1,i-1) ) )
                                     heightchangey = jj-1;
                                     break
@@ -1473,7 +1473,7 @@ classdef preprocessing < dynamicprops
                             ztemp(3,1) = topo(yminl, xminl-1);
                         end
 
-                        if xmaxl == imax
+                        if xmaxl == itot
                             ztemp(4,1) = NaN;
                         else
                             ztemp(4,1) = topo(yminl, xminl+1);
@@ -1604,7 +1604,7 @@ classdef preprocessing < dynamicprops
                             ilb = 0;
                         end
 
-                        if ~(xmax3(c) == imax) %on right domain boundary, don't check for neighbouring blocsk
+                        if ~(xmax3(c) == itot) %on right domain boundary, don't check for neighbouring blocsk
                             irrb = indexmask3(ymin3(c):ymax3(c),xmax3(c)+1);
                             iirrb = find(irrb>0,1);
                             if ~isempty(irrb)
@@ -1775,7 +1775,7 @@ classdef preprocessing < dynamicprops
                 else
                     temp1(:,1) = topo(yind,xmin3(i)) - topo(yind,xmin3(i)-1); % tg3315 changed so do not get internal blocks with adjacent different sizes %indexmask4(yind, xmin3(i)-1);
                 end
-                if xmax3(i) == imax %at edge
+                if xmax3(i) == itot %at edge
                     temp1(:,2) = 999999;
                 else
                     temp1(:,2) = topo(yind,xmax3(i)) - topo(yind,xmax3(i)+1); %indexmask4(yind, xmax3(i)+1);
@@ -1884,7 +1884,7 @@ classdef preprocessing < dynamicprops
         end
 
         function block2fac(obj)
-            imax = obj.imax;
+            itot = obj.itot;
             jtot = obj.jtot;
             blocks = obj.blocks;
             nblocks = obj.nblocks;
@@ -1892,8 +1892,8 @@ classdef preprocessing < dynamicprops
 
             %% create Mask-matrix
             % this new mask is in x,y coordinates, not y,x coordinates as before
-            M = zeros(imax, jtot);
-            IM = zeros(imax , jtot);
+            M = zeros(itot, jtot);
+            IM = zeros(itot , jtot);
             for i = 1:size(blocks,1)
                 xl = blocks(i,1);
                 xu = blocks(i,2);
@@ -1997,7 +1997,7 @@ classdef preprocessing < dynamicprops
                             end
                         end
                     case 3
-                        if facets(i, 5 + iu) <= imax %not at the domain edge
+                        if facets(i, 5 + iu) <= itot %not at the domain edge
                             if M(facets(i, 5 +  iu), facets(i, 5 + jl))
                                 facets(i,5) = 1;
                                 intern(j,1) = facets(i, 3);
@@ -2053,7 +2053,7 @@ classdef preprocessing < dynamicprops
             nfcts=size(facets,1);
             %% remove facets at domain edge (not actually done)
 
-            sel = find(~((facets(:,6) == 1 & facets(:,7) == 1) | (facets(:,6)== imax + 1 & facets(:,7) == imax + 1) | (facets(:,8) == 1 & facets(:,9) == 1) | (facets(:,8) == jtot + 1 & facets(:,9) == jtot + 1)));
+            sel = find(~((facets(:,6) == 1 & facets(:,7) == 1) | (facets(:,6)== itot + 1 & facets(:,7) == itot + 1) | (facets(:,8) == 1 & facets(:,9) == 1) | (facets(:,8) == jtot + 1 & facets(:,9) == jtot + 1)));
 
             if obj.lEB && (length(sel) ~= nfcts)
                   error("Can't have blocks on edge of domain when using energy balance")
@@ -2067,7 +2067,7 @@ classdef preprocessing < dynamicprops
         function addboundingwalls(obj)
             % Add a bounding wall around the domain used in radiation calculations only
             % THIS DOES NOT YET DEAL WITH PERIODIC GEOMETRY (I.E. CANYONS)
-            imax = obj.imax;
+            itot = obj.itot;
             jtot = obj.jtot;
             maxlen = obj.maxlen;
             blocks = obj.blocks;
@@ -2075,8 +2075,8 @@ classdef preprocessing < dynamicprops
 
             nxwalls = ceil(jtot / maxlen);
             remx = rem(jtot, maxlen);
-            nywalls = ceil(imax / maxlen);
-            remy = rem(imax, maxlen);
+            nywalls = ceil(itot / maxlen);
+            remy = rem(itot, maxlen);
             nzw = ceil((height + 1) / maxlen);
             remz = rem((height + 1), maxlen);
 
@@ -2094,10 +2094,10 @@ classdef preprocessing < dynamicprops
                     end
                     for i = 1:(nxwalls-1)
                         boundingwallfacets((i-1) * nzw + j, 6:11) = [1, 1, (i - 1) * maxlen + 1, i * maxlen, lh, uh];
-                        boundingwallfacets((i-1) * nzw + j + nxwalls * nzw, 6:11) =  [imax, imax, (i - 1) * maxlen + 1, i * maxlen, lh, uh];
+                        boundingwallfacets((i-1) * nzw + j + nxwalls * nzw, 6:11) =  [itot, itot, (i - 1) * maxlen + 1, i * maxlen, lh, uh];
                     end
                     boundingwallfacets((nxwalls - 1) * nzw + j, 6:11) = [1, 1, jtot - remx + 1, jtot, lh, uh];
-                    boundingwallfacets((nxwalls - 1) * nzw + j + nxwalls * nzw, 6:11) = [imax, imax, jtot - remx + 1, jtot, lh, uh];
+                    boundingwallfacets((nxwalls - 1) * nzw + j + nxwalls * nzw, 6:11) = [itot, itot, jtot - remx + 1, jtot, lh, uh];
                 end
             else
                 disp('remx <= 0')
@@ -2113,7 +2113,7 @@ classdef preprocessing < dynamicprops
                     end
                     for i = 1:nxwalls
                         boundingwallfacets((i - 1) * nzw + j, 6:11) = [1, 1, (i - 1) * maxlen + 1, i * maxlen, lh, uh];
-                        boundingwallfacets((i - 1) * nzw + j + nxwalls * nzw, 6:11) = [imax, imax, (i - 1) * maxlen + 1, i * maxlen, lh, uh];
+                        boundingwallfacets((i - 1) * nzw + j + nxwalls * nzw, 6:11) = [itot, itot, (i - 1) * maxlen + 1, i * maxlen, lh, uh];
                     end
                 end
             end
@@ -2131,8 +2131,8 @@ classdef preprocessing < dynamicprops
                         boundingwallfacets(2 * nzw * nxwalls + (i - 1) * nzw + j, 6:11) = [(i - 1) * maxlen + 1, i * maxlen, jtot, jtot, lh, uh];
                         boundingwallfacets(2 * nzw * nxwalls + (i - 1) * nzw + j + nywalls * nzw, 6:11) = [(i - 1) * maxlen + 1, i * maxlen, 1, 1, lh, uh];
                     end
-                    boundingwallfacets(2 * nzw * nxwalls + (nywalls - 1) * nzw + j, 6:11) = [imax - remy + 1, imax, jtot, jtot, lh, uh];
-                    boundingwallfacets(2 * nzw * nxwalls + (nywalls - 1) * nzw + j + nywalls * nzw, 6:11) = [imax - remy + 1, imax, 1, 1, lh, uh];
+                    boundingwallfacets(2 * nzw * nxwalls + (nywalls - 1) * nzw + j, 6:11) = [itot - remy + 1, itot, jtot, jtot, lh, uh];
+                    boundingwallfacets(2 * nzw * nxwalls + (nywalls - 1) * nzw + j + nywalls * nzw, 6:11) = [itot - remy + 1, itot, 1, 1, lh, uh];
                 end
             else
                 disp('remy <= 0')
@@ -2200,19 +2200,19 @@ classdef preprocessing < dynamicprops
             % obj.floorfacets holds floor facets information.
             % Format: orientation, wall type, block id, building id,
             % isinternal, il, iu, jl, ju, kl, ku
-            imax = obj.imax;
+            itot = obj.itot;
             jtot = obj.jtot;
             maxlen = obj.maxlen;
             blocks = obj.blocks;
             nblocks = obj.nblocks;
-            M = ones(imax, jtot);
-            BI = zeros(imax, jtot); %block index mask
-            corm = zeros(imax, jtot); %mask with all wall-floor corners
-            cornm = zeros(imax, jtot);
+            M = ones(itot, jtot);
+            BI = zeros(itot, jtot); %block index mask
+            corm = zeros(itot, jtot); %mask with all wall-floor corners
+            cornm = zeros(itot, jtot);
             
             if obj.lfloors
                 if maxlen ~= inf
-                    nfloorfacets_x = ceil(imax / maxlen);
+                    nfloorfacets_x = ceil(itot / maxlen);
                     nfloorfacets_y = ceil(jtot / maxlen);
                     nfloorfacets = nfloorfacets_x * nfloorfacets_y;
                     floorfacets = zeros(nfloorfacets, 11);
@@ -2227,9 +2227,9 @@ classdef preprocessing < dynamicprops
                         end
                     end
                     i = nfloorfacets_x;
-                    rem_x = rem(imax, maxlen);
-                    xl = imax - rem_x + 1;
-                    xu = imax;
+                    rem_x = rem(itot, maxlen);
+                    xl = itot - rem_x + 1;
+                    xu = itot;
                     for j = 1:nfloorfacets_y - 1
                         yl = (j - 1) * maxlen + 1;
                         yu = j * maxlen;
@@ -2249,8 +2249,8 @@ classdef preprocessing < dynamicprops
                     
                     i = nfloorfacets_x;
                     j = nfloorfacets_y;
-                    xl = imax - rem_x + 1;
-                    xu = imax;
+                    xl = itot - rem_x + 1;
+                    xu = itot;
                     yl = jtot - rem_y + 1;
                     yu = jtot;
                     floorfacets((i - 1) * nfloorfacets_y + j, :) = [1, -1, i, -1, 0, xl, xu, yl, yu, 0, 0];
@@ -2258,8 +2258,8 @@ classdef preprocessing < dynamicprops
                     
                 else
                     nfloorfacets = 1;
-                    floorfacets = [1, -1, 1, -1, 0, 1, imax, 1, jtot, 0, 0];
-                    blocks = [1, imax, 1, jtot, 0, 0, 1, 0, 0, 0, 0];
+                    floorfacets = [1, -1, 1, -1, 0, 1, itot, 1, jtot, 0, 0];
+                    blocks = [1, itot, 1, jtot, 0, 0, 1, 0, 0, 0, 0];
                 end
             else               
                 for i = 1:nblocks
@@ -2313,7 +2313,7 @@ classdef preprocessing < dynamicprops
                             M2(xl - 1, yl:yu) = 0; %set to 2 for later check if it is a corner
                             iM(xl - 1, yl:yu) = c;
                             floorfacets(c, 6:9) = [xl - 1, xl - 1, yl, yu];
-                            if (yl - 1 >= 1) && (xu + 1 <= imax) && (yu + 1 <= jtot) && (xl - 1 >= 1)
+                            if (yl - 1 >= 1) && (xu + 1 <= itot) && (yu + 1 <= jtot) && (xl - 1 >= 1)
                                 if BI(xl - 1, yl - 1) > 0 %corner with a north wall
                                     cornm(xl - 1, yl) = 8;
                                 elseif BI(xl - 1, yu + 1) > 0 %corner with a south wall
@@ -2323,13 +2323,13 @@ classdef preprocessing < dynamicprops
                         end
                     end
                     %east
-                    if xu + 1 <= imax %not at domain edge
+                    if xu + 1 <= itot %not at domain edge
                         if BI(xu + 1, yl) == 0
                             c = c + 1;
                             M2(xu + 1, yl:yu) = 0;
                             iM(xu + 1, yl:yu) = c;
                             floorfacets(c, 6:9) = [xu + 1, xu + 1, yl, yu];
-                            if (yl - 1 >= 1) && (xu + 1 <= imax) && (yu + 1 <= jtot) && (xl - 1 >= 1)
+                            if (yl - 1 >= 1) && (xu + 1 <= itot) && (yu + 1 <= jtot) && (xl - 1 >= 1)
                                 if BI(xu + 1, yl - 1) > 0 %corner with a north wall
                                     cornm(xu + 1, yl) = 12;
                                 elseif BI(xu+1, yu + 1) > 0  %corner with a south wall
@@ -2345,7 +2345,7 @@ classdef preprocessing < dynamicprops
                             M2(xl:xu, yu + 1) = 0;
                             iM(xl:xu, yu + 1) = c;
                             floorfacets(c, 6:9) = [xl, xu, yu + 1, yu + 1];
-                            if (yl - 1 >= 1) && (xu + 1 <= imax) && (yu + 1 <= jtot) && (xl - 1 >= 1)
+                            if (yl - 1 >= 1) && (xu + 1 <= itot) && (yu + 1 <= jtot) && (xl - 1 >= 1)
                                 if BI(xl - 1, yu + 1) > 0 %corner with an east wall
                                     cornm(xl, yu + 1) = 12;
                                 elseif BI(xu + 1, yu + 1) > 0 %corner with a west wall
@@ -2362,7 +2362,7 @@ classdef preprocessing < dynamicprops
                             iM(xl:xu, yl - 1) = c;
                             %floors(c, :) = [xl, xu, yl - 1, yl - 1];
                             floorfacets(c, 6:9) = [xl, xu, yl - 1, yl - 1];
-                            if (yl - 1 >= 1) && (xu + 1 <= imax) && (yu + 1 <= jtot) && (xl - 1 >= 1)
+                            if (yl - 1 >= 1) && (xu + 1 <= itot) && (yu + 1 <= jtot) && (xl - 1 >= 1)
                                 if BI(xl - 1, yl - 1) > 0 %corner with an east wall
                                     cornm(xl , yl - 1) = 15;
                                 elseif BI(xu + 1, yl - 1) > 0 %corner with a west wall
@@ -2400,7 +2400,7 @@ classdef preprocessing < dynamicprops
                 %% Make floors
                 % make them in 1D first (fixed x, along y)
                 while any(M2(:) > 0)
-                    for i = 1:imax
+                    for i = 1:itot
                         ls = find(M2(i, :) == 1);
                         if ~isempty(ls)
                             first = ls(1);
@@ -2753,7 +2753,7 @@ classdef preprocessing < dynamicprops
 
             %plotshadowline
 
-            dx = ones(obj.imax, 1) * obj.dx;
+            dx = ones(obj.itot, 1) * obj.dx;
             dy = ones(obj.jtot, 1) * obj.dy;
             dz = obj.dzf;
 

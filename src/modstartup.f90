@@ -269,18 +269,21 @@ module modstartup
       call MPI_BCAST(ktot,1,MPI_INTEGER,0,comm3d,mpierr)
       call MPI_BCAST(nprocx,1,MPI_INTEGER,0,comm3d,mpierr)
       call MPI_BCAST(nprocy,1,MPI_INTEGER,0,comm3d,mpierr)
+      call MPI_BCAST(BCxm, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(BCym, 1, MPI_INTEGER, 0, comm3d, mpierr)
 
-      thvs = thls*(1.+(rv/rd - 1.)*qts)
-
-      !call init2decomp
-
-      !if (BCxm == 1) then
+      if (BCxm == 1) then
         periodic_bc(1) = .true.
-      !else
-        !periodic_bc(1) = .false.
-      !end if
+      else
+        periodic_bc(1) = .false.
+      end if
 
-      periodic_bc(2) = .true.
+      if (BCym == 1) then
+        periodic_bc(2) = .true.
+      else
+        periodic_bc(2) = .false.
+      end if
+
       periodic_bc(3) = .false.
       call decomp_2d_init(itot,jtot,ktot,nprocx,nprocy,periodic_bc)
       !myid = nrank
@@ -335,11 +338,11 @@ module modstartup
       call MPI_BCAST(dtdriver   ,1,MY_REAL    ,0,comm3d,mpierr)        ! ae1212
       call MPI_BCAST(driverstore,1,MPI_INTEGER ,0,comm3d,mpierr)
       call MPI_BCAST(lsdriver   ,1,MPI_LOGICAL,0,comm3d,mpierr)
-      call MPI_BCAST(BCxm, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      !call MPI_BCAST(BCxm, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(BCxT, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(BCxq, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(BCxs, 1, MPI_INTEGER, 0, comm3d, mpierr)
-      call MPI_BCAST(BCym, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      !call MPI_BCAST(BCym, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(BCyT, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(BCyq, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(BCys, 1, MPI_INTEGER, 0, comm3d, mpierr)
@@ -415,6 +418,7 @@ module modstartup
       wsvtop = wsvtopdum(1:nsv)
       call MPI_BCAST(wsvtop(1:nsv), nsv, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(ps, 1, MY_REAL, 0, comm3d, mpierr)
+      thvs = thls*(1.+(rv/rd - 1.)*qts)
       call MPI_BCAST(thvs, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(thls, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(thl_top, 1, MY_REAL, 0, comm3d, mpierr)
@@ -714,7 +718,7 @@ module modstartup
          ladaptive, tnextrestart, jmax, imax, xh, xf, linoutflow, lper2inout, iinletgen, lreadminl, &
          uflowrate, vflowrate,ltempeq, prandtlmoli, freestreamav, &
          tnextfielddump, tfielddump, tsample, tstatsdump, startfile, lprofforc, lchem, k1, JNO2,&
-         idriver,dtdriver,driverstore,tdriverstart,tdriverdump,xlen,ylen,itot,jtot
+         idriver,dtdriver,driverstore,tdriverstart,tdriverdump,xlen,ylen,itot,jtot,ibrank,ierank,jbrank,jerank,dxf,dxh
       use modsubgriddata, only:ekm, ekh
       use modsurfdata, only:wtsurf, wqsurf, wsvsurf, &
          thls, thvs, ps, qts, svs, sv_top
@@ -992,21 +996,33 @@ module modstartup
 
             ! SO: Manually override fields
 
-            ! TGV
-            do i = ib,ie
-              do j = jb,je
-                do k = kb,ke
-                  um(i,j,k) = 1. * cos(4.*atan(1.) * 2. * xh(i + myidx * imax) / ylen) * sin(4.*atan(1.) * 2. * (dy*((0.5+(j-1))+myidy*jmax)) / ylen)
-                  u0(i,j,k) = um(i,j,k)
-                  uinit(i,j,k) = um(i,j,k)
-                  vm(i,j,k) = 1. *-sin(4.*atan(1.) * 2. * xf(i + myidx * imax) / ylen) * cos(4.*atan(1.) * 2. * (dy*((j-1)+myidy*jmax)) / ylen)
-                  v0(i,j,k) = vm(i,j,k)
-                  vinit(i,j,k) = vm(i,j,k)
-                  wm(i,j,k) = 0.
-                  w0(i,j,k) = 0.
-                end do
-              end do
-            end do
+            ! ! TGV (assumes equidistant x grid)
+            ! do i = ib-1,ie+1
+            !   do j = jb-1,je+1
+            !     do k = kb-1,ke+1
+            !       um(i,j,k) = 1. * sin(4.*atan(1.) * 2. * (dxf(1)*((i-1)+myidx*imax)) / ylen) &
+            !                      * cos(4.*atan(1.) * 2. * (dy*((0.5+(j-1))+myidy*jmax)) / ylen) !&
+            !                      !* cos(4.*atan(1.) * 2. * zf(k) / ylen)
+            !       vm(i,j,k) = 1. *-cos(4.*atan(1.) * 2. * (dxh(1)*((0.5+(i-1))+myidx*imax)) / ylen)  &
+            !                      * sin(4.*atan(1.) * 2. * (dy*((j-1)+myidy*jmax)) / ylen) !&
+            !                      !* cos(4.*atan(1.) * 2. * zf(k) / ylen)
+            !       wm(i,j,k) = 0.
+            !     end do
+            !   end do
+            ! end do
+
+            ! For shear case
+            um(:,:,ke+1) = um(:,:,ke)
+            um(ib-1,:,:) = um(ib,:,:)
+            um(ie-1,:,:) = um(ie,:,:)
+            um(:,jb-1,:) = um(:,jb,:)
+            um(:,je+1,:) = um(:,je,:)
+
+            u0 = um
+            v0 = vm
+            w0 = wm
+            uinit = um
+            vinit = vm
 
             ! ! zeros
             ! do i = ib,ie
@@ -1040,10 +1056,6 @@ module modstartup
             !   end do
             ! end do
 
-            call exchange_halo_z(uinit)
-            call exchange_halo_z(vinit)
-
-
             ! do i = ib,ie
             !   do j = jb,je
             !     do k = kb,ke
@@ -1063,7 +1075,7 @@ module modstartup
                uaverage(k) = uprof(k)*dzf(k)
             end do
             ubulk = sum(uaverage(kb:ke))/(zh(ke + 1) - zh(kb)) ! averaged u-velocity inflow profile
-
+            write (6, *) 'Modstartup: ubulk=', ubulk
             vaverage = 0.
             ! call slabsum(vaverage, kb, ke, vm, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1, ib, ie, jb, je, kb, ke)
             do k = kb, ke

@@ -58,10 +58,10 @@ contains
  !> Initializing fielddump. Read out the namelist, initializing the variables
   subroutine initfielddump
     use modmpi,   only   :myid,my_real,mpierr,comm3d,mpi_logical,mpi_integer,cmyidx,cmyidy,mpi_character
-    use modglobal,only   :imax,jmax,kmax,imax1,jmax1,kmax1,imax2,jmax2,kmax2,cexpnr,ifnamopt,fname_options,dtmax,kb,ke, ladaptive,dt_lim,btime,nsv,fieldvars,ib,ie,jb,je,kb,ke, ih,jh,lfielddump,ktot
+    use modglobal,only   :imax,jmax,kmax,imax1,jmax1,kmax1,imax2,jmax2,kmax2,cexpnr,ifnamopt,fname_options,dtmax,kb,ke, ladaptive,dt_lim,btime,nsv,fieldvars,ib,ie,jb,je,kb,ke, ih,jh,lfielddump,ktot,kh
     use modstat_nc,only  : open_nc, define_nc,ncinfo,writestat_dims_nc
     use modfields, only  : u0,v0,w0,thl0,sv0,ql0,qt0,pres0,div
-    use modpois, only : p, pup,pvp,pwp, rhs, dpupdx, dpvpdy, dpwpdz, xyzrt
+    use modpois, only : p, pup,pvp,pwp, rhs, dpupdx, dpvpdy, dpwpdz
     implicit none
     integer :: ierr, n
 
@@ -78,8 +78,7 @@ contains
     end if
 
 
-    klow=kb
-    khigh=ke
+
 
     lhalos = .false.
 
@@ -88,11 +87,15 @@ contains
       ihigh = ie+ih
       jlow = jb-jh
       jhigh = je+jh
+      klow=kb-kh
+      khigh=ke+kh
     else
       ilow = ib
       ihigh = ie
       jlow = jb
       jhigh = je
+      klow=kb
+      khigh=ke
     end if
 
 
@@ -121,22 +124,22 @@ contains
       select case(fieldvars(3*n-2:3*n-1))
       case('u0')
         call ncinfo(ncname( n,:),'u','West-East velocity','m/s','mttt')
-        pfields(n)%point => u0(ib-ih:ie+ih,jb-jh:je+jh,kb:ke)
+        pfields(n)%point => u0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
       case('v0')
         call ncinfo(ncname( n,:),'v','South-North velocity','m/s','tmtt')
-        pfields(n)%point => v0(ib-ih:ie+ih,jb-jh:je+jh,kb:ke)
+        pfields(n)%point => v0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
       case('w0')
         call ncinfo(ncname( n,:),'w','Vertical velocity','m/s','ttmt')
-        pfields(n)%point => w0(ib-ih:ie+ih,jb-jh:je+jh,kb:ke)
+        pfields(n)%point => w0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
       case('th')
         call ncinfo(ncname( n,:),'thl','Liquid water potential temperature','K','tttt')
-        pfields(n)%point => thl0(ib-ih:ie+ih,jb-jh:je+jh,kb:ke)
+        pfields(n)%point => thl0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
       case('ql')
         call ncinfo(ncname( n,:),'ql','Liquid water mixing ratio','1e-5kg/kg','tttt')
-        pfields(n)%point => ql0(ib-ih:ie+ih,jb-jh:je+jh,kb:ke)
+        pfields(n)%point => ql0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
       case('qt')
         call ncinfo(ncname( n,:),'qt','Total water mixing ratio','1e-5kg/kg','tttt')
-        pfields(n)%point => qt0(ib-ih:ie+ih,jb-jh:je+jh,kb:ke)
+        pfields(n)%point => qt0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
       case('s1')
         call ncinfo(ncname( n,:),'sca1','scalar 1','M','tttt')
         pfields(n)%point => sv0(ib-ih:ie+ih,jb-jh:je+jh,kb:ke,1)
@@ -154,22 +157,31 @@ contains
         pfields(n)%point => sv0(ib-ih:ie+ih,jb-jh:je+jh,kb:ke,5)
       case('p0')
         call ncinfo(ncname( n,:),'pres','pressure field','M','tttt')
-        pfields(n)%point => pres0(ib-ih:ie+ih,jb-jh:je+jh,kb:ke)
+        pfields(n)%point => pres0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
       case('pd')
         call ncinfo(ncname( n,:),'p','pressure correction','M','tttt')
-        pfields(n)%point => p(ib-ih:ie+ih,jb-jh:je+jh,kb:ke)
+        pfields(n)%point => p(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
       case('pu')
         call ncinfo(ncname( n,:),'pup','predicted u','M','mttt')
-        pfields(n)%point => pup(ib-ih:ie+ih,jb-jh:je+jh,kb:ke)
+        pfields(n)%point => pup(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
       case('pv')
         call ncinfo(ncname( n,:),'pvp','predicted v','M','tmtt')
-        pfields(n)%point => pvp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke)
+        pfields(n)%point => pvp(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
       case('pw')
         call ncinfo(ncname( n,:),'pwp','predicted w','M','ttmt')
-        pfields(n)%point => pwp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke)
+        pfields(n)%point => pwp(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
+      case('du')
+        call ncinfo(ncname( n,:),'dpupdx','','M','tttt')
+        pfields(n)%point => dpupdx(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
+      case('dv')
+        call ncinfo(ncname( n,:),'dpvpdy','','M','tttt')
+        pfields(n)%point => dpvpdy(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
+      case('dw')
+        call ncinfo(ncname( n,:),'dpwpdz','','M','tttt')
+        pfields(n)%point => dpwpdz(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
       case default
         call ncinfo(ncname( n,:),'u','West-East velocity','m/s','mttt')
-        pfields(n)%point => u0(ib-ih:ie+ih,jb-jh:je+jh,kb:ke)
+        pfields(n)%point => u0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
       end select
     end do
 
@@ -240,9 +252,6 @@ contains
         case('di')
           call ncinfo(ncname( n,:),'div','Divergence after pressure correction','M','tttt')
           pfields(n)%point => div(ib:ie,jb:je,kb:ke)
-        case('rt')
-          call ncinfo(ncname( n,:),'xyzrt','Wavenumbers','M','tttt')
-          pfields(n)%point => xyzrt(ib:ie,jb:je,kb:ke)
         case default
           call ncinfo(ncname( n,:),'u','West-East velocity','m/s','mttt')
           pfields(n)%point => u0(ib:ie,jb:je,kb:ke)
@@ -336,13 +345,11 @@ contains
     integer i,j,k,n
     integer :: writecounter = 1
 
-    write(*,*) rk3step
-
     if (.not. ((timee>=tnextfielddump) .or. (rk3step==0))) return
 
     if (.not. lfielddump) return
 
-    !if (rk3step/=3 .and. rk3step/=0) return
+    if (rk3step/=3 .and. rk3step/=0) return
 
     do k=kb,ke
       do j=jb,je
@@ -357,9 +364,9 @@ contains
     if (rk3step == 3) tnextfielddump=tnextfielddump+tfielddump
 
     if (lhalos) then
-      allocate(vars(ib-ih:ie+ih,jb-jh:je+jh,kb:ke,nvar)); vars = 0;
+      allocate(vars(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh,nvar)); vars = 0;
       do n=1,nvar
-        vars(ib-ih:ie+ih,jb-jh:je+jh,kb:ke,n) = pfields(n)%point
+        vars(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh,n) = pfields(n)%point
       end do
 
     else
