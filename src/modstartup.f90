@@ -718,7 +718,7 @@ module modstartup
          ladaptive, tnextrestart, jmax, imax, xh, xf, linoutflow, lper2inout, iinletgen, lreadminl, &
          uflowrate, vflowrate,ltempeq, prandtlmoli, freestreamav, &
          tnextfielddump, tfielddump, tsample, tstatsdump, startfile, lprofforc, lchem, k1, JNO2,&
-         idriver,dtdriver,driverstore,tdriverstart,tdriverdump,xlen,ylen,itot,jtot,ibrank,ierank,jbrank,jerank,dxf,dxh
+         idriver,dtdriver,driverstore,tdriverstart,tdriverdump,xlen,ylen,itot,jtot,ibrank,ierank,jbrank,jerank,dxf,dxh,BCxm,BCym
       use modsubgriddata, only:ekm, ekh
       use modsurfdata, only:wtsurf, wqsurf, wsvsurf, &
          thls, thvs, ps, qts, svs, sv_top
@@ -996,27 +996,29 @@ module modstartup
 
             ! SO: Manually override fields
 
-            ! ! TGV (assumes equidistant x grid)
-            ! do i = ib-1,ie+1
-            !   do j = jb-1,je+1
-            !     do k = kb-1,ke+1
-            !       um(i,j,k) = 1. * sin(4.*atan(1.) * 2. * (dxf(1)*((i-1)+myidx*imax)) / ylen) &
-            !                      * cos(4.*atan(1.) * 2. * (dy*((0.5+(j-1))+myidy*jmax)) / ylen) !&
-            !                      !* cos(4.*atan(1.) * 2. * zf(k) / ylen)
-            !       vm(i,j,k) = 1. *-cos(4.*atan(1.) * 2. * (dxh(1)*((0.5+(i-1))+myidx*imax)) / ylen)  &
-            !                      * sin(4.*atan(1.) * 2. * (dy*((j-1)+myidy*jmax)) / ylen) !&
-            !                      !* cos(4.*atan(1.) * 2. * zf(k) / ylen)
-            !       wm(i,j,k) = 0.
-            !     end do
-            !   end do
-            ! end do
+            if ((BCxm == 6) .and. (BCym == 6)) then
+              ! TGV (assumes equidistant x grid)
+              do i = ib-1,ie+1
+                do j = jb-1,je+1
+                  do k = kb-1,ke+1
+                    um(i,j,k) = 1. * sin(4.*atan(1.) * 2. * (dxf(1)*((i-1)+myidx*imax)) / ylen) &
+                    * cos(4.*atan(1.) * 2. * (dy*((0.5+(j-1))+myidy*jmax)) / ylen) !&
+                    !* cos(4.*atan(1.) * 2. * zf(k) / ylen)
+                    vm(i,j,k) = 1. *-cos(4.*atan(1.) * 2. * (dxh(1)*((0.5+(i-1))+myidx*imax)) / ylen)  &
+                    * sin(4.*atan(1.) * 2. * (dy*((j-1)+myidy*jmax)) / ylen) !&
+                    !* cos(4.*atan(1.) * 2. * zf(k) / ylen)
+                    wm(i,j,k) = 0.
+                  end do
+                end do
+              end do
+            end if
 
-            ! For shear case
-            um(:,:,ke+1) = um(:,:,ke)
-            um(ib-1,:,:) = um(ib,:,:)
-            um(ie-1,:,:) = um(ie,:,:)
-            um(:,jb-1,:) = um(:,jb,:)
-            um(:,je+1,:) = um(:,je,:)
+            ! ! For shear case
+            ! um(:,:,ke+1) = um(:,:,ke)
+            ! um(ib-1,:,:) = um(ib,:,:)
+            ! um(ie-1,:,:) = um(ie,:,:)
+            ! um(:,jb-1,:) = um(:,jb,:)
+            ! um(:,je+1,:) = um(:,je,:)
 
             u0 = um
             v0 = vm

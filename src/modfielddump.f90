@@ -80,7 +80,7 @@ contains
 
 
 
-    lhalos = .false.
+    lhalos = .true.
 
     if (lhalos) then
       ilow = ib-ih
