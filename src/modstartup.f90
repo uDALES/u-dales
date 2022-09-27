@@ -67,7 +67,7 @@ module modstartup
                                     lfixinlet, lfixutauin, pi, &
                                     thlsrc, ifixuinf, lvinf, tscale, ltempinout, lmoistinout,  &
                                     lwallfunc,lprofforc,lchem,k1,JNO2,rv,rd,tnextEB,tEB,dtEB,bldT,wsoil,wgrmax,wwilt,wfc,skyLW,GRLAI,rsmin,nfcts,lEB,lwriteEBfiles,nwalllayers,lconstW, &
-                                    BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys, &
+                                    BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys,BCzp, &
                                     BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots, &
                                     idriver,tdriverstart,driverjobnr,dtdriver,driverstore,lsdriver
       use modsurfdata,       only : z0, z0h,  wtsurf, wttop, wqtop, wqsurf, wsvsurf, wsvtop, wsvsurfdum, wsvtopdum, ps, thvs, thls, thl_top, qt_top, qts
@@ -119,7 +119,7 @@ module modstartup
          BCbotm, BCbotT, BCbotq, BCbots, &
          bctfxm, bctfxp, bctfym, bctfyp, bctfz, &
          wttop, thl_top, qt_top, qts, wsvsurfdum, wsvtopdum, &
-         wtsurf, wqsurf, thls, z0, z0h
+         wtsurf, wqsurf, thls, z0, z0h, BCzp
       namelist/INLET/ &
          Uinf, Vinf, di, dti, inletav, linletRA, &
          lstoreplane, lreadminl, lfixinlet, lfixutauin, &
@@ -271,6 +271,7 @@ module modstartup
       call MPI_BCAST(nprocy,1,MPI_INTEGER,0,comm3d,mpierr)
       call MPI_BCAST(BCxm, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(BCym, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(BCzp, 1, MPI_INTEGER, 0, comm3d, mpierr)
 
       if (BCxm == 1) then
         periodic_bc(1) = .true.
@@ -996,7 +997,7 @@ module modstartup
 
             ! SO: Manually override fields
 
-            if ((BCxm == 6) .and. (BCym == 6)) then
+            if (((BCxm == 1) .and. (BCym == 1)) .or. ((BCxm == 6) .and. (BCym == 6))) then
               ! TGV (assumes equidistant x grid)
               do i = ib-1,ie+1
                 do j = jb-1,je+1

@@ -85,6 +85,8 @@ module modglobal
    integer :: BCxq = 1
    integer :: BCxs = 1
 
+   integer :: BCzp = 1 ! 1: solve poisson equation using GE. 2: solve using cosine transform
+
    !y direction is currently alway periodic
    integer :: BCym = 1
    integer :: BCyT = 1

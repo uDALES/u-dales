@@ -61,7 +61,7 @@ contains
     use modglobal,only   :imax,jmax,kmax,imax1,jmax1,kmax1,imax2,jmax2,kmax2,cexpnr,ifnamopt,fname_options,dtmax,kb,ke, ladaptive,dt_lim,btime,nsv,fieldvars,ib,ie,jb,je,kb,ke, ih,jh,lfielddump,ktot,kh
     use modstat_nc,only  : open_nc, define_nc,ncinfo,writestat_dims_nc
     use modfields, only  : u0,v0,w0,thl0,sv0,ql0,qt0,pres0,div
-    use modpois, only : p, pup,pvp,pwp, rhs, dpupdx, dpvpdy, dpwpdz
+    use modpois, only : p, pup,pvp,pwp, rhs, dpupdx, dpvpdy, dpwpdz, xyzrt
     implicit none
     integer :: ierr, n
 
@@ -80,7 +80,7 @@ contains
 
 
 
-    lhalos = .true.
+    lhalos = .false.
 
     if (lhalos) then
       ilow = ib-ih
@@ -252,6 +252,9 @@ contains
         case('di')
           call ncinfo(ncname( n,:),'div','Divergence after pressure correction','M','tttt')
           pfields(n)%point => div(ib:ie,jb:je,kb:ke)
+        case('rt')
+          call ncinfo(ncname( n,:),'xyzrt','Wavenumbers','M','tttt')
+          pfields(n)%point => xyzrt(ib:ie,jb:je,kb:ke)
         case default
           call ncinfo(ncname( n,:),'u','West-East velocity','m/s','mttt')
           pfields(n)%point => u0(ib:ie,jb:je,kb:ke)

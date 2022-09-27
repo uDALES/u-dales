@@ -1418,7 +1418,7 @@ contains
 
      use modglobal, only:ib, ie, jb, je, ih, jh, kb, ke, kh, linoutflow, dxfi, iinletgen, &
      Uinf, libm, jmax, idriver, ibrank, ierank, jbrank, jerank, dyi, BCxm, BCym
-     use modfields, only:pres0, up, vp, wp, um, vm, w0, u0, v0, uouttot, uinit, vinit, uprof
+     use modfields, only:pres0, up, vp, wp, um, vm, w0, u0, v0, uouttot, uinit, vinit, uprof, vprof
      use modmpi, only:excjs, excis, myid
      use modinletdata, only:irecy, u0inletbc, ddispdx, u0driver
      use decomp_2d, only : exchange_halo_z
