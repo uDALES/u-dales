@@ -252,9 +252,9 @@ contains
         case('di')
           call ncinfo(ncname( n,:),'div','Divergence after pressure correction','M','tttt')
           pfields(n)%point => div(ib:ie,jb:je,kb:ke)
-        case('rt')
-          call ncinfo(ncname( n,:),'xyzrt','Wavenumbers','M','tttt')
-          pfields(n)%point => xyzrt(ib:ie,jb:je,kb:ke)
+        ! case('rt')
+        !   call ncinfo(ncname( n,:),'xyzrt','Wavenumbers','M','tttt')
+        !   pfields(n)%point => xyzrt(1:sp%zsz(1),1:sp%zsz(2),1:ktot)
         case default
           call ncinfo(ncname( n,:),'u','West-East velocity','m/s','mttt')
           pfields(n)%point => u0(ib:ie,jb:je,kb:ke)

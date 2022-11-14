@@ -64,7 +64,7 @@ contains
     !use decomp_2d_fft
     implicit none
     real dxi, dzi, fac
-    integer i,j,k,iv,jv
+    integer i,j,k,iv,jv,kv
 
     !allocate(p(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
     allocate(pup(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
@@ -181,15 +181,19 @@ contains
 
       end if
 
+      ! In z-pencil in spectral space - same dims as physical space in this case
       do k=1,zsize(3)
         do j=1,zsize(2)
-          jv = j + myidy*zsize(2)!jmax
+          !jv = j + myidy*zsize(2)!jmax
+          jv = j-1 + zstart(2)
           do i=1,zsize(1)
-            iv = i + myidx*zsize(1)!imax ! is this correct in all cases? what if zsize is not constant?
+            !iv = i + myidx*zsize(1)!imax ! is this correct in all cases? what if zsize is not constant on each rank?
+            iv = i-1 + zstart(1)
             xyzrt(i,j,k) = rhobf(k)*(xrt(iv)+yrt(jv)+zrt(k))
           end do
         end do
       end do
+
 
     elseif (ipoiss == POISS_FFT2D_2DECOMP) then
       call decomp_2d_fft_init(1) ! 1 means x pencil
@@ -265,7 +269,7 @@ contains
 
     elseif (ipoiss == POISS_FFT3D) then ! periodic in all 3 dimension (probably not useful)
       call decomp_2d_fft_init(3) ! 3 means z pencil
-      call decomp_info_init(itot, jtot, ktot/2+1, sp)
+      call decomp_info_init(itot, jtot, ktot/2+1, sp) ! have to do this because sp is not public
       ! Generate wavenumbers assuming FFTW implementation
 
       dxi = dxfi(1) ! Assumes equidistant in x
@@ -273,66 +277,52 @@ contains
       allocate(xrt(itot))
       allocate(yrt(jtot))
       allocate(zrt(ktot/2+1))
-      !allocate(zrt(ktot))
-      allocate(xyzrt(imax,jmax,ktot))
 
-      ! generate Eigenvalues xrt and yrt
-      !if (BCxm == 1) then ! periodic
-        ! fac = 1./(2.*itot)
-        ! do i=3,itot,2
-        !   xrt(i-1)=-4.*dxi*dxi*(sin(float((i-1))*pi*fac))**2
-        !   xrt(i)  = xrt(i-1)
-        ! end do
-        ! xrt(1    ) = 0.
-        ! xrt(itot ) = -4.*dxi*dxi
+      fac = 1./itot
+      do i=2,itot
+        xrt(i)=-4.*dxi*dxi*(sin(float((i-1))*pi*fac))**2
+      end do
+      xrt(1    ) = 0.
+      xrt(itot ) = -4.*dxi*dxi
 
-        fac = 1./itot
-        do i=2,itot
-          xrt(i)=-4.*dxi*dxi*(sin(float((i-1))*pi*fac))**2
-        end do
-        xrt(1    ) = 0.
-        xrt(itot ) = -4.*dxi*dxi
+      fac = 1./jtot
+      do j=2,jtot
+        yrt(j)=-4.*dyi*dyi*(sin(float((j-1))*pi*fac))**2
+      end do
+      yrt(1    ) = 0.
+      yrt(jtot ) = -4.*dyi*dyi
 
-        ! fac = 1./(2.*jtot)
-        ! do j=3,jtot,2
-        !   yrt(j-1)=-4.*dyi*dyi*(sin(float((j-1))*pi*fac))**2
-        !   yrt(j  )= yrt(j-1)
-        ! end do
-        ! yrt(1    ) = 0.
-        ! yrt(jtot ) = -4.*dyi*dyi
+      fac = 1./ktot
+      do k=2,ktot/2
+        zrt(k)=-4.*dzi*dzi*(sin(float((k-1))*pi*fac))**2
+      end do
+      zrt(1) = 0.
+      zrt(ktot/2+1) = -4.*dzi*dzi
 
-        fac = 1./jtot
-        do j=2,jtot
-          yrt(j)=-4.*dyi*dyi*(sin(float((j-1))*pi*fac))**2
-        end do
-        yrt(1    ) = 0.
-        yrt(jtot ) = -4.*dyi*dyi
+      ! ! In z-pencil in spectral space
+      ! allocate(xyzrt(imax,jmax,ktot)) ! should be ktot/2+1?
+      ! do k=1,ktot/2+1
+      !   do j=1,jmax
+      !     jv = j + myidy*jmax
+      !     do i=1,imax
+      !       iv = i + myidx*imax
+      !       xyzrt(i,j,k) = rhobf(k)*(xrt(iv)+yrt(jv)+zrt(k))
+      !     end do
+      !   end do
+      ! end do
 
-        fac = 1./ktot
-        do k=2,ktot/2
-          zrt(k)=-4.*dzi*dzi*(sin(float((k-1))*pi*fac))**2
-        end do
-        zrt(1) = 0.
-        zrt(ktot/2+1) = -4.*dzi*dzi
-
-        ! fac = 1./(2.*ktot)
-        ! do k=3,ktot,2
-        !   zrt(k-1)=-4.*dzi*dzi*(sin(float((k-1))*pi*fac))**2
-        !   zrt(k  )=zrt(k-1)
-        ! end do
-        ! zrt(1) = 0.
-        ! zrt(ktot) = -4.*dzi*dzi
-
-        do k=1,ktot/2+1
-        !do k=1,ktot
-          do j=1,jmax
-            jv = j + myidy*jmax
-            do i=1,imax
-              iv = i + myidx*imax
-              xyzrt(i,j,k) = rhobf(k)*(xrt(iv)+yrt(jv)+zrt(k))
-            end do
+      ! In x-pencil in spectral space: sp%xsz(1)=itot
+      allocate(xyzrt(sp%xsz(1),sp%xsz(2),sp%xsz(3)))
+      do k=1,sp%xsz(3)
+        kv = k-1 + sp%xst(3)
+        do j=1,sp%xsz(2)
+          jv = j-1 + sp%xst(2)
+          do i=1,sp%xsz(1)
+            iv = i-1 + sp%xst(1)
+            xyzrt(i,j,k) = rhobf(k)*(xrt(iv)+yrt(jv)+zrt(kv))
           end do
         end do
+      end do
 
 
     elseif (ipoiss == POISS_CYC) then
@@ -767,49 +757,62 @@ contains
 
       call decomp_2d_fft_3d(pz,Fx) ! start in z-pencil in physical space, end in x-pencil in Fourier space
 
-      call transpose_x_to_y(Fx,Fy,sp)
-      call transpose_y_to_z(Fy,Fz,sp)
-
-      ! !Convert to real
-      ! do i=ib,ie
-      !   do j=jb,je
-      !     Fzr(i,j,1) = REAL(Fz(i,j,1))
-      !     do k=2,ktot/2
-      !       Fzr(i,j,2*(k-1))   = REAL(Fz(i,j,k))
-      !       Fzr(i,j,2*(k-1)+1) = AIMAG(Fz(i,j,k))
+      ! call transpose_x_to_y(Fx,Fy,sp)
+      ! call transpose_y_to_z(Fy,Fz,sp)
+      !
+      ! ! !Convert to real
+      ! ! do i=ib,ie
+      ! !   do j=jb,je
+      ! !     Fzr(i,j,1) = REAL(Fz(i,j,1))
+      ! !     do k=2,ktot/2
+      ! !       Fzr(i,j,2*(k-1))   = REAL(Fz(i,j,k))
+      ! !       Fzr(i,j,2*(k-1)+1) = AIMAG(Fz(i,j,k))
+      ! !     end do
+      ! !     Fzr(i,j,ktot) = REAL(Fz(i,j,ktot/2+1))
+      ! !   end do
+      ! ! end do
+      ! ! Divide by wavenumbers in Fourier space
+      ! do i=1,sp%zsz(1)
+      !   do j=1,sp%zsz(2)
+      !     do k=1,sp%zsz(3)
+      !     !do k=1,ktot
+      !       if (xyzrt(i,j,k) .ne. 0.) then
+      !         Fz(i,j,k) = Fz(i,j,k) / CMPLX(xyzrt(i,j,k) * (itot*jtot*ktot))
+      !         !Fzr(i,j,k) = Fzr(i,j,k) / (xyzrt(i,j,k) * (itot*jtot*ktot*2))
+      !       else
+      !         Fz(i,j,k) = CMPLX(0.)
+      !       end if
+      !
       !     end do
-      !     Fzr(i,j,ktot) = REAL(Fz(i,j,ktot/2+1))
       !   end do
       ! end do
-      ! Divide by wavenumbers in Fourier space
-      do i=1,sp%zsz(1)
-        do j=1,sp%zsz(2)
-          do k=1,sp%zsz(3)
-          !do k=1,ktot
-            if (xyzrt(i,j,k) .ne. 0.) then
-              Fz(i,j,k) = Fz(i,j,k) / CMPLX(xyzrt(i,j,k) * (itot*jtot*ktot))
-              !Fzr(i,j,k) = Fzr(i,j,k) / (xyzrt(i,j,k) * (itot*jtot*ktot*2))
-            else
-              Fz(i,j,k) = CMPLX(0.)
-            end if
+      !
+      ! ! !convert back to complex
+      ! ! do i=ib,ie
+      ! !   do j=jb,je
+      ! !     Fz(i,j,1) = CMPLX(Fzr(i,j,1), 0.)
+      ! !     do k=2,ktot/2
+      ! !       Fz(i,j,k) = CMPLX(Fzr(i,j,2*(k-1)), Fzr(i,j,2*(k-1)+1))
+      ! !     end do
+      ! !     Fz(i,j,ktot/2+1) = CMPLX(Fzr(i,j,ktot), 0.)
+      ! !   end do
+      ! ! end do
+      !
+      ! call transpose_z_to_y(Fz,Fy,sp)
+      ! call transpose_y_to_x(Fy,Fx,sp)
 
+      ! Divide by wavenumbers in Fourier space
+      do i=1,sp%xsz(1)
+        do j=1,sp%xsz(2)
+          do k=1,sp%xsz(3)
+            if (xyzrt(i,j,k) .ne. 0.) then
+              Fx(i,j,k) = Fx(i,j,k) / CMPLX(xyzrt(i,j,k) * (itot*jtot*ktot))
+            else
+              Fx(i,j,k) = CMPLX(0.)
+            end if
           end do
         end do
       end do
-
-      ! !convert back to complex
-      ! do i=ib,ie
-      !   do j=jb,je
-      !     Fz(i,j,1) = CMPLX(Fzr(i,j,1), 0.)
-      !     do k=2,ktot/2
-      !       Fz(i,j,k) = CMPLX(Fzr(i,j,2*(k-1)), Fzr(i,j,2*(k-1)+1))
-      !     end do
-      !     Fz(i,j,ktot/2+1) = CMPLX(Fzr(i,j,ktot), 0.)
-      !   end do
-      ! end do
-
-      call transpose_z_to_y(Fz,Fy,sp)
-      call transpose_y_to_x(Fy,Fx,sp)
 
       call decomp_2d_fft_3d(Fx,pz)
 
