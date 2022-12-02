@@ -113,7 +113,7 @@ program DALESURBAN      !Version 48
 
     !call coriolis       !remaining terms of ns equation
 
-    !call forces         !remaining terms of ns equation
+    call forces         !remaining terms of ns equation
 
     !call lstend         !large scale forcings
 
