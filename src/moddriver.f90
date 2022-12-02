@@ -37,9 +37,10 @@ save
 
 contains
   subroutine initdriver
-    use modglobal, only : ih,ib,ie,jh,jb,je,kb,ke,kh,jhc,khc,idriver,iplane,xf,lstoreplane,nstore,Uinf,ltempeq,lmoist,pi,zf,zh,driverstore,tdriverstart,tdriverdump,timeleft,dtdriver,nsv,timee,lsdriver
+    use modglobal, only : ih,ib,ie,jh,jb,je,kb,ke,kh,jhc,khc,idriver,iplane,xf,lstoreplane,nstore,Uinf,ltempeq,lmoist,pi,zf,zh,driverstore,tdriverstart,tdriverdump,timeleft,dtdriver,nsv,timee,lsdriver,ibrank,iplanerank,driverid,cdriverid
     use modfields, only : um
-    use modmpi, only : myid,nprocs
+    use modmpi, only : myid,nprocs,myidy,nprocy
+    use decomp_2d, only : zstart, zend
 
     implicit none
     real    :: pfi, epsi
@@ -51,9 +52,17 @@ contains
         stop 1
       end if
       tdriverdump = tdriverstart
+
+      if ((iplane >= zstart(1)) .and. (iplane <= zend(1))) then
+        iplanerank = .true.
+        irecydriver = iplane-zstart(1)+1
+      end if
    endif
 
-    if (idriver==1) then
+   driverid = mod(myidy, nprocy)
+   write(cdriverid,'(i3.3)') driverid
+
+    if (idriver==1 .and. iplanerank) then
       allocate(storetdriver(1:driverstore))
       allocate(storeu0driver(jb-jh:je+jh,kb-kh:ke+kh,1:driverstore))
       allocate(storeumdriver(jb-jh:je+jh,kb-kh:ke+kh,1:driverstore))
@@ -76,10 +85,8 @@ contains
         allocate(storesvmdriver(jb-jhc:je+jhc,kb-khc:ke+khc,1:nsv,1:driverstore))
       end if
 
-      irecydriver = iplane!+ib        ! index of recycle plane from driver simulation equals iplane (read from namoptions)
 
     else if (idriver == 2) then
-
       allocate(storetdriver(1:driverstore))
       allocate(storeu0driver(jb-jh:je+jh,kb-kh:ke+kh,1:driverstore))
       allocate(storeumdriver(jb-jh:je+jh,kb-kh:ke+kh,1:driverstore))
@@ -116,7 +123,7 @@ contains
         allocate(sv0driver(jb-jhc:je+jhc,kb-khc:ke+khc,1:nsv))
         allocate(svmdriver(jb-jhc:je+jhc,kb-khc:ke+khc,1:nsv))
       end if
-      irecydriver = iplane!+ib
+
     else
       return
     end if
@@ -124,11 +131,12 @@ contains
   end subroutine initdriver
 
   subroutine drivergen
-    use modglobal,   only : ib,ie,jb,je,kb,ke,zf,zh,dzf,dzhi,timee,btime,totavtime,rk3step,&
+    use modglobal,   only : ib,ie,ih,jb,je,jh,kb,ke,kh,zf,zh,dzf,dzhi,timee,btime,totavtime,rk3step,&
                             dt,numol,iplane,lles,idriver,inletav,runavtime,Uinf,lwallfunc,linletRA,&
                             totinletav,lstoreplane,nstore,driverstore,prandtlmoli,numol,grav,lbuoyancy,&
-                            lfixinlet,lfixutauin,tdriverstart,dtdriver,tdriverdump,ltempeq,lmoist,nsv,lsdriver
-    use modfields,   only : u0,v0,w0,e120,thl0,qt0,wm,uprof
+                            lfixinlet,lfixutauin,tdriverstart,dtdriver,tdriverdump,ltempeq,lmoist,nsv,lsdriver,&
+                            ibrank,iplanerank,driverid,cdriverid
+    use modfields,   only : u0,v0,w0,e120,thl0,qt0,wm,uprof,vprof
     use modsave,     only : writerestartfiles
     use modmpi,      only : slabsum,myid
     implicit none
@@ -139,7 +147,7 @@ contains
     REAL*8, PARAMETER :: eps = 1d-3
     integer i,j,k,kk,kdamp,x
 
-    if (idriver == 1) then
+    if (idriver == 1 .and. iplanerank) then
 
       ! if (.not. (rk3step==3)) return
       if (.not. (timee>=tdriverstart)) return
@@ -149,7 +157,7 @@ contains
         ! tdriverdump = timee
         tdriverdump = tdriverstart
         ! tdriverstart = timee   !Update tdriverstart to the actual recorded value
-        if ((myid==0) .and. (rk3step==3)) then
+        if ((driverid==0) .and. (rk3step==3)) then
           write(6,*) '=================================================================='
           write(6,*) '*** Starting to write data for driver simulation ***'
           write(6,*) 'Driver recording variables:'
@@ -168,7 +176,7 @@ contains
 
       ! if (.not. rk3step==1) return
       if (timee>maxval(storetdriver)) then
-        if(myid==0) then
+        if(driverid==0) then
           write(0,'(A,F9.2,A,F9.2)') 'timee: ',timee,'     Final inlet driver time:',maxval(storetdriver)
           write(0,'(A,I4,A,I4)') 'Inlet driver step: ',nstepreaddriver,'     Total inlet driver steps:',driverstore
         end if
@@ -190,13 +198,14 @@ contains
 
       if (abs(elapsrec) < eps) then
 
-        if ((myid==0) .and. (rk3step==1)) then
+        if ((driverid==0) .and. (rk3step==1)) then
           write(*,'(A,I5,A,F10.3,A)') '======= Inputs loaded from driver tstep ',x,' (at ',storetdriver(x),'s) ======='
         end if
 
         u0driver(:,:) = storeu0driver(:,:,x)
         v0driver(:,:) = storev0driver(:,:,x)
         w0driver(:,:) = storew0driver(:,:,x)
+
         !e120driver(:,:) = storee120driver(:,:,x)
         if (ltempeq) then
           thl0driver(:,:) = storethl0driver(:,:,x)
@@ -210,7 +219,7 @@ contains
         nstepreaddriver = x
       elseif ((elapsrec > 0.) .and. (x == 1)) then
 
-        if ((myid==0) .and. (rk3step==1)) then
+        if ((driverid==0) .and. (rk3step==1)) then
           write(*,'(A,F10.3,A)') '======= Inputs loaded from the proceeding driver tstep 1 (at ',storetdriver(x),'s) ======='
         end if
 
@@ -230,7 +239,7 @@ contains
         nstepreaddriver = x
       elseif (elapsrec < 0.) then
 
-        if ((myid==0) .and. (rk3step==1)) then
+        if ((driverid==0) .and. (rk3step==1)) then
           write(*,'(A,I5,A,F10.3,A,I5,A,F10.3,A)') '======= Inputs interpolated from driver tsteps ',x,' (',storetdriver(x),' s) and ',x+1,' (',storetdriver(x+1),' s) ======='
         end if
 
@@ -258,7 +267,7 @@ contains
         nstepreaddriver = x
       elseif (elapsrec > 0.) then
 
-        if ((myid==0) .and. (rk3step==1)) then
+        if ((driverid==0) .and. (rk3step==1)) then
           write(*,'(A,I5,A,F10.3,A,I5,A,F10.3,A)') '======= Inputs interpolated from driver tsteps ',x,' (', storetdriver(x),' s) and ',x-1,' (',storetdriver(x-1),' s) ======='
         end if
 
@@ -325,7 +334,7 @@ contains
   end subroutine drivergen
 
   subroutine writedriverfile
-    use modglobal, only : timee,tdriverstart,ib,ie,ih,jb,je,jh,kb,ke,kh,cexpnr,ifoutput,nstore,ltempeq,lmoist,driverstore,nsv,lsdriver
+    use modglobal, only : timee,tdriverstart,ib,ie,ih,jb,je,jh,kb,ke,kh,cexpnr,ifoutput,nstore,ltempeq,lmoist,driverstore,nsv,lsdriver,ibrank,iplanerank,driverid,cdriverid
     use modfields, only : u0, v0, w0, e120, thl0, qt0, um, sv0
     use modmpi,    only : cmyid,myid
     use modinletdata, only : storetdriver,storeu0driver,storev0driver,storew0driver,storethl0driver,storeqt0driver,&
@@ -362,14 +371,14 @@ contains
       ! write(6,*) 'inquire iolength', filesizev
     ! end if
 
-    if(myid==0) then
+    if(driverid==0) then
       write(6,*) '============ Writing driver files ============'
       write(*,*) 'Driver timestep: ', nstepreaddriver
     end if
 
-    if(myid==0) then
+    if(driverid==0) then
       name = 'tdriver_   .'
-      name(9:11)= cmyid
+      name(9:11)= cdriverid
       name(13:15)= cexpnr
       ! name(15:18)= '.txt'
       inquire(file=name,exist=lexist)
@@ -395,7 +404,7 @@ contains
 
     name = 'udriver_   .'
     ! write (name(13:16)  ,'(i4.4)') nfile
-    name(9:11)= cmyid
+    name(9:11)= cdriverid
     name(13:15)= cexpnr
     ! name(15:18)= '.txt'
     inquire(file=name,exist=lexist)
@@ -420,7 +429,7 @@ contains
 
     name = 'vdriver_   .'
     ! write (name(13:16)  ,'(i4.4)') nfile
-    name(9:11)= cmyid
+    name(9:11)= cdriverid
     name(13:15)= cexpnr
     ! name(15:18)= '.txt'
     inquire(file=name,exist=lexist)
@@ -438,7 +447,7 @@ contains
 
     name = 'wdriver_   .'
     ! write (name(13:16)  ,'(i4.4)') nfile
-    name(9:11)= cmyid
+    name(9:11)= cdriverid
     name(13:15)= cexpnr
     ! name(15:18)= '.txt'
     inquire(file=name,exist=lexist)
@@ -473,7 +482,7 @@ contains
     if (ltempeq ) then
       name = 'hdriver_   .'
       ! write (name(13:16)  ,'(i4.4)') nfile
-      name(9:11)= cmyid
+      name(9:11)= cdriverid
       name(13:15)= cexpnr
       ! name(15:18)= '.txt'
       inquire(file=name,exist=lexist)
@@ -493,7 +502,7 @@ contains
     if (lmoist ) then
       name = 'qdriver_   .'
       ! write (name(13:16)  ,'(i4.4)') nfile
-      name(9:11)= cmyid
+      name(9:11)= cdriverid
       name(13:15)= cexpnr
       ! name(15:18)= '.txt'
       inquire(file=name,exist=lexist)
@@ -513,7 +522,7 @@ contains
     if (nsv>0 ) then
       name = 'sdriver_   .'
       ! write (name(13:16)  ,'(i4.4)') nfile
-      name(9:11)= cmyid
+      name(9:11)= cdriverid
       name(13:15)= cexpnr
       ! name(15:18)= '.txt'
       inquire(file=name,exist=lexist)
@@ -534,7 +543,7 @@ contains
 
   subroutine readdriverfile
     use modfields, only : u0,sv0
-    use modglobal, only : ib,jb,je,jmax,kb,ke,kh,jhc,khc,cexpnr,ifinput,driverstore,ltempeq,lmoist,zh,jh,driverjobnr,nsv,timee,tdriverstart,lsdriver
+    use modglobal, only : ib,jb,je,jmax,kb,ke,kh,jhc,khc,cexpnr,ifinput,driverstore,ltempeq,lmoist,zh,jh,driverjobnr,nsv,timee,tdriverstart,lsdriver,ibrank,iplanerank,driverid,cdriverid
     use modmpi,    only : cmyid,myid,nprocs,slabsum,excjs
     use modinletdata, only : storetdriver,storeu0driver,storev0driver,storew0driver,storethl0driver,storeqt0driver,storesv0driver,nfile
     implicit none
@@ -543,7 +552,7 @@ contains
     integer :: j,k,m,n,js,jf,jfdum,jsdum
     character(24) :: name
 
-    if (myid==0) then
+    if (driverid==0) then
       write(*,*) '========================================================================'
       write(*,*) '*** Reading precursor driver simulation ***'
     end if
@@ -556,7 +565,7 @@ contains
 
     inquire(file=name,size=filesize)
 
-    if(myid==0) then
+    if(driverid==0) then
       write(6,*) 'Reading time stamps: ', name
       write(6,*) 'driverstore: ', driverstore
       write(6,*) 'File size of time in bytes (/8) = ', filesize
@@ -587,7 +596,7 @@ contains
     ! end if
     name = 'udriver_   .'
     ! write (name(13:16)  ,'(i4.4)') nfile
-    name(9:11)= cmyid
+    name(9:11)= cdriverid
     ! write (name(18:20)  ,'(i3.3)') filen
     write (name(13:15)   ,'(i3.3)') driverjobnr
     write(6,*) 'Reading Driver u-velocity: ', name
@@ -610,7 +619,7 @@ contains
 
     name = 'vdriver_   .'
     ! write (name(13:16)  ,'(i4.4)') nfile
-    name(9:11)= cmyid
+    name(9:11)= cdriverid
     ! write (name(18:20)  ,'(i3.3)') filen
     write (name(13:15)   ,'(i3.3)') driverjobnr
     write(6,*) 'Reading Driver v-velocity: ', name
@@ -624,7 +633,7 @@ contains
 
     name = 'wdriver_   .'
     ! write (name(13:16)  ,'(i4.4)') nfile
-    name(9:11)= cmyid
+    name(9:11)= cdriverid
     ! write (name(18:20)  ,'(i3.3)') filen
     write (name(13:15)   ,'(i3.3)') driverjobnr
     write(6,*) 'Reading Driver w-velocity: ', name
@@ -653,7 +662,7 @@ contains
     if (ltempeq ) then
       name = 'hdriver_   .'
       ! write (name(13:16)  ,'(i4.4)') nfile
-      name(9:11)= cmyid
+      name(9:11)= cdriverid
       ! write (name(18:20)  ,'(i3.3)') filen
       write (name(13:15)   ,'(i3.3)') driverjobnr
       write(6,*) 'Reading Driver temperature: ', name
@@ -674,7 +683,7 @@ contains
     if (lmoist ) then
       name = 'qdriver_   .'
       ! write (name(13:16)  ,'(i4.4)') nfile
-      name(9:11)= cmyid
+      name(9:11)= cdriverid
       ! write (name(18:20)  ,'(i3.3)') filen
       write (name(13:15)   ,'(i3.3)') driverjobnr
       write(6,*) 'Reading Driver moisture: ', name
@@ -689,7 +698,7 @@ contains
     if (nsv>0 .and. lsdriver) then
       name = 'sdriver_   .'
       ! write (name(13:16)  ,'(i4.4)') nfile
-      name(9:11)= cmyid
+      name(9:11)= cdriverid
       ! write (name(18:20)  ,'(i3.3)') filen
       write (name(13:15)   ,'(i3.3)') driverjobnr
       write(6,*) 'Reading Driver scalar: ', name
@@ -705,10 +714,10 @@ contains
   end subroutine readdriverfile
 
   subroutine exitdriver
-    use modglobal,      only : idriver,lstoreplane,ltempeq,lmoist,nsv,lsdriver
+    use modglobal,      only : idriver,lstoreplane,ltempeq,lmoist,nsv,lsdriver,ibrank,iplanerank
 
-    if (idriver==1) then
-      if (lstoreplane ) then
+    if (idriver==1 .and. iplanerank) then
+      !if (lstoreplane ) then
         deallocate(storetdriver,storeu0driver,storev0driver,storew0driver)!,storee120driver)
         if (ltempeq ) then
           deallocate(storethl0driver)
@@ -719,7 +728,7 @@ contains
         if (nsv>0 ) then
           deallocate(storesv0driver)
         end if
-      end if
+      !end if
     else if (idriver == 2) then
       deallocate(storetdriver, storeu0driver,storev0driver,storew0driver,u0driver,v0driver,w0driver) !,e120driver,storee120driver)
       if (ltempeq ) then

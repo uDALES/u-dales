@@ -57,7 +57,7 @@ contains
       end do
       tsc(ke + 1) = tsc(ke)
       irecy = ib + iplane
-      irecydriver = iplane! + ib
+      !irecydriver = iplane! + ib
 
    end subroutine initboundary
 
@@ -67,54 +67,123 @@ contains
 
       use modglobal, only:ib, ie, ih, jb, je, jh, kb, ke, kh, linoutflow, dzf, zh, dy, &
          timee, ltempeq, lmoist, BCxm, BCym, BCxT, BCyT, BCxq, BCyq, BCxs, BCys, BCtopm, BCtopT,&
-         BCtopq, BCtops, e12min, idriver, luvolflowr, luoutflowr, ihc, jhc, khc, nsv
+         BCtopq, BCtops, e12min, idriver, luvolflowr, luoutflowr, ihc, jhc, khc, nsv, rk3step
       use modfields, only:u0, v0, w0, um, vm, wm, thl0, thlm, qt0, qtm, uout, uouttot, e120, e12m,&
                           u0av, sv0, svm
       use modsubgriddata, only:ekh, ekm
       use modsurfdata, only:thl_top, qt_top, sv_top, wttop, wqtop, wsvtop
-      use modmpi, only:myid, slabsum
+      use modmpi, only:myid, slabsum, avey_ibm
       use modinlet, only:inletgen, inletgennotemp
-      use moddriver, only : drivergen
+      use moddriver, only : drivergen, u0driver, umdriver
       use modinletdata, only:irecy, ubulk, iangle
       use decomp_2d, only : exchange_halo_z
 !    use modsurface, only : getobl
       implicit none
       real, dimension(kb:ke) :: uaverage
+      real, dimension(ib:ie,kb:ke) :: uavey
       integer i, k, n
 
-     ! if not using massflowrate need to set outflow velocity
-     if (luoutflowr) then
-        ! do nothing - calculated in modforces
-     elseif (.not. luvolflowr) then
-        !ubulk = sum(u0av)/(ke-kb+1)
-        do k = kb, ke
-           uaverage(k) = u0av(k)*dzf(k)
-        end do
-        ! need a method to know if we have all blocks at lowest cell kb
-        ! assuming this for now (hence kb+1)
-        uouttot = sum(uaverage(kb:ke))/(zh(ke + 1) - zh(kb+1))
+     ! ! if not using massflowrate need to set outflow velocity
+     ! if (luoutflowr) then
+     !    ! do nothing - calculated in modforces
+     ! elseif (.not. luvolflowr) then
+     !    !ubulk = sum(u0av)/(ke-kb+1)
+     !    do k = kb, ke
+     !       uaverage(k) = u0av(k)*dzf(k)
+     !    end do
+     !    ! need a method to know if we have all blocks at lowest cell kb
+     !    ! assuming this for now (hence kb+1)
+     !    uouttot = sum(uaverage(kb:ke))/(zh(ke + 1) - zh(kb+1))
+     ! else
+     !    uouttot = ubulk
+     ! end if
+
+     !BCtopm!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+     if (BCtopm .eq. 1) then
+        !free-slip = zero-flux
+        call fluxtop(um, ekm, 0.0)
+        call fluxtop(u0, ekm, 0.0)
+        call fluxtop(vm, ekm, 0.0)
+        call fluxtop(v0, ekm, 0.0)
+        e120(:, :, ke + 1) = e12min ! free slip top wall
+        e12m(:, :, ke + 1) = e12min
+        w0(:, :, ke + 1) = 0.0
+        wm(:, :, ke + 1) = 0.0
+     else if (BCtopm .eq. 2) then
+        !no-slip = zero velocity at wall
+        call valuetop(um, 0.0)
+        call valuetop(u0, 0.0)
+        call valuetop(vm, 0.0)
+        call valuetop(v0, 0.0)
+        w0(:, :, ke + 1) = 0.0
+        wm(:, :, ke + 1) = 0.0
+     else if (BCtopm .eq. 3) then
+        ! inlet
+        call fluxtop(um, ekm, 0.0)
+        call fluxtop(u0, ekm, 0.0)
+        call fluxtop(vm, ekm, 0.0)
+        call fluxtop(v0, ekm, 0.0)
+        e120(:, :, ke + 1) = e12min ! free slip top wall
+        e12m(:, :, ke + 1) = e12min
+        ! if (BCxm == 4) then ! does not use ddispdx, Uinf etc.
+        !   w0(:, :, ke + 1) = 0.!w0(:, :, ke)
+        !   wm(:, :, ke + 1) = 0.!wm(:, :, ke)
+        ! else
+          call inlettop ! for iinletgen...
+        !end if
+      else if (BCtopm .eq. 4) then
+        ! Variable w top
+         call fluxtop(um, ekm, 0.0)
+         call fluxtop(u0, ekm, 0.0)
+         call fluxtop(vm, ekm, 0.0)
+         call fluxtop(v0, ekm, 0.0)
+         e120(:, :, ke + 1) = e12min
+         e12m(:, :, ke + 1) = e12min
+
      else
-        uouttot = ubulk
+        write(0, *) "ERROR: top boundary type for velocity undefined"
+        stop 1
      end if
 
-     !BCxm!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-     !periodic or inflow/outflow conditions for momentum
-     !set halo cells first and then overwrite if inflow-outflow
-     call exchange_halo_z(u0)
-     call exchange_halo_z(v0)
-     call exchange_halo_z(w0)
-     call exchange_halo_z(um)
-     call exchange_halo_z(vm)
-     call exchange_halo_z(wm)
-     call exchange_halo_z(thl0)
-     call exchange_halo_z(thlm)
-     call exchange_halo_z(qt0)
-     call exchange_halo_z(qtm)
-     do n = 1, nsv
-        call exchange_halo_z(sv0(:, :, :, n), opt_zlevel=(/ihc,jhc,khc/))
-        call exchange_halo_z(svm(:, :, :, n), opt_zlevel=(/ihc,jhc,khc/))
-     enddo
-     ! Need to also do loneeqn and lsmagorinsky if we decide to support them
+     ! Bottom BC - many ways of enforcing this but this is simplest
+     wm(:, :, kb) = 0.
+     w0(:, :, kb) = 0.
+
+     !BCtopT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+     if (BCtopT .eq. 1) then
+        call fluxtop(thlm, ekh, wttop)
+        call fluxtop(thl0, ekh, wttop)
+     else if (BCtopT .eq. 2) then
+        call valuetop(thlm, thl_top)
+        call valuetop(thl0, thl_top)
+     else
+        write(0, *) "ERROR: top boundary type for temperature undefined"
+        stop 1
+     end if
+
+     !BCtopq!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+     if (BCtopq .eq. 1) then
+        call fluxtop(qtm, ekh, wqtop)
+        call fluxtop(qt0, ekh, wqtop)
+     else if (BCtopq .eq. 2) then
+        call valuetop(qtm, qt_top)
+        call valuetop(qt0, qt_top)
+     else
+        write(0, *) "ERROR: top boundary type for humidity undefined"
+        stop 1
+     end if
+
+     !BCtops!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+     if (BCtops .eq. 1) then
+        call fluxtopscal(wsvtop)
+        call fluxtopscal(wsvtop)
+     else if (BCtops .eq. 2) then
+        call valuetopscal(sv_top)
+        call valuetopscal(sv_top)
+     else
+        write(0, *) "ERROR: top boundary type for scalars undefined"
+        stop 1
+     end if
 
      if (BCxm .eq. 1) then  !periodic
        !call cyclicmi
@@ -148,7 +217,9 @@ contains
 
      else if (BCxm .eq. 5) then ! driver from drivergen (idriver == 2)
        uouttot = ubulk ! does this hold for all forcings of precursor simulations? tg3315
+       if (myid == 0) write(*,*) "before drivergen", rk3step, u0driver(1,1), umdriver(1,1)
        call drivergen
+       if (myid == 0) write(*,*) "after drivergen", rk3step, u0driver(1,1), umdriver(1,1)
        call xiolet
 
      else if (BCxm .eq. 6) then ! Dirichlet
@@ -239,84 +310,6 @@ contains
          stop 1
       end if
 
-      !BCtopm!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      if (BCtopm .eq. 1) then
-         !free-slip = zero-flux
-         call fluxtop(um, ekm, 0.0)
-         call fluxtop(u0, ekm, 0.0)
-         call fluxtop(vm, ekm, 0.0)
-         call fluxtop(v0, ekm, 0.0)
-         e120(:, :, ke + 1) = e12min ! free slip top wall
-         e12m(:, :, ke + 1) = e12min
-         w0(:, :, ke + 1) = 0.0
-         wm(:, :, ke + 1) = 0.0
-      else if (BCtopm .eq. 2) then
-         !no-slip = zero velocity at wall
-         call valuetop(um, 0.0)
-         call valuetop(u0, 0.0)
-         call valuetop(vm, 0.0)
-         call valuetop(v0, 0.0)
-         w0(:, :, ke + 1) = 0.0
-         wm(:, :, ke + 1) = 0.0
-      else if (BCtopm .eq. 3) then
-         call fluxtop(um, ekm, 0.0)
-         call fluxtop(u0, ekm, 0.0)
-         call fluxtop(vm, ekm, 0.0)
-         call fluxtop(v0, ekm, 0.0)
-         e120(:, :, ke + 1) = e12min ! free slip top wall
-         e12m(:, :, ke + 1) = e12min
-         if (BCxm >= 4) then ! does not use ddispdx, Uinf etc.
-           w0(:, :, ke + 1) = 0.0
-           wm(:, :, ke + 1) = 0.0
-         else
-           call inlettop ! for iinletgen...
-         end if
-         !call iolet  !ils13, 13.8.18: iolet also deals with lateral boundaries!!
-      else
-         write(0, *) "ERROR: top boundary type for velocity undefined"
-         stop 1
-      end if
-
-      ! Bottom BC - move eventually
-      wm(:, :, kb) = 0.
-      w0(:, :, kb) = 0.
-
-      !BCtopT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      if (BCtopT .eq. 1) then
-         call fluxtop(thlm, ekh, wttop)
-         call fluxtop(thl0, ekh, wttop)
-      else if (BCtopT .eq. 2) then
-         call valuetop(thlm, thl_top)
-         call valuetop(thl0, thl_top)
-      else
-         write(0, *) "ERROR: top boundary type for temperature undefined"
-         stop 1
-      end if
-
-      !BCtopq!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      if (BCtopq .eq. 1) then
-         call fluxtop(qtm, ekh, wqtop)
-         call fluxtop(qt0, ekh, wqtop)
-      else if (BCtopq .eq. 2) then
-         call valuetop(qtm, qt_top)
-         call valuetop(qt0, qt_top)
-      else
-         write(0, *) "ERROR: top boundary type for humidity undefined"
-         stop 1
-      end if
-
-      !BCtops!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      if (BCtops .eq. 1) then
-         call fluxtopscal(wsvtop)
-         call fluxtopscal(wsvtop)
-      else if (BCtops .eq. 2) then
-         call valuetopscal(sv_top)
-         call valuetopscal(sv_top)
-      else
-         write(0, *) "ERROR: top boundary type for scalars undefined"
-         stop 1
-      end if
-
    end subroutine boundary
 
    subroutine closurebc
@@ -331,7 +324,7 @@ contains
 
      ! Top and bottom
      ! ils13, 13.8.18: what should it be for slip or mixed BCs ?
-     if ((BCtopm.eq.1) .or. (BCtopm.eq.3)) then !free-slip
+     if ((BCtopm.eq.1) .or. ((BCtopm.eq.3) .or. (BCtopm.eq.4))) then !free-slip
        do j = jb - 1, je + 1
          do i = ib - 1, ie + 1
            ekm(i, j, ke + 1) = ekm(i, j, ke) ! zero-gradient top wall
@@ -1038,14 +1031,15 @@ contains
 
      use modglobal, only:dxhi, dxhci, xh, zh, ib, ie, jb, je, ih, jh, kb, ke, kh, nsv, rk3step, dt, iinletgen, ltempeq, lmoist, ihc, idriver, dy, dzf, jtot, zh, lsdriver, ibrank, ierank, jbrank, jerank, dyi, dxfi, BCxm, BCym
      use modfields, only:u0, um, v0, vm, w0, wm, e120, e12m, thl0, thlm, qt0, qtm, sv0, svm, uprof, vprof, e12prof, thlprof, &
-         qtprof, svprof, uouttot, wouttot, uinit, vinit
-     use modmpi, only:excjs, myid, slabsum
+         qtprof, svprof, uouttot, wouttot, uinit, vinit, IIu, IIut
+     use modmpi, only:excjs, myid, slabsum, avey_ibm
      use modinletdata, only:u0inletbcold, v0inletbcold, w0inletbcold, uminletbc, vminletbc, wminletbc, totaluold, &
          t0inletbcold, tminletbc, u0driver, v0driver, w0driver, e120driver, thl0driver, qt0driver, umdriver, vmdriver, wmdriver,&
          e12mdriver, thlmdriver, qtmdriver, sv0driver, svmdriver
 
      real rk3coef
      real, dimension(kb:ke) :: uin
+     real, dimension(ib:ie,kb:ke) :: uavey
      integer n, i, j, k, m
 
      rk3coef = dt/(4.-dble(rk3step))
@@ -1151,8 +1145,15 @@ contains
            do k=kb,ke !tg3315 removed +1 following above...
              u0(ib,j,k)=u0driver(j,k) !max(0.,u0driver(j,k))
              um(ib,j,k)=umdriver(j,k) !max(0.,umdriver(j,k))
-             u0(ib-1,j,k)= u0driver(j,k) !max(0.,2.*u0(ib,j,k)-u0(ib+1,j,k))
-             um(ib-1,j,k)= umdriver(j,k)  !max(0.,2.*um(ib,j,k)-um(ib+1,j,k))
+             u0(ib-1,j,k)=u0driver(j,k) !max(0.,u0driver(j,k))
+             um(ib-1,j,k)=umdriver(j,k) !max(0.,umdriver(j,k))
+             ! u0(ib-1,j,k)= 2*u0(ib, j, k) - u0(ib + 1, j, k) ! (u(ib+1)+u(ib-1))/2 = u(ib)
+             ! um(ib-1,j,k)= 2*um(ib, j, k) - um(ib + 1, j, k) ! (u(ib+1)+u(ib-1))/2 = u(ib)
+
+             ! v0(ib - 1, j, k) = 2*vprof(k) - v0(ib, j, k) ! (v(ib)+v(ib-1))/2 = vprof
+             ! vm(ib - 1, j, k) = 2*vprof(k) - vm(ib, j, k) ! (v(ib)+v(ib-1))/2 = vprof
+             ! w0(ib - 1, j, k) = -w0(ib, j, k)
+             ! wm(ib - 1, j, k) = -wm(ib, j, k)
 
              v0(ib,j,k)   = v0driver(j,k) !max(0.,v0driver(j,k))
              vm(ib,j,k)   = vmdriver(j,k) !max(0.,vmdriver(j,k))
@@ -1181,6 +1182,8 @@ contains
              wm(ib-1,j,k) = wmdriver(j,k) !max(0.,wmdriver(j,k))
            end do
          end do
+     !   end do
+     ! end do
 
          ! Heat
          if (ltempeq ) then
@@ -1227,18 +1230,26 @@ contains
      end if !ibrank
 
      ! Outlet
+     ! ! Need to call avey_ibm for all cores
+     ! call avey_ibm(uavey,um(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIu(ib:ie,jb:je,kb:ke),IIut(ib:ie,kb:ke))
+     ! do k=kb,ke
+     !   uin(k) = uavey(ie,k)*dzf(k)
+     ! end do
+     ! uouttot = sum(uin(kb:ke))/(zh(ke+1)-zh(kb)) !volume-averaged u-velocity
+     ! if (myid == 0) write(*,*) rk3step, "in xiolet, uouttot = ", uouttot
+
      if (ierank) then
-       if (BCxm == 5) then
-         ! tg3315 added to ensure that uouttot matches driven inflow regardless of forcing
-         ! set up assuming we have a block at lowest cell kb
-         uin = 0.
-         uouttot = 0.
-         call slabsum(uin,kb,ke,um,ib-ih,ie+ih,jb-jh,je+jh,kb-kh,ke+kh,ie,ie,jb,je,kb,ke) ! determine horizontal (j) average outflow velocity old
-         do k=kb,ke
-           uin(k) = uin(k)*dzf(k)*dy  ! flow rate through each slab at ib
-         end do
-         uouttot = sum(uin(kb+1:ke))/((zh(ke+1)-zh(kb+1))*jtot*dy)     ! convective outflow velocity
-       end if
+       !if (BCxm == 5) then
+       !   ! tg3315 added to ensure that uouttot matches driven inflow regardless of forcing
+       !   ! set up assuming we have a block at lowest cell kb
+       !   uin = 0.
+       !   uouttot = 0.
+       !   call slabsum(uin,kb,ke,um,ib-ih,ie+ih,jb-jh,je+jh,kb-kh,ke+kh,ie,ie,jb,je,kb,ke) ! determine horizontal (j) average outflow velocity old
+       !   do k=kb,ke
+       !     uin(k) = uin(k)*dzf(k)*dy  ! flow rate through each slab at ib
+       !   end do
+       !   uouttot = sum(uin(kb+1:ke))/((zh(ke+1)-zh(kb+1))*jtot*dy)     ! convective outflow velocity
+       ! end if
 
        select case(BCxm)
        case(2:5)
@@ -1259,8 +1270,8 @@ contains
          e12m(ie + 1, :, :) = e12m(ie, :, :) - (e12m(ie + 1, :, :) - e12m(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
 
          if (ltempeq) then
-           thl0(ie + 1, :, :) = thl0(ie, :, :) - (thl0(ie + 1, :, :) - thl0(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
-           thlm(ie + 1, :, :) = thlm(ie, :, :) - (thlm(ie + 1, :, :) - thlm(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
+           thl0(ie + 1, :, :) = thl0(ie+1, :, :) - (thl0(ie + 1, :, :) - thl0(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
+           thlm(ie + 1, :, :) = thlm(ie+1, :, :) - (thlm(ie + 1, :, :) - thlm(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
          end if
 
          if (lmoist) then
@@ -1417,10 +1428,10 @@ contains
    subroutine bcpup(pup, pvp, pwp, rk3coef)
 
      use modglobal, only:ib, ie, jb, je, ih, jh, kb, ke, kh, linoutflow, dxfi, iinletgen, &
-     Uinf, libm, jmax, idriver, ibrank, ierank, jbrank, jerank, dyi, BCxm, BCym
-     use modfields, only:pres0, up, vp, wp, um, vm, w0, u0, v0, uouttot, uinit, vinit, uprof, vprof
+     Uinf, libm, jmax, idriver, ibrank, ierank, jbrank, jerank, dyi, BCxm, BCym, rk3step, driverid, BCtopm
+     use modfields, only:pres0, up, vp, wp, um, vm, wm, w0, u0, v0, uouttot, uinit, vinit, uprof, vprof
      use modmpi, only:excjs, excis, myid
-     use modinletdata, only:irecy, u0inletbc, ddispdx, u0driver
+     use modinletdata, only:irecy, u0inletbc, ddispdx, u0driver, v0driver, w0driver
      use decomp_2d, only : exchange_halo_z
 
      real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb:ke + kh), intent(inout) :: pup
@@ -1440,10 +1451,8 @@ contains
      call exchange_halo_z(pvp, opt_zlevel=(/ih,jh,0/))
      call exchange_halo_z(pwp, opt_zlevel=(/ih,jh,0/))
 
-     !if (linoutflow) then
-     !if (.false.) then
-     select case(BCxm)
-     case(1)
+     select case(BCtopm)
+     case(1:2)
        do j = jb, je
          do i = ib, ie
            pwp(i, j, kb) = 0.
@@ -1451,15 +1460,26 @@ contains
          end do
        end do
 
-     case(2:3)
-       !if ((iinletgen == 1) .or. (iinletgen == 2)) then
-         do j = jb, je
-           do i = ib, ie
-             pwp(i, j, kb) = 0.
-             pwp(i, j, ke + kh) = (Uinf*ddispdx)*rk3coefi
-           end do
+     case(3)
+       do j = jb, je
+         do i = ib, ie
+           pwp(i, j, kb) = 0.
+           pwp(i, j, ke + kh) = (Uinf*ddispdx)*rk3coefi
          end do
+       end do
 
+     case(4)
+       do j=jb,je
+         do i=ib,ie
+           pwp(i,j,kb)  = 0.
+           pwp(i,j,ke+kh)= wm(i,j,ke+1)*rk3coefi
+         end do
+       end do
+
+     end select
+
+     select case(BCxm)
+     case(2:3)
          if (ibrank) then
            do k = kb, ke
              do j = jb, je
@@ -1472,61 +1492,70 @@ contains
            do k = kb, ke
              do j = jb, je
                pup(ie + 1, j, k) = -(u0(ie + 1, j, k) - u0(ie, j, k))*dxfi(ie)*uouttot + um(ie + 1, j, k)*rk3coefi ! du/dt +u*du/dx=0 -> pup(i)=um(i)/rk3coef -um(i)*(um(i)-um(i-1))/dxf(i-1)
+               up(ie + 1, j, k) = pup(ie+1,j,k) - um(ie+1,j,k)*rk3coefi
              end do
            end do
          end if
 
        case(4)
-         do j = jb, je
-           do i = ib, ie
-             pwp(i, j, kb) = 0.
-             pwp(i, j, ke + kh) = 0.
-           end do
-         end do
-
          if (ibrank) then
            do k=kb,ke
              do j=jb-1,je+1
                pup(ib,j,k) = uprof(k)*rk3coefi
+               up(ib,j,k) = 0. ! u(ib) only evolves according to pressure correction
+               ! vprof also should be here?
              end do
            end do
          end if
 
          if (ierank) then
-           do k = kb, ke
+           do k = kb+1, ke
              do j = jb-1, je+1
                ! convective
-               pup(ie + 1, j, k) = um(ie + 1, j, k)*rk3coefi - (u0(ie + 1, j, k) - u0(ie, j, k))*dxfi(ie)*uouttot!u0(ie,j,k) ! du/dt +u*du/dx=0 -> pup(i)=um(i)/rk3coef -um(i)*(um(i)-um(i-1))/dxf(i-1)
+               pup(ie + 1, j, k) = um(ie+1,j,k)*rk3coefi - (u0(ie+1,j,k)-u0(ie,j,k))*dxfi(ie)*uouttot !u0(ie,j,k) ! du/dt +u*du/dx=0 -> pup(i)=um(i)/rk3coef -um(i)*(um(i)-um(i-1))/dxf(i-1)
+               ! !Neumann
+               !pup(ie+1,j,k) = pup(ie,j,k)
+               up(ie + 1, j, k) = pup(ie+1,j,k) - um(ie+1,j,k)*rk3coefi
              end do
            end do
+
+           ! Neumann at bottom - performs better with no slip
+           pup(ie+1,:,kb) = pup(ie,:,kb)
+           up(ie+1,:,kb) = pup(ie+1,:,kb) - um(ie+1,:,kb)*rk3coefi
          end if
 
       case(5)
        !elseif (idriver == 2) then
-         do j=jb,je
-           do i=ib,ie
-             pwp(i,j,kb)  = 0.
-             pwp(i,j,ke+kh)= 0. !(Uinf*ddispdx ) *rk3coefi ! tg3315 - idriver does not use Uinf ddisp etc.
-           end do
-         end do
-
+       !if (myid == 0) write(*,*) "in bcpup, u0driver(1,1): ", u0driver(1,1)
          if (ibrank) then
            do k=kb,ke
-             do j=jb,je
+             do j=jb-1,je+1
                pup(ib,j,k) = u0driver(j,k)*rk3coefi
+               up(ib,j,k) = 0. ! u(ib) only evolves according to pressure correction
+               ! pvp(ib,j,k) = v0driver(j,k)*rk3coefi
+               ! pwp(ib,j,k) = w0driver(j,k)*rk3coefi
              end do
            end do
+
+           !pwp(ib,:,ke+1) = w0driver(:,ke+1)*rk3coefi
          end if
 
+         !if (myid == 0) write(*,*) rk3step, " in bcpup, uouttot = ", uouttot
          if (ierank) then
-           do k=kb,ke
-             do j=jb,je
-               pup(ie+1,j,k) = - (u0(ie+1,j,k)-u0(ie,j,k))*dxfi(ie)*uouttot + um(ie+1,j,k)*rk3coefi   ! du/dt +u*du/dx=0 -> pup(i)=um(i)/rk3coef -um(i)*(um(i)-um(i-1))/dxf(i-1)
+           do k=kb+1,ke
+             do j=jb-1,je+1
+               pup(ie+1,j,k) = um(ie+1,j,k)*rk3coefi- (u0(ie+1,j,k)-u0(ie,j,k))*dxfi(ie)*uouttot    ! du/dt +u*du/dx=0 -> pup(i)=um(i)/rk3coef -um(i)*(um(i)-um(i-1))/dxf(i-1)
+               ! !Neumann
+               !pup(ie+1,j,k) = pup(ie,j,k)
+               up(ie + 1, j, k) = pup(ie+1,j,k) - um(ie+1,j,k)*rk3coefi
              end do
            end do
+
+           ! Neumann at bottom - performs better with no slip
+           pup(ie+1,:,kb) = pup(ie,:,kb)
+           up(ie+1,:,kb) = pup(ie+1,:,kb) - um(ie+1,:,kb)*rk3coefi
          end if
 
-       !else ! if not iinletgen
      case(6)
          do j = jb, je
            do i = ib, ie
@@ -1598,16 +1627,28 @@ contains
    !>set pressure boundary conditions
    subroutine bcp(p)
 
-     use modglobal, only:ib, ie, jb, je, ih, jh, kb, ke, kh, linoutflow, dxfi, ibrank, ierank, jbrank, jerank, dyi, BCxm, BCym
+     use modglobal, only:ib, ie, jb, je, ih, jh, kb, ke, kh, linoutflow, dxfi, ibrank, ierank, jbrank, jerank, dyi, BCxm, BCym, rk3step, dt
      use modfields, only:pres0, up, u0, um, uouttot, vp, v0
      use modmpi, only:excj,exci
+     !use modpois, only : pup, pvp, pwp
      use decomp_2d, only : exchange_halo_z
 
      real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb - kh:ke + kh), intent(inout) :: p !< pressure
      integer i, j, k
+     real rk3coef, rk3coefi
+
+     if (rk3step == 0) then ! dt not defined yet
+       rk3coef = 1.
+     else
+       rk3coef = dt / (4. - dble(rk3step))
+     end if
+     rk3coefi = 1. / rk3coef
 
      call exchange_halo_z(p)
      call exchange_halo_z(pres0)
+
+     ! p(:,:,ke+1) = -p(:,:,ke)
+     ! pres0(:,:,ke+1) = -pres0(:,:,ke)
 
      if (BCxm > 1) then
        if (ibrank) then
@@ -1625,10 +1666,11 @@ contains
              p(ie + 1, j, k) = p(ie, j, k)
              pres0(ie + 1, j, k) = pres0(ie, j, k)
 
-             ! Convective
-             if (BCxm .ne. 6) then
-               up(ie + 1, j, k) = -(u0(ie+1, j, k) - u0(ie, j, k))*dxfi(ie)*uouttot!u0(ie,j,k)
-             end if
+             ! ! Convective
+             ! if (BCxm .ne. 6) then
+             !   !up(ie + 1, j, k) = -(u0(ie+1, j, k) - u0(ie, j, k))*dxfi(ie)*uouttot!u0(ie,j,k)
+             !   !up(ie + 1, j, k) = pup(ie+1,j,k) - um(ie+1,j,k)*rk3coefi
+             ! end if
 
            enddo
          enddo

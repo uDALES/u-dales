@@ -60,8 +60,8 @@ contains
     use modmpi,   only   :myid,my_real,mpierr,comm3d,mpi_logical,mpi_integer,cmyidx,cmyidy,mpi_character
     use modglobal,only   :imax,jmax,kmax,imax1,jmax1,kmax1,imax2,jmax2,kmax2,cexpnr,ifnamopt,fname_options,dtmax,kb,ke, ladaptive,dt_lim,btime,nsv,fieldvars,ib,ie,jb,je,kb,ke, ih,jh,lfielddump,ktot,kh
     use modstat_nc,only  : open_nc, define_nc,ncinfo,writestat_dims_nc
-    use modfields, only  : u0,v0,w0,thl0,sv0,ql0,qt0,pres0,div
-    use modpois, only : p, pup,pvp,pwp, rhs, dpupdx, dpvpdy, dpwpdz, xyzrt
+    use modfields, only  : u0,v0,w0,thl0,sv0,ql0,qt0,pres0,div,dudx,dvdy,dwdz
+    use modpois, only : p, pup,pvp,pwp, rhs, dpupdx, dpvpdy, dpwpdz, xyzrt, Fxy, Fxyz
     implicit none
     integer :: ierr, n
 
@@ -252,6 +252,21 @@ contains
         case('di')
           call ncinfo(ncname( n,:),'div','Divergence after pressure correction','M','tttt')
           pfields(n)%point => div(ib:ie,jb:je,kb:ke)
+        case('ft')
+          call ncinfo(ncname( n,:),'ft','Fourier transformed data in x and y','M','tttt')
+          pfields(n)%point => Fxy(ib:ie,jb:je,kb:ke)
+        case('ge')
+          call ncinfo(ncname( n,:),'ge','Fourier transformed data in x and y and done GE in z','M','tttt')
+          pfields(n)%point => Fxyz(ib:ie,jb:je,kb:ke)
+        case('ux')
+          call ncinfo(ncname( n,:),'dudx','','M','tttt')
+          pfields(n)%point => dudx(ib:ie,jb:je,kb:ke)
+        case('vy')
+          call ncinfo(ncname( n,:),'dvdy','','M','tttt')
+          pfields(n)%point => dvdy(ib:ie,jb:je,kb:ke)
+        case('wz')
+          call ncinfo(ncname( n,:),'dwdz','','M','tttt')
+          pfields(n)%point => dwdz(ib:ie,jb:je,kb:ke)
         ! case('rt')
         !   call ncinfo(ncname( n,:),'xyzrt','Wavenumbers','M','tttt')
         !   pfields(n)%point => xyzrt(1:sp%zsz(1),1:sp%zsz(2),1:ktot)
@@ -334,7 +349,7 @@ contains
 
   !> Do fielddump. Collect data to truncated (2 byte) integers, and write them to file
   subroutine fielddump
-    use modfields, only : u0,v0,w0,thl0,qt0,ql0,sv0,pres0,u01,u02,u0h,um,div  !ILS13 21.04.2015 changed to u0 from um  etc
+    use modfields, only : u0,v0,w0,thl0,qt0,ql0,sv0,pres0,u01,u02,u0h,um,div,dudx,dvdy,dwdz  !ILS13 21.04.2015 changed to u0 from um  etc
     use modsurfdata,only : thls,qts,thvs
     use modglobal, only : ib,ie,ih,jb,je,jh,ke,kb,kh,rk3step,timee,dt_lim,cexpnr,ifoutput,imax,jmax,&
                           tfielddump, tnextfielddump,nsv, lfielddump, ktot,fieldvars, imax1,jmax1,kmax1,imax2,jmax2,kmax2,rk3step,dyi,dxfi,dzhi
@@ -357,6 +372,9 @@ contains
     do k=kb,ke
       do j=jb,je
         do i=ib,ie
+          dudx(i,j,k) = (u0(i+1,j,k) - u0(i,j,k) )*dxfi(i)
+          dvdy(i,j,k) = (v0(i,j+1,k) - v0(i,j,k) )*dyi
+          dwdz(i,j,k) = (w0(i,j,k+1) - w0(i,j,k) )*dzhi(k)
           div(i,j,k) = (u0(i+1,j,k) - u0(i,j,k) )*dxfi(i) + &
             (v0(i,j+1,k) - v0(i,j,k) )*dyi + &
             (w0(i,j,k+1) - w0(i,j,k) )*dzhi(k)

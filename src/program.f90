@@ -26,7 +26,7 @@ program DALESURBAN      !Version 48
 !!----------------------------------------------------------------
   use modmpi,            only : initmpi, exitmpi, myid, barrou
   !use modtest,           only : inittest, exittest
-  use modglobal,         only : rk3step,timeleft,ib,jb,kb,ke
+  use modglobal,         only : rk3step,timeleft,ib,jb,kb,ke,driverid,ibrank,timee
   use modstartup,        only : startup,exitmodules
   use modsave,           only : writerestartfiles
   use modboundary,       only : boundary, grwdamp,tqaver
@@ -46,6 +46,7 @@ program DALESURBAN      !Version 48
   use modstat_nc,      only : initstat_nc
   use modfielddump,    only : initfielddump, fielddump,exitfielddump
   use modstatsdump,    only : initstatsdump,statsdump,exitstatsdump    !tg3315
+  use modfields, only : u0, um
   !use modbudget,       only : initbudget, budgetstat, exitbudget
   implicit none
 
@@ -54,7 +55,7 @@ program DALESURBAN      !Version 48
 !----------------------------------------------------------------
   call initmpi
   call startup
-  !write(*,*) "done startup"
+  write(*,*) "done startup"
   !call inittest
 
 !---------------------------------------------------------
@@ -63,7 +64,7 @@ program DALESURBAN      !Version 48
   call initchecksim ! Could be deprecated
   call initstat_nc ! Could be deprecated
   call initfielddump
-  call fielddump
+  !call fielddump
   !call initstatsdump !tg3315
 
   !call readfacetfiles
@@ -80,10 +81,10 @@ program DALESURBAN      !Version 48
   ! write(*,*) "done fielddump after boundary"
 !  not necessary but abates the fact that temp field is randomised by randomisation of just velocity fields
 !  (because advection at start of time loop without being divergence free)
-  call poisson
-
+  !call poisson
+  write(*,*) "Done initial boundary"
   call fielddump
-
+  write(*,*) "Done initial fielddump"
 !------------------------------------------------------
 !   3.0   MAIN TIME LOOP
 !------------------------------------------------------
@@ -92,19 +93,18 @@ program DALESURBAN      !Version 48
   do while ((timeleft>0) .or. (rk3step < 3))
     !write(*,*) timeleft
     call tstep_update
+    !if (driverid==0 .and. ibrank) write(*,*) "--------------- start of timestep. rk3step, time: ", rk3step, timee
 !-----------------------------------------------------
 !   3.2   ADVECTION AND DIFFUSION
 !-----------------------------------------------------
-
+    !call boundary
     call advection                ! now also includes predicted pressure gradient term
-
     call subgrid
 !-----------------------------------------------------
 !   3.3   THE SURFACE LAYER
 !-----------------------------------------------------
 
-    !call bottom
-
+    call bottom
 !-----------------------------------------------------
 !   3.4   REMAINING TERMS
 !-----------------------------------------------------
@@ -141,6 +141,8 @@ program DALESURBAN      !Version 48
 
     call poisson
     call tstep_integrate
+    call checksim
+    call fielddump
     call boundary
     !call fixthetainf
 
@@ -153,10 +155,10 @@ program DALESURBAN      !Version 48
 !   3.7  WRITE RESTARTFILES AND DO STATISTICS
 !------------------------------------------------------
 
-    call checksim
+    !call checksim
    ! call writedatafiles   ! write data files for later analysis
     !call writerestartfiles
-    call fielddump
+    !call fielddump
     !call statsdump        ! tg3315
 
   end do

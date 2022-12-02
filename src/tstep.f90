@@ -166,8 +166,8 @@ subroutine tstep_integrate
 
 
   use modglobal, only : ib,ie,jb,jgb,je,kb,ke,nsv,dt,rk3step,e12min,lmoist,timee,ntrun,&
-                        linoutflow, iinletgen,ltempeq,idriver,&
-                        dzf,dzhi,dzf,dxhi,dxf,ifixuinf,thlsrc,lchem,ibrank,ierank,jerank,BCxm,BCym
+                        linoutflow, iinletgen,ltempeq,idriver,BCtopm,&
+                        dzf,dzhi,dzf,dxhi,dxf,ifixuinf,thlsrc,lchem,ibrank,ierank,jerank,BCxm,BCym,ihc,jhc,khc,dyi,dxfi
   use modmpi, only    : cmyid,myid,nprocs
   use modfields, only : u0,um,up,v0,vm,vp,w0,wm,wp,&
                         thl0,thlm,thlp,qt0,qtm,qtp,e120,e12m,e12p,sv0,svm,svp,uouttot,&
@@ -177,6 +177,8 @@ subroutine tstep_integrate
                           storetdriver, nstepread, nstepreaddriver, irecydriver
   use modsubgriddata, only : loneeqn,ekm,ekh
   use modchem, only : chem
+  use decomp_2d, only : exchange_halo_z
+  use modpois, only : pij, dpdztop
 
   implicit none
 
@@ -251,6 +253,20 @@ subroutine tstep_integrate
     enddo
   end if
 
+  call exchange_halo_z(u0)
+  call exchange_halo_z(v0)
+  call exchange_halo_z(w0)
+  call exchange_halo_z(um)
+  call exchange_halo_z(vm)
+  call exchange_halo_z(wm)
+  call exchange_halo_z(thl0)
+  call exchange_halo_z(thlm)
+  call exchange_halo_z(qt0)
+  call exchange_halo_z(qtm)
+  do n = 1, nsv
+     call exchange_halo_z(sv0(:, :, :, n), opt_zlevel=(/ihc,jhc,khc/))
+     call exchange_halo_z(svm(:, :, :, n), opt_zlevel=(/ihc,jhc,khc/))
+  enddo
 
   if (linoutflow) then
     if ((iinletgen == 0) .and. (idriver /= 2)) then
@@ -273,9 +289,32 @@ subroutine tstep_integrate
       if (ierank) then
         u0(ie+1,jb:je,kb:ke) = um(ie+1,jb:je,kb:ke)  + rk3coef * up(ie+1,jb:je,kb:ke)
       end if
+    end if
+
+    if (BCtopm == 4) then
+      do i=ib,ie
+        do j=jb,je
+          ! w0(i,j,ke+1) = w0(i,j,ke) - dzhi(ke)*((u0(i+1,j,ke)-u0(i,j,ke))*dxfi(i) + &
+          !                                       (v0(i,j+1,ke)-v0(i,j,ke))*dyi)
+          ! if (myid ==0 .and. (i==32 .and. j==1)) write(*,*) rk3coefi*(w0(i,j,ke) - dzhi(ke)*((u0(i+1,j,ke)-u0(i,j,ke))*dxfi(i) + &
+          ! (v0(i,j+1,ke)-v0(i,j,ke))*dyi) - wm(i,j,ke+1)), &
+          ! dpdztop(i,j), &
+          ! 2*pij(ke)*dzhi(ke+1)
+          !
+          ! ! wp(i,j,ke+1) = rk3coefi*(w0(i,j,ke) - dzhi(ke)*((u0(i+1,j,ke)-u0(i,j,ke))*dxfi(i) + &
+          ! !            (v0(i,j+1,ke)-v0(i,j,ke))*dyi) - wm(i,j,ke+1))
+          ! wp(i,j,ke+1) = 2*pij(ke)*dzhi(ke+1)
+        end do
+      end do
+
+      w0(ib:ie,jb:je,ke+1) = wm(ib:ie,jb:je,ke+1)  + rk3coef * wp(ib:ie,jb:je,ke+1)
 
     end if
+
   end if
+
+  !if (myid==0) write(*,*) "wm, w0", wm(32,1,ke+1), w0(32,1,ke+1)
+
 
 !up to here
 
@@ -330,4 +369,5 @@ subroutine tstep_integrate
     svm = sv0
     qtm = qt0
   end if
+
 end subroutine tstep_integrate

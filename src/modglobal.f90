@@ -152,6 +152,7 @@ module modglobal
 !  logical :: ifixuinf   = .true. !dpdxl relaxed to have Uinf 1. dpdx = (1/dt)*(Uh-Uinf)2. d/dt(dpdx) = 1/tau*(Uh-Uinf)
    integer :: ifixuinf = 0
    logical :: lvinf = .false. !use Vinf instead of Uinf for the fixed velocity at infinity
+   logical :: lrandomize = .true.
 
    logical :: ibrank
    logical :: ierank
@@ -307,6 +308,9 @@ module modglobal
    integer :: driverstore         !<     * number of stored driver steps for inlet (automatically calculated)
    integer :: driverjobnr         !<     * Job number of the driver inlet generation run (idriver == 2)
    logical :: lsdriver = .false.   !<     * switch for reading scalar driver files
+   logical :: iplanerank = .false.
+   integer :: driverid
+   character(3) :: cdriverid
 
    real    :: courant = -1.
    real    :: diffnr = 0.25

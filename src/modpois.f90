@@ -34,7 +34,7 @@ implicit none
 include "fftw3.f"
 
 private
-public :: initpois,poisson,exitpois,p,pup,pvp,pwp,rhs,dpupdx,dpvpdy,dpwpdz,xyzrt,sp
+public :: initpois,poisson,exitpois,p,pup,pvp,pwp,rhs,dpupdx,dpvpdy,dpwpdz,xyzrt,sp,Fxy,Fxyz,dpdztop,pij
 save
 
   real, allocatable, target :: p(:,:,:)   ! difference between p at previous and new step (p = P_new - P_old)
@@ -43,9 +43,11 @@ save
   real, allocatable, target :: dpupdx(:,:,:)
   real, allocatable, target :: dpvpdy(:,:,:)
   real, allocatable, target :: dpwpdz(:,:,:)
+  real, allocatable, target :: Fxy(:,:,:), Fxyz(:,:,:)
   real, allocatable :: xrt(:), yrt(:), zrt(:)
-  real, allocatable, target :: xyzrt(:,:,:)
+  real, allocatable, target :: xyzrt(:,:,:), bxyzrt(:,:,:)
   real, allocatable :: a(:), b(:), c(:), ax(:), bx(:), cx(:) ! coefficients for tridiagonal matrix
+  real, allocatable :: pz_top(:,:,:), py_top(:,:,:), px_top(:,:,:)
   integer :: ibc1, ibc2, kbc1, kbc2
 
   integer*8 :: plan_r2fc_x, plan_r2fc_y, plan_fc2r_x, plan_fc2r_y
@@ -54,6 +56,9 @@ save
   real, allocatable :: Sxr(:), Sxfr(:), Syr(:), Syfr(:), Szr(:), Szfr(:)
   complex, allocatable :: Sxfc(:), Syfc(:)
   type(DECOMP_INFO) :: sp
+  type(DECOMP_INFO) :: decomp_top
+  real, allocatable :: dpdztop(:,:)
+  real, allocatable :: pij(:)
 
 contains
   subroutine initpois
@@ -63,8 +68,10 @@ contains
     !use decomp_2d
     !use decomp_2d_fft
     implicit none
-    real dxi, dzi, fac
+    real dxi, dzi, fac, b_top_D, b_top_N
     integer i,j,k,iv,jv,kv
+
+    allocate(dpdztop(ib:ie,jb:je), pij(kb:ke+kh))
 
     !allocate(p(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
     allocate(pup(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
@@ -75,7 +82,8 @@ contains
     call alloc_z(dpupdx)
     call alloc_z(dpvpdy)
     call alloc_z(dpwpdz)
-
+    call alloc_z(Fxy, opt_zlevel=(/0,0,0/))
+    call alloc_z(Fxyz, opt_zlevel=(/0,0,0/))
 
     if (ipoiss == POISS_FFT2D) then
       dxi = dxfi(1) ! Assumes equidistant in x
@@ -84,6 +92,7 @@ contains
       allocate(zrt(ktot))
       allocate(xyzrt(imax,jmax,ktot))
       allocate(a(ktot), b(ktot), c(ktot))
+      allocate(bxyzrt(imax,jmax,ktot))
 
       ! generate Eigenvalues xrt and yrt
       if (BCxm == 1) then ! periodic
@@ -138,7 +147,6 @@ contains
         kbc1 = 1 ! Neumann
         ! top - Neumann
         kbc2 = 1
-        ! Could also set a Dirichlet BC on the inlet at the top, like in SPARKLE?
 
         ! generate matrix coefficients
         do k=1,ktot
@@ -148,21 +156,22 @@ contains
         end do
 
         ! bottom - Neumann
-        !b(1) = b(1) + a(1)
-        b(1) = -c(1)
+        b(1) = b(1) + a(1)
+        !b(1) = -c(1)
 
         ! top
+        b_top_N = b(ktot) + c(ktot)
+        b_top_D = b(ktot) - c(ktot)
         if (kbc2 .eq. 1) then ! Neumann
-          !b(ktot) = b(ktot) + c(ktot)
-          b(ktot) = -a(ktot)
+          b(ktot) = b_top_N
+          !b(ktot) = -a(ktot)
         elseif (kbc2 .eq. 3) then ! Dirichlet
-          b(ktot) = b(ktot) - c(ktot) ! not convinced this is right, but performs better than below
+          b(ktot) = b_top_D
           !b(ktot) = a(ktot)
         end if
 
         a(1) = 0.
         c(ktot) = 0.
-
         zrt = 0.
 
       else ! cosine transform
@@ -182,7 +191,8 @@ contains
       end if
 
       ! In z-pencil in spectral space - same dims as physical space in this case
-      do k=1,zsize(3)
+      !do k=1,zsize(3)
+      do k=1,ktot
         do j=1,zsize(2)
           !jv = j + myidy*zsize(2)!jmax
           jv = j-1 + zstart(2)
@@ -193,6 +203,31 @@ contains
           end do
         end do
       end do
+
+      if (BCzp == 1) then
+        do k=1,zsize(3)
+          do j=1,zsize(2)
+            do i=1,zsize(1)
+              if (xyzrt(i,j,k) == 0. .and. k == ktot) then
+                write(*,*) myid, i, j
+                bxyzrt(i,j,k) = b_top_D !+ xyzrt(i,j,k) !(zero anyway)
+              else
+                bxyzrt(i,j,k) = b(k) + xyzrt(i,j,k)
+              end if
+            end do
+          end do
+        end do
+
+      end if
+
+      call decomp_info_init(itot, jtot, 1, decomp_top)
+      allocate(px_top(1:decomp_top%xsz(1),1:decomp_top%xsz(2),1:decomp_top%xsz(3)))
+      allocate(py_top(1:decomp_top%ysz(1),1:decomp_top%ysz(2),1:decomp_top%ysz(3)))
+      allocate(pz_top(1:decomp_top%zsz(1),1:decomp_top%zsz(2),1:decomp_top%zsz(3)))
+
+      write(*,*) "px_top ", shape(px_top)
+      write(*,*) "py_top ", shape(py_top)
+      write(*,*) "pz_top ", shape(pz_top)
 
 
     elseif (ipoiss == POISS_FFT2D_2DECOMP) then
@@ -239,15 +274,15 @@ contains
       end do
 
       ! bottom - Neumann
-      !b(1) = b(1) + a(1)
-      b(1) = -c(1)
+      b(1) = b(1) + a(1)
+      !b(1) = -c(1)
 
       ! top
       if (kbc2 .eq. 1) then ! Neumann
-        !b(ktot) = b(ktot) + c(ktot)
-        b(ktot) = -a(ktot)
+        b(ktot) = b(ktot) + c(ktot)
+        !b(ktot) = -a(ktot)
       elseif (kbc2 .eq. 3) then ! Dirichlet
-        b(ktot) = b(ktot) - c(ktot) ! not convinced this is right, but performs better than below
+        b(ktot) = b(ktot) - c(ktot)
         !b(ktot) = a(ktot)
       end if
 
@@ -388,15 +423,15 @@ contains
   end subroutine initpois
 
   subroutine poisson
-    use modglobal, only : ib,ie,ih,jb,je,kb,ke,kh,itot,jtot,ktot,dxh,dxf,dy,dzf,dzh,linoutflow,iinletgen,ipoiss,POISS_FFT2D,POISS_FFT3D,POISS_CYC,POISS_FFT2D_2DECOMP,imax,jmax,eps1,BCxm,BCym,BCzp
+    use modglobal, only : ib,ie,ih,jb,je,kb,ke,kh,itot,jtot,ktot,dxh,dxf,dy,dzf,dzh,linoutflow,iinletgen,ipoiss,POISS_FFT2D,POISS_FFT3D,POISS_CYC,POISS_FFT2D_2DECOMP,imax,jmax,eps1,BCxm,BCym,BCzp,ibrank,jbrank
     use modmpi, only : myid,nprocs,barrou
     implicit none
     integer ibc1,ibc2,kbc1,kbc2,ksen
     complex, allocatable, dimension(:,:,:) :: Fx, Fy, Fz
     real, allocatable, dimension(:,:,:) :: px, py, pz
     real, allocatable, dimension(:) :: FFTI, FFTJ, winew, wjnew
-    real, allocatable, dimension(:,:,:) :: Fzr
-    real, allocatable, dimension(:,:,:) :: d
+    real, allocatable, dimension(:,:,:) :: Fzr, d
+    real, dimension(1:ktot) :: vout
     real    z,ak,bk,bbk
     integer i, j, k
     real fac
@@ -519,10 +554,14 @@ contains
       end if
 
       call transpose_y_to_z(py,pz)
+      Fxy = pz
 
       ! In z-pencil
       if (BCzp == 1) then
-        call solmpj(pz) ! Maybe do it inline?
+        call solmpj(pz)
+
+      pz_top(:,:,1) = pz(:,:,ktot)
+      if (ibrank .and. jbrank) pz_top(1,1,1) =-pz(1,1,ktot) ! Dirichlet for zero mode
 
       else
         ! Cosine transform in z
@@ -560,7 +599,11 @@ contains
 
       end if ! BCzp
 
+      Fxyz = pz
+
       call transpose_z_to_y(pz,py)
+      call transpose_z_to_y(pz_top, py_top, decomp_top)
+      !write(*,*) myid, shape(py_top)
 
       ! In y-pencil, do backward FFT in y direction
       if (BCym == 1) then
@@ -590,6 +633,18 @@ contains
           end do
         end do
 
+        if (size(py_top,3) > 0) then
+        do i=1,decomp_top%ysz(1)
+            Syfc(0) = CMPLX(py_top(i,1,1), 0.)
+            do j=1,jtot/2-1
+              Syfc(j) = CMPLX(py_top(i,2*j,1), py_top(i,2*j+1,1))
+            end do
+            Syfc(jtot/2) = CMPLX(py_top(i,jtot,1), 0.)
+            call dfftw_execute(plan_fc2r_y)
+            py_top(i,:,1) = Syr*fac
+        end do
+        end if
+
       else
         fac = 1./sqrt(2.*jtot)
         do i=1,ysize(1)
@@ -602,6 +657,7 @@ contains
       end if
 
       call transpose_y_to_x(py,px)
+      call transpose_y_to_x(py_top,px_top,decomp_top)
 
       ! In x-pencil, do backward FFT in x-direction
       if (BCxm == 1) then
@@ -641,12 +697,24 @@ contains
           end do
         end do
 
+        if (size(px_top,3) > 0) then
+          do j=1,decomp_top%xsz(2)
+            Sxfr = px_top(:,j,1)
+            call dfftw_execute(plan_fr2r_x)
+            px_top(:,j,1) = Sxr*fac
+          end do
+        end if
+
       end if
 
       call transpose_x_to_y(px, py)
       call transpose_y_to_z(py, pz)
 
+      call transpose_x_to_y(px_top,py_top,decomp_top)
+      call transpose_y_to_z(py_top,pz_top,decomp_top)
+
       p(ib:ie,jb:je,kb:ke) = pz
+      p(ib:ie,jb:je, ke+1) = pz_top(:,:,1)
 
       deallocate(px,py,pz)
       if (BCxm == 1) deallocate(FFTI, winew)
@@ -855,10 +923,10 @@ contains
   ! Adapted fillps for RK3 time loop
 
 
-    use modfields, only : up, vp, wp, um, vm, wm,u0,v0,w0
+    use modfields, only : up, vp, wp, um, vm, wm,u0,v0,w0,IIw,IIws
     use modglobal, only : rk3step, ib,ie,jb,je,kb,ke,ih,jh,kh, dxfi,dyi,dzfi,dt,&
                           linoutflow,libm,dtmax,ierank,jerank,pi,dy,imax,jmax,ylen,xf,zf
-    use modmpi,    only : excjs, myidx, myidy
+    use modmpi,    only : excjs, myidx, myidy, avexy_ibm, myid
     use modboundary, only: bcpup
 !    use modibm,    only : ibmnorm
 
@@ -866,6 +934,7 @@ contains
     !real,allocatable :: pup(:,:,:), pvp(:,:,:), pwp(:,:,:)
     integer i,j,k
     real rk3coef,rk3coefi
+    real, dimension(kb:ke+kh) :: wpxy
 
     ! allocate(pup(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
     ! allocate(pvp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
@@ -877,6 +946,16 @@ contains
       rk3coef = dt / (4. - dble(rk3step))
     end if
     rk3coefi = 1. / rk3coef
+
+
+    ! Get out the slab averaged dp/dz = <rhw>
+    ! call avexy_ibm(wpxy(kb:ke+kh),wp(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+    !
+    ! do k = kb,ke
+    !   wp(ib:ie,jb:je,k) = wp(ib:ie,jb:je,k) - wpxy(k)
+    ! end do
+
+    !if (myid ==0) write(*,*) wpxy
 
     do k=kb,ke
       do j=jb,je
@@ -915,9 +994,9 @@ contains
       end do
     end do
 
-    do k=kb-1,ke
-      do j=jb-1,je
-        do i=ib-1,ie
+    do k=kb,ke
+      do j=jb,je
+        do i=ib,ie
           dpupdx(i,j,k) = (pup(i+1,j,k)-pup(i,j,k)) * dxfi(i)
           dpvpdy(i,j,k) = (pvp(i,j+1,k)-pvp(i,j,k)) * dyi
           dpwpdz(i,j,k) = (pwp(i,j,k+1)-pwp(i,j,k)) * dzfi(k)
@@ -969,13 +1048,13 @@ contains
     !-----------------------------------------------------------------|
 
     use modfields, only : u0, v0, w0, up, vp, wp, pres0, IIc, IIcs, uouttot
-    use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,dxhi,dyi,dzhi,linoutflow,rslabs,ibrank,ierank,jbrank,jerank,dxfi
+    use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,dxhi,dyi,dzhi,linoutflow,rslabs,ibrank,ierank,jbrank,jerank,dxfi,BCtopm
     use modmpi,    only : myid,excj,slabsum,avexy_ibm
     use modboundary,only : bcp
     implicit none
     integer i,j,k
-    real, dimension(kb-kh:ke+kh) :: pij
-    real :: pijk
+    !real, dimension(kb:ke+kh) :: pij
+    !real :: pijk
 
     ! **  Boundary conditions **************
 
@@ -998,6 +1077,25 @@ contains
       end do
     end do
 
+    if (BCtopm == 4) then
+      ! Get out the slab averaged dp/dz = <rhw>
+      call avexy_ibm(pij(kb:ke+kh),p(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+      !if (myid ==0) write(*,*) pij(ke)
+      !p(ib:ie,jb:je,ke+1) = -pij(ke)
+
+      do i=ib,ie
+        do j=jb,je
+          !dpdztop(i,j) = -(p(i,j,ke+1)-p(i,j,ke))*dzhi(ke+1)
+          !if (myid==0) write(*,*) i, j, dzhi(ke+1), -(p(i,j,ke+1)-p(i,j,ke))*dzhi(ke+1)
+          !if (myid==0) write(*,*) i, j, dzhi(ke+1), 2*pij(ke)*dzhi(ke+1)
+          !wp(i,j,ke+1) = -(p(i,j,ke+1)-p(i,j,ke))*dzhi(ke+1)
+          wp(i,j,ke+1) = 2*pij(ke)*dzhi(ke+1)
+        end do
+      end do
+
+    end if
+
+    !write(*,*) wp(ib:ie,jb:je,ke+1)
 
     ! tg3315 02/02/2019
     ! account for pressure offset that results from ill-defined problem in pressure
@@ -1016,7 +1114,7 @@ contains
     ! https://opensky.ucar.edu/islandora/object/technotes%3A98/datastream/PDF/download/citation.pdf
     ! https://epubs.siam.org/doi/pdf/10.1137/0711042
 
-    pij =0.; pijk=0.;
+    !pij =0.; pijk=0.;
 
     ! if (.not. linoutflow) then
     !   call slabsum(pij(kb:ke),kb,ke,p(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,ib,ie,jb,je,kb,ke)
@@ -1027,7 +1125,7 @@ contains
     do k=kb-1,ke+1
       do j=jb-1,je+1
         do i=ib-1,ie+1
-          pres0(i,j,k)=pres0(i,j,k)+p(i,j,k)-pijk ! update of the pressure: P_new = P_old + p
+          pres0(i,j,k)=pres0(i,j,k)+p(i,j,k)!-pijk ! update of the pressure: P_new = P_old + p
         enddo
       enddo
     enddo
@@ -1152,7 +1250,8 @@ contains
     do j=1,zsize(2)
       !jv = j + myidy*jmax
       do i=1,zsize(1)
-        z         = 1./(b(1)+xyzrt(i,j,1))
+        !z         = 1./(b(1)+xyzrt(i,j,1))
+        z         = 1./(bxyzrt(i,j,1))
         d(i,j,1)  = c(1)*z
         x(i,j,1) = x(i,j,1)*z
       end do
@@ -1162,7 +1261,8 @@ contains
       do j=1,zsize(2)
         !jv = j + myid*jmax
         do i=1,zsize(1)
-          bbk       = b(k)+xyzrt(i,j,k)
+          !bbk       = b(k)+xyzrt(i,j,k)
+          bbk       = bxyzrt(i,j,k)
           z         = 1./(bbk-a(k)*d(i,j,k-1))
           d(i,j,k)  = c(k)*z
           x(i,j,k) = (x(i,j,k)-a(k)*x(i,j,k-1))*z
@@ -1175,11 +1275,13 @@ contains
     do j=1,zsize(2)
       !jv = j + myid*jmax
       do i=1,zsize(1)
-        bbk = bk + xyzrt(i,j,ktot)
+        !bbk = bk + xyzrt(i,j,ktot)
+        bbk = bxyzrt(i,j,ktot)
         z        = bbk-ak*d(i,j,ktot-1)
         if(z/=0.) then
           x(i,j,ktot) = (x(i,j,ktot)-ak*x(i,j,ktot-1))/z
         else
+          write(*,*) myid, i, j
           x(i,j,ktot) =0.
         end if
       end do

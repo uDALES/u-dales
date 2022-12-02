@@ -38,6 +38,9 @@ module modfields
   real, allocatable, target :: w0(:,:,:)        !<   z-component of velocity at time step t
   real, allocatable, target :: pres0(:,:,:)     !<   pressure at time step t
   real, allocatable, target :: div(:,:,:)
+  real, allocatable, target :: dudx(:,:,:)
+  real, allocatable, target :: dvdy(:,:,:)
+  real, allocatable, target :: dwdz(:,:,:)
 
   real, allocatable :: u0h(:,:,:)        !<   x-component of velocity at time step t
   real, allocatable :: uinit(:,:,:)
@@ -464,6 +467,9 @@ contains
     call alloc_z(pres0); pres0 = 0.
 
     call alloc_z(div, opt_zlevel=(/0,0,0/))
+    call alloc_z(dudx, opt_zlevel=(/0,0,0/))
+    call alloc_z(dvdy, opt_zlevel=(/0,0,0/))
+    call alloc_z(dwdz, opt_zlevel=(/0,0,0/))
 
     ! Always have to allocate these, even if ltempeq/lmoist = .false.
     call alloc_z(thlm); thlm = 0.

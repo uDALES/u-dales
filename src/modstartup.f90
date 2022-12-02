@@ -69,7 +69,8 @@ module modstartup
                                     lwallfunc,lprofforc,lchem,k1,JNO2,rv,rd,tnextEB,tEB,dtEB,bldT,wsoil,wgrmax,wwilt,wfc,skyLW,GRLAI,rsmin,nfcts,lEB,lwriteEBfiles,nwalllayers,lconstW, &
                                     BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys,BCzp, &
                                     BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots, &
-                                    idriver,tdriverstart,driverjobnr,dtdriver,driverstore,lsdriver
+                                    idriver,tdriverstart,driverjobnr,dtdriver,driverstore,lsdriver, &
+                                    lrandomize
       use modsurfdata,       only : z0, z0h,  wtsurf, wttop, wqtop, wqsurf, wsvsurf, wsvtop, wsvsurfdum, wsvtopdum, ps, thvs, thls, thl_top, qt_top, qts
       use modfields,         only : initfields, dpdx, ncname
       use modpois,           only : initpois
@@ -99,7 +100,8 @@ module modstartup
          libm, lles, &
          lper2inout, lwalldist, &
          lreadmean, &
-         nprocx, nprocy
+         nprocx, nprocy, &
+         lrandomize
       namelist/DOMAIN/ &
          itot, jtot, ktot, xlen, ylen, &
          xlat, xlon, xday, xtime, ksp
@@ -478,6 +480,7 @@ module modstartup
       call MPI_BCAST(iadv_thl, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(iadv_qt, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(iadv_sv(1:nsv), nsv, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(lrandomize, 1, MPI_LOGICAL, 0, comm3d, mpierr)
 
       ! Allocate and initialize core modules
       call initglobal
@@ -497,14 +500,14 @@ module modstartup
       ! write (*, *) "done initpois"
       ! call initinlet ! added by J. Tomas: initialize inlet generator
       ! write (*, *) "done initinlet"
-      ! call initdriver  ! added by ae1212: initialise driver inlet
+      call initdriver  ! added by ae1212: initialise driver inlet
       ! write(*,*) "done initdriver"
       call checkinitvalues
       write (*, *) "done checkinitvalues"
       call initpois
       write (*, *) "done initpois"
       ! write (6, *) 'Determine masking matrices'
-      ! call createmasks ! determine walls/blocks
+      call createmasks ! determine walls/blocks
       ! write (6, *) 'Finished determining masking matrices'
       ! ! calculate fluid volume and outlet areas, needs masking matrices
       ! call calcfluidvolumes
@@ -658,7 +661,7 @@ module modstartup
          BCxT = 3 !temperature is considered in inletgen & iolet
          BCxq = 3 !humidity is considered in iolet
          BCxs = 3 !scalars are considered in iolet
-         BCtopm = 3 !velocity at top determined by topm
+         !BCtopm = 1 !velocity at top determined by topm
          linoutflow = .true.
          call MPI_BCAST(iinletgen, 1, MPI_INTEGER, 0, comm3d, mpierr)
          call MPI_BCAST(BCxT, 1, MPI_INTEGER, 0, comm3d, mpierr)
@@ -669,7 +672,6 @@ module modstartup
          write(*,*) "linoutflow", linoutflow
 
       else if (BCxm .eq. 5) then
-
          write (*, *) "inoutflow conditions and idriver, setting appropriate switches (0)"
 
          iinletgen = 0
@@ -677,7 +679,7 @@ module modstartup
          BCxT = 3 !temperature is considered in inletgen & iolet
          BCxq = 3 !humidity is considered in iolet
          BCxs = 3 !scalars are considered in iolet
-         BCtopm = 3 !velocity at top determined by topm
+         !BCtopm = 4 !velocity at top determined by topm
          linoutflow = .true.
          call MPI_BCAST(iinletgen, 1, MPI_INTEGER, 0, comm3d, mpierr)
          call MPI_BCAST(idriver, 1, MPI_INTEGER, 0, comm3d, mpierr)
@@ -713,13 +715,13 @@ module modstartup
          wfls, whls, ug, vg, pgx, pgy, uprof, vprof, thlprof, qtprof, e12prof, svprof, &
          v0av, u0av, qt0av, ql0av, thl0av, qt0av, sv0av, exnf, exnh, presf, presh, rhof, &
          thlpcar, uav, thvh, thvf, IIc, IIcs, IIu, IIus, IIv, IIvs, IIw, IIws, u0h
-            use modglobal,         only : ib,ie,ih,jb,je,jh,kb,ke,kh,khc,kmax,dtmax,dt,runtime,timeleft,timee,ntimee,ntrun,btime,dt_lim,nsv,&
+            use modglobal,         only : ib,ie,ih,ihc,jb,je,jh,jhc,kb,ke,kh,khc,kmax,dtmax,dt,runtime,timeleft,timee,ntimee,ntrun,btime,dt_lim,nsv,&
          zf, zh, dzf, dzh, rv, rd, grav, cp, rlv, pref0, om23_gs, jgb, jge, Uinf, Vinf, dy, &
          rslabs, e12min, dzh, dtheta, dqt, dsv, cexpnr, ifinput, lwarmstart, lstratstart, trestart, numol, &
          ladaptive, tnextrestart, jmax, imax, xh, xf, linoutflow, lper2inout, iinletgen, lreadminl, &
          uflowrate, vflowrate,ltempeq, prandtlmoli, freestreamav, &
          tnextfielddump, tfielddump, tsample, tstatsdump, startfile, lprofforc, lchem, k1, JNO2,&
-         idriver,dtdriver,driverstore,tdriverstart,tdriverdump,xlen,ylen,itot,jtot,ibrank,ierank,jbrank,jerank,dxf,dxh,BCxm,BCym
+         idriver,dtdriver,driverstore,tdriverstart,tdriverdump,xlen,ylen,itot,jtot,ibrank,ierank,jbrank,jerank,dxf,dxh,BCxm,BCym,lrandomize
       use modsubgriddata, only:ekm, ekh
       use modsurfdata, only:wtsurf, wqsurf, wsvsurf, &
          thls, thvs, ps, qts, svs, sv_top
@@ -731,8 +733,8 @@ module modstartup
          uminletbc, vminletbc, wminletbc, u0inletbcold, v0inletbcold, w0inletbcold, &
          storeu0inletbc, storev0inletbc, storew0inletbc, nstepread, nfile, Tinl, &
          Trec, tminletbc, t0inletbcold, t0inletbc, storet0inletbc, utaui, ttaui, iangle,&
-         u0driver,v0driver,w0driver,e120driver,tdriver,thl0driver,qt0driver,storetdriver,&
-         storeu0driver,storev0driver,storew0driver,storee120driver,storethl0driver,storeqt0driver,&
+         u0driver,umdriver,v0driver,w0driver,e120driver,tdriver,thl0driver,qt0driver,storetdriver,&
+         storeu0driver,storeumdriver,storev0driver,storew0driver,storee120driver,storethl0driver,storeqt0driver,&
          nstepreaddriver
       use modinlet, only:readinletfile
       use moddriver, only: readdriverfile,initdriver,drivergen
@@ -895,7 +897,8 @@ module modstartup
                close (ifinput)
                write (*, *) 'height    thl     qt      u      v     e12'
                do k = ke, kb, -1
-                  write (*, '(f7.1,2f8.1,3f7.1)') &
+                  !write (*, '(f7.1,2f8.1,3f7.1)') &
+                  write (*, *) &
                      height(k), &
                      thlprof(k), &
                      qtprof(k), &
@@ -942,6 +945,22 @@ module modstartup
             end do
             end do
 
+
+            ! if (ibrank) then
+            ! do j=jb-1,je+1
+            !   um(ib,j,kb:ke) = uprof
+            !   um(ib-1,j,kb:ke) = uprof
+            ! end do
+            ! end if
+            !
+            ! if (ierank) then
+            ! do j=jb-1,je+1
+            !   !um(ie,j,kb:ke) = uprof
+            !   um(ie+1,j,kb:ke) = uprof
+            ! end do
+            ! end if
+
+
             ekh(:, :, ke + 1) = ekh(:, :, ke) ! also for start up
 
             ! ILS13 30.11.17, added, not sure if necessary
@@ -953,17 +972,19 @@ module modstartup
                end do
             end do
 
-            !! add random fluctuations
-            krand = min(krand, ke)
-            do k = kb, krand
-               call randomnize(um, k, randu, irandom, ih, jh)
-            end do
-            do k = kb, krand
-               call randomnize(vm, k, randu, irandom, ih, jh)
-            end do
-            do k = kb, krand
-               call randomnize(wm, k, randu, irandom, ih, jh)
-            end do
+            if (lrandomize) then
+              !! add random fluctuations
+              krand = min(krand, ke)
+              do k = kb, krand
+                call randomnize(um, k, randu, irandom, ih, jh)
+              end do
+              do k = kb, krand
+                call randomnize(vm, k, randu, irandom, ih, jh)
+              end do
+              do k = kb, krand
+                call randomnize(wm, k, randu, irandom, ih, jh)
+              end do
+            end if
 
             !       do k=kb+1,ke-1
             !       do j=jb,je
@@ -997,22 +1018,22 @@ module modstartup
 
             ! SO: Manually override fields
 
-            if (((BCxm == 1) .and. (BCym == 1)) .or. ((BCxm == 6) .and. (BCym == 6))) then
-              ! TGV (assumes equidistant x grid)
-              do i = ib-1,ie+1
-                do j = jb-1,je+1
-                  do k = kb-1,ke+1
-                    um(i,j,k) = 1. * sin(4.*atan(1.) * 2. * (dxf(1)*((i-1)+myidx*imax)) / ylen) &
-                    * cos(4.*atan(1.) * 2. * (dy*((0.5+(j-1))+myidy*jmax)) / ylen) !&
-                    !* cos(4.*atan(1.) * 2. * zf(k) / ylen)
-                    vm(i,j,k) = 1. *-cos(4.*atan(1.) * 2. * (dxh(1)*((0.5+(i-1))+myidx*imax)) / ylen)  &
-                    * sin(4.*atan(1.) * 2. * (dy*((j-1)+myidy*jmax)) / ylen) !&
-                    !* cos(4.*atan(1.) * 2. * zf(k) / ylen)
-                    wm(i,j,k) = 0.
-                  end do
-                end do
-              end do
-            end if
+            ! if (((BCxm == 1) .and. (BCym == 1)) .or. ((BCxm == 6) .and. (BCym == 6))) then
+            !   ! TGV (assumes equidistant x grid)
+            !   do i = ib-1,ie+1
+            !     do j = jb-1,je+1
+            !       do k = kb-1,ke+1
+            !         um(i,j,k) = 1. * sin(4.*atan(1.) * 2. * (dxf(1)*((i-1)+myidx*imax)) / ylen) &
+            !         * cos(4.*atan(1.) * 2. * (dy*((0.5+(j-1))+myidy*jmax)) / ylen) !&
+            !         !* cos(4.*atan(1.) * 2. * zf(k) / ylen)
+            !         vm(i,j,k) = 1. *-cos(4.*atan(1.) * 2. * (dxh(1)*((0.5+(i-1))+myidx*imax)) / ylen)  &
+            !         * sin(4.*atan(1.) * 2. * (dy*((j-1)+myidy*jmax)) / ylen) !&
+            !         !* cos(4.*atan(1.) * 2. * zf(k) / ylen)
+            !         wm(i,j,k) = 0.
+            !       end do
+            !     end do
+            !   end do
+            ! end if
 
             ! ! For shear case
             ! um(:,:,ke+1) = um(:,:,ke)
@@ -1020,6 +1041,15 @@ module modstartup
             ! um(ie-1,:,:) = um(ie,:,:)
             ! um(:,jb-1,:) = um(:,jb,:)
             ! um(:,je+1,:) = um(:,je,:)
+
+            call exchange_halo_z(um)
+            call exchange_halo_z(vm)
+            call exchange_halo_z(wm)
+            call exchange_halo_z(thlm)
+            call exchange_halo_z(qtm)
+            do n = 1, nsv
+               call exchange_halo_z(svm(:, :, :, n), opt_zlevel=(/ihc,jhc,khc/))
+            enddo
 
             u0 = um
             v0 = vm
@@ -1197,6 +1227,7 @@ module modstartup
                end do
                ubulk = sum(uaverage(kb:ke))/(zh(ke + 1) - zh(kb)) ! volume-averaged u-velocity
                write (6, *) 'Modstartup: ubulk=', ubulk
+
             elseif (idriver==2) then ! idriver
 
                call readdriverfile
@@ -1211,15 +1242,26 @@ module modstartup
               ! call slabsum(uaverage,kb,ke,u0,ib-1,ie+1,jb-1,je+1,kb-1,ke+1,ib,ie,jb,je,kb,ke)
               ! uaverage = uaverage / ((ie-ib+1)*(jge-jgb+1))  ! this gives the i-j-averaged velocity (only correct for equidistant grid?)
 
-              call avexy_ibm(uaverage(kb:ke),u0(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke),IIus(kb:ke),.false.)
-              do k=kb,ke
-                uaverage(k) = uaverage(k)*dzf(k)
-              end do
+              ! call avexy_ibm(uaverage(kb:ke),u0(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke),IIus(kb:ke),.false.)
+              ! do k=kb,ke
+              !   uaverage(k) = uaverage(k)*dzf(k)
+              ! end do
               ubulk = sum(uaverage(kb:ke))/(zh(ke+1)-zh(kb)) !volume-averaged u-velocity
 
               if (myid==0) then
                  write(6,*) 'Modstartup: ubulk=',ubulk
               end if
+
+              ! if (BCxm == 5) then
+              !   do k = kb, ke
+              !   do j = jb - 1,je + 1
+              !   do i = ib - 1, ie + 1
+              !     u0(i, j, k) = storeu0driver(j,k,1)
+              !     um(i, j, k) = storeu0driver(j,k,1)
+              !   end do
+              !   end do
+              !   end do
+              ! end if
 
             elseif (idriver==1) then
 
@@ -1498,16 +1540,17 @@ module modstartup
 
             elseif (idriver==2) then ! idriver
 
-               call readdriverfile
+               if (ibrank) call readdriverfile
+               !call MPI_BARRIER(comm3d,mpierr)
                call drivergen
 
               !call slabsum(uaverage,kb,ke,u0,ib-1,ie+1,jb-1,je+1,kb-1,ke+1,ib,ie,jb,je,kb,ke)
               !uaverage = uaverage / ((ie-ib+1)*(jge-jgb+1))  ! this gives the i-j-averaged velocity (only correct for equidistant grid?)
-              call avexy_ibm(uaverage(kb:ke),u0(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke),IIus(kb:ke),.false.)
-              do k=kb,ke
-                uaverage(k) = uaverage(k)*dzf(k)
-              end do
-              ubulk = sum(uaverage(kb:ke))/(zh(ke+1)-zh(kb)) !volume-averaged u-velocity
+              ! call avexy_ibm(uaverage(kb:ke),u0(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke),IIus(kb:ke),.false.)
+              ! do k=kb,ke
+              !   uaverage(k) = uaverage(k)*dzf(k)
+              ! end do
+              ! ubulk = sum(uaverage(kb:ke))/(zh(ke+1)-zh(kb)) !volume-averaged u-velocity
               if (myid==0) then
                  write(6,*) 'Modstartup: ubulk=',ubulk
               end if
@@ -1964,7 +2007,7 @@ module modstartup
    subroutine randomnize(field, klev, ampl, ir, ihl, jhl)
 
       use modmpi, only:myid, nprocs
-      use modglobal, only:ib, ie, imax, jmax, jb, je, kb, ke, kh
+      use modglobal, only:ib, ie, imax, jmax, jb, je, kb, ke, kh, ierank, BCxm
       integer(KIND=selected_int_kind(6)):: imm, ia, ic, ir
       integer ihl, jhl
       integer i, j, klev
@@ -1980,13 +2023,24 @@ module modstartup
 
          end do
       end if
-      do j = jb, je
-      do i = ib, ie
-         ir = mod((ir)*ia + ic, imm)
-         ran = real(ir)/real(imm)
-         field(i, j, klev) = field(i, j, klev) + (ran - 0.5)*2.0*ampl
-      end do
-      end do
+
+      if (ierank .and. BCxm > 1) then
+        do j = jb, je
+          do i = ib, ie-1
+            ir = mod((ir)*ia + ic, imm)
+            ran = real(ir)/real(imm)
+            field(i, j, klev) = field(i, j, klev) + (ran - 0.5)*2.0*ampl
+          end do
+        end do
+      else
+        do j = jb, je
+          do i = ib, ie
+            ir = mod((ir)*ia + ic, imm)
+            ran = real(ir)/real(imm)
+            field(i, j, klev) = field(i, j, klev) + (ran - 0.5)*2.0*ampl
+          end do
+        end do
+      end if
 
       if (nprocs - 1 - myid > 0) then
          mfac = (nprocs - 1 - myid)*imax*jmax

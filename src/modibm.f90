@@ -67,7 +67,7 @@ module modibm
          ku = block(n, 6)
          jl = block(n, 3) - myid*jmax
          ju = block(n, 4) - myid*jmax
-		 
+
          if ((ju < jb - 1) .or. (jl > je + 1)) then ! The block is entirely out of this partition
             cycle
          end if
@@ -80,7 +80,7 @@ module modibm
          thl0(il:iu, jl:ju, kl:ku) = bldT !internal ! make sure bldT is equal to init thl prof
          thlm(il:iu, jl:ju, kl:ku) = bldT !internal
       end do
-      
+
       nxwall = 0
       do n = 1, nblocks ! first x and z walls
          if (block(n, 4) < jb + myid*jmax) then ! no x-wall/z-wall in the range of this proc
@@ -252,7 +252,7 @@ module modibm
 
       if (ltempeq) then
       if (iwalltemp == 1) then !fixed flux
-         do n = 1, nxwall 
+         do n = 1, nxwall
             call xwallscalar(ih, jh, kh, thl0, thlp, bctfxm, bctfxp, ixwall(n))
          end do
       else if (iwalltemp == 2) then
@@ -270,7 +270,7 @@ module modibm
 
       if (lmoist) then
       if (iwallmoist == 1) then !fixed flux
-         do n = 1, nxwall 
+         do n = 1, nxwall
             call xwallscalar(ih, jh, kh, qt0, qtp, bcqfxm, bcqfxp, ixwall(n))
          end do
       end if
@@ -292,7 +292,7 @@ module modibm
 
       if (nsv>0) then
       if (iwallscal == 1) then !fixed flux
-         do n = 1, nxwall 
+         do n = 1, nxwall
             do m= 1, nsv
                call xwallscalar(ihc, jhc, khc, sv0(:,:,:,m), svp(:,:,:,m), 0., 0., ixwall(n))
             end do
@@ -659,7 +659,7 @@ module modibm
             ju = min(block(ixwall(n), 4) - myid*jmax, jmax) !
 
             !kl = block(ixwall(n), 5)
-            kl = kb 
+            kl = kb
             ! tg3315 18.03.19 - use kb because for lEB buildings block starts at kb+1 but this leaves area underneath the buildings and horizontally between the roads where we have no block. Only leads to small velocities in these areas but this negates this issue. WARNING - for modelling overhangs this should be changed but this would also require another facade type etc. Similarly applied to y and z directions below.
             ku = block(ixwall(n), 6)
 
@@ -674,12 +674,12 @@ module modibm
 
          do n = 1, nyminwall
 
-            if ((myid == nprocs-1 .and. block(iyminwall(n, 1), 3) == 1)) then 
+            if ((myid == nprocs-1 .and. block(iyminwall(n, 1), 3) == 1)) then
               jl = jmax+1
               ju = jmax+1
             else
               jl = max(block(iyminwall(n, 1), 3) - myid*jmax, 1)
-              ju = min(block(iyminwall(n, 1), 4) - myid*jmax, jmax) + 1  
+              ju = min(block(iyminwall(n, 1), 4) - myid*jmax, jmax) + 1
             end if
 
             il = block(iyminwall(n, 1), 1)
@@ -705,7 +705,7 @@ module modibm
               ju = 1
             else
               jl = max(block(iypluswall(n, 1), 3) - myid*jmax, 1) ! should this not be able to be zero?
-              ju = min(block(iypluswall(n, 1), 4) - myid*jmax, jmax) + 1 
+              ju = min(block(iypluswall(n, 1), 4) - myid*jmax, jmax) + 1
             end if
 
             il = block(iypluswall(n, 1), 1)
@@ -812,7 +812,7 @@ module modibm
                   svp(il:iu, jl:ju, kl:ku, :) = 0.
 
               svp(il:iu,jl:ju,kl:ku,:) = 0.
-              svm(il, jl:ju, kl:ku, :) = svm(il - 1, jl:ju, kl:ku,:) ! tg3315 swapped these around with jl, ju as was getting values in buildings as blovks are split along x in real topology 
+              svm(il, jl:ju, kl:ku, :) = svm(il - 1, jl:ju, kl:ku,:) ! tg3315 swapped these around with jl, ju as was getting values in buildings as blovks are split along x in real topology
               svm(iu, jl:ju, kl:ku, :) = svm(iu + 1, jl:ju, kl:ku,:)
               svm(il:iu, jl, kl:ku, :) = svm(il:iu, jl - 1, kl:ku,:)
               svm(il:iu, ju, kl:ku, :) = svm(il:iu, ju + 1, kl:ku,:)
@@ -1074,7 +1074,7 @@ module modibm
       return
    end subroutine nearwall
 
-   subroutine bottom 
+   subroutine bottom
       !kind of obsolete when road facets are being used
       !vegetated floor not added (could simply be copied from vegetated horizontal facets)
       use modglobal, only:ib, ie, ih, jh, kh, jb, je, kb, numol, prandtlmol, dzh, nsv, &
@@ -1094,7 +1094,7 @@ module modibm
       write(0, *) "ERROR: bottom boundary type for momentum undefined"
       stop 1
       end if
- 
+
       if (ltempeq) then
          if (BCbotT.eq.1) then !neumann/fixed flux bc for temperature
             do j = jb, je
@@ -1129,7 +1129,7 @@ module modibm
                end do
             end do
          else
-          write(0, *) "ERROR: bottom boundary type for moisture undefined"  
+          write(0, *) "ERROR: bottom boundary type for moisture undefined"
           stop 1
          end if !
       end if !lmoist
@@ -1149,15 +1149,15 @@ module modibm
                end do
             end do
          else
-          write(0, *) "ERROR: bottom boundary type for scalars undefined"  
+          write(0, *) "ERROR: bottom boundary type for scalars undefined"
           stop 1
          end if !
       end if
 
       e120(:, :, kb - 1) = e120(:, :, kb)
       e12m(:, :, kb - 1) = e12m(:, :, kb)
-      wm(:, :, kb) = 0.
-      w0(:, :, kb) = 0.
+      ! wm(:, :, kb) = 0. ! SO moved to modboundary
+      ! w0(:, :, kb) = 0.
       return
    end subroutine bottom
 
