@@ -64,8 +64,10 @@ program DALESURBAN      !Version 48
   call initchecksim ! Could be deprecated
   call initstat_nc ! Could be deprecated
   call initfielddump
+  write(*,*) "done initfielddump"
   !call fielddump
-  !call initstatsdump !tg3315
+  call initstatsdump !tg3315
+  write(*,*) "done initstatsdump"
 
   !call readfacetfiles
   !call initEB
@@ -143,6 +145,7 @@ program DALESURBAN      !Version 48
     call tstep_integrate
     call checksim
     call fielddump
+    call statsdump
     call boundary
     !call fixthetainf
 
@@ -159,7 +162,6 @@ program DALESURBAN      !Version 48
    ! call writedatafiles   ! write data files for later analysis
     !call writerestartfiles
     !call fielddump
-    !call statsdump        ! tg3315
 
   end do
 !-------------------------------------------------------
