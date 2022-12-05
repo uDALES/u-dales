@@ -368,18 +368,18 @@ module modforces
   subroutine masscorr
     !> correct the velocities to get prescribed flow rate
 
-    use modglobal, only : ib,ie,jb,je,ih,jh,kb,ke,dzf,dxf,dy,dt,rk3step,&
+    use modglobal, only : ib,ie,jb,je,ih,jh,kb,ke,kh,dzf,dxf,dy,dt,rk3step,&
                           uflowrate,vflowrate,linoutflow,&
                           luoutflowr,lvoutflowr,luvolflowr,lvvolflowr
     use modfields, only : um,up,vm,vp,uout,uouttot,udef,vout,vouttot,vdef,&
-                          uoutarea,voutarea,fluidvol,IIu,IIv
-    use modmpi,    only : myid,comm3d,mpierr,nprocs,MY_REAL,sumy_ibm
+                          uoutarea,voutarea,fluidvol,IIu,IIv,IIus
+    use modmpi,    only : myid,comm3d,mpierr,nprocs,MY_REAL,sumy_ibm,avexy_ibm,barrou
 
     real, dimension(ib:ie, kb:ke) :: uvol
     real, dimension(ib:ie, kb:ke) :: uvolold
     real, dimension(ib:ie, kb:ke) :: vvol
     real, dimension(ib:ie, kb:ke) :: vvolold
-    real, dimension(kb:ke)        :: uoutold
+    real, dimension(kb:ke+kh)     :: uoutold
     real, dimension(kb:ke)        :: voutold
     real                          rk3coef,rk3coefi,&
                                   uoutflow,voutflow,&
@@ -436,15 +436,20 @@ module modforces
       uvol = 0.
       uvolold = 0.
 
-      ! integrate u in y
-      call sumy_ibm(uvol,up(ib:ie,jb:je,kb:ke)*dy,ib,ie,jb,je,kb,ke,IIu(ib:ie,jb:je,kb:ke))  ! u tendency at previous time step
-      call sumy_ibm(uvolold,um(ib:ie,jb:je,kb:ke)*dy,ib,ie,jb,je,kb,ke,IIu(ib:ie,jb:je,kb:ke))  ! u at previous time step
+      ! ! integrate u in y
+      ! call sumy_ibm(uvol,up(ib:ie,jb:je,kb:ke)*dy,ib,ie,jb,je,kb,ke,IIu(ib:ie,jb:je,kb:ke))  ! u tendency at previous time step
+      ! call sumy_ibm(uvolold,um(ib:ie,jb:je,kb:ke)*dy,ib,ie,jb,je,kb,ke,IIu(ib:ie,jb:je,kb:ke))  ! u at previous time step
 
-      ! integrate u in x
-      do k=kb,ke
-        uout(k) = sum(uvol(ib:ie,k)*dxf(ib:ie))
-        uoutold(k) = sum(uvolold(ib:ie,k)*dxf(ib:ie))
-      end do
+      ! ! integrate u in x
+      ! do k=kb,ke
+      !   uout(k) = sum(uvol(ib:ie,k)*dxf(ib:ie))
+      !   uoutold(k) = sum(uvolold(ib:ie,k)*dxf(ib:ie))
+      ! end do
+
+      ! Assumes equidistant grid
+      call avexy_ibm(uout(kb:ke+kh),up(ib:ie,jb:je,kb:ke+kh)*dxf(1)*dy,ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
+      call avexy_ibm(uoutold(kb:ke+kh),um(ib:ie,jb:je,kb:ke+kh)*dxf(1)*dy,ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
+      call barrou()
 
       ! integrate u in z
       do k=kb,ke
@@ -617,26 +622,29 @@ module modforces
   subroutine fluidvolume(volume)
     ! calculates fluid volume of domain excluding blocks
 
-    use modglobal, only   : ib,ie,jb,je,kb,ke,dy,dxf,dzf
-    use modfields, only   : IIc
-    use modmpi, only      : sumy_ibm
+    use modglobal, only   : ib,ie,ih,jb,je,jh,kb,ke,kh,dy,dxf,dzf
+    use modfields, only   : IIc, IIcs
+    use modmpi, only      : sumy_ibm, avexy_ibm
 
     implicit none
     real, intent(out)             :: volume
     real, dimension(ib:ie,kb:ke)  :: sumy
-    real, dimension(kb:ke)        :: sumxy
+    real, dimension(kb:ke+kh)        :: sumxy
     integer                          k
 
     sumy = 0.
     sumxy = 0.
 
-    ! integrate fluid volume in y
-    call sumy_ibm(sumy,IIc(ib:ie,jb:je,kb:ke)*dy,ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke))
+    ! ! integrate fluid volume in y
+    ! call sumy_ibm(sumy,IIc(ib:ie,jb:je,kb:ke)*dy,ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke))
+    !
+    ! ! integrate fluid area in x
+    ! do k=kb,ke
+    !   sumxy(k) = sum(sumy(ib:ie,k)*dxf(ib:ie))
+    ! end do
 
-    ! integrate fluid area in x
-    do k=kb,ke
-      sumxy(k) = sum(sumy(ib:ie,k)*dxf(ib:ie))
-    end do
+    ! Equidistant x
+    call avexy_ibm(sumxy(kb:ke+kh),IIc(ib:ie,jb:je,kb:ke+kh)*dxf(1)*dy,ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
 
     ! integrate fluid area in z
     volume = sum(sumxy(kb:ke)*dzf(kb:ke))

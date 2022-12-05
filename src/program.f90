@@ -115,13 +115,13 @@ program DALESURBAN      !Version 48
 
     call forces         !remaining terms of ns equation
 
-    !call lstend         !large scale forcings
+    call lstend         !large scale forcings
 
-    !call nudge          ! nudge top cells of fields to enforce steady-state
+    call nudge          ! nudge top cells of fields to enforce steady-state
 
     !call ibmwallfun     ! immersed boundary forcing: only shear forces.
 
-    !call masscorr       ! correct pred. velocity pup to get correct mass flow
+    call masscorr       ! correct pred. velocity pup to get correct mass flow
 
     !call ibmnorm        ! immersed boundary forcing: set normal velocities to zero
 

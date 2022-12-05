@@ -510,7 +510,7 @@ module modstartup
       call createmasks ! determine walls/blocks
       ! write (6, *) 'Finished determining masking matrices'
       ! ! calculate fluid volume and outlet areas, needs masking matrices
-      ! call calcfluidvolumes
+      call calcfluidvolumes
       !
       call readinitfiles
       write (*, *) "done readinitfiles"

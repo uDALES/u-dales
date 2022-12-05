@@ -536,7 +536,7 @@ contains
     allocate(sv0av(kb:ke+khc,nsv)); sv0av = 0.
     allocate(svprof(kb:ke+kh,nsv)); svprof = 0.
     allocate(thlpcar(kb:ke+kh)); thlpcar = 0.
-    allocate(uout(kb:ke)); uout = 0.         ! height average outlet velocity (used in convective outflow BC)
+    allocate(uout(kb:ke+kh)); uout = 0.         ! height average outlet velocity (used in convective outflow BC)
     allocate(vout(kb:ke)); vout = 0.
     allocate(wout(ib:ie)); wout = 0.;        ! j -averaged top velocity
     !allocate(friction(ib:ie)); friction = 0. ! line-averaged (along j) skin friction
