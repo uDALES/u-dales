@@ -48,7 +48,7 @@ then
 
 elif [ $system == "archer" ]
 then
-    module load cmake cray-hdf5 cray-netcdf
+    module load cmake cray-hdf5 cray-netcdf cray-fftw
     FC=
     NETCDF_DIR=/opt/cray/netcdf/4.4.1.1/CRAY/8.3
     NETCDF_FORTRAN_DIR=/opt/cray/netcdf/4.4.1.1/CRAY/8.3
