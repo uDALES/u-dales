@@ -18,28 +18,6 @@
 cmake_minimum_required(VERSION 3.9)
 project(uDALES Fortran)
 
-#set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/findFFTW")
-configure_file(downloadFindFFTW.cmake.in findFFTW-download/CMakeLists.txt)
-execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
-        RESULT_VARIABLE result
-        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/findFFTW-download )
-if(result)
-    message(FATAL_ERROR "CMake step for findFFTW failed: ${result}")
-    else()
-    message("CMake step for findFFTW completed (${result}).")
-endif()
-execute_process(COMMAND ${CMAKE_COMMAND} --build .
-        RESULT_VARIABLE result
-        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/findFFTW-download )
-if(result)
-    message(FATAL_ERROR "Build step for findFFTW failed: ${result}")
-endif()
-
-set(findFFTW_DIR ${CMAKE_CURRENT_BINARY_DIR}/findFFTW-src)
-
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${findFFTW_DIR}")
-
-
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 if (NOT CMAKE_BUILD_TYPE)
@@ -74,24 +52,45 @@ else()
     message(FATAL_ERROR "Only GNU, Intel, and Cray Fortran compilers are supported")
 endif()
 
+if(NOT CMAKE_Fortran_COMPILER_ID MATCHES "Cray")
+    #set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/findFFTW")
+    configure_file(downloadFindFFTW.cmake.in findFFTW-download/CMakeLists.txt)
+    execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
+        RESULT_VARIABLE result
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/findFFTW-download )
+    if(result)
+        message(FATAL_ERROR "CMake step for findFFTW failed: ${result}")
+    else()
+        message("CMake step for findFFTW completed (${result}).")
+    endif()
+    execute_process(COMMAND ${CMAKE_COMMAND} --build .
+        RESULT_VARIABLE result
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/findFFTW-download )
+    if(result)
+        message(FATAL_ERROR "Build step for findFFTW failed: ${result}")
+    endif()
 
-find_package(NetCDF REQUIRED COMPONENTS F90)
-include_directories(${NETCDF_F90_INCLUDE_DIRS})
+    set(findFFTW_DIR ${CMAKE_CURRENT_BINARY_DIR}/findFFTW-src)
+    set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${findFFTW_DIR}")
+endif()
 
 find_package(FFTW REQUIRED)
 message(STATUS ${FFTW_INCLUDE_DIRS})
 message(STATUS ${FFTW_FOUND})
 include_directories(${FFTW_INCLUDE_DIRS})
 
+find_package(NetCDF REQUIRED COMPONENTS F90)
+include_directories(${NETCDF_F90_INCLUDE_DIRS})
+
 file(GLOB_RECURSE src_f90 "src/*.f90")
 
-add_subdirectory(external)
+#add_subdirectory(external)
 
-ExternalProject_Get_Property(fishpack-cmake-project binary_dir)
-set(FISHPACK_LIBRARY ${binary_dir}/src/${CMAKE_STATIC_LIBRARY_PREFIX}fishpack_static${CMAKE_STATIC_LIBRARY_SUFFIX})
+#ExternalProject_Get_Property(fishpack-cmake-project binary_dir)
+#set(FISHPACK_LIBRARY ${binary_dir}/src/${CMAKE_STATIC_LIBRARY_PREFIX}fishpack_static${CMAKE_STATIC_LIBRARY_SUFFIX})
 
-ExternalProject_Get_Property(vfftpack-cmake-project binary_dir)
-set(VFFTPACK_LIBRARY ${binary_dir}/${CMAKE_STATIC_LIBRARY_PREFIX}vfftpack_static${CMAKE_STATIC_LIBRARY_SUFFIX})
+#ExternalProject_Get_Property(vfftpack-cmake-project binary_dir)
+#set(VFFTPACK_LIBRARY ${binary_dir}/${CMAKE_STATIC_LIBRARY_PREFIX}vfftpack_static${CMAKE_STATIC_LIBRARY_SUFFIX})
 
 option(DOUBLE_PRECISION "Build 2decomp_fft with double precision" ON)
 if (DOUBLE_PRECISION)
@@ -114,14 +113,14 @@ include_directories(2decomp-fft)
 target_link_libraries(u-dales ${CMLIB_CMAKE_LIBRARY})
 target_link_libraries(u-dales MPI::MPI_Fortran)
 target_link_libraries(u-dales ${NETCDF_F90_LIBRARIES})
-target_link_libraries(u-dales ${FISHPACK_LIBRARY})
-target_link_libraries(u-dales ${VFFTPACK_LIBRARY})
+#target_link_libraries(u-dales ${FISHPACK_LIBRARY})
+#target_link_libraries(u-dales ${VFFTPACK_LIBRARY})
 target_link_libraries(u-dales ${FFTW_LIBRARIES})
 target_link_libraries(u-dales 2decomp-fft)
 
 target_include_directories(u-dales PUBLIC $<TARGET_PROPERTY:2decomp-fft,BINARY_DIR>)
 target_include_directories(u-dales PUBLIC ${FFTW_INCLUDE_DIRS})
 
-add_dependencies(u-dales fishpack-cmake-project)
-add_dependencies(u-dales vfftpack-cmake-project)
+#add_dependencies(u-dales fishpack-cmake-project)
+#add_dependencies(u-dales vfftpack-cmake-project)
 add_dependencies(u-dales 2decomp-fft)

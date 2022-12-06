@@ -65,8 +65,7 @@ contains
     use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,imax,jmax,itot,jtot,ktot,dyi,dxfi,dzfi,ipoiss,POISS_FFT2D,POISS_FFT3D,POISS_CYC,POISS_FFT2D_2DECOMP,pi,dy,linoutflow,dzh,dzf,dxh,dxf,BCxm,BCym,BCzp
     use modmpi,    only : myidx, myidy, myid
     use modfields, only : rhobf, rhobh
-    !use decomp_2d
-    !use decomp_2d_fft
+
     implicit none
     real dxi, dzi, fac, b_top_D, b_top_N
     integer i,j,k,iv,jv,kv
@@ -361,62 +360,63 @@ contains
 
 
     elseif (ipoiss == POISS_CYC) then
+      ! Not supported
 
-      allocate(yrt(jtot))
-      allocate(ax(itot), bx(itot), cx(itot))
-      allocate(a(ktot), b(ktot), c(ktot))
-
-      ! spanwise - periodic
-      yrt(1) = 0.
-      yrt(jtot)=-4./(dy*dy)
-      do j=3,jtot,2
-        yrt(j-1)=(-4./(dy*dy))*(sin(float((j-1))*pi/(2.*jtot)))**2
-        yrt(j)= yrt(j-1)
-      end do
-
-      if (linoutflow ) then
-        ibc1 = 1 ! Neumann
-        ibc2 = 3 ! Dirichlet
-      else
-        ibc1 = 2
-        ibc2 = 2
-      endif
-      kbc1 = 1
-      kbc2 = 1
-
-      do i=1,itot
-        ax(i) =  1./(dxf(i)*dxh(i))
-        cx(i) =  1./(dxf(i)*dxh(i+1))
-        bx(i) =  - (ax(i) + cx(i))
-      end do
-
-      if (ibc1 .eq.1) then
-        !bx(1) = bx(1) + ax(1)
-        bx(1) = -cx(1)
-      !elseif (ibc1 .eq. 2) then
-        !bx(1) = bx(1)
-      elseif (ibc1 .eq. 3) then
-        bx(1) = bx(1) - ax(1) ! not convinced this is right
-        !bx(1) = cx(1)
-      end if
-
-      if (ibc2 .eq. 1) then
-        !bx(itot) = bx(itot) + cx(itot)
-        bx(itot) = -ax(1)
-      !elseif (ibc2 .eq. 2) then
-        !bx(itot) = bx(itot)
-      elseif (ibc2 .eq. 3) then
-        !bx(itot) = bx(itot) - cx(itot)
-        bx(itot) = ax(itot)
-      end if
-
-      if (ibc1 .ne. 2) then
-        ax(1)    = 0.
-      end if
-
-      if (ibc2 .ne. 2) then
-        cx(itot) = 0.
-      end if
+      ! allocate(yrt(jtot))
+      ! allocate(ax(itot), bx(itot), cx(itot))
+      ! allocate(a(ktot), b(ktot), c(ktot))
+      !
+      ! ! spanwise - periodic
+      ! yrt(1) = 0.
+      ! yrt(jtot)=-4./(dy*dy)
+      ! do j=3,jtot,2
+      !   yrt(j-1)=(-4./(dy*dy))*(sin(float((j-1))*pi/(2.*jtot)))**2
+      !   yrt(j)= yrt(j-1)
+      ! end do
+      !
+      ! if (linoutflow ) then
+      !   ibc1 = 1 ! Neumann
+      !   ibc2 = 3 ! Dirichlet
+      ! else
+      !   ibc1 = 2
+      !   ibc2 = 2
+      ! endif
+      ! kbc1 = 1
+      ! kbc2 = 1
+      !
+      ! do i=1,itot
+      !   ax(i) =  1./(dxf(i)*dxh(i))
+      !   cx(i) =  1./(dxf(i)*dxh(i+1))
+      !   bx(i) =  - (ax(i) + cx(i))
+      ! end do
+      !
+      ! if (ibc1 .eq.1) then
+      !   !bx(1) = bx(1) + ax(1)
+      !   bx(1) = -cx(1)
+      ! !elseif (ibc1 .eq. 2) then
+      !   !bx(1) = bx(1)
+      ! elseif (ibc1 .eq. 3) then
+      !   bx(1) = bx(1) - ax(1) ! not convinced this is right
+      !   !bx(1) = cx(1)
+      ! end if
+      !
+      ! if (ibc2 .eq. 1) then
+      !   !bx(itot) = bx(itot) + cx(itot)
+      !   bx(itot) = -ax(1)
+      ! !elseif (ibc2 .eq. 2) then
+      !   !bx(itot) = bx(itot)
+      ! elseif (ibc2 .eq. 3) then
+      !   !bx(itot) = bx(itot) - cx(itot)
+      !   bx(itot) = ax(itot)
+      ! end if
+      !
+      ! if (ibc1 .ne. 2) then
+      !   ax(1)    = 0.
+      ! end if
+      !
+      ! if (ibc2 .ne. 2) then
+      !   cx(itot) = 0.
+      ! end if
 
     end if ! ipoiss
 
@@ -429,7 +429,7 @@ contains
     integer ibc1,ibc2,kbc1,kbc2,ksen
     complex, allocatable, dimension(:,:,:) :: Fx, Fy, Fz
     real, allocatable, dimension(:,:,:) :: px, py, pz
-    real, allocatable, dimension(:) :: FFTI, FFTJ, winew, wjnew
+    !real, allocatable, dimension(:) :: FFTI, FFTJ, winew, wjnew
     real, allocatable, dimension(:,:,:) :: Fzr, d
     real, dimension(1:ktot) :: vout
     real    z,ak,bk,bbk
@@ -452,17 +452,17 @@ contains
 
       pz = p(ib:ie,jb:je,kb:ke)
 
-      if (BCxm == 1) then
-        allocate(FFTI(itot))
-        allocate(winew(2*itot+15))
-        call rffti(itot,winew)
-      end if
+      ! if (BCxm == 1) then
+      !   allocate(FFTI(itot))
+      !   allocate(winew(2*itot+15))
+      !   call rffti(itot,winew)
+      ! end if
 
-      if (BCym == 1) then
-        allocate(FFTJ(jtot))
-        allocate(wjnew(2*jtot+15))
-        call rffti(jtot,wjnew)
-      end if
+      ! if (BCym == 1) then
+      !   allocate(FFTJ(jtot))
+      !   allocate(wjnew(2*jtot+15))
+      !   call rffti(jtot,wjnew)
+      ! end if
 
       call transpose_z_to_y(pz, py)
       call transpose_y_to_x(py, px)
@@ -716,8 +716,8 @@ contains
       ! p(ib:ie,jb:je, ke+1) = pz_top(:,:,1)
 
       deallocate(px,py,pz)
-      if (BCxm == 1) deallocate(FFTI, winew)
-      if (BCym == 1) deallocate(FFTJ, wjnew)
+      ! if (BCxm == 1) deallocate(FFTI, winew)
+      ! if (BCym == 1) deallocate(FFTJ, wjnew)
 
     case(POISS_FFT2D_2DECOMP)
       call alloc_x(px, opt_xlevel=(/0,0,0/))
