@@ -275,13 +275,13 @@ module modstartup
       call MPI_BCAST(BCym, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(BCzp, 1, MPI_INTEGER, 0, comm3d, mpierr)
 
-      if (BCxm == 1) then
+      if (BCxm == 1 .and. nprocx > 1) then
         periodic_bc(1) = .true.
       else
         periodic_bc(1) = .false.
       end if
 
-      if (BCym == 1) then
+      if (BCym == 1 .and. nprocy > 1) then
         periodic_bc(2) = .true.
       else
         periodic_bc(2) = .false.
@@ -721,12 +721,12 @@ module modstartup
          ladaptive, tnextrestart, jmax, imax, xh, xf, linoutflow, lper2inout, iinletgen, lreadminl, &
          uflowrate, vflowrate,ltempeq, prandtlmoli, freestreamav, &
          tnextfielddump, tfielddump, tsample, tstatsdump, startfile, lprofforc, lchem, k1, JNO2,&
-         idriver,dtdriver,driverstore,tdriverstart,tdriverdump,xlen,ylen,itot,jtot,ibrank,ierank,jbrank,jerank,dxf,dxh,BCxm,BCym,lrandomize
+         idriver,dtdriver,driverstore,tdriverstart,tdriverdump,xlen,ylen,itot,jtot,ibrank,ierank,jbrank,jerank,dxf,dxh,BCxm,BCym,lrandomize,BCxq,BCxs,BCxT, BCyq,BCys,BCyT
       use modsubgriddata, only:ekm, ekh
       use modsurfdata, only:wtsurf, wqsurf, wsvsurf, &
          thls, thvs, ps, qts, svs, sv_top
       ! use modsurface,        only : surface,dthldz
-      use modboundary, only:boundary, tqaver
+      use modboundary, only:boundary, tqaver, halos
       use modmpi, only:slabsum, myid, comm3d, mpierr, my_real, avexy_ibm, myidx, myidy
       use modthermodynamics, only:thermodynamics, calc_halflev
       use modinletdata, only:Uinl, Urec, Wrec, u0inletbc, v0inletbc, w0inletbc, ubulk, irecy, Utav, Ttav, &
@@ -1042,18 +1042,12 @@ module modstartup
             ! um(:,jb-1,:) = um(:,jb,:)
             ! um(:,je+1,:) = um(:,je,:)
 
-            call exchange_halo_z(um)
-            call exchange_halo_z(vm)
-            call exchange_halo_z(wm)
-            call exchange_halo_z(thlm)
-            call exchange_halo_z(qtm)
-            do n = 1, nsv
-               call exchange_halo_z(svm(:, :, :, n), opt_zlevel=(/ihc,jhc,khc/))
-            enddo
-
             u0 = um
             v0 = vm
             w0 = wm
+
+            call halos
+
             uinit = um
             vinit = vm
 
@@ -2024,15 +2018,15 @@ module modstartup
          end do
       end if
 
-      if (ierank .and. BCxm > 1) then
-        do j = jb, je
-          do i = ib, ie-1
-            ir = mod((ir)*ia + ic, imm)
-            ran = real(ir)/real(imm)
-            field(i, j, klev) = field(i, j, klev) + (ran - 0.5)*2.0*ampl
-          end do
-        end do
-      else
+      ! if (ierank .and. BCxm > 1) then
+      !   do j = jb, je
+      !     do i = ib, ie-1
+      !       ir = mod((ir)*ia + ic, imm)
+      !       ran = real(ir)/real(imm)
+      !       field(i, j, klev) = field(i, j, klev) + (ran - 0.5)*2.0*ampl
+      !     end do
+      !   end do
+      ! else
         do j = jb, je
           do i = ib, ie
             ir = mod((ir)*ia + ic, imm)
@@ -2040,7 +2034,7 @@ module modstartup
             field(i, j, klev) = field(i, j, klev) + (ran - 0.5)*2.0*ampl
           end do
         end do
-      end if
+      !end if
 
       if (nprocs - 1 - myid > 0) then
          mfac = (nprocs - 1 - myid)*imax*jmax

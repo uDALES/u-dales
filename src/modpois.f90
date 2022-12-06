@@ -220,14 +220,14 @@ contains
 
       end if
 
-      call decomp_info_init(itot, jtot, 1, decomp_top)
-      allocate(px_top(1:decomp_top%xsz(1),1:decomp_top%xsz(2),1:decomp_top%xsz(3)))
-      allocate(py_top(1:decomp_top%ysz(1),1:decomp_top%ysz(2),1:decomp_top%ysz(3)))
-      allocate(pz_top(1:decomp_top%zsz(1),1:decomp_top%zsz(2),1:decomp_top%zsz(3)))
-
-      write(*,*) "px_top ", shape(px_top)
-      write(*,*) "py_top ", shape(py_top)
-      write(*,*) "pz_top ", shape(pz_top)
+      ! call decomp_info_init(itot, jtot, 1, decomp_top)
+      ! allocate(px_top(1:decomp_top%xsz(1),1:decomp_top%xsz(2),1:decomp_top%xsz(3)))
+      ! allocate(py_top(1:decomp_top%ysz(1),1:decomp_top%ysz(2),1:decomp_top%ysz(3)))
+      ! allocate(pz_top(1:decomp_top%zsz(1),1:decomp_top%zsz(2),1:decomp_top%zsz(3)))
+      !
+      ! write(*,*) "px_top ", shape(px_top)
+      ! write(*,*) "py_top ", shape(py_top)
+      ! write(*,*) "pz_top ", shape(pz_top)
 
 
     elseif (ipoiss == POISS_FFT2D_2DECOMP) then
@@ -560,8 +560,8 @@ contains
       if (BCzp == 1) then
         call solmpj(pz)
 
-      pz_top(:,:,1) = pz(:,:,ktot)
-      if (ibrank .and. jbrank) pz_top(1,1,1) =-pz(1,1,ktot) ! Dirichlet for zero mode
+      ! pz_top(:,:,1) = pz(:,:,ktot)
+      ! if (ibrank .and. jbrank) pz_top(1,1,1) =-pz(1,1,ktot) ! Dirichlet for zero mode
 
       else
         ! Cosine transform in z
@@ -602,8 +602,7 @@ contains
       Fxyz = pz
 
       call transpose_z_to_y(pz,py)
-      call transpose_z_to_y(pz_top, py_top, decomp_top)
-      !write(*,*) myid, shape(py_top)
+      ! call transpose_z_to_y(pz_top, py_top, decomp_top)
 
       ! In y-pencil, do backward FFT in y direction
       if (BCym == 1) then
@@ -633,17 +632,17 @@ contains
           end do
         end do
 
-        if (size(py_top,3) > 0) then
-        do i=1,decomp_top%ysz(1)
-            Syfc(0) = CMPLX(py_top(i,1,1), 0.)
-            do j=1,jtot/2-1
-              Syfc(j) = CMPLX(py_top(i,2*j,1), py_top(i,2*j+1,1))
-            end do
-            Syfc(jtot/2) = CMPLX(py_top(i,jtot,1), 0.)
-            call dfftw_execute(plan_fc2r_y)
-            py_top(i,:,1) = Syr*fac
-        end do
-        end if
+        ! if (size(py_top,3) > 0) then
+        !   do i=1,decomp_top%ysz(1)
+        !     Syfc(0) = CMPLX(py_top(i,1,1), 0.)
+        !     do j=1,jtot/2-1
+        !       Syfc(j) = CMPLX(py_top(i,2*j,1), py_top(i,2*j+1,1))
+        !     end do
+        !     Syfc(jtot/2) = CMPLX(py_top(i,jtot,1), 0.)
+        !     call dfftw_execute(plan_fc2r_y)
+        !     py_top(i,:,1) = Syr*fac
+        !   end do
+        ! end if
 
       else
         fac = 1./sqrt(2.*jtot)
@@ -657,7 +656,7 @@ contains
       end if
 
       call transpose_y_to_x(py,px)
-      call transpose_y_to_x(py_top,px_top,decomp_top)
+      ! call transpose_y_to_x(py_top,px_top,decomp_top)
 
       ! In x-pencil, do backward FFT in x-direction
       if (BCxm == 1) then
@@ -697,24 +696,24 @@ contains
           end do
         end do
 
-        if (size(px_top,3) > 0) then
-          do j=1,decomp_top%xsz(2)
-            Sxfr = px_top(:,j,1)
-            call dfftw_execute(plan_fr2r_x)
-            px_top(:,j,1) = Sxr*fac
-          end do
-        end if
+        ! if (size(px_top,3) > 0) then
+        !   do j=1,decomp_top%xsz(2)
+        !     Sxfr = px_top(:,j,1)
+        !     call dfftw_execute(plan_fr2r_x)
+        !     px_top(:,j,1) = Sxr*fac
+        !   end do
+        ! end if
 
       end if
 
       call transpose_x_to_y(px, py)
       call transpose_y_to_z(py, pz)
 
-      call transpose_x_to_y(px_top,py_top,decomp_top)
-      call transpose_y_to_z(py_top,pz_top,decomp_top)
+      ! call transpose_x_to_y(px_top,py_top,decomp_top)
+      ! call transpose_y_to_z(py_top,pz_top,decomp_top)
 
       p(ib:ie,jb:je,kb:ke) = pz
-      p(ib:ie,jb:je, ke+1) = pz_top(:,:,1)
+      ! p(ib:ie,jb:je, ke+1) = pz_top(:,:,1)
 
       deallocate(px,py,pz)
       if (BCxm == 1) deallocate(FFTI, winew)

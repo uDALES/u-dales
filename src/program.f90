@@ -29,7 +29,7 @@ program DALESURBAN      !Version 48
   use modglobal,         only : rk3step,timeleft,ib,jb,kb,ke,driverid,ibrank,timee
   use modstartup,        only : startup,exitmodules
   use modsave,           only : writerestartfiles
-  use modboundary,       only : boundary, grwdamp,tqaver
+  use modboundary,       only : boundary, grwdamp,tqaver,halos
   use modthermodynamics, only : thermodynamics
 !  use modsurface,        only : surface
   use modsubgrid,        only : subgrid
@@ -143,6 +143,7 @@ program DALESURBAN      !Version 48
 
     call poisson
     call tstep_integrate
+    call halos
     call checksim
     call fielddump
     call statsdump
