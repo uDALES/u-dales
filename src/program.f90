@@ -25,8 +25,7 @@ program DALESURBAN      !Version 48
 !!     0.0    USE STATEMENTS FOR CORE MODULES
 !!----------------------------------------------------------------
   use modmpi,            only : initmpi, exitmpi, myid, barrou
-  !use modtest,           only : inittest, exittest
-  use modglobal,         only : rk3step,timeleft,ib,jb,kb,ke,driverid,ibrank,timee
+  use modglobal,         only : rk3step,timeleft
   use modstartup,        only : startup,exitmodules
   use modsave,           only : writerestartfiles
   use modboundary,       only : boundary, grwdamp,tqaver,halos
@@ -35,7 +34,7 @@ program DALESURBAN      !Version 48
   use modsubgrid,        only : subgrid
   use modforces,         only : forces,coriolis,lstend,fixuinf1,fixuinf2,fixthetainf,nudge, masscorr
   use modpois,           only : poisson
-  use modibm,            only : createwalls,ibmwallfun,ibmnorm,nearwall,bottom
+  use modibm,            only : createwalls,ibmwallfun,ibmnorm,nearwall,bottom,initibm,ibm
   use initfac,           only : readfacetfiles
   use modEB,             only : initEB,EB
 
@@ -46,8 +45,7 @@ program DALESURBAN      !Version 48
   use modstat_nc,      only : initstat_nc
   use modfielddump,    only : initfielddump, fielddump,exitfielddump
   use modstatsdump,    only : initstatsdump,statsdump,exitstatsdump    !tg3315
-  use modfields, only : u0, um
-  !use modbudget,       only : initbudget, budgetstat, exitbudget
+
   implicit none
 
 !----------------------------------------------------------------
@@ -55,53 +53,42 @@ program DALESURBAN      !Version 48
 !----------------------------------------------------------------
   call initmpi
   call startup
-  write(*,*) "done startup"
+  !write(*,*) "done startup"
   !call inittest
-
+  call initibm
 !---------------------------------------------------------
 !      2     INITIALIZE STATISTICAL ROUTINES AND ADD-ONS
 !---------------------------------------------------------
   call initchecksim ! Could be deprecated
   call initstat_nc ! Could be deprecated
   call initfielddump
-  write(*,*) "done initfielddump"
-  !call fielddump
-  call initstatsdump !tg3315
-  write(*,*) "done initstatsdump"
+  !write(*,*) "done initfielddump"
+
+  !call initstatsdump !tg3315
+  !write(*,*) "done initstatsdump"
 
   !call readfacetfiles
   !call initEB
-  !write(*,*) "done init stuff"
 
-  !write(6,*) 'Determine immersed walls'
-  !call createwalls    ! determine walls/blocks
- ! call nearwall       ! determine minimum distance and corresponding shear components, ils13 10.07.17, commented, not functional at the moment, not needed for vreman but for smag., fix in modibm
-  !write(6,*) 'Finished determining immersed walls'
+  call boundary
 
-  call boundary  !ils13 22.06.2017 inserted boundary here to get values at ghost cells before iteration starts
-  ! call fielddump
-  ! write(*,*) "done fielddump after boundary"
-!  not necessary but abates the fact that temp field is randomised by randomisation of just velocity fields
-!  (because advection at start of time loop without being divergence free)
-  !call poisson
-  write(*,*) "Done initial boundary"
   call fielddump
-  write(*,*) "Done initial fielddump"
 !------------------------------------------------------
 !   3.0   MAIN TIME LOOP
 !------------------------------------------------------
-  !write(*,*)'START myid ', myid
-  !do while (.false.)
+  write(*,*) 'Starting rank ', myid
   do while ((timeleft>0) .or. (rk3step < 3))
-    !write(*,*) timeleft
+
     call tstep_update
-    !if (driverid==0 .and. ibrank) write(*,*) "--------------- start of timestep. rk3step, time: ", rk3step, timee
+
 !-----------------------------------------------------
 !   3.2   ADVECTION AND DIFFUSION
 !-----------------------------------------------------
-    !call boundary
-    call advection                ! now also includes predicted pressure gradient term
+
+    call advection ! includes predicted pressure gradient term
+
     call subgrid
+
 !-----------------------------------------------------
 !   3.3   THE SURFACE LAYER
 !-----------------------------------------------------
@@ -140,29 +127,34 @@ program DALESURBAN      !Version 48
 !   3.5  PRESSURE FLUCTUATIONS, TIME INTEGRATION AND BOUNDARY CONDITIONS
 !-----------------------------------------------------------------------
     !call grwdamp        !damping at top of the model
+    call ibm
 
     call poisson
+
     call tstep_integrate
+
     call halos
+
     call checksim
+
     call fielddump
-    call statsdump
+
+    !call statsdump
+
     call boundary
+
     !call fixthetainf
 
 !-----------------------------------------------------
 !   3.6   LIQUID WATER CONTENT AND DIAGNOSTIC FIELDS
 !-----------------------------------------------------
-    !call thermodynamics
+    call thermodynamics
 
 !-----------------------------------------------------
 !   3.7  WRITE RESTARTFILES AND DO STATISTICS
 !------------------------------------------------------
 
-    !call checksim
-   ! call writedatafiles   ! write data files for later analysis
     !call writerestartfiles
-    !call fielddump
 
   end do
 !-------------------------------------------------------

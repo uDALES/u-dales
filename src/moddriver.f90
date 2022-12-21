@@ -442,7 +442,7 @@ contains
     end if
     ! write(ifoutput)  (((storev0driver (j,k,n),j=jb,je),k=kb,ke),  n=1,nstore)
     ! '(F8.4)'
-    write(11,rec=nstepreaddriver)  (v0(irecydriver,:,:)) !tg3315 removed irecydriver-1
+    write(11,rec=nstepreaddriver)  (v0(irecydriver-1,:,:)) !tg3315 removed irecydriver-1
     close (unit=11)
 
     name = 'wdriver_   .'
@@ -459,7 +459,7 @@ contains
       open  (unit=11,file=name,form='unformatted',status='replace',access='direct',recl=filesizev,action='write')
     end if
     ! write(ifoutput)  (((storew0driver (j,k,n),j=jb,je),k=kb,ke+1),n=1,nstore)
-    write(11,rec=nstepreaddriver)  (w0(irecydriver,:,:)) !tg3315 removed irecydriver-1
+    write(11,rec=nstepreaddriver)  (w0(irecydriver-1,:,:)) !tg3315 removed irecydriver-1
     close (unit=11)
 
     ! name = 'edriver_   .'
@@ -495,7 +495,7 @@ contains
         open  (unit=11,file=name,form='unformatted',status='replace',access='direct',recl=filesizev,action='write')
       end if
       ! write(ifoutput)  (((storew0driver (j,k,n),j=jb,je),k=kb,ke+1),n=1,nstore)
-      write(11,rec=nstepreaddriver)  (thl0(irecydriver,:,:)) !tg3315 removed irecydriver-1
+      write(11,rec=nstepreaddriver)  (thl0(irecydriver-1,:,:)) !tg3315 removed irecydriver-1
       close (unit=11)
     end if
 
@@ -515,7 +515,7 @@ contains
         open  (unit=11,file=name,form='unformatted',status='replace',access='direct',recl=filesizev,action='write')
       end if
       ! write(ifoutput)  (((storew0driver (j,k,n),j=jb,je),k=kb,ke+1),n=1,nstore)
-      write(11,rec=nstepreaddriver)  (qt0(irecydriver,:,:)) !tg3315 removed irecydriver-1
+      write(11,rec=nstepreaddriver)  (qt0(irecydriver-1,:,:)) !tg3315 removed irecydriver-1
       close (unit=11)
     end if
 
@@ -535,7 +535,7 @@ contains
         open  (unit=11,file=name,form='unformatted',status='replace',access='direct',recl=filesizes,action='write')
       end if
       ! write(ifoutput)  (((storew0driver (j,k,n),j=jb,je),k=kb,ke+1),n=1,nstore)
-      write(11,rec=nstepreaddriver)  (sv0(irecydriver,:,:,:)) !tg3315 removed irecydriver-1
+      write(11,rec=nstepreaddriver)  (sv0(irecydriver-1,:,:,:)) !tg3315 removed irecydriver-1
       close (unit=11)
     end if
 

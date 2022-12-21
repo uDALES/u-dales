@@ -27,9 +27,173 @@ module modibm
    implicit none
    save
    public :: createwalls, ibmwallfun, xwallfun, ywallfunplus, ywallfunmin, &
-             zwallfun, ibmnorm, nearwall, bottom
+             zwallfun, ibmnorm, nearwall, bottom, initibm, ibm, &
+             intpts_u, recpts_u, intptsrank_u, &
+             intpts_v, recpts_v, intptsrank_v, &
+             intpts_w, recpts_w, intptsrank_w
+   integer, allocatable :: intpts_u(:,:)
+   integer, allocatable :: recpts_u(:,:) ! in indices for now
+   logical, allocatable :: lintptsrank_u(:) !
+   integer, allocatable :: intptsrank_u(:) ! indices of points on current rank
+   integer :: nintptsrank_u
+
+   integer, allocatable :: intpts_v(:,:)
+   integer, allocatable :: recpts_v(:,:) ! in indices for now
+   logical, allocatable :: lintptsrank_v(:) !
+   integer, allocatable :: intptsrank_v(:) ! indices of points on current rank
+   integer :: nintptsrank_v
+
+   integer, allocatable :: intpts_w(:,:)
+   integer, allocatable :: recpts_w(:,:) ! in indices for now
+   logical, allocatable :: lintptsrank_w(:) !
+   integer, allocatable :: intptsrank_w(:) !
+   integer :: nintptsrank_w
 
    contains
+
+
+   subroutine initibm
+     use modglobal, only : ifinput, nintpts_u, nintpts_v, nintpts_w
+     use modmpi, only : barrou, myid, comm3d, MPI_INTEGER, mpierr
+     use decomp_2d
+
+     integer n, m
+     character(80) chmess
+
+     allocate(intpts_u(nintpts_u,3))
+     allocate(intpts_v(nintpts_v,3))
+     allocate(intpts_w(nintpts_w,3))
+
+     allocate(lintptsrank_u(nintpts_u))
+     allocate(lintptsrank_v(nintpts_v))
+     allocate(lintptsrank_w(nintpts_w))
+
+     ! read u points
+     if (myid == 0) then
+       open (ifinput, file='IBM_u.txt')
+       read (ifinput, '(a80)') chmess
+       do n = 1, nintpts_u
+         read (ifinput, *) intpts_u(n,1), intpts_u(n,2), intpts_u(n,3)
+       end do
+       close (ifinput)
+     end if
+
+     call MPI_BCAST(intpts_u, nintpts_u*3, MPI_INTEGER, 0, comm3d, mpierr)
+
+     nintptsrank_u = 0
+     do n = 1, nintpts_u
+       if ((intpts_u(n,1) >= zstart(1) .and. intpts_u(n,1) <= zend(1)) .and. &
+          (intpts_u(n,2) >= zstart(2) .and. intpts_u(n,2) <= zend(2))) then
+          lintptsrank_u(n) = .true.
+          nintptsrank_u = nintptsrank_u + 1
+        else
+          lintptsrank_u(n) = .false.
+       end if
+     end do
+     !allocate(intptsrank_u(nintptsrank_u))
+     !write(*,*) "rank ", nrank, " has ", nintptsrank_u, " u points"
+
+     ! read v points
+     if (myid == 0) then
+       open (ifinput, file='IBM_v.txt')
+       read (ifinput, '(a80)') chmess
+       do n = 1, nintpts_v
+         read (ifinput, *) intpts_v(n,1), intpts_v(n,2), intpts_v(n,3)
+       end do
+       close (ifinput)
+     end if
+
+     call MPI_BCAST(intpts_v, nintpts_v*3, MPI_INTEGER, 0, comm3d, mpierr)
+
+     nintptsrank_v = 0
+     do n = 1, nintpts_v
+       if ((intpts_v(n,1) >= zstart(1) .and. intpts_v(n,1) <= zend(1)) .and. &
+          (intpts_v(n,2) >= zstart(2) .and. intpts_v(n,2) <= zend(2))) then
+          lintptsrank_v(n) = .true.
+          nintptsrank_v = nintptsrank_v + 1
+        else
+          lintptsrank_v(n) = .false.
+       end if
+     end do
+     !allocate(intptsrank_v(nintptsrank_v))
+     !write(*,*) "rank ", nrank, " has ", nintptsrank_v, " v points"
+
+     ! read w points
+     if (myid == 0) then
+       open (ifinput, file='IBM_w.txt')
+       read (ifinput, '(a80)') chmess
+       do n = 1, nintpts_w
+         read (ifinput, *) intpts_w(n,1), intpts_w(n,2), intpts_w(n,3)
+       end do
+       close (ifinput)
+     end if
+
+     call MPI_BCAST(intpts_w, nintpts_w*3, MPI_INTEGER, 0, comm3d, mpierr)
+
+     nintptsrank_w = 0
+     do n = 1, nintpts_w
+       if ((intpts_w(n,1) >= zstart(1) .and. intpts_w(n,1) <= zend(1)) .and. &
+          (intpts_w(n,2) >= zstart(2) .and. intpts_w(n,2) <= zend(2))) then
+          lintptsrank_w(n) = .true.
+          nintptsrank_w = nintptsrank_w + 1
+        else
+          lintptsrank_w(n) = .false.
+       end if
+     end do
+     !allocate(intptsrank_w(nintptsrank_w))
+     !write(*,*) "rank ", nrank, " has ", nintptsrank_w, " w points"
+
+   end subroutine initibm
+
+
+   subroutine ibm
+     use modglobal,   only : nintpts_u, nintpts_v, nintpts_w
+     use modfields,   only : um, vm, wm, up, vp, wp
+     use modboundary, only : halos
+     use decomp_2d,   only : zstart, zend
+     use modmpi, only : myid
+
+     integer i, j, k, n, m
+
+     ! set internal velocities to zero
+     do n=1,nintpts_u
+      !m = intptsrank_u(n)
+       if (lintptsrank_u(n)) then
+         i = intpts_u(n,1) - zstart(1) + 1
+         j = intpts_u(n,2) - zstart(2) + 1
+         k = intpts_u(n,3) - zstart(3) + 1
+         um(i,j,k) = 0.
+         up(i,j,k) = 0.
+       end if
+     end do
+
+     do n=1,nintpts_v
+      !m = intptsrank_v(n)
+       if (lintptsrank_v(n)) then
+         i = intpts_v(n,1) - zstart(1) + 1
+         j = intpts_v(n,2) - zstart(2) + 1
+         k = intpts_v(n,3) - zstart(3) + 1
+         vm(i,j,k) = 0.
+         vp(i,j,k) = 0.
+       end if
+     end do
+
+     do n=1,nintpts_w
+       !m = intptsrank_w(n)
+       if (lintptsrank_w(n)) then
+         i = intpts_w(n,1) - zstart(1) + 1
+         j = intpts_w(n,2) - zstart(2) + 1
+         k = intpts_w(n,3) - zstart(3) + 1
+         wm(i,j,k) = 0.
+         wp(i,j,k) = 0.
+       end if
+     end do
+
+     !call halos
+
+   end subroutine ibm
+
+
    subroutine createwalls
       use modglobal, only:ib, ie, jb, je, jgb, jge, kb, ke, jmax, nblocks, &
          nsv, cexpnr, ifinput, libm, ih, kh, iwallmom, iwalltemp, iwallmoist, rslabs, bldT

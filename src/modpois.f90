@@ -62,12 +62,15 @@ save
 
 contains
   subroutine initpois
-    use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,imax,jmax,itot,jtot,ktot,dyi,dxfi,dzfi,ipoiss,POISS_FFT2D,POISS_FFT3D,POISS_CYC,POISS_FFT2D_2DECOMP,pi,dy,linoutflow,dzh,dzf,dxh,dxf,BCxm,BCym,BCzp
+    use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,imax,jmax,itot,jtot,ktot, &
+                          dxi,dzh,dzf,dy,dyi,dxfi,dzfi,ipoiss,pi,linoutflow,&
+                          POISS_FFT2D,POISS_FFT3D,POISS_CYC,POISS_FFT2D_2DECOMP,&
+                          BCxm,BCym,BCzp,BCtopm,BCtopm_pressure
     use modmpi,    only : myidx, myidy, myid
     use modfields, only : rhobf, rhobh
 
     implicit none
-    real dxi, dzi, fac, b_top_D, b_top_N
+    real dzi, fac, b_top_D, b_top_N
     integer i,j,k,iv,jv,kv
 
     allocate(dpdztop(ib:ie,jb:je), pij(kb:ke+kh))
@@ -85,7 +88,6 @@ contains
     call alloc_z(Fxyz, opt_zlevel=(/0,0,0/))
 
     if (ipoiss == POISS_FFT2D) then
-      dxi = dxfi(1) ! Assumes equidistant in x
       allocate(xrt(itot))
       allocate(yrt(jtot))
       allocate(zrt(ktot))
@@ -190,8 +192,7 @@ contains
       end if
 
       ! In z-pencil in spectral space - same dims as physical space in this case
-      !do k=1,zsize(3)
-      do k=1,ktot
+      do k=1,zsize(3)
         do j=1,zsize(2)
           !jv = j + myidy*zsize(2)!jmax
           jv = j-1 + zstart(2)
@@ -203,30 +204,24 @@ contains
         end do
       end do
 
-      if (BCzp == 1) then
-        do k=1,zsize(3)
-          do j=1,zsize(2)
-            do i=1,zsize(1)
-              if (xyzrt(i,j,k) == 0. .and. k == ktot) then
-                write(*,*) myid, i, j
-                bxyzrt(i,j,k) = b_top_D !+ xyzrt(i,j,k) !(zero anyway)
-              else
-                bxyzrt(i,j,k) = b(k) + xyzrt(i,j,k)
-              end if
-            end do
+      !if (BCtopm .eq. BCtop_pressure) then ! Set a Dirichlet condition for the zero mode
+      do k=1,zsize(3)
+        do j=1,zsize(2)
+          do i=1,zsize(1)
+            if ((xyzrt(i,j,k) .eq. 0.) .and. (k .eq. ktot)) then! .and. (BCtopm .eq. BCtopm_pressure)) then
+              ! Set a Dirichlet BC ACROSS the top cell
+              bxyzrt(i,j,k) = b_top_D !+ xyzrt(i,j,k) !(zero anyway)
+            else
+              bxyzrt(i,j,k) = b(k) + xyzrt(i,j,k)
+            end if
           end do
         end do
-
-      end if
+      end do
 
       ! call decomp_info_init(itot, jtot, 1, decomp_top)
       ! allocate(px_top(1:decomp_top%xsz(1),1:decomp_top%xsz(2),1:decomp_top%xsz(3)))
       ! allocate(py_top(1:decomp_top%ysz(1),1:decomp_top%ysz(2),1:decomp_top%ysz(3)))
       ! allocate(pz_top(1:decomp_top%zsz(1),1:decomp_top%zsz(2),1:decomp_top%zsz(3)))
-      !
-      ! write(*,*) "px_top ", shape(px_top)
-      ! write(*,*) "py_top ", shape(py_top)
-      ! write(*,*) "pz_top ", shape(pz_top)
 
 
     elseif (ipoiss == POISS_FFT2D_2DECOMP) then
@@ -238,7 +233,6 @@ contains
       allocate(xyzrt(sp%zsz(1),sp%zsz(2),sp%zsz(3)))
       allocate(a(ktot), b(ktot), c(ktot))
 
-      dxi = dxfi(1) ! Assumes equidistant in x
       fac = 1./itot
       do i=2,itot/2
         xrt(i)=-4.*dxi*dxi*(sin(float((i-1))*pi*fac))**2
@@ -306,7 +300,6 @@ contains
       call decomp_info_init(itot, jtot, ktot/2+1, sp) ! have to do this because sp is not public
       ! Generate wavenumbers assuming FFTW implementation
 
-      dxi = dxfi(1) ! Assumes equidistant in x
       dzi = dzfi(1) ! Assumes equidistant in z
       allocate(xrt(itot))
       allocate(yrt(jtot))
@@ -423,7 +416,7 @@ contains
   end subroutine initpois
 
   subroutine poisson
-    use modglobal, only : ib,ie,ih,jb,je,kb,ke,kh,itot,jtot,ktot,dxh,dxf,dy,dzf,dzh,linoutflow,iinletgen,ipoiss,POISS_FFT2D,POISS_FFT3D,POISS_CYC,POISS_FFT2D_2DECOMP,imax,jmax,eps1,BCxm,BCym,BCzp,ibrank,jbrank
+    use modglobal, only : ib,ie,ih,jb,je,kb,ke,kh,itot,jtot,ktot,dy,dzf,dzh,linoutflow,iinletgen,ipoiss,POISS_FFT2D,POISS_FFT3D,POISS_CYC,POISS_FFT2D_2DECOMP,imax,jmax,eps1,BCxm,BCym,BCzp,ibrank,jbrank
     use modmpi, only : myid,nprocs,barrou
     implicit none
     integer ibc1,ibc2,kbc1,kbc2,ksen
@@ -923,8 +916,8 @@ contains
 
 
     use modfields, only : up, vp, wp, um, vm, wm,u0,v0,w0,IIw,IIws
-    use modglobal, only : rk3step, ib,ie,jb,je,kb,ke,ih,jh,kh, dxfi,dyi,dzfi,dt,&
-                          linoutflow,libm,dtmax,ierank,jerank,pi,dy,imax,jmax,ylen,xf,zf
+    use modglobal, only : rk3step, ib,ie,jb,je,kb,ke,ih,jh,kh,dxi,dxfi,dyi,dzfi,dt,&
+                          linoutflow,libm,dtmax,ierank,jerank,pi,dy,imax,jmax,ylen,xf,zf,jbrank
     use modmpi,    only : excjs, myidx, myidy, avexy_ibm, myid
     use modboundary, only: bcpup
 !    use modibm,    only : ibmnorm
@@ -945,16 +938,6 @@ contains
       rk3coef = dt / (4. - dble(rk3step))
     end if
     rk3coefi = 1. / rk3coef
-
-
-    ! Get out the slab averaged dp/dz = <rhw>
-    ! call avexy_ibm(wpxy(kb:ke+kh),wp(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
-    !
-    ! do k = kb,ke
-    !   wp(ib:ie,jb:je,k) = wp(ib:ie,jb:je,k) - wpxy(k)
-    ! end do
-
-    !if (myid ==0) write(*,*) wpxy
 
     do k=kb,ke
       do j=jb,je
@@ -980,13 +963,12 @@ contains
   !     The right-hand p is therefore filled in this partical way.
 
   !**************************************************************
-
    call bcpup(pup,pvp,pwp,rk3coef)   ! boundary conditions for pup,pvp,pwp
 
     do k=kb,ke
       do j=jb,je
         do i=ib,ie
-          p(i,j,k)  =  ( pup(i+1,j,k)-pup(i,j,k) ) * dxfi(i) &         ! see equation 5.72
+          p(i,j,k)  =  ( pup(i+1,j,k)-pup(i,j,k) ) * dxi &         ! see equation 5.72
                           +( pvp(i,j+1,k)-pvp(i,j,k) ) * dyi &
                           +( pwp(i,j,k+1)-pwp(i,j,k) ) * dzfi(k)
         end do
@@ -996,7 +978,7 @@ contains
     do k=kb,ke
       do j=jb,je
         do i=ib,ie
-          dpupdx(i,j,k) = (pup(i+1,j,k)-pup(i,j,k)) * dxfi(i)
+          dpupdx(i,j,k) = (pup(i+1,j,k)-pup(i,j,k)) * dxi
           dpvpdy(i,j,k) = (pvp(i,j+1,k)-pvp(i,j,k)) * dyi
           dpwpdz(i,j,k) = (pwp(i,j,k+1)-pwp(i,j,k)) * dzfi(k)
         end do
@@ -1047,7 +1029,7 @@ contains
     !-----------------------------------------------------------------|
 
     use modfields, only : u0, v0, w0, up, vp, wp, pres0, IIc, IIcs, uouttot
-    use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,dxhi,dyi,dzhi,linoutflow,rslabs,ibrank,ierank,jbrank,jerank,dxfi,BCtopm
+    use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,dxi,dxhi,dyi,dzhi,linoutflow,rslabs,ibrank,ierank,jbrank,jerank,dxfi,BCtopm,BCtopm_pressure
     use modmpi,    only : myid,excj,slabsum,avexy_ibm
     use modboundary,only : bcp
     implicit none
@@ -1066,35 +1048,28 @@ contains
 
     do i=ib,ie
       do j=jb,je
-        up(i,j,kb) = up(i,j,kb)-(p(i,j,kb)-p(i-1,j,kb))*dxhi(i)
+        up(i,j,kb) = up(i,j,kb)-(p(i,j,kb)-p(i-1,j,kb))*dxi
         vp(i,j,kb) = vp(i,j,kb)-(p(i,j,kb)-p(i,j-1,kb))*dyi
         do k=kb+1,ke
-          up(i,j,k) = up(i,j,k)-(p(i,j,k)-p(i-1,j,k))*dxhi(i)
+          up(i,j,k) = up(i,j,k)-(p(i,j,k)-p(i-1,j,k))*dxi
           vp(i,j,k) = vp(i,j,k)-(p(i,j,k)-p(i,j-1,k))*dyi
           wp(i,j,k) = wp(i,j,k)-(p(i,j,k)-p(i,j,k-1))*dzhi(k)
         end do
       end do
     end do
 
-    if (BCtopm == 4) then
+    if (BCtopm .eq. BCtopm_pressure) then
       ! Get out the slab averaged dp/dz = <rhw>
       call avexy_ibm(pij(kb:ke+kh),p(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
-      !if (myid ==0) write(*,*) pij(ke)
-      !p(ib:ie,jb:je,ke+1) = -pij(ke)
 
       do i=ib,ie
         do j=jb,je
-          !dpdztop(i,j) = -(p(i,j,ke+1)-p(i,j,ke))*dzhi(ke+1)
-          !if (myid==0) write(*,*) i, j, dzhi(ke+1), -(p(i,j,ke+1)-p(i,j,ke))*dzhi(ke+1)
-          !if (myid==0) write(*,*) i, j, dzhi(ke+1), 2*pij(ke)*dzhi(ke+1)
-          !wp(i,j,ke+1) = -(p(i,j,ke+1)-p(i,j,ke))*dzhi(ke+1)
-          wp(i,j,ke+1) = 2*pij(ke)*dzhi(ke+1)
+          !wp(i,j,ke+1) = -(-pij(ke)-p(i,j,ke))*dzhi(ke+1) ! Doesn't work
+          wp(i,j,ke+1) = wp(i,j,ke+1) + 2*pij(ke)*dzhi(ke+1)
         end do
       end do
 
     end if
-
-    !write(*,*) wp(ib:ie,jb:je,ke+1)
 
     ! tg3315 02/02/2019
     ! account for pressure offset that results from ill-defined problem in pressure
@@ -1146,108 +1121,7 @@ contains
     real    z,ak,bk,bbk,fac
     integer i, j, k
 
-    ! call alloc_x(px, opt_xlevel=(/0,0,0/))
-    ! call alloc_y(py, opt_ylevel=(/0,0,0/))
-    ! call alloc_z(pz, opt_zlevel=(/0,0,0/))
-    ! pz = p(ib:ie,jb:je,kb:ke)
-    !
-    !
-    ! if (BCxm == 1) then
-    !   allocate(FFTI(itot))
-    !   allocate(winew(2*itot+15))
-    !   call rffti(itot,winew)
-    ! end if
-    !
-    ! if (BCym == 1) then
-    !   allocate(FFTJ(jtot))
-    !   allocate(wjnew(2*jtot+15))
-    !   call rffti(jtot,wjnew)
-    ! end if
-    !
-    ! call transpose_z_to_y(pz, py)
-    ! call transpose_y_to_x(py, px)
-    !
-    ! ! Now in x-pencil, do FFT in x-direction
-    ! if (BCxm == 1) then
-    !   fac = 1./sqrt(itot*1.)
-    !   do k=1,xsize(3)
-    !     do j=1,xsize(2)
-    !       do i=1,xsize(1)!itot
-    !         FFTI(i) = px(i,j,k)
-    !       end do
-    !       call rfftf(itot,FFTI,winew)
-    !       do i=1,xsize(1)
-    !         px(i,j,k) = FFTI(i)*fac
-    !       end do
-    !     end do
-    !   end do
-    !
-    ! else
-    !   fac = 1./sqrt(2.*itot)
-    !   !fac = 1./(4.*itot)
-    !   !fac = 1.
-    !   do k=1,xsize(3)
-    !     do j=1,xsize(2)
-    !       ! do i=1,xsize(1)!itot
-    !       !   FFTI(i) = px(i,j,k)
-    !       ! end do
-    !       Sxr = px(:,j,k)
-    !       !call cost(itot,FFTI,winew)
-    !       call dfftw_execute(plan_r2fr_x)
-    !       ! do i=1,xsize(1)
-    !       !   px(i,j,k) = FFTI(i)*fac
-    !       ! end do
-    !       px(:,j,k) = Sxfr*fac
-    !     end do
-    !   end do
-    !
-    ! end if
-    !
-    ! call transpose_x_to_y(px, py)
-    !
-    ! ! Now in y-pencil, do FFT in y-direction
-    ! if (BCym == 1) then
-    !   fac = 1./sqrt(jtot*1.)
-    !   do i=1,ysize(1)
-    !     do k=1,ysize(3)
-    !       do j=1,ysize(2)!jtot
-    !         FFTJ(j) = py(i,j,k)
-    !       end do
-    !       call rfftf(jtot,FFTJ,wjnew)
-    !       do j=1,ysize(2)
-    !         py(i,j,k)=FFTJ(j)*fac
-    !       end do
-    !     end do
-    !   end do
-    !
-    ! else
-    !   fac = 1./sqrt(2.*jtot)
-    !   !fac = 1./(4.*jtot)
-    !   !fac = 1.
-    !   do i=1,ysize(1)
-    !     do k=1,ysize(3)
-    !       ! do j=1,ysize(2)!jtot
-    !       !   FFTJ(j) = py(i,j,k)
-    !       ! end do
-    !       Syr = py(i,:,k)
-    !       call dfftw_execute(plan_r2fr_y)
-    !       !call cost(jtot,FFTJ,wjnew)
-    !       ! do j=1,ysize(2)
-    !       !   py(i,j,k)=FFTJ(j)*fac
-    !       ! end do
-    !       py(i,:,k) = Syfr*fac
-    !     end do
-    !   end do
-    !
-    !   !if (ibrank .and. jbrank) write(*,*) "nrank, Fy{p(1,:,1)}: ", nrank, py(1,:,1)
-    !
-    ! end if
-    !
-    ! call transpose_y_to_z(py,pz)
-
-    ! Now in z-pencil, solve system using Gaussian elimination
     do j=1,zsize(2)
-      !jv = j + myidy*jmax
       do i=1,zsize(1)
         !z         = 1./(b(1)+xyzrt(i,j,1))
         z         = 1./(bxyzrt(i,j,1))
@@ -1258,7 +1132,6 @@ contains
 
     do k=2,zsize(3)-1
       do j=1,zsize(2)
-        !jv = j + myid*jmax
         do i=1,zsize(1)
           !bbk       = b(k)+xyzrt(i,j,k)
           bbk       = bxyzrt(i,j,k)
@@ -1272,17 +1145,16 @@ contains
     ak = a(ktot)
     bk = b(ktot)
     do j=1,zsize(2)
-      !jv = j + myid*jmax
       do i=1,zsize(1)
         !bbk = bk + xyzrt(i,j,ktot)
         bbk = bxyzrt(i,j,ktot)
         z        = bbk-ak*d(i,j,ktot-1)
-        if(z/=0.) then
+        !if(z/=0.) then
           x(i,j,ktot) = (x(i,j,ktot)-ak*x(i,j,ktot-1))/z
-        else
-          write(*,*) myid, i, j
-          x(i,j,ktot) =0.
-        end if
+        !else
+        !  write(*,*) myid, i, j
+        !  x(i,j,ktot) =0.
+        !end if
       end do
     end do
 
@@ -1293,92 +1165,6 @@ contains
         end do
       end do
     end do
-
-    ! call transpose_z_to_y(pz,py)
-    !
-    ! ! Now in y-pencil, do backward FFT in y direction
-    ! if (BCym == 1) then
-    !   fac = 1./sqrt(jtot*1.)
-    !   do i=1,ysize(1)
-    !     do k=1,ysize(3)
-    !       do j=1,ysize(2)!jtot
-    !         FFTJ(j) = py(i,j,k)
-    !       end do
-    !       call rfftb(jtot,FFTJ,wjnew)
-    !       do j=1,ysize(2)
-    !         py(i,j,k) = FFTJ(j)*fac
-    !       end do
-    !     end do
-    !   end do
-    !
-    ! else
-    !   fac = 1./sqrt(2.*jtot)
-    !   !fac = 1./(4.*jtot)
-    !   !fac = 1./(2.*jtot)
-    !   !fac = 1.
-    !   do i=1,ysize(1)
-    !     do k=1,ysize(3)
-    !       ! do j=1,ysize(2)!jtot
-    !       !   FFTJ(j) = py(i,j,k)
-    !       ! end do
-    !       Syfr = py(i,:,k)
-    !       !call cost(jtot,FFTJ,wjnew)
-    !       call dfftw_execute(plan_fr2r_y)
-    !       ! do j=1,ysize(2)
-    !       !   py(i,j,k) = FFTJ(j)*fac
-    !       ! end do
-    !       py(i,:,k) = Syr*fac
-    !     end do
-    !   end do
-    ! end if
-    !
-    ! call transpose_y_to_x(py,px)
-    !
-    ! ! Now in x-pencil, do backward FFT in x-direction
-    ! if (BCxm == 1) then
-    !   fac = 1./sqrt(itot*1.)
-    !   do k=1,xsize(3)
-    !     do j=1,xsize(2)
-    !       do i=1,xsize(1)
-    !         FFTI(i) = px(i,j,k)
-    !       end do
-    !       call rfftb(itot,FFTI,winew)
-    !       do i=1,xsize(1)
-    !         px(i,j,k) = FFTI(i)*fac
-    !       end do
-    !     end do
-    !   end do
-    !
-    ! else
-    !   fac = 1./sqrt(2.*itot)
-    !   !fac = 1./(4.*itot)
-    !   !fac = 1./(2.*itot)
-    !   !fac = 1.
-    !   do k=1,xsize(3)
-    !     do j=1,xsize(2)
-    !       ! do i=1,xsize(1)
-    !       !   FFTI(i) = px(i,j,k)
-    !       ! end do
-    !       Sxfr = px(:,j,k)
-    !       !call cost(itot,FFTI,winew)
-    !       call dfftw_execute(plan_fr2r_x)
-    !       ! do i=1,xsize(1)
-    !       !   px(i,j,k) = FFTI(i)*fac
-    !       ! end do
-    !       px(:,j,k) = Sxr*fac
-    !     end do
-    !   end do
-    !
-    ! end if
-    !
-    ! call transpose_x_to_y(px, py)
-    ! call transpose_y_to_z(py, pz)
-    !
-    ! p(ib:ie,jb:je,kb:ke) = pz
-    !
-    ! deallocate(px,py,pz,d)
-    ! if (BCxm == 1) deallocate(FFTI, winew)
-    ! if (BCym == 1) deallocate(FFTJ, wjnew)
 
     return
   end subroutine solmpj

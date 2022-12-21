@@ -65,6 +65,9 @@ module modfields
   real, allocatable :: up(:,:,:)        !<   tendency of um
   real, allocatable :: vp(:,:,:)        !<   tendency of vm
   real, allocatable :: wp(:,:,:)        !<   tendency of wm
+  real, allocatable, target :: ru(:,:,:)        !<   tendency of um
+  real, allocatable, target :: rv(:,:,:)        !<   tendency of vm
+  real, allocatable, target :: rw(:,:,:)        !<   tendency of wm
   real, allocatable :: thlp(:,:,:)      !<   tendency of thlm
   real, allocatable :: e12p(:,:,:)      !<   tendency of e12m
   real, allocatable :: qtp(:,:,:)       !<   tendency of qtm
@@ -410,7 +413,7 @@ contains
   !> Allocate and initialize the prognostic variables
   subroutine initfields
 
-    use modglobal, only : ib,ie,jb,je,ih,jh,kb,ke,kh,nsv,itot,jtot,imax,jmax,ktot,imax1,jmax1,kmax1,imax2,jmax2,kmax2,&
+    use modglobal, only : ib,ie,jb,je,ih,jh,kb,ke,kh,jtot,nsv,&
          ihc,jhc,khc,ltdump,lytdump,lxytdump,lslicedump,ltkedump,ltempeq,lmoist,lchem,lscasrcr!, iadv_kappa,iadv_sv
     use decomp_2d, only : alloc_z
     ! Allocation of prognostic variables
@@ -418,7 +421,7 @@ contains
 
 
     udef = 0.; vdef = 0.
-    allocate(worksave(2*imax*jmax*ktot)) ! Maybe define in poisson
+    !allocate(worksave(2*imax*jmax*ktot)) ! Maybe define in poisson
     ! ! Original
     ! allocate(um(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); um = 0.
     ! allocate(vm(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); vm = 0.
@@ -429,6 +432,9 @@ contains
     allocate(up(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)) ; up=0.
     allocate(vp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)) ; vp = 0.
     allocate(wp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))  ; wp = 0.
+    allocate(ru(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)) ; up=0.
+    allocate(rv(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)) ; vp = 0.
+    allocate(rw(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))  ; wp = 0.
     ! allocate(pres0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); pres0 = 0.
     !
     ! ! Always have to allocate these, even if they are constant
@@ -480,6 +486,7 @@ contains
     ! call alloc_z(dthvdz); dthvdz = 0.
     call alloc_z(qtm); qtm = 0.
     call alloc_z(qt0); qt0 = 0.
+    call alloc_z(ql0); ql0 = 0.
     ! call alloc_z(qtp); qtp = 0.
     call alloc_z(qt0h); qt0h = 0.
     ! call alloc_z(ql0h); ql0h = 0.
@@ -550,48 +557,6 @@ contains
     allocate(rhobf(kb:ke+kh)); rhobf = 1.
     allocate(rhobh(kb:ke+kh)); rhobh = 1.
 
-    ! ! Allocate 1D (in z direction) fields manually with ghost cell at top
-    ! allocate(whls(ktot+kh)); whls = 0.
-    ! allocate(presf(ktot+kh)); presf = 0.
-    ! allocate(presh(ktot+kh)); presh = 0.
-    ! allocate(exnf(ktot+kh)); exnf = 0.
-    ! allocate(exnh(ktot+kh)); exnh = 0.
-    ! allocate(thvf(ktot+kh)); thvf = 0.
-    ! allocate(thvh(ktot+kh)); thvh = 0.
-    ! allocate(rhof(ktot+kh)); rhof = 0.
-    ! allocate(qt0av(ktot+kh)); qt0av = 0.
-    ! allocate(ql0av(ktot+kh)); ql0av = 0.
-    ! allocate(thl0av(ktot+kh)); thl0av = 0.
-    ! allocate(u0av(ktot+kh)); u0av = 0.
-    ! allocate(v0av(ktot+kh)); v0av = 0.
-    ! allocate(ug(ktot+kh)); ug = 0.
-    ! allocate(vg(ktot+kh)); vg = 0.
-    ! allocate(pgx(ktot+kh)); pgx = 0.
-    ! allocate(pgy(ktot+kh)); pgy = 0.
-    ! allocate(dpdxl(ktot+kh)); dpdxl = 0.
-    ! allocate(dpdyl(ktot+kh)); dpdyl = 0.
-    ! allocate(dthldxls(ktot+kh)); dthldxls = 0.
-    ! allocate(dthldyls(ktot+kh)); dthldyls = 0.
-    ! allocate(dqtdxls(ktot+kh)); dqtdxls = 0.
-    ! allocate(dqtdyls(ktot+kh)); dqtdyls = 0.
-    ! allocate(dqtdtls(ktot+kh)); dqtdtls = 0.
-    ! allocate(dudxls(ktot+kh)); dudxls = 0.
-    ! allocate(dudyls(ktot+kh)); dudyls = 0.
-    ! allocate(dvdxls(ktot+kh)); dvdxls = 0.
-    ! allocate(dvdyls(ktot+kh)); dvdyls = 0.
-    ! allocate(wfls(ktot+kh)); wfls = 0.
-    ! allocate(thlprof(ktot+kh)); thlprof = 0.
-    ! allocate(qtprof(ktot+kh)); qtprof = 0.
-    ! allocate(qlprof(ktot+kh)); qlprof = 0.
-    ! allocate(uprof(ktot+kh)); uprof = 0.
-    ! allocate(vprof(ktot+kh)); vprof = 0.
-    ! allocate(e12prof(ktot+kh)); e12prof = 0.
-    ! allocate(sv0av(ktot+kh,nsv)); sv0av = 0.
-    ! allocate(svprof(ktot+kh,nsv)); svprof = 0.
-    ! allocate(thlpcar(ktot+kh)); thlpcar = 0.
-    ! allocate(rhobf(ktot+kh)); rhobf = 0.
-    ! allocate(rhobh(ktot+kh)); rhobh = 0.
-
     ! Probably remove these eventually....
     allocate(IIc(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
     allocate(IIu(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
@@ -635,25 +600,6 @@ contains
       allocate(sv2sgsyt(ib:ie,kb:ke))
       allocate(sv3sgsyt(ib:ie,kb:ke))
       uyt=0.;uytik=0.;vyt=0.;wyt=0.;wytik=0.;thlyt=0.;qtyt=0.;thlytk=0.;sca1yt=0.;sca2yt=0.;sca3yt=0.;usgsyt=0.;thlsgsyt=0.;wsgsyt=0.;qtsgsyt=0.;sv1sgsyt=0.;sv2sgsyt=0.;sv3sgsyt=0.
-
-      ! allocate(uyt(itot,ktot)); uyt = 0.
-      ! allocate(vyt(itot,ktot)); vyt = 0.
-      ! allocate(wyt(itot,ktot)); wyt = 0.
-      ! allocate(uytik(itot,ktot)); uytik = 0.
-      ! allocate(wytik(itot,ktot)); wytik = 0.
-      ! allocate(thlyt(itot,ktot)); thlyt = 0.
-      ! allocate(qtyt(itot,ktot)); qtyt = 0.
-      ! allocate(thlytk(itot,ktot)); thlytk = 0.
-      ! allocate(sca1yt(itot,ktot)); sca1yt = 0.
-      ! allocate(sca2yt(itot,ktot)); sca2yt = 0.
-      ! allocate(sca3yt(itot,ktot)); sca3yt = 0.
-      ! allocate(usgsyt(itot,ktot)); usgsyt = 0.
-      ! allocate(wsgsyt(itot,ktot)); wsgsyt = 0.
-      ! allocate(thlsgsyt(itot,ktot)); thlsgsyt = 0.
-      ! allocate(qtsgsyt(itot,ktot)); qtsgsyt = 0.
-      ! allocate(sv1sgsyt(itot,ktot)); sv1sgsyt = 0.
-      ! allocate(sv2sgsyt(itot,ktot)); sv2sgsyt = 0.
-      ! allocate(sv3sgsyt(itot,ktot)); sv3sgsyt = 0.
     end if
 
     if (lxytdump) then
@@ -667,16 +613,6 @@ contains
       allocate(thlsgsxyt(kb:ke+kh))
       allocate(vsgsxyt(kb:ke+kh))
       uxyt=0.;vxyt=0.;wxyt=0.;thlxyt=0.;qtxyt=0.;pxyt=0.;usgsxyt=0.;vsgsxyt=0.;thlsgsxyt=0.;
-
-      ! allocate(uxyt(ktot+kh)); uxyt = 0.
-      ! allocate(vxyt(ktot+kh)); vxyt = 0.
-      ! allocate(wxyt(ktot+kh)); wxyt = 0.
-      ! allocate(thlxyt(ktot+kh)); thlxyt = 0.
-      ! allocate(qtxyt(ktot+kh)); qtxyt = 0.
-      ! allocate(pxyt(ktot+kh)); pxyt = 0.
-      ! allocate(usgsxyt(ktot+kh)); usgsxyt = 0.
-      ! allocate(thlsgsxyt(ktot+kh)); thlsgsxyt = 0.
-      ! allocate(vsgsxyt(ktot+kh)); vsgsxyt = 0.
     end if
 
     if (lxytdump .or. lytdump .or. ltdump) then

@@ -60,7 +60,7 @@ contains
     use modmpi,   only   :myid,my_real,mpierr,comm3d,mpi_logical,mpi_integer,cmyidx,cmyidy,mpi_character
     use modglobal,only   :imax,jmax,kmax,imax1,jmax1,kmax1,imax2,jmax2,kmax2,cexpnr,ifnamopt,fname_options,dtmax,kb,ke, ladaptive,dt_lim,btime,nsv,fieldvars,ib,ie,jb,je,kb,ke, ih,jh,lfielddump,ktot,kh
     use modstat_nc,only  : open_nc, define_nc,ncinfo,writestat_dims_nc
-    use modfields, only  : u0,v0,w0,thl0,sv0,ql0,qt0,pres0,div,dudx,dvdy,dwdz
+    use modfields, only  : u0,v0,w0,thl0,sv0,ql0,qt0,pres0,div,dudx,dvdy,dwdz,ru,rv,rw
     use modpois, only : p, pup,pvp,pwp, rhs, dpupdx, dpvpdy, dpwpdz, xyzrt, Fxy, Fxyz
     implicit none
     integer :: ierr, n
@@ -267,6 +267,15 @@ contains
         case('wz')
           call ncinfo(ncname( n,:),'dwdz','','M','tttt')
           pfields(n)%point => dwdz(ib:ie,jb:je,kb:ke)
+        case('up')
+          call ncinfo(ncname( n,:),'up','','M','tttt')
+          pfields(n)%point => ru(ib:ie,jb:je,kb:ke)
+        case('vp')
+          call ncinfo(ncname( n,:),'vp','','M','tttt')
+          pfields(n)%point => rv(ib:ie,jb:je,kb:ke)
+        case('wp')
+          call ncinfo(ncname( n,:),'wp','','M','tttt')
+          pfields(n)%point => rw(ib:ie,jb:je,kb:ke)
         ! case('rt')
         !   call ncinfo(ncname( n,:),'xyzrt','Wavenumbers','M','tttt')
         !   pfields(n)%point => xyzrt(1:sp%zsz(1),1:sp%zsz(2),1:ktot)
@@ -397,54 +406,10 @@ contains
       end do
     end if
 
-    ! do n=1,nvar
-    !   select case(fieldvars(3*n-2:3*n-1))
-    !     case('u0')
-    !       vars(:,:,:,n) = u0(ib-1:ie+1,jb-1:je+1,kb-1:ke+1)
-    !     case('v0')
-    !       vars(:,:,:,n) = v0(ib-1:ie+1,jb-1:je+1,kb-1:ke+1)
-    !     case('w0')
-    !       vars(:,:,:,n) = w0(ib-1:ie+1,jb-1:je+1,kb-1:ke+1)
-    !     case('th')
-    !       vars(:,:,:,n) = thl0(ib:ie,jb:je,kb:ke)
-    !     case('ql')
-    !       vars(:,:,:,n) = ql0(ib:ie,jb:je,kb:ke)
-    !     case('qt')
-    !       vars(:,:,:,n) = qt0(ib:ie,jb:je,kb:ke)
-    !     case('s1')
-    !       vars(:,:,:,n) = sv0(ib:ie,jb:je,kb:ke,1)
-    !     case('s2')
-    !       vars(:,:,:,n) = sv0(ib:ie,jb:je,kb:ke,2)
-    !     case('s3')
-    !       vars(:,:,:,n) = sv0(ib:ie,jb:je,kb:ke,3)
-    !     case('s4')
-    !       vars(:,:,:,n) = sv0(ib:ie,jb:je,kb:ke,4)
-    !     case('s5')
-    !       vars(:,:,:,n) = sv0(ib:ie,jb:je,kb:ke,5)
-    !     case('p0')
-    !       vars(:,:,:,n) = pres0
-    !     case default
-    !       vars(:,:,:,n) = u0
-    !   end select
-    ! end do
-
-    !vars(ib:ie,jb:je,kb:ke,1) = u0
-    !svars(:,:,:,1) = um(:,:,kb:ke)
-    !vars(:,:,:,1) = u0h
-
-    ! vars1(:,:,:,1) = u01(0:imax1+2,0:jmax1+2,0:kmax1+2)
-    ! vars2(:,:,:,2) = u02(0:imax2+2,0:jmax2+2,0:kmax2+2)
-
-
    call writestat_nc(ncid,1,tncname,(/timee/),nrec,.true.)
    !call writestat_nc(ncid,nvar,ncname,vars,nrec,imax+2,jmax+2,khigh-klow+1)
    call writestat_nc(ncid,nvar,ncname,vars,nrec,ihigh-ilow+1,jhigh-jlow+1,khigh-klow+1)
 
-   ! call writestat_nc(ncid1,1,tncname1,(/timee/),nrec,.true.)
-   ! call writestat_nc(ncid1,nvar,ncname1,vars,nrec,imax1+2,jmax1+2,kmax1+2)
-   !
-   ! call writestat_nc(ncid2,1,tncname2,(/timee/),nrec,.true.)
-   ! call writestat_nc(ncid2,nvar,ncname2,vars,nrec,imax2+2,jmax2+2,kmax2+2)
 
 
    deallocate(vars)

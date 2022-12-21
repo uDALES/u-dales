@@ -44,7 +44,7 @@ subroutine tstep_update
 
 
   use modglobal, only : ib,ie,jb,je,rk3step,timee,runtime,dtmax,dt,ntimee,ntrun,courant,diffnr,&
-                        kb,ke,dxh,dxhi,dxh2i,dyi,dy2i,dzh,dt_lim,ladaptive,timeleft,dt,lwarmstart,&
+                        kb,ke,dx,dxi,dx2i,dyi,dy2i,dzh,dt_lim,ladaptive,timeleft,dt,lwarmstart,&
                         dzh2i,tEB,tnextEB,dtEB
   use modfields, only : um,vm,wm
   use modsubgriddata, only : ekm,ekh
@@ -73,10 +73,10 @@ subroutine tstep_update
         do k=kb,ke
         do j=jb,je
         do i=ib,ie
-          courtotl = max(courtotl,(abs(um(i,j,k))*dxhi(i) + abs(vm(i,j,k))*dyi + abs(wm(i,j,k))/dzh(k))*dt)
+          courtotl = max(courtotl,(abs(um(i,j,k))*dxi + abs(vm(i,j,k))*dyi + abs(wm(i,j,k))/dzh(k))*dt)
 !          diffnrtotl = max(diffnrtotl,  ekm(i,j,k)*(1/dzh(k)**2 + dxh2i(i) + dy2i)*dt )
-          diffnrtotl = max(diffnrtotl,  ekm(i,j,k)*(dzh2i(k) + dxh2i(i) + dy2i)*dt, &
-                                        ekh(i,j,k)*(dzh2i(k) + dxh2i(i) + dy2i)*dt )
+          diffnrtotl = max(diffnrtotl,  ekm(i,j,k)*(dzh2i(k) + dx2i + dy2i)*dt, &
+                                        ekh(i,j,k)*(dzh2i(k) + dx2i + dy2i)*dt )
         end do
         end do
         end do
@@ -110,9 +110,9 @@ subroutine tstep_update
         do k=kb,ke
         do j=jb,je
         do i=ib,ie
-          courtotl = max(courtotl,(abs(um(i,j,k))*dxhi(i) + abs(vm(i,j,k))*dyi + abs(wm(i,j,k))/dzh(k))*dt)
-          diffnrtotl = max(diffnrtotl,  ekm(i,j,k)*(dzh2i(k) + dxh2i(i) + dy2i)*dt,&
-                                        ekh(i,j,k)*(dzh2i(k) + dxh2i(i) + dy2i)*dt )
+          courtotl = max(courtotl,(abs(um(i,j,k))*dxi + abs(vm(i,j,k))*dyi + abs(wm(i,j,k))/dzh(k))*dt)
+          diffnrtotl = max(diffnrtotl,  ekm(i,j,k)*(dzh2i(k) + dx2i + dy2i)*dt,&
+                                        ekh(i,j,k)*(dzh2i(k) + dx2i + dy2i)*dt )
 !          if (diffnrtotl ==  ekh(i,j,k)*(dzh2i(k) + dxh2i(i) + dy2i)*dt) then
 !           imin = i
 !           kmin = k
@@ -166,8 +166,8 @@ subroutine tstep_integrate
 
 
   use modglobal, only : ib,ie,jb,jgb,je,kb,ke,nsv,dt,rk3step,e12min,lmoist,timee,ntrun,&
-                        linoutflow, iinletgen,ltempeq,idriver,BCtopm,&
-                        dzf,dzhi,dzf,dxhi,dxf,ifixuinf,thlsrc,lchem,ibrank,ierank,jerank,jbrank,BCxm,BCym,ihc,jhc,khc,dyi,dxfi,BCxT,BCxq,BCxs,BCyT,BCyq,BCys
+                        linoutflow, iinletgen,ltempeq,idriver,BCtopm,BCtopm_pressure,BCxm_periodic,BCym_periodic, &
+                        dzf,dzhi,dzf,dxf,ifixuinf,thlsrc,lchem,ibrank,ierank,jerank,jbrank,BCxm,BCym,ihc,jhc,khc,dyi,dxfi,BCxT,BCxq,BCxs,BCyT,BCyq,BCys
   use modmpi, only    : cmyid,myid,nprocs
   use modfields, only : u0,um,up,v0,vm,vp,w0,wm,wp,&
                         thl0,thlm,thlp,qt0,qtm,qtp,e120,e12m,e12p,sv0,svm,svp,uouttot,&
@@ -250,15 +250,15 @@ subroutine tstep_integrate
     enddo
   end if
 
-  if (BCxm > 1 .and. ierank) then
+  if ((BCxm .ne. BCxm_periodic) .and. ierank) then
     u0(ie+1,jb:je,kb:ke) = um(ie+1,jb:je,kb:ke)  + rk3coef * up(ie+1,jb:je,kb:ke)
   end if
 
-  if (BCym > 1 .and. jerank) then
+  if ((BCym .ne. BCym_periodic) .and. jerank) then
     v0(ib:ie,je+1,kb:ke) = vm(ib:ie,je+1,kb:ke)  + rk3coef * vp(ib:ie,je+1,kb:ke)
   end if
 
-  if (BCtopm == 4) then
+  if (BCtopm .eq. BCtopm_pressure) then
     ! do i=ib,ie
     !   do j=jb,je
     !     ! w0(i,j,ke+1) = w0(i,j,ke) - dzhi(ke)*((u0(i+1,j,ke)-u0(i,j,ke))*dxfi(i) + &

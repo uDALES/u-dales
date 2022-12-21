@@ -69,8 +69,10 @@ module modstartup
                                     lwallfunc,lprofforc,lchem,k1,JNO2,rv,rd,tnextEB,tEB,dtEB,bldT,wsoil,wgrmax,wwilt,wfc,skyLW,GRLAI,rsmin,nfcts,lEB,lwriteEBfiles,nwalllayers,lconstW, &
                                     BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys,BCzp, &
                                     BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots, &
+                                    BCxm_periodic, BCym_periodic, &
                                     idriver,tdriverstart,driverjobnr,dtdriver,driverstore,lsdriver, &
-                                    lrandomize
+                                    lrandomize, &
+                                    nintpts_u, nintpts_v, nintpts_w
       use modsurfdata,       only : z0, z0h,  wtsurf, wttop, wqtop, wqsurf, wsvsurf, wsvtop, wsvsurfdum, wsvtopdum, ps, thvs, thls, thl_top, qt_top, qts
       use modfields,         only : initfields, dpdx, ncname
       use modpois,           only : initpois
@@ -130,7 +132,8 @@ module modstartup
          idriver, tdriverstart, driverjobnr, dtdriver, &
          driverstore, iplane, lsdriver
       namelist/WALLS/ &
-         nblocks, nfcts, iwallmom, iwalltemp, iwallmoist, iwallscal
+         nblocks, nfcts, iwallmom, iwalltemp, iwallmoist, iwallscal, &
+         nintpts_u, nintpts_v, nintpts_w
       namelist/ENERGYBALANCE/ &
          lEB, lwriteEBfiles, lconstW, dtEB, bldT, wsoil, wgrmax, wwilt, wfc, &
          skyLW, GRLAI, rsmin, nwalllayers
@@ -275,13 +278,13 @@ module modstartup
       call MPI_BCAST(BCym, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(BCzp, 1, MPI_INTEGER, 0, comm3d, mpierr)
 
-      if (BCxm == 1 .and. nprocx > 1) then
+      if (BCxm .eq. BCxm_periodic .and. nprocx > 1) then
         periodic_bc(1) = .true.
       else
         periodic_bc(1) = .false.
       end if
 
-      if (BCym == 1 .and. nprocy > 1) then
+      if (BCym .eq. BCym_periodic .and. nprocy > 1) then
         periodic_bc(2) = .true.
       else
         periodic_bc(2) = .false.
@@ -363,6 +366,9 @@ module modstartup
       call MPI_BCAST(iwallmoist, 1, MPI_INTEGER, 0, comm3d, mpierr) ! case (integer) for wall treatment for moisture (1=no wall function/fixed flux, 2=no wall function/fixed value, 3=uno)
       call MPI_BCAST(iwallscal, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(iwallmom, 1, MPI_INTEGER, 0, comm3d, mpierr) ! case (integer) for wall treatment for momentum (1=no wall function, 2=werner-wengle, 3=uno)
+      call MPI_BCAST(nintpts_u, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(nintpts_v, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(nintpts_w, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(luoutflowr, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for turning on/off u-velocity correction for fixed mass outflow rate
       call MPI_BCAST(lvoutflowr, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315: added switch for turning on/off v-velocity correction for fixed mass outflow rate
       call MPI_BCAST(luvolflowr, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! bss166: added switch for turning on/off u-velocity correction for fixed volume flow rate
@@ -539,13 +545,19 @@ module modstartup
       !-----------------------------------------------------------------|
 
       use modsurfdata, only : wtsurf, wqsurf, qts, ps
-      use modglobal, only   : itot,ktot,jtot,ylen,xlen,dxf,ib,ie,&
-                              dtmax,runtime,startfile,lwarmstart,lstratstart,&
-                              BCxm,BCxT,BCxq,BCxs,BCtopm,BCbotm,&
+      use modglobal,   only : itot,ktot,jtot,ylen,xlen,ib,ie,dtmax,runtime, &
+                              startfile,lwarmstart,lstratstart,lmoist, nsv, &
+                              BCxm, BCxT, BCxq, BCxs, BCym, BCyT, BCyq, BCys, BCtopm, BCbotm, &
+                              BCbotm_wfneutral, BCtopm_pressure, &
+                              BCxm_periodic, BCxT_periodic, BCxq_periodic, &
+                              BCxm_profile, BCxT_profile, BCxq_profile, &
+                              BCxm_driver, BCxT_driver, BCxq_driver, BCxs_driver, &
+                              BCym_periodic, BCym_profile, BCyT_periodic, BCyT_profile, &
+                              BCyq_periodic, BCyq_profile, &
                               iinletgen,linoutflow,ltempeq,iwalltemp,iwallmom,&
                               ipoiss,POISS_FFT2D,POISS_FFT3D,POISS_CYC
-      use modmpi, only      : myid, comm3d, mpierr, MPI_INTEGER, MPI_LOGICAL, nprocx, nprocy
-      use modglobal, only   : idriver
+      use modmpi,      only : myid, comm3d, mpierr, MPI_INTEGER, MPI_LOGICAL, nprocx, nprocy
+      use modglobal,   only : idriver
       implicit none
       real :: d(1:itot-1)
       logical :: inequi
@@ -614,96 +626,104 @@ module modstartup
       ! Switch to ensure that neutral wall function is called when ltempeq=false and if iwalltemp==1 (constant flux and therefore wall temp is not resolved.
       if ((ltempeq .eqv. .false.) .or. (iwalltemp==1)) then
          iwallmom = 3
-         BCbotm = 3
+         BCbotm = BCbotm_wfneutral
       end if
 
-      ! choosing inoutflow in x requires switches to be set
-      ! tg3315 - these could be moved to init boundary
-      if (BCxm .eq. 2) then
-         write (*, *) "inoutflow conditions, setting appropriate switches (1)"
-         iinletgen = 1
-         BCxT = 3 !temperature is considered in inletgen & iolet
-         BCxq = 3 !humidity is considered in iolet
-         BCxs = 3 !scalars are considered in iolet
-         BCtopm = 3 !velocity at top determined by topm
+      select case(BCxm)
+      case(BCxm_periodic)
+        !if (myid == 0) write(*,*) "Periodic boundary conditions for velocity in x direction"
+
+        if (ltempeq .and. (BCxT .ne. BCxT_periodic) .and. (myid == 0)) then
+          write (*, *) "Warning: temperature not periodic in x, consider setting BCxT = ", BCxT_periodic
+        end if
+
+        if (lmoist .and. (BCxq .ne. BCxq_periodic) .and. (myid == 0)) then
+          write (*, *) "Warning: moisture not periodic in x, consider setting BCxq = ", BCxq_periodic
+        end if
+
+      case(BCxm_profile)
          linoutflow = .true.
-         call MPI_BCAST(iinletgen, 1, MPI_INTEGER, 0, comm3d, mpierr)
-         call MPI_BCAST(BCxT, 1, MPI_INTEGER, 0, comm3d, mpierr)
-         call MPI_BCAST(BCxq, 1, MPI_INTEGER, 0, comm3d, mpierr)
-         call MPI_BCAST(BCxs, 1, MPI_INTEGER, 0, comm3d, mpierr)
-         call MPI_BCAST(BCtopm, 1, MPI_INTEGER, 0, comm3d, mpierr)
          call MPI_BCAST(linoutflow, 1, MPI_LOGICAL, 0, comm3d, mpierr)
 
-      else if (BCxm .eq. 3) then
-         write (*, *) "inoutflow conditions, setting appropriate switches (2)"
+         !if (myid == 0) write(*, *) "x inflow velocity given by profile"
 
-         iinletgen = 2
-         ! see modstartup for conditions that apply with inletgenerators
-         ! move to modstartup
-         BCxT = 3 !temperature is considered in inletgen & iolet
-         BCxq = 3 !humidity is considered in iolet
-         BCxs = 3 !scalars are considered in iolet
-         BCtopm = 3 !velocity at top determined by topm
+         if (ltempeq .and. (BCxT .ne. BCxT_profile) .and. (myid == 0)) then
+           write (*, *) "Warning: x inflow temperature not given by profile, &
+                         consider setting BCxT = ", BCxT_profile
+         end if
+
+         if (lmoist .and. (BCxq .ne. BCxq_profile) .and. (myid == 0)) then
+           write (*, *) "Warning: x inflow moisture not given by profile, &
+                        consider setting BCxq = ", BCxq_profile
+         end if
+
+         if (BCtopm .ne. BCtopm_pressure .and. (myid == 0)) then
+           write (*, *) "Warning: allowing vertical velocity at top might be necessary, &
+                         consider setting BCtopm = ", BCtopm_pressure
+         end if
+
+       case(BCxm_driver)
          linoutflow = .true.
-         call MPI_BCAST(iinletgen, 1, MPI_INTEGER, 0, comm3d, mpierr)
-         call MPI_BCAST(BCxT, 1, MPI_INTEGER, 0, comm3d, mpierr)
-         call MPI_BCAST(BCxq, 1, MPI_INTEGER, 0, comm3d, mpierr)
-         call MPI_BCAST(BCxs, 1, MPI_INTEGER, 0, comm3d, mpierr)
-         call MPI_BCAST(BCtopm, 1, MPI_INTEGER, 0, comm3d, mpierr)
-         call MPI_BCAST(linoutflow, 1, MPI_LOGICAL, 0, comm3d, mpierr)
-
-      else if (BCxm .eq. 4) then
-         write (*, *) "inoutflow conditions, setting appropriate switches (0)"
-
-         iinletgen = 0
-         ! see modstartup for conditions that apply with inletgenerators
-         ! move to modstartup
-         BCxT = 3 !temperature is considered in inletgen & iolet
-         BCxq = 3 !humidity is considered in iolet
-         BCxs = 3 !scalars are considered in iolet
-         !BCtopm = 1 !velocity at top determined by topm
-         linoutflow = .true.
-         call MPI_BCAST(iinletgen, 1, MPI_INTEGER, 0, comm3d, mpierr)
-         call MPI_BCAST(BCxT, 1, MPI_INTEGER, 0, comm3d, mpierr)
-         call MPI_BCAST(BCxq, 1, MPI_INTEGER, 0, comm3d, mpierr)
-         call MPI_BCAST(BCxs, 1, MPI_INTEGER, 0, comm3d, mpierr)
-         call MPI_BCAST(BCtopm, 1, MPI_INTEGER, 0, comm3d, mpierr)
-         call MPI_BCAST(linoutflow, 1, MPI_LOGICAL, 0, comm3d, mpierr)
-         write(*,*) "linoutflow", linoutflow
-
-      else if (BCxm .eq. 5) then
-         write (*, *) "inoutflow conditions and idriver, setting appropriate switches (0)"
-
-         iinletgen = 0
          idriver = 2
-         BCxT = 3 !temperature is considered in inletgen & iolet
-         BCxq = 3 !humidity is considered in iolet
-         BCxs = 3 !scalars are considered in iolet
-         !BCtopm = 4 !velocity at top determined by topm
-         linoutflow = .true.
-         call MPI_BCAST(iinletgen, 1, MPI_INTEGER, 0, comm3d, mpierr)
+         call MPI_BCAST(linoutflow, 1, MPI_LOGICAL, 0, comm3d, mpierr)
          call MPI_BCAST(idriver, 1, MPI_INTEGER, 0, comm3d, mpierr)
-         call MPI_BCAST(BCxT, 1, MPI_INTEGER, 0, comm3d, mpierr)
-         call MPI_BCAST(BCxq, 1, MPI_INTEGER, 0, comm3d, mpierr)
-         call MPI_BCAST(BCxs, 1, MPI_INTEGER, 0, comm3d, mpierr)
-         call MPI_BCAST(BCtopm, 1, MPI_INTEGER, 0, comm3d, mpierr)
+
+         !if (myid == 0) write (*, *) "x inflow velocity given by file from precursor simulation"
+
+         if (ltempeq .and. (BCxT .ne. BCxT_driver) .and. (myid == 0)) then
+           write (*, *) "Warning: x inflow temperature not given by precursor, &
+                         consider setting BCxT = ", BCxT_profile
+         end if
+
+         if (lmoist .and. (BCxq .ne. BCxq_driver) .and. (myid == 0)) then
+           write (*, *) "Warning: x inflow moisture not given by precursor, &
+                         consider setting BCxq = ", BCxq_profile
+         end if
+
+         if ((nsv > 0) .and. (BCxs .ne. BCxs_driver) .and. (myid == 0)) then
+           write (*, *) "Warning: x inflow scalars not given by precursor, &
+                         consider setting BCxq = ", BCxq_profile
+         end if
+
+         if (BCtopm .ne. BCtopm_pressure .and. (myid == 0)) then
+           write (*, *) "Warning: allowing vertical velocity at top might be necessary, &
+                         consider setting BCtopm = ", BCtopm_pressure
+         end if
+      end select
+
+      select case(BCym)
+      case(BCym_periodic)
+        !if (myid == 0) write(*,*) "Periodic boundary conditions for velocity in y direction"
+
+        if (ltempeq .and. (BCyT .ne. BCyT_periodic) .and. (myid == 0)) then
+          write (*, *) "Warning: temperature not periodic in y, consider setting BCxT = ", BCxT_periodic
+        end if
+
+        if (lmoist .and. (BCyq .ne. BCyq_periodic) .and. (myid == 0)) then
+          write (*, *) "Warning: moisture not periodic in y, consider setting BCxq = ", BCxq_periodic
+        end if
+
+      case(BCxm_profile)
+         linoutflow = .true.
          call MPI_BCAST(linoutflow, 1, MPI_LOGICAL, 0, comm3d, mpierr)
 
-      end if
+         !if (myid == 0) write(*, *) "y inflow velocity given by profile"
 
-      ! check the Poisson solver setting w.r.t. x-grid
-      d(1:itot-1) = dxf(ib+1:ie) - dxf(ib:ie-1)
-      inequi = any(abs(d)>dxf(ib)*1e-5)
+         if (ltempeq .and. (BCyT .ne. BCyT_profile) .and. (myid == 0)) then
+           write (*, *) "Warning: y inflow temperature not given by profile, &
+                         consider setting BCyT = ", BCyT_profile
+         end if
 
-      if ((.not. inequi) .and. (ipoiss == POISS_CYC) .and. (.not. linoutflow)) then
-         write(*, *) "WARNING: consider using FFT poisson solver for better performance!"
-      end if
+         if (lmoist .and. (BCyq .ne. BCyq_profile) .and. (myid == 0)) then
+           write (*, *) "Warning: y inflow moisture not given by profile, &
+                        consider setting BCyq = ", BCyq_profile
+         end if
 
-      if ((ipoiss == POISS_FFT2D) .and. (inequi)) then
-         write(*, *) "ERROR: POISS_FFT requires equidistant grid. Aborting..."
-         call MPI_FINALIZE(mpierr)
-         stop 1
-      end if
+         if (BCtopm .ne. BCtopm_pressure .and. (myid == 0)) then
+           write (*, *) "Warning: allowing vertical velocity at top might be necessary, &
+                         consider setting BCtopm = ", BCtopm_pressure
+         end if
+       end select
 
    end subroutine checkinitvalues
 
@@ -721,8 +741,8 @@ module modstartup
          ladaptive, tnextrestart, jmax, imax, xh, xf, linoutflow, lper2inout, iinletgen, lreadminl, &
          uflowrate, vflowrate,ltempeq, prandtlmoli, freestreamav, &
          tnextfielddump, tfielddump, tsample, tstatsdump, startfile, lprofforc, lchem, k1, JNO2,&
-         idriver,dtdriver,driverstore,tdriverstart,tdriverdump,xlen,ylen,itot,jtot,ibrank,ierank,jbrank,jerank,dxf,dxh,BCxm,BCym,lrandomize,BCxq,BCxs,BCxT, BCyq,BCys,BCyT
-      use modsubgriddata, only:ekm, ekh
+         idriver,dtdriver,driverstore,tdriverstart,tdriverdump,xlen,ylen,itot,jtot,ibrank,ierank,jbrank,jerank,BCxm,BCym,lrandomize,BCxq,BCxs,BCxT, BCyq,BCys,BCyT,BCxm_driver
+      use modsubgriddata, only:ekm, ekh, loneeqn
       use modsurfdata, only:wtsurf, wqsurf, wsvsurf, &
          thls, thvs, ps, qts, svs, sv_top
       ! use modsurface,        only : surface,dthldz
@@ -1025,10 +1045,10 @@ module modstartup
             !   do i = ib-1,ie+1
             !     do j = jb-1,je+1
             !       do k = kb-1,ke+1
-            !         um(i,j,k) = 1. * sin(4.*atan(1.) * 2. * (dxf(1)*((i-1)+myidx*imax)) / ylen) &
+            !         um(i,j,k) = 1. * sin(4.*atan(1.) * 2. * (dx*((i-1)+myidx*imax)) / ylen) &
             !         * cos(4.*atan(1.) * 2. * (dy*((0.5+(j-1))+myidy*jmax)) / ylen) !&
             !         !* cos(4.*atan(1.) * 2. * zf(k) / ylen)
-            !         vm(i,j,k) = 1. *-cos(4.*atan(1.) * 2. * (dxh(1)*((0.5+(i-1))+myidx*imax)) / ylen)  &
+            !         vm(i,j,k) = 1. *-cos(4.*atan(1.) * 2. * (dx*((0.5+(i-1))+myidx*imax)) / ylen)  &
             !         * sin(4.*atan(1.) * 2. * (dy*((j-1)+myidy*jmax)) / ylen) !&
             !         !* cos(4.*atan(1.) * 2. * zf(k) / ylen)
             !         wm(i,j,k) = 0.
@@ -1244,20 +1264,20 @@ module modstartup
               ! end do
               ubulk = sum(uaverage(kb:ke))/(zh(ke+1)-zh(kb)) !volume-averaged u-velocity
 
-              if (myid==0) then
-                 write(6,*) 'Modstartup: ubulk=',ubulk
-              end if
-
-              ! if (BCxm == 5) then
-              !   do k = kb, ke
-              !   do j = jb - 1,je + 1
-              !   do i = ib - 1, ie + 1
-              !     u0(i, j, k) = storeu0driver(j,k,1)
-              !     um(i, j, k) = storeu0driver(j,k,1)
-              !   end do
-              !   end do
-              !   end do
+              ! if (myid==0) then
+              !    write(6,*) 'Modstartup: ubulk=',ubulk
               ! end if
+
+              if (BCxm .eq. BCxm_driver) then
+                do k = kb, ke
+                do j = jb-1, je+1
+                do i = ib-1, ie+1
+                  u0(i, j, k) = storeu0driver(j, k, 1) ! not necessarily 1?
+                  um(i, j, k) = storeu0driver(j, k, 1)
+                end do
+                end do
+                end do
+              end if
 
             elseif (idriver==1) then
 

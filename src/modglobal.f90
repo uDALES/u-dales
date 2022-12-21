@@ -79,33 +79,89 @@ module modglobal
    !Switches for boundary conditions
    !momentum (m), temperature (T), humidity (q) and scalars (s)
    !lateral in x/i direction (x), in y/j direction (y) at the top (top) and at the bottom (bot)
-   !1 = periodic, >1 special in/outflow conditions
-   integer :: BCxm = 1
-   integer :: BCxT = 1
-   integer :: BCxq = 1
-   integer :: BCxs = 1
+
+   !> x direction
+   ! momentum
+   integer, parameter :: BCxm_periodic = 1
+   integer, parameter :: BCxm_profile = 2
+   integer, parameter :: BCxm_driver = 3
+   ! temperature
+   integer, parameter :: BCxT_periodic = 1
+   integer, parameter :: BCxT_profile = 2
+   integer, parameter :: BCxT_driver = 3
+   ! moisture
+   integer, parameter :: BCxq_periodic = 1
+   integer, parameter :: BCxq_profile = 2
+   integer, parameter :: BCxq_driver = 3
+   ! scalars
+   integer, parameter :: BCxs_periodic = 1
+   integer, parameter :: BCxs_profile = 2
+   integer, parameter :: BCxs_driver = 3
+   ! set defaults
+   integer :: BCxm = BCxm_periodic
+   integer :: BCxT = BCxT_periodic
+   integer :: BCxq = BCxq_periodic
+   integer :: BCxs = BCxs_periodic
+
+   !> y direction
+   ! momentum
+   integer, parameter :: BCym_periodic = 1
+   integer, parameter :: BCym_profile = 2
+   ! temperature
+   integer, parameter :: BCyT_periodic = 1
+   integer, parameter :: BCyT_profile = 2
+   ! moisture
+   integer, parameter :: BCyq_periodic = 1
+   integer, parameter :: BCyq_profile = 2
+   ! scalars
+   integer, parameter :: BCys_periodic = 1
+   integer, parameter :: BCys_profile = 2
+   ! set defaults
+   integer :: BCym = BCym_periodic
+   integer :: BCyT = BCyT_periodic
+   integer :: BCyq = BCyq_periodic
+   integer :: BCys = BCys_periodic
+
+   !> top
+   ! momentum
+   integer, parameter :: BCtopm_freeslip = 1 ! zero flux
+   integer, parameter :: BCtopm_noslip = 2   ! zero velocity
+   integer, parameter :: BCtopm_pressure = 3 ! vertical velocity can vary according to pressure gradient
+   ! temperature
+   integer, parameter :: BCtopT_flux = 1  ! determined by flux wttop
+   integer, parameter :: BCtopT_value = 2 ! determined by value thl_top
+   ! moisture
+   integer, parameter :: BCtopq_flux = 1  ! determined by flux wqtop
+   integer, parameter :: BCtopq_value = 2 ! determined by value qt_top
+   ! scalars
+   integer, parameter :: BCtops_flux = 1  ! determined by flux wstop
+   integer, parameter :: BCtops_value = 2 ! determined by value sv_top
+   ! set defaults
+   integer :: BCtopm = BCtopm_freeslip
+   integer :: BCtopT = BCtopT_flux
+   integer :: BCtopq = BCtopq_flux
+   integer :: BCtops = BCtops_flux
+
+   !> bottom
+   ! tangential velocities (vertical is always impermeable)
+   integer, parameter :: BCbotm_freeslip = 1  ! do nothing
+   integer, parameter :: BCbotm_wf = 2        ! wall function
+   integer, parameter :: BCbotm_wfneutral = 3 ! neutral wall function
+   ! temperature
+   integer, parameter :: BCbotT_flux = 1       ! determined by wtsurf
+   integer, parameter :: BCbotT_wf = 2         ! wall function
+   ! moisture
+   integer, parameter :: BCbotq_flux = 1       ! determined by wtsurf
+   ! scalars
+   integer, parameter :: BCbots_flux = 1       ! zero flux
+   ! set defaults
+   integer :: BCbotm = BCbotm_wf
+   integer :: BCbotT = BCbotT_flux
+   integer :: BCbotq = BCbotq_flux
+   integer :: BCbots = BCbots_flux
 
    integer :: BCzp = 1 ! 1: solve poisson equation using GE. 2: solve using cosine transform
 
-   !y direction is currently alway periodic
-   integer :: BCym = 1
-   integer :: BCyT = 1
-   integer :: BCyq = 1
-   integer :: BCys = 1
-
-   !at the top (top)
-   !1 = freeslip, 2 = noslip, 3 = determined by inflow conditions
-   integer :: BCtopm = 1
-   integer :: BCtopT = 1
-   integer :: BCtopq = 1
-   integer :: BCtops = 1
-
-   !at the bottom (bot) !the bottom BC are defacto useless, since they will be covered by a road facet
-   !1 = flux, 2 = wall function
-   integer :: BCbotm = 2
-   integer :: BCbotT = 1
-   integer :: BCbotq = 1
-   integer :: BCbots = 1
 
    integer :: iinletgen = 0 !<  0: no inletgen, 1: turb. inlet generator (Lund (1998)), 2: read inlet from file
    integer :: idriver = 0 !<  0: no inlet driver store, 1: Save inlet driver data, 2: read inlet driver data from file
@@ -203,6 +259,10 @@ module modglobal
    real, parameter :: prandtlmoli = 1./prandtlmol !< Inverse of Prandtl number
 
    integer         :: iwallmom = 2, iwalltemp = 1, iwallmoist = 1, iwallscal = 1
+
+   integer :: nintpts_u
+   integer :: nintpts_v
+   integer :: nintpts_w
 
    real, parameter :: rhow = 0.998e3 !<    * Density of water
    real, parameter :: pref0 = 1.e5 !<    *standard pressure used in exner function.
@@ -326,6 +386,12 @@ module modglobal
 
    ! modphsgrd.f90
 
+   real :: dx !<  grid spacing in x-direction
+   real :: dx2 !<  grid spacing in x-direction squared
+   real :: dxi !<  1/dx
+   real :: dxiq !<  1/(dx*4)
+   real :: dxi5 !<  1/(dx*2)
+   real :: dx2i !<  (1/dx)**2
    real :: dy !<  grid spacing in y-direction
    real :: dy2 !<  grid spacing in y-direction squared
    real :: dz !<  grid spacing in z-direction
@@ -381,7 +447,7 @@ contains
    !!
    !! Set courant number, calculate the grid sizes (both computational and physical), and set the coriolis parameter
    subroutine initglobal
-      use modmpi,   only : myid, comm3d, my_real, mpierr, nprocx, nprocy
+      use modmpi,   only : myid, comm3d, my_real, mpierr
       use decomp_2d
       implicit none
 
@@ -549,6 +615,7 @@ contains
 
       rslabs = real(itot*jtot)
 
+      dx = xlen/float(itot)
       dy = ylen/float(jtot)
 
       ! MPI
@@ -568,6 +635,7 @@ contains
          close (ifinput)
 
          ! J. Tomas: Read the x-coordinates of the cell centers from xgrid.inp.XXX
+         ! SO: still reads for now, but need to remove any reference to xf, xh, etc eventually
          open (ifinput, file='xgrid.inp.'//cexpnr)
          read (ifinput, '(a72)') chmess
          read (ifinput, '(a72)') chmess
@@ -644,6 +712,8 @@ contains
       dxhi = 1./dxh
       dxfi = 1./dxf
       dxf2 = dxf*dxf
+      dxi = 1./dx
+      dx2 = dx*dx
       dyi = 1./dy
       dy2 = dy*dy
 
@@ -652,14 +722,17 @@ contains
       dxhiq = 0.25*dxhi
       dxfiq = 0.25*dxfi
       dyiq = 0.25*dyi
+      dxiq = 0.25*dxi
 
       dzh2i = dzhi*dzhi
       dxh2i = dxhi*dxhi
       dy2i = dyi*dyi
+      dx2i = dxi*dxi
 
       dzfi5 = 0.5*dzfi
       dxfi5 = 0.5*dxfi
       dyi5 = 0.5*dyi
+      dxi5 = 0.5*dxi
 
       ! Grid used in kappa scheme advection (extra ghost nodes)
       if (any(iadv_sv(1:nsv) == iadv_kappa)) then
