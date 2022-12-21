@@ -176,7 +176,6 @@ subroutine tstep_integrate
                           dti_test,dtr,thetati,thetatr,q0,lmoi,lmor,utaui,utaur,&
                           storetdriver, nstepread, nstepreaddriver, irecydriver
   use modsubgriddata, only : loneeqn,ekm,ekh
-  use modboundary, only : cyclicmi, cyclichi, cyclicqi, cyclicsi, cyclicmj, cyclichj, cyclicqj, cyclicsj
   use modchem, only : chem
   use decomp_2d, only : exchange_halo_z
   use modpois, only : pij, dpdztop
@@ -233,9 +232,6 @@ subroutine tstep_integrate
   end if
 
   if (ltempeq) then
- ! if (myid==0) then
- ! write(*,*) "thlp(20,1,46)",thlp(20,1,46)
- ! end if
   do k=kb,ke
       do j=jb,je
         do i=ib,ie
@@ -278,13 +274,8 @@ subroutine tstep_integrate
     !   end do
     ! end do
     w0(ib:ie,jb:je,ke+1) = wm(ib:ie,jb:je,ke+1)  + rk3coef * wp(ib:ie,jb:je,ke+1)
-
   end if
 
-  !if (myid==0) write(*,*) "wm, w0", wm(32,1,ke+1), w0(32,1,ke+1)
-
-
-!up to here
 
 !  Write some statistics to monitoring file
       if ((myid==0) .and. (rk3step==3)) then

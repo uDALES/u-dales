@@ -89,7 +89,7 @@ contains
           write(0, *) 'iostat error: ', ierr
           stop 1
        endif
-       write(6 ,NAMSTATSDUMP)
+       !write(6 ,NAMSTATSDUMP)
        close(ifnamopt)
     end if
 

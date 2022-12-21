@@ -465,8 +465,6 @@ contains
 
       decomp_main%zlevel = (/ih, jh, kh/)
 
-      write(*,*) "myid, zend", myid, zend
-
       if (zstart(1) == 1) then
         ibrank = .true.
       else

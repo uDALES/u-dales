@@ -148,7 +148,7 @@ module modstartup
          if (command_argument_count() >= 1) then
             call get_command_argument(1, fname_options)
          end if
-         write (*, *) fname_options
+         !write (*, *) fname_options
 
          open (ifnamopt, file=fname_options, status='old', iostat=ierr)
          if (ierr /= 0) then
@@ -163,7 +163,7 @@ module modstartup
             write(0, *) 'iostat error: ', ierr
             stop 1
          endif
-         write (6, RUN)
+         !write (6, RUN)
          rewind (ifnamopt)
 
          read (ifnamopt, DOMAIN, iostat=ierr)
@@ -172,7 +172,7 @@ module modstartup
             write(0, *) 'iostat error: ', ierr
             stop 1
          endif
-         write (6, DOMAIN)
+         !write (6, DOMAIN)
          rewind (ifnamopt)
 
          read (ifnamopt, PHYSICS, iostat=ierr)
@@ -181,7 +181,7 @@ module modstartup
             write(0, *) 'iostat error: ', ierr
             stop 1
          endif
-         write (6, PHYSICS)
+         !write (6, PHYSICS)
          rewind (ifnamopt)
 
          read (ifnamopt, DYNAMICS, iostat=ierr)
@@ -190,7 +190,7 @@ module modstartup
             write(0, *) 'iostat error: ', ierr
             stop 1
          endif
-         write (6, DYNAMICS)
+         !write (6, DYNAMICS)
          rewind (ifnamopt)
 
          read (ifnamopt, BC, iostat=ierr)
@@ -199,7 +199,7 @@ module modstartup
             write(0, *) 'iostat error: ', ierr
             stop 1
          endif
-         write (6, BC)
+         !write (6, BC)
          rewind (ifnamopt)
 
          read (ifnamopt, INLET, iostat=ierr)
@@ -208,7 +208,7 @@ module modstartup
             write(0, *) 'iostat error: ', ierr
             stop 1
          endif
-         write (6, INLET)
+         !write (6, INLET)
          rewind (ifnamopt)
 
          read (ifnamopt, DRIVER, iostat=ierr)
@@ -217,7 +217,7 @@ module modstartup
             write(0, *) 'iostat error: ', ierr
             stop 'ERROR: Problem in namoptions DRIVER'
          endif
-         write (6, DRIVER)
+         !write (6, DRIVER)
          rewind (ifnamopt)
 
          read (ifnamopt, WALLS, iostat=ierr)
@@ -226,7 +226,7 @@ module modstartup
             write(0, *) 'iostat error: ', ierr
             stop 1
          endif
-         write (6, WALLS)
+         !write (6, WALLS)
          rewind (ifnamopt)
 
          read (ifnamopt, ENERGYBALANCE, iostat=ierr)
@@ -235,7 +235,7 @@ module modstartup
             write(0, *) 'iostat error: ', ierr
             stop 1
          endif
-         write (6, ENERGYBALANCE)
+         !write (6, ENERGYBALANCE)
          rewind (ifnamopt)
 
          read (ifnamopt, SCALARS, iostat=ierr)
@@ -244,7 +244,7 @@ module modstartup
             write(0, *) 'iostat error: ', ierr
             stop 1
          endif
-         write (6, SCALARS)
+         !write (6, SCALARS)
          rewind (ifnamopt)
 
          read (ifnamopt, CHEMISTRY, iostat=ierr)
@@ -253,7 +253,7 @@ module modstartup
             write(0, *) 'iostat error: ', ierr
             stop 1
          endif
-         write (6, CHEMISTRY)
+         !write (6, CHEMISTRY)
          rewind (ifnamopt)
 
          read (ifnamopt, OUTPUT, iostat=ierr)
@@ -262,7 +262,7 @@ module modstartup
             write(0, *) 'iostat error: ', ierr
             stop 1
          endif
-         write (6, OUTPUT)
+         !write (6, OUTPUT)
          close (ifnamopt)
       end if
 
@@ -290,26 +290,26 @@ module modstartup
       periodic_bc(3) = .false.
       call decomp_2d_init(itot,jtot,ktot,nprocx,nprocy,periodic_bc)
       !myid = nrank
-      write(cmyid,'(i3.3)') myid
+      !write(cmyid,'(i3.3)') myid
 
       comm3d = DECOMP_2D_COMM_CART_Z
-      write(*,*) "myid", myid
+      !write(*,*) "myid", myid
       call MPI_CART_COORDS(comm3d,myid,2,myids,mpierr)
-      write(*,*) "myids", myids
+      !write(*,*) "myids", myids
       myidx = myids(1)
       myidy = myids(2)
-      write(*,*) "myid", " myids", myid, myids
+      ! write(*,*) "myid", " myids", myid, myids
       write(cmyidx,'(i3.3)') myidx
       write(cmyidy,'(i3.3)') myidy
 
       call MPI_CART_SHIFT(comm3d, 0,  1, nbrwest,  nbreast ,   mpierr)
       call MPI_CART_SHIFT(comm3d, 1,  1, nbrsouth, nbrnorth,   mpierr)
 
-      if (myid==0) then
-        write(*,*) nprocx, nprocy
-      end if
+      ! if (myid==0) then
+      !   write(*,*) nprocx, nprocy
+      ! end if
 
-      write (*, *) "starting broadcast"
+      !write (*, *) "starting broadcast"
       call MPI_BCAST(iexpnr, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(lwarmstart, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lstratstart, 1, MPI_LOGICAL, 0, comm3d, mpierr)
@@ -484,18 +484,18 @@ module modstartup
 
       ! Allocate and initialize core modules
       call initglobal
-      write (*, *) "done initglobal"
+      !write (*, *) "done initglobal"
       call initfields
-      write (*, *) "done initfields"
+      !write (*, *) "done initfields"
       call initboundary
-      write (*, *) "done initboundary"
-      ! call initthermodynamics
+      !write (*, *) "done initboundary"
+      call initthermodynamics
       ! write (*, *) "done initthermodynamics"
       ! !!depreated!!
       ! ! call initsurface
       ! write (*, *) "done initsurface"
       call initsubgrid
-      write (*, *) "done initsubgrid"
+      !write (*, *) "done initsubgrid"
       ! call initpois
       ! write (*, *) "done initpois"
       ! call initinlet ! added by J. Tomas: initialize inlet generator
@@ -503,9 +503,9 @@ module modstartup
       call initdriver  ! added by ae1212: initialise driver inlet
       ! write(*,*) "done initdriver"
       call checkinitvalues
-      write (*, *) "done checkinitvalues"
+      !write (*, *) "done checkinitvalues"
       call initpois
-      write (*, *) "done initpois"
+      !write (*, *) "done initpois"
       ! write (6, *) 'Determine masking matrices'
       call createmasks ! determine walls/blocks
       ! write (6, *) 'Finished determining masking matrices'
@@ -513,7 +513,7 @@ module modstartup
       call calcfluidvolumes
       !
       call readinitfiles
-      write (*, *) "done readinitfiles"
+      !write (*, *) "done readinitfiles"
       ! write (*, *) "done startup"
       !
       ! call createscals
@@ -790,17 +790,17 @@ module modstartup
             end do
             close (ifinput)
 
-            write (*, *) 'height    thl     qt      u      v     e12'
-            do k = ke, kb, -1
-               write (*, '(f7.1,2f8.1,3f7.1)') &
-                  height(k), &
-                  thlprof(k), &
-                  qtprof(k), &
-                  uprof(k), &
-                  vprof(k), &
-                  e12prof(k)
-
-            end do
+            ! write (*, *) 'height    thl     qt      u      v     e12'
+            ! do k = ke, kb, -1
+            !    write (*, '(f7.1,2f8.1,3f7.1)') &
+            !       height(k), &
+            !       thlprof(k), &
+            !       qtprof(k), &
+            !       uprof(k), &
+            !       vprof(k), &
+            !       e12prof(k)
+            !
+            ! end do
          end if !myid=0
 
          ! MPI broadcast thl and qt
@@ -873,7 +873,7 @@ module modstartup
             if (myid == 0) then
                open (ifinput, file='prof.inp.'//cexpnr)
                read (ifinput, '(a80)') chmess
-               write (*, '(a80)') chmess
+               !write (*, '(a80)') chmess
                read (ifinput, '(a80)') chmess
 
                do k = kb, ke
@@ -895,24 +895,26 @@ module modstartup
                !vprof = vprofrot
 
                close (ifinput)
-               write (*, *) 'height    thl     qt      u      v     e12'
-               do k = ke, kb, -1
-                  !write (*, '(f7.1,2f8.1,3f7.1)') &
-                  write (*, *) &
-                     height(k), &
-                     thlprof(k), &
-                     qtprof(k), &
-                     uprof(k), &
-                     vprof(k), &
-                     e12prof(k)
+               ! write (*, *) 'height    thl     qt      u      v     e12'
+               ! do k = ke, kb, -1
+               !    !write (*, '(f7.1,2f8.1,3f7.1)') &
+               !    write (*, *) &
+               !       height(k), &
+               !       thlprof(k), &
+               !       qtprof(k), &
+               !       uprof(k), &
+               !       vprof(k), &
+               !       e12prof(k)
+               !
+               ! end do
 
-               end do
-
-               if (minval(e12prof(kb:ke)) < e12min) then
-                  write (*, *) 'e12 value is zero (or less) in prof.inp'
-                  do k = kb, ke
+               if (loneeqn) then
+                 if (minval(e12prof(kb:ke)) < e12min) then
+                   write (*, *) 'e12 value is zero (or less) in prof.inp'
+                   do k = kb, ke
                      e12prof(k) = max(e12prof(k), e12min)
-                  end do
+                   end do
+                 end if
                end if
 
             end if ! end if myid==0
@@ -1102,7 +1104,7 @@ module modstartup
                uaverage(k) = uprof(k)*dzf(k)
             end do
             ubulk = sum(uaverage(kb:ke))/(zh(ke + 1) - zh(kb)) ! averaged u-velocity inflow profile
-            write (6, *) 'Modstartup: ubulk=', ubulk
+            !write (6, *) 'Modstartup: ubulk=', ubulk
             vaverage = 0.
             ! call slabsum(vaverage, kb, ke, vm, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1, ib, ie, jb, je, kb, ke)
             do k = kb, ke
@@ -1342,7 +1344,7 @@ module modstartup
          !
          ! call boundary ! tg3315 17.10.17 having this in startup was causing issues for running with lmoist ! turned of when pot. temp = temp.
          ! SO: can't do this yet because uses u0 and it does not include halo cells
-         !    call thermodynamics ! turned off when pot. temp = temp.
+         call thermodynamics ! turned off when pot. temp = temp.
          !
          !    call boundary
          !    call thermodynamics ! turned off when pot. temp = temp.
@@ -1535,7 +1537,7 @@ module modstartup
             elseif (idriver==2) then ! idriver
 
                if (ibrank) call readdriverfile
-               !call MPI_BARRIER(comm3d,mpierr)
+
                call drivergen
 
               !call slabsum(uaverage,kb,ke,u0,ib-1,ie+1,jb-1,je+1,kb-1,ke+1,ib,ie,jb,je,kb,ke)
@@ -1690,8 +1692,8 @@ module modstartup
          open (ifinput, file='lscale.inp.'//cexpnr)
          read (ifinput, '(a80)') chmess
          read (ifinput, '(a80)') chmess
-         write (6, *) ' height  u_geo  v_geo  pgx  pgy  subs     ' &
-            , '   dqtdx      dqtdy        dqtdtls     thl_rad '
+         ! write (6, *) ' height  u_geo  v_geo  pgx  pgy  subs     ' &
+         !    , '   dqtdx      dqtdy        dqtdtls     thl_rad '
          do k = kb, ke
             read (ifinput, *) &
                height(k), &
@@ -1707,19 +1709,19 @@ module modstartup
          end do
          close (ifinput)
 
-         do k = ke, kb, -1
-            write (6, '(3f7.1,5e12.4)') &
-               height(k), &
-               ug(k), &
-               vg(k), &
-               pgx(k), &
-               pgy(k), &
-               wfls(k), &
-               dqtdxls(k), &
-               dqtdyls(k), &
-               dqtdtls(k), &
-               thlpcar(k)
-         end do
+         ! do k = ke, kb, -1
+         !    write (6, '(3f7.1,5e12.4)') &
+         !       height(k), &
+         !       ug(k), &
+         !       vg(k), &
+         !       pgx(k), &
+         !       pgy(k), &
+         !       wfls(k), &
+         !       dqtdxls(k), &
+         !       dqtdyls(k), &
+         !       dqtdtls(k), &
+         !       thlpcar(k)
+         ! end do
 
       end if ! end myid==0
 

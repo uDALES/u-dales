@@ -79,8 +79,6 @@ module modforces
     !ILS13 replace thvsi by thvh
     ! thvsi = 1./thvsi
 
- 
-       !write(*,*) 'thvh',thvh
        do k=kb+1,ke
           do j=jb,je
              do i=ib,ie

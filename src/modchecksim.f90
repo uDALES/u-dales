@@ -58,7 +58,7 @@ contains
         write(0, *) 'iostat error: ', ierr
         stop 1
       endif
-      write(6 ,NAMCHECKSIM)
+      !write(6 ,NAMCHECKSIM)
       close(ifnamopt)
 
       if ((.not. ladaptive) .and. (tcheck < dtmax)) then

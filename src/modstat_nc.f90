@@ -353,7 +353,7 @@ contains
     integer :: dx
 
     dx = dxh(1) ! Assume equidistant grid
-    write(*,*) 'writestat_dims_nc'
+    !write(*,*) 'writestat_dims_nc'
     iret = nf90_inq_varid(ncid, 'xt', VarID)
     if (iret==0) iret=nf90_inquire_dimension(ncid, xtID, len=length)
     !!if (iret==0) iret = nf90_put_var(ncid, varID, zf(1:length),(/1/))
