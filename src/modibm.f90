@@ -53,12 +53,14 @@ module modibm
 
 
    subroutine initibm
-     use modglobal, only : ifinput, nintpts_u, nintpts_v, nintpts_w
+     use modglobal, only : libm, ifinput, nintpts_u, nintpts_v, nintpts_w
      use modmpi, only : barrou, myid, comm3d, MPI_INTEGER, mpierr
      use decomp_2d
 
      integer n, m
      character(80) chmess
+
+     if (.not. libm) return
 
      allocate(intpts_u(nintpts_u,3))
      allocate(intpts_v(nintpts_v,3))
@@ -80,6 +82,7 @@ module modibm
 
      call MPI_BCAST(intpts_u, nintpts_u*3, MPI_INTEGER, 0, comm3d, mpierr)
 
+     ! Determine whether points are on this rank
      nintptsrank_u = 0
      do n = 1, nintpts_u
        if ((intpts_u(n,1) >= zstart(1) .and. intpts_u(n,1) <= zend(1)) .and. &
@@ -90,7 +93,16 @@ module modibm
           lintptsrank_u(n) = .false.
        end if
      end do
-     !allocate(intptsrank_u(nintptsrank_u))
+
+     ! Store indices of points on current rank - only loop through these points
+     allocate(intptsrank_u(nintptsrank_u))
+     m = 0
+     do n = 1, nintpts_u
+       if (lintptsrank_u(n)) then
+          m = m + 1
+          intptsrank_u(m) = n
+       end if
+     end do
      !write(*,*) "rank ", nrank, " has ", nintptsrank_u, " u points"
 
      ! read v points
@@ -115,7 +127,16 @@ module modibm
           lintptsrank_v(n) = .false.
        end if
      end do
-     !allocate(intptsrank_v(nintptsrank_v))
+
+     ! Store indices of points on current rank - only loop through these points
+     allocate(intptsrank_v(nintptsrank_v))
+     m = 0
+     do n = 1, nintpts_v
+       if (lintptsrank_v(n)) then
+          m = m + 1
+          intptsrank_v(m) = n
+       end if
+     end do
      !write(*,*) "rank ", nrank, " has ", nintptsrank_v, " v points"
 
      ! read w points
@@ -140,14 +161,23 @@ module modibm
           lintptsrank_w(n) = .false.
        end if
      end do
-     !allocate(intptsrank_w(nintptsrank_w))
+
+     ! Store indices of points on current rank - only loop through these points
+     allocate(intptsrank_w(nintptsrank_w))
+     m = 0
+     do n = 1, nintpts_w
+       if (lintptsrank_w(n)) then
+          m = m + 1
+          intptsrank_w(m) = n
+       end if
+     end do
      !write(*,*) "rank ", nrank, " has ", nintptsrank_w, " w points"
 
    end subroutine initibm
 
 
    subroutine ibm
-     use modglobal,   only : nintpts_u, nintpts_v, nintpts_w
+     use modglobal,   only : libm, nintpts_u, nintpts_v, nintpts_w
      use modfields,   only : um, vm, wm, up, vp, wp
      use modboundary, only : halos
      use decomp_2d,   only : zstart, zend
@@ -155,38 +185,44 @@ module modibm
 
      integer i, j, k, n, m
 
-     ! set internal velocities to zero
-     do n=1,nintpts_u
-      !m = intptsrank_u(n)
-       if (lintptsrank_u(n)) then
+     if (.not. libm) return
+
+     ! Set internal velocities to zero
+
+     !do n=1,nintpts_u
+     do m=1,nintptsrank_u
+      n = intptsrank_u(m)
+       !if (lintptsrank_u(n)) then
          i = intpts_u(n,1) - zstart(1) + 1
          j = intpts_u(n,2) - zstart(2) + 1
          k = intpts_u(n,3) - zstart(3) + 1
          um(i,j,k) = 0.
          up(i,j,k) = 0.
-       end if
+       !end if
      end do
 
-     do n=1,nintpts_v
-      !m = intptsrank_v(n)
-       if (lintptsrank_v(n)) then
+     !do n=1,nintpts_v
+     do m=1,nintptsrank_v
+      n = intptsrank_v(m)
+       !if (lintptsrank_v(n)) then
          i = intpts_v(n,1) - zstart(1) + 1
          j = intpts_v(n,2) - zstart(2) + 1
          k = intpts_v(n,3) - zstart(3) + 1
          vm(i,j,k) = 0.
          vp(i,j,k) = 0.
-       end if
+       !end if
      end do
 
-     do n=1,nintpts_w
-       !m = intptsrank_w(n)
-       if (lintptsrank_w(n)) then
+     !do n=1,nintpts_w
+     do m=1,nintptsrank_w
+       n = intptsrank_w(m)
+       !if (lintptsrank_w(n)) then
          i = intpts_w(n,1) - zstart(1) + 1
          j = intpts_w(n,2) - zstart(2) + 1
          k = intpts_w(n,3) - zstart(3) + 1
          wm(i,j,k) = 0.
          wp(i,j,k) = 0.
-       end if
+       !end if
      end do
 
      !call halos
