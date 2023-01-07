@@ -139,7 +139,7 @@ program DALESURBAN      !Version 48
 
     call fielddump
 
-    !call statsdump
+    call statsdump
 
     call boundary
 
