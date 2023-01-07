@@ -64,7 +64,7 @@ program DALESURBAN      !Version 48
   call initfielddump
   !write(*,*) "done initfielddump"
 
-  !call initstatsdump !tg3315
+  call initstatsdump !tg3315
   !write(*,*) "done initstatsdump"
 
   !call readfacetfiles
