@@ -66,13 +66,12 @@ module modstartup
                                     lzerogradtopscal, lbuoyancy, ltempeq, &
                                     lfixinlet, lfixutauin, pi, &
                                     thlsrc, ifixuinf, lvinf, tscale, ltempinout, lmoistinout,  &
-                                    lwallfunc,lprofforc,lchem,k1,JNO2,rv,rd,tnextEB,tEB,dtEB,bldT,wsoil,wgrmax,wwilt,wfc,skyLW,GRLAI,rsmin,nfcts,lEB,lwriteEBfiles,nwalllayers,lconstW, &
+                                    lwallfunc,lprofforc,lchem,k1,JNO2,rv,rd,tnextEB,tEB,dtEB,bldT,wsoil,wgrmax,wwilt,wfc,skyLW,GRLAI,rsmin,nfcts,lEB,lwriteEBfiles,nfaclyrs,lconstW, &
                                     BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys,BCzp, &
                                     BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots, &
                                     BCxm_periodic, BCym_periodic, &
                                     idriver,tdriverstart,driverjobnr,dtdriver,driverstore,lsdriver, &
-                                    lrandomize, &
-                                    nintpts_u, nintpts_v, nintpts_w
+                                    lrandomize
       use modsurfdata,       only : z0, z0h,  wtsurf, wttop, wqtop, wqsurf, wsvsurf, wsvtop, wsvsurfdum, wsvtopdum, ps, thvs, thls, thl_top, qt_top, qts
       use modfields,         only : initfields, dpdx, ncname
       use modpois,           only : initpois
@@ -85,6 +84,9 @@ module modstartup
       use modibmdata,        only : bctfxm, bctfxp, bctfym, bctfyp, bctfz
       use modforces,         only : calcfluidvolumes
       use moddriver,         only : initdriver
+      use modibm,            only : nsolpts_u, nsolpts_v, nsolpts_w, nsolpts_c, &
+                                    nbndpts_u, nbndpts_v, nbndpts_w, nbndpts_c, &
+                                    nfctsecs_u, nfctsecs_v, nfctsecs_w, nfctsecs_c
       use decomp_2d
 
       implicit none
@@ -133,10 +135,12 @@ module modstartup
          driverstore, iplane, lsdriver
       namelist/WALLS/ &
          nblocks, nfcts, iwallmom, iwalltemp, iwallmoist, iwallscal, &
-         nintpts_u, nintpts_v, nintpts_w
+         nsolpts_u, nsolpts_v, nsolpts_w, nsolpts_c, &
+         nbndpts_u, nbndpts_v, nbndpts_w, nbndpts_c, &
+         nfctsecs_u, nfctsecs_v, nfctsecs_w, nfctsecs_c
       namelist/ENERGYBALANCE/ &
          lEB, lwriteEBfiles, lconstW, dtEB, bldT, wsoil, wgrmax, wwilt, wfc, &
-         skyLW, GRLAI, rsmin, nwalllayers
+         skyLW, GRLAI, rsmin, nfaclyrs
       namelist/SCALARS/ &
          lreadscal, lscasrc, lscasrcl, lscasrcr, &
          nsv, xS, yS, zS, SS, sigS
@@ -366,9 +370,15 @@ module modstartup
       call MPI_BCAST(iwallmoist, 1, MPI_INTEGER, 0, comm3d, mpierr) ! case (integer) for wall treatment for moisture (1=no wall function/fixed flux, 2=no wall function/fixed value, 3=uno)
       call MPI_BCAST(iwallscal, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(iwallmom, 1, MPI_INTEGER, 0, comm3d, mpierr) ! case (integer) for wall treatment for momentum (1=no wall function, 2=werner-wengle, 3=uno)
-      call MPI_BCAST(nintpts_u, 1, MPI_INTEGER, 0, comm3d, mpierr)
-      call MPI_BCAST(nintpts_v, 1, MPI_INTEGER, 0, comm3d, mpierr)
-      call MPI_BCAST(nintpts_w, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(nsolpts_u, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(nsolpts_v, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(nsolpts_w, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(nbndpts_u, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(nbndpts_v, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(nbndpts_w, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(nfctsecs_u, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(nfctsecs_v, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(nfctsecs_w, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(luoutflowr, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for turning on/off u-velocity correction for fixed mass outflow rate
       call MPI_BCAST(lvoutflowr, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315: added switch for turning on/off v-velocity correction for fixed mass outflow rate
       call MPI_BCAST(luvolflowr, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! bss166: added switch for turning on/off u-velocity correction for fixed volume flow rate
@@ -471,7 +481,7 @@ module modstartup
       call MPI_BCAST(skyLW, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(GRLAI, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(rsmin, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(nwalllayers, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(nfaclyrs, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(irandom, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(krand, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(randthl, 1, MY_REAL, 0, comm3d, mpierr)
@@ -623,8 +633,9 @@ module modstartup
          end if
       end if
 
-      ! Switch to ensure that neutral wall function is called when ltempeq=false and if iwalltemp==1 (constant flux and therefore wall temp is not resolved.
+      ! Call neutral wall function when air temperature not evolved or if constant heat flux.
       if ((ltempeq .eqv. .false.) .or. (iwalltemp==1)) then
+        write(*,*) "Changing to neutral wall function"
          iwallmom = 3
          BCbotm = BCbotm_wfneutral
       end if

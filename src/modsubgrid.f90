@@ -99,7 +99,7 @@ contains
           write(0, *) 'iostat error: ', ierr
           stop 1
        endif
-       write(6 ,NAMSUBGRID)
+       !write(6 ,NAMSUBGRID)
        close(ifnamopt)
     end if
 

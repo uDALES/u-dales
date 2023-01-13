@@ -34,7 +34,7 @@ program DALESURBAN      !Version 48
   use modsubgrid,        only : subgrid
   use modforces,         only : forces,coriolis,lstend,fixuinf1,fixuinf2,fixthetainf,nudge, masscorr
   use modpois,           only : poisson
-  use modibm,            only : createwalls,ibmwallfun,ibmnorm,nearwall,bottom,initibm,ibm
+  use modibm,            only : ibmwallfun,ibmnorm,bottom,initibm
   use initfac,           only : readfacetfiles
   use modEB,             only : initEB,EB
 
@@ -56,18 +56,19 @@ program DALESURBAN      !Version 48
   !write(*,*) "done startup"
   !call inittest
   call initibm
+  !write(*,*) myid, "done initibm"
 !---------------------------------------------------------
 !      2     INITIALIZE STATISTICAL ROUTINES AND ADD-ONS
 !---------------------------------------------------------
   call initchecksim ! Could be deprecated
   call initstat_nc ! Could be deprecated
   call initfielddump
-  !write(*,*) "done initfielddump"
+  !write(*,*) myid, "done initfielddump"
 
   call initstatsdump !tg3315
-  !write(*,*) "done initstatsdump"
+  !write(*,*) myid, "done initstatsdump"
 
-  !call readfacetfiles
+  call readfacetfiles
   !call initEB
 
   call boundary
@@ -106,11 +107,11 @@ program DALESURBAN      !Version 48
 
     call nudge          ! nudge top cells of fields to enforce steady-state
 
-    !call ibmwallfun     ! immersed boundary forcing: only shear forces.
+    call ibmwallfun     ! immersed boundary forcing: only shear forces.
 
     call masscorr       ! correct pred. velocity pup to get correct mass flow
 
-    !call ibmnorm        ! immersed boundary forcing: set normal velocities to zero
+    call ibmnorm        ! immersed boundary forcing: set normal velocities to zero
 
     !call EB
 
@@ -127,7 +128,6 @@ program DALESURBAN      !Version 48
 !   3.5  PRESSURE FLUCTUATIONS, TIME INTEGRATION AND BOUNDARY CONDITIONS
 !-----------------------------------------------------------------------
     !call grwdamp        !damping at top of the model
-    call ibm
 
     call poisson
 

@@ -77,6 +77,8 @@ module modfields
   real, allocatable :: svp(:,:,:,:)     !<  tendency of sv(n)
   real, allocatable :: svpp(:,:,:,:)
 
+  real, allocatable, target :: tau_x(:,:,:), tau_y(:,:,:), tau_z(:,:,:)
+
   ! Diagnostic variables
   real, allocatable :: mindist(:,:,:)   !< minimal distance of cell center to a wall
 
@@ -463,6 +465,10 @@ contains
     call alloc_z(u0); u0 = 0.
     call alloc_z(v0); v0 = 0.
     call alloc_z(w0); w0 = 0.
+
+    call alloc_z(tau_x); tau_x = 0.
+    call alloc_z(tau_y); tau_y = 0.
+    call alloc_z(tau_z); tau_z = 0.
 
     call alloc_z(uinit); uinit = 0.
     call alloc_z(vinit); vinit = 0.
