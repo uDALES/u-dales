@@ -123,12 +123,20 @@ contains
 !
 !      write(cmyid,'(i3.3)') myid
 !
-     if(myid==0)then
-       CPU_program0 = MPI_Wtime()
-     end if
+     ! if(myid==0)then
+     !   CPU_program0 = MPI_Wtime()
+     ! end if
 !
 !     write(*,*)'nprocs = ', nprocs
   end subroutine initmpi
+
+  subroutine starttimer
+
+    if(myid==0)then
+      CPU_program0 = MPI_Wtime()
+    end if
+
+  end subroutine starttimer
 
   ! subroutine init2decomp
   !   use decomp_2d

@@ -77,7 +77,7 @@ module modfields
   real, allocatable :: svp(:,:,:,:)     !<  tendency of sv(n)
   real, allocatable :: svpp(:,:,:,:)
 
-  real, allocatable, target :: tau_x(:,:,:), tau_y(:,:,:), tau_z(:,:,:)
+  real, allocatable, target :: tau_x(:,:,:), tau_y(:,:,:), tau_z(:,:,:), thl_flux(:,:,:)
 
   ! Diagnostic variables
   real, allocatable :: mindist(:,:,:)   !< minimal distance of cell center to a wall
@@ -469,6 +469,7 @@ contains
     call alloc_z(tau_x); tau_x = 0.
     call alloc_z(tau_y); tau_y = 0.
     call alloc_z(tau_z); tau_z = 0.
+    call alloc_z(thl_flux); thl_flux = 0.
 
     call alloc_z(uinit); uinit = 0.
     call alloc_z(vinit); vinit = 0.
@@ -563,7 +564,6 @@ contains
     allocate(rhobf(kb:ke+kh)); rhobf = 1.
     allocate(rhobh(kb:ke+kh)); rhobh = 1.
 
-    ! Probably remove these eventually....
     allocate(IIc(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
     allocate(IIu(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
     allocate(IIv(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))

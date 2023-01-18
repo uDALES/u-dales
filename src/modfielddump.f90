@@ -60,8 +60,9 @@ contains
     use modmpi,   only   :myid,my_real,mpierr,comm3d,mpi_logical,mpi_integer,cmyidx,cmyidy,mpi_character
     use modglobal,only   :imax,jmax,kmax,imax1,jmax1,kmax1,imax2,jmax2,kmax2,cexpnr,ifnamopt,fname_options,dtmax,kb,ke, ladaptive,dt_lim,btime,nsv,fieldvars,ib,ie,jb,je,kb,ke, ih,jh,lfielddump,ktot,kh
     use modstat_nc,only  : open_nc, define_nc,ncinfo,writestat_dims_nc
-    use modfields, only  : u0,v0,w0,thl0,sv0,ql0,qt0,pres0,div,dudx,dvdy,dwdz,ru,rv,rw,tau_x, tau_y, tau_z
+    use modfields, only  : u0,v0,w0,thl0,sv0,ql0,qt0,pres0,div,dudx,dvdy,dwdz,ru,rv,rw,tau_x, tau_y, tau_z, thl_flux
     use modpois, only : p, pup,pvp,pwp, rhs, dpupdx, dpvpdy, dpwpdz, xyzrt, Fxy, Fxyz
+    use modibm, only : mask_u, mask_v, mask_w, mask_c
     implicit none
     integer :: ierr, n
 
@@ -226,14 +227,29 @@ contains
           call ncinfo(ncname( n,:),'pres','pressure field','M','tttt')
           pfields(n)%point => pres0(ib:ie,jb:je,kb:ke)
         case('tx')
-          call ncinfo(ncname( n,:),'tau_x','stress x','M','tttt')
+          call ncinfo(ncname( n,:),'tau_x','stress x','M','mttt')
           pfields(n)%point => tau_x(ib:ie,jb:je,kb:ke)
         case('ty')
-          call ncinfo(ncname( n,:),'tau_y','stress y','M','tttt')
+          call ncinfo(ncname( n,:),'tau_y','stress y','M','tmtt')
           pfields(n)%point => tau_y(ib:ie,jb:je,kb:ke)
         case('tz')
-          call ncinfo(ncname( n,:),'tau_z','stress z','M','tttt')
+          call ncinfo(ncname( n,:),'tau_z','stress z','M','ttmt')
           pfields(n)%point => tau_z(ib:ie,jb:je,kb:ke)
+        case('hf')
+          call ncinfo(ncname( n,:),'thl_flux','stress z','M','ttmt')
+          pfields(n)%point => thl_flux(ib:ie,jb:je,kb:ke)
+        case('mu')
+          call ncinfo(ncname( n,:),'mask_u','mask u','M','mttt')
+          pfields(n)%point => mask_u(ib:ie,jb:je,kb:ke)
+        case('mv')
+          call ncinfo(ncname( n,:),'mask_v','mask v','M','tmtt')
+          pfields(n)%point => mask_v(ib:ie,jb:je,kb:ke)
+        case('mw')
+          call ncinfo(ncname( n,:),'mask_w','mask w','M','ttmt')
+          pfields(n)%point => mask_w(ib:ie,jb:je,kb:ke)
+        case('mc')
+          call ncinfo(ncname( n,:),'mask_c','mask c','M','tttt')
+          pfields(n)%point => mask_c(ib:ie,jb:je,kb:ke)
         ! case('pd')
         !   call ncinfo(ncname( n,:),'p','pressure correction','M','tttt')
         !   pfields(n)%point => p(ib:ie,jb:je,kb:ke)
@@ -366,7 +382,7 @@ contains
 
   !> Do fielddump. Collect data to truncated (2 byte) integers, and write them to file
   subroutine fielddump
-    use modfields, only : u0,v0,w0,thl0,qt0,ql0,sv0,pres0,u01,u02,u0h,um,div,dudx,dvdy,dwdz  !ILS13 21.04.2015 changed to u0 from um  etc
+    use modfields, only : u0,v0,w0,thl0,qt0,ql0,sv0,pres0,u01,u02,u0h,um,div,dudx,dvdy,dwdz,tau_x  !ILS13 21.04.2015 changed to u0 from um  etc
     use modsurfdata,only : thls,qts,thvs
     use modglobal, only : ib,ie,ih,jb,je,jh,ke,kb,kh,rk3step,timee,dt_lim,cexpnr,ifoutput,imax,jmax,&
                           tfielddump, tnextfielddump,nsv, lfielddump, ktot,fieldvars, imax1,jmax1,kmax1,imax2,jmax2,kmax2,rk3step,dyi,dxfi,dzhi

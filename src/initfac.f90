@@ -115,7 +115,7 @@
         allocate (facain(0:nfcts))
         allocate (facets(nfcts))
 
-        if (lEB .eqv. .true.) then
+        if (lEB) then
           allocate (vf(1:nfcts, 1:nfcts))
           allocate (svf(1:nfcts))
           allocate (netsw(1:nfcts))
@@ -140,7 +140,7 @@
         !block = 0;
         faclGR = .false.; facz0 = 0.; facz0h = 0.; facalb = 0.; facem = 0.; facd=0.; facdi = 0.; faccp = 0.
         faclami = 0.; fackappa = 0.; faca = 0.; facain = 0; facets = 0
-        if (lEB .eqv. .true.) then
+        if (lEB) then
           vf = 0.; svf = 0.; netsw = 0.; facLWin = 0.
         end if
         Tfacinit = 0.; facT = 0.; facTdash = 0.
@@ -315,7 +315,7 @@
             call MPI_BCAST(facain(0:nfcts), nfcts + 1, MPI_Integer, 0, comm3d, mpierr)
             call MPI_BCAST(facets, nfcts, MPI_Integer, 0, comm3d, mpierr)
             !factypes is broadcast further up
-            if (lEB .eqv. .true.) then
+            if (lEB) then
               call MPI_BCAST(svf(1:nfcts), nfcts, MY_REAL, 0, comm3d, mpierr)
               call MPI_BCAST(netsw(1:nfcts), nfcts, MY_REAL, 0, comm3d, mpierr)
             end if

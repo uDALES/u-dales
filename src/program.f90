@@ -24,7 +24,7 @@ program DALESURBAN      !Version 48
 !!----------------------------------------------------------------
 !!     0.0    USE STATEMENTS FOR CORE MODULES
 !!----------------------------------------------------------------
-  use modmpi,            only : initmpi, exitmpi, myid, barrou
+  use modmpi,            only : initmpi, exitmpi, myid, starttimer
   use modglobal,         only : rk3step,timeleft
   use modstartup,        only : startup,exitmodules
   use modsave,           only : writerestartfiles
@@ -69,7 +69,7 @@ program DALESURBAN      !Version 48
   !write(*,*) myid, "done initstatsdump"
 
   call readfacetfiles
-  !call initEB
+  call initEB
 
   call boundary
 
@@ -78,6 +78,7 @@ program DALESURBAN      !Version 48
 !   3.0   MAIN TIME LOOP
 !------------------------------------------------------
   write(*,*) 'Starting rank ', myid
+  call starttimer
   do while ((timeleft>0) .or. (rk3step < 3))
 
     call tstep_update
@@ -113,7 +114,7 @@ program DALESURBAN      !Version 48
 
     call ibmnorm        ! immersed boundary forcing: set normal velocities to zero
 
-    !call EB
+    call EB
 
     !call scalsource     ! adds continuous forces in specified region of domain
 
@@ -165,7 +166,7 @@ program DALESURBAN      !Version 48
 !    4    FINALIZE ADD ONS AND THE MAIN PROGRAM
 !-------------------------------------------------------
   call exitfielddump
-  !call exitstatsdump     !tg3315
+  call exitstatsdump     !tg3315
   !call exitmodules
   !call exittest
   call exitmpi
