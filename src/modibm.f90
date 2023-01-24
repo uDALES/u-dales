@@ -26,12 +26,13 @@ module modibm
    !use wf_uno
    implicit none
    save
-   public :: initibm, ibmnorm, ibmwallfun, bottom, createmasks, &
+   public :: initibm, ibmnorm, ibmwallfun, bottom, lbottom, createmasks, &
              nsolpts_u, nsolpts_v, nsolpts_w, nsolpts_c, &
              nbndpts_u, nbndpts_v, nbndpts_w, nbndpts_c, &
              nfctsecs_u, nfctsecs_v, nfctsecs_w, nfctsecs_c, &
              mask_u, mask_v, mask_w, mask_c
 
+   logical :: lbottom = .true.
    ! u
    integer :: nsolpts_u
    integer, allocatable :: solpts_u(:,:)
@@ -41,13 +42,12 @@ module modibm
 
    integer :: nbndpts_u
    integer, allocatable :: bndpts_u(:,:) ! ijk location of fluid boundary point
-   real, allocatable    :: recpts_u(:,:) ! xyz location of reconstruction point
-   real, allocatable    :: bndvec_u(:,:) ! vector from bound point to rec point (normalised)
+   real, allocatable    :: intpts_u(:,:) ! xyz location of boundary intercept point
+   real, allocatable    :: bndvec_u(:,:) ! vector from boundary to fluid point (normalised)
    real, allocatable    :: bnddst_u(:) ! distance between surface & bound point
-   real, allocatable    :: recdst_u(:) ! distance between bound point & rec point
    !logical, allocatable :: lbndptsrank_u(:) !
    integer, allocatable :: bndptsrank_u(:) ! indices of points on current rank
-   logical, allocatable :: lrec_u(:) ! Switch whether reconstruction point is a computational point
+   logical, allocatable :: lcomprec_u(:) ! Switch whether reconstruction point is a computational point
    integer :: nbndptsrank_u
 
    integer :: nfctsecs_u
@@ -69,13 +69,12 @@ module modibm
 
    integer :: nbndpts_v
    integer, allocatable :: bndpts_v(:,:) ! ijk location of fluid boundary point
-   real, allocatable    :: recpts_v(:,:) ! xyz location of reconstruction point
-   real, allocatable    :: bndvec_v(:,:) ! vector from bound point to rec point (normalised)
+   real, allocatable    :: intpts_v(:,:) ! xyz location of boundary intercept point
+   real, allocatable    :: bndvec_v(:,:) ! vector from boundary point to fluid point (normalised)
    real, allocatable    :: bnddst_v(:) ! distance between surface & bound point
-   real, allocatable    :: recdst_v(:) ! distance between bound point & rec point
    !logical, allocatable :: lbndptsrank_v(:) !
    integer, allocatable :: bndptsrank_v(:) ! indices of points on current rank
-   logical, allocatable :: lrec_v(:) ! Switch whether reconstruction point is a computational point
+   logical, allocatable :: lcomprec_v(:) ! Switch whether reconstruction point is a computational point
    integer :: nbndptsrank_v
 
    integer :: nfctsecs_v
@@ -97,13 +96,12 @@ module modibm
 
    integer :: nbndpts_w
    integer, allocatable :: bndpts_w(:,:) ! ijk location of fluid boundary point
-   real, allocatable    :: recpts_w(:,:) ! xyz location of reconstruction point
-   real, allocatable    :: bndvec_w(:,:) ! vector from bound point to rec point (normalised)
+   real, allocatable    :: intpts_w(:,:) ! xyz location of reconstruction point
+   real, allocatable    :: bndvec_w(:,:) ! vector from boundary to fluid point (normalised)
    real, allocatable    :: bnddst_w(:) ! distance between surface & bound point
-   real, allocatable    :: recdst_w(:) ! distance between bound point & rec point
    !logical, allocatable :: lbndptsrank_w(:) !
    integer, allocatable :: bndptsrank_w(:) ! indices of points on current rank
-   logical, allocatable :: lrec_w(:) ! Switch whether reconstruction point is a computational point
+   logical, allocatable :: lcomprec_w(:) ! Switch whether reconstruction point is a computational point
    integer :: nbndptsrank_w
 
    integer :: nfctsecs_w
@@ -125,13 +123,12 @@ module modibm
 
    integer :: nbndpts_c
    integer, allocatable :: bndpts_c(:,:) ! ijk location of fluid boundary point
-   real, allocatable    :: recpts_c(:,:) ! xyz location of reconstruction point
-   real, allocatable    :: bndvec_c(:,:) ! vector from bound point to rec point (normalised)
+   real, allocatable    :: intpts_c(:,:) ! xyz location of boundary point
+   real, allocatable    :: bndvec_c(:,:) ! vector from boundary to fluid point (normalised)
    real, allocatable    :: bnddst_c(:) ! distance between surface & bound point
-   real, allocatable    :: recdst_c(:) ! distance between bound point & rec point
    !logical, allocatable :: lbndptsrank_w(:) !
    integer, allocatable :: bndptsrank_c(:) ! indices of points on current rank
-   logical, allocatable :: lrec_c(:) ! Switch whether reconstruction point is a computational point
+   logical, allocatable :: lcomprec_c(:) ! Switch whether reconstruction point is a computational point
    integer :: nbndptsrank_c
 
    integer :: nfctsecs_c
@@ -161,19 +158,19 @@ module modibm
      call initibmnorm('solid_c.txt', nsolpts_c, solpts_c, nsolptsrank_c, solptsrank_c)
 
      call initibmwallfun('fluid_boundary_u.txt', 'facet_sections_u.txt', xh, yf, zf, &
-                         nbndpts_u, bndpts_u, bnddst_u, recpts_u, recdst_u, bndvec_u, lrec_u, nbndptsrank_u, bndptsrank_u, &
+                         nbndpts_u, bndpts_u, bnddst_u, intpts_u, bndvec_u, lcomprec_u, nbndptsrank_u, bndptsrank_u, &
                          nfctsecs_u, secfacids_u, secareas_u, secbndptids_u, nfctsecsrank_u, fctsecsrank_u)
 
      call initibmwallfun('fluid_boundary_v.txt', 'facet_sections_v.txt', xf, yh, zf, &
-                         nbndpts_v, bndpts_v, bnddst_v, recpts_v, recdst_v, bndvec_v, lrec_v, nbndptsrank_v, bndptsrank_v, &
+                         nbndpts_v, bndpts_v, bnddst_v, intpts_v, bndvec_v, lcomprec_v, nbndptsrank_v, bndptsrank_v, &
                          nfctsecs_v, secfacids_v, secareas_v, secbndptids_v, nfctsecsrank_v, fctsecsrank_v)
 
      call initibmwallfun('fluid_boundary_w.txt', 'facet_sections_w.txt', xf, yf, zh, &
-                        nbndpts_w, bndpts_w, bnddst_w, recpts_w, recdst_w, bndvec_w, lrec_w, nbndptsrank_w, bndptsrank_w, &
+                        nbndpts_w, bndpts_w, bnddst_w, intpts_w, bndvec_w, lcomprec_w, nbndptsrank_w, bndptsrank_w, &
                         nfctsecs_w, secfacids_w, secareas_w, secbndptids_w, nfctsecsrank_w, fctsecsrank_w)
 
      call initibmwallfun('fluid_boundary_c.txt', 'facet_sections_c.txt', xf, yf, zf, &
-                         nbndpts_c, bndpts_c, bnddst_c, recpts_c, recdst_c, bndvec_c, lrec_c, nbndptsrank_c, bndptsrank_c, &
+                         nbndpts_c, bndpts_c, bnddst_c, intpts_c, bndvec_c, lcomprec_c, nbndptsrank_c, bndptsrank_c, &
                          nfctsecs_c, secfacids_c, secareas_c, secbndptids_c, nfctsecsrank_c, fctsecsrank_c)
 
     ! Define (real) masks
@@ -265,7 +262,7 @@ module modibm
 
 
    subroutine initibmwallfun(fname_bnd, fname_sec, x, y, z, &
-                             nbndpts, bndpts, bnddst, recpts, recdst, bndvec, lrec, nbndptsrank, bndptsrank, &
+                             nbndpts, bndpts, bnddst, intpts, bndvec, lcomprec, nbndptsrank, bndptsrank, &
                              nfctsecs, secfacids, secareas, secbndptids, nfctsecsrank, fctsecsrank)
      use modglobal, only : ifinput, ib, itot, ih, jb, jtot, jh, kb, ktot, kh
      use modmpi,    only : myid, comm3d, MPI_INTEGER, MY_REAL, mpierr
@@ -277,11 +274,11 @@ module modibm
      real,    intent(in), dimension(jb:jtot+jh) :: y
      real,    intent(in), dimension(kb:ktot+kh) :: z
      integer, intent(out) :: nfctsecsrank, nbndptsrank
-     real,    intent(out), dimension(:),   allocatable :: bnddst, recdst, secareas
-     real,    intent(out), dimension(:,:), allocatable :: recpts, bndvec
+     real,    intent(out), dimension(:),   allocatable :: bnddst, secareas
+     real,    intent(out), dimension(:,:), allocatable :: intpts, bndvec
      integer, intent(out), dimension(:),   allocatable :: secfacids, secbndptids, fctsecsrank, bndptsrank
      integer, intent(out), dimension(:,:), allocatable :: bndpts
-     logical, intent(out), dimension(:),   allocatable :: lrec
+     logical, intent(out), dimension(:),   allocatable :: lcomprec
 
      logical, dimension(nbndpts) :: lbndptsrank
      logical, dimension(nfctsecs) :: lfctsecsrank
@@ -289,47 +286,18 @@ module modibm
      character(80) chmess
 
      allocate(bndpts(nbndpts,3))
-     allocate(bnddst(nbndpts))
-     allocate(recpts(nbndpts,3))
-     allocate(bndvec(nbndpts,3))
-     allocate(recdst(nbndpts))
-     allocate(lrec(nbndpts))
 
      ! read u points
      if (myid == 0) then
        open (ifinput, file=fname_bnd)
        read (ifinput, '(a80)') chmess
        do n = 1, nbndpts
-         read (ifinput, *) bndpts(n,1), bndpts(n,2), bndpts(n,3), bnddst(n), recpts(n,1), recpts(n,2), recpts(n,3)
+         read (ifinput, *) bndpts(n,1), bndpts(n,2), bndpts(n,3)
        end do
        close (ifinput)
-
-       ! Calculate vector
-       do n = 1,nbndpts
-         bndvec(n,1) = recpts(n,1) - x(bndpts(n,1))
-         bndvec(n,2) = recpts(n,2) - y(bndpts(n,2))
-         bndvec(n,3) = recpts(n,3) - z(bndpts(n,3))
-         recdst(n) = norm2(bndvec(n,:))
-         bndvec(n,:) = bndvec(n,:) / recdst(n)
-       end do
      end if
 
      call MPI_BCAST(bndpts, nbndpts*3, MPI_INTEGER, 0, comm3d, mpierr)
-     call MPI_BCAST(recpts, nbndpts*3, MY_REAL,     0, comm3d, mpierr)
-     call MPI_BCAST(bndvec, nbndpts*3, MY_REAL,     0, comm3d, mpierr)
-     call MPI_BCAST(bnddst, nbndpts,   MY_REAL,     0, comm3d, mpierr)
-     call MPI_BCAST(recdst, nbndpts,   MY_REAL,     0, comm3d, mpierr)
-
-     ! Work out whether reconstruction point is a computational point
-     ! This should only occur when the normal is in the x direction and the distance between them is dx
-     ! This means the facet section is aligned
-     do n = 1,nbndpts
-       ! if (computational point)
-          lrec(n) = .true.
-       ! else
-          !lrec(n) = .false.
-       ! end if
-     end do
 
      ! Determine whether points are on this rank
      nbndptsrank = 0
@@ -358,20 +326,36 @@ module modibm
      allocate(secfacids(nfctsecs))
      allocate(secareas(nfctsecs))
      allocate(secbndptids(nfctsecs))
+     allocate(intpts(nfctsecs,3))
+     allocate(bnddst(nfctsecs))
+     allocate(bndvec(nfctsecs,3))
 
      ! read u facet sections
      if (myid == 0) then
        open (ifinput, file=fname_sec)
        read (ifinput, '(a80)') chmess
        do n = 1, nfctsecs
-         read (ifinput, *) secfacids(n), secareas(n), secbndptids(n)
+         read (ifinput, *) secfacids(n), secareas(n), secbndptids(n), intpts(n,1), intpts(n,2), intpts(n,3)
        end do
        close (ifinput)
+
+       ! Calculate vector
+       do n = 1,nfctsecs
+         m = secbndptids(n)
+         bndvec(n,1) = x(bndpts(m,1)) - intpts(n,1)
+         bndvec(n,2) = y(bndpts(m,2)) - intpts(n,2)
+         bndvec(n,3) = z(bndpts(m,3)) - intpts(n,3)
+         bnddst(n) = norm2(bndvec(n,:))
+         bndvec(n,:) = bndvec(n,:) / bnddst(n)
+       end do
      end if
 
-     call MPI_BCAST(secfacids,   nfctsecs, MPI_INTEGER, 0, comm3d, mpierr)
-     call MPI_BCAST(secareas,    nfctsecs, MY_REAL,     0, comm3d, mpierr)
-     call MPI_BCAST(secbndptids, nfctsecs, MPI_INTEGER, 0, comm3d, mpierr)
+     call MPI_BCAST(secfacids,   nfctsecs,   MPI_INTEGER, 0, comm3d, mpierr)
+     call MPI_BCAST(secareas,    nfctsecs,   MY_REAL,     0, comm3d, mpierr)
+     call MPI_BCAST(secbndptids, nfctsecs,   MPI_INTEGER, 0, comm3d, mpierr)
+     call MPI_BCAST(intpts,      nfctsecs*3, MY_REAL,     0, comm3d, mpierr)
+     call MPI_BCAST(bndvec,      nfctsecs*3, MY_REAL,     0, comm3d, mpierr)
+     call MPI_BCAST(bnddst,      nfctsecs,   MY_REAL,     0, comm3d, mpierr)
 
      ! Determine whether section needs to be updated by this rank
      nfctsecsrank = 0
@@ -382,6 +366,18 @@ module modibm
         else
           lfctsecsrank(n) = .false.
        end if
+     end do
+
+     ! Work out whether reconstruction point is a computational point
+     ! This should only occur when the normal is in the x direction and the distance between them is dx
+     ! This means the facet section is aligned
+     allocate(lcomprec(nfctsecs))
+     do n = 1,nfctsecs
+       ! if (computational point)
+          lcomprec(n) = .true.
+       ! else
+          !lcomprec(n) = .false.
+       ! end if
      end do
 
      ! Store indices of sections on current rank - only loop through these sections
@@ -734,31 +730,26 @@ module modibm
 
       allocate(rhs(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
 
-      ! Remove subgrid term
+      if (iwallmom > 1) then
+        rhs = up
+        call wallfunmom(xhat, up, nbndpts_u, bndpts_u, bnddst_u, bndvec_u, lcomprec_u, &
+        nfctsecs_u, secfacids_u, secareas_u, secbndptids_u, nfctsecsrank_u, fctsecsrank_u)
+        tau_x(:,:,kb:ke+kh) = tau_x(:,:,kb:ke+kh) + (up - rhs)
 
-      ! ! Discard subgrid processes close to walls
-      ! call subgrid_correction(u0, up, mask_u, ekm, nbndpts_u, bndpts_u, nbndptsrank_u, bndptsrank_u)
-      ! call subgrid_correction(v0, vp, mask_v, ekm, nbndpts_v, bndpts_v, nbndptsrank_v, bndptsrank_v)
-      ! call subgrid_correction(w0, wp, mask_w, ekm, nbndpts_w, bndpts_w, nbndptsrank_w, bndptsrank_w)
+        rhs = vp
+        call wallfunmom(yhat, vp, nbndpts_v, bndpts_v, bnddst_v, bndvec_v, lcomprec_v, &
+        nfctsecs_v, secfacids_v, secareas_v, secbndptids_v, nfctsecsrank_v, fctsecsrank_v)
+        tau_y(:,:,kb:ke+kh) = tau_y(:,:,kb:ke+kh) + (vp - rhs)
 
-      rhs = up
-      call wallfunmom(xhat, up, nbndpts_u, bndpts_u, bnddst_u, recpts_u, recdst_u, bndvec_u, lrec_u, &
-                       nfctsecs_u, secfacids_u, secareas_u, secbndptids_u, nfctsecsrank_u, fctsecsrank_u)
-      tau_x(:,:,kb:ke+kh) = tau_x(:,:,kb:ke+kh) + (up - rhs)
+        rhs = wp
+        call wallfunmom(zhat, wp, nbndpts_w, bndpts_w, bnddst_w, bndvec_w, lcomprec_w, &
+        nfctsecs_w, secfacids_w, secareas_w, secbndptids_w, nfctsecsrank_w, fctsecsrank_w)
+        tau_z(:,:,kb:ke+kh) = tau_z(:,:,kb:ke+kh) + (wp - rhs)
 
-      rhs = vp
-      call wallfunmom(yhat, vp, nbndpts_v, bndpts_v, bnddst_v, recpts_v, recdst_v, bndvec_v, lrec_v, &
-                      nfctsecs_v, secfacids_v, secareas_v, secbndptids_v, nfctsecsrank_v, fctsecsrank_v)
-      tau_y(:,:,kb:ke+kh) = tau_y(:,:,kb:ke+kh) + (vp - rhs)
-
-      rhs = wp
-      call wallfunmom(zhat, wp, nbndpts_w, bndpts_w, bnddst_w, recpts_w, recdst_w, bndvec_w, lrec_w, &
-                      nfctsecs_w, secfacids_w, secareas_w, secbndptids_w, nfctsecsrank_w, fctsecsrank_w)
-      tau_z(:,:,kb:ke+kh) = tau_z(:,:,kb:ke+kh) + (wp - rhs)
-
-      call diffu_corr
-      call diffv_corr
-      call diffw_corr
+        call diffu_corr
+        call diffv_corr
+        call diffw_corr
+      end if
 
       if (ltempeq) then
         rhs = thlp
@@ -774,7 +765,7 @@ module modibm
     end subroutine ibmwallfun
 
 
-   subroutine wallfunmom(dir, rhs, nbndpts, bndpts, bnddst, recpts, recdst, bndvec, lrec, &
+   subroutine wallfunmom(dir, rhs, nbndpts, bndpts, bnddst, bndvec, lcomprec, &
                          nfctsecs, secfacids, secareas, secbndptids, nfctsecsrank, fctsecsrank)
      use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, eps1, fkar, dx, dy, dzf, iwallmom, xhat, yhat, zhat
      use modfields, only : u0, v0, w0, thl0, tau_x, tau_y, tau_z
@@ -785,11 +776,11 @@ module modibm
      real, intent(in)    :: dir(3)
      real, intent(inout) :: rhs(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
      integer, intent(in) :: nbndpts, nfctsecs, nfctsecsrank
-     real,    intent(in), dimension(nbndpts)   :: bnddst, recdst, secareas
-     real,    intent(in), dimension(nbndpts,3) :: recpts, bndvec
-     integer, intent(in), dimension(nfctsecs)  :: secfacids, secbndptids, fctsecsrank
-     integer, intent(in), dimension(nbndpts,3) :: bndpts
-     logical, intent(in), dimension(nbndpts)   :: lrec
+     integer, intent(in), dimension(nbndpts,3)  :: bndpts
+     real,    intent(in), dimension(nfctsecs)   :: secareas, bnddst
+     real,    intent(in), dimension(nfctsecs,3) :: bndvec
+     integer, intent(in), dimension(nfctsecs)   :: secfacids, secbndptids, fctsecsrank
+     logical, intent(in), dimension(nfctsecs)   :: lcomprec
 
      integer i, j, k, n, m, sec, pt, fac
      real dist, stress, area, vol, momvol, Tair, Tsurf
@@ -801,14 +792,14 @@ module modibm
        fac = secfacids(sec) ! index of facet
 
        ! if surface normal is aligned with coordinate direction, there cannot be any tangential component
-       if ((abs(abs(dot_product(bndvec(n,:), dir)) - 1.)) < eps1) cycle
+       if ((abs(abs(dot_product(bndvec(sec,:), dir)) - 1.)) < eps1) cycle
 
        i = bndpts(n,1) - zstart(1) + 1 ! should be on this rank!
        j = bndpts(n,2) - zstart(2) + 1 ! should be on this rank!
        k = bndpts(n,3) - zstart(3) + 1 ! should be on this rank!
        if ((i < ib) .or. (i > ie) .or. (j < jb) .or. (j > je)) write(*,*) "problem", i, j
 
-       if (lrec(n)) then ! Section aligned with grid - don't interpolate, use this point's velocity
+       if (lcomprec(sec)) then ! Section aligned with grid - don't interpolate, use this point's velocity
          if (all(abs(dir - xhat) < eps1)) then
            uvec(1) = u0(i,j,k)
            uvec(2) = 0.25 * (v0(i,j,k) + v0(i,j+1,k) + v0(i-1,j,k) + v0(i-1,j+1,k))
@@ -834,7 +825,7 @@ module modibm
            write(*,*) 'ERROR: none of x,y, or z'
            stop 1
          end if
-         dist = bnddst(n)
+         dist = bnddst(sec)
        else ! Interpolate velocities at reconstruction point
          write(0, *) 'ERROR: interpolation at reconstruction point not supported'
          stop 1
@@ -843,9 +834,9 @@ module modibm
        if (all(abs(uvec) < eps1)) cycle
 
        ! local coordinate system
-       norm(1) = bndvec(n,1)
-       norm(2) = bndvec(n,2)
-       norm(3) = bndvec(n,3)
+       norm(1) = bndvec(sec,1)
+       norm(2) = bndvec(sec,2)
+       norm(3) = bndvec(sec,3)
 
        if (iwallmom == 2) then
          stress = calc_stress(dir, uvec, norm, dist, facz0(fac), facz0h(fac), Tair, facT(fac, 1))
@@ -939,13 +930,13 @@ module modibm
        k = bndpts_c(n,3) - zstart(3) + 1 ! should be on this rank!
        if ((i < ib) .or. (i > ie) .or. (j < jb) .or. (j > je)) write(*,*) "problem", i, j
 
-       if (lrec_c(n)) then ! Section aligned with grid - don't interpolate, use this point's velocity
+       if (lcomprec_c(sec)) then ! Section aligned with grid - don't interpolate, use this point's velocity
            ! currently assumes all no other neighbouring solid points?
            uvec(1) = 0.125 * sum(u0(i-1:i,j-1:j,k-1:k))
            uvec(2) = 0.125 * sum(v0(i-1:i,j-1:j,k-1:k))
            uvec(3) = 0.125 * sum(w0(i-1:i,j-1:j,k-1:k))
            Tair = thl0(i,j,k)
-           dist = bnddst_c(n)
+           dist = bnddst_c(sec)
        else ! Interpolate velocities at reconstruction point
          write(0, *) 'ERROR: interpolation at reconstruction point not supported'
          stop 1
@@ -954,9 +945,9 @@ module modibm
        if (all(abs(uvec) < eps1)) cycle
 
        ! local coordinate system
-       norm(1) = bndvec_c(n,1)
-       norm(2) = bndvec_c(n,2)
-       norm(3) = bndvec_c(n,3)
+       norm(1) = bndvec_c(sec,1)
+       norm(2) = bndvec_c(sec,2)
+       norm(3) = bndvec_c(sec,3)
        span = cross_product(norm, uvec)
        if (norm2(span) < eps1) then
          ! velocity is pointing into or outof the surface, so no tangential stress
@@ -1109,15 +1100,24 @@ module modibm
       !vegetated floor not added (could simply be copied from vegetated horizontal facets)
       use modglobal, only:ib, ie, ih, jh, kb,ke,kh, jb, je, kb, numol, prandtlmol, dzh, nsv, &
          dxf, dxhi, dzf, dzfi, numoli, ltempeq, khc, lmoist, BCbotT, BCbotq, BCbotm, BCbots, dzh2i
-      use modfields, only : u0,v0,e120,um,vm,w0,wm,e12m,thl0,qt0,sv0,thlm,qtm,svm,up,vp,thlp,qtp,svp,shear,momfluxb,tfluxb,cth,tau_x,tau_y,tau_z,thl_flux
+      use modfields, only : u0,v0,e120,um,vm,w0,wm,e12m,thl0,qt0,sv0,thlm,qtm,svm,up,vp,wp,thlp,qtp,svp,shear,momfluxb,tfluxb,cth,tau_x,tau_y,tau_z,thl_flux
       use modsurfdata, only:thlflux, qtflux, svflux, ustar, thvs, wtsurf, wqsurf, thls, z0, z0h
       use modsubgriddata, only:ekm, ekh
       use modmpi, only:myid
       implicit none
       integer :: i, j, jp, jm, m
-      !momentum
+
+      e120(:, :, kb - 1) = e120(:, :, kb)
+      e12m(:, :, kb - 1) = e12m(:, :, kb)
+      ! wm(:, :, kb) = 0. ! SO moved to modboundary
+      ! w0(:, :, kb) = 0.
       tau_x(:,:,kb:ke+kh) = up
-      tau_y = vp
+      tau_y(:,:,kb:ke+kh) = vp
+      tau_z(:,:,kb:ke+kh) = wp
+      thl_flux(:,:,kb:ke+kh) = thlp
+
+      if (lbottom) then
+      !momentum
       if (BCbotm.eq.2) then
       call wfuno(ih, jh, kh, up, vp, thlp, momfluxb, tfluxb, cth, bcTfluxA, u0, v0, thl0, thls, z0, z0h, 0, 1, 91)
       elseif (BCbotm.eq.3) then
@@ -1127,10 +1127,7 @@ module modibm
       stop 1
       end if
 
-      tau_x(:,:,kb:ke+kh) = up - tau_x(:,:,kb:ke+kh)
-      tau_y(:,:,kb:ke+kh) = vp - tau_y(:,:,kb:ke+kh)
 
-      thl_flux(:,:,kb:ke+kh) = thlp
       if (ltempeq) then
          if (BCbotT.eq.1) then !neumann/fixed flux bc for temperature
             do j = jb, je
@@ -1151,8 +1148,6 @@ module modibm
          stop 1
          end if
       end if ! ltempeq
-
-      thl_flux(:,:,kb:ke+kh) = thlp - thl_flux(:,:,kb:ke+kh)
 
       if (lmoist) then
          if (BCbotq.eq.1) then !neumann/fixed flux bc for moisture
@@ -1192,10 +1187,13 @@ module modibm
          end if !
       end if
 
-      e120(:, :, kb - 1) = e120(:, :, kb)
-      e12m(:, :, kb - 1) = e12m(:, :, kb)
-      ! wm(:, :, kb) = 0. ! SO moved to modboundary
-      ! w0(:, :, kb) = 0.
+      end if
+
+      tau_x(:,:,kb:ke+kh) = up - tau_x(:,:,kb:ke+kh)
+      tau_y(:,:,kb:ke+kh) = vp - tau_y(:,:,kb:ke+kh)
+      tau_z(:,:,kb:ke+kh) = wp - tau_z(:,:,kb:ke+kh)
+      thl_flux(:,:,kb:ke+kh) = thlp - thl_flux(:,:,kb:ke+kh)
+
       return
    end subroutine bottom
 
