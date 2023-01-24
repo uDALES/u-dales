@@ -753,8 +753,7 @@ module modibm
 
       if (ltempeq) then
         rhs = thlp
-        !if (iwalltemp == 1) ! fixed flux not implemented yet
-        if (iwalltemp == 2) call wallfuntemp
+        call wallfuntemp
         thl_flux(:,:,kb:ke+kh) = thl_flux(:,:,kb:ke+kh) + (thlp - rhs)
         call diffc_corr(thl0, thlp)
       end if
@@ -870,8 +869,7 @@ module modibm
 
      span = cross_product(norm, uvec)
      if (norm2(span) < eps1) then
-       ! velocity is pointing into or outof the surface, so no tangential stress
-       calc_stress = 0.
+       calc_stress = 0.        ! velocity is pointing into or outof the surface, so no tangential component
        return
      else
        span = span / norm2(span)
@@ -909,10 +907,11 @@ module modibm
 
 
    subroutine wallfuntemp
-     use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, eps1, fkar, dx, dy, dzh, xhat, yhat, zhat, lEB
+     use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, eps1, fkar, dx, dy, dzh, xhat, yhat, zhat, lEB, iwalltemp
      use modfields, only : u0, v0, w0, thl0, thlp
      use initfac,   only : facT, facz0, facz0h, fachf, faca
      use modsurfdata, only : z0, z0h
+     use modibmdata, only : bctfxm, bctfxp, bctfym, bctfyp, bctfz
      use decomp_2d, only : zstart
 
 
@@ -950,8 +949,7 @@ module modibm
        norm(3) = bndvec_c(sec,3)
        span = cross_product(norm, uvec)
        if (norm2(span) < eps1) then
-         ! velocity is pointing into or outof the surface, so no tangential stress
-         return
+         return ! velocity is pointing into or outof the surface, so no tangential component
        else
          span = span / norm2(span)
        end if
@@ -959,7 +957,22 @@ module modibm
        utan = dot_product(uvec, strm)
 
        ! Wall function
-       call unoh(utan, dist, facz0(fac), facz0h(fac), Tair, facT(fac, 1), cth, flux)
+       if (iwalltemp == 1) then
+          if     (all(abs(norm - xhat) < eps1)) then
+            flux = bctfxp
+          elseif (all(abs(norm + xhat) < eps1)) then
+            flux = bctfxm
+          elseif (all(abs(norm - yhat) < eps1)) then
+              flux = bctfyp
+          elseif (all(abs(norm + yhat) < eps1)) then
+              flux = bctfxm
+          elseif (all(abs(norm - zhat) < eps1)) then
+              flux = bctfz
+          end if
+
+       elseif (iwalltemp == 2) then
+          call unoh(utan, dist, facz0(fac), facz0h(fac), Tair, facT(fac, 1), cth, flux)
+       end if
        ! Heat transfer coefficient (cth) could be output here
        ! flux [Km/s]
        ! fluid volumetric heat source/sink = flux * area / volume [K/s]
