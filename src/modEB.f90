@@ -33,7 +33,7 @@ module modEB
    character(80) :: Tname = "facT.xxx.nc", EBname = 'facEB.xxx.nc'
    character(80),dimension(1,4) :: tncstatT, tncstatEB
    real, allocatable :: varsT(:,:,:), varsEB(:,:)
-   
+
    save
 
 contains
@@ -60,6 +60,7 @@ contains
       B(2, 3) = -detinv*(A(1, 1)*A(2, 3) - A(1, 3)*A(2, 1))
       B(3, 3) = +detinv*(A(1, 1)*A(2, 2) - A(1, 2)*A(2, 1))
    end function
+
    pure function matinv4(A) result(B)
       !! calculates the inverse of a 4×4 matrix.
       real, intent(in) :: A(4, 4) !! matrix
@@ -68,27 +69,48 @@ contains
 
       !inverse determinant of the matrix
       detinv = &
-        1/(A(1,1)*(A(2,2)*(A(3,3)*A(4,4)-A(3,4)*A(4,3))+A(2,3)*(A(3,4)*A(4,2)-A(3,2)*A(4,4))+A(2,4)*(A(3,2)*A(4,3)-A(3,3)*A(4,2)))&
-           - A(1,2)*(A(2,1)*(A(3,3)*A(4,4)-A(3,4)*A(4,3))+A(2,3)*(A(3,4)*A(4,1)-A(3,1)*A(4,4))+A(2,4)*(A(3,1)*A(4,3)-A(3,3)*A(4,1)))&
-           + A(1,3)*(A(2,1)*(A(3,2)*A(4,4)-A(3,4)*A(4,2))+A(2,2)*(A(3,4)*A(4,1)-A(3,1)*A(4,4))+A(2,4)*(A(3,1)*A(4,2)-A(3,2)*A(4,1)))&
-           - A(1,4)*(A(2,1)*(A(3,2)*A(4,3)-A(3,3)*A(4,2))+A(2,2)*(A(3,3)*A(4,1)-A(3,1)*A(4,3))+A(2,3)*(A(3,1)*A(4,2)-A(3,2)*A(4,1))))
+        1/(A(1,1)*(A(2,2)*(A(3,3)*A(4,4)-A(3,4)*A(4,3))+A(2,3)*(A(3,4)*A(4,2) &
+         - A(3,2)*A(4,4))+A(2,4)*(A(3,2)*A(4,3)-A(3,3)*A(4,2))) &
+         - A(1,2)*(A(2,1)*(A(3,3)*A(4,4)-A(3,4)*A(4,3))+A(2,3)*(A(3,4)*A(4,1) &
+         - A(3,1)*A(4,4))+A(2,4)*(A(3,1)*A(4,3)-A(3,3)*A(4,1))) &
+         + A(1,3)*(A(2,1)*(A(3,2)*A(4,4)-A(3,4)*A(4,2))+A(2,2)*(A(3,4)*A(4,1) &
+         - A(3,1)*A(4,4))+A(2,4)*(A(3,1)*A(4,2)-A(3,2)*A(4,1))) &
+         - A(1,4)*(A(2,1)*(A(3,2)*A(4,3)-A(3,3)*A(4,2))+A(2,2)*(A(3,3)*A(4,1) &
+         - A(3,1)*A(4,3))+A(2,3)*(A(3,1)*A(4,2)-A(3,2)*A(4,1))))
+
       !inverse of the matrix
-      B(1,1) = detinv*(A(2,2)*(A(3,3)*A(4,4)-A(3,4)*A(4,3))+A(2,3)*(A(3,4)*A(4,2)-A(3,2)*A(4,4))+A(2,4)*(A(3,2)*A(4,3)-A(3,3)*A(4,2)))
-      B(2,1) = detinv*(A(2,1)*(A(3,4)*A(4,3)-A(3,3)*A(4,4))+A(2,3)*(A(3,1)*A(4,4)-A(3,4)*A(4,1))+A(2,4)*(A(3,3)*A(4,1)-A(3,1)*A(4,3)))
-      B(3,1) = detinv*(A(2,1)*(A(3,2)*A(4,4)-A(3,4)*A(4,2))+A(2,2)*(A(3,4)*A(4,1)-A(3,1)*A(4,4))+A(2,4)*(A(3,1)*A(4,2)-A(3,2)*A(4,1)))
-      B(4,1) = detinv*(A(2,1)*(A(3,3)*A(4,2)-A(3,2)*A(4,3))+A(2,2)*(A(3,1)*A(4,3)-A(3,3)*A(4,1))+A(2,3)*(A(3,2)*A(4,1)-A(3,1)*A(4,2)))
-      B(1,2) = detinv*(A(1,2)*(A(3,4)*A(4,3)-A(3,3)*A(4,4))+A(1,3)*(A(3,2)*A(4,4)-A(3,4)*A(4,2))+A(1,4)*(A(3,3)*A(4,2)-A(3,2)*A(4,3)))
-      B(2,2) = detinv*(A(1,1)*(A(3,3)*A(4,4)-A(3,4)*A(4,3))+A(1,3)*(A(3,4)*A(4,1)-A(3,1)*A(4,4))+A(1,4)*(A(3,1)*A(4,3)-A(3,3)*A(4,1)))
-      B(3,2) = detinv*(A(1,1)*(A(3,4)*A(4,2)-A(3,2)*A(4,4))+A(1,2)*(A(3,1)*A(4,4)-A(3,4)*A(4,1))+A(1,4)*(A(3,2)*A(4,1)-A(3,1)*A(4,2)))
-      B(4,2) = detinv*(A(1,1)*(A(3,2)*A(4,3)-A(3,3)*A(4,2))+A(1,2)*(A(3,3)*A(4,1)-A(3,1)*A(4,3))+A(1,3)*(A(3,1)*A(4,2)-A(3,2)*A(4,1)))
-      B(1,3) = detinv*(A(1,2)*(A(2,3)*A(4,4)-A(2,4)*A(4,3))+A(1,3)*(A(2,4)*A(4,2)-A(2,2)*A(4,4))+A(1,4)*(A(2,2)*A(4,3)-A(2,3)*A(4,2)))
-      B(2,3) = detinv*(A(1,1)*(A(2,4)*A(4,3)-A(2,3)*A(4,4))+A(1,3)*(A(2,1)*A(4,4)-A(2,4)*A(4,1))+A(1,4)*(A(2,3)*A(4,1)-A(2,1)*A(4,3)))
-      B(3,3) = detinv*(A(1,1)*(A(2,2)*A(4,4)-A(2,4)*A(4,2))+A(1,2)*(A(2,4)*A(4,1)-A(2,1)*A(4,4))+A(1,4)*(A(2,1)*A(4,2)-A(2,2)*A(4,1)))
-      B(4,3) = detinv*(A(1,1)*(A(2,3)*A(4,2)-A(2,2)*A(4,3))+A(1,2)*(A(2,1)*A(4,3)-A(2,3)*A(4,1))+A(1,3)*(A(2,2)*A(4,1)-A(2,1)*A(4,2)))
-      B(1,4) = detinv*(A(1,2)*(A(2,4)*A(3,3)-A(2,3)*A(3,4))+A(1,3)*(A(2,2)*A(3,4)-A(2,4)*A(3,2))+A(1,4)*(A(2,3)*A(3,2)-A(2,2)*A(3,3)))
-      B(2,4) = detinv*(A(1,1)*(A(2,3)*A(3,4)-A(2,4)*A(3,3))+A(1,3)*(A(2,4)*A(3,1)-A(2,1)*A(3,4))+A(1,4)*(A(2,1)*A(3,3)-A(2,3)*A(3,1)))
-      B(3,4) = detinv*(A(1,1)*(A(2,4)*A(3,2)-A(2,2)*A(3,4))+A(1,2)*(A(2,1)*A(3,4)-A(2,4)*A(3,1))+A(1,4)*(A(2,2)*A(3,1)-A(2,1)*A(3,2)))
-      B(4,4) = detinv*(A(1,1)*(A(2,2)*A(3,3)-A(2,3)*A(3,2))+A(1,2)*(A(2,3)*A(3,1)-A(2,1)*A(3,3))+A(1,3)*(A(2,1)*A(3,2)-A(2,2)*A(3,1)))
+      B(1,1) = detinv*(A(2,2)*(A(3,3)*A(4,4)-A(3,4)*A(4,3))+A(2,3)*(A(3,4)*A(4,2) &
+                      -A(3,2)*A(4,4))+A(2,4)*(A(3,2)*A(4,3)-A(3,3)*A(4,2)))
+      B(2,1) = detinv*(A(2,1)*(A(3,4)*A(4,3)-A(3,3)*A(4,4))+A(2,3)*(A(3,1)*A(4,4) &
+                      -A(3,4)*A(4,1))+A(2,4)*(A(3,3)*A(4,1)-A(3,1)*A(4,3)))
+      B(3,1) = detinv*(A(2,1)*(A(3,2)*A(4,4)-A(3,4)*A(4,2))+A(2,2)*(A(3,4)*A(4,1) &
+                      -A(3,1)*A(4,4))+A(2,4)*(A(3,1)*A(4,2)-A(3,2)*A(4,1)))
+      B(4,1) = detinv*(A(2,1)*(A(3,3)*A(4,2)-A(3,2)*A(4,3))+A(2,2)*(A(3,1)*A(4,3) &
+                      -A(3,3)*A(4,1))+A(2,3)*(A(3,2)*A(4,1)-A(3,1)*A(4,2)))
+      B(1,2) = detinv*(A(1,2)*(A(3,4)*A(4,3)-A(3,3)*A(4,4))+A(1,3)*(A(3,2)*A(4,4) &
+                      -A(3,4)*A(4,2))+A(1,4)*(A(3,3)*A(4,2)-A(3,2)*A(4,3)))
+      B(2,2) = detinv*(A(1,1)*(A(3,3)*A(4,4)-A(3,4)*A(4,3))+A(1,3)*(A(3,4)*A(4,1) &
+                      -A(3,1)*A(4,4))+A(1,4)*(A(3,1)*A(4,3)-A(3,3)*A(4,1)))
+      B(3,2) = detinv*(A(1,1)*(A(3,4)*A(4,2)-A(3,2)*A(4,4))+A(1,2)*(A(3,1)*A(4,4) &
+                      -A(3,4)*A(4,1))+A(1,4)*(A(3,2)*A(4,1)-A(3,1)*A(4,2)))
+      B(4,2) = detinv*(A(1,1)*(A(3,2)*A(4,3)-A(3,3)*A(4,2))+A(1,2)*(A(3,3)*A(4,1) &
+                      -A(3,1)*A(4,3))+A(1,3)*(A(3,1)*A(4,2)-A(3,2)*A(4,1)))
+      B(1,3) = detinv*(A(1,2)*(A(2,3)*A(4,4)-A(2,4)*A(4,3))+A(1,3)*(A(2,4)*A(4,2) &
+                      -A(2,2)*A(4,4))+A(1,4)*(A(2,2)*A(4,3)-A(2,3)*A(4,2)))
+      B(2,3) = detinv*(A(1,1)*(A(2,4)*A(4,3)-A(2,3)*A(4,4))+A(1,3)*(A(2,1)*A(4,4) &
+                      -A(2,4)*A(4,1))+A(1,4)*(A(2,3)*A(4,1)-A(2,1)*A(4,3)))
+      B(3,3) = detinv*(A(1,1)*(A(2,2)*A(4,4)-A(2,4)*A(4,2))+A(1,2)*(A(2,4)*A(4,1) &
+                      -A(2,1)*A(4,4))+A(1,4)*(A(2,1)*A(4,2)-A(2,2)*A(4,1)))
+      B(4,3) = detinv*(A(1,1)*(A(2,3)*A(4,2)-A(2,2)*A(4,3))+A(1,2)*(A(2,1)*A(4,3) &
+                      -A(2,3)*A(4,1))+A(1,3)*(A(2,2)*A(4,1)-A(2,1)*A(4,2)))
+      B(1,4) = detinv*(A(1,2)*(A(2,4)*A(3,3)-A(2,3)*A(3,4))+A(1,3)*(A(2,2)*A(3,4) &
+                      -A(2,4)*A(3,2))+A(1,4)*(A(2,3)*A(3,2)-A(2,2)*A(3,3)))
+      B(2,4) = detinv*(A(1,1)*(A(2,3)*A(3,4)-A(2,4)*A(3,3))+A(1,3)*(A(2,4)*A(3,1) &
+                      -A(2,1)*A(3,4))+A(1,4)*(A(2,1)*A(3,3)-A(2,3)*A(3,1)))
+      B(3,4) = detinv*(A(1,1)*(A(2,4)*A(3,2)-A(2,2)*A(3,4))+A(1,2)*(A(2,1)*A(3,4) &
+                      -A(2,4)*A(3,1))+A(1,4)*(A(2,2)*A(3,1)-A(2,1)*A(3,2)))
+      B(4,4) = detinv*(A(1,1)*(A(2,2)*A(3,3)-A(2,3)*A(3,2))+A(1,2)*(A(2,3)*A(3,1) &
+                      -A(2,1)*A(3,3))+A(1,3)*(A(2,1)*A(3,2)-A(2,2)*A(3,1)))
    end function
 
 function gaussji(c,d,n) result(a)
@@ -200,7 +222,9 @@ function gaussji(c,d,n) result(a)
       use modmpi, only:nprocs, myid, comm3d, mpierr, mpi_sum, my_real
       real :: dummy
       integer :: n
+
       if (.not. lEB) return
+
       if (rk3step .eq. 3) then
          !sum over all processors since a facet can be split onto more than one processor
          fachfsum = 0.
@@ -224,56 +248,59 @@ function gaussji(c,d,n) result(a)
 
    subroutine initEB
       !initialise everything necessary to calculate the energy balance
-      use modglobal, only:AM, BM,CM,DM,EM,FM,GM, HM, IDM, inAM, bb,w,dumv,Tdash, bldT, nfcts,nwalllayers
-      use initfac, only:facdi, faccp, faclami, fackappa, netsw, facem, fachf, facef, fachfi, facT, facLWin, facain,facefi,facwsoil,facf,facets,facTdash,facqsat,facf,fachurel  
+      use modglobal, only:AM, BM,CM,DM,EM,FM,GM, HM, IDM, inAM, bb,w,dumv,Tdash, bldT, nfcts,nfaclyrs
+      use initfac, only:facdi, faccp, faclami, fackappa, netsw, facem, fachf, facef, fachfi, facT, facLWin, facain,facefi,facwsoil,facf,facets,facTdash,facqsat,facf,fachurel
       use modmpi, only:myid, comm3d, mpierr, MPI_INTEGER, MPI_DOUBLE_PRECISION, MY_REAL, nprocs, cmyid, MPI_REAL8, MPI_REAL4, MPI_SUM
       use modstat_nc,only: open_nc, define_nc,ncinfo,writestat_dims_nc
       integer :: i,j,k,l,m,n
       real :: dum
-      allocate(AM(1:nwalllayers+1,1:nwalllayers+1))
-      allocate(inAM(1:nwalllayers+1,1:nwalllayers+1))
-      allocate(CM(1:nwalllayers+1,1:nwalllayers+1))
-      allocate(bb(1:nwalllayers+1))      
-      allocate(BM(1:nwalllayers+1,1:nwalllayers+1))
-      allocate(DM(1:nwalllayers+1,1:nwalllayers+1))
-      allocate(EM(1:nwalllayers+1,1:nwalllayers+1))
-      allocate(FM(1:nwalllayers+1,1:nwalllayers+1))
-      allocate(GM(1:nwalllayers+1,1:nwalllayers+1))
-      allocate(HM(1:nwalllayers+1,1:nwalllayers+1))
-      allocate(IDM(1:nwalllayers+1,1:nwalllayers+1))
-      allocate(w(1:nwalllayers+1))
-      allocate(dumv(1:nwalllayers+1))
-      allocate(Tdash(1:nwalllayers+1))
-      write(*,*) "nwalllayers",nwalllayers
+
+      if (.not. lEB) return
+
+      allocate(AM(1:nfaclyrs+1,1:nfaclyrs+1))
+      allocate(inAM(1:nfaclyrs+1,1:nfaclyrs+1))
+      allocate(CM(1:nfaclyrs+1,1:nfaclyrs+1))
+      allocate(bb(1:nfaclyrs+1))
+      allocate(BM(1:nfaclyrs+1,1:nfaclyrs+1))
+      allocate(DM(1:nfaclyrs+1,1:nfaclyrs+1))
+      allocate(EM(1:nfaclyrs+1,1:nfaclyrs+1))
+      allocate(FM(1:nfaclyrs+1,1:nfaclyrs+1))
+      allocate(GM(1:nfaclyrs+1,1:nfaclyrs+1))
+      allocate(HM(1:nfaclyrs+1,1:nfaclyrs+1))
+      allocate(IDM(1:nfaclyrs+1,1:nfaclyrs+1))
+      allocate(w(1:nfaclyrs+1))
+      allocate(dumv(1:nfaclyrs+1))
+      allocate(Tdash(1:nfaclyrs+1))
+
       BM=0.;DM=0.;EM=0.;FM=0.;GM=0.;HM=0.;w=0.;dumv=0.;Tdash=0.;
       AM=0.;inAM=0.;CM=0.;IDM=0.;bb=0.
-      do j=1,nwalllayers+1
+      do j=1,nfaclyrs+1
       IDM(j,j)=1.0
       end do
       !Fortran is column major, i.e. left dimensions should be iterated first
       ! e.g.  (1,1)->(2,1)->(3,1)->(1,2)->... since they are next to each other on memory
       !first index moves "up and down" second "left and right" (as always)
       m=1; !position along columns
-      do j=2,nwalllayers+1
+      do j=2,nfaclyrs+1
       AM(j,m)=0.5
       AM(j,m+1)=0.5
       m=m+1
       end do
       AM(1,1)=1.0
-      if (nwalllayers == 3) then
+      if (nfaclyrs == 3) then
         inAM = matinv4(AM)
       !!alternatively
       !inAM=matinv3(AM)
       !!or
       else
-        inAM=gaussji(AM,IDM,nwalllayers+1)
+        inAM=gaussji(AM,IDM,nfaclyrs+1)
       end if
 
       ! write facet temperatures to facT.xxx.nc, and energies to facEB.xxx.nc
       if (lwriteEBfiles) then
 		Tname(6:8) = cexpnr
 		EBname(7:9) = cexpnr
-	
+
 		allocate(ncstatT(nstatT,4))
 		call ncinfo(tncstatT(1,:),'t', 'Time', 's', 'time')
 		call ncinfo(ncstatT( 1,:),'T' ,'Temperature', 'K','flt')
@@ -289,7 +316,7 @@ function gaussji(c,d,n) result(a)
 
 
 		if (myid==0) then
-			call open_nc(Tname, ncidT, nrecT, nfcts=nfcts, nlyrs=nwalllayers+1)
+			call open_nc(Tname, ncidT, nrecT, nfcts=nfcts, nlyrs=nfaclyrs+1)
 			call open_nc(EBname, ncidEB, nrecEB, nfcts=nfcts)
 			if (nrecT==0) then
 				call define_nc( ncidT, 1, tncstatT)
@@ -314,15 +341,15 @@ function gaussji(c,d,n) result(a)
       real :: ltemp = 0.
 
       do n = 1, nfcts
-         if (facets(n, 2) < -100) then !it's a bounding wall, no need to update incoming longwave
-            cycle
-         else
+         ! if (facets(n, 2) < -100) then !it's a bounding wall, no need to update incoming longwave
+         !    cycle
+         ! else
             ltemp = 0.
-            do m = 1, nfcts  !for n, sum over all other m facets 
+            do m = 1, nfcts  !for n, sum over all other m facets
                ltemp = ltemp + vf(m, n)*faca(m)/faca(n)*facem(m)*boltz*facT(m, 1)**4 ![W/m2]
             end do
             facLWin(n) = (ltemp + svf(n)*skyLW)*facem(n)
-         end if
+         !end if
       end do
    end subroutine calclw
 
@@ -351,15 +378,15 @@ function gaussji(c,d,n) result(a)
 
          if (faclGR(n)) then
              !facefi is actually the accumulated moisture flux, has to be converted to energy flux to calculate temperature
-             !yet actually the moisture flux is needed for water budget, i.e. currently many operations cancel each other e.g. X*Lv/Lv  
+             !yet actually the moisture flux is needed for water budget, i.e. currently many operations cancel each other e.g. X*Lv/Lv
              !facefi is the sum over all gridcells of a facet, thus has to be averaged by dividing by number of cells in that facet
-             !units of facefi are kgW/kgA*m/s 
+             !units of facefi are kgW/kgA*m/s
              facefi(n) = facefi(n)/tEB/facain(n)*rhoa*rlv !mean heat flux since last EB calculation (time average)
 
             if (.not. lconstW) then !remove water from soil
                facwsoil(n) = max(facwsoil(n) + facefi(n)*tEB*rlvi*facdi(n, 1), 0.) !ils13, careful this assumes water only being present in the first layer!!!
             end if
-            
+
             !update canopy resistance used in wf_gr
             fachurel(n) = max(min(1.0, 0.5*(1.0 - cos(3.14159*facwsoil(n)/wfc))), 0.) !relative humidity above soil
             facf(n, 1) = 1./min(1.0, (0.004*netSW(n) + 0.05)/(0.81*(0.004*netSW(n) + 1))) !f1
@@ -379,8 +406,8 @@ function gaussji(c,d,n) result(a)
 
    subroutine EB
     !calculates the energy balance for every facet
-     use modglobal, only: nfcts, boltz, tEB, AM, BM,CM,DM,EM,FM,GM,HM, inAM, bb,w, dumv,Tdash, timee, tnextEB, rk3step, rhoa, cp, lEB, ntrun, lwriteEBfiles,nwalllayers
-     use initfac, only: faclami, netsw, facem, fachf, facef, fachfi, facT, facLWin, facain,facefi,facf,facets,facTdash,facqsat,facwsoil,facf,fachurel,facd,facdi,fackappa
+     use modglobal, only: nfcts, boltz, tEB, AM, BM,CM,DM,EM,FM,GM,HM, inAM, bb,w, dumv,Tdash, timee, tnextEB, rk3step, rhoa, cp, lEB, ntrun, lwriteEBfiles,nfaclyrs
+     use initfac, only: faclami, netsw, facem, fachf, facef, fachfi, facT, facLWin, faca,facefi,facf,facets,facTdash,facqsat,facwsoil,facf,fachurel,facd,facdi,fackappa
      use modmpi, only: myid, comm3d, mpierr, MPI_INTEGER, MPI_DOUBLE_PRECISION, MY_REAL, nprocs, cmyid, MPI_REAL8, MPI_REAL4, MPI_SUM
      use modstat_nc, only : writestat_nc, writestat_1D_nc, writestat_2D_nc
       real  :: ca = 0., cb = 0., cc = 0., cd = 0., ce = 0., cf = 0.
@@ -390,7 +417,7 @@ function gaussji(c,d,n) result(a)
 
       if (.not. (lEB)) return
       !calculate latent heat flux from vegetation and soil
-      call intqH 
+      call intqH
       !calculate energy balance, update facet temperature and soil moisture
       if ((rk3step .eq. 3) .and. (timee .ge. tnextEB)) then
 
@@ -400,7 +427,7 @@ function gaussji(c,d,n) result(a)
 
             !calculate time mean, facet area mean latent heat flux and update green roof
             !ILS13 02.05.18 ABOUT updateGR: convert latent heatflux E properly should be done before temperature calculatation. BUT the rest of updateGR should be done after!
-            !update green roof  
+            !update green roof
             call updateGR
 
             !get longwave fluxes for all facets
@@ -408,7 +435,7 @@ function gaussji(c,d,n) result(a)
 
             !get time mean, facet area mean sensible heat flux
             do n = 1, nfcts
-               fachfi(n) = fachfi(n)/tEB/facain(n)*rhoa*cp !mean heat flux since last EB calculation (time average)
+               fachfi(n) = fachfi(n)/tEB/faca(n)*rhoa*cp !mean heat flux since last EB calculation (time average)
                !since fachf is the sum over all cells making up a facet we need to divide by the number of cells, assuming a given density to convert to W/m2
             end do
 
@@ -422,9 +449,9 @@ function gaussji(c,d,n) result(a)
 
 
             do n = 1, nfcts
-               if (facets(n, 2) < -100) then !it's a bounding wall, no reason to do energy balance
-                  cycle
-               else
+               ! if (facets(n, 2) < -100) then !it's a bounding wall, no reason to do energy balance
+               !    cycle
+               ! else
 !calculate wallflux and update surface temperature
 !! define time dependent fluxes
                   ab = faclami(n, 1)*boltz*facem(n)*(facT(n, 1)**3) ! ab*T is the Stefan-Boltzman law
@@ -433,7 +460,7 @@ function gaussji(c,d,n) result(a)
 !!define the matrices to solve wall heat flux
 !! CREATE MATRICES BASED ON WALL PROPERTIES
       i=1;m=0; !position along columns, placeholder for layerindex since only 3 layers implemented (initfac.f90)
-      do j=1,nwalllayers
+      do j=1,nfaclyrs
       m=min(j,3)  !!CARE!!! ONLY 3 LAYERS ARE CURRENTLY BEING READ FROM INPUT FILES. PROPERTIES OF LAYER 3 ARE USED FOR SUBSEQUENT LAYERS!!!
       ca=facdi(n,m)
       BM(j+1,i)=-ca
@@ -448,7 +475,7 @@ function gaussji(c,d,n) result(a)
       DM(j,i+1)=-ca
       i=i+1
       end do
-      CM(nwalllayers+1,nwalllayers+1)=1.0
+      CM(nfaclyrs+1,nfaclyrs+1)=1.0
       BM(1,1)=ab
 
 
@@ -457,10 +484,10 @@ function gaussji(c,d,n) result(a)
                   FM = CM + matmul(DM,HM)
                   GM = matmul(EM,HM)
                   HM = FM-GM*tEB
-                  if (nwalllayers == 3) then
+                  if (nfaclyrs == 3) then
                      GM = matinv4(HM)
                   else
-                     GM = gaussji(HM,IDM,nwalllayers+1)
+                     GM = gaussji(HM,IDM,nfaclyrs+1)
                   end if
                  !instead of inverting matrix HM and multiplying by GM (=HM^-1) it would be waster to do a  left matrix division HM\x is faster than (HM^-1)*x
                   dumv = matmul(GM, (matmul(FM,facT(n,:))+w))
@@ -471,18 +498,18 @@ function gaussji(c,d,n) result(a)
                   w = matmul(BM, dumv)
                   facTdash(n, :) = matmul(inAM, (bb + w))
 
-               end if
+               !end if
             end do
 
           if (lwriteEBfiles) then
 			if (myid == 0) then
-				allocate(varsT(nfcts,nwalllayers+1,nstatT))
-				varsT(:,:,1) = facT(1:nfcts,1:nwalllayers+1)
-        varsT(:,:,2) = facTdash(1:nfcts,1:nwalllayers+1)
+				allocate(varsT(nfcts,nfaclyrs+1,nstatT))
+				varsT(:,:,1) = facT(1:nfcts,1:nfaclyrs+1)
+        varsT(:,:,2) = facTdash(1:nfcts,1:nfaclyrs+1)
 				call writestat_nc(ncidT,1,tncstatT,(/timee/),nrecT,.true.)
-				call writestat_2D_nc(ncidT,nstatT,ncstatT,varsT,nrecT,nfcts,nwalllayers+1)
+				call writestat_2D_nc(ncidT,nstatT,ncstatT,varsT,nrecT,nfcts,nfaclyrs+1)
 				deallocate(varsT)
-				
+
 				allocate(varsEB(nfcts,nstatEB))
 				varsEB(:,1) = netsw(1:nfcts)
 				varsEB(:,2) = facLWin(1:nfcts)
@@ -562,7 +589,7 @@ function gaussji(c,d,n) result(a)
             end do
          end if !myid==0
          write (*, *) "bcasting facT"
-         call MPI_BCAST(facT(0:nfcts, 1:nwalllayers+1), (nwalllayers+1)*(nfcts + 1), MY_REAL, 0, comm3d, mpierr)
+         call MPI_BCAST(facT(0:nfcts, 1:nfaclyrs+1), (nfaclyrs+1)*(nfcts + 1), MY_REAL, 0, comm3d, mpierr)
          call MPI_BCAST(tnextEB, 1, MY_REAL, 0, comm3d, mpierr)
          call MPI_BCAST(facqsat(0:nfcts), nfcts + 1, MY_REAL, 0, comm3d, mpierr)
          call MPI_BCAST(facf(0:nfcts, 1:5), (nfcts + 1)*5, MY_REAL, 0, comm3d, mpierr)

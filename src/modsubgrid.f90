@@ -99,7 +99,7 @@ contains
           write(0, *) 'iostat error: ', ierr
           stop 1
        endif
-       write(6 ,NAMSUBGRID)
+       !write(6 ,NAMSUBGRID)
        close(ifnamopt)
     end if
 
@@ -748,7 +748,7 @@ contains
 
                 empo = 0.25 * ((ekm(i,j,k) + ekm(i,jp,k)) + (ekm(i-1,j ,k) + ekm(i-1,jp,k)))
 
-                emmo = 0.25 * ((ekm(i,j,k) + ekm(i,jm,k)) + (ekm(i-1,jm,k) + ekm(i-1,j ,k))) ! dx is non-equidistant
+                emmo = 0.25 * ((ekm(i,j,k) + ekm(i,jm,k)) + (ekm(i-1,jm,k) + ekm(i-1,j ,k)))
 
 
                 ! Discretized diffusion term

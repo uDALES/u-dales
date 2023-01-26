@@ -260,10 +260,6 @@ module modglobal
 
    integer         :: iwallmom = 2, iwalltemp = 1, iwallmoist = 1, iwallscal = 1
 
-   integer :: nintpts_u
-   integer :: nintpts_v
-   integer :: nintpts_w
-
    real, parameter :: rhow = 0.998e3 !<    * Density of water
    real, parameter :: pref0 = 1.e5 !<    *standard pressure used in exner function.
    real, parameter :: tmelt = 273.16 !<    *temperature of melting of ice.
@@ -277,6 +273,10 @@ module modglobal
    real, parameter :: eps1 = 1.e-10 !<    *very small number*
    real, parameter :: epscloud = 1.e-5 !<    *limit for cloud calculation 0.01 g/kg
    real, parameter :: boltz = 5.67e-8 !<    *Stefan-Boltzmann constant
+
+   real, parameter, dimension(3) :: xhat = (/1.,0.,0./)
+   real, parameter, dimension(3) :: yhat = (/0.,1.,0./)
+   real, parameter, dimension(3) :: zhat = (/0.,0.,1./)
 
    logical :: lprofforc = .false. !<  nudge flow to a profile !
    logical :: lcoriol = .false. !<  switch for coriolis force
@@ -400,7 +400,7 @@ module modglobal
    real :: dyi5 !<  1/(dy*2)
    real :: dy2i !<  (1/dy)**2
 
-   integer :: nwalllayers = 3
+   integer :: nfaclyrs = 3
    real, allocatable   :: AM(:,:), BM(:,:), CM(:,:), DM(:,:), EM(:,:), FM(:,:), GM(:,:), HM(:,:), inAM(:,:),IDM(:,:) !matrices for the facet energy balance
    real, allocatable   :: bb(:),w(:),dumv(:),Tdash(:) !vector for the facet energy balance
 
@@ -435,6 +435,8 @@ module modglobal
    real, allocatable :: dxh2i(:) !<  = 1/dxh^2
    real, allocatable :: xh(:) !<  height of half level [m]
    real, allocatable :: xf(:) !<  height of full level [m]
+   real, allocatable :: yh(:) !<  height of half level [m]
+   real, allocatable :: yf(:) !<  height of full level [m]
    real :: xlen = -1. !<  domain size in x-direction
    real :: ylen = -1. !<  domain size in y-direction
    real, allocatable :: delta(:, :) !<  (dx*dy*dz)**(1/3)
@@ -453,7 +455,7 @@ contains
 
       integer :: advarr(4)
       real phi, colat, silat, omega, omega_gs
-      integer :: i, k, n
+      integer :: i, j, k, n
       character(80) chmess
 
       !timestepping
@@ -611,6 +613,8 @@ contains
       allocate (dxh2i(ib:itot+ih))
       allocate (xh(ib:itot+ih))
       allocate (xf(ib:itot+ih))
+      allocate (yh(jb:jtot+jh))
+      allocate (yf(jb:jtot+jh))
       allocate (delta(ib-ih:itot+ih, kb:ke + kh))
 
       rslabs = real(itot*jtot)
@@ -634,23 +638,23 @@ contains
          end do
          close (ifinput)
 
-         ! J. Tomas: Read the x-coordinates of the cell centers from xgrid.inp.XXX
-         ! SO: still reads for now, but need to remove any reference to xf, xh, etc eventually
-         open (ifinput, file='xgrid.inp.'//cexpnr)
-         read (ifinput, '(a72)') chmess
-         read (ifinput, '(a72)') chmess
-
-         do i = ib, itot
-            read (ifinput, *) xf(i)
-         end do
-         close (ifinput)
+         ! ! J. Tomas: Read the x-coordinates of the cell centers from xgrid.inp.XXX
+         ! ! SO: still reads for now, but need to remove any reference to xf, xh, etc eventually
+         ! open (ifinput, file='xgrid.inp.'//cexpnr)
+         ! read (ifinput, '(a72)') chmess
+         ! read (ifinput, '(a72)') chmess
+         !
+         ! do i = ib, itot
+         !    read (ifinput, *) xf(i)
+         ! end do
+         ! close (ifinput)
 
       end if ! end if nrank==0
 
       ! MPI broadcast ktot elements from zf
       call MPI_BCAST(zf, ktot, MY_REAL, 0, comm3d, mpierr)
       ! MPI broadcast itot elements from xf
-      call MPI_BCAST(xf, itot, MY_REAL, 0, comm3d, mpierr)
+      ! call MPI_BCAST(xf, itot, MY_REAL, 0, comm3d, mpierr)
 
       zh(kb) = 0.0
       do k = kb, ke
@@ -670,12 +674,23 @@ contains
       end do
 
       ! j. tomas: same trick for x-direction...
-      xh(ib) = 0.0
-      do i = ib, itot
-         xh(i + 1) = xh(i) + 2.0*(xf(i) - xh(i))
-      end do
-      xf(itot + ih) = xf(itot) + 2.0*(xh(itot + ih) - xf(itot))
+      ! xh(ib) = 0.0
+      ! do i = ib, itot
+      !    xh(i + 1) = xh(i) + 2.0*(xf(i) - xh(i))
+      ! end do
+      ! xf(itot + ih) = xf(itot) + 2.0*(xh(itot + ih) - xf(itot))
 
+      do i=ib,itot+ih
+        xh(i) = (i-1) * dx
+        xf(i) = xh(i) + dx/2
+      end do
+
+      do j=jb,jtot+jh
+        yh(j) = (j-1) * dy
+        yf(j) = yh(j) + dy/2
+      end do
+
+      ! These should be removed eventually
       do i = ib, itot
          dxf(i) = xh(i + 1) - xh(i)
       end do

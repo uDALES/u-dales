@@ -66,13 +66,12 @@ module modstartup
                                     lzerogradtopscal, lbuoyancy, ltempeq, &
                                     lfixinlet, lfixutauin, pi, &
                                     thlsrc, ifixuinf, lvinf, tscale, ltempinout, lmoistinout,  &
-                                    lwallfunc,lprofforc,lchem,k1,JNO2,rv,rd,tnextEB,tEB,dtEB,bldT,wsoil,wgrmax,wwilt,wfc,skyLW,GRLAI,rsmin,nfcts,lEB,lwriteEBfiles,nwalllayers,lconstW, &
+                                    lwallfunc,lprofforc,lchem,k1,JNO2,rv,rd,tnextEB,tEB,dtEB,bldT,wsoil,wgrmax,wwilt,wfc,skyLW,GRLAI,rsmin,nfcts,lEB,lwriteEBfiles,nfaclyrs,lconstW, &
                                     BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys,BCzp, &
                                     BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots, &
                                     BCxm_periodic, BCym_periodic, &
                                     idriver,tdriverstart,driverjobnr,dtdriver,driverstore,lsdriver, &
-                                    lrandomize, &
-                                    nintpts_u, nintpts_v, nintpts_w
+                                    lrandomize
       use modsurfdata,       only : z0, z0h,  wtsurf, wttop, wqtop, wqsurf, wsvsurf, wsvtop, wsvsurfdum, wsvtopdum, ps, thvs, thls, thl_top, qt_top, qts
       use modfields,         only : initfields, dpdx, ncname
       use modpois,           only : initpois
@@ -85,6 +84,10 @@ module modstartup
       use modibmdata,        only : bctfxm, bctfxp, bctfym, bctfyp, bctfz
       use modforces,         only : calcfluidvolumes
       use moddriver,         only : initdriver
+      use modibm,            only : nsolpts_u, nsolpts_v, nsolpts_w, nsolpts_c, &
+                                    nbndpts_u, nbndpts_v, nbndpts_w, nbndpts_c, &
+                                    nfctsecs_u, nfctsecs_v, nfctsecs_w, nfctsecs_c, &
+                                    createmasks, lbottom
       use decomp_2d
 
       implicit none
@@ -133,10 +136,12 @@ module modstartup
          driverstore, iplane, lsdriver
       namelist/WALLS/ &
          nblocks, nfcts, iwallmom, iwalltemp, iwallmoist, iwallscal, &
-         nintpts_u, nintpts_v, nintpts_w
+         nsolpts_u, nsolpts_v, nsolpts_w, nsolpts_c, &
+         nbndpts_u, nbndpts_v, nbndpts_w, nbndpts_c, &
+         nfctsecs_u, nfctsecs_v, nfctsecs_w, nfctsecs_c, lbottom
       namelist/ENERGYBALANCE/ &
          lEB, lwriteEBfiles, lconstW, dtEB, bldT, wsoil, wgrmax, wwilt, wfc, &
-         skyLW, GRLAI, rsmin, nwalllayers
+         skyLW, GRLAI, rsmin, nfaclyrs
       namelist/SCALARS/ &
          lreadscal, lscasrc, lscasrcl, lscasrcr, &
          nsv, xS, yS, zS, SS, sigS
@@ -366,9 +371,19 @@ module modstartup
       call MPI_BCAST(iwallmoist, 1, MPI_INTEGER, 0, comm3d, mpierr) ! case (integer) for wall treatment for moisture (1=no wall function/fixed flux, 2=no wall function/fixed value, 3=uno)
       call MPI_BCAST(iwallscal, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(iwallmom, 1, MPI_INTEGER, 0, comm3d, mpierr) ! case (integer) for wall treatment for momentum (1=no wall function, 2=werner-wengle, 3=uno)
-      call MPI_BCAST(nintpts_u, 1, MPI_INTEGER, 0, comm3d, mpierr)
-      call MPI_BCAST(nintpts_v, 1, MPI_INTEGER, 0, comm3d, mpierr)
-      call MPI_BCAST(nintpts_w, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(nsolpts_u, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(nsolpts_v, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(nsolpts_w, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(nsolpts_c, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(nbndpts_u, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(nbndpts_v, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(nbndpts_w, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(nbndpts_c, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(nfctsecs_u, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(nfctsecs_v, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(nfctsecs_w, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(nfctsecs_c, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(lbottom, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(luoutflowr, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for turning on/off u-velocity correction for fixed mass outflow rate
       call MPI_BCAST(lvoutflowr, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315: added switch for turning on/off v-velocity correction for fixed mass outflow rate
       call MPI_BCAST(luvolflowr, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! bss166: added switch for turning on/off u-velocity correction for fixed volume flow rate
@@ -471,7 +486,7 @@ module modstartup
       call MPI_BCAST(skyLW, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(GRLAI, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(rsmin, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(nwalllayers, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(nfaclyrs, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(irandom, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(krand, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(randthl, 1, MY_REAL, 0, comm3d, mpierr)
@@ -623,8 +638,9 @@ module modstartup
          end if
       end if
 
-      ! Switch to ensure that neutral wall function is called when ltempeq=false and if iwalltemp==1 (constant flux and therefore wall temp is not resolved.
+      ! Call neutral wall function when air temperature not evolved or if constant heat flux.
       if ((ltempeq .eqv. .false.) .or. (iwalltemp==1)) then
+        if (myid==0) write(*,*) "Changing to neutral wall function"
          iwallmom = 3
          BCbotm = BCbotm_wfneutral
       end if
@@ -2068,229 +2084,229 @@ module modstartup
       return
    end subroutine randomnize
 
-   subroutine createmasks
-      use modglobal, only:ib, ie, ih, ihc, jb, je, jh, jhc, kb, ke, kh, khc, rslabs, jmax, nblocks,&
-         ifinput, cexpnr, libm, jtot, block
-      use modfields, only:IIc, IIu, IIv, IIw, IIuw, IIvw, IIuv, IIct, IIwt, IIut, IIuwt, IIvt,&
-         IIcs, IIus, IIuws, IIvws, IIuvs, IIvs, IIws, &
-         um, u0, vm, v0, wm, w0
-      use modmpi, only:myid, comm3d, mpierr, MPI_INTEGER, MPI_DOUBLE_PRECISION, MY_REAL, nprocs, &
-         cmyid, MPI_REAL8, MPI_REAL4, MPI_SUM, excjs
-      ! use initfac, only:block
-      integer k, n, il, iu, jl, ju, kl, ku
-      integer :: IIcl(kb:ke + khc), IIul(kb:ke + khc), IIvl(kb:ke + khc), IIwl(kb:ke + khc), IIuwl(kb:ke + khc), IIvwl(kb:ke + khc), IIuvl(kb:ke + khc)
-      integer :: IIcd(ib:ie, kb:ke)
-      integer :: IIwd(ib:ie, kb:ke)
-      integer :: IIuwd(ib:ie, kb:ke)
-      integer :: IIud(ib:ie, kb:ke)
-      integer :: IIvd(ib:ie, kb:ke)
-      character(80) chmess, name2
-
-      ! II*l needn't be defined up to ke_khc, but for now would require large scale changes in modstatsdump so if works leave as is ! tg3315 04/07/18
-
-      if (.not. libm) then
-         IIc(:, :, :) = 1
-         IIu(:, :, :) = 1
-         IIv(:, :, :) = 1
-         IIw(:, :, :) = 1
-         IIuw(:, :, :) = 1
-         IIvw(:, :, :) = 1
-         IIuv(:, :, :) = 1
-         IIcs(:) = nint(rslabs)
-         IIus(:) = nint(rslabs)
-         IIvs(:) = nint(rslabs)
-         IIws(:) = nint(rslabs)
-         IIuws(:) = nint(rslabs)
-         IIvws(:) = nint(rslabs)
-         IIuvs(:) = nint(rslabs)
-         IIct(:, :) = jtot
-         IIut(:, :) = jtot
-         IIvt(:, :) = jtot
-         IIwt(:, :) = jtot
-         IIuwt(:, :) = jtot
-         return
-      end if
-
-      allocate (block(1:nblocks, 1:11))
-
-      if (myid == 0) then
-         if (nblocks > 0) then
-            open (ifinput, file='blocks.inp.'//cexpnr)
-            read (ifinput, '(a80)') chmess
-            read (ifinput, '(a80)') chmess
-            do n = 1, nblocks
-               read (ifinput, *) &
-                  block(n, 1), &
-                  block(n, 2), &
-                  block(n, 3), &
-                  block(n, 4), &
-                  block(n, 5), &
-                  block(n, 6), &
-                  block(n, 7), &
-                  block(n, 8), &
-                  block(n, 9), &
-                  block(n, 10), &
-                  block(n, 11)
-            end do
-            close (ifinput)
-
-            do n = 1, nblocks
-               write (6, *) &
-                  n, &
-                  block(n, 1), &
-                  block(n, 2), &
-                  block(n, 3), &
-                  block(n, 4), &
-                  block(n, 5), &
-                  block(n, 6)
-            end do
-         end if !nblocks>0
-      end if !myid
-
-      call MPI_BCAST(block, 11*nblocks, MPI_INTEGER, 0, comm3d, mpierr)
-
-      ! Create masking matrices
-      IIc = 1; IIu = 1; IIv = 1; IIct = 1; IIw = 1; IIuw = 1; IIvw = 1; IIuv = 1; IIwt = 1; IIut = 1; IIvt = 1; IIuwt = 1; IIcs = 1; IIus = 1; IIvs = 1; IIws = 1; IIuws = 1; IIvws = 1; IIuvs = 1
-
-      do n = 1, nblocks
-         il = block(n, 1)
-         iu = block(n, 2)
-         !kl = block(n, 5)
-         kl = kb ! tg3315 changed as buildings for lEB must start at kb+1 not kb with no block below
-         ku = block(n, 6)
-         jl = block(n, 3) - myid*jmax
-         ju = block(n, 4) - myid*jmax
-         if (ju < jb - 1 .or. jl > je) then
-            cycle
-         else
-            if (ju >= je) then !tg3315 04/07/18 to avoid ju+1 when is last cell...
-               if (jl < jb) jl = jb
-               ju = je
-
-               ! Masking matrices !tg3315
-               IIc(il:iu, jl:ju, kl:ku) = 0
-               IIu(il:iu + 1, jl:ju, kl:ku) = 0
-               IIv(il:iu, jl:ju, kl:ku) = 0
-               IIw(il:iu, jl:ju, kl:ku + 1) = 0
-               IIuw(il:iu + 1, jl:ju, kl:ku + 1) = 0
-               IIvw(il:iu, jl:ju, kl:ku + 1) = 0
-               IIuv(il:iu + 1, jl:ju, kl:ku) = 0
-
-            else if (ju == jb - 1) then ! if end of block is in cell before proc
-
-               IIv(il:iu, jb, kl:ku) = 0
-               IIvw(il:iu, jb, kl:ku + 1) = 0
-               IIuv(il:iu + 1, jb, kl:ku) = 0
-
-            else ! ju is in this proc...
-               if (jl < jb) jl = jb
-
-               ! Masking matrices !tg3315
-               IIc(il:iu, jl:ju, kl:ku) = 0
-               IIu(il:iu + 1, jl:ju, kl:ku) = 0
-               IIv(il:iu, jl:ju + 1, kl:ku) = 0
-               IIw(il:iu, jl:ju, kl:ku + 1) = 0
-               IIuw(il:iu + 1, jl:ju, kl:ku + 1) = 0
-               IIvw(il:iu, jl:ju + 1, kl:ku + 1) = 0
-               IIuv(il:iu + 1, jl:ju + 1, kl:ku) = 0
-
-            end if
-
-            ! ensure that ghost cells know where blocks are !tg3315 this is not necessary
-            ! if (jl<jb+jh)  IIc(il:iu,je+jh,kl:ku) = 0
-            ! if (jl<jb+jhc) IIc(il:iu,je+jhc,kl:ku) = 0
-            ! if (ju>je-jh)  IIc(il:iu,jb-jh,kl:ku) = 0
-            ! if (ju>je-jhc) IIc(il:iu,jb-jhc,kl:ku) = 0
-
-            ! if (il<ib+ih)  IIc(ie+ih,jl:ju,kl:ku) = 0
-            ! if (il<ib+ihc) IIc(ie+ihc,jl:ju,kl:ku) = 0
-            ! if (iu>ie-ih)  IIc(ib-ih,jl:ju,kl:ku) = 0
-            ! if (iu>ie-ihc) IIc(ib-ihc,jl:ju,kl:ku) = 0
-
-         end if
-      end do
-
-      IIw(:, :, kb) = 0; IIuw(:, :, kb) = 0; IIvw(:, :, kb) = 0
-
-      ! for correct ghost cells from adjacent processors !tg3315 ?unsure if this is correct
-      ! tg3315 22/11/17 does not work because II is an integer and needs real numbers... !tg3315 not necessary
-      !call excjs( IIc  , ib,ie,jb,je,kb,ke+khc,ihc,jhc)
-      !call excjs( IIu  , ib,ie,jb,je,kb,ke+khc,ihc,jhc)
-      !call excjs( IIv  , ib,ie,jb,je,kb,ke+khc,ihc,jhc)
-      !call excjs( IIw  , ib,ie,jb,je,kb,ke+khc,ihc,jhc)
-
-      do k = kb, ke + khc
-         IIcl(k) = sum(IIc(ib:ie, jb:je, k))
-         IIul(k) = sum(IIu(ib:ie, jb:je, k))
-         IIvl(k) = sum(IIv(ib:ie, jb:je, k))
-         IIwl(k) = sum(IIw(ib:ie, jb:je, k))
-         IIuwl(k) = sum(IIuw(ib:ie, jb:je, k))
-         IIvwl(k) = sum(IIvw(ib:ie, jb:je, k))
-         IIuvl(k) = sum(IIuv(ib:ie, jb:je, k))
-      enddo
-
-      call MPI_ALLREDUCE(IIcl, IIcs, ke + khc - kb + 1, MPI_INTEGER, &
-                         MPI_SUM, comm3d, mpierr)
-      call MPI_ALLREDUCE(IIul, IIus, ke + khc - kb + 1, MPI_INTEGER, &
-                         MPI_SUM, comm3d, mpierr)
-      call MPI_ALLREDUCE(IIvl, IIvs, ke + khc - kb + 1, MPI_INTEGER, &
-                         MPI_SUM, comm3d, mpierr)
-      call MPI_ALLREDUCE(IIwl, IIws, ke + khc - kb + 1, MPI_INTEGER, &
-                         MPI_SUM, comm3d, mpierr)
-      call MPI_ALLREDUCE(IIuwl, IIuws, ke + khc - kb + 1, MPI_INTEGER, &
-                         MPI_SUM, comm3d, mpierr)
-      call MPI_ALLREDUCE(IIvwl, IIvws, ke + khc - kb + 1, MPI_INTEGER, &
-                         MPI_SUM, comm3d, mpierr)
-      call MPI_ALLREDUCE(IIuvl, IIuvs, ke + khc - kb + 1, MPI_INTEGER, &
-                         MPI_SUM, comm3d, mpierr)
-
-      IIcd(ib:ie, kb:ke) = sum(IIc(ib:ie, jb:je, kb:ke), DIM=2)
-      IIwd(ib:ie, kb:ke) = sum(IIw(ib:ie, jb:je, kb:ke), DIM=2)
-      IIuwd(ib:ie, kb:ke) = sum(IIuw(ib:ie, jb:je, kb:ke), DIM=2)
-      IIud(ib:ie, kb:ke) = sum(IIu(ib:ie, jb:je, kb:ke), DIM=2)
-      IIvd(ib:ie, kb:ke) = sum(IIv(ib:ie, jb:je, kb:ke), DIM=2)
-
-      call MPI_ALLREDUCE(IIwd(ib:ie, kb:ke), IIwt(ib:ie, kb:ke), (ke - kb + 1)*(ie - ib + 1), MPI_INTEGER, MPI_SUM, comm3d, mpierr)
-      call MPI_ALLREDUCE(IIcd(ib:ie, kb:ke), IIct(ib:ie, kb:ke), (ke - kb + 1)*(ie - ib + 1), MPI_INTEGER, MPI_SUM, comm3d, mpierr)
-      call MPI_ALLREDUCE(IIuwd(ib:ie, kb:ke), IIuwt(ib:ie, kb:ke), (ke - kb + 1)*(ie - ib + 1), MPI_INTEGER, MPI_SUM, comm3d, mpierr)
-      call MPI_ALLREDUCE(IIud(ib:ie, kb:ke), IIut(ib:ie, kb:ke), (ke - kb + 1)*(ie - ib + 1), MPI_INTEGER, MPI_SUM, comm3d, mpierr)
-      call MPI_ALLREDUCE(IIvd(ib:ie, kb:ke), IIvt(ib:ie, kb:ke), (ke - kb + 1)*(ie - ib + 1), MPI_INTEGER, MPI_SUM, comm3d, mpierr)
-
-      ! masking matrix for switch if entire slab is blocks
-      !if (IIcs(kb) == 0) then
-      !  IIbl = 0
-      !else
-      !  IIbl = 1
-      !end if
-
-      !where (IIcs == 0)
-      !IIcs = nint(rslabs)
-      !endwhere
-      !where (IIus == 0)
-      !IIus = nint(rslabs)
-      !endwhere
-      !where (IIvs == 0)
-      !IIvs = nint(rslabs)
-      !endwhere
-      !where (IIws == 0)
-      !IIws = nint(rslabs)
-      !endwhere
-      !where (IIuws == 0)
-      !IIuws = nint(rslabs)
-      !endwhere
-      !where (IIvws == 0)
-      !IIvws = nint(rslabs)
-      !endwhere
-
-      ! use masking matrices to set 0 in blocks from start? tg3315 13/12/17
-      ! um(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh) = IIu(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)*um(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
-      ! vm(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh) = IIv(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)*vm(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
-      ! wm(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh) = IIw(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)*wm(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
-
-      ! u0 = um
-      ! v0 = vm
-      ! w0 = wm
-
-   end subroutine createmasks
+   ! subroutine createmasks
+   !    use modglobal, only:ib, ie, ih, ihc, jb, je, jh, jhc, kb, ke, kh, khc, rslabs, jmax, nblocks,&
+   !       ifinput, cexpnr, libm, jtot, block
+   !    use modfields, only:IIc, IIu, IIv, IIw, IIuw, IIvw, IIuv, IIct, IIwt, IIut, IIuwt, IIvt,&
+   !       IIcs, IIus, IIuws, IIvws, IIuvs, IIvs, IIws, &
+   !       um, u0, vm, v0, wm, w0
+   !    use modmpi, only:myid, comm3d, mpierr, MPI_INTEGER, MPI_DOUBLE_PRECISION, MY_REAL, nprocs, &
+   !       cmyid, MPI_REAL8, MPI_REAL4, MPI_SUM, excjs
+   !    ! use initfac, only:block
+   !    integer k, n, il, iu, jl, ju, kl, ku
+   !    integer :: IIcl(kb:ke + khc), IIul(kb:ke + khc), IIvl(kb:ke + khc), IIwl(kb:ke + khc), IIuwl(kb:ke + khc), IIvwl(kb:ke + khc), IIuvl(kb:ke + khc)
+   !    integer :: IIcd(ib:ie, kb:ke)
+   !    integer :: IIwd(ib:ie, kb:ke)
+   !    integer :: IIuwd(ib:ie, kb:ke)
+   !    integer :: IIud(ib:ie, kb:ke)
+   !    integer :: IIvd(ib:ie, kb:ke)
+   !    character(80) chmess, name2
+   !
+   !    ! II*l needn't be defined up to ke_khc, but for now would require large scale changes in modstatsdump so if works leave as is ! tg3315 04/07/18
+   !
+   !    if (.not. libm) then
+   !       IIc(:, :, :) = 1
+   !       IIu(:, :, :) = 1
+   !       IIv(:, :, :) = 1
+   !       IIw(:, :, :) = 1
+   !       IIuw(:, :, :) = 1
+   !       IIvw(:, :, :) = 1
+   !       IIuv(:, :, :) = 1
+   !       IIcs(:) = nint(rslabs)
+   !       IIus(:) = nint(rslabs)
+   !       IIvs(:) = nint(rslabs)
+   !       IIws(:) = nint(rslabs)
+   !       IIuws(:) = nint(rslabs)
+   !       IIvws(:) = nint(rslabs)
+   !       IIuvs(:) = nint(rslabs)
+   !       IIct(:, :) = jtot
+   !       IIut(:, :) = jtot
+   !       IIvt(:, :) = jtot
+   !       IIwt(:, :) = jtot
+   !       IIuwt(:, :) = jtot
+   !       return
+   !    end if
+   !
+   !    allocate (block(1:nblocks, 1:11))
+   !
+   !    if (myid == 0) then
+   !       if (nblocks > 0) then
+   !          open (ifinput, file='blocks.inp.'//cexpnr)
+   !          read (ifinput, '(a80)') chmess
+   !          read (ifinput, '(a80)') chmess
+   !          do n = 1, nblocks
+   !             read (ifinput, *) &
+   !                block(n, 1), &
+   !                block(n, 2), &
+   !                block(n, 3), &
+   !                block(n, 4), &
+   !                block(n, 5), &
+   !                block(n, 6), &
+   !                block(n, 7), &
+   !                block(n, 8), &
+   !                block(n, 9), &
+   !                block(n, 10), &
+   !                block(n, 11)
+   !          end do
+   !          close (ifinput)
+   !
+   !          do n = 1, nblocks
+   !             write (6, *) &
+   !                n, &
+   !                block(n, 1), &
+   !                block(n, 2), &
+   !                block(n, 3), &
+   !                block(n, 4), &
+   !                block(n, 5), &
+   !                block(n, 6)
+   !          end do
+   !       end if !nblocks>0
+   !    end if !myid
+   !
+   !    call MPI_BCAST(block, 11*nblocks, MPI_INTEGER, 0, comm3d, mpierr)
+   !
+   !    ! Create masking matrices
+   !    IIc = 1; IIu = 1; IIv = 1; IIct = 1; IIw = 1; IIuw = 1; IIvw = 1; IIuv = 1; IIwt = 1; IIut = 1; IIvt = 1; IIuwt = 1; IIcs = 1; IIus = 1; IIvs = 1; IIws = 1; IIuws = 1; IIvws = 1; IIuvs = 1
+   !
+   !    do n = 1, nblocks
+   !       il = block(n, 1)
+   !       iu = block(n, 2)
+   !       !kl = block(n, 5)
+   !       kl = kb ! tg3315 changed as buildings for lEB must start at kb+1 not kb with no block below
+   !       ku = block(n, 6)
+   !       jl = block(n, 3) - myid*jmax
+   !       ju = block(n, 4) - myid*jmax
+   !       if (ju < jb - 1 .or. jl > je) then
+   !          cycle
+   !       else
+   !          if (ju >= je) then !tg3315 04/07/18 to avoid ju+1 when is last cell...
+   !             if (jl < jb) jl = jb
+   !             ju = je
+   !
+   !             ! Masking matrices !tg3315
+   !             IIc(il:iu, jl:ju, kl:ku) = 0
+   !             IIu(il:iu + 1, jl:ju, kl:ku) = 0
+   !             IIv(il:iu, jl:ju, kl:ku) = 0
+   !             IIw(il:iu, jl:ju, kl:ku + 1) = 0
+   !             IIuw(il:iu + 1, jl:ju, kl:ku + 1) = 0
+   !             IIvw(il:iu, jl:ju, kl:ku + 1) = 0
+   !             IIuv(il:iu + 1, jl:ju, kl:ku) = 0
+   !
+   !          else if (ju == jb - 1) then ! if end of block is in cell before proc
+   !
+   !             IIv(il:iu, jb, kl:ku) = 0
+   !             IIvw(il:iu, jb, kl:ku + 1) = 0
+   !             IIuv(il:iu + 1, jb, kl:ku) = 0
+   !
+   !          else ! ju is in this proc...
+   !             if (jl < jb) jl = jb
+   !
+   !             ! Masking matrices !tg3315
+   !             IIc(il:iu, jl:ju, kl:ku) = 0
+   !             IIu(il:iu + 1, jl:ju, kl:ku) = 0
+   !             IIv(il:iu, jl:ju + 1, kl:ku) = 0
+   !             IIw(il:iu, jl:ju, kl:ku + 1) = 0
+   !             IIuw(il:iu + 1, jl:ju, kl:ku + 1) = 0
+   !             IIvw(il:iu, jl:ju + 1, kl:ku + 1) = 0
+   !             IIuv(il:iu + 1, jl:ju + 1, kl:ku) = 0
+   !
+   !          end if
+   !
+   !          ! ensure that ghost cells know where blocks are !tg3315 this is not necessary
+   !          ! if (jl<jb+jh)  IIc(il:iu,je+jh,kl:ku) = 0
+   !          ! if (jl<jb+jhc) IIc(il:iu,je+jhc,kl:ku) = 0
+   !          ! if (ju>je-jh)  IIc(il:iu,jb-jh,kl:ku) = 0
+   !          ! if (ju>je-jhc) IIc(il:iu,jb-jhc,kl:ku) = 0
+   !
+   !          ! if (il<ib+ih)  IIc(ie+ih,jl:ju,kl:ku) = 0
+   !          ! if (il<ib+ihc) IIc(ie+ihc,jl:ju,kl:ku) = 0
+   !          ! if (iu>ie-ih)  IIc(ib-ih,jl:ju,kl:ku) = 0
+   !          ! if (iu>ie-ihc) IIc(ib-ihc,jl:ju,kl:ku) = 0
+   !
+   !       end if
+   !    end do
+   !
+   !    IIw(:, :, kb) = 0; IIuw(:, :, kb) = 0; IIvw(:, :, kb) = 0
+   !
+   !    ! for correct ghost cells from adjacent processors !tg3315 ?unsure if this is correct
+   !    ! tg3315 22/11/17 does not work because II is an integer and needs real numbers... !tg3315 not necessary
+   !    !call excjs( IIc  , ib,ie,jb,je,kb,ke+khc,ihc,jhc)
+   !    !call excjs( IIu  , ib,ie,jb,je,kb,ke+khc,ihc,jhc)
+   !    !call excjs( IIv  , ib,ie,jb,je,kb,ke+khc,ihc,jhc)
+   !    !call excjs( IIw  , ib,ie,jb,je,kb,ke+khc,ihc,jhc)
+   !
+   !    do k = kb, ke + khc
+   !       IIcl(k) = sum(IIc(ib:ie, jb:je, k))
+   !       IIul(k) = sum(IIu(ib:ie, jb:je, k))
+   !       IIvl(k) = sum(IIv(ib:ie, jb:je, k))
+   !       IIwl(k) = sum(IIw(ib:ie, jb:je, k))
+   !       IIuwl(k) = sum(IIuw(ib:ie, jb:je, k))
+   !       IIvwl(k) = sum(IIvw(ib:ie, jb:je, k))
+   !       IIuvl(k) = sum(IIuv(ib:ie, jb:je, k))
+   !    enddo
+   !
+   !    call MPI_ALLREDUCE(IIcl, IIcs, ke + khc - kb + 1, MPI_INTEGER, &
+   !                       MPI_SUM, comm3d, mpierr)
+   !    call MPI_ALLREDUCE(IIul, IIus, ke + khc - kb + 1, MPI_INTEGER, &
+   !                       MPI_SUM, comm3d, mpierr)
+   !    call MPI_ALLREDUCE(IIvl, IIvs, ke + khc - kb + 1, MPI_INTEGER, &
+   !                       MPI_SUM, comm3d, mpierr)
+   !    call MPI_ALLREDUCE(IIwl, IIws, ke + khc - kb + 1, MPI_INTEGER, &
+   !                       MPI_SUM, comm3d, mpierr)
+   !    call MPI_ALLREDUCE(IIuwl, IIuws, ke + khc - kb + 1, MPI_INTEGER, &
+   !                       MPI_SUM, comm3d, mpierr)
+   !    call MPI_ALLREDUCE(IIvwl, IIvws, ke + khc - kb + 1, MPI_INTEGER, &
+   !                       MPI_SUM, comm3d, mpierr)
+   !    call MPI_ALLREDUCE(IIuvl, IIuvs, ke + khc - kb + 1, MPI_INTEGER, &
+   !                       MPI_SUM, comm3d, mpierr)
+   !
+   !    IIcd(ib:ie, kb:ke) = sum(IIc(ib:ie, jb:je, kb:ke), DIM=2)
+   !    IIwd(ib:ie, kb:ke) = sum(IIw(ib:ie, jb:je, kb:ke), DIM=2)
+   !    IIuwd(ib:ie, kb:ke) = sum(IIuw(ib:ie, jb:je, kb:ke), DIM=2)
+   !    IIud(ib:ie, kb:ke) = sum(IIu(ib:ie, jb:je, kb:ke), DIM=2)
+   !    IIvd(ib:ie, kb:ke) = sum(IIv(ib:ie, jb:je, kb:ke), DIM=2)
+   !
+   !    call MPI_ALLREDUCE(IIwd(ib:ie, kb:ke), IIwt(ib:ie, kb:ke), (ke - kb + 1)*(ie - ib + 1), MPI_INTEGER, MPI_SUM, comm3d, mpierr)
+   !    call MPI_ALLREDUCE(IIcd(ib:ie, kb:ke), IIct(ib:ie, kb:ke), (ke - kb + 1)*(ie - ib + 1), MPI_INTEGER, MPI_SUM, comm3d, mpierr)
+   !    call MPI_ALLREDUCE(IIuwd(ib:ie, kb:ke), IIuwt(ib:ie, kb:ke), (ke - kb + 1)*(ie - ib + 1), MPI_INTEGER, MPI_SUM, comm3d, mpierr)
+   !    call MPI_ALLREDUCE(IIud(ib:ie, kb:ke), IIut(ib:ie, kb:ke), (ke - kb + 1)*(ie - ib + 1), MPI_INTEGER, MPI_SUM, comm3d, mpierr)
+   !    call MPI_ALLREDUCE(IIvd(ib:ie, kb:ke), IIvt(ib:ie, kb:ke), (ke - kb + 1)*(ie - ib + 1), MPI_INTEGER, MPI_SUM, comm3d, mpierr)
+   !
+   !    ! masking matrix for switch if entire slab is blocks
+   !    !if (IIcs(kb) == 0) then
+   !    !  IIbl = 0
+   !    !else
+   !    !  IIbl = 1
+   !    !end if
+   !
+   !    !where (IIcs == 0)
+   !    !IIcs = nint(rslabs)
+   !    !endwhere
+   !    !where (IIus == 0)
+   !    !IIus = nint(rslabs)
+   !    !endwhere
+   !    !where (IIvs == 0)
+   !    !IIvs = nint(rslabs)
+   !    !endwhere
+   !    !where (IIws == 0)
+   !    !IIws = nint(rslabs)
+   !    !endwhere
+   !    !where (IIuws == 0)
+   !    !IIuws = nint(rslabs)
+   !    !endwhere
+   !    !where (IIvws == 0)
+   !    !IIvws = nint(rslabs)
+   !    !endwhere
+   !
+   !    ! use masking matrices to set 0 in blocks from start? tg3315 13/12/17
+   !    ! um(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh) = IIu(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)*um(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
+   !    ! vm(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh) = IIv(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)*vm(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
+   !    ! wm(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh) = IIw(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)*wm(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
+   !
+   !    ! u0 = um
+   !    ! v0 = vm
+   !    ! w0 = wm
+   !
+   ! end subroutine createmasks
 
 end module modstartup
