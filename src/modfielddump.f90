@@ -6,7 +6,7 @@
 !!  \author Jasper Tomas, TU Delft Match 31 2014
 !!  \author Thijs Heus,MPI-M
 !!  \par Revision list
-!! Possibility to write tecplot (formatted!!) file 
+!! Possibility to write tecplot (formatted!!) file
 !
 !  This file is part of DALES.
 !
@@ -44,10 +44,10 @@ module modfielddump
   character(80) :: fname = 'fielddump.xxx.xxx.nc'
   !dimension(nvar,4) :: ncname
   character(80),dimension(1,4) :: tncname
-  
+
   integer :: klow,khigh,n,nvar
   logical :: ldiracc   = .false. !< switch for doing direct access writing (on/off)
-  logical :: lbinary   = .false. ! 
+  logical :: lbinary   = .false. !
 
 contains
  !> Initializing fielddump. Read out the namelist, initializing the variables
@@ -55,20 +55,21 @@ contains
     use modmpi,   only   :myid,my_real,mpierr,comm3d,mpi_logical,mpi_integer,cmyid, mpi_character
     use modglobal,only   :imax,jmax,kmax,cexpnr,ifnamopt,fname_options,dtmax,kb,ke, ladaptive,dt_lim,btime,nsv,fieldvars,ib,ie,jb,je,kb,ke, lfielddump
     use modstat_nc,only  : open_nc, define_nc,ncinfo,writestat_dims_nc
-    use modfields, only  : u0,v0,w0,thl0,sv0,ql0,qt0,pres0
+    use modfields, only  : u0,v0,w0,thl0,sv0,ql0,qt0,pres0,div,divf,tau_x,tau_y,tau_z,thl_flux
+    use modpois, only : p,rhs
     implicit none
     integer :: ierr
 
   !  type(domainptr), dimension(nvar) :: pfields
 
     nvar = (LEN(trim(fieldvars))+1)/3
-    
+
     if (nvar == 0) then
       lfielddump = .false.
       print *, 'empty fieldvars therefore lfielddump = .false. and no instantaneous fields outputted'
       return
     else
-      allocate(ncname(nvar,4)) 
+      allocate(ncname(nvar,4))
     end if
 
 
@@ -81,7 +82,7 @@ contains
     call MPI_BCAST(lfielddump  ,1,MPI_LOGICAL,0,comm3d,ierr)
     call MPI_BCAST(ldiracc     ,1,MPI_LOGICAL,0,comm3d,ierr)
     call MPI_BCAST(lbinary     ,1,MPI_LOGICAL,0,comm3d,ierr)
-    call MPI_BCAST(ncname     ,80,MPI_CHARACTER,0,comm3d,mpierr) 
+    call MPI_BCAST(ncname     ,80,MPI_CHARACTER,0,comm3d,mpierr)
     call MPI_BCAST(nvar       ,1,MPI_INTEGER,0,comm3d,mpierr)
 
     !    dt_lim = min(dt_lim,tnext)
@@ -95,55 +96,79 @@ contains
     ! tg3315 reads in fields specified by fieldvars
     do n=1,nvar
       select case(fieldvars(3*n-2:3*n-1))
-        case('u0')
+      case('u0')
         call ncinfo(ncname( n,:),'u','West-East velocity','m/s','mttt')
         pfields(n)%point => u0(ib:ie,jb:je,kb:ke)
-        case('v0')
+      case('v0')
         call ncinfo(ncname( n,:),'v','South-North velocity','m/s','tmtt')
-        pfields(n)%point => v0(ib:ie,jb:je,kb:ke)  
-        case('w0')
+        pfields(n)%point => v0(ib:ie,jb:je,kb:ke)
+      case('w0')
         call ncinfo(ncname( n,:),'w','Vertical velocity','m/s','ttmt')
-        pfields(n)%point => w0(ib:ie,jb:je,kb:ke)  
-        case('th')
+        pfields(n)%point => w0(ib:ie,jb:je,kb:ke)
+      case('th')
         call ncinfo(ncname( n,:),'thl','Liquid water potential temperature','K','tttt')
-        pfields(n)%point => thl0(ib:ie,jb:je,kb:ke)  
-        case('ql')
+        pfields(n)%point => thl0(ib:ie,jb:je,kb:ke)
+      case('ql')
         call ncinfo(ncname( n,:),'ql','Liquid water mixing ratio','1e-5kg/kg','tttt')
-        pfields(n)%point => ql0(ib:ie,jb:je,kb:ke) 
-        case('qt')
+        pfields(n)%point => ql0(ib:ie,jb:je,kb:ke)
+      case('qt')
         call ncinfo(ncname( n,:),'qt','Total water mixing ratio','1e-5kg/kg','tttt')
         pfields(n)%point => qt0(ib:ie,jb:je,kb:ke)
-        case('s1')
+      case('s1')
         call ncinfo(ncname( n,:),'sca1','scalar 1','M','tttt')
         pfields(n)%point => sv0(ib:ie,jb:je,kb:ke,1)
-        case('s2')
+      case('s2')
         call ncinfo(ncname( n,:),'sca2','scalar 2','M','tttt')
         pfields(n)%point => sv0(ib:ie,jb:je,kb:ke,2)
-        case('s3')
+      case('s3')
         call ncinfo(ncname( n,:),'sca3','scalar 3','M','tttt')
         pfields(n)%point => sv0(ib:ie,jb:je,kb:ke,3)
-        case('s4')
+      case('s4')
         call ncinfo(ncname( n,:),'sca4','scalar 4','M','tttt')
         pfields(n)%point => sv0(ib:ie,jb:je,kb:ke,4)
-        case('s5')
+      case('s5')
         call ncinfo(ncname( n,:),'sca5','scalar 5','M','tttt')
         pfields(n)%point => sv0(ib:ie,jb:je,kb:ke,5)
-        case('p0')
+      case('p0')
         call ncinfo(ncname( n,:),'pres','pressure field','M','tttt')
         pfields(n)%point => pres0(ib:ie,jb:je,kb:ke)
+      case('tx')
+        call ncinfo(ncname( n,:),'tau_x','stress x','M','mttt')
+        pfields(n)%point => tau_x(ib:ie,jb:je,kb:ke)
+      case('ty')
+        call ncinfo(ncname( n,:),'tau_y','stress y','M','tmtt')
+        pfields(n)%point => tau_y(ib:ie,jb:je,kb:ke)
+      case('tz')
+        call ncinfo(ncname( n,:),'tau_z','stress z','M','ttmt')
+        pfields(n)%point => tau_z(ib:ie,jb:je,kb:ke)
+      case('hf')
+        call ncinfo(ncname( n,:),'thl_flux','stress z','M','tttt')
+        pfields(n)%point => thl_flux(ib:ie,jb:je,kb:ke)
+        ! case('pd')
+        ! call ncinfo(ncname( n,:),'p','pressure correction','M','tttt')
+        ! pfields(n)%point => p(ib:ie,jb:je,kb:ke)
+        ! case('rs')
+        ! call ncinfo(ncname( n,:),'rhs','rhs of poisson equation','M','tttt')
+        ! pfields(n)%point => rhs(ib:ie,jb:je,kb:ke)
+        ! case('di')
+        ! call ncinfo(ncname( n,:),'div','Divergence before setting BCs','M','tttt')
+        ! pfields(n)%point => div(ib:ie,jb:je,kb:ke)
+        ! case('df')
+        ! call ncinfo(ncname( n,:),'divf','Divergence after setting BCs','M','tttt')
+        ! pfields(n)%point => divf(ib:ie,jb:je,kb:ke)
         case default
         call ncinfo(ncname( n,:),'u','West-East velocity','m/s','mttt')
         pfields(n)%point => u0(ib:ie,jb:je,kb:ke)
       end select
     end do
- 
+
     call open_nc( fname, ncid, nrec, n1=imax, n2=jmax, n3=khigh-klow+1)
     if (nrec==0) then
       call define_nc( ncid, 1, tncname)
-      call writestat_dims_nc(ncid)  
+      call writestat_dims_nc(ncid)
     end if
     call define_nc( ncid, nvar, ncname)
-      
+
            call open_nc( fname, ncid, nrec, n1=imax, n2=jmax, n3=khigh-klow+1)
 !        call open_nc( fname, ncid, nrec, n1=imax+2, n2=jmax+2, n3=khigh-klow+1)  !if want to print ghostcells
 
@@ -151,7 +176,7 @@ contains
           write(*,*) "calling define_nc"
           call define_nc( ncid, 1, tncname)
           write(*,*) "calling writestat_dims_nc"
-          call writestat_dims_nc(ncid)  
+          call writestat_dims_nc(ncid)
         end if
        call define_nc( ncid, nvar, ncname)
 
@@ -159,10 +184,10 @@ contains
 
   !> Do fielddump. Collect data to truncated (2 byte) integers, and write them to file
   subroutine fielddump
-    use modfields, only : u0,v0,w0,thl0,qt0,ql0,sv0  !ILS13 21.04.2015 changed to u0 from um  etc
+    use modfields, only : u0,v0,w0,thl0,qt0,ql0,sv0,div  !ILS13 21.04.2015 changed to u0 from um  etc
     use modsurfdata,only : thls,qts,thvs
     use modglobal, only : ib,ie,ih,jb,je,jh,ke,kb,kh,rk3step,timee,dt_lim,cexpnr,ifoutput,imax,jmax,&
-                          tfielddump, tnextfielddump,nsv, lfielddump
+                          tfielddump, tnextfielddump,nsv, lfielddump,rk3step,dxfi,dyi,dzhi
     !use modmpi,    only : myid,cmyid
     !use modsubgriddata, only : ekm,sbshr
     use modstat_nc, only : writestat_nc
@@ -172,14 +197,24 @@ contains
     real, allocatable :: vars(:,:,:,:)
     integer i,j,k
     integer :: writecounter = 1
- 
-    if (.not. (timee>=tnextfielddump)) return 
+
+    if (.not. ((timee>=tnextfielddump) .or. (rk3step==0))) return
 
     if (.not. lfielddump) return
 
-    if (rk3step/=3) return
+    if (rk3step/=3 .and. rk3step/=0) return
 
-    tnextfielddump=tnextfielddump+tfielddump
+    if (rk3step == 3) tnextfielddump=tnextfielddump+tfielddump
+
+    do k=kb,ke
+      do j=jb,je
+        do i=ib,ie
+          div(i,j,k) = (u0(i+1,j,k) - u0(i,j,k) )*dxfi(i) + &
+            (v0(i,j+1,k) - v0(i,j,k) )*dyi + &
+            (w0(i,j,k+1) - w0(i,j,k) )*dzhi(k)
+        end do
+      end do
+    end do
 
    allocate(vars(ib:ie,jb:je,kb:ke,nvar))
 
@@ -188,7 +223,7 @@ contains
     end do
 
    call writestat_nc(ncid,1,tncname,(/timee/),nrec,.true.)
-         
+
    call writestat_nc(ncid,nvar,ncname,vars,nrec,imax,jmax,khigh-klow+1)
    deallocate(vars)
 

@@ -53,46 +53,40 @@ program DALESURBAN      !Version 48
 !     1      READ NAMELISTS,INITIALISE GRID, CONSTANTS AND FIELDS
 !----------------------------------------------------------------
   call initmpi
-  write(*,*) "done initmpi"
   call startup
-  write(*,*) "done startup"
 
 !---------------------------------------------------------
 !      2     INITIALIZE STATISTICAL ROUTINES AND ADD-ONS
 !---------------------------------------------------------
   call initchecksim
   call initstat_nc
-
   call initfielddump
   call initstatsdump !tg3315
 
   call readfacetfiles
   call initEB
-  write(*,*) "done init stuff"
-
-  write(6,*) 'Determine immersed walls'
   call createwalls    ! determine walls/blocks
  ! call nearwall       ! determine minimum distance and corresponding shear components, ils13 10.07.17, commented, not functional at the moment, not needed for vreman but for smag., fix in modibm
-  write(6,*) 'Finished determining immersed walls'
 
   call boundary  !ils13 22.06.2017 inserted boundary here to get values at ghost cells before iteration starts
-
 !  not necessary but abates the fact that temp field is randomised by randomisation of just velocity fields
 !  (because advection at start of time loop without being divergence free)
 !  call poisson
 
+  call fielddump
+
 !------------------------------------------------------
 !   3.0   MAIN TIME LOOP
 !------------------------------------------------------
-  write(*,*)'START myid ', myid
+  !write(*,*)'START myid ', myid
   do while ((timeleft>0) .or. (rk3step < 3))
     call tstep_update
 
 !-----------------------------------------------------
 !   3.2   ADVECTION AND DIFFUSION
 !-----------------------------------------------------
-  
-    call advection                ! now also includes predicted pressure gradient term  
+
+    call advection                ! now also includes predicted pressure gradient term
 
     call subgrid
 !-----------------------------------------------------
@@ -111,17 +105,17 @@ program DALESURBAN      !Version 48
 
     call lstend         !large scale forcings
 
-    call nudge          ! nudge top cells of fields to enforce steady-state 
+    call nudge          ! nudge top cells of fields to enforce steady-state
 
     call ibmwallfun     ! immersed boundary forcing: only shear forces.
 
     call masscorr       ! correct pred. velocity pup to get correct mass flow
-                                                                                         
-    call ibmnorm        ! immersed boundary forcing: set normal velocities to zero  
+
+    call ibmnorm        ! immersed boundary forcing: set normal velocities to zero
 
     call EB
 
-    call scalsource     ! adds continuous forces in specified region of domain                                                   
+    call scalsource     ! adds continuous forces in specified region of domain
 
 !------------------------------------------------------
 !   3.4   EXECUTE ADD ONS
@@ -138,7 +132,8 @@ program DALESURBAN      !Version 48
     call poisson
 
     call tstep_integrate
-
+    call checksim
+    call fielddump
     call boundary
 
     call fixthetainf
@@ -152,12 +147,9 @@ program DALESURBAN      !Version 48
 !   3.7  WRITE RESTARTFILES AND DO STATISTICS
 !------------------------------------------------------
 
-    call checksim
-   ! call writedatafiles   ! write data files for later analysis
     call writerestartfiles
-    call fielddump
     call statsdump        ! tg3315
- 
+
   end do
 
 !-------------------------------------------------------
@@ -167,7 +159,7 @@ program DALESURBAN      !Version 48
 !--------------------------------------------------------
 !    4    FINALIZE ADD ONS AND THE MAIN PROGRAM
 !-------------------------------------------------------
-  call exitfielddump  
+  call exitfielddump
   call exitstatsdump     !tg3315
   call exitmodules
 

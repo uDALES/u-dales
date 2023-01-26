@@ -70,7 +70,7 @@ module modstartup
          BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys, &
          BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots, &
          idriver,tdriverstart,driverjobnr,dtdriver,driverstore,lsdriver
-      use modsurfdata, only:z0, z0h,  wtsurf, wttop, wqtop, wqsurf, wsvsurf, wsvtop, wsvsurfdum, wsvtopdum, ps, thvs, thls, thl_top, qt_top, qts 
+      use modsurfdata, only:z0, z0h,  wtsurf, wttop, wqtop, wqsurf, wsvsurf, wsvtop, wsvsurfdum, wsvtopdum, ps, thvs, thls, thl_top, qt_top, qts
       ! use modsurface,        only : initsurface
       use modfields, only:initfields, dpdx, ncname
       use modpois, only:initpois
@@ -99,7 +99,7 @@ module modstartup
          lreadmean
       namelist/DOMAIN/ &
          imax, jtot, kmax, xsize, ysize, &
-         xlat, xlon, xday, xtime, ksp 
+         xlat, xlon, xday, xtime, ksp
       namelist/PHYSICS/ &
          ps, igrw_damp, lmoist, lcoriol, lbuoyancy, ltempeq, &
          lprofforc, ifixuinf, lvinf, tscale, dpdx, &
@@ -291,7 +291,7 @@ module modstartup
       call MPI_BCAST(zS, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(SS, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(sigS, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(idriver    ,1,MPI_INTEGER,0,comm3d,mpierr)        ! ae1212: Added switch for driver inlet simulation                                                                         
+      call MPI_BCAST(idriver    ,1,MPI_INTEGER,0,comm3d,mpierr)        ! ae1212: Added switch for driver inlet simulation
       call MPI_BCAST(tdriverstart,1,MY_REAL   ,0,comm3d,mpierr)        ! ae1212
       call MPI_BCAST(driverjobnr,1,MPI_INTEGER,0,comm3d,mpierr)        ! ae1212
       call MPI_BCAST(dtdriver   ,1,MY_REAL    ,0,comm3d,mpierr)        ! ae1212
@@ -302,15 +302,15 @@ module modstartup
          call MPI_BCAST(BCxT, 1, MPI_INTEGER, 0, comm3d, mpierr)
          call MPI_BCAST(BCxq, 1, MPI_INTEGER, 0, comm3d, mpierr)
          call MPI_BCAST(BCxs, 1, MPI_INTEGER, 0, comm3d, mpierr)
-         call MPI_BCAST(BCym, 1, MPI_INTEGER, 0, comm3d, mpierr)                                                                                                                                                                             
+         call MPI_BCAST(BCym, 1, MPI_INTEGER, 0, comm3d, mpierr)
          call MPI_BCAST(BCyT, 1, MPI_INTEGER, 0, comm3d, mpierr)
          call MPI_BCAST(BCyq, 1, MPI_INTEGER, 0, comm3d, mpierr)
          call MPI_BCAST(BCys, 1, MPI_INTEGER, 0, comm3d, mpierr)
-         call MPI_BCAST(BCtopm, 1, MPI_INTEGER, 0, comm3d, mpierr)                                                         
+         call MPI_BCAST(BCtopm, 1, MPI_INTEGER, 0, comm3d, mpierr)
          call MPI_BCAST(BCtopT, 1, MPI_INTEGER, 0, comm3d, mpierr)
          call MPI_BCAST(BCtopq, 1, MPI_INTEGER, 0, comm3d, mpierr)
          call MPI_BCAST(BCtops, 1, MPI_INTEGER, 0, comm3d, mpierr)
-         call MPI_BCAST(BCbotm, 1, MPI_INTEGER, 0, comm3d, mpierr) 
+         call MPI_BCAST(BCbotm, 1, MPI_INTEGER, 0, comm3d, mpierr)
          call MPI_BCAST(BCbotT, 1, MPI_INTEGER, 0, comm3d, mpierr)
          call MPI_BCAST(BCbotq, 1, MPI_INTEGER, 0, comm3d, mpierr)
          call MPI_BCAST(BCbots, 1, MPI_INTEGER, 0, comm3d, mpierr)
@@ -385,7 +385,7 @@ module modstartup
       wsvsurf = wsvsurfdum(1:nsv)
       call MPI_BCAST(wsvsurf(1:nsv), nsv, MY_REAL, 0, comm3d, mpierr)
       allocate (wsvtop(1:nsv))
-      wsvtop = wsvtopdum(1:nsv)                                                                   
+      wsvtop = wsvtopdum(1:nsv)
       call MPI_BCAST(wsvtop(1:nsv), nsv, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(ps, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(thvs, 1, MY_REAL, 0, comm3d, mpierr)
@@ -473,7 +473,7 @@ module modstartup
       write (*, *) "done initpois"
       call initinlet ! added by J. Tomas: initialize inlet generator
       write (*, *) "done initinlet"
-      call initdriver  ! added by ae1212: initialise driver inlet                             
+      call initdriver  ! added by ae1212: initialise driver inlet
       write(*,*) "done initdriver"
       call checkinitvalues
       write (*, *) "done checkinitvalues"
@@ -576,14 +576,14 @@ module modstartup
       end if
 
       if ((lwarmstart) .or. (lstratstart)) then
-         if (startfile == '') then 
+         if (startfile == '') then
             write(0, *) 'ERROR: no restartfile set'
             stop 1
          end if
       end if
 
       ! Switch to ensure that neutral wall function is called when ltempeq=false and if iwalltemp==1 (constant flux and therefore wall temp is not resolved.
-      if ((ltempeq .eqv. .false.) .or. (iwalltemp==1)) then
+      if (((ltempeq .eqv. .false.) .or. (iwalltemp==1)) .and. (iwallmom==2)) then
          iwallmom = 3
          BCbotm = 3
       end if
@@ -692,12 +692,12 @@ module modstartup
          ladaptive, tnextrestart, jmax, linoutflow, lper2inout, iinletgen, lreadminl, &
          uflowrate, vflowrate,ltempeq, prandtlmoli, freestreamav, &
          tnextfielddump, tfielddump, tsample, tstatsdump, startfile, lprofforc, lchem, k1, JNO2,&
-         idriver,dtdriver,driverstore,tdriverstart,tdriverdump        
+         idriver,dtdriver,driverstore,tdriverstart,tdriverdump,BCxm,xf,xh,ysize, BCxm, BCxT, BCxq, BCxs
       use modsubgriddata, only:ekm, ekh
       use modsurfdata, only:wtsurf, wqsurf, wsvsurf, &
          thls, thvs, ps, qts, svs, sv_top
       ! use modsurface,        only : surface,dthldz
-      use modboundary, only:boundary, tqaver
+      use modboundary, only:boundary, tqaver, cyclicmi, cyclichi, cyclicqi, cyclicsi, cyclicmj, cyclichj, cyclicqj, cyclicsj
       use modmpi, only:slabsum, myid, comm3d, mpierr, my_real, avexy_ibm
       use modthermodynamics, only:thermodynamics, calc_halflev
       use modinletdata, only:Uinl, Urec, Wrec, u0inletbc, v0inletbc, w0inletbc, ubulk, irecy, Utav, Ttav, &
@@ -967,9 +967,44 @@ module modstartup
             !       end do
             !       end do
 
+            ! if (BCxm == 1) then
+            !   ! TGV (assumes equidistant x grid)
+            !   do i = ib,ie
+            !     do j = jb-1,je+1
+            !       do k = kb-1,ke+1
+            !         um(i,j,k) = 1. * sin(4.*atan(1.) * 2. * xh(i) / ysize) &
+            !         * cos(4.*atan(1.) * 2. * (dy*((0.5+(j-1))+myid*jmax)) / ysize) !&
+            !         !* cos(4.*atan(1.) * 2. * zf(k) / ylen)
+            !         vm(i,j,k) = 1. *-cos(4.*atan(1.) * 2. * xf(i) / ysize) &
+            !         * sin(4.*atan(1.) * 2. * (dy*((j-1)+myid*jmax)) / ysize) !&
+            !         !* cos(4.*atan(1.) * 2. * zf(k) / ylen)
+            !         wm(i,j,k) = 0.
+            !       end do
+            !     end do
+            !   end do
+            ! end if
+            !
+            ! um(ib-1,:,:) = um(ie,:,:)
+            ! um(ie+1,:,:) = um(ib,:,:)
+            ! vm(ib-1,:,:) = vm(ie,:,:)
+            ! vm(ie+1,:,:) = vm(ib,:,:)
+            ! wm(ib-1,:,:) = wm(ie,:,:)
+            ! wm(ie+1,:,:) = wm(ib,:,:)
+
             u0 = um
             v0 = vm
             w0 = wm
+
+            ! Equivalent to evolving ghost cells
+            if (BCxm == 1) call cyclicmi
+            if (BCxT == 1) call cyclichi
+            if (BCxq == 1) call cyclicqi
+            if (BCxs == 1) call cyclicsi
+
+            call cyclicmj
+            call cyclichj
+            call cyclicqj
+            call cyclicsj
 
             uaverage = 0.
             ! call slabsum(uaverage, kb, ke, um, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1, ib, ie, jb, je, kb, ke)
@@ -1171,7 +1206,7 @@ module modstartup
                   end do
                end do
             end do
-          
+
             if (nsv>0) then !tg3315 set these variables here for now and repeat for warmstart
 
               allocate(sv_top(1:nsv))
@@ -1183,7 +1218,7 @@ module modstartup
               write(*,*) 'sv_top', sv_top
 
             end if
- 
+
             !do n = 1,nsv
             !  do j = jb - jhc, je + jhc
             !    do i = ib - ihc, ie + ihc
@@ -1225,7 +1260,7 @@ module modstartup
 
             ekh(:, :, ke + 1) = ekh(:, :, ke) ! also for start up
 
-            if (idriver==1) then                                                                   
+            if (idriver==1) then
               !driverstore = (timeleft - tdriverstart)/dtdriver + 1
               !if(myid==0) then
               !  write(*,*) 'driverstore: ', driverstore
@@ -1506,7 +1541,7 @@ module modstartup
               end if ! end if myid==0
 
               call MPI_BCAST(svprof, (ke + kh - (kb - kh))*nsv, MY_REAL, 0, comm3d, mpierr)
-          
+
               if (nsv>0) then !tg3315 set these variables here for now and repeat for warmstart
 
                 allocate(sv_top(1:nsv))
@@ -1931,7 +1966,7 @@ module modstartup
          IIuws(:) = nint(rslabs)
          IIvws(:) = nint(rslabs)
          IIuvs(:) = nint(rslabs)
-         IIct(:, :) = jtot 
+         IIct(:, :) = jtot
          IIut(:, :) = jtot
          IIvt(:, :) = jtot
          IIwt(:, :) = jtot
