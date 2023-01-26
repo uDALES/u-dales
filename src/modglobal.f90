@@ -260,19 +260,6 @@ module modglobal
 
    integer         :: iwallmom = 2, iwalltemp = 1, iwallmoist = 1, iwallscal = 1
 
-   ! Number of solid points
-   ! integer :: nsolpts_u
-   ! integer :: nsolpts_v
-   ! integer :: nsolpts_w
-   ! Number of fluid boundary points
-   ! integer :: nbndpts_u
-   ! integer :: nbndpts_v
-   ! integer :: nbndpts_w
-   ! Number of facet sections
-   ! integer :: nfctsecs_u
-   ! integer :: nfctsecs_v
-   ! integer :: nfctsecs_w
-
    real, parameter :: rhow = 0.998e3 !<    * Density of water
    real, parameter :: pref0 = 1.e5 !<    *standard pressure used in exner function.
    real, parameter :: tmelt = 273.16 !<    *temperature of melting of ice.
