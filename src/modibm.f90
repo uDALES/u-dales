@@ -256,7 +256,7 @@ module modibm
        end if
      end do
 
-     write(*,*) "rank ", myid, " has ", nsolptsrank, " solid points from ", fname
+     !write(*,*) "rank ", myid, " has ", nsolptsrank, " solid points from ", fname
 
    end subroutine initibmnorm
 
@@ -311,7 +311,7 @@ module modibm
        end if
      end do
 
-     write(*,*) "rank ", myid, " has ", nbndptsrank, "points from ", fname_bnd
+     !write(*,*) "rank ", myid, " has ", nbndptsrank, "points from ", fname_bnd
 
      ! Store indices of points on current rank - only loop through these points
      allocate(bndptsrank(nbndptsrank))
@@ -390,7 +390,7 @@ module modibm
        end if
      end do
 
-     write(*,*) "rank ", myid, " has ", nfctsecsrank, " facet sections from ", fname_sec
+     !write(*,*) "rank ", myid, " has ", nfctsecsrank, " facet sections from ", fname_sec
 
    end subroutine initibmwallfun
 
