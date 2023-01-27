@@ -600,6 +600,8 @@ contains
   integer :: writecounter = 1
   integer :: reclength
 
+  if (.not.(lytdump .or. lydump .or. lxydump .or. lxytdump .or. ltdump)) return
+
   allocate(thlk(ib:ie,jb:je,kb:ke+kh))
   allocate(qtk(ib:ie,jb:je,kb:ke+kh))
   allocate(uik(ib:ie,jb:je,kb:ke+kh))
