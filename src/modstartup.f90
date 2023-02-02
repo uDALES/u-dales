@@ -69,8 +69,10 @@ module modstartup
          lwallfunc,lprofforc,lchem,k1,JNO2,rv,rd,tnextEB,tEB,dtEB,bldT,wsoil,wgrmax,wwilt,wfc,skyLW,GRLAI,rsmin,nfcts,lEB,lwriteEBfiles,nwalllayers,lconstW, &
          BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys, &
          BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots, &
-         idriver,tdriverstart,driverjobnr,dtdriver,driverstore,lsdriver
-      use modsurfdata, only:z0, z0h,  wtsurf, wttop, wqtop, wqsurf, wsvsurf, wsvtop, wsvsurfdum, wsvtopdum, ps, thvs, thls, thl_top, qt_top, qts 
+         idriver,tdriverstart,driverjobnr,dtdriver,driverstore, lsdriver, &
+         ltrees,ntrees,Qstar,dQdt,lad,lsize,r_s,cd,dec,ud,ltreedump, &
+         lpurif,npurif,Qpu,epu
+      use modsurfdata, only:z0, z0h,  wtsurf, wttop, wqtop, wqsurf, wsvsurf, wsvtop, wsvsurfdum, wsvtopdum, ps, thvs, thls, thl_top, qt_top, qts
       ! use modsurface,        only : initsurface
       use modfields, only:initfields, dpdx, ncname
       use modpois, only:initpois
@@ -138,6 +140,10 @@ module modstartup
          lfielddump, tfielddump, fieldvars, &
          ltdump, lydump, lytdump, lxydump, lxytdump, &
          lslicedump, ltkedump, tstatsdump, tsample
+      namelist/TREES/ &
+         ltrees, ntrees, cd, dec, ud, lad, Qstar, dQdt, lsize, r_s, ltreedump
+      namelist/PURIFS/&
+         lpurif, npurif, Qpu, epu
 
       if (myid == 0) then
          if (command_argument_count() >= 1) then
@@ -249,6 +255,24 @@ module modstartup
             stop 1
          endif
          write (6, CHEMISTRY)
+         rewind (ifnamopt)
+
+         read (ifnamopt, TREES, iostat=ierr)
+         if (ierr > 0) then
+            print *, 'ERROR: Problem in namoptions TREES'
+            print *, 'iostat error: ', ierr
+            stop 1
+         endif
+         write (6, TREES)
+         rewind (ifnamopt)
+
+         read (ifnamopt, PURIFS, iostat=ierr)
+         if (ierr > 0) then
+            print *, 'ERROR: Problem in namoptions PURIFS'
+            print *, 'iostat error: ', ierr
+            stop 1
+         endif
+         write (6, PURIFS)
          rewind (ifnamopt)
 
          read (ifnamopt, OUTPUT, iostat=ierr)
@@ -410,6 +434,22 @@ module modstartup
       call MPI_BCAST(Vinf, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(di, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(dti, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(ltrees, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(ntrees, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(ltreedump, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315 added switch for writing statistics files on trees
+      call MPI_BCAST(Qstar, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(dQdt, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(lsize, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(lad, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(r_s, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(cd, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(dec, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(ud, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(lpurif, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(npurif, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(Qpu, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(epu, 1, MY_REAL, 0, comm3d, mpierr)
+
       dr = di ! initial value is needed
       di_test = di ! initial value is needed
       write (*, *) "sec g"

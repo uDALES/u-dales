@@ -35,6 +35,8 @@ program DALESURBAN      !Version 48
   use modforces,         only : forces,coriolis,lstend,fixuinf1,fixuinf2,fixthetainf,nudge, masscorr
   use modpois,           only : poisson
   use modibm,            only : createwalls,ibmwallfun,ibmnorm,nearwall,bottom
+  use modtrees,          only : createtrees,trees
+  use modpurifiers,      only : createpurifiers,purifiers
   use initfac,           only : readfacetfiles
   use modEB,             only : initEB,EB
 
@@ -76,6 +78,14 @@ program DALESURBAN      !Version 48
   write(6,*) 'Finished determining immersed walls'
 
   call boundary  !ils13 22.06.2017 inserted boundary here to get values at ghost cells before iteration starts
+
+  write(6,*) 'Determining trees'
+  call createtrees
+  write(6,*) 'Finished determining trees'
+
+  write(6,*) 'Determining purifiers'
+  call createpurifiers
+  write(6,*) 'Finished determining purifiers'
 
 !  not necessary but abates the fact that temp field is randomised by randomisation of just velocity fields
 !  (because advection at start of time loop without being divergence free)
@@ -121,6 +131,8 @@ program DALESURBAN      !Version 48
 
     call EB
 
+    call trees
+
     call scalsource     ! adds continuous forces in specified region of domain                                                   
 
 !------------------------------------------------------
@@ -136,6 +148,10 @@ program DALESURBAN      !Version 48
     call grwdamp        !damping at top of the model
 
     call poisson
+
+    call purifiers      ! tg3315 placed here as was location that I could find in src
+                        ! that I had available at home on 14.04.20 but this may need 
+                        ! to be checked
 
     call tstep_integrate
 

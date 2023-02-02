@@ -126,6 +126,10 @@ module modglobal
    logical :: lslicedump= .false.  !<  switch to output slices in the xy-plane every tstatsdump
    logical :: ltdump    = .false.      !<  switch to output time-averaged statistics every tstatsdump
 
+   logical :: ltrees = .false.
+   logical :: lpurif = .false.
+   logical :: ltreedump    = .false.
+
    logical :: lreadminl = .false. !<  switch for reading mean inlet/recycle plane profiles (used in inletgenerator)
    logical :: lwallfunc = .true. !<  switch that determines whether wall functions are used to compute the wall-shear stress
    logical :: luoutflowr = .false. !<  switch that determines whether u-velocity is corrected to get a fixed outflow rate
@@ -227,6 +231,14 @@ module modglobal
    real    :: SS = 0.
    real    :: sigS = 0.
 
+  !trees
+  integer, allocatable :: tree(:,:)             !< field with data from tree.inp.xxx
+  integer :: ntree_max = 0
+  integer :: ntrees = 0
+  !real, allocatable :: ladz(:)                  !< field with leaf area density data
+  real    :: cd = 0., ud = 0., Qstar = 0., dQdt = 0., dec = 0., lad = 0., lsize = 0., r_s = 0.  !< current set of tree parameters
+  real    :: tr_A = 0.
+
   logical :: lnudge = .false.                   !< switch for applying nudging at the top of the domain
   real    :: tnudge = 50.                       !< time scale for nudging
   integer :: nnudge = 10
@@ -234,6 +246,11 @@ module modglobal
   !chemistry
   logical :: lchem = .false.    ! switch for basic chemistry
   real    :: k1 = 0., JNO2 = 0.   ! k1 = rate constant (O3 + NO -> NO2 + 02 ), JNO2 = NO2 photolysis rate
+
+  !purifiers
+  integer, allocatable :: purif(:,:)            !< field with data from purif.inp.xxx
+  integer :: npurif = 0
+  real    :: Qpu = 0., epu = 0.                 !< flowrate and efficiency of purifiers
 
    ! Poisson solver
    integer, parameter :: POISS_FFT = 0, &
