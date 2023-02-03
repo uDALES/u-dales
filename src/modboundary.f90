@@ -123,16 +123,16 @@ contains
                                  BCym_periodic, BCym_profile, BCyT_periodic, BCyT_profile, &
                                  BCyq_periodic, BCyq_profile, BCys_periodic, &
                                  ibrank, ierank, jbrank, jerank, e12min, idriver
-      use modfields,      only : u0, v0, w0, um, vm, wm, thl0, thlm, qt0, qtm, e120, e12m, sv0, svm, u0av, uout, uouttot
+      use modfields,      only : u0, v0, w0, um, vm, wm, thl0, thlm, qt0, qtm, e120, e12m, sv0, svm, u0av, v0av, uout, uouttot, vouttot
       use modsubgriddata, only : ekh, ekm, loneeqn
       use modsurfdata,    only : thl_top, qt_top, sv_top, wttop, wqtop, wsvtop
       use modmpi,         only : myid, slabsum, avey_ibm
       use moddriver,      only : drivergen
-      use modinletdata,   only : ubulk, iangle
+      use modinletdata,   only : ubulk, vbulk, iangle
       use decomp_2d,      only : exchange_halo_z
 
       implicit none
-      real, dimension(kb:ke) :: uaverage
+      real, dimension(kb:ke) :: uaverage, vaverage
       real, dimension(ib:ie,kb:ke) :: uavey
       integer i, k, n
 
@@ -144,11 +144,17 @@ contains
         do k = kb, ke
            uaverage(k) = u0av(k)*dzf(k)
         end do
+
+        do k = kb, ke
+           vaverage(k) = v0av(k)*dzf(k)
+        end do
         ! need a method to know if we have all blocks at lowest cell kb
         ! assuming this for now (hence kb+1)
         uouttot = sum(uaverage(kb:ke))/(zh(ke + 1) - zh(kb+1))
+        vouttot = sum(vaverage(kb:ke))/(zh(ke + 1) - zh(kb+1))
      else
         uouttot = ubulk
+        vouttot = vbulk
      end if
 
      ! Bottom BC - many ways of enforcing this but this is simplest
@@ -963,7 +969,7 @@ contains
 
    subroutine ymo_convective
      use modglobal,      only : je, dyi, rk3step, dt
-     use modfields,      only : u0, um, v0, vm, w0, wm, e120, e12m
+     use modfields,      only : u0, um, v0, vm, w0, wm, e120, e12m, vouttot
      use modsubgriddata, only : loneeqn
 
      real rk3coef
@@ -971,14 +977,14 @@ contains
      rk3coef = dt/(4.-dble(rk3step))
 
      ! change to vouttot
-     u0(:, je + 1, :) = u0(:, je + 1, :) - (u0(:, je + 1, :) - u0(:, je, :))*dyi*rk3coef*v0(:, je, :)
-     um(:, je + 1, :) = um(:, je + 1, :) - (um(:, je + 1, :) - um(:, je, :))*dyi*rk3coef*v0(:, je, :)
-     w0(:, je + 1, :) = w0(:, je + 1, :) - (w0(:, je + 1, :) - w0(:, je, :))*dyi*rk3coef*v0(:, je, :)
-     wm(:, je + 1, :) = wm(:, je + 1, :) - (wm(:, je + 1, :) - wm(:, je, :))*dyi*rk3coef*v0(:, je, :)
+     u0(:, je + 1, :) = u0(:, je + 1, :) - (u0(:, je + 1, :) - u0(:, je, :))*dyi*rk3coef*vouttot
+     um(:, je + 1, :) = um(:, je + 1, :) - (um(:, je + 1, :) - um(:, je, :))*dyi*rk3coef*vouttot
+     w0(:, je + 1, :) = w0(:, je + 1, :) - (w0(:, je + 1, :) - w0(:, je, :))*dyi*rk3coef*vouttot
+     wm(:, je + 1, :) = wm(:, je + 1, :) - (wm(:, je + 1, :) - wm(:, je, :))*dyi*rk3coef*vouttot
 
      if (loneeqn) then
-       e120(:, je + 1, :) = e120(:, je + 1, :) - (e120(:, je + 1, :) - e120(:, je, :))*dyi*rk3coef*v0(:, je, :)
-       e12m(:, je + 1, :) = e12m(:, je + 1, :) - (e12m(:, je + 1, :) - e12m(:, je, :))*dyi*rk3coef*v0(:, je, :)
+       e120(:, je + 1, :) = e120(:, je + 1, :) - (e120(:, je + 1, :) - e120(:, je, :))*dyi*rk3coef*vouttot
+       e12m(:, je + 1, :) = e12m(:, je + 1, :) - (e12m(:, je + 1, :) - e12m(:, je, :))*dyi*rk3coef*vouttot
      end if
 
    end subroutine ymo_convective
@@ -987,14 +993,14 @@ contains
    subroutine yTo_convective
 
      use modglobal, only : je, dyi, rk3step, dt
-     use modfields, only : thl0, thlm, v0
+     use modfields, only : thl0, thlm, v0, vouttot
 
      real rk3coef
 
      rk3coef = dt/(4.-dble(rk3step))
 
-     thl0(:, je + 1, :) = thl0(:, je + 1, :) - (thl0(:, je + 1, :) - thl0(:, je, :))*dyi*rk3coef*v0(:, je, :)
-     thlm(:, je + 1, :) = thlm(:, je + 1, :) - (thlm(:, je + 1, :) - thlm(:, je, :))*dyi*rk3coef*v0(:, je, :)
+     thl0(:, je + 1, :) = thl0(:, je + 1, :) - (thl0(:, je + 1, :) - thl0(:, je, :))*dyi*rk3coef*vouttot
+     thlm(:, je + 1, :) = thlm(:, je + 1, :) - (thlm(:, je + 1, :) - thlm(:, je, :))*dyi*rk3coef*vouttot
 
    end subroutine yTo_convective
 
@@ -1002,13 +1008,13 @@ contains
    subroutine yqo_convective
 
      use modglobal, only : je, dyi, rk3step, dt
-     use modfields, only : qt0, qtm, v0
+     use modfields, only : qt0, qtm, v0, vouttot
 
      real rk3coef
      rk3coef = dt/(4.-dble(rk3step))
 
-     qt0(:, je + 1, :) = qt0(:, je + 1, :) - (qt0(:, je + 1, :) - qt0(:, je, :))*dyi*rk3coef*v0(:, je, :)
-     qtm(:, je + 1, :) = qtm(:, je + 1, :) - (qtm(:, je + 1, :) - qtm(:, je, :))*dyi*rk3coef*v0(:, je, :)
+     qt0(:, je + 1, :) = qt0(:, je + 1, :) - (qt0(:, je + 1, :) - qt0(:, je, :))*dyi*rk3coef*vouttot
+     qtm(:, je + 1, :) = qtm(:, je + 1, :) - (qtm(:, je + 1, :) - qtm(:, je, :))*dyi*rk3coef*vouttot
 
    end subroutine yqo_convective
 
@@ -1016,7 +1022,7 @@ contains
    subroutine yso_convective
 
      use modglobal, only : je, rk3step, dt, dyi, nsv
-     use modfields, only :sv0, svm, v0
+     use modfields, only :sv0, svm, v0, vouttot
 
      real rk3coef
      integer n
@@ -1024,8 +1030,8 @@ contains
      rk3coef = dt/(4.-dble(rk3step))
 
      do n = 1, nsv
-       sv0(:, je + 1, :, n) = sv0(:, je + 1, :, n) - (sv0(:, je + 1, :, n) - sv0(:, je, :, n))*dyi*rk3coef*v0(:, je, :)
-       svm(:, je + 1, :, n) = svm(:, je + 1, :, n) - (svm(:, je + 1, :, n) - svm(:, je, :, n))*dyi*rk3coef*v0(:, je, :)
+       sv0(:, je + 1, :, n) = sv0(:, je + 1, :, n) - (sv0(:, je + 1, :, n) - sv0(:, je, :, n))*dyi*rk3coef*vouttot
+       svm(:, je + 1, :, n) = svm(:, je + 1, :, n) - (svm(:, je + 1, :, n) - svm(:, je, :, n))*dyi*rk3coef*vouttot
      end do
 
    end subroutine yso_convective
@@ -1119,7 +1125,7 @@ contains
                               BCtopm_freeslip, BCtopm_noslip, BCtopm_pressure, &
                               BCxm_periodic, BCxm_profile, BCxm_driver, &
                               BCym_periodic, BCym_profile
-     use modfields,    only : pres0, up, vp, wp, um, vm, wm, w0, u0, v0, uouttot, uinit, vinit, uprof, vprof, pres0, IIc, IIcs
+     use modfields,    only : pres0, up, vp, wp, um, vm, wm, w0, u0, v0, uouttot, vouttot, uinit, vinit, uprof, vprof, pres0, IIc, IIcs
      use modmpi,       only : excjs, excis, myid, avexy_ibm
      use modinletdata, only : u0driver
      use decomp_2d,    only : exchange_halo_z
@@ -1252,7 +1258,7 @@ contains
         do k = kb, ke
           do i = ib-1, ie+1
             ! change to vouttot
-            pvp(i, je+1, k) = vm(i, je+1, k) * rk3coefi - (v0(i, je+1, k) - v0(i, je, k)) * dyi * v0(i, je, k)
+            pvp(i, je+1, k) = vm(i, je+1, k) * rk3coefi - (v0(i, je+1, k) - v0(i, je, k)) * dyi * vouttot
             vp(i, je+1, k) = pvp(i, je+1, k) - vm(i,je+1,k)*rk3coefi
           end do
         end do

@@ -639,7 +639,7 @@ module modstartup
       end if
 
       ! Call neutral wall function when air temperature not evolved or if constant heat flux.
-      if ((ltempeq .eqv. .false.) .or. (iwalltemp==1)) then
+      if (((ltempeq .eqv. .false.) .or. (iwalltemp==1)) .and. (iwallmom==2)) then
         if (myid==0) write(*,*) "Changing to neutral wall function"
          iwallmom = 3
          BCbotm = BCbotm_wfneutral
@@ -765,7 +765,7 @@ module modstartup
       use modboundary, only:boundary, tqaver, halos
       use modmpi, only:slabsum, myid, comm3d, mpierr, my_real, avexy_ibm, myidx, myidy
       use modthermodynamics, only:thermodynamics, calc_halflev
-      use modinletdata, only:Uinl, Urec, Wrec, u0inletbc, v0inletbc, w0inletbc, ubulk, irecy, Utav, Ttav, &
+      use modinletdata, only:Uinl, Urec, Wrec, u0inletbc, v0inletbc, w0inletbc, ubulk, vbulk, irecy, Utav, Ttav, &
          uminletbc, vminletbc, wminletbc, u0inletbcold, v0inletbcold, w0inletbcold, &
          storeu0inletbc, storev0inletbc, storew0inletbc, nstepread, nfile, Tinl, &
          Trec, tminletbc, t0inletbcold, t0inletbc, storet0inletbc, utaui, ttaui, iangle,&
@@ -789,7 +789,7 @@ module modstartup
       real, dimension(kb:ke + 1) :: waverage
       real, dimension(kb:ke + 1) :: uprofrot
       real, dimension(kb:ke + 1) :: vprofrot
-      real tv, ran, ran1, vbulk
+      real tv, ran, ran1
 
       character(80) chmess
 

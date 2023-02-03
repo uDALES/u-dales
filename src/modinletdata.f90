@@ -127,7 +127,8 @@ module modinletdata
     real :: lmor      !< Obukhov length at recycle
     real :: q0        !< wall heat flux at recycle
     real :: deltat=0.  !< full time step (set to zero at start of sim)
-    real :: ubulk=0.   !< Bulk velocity (to be determined at first time step)   
+    real :: ubulk=0.   !< Bulk velocity (to be determined at first time step)
+    real :: vbulk=0.   !< Bulk velocity (to be determined at first time step)   
     real :: totalu=0.  !< Bulk velocity inlet
     real :: totaluold=0.  !< old bulk velocity inlet
     real :: ddispdx=0.    !< spatial variation of displacement thickness (d/dx(delta*))

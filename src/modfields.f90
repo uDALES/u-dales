@@ -384,11 +384,11 @@ module modfields
   real, allocatable :: momthick(:)                  !< momentum thickness: y-line average
   real, allocatable :: displthick(:)                !< displacement thickness: y-line average
   real              :: uouttot                      !< area-averaged outflow velocity (used in convective outflow BC)
+  real              :: vouttot                      !< area-averaged outflow velocity (used in convective outflow BC)
   real              :: wouttot                      !< area-averaveraged top velocity
   real              :: udef
   real              :: vdef
   real, allocatable :: vout(:)
-  real              :: vouttot
 
   real              :: thlsrcdt                     ! thlsrc -> thlsrcdt is used to solve 1-order ODE for thlsrc
   real              :: dgdt                         ! g = dp/dx -> dgdt is used to solve 1-order ODE for dpdx
