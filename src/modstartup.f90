@@ -81,7 +81,7 @@ module modstartup
       use modmpi,            only : comm3d, myid, myidx, myidy, cmyid, cmyidx, cmyidy, mpi_integer, mpi_logical, my_real, mpierr, mpi_character, nprocx, nprocy, nbreast, nbrwest, nbrnorth, nbrsouth
       use modinlet,          only : initinlet
       use modinletdata,      only : di, dr, di_test, dti, iangledeg, iangle
-      use modibmdata,        only : bctfxm, bctfxp, bctfym, bctfyp, bctfz
+      use modibmdata,        only : bctfxm, bctfxp, bctfym, bctfyp, bctfz, bcqfxm, bcqfxp, bcqfym, bcqfyp, bcqfz
       use modforces,         only : calcfluidvolumes
       use moddriver,         only : initdriver
       use modibm,            only : nsolpts_u, nsolpts_v, nsolpts_w, nsolpts_c, &
@@ -125,6 +125,7 @@ module modstartup
          BCtopm, BCtopT, BCtopq, BCtops, &
          BCbotm, BCbotT, BCbotq, BCbots, &
          bctfxm, bctfxp, bctfym, bctfyp, bctfz, &
+         bcqfxm, bcqfxp, bcqfym, bcqfyp, bcqfz, &
          wttop, thl_top, qt_top, qts, wsvsurfdum, wsvtopdum, &
          wtsurf, wqsurf, thls, z0, z0h, BCzp
       namelist/INLET/ &
@@ -433,6 +434,11 @@ module modstartup
       call MPI_BCAST(bctfym, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(bctfyp, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(bctfz, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(bcqfxm, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(bcqfxp, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(bcqfym, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(bcqfyp, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(bcqfz, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(wtsurf, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(wqsurf, 1, MY_REAL, 0, comm3d, mpierr)
       allocate (wsvsurf(1:nsv))

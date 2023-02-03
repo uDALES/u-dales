@@ -141,11 +141,13 @@ module modibm
    integer :: nfctsecsrank_c
    real, allocatable, target :: mask_c(:,:,:)
 
+   !real, allocatable :: fctsecscth(:)
+
    contains
 
    subroutine initibm
      use modglobal, only : libm, xh, xf, yh, yf, zh, zf, xhat, yhat, zhat, &
-                           ib, ie, ih, ihc, jb, je, jh, jhc, kb, ke, kh, khc
+                           ib, ie, ih, ihc, jb, je, jh, jhc, kb, ke, kh, khc, iwallmom, lmoist, ltempeq
      use decomp_2d, only : exchange_halo_z
 
      real, allocatable :: rhs(:,:,:)
@@ -155,8 +157,27 @@ module modibm
      call initibmnorm('solid_u.txt', nsolpts_u, solpts_u, nsolptsrank_u, solptsrank_u)
      call initibmnorm('solid_v.txt', nsolpts_v, solpts_v, nsolptsrank_v, solptsrank_v)
      call initibmnorm('solid_w.txt', nsolpts_w, solpts_w, nsolptsrank_w, solptsrank_w)
-     call initibmnorm('solid_c.txt', nsolpts_c, solpts_c, nsolptsrank_c, solptsrank_c)
 
+     ! Define (real) masks
+     ! Hopefully this can be removed eventually if (integer) IIx halos can be communicated
+     ! These are only used in modibm, to cancel subgrid term across solid boundaries
+     allocate(mask_u(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb-khc:ke+khc)); mask_u = 1.
+     allocate(mask_v(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb-khc:ke+khc)); mask_v = 1.
+     allocate(mask_w(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb-khc:ke+khc)); mask_w = 1.
+     mask_w(:,:,kb) = 0.     ! In future this shouldn't be needed?
+     mask_u(:,:,kb-khc) = 0.
+     mask_v(:,:,kb-khc) = 0.
+     mask_w(:,:,kb-khc) = 0.
+
+     allocate(rhs(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+     call solid(nsolpts_u, solpts_u, nsolptsrank_u, solptsrank_u, mask_u, rhs, 0.)
+     call solid(nsolpts_v, solpts_v, nsolptsrank_v, solptsrank_v, mask_v, rhs, 0.)
+     call solid(nsolpts_w, solpts_w, nsolptsrank_w, solptsrank_w, mask_w, rhs, 0.)
+     call exchange_halo_z(mask_u, opt_zlevel=(/ihc,jhc,0/))
+     call exchange_halo_z(mask_v, opt_zlevel=(/ihc,jhc,0/))
+     call exchange_halo_z(mask_w, opt_zlevel=(/ihc,jhc,0/))
+
+     if (iwallmom > 1) then
      call initibmwallfun('fluid_boundary_u.txt', 'facet_sections_u.txt', xh, yf, zf, &
                          nbndpts_u, bndpts_u, bnddst_u, intpts_u, bndvec_u, lcomprec_u, nbndptsrank_u, bndptsrank_u, &
                          nfctsecs_u, secfacids_u, secareas_u, secbndptids_u, nfctsecsrank_u, fctsecsrank_u)
@@ -168,39 +189,21 @@ module modibm
      call initibmwallfun('fluid_boundary_w.txt', 'facet_sections_w.txt', xf, yf, zh, &
                         nbndpts_w, bndpts_w, bnddst_w, intpts_w, bndvec_w, lcomprec_w, nbndptsrank_w, bndptsrank_w, &
                         nfctsecs_w, secfacids_w, secareas_w, secbndptids_w, nfctsecsrank_w, fctsecsrank_w)
+     end if
 
-     call initibmwallfun('fluid_boundary_c.txt', 'facet_sections_c.txt', xf, yf, zf, &
-                         nbndpts_c, bndpts_c, bnddst_c, intpts_c, bndvec_c, lcomprec_c, nbndptsrank_c, bndptsrank_c, &
-                         nfctsecs_c, secfacids_c, secareas_c, secbndptids_c, nfctsecsrank_c, fctsecsrank_c)
+     if (ltempeq .or. lmoist) then
+       call initibmnorm('solid_c.txt', nsolpts_c, solpts_c, nsolptsrank_c, solptsrank_c)
+       call initibmwallfun('fluid_boundary_c.txt', 'facet_sections_c.txt', xf, yf, zf, &
+       nbndpts_c, bndpts_c, bnddst_c, intpts_c, bndvec_c, lcomprec_c, nbndptsrank_c, bndptsrank_c, &
+       nfctsecs_c, secfacids_c, secareas_c, secbndptids_c, nfctsecsrank_c, fctsecsrank_c)
 
-    ! Define (real) masks
-    ! Hopefully this can be removed eventually if (integer) IIx halos can be communicated
-    ! These are only used in modibm, to cancel subgrid term across solid boundaries
-    allocate(mask_u(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb-khc:ke+khc)); mask_u = 1.
-    allocate(mask_v(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb-khc:ke+khc)); mask_v = 1.
-    allocate(mask_w(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb-khc:ke+khc)); mask_w = 1.
-    allocate(mask_c(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb-khc:ke+khc)); mask_c = 1.
+       allocate(mask_c(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb-khc:ke+khc)); mask_c = 1.
+       mask_c(:,:,kb-khc) = 0.
+       call solid(nsolpts_c, solpts_c, nsolptsrank_c, solptsrank_c, mask_c, rhs, 0.)
+       call exchange_halo_z(mask_c, opt_zlevel=(/ihc,jhc,0/))
+     end if
 
-    ! In future this shouldn't be needed
-    mask_w(:,:,kb) = 0.
-
-    ! This WILL be needed
-    mask_u(:,:,kb-khc) = 0.
-    mask_v(:,:,kb-khc) = 0.
-    mask_w(:,:,kb-khc) = 0.
-    mask_c(:,:,kb-khc) = 0.
-
-    allocate(rhs(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
-    call solid(nsolpts_u, solpts_u, nsolptsrank_u, solptsrank_u, mask_u, rhs, 0.)
-    call solid(nsolpts_v, solpts_v, nsolptsrank_v, solptsrank_v, mask_v, rhs, 0.)
-    call solid(nsolpts_w, solpts_w, nsolptsrank_w, solptsrank_w, mask_w, rhs, 0.)
-    call solid(nsolpts_c, solpts_c, nsolptsrank_c, solptsrank_c, mask_c, rhs, 0.)
-    deallocate(rhs)
-
-    call exchange_halo_z(mask_u, opt_zlevel=(/ihc,jhc,0/))
-    call exchange_halo_z(mask_v, opt_zlevel=(/ihc,jhc,0/))
-    call exchange_halo_z(mask_w, opt_zlevel=(/ihc,jhc,0/))
-    call exchange_halo_z(mask_c, opt_zlevel=(/ihc,jhc,0/))
+     deallocate(rhs)
 
    end subroutine initibm
 
@@ -390,7 +393,7 @@ module modibm
        end if
      end do
 
-     !write(*,*) "rank ", myid, " has ", nfctsecsrank, " facet sections from ", fname_sec
+     !allocate(fctsecscth(nfctsecsrank))
 
    end subroutine initibmwallfun
 
@@ -413,8 +416,12 @@ module modibm
 
      ! scalars
      if (ltempeq) then
-        call solid(nsolpts_c, solpts_c, nsolptsrank_c, solptsrank_c, thlm, thlp, 301.)
-        call advection_correction(thl0, thlp) ! account for non-zero wall velocities to ensure heat conservation in fluid
+        call solid(nsolpts_c, solpts_c, nsolptsrank_c, solptsrank_c, thlm, thlp, 288.) ! should be set to thl0av?
+        !call advection_correction(thl0, thlp) ! account for non-zero wall velocities to ensure heat conservation in fluid
+        ! This makes the IBM true-blue Thatcherite conservative,
+        ! however like Thatcher it can have drastic effects, notably a very cool
+        ! canopy layer initially, so it is commented out for now.
+        ! Also, it wasn't present in uDALES 1.
      end if
 
    end subroutine ibmnorm
@@ -458,7 +465,7 @@ module modibm
            rhs(i,j,k) = rhs(i,j,k) + w0(i,j,k+1)*(var(i,j,k+1)*dzf(k) + var(i,j,k)*dzf(k+1))*dzhi(k+1)*dzfi5(k)
          end if
 
-         if (abs(mask_w(i,j,k)) < eps1) then ! bottom
+         if (abs(mask_w(i,j,k)) < eps1) then
            rhs(i,j,k) = rhs(i,j,k) - w0(i,j,k)*(var(i,j,k-1)*dzf(k) + var(i,j,k)*dzf(k-1))*dzhi(k)*dzfi5(k)
          end if
 
@@ -546,8 +553,6 @@ module modibm
            up(i,j,k) = up(i,j,k) + emom * (u0(i,j,k) - u0(i,j,k-1))*dzhi(k)*dzfi(k)
          end if
 
-         ! Account for solid v points ?
-
      end do
 
 
@@ -602,8 +607,6 @@ module modibm
                     dzf(k)   * ( ekm(i,j,k-1)  + ekm(i,j-1,k-1))) * dzhiq(k)
            vp(i,j,k) = vp(i,j,k) + eomm * (v0(i,j,k) - v0(i,j,k-1))*dzhi(k)*dzfi(k)
          end if
-
-         ! Account for solid u points ?
 
      end do
 
@@ -663,8 +666,6 @@ module modibm
 
          end if
 
-         ! Account for solid u points ?
-
      end do
 
    end subroutine diffw_corr
@@ -720,8 +721,8 @@ module modibm
 
 
    subroutine ibmwallfun
-     use modglobal, only : libm, iwallmom, iwalltemp, xhat, yhat, zhat, ltempeq, ib, ie, ih, jb, je, jh, kb, ke, kh
-     use modfields, only : u0, v0, w0, thl0, up, vp, wp, thlp, tau_x, tau_y, tau_z, thl_flux
+     use modglobal, only : libm, iwallmom, iwalltemp, xhat, yhat, zhat, ltempeq, lmoist, ib, ie, ih, jb, je, jh, kb, ke, kh
+     use modfields, only : u0, v0, w0, thl0, qt0, up, vp, wp, thlp, qtp, tau_x, tau_y, tau_z, thl_flux
      use modsubgriddata, only : ekm, ekh
 
      real, allocatable :: rhs(:,:,:)
@@ -746,20 +747,35 @@ module modibm
         nfctsecs_w, secfacids_w, secareas_w, secbndptids_w, nfctsecsrank_w, fctsecsrank_w)
         tau_z(:,:,kb:ke+kh) = tau_z(:,:,kb:ke+kh) + (wp - rhs)
 
+        ! This replicates uDALES 1 behaviour, but probably should be done even if not using wall functions
         call diffu_corr
         call diffv_corr
         call diffw_corr
       end if
 
-      if (ltempeq) then
+      ! if (ltempeq) then
+      !   rhs = thlp
+      !   call wallfuntemp
+      !   thl_flux(:,:,kb:ke+kh) = thl_flux(:,:,kb:ke+kh) + (thlp - rhs)
+      !   call diffc_corr(thl0, thlp)
+      ! end if
+
+      ! if (lmoist) then
+      !   !rhs = qtp
+      !   call wallfunmoist
+      !   !qt_flux(:,:,kb:ke+kh) = qt_flux(:,:,kb:ke+kh) + (qtp - rhs)
+      !   call diffc_corr(qt0, qtp)
+      ! end if
+
+      if (ltempeq .or. lmoist) then
         rhs = thlp
-        call wallfuntemp
+        call wallfunheat
         thl_flux(:,:,kb:ke+kh) = thl_flux(:,:,kb:ke+kh) + (thlp - rhs)
-        call diffc_corr(thl0, thlp)
+        if (ltempeq) call diffc_corr(thl0, thlp)
+        if (lmoist)  call diffc_corr(qt0, qtp)
       end if
 
       deallocate(rhs)
-
 
     end subroutine ibmwallfun
 
@@ -848,10 +864,6 @@ module modibm
        momvol = stress * area / vol
        rhs(i,j,k) = rhs(i,j,k) - momvol
 
-       ! if (all(abs(dir - xhat) < eps1)) tau_x(i,j,k) = tau_x(i,j,k) - momvol
-       ! if (all(abs(dir - yhat) < eps1)) tau_y(i,j,k) = tau_y(i,j,k) - momvol
-       ! if (all(abs(dir - zhat) < eps1)) tau_z(i,j,k) = tau_z(i,j,k) - momvol
-
      end do
 
   end subroutine wallfunmom
@@ -906,17 +918,191 @@ module modibm
    end function calc_stress
 
 
-   subroutine wallfuntemp
-     use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, eps1, fkar, dx, dy, dzh, xhat, yhat, zhat, lEB, iwalltemp
-     use modfields, only : u0, v0, w0, thl0, thlp
-     use initfac,   only : facT, facz0, facz0h, fachf, faca
+   ! subroutine wallfuntemp
+   !   use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, eps1, fkar, dx, dy, dzh, xhat, yhat, zhat, lEB, iwalltemp
+   !   use modfields, only : u0, v0, w0, thl0, thlp
+   !   use initfac,   only : facT, facz0, facz0h, faca, fachf, facqsat, fachurel
+   !   use modsurfdata, only : z0, z0h
+   !   use modibmdata, only : bctfxm, bctfxp, bctfym, bctfyp, bctfz
+   !   use decomp_2d, only : zstart
+   !
+   !
+   !   integer i, j, k, n, m, sec, fac
+   !   real :: dist, flux, area, vol, tempvol, Tair, Tsurf, utan, cth
+   !   real, dimension(3) :: uvec, norm, span, strm
+   !
+   !   do m = 1,nfctsecsrank_c
+   !     sec = fctsecsrank_c(m) ! index of section
+   !     n = secbndptids_c(sec) ! index of boundary point
+   !     fac = secfacids_c(sec) ! index of facet
+   !
+   !     i = bndpts_c(n,1) - zstart(1) + 1 ! should be on this rank!
+   !     j = bndpts_c(n,2) - zstart(2) + 1 ! should be on this rank!
+   !     k = bndpts_c(n,3) - zstart(3) + 1 ! should be on this rank!
+   !     if ((i < ib) .or. (i > ie) .or. (j < jb) .or. (j > je)) write(*,*) "problem", i, j
+   !
+   !     if (lcomprec_c(sec)) then ! Section aligned with grid - don't interpolate, use this point's velocity
+   !         ! currently assumes all no other neighbouring solid points?
+   !         uvec(1) = 0.125 * sum(u0(i-1:i,j-1:j,k-1:k))
+   !         uvec(2) = 0.125 * sum(v0(i-1:i,j-1:j,k-1:k))
+   !         uvec(3) = 0.125 * sum(w0(i-1:i,j-1:j,k-1:k))
+   !         Tair = thl0(i,j,k)
+   !         dist = bnddst_c(sec)
+   !     else ! Interpolate velocities at reconstruction point
+   !       write(0, *) 'ERROR: interpolation at reconstruction point not supported'
+   !       stop 1
+   !     end if
+   !
+   !     if (all(abs(uvec) < eps1)) cycle
+   !
+   !     ! local coordinate system
+   !     norm(1) = bndvec_c(sec,1)
+   !     norm(2) = bndvec_c(sec,2)
+   !     norm(3) = bndvec_c(sec,3)
+   !     span = cross_product(norm, uvec)
+   !     if (norm2(span) < eps1) then
+   !       return ! velocity is pointing into or outof the surface, so no tangential component
+   !     else
+   !       span = span / norm2(span)
+   !     end if
+   !     strm = cross_product(span, norm)
+   !     utan = dot_product(uvec, strm)
+   !
+   !     ! Wall function
+   !     if (iwalltemp == 1) then
+   !        if     (all(abs(norm - xhat) < eps1)) then
+   !          flux = bctfxp
+   !        elseif (all(abs(norm + xhat) < eps1)) then
+   !          flux = bctfxm
+   !        elseif (all(abs(norm - yhat) < eps1)) then
+   !            flux = bctfyp
+   !        elseif (all(abs(norm + yhat) < eps1)) then
+   !            flux = bctfxm
+   !        elseif (all(abs(norm - zhat) < eps1)) then
+   !            flux = bctfz
+   !        end if
+   !
+   !     elseif (iwalltemp == 2) then
+   !        call unoh(utan, dist, facz0(fac), facz0h(fac), Tair, facT(fac, 1), cth, flux) ! Outputs heat transfer coefficient (cth) as well as flux
+   !        fctsecscth(m) = cth
+   !     end if
+   !     ! Heat transfer coefficient (cth) could be output here
+   !     ! flux [Km/s]
+   !     ! fluid volumetric sensible heat source/sink = flux * area / volume [K/s]
+   !     ! facet sensible heat flux = volumetric heat capacity of air * flux * sectionarea / facetarea [W/m^2]
+   !     thlp(i,j,k) = thlp(i,j,k) - flux * secareas_c(sec) / (dx*dy*dzh(k))
+   !
+   !     if (lEB) then
+   !       fachf(fac) = fachf(fac) + flux * secareas_c(sec) ! [Km^2/s] (will be divided by facetarea(fac) in modEB)
+   !     end if
+   !
+   !   end do
+   !
+   ! end subroutine wallfuntemp
+
+
+   ! subroutine wallfunmoist
+   !   use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, eps1, fkar, dx, dy, dzh, xhat, yhat, zhat, lEB, iwalltemp
+   !   use modfields, only : u0, v0, w0, qt0, qtp
+   !   use initfac,   only : facT, facz0, facz0h, fachf, faca
+   !   use modsurfdata, only : z0, z0h
+   !   use modibmdata, only : bcqfxm, bcqfxp, bcqfym, bcqfyp, bcqfz
+   !   use decomp_2d, only : zstart
+   !
+   !
+   !   integer i, j, k, n, m, sec, fac
+   !   real :: dist, flux, area, vol, tempvol, Tair, Tsurf, utan, cth, cveg, hurel, qtair, qwall, resc, ress
+   !   real, dimension(3) :: uvec, norm, span, strm
+   !
+   !   do m = 1,nfctsecsrank_c
+   !     sec = fctsecsrank_c(m) ! index of section
+   !     n = secbndptids_c(sec) ! index of boundary point
+   !     fac = secfacids_c(sec) ! index of facet
+   !
+   !     i = bndpts_c(n,1) - zstart(1) + 1 ! should be on this rank!
+   !     j = bndpts_c(n,2) - zstart(2) + 1 ! should be on this rank!
+   !     k = bndpts_c(n,3) - zstart(3) + 1 ! should be on this rank!
+   !     if ((i < ib) .or. (i > ie) .or. (j < jb) .or. (j > je)) write(*,*) "problem", i, j
+   !
+   !     if (lcomprec_c(sec)) then ! Section aligned with grid - don't interpolate, use this point's velocity
+   !         ! currently assumes all no other neighbouring solid points?
+   !         uvec(1) = 0.125 * sum(u0(i-1:i,j-1:j,k-1:k))
+   !         uvec(2) = 0.125 * sum(v0(i-1:i,j-1:j,k-1:k))
+   !         uvec(3) = 0.125 * sum(w0(i-1:i,j-1:j,k-1:k))
+   !         qtair = qt0(i,j,k)
+   !         dist = bnddst_c(sec)
+   !     else ! Interpolate velocities at reconstruction point
+   !       write(0, *) 'ERROR: interpolation at reconstruction point not supported'
+   !       stop 1
+   !     end if
+   !
+   !     if (all(abs(uvec) < eps1)) cycle
+   !
+   !     ! local coordinate system
+   !     norm(1) = bndvec_c(sec,1)
+   !     norm(2) = bndvec_c(sec,2)
+   !     norm(3) = bndvec_c(sec,3)
+   !     span = cross_product(norm, uvec)
+   !     if (norm2(span) < eps1) then
+   !       return ! velocity is pointing into or outof the surface, so no tangential component
+   !     else
+   !       span = span / norm2(span)
+   !     end if
+   !     strm = cross_product(span, norm)
+   !     utan = dot_product(uvec, strm)
+   !
+   !     ! Wall function
+   !     if (iwallmoist == 1) then
+   !        if     (all(abs(norm - xhat) < eps1)) then
+   !          flux = bcqfxp
+   !        elseif (all(abs(norm + xhat) < eps1)) then
+   !          flux = bcqfxm
+   !        elseif (all(abs(norm - yhat) < eps1)) then
+   !            flux = bcqfyp
+   !        elseif (all(abs(norm + yhat) < eps1)) then
+   !            flux = bcqfxm
+   !        elseif (all(abs(norm - zhat) < eps1)) then
+   !            flux = bcqfz
+   !        end if
+   !
+   !     elseif (iwallmoist == 2) then
+   !       qwall = facqsat(fac)
+   !       hurel = fachurel(fac)
+   !       resc = facf(fac,4)
+   !       ress = facf(fac,5)
+   !       cth = fctsecscth(m) ! should have been defined in wallfuntemp
+   !       cveg = 0.8
+   !        !flux = min(0., cveg*(qtair - qwall) * 1 / (1 / icth(i,j,k) + resc)+(1-cveg)*(qcell(i,j,k)-qwall*hurel)*1/(1/icth(i,j,k)+ress))
+   !        flux = min(0., cveg * (qtair - qwall)         / (1/cth + resc) + &
+   !                  (1 - cveg)* (qtair - qwall * hurel) / (1/cth + ress))
+   !     end if
+   !
+   !     ! flux [kg/kg m/s]
+   !     ! fluid volumetric latent heat source/sink = flux * area / volume [kg/kg / s]
+   !     ! facet latent heat flux = volumetric heat capacity of air * flux * sectionarea / facetarea [W/m^2]
+   !     qtp(i,j,k) = qtp(i,j,k) - flux * secareas_c(sec) / (dx*dy*dzh(k))
+   !
+   !     if (lEB) then
+   !       facef(fac) = facef(fac) + flux * secareas_c(sec) ! [Km^2/s] (will be divided by facetarea(fac) in modEB)
+   !     end if
+   !
+   !   end do
+   !
+   ! end subroutine wallfunmoist
+
+
+   subroutine wallfunheat
+     use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, dx, dy, dzh, xhat, yhat, zhat,  &
+                          eps1, fkar, ltempeq, lmoist, iwalltemp, iwallmoist, lEB
+     use modfields, only : u0, v0, w0, thl0, thlp, qt0, qtp
+     use initfac,   only : facT, facz0, facz0h, faca, fachf, facef, facqsat, fachurel, facf
      use modsurfdata, only : z0, z0h
      use modibmdata, only : bctfxm, bctfxp, bctfym, bctfyp, bctfz
      use decomp_2d, only : zstart
 
 
      integer i, j, k, n, m, sec, fac
-     real :: dist, flux, area, vol, tempvol, Tair, Tsurf, utan, cth
+     real :: dist, flux, area, vol, tempvol, Tair, Tsurf, utan, cth, cveg, hurel, qtair, qwall, resc, ress
      real, dimension(3) :: uvec, norm, span, strm
 
      do m = 1,nfctsecsrank_c
@@ -935,6 +1121,7 @@ module modibm
            uvec(2) = 0.125 * sum(v0(i-1:i,j-1:j,k-1:k))
            uvec(3) = 0.125 * sum(w0(i-1:i,j-1:j,k-1:k))
            Tair = thl0(i,j,k)
+           qtair = qt0(i,j,k)
            dist = bnddst_c(sec)
        else ! Interpolate velocities at reconstruction point
          write(0, *) 'ERROR: interpolation at reconstruction point not supported'
@@ -956,36 +1143,77 @@ module modibm
        strm = cross_product(span, norm)
        utan = dot_product(uvec, strm)
 
-       ! Wall function
-       if (iwalltemp == 1) then
-          if     (all(abs(norm - xhat) < eps1)) then
-            flux = bctfxp
-          elseif (all(abs(norm + xhat) < eps1)) then
-            flux = bctfxm
-          elseif (all(abs(norm - yhat) < eps1)) then
-              flux = bctfyp
-          elseif (all(abs(norm + yhat) < eps1)) then
-              flux = bctfxm
-          elseif (all(abs(norm - zhat) < eps1)) then
-              flux = bctfz
-          end if
+       ! Sensible heat
+       if (ltempeq) then
+         if (iwalltemp == 1) then ! probably remove this eventually, only relevant to grid-aligned facets
+           if     (all(abs(norm - xhat) < eps1)) then
+             flux = bctfxp
+           elseif (all(abs(norm + xhat) < eps1)) then
+             flux = bctfxm
+           elseif (all(abs(norm - yhat) < eps1)) then
+             flux = bctfyp
+           elseif (all(abs(norm + yhat) < eps1)) then
+             flux = bctfxm
+           elseif (all(abs(norm - zhat) < eps1)) then
+             flux = bctfz
+           end if
 
-       elseif (iwalltemp == 2) then
-          call unoh(utan, dist, facz0(fac), facz0h(fac), Tair, facT(fac, 1), cth, flux)
+         elseif (iwalltemp == 2) then
+           call unoh(utan, dist, facz0(fac), facz0h(fac), Tair, facT(fac, 1), cth, flux) ! Outputs heat transfer coefficient (cth) as well as flux
+           !fctsecscth(m) = cth
+         end if
+
+         ! Heat transfer coefficient (cth) could be output here
+         ! flux [Km/s]
+         ! fluid volumetric sensible heat source/sink = flux * area / volume [K/s]
+         ! facet sensible heat flux = volumetric heat capacity of air * flux * sectionarea / facetarea [W/m^2]
+         thlp(i,j,k) = thlp(i,j,k) - flux * secareas_c(sec) / (dx*dy*dzh(k))
+
+         if (lEB) then
+           fachf(fac) = fachf(fac) + flux * secareas_c(sec) ! [Km^2/s] (will be divided by facetarea(fac) in modEB)
+         end if
        end if
-       ! Heat transfer coefficient (cth) could be output here
-       ! flux [Km/s]
-       ! fluid volumetric heat source/sink = flux * area / volume [K/s]
-       ! facet heat flux = volumetric heat capacity of air * flux * sectionarea / facetarea [W/m^2]
-       thlp(i,j,k) = thlp(i,j,k) - flux * secareas_c(sec) / (dx*dy*dzh(k))
 
-       if (lEB) then
-         fachf(fac) = fachf(fac) + flux * secareas_c(sec) ! [Km^2/s] (will be divided by facetarea(fac) in modEB)
+       ! Latent heat
+       if (lmoist) then
+         if (iwallmoist == 1) then ! probably remove this eventually, only relevant to grid-aligned facets
+           if     (all(abs(norm - xhat) < eps1)) then
+             flux = bcqfxp
+           elseif (all(abs(norm + xhat) < eps1)) then
+             flux = bcqfxm
+           elseif (all(abs(norm - yhat) < eps1)) then
+             flux = bcqfyp
+           elseif (all(abs(norm + yhat) < eps1)) then
+             flux = bcqfxm
+           elseif (all(abs(norm - zhat) < eps1)) then
+             flux = bcqfz
+           end if
+
+         elseif (iwallmoist == 2) then
+           qwall = facqsat(fac)
+           hurel = fachurel(fac)
+           resc = facf(fac,4)
+           ress = facf(fac,5)
+           !cth = fctsecscth(m) ! should have been defined in wallfuntemp
+           cveg = 0.8
+           !flux = min(0., cveg*(qtair - qwall) * 1 / (1 / icth(i,j,k) + resc)+(1-cveg)*(qcell(i,j,k)-qwall*hurel)*1/(1/icth(i,j,k)+ress))
+           flux = min(0., cveg * (qtair - qwall)         / (1/cth + resc) + &
+                     (1 - cveg)* (qtair - qwall * hurel) / (1/cth + ress))
+         end if
+
+         ! flux [kg/kg m/s]
+         ! fluid volumetric latent heat source/sink = flux * area / volume [kg/kg / s]
+         ! facet latent heat flux = volumetric heat capacity of air * flux * sectionarea / facetarea [W/m^2]
+         qtp(i,j,k) = qtp(i,j,k) - flux * secareas_c(sec) / (dx*dy*dzh(k))
+
+         if (lEB) then
+           facef(fac) = facef(fac) + flux * secareas_c(sec) ! [Km^2/s] (will be divided by facetarea(fac) in modEB)
+         end if
        end if
 
      end do
 
-   end subroutine wallfuntemp
+   end subroutine wallfunheat
 
 
    function cross_product(a,b)
@@ -1105,6 +1333,7 @@ module modibm
       flux = cth*dTrough !Eq. 2, Eq. 8
 
    END SUBROUTINE unoh
+
 
 
 
