@@ -277,6 +277,7 @@ module modglobal
    real, parameter, dimension(3) :: xhat = (/1.,0.,0./)
    real, parameter, dimension(3) :: yhat = (/0.,1.,0./)
    real, parameter, dimension(3) :: zhat = (/0.,0.,1./)
+   real, parameter, dimension(3) :: vec0 = (/0.,0.,0./) ! zero vector
 
    logical :: lprofforc = .false. !<  nudge flow to a profile !
    logical :: lcoriol = .false. !<  switch for coriolis force
