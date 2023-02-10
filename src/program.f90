@@ -55,14 +55,13 @@ program DALESURBAN      !Version 48
   call startup
   !write(*,*) "done startup"
   !call inittest
-  call initibm
   !write(*,*) myid, "done initibm"
 !---------------------------------------------------------
 !      2     INITIALIZE STATISTICAL ROUTINES AND ADD-ONS
 !---------------------------------------------------------
   call initchecksim ! Could be deprecated
   call initstat_nc ! Could be deprecated
-  call initfielddump
+
   !write(*,*) myid, "done initfielddump"
 
   call initstatsdump !tg3315
@@ -71,9 +70,11 @@ program DALESURBAN      !Version 48
   call readfacetfiles
   call initEB
 
+  call initibm
+  call initfielddump
   call boundary
 
-  call fielddump
+  !call fielddump
 !------------------------------------------------------
 !   3.0   MAIN TIME LOOP
 !------------------------------------------------------

@@ -236,7 +236,7 @@ contains
           call ncinfo(ncname( n,:),'tau_z','stress z','M','ttmt')
           pfields(n)%point => tau_z(ib:ie,jb:je,kb:ke)
         case('hf')
-          call ncinfo(ncname( n,:),'thl_flux','stress z','M','tttt')
+          call ncinfo(ncname( n,:),'thl_flux','heat flux','M','tttt')
           pfields(n)%point => thl_flux(ib:ie,jb:je,kb:ke)
         case('mu')
           call ncinfo(ncname( n,:),'mask_u','mask u','M','mttt')
@@ -433,8 +433,6 @@ contains
    call writestat_nc(ncid,1,tncname,(/timee/),nrec,.true.)
    !call writestat_nc(ncid,nvar,ncname,vars,nrec,imax+2,jmax+2,khigh-klow+1)
    call writestat_nc(ncid,nvar,ncname,vars,nrec,ihigh-ilow+1,jhigh-jlow+1,khigh-klow+1)
-
-
 
    deallocate(vars)
 
