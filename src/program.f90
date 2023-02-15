@@ -45,7 +45,7 @@ program DALESURBAN      !Version 48
   use modstat_nc,      only : initstat_nc
   use modfielddump,    only : initfielddump, fielddump,exitfielddump
   use modstatsdump,    only : initstatsdump,statsdump,exitstatsdump    !tg3315
-
+  use modtimedep,      only : inittimedep, timedep
   implicit none
 
 !----------------------------------------------------------------
@@ -69,7 +69,7 @@ program DALESURBAN      !Version 48
 
   call readfacetfiles
   call initEB
-
+  call inittimedep
   call initibm
   call initfielddump
   call boundary
@@ -83,6 +83,8 @@ program DALESURBAN      !Version 48
   do while ((timeleft>0) .or. (rk3step < 3))
 
     call tstep_update
+
+    call timedep
 
 !-----------------------------------------------------
 !   3.2   ADVECTION AND DIFFUSION
