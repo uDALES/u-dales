@@ -70,7 +70,10 @@ module modibm
      real, allocatable    :: intpts(:,:) ! xyz location of boundary intercept point
      real, allocatable    :: bndvec(:,:) ! vector from boundary to fluid point (normalised)
      real, allocatable    :: recpts(:,:) ! xyz location of reconstruction point
-     integer, allocatable :: recids(:,:) ! ijk location of cell that rec point is in
+     integer, allocatable :: recids_u(:,:) ! ijk location of u grid cell that rec point is in
+     integer, allocatable :: recids_v(:,:) ! ijk location of u grid cell that rec point is in
+     integer, allocatable :: recids_w(:,:) ! ijk location of u grid cell that rec point is in
+     integer, allocatable :: recids_c(:,:) ! ijk location of u grid cell that rec point is in
      real, allocatable    :: bnddst(:) ! distance between surface & bound point
      integer, allocatable :: bndptsrank(:) ! indices of points on current rank
      logical, allocatable :: lcomprec(:) ! Switch whether reconstruction point is a computational point
@@ -90,7 +93,7 @@ module modibm
    contains
 
    subroutine initibm
-     use modglobal, only : libm, xh, xf, yh, yf, zh, zf, xhat, yhat, zhat, &
+     use modglobal, only : libm, xh, xf, yh, yf, zh, zf, xhat, yhat, zhat, vec0, &
                            ib, ie, ih, ihc, jb, je, jh, jhc, kb, ke, kh, khc, iwallmom, lmoist, ltempeq
      use decomp_2d, only : exchange_halo_z
 
@@ -105,7 +108,6 @@ module modibm
      call initibmnorm('solid_v.txt', solid_info_v)
      call initibmnorm('solid_w.txt', solid_info_w)
 
-     write(*,*) 'done initibmnorm'
      ! Define (real) masks
      ! Hopefully this can be removed eventually if (integer) IIx halos can be communicated
      ! These are only used in modibm, to cancel subgrid term across solid boundaries
@@ -132,9 +134,9 @@ module modibm
        bound_info_u%nfctsecs = nfctsecs_u
        bound_info_v%nfctsecs = nfctsecs_v
        bound_info_w%nfctsecs = nfctsecs_w
-       call initibmwallfun('fluid_boundary_u.txt', 'facet_sections_u.txt', xh, yf, zf, xhat, bound_info_u)
-       call initibmwallfun('fluid_boundary_v.txt', 'facet_sections_v.txt', xf, yh, zf, yhat, bound_info_v)
-       call initibmwallfun('fluid_boundary_w.txt', 'facet_sections_w.txt', xf, yf, zh, zhat, bound_info_w)
+       call initibmwallfun('fluid_boundary_u.txt', 'facet_sections_u.txt', xhat, bound_info_u)
+       call initibmwallfun('fluid_boundary_v.txt', 'facet_sections_v.txt', yhat, bound_info_v)
+       call initibmwallfun('fluid_boundary_w.txt', 'facet_sections_w.txt', zhat, bound_info_w)
      end if
 
      if (ltempeq .or. lmoist) then
@@ -143,7 +145,7 @@ module modibm
 
        bound_info_c%nbndpts = nbndpts_c
        bound_info_c%nfctsecs = nfctsecs_c
-       call initibmwallfun('fluid_boundary_c.txt', 'facet_sections_c.txt', xf, yf, zf, (/0.,0.,0./), bound_info_c)
+       call initibmwallfun('fluid_boundary_c.txt', 'facet_sections_c.txt', vec0, bound_info_c)
 
        allocate(mask_c(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb-khc:ke+khc)); mask_c = 1.
        mask_c(:,:,kb-khc) = 0.
@@ -211,22 +213,26 @@ module modibm
    end subroutine initibmnorm
 
 
-   subroutine initibmwallfun(fname_bnd, fname_sec, x, y, z, dir, bound_info)
-     use modglobal, only : ifinput, ib, itot, ih, jb, jtot, jh, kb, ktot, kh, dx, dy, dzh, dzf
+   subroutine initibmwallfun(fname_bnd, fname_sec, dir, bound_info)
+     use modglobal, only : ifinput, ib, itot, ih, jb, jtot, jh, kb, ktot, kh, &
+                           xf, yf, zf, xh, yh, zh, dx, dy, dzh, dzf, xhat, yhat, zhat
      use modmpi,    only : myid, comm3d, MPI_INTEGER, MY_REAL, MPI_LOGICAL, mpierr
      use initfac,   only : facnorm
      use decomp_2d, only : zstart, zend
 
      character(20), intent(in) :: fname_bnd, fname_sec
      type(bound_info_type) :: bound_info
-     real,    intent(in), dimension(3) :: dir
-     real,    intent(in), dimension(ib:itot+ih) :: x
-     real,    intent(in), dimension(jb:jtot+jh) :: y
-     real,    intent(in), dimension(kb:ktot+kh) :: z
+     real, intent(in), dimension(3) :: dir
+     real, dimension(ib:itot+ih) :: xgrid
+     real, dimension(jb:jtot+jh) :: ygrid
+     real, dimension(kb:ktot+kh) :: zgrid
      logical, dimension(bound_info%nbndpts)  :: lbndptsrank
      logical, dimension(bound_info%nfctsecs) :: lfctsecsrank
-     real, dimension(3) :: norm
-     integer i, j, k, n, m, norm_align, dir_align
+     real, dimension(3) :: norm, p0, p1, pxl, pxu, pyl, pyu, pzl, pzu
+     integer, dimension(6) :: check
+     real, dimension(6,3) :: inter
+     real :: xc, yc, zc, xl, yl, zl, xu, yu, zu, checkxl, checkxu, checkyl, checkyu, checkzl, checkzu
+     integer i, j, k, n, m, norm_align, dir_align, pos
      real dst
 
      character(80) chmess
@@ -276,13 +282,33 @@ module modibm
      allocate(bound_info%bnddst(bound_info%nfctsecs))
      allocate(bound_info%bndvec(bound_info%nfctsecs,3))
      allocate(bound_info%recpts(bound_info%nfctsecs,3))
-     allocate(bound_info%recids(bound_info%nfctsecs,3))
-
-     dir_align = alignment(dir)
+     allocate(bound_info%recids_u(bound_info%nfctsecs,3))
+     allocate(bound_info%recids_v(bound_info%nfctsecs,3))
+     allocate(bound_info%recids_w(bound_info%nfctsecs,3))
+     allocate(bound_info%recids_c(bound_info%nfctsecs,3))
      allocate(bound_info%lcomprec(bound_info%nfctsecs))
      allocate(bound_info%lskipsec(bound_info%nfctsecs))
 
-     ! read u facet sections
+     dir_align = alignment(dir)
+     select case(dir_align)
+     case(1)
+       xgrid = xh
+       ygrid = yf
+       zgrid = zf
+     case(2)
+       xgrid = xf
+       ygrid = yh
+       zgrid = zf
+     case(3)
+       xgrid = xf
+       ygrid = yf
+       zgrid = zh
+     case(0)
+       xgrid = xf
+       ygrid = yf
+       zgrid = zf
+     end select
+
      if (myid == 0) then
        open (ifinput, file=fname_sec)
        read (ifinput, '(a80)') chmess
@@ -295,9 +321,9 @@ module modibm
        ! Calculate vector
        do n = 1,bound_info%nfctsecs
          m = bound_info%secbndptids(n)
-         bound_info%bndvec(n,1) = x(bound_info%bndpts(m,1)) - bound_info%intpts(n,1)
-         bound_info%bndvec(n,2) = y(bound_info%bndpts(m,2)) - bound_info%intpts(n,2)
-         bound_info%bndvec(n,3) = z(bound_info%bndpts(m,3)) - bound_info%intpts(n,3)
+         bound_info%bndvec(n,1) = xgrid(bound_info%bndpts(m,1)) - bound_info%intpts(n,1)
+         bound_info%bndvec(n,2) = ygrid(bound_info%bndpts(m,2)) - bound_info%intpts(n,2)
+         bound_info%bndvec(n,3) = zgrid(bound_info%bndpts(m,3)) - bound_info%intpts(n,3)
          bound_info%bnddst(n) = norm2(bound_info%bndvec(n,:))
          bound_info%bndvec(n,:) = bound_info%bndvec(n,:) / bound_info%bnddst(n)
 
@@ -314,28 +340,120 @@ module modibm
            end if
 
          else ! need to reconstruct
-           write(0, *) 'ERROR: more complicated reconstruction not supported yet'
-           stop 1
+           bound_info%lcomprec(n) = .false.
+           bound_info%lskipsec(n) = .false.
 
-           ! lcomprec(n) = .false.
-           ! ! project one diagonal length away and identify which cell we land in
-           ! if (dir_align == 3) then
-           !   recvec = bndvec(n,:) * sqrt(3.)*(dx*dy*dzf(k))
-           ! else
-           !   recvec = bndvec(n,:) * sqrt(3.)*(dx*dy*dzh(k))
-           ! end if
-           !
-           ! recpts(n,1) = x(bndpts(m,1)) + recvec(1)
-           ! recpts(n,2) = y(bndpts(m,2)) + recvec(2)
-           ! recpts(n,3) = z(bndpts(m,3)) + recvec(3)
-           ! write(*,*) "recpts", recpts(n,:)
-           !
-           ! recids(n,1) = findloc(recpts(n,1) >= x, .true., 1, back=.true.)
-           ! recids(n,2) = findloc(recpts(n,2) >= y, .true., 1, back=.true.)
-           ! recids(n,3) = findloc(recpts(n,3) >= z, .true., 1, back=.true.)
-           !
-           ! write(*,*) "recids", recids(n,:)
+           ! cell centre (of current grid)
+           xc = xgrid(bound_info%bndpts(m,1))
+           yc = ygrid(bound_info%bndpts(m,2))
+           zc = zgrid(bound_info%bndpts(m,3))
 
+           ! cell edges
+           xl = xc - dx/2.
+           xu = xc + dx/2.
+           yl = yc - dy/2.
+           yu = yc + dy/2.
+           zl = zc - dzf(1)/2. ! assumes equidistant
+           zu = zc + dzf(1)/2. ! assumes equidistant
+
+           ! points on planes
+           pxl = (/xl, yc, zc/)
+           pxu = (/xu, yc, zc/)
+           pyl = (/xc, yl, zc/)
+           pyu = (/xc, yu, zc/)
+           pzl = (/xc, yc, zl/)
+           pzu = (/xc, yc, zu/)
+
+           p0 = (/xc, yc, zc/)
+           p1 = p0 + norm * sqrt(3.)*(dx*dy*dzf(1))**(1./3.)
+
+           call plane_line_intersection(xhat, pxl, p0, p1, inter(1,:), check(1))
+           call plane_line_intersection(xhat, pxu, p0, p1, inter(2,:), check(2))
+           call plane_line_intersection(yhat, pyl, p0, p1, inter(3,:), check(3))
+           call plane_line_intersection(yhat, pyu, p0, p1, inter(4,:), check(4))
+           call plane_line_intersection(zhat, pzl, p0, p1, inter(5,:), check(5))
+           call plane_line_intersection(zhat, pzu, p0, p1, inter(6,:), check(6))
+
+           pos = findloc(check==1, .true., 1)
+           if (pos == 0) then
+             write(*,*) "ERROR: no intersection found"
+           else
+             bound_info%recpts(n,:) = inter(pos,:) ! x y z
+           end if
+
+           ! find which cell the point lies in for
+           ! findloc will return 0 when the point is on the lower domain edge(?)
+           ! because e.g. xf = [0.5 0.5+dx 0.5+2*dx ... Lx]
+           ! but the reconstruction point could be [0 y z]
+           ! so when these ids are used we should include a point beyond this lower boundary,
+           ! i.e. xf0 = [-0.5 0.5 0.5+dx ... Lx]
+           bound_info%recids_u(n,1) = findloc(bound_info%recpts(n,1) >= xh, .true., 1, back=.true.)
+           bound_info%recids_u(n,2) = findloc(bound_info%recpts(n,2) >= yf, .true., 1, back=.true.)
+           bound_info%recids_u(n,3) = findloc(bound_info%recpts(n,3) >= zf, .true., 1, back=.true.)
+
+           bound_info%recids_v(n,1) = findloc(bound_info%recpts(n,1) >= xf, .true., 1, back=.true.)
+           bound_info%recids_v(n,2) = findloc(bound_info%recpts(n,2) >= yh, .true., 1, back=.true.)
+           bound_info%recids_v(n,3) = findloc(bound_info%recpts(n,3) >= zf, .true., 1, back=.true.)
+
+           bound_info%recids_w(n,1) = findloc(bound_info%recpts(n,1) >= xf, .true., 1, back=.true.)
+           bound_info%recids_w(n,2) = findloc(bound_info%recpts(n,2) >= yf, .true., 1, back=.true.)
+           bound_info%recids_w(n,3) = findloc(bound_info%recpts(n,3) >= zh, .true., 1, back=.true.)
+
+           bound_info%recids_c(n,1) = findloc(bound_info%recpts(n,1) >= xf, .true., 1, back=.true.)
+           bound_info%recids_c(n,2) = findloc(bound_info%recpts(n,2) >= yf, .true., 1, back=.true.)
+           bound_info%recids_c(n,3) = findloc(bound_info%recpts(n,3) >= zf, .true., 1, back=.true.)
+
+           !recpts should lie inside the box defined by these corners
+           ! u
+           if ((bound_info%recpts(n,1) < xh(bound_info%recids_u(n,1))) .or. &
+               (bound_info%recpts(n,1) > xh(bound_info%recids_u(n,1)+1))) then
+             write(*,*) "ERROR: x out of bounds"
+             stop 1
+           end if
+           if ((bound_info%recpts(n,2) < yf(bound_info%recids_u(n,2))) .or. &
+               (bound_info%recpts(n,2) > yf(bound_info%recids_u(n,2)+1))) then
+             write(*,*) "ERROR: y out of bounds"
+             stop 1
+           end if
+           if ((bound_info%recpts(n,3) < zf(bound_info%recids_u(n,3))) .or. &
+               (bound_info%recpts(n,3) > zf(bound_info%recids_u(n,3)+1))) then
+             write(*,*) "ERROR: z out of bounds"
+             stop 1
+           end if
+
+           ! v
+           if ((bound_info%recpts(n,1) < xf(bound_info%recids_v(n,1))) .or. &
+               (bound_info%recpts(n,1) > xf(bound_info%recids_v(n,1)+1))) then
+             write(*,*) "ERROR: x out of bounds"
+             stop 1
+           end if
+           if ((bound_info%recpts(n,2) < yh(bound_info%recids_v(n,2))) .or. &
+               (bound_info%recpts(n,2) > yh(bound_info%recids_v(n,2)+1))) then
+             write(*,*) "ERROR: y out of bounds"
+             stop 1
+           end if
+           if ((bound_info%recpts(n,3) < zf(bound_info%recids_v(n,3))) .or. &
+               (bound_info%recpts(n,3) > zf(bound_info%recids_v(n,3)+1))) then
+             write(*,*) "ERROR: z out of bounds"
+             stop 1
+           end if
+
+           ! w
+           if ((bound_info%recpts(n,1) < xf(bound_info%recids_w(n,1))) .or. &
+               (bound_info%recpts(n,1) > xf(bound_info%recids_w(n,1)+1))) then
+             write(*,*) "ERROR: x out of bounds"
+             stop 1
+           end if
+           if ((bound_info%recpts(n,2) < yf(bound_info%recids_w(n,2))) .or. &
+               (bound_info%recpts(n,2) > yf(bound_info%recids_w(n,2)+1))) then
+             write(*,*) "ERROR: y out of bounds"
+             stop 1
+           end if
+           if ((bound_info%recpts(n,3) < zh(bound_info%recids_w(n,3))) .or. &
+               (bound_info%recpts(n,3) > zh(bound_info%recids_w(n,3)+1))) then
+             write(*,*) "ERROR: z out of bounds"
+             stop 1
+           end if
 
          end if
        end do
@@ -348,7 +466,10 @@ module modibm
      call MPI_BCAST(bound_info%bndvec,      bound_info%nfctsecs*3, MY_REAL,     0, comm3d, mpierr)
      call MPI_BCAST(bound_info%bnddst,      bound_info%nfctsecs,   MY_REAL,     0, comm3d, mpierr)
      call MPI_BCAST(bound_info%recpts,      bound_info%nfctsecs*3, MY_REAL,     0, comm3d, mpierr)
-     call MPI_BCAST(bound_info%recids,      bound_info%nfctsecs*3, MPI_INTEGER, 0, comm3d, mpierr)
+     call MPI_BCAST(bound_info%recids_u,    bound_info%nfctsecs*3, MPI_INTEGER, 0, comm3d, mpierr)
+     call MPI_BCAST(bound_info%recids_v,    bound_info%nfctsecs*3, MPI_INTEGER, 0, comm3d, mpierr)
+     call MPI_BCAST(bound_info%recids_w,    bound_info%nfctsecs*3, MPI_INTEGER, 0, comm3d, mpierr)
+     call MPI_BCAST(bound_info%recids_c,    bound_info%nfctsecs*3, MPI_INTEGER, 0, comm3d, mpierr)
      call MPI_BCAST(bound_info%lskipsec,    bound_info%nfctsecs,   MPI_LOGICAL, 0, comm3d, mpierr)
      call MPI_BCAST(bound_info%lcomprec,    bound_info%nfctsecs,   MPI_LOGICAL, 0, comm3d, mpierr)
 
@@ -374,6 +495,52 @@ module modibm
      end do
 
    end subroutine initibmwallfun
+
+
+   subroutine plane_line_intersection(norm, V0, P0, P1, I, check)
+     use modglobal, only : vec0, eps1
+     implicit none
+     ! determines the intersection of a plane and a line segment
+     ! norm: plane normal
+     ! V0: point on the plane
+     ! P0: start of line segment
+     ! P1: end of line segment
+     ! I: intersection point
+     ! check: 0 if no intersection
+     !        1 if unique intersection
+     !        2 if line segment is in the plane
+     !        3 if intersection is outside line segment
+     real, intent(in),  dimension(3) :: norm, V0, P0, P1
+     real, intent(out), dimension(3) :: I
+     integer, intent(out) :: check
+     real, dimension(3) :: u, w
+     real :: D, N, sI
+
+     I = vec0
+     w = P0 - V0
+     u = P1 - P0
+     D = dot_product(norm, u)
+     N =-dot_product(norm, w)
+
+     if (abs(D) < eps1) then ! line orthogonal to plane normal -> segment parallel to plane
+       if (abs(N) < eps1) then ! start point is on the plane -> segment lies in the plane
+         check = 2
+         return
+       else
+         check = 0
+         return
+       end if
+     end if
+
+     sI = N / D
+     I = P0 + sI * u
+     if ((sI < 0.) .or. (sI > 1.)) then
+       check = 3
+     else
+       check = 1
+     end if
+
+   end subroutine plane_line_intersection
 
 
    subroutine ibmnorm
@@ -747,7 +914,8 @@ module modibm
 
 
    subroutine wallfunmom(dir, rhs, bound_info)
-     use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, eps1, fkar, dx, dy, dzf, iwallmom, xhat, yhat, zhat
+     use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, xf, yf, zf, xh, yh, zh, &
+                           eps1, fkar, dx, dy, dzf, iwallmom, xhat, yhat, zhat, vec0
      use modfields, only : u0, v0, w0, thl0, tau_x, tau_y, tau_z
      use initfac,   only : facT, facz0, facz0h, facnorm
      use decomp_2d, only : zstart
@@ -758,7 +926,7 @@ module modibm
 
      integer i, j, k, n, m, sec, pt, fac
      real dist, stress, stress_dir, stress_aligned, area, vol, momvol, Tair, Tsurf, x, y, z, &
-          utan, udir, ctm, a, a_is, a_xn, a_yn, a_zn, stress_ix, stress_iy, stress_iz
+          utan, udir, ctm, a, a_is, a_xn, a_yn, a_zn, stress_ix, stress_iy, stress_iz, xrec, yrec, zrec
      real, dimension(3) :: uvec, norm, strm, span, stressvec
      logical :: valid
 
@@ -792,25 +960,34 @@ module modibm
 
        if (bound_info%lcomprec(sec)) then
          uvec = interp_velocity_ptr(i, j, k)
-         if (iwallmom == 2) Tair = interp_temperature_ptr(i, j, k)
+         if (iwallmom == 2) then
+           Tair = interp_temperature_ptr(i, j, k)
+         end if
+         dist = bound_info%bnddst(sec)
        else
-         ! do different interpolation
+         xrec = bound_info%recpts(sec,1)
+         yrec = bound_info%recpts(sec,2)
+         zrec = bound_info%recpts(sec,3)
+         uvec(1) = trilinear_interp_var(u0, bound_info%recids_u(sec,:), xh, yf, zf, xrec, yrec, zrec)
+         uvec(2) = trilinear_interp_var(v0, bound_info%recids_v(sec,:), xf, yh, zf, xrec, yrec, zrec)
+         uvec(3) = trilinear_interp_var(w0, bound_info%recids_w(sec,:), xf, yf, zh, xrec, yrec, zrec)
+         if (iwallmom == 2) Tair  = trilinear_interp_var(thl0, bound_info%recids_c(sec,:), xf, yf, zf, xrec, yrec, zrec)
+         dist = bound_info%bnddst(sec) + norm2((/xrec - xf(bound_info%bndpts(n,1)), &
+                                                 yrec - yf(bound_info%bndpts(n,2)), &
+                                                 zrec - zf(bound_info%bndpts(n,2))/))
        end if
 
-       if (is_equal(uvec, (/0.,0.,0./))) cycle
+       if (is_equal(uvec, vec0)) cycle
 
        call local_coords(uvec, norm, span, strm, valid)
        if (.not. valid) cycle
 
        utan = dot_product(uvec, strm)
-       dist = bound_info%bnddst(sec)
-
        ! calcualate momentum transfer coefficient
        ! make into interface somehow? because iwallmom doesn't change in the loop
        if (iwallmom == 2) then ! stability included
          ctm = mom_transfer_coef_stability(utan, dist, facz0(fac), facz0h(fac), Tair, facT(fac,1))
        else if (iwallmom == 3) then ! neutral
-         !ctm = (fkar / log(dist / z0))**2
          ctm = mom_transfer_coef_neutral(dist, facz0(fac))
        end if
 
@@ -819,7 +996,6 @@ module modibm
        if (bound_info%lcomprec(sec)) then
          a = dot_product(dir, strm)
          stress_dir = a * stress
-         !write(*,*) "stress_dir", sign(stress_dir, dot_product(uvec, dir))
        else
          ! Rotation from local (strm,span,norm) to global (xhat,yhat,zhat) basis
          ! \tau'_ij = a_ip a_jq \tau_pq
@@ -837,14 +1013,13 @@ module modibm
          stressvec(2) = stress_iy
          stressvec(3) = stress_iz
          stress_dir = norm2(stressvec)
-         !write(*,*) "stress_dir", sign(stress_dir, dot_product(uvec, dir))
        end if
 
        stress_dir = sign(stress_dir, dot_product(uvec, dir))
 
        area = bound_info%secareas(sec)
        vol = dx*dy*dzf(k)
-       momvol = stress * area / vol
+       momvol = stress_dir * area / vol
        rhs(i,j,k) = rhs(i,j,k) - momvol
 
      end do
@@ -853,17 +1028,17 @@ module modibm
 
 
    subroutine wallfunheat
-     use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, dx, dy, dzh, eps1, &
+     use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, xf, yf, zf, xh, yh, zh, dx, dy, dzh, eps1, &
                            xhat, yhat, zhat, vec0, fkar, ltempeq, lmoist, iwalltemp, iwallmoist, lEB
      use modfields, only : u0, v0, w0, thl0, thlp, qt0, qtp
-     use initfac,   only : facT, facz0, facz0h, facnorm, faca, fachf, facef, facqsat, fachurel, facf
+     use initfac,   only : facT, facz0, facz0h, facnorm, faca, fachf, facef, facqsat, fachurel, facf, faclGR
      use modsurfdata, only : z0, z0h
      use modibmdata, only : bctfxm, bctfxp, bctfym, bctfyp, bctfz
      use decomp_2d, only : zstart
 
      type(bound_info_type) :: bound_info
      integer i, j, k, n, m, sec, fac
-     real :: dist, flux, area, vol, tempvol, Tair, Tsurf, utan, cth, cveg, hurel, qtair, qwall, resc, ress
+     real :: dist, flux, area, vol, tempvol, Tair, Tsurf, utan, cth, cveg, hurel, qtair, qwall, resc, ress, xrec, yrec, zrec
      real, dimension(3) :: uvec, norm, span, strm
      logical :: valid
 
@@ -885,12 +1060,22 @@ module modibm
          Tair = thl0(i,j,k)
          qtair = qt0(i,j,k)
          dist = bound_info%bnddst(sec)
+
        else ! use velocity at reconstruction point
-         write(0, *) 'ERROR: interp at reconstruction point not supported'
-         stop 1
+         xrec = bound_info%recpts(sec,1)
+         yrec = bound_info%recpts(sec,2)
+         zrec = bound_info%recpts(sec,3)
+         uvec(1) = trilinear_interp_var(u0, bound_info%recids_u(sec,:), xh, yf, zf, xrec, yrec, zrec)
+         uvec(2) = trilinear_interp_var(v0, bound_info%recids_v(sec,:), xf, yh, zf, xrec, yrec, zrec)
+         uvec(3) = trilinear_interp_var(w0, bound_info%recids_w(sec,:), xf, yf, zh, xrec, yrec, zrec)
+         Tair  = trilinear_interp_var(thl0, bound_info%recids_c(sec,:), xf, yf, zf, xrec, yrec, zrec)
+         qtair = trilinear_interp_var( qt0, bound_info%recids_c(sec,:), xf, yf, zf, xrec, yrec, zrec)
+         dist = bound_info%bnddst(sec) + norm2((/xrec - xf(bound_info%bndpts(n,1)), &
+                                                 yrec - yf(bound_info%bndpts(n,2)), &
+                                                 zrec - zf(bound_info%bndpts(n,2))/))
+
        end if
 
-       !if (all(abs(uvec) < eps1)) cycle
        if (is_equal(uvec, vec0)) cycle
 
        call local_coords(uvec, norm, span, strm, valid)
@@ -933,21 +1118,16 @@ module modibm
        end if
 
        ! Latent heat
-       if (lmoist) then
+       if (lmoist .and. faclGR(fac)) then
          if (iwallmoist == 1) then ! probably remove this eventually, only relevant to grid-aligned facets
-           !if     (all(abs(norm - xhat) < eps1)) then
            if     (is_equal(norm, xhat)) then
              flux = bcqfxp
-           !elseif (all(abs(norm + xhat) < eps1)) then
            elseif (is_equal(norm, -xhat)) then
              flux = bcqfxm
-           !elseif (all(abs(norm - yhat) < eps1)) then
            elseif (is_equal(norm, yhat)) then
              flux = bcqfyp
-           !elseif (all(abs(norm + yhat) < eps1)) then
            elseif (is_equal(norm, -yhat)) then
              flux = bcqfym
-           !elseif (all(abs(norm - zhat) < eps1)) then
            elseif (is_equal(norm, zhat)) then
              flux = bcqfz
            end if
@@ -958,9 +1138,9 @@ module modibm
            resc = facf(fac,4)
            ress = facf(fac,5)
            cveg = 0.8
-           ! put this in seperate function
-           flux = min(0., cveg * (qtair - qwall)         / (1/cth + resc) + &
-                     (1 - cveg)* (qtair - qwall * hurel) / (1/cth + ress))
+           ! flux = min(0., cveg * (qtair - qwall)         / (1/cth + resc) + &
+           !           (1 - cveg)* (qtair - qwall * hurel) / (1/cth + ress))
+           flux = moist_flux(cveg, cth, qtair, qwall, hurel, resc, ress)
          end if
 
          ! flux [kg/kg m/s]
@@ -978,6 +1158,55 @@ module modibm
    end subroutine wallfunheat
 
 
+   real function trilinear_interp_var(var, cell, xgrid, ygrid, zgrid, x, y, z)
+     use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, itot, jtot, ktot
+     use decomp_2d, only : zstart
+     implicit none
+     real, intent(in)    :: var(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:kb+kh)
+     integer, intent(in) :: cell(3) ! GLOBAL indices of cell containing the point
+     real, intent(in), dimension(ib:itot+ih) :: xgrid
+     real, intent(in), dimension(jb:jtot+jh) :: ygrid
+     real, intent(in), dimension(kb:ktot+kh) :: zgrid
+     real,    intent(in) :: x, y, z ! location of point to interpolate at
+     real, dimension(8)  :: corners(8)
+     real :: x0, y0, z0, x1, y1, z1
+     integer :: i, j, k
+
+     i = cell(1) - zstart(1) + 1
+     j = cell(2) - zstart(2) + 1
+     k = cell(3) - zstart(3) + 1
+     if ((i < ib-1) .or. (i > ie+1) .or. (j < jb-1) .or. (j > je+1)) write(*,*) "problem"
+     corners = eval_corners(var, i, j, k)
+
+     x0 = xgrid(cell(1))
+     y0 = ygrid(cell(2))
+     z0 = zgrid(cell(3))
+     x1 = xgrid(cell(1)+1)
+     y1 = ygrid(cell(2)+1)
+     z1 = zgrid(cell(3)+1)
+
+     trilinear_interp_var = trilinear_interp(x, y, z, x0, y0, z0, x1, y1, z1, corners)
+
+   end function trilinear_interp_var
+
+   function eval_corners(var, i, j, k)
+     use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh
+     integer, intent(in) :: i, j, k ! LOCAL indices
+     real, intent(in)    :: var(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:kb+kh)
+     real, dimension(8)  :: eval_corners(8)
+
+     eval_corners(1) = var(i  ,j  ,k  ) !c000
+     eval_corners(2) = var(i+1,j  ,k  ) !c100
+     eval_corners(3) = var(i  ,j+1,k  ) !c010
+     eval_corners(4) = var(i+1,j+1,k  ) !c110
+     eval_corners(5) = var(i  ,j  ,k+1) !c001
+     eval_corners(6) = var(i+1,j  ,k+1) !c101
+     eval_corners(7) = var(i  ,j+1,k+1) !c011
+     eval_corners(8) = var(i+1,j+1,k+1) !c111
+
+   end function eval_corners
+
+
    real function trilinear_interp(x, y, z, x0, y0, z0, x1, y1, z1, corners)
      real, intent(in) :: x, y, z, x0, y0, z0, x1, y1, z1, corners(8)
      real :: xd, yd, zd
@@ -987,34 +1216,16 @@ module modibm
      zd = (z - z0) / (z1 - z0)
      ! check all positive
 
-     trilinear_interp = corners(1) * (1-xd)*(1-yd)*(1-zd) + &
-                        corners(2) * (  xd)*(1-yd)*(1-zd) + &
-                        corners(3) * (1-xd)*(  yd)*(1-zd) + &
-                        corners(4) * (1-xd)*(1-yd)*(  zd) + &
-                        corners(5) * (  xd)*(1-yd)*(  zd) + &
-                        corners(6) * (1-xd)*(  yd)*(  zd) + &
-                        corners(7) * (  xd)*(1-yd)*(1-zd) + &
-                        corners(8) * (  xd)*(  yd)*(  zd)
+     trilinear_interp = corners(1) * (1-xd)*(1-yd)*(1-zd) + & ! c000
+                        corners(2) * (  xd)*(1-yd)*(1-zd) + & ! c100
+                        corners(3) * (1-xd)*(  yd)*(1-zd) + & ! c010
+                        corners(4) * (  xd)*(  yd)*(1-zd) + & ! c110
+                        corners(5) * (1-xd)*(1-yd)*(  zd) + & ! c001
+                        corners(6) * (  xd)*(1-yd)*(  zd) + & ! c101
+                        corners(7) * (1-xd)*(  yd)*(  zd) + & ! c011
+                        corners(8) * (  xd)*(  yd)*(  zd)     ! c111
 
    end function trilinear_interp
-
-
-   ! real(8) function eval_corners(var, i, j, k)
-   !   use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh
-   !   real, intent(in)    :: var(ib-ih:ie+ih,jb-jh,je+jh,kb-kh,kb+kh)
-   !   integer, intent(in) :: i, j, k ! LOCAL indices
-   !
-   !   ! Not actually this simple...
-   !   eval_corners(1) = var(i-1,j-1,k-1)
-   !   eval_corners(2) = var(i  ,j-1,k-1)
-   !   eval_corners(3) = var(i-1,j  ,k-1)
-   !   eval_corners(4) = var(i  ,j  ,k-1)
-   !   eval_corners(5) = var(i-1,j-1,k  )
-   !   eval_corners(6) = var(i  ,j-1,k  )
-   !   eval_corners(7) = var(i-1,j  ,k  )
-   !   eval_corners(8) = var(i  ,j  ,k  )
-   !
-   ! end function eval_corners
 
 
    integer function alignment(n)
@@ -1303,6 +1514,15 @@ module modibm
       flux = cth*dTrough !Eq. 2, Eq. 8
 
    end subroutine heat_transfer_coef_flux
+
+
+   real function moist_flux(cveg, cth, qtair, qwall, hurel, resc, ress)
+     real, intent(in) :: cveg, cth, qtair, qwall, hurel, resc, ress
+
+     moist_flux = min(0., cveg * (qtair - qwall)         / (1/cth + resc) + &
+                     (1 - cveg)* (qtair - qwall * hurel) / (1/cth + ress))
+
+   end function moist_flux
 
 
    subroutine bottom
