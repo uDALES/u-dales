@@ -45,7 +45,7 @@ program DALESURBAN      !Version 48
   use modstat_nc,      only : initstat_nc
   use modfielddump,    only : initfielddump, fielddump,exitfielddump
   use modstatsdump,    only : initstatsdump,statsdump,exitstatsdump    !tg3315
-
+  use modtimedep,      only : inittimedep, timedep
   implicit none
 
 !----------------------------------------------------------------
@@ -55,14 +55,13 @@ program DALESURBAN      !Version 48
   call startup
   !write(*,*) "done startup"
   !call inittest
-  call initibm
   !write(*,*) myid, "done initibm"
 !---------------------------------------------------------
 !      2     INITIALIZE STATISTICAL ROUTINES AND ADD-ONS
 !---------------------------------------------------------
   call initchecksim ! Could be deprecated
   call initstat_nc ! Could be deprecated
-  call initfielddump
+
   !write(*,*) myid, "done initfielddump"
 
   call initstatsdump !tg3315
@@ -70,10 +69,12 @@ program DALESURBAN      !Version 48
 
   call readfacetfiles
   call initEB
-
+  call inittimedep
+  call initibm
+  call initfielddump
   call boundary
 
-  call fielddump
+  !call fielddump
 !------------------------------------------------------
 !   3.0   MAIN TIME LOOP
 !------------------------------------------------------
@@ -82,6 +83,8 @@ program DALESURBAN      !Version 48
   do while ((timeleft>0) .or. (rk3step < 3))
 
     call tstep_update
+
+    call timedep
 
 !-----------------------------------------------------
 !   3.2   ADVECTION AND DIFFUSION

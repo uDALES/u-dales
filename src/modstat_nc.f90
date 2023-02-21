@@ -369,11 +369,11 @@ contains
     iret = nf90_inq_varid(ncid, 'yt', VarID)
     if (iret==0) iret=nf90_inquire_dimension(ncid, ytID, len=length)
     !if (iret==0) iret = nf90_put_var(ncid, varID, (/(dy*(0.5+i)+myidy*jmax*dy,i=0,length-1)/),(/1/))
-    if (iret==0) iret = nf90_put_var(ncid, varID, (/(yf(i+myidy*jmax*dy),i=1,length)/),(/1/))
+    if (iret==0) iret = nf90_put_var(ncid, varID, (/(yf(i+jmax*myidy),i=1,length)/),(/1/))
     iret = nf90_inq_varid(ncid, 'ym', VarID)
     if (iret==0) iret=nf90_inquire_dimension(ncid, ymID, len=length)
     !if (iret==0) iret = nf90_put_var(ncid, varID, (/(dy*i+myidy*jmax*dy,i=0,length-1)/),(/1/))
-    if (iret==0) iret = nf90_put_var(ncid, varID, (/(yh(i+myidy*jmax*dy),i=1,length)/),(/1/))
+    if (iret==0) iret = nf90_put_var(ncid, varID, (/(yh(i+jmax*myidy),i=1,length)/),(/1/))
 
     iret = nf90_inq_varid(ncid, 'zt', VarID)
     if (iret==0) iret=nf90_inquire_dimension(ncid,ztID, len=length)

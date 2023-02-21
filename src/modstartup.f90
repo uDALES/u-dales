@@ -81,9 +81,11 @@ module modstartup
       use modmpi,            only : comm3d, myid, myidx, myidy, cmyid, cmyidx, cmyidy, mpi_integer, mpi_logical, my_real, mpierr, mpi_character, nprocx, nprocy, nbreast, nbrwest, nbrnorth, nbrsouth
       use modinlet,          only : initinlet
       use modinletdata,      only : di, dr, di_test, dti, iangledeg, iangle
-      use modibmdata,        only : bctfxm, bctfxp, bctfym, bctfyp, bctfz
+      use modibmdata,        only : bctfxm, bctfxp, bctfym, bctfyp, bctfz, bcqfxm, bcqfxp, bcqfym, bcqfyp, bcqfz
       use modforces,         only : calcfluidvolumes
       use moddriver,         only : initdriver
+      use modtimedep,        only : ltimedepsurf, ntimedepsurf, ltimedepnudge, ntimedepnudge, &
+                                    ltimedeplw, ntimedeplw, ltimedepsw, ntimedepsw
       use modibm,            only : nsolpts_u, nsolpts_v, nsolpts_w, nsolpts_c, &
                                     nbndpts_u, nbndpts_v, nbndpts_w, nbndpts_c, &
                                     nfctsecs_u, nfctsecs_v, nfctsecs_w, nfctsecs_c, &
@@ -115,7 +117,9 @@ module modstartup
          lprofforc, ifixuinf, lvinf, tscale, dpdx, &
          luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, &
          uflowrate, vflowrate, &
-         lnudge, tnudge, nnudge
+         lnudge, tnudge, nnudge, &
+         ltimedepsurf, ntimedepsurf, ltimedepnudge, ntimedepnudge, &
+         ltimedeplw, ntimedeplw, ltimedepsw, ntimedepsw
       namelist/DYNAMICS/ &
          lqlnr, ipoiss, &
          iadv_mom, iadv_tke, iadv_thl, iadv_qt, iadv_sv
@@ -125,6 +129,7 @@ module modstartup
          BCtopm, BCtopT, BCtopq, BCtops, &
          BCbotm, BCbotT, BCbotq, BCbots, &
          bctfxm, bctfxp, bctfym, bctfyp, bctfz, &
+         bcqfxm, bcqfxp, bcqfym, bcqfyp, bcqfz, &
          wttop, thl_top, qt_top, qts, wsvsurfdum, wsvtopdum, &
          wtsurf, wqsurf, thls, z0, z0h, BCzp
       namelist/INLET/ &
@@ -333,6 +338,14 @@ module modstartup
       call MPI_BCAST(lnudge, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(nnudge, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(tnudge, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(ltimedepsurf, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(ltimedepnudge, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(ltimedeplw, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(ltimedepsw, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(ntimedepsurf, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(ntimedepnudge, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(ntimedeplw, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(ntimedepsw, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(lwalldist, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for computing wall distances
       call MPI_BCAST(lles, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for turning on/off LES functionality (subgrid model)
       call MPI_BCAST(linletRA, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for turning on/off Running Average in inletgenerator
@@ -433,6 +446,11 @@ module modstartup
       call MPI_BCAST(bctfym, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(bctfyp, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(bctfz, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(bcqfxm, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(bcqfxp, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(bcqfym, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(bcqfyp, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(bcqfz, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(wtsurf, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(wqsurf, 1, MY_REAL, 0, comm3d, mpierr)
       allocate (wsvsurf(1:nsv))
@@ -639,7 +657,7 @@ module modstartup
       end if
 
       ! Call neutral wall function when air temperature not evolved or if constant heat flux.
-      if ((ltempeq .eqv. .false.) .or. (iwalltemp==1)) then
+      if (((ltempeq .eqv. .false.) .or. (iwalltemp==1)) .and. (iwallmom==2)) then
         if (myid==0) write(*,*) "Changing to neutral wall function"
          iwallmom = 3
          BCbotm = BCbotm_wfneutral
@@ -765,7 +783,7 @@ module modstartup
       use modboundary, only:boundary, tqaver, halos
       use modmpi, only:slabsum, myid, comm3d, mpierr, my_real, avexy_ibm, myidx, myidy
       use modthermodynamics, only:thermodynamics, calc_halflev
-      use modinletdata, only:Uinl, Urec, Wrec, u0inletbc, v0inletbc, w0inletbc, ubulk, irecy, Utav, Ttav, &
+      use modinletdata, only:Uinl, Urec, Wrec, u0inletbc, v0inletbc, w0inletbc, ubulk, vbulk, irecy, Utav, Ttav, &
          uminletbc, vminletbc, wminletbc, u0inletbcold, v0inletbcold, w0inletbcold, &
          storeu0inletbc, storev0inletbc, storew0inletbc, nstepread, nfile, Tinl, &
          Trec, tminletbc, t0inletbcold, t0inletbc, storet0inletbc, utaui, ttaui, iangle,&
@@ -789,7 +807,7 @@ module modstartup
       real, dimension(kb:ke + 1) :: waverage
       real, dimension(kb:ke + 1) :: uprofrot
       real, dimension(kb:ke + 1) :: vprofrot
-      real tv, ran, ran1, vbulk
+      real tv, ran, ran1
 
       character(80) chmess
 
