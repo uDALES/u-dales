@@ -544,8 +544,8 @@ module modibm
 
 
    subroutine ibmnorm
-     use modglobal,   only : libm, ltempeq
-     use modfields,   only : thl0, um, vm, wm, thlm, up, vp, wp, thlp
+     use modglobal,   only : libm, ltempeq, zf, zh, kb, ke, kh
+     use modfields,   only : thl0, um, vm, wm, thlm, up, vp, wp, thlp, thl0av
      use modboundary, only : halos
      use decomp_2d,   only : zstart, zend
      use modmpi, only : myid
@@ -561,13 +561,8 @@ module modibm
 
      ! scalars
      if (ltempeq) then
-        call solid(solid_info_c, thlm, thlp, 288.) ! should be set to thl0av?
-        !call advection_correction(thl0, thlp)
-        ! above accounts for non-zero wall velocities, to ensure heat conservation in fluid
-        ! this makes the IBM true-blue Thatcherite conservative,
-        ! however like Thatcher it can have drastic effects, notably a very cool
-        ! canopy layer initially, so it is commented out for now (sorry Chris).
-        ! Also, it wasn't present in uDALES 1.
+        call solid(solid_info_c, thlm, thlp, sum(thl0av(kb:ke)*zf(kb:ke))/zh(ke+1))
+        call advection_correction_liberal(thl0, thlp)
      end if
 
    end subroutine ibmnorm
@@ -598,8 +593,12 @@ module modibm
    end subroutine solid
 
 
-   subroutine advection_correction(var,rhs)
-     ! scalars only
+   subroutine advection_correction_conservative(var,rhs)
+     ! Scalars only for now but could easily be adapted to work with velocities.
+     ! Removes the advection contribution from solid velocities, which should be
+     ! close to zero but are not necessarily due to pressure correction.
+     ! Has a fairly drastic effect on the initial flow, but the scalar is
+     ! conserved throughout the simulation.
      use modglobal,      only : eps1, ib, ie, ih, jb, je, jh, kb, ke, kh, &
                                 dx2i, dxi5, dy2i, dyi5, dzf, dzh2i, dzfi, dzhi, dzfi5
      use modfields,      only : u0, v0, w0
@@ -643,7 +642,67 @@ module modibm
          end if
 
      end do
-   end subroutine advection_correction
+   end subroutine advection_correction_conservative
+
+
+   subroutine advection_correction_liberal(var, rhs)
+     ! Scalars only for now but could easily be adapted to work with velocities.
+     ! Removes the advection contribution from solid scalar points as calculated
+     ! by the advection scheme, and replaces it with a contribution in which the
+     ! value inside the solid is equal to the value outside, thereby modelling
+     ! a zero (advective) flux condition.
+     ! Due to potentially nonzero solid velocities due to the pressure correction,
+     ! the IBM will not be conservative.
+     use modglobal,      only : eps1, ib, ie, ih, jb, je, jh, kb, ke, kh, &
+                                dx2i, dxi5, dy2i, dyi5, dzf, dzh2i, dzfi, dzhi, dzfi5
+     use modfields,      only : u0, v0, w0
+     use modsubgriddata, only : ekh
+     use decomp_2d,      only : zstart
+
+     real :: var(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh), rhs(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
+     integer :: i, j, k, n, m
+     type(bound_info_type) :: bound_info
+
+     bound_info = bound_info_c
+
+     do m = 1,bound_info%nbndptsrank
+      n = bound_info%bndptsrank(m)
+         i = bound_info%bndpts(n,1) - zstart(1) + 1
+         j = bound_info%bndpts(n,2) - zstart(2) + 1
+         k = bound_info%bndpts(n,3) - zstart(3) + 1
+
+         if (abs(mask_c(i+1,j,k)) < eps1) then ! var(i+1) is solid
+           rhs(i,j,k) = rhs(i,j,k) + u0(i+1,j,k)*(var(i+1,j,k) + var(i,j,k))*dxi5 & ! negate contribution added in advection using var(i+1)
+                                   - u0(i+1,j,k)*(var(i  ,j,k) + var(i,j,k))*dxi5   ! add corresponding contribution with var(i+1) = var(i)
+         end if
+
+         if (abs(mask_c(i-1,j,k)) < eps1) then ! var(i-1) is solid
+           rhs(i,j,k) = rhs(i,j,k) - u0(i,j,k)*(var(i-1,j,k) + var(i,j,k))*dxi5 & ! negate contribution added in advection using var(i-1)
+                                   + u0(i,j,k)*(var(i  ,j,k) + var(i,j,k))*dxi5   ! add corresponding contribution with var(i-1) = var(i)
+         end if
+
+         if (abs(mask_c(i,j+1,k)) < eps1) then ! var(j+1) is solid
+           rhs(i,j,k) = rhs(i,j,k) + v0(i,j+1,k)*(var(i,j+1,k) + var(i,j,k))*dyi5 & ! negate contribution added in advection using var(j+1)
+                                   - v0(i,j+1,k)*(var(i,j  ,k) + var(i,j,k))*dyi5   ! add corresponding contribution with var(j+1) = var(j)
+         end if
+
+         if (abs(mask_c(i,j-1,k)) < eps1) then ! var(j-1) is solid
+           rhs(i,j,k) = rhs(i,j,k) - v0(i,j,k)*(var(i,j-1,k) + var(i,j,k))*dyi5 & ! negate contribution added in advection using var(j-1)
+                                   + v0(i,j,k)*(var(i,j  ,k) + var(i,j,k))*dyi5   ! add corresponding contribution with var(j-1) = var(j)
+         end if
+
+         if (abs(mask_c(i,j,k+1)) < eps1) then ! var(k+1) is solid
+           rhs(i,j,k) = rhs(i,j,k) + w0(i,j,k+1)*(var(i,j,k+1)*dzf(k) + var(i,j,k)*dzf(k+1))*dzhi(k+1)*dzfi5(k) & ! negate contribution added in advection using var(k+1)
+                                   - w0(i,j,k+1)*(var(i,j,k  )*dzf(k) + var(i,j,k)*dzf(k+1))*dzhi(k+1)*dzfi5(k)   ! add corresponding contribution with var(k+1) = var(k)
+         end if
+
+         if (abs(mask_c(i,j,k-1)) < eps1) then ! var(k-1) is solid
+           rhs(i,j,k) = rhs(i,j,k) - w0(i,j,k)*(var(i,j,k-1)*dzf(k) + var(i,j,k)*dzf(k-1))*dzhi(k)*dzfi5(k) & ! negate contribution added in advection using var(k-1)
+                                   + w0(i,j,k)*(var(i,j,k  )*dzf(k) + var(i,j,k)*dzf(k-1))*dzhi(k)*dzfi5(k)   ! add corresponding contribution with var(k-1) = var(k)
+         end if
+
+     end do
+   end subroutine advection_correction_liberal
 
 
    subroutine diffu_corr
@@ -898,6 +957,7 @@ module modibm
         call diffu_corr
         call diffv_corr
         call diffw_corr
+        ! Here we could alternatively set the solid boundary points
       end if
 
       if (ltempeq .or. lmoist) then
@@ -1103,7 +1163,8 @@ module modibm
            end if
 
          elseif (iwalltemp == 2) then
-           call heat_transfer_coef_flux(utan, dist, facz0(fac), facz0h(fac), Tair, facT(fac, 1), cth, flux) ! Outputs heat transfer coefficient (cth) as well as flux
+           call heat_transfer_coef_flux(utan, dist, facz0(fac), facz0h(fac), Tair, facT(fac, 1), cth, flux)
+           ! Outputs 'cth' = heat transfer coefficient x utan = aerodynamic resistance as well as flux
          end if
 
          ! Heat transfer coefficient (cth) could be output here
