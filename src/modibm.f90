@@ -94,7 +94,8 @@ module modibm
 
    subroutine initibm
      use modglobal, only : libm, xh, xf, yh, yf, zh, zf, xhat, yhat, zhat, vec0, &
-                           ib, ie, ih, ihc, jb, je, jh, jhc, kb, ke, kh, khc, iwallmom, lmoist, ltempeq
+                           ib, ie, ih, ihc, jb, je, jh, jhc, kb, ke, kh, khc, nsv, &
+                           iwallmom, lmoist, ltempeq
      use decomp_2d, only : exchange_halo_z
 
      real, allocatable :: rhs(:,:,:)
@@ -111,21 +112,21 @@ module modibm
      ! Define (real) masks
      ! Hopefully this can be removed eventually if (integer) IIx halos can be communicated
      ! These are only used in modibm, to cancel subgrid term across solid boundaries
-     allocate(mask_u(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb-khc:ke+khc)); mask_u = 1.
-     allocate(mask_v(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb-khc:ke+khc)); mask_v = 1.
-     allocate(mask_w(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb-khc:ke+khc)); mask_w = 1.
+     allocate(mask_u(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); mask_u = 1.
+     allocate(mask_v(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); mask_v = 1.
+     allocate(mask_w(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); mask_w = 1.
      mask_w(:,:,kb) = 0.     ! In future this shouldn't be needed?
-     mask_u(:,:,kb-khc) = 0.
-     mask_v(:,:,kb-khc) = 0.
-     mask_w(:,:,kb-khc) = 0.
+     mask_u(:,:,kb-kh) = 0.
+     mask_v(:,:,kb-kh) = 0.
+     mask_w(:,:,kb-kh) = 0.
 
      allocate(rhs(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
-     call solid(solid_info_u, mask_u, rhs, 0.)
-     call solid(solid_info_v, mask_v, rhs, 0.)
-     call solid(solid_info_w, mask_w, rhs, 0.)
-     call exchange_halo_z(mask_u, opt_zlevel=(/ihc,jhc,0/))
-     call exchange_halo_z(mask_v, opt_zlevel=(/ihc,jhc,0/))
-     call exchange_halo_z(mask_w, opt_zlevel=(/ihc,jhc,0/))
+     call solid(solid_info_u, mask_u, rhs, 0., ih, jh, kh)
+     call solid(solid_info_v, mask_v, rhs, 0., ih, jh, kh)
+     call solid(solid_info_w, mask_w, rhs, 0., ih, jh, kh)
+     call exchange_halo_z(mask_u)!, opt_zlevel=(/ih,jh,0/))
+     call exchange_halo_z(mask_v)!, opt_zlevel=(/ih,jh,0/))
+     call exchange_halo_z(mask_w)!, opt_zlevel=(/ih,jh,0/))
 
      if (iwallmom > 1) then
        bound_info_u%nbndpts = nbndpts_u
@@ -139,7 +140,7 @@ module modibm
        call initibmwallfun('fluid_boundary_w.txt', 'facet_sections_w.txt', zhat, bound_info_w)
      end if
 
-     if (ltempeq .or. lmoist) then
+     if (ltempeq .or. lmoist .or. nsv>0) then
        solid_info_c%nsolpts = nsolpts_c
        call initibmnorm('solid_c.txt', solid_info_c)
 
@@ -147,10 +148,10 @@ module modibm
        bound_info_c%nfctsecs = nfctsecs_c
        call initibmwallfun('fluid_boundary_c.txt', 'facet_sections_c.txt', vec0, bound_info_c)
 
-       allocate(mask_c(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb-khc:ke+khc)); mask_c = 1.
-       mask_c(:,:,kb-khc) = 0.
-       call solid(solid_info_c, mask_c, rhs, 0.)
-       call exchange_halo_z(mask_c, opt_zlevel=(/ihc,jhc,0/))
+       allocate(mask_c(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); mask_c = 1.
+       mask_c(:,:,kb-kh) = 0.
+       call solid(solid_info_c, mask_c, rhs, 0., ih, jh, kh)
+       call exchange_halo_z(mask_c)!, opt_zlevel=(/ih,jh,0/))
      end if
 
      deallocate(rhs)
@@ -544,8 +545,8 @@ module modibm
 
 
    subroutine ibmnorm
-     use modglobal,   only : libm, ltempeq, zf, zh, kb, ke, kh
-     use modfields,   only : thl0, um, vm, wm, thlm, up, vp, wp, thlp, thl0av
+     use modglobal,   only : ih, jh, kh, ihc, jhc, khc, nsv, dzf, zh, kb, ke, kh, nsv, libm, ltempeq, lmoist
+     use modfields,   only : um, vm, wm, thlm, qtm, svm, up, vp, wp, thlp, qtp, svp, thl0, qt0, sv0, thl0av
      use modboundary, only : halos
      use decomp_2d,   only : zstart, zend
      use modmpi, only : myid
@@ -555,26 +556,40 @@ module modibm
      if (.not. libm) return
 
      ! Set internal velocities to zero
-     call solid(solid_info_u, um, up, 0.)
-     call solid(solid_info_v, vm, vp, 0.)
-     call solid(solid_info_w, wm, wp, 0.)
+     call solid(solid_info_u, um, up, 0., ih, jh, kh)
+     call solid(solid_info_v, vm, vp, 0., ih, jh, kh)
+     call solid(solid_info_w, wm, wp, 0., ih, jh, kh)
 
      ! scalars
      if (ltempeq) then
-        call solid(solid_info_c, thlm, thlp, sum(thl0av(kb:ke)*zf(kb:ke))/zh(ke+1))
-        call advection_correction_liberal(thl0, thlp)
+        ! Solid value should not matter - choose domain-average for visualization.
+        call solid(solid_info_c, thlm, thlp, sum(thl0av(kb:ke)*dzf(kb:ke))/zh(ke+1), ih, jh, kh)
+        call advecc2nd_corr_liberal(thl0, thlp)
      end if
+
+     if (lmoist) then
+       call solid(solid_info_c, qtm, qtp, 0., ih, jh, kh)
+       call advecc2nd_corr_liberal(qt0, qtp)
+    end if
+
+    do n=1,nsv
+      call solid(solid_info_c, svm(:,:,:,n), svp(:,:,:,n), 0., ihc, jhc, khc)
+      call solid_boundary(bound_info_c, mask_c, svm(:,:,:,n), svp(:,:,:,n), ihc, jhc, khc)
+      ! The above should be replaced with something like avecc2nd_corr,
+      ! but using the kappa advection scheme rather than the second order one.
+    end do
 
    end subroutine ibmnorm
 
 
-   subroutine solid(solid_info, var, rhs, val)
-     use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh
+   subroutine solid(solid_info, var, rhs, val, hi, hj, hk)
+     use modglobal, only : ib, ie, jb, je, kb, ke
      use decomp_2d, only : zstart
 
      type(solid_info_type), intent(in) :: solid_info
-     real, intent(inout) :: var(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
-     real, intent(inout) :: rhs(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
+     integer, intent(in) :: hi, hj, hk
+     real, intent(inout) :: var(ib-hi:ie+hi,jb-hj:je+hj,kb-hk:ke+hk)
+     real, intent(inout) :: rhs(ib-hi:ie+hi,jb-hj:je+hj,kb   :ke+hk)
      real, intent(in) :: val
 
      integer :: i, j, k, n, m
@@ -593,8 +608,67 @@ module modibm
    end subroutine solid
 
 
-   subroutine advection_correction_conservative(var,rhs)
-     ! Scalars only for now but could easily be adapted to work with velocities.
+   subroutine solid_boundary(bound_info, mask, var, rhs, hi, hj, hk)
+     use modglobal, only : eps1, ib, ie, ih, jb, je, jh, kb, ke, kh
+     use decomp_2d, only : zstart
+     ! uDALES 1 approach
+     ! Not truly conservative
+     type(bound_info_type), intent(in) :: bound_info
+     integer, intent(in) :: hi, hj, hk
+     real, intent(in)    :: mask(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
+     real, intent(inout) :: var(ib-hi:ie+hi,jb-hj:je+hj,kb-hk:ke+hk)
+     real, intent(inout) :: rhs(ib-hi:ie+hi,jb-hj:je+hj,kb   :ke+hk)
+
+     integer i, j, k, n, m
+
+     do m = 1,bound_info%nbndptsrank
+       n = bound_info%bndptsrank(m)
+       i = bound_info%bndpts(n,1) - zstart(1) + 1
+       j = bound_info%bndpts(n,2) - zstart(2) + 1
+       k = bound_info%bndpts(n,3) - zstart(3) + 1
+
+       if (abs(mask(i,j+1,k)) < eps1) then
+         ! rhs(i,j+1,k) = 0.
+         rhs(i,j+1,k) = rhs(i,j,k)
+         var(i,j+1,k) = var(i,j,k)
+       end if
+
+       if (abs(mask(i,j-1,k)) < eps1) then
+         ! rhs(i,j-1,k) = 0.
+         rhs(i,j-1,k) = rhs(i,j,k)
+         var(i,j-1,k) = var(i,j,k)
+       end if
+
+       if (abs(mask(i,j,k+1)) < eps1) then
+         ! rhs(i,j,k+1) = 0.
+         rhs(i,j,k+1) = rhs(i,j,k)
+         var(i,j,k+1) = var(i,j,k)
+       end if
+
+       if (abs(mask(i,j,k-1)) < eps1) then
+         ! rhs(i,j,k-1) = 0.
+         rhs(i,j,k-1) = rhs(i,j,k)
+         var(i,j,k-1) = var(i,j,k)
+       end if
+
+       if (abs(mask(i+1,j,k)) < eps1) then
+         ! rhs(i+1,j,k) = 0.
+         rhs(i+1,j,k) = rhs(i,j,k)
+         var(i+1,j,k) = var(i,j,k)
+       end if
+
+       if (abs(mask(i-1,j,k)) < eps1) then
+         ! rhs(i-1,j,k) = 0.
+         rhs(i-1,j,k) = rhs(i,j,k)
+         var(i-1,j,k) = var(i,j,k)
+       end if
+
+     end do
+
+   end subroutine
+
+
+   subroutine advecc2nd_corr_conservative(var, rhs)
      ! Removes the advection contribution from solid velocities, which should be
      ! close to zero but are not necessarily due to pressure correction.
      ! Has a fairly drastic effect on the initial flow, but the scalar is
@@ -605,7 +679,8 @@ module modibm
      use modsubgriddata, only : ekh
      use decomp_2d,      only : zstart
 
-     real :: var(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh), rhs(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
+     real, intent(in)    :: var(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
+     real, intent(inout) :: rhs(ib-ih:ie+ih,jb-jh:je+jh,kb   :ke+kh)
      integer :: i, j, k, n, m
      type(bound_info_type) :: bound_info
 
@@ -642,13 +717,13 @@ module modibm
          end if
 
      end do
-   end subroutine advection_correction_conservative
+
+   end subroutine advecc2nd_corr_conservative
 
 
-   subroutine advection_correction_liberal(var, rhs)
-     ! Scalars only for now but could easily be adapted to work with velocities.
+   subroutine advecc2nd_corr_liberal(var, rhs)
      ! Removes the advection contribution from solid scalar points as calculated
-     ! by the advection scheme, and replaces it with a contribution in which the
+     ! by the 2nd order scheme, and replaces it with a contribution in which the
      ! value inside the solid is equal to the value outside, thereby modelling
      ! a zero (advective) flux condition.
      ! Due to potentially nonzero solid velocities due to the pressure correction,
@@ -659,7 +734,8 @@ module modibm
      use modsubgriddata, only : ekh
      use decomp_2d,      only : zstart
 
-     real :: var(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh), rhs(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
+     real, intent(in)    :: var(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
+     real, intent(inout) :: rhs(ib-ih:ie+ih,jb-jh:je+jh,kb   :ke+kh)
      integer :: i, j, k, n, m
      type(bound_info_type) :: bound_info
 
@@ -702,7 +778,7 @@ module modibm
          end if
 
      end do
-   end subroutine advection_correction_liberal
+   end subroutine advecc2nd_corr_liberal
 
 
    subroutine diffu_corr
@@ -878,15 +954,16 @@ module modibm
    end subroutine diffw_corr
 
 
-   subroutine diffc_corr(var, rhs)
+   subroutine diffc_corr(var, rhs, hi, hj, hk)
      ! Negate subgrid rhs contributions from solid points (added by diffc in modsubgrid)
-     use modglobal,      only : eps1, ib, ie, ih, jb, je, jh, kb, ke, kh, &
+     use modglobal,      only : eps1, ib, ie, jb, je, kb, ke, kh, &
                                 dx2i, dxi5, dy2i, dyi5, dzf, dzh2i, dzfi, dzhi, dzfi5
      use modsubgriddata, only : ekh
      use decomp_2d,      only : zstart
 
-     real, intent(in) :: var(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
-     real, intent(inout) :: rhs(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
+     integer, intent(in) :: hi, hj, hk
+     real, intent(in)    :: var(ib-hi:ie+hi,jb-hj:je+hj,kb-hk:ke+hk)
+     real, intent(inout) :: rhs(ib-hi:ie+hi,jb-hj:je+hj,kb   :ke+hk)
      integer :: i, j, k, n, m
      type(bound_info_type) :: bound_info
 
@@ -930,11 +1007,14 @@ module modibm
 
 
    subroutine ibmwallfun
-     use modglobal, only : libm, iwallmom, iwalltemp, xhat, yhat, zhat, ltempeq, lmoist, ib, ie, ih, jb, je, jh, kb, ke, kh
-     use modfields, only : u0, v0, w0, thl0, qt0, up, vp, wp, thlp, qtp, tau_x, tau_y, tau_z, thl_flux
+     use modglobal, only : libm, iwallmom, iwalltemp, xhat, yhat, zhat, ltempeq, lmoist, &
+                           ib, ie, ih, ihc, jb, je, jh, jhc, kb, ke, kh, khc, nsv
+     use modfields, only : u0, v0, w0, thl0, qt0, sv0, up, vp, wp, thlp, qtp, svp, &
+                           tau_x, tau_y, tau_z, thl_flux
      use modsubgriddata, only : ekm, ekh
 
      real, allocatable :: rhs(:,:,:)
+     integer n
 
       if (.not. libm) return
 
@@ -957,16 +1037,19 @@ module modibm
         call diffu_corr
         call diffv_corr
         call diffw_corr
-        ! Here we could alternatively set the solid boundary points
       end if
 
       if (ltempeq .or. lmoist) then
         rhs = thlp
         call wallfunheat
         thl_flux(:,:,kb:ke+kh) = thl_flux(:,:,kb:ke+kh) + (thlp - rhs)
-        if (ltempeq) call diffc_corr(thl0, thlp)
-        if (lmoist)  call diffc_corr(qt0, qtp)
+        if (ltempeq) call diffc_corr(thl0, thlp, ih, jh, kh)
+        if (lmoist)  call diffc_corr(qt0, qtp, ih, jh, kh)
       end if
+
+      do n = 1,nsv
+        call diffc_corr(sv0(:,:,:,n), svp(:,:,:,n), ihc, jhc, khc)
+      end do
 
       deallocate(rhs)
 

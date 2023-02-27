@@ -291,25 +291,17 @@ contains
 
        ! Scalars
        if (nsv > 0) then
-         if (BCxs .eq. 1) then
-           ! Needs implementing!
-
-         ! else if (BCxs .eq. 2) then !inoutflow  - will be overwritten unless BCxm == 1
-         !   call iosi ! make sure uouttot is known and correct for the running set-up
-         !
-         ! else if (BCxs .eq. 3) then
-         !   ! do nothing - considered in iolet
-         !
-         ! else if (BCxs .eq. 4) then !scalrec - will be overwritten unless BCxm == 1
-         !   call scalrec
-         !
-         ! else if (BCxs .eq. 5) then !previously SIRANE - will be overwritten unless BCxm == 1
-         !   call scalSIRANE !  make sure uouttot/ vouttot is known and realistic
-
-         else
+         select case(BCxs)
+         case(BCxs_periodic)
+           ! Handled in halos
+         case(BCxs_profile)
+           call xsi_profile
+         case(BCxs_driver)
+           call xsi_driver
+         case default
            write(0, *) "ERROR: lateral boundary type for scalars in x-direction undefined"
            stop 1
-         end if
+         end select
        end if
 
      end if !ibrank
@@ -356,6 +348,8 @@ contains
          select case(BCys)
          case(1)
            ! Handled in halos
+         case(2)
+           call ysi_profile
          case default
            write(0, *) "ERROR: lateral boundary type for scalars in y-direction undefined"
            stop 1
@@ -719,7 +713,6 @@ contains
 
 
      subroutine xTi_driver
-       ! Called when BCxT = 5
        use modglobal,    only : ib, ie, jb, je, kb, ke
        use modinletdata, only : thl0driver, thlmdriver
        use modfields,    only : thl0, thlm
@@ -727,10 +720,8 @@ contains
 
        do j = jb - 1, je + 1
          do k = kb, ke + 1
-           ! thl0(ib,j,k) = thl0driver(j,k)
-           ! thlm(ib,j,k) = thlmdriver(j,k)
-           thl0(ib-1,j,k) = thl0driver(j,k)
-           thlm(ib-1,j,k) = thlmdriver(j,k)
+           thl0(ib - 1, j, k) = thl0driver(j, k)
+           thlm(ib - 1, j, k) = thlmdriver(j, k)
          end do
        end do
 
@@ -738,7 +729,6 @@ contains
 
 
      subroutine xqi_profile
-       ! Called when BCxq = 4
        use modglobal,    only : ib, ie, jb, je, kb, ke
        use modfields,    only : qt0, qtm, qtprof
        integer j, k
@@ -754,19 +744,16 @@ contains
 
 
    subroutine xqi_driver
-     ! Called when BCxq = 4
      use modglobal,    only : ib, ie, jb, je, kb, ke
      use modinletdata, only : qt0driver, qtmdriver
      use modfields,    only : qt0, qtm
 
      integer j, k
 
-     do j=jb-1,je+1
-       do k=kb,ke+1
-         ! qt0(ib,j,k) = qt0driver(j,k)
-         ! qtm(ib,j,k) = qtmdriver(j,k)
-         qt0(ib-1,j,k) = qt0driver(j,k)
-         qtm(ib-1,j,k) = qtmdriver(j,k)
+     do j = jb - 1, je + 1
+       do k = kb, ke + 1
+         qt0(ib - 1, j, k) = qt0driver(j, k)
+         qtm(ib - 1, j, k) = qtmdriver(j, k)
        end do
      end do
 
@@ -780,17 +767,38 @@ contains
      integer j, k, n, m
 
      do j = jb, je
-       do k = kb, ke
+       do k = kb, ke + 1
          do n = 1, nsv
            do m = 1, ihc
-             sv0(ib - m, j, k, n) = 2*svprof(k, n) - sv0(ib + (m - 1), j, k, n)
-             svm(ib - m, j, k, n) = 2*svprof(k, n) - svm(ib + (m - 1), j, k, n)
+             sv0(ib - m, j, k, n) = 2*svprof(k, n) - sv0(ib - m + 1, j, k, n)
+             svm(ib - m, j, k, n) = 2*svprof(k, n) - svm(ib - m + 1, j, k, n)
            end do
          end do
        end do
      end do
 
    end subroutine xsi_profile
+
+
+   subroutine xsi_driver
+     use modglobal,    only : ib, ie, ihc, jb, je, jhc, kb, ke, khc, nsv
+     use modinletdata, only : sv0driver, svmdriver
+     use modfields,    only : sv0, svm
+
+     integer j, k, n, m
+
+     do j = jb - 1, je + 1
+       do k = kb, ke + 1
+         do n = 1, nsv
+           do m = 1, ihc
+             sv0(ib - m, j, k, n) = sv0driver(j, k, n)
+             svm(ib - m, j, k, n) = svmdriver(j, k, n)
+           end do
+         end do
+       end do
+     end do
+
+   end subroutine xsi_driver
 
 
    subroutine xmo_convective
@@ -877,11 +885,29 @@ contains
      rk3coef = dt/(4.-dble(rk3step))
 
      do n = 1, nsv
-       sv0(ie + 1, :, :, n) = sv0(ie, :, :, n) - (sv0(ie + 1, :, :, n) - sv0(ie, :, :, n))*dxi*rk3coef*uouttot
-       svm(ie + 1, :, :, n) = svm(ie, :, :, n) - (svm(ie + 1, :, :, n) - svm(ie, :, :, n))*dxi*rk3coef*uouttot
+       sv0(ie + 1, :, :, n) = sv0(ie + 1, :, :, n) - (sv0(ie + 1, :, :, n) - sv0(ie, :, :, n))*dxi*rk3coef*uouttot
+       svm(ie + 1, :, :, n) = svm(ie + 1, :, :, n) - (svm(ie + 1, :, :, n) - svm(ie, :, :, n))*dxi*rk3coef*uouttot
      end do
 
    end subroutine xso_convective
+
+
+   subroutine xso_Neumann
+     use modglobal, only : ie, ihc, rk3step, dt, dxi, nsv
+     use modfields, only :sv0, svm
+     real rk3coef
+     integer n, m
+
+     rk3coef = dt/(4.-dble(rk3step))
+
+     do n = 1, nsv
+       do m = 1, ihc
+         sv0(ie + m, :, :, n) = sv0(ie, :, :, n)
+         svm(ie + m, :, :, n) = svm(ie, :, :, n)
+       end do
+     end do
+
+   end subroutine xso_Neumann
 
 
    subroutine ymi_profile
@@ -957,8 +983,8 @@ contains
        do k = kb, ke + 1
          do n = 1, nsv
            do m = 1, ihc
-             sv0(i, jb - m, k, n) = 2*svprof(k, n) - sv0(i, jb + (m - 1), k, n)
-             svm(i, jb - m, k, n) = 2*svprof(k, n) - svm(i, jb + (m - 1), k, n)
+             sv0(i, jb - m, k, n) = 2*svprof(k, n) - sv0(i, jb - m + 1, k, n)
+             svm(i, jb - m, k, n) = 2*svprof(k, n) - svm(i, jb - m + 1, k, n)
            end do
          end do
        end do
@@ -1037,84 +1063,24 @@ contains
    end subroutine yso_convective
 
 
-    subroutine scalrec
-       use modglobal, only:ib, ie, jb, je, ih, jh, kb, ke, kh, nsv, dt, rk3step, dxhi, ltempeq, &
-          ihc, jhc, khc, dy
-       use modfields, only:sv0, svm, svprof, uouttot, um, u0, vm, v0
-       use modinletdata, only:ubulk
-       real rk3coef
-       integer k, n, m
-       ! recycling method for scalar fields following Matheou and Bowman (2015)
+   subroutine yso_Neumann
 
-       if (nsv > 0) then
-          rk3coef = dt/(4.-dble(rk3step))
-          do m = 1, ihc ! loop over virtual cells
-             do n = 1, nsv - 1
-                sv0(ib - m, :, :, n + 1) = sv0(ie + 1 - m, :, :, n)
-                sv0(ie + m, :, :, n) = sv0(ib - 1 + m, :, :, n + 1)
-                svm(ib - m, :, :, n + 1) = svm(ie + 1 - m, :, :, n)
-                svm(ie + m, :, :, n) = svm(ib - 1 + m, :, :, n + 1)
-             end do
+     use modglobal, only : je, jhc, rk3step, dt, dyi, nsv
+     use modfields, only : sv0, svm
 
-             ! zero conc. on scalar 1 !tg3315 should be changed to as above in
-             sv0(ib - m, :, :, 1) = 0.
-             svm(ib - m, :, :, 1) = 0.
+     real rk3coef
+     integer n, m
 
-             ! DIY outflow BC (advection step as linout) tg3315
-           sv0(ie+m,:,:,nsv)=sv0(ie+1-m,:,:,nsv)-(sv0(ie+m,:,:,nsv)-sv0(ie+1-m,:,:,nsv))*dxhi(ie+m)*rk3coef*uouttot
-           svm(ie+m,:,:,nsv)=svm(ie+1-m,:,:,nsv)-(svm(ie+m,:,:,nsv)-svm(ie+1-m,:,:,nsv))*dxhi(ie+m)*rk3coef*uouttot
-          end do
-       end if
-       return
-    end subroutine scalrec
+     rk3coef = dt/(4.-dble(rk3step))
 
-    subroutine scalSIRANE
-     use modglobal, only : ib,ie,jb,je,ih,jh,kb,ke,kh,nsv,dt,lscalrec,lmoistinout,ltempinout,rk3step,dxhi,ltempeq,&
-          ihc, jhc, khc, lSIRANEinout, dy
-       use modfields, only:sv0, svm, svprof
-       use modinletdata, only:ubulk
-       use modmpi, only:myid, nprocs
-       real rk3coef
-       integer k, n, m
-       if (nsv > 0) then
-          !rk3coef = dt / (4. - dble(rk3step))
-          do n = 1, nsv
-             do m = 1, ihc
-                do k = kb, ke + 1
-                   sv0(ib - m, :, k, n) = 2*svprof(k, n) - sv0(ib - m + 1, :, k, n) !scalars have two ghost cells...???
-                   svm(ib - m, :, k, n) = 2*svprof(k, n) - svm(ib - m + 1, :, k, n)
-                end do
- !              sv0(ie+m,:,:,n)= sv0(ie+m-1,:,:,n) - (sv0(ie+m,:,:,n)-sv0(ie+m-1,:,:,n))*dxhi(ie+m)*rk3coef*ubulk
- !              svm(ie+m,:,:,n)= svm(ie+m-1,:,:,n) - (svm(ie+m,:,:,n)-svm(ie+m-1,:,:,n))*dxhi(ie+m)*rk3coef*ubulk !changed from uouttot to ubulk here !tg3315 08/11/2017
- !              sv0(ie+m,:,:,n)= sv0(ie+m-1,:,:,n) - (sv0(ie+m,:,:,n)-sv0(ie+m-1,:,:,n))*dxhi(ie+m)*rk3coef*u0(ie+m,:,:)
- !              svm(ie+m,:,:,n)= svm(ie+m-1,:,:,n) - (svm(ie+m,:,:,n)-svm(ie+m-1,:,:,n))*dxhi(ie+m)*rk3coef*um(ie+m,:,:) !changed from uouttot to ubulk here !tg3315 08/11/2017
-                svm(ie + m, :, :, n) = svm(ie + m - 1, :, :, n)
-                sv0(ie + m, :, :, n) = sv0(ie + m - 1, :, :, n)
-             end do !m, ihc
-          end do !n, nsv
+     do n = 1, nsv
+       do m = 1, jhc
+         sv0(:, je + m, :, n) = sv0(:, je, :, n)
+         svm(:, je + m, :, n) = svm(:, je, :, n)
+       end do
+     end do
 
-          do m = 1, jhc
-             do n = 1, nsv
-             if (myid == 0) then
-                do k = kb, ke + 1
-                   sv0(:, jb - m, k, n) = 2*svprof(k, n) - sv0(:, jb - m + 1, k, n)
-                   svm(:, jb - m, k, n) = 2*svprof(k, n) - svm(:, jb - m + 1, k, n)
-                end do
-             end if
-             if (myid == nprocs - 1) then
-                !sv0(:,je+m,:,n)= sv0(:,je+m-1,:,n) - (sv0(:,je+m,:,n)-sv0(:,je+m-1,:,n))*dy*rk3coef*ubulk
-                !svm(:,je+m,:,n)= svm(:,je+m-1,:,n) - (svm(:,je+m,:,n)-svm(:,je+m-1,:,n))*dy*rk3coef*ubulk !changed from uouttot to ubulk here !tg3315 08/11/2017
-                !      sv0(:,je+m,:,n)= sv0(:,je+m-1,:,n) - (sv0(:,je+m,:,n)-sv0(:,je+m-1,:,n))*dy*rk3coef*v0(:,je+m,:)
-                !      svm(:,je+m,:,n)= svm(:,je+m-1,:,n) - (svm(:,je+m,:,n)-svm(:,je+m-1,:,n))*dy*rk3coef*vm(:,je+m,:) !changed from uouttot to ubulk here !tg3315 08/11/2017
-                svm(:, je + m, :, n) = svm(:, je + m - 1, :, n)
-                sv0(:, je + m, :, n) = sv0(:, je + m - 1, :, n)
-             end if
-             end do !n, nsv
-          end do !m, jhc
-
-       end if !nsv>0
-       return
-    end subroutine scalSIRANE
+   end subroutine yso_Neumann
 
 
    !>set boundary conditions pup,pvp,pwp in subroutine fillps in modpois.f90

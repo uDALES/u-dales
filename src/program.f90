@@ -119,7 +119,7 @@ program DALESURBAN      !Version 48
 
     call EB
 
-    !call scalsource     ! adds continuous forces in specified region of domain
+    call scalsource     ! adds continuous forces in specified region of domain
 
 !------------------------------------------------------
 !   3.4   EXECUTE ADD ONS
