@@ -43,7 +43,8 @@ module modstartup
    real :: randu = 0.0, randthl = 0.0, randqt = 0.0 !    * uvw,thl and qt amplitude of randomnization
 
    contains
-   subroutine startup
+
+   subroutine readnamelists
 
       !-----------------------------------------------------------------|
       !                                                                 |
@@ -288,39 +289,38 @@ module modstartup
       call MPI_BCAST(BCym, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(BCzp, 1, MPI_INTEGER, 0, comm3d, mpierr)
 
-      if (BCxm .eq. BCxm_periodic .and. nprocx > 1) then
-        periodic_bc(1) = .true.
-      else
-        periodic_bc(1) = .false.
-      end if
-
-      if (BCym .eq. BCym_periodic .and. nprocy > 1) then
-        periodic_bc(2) = .true.
-      else
-        periodic_bc(2) = .false.
-      end if
-
-      periodic_bc(3) = .false.
-      call decomp_2d_init(itot,jtot,ktot,nprocx,nprocy,periodic_bc)
-      !myid = nrank
-      !write(cmyid,'(i3.3)') myid
-
-      comm3d = DECOMP_2D_COMM_CART_Z
-      !write(*,*) "myid", myid
-      call MPI_CART_COORDS(comm3d,myid,2,myids,mpierr)
-      !write(*,*) "myids", myids
-      myidx = myids(1)
-      myidy = myids(2)
-      ! write(*,*) "myid", " myids", myid, myids
-      write(cmyidx,'(i3.3)') myidx
-      write(cmyidy,'(i3.3)') myidy
-
-      call MPI_CART_SHIFT(comm3d, 0,  1, nbrwest,  nbreast ,   mpierr)
-      call MPI_CART_SHIFT(comm3d, 1,  1, nbrsouth, nbrnorth,   mpierr)
-
-      ! if (myid==0) then
-      !   write(*,*) nprocx, nprocy
+      ! if (BCxm .eq. BCxm_periodic .and. nprocx > 1) then
+      !   periodic_bc(1) = .true.
+      ! else
+      !   periodic_bc(1) = .false.
       ! end if
+      !
+      ! if (BCym .eq. BCym_periodic .and. nprocy > 1) then
+      !   periodic_bc(2) = .true.
+      ! else
+      !   periodic_bc(2) = .false.
+      ! end if
+      !
+      ! periodic_bc(3) = .false.
+      ! call decomp_2d_init(itot,jtot,ktot,nprocx,nprocy,periodic_bc)
+      ! !myid = nrank
+      ! !write(cmyid,'(i3.3)') myid
+      !
+      ! comm3d = DECOMP_2D_COMM_CART_Z
+      ! !write(*,*) "myid", myid
+      ! call MPI_CART_COORDS(comm3d,myid,2,myids,mpierr)
+      ! !write(*,*) "myids", myids
+      ! myidx = myids(1)
+      ! myidy = myids(2)
+      ! ! write(*,*) "myid", " myids", myid, myids'
+      !
+      ! write(cmyidx,'(i3.3)') myidx
+      ! write(cmyidy,'(i3.3)') myidy
+      !
+      ! call MPI_CART_SHIFT(comm3d, 0,  1, nbrwest,  nbreast ,   mpierr)
+      ! call MPI_CART_SHIFT(comm3d, 1,  1, nbrsouth, nbrnorth,   mpierr)
+
+      !call init2decomp
 
       !write (*, *) "starting broadcast"
       call MPI_BCAST(iexpnr, 1, MPI_INTEGER, 0, comm3d, mpierr)
@@ -521,44 +521,87 @@ module modstartup
       call MPI_BCAST(iadv_sv(1:nsv), nsv, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(lrandomize, 1, MPI_LOGICAL, 0, comm3d, mpierr)
 
-      ! Allocate and initialize core modules
-      call initglobal
-      !write (*, *) "done initglobal"
-      call initfields
-      !write (*, *) "done initfields"
-      call initboundary
-      !write (*, *) "done initboundary"
-      call initthermodynamics
-      ! write (*, *) "done initthermodynamics"
-      ! !!depreated!!
-      ! ! call initsurface
-      ! write (*, *) "done initsurface"
-      call initsubgrid
-      !write (*, *) "done initsubgrid"
+      ! ! Allocate and initialize core modules
+      ! call initglobal
+      ! !write (*, *) "done initglobal"
+      ! call initfields
+      ! !write (*, *) "done initfields"
+      ! call initboundary
+      ! !write (*, *) "done initboundary"
+      ! call initthermodynamics
+      ! ! write (*, *) "done initthermodynamics"
+      ! ! !!depreated!!
+      ! ! ! call initsurface
+      ! ! write (*, *) "done initsurface"
+      ! call initsubgrid
+      ! !write (*, *) "done initsubgrid"
+      ! ! call initpois
+      ! ! write (*, *) "done initpois"
+      ! ! call initinlet ! added by J. Tomas: initialize inlet generator
+      ! ! write (*, *) "done initinlet"
+      ! call initdriver  ! added by ae1212: initialise driver inlet
+      ! ! write(*,*) "done initdriver"
+      ! call checkinitvalues
+      ! !write (*, *) "done checkinitvalues"
       ! call initpois
-      ! write (*, *) "done initpois"
-      ! call initinlet ! added by J. Tomas: initialize inlet generator
-      ! write (*, *) "done initinlet"
-      call initdriver  ! added by ae1212: initialise driver inlet
-      ! write(*,*) "done initdriver"
-      call checkinitvalues
-      !write (*, *) "done checkinitvalues"
-      call initpois
-      !write (*, *) "done initpois"
-      ! write (6, *) 'Determine masking matrices'
-      call createmasks ! determine walls/blocks
-      ! write (6, *) 'Finished determining masking matrices'
-      ! ! calculate fluid volume and outlet areas, needs masking matrices
-      call calcfluidvolumes
-      !
-      call readinitfiles
-      !write (*, *) "done readinitfiles"
-      ! write (*, *) "done startup"
-      !
-      ! call createscals
-      ! write (*, *) "done create scals"
+      ! !write (*, *) "done initpois"
+      ! ! write (6, *) 'Determine masking matrices'
+      ! call createmasks ! determine walls/blocks
+      ! ! write (6, *) 'Finished determining masking matrices'
+      ! ! ! calculate fluid volume and outlet areas, needs masking matrices
+      ! call calcfluidvolumes
+      ! !
+      ! call readinitfiles
+      ! !write (*, *) "done readinitfiles"
+      ! ! write (*, *) "done startup"
+      ! !
+      ! ! call createscals
+      ! ! write (*, *) "done create scals"
 
-   end subroutine startup
+   end subroutine readnamelists
+
+
+   subroutine init2decomp
+     use decomp_2d
+     use modglobal, only : itot, jtot, ktot, BCxm, BCym, BCxm_periodic, Bcym_periodic
+     use modmpi,    only : comm3d, myid, myidx, myidy, cmyidx, cmyidy, nprocx, nprocy, &
+                           nbreast, nbrwest, nbrnorth, nbrsouth, mpierr
+     implicit none
+
+     logical, dimension(3) :: periodic_bc
+     integer, dimension(2) :: myids
+
+     if (BCxm .eq. BCxm_periodic .and. nprocx > 1) then
+       periodic_bc(1) = .true.
+     else
+       periodic_bc(1) = .false.
+     end if
+
+     if (BCym .eq. BCym_periodic .and. nprocy > 1) then
+       periodic_bc(2) = .true.
+     else
+       periodic_bc(2) = .false.
+     end if
+
+     periodic_bc(3) = .false.
+
+     call decomp_2d_init(itot,jtot,ktot,nprocx,nprocy,periodic_bc)
+
+     comm3d = DECOMP_2D_COMM_CART_Z
+
+     call MPI_CART_COORDS(comm3d,myid,2,myids,mpierr)
+
+     myidx = myids(1)
+     myidy = myids(2)
+
+     write(cmyidx,'(i3.3)') myidx
+     write(cmyidy,'(i3.3)') myidy
+
+     call MPI_CART_SHIFT(comm3d, 0,  1, nbrwest,  nbreast ,   mpierr)
+     call MPI_CART_SHIFT(comm3d, 1,  1, nbrsouth, nbrnorth,   mpierr)
+
+   end subroutine init2decomp
+
 
    subroutine checkinitvalues
       !-----------------------------------------------------------------|
@@ -1342,13 +1385,13 @@ module modstartup
                         height(k), &
                         (svprof(k, n), n=1, nsv)
                   end do
-                  open (ifinput, file='scalar.inp.'//cexpnr)
-                  write (6, *) 'height   sv(1) --------- sv(nsv) '
-                  do k = ke, kb, -1
-                     write (6, *) &
-                        height(k), &
-                        (svprof(k, n), n=1, nsv)
-                  end do
+                  ! open (ifinput, file='scalar.inp.'//cexpnr)
+                  ! write (6, *) 'height   sv(1) --------- sv(nsv) '
+                  ! do k = ke, kb, -1
+                  !    write (6, *) &
+                  !       height(k), &
+                  !       (svprof(k, n), n=1, nsv)
+                  ! end do
 
                end if
             end if ! end if myid==0

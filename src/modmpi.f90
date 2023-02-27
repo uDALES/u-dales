@@ -70,6 +70,7 @@ contains
      call MPI_COMM_SIZE( MPI_COMM_WORLD, nproc, mpierr )
      myid = nrank
      nprocs = nproc
+     write(cmyid,'(i3.3)') myid
 ! ! Specify the # procs in each direction.
 ! ! specifying a 0 means that MPI will try to find a useful # procs in
 ! ! the corresponding  direction,
@@ -137,33 +138,6 @@ contains
     end if
 
   end subroutine starttimer
-
-  ! subroutine init2decomp
-  !   use decomp_2d
-  !   use modglobal, only : itot, jtot, imax, jmax, kmax
-  !   implicit none
-  !
-  !   logical, dimension(3) :: periodic_bc
-  !   integer, dimension(2) :: myids
-  !
-  !   periodic_bc(1) = .true. !change this to match linoutflow
-  !   periodic_bc(2) = .true.
-  !   periodic_bc(3) = .false.
-  !   call decomp_2d_init(itot,jtot,kmax,nprocx,nprocy,periodic_bc)
-  !   myid = nrank
-  !   write(cmyid,'(i3.3)') myid
-  !
-  !   comm3d = DECOMP_2D_COMM_CART_Z
-  !   call MPI_CART_COORDS(comm3d,myid,2,myids,mpierr)
-  !   myidx = myids(1)
-  !   myidy = myids(2)
-  !   write(cmyidx,'(i3.3)') myidx
-  !   write(cmyidy,'(i3.3)') myidy
-  !
-  !   call MPI_CART_SHIFT(comm3d, 0,  1, nbrwest,  nbreast ,   mpierr)
-  !   call MPI_CART_SHIFT(comm3d, 1,  1, nbrsouth, nbrnorth,   mpierr)
-  !
-  ! end subroutine init2decomp
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 

@@ -24,57 +24,90 @@ program DALESURBAN      !Version 48
 !!----------------------------------------------------------------
 !!     0.0    USE STATEMENTS FOR CORE MODULES
 !!----------------------------------------------------------------
-  use modmpi,            only : initmpi, exitmpi, myid, starttimer
-  use modglobal,         only : rk3step,timeleft
-  use modstartup,        only : startup,exitmodules
+  use modmpi,            only : initmpi,exitmpi,myid,starttimer
+  use modglobal,         only : initglobal,rk3step,timeleft
+  use modstartup,        only : readnamelists,init2decomp,checkinitvalues,readinitfiles,exitmodules
+  use modfields,         only : initfields
   use modsave,           only : writerestartfiles
-  use modboundary,       only : boundary, grwdamp,tqaver,halos
-  use modthermodynamics, only : thermodynamics
-!  use modsurface,        only : surface
-  use modsubgrid,        only : subgrid
-  use modforces,         only : forces,coriolis,lstend,fixuinf1,fixuinf2,fixthetainf,nudge, masscorr
-  use modpois,           only : poisson
-  use modibm,            only : ibmwallfun,ibmnorm,bottom,initibm
+  use modboundary,       only : initboundary,boundary,grwdamp,halos
+  use modthermodynamics, only : initthermodynamics,thermodynamics
+  use modsubgrid,        only : initsubgrid,subgrid
+  use modforces,         only : calcfluidvolumes,forces,coriolis,lstend,fixuinf1,fixuinf2,fixthetainf,nudge,masscorr
+  use modpois,           only : initpois,poisson
+  use modibm,            only : initibm,createmasks,ibmwallfun,ibmnorm,bottom
   use initfac,           only : readfacetfiles
   use modEB,             only : initEB,EB
+  use moddriver,         only : initdriver
 
 !----------------------------------------------------------------
 !     0.1     USE STATEMENTS FOR ADDONS STATISTICAL ROUTINES
 !----------------------------------------------------------------
-  use modchecksim,     only : initchecksim, checksim
+  use modchecksim,     only : initchecksim,checksim
   use modstat_nc,      only : initstat_nc
-  use modfielddump,    only : initfielddump, fielddump,exitfielddump
+  use modfielddump,    only : initfielddump,fielddump,exitfielddump
   use modstatsdump,    only : initstatsdump,statsdump,exitstatsdump    !tg3315
-  use modtimedep,      only : inittimedep, timedep
+  use modtimedep,      only : inittimedep,timedep
   implicit none
 
 !----------------------------------------------------------------
 !     1      READ NAMELISTS,INITIALISE GRID, CONSTANTS AND FIELDS
 !----------------------------------------------------------------
   call initmpi
-  call startup
-  !write(*,*) "done startup"
-  !call inittest
-  !write(*,*) myid, "done initibm"
+
+  !call startup
+  call readnamelists
+
+  call init2decomp
+
+  call checkinitvalues
+
+  call initglobal
+
+  call initfields
+
+  call initboundary
+
+  call initthermodynamics
+
+  call initsubgrid
+
+  ! call initinlet
+
+  call initdriver
+
+  call initpois
+
+  call readfacetfiles
+  ! These should be combined once file format is sorted
+  call initibm
+
+  call createmasks
+
+  call calcfluidvolumes
+
+  call readinitfiles
+
+  call createscals
+
 !---------------------------------------------------------
 !      2     INITIALIZE STATISTICAL ROUTINES AND ADD-ONS
 !---------------------------------------------------------
   call initchecksim ! Could be deprecated
+
   call initstat_nc ! Could be deprecated
 
-  !write(*,*) myid, "done initfielddump"
+  call initstatsdump
 
-  call initstatsdump !tg3315
-  !write(*,*) myid, "done initstatsdump"
-
-  call readfacetfiles
   call initEB
+
   call inittimedep
-  call initibm
+
   call initfielddump
+
   call boundary
 
   !call fielddump
+
 !------------------------------------------------------
 !   3.0   MAIN TIME LOOP
 !------------------------------------------------------
@@ -158,7 +191,7 @@ program DALESURBAN      !Version 48
 !   3.7  WRITE RESTARTFILES AND DO STATISTICS
 !------------------------------------------------------
 
-    !call writerestartfiles
+    call writerestartfiles
 
   end do
 !-------------------------------------------------------
