@@ -122,7 +122,8 @@ contains
                                  BCxs_periodic, BCxs_profile, BCxs_driver, &
                                  BCym_periodic, BCym_profile, BCyT_periodic, BCyT_profile, &
                                  BCyq_periodic, BCyq_profile, BCys_periodic, &
-                                 ibrank, ierank, jbrank, jerank, e12min, idriver
+                                 ibrank, ierank, jbrank, jerank, e12min, idriver, &
+                                 Uinf, Vinf
       use modfields,      only : u0, v0, w0, um, vm, wm, thl0, thlm, qt0, qtm, e120, e12m, sv0, svm, u0av, v0av, uout, uouttot, vouttot
       use modsubgriddata, only : ekh, ekm, loneeqn
       use modsurfdata,    only : thl_top, qt_top, sv_top, wttop, wqtop, wsvtop
@@ -178,11 +179,11 @@ contains
           e12m(:, :, ke + 1) = e12min
         end if
      case(BCtopm_noslip)
-        !no-slip = zero velocity at wall
-        call valuetop(um, 0.0)
-        call valuetop(u0, 0.0)
-        call valuetop(vm, 0.0)
-        call valuetop(v0, 0.0)
+        !no-slip = fixed velocity at wall
+        call valuetop(um, Uinf)
+        call valuetop(u0, Uinf)
+        call valuetop(vm, Vinf)
+        call valuetop(v0, Vinf)
         w0(:, :, ke + 1) = 0.0
         wm(:, :, ke + 1) = 0.0
       case(BCtopm_pressure)
