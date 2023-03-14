@@ -19,11 +19,12 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
    !wfuno
    !calculating wall function for momentum and scalars following Cai2012&Uno1995, extension of Louis 1979 method to rough walls
    !fluxes in m2/s2 and Km/s
-   USE modglobal, ONLY : dzf,dzfi,dzh2i,dzhi,dzhiq,dy,dyi,dy2i,dyi5,dxf,dxh,dxfi,dxhi,dxh2i,ib,ie,jb,je,kb,ke,fkar,grav,jmax,rk3step,kmax,jge,jgb
+   USE modglobal, ONLY : dzf,dzfi,dzh2i,dzhi,dzhiq,dy,dyi,dy2i,dyi5,dxf,dxh,dxfi,dxhi,dxh2i,ib,ie,jb,je,kb,ke,fkar,grav,jmax,rk3step,kmax,jge,jgb,dxfi5,dzfi5
    USE modsubgriddata, ONLY:ekh, ekm
    USE modmpi, ONLY:myid
    USE initfac, ONLY:block
    USE modibmdata
+   use modfields, only : u0, v0, w0
    REAL, EXTERNAL :: unom
    INTEGER i, j, k, jl, ju, kl, ku, il, iu, km, im, jm, ip, jp, kp
    REAL :: Ribl0 = 0. !initial guess of Ribl based on Ts
@@ -101,8 +102,10 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
             obcTfluxA = obcTfluxA + bcTflux
             iocth(i,j,k) = cth
             iotflux(i, j, k) = iotflux(i, j, k) + bcTflux*dxfi(i)
-            iot(i,j,k)=iot(i,j,k)-0.5*(ekh(ip,j,k)*dxf(i)+ekh(i,j,k)*dxf(ip))*(Tcell(ip,j,k)-Tcell(i,j,k))*dxh2i(ip)*dxfi(i)-bcTflux*dxfi(i) !
-
+            iot(i,j,k) = iot(i,j,k) - bcTflux*dxfi(i) &
+                       - 0.5*(ekh(ip,j,k)*dxf(i)+ekh(i,j,k)*dxf(ip))*(Tcell(ip,j,k)-Tcell(i,j,k))*dxh2i(ip)*dxfi(i) & !
+                       + (u0(ip, j, k)*(Tcell(ip, j, k)*dxf(i) + Tcell(i, j, k)*dxf(ip))*dxhi(ip))*dxfi5(i) &
+                       - (u0(ip, j, k)*(Tcell(i , j, k)*dxf(i) + Tcell(i, j, k)*dxf(ip))*dxhi(ip))*dxfi5(i)
          END DO
       END DO
 
@@ -134,8 +137,10 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
             obcTfluxA = obcTfluxA + bcTflux
             iotflux(i, j, k) = iotflux(i, j, k) + bcTflux*dxfi(i)
             iocth(i,j,k) = cth
-            iot(i,j,k) = iot(i,j,k) +0.5*(ekh(i,j,k)*dxf(im)+ekh(im,j,k)*dxf(i))*(Tcell(i,j,k)-Tcell(im,j,k))*dxh2i(i) * dxfi(i) - bcTflux*dxfi(i)
-
+            iot(i,j,k) = iot(i,j,k) - bcTflux*dxfi(i) &
+                       + 0.5*(ekh(i,j,k)*dxf(im)+ekh(im,j,k)*dxf(i))*(Tcell(i,j,k)-Tcell(im,j,k))*dxh2i(i) * dxfi(i) &
+                       + (- u0(i, j, k)*(Tcell(im, j, k)*dxf(i) + Tcell(i, j, k)*dxf(im))*dxhi(i))*dxfi5(i) &
+                       - (- u0(i, j, k)*(Tcell(i , j, k)*dxf(i) + Tcell(i, j, k)*dxf(im))*dxhi(i))*dxfi5(i)
          END DO
       END DO
 !!! case 32 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -170,6 +175,8 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
 
             iot(i, j, k) = iot(i, j, k) + ( &
                            0.5*(ekh(i, j, k) + ekh(i, jm, k))*(Tcell(i, j, k) - Tcell(i, jm, k)))*dy2i &
+                         + (- v0(i, j, k)*(Tcell(i, jm, k) + Tcell(i, j, k)))*dyi5 &
+                         - (- v0(i, j, k)*(Tcell(i, j , k) + Tcell(i, j, k)))*dyi5 &
                            -bcTflux*dyi
          END DO
       END DO
@@ -205,6 +212,8 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
 
             iot(i, j, k) = iot(i, j, k) - &
                            0.5*(ekh(i, jp, k) + ekh(i, j, k))*(Tcell(i, jp, k) - Tcell(i, j, k))*dy2i &
+                         + v0(i, jp, k)*(Tcell(i, jp, k) + Tcell(i, j, k))*dyi5 &
+                         - v0(i, jp, k)*(Tcell(i, j , k) + Tcell(i, j, k))*dyi5 &
                            -bcTflux*dyi
          END DO
       END DO
@@ -240,10 +249,10 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
             obcTfluxA = obcTfluxA + bcTflux
             iotflux(i, j, k) = iotflux(i, j, k) + bcTflux*dzfi(k)
             iocth(i,j,k) = cth
-            iot(i, j, k) = iot(i, j, k) &
+            iot(i, j, k) = iot(i, j, k) - bcTflux*dzfi(k) &
                            + 0.5*(dzf(km)*ekh(i, j, k) + dzf(k)*ekh(i, j, km))*(Tcell(i, j, k) - Tcell(i, j, km))*dzh2i(k)*dzfi(k) &
-                           - bcTflux*dzfi(k)
-
+                           + (- w0(i, j, k)*(Tcell(i, j, km)*dzf(k) + Tcell(i, j, k)*dzf(km))*dzhi(k))*dzfi5(k) &
+                           - (- w0(i, j, k)*(Tcell(i, j, k )*dzf(k) + Tcell(i, j, k)*dzf(km))*dzhi(k))*dzfi5(k)
          END DO
       END DO
 end if
