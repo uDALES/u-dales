@@ -215,7 +215,7 @@ module modibm
 
 
    subroutine initibmwallfun(fname_bnd, fname_sec, dir, bound_info)
-     use modglobal, only : ifinput, ib, itot, ih, jb, jtot, jh, kb, ktot, kh, &
+     use modglobal, only : ifinput, ib, ie, itot, ih, jb, je, jtot, jh, kb, ktot, kh, &
                            xf, yf, zf, xh, yh, zh, dx, dy, dzh, dzf, xhat, yhat, zhat
      use modmpi,    only : myid, comm3d, MPI_INTEGER, MY_REAL, MPI_LOGICAL, mpierr
      use initfac,   only : facnorm
@@ -271,6 +271,13 @@ module modibm
      m = 0
      do n = 1, bound_info%nbndpts
        if (lbndptsrank(n)) then
+          i = bound_info%bndpts(n,1) - zstart(1) + 1
+          j = bound_info%bndpts(n,2) - zstart(2) + 1
+          k = bound_info%bndpts(n,3) - zstart(3) + 1
+          if ((i < ib) .or. (i > ie) .or. (j < jb) .or. (j > je)) then
+            write(*,*) "problem in initibmwallfun", i, j
+            stop 1
+          end if
           m = m + 1
           bound_info%bndptsrank(m) = n
        end if
@@ -314,19 +321,20 @@ module modibm
        open (ifinput, file=fname_sec)
        read (ifinput, '(a80)') chmess
        do n = 1, bound_info%nfctsecs
-         read (ifinput, *) bound_info%secfacids(n), bound_info%secareas(n), bound_info%secbndptids(n), &
-                           bound_info%intpts(n,1),  bound_info%intpts(n,2), bound_info%intpts(n,3)
+         read (ifinput, *) bound_info%secfacids(n), bound_info%secareas(n), bound_info%secbndptids(n), bound_info%bnddst(n)
+                           !bound_info%intpts(n,1),  bound_info%intpts(n,2), bound_info%intpts(n,3)
        end do
        close (ifinput)
 
        ! Calculate vector
        do n = 1,bound_info%nfctsecs
          m = bound_info%secbndptids(n)
-         bound_info%bndvec(n,1) = xgrid(bound_info%bndpts(m,1)) - bound_info%intpts(n,1)
-         bound_info%bndvec(n,2) = ygrid(bound_info%bndpts(m,2)) - bound_info%intpts(n,2)
-         bound_info%bndvec(n,3) = zgrid(bound_info%bndpts(m,3)) - bound_info%intpts(n,3)
-         bound_info%bnddst(n) = norm2(bound_info%bndvec(n,:))
-         bound_info%bndvec(n,:) = bound_info%bndvec(n,:) / bound_info%bnddst(n)
+         !bound_info%bndvec(n,1) = xgrid(bound_info%bndpts(m,1)) - bound_info%intpts(n,1)
+         !bound_info%bndvec(n,2) = ygrid(bound_info%bndpts(m,2)) - bound_info%intpts(n,2)
+         !bound_info%bndvec(n,3) = zgrid(bound_info%bndpts(m,3)) - bound_info%intpts(n,3)
+         !bound_info%bnddst(n) = norm2(bound_info%bndvec(n,:))
+         !write(*,*) bound_info%bnddst(n)
+         !bound_info%bndvec(n,:) = bound_info%bndvec(n,:) / bound_info%bnddst(n)
 
          norm = facnorm(bound_info%secfacids(n),:)
          norm_align = alignment(norm)
@@ -1196,7 +1204,10 @@ module modibm
        i = bound_info%bndpts(n,1) - zstart(1) + 1 ! should be on this rank!
        j = bound_info%bndpts(n,2) - zstart(2) + 1 ! should be on this rank!
        k = bound_info%bndpts(n,3) - zstart(3) + 1 ! should be on this rank!
-       if ((i < ib) .or. (i > ie) .or. (j < jb) .or. (j > je)) write(*,*) "problem", i, j
+       if ((i < ib) .or. (i > ie) .or. (j < jb) .or. (j > je)) then
+          write(*,*) "problem in wallfunheat", i, j
+          stop 1
+        end if
 
        if (bound_info%lcomprec(sec)) then ! section aligned with grid - use this cell's velocity
          uvec = interp_velocity_c(i, j, k)
@@ -1224,6 +1235,7 @@ module modibm
        call local_coords(uvec, norm, span, strm, valid)
        if (.not. valid) cycle
        utan = dot_product(uvec, strm)
+       utan = max(0.01, utan) ! uDALES 1
 
        ! Sensible heat
        if (ltempeq) then
@@ -1319,7 +1331,10 @@ module modibm
      i = cell(1) - zstart(1) + 1
      j = cell(2) - zstart(2) + 1
      k = cell(3) - zstart(3) + 1
-     if ((i < ib-1) .or. (i > ie+1) .or. (j < jb-1) .or. (j > je+1)) write(*,*) "problem"
+     if ((i < ib-1) .or. (i > ie+1) .or. (j < jb-1) .or. (j > je+1)) then
+       write(*,*) "problem in trilinear_interp_var"
+       stop 1
+     end if
      corners = eval_corners(var, i, j, k)
 
      x0 = xgrid(cell(1))
@@ -1488,7 +1503,9 @@ module modibm
      use modfields, only :  thl0
      integer, intent(in) :: i, j, k
 
-     interp_temperature_u = 0.5 * (thl0(i,j,k) + thl0(i-1,j,k))
+     !interp_temperature_u = 0.5 * (thl0(i,j,k) + thl0(i-1,j,k))
+     interp_temperature_u = 0.5 * (thl0(i  ,j,k)*mask_c(i  ,j,k)*(2.-mask_c(i-1,j,k)) &
+                                +  thl0(i-1,j,k)*mask_c(i-1,j,k)*(2.-mask_c(i  ,j,k)))
 
      return
    end function interp_temperature_u
@@ -1499,7 +1516,9 @@ module modibm
      use modfields, only :  thl0
      integer, intent(in) :: i, j, k
 
-     interp_temperature_v = 0.5 * (thl0(i,j,k) + thl0(i,j-1,k))
+     !interp_temperature_v = 0.5 * (thl0(i,j,k) + thl0(i,j-1,k))
+     interp_temperature_v = 0.5 * (thl0(i,j  ,k)*mask_c(i,j  ,k)*(2.-mask_c(i,j-1,k)) &
+                                 + thl0(i,j-1,k)*mask_c(i,j-1,k)*(2.-mask_c(i,j  ,k)))
 
      return
    end function interp_temperature_v
@@ -1510,7 +1529,9 @@ module modibm
      use modfields, only :  thl0
      integer, intent(in) :: i, j, k
 
-     interp_temperature_w = 0.5 * (thl0(i,j,k) + thl0(i,j,k-1))
+     !interp_temperature_w = 0.5 * (thl0(i,j,k) + thl0(i,j,k-1))
+     interp_temperature_w = 0.5 * (thl0(i,j,k  )*mask_c(i,j,k  )*(2.-mask_c(i,j,k-1)) &
+                                +  thl0(i,j,k-1)*mask_c(i,j,k-1)*(2.-mask_c(i,j,k  )))
 
      return
    end function interp_temperature_w
@@ -1613,48 +1634,51 @@ module modibm
       real, parameter :: b2 = 4.7
       real, parameter :: dm = 7.4
       real, parameter :: dh = 5.3
+      real :: Pr
       real :: dT, Ribl0, logdz, logdzh, logzh, sqdz, fkar2, Ribl1, Fm, Fh, cm, ch, M, dTrough
 
-
+      Pr = 1.
+      !Pr = prandtlmol
       dT = Tair - Tsurf
       Ribl0 = grav * dist * dT / (Tsurf * utan**2) !Eq. 6, guess initial Ri
 
-      logdz = LOG(dist/z0)
-      logdzh = LOG(dist/z0h)
-      logzh = LOG(z0/z0h)
-      sqdz = SQRT(dist/z0)
+      logdz = log(dist/z0)
+      logdzh = log(dist/z0h)
+      logzh = log(z0/z0h)
+      sqdz = sqrt(dist/z0)
       fkar2 = fkar**2
 
       cth = 0.
       flux = 0.
-      if (Ribl0 > 0.21) THEN !0.25 approx critical for bulk Richardson number  => stable
+      if (Ribl0 > 0.21) then !0.25 approx critical for bulk Richardson number  => stable
          Fm = 1./(1. + b2*Ribl0)**2 !Eq. 4
          Fh = Fm !Eq. 4
       else ! => unstable
          cm = (dm*fkar2)/(logdz**2)*b1*sqdz !Eq. 5
          ch = (dh*fkar2)/(logdz**2)*b1*sqdz !Eq. 5
-         Fm = 1. - (b1*Ribl0)/(1. + cm*SQRT(ABS(Ribl0))) !Eq. 3
-         Fh = 1. - (b1*Ribl0)/(1. + ch*SQRT(ABS(Ribl0))) !Eq. 3
+         Fm = 1. - (b1*Ribl0)/(1. + cm*sqrt(abs(Ribl0))) !Eq. 3
+         Fh = 1. - (b1*Ribl0)/(1. + ch*sqrt(abs(Ribl0))) !Eq. 3
       end if
 
-      M = prandtlmol*logdz*SQRT(Fm)/Fh !Eq. 14
-      Ribl1 = Ribl0 - Ribl0*prandtlmol*logzh/(prandtlmol*logzh + M) !Eq. 17
+      M = Pr*logdz*sqrt(Fm)/Fh !Eq. 14
+      Ribl1 = Ribl0 - Ribl0*Pr*logzh/(Pr*logzh + M) !Eq. 17
 
       !interate to get new Richardson number
-      if (Ribl1 > 0.21) THEN !0.25 approx critical for bulk Richardson number  => stable
+      if (Ribl1 > 0.21) then !0.25 approx critical for bulk Richardson number  => stable
          Fm = 1./(1. + b2*Ribl1)**2 !Eq. 4
          Fh = Fm !Eq. 4
       else ! => unstable
          cm = (dm*fkar2)/(logdz**2)*b1*sqdz !Eq. 5
          ch = (dh*fkar2)/(logdz**2)*b1*sqdz !Eq. 5
-         Fm = 1. - (b1*Ribl1)/(1. + cm*SQRT(ABS(Ribl1))) !Eq. 3
-         Fh = 1. - (b1*Ribl1)/(1. + ch*SQRT(ABS(Ribl1))) !Eq. 3
+         Fm = 1. - (b1*Ribl1)/(1. + cm*sqrt(abs(Ribl1))) !Eq. 3
+         Fh = 1. - (b1*Ribl1)/(1. + ch*sqrt(abs(Ribl1))) !Eq. 3
       end if
-      M = prandtlmol*logdz*SQRT(Fm)/Fh !Eq. 14
+      M = Pr*logdz*sqrt(Fm)/Fh !Eq. 14
 
-      dTrough = dT*1./(prandtlmol*logzh/M + 1.) !Eq. 13a
+      dTrough = dT!*1./(Pr*logzh/M + 1.) !Eq. 13a
 
-      cth = abs(utan)*fkar2/(logdz*logdzh)*prandtlmoli*Fh !Eq. 8
+      cth = abs(utan)*fkar2/(logdz*logdzh)*Fh/Pr !Eq. 8
+      !cth = abs(utan)*fkar2/(logdz*logdz)*Fh/Pr !Eq. 8
       flux = cth*dTrough !Eq. 2, Eq. 8
 
    end subroutine heat_transfer_coef_flux

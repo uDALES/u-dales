@@ -125,7 +125,7 @@ module modglobal
    !> top
    ! momentum
    integer, parameter :: BCtopm_freeslip = 1 ! zero flux
-   integer, parameter :: BCtopm_noslip = 2   ! zero velocity
+   integer, parameter :: BCtopm_noslip = 2   ! fixed velocity
    integer, parameter :: BCtopm_pressure = 3 ! vertical velocity can vary according to pressure gradient
    ! temperature
    integer, parameter :: BCtopT_flux = 1  ! determined by flux wttop

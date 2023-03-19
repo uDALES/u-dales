@@ -1405,12 +1405,16 @@ contains
    end subroutine fluxtop
 
    subroutine valuetop(field, val)
-      use modglobal, only:ib, ie, ih, jb, je, jh, kb, ke, kh, eps1
+      use modglobal, only:ib, ie, ih, jb, je, jh, kb, ke, kh, dzh, dzf, dzhi, dzfi
+      use modmpi, only : myid
       real, intent(inout) :: field(ib - ih:ie + ih, jb - jh:je + jh, kb - kh:ke + kh)
       real, intent(in)    :: val
-      !
+
+      ! (field(i, j, kp)*dzf(k) + field(i, j, k)*dzf(kp))*dzhi(kp)*0.5 = val
+      !field(:,:,ke+1) = (2.*val*dzh(ke+1) - field(:,:,ke)*dzf(ke+1)) * dzfi(ke)
       field(:, :, ke + 1) = 2*val - field(:, :, ke)
-      !
+      !if (myid == 0) write(*,*) (field(40, 1, ke+1)*dzf(ke) + field(40, 1, ke)*dzf(ke+1))*dzhi(ke+1)*0.5
+
    end subroutine valuetop
 
    subroutine fluxtopscal(flux)

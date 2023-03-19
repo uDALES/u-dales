@@ -138,8 +138,8 @@ module modforces
 
   subroutine detfreestream(freestream)
     use modglobal, only : ib,ie,jb,je,kb,ke,kh,dxf,xh,dt,&
-                          Uinf,lvinf,dy
-    use modfields, only : u0,dpdxl,dgdt,dpdx,v0
+                          Uinf,Vinf,lvinf,dy
+    use modfields, only : u0,dpdxl,dgdt,dpdx,v0,u0av,v0av
     use modmpi, only    : myid,comm3d,mpierr,mpi_sum,my_real,nprocs
     implicit none
     real, intent(out) :: freestream
@@ -148,28 +148,29 @@ module modforces
     integer i,j
 
     if (lvinf) then
-        vtop = 0.
-        do j =jb,je
-          do i =ib,ie
-            vtop = vtop + 0.5*(v0(i,j,ke)+u0(i,j+1,ke))*dy
-          end do
-        end do
-        vtop = vtop / ( (je-jb+1)*(xh(ie+1)-xh(ib) ) )
-        call MPI_ALLREDUCE(vtop,   dum,1,MY_REAL,MPI_SUM,comm3d,mpierr)
-        freestream = dum / nprocs
+        ! vtop = 0.
+        ! do j =jb,je
+        !   do i =ib,ie
+        !     vtop = vtop + 0.5*(v0(i,j,ke)+u0(i,j+1,ke))*dy
+        !   end do
+        ! end do
+        ! vtop = vtop / ( (je-jb+1)*(xh(ie+1)-xh(ib) ) )
+        ! call MPI_ALLREDUCE(vtop,   dum,1,MY_REAL,MPI_SUM,comm3d,mpierr)
+        ! freestream = dum / nprocs
+        freestream = v0av(ke)
     else
-        utop = 0.
-        do j =jb,je
-          do i =ib,ie
-            !dum=0.5*(u0(i,j,ke)+u0(i+1,j,ke))*dxf(i)
-            !utop = utop + dum
-            utop = utop + 0.5*(u0(i,j,ke)+u0(i+1,j,ke))*dxf(i)
-          end do
-        end do
-        utop = utop / ( (je-jb+1)*(xh(ie+1)-xh(ib) ) )
-        call MPI_ALLREDUCE(utop,   dum,1,MY_REAL,MPI_SUM,comm3d,mpierr)
-        freestream = dum / nprocs
-    !write(*,*) "myid,utop,dum,freestream",myid,utop,dum,freestream
+        ! utop = 0.
+        ! do j =jb,je
+        !   do i =ib,ie
+        !     !dum=0.5*(u0(i,j,ke)+u0(i+1,j,ke))*dxf(i)
+        !     !utop = utop + dum
+        !     utop = utop + 0.5*(u0(i,j,ke)+u0(i+1,j,ke))*dxf(i)
+        !   end do
+        ! end do
+        ! utop = utop / ( (je-jb+1)*(xh(ie+1)-xh(ib) ) )
+        ! call MPI_ALLREDUCE(utop,   dum,1,MY_REAL,MPI_SUM,comm3d,mpierr)
+        ! freestream = dum / nprocs
+        freestream = u0av(ke)
     end if
 
   end subroutine detfreestream
@@ -313,7 +314,7 @@ module modforces
       !   3002    format (13(6e20.12))
       !   close(11)
       ! endif
- 
+
     end if
 
   end subroutine fixuinf1

@@ -157,9 +157,9 @@ program DALESURBAN      !Version 48
 !------------------------------------------------------
 !   3.4   EXECUTE ADD ONS
 !------------------------------------------------------
-    !call fixuinf2
+    call fixuinf2
 
-    !call fixuinf1
+    call fixuinf1
 
 !-----------------------------------------------------------------------
 !   3.5  PRESSURE FLUCTUATIONS, TIME INTEGRATION AND BOUNDARY CONDITIONS
