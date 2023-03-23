@@ -60,8 +60,8 @@ subroutine advection
    select case (iadv_thl)
    case (iadv_cd2)
       if (ltempeq) call advecc_2nd(ih, jh, kh, thl0, thlp)
-   case (iadv_kappa)
-      call advecc_kappa(ihc, jhc, khc, thl0, thlp)
+   ! case (iadv_kappa)
+   !    call advecc_kappa(ihc, jhc, khc, thl0, thlp)
    case default
       write(0, *) "ERROR: Unknown advection scheme"
       stop 1

@@ -1934,11 +1934,11 @@ module modstartup
    subroutine createmasks
       use modglobal, only:ib, ie, ih, ihc, jb, je, jh, jhc, kb, ke, kh, khc, rslabs, jmax, nblocks,&
          ifinput, cexpnr, libm, jtot, block
-      use modfields, only:IIc, IIu, IIv, IIw, IIuw, IIvw, IIuv, IIct, IIwt, IIut, IIuwt, IIvt,&
+      use modfields, only:IIc, IIids, IIu, IIv, IIw, IIuw, IIvw, IIuv, IIct, IIwt, IIut, IIuwt, IIvt,&
          IIcs, IIus, IIuws, IIvws, IIuvs, IIvs, IIws, &
          um, u0, vm, v0, wm, w0
       use modmpi, only:myid, comm3d, mpierr, MPI_INTEGER, MPI_DOUBLE_PRECISION, MY_REAL, nprocs, &
-         cmyid, MPI_REAL8, MPI_REAL4, MPI_SUM, excjs
+         cmyid, MPI_REAL8, MPI_REAL4, MPI_SUM, excjs_int
       ! use initfac, only:block
       integer k, n, il, iu, jl, ju, kl, ku
       integer :: IIcl(kb:ke + khc), IIul(kb:ke + khc), IIvl(kb:ke + khc), IIwl(kb:ke + khc), IIuwl(kb:ke + khc), IIvwl(kb:ke + khc), IIuvl(kb:ke + khc)
@@ -2031,6 +2031,7 @@ module modstartup
                ju = je
 
                ! Masking matrices !tg3315
+               IIids(il:iu, jl:ju, kl:ku) = n
                IIc(il:iu, jl:ju, kl:ku) = 0
                IIu(il:iu + 1, jl:ju, kl:ku) = 0
                IIv(il:iu, jl:ju, kl:ku) = 0
@@ -2073,14 +2074,13 @@ module modstartup
          end if
       end do
 
-      IIw(:, :, kb) = 0; IIuw(:, :, kb) = 0; IIvw(:, :, kb) = 0
+      IIw(:, :, kb) = 0; IIuw(:, :, kb) = 0; IIvw(:, :, kb) = 0; IIc(:, :, kb) = 0;
 
-      ! for correct ghost cells from adjacent processors !tg3315 ?unsure if this is correct
-      ! tg3315 22/11/17 does not work because II is an integer and needs real numbers... !tg3315 not necessary
-      !call excjs( IIc  , ib,ie,jb,je,kb,ke+khc,ihc,jhc)
-      !call excjs( IIu  , ib,ie,jb,je,kb,ke+khc,ihc,jhc)
-      !call excjs( IIv  , ib,ie,jb,je,kb,ke+khc,ihc,jhc)
-      !call excjs( IIw  , ib,ie,jb,je,kb,ke+khc,ihc,jhc)
+      call excjs_int(IIc,ib,ie,jb,je,kb,ke+khc,ihc,jhc)
+      call excjs_int(IIids,ib,ie,jb,je,kb,ke+khc,ihc,jhc)
+      call excjs_int(IIu,ib,ie,jb,je,kb,ke+khc,ihc,jhc)
+      call excjs_int(IIv,ib,ie,jb,je,kb,ke+khc,ihc,jhc)
+      call excjs_int(IIw,ib,ie,jb,je,kb,ke+khc,ihc,jhc)
 
       do k = kb, ke + khc
          IIcl(k) = sum(IIc(ib:ie, jb:je, k))

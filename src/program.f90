@@ -73,7 +73,7 @@ program DALESURBAN      !Version 48
 !  (because advection at start of time loop without being divergence free)
 !  call poisson
 
-  call fielddump
+  !call fielddump
 
 !------------------------------------------------------
 !   3.0   MAIN TIME LOOP

@@ -289,6 +289,88 @@ contains
   return
   end subroutine excjs
 
+
+  subroutine excjs_int( a, sx, ex, sy, ey, sz,ez,ih,jh)
+      implicit none
+    integer sx, ex, sy, ey, sz, ez, ih, jh
+    integer a(sx-ih:ex+ih, sy-jh:ey+jh, sz:ez)
+    integer status(MPI_STATUS_SIZE), iiget
+    integer ii, i, j, k
+    real,allocatable, dimension(:) :: buffj1,buffj2,buffj3,buffj4
+    iiget = jh*(ex - sx + 1 + 2*ih)*(ez - sz + 1)
+
+    allocate( buffj1(iiget),&
+              buffj2(iiget),&
+              buffj3(iiget),&
+              buffj4(iiget))
+
+    if(nbrtop/=MPI_PROC_NULL)then
+      ii = 0
+      do j=1,jh
+      do k=sz,ez
+      do i=sx-ih,ex+ih
+        ii = ii + 1
+        buffj1(ii) = a(i,ey-j+1,k) ! tg3315 buffj1 is je-jhc ghost cells on myid
+      enddo
+      enddo
+      enddo
+    endif
+
+    call MPI_SENDRECV(  buffj1,  ii    , MY_REAL, nbrtop, 4, &
+                             buffj2,  iiget , MY_REAL, nbrbottom,  4, &
+                             comm3d, status, mpierr )
+
+    ! tg3315 sends this to nbrtop and pulls buffj2 from nbrbottom! send and receive process that is good for executing chain shifts.
+
+    if(nbrbottom/=MPI_PROC_NULL)then
+      ii = 0
+      do j=1,jh
+      do k=sz,ez
+      do i=sx-ih,ex+ih
+        ii = ii + 1
+        a(i,sy-j,k) = buffj2(ii) ! set the previous ghost cells to buffj2 (last cells of nbrbottom I think)
+      enddo
+      enddo
+      enddo
+    endif
+
+  !   call barrou()
+
+    ! repeats this process for other way round
+
+    if(nbrbottom/=MPI_PROC_NULL)then
+      ii = 0
+      do j=1,jh
+      do k=sz,ez
+      do i=sx-ih,ex+ih
+        ii = ii + 1
+        buffj3(ii) = a(i,sy+j-1,k)
+      enddo
+      enddo
+      enddo
+    endif
+    call MPI_SENDRECV(  buffj3,  ii    , MY_REAL, nbrbottom,  5, &
+                            buffj4,  iiget , MY_REAL, nbrtop, 5, &
+                            comm3d, status, mpierr )
+    if(nbrtop/=MPI_PROC_NULL)then
+      ii = 0
+      do j=1,jh
+      do k=sz,ez
+      do i=sx-ih,ex+ih
+        ii = ii + 1
+        a(i,ey+j,k) = buffj4(ii)
+      enddo
+      enddo
+      enddo
+    endif
+
+  !   call barrou()
+    deallocate (buffj1,buffj2,buffj3,buffj4)
+
+    return
+  end subroutine excjs_int
+  
+
   subroutine slabsum(aver,ks,kf,var,ib,ie,jb,je,kb,ke,ibs,ies,jbs,jes,kbs,kes)
     implicit none
 
@@ -407,7 +489,7 @@ contains
   elsewhere
     aver = aver/IIt
   endwhere
- 
+
   end subroutine avey_ibm
 
   subroutine sumy_ibm(sumy,var,ib,ie,jb,je,kb,ke,II)

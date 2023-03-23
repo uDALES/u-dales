@@ -76,6 +76,7 @@ module modfields
 
   !tg3315 added variables (statistics, masking and others)
   integer, allocatable :: IIc(:,:,:)        !< Masking matrix for blocks at cell centres
+  integer, allocatable :: IIids(:,:,:)      !< Masking matrix containing block ids for cell centres
   integer, allocatable :: IIu(:,:,:)        !< Masking matrix for blocks at x-direction half cells
   integer, allocatable :: IIv(:,:,:)        !< Masking matrix for blocks at y-direction half cells
   integer, allocatable :: IIw(:,:,:)        !< Masking matrix for blocks at z-direction half cells
@@ -502,6 +503,7 @@ contains
     allocate(viscratioav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
 
     allocate(IIc(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
+    allocate(IIids(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
     allocate(IIu(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
     allocate(IIv(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
     allocate(IIw(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
@@ -771,7 +773,7 @@ contains
 
     scar=0.;scarl=0.
 
-    IIc=1;IIu=1;IIv=1;IIct=1;IIw=1;IIuw=1;IIvw=1;IIuwt=1;IIut=1;IIvt=1;IIwt=1;IIcs=1;IIus=1;IIvs=1;IIws=1;IIuws=1;IIvws=1;IIuw=1;IIuvs=1
+    IIc=1;IIids=1;IIu=1;IIv=1;IIct=1;IIw=1;IIuw=1;IIvw=1;IIuwt=1;IIut=1;IIvt=1;IIwt=1;IIcs=1;IIus=1;IIvs=1;IIws=1;IIuws=1;IIvws=1;IIuw=1;IIuvs=1
 
     uav=0.;vav=0.;wav=0.;thlav=0.;qtav=0.;svav=0.;viscratioav=0.;uuav=0.;vvav=0.
     wwav=0.;uvav=0.;uwav=0.;vwav=0.;sv2av=0.;thl2av=0.;ql2av=0.;qt2av=0.;presav=0.

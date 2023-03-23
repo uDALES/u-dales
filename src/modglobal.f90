@@ -76,7 +76,7 @@ module modglobal
    integer :: BCxT = 1
    integer :: BCxq = 1
    integer :: BCxs = 1
-   
+
    !y direction is currently alway periodic
    integer :: BCym = 1
    integer :: BCyT = 1
@@ -105,7 +105,7 @@ module modglobal
    logical :: lbuoyancy = .false. !<  switch for buoyancy force in modforces
    logical :: ltempeq = .false. !<  switch for solving temperature equation (either with or without buoyancy term)
    logical :: lscalrec = .false. !<
-   logical :: lSIRANEinout=.false. !<  
+   logical :: lSIRANEinout=.false. !<
    logical :: ltempinout = .false. !<  seperate switch for inflow/outflow BC for temperature (only necessary when linoutflow.eqv..false.).
    logical :: lmoistinout = .false. !<  seperate switch for inflow/outflow BC for moisture (only necessary when linoutflow.eqv..false.).
    logical :: lper2inout = .false. !<  switch that determines type of restart: .true. means switching from periodic to in/outflow: inlet profile is read from prof.inp
@@ -204,7 +204,7 @@ module modglobal
 
    logical :: lprofforc = .false. !<  nudge flow to a profile !
    logical :: lcoriol = .false. !<  switch for coriolis force
-   integer :: igrw_damp = 2 !< switch to enable gravity wave damping
+   integer :: igrw_damp = 0 !< switch to enable gravity wave damping
    real    :: geodamptime = 7200. !< time scale for nudging to geowind in sponge layer, prevents oscillations
    real    :: uflowrate = 1. !< fixed flow rate used for u-velocity correction
    real    :: vflowrate = 1. !< fixed flow rate used for v-velocity correction
@@ -284,7 +284,7 @@ module modglobal
    real    :: timeleft
    logical :: ladaptive = .false. !<    * adaptive timestepping on or off
 
-   real    :: tdriverstart = 0.   !<     * time at which to start recording inlet driver file (only necessary if idriver == 1)                                                                            
+   real    :: tdriverstart = 0.   !<     * time at which to start recording inlet driver file (only necessary if idriver == 1)
    real    :: tdriverdump         !<     * time in inlet driver simulation at which data dumps are made (idriver == 1)
    real    :: dtdriver = 0.1      !<     * time frequency at which inlet driver data dumps are made (idriver == 1)
    integer :: driverstore         !<     * number of stored driver steps for inlet (automatically calculated)
@@ -312,7 +312,7 @@ module modglobal
    real :: dyiq !<  1/(dy*4)
    real :: dyi5 !<  1/(dy*2)
    real :: dy2i !<  (1/dy)**2
-   
+
    integer :: nwalllayers = 3
    real, allocatable   :: AM(:,:), BM(:,:), CM(:,:), DM(:,:), EM(:,:), FM(:,:), GM(:,:), HM(:,:), inAM(:,:),IDM(:,:) !matrices for the facet energy balance
    real, allocatable   :: bb(:),w(:),dumv(:),Tdash(:) !vector for the facet energy balance
@@ -561,7 +561,7 @@ contains
       !--------------------------------------------------
       ! *** Check whether the grid is equidistant *****
       !--------------------------------------------------
-      
+
       !if (myid == 0) then
       !do k=kb,ke+kh
       !if (.not.(dzf(k).eq.dzf(1)))
