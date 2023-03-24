@@ -745,8 +745,8 @@ contains
            u0(ib-1,j,k)= u0driver(j,k) !max(0.,2.*u0(ib,j,k)-u0(ib+1,j,k))
            um(ib-1,j,k)= umdriver(j,k)  !max(0.,2.*um(ib,j,k)-um(ib+1,j,k))
 
-           v0(ib,j,k)   = v0driver(j,k) !max(0.,v0driver(j,k))
-           vm(ib,j,k)   = vmdriver(j,k) !max(0.,vmdriver(j,k))
+           !v0(ib,j,k)   = v0driver(j,k) !max(0.,v0driver(j,k))
+           !vm(ib,j,k)   = vmdriver(j,k) !max(0.,vmdriver(j,k))
            v0(ib-1,j,k)   = v0driver(j,k) !max(0.,v0driver(j,k))
            vm(ib-1,j,k)   = vmdriver(j,k) !max(0.,vmdriver(j,k))
 
@@ -761,16 +761,16 @@ contains
                  !sv0(ib-m,j,k,n) = 2*svprof(k,n) - sv0(ib+(m-1),j,k,n)
                  !svm(ib-m,j,k,n) = 2*svprof(k,n) - svm(ib+(m-1),j,k,n)
               enddo
-              sv0(ib,j,k,n) = sv0driver(j,k,n)
-              svm(ib,j,k,n) = svmdriver(j,k,n)
+              !sv0(ib,j,k,n) = sv0driver(j,k,n)
+              !svm(ib,j,k,n) = svmdriver(j,k,n)
            enddo
            end if
          end do
          do k=kb,ke+1
            w0(ib-1,j,k)   = w0driver(j,k) !max(0.,w0driver(j,k))
            wm(ib-1,j,k)   = wmdriver(j,k) !max(0.,wmdriver(j,k))
-           w0(ib,j,k)   = w0driver(j,k) !max(0.,w0driver(j,k))
-           wm(ib,j,k)   = wmdriver(j,k) !max(0.,wmdriver(j,k))
+           !w0(ib,j,k)   = w0driver(j,k) !max(0.,w0driver(j,k))
+           !wm(ib,j,k)   = wmdriver(j,k) !max(0.,wmdriver(j,k))
          end do
        end do
 
@@ -778,8 +778,8 @@ contains
        if (ltempeq ) then
           do j=jb-1,je+1
              do k=kb,ke+1
-                thl0(ib,j,k) = thl0driver(j,k)
-                thlm(ib,j,k) = thlmdriver(j,k)
+                !thl0(ib,j,k) = thl0driver(j,k)
+                !thlm(ib,j,k) = thlmdriver(j,k)
                 thl0(ib-1,j,k) = thl0driver(j,k)
                 thlm(ib-1,j,k) = thlmdriver(j,k)
                 !thlm(ib-1,j,k) = 2*thlm(ib,j,k) - thlm(ib+1,j,k)
@@ -791,9 +791,9 @@ contains
        if (lmoist ) then
           do j=jb-1,je+1
              do k=kb,ke+1
-                qt0(ib,j,k) = qt0driver(j,k)
+                !qt0(ib,j,k) = qt0driver(j,k)
                 ! qt0(ib-1,j,k) = 2*qtprof(k) - qt0(ib,j,k)
-                qtm(ib,j,k) = qtmdriver(j,k)
+                !qtm(ib,j,k) = qtmdriver(j,k)
                 ! qtm(ib-1,j,k) = 2*qtprof(k) - qtm(ib,j,k)
                 qt0(ib-1,j,k) = qt0driver(j,k)
                 ! qt0(ib-1,j,k) = 2*qtprof(k) - qt0(ib,j,k)  !watch!
@@ -869,28 +869,28 @@ contains
 
       ! Outlet
       ! Momentum
-      v0(ie + 1, :, :) = v0(ie, :, :) - (v0(ie + 1, :, :) - v0(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
-      w0(ie + 1, :, :) = w0(ie, :, :) - (w0(ie + 1, :, :) - w0(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
-      vm(ie + 1, :, :) = vm(ie, :, :) - (vm(ie + 1, :, :) - vm(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
-      wm(ie + 1, :, :) = wm(ie, :, :) - (wm(ie + 1, :, :) - wm(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
-      e120(ie + 1, :, :) = e120(ie, :, :) - (e120(ie + 1, :, :) - e120(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
-      e12m(ie + 1, :, :) = e12m(ie, :, :) - (e12m(ie + 1, :, :) - e12m(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
+      v0(ie + 1, :, :) = v0(ie + 1, :, :) - (v0(ie + 1, :, :) - v0(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
+      w0(ie + 1, :, :) = w0(ie + 1, :, :) - (w0(ie + 1, :, :) - w0(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
+      vm(ie + 1, :, :) = vm(ie + 1, :, :) - (vm(ie + 1, :, :) - vm(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
+      wm(ie + 1, :, :) = wm(ie + 1, :, :) - (wm(ie + 1, :, :) - wm(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
+      e120(ie + 1, :, :) = e120(ie + 1, :, :) - (e120(ie + 1, :, :) - e120(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
+      e12m(ie + 1, :, :) = e12m(ie + 1, :, :) - (e12m(ie + 1, :, :) - e12m(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
 
       ! Heat
       if (ltempeq) then
-         thl0(ie + 1, :, :) = thl0(ie, :, :) - (thl0(ie + 1, :, :) - thl0(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
-         thlm(ie + 1, :, :) = thlm(ie, :, :) - (thlm(ie + 1, :, :) - thlm(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
+         thl0(ie + 1, :, :) = thl0(ie + 1, :, :) - (thl0(ie + 1, :, :) - thl0(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
+         thlm(ie + 1, :, :) = thlm(ie + 1, :, :) - (thlm(ie + 1, :, :) - thlm(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
       end if
 
       if (lmoist) then
-         qt0(ie + 1, :, :) = qt0(ie, :, :) - (qt0(ie + 1, :, :) - qt0(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
-         qtm(ie + 1, :, :) = qtm(ie, :, :) - (qtm(ie + 1, :, :) - qtm(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
+         qt0(ie + 1, :, :) = qt0(ie + 1, :, :) - (qt0(ie + 1, :, :) - qt0(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
+         qtm(ie + 1, :, :) = qtm(ie + 1, :, :) - (qtm(ie + 1, :, :) - qtm(ie, :, :))*dxhi(ie + 1)*rk3coef*uouttot
       end if
 
       ! tg3315 !changed dxhi to dxhci!?
       do n = 1, nsv
-         sv0(ie + 1, :, :, n) = sv0(ie, :, :, n) - (sv0(ie + 1, :, :, n) - sv0(ie, :, :, n))*dxhci(ie + 1)*rk3coef*uouttot
-         svm(ie + 1, :, :, n) = svm(ie, :, :, n) - (svm(ie + 1, :, :, n) - svm(ie, :, :, n))*dxhci(ie + 1)*rk3coef*uouttot
+         sv0(ie + 1, :, :, n) = sv0(ie + 1, :, :, n) - (sv0(ie + 1, :, :, n) - sv0(ie, :, :, n))*dxhci(ie + 1)*rk3coef*uouttot
+         svm(ie + 1, :, :, n) = svm(ie + 1, :, :, n) - (svm(ie + 1, :, :, n) - svm(ie, :, :, n))*dxhci(ie + 1)*rk3coef*uouttot
       end do
 
       return

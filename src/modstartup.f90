@@ -80,7 +80,7 @@ module modstartup
       use modmpi, only:comm3d, myid, mpi_integer, mpi_logical, my_real, mpierr, mpi_character
       use modinlet, only:initinlet
       use modinletdata, only:di, dr, di_test, dti, iangledeg, iangle
-      use modibmdata, only:bctfxm, bctfxp, bctfym, bctfyp, bctfz
+      use modibmdata, only:bctfxm, bctfxp, bctfym, bctfyp, bctfz, bcqfxm, bcqfxp, bcqfym, bcqfyp, bcqfz
       use modforces, only: calcfluidvolumes
       use moddriver, only: initdriver
 
@@ -115,6 +115,7 @@ module modstartup
          BCtopm, BCtopT, BCtopq, BCtops, &
          BCbotm, BCbotT, BCbotq, BCbots, &
          bctfxm, bctfxp, bctfym, bctfyp, bctfz, &
+         bcqfxm, bcqfxp, bcqfym, bcqfyp, bcqfz, &
          wttop, thl_top, qt_top, qts, wsvsurfdum, wsvtopdum, &
          wtsurf, wqsurf, thls, z0, z0h
       namelist/INLET/ &
@@ -1154,6 +1155,15 @@ module modstartup
               if (myid==0) then
                  write(6,*) 'Modstartup: ubulk=',ubulk
               end if
+
+                do k = kb, ke
+                do j = jb-1, je+1
+                do i = ib-1, ie+1
+                 u0(i, j, k) = storeu0driver(j, k, 1) ! not necessarily 1?
+                 um(i, j, k) = storeu0driver(j, k, 1)
+                end do
+                end do
+                end do
 
             elseif (idriver==1) then
 
