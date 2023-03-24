@@ -69,9 +69,9 @@ module modfields
 
   real, allocatable :: shear(:,:,:,:)   !<   wall shear (last rank indicates the type of shear componenten (uym, uyp, etc.)
 
-   real, allocatable :: momfluxb(:,:,:) !< fields for the wallfluxes of total momentum
-   real, allocatable :: tfluxb(:,:,:)  !< heat
-   real, allocatable :: qfluxb(:,:,:)  !< and moisture
+   real, allocatable, target :: momfluxb(:,:,:) !< fields for the wallfluxes of total momentum
+   real, allocatable, target :: tfluxb(:,:,:)  !< heat
+   real, allocatable, target :: qfluxb(:,:,:)  !< and moisture
    real, allocatable :: cth(:,:,:)     !< heat transfer coefficient
 
   !tg3315 added variables (statistics, masking and others)

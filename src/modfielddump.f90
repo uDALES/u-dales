@@ -55,7 +55,7 @@ contains
     use modmpi,   only   :myid,my_real,mpierr,comm3d,mpi_logical,mpi_integer,cmyid, mpi_character
     use modglobal,only   :imax,jmax,kmax,cexpnr,ifnamopt,fname_options,dtmax,kb,ke, ladaptive,dt_lim,btime,nsv,fieldvars,ib,ie,jb,je,kb,ke, lfielddump
     use modstat_nc,only  : open_nc, define_nc,ncinfo,writestat_dims_nc
-    use modfields, only  : u0,v0,w0,thl0,sv0,ql0,qt0,pres0,div,divf,tau_x,tau_y,tau_z,thl_flux
+    use modfields, only  : u0,v0,w0,thl0,sv0,ql0,qt0,pres0,div,divf,tau_x,tau_y,tau_z,thl_flux,momfluxb,tfluxb,qfluxb
     use modpois, only : p,rhs
     implicit none
     integer :: ierr
@@ -141,9 +141,15 @@ contains
       case('tz')
         call ncinfo(ncname( n,:),'tau_z','stress z','M','ttmt')
         pfields(n)%point => tau_z(ib:ie,jb:je,kb:ke)
+     case('mf')
+        call ncinfo(ncname( n,:),'mom_flux','stress z','M','tttt')
+        pfields(n)%point => momfluxb(ib:ie,jb:je,kb:ke)
       case('hf')
         call ncinfo(ncname( n,:),'thl_flux','stress z','M','tttt')
-        pfields(n)%point => thl_flux(ib:ie,jb:je,kb:ke)
+        pfields(n)%point => tfluxb(ib:ie,jb:je,kb:ke)
+      case('qf')
+        call ncinfo(ncname( n,:),'qt_flux','stress z','M','tttt')
+        pfields(n)%point => qfluxb(ib:ie,jb:je,kb:ke)
         ! case('pd')
         ! call ncinfo(ncname( n,:),'p','pressure correction','M','tttt')
         ! pfields(n)%point => p(ib:ie,jb:je,kb:ke)
