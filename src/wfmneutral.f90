@@ -26,6 +26,7 @@ SUBROUTINE wfmneutral(hi,hj,hk,iout1,iout2,iomomflux,utang1,utang2,z0,n,ind,wfor
    USE modmpi, ONLY:myid
    USE initfac, ONLY:block
    USE modibmdata
+   USE modfields, only : IIc
    INTEGER i, j, k, jl, ju, kl, ku, il, iu, km, im, jm, ip, jp, kp
 
    REAL :: bcmomflux = 0. !temp storage for momentum flux
@@ -50,7 +51,7 @@ SUBROUTINE wfmneutral(hi,hj,hk,iout1,iout2,iomomflux,utang1,utang2,z0,n,ind,wfor
    INTEGER, INTENT(in) :: n ! number of the block, used to get i,j,k-indeces
    INTEGER, INTENT(in) :: ind ! in case of y-wall (case 3x & 4x) "ind" is used for j-index, otherwise this is irrelevant
    INTEGER, INTENT(in) :: wforient !orientation of the facet see below:
-   !frist digit, orientation of wall, determines iteration indices 
+   !frist digit, orientation of wall, determines iteration indices
    !second digit, if for momentum or for scalar (necessary because of staggered grid -> which variable to interpolate)
    !xlow=1,xup=2,yup=3,ylow=4,z=5
    !momentum=1
@@ -68,21 +69,17 @@ SUBROUTINE wfmneutral(hi,hj,hk,iout1,iout2,iomomflux,utang1,utang2,z0,n,ind,wfor
 
       delta = dxf(i)*0.5
       logdz2 = LOG(delta/z0)**2
-            
+
       !v west
       DO k = kl, ku
          DO j = jl, ju
-
             utang1Int = utang1(i, j, k)
-
             ctm = fkar2/(logdz2)
             dummy = (utang1Int**2)*ctm
             bcmomflux = SIGN(dummy, utang1Int)
             iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dxfi(i)
-
             epmo = 0.25*((ekm(i, j, k) + ekm(i, j - 1, k))*dxf(ip) + &
                          (ekm(ip, j, k) + ekm(ip, j - 1, k))*dxf(i))*dxhi(ip)
-
             iout1(i, j, k) = iout1(i, j, k) - (utang1(ip, j, k) - utang1(i, j, k))*epmo*dxhi(ip)*dxfi(i) - bcmomflux*dxfi(i) !
 
          END DO
@@ -95,47 +92,36 @@ SUBROUTINE wfmneutral(hi,hj,hk,iout1,iout2,iomomflux,utang1,utang2,z0,n,ind,wfor
          dummy = (utang1Int**2)*fkar2/(logdz2)
          bcmomflux = SIGN(dummy, utang1Int)
          iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dxfi(i)*0.5 !only half since on edge of block (another half might come from another processor?)
-
          !   epmo = 0.5 * (ekm(ip,j,k)*dxf(i) + ekm(i,j,k)*dxf(ip)) * dxhi(ip)
          epmo = 0.25*((ekm(i, j, k) + ekm(i, j - 1, k))*dxf(ip) + &
                       (ekm(ip, j, k) + ekm(ip, j - 1, k))*dxf(i))*dxhi(ip)
-
-         iout1(i, j, k) = iout1(i, j, k) - ((utang1(ip, j, k) - utang1(i, j, k))*epmo*dxhi(ip)*dxfi(i) - bcmomflux*dxfi(i))*0.5 ! remove standard diffusion apply only half of wall-flux since it's an edge
-         !only half of the flux, since only half of the control-volume around v is touching this facet (other half is either in free air or touching another facet)
+         iout1(i, j, k) = iout1(i, j, k) - (utang1(ip, j, k) - utang1(i, j, k))*epmo*dxhi(ip)*dxfi(i) - bcmomflux*dxfi(i)*0.5 ! remove standard diffusion apply only half of wall-flux since it's an edge
       END DO
 
       !v west edge north
       j = MIN(block(n, 4) - myid*jmax, jmax) + 1
       DO k = kl, ku
-
          utang1Int = utang1(i, j, k)
          dummy = (utang1Int**2)*fkar2/(logdz2)
          bcmomflux = SIGN(dummy, utang1Int)
          iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dxfi(i)*0.5
-
          epmo = 0.25*((ekm(i, j, k) + ekm(i, j - 1, k))*dxf(ip) + &
                       (ekm(ip, j, k) + ekm(ip, j - 1, k))*dxf(i))*dxhi(ip)
-
-         iout1(i, j, k) = iout1(i, j, k) - ((utang1(ip, j, k) - utang1(i, j, k))*epmo*dxhi(ip)*dxfi(i) - bcmomflux*dxfi(i))*0.5 ! %remove standard diffusion apply only half of wall-flux since it's an edge
-
+         iout1(i, j, k) = iout1(i, j, k) - (utang1(ip, j, k) - utang1(i, j, k))*epmo*dxhi(ip)*dxfi(i) - bcmomflux*dxfi(i)*0.5 ! %remove standard diffusion apply only half of wall-flux since it's an edge
       END DO
 
       !w west
-
       jl = MAX(block(n, 3) - myid*jmax, 1) !
       kl = block(n, 5) + 1 !
       DO k = kl, ku
          DO j = jl, ju
-
             utang2Int = utang2(i, j, k)
             ctm = fkar2/(logdz2)
             dummy = (utang2Int**2)*ctm
             bcmomflux = SIGN(dummy, utang2Int)
             iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dxfi(i)
-
             epom = (dzf(k - 1)*(ekm(i, j, k)*dxf(ip) + ekm(ip, j, k)*dxf(i))*dxhi(ip) + &
                     dzf(k)*(ekm(i, j, k - 1)*dxf(ip) + ekm(ip, j, k - 1)*dxf(i))*dxhi(ip))*dzhiq(k)
-
             iout2(i, j, k) = iout2(i, j, k) - (utang2(ip, j, k) - utang2(i, j, k))*epom*dxhi(ip)*dxfi(i) - bcmomflux*dxfi(i) !
          END DO
       END DO
@@ -148,34 +134,27 @@ SUBROUTINE wfmneutral(hi,hj,hk,iout1,iout2,iomomflux,utang1,utang2,z0,n,ind,wfor
          dummy = (utang2Int**2)*fkar2/(logdz2)
          bcmomflux = SIGN(dummy, utang2Int)
          iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dxfi(i)*0.5
-
          epom = (dzf(km)*(ekm(i, j, k)*dxf(ip) + ekm(ip, j, k)*dxf(i))*dxhi(ip) + &
                  dzf(k)*(ekm(i, j, km)*dxf(ip) + ekm(ip, j, km)*dxf(i))*dxhi(ip))*dzhiq(k)
-
-         iout2(i, j, k) = iout2(i, j, k) - ((utang2(ip, j, k) - utang2(i, j, k))*epom*dxhi(ip)*dxfi(i) - bcmomflux*dxfi(i))*0.5 !
+         iout2(i, j, k) = iout2(i, j, k) - (utang2(ip, j, k) - utang2(i, j, k))*epom*dxhi(ip)*dxfi(i) - bcmomflux*dxfi(i)*0.5 !
       END DO
 
       !w west bottom edge
       k = block(n, 5)  ! ending k-index
-      if (k.gt.0) then
+      !if (k.gt.0) then
+      if (k > kb) then
       km = k - 1
       DO j = jl, ju
          utang2Int = utang2(i, j, k)
          dummy = (utang2Int**2)*fkar2/(logdz2)
          bcmomflux = SIGN(dummy, utang2Int)
          iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dxfi(i)*0.5
-
          epom = (dzf(km)*(ekm(i, j, k)*dxf(ip) + ekm(ip, j, k)*dxf(i))*dxhi(ip) + &
                  dzf(k)*(ekm(i, j, km)*dxf(ip) + ekm(ip, j, km)*dxf(i))*dxhi(ip))*dzhiq(k)
-
-         iout2(i, j, k) = iout2(i, j, k) - ((utang2(ip, j, k) - utang2(i, j, k))*epom*dxhi(ip)*dxfi(i) - bcmomflux*dxfi(i))*0.5 !
+         iout2(i, j, k) = iout2(i, j, k) - (utang2(ip, j, k) - utang2(i, j, k))*epom*dxhi(ip)*dxfi(i) - bcmomflux*dxfi(i)*0.5 !
       END DO
       end if
 
-      
-
-!!! case 21 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !wfmneutral 21 !wall in yz -> wf in x (=vertical), upper wall, east wall
    CASE (21)
       !v east
       i = block(n, 2) + 1 !fluid
@@ -190,15 +169,12 @@ SUBROUTINE wfmneutral(hi,hj,hk,iout1,iout2,iomomflux,utang1,utang2,z0,n,ind,wfor
 
       DO k = kl, ku
          DO j = jl, ju
-
             utang1Int = utang1(i, j, k)
             ctm = fkar2/(logdz2)
             dummy = (utang1Int**2)*ctm
             bcmomflux = SIGN(dummy, utang1Int)
             iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dxfi(i)
-
             emmo = 0.25*((ekm(i, j, k) + ekm(i, j - 1, k))*dxf(im) + (ekm(im, j - 1, k) + ekm(im, j, k))*dxf(i))*dxhi(i) ! dx is non-equidistant
-
             iout1(i, j, k) = iout1(i, j, k) + (utang1(i, j, k) - utang1(im, j, k))*emmo*dxhi(i)*dxfi(i) - bcmomflux*dxfi(i) !
          END DO
       END DO
@@ -210,11 +186,8 @@ SUBROUTINE wfmneutral(hi,hj,hk,iout1,iout2,iomomflux,utang1,utang2,z0,n,ind,wfor
          dummy = (utang1Int**2)*fkar2/(logdz2)
          bcmomflux = SIGN(dummy, utang1Int)
          iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dxfi(i)*0.5
-
          emmo = 0.25*((ekm(i, j, k) + ekm(i, j - 1, k))*dxf(im) + (ekm(im, j - 1, k) + ekm(im, j, k))*dxf(i))*dxhi(i) ! dx is non-equidistant
-
-         iout1(i, j, k) = iout1(i, j, k) + ((utang1(i, j, k) - utang1(im, j, k))*emmo*dxhi(i)*dxfi(i) - bcmomflux*dxfi(i))*0.5 !
-
+         iout1(i, j, k) = iout1(i, j, k) + (utang1(i, j, k) - utang1(im, j, k))*emmo*dxhi(i)*dxfi(i) - bcmomflux*dxfi(i)*0.5 !
       END DO
 
       !v east edge north
@@ -224,11 +197,8 @@ SUBROUTINE wfmneutral(hi,hj,hk,iout1,iout2,iomomflux,utang1,utang2,z0,n,ind,wfor
          dummy = (utang1Int**2)*fkar2/(logdz2)
          bcmomflux = SIGN(dummy, utang1Int)
          iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dxfi(i)*0.5
-
          emmo = 0.25*((ekm(i, j, k) + ekm(i, j - 1, k))*dxf(im) + (ekm(im, j - 1, k) + ekm(im, j, k))*dxf(i))*dxhi(i) ! dx is non-equidistant
-
-         iout1(i, j, k) = iout1(i, j, k) + ((utang1(i, j, k) - utang1(im, j, k))*emmo*dxhi(i)*dxfi(i) - bcmomflux*dxfi(i))*0.5 !
-
+         iout1(i, j, k) = iout1(i, j, k) + (utang1(i, j, k) - utang1(im, j, k))*emmo*dxhi(i)*dxfi(i) - bcmomflux*dxfi(i)*0.5 !
       END DO
 
       !w east
@@ -236,19 +206,17 @@ SUBROUTINE wfmneutral(hi,hj,hk,iout1,iout2,iomomflux,utang1,utang2,z0,n,ind,wfor
       kl = block(n, 5) + 1 !
       DO k = kl, ku
          DO j = jl, ju
-
             utang2Int = utang2(i, j, k)
             ctm = fkar2/(logdz2)
             dummy = (utang2Int**2)*ctm
             bcmomflux = SIGN(dummy, utang2Int)
             iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dxfi(i)
-
             emom = (dzf(k - 1)*(ekm(i, j, k)*dxf(im) + ekm(im, j, k)*dxf(i))*dxhi(i) + &
                     dzf(k)*(ekm(i, j, k - 1)*dxf(im) + ekm(im, j, k - 1)*dxf(i))*dxhi(i))*dzhiq(k)
-
             iout2(i, j, k) = iout2(i, j, k) + (utang2(i, j, k) - utang2(im, j, k))*emom*dxhi(i)*dxfi(i) - bcmomflux*dxfi(i) !
          END DO
       END DO
+
       !w east edge top
       k = block(n, 6) + 1 ! ending k-index
       DO j = jl, ju
@@ -256,43 +224,33 @@ SUBROUTINE wfmneutral(hi,hj,hk,iout1,iout2,iomomflux,utang1,utang2,z0,n,ind,wfor
          dummy = (utang2Int**2)*fkar2/(logdz2)
          bcmomflux = SIGN(dummy, utang2Int)
          iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dxfi(i)*0.5
-
          emom = (dzf(k - 1)*(ekm(i, j, k)*dxf(im) + ekm(im, j, k)*dxf(i))*dxhi(i) + &
                  dzf(k)*(ekm(i, j, k - 1)*dxf(im) + ekm(im, j, k - 1)*dxf(i))*dxhi(i))*dzhiq(k)
-
-         iout2(i, j, k) = iout2(i, j, k) + ((utang2(i, j, k) - utang2(im, j, k))*emom*dxhi(i)*dxfi(i) - bcmomflux*dxfi(i))*0.5 !
-
+         iout2(i, j, k) = iout2(i, j, k) + (utang2(i, j, k) - utang2(im, j, k))*emom*dxhi(i)*dxfi(i) - bcmomflux*dxfi(i)*0.5 !
       END DO
 
      !w east edge bot
-      k = block(n, 5)  ! 
-      if (k.gt.0) then
+      k = block(n, 5)  !
+      !if (k.gt.0) then
+      if (k > kb) then
       DO j = jl, ju
          utang2Int = utang2(i, j, k)
          dummy = (utang2Int**2)*fkar2/(logdz2)
          bcmomflux = SIGN(dummy, utang2Int)
          iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dxfi(i)*0.5
-
          emom = (dzf(k - 1)*(ekm(i, j, k)*dxf(im) + ekm(im, j, k)*dxf(i))*dxhi(i) + &
                  dzf(k)*(ekm(i, j, k - 1)*dxf(im) + ekm(im, j, k - 1)*dxf(i))*dxhi(i))*dzhiq(k)
-
-         iout2(i, j, k) = iout2(i, j, k) + ((utang2(i, j, k) - utang2(im, j, k))*emom*dxhi(i)*dxfi(i) - bcmomflux*dxfi(i))*0.5 !
-
+         iout2(i, j, k) = iout2(i, j, k) + (utang2(i, j, k) - utang2(im, j, k))*emom*dxhi(i)*dxfi(i) - bcmomflux*dxfi(i)*0.5 !
       END DO
       end if
 
-!!! case 31 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !wfuno 31
    CASE (31) !wall in xz -> wf in y (=vertical) upper, north wall
-
       j = ind
       jm = j - 1
-
       il = block(n, 1) + 1
       iu = block(n, 2)
       kl = block(n, 5)
       ku = block(n, 6)
-
       delta = 0.5*dy
       logdz2 = LOG(delta/z0)**2
 
@@ -304,12 +262,11 @@ SUBROUTINE wfmneutral(hi,hj,hk,iout1,iout2,iomomflux,utang1,utang2,z0,n,ind,wfor
             dummy = (utang1Int**2)*ctm
             bcmomflux = SIGN(dummy, utang1Int)
             iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dyi
-
             emmo = 0.25*((ekm(i, j, k) + ekm(i, jm, k))*dxf(i - 1) + (ekm(i - 1, jm, k) + ekm(i - 1, j, k))*dxf(i))*dxhi(i)
-
             iout1(i, j, k) = iout1(i, j, k) + (utang1(i, j, k) - utang1(i, jm, k))*emmo*dy2i-bcmomflux*dyi !
          END DO
       END DO
+
       !u north east edge
       i = block(n, 2) + 1
       DO k = kl, ku
@@ -318,9 +275,7 @@ SUBROUTINE wfmneutral(hi,hj,hk,iout1,iout2,iomomflux,utang1,utang2,z0,n,ind,wfor
          bcmomflux = SIGN(dummy, utang1Int)
          iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dyi5
          emmo = 0.25*((ekm(i, j, k) + ekm(i, jm, k))*dxf(i - 1) + (ekm(i - 1, jm, k) + ekm(i - 1, j, k))*dxf(i))*dxhi(i)
-
-         iout1(i, j, k) = iout1(i, j, k) + ((utang1(i, j, k) - utang1(i, jm, k))*emmo*dy2i-bcmomflux*dyi)*0.5 !
-
+         iout1(i, j, k) = iout1(i, j, k) + (utang1(i, j, k) - utang1(i, jm, k))*emmo*dy2i-bcmomflux*dyi*0.5 !
       END DO
 
       !u north west edge
@@ -331,16 +286,14 @@ SUBROUTINE wfmneutral(hi,hj,hk,iout1,iout2,iomomflux,utang1,utang2,z0,n,ind,wfor
          bcmomflux = SIGN(dummy, utang1Int)
          iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dyi5
          emmo = 0.25*((ekm(i, j, k) + ekm(i, jm, k))*dxf(i - 1) + (ekm(i - 1, jm, k) + ekm(i - 1, j, k))*dxf(i))*dxhi(i)
-         iout1(i, j, k) = iout1(i, j, k) + ((utang1(i, j, k) - utang1(i, jm, k))*emmo*dy2i-bcmomflux*dyi)*0.5 !
+         iout1(i, j, k) = iout1(i, j, k) + (utang1(i, j, k) - utang1(i, jm, k))*emmo*dy2i-bcmomflux*dyi*0.5 !
       END DO
 
       !w north
-
       il = block(n, 1) !
       kl = block(n, 5) + 1 !
       DO k = kl, ku
          DO i = il, iu
-
             utang2Int = utang2(i, j, k)
             ctm = fkar2/(logdz2)
             dummy = (utang2Int**2)*ctm
@@ -351,83 +304,67 @@ SUBROUTINE wfmneutral(hi,hj,hk,iout1,iout2,iomomflux,utang1,utang2,z0,n,ind,wfor
          END DO
       END DO
 
-!w north edge top
+      !w north edge top
       k = block(n, 6) + 1
       DO i = il, iu
          utang2Int = utang2(i, j, k)
          dummy = (utang2Int**2)*fkar2/(logdz2)
          bcmomflux = SIGN(dummy, utang2Int)
          iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dyi5
-
          eomm = (dzf(k - 1)*(ekm(i, j, k) + ekm(i, jm, k)) + dzf(k)*(ekm(i, j, k - 1) + ekm(i, jm, k - 1)))*dzhiq(k) ! dz is non-eqidistant
-
-         iout2(i, j, k) = iout2(i, j, k) + ((utang2(i, j, k) - utang2(i, jm, k))*eomm*dy2i-bcmomflux*dyi)*0.5 !
-
+         iout2(i, j, k) = iout2(i, j, k) + (utang2(i, j, k) - utang2(i, jm, k))*eomm*dy2i-bcmomflux*dyi*0.5 !
       END DO
 
-!w north edge bot
-      k = block(n, 5) 
-     if (k.gt.0) then
+      !w north edge bot
+      k = block(n, 5)
+      !if (k.gt.0) then
+      if (k > kb) then
       DO i = il, iu
          utang2Int = utang2(i, j, k)
          dummy = (utang2Int**2)*fkar2/(logdz2)
          bcmomflux = SIGN(dummy, utang2Int)
          iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dyi5
-
          eomm = (dzf(k - 1)*(ekm(i, j, k) + ekm(i, jm, k)) + dzf(k)*(ekm(i, j, k - 1) + ekm(i, jm, k - 1)))*dzhiq(k) ! dz is non-eqidistant
-
          iout2(i, j, k) = iout2(i, j, k) + ((utang2(i, j, k) - utang2(i, jm, k))*eomm*dy2i-bcmomflux*dyi)*0.5 !
-
       END DO
-end if
+      end if
 
-
-!!! case 41 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!`
-      !wfuno41
    CASE (41) !wall in xz -> wf in y (=vertical) lower, south wall
-
       j = ind
       jp = j + 1
       il = block(n, 1) + 1
       iu = block(n, 2)
       kl = block(n, 5)
       ku = block(n, 6)
-
       delta = 0.5*dy
       logdz2 = LOG(delta/z0)**2
-      
-DO k = kl, ku
-         DO i = il, iu
 
+      DO k = kl, ku
+         DO i = il, iu
             utang1Int = utang1(i, j, k)
             ctm = fkar2/(logdz2)
             dummy = (utang1Int**2)*ctm
             bcmomflux = SIGN(dummy, utang1Int)
             iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dyi
-
             empo = 0.25*((ekm(i, j, k) + ekm(i, jp, k))*dxf(i - 1) + &
                          (ekm(i - 1, j, k) + ekm(i - 1, jp, k))*dxf(i))*dxhi(i) ! dx is non-equidistant
-
             iout1(i, j, k) = iout1(i, j, k) - (utang1(i, jp, k) - utang1(i, j, k))*empo*dy2i-bcmomflux*dyi !
-
          END DO
       END DO
 
-!u south edge west
+      !u south edge west
       i = block(n, 1)
       DO k = kl, ku
          utang1Int = utang1(i, j, k)
          dummy = (utang1Int**2)*fkar2/(logdz2)
          bcmomflux = SIGN(dummy, utang1Int)
          iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dyi5
-
          empo = 0.25*((ekm(i, j, k) + ekm(i, jp, k))*dxf(i - 1) + &
                       (ekm(i - 1, j, k) + ekm(i - 1, jp, k))*dxf(i))*dxhi(i) ! dx is non-equidistant
-
-         iout1(i, j, k) = iout1(i, j, k) - ((utang1(i, jp, k) - utang1(i, j, k))*empo*dy2i-bcmomflux*dyi)*0.5 !
-
+         iout1(i, j, k) = iout1(i, j, k) - (utang1(i, jp, k) - utang1(i, j, k))*empo*dy2i-bcmomflux*dyi*0.5 !
       END DO
-!u south edge east
+
+      !u south edge east
       i = block(n, 2) + 1
       DO k = kl, ku
          utang1Int = utang1(i, j, k)
@@ -438,11 +375,11 @@ DO k = kl, ku
          empo = 0.25*((ekm(i, j, k) + ekm(i, jp, k))*dxf(i - 1) + &
                       (ekm(i - 1, j, k) + ekm(i - 1, jp, k))*dxf(i))*dxhi(i) ! dx is non-equidistant
 
-         iout1(i, j, k) = iout1(i, j, k) - ((utang1(i, jp, k) - utang1(i, j, k))*empo*dy2i-bcmomflux*dyi)*0.5 !
+         iout1(i, j, k) = iout1(i, j, k) - (utang1(i, jp, k) - utang1(i, j, k))*empo*dy2i-bcmomflux*dyi*0.5 !
 
       END DO
 
-!w south
+      !w south
       il = block(n, 1) !
       kl = block(n, 5) + 1 !
       DO k = kl, ku
@@ -459,51 +396,44 @@ DO k = kl, ku
             iout2(i, j, k) = iout2(i, j, k) - (utang2(i, jp, k) - utang2(i, j, k))*eopm*dy2i-bcmomflux*dyi !
          END DO
       END DO
-!w south edge top
+
+      !w south edge top
       k = block(n, 6) + 1
       DO i = il, iu
          utang2Int = utang2(i, j, k)
          dummy = (utang2Int**2)*fkar2/(logdz2)
          bcmomflux = SIGN(dummy, utang2Int)
          iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dyi5
-
          eopm = (dzf(k - 1)*(ekm(i, j, k) + ekm(i, jp, k)) + &
                  dzf(k)*(ekm(i, j, k - 1) + ekm(i, jp, k - 1)))*dzhiq(k)
-
          iout2(i, j, k) = iout2(i, j, k) - ((utang2(i, jp, k) - utang2(i, j, k))*eopm*dy2i-bcmomflux*dyi)*0.5 !
-
       END DO
 
-!w south edge bot
+      !w south edge bot
       k = block(n, 5)
-      if (k.gt.0) then 
+      !if (k.gt.0) then
+      if (k > kb) then
       DO i = il, iu
          utang2Int = utang2(i, j, k)
-         !call function repeatedly
          dummy = (utang2Int**2)*fkar2/(logdz2)
          bcmomflux = SIGN(dummy, utang2Int)
          iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dyi5
-
          eopm = (dzf(k - 1)*(ekm(i, j, k) + ekm(i, jp, k)) + &
                  dzf(k)*(ekm(i, j, k - 1) + ekm(i, jp, k - 1)))*dzhiq(k)
-
          iout2(i, j, k) = iout2(i, j, k) - ((utang2(i, jp, k) - utang2(i, j, k))*eopm*dy2i-bcmomflux*dyi)*0.5 !
-
       END DO
       end if
 
-!!!! case 51 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !wfuno51
    CASE (51) !wall in xy -> wf in z (=horizontal), top wall
       k = block(n, 6) + 1 !block location
-
-      if (.not.(k.gt.kmax)) then
+      !if (.not.(k.gt.kmax)) then
+      if (k > ke) return
       km = k - 1 !shear velocity location
       il = block(n, 1) + 1
       iu = block(n, 2)
       jl = MAX(block(n, 3) - myid*jmax, 1)
       ju = MIN(block(n, 4) - myid*jmax, jmax)
- 
+
       delta = 0.5*dzf(k)
       logdz2 = LOG(delta/z0)**2
 
@@ -515,12 +445,12 @@ DO k = kl, ku
             bcmomflux = SIGN(dummy, utang1Int)
             iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
             emom = (dzf(km)*(ekm(i, j, k)*dxf(i - 1) + ekm(i - 1, j, k)*dxf(i)) + &
-                    dzf(k)*(ekm(i, j, km)*dxf(i - 1) + ekm(i - 1, j, km)*dxf(i)))*dxhi(i)*dzhiq(k)
+            dzf(k)*(ekm(i, j, km)*dxf(i - 1) + ekm(i - 1, j, km)*dxf(i)))*dxhi(i)*dzhiq(k)
             iout1(i, j, k) = iout1(i, j, k) + (utang1(i, j, k) - utang1(i, j, km))*emom*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k) !
          END DO
       END DO
 
-!u top edge west
+      !u top edge west
       i = block(n, 1)
       DO j = jl, ju
          utang1Int = utang1(i, j, k)
@@ -529,10 +459,10 @@ DO k = kl, ku
          iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)*0.5
          emom = (dzf(km)*(ekm(i, j, k)*dxf(i - 1) + ekm(i - 1, j, k)*dxf(i)) + &
                  dzf(k)*(ekm(i, j, km)*dxf(i - 1) + ekm(i - 1, j, km)*dxf(i)))*dxhi(i)*dzhiq(k)
-         iout1(i, j, k) = iout1(i, j, k) + ((utang1(i, j, k) - utang1(i, j, km))*emom*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k))*0.5 !
+         iout1(i, j, k) = iout1(i, j, k) + (utang1(i, j, k) - utang1(i, j, km))*emom*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5 !
       END DO
 
-!u top edge east
+      !u top edge east
       i = block(n, 2) + 1
       DO j = jl, ju
          utang1Int = utang1(i, j, k)
@@ -541,48 +471,674 @@ DO k = kl, ku
          iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)*0.5
          emom = (dzf(km)*(ekm(i, j, k)*dxf(i - 1) + ekm(i - 1, j, k)*dxf(i)) + &
                  dzf(k)*(ekm(i, j, km)*dxf(i - 1) + ekm(i - 1, j, km)*dxf(i)))*dxhi(i)*dzhiq(k)
-         iout1(i, j, k) = iout1(i, j, k) + ((utang1(i, j, k) - utang1(i, j, km))*emom*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k))*0.5 !
+         iout1(i, j, k) = iout1(i, j, k) + (utang1(i, j, k) - utang1(i, j, km))*emom*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5 !
       END DO
 
-!v
+      ! !v
+      !       il = block(n, 1)
+      !       jl = MAX(block(n, 3) - myid*jmax, 1) + 1
+      !       DO j = jl, ju
+      !          DO i = il, iu
+      !
+      !             utang2Int = utang2(i, j, k)
+      !             ctm = fkar2/(logdz2)
+      !             dummy = (utang2Int**2)*ctm
+      !             bcmomflux = SIGN(dummy, utang2Int)
+      !             iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+      !             eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
+      !             iout2(i, j, k) = iout2(i, j, k) + (utang2(i, j, k) - utang2(i, j, km))*eomm*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k) !
+      !          END DO
+      !       END DO
+      !
+      ! !v top edge south
+      !       j = MAX(block(n, 3) - myid*jmax, 1)
+      !       DO i=il,iu
+      !          utang2Int = utang2(i, j, k)
+      !          dummy = (utang2Int**2)*fkar2/(logdz2)
+      !          bcmomflux = SIGN(dummy, utang2Int)
+      !          iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)*0.5
+      !          eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
+      !          iout2(i, j, k) = iout2(i, j, k) + (utang2(i, j, k) - utang2(i, j, km))*eomm*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5 !
+      !       END DO
+      !
+      ! !v top edge north
+      !       j = MIN(block(n, 4) - myid*jmax, jmax) + 1
+      !
+      !       DO i = il, iu
+      !          utang2Int = utang2(i, j, k)
+      !          dummy = (utang2Int**2)*fkar2/(logdz2)
+      !          bcmomflux = SIGN(dummy, utang2Int)
+      !          iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)*0.5
+      !          eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
+      !          iout2(i, j, k) = iout2(i, j, k) + (utang2(i, j, k) - utang2(i, j, km))*eomm*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5 !
+      !       END DO
+
+      jl = block(n, 3)
+      ju = block(n, 4)
       il = block(n, 1)
-      jl = MAX(block(n, 3) - myid*jmax, 1) + 1
-      DO j = jl, ju
-         DO i = il, iu
+      iu = block(n, 2)
 
-            utang2Int = utang2(i, j, k)
-            ctm = fkar2/(logdz2)
-            dummy = (utang2Int**2)*ctm
-            bcmomflux = SIGN(dummy, utang2Int)
-            iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
-            eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
-            iout2(i, j, k) = iout2(i, j, k) + (utang2(i, j, k) - utang2(i, j, km))*eomm*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k) !
-         END DO
-      END DO
+      if (jl>je+je*myid .or. ju < jb+je*myid) THEN
+        !write(*,*) 'block off core so ignore'
+      else if (jl >= jb+je*myid .and. ju <= je+je*myid) then
+        jl = block(n,3) - myid*je
+        ju = block(n,4) - myid*je
+        if (jl == ju) THEN
+          do i = il,iu
+            if(IIc(i,jl-1,k-1)==0 .and. IIc(i,jl-1,k)==1) then
+              j = jl
+              utang2Int = utang2(i, j, k)
+              dummy = (utang2Int**2)*fkar2/(logdz2)
+              bcmomflux = SIGN(dummy, utang2Int)
+              iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
+              iout2(i, j, k) = iout2(i, j, k) + (utang2(i, j, k) - utang2(i, j, km))*eomm*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)
+            else if (IIc(i,jl-1,k-1)==1 .or. IIc(i,jl-1,k) == 0 ) then
+              j = jl
+              utang2Int = utang2(i, j, k)
+              dummy = (utang2Int**2)*fkar2/(logdz2)
+              bcmomflux = SIGN(dummy, utang2Int)
+              iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
+              iout2(i, j, k) = iout2(i, j, k) + (utang2(i, j, k) - utang2(i, j, km))*eomm*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
+            end if
+            if(IIc(i,jl+1,k-1)==1 .and. IIc(i,jl+1,k)==1) then
+              j = jl+1
+              utang2Int = utang2(i, j, k)
+              dummy = (utang2Int**2)*fkar2/(logdz2)
+              bcmomflux = SIGN(dummy, utang2Int)
+              iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
+              iout2(i, j, k) = iout2(i, j, k) + (utang2(i, j, k) - utang2(i, j, km))*eomm*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
+            else if (IIc(i,jl+1,k-1)==0 .and. IIc(i,jl+1,k)==1) then
+            end if
+          end do
+        else if (jl /= ju) then
+          do i = il,iu
+            do j = jl+1, ju
+              utang2Int = utang2(i, j, k)
+              dummy = (utang2Int**2)*fkar2/(logdz2)
+              bcmomflux = SIGN(dummy, utang2Int)
+              iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
+              iout2(i, j, k) = iout2(i, j, k) + (utang2(i, j, k) - utang2(i, j, km))*eomm*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k) !
+            end do
+            if (IIc(i,jl-1,k) == 0 .or. IIc(i,jl-1,k-1) == 1) then
+              j = jl
+              utang2Int = utang2(i, j, k)
+              dummy = (utang2Int**2)*fkar2/(logdz2)
+              bcmomflux = SIGN(dummy, utang2Int)
+              iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
+              iout2(i, j, k) = iout2(i, j, k) + ((utang2(i, j, k) - utang2(i, j, km))*eomm*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k))*0.5
+            else if (IIc(i,jl-1,k) == 1 .and. IIc(i,jl-1,k-1)== 0) then
+              j = jl
+              utang2Int = utang2(i, j, k)
+              dummy = (utang2Int**2)*fkar2/(logdz2)
+              bcmomflux = SIGN(dummy, utang2Int)
+              iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
+              iout2(i, j, k) = iout2(i, j, k) + (utang2(i, j, k) - utang2(i, j, km))*eomm*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)
+            end if
+            if (IIc(i,ju+1,k) == 1 .and. IIc(i,ju+1,k-1) == 1) then
+              j = ju+1
+              utang2Int = utang2(i, j, k)
+              dummy = (utang2Int**2)*fkar2/(logdz2)
+              bcmomflux = SIGN(dummy, utang2Int)
+              iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
+              iout2(i, j, k) = iout2(i, j, k) + (utang2(i, j, k) - utang2(i, j, km))*eomm*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
+            else
+            end if
+          end do
+        end if
+      else if (jl < jb+myid*je .and. ju > je+je*myid) then
+        jl = jb
+        ju = je
+        if (jl == ju) THEN
+          do i = il,iu
+            if(IIc(i,jl-1,k-1)==0 .and. IIc(i,jl-1,k)==1) then
+              j = jl
+              utang2Int = utang2(i, j, k)
+              dummy = (utang2Int**2)*fkar2/(logdz2)
+              bcmomflux = SIGN(dummy, utang2Int)
+              iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
+              iout2(i, j, k) = iout2(i, j, k) + (utang2(i, j, k) - utang2(i, j, km))*eomm*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)
+            else if (IIc(i,jl-1,k-1)==1 .or. IIc(i,jl-1,k) == 0 ) then
+              j = jl
+              utang2Int = utang2(i, j, k)
+              dummy = (utang2Int**2)*fkar2/(logdz2)
+              bcmomflux = SIGN(dummy, utang2Int)
+              iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
+              iout2(i, j, k) = iout2(i, j, k) + (utang2(i, j, k) - utang2(i, j, km))*eomm*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
+            end if
+          end do
+        else if (jl /= ju) then
+          DO i =il,iu
+            DO j = jl+1, ju
+              utang2Int = utang2(i, j, k)
+              dummy = (utang2Int**2)*fkar2/(logdz2)
+              bcmomflux = SIGN(dummy, utang2Int)
+              iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
+              iout2(i, j, k) = iout2(i, j, k) + (utang2(i, j, k) - utang2(i, j, km))*eomm*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k) !
+            END DO
+            if (IIc(i,jl-1,k-1)==0 .and. IIc(i,jl-1,k)==1) then
+              j = jl
+              utang2Int = utang2(i, j, k)
+              dummy = (utang2Int**2)*fkar2/(logdz2)
+              bcmomflux = SIGN(dummy, utang2Int)
+              iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
+              iout2(i, j, k) = iout2(i, j, k) + (utang2(i, j, k) - utang2(i, j, km))*eomm*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k) !
+            else if (IIc(i,jl-1,k-1)==1 .or. IIc(i,jl-1,k)==0) then
+              j = jl
+              utang2Int = utang2(i, j, k)
+              dummy = (utang2Int**2)*fkar2/(logdz2)
+              bcmomflux = SIGN(dummy, utang2Int)
+              iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
+              iout2(i, j, k) = iout2(i, j, k) + (utang2(i, j, k) - utang2(i, j, km))*eomm*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
+            end if
+          END DO
+        end if
+      else if (ju<=je+myid*je .and. jl<jb+myid*je) then
+        jl = jb
+        ju = block(n,4) - myid*je
+        if (jl == ju) then
+          do i = il,iu
+            if(IIc(i,jl-1,k-1)==0 .and. IIc(i,jl-1,k)==1) then
+              j = jl
+              utang2Int = utang2(i, j, k)
+              dummy = (utang2Int**2)*fkar2/(logdz2)
+              bcmomflux = SIGN(dummy, utang2Int)
+              iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
+              iout2(i, j, k) = iout2(i, j, k) + (utang2(i, j, k) - utang2(i, j, km))*eomm*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)
+            else if (IIc(i,jl-1,k) == 0 ) then
+              j = jl
+              utang2Int = utang2(i, j, k)
+              dummy = (utang2Int**2)*fkar2/(logdz2)
+              bcmomflux = SIGN(dummy, utang2Int)
+              iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
+              iout2(i, j, k) = iout2(i, j, k) + (utang2(i, j, k) - utang2(i, j, km))*eomm*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
+            end if
+            if(IIc(i,jl+1,k-1)==1 .or. IIc(i,jl+1,k)==0) then
+              j = jl+1
+              utang2Int = utang2(i, j, k)
+              dummy = (utang2Int**2)*fkar2/(logdz2)
+              bcmomflux = SIGN(dummy, utang2Int)
+              iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
+              iout2(i, j, k) = iout2(i, j, k) + (utang2(i, j, k) - utang2(i, j, km))*eomm*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
+            else if (IIc(i,jl+1,k-1)==0 .and. IIc(i,jl+1,k)==1) then
+            end if
+          end do
+        else if (jl /= ju) then
+          do i = il,iu
+            do j = jl+1, ju
+              utang2Int = utang2(i, j, k)
+              dummy = (utang2Int**2)*fkar2/(logdz2)
+              bcmomflux = SIGN(dummy, utang2Int)
+              iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
+              iout2(i, j, k) = iout2(i, j, k) + (utang2(i, j, k) - utang2(i, j, km))*eomm*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k) !
+            end do
+            if (IIc(i,jl-1,k)==0) then
+              j = jl
+              utang2Int = utang2(i, j, k)
+              dummy = (utang2Int**2)*fkar2/(logdz2)
+              bcmomflux = SIGN(dummy, utang2Int)
+              iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
+              iout2(i, j, k) = iout2(i, j, k) + (utang2(i, j, k) - utang2(i, j, km))*eomm*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
+            else if (IIc(i,jl-1,k)==1) then
+              j = jl
+              utang2Int = utang2(i, j, k)
+              dummy = (utang2Int**2)*fkar2/(logdz2)
+              bcmomflux = SIGN(dummy, utang2Int)
+              iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
+              iout2(i, j, k) = iout2(i, j, k) + (utang2(i, j, k) - utang2(i, j, km))*eomm*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k) !
+            end if
+            if (IIc(i,ju+1,k-1)==1 .and. IIc(i,ju+1,k)==1) then
+              j = ju+1
+              utang2Int = utang2(i, j, k)
+              dummy = (utang2Int**2)*fkar2/(logdz2)
+              bcmomflux = SIGN(dummy, utang2Int)
+              iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
+              iout2(i, j, k) = iout2(i, j, k) + (utang2(i, j, k) - utang2(i, j, km))*eomm*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
+            else if (IIc(i,ju+1,k)==0) THEN
+            end if
+          end do
+        end if
+      else if (ju>je+myid*je .and. jl>=jb+myid*je) then
+        jl = block(n,3)-myid*je
+        ju = je
+        if (jl == ju) THEN
+          j = jl
+          do i = il,iu
+            if(IIc(i,j-1,k-1) == 1 .or. IIc(i,j-1,k)==0) THEN
+              utang2Int = utang2(i, j, k)
+              dummy = (utang2Int**2)*fkar2/(logdz2)
+              bcmomflux = SIGN(dummy, utang2Int)
+              iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
+              iout2(i, j, k) = iout2(i, j, k) + (utang2(i, j, k) - utang2(i, j, km))*eomm*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
+            else if (IIc(i,j-1,k-1) == 0 .and. IIc(i,j-1,k)==1) THEN
+              utang2Int = utang2(i, j, k)
+              dummy = (utang2Int**2)*fkar2/(logdz2)
+              bcmomflux = SIGN(dummy, utang2Int)
+              iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
+              iout2(i, j, k) = iout2(i, j, k) + (utang2(i, j, k) - utang2(i, j, km))*eomm*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k) !
+            end if
+          end do
+        else if (jl /= ju) then
+          do i = il,iu
+            do j = jl+1, ju
+              utang2Int = utang2(i, j, k)
+              dummy = (utang2Int**2)*fkar2/(logdz2)
+              bcmomflux = SIGN(dummy, utang2Int)
+              iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
+              iout2(i, j, k) = iout2(i, j, k) + (utang2(i, j, k) - utang2(i, j, km))*eomm*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k) !
+            end do
+            if (IIc(i,jl-1,k-1)==1 .or. IIc(i,jl-1,k)==0) then
+              j = jl
+              utang2Int = utang2(i, j, k)
+              dummy = (utang2Int**2)*fkar2/(logdz2)
+              bcmomflux = SIGN(dummy, utang2Int)
+              iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
+              iout2(i, j, k) = iout2(i, j, k) + (utang2(i, j, k) - utang2(i, j, km))*eomm*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
+            else if (IIc(i,jl-1,k-1)==0 .and. IIc(i,jl-1,k)==1) then
+              j = jl
+              utang2Int = utang2(i, j, k)
+              dummy = (utang2Int**2)*fkar2/(logdz2)
+              bcmomflux = SIGN(dummy, utang2Int)
+              iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
+              iout2(i, j, k) = iout2(i, j, k) + (utang2(i, j, k) - utang2(i, j, km))*eomm*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k) !
+            end if
+          end do
+        end if
+      end if
+      !end if
 
-!v top edge south
-      j = MAX(block(n, 3) - myid*jmax, 1)
-      DO i=il,iu
-         utang2Int = utang2(i, j, k)
-         dummy = (utang2Int**2)*fkar2/(logdz2)
-         bcmomflux = SIGN(dummy, utang2Int)
-         iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)*0.5
-         eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
-         iout2(i, j, k) = iout2(i, j, k) + ((utang2(i, j, k) - utang2(i, j, km))*eomm*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k))*0.5 !
-      END DO
-
-!v top edge north
-      j = MIN(block(n, 4) - myid*jmax, jmax) + 1
-
-      DO i = il, iu
-         utang2Int = utang2(i, j, k)
-         dummy = (utang2Int**2)*fkar2/(logdz2)
-         bcmomflux = SIGN(dummy, utang2Int)
-         iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)*0.5
-         eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
-         iout2(i, j, k) = iout2(i, j, k) + ((utang2(i, j, k) - utang2(i, j, km))*eomm*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k))*0.5 !
-      END DO
-end if
+   ! CASE (61) !wall in xy -> wf in z (=horizontal), bottom wall !
+   !    k = block(n, 5) - 1 !block location
+   !    !if (.not.(k.lt.0)) then
+   !    if (k < kb) return
+   !    kp = k + 1 !shear velocity location
+   !    il = block(n, 1) + 1
+   !    iu = block(n, 2)
+   !    jl = MAX(block(n, 3) - myid*jmax, 1)
+   !    ju = MIN(block(n, 4) - myid*jmax, jmax)
+   !
+   !    delta = 0.5*dzf(k)
+   !    logdz2 = LOG(delta/z0)**2
+   !
+   !    DO j = jl, ju
+   !      DO i = il, iu
+   !        ! utang1Int = utang1(i, j, k)
+   !        ! dummy = (utang1Int**2)*fkar2/(logdz2)
+   !        ! bcmomflux = SIGN(dummy, utang1Int)
+   !        ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+   !        emop = ( dzf(kp) * ( ekm(i,j,k )*dxf(i-1) + ekm(i-1,j,k )*dxf(i) )  + &
+   !        dzf(k)  * ( ekm(i,j,kp)*dxf(i-1) + ekm(i-1,j,kp)*dxf(i) ) )*dxhi(i) * dzhiq(kp)
+   !        iout1(i, j, k) = iout1(i, j, k) - (utang1(i, j, kp) - utang1(i, j, k))*emop*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k) !
+   !      END DO
+   !    END DO
+   !
+   !    !u top edge west
+   !    i = block(n, 1)
+   !    DO j = jl, ju
+   !      ! utang1Int = utang1(i, j, k)
+   !      ! dummy = (utang1Int**2)*fkar2/(logdz2)
+   !      ! bcmomflux = SIGN(dummy, utang1Int)
+   !      ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)*0.5
+   !      emop = ( dzf(kp) * ( ekm(i,j,k )*dxf(i-1) + ekm(i-1,j,k )*dxf(i) )  + &
+   !      dzf(k)  * ( ekm(i,j,kp)*dxf(i-1) + ekm(i-1,j,kp)*dxf(i) ) )*dxhi(i) * dzhiq(kp)
+   !      iout1(i, j, k) = iout1(i, j, k) - (utang1(i, j, kp) - utang1(i, j, k))*emop*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5 !
+   !    END DO
+   !
+   !    !u top edge east
+   !    DO j = jl, ju
+   !      ! utang1Int = utang1(i, j, k)
+   !      ! dummy = (utang1Int**2)*fkar2/(logdz2)
+   !      ! bcmomflux = SIGN(dummy, utang1Int)
+   !      ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)*0.5
+   !      emop = ( dzf(kp) * ( ekm(i,j,k )*dxf(i-1) + ekm(i-1,j,k )*dxf(i) )  + &
+   !      dzf(k)  * ( ekm(i,j,kp)*dxf(i-1) + ekm(i-1,j,kp)*dxf(i) ) )*dxhi(i) * dzhiq(kp)
+   !      iout1(i, j, k) = iout1(i, j, k) - (utang1(i, j, kp) - utang1(i, j, k))*emop*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5 !
+   !    END DO
+   !
+   !    ! !v
+   !    !    il = block(n, 1)
+   !    !    jl = MAX(block(n, 3) - myid*jmax, 1) + 1
+   !    !    DO j = jl, ju
+   !    !       DO i = il, iu
+   !    !          ! utang2Int = utang2(i, j, k)
+   !    !          ! dummy = (utang2Int**2)*fkar2/(logdz2)
+   !    !          ! bcmomflux = SIGN(dummy, utang2Int)
+   !    !          ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+   !    !          eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+   !    !                   dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+   !    !          iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k) !
+   !    !       END DO
+   !    !    END DO
+   !    !
+   !    ! !v top edge south
+   !    !    j = MAX(block(n, 3) - myid*jmax, 1)
+   !    !    DO i=il,iu
+   !    !       ! utang2Int = utang2(i, j, k)
+   !    !       ! dummy = (utang2Int**2)*fkar2/(logdz2)
+   !    !       ! bcmomflux = SIGN(dummy, utang2Int)
+   !    !       ! bcmomflux = SIGN(dummy, utang2Int)
+   !    !       ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)*0.5
+   !    !       eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+   !    !                dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+   !    !       iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5 !
+   !    !    END DO
+   !    !
+   !    ! !v top edge north
+   !    !    j = MIN(block(n, 4) - myid*jmax, jmax) + 1
+   !    !
+   !    !    DO i = il, iu
+   !    !       ! utang2Int = utang2(i, j, k)
+   !    !       ! dummy = (utang2Int**2)*fkar2/(logdz2)
+   !    !       ! bcmomflux = SIGN(dummy, utang2Int)
+   !    !       ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)*0.5
+   !    !       eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+   !    !                dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+   !    !       iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5 !
+   !    !    END DO
+   !
+   !    jl = block(n, 3)
+   !    ju = block(n, 4)
+   !    il = block(n, 1)
+   !    iu = block(n, 2)
+   !
+   !    if (jl>je+je*myid .or. ju < jb+je*myid) THEN
+   !      !write(*,*) 'block off core so ignore'
+   !    else if (jl >= jb+je*myid .and. ju <= je+je*myid) then
+   !      jl = block(n,3) - myid*je
+   !      ju = block(n,4) - myid*je
+   !      if (jl == ju) THEN
+   !        do i = il,iu
+   !          if(IIc(i,jl-1,k+1)==0 .and. IIc(i,jl-1,k)==1) then
+   !            j = jl
+   !            ! utang2Int = utang2(i, j, k)
+   !            ! dummy = (utang2Int**2)*fkar2/(logdz2)
+   !            ! bcmomflux = SIGN(dummy, utang2Int)
+   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)
+   !          else if (IIc(i,jl-1,k+1)==1 .or. IIc(i,jl-1,k) == 0 ) then
+   !            j = jl
+   !            ! utang2Int = utang2(i, j, k)
+   !            ! dummy = (utang2Int**2)*fkar2/(logdz2)
+   !            ! bcmomflux = SIGN(dummy, utang2Int)
+   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
+   !          end if
+   !          if(IIc(i,jl+1,k+1)==1 .and. IIc(i,jl+1,k)==1) then
+   !            j = jl+1
+   !            ! utang2Int = utang2(i, j, k)
+   !            ! dummy = (utang2Int**2)*fkar2/(logdz2)
+   !            ! bcmomflux = SIGN(dummy, utang2Int)
+   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  ) + &
+   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
+   !          else if (IIc(i,jl+1,k+1)==0 .and. IIc(i,jl+1,k)==1) then
+   !          end if
+   !        end do
+   !      else if (jl /= ju) then
+   !        do i = il,iu
+   !          do j = jl+1, ju
+   !            ! utang2Int = utang2(i, j, k)
+   !            ! dummy = (utang2Int**2)*fkar2/(logdz2)
+   !            ! bcmomflux = SIGN(dummy, utang2Int)
+   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)
+   !          end do
+   !          if (IIc(i,jl-1,k) == 0 .or. IIc(i,jl-1,k+1) == 1) then
+   !            j = jl
+   !            ! utang2Int = utang2(i, j, k)
+   !            ! dummy = (utang2Int**2)*fkar2/(logdz2)
+   !            ! bcmomflux = SIGN(dummy, utang2Int)
+   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
+   !          else if (IIc(i,jl-1,k) == 1 .and. IIc(i,jl-1,k+1)== 0) then
+   !            j = jl
+   !            ! utang2Int = utang2(i, j, k)
+   !            ! dummy = (utang2Int**2)*fkar2/(logdz2)
+   !            ! bcmomflux = SIGN(dummy, utang2Int)
+   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)
+   !          end if
+   !          if (IIc(i,ju+1,k) == 1 .and. IIc(i,ju+1,k+1) == 1) then
+   !            j = ju+1
+   !            ! utang2Int = utang2(i, j, k)
+   !            ! dummy = (utang2Int**2)*fkar2/(logdz2)
+   !            ! bcmomflux = SIGN(dummy, utang2Int)
+   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
+   !          else
+   !          end if
+   !        end do
+   !      end if
+   !    else if (jl < jb+myid*je .and. ju > je+je*myid) then
+   !      jl = jb
+   !      ju = je
+   !      if (jl == ju) THEN
+   !        do i = il,iu
+   !          if(IIc(i,jl-1,k+1)==0 .and. IIc(i,jl-1,k)==1) then
+   !            j = jl
+   !            ! utang2Int = utang2(i, j, k)
+   !            ! dummy = (utang2Int**2)*fkar2/(logdz2)
+   !            ! bcmomflux = SIGN(dummy, utang2Int)
+   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)
+   !          else if (IIc(i,jl-1,k+1)==1 .or. IIc(i,jl-1,k) == 0 ) then
+   !            j = jl
+   !            ! utang2Int = utang2(i, j, k)
+   !            ! dummy = (utang2Int**2)*fkar2/(logdz2)
+   !            ! bcmomflux = SIGN(dummy, utang2Int)
+   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
+   !          end if
+   !        end do
+   !      else if (jl /= ju) then
+   !        DO i =il,iu
+   !          DO j = jl+1, ju
+   !            ! utang2Int = utang2(i, j, k)
+   !            ! dummy = (utang2Int**2)*fkar2/(logdz2)
+   !            ! bcmomflux = SIGN(dummy, utang2Int)
+   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)
+   !          END DO
+   !          if (IIc(i,jl-1,k+1)==0 .and. IIc(i,jl-1,k)==1) then
+   !            j = jl
+   !            ! utang2Int = utang2(i, j, k)
+   !            ! dummy = (utang2Int**2)*fkar2/(logdz2)
+   !            ! bcmomflux = SIGN(dummy, utang2Int)
+   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)
+   !          else if (IIc(i,jl-1,k+1)==1 .or. IIc(i,jl-1,k)==0) then
+   !            j = jl
+   !            ! utang2Int = utang2(i, j, k)
+   !            ! dummy = (utang2Int**2)*fkar2/(logdz2)
+   !            ! bcmomflux = SIGN(dummy, utang2Int)
+   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
+   !          end if
+   !        END DO
+   !      end if
+   !    else if (ju<=je+myid*je .and. jl<jb+myid*je) then
+   !      jl = jb
+   !      ju = block(n,4) - myid*je
+   !      if (jl == ju) then
+   !        do i = il,iu
+   !          if(IIc(i,jl-1,k-1)==0 .and. IIc(i,jl-1,k)==1) then
+   !            j = jl
+   !            ! utang2Int = utang2(i, j, k)
+   !            ! dummy = (utang2Int**2)*fkar2/(logdz2)
+   !            ! bcmomflux = SIGN(dummy, utang2Int)
+   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)
+   !          else if (IIc(i,jl-1,k) == 0 ) then
+   !            j = jl
+   !            ! utang2Int = utang2(i, j, k)
+   !            ! dummy = (utang2Int**2)*fkar2/(logdz2)
+   !            ! bcmomflux = SIGN(dummy, utang2Int)
+   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
+   !          end if
+   !          if(IIc(i,jl+1,k+1)==1 .or. IIc(i,jl+1,k)==0) then
+   !            j = jl+1
+   !            ! utang2Int = utang2(i, j, k)
+   !            ! dummy = (utang2Int**2)*fkar2/(logdz2)
+   !            ! bcmomflux = SIGN(dummy, utang2Int)
+   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
+   !          else if (IIc(i,jl+1,k-1)==0 .and. IIc(i,jl+1,k)==1) then
+   !          end if
+   !        end do
+   !      else if (jl /= ju) then
+   !        do i = il,iu
+   !          do j = jl+1, ju
+   !            ! utang2Int = utang2(i, j, k)
+   !            ! dummy = (utang2Int**2)*fkar2/(logdz2)
+   !            ! bcmomflux = SIGN(dummy, utang2Int)
+   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)
+   !          end do
+   !          if (IIc(i,jl-1,k)==0) then
+   !            j = jl
+   !            ! utang2Int = utang2(i, j, k)
+   !            ! dummy = (utang2Int**2)*fkar2/(logdz2)
+   !            ! bcmomflux = SIGN(dummy, utang2Int)
+   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
+   !          else if (IIc(i,jl-1,k)==1) then
+   !            j = jl
+   !            ! utang2Int = utang2(i, j, k)
+   !            ! dummy = (utang2Int**2)*fkar2/(logdz2)
+   !            ! bcmomflux = SIGN(dummy, utang2Int)
+   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)
+   !          end if
+   !          if (IIc(i,ju+1,k+1)==1 .and. IIc(i,ju+1,k)==1) then
+   !            j = ju+1
+   !            ! utang2Int = utang2(i, j, k)
+   !            ! dummy = (utang2Int**2)*fkar2/(logdz2)
+   !            ! bcmomflux = SIGN(dummy, utang2Int)
+   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
+   !          else if (IIc(i,ju+1,k)==0) THEN
+   !          end if
+   !        end do
+   !      end if
+   !    else if (ju>je+myid*je .and. jl>=jb+myid*je) then
+   !      jl = block(n,3)-myid*je
+   !      ju = je
+   !      if (jl == ju) THEN
+   !        j = jl
+   !        do i = il,iu
+   !          if(IIc(i,j-1,k+1) == 1 .or. IIc(i,j-1,k)==0) THEN
+   !            ! utang2Int = utang2(i, j, k)
+   !            ! dummy = (utang2Int**2)*fkar2/(logdz2)
+   !            ! bcmomflux = SIGN(dummy, utang2Int)
+   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
+   !          else if (IIc(i,j-1,k+1) == 0 .and. IIc(i,j-1,k)==1) THEN
+   !            ! utang2Int = utang2(i, j, k)
+   !            ! dummy = (utang2Int**2)*fkar2/(logdz2)
+   !            ! bcmomflux = SIGN(dummy, utang2Int)
+   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)
+   !          end if
+   !        end do
+   !      else if (jl /= ju) then
+   !        do i = il,iu
+   !          do j = jl+1, ju
+   !            ! utang2Int = utang2(i, j, k)
+   !            ! dummy = (utang2Int**2)*fkar2/(logdz2)
+   !            ! bcmomflux = SIGN(dummy, utang2Int)
+   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)
+   !          end do
+   !          if (IIc(i,jl-1,k+1)==1 .or. IIc(i,jl-1,k)==0) then
+   !            j = jl
+   !            ! utang2Int = utang2(i, j, k)
+   !            ! dummy = (utang2Int**2)*fkar2/(logdz2)
+   !            ! bcmomflux = SIGN(dummy, utang2Int)
+   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
+   !          else if (IIc(i,jl-1,k+1)==0 .and. IIc(i,jl-1,k)==1) then
+   !            j = jl
+   !            ! utang2Int = utang2(i, j, k)
+   !            ! dummy = (utang2Int**2)*fkar2/(logdz2)
+   !            ! bcmomflux = SIGN(dummy, utang2Int)
+   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
+   !          end if
+   !        end do
+   !      end if
+   !    end if
+   ! !end if
 !!!!!!!!!!!!!!!SPECIAL CASES FOR THE SURFACE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !can actually be made redundant and just be replaced by standard horizontal case (doesn't really matter though)
    CASE (91) !surface momentum flux
@@ -602,7 +1158,7 @@ end if
             utang1Int = utang1(i, j, k)
             ctm = fkar2/(logdz2)
             dummy = (utang1Int**2)*ctm
-            bcmomflux = SIGN(dummy, utang1Int) 
+            bcmomflux = SIGN(dummy, utang1Int)
 
             iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
 
@@ -619,7 +1175,7 @@ end if
 
             utang2Int = utang2(i, j, k)
             ctm = fkar2/(logdz2)
-            dummy = (utang2Int**2)*ctm 
+            dummy = (utang2Int**2)*ctm
             bcmomflux = SIGN(dummy, utang2Int)
             iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
             eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)

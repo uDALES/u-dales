@@ -17,11 +17,12 @@
 !
 SUBROUTINE wfGR(hi,hj,hk,ioq,ioqflux,icth,obcqfluxA,qcell,qwall,hurel,resc,ress,n,ind,wforient)
    !wfGR
-   USE modglobal, ONLY : dzf,dzfi,dzh2i,dzhi,dzhiq,dy,dyi,dy2i,dyi5,dxf,dxh,dxfi,dxhi,dxh2i,ib,ie,jb,je,kb,ke,fkar,grav,jmax,rk3step
+   USE modglobal, ONLY : dzf,dzfi,dzh2i,dzhi,dzhiq,dzfi5,dy,dyi,dy2i,dyi5,dxf,dxh,dxfi,dxhi,dxh2i,dxfi5,ib,ie,jb,je,kb,ke,fkar,grav,jmax,rk3step
    USE modsubgriddata, ONLY:ekh
    USE modmpi, ONLY:myid
-   USE initfac, ONLY:block
+   USE initfac, ONLY:block, faclGR
    USE modibmdata
+   use modfields, only : u0, v0, w0
    INTEGER i, j, k, jl, ju, kl, ku, il, iu, km, im, jm, ip, jp, kp
 
    REAL :: bcqflux = 0. !temp storage for temperature flux
@@ -61,18 +62,29 @@ SUBROUTINE wfGR(hi,hj,hk,ioq,ioqflux,icth,obcqfluxA,qcell,qwall,hurel,resc,ress,
       kl = block(n, 5) ! starting k-index
       ku = block(n, 6) ! ending k-index
 
-      delta = dxf(i)*0.5 !
-      DO k = kl, ku
-         DO j = jl, ju
-            bcqflux=min(0.,cveg*(qcell(i,j,k)-qwall)*1/(1/icth(i,j,k)+resc)+(1-cveg)*(qcell(i,j,k)-qwall*hurel)*1/(1/icth(i,j,k)+ress))
-
-            obcqfluxA = obcqfluxA + bcqflux
-            ioqflux(i, j, k) = ioqflux(i, j, k) + bcqflux*dxfi(i)  
-
-            ioq(i,j,k)=ioq(i,j,k)-0.5*(ekh(ip,j,k)*dxf(i)+ekh(i,j,k)*dxf(ip))*(qcell(ip,j,k)-qcell(i,j,k))*dxh2i(ip)*dxfi(i)-bcqflux*dxfi(i) !
-
+      if (faclGR(block(n, 8))) then
+         DO k = kl, ku
+            DO j = jl, ju
+               bcqflux = min(0.,cveg*(qcell(i,j,k) - qwall)*1/(1/icth(i,j,k)+resc)+(1-cveg)*(qcell(i,j,k) - qwall*hurel)*1/(1/icth(i,j,k)+ress))
+               obcqfluxA = obcqfluxA + bcqflux
+               ioqflux(i, j, k) = ioqflux(i, j, k) + bcqflux*dxfi(i)
+               ioq(i,j,k) = ioq(i,j,k) - bcqflux*dxfi(i) &
+                          - 0.5*(ekh(ip,j,k)*dxf(i) + ekh(i,j,k)*dxf(ip))*(qcell(ip,j,k) - qcell(i,j,k))*dxh2i(ip)*dxfi(i) &
+                          + (u0(ip, j, k)*(qcell(ip, j, k)*dxf(i) + qcell(i, j, k)*dxf(ip))*dxhi(ip))*dxfi5(i) &
+                          - (u0(ip, j, k)*(qcell(i , j, k)*dxf(i) + qcell(i, j, k)*dxf(ip))*dxhi(ip))*dxfi5(i)
+            END DO
          END DO
-      END DO
+
+      else
+         DO k = kl, ku
+            DO j = jl, ju
+               ioq(i,j,k) = ioq(i,j,k) &
+                          - 0.5*(ekh(ip,j,k)*dxf(i) + ekh(i,j,k)*dxf(ip))*(qcell(ip,j,k) - qcell(i,j,k))*dxh2i(ip)*dxfi(i) &
+                          + (u0(ip, j, k)*(qcell(ip, j, k)*dxf(i) + qcell(i, j, k)*dxf(ip))*dxhi(ip))*dxfi5(i) &
+                          - (u0(ip, j, k)*(qcell(i , j, k)*dxf(i) + qcell(i, j, k)*dxf(ip))*dxhi(ip))*dxfi5(i)
+            END DO
+         END DO
+      end if
 
 !!! case 22 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    CASE (22)
@@ -83,23 +95,32 @@ SUBROUTINE wfGR(hi,hj,hk,ioq,ioqflux,icth,obcqfluxA,qcell,qwall,hurel,resc,ress,
       kl = block(n, 5) ! starting k-index
       ku = block(n, 6) ! ending k-index
 
-      delta = dxh(i)*0.5
-      DO k = kl, ku
-         DO j = jl, ju
-
-            !dq * 1/res, where res is in [s/m]
-            bcqflux=min(0.,cveg*(qcell(i,j,k)-qwall)*1/(1/icth(i,j,k)+resc)+(1-cveg)*(qcell(i,j,k)-qwall*hurel)*1/(1/icth(i,j,k)+ress))
-
-            obcqfluxA = obcqfluxA + bcqflux
-            ioqflux(i, j, k) = ioqflux(i, j, k) + bcqflux*dxfi(i) 
-
-           ioq(i,j,k) = ioq(i,j,k) +0.5*(ekh(i,j,k)*dxf(im)+ekh(im,j,k)*dxf(i))*(qcell(i,j,k)-qcell(im,j,k))*dxh2i(i) * dxfi(i) - bcqflux*dxfi(i)
-
+      if (faclGR(block(n, 9))) then
+         DO k = kl, ku
+            DO j = jl, ju
+               bcqflux = min(0.,cveg*(qcell(i,j,k) - qwall)*1/(1/icth(i,j,k)+resc)+(1-cveg)*(qcell(i,j,k) - qwall*hurel)*1/(1/icth(i,j,k)+ress))
+               obcqfluxA = obcqfluxA + bcqflux
+               ioqflux(i, j, k) = ioqflux(i, j, k) + bcqflux*dxfi(i)
+               ioq(i,j,k) = ioq(i,j,k) - bcqflux*dxfi(i) &
+                           + 0.5*(ekh(i,j,k)*dxf(im) + ekh(im,j,k)*dxf(i))*(qcell(i,j,k) - qcell(im,j,k))*dxh2i(i)*dxfi(i) &
+                           + (- u0(i, j, k)*(qcell(im, j, k)*dxf(i) + qcell(i, j, k)*dxf(im))*dxhi(i))*dxfi5(i) &
+                           - (- u0(i, j, k)*(qcell(i , j, k)*dxf(i) + qcell(i, j, k)*dxf(im))*dxhi(i))*dxfi5(i)
+            END DO
          END DO
-      END DO
+
+      else
+         DO k = kl, ku
+            DO j = jl, ju
+              ioq(i,j,k) = ioq(i,j,k) &
+                         + 0.5*(ekh(i,j,k)*dxf(im) + ekh(im,j,k)*dxf(i))*(qcell(i,j,k) - qcell(im,j,k))*dxh2i(i)*dxfi(i) &
+                         + (- u0(i, j, k)*(qcell(im, j, k)*dxf(i) + qcell(i, j, k)*dxf(im))*dxhi(i))*dxfi5(i) &
+                         - (- u0(i, j, k)*(qcell(i , j, k)*dxf(i) + qcell(i, j, k)*dxf(im))*dxhi(i))*dxfi5(i)
+            END DO
+         END DO
+      end if
+
 !!! case 32 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    CASE (32) !wall in xz -> wf in y (=vertical) upper, north wall
-
       j = ind
       jm = j - 1
       il = block(n, 1)
@@ -107,23 +128,33 @@ SUBROUTINE wfGR(hi,hj,hk,ioq,ioqflux,icth,obcqfluxA,qcell,qwall,hurel,resc,ress,
       kl = block(n, 5)
       ku = block(n, 6)
 
-      DO k = kl, ku
-         DO i = il, iu
-            
-            bcqflux=min(0.,cveg*(qcell(i,j,k)-qwall)*1/(1/icth(i,j,k)+resc)+(1-cveg)*(qcell(i,j,k)-qwall*hurel)*1/(1/icth(i,j,k)+ress))
+      if (faclGR(block(n, 10))) then
+         DO k = kl, ku
+            DO i = il, iu
+               bcqflux = min(0., cveg*(qcell(i,j,k) - qwall)*1/(1/icth(i,j,k)+resc)+(1-cveg)*(qcell(i,j,k) - qwall*hurel)*1/(1/icth(i,j,k)+ress))
+               obcqfluxA = obcqfluxA + bcqflux
+               ioqflux(i, j, k) = ioqflux(i, j, k) + bcqflux*dyi
+               ioq(i, j, k) = ioq(i, j, k) -bcqflux*dyi &
+                            + 0.5*(ekh(i, j, k) + ekh(i, jm, k))*(qcell(i, j, k) - qcell(i, jm, k))*dy2i &
+                            + (- v0(i, j, k)*(qcell(i, jm, k) + qcell(i, j, k)))*dyi5 &
+                            - (- v0(i, j, k)*(qcell(i, j , k) + qcell(i, j, k)))*dyi5
 
-            obcqfluxA = obcqfluxA + bcqflux
-            ioqflux(i, j, k) = ioqflux(i, j, k) + bcqflux*dyi  
-
-            ioq(i, j, k) = ioq(i, j, k) + ( &
-                           0.5*(ekh(i, j, k) + ekh(i, jm, k))*(qcell(i, j, k) - qcell(i, jm, k)))*dy2i &
-                           -bcqflux*dyi
+            END DO
          END DO
-      END DO
+
+      else
+         DO k = kl, ku
+            DO i = il, iu
+               ioq(i, j, k) = ioq(i, j, k) &
+                            + 0.5*(ekh(i, j, k) + ekh(i, jm, k))*(qcell(i, j, k) - qcell(i, jm, k))*dy2i &
+                            + (- v0(i, j, k)*(qcell(i, jm, k) + qcell(i, j, k)))*dyi5 &
+                            - (- v0(i, j, k)*(qcell(i, j , k) + qcell(i, j, k)))*dyi5
+            END DO
+         END DO
+      end if
 
 !!! case 42 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    CASE (42) !wall in xz -> wf in y (=vertical) lower, south wall
-
       j = ind
       jp = j + 1
       il = block(n, 1)
@@ -131,45 +162,104 @@ SUBROUTINE wfGR(hi,hj,hk,ioq,ioqflux,icth,obcqfluxA,qcell,qwall,hurel,resc,ress,
       kl = block(n, 5)
       ku = block(n, 6)
 
-      DO k = kl, ku
-         DO i = il, iu
+      if (faclGR(block(n, 11))) then
+         DO k = kl, ku
+            DO i = il, iu
+               bcqflux = min(0., cveg*(qcell(i,j,k) - qwall)*1/(1/icth(i,j,k)+resc)+(1-cveg)*(qcell(i,j,k) - qwall*hurel)*1/(1/icth(i,j,k)+ress))
+               obcqfluxA = obcqfluxA + bcqflux
+               ioqflux(i, j, k) = ioqflux(i, j, k) + bcqflux*dyi
+               ioq(i, j, k) = ioq(i, j, k) - bcqflux*dyi &
+                            - 0.5*(ekh(i, jp, k) + ekh(i, j, k))*(qcell(i, jp, k) - qcell(i, j, k))*dy2i &
+                            + v0(i, jp, k)*(qcell(i, jp, k) + qcell(i, j, k))*dyi5 &
+                            - v0(i, jp, k)*(qcell(i, j , k) + qcell(i, j, k))*dyi5
 
-            bcqflux=min(0.,cveg*(qcell(i,j,k)-qwall)*1/(1/icth(i,j,k)+resc)+(1-cveg)*(qcell(i,j,k)-qwall*hurel)*1/(1/icth(i,j,k)+ress))
-
-            obcqfluxA = obcqfluxA + bcqflux
-            ioqflux(i, j, k) = ioqflux(i, j, k) + bcqflux*dyi 
-
-            ioq(i, j, k) = ioq(i, j, k) - &
-                           0.5*(ekh(i, jp, k) + ekh(i, j, k))*(qcell(i, jp, k) - qcell(i, j, k))*dy2i &
-                           -bcqflux*dyi
+            END DO
          END DO
-      END DO
+
+      else
+         DO k = kl, ku
+            DO i = il, iu
+               ioq(i, j, k) = ioq(i, j, k) &
+                            - 0.5*(ekh(i, jp, k) + ekh(i, j, k))*(qcell(i, jp, k) - qcell(i, j, k))*dy2i &
+                            + v0(i, jp, k)*(qcell(i, jp, k) + qcell(i, j, k))*dyi5 &
+                            - v0(i, jp, k)*(qcell(i, j , k) + qcell(i, j, k))*dyi5
+            END DO
+         END DO
+      end if
 
 !!! case 52 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    CASE (52) !wall in xy -> wf in z (=horizontal), top wall
-
       k = block(n, 6) + 1 !block location
+      !if (.not.(k.gt.kmax)) then
+      if (k > ke) return
       km = k - 1 !
       il = block(n, 1)
       iu = block(n, 2)
       jl = MAX(block(n, 3) - myid*jmax, 1)
       ju = MIN(block(n, 4) - myid*jmax, jmax)
 
-      delta = dzf(k)*0.5
+      if (faclGR(block(n, 7))) then
+         DO j = jl, ju
+            DO i = il, iu
+               bcqflux = min(0., cveg*(qcell(i,j,k) - qwall)*1/(1/icth(i,j,k)+resc)+(1-cveg)*(qcell(i,j,k) - qwall*hurel)*1/(1/icth(i,j,k)+ress))
+               obcqfluxA = obcqfluxA + bcqflux
+               ioqflux(i, j, k) = ioqflux(i, j, k) + bcqflux*dzfi(k)
+               ioq(i, j, k) = ioq(i, j, k) - bcqflux*dzfi(k) &
+                            + 0.5*(dzf(km)*ekh(i, j, k) + dzf(k)*ekh(i, j, km))*(qcell(i, j, k) - qcell(i, j, km))*dzh2i(k)*dzfi(k) &
+                            + (- w0(i, j, k)*(qcell(i, j, km)*dzf(k) + qcell(i, j, k)*dzf(km))*dzhi(k))*dzfi5(k) &
+                            - (- w0(i, j, k)*(qcell(i, j, k )*dzf(k) + qcell(i, j, k)*dzf(km))*dzhi(k))*dzfi5(k)
 
-      DO j = jl, ju
-         DO i = il, iu
-            bcqflux=min(0.,cveg*(qcell(i,j,k)-qwall)*1/(1/icth(i,j,k)+resc)+(1-cveg)*(qcell(i,j,k)-qwall*hurel)*1/(1/icth(i,j,k)+ress))
-
-            obcqfluxA = obcqfluxA + bcqflux
-            ioqflux(i, j, k) = ioqflux(i, j, k) + bcqflux*dzfi(k)
-
-            ioq(i, j, k) = ioq(i, j, k) &
-                           + 0.5*(dzf(km)*ekh(i, j, k) + dzf(k)*ekh(i, j, km))*(qcell(i, j, k) - qcell(i, j, km))*dzh2i(k)*dzfi(k) &
-                           - bcqflux*dzfi(k)
-
+            END DO
          END DO
-      END DO
+
+      else
+         DO j = jl, ju
+            DO i = il, iu
+               ioq(i, j, k) = ioq(i, j, k) &
+                              + 0.5*(dzf(km)*ekh(i, j, k) + dzf(k)*ekh(i, j, km))*(qcell(i, j, k) - qcell(i, j, km))*dzh2i(k)*dzfi(k) &
+                              + (- w0(i, j, k)*(qcell(i, j, km)*dzf(k) + qcell(i, j, k)*dzf(km))*dzhi(k))*dzfi5(k) &
+                              - (- w0(i, j, k)*(qcell(i, j, k )*dzf(k) + qcell(i, j, k)*dzf(km))*dzhi(k))*dzfi5(k)
+            END DO
+         END DO
+      end if
+      !end if
+
+      ! CASE (62) !wall in xy -> wf in z (=horizontal), bottom wall
+      !    k = block(n, 5) - 1 !block location
+      !    !if (.not.(k.lt.0)) then
+      !    if (k < kb) return
+      !    kp = k + 1 !
+      !    il = block(n, 1)
+      !    iu = block(n, 2)
+      !    jl = MAX(block(n, 3) - myid*jmax, 1)
+      !    ju = MIN(block(n, 4) - myid*jmax, jmax)
+      !
+      !    if (faclGR(block(n, 12))) then
+      !       DO j = jl, ju
+      !          DO i = il, iu
+      !             bcqflux = min(0., cveg*(qcell(i,j,k) - qwall)*1/(1/icth(i,j,k)+resc)+(1-cveg)*(qcell(i,j,k) - qwall*hurel)*1/(1/icth(i,j,k)+ress))
+      !             obcqfluxA = obcqfluxA + bcqflux
+      !             ioqflux(i, j, k) = ioqflux(i, j, k) + bcqflux*dzfi(k)
+      !             ioq(i, j, k) = ioq(i, j, k) - bcqflux*dzfi(k) &
+      !                          - 0.5*(dzf(kp)*ekh(i, j, k) + dzf(k)*ekh(i, j, kp))*(qcell(i, j, kp) - qcell(i, j, k))*dzh2i(k)*dzfi(k) &
+      !                          + w0(i, j, kp)*(qcell(i, j, kp)*dzf(k) + qcell(i, j, k)*dzf(kp))*dzhi(kp)*dzfi5(k) &
+      !                          - w0(i, j, kp)*(qcell(i, j, k )*dzf(k) + qcell(i, j, k)*dzf(kp))*dzhi(kp)*dzfi5(k)
+      !
+      !          END DO
+      !       END DO
+      !
+      !    else
+      !       DO j = jl, ju
+      !          DO i = il, iu
+      !             ioq(i, j, k) = ioq(i, j, k) &
+      !                          - 0.5*(dzf(kp)*ekh(i, j, k) + dzf(k)*ekh(i, j, kp))*(qcell(i, j, kp) - qcell(i, j, k))*dzh2i(k)*dzfi(k) &
+      !                          + w0(i, j, kp)*(qcell(i, j, kp)*dzf(k) + qcell(i, j, k)*dzf(kp))*dzhi(kp)*dzfi5(k) &
+      !                          - w0(i, j, kp)*(qcell(i, j, k )*dzf(k) + qcell(i, j, k)*dzf(kp))*dzhi(kp)*dzfi5(k)
+      !          END DO
+      !       END DO
+      !    end if
+      !    !end if
+
 END SELECT
 
 END SUBROUTINE wfGR

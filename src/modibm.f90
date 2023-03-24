@@ -31,10 +31,10 @@ module modibm
 
    contains
    subroutine createwalls
-      use modglobal, only:ib, ie, jb, je, jgb, jge, kb, ke, jmax, nblocks, &
+      use modglobal, only:ib, ie, jb, je, jgb, jge, kb, ke, jmax, dzf, zh, nblocks, &
          nsv, cexpnr, ifinput, libm, ih, kh, iwallmom, iwalltemp, iwallmoist, rslabs, bldT
       use modsurfdata, only:thls, z0h, z0, thvs
-      use modfields, only:sv0, svm, thl0, thlm, qtp, qt0, IIc, IIu, IIv, IIw, IIct, IIwt, IIcs, IIus, IIvs, IIws
+      use modfields, only:sv0, svm, thl0, thlm, qtp, qt0, IIc, IIu, IIv, IIw, IIct, IIwt, IIcs, IIus, IIvs, IIws, thlprof
       use modmpi, only:myid, comm3d, mpierr, MPI_INTEGER, MPI_DOUBLE_PRECISION, MY_REAL, nprocs, cmyid, &
          MPI_REAL8, MPI_REAL4, MPI_SUM
       use initfac, only:block
@@ -43,43 +43,10 @@ module modibm
       integer :: IIcl(kb:ke + kh), IIul(kb:ke + kh), IIvl(kb:ke + kh), IIwl(kb:ke + kh)
       integer :: IIcd(ib - ih:ie + ih, kb:ke + kh)
       integer :: IIwd(ib - ih:ie + ih, kb:ke + kh)
+      real    :: thlprofvolav
       character(80) chmess, name2
 
       if (.not. libm) return
-
-      ! check if walls are at least 2 cells in each dimension
-      do n = 1, nblocks
-         dbi = block(n, 2) - block(n, 1)
-         dbj = block(n, 4) - block(n, 3)
-         dbk = block(n, 6) - block(n, 5)
-         if (any((/dbi, dbj, dbk/) < 1)) then
-            write(6, *) "blocks not at least 2 cells in each dimension, or upper limit < lower limit"
-            !stop  !ils13 19.07.17, don't stop for now
-         end if
-      end do
-
-      ! For all blocks set the internal concentrations to zero and internal
-      ! temperature to building temperature
-      do n = 1, nblocks
-         il = block(n, 1)
-         iu = block(n, 2)
-         kl = block(n, 5)
-         ku = block(n, 6)
-         jl = block(n, 3) - myid*jmax
-         ju = block(n, 4) - myid*jmax
-
-         if ((ju < jb - 1) .or. (jl > je + 1)) then ! The block is entirely out of this partition
-            cycle
-         end if
-         if (ju > je) ju=je !tg3315 and bss116 added 23.10.18 as bad allocation otherwise.
-         if (jl < jb) jl=jb
-         do sc = 1, nsv
-            !sv0(il:iu, jl:ju, kl:ku, sc) = svprof(kl:ku)  !internal ! tg3315 commented to avoid flux at startup
-            !svm(il:iu, jl:ju, kl:ku, sc) = svprof(kl:ku)  !internal
-         end do
-         thl0(il:iu, jl:ju, kl:ku) = bldT !internal ! make sure bldT is equal to init thl prof
-         thlm(il:iu, jl:ju, kl:ku) = bldT !internal
-      end do
 
       nxwall = 0
       do n = 1, nblocks ! first x and z walls
@@ -210,8 +177,8 @@ module modibm
    end subroutine createwalls
 
    subroutine ibmwallfun
-      use modglobal, only:libm, kb, ke, kh
-      use modfields, only:momfluxb, up, vp, wp, thlp, tfluxb, qfluxb, tau_x, tau_y, tau_z, thl_flux
+      use modglobal, only:libm
+      use modfields, only:momfluxb, tfluxb, qfluxb, thl_flux
 
       if (libm) then
          ! compute fluxes at IBM
@@ -219,20 +186,10 @@ module modibm
          tfluxb = 0.
          qfluxb = 0.
 
-         tau_x(:,:,kb:ke+kh) = up
-         tau_y(:,:,kb:ke+kh) = vp
-         tau_z(:,:,kb:ke+kh) = wp
-         thl_flux(:,:,kb:ke+kh) = thlp
-
          call xwallfun
          call ywallfunplus ! due to parallellisation differentiation between + and - side
          call ywallfunmin ! due to parallellisation differentiation between + and - side
          call zwallfun
-
-         tau_x(:,:,kb:ke+kh) = up - tau_x(:,:,kb:ke+kh)
-         tau_y(:,:,kb:ke+kh) = vp - tau_y(:,:,kb:ke+kh)
-         tau_z(:,:,kb:ke+kh) = wp - tau_z(:,:,kb:ke+kh)
-         thl_flux(:,:,kb:ke+kh) = thlp - thl_flux(:,:,kb:ke+kh)
 
       end if
    end subroutine ibmwallfun
@@ -243,72 +200,82 @@ module modibm
       use modfields, only:um, up, v0, w0, vp, wp, shear, thl0, thlp, qt0, qtp, sv0, svp, momfluxb, tfluxb, exnf, cth, qfluxb
       use initfac, only:fachf, block, faclGR, facef, facqsat, fachurel, facf, facT, facz0,facz0h
       integer i, j, k, n, nc, jl, ju, kl, ku, im, jm, jp, km, m
+
       if (iwallmom == 1) then !fixed flux
       !not implemented
       else if (iwallmom == 2) then !wall function
          do n = 1, nxwall
             k = block(ixwall(n), 8) !west side
-            call wfuno(ih, jh, kh, vp, wp, thlp, momfluxb, tfluxb, cth, bcTfluxA, v0, w0, thl0, facT(k, 1), facz0(k), facz0h(k), ixwall(n), 1, 11)
+            if (k /= 0) call wfuno(ih, jh, kh, vp, wp, thlp, momfluxb, tfluxb, cth, bcTfluxA, v0, w0, thl0, facT(k, 1), facz0(k), facz0h(k), ixwall(n), 1, 11)
             k = block(ixwall(n), 9) !east side
-            call wfuno(ih, jh, kh, vp, wp, thlp, momfluxb, tfluxb, cth, bcTfluxA, v0, w0, thl0, facT(k, 1), facz0(k), facz0h(k), ixwall(n), 1, 21)
+            if (k /= 0) call wfuno(ih, jh, kh, vp, wp, thlp, momfluxb, tfluxb, cth, bcTfluxA, v0, w0, thl0, facT(k, 1), facz0(k), facz0h(k), ixwall(n), 1, 21)
          end do
       else if (iwallmom == 3) then
          do n = 1, nxwall
             k = block(ixwall(n), 8) !west side
-            call wfmneutral(ih, jh, kh, vp, wp, momfluxb, v0, w0, facz0(k), ixwall(n), 1, 11)
+            if (k /= 0) call wfmneutral(ih, jh, kh, vp, wp, momfluxb, v0, w0, facz0(k), ixwall(n), 1, 11)
             k = block(ixwall(n), 9) !east side
-            call wfmneutral(ih, jh, kh, vp, wp, momfluxb, v0, w0, facz0(k), ixwall(n), 1, 21)
+            if (k /= 0) call wfmneutral(ih, jh, kh, vp, wp, momfluxb, v0, w0, facz0(k), ixwall(n), 1, 21)
         end do
       end if
 
       if (ltempeq) then
-      if (iwalltemp == 1) then !fixed flux
-         do n = 1, nxwall
-            call xwallscalar(ih, jh, kh, thl0, thlp, bctfxm, bctfxp, ixwall(n))
-         end do
-      else if (iwalltemp == 2) then
-         do n = 1, nxwall
-            k = block(ixwall(n), 8) !west side
-            call wfuno(ih, jh, kh, vp, wp, thlp, momfluxb, tfluxb, cth, bcTfluxA, v0, w0, thl0, facT(k, 1), facz0(k), facz0h(k), ixwall(n), 1, 12) !left wall
-            fachf(k) = fachf(k) + bcTfluxA !accumulate flux from that facet (can be on multiple processors, will be MPI_ALLREDUCEd in modEB)
-
-            k = block(ixwall(n), 9) !east side
-            call wfuno(ih, jh, kh, vp, wp, thlp, momfluxb, tfluxb, cth, bcTfluxA, v0, w0, thl0, facT(k, 1), facz0(k), facz0h(k), ixwall(n), 1, 22) !right wall
-            fachf(k) = fachf(k) + bcTfluxA
-         end do
-      end if
+         if (iwalltemp == 1) then !fixed flux
+            do n = 1, nxwall
+               k = block(ixwall(n), 8) !west side
+               if (k /= 0) call xwallscalarmin_advecc2nd_corr(ih, jh, kh, thl0, thlp, bctfxm, ixwall(n))
+               k = block(ixwall(n), 9) !east side
+               if (k /= 0) call xwallscalarplus_advecc2nd_corr(ih, jh, kh, thl0, thlp, bctfxp, ixwall(n))
+            end do
+         else if (iwalltemp == 2) then
+            do n = 1, nxwall
+               k = block(ixwall(n), 8) !west side
+               if (k /= 0) then
+                  call wfuno(ih, jh, kh, vp, wp, thlp, momfluxb, tfluxb, cth, bcTfluxA, v0, w0, thl0, facT(k, 1), facz0(k), facz0h(k), ixwall(n), 1, 12) !left wall
+                  fachf(k) = fachf(k) + bcTfluxA !accumulate flux from that facet (can be on multiple processors, will be MPI_ALLREDUCEd in modEB)
+               end if
+               k = block(ixwall(n), 9) !east side
+               if (k /= 0) then
+                  call wfuno(ih, jh, kh, vp, wp, thlp, momfluxb, tfluxb, cth, bcTfluxA, v0, w0, thl0, facT(k, 1), facz0(k), facz0h(k), ixwall(n), 1, 22) !right wall
+                  fachf(k) = fachf(k) + bcTfluxA
+               end if
+            end do
+         end if
       end if
 
       if (lmoist) then
-      if (iwallmoist == 1) then !fixed flux
-         do n = 1, nxwall
-            call xwallscalar(ih, jh, kh, qt0, qtp, bcqfxm, bcqfxp, ixwall(n))
-         end do
-      end if
-      if ((ltempeq) .and. (iwallmoist == 2)) then
-         do n = 1, nxwall
-            k = block(ixwall(n), 8)
-            if (faclGR(k)) then !only if it is a vegetated surface
-               call wfGR(ih, jh, kh, qtp, qfluxb, cth, bcqfluxA, qt0(:, :, :), facqsat(k), fachurel(k), facf(k, 4), facf(k, 5), ixwall(n), 1, 12) !left wall
-               facef(k) = facef(k) + bcqfluxA
-            end if
-            k = block(ixwall(n), 9)
-            if (faclGR(k)) then
-               call wfGR(ih, jh, kh, qtp, qfluxb, cth, bcqfluxA, qt0(:, :, :), facqsat(k), fachurel(k), facf(k, 4), facf(k, 5), ixwall(n), 1, 22) !right wall
-               facef(k) = facef(k) + bcqfluxA
-            end if
-         end do
-      end if
+         if (iwallmoist == 1) then !fixed flux
+            do n = 1, nxwall
+               k = block(ixwall(n), 8) !west side
+               if (k /= 0) call xwallscalarmin_advecc2nd_corr(ih, jh, kh, qt0, qtp, bcqfxm, ixwall(n))
+               k = block(ixwall(n), 9) !east side
+               if (k /= 0) call xwallscalarplus_advecc2nd_corr(ih, jh, kh, qt0, qtp, bcqfxp, ixwall(n))
+            end do
+         end if
+         if ((ltempeq) .and. (iwallmoist == 2)) then
+            do n = 1, nxwall
+               k = block(ixwall(n), 8)
+               if (k /= 0) then
+                  call wfGR(ih, jh, kh, qtp, qfluxb, cth, bcqfluxA, qt0(:, :, :), facqsat(k), fachurel(k), facf(k, 4), facf(k, 5), ixwall(n), 1, 12) !left wall
+                  facef(k) = facef(k) + bcqfluxA
+               end if
+               k = block(ixwall(n), 9)
+               if (k /= 0) then
+                  call wfGR(ih, jh, kh, qtp, qfluxb, cth, bcqfluxA, qt0(:, :, :), facqsat(k), fachurel(k), facf(k, 4), facf(k, 5), ixwall(n), 1, 22) !right wall
+                  facef(k) = facef(k) + bcqfluxA
+               end if
+            end do
+         end if
       end if
 
       if (nsv>0) then
-      if (iwallscal == 1) then !fixed flux
-         do n = 1, nxwall
-            do m= 1, nsv
-               call xwallscalar(ihc, jhc, khc, sv0(:,:,:,m), svp(:,:,:,m), 0., 0., ixwall(n))
+         if (iwallscal == 1) then !fixed flux
+            do n = 1, nxwall
+               do m= 1, nsv
+                  call xwallscalar(ihc, jhc, khc, sv0(:,:,:,m), svp(:,:,:,m), 0., 0., ixwall(n))
+               end do
             end do
-         end do
-      end if
+         end if
       end if
 
    end subroutine xwallfun
@@ -355,6 +322,83 @@ module modibm
 
    end subroutine xwallscalar
 
+
+   subroutine xwallscalarmin_advecc2nd_corr(hi, hj, hk, putin, putout, bcvaluem, n)
+      ! 12
+      use modglobal, only:jmax, dxf, dxfi, dxfi5, dxhi, dxh2i, nsv, ib, ie, jb, je, kb, ke, prandtlmoli, numol
+      use modfields, only:u0
+      use modmpi, only:myid
+      use modsubgriddata, only:ekh
+      use initfac, only:block
+      integer i, ip, j, k, jl, ju, kl, ku
+
+      integer, intent(in) :: hi !<size of halo in i
+      integer, intent(in) :: hj !<size of halo in j
+      integer, intent(in) :: hk !<size of halo in k
+      real, intent(in)    :: putin(ib - hi:ie + hi, jb - hj:je + hj, kb - hk:ke + hk)
+      real, intent(inout) :: putout(ib - hi:ie + hi, jb - hj:je + hj, kb:ke + hk)
+      real, intent(in)    :: bcvaluem
+      integer, intent(in)    :: n
+
+      i = block(n, 1) - 1
+      ip = i + 1
+      jl = MAX(block(n, 3) - myid*jmax, 1) ! starting j-index
+      ju = MIN(block(n, 4) - myid*jmax, jmax) ! ending j-index
+      kl = block(n, 5) ! starting k-index
+      ku = block(n, 6) ! ending k-index
+
+      !fixed flux
+      !remove standard diffusion term and 2nd order advection term, add flux=bcvalue
+      do k = kl, ku
+         do j = jl, ju
+            putout(i, j, k) = putout(i, j, k) - bcvaluem*dxfi(i) &
+                            - 0.5*(ekh(ip, j, k)*dxf(i) + ekh(i, j, k)*dxf(ip))*(putin(ip, j, k) - putin(i, j, k))*dxh2i(ip)*dxfi(i) &
+                            + (u0(ip, j, k)*(putin(ip, j, k)*dxf(i) + putin(i, j, k)*dxf(ip))*dxhi(ip))*dxfi5(i) &
+                            - (u0(ip, j, k)*(putin(i , j, k)*dxf(i) + putin(i, j, k)*dxf(ip))*dxhi(ip))*dxfi5(i)
+         end do
+      end do
+
+   end subroutine xwallscalarmin_advecc2nd_corr
+
+
+   subroutine xwallscalarplus_advecc2nd_corr(hi, hj, hk, putin, putout, bcvaluep, n)
+      ! 22
+      use modglobal, only:jmax, dxf, dxfi, dxfi5, dxhi, dxh2i, nsv, ib, ie, jb, je, kb, ke, prandtlmoli, numol
+      use modfields, only:u0
+      use modmpi, only:myid
+      use modsubgriddata, only:ekh
+      use initfac, only:block
+      integer i, im, j, k, jl, ju, kl, ku
+
+      integer, intent(in) :: hi !<size of halo in i
+      integer, intent(in) :: hj !<size of halo in j
+      integer, intent(in) :: hk !<size of halo in k
+      real, intent(in)    :: putin(ib - hi:ie + hi, jb - hj:je + hj, kb - hk:ke + hk)
+      real, intent(inout) :: putout(ib - hi:ie + hi, jb - hj:je + hj, kb:ke + hk)
+      real, intent(in)    :: bcvaluep
+      integer, intent(in)    :: n
+
+      i = block(n, 2) + 1
+      im = i - 1
+      jl = MAX(block(n, 3) - myid*jmax, 1) ! starting j-index
+      ju = MIN(block(n, 4) - myid*jmax, jmax) ! ending j-index
+      kl = block(n, 5) ! starting k-index
+      ku = block(n, 6) ! ending k-index
+
+      !fixed flux
+      !remove standard diffusion term and 2nd order advection term, add flux=bcvalue
+      do k = kl, ku
+         do j = jl, ju
+            putout(i, j, k) = putout(i, j, k) - bcvaluep*dxfi(i) & ! applied flux
+                            + 0.5*(ekh(i, j, k)*dxf(im) + ekh(im,j,k)*dxf(i))*(putin(i, j, k) - putin(im, j, k))*dxh2i(i)*dxfi(i) &
+                            + (- u0(i, j, k)*(putin(im, j, k)*dxf(i) + putin(i, j, k)*dxf(im))*dxhi(i))*dxfi5(i) &
+                            - (- u0(i, j, k)*(putin(i , j, k)*dxf(i) + putin(i, j, k)*dxf(im))*dxhi(i))*dxfi5(i)
+         end do
+      end do
+
+   end subroutine xwallscalarplus_advecc2nd_corr
+
+
    subroutine ywallfunplus
       use modglobal, only:dzf, dzhiq, dzhi, dxf, dxhi, dy, dyi, nsv, lles, numol, ltempeq, lmoist, &
          je, jb, ih, jh, kh, ihc, jhc, khc, iwallmom, iwallmoist, iwalltemp, iwallscal, nblocks
@@ -367,62 +411,64 @@ module modibm
       if (iwallmom == 1) then !fixed flux
       !not implemented
       else if (iwallmom == 2) then
-      do n = 1, nypluswall
-         k = block(iypluswall(n, 1), 10) !upper y wall = north wall
-         call wfuno(ih, jh, kh, up, wp, thlp, momfluxb, tfluxb, cth, bcTfluxA, u0, w0, thl0, facT(k,1), facz0(k), facz0h(k), iypluswall(n, 1), iypluswall(n, 2), 31)
-      end do
+         do n = 1, nypluswall
+            k = block(iypluswall(n, 1), 10) !upper y wall = north wall
+            if (k /= 0) call wfuno(ih, jh, kh, up, wp, thlp, momfluxb, tfluxb, cth, bcTfluxA, u0, w0, thl0, facT(k,1), facz0(k), facz0h(k), iypluswall(n, 1), iypluswall(n, 2), 31)
+         end do
       else if (iwallmom == 3) then
-      do n = 1, nypluswall
-         k = block(iypluswall(n, 1), 10) !upper y wall = north wall
-         call wfmneutral(ih, jh, kh, up, wp, momfluxb, u0, w0, facz0(k), iypluswall(n, 1), iypluswall(n, 2), 31)
-      end do
+         do n = 1, nypluswall
+            k = block(iypluswall(n, 1), 10) !upper y wall = north wall
+            if (k /= 0) call wfmneutral(ih, jh, kh, up, wp, momfluxb, u0, w0, facz0(k), iypluswall(n, 1), iypluswall(n, 2), 31)
+         end do
       end if
 
       if (ltempeq) then
-      if (iwalltemp == 1) then
-         do n = 1, nypluswall ! loop over all shear x-walls
-
-            !write(*,*) 'shape(iypluswall), nypluswall', shape(iypluswall), nypluswall
-
-            call ywallscalarplus(ih, jh, kh, thl0, thlp, bctfyp, n)
-         end do
-      else if (iwalltemp == 2) then
-         do n = 1, nypluswall
-            k = block(iypluswall(n, 1), 10)
-            call wfuno(ih, jh, kh, up, wp, thlp, momfluxb, tfluxb, cth, bcTfluxA, u0, w0, thl0, facT(k,1), facz0(k), facz0h(k), iypluswall(n, 1), iypluswall(n, 2), 32)
-            fachf(k) = fachf(k) + bcTfluxA
-         end do
-      end if
+         if (iwalltemp == 1) then
+            do n = 1, nypluswall ! loop over all shear x-walls
+               k = block(iypluswall(n, 1), 10)
+               if (k /= 0) call ywallscalarplus_advecc2nd_corr(ih, jh, kh, thl0, thlp, bctfyp, n)
+            end do
+         else if (iwalltemp == 2) then
+            do n = 1, nypluswall
+               k = block(iypluswall(n, 1), 10)
+               if (k /= 0) then
+                  call wfuno(ih, jh, kh, up, wp, thlp, momfluxb, tfluxb, cth, bcTfluxA, u0, w0, thl0, facT(k,1), facz0(k), facz0h(k), iypluswall(n, 1), iypluswall(n, 2), 32)
+                  fachf(k) = fachf(k) + bcTfluxA
+               end if
+            end do
+         end if
       end if
 
       if (lmoist) then
-      if (iwallmoist == 1) then
-         do n = 1, nypluswall ! loop over all shear x-walls
-            call ywallscalarplus(ih, jh, kh, qt0, qtp, bcqfyp, n)
-         end do
-      end if
-      if ((ltempeq) .and. (iwallmoist == 2)) then
-         do n = 1, nypluswall
-            k = block(iypluswall(n, 1), 10)
-            if (faclGR(k)) then
-            call wfGR(ih,jh,kh,qtp,qfluxb,cth,bcqfluxA,qt0,facqsat(k),fachurel(k),facf(k,4),facf(k,5),iypluswall(n,1),iypluswall(n,2),32)
-            facef(k) = facef(k) + bcqfluxA
-            end if
-         end do
-      end if
+         if (iwallmoist == 1) then
+            do n = 1, nypluswall ! loop over all shear x-walls
+               k = block(iypluswall(n, 1), 10)
+               if (k /= 0) call ywallscalarplus_advecc2nd_corr(ih, jh, kh, qt0, qtp, bcqfyp, n)
+            end do
+         end if
+         if ((ltempeq) .and. (iwallmoist == 2)) then
+            do n = 1, nypluswall
+               k = block(iypluswall(n, 1), 10)
+               if (k /= 0) then
+                  call wfGR(ih,jh,kh,qtp,qfluxb,cth,bcqfluxA,qt0,facqsat(k),fachurel(k),facf(k,4),facf(k,5),iypluswall(n,1),iypluswall(n,2),32)
+                  facef(k) = facef(k) + bcqfluxA
+               end if
+            end do
+         end if
       end if
 
       if (nsv>0) then
-      if (iwallscal == 1) then
-         do n = 1, nypluswall ! loop over all shear x-walls
-            do m = 1, nsv
-               call ywallscalarplus(ihc, jhc, khc, sv0(:,:,:,m), svp(:,:,:,m), 0., n)
+         if (iwallscal == 1) then
+            do n = 1, nypluswall ! loop over all shear x-walls
+               do m = 1, nsv
+                  call ywallscalarplus(ihc, jhc, khc, sv0(:,:,:,m), svp(:,:,:,m), 0., n)
+               end do
             end do
-         end do
-      end if
+         end if
       end if
 
    end subroutine ywallfunplus
+
 
    subroutine ywallscalarplus(hi, hj, hk, putin, putout, bcvaluep, n)
       use modglobal, only:dyi, ib, ie, jb, je, kb, ke, numol, prandtlmoli
@@ -453,6 +499,45 @@ module modibm
       end do
    end subroutine ywallscalarplus
 
+
+   subroutine ywallscalarplus_advecc2nd_corr(hi, hj, hk, putin, putout, bcvaluep, n)
+      ! 32
+      use modglobal, only : dyi, dy2i, dyi5, ib, ie, jb, je, kb, ke, numol, prandtlmoli
+      use modfields, only : v0
+      use modsubgriddata, only:ekh
+      use modmpi, only:myid
+      use initfac, only:block
+      integer i, j, jm, k, il, iu, kl, ku, m
+
+      integer, intent(in) :: hi !<size of halo in i
+      integer, intent(in) :: hj !<size of halo in j
+      integer, intent(in) :: hk !<size of halo in k
+      real, intent(in)    :: putin(ib - hi:ie + hi, jb - hj:je + hj, kb - hk:ke + hk)
+      real, intent(inout) :: putout(ib - hi:ie + hi, jb - hj:je + hj, kb:ke + hk)
+      real, intent(in)    :: bcvaluep
+      integer, intent(in)    :: n
+
+      m = iypluswall(n, 1)
+      j = iypluswall(n, 2)
+      jm = j - 1
+      il = block(m, 1)
+      iu = block(m, 2)
+      kl = block(m, 5)
+      ku = block(m, 6)
+
+      !fixed flux
+      do k = kl, ku
+         do i = il, iu
+            putout(i, j, k) = putout(i, j, k) - bcvaluep*dyi &
+                            + (0.5*(ekh(i, j, k) + ekh(i, jm, k))*(putin(i, j, k) - putin(i, jm, k)))*dy2i &
+                            + (- v0(i, j, k)*(putin(i, jm, k) + putin(i, j, k)))*dyi5 &
+                            - (- v0(i, j, k)*(putin(i, j , k) + putin(i, j, k)))*dyi5
+         end do
+      end do
+
+   end subroutine ywallscalarplus_advecc2nd_corr
+
+
    subroutine ywallfunmin
       use modglobal, only:dxf, dxhi, dy, dyi, dzhiq, dzf, dzhi, lles, nsv, numol, ltempeq, lmoist, &
          ih, jh, kh, ihc, jhc, khc, iwallmom, iwalltemp, iwallmoist, iwallscal, nblocks
@@ -464,62 +549,67 @@ module modibm
       if (iwallmom == 1) then
       !fixed flux, not implemented
       else if (iwallmom == 2) then
-      do n = 1, nyminwall
-      k = block(iyminwall(n, 1), 11)
-      call wfuno(ih, jh, kh, up, wp, thlp, momfluxb, tfluxb, cth, bcTfluxA, u0, w0, thl0, facT(k,1), facz0(k), facz0h(k), iyminwall(n, 1), iyminwall(n, 2), 41)
-      end do
+         do n = 1, nyminwall
+         k = block(iyminwall(n, 1), 11)
+         if (k /= 0) call wfuno(ih, jh, kh, up, wp, thlp, momfluxb, tfluxb, cth, bcTfluxA, u0, w0, thl0, facT(k,1), facz0(k), facz0h(k), iyminwall(n, 1), iyminwall(n, 2), 41)
+         end do
       else if (iwallmom == 3) then
-      do n = 1, nyminwall
-      k = block(iyminwall(n, 1), 11)
-      call wfmneutral(ih, jh, kh, up, wp, momfluxb, u0, w0, facz0(k), iyminwall(n, 1), iyminwall(n, 2), 41)
-      end do
+         do n = 1, nyminwall
+         k = block(iyminwall(n, 1), 11)
+         if (k /= 0) call wfmneutral(ih, jh, kh, up, wp, momfluxb, u0, w0, facz0(k), iyminwall(n, 1), iyminwall(n, 2), 41)
+         end do
       end if !
 
       if (ltempeq) then
-      if (iwalltemp == 1) then
-         do n = 1, nyminwall !
-            call ywallscalarmin(ih, jh, kh, thl0, thlp, bctfym, n)
-         end do
-      else if (iwalltemp == 2) then
-         do n = 1, nyminwall
-            k = block(iyminwall(n, 1), 11)
-            call wfuno(ih, jh, kh, up, wp, thlp, momfluxb, tfluxb, cth, bcTfluxA, u0, w0, thl0, facT(k,1), facz0(k), facz0h(k), iyminwall(n, 1), iyminwall(n, 2), 42)
-            fachf(k) = fachf(k) + bcTfluxA
-         end do
-      end if
+         if (iwalltemp == 1) then
+            do n = 1, nyminwall !
+               k = block(iyminwall(n, 1), 11)
+               if (k /= 0) call ywallscalarmin_advecc2nd_corr(ih, jh, kh, thl0, thlp, bctfym, n)
+            end do
+         else if (iwalltemp == 2) then
+            do n = 1, nyminwall
+               k = block(iyminwall(n, 1), 11)
+               if (k /= 0) then
+                  call wfuno(ih, jh, kh, up, wp, thlp, momfluxb, tfluxb, cth, bcTfluxA, u0, w0, thl0, facT(k,1), facz0(k), facz0h(k), iyminwall(n, 1), iyminwall(n, 2), 42)
+                  fachf(k) = fachf(k) + bcTfluxA
+               end if
+            end do
+         end if
       end if
 
       if (lmoist) then
-      if (iwallmoist == 1) then
-         do n = 1, nyminwall !
-            call ywallscalarmin(ih, jh, kh, qt0, qtp, bcqfym, n)
-         end do
-      end if
-      if ((ltempeq) .and. (iwallmoist == 2)) then
-         do n = 1, nyminwall
-            k = block(iyminwall(n, 1), 11)
-            if (faclGR(k)) then
-            call wfGR(ih, jh, kh, qtp, qfluxb, cth, bcqfluxA, qt0, facqsat(k),fachurel(k),facf(k,4),facf(k,5),iyminwall(n, 1), iyminwall(n, 2), 42)
-               facef(k) = facef(k) + bcqfluxA
-            end if
-         end do
-      end if
+         if (iwallmoist == 1) then
+            do n = 1, nyminwall !
+               k = block(iyminwall(n, 1), 11)
+               if (k /= 0) call ywallscalarmin_advecc2nd_corr(ih, jh, kh, qt0, qtp, bcqfym, n)
+            end do
+         end if
+         if ((ltempeq) .and. (iwallmoist == 2)) then
+            do n = 1, nyminwall
+               k = block(iyminwall(n, 1), 11)
+               if (k /= 0) then
+               call wfGR(ih, jh, kh, qtp, qfluxb, cth, bcqfluxA, qt0, facqsat(k),fachurel(k),facf(k,4),facf(k,5),iyminwall(n, 1), iyminwall(n, 2), 42)
+                  facef(k) = facef(k) + bcqfluxA
+               end if
+            end do
+         end if
       end if
 
       if (nsv>0) then
-      if (iwallscal == 1) then
-         do n = 1, nyminwall !
-            do m = 1, nsv
-               call ywallscalarmin(ihc, jhc, khc, sv0(:,:,:,m), svp(:,:,:,m), 0., n)
+         if (iwallscal == 1) then
+            do n = 1, nyminwall !
+               do m = 1, nsv
+                  call ywallscalarmin(ihc, jhc, khc, sv0(:,:,:,m), svp(:,:,:,m), 0., n)
+               end do
             end do
-         end do
-      end if
+         end if
       end if
 
    end subroutine ywallfunmin
 
+
    subroutine ywallscalarmin(hi, hj, hk, putin, putout, bcvaluem, n)
-      use modglobal, only:dyi, ib, ie, jb, je, kb, ke, prandtlmoli, numol
+      use modglobal, only : dyi, ib, ie, jb, je, kb, ke, prandtlmoli, numol
       use modsubgriddata, only:ekh
       use modmpi, only:myid
       use initfac, only:block
@@ -550,69 +640,221 @@ module modibm
 
    end subroutine ywallscalarmin
 
+
+   subroutine ywallscalarmin_advecc2nd_corr(hi, hj, hk, putin, putout, bcvaluem, n)
+      ! 42
+      use modglobal, only : dyi, dy2i, dyi5, ib, ie, jb, je, kb, ke, prandtlmoli, numol
+      use modfields, only : v0
+      use modsubgriddata, only : ekh
+      use modmpi,  only : myid
+      use initfac, only : block
+      integer i, j, jp, k, il, iu, kl, ku, m
+
+      integer, intent(in) :: hi !<size of halo in i
+      integer, intent(in) :: hj !<size of halo in j
+      integer, intent(in) :: hk !<size of halo in k
+      real, intent(in)    :: putin(ib - hi:ie + hi, jb - hj:je + hj, kb - hk:ke + hk)
+      real, intent(inout) :: putout(ib - hi:ie + hi, jb - hj:je + hj, kb:ke + hk)
+      real, intent(in)    :: bcvaluem
+      integer, intent(in)    :: n
+
+      j = iyminwall(n, 2)
+      jp = j + 1
+      m = iyminwall(n, 1)
+      il = block(m, 1)
+      iu = block(m, 2)
+      kl = block(m, 5)
+      ku = block(m, 6)
+
+      do k = kl, ku
+         do i = il, iu
+            putout(i, j, k) = putout(i, j, k) - bcvaluem*dyi &
+                            - 0.5*(ekh(i, j, k) + ekh(i, jp, k))*(putin(i, jp, k) - putin(i, j, k))*dy2i &
+                            + v0(i, jp, k)*(putin(i, jp, k) + putin(i, j, k))*dyi5 &
+                            - v0(i, jp, k)*(putin(i, j , k) + putin(i, j, k))*dyi5
+
+         end do
+      end do
+
+   end subroutine ywallscalarmin_advecc2nd_corr
+
+
    subroutine zwallfun
       use modglobal, only:dzf, dzfi, dzhi, dzhiq, dxf, dxfi, dxhi, dyi, nsv, lles, numol, ltempeq, lmoist, &
-         ih, jh, kh, ihc, jhc, khc, iwallmom, iwalltemp, iwallmoist, iwallscal
-      use modfields, only:u0, v0, up, vp, shear, thl0, thlp, qt0, qtp, sv0, svp, tfluxb, momfluxb, exnf, cth, qfluxb
+         ib, ie, jb, je, kb, ke, ih, jh, kh, ihc, jhc, khc, iwallmom, iwalltemp, iwallmoist, iwallscal, fkar, grav
+      use modfields, only:u0, v0, up, vp, shear, thl0, thlp, qt0, qtp, sv0, svp, tfluxb, momfluxb, exnf, cth, qfluxb, IIc, IIids
       use modmpi, only:myid
       use initfac, only:fachf, block, faclGR, facef, facqsat, fachurel, facf, facT, facz0, facz0h
-      integer i, j, k, n, nc, il, iu, jl, ju, im, jm, km, m
+      use modsubgriddata, only: ekm
+      integer i, j, k, n, nc, il, iu, jl, ju, im, jm, km, m, kdum
+      real :: adv_contq, utang1Intdum, utang2Intdum,utangIntdum, dTdum, Ribl0dum, deltadum,fkar2dum, &
+              z0dum,z0hdum,logdzdum, logdzhdum, logzhdum, sqdzdum, ctmdum, dummydum, bcmomfluxdum, eommdum, eompdum
+
+      fkar2dum = fkar**2
 
       if (iwallmom == 1) then
       !fixed flux
       else if (iwallmom == 2) then
          do n = 1, nxwall
             k = block(ixwall(n), 7)
-            call wfuno(ih, jh, kh, up, vp, thlp, momfluxb, tfluxb, cth, bcTfluxA, u0, v0, thl0, facT(k, 1), facz0(k), facz0h(k), ixwall(n), 1, 51)
+            if (k /= 0) call wfuno(ih, jh, kh, up, vp, thlp, momfluxb, tfluxb, cth, bcTfluxA, u0, v0, thl0, facT(k, 1), facz0(k), facz0h(k), ixwall(n), 1, 51)
+            ! k = block(ixwall(n), 12)
+            ! if (k /= 0) call wfuno(ih, jh, kh, up, vp, thlp, momfluxb, tfluxb, cth, bcTfluxA, u0, v0, thl0, facT(k, 1), facz0(k), facz0h(k), ixwall(n), 1, 61)
          end do
+
+         ! Case 51
+         j = jb
+         do i=ib,ie
+           do k = kb+1,ke
+             if(IIc(i,j-1,k-1)==0 .and. IIc(i,j,k)==1 .and. IIc(i,j-1,k)==1 .and. IIc(i,j,k-1)==1) THEN
+               kdum = IIids(i,j-1,k-1)
+               z0dum = facz0(kdum)
+               z0hdum = facz0h(kdum)
+               deltadum = 0.5*dzf(k)
+               logdzdum = LOG(deltadum/z0dum)
+               logdzhdum = LOG(deltadum/z0hdum)
+               logzhdum = LOG(z0dum/z0hdum)
+               sqdzdum = SQRT(deltadum/z0dum)
+               utang1Intdum = (u0(i,j,k)+u0(i,j-1,k)+u0(i + 1, j - 1, k)+u0(i + 1, j, k))*0.25
+               utang2Intdum = v0(i,j,k)
+               utangIntdum = max(0.0001,(utang1Intdum**2 + utang2Intdum**2))
+               dTdum = thl0(i,j-1,k) - facT(kdum,1)
+               Ribl0dum = grav*deltadum*dTdum/(facT(kdum,1)*utangIntdum)
+               ctmdum = unom(logdzdum, logdzhdum, logzhdum, sqdzdum, utangIntdum, dTdum, Ribl0dum, fkar2dum)
+               dummydum = (utang2Intdum**2)*ctmdum
+               bcmomfluxdum = SIGN(dummydum, utang2Intdum)
+               eommdum = (dzf(k-1)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, k-1) + ekm(i, j - 1, k-1)))*dzhiq(k)
+               vp(i, j, k) = vp(i, j, k) + (v0(i, j, k) - v0(i, j, k-1))*eommdum*dzhi(k)*dzfi(k) - bcmomfluxdum*dzfi(k)*0.5
+             end if
+
+             ! ! Case 61
+             ! if(IIc(i,j-1,k+1)==0 .and. IIc(i,j,k)==1 .and. IIc(i,j-1,k)==1 .and. IIc(i,j,k+1)==1) THEN
+             !   kdum = IIids(i,j-1,k+1)
+             !   z0dum = facz0(kdum)
+             !   z0hdum = facz0h(kdum)
+             !   deltadum = 0.5*dzf(k)
+             !   logdzdum = LOG(deltadum/z0dum)
+             !   logdzhdum = LOG(deltadum/z0hdum)
+             !   logzhdum = LOG(z0dum/z0hdum)
+             !   sqdzdum = SQRT(deltadum/z0dum)
+             !   utang1Intdum = (u0(i,j,k)+u0(i,j-1,k)+u0(i + 1, j - 1, k)+u0(i + 1, j, k))*0.25
+             !   utang2Intdum = v0(i,j,k)
+             !   utangIntdum = max(0.0001,(utang1Intdum**2 + utang2Intdum**2))
+             !   dTdum = thl0(i,j-1,k) - facT(kdum,1)
+             !   Ribl0dum = grav*deltadum*dTdum/(facT(kdum,1)*utangIntdum)
+             !   ctmdum = unom(logdzdum, logdzhdum, logzhdum, sqdzdum, utangIntdum, dTdum, Ribl0dum, fkar2dum)
+             !   dummydum = (utang2Intdum**2)*ctmdum
+             !   bcmomfluxdum = SIGN(dummydum, utang2Intdum)
+             !   eompdum = (dzf(k+1)*(ekm(i,j,k) + ekm(i,j-1,k)) + dzf(k)*(ekm(i,j,k+1) + ekm(i,j-1,k+1)))*dzhiq(k+1)
+             !   vp(i, j, k) = vp(i, j, k) - (v0(i, j, k+1) - v0(i, j, k))*eompdum*dzhi(k)*dzfi(k) - bcmomfluxdum*dzfi(k)*0.5
+             ! end if
+           end do
+        end do
+
       else if (iwallmom == 3) then
          do n = 1, nxwall
             k = block(ixwall(n), 7)
-            call wfmneutral(ih, jh, kh, up, vp, momfluxb, u0, v0, facz0(k), ixwall(n), 1, 51)
+            if (k /= 0) call wfmneutral(ih, jh, kh, up, vp, momfluxb, u0, v0, facz0(k), ixwall(n), 1, 51)
+            ! k = block(ixwall(n),12)
+            ! if (k /= 0) call wfmneutral(ih, jh, kh, up, vp, momfluxb, u0, v0, facz0(k), ixwall(n), 1, 61)
          end do
+
+         ! Case 51
+         j = jb
+         do i=ib,ie
+           do k = kb+1,ke
+             if(IIc(i,j-1,k-1)==0 .and. IIc(i,j,k)==1 .and. IIc(i,j-1,k)==1 .and. IIc(i,j,k-1)==1) THEN
+               kdum = IIids(i,j-1,k-1)
+               z0dum = facz0(kdum)
+               deltadum = 0.5*dzf(k)
+               logdzdum = LOG(deltadum/z0dum)
+               utang2Intdum = v0(i,j,k)
+               ctmdum = fkar**2/logdzdum**2
+               dummydum = (utang2Intdum**2)*ctmdum
+               bcmomfluxdum = SIGN(dummydum, utang2Intdum)
+               eommdum = (dzf(k-1)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, k-1) + ekm(i, j - 1, k-1)))*dzhiq(k)
+               vp(i, j, k) = vp(i, j, k) + (v0(i, j, k) - v0(i, j, k-1))*eommdum*dzhi(k)*dzfi(k) - bcmomfluxdum*dzfi(k)*0.5
+             end if
+
+             ! ! Case 61
+             ! if(IIc(i,j-1,k+1)==0 .and. IIc(i,j,k)==1 .and. IIc(i,j-1,k)==1 .and. IIc(i,j,k+1)==1) THEN
+             !   kdum = IIids(i,j-1,k+1)
+             !   z0dum = facz0(kdum)
+             !   deltadum = 0.5*dzf(k)
+             !   logdzdum = LOG(deltadum/z0dum)
+             !   utang2Intdum = v0(i,j,k)
+             !   ctmdum = fkar**2/logdzdum**2
+             !   dummydum = (utang2Intdum**2)*ctmdum
+             !   bcmomfluxdum = SIGN(dummydum, utang2Intdum)
+             !   eompdum = (dzf(k+1)*(ekm(i,j,k) + ekm(i,j-1,k)) + dzf(k)*(ekm(i,j,k+1) + ekm(i,j-1,k+1)))*dzhiq(k+1)
+             !   vp(i, j, k) = vp(i, j, k) - (v0(i, j, k+1) - v0(i, j, k))*eompdum*dzhi(k)*dzfi(k) - bcmomfluxdum*dzfi(k)*0.5
+             ! end if
+           end do
+        end do
+
       end if
 
       if (ltempeq) then
-      if (iwalltemp == 1) then
-         do n = 1, nxwall ! loop over all shear x-walls
-            call zwallscalar(ih, jh, kh, thl0, thlp, bctfz, ixwall(n))
-         end do
-      else if (iwalltemp == 2) then
-         do n = 1, nxwall
-            k = block(ixwall(n), 7)
-            call wfuno(ih, jh, kh, up, vp, thlp, momfluxb, tfluxb, cth, bcTfluxA, u0, v0, thl0, facT(k, 1), facz0(k), facz0h(k), ixwall(n), 1, 52)
-            fachf(k) = fachf(k) + bcTfluxA
-         end do
+         if (iwalltemp == 1) then
+            do n = 1, nxwall ! loop over all shear x-walls
+               k = block(ixwall(n), 7)
+               if (k /= 0) call zwallscalarplus_advecc2nd_corr(ih, jh, kh, thl0, thlp, bctfz, ixwall(n))
+               ! k = block(ixwall(n), 12)
+               ! if (k /= 0) call zwallscalarmin_advecc2nd_corr(ih, jh, kh, thl0, thlp, 0., ixwall(n))
+            end do
+         else if (iwalltemp == 2) then
+            do n = 1, nxwall
+               k = block(ixwall(n), 7)
+               if (k /= 0) then
+                  call wfuno(ih, jh, kh, up, vp, thlp, momfluxb, tfluxb, cth, bcTfluxA, u0, v0, thl0, facT(k, 1), facz0(k), facz0h(k), ixwall(n), 1, 52)
+                  fachf(k) = fachf(k) + bcTfluxA
+               end if
+               ! k = block(ixwall(n), 12)
+               ! if (k /= 0) then
+               !    call wfuno(ih, jh, kh, up, vp, thlp, momfluxb, tfluxb, cth, bcTfluxA, u0, v0, thl0, facT(k, 1), facz0(k), facz0h(k), ixwall(n), 1, 62)
+               !    fachf(k) = fachf(k) + bcTfluxA
+               ! end if
+            end do
+         end if
       end if
-      end if
+
       if (lmoist) then
-      if (iwallmoist == 1) then
-         do n = 1, nxwall ! loop over all shear x-walls
-            call zwallscalar(ih, jh, kh, qt0, qtp, bcqfz, ixwall(n))
-         end do
-      end if
-      if ((ltempeq) .and. (iwallmoist == 2)) then
-         do n = 1, nxwall
-            k = block(ixwall(n), 7)
-            if (faclGR(k)) then
-           call wfGR(ih, jh, kh, qtp, qfluxb, cth, bcqfluxA, qt0, facqsat(k), fachurel(k), facf(k, 4), facf(k, 5), ixwall(n), 1, 52)
-                facef(k) = facef(k) + bcqfluxA
-            end if
-         end do
-      end if
+         if (iwallmoist == 1) then
+            do n = 1, nxwall ! loop over all shear x-walls
+               k = block(ixwall(n), 7)
+               if (k /= 0) call zwallscalarplus_advecc2nd_corr(ih, jh, kh, qt0, qtp, bcqfz, ixwall(n))
+               ! k = block(ixwall(n), 12)
+               ! if (k /= 0) call zwallscalarmin_advecc2nd_corr(ih, jh, kh, qt0, qtp, 0., ixwall(n))
+            end do
+         end if
+         if ((ltempeq) .and. (iwallmoist == 2)) then
+            do n = 1, nxwall
+               k = block(ixwall(n), 7)
+               if (k /= 0) then
+                  call wfGR(ih, jh, kh, qtp, qfluxb, cth, bcqfluxA, qt0, facqsat(k), fachurel(k), facf(k, 4), facf(k, 5), ixwall(n), 1, 52)
+                  facef(k) = facef(k) + bcqfluxA
+               end if
+               k = block(ixwall(n), 7)
+               ! if (k /= 0) then
+               !    call wfGR(ih, jh, kh, qtp, qfluxb, cth, bcqfluxA, qt0, facqsat(k), fachurel(k), facf(k, 4), facf(k, 5), ixwall(n), 1, 62)
+               !    facef(k) = facef(k) + bcqfluxA
+               ! end if
+            end do
+         end if
       end if
 
       if (nsv>0) then
-      if (iwallscal == 1) then
-         do n = 1, nxwall ! loop over all shear x-walls
-            do m = 1, nsv
-               call zwallscalar(ihc, jhc, khc, sv0(:,:,:,m), svp(:,:,:,m), 0., ixwall(n))
+         if (iwallscal == 1) then
+            do n = 1, nxwall ! loop over all shear x-walls
+               do m = 1, nsv
+                  call zwallscalar(ihc, jhc, khc, sv0(:,:,:,m), svp(:,:,:,m), 0., ixwall(n))
+               end do
             end do
-         end do
-      end if
+         end if
       end if
 
    end subroutine zwallfun
+
 
    subroutine zwallscalar(hi, hj, hk, putin, putout, bcvalue, n)
       use modglobal, only:jmax, dzf, dzfi, dzhi, dzh2i, ib, ie, jb, je, kb, ke, prandtlmoli, numol
@@ -646,15 +888,88 @@ module modibm
       end do
    end subroutine zwallscalar
 
+
+   subroutine zwallscalarplus_advecc2nd_corr(hi, hj, hk, putin, putout, bcvalue, n)
+      ! 52
+      use modglobal, only : jmax, dzf, dzfi, dzhi, dzh2i, dzfi5, ib, ie, jb, je, kb, ke, prandtlmoli, numol
+      use modfields, only : w0
+      use modsubgriddata, only : ekh
+      use modmpi,  only : myid
+      use initfac, only : block
+      integer i, j, k, il, iu, jl, ju, km
+      integer, intent(in) :: hi !<size of halo in i
+      integer, intent(in) :: hj !<size of halo in j
+      integer, intent(in) :: hk !<size of halo in k
+      real, intent(in)    :: putin(ib - hi:ie + hi, jb - hj:je + hj, kb - hk:ke + hk)
+      real, intent(inout) :: putout(ib - hi:ie + hi, jb - hj:je + hj, kb:ke + hk)
+      real, intent(in)    :: bcvalue
+      integer, intent(in)    :: n
+
+      k = block(n, 6) + 1 !block location
+      if (k > ke) return
+      km = k - 1 !
+      il = block(n, 1)
+      iu = block(n, 2)
+      jl = MAX(block(n, 3) - myid*jmax, 1)
+      ju = MIN(block(n, 4) - myid*jmax, jmax)
+
+      do j = jl, ju
+         do i = il, iu
+            putout(i, j, k) = putout(i, j, k) - bcvalue*dzfi(k) &
+                            + 0.5*(dzf(km)*ekh(i, j, k) + dzf(k)*ekh(i, j, km))*(putin(i, j, k) - putin(i, j, km))*dzh2i(k)*dzfi(k) &
+                            + (- w0(i, j, k)*(putin(i, j, km)*dzf(k) + putin(i, j, k)*dzf(km))*dzhi(k))*dzfi5(k) &
+                            - (- w0(i, j, k)*(putin(i, j, k )*dzf(k) + putin(i, j, k)*dzf(km))*dzhi(k))*dzfi5(k)
+         end do
+      end do
+
+   end subroutine zwallscalarplus_advecc2nd_corr
+
+
+   ! subroutine zwallscalarmin_advecc2nd_corr(hi, hj, hk, putin, putout, bcvalue, n)
+   !    ! 62
+   !    use modglobal, only : jmax, dzf, dzfi, dzhi, dzh2i, dzfi5, ib, ie, jb, je, kb, ke, prandtlmoli, numol
+   !    use modfields, only : w0
+   !    use modsubgriddata, only : ekh
+   !    use modmpi,  only : myid
+   !    use initfac, only : block
+   !    integer i, j, k, kp, il, iu, jl, ju
+   !    integer, intent(in) :: hi !<size of halo in i
+   !    integer, intent(in) :: hj !<size of halo in j
+   !    integer, intent(in) :: hk !<size of halo in k
+   !    real, intent(in)    :: putin(ib - hi:ie + hi, jb - hj:je + hj, kb - hk:ke + hk)
+   !    real, intent(inout) :: putout(ib - hi:ie + hi, jb - hj:je + hj, kb:ke + hk)
+   !    real, intent(in)    :: bcvalue
+   !    integer, intent(in)    :: n
+   !
+   !    k = block(n, 5) - 1 !block location
+   !    if (k < kb) return
+   !    kp = k + 1 !
+   !    il = block(n, 1)
+   !    iu = block(n, 2)
+   !    jl = MAX(block(n, 3) - myid*jmax, 1)
+   !    ju = MIN(block(n, 4) - myid*jmax, jmax)
+   !
+   !    do j = jl, ju
+   !       do i = il, iu
+   !          putout(i, j, k) = putout(i, j, k) - bcvalue*dzfi(k) &
+   !                         - 0.5*(dzf(kp)*ekh(i, j, k) + dzf(k)*ekh(i, j, kp))*(putin(i, j, kp) - putin(i, j, k))*dzh2i(k)*dzfi(k) &
+   !                         + w0(i, j, kp)*(putin(i, j, kp)*dzf(k) + putin(i, j, k)*dzf(kp))*dzhi(kp)*dzfi5(k) &
+   !                         - w0(i, j, kp)*(putin(i, j, k )*dzf(k) + putin(i, j, k)*dzf(kp))*dzhi(kp)*dzfi5(k)
+   !       end do
+   !    end do
+   !
+   ! end subroutine zwallscalarmin_advecc2nd_corr
+
+
    subroutine ibmnorm
-      use modglobal, only:ib, ie, ih, jb, je, jh, kb, ke, kh, rk3step, dt, libm, jmax, &
+      use modglobal, only:ib, ie, ih, jb, je, jh, kb, ke, kh, zh, rk3step, dt, libm, jmax, &
          nblocks, nsv, ltempeq, lmoist, rk3step, ih, kh, dt, totavtime, &
-         dxh, dzf, dy, ih, kh, jh, jge
-      use modfields, only:up, vp, wp, um, vm, wm, u0, v0, w0, thl0, thlm, svp, svm, thlp, qtp, qt0, qtm
+         dxh, dzf, dy, ih, kh, jh, jge, bldT
+      use modfields, only:up, vp, wp, um, vm, wm, u0, v0, w0, thl0, thl0av, thlm, svp, svm, thlp, qtp, qt0, qtm, IIc, IIids
       use modmpi, only:myid, nprocs
       use initfac, only:block
       real, dimension(ib - ih:ie + ih, kb - kh:ke + kh)          ::  dummy
-      real rk3coef, rk3coefi, timecomplibm, timecomplibmplusdti
+      real rk3coef, rk3coefi, thl0volav
       integer n, i, j, k, il, iu, jl, ju, kl, ku, sc
 
       if (libm) then
@@ -662,13 +977,10 @@ module modibm
          rk3coefi = 1./rk3coef
 
          do n = 1, nxwall
-
             il = block(ixwall(n), 1)
             iu = block(ixwall(n), 2) + 1
-
             jl = max(block(ixwall(n), 3) - myid*jmax, 1) !
             ju = min(block(ixwall(n), 4) - myid*jmax, jmax) !
-
             !kl = block(ixwall(n), 5)
             kl = kb
             ! tg3315 18.03.19 - use kb because for lEB buildings block starts at kb+1 but this leaves area underneath the buildings and horizontally between the roads where we have no block. Only leads to small velocities in these areas but this negates this issue. WARNING - for modelling overhangs this should be changed but this would also require another facade type etc. Similarly applied to y and z directions below.
@@ -677,69 +989,93 @@ module modibm
             !up(il:iu, jl:ju, kl:ku) = -um(il:iu, jl:ju, kl:ku)*rk3coefi
             up(iu, jl:ju, kl:ku) = -um(iu, jl:ju, kl:ku)*rk3coefi
             up(il, jl:ju, kl:ku) = -um(il, jl:ju, kl:ku)*rk3coefi
-
             up(il + 1:iu - 1, jl:ju, kl:ku) = 0. !internal velocity don't change or
             um(il + 1:iu - 1, jl:ju, kl:ku) = 0. !internal velocity = 0    or both?
-
          end do ! 1,nxwallsnorm
 
-         do n = 1, nyminwall
+         do n = 1, nblocks
+           jl = block(n,3)
+           ju = block(n,4)
+           il = block(n, 1)
+           iu = block(n, 2)
+           kl = kb ! tg3315 see comment for x-direction above
+           !kl = block(n,5)
+           ku = block(n, 6)
+           if (jl>je+myid*je .or. ju<jb+myid*je) THEN
+             cycle
+           else if (ju<=je+myid*je .and. jl>=jb+myid*je) then
+             jl = jl - myid*je
+             ju = ju - myid*je
+             do i = il,iu
+               do k = kl,ku
+                   if (IIc(i,jl-1,k) == 0) THEN
+                     vp(i, jl, k) = 0.0
+                     vm(i, jl, k) = 0.0
 
-            if ((myid == nprocs-1 .and. block(iyminwall(n, 1), 3) == 1)) then
-              jl = jmax+1
-              ju = jmax+1
-            else
-              jl = max(block(iyminwall(n, 1), 3) - myid*jmax, 1)
-              ju = min(block(iyminwall(n, 1), 4) - myid*jmax, jmax) + 1
-            end if
+                   else
+                     vp(i, jl, k) = -vm(i, jl,k)*rk3coefi
+                   end if
+                   if(IIc(i,ju+1,k) == 0) then
+                     vp(i, ju+1, k) = 0.0
+                     vm(i, ju+1, k) = 0.0
+                   else
+                     vp(i, ju+1, k) = -vm(i, ju+1,k)*rk3coefi
+                   end if
+               end do
+             end do
+             vp(il:iu, jl + 1:ju, kl:ku) = 0.0 !setting the internal cells
+             vm(il:iu, jl + 1:ju, kl:ku) = 0.0
+           else if  (ju>je+myid*je .and. jl<jb+myid*je) then
+               jl = jb
+               ju = je
+               vp(il:iu, jl:ju, kl:ku) = 0.0 !setting the internal cells
+               vm(il:iu, jl:ju, kl:ku) = 0.0
+           else if  (ju<=je+myid*je .and. jl<jb+myid*je) then
+             jl = jb
+             ju = ju - myid*je
+             do i = il,iu
+               do k = kl,ku
+                   if(IIc(i,ju+1,k) == 0) then
+                     vp(i, ju+1, k) = 0.0
+                     vm(i, ju+1, k) = 0.0
+                   else
+                     vp(i, ju+1, k) = -vm(i, ju+1,k)*rk3coefi
+                   end if
+               end do
+             end do
+             vp(il:iu, jl:ju, kl:ku) = 0.0 !setting the internal cells
+             vm(il:iu, jl:ju, kl:ku) = 0.0
+           else if  (ju>je+myid*je .and. jl>=jb+myid*je) then
+             ju = je
+             jl = jl - myid*je
+             do i = il,iu
+               do k = kl,ku
+                   if(IIc(i,jl-1,k) == 0) then
+                     vp(i, jl, k) = 0.0
+                     vm(i, jl, k) = 0.0
+                   else
+                     vp(i, jl, k) = -vm(i, jl,k)*rk3coefi
+                   end if
+               end do
+             end do
+             vp(il:iu, jl + 1:ju, kl:ku) = 0.0 !setting the internal cells
+             vm(il:iu, jl + 1:ju, kl:ku) = 0.0
+           end if
+         end do
 
-            il = block(iyminwall(n, 1), 1)
-            iu = block(iyminwall(n, 1), 2)
-            !kl = block(iyminwall(n, 1), 5)
-            kl = kb ! tg3315 see comment for x-direction above
-            ku = block(iyminwall(n, 1), 6)
-
-            ! write(*,*) 'jl, ju, jmax, iyminwall(n,1)', jl, ju, jmax, iyminwall(n,1)
-
-            ! vp(il:iu, jl:ju, kl:ku) = -vm(il:iu, jl:ju, kl:ku)*rk3coefi
-            vp(il:iu, jl, kl:ku) = -vm(il:iu, jl, kl:ku)*rk3coefi
-            vp(il:iu, ju, kl:ku) = -vm(il:iu, ju, kl:ku)*rk3coefi
-
-            vp(il:iu, jl + 1:ju - 1, kl:ku) = 0.0
-            vm(il:iu, jl + 1:ju - 1, kl:ku) = 0.0
-         end do  !1,nyminwall
-
-         do n = 1, nypluswall
-
-            if (myid == 0 .and. block(iypluswall(n, 1), 4) == jge) then
-              jl = 1
-              ju = 1
-            else
-              jl = max(block(iypluswall(n, 1), 3) - myid*jmax, 1) ! should this not be able to be zero?
-              ju = min(block(iypluswall(n, 1), 4) - myid*jmax, jmax) + 1
-            end if
-
-            il = block(iypluswall(n, 1), 1)
-            iu = block(iypluswall(n, 1), 2)
-            !kl = block(iypluswall(n, 1), 5)
-            kl = kb ! tg3315 see comment for x-direction above
-            ku = block(iypluswall(n, 1), 6)
-
-            !write(*,*) 'jl, ju, jmax, iypluswall(n,1)', jl, ju, jmax, iypluswall(n,1)
-
-            !vp(il:iu, jl:ju, kl:ku) = -vm(il:iu, jl:ju, kl:ku)*rk3coefi
-            vp(il:iu, jl, kl:ku) = -vm(il:iu, jl, kl:ku)*rk3coefi
-            vp(il:iu, ju, kl:ku) = -vm(il:iu, ju, kl:ku)*rk3coefi
-
-            vp(il:iu, jl + 1:ju - 1, kl:ku) = 0.0
-            vm(il:iu, jl + 1:ju - 1, kl:ku) = 0.0
-         end do !1,nypluswall
+         j = jb
+         do i = ib,ie
+           do k = kb,ke
+             if (IIc(i,j,k) == 1 .and. IIc(i,j-1,k)==0 ) then
+               vp(i, j, k) = -vm(i, j,k)*rk3coefi
+             end if
+           end do
+         end do
 
          do n = 1, nxwall
             !kl = block(ixwall(n), 5)
             kl = kb ! tg3315 see comment for x-direction above
             ku = block(ixwall(n), 6) + 1
-
             il = block(ixwall(n), 1)
             iu = block(ixwall(n), 2)
             jl = max(block(ixwall(n), 3) - myid*jmax, 1)
@@ -748,13 +1084,17 @@ module modibm
             !wp(il:iu, jl:ju, kl:ku) = -wm(il:iu, jl:ju, kl:ku)*rk3coefi
             wp(il:iu, jl:ju, kl) = -wm(il:iu, jl:ju, kl)*rk3coefi
             wp(il:iu, jl:ju, ku) = -wm(il:iu, jl:ju, ku)*rk3coefi
-
             wp(il:iu, jl:ju, kl + 1:ku - 1) = 0.
             wm(il:iu, jl:ju, kl + 1:ku - 1) = 0.
-
          end do !1,nxwall
 
+         ! shouldn't be necessary if wp(kb) has not been altered so far,
+         ! but just to be safe...
+         wm(:, :, kb) = 0.
+         w0(:, :, kb) = 0.
+
          if (ltempeq) then
+            thl0volav = sum(thl0av(kb:ke)*dzf(kb:ke))/zh(ke+1)
             do n = 1, nblocks
                il = block(n, 1)
                iu = block(n, 2)
@@ -768,14 +1108,8 @@ module modibm
                else
                   if (ju > je) ju = je
                   if (jl < jb) jl = jb
+                  thlm(il:iu, jl:ju, kl:ku) = thl0volav
                   thlp(il:iu, jl:ju, kl:ku) = 0.
-
-                  !try setting internal T to fluid T
-                  thlm(il, jl:ju, kl:ku) = thlm(il - 1, jl:ju, kl:ku)
-                  thlm(iu, jl:ju, kl:ku) = thlm(iu + 1, jl:ju, kl:ku)
-                  thlm(il:iu, jl, kl:ku) = thlm(il:iu, jl - 1, kl:ku)
-                  thlm(il:iu, ju, kl:ku) = thlm(il:iu, ju + 1, kl:ku)
-                  thlm(il:iu, jl:ju, ku) = thlm(il:iu, jl:ju, ku + 1)
                end if
             end do
          end if
@@ -794,14 +1128,8 @@ module modibm
                else
                   if (ju > je) ju = je
                   if (jl < jb) jl = jb
+                  qtm(il:iu, jl:ju, kl:ku) = 0.
                   qtp(il:iu, jl:ju, kl:ku) = 0.
-
-                  qtm(il, jl:ju, kl:ku) = qtm(il - 1, jl:ju, kl:ku)
-                  qtm(iu, jl:ju, kl:ku) = qtm(iu + 1, jl:ju, kl:ku)
-                  qtm(il:iu, jl, kl:ku) = qtm(il:iu, jl - 1, kl:ku)
-                  qtm(il:iu, ju, kl:ku) = qtm(il:iu, ju + 1, kl:ku)
-                  qtm(il:iu, jl:ju, ku) = qtm(il:iu, jl:ju, ku + 1)
-
                end if
             end do
          end if
@@ -821,18 +1149,15 @@ module modibm
                   if (ju > je) ju = je
                   if (jl < jb) jl = jb
                   svp(il:iu, jl:ju, kl:ku, :) = 0.
-
-              svp(il:iu,jl:ju,kl:ku,:) = 0.
-              svm(il, jl:ju, kl:ku, :) = svm(il - 1, jl:ju, kl:ku,:) ! tg3315 swapped these around with jl, ju as was getting values in buildings as blovks are split along x in real topology
-              svm(iu, jl:ju, kl:ku, :) = svm(iu + 1, jl:ju, kl:ku,:)
-              svm(il:iu, jl, kl:ku, :) = svm(il:iu, jl - 1, kl:ku,:)
-              svm(il:iu, ju, kl:ku, :) = svm(il:iu, ju + 1, kl:ku,:)
-              svm(il:iu, jl:ju, ku, :) = svm(il:iu, jl:ju, ku + 1,:)
-
+                  ! attempt to set zero advective flux
+                  svm(il, jl:ju, kl:ku, :) = svm(il - 1, jl:ju, kl:ku,:) ! tg3315 swapped these around with jl, ju as was getting values in buildings as blovks are split along x in real topology
+                  svm(iu, jl:ju, kl:ku, :) = svm(iu + 1, jl:ju, kl:ku,:)
+                  svm(il:iu, jl, kl:ku, :) = svm(il:iu, jl - 1, kl:ku,:)
+                  svm(il:iu, ju, kl:ku, :) = svm(il:iu, ju + 1, kl:ku,:)
+                  svm(il:iu, jl:ju, ku, :) = svm(il:iu, jl:ju, ku + 1,:)
                end if
             end do
          end if
-
       end if ! libm
 
    end subroutine ibmnorm
@@ -1089,7 +1414,7 @@ module modibm
       !kind of obsolete when road facets are being used
       !vegetated floor not added (could simply be copied from vegetated horizontal facets)
       use modglobal, only:ib, ie, ih, jh, kh, jb, je, kb, numol, prandtlmol, dzh, nsv, &
-         dxf, dxhi, dzf, dzfi, numoli, ltempeq, khc, lmoist, BCbotT, BCbotq, BCbotm, BCbots, dzh2i
+         dxf, dxhi, dzf, dzfi, numoli, ltempeq, khc, lmoist, BCbotT, BCbotq, BCbotm, BCbots, dzh2i, libm
       use modfields, only : u0,v0,e120,um,vm,w0,wm,e12m,thl0,qt0,sv0,thlm,qtm,svm,up,vp,thlp,qtp,svp,shear,momfluxb,tfluxb,cth
       use modsurfdata, only:thlflux, qtflux, svflux, ustar, thvs, wtsurf, wqsurf, thls, z0, z0h
       use modsubgriddata, only:ekm, ekh
@@ -1097,79 +1422,119 @@ module modibm
       implicit none
       integer :: i, j, jp, jm, m
       !momentum
-      if (BCbotm.eq.2) then
-      call wfuno(ih, jh, kh, up, vp, thlp, momfluxb, tfluxb, cth, bcTfluxA, u0, v0, thl0, thls, z0, z0h, 0, 1, 91)
-      elseif (BCbotm.eq.3) then
-      call wfmneutral(ih, jh, kh, up, vp, momfluxb, u0, v0, z0, 0, 1, 91)
-      else
-      write(0, *) "ERROR: bottom boundary type for momentum undefined"
-      stop 1
-      end if
 
-      if (ltempeq) then
-         if (BCbotT.eq.1) then !neumann/fixed flux bc for temperature
-            do j = jb, je
-               do i = ib, ie
-                  thlp(i, j, kb) = thlp(i, j, kb) &
-                                   + ( &
-                                   0.5*(dzf(kb - 1)*ekh(i, j, kb) + dzf(kb)*ekh(i, j, kb - 1)) &
-                                   *(thl0(i, j, kb) - thl0(i, j, kb - 1)) &
-                                   *dzh2i(kb) &
-                                   - wtsurf &
-                                   )*dzfi(kb)
-               end do
-            end do
-         else if (BCbotT.eq.2) then !wall function bc for temperature (fixed temperature)
-            call wfuno(ih, jh, kh, up, vp, thlp, momfluxb, tfluxb, cth, bcTfluxA, u0, v0, thl0, thls, z0, z0h, 0, 1, 92)
+      if (.not.(libm)) then
+         if (BCbotm.eq.1) then
+
+         elseif (BCbotm.eq.2) then
+            call wfuno(ih, jh, kh, up, vp, thlp, momfluxb, tfluxb, cth, bcTfluxA, u0, v0, thl0, thls, z0, z0h, 0, 1, 91)
+         elseif (BCbotm.eq.3) then
+            call wfmneutral(ih, jh, kh, up, vp, momfluxb, u0, v0, z0, 0, 1, 91)
          else
-         write(0, *) "ERROR: bottom boundary type for temperature undefined"
+
+         write(0, *) "ERROR: bottom boundary type for momentum undefined"
          stop 1
          end if
-      end if ! ltempeq
 
-      if (lmoist) then
-         if (BCbotq.eq.1) then !neumann/fixed flux bc for moisture
-            do j = jb, je
-               do i = ib, ie
-                  qtp(i, j, kb) = qtp(i, j, kb) + ( &
-                                  0.5*(dzf(kb - 1)*ekh(i, j, kb) + dzf(kb)*ekh(i, j, kb - 1)) &
-                                  *(qt0(i, j, kb) - qt0(i, j, kb - 1)) &
-                                  *dzh2i(kb) &
-                                  + wqsurf &
-                                  )*dzfi(kb)
-               end do
-            end do
-         else
-          write(0, *) "ERROR: bottom boundary type for moisture undefined"
-          stop 1
-         end if !
-      end if !lmoist
-
-      if (nsv>0) then
-         if (BCbots.eq.1) then !neumann/fixed flux bc for moisture
-            do j = jb, je
-               do i = ib, ie
-                  do m = 1, nsv
-                      svp(i, j, kb, m) = svp(i, j, kb, m) + ( &
+         if (ltempeq) then
+            if (BCbotT.eq.1) then !neumann/fixed flux bc for temperature
+               do j = jb, je
+                  do i = ib, ie
+                     thlp(i, j, kb) = thlp(i, j, kb) &
+                                      + ( &
                                       0.5*(dzf(kb - 1)*ekh(i, j, kb) + dzf(kb)*ekh(i, j, kb - 1)) &
-                                     *(sv0(i, j, kb, m) - sv0(i, j, kb - 1, m)) &
+                                      *(thl0(i, j, kb) - thl0(i, j, kb - 1)) &
+                                      *dzh2i(kb) &
+                                      - wtsurf &
+                                      )*dzfi(kb)
+                  end do
+               end do
+            else if (BCbotT.eq.2) then !wall function bc for temperature (fixed temperature)
+               call wfuno(ih, jh, kh, up, vp, thlp, momfluxb, tfluxb, cth, bcTfluxA, u0, v0, thl0, thls, z0, z0h, 0, 1, 92)
+            else
+            write(0, *) "ERROR: bottom boundary type for temperature undefined"
+            stop 1
+            end if
+         end if ! ltempeq
+
+         if (lmoist) then
+            if (BCbotq.eq.1) then !neumann/fixed flux bc for moisture
+               do j = jb, je
+                  do i = ib, ie
+                     qtp(i, j, kb) = qtp(i, j, kb) + ( &
+                                     0.5*(dzf(kb - 1)*ekh(i, j, kb) + dzf(kb)*ekh(i, j, kb - 1)) &
+                                     *(qt0(i, j, kb) - qt0(i, j, kb - 1)) &
                                      *dzh2i(kb) &
-                                     + 0. &
+                                     + wqsurf &
                                      )*dzfi(kb)
                   end do
                end do
-            end do
-         else
-          write(0, *) "ERROR: bottom boundary type for scalars undefined"
-          stop 1
-         end if !
+            else
+             write(0, *) "ERROR: bottom boundary type for moisture undefined"
+             stop 1
+            end if !
+         end if !lmoist
+
+         if (nsv>0) then
+            if (BCbots.eq.1) then !neumann/fixed flux bc for moisture
+               do j = jb, je
+                  do i = ib, ie
+                     do m = 1, nsv
+                         svp(i, j, kb, m) = svp(i, j, kb, m) + ( &
+                                         0.5*(dzf(kb - 1)*ekh(i, j, kb) + dzf(kb)*ekh(i, j, kb - 1)) &
+                                        *(sv0(i, j, kb, m) - sv0(i, j, kb - 1, m)) &
+                                        *dzh2i(kb) &
+                                        + 0. &
+                                        )*dzfi(kb)
+                     end do
+                  end do
+               end do
+            else
+             write(0, *) "ERROR: bottom boundary type for scalars undefined"
+             stop 1
+            end if !
+         end if
       end if
 
-      e120(:, :, kb - 1) = e120(:, :, kb)
-      e12m(:, :, kb - 1) = e12m(:, :, kb)
-      wm(:, :, kb) = 0.
-      w0(:, :, kb) = 0.
       return
    end subroutine bottom
+
+
+     REAL FUNCTION unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !for momentum, this bit is not depended on orientation etc
+        !momentum flux in m2/s2
+        !dT,utang and logdzh are unused and could be removed
+           IMPLICIT NONE
+           REAL, INTENT(in) :: logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2
+           REAL :: Ribl1, Fm, Fh, cm, ch, Ctm, M
+           REAL, PARAMETER :: b1 = 9.4 !parameters from Uno1995
+           REAL, PARAMETER :: b2 = 4.7
+           REAL, PARAMETER :: dm = 7.4
+           REAL, PARAMETER :: dh = 5.3
+           REAL, PARAMETER :: prandtlmol = 0.71
+           IF (Ribl0 > 0.21) THEN !0.25 approx critical for bulk Richardson number  => stable
+              Fm = 1./(1. + b2*Ribl0)**2 !Eq. 4
+              Fh = Fm !Eq. 4
+           ELSE ! => unstable
+              cm = (dm*fkar2)/(logdz**2)*b1*sqdz !Eq. 5
+              ch = (dh*fkar2)/(logdz**2)*b1*sqdz !Eq. 5
+              Fm = 1. - (b1*Ribl0)/(1. + cm*SQRT(ABS(Ribl0))) !Eq. 3
+              Fh = 1. - (b1*Ribl0)/(1. + ch*SQRT(ABS(Ribl0))) !Eq. 3
+           END IF
+
+           M = prandtlmol*logdz*SQRT(Fm)/Fh !Eq. 14
+
+           Ribl1 = Ribl0 - Ribl0*prandtlmol*logzh/(prandtlmol*logzh + M) !Eq. 17
+
+           !interate to get new Richardson number
+           IF (Ribl1 > 0.21) THEN !0.25 approx critical for bulk Richardson number  => stable
+              Fm = 1./(1. + b2*Ribl1)**2 !Eq. 4
+           ELSE ! => unstable
+              cm = (dm*fkar2)/(logdz**2)*b1*sqdz !Eq. 5
+              Fm = 1. - (b1*Ribl1)/(1. + cm*SQRT(ABS(Ribl1))) !Eq. 3
+           END IF
+
+           Ctm = fkar2/(logdz**2)*Fm !Eq. 7
+           unom = Ctm !Eq. 2, Eq. 8
+        END FUNCTION unom
 
 end module modibm
