@@ -29,7 +29,7 @@ SUBROUTINE wfGR(hi,hj,hk,ioq,ioqflux,icth,obcqfluxA,qcell,qwall,hurel,resc,ress,
    REAL :: bcmomflux = 0. !temp storage for momentum flux
    REAL :: dummy = 0. !for debugging
    REAL :: delta = 0. !distance from wall
-   REAL :: fkar2 = fkar**2 !fkar^2, von Karman constant squared
+   REAL :: fkar2 !fkar^2, von Karman constant squared
    REAL :: emmo = 0., epmo = 0., epom = 0., emom = 0., eopm = 0., eomm = 0., empo = 0.
    REAL :: umin = 0.0001 !m^2/s^2
    REAL :: cveg=0.8 !hardcoded for now, !fraction of GR covered in vegetation, should be made into a proper model parameter (-> modglobal)
@@ -50,6 +50,7 @@ SUBROUTINE wfGR(hi,hj,hk,ioq,ioqflux,icth,obcqfluxA,qcell,qwall,hurel,resc,ress,
    INTEGER, INTENT(in) :: n ! number of the block, used to get i,j,k-indeces
    INTEGER, INTENT(in) :: ind ! in case of y-wall (case 3x & 4x) "ind" is used for j-index, otherwise this is irrelevant
    INTEGER, INTENT(in) :: wforient !frist digit, orientation of wall, determines iteration idices and if Twall or Troof is used
+   fkar2 = fkar**2
    obcqfluxA = 0.
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!CASES!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!CASES FOR SCALARS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

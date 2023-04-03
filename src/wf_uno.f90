@@ -43,7 +43,7 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
    REAL :: utang2Int !Interpolated 2nd tangential velocity component needed for stability calculation (to T location)
    REAL :: utangInt !Interpolated absolute tangential velocity
    REAL :: dT !Temperature difference between wall and cell
-   REAL :: fkar2 = fkar**2 !fkar^2, von Karman constant squared
+   REAL :: fkar2 !fkar^2, von Karman constant squared
    REAL :: emmo = 0., epmo = 0., epom = 0., emom = 0., eopm = 0., eomm = 0., empo = 0.
    REAL :: umin = 0.0001 !m^2/s^2
 
@@ -70,6 +70,7 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
    !second digit, if for momentum or for scalar (necessary because of staggered grid -> which variable to interpolate)
    !xlow=1,xup=2,yup=3,ylow=4,z=5
    !momentum=1,scalar=2
+   fkar2 = fkar**2
    obcTfluxA = 0.
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!CASES!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!CASES FOR SCALARS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -300,7 +301,8 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
             dT = (Tcell(i, j, k)*IIc(i, j, k)*(2-IIc(i, j - 1, k)) + Tcell(i, j - 1, k)*IIc(i, j - 1, k)*(2-IIc(i, j, k)) - (Twall + Twall))*0.5
             Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
             ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-            dummy = (utang1Int**2)*ctm
+            !dummy = (utang1Int**2)*ctm
+            dummy = abs(utang1Int)*sqrt(utangInt)*ctm
             bcmomflux = SIGN(dummy, utang1Int)
             iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dxfi(i)
 
@@ -321,7 +323,9 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
          !dT = Tcell(i, j, k) - Twall
          dT = (Tcell(i, j, k) - Twall)*IIc(i,j,k)
          Ribl0 = grav*delta*dT/(Twall*utangInt) !Eq. 6, guess initial Ri
-         dummy = (utang1Int**2)*unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+         !dummy = (utang1Int**2)*unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+         ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2)
+         dummy = abs(utang1Int)*sqrt(utangInt)*ctm
          bcmomflux = SIGN(dummy, utang1Int)
          iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dxfi(i)*0.5 !only half since on edge of block (another half might come from another processor?)
 
@@ -341,7 +345,9 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
          !dT = Tcell(i, j - 1, k) - Twall !possibly look at this
          dT = (Tcell(i,j-1,k)-Twall)*IIc(i,j-1,k)
          Ribl0 = grav*delta*dT/(Twall*utangInt) !Eq. 6, guess initial Ri
-         dummy = (utang1Int**2)*unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+         !dummy = (utang1Int**2)*unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+         ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2)
+         dummy = abs(utang1Int)*sqrt(utangInt)*ctm
          bcmomflux = SIGN(dummy, utang1Int)
          iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dxfi(i)*0.5
          epmo = 0.25*((ekm(i, j, k) + ekm(i, j - 1, k))*dxf(ip) + &
@@ -362,7 +368,8 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
             dT = (Tcell(i, j, k)*IIc(i, j, k)*(2-IIc(i, j, k-1)) + Tcell(i, j, k-1)*IIc(i, j, k-1)*(2-IIc(i, j, k)) - (Twall + Twall))*0.5
             Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
             ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-            dummy = (utang2Int**2)*ctm
+            !dummy = (utang2Int**2)*ctm
+            dummy = abs(utang2Int)*sqrt(utangInt)*ctm
             bcmomflux = SIGN(dummy, utang2Int)
             iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dxfi(i)
             epom = (dzf(k - 1)*(ekm(i, j, k)*dxf(ip) + ekm(ip, j, k)*dxf(i))*dxhi(ip) + &
@@ -382,7 +389,9 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
          dT = (Tcell(i,j,k-1)-Twall)*IIc(i,j,k-1)
 
          Ribl0 = grav*delta*dT/(Twall*utangInt) !Eq. 6, guess initial Ri
-         dummy = (utang2Int**2)*unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+         !dummy = (utang2Int**2)*unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+         ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+         dummy = abs(utang2Int)*sqrt(utangInt)*ctm
          bcmomflux = SIGN(dummy, utang2Int)
          iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dxfi(i)*0.5
          epom = (dzf(km)*(ekm(i, j, k)*dxf(ip) + ekm(ip, j, k)*dxf(i))*dxhi(ip) + &
@@ -402,7 +411,9 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
          !dT = Tcell(i, j, k - 1) - Twall
          dT = (Tcell(i,j,k-1)-Twall)*IIc(i,j,k-1)
          Ribl0 = grav*delta*dT/(Twall*utangInt) !Eq. 6, guess initial Ri
-         dummy = (utang2Int**2)*unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+         !dummy = (utang2Int**2)*unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+         ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+         dummy = abs(utang2Int)*sqrt(utangInt)*ctm
          bcmomflux = SIGN(dummy, utang2Int)
          iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dxfi(i)*0.5
          epom = (dzf(km)*(ekm(i, j, k)*dxf(ip) + ekm(ip, j, k)*dxf(i))*dxhi(ip) + &
@@ -435,7 +446,8 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
             Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
             !call function repeatedly
             ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-            dummy = (utang1Int**2)*ctm
+            !dummy = (utang1Int**2)*ctm
+            dummy = abs(utang1Int)*sqrt(utangInt)*ctm
             bcmomflux = SIGN(dummy, utang1Int)
             iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dxfi(i)
             emmo = 0.25*((ekm(i, j, k) + ekm(i, j - 1, k))*dxf(im) + (ekm(im, j - 1, k) + ekm(im, j, k))*dxf(i))*dxhi(i) ! dx is non-equidistant
@@ -452,7 +464,9 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
          !dT = Tcell(i, j, k) - Twall
          dT = (Tcell(i, j, k) - Twall)*IIc(i,j,k)
          Ribl0 = grav*delta*dT/(Twall*utangInt) !Eq. 6, guess initial Ri
-         dummy = (utang1Int**2)*unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+         !dummy = (utang1Int**2)*unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+         ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2)
+         dummy = abs(utang1Int)*sqrt(utangInt)*ctm
          bcmomflux = SIGN(dummy, utang1Int)
          iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dxfi(i)*0.5
          emmo = 0.25*((ekm(i, j, k) + ekm(i, j - 1, k))*dxf(im) + (ekm(im, j - 1, k) + ekm(im, j, k))*dxf(i))*dxhi(i) ! dx is non-equidistant
@@ -468,7 +482,9 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
          !dT = Tcell(i, j - 1, k) - Twall
          dT = (Tcell(i, j-1, k) - Twall)*IIc(i, j-1, k)
          Ribl0 = grav*delta*dT/(Twall*utangInt) !Eq. 6, guess initial Ri
-         dummy = (utang1Int**2)*unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+         !dummy = (utang1Int**2)*unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+         ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2)
+         dummy = abs(utang1Int)*sqrt(utangInt)*ctm
          bcmomflux = SIGN(dummy, utang1Int)
          iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dxfi(i)*0.5
          emmo = 0.25*((ekm(i, j, k) + ekm(i, j - 1, k))*dxf(im) + (ekm(im, j - 1, k) + ekm(im, j, k))*dxf(i))*dxhi(i) ! dx is non-equidistant
@@ -487,7 +503,8 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
             dT = (Tcell(i, j, k)*IIc(i, j, k)*(2-IIc(i, j, k-1)) + Tcell(i, j, k-1)*IIc(i, j, k-1)*(2-IIc(i, j, k)) - (Twall + Twall))*0.5
             Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
             ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-            dummy = (utang2Int**2)*ctm
+            !dummy = (utang2Int**2)*ctm
+            dummy = abs(utang2Int)*sqrt(utangInt)*ctm
             bcmomflux = SIGN(dummy, utang2Int)
             iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dxfi(i)
             emom = (dzf(k - 1)*(ekm(i, j, k)*dxf(im) + ekm(im, j, k)*dxf(i))*dxhi(i) + &
@@ -505,7 +522,9 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
          !dT = Tcell(i, j, k - 1) - Twall
          dT = (Tcell(i,j,k-1)-Twall)*IIc(i,j,k-1)
          Ribl0 = grav*delta*dT/(Twall*utangInt) !Eq. 6, guess initial Ri
-         dummy = (utang2Int**2)*unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+         !dummy = (utang2Int**2)*unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+         ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2)
+         dummy = abs(utang2Int)*sqrt(utangInt)*ctm
          bcmomflux = SIGN(dummy, utang2Int)
          iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dxfi(i)*0.5
          emom = (dzf(k - 1)*(ekm(i, j, k)*dxf(im) + ekm(im, j, k)*dxf(i))*dxhi(i) + &
@@ -524,7 +543,9 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
          !dT = Tcell(i, j, k - 1) - Twall
          dT = (Tcell(i,j,k-1)-Twall)*IIc(i,j,k-1)
          Ribl0 = grav*delta*dT/(Twall*utangInt) !Eq. 6, guess initial Ri
-         dummy = (utang2Int**2)*unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+         !dummy = (utang2Int**2)*unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+         ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2)
+         dummy = abs(utang2Int)*sqrt(utangInt)*ctm
          bcmomflux = SIGN(dummy, utang2Int)
          iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dxfi(i)*0.5
          emom = (dzf(k - 1)*(ekm(i, j, k)*dxf(im) + ekm(im, j, k)*dxf(i))*dxhi(i) + &
@@ -556,7 +577,8 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
             dT = (Tcell(i, j, k)*IIc(i, j, k)*(2-IIc(i-1, j, k)) + Tcell(i-1, j, k)*IIc(i-1, j, k)*(2-IIc(i, j, k)) - (Twall + Twall))*0.5
             Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
             ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-            dummy = (utang1Int**2)*ctm
+            !dummy = (utang1Int**2)*ctm
+            dummy = abs(utang1Int)*sqrt(utangInt)*ctm
             bcmomflux = SIGN(dummy, utang1Int)
             iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dyi
 
@@ -575,7 +597,9 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
          !dT = Tcell(i - 1, j, k) - Twall
          dT = (Tcell(i-1,j,k)-Twall)*IIc(i-1,j,k)
          Ribl0 = grav*delta*dT/(Twall*utangInt) !Eq. 6, guess initial Ri
-         dummy = (utang1Int**2)*unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+         !dummy = (utang1Int**2)*unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+         ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2)
+         dummy = abs(utang1Int)*sqrt(utangInt)*ctm
          bcmomflux = SIGN(dummy, utang1Int)
          iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dyi5
          emmo = 0.25*((ekm(i, j, k) + ekm(i, jm, k))*dxf(i - 1) + (ekm(i - 1, jm, k) + ekm(i - 1, j, k))*dxf(i))*dxhi(i)
@@ -591,7 +615,9 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
          !dT = Tcell(i, j, k) - Twall
          dT = (Tcell(i,j,k)-Twall)*IIc(i,j,k)
          Ribl0 = grav*delta*dT/(Twall*utangInt) !Eq. 6, guess initial Ri
-         dummy = (utang1Int**2)*unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+         !dummy = (utang1Int**2)*unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+         ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2)
+         dummy = abs(utang1Int)*sqrt(utangInt)*ctm
          bcmomflux = SIGN(dummy, utang1Int)
          iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dyi5
          emmo = 0.25*((ekm(i, j, k) + ekm(i, jm, k))*dxf(i - 1) + (ekm(i - 1, jm, k) + ekm(i - 1, j, k))*dxf(i))*dxhi(i)
@@ -610,7 +636,8 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
             dT = (Tcell(i, j, k)*IIc(i, j, k)*(2-IIc(i, j, k-1)) + Tcell(i, j, k-1)*IIc(i, j, k-1)*(2-IIc(i, j, k)) - (Twall + Twall))*0.5
             Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
             ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-            dummy = (utang2Int**2)*ctm
+            !dummy = (utang2Int**2)*ctm
+            dummy = abs(utang2Int)*sqrt(utangInt)*ctm
             bcmomflux = SIGN(dummy, utang2Int)
             iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dyi
             eomm = (dzf(k - 1)*(ekm(i, j, k) + ekm(i, jm, k)) + dzf(k)*(ekm(i, j, k - 1) + ekm(i, jm, k - 1)))*dzhiq(k) ! dz is non-eqidistant
@@ -627,7 +654,9 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
          !dT = Tcell(i, j, k - 1) - Twall
          dT = (Tcell(i,j,k-1)-Twall)*IIc(i,j,k-1)
          Ribl0 = grav*delta*dT/(Twall*utangInt) !Eq. 6, guess initial Ri
-         dummy = (utang2Int**2)*unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+         !dummy = (utang2Int**2)*unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+         ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2)
+         dummy = abs(utang2Int)*sqrt(utangInt)*ctm
          bcmomflux = SIGN(dummy, utang2Int)
          iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dyi5
          eomm = (dzf(k - 1)*(ekm(i, j, k) + ekm(i, jm, k)) + dzf(k)*(ekm(i, j, k - 1) + ekm(i, jm, k - 1)))*dzhiq(k) ! dz is non-eqidistant
@@ -645,7 +674,9 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
          !dT = Tcell(i, j, k - 1) - Twall
          dT = (Tcell(i, j, k - 1) - Twall)*IIc(i,j,k-1)
          Ribl0 = grav*delta*dT/(Twall*utangInt) !Eq. 6, guess initial Ri
-         dummy = (utang2Int**2)*unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+         !dummy = (utang2Int**2)*unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+         ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2)
+         dummy = abs(utang2Int)*sqrt(utangInt)*ctm
          bcmomflux = SIGN(dummy, utang2Int)
          iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dyi5
          eomm = (dzf(k - 1)*(ekm(i, j, k) + ekm(i, jm, k)) + dzf(k)*(ekm(i, j, k - 1) + ekm(i, jm, k - 1)))*dzhiq(k) ! dz is non-eqidistant
@@ -675,7 +706,8 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
             dT = (Tcell(i, j, k)*IIc(i, j, k)*(2-IIc(i-1, j, k)) + Tcell(i-1, j, k)*IIc(i-1, j, k)*(2-IIc(i, j, k)) - (Twall + Twall))*0.5
             Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
             ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-            dummy = (utang1Int**2)*ctm
+            !dummy = (utang1Int**2)*ctm
+            dummy = abs(utang1Int)*sqrt(utangInt)*ctm
             bcmomflux = SIGN(dummy, utang1Int)
             iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dyi
             empo = 0.25*((ekm(i, j, k) + ekm(i, jp, k))*dxf(i - 1) + &
@@ -693,7 +725,9 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
          !dT = Tcell(i, j, k) - Twall
          dT = (Tcell(i,j,k)-Twall)*IIc(i,j,k)
          Ribl0 = grav*delta*dT/(Twall*utangInt) !Eq. 6, guess initial Ri
-         dummy = (utang1Int**2)*unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+         !dummy = (utang1Int**2)*unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+         ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2)
+         dummy = abs(utang1Int)*sqrt(utangInt)*ctm
          bcmomflux = SIGN(dummy, utang1Int)
          iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dyi5
          empo = 0.25*((ekm(i, j, k) + ekm(i, jp, k))*dxf(i - 1) + &
@@ -710,7 +744,9 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
          !dT = Tcell(i - 1, j, k) - Twall
          dT = (Tcell(i-1,j,k)-Twall)*IIc(i-1,j,k)
          Ribl0 = grav*delta*dT/(Twall*utangInt) !Eq. 6, guess initial Ri
-         dummy = (utang1Int**2)*unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+         !dummy = (utang1Int**2)*unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+         ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2)
+         dummy = abs(utang1Int)*sqrt(utangInt)*ctm
          bcmomflux = SIGN(dummy, utang1Int)
          iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dyi5
          empo = 0.25*((ekm(i, j, k) + ekm(i, jp, k))*dxf(i - 1) + &
@@ -730,7 +766,8 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
             dT = (Tcell(i, j, k)*IIc(i, j, k)*(2-IIc(i, j, k-1)) + Tcell(i, j, k-1)*IIc(i, j, k-1)*(2-IIc(i, j, k)) - (Twall + Twall))*0.5
             Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
             ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-            dummy = (utang2Int**2)*ctm
+            !dummy = (utang2Int**2)*ctm
+            dummy = abs(utang2Int)*sqrt(utangInt)*ctm
             bcmomflux = SIGN(dummy, utang2Int)
             iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dyi
             eopm = (dzf(k - 1)*(ekm(i, j, k) + ekm(i, jp, k)) + &
@@ -749,7 +786,9 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
          dT = (Tcell(i,j,k-1)-Twall)*IIc(i,j,k-1)
          Ribl0 = grav*delta*dT*2/(Twall*utangInt) !Eq. 6, guess initial Ri
          !call function repeatedly
-         dummy = (utang2Int**2)*unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+         !dummy = (utang2Int**2)*unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+         ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2)
+         dummy = abs(utang2Int)*sqrt(utangInt)*ctm
          bcmomflux = SIGN(dummy, utang2Int)
          iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dyi5
          eopm = (dzf(k - 1)*(ekm(i, j, k) + ekm(i, jp, k)) + &
@@ -769,7 +808,9 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
          !dT = Tcell(i, j, k - 1) - Twall
          dT = (Tcell(i,j,k-1)-Twall)*IIc(i,j,k-1)
          Ribl0 = grav*delta*dT*2/(Twall*utangInt) !Eq. 6, guess initial Ri
-         dummy = (utang2Int**2)*unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+         !dummy = (utang2Int**2)*unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+         ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2)
+         dummy = abs(utang2Int)*sqrt(utangInt)*ctm
          bcmomflux = SIGN(dummy, utang2Int)
          iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dyi5
          eopm = (dzf(k - 1)*(ekm(i, j, k) + ekm(i, jp, k)) + &
@@ -802,7 +843,8 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
             dT = (Tcell(i, j, k)*IIc(i, j, k)*(2-IIc(i-1, j, k)) + Tcell(i-1, j, k)*IIc(i-1, j, k)*(2-IIc(i, j, k)) - (Twall + Twall))*0.5
             Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
             ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-            dummy = (utang1Int**2)*ctm
+            !dummy = (utang1Int**2)*ctm
+            dummy = abs(utang1Int)*sqrt(utangInt)*ctm
             bcmomflux = SIGN(dummy, utang1Int)
             iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
             emom = (dzf(km)*(ekm(i, j, k)*dxf(i - 1) + ekm(i - 1, j, k)*dxf(i)) + &
@@ -820,7 +862,9 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
          !dT = Tcell(i, j, k) - Twall
          dT = (Tcell(i,j,k)-Twall)*IIc(i,j,k)
          Ribl0 = grav*delta*dT/(Twall*utangInt) !Eq. 6, guess initial Ri
-         dummy = (utang1Int**2)*unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+         !dummy = (utang1Int**2)*unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+         ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2)
+         dummy = abs(utang1Int)*sqrt(utangInt)*ctm
          bcmomflux = SIGN(dummy, utang1Int)
          iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)*0.5
          emom = (dzf(km)*(ekm(i, j, k)*dxf(i - 1) + ekm(i - 1, j, k)*dxf(i)) + &
@@ -837,7 +881,9 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
          !dT = Tcell(i - 1, j, k) - Twall
          dT = (Tcell(i-1,j,k)-Twall)*IIc(i-1,j,k)
          Ribl0 = grav*delta*dT/(Twall*utangInt) !Eq. 6, guess initial Ri
-         dummy = (utang1Int**2)*unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+         !dummy = (utang1Int**2)*unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+         ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2)
+         dummy = abs(utang1Int)*sqrt(utangInt)*ctm
          bcmomflux = SIGN(dummy, utang1Int)
          iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)*0.5
          emom = (dzf(km)*(ekm(i, j, k)*dxf(i - 1) + ekm(i - 1, j, k)*dxf(i)) + &
@@ -917,7 +963,8 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
               dT = (Tcell(i, j, k)*IIc(i, j, k)*(2-IIc(i, j-1, k)) + Tcell(i, j-1, k)*IIc(i, j-1, k)*(2-IIc(i, j, k)) - (Twall + Twall))*0.5
               Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
               ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-              dummy = (utang2Int**2)*ctm
+              !dummy = (utang2Int**2)*ctm
+              dummy = abs(utang2Int)*sqrt(utangInt)*ctm
               bcmomflux = SIGN(dummy, utang2Int)
               iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
               eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
@@ -931,7 +978,8 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
               dT = (Tcell(i, j, k) - Twall)*IIc(i,j,k)
               Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
               ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-              dummy = (utang2Int**2)*ctm
+              !dummy = (utang2Int**2)*ctm
+              dummy = abs(utang2Int)*sqrt(utangInt)*ctm
               bcmomflux = SIGN(dummy, utang2Int)
               iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
               eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
@@ -946,7 +994,8 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
               dT = (Tcell(i, j-1, k) - Twall)*IIc(i,j-1,k)
               Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
               ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-              dummy = (utang2Int**2)*ctm
+              !dummy = (utang2Int**2)*ctm
+              dummy = abs(utang2Int)*sqrt(utangInt)*ctm
               bcmomflux = SIGN(dummy, utang2Int)
               iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
               eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
@@ -964,7 +1013,8 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
               dT = (Tcell(i, j, k)*IIc(i, j, k)*(2-IIc(i, j-1, k)) + Tcell(i, j-1, k)*IIc(i, j-1, k)*(2-IIc(i, j, k)) - (Twall + Twall))*0.5
               Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
               ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-              dummy = (utang2Int**2)*ctm
+              !dummy = (utang2Int**2)*ctm
+              dummy = abs(utang2Int)*sqrt(utangInt)*ctm
               bcmomflux = SIGN(dummy, utang2Int)
               iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
               eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
@@ -979,7 +1029,8 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
               dT = (Tcell(i, j, k) - Twall)*IIc(i,j,k)
               Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
               ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-              dummy = (utang2Int**2)*ctm
+              !dummy = (utang2Int**2)*ctm
+              dummy = abs(utang2Int)*sqrt(utangInt)*ctm
               bcmomflux = SIGN(dummy, utang2Int)
               iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
               eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
@@ -993,7 +1044,8 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
               dT = (Tcell(i, j, k)*IIc(i, j, k)*(2-IIc(i, j-1, k)) + Tcell(i, j-1, k)*IIc(i, j-1, k)*(2-IIc(i, j, k)) - (Twall + Twall))*0.5
               Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
               ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-              dummy = (utang2Int**2)*ctm
+              !dummy = (utang2Int**2)*ctm
+              dummy = abs(utang2Int)*sqrt(utangInt)*ctm
               bcmomflux = SIGN(dummy, utang2Int)
               iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
               eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
@@ -1008,7 +1060,8 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
               dT = (Tcell(i, j - 1, k) - Twall)*IIc(i,j-1,k)
               Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
               ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-              dummy = (utang2Int**2)*ctm
+              !dummy = (utang2Int**2)*ctm
+              dummy = abs(utang2Int)*sqrt(utangInt)*ctm
               bcmomflux = SIGN(dummy, utang2Int)
               iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
               eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
@@ -1031,7 +1084,8 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
               dT = (Tcell(i, j, k)*IIc(i, j, k)*(2-IIc(i, j-1, k)) + Tcell(i, j-1, k)*IIc(i, j-1, k)*(2-IIc(i, j, k)) - (Twall + Twall))*0.5
               Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
               ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-              dummy = (utang2Int**2)*ctm
+              !dummy = (utang2Int**2)*ctm
+              dummy = abs(utang2Int)*sqrt(utangInt)*ctm
               bcmomflux = SIGN(dummy, utang2Int)
               iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
               eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
@@ -1045,7 +1099,8 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
               dT = (Tcell(i, j, k) - Twall)*IIc(i,j,k)
               Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
               ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-              dummy = (utang2Int**2)*ctm
+              !dummy = (utang2Int**2)*ctm
+              dummy = abs(utang2Int)*sqrt(utangInt)*ctm
               bcmomflux = SIGN(dummy, utang2Int)
               iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
               eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
@@ -1062,7 +1117,8 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
               dT = (Tcell(i, j, k)*IIc(i, j, k)*(2-IIc(i, j-1, k)) + Tcell(i, j-1, k)*IIc(i, j-1, k)*(2-IIc(i, j, k)) - (Twall + Twall))*0.5
               Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
               ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-              dummy = (utang2Int**2)*ctm
+              !dummy = (utang2Int**2)*ctm
+              dummy = abs(utang2Int)*sqrt(utangInt)*ctm
               bcmomflux = SIGN(dummy, utang2Int)
               iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
               eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
@@ -1077,7 +1133,8 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
               dT = (Tcell(i, j, k)*IIc(i, j, k)*(2-IIc(i, j-1, k)) + Tcell(i, j-1, k)*IIc(i, j-1, k)*(2-IIc(i, j, k)) - (Twall + Twall))*0.5
               Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
               ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-              dummy = (utang2Int**2)*ctm
+              !dummy = (utang2Int**2)*ctm
+              dummy = abs(utang2Int)*sqrt(utangInt)*ctm
               bcmomflux = SIGN(dummy, utang2Int)
               iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
               eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
@@ -1091,7 +1148,8 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
               dT = (Tcell(i, j, k) - Twall)*IIc(i,j,k)
               Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
               ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-              dummy = (utang2Int**2)*ctm
+              !dummy = (utang2Int**2)*ctm
+              dummy = abs(utang2Int)*sqrt(utangInt)*ctm
               bcmomflux = SIGN(dummy, utang2Int)
               iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
               eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
@@ -1113,7 +1171,8 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
               dT = (Tcell(i, j, k)*IIc(i, j, k)*(2-IIc(i, j-1, k)) + Tcell(i, j-1, k)*IIc(i, j-1, k)*(2-IIc(i, j, k)) - (Twall + Twall))*0.5
               Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
               ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-              dummy = (utang2Int**2)*ctm
+              !dummy = (utang2Int**2)*ctm
+              dummy = abs(utang2Int)*sqrt(utangInt)*ctm
               bcmomflux = SIGN(dummy, utang2Int)
               iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
               eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
@@ -1127,7 +1186,8 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
               dT = (Tcell(i, j, k) - Twall)*IIc(i,j,k)
               Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
               ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-              dummy = (utang2Int**2)*ctm
+              !dummy = (utang2Int**2)*ctm
+              dummy = abs(utang2Int)*sqrt(utangInt)*ctm
               bcmomflux = SIGN(dummy, utang2Int)
               iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
               eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
@@ -1142,7 +1202,8 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
               dT = (Tcell(i, j-1, k) - Twall)*IIc(i,j-1,k)
               Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
               ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-              dummy = (utang2Int**2)*ctm
+              !dummy = (utang2Int**2)*ctm
+              dummy = abs(utang2Int)*sqrt(utangInt)*ctm
               bcmomflux = SIGN(dummy, utang2Int)
               iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
               eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
@@ -1160,7 +1221,8 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
               dT = (Tcell(i, j, k)*IIc(i, j, k)*(2-IIc(i, j-1, k)) + Tcell(i, j-1, k)*IIc(i, j-1, k)*(2-IIc(i, j, k)) - (Twall + Twall))*0.5
               Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
               ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-              dummy = (utang2Int**2)*ctm
+              !dummy = (utang2Int**2)*ctm
+              dummy = abs(utang2Int)*sqrt(utangInt)*ctm
               bcmomflux = SIGN(dummy, utang2Int)
               iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
               eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
@@ -1175,7 +1237,8 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
               dT = (Tcell(i, j, k) - Twall)*IIc(i,j,k)
               Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
               ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-              dummy = (utang2Int**2)*ctm
+              !dummy = (utang2Int**2)*ctm
+              dummy = abs(utang2Int)*sqrt(utangInt)*ctm
               bcmomflux = SIGN(dummy, utang2Int)
               iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
               eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
@@ -1189,7 +1252,8 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
               dT = (Tcell(i, j, k)*IIc(i, j, k)*(2-IIc(i, j-1, k)) + Tcell(i, j-1, k)*IIc(i, j-1, k)*(2-IIc(i, j, k)) - (Twall + Twall))*0.5
               Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
               ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-              dummy = (utang2Int**2)*ctm
+              !dummy = (utang2Int**2)*ctm
+              dummy = abs(utang2Int)*sqrt(utangInt)*ctm
               bcmomflux = SIGN(dummy, utang2Int)
               iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
               eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
@@ -1204,7 +1268,8 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
               dT = (Tcell(i, j - 1, k) - Twall)*IIc(i,j-1,k)
               Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
               ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-              dummy = (utang2Int**2)*ctm
+              !dummy = (utang2Int**2)*ctm
+              dummy = abs(utang2Int)*sqrt(utangInt)*ctm
               bcmomflux = SIGN(dummy, utang2Int)
               iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
               eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
@@ -1227,7 +1292,8 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
               dT = (Tcell(i, j, k) - Twall)*IIc(i,j,k)
               Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
               ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-              dummy = (utang2Int**2)*ctm
+              !dummy = (utang2Int**2)*ctm
+              dummy = abs(utang2Int)*sqrt(utangInt)*ctm
               bcmomflux = SIGN(dummy, utang2Int)
               iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
               eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
@@ -1240,7 +1306,8 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
               dT = (Tcell(i, j, k)*IIc(i, j, k)*(2-IIc(i, j-1, k)) + Tcell(i, j-1, k)*IIc(i, j-1, k)*(2-IIc(i, j, k)) - (Twall + Twall))*0.5
               Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
               ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-              dummy = (utang2Int**2)*ctm
+              !dummy = (utang2Int**2)*ctm
+              dummy = abs(utang2Int)*sqrt(utangInt)*ctm
               bcmomflux = SIGN(dummy, utang2Int)
               iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
               eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
@@ -1257,7 +1324,8 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
               dT = (Tcell(i, j, k)*IIc(i, j, k)*(2-IIc(i, j-1, k)) + Tcell(i, j-1, k)*IIc(i, j-1, k)*(2-IIc(i, j, k)) - (Twall + Twall))*0.5
               Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
               ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-              dummy = (utang2Int**2)*ctm
+              !dummy = (utang2Int**2)*ctm
+              dummy = abs(utang2Int)*sqrt(utangInt)*ctm
               bcmomflux = SIGN(dummy, utang2Int)
               iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
               eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
@@ -1272,7 +1340,8 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
               dT = (Tcell(i, j, k)  - Twall)*IIc(i,j,k)
               Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
               ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-              dummy = (utang2Int**2)*ctm
+              !dummy = (utang2Int**2)*ctm
+              dummy = abs(utang2Int)*sqrt(utangInt)*ctm
               bcmomflux = SIGN(dummy, utang2Int)
               iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
               eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
@@ -1286,7 +1355,8 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
               dT = (Tcell(i, j, k)  - Twall)*IIc(i,j,k)
               Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
               ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-              dummy = (utang2Int**2)*ctm
+              !dummy = (utang2Int**2)*ctm
+              dummy = abs(utang2Int)*sqrt(utangInt)*ctm
               bcmomflux = SIGN(dummy, utang2Int)
               iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
               eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
@@ -1867,7 +1937,8 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
             dT = ((Tcell(i, j, k) + Tcell(i - 1, j, k)) - (Twall + Twall))*0.5
             Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
             ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-            dummy = (utang1Int**2)*ctm
+            !dummy = (utang1Int**2)*ctm
+            dummy = abs(utang1Int)*sqrt(utangInt)*ctm
             bcmomflux = SIGN(dummy, utang1Int) !bcmomflux=u_star^2
 
             iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
@@ -1889,7 +1960,8 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
             dT = ((Tcell(i, j, k) + Tcell(i, j - 1, k)) - (Twall + Twall))*0.5
             Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
             ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-            dummy = (utang2Int**2)*ctm !save result and update field
+            !dummy = (utang2Int**2)*ctm !save result and update field
+            dummy = abs(utang2Int)*sqrt(utangInt)*ctm
             bcmomflux = SIGN(dummy, utang2Int)
             iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
             eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
@@ -1942,6 +2014,7 @@ END SUBROUTINE wfuno
 !for scalar
 !FUNCTION unoh(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !for heat, the bit that does not change no matter what wall
 SUBROUTINE unoh(otf, octh, logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !for heat, the bit that does not change no matter what wall
+   use modglobal, only : prandtlturb
 !flux in Km/s
    IMPLICIT NONE
    REAL, INTENT(in) :: logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2
@@ -1951,12 +2024,10 @@ SUBROUTINE unoh(otf, octh, logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar
    REAL, PARAMETER :: b2 = 4.7
    REAL, PARAMETER :: dm = 7.4
    REAL, PARAMETER :: dh = 5.3
-   REAL, PARAMETER :: prandtlmol = 0.71
-   REAL, PARAMETER :: prandtlmoli = 1/0.71
 
    octh = 0.
    otf = 0.
-   IF (Ribl0 > 0.21) THEN !0.25 approx critical for bulk Richardson number  => stable
+   IF (Ribl0 > 0.) THEN !0.25 approx critical for bulk Richardson number  => stable
       Fm = 1./(1. + b2*Ribl0)**2 !Eq. 4
       Fh = Fm !Eq. 4
    ELSE ! => unstable
@@ -1966,12 +2037,12 @@ SUBROUTINE unoh(otf, octh, logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar
       Fh = 1. - (b1*Ribl0)/(1. + ch*SQRT(ABS(Ribl0))) !Eq. 3
    END IF
 
-   M = prandtlmol*logdz*SQRT(Fm)/Fh !Eq. 14
+   M = prandtlturb*logdz*SQRT(Fm)/Fh !Eq. 14
 
-   Ribl1 = Ribl0 - Ribl0*prandtlmol*logzh/(prandtlmol*logzh + M) !Eq. 17
+   Ribl1 = Ribl0 - Ribl0*prandtlturb*logzh/(prandtlturb*logzh + M) !Eq. 17
 
    !interate to get new Richardson number
-   IF (Ribl1 > 0.21) THEN !0.25 approx critical for bulk Richardson number  => stable
+   IF (Ribl1 > 0.) THEN !0.25 approx critical for bulk Richardson number  => stable
       Fm = 1./(1. + b2*Ribl1)**2 !Eq. 4
       Fh = Fm !Eq. 4
    ELSE ! => unstable
@@ -1980,12 +2051,16 @@ SUBROUTINE unoh(otf, octh, logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar
       Fm = 1. - (b1*Ribl1)/(1. + cm*SQRT(ABS(Ribl1))) !Eq. 3
       Fh = 1. - (b1*Ribl1)/(1. + ch*SQRT(ABS(Ribl1))) !Eq. 3
    END IF
-   M = prandtlmol*logdz*SQRT(Fm)/Fh !Eq. 14
 
-   dTrough = dT!*1./(prandtlmol*logzh/M + 1.) !Eq. 13a
+   ! ! Uno (2)
+   ! M = prandtlturb*logdz*SQRT(Fm)/Fh !Eq. 14
+   ! dTrough = dT*1./(prandtlturb*logzh/M + 1.) !Eq. 13a
+   ! octh = SQRT(utangInt)*fkar2/(logdz*logdz)*Fh/prandtlturb !Eq. 8
+   ! otf = octh*dTrough !Eq. 2, Eq. 8
 
-   octh = SQRT(utangInt)*fkar2/(logdz*logdzh)*Fh!*prandtlmoli !Eq. 8
-   otf = octh*dTrough !Eq. 2, Eq. 8
+   ! Uno (8)
+   octh = SQRT(utangInt)*fkar2/(logdz*logdzh)*Fh/prandtlturb !Eq. 8
+   otf = octh*dT !Eq. 2, Eq. 8
 
 END SUBROUTINE unoh
 !END FUNCTION unoh
@@ -1993,6 +2068,7 @@ END SUBROUTINE unoh
 !!!!!!!!!!!!!
 !for momentum
 REAL FUNCTION unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !for momentum, this bit is not depended on orientation etc
+   use modglobal, only : prandtlturb
 !momentum flux in m2/s2
 !dT,utang and logdzh are unused and could be removed
    IMPLICIT NONE
@@ -2002,8 +2078,9 @@ REAL FUNCTION unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !for 
    REAL, PARAMETER :: b2 = 4.7
    REAL, PARAMETER :: dm = 7.4
    REAL, PARAMETER :: dh = 5.3
-   REAL, PARAMETER :: prandtlmol = 0.71
-   IF (Ribl0 > 0.21) THEN !0.25 approx critical for bulk Richardson number  => stable
+   !REAL, PARAMETER :: prandtlmol = 0.71
+
+   IF (Ribl0 > 0.) THEN !0.25 approx critical for bulk Richardson number  => stable
       Fm = 1./(1. + b2*Ribl0)**2 !Eq. 4
       Fh = Fm !Eq. 4
    ELSE ! => unstable
@@ -2013,12 +2090,12 @@ REAL FUNCTION unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !for 
       Fh = 1. - (b1*Ribl0)/(1. + ch*SQRT(ABS(Ribl0))) !Eq. 3
    END IF
 
-   M = prandtlmol*logdz*SQRT(Fm)/Fh !Eq. 14
+   M = prandtlturb*logdz*SQRT(Fm)/Fh !Eq. 14
 
-   Ribl1 = Ribl0 - Ribl0*prandtlmol*logzh/(prandtlmol*logzh + M) !Eq. 17
+   Ribl1 = Ribl0 - Ribl0*prandtlturb*logzh/(prandtlturb*logzh + M) !Eq. 17
 
    !interate to get new Richardson number
-   IF (Ribl1 > 0.21) THEN !0.25 approx critical for bulk Richardson number  => stable
+   IF (Ribl1 > 0.) THEN !0.25 approx critical for bulk Richardson number  => stable
       Fm = 1./(1. + b2*Ribl1)**2 !Eq. 4
    ELSE ! => unstable
       cm = (dm*fkar2)/(logdz**2)*b1*sqdz !Eq. 5

@@ -721,7 +721,8 @@ module modibm
                dTdum = thl0(i,j-1,k) - facT(kdum,1)
                Ribl0dum = grav*deltadum*dTdum/(facT(kdum,1)*utangIntdum)
                ctmdum = unom(logdzdum, logdzhdum, logzhdum, sqdzdum, utangIntdum, dTdum, Ribl0dum, fkar2dum)
-               dummydum = (utang2Intdum**2)*ctmdum
+               !dummydum = (utang2Intdum**2)*ctmdum
+               dummydum = abs(utang2Intdum)*sqrt(utangIntdum)*ctmdum
                bcmomfluxdum = SIGN(dummydum, utang2Intdum)
                eommdum = (dzf(k-1)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, k-1) + ekm(i, j - 1, k-1)))*dzhiq(k)
                vp(i, j, k) = vp(i, j, k) + (v0(i, j, k) - v0(i, j, k-1))*eommdum*dzhi(k)*dzfi(k) - bcmomfluxdum*dzfi(k)*0.5
@@ -770,7 +771,8 @@ module modibm
                logdzdum = LOG(deltadum/z0dum)
                utang2Intdum = v0(i,j,k)
                ctmdum = fkar**2/logdzdum**2
-               dummydum = (utang2Intdum**2)*ctmdum
+               !dummydum = (utang2Intdum**2)*ctmdum
+               dummydum = abs(utang2Intdum)*sqrt(utangIntdum)*ctmdum
                bcmomfluxdum = SIGN(dummydum, utang2Intdum)
                eommdum = (dzf(k-1)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, k-1) + ekm(i, j - 1, k-1)))*dzhiq(k)
                vp(i, j, k) = vp(i, j, k) + (v0(i, j, k) - v0(i, j, k-1))*eommdum*dzhi(k)*dzfi(k) - bcmomfluxdum*dzfi(k)*0.5
