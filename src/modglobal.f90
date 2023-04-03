@@ -257,6 +257,7 @@ module modglobal
    real, parameter :: numoli = 1./numol !< 1/numol
    real, parameter :: prandtlmol = 0.71 !< Prandtl number (for air at 300K). Fluid property!
    real, parameter :: prandtlmoli = 1./prandtlmol !< Inverse of Prandtl number
+   real :: prandtlturb = prandtlmol
 
    integer         :: iwallmom = 2, iwalltemp = 1, iwallmoist = 1, iwallscal = 1
 
@@ -269,7 +270,7 @@ module modglobal
    !      real,parameter :: ekmin    = 1.e-6            !<    *minimum value for k-coefficient.
    real, parameter :: ekmin = 1.e-12 !<    *minimum value for k-coefficient.
    real, parameter :: e12min = 5.e-5 !<    *minimum value for TKE.
-   real, parameter :: fkar = 0.41 !<  0.41   *Von Karman constant
+   real :: fkar = 0.41 !<   *Von Karman constant
    real, parameter :: eps1 = 1.e-10 !<    *very small number*
    real, parameter :: epscloud = 1.e-5 !<    *limit for cloud calculation 0.01 g/kg
    real, parameter :: boltz = 5.67e-8 !<    *Stefan-Boltzmann constant
@@ -281,7 +282,7 @@ module modglobal
 
    logical :: lprofforc = .false. !<  nudge flow to a profile !
    logical :: lcoriol = .false. !<  switch for coriolis force
-   integer :: igrw_damp = 2 !< switch to enable gravity wave damping
+   integer :: igrw_damp = 0 !< switch to enable gravity wave damping
    real    :: geodamptime = 7200. !< time scale for nudging to geowind in sponge layer, prevents oscillations
    real    :: uflowrate = 1. !< fixed flow rate used for u-velocity correction
    real    :: vflowrate = 1. !< fixed flow rate used for v-velocity correction

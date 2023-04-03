@@ -35,7 +35,7 @@ SUBROUTINE wfmneutral(hi,hj,hk,iout1,iout2,iomomflux,utang1,utang2,z0,n,ind,wfor
    REAL :: logdz2 = 0. !log(delta/z0)**2
    REAL :: utang1Int !Interpolated 1st tangential velocity component needed for stability calculation (to T location)
    REAL :: utang2Int !Interpolated 2nd tangential velocity component needed for stability calculation (to T location)
-   REAL :: fkar2 = fkar**2 !fkar^2, von Karman constant squared
+   REAL :: fkar2 !fkar^2, von Karman constant squared
    REAL :: emmo = 0., epmo = 0., epom = 0., emom = 0., eopm = 0., eomm = 0., empo = 0.
 
    INTEGER, INTENT(in) :: hi !<size of halo in i
@@ -50,11 +50,11 @@ SUBROUTINE wfmneutral(hi,hj,hk,iout1,iout2,iomomflux,utang1,utang2,z0,n,ind,wfor
    INTEGER, INTENT(in) :: n ! number of the block, used to get i,j,k-indeces
    INTEGER, INTENT(in) :: ind ! in case of y-wall (case 3x & 4x) "ind" is used for j-index, otherwise this is irrelevant
    INTEGER, INTENT(in) :: wforient !orientation of the facet see below:
-   !frist digit, orientation of wall, determines iteration indices 
+   !frist digit, orientation of wall, determines iteration indices
    !second digit, if for momentum or for scalar (necessary because of staggered grid -> which variable to interpolate)
    !xlow=1,xup=2,yup=3,ylow=4,z=5
    !momentum=1
-
+   fkar2 = fkar**2 
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!CASES!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!CASES FOR MOMENTUM!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    SELECT CASE (wforient)
@@ -68,7 +68,7 @@ SUBROUTINE wfmneutral(hi,hj,hk,iout1,iout2,iomomflux,utang1,utang2,z0,n,ind,wfor
 
       delta = dxf(i)*0.5
       logdz2 = LOG(delta/z0)**2
-            
+
       !v west
       DO k = kl, ku
          DO j = jl, ju
@@ -172,7 +172,7 @@ SUBROUTINE wfmneutral(hi,hj,hk,iout1,iout2,iomomflux,utang1,utang2,z0,n,ind,wfor
       END DO
       end if
 
-      
+
 
 !!! case 21 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !wfmneutral 21 !wall in yz -> wf in x (=vertical), upper wall, east wall
@@ -265,7 +265,7 @@ SUBROUTINE wfmneutral(hi,hj,hk,iout1,iout2,iomomflux,utang1,utang2,z0,n,ind,wfor
       END DO
 
      !w east edge bot
-      k = block(n, 5)  ! 
+      k = block(n, 5)  !
       if (k.gt.0) then
       DO j = jl, ju
          utang2Int = utang2(i, j, k)
@@ -366,7 +366,7 @@ SUBROUTINE wfmneutral(hi,hj,hk,iout1,iout2,iomomflux,utang1,utang2,z0,n,ind,wfor
       END DO
 
 !w north edge bot
-      k = block(n, 5) 
+      k = block(n, 5)
      if (k.gt.0) then
       DO i = il, iu
          utang2Int = utang2(i, j, k)
@@ -395,7 +395,7 @@ end if
 
       delta = 0.5*dy
       logdz2 = LOG(delta/z0)**2
-      
+
 DO k = kl, ku
          DO i = il, iu
 
@@ -476,7 +476,7 @@ DO k = kl, ku
 
 !w south edge bot
       k = block(n, 5)
-      if (k.gt.0) then 
+      if (k.gt.0) then
       DO i = il, iu
          utang2Int = utang2(i, j, k)
          !call function repeatedly
@@ -503,7 +503,7 @@ DO k = kl, ku
       iu = block(n, 2)
       jl = MAX(block(n, 3) - myid*jmax, 1)
       ju = MIN(block(n, 4) - myid*jmax, jmax)
- 
+
       delta = 0.5*dzf(k)
       logdz2 = LOG(delta/z0)**2
 
@@ -602,7 +602,7 @@ end if
             utang1Int = utang1(i, j, k)
             ctm = fkar2/(logdz2)
             dummy = (utang1Int**2)*ctm
-            bcmomflux = SIGN(dummy, utang1Int) 
+            bcmomflux = SIGN(dummy, utang1Int)
 
             iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
 
@@ -619,7 +619,7 @@ end if
 
             utang2Int = utang2(i, j, k)
             ctm = fkar2/(logdz2)
-            dummy = (utang2Int**2)*ctm 
+            dummy = (utang2Int**2)*ctm
             bcmomflux = SIGN(dummy, utang2Int)
             iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
             eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)

@@ -1134,6 +1134,8 @@ module modibm
        if (.not. valid) cycle
 
        utan = dot_product(uvec, strm)
+       utan = max(0.01, utan) ! uDALES 1
+
        ! calcualate momentum transfer coefficient
        ! make into interface somehow? because iwallmom doesn't change in the loop
        if (iwallmom == 2) then ! stability included
@@ -1565,7 +1567,7 @@ module modibm
      ! surface tangential velocity 'utan' at a distance 'dist' from the surface,
      ! for a surface with momentum roughness length z0 and heat roughness length z0h.
      ! Stability are included using the air temperature Tair and surface temperature Tsurf.
-     use modglobal, only : grav, prandtlmol, fkar
+     use modglobal, only : grav, fkar, prandtlturb
 
       implicit none
       real, intent(in) :: dist, z0, z0h, Tsurf, Tair, utan
@@ -1584,7 +1586,7 @@ module modibm
       sqdz = SQRT(dist/z0)
       fkar2 = fkar**2
 
-      IF (Ribl0 > 0.21) THEN !0.25 approx critical for bulk Richardson number  => stable
+      IF (Ribl0 > 0.) THEN !0.25 approx critical for bulk Richardson number  => stable
          Fm = 1./(1. + b2*Ribl0)**2 !Eq. 4
          Fh = Fm !Eq. 4
       ELSE ! => unstable
@@ -1594,12 +1596,12 @@ module modibm
          Fh = 1. - (b1*Ribl0)/(1. + ch*SQRT(ABS(Ribl0))) !Eq. 3
       END IF
 
-      M = prandtlmol*logdz*SQRT(Fm)/Fh !Eq. 14
+      M = prandtlturb*logdz*SQRT(Fm)/Fh !Eq. 14
 
-      Ribl1 = Ribl0 - Ribl0*prandtlmol*logzh/(prandtlmol*logzh + M) !Eq. 17
+      Ribl1 = Ribl0 - Ribl0*prandtlturb*logzh/(prandtlturb*logzh + M) !Eq. 17
 
       !interate to get new Richardson number
-      IF (Ribl1 > 0.21) THEN !0.25 approx critical for bulk Richardson number  => stable
+      IF (Ribl1 > 0.) THEN !0.25 approx critical for bulk Richardson number  => stable
          Fm = 1./(1. + b2*Ribl1)**2 !Eq. 4
       ELSE ! => unstable
          cm = (dm*fkar2)/(logdz**2)*b1*sqdz !Eq. 5
@@ -1625,7 +1627,7 @@ module modibm
 
 
    subroutine heat_transfer_coef_flux(utan, dist, z0, z0h, Tair, Tsurf, cth, flux)
-     use modglobal, only : grav, prandtlmol, prandtlmoli, fkar
+     use modglobal, only : grav, fkar, prandtlturb
 
       implicit none
       real, intent(in)  :: dist, z0, z0h, Tsurf, Tair, utan
@@ -1634,10 +1636,10 @@ module modibm
       real, parameter :: b2 = 4.7
       real, parameter :: dm = 7.4
       real, parameter :: dh = 5.3
-      real :: Pr
+      !real :: Pr
       real :: dT, Ribl0, logdz, logdzh, logzh, sqdz, fkar2, Ribl1, Fm, Fh, cm, ch, M, dTrough
 
-      Pr = 1.
+      !Pr = 1.
       !Pr = prandtlmol
       dT = Tair - Tsurf
       Ribl0 = grav * dist * dT / (Tsurf * utan**2) !Eq. 6, guess initial Ri
@@ -1650,7 +1652,7 @@ module modibm
 
       cth = 0.
       flux = 0.
-      if (Ribl0 > 0.21) then !0.25 approx critical for bulk Richardson number  => stable
+      if (Ribl0 > 0.) then
          Fm = 1./(1. + b2*Ribl0)**2 !Eq. 4
          Fh = Fm !Eq. 4
       else ! => unstable
@@ -1660,11 +1662,11 @@ module modibm
          Fh = 1. - (b1*Ribl0)/(1. + ch*sqrt(abs(Ribl0))) !Eq. 3
       end if
 
-      M = Pr*logdz*sqrt(Fm)/Fh !Eq. 14
-      Ribl1 = Ribl0 - Ribl0*Pr*logzh/(Pr*logzh + M) !Eq. 17
+      M = prandtlturb*logdz*sqrt(Fm)/Fh !Eq. 14
+      Ribl1 = Ribl0 - Ribl0*prandtlturb*logzh/(prandtlturb*logzh + M) !Eq. 17
 
       !interate to get new Richardson number
-      if (Ribl1 > 0.21) then !0.25 approx critical for bulk Richardson number  => stable
+      if (Ribl1 > 0.) then
          Fm = 1./(1. + b2*Ribl1)**2 !Eq. 4
          Fh = Fm !Eq. 4
       else ! => unstable
@@ -1673,13 +1675,16 @@ module modibm
          Fm = 1. - (b1*Ribl1)/(1. + cm*sqrt(abs(Ribl1))) !Eq. 3
          Fh = 1. - (b1*Ribl1)/(1. + ch*sqrt(abs(Ribl1))) !Eq. 3
       end if
-      M = Pr*logdz*sqrt(Fm)/Fh !Eq. 14
 
-      dTrough = dT!*1./(Pr*logzh/M + 1.) !Eq. 13a
+      ! ! Uno (2)
+      ! M = prandtlturb*logdz*sqrt(Fm)/Fh !Eq. 14
+      ! dTrough = dT*1./(prandtlturb*logzh/M + 1.) !Eq. 13a
+      ! cth = abs(utan)*fkar2/(logdz*logdz)*Fh/prandtlturb !Eq. 8
+      ! flux = cth*dTrough !Eq. 2, Eq. 8
 
-      cth = abs(utan)*fkar2/(logdz*logdzh)*Fh/Pr !Eq. 8
-      !cth = abs(utan)*fkar2/(logdz*logdz)*Fh/Pr !Eq. 8
-      flux = cth*dTrough !Eq. 2, Eq. 8
+      ! Uno (8)
+      cth = abs(utan)*fkar2/(logdz*logdzh)*Fh/prandtlturb !Eq. 8
+      flux = cth*dT !Eq. 2, Eq. 8
 
    end subroutine heat_transfer_coef_flux
 
@@ -1698,7 +1703,7 @@ module modibm
       !kind of obsolete when road facets are being used
       !vegetated floor not added (could simply be copied from vegetated horizontal facets)
       use modglobal, only:ib, ie, ih, jh, kb,ke,kh, jb, je, kb, numol, prandtlmol, dzh, nsv, &
-         dxf, dxhi, dzf, dzfi, numoli, ltempeq, khc, lmoist, BCbotT, BCbotq, BCbotm, BCbots, dzh2i
+         dxf, dxhi, dzf, dzfi, numoli, ltempeq, khc, lmoist, BCbotT, BCbotq, BCbotm, BCbots, dzh2i, libm
       use modfields, only : u0,v0,e120,um,vm,w0,wm,e12m,thl0,qt0,sv0,thlm,qtm,svm,up,vp,wp,thlp,qtp,svp,shear,momfluxb,tfluxb,cth,tau_x,tau_y,tau_z,thl_flux
       use modsurfdata, only:thlflux, qtflux, svflux, ustar, thvs, wtsurf, wqsurf, thls, z0, z0h
       use modsubgriddata, only:ekm, ekh
@@ -1715,7 +1720,7 @@ module modibm
       tau_z(:,:,kb:ke+kh) = wp
       thl_flux(:,:,kb:ke+kh) = thlp
 
-      if (lbottom) then
+      if (.not.(libm)) then
       !momentum
       if (BCbotm.eq.2) then
       call wfuno(ih, jh, kh, up, vp, thlp, momfluxb, tfluxb, cth, bcTfluxA, u0, v0, thl0, thls, z0, z0h, 0, 1, 91)

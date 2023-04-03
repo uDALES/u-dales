@@ -148,28 +148,8 @@ module modforces
     integer i,j
 
     if (lvinf) then
-        ! vtop = 0.
-        ! do j =jb,je
-        !   do i =ib,ie
-        !     vtop = vtop + 0.5*(v0(i,j,ke)+u0(i,j+1,ke))*dy
-        !   end do
-        ! end do
-        ! vtop = vtop / ( (je-jb+1)*(xh(ie+1)-xh(ib) ) )
-        ! call MPI_ALLREDUCE(vtop,   dum,1,MY_REAL,MPI_SUM,comm3d,mpierr)
-        ! freestream = dum / nprocs
         freestream = v0av(ke)
     else
-        ! utop = 0.
-        ! do j =jb,je
-        !   do i =ib,ie
-        !     !dum=0.5*(u0(i,j,ke)+u0(i+1,j,ke))*dxf(i)
-        !     !utop = utop + dum
-        !     utop = utop + 0.5*(u0(i,j,ke)+u0(i+1,j,ke))*dxf(i)
-        !   end do
-        ! end do
-        ! utop = utop / ( (je-jb+1)*(xh(ie+1)-xh(ib) ) )
-        ! call MPI_ALLREDUCE(utop,   dum,1,MY_REAL,MPI_SUM,comm3d,mpierr)
-        ! freestream = dum / nprocs
         freestream = u0av(ke)
     end if
 
@@ -253,7 +233,7 @@ module modforces
     use modglobal, only : ib,ie,jb,je,kb,ke,kh,dxf,xh,dt,&
                           Uinf,Vinf,ifixuinf,tscale,timee,rk3step,inletav,&
                           freestreamav,lvinf
-    use modfields, only : u0,dpdxl,dgdt,dpdx,up,vp
+    use modfields, only : u0,dpdxl,dgdt,dpdx,up,vp,u0av,v0av
     use modmpi, only    : myid,comm3d,mpierr,mpi_sum,my_real,nprocs
     implicit none
 
@@ -282,25 +262,26 @@ module modforces
 
       ! ! dpdxl(:) = dpdx + (1./rk3coef) * (freestream - Uinf)
       ! dpdxl(:) = dpdx + (1./dt) * (freestream - Uinf)
-      call detfreestream(freestream)
+      !call detfreestream(freestream)
       ! write(*,*) "freestream",freestream
       if (lvinf) then
         do k=kb,ke
           do i=ib,ie
             do j=jb,je
-              vp(i,j,k) = vp(i,j,k) - (1./dt) * (freestream - Vinf)
+              vp(i,j,k) = vp(i,j,k) - (1./dt) * (v0av(ke) - Vinf)
             enddo
           enddo
         enddo
-      else
+      end if
+      !else
         do k=kb,ke
           do j=jb,je
             do i=ib,ie
-              up(i,j,k) = up(i,j,k) - (1./dt) * (freestream - Uinf)
+              up(i,j,k) = up(i,j,k) - (1./dt) * (u0av(ke) - Uinf)
             enddo
           enddo
         enddo
-      endif
+      !endif
       ! if (myid==0) then
       !   write(*,*), "freestream", freestream
       !   write(*,*), "Uinf", Uinf

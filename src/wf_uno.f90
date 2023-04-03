@@ -42,7 +42,7 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
    REAL :: utang2Int !Interpolated 2nd tangential velocity component needed for stability calculation (to T location)
    REAL :: utangInt !Interpolated absolute tangential velocity
    REAL :: dT !Temperature difference between wall and cell
-   REAL :: fkar2 = fkar**2 !fkar^2, von Karman constant squared
+   REAL :: fkar2 !fkar^2, von Karman constant squared
    REAL :: emmo = 0., epmo = 0., epom = 0., emom = 0., eopm = 0., eomm = 0., empo = 0.
    REAL :: umin = 0.0001 !m^2/s^2
 
@@ -65,11 +65,11 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
    INTEGER, INTENT(in) :: n ! number of the block, used to get i,j,k-indeces
    INTEGER, INTENT(in) :: ind ! in case of y-wall (case 3x & 4x) "ind" is used for j-index, otherwise this is irrelevant
    INTEGER, INTENT(in) :: wforient !orientation of the facet see below:
-   !frist digit, orientation of wall, determines iteration indices 
+   !frist digit, orientation of wall, determines iteration indices
    !second digit, if for momentum or for scalar (necessary because of staggered grid -> which variable to interpolate)
    !xlow=1,xup=2,yup=3,ylow=4,z=5
    !momentum=1,scalar=2
-
+   fkar2 = fkar**2
    obcTfluxA = 0.
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!CASES!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!CASES FOR SCALARS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -258,7 +258,7 @@ end if
       ku = block(n, 6) ! ending k-index
 
       delta = dxf(i)*0.5
-            logdz = LOG(delta/z0) 
+            logdz = LOG(delta/z0)
             logdzh = LOG(delta/z0h)
             logzh = LOG(z0/z0h)
             sqdz = SQRT(delta/z0)
@@ -392,7 +392,7 @@ end if
       END DO
       end if
 
-      
+
 
 !!! case 21 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !wfuno 21 !wall in yz -> wf in x (=vertical), upper wall, east wall
@@ -406,7 +406,7 @@ end if
       ku = block(n, 6) ! ending k-index
 
       delta = dxh(i)*0.5
-            logdz = LOG(delta/z0) 
+            logdz = LOG(delta/z0)
             logdzh = LOG(delta/z0h)
             logzh = LOG(z0/z0h)
             sqdz = SQRT(delta/z0)
@@ -511,7 +511,7 @@ end if
       END DO
 
      !w east edge bot
-      k = block(n, 5)  ! 
+      k = block(n, 5)  !
       if (k.gt.0) then
       DO j = jl, ju
          utang1Int = (utang1(i, j, k) + utang1(i, j + 1, k) + utang1(i, j + 1, k - 1) + utang1(i, j, k - 1))*0.25
@@ -640,7 +640,7 @@ end if
       END DO
 
 !w north edge bot
-      k = block(n, 5) 
+      k = block(n, 5)
      if (k.gt.0) then
       DO i = il, iu
          utang1Int = (utang1(i, j, k) + utang1(i, j, k - 1) + utang1(i + 1, j, k) + utang1(i + 1, j, k - 1))*0.25
@@ -676,7 +676,7 @@ end if
             logdzh = LOG(delta/z0h)
             logzh = LOG(z0/z0h)
             sqdz = SQRT(delta/z0)
-      
+
 DO k = kl, ku
          DO i = il, iu
 
@@ -778,7 +778,7 @@ DO k = kl, ku
 
 !w south edge bot
       k = block(n, 5)
-      if (k.gt.0) then 
+      if (k.gt.0) then
       DO i = il, iu
          utang1Int = (utang1(i, j, k) + utang1(i, j, k - 1) + utang1(i + 1, j, k) + utang1(i + 1, j, k - 1))*0.25
          utang2Int = utang2(i, j, k)
@@ -809,7 +809,7 @@ DO k = kl, ku
       iu = block(n, 2)
       jl = MAX(block(n, 3) - myid*jmax, 1)
       ju = MIN(block(n, 4) - myid*jmax, jmax)
- 
+
       delta = 0.5*dzf(k)
             logdz = LOG(delta/z0)
             logdzh = LOG(delta/z0h)
@@ -1079,6 +1079,7 @@ REAL FUNCTION unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !for 
    REAL, PARAMETER :: dm = 7.4
    REAL, PARAMETER :: dh = 5.3
    REAL, PARAMETER :: prandtlmol = 0.71
+
    IF (Ribl0 > 0.21) THEN !0.25 approx critical for bulk Richardson number  => stable
       Fm = 1./(1. + b2*Ribl0)**2 !Eq. 4
       Fh = Fm !Eq. 4
