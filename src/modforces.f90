@@ -439,13 +439,13 @@ module modforces
       ! uflowrateold = uflowrateold/fluidvol
 
       ! Assumes equidistant grid
-      call avexy_ibm(uout(kb:ke+kh),up(ib:ie,jb:je,kb:ke+kh)*dxf(1)*dy,ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
-      call avexy_ibm(uoutold(kb:ke+kh),um(ib:ie,jb:je,kb:ke+kh)*dxf(1)*dy,ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
+      call avexy_ibm(uout(kb:ke+kh),up(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
+      call avexy_ibm(uoutold(kb:ke+kh),um(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
 
       ! average over fluid volume
       uoutflow = rk3coef*sum(uout(kb:ke)*dzf(kb:ke)) / (ke-kb+1)
       uflowrateold =  sum(uoutold(kb:ke)*dzf(kb:ke)) / (ke-kb+1)
-
+      write(*,*) uoutflow, uflowrateold, uoutflow + uflowrateold
       ! flow correction to match outflow rate
       udef = uflowrate - (uoutflow + uflowrateold)
 
