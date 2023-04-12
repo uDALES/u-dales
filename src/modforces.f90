@@ -443,8 +443,8 @@ module modforces
       call avexy_ibm(uoutold(kb:ke+kh),um(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
 
       ! average over fluid volume
-      uoutflow = rk3coef*sum(uout(kb:ke)*dzf(kb:ke)) / (ke-kb+1)
-      uflowrateold =  sum(uoutold(kb:ke)*dzf(kb:ke)) / (ke-kb+1)
+      uoutflow = rk3coef*sum(uout(kb:ke)*dzf(kb:ke)) / zh(ke+1)
+      uflowrateold =  sum(uoutold(kb:ke)*dzf(kb:ke)) / zh(ke+1)
 
       ! flow correction to match outflow rate
       udef = uflowrate - (uoutflow + uflowrateold)
