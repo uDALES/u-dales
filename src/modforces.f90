@@ -445,7 +445,7 @@ module modforces
       ! average over fluid volume
       uoutflow = rk3coef*sum(uout(kb:ke)*dzf(kb:ke)) / (ke-kb+1)
       uflowrateold =  sum(uoutold(kb:ke)*dzf(kb:ke)) / (ke-kb+1)
-      write(*,*) uoutflow, uflowrateold, uoutflow + uflowrateold
+
       ! flow correction to match outflow rate
       udef = uflowrate - (uoutflow + uflowrateold)
 
