@@ -348,7 +348,7 @@ module modforces
   subroutine masscorr
     !> correct the velocities to get prescribed flow rate
 
-    use modglobal, only : ib,ie,jb,je,ih,jh,kb,ke,kh,dzf,dxf,dy,dt,rk3step,&
+    use modglobal, only : ib,ie,jb,je,ih,jh,kb,ke,kh,dzf,dxf,dy,zh,dt,rk3step,&
                           uflowrate,vflowrate,linoutflow,&
                           luoutflowr,lvoutflowr,luvolflowr,lvvolflowr
     use modfields, only : um,up,vm,vp,uout,uouttot,udef,vout,vouttot,vdef,&
