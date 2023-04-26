@@ -67,7 +67,7 @@ contains
 
       use modglobal, only:ib, ie, ih, jb, je, jgb, jge, jh, kb, ke, kh, linoutflow, dzf, zh, dy, &
          timee, ltempeq, lmoist, BCxm, BCym, BCxT, BCyT, BCxq, BCyq, BCxs, BCys, BCtopm, BCtopT,&
-         BCtopq, BCtops, e12min, idriver, luvolflowr, luoutflowr, dxfi, dyi, dzhi
+         BCtopq, BCtops, e12min, idriver, luvolflowr, luoutflowr, dxfi, dyi, dzhi, Uinf, Vinf
       use modfields, only:u0, v0, w0, um, vm, wm, thl0, thlm, qt0, qtm, uout, uouttot, e120, e12m,&
                           u0av, div
       use modsubgriddata, only:ekh, ekm
@@ -240,10 +240,10 @@ contains
          wm(:, :, ke + 1) = 0.0
       else if (BCtopm .eq. 2) then
          !no-slip = zero velocity at wall
-         call valuetop(um, 0.0)
-         call valuetop(u0, 0.0)
-         call valuetop(vm, 0.0)
-         call valuetop(v0, 0.0)
+         call valuetop(um, Uinf)
+         call valuetop(u0, Uinf)
+         call valuetop(vm, Vinf)
+         call valuetop(v0, Vinf)
          w0(:, :, ke + 1) = 0.0
          wm(:, :, ke + 1) = 0.0
       else if (BCtopm .eq. 3) then
