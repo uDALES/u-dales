@@ -1265,6 +1265,59 @@ module modstartup
             write (*, *) "doing warmstart"
             call readrestartfiles
 
+            ! Still read initial profiles for nudging
+            if (myid == 0) then
+               open (ifinput, file='prof.inp.'//cexpnr)
+               read (ifinput, '(a80)') chmess
+               write (*, '(a80)') chmess
+               read (ifinput, '(a80)') chmess
+
+               do k = kb, ke
+                  read (ifinput, *) &
+                     height(k), &
+                     thlprof(k), &
+                     qtprof(k), &
+                     uprof(k), &
+                     vprof(k), &
+                     e12prof(k)
+               end do
+
+               ! Apply rotation in horizontal
+               !write (6, *) 'iangle = ', iangle
+
+               !uprofrot = uprof*cos(iangle) - vprof*sin(iangle)
+               !vprofrot = vprof*cos(iangle) + uprof*sin(iangle)
+               !uprof = uprofrot
+               !vprof = vprofrot
+
+               close (ifinput)
+               write (*, *) 'height    thl     qt      u      v     e12'
+               do k = ke, kb, -1
+                  write (*, '(f7.1,2f8.1,3f7.1)') &
+                     height(k), &
+                     thlprof(k), &
+                     qtprof(k), &
+                     uprof(k), &
+                     vprof(k), &
+                     e12prof(k)
+
+               end do
+
+               if (minval(e12prof(kb:ke)) < e12min) then
+                  write (*, *) 'e12 value is zero (or less) in prof.inp'
+                  do k = kb, ke
+                     e12prof(k) = max(e12prof(k), e12min)
+                  end do
+               end if
+
+            end if ! end if myid==0
+            ! MPI broadcast numbers reading
+            call MPI_BCAST(thlprof, kmax, MY_REAL, 0, comm3d, mpierr)
+            call MPI_BCAST(qtprof, kmax, MY_REAL, 0, comm3d, mpierr)
+            call MPI_BCAST(uprof, kmax, MY_REAL, 0, comm3d, mpierr)
+            call MPI_BCAST(vprof, kmax, MY_REAL, 0, comm3d, mpierr)
+            call MPI_BCAST(e12prof, kmax, MY_REAL, 0, comm3d, mpierr)
+
             um = u0
             vm = v0
             wm = w0
