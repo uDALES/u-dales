@@ -76,6 +76,7 @@ module modglobal
    integer :: BCxT = 1
    integer :: BCxq = 1
    integer :: BCxs = 1
+   real :: ds = 0 ! Shifted boundary conditions
 
    !y direction is currently alway periodic
    integer :: BCym = 1

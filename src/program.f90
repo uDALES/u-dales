@@ -32,7 +32,7 @@ program DALESURBAN      !Version 48
   use modthermodynamics, only : thermodynamics
 !  use modsurface,        only : surface
   use modsubgrid,        only : subgrid
-  use modforces,         only : forces,coriolis,lstend,fixuinf1,fixuinf2,fixthetainf,nudge, masscorr
+  use modforces,         only : forces,coriolis,lstend,fixuinf1,fixuinf2,fixthetainf,nudge,masscorr,shiftedPBCs
   use modpois,           only : poisson
   use modibm,            only : createwalls,ibmwallfun,ibmnorm,nearwall,bottom
   use initfac,           only : readfacetfiles
@@ -46,6 +46,7 @@ program DALESURBAN      !Version 48
   use modfielddump,    only : initfielddump, fielddump,exitfielddump
   use modstatsdump,    only : initstatsdump,statsdump,exitstatsdump    !tg3315
   !use modbudget,       only : initbudget, budgetstat, exitbudget
+  use modtimedep,      only : inittimedep, timedep
   implicit none
 
 
@@ -65,6 +66,7 @@ program DALESURBAN      !Version 48
 
   call readfacetfiles
   call initEB
+  call inittimedep
   call createwalls    ! determine walls/blocks
  ! call nearwall       ! determine minimum distance and corresponding shear components, ils13 10.07.17, commented, not functional at the moment, not needed for vreman but for smag., fix in modibm
 
@@ -87,6 +89,8 @@ program DALESURBAN      !Version 48
 !-----------------------------------------------------
 
     call advection                ! now also includes predicted pressure gradient term
+
+    call shiftedPBCs
 
     call subgrid
 !-----------------------------------------------------
