@@ -46,6 +46,7 @@ program DALESURBAN      !Version 48
   use modfielddump,    only : initfielddump, fielddump,exitfielddump
   use modstatsdump,    only : initstatsdump,statsdump,exitstatsdump    !tg3315
   !use modbudget,       only : initbudget, budgetstat, exitbudget
+  use modtimedep,      only : inittimedep, timedep
   implicit none
 
 
@@ -65,6 +66,7 @@ program DALESURBAN      !Version 48
 
   call readfacetfiles
   call initEB
+  call inittimedep
   call createwalls    ! determine walls/blocks
  ! call nearwall       ! determine minimum distance and corresponding shear components, ils13 10.07.17, commented, not functional at the moment, not needed for vreman but for smag., fix in modibm
 
