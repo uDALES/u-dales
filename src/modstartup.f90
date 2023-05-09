@@ -139,7 +139,7 @@ module modstartup
          lwallfunc
       namelist/DRIVER/ &
          idriver, tdriverstart, driverjobnr, dtdriver, &
-         driverstore, iplane, lsdriver
+         driverstore, iplane, lsdriver, iangledeg
       namelist/WALLS/ &
          nblocks, nfcts, iwallmom, iwalltemp, iwallmoist, iwallscal, &
          nsolpts_u, nsolpts_v, nsolpts_w, nsolpts_c, &
@@ -833,7 +833,7 @@ module modstartup
          uminletbc, vminletbc, wminletbc, u0inletbcold, v0inletbcold, w0inletbcold, &
          storeu0inletbc, storev0inletbc, storew0inletbc, nstepread, nfile, Tinl, &
          Trec, tminletbc, t0inletbcold, t0inletbc, storet0inletbc, utaui, ttaui, iangle,&
-         u0driver,umdriver,v0driver,w0driver,e120driver,tdriver,thl0driver,qt0driver,storetdriver,&
+         u0driver,umdriver,v0driver,vmdriver,w0driver,e120driver,tdriver,thl0driver,qt0driver,storetdriver,&
          storeu0driver,storeumdriver,storev0driver,storew0driver,storee120driver,storethl0driver,storeqt0driver,&
          nstepreaddriver
       use modinlet, only:readinletfile
@@ -1326,7 +1326,20 @@ module modstartup
 
             elseif (idriver==2) then ! idriver
 
-               call readdriverfile
+               if (ibrank) call readdriverfile
+
+               call drivergen
+
+               do k = kb, ke
+                  do j = jb-1, je+1
+                     do i = ib-1, ie+1
+                        u0(i, j, k) = u0driver(j, k)
+                        um(i, j, k) = umdriver(j, k)
+                        v0(i, j, k) = v0driver(j, k)
+                        vm(i, j, k) = vmdriver(j, k)
+                     end do
+                  end do
+               end do
 
                ! if(myid==0) then
                  ! write(*,*) 'Driver inlet velocity'
@@ -1347,17 +1360,6 @@ module modstartup
               ! if (myid==0) then
               !    write(6,*) 'Modstartup: ubulk=',ubulk
               ! end if
-
-              if (BCxm .eq. BCxm_driver) then
-                do k = kb, ke
-                do j = jb-1, je+1
-                do i = ib-1, ie+1
-                  u0(i, j, k) = storeu0driver(j, k, 1) ! not necessarily 1?
-                  um(i, j, k) = storeu0driver(j, k, 1)
-                end do
-                end do
-                end do
-              end if
 
             elseif (idriver==1) then
 
