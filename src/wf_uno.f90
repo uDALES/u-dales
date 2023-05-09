@@ -19,7 +19,7 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
    !wfuno
    !calculating wall function for momentum and scalars following Cai2012&Uno1995, extension of Louis 1979 method to rough walls
    !fluxes in m2/s2 and Km/s
-   USE modglobal, ONLY : dzf,dzfi,dzh2i,dzhi,dzhiq,dy,dyi,dy2i,dyi5,dxf,dxh,dxfi,dxhi,dxh2i,ib,ie,jb,je,kb,ke,fkar,grav,jmax,rk3step,kmax,jge,jgb,dxfi5,dzfi5
+   USE modglobal, ONLY : dzf,dzfi,dzh2i,dzhi,dzhiq,dy,dyi,dy2i,dyi5,dxf,dxh,dxfi,dxhi,dxh2i,ib,ie,jb,je,kb,ke,fkar,grav,jmax,rk3step,kmax,jge,jgb,dxfi5,dzfi5,eps1
    USE modsubgriddata, ONLY:ekh, ekm
    USE modmpi, ONLY:myid
    USE initfac, ONLY:block
@@ -45,7 +45,7 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
    REAL :: dT !Temperature difference between wall and cell
    REAL :: fkar2 !fkar^2, von Karman constant squared
    REAL :: emmo = 0., epmo = 0., epom = 0., emom = 0., eopm = 0., eomm = 0., empo = 0.
-   REAL :: umin = 0.0001 !m^2/s^2
+   REAL :: umin = eps1!0.0001 !m^2/s^2
 
    INTEGER, INTENT(in) :: hi !<size of halo in i
    INTEGER, INTENT(in) :: hj !<size of halo in j
@@ -2052,15 +2052,15 @@ SUBROUTINE unoh(otf, octh, logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar
       Fh = 1. - (b1*Ribl1)/(1. + ch*SQRT(ABS(Ribl1))) !Eq. 3
    END IF
 
-   ! ! Uno (2)
-   ! M = prandtlturb*logdz*SQRT(Fm)/Fh !Eq. 14
-   ! dTrough = dT*1./(prandtlturb*logzh/M + 1.) !Eq. 13a
-   ! octh = SQRT(utangInt)*fkar2/(logdz*logdz)*Fh/prandtlturb !Eq. 8
-   ! otf = octh*dTrough !Eq. 2, Eq. 8
+   ! Uno (2)
+   M = prandtlturb*logdz*SQRT(Fm)/Fh !Eq. 14
+   dTrough = dT*1./(prandtlturb*logzh/M + 1.) !Eq. 13a
+   octh = SQRT(utangInt)*fkar2/(logdz*logdz)*Fh/prandtlturb !Eq. 8
+   otf = octh*dTrough !Eq. 2, Eq. 8
 
-   ! Uno (8)
-   octh = SQRT(utangInt)*fkar2/(logdz*logdzh)*Fh/prandtlturb !Eq. 8
-   otf = octh*dT !Eq. 2, Eq. 8
+   ! ! Uno (8)
+   ! octh = SQRT(utangInt)*fkar2/(logdz*logdzh)*Fh/prandtlturb !Eq. 8
+   ! otf = octh*dT !Eq. 2, Eq. 8
 
 END SUBROUTINE unoh
 !END FUNCTION unoh
