@@ -1134,7 +1134,7 @@ module modibm
        if (.not. valid) cycle
 
        utan = dot_product(uvec, strm)
-       utan = max(0.01, utan) ! uDALES 1
+       !utan = max(0.01, utan) ! uDALES 1
 
        ! calcualate momentum transfer coefficient
        ! make into interface somehow? because iwallmom doesn't change in the loop
@@ -1237,7 +1237,7 @@ module modibm
        call local_coords(uvec, norm, span, strm, valid)
        if (.not. valid) cycle
        utan = dot_product(uvec, strm)
-       utan = max(0.01, utan) ! uDALES 1
+       !utan = max(0.01, utan) ! uDALES 1
 
        ! Sensible heat
        if (ltempeq) then
@@ -1676,15 +1676,15 @@ module modibm
          Fh = 1. - (b1*Ribl1)/(1. + ch*sqrt(abs(Ribl1))) !Eq. 3
       end if
 
-      ! ! Uno (2)
-      ! M = prandtlturb*logdz*sqrt(Fm)/Fh !Eq. 14
-      ! dTrough = dT*1./(prandtlturb*logzh/M + 1.) !Eq. 13a
-      ! cth = abs(utan)*fkar2/(logdz*logdz)*Fh/prandtlturb !Eq. 8
-      ! flux = cth*dTrough !Eq. 2, Eq. 8
+      ! Uno (2)
+      M = prandtlturb*logdz*sqrt(Fm)/Fh !Eq. 14
+      dTrough = dT*1./(prandtlturb*logzh/M + 1.) !Eq. 13a
+      cth = abs(utan)*fkar2/(logdz*logdz)*Fh/prandtlturb !Eq. 8
+      flux = cth*dTrough !Eq. 2, Eq. 8
 
-      ! Uno (8)
-      cth = abs(utan)*fkar2/(logdz*logdzh)*Fh/prandtlturb !Eq. 8
-      flux = cth*dT !Eq. 2, Eq. 8
+      ! ! Uno (8)
+      ! cth = abs(utan)*fkar2/(logdz*logdzh)*Fh/prandtlturb !Eq. 8
+      ! flux = cth*dT !Eq. 2, Eq. 8
 
    end subroutine heat_transfer_coef_flux
 
