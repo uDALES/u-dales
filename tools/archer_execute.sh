@@ -41,12 +41,12 @@ echo "#SBATCH --time=${WALLTIME}" >> job.$exp.slurm
 echo "#SBATCH --nodes=${NNODE}" >> job.$exp.slurm
 echo "#SBATCH --tasks-per-node=${NCPU}" >> job.$exp.slurm
 echo "#SBATCH --cpus-per-task=1" >> job.$exp.slurm
-echo "#SBATCH --account=e01-ICL-Reeuwijk" >> job.$exp.slurm
+echo "#SBATCH --account=ecseae03" >> job.$exp.slurm
 echo "#SBATCH --partition=standard" >> job.$exp.slurm
 echo "#SBATCH --qos=${QOS}" >> job.$exp.slurm
 echo "module load epcc-job-env" >> job.$exp.slurm
 echo "export OMP_NUM_THREADS=1" >> job.$exp.slurm
-echo "srun --distribution=block:block --hint=nomultithread ./u-dales $outdir/namoptions.$exp > $outdir/output.$exp 2>&1" >> job.$exp.slurm
+echo "srun --distribution=block:cyclic --hint=nomultithread ./u-dales $outdir/namoptions.$exp > $outdir/output.$exp 2>&1" >> job.$exp.slurm
 
 ## gather output files from cores in a single file
 echo "$DA_TOOLSDIR/gather_outputs.sh $outdir " >> job.$exp.slurm
