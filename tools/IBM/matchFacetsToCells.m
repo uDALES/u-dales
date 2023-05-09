@@ -60,14 +60,14 @@ for facet=1:size(TR.ConnectivityList,1)
 %     ku = find(zmax - [zgrid(1)-dz/2, zgrid + dz/2] < tol, 1, 'first')
 
     % facets on domain edge
-    if xmin < 1; il = 1; end
-    if ymin < 1; jl = 1; end
-    if zmin < 1; kl = 1; end
-    if xmax > length(xgrid); iu = length(xgrid); end
-    if ymax > length(ygrid); ju = length(ygrid); end
+    if il < 1; il = 1; end
+    if jl < 1; jl = 1; end
+    if kl < 1; kl = 1; end
+    if iu > length(xgrid); iu = length(xgrid); end
+    if ju > length(ygrid); ju = length(ygrid); end
     
 
-    stopflag = false;
+    stopflag = false;    
     for i=il:iu
         for j=jl:ju
             for k=kl:ku

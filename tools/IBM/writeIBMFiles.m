@@ -1,7 +1,82 @@
 addpath('./inpolyhedron/')
 addpath('./point2trimesh/')
 addpath('./in_mypoly/')
+TR_noground = TR;
+lmypoly = 1;
+lgroundfacets = 1;
+dx = 2
+dy = 2
+dz = 2
+Lx = X
+Ly = Y
+Lz = Z
+% Comment for a push
+L_char = 30
+xf = dx/2:dx:Lx-dx/2;
 
+xh = 0:dx:Lx-dx;
+
+yf = dy/2:dy:Ly-dy/2;
+
+yh = 0:dy:Ly-dy;
+
+zf = dz/2:dz:Lz-dz/2;
+
+zh = 0:dz:Lz-dz;
+
+
+
+% c-grid (scalars/pressure)
+
+xgrid_c = xf;
+
+ygrid_c = yf;
+
+zgrid_c = zf;
+
+[X_c,Y_c,Z_c] = ndgrid(xgrid_c,ygrid_c,zgrid_c);
+
+
+
+% u-grid
+
+xgrid_u = xh;
+
+ygrid_u = yf;
+
+zgrid_u = zf;
+
+[X_u,Y_u,Z_u] = ndgrid(xgrid_u,ygrid_u,zgrid_u);
+
+
+
+% v-grid
+
+xgrid_v = xf;
+
+ygrid_v = yh;
+
+zgrid_v = zf;
+
+[X_v,Y_v,Z_v] = ndgrid(xgrid_v,ygrid_v,zgrid_v);
+
+
+
+% w-grid
+
+xgrid_w = xf;
+
+ygrid_w = yf;
+
+zgrid_w = zh;
+
+[X_w,Y_w,Z_w] = ndgrid(xgrid_w,ygrid_w,zgrid_w);
+
+
+
+itot = Lx/dx; jtot = Ly/dy; ktot = Lz/dz; ijktot = itot*jtot*ktot;
+
+include_diagonals = false;
 % Assumes the following variables have been already defined:
 % TR: triangulation describing the entire geometry, including ground facets
 %   note this shouldn't be closed - the bottom of buildings are not present.
@@ -51,7 +126,7 @@ end
 
 fluid_u = ~solid_u;
 
-%% Boundary masks
+%% Boundary masksfluid_IB(i
 [fluid_IB_u, solid_IB_u] = getBoundaryCells(xgrid_u, ygrid_u, zgrid_u, fluid_u, solid_u, include_diagonals);
 if (lgroundfacets)
     fluid_u_1 = fluid_u(:,:,1);
