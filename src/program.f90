@@ -32,7 +32,7 @@ program DALESURBAN      !Version 48
   use modthermodynamics, only : thermodynamics
 !  use modsurface,        only : surface
   use modsubgrid,        only : subgrid
-  use modforces,         only : forces,coriolis,lstend,fixuinf1,fixuinf2,fixthetainf,nudge, masscorr
+  use modforces,         only : forces,coriolis,lstend,fixuinf1,fixuinf2,fixthetainf,nudge,masscorr,shiftedPBCs
   use modpois,           only : poisson
   use modibm,            only : createwalls,ibmwallfun,ibmnorm,nearwall,bottom
   use initfac,           only : readfacetfiles
@@ -87,6 +87,8 @@ program DALESURBAN      !Version 48
 !-----------------------------------------------------
 
     call advection                ! now also includes predicted pressure gradient term
+
+    call shiftedPBCs
 
     call subgrid
 !-----------------------------------------------------
