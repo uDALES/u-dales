@@ -24,9 +24,9 @@ expnr = '007';
 ncpus = 2;
 
 %DA_EXPDIR = getenv('DA_EXPDIR');
-DA_EXPDIR = '~/ecse/experiments';
+DA_EXPDIR = '/media/chris/Project3/uDALES2.0/experiments';
 %DA_TOOLSDIR = getenv('DA_TOOLSDIR');
-DA_TOOLSDIR = '~/ecse/u-dales/tools';
+DA_TOOLSDIR = '/media/chris/Project3/uDALES2.0/u-dales';
 addpath([DA_TOOLSDIR '/']);
 exppath = [DA_EXPDIR '/'];
 cd([DA_EXPDIR '/' expnr])
