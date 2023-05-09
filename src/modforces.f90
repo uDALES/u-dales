@@ -875,7 +875,7 @@ module modforces
 
   subroutine nudge
     use modglobal,  only : kb,ke,lmoist,ltempeq,lnudge,tnudge,nnudge,numol,nsv
-    use modfields,  only : thlp,qtp,svp,sv0av,thl0av,qt0av
+    use modfields,  only : thlp,qtp,svp,sv0av,thl0av,qt0av,thlprof,qtprof
     use modmpi,     only : myid
     implicit none
     integer :: k
@@ -893,13 +893,13 @@ module modforces
 
     if (ltempeq) then
       do k=ke-nnudge,ke
-        thlp(:,:,k) = thlp(:,:,k) - ( thl0av(k) - 288 ) / (tnudge/2 + (ke-k)*tnudge/nnudge)
+        thlp(:,:,k) = thlp(:,:,k) - (thl0av(k) - thlprof(k)) / tnudge
       end do
     end if !ltempeq
 
     if (lmoist) then
       do k=ke-nnudge,ke
-        qtp(:,:,k) = qtp(:,:,k) - ( qt0av(k) - 0. ) / (tnudge/2 +(ke-k)*tnudge/nnudge)
+        qtp(:,:,k) = qtp(:,:,k) - (qt0av(k) - qtprof(k)) / tnudge
       end do
     end if !lmoist
 
