@@ -91,6 +91,8 @@ contains
       !allocate(storee12mdriver(jb-jh:je+jh,kb-kh:ke+kh,1:driverstore))
       allocate(u0driver(jb-jh:je+jh,kb-kh:ke+kh))
       allocate(v0driver(jb-jh:je+jh,kb-kh:ke+kh))
+      allocate(u0driverrot(jb-jh:je+jh,kb-kh:ke+kh))
+      allocate(v0driverrot(jb-jh:je+jh,kb-kh:ke+kh))
       allocate(w0driver(jb-jh:je+jh,kb-kh:ke+kh))
       !allocate(e120driver(jb-jh:je+jh,kb-kh:ke+kh))
       allocate(umdriver(jb-jh:je+jh,kb-kh:ke+kh))
@@ -278,6 +280,12 @@ contains
         end if
         nstepreaddriver = x
       end if
+
+      ! rotate
+      u0driverrot = u0driver*cos(iangle) - v0driver*sin(iangle)
+      v0driverrot = v0driver*cos(iangle) + u0driver*sin(iangle)
+      u0driver = u0driverrot
+      v0driver = v0driverrot
 
       ! if(myid==0) then
         ! write(6,'(A,F9.4)') 'Simulation time: ', timee
