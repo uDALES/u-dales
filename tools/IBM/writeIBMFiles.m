@@ -1,30 +1,6 @@
 addpath('./inpolyhedron/')
 addpath('./point2trimesh/')
 addpath('./in_mypoly/')
-TR_noground = TR;
-lmypoly = 1;
-lgroundfacets = 1;
-dx = 2
-dy = 2
-dz = 2
-Lx = X
-Ly = Y
-Lz = Z
-% Comment for a push
-L_char = 30
-xf = dx/2:dx:Lx-dx/2;
-
-xh = 0:dx:Lx-dx;
-
-yf = dy/2:dy:Ly-dy/2;
-
-yh = 0:dy:Ly-dy;
-
-zf = dz/2:dz:Lz-dz/2;
-
-zh = 0:dz:Lz-dz;
-
-
 
 % c-grid (scalars/pressure)
 
