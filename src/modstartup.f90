@@ -68,7 +68,7 @@ module modstartup
          thlsrc, ifixuinf, lvinf, tscale, ltempinout, lmoistinout,  &
          lwallfunc,lprofforc,lchem,k1,JNO2,rv,rd,tnextEB,tEB,dtEB,bldT,wsoil,wgrmax,wwilt,wfc,skyLW,GRLAI,rsmin,nfcts,lEB,lwriteEBfiles,nwalllayers,lconstW, &
          lvfsparse,nnz,&
-         BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys,ds &
+         BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys,ds, &
          BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots, &
          idriver,tdriverstart,driverjobnr,dtdriver,driverstore,lsdriver, &
          prandtlturb, fkar
