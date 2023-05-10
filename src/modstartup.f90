@@ -1758,6 +1758,8 @@ module modstartup
       ntimee = nint(timee/dtmax)
       tnextrestart = btime + trestart
       tnextfielddump = btime + tfielddump
+      tEB = btime
+      tnextEB = btime + dtEB
       deallocate (height, th0av)
 
       !    call boundary
