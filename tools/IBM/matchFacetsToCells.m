@@ -104,10 +104,10 @@ for facet=1:size(TR.ConnectivityList,1)
                     if (size(clip,1) == 3) % triangle
                         area = 1/2*norm(cross(clip(2,:)-clip(1,:),clip(3,:)-clip(1,:)));
                         
-                        if (area < tol)
-                            disp(['Facet ' num2str(facet) ' in cell ' num2str(i) ',' num2str(j) ',' num2str(k) ' has zero area'])
-                            continue
-                        end
+%                         if (area < tol)
+%                             disp(['Facet ' num2str(facet) ' in cell ' num2str(i) ',' num2str(j) ',' num2str(k) ' has zero area'])
+%                             continue
+%                         end
 
                         tri = triangulation([1 2 3], clip);
 
@@ -136,10 +136,10 @@ for facet=1:size(TR.ConnectivityList,1)
                         projArea = polyarea(projVert(:,ids(1)), projVert(:,ids(2)));
                         area = projArea / angle;
 
-                        if (area < tol)
-                            disp(['Facet ' num2str(facet) ' in cell ' num2str(i) ',' num2str(j) ',' num2str(k) ' has zero area'])
-                            continue
-                        end
+%                         if (area < tol)
+%                             disp(['Facet ' num2str(facet) ' in cell ' num2str(i) ',' num2str(j) ',' num2str(k) ' has zero area'])
+%                             continue
+%                         end
 
                         switch size(clip,1)
                             case 4
@@ -464,12 +464,12 @@ for facet=1:size(TR.ConnectivityList,1)
                         end
 
                         if (isnan(dist))
-                            disp(['Facet ' num2str(facet) ' in cell ' num2str(i) ',' num2str(j) ',' num2str(k) ' has no neighbouring fluid cells'])
+                            % disp(['Facet ' num2str(facet) ' in cell ' num2str(i) ',' num2str(j) ',' num2str(k) ' has no neighbouring fluid cells'])
                             % probably internal, or if w grid, facets at
                             % the bottom of the domain, but check.
                             % Need to remove these sections from
                             % the total area calculation.
-                            %clf
+                            % clf
                             
                             if (xgrid(1) == 0)
                                 title('u')

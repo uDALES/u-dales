@@ -62,6 +62,7 @@ include_diagonals = false;
 % xgrid_u, xgrid_v, xgrid_w, xgrid_c: the x coordinates on which u,v,w, 
 %   and scalars are defined (and similar arrays for y and z coords).
 % fpath: directory to write files to
+fpath = ['/media/chris/Project3/uDALES2.0/experiments/' expnr '/'];
  
 % It will write out the following files:
 % solid_u/v/w: list of indices of solid points (inside the geometry).

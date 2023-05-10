@@ -67,7 +67,7 @@ module modstartup
                                     lzerogradtopscal, lbuoyancy, ltempeq, &
                                     lfixinlet, lfixutauin, pi, &
                                     thlsrc, ifixuinf, lvinf, tscale, ltempinout, lmoistinout,  &
-                                    lwallfunc,lprofforc,lchem,k1,JNO2,rv,rd,tnextEB,tEB,dtEB,bldT,wsoil,wgrmax,wwilt,wfc,skyLW,GRLAI,rsmin,nfcts,lEB,lwriteEBfiles,nfaclyrs,lconstW, &
+                                    lwallfunc,lprofforc,lchem,k1,JNO2,rv,rd,tnextEB,tEB,dtEB,bldT,wsoil,wgrmax,wwilt,wfc,skyLW,GRLAI,rsmin,nfcts,lEB,lwriteEBfiles,nfaclyrs,lconstW,lfacTlyrs,&
                                     BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys,BCzp, &
                                     BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots, &
                                     BCxm_periodic, BCym_periodic, &
@@ -127,7 +127,7 @@ module modstartup
       namelist/BC/ &
          BCxm, BCxT, BCxq, BCxs, &
          BCym, BCyT, BCyq, BCys, &
-         BCtopm, BCtopT, BCtopq, BCtops, &
+         BCtopm, BCtopT, fraction, BCtopq, BCtops, &
          BCbotm, BCbotT, BCbotq, BCbots, &
          bctfxm, bctfxp, bctfym, bctfyp, bctfz, &
          bcqfxm, bcqfxp, bcqfym, bcqfyp, bcqfz, &
@@ -148,7 +148,7 @@ module modstartup
          prandtlturb, fkar
       namelist/ENERGYBALANCE/ &
          lEB, lwriteEBfiles, lconstW, dtEB, bldT, wsoil, wgrmax, wwilt, wfc, &
-         skyLW, GRLAI, rsmin, nfaclyrs
+         skyLW, GRLAI, rsmin, nfaclyrs, lperiodicEBcorr, lfacTlyrs
       namelist/SCALARS/ &
          lreadscal, lscasrc, lscasrcl, lscasrcr, &
          nsv, xS, yS, zS, SS, sigS
@@ -332,6 +332,7 @@ module modstartup
       call MPI_BCAST(lscasrc, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315
       call MPI_BCAST(lscasrcl, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315
       call MPI_BCAST(lscasrcr, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315
+      call MPI_BCAST(lperiodicEBcorr, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! cew216 added to correct periodic buildup
       call MPI_BCAST(lbuoyancy, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for buoyancy force in modforces
       call MPI_BCAST(ltempeq, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for solving adv/diff equation for temperature
       call MPI_BCAST(lper2inout, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for restart periodic flow to inoutflow
@@ -373,6 +374,7 @@ module modstartup
       call MPI_BCAST(BCys, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(BCtopm, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(BCtopT, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(fraction, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(BCtopq, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(BCtops, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(BCbotm, 1, MPI_INTEGER, 0, comm3d, mpierr)
