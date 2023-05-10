@@ -2,68 +2,18 @@ addpath('./inpolyhedron/')
 addpath('./point2trimesh/')
 addpath('./in_mypoly/')
 
-% c-grid (scalars/pressure)
-
-xgrid_c = xf;
-
-ygrid_c = yf;
-
-zgrid_c = zf;
-
-[X_c,Y_c,Z_c] = ndgrid(xgrid_c,ygrid_c,zgrid_c);
-
-
-
-% u-grid
-
-xgrid_u = xh;
-
-ygrid_u = yf;
-
-zgrid_u = zf;
-
-[X_u,Y_u,Z_u] = ndgrid(xgrid_u,ygrid_u,zgrid_u);
-
-
-
-% v-grid
-
-xgrid_v = xf;
-
-ygrid_v = yh;
-
-zgrid_v = zf;
-
-[X_v,Y_v,Z_v] = ndgrid(xgrid_v,ygrid_v,zgrid_v);
-
-
-
-% w-grid
-
-xgrid_w = xf;
-
-ygrid_w = yf;
-
-zgrid_w = zh;
-
-[X_w,Y_w,Z_w] = ndgrid(xgrid_w,ygrid_w,zgrid_w);
-
-
-
-itot = Lx/dx; jtot = Ly/dy; ktot = Lz/dz; ijktot = itot*jtot*ktot;
-
-include_diagonals = false;
 % Assumes the following variables have been already defined:
 % TR: triangulation describing the entire geometry, including ground facets
 %   note this shouldn't be closed - the bottom of buildings are not present.
 % TR_noground: A CLOSED version of the geometry TR, with the ground facets
 %   not present and the bottom of buildings represented by facets.
 %   Eventually it should be possible to go between these two.
-% xgrid_u, xgrid_v, xgrid_w, xgrid_c: the x coordinates on which u,v,w, 
+% xgrid_u, xgrid_v, xgrid_w, xgrid_c: the x coordinates on which u,v,w,
 %   and scalars are defined (and similar arrays for y and z coords).
 % fpath: directory to write files to
 fpath = ['/media/chris/Project3/uDALES2.0/experiments/' expnr '/'];
- 
+% lgroundfacets: true if there are facets on ground level (recommended).
+
 % It will write out the following files:
 % solid_u/v/w: list of indices of solid points (inside the geometry).
 %   Calculated using inpolyhedron if lmypoly=false, or using Dipanjan's routine
@@ -103,7 +53,7 @@ end
 
 fluid_u = ~solid_u;
 
-%% Boundary masksfluid_IB(i
+%% Boundary masks
 [fluid_IB_u, solid_IB_u] = getBoundaryCells(xgrid_u, ygrid_u, zgrid_u, fluid_u, solid_u, include_diagonals);
 if (lgroundfacets)
     fluid_u_1 = fluid_u(:,:,1);
@@ -507,15 +457,15 @@ axis equal tight
 %ylim([0 Ly])
 %zlim([0 Lz])
 
-scatter3(X_u(solid_u), Y_u(solid_u), Z_u(solid_u), 10,[0,0,1],'filled') 
+scatter3(X_u(solid_u), Y_u(solid_u), Z_u(solid_u), 10,[0,0,1],'filled')
 %scatter3(X_v(solid_v), Y_v(solid_v), Z_v(solid_v), 10,[0,0,1],'filled')
 %scatter3(X_w(solid_w), Y_w(solid_w), Z_w(solid_w), 10,[0,0,1],'filled')
 %scatter3(X_c(solid_c), Y_c(solid_c), Z_c(solid_c), 10,[0,0,1],'filled')
 
-%scatter3(X_u(fluid_IB_u), Y_u(fluid_IB_u), Z_u(fluid_IB_u), 10,[0,0,1],'filled') 
-%scatter3(X_v(fluid_IB_v), Y_v(fluid_IB_v), Z_v(fluid_IB_v), 10,[0,0,1],'filled') 
-%scatter3(X_w(fluid_IB_w), Y_u(fluid_IB_w), Z_u(fluid_IB_w), 10,[0,0,1],'filled') 
-%scatter3(X_c(fluid_IB_c), Y_u(fluid_IB_c), Z_u(fluid_IB_c), 10,[0,0,1],'filled') 
+%scatter3(X_u(fluid_IB_u), Y_u(fluid_IB_u), Z_u(fluid_IB_u), 10,[0,0,1],'filled')
+%scatter3(X_v(fluid_IB_v), Y_v(fluid_IB_v), Z_v(fluid_IB_v), 10,[0,0,1],'filled')
+%scatter3(X_w(fluid_IB_w), Y_u(fluid_IB_w), Z_u(fluid_IB_w), 10,[0,0,1],'filled')
+%scatter3(X_c(fluid_IB_c), Y_u(fluid_IB_c), Z_u(fluid_IB_c), 10,[0,0,1],'filled')
 
 %scatter3(fluid_IB_xyz_u(:,1),fluid_IB_xyz_u(:,2),fluid_IB_xyz_u(:,3),10,[0,0,1],'filled')
 %scatter3(fluid_IB_xyz_v(:,1),fluid_IB_xyz_v(:,2),fluid_IB_xyz_v(:,3),10,[0,0,1],'filled')
@@ -529,21 +479,21 @@ scatter3(X_u(solid_u), Y_u(solid_u), Z_u(solid_u), 10,[0,0,1],'filled')
 %scatter3(fluid_IB_rec_u(:,1),fluid_IB_rec_u(:,2),fluid_IB_rec_u(:,3),10,[0,0,1],'filled')
 %quiver3(fluid_IB_xyz_u(:,1), fluid_IB_xyz_u(:,2), fluid_IB_xyz_u(:,3), fluid_IB_rec_vec_u(:,1), fluid_IB_rec_vec_u(:,2), fluid_IB_rec_vec_u(:,3),'off')
 %quiver3(fluid_IB_xyz_u(:,1), fluid_IB_xyz_u(:,2), fluid_IB_xyz_u(:,3), fluid_IB_rec_vec_u(:,1), fluid_IB_rec_vec_u(:,2), fluid_IB_rec_vec_u(:,3),'off')
-% 
+%
 % %% v
 % scatter3(fluid_IB_xyz_v(:,1),fluid_IB_xyz_v(:,2),fluid_IB_xyz_v(:,3),10,[0,0,1],'filled')
 % %scatter3(solid_IB_xyz_v(:,1),solid_IB_xyz_v(:,2),solid_IB_xyz_v(:,3),10,[0,0,1],'filled')
 % quiver3(fluid_IB_BI_v(:,1), fluid_IB_BI_v(:,2), fluid_IB_BI_v(:,3), fluid_IB_vec_v(:,1), fluid_IB_vec_v(:,2), fluid_IB_vec_v(:,3),'off')
 % %scatter3(fluid_IB_rec_v(:,1),fluid_IB_rec_v(:,2),fluid_IB_rec_v(:,3),10,[0,0,1],'filled')
 % %quiver3(fluid_IB_xyz_v(:,1), fluid_IB_xyz_v(:,2), fluid_IB_xyz_v(:,3), fluid_IB_rec_vec_v(:,1), fluid_IB_rec_vec_v(:,2), fluid_IB_rec_vec_v(:,3),'off')
-% 
+%
 % %% w
 % scatter3(fluid_IB_xyz_w(:,1),fluid_IB_xyz_w(:,2),fluid_IB_xyz_w(:,3),10,[0,0,1],'filled')
 % %scatter3(solid_IB_xyz_w(:,1),solid_IB_xyz_w(:,2),solid_IB_xyz_w(:,3),10,[0,0,1],'filled')
 % quiver3(fluid_IB_BI_w(:,1), fluid_IB_BI_w(:,2), fluid_IB_BI_w(:,3), fluid_IB_vec_w(:,1), fluid_IB_vec_w(:,2), fluid_IB_vec_w(:,3),'off')
 % %scatter3(fluid_IB_rec_w(:,1),fluid_IB_rec_w(:,2),fluid_IB_rec_w(:,3),10,[0,0,1],'filled')
 % %quiver3(fluid_IB_xyz_w(:,1), fluid_IB_xyz_w(:,2), fluid_IB_xyz_w(:,3), fluid_IB_rec_vec_w(:,1), fluid_IB_rec_vec_w(:,2), fluid_IB_rec_vec_w(:,3),'off')
-% 
+%
 % %% c
 % scatter3(fluid_IB_xyz_c(:,1),fluid_IB_xyz_c(:,2),fluid_IB_xyz_c(:,3),10,[0,0,1],'filled')
 % %scatter3(solid_IB_xyz_c(:,1),solid_IB_xyz_c(:,2),solid_IB_xyz_c(:,3),10,[0,0,1],'filled')

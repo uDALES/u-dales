@@ -161,7 +161,7 @@ module modglobal
    integer :: BCbots = BCbots_flux
 
    integer :: BCzp = 1 ! 1: solve poisson equation using GE. 2: solve using cosine transform
-
+   real :: ds = 0 ! Shifted boundary conditions
 
    integer :: iinletgen = 0 !<  0: no inletgen, 1: turb. inlet generator (Lund (1998)), 2: read inlet from file
    integer :: idriver = 0 !<  0: no inlet driver store, 1: Save inlet driver data, 2: read inlet driver data from file

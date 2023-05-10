@@ -68,7 +68,7 @@ module modstartup
                                     lfixinlet, lfixutauin, pi, &
                                     thlsrc, ifixuinf, lvinf, tscale, ltempinout, lmoistinout,  &
                                     lwallfunc,lprofforc,lchem,k1,JNO2,rv,rd,tnextEB,tEB,dtEB,bldT,wsoil,wgrmax,wwilt,wfc,skyLW,GRLAI,rsmin,nfcts,lEB,lwriteEBfiles,nfaclyrs,lconstW,lfacTlyrs,&
-                                    BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys,BCzp, &
+                                    BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys,BCzp,ds, &
                                     BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots, &
                                     BCxm_periodic, BCym_periodic, &
                                     idriver,tdriverstart,driverjobnr,dtdriver,driverstore,lsdriver, &
@@ -132,14 +132,14 @@ module modstartup
          bctfxm, bctfxp, bctfym, bctfyp, bctfz, &
          bcqfxm, bcqfxp, bcqfym, bcqfyp, bcqfz, &
          wttop, thl_top, qt_top, qts, wsvsurfdum, wsvtopdum, &
-         wtsurf, wqsurf, thls, z0, z0h, BCzp
+         wtsurf, wqsurf, thls, z0, z0h, BCzp, ds
       namelist/INLET/ &
          Uinf, Vinf, di, dti, inletav, linletRA, &
          lstoreplane, lreadminl, lfixinlet, lfixutauin, &
          lwallfunc
       namelist/DRIVER/ &
          idriver, tdriverstart, driverjobnr, dtdriver, &
-         driverstore, iplane, lsdriver
+         driverstore, iplane, lsdriver, iangledeg
       namelist/WALLS/ &
          nblocks, nfcts, iwallmom, iwalltemp, iwallmoist, iwallscal, &
          nsolpts_u, nsolpts_v, nsolpts_w, nsolpts_c, &
@@ -381,6 +381,7 @@ module modstartup
       call MPI_BCAST(BCbotT, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(BCbotq, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(BCbots, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(ds, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(lwallfunc, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for reading mean inlet/recycle plane profiles (Uinl,Urec,Wrec)
       call MPI_BCAST(lreadminl, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for reading mean inlet/recycle plane profiles (Uinl,Urec,Wrec)
       call MPI_BCAST(iwalltemp, 1, MPI_INTEGER, 0, comm3d, mpierr) ! case (integer) for wall treatment for temperature (1=no wall function/fixed flux, 2=no wall function/fixed value, 3=uno)
@@ -823,7 +824,8 @@ module modstartup
          ladaptive, tnextrestart, jmax, imax, xh, xf, linoutflow, lper2inout, iinletgen, lreadminl, &
          uflowrate, vflowrate,ltempeq, prandtlmoli, freestreamav, &
          tnextfielddump, tfielddump, tsample, tstatsdump, startfile, lprofforc, lchem, k1, JNO2,&
-         idriver,dtdriver,driverstore,tdriverstart,tdriverdump,xlen,ylen,itot,jtot,ibrank,ierank,jbrank,jerank,BCxm,BCym,lrandomize,BCxq,BCxs,BCxT, BCyq,BCys,BCyT,BCxm_driver
+         idriver,dtdriver,driverstore,tdriverstart,tdriverdump,xlen,ylen,itot,jtot,ibrank,ierank,jbrank,jerank,BCxm,BCym,lrandomize,BCxq,BCxs,BCxT, BCyq,BCys,BCyT,BCxm_driver,&
+         tEB,tnextEB,dtEB
       use modsubgriddata, only:ekm, ekh, loneeqn
       use modsurfdata, only:wtsurf, wqsurf, wsvsurf, &
          thls, thvs, ps, qts, svs, sv_top
@@ -835,7 +837,7 @@ module modstartup
          uminletbc, vminletbc, wminletbc, u0inletbcold, v0inletbcold, w0inletbcold, &
          storeu0inletbc, storev0inletbc, storew0inletbc, nstepread, nfile, Tinl, &
          Trec, tminletbc, t0inletbcold, t0inletbc, storet0inletbc, utaui, ttaui, iangle,&
-         u0driver,umdriver,v0driver,w0driver,e120driver,tdriver,thl0driver,qt0driver,storetdriver,&
+         u0driver,umdriver,v0driver,vmdriver,w0driver,e120driver,tdriver,thl0driver,qt0driver,storetdriver,&
          storeu0driver,storeumdriver,storev0driver,storew0driver,storee120driver,storethl0driver,storeqt0driver,&
          nstepreaddriver
       use modinlet, only:readinletfile
@@ -1328,7 +1330,20 @@ module modstartup
 
             elseif (idriver==2) then ! idriver
 
-               call readdriverfile
+               if (ibrank) call readdriverfile
+
+               call drivergen
+
+               do k = kb, ke
+                  do j = jb-1, je+1
+                     do i = ib-1, ie+1
+                        u0(i, j, k) = u0driver(j, k)
+                        um(i, j, k) = umdriver(j, k)
+                        v0(i, j, k) = v0driver(j, k)
+                        vm(i, j, k) = vmdriver(j, k)
+                     end do
+                  end do
+               end do
 
                ! if(myid==0) then
                  ! write(*,*) 'Driver inlet velocity'
@@ -1349,17 +1364,6 @@ module modstartup
               ! if (myid==0) then
               !    write(6,*) 'Modstartup: ubulk=',ubulk
               ! end if
-
-              if (BCxm .eq. BCxm_driver) then
-                do k = kb, ke
-                do j = jb-1, je+1
-                do i = ib-1, ie+1
-                  u0(i, j, k) = storeu0driver(j, k, 1) ! not necessarily 1?
-                  um(i, j, k) = storeu0driver(j, k, 1)
-                end do
-                end do
-                end do
-              end if
 
             elseif (idriver==1) then
 
@@ -1454,6 +1458,59 @@ module modstartup
          else !if lwarmstart
             write (*, *) "doing warmstart"
             call readrestartfiles
+
+            ! Still read initial profiles for nudging
+            if (myid == 0) then
+               open (ifinput, file='prof.inp.'//cexpnr)
+               read (ifinput, '(a80)') chmess
+               write (*, '(a80)') chmess
+               read (ifinput, '(a80)') chmess
+
+               do k = kb, ke
+                  read (ifinput, *) &
+                     height(k), &
+                     thlprof(k), &
+                     qtprof(k), &
+                     uprof(k), &
+                     vprof(k), &
+                     e12prof(k)
+               end do
+
+               ! Apply rotation in horizontal
+               !write (6, *) 'iangle = ', iangle
+
+               !uprofrot = uprof*cos(iangle) - vprof*sin(iangle)
+               !vprofrot = vprof*cos(iangle) + uprof*sin(iangle)
+               !uprof = uprofrot
+               !vprof = vprofrot
+
+               close (ifinput)
+               write (*, *) 'height    thl     qt      u      v     e12'
+               do k = ke, kb, -1
+                  write (*, '(f7.1,2f8.1,3f7.1)') &
+                     height(k), &
+                     thlprof(k), &
+                     qtprof(k), &
+                     uprof(k), &
+                     vprof(k), &
+                     e12prof(k)
+
+               end do
+
+               if (minval(e12prof(kb:ke)) < e12min) then
+                  write (*, *) 'e12 value is zero (or less) in prof.inp'
+                  do k = kb, ke
+                     e12prof(k) = max(e12prof(k), e12min)
+                  end do
+               end if
+
+            end if ! end if myid==0
+            ! MPI broadcast numbers reading
+            call MPI_BCAST(thlprof, kmax, MY_REAL, 0, comm3d, mpierr)
+            call MPI_BCAST(qtprof, kmax, MY_REAL, 0, comm3d, mpierr)
+            call MPI_BCAST(uprof, kmax, MY_REAL, 0, comm3d, mpierr)
+            call MPI_BCAST(vprof, kmax, MY_REAL, 0, comm3d, mpierr)
+            call MPI_BCAST(e12prof, kmax, MY_REAL, 0, comm3d, mpierr)
 
             um = u0
             vm = v0
@@ -1886,6 +1943,8 @@ module modstartup
       ntimee = nint(timee/dtmax)
       tnextrestart = btime + trestart
       tnextfielddump = btime + tfielddump
+      tEB = btime
+      tnextEB = btime + dtEB
       deallocate (height, th0av)
 
       !    call boundary

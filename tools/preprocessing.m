@@ -717,10 +717,17 @@ classdef preprocessing < dynamicprops
             obj.ls(:,1) = obj.zf;
             obj.ls(:,6) = obj.w_s;
             obj.ls(:,10) = obj.R;
-            if obj.lprofforc || obj.lcoriol
+%             if obj.lprofforc || obj.lcoriol
+%                 obj.ls(:,2) = obj.u0;
+%                 obj.ls(:,3) = obj.v0;
+%             elseif obj.ldp
+%                 obj.ls(:,4) = obj.dpdx;
+%                 obj.ls(:,5) = obj.dpdy;
+%             end
+            if ~obj.ldp
                 obj.ls(:,2) = obj.u0;
                 obj.ls(:,3) = obj.v0;
-            elseif obj.ldp
+            else
                 obj.ls(:,4) = obj.dpdx;
                 obj.ls(:,5) = obj.dpdy;
             end
