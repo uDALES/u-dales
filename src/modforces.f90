@@ -886,7 +886,7 @@ module modforces
     if (lnudge .eqv. .false.) return
 
     do k=kb+nnudge,ke
-      up(:,:,k) = up(:,:,k) - (u0av(k) - uprof(k)) / tnudge
+      !up(:,:,k) = up(:,:,k) - (u0av(k) - uprof(k)) / tnudge
       !vp(:,:,k) = vp(:,:,k) - (v0av(k) - vprof(k)) / tnudge
    end do
 
