@@ -21,7 +21,7 @@ SUBROUTINE wfmneutral(hi,hj,hk,iout1,iout2,iomomflux,utang1,utang2,z0,n,ind,wfor
    !calculating wall function for momentum assuming neutral conditions
    !follow approach in wfuno
    !fluxes in m2/s2
-   USE modglobal, ONLY : dzf,dzfi,dzh2i,dzhi,dzhiq,dy,dyi,dy2i,dyi5,dxf,dxh,dxfi,dxhi,dxh2i,ib,ie,jb,je,kb,ke,fkar,jmax,rk3step,kmax,jge,jgb
+   USE modglobal, ONLY : dzf,dzfi,dzh2i,dzhi,dzhiq,dy,dyi,dy2i,dyi5,dxf,dxh,dxfi,dxhi,dxh2i,ib,ie,jb,je,kb,ke,fkar,jmax,rk3step,kmax,jge,jgb,eps1
    USE modsubgriddata, ONLY:ekh, ekm
    USE modmpi, ONLY:myid
    USE initfac, ONLY:block
@@ -39,7 +39,7 @@ SUBROUTINE wfmneutral(hi,hj,hk,iout1,iout2,iomomflux,utang1,utang2,z0,n,ind,wfor
    REAL :: utangInt !Interpolated absolute tangential velocity
    REAL :: fkar2 !fkar^2, von Karman constant squared
    REAL :: emmo = 0., epmo = 0., epom = 0., emom = 0., eopm = 0., eomm = 0., empo = 0.
-   REAL :: umin = 0.0001 !m^2/s^2
+   REAL :: umin = eps1!0.0001 !m^2/s^2
 
    INTEGER, INTENT(in) :: hi !<size of halo in i
    INTEGER, INTENT(in) :: hj !<size of halo in j

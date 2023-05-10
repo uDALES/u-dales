@@ -875,7 +875,7 @@ module modforces
 
   subroutine nudge
     use modglobal,  only : kb,ke,lmoist,ltempeq,lnudge,tnudge,nnudge,numol,nsv
-    use modfields,  only : thlp,qtp,svp,sv0av,thl0av,qt0av,thlprof,qtprof
+    use modfields,  only : up,thlp,qtp,svp,sv0av,thl0av,qt0av,uprof,thlprof,qtprof
     use modmpi,     only : myid
     implicit none
     integer :: k
@@ -884,6 +884,11 @@ module modforces
     numoli = 1/numol
 
     if (lnudge .eqv. .false.) return
+
+    do k=kb+nnudge,ke
+      up(:,:,k) = up(:,:,k) - (u0av(k) - uprof(k)) / tnudge
+      !vp(:,:,k) = vp(:,:,k) - (v0av(k) - vprof(k)) / tnudge
+   end do
 
     if (nsv>0) then
       do k=ke-nnudge,ke
