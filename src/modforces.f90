@@ -897,13 +897,13 @@ module modforces
     end if
 
     if (ltempeq) then
-      do k=ke-nnudge,ke
+      do k=kb+nnudge,ke
         thlp(:,:,k) = thlp(:,:,k) - (thl0av(k) - thlprof(k)) / tnudge
       end do
     end if !ltempeq
 
     if (lmoist) then
-      do k=ke-nnudge,ke
+      do k=kb+nnudge,ke
         qtp(:,:,k) = qtp(:,:,k) - (qt0av(k) - qtprof(k)) / tnudge
       end do
     end if !lmoist
