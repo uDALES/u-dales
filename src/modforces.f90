@@ -875,7 +875,7 @@ module modforces
 
   subroutine nudge
     use modglobal,  only : kb,ke,lmoist,ltempeq,lnudge,tnudge,nnudge,numol,nsv
-    use modfields,  only : up,thlp,qtp,svp,sv0av,thl0av,qt0av,uprof,thlprof,qtprof
+    use modfields,  only : up,thlp,qtp,svp,u0av,sv0av,thl0av,qt0av,uprof,thlprof,qtprof
     use modmpi,     only : myid
     implicit none
     integer :: k

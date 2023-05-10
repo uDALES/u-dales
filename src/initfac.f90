@@ -26,7 +26,7 @@
 !> Advection redirection function
    module initfac
       use modglobal, only:ifinput, nblocks, nfcts, cexpnr, libm, bldT, rsmin, wsoil, wfc,&
-                          nwalllayers, block,lEB
+                          nwalllayers, block,lEB,lvfsparse,nnz
       use modmpi, only:myid, comm3d, mpierr, MPI_INTEGER, MPI_DOUBLE_PRECISION, MY_REAL, nprocs, cmyid, MPI_REAL8, MPI_REAL4, MPI_SUM, mpi_logical
       use netcdf
       implicit none
@@ -54,6 +54,9 @@
       real, allocatable    :: svf(:) !sky-viewfactor of facets
       real, allocatable    :: netsw(:) !net shortwave radiation on facets
       real, allocatable    :: facLWin(:) !incoming longwave on facets [W/m2]
+      real, allocatable    :: vfsparse(:)
+      real, allocatable    :: ivfsparse(:)
+      real, allocatable    :: jvfsparse(:)
       !temperature
       real, allocatable    :: Tfacinit(:) !initial facet temperatures
       real, allocatable    :: facT(:, :) !wall temperatures on surfaces and between layers (1=outdoors,end=indoors)
@@ -116,7 +119,13 @@
       allocate (facets(nfcts, 4))
 
       if (lEB .eqv. .true.) then
-        allocate (vf(1:nfcts, 1:nfcts))
+        if (lvfsparse) then
+          allocate(ivfsparse(1:nnz))
+          allocate(jvfsparse(1:nnz))
+          allocate(vfsparse(1:nnz))
+        else
+            allocate (vf(1:nfcts, 1:nfcts))
+        end if
         allocate (svf(1:nfcts))
         allocate (netsw(1:nfcts))
         allocate (facLWin(1:nfcts))
@@ -141,7 +150,12 @@
       faclGR = .false.; facz0 = 0.; facz0h = 0.; facalb = 0.; facem = 0.; facd=0.; facdi = 0.; faccp = 0.
       faclami = 0.; fackappa = 0.; faca = 0.; facain = 0; facets = 0
       if (lEB .eqv. .true.) then
-        vf = 0.; svf = 0.; netsw = 0.; facLWin = 0.
+         if (lvfsparse) then
+            ivfsparse = 0.; jvfsparse = 0.; vfsparse = 0.
+         else
+            vf = 0.;
+         end if
+         svf = 0.; netsw = 0.; facLWin = 0.
       end if
       Tfacinit = 0.; facT = 0.; facTdash = 0.
       facef = 0.; facefi = 0.; facefsum = 0.; fachf = 0.; fachfi = 0.; fachfsum = 0.
@@ -289,12 +303,21 @@
             ! read viewfactors between facets
             ! Open the file. NF90_NOWRITE tells netCDF we want read-only access to
             ! the file.
-            FILE_VF = 'vf.nc.inp.'//cexpnr
-            iret = nf90_open(FILE_VF, NF90_NOWRITE, ncid) ! Get the varid of the data variable, based on its name.
-            iret = nf90_inq_varid(ncid, "view factor", varid)
-            ! Read the data.
-            iret = nf90_get_var(ncid, varid, vf)
-            write(*,*) "vf(1,6),vf(1,7),vf(6,1),vf(7,1)",vf(1,6),vf(1,7),vf(6,1),vf(7,1)
+            if (lvfsparse) then
+               open (ifinput, file='vfsparse.inp.'//cexpnr)
+               do n = 1, nnz
+                 read (ifinput, *) ivfsparse(n), jvfsparse(n), vfsparse(n)
+                 end do
+                 close (ifinput)
+
+            else
+               FILE_VF = 'vf.nc.inp.'//cexpnr
+               iret = nf90_open(FILE_VF, NF90_NOWRITE, ncid) ! Get the varid of the data variable, based on its name.
+               iret = nf90_inq_varid(ncid, "view factor", varid)
+               ! Read the data.
+               iret = nf90_get_var(ncid, varid, vf)
+               write(*,*) "vf(1,6),vf(1,7),vf(6,1),vf(7,1)",vf(1,6),vf(1,7),vf(6,1),vf(7,1)
+            end if
 
             ! read skyviewfactors
             open (ifinput, file='svf.inp.'//cexpnr)
