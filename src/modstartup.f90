@@ -66,8 +66,8 @@ module modstartup
          lzerogradtopscal, lbuoyancy, ltempeq, &
          lfixinlet, lfixutauin, pi, &
          thlsrc, ifixuinf, lvinf, tscale, ltempinout, lmoistinout,  &
-         lwallfunc,lprofforc,lchem,k1,JNO2,rv,rd,tnextEB,tEB,dtEB,bldT,wsoil,wgrmax,wwilt,wfc,skyLW,GRLAI,rsmin,nfcts,lEB,lwriteEBfiles,nwalllayers,lconstW, &
-         lvfsparse,nnz,&
+         lwallfunc,lprofforc,lchem,k1,JNO2,rv,rd,tnextEB,tEB,dtEB,bldT,flrT,wsoil,wgrmax,wwilt,wfc,skyLW,GRLAI,rsmin,nfcts,lEB,lwriteEBfiles,nwalllayers,lconstW, &
+         lvfsparse,nnz,lfacTlyrs,&
          BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys,ds, &
          BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots, &
          idriver,tdriverstart,driverjobnr,dtdriver,driverstore,lsdriver, &
@@ -132,7 +132,7 @@ module modstartup
       namelist/WALLS/ &
          nblocks, nfcts, iwallmom, iwalltemp, iwallmoist, iwallscal, prandtlturb, fkar
       namelist/ENERGYBALANCE/ &
-         lEB, lwriteEBfiles, lconstW, dtEB, bldT, wsoil, wgrmax, wwilt, wfc, &
+         lEB, lwriteEBfiles, lconstW, dtEB, bldT, flrT, wsoil, wgrmax, wwilt, wfc, &
          skyLW, GRLAI, rsmin, nwalllayers, lvfsparse, nnz
       namelist/SCALARS/ &
          lreadscal, lscasrc, lscasrcl, lscasrcr, &
@@ -445,10 +445,12 @@ module modstartup
       call MPI_BCAST(wfc, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(dtEB, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(bldT, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(flrT, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(skyLW, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(GRLAI, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(rsmin, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(nwalllayers, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(lfacTlyrs, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lvfsparse, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(nnz, 1, MPI_INTEGER, 0, comm3d, mpierr)
 

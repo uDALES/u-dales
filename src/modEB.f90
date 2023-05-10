@@ -446,7 +446,7 @@ function gaussji(c,d,n) result(a)
 !! CREATE MATRICES BASED ON WALL PROPERTIES
       i=1;m=0; !position along columns, placeholder for layerindex since only 3 layers implemented (initfac.f90)
       do j=1,nwalllayers
-      m=min(j,3)  !!CARE!!! ONLY 3 LAYERS ARE CURRENTLY BEING READ FROM INPUT FILES. PROPERTIES OF LAYER 3 ARE USED FOR SUBSEQUENT LAYERS!!!
+      m=j!min(j,3)  !!CARE!!! ONLY 3 LAYERS ARE CURRENTLY BEING READ FROM INPUT FILES. PROPERTIES OF LAYER 3 ARE USED FOR SUBSEQUENT LAYERS!!!
       ca=facdi(n,m)
       BM(j+1,i)=-ca
       BM(j+1,i+1)=ca

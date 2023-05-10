@@ -26,11 +26,11 @@
 !> Advection redirection function
    module initfac
       use modglobal, only:ifinput, nblocks, nfcts, cexpnr, libm, bldT, rsmin, wsoil, wfc,&
-                          nwalllayers, block,lEB,lvfsparse,nnz
+                          nwalllayers, block,lEB,lvfsparse,nnz,lfacTlyrs,flrT
       use modmpi, only:myid, comm3d, mpierr, MPI_INTEGER, MPI_DOUBLE_PRECISION, MY_REAL, nprocs, cmyid, MPI_REAL8, MPI_REAL4, MPI_SUM, mpi_logical
       use netcdf
       implicit none
-      public :: readfacetfiles,qsat,dqsatdT
+      public :: readfacetfiles,qsat,dqsatdT,netsw
       save
 
       !integer, allocatable :: block(:, :) !block coordinates and facet Nr corresponding to block faces
@@ -59,6 +59,7 @@
       real, allocatable    :: jvfsparse(:)
       !temperature
       real, allocatable    :: Tfacinit(:) !initial facet temperatures
+      real, allocatable    :: Tfacinit_layers(:,:) !initial facet temperatures
       real, allocatable    :: facT(:, :) !wall temperatures on surfaces and between layers (1=outdoors,end=indoors)
       real, allocatable    :: facTdash(:, :)!temperature gradient dT/dz
       !fluxes
@@ -132,6 +133,7 @@
       end if
 
       allocate (Tfacinit(1:nfcts))
+      allocate (Tfacinit_layers(1:nfcts, nwalllayers))
       allocate (facT(0:nfcts, nwalllayers+1))
       allocate (facTdash(1:nfcts,nwalllayers+1))
       allocate (facef(1:nfcts))
@@ -340,21 +342,50 @@
 
             if ((lEB) .or. (iwalltemp == 2)) then
               ! read initial facet temepratures
-              open (ifinput, file='Tfacinit.inp.'//cexpnr)
-              read (ifinput, '(a80)') chmess
-              do n = 1, nfcts
-                read (ifinput, *) &
-                  Tfacinit(n)
-              end do
-              close (ifinput)
+              if (lfacTlyrs) then
+                  open (ifinput, file='Tfacinit_layers.inp.'//cexpnr)
+                  read (ifinput, '(a80)') chmess
+                    do n = 1,nfcts
+                      read(ifinput, *) (Tfacinit_layers(n, j), j=1,nwalllayers)
+                    end do
+                    close (ifinput)
 
-              do n = 1, nfcts
-                facT(n, 1) = Tfacinit(n) !building surfaces is given an initial temperature
-                facT(n, nwalllayers+1) = bldT !inner most layer has the same temperature as the building interior
-                do j = 2,nwalllayers
-                  facT(n, j) = Tfacinit(n)-(Tfacinit(n)-bldT)/nwalllayers*(j-1) !scale linearly inside the wall
-                end do
-              end do
+                    do n = 1,nfcts
+                      do j = 1,nwalllayers
+                        facT(n, j) = Tfacinit_layers(n, j)
+                      end do
+                      if (facets(n, 2) > 0) then ! Not a floor
+                        facT(n, nwalllayers+1) = bldT
+                      else !floor
+                        facT(n, nwalllayers+1) = flrT
+                      end if
+                    end do
+
+                else
+                  open (ifinput, file='Tfacinit.inp.'//cexpnr)
+                  read (ifinput, '(a80)') chmess
+                  do n = 1, nfcts
+                    read (ifinput, *) &
+                      Tfacinit(n)
+                  end do
+                  close (ifinput)
+
+                  do n = 1, nfcts
+                    facT(n, 1) = Tfacinit(n) !building surfaces is given an initial temperature
+                    if (facets(n, 2) > 0) then ! Not a floor
+                      facT(n, nwalllayers+1) = bldT !inner most layer has the same temperature as the building interior
+                      do j = 2,nwalllayers
+                        facT(n, j) = Tfacinit(n)-(Tfacinit(n)-bldT)/nwalllayers*(j-1) !scale linearly inside the wall
+                      end do
+                    else !floor
+                      facT(n, nwalllayers+1) = flrT !inner most layer has the same temperature as the ground
+                      do j = 2,nwalllayers
+                        facT(n, j) = Tfacinit(n)-(Tfacinit(n)-flrT)/nwalllayers*(j-1) !scale linearly inside the wall
+                      end do
+                    end if
+                  end do
+
+                end if
 
               do n = 1,nwalllayers
                  facT(0, n) = 288.
