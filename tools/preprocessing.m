@@ -305,6 +305,7 @@ classdef preprocessing < dynamicprops
 
             preprocessing.addvar(obj, 'lcube', 0)   % switch for linear cubes
             preprocessing.addvar(obj, 'lstaggered', 0) % switch for staggered cubes
+            preprocessing.addvar(obj, 'lstaggeredv', 0) % switch for staggered cubes with variable parameters
             preprocessing.addvar(obj, 'lcanyons', 0) % switch for infinite canyons
             if obj.nsv>0
                 if (obj.lscasrcl && not(obj.lcanyons))
@@ -312,7 +313,7 @@ classdef preprocessing < dynamicprops
                 end
             end
 
-            if (obj.lcube || obj.lstaggered || obj.lcanyons)
+            if (obj.lcube || obj.lstaggered || obj.lstaggeredv || obj.lcanyons)
                 preprocessing.addvar(obj, 'blockheight', 16) % block height
                 preprocessing.addvar(obj, 'blockwidth', 16)  % block width
                 preprocessing.addvar(obj, 'canyonwidth', 16) % canyonwidth
@@ -1219,6 +1220,47 @@ classdef preprocessing < dynamicprops
                             bl(length(nonzeros(bl(:,2))) + 1, 2) = bl(length(nonzeros(bl(:,2))) +1 , 1) + blockwidth - 1;
                         end
 
+                    end
+                end
+                
+            elseif obj.lstaggeredv
+                Nx = imax / (blockwidth + canyonwidth);
+                Ny = jtot / (blockwidth + canyonwidth);
+                bl = zeros(Nx * Ny + Nx / 2, 13);
+                bl(:, 5) = 0;
+                bl(:, 6) = blockheight - 1;
+                
+                even_xl = 0.5 * canyonwidth;
+                even_xu = even_xl + blockwidth;
+                odd_xl = even_xl + blockwidth + canyonwidth;
+                odd_xu = odd_xl + blockwidth;
+                
+                for i = 0:(Nx-1)
+                    %for j = 0:Ny-1
+                    if mod(i, 2) == 0
+                        i = i / 2;
+                        for j = 0:(Ny-1)
+                            bl(length(nonzeros(bl(:,1))) + 1, 1) = even_xl + i * 2 * (blockwidth + canyonwidth) + 1;
+                            bl(length(nonzeros(bl(:,2))) + 1, 2) = even_xu + i * 2 * (blockwidth + canyonwidth);
+                            bl(length(nonzeros(bl(:,3))) + 1, 3) = 0.5 * canyonwidth + j * (blockwidth + canyonwidth) + 1;
+                            bl(length(nonzeros(bl(:,4))) + 1, 4) = 0.5 * canyonwidth + j * (blockwidth + canyonwidth) + blockwidth;
+                        end
+                    else
+                        i = (i-1)/2;
+                        bl(length(nonzeros(bl(:,1))) + 1, 1) = odd_xl + i * 2 * (blockwidth + canyonwidth) + 1;
+                        bl(length(nonzeros(bl(:,2))) + 1, 2) = odd_xu + i * 2 * (blockwidth + canyonwidth);
+                        bl(length(nonzeros(bl(:,3))) + 1, 3) = 1;
+                        bl(length(nonzeros(bl(:,4))) + 1, 4) = 0.5 * blockwidth;
+                        for j = 0:(Ny-2)
+                            bl(length(nonzeros(bl(:,1))) + 1, 1) = odd_xl + i * 2 * (blockwidth + canyonwidth) + 1;
+                            bl(length(nonzeros(bl(:,2))) + 1, 2) = odd_xu + i * 2 * (blockwidth + canyonwidth);
+                            bl(length(nonzeros(bl(:,3))) + 1, 3) = 0.5 * blockwidth + canyonwidth + j * (blockwidth + canyonwidth) + 1;
+                            bl(length(nonzeros(bl(:,4))) + 1, 4) = 0.5 * blockwidth + canyonwidth + j * (blockwidth + canyonwidth) + blockwidth;
+                        end
+                        bl(length(nonzeros(bl(:,1))) + 1, 1) = odd_xl + i * 2 * (blockwidth + canyonwidth) + 1;
+                        bl(length(nonzeros(bl(:,2))) + 1, 2) = odd_xu + i * 2 * (blockwidth + canyonwidth);
+                        bl(length(nonzeros(bl(:,3))) + 1, 3) = jtot - 0.5 * blockwidth + 1;
+                        bl(length(nonzeros(bl(:,4))) + 1, 4) = jtot;
                     end
                 end
 

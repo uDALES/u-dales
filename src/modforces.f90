@@ -891,7 +891,7 @@ module modforces
    end do
 
     if (nsv>0) then
-      do k=ke-nnudge,ke
+      do k=kb+nnudge,ke
         svp(:,:,k,1) = svp(:,:,k,1) - ( sv0av(k,1) - 0. ) / (tnudge/2 + (ke-k)*tnudge/nnudge)
       end do
     end if
