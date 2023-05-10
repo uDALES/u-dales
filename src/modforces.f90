@@ -40,7 +40,7 @@ module modforces
   private
   public :: forces, coriolis, lstend,fixuinf1,fixuinf2,fixthetainf,&
             detfreestream,detfreestrtmp,nudge,&
-            masscorr,uoutletarea,voutletarea,fluidvolume,calcfluidvolumes
+            masscorr,uoutletarea,voutletarea,fluidvolume,calcfluidvolumes,shiftedPBCs
   contains
 
   subroutine forces
@@ -918,5 +918,32 @@ module modforces
     end if !lmoist
 
   end subroutine nudge
+
+  subroutine shiftedPBCs
+      ! Nudge the flow in a region near the outlet
+      use modglobal, only : ib, ie, jb, je, kb, ke, xh, ds, dyi, xlen, rk3step, dt
+      use modfields, only : u0, v0, w0, u0av, up, vp, wp, vm
+
+      integer :: i, j, k
+      real :: vs, RHS, rk3coef
+
+      if (ds > 0) then
+      rk3coef = dt / (4. - dble(rk3step))
+      do i = int(ie/2),ie
+        do j = jb,je
+          do k = kb,ke
+            vs = 0.5 * 4*atan(1.) * ds / (0.5*xlen) * u0av(k) * sin(4*atan(1.)*(xh(i)-xh(int(ie/2))) / (0.5*xlen))
+            up(i,j,k) = up(i,j,k) - 0.5 * vs * (u0(i,j+1,k) - u0(i,j-1,k)) * dyi
+            vp(i,j,k) = vp(i,j,k) - 0.5 * vs * (v0(i,j+1,k) - v0(i,j-1,k)) * dyi
+            wp(i,j,k) = wp(i,j,k) - 0.5 * vs * (w0(i,j+1,k) - w0(i,j-1,k)) * dyi
+            ! RHS = vp(i,j,k)
+            ! vp(i,j,k) = vp(i,j,k) + (vn - (vm(i,j,k) + rk3coef * RHS)) / rk3coef
+          end do
+        end do
+      end do
+
+      end if
+
+   end subroutine shiftedPBCs
 
 end module modforces

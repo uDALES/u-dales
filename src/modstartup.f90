@@ -68,7 +68,7 @@ module modstartup
                                     lfixinlet, lfixutauin, pi, &
                                     thlsrc, ifixuinf, lvinf, tscale, ltempinout, lmoistinout,  &
                                     lwallfunc,lprofforc,lchem,k1,JNO2,rv,rd,tnextEB,tEB,dtEB,bldT,wsoil,wgrmax,wwilt,wfc,skyLW,GRLAI,rsmin,nfcts,lEB,lwriteEBfiles,nfaclyrs,lconstW, &
-                                    BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys,BCzp, &
+                                    BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys,BCzp,ds, &
                                     BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots, &
                                     BCxm_periodic, BCym_periodic, &
                                     idriver,tdriverstart,driverjobnr,dtdriver,driverstore,lsdriver, &
@@ -132,7 +132,7 @@ module modstartup
          bctfxm, bctfxp, bctfym, bctfyp, bctfz, &
          bcqfxm, bcqfxp, bcqfym, bcqfyp, bcqfz, &
          wttop, thl_top, qt_top, qts, wsvsurfdum, wsvtopdum, &
-         wtsurf, wqsurf, thls, z0, z0h, BCzp
+         wtsurf, wqsurf, thls, z0, z0h, BCzp, ds
       namelist/INLET/ &
          Uinf, Vinf, di, dti, inletav, linletRA, &
          lstoreplane, lreadminl, lfixinlet, lfixutauin, &
@@ -379,6 +379,7 @@ module modstartup
       call MPI_BCAST(BCbotT, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(BCbotq, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(BCbots, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(ds, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(lwallfunc, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for reading mean inlet/recycle plane profiles (Uinl,Urec,Wrec)
       call MPI_BCAST(lreadminl, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for reading mean inlet/recycle plane profiles (Uinl,Urec,Wrec)
       call MPI_BCAST(iwalltemp, 1, MPI_INTEGER, 0, comm3d, mpierr) ! case (integer) for wall treatment for temperature (1=no wall function/fixed flux, 2=no wall function/fixed value, 3=uno)
