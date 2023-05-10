@@ -698,8 +698,8 @@ module modibm
          do n = 1, nxwall
             k = block(ixwall(n), 7)
             if (k /= 0) call wfuno(ih, jh, kh, up, vp, thlp, momfluxb, tfluxb, cth, bcTfluxA, u0, v0, thl0, facT(k, 1), facz0(k), facz0h(k), ixwall(n), 1, 51)
-            ! k = block(ixwall(n), 12)
-            ! if (k /= 0) call wfuno(ih, jh, kh, up, vp, thlp, momfluxb, tfluxb, cth, bcTfluxA, u0, v0, thl0, facT(k, 1), facz0(k), facz0h(k), ixwall(n), 1, 61)
+            k = block(ixwall(n), 12)
+            if (k /= 0) call wfuno(ih, jh, kh, up, vp, thlp, momfluxb, tfluxb, cth, bcTfluxA, u0, v0, thl0, facT(k, 1), facz0(k), facz0h(k), ixwall(n), 1, 61)
          end do
 
          ! Case 51
@@ -728,27 +728,27 @@ module modibm
                vp(i, j, k) = vp(i, j, k) + (v0(i, j, k) - v0(i, j, k-1))*eommdum*dzhi(k)*dzfi(k) - bcmomfluxdum*dzfi(k)*0.5
              end if
 
-             ! ! Case 61
-             ! if(IIc(i,j-1,k+1)==0 .and. IIc(i,j,k)==1 .and. IIc(i,j-1,k)==1 .and. IIc(i,j,k+1)==1) THEN
-             !   kdum = IIids(i,j-1,k+1)
-             !   z0dum = facz0(kdum)
-             !   z0hdum = facz0h(kdum)
-             !   deltadum = 0.5*dzf(k)
-             !   logdzdum = LOG(deltadum/z0dum)
-             !   logdzhdum = LOG(deltadum/z0hdum)
-             !   logzhdum = LOG(z0dum/z0hdum)
-             !   sqdzdum = SQRT(deltadum/z0dum)
-             !   utang1Intdum = (u0(i,j,k)+u0(i,j-1,k)+u0(i + 1, j - 1, k)+u0(i + 1, j, k))*0.25
-             !   utang2Intdum = v0(i,j,k)
-             !   utangIntdum = max(0.0001,(utang1Intdum**2 + utang2Intdum**2))
-             !   dTdum = thl0(i,j-1,k) - facT(kdum,1)
-             !   Ribl0dum = grav*deltadum*dTdum/(facT(kdum,1)*utangIntdum)
-             !   ctmdum = unom(logdzdum, logdzhdum, logzhdum, sqdzdum, utangIntdum, dTdum, Ribl0dum, fkar2dum)
-             !   dummydum = (utang2Intdum**2)*ctmdum
-             !   bcmomfluxdum = SIGN(dummydum, utang2Intdum)
-             !   eompdum = (dzf(k+1)*(ekm(i,j,k) + ekm(i,j-1,k)) + dzf(k)*(ekm(i,j,k+1) + ekm(i,j-1,k+1)))*dzhiq(k+1)
-             !   vp(i, j, k) = vp(i, j, k) - (v0(i, j, k+1) - v0(i, j, k))*eompdum*dzhi(k)*dzfi(k) - bcmomfluxdum*dzfi(k)*0.5
-             ! end if
+             ! Case 61
+             if(IIc(i,j-1,k+1)==0 .and. IIc(i,j,k)==1 .and. IIc(i,j-1,k)==1 .and. IIc(i,j,k+1)==1) THEN
+               kdum = IIids(i,j-1,k+1)
+               z0dum = facz0(kdum)
+               z0hdum = facz0h(kdum)
+               deltadum = 0.5*dzf(k)
+               logdzdum = LOG(deltadum/z0dum)
+               logdzhdum = LOG(deltadum/z0hdum)
+               logzhdum = LOG(z0dum/z0hdum)
+               sqdzdum = SQRT(deltadum/z0dum)
+               utang1Intdum = (u0(i,j,k)+u0(i,j-1,k)+u0(i + 1, j - 1, k)+u0(i + 1, j, k))*0.25
+               utang2Intdum = v0(i,j,k)
+               utangIntdum = max(0.0001,(utang1Intdum**2 + utang2Intdum**2))
+               dTdum = thl0(i,j-1,k) - facT(kdum,1)
+               Ribl0dum = grav*deltadum*dTdum/(facT(kdum,1)*utangIntdum)
+               ctmdum = unom(logdzdum, logdzhdum, logzhdum, sqdzdum, utangIntdum, dTdum, Ribl0dum, fkar2dum)
+               dummydum = (utang2Intdum**2)*ctmdum
+               bcmomfluxdum = SIGN(dummydum, utang2Intdum)
+               eompdum = (dzf(k+1)*(ekm(i,j,k) + ekm(i,j-1,k)) + dzf(k)*(ekm(i,j,k+1) + ekm(i,j-1,k+1)))*dzhiq(k+1)
+               vp(i, j, k) = vp(i, j, k) - (v0(i, j, k+1) - v0(i, j, k))*eompdum*dzhi(k)*dzfi(k) - bcmomfluxdum*dzfi(k)*0.5
+             end if
            end do
         end do
 
@@ -756,8 +756,8 @@ module modibm
          do n = 1, nxwall
             k = block(ixwall(n), 7)
             if (k /= 0) call wfmneutral(ih, jh, kh, up, vp, momfluxb, u0, v0, facz0(k), ixwall(n), 1, 51)
-            ! k = block(ixwall(n),12)
-            ! if (k /= 0) call wfmneutral(ih, jh, kh, up, vp, momfluxb, u0, v0, facz0(k), ixwall(n), 1, 61)
+            k = block(ixwall(n),12)
+            if (k /= 0) call wfmneutral(ih, jh, kh, up, vp, momfluxb, u0, v0, facz0(k), ixwall(n), 1, 61)
          end do
 
          ! Case 51
@@ -778,19 +778,19 @@ module modibm
                vp(i, j, k) = vp(i, j, k) + (v0(i, j, k) - v0(i, j, k-1))*eommdum*dzhi(k)*dzfi(k) - bcmomfluxdum*dzfi(k)*0.5
              end if
 
-             ! ! Case 61
-             ! if(IIc(i,j-1,k+1)==0 .and. IIc(i,j,k)==1 .and. IIc(i,j-1,k)==1 .and. IIc(i,j,k+1)==1) THEN
-             !   kdum = IIids(i,j-1,k+1)
-             !   z0dum = facz0(kdum)
-             !   deltadum = 0.5*dzf(k)
-             !   logdzdum = LOG(deltadum/z0dum)
-             !   utang2Intdum = v0(i,j,k)
-             !   ctmdum = fkar**2/logdzdum**2
-             !   dummydum = (utang2Intdum**2)*ctmdum
-             !   bcmomfluxdum = SIGN(dummydum, utang2Intdum)
-             !   eompdum = (dzf(k+1)*(ekm(i,j,k) + ekm(i,j-1,k)) + dzf(k)*(ekm(i,j,k+1) + ekm(i,j-1,k+1)))*dzhiq(k+1)
-             !   vp(i, j, k) = vp(i, j, k) - (v0(i, j, k+1) - v0(i, j, k))*eompdum*dzhi(k)*dzfi(k) - bcmomfluxdum*dzfi(k)*0.5
-             ! end if
+             ! Case 61
+             if(IIc(i,j-1,k+1)==0 .and. IIc(i,j,k)==1 .and. IIc(i,j-1,k)==1 .and. IIc(i,j,k+1)==1) THEN
+               kdum = IIids(i,j-1,k+1)
+               z0dum = facz0(kdum)
+               deltadum = 0.5*dzf(k)
+               logdzdum = LOG(deltadum/z0dum)
+               utang2Intdum = v0(i,j,k)
+               ctmdum = fkar**2/logdzdum**2
+               dummydum = (utang2Intdum**2)*ctmdum
+               bcmomfluxdum = SIGN(dummydum, utang2Intdum)
+               eompdum = (dzf(k+1)*(ekm(i,j,k) + ekm(i,j-1,k)) + dzf(k)*(ekm(i,j,k+1) + ekm(i,j-1,k+1)))*dzhiq(k+1)
+               vp(i, j, k) = vp(i, j, k) - (v0(i, j, k+1) - v0(i, j, k))*eompdum*dzhi(k)*dzfi(k) - bcmomfluxdum*dzfi(k)*0.5
+             end if
            end do
         end do
 
@@ -811,11 +811,11 @@ module modibm
                   call wfuno(ih, jh, kh, up, vp, thlp, momfluxb, tfluxb, cth, bcTfluxA, u0, v0, thl0, facT(k, 1), facz0(k), facz0h(k), ixwall(n), 1, 52)
                   fachf(k) = fachf(k) + bcTfluxA
                end if
-               ! k = block(ixwall(n), 12)
-               ! if (k /= 0) then
-               !    call wfuno(ih, jh, kh, up, vp, thlp, momfluxb, tfluxb, cth, bcTfluxA, u0, v0, thl0, facT(k, 1), facz0(k), facz0h(k), ixwall(n), 1, 62)
-               !    fachf(k) = fachf(k) + bcTfluxA
-               ! end if
+               k = block(ixwall(n), 12)
+               if (k /= 0) then
+                  call wfuno(ih, jh, kh, up, vp, thlp, momfluxb, tfluxb, cth, bcTfluxA, u0, v0, thl0, facT(k, 1), facz0(k), facz0h(k), ixwall(n), 1, 62)
+                  fachf(k) = fachf(k) + bcTfluxA
+               end if
             end do
          end if
       end if
@@ -825,8 +825,8 @@ module modibm
             do n = 1, nxwall ! loop over all shear x-walls
                k = block(ixwall(n), 7)
                if (k /= 0) call zwallscalarplus_advecc2nd_corr(ih, jh, kh, qt0, qtp, bcqfz, ixwall(n))
-               ! k = block(ixwall(n), 12)
-               ! if (k /= 0) call zwallscalarmin_advecc2nd_corr(ih, jh, kh, qt0, qtp, 0., ixwall(n))
+               k = block(ixwall(n), 12)
+               if (k /= 0) call zwallscalarmin_advecc2nd_corr(ih, jh, kh, qt0, qtp, 0., ixwall(n))
             end do
          end if
          if ((ltempeq) .and. (iwallmoist == 2)) then
@@ -837,10 +837,10 @@ module modibm
                   facef(k) = facef(k) + bcqfluxA
                end if
                k = block(ixwall(n), 7)
-               ! if (k /= 0) then
-               !    call wfGR(ih, jh, kh, qtp, qfluxb, cth, bcqfluxA, qt0, facqsat(k), fachurel(k), facf(k, 4), facf(k, 5), ixwall(n), 1, 62)
-               !    facef(k) = facef(k) + bcqfluxA
-               ! end if
+               if (k /= 0) then
+                  call wfGR(ih, jh, kh, qtp, qfluxb, cth, bcqfluxA, qt0, facqsat(k), fachurel(k), facf(k, 4), facf(k, 5), ixwall(n), 1, 62)
+                  facef(k) = facef(k) + bcqfluxA
+               end if
             end do
          end if
       end if
@@ -927,40 +927,40 @@ module modibm
    end subroutine zwallscalarplus_advecc2nd_corr
 
 
-   ! subroutine zwallscalarmin_advecc2nd_corr(hi, hj, hk, putin, putout, bcvalue, n)
-   !    ! 62
-   !    use modglobal, only : jmax, dzf, dzfi, dzhi, dzh2i, dzfi5, ib, ie, jb, je, kb, ke, prandtlmoli, numol
-   !    use modfields, only : w0
-   !    use modsubgriddata, only : ekh
-   !    use modmpi,  only : myid
-   !    use initfac, only : block
-   !    integer i, j, k, kp, il, iu, jl, ju
-   !    integer, intent(in) :: hi !<size of halo in i
-   !    integer, intent(in) :: hj !<size of halo in j
-   !    integer, intent(in) :: hk !<size of halo in k
-   !    real, intent(in)    :: putin(ib - hi:ie + hi, jb - hj:je + hj, kb - hk:ke + hk)
-   !    real, intent(inout) :: putout(ib - hi:ie + hi, jb - hj:je + hj, kb:ke + hk)
-   !    real, intent(in)    :: bcvalue
-   !    integer, intent(in)    :: n
-   !
-   !    k = block(n, 5) - 1 !block location
-   !    if (k < kb) return
-   !    kp = k + 1 !
-   !    il = block(n, 1)
-   !    iu = block(n, 2)
-   !    jl = MAX(block(n, 3) - myid*jmax, 1)
-   !    ju = MIN(block(n, 4) - myid*jmax, jmax)
-   !
-   !    do j = jl, ju
-   !       do i = il, iu
-   !          putout(i, j, k) = putout(i, j, k) - bcvalue*dzfi(k) &
-   !                         - 0.5*(dzf(kp)*ekh(i, j, k) + dzf(k)*ekh(i, j, kp))*(putin(i, j, kp) - putin(i, j, k))*dzh2i(k)*dzfi(k) &
-   !                         + w0(i, j, kp)*(putin(i, j, kp)*dzf(k) + putin(i, j, k)*dzf(kp))*dzhi(kp)*dzfi5(k) &
-   !                         - w0(i, j, kp)*(putin(i, j, k )*dzf(k) + putin(i, j, k)*dzf(kp))*dzhi(kp)*dzfi5(k)
-   !       end do
-   !    end do
-   !
-   ! end subroutine zwallscalarmin_advecc2nd_corr
+   subroutine zwallscalarmin_advecc2nd_corr(hi, hj, hk, putin, putout, bcvalue, n)
+      ! 62
+      use modglobal, only : jmax, dzf, dzfi, dzhi, dzh2i, dzfi5, ib, ie, jb, je, kb, ke, prandtlmoli, numol
+      use modfields, only : w0
+      use modsubgriddata, only : ekh
+      use modmpi,  only : myid
+      use initfac, only : block
+      integer i, j, k, kp, il, iu, jl, ju
+      integer, intent(in) :: hi !<size of halo in i
+      integer, intent(in) :: hj !<size of halo in j
+      integer, intent(in) :: hk !<size of halo in k
+      real, intent(in)    :: putin(ib - hi:ie + hi, jb - hj:je + hj, kb - hk:ke + hk)
+      real, intent(inout) :: putout(ib - hi:ie + hi, jb - hj:je + hj, kb:ke + hk)
+      real, intent(in)    :: bcvalue
+      integer, intent(in)    :: n
+
+      k = block(n, 5) - 1 !block location
+      if (k < kb) return
+      kp = k + 1 !
+      il = block(n, 1)
+      iu = block(n, 2)
+      jl = MAX(block(n, 3) - myid*jmax, 1)
+      ju = MIN(block(n, 4) - myid*jmax, jmax)
+
+      do j = jl, ju
+         do i = il, iu
+            putout(i, j, k) = putout(i, j, k) - bcvalue*dzfi(k) &
+                           - 0.5*(dzf(kp)*ekh(i, j, k) + dzf(k)*ekh(i, j, kp))*(putin(i, j, kp) - putin(i, j, k))*dzh2i(k)*dzfi(k) &
+                           + w0(i, j, kp)*(putin(i, j, kp)*dzf(k) + putin(i, j, k)*dzf(kp))*dzhi(kp)*dzfi5(k) &
+                           - w0(i, j, kp)*(putin(i, j, k )*dzf(k) + putin(i, j, k)*dzf(kp))*dzhi(kp)*dzfi5(k)
+         end do
+      end do
+
+   end subroutine zwallscalarmin_advecc2nd_corr
 
 
    subroutine ibmnorm
@@ -983,8 +983,8 @@ module modibm
             iu = block(ixwall(n), 2) + 1
             jl = max(block(ixwall(n), 3) - myid*jmax, 1) !
             ju = min(block(ixwall(n), 4) - myid*jmax, jmax) !
-            !kl = block(ixwall(n), 5)
-            kl = kb
+            kl = block(ixwall(n), 5)
+            !kl = kb
             ! tg3315 18.03.19 - use kb because for lEB buildings block starts at kb+1 but this leaves area underneath the buildings and horizontally between the roads where we have no block. Only leads to small velocities in these areas but this negates this issue. WARNING - for modelling overhangs this should be changed but this would also require another facade type etc. Similarly applied to y and z directions below.
             ku = block(ixwall(n), 6)
 
@@ -1000,8 +1000,8 @@ module modibm
            ju = block(n,4)
            il = block(n, 1)
            iu = block(n, 2)
-           kl = kb ! tg3315 see comment for x-direction above
-           !kl = block(n,5)
+           !kl = kb ! tg3315 see comment for x-direction above
+           kl = block(n,5)
            ku = block(n, 6)
            if (jl>je+myid*je .or. ju<jb+myid*je) THEN
              cycle
@@ -1075,8 +1075,8 @@ module modibm
          end do
 
          do n = 1, nxwall
-            !kl = block(ixwall(n), 5)
-            kl = kb ! tg3315 see comment for x-direction above
+            kl = block(ixwall(n), 5)
+            !kl = kb ! tg3315 see comment for x-direction above
             ku = block(ixwall(n), 6) + 1
             il = block(ixwall(n), 1)
             iu = block(ixwall(n), 2)
@@ -1100,8 +1100,8 @@ module modibm
             do n = 1, nblocks
                il = block(n, 1)
                iu = block(n, 2)
-               !kl = block(n, 5)
-               kl = kb ! tg3315 see comment for x-direction above
+               kl = block(n, 5)
+               !kl = kb ! tg3315 see comment for x-direction above
                ku = block(n, 6)
                jl = block(n, 3) - myid*jmax
                ju = block(n, 4) - myid*jmax
@@ -1110,18 +1110,20 @@ module modibm
                else
                   if (ju > je) ju = je
                   if (jl < jb) jl = jb
-                  thlm(il:iu, jl:ju, kl:ku) = thl0volav
+                  thlm(il:iu, jl:ju, kl:ku) = 1000.!thl0volav
                   thlp(il:iu, jl:ju, kl:ku) = 0.
                end if
             end do
+            thlm(:,:,kb) = thl0volav
+            thlp(:,:,kb) = 0.
          end if
 
          if (lmoist) then
             do n = 1, nblocks
                il = block(n, 1)
                iu = block(n, 2)
-               !kl = block(n, 5)
-               kl = kb ! tg3315 see comment for x-direction above
+               kl = block(n, 5)
+               !kl = kb ! tg3315 see comment for x-direction above
                ku = block(n, 6)
                jl = block(n, 3) - myid*jmax
                ju = block(n, 4) - myid*jmax
@@ -1134,14 +1136,16 @@ module modibm
                   qtp(il:iu, jl:ju, kl:ku) = 0.
                end if
             end do
+            qtm(:,:,kb) = 0.
+            qtp(:,:,kb) = 0.
          end if
 
          if (nsv > 0) then
             do n = 1, nblocks
                il = block(n, 1)
                iu = block(n, 2)
-               !kl = block(n, 5)
-               kl = kb ! tg3315 see comment for x-direction above
+               kl = block(n, 5)
+               !kl = kb ! tg3315 see comment for x-direction above
                ku = block(n, 6)
                jl = block(n, 3) - myid*jmax
                ju = block(n, 4) - myid*jmax
@@ -1159,6 +1163,8 @@ module modibm
                   svm(il:iu, jl:ju, ku, :) = svm(il:iu, jl:ju, ku + 1,:)
                end if
             end do
+            svm(:,:,:,kb) = 0.
+            svp(:,:,:,kb) = 0.
          end if
       end if ! libm
 

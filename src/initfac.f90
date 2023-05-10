@@ -264,6 +264,8 @@
               facain(n) = (block(facets(n, 3), 2) - block(facets(n, 3), 1) + 1)*(block(facets(n, 3), 6) - block(facets(n, 3), 5) + 1)
             else if (facets(n, 1) .eq. 5) then
               facain(n) = (block(facets(n, 3), 2) - block(facets(n, 3), 1) + 1)*(block(facets(n, 3), 6) - block(facets(n, 3), 5) + 1)
+           else if (facets(n, 1) .eq. 6) then
+              facain(n) = (block(facets(n, 3), 2) - block(facets(n, 3), 1) + 1)*(block(facets(n, 3), 4) - block(facets(n, 3), 3) + 1)
             end if
           end do
 

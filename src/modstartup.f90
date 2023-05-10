@@ -2063,7 +2063,7 @@ module modstartup
          return
       end if
 
-      allocate (block(1:nblocks, 1:11))
+      allocate (block(1:nblocks, 1:12))
 
       if (myid == 0) then
          if (nblocks > 0) then
@@ -2082,7 +2082,8 @@ module modstartup
                   block(n, 8), &
                   block(n, 9), &
                   block(n, 10), &
-                  block(n, 11)
+                  block(n, 11), &
+                  block(n, 12)
             end do
             close (ifinput)
 
@@ -2099,7 +2100,7 @@ module modstartup
          end if !nblocks>0
       end if !myid
 
-      call MPI_BCAST(block, 11*nblocks, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(block, 12*nblocks, MPI_INTEGER, 0, comm3d, mpierr)
 
       ! Create masking matrices
       IIc = 1; IIu = 1; IIv = 1; IIct = 1; IIw = 1; IIuw = 1; IIvw = 1; IIuv = 1; IIwt = 1; IIut = 1; IIvt = 1; IIuwt = 1; IIcs = 1; IIus = 1; IIvs = 1; IIws = 1; IIuws = 1; IIvws = 1; IIuvs = 1
@@ -2107,8 +2108,8 @@ module modstartup
       do n = 1, nblocks
          il = block(n, 1)
          iu = block(n, 2)
-         !kl = block(n, 5)
-         kl = kb ! tg3315 changed as buildings for lEB must start at kb+1 not kb with no block below
+         kl = block(n, 5)
+         !kl = kb ! tg3315 changed as buildings for lEB must start at kb+1 not kb with no block below
          ku = block(n, 6)
          jl = block(n, 3) - myid*jmax
          ju = block(n, 4) - myid*jmax

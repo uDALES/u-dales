@@ -241,40 +241,40 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
       END DO
       !end if
 
-   ! CASE (62) !wall in xy -> wf in z (=horizontal), bottom wall
-   !    k = block(n, 5) - 1 !block location - Should this have -1?
-   !    !if (.not.(k.lt.0)) then
-   !    if (k < kb) return
-   !    kp = k + 1 !
-   !    il = block(n, 1)
-   !    iu = block(n, 2)
-   !    jl = MAX(block(n, 3) - myid*jmax, 1)
-   !    ju = MIN(block(n, 4) - myid*jmax, jmax)
-   !    delta = dzf(k)*0.5
-   !    logdz = LOG(delta/z0)
-   !    logdzh = LOG(delta/z0h)
-   !    logzh = LOG(z0/z0h)
-   !    sqdz = SQRT(delta/z0)
-   !
-   !    DO j = jl, ju
-   !      DO i = il, iu
-   !        utang1Int = (utang1(i, j, k) + utang1(i + 1, j, k))*0.5
-   !        utang2Int = (utang2(i, j, k) + utang2(i, j + 1, k))*0.5
-   !        utangInt = max(umin, (utang1Int**2 + utang2Int**2))
-   !        dT = (Tcell(i, j, k) - Twall)
-   !
-   !        Ribl0 = grav*delta*dT/(Twall*utangInt) !
-   !        !call unoh(bcTflux, cth, logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2)
-   !        obcTfluxA = obcTfluxA + bcTflux
-   !        iotflux(i, j, k) = iotflux(i, j, k) + bcTflux*dzfi(k)
-   !        iocth(i,j,k) = cth
-   !        iot(i, j, k) = iot(i, j, k) - bcTflux*dzfi(k) &
-   !                     - 0.5*(dzf(kp)*ekh(i, j, k) + dzf(k)*ekh(i, j, kp))*(Tcell(i, j, kp) - Tcell(i, j, k))*dzh2i(k)*dzfi(k) &
-   !                     + w0(i, j, kp)*(Tcell(i, j, kp)*dzf(k) + Tcell(i, j, k)*dzf(kp))*dzhi(kp)*dzfi5(k) &
-   !                     - w0(i, j, kp)*(Tcell(i, j, k )*dzf(k) + Tcell(i, j, k)*dzf(kp))*dzhi(kp)*dzfi5(k)
-   !      END DO
-   !    END DO
-   !    !end if
+   CASE (62) !wall in xy -> wf in z (=horizontal), bottom wall
+      k = block(n, 5) - 1 !block location - Should this have -1?
+      !if (.not.(k.lt.0)) then
+      if (k < kb) return
+      kp = k + 1 !
+      il = block(n, 1)
+      iu = block(n, 2)
+      jl = MAX(block(n, 3) - myid*jmax, 1)
+      ju = MIN(block(n, 4) - myid*jmax, jmax)
+      delta = dzf(k)*0.5
+      logdz = LOG(delta/z0)
+      logdzh = LOG(delta/z0h)
+      logzh = LOG(z0/z0h)
+      sqdz = SQRT(delta/z0)
+
+      DO j = jl, ju
+        DO i = il, iu
+          utang1Int = (utang1(i, j, k) + utang1(i + 1, j, k))*0.5
+          utang2Int = (utang2(i, j, k) + utang2(i, j + 1, k))*0.5
+          utangInt = max(umin, (utang1Int**2 + utang2Int**2))
+          dT = (Tcell(i, j, k) - Twall)
+
+          Ribl0 = grav*delta*dT/(Twall*utangInt) !
+          !call unoh(bcTflux, cth, logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2)
+          obcTfluxA = obcTfluxA + bcTflux
+          iotflux(i, j, k) = iotflux(i, j, k) + bcTflux*dzfi(k)
+          iocth(i,j,k) = cth
+          iot(i, j, k) = iot(i, j, k) - bcTflux*dzfi(k) &
+                       - 0.5*(dzf(kp)*ekh(i, j, k) + dzf(k)*ekh(i, j, kp))*(Tcell(i, j, kp) - Tcell(i, j, k))*dzh2i(k)*dzfi(k) &
+                       + w0(i, j, kp)*(Tcell(i, j, kp)*dzf(k) + Tcell(i, j, k)*dzf(kp))*dzhi(kp)*dzfi5(k) &
+                       - w0(i, j, kp)*(Tcell(i, j, k )*dzf(k) + Tcell(i, j, k)*dzf(kp))*dzhi(kp)*dzfi5(k)
+        END DO
+      END DO
+      !end if
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!CASES FOR MOMENTUM!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    CASE (11) ! west wall
@@ -1367,549 +1367,549 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
       end if
       !end if
 
-   ! CASE (61) !wall in xy -> wf in z (=horizontal), bottom wall
-   !    k = block(n, 5) - 1 !block location
-   !    !if (.not.(k.lt.0)) then
-   !    if (k < kb) return
-   !    kp = k + 1 !shear velocity location
-   !    il = block(n, 1) + 1
-   !    iu = block(n, 2)
-   !    jl = MAX(block(n, 3) - myid*jmax, 1)
-   !    ju = MIN(block(n, 4) - myid*jmax, jmax)
-   !
-   !    delta = 0.5*dzf(k)
-   !    logdz = LOG(delta/z0)
-   !    logdzh = LOG(delta/z0h)
-   !    logzh = LOG(z0/z0h)
-   !    sqdz = SQRT(delta/z0)
-   !
-   !    DO j = jl, ju
-   !      DO i = il, iu
-   !        ! utang1Int = utang1(i, j, k)
-   !        ! utang2Int = (utang2(i, j, k) + utang2(i - 1, j, k) + utang2(i, j + 1, k) + utang2(i - 1, j + 1, k))*0.25
-   !        ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
-   !        ! dT = ((Tcell(i, j, k) + Tcell(i - 1, j, k)) - (Twall + Twall))*0.5
-   !        ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
-   !        ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-   !        ! dummy = (utang1Int**2)*ctm
-   !        ! bcmomflux = SIGN(dummy, utang1Int)
-   !        ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
-   !        emop = ( dzf(kp) * ( ekm(i,j,k )*dxf(i-1) + ekm(i-1,j,k )*dxf(i) )  + &
-   !        dzf(k)  * ( ekm(i,j,kp)*dxf(i-1) + ekm(i-1,j,kp)*dxf(i) ) )*dxhi(i) * dzhiq(kp)
-   !        iout1(i, j, k) = iout1(i, j, k) - (utang1(i, j, kp) - utang1(i, j, k))*emop*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k) !
-   !      END DO
-   !    END DO
-   !
-   !    !u top edge west
-   !    i = block(n, 1)
-   !    DO j = jl, ju
-   !      ! utang1Int = utang1(i, j, k)
-   !      ! utang2Int = (utang2(i, j, k) + utang2(i - 1, j, k) + utang2(i, j + 1, k) + utang2(i - 1, j + 1, k))*0.25
-   !      ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
-   !      ! dT = Tcell(i, j, k) - Twall
-   !      ! Ribl0 = grav*delta*dT/(Twall*utangInt) !Eq. 6, guess initial Ri
-   !      ! dummy = (utang1Int**2)*unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-   !      ! bcmomflux = SIGN(dummy, utang1Int)
-   !      ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)*0.5
-   !      emop = ( dzf(kp) * ( ekm(i,j,k )*dxf(i-1) + ekm(i-1,j,k )*dxf(i) )  + &
-   !      dzf(k)  * ( ekm(i,j,kp)*dxf(i-1) + ekm(i-1,j,kp)*dxf(i) ) )*dxhi(i) * dzhiq(kp)
-   !      iout1(i, j, k) = iout1(i, j, k) - (utang1(i, j, kp) - utang1(i, j, k))*emop*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5 !
-   !    END DO
-   !
-   !    !u top edge east
-   !    i = block(n, 2)
-   !    DO j = jl, ju
-   !      ! utang1Int = utang1(i, j, k)
-   !      ! utang2Int = (utang2(i, j, k) + utang2(i - 1, j, k) + utang2(i, j + 1, k) + utang2(i - 1, j + 1, k))*0.25
-   !      ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
-   !      ! dT = Tcell(i - 1, j, k) - Twall
-   !      ! Ribl0 = grav*delta*dT/(Twall*utangInt) !Eq. 6, guess initial Ri
-   !      ! dummy = (utang1Int**2)*unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-   !      ! bcmomflux = SIGN(dummy, utang1Int)
-   !      ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)*0.5
-   !      emop = ( dzf(kp) * ( ekm(i,j,k )*dxf(i-1) + ekm(i-1,j,k )*dxf(i) )  + &
-   !      dzf(k)  * ( ekm(i,j,kp)*dxf(i-1) + ekm(i-1,j,kp)*dxf(i) ) )*dxhi(i) * dzhiq(kp)
-   !      iout1(i, j, k) = iout1(i, j, k) - (utang1(i, j, kp) - utang1(i, j, k))*emop*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5 !
-   !    END DO
-   !
-   !    ! !v
-   !    !    il = block(n, 1)
-   !    !    jl = MAX(block(n, 3) - myid*jmax, 1) + 1
-   !    !    DO j = jl, ju
-   !    !       DO i = il, iu
-   !    !          ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
-   !    !          ! utang2Int = utang2(i, j, k)
-   !    !          ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
-   !    !          ! dT = ((Tcell(i, j, k) + Tcell(i, j - 1, k)) - (Twall + Twall))*0.5
-   !    !          ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
-   !    !          ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-   !    !          ! dummy = (utang2Int**2)*ctm
-   !    !          ! bcmomflux = SIGN(dummy, utang2Int)
-   !    !          ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
-   !    !          eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
-   !    !                   dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
-   !    !          iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k) !
-   !    !       END DO
-   !    !    END DO
-   !    !
-   !    ! !v top edge south
-   !    !    j = MAX(block(n, 3) - myid*jmax, 1)
-   !    !    DO i=il,iu
-   !    !       ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
-   !    !       ! utang2Int = utang2(i, j, k)
-   !    !       ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
-   !    !       ! dT = Tcell(i, j, k) - Twall
-   !    !       ! Ribl0 = grav*delta*dT/(Twall*utangInt) !Eq. 6, guess initial Ri
-   !    !       ! dummy = (utang2Int**2)*unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-   !    !       ! bcmomflux = SIGN(dummy, utang2Int)
-   !    !       ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)*0.5
-   !    !       eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
-   !    !                dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
-   !    !       iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5 !
-   !    !    END DO
-   !    !
-   !    ! !v top edge north
-   !    !    j = MIN(block(n, 4) - myid*jmax, jmax) + 1
-   !    !
-   !    !    DO i = il, iu
-   !    !       ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
-   !    !       ! utang2Int = utang2(i, j, k)
-   !    !       ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
-   !    !       ! dT = Tcell(i, j - 1, k) - Twall
-   !    !       ! Ribl0 = grav*delta*dT/(Twall*utangInt) !Eq. 6, guess initial Ri
-   !    !       ! dummy = (utang2Int**2)*unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-   !    !       ! bcmomflux = SIGN(dummy, utang2Int)
-   !    !       ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)*0.5
-   !    !       eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
-   !    !                dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
-   !    !       iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5 !
-   !    !    END DO
-   !
-   !    jl = block(n, 3)
-   !    ju = block(n, 4)
-   !    il = block(n, 1)
-   !    iu = block(n, 2)
-   !
-   !
-   !    if (jl>je+je*myid .or. ju < jb+je*myid) THEN
-   !
-   !    else if (jl >= jb+je*myid .and. ju <= je+je*myid) then
-   !      jl = block(n,3) - myid*je
-   !      ju = block(n,4) - myid*je
-   !      if (jl == ju) THEN
-   !        do i = il,iu
-   !          if(IIc(i,jl-1,k+1)==0 .and. IIc(i,jl-1,k)==1) then
-   !            j = jl
-   !            ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
-   !            ! utang2Int = utang2(i, j, k)
-   !            ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
-   !            ! !dT = ((Tcell(i, j, k) + Tcell(i, j - 1, k)) - (Twall + Twall))*0.5
-   !            ! dT = (Tcell(i, j, k)*IIc(i, j, k)*(2-IIc(i, j-1, k)) + Tcell(i, j-1, k)*IIc(i, j-1, k)*(2-IIc(i, j, k)) - (Twall + Twall))*0.5
-   !            ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
-   !            ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-   !            ! dummy = (utang2Int**2)*ctm
-   !            ! bcmomflux = SIGN(dummy, utang2Int)
-   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
-   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
-   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
-   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)
-   !          else if (IIc(i,jl-1,k+1)==1 .or. IIc(i,jl-1,k) == 0 ) then
-   !            j = jl
-   !            ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
-   !            ! utang2Int = utang2(i, j, k)
-   !            ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
-   !            ! !dT = Tcell(i, j, k) - Twall
-   !            ! dT = (Tcell(i, j, k) - Twall)*IIc(i,j,k)
-   !            ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
-   !            ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-   !            ! dummy = (utang2Int**2)*ctm
-   !            ! bcmomflux = SIGN(dummy, utang2Int)
-   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
-   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
-   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
-   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
-   !          end if
-   !          if(IIc(i,jl+1,k+1)==1 .and. IIc(i,jl+1,k)==1) then
-   !            j = jl+1
-   !            ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
-   !            ! utang2Int = utang2(i, j, k)
-   !            ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
-   !            ! !dT = Tcell(i, j-1, k) - Twall
-   !            ! dT = (Tcell(i, j-1, k) - Twall)*IIc(i,j-1,k)
-   !            ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
-   !            ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-   !            ! dummy = (utang2Int**2)*ctm
-   !            ! bcmomflux = SIGN(dummy, utang2Int)
-   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
-   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  ) + &
-   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
-   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
-   !          else if (IIc(i,jl+1,k+1)==0 .and. IIc(i,jl+1,k)==1) then
-   !          end if
-   !        end do
-   !      else if (jl /= ju) then
-   !        do i = il,iu
-   !          do j = jl+1, ju
-   !            ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
-   !            ! utang2Int = utang2(i, j, k)
-   !            ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
-   !            ! !dT = ((Tcell(i, j, k) + Tcell(i, j - 1, k)) - (Twall + Twall))*0.5
-   !            ! dT = (Tcell(i, j, k)*IIc(i, j, k)*(2-IIc(i, j-1, k)) + Tcell(i, j-1, k)*IIc(i, j-1, k)*(2-IIc(i, j, k)) - (Twall + Twall))*0.5
-   !            ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
-   !            ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-   !            ! dummy = (utang2Int**2)*ctm
-   !            ! bcmomflux = SIGN(dummy, utang2Int)
-   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
-   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
-   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
-   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)
-   !          end do
-   !          if (IIc(i,jl-1,k) == 0 .or. IIc(i,jl-1,k+1) == 1) then
-   !            j = jl
-   !            ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
-   !            ! utang2Int = utang2(i, j, k)
-   !            ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
-   !            ! !dT = Tcell(i, j, k) - Twall
-   !            ! dT = (Tcell(i, j, k) - Twall)*IIc(i,j,k)
-   !            ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
-   !            ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-   !            ! dummy = (utang2Int**2)*ctm
-   !            ! bcmomflux = SIGN(dummy, utang2Int)
-   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
-   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
-   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
-   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
-   !          else if (IIc(i,jl-1,k) == 1 .and. IIc(i,jl-1,k+1)== 0) then
-   !            j = jl
-   !            ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
-   !            ! utang2Int = utang2(i, j, k)
-   !            ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
-   !            ! !dT = ((Tcell(i, j, k) + Tcell(i, j - 1, k)) - (Twall + Twall))*0.5
-   !            ! dT = (Tcell(i, j, k)*IIc(i, j, k)*(2-IIc(i, j-1, k)) + Tcell(i, j-1, k)*IIc(i, j-1, k)*(2-IIc(i, j, k)) - (Twall + Twall))*0.5
-   !            ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
-   !            ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-   !            ! dummy = (utang2Int**2)*ctm
-   !            ! bcmomflux = SIGN(dummy, utang2Int)
-   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
-   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
-   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
-   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)
-   !          end if
-   !          if (IIc(i,ju+1,k) == 1 .and. IIc(i,ju+1,k+1) == 1) then
-   !            ! j = ju+1
-   !            ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
-   !            ! utang2Int = utang2(i, j, k)
-   !            ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
-   !            ! !dT = Tcell(i, j - 1, k) - Twall
-   !            ! dT = (Tcell(i, j - 1, k) - Twall)*IIc(i,j-1,k)
-   !            ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
-   !            ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-   !            ! dummy = (utang2Int**2)*ctm
-   !            ! bcmomflux = SIGN(dummy, utang2Int)
-   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
-   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
-   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
-   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
-   !          else
-   !          end if
-   !        end do
-   !      end if
-   !    else if (jl < jb+myid*je .and. ju > je+je*myid) then
-   !      jl = jb
-   !      ju = je
-   !      if (jl == ju) THEN
-   !        do i = il,iu
-   !          if(IIc(i,jl-1,k+1)==0 .and. IIc(i,jl-1,k)==1) then
-   !            j = jl
-   !            ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
-   !            ! utang2Int = utang2(i, j, k)
-   !            ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
-   !            ! !dT = ((Tcell(i, j, k) + Tcell(i, j - 1, k)) - (Twall + Twall))*0.5
-   !            ! dT = (Tcell(i, j, k)*IIc(i, j, k)*(2-IIc(i, j-1, k)) + Tcell(i, j-1, k)*IIc(i, j-1, k)*(2-IIc(i, j, k)) - (Twall + Twall))*0.5
-   !            ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
-   !            ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-   !            ! dummy = (utang2Int**2)*ctm
-   !            ! bcmomflux = SIGN(dummy, utang2Int)
-   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
-   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
-   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
-   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)
-   !          else if (IIc(i,jl-1,k+1)==1 .or. IIc(i,jl-1,k) == 0 ) then
-   !            j = jl
-   !            ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
-   !            ! utang2Int = utang2(i, j, k)
-   !            ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
-   !            ! !dT = Tcell(i, j, k) - Twall
-   !            ! dT = (Tcell(i, j, k) - Twall)*IIc(i,j,k)
-   !            ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
-   !            ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-   !            ! dummy = (utang2Int**2)*ctm
-   !            ! bcmomflux = SIGN(dummy, utang2Int)
-   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
-   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
-   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
-   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
-   !          end if
-   !        end do
-   !      else if (jl /= ju) then
-   !        DO i =il,iu
-   !          DO j = jl+1, ju
-   !            ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
-   !            ! utang2Int = utang2(i, j, k)
-   !            ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
-   !            ! !dT = ((Tcell(i, j, k) + Tcell(i, j - 1, k)) - (Twall + Twall))*0.5
-   !            ! dT = (Tcell(i, j, k)*IIc(i, j, k)*(2-IIc(i, j-1, k)) + Tcell(i, j-1, k)*IIc(i, j-1, k)*(2-IIc(i, j, k)) - (Twall + Twall))*0.5
-   !            ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
-   !            ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-   !            ! dummy = (utang2Int**2)*ctm
-   !            ! bcmomflux = SIGN(dummy, utang2Int)
-   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
-   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
-   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
-   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)
-   !          END DO
-   !          if (IIc(i,jl-1,k+1)==0 .and. IIc(i,jl-1,k)==1) then
-   !            j = jl
-   !            ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
-   !            ! utang2Int = utang2(i, j, k)
-   !            ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
-   !            ! !dT = ((Tcell(i, j, k) + Tcell(i, j - 1, k)) - (Twall + Twall))*0.5
-   !            ! dT = (Tcell(i, j, k)*IIc(i, j, k)*(2-IIc(i, j-1, k)) + Tcell(i, j-1, k)*IIc(i, j-1, k)*(2-IIc(i, j, k)) - (Twall + Twall))*0.5
-   !            ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
-   !            ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-   !            ! dummy = (utang2Int**2)*ctm
-   !            ! bcmomflux = SIGN(dummy, utang2Int)
-   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
-   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
-   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
-   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)
-   !          else if (IIc(i,jl-1,k+1)==1 .or. IIc(i,jl-1,k)==0) then
-   !            j = jl
-   !            ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
-   !            ! utang2Int = utang2(i, j, k)
-   !            ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
-   !            ! !dT = Tcell(i, j, k) - Twall
-   !            ! dT = (Tcell(i, j, k) - Twall)*IIc(i,j,k)
-   !            ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
-   !            ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-   !            ! dummy = (utang2Int**2)*ctm
-   !            ! bcmomflux = SIGN(dummy, utang2Int)
-   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
-   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
-   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
-   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
-   !          end if
-   !        END DO
-   !      end if
-   !    else if (ju<=je+myid*je .and. jl<jb+myid*je) then
-   !      jl = jb
-   !      ju = block(n,4) - myid*je
-   !      if (jl == ju) then
-   !        do i = il,iu
-   !          if(IIc(i,jl-1,k-1)==0 .and. IIc(i,jl-1,k)==1) then
-   !            j = jl
-   !            ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
-   !            ! utang2Int = utang2(i, j, k)
-   !            ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
-   !            ! !dT = ((Tcell(i, j, k) + Tcell(i, j - 1, k)) - (Twall + Twall))*0.5
-   !            ! dT = (Tcell(i, j, k)*IIc(i, j, k)*(2-IIc(i, j-1, k)) + Tcell(i, j-1, k)*IIc(i, j-1, k)*(2-IIc(i, j, k)) - (Twall + Twall))*0.5
-   !            ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
-   !            ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-   !            ! dummy = (utang2Int**2)*ctm
-   !            ! bcmomflux = SIGN(dummy, utang2Int)
-   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
-   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
-   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
-   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)
-   !          else if (IIc(i,jl-1,k) == 0 ) then
-   !            j = jl
-   !            ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
-   !            ! utang2Int = utang2(i, j, k)
-   !            ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
-   !            ! !dT = Tcell(i, j, k) - Twall
-   !            ! dT = (Tcell(i, j, k) - Twall)*IIc(i,j,k)
-   !            ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
-   !            ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-   !            ! dummy = (utang2Int**2)*ctm
-   !            ! bcmomflux = SIGN(dummy, utang2Int)
-   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
-   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
-   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
-   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
-   !          end if
-   !          if(IIc(i,jl+1,k+1)==1 .or. IIc(i,jl+1,k)==0) then
-   !            j = jl+1
-   !            ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
-   !            ! utang2Int = utang2(i, j, k)
-   !            ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
-   !            ! !dT = Tcell(i, j-1, k) - Twall
-   !            ! dT = (Tcell(i, j-1, k) - Twall)*IIc(i,j-1,k)
-   !            ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
-   !            ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-   !            ! dummy = (utang2Int**2)*ctm
-   !            ! bcmomflux = SIGN(dummy, utang2Int)
-   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
-   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
-   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
-   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
-   !          else if (IIc(i,jl+1,k-1)==0 .and. IIc(i,jl+1,k)==1) then
-   !          end if
-   !        end do
-   !      else if (jl /= ju) then
-   !        do i = il,iu
-   !          do j = jl+1, ju
-   !            ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
-   !            ! utang2Int = utang2(i, j, k)
-   !            ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
-   !            ! !dT = ((Tcell(i, j, k) + Tcell(i, j - 1, k)) - (Twall + Twall))*0.5
-   !            ! dT = (Tcell(i, j, k)*IIc(i, j, k)*(2-IIc(i, j-1, k)) + Tcell(i, j-1, k)*IIc(i, j-1, k)*(2-IIc(i, j, k)) - (Twall + Twall))*0.5
-   !            ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
-   !            ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-   !            ! dummy = (utang2Int**2)*ctm
-   !            ! bcmomflux = SIGN(dummy, utang2Int)
-   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
-   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
-   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
-   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)
-   !          end do
-   !          if (IIc(i,jl-1,k)==0) then
-   !            j = jl
-   !            ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
-   !            ! utang2Int = utang2(i, j, k)
-   !            ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
-   !            ! !dT = Tcell(i, j, k) - Twall
-   !            ! dT = (Tcell(i, j, k) - Twall)*IIc(i,j,k)
-   !            ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
-   !            ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-   !            ! dummy = (utang2Int**2)*ctm
-   !            ! bcmomflux = SIGN(dummy, utang2Int)
-   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
-   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
-   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
-   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
-   !          else if (IIc(i,jl-1,k)==1) then
-   !            j = jl
-   !            ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
-   !            ! utang2Int = utang2(i, j, k)
-   !            ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
-   !            ! !dT = ((Tcell(i, j, k) + Tcell(i, j - 1, k)) - (Twall + Twall))*0.5
-   !            ! dT = (Tcell(i, j, k)*IIc(i, j, k)*(2-IIc(i, j-1, k)) + Tcell(i, j-1, k)*IIc(i, j-1, k)*(2-IIc(i, j, k)) - (Twall + Twall))*0.5
-   !            ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
-   !            ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-   !            ! dummy = (utang2Int**2)*ctm
-   !            ! bcmomflux = SIGN(dummy, utang2Int)
-   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
-   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
-   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
-   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)
-   !          end if
-   !          if (IIc(i,ju+1,k+1)==1 .and. IIc(i,ju+1,k)==1) then
-   !            j = ju+1
-   !            ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
-   !            ! utang2Int = utang2(i, j, k)
-   !            ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
-   !            ! !dT = Tcell(i, j - 1, k) - Twall
-   !            ! dT = (Tcell(i, j - 1, k) - Twall)*IIc(i,j-1,k)
-   !            ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
-   !            ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-   !            ! dummy = (utang2Int**2)*ctm
-   !            ! bcmomflux = SIGN(dummy, utang2Int)
-   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
-   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
-   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
-   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
-   !          else if (IIc(i,ju+1,k)==0) THEN
-   !          end if
-   !        end do
-   !      end if
-   !    else if (ju>je+myid*je .and. jl>=jb+myid*je) then
-   !      jl = block(n,3)-myid*je
-   !      ju = je
-   !      if (jl == ju) THEN
-   !        j = jl
-   !        do i = il,iu
-   !          if(IIc(i,j-1,k+1) == 1 .or. IIc(i,j-1,k)==0) THEN
-   !            ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
-   !            ! utang2Int = utang2(i, j, k)
-   !            ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
-   !            ! !dT = Tcell(i, j, k) - Twall
-   !            ! dT = (Tcell(i, j, k) - Twall)*IIc(i,j,k)
-   !            ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
-   !            ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-   !            ! dummy = (utang2Int**2)*ctm
-   !            ! bcmomflux = SIGN(dummy, utang2Int)
-   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
-   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
-   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
-   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
-   !          else if (IIc(i,j-1,k+1) == 0 .and. IIc(i,j-1,k)==1) THEN
-   !            ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
-   !            ! utang2Int = utang2(i, j, k)
-   !            ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
-   !            ! !dT = ((Tcell(i, j, k) + Tcell(i, j - 1, k)) - (Twall + Twall))*0.5
-   !            ! dT = (Tcell(i, j, k)*IIc(i, j, k)*(2-IIc(i, j-1, k)) + Tcell(i, j-1, k)*IIc(i, j-1, k)*(2-IIc(i, j, k)) - (Twall + Twall))*0.5
-   !            ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
-   !            ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-   !            ! dummy = (utang2Int**2)*ctm
-   !            ! bcmomflux = SIGN(dummy, utang2Int)
-   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
-   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
-   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
-   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)
-   !          end if
-   !        end do
-   !      else if (jl /= ju) then
-   !        do i = il,iu
-   !          do j = jl+1, ju
-   !            ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
-   !            ! utang2Int = utang2(i, j, k)
-   !            ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
-   !            ! !dT = ((Tcell(i, j, k) + Tcell(i, j - 1, k)) - (Twall + Twall))*0.5
-   !            ! dT = (Tcell(i, j, k)*IIc(i, j, k)*(2-IIc(i, j-1, k)) + Tcell(i, j-1, k)*IIc(i, j-1, k)*(2-IIc(i, j, k)) - (Twall + Twall))*0.5
-   !            ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
-   !            ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-   !            ! dummy = (utang2Int**2)*ctm
-   !            ! bcmomflux = SIGN(dummy, utang2Int)
-   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
-   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
-   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
-   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)
-   !          end do
-   !          if (IIc(i,jl-1,k+1)==1 .or. IIc(i,jl-1,k)==0) then
-   !            j = jl
-   !            ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
-   !            ! utang2Int = utang2(i, j, k)
-   !            ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
-   !            ! !dT = Tcell(i, j, k)  - Twall
-   !            ! dT = (Tcell(i, j, k)  - Twall)*IIc(i,j,k)
-   !            ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
-   !            ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-   !            ! dummy = (utang2Int**2)*ctm
-   !            ! bcmomflux = SIGN(dummy, utang2Int)
-   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
-   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
-   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
-   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
-   !          else if (IIc(i,jl-1,k+1)==0 .and. IIc(i,jl-1,k)==1) then
-   !            j = jl
-   !            ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
-   !            ! utang2Int = utang2(i, j, k)
-   !            ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
-   !            ! !dT = Tcell(i, j, k)  - Twall
-   !            ! dT = (Tcell(i, j, k)  - Twall)*IIc(i,j,k)
-   !            ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
-   !            ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
-   !            ! dummy = (utang2Int**2)*ctm
-   !            ! bcmomflux = SIGN(dummy, utang2Int)
-   !            ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
-   !            eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
-   !            dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
-   !            iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
-   !          end if
-   !        end do
-   !      end if
-   !    end if
-   ! !end if
+   CASE (61) !wall in xy -> wf in z (=horizontal), bottom wall
+      k = block(n, 5) - 1 !block location
+      !if (.not.(k.lt.0)) then
+      if (k < kb) return
+      kp = k + 1 !shear velocity location
+      il = block(n, 1) + 1
+      iu = block(n, 2)
+      jl = MAX(block(n, 3) - myid*jmax, 1)
+      ju = MIN(block(n, 4) - myid*jmax, jmax)
+
+      delta = 0.5*dzf(k)
+      logdz = LOG(delta/z0)
+      logdzh = LOG(delta/z0h)
+      logzh = LOG(z0/z0h)
+      sqdz = SQRT(delta/z0)
+
+      DO j = jl, ju
+        DO i = il, iu
+          ! utang1Int = utang1(i, j, k)
+          ! utang2Int = (utang2(i, j, k) + utang2(i - 1, j, k) + utang2(i, j + 1, k) + utang2(i - 1, j + 1, k))*0.25
+          ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
+          ! dT = ((Tcell(i, j, k) + Tcell(i - 1, j, k)) - (Twall + Twall))*0.5
+          ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
+          ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+          ! dummy = (utang1Int**2)*ctm
+          ! bcmomflux = SIGN(dummy, utang1Int)
+          ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+          emop = ( dzf(kp) * ( ekm(i,j,k )*dxf(i-1) + ekm(i-1,j,k )*dxf(i) )  + &
+          dzf(k)  * ( ekm(i,j,kp)*dxf(i-1) + ekm(i-1,j,kp)*dxf(i) ) )*dxhi(i) * dzhiq(kp)
+          iout1(i, j, k) = iout1(i, j, k) - (utang1(i, j, kp) - utang1(i, j, k))*emop*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k) !
+        END DO
+      END DO
+
+      !u top edge west
+      i = block(n, 1)
+      DO j = jl, ju
+        ! utang1Int = utang1(i, j, k)
+        ! utang2Int = (utang2(i, j, k) + utang2(i - 1, j, k) + utang2(i, j + 1, k) + utang2(i - 1, j + 1, k))*0.25
+        ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
+        ! dT = Tcell(i, j, k) - Twall
+        ! Ribl0 = grav*delta*dT/(Twall*utangInt) !Eq. 6, guess initial Ri
+        ! dummy = (utang1Int**2)*unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+        ! bcmomflux = SIGN(dummy, utang1Int)
+        ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)*0.5
+        emop = ( dzf(kp) * ( ekm(i,j,k )*dxf(i-1) + ekm(i-1,j,k )*dxf(i) )  + &
+        dzf(k)  * ( ekm(i,j,kp)*dxf(i-1) + ekm(i-1,j,kp)*dxf(i) ) )*dxhi(i) * dzhiq(kp)
+        iout1(i, j, k) = iout1(i, j, k) - (utang1(i, j, kp) - utang1(i, j, k))*emop*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5 !
+      END DO
+
+      !u top edge east
+      i = block(n, 2)
+      DO j = jl, ju
+        ! utang1Int = utang1(i, j, k)
+        ! utang2Int = (utang2(i, j, k) + utang2(i - 1, j, k) + utang2(i, j + 1, k) + utang2(i - 1, j + 1, k))*0.25
+        ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
+        ! dT = Tcell(i - 1, j, k) - Twall
+        ! Ribl0 = grav*delta*dT/(Twall*utangInt) !Eq. 6, guess initial Ri
+        ! dummy = (utang1Int**2)*unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+        ! bcmomflux = SIGN(dummy, utang1Int)
+        ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)*0.5
+        emop = ( dzf(kp) * ( ekm(i,j,k )*dxf(i-1) + ekm(i-1,j,k )*dxf(i) )  + &
+        dzf(k)  * ( ekm(i,j,kp)*dxf(i-1) + ekm(i-1,j,kp)*dxf(i) ) )*dxhi(i) * dzhiq(kp)
+        iout1(i, j, k) = iout1(i, j, k) - (utang1(i, j, kp) - utang1(i, j, k))*emop*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5 !
+      END DO
+
+      ! !v
+      !    il = block(n, 1)
+      !    jl = MAX(block(n, 3) - myid*jmax, 1) + 1
+      !    DO j = jl, ju
+      !       DO i = il, iu
+      !          ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
+      !          ! utang2Int = utang2(i, j, k)
+      !          ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
+      !          ! dT = ((Tcell(i, j, k) + Tcell(i, j - 1, k)) - (Twall + Twall))*0.5
+      !          ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
+      !          ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+      !          ! dummy = (utang2Int**2)*ctm
+      !          ! bcmomflux = SIGN(dummy, utang2Int)
+      !          ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+      !          eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+      !                   dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+      !          iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k) !
+      !       END DO
+      !    END DO
+      !
+      ! !v top edge south
+      !    j = MAX(block(n, 3) - myid*jmax, 1)
+      !    DO i=il,iu
+      !       ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
+      !       ! utang2Int = utang2(i, j, k)
+      !       ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
+      !       ! dT = Tcell(i, j, k) - Twall
+      !       ! Ribl0 = grav*delta*dT/(Twall*utangInt) !Eq. 6, guess initial Ri
+      !       ! dummy = (utang2Int**2)*unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+      !       ! bcmomflux = SIGN(dummy, utang2Int)
+      !       ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)*0.5
+      !       eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+      !                dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+      !       iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5 !
+      !    END DO
+      !
+      ! !v top edge north
+      !    j = MIN(block(n, 4) - myid*jmax, jmax) + 1
+      !
+      !    DO i = il, iu
+      !       ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
+      !       ! utang2Int = utang2(i, j, k)
+      !       ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
+      !       ! dT = Tcell(i, j - 1, k) - Twall
+      !       ! Ribl0 = grav*delta*dT/(Twall*utangInt) !Eq. 6, guess initial Ri
+      !       ! dummy = (utang2Int**2)*unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+      !       ! bcmomflux = SIGN(dummy, utang2Int)
+      !       ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)*0.5
+      !       eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+      !                dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+      !       iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5 !
+      !    END DO
+
+      jl = block(n, 3)
+      ju = block(n, 4)
+      il = block(n, 1)
+      iu = block(n, 2)
+
+
+      if (jl>je+je*myid .or. ju < jb+je*myid) THEN
+
+      else if (jl >= jb+je*myid .and. ju <= je+je*myid) then
+        jl = block(n,3) - myid*je
+        ju = block(n,4) - myid*je
+        if (jl == ju) THEN
+          do i = il,iu
+            if(IIc(i,jl-1,k+1)==0 .and. IIc(i,jl-1,k)==1) then
+              j = jl
+              ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
+              ! utang2Int = utang2(i, j, k)
+              ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
+              ! !dT = ((Tcell(i, j, k) + Tcell(i, j - 1, k)) - (Twall + Twall))*0.5
+              ! dT = (Tcell(i, j, k)*IIc(i, j, k)*(2-IIc(i, j-1, k)) + Tcell(i, j-1, k)*IIc(i, j-1, k)*(2-IIc(i, j, k)) - (Twall + Twall))*0.5
+              ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
+              ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+              ! dummy = (utang2Int**2)*ctm
+              ! bcmomflux = SIGN(dummy, utang2Int)
+              ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+              dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+              iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)
+            else if (IIc(i,jl-1,k+1)==1 .or. IIc(i,jl-1,k) == 0 ) then
+              j = jl
+              ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
+              ! utang2Int = utang2(i, j, k)
+              ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
+              ! !dT = Tcell(i, j, k) - Twall
+              ! dT = (Tcell(i, j, k) - Twall)*IIc(i,j,k)
+              ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
+              ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+              ! dummy = (utang2Int**2)*ctm
+              ! bcmomflux = SIGN(dummy, utang2Int)
+              ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+              dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+              iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
+            end if
+            if(IIc(i,jl+1,k+1)==1 .and. IIc(i,jl+1,k)==1) then
+              j = jl+1
+              ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
+              ! utang2Int = utang2(i, j, k)
+              ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
+              ! !dT = Tcell(i, j-1, k) - Twall
+              ! dT = (Tcell(i, j-1, k) - Twall)*IIc(i,j-1,k)
+              ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
+              ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+              ! dummy = (utang2Int**2)*ctm
+              ! bcmomflux = SIGN(dummy, utang2Int)
+              ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  ) + &
+              dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+              iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
+            else if (IIc(i,jl+1,k+1)==0 .and. IIc(i,jl+1,k)==1) then
+            end if
+          end do
+        else if (jl /= ju) then
+          do i = il,iu
+            do j = jl+1, ju
+              ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
+              ! utang2Int = utang2(i, j, k)
+              ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
+              ! !dT = ((Tcell(i, j, k) + Tcell(i, j - 1, k)) - (Twall + Twall))*0.5
+              ! dT = (Tcell(i, j, k)*IIc(i, j, k)*(2-IIc(i, j-1, k)) + Tcell(i, j-1, k)*IIc(i, j-1, k)*(2-IIc(i, j, k)) - (Twall + Twall))*0.5
+              ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
+              ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+              ! dummy = (utang2Int**2)*ctm
+              ! bcmomflux = SIGN(dummy, utang2Int)
+              ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+              dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+              iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)
+            end do
+            if (IIc(i,jl-1,k) == 0 .or. IIc(i,jl-1,k+1) == 1) then
+              j = jl
+              ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
+              ! utang2Int = utang2(i, j, k)
+              ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
+              ! !dT = Tcell(i, j, k) - Twall
+              ! dT = (Tcell(i, j, k) - Twall)*IIc(i,j,k)
+              ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
+              ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+              ! dummy = (utang2Int**2)*ctm
+              ! bcmomflux = SIGN(dummy, utang2Int)
+              ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+              dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+              iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
+            else if (IIc(i,jl-1,k) == 1 .and. IIc(i,jl-1,k+1)== 0) then
+              j = jl
+              ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
+              ! utang2Int = utang2(i, j, k)
+              ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
+              ! !dT = ((Tcell(i, j, k) + Tcell(i, j - 1, k)) - (Twall + Twall))*0.5
+              ! dT = (Tcell(i, j, k)*IIc(i, j, k)*(2-IIc(i, j-1, k)) + Tcell(i, j-1, k)*IIc(i, j-1, k)*(2-IIc(i, j, k)) - (Twall + Twall))*0.5
+              ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
+              ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+              ! dummy = (utang2Int**2)*ctm
+              ! bcmomflux = SIGN(dummy, utang2Int)
+              ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+              dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+              iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)
+            end if
+            if (IIc(i,ju+1,k) == 1 .and. IIc(i,ju+1,k+1) == 1) then
+              ! j = ju+1
+              ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
+              ! utang2Int = utang2(i, j, k)
+              ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
+              ! !dT = Tcell(i, j - 1, k) - Twall
+              ! dT = (Tcell(i, j - 1, k) - Twall)*IIc(i,j-1,k)
+              ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
+              ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+              ! dummy = (utang2Int**2)*ctm
+              ! bcmomflux = SIGN(dummy, utang2Int)
+              ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+              dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+              iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
+            else
+            end if
+          end do
+        end if
+      else if (jl < jb+myid*je .and. ju > je+je*myid) then
+        jl = jb
+        ju = je
+        if (jl == ju) THEN
+          do i = il,iu
+            if(IIc(i,jl-1,k+1)==0 .and. IIc(i,jl-1,k)==1) then
+              j = jl
+              ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
+              ! utang2Int = utang2(i, j, k)
+              ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
+              ! !dT = ((Tcell(i, j, k) + Tcell(i, j - 1, k)) - (Twall + Twall))*0.5
+              ! dT = (Tcell(i, j, k)*IIc(i, j, k)*(2-IIc(i, j-1, k)) + Tcell(i, j-1, k)*IIc(i, j-1, k)*(2-IIc(i, j, k)) - (Twall + Twall))*0.5
+              ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
+              ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+              ! dummy = (utang2Int**2)*ctm
+              ! bcmomflux = SIGN(dummy, utang2Int)
+              ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+              dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+              iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)
+            else if (IIc(i,jl-1,k+1)==1 .or. IIc(i,jl-1,k) == 0 ) then
+              j = jl
+              ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
+              ! utang2Int = utang2(i, j, k)
+              ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
+              ! !dT = Tcell(i, j, k) - Twall
+              ! dT = (Tcell(i, j, k) - Twall)*IIc(i,j,k)
+              ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
+              ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+              ! dummy = (utang2Int**2)*ctm
+              ! bcmomflux = SIGN(dummy, utang2Int)
+              ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+              dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+              iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
+            end if
+          end do
+        else if (jl /= ju) then
+          DO i =il,iu
+            DO j = jl+1, ju
+              ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
+              ! utang2Int = utang2(i, j, k)
+              ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
+              ! !dT = ((Tcell(i, j, k) + Tcell(i, j - 1, k)) - (Twall + Twall))*0.5
+              ! dT = (Tcell(i, j, k)*IIc(i, j, k)*(2-IIc(i, j-1, k)) + Tcell(i, j-1, k)*IIc(i, j-1, k)*(2-IIc(i, j, k)) - (Twall + Twall))*0.5
+              ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
+              ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+              ! dummy = (utang2Int**2)*ctm
+              ! bcmomflux = SIGN(dummy, utang2Int)
+              ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+              dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+              iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)
+            END DO
+            if (IIc(i,jl-1,k+1)==0 .and. IIc(i,jl-1,k)==1) then
+              j = jl
+              ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
+              ! utang2Int = utang2(i, j, k)
+              ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
+              ! !dT = ((Tcell(i, j, k) + Tcell(i, j - 1, k)) - (Twall + Twall))*0.5
+              ! dT = (Tcell(i, j, k)*IIc(i, j, k)*(2-IIc(i, j-1, k)) + Tcell(i, j-1, k)*IIc(i, j-1, k)*(2-IIc(i, j, k)) - (Twall + Twall))*0.5
+              ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
+              ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+              ! dummy = (utang2Int**2)*ctm
+              ! bcmomflux = SIGN(dummy, utang2Int)
+              ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+              dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+              iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)
+            else if (IIc(i,jl-1,k+1)==1 .or. IIc(i,jl-1,k)==0) then
+              j = jl
+              ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
+              ! utang2Int = utang2(i, j, k)
+              ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
+              ! !dT = Tcell(i, j, k) - Twall
+              ! dT = (Tcell(i, j, k) - Twall)*IIc(i,j,k)
+              ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
+              ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+              ! dummy = (utang2Int**2)*ctm
+              ! bcmomflux = SIGN(dummy, utang2Int)
+              ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+              dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+              iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
+            end if
+          END DO
+        end if
+      else if (ju<=je+myid*je .and. jl<jb+myid*je) then
+        jl = jb
+        ju = block(n,4) - myid*je
+        if (jl == ju) then
+          do i = il,iu
+            if(IIc(i,jl-1,k-1)==0 .and. IIc(i,jl-1,k)==1) then
+              j = jl
+              ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
+              ! utang2Int = utang2(i, j, k)
+              ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
+              ! !dT = ((Tcell(i, j, k) + Tcell(i, j - 1, k)) - (Twall + Twall))*0.5
+              ! dT = (Tcell(i, j, k)*IIc(i, j, k)*(2-IIc(i, j-1, k)) + Tcell(i, j-1, k)*IIc(i, j-1, k)*(2-IIc(i, j, k)) - (Twall + Twall))*0.5
+              ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
+              ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+              ! dummy = (utang2Int**2)*ctm
+              ! bcmomflux = SIGN(dummy, utang2Int)
+              ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+              dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+              iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)
+            else if (IIc(i,jl-1,k) == 0 ) then
+              j = jl
+              ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
+              ! utang2Int = utang2(i, j, k)
+              ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
+              ! !dT = Tcell(i, j, k) - Twall
+              ! dT = (Tcell(i, j, k) - Twall)*IIc(i,j,k)
+              ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
+              ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+              ! dummy = (utang2Int**2)*ctm
+              ! bcmomflux = SIGN(dummy, utang2Int)
+              ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+              dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+              iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
+            end if
+            if(IIc(i,jl+1,k+1)==1 .or. IIc(i,jl+1,k)==0) then
+              j = jl+1
+              ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
+              ! utang2Int = utang2(i, j, k)
+              ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
+              ! !dT = Tcell(i, j-1, k) - Twall
+              ! dT = (Tcell(i, j-1, k) - Twall)*IIc(i,j-1,k)
+              ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
+              ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+              ! dummy = (utang2Int**2)*ctm
+              ! bcmomflux = SIGN(dummy, utang2Int)
+              ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+              dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+              iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
+            else if (IIc(i,jl+1,k-1)==0 .and. IIc(i,jl+1,k)==1) then
+            end if
+          end do
+        else if (jl /= ju) then
+          do i = il,iu
+            do j = jl+1, ju
+              ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
+              ! utang2Int = utang2(i, j, k)
+              ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
+              ! !dT = ((Tcell(i, j, k) + Tcell(i, j - 1, k)) - (Twall + Twall))*0.5
+              ! dT = (Tcell(i, j, k)*IIc(i, j, k)*(2-IIc(i, j-1, k)) + Tcell(i, j-1, k)*IIc(i, j-1, k)*(2-IIc(i, j, k)) - (Twall + Twall))*0.5
+              ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
+              ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+              ! dummy = (utang2Int**2)*ctm
+              ! bcmomflux = SIGN(dummy, utang2Int)
+              ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+              dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+              iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)
+            end do
+            if (IIc(i,jl-1,k)==0) then
+              j = jl
+              ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
+              ! utang2Int = utang2(i, j, k)
+              ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
+              ! !dT = Tcell(i, j, k) - Twall
+              ! dT = (Tcell(i, j, k) - Twall)*IIc(i,j,k)
+              ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
+              ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+              ! dummy = (utang2Int**2)*ctm
+              ! bcmomflux = SIGN(dummy, utang2Int)
+              ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+              dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+              iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
+            else if (IIc(i,jl-1,k)==1) then
+              j = jl
+              ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
+              ! utang2Int = utang2(i, j, k)
+              ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
+              ! !dT = ((Tcell(i, j, k) + Tcell(i, j - 1, k)) - (Twall + Twall))*0.5
+              ! dT = (Tcell(i, j, k)*IIc(i, j, k)*(2-IIc(i, j-1, k)) + Tcell(i, j-1, k)*IIc(i, j-1, k)*(2-IIc(i, j, k)) - (Twall + Twall))*0.5
+              ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
+              ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+              ! dummy = (utang2Int**2)*ctm
+              ! bcmomflux = SIGN(dummy, utang2Int)
+              ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+              dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+              iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)
+            end if
+            if (IIc(i,ju+1,k+1)==1 .and. IIc(i,ju+1,k)==1) then
+              j = ju+1
+              ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
+              ! utang2Int = utang2(i, j, k)
+              ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
+              ! !dT = Tcell(i, j - 1, k) - Twall
+              ! dT = (Tcell(i, j - 1, k) - Twall)*IIc(i,j-1,k)
+              ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
+              ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+              ! dummy = (utang2Int**2)*ctm
+              ! bcmomflux = SIGN(dummy, utang2Int)
+              ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+              dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+              iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
+            else if (IIc(i,ju+1,k)==0) THEN
+            end if
+          end do
+        end if
+      else if (ju>je+myid*je .and. jl>=jb+myid*je) then
+        jl = block(n,3)-myid*je
+        ju = je
+        if (jl == ju) THEN
+          j = jl
+          do i = il,iu
+            if(IIc(i,j-1,k+1) == 1 .or. IIc(i,j-1,k)==0) THEN
+              ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
+              ! utang2Int = utang2(i, j, k)
+              ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
+              ! !dT = Tcell(i, j, k) - Twall
+              ! dT = (Tcell(i, j, k) - Twall)*IIc(i,j,k)
+              ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
+              ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+              ! dummy = (utang2Int**2)*ctm
+              ! bcmomflux = SIGN(dummy, utang2Int)
+              ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+              dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+              iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
+            else if (IIc(i,j-1,k+1) == 0 .and. IIc(i,j-1,k)==1) THEN
+              ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
+              ! utang2Int = utang2(i, j, k)
+              ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
+              ! !dT = ((Tcell(i, j, k) + Tcell(i, j - 1, k)) - (Twall + Twall))*0.5
+              ! dT = (Tcell(i, j, k)*IIc(i, j, k)*(2-IIc(i, j-1, k)) + Tcell(i, j-1, k)*IIc(i, j-1, k)*(2-IIc(i, j, k)) - (Twall + Twall))*0.5
+              ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
+              ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+              ! dummy = (utang2Int**2)*ctm
+              ! bcmomflux = SIGN(dummy, utang2Int)
+              ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+              dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+              iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)
+            end if
+          end do
+        else if (jl /= ju) then
+          do i = il,iu
+            do j = jl+1, ju
+              ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
+              ! utang2Int = utang2(i, j, k)
+              ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
+              ! !dT = ((Tcell(i, j, k) + Tcell(i, j - 1, k)) - (Twall + Twall))*0.5
+              ! dT = (Tcell(i, j, k)*IIc(i, j, k)*(2-IIc(i, j-1, k)) + Tcell(i, j-1, k)*IIc(i, j-1, k)*(2-IIc(i, j, k)) - (Twall + Twall))*0.5
+              ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
+              ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+              ! dummy = (utang2Int**2)*ctm
+              ! bcmomflux = SIGN(dummy, utang2Int)
+              ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+              dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+              iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)
+            end do
+            if (IIc(i,jl-1,k+1)==1 .or. IIc(i,jl-1,k)==0) then
+              j = jl
+              ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
+              ! utang2Int = utang2(i, j, k)
+              ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
+              ! !dT = Tcell(i, j, k)  - Twall
+              ! dT = (Tcell(i, j, k)  - Twall)*IIc(i,j,k)
+              ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
+              ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+              ! dummy = (utang2Int**2)*ctm
+              ! bcmomflux = SIGN(dummy, utang2Int)
+              ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+              dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+              iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
+            else if (IIc(i,jl-1,k+1)==0 .and. IIc(i,jl-1,k)==1) then
+              j = jl
+              ! utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
+              ! utang2Int = utang2(i, j, k)
+              ! utangInt = max(umin, (utang1Int**2 + utang2Int**2))
+              ! !dT = Tcell(i, j, k)  - Twall
+              ! dT = (Tcell(i, j, k)  - Twall)*IIc(i,j,k)
+              ! Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
+              ! ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+              ! dummy = (utang2Int**2)*ctm
+              ! bcmomflux = SIGN(dummy, utang2Int)
+              ! iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+              eomp = ( dzf(kp) * ( ekm(i,j,k ) + ekm(i,jm,k )  )  + &
+              dzf(k)  * ( ekm(i,j,kp) + ekm(i,jm,kp) ) ) * dzhiq(kp)
+              iout2(i, j, k) = iout2(i, j, k) - (utang2(i, j, kp) - utang2(i, j, k))*eomp*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k)*0.5
+            end if
+          end do
+        end if
+      end if
+   !end if
 
 !!!!!!!!!!!!!!!SPECIAL CASES FOR THE SURFACE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !can actually be made redundant and just be replaced by standard horizontal case (doesn't really matter though)

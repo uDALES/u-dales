@@ -225,41 +225,41 @@ SUBROUTINE wfGR(hi,hj,hk,ioq,ioqflux,icth,obcqfluxA,qcell,qwall,hurel,resc,ress,
       end if
       !end if
 
-      ! CASE (62) !wall in xy -> wf in z (=horizontal), bottom wall
-      !    k = block(n, 5) - 1 !block location
-      !    !if (.not.(k.lt.0)) then
-      !    if (k < kb) return
-      !    kp = k + 1 !
-      !    il = block(n, 1)
-      !    iu = block(n, 2)
-      !    jl = MAX(block(n, 3) - myid*jmax, 1)
-      !    ju = MIN(block(n, 4) - myid*jmax, jmax)
-      !
-      !    if (faclGR(block(n, 12))) then
-      !       DO j = jl, ju
-      !          DO i = il, iu
-      !             bcqflux = min(0., cveg*(qcell(i,j,k) - qwall)*1/(1/icth(i,j,k)+resc)+(1-cveg)*(qcell(i,j,k) - qwall*hurel)*1/(1/icth(i,j,k)+ress))
-      !             obcqfluxA = obcqfluxA + bcqflux
-      !             ioqflux(i, j, k) = ioqflux(i, j, k) + bcqflux*dzfi(k)
-      !             ioq(i, j, k) = ioq(i, j, k) - bcqflux*dzfi(k) &
-      !                          - 0.5*(dzf(kp)*ekh(i, j, k) + dzf(k)*ekh(i, j, kp))*(qcell(i, j, kp) - qcell(i, j, k))*dzh2i(k)*dzfi(k) &
-      !                          + w0(i, j, kp)*(qcell(i, j, kp)*dzf(k) + qcell(i, j, k)*dzf(kp))*dzhi(kp)*dzfi5(k) &
-      !                          - w0(i, j, kp)*(qcell(i, j, k )*dzf(k) + qcell(i, j, k)*dzf(kp))*dzhi(kp)*dzfi5(k)
-      !
-      !          END DO
-      !       END DO
-      !
-      !    else
-      !       DO j = jl, ju
-      !          DO i = il, iu
-      !             ioq(i, j, k) = ioq(i, j, k) &
-      !                          - 0.5*(dzf(kp)*ekh(i, j, k) + dzf(k)*ekh(i, j, kp))*(qcell(i, j, kp) - qcell(i, j, k))*dzh2i(k)*dzfi(k) &
-      !                          + w0(i, j, kp)*(qcell(i, j, kp)*dzf(k) + qcell(i, j, k)*dzf(kp))*dzhi(kp)*dzfi5(k) &
-      !                          - w0(i, j, kp)*(qcell(i, j, k )*dzf(k) + qcell(i, j, k)*dzf(kp))*dzhi(kp)*dzfi5(k)
-      !          END DO
-      !       END DO
-      !    end if
-      !    !end if
+      CASE (62) !wall in xy -> wf in z (=horizontal), bottom wall
+         k = block(n, 5) - 1 !block location
+         !if (.not.(k.lt.0)) then
+         if (k < kb) return
+         kp = k + 1 !
+         il = block(n, 1)
+         iu = block(n, 2)
+         jl = MAX(block(n, 3) - myid*jmax, 1)
+         ju = MIN(block(n, 4) - myid*jmax, jmax)
+
+         if (faclGR(block(n, 12))) then
+            DO j = jl, ju
+               DO i = il, iu
+                  bcqflux = min(0., cveg*(qcell(i,j,k) - qwall)*1/(1/icth(i,j,k)+resc)+(1-cveg)*(qcell(i,j,k) - qwall*hurel)*1/(1/icth(i,j,k)+ress))
+                  obcqfluxA = obcqfluxA + bcqflux
+                  ioqflux(i, j, k) = ioqflux(i, j, k) + bcqflux*dzfi(k)
+                  ioq(i, j, k) = ioq(i, j, k) - bcqflux*dzfi(k) &
+                               - 0.5*(dzf(kp)*ekh(i, j, k) + dzf(k)*ekh(i, j, kp))*(qcell(i, j, kp) - qcell(i, j, k))*dzh2i(k)*dzfi(k) &
+                               + w0(i, j, kp)*(qcell(i, j, kp)*dzf(k) + qcell(i, j, k)*dzf(kp))*dzhi(kp)*dzfi5(k) &
+                               - w0(i, j, kp)*(qcell(i, j, k )*dzf(k) + qcell(i, j, k)*dzf(kp))*dzhi(kp)*dzfi5(k)
+
+               END DO
+            END DO
+
+         else
+            DO j = jl, ju
+               DO i = il, iu
+                  ioq(i, j, k) = ioq(i, j, k) &
+                               - 0.5*(dzf(kp)*ekh(i, j, k) + dzf(k)*ekh(i, j, kp))*(qcell(i, j, kp) - qcell(i, j, k))*dzh2i(k)*dzfi(k) &
+                               + w0(i, j, kp)*(qcell(i, j, kp)*dzf(k) + qcell(i, j, k)*dzf(kp))*dzhi(kp)*dzfi5(k) &
+                               - w0(i, j, kp)*(qcell(i, j, k )*dzf(k) + qcell(i, j, k)*dzf(kp))*dzhi(kp)*dzfi5(k)
+               END DO
+            END DO
+         end if
+         !end if
 
 END SELECT
 
