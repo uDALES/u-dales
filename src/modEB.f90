@@ -33,7 +33,7 @@ module modEB
    character(80) :: Tname = "facT.xxx.nc", EBname = 'facEB.xxx.nc'
    character(80),dimension(1,4) :: tncstatT, tncstatEB
    real, allocatable :: varsT(:,:,:), varsEB(:,:)
-   
+
    save
 
 contains
@@ -225,7 +225,7 @@ function gaussji(c,d,n) result(a)
    subroutine initEB
       !initialise everything necessary to calculate the energy balance
       use modglobal, only:AM, BM,CM,DM,EM,FM,GM, HM, IDM, inAM, bb,w,dumv,Tdash, bldT, nfcts,nwalllayers
-      use initfac, only:facdi, faccp, faclami, fackappa, netsw, facem, fachf, facef, fachfi, facT, facLWin, facain,facefi,facwsoil,facf,facets,facTdash,facqsat,facf,fachurel  
+      use initfac, only:facdi, faccp, faclami, fackappa, netsw, facem, fachf, facef, fachfi, facT, facLWin, facain,facefi,facwsoil,facf,facets,facTdash,facqsat,facf,fachurel
       use modmpi, only:myid, comm3d, mpierr, MPI_INTEGER, MPI_DOUBLE_PRECISION, MY_REAL, nprocs, cmyid, MPI_REAL8, MPI_REAL4, MPI_SUM
       use modstat_nc,only: open_nc, define_nc,ncinfo,writestat_dims_nc
       integer :: i,j,k,l,m,n
@@ -233,7 +233,7 @@ function gaussji(c,d,n) result(a)
       allocate(AM(1:nwalllayers+1,1:nwalllayers+1))
       allocate(inAM(1:nwalllayers+1,1:nwalllayers+1))
       allocate(CM(1:nwalllayers+1,1:nwalllayers+1))
-      allocate(bb(1:nwalllayers+1))      
+      allocate(bb(1:nwalllayers+1))
       allocate(BM(1:nwalllayers+1,1:nwalllayers+1))
       allocate(DM(1:nwalllayers+1,1:nwalllayers+1))
       allocate(EM(1:nwalllayers+1,1:nwalllayers+1))
@@ -273,7 +273,7 @@ function gaussji(c,d,n) result(a)
       if (lwriteEBfiles) then
 		Tname(6:8) = cexpnr
 		EBname(7:9) = cexpnr
-	
+
 		allocate(ncstatT(nstatT,4))
 		call ncinfo(tncstatT(1,:),'t', 'Time', 's', 'time')
 		call ncinfo(ncstatT( 1,:),'T' ,'Temperature', 'K','flt')
@@ -308,22 +308,34 @@ function gaussji(c,d,n) result(a)
 
    subroutine calclw
       !calculate the longwave exchange between facets
-      use modglobal, only:nfcts, boltz, skyLW
-      use initfac, only:facem, vf, svf, faca, facT, facLWin, facets
-      integer :: n, m
+      use modglobal, only:nfcts, boltz, skyLW, nnz
+      use initfac, only:facem, vf, svf, faca, facT, facLWin, facets, vfsparse, ivfsparse, jvfsparse
+      integer :: n, m, i, j
       real :: ltemp = 0.
 
+      if (lvfsparse) then
+         facLWin = svf*skyLW*facem
+         do n=1,nnz
+            i = ivfsparse(n)
+            j = jvfsparse(n)
+            facLWin(i) = facLWin(i) + vfsparse(n)*facem(i)*facem(j)*boltz*facT(j,1)**4
+         end do
+
+      else
       do n = 1, nfcts
          if (facets(n, 2) < -100) then !it's a bounding wall, no need to update incoming longwave
             cycle
          else
             ltemp = 0.
-            do m = 1, nfcts  !for n, sum over all other m facets 
-               ltemp = ltemp + vf(m, n)*faca(m)/faca(n)*facem(m)*boltz*facT(m, 1)**4 ![W/m2]
+            do m = 1, nfcts  !for n, sum over all other m facets
+               !ltemp = ltemp + vf(m, n)*faca(m)/faca(n)*facem(m)*boltz*facT(m, 1)**4 ![W/m2]
+               ltemp = ltemp + vf(n, m)*facem(m)*boltz*facT(m, 1)**4 ![W/m2]
             end do
             facLWin(n) = (ltemp + svf(n)*skyLW)*facem(n)
          end if
       end do
+      end if
+
    end subroutine calclw
 
 
@@ -351,15 +363,15 @@ function gaussji(c,d,n) result(a)
 
          if (faclGR(n)) then
              !facefi is actually the accumulated moisture flux, has to be converted to energy flux to calculate temperature
-             !yet actually the moisture flux is needed for water budget, i.e. currently many operations cancel each other e.g. X*Lv/Lv  
+             !yet actually the moisture flux is needed for water budget, i.e. currently many operations cancel each other e.g. X*Lv/Lv
              !facefi is the sum over all gridcells of a facet, thus has to be averaged by dividing by number of cells in that facet
-             !units of facefi are kgW/kgA*m/s 
+             !units of facefi are kgW/kgA*m/s
              facefi(n) = facefi(n)/tEB/facain(n)*rhoa*rlv !mean heat flux since last EB calculation (time average)
 
             if (.not. lconstW) then !remove water from soil
                facwsoil(n) = max(facwsoil(n) + facefi(n)*tEB*rlvi*facdi(n, 1), 0.) !ils13, careful this assumes water only being present in the first layer!!!
             end if
-            
+
             !update canopy resistance used in wf_gr
             fachurel(n) = max(min(1.0, 0.5*(1.0 - cos(3.14159*facwsoil(n)/wfc))), 0.) !relative humidity above soil
             facf(n, 1) = 1./min(1.0, (0.004*netSW(n) + 0.05)/(0.81*(0.004*netSW(n) + 1))) !f1
@@ -390,7 +402,7 @@ function gaussji(c,d,n) result(a)
 
       if (.not. (lEB)) return
       !calculate latent heat flux from vegetation and soil
-      call intqH 
+      call intqH
       !calculate energy balance, update facet temperature and soil moisture
       if ((rk3step .eq. 3) .and. (timee .ge. tnextEB)) then
 
@@ -400,7 +412,7 @@ function gaussji(c,d,n) result(a)
 
             !calculate time mean, facet area mean latent heat flux and update green roof
             !ILS13 02.05.18 ABOUT updateGR: convert latent heatflux E properly should be done before temperature calculatation. BUT the rest of updateGR should be done after!
-            !update green roof  
+            !update green roof
             call updateGR
 
             !get longwave fluxes for all facets
@@ -482,7 +494,7 @@ function gaussji(c,d,n) result(a)
 				call writestat_nc(ncidT,1,tncstatT,(/timee/),nrecT,.true.)
 				call writestat_2D_nc(ncidT,nstatT,ncstatT,varsT,nrecT,nfcts,nwalllayers+1)
 				deallocate(varsT)
-				
+
 				allocate(varsEB(nfcts,nstatEB))
 				varsEB(:,1) = netsw(1:nfcts)
 				varsEB(:,2) = facLWin(1:nfcts)

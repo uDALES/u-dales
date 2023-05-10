@@ -67,6 +67,7 @@ module modstartup
          lfixinlet, lfixutauin, pi, &
          thlsrc, ifixuinf, lvinf, tscale, ltempinout, lmoistinout,  &
          lwallfunc,lprofforc,lchem,k1,JNO2,rv,rd,tnextEB,tEB,dtEB,bldT,wsoil,wgrmax,wwilt,wfc,skyLW,GRLAI,rsmin,nfcts,lEB,lwriteEBfiles,nwalllayers,lconstW, &
+         lvfsparse,nnz,&
          BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys, &
          BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots, &
          idriver,tdriverstart,driverjobnr,dtdriver,driverstore,lsdriver, &
@@ -132,7 +133,7 @@ module modstartup
          nblocks, nfcts, iwallmom, iwalltemp, iwallmoist, iwallscal, prandtlturb, fkar
       namelist/ENERGYBALANCE/ &
          lEB, lwriteEBfiles, lconstW, dtEB, bldT, wsoil, wgrmax, wwilt, wfc, &
-         skyLW, GRLAI, rsmin, nwalllayers
+         skyLW, GRLAI, rsmin, nwalllayers, lvfsparse, nnz
       namelist/SCALARS/ &
          lreadscal, lscasrc, lscasrcl, lscasrcr, &
          nsv, xS, yS, zS, SS, sigS
@@ -448,6 +449,8 @@ module modstartup
       call MPI_BCAST(GRLAI, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(rsmin, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(nwalllayers, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(lvfsparse, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(nnz, 1, MPI_INTEGER, 0, comm3d, mpierr)
 
       call MPI_BCAST(irandom, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(krand, 1, MPI_INTEGER, 0, comm3d, mpierr)
@@ -706,7 +709,8 @@ module modstartup
          ladaptive, tnextrestart, jmax, linoutflow, lper2inout, iinletgen, lreadminl, &
          uflowrate, vflowrate,ltempeq, prandtlmoli, freestreamav, &
          tnextfielddump, tfielddump, tsample, tstatsdump, startfile, lprofforc, lchem, k1, JNO2,&
-         idriver,dtdriver,driverstore,tdriverstart,tdriverdump,BCxm,xf,xh,ysize, BCxm, BCxT, BCxq, BCxs
+         idriver,dtdriver,driverstore,tdriverstart,tdriverdump,BCxm,xf,xh,ysize, BCxm, BCxT, BCxq, BCxs,&
+         tEB,tnextEB,dtEB
       use modsubgriddata, only:ekm, ekh
       use modsurfdata, only:wtsurf, wqsurf, wsvsurf, &
          thls, thvs, ps, qts, svs, sv_top

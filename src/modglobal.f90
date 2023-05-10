@@ -139,6 +139,8 @@ module modglobal
    logical :: lstat = .false.
    logical :: lEB = .false.
    logical :: lwriteEBfiles = .false.
+   logical :: lvfsparse = .false. !< whether to read in view factors in sparse format
+   integer :: nnz !< number of non-zero view factors
    logical :: lconstW = .false.  ! The evaporated water can be removed from the soil (lconstW=false) or the soil moisture can be assumed as constant in time (lconstW=true)
 !  logical :: ifixuinf   = .true. !dpdxl relaxed to have Uinf 1. dpdx = (1/dt)*(Uh-Uinf)2. d/dt(dpdx) = 1/tau*(Uh-Uinf)
    integer :: ifixuinf = 0
