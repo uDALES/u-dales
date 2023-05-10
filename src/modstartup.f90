@@ -822,7 +822,8 @@ module modstartup
          ladaptive, tnextrestart, jmax, imax, xh, xf, linoutflow, lper2inout, iinletgen, lreadminl, &
          uflowrate, vflowrate,ltempeq, prandtlmoli, freestreamav, &
          tnextfielddump, tfielddump, tsample, tstatsdump, startfile, lprofforc, lchem, k1, JNO2,&
-         idriver,dtdriver,driverstore,tdriverstart,tdriverdump,xlen,ylen,itot,jtot,ibrank,ierank,jbrank,jerank,BCxm,BCym,lrandomize,BCxq,BCxs,BCxT, BCyq,BCys,BCyT,BCxm_driver
+         idriver,dtdriver,driverstore,tdriverstart,tdriverdump,xlen,ylen,itot,jtot,ibrank,ierank,jbrank,jerank,BCxm,BCym,lrandomize,BCxq,BCxs,BCxT, BCyq,BCys,BCyT,BCxm_driver,&
+         tEB,tnextEB,dtEB
       use modsubgriddata, only:ekm, ekh, loneeqn
       use modsurfdata, only:wtsurf, wqsurf, wsvsurf, &
          thls, thvs, ps, qts, svs, sv_top
