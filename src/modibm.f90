@@ -1110,7 +1110,7 @@ module modibm
                else
                   if (ju > je) ju = je
                   if (jl < jb) jl = jb
-                  thlm(il:iu, jl:ju, kl:ku) = 1000.!thl0volav
+                  thlm(il:iu, jl:ju, kl:ku) = thl0volav
                   thlp(il:iu, jl:ju, kl:ku) = 0.
                end if
             end do
