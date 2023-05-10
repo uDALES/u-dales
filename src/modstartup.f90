@@ -84,6 +84,7 @@ module modstartup
       use modibmdata, only:bctfxm, bctfxp, bctfym, bctfyp, bctfz, bcqfxm, bcqfxp, bcqfym, bcqfyp, bcqfz
       use modforces, only: calcfluidvolumes
       use moddriver, only: initdriver
+      use modtimedep, only : inittimedep,ltimedepsurf,ntimedepsurf,ltimedepnudge,ntimedepnudge,ltimedeplw,ntimedeplw,ltimedepsw,ntimedepsw
 
       implicit none
       integer :: ierr
@@ -106,7 +107,8 @@ module modstartup
          lprofforc, ifixuinf, lvinf, tscale, dpdx, &
          luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, &
          uflowrate, vflowrate, &
-         lnudge, tnudge, nnudge
+         lnudge, tnudge, nnudge, &
+         ltimedepsurf, ntimedepsurf, ltimedepnudge, ntimedepnudge, ltimedeplw, ntimedeplw, ltimedepsw, ntimedepsw
       namelist/DYNAMICS/ &
          lqlnr, ipoiss, &
          iadv_mom, iadv_tke, iadv_thl, iadv_qt, iadv_sv
@@ -283,6 +285,14 @@ module modstartup
       call MPI_BCAST(lnudge, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(nnudge, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(tnudge, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(ltimedepsurf, 1, MPI_LOGICAL, 0, comm3d,mpierr)
+      call MPI_BCAST(ltimedepnudge, 1, MPI_LOGICAL, 0, comm3d,mpierr)
+      call MPI_BCAST(ltimedeplw, 1, MPI_LOGICAL, 0, comm3d,mpierr)
+      call MPI_BCAST(ltimedepsw, 1, MPI_LOGICAL, 0, comm3d,mpierr)
+      call MPI_BCAST(ntimedepsurf, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(ntimedepnudge, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(ntimedeplw, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(ntimedepsw, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(lwalldist, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for computing wall distances
       call MPI_BCAST(lles, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for turning on/off LES functionality (subgrid model)
       call MPI_BCAST(linletRA, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for turning on/off Running Average in inletgenerator
