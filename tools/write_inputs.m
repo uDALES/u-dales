@@ -60,7 +60,7 @@ if ~r.lflat
             disp('Generating blocks from text')
             preprocessing.generate_topo_from_txt(r)
         else
-            if (r.lstaggered || r.lcube || r.lcanyons)
+            if (r.lstaggered || r.lstaggeredv || r.lcube || r.lcanyons)
                 disp('Generating blocks from namoptions')
                 preprocessing.generate_bl_from_namoptions(r)
             elseif r.lblocksfile
