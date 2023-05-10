@@ -891,19 +891,19 @@ module modforces
    end do
 
     if (nsv>0) then
-      do k=ke-nnudge,ke
+      do k=kb+nnudge,ke
         svp(:,:,k,1) = svp(:,:,k,1) - ( sv0av(k,1) - 0. ) / (tnudge/2 + (ke-k)*tnudge/nnudge)
       end do
     end if
 
     if (ltempeq) then
-      do k=ke-nnudge,ke
+      do k=kb+nnudge,ke
         thlp(:,:,k) = thlp(:,:,k) - (thl0av(k) - thlprof(k)) / tnudge
       end do
     end if !ltempeq
 
     if (lmoist) then
-      do k=ke-nnudge,ke
+      do k=kb+nnudge,ke
         qtp(:,:,k) = qtp(:,:,k) - (qt0av(k) - qtprof(k)) / tnudge
       end do
     end if !lmoist
