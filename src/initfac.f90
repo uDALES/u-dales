@@ -25,12 +25,12 @@
 !
 !> Advection redirection function
    module initfac
-      use modglobal, only:ifinput, nblocks, nfcts, cexpnr, libm, bldT, rsmin, wsoil, wfc,&
-                          nfaclyrs, block,lEB
+      use modglobal, only:ifinput, nfcts, cexpnr, libm, bldT, flrT, rsmin, wsoil, wfc,&
+                          nfaclyrs, block, lEB, lvfsparse,nnz,lfacTlyrs
       use modmpi, only:myid, comm3d, mpierr, MPI_INTEGER, MPI_DOUBLE_PRECISION, MY_REAL, nprocs, cmyid, MPI_REAL8, MPI_REAL4, MPI_SUM, mpi_logical
       use netcdf
       implicit none
-      public :: readfacetfiles,qsat,dqsatdT
+      public :: readfacetfiles,qsat,dqsatdT,netsw
       save
 
       !integer, allocatable :: block(:, :) !block coordinates and facet Nr corresponding to block faces
@@ -55,8 +55,12 @@
       real, allocatable    :: svf(:) !sky-viewfactor of facets
       real, allocatable    :: netsw(:) !net shortwave radiation on facets
       real, allocatable    :: facLWin(:) !incoming longwave on facets [W/m2]
+      real, allocatable    :: vfsparse(:)
+      real, allocatable    :: ivfsparse(:)
+      real, allocatable    :: jvfsparse(:)
       !temperature
       real, allocatable    :: Tfacinit(:) !initial facet temperatures
+      real, allocatable    :: Tfacinit_layers(:,:) !initial facet temperatures
       real, allocatable    :: facT(:, :) !wall temperatures on surfaces and between layers (1=outdoors,end=indoors)
       real, allocatable    :: facTdash(:, :)!temperature gradient dT/dz
       !fluxes
@@ -118,13 +122,20 @@
         allocate (facnorm(nfcts,3))
 
         if (lEB) then
-          allocate (vf(1:nfcts, 1:nfcts))
+          if (lvfsparse) then
+            allocate(ivfsparse(1:nnz))
+            allocate(jvfsparse(1:nnz))
+            allocate(vfsparse(1:nnz))
+          else
+            allocate (vf(1:nfcts, 1:nfcts))
+          end if
           allocate (svf(1:nfcts))
           allocate (netsw(1:nfcts))
           allocate (facLWin(1:nfcts))
         end if
 
         allocate (Tfacinit(1:nfcts))
+        allocate (Tfacinit_layers(1:nfcts, nfaclyrs))
         allocate (facT(0:nfcts, nfaclyrs+1))
         allocate (facTdash(1:nfcts,nfaclyrs+1))
         allocate (facef(1:nfcts))
@@ -143,7 +154,12 @@
         faclGR = .false.; facz0 = 0.; facz0h = 0.; facalb = 0.; facem = 0.; facd=0.; facdi = 0.; faccp = 0.
         faclami = 0.; fackappa = 0.; faca = 0.; facain = 0; facets = 0; facnorm = 0.;
         if (lEB) then
-          vf = 0.; svf = 0.; netsw = 0.; facLWin = 0.
+           if (lvfsparse) then
+             ivfsparse = 0.; jvfsparse = 0.; vfsparse = 0.
+           else
+             vf = 0.;
+           end if
+        svf = 0.; netsw = 0.; facLWin = 0.
         end if
         Tfacinit = 0.; facT = 0.; facTdash = 0.
         facef = 0.; facefi = 0.; facefsum = 0.; fachf = 0.; fachfi = 0.; fachfsum = 0.
@@ -243,11 +259,20 @@
                 ! read viewfactors between facets
                 ! Open the file. NF90_NOWRITE tells netCDF we want read-only access to
                 ! the file.
-                FILE_VF = 'vf.nc.inp.'//cexpnr
-                iret = nf90_open(FILE_VF, NF90_NOWRITE, ncid) ! Get the varid of the data variable, based on its name.
-                iret = nf90_inq_varid(ncid, "view factor", varid)
-                ! Read the data.
-                iret = nf90_get_var(ncid, varid, vf)
+                if (lvfsparse) then
+                   open (ifinput, file='vfsparse.inp.'//cexpnr)
+                   do n = 1, nnz
+                     read (ifinput, *) ivfsparse(n), jvfsparse(n), vfsparse(n)
+                   end do
+                   close (ifinput)
+
+                else
+                  FILE_VF = 'vf.nc.inp.'//cexpnr
+                  iret = nf90_open(FILE_VF, NF90_NOWRITE, ncid) ! Get the varid of the data variable, based on its name.
+                  iret = nf90_inq_varid(ncid, "view factor", varid)
+                  ! Read the data.
+                  iret = nf90_get_var(ncid, varid, vf)
+                end if
 
                 ! read skyviewfactors
                 open (ifinput, file='svf.inp.'//cexpnr)
@@ -270,21 +295,50 @@
 
               if ((lEB) .or. (iwalltemp == 2) .or. (iwallmom == 2)) then
                 ! read initial facet temepratures
-                open (ifinput, file='Tfacinit.inp.'//cexpnr)
-                read (ifinput, '(a80)') chmess
-                do n = 1, nfcts
-                  read (ifinput, *) &
-                  Tfacinit(n)
-                end do
-                close (ifinput)
+                 if (lfacTlyrs) then
+                    open (ifinput, file='Tfacinit_layers.inp.'//cexpnr)
+                    read (ifinput, '(a80)') chmess
+                      do n = 1,nfcts
+                        read(ifinput, *) (Tfacinit_layers(n, j), j=1,nfaclyrs)
+                      end do
+                      close (ifinput)
 
-                do n = 1, nfcts
-                  facT(n, 1) = Tfacinit(n) !building surfaces is given an initial temperature
-                  facT(n, nfaclyrs+1) = bldT !inner most layer has the same temperature as the building interior
-                  do j = 2,nfaclyrs
-                    facT(n, j) = Tfacinit(n)-(Tfacinit(n)-bldT)/nfaclyrs*(j-1) !scale linearly inside the wall
-                  end do
-                end do
+                      do n = 1,nfcts
+                        do j = 1,nfaclyrs
+                          facT(n, j) = Tfacinit_layers(n, j)
+                        end do
+                        if (facets(n) > 0) then ! Not a floor
+                          facT(n, nfaclyrs+1) = bldT
+                        else !floor
+                          facT(n, nfaclyrs+1) = flrT
+                        end if
+                      end do
+
+                  else
+                    open (ifinput, file='Tfacinit.inp.'//cexpnr)
+                    read (ifinput, '(a80)') chmess
+                    do n = 1, nfcts
+                      read (ifinput, *) &
+                        Tfacinit(n)
+                    end do
+                    close (ifinput)
+
+                    do n = 1, nfcts
+                      facT(n, 1) = Tfacinit(n) !building surfaces is given an initial temperature
+                      if (facets(n) > 0) then ! Not a floor
+                        facT(n, nfaclyrs+1) = bldT !inner most layer has the same temperature as the building interior
+                        do j = 2,nfaclyrs
+                          facT(n, j) = Tfacinit(n)-(Tfacinit(n)-bldT)/nfaclyrs*(j-1) !scale linearly inside the wall
+                        end do
+                      else !floor
+                        facT(n, nfaclyrs+1) = flrT !inner most layer has the same temperature as the ground
+                        do j = 2,nfaclyrs
+                          facT(n, j) = Tfacinit(n)-(Tfacinit(n)-flrT)/nfaclyrs*(j-1) !scale linearly inside the wall
+                        end do
+                      end if
+                    end do
+
+                  end if
 
                 do n = 1,nfaclyrs
                   facT(0, n) = 288.

@@ -335,23 +335,34 @@ contains
 
   subroutine calclw
     !calculate the longwave exchange between facets
-    use modglobal, only:nfcts, boltz, skyLW
-    use initfac, only:facem, vf, svf, faca, facT, facLWin, facets
-    integer :: n, m
+    use modglobal, only:nfcts, boltz, skyLW, nnz
+    use initfac, only:facem, vf, svf, faca, facT, facLWin, facets, vfsparse, ivfsparse, jvfsparse
+    integer :: n, m, i, j
     real :: ltemp = 0.
 
-    do n = 1, nfcts
-      ! if (facets(n, 2) < -100) then !it's a bounding wall, no need to update incoming longwave
-      !    cycle
-      ! else
-      ltemp = 0.
-      do m = 1, nfcts  !for n, sum over all other m facets
-        !ltemp = ltemp + vf(m, n)*faca(m)/faca(n)*facem(m)*boltz*facT(m, 1)**4 ![W/m2]
-        ltemp = ltemp + vf(n,m)*facem(m)*boltz*facT(m, 1)**4 ![W/m2]
-      end do
-      facLWin(n) = (ltemp + svf(n)*skyLW)*facem(n)
-      !end if
-    end do
+    if (lvfsparse) then
+         facLWin = svf*skyLW*facem
+         do n=1,nnz
+            i = ivfsparse(n)
+            j = jvfsparse(n)
+            facLWin(i) = facLWin(i) + vfsparse(n)*facem(i)*facem(j)*boltz*facT(j,1)**4
+         end do
+
+      else
+         do n = 1, nfcts
+            if (facets(n) < -100) then !it's a bounding wall, no need to update incoming longwave
+               cycle
+            else
+               ltemp = 0.
+               do m = 1, nfcts  !for n, sum over all other m facets
+                  !ltemp = ltemp + vf(m, n)*faca(m)/faca(n)*facem(m)*boltz*facT(m, 1)**4 ![W/m2]
+                  ltemp = ltemp + vf(n, m)*facem(m)*boltz*facT(m, 1)**4 ![W/m2]
+               end do
+               facLWin(n) = (ltemp + svf(n)*skyLW)*facem(n)
+            end if
+         end do
+      end if
+
   end subroutine calclw
 
 
@@ -462,7 +473,7 @@ contains
           !! CREATE MATRICES BASED ON WALL PROPERTIES
           i=1;m=0; !position along columns, placeholder for layerindex since only 3 layers implemented (initfac.f90)
           do j=1,nfaclyrs
-            m=min(j,3)  !!CARE!!! ONLY 3 LAYERS ARE CURRENTLY BEING READ FROM INPUT FILES. PROPERTIES OF LAYER 3 ARE USED FOR SUBSEQUENT LAYERS!!!
+            m=j  !!CARE!!! ONLY 3 LAYERS ARE CURRENTLY BEING READ FROM INPUT FILES. PROPERTIES OF LAYER 3 ARE USED FOR SUBSEQUENT LAYERS!!!
             ca=facdi(n,m)
             BM(j+1,i)=-ca
             BM(j+1,i+1)=ca
