@@ -45,7 +45,7 @@ module modibm
       end function interp_temperature
     end interface
 
-   logical :: lbottom = .true.
+   logical :: lbottom = .false.
 
    ! read from namoptions
    integer :: nsolpts_u, nsolpts_v, nsolpts_w, nsolpts_c, &
@@ -1720,7 +1720,8 @@ module modibm
       tau_z(:,:,kb:ke+kh) = wp
       thl_flux(:,:,kb:ke+kh) = thlp
 
-      if (.not.(libm)) then
+      !if (.not.(libm)) then
+      if (lbottom) then
       !momentum
       if (BCbotm.eq.2) then
       call wfuno(ih, jh, kh, up, vp, thlp, momfluxb, tfluxb, cth, bcTfluxA, u0, v0, thl0, thls, z0, z0h, 0, 1, 91)
