@@ -1,5 +1,5 @@
 function [facet_sections] = matchFacetsToCells(TR, fluid_IB, solid_IB, ...
-    fluid_IB_xyz, solid_IB_xyz, xgrid, ygrid, zgrid, include_diagonals)
+    fluid_IB_xyz, solid_IB_xyz, xgrid, ygrid, zgrid, include_diagonals, periodic_x, periodic_y)
 
 % Assumes fluid_IB etc have been created already
 
@@ -18,7 +18,7 @@ ktot = length(zgrid);
 
 facet_sections = [];
 
-figure
+lplot = false; if lplot; figure; end % for debugging
 for facet=1:size(TR.ConnectivityList,1)
 %     disp(num2str(facet))
 %     abs(TR.faceNormal(facet))
@@ -44,37 +44,60 @@ for facet=1:size(TR.ConnectivityList,1)
         continue
     end
 
-    il = find(xmin >= [xgrid-dx/2, xgrid(end)+dx/2], 1, 'last');
-    iu = find(xmax <= [xgrid(1)-dx/2, xgrid + dx/2], 1, 'first');
-    jl = find(ymin >= [ygrid-dy/2, ygrid(end)+dy/2], 1, 'last');
-    ju = find(ymax <= [ygrid(1)-dy/2, ygrid + dy/2], 1, 'first');
-    kl = find(zmin >= [zgrid-dz/2, zgrid(end)+dz/2], 1, 'last'); % Think about non-equidistance
-    ku = find(zmax <= [zgrid(1)-dz/2, zgrid + dz/2], 1, 'first');
+    tol = 1e-10; % floating point errors
+    il = find(xmin >= [xgrid-dx/2, xgrid(end)+dx/2]-tol, 1, 'last');
+    iu = find(xmax <= [xgrid(1)-dx/2, xgrid + dx/2]+tol, 1, 'first');
+    jl = find(ymin >= [ygrid-dy/2, ygrid(end)+dy/2]-tol, 1, 'last');
+    ju = find(ymax <= [ygrid(1)-dy/2, ygrid + dy/2]+tol, 1, 'first');
+    kl = find(zmin >= [zgrid-dz/2, zgrid(end)+dz/2]-tol, 1, 'last'); % Think about non-equidistance
+    ku = find(zmax <= [zgrid(1)-dz/2, zgrid + dz/2]+tol, 1, 'first');
 
-    %tol = 1e-6;
-%     il = find(xmin - [xgrid-dx/2, xgrid(end)+dx/2] > tol, 1, 'last');
-%     iu = find(xmax - [xgrid(1)-dx/2, xgrid + dx/2] < tol, 1, 'first')
-%     jl = find(ymin - [ygrid-dy/2, ygrid(end)+dy/2] > tol, 1, 'last')
-%     ju = find(ymax - [ygrid(1)-dy/2, ygrid + dy/2] < tol, 1, 'first')
-%     kl = find(zmin - [zgrid-dz/2, zgrid(end)+dz/2] > tol, 1, 'last') % Think about non-equidistance
-%     ku = find(zmax - [zgrid(1)-dz/2, zgrid + dz/2] < tol, 1, 'first')
+    if xmax > xgrid(end) + dx/2
+        iu = length(xgrid);
+    end
 
-    % facets on domain edge
-    if il < 1; il = 1; end
-    if jl < 1; jl = 1; end
-    if kl < 1; kl = 1; end
-    if iu > length(xgrid); iu = length(xgrid); end
-    if ju > length(ygrid); ju = length(ygrid); end
+    if ymax > ygrid(end) + dy/2
+        ju = length(xgrid);
+    end
+
+    if isempty(il)
+        error('problem with lower x coord'); 
+    end
+    if isempty(iu)
+        error('problem with upper x coord');
+    end
+    if isempty(jl)
+        error('problem with lower y coord');
+    end
+    if isempty(ju)
+        error('problem with upper y coord'); 
+    end
+    if isempty(kl)
+        error('problem with lower z coord')
+    end
+    if isempty(ku)
+        error('problem with upper z coord')
+    end
+    
+    % Facet exists in cell N+1.
+    % Freqently occurs for u and v grids, currently the solution is to
+    % double cell 1 areas in periodic cases (because cell N+1 = cell 1).
+    % This causes small errors due to the shape of facets. 
+    if iu > length(xgrid)
+        iu = length(xgrid);
+    end
+    if ju > length(ygrid)
+        ju = length(ygrid);
+    end
     
 
-    stopflag = false;    
+    %stopflag = false;
     for i=il:iu
         for j=jl:ju
             for k=kl:ku
                 if ~(fluid_IB(i,j,k) || solid_IB(i,j,k))
                     continue
                 end
-
 
                 % Define corners of cube
                 xl = xgrid(i) - dx/2;
@@ -105,7 +128,7 @@ for facet=1:size(TR.ConnectivityList,1)
                         area = 1/2*norm(cross(clip(2,:)-clip(1,:),clip(3,:)-clip(1,:)));
                         
                         if (area < tol)
-                            disp(['Facet ' num2str(facet) ' in cell ' num2str(i) ',' num2str(j) ',' num2str(k) ' has zero area'])
+                            %disp(['Facet ' num2str(facet) ' in cell ' num2str(i) ',' num2str(j) ',' num2str(k) ' has zero area'])
                             continue
                         end
 
@@ -137,7 +160,7 @@ for facet=1:size(TR.ConnectivityList,1)
                         area = projArea / angle;
 
                         if (area < tol)
-                            disp(['Facet ' num2str(facet) ' in cell ' num2str(i) ',' num2str(j) ',' num2str(k) ' has zero area'])
+                            %disp(['Facet ' num2str(facet) ' in cell ' num2str(i) ',' num2str(j) ',' num2str(k) ' has zero area'])
                             continue
                         end
 
@@ -154,8 +177,9 @@ for facet=1:size(TR.ConnectivityList,1)
                         error('something wrong with clipped polygon')
                     end
                     
-                    % Formalise this
-                    if ((xgrid(i) == 0. || ygrid(j) == 0.))% || zgrid(k) == 0.))% && k==1)
+                    % If on the u/v grid on cell 1, double the area to
+                    % account for omitting cell N+1.
+                    if ((xgrid(i) == 0. && periodic_x) || (ygrid(j) == 0. && periodic_y))% || zgrid(k) == 0.))% && k==1)
                         area = area * 2;
                         % Account for periodicity - flux at point N+1
                         % Or due to facet at ground level
@@ -585,7 +609,7 @@ for facet=1:size(TR.ConnectivityList,1)
 %                         stopflag = true;
 %                     end
 
-                    if stopflag
+                    if lplot
                         %figure
                         clf
                         view(3)
