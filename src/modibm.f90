@@ -573,6 +573,7 @@ module modibm
         ! Solid value should not matter - choose domain-average for visualization.
         call solid(solid_info_c, thlm, thlp, sum(thl0av(kb:ke)*dzf(kb:ke))/zh(ke+1), ih, jh, kh)
         call advecc2nd_corr_liberal(thl0, thlp)
+        ! call advecc2nd_corr_conservative(thl0, thlp)
      end if
 
      if (lmoist) then
@@ -1016,7 +1017,7 @@ module modibm
 
    subroutine ibmwallfun
      use modglobal, only : libm, iwallmom, iwalltemp, xhat, yhat, zhat, ltempeq, lmoist, &
-                           ib, ie, ih, ihc, jb, je, jh, jhc, kb, ke, kh, khc, nsv
+                           ib, ie, ih, ihc, jb, je, jh, jhc, kb, ke, kh, khc, nsv, totheatflux
      use modfields, only : u0, v0, w0, thl0, qt0, sv0, up, vp, wp, thlp, qtp, svp, &
                            tau_x, tau_y, tau_z, thl_flux
      use modsubgriddata, only : ekm, ekh
@@ -1049,7 +1050,10 @@ module modibm
 
       if (ltempeq .or. lmoist) then
         rhs = thlp
+        totheatflux = 0 ! Reset total heat flux to zero so we only account for that in this step.
+        !write(*,*) 'totheatflux', totheatflux
         call wallfunheat
+        !write(*,*) 'totheatflux after', totheatflux
         thl_flux(:,:,kb:ke+kh) = thl_flux(:,:,kb:ke+kh) + (thlp - rhs)
         if (ltempeq) call diffc_corr(thl0, thlp, ih, jh, kh)
         if (lmoist)  call diffc_corr(qt0, qtp, ih, jh, kh)
@@ -1182,7 +1186,7 @@ module modibm
 
    subroutine wallfunheat
      use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, xf, yf, zf, xh, yh, zh, dx, dy, dzh, eps1, &
-                           xhat, yhat, zhat, vec0, fkar, ltempeq, lmoist, iwalltemp, iwallmoist, lEB
+                           xhat, yhat, zhat, vec0, fkar, ltempeq, lmoist, iwalltemp, iwallmoist, lEB, totheatflux
      use modfields, only : u0, v0, w0, thl0, thlp, qt0, qtp
      use initfac,   only : facT, facz0, facz0h, facnorm, faca, fachf, facef, facqsat, fachurel, facf, faclGR
      use modsurfdata, only : z0, z0h
@@ -1191,7 +1195,7 @@ module modibm
 
      type(bound_info_type) :: bound_info
      integer i, j, k, n, m, sec, fac
-     real :: dist, flux, area, vol, tempvol, Tair, Tsurf, utan, cth, cveg, hurel, qtair, qwall, resc, ress, xrec, yrec, zrec
+     real :: dist, flux, area, vol, tempvol, Tair, Tsurf, utan, cth, cveg, hurel, qtair, qwall, resc, ress, xrec, yrec, zrec, fluxTrhs
      real, dimension(3) :: uvec, norm, span, strm
      logical :: valid
 
@@ -1261,6 +1265,7 @@ module modibm
 
          elseif (iwalltemp == 2) then
            call heat_transfer_coef_flux(utan, dist, facz0(fac), facz0h(fac), Tair, facT(fac, 1), cth, flux)
+
            ! Outputs 'cth' = heat transfer coefficient x utan = aerodynamic resistance as well as flux
          end if
 
@@ -1271,6 +1276,9 @@ module modibm
          thlp(i,j,k) = thlp(i,j,k) - flux * bound_info%secareas(sec) / (dx*dy*dzh(k))
 
          if (lEB) then
+           !write(*,*) 'Adding flux from wf', iwalltemp
+           fluxTrhs = - flux * bound_info%secareas(sec) / (dx*dy*dzh(k)) ! cew216 This is used for the peirodicEBcorr forcing [K/s]
+           totheatflux = totheatflux + fluxTrhs ! Add the contribution from each point
            fachf(fac) = fachf(fac) + flux * bound_info%secareas(sec) ! [Km^2/s] (will be divided by facetarea(fac) in modEB)
          end if
        end if

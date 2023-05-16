@@ -1,4 +1,4 @@
-addpath('./inpolyhedron/')
+addpath('./idlmwritnpolyhedron/')
 addpath('./point2trimesh/')
 addpath('./in_mypoly/')
 
@@ -348,7 +348,7 @@ fileID_c = fopen(filename_c,'W');
 fprintf(fileID_c, '# position (i,j,k)\n');
 fclose(fileID_c);
 dlmwrite(filename_c, solid_ijk_c, '-append','delimiter',' ');
-sinkbase = max(solid_ijk_c(:,3))+1;
+sinkbase = max(solid_ijk_c,3);
 
 % Fluid boundary points
 fluid_IB_ijk_c = [fluid_IB_i_c, fluid_IB_j_c, fluid_IB_k_c];

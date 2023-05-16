@@ -40,17 +40,20 @@ fi;
 
 ## go to files directory
 cd ${datapath}
+echo ${datapath}
 
 ## call loop for *DUMPS
 
-for file in *dump.000.${expnr}.nc ; do
-
+for file in *dump.000.000.${expnr}.nc ; do
+#for file in *dump* ; do
+    echo ${file}
     if [ -f $file ]; then
 
         ## Gathering fields along spatial axis.
         echo "Gathering fields along spatial axis."
 
-        dumps=${file%.000.${expnr}.nc}
+        dumps=${file%.000.000.${expnr}.nc}
+        echo ${dumps}
 
         if [ $dumps == "fielddump" ]; then
             # ymparam="ym"

@@ -512,6 +512,7 @@ contains
 
           !end if
         end do
+        write(*,*) 'Test'
 
         if (lwriteEBfiles) then
           if (myid == 0) then
@@ -537,7 +538,7 @@ contains
 
         tEB = timee !set time of last calculation of energy balance to current time
         tnextEB = NINT((timee + dtEB))*1.0  !rounded to nearest integer  (e.g. if current time is 10.013s and dtEb=10s, then the next energy balance will be calculated at t>=20s)
-        !write (*, *) "time, time next EB", timee, tnextEB
+        write (*, *) "time, time next EB", timee, tnextEB
 
         do n = 1, nfcts
           fachfi(n) = 0.

@@ -24,17 +24,17 @@ program DALESURBAN      !Version 48
 !!----------------------------------------------------------------
 !!     0.0    USE STATEMENTS FOR CORE MODULES
 !!----------------------------------------------------------------
-  use modmpi,            only : initmpi,exitmpi,myid,starttimer
-  use modglobal,         only : initglobal,rk3step,timeleft
+  use modmpi,            only : initmpi,exitmpi,myid,starttimer, mpi_sum, comm3d, mpierr, my_real
+  use modglobal,         only : initglobal,rk3step,timeleft, totheatflux, lperiodicEBcorr, ltempeq, ib,ie,jb,je,kb,ke
   use modstartup,        only : readnamelists,init2decomp,checkinitvalues,readinitfiles,exitmodules
-  use modfields,         only : initfields
+  use modfields,         only : initfields, thlp
   use modsave,           only : writerestartfiles
   use modboundary,       only : initboundary,boundary,grwdamp,halos
   use modthermodynamics, only : initthermodynamics,thermodynamics
   use modsubgrid,        only : initsubgrid,subgrid
-  use modforces,         only : calcfluidvolumes,forces,coriolis,lstend,fixuinf1,fixuinf2,fixthetainf,nudge,masscorr,shiftedPBCs
+  use modforces,         only : calcfluidvolumes,forces,coriolis,lstend,fixuinf1,fixuinf2,fixthetainf,nudge,masscorr,shiftedPBCs, periodicEBcorr
   use modpois,           only : initpois,poisson
-  use modibm,            only : initibm,createmasks,ibmwallfun,ibmnorm,bottom
+  use modibm,            only : initibm,createmasks,ibmwallfun,ibmnorm,bottom, mask_c
   use initfac,           only : readfacetfiles
   use modEB,             only : initEB,EB
   use moddriver,         only : initdriver
@@ -48,7 +48,7 @@ program DALESURBAN      !Version 48
   use modstatsdump,    only : initstatsdump,statsdump,exitstatsdump    !tg3315
   use modtimedep,      only : inittimedep,timedep
   implicit none
-
+  real :: total_heat_check
 !----------------------------------------------------------------
 !     1      READ NAMELISTS,INITIALISE GRID, CONSTANTS AND FIELDS
 !----------------------------------------------------------------
@@ -139,6 +139,7 @@ program DALESURBAN      !Version 48
 !-----------------------------------------------------
 
     !call coriolis       !remaining terms of ns equation
+    !call MPI_ALLREDUCE(thlp,total_heat_check,1,MY_REAL,MPI_SUM,comm3d,mpierr)
 
     call forces         !remaining terms of ns equation
 
@@ -147,10 +148,18 @@ program DALESURBAN      !Version 48
     call nudge          ! nudge top cells of fields to enforce steady-state
 
     call ibmwallfun     ! immersed boundary forcing: only shear forces.
+    ! if (myid == 1) then
+    !   write(*,*) 'sum(thlp.*mask_c before)' , sum(mask_c(ib:ie,jb:je,kb:ke)*thlp(ib:ie,jb:je,kb:ke))
+    ! end if
+    call periodicEBcorr
+    ! if (myid == 1) then
+    !   write(*,*) 'sum(thlp.*mask_c after)' , sum(mask_c(ib:ie,jb:je,kb:ke)*thlp(ib:ie,jb:je,kb:ke))
+    ! end if
 
     call masscorr       ! correct pred. velocity pup to get correct mass flow
 
     call ibmnorm        ! immersed boundary forcing: set normal velocities to zero
+
 
     call EB
 
