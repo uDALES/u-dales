@@ -1228,7 +1228,7 @@ module modibm
          qtair = trilinear_interp_var( qt0, bound_info%recids_c(sec,:), xf, yf, zf, xrec, yrec, zrec)
          dist = bound_info%bnddst(sec) + norm2((/xrec - xf(bound_info%bndpts(n,1)), &
                                                  yrec - yf(bound_info%bndpts(n,2)), &
-                                                 zrec - zf(bound_info%bndpts(n,2))/))
+                                                 zrec - zf(bound_info%bndpts(n,3))/))
 
        end if
 
