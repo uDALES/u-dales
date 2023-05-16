@@ -231,9 +231,11 @@ module modibm
      logical, dimension(bound_info%nfctsecs) :: lfctsecsrank
      real, dimension(3) :: norm, p0, p1, pxl, pxu, pyl, pyu, pzl, pzu
      integer, dimension(6) :: check
+     integer, dimension(1) :: pos_min_dist
      real, dimension(6,3) :: inter
-     real :: xc, yc, zc, xl, yl, zl, xu, yu, zu, checkxl, checkxu, checkyl, checkyu, checkzl, checkzu
-     integer i, j, k, n, m, norm_align, dir_align, pos
+     real, dimension(6) :: inter_dists
+     real :: xc, yc, zc, xl, yl, zl, xu, yu, zu, checkxl, checkxu, checkyl, checkyu, checkzl, checkzu, inter_dist
+     integer i, j, k, n, m, norm_align, dir_align, pos, p
      real dst
 
      character(80) chmess
@@ -376,14 +378,16 @@ module modibm
            p0 = (/xc, yc, zc/)
            p1 = p0 + norm * sqrt(3.)*(dx*dy*dzf(1))**(1./3.)
 
-           call plane_line_intersection(xhat, pxl, p0, p1, inter(1,:), check(1))
-           call plane_line_intersection(xhat, pxu, p0, p1, inter(2,:), check(2))
-           call plane_line_intersection(yhat, pyl, p0, p1, inter(3,:), check(3))
-           call plane_line_intersection(yhat, pyu, p0, p1, inter(4,:), check(4))
-           call plane_line_intersection(zhat, pzl, p0, p1, inter(5,:), check(5))
-           call plane_line_intersection(zhat, pzu, p0, p1, inter(6,:), check(6))
+           call plane_line_intersection(xhat, pxl, p0, p1, inter(1,:), check(1), inter_dists(1))
+           call plane_line_intersection(xhat, pxu, p0, p1, inter(2,:), check(2), inter_dists(2))
+           call plane_line_intersection(yhat, pyl, p0, p1, inter(3,:), check(3), inter_dists(3))
+           call plane_line_intersection(yhat, pyu, p0, p1, inter(4,:), check(4), inter_dists(4))
+           call plane_line_intersection(zhat, pzl, p0, p1, inter(5,:), check(5), inter_dists(5))
+           call plane_line_intersection(zhat, pzu, p0, p1, inter(6,:), check(6), inter_dists(6))
 
-           pos = findloc(check==1, .true., 1)
+           pos_min_dist = minloc(inter_dists, mask=check==1)
+           pos = pos_min_dist(1)
+
            if (pos == 0) then
              write(*,*) "ERROR: no intersection found"
            else
@@ -411,6 +415,8 @@ module modibm
            bound_info%recids_c(n,1) = findloc(bound_info%recpts(n,1) >= xf, .true., 1, back=.true.)
            bound_info%recids_c(n,2) = findloc(bound_info%recpts(n,2) >= yf, .true., 1, back=.true.)
            bound_info%recids_c(n,3) = findloc(bound_info%recpts(n,3) >= zf, .true., 1, back=.true.)
+
+           ! Add check to see if recids are all available to current rank.
 
            !recpts should lie inside the box defined by these corners
            ! u
@@ -506,7 +512,7 @@ module modibm
    end subroutine initibmwallfun
 
 
-   subroutine plane_line_intersection(norm, V0, P0, P1, I, check)
+   subroutine plane_line_intersection(norm, V0, P0, P1, I, check, dist)
      use modglobal, only : vec0, eps1
      implicit none
      ! determines the intersection of a plane and a line segment
@@ -515,6 +521,7 @@ module modibm
      ! P0: start of line segment
      ! P1: end of line segment
      ! I: intersection point
+     ! dist: distance from P0 to intersection point
      ! check: 0 if no intersection
      !        1 if unique intersection
      !        2 if line segment is in the plane
@@ -522,6 +529,7 @@ module modibm
      real, intent(in),  dimension(3) :: norm, V0, P0, P1
      real, intent(out), dimension(3) :: I
      integer, intent(out) :: check
+     real, intent(out) :: dist
      real, dimension(3) :: u, w
      real :: D, N, sI
 
@@ -543,6 +551,8 @@ module modibm
 
      sI = N / D
      I = P0 + sI * u
+     dist = norm2(I - P0)
+
      if ((sI < 0.) .or. (sI > 1.)) then
        check = 3
      else
@@ -1334,7 +1344,7 @@ module modibm
      j = cell(2) - zstart(2) + 1
      k = cell(3) - zstart(3) + 1
      if ((i < ib-1) .or. (i > ie+1) .or. (j < jb-1) .or. (j > je+1)) then
-       write(*,*) "problem in trilinear_interp_var"
+       write(*,*) "problem in trilinear_interp_var", i, j, k
        stop 1
      end if
      corners = eval_corners(var, i, j, k)
