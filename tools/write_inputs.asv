@@ -20,17 +20,15 @@
 % This script is run by the bash script da_inp.sh.
 % It used to generate the necessary input files for uDALES.
 
-expnr = '025';
+expnr = '007';
 ncpus = 2;
 
-% DA_EXPDIR = getenv('DA_EXPDIR');
-% DA_TOOLSDIR = getenv('DA_TOOLSDIR');
-% addpath([DA_TOOLSDIR '/']);
-% exppath = [DA_EXPDIR '/'];
-% cd([DA_EXPDIR '/' expnr])
+DA_EXPDIR = getenv('DA_EXPDIR');
+DA_TOOLSDIR = getenv('DA_TOOLSDIR');
+addpath([DA_TOOLSDIR '/']);
+exppath = [DA_EXPDIR '/'];
+cd([DA_EXPDIR '/' expnr])
 
-%cd(['/media/chris/Project3/uDALES2.0/experiments'])
-exppath = ['/media/chris/Project3/uDALES2.0/experiments/']
 r = preprocessing(expnr, exppath);
 preprocessing.set_defaults(r, ncpus);
 
@@ -58,7 +56,7 @@ end
 %% Do geom stuff
 
 
-%% Replace below with new functions
+%% Replace below wi
 if r.lEB
     preprocessing.vsolc(r)
     disp('Done vsolc')
@@ -81,6 +79,7 @@ if (r.lEB || (r.iwalltemp ~= 1))
     preprocessing.write_Tfacinit(r)
     disp(['Written Tfacinit.inp.', r.expnr])
 end  
+end
 
 
 

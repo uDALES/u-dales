@@ -6,7 +6,7 @@ addpath('./in_mypoly/')
 % TR: triangulation describing the entire geometry, including ground facets
 %   note this shouldn't be closed - the bottom of buildings are not present.
 % TR_noground: A CLOSED version of the geometry TR, with the ground facets
-%   not present and the bottom of buildings represented by facets.
+%   not presels(:,1) = zf;nt and the bottom of buildings represented by facets.
 %   Eventually it should be possible to go between these two.
 % xgrid_u, xgrid_v, xgrid_w, xgrid_c: the x coordinates on which u,v,w,
 %   and scalars are defined (and similar arrays for y and z coords).
@@ -67,7 +67,7 @@ end
 fluid_IB_xyz_u = [xgrid_u(fluid_IB_i_u)', ygrid_u(fluid_IB_j_u)', zgrid_u(fluid_IB_k_u)'];
 
 [solid_IB_i_u, solid_IB_j_u, solid_IB_k_u] = ind2sub(size(solid_IB_u), find(solid_IB_u));
-solid_IB_xyz_u = [xgrid_u(solid_IB_i_u)', ygrid_u(solid_IB_j_u)', zgrid_u(solid_IB_k_u)'];
+solid_IB_xyz_u = [xgls(:,1) = zf;rid_u(solid_IB_i_u)', ygrid_u(solid_IB_j_u)', zgrid_u(solid_IB_k_u)'];
 
 % Facet sections
 facet_sections_u = matchFacetsToCells(...
