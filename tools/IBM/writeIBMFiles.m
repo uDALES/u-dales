@@ -2,7 +2,7 @@ addpath('./inpolyhedron/')
 addpath('./point2trimesh/')
 addpath('./in_mypoly/')
 
-% Assumes the following variables have been already defined:
+% Assumes the following variables exist in the workspace:
 % TR: triangulation describing the entire geometry, including ground facets
 %   note this shouldn't be closed - the bottom of buildings are not present.
 % TR_noground: A CLOSED version of the geometry TR, with the ground facets
@@ -13,14 +13,24 @@ addpath('./in_mypoly/')
 % fpath: directory to write files to
 fpath = ['/media/chris/Project3/uDALES2.0/experiments/' expnr '/'];
 % lgroundfacets: true if there are facets on ground level (recommended).
+<<<<<<< HEAD
 
+=======
+% include_diagonals: determines whether non-directly-adjacent cells count
+%   as neighbours. In situations with facets aligning nicely with the grid, 
+%   this probably is not needed. However, if not used then it is possible 
+%   that some facet sections will not find an adjacent fluid boundary point
+%   to give the flux to, thus their effect will not be felt by the flow.
+%   suggestion: leave off, and see if area_facets_c == area_facets.
+% periodic_x, periodic_y: boolean for periodic boundary conditions in x/y.
+ 
+>>>>>>> ecse
 % It will write out the following files:
 % solid_u/v/w: list of indices of solid points (inside the geometry).
 %   Calculated using inpolyhedron if lmypoly=false, or using Dipanjan's routine
 %   if lmypoly=true, which requires a closed triangulation (DON'T THINK
 %   THIS IS TRUE ANY MORE).
 % fluid_boundary_u/v/w: list of indices of fluid points that have solid neighbours.
-%   `include_diagonals` determines whether non-directly-adjacent cells are 'neighbours'.
 % facet_sections_u/v/w: list of facet section information: facet id,
 %   section area, fluid boundary point id, distance to section/surface as a whole (_2)
 
@@ -71,7 +81,7 @@ solid_IB_xyz_u = [xgls(:,1) = zf;rid_u(solid_IB_i_u)', ygrid_u(solid_IB_j_u)', z
 
 % Facet sections
 facet_sections_u = matchFacetsToCells(...
-    TR, fluid_IB_u, solid_IB_u, fluid_IB_xyz_u, solid_IB_xyz_u, xgrid_u, ygrid_u, zgrid_u, include_diagonals);
+    TR, fluid_IB_u, solid_IB_u, fluid_IB_xyz_u, solid_IB_xyz_u, xgrid_u, ygrid_u, zgrid_u, include_diagonals, periodic_x, periodic_y);
 %area_fluid_IB_u = sum(facet_sections_u(:,2)); % The total area for each IB cell should equal the sum of the facet
 
 area_facets_u = zeros(nfcts,1);
@@ -156,7 +166,7 @@ solid_IB_xyz_v = [xgrid_v(solid_IB_i_v)', ygrid_v(solid_IB_j_v)', zgrid_v(solid_
 
 % Facet sections
 facet_sections_v = matchFacetsToCells(...
-    TR, fluid_IB_v, solid_IB_v, fluid_IB_xyz_v, solid_IB_xyz_v, xgrid_v, ygrid_v, zgrid_v, include_diagonals);
+    TR, fluid_IB_v, solid_IB_v, fluid_IB_xyz_v, solid_IB_xyz_v, xgrid_v, ygrid_v, zgrid_v, include_diagonals, periodic_x, periodic_y);
 %area_fluid_IB_v = sum(facet_sections_v(:,2)); % The total area for each IB cell should equal the sum of the facet
 
 area_facets_v = zeros(nfcts,1);
@@ -244,7 +254,7 @@ solid_IB_xyz_w = [xgrid_w(solid_IB_i_w)', ygrid_w(solid_IB_j_w)', zgrid_w(solid_
 %%
 % Facet sections
 facet_sections_w = matchFacetsToCells(...
-    TR, fluid_IB_w, solid_IB_w, fluid_IB_xyz_w, solid_IB_xyz_w, xgrid_w, ygrid_w, zgrid_w, include_diagonals);
+    TR, fluid_IB_w, solid_IB_w, fluid_IB_xyz_w, solid_IB_xyz_w, xgrid_w, ygrid_w, zgrid_w, include_diagonals, periodic_x, periodic_y);
 area_fluid_IB_w = sum(facet_sections_w(:,2)); % The total area for each IB cell should equal the sum of the facet
 
 area_facets_w = zeros(nfcts,1);
@@ -330,7 +340,7 @@ solid_IB_xyz_c = [xgrid_c(solid_IB_i_c)', ygrid_c(solid_IB_j_c)', zgrid_c(solid_
 
 % Facet sections
 facet_sections_c = matchFacetsToCells(...
-    TR, fluid_IB_c, solid_IB_c, fluid_IB_xyz_c, solid_IB_xyz_c, xgrid_c, ygrid_c, zgrid_c, include_diagonals);
+    TR, fluid_IB_c, solid_IB_c, fluid_IB_xyz_c, solid_IB_xyz_c, xgrid_c, ygrid_c, zgrid_c, include_diagonals, periodic_x, periodic_y);
 %area_fluid_IB_c = sum(facet_sections_c(:,2)); % The total area for each IB cell should equal the sum of the facet
 
 area_facets_c = zeros(nfcts,1);
@@ -388,20 +398,6 @@ if lBImin_c
     %dlmwrite(filename_c, facet_sections_c_2(:,[1,2,5,7:9]), '-append','delimiter',' ','precision',8);
 end
 
-%% Reconstruction points - this could be done in fortran
-%fluid_IB_rec_u = generateReconstructionPoints(TR, facet_sections_c, TR.faceNormal, fluid_IB_ijk_c, xgrid_c, ygrid_c, zgrid_c);
-
-
-%% For View3D
-fID = fopen([fpath '/facets.vs3'],'w');
-fprintf(fID,'T \r\nF  3\r\n');
-fprintf(fID,'! %4s %6s %6s %6s\r\n','#', 'x', 'y', 'z');
-fprintf(fID,'V %4d %6d %6d %6d\r\n',[(1:size(TR.Points))', TR.Points]');
-fprintf(fID,'! %4s %6s %6s %6s %6s %6s %6s %6s %6s\r\n','#', 'v1', 'v2', 'v3', 'v4', 'base', 'cmb', 'emit', 'name' );
-fprintf(fID,'S %4d %6d %6d %6d %6d %6d %6d %6d %6d\r\n',[(1:nfcts)', [TR.ConnectivityList            zeros(nfcts,1)], zeros(nfcts,3), (1:nfcts)']');
-fprintf(fID,'End of Data\r\n');
-fclose(fID);
-
 %%
 filename_facets = [fpath 'facets.inp.' expnr];
 fileID_facets = fopen(filename_facets,'W');
@@ -449,23 +445,36 @@ fprintf(fileID_info, ['nfctsecs_c = ', num2str(size(facet_sections_c,1)), '\n'])
 fclose(fileID_info);
 
 %% Plot
-figure
+%figure
 %trisurf(TR)
 
+<<<<<<< HEAD
 patch('Faces', TR.ConnectivityList, 'Vertices', TR.Points, 'FaceColor', ones(3,1)*0.85, 'FaceAlpha', 1)
 hold on
 incenters = TR.incenter;
 faceNormals = TR.faceNormal;
 quiver3(incenters(:,1), incenters(:,2), incenters(:,3), faceNormals(:,1), faceNormals(:,2), faceNormals(:,3), 0)
 view(3)
+=======
+%patch('Faces', TR.ConnectivityList, 'Vertices', TR.Points, 'FaceColor', ones(3,1)*0.85, 'FaceAlpha', 1)
+%hold on
+% incenters = TR.incenter;
+% faceNormals = TR.faceNormal;
+% quiver3(incenters(:,1), incenters(:,2), incenters(:,3), faceNormals(:,1), faceNormals(:,2), faceNormals(:,3), 0)
+%view(3)
+>>>>>>> ecse
 
-axis equal tight
+%axis equal tight
 
 %xlim([0 Lx])
 %ylim([0 Ly])
 %zlim([0 Lz])
 
+<<<<<<< HEAD
 %scatter3(X_u(solid_u), Y_u(solid_u), Z_u(solid_u), 10,[0,0,1],'filled')
+=======
+%scatter3(X_u(solid_u), Y_u(solid_u), Z_u(solid_u), 10,[0,0,1],'filled') 
+>>>>>>> ecse
 %scatter3(X_v(solid_v), Y_v(solid_v), Z_v(solid_v), 10,[0,0,1],'filled')
 %scatter3(X_w(solid_w), Y_w(solid_w), Z_w(solid_w), 10,[0,0,1],'filled')
 %scatter3(X_c(solid_c), Y_c(solid_c), Z_c(solid_c), 10,[0,0,1],'filled')
