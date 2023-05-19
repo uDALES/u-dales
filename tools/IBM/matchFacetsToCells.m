@@ -19,11 +19,9 @@ ktot = length(zgrid);
 facet_sections = [];
 
 lplot = false; if lplot; figure; end % for debugging
-for facet=1:size(TR.ConnectivityList,1)
-%     disp(num2str(facet))
-%     abs(TR.faceNormal(facet))
-%     xgrid(1)
-%     abs(abs(TR.faceNormal(facet)) - [1 0 0])
+Nf = size(TR.ConnectivityList,1);
+for facet=1:Nf
+    disp(['Surface: ' num2str(facet) ' ; ~ ' num2str(round(facet/Nf * 100, 1)) ' % complete'])
     if (xgrid(1) == 0 && all(abs(abs(TR.faceNormal(facet)) - [1 0 0]) <= 1e-8)) ...
     || (ygrid(1) == 0 && all(abs(abs(TR.faceNormal(facet)) - [0 1 0]) <= 1e-8)) ...
     || (zgrid(1) == 0 && all(abs(abs(TR.faceNormal(facet)) - [0 0 1]) <= 1e-8))
