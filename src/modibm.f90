@@ -702,15 +702,12 @@ module modibm
      real, intent(in)    :: var(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
      real, intent(inout) :: rhs(ib-ih:ie+ih,jb-jh:je+jh,kb   :ke+kh)
      integer :: i, j, k, n, m
-     type(bound_info_type) :: bound_info
 
-     bound_info = bound_info_c
-
-     do m = 1,bound_info%nbndptsrank
-      n = bound_info%bndptsrank(m)
-         i = bound_info%bndpts(n,1) - zstart(1) + 1
-         j = bound_info%bndpts(n,2) - zstart(2) + 1
-         k = bound_info%bndpts(n,3) - zstart(3) + 1
+     do m = 1,bound_info_c%nbndptsrank
+      n = bound_info_c%bndptsrank(m)
+         i = bound_info_c%bndpts(n,1) - zstart(1) + 1
+         j = bound_info_c%bndpts(n,2) - zstart(2) + 1
+         k = bound_info_c%bndpts(n,3) - zstart(3) + 1
 
          if (abs(mask_u(i+1,j,k)) < eps1) then ! can't use u0(i+1)
            rhs(i,j,k) = rhs(i,j,k) + u0(i+1,j,k)*(var(i+1,j,k) + var(i,j,k))*dxi5
@@ -757,15 +754,12 @@ module modibm
      real, intent(in)    :: var(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
      real, intent(inout) :: rhs(ib-ih:ie+ih,jb-jh:je+jh,kb   :ke+kh)
      integer :: i, j, k, n, m
-     type(bound_info_type) :: bound_info
 
-     bound_info = bound_info_c
-
-     do m = 1,bound_info%nbndptsrank
-      n = bound_info%bndptsrank(m)
-         i = bound_info%bndpts(n,1) - zstart(1) + 1
-         j = bound_info%bndpts(n,2) - zstart(2) + 1
-         k = bound_info%bndpts(n,3) - zstart(3) + 1
+     do m = 1,bound_info_c%nbndptsrank
+      n = bound_info_c%bndptsrank(m)
+         i = bound_info_c%bndpts(n,1) - zstart(1) + 1
+         j = bound_info_c%bndpts(n,2) - zstart(2) + 1
+         k = bound_info_c%bndpts(n,3) - zstart(3) + 1
 
          if (abs(mask_c(i+1,j,k)) < eps1) then ! var(i+1) is solid
            rhs(i,j,k) = rhs(i,j,k) + u0(i+1,j,k)*(var(i+1,j,k) + var(i,j,k))*dxi5 & ! negate contribution added in advection using var(i+1)
@@ -811,28 +805,12 @@ module modibm
 
      real :: empo, emmo, emop, emom
      integer :: i, j, k, n, m
-     type(bound_info_type) :: bound_info
 
-     bound_info = bound_info_u
-
-     do m = 1,bound_info%nbndptsrank
-      n = bound_info%bndptsrank(m)
-         i = bound_info%bndpts(n,1) - zstart(1) + 1
-         j = bound_info%bndpts(n,2) - zstart(2) + 1
-         k = bound_info%bndpts(n,3) - zstart(3) + 1
-
-         ! Account for solid u points
-         if (abs(mask_u(i+1,j,k)) < eps1) then ! u0(i+1) is solid
-            ! Not sure about this
-            ! This effectively sets a reflecting boundary condition (?),
-            ! because same as u0(i+1) = u0(i)
-            !up(i,j,k) = up(i,j,k) - ekm(i,j,k) * (u0(i+1,j,k) - u0(i,j,k)) * 2. * dx2i
-         end if
-
-         if (abs(mask_u(i-1,j,k)) < eps1) then ! u0(i-1) is solid
-           ! Not sure about this
-           !up(i,j,k) = up(i,j,k) + ekm(i-1,j,k) * (u0(i,j,k) - u0(i-1,j,k)) * 2. * dx2i
-         end if
+     do m = 1,bound_info_u%nbndptsrank
+      n = bound_info_u%bndptsrank(m)
+         i = bound_info_u%bndpts(n,1) - zstart(1) + 1
+         j = bound_info_u%bndpts(n,2) - zstart(2) + 1
+         k = bound_info_u%bndpts(n,3) - zstart(3) + 1
 
          if (abs(mask_u(i,j+1,k)) < eps1) then
            empo = 0.25 * ((ekm(i,j,k) + ekm(i,j+1,k)) + (ekm(i-1,j,k) + ekm(i-1,j+1,k)))
@@ -850,7 +828,7 @@ module modibm
            up(i,j,k) = up(i,j,k) - emop * (u0(i,j,k+1) - u0(i,j,k))*dzhi(k+1)*dzfi(k)
          end if
 
-         if (abs(mask_u(i,j,k-1)) < eps1) then ! u(k-1) is solid
+         if (abs(mask_u(i,j,k-1)) < eps1) then
            emom = (dzf(k-1) * (ekm(i,j,k  ) + ekm(i-1,j,k  ))  + &
                    dzf(k)   * (ekm(i,j,k-1) + ekm(i-1,j,k-1))) * dzhiq(k)
            up(i,j,k) = up(i,j,k) + emom * (u0(i,j,k) - u0(i,j,k-1))*dzhi(k)*dzfi(k)
@@ -872,31 +850,21 @@ module modibm
 
      real :: epmo, emmo, eomp, eomm
      integer :: i, j, k, n, m
-     type(bound_info_type) :: bound_info
 
-     bound_info = bound_info_v
+     do m = 1,bound_info_v%nbndptsrank
+      n = bound_info_v%bndptsrank(m)
+         i = bound_info_v%bndpts(n,1) - zstart(1) + 1
+         j = bound_info_v%bndpts(n,2) - zstart(2) + 1
+         k = bound_info_v%bndpts(n,3) - zstart(3) + 1
 
-     do m = 1,bound_info%nbndptsrank
-      n = bound_info%bndptsrank(m)
-         i = bound_info%bndpts(n,1) - zstart(1) + 1
-         j = bound_info%bndpts(n,2) - zstart(2) + 1
-         k = bound_info%bndpts(n,3) - zstart(3) + 1
-
-         ! Account for solid v points
-         if (abs(mask_v(i+1,j,k)) < eps1) then ! v0(i+1) is solid
+         if (abs(mask_v(i+1,j,k)) < eps1) then
            epmo = 0.25 * (ekm(i,j,k) + ekm(i,j-1,k) + ekm(i+1,j-1,k) + ekm(i+1,j,k))
            vp(i,j,k) = vp(i,j,k) - epmo * (v0(i+1,j,k) - v0(i,j,k))*dx2i
          end if
 
-         if (abs(mask_v(i-1,j,k)) < eps1) then ! v0(i-1) is solid
+         if (abs(mask_v(i-1,j,k)) < eps1) then
            emmo = 0.25 * (ekm(i,j,k) + ekm(i,j-1,k) + ekm(i-1,j-1,k) + ekm(i-1,j,k))
            vp(i,j,k) = vp(i,j,k) + emmo * (v0(i,j,k) - v0(i-1,j,k))*dx2i
-         end if
-
-         if (abs(mask_v(i,j+1,k)) < eps1) then
-         end if
-
-         if (abs(mask_v(i,j-1,k)) < eps1) then
          end if
 
          if (abs(mask_v(i,j,k+1)) < eps1) then
@@ -926,24 +894,21 @@ module modibm
 
      real :: epom, emom, eopm, eomm
      integer :: i, j, k, n, m
-     type(bound_info_type) :: bound_info
 
-     bound_info = bound_info_w
+     do m = 1,bound_info_w%nbndptsrank
+      n = bound_info_w%bndptsrank(m)
+         i = bound_info_w%bndpts(n,1) - zstart(1) + 1
+         j = bound_info_w%bndpts(n,2) - zstart(2) + 1
+         k = bound_info_w%bndpts(n,3) - zstart(3) + 1
 
-     do m = 1,bound_info%nbndptsrank
-      n = bound_info%bndptsrank(m)
-         i = bound_info%bndpts(n,1) - zstart(1) + 1
-         j = bound_info%bndpts(n,2) - zstart(2) + 1
-         k = bound_info%bndpts(n,3) - zstart(3) + 1
-
-         ! Account for solid v points
-         if (abs(mask_w(i+1,j,k)) < eps1) then ! w0(i+1) is solid
+         ! Account for solid w points
+         if (abs(mask_w(i+1,j,k)) < eps1) then
            epom = ( dzf(k-1) * ( ekm(i,j,k  ) + ekm(i+1,j,k  ))    + &
                     dzf(k  ) * ( ekm(i,j,k-1) + ekm(i+1,j,k-1))) * dzhiq(k)
            wp(i,j,k) = wp(i,j,k) - epom * (w0(i+1,j,k) - w0(i,j,k))*dx2i
          end if
 
-         if (abs(mask_w(i-1,j,k)) < eps1) then ! w0(i-1) is solid
+         if (abs(mask_w(i-1,j,k)) < eps1) then
            emom = ( dzf(k-1) * ( ekm(i,j,k  ) + ekm(i-1,j,k  ))  + &
                     dzf(k  ) * ( ekm(i,j,k-1) + ekm(i-1,j,k-1))) * dzhiq(k)
            wp(i,j,k) = wp(i,j,k) + emom * (w0(i,j,k) - w0(i-1,j,k))*dx2i
@@ -959,14 +924,6 @@ module modibm
            eomm = ( dzf(k-1) * ( ekm(i,j,k  ) + ekm(i,j-1,k  ))  + &
                     dzf(k  ) * ( ekm(i,j,k-1) + ekm(i,j-1,k-1))) * dzhiq(k)
            wp(i,j,k) = wp(i,j,k) + eomm * (w0(i,j,k) - w0(i,j-1,k))*dy2i
-         end if
-
-         if (abs(mask_w(i,j,k+1)) < eps1) then
-
-         end if
-
-         if (abs(mask_w(i,j,k-1)) < eps1) then
-
          end if
 
      end do
@@ -985,21 +942,18 @@ module modibm
      real, intent(in)    :: var(ib-hi:ie+hi,jb-hj:je+hj,kb-hk:ke+hk)
      real, intent(inout) :: rhs(ib-hi:ie+hi,jb-hj:je+hj,kb   :ke+hk)
      integer :: i, j, k, n, m
-     type(bound_info_type) :: bound_info
 
-     bound_info = bound_info_c
+     do m = 1,bound_info_c%nbndptsrank
+      n = bound_info_c%bndptsrank(m)
+         i = bound_info_c%bndpts(n,1) - zstart(1) + 1
+         j = bound_info_c%bndpts(n,2) - zstart(2) + 1
+         k = bound_info_c%bndpts(n,3) - zstart(3) + 1
 
-     do m = 1,bound_info%nbndptsrank
-      n = bound_info%bndptsrank(m)
-         i = bound_info%bndpts(n,1) - zstart(1) + 1
-         j = bound_info%bndpts(n,2) - zstart(2) + 1
-         k = bound_info%bndpts(n,3) - zstart(3) + 1
-
-         if (abs(mask_c(i+1,j,k)) < eps1) then ! var(i+1) is solid
+         if (abs(mask_c(i+1,j,k)) < eps1) then
            rhs(i,j,k) = rhs(i,j,k) - 0.5 * (ekh(i+1,j,k) + ekh(i,j,k)) * (var(i+1,j,k) - var(i,j,k))*dx2i
          end if
 
-         if (abs(mask_c(i-1,j,k)) < eps1) then ! var(i-1) is solid
+         if (abs(mask_c(i-1,j,k)) < eps1) then
            rhs(i,j,k) = rhs(i,j,k) + 0.5 * (ekh(i,j,k) + ekh(i-1,j,k)) * (var(i,j,k) - var(i-1,j,k))*dx2i
          end if
 
@@ -1016,7 +970,7 @@ module modibm
                                          * (var(i,j,k+1) - var(i,j,k))*dzh2i(k+1)*dzfi(k)
          end if
 
-         if (abs(mask_c(i,j,k-1)) < eps1) then ! bottom
+         if (abs(mask_c(i,j,k-1)) < eps1) then
            rhs(i,j,k) = rhs(i,j,k) + 0.5 * (dzf(k-1)*ekh(i,j,k) + dzf(k)*ekh(i,j,k-1)) &
                                          * (var(i,j,k) - var(i,j,k-1))*dzh2i(k)*dzfi(k)
          end if
@@ -1205,46 +1159,43 @@ module modibm
      use decomp_2d, only : zstart
      use modmpi, only : myid
 
-     type(bound_info_type) :: bound_info
      integer i, j, k, n, m, sec, fac
      real :: dist, flux, area, vol, tempvol, Tair, Tsurf, utan, cth, cveg, hurel, qtair, qwall, resc, ress, xrec, yrec, zrec, fluxTrhs
      real, dimension(3) :: uvec, norm, span, strm
      logical :: valid
 
-     bound_info = bound_info_c
-
-     do m = 1,bound_info%nfctsecsrank
-       sec = bound_info%fctsecsrank(m) ! index of section
-       n =   bound_info%secbndptids(sec) ! index of boundary point
-       fac = bound_info%secfacids(sec) ! index of facet
+     do m = 1,bound_info_c%nfctsecsrank
+       sec = bound_info_c%fctsecsrank(m) ! index of section
+       n =   bound_info_c%secbndptids(sec) ! index of boundary point
+       fac = bound_info_c%secfacids(sec) ! index of facet
        norm = facnorm(fac,:)
 
-       i = bound_info%bndpts(n,1) - zstart(1) + 1 ! should be on this rank!
-       j = bound_info%bndpts(n,2) - zstart(2) + 1 ! should be on this rank!
-       k = bound_info%bndpts(n,3) - zstart(3) + 1 ! should be on this rank!
+       i = bound_info_c%bndpts(n,1) - zstart(1) + 1 ! should be on this rank!
+       j = bound_info_c%bndpts(n,2) - zstart(2) + 1 ! should be on this rank!
+       k = bound_info_c%bndpts(n,3) - zstart(3) + 1 ! should be on this rank!
        if ((i < ib) .or. (i > ie) .or. (j < jb) .or. (j > je)) then
           write(*,*) "problem in wallfunheat", i, j
           stop 1
         end if
 
-       if (bound_info%lcomprec(sec)) then ! section aligned with grid - use this cell's velocity
+       if (bound_info_c%lcomprec(sec)) then ! section aligned with grid - use this cell's velocity
          uvec = interp_velocity_c(i, j, k)
          Tair = thl0(i,j,k)
          qtair = qt0(i,j,k)
-         dist = bound_info%bnddst(sec)
+         dist = bound_info_c%bnddst(sec)
 
        else ! use velocity at reconstruction point
-         xrec = bound_info%recpts(sec,1)
-         yrec = bound_info%recpts(sec,2)
-         zrec = bound_info%recpts(sec,3)
-         uvec(1) = trilinear_interp_var(u0, bound_info%recids_u(sec,:), xh, yf, zf, xrec, yrec, zrec)
-         uvec(2) = trilinear_interp_var(v0, bound_info%recids_v(sec,:), xf, yh, zf, xrec, yrec, zrec)
-         uvec(3) = trilinear_interp_var(w0, bound_info%recids_w(sec,:), xf, yf, zh, xrec, yrec, zrec)
-         Tair  = trilinear_interp_var(thl0, bound_info%recids_c(sec,:), xf, yf, zf, xrec, yrec, zrec)
-         qtair = trilinear_interp_var( qt0, bound_info%recids_c(sec,:), xf, yf, zf, xrec, yrec, zrec)
-         dist = bound_info%bnddst(sec) + norm2((/xrec - xf(bound_info%bndpts(n,1)), &
-                                                 yrec - yf(bound_info%bndpts(n,2)), &
-                                                 zrec - zf(bound_info%bndpts(n,3))/))
+         xrec = bound_info_c%recpts(sec,1)
+         yrec = bound_info_c%recpts(sec,2)
+         zrec = bound_info_c%recpts(sec,3)
+         uvec(1) = trilinear_interp_var(u0, bound_info_c%recids_u(sec,:), xh, yf, zf, xrec, yrec, zrec)
+         uvec(2) = trilinear_interp_var(v0, bound_info_c%recids_v(sec,:), xf, yh, zf, xrec, yrec, zrec)
+         uvec(3) = trilinear_interp_var(w0, bound_info_c%recids_w(sec,:), xf, yf, zh, xrec, yrec, zrec)
+         Tair  = trilinear_interp_var(thl0, bound_info_c%recids_c(sec,:), xf, yf, zf, xrec, yrec, zrec)
+         qtair = trilinear_interp_var( qt0, bound_info_c%recids_c(sec,:), xf, yf, zf, xrec, yrec, zrec)
+         dist = bound_info_c%bnddst(sec) + norm2((/xrec - xf(bound_info_c%bndpts(n,1)), &
+                                                 yrec - yf(bound_info_c%bndpts(n,2)), &
+                                                 zrec - zf(bound_info_c%bndpts(n,3))/))
 
        end if
 
@@ -1285,9 +1236,10 @@ module modibm
          ! flux [Km/s]
          ! fluid volumetric sensible heat source/sink = flux * area / volume [K/s]
          ! facet sensible heat flux = volumetric heat capacity of air * flux * sectionarea / facetarea [W/m^2]
-         thlp(i,j,k) = thlp(i,j,k) - flux * bound_info%secareas(sec) / (dx*dy*dzh(k))
+         thlp(i,j,k) = thlp(i,j,k) - flux * bound_info_c%secareas(sec) / (dx*dy*dzh(k))
 
          if (lEB) then
+<<<<<<< HEAD
 
 
            fluxTrhs = - flux * bound_info%secareas(sec) / (dx*dy*dzh(k)) ! cew216 This is used for the peirodicEBcorr forcing [K/s]
@@ -1299,6 +1251,9 @@ module modibm
              ! write(*,*) 'flux', flux
              ! write(*,*) 'fluxTrhs', fluxTrhs
            end if
+=======
+           fachf(fac) = fachf(fac) + flux * bound_info_c%secareas(sec) ! [Km^2/s] (will be divided by facetarea(fac) in modEB)
+>>>>>>> ecse
          end if
        end if
 
@@ -1331,10 +1286,10 @@ module modibm
          ! flux [kg/kg m/s]
          ! fluid volumetric latent heat source/sink = flux * area / volume [kg/kg / s]
          ! facet latent heat flux = volumetric heat capacity of air * flux * sectionarea / facetarea [W/m^2]
-         qtp(i,j,k) = qtp(i,j,k) - flux * bound_info%secareas(sec) / (dx*dy*dzh(k))
+         qtp(i,j,k) = qtp(i,j,k) - flux * bound_info_c%secareas(sec) / (dx*dy*dzh(k))
 
          if (lEB) then
-           facef(fac) = facef(fac) + flux * bound_info%secareas(sec) ! [Km^2/s] (will be divided by facetarea(fac) in modEB)
+           facef(fac) = facef(fac) + flux * bound_info_c%secareas(sec) ! [Km^2/s] (will be divided by facetarea(fac) in modEB)
          end if
        end if
 
