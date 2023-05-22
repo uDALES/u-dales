@@ -24,7 +24,7 @@ program DALESURBAN      !Version 48
 !!----------------------------------------------------------------
 !!     0.0    USE STATEMENTS FOR CORE MODULES
 !!----------------------------------------------------------------
-  use modmpi,            only : initmpi,exitmpi,myid,starttimer, mpi_sum, comm3d, mpierr, my_real
+  use modmpi,            only : initmpi,exitmpi,myid,starttimer, mpi_sum, comm3d, mpierr, my_real, MPI_ALLREDUCE
   use modglobal,         only : initglobal,rk3step,timeleft, totheatflux, lperiodicEBcorr, ltempeq, ib,ie,jb,je,kb,ke
   use modstartup,        only : readnamelists,init2decomp,checkinitvalues,readinitfiles,exitmodules
   use modfields,         only : initfields, thlp
@@ -48,7 +48,9 @@ program DALESURBAN      !Version 48
   use modstatsdump,    only : initstatsdump,statsdump,exitstatsdump    !tg3315
   use modtimedep,      only : inittimedep,timedep
   implicit none
-  real :: total_heat_check
+  real,allocatable :: total_heat_check
+  real :: sam
+  sam = 0
 !----------------------------------------------------------------
 !     1      READ NAMELISTS,INITIALISE GRID, CONSTANTS AND FIELDS
 !----------------------------------------------------------------
@@ -114,6 +116,7 @@ program DALESURBAN      !Version 48
   !write(*,*) 'Starting rank ', myid
   call starttimer
   do while ((timeleft>0) .or. (rk3step < 3))
+  !do while (sam < 1)
 
     call tstep_update
 
@@ -147,11 +150,20 @@ program DALESURBAN      !Version 48
 
     call nudge          ! nudge top cells of fields to enforce steady-state
 
+    ! if (myid == 0) then
+    write(*,*) 'pre ibm sum(thlp)' , sum(thlp)
+    ! end if
+
     call ibmwallfun     ! immersed boundary forcing: only shear forces.
-    ! if (myid == 1) then
-    !   write(*,*) 'sum(thlp.*mask_c before)' , sum(mask_c(ib:ie,jb:je,kb:ke)*thlp(ib:ie,jb:je,kb:ke))
+    ! if (myid == 0) then
+    !   ! call MPI_ALLREDUCE(thlp,total_heat_check,1,MY_REAL,MPI_SUM,comm3d,mpierr)
+    write(*,*) 'post ibm sum(thlp)' , sum(thlp)
     ! end if
     call periodicEBcorr
+    ! if (myid == 0) then
+    !   ! call MPI_ALLREDUCE(thlp,total_heat_check,1,MY_REAL,MPI_SUM,comm3d,mpierr)
+    write(*,*) 'post ebcorr sum(thlp)' , sum(thlp)
+    ! end if
     ! if (myid == 1) then
     !   write(*,*) 'sum(thlp.*mask_c after)' , sum(mask_c(ib:ie,jb:je,kb:ke)*thlp(ib:ie,jb:je,kb:ke))
     ! end if
@@ -203,6 +215,7 @@ program DALESURBAN      !Version 48
 !------------------------------------------------------
 
     call writerestartfiles
+    sam = sam + 1
 
   end do
 !-------------------------------------------------------

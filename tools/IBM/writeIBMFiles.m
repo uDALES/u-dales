@@ -6,25 +6,14 @@ addpath('./in_mypoly/')
 % TR: triangulation describing the entire geometry, including ground facets
 %   note this shouldn't be closed - the bottom of buildings are not present.
 % TR_noground: A CLOSED version of the geometry TR, with the ground facets
-%   not presels(:,1) = zf;nt and the bottom of buildings represented by facets.
+%   not present and the bottom of buildings represented by facets.
 %   Eventually it should be possible to go between these two.
 % xgrid_u, xgrid_v, xgrid_w, xgrid_c: the x coordinates on which u,v,w,
 %   and scalars are defined (and similar arrays for y and z coords).
 % fpath: directory to write files to
 fpath = ['/media/chris/Project3/uDALES2.0/experiments/' expnr '/'];
 % lgroundfacets: true if there are facets on ground level (recommended).
-<<<<<<< HEAD
 
-=======
-% include_diagonals: determines whether non-directly-adjacent cells count
-%   as neighbours. In situations with facets aligning nicely with the grid, 
-%   this probably is not needed. However, if not used then it is possible 
-%   that some facet sections will not find an adjacent fluid boundary point
-%   to give the flux to, thus their effect will not be felt by the flow.
-%   suggestion: leave off, and see if area_facets_c == area_facets.
-% periodic_x, periodic_y: boolean for periodic boundary conditions in x/y.
- 
->>>>>>> ecse
 % It will write out the following files:
 % solid_u/v/w: list of indices of solid points (inside the geometry).
 %   Calculated using inpolyhedron if lmypoly=false, or using Dipanjan's routine
@@ -77,7 +66,7 @@ end
 fluid_IB_xyz_u = [xgrid_u(fluid_IB_i_u)', ygrid_u(fluid_IB_j_u)', zgrid_u(fluid_IB_k_u)'];
 
 [solid_IB_i_u, solid_IB_j_u, solid_IB_k_u] = ind2sub(size(solid_IB_u), find(solid_IB_u));
-solid_IB_xyz_u = [xgls(:,1) = zf;rid_u(solid_IB_i_u)', ygrid_u(solid_IB_j_u)', zgrid_u(solid_IB_k_u)'];
+solid_IB_xyz_u = [xgrid_u(solid_IB_i_u)', ygrid_u(solid_IB_j_u)', zgrid_u(solid_IB_k_u)'];
 
 % Facet sections
 facet_sections_u = matchFacetsToCells(...
@@ -448,21 +437,12 @@ fclose(fileID_info);
 %figure
 %trisurf(TR)
 
-<<<<<<< HEAD
 patch('Faces', TR.ConnectivityList, 'Vertices', TR.Points, 'FaceColor', ones(3,1)*0.85, 'FaceAlpha', 1)
 hold on
 incenters = TR.incenter;
 faceNormals = TR.faceNormal;
 quiver3(incenters(:,1), incenters(:,2), incenters(:,3), faceNormals(:,1), faceNormals(:,2), faceNormals(:,3), 0)
 view(3)
-=======
-%patch('Faces', TR.ConnectivityList, 'Vertices', TR.Points, 'FaceColor', ones(3,1)*0.85, 'FaceAlpha', 1)
-%hold on
-% incenters = TR.incenter;
-% faceNormals = TR.faceNormal;
-% quiver3(incenters(:,1), incenters(:,2), incenters(:,3), faceNormals(:,1), faceNormals(:,2), faceNormals(:,3), 0)
-%view(3)
->>>>>>> ecse
 
 %axis equal tight
 
@@ -470,11 +450,7 @@ view(3)
 %ylim([0 Ly])
 %zlim([0 Lz])
 
-<<<<<<< HEAD
 %scatter3(X_u(solid_u), Y_u(solid_u), Z_u(solid_u), 10,[0,0,1],'filled')
-=======
-%scatter3(X_u(solid_u), Y_u(solid_u), Z_u(solid_u), 10,[0,0,1],'filled') 
->>>>>>> ecse
 %scatter3(X_v(solid_v), Y_v(solid_v), Z_v(solid_v), 10,[0,0,1],'filled')
 %scatter3(X_w(solid_w), Y_w(solid_w), Z_w(solid_w), 10,[0,0,1],'filled')
 %scatter3(X_c(solid_c), Y_c(solid_c), Z_c(solid_c), 10,[0,0,1],'filled')

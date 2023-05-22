@@ -202,8 +202,16 @@ classdef preprocessing < dynamicprops
             preprocessing.addvar(obj, 'dx', obj.xlen / obj.itot)
             preprocessing.addvar(obj, 'dy', obj.ylen / obj.jtot)
 
+            %% BCs
+
+            preprocessing.addvar(obj, 'BCxm', 1);
+            preprocessing.addvar(obj, 'BCym', 1);
+
+
             %% &ENERGYBALANCE
             preprocessing.addvar(obj, 'lEB', 0)
+            preprocessing.addvar(obj, 'lfacTlyrs', 0)
+            
 
             %% &WALLS
             preprocessing.addvar(obj, 'iwalltemp', 1)
@@ -224,6 +232,10 @@ classdef preprocessing < dynamicprops
             %% &INPS
             preprocessing.addvar(obj, 'zsize', 96) % domain size in z-direction
             preprocessing.addvar(obj, 'lzstretch', 0) % switch for stretching z grid
+            preprocessing.addvar(obj, 'stl_file', '')
+            preprocessing.addvar(obj, 'diag_cells', true)
+            preprocessing.addvar(obj, 'stl_ground', true) % Does STL include facets at ground 
+            
             if obj.lzstretch
                 preprocessing.addvar(obj, 'stretchconst', 0.01)
                 preprocessing.addvar(obj, 'lstretchexp', 0)
@@ -295,10 +307,10 @@ classdef preprocessing < dynamicprops
             preprocessing.addvar(obj, 'lflat', 0) % switch for no blocks or facets (as in DALES)
             preprocessing.addvar(obj, 'lfloors', 0) % switch for just floors, no buildings.
 
-            if (obj.lEB && (obj.lflat || obj.lfloors))
-                error('Energy balance currently not implemented for flat domain')
-                % Eventually lfloors should work with lEB.
-            end
+%             if (obj.lEB && (obj.lflat || obj.lfloors))
+%                 error('Energy balance currently not implemented for flat domain')
+%                 % Eventually lfloors should work with lEB.
+%             end
 
             preprocessing.addvar(obj, 'lcube', 0)   % switch for linear cubes
             preprocessing.addvar(obj, 'lstaggered', 0) % switch for staggered cubes
@@ -327,14 +339,28 @@ classdef preprocessing < dynamicprops
                 preprocessing.addvar(obj, 'pad', 5) % padding. A padding of 0 makes only sense for idealised cases. There should be no building at domain edge
                 preprocessing.addvar(obj, 'smallarea', round(150 / (obj.dx * obj.dy))) % objects smaller than this will be deleted
             end
-
-            if obj.lEB
-                preprocessing.addvar(obj, 'solaz', 135); % azimuth angle
-                preprocessing.addvar(obj, 'Z', 28.4066); % zenith angle
+                preprocessing.addvar(obj, 'solarazimuth', 135); % azimuth angle
+                preprocessing.addvar(obj, 'xazimuth', 90);   % azimuth of x-direction wrt N. Default: x = East
+                                                             % north -> xazimuth = 0;
+                                                             % east  ->            90;
+                                                             % south ->            180;
+                                                             % west  ->            270;
+                preprocessing.addvar(obj, 'solarzenith', 28.4066); % zenith angle
+            if ~obj.lEB
+                preprocessing.addvar(obj, 'solarazimuth', 135); % azimuth angle
+                preprocessing.addvar(obj, 'xazimuth', 90);   % azimuth of x-direction wrt N. Default: x = East
+                                                             % north -> xazimuth = 0;
+                                                             % east  ->            90;
+                                                             % south ->            180;
+                                                             % west  ->            270;
+                preprocessing.addvar(obj, 'solarzenith', 28.4066); % zenith angle
                 preprocessing.addvar(obj, 'centerweight', 12 / 32);
                 preprocessing.addvar(obj, 'cornerweight', (1 - obj.centerweight) / 4);
-                preprocessing.addvar(obj, 'I', 184.8775); % Direct solar irradiation [W/m2]
-                preprocessing.addvar(obj, 'Dsk', 418.8041); % Diffuse incoming radiation [W/m2]
+                preprocessing.addvar(obj, 'I', 800); % Direct solar irradiation [W/m2]
+                preprocessing.addvar(obj, 'Dsky', 418.8041); % Diffuse incoming radiation [W/m2]
+                preprocessing.addvar(obj, 'lvfsparse', false) % Switch for turning on lvfsparse
+                preprocessing.addvar(obj, 'psc_res', 0.01); % Poly scan conversion resolution,lower number gives better results for solar radiation calculation 
+                preprocessing.addvar(obj, 'min_vf', 0.01); % Any vf below this is ignored in sparse format
             end
             preprocessing.addvar(obj, 'facT', 288.) % Initial facet temperatures.
             preprocessing.addvar(obj, 'nwalllayers', 3) % Number of facet layers
@@ -342,13 +368,14 @@ classdef preprocessing < dynamicprops
             preprocessing.addvar(obj, 'nblocks', 0)
             preprocessing.addvar(obj, 'nfcts', 0)
 
-            preprocessing.generate_walltypes(obj)
+            preprocessing.generate_factypes(obj)
+            preprocessing.addvar(obj, 'facT_file', '')
 
         end
 
-        function generate_walltypes(obj)
-            K = obj.nwalllayers;
-            walltypes = [];
+        function generate_factypes(obj)
+            K = obj.nfaclyrs;
+            factypes = [];
 
             % Bounding walls (bw)
             id_bw  = -101;
@@ -363,7 +390,7 @@ classdef preprocessing < dynamicprops
             l_bw   = 0.;
             k_bw   = 0.;
             bw = [id_bw, lGR_bw, z0_bw, z0h_bw, al_bw, em_bw, d_bw * ones(1,K), C_bw * ones(1,K), l_bw * ones(1,K), k_bw * ones(1,K+1)];
-            walltypes = [walltypes; bw];
+            factypes = [factypes; bw];
 
             % Floors (f)
             id_f  = -1;
@@ -378,12 +405,12 @@ classdef preprocessing < dynamicprops
             l_f   = 0.75;
             k_f   = 0.4e-6;
             if (K == 3)
-                % Reproduce the original walltypes.inp (d_f not constant for each layer)
+                % Reproduce the original factypes.inp (d_f not constant for each layer)
                 f =  [id_f, lGR_f, z0_f, z0h_f, al_f, em_f, 0.1, 0.2, 0.2, C_f * ones(1,K), l_f * ones(1,K), k_f * ones(1,K+1)];
             else
                 f =  [id_f, lGR_f, z0_f, z0h_f, al_f, em_f, d_f * ones(1,K), C_f * ones(1,K), l_f * ones(1,K), k_f * ones(1,K+1)];
             end
-            walltypes = [walltypes; f];
+            factypes = [factypes; f];
 
             % Dummy (dm)
             id_dm  = 0;
@@ -398,7 +425,7 @@ classdef preprocessing < dynamicprops
             l_dm = 0.75;
             k_dm = 0.4e-6;
             dm = [id_dm, lGR_dm, z0_dm, z0h_dm, al_dm, em_dm, d_dm * ones(1,K), C_dm * ones(1,K), l_dm * ones(1,K), k_dm * ones(1,K+1)];
-            walltypes = [walltypes; dm];
+            factypes = [factypes; dm];
 
             % Concrete (c)
             id_c  = 1;
@@ -413,7 +440,7 @@ classdef preprocessing < dynamicprops
             l_c = 1;
             k_c = 0.4e-6;
             c = [id_c, lGR_c, z0_c, z0h_c, al_c, em_c, d_c * ones(1,K), C_c * ones(1,K), l_c * ones(1,K), k_c * ones(1,K+1)];
-            walltypes = [walltypes; c];
+            factypes = [factypes; c];
 
             % Brick (b)
             id_b  = 2;
@@ -428,7 +455,7 @@ classdef preprocessing < dynamicprops
             l_b = 0.83;
             k_b = 0.3e-6;
             b = [id_b, lGR_b, z0_b, z0h_b, al_b, em_b, d_b * ones(1,K), C_b * ones(1,K), l_b * ones(1,K), k_b * ones(1,K+1)];
-            walltypes = [walltypes; b];
+            factypes = [factypes; b];
 
             % Stone (s)
             id_s  = 3;
@@ -443,7 +470,7 @@ classdef preprocessing < dynamicprops
             l_s = 2.19;
             k_s = 1e-6;
             s = [id_s, lGR_s, z0_s, z0h_s, al_s, em_s, d_s * ones(1,K), C_s * ones(1,K), l_s * ones(1,K), k_s * ones(1,K+1)];
-            walltypes = [walltypes; s];
+            factypes = [factypes; s];
 
             % Wood (w)
             id_w  = 4;
@@ -458,7 +485,7 @@ classdef preprocessing < dynamicprops
             l_w = 0.1;
             k_w = 0.1e-6;
             w = [id_w, lGR_w, z0_w, z0h_w, al_w, em_w, d_w * ones(1,K), C_w * ones(1,K), l_w * ones(1,K), k_w * ones(1,K+1)];
-            walltypes = [walltypes; w];
+            factypes = [factypes; w];
 
             % GR1
             id_GR1 = 11;
@@ -473,7 +500,7 @@ classdef preprocessing < dynamicprops
             l_GR1 = 2;
             k_GR1 = 0.4e-6;
             GR1 = [id_GR1, lGR_GR1, z0_GR1, z0h_GR1, al_GR1, em_GR1, d_GR1 * ones(1,K), C_GR1 * ones(1,K), l_GR1 * ones(1,K), k_GR1 * ones(1,K+1)];
-            walltypes = [walltypes; GR1];
+            factypes = [factypes; GR1];
 
             % GR2
             id_GR2 = 12;
@@ -488,15 +515,15 @@ classdef preprocessing < dynamicprops
             l_GR2 = 0.8;
             k_GR2 = 0.4e-6;
             GR2 = [id_GR2, lGR_GR2, z0_GR2, z0h_GR2, al_GR2, em_GR2, d_GR2 * ones(1,K), C_GR2 * ones(1,K), l_GR2 * ones(1,K), k_GR2 * ones(1,K+1)];
-            walltypes = [walltypes; GR2];
+            factypes = [factypes; GR2];
 
-            preprocessing.addvar(obj, 'walltypes', walltypes);
+            preprocessing.addvar(obj, 'factypes', factypes);
         end
 
-        function write_walltypes(obj)
-            K = obj.nwalllayers;
+        function write_factypes(obj)
+            K = obj.nfaclyrs;
 
-            fname = ['walltypes.inp.', obj.expnr];
+            fname = ['factypes.inp.', obj.expnr];
 
             dheaderstring = '';
             for k=1:K
@@ -541,10 +568,10 @@ classdef preprocessing < dynamicprops
 
             valstring = [valstring1, valstring2];
 
-            [nwalltypes, ~] = size(obj.walltypes);
+            [nfactypes, ~] = size(obj.factypes);
 
-            for i = 1:nwalltypes
-                fprintf(fileID, sprintf(valstring, obj.walltypes(i,:)));
+            for i = 1:nfactypes
+                fprintf(fileID, sprintf(valstring, obj.factypes(i,:)));
                 fprintf(fileID, '\n');
             end
 
@@ -3440,7 +3467,7 @@ classdef preprocessing < dynamicprops
 
         function rayit(obj)
             facets = obj.facets;
-            walltypes = obj.walltypes;
+            walltypes = obj.factypes;
              function [fct, wall] = loadfacets()
                 %M = dlmread(['facets.inp.' num2str(expnr)],'',1,0);
                 vars = {'or', 'wlid', 'blk', 'bld'};

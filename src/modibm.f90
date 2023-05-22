@@ -582,13 +582,14 @@ module modibm
      if (ltempeq) then
         ! Solid value should not matter - choose domain-average for visualization.
         call solid(solid_info_c, thlm, thlp, sum(thl0av(kb:ke)*dzf(kb:ke))/zh(ke+1), ih, jh, kh)
-        call advecc2nd_corr_liberal(thl0, thlp)
-        ! call advecc2nd_corr_conservative(thl0, thlp)
+        !call advecc2nd_corr_liberal(thl0, thlp)
+        call advecc2nd_corr_conservative(thl0, thlp)
      end if
 
      if (lmoist) then
        call solid(solid_info_c, qtm, qtp, 0., ih, jh, kh)
-       call advecc2nd_corr_liberal(qt0, qtp)
+       !call advecc2nd_corr_liberal(qt0, qtp)
+       call advecc2nd_corr_conservative(thl0, thlp)
     end if
 
     do n=1,nsv
@@ -1202,6 +1203,7 @@ module modibm
      use modsurfdata, only : z0, z0h
      use modibmdata, only : bctfxm, bctfxp, bctfym, bctfyp, bctfz
      use decomp_2d, only : zstart
+     use modmpi, only : myid
 
      type(bound_info_type) :: bound_info
      integer i, j, k, n, m, sec, fac
@@ -1286,10 +1288,17 @@ module modibm
          thlp(i,j,k) = thlp(i,j,k) - flux * bound_info%secareas(sec) / (dx*dy*dzh(k))
 
          if (lEB) then
-           !write(*,*) 'Adding flux from wf', iwalltemp
+
+
            fluxTrhs = - flux * bound_info%secareas(sec) / (dx*dy*dzh(k)) ! cew216 This is used for the peirodicEBcorr forcing [K/s]
            totheatflux = totheatflux + fluxTrhs ! Add the contribution from each point
+
            fachf(fac) = fachf(fac) + flux * bound_info%secareas(sec) ! [Km^2/s] (will be divided by facetarea(fac) in modEB)
+           if (myid == 0) then
+             ! write(*,*) 'Adding flux from wf', iwalltemp
+             ! write(*,*) 'flux', flux
+             ! write(*,*) 'fluxTrhs', fluxTrhs
+           end if
          end if
        end if
 

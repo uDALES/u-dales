@@ -61,7 +61,7 @@ for facet=1:size(TR.ConnectivityList,1)
     end
 
     if isempty(il)
-        error('problem with lower x coord'); 
+        error('problem with lower x coord');
     end
     if isempty(iu)
         error('problem with upper x coord');
@@ -70,7 +70,7 @@ for facet=1:size(TR.ConnectivityList,1)
         error('problem with lower y coord');
     end
     if isempty(ju)
-        error('problem with upper y coord'); 
+        error('problem with upper y coord');
     end
     if isempty(kl)
         error('problem with lower z coord')
@@ -78,18 +78,18 @@ for facet=1:size(TR.ConnectivityList,1)
     if isempty(ku)
         error('problem with upper z coord')
     end
-    
+
     % Facet exists in cell N+1.
     % Freqently occurs for u and v grids, currently the solution is to
     % double cell 1 areas in periodic cases (because cell N+1 = cell 1).
-    % This causes small errors due to the shape of facets. 
+    % This causes small errors due to the shape of facets.
     if iu > length(xgrid)
         iu = length(xgrid);
     end
     if ju > length(ygrid)
         ju = length(ygrid);
     end
-    
+
 
     %stopflag = false;
     for i=il:iu
@@ -126,18 +126,11 @@ for facet=1:size(TR.ConnectivityList,1)
                 if ~isempty(clip)
                     if (size(clip,1) == 3) % triangle
                         area = 1/2*norm(cross(clip(2,:)-clip(1,:),clip(3,:)-clip(1,:)));
-                        
-<<<<<<< HEAD
+
 %                         if (area < tol)
 %                             disp(['Facet ' num2str(facet) ' in cell ' num2str(i) ',' num2str(j) ',' num2str(k) ' has zero area'])
 %                             continue
 %                         end
-=======
-                        if (area < tol)
-                            %disp(['Facet ' num2str(facet) ' in cell ' num2str(i) ',' num2str(j) ',' num2str(k) ' has zero area'])
-                            continue
-                        end
->>>>>>> ecse
 
                         tri = triangulation([1 2 3], clip);
 
@@ -166,17 +159,10 @@ for facet=1:size(TR.ConnectivityList,1)
                         projArea = polyarea(projVert(:,ids(1)), projVert(:,ids(2)));
                         area = projArea / angle;
 
-<<<<<<< HEAD
 %                         if (area < tol)
 %                             disp(['Facet ' num2str(facet) ' in cell ' num2str(i) ',' num2str(j) ',' num2str(k) ' has zero area'])
 %                             continue
 %                         end
-=======
-                        if (area < tol)
-                            %disp(['Facet ' num2str(facet) ' in cell ' num2str(i) ',' num2str(j) ',' num2str(k) ' has zero area'])
-                            continue
-                        end
->>>>>>> ecse
 
                         switch size(clip,1)
                             case 4
@@ -190,7 +176,7 @@ for facet=1:size(TR.ConnectivityList,1)
                     else
                         error('something wrong with clipped polygon')
                     end
-                    
+
                     % If on the u/v grid on cell 1, double the area to
                     % account for omitting cell N+1.
                     if ((xgrid(i) == 0. && periodic_x) || (ygrid(j) == 0. && periodic_y))% || zgrid(k) == 0.))% && k==1)
@@ -211,12 +197,12 @@ for facet=1:size(TR.ConnectivityList,1)
 
                     if fluid_IB(i,j,k)
                         [~, loc] = ismember([xgrid(i), ygrid(j), zgrid(k)], fluid_IB_xyz, 'rows');
-                        facet_section(3) = loc; 
+                        facet_section(3) = loc;
 
                         xyz27 = [xgrid(i), ygrid(j), zgrid(k)];
                         [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz27, 'UseSubSurface', false);
                         angle = dot(TR.faceNormal(facet), (xyz27 - BI)/vecnorm((xyz27 - BI)));
-                        %if (typeid == 3) 
+                        %if (typeid == 3)
                         % Wall-normal defined, use this cell
                         if (abs(angle - 1) < eps)
                             id = 27;
@@ -502,13 +488,13 @@ for facet=1:size(TR.ConnectivityList,1)
                         end
 
                         if (isnan(dist))
-                            % disp(['Facet ' num2str(facet) ' in cell ' num2str(i) ',' num2str(j) ',' num2str(k) ' has no neighbouring fluid cells'])
+                            disp(['Facet ' num2str(facet) ' in cell ' num2str(i) ',' num2str(j) ',' num2str(k) ' has no neighbouring fluid cells, error in geom. STL aligns with grid'])
                             % probably internal, or if w grid, facets at
                             % the bottom of the domain, but check.
                             % Need to remove these sections from
                             % the total area calculation.
                             % clf
-                            
+
                             if (xgrid(1) == 0)
                                 title('u')
                             elseif (ygrid(1) == 0)
@@ -518,17 +504,18 @@ for facet=1:size(TR.ConnectivityList,1)
                             else
                                 title('c')
                             end
-
+                            figure
                             view(3)
-                            patch('Faces', TR.ConnectivityList, 'Vertices', TR.Points, 'FaceColor', ones(3,1)*69/100, 'FaceAlpha', 0.5)
+                            %patch('Faces', TR.ConnectivityList, 'Vertices', TR.Points, 'FaceColor', ones(3,1)*69/100, 'FaceAlpha', 0.5)
                             %patch('Faces', [1 2 3], 'Vertices', TR.Points(TR.ConnectivityList(facet,:),:), 'FaceColor', [1,0,0], 'FaceAlpha', 0.5)
-                            hold on
+                            %hold on
                             incenter = TR.incenter(1); faceNormal = TR.faceNormal;
                             quiver3(incenter(1), incenter(2), incenter(3), faceNormal(1), faceNormal(2), faceNormal(3))
                             V = [xl yl zl; xu yl zl; xu yu zl; xl yu zl; ...
                                 xl yl zu; xu yl zu; xu yu zu; xl yu zu];
                             F = [1 2 3 4; 2 6 7 3; 4 3 7 8; 1 5 8 4; 1 2 6 5; 5 6 7 8];
                             patch('Faces', F, 'Vertices', V, 'FaceColor', [1,1,1], 'FaceAlpha', 0.5)
+                            hold on
                             trisurf(tri)
                             axis equal
                             xlabel('x')
@@ -606,7 +593,7 @@ for facet=1:size(TR.ConnectivityList,1)
                     facet_section(6) = abs(dist);
                     facet_section(7:9) = BI;
                     facet_sections = [facet_sections; facet_section];
-                     
+
 %                     [id, loc] = ismember(xyz, fluid_IB_xyz_cut, 'rows');
 %                     if id % the cell has already been logged as IB
 %                         fluid_IB_facids{loc}(end+1) = facet;
@@ -649,8 +636,8 @@ for facet=1:size(TR.ConnectivityList,1)
                                 xl yl zu; xu yl zu; xu yu zu; xl yu zu];
                             patch('Faces', F, 'Vertices', V, 'FaceColor', [1,1,1], 'FaceAlpha', 0.5)
                         end
-                        %patch('Faces', 1:size(clip,1), 'Vertices', clip, 'FaceColor', [0,0,1], 'FaceAlpha', 0.5)
-                        trisurf(tri)
+                        patch('Faces', 1:size(clip,1), 'Vertices', clip, 'FaceColor', [0,0,1], 'FaceAlpha', 0.5)
+                        %trisurf(tri)
                         axis equal
                         %                     xlim([xgrid(il-2) xgrid(iu+2)])
                         %                     ylim([ygrid(jl-2) ygrid(ju+2)])
@@ -674,27 +661,27 @@ end
 
 % %%
 % figure
-% 
+%
 % %i=13; j=57; k=66;
 % %facet = 895;
-% 
+%
 % view(3)
 % patch('Faces', [1 2 3], 'Vertices', TR.Points(TR.ConnectivityList(facet,:),:), 'FaceColor', [1,0,0], 'FaceAlpha', 0.5)
 % %patch('Faces', TR.ConnectivityList, 'Vertices', TR.Points, 'FaceColor', ones(3,1)*69/100, 'FaceAlpha', 1)
 % hold on
-% 
+%
 % xl = xgrid(i) - dx/2;
 % xu = xgrid(i) + dx/2;
 % yl = ygrid(j) - dy/2;
 % yu = ygrid(j) + dy/2;
 % zl = zgrid(k) - dz/2;
 % zu = zgrid(k) + dz/2;
-% 
+%
 % V = [xl yl zl; xu yl zl; xu yu zl; xl yu zl; ...
 %     xl yl zu; xu yl zu; xu yu zu; xl yu zu];
 % F = [1 2 3 4; 2 6 7 3; 4 3 7 8; 1 5 8 4; 1 2 6 5; 5 6 7 8];
 % patch('Faces', F, 'Vertices', V, 'FaceColor', [1,0,1], 'FaceAlpha', 0.5)
-% 
+%
 % if (solid(i,j,k))
 % if i~=1
 %     if fluid(i-1,j,k)
@@ -757,7 +744,7 @@ end
 %     end
 % end
 % end
-% 
+%
 % %patch('Faces', 1:size(clip,1), 'Vertices', clip, 'FaceColor', [0,0,1], 'FaceAlpha', 0.5)
 % axis equal
 % % xlim([xgrid(il-2) xgrid(iu+2)])
