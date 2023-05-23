@@ -19,16 +19,13 @@
 % It will write out the following files:
 % solid_u/v/w: list of indices of solid points (inside the geometry).
 %   Calculated using inpolyhedron if lmypoly=false, or using Dipanjan's routine
-%   if lmypoly=true, which requires a closed triangulation (DON'T THINK
-%   THIS IS TRUE ANY MORE).
+%   if lmypoly=true.
 % fluid_boundary_u/v/w: list of indices of fluid points that have solid neighbours.
 % facet_sections_u/v/w: list of facet section information: facet id,
 %   section area, fluid boundary point id, distance to section/surface as a whole (_2)
 
-% Note for now a tolerance of 1e-10 is used here and there to avoid precision errors.
 nfcts = size(TR,1);
 %% Determine total area of surface
-tol = 1e-10;
 
 if lmypoly
     Dir_ray_u = [0 0 1];
