@@ -65,7 +65,7 @@ contains
     integer imin,ihour
     integer i,j,k,n,im,ip,jm,jp,jpp,km,kp,kpp,il,iu,jl,ju,kl,ku
     character(21) name,name2,name3,name4,linkname
-    integer :: ierr
+    integer :: ierr, err_code
 
     if (timee == 0) return
 !    if (rk3step /=3) return
@@ -81,8 +81,11 @@ contains
     end if
     call MPI_Bcast(lexitnow, 1, MPI_LOGICAL, 0, comm3d, ierr)
     if (ierr /= 0) then
-      print *, "Error in MPI Broadcast!"
-      stop
+      if (myid == 0) then
+        print *, "Error in MPI Broadcast!"
+      end if
+      err_code = ierr
+      call MPI_Abort(MPI_COMM_WORLD, err_code, ierr)
     end if
 
     if (((timee>=tnextrestart)) .or. ((lexitnow) .or. (nstepread == nstore+1))) then
