@@ -373,7 +373,7 @@ disp('Written fluid_boundary_c.txt')
 % Facet sections
 filename_c = [fpath 'facet_sections_c.txt'];
 fileID_c = fopen(filename_c,'W');
-fprintf(fileID_c, '# facet, area, fluid boundary point, boundary intercept\n');
+fprintf(fileID_c, '# facet, area, fluid boundary point, distance\n');
 fprintf(fileID_c, '%-2d %-4.4f %-4d %-4.8f\n', facet_sections_c(:,[1,2,5,6])');
 fclose(fileID_c);
 disp('Written facet_sections_c.txt')
