@@ -125,10 +125,10 @@ for facet=1:Nf
                     if (size(clip,1) == 3) % triangle
                         area = 1/2*norm(cross(clip(2,:)-clip(1,:),clip(3,:)-clip(1,:)));
 
-%                         if (area < tol)
-%                             disp(['Facet ' num2str(facet) ' in cell ' num2str(i) ',' num2str(j) ',' num2str(k) ' has zero area'])
-%                             continue
-%                         end
+                         if (area < tol)
+                             disp(['Facet ' num2str(facet) ' in cell ' num2str(i) ',' num2str(j) ',' num2str(k) ' has zero area'])
+                             continue
+                         end
 
                         tri = triangulation([1 2 3], clip);
 
@@ -157,10 +157,10 @@ for facet=1:Nf
                         projArea = polyarea(projVert(:,ids(1)), projVert(:,ids(2)));
                         area = projArea / angle;
 
-%                         if (area < tol)
-%                             disp(['Facet ' num2str(facet) ' in cell ' num2str(i) ',' num2str(j) ',' num2str(k) ' has zero area'])
-%                             continue
-%                         end
+                        if (area < tol)
+                            disp(['Facet ' num2str(facet) ' in cell ' num2str(i) ',' num2str(j) ',' num2str(k) ' has zero area'])
+                            continue
+                        end
 
                         switch size(clip,1)
                             case 4
@@ -502,7 +502,8 @@ for facet=1:Nf
                             else
                                 title('c')
                             end
-                            figure
+                            %figure % Turn off when running as makes too
+                            %many figures
                             view(3)
                             %patch('Faces', TR.ConnectivityList, 'Vertices', TR.Points, 'FaceColor', ones(3,1)*69/100, 'FaceAlpha', 0.5)
                             %patch('Faces', [1 2 3], 'Vertices', TR.Points(TR.ConnectivityList(facet,:),:), 'FaceColor', [1,0,0], 'FaceAlpha', 0.5)

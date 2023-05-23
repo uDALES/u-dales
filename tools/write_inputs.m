@@ -20,10 +20,11 @@
 % This script is run by the bash script da_inp.sh.
 % It used to generate the necessary input files for uDALES.
 
-expnr = '102';
-
-DA_EXPDIR = getenv('DA_EXPDIR');
-DA_TOOLSDIR = getenv('DA_TOOLSDIR');
+expnr = '027';
+% DA_EXPDIR = getenv('DA_EXPDIR');
+% DA_TOOLSDIR = getenv('DA_TOOLSDIR');
+DA_EXPDIR = '/media/chris/Project3/uDALES2.0/experiments'
+DA_TOOLSDIR = '/media/chris/Project3/uDALES2.0/u-dales/tools'     
 addpath(genpath([DA_TOOLSDIR '/']));
 addpath([DA_TOOLSDIR '/IBM/'])
 addpath([DA_TOOLSDIR '/SEB/'])
@@ -57,7 +58,7 @@ else
     preprocessing.write_factypes(r)
     disp(['Written factypes.inp', r.expnr])
 end
-%% Do geom stuff
+
 
 %% Read the .stl file and write necessary ibm files
 TR = stlread(r.stl_file);
@@ -118,6 +119,8 @@ if r.lEB
     fpath_vf = [fpath 'vf.txt'];
     vf = view3d(view3d_exe, fpath_facets_view3d, fpath_vf);
     svf = max(1 - sum(vf, 2), 0);
+
+    preprocessing.write_svf(r, svf)
 
     if ~r.lvfsparse
         preprocessing.write_vf(r, vf)

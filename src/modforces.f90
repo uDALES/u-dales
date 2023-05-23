@@ -956,7 +956,8 @@ module modforces
   end if
 
    if (ltempeq) then
-     ! write(*,*) 'divisor', itot*jtot*(ke-sinkbase)
+    write(*,*) 'divisor', itot*jtot*(ke-sinkbase)
+    Write(*,*) 'tot_flux', tot_Tflux
      do i = ib,ie
        do j = jb,je
          do k = sinkbase +1 , ke!max_height_index +1 , ke ! Only apply the correction over the volume above the buidlings

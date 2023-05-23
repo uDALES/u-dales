@@ -453,7 +453,7 @@ patch('Faces', TR.ConnectivityList, 'Vertices', TR.Points, 'FaceColor', ones(3,1
 hold on
 incenters = TR.incenter;
 faceNormals = TR.faceNormal;
-quiver3(incenters(:,1), incenters(:,2), incenters(:,3), faceNormals(:,1), faceNormals(:,2), faceNormals(:,3), 0)
+%quiver3(incenters(:,1), incenters(:,2), incenters(:,3), faceNormals(:,1), faceNormals(:,2), faceNormals(:,3), 0)
 view(3)
 
 axis equal tight
@@ -463,9 +463,9 @@ axis equal tight
 % zlim([0 Lz])
 %
 %scatter3(X_u(solid_u), Y_u(solid_u), Z_u(solid_u), 10,[0,0,1],'filled')
-%scatter3(X_v(solid_v), Y_v(solid_v), Z_v(solid_v), 10,[0,0,1],'filled')
+scatter3(X_v(solid_v), Y_v(solid_v), Z_v(solid_v), 10,[0,0,1],'filled')
 % scatter3(X_w(solid_w), Y_w(solid_w), Z_w(solid_w), 10,[0,0,1],'filled')
-% scatter3(X_c(solid_c), Y_c(solid_c), Z_c(solid_c), 10,[0,0,1],'filled')
+%scatter3(X_c(solid_c), Y_c(solid_c), Z_c(solid_c), 10,[0,0,1],'filled')
 
 %scatter3(X_u(fluid_IB_u), Y_u(fluid_IB_u), Z_u(fluid_IB_u), 10,[0,0,1],'filled')
 %scatter3(X_v(fluid_IB_v), Y_v(fluid_IB_v), Z_v(fluid_IB_v), 10,[0,0,1],'filled')
@@ -500,8 +500,8 @@ axis equal tight
 % %quiver3(fluid_IB_xyz_w(:,1), fluid_IB_xyz_w(:,2), fluid_IB_xyz_w(:,3), fluid_IB_rec_vec_w(:,1), fluid_IB_rec_vec_w(:,2), fluid_IB_rec_vec_w(:,3),'off')
 %
 % %% c
-% scatter3(fluid_IB_xyz_c(:,1),fluid_IB_xyz_c(:,2),fluid_IB_xyz_c(:,3),10,[0,0,1],'filled')
-% %scatter3(solid_IB_xyz_c(:,1),solid_IB_xyz_c(:,2),solid_IB_xyz_c(:,3),10,[0,0,1],'filled')
-% quiver3(fluid_IB_BI_c(:,1), fluid_IB_BI_c(:,2), fluid_IB_BI_c(:,3), fluid_IB_vec_c(:,1), fluid_IB_vec_c(:,2), fluid_IB_vec_c(:,3),'off')
+%scatter3(fluid_IB_xyz_c(:,1),fluid_IB_xyz_c(:,2),fluid_IB_xyz_c(:,3),10,[0,0,1],'filled')
+%scatter3(solid_IB_xyz_c(:,1),solid_IB_xyz_c(:,2),solid_IB_xyz_c(:,3),10,[0,0,1],'filled')
+ %quiver3(fluid_IB_BI_c(:,1), fluid_IB_BI_c(:,2), fluid_IB_BI_c(:,3), fluid_IB_vec_c(:,1), fluid_IB_vec_c(:,2), fluid_IB_vec_c(:,3),'off')
 % %scatter3(fluid_IB_rec_c(:,1),fluid_IB_rec_c(:,2),fluid_IB_rec_c(:,3),10,[0,0,1],'filled')
-% %quiver3(fluid_IB_xyz_c(:,1), fluid_IB_xyz_c(:,2), fluid_IB_xyz_c(:,3), fluid_IB_rec_vec_c(:,1), fluid_IB_rec_vec_c(:,2), fluid_IB_rec_vec_c(:,3),'off')
+% quiver3(fluid_IB_xyz_c(:,1), fluid_IB_xyz_c(:,2), fluid_IB_xyz_c(:,3), fluid_IB_rec_vec_c(:,1), fluid_IB_rec_vec_c(:,2), fluid_IB_rec_vec_c(:,3),'off')

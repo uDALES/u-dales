@@ -589,7 +589,7 @@ module modibm
      if (lmoist) then
        call solid(solid_info_c, qtm, qtp, 0., ih, jh, kh)
        !call advecc2nd_corr_liberal(qt0, qtp)
-       call advecc2nd_corr_conservative(thl0, thlp)
+       call advecc2nd_corr_conservative(qt0, qtp)
     end if
 
     do n=1,nsv
@@ -1237,23 +1237,11 @@ module modibm
          ! fluid volumetric sensible heat source/sink = flux * area / volume [K/s]
          ! facet sensible heat flux = volumetric heat capacity of air * flux * sectionarea / facetarea [W/m^2]
          thlp(i,j,k) = thlp(i,j,k) - flux * bound_info_c%secareas(sec) / (dx*dy*dzh(k))
-
          if (lEB) then
-<<<<<<< HEAD
-
-
-           fluxTrhs = - flux * bound_info%secareas(sec) / (dx*dy*dzh(k)) ! cew216 This is used for the peirodicEBcorr forcing [K/s]
+           write(*,*) 'fac', fac
+           fluxTrhs = - flux * bound_info_c%secareas(sec) / (dx*dy*dzh(k)) ! cew216 This is used for the peirodicEBcorr forcing [K/s]
            totheatflux = totheatflux + fluxTrhs ! Add the contribution from each point
-
-           fachf(fac) = fachf(fac) + flux * bound_info%secareas(sec) ! [Km^2/s] (will be divided by facetarea(fac) in modEB)
-           if (myid == 0) then
-             ! write(*,*) 'Adding flux from wf', iwalltemp
-             ! write(*,*) 'flux', flux
-             ! write(*,*) 'fluxTrhs', fluxTrhs
-           end if
-=======
            fachf(fac) = fachf(fac) + flux * bound_info_c%secareas(sec) ! [Km^2/s] (will be divided by facetarea(fac) in modEB)
->>>>>>> ecse
          end if
        end if
 
