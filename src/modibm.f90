@@ -707,27 +707,27 @@ module modibm
          j = bound_info_c%bndpts(n,2) - zstart(2) + 1
          k = bound_info_c%bndpts(n,3) - zstart(3) + 1
 
-         if (abs(mask_u(i+1,j,k)) < eps1) then ! can't use u0(i+1)
+         if ((abs(mask_u(i+1,j,k)) < eps1) .or. (abs(mask_c(i+1,j,k)) < eps1)) then
            rhs(i,j,k) = rhs(i,j,k) + u0(i+1,j,k)*(var(i+1,j,k) + var(i,j,k))*dxi5
          end if
 
-         if (abs(mask_u(i,j,k)) < eps1) then ! can't use u0(i)
+         if ((abs(mask_u(i,j,k)) < eps1) .or. (abs(mask_c(i-1,j,k)) < eps1)) then
            rhs(i,j,k) = rhs(i,j,k) - u0(i,j,k)*(var(i-1,j,k) + var(i,j,k))*dxi5
          end if
 
-         if (abs(mask_v(i,j+1,k)) < eps1) then
+         if ((abs(mask_v(i,j+1,k)) < eps1) .or. (abs(mask_c(i,j+1,k)) < eps1)) then
            rhs(i,j,k) = rhs(i,j,k) + v0(i,j+1,k)*(var(i,j+1,k) + var(i,j,k))*dyi5
          end if
 
-         if (abs(mask_v(i,j,k)) < eps1) then
+         if ((abs(mask_v(i,j,k)) < eps1) .or. (abs(mask_c(i,j-1,k)) < eps1)) then
            rhs(i,j,k) = rhs(i,j,k) - v0(i,j,k)*(var(i,j-1,k) + var(i,j,k))*dyi5
          end if
 
-         if (abs(mask_w(i,j,k+1)) < eps1) then
+         if ((abs(mask_w(i,j,k+1)) < eps1) .or. (abs(mask_c(i,j,k+1)) < eps1)) then
            rhs(i,j,k) = rhs(i,j,k) + w0(i,j,k+1)*(var(i,j,k+1)*dzf(k) + var(i,j,k)*dzf(k+1))*dzhi(k+1)*dzfi5(k)
          end if
 
-         if (abs(mask_w(i,j,k)) < eps1) then
+         if ((abs(mask_w(i,j,k)) < eps1) .or. (abs(mask_c(i,j,k-1)) < eps1)) then
            rhs(i,j,k) = rhs(i,j,k) - w0(i,j,k)*(var(i,j,k-1)*dzf(k) + var(i,j,k)*dzf(k-1))*dzhi(k)*dzfi5(k)
          end if
 
