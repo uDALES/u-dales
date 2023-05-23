@@ -198,7 +198,7 @@ for facet=1:Nf
                         facet_section(3) = loc; 
 
                         xyz27 = [xgrid(i), ygrid(j), zgrid(k)];
-                        [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz27, 'UseSubSurface', false);
+                        [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz27+tol, 'UseSubSurface', false);
                         angle = dot(TR.faceNormal(facet), (xyz27 - BI)/vecnorm((xyz27 - BI)));
                         %if (typeid == 3) 
                         % Wall-normal defined, use this cell
@@ -227,7 +227,7 @@ for facet=1:Nf
                         if i~=1
                             if fluid_IB(i-1,j,k)
                                 xyz1 = [xgrid(i-1), ygrid(j), zgrid(k)];
-                                [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz1, 'UseSubSurface', false);
+                                [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz1+tol, 'UseSubSurface', false);
                                 dists(1) = dist;
                                 typeids(1) = typeid;
                                 angles(1) = dot(TR.faceNormal(facet), (xyz1- BI)/vecnorm((xyz1 - BI)));
@@ -237,7 +237,7 @@ for facet=1:Nf
                         if i~=itot
                             if fluid_IB(i+1,j,k)
                                 xyz2 = [xgrid(i+1), ygrid(j), zgrid(k)];
-                                [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz2, 'UseSubSurface', false);
+                                [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz2+tol, 'UseSubSurface', false);
                                 dists(2) = dist;
                                 typeids(2) = typeid;
                                 angles(2) = dot(TR.faceNormal(facet), (xyz2- BI)/vecnorm((xyz2 - BI)));
@@ -247,7 +247,7 @@ for facet=1:Nf
                         if j~=1
                             if fluid_IB(i,j-1,k)
                                 xyz3 = [xgrid(i), ygrid(j-1), zgrid(k)];
-                                [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz3, 'UseSubSurface', false);
+                                [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz3+tol, 'UseSubSurface', false);
                                 dists(3) = dist;
                                 typeids(3) = typeid;
                                 angles(3) = dot(TR.faceNormal(facet), (xyz3- BI)/vecnorm((xyz3 - BI)));
@@ -257,7 +257,7 @@ for facet=1:Nf
                         if j~=jtot
                             if fluid_IB(i,j+1,k)
                                 xyz4 = [xgrid(i), ygrid(j+1), zgrid(k)];
-                                [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz4, 'UseSubSurface', false);
+                                [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz4+tol, 'UseSubSurface', false);
                                 dists(4) = dist;
                                 typeids(4) = typeid;
                                 angles(4) = dot(TR.faceNormal(facet), (xyz4- BI)/vecnorm((xyz4 - BI)));
@@ -267,7 +267,7 @@ for facet=1:Nf
                         if k~=1
                             if fluid_IB(i,j,k-1)
                                 xyz5 = [xgrid(i), ygrid(j), zgrid(k-1)];
-                                [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz5, 'UseSubSurface', false);
+                                [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz5+tol, 'UseSubSurface', false);
                                 dists(5) = dist;
                                 typeids(5) = typeid;
                                 angles(5) = dot(TR.faceNormal(facet), (xyz5 - BI)/vecnorm((xyz5 - BI)));
@@ -277,7 +277,7 @@ for facet=1:Nf
                         if k~=ktot
                             if fluid_IB(i,j,k+1)
                                 xyz6 = [xgrid(i), ygrid(j), zgrid(k+1)];
-                                [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz6, 'UseSubSurface', false);
+                                [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz6+tol, 'UseSubSurface', false);
                                 dists(6) = dist;
                                 typeids(6) = typeid;
                                 angles(6) = dot(TR.faceNormal(facet), (xyz6- BI)/vecnorm((xyz6 - BI)));
@@ -289,7 +289,7 @@ for facet=1:Nf
                             if (i~=1 && j~=1)
                                 if fluid_IB(i-1,j-1,k)
                                     xyz7 = [xgrid(i-1), ygrid(j-1), zgrid(k)];
-                                    [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz7, 'UseSubSurface', false);
+                                    [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz7+tol, 'UseSubSurface', false);
                                     dists(7) = dist;
                                     typeids(7) = typeid;
                                     angles(7) = dot(TR.faceNormal(facet), (xyz7 - BI)/vecnorm((xyz7 - BI)));
@@ -298,7 +298,7 @@ for facet=1:Nf
                             if (i~=1 && j~=jtot)
                                 if fluid_IB(i-1,j+1,k)
                                     xyz8 = [xgrid(i-1), ygrid(j+1), zgrid(k)];
-                                    [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz8, 'UseSubSurface', false);
+                                    [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz8+tol, 'UseSubSurface', false);
                                     dists(8) = dist;
                                     typeids(8) = typeid;
                                     angles(8) = dot(TR.faceNormal(facet), (xyz8 - BI)/vecnorm((xyz8 - BI)));
@@ -307,7 +307,7 @@ for facet=1:Nf
                             if (i~=itot && j~=1)
                                 if fluid_IB(i+1,j-1,k)
                                     xyz9 = [xgrid(i+1), ygrid(j-1), zgrid(k)];
-                                    [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz9, 'UseSubSurface', false);
+                                    [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz9+tol, 'UseSubSurface', false);
                                     dists(9) = dist;
                                     typeids(9) = typeid;
                                     angles(9) = dot(TR.faceNormal(facet), (xyz9 - BI)/vecnorm((xyz9 - BI)));
@@ -316,7 +316,7 @@ for facet=1:Nf
                             if (i~=itot && j~=jtot)
                                 if fluid_IB(i+1,j+1,k)
                                     xyz10 = [xgrid(i+1), ygrid(j+1), zgrid(k)];
-                                    [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz10, 'UseSubSurface', false);
+                                    [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz10+tol, 'UseSubSurface', false);
                                     dists(10) = dist;
                                     typeids(10) = typeid;
                                     angles(10) = dot(TR.faceNormal(facet), (xyz10 - BI)/vecnorm((xyz10 - BI)));
@@ -326,7 +326,7 @@ for facet=1:Nf
                             if (i~=1 && k~=1)
                                 if fluid_IB(i-1,j,k-1)
                                     xyz11 = [xgrid(i-1), ygrid(j), zgrid(k-1)];
-                                    [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz11, 'UseSubSurface', false);
+                                    [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz11+tol, 'UseSubSurface', false);
                                     dists(11) = dist;
                                     typeids(11) = typeid;
                                     angles(11) = dot(TR.faceNormal(facet), (xyz11- BI)/vecnorm((xyz11 - BI)));
@@ -335,7 +335,7 @@ for facet=1:Nf
                             if (i~=1 && k~=ktot)
                                 if fluid_IB(i-1,j,k+1)
                                     xyz12 = [xgrid(i-1), ygrid(j), zgrid(k+1)];
-                                    [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz12, 'UseSubSurface', false);
+                                    [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz12+tol, 'UseSubSurface', false);
                                     dists(12) = dist;
                                     typeids(12) = typeid;
                                     angles(12) = dot(TR.faceNormal(facet), (xyz12 - BI)/vecnorm((xyz12 - BI)));
@@ -344,7 +344,7 @@ for facet=1:Nf
                             if (i~=itot && k~=1)
                                 if fluid_IB(i+1,j,k-1)
                                     xyz13 = [xgrid(i+1), ygrid(j), zgrid(k-1)];
-                                    [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz13, 'UseSubSurface', false);
+                                    [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz13+tol, 'UseSubSurface', false);
                                     dists(13) = dist;
                                     typeids(13) = typeid;
                                     angles(13) = dot(TR.faceNormal(facet), (xyz13 - BI)/vecnorm((xyz13 - BI)));
@@ -353,7 +353,7 @@ for facet=1:Nf
                             if (i~=itot && k~=ktot)
                                 if fluid_IB(i+1,j,k+1)
                                     xyz14 = [xgrid(i+1), ygrid(j), zgrid(k+1)];
-                                    [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz14, 'UseSubSurface', false);
+                                    [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz14+tol, 'UseSubSurface', false);
                                     dists(14) = dist;
                                     typeids(14) = typeid;
                                     angles(14) = dot(TR.faceNormal(facet), (xyz14 - BI)/vecnorm((xyz14 - BI)));
@@ -363,7 +363,7 @@ for facet=1:Nf
                             if (j~=1 && k~=1)
                                 if fluid_IB(i,j-1,k-1)
                                     xyz15 = [xgrid(i), ygrid(j-1), zgrid(k-1)];
-                                    [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz15, 'UseSubSurface', false);
+                                    [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz15+tol, 'UseSubSurface', false);
                                     dists(15) = dist;
                                     typeids(15) = typeid;
                                     angles(15) = dot(TR.faceNormal(facet), (xyz15 - BI)/vecnorm((xyz15 - BI)));
@@ -372,7 +372,7 @@ for facet=1:Nf
                             if (j~=1 && k~=ktot)
                                 if fluid_IB(i,j-1,k+1)
                                     xyz16 = [xgrid(i), ygrid(j-1), zgrid(k+1)];
-                                    [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz16, 'UseSubSurface', false);
+                                    [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz16+tol, 'UseSubSurface', false);
                                     dists(16) = dist;
                                     typeids(16) = typeid;
                                     angles(16) = dot(TR.faceNormal(facet), (xyz16 - BI)/vecnorm((xyz16 - BI)));
@@ -381,7 +381,7 @@ for facet=1:Nf
                             if (j~=jtot && k~=1)
                                 if fluid_IB(i,j+1,k-1)
                                     xyz17 = [xgrid(i), ygrid(j+1), zgrid(k-1)];
-                                    [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz17, 'UseSubSurface', false);
+                                    [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz17+tol, 'UseSubSurface', false);
                                     dists(17) = dist;
                                     typeids(17) = typeid;
                                     angles(17) = dot(TR.faceNormal(facet), (xyz17 - BI)/vecnorm((xyz17 - BI)));
@@ -390,7 +390,7 @@ for facet=1:Nf
                             if (j~=jtot && k~=ktot)
                                 if fluid_IB(i,j+1,k+1)
                                     xyz18 = [xgrid(i), ygrid(j+1), zgrid(k+1)];
-                                    [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz18, 'UseSubSurface', false);
+                                    [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz18+tol, 'UseSubSurface', false);
                                     dists(18) = dist;
                                     typeids(18) = typeid;
                                     angles(18) = dot(TR.faceNormal(facet), (xyz18 - BI)/vecnorm((xyz18 - BI)));
@@ -400,7 +400,7 @@ for facet=1:Nf
                             if (i~=1 && j~=1 && k~=1)
                                 if fluid_IB(i-1,j-1,k-1)
                                     xyz19 = [xgrid(i-1), ygrid(j-1), zgrid(k-1)];
-                                    [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz19, 'UseSubSurface', false);
+                                    [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz19+tol, 'UseSubSurface', false);
                                     dists(19) = dist;
                                     typeids(19) = typeid;
                                     angles(19) = dot(TR.faceNormal(facet), (xyz19 - BI)/vecnorm((xyz19 - BI)));
@@ -409,7 +409,7 @@ for facet=1:Nf
                             if (i~=itot && j~=1 && k~=1)
                                 if fluid_IB(i+1,j-1,k-1)
                                     xyz20 = [xgrid(i+1), ygrid(j-1), zgrid(k-1)];
-                                    [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz20, 'UseSubSurface', false);
+                                    [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz20+tol, 'UseSubSurface', false);
                                     dists(20) = dist;
                                     typeids(20) = typeid;
                                     angles(20) = dot(TR.faceNormal(facet), (xyz20 - BI)/vecnorm((xyz20 - BI)));
@@ -418,7 +418,7 @@ for facet=1:Nf
                             if (i~=1 && j~=jtot && k~=1)
                                 if fluid_IB(i-1,j+1,k-1)
                                     xyz21 = [xgrid(i-1), ygrid(j+1), zgrid(k-1)];
-                                    [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz21, 'UseSubSurface', false);
+                                    [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz21+tol, 'UseSubSurface', false);
                                     dists(21) = dist;
                                     typeids(21) = typeid;
                                     angles(21) = dot(TR.faceNormal(facet), (xyz21 - BI)/vecnorm((xyz21 - BI)));
@@ -427,7 +427,7 @@ for facet=1:Nf
                             if (i~=itot && j~=jtot && k~=1)
                                 if fluid_IB(i+1,j+1,k-1)
                                     xyz22 = [xgrid(i+1), ygrid(j+1), zgrid(k-1)];
-                                    [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz22, 'UseSubSurface', false);
+                                    [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz22+tol, 'UseSubSurface', false);
                                     dists(22) = dist;
                                     typeids(22) = typeid;
                                     angles(22) = dot(TR.faceNormal(facet), (xyz22 - BI)/vecnorm((xyz22 - BI)));
@@ -437,7 +437,7 @@ for facet=1:Nf
                             if (i~=1 && j~=1 && k~=ktot)
                                 if fluid_IB(i-1,j-1,k+1)
                                     xyz23 = [xgrid(i-1), ygrid(j-1), zgrid(k+1)];
-                                    [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz23, 'UseSubSurface', false);
+                                    [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz23+tol, 'UseSubSurface', false);
                                     dists(23) = dist;
                                     typeids(23) = typeid;
                                     angles(23) = dot(TR.faceNormal(facet), (xyz23 - BI)/vecnorm((xyz23 - BI)));
@@ -446,7 +446,7 @@ for facet=1:Nf
                             if (i~=itot && j~=1 && k~=ktot)
                                 if fluid_IB(i+1,j-1,k+1)
                                     xyz24 = [xgrid(i+1), ygrid(j-1), zgrid(k+1)];
-                                    [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz24, 'UseSubSurface', false);
+                                    [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz24+tol, 'UseSubSurface', false);
                                     dists(24) = dist;
                                     typeids(24) = typeid;
                                     angles(24) = dot(TR.faceNormal(facet), (xyz24 - BI)/vecnorm((xyz24 - BI)));
@@ -455,7 +455,7 @@ for facet=1:Nf
                             if (i~=1 && j~=jtot && k~=ktot)
                                 if fluid_IB(i-1,j+1,k+1)
                                     xyz25 = [xgrid(i-1), ygrid(j+1), zgrid(k+1)];
-                                    [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz25, 'UseSubSurface', false);
+                                    [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz25+tol, 'UseSubSurface', false);
                                     dists(25) = dist;
                                     typeids(25) = typeid;
                                     angles(25) = dot(TR.faceNormal(facet), (xyz25 - BI)/vecnorm((xyz25 - BI)));
@@ -464,7 +464,7 @@ for facet=1:Nf
                             if (i~=itot && j~=jtot && k~=ktot)
                                 if fluid_IB(i+1,j+1,k+1)
                                     xyz26 = [xgrid(i+1), ygrid(j+1), zgrid(k+1)];
-                                    [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz26, 'UseSubSurface', false);
+                                    [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz26+tol, 'UseSubSurface', false);
                                     dists(26) = dist;
                                     typeids(26) = typeid;
                                     angles(26) = dot(TR.faceNormal(facet), (xyz26 - BI)/vecnorm((xyz26 - BI)));
