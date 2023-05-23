@@ -24,7 +24,7 @@ expnr = '027';
 % DA_EXPDIR = getenv('DA_EXPDIR');
 % DA_TOOLSDIR = getenv('DA_TOOLSDIR');
 DA_EXPDIR = '/media/chris/Project3/uDALES2.0/experiments'
-DA_TOOLSDIR = '/media/chris/Project3/uDALES2.0/u-dales/tools'     
+DA_TOOLSDIR = '/media/chris/Project3/uDALES2.0/u-dales/tools'
 addpath(genpath([DA_TOOLSDIR '/']));
 addpath([DA_TOOLSDIR '/IBM/'])
 addpath([DA_TOOLSDIR '/SEB/'])
@@ -67,37 +67,48 @@ V = TR.Points;
 
 area_facets = facetAreas(F, V); % Useful for checking if area_fluid_IB_c == sum(area_facets)
 
-% c-grid (scalars/pressure)
-xgrid_c = r.xf;
-ygrid_c = r.yf;
-zgrid_c = r.zf;
-[X_c,Y_c,Z_c] = ndgrid(xgrid_c,ygrid_c,zgrid_c);
+if r.gen_geom
+    % c-grid (scalars/pressure)
+    xgrid_c = r.xf;
+    ygrid_c = r.yf;
+    zgrid_c = r.zf;
+    [X_c,Y_c,Z_c] = ndgrid(xgrid_c,ygrid_c,zgrid_c);
 
-% u-grid
-xgrid_u = r.xh;
-ygrid_u = r.yf;
-zgrid_u = r.zf;
-[X_u,Y_u,Z_u] = ndgrid(xgrid_u,ygrid_u,zgrid_u);
+    % u-grid
+    xgrid_u = r.xh;
+    ygrid_u = r.yf;
+    zgrid_u = r.zf;
+    [X_u,Y_u,Z_u] = ndgrid(xgrid_u,ygrid_u,zgrid_u);
 
-% v-grid
-xgrid_v = r.xf;
-ygrid_v = r.yh;
-zgrid_v = r.zf;
-[X_v,Y_v,Z_v] = ndgrid(xgrid_v,ygrid_v,zgrid_v);
+    % v-grid
+    xgrid_v = r.xf;
+    ygrid_v = r.yh;
+    zgrid_v = r.zf;
+    [X_v,Y_v,Z_v] = ndgrid(xgrid_v,ygrid_v,zgrid_v);
 
-% w-grid
-xgrid_w = r.xf;
-ygrid_w = r.yf;
-zgrid_w = r.zh;
-[X_w,Y_w,Z_w] = ndgrid(xgrid_w,ygrid_w,zgrid_w);
+    % w-grid
+    xgrid_w = r.xf;
+    ygrid_w = r.yf;
+    zgrid_w = r.zh;
+    [X_w,Y_w,Z_w] = ndgrid(xgrid_w,ygrid_w,zgrid_w);
 
-diag_neighbs = r.diag_neighbs;
-stl_ground = r.stl_ground;
-periodic_x = r.BCxm == 1;
-periodic_y = r.BCym == 1;
-lmypoly = 1; % remove eventually
-
-writeIBMFiles; % Could turn into a function and move writing to this script
+    diag_neighbs = r.diag_neighbs;
+    stl_ground = r.stl_ground;
+    periodic_x = r.BCxm == 1;
+    periodic_y = r.BCym == 1;
+    lmypoly = 1; % remove eventually
+    writeIBMFiles; % Could turn into a function and move writing to this script
+else
+    if isempty(r.geom_path)
+        error('Need to specify the path to geometry files')
+    end
+    copy_command = ['cp ' r.geom_path 'solid_* ' fpath];
+    system(copy_command);
+    copy_command = ['cp ' r.geom_path 'fluid_boundary_* ' fpath];
+    system(copy_command);
+    copy_command = ['cp ' r.geom_path 'facet_sections_* ' fpath];
+    system(copy_command);
+end
 
 %% Set facet types
 nfcts = size(TR.ConnectivityList,1);
@@ -119,6 +130,7 @@ if r.lEB
     fpath_vf = [fpath 'vf.txt'];
     vf = view3d(view3d_exe, fpath_facets_view3d, fpath_vf);
     svf = max(1 - sum(vf, 2), 0);
+    preprocessing.write_svf(r, svf);
 
     preprocessing.write_svf(r, svf)
 

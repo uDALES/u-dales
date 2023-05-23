@@ -1,5 +1,5 @@
 function [facet_sections] = matchFacetsToCells(TR, fluid_IB, solid_IB, ...
-    fluid_IB_xyz, solid_IB_xyz, xgrid, ygrid, zgrid, include_diagonals, periodic_x, periodic_y)
+    fluid_IB_xyz, solid_IB_xyz, xgrid, ygrid, zgrid, diag_neighbs, periodic_x, periodic_y)
 
 % Assumes fluid_IB etc have been created already
 
@@ -21,7 +21,7 @@ facet_sections = [];
 lplot = false; if lplot; figure; end % for debugging
 Nf = size(TR.ConnectivityList,1);
 for facet=1:Nf
-    disp(['Surface: ' num2str(facet) ' ; ~ ' num2str(round(facet/Nf * 100, 1)) ' % complete'])
+    %disp(['Surface: ' num2str(facet) ' ; ~ ' num2str(round(facet/Nf * 100, 1)) ' % complete'])
     if (xgrid(1) == 0 && all(abs(abs(TR.faceNormal(facet)) - [1 0 0]) <= 1e-8)) ...
     || (ygrid(1) == 0 && all(abs(abs(TR.faceNormal(facet)) - [0 1 0]) <= 1e-8)) ...
     || (zgrid(1) == 0 && all(abs(abs(TR.faceNormal(facet)) - [0 0 1]) <= 1e-8))
@@ -285,7 +285,7 @@ for facet=1:Nf
                             end
                         end
 
-                        if (include_diagonals)
+                        if (diag_neighbs)
                             if (i~=1 && j~=1)
                                 if fluid_IB(i-1,j-1,k)
                                     xyz7 = [xgrid(i-1), ygrid(j-1), zgrid(k)];
@@ -476,22 +476,19 @@ for facet=1:Nf
                         [~, id] = max(abs(angles) ./ (dists / (dx*dy*dz)^(1/3))); % minimise both angles and dists
                         dist = dists(id);
                         BI = BIs(id,:);
-                        if isnan(dist)
-                            % point2trimesh found BI but not dist?
-                            % Ignore it and take maximum again
-                            angles(id) = nan;
-                            [~, id] = max(abs(angles));
-                            dist = dists(id);
-                            BI = BIs(id,:);
-                        end
+%                         if isnan(dist)
+%                             % point2trimesh found BI but not dist?
+%                             % Ignore it and take maximum again
+%                             angles(id) = nan;
+%                             [~, id] = max(abs(angles));
+%                             dist = dists(id);
+%                             BI = BIs(id,:);
+%                         end
 
                         if (isnan(dist))
-                            disp(['Facet ' num2str(facet) ' in cell ' num2str(i) ',' num2str(j) ',' num2str(k) ' has no neighbouring fluid cells, error in geom. STL aligns with grid'])
-                            % probably internal, or if w grid, facets at
-                            % the bottom of the domain, but check.
-                            % Need to remove these sections from
-                            % the total area calculation.
-                            % clf
+                            disp(['Facet ' num2str(facet) ' in cell ' num2str(i) ',' num2str(j) ',' num2str(k) ' could not find a cell to give flux to. Ensure diag_cells = true, but also could be due to bug in point2trimesh - to avoid try shifting geometry by tiny amount.'])
+
+                            figure
 
                             if (xgrid(1) == 0)
                                 title('u')
@@ -525,7 +522,8 @@ for facet=1:Nf
                             zlim([0 zgrid(end)])
                             %drawnow
                             %pause(5)
-                            continue
+                            %continue
+                            return
                         end
 
                     end

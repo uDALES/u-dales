@@ -229,6 +229,8 @@ classdef preprocessing < dynamicprops
             preprocessing.addvar(obj, 'zsize', 96) % domain size in z-direction
             preprocessing.addvar(obj, 'lzstretch', 0) % switch for stretching z grid
             preprocessing.addvar(obj, 'stl_file', '')
+            preprocessing.addvar(obj, 'gen_geom', true) % generate the geometry from scratch
+            preprocessing.addvar(obj, 'geom_path', '') % if not generating the geometry, the path to the geometry files
             preprocessing.addvar(obj, 'diag_neighbs', true)
             preprocessing.addvar(obj, 'stl_ground', true) % Does STL include facets at ground
 

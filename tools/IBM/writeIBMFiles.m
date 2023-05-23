@@ -75,8 +75,8 @@ solid_IB_xyz_u = [xgrid_u(solid_IB_i_u)', ygrid_u(solid_IB_j_u)', zgrid_u(solid_
 disp('Determining facet sections for u-grid.')
 facet_sections_u = matchFacetsToCells(...
     TR, fluid_IB_u, solid_IB_u, fluid_IB_xyz_u, solid_IB_xyz_u, xgrid_u, ygrid_u, zgrid_u, diag_neighbs, periodic_x, periodic_y);
-%area_fluid_IB_u = sum(facet_sections_u(:,2)); % The total area for each IB cell should equal the sum of the facet
 
+% For debugging - area 'visible' to fluid for each facet.
 area_facets_u = zeros(nfcts,1);
 for n=1:nfcts
     area_facets_u(n) = sum(facet_sections_u(facet_sections_u(:,1)==n, 2));
@@ -96,7 +96,7 @@ disp('Written solid_u.txt')
 
 % Fluid boundary points
 fluid_IB_ijk_u = [fluid_IB_i_u, fluid_IB_j_u, fluid_IB_k_u];
-fluid_boundary_u = [fluid_IB_ijk_u];%, fluid_IB_rec_u];
+fluid_boundary_u = fluid_IB_ijk_u;
 filename_u = [fpath 'fluid_boundary_u.txt'];
 fileID_u = fopen(filename_u,'W');
 fprintf(fileID_u, '# position (i,j,k)\n');
@@ -107,8 +107,7 @@ disp('Written fluid_boundary_u.txt')
 % Facet sections
 filename_u = [fpath 'facet_sections_u.txt'];
 fileID_u = fopen(filename_u,'W');
-fprintf(fileID_u, '# facet, area, fluid boundary point, boundary intercept\n');
-%fprintf(fileID_u, '%-2d %-4.4f %-4d %-4.4f %-4.4f %-4.8f\n', facet_sections_u(:,[1,2,5,7:9])');
+fprintf(fileID_u, '# facet, area, fluid boundary point, distance\n');
 fprintf(fileID_u, '%-2d %-4.4f %-4d %-4.8f\n', facet_sections_u(:,[1,2,5,6])');
 fclose(fileID_u);
 disp('Written facet_sections_u.txt')
@@ -126,8 +125,7 @@ if lBImin_u
     end
     filename_u = [fpath 'facet_sections_u_2.txt'];
     fileID_u = fopen(filename_u,'W');
-    fprintf(fileID_u, '# facet, area, fluid boundary point, boundary intercept\n');
-    %fprintf(fileID_u, '%-2d %-4.4f %-4d %-4.4f %-4.4f %-4.8f\n', facet_sections_u_2(:,[1,2,5,7:9])');
+    fprintf(fileID_u, '# facet, area, fluid boundary point, distance\n');
     fprintf(fileID_u, '%-2d %-4.4f %-4d %-4.8f\n', facet_sections_u_2(:,[1,2,5,6])');
     fclose(fileID_u);
     disp('Written facet_sections_u_2.txt')
@@ -166,7 +164,6 @@ solid_IB_xyz_v = [xgrid_v(solid_IB_i_v)', ygrid_v(solid_IB_j_v)', zgrid_v(solid_
 disp('Determing facet sections for v-grid.')
 facet_sections_v = matchFacetsToCells(...
     TR, fluid_IB_v, solid_IB_v, fluid_IB_xyz_v, solid_IB_xyz_v, xgrid_v, ygrid_v, zgrid_v, diag_neighbs, periodic_x, periodic_y);
-%area_fluid_IB_v = sum(facet_sections_v(:,2)); % The total area for each IB cell should equal the sum of the facet
 
 area_facets_v = zeros(nfcts,1);
 for n=1:nfcts
@@ -188,7 +185,7 @@ disp('Written solid_v.txt')
 
 % Fluid boundary points
 fluid_IB_ijk_v = [fluid_IB_i_v, fluid_IB_j_v, fluid_IB_k_v];
-fluid_boundary_v = [fluid_IB_ijk_v];%, fluid_IB_rec_v];
+fluid_boundary_v = fluid_IB_ijk_v;
 filename_v = [fpath 'fluid_boundary_v.txt'];
 fileID_v = fopen(filename_v,'W');
 fprintf(fileID_v, '# position (i,j,k)\n');
@@ -199,8 +196,7 @@ disp('Written fluid_boundary_v.txt')
 % Facet sections
 filename_v = [fpath 'facet_sections_v.txt'];
 fileID_v = fopen(filename_v,'W');
-fprintf(fileID_v, '# facet, area, fluid boundary point, boundary intercept\n');
-%fprintf(fileID_v, '%-2d %-4.4f %-4d %-4.4f %-4.4f %-4.8f\n', facet_sections_v(:,[1,2,5,7:9])');
+fprintf(fileID_v, '# facet, area, fluid boundary point, distance\n');
 fprintf(fileID_v, '%-2d %-4.4f %-4d %-4.8f\n', facet_sections_v(:,[1,2,5,6])');
 fclose(fileID_v);
 disp('Written facet_sections_v.txt')
@@ -218,8 +214,7 @@ if lBImin_v
     end
     filename_v = [fpath 'facet_sections_v_2.txt'];
     fileID_v = fopen(filename_v,'W');
-    fprintf(fileID_v, '# facet, area, fluid boundary point, boundary intercept\n');
-    %fprintf(fileID_v, '%-2d %-4.4f %-4d %-4.4f %-4.4f %-4.8f\n', facet_sections_v_2(:,[1,2,5,7:9])');
+    fprintf(fileID_v, '# facet, area, fluid boundary point, distance\n');
     fprintf(fileID_v, '%-2d %-4.4f %-4d %-4.8f\n', facet_sections_v_2(:,[1,2,5,6])');
     fclose(fileID_v);
     disp('Written facet_sections_v_2.txt')
@@ -247,7 +242,7 @@ fluid_w = ~solid_w;
 disp('Determing fluid boundary points for w-grid.')
 % Boundary masks
 [fluid_IB_w, solid_IB_w] = getBoundaryCells(xgrid_w, ygrid_w, zgrid_w, fluid_w, solid_w_b, diag_neighbs);
-fluid_IB_w(:,:,1) = 0; % Bottom layer is solid
+fluid_IB_w(:,:,1) = 0; % Bottom is always solid
 
 % Boundary coordinates
 [fluid_IB_i_w, fluid_IB_j_w, fluid_IB_k_w] = ind2sub(size(fluid_IB_w), find(fluid_IB_w));
@@ -260,7 +255,6 @@ solid_IB_xyz_w = [xgrid_w(solid_IB_i_w)', ygrid_w(solid_IB_j_w)', zgrid_w(solid_
 disp('Determing facet sections for w-grid.')
 facet_sections_w = matchFacetsToCells(...
     TR, fluid_IB_w, solid_IB_w, fluid_IB_xyz_w, solid_IB_xyz_w, xgrid_w, ygrid_w, zgrid_w, diag_neighbs, periodic_x, periodic_y);
-area_fluid_IB_w = sum(facet_sections_w(:,2)); % The total area for each IB cell should equal the sum of the facet
 
 area_facets_w = zeros(nfcts,1);
 for n=1:nfcts
@@ -281,7 +275,7 @@ disp('Written solid_w.txt')
 
 % Fluid boundary points
 fluid_IB_ijk_w = [fluid_IB_i_w, fluid_IB_j_w, fluid_IB_k_w];
-fluid_boundary_w = [fluid_IB_ijk_w];%, fluid_IB_rec_w];
+fluid_boundary_w = fluid_IB_ijk_w;
 filename_w = [fpath 'fluid_boundary_w.txt'];
 fileID_w = fopen(filename_w,'W');
 fprintf(fileID_w, '# position (i,j,k)\n');
@@ -292,11 +286,10 @@ disp('Written fluid_boundary_w.txt')
 % Facet sections
 filename_w = [fpath 'facet_sections_w.txt'];
 fileID_w = fopen(filename_w,'W');
-fprintf(fileID_w, '# facet, area, fluid boundary point, boundary intercept\n');
-%fprintf(fileID_w, '%-2d %-4.4f %-4d %-4.4f %-4.4f %-4.8f\n', facet_sections_w(:,[1,2,5,7:9])');
+fprintf(fileID_w, '# facet, area, fluid boundary point, distance\n');
+
 fprintf(fileID_w, '%-2d %-4.4f %-4d %-4.8f\n', facet_sections_w(:,[1,2,5,6])');
 fclose(fileID_w);
-%dlmwrite(filename_w, facet_sections_w(:,[1,2,5,7:9]), '-append','delimiter',' ','precision',8);
 disp('Written facet_sections_w.txt')
 
 lBImin_w = true;
@@ -312,8 +305,7 @@ if lBImin_w
     end
     filename_w = [fpath 'facet_sections_w_2.txt'];
     fileID_w = fopen(filename_w,'W');
-    fprintf(fileID_w, '# facet, area, fluid boundary point, boundary intercept\n');
-    %fprintf(fileID_w, '%-2d %-4.4f %-4d %-4.4f %-4.4f %-4.8f\n', facet_sections_w_2(:,[1,2,5,7:9])');
+    fprintf(fileID_w, '# facet, area, fluid boundary point, distance\n');
     fprintf(fileID_w, '%-2d %-4.4f %-4d %-4.8f\n', facet_sections_w_2(:,[1,2,5,6])');
     fclose(fileID_w);
     disp('Written facet_sections_w_2.txt')
@@ -353,7 +345,6 @@ solid_IB_xyz_c = [xgrid_c(solid_IB_i_c)', ygrid_c(solid_IB_j_c)', zgrid_c(solid_
 disp('Determing facet sections for c-grid.')
 facet_sections_c = matchFacetsToCells(...
     TR, fluid_IB_c, solid_IB_c, fluid_IB_xyz_c, solid_IB_xyz_c, xgrid_c, ygrid_c, zgrid_c, diag_neighbs, periodic_x, periodic_y);
-%area_fluid_IB_c = sum(facet_sections_c(:,2)); % The total area for each IB cell should equal the sum of the facet
 
 area_facets_c = zeros(nfcts,1);
 for n=1:nfcts
@@ -374,7 +365,7 @@ disp('Written solid_c.txt')
 
 % Fluid boundary points
 fluid_IB_ijk_c = [fluid_IB_i_c, fluid_IB_j_c, fluid_IB_k_c];
-fluid_boundary_c = [fluid_IB_ijk_c];%, fluid_IB_rec_c];
+fluid_boundary_c = fluid_IB_ijk_c;
 filename_c = [fpath 'fluid_boundary_c.txt'];
 fileID_c = fopen(filename_c,'W');
 fprintf(fileID_c, '# position (i,j,k), distance to surface, reconstruction point location\n');
@@ -386,10 +377,8 @@ disp('Written fluid_boundary_c.txt')
 filename_c = [fpath 'facet_sections_c.txt'];
 fileID_c = fopen(filename_c,'W');
 fprintf(fileID_c, '# facet, area, fluid boundary point, boundary intercept\n');
-%fprintf(fileID_c, '%-2d %-4.4f %-5d %-4.4f %-4.4f %-4.8f\n', facet_sections_c(:,[1,2,5,7:9])');
 fprintf(fileID_c, '%-2d %-4.4f %-4d %-4.8f\n', facet_sections_c(:,[1,2,5,6])');
 fclose(fileID_c);
-%dlmwrite(filename_c, facet_sections_c(:,[1,2,5,7:9]), '-append','delimiter',' ','precision',4);
 disp('Written facet_sections_c.txt')
 
 lBImin_c = true;
@@ -405,11 +394,9 @@ if lBImin_c
     end
     filename_c = [fpath 'facet_sections_c_2.txt'];
     fileID_c = fopen(filename_c,'W');
-    fprintf(fileID_c, '# facet, area, fluid boundary point, boundary intercept\n');
-    %fprintf(fileID_c, '%-2d %-4.4f %-4d %-4.4f %-4.4f %-4.8f\n', facet_sections_c_2(:,[1,2,5,7:9])');
+    fprintf(fileID_c, '# facet, area, fluid boundary point, distance\n');
     fprintf(fileID_c, '%-2d %-4.4f %-4d %-4.8f\n', facet_sections_c_2(:,[1,2,5,6])');
     fclose(fileID_c);
-    %dlmwrite(filename_c, facet_sections_c_2(:,[1,2,5,7:9]), '-append','delimiter',' ','precision',8);
     disp('Written facet_sections_c_2.txt')
 end
 
