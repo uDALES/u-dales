@@ -203,16 +203,6 @@ for facet=1:Nf
                         [~, loc] = ismember([xgrid(i), ygrid(j), zgrid(k)], fluid_IB_xyz, 'rows');
                         facet_section(3) = loc;
 
-<<<<<<< HEAD
-                        xyz27 = [xgrid(i), ygrid(j), zgrid(k)];
-                        [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz27+tol, 'UseSubSurface', false);
-                        angle = dot(TR.faceNormal(facet), (xyz27 - BI)/vecnorm((xyz27 - BI)));
-                        %if (typeid == 3)
-                        % Wall-normal defined, use this cell
-                        if (abs(angle - 1) < eps)
-                            id = 27;
-                            xyz = xyz27;
-=======
                         xyz1 = [xgrid(i), ygrid(j), zgrid(k)];
                         [dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz1+eps, 'UseSubSurface', false);
                          angle = dot(TR.faceNormal(facet), (xyz1 - BI)/vecnorm((xyz1 - BI)));
@@ -222,7 +212,6 @@ for facet=1:Nf
                         if (abs(angle - 1) < eps) % Wall-normal defined, use this cell
                             id = 1;
                             xyz = xyz1;
->>>>>>> ecse
                         else
                             % Not normal, search adjacent fluid IB cells
                             search_adj = true;
@@ -599,33 +588,12 @@ for facet=1:Nf
                     facet_section(6) = abs(dist);
                     facet_section(7:9) = BI;
                     facet_sections = [facet_sections; facet_section];
-<<<<<<< HEAD
 
-%                     [id, loc] = ismember(xyz, fluid_IB_xyz_cut, 'rows');
-%                     if id % the cell has already been logged as IB
-%                         fluid_IB_facids{loc}(end+1) = facet;
-%                         fluid_IB_facareas{loc}(end+1) = area;
-%                         fluid_IB_dists{loc}(end+1) = dist;
-%                     else % log the cell
-%                         fluid_IB_xyz_cut = [fluid_IB_xyz_cut; xyz];
-%                         fluid_IB_facids{end+1} = facet;
-%                         fluid_IB_facareas{end+1} = area;
-%                         fluid_IB_dists{end+1} = dist;
-%                     end
-
-%                     if (angles(id) ~= 1)
-%                         stopflag = true;
-%                     end
-
-                    if lplot
-=======
-                     
                     if lplot && count == countlim
                         inputs.faces
                         inputs.nodes
                         dist
                         max(abs(angles) ./ (dists / (dx*dy*dz)^(1/3)))
->>>>>>> ecse
                         %figure
                         clf
                         view(3)
@@ -673,105 +641,4 @@ for facet=1:Nf
             end
         end
     end
-<<<<<<< HEAD
 end
-
-% %%
-% figure
-%
-% %i=13; j=57; k=66;
-% %facet = 895;
-%
-% view(3)
-% patch('Faces', [1 2 3], 'Vertices', TR.Points(TR.ConnectivityList(facet,:),:), 'FaceColor', [1,0,0], 'FaceAlpha', 0.5)
-% %patch('Faces', TR.ConnectivityList, 'Vertices', TR.Points, 'FaceColor', ones(3,1)*69/100, 'FaceAlpha', 1)
-% hold on
-%
-% xl = xgrid(i) - dx/2;
-% xu = xgrid(i) + dx/2;
-% yl = ygrid(j) - dy/2;
-% yu = ygrid(j) + dy/2;
-% zl = zgrid(k) - dz/2;
-% zu = zgrid(k) + dz/2;
-%
-% V = [xl yl zl; xu yl zl; xu yu zl; xl yu zl; ...
-%     xl yl zu; xu yl zu; xu yu zu; xl yu zu];
-% F = [1 2 3 4; 2 6 7 3; 4 3 7 8; 1 5 8 4; 1 2 6 5; 5 6 7 8];
-% patch('Faces', F, 'Vertices', V, 'FaceColor', [1,0,1], 'FaceAlpha', 0.5)
-%
-% if (solid(i,j,k))
-% if i~=1
-%     if fluid(i-1,j,k)
-%         xls = xgrid(i-1)-dx/2; xus = xgrid(i-1)+dx/2;
-%         yls = ygrid(j)-dy/2; yus = ygrid(j)+dy/2;
-%         zls = zgrid(k)-dz/2; zus = zgrid(k)+dz/2;
-%         V = [xls yls zls; xus yls zls; xus yus zls; xls yus zls; ...
-%             xls yls zus; xus yls zus; xus yus zus; xls yus zus];
-%         patch('Faces', F, 'Vertices', V, 'FaceColor', [1,1,1], 'FaceAlpha', 0.5)
-%     end
-% end
-% if i~=itot
-%     if fluid(i+1,j,k)
-%         xls = xgrid(i+1)-dx/2; xus = xgrid(i+1)+dx/2;
-%         yls = ygrid(j)-dy/2; yus = ygrid(j)+dy/2;
-%         zls = zgrid(k)-dz/2; zus = zgrid(k)+dz/2;
-%         V = [xls yls zls; xus yls zls; xus yus zls; xls yus zls; ...
-%             xls yls zus; xus yls zus; xus yus zus; xls yus zus];
-%         patch('Faces', F, 'Vertices', V, 'FaceColor', [1,1,1], 'FaceAlpha', 0.5)
-%     end
-% end
-% if j~=1
-%     if fluid(i,j-1,k)
-%         xls = xgrid(i)-dx/2; xus = xgrid(i)+dx/2;
-%         yls = ygrid(j-1)-dy/2; yus = ygrid(j-1)+dy/2;
-%         zls = zgrid(k)-dz/2; zus = zgrid(k)+dz/2;
-%         V = [xls yls zls; xus yls zls; xus yus zls; xls yus zls; ...
-%             xls yls zus; xus yls zus; xus yus zus; xls yus zus];
-%         patch('Faces', F, 'Vertices', V, 'FaceColor', [1,1,1], 'FaceAlpha', 0.5)
-%     end
-% end
-% if j~=jtot
-%     if fluid(i,j+1,k)
-%         xls = xgrid(i)-dx/2; xus = xgrid(i)+dx/2;
-%         yls = ygrid(j+1)-dy/2; yus = ygrid(j+1)+dy/2;
-%         zls = zgrid(k)-dz/2; zus = zgrid(k)+dz/2;
-%         V = [xls yls zls; xus yls zls; xus yus zls; xls yus zls; ...
-%             xls yls zus; xus yls zus; xus yus zus; xls yus zus];
-%         patch('Faces', F, 'Vertices', V, 'FaceColor', [1,1,1], 'FaceAlpha', 0.5)
-%     end
-% end
-% if k~=1
-%     if fluid(i,j,k-1)
-%         xls = xgrid(i)-dx/2; xus = xgrid(i)+dx/2;
-%         yls = ygrid(j)-dy/2; yus = ygrid(j)+dy/2;
-%         zls = zgrid(k-1)-dz/2; zus = zgrid(k-1)+dz/2;
-%         V = [xls yls zls; xus yls zls; xus yus zls; xls yus zls; ...
-%             xls yls zus; xus yls zus; xus yus zus; xls yus zus];
-%         patch('Faces', F, 'Vertices', V, 'FaceColor', [1,1,1], 'FaceAlpha', 0.5)
-%     end
-% end
-% if k~=ktot
-%     if fluid(i,j,k+1)
-%         xls = xgrid(i)-dx/2; xus = xgrid(i)+dx/2;
-%         yls = ygrid(j)-dy/2; yus = ygrid(j)+dy/2;
-%         zls = zgrid(k+1)-dz/2; zus = zgrid(k+1)+dz/2;
-%         V = [xls yls zls; xus yls zls; xus yus zls; xls yus zls; ...
-%             xls yls zus; xus yls zus; xus yus zus; xls yus zus];
-%         patch('Faces', F, 'Vertices', V, 'FaceColor', [1,1,1], 'FaceAlpha', 0.5)
-%     end
-% end
-% end
-%
-% %patch('Faces', 1:size(clip,1), 'Vertices', clip, 'FaceColor', [0,0,1], 'FaceAlpha', 0.5)
-% axis equal
-% % xlim([xgrid(il-2) xgrid(iu+2)])
-% % ylim([ygrid(jl-2) ygrid(ju+2)])
-% % zlim([zgrid(kl-2) zgrid(ku+2)])
-% xlabel('x')
-% ylabel('y')
-% zlabel('z')
-% pause(0.25)
-% drawnow
-=======
-end
->>>>>>> ecse
