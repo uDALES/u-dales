@@ -430,23 +430,23 @@ fprintf(fileID_info, ['nfctsecs_c = ', num2str(size(facet_sections_c,1)), '\n'])
 fclose(fileID_info);
 
 %% Plot
-% figure
-% 
-% patch('Faces', TR.ConnectivityList, 'Vertices', TR.Points, 'FaceColor', ones(3,1)*0.85, 'FaceAlpha', 1)
-% hold on
-% incenters = TR.incenter;
-% faceNormals = TR.faceNormal;
-% %quiver3(incenters(:,1), incenters(:,2), incenters(:,3), faceNormals(:,1), faceNormals(:,2), faceNormals(:,3), 0)
-% view(3)
-% 
-% axis equal tight
-% 
-% xlim([0 Lx])
-% ylim([0 Ly])
-% zlim([0 Lz])
-% 
-% scatter3(X_u(solid_u), Y_u(solid_u), Z_u(solid_u), 10,[0,0,1],'filled')
-% scatter3(X_v(solid_v), Y_v(solid_v), Z_v(solid_v), 10,[0,0,1],'filled')
+figure
+
+patch('Faces', TR.ConnectivityList, 'Vertices', TR.Points, 'FaceColor', ones(3,1)*0.85, 'FaceAlpha', 1)
+hold on
+incenters = TR.incenter;
+faceNormals = TR.faceNormal;
+%quiver3(incenters(:,1), incenters(:,2), incenters(:,3), faceNormals(:,1), faceNormals(:,2), faceNormals(:,3), 0)
+view(3)
+
+axis equal tight
+
+xlim([0 Lx])
+ylim([0 Ly])
+zlim([0 Lz])
+
+%scatter3(X_u(solid_u), Y_u(solid_u), Z_u(solid_u), 10,[0,0,1],'filled')
+%scatter3(X_v(solid_v), Y_v(solid_v), Z_v(solid_v), 10,[0,0,1],'filled')
 % scatter3(X_w(solid_w), Y_w(solid_w), Z_w(solid_w), 10,[0,0,1],'filled')
 % scatter3(X_c(solid_c), Y_c(solid_c), Z_c(solid_c), 10,[0,0,1],'filled')
 
@@ -458,7 +458,8 @@ fclose(fileID_info);
 %scatter3(fluid_IB_xyz_u(:,1),fluid_IB_xyz_u(:,2),fluid_IB_xyz_u(:,3),10,[0,0,1],'filled')
 %scatter3(fluid_IB_xyz_v(:,1),fluid_IB_xyz_v(:,2),fluid_IB_xyz_v(:,3),10,[0,0,1],'filled')
 %scatter3(fluid_IB_xyz_w(:,1),fluid_IB_xyz_w(:,2),fluid_IB_xyz_w(:,3),10,[0,0,1],'filled')
-%scatter3(fluid_IB_xyz_c(:,1),fluid_IB_xyz_c(:,2),fluid_IB_xyz_c(:,3),10,[0,0,1],'filled')
+scatter3(fluid_IB_xyz_c(11650,1),fluid_IB_xyz_c(11650,2),fluid_IB_xyz_c(11650,3),10,[0,0,1],'filled')
+scatter3(fluid_IB_xyz_c(11651,1),fluid_IB_xyz_c(11651,2),fluid_IB_xyz_c(11651,3),10,[0,0,1],'filled')
 
 % %% u
 % scatter3(fluid_IB_xyz_u(:,1),fluid_IB_xyz_u(:,2),fluid_IB_xyz_u(:,3),10,[0,0,1],'filled')
