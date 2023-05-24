@@ -31,7 +31,7 @@ for i = 1:length(con(:,1))
                 and(p3(2)>=gyl,p3(2)<=gyu)])
                 area = area_facets(i);
                 green_area = green_area + area;
-                green_factets = [green_facets; i];
+                green_facets = [green_facets; i];
             end
         end
     else 

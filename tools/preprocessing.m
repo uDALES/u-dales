@@ -647,15 +647,9 @@ classdef preprocessing < dynamicprops
             il = round(obj.hlin / obj.dzlin);
             ir  = obj.ktot - il;
 
-<<<<<<< HEAD
-            preprocessing.addvar(obj, 'zf', zeros(1,obj.ktot));
-            preprocessing.addvar(obj, 'dzf', zeros(1,obj.ktot));
-            preprocessing.addvar(obj, 'zh', zeros(1,obj.ktot+1));
-=======
             preprocessing.addvar(obj, 'zf', zeros(1, obj.ktot));
             preprocessing.addvar(obj, 'dzf', zeros(1, obj.ktot));
             preprocessing.addvar(obj, 'zh', zeros(1, obj.ktot+1));
->>>>>>> ecse
 
             obj.zf(1:il) = 0.5 * obj.dzlin : obj.dzlin : obj.hlin;
             obj.zh(1:il+1) = 0 : obj.dzlin : obj.hlin;
