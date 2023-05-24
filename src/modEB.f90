@@ -249,7 +249,7 @@ contains
   subroutine initEB
     !initialise everything necessary to calculate the energy balance
     use modglobal, only:AM, BM,CM,DM,EM,FM,GM, HM, IDM, inAM, bb,w,dumv,Tdash, bldT, nfcts,nfaclyrs
-    use initfac, only:facdi, faccp, faclami, fackappa, netsw, facem, fachf, facef, fachfi, facT, facLWin, facain,facefi,facwsoil,facf,facets,facTdash,facqsat,facf,fachurel
+    use initfac, only:facdi, faccp, faclami, fackappa, netsw, facem, fachf, facef, fachfi, facT, facLWin,facefi,facwsoil,facf,facets,facTdash,facqsat,facf,fachurel
     use modmpi, only:myid, comm3d, mpierr, MPI_INTEGER, MPI_DOUBLE_PRECISION, MY_REAL, nprocs, cmyid, MPI_REAL8, MPI_REAL4, MPI_SUM
     use modstat_nc,only: open_nc, define_nc,ncinfo,writestat_dims_nc
     integer :: i,j,k,l,m,n
@@ -381,7 +381,7 @@ contains
     ! E = max(0,(1-vegetation%) * rhoa * (qa-qsat(TGR)*hu) * (1/(rs+ra))
 
     use modglobal, only:nfcts, rlv, rlvi, rhoa, cp, wfc, wwilt, wsoil, rsmin, GRLAI, tEB, rsmax, lconstW
-    use initfac, only:netSW, faccth, fachurel, faclGR, facwsoil, facf, facef, facT, facefi, facqsat, facdi, facain, qsat
+    use initfac, only:netSW, faccth, fachurel, faclGR, facwsoil, facf, facef, facT, facefi, facqsat, facdi, faca, qsat
 
     integer :: n
     real :: vfraction = 0.8 !fraction of GR covered in vegetation, should be made into a proper model parameter (-> modglobal)
@@ -393,7 +393,7 @@ contains
         !yet actually the moisture flux is needed for water budget, i.e. currently many operations cancel each other e.g. X*Lv/Lv
         !facefi is the sum over all gridcells of a facet, thus has to be averaged by dividing by number of cells in that facet
         !units of facefi are kgW/kgA*m/s
-        facefi(n) = facefi(n)/tEB/facain(n)*rhoa*rlv !mean heat flux since last EB calculation (time average)
+        facefi(n) = facefi(n)/tEB/faca(n)*rhoa*rlv !mean heat flux since last EB calculation (time average)
 
         if (.not. lconstW) then !remove water from soil
           facwsoil(n) = max(facwsoil(n) + facefi(n)*tEB*rlvi*facdi(n, 1), 0.) !ils13, careful this assumes water only being present in the first layer!!!
