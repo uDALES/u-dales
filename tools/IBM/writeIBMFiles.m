@@ -373,7 +373,7 @@ disp('Written fluid_boundary_c.txt')
 % Facet sections
 filename_c = [fpath 'facet_sections_c.txt'];
 fileID_c = fopen(filename_c,'W');
-fprintf(fileID_c, '# facet, area, fluid boundary point, boundary intercept\n');
+fprintf(fileID_c, '# facet, area, fluid boundary point, distance\n');
 fprintf(fileID_c, '%-2d %-4.4f %-4d %-4.8f\n', facet_sections_c(:,[1,2,5,6])');
 fclose(fileID_c);
 disp('Written facet_sections_c.txt')
@@ -431,7 +431,10 @@ fclose(fileID_info);
 
 %% Plot
 figure
+<<<<<<< HEAD
 %trisurf(TR)
+=======
+>>>>>>> ecse
 
 patch('Faces', TR.ConnectivityList, 'Vertices', TR.Points, 'FaceColor', ones(3,1)*0.85, 'FaceAlpha', 1)
 hold on
@@ -441,6 +444,7 @@ faceNormals = TR.faceNormal;
 view(3)
 
 axis equal tight
+<<<<<<< HEAD
 %
 % xlim([0 Lx])
 % ylim([0 Ly])
@@ -448,6 +452,15 @@ axis equal tight
 %
 %scatter3(X_u(solid_u), Y_u(solid_u), Z_u(solid_u), 10,[0,0,1],'filled')
 scatter3(X_v(solid_v), Y_v(solid_v), Z_v(solid_v), 10,[0,0,1],'filled')
+=======
+
+xlim([0 Lx])
+ylim([0 Ly])
+zlim([0 Lz])
+
+%scatter3(X_u(solid_u), Y_u(solid_u), Z_u(solid_u), 10,[0,0,1],'filled')
+%scatter3(X_v(solid_v), Y_v(solid_v), Z_v(solid_v), 10,[0,0,1],'filled')
+>>>>>>> ecse
 % scatter3(X_w(solid_w), Y_w(solid_w), Z_w(solid_w), 10,[0,0,1],'filled')
 %scatter3(X_c(solid_c), Y_c(solid_c), Z_c(solid_c), 10,[0,0,1],'filled')
 
@@ -459,7 +472,8 @@ scatter3(X_v(solid_v), Y_v(solid_v), Z_v(solid_v), 10,[0,0,1],'filled')
 %scatter3(fluid_IB_xyz_u(:,1),fluid_IB_xyz_u(:,2),fluid_IB_xyz_u(:,3),10,[0,0,1],'filled')
 %scatter3(fluid_IB_xyz_v(:,1),fluid_IB_xyz_v(:,2),fluid_IB_xyz_v(:,3),10,[0,0,1],'filled')
 %scatter3(fluid_IB_xyz_w(:,1),fluid_IB_xyz_w(:,2),fluid_IB_xyz_w(:,3),10,[0,0,1],'filled')
-%scatter3(fluid_IB_xyz_c(:,1),fluid_IB_xyz_c(:,2),fluid_IB_xyz_c(:,3),10,[0,0,1],'filled')
+scatter3(fluid_IB_xyz_c(11650,1),fluid_IB_xyz_c(11650,2),fluid_IB_xyz_c(11650,3),10,[0,0,1],'filled')
+scatter3(fluid_IB_xyz_c(11651,1),fluid_IB_xyz_c(11651,2),fluid_IB_xyz_c(11651,3),10,[0,0,1],'filled')
 
 % %% u
 % scatter3(fluid_IB_xyz_u(:,1),fluid_IB_xyz_u(:,2),fluid_IB_xyz_u(:,3),10,[0,0,1],'filled')
