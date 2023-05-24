@@ -78,7 +78,7 @@ function [distances,project_pts,outside]=fastPoint2TriMesh(inputs,pts,use_parall
     else
         get_norm=1;
     end
-    if isfield(inputs,'face_normals');
+    if isfield(inputs,'face_normals')
         face_normals=inputs.face_normals;
     else
         get_norm=1;
@@ -110,81 +110,81 @@ function [distances,project_pts,outside]=fastPoint2TriMesh(inputs,pts,use_parall
 
     for n=1:nf
         near_id = n;
-    distances=dot(pts-face_mean_nodes(near_id,:),face_normals(near_id,:),2);
-    
-    % determine the signed direction of the original point location
-    signs=sign(distances);
-    
-    % determine projection point
-    direction_vector=face_normals(near_id,:);
-    project_pts=pts-(distances.*direction_vector);
-    
-    if use_parallel==1
-        parfor count_pt=1:size(pts,1)
-            % check if the point is within the triangle using the
-            % barycenter
-            dist=[0,0,0];
-            q=zeros(3,3);
-            project_pt_cur=project_pts(count_pt,:);
-            node_ids=faces(near_id(count_pt),:);
-            cor1=nodes(node_ids(1),:);
-            cor2=nodes(node_ids(2),:);
-            cor3=nodes(node_ids(3),:);
-            cor4=project_pt_cur;
-            check=isInsideTriangle( cor1,cor2,cor3,cor4);
-            if check==0
-                % the projected point is not within the triangle so the
-                % nearest point will lie on the nearest line segment. Check
-                % nearest point to each line segment/edge of face and use
-                % minimum distance as the correct projection point
-                [dist(1),q(1,:)] = projectPointToLineSegment(cor1,cor2,cor4);
-                [dist(2),q(2,:)] = projectPointToLineSegment(cor2,cor3,cor4);
-                [dist(3),q(3,:)] = projectPointToLineSegment(cor1,cor3,cor4);
-                [~,id]=min(dist);
-                project_pts(count_pt,:)=q(id,:);
+        distances=dot(pts-face_mean_nodes(near_id,:),face_normals(near_id,:),2);
+
+        % determine the signed direction of the original point location
+        signs=sign(distances);
+
+        % determine projection point
+        direction_vector=face_normals(near_id,:);
+        project_pts=pts-(distances.*direction_vector);
+
+        if use_parallel==1
+            parfor count_pt=1:size(pts,1)
+                % check if the point is within the triangle using the
+                % barycenter
+                dist=[0,0,0];
+                q=zeros(3,3);
+                project_pt_cur=project_pts(count_pt,:);
+                node_ids=faces(near_id(count_pt),:);
+                cor1=nodes(node_ids(1),:);
+                cor2=nodes(node_ids(2),:);
+                cor3=nodes(node_ids(3),:);
+                cor4=project_pt_cur;
+                check=isInsideTriangle( cor1,cor2,cor3,cor4);
+                if check==0
+                    % the projected point is not within the triangle so the
+                    % nearest point will lie on the nearest line segment. Check
+                    % nearest point to each line segment/edge of face and use
+                    % minimum distance as the correct projection point
+                    [dist(1),q(1,:)] = projectPointToLineSegment(cor1,cor2,cor4);
+                    [dist(2),q(2,:)] = projectPointToLineSegment(cor2,cor3,cor4);
+                    [dist(3),q(3,:)] = projectPointToLineSegment(cor1,cor3,cor4);
+                    [~,id]=min(dist);
+                    project_pts(count_pt,:)=q(id,:);
+                end
+            end
+
+        else
+            for count_pt=1:size(pts,1)
+                project_pt_cur=project_pts(count_pt,:);
+                node_ids=faces(near_id(count_pt),:);
+                cor1=nodes(node_ids(1),:);
+                cor2=nodes(node_ids(2),:);
+                cor3=nodes(node_ids(3),:);
+                cor4=project_pt_cur;
+                check=isInsideTriangle( cor1,cor2,cor3,cor4);
+                if check==0
+                    [dist(1),q(1,:)] = projectPointToLineSegment(cor1,cor2,cor4);
+                    [dist(2),q(2,:)] = projectPointToLineSegment(cor2,cor3,cor4);
+                    [dist(3),q(3,:)] = projectPointToLineSegment(cor1,cor3,cor4);
+                    [~,id]=min(dist);
+                    project_pts(count_pt,:)=q(id,:);
+                end
             end
         end
+        % recalculate the distances based on the final projection points and
+        % the correct sign value
+        distances=vecnorm(pts-project_pts,2,2).*signs;
+        % return the sign of each point
+        outside=signs>=0;
 
+        distances_list(n) = distances;
+        project_pts_list = [project_pts_list; project_pts];
+    end
+
+
+    %     [distances, id] = min(distances_list);
+    %distances_list
+    if all(distances_list(~isnan(distances_list)) < 0)
+        distances = NaN;
+        project_pts(:) = NaN;
     else
-        for count_pt=1:size(pts,1)
-            project_pt_cur=project_pts(count_pt,:);
-            node_ids=faces(near_id(count_pt),:);
-            cor1=nodes(node_ids(1),:);
-            cor2=nodes(node_ids(2),:);
-            cor3=nodes(node_ids(3),:);
-            cor4=project_pt_cur;
-            check=isInsideTriangle( cor1,cor2,cor3,cor4);
-            if check==0
-                [dist(1),q(1,:)] = projectPointToLineSegment(cor1,cor2,cor4);
-                [dist(2),q(2,:)] = projectPointToLineSegment(cor2,cor3,cor4);
-                [dist(3),q(3,:)] = projectPointToLineSegment(cor1,cor3,cor4);
-                [~,id]=min(dist);
-                project_pts(count_pt,:)=q(id,:);
-            end
-        end
-    end
-    % recalculate the distances based on the final projection points and
-    % the correct sign value
-    distances=vecnorm(pts-project_pts,2,2).*signs;
-    % return the sign of each point
-    outside=signs>=0;
-
-    distances_list(n) = distances;
-    project_pts_list = [project_pts_list; project_pts];
-    end
-
-    
-%     [distances, id] = min(distances_list);
-     %distances_list
-     if all(distances_list(~isnan(distances_list)) < 0) 
-         distances = NaN;
-         project_pts(:) = NaN;
-     else
         id =  find(distances_list == min(distances_list(distances_list>0)));
         id = id(1);
         distances = distances_list(id);
         project_pts = project_pts_list(id,:);
-     end
+    end
 end
 
 
