@@ -150,23 +150,8 @@ program DALESURBAN      !Version 48
 
     call nudge          ! nudge top cells of fields to enforce steady-state
 
-    ! if (myid == 0) then
-    write(*,*) 'pre ibm sum(thlp)' , sum(thlp)
-    ! end if
-
     call ibmwallfun     ! immersed boundary forcing: only shear forces.
-    ! if (myid == 0) then
-    !   ! call MPI_ALLREDUCE(thlp,total_heat_check,1,MY_REAL,MPI_SUM,comm3d,mpierr)
-    write(*,*) 'post ibm sum(thlp)' , sum(thlp)
-    ! end if
     call periodicEBcorr
-    ! if (myid == 0) then
-    !   ! call MPI_ALLREDUCE(thlp,total_heat_check,1,MY_REAL,MPI_SUM,comm3d,mpierr)
-    write(*,*) 'post ebcorr sum(thlp)' , sum(thlp)
-    ! end if
-    ! if (myid == 1) then
-    !   write(*,*) 'sum(thlp.*mask_c after)' , sum(mask_c(ib:ie,jb:je,kb:ke)*thlp(ib:ie,jb:je,kb:ke))
-    ! end if
 
     call masscorr       ! correct pred. velocity pup to get correct mass flow
 

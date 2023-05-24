@@ -381,18 +381,21 @@ contains
     ! E = max(0,(1-vegetation%) * rhoa * (qa-qsat(TGR)*hu) * (1/(rs+ra))
 
     use modglobal, only:nfcts, rlv, rlvi, rhoa, cp, wfc, wwilt, wsoil, rsmin, GRLAI, tEB, rsmax, lconstW
-    use initfac, only:netSW, faccth, fachurel, faclGR, facwsoil, facf, facef, facT, facefi, facqsat, facdi, facain, qsat
+    use initfac, only:netSW, faccth, fachurel, faclGR, facwsoil, facf, facef, facT, facefi, facqsat, facdi, facain, qsat, faca
 
     integer :: n
     real :: vfraction = 0.8 !fraction of GR covered in vegetation, should be made into a proper model parameter (-> modglobal)
     real :: dum
     do n = 1, nfcts
-
+      write(*,*) 'faca(n)', faca(n)
+      write(*,*) 'nfcts', nfcts
       if (faclGR(n)) then
         !facefi is actually the accumulated moisture flux, has to be converted to energy flux to calculate temperature
         !yet actually the moisture flux is needed for water budget, i.e. currently many operations cancel each other e.g. X*Lv/Lv
         !facefi is the sum over all gridcells of a facet, thus has to be averaged by dividing by number of cells in that facet
         !units of facefi are kgW/kgA*m/s
+        write(*,*) 'facefi(n)',facefi(n)
+        write(*,*) 'facain(n)',facain(n)
         facefi(n) = facefi(n)/tEB/facain(n)*rhoa*rlv !mean heat flux since last EB calculation (time average)
 
         if (.not. lconstW) then !remove water from soil

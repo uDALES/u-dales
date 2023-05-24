@@ -941,23 +941,9 @@ module modforces
   !call MPI_ALLREDUCE(bcqfluxsum,   tot_qflux,1,MY_REAL,MPI_SUM,comm3d,mpierr)
   call MPI_ALLREDUCE(totheatflux,tot_Tflux,1,MY_REAL,MPI_SUM,comm3d,mpierr)
   ! !write(*,*) 'fraction ', fraction
-  if (myid == 1) then
-    write(*,*) 'tot_Tflux', tot_Tflux
-    write(*,*) 'totheatflux on this core', totheatflux
-    ! write(*,*) 'removal ',  tot_Tflux/(itot*jtot*(ke+1-sinkbase))
-    ! write(*,*) 'ib', ib
-    ! write(*,*) 'ie', ie
-    ! write(*,*) 'jb', jb
-    ! write(*,*) 'je', je
-    ! write(*,*) 'kb', kb
-    ! write(*,*) 'ke', ke
-    ! write(*,*) 'itot', itot
-    ! write(*,*) 'jtot', jtot
-  end if
+
 
    if (ltempeq) then
-    write(*,*) 'divisor', itot*jtot*(ke-sinkbase)
-    Write(*,*) 'tot_flux', tot_Tflux
      do i = ib,ie
        do j = jb,je
          do k = sinkbase +1 , ke!max_height_index +1 , ke ! Only apply the correction over the volume above the buidlings

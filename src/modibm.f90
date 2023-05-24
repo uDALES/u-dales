@@ -1238,7 +1238,6 @@ module modibm
          ! facet sensible heat flux = volumetric heat capacity of air * flux * sectionarea / facetarea [W/m^2]
          thlp(i,j,k) = thlp(i,j,k) - flux * bound_info_c%secareas(sec) / (dx*dy*dzh(k))
          if (lEB) then
-           write(*,*) 'fac', fac
            fluxTrhs = - flux * bound_info_c%secareas(sec) / (dx*dy*dzh(k)) ! cew216 This is used for the peirodicEBcorr forcing [K/s]
            totheatflux = totheatflux + fluxTrhs ! Add the contribution from each point
            fachf(fac) = fachf(fac) + flux * bound_info_c%secareas(sec) ! [Km^2/s] (will be divided by facetarea(fac) in modEB)
