@@ -59,120 +59,122 @@ else
 end
 
 
-%% Read the .stl file and write necessary ibm files
-TR = stlread(r.stl_file);
-F = TR.ConnectivityList;
-V = TR.Points;
+if r.libm
+    %% Read the .stl file and write necessary ibm files
+    TR = stlread(r.stl_file);
+    F = TR.ConnectivityList;
+    V = TR.Points;
 
-area_facets = facetAreas(F, V); % Useful for checking if area_fluid_IB_c == sum(area_facets)
+    area_facets = facetAreas(F, V); % Useful for checking if area_fluid_IB_c == sum(area_facets)
 
-if r.gen_geom
-    % c-grid (scalars/pressure)
-    xgrid_c = r.xf;
-    ygrid_c = r.yf;
-    zgrid_c = r.zf;
-    [X_c,Y_c,Z_c] = ndgrid(xgrid_c,ygrid_c,zgrid_c);
+    if r.gen_geom
+        % c-grid (scalars/pressure)
+        xgrid_c = r.xf;
+        ygrid_c = r.yf;
+        zgrid_c = r.zf;
+        [X_c,Y_c,Z_c] = ndgrid(xgrid_c,ygrid_c,zgrid_c);
 
-    % u-grid
-    xgrid_u = r.xh;
-    ygrid_u = r.yf;
-    zgrid_u = r.zf;
-    [X_u,Y_u,Z_u] = ndgrid(xgrid_u,ygrid_u,zgrid_u);
+        % u-grid
+        xgrid_u = r.xh;
+        ygrid_u = r.yf;
+        zgrid_u = r.zf;
+        [X_u,Y_u,Z_u] = ndgrid(xgrid_u,ygrid_u,zgrid_u);
 
-    % v-grid
-    xgrid_v = r.xf;
-    ygrid_v = r.yh;
-    zgrid_v = r.zf;
-    [X_v,Y_v,Z_v] = ndgrid(xgrid_v,ygrid_v,zgrid_v);
+        % v-grid
+        xgrid_v = r.xf;
+        ygrid_v = r.yh;
+        zgrid_v = r.zf;
+        [X_v,Y_v,Z_v] = ndgrid(xgrid_v,ygrid_v,zgrid_v);
 
-    % w-grid
-    xgrid_w = r.xf;
-    ygrid_w = r.yf;
-    zgrid_w = r.zh;
-    [X_w,Y_w,Z_w] = ndgrid(xgrid_w,ygrid_w,zgrid_w);
+        % w-grid
+        xgrid_w = r.xf;
+        ygrid_w = r.yf;
+        zgrid_w = r.zh;
+        [X_w,Y_w,Z_w] = ndgrid(xgrid_w,ygrid_w,zgrid_w);
 
-    diag_neighbs = r.diag_neighbs;
-    stl_ground = r.stl_ground;
-    periodic_x = r.BCxm == 1;
-    periodic_y = r.BCym == 1;
-    lmypoly = 1; % remove eventually
-    writeIBMFiles; % Could turn into a function and move writing to this script
-else
-    if isempty(r.geom_path)
-        error('Need to specify the path to geometry files')
-    end
-    copy_command = ['cp ' r.geom_path 'solid_* ' fpath];
-    system(copy_command);
-    copy_command = ['cp ' r.geom_path 'fluid_boundary_* ' fpath];
-    system(copy_command);
-    copy_command = ['cp ' r.geom_path 'facet_sections_* ' fpath];
-    system(copy_command);
-end
-
-%% Set facet types
-nfcts = size(TR.ConnectivityList,1);
-preprocessing.addvar(r, 'nfcts', nfcts);
-facet_types = ones(nfcts,1); % facet_types are to be user-defined - defaults to type 1 (concrete)
-preprocessing.write_facets(r, facet_types, TR.faceNormal);
-
-%%
-if r.lEB
-    preprocessing.write_facetarea(r, area_facets);
-
-    %% Write STL in View3D input format
-    fpath_facets_view3d = [fpath 'facets.vs3'];
-    STLtoView3D(r.stl_file, fpath_facets_view3d);
-
-    %% Calculate view factors
-    % Add check to see if View3D exists in the tools directory.
-    view3d_exe = [DA_TOOLSDIR '/View3D/build/src/view3d'];
-    fpath_vf = [fpath 'vf.txt'];
-    vf = view3d(view3d_exe, fpath_facets_view3d, fpath_vf);
-    svf = max(1 - sum(vf, 2), 0);
-    preprocessing.write_svf(r, svf);
-
-    if ~r.lvfsparse
-        preprocessing.write_vf(r, vf)
-        disp(['Written vf.nc.inp.', r.expnr])
+        diag_neighbs = r.diag_neighbs;
+        stl_ground = r.stl_ground;
+        periodic_x = r.BCxm == 1;
+        periodic_y = r.BCym == 1;
+        lmypoly = 1; % remove eventually
+        writeIBMFiles; % Could turn into a function and move writing to this script
     else
-        vfsparse = sparse(double(vf));
-        preprocessing.write_vfsparse(obj, vfsparse);
-        disp(['Written vfsparse.inp.', r.expnr])
+        if isempty(r.geom_path)
+            error('Need to specify the path to geometry files')
+        end
+        copy_command = ['cp ' r.geom_path 'solid_* ' fpath];
+        system(copy_command);
+        copy_command = ['cp ' r.geom_path 'fluid_boundary_* ' fpath];
+        system(copy_command);
+        copy_command = ['cp ' r.geom_path 'facet_sections_* ' fpath];
+        system(copy_command);
     end
 
-    %% Calculate direct solar radiation (Sdir)
-    disp('Calculating direct solar radiation.')
-    azimuth = r.solarazimuth - r.xazimuth;
-    nsun = [sind(r.solarzenith)*cosd(azimuth), -sind(r.solarzenith)*sind(azimuth), cosd(r.solarzenith)];
-    show_plot_2d = false; % User-defined
-    show_plot_3d = true;  % User-defined
-    Sdir = directShortwave(F, V, nsun, r.I, r.psc_res, show_plot_2d, show_plot_3d);
+    %% Set facet types
+    nfcts = size(TR.ConnectivityList,1);
+    preprocessing.addvar(r, 'nfcts', nfcts);
+    facet_types = ones(nfcts,1); % facet_types are to be user-defined - defaults to type 1 (concrete)
+    preprocessing.write_facets(r, facet_types, TR.faceNormal);
 
-    %% Calculate net shortwave radiation (Knet)
-    disp('Calculating net shortwave radiation.')
-    albedos = preprocessing.generate_albedos(r, facet_types);
-    Knet = netShortwave(Sdir, r.Dsky, vf, svf, albedos);
-    preprocessing.write_netsw(r, Knet);
-    disp(['Written netsw.inp.', r.expnr])
-end
+    %%
+    if r.lEB
+        preprocessing.write_facetarea(r, area_facets);
 
-%% Write initial facet temperatures
-if (r.lEB || r.iwallmom == 2 || r.iwalltemp == 2)
-    disp('Setting initial facet temperatures.')
-    facT = r.facT;
-    nfaclyrs = r.nfaclyrs;
-    facT_file = r.facT_file;
-    lfacTlyrs = r.lfacTlyrs;
-    if ~r.lfacTlyrs
-        Tfacinit = ones(nfcts,1) .* r.facT;
-        preprocessing.write_Tfacinit(r, Tfacinit)
-        disp(['Written Tfacinit.inp.', r.expnr])
-        % Could always read in facet temperature as layers, defaulting to linear?
-    else
-        Tfac = ncread(r.facT_file, 'T');
-        Tfacinit_layers = Tfac(:, :, end);
-        preprocessing.write_Tfacinit_layers(r, Tfacinit_layers)
-        disp(['Written Tfacinit_layers.inp.', r.expnr])
+        %% Write STL in View3D input format
+        fpath_facets_view3d = [fpath 'facets.vs3'];
+        STLtoView3D(r.stl_file, fpath_facets_view3d);
+
+        %% Calculate view factors
+        % Add check to see if View3D exists in the tools directory.
+        view3d_exe = [DA_TOOLSDIR '/View3D/build/src/view3d'];
+        fpath_vf = [fpath 'vf.txt'];
+        vf = view3d(view3d_exe, fpath_facets_view3d, fpath_vf);
+        svf = max(1 - sum(vf, 2), 0);
+        preprocessing.write_svf(r, svf);
+
+        if ~r.lvfsparse
+            preprocessing.write_vf(r, vf)
+            disp(['Written vf.nc.inp.', r.expnr])
+        else
+            vfsparse = sparse(double(vf));
+            preprocessing.write_vfsparse(obj, vfsparse);
+            disp(['Written vfsparse.inp.', r.expnr])
+        end
+
+        %% Calculate direct solar radiation (Sdir)
+        disp('Calculating direct solar radiation.')
+        azimuth = r.solarazimuth - r.xazimuth;
+        nsun = [sind(r.solarzenith)*cosd(azimuth), -sind(r.solarzenith)*sind(azimuth), cosd(r.solarzenith)];
+        show_plot_2d = false; % User-defined
+        show_plot_3d = true;  % User-defined
+        Sdir = directShortwave(F, V, nsun, r.I, r.psc_res, show_plot_2d, show_plot_3d);
+
+        %% Calculate net shortwave radiation (Knet)
+        disp('Calculating net shortwave radiation.')
+        albedos = preprocessing.generate_albedos(r, facet_types);
+        Knet = netShortwave(Sdir, r.Dsky, vf, svf, albedos);
+        preprocessing.write_netsw(r, Knet);
+        disp(['Written netsw.inp.', r.expnr])
     end
-    
+
+    %% Write initial facet temperatures
+    if (r.lEB || r.iwallmom == 2 || r.iwalltemp == 2)
+        disp('Setting initial facet temperatures.')
+        facT = r.facT;
+        nfaclyrs = r.nfaclyrs;
+        facT_file = r.facT_file;
+        lfacTlyrs = r.lfacTlyrs;
+        if ~r.lfacTlyrs
+            Tfacinit = ones(nfcts,1) .* r.facT;
+            preprocessing.write_Tfacinit(r, Tfacinit)
+            disp(['Written Tfacinit.inp.', r.expnr])
+            % Could always read in facet temperature as layers, defaulting to linear?
+        else
+            Tfac = ncread(r.facT_file, 'T');
+            Tfacinit_layers = Tfac(:, :, end);
+            preprocessing.write_Tfacinit_layers(r, Tfacinit_layers)
+            disp(['Written Tfacinit_layers.inp.', r.expnr])
+        end
+
+    end
 end

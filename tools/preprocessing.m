@@ -290,53 +290,7 @@ classdef preprocessing < dynamicprops
             preprocessing.addvar(obj, 'w_s',0) % subsidence [*units?*]
             preprocessing.addvar(obj, 'R',0)   % radiative forcing [*units?*]
 
-            % Blocks
-            preprocessing.addvar(obj, 'lblocksfile', 0) % switch for using blocks from a file
-            if obj.lblocksfile
-                preprocessing.addvar(obj, 'blocksfile', '') % name of blocks file
-            end
-
-            % Blocks
-            preprocessing.addvar(obj, 'ltxtblocks', 0) % switch for using blocks from a file
-            if obj.ltxtblocks
-                preprocessing.addvar(obj, 'txtblocksfile', '') % name of blocks file
-            end
-
-            preprocessing.addvar(obj, 'lflat', 0) % switch for no blocks or facets (as in DALES)
-            preprocessing.addvar(obj, 'lfloors', 0) % switch for just floors, no buildings.
-
-%             if (obj.lEB && (obj.lflat || obj.lfloors))
-%                 error('Energy balance currently not implemented for flat domain')
-%                 % Eventually lfloors should work with lEB.
-%             end
-
-            preprocessing.addvar(obj, 'lcube', 0)   % switch for linear cubes
-            preprocessing.addvar(obj, 'lstaggered', 0) % switch for staggered cubes
-            preprocessing.addvar(obj, 'lcanyons', 0) % switch for infinite canyons
-            if obj.nsv>0
-                if (obj.lscasrcl && not(obj.lcanyons))
-                    error('Scalar line sources only implemented for lcanyons')
-                end
-            end
-
-            if (obj.lcube || obj.lstaggered || obj.lcanyons)
-                preprocessing.addvar(obj, 'blockheight', 16) % block height
-                preprocessing.addvar(obj, 'blockwidth', 16)  % block width
-                preprocessing.addvar(obj, 'canyonwidth', 16) % canyonwidth
-            end
-
-            preprocessing.addvar(obj, 'llidar', 0)
-            if obj.llidar
-                preprocessing.addvar(obj, 'sourcename', '')
-                preprocessing.addvar(obj, 'dxinp', 1) % resolution of image [m/pixel]
-                preprocessing.addvar(obj, 'dyinp', 1)
-                preprocessing.addvar(obj, 'dzinp', 1)
-                preprocessing.addvar(obj, 'centeri', 0) % center of area of interest in original image [pixel]
-                preprocessing.addvar(obj, 'centerj', 0)
-                preprocessing.addvar(obj, 'maxh', 0) % maximum height of buildings in image [m]
-                preprocessing.addvar(obj, 'pad', 5) % padding. A padding of 0 makes only sense for idealised cases. There should be no building at domain edge
-                preprocessing.addvar(obj, 'smallarea', round(150 / (obj.dx * obj.dy))) % objects smaller than this will be deleted
-            end
+            preprocessing.addvar(obj, 'libm', 1)
 
             if obj.lEB
                 preprocessing.addvar(obj, 'solarazimuth', 135); % azimuth angle
@@ -357,7 +311,6 @@ classdef preprocessing < dynamicprops
             preprocessing.addvar(obj, 'facT', 288.) % Initial facet temperatures.
             preprocessing.addvar(obj, 'nfaclyrs', 3) % Number of facet layers
             
-            preprocessing.addvar(obj, 'nblocks', 0)
             preprocessing.addvar(obj, 'nfcts', 0)
 
             preprocessing.generate_factypes(obj)
