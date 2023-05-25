@@ -34,13 +34,12 @@ if lmypoly
     Dir_ray_c = [0 0 1];
     tol_mypoly = 1e-7;
     max_height = max(TR.Points(:,3)) + (zgrid_u(2)-zgrid_u(1));
-    L_char = sqrt(2)*max_height;
+    L_char = 2 * max_facet_size(TR.Points,TR.ConnectivityList);
 end
 
 %% Calculate u
 disp('Determing solid points for u-grid.')
 if lmypoly
-    max_height = max(TR.Points(:,3));
     solid_u = in_grid_mypoly(TR.Points,TR.ConnectivityList, ...
         TR.incenter,TR.faceNormal,xgrid_u,ygrid_u,zgrid_u,Dir_ray_u,L_char,max_height,tol_mypoly);
 else
