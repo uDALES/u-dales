@@ -7,6 +7,8 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     sudo apt install gfortran libopenmpi-dev openmpi-bin libnetcdf-dev libnetcdff-dev graphviz
 elif [[ "$OSTYPE" == "darwin"* ]]; then
     brew install netcdf open-mpi graphviz
+    nc-config --all
+    nf-config --all
     brew unlink gcc
     brew link gcc
 fi
