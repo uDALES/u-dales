@@ -217,7 +217,7 @@ for facet=1:Nf
 
                         xyz1 = [xgrid(i), ygrid(j), zgrid(k)];
                         %[dist, BI, ~, typeid] = point2trimesh('Faces', tri.ConnectivityList, 'Vertices', tri.Points, 'QueryPoints', xyz1, 'UseSubSurface', false);
-                        angle = dot(TR.faceNormal(facet), (xyz1 - BI)/vecnorm((xyz1 - BI)));
+                        %angle = dot(TR.faceNormal(facet), (xyz1 - BI)/vecnorm((xyz1 - BI)));
                         [dist, BI, ~] = fastPoint2TriMesh(inputs, xyz1, 0, 0);
                         angle = dot(TR.faceNormal(facet), (xyz1 - BI)/vecnorm((xyz1 - BI)));
 
@@ -621,9 +621,6 @@ for facet=1:Nf
                     facet_sections = [facet_sections; facet_section];
                      
                     if lplot && count == countlim
-                        inputs.faces
-                        inputs.nodes
-                        dist
                         max(abs(angles) ./ (dists / (dx*dy*dz)^(1/3)))
                         %figure
                         clf
