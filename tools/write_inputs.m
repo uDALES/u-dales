@@ -19,7 +19,7 @@
 
 % This script is run by the bash script da_inp.sh.
 % It used to generate the necessary input files for uDALES.
-
+tic
 expnr = '027';
 % DA_EXPDIR = getenv('DA_EXPDIR');
 % DA_TOOLSDIR = getenv('DA_TOOLSDIR');
@@ -179,3 +179,4 @@ if (r.lEB || r.iwallmom == 2 || r.iwalltemp == 2)
     end
 
 end
+toc 

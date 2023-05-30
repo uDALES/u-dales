@@ -925,21 +925,22 @@ module modforces
 ! ! sink acts above buildings
   !
   ! use initfac, only :  max_height_index
-  use modfields, only : thlp
+  use modfields, only : thlp, qtp
   !use modglobal, only: ltempeq, lperiodicEBcorr, ib, ie, jb, je, kb, ke, imax, jtot
   use modglobal, only : ltempeq, lmoist, lperiodicEBcorr, ib, ie, jb, je, kb, ke,&
-                          itot, jtot, totheatflux,sinkbase, &
+                          itot, jtot, totheatflux,sinkbase, totqflux, &
                           zh, dx, dy ,dzh
   use modmpi, only : comm3d, mpierr, MY_REAL, myid, MPI_SUM
   !
   integer :: i, j, k, n
-  real :: tot_Tflux !, !tot_qflux !, sink_points
+  real :: tot_Tflux, tot_qflux !, !tot_qflux !, sink_points
   !
   if (lperiodicEBcorr .eqv. .false.) return
   !
   !call MPI_ALLREDUCE(bctfluxsum,   tot_Tflux,1,MY_REAL,MPI_SUM,comm3d,mpierr)
   !call MPI_ALLREDUCE(bcqfluxsum,   tot_qflux,1,MY_REAL,MPI_SUM,comm3d,mpierr)
   call MPI_ALLREDUCE(totheatflux,tot_Tflux,1,MY_REAL,MPI_SUM,comm3d,mpierr)
+  call MPI_ALLREDUCE(totqflux,tot_qflux,1,MY_REAL,MPI_SUM,comm3d,mpierr)
   ! !write(*,*) 'fraction ', fraction
 
 
@@ -963,21 +964,22 @@ module modforces
   !
   !
   !
-  ! if (lmoist) then
-  !   do i = ib,ie
-  !     do j = jb,je
-  !       do k = max_height_index +1,ke ! Only apply the correction over the volume above the buidlings
-  !         qtp(i,j,k) = qtp(i,j,k) + fraction*tot_qflux*(zh(k+1)-zh(k))/(imax*jtot*(zh(ke+1) - zh(max_height_index+1)))
-  !       end do
-  !     end do
-  !   end do
+  if (lmoist) then
+    do i = ib,ie
+       do j = jb,je
+        do k = sinkbase +1,ke ! Only apply the correction over the volume above the buidlings
+          !qtp(i,j,k) = qtp(i,j,k) + fraction*tot_qflux*(zh(k+1)-zh(k))/(imax*jtot*(zh(ke+1) - zh(max_height_index+1)))
+          qtp(i,j,k) = qtp(i,j,k) - tot_qflux/(itot*jtot*(ke-sinkbase))
+        end do
+      end do
+    end do
   !   latent_heat_out = (1-fraction)*tot_qflux/(imax*jtot*(zh(ke+1)-zh(ke)))
   !    do i = ib,ie
   !      do j = jb,je
   !       qtp(i,j,ke) = qtp(i,j,ke) + latent_heat_out
   !     end do
   !   end do
-  ! end if
+  end if
   !
   end subroutine periodicEBcorr
 

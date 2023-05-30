@@ -986,6 +986,7 @@ module modstartup
                read (ifinput, '(a80)') chmess
 
                do k = kb, ke
+                 write(*,*) 'k',k
                   read (ifinput, *) &
                      height(k), &
                      thlprof(k), &

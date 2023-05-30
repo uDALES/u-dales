@@ -353,7 +353,8 @@ module modglobal
    real :: dtEB = 10. !time interval between calculations of facet energy balance
    real :: tEB = 0. !time of last calculation of facet energy balance
    real :: tnextEB = 0. !time for next calculation of facet energy balance
-   real :: totheatflux = 0. ! Total heat flux from facs into air in one timestep
+   real :: totheatflux = 0. ! Total sensible heat flux from facs into air in one timestep
+   real :: totqflux  = 0. ! Total latent heat flux from facs into air in one timestep
 
    real :: thres = 5.e-3 !<     * threshold value for inversion height calculations
    real :: dqt !<     * applied gradient of qt at top of model

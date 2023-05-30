@@ -982,7 +982,7 @@ module modibm
 
    subroutine ibmwallfun
      use modglobal, only : libm, iwallmom, iwalltemp, xhat, yhat, zhat, ltempeq, lmoist, &
-                           ib, ie, ih, ihc, jb, je, jh, jhc, kb, ke, kh, khc, nsv, totheatflux
+                           ib, ie, ih, ihc, jb, je, jh, jhc, kb, ke, kh, khc, nsv, totheatflux, totqflux
      use modfields, only : u0, v0, w0, thl0, qt0, sv0, up, vp, wp, thlp, qtp, svp, &
                            tau_x, tau_y, tau_z, thl_flux
      use modsubgriddata, only : ekm, ekh
@@ -1016,9 +1016,8 @@ module modibm
       if (ltempeq .or. lmoist) then
         rhs = thlp
         totheatflux = 0 ! Reset total heat flux to zero so we only account for that in this step.
-        !write(*,*) 'totheatflux', totheatflux
+        totqflux = 0
         call wallfunheat
-        !write(*,*) 'totheatflux after', totheatflux
         thl_flux(:,:,kb:ke+kh) = thl_flux(:,:,kb:ke+kh) + (thlp - rhs)
         if (ltempeq) call diffc_corr(thl0, thlp, ih, jh, kh)
         if (lmoist)  call diffc_corr(qt0, qtp, ih, jh, kh)
@@ -1151,7 +1150,7 @@ module modibm
 
    subroutine wallfunheat
      use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, xf, yf, zf, xh, yh, zh, dx, dy, dzh, eps1, &
-                           xhat, yhat, zhat, vec0, fkar, ltempeq, lmoist, iwalltemp, iwallmoist, lEB, totheatflux
+                           xhat, yhat, zhat, vec0, fkar, ltempeq, lmoist, iwalltemp, iwallmoist, lEB, totheatflux, totqflux
      use modfields, only : u0, v0, w0, thl0, thlp, qt0, qtp
      use initfac,   only : facT, facz0, facz0h, facnorm, faca, fachf, facef, facqsat, fachurel, facf, faclGR
      use modsurfdata, only : z0, z0h
@@ -1160,7 +1159,7 @@ module modibm
      use modmpi, only : myid
 
      integer i, j, k, n, m, sec, fac
-     real :: dist, flux, area, vol, tempvol, Tair, Tsurf, utan, cth, cveg, hurel, qtair, qwall, resc, ress, xrec, yrec, zrec, fluxTrhs
+     real :: dist, flux, area, vol, tempvol, Tair, Tsurf, utan, cth, cveg, hurel, qtair, qwall, resc, ress, xrec, yrec, zrec, fluxTrhs, fluxqrhs
      real, dimension(3) :: uvec, norm, span, strm
      logical :: valid
 
@@ -1276,6 +1275,8 @@ module modibm
          qtp(i,j,k) = qtp(i,j,k) - flux * bound_info_c%secareas(sec) / (dx*dy*dzh(k))
 
          if (lEB) then
+           fluxqrhs = - flux * bound_info_c%secareas(sec) / (dx*dy*dzh(k)) ! cew216 This is used for the peirodicEBcorr forcing [K/s]
+           totqflux = totqflux + fluxqrhs ! Add the contribution from each point
            facef(fac) = facef(fac) + flux * bound_info_c%secareas(sec) ! [Km^2/s] (will be divided by facetarea(fac) in modEB)
          end if
        end if

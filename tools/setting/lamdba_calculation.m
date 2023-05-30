@@ -9,6 +9,7 @@ west_area = 0;
 east_area = 0;
 green_area = 0;
 top_area = 0;
+green_outline = [6,8,2,8];
 green_facets = [];
 for i = 1:length(con(:,1))
     verts =con(i,:);

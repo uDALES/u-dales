@@ -502,7 +502,7 @@ for facet=1:Nf
                             %hold on
                             incenter = TR.incenter(1); faceNormal = TR.faceNormal;
                             quiver3(incenter(1), incenter(2), incenter(3), faceNormal(1), faceNormal(2), faceNormal(3))
-                            V = [xl yl zl; xu yl zl; xuinclude_diagonals yu zl; xl yu zl; ...
+                            V = [xl yl zl; xu yl zl; xu yu zl; xl yu zl; ...
                                 xl yl zu; xu yl zu; xu yu zu; xl yu zu];
                             F = [1 2 3 4; 2 6 7 3; 4 3 7 8; 1 5 8 4; 1 2 6 5; 5 6 7 8];
                             patch('Faces', F, 'Vertices', V, 'FaceColor', [1,1,1], 'FaceAlpha', 0.5)
