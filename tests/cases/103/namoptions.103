@@ -10,6 +10,8 @@ randu        = 0.01
 ladaptive    = .true.
 libm         = .false.
 lbottom      = .true.
+nprocx       = 1
+nprocy       = 2
 /
 
 &OUTPUT
