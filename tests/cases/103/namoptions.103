@@ -62,11 +62,7 @@ z0h          = 0.000067
 thl_top      = 288.
 qt_top       = 0.0
 qts          = 0.0
-/
-
-&WALLS
-iwalltemp    = 2
-iwallmoist   = 2
+BCbotT       = 2
 /
 
 &INPS
