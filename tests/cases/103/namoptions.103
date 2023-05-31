@@ -9,7 +9,6 @@ randthl      = 0.001
 randu        = 0.01
 ladaptive    = .true.
 libm         = .false.
-lbottom      = .true.
 nprocx       = 1
 nprocy       = 2
 /
@@ -63,6 +62,10 @@ thl_top      = 288.
 qt_top       = 0.0
 qts          = 0.0
 BCbotT       = 2
+/
+
+&WALLS
+lbottom      = .true.
 /
 
 &INPS
