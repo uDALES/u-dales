@@ -1,3 +1,7 @@
 [submodule "2decomp-fft"]
 	path = 2decomp-fft
 	url = https://github.com/uDALES/2decomp-fft.git
+
+[submodule "View3D"]
+	path = tools/View3D
+	url = https://github.com/jasondegraw/View3D
