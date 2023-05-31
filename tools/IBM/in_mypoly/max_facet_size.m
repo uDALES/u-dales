@@ -10,7 +10,7 @@ function max_facet_side = max_facet_size(vertices,facets)
 max_facet_side = 0;
 side = [];
 
-for i=1:length(facets)
+for i=1:length(facets(:,1))
     side(1) = sqrt( (vertices(facets(i,2),1)-vertices(facets(i,1),1))^2 ...
                   + (vertices(facets(i,2),2)-vertices(facets(i,1),2))^2 ...
                   + (vertices(facets(i,2),3)-vertices(facets(i,1),3))^2 );
