@@ -781,6 +781,10 @@ classdef preprocessing < dynamicprops
             fclose(scalar);
         end
 
+        function set_nfcts(obj, nfcts)
+            obj.nfcts = nfcts;
+        end
+
         function write_vf(obj, vf)
             ncid = netcdf.create(['vf.nc.inp.' num2str(obj.expnr)], 'NC_WRITE');
             dimidrow = netcdf.defDim(ncid,'rows', obj.nfcts);
