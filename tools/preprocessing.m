@@ -310,17 +310,14 @@ classdef preprocessing < dynamicprops
             end
             preprocessing.addvar(obj, 'facT', 288.) % Initial facet temperatures.
             preprocessing.addvar(obj, 'nfaclyrs', 3) % Number of facet layers
-<<<<<<< HEAD
-
-            preprocessing.addvar(obj, 'nblocks', 0)
-=======
-            
->>>>>>> ecse
-            preprocessing.addvar(obj, 'nfcts', 0)
 
             preprocessing.generate_factypes(obj)
             preprocessing.addvar(obj, 'facT_file', '')
 
+        end
+
+        function set_nfcts(obj, nfcts)
+            obj.nfcts = nfcts;
         end
 
         function generate_factypes(obj)
@@ -787,6 +784,10 @@ classdef preprocessing < dynamicprops
         end
 
         function write_vf(obj, vf)
+%             fname = ['vf.nc.inp.' num2str(obj.expnr)]
+%             if exist(fname, 'file') == 2
+%                 delete(fname)
+%             end
             ncid = netcdf.create(['vf.nc.inp.' num2str(obj.expnr)], 'NC_WRITE');
             dimidrow = netcdf.defDim(ncid,'rows', obj.nfcts);
             dimidcol = netcdf.defDim(ncid,'columns', obj.nfcts);

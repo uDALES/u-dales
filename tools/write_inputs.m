@@ -28,6 +28,7 @@ DA_TOOLSDIR = '/media/chris/Project3/uDALES2.0/u-dales/tools'
 addpath(genpath([DA_TOOLSDIR '/']));
 addpath([DA_TOOLSDIR '/IBM/'])
 addpath([DA_TOOLSDIR '/SEB/'])
+addpath([DA_TOOLSDIR '/setting/'])
 exppath = [DA_EXPDIR '/'];
 fpath = [DA_EXPDIR '/' expnr '/'];
 cd(fpath)
@@ -110,11 +111,11 @@ if r.libm
         copy_command = ['cp ' r.geom_path 'facet_sections_* ' fpath];
         system(copy_command);
     end
-
-<<<<<<< HEAD
+end
 %% Set facet types
 nfcts = size(TR.ConnectivityList,1);
-preprocessing.addvar(r, 'nfcts', nfcts);
+%preprocessing.addvar(r, 'nfcts', nfcts);
+preprocessing.set_nfcts(r, nfcts);
 facet_types = ones(nfcts,1); % facet_types are to be user-defined - defaults to type 1 (concrete)
 preprocessing.write_facets(r, facet_types, TR.faceNormal);
 
@@ -143,7 +144,7 @@ if r.lEB
         vfsparse = sparse(double(vf));
         preprocessing.write_vfsparse(obj, vfsparse);
         disp(['Written vfsparse.inp.', r.expnr])
-=======
+    end     
     %% Set facet types
     nfcts = size(TR.ConnectivityList,1);
     preprocessing.addvar(r, 'nfcts', nfcts);
@@ -189,7 +190,6 @@ if r.lEB
         Knet = netShortwave(Sdir, r.Dsky, vf, svf, albedos);
         preprocessing.write_netsw(r, Knet);
         disp(['Written netsw.inp.', r.expnr])
->>>>>>> ecse
     end
 
     %% Write initial facet temperatures
@@ -210,12 +210,10 @@ if r.lEB
             preprocessing.write_Tfacinit_layers(r, Tfacinit_layers)
             disp(['Written Tfacinit_layers.inp.', r.expnr])
         end
-
     end
-<<<<<<< HEAD
-
 end
+%% Setting vars
+lamdba_calculation
+setting_types
 toc 
-=======
-end
->>>>>>> ecse
+

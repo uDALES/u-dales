@@ -1,21 +1,16 @@
 %% Lambda Calculator
 
-stem = '/media/chris/Project3/uDALES2.0/experiments/';
-fpathstl = [stem expnr '/geom.' expnr '.STL'];
-fpathg = [stem  expnr '/green_outline.' expnr];
-fpathfacarea = [stem expnr '/facetarea.inp.' expnr];
-fpathgnfcts = [stem expnr '/green_facets.' expnr];
-TR = stlread(fpathstl);
-area_facets = dlmread(fpathfacarea,'', 1,0);
+Area = X*Y;
+fpath = ['/media/chris/Project3/uDALES2.0/experiments/' expnr '/geom.' expnr '.STL'];
+TR = stlread(fpath)
 con = TR.ConnectivityList;
 ps = TR.Points;
 norms = TR.faceNormal;
-Area = max(ps(:,1))*max(ps(:,2));
 west_area = 0;
 east_area = 0;
 green_area = 0;
 top_area = 0;
-green_outline = dlmread(fpathg);
+green_outline = dlmread()
 green_facets = [];
 for i = 1:length(con(:,1))
     verts =con(i,:);
@@ -60,5 +55,3 @@ end
 lp = top_area/Area;
 lv = green_area/Area;
 lf = west_area/Area;
-dlmwrite(fpathgnfcts, green_facets);
-disp('Done calculating lambdas.');
