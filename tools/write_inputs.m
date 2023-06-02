@@ -147,7 +147,7 @@ if r.lEB
     end     
     %% Set facet types
     nfcts = size(TR.ConnectivityList,1);
-    preprocessing.addvar(r, 'nfcts', nfcts);
+    preprocessing.set_nfcts(r, nfcts);
     facet_types = ones(nfcts,1); % facet_types are to be user-defined - defaults to type 1 (concrete)
     preprocessing.write_facets(r, facet_types, TR.faceNormal);
 

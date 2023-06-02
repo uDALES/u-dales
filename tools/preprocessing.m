@@ -783,6 +783,10 @@ classdef preprocessing < dynamicprops
             fclose(scalar);
         end
 
+        function set_nfcts(obj, nfcts)
+            obj.nfcts = nfcts;
+        end
+
         function write_vf(obj, vf)
 %             fname = ['vf.nc.inp.' num2str(obj.expnr)]
 %             if exist(fname, 'file') == 2

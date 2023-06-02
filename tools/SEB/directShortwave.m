@@ -51,7 +51,7 @@ end
 
 
 %% Find areas
-A = zeros(1, Nf);
+A = zeros(Nf, 1);
 
 if nv == 3
     for i = 1:size(TR.ConnectivityList,1)
@@ -140,7 +140,7 @@ for i = I'
 end
 
 %% Find radiation
-Ap = histc(bw(:), 1:Nf)' * delta^2;
+Ap = histc(bw(:), 1:Nf) * delta^2;
 S = irradiance * Ap ./ A; % Radiation on facet (W/m2)
 
 if show_plot_2d  
