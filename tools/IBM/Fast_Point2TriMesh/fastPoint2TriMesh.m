@@ -116,8 +116,8 @@ function [min_distances,min_project_pts,outside]=fastPoint2TriMesh(inputs,pts,us
     nf = size(faces,1);
     np = size(pts, 1);
 
-    single_point = false;
-    if single_point==true
+    single_point = (np == 1);
+    if single_point
         distances = NaN(1,nf);
         project_pts = NaN(nf,3);
 
