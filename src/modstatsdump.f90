@@ -1497,18 +1497,19 @@ contains
                                tpm,t_pav,ttmx,ttmy,ttmz,t_tav,p_bav,d_sgsav,p_tav,tkeadv,tsgsmz1,tsgsmz2,t_t,t_v,t_p,t_sgs,d_sgs,&
                                p_b,p_t,adv,IIc,IIcs
   use modglobal,        only : ib,ie,ih,jb,je,jgb,jge,dy,jh,ke,kb,kh,rk3step,timee,cexpnr,tsample,tstatsdump,jtot,imax,dzf,&
-                               dzf,dzfi,dzhi,dxf,dxfi,dyi,dxhi,dy2i,grav,numol
+                               dzf,dzfi,dzhi,dxf,dxfi,dyi,dxhi,dy2i,grav,numol,ierank,jerank
   use modmpi,           only : myid,cmyid,my_real,mpi_sum,avey_ibm,mpierr,comm3d,excjs,avexy_ibm
   use modsurfdata,      only : thls
   use modsubgrid,       only : ekh
+  use decomp_2d,        only : exchange_halo_z
   implicit none
 
   real, dimension(ib:ie,jb:je,kb:ke)  :: disssgsfl     ! average subgrid visc. * average rate of strain squared : 2*<nu_t>*<Sij>*<Sij>
   real, dimension(ib:ie,jb:je,kb:ke)  :: dissresav     ! average resolved dissipation: 2*nu*<Sij'*Sij'> = 2*nu*( <Sij*Sij> - <Sij>*<Sij> )
     real, dimension(ib:ie,jb:je,kb:ke)  :: tke           ! tke = 0.5*<ui'ui'>
     real, dimension(ib:ie,jb:je,kb:ke)  :: mke           ! = <ui>d/dxj(<ui><uj>) + <ui>d/dxj(<ui'uj'>) = <ui>d/dxj(<ui*uj>)
-    real, dimension(ib:ie+1,jb  :je,  kb:ke)    :: dummyx
-    real, dimension(ib:ie,  jb-1:je+1,kb:ke)    :: dummyy
+    real, dimension(ib-1:ie+1,jb-1:je+1,kb:ke)    :: dummyx
+    real, dimension(ib-1:ie+1,jb-1:je+1,kb:ke)    :: dummyy
     real, dimension(ib:ie,  jb  :je,  kb:ke+1)  :: dummyz
 
   integer i,j,k,ip,im,jp,jm,kp,km
@@ -1619,17 +1620,41 @@ contains
         end do
       end do
 
+      ! call excjs( tvmy   , ib,ie,jb,je,kb,ke,0,1)   ! jb-1 is not used
+      ! call excjs( tsgsmy1, ib,ie,jb,je,kb,ke,0,1)   ! jb-1 is not used
+      ! call excjs( tsgsmy2, ib,ie,jb,je,kb,ke,0,1)   ! jb-1 is not used
+      ! call excjs( dummyy,  ib,ie,jb,je,kb,ke,0,1)   ! jb-1 is not used
+      ! call excjs( ttmy   , ib,ie,jb,je,kb,ke,0,1)   ! jb-1 is not used
+
+      call exchange_halo_z(tvmx, opt_zlevel=(/ih,jh,0/))
+      call exchange_halo_z(tsgsmx1, opt_zlevel=(/ih,jh,0/))
+      call exchange_halo_z(tsgsmx2, opt_zlevel=(/ih,jh,0/))
+      call exchange_halo_z(dummyx, opt_zlevel=(/ih,jh,0/))
+      call exchange_halo_z(ttmx, opt_zlevel=(/ih,jh,0/))
+
+      call exchange_halo_z(tvmy, opt_zlevel=(/ih,jh,0/))
+      call exchange_halo_z(tsgsmy1, opt_zlevel=(/ih,jh,0/))
+      call exchange_halo_z(tsgsmy2, opt_zlevel=(/ih,jh,0/))
+      call exchange_halo_z(dummyy, opt_zlevel=(/ih,jh,0/))
+      call exchange_halo_z(ttmy, opt_zlevel=(/ih,jh,0/))
+
       ! BC's
-      tvmx   (ie+1,:,:) =  tvmx   (ie,:,:)
-      tsgsmx1(ie+1,:,:) =  tsgsmx1(ie,:,:)
-      tsgsmx2(ie+1,:,:) =  tsgsmx2(ie,:,:)
-      dummyx (ie+1,:,:) =  dummyx (ie,:,:)
-      ttmx   (ie+1,:,:) =  ttmx   (ie,:,:)
-      call excjs( tvmy   , ib,ie,jb,je,kb,ke,0,1)   ! jb-1 is not used
-      call excjs( tsgsmy1, ib,ie,jb,je,kb,ke,0,1)   ! jb-1 is not used
-      call excjs( tsgsmy2, ib,ie,jb,je,kb,ke,0,1)   ! jb-1 is not used
-      call excjs( dummyy,  ib,ie,jb,je,kb,ke,0,1)   ! jb-1 is not used
-      call excjs( ttmy   , ib,ie,jb,je,kb,ke,0,1)   ! jb-1 is not used
+      if (ierank) then
+         tvmx   (ie+1,:,:) =  tvmx   (ie,:,:)
+         tsgsmx1(ie+1,:,:) =  tsgsmx1(ie,:,:)
+         tsgsmx2(ie+1,:,:) =  tsgsmx2(ie,:,:)
+         dummyx (ie+1,:,:) =  dummyx (ie,:,:)
+         ttmx   (ie+1,:,:) =  ttmx   (ie,:,:)
+      end if
+
+      if (jerank) then
+         tvmy(:,je+1,:) = tvmy(:,je,:)
+         tsgsmy1(:,je+1,:) = tsgsmy1(:,je,:)
+         tsgsmy2(:,je+1,:) = tsgsmy2(:,je,:)
+         dummyy(:,je+1,:) = dummyy(:,je,:)
+         ttmy(:,je+1,:) = ttmy(:,je,:)
+      end if
+
       tvmz   (:,:,ke+1) =  tvmz   (:,:,ke)
       tsgsmz1(:,:,ke+1) =  tsgsmz1(:,:,ke)
       tsgsmz2(:,:,ke+1) =  tsgsmz2(:,:,ke)
