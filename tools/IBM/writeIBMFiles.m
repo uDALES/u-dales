@@ -32,9 +32,9 @@ if lmypoly
     Dir_ray_v = [0 0 1];
     Dir_ray_w = [0 0 1];
     Dir_ray_c = [0 0 1];
-    tol_mypoly = 1e-7;
-    max_height = max(TR.Points(:,3)) + (zgrid_u(2)-zgrid_u(1));
-    L_char = 2 * max_facet_size(TR.Points,TR.ConnectivityList);
+    tol_mypoly = 1e-4;
+    max_height = max(TR.Points(:,3)) + tol_mypoly;
+    L_char = max_facet_size(TR.Points,TR.ConnectivityList) + tol_mypoly;
 end
 
 %% Calculate u

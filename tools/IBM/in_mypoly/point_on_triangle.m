@@ -16,8 +16,8 @@ for i=1:3
     end
 end
 
-% if(abs(dot(V,faceNormals))<10^(-7))
-if(dot(V,faceNormals)==0)
+if(abs(dot(V,faceNormals))<tol)
+% if(dot(V,faceNormals)==0)
 
     % edge1 = [(x_tri(2)-x_tri(1)) (y_tri(2)-y_tri(1)) (z_tri(2)-z_tri(1))];
     % edge2 = [(x_tri(3)-x_tri(1)) (y_tri(3)-y_tri(1)) (z_tri(3)-z_tri(1))];

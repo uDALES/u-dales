@@ -36,7 +36,7 @@ det_t =  dot(cross(rhs,edge1),edge2);
 det_a =  dot(cross(-Dir_ray,rhs),edge2);
 det_b =  dot(cross(-Dir_ray,edge1),rhs);
 
-if det1~= 0     %the ray intersects the plane of the triangle
+if abs(det1) > tol %~= 0     %the ray intersects the plane of the triangle
 
     t = det_t/det1;
     a = det_a/det1;
@@ -53,14 +53,13 @@ if det1~= 0     %the ray intersects the plane of the triangle
         on = false;
     end
     
-elseif(det_a==0 && det_b==0 && det_t==0) % The ray is parallel to the plane of triangle and lie on the plane
-    
+elseif(abs(det_a)<tol && abs(det_b)<tol && abs(det_t)<tol) % The ray is parallel to the plane of triangle and lie on the plane
     
     if(point_on_triangle(Origin,edge1,edge2,rhs,incenters,faceNormals,tol)==true)
         intersect = true;
         on = true;
     else        % The origin points outside the triangle
-        intersect = false; 
+        intersect = false;
         on = false;
     end
     
