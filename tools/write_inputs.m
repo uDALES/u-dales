@@ -75,14 +75,14 @@ if r.libm
         [X_c,Y_c,Z_c] = ndgrid(xgrid_c,ygrid_c,zgrid_c);
 
         % u-grid
-        xgrid_u = r.xh;
+        xgrid_u = r.xh(1:end-1);
         ygrid_u = r.yf;
         zgrid_u = r.zf;
         [X_u,Y_u,Z_u] = ndgrid(xgrid_u,ygrid_u,zgrid_u);
 
         % v-grid
         xgrid_v = r.xf;
-        ygrid_v = r.yh;
+        ygrid_v = r.yh(1:end-1);
         zgrid_v = r.zf;
         [X_v,Y_v,Z_v] = ndgrid(xgrid_v,ygrid_v,zgrid_v);
 
