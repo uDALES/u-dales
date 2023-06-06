@@ -89,7 +89,7 @@ if r.libm
         % w-grid
         xgrid_w = r.xf;
         ygrid_w = r.yf;
-        zgrid_w = r.zh;
+        zgrid_w = r.zh(1:end-1);
         [X_w,Y_w,Z_w] = ndgrid(xgrid_w,ygrid_w,zgrid_w);
 
         diag_neighbs = r.diag_neighbs;
