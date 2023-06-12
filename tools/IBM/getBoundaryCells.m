@@ -10,8 +10,8 @@ nfluid = sum(fluid, 'all');
 nsolid = sum(solid, 'all');
 % assert(nsolid == length(xgrid)*length(ygrid)*length(zgrid) - nfluid)
 
-fluid_xyz = zeros(nfluid,3);
-solid_xyz = zeros(nsolid,3);
+%fluid_xyz = zeros(nfluid,3);
+%solid_xyz = zeros(nsolid,3);
 
 fluid_IB = false(length(xgrid), length(ygrid), length(zgrid));
 solid_IB = false(length(xgrid), length(ygrid), length(zgrid));
@@ -29,7 +29,7 @@ for i=1:itot
         for k=1:ktot
             if fluid(i,j,k)
                 nfluid_count = nfluid_count + 1;
-                fluid_xyz(nfluid_count,:) = [xgrid(i), ygrid(j), zgrid(k)];
+                %fluid_xyz(nfluid_count,:) = [xgrid(i), ygrid(j), zgrid(k)];
 
                 % Identify fluid IB points
                 if i~=1

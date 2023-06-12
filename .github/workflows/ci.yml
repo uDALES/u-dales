@@ -17,6 +17,8 @@ jobs:
     steps:
     - name: Check-out project
       uses: actions/checkout@v2
+      with:
+        submodules: recursive
 
     - name: Set up repository
       # Clone all history leading to the tip of a single branch
@@ -40,7 +42,7 @@ jobs:
       # See https://github.com/conda-incubator/setup-miniconda#IMPORTANT.
       shell: bash -l {0}
       run: |
-        if [ ${{ matrix.os }} = 'macos-latest' ]; then export FC=gfortran-9; fi
+        if [ ${{ matrix.os }} = 'macos-latest' ]; then export FC=gfortran-12; fi
         python3 -u tests/run_tests.py master $GITHUB_SHA ${{ matrix.build-type}}
 
     - name: Build docs

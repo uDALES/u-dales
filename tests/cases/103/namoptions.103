@@ -8,6 +8,9 @@ randqt       = 2.5e-5
 randthl      = 0.001
 randu        = 0.01
 ladaptive    = .true.
+libm         = .false.
+nprocx       = 1
+nprocy       = 2
 /
 
 &OUTPUT
@@ -24,9 +27,9 @@ tsample      = 5.
 /
 
 &DOMAIN
-imax         = 8
+itot         = 8
 jtot         = 8
-kmax         = 8
+ktot         = 8
 xsize        = 8
 ysize        = 8
 /
@@ -58,18 +61,15 @@ z0h          = 0.000067
 thl_top      = 288.
 qt_top       = 0.0
 qts          = 0.0
+BCbotT       = 2
 /
 
 &WALLS
-nblocks      = 1
-nfcts        = 1
-iwalltemp    = 2
-iwallmoist   = 2
+lbottom      = .true.
 /
 
 &INPS
 zsize        = 8
-lfloors      = .true.
 u0           = 2
 dpdx         = 0.0001
 /

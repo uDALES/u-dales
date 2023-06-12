@@ -1,4 +1,4 @@
-function S = directShortwave(F, V, nsun, irradiance, resolution)
+function S = directShortwave(F, V, nsun, irradiance, resolution, show_plot_2d, show_plot_3d)
 % Calculates the direct shortwave radiation S using polygon scan
 %   conversion.
 % F (#facets x 3/4) is the connectivity list of facets.
@@ -51,7 +51,7 @@ end
 
 
 %% Find areas
-A = zeros(1, Nf);
+A = zeros(Nf, 1);
 
 if nv == 3
     for i = 1:size(TR.ConnectivityList,1)
@@ -128,7 +128,7 @@ bw = zeros(res_eta, res_xi);
 n=0;
 for i = I'
     n=n+1;
-    %disp([num2str(n/Nf*100) '% complete'])
+    disp(['Surface: ' num2str(n) ' ; ~ ' num2str(round(n/Nf * 100, 1)) ' % complete'])
     mask = poly2mask(Vplshift(F(i,:), 1) / delta, Vplshift(F(i,:), 2) / delta, res_eta, res_xi);
     if SS(i) == 0
         bw(mask) = 0;
@@ -139,32 +139,15 @@ for i = I'
 
 end
 
-% %%
-% figure
-% imagesc(bw)
-% colorbar
-% caxis([0 1024])
-% axis equal tight
-
 %% Find radiation
-Ap = histc(bw(:), 1:Nf)' * delta^2;
+Ap = histc(bw(:), 1:Nf) * delta^2;
 S = irradiance * Ap ./ A; % Radiation on facet (W/m2)
 
-%toc
-%%
-% filename_facetarea = [fpath 'facetarea.inp'];
-% fileID_facetarea = fopen(filename_facetarea,'W');
-% fprintf(fileID_facetarea, '# facet area\n');
-% fclose(fileID_facetarea);
-% dlmwrite(filename_facetarea, A', '-append','delimiter',' ','precision',8);
-
-%%
-lplotbitmap = 0;
-if lplotbitmap  
+if show_plot_2d  
     Sbm = zeros(size(bw));
     for i = I'
-        %Sbm(bw == i) = S(i);
-        Sbm(bw == i) = i;
+        Sbm(bw == i) = S(i);
+        %Sbm(bw == i) = i;
     end
 
     figure
@@ -178,9 +161,7 @@ if lplotbitmap
     axis equal tight
 end
     
-%% Test plot
-lplotgeometry = 1;
-if lplotgeometry
+if show_plot_3d
     figure
     grid on
 %     xlim([0 plotlim])

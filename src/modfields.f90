@@ -733,18 +733,18 @@ contains
       allocate(uwav(ib:ie+ih,jb:je   ,kb:ke+kh))
       allocate(vwav(ib:ie   ,jb:je+jh,kb:ke+kh))
       !TKE budget terms
-      allocate(tvmx  (ib:ie+1,jb:je,kb:ke))
-      allocate(tvmy  (ib:ie,jb-1:je+1,kb:ke))
+      allocate(tvmx  (ib-1:ie+1,jb-1:je+1,kb:ke))
+      allocate(tvmy  (ib-1:ie+1,jb-1:je+1,kb:ke))
       allocate(tvmz  (ib:ie,jb:je,kb:ke+1))
       allocate(tpm   (ib:ie,jb:je,kb:ke))
-      allocate(ttmx  (ib:ie+1,jb:je,    kb:ke))
-      allocate(ttmy  (ib:ie,  jb-1:je+1,kb:ke))
+      allocate(ttmx  (ib-1:ie+1,jb-1:je+1,kb:ke))
+      allocate(ttmy  (ib-1:ie+1,jb-1:je+1,kb:ke))
       allocate(ttmz  (ib:ie,  jb:je,    kb:ke+1))
-      allocate(tsgsmx1(ib:ie+1,jb:je,kb:ke))
-      allocate(tsgsmy1(ib:ie,jb-1:je+1,kb:ke))
+      allocate(tsgsmx1(ib-1:ie+1,jb-1:je+1,kb:ke))
+      allocate(tsgsmy1(ib-1:ie+1,jb-1:je+1,kb:ke))
       allocate(tsgsmz1(ib:ie,jb:je,kb:ke+1))
-      allocate(tsgsmx2(ib:ie+1,jb:je,kb:ke))
-      allocate(tsgsmy2(ib:ie,jb-1:je+1,kb:ke))
+      allocate(tsgsmx2(ib-1:ie+1,jb-1:je+1,kb:ke))
+      allocate(tsgsmy2(ib-1:ie+1,jb-1:je+1,kb:ke))
       allocate(tsgsmz2(ib:ie,jb:je,kb:ke+1))
       allocate(t_pav  (ib:ie,jb:je,kb:ke))
       allocate(t_vav  (ib:ie,jb:je,kb:ke))
@@ -771,76 +771,75 @@ contains
       tsgsmx1=0.;tsgsmy1=0.;tsgsmz1=0.;tsgsmx2=0.;tsgsmy2=0.;tsgsmz2=0.
       t_pav=0.;t_tav=0.;p_bav=0.;d_sgsav=0.;tkeadv=0.;t_p=0.;t_v=0.;t_t=0.;t_sgs=0.;p_t=0.;p_b=0.;d_sgs=0.;adv=0.
 
+      allocate(thl2av(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+      allocate(ql2av(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+      allocate(qt2av(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+      allocate(sv2av(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh,1:nsv))
+      allocate(thluav(ib:ie+ih,jb:je   ,kb:ke   ))
+      allocate(thlvav(ib:ie   ,jb:je+jh,kb:ke   ))
+      allocate(thlwav(ib:ie   ,jb:je,   kb:ke+kh))
+      allocate(thlthlav(ib:ie   ,jb:je,   kb:ke+kh))
+      allocate(qluav(ib:ie+ih,jb:je   ,kb:ke   ))
+      allocate(qlvav(ib:ie   ,jb:je+jh,kb:ke   ))
+      allocate(qlwav(ib:ie   ,jb:je,   kb:ke+kh))
+      allocate(qtuav(ib:ie+ih,jb:je   ,kb:ke   ))
+      allocate(qtvav(ib:ie   ,jb:je+jh,kb:ke   ))
+      allocate(qtwav(ib:ie   ,jb:je,   kb:ke+kh))
+      allocate(svuav (ib:ie+ih,jb:je   ,kb:ke   ,1:nsv))
+      allocate(svvav (ib:ie   ,jb:je+jh,kb:ke   ,1:nsv))
+      allocate(svwav (ib:ie   ,jb:je   ,kb:ke+kh,1:nsv))
+      thluav=0.;thlvav=0.;thlwav=0.;thlthlav=0.;svuav=0.;svvav=0.;svwav=0.;sv2av=0.;thl2av=0.;ql2av=0.;qt2av=0.;
+
+      ! <x'x> ( = <xx> -<x><x> )
+      allocate(upupav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+      allocate(vpvpav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+      allocate(wpwpav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+      allocate(upvpav(ib:ie+ih,jb:je+jh,kb:ke   ))
+      allocate(upwpav(ib:ie+ih,jb:je   ,kb:ke+kh))
+      allocate(vpwpav(ib:ie   ,jb:je+jh,kb:ke+kh))
+      allocate(thlpthlpav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+      allocate(thlpupav(ib:ie+ih,jb:je   ,kb:ke   ))
+      allocate(thlpvpav(ib:ie   ,jb:je+jh,kb:ke   ))
+      allocate(thlpwpav(ib:ie   ,jb:je   ,kb:ke+kh))
+      allocate(qlpqlpav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+      allocate(qlpupav(ib:ie+ih,jb:je   ,kb:ke   ))
+      allocate(qlpvpav(ib:ie   ,jb:je+jh,kb:ke   ))
+      allocate(qlpwpav(ib:ie   ,jb:je   ,kb:ke+kh))
+      allocate(qtpqtpav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+      allocate(qtpupav(ib:ie+ih,jb:je   ,kb:ke   ))
+      allocate(qtpvpav(ib:ie   ,jb:je+jh,kb:ke   ))
+      allocate(qtpwpav(ib:ie   ,jb:je   ,kb:ke+kh))
+      allocate(svpsvpav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh,1:nsv))
+      allocate(svpupav(ib:ie+ih,jb:je   ,kb:ke   ,1:nsv))
+      allocate(svpvpav(ib:ie   ,jb:je+jh,kb:ke   ,1:nsv))
+      allocate(svpwpav(ib:ie   ,jb:je   ,kb:ke+kh,1:nsv))
+      upupav=0.;vpvpav=0.;wpwpav=0.;thlpthlpav=0.;qlpqlpav=0.;qtpqtpav=0.;svpsvpav=0.;upvpav=0.;upwpav=0.;vpwpav=0.
+      thlpupav=0.;thlpvpav=0.;thlpwpav=0.;qlpupav=0.;qlpvpav=0.;qlpwpav=0.;qtpwpav=0.;qtpvpav=0.;qtpupav=0.;svpupav=0.;svpvpav=0.;svpwpav=0.
+
+      ! Subgrid
+      allocate(uusgsav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+      allocate(vvsgsav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+      allocate(wwsgsav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+      allocate(uwsgsav(ib:ie+ih,jb:je   ,kb:ke+kh))
+      allocate(thlusgsav(ib:ie+ih,jb:je   ,kb:ke   ))
+      allocate(thlwsgsav(ib:ie   ,jb:je,   kb:ke+kh))
+      allocate(qlusgsav(ib:ie+ih,jb:je   ,kb:ke   ))
+      allocate(qlwsgsav(ib:ie   ,jb:je,   kb:ke+kh))
+      allocate(qtusgsav(ib:ie+ih,jb:je   ,kb:ke   ))
+      allocate(qtwsgsav(ib:ie   ,jb:je,   kb:ke+kh))
+      allocate(tkesgsav (ib:ie   ,jb:je   ,kb:ke   ))
+      allocate(svusgsav (ib:ie+ih,jb:je   ,kb:ke   ,1:nsv))
+      allocate(svwsgsav (ib:ie   ,jb:je   ,kb:ke+kh,1:nsv))
+      allocate(nusgsav  (ib:ie   ,jb:je   ,kb:ke   ))
+      uusgsav=0.;vvsgsav=0.;wwsgsav=0.;uwsgsav=0.;thlusgsav=0.;thlwsgsav=0.;qlusgsav=0.;qlwsgsav=0.;qtwsgsav=0.;qtusgsav=0.;
+      svusgsav=0.;svwsgsav=0.;tkesgsav=0.;nusgsav=0.
+
+      allocate(strain2av(ib:ie,jb:je,kb:ke))  ! resolved dissipation
+      allocate(disssgsav(ib:ie,jb:je,kb:ke)) ! Subgrid dissipation
+      strain2av=0.
+      disssgsav=0.
+
     end if
-
-    ! These don't seem to get used - potentially remove
-    !allocate(thl2av(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-    !allocate(ql2av(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-    !allocate(qt2av(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-    !allocate(sv2av(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh,1:nsv))
-    !allocate(thluav(ib:ie+ih,jb:je   ,kb:ke   ))
-    !allocate(thlvav(ib:ie   ,jb:je+jh,kb:ke   ))
-    !allocate(thlwav(ib:ie   ,jb:je,   kb:ke+kh))
-    !allocate(thlthlav(ib:ie   ,jb:je,   kb:ke+kh))
-    !allocate(qluav(ib:ie+ih,jb:je   ,kb:ke   ))
-    !allocate(qlvav(ib:ie   ,jb:je+jh,kb:ke   ))
-    !allocate(qlwav(ib:ie   ,jb:je,   kb:ke+kh))
-    !allocate(qtuav(ib:ie+ih,jb:je   ,kb:ke   ))
-    !allocate(qtvav(ib:ie   ,jb:je+jh,kb:ke   ))
-    !allocate(qtwav(ib:ie   ,jb:je,   kb:ke+kh))
-    !allocate(svuav (ib:ie+ih,jb:je   ,kb:ke   ,1:nsv))
-    !allocate(svvav (ib:ie   ,jb:je+jh,kb:ke   ,1:nsv))
-    !allocate(svwav (ib:ie   ,jb:je   ,kb:ke+kh,1:nsv))
-    !thluav=0.;thlvav=0.;thlwav=0.;thlthlav=0.;svuav=0.;svvav=0.;svwav=0.;sv2av=0.;thl2av=0.;ql2av=0.;qt2av=0.;
-
-    ! <x'x> ( = <xx> -<x><x> )
-    !allocate(upupav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-    !allocate(vpvpav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-    !allocate(wpwpav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-    !allocate(upvpav(ib:ie+ih,jb:je+jh,kb:ke   ))
-    !allocate(upwpav(ib:ie+ih,jb:je   ,kb:ke+kh))
-    !allocate(vpwpav(ib:ie   ,jb:je+jh,kb:ke+kh))
-    !allocate(thlpthlpav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-    !allocate(thlpupav(ib:ie+ih,jb:je   ,kb:ke   ))
-    !allocate(thlpvpav(ib:ie   ,jb:je+jh,kb:ke   ))
-    !allocate(thlpwpav(ib:ie   ,jb:je   ,kb:ke+kh))
-    !allocate(qlpqlpav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-    !allocate(qlpupav(ib:ie+ih,jb:je   ,kb:ke   ))
-    !allocate(qlpvpav(ib:ie   ,jb:je+jh,kb:ke   ))
-    !allocate(qlpwpav(ib:ie   ,jb:je   ,kb:ke+kh))
-    !allocate(qtpqtpav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-    !allocate(qtpupav(ib:ie+ih,jb:je   ,kb:ke   ))
-    !allocate(qtpvpav(ib:ie   ,jb:je+jh,kb:ke   ))
-    !allocate(qtpwpav(ib:ie   ,jb:je   ,kb:ke+kh))
-    !allocate(svpsvpav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh,1:nsv))
-    !allocate(svpupav(ib:ie+ih,jb:je   ,kb:ke   ,1:nsv))
-    !allocate(svpvpav(ib:ie   ,jb:je+jh,kb:ke   ,1:nsv))
-    !allocate(svpwpav(ib:ie   ,jb:je   ,kb:ke+kh,1:nsv))
-    !upupav=0.;vpvpav=0.;wpwpav=0.;thlpthlpav=0.;qlpqlpav=0.;qtpqtpav=0.;svpsvpav=0.;upvpav=0.;upwpav=0.;vpwpav=0.
-    !thlpupav=0.;thlpvpav=0.;thlpwpav=0.;qlpupav=0.;qlpvpav=0.;qlpwpav=0.;qtpwpav=0.;qtpvpav=0.;qtpupav=0.;svpupav=0.;svpvpav=0.;svpwpav=0.
-
-    ! Subgrid
-    !allocate(uusgsav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-    !allocate(vvsgsav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-    !allocate(wwsgsav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-    !allocate(uwsgsav(ib:ie+ih,jb:je   ,kb:ke+kh))
-    !allocate(thlusgsav(ib:ie+ih,jb:je   ,kb:ke   ))
-    !allocate(thlwsgsav(ib:ie   ,jb:je,   kb:ke+kh))
-    !allocate(qlusgsav(ib:ie+ih,jb:je   ,kb:ke   ))
-    !allocate(qlwsgsav(ib:ie   ,jb:je,   kb:ke+kh))
-    !allocate(qtusgsav(ib:ie+ih,jb:je   ,kb:ke   ))
-    !allocate(qtwsgsav(ib:ie   ,jb:je,   kb:ke+kh))
-    !allocate(tkesgsav (ib:ie   ,jb:je   ,kb:ke   ))
-    !allocate(svusgsav (ib:ie+ih,jb:je   ,kb:ke   ,1:nsv))
-    !allocate(svwsgsav (ib:ie   ,jb:je   ,kb:ke+kh,1:nsv))
-    !allocate(nusgsav  (ib:ie   ,jb:je   ,kb:ke   ))
-    !uusgsav=0.;vvsgsav=0.;wwsgsav=0.;uwsgsav=0.;thlusgsav=0.;thlwsgsav=0.;qlusgsav=0.;qlwsgsav=0.;qtwsgsav=0.;qtusgsav=0.;
-    !svusgsav=0.;svwsgsav=0.;tkesgsav=0.;nusgsav=0.
-
-    !allocate(strain2av(ib:ie,jb:je,kb:ke))  ! resolved dissipation
-    !allocate(disssgsav(ib:ie,jb:je,kb:ke)) ! Subgrid dissipation
-    !strain2av=0.
-    !disssgsav=0.
 
     ! allocate wall shear-stress terms (immersed boundaries)
     allocate(shear(ib-1:ie+1,jb-1:je+1,kb-1:ke+1,0:12))    ! halo is set to 1

@@ -61,11 +61,11 @@ def main(branch_a: str, branch_b: str, build_type: str):
         # We always compare between two branches -- i.e. two executables.
         path_to_exes.append(path_to_exe)
 
-    # Run model and store outputs
-    test_cases = (PROJ_DIR / 'tests'/ 'cases').iterdir()
-    patched_example_cases = (PROJ_DIR / 'tests'/ 'patches').iterdir()
-    run_and_compare(test_cases, path_to_exes, is_patch=False)
-    run_and_compare(patched_example_cases, path_to_exes, is_patch=True)
+    # Run model and store outputs - currently impossible for uDALES 2 because it requires different input files, and tests are run in master repo.
+    #test_cases = (PROJ_DIR / 'tests'/ 'cases').iterdir()
+    #patched_example_cases = (PROJ_DIR / 'tests'/ 'patches').iterdir()
+    #run_and_compare(test_cases, path_to_exes, is_patch=False)
+    #run_and_compare(patched_example_cases, path_to_exes, is_patch=True)
 
 
 def run_and_compare(cases_dir, path_to_exes, is_patch=False):
