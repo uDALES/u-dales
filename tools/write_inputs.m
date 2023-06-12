@@ -55,7 +55,7 @@ if isfile(['factypes.inp.', expnr])
     r.factypes = dlmread(['factypes.inp.', r.expnr],'',3,0);
 else
     preprocessing.write_factypes(r)
-    disp(['Written factypes.inp', r.expnr])
+    disp(['Written factypes.inp.', r.expnr])
 end
 
 
@@ -64,9 +64,17 @@ if r.libm
     TR = stlread(r.stl_file);
     F = TR.ConnectivityList;
     V = TR.Points;
-
     area_facets = facetAreas(F, V); % Useful for checking if area_fluid_IB_c == sum(area_facets)
 
+    % Set facet types
+    nfcts = size(TR.ConnectivityList,1);
+    preprocessing.set_nfcts(r, nfcts);
+    facet_types = ones(nfcts,1); % facet_types are to be user-defined - defaults to type 1 (concrete)
+    preprocessing.write_facets(r, facet_types, TR.faceNormal);
+    disp(['Written facets.inp.', r.expnr])
+
+    calculate_facet_sections_uvw = r.iwallmom > 1;
+    calculate_facet_sections_c = r.ltempeq || r.lmoist;
     if r.gen_geom
         % c-grid (scalars/pressure)
         xgrid_c = r.xf;
@@ -96,25 +104,32 @@ if r.libm
         stl_ground = r.stl_ground;
         periodic_x = r.BCxm == 1;
         periodic_y = r.BCym == 1;
+        xsize = r.xlen;
+        ysize = r.ylen;
+        zsize = r.zsize;
         lmypoly = 1; % remove eventually
         writeIBMFiles; % Could turn into a function and move writing to this script
     else
         if isempty(r.geom_path)
             error('Need to specify the path to geometry files')
         end
-        copy_command = ['cp ' r.geom_path 'solid_* ' fpath];
+        copy_command = ['cp ' r.geom_path 'solid_* ' r.geom_path 'fluid_boundary_* ' fpath];
         system(copy_command);
         copy_command = ['cp ' r.geom_path 'fluid_boundary_* ' fpath];
         system(copy_command);
-        copy_command = ['cp ' r.geom_path 'facet_sections_* ' fpath];
-        system(copy_command);
+        if calculate_facet_sections_uvw
+            copy_command = ['cp ' r.geom_path 'facet_sections_u* ' fpath];
+            system(copy_command);
+            copy_command = ['cp ' r.geom_path 'facet_sections_v* ' fpath];
+            system(copy_command);
+            copy_command = ['cp ' r.geom_path 'facet_sections_w* ' fpath];
+            system(copy_command);
+        end
+        if calculate_facet_sections_c
+            copy_command = ['cp ' r.geom_path 'facet_sections_c* ' fpath];
+            system(copy_command);
+        end
     end
-
-    %% Set facet types
-    nfcts = size(TR.ConnectivityList,1);
-    preprocessing.set_nfcts(r, nfcts);
-    facet_types = ones(nfcts,1); % facet_types are to be user-defined - defaults to type 1 (concrete)
-    preprocessing.write_facets(r, facet_types, TR.faceNormal);
 
     %%
     if r.lEB
