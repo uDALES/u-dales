@@ -921,25 +921,26 @@ module modforces
 
   subroutine shiftedPBCs
       ! Nudge the flow in a region near the outlet
-      use modglobal, only : ib, ie, jb, je, kb, ke, xh, ds, dyi, xlen, rk3step, dt
+      use modglobal, only : ib, itot, ie, jb, je, kb, ke, xh, ds, dyi, xlen, rk3step, dt, pi
       use modfields, only : u0, v0, w0, u0av, up, vp, wp, vm
+      use decomp_2d, only : zstart
 
       integer :: i, j, k
       real :: vs, RHS, rk3coef
 
       if (ds > 0) then
       rk3coef = dt / (4. - dble(rk3step))
-      do i = int(ie/2),ie
-        do j = jb,je
-          do k = kb,ke
-            vs = 0.5 * 4*atan(1.) * ds / (0.5*xlen) * u0av(k) * sin(4*atan(1.)*(xh(i)-xh(int(ie/2))) / (0.5*xlen))
-            up(i,j,k) = up(i,j,k) - 0.5 * vs * (u0(i,j+1,k) - u0(i,j-1,k)) * dyi
-            vp(i,j,k) = vp(i,j,k) - 0.5 * vs * (v0(i,j+1,k) - v0(i,j-1,k)) * dyi
-            wp(i,j,k) = wp(i,j,k) - 0.5 * vs * (w0(i,j+1,k) - w0(i,j-1,k)) * dyi
-            ! RHS = vp(i,j,k)
-            ! vp(i,j,k) = vp(i,j,k) + (vn - (vm(i,j,k) + rk3coef * RHS)) / rk3coef
-          end do
-        end do
+      do i = ib,ie
+         if (i + zstart(1) - 1 > itot/2) then
+            do j = jb,je
+               do k = kb,ke
+                  vs = 0.5 * pi * ds / (0.5*xlen) * u0av(k) * sin(pi*(xh(i)-xh(int(itot/2))) / (2.*0.5*xlen))
+                  up(i,j,k) = up(i,j,k) - vs * (u0(i,j,k) - u0(i,j-1,k)) * dyi
+                  vp(i,j,k) = vp(i,j,k) - vs * (v0(i,j,k) - v0(i,j-1,k)) * dyi
+                  wp(i,j,k) = wp(i,j,k) - vs * (w0(i,j,k) - w0(i,j-1,k)) * dyi
+               end do
+            end do
+         end if
       end do
 
       end if
