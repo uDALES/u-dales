@@ -60,7 +60,7 @@ contains
     use modmpi,   only   :myid,my_real,mpierr,comm3d,mpi_logical,mpi_integer,cmyidx,cmyidy,mpi_character
     use modglobal,only   :imax,jmax,kmax,imax1,jmax1,kmax1,imax2,jmax2,kmax2,cexpnr,ifnamopt,fname_options,dtmax,kb,ke, ladaptive,dt_lim,btime,nsv,fieldvars,ib,ie,jb,je,kb,ke, ih,jh,lfielddump,ktot,kh
     use modstat_nc,only  : open_nc, define_nc,ncinfo,writestat_dims_nc
-    use modfields, only  : u0,v0,w0,thl0,sv0,ql0,qt0,pres0,div,dudx,dvdy,dwdz,ru,rv,rw,tau_x, tau_y, tau_z, thl_flux
+    use modfields, only  : u0,v0,w0,thl0,sv0,ql0,qt0,pres0,div,dudx,dvdy,dwdz,ru,rv,rw,tau_x, tau_y, tau_z, thl_flux, up,wp,vp,thlp
     use modpois, only : p, pup,pvp,pwp, rhs, dpupdx, dpvpdy, dpwpdz, xyzrt, Fxy, Fxyz
     use modibm, only : mask_u, mask_v, mask_w, mask_c
     implicit none
@@ -193,15 +193,19 @@ contains
         case('u0')
           call ncinfo(ncname( n,:),'u','West-East velocity','m/s','mttt')
           pfields(n)%point => u0(ib:ie,jb:je,kb:ke)
+          !pfields(n)%point => up(ib:ie,jb:je,kb:ke)
         case('v0')
           call ncinfo(ncname( n,:),'v','South-North velocity','m/s','tmtt')
           pfields(n)%point => v0(ib:ie,jb:je,kb:ke)
+          !pfields(n)%point => vp(ib:ie,jb:je,kb:ke)
         case('w0')
           call ncinfo(ncname( n,:),'w','Vertical velocity','m/s','ttmt')
           pfields(n)%point => w0(ib:ie,jb:je,kb:ke)
+          !pfields(n)%point => wp(ib:ie,jb:je,kb:ke)
         case('th')
           call ncinfo(ncname( n,:),'thl','Liquid water potential temperature','K','tttt')
           pfields(n)%point => thl0(ib:ie,jb:je,kb:ke)
+          !pfields(n)%point => thlp(ib:ie,jb:je,kb:ke)
         case('ql')
           call ncinfo(ncname( n,:),'ql','Liquid water mixing ratio','1e-5kg/kg','tttt')
           pfields(n)%point => ql0(ib:ie,jb:je,kb:ke)
@@ -395,13 +399,9 @@ contains
     real, allocatable :: vars(:,:,:,:), vars1(:,:,:,:), vars2(:,:,:,:)
     integer i,j,k,n
     integer :: writecounter = 1
-
-    if (.not. ((timee>=tnextfielddump) .or. (rk3step==0))) return
-
+    !if (.not. ((timee>=tnextfielddump) .or. (rk3step==0))) return
     if (.not. lfielddump) return
-
-    if (rk3step/=3 .and. rk3step/=0) return
-
+    !if (rk3step/=3 .and. rk3step/=0) return
     do k=kb,ke
       do j=jb,je
         do i=ib,ie

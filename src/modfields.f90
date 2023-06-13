@@ -63,12 +63,16 @@ module modfields
   real, allocatable, target :: qt0(:,:,:)       !<   total specific humidity at time step t
 
   real, allocatable :: up(:,:,:)        !<   tendency of um
+  !real, allocatable, target :: up(:,:,:)        !<   tendency of um
   real, allocatable :: vp(:,:,:)        !<   tendency of vm
+  !real, allocatable, target :: vp(:,:,:)        !<   tendency of vm
   real, allocatable :: wp(:,:,:)        !<   tendency of wm
+  !real, allocatable, target :: wp(:,:,:)        !<   tendency of wm
   real, allocatable, target :: ru(:,:,:)        !<   tendency of um
   real, allocatable, target :: rv(:,:,:)        !<   tendency of vm
   real, allocatable, target :: rw(:,:,:)        !<   tendency of wm
   real, allocatable :: thlp(:,:,:)      !<   tendency of thlm
+  !real, allocatable, target :: thlp(:,:,:)      !<   tendency of thlm
   real, allocatable :: e12p(:,:,:)      !<   tendency of e12m
   real, allocatable :: qtp(:,:,:)       !<   tendency of qtm
 

@@ -212,6 +212,7 @@
               open (ifinput, file='facets.inp.'//cexpnr)
               read (ifinput, '(a80)') chmess
               ! facet id, wall type
+              write(*,*) 'nfcts', nfcts
               do n = 1, nfcts
                 read (ifinput, *) facets(n), facnorm(n,1), facnorm(n,2), facnorm(n,3)
               end do

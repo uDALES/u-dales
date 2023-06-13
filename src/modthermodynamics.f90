@@ -80,7 +80,7 @@ contains
     call avexy_ibm(thvh(kb:ke+kh),thv0h(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
 
 !    if (libm) then
-!      call avexy_ibm(thvh(kb:ke),thv0h(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIws(kb:ke))    
+!      call avexy_ibm(thvh(kb:ke),thv0h(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIws(kb:ke))
 !    else
 !      call slabsum(thvh,kb,ke+kh,thv0h(:,:,kb:ke+kh),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
 !     !redefine halflevel thv using calculated thv
@@ -114,7 +114,7 @@ contains
 !    thvf = thvf/rslabs
     !write(*,*) "thvf",thvf
     !write(*,*) "exnf",exnf
-   
+
 !    do k=1,k1
 !      rhof(k) = presf(k)/(rd*thvf(k)*exnf(k))
 !    end do
@@ -279,7 +279,7 @@ contains
     call avexy_ibm(thl0av(kb:ke+kh),thl0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
 
     !write(*,*) 'thl0av(kb), thl0av(kb+1)', thl0av(kb), thl0av(kb+1)
-   
+
     !if (IIbl == 0) then ! as lEB applies blocks to kb and masking matrices average this to zero
     !  thl0av(kb) = thl0av(kb+1)
     !end if
@@ -296,7 +296,7 @@ contains
 
     !write(*,*) 'thl0av',thl0av
     !write(*,*) 'th0av',th0av
-    
+
 
     do n=1,nsv
 !       call slabsum(sv0av(kb,n),kb,ke+kh,sv0(ib-ih,jb-jh,kb,n),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
@@ -401,7 +401,7 @@ contains
 
     !     2: higher levels
 
-    do k=kb+1,ke+kh 
+    do k=kb+1,ke+kh
        thvh(k)  = thetah(k)*(1+(rv/rd-1)*qth(k)-rv/rd*qlh(k))
        presf(k) = presf(k-1)**rdocp - grav*(pref0**rdocp)*dzh(k) /(cp*thvh(k))
        presf(k) = presf(k)**(1./rdocp)

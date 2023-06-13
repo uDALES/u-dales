@@ -387,8 +387,7 @@ contains
     real :: vfraction = 0.8 !fraction of GR covered in vegetation, should be made into a proper model parameter (-> modglobal)
     real :: dum
     do n = 1, nfcts
-      write(*,*) 'faca(n)', faca(n)
-      write(*,*) 'nfcts', nfcts
+
       if (faclGR(n)) then
         !facefi is actually the accumulated moisture flux, has to be converted to energy flux to calculate temperature
         !yet actually the moisture flux is needed for water budget, i.e. currently many operations cancel each other e.g. X*Lv/Lv

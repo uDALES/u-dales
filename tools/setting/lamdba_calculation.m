@@ -1,7 +1,7 @@
 %% Lambda Calculator
 
 stem = '/media/chris/Project3/uDALES2.0/experiments/';
-fpathstl = [stem expnr '/geom.' expnr '.STL'];
+fpathstl = [stem expnr '/geom.' expnr '.stl'];
 fpathg = [stem  expnr '/green_outline.' expnr];
 fpathfacarea = [stem expnr '/facetarea.inp.' expnr];
 fpathgnfcts = [stem expnr '/green_facets.' expnr];

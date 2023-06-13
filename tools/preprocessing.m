@@ -783,10 +783,6 @@ classdef preprocessing < dynamicprops
             fclose(scalar);
         end
 
-        function set_nfcts(obj, nfcts)
-            obj.nfcts = nfcts;
-        end
-
         function write_vf(obj, vf)
 %             fname = ['vf.nc.inp.' num2str(obj.expnr)]
 %             if exist(fname, 'file') == 2
@@ -828,6 +824,14 @@ classdef preprocessing < dynamicprops
             fileID = fopen(fname, 'w');
             fprintf(fileID,'# %4s\n','net shortwave on facets [W/m2] (including reflections and diffusive)');
             fprintf(fileID,'%6.4f\n', Knet);
+            fclose(fileID);
+        end
+
+        function write_efalb(obj,efalb)
+            fname = ['efalb.' obj.expnr];
+            fileID = fopen(fname, 'w');
+            fprintf(fileID,'# %4s\n','Effective albedo');
+            fprintf(fileID,'%6.4f\n', efalb);
             fclose(fileID);
         end
 

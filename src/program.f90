@@ -116,7 +116,7 @@ program DALESURBAN      !Version 48
   !write(*,*) 'Starting rank ', myid
   call starttimer
   do while ((timeleft>0) .or. (rk3step < 3))
-  !do while (sam < 1)
+  !do while (sam < 4)
 
     call tstep_update
 
@@ -175,7 +175,7 @@ program DALESURBAN      !Version 48
     !call grwdamp        !damping at top of the model
 
     call poisson
-
+    !call fielddump
     call tstep_integrate
 
     call halos

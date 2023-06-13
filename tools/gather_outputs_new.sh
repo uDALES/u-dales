@@ -23,7 +23,7 @@ if (( $# == 1 )) ; then
     datapath=$1
     expnr="${datapath: -3}"  ## set experiment number via path
 else
-	echo "error: call script as `basename $0` experiment-directory."
+	echo "error: call scipt as `basename $0` experiment-directory."
 	exit 0
 fi
 
@@ -34,8 +34,8 @@ popd > /dev/null
 toolsdir=${scriptdir}  # assume same directory for nco_concatenate_field.sh
 
 #if [ -z $LOCAL_EXECUTE ]; then
- #   echo "cluster"
-  #  module load intel-suite udunits nco/4.6.2
+#    echo "cluster"
+#    module load intel-suite udunits nco/4.6.2
 #fi;
 
 ## go to files directory
@@ -43,6 +43,7 @@ cd ${datapath}
 echo ${datapath}
 
 ## call loop for *DUMPS
+
 for file in *dump.*.000.${expnr}.nc ; do
 	echo $file
     if [ -f $file ]; then
@@ -58,7 +59,6 @@ for file in *dump.*.000.${expnr}.nc ; do
 	    ymparam="ym"
 	    #echo $ymparam
             ymparam="v,ym"
-            #ymparam='ym'
 
         elif [ $dumps == "tdump" ]; then
             ymparam="vt,vpwpt,upvpt,ym"
@@ -92,7 +92,7 @@ for file in *dump.000.${expnr}.nc ; do
         dumps=${file%.000.${expnr}.nc}
 
         if [ $dumps == "fielddump" ]; then
-	          #xmparam="xm"
+	    #xmparam="xm"
             xmparam="u,xm"
 
         elif [ $dumps == "tdump" ]; then
@@ -119,5 +119,5 @@ done
 
 
 #if [ -z $LOCAL_EXECUTE ]; then
- #   module unload intel-suite udunits nco/4.6.2
+#    module unload intel-suite udunits nco/4.6.2
 #fi;

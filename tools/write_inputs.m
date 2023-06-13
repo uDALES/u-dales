@@ -20,7 +20,11 @@
 % This script is run by the bash script da_inp.sh.
 % It used to generate the necessary input files for uDALES.
 tic
-expnr = '027';
+expnr = '094';
+expnr2 = '039';
+tiled =false;
+xtiles = 3;
+ytiles = 2;
 % DA_EXPDIR = getenv('DA_EXPDIR');
 % DA_TOOLSDIR = getenv('DA_TOOLSDIR');
 DA_EXPDIR = '/media/chris/Project3/uDALES2.0/experiments'
@@ -33,19 +37,25 @@ exppath = [DA_EXPDIR '/'];
 fpath = [DA_EXPDIR '/' expnr '/'];
 cd(fpath)
 
-r = preprocessing(expnr, exppath); % reads namoptions file and creates the object r
 
+r = preprocessing(expnr, exppath); % reads namoptions file and creates the object r
 preprocessing.set_defaults(r);
 preprocessing.generate_xygrid(r);
 preprocessing.generate_zgrid(r);
-
 preprocessing.generate_lscale(r)
 preprocessing.write_lscale(r)
 disp(['Written lscal.inp.', r.expnr])
-
 preprocessing.generate_prof(r);
 preprocessing.write_prof(r);
 disp(['Written prof.inp.', r.expnr])
+
+if tiled 
+    fpath2 = [DA_EXPDIR '/' expnr2 '/'];
+    r2 = preprocessing(expnr2,exppath); % for the tiled one
+    preprocessing.set_defaults(r2);
+    preprocessing.generate_xygrid(r2);
+    preprocessing.generate_zgrid(r2);
+end 
 
 if r.nsv>0
     preprocessing.generate_scalar(r);
@@ -74,17 +84,18 @@ if r.libm
         xgrid_c = r.xf;
         ygrid_c = r.yf;
         zgrid_c = r.zf;
+
         [X_c,Y_c,Z_c] = ndgrid(xgrid_c,ygrid_c,zgrid_c);
 
         % u-grid
-        xgrid_u = r.xh;
+        xgrid_u = r.xh(1:end-1); %Work smarter not harder
         ygrid_u = r.yf;
         zgrid_u = r.zf;
         [X_u,Y_u,Z_u] = ndgrid(xgrid_u,ygrid_u,zgrid_u);
 
         % v-grid
         xgrid_v = r.xf;
-        ygrid_v = r.yh;
+        ygrid_v = r.yh(1:end-1);
         zgrid_v = r.zf;
         [X_v,Y_v,Z_v] = ndgrid(xgrid_v,ygrid_v,zgrid_v);
 
@@ -99,7 +110,12 @@ if r.libm
         periodic_x = r.BCxm == 1;
         periodic_y = r.BCym == 1;
         lmypoly = 1; % remove eventually
-        writeIBMFiles; % Could turn into a function and move writing to this script
+
+        if tiled == true
+            writetiledIBMFiles
+        else
+            writeIBMFiles; % Could turn into a function and move writing to this script
+        end 
     else
         if isempty(r.geom_path)
             error('Need to specify the path to geometry files')
@@ -215,5 +231,9 @@ end
 %% Setting vars
 lamdba_calculation
 setting_types
+
+%% Determine effective albedo
+efctvalb = 1-sum(Knet)/sum(Sdir+r.Dsky*svf)
+preprocessing.write_efalb(r,efctvalb)
 toc 
 

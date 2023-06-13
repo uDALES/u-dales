@@ -445,6 +445,7 @@ axis equal tight
 % zlim([0 Lz])
 
 scatter3(X_u(solid_u), Y_u(solid_u), Z_u(solid_u), 10,[0,0,1],'filled')
+%scatter3(X_u(~masku), Y_u(~masku), Z_u(~masku), 10,[1,0,0],'filled')
 %scatter3(X_v(solid_v), Y_v(solid_v), Z_v(solid_v), 10,[0,0,1],'filled')
 %scatter3(X_w(solid_w), Y_w(solid_w), Z_w(solid_w), 10,[0,0,1],'filled')
 %scatter3(X_c(solid_c), Y_c(solid_c), Z_c(solid_c), 10,[0,0,1],'filled')
@@ -460,7 +461,7 @@ scatter3(X_u(solid_u), Y_u(solid_u), Z_u(solid_u), 10,[0,0,1],'filled')
 %scatter3(fluid_IB_xyz_c(:,1),fluid_IB_xyz_c(:,2),fluid_IB_xyz_c(:,3),10,[0,0,1],'filled')
 
 % %% u
-% scatter3(fluid_IB_xyz_u(:,1),fluid_IB_xyz_u(:,2),fluid_IB_xyz_u(:,3),10,[0,0,1],'filled')
+ %scatter3(fluid_IB_xyz_u(:,1),fluid_IB_xyz_u(:,2),fluid_IB_xyz_u(:,3),10,[0,0,1],'filled')
 % %scatter3(solid_IB_xyz_u(:,1),solid_IB_xyz_u(:,2),solid_IB_xyz_u(:,3),10,[0,0,1],'filled')
 % %quiver3(fluid_IB_BI_u(:,1), fluid_IB_BI_u(:,2), fluid_IB_BI_u(:,3), fluid_IB_vec_u(:,1), fluid_IB_vec_u(:,2), fluid_IB_vec_u(:,3),'off')
 %scatter3(fluid_IB_rec_u(:,1),fluid_IB_rec_u(:,2),fluid_IB_rec_u(:,3),10,[0,0,1],'filled')
