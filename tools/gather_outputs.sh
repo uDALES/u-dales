@@ -23,7 +23,7 @@ if (( $# == 1 )) ; then
     datapath=$1
     expnr="${datapath: -3}"  ## set experiment number via path
 else
-	echo "error: call scipt as `basename $0` experiment-directory."
+	echo "error: call script as `basename $0` experiment-directory."
 	exit 0
 fi
 
@@ -33,18 +33,16 @@ scriptdir=$(pwd -L)
 popd > /dev/null
 toolsdir=${scriptdir}  # assume same directory for nco_concatenate_field.sh
 
-if [ -z $LOCAL_EXECUTE ]; then
-    echo "cluster"
-    module load intel-suite udunits nco/4.6.2
-fi;
+#if [ -z $LOCAL_EXECUTE ]; then
+ #   echo "cluster"
+  #  module load intel-suite udunits nco/4.6.2
+#fi;
 
 ## go to files directory
 cd ${datapath}
 
 ## call loop for *DUMPS
-
-for file in *dump.000.${expnr}.nc ; do
-
+for file in *dump.*.000.${expnr}.nc ; do
     if [ -f $file ]; then
 
         ## Gathering fields along spatial axis.
@@ -52,14 +50,13 @@ for file in *dump.000.${expnr}.nc ; do
 
         dumps=${file%.000.${expnr}.nc}
 
-        if [ $dumps == "fielddump" ]; then
-            # ymparam="ym"
-            ymparam="v,ym"
+        if [ ${dumps:0:9} == "fielddump" ]; then
+            ymparam="v,tau_y,ym"
 
-        elif [ $dumps == "tdump" ]; then
+        elif [ ${dumps:0:5} == "tdump" ]; then
             ymparam="vt,vpwpt,upvpt,ym"
 
-        elif [ $dumps == "slicedump" ]; then
+        elif [ ${dumps:0:9} == "slicedump" ]; then
             ymparam="v_2,v_20,ym"
         else
             ymparam="ym"
@@ -71,13 +68,50 @@ for file in *dump.000.${expnr}.nc ; do
         echo "Gathering ${dumps} files with ym-dependent variables ${ymparam}."
         echo "Saving output to ${outfile}."
 
-        ${toolsdir}/nco_concatenate_field.sh $dumps $ymparam $outfile
+        ${toolsdir}/nco_concatenate_field_y.sh $dumps $ymparam $outfile
         echo "Merging done."
 
     fi
 
 done
 
-if [ -z $LOCAL_EXECUTE ]; then
-    module unload intel-suite udunits nco/4.6.2
-fi;
+for file in *dump.000.${expnr}.nc ; do
+
+    if [ -f $file ]; then
+
+        ## Gathering fields along spatial axis.
+        echo "Gathering fields along spatial axis."
+
+        dumps=${file%.000.${expnr}.nc}
+
+        if [ $dumps == "fielddump" ]; then
+	          #xmparam="xm"
+            xmparam="u,tau_x,xm"
+
+        elif [ $dumps == "tdump" ]; then
+            xmparam="ut,upwpt,upvpt,xm"
+
+        elif [ $dumps == "slicedump" ]; then
+            xmparam="u_2,u_20,xm"
+        else
+            xmparam="xm"
+        fi
+
+        outfile="${dumps}.${expnr}.nc"
+
+        echo "We are in ${datapath}."
+        echo "Gathering ${dumps} files with xm-dependent variables ${xmparam}."
+        echo "Saving output to ${outfile}."
+
+        ${toolsdir}/nco_concatenate_field_x.sh $dumps $xmparam $outfile
+        echo "Merging done."
+
+    fi
+
+done
+
+
+#if [ -z $LOCAL_EXECUTE ]; then
+ #   module unload intel-suite udunits nco/4.6.2
+#fi;
+

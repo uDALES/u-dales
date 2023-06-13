@@ -38,7 +38,7 @@ module modstatsdump
   character(80) :: tkename = 'tkedump.xxx.nc'
   character(80) :: xyname = 'xydump.xxx.nc'
   character(80) :: xytname = 'xytdump.xxx.nc'
-  character(80) :: tname = 'tdump.xxx.xxx.nc'
+  character(80) :: tname = 'tdump.xxx.xxx.xxx.nc'
   character(80) :: slicename = 'slicedump.xxx.xxx.nc'
   character(80),dimension(1,4) :: tncstaty
   character(80),dimension(1,4) :: tncstatyt
@@ -59,7 +59,7 @@ contains
   !-------------------------
 
   subroutine initstatsdump
-    use modmpi,   only : my_real,mpierr,comm3d,mpi_logical,mpi_integer,mpi_character,cmyid
+    use modmpi,   only : my_real,mpierr,comm3d,mpi_logical,mpi_integer,mpi_character,cmyid,cmyidx,cmyidy
     use modglobal,only : imax,jmax,kmax,cexpnr,ifnamopt,fname_options,kb,ke,ladaptive,btime,&
                          nsv,lslicedump,lxytdump
     use modstat_nc,only: open_nc, define_nc,ncinfo,writestat_dims_nc
@@ -261,8 +261,9 @@ contains
     !> Generate time averaged NetCDF: tdump.xxx.nc
     if (ltdump) then
 
-      tname(7:9) = cmyid
-      tname(11:13) = cexpnr
+      tname(7:9) = cmyidx
+      tname(11:13) = cmyidy
+      tname(15:17) = cexpnr
       call ncinfo(tncstatt(1,:),'time'      ,'Time'                        ,'s'      ,'time')
       call ncinfo(ncstatt( 1,:),'ut'        ,'Streamwise velocity'         ,'m/s'    ,'mttt'  )
       call ncinfo(ncstatt( 2,:),'vt'        ,'Spanwise velocity'           ,'m/s'    ,'tmtt'  )
