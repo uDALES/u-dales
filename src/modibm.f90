@@ -209,7 +209,7 @@ module modibm
        end if
      end do
 
-     write(*,*) "rank ", myid, " has ", solid_info%nsolptsrank, " solid points from ", fname
+     !write(*,*) "rank ", myid, " has ", solid_info%nsolptsrank, " solid points from ", fname
 
    end subroutine initibmnorm
 
@@ -266,7 +266,7 @@ module modibm
        end if
      end do
 
-     write(*,*) "rank ", myid, " has ", bound_info%nbndptsrank, "points from ", fname_bnd
+     !write(*,*) "rank ", myid, " has ", bound_info%nbndptsrank, "points from ", fname_bnd
 
      ! Store indices of points on current rank - only loop through these points
      allocate(bound_info%bndptsrank(bound_info%nbndptsrank))
