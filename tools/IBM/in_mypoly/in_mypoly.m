@@ -28,7 +28,6 @@ for ix = 1:length(xgrid)
                         else
                             withinBox = false;
                         end
-                        
                     case 2
                         if (incenters(i_facet,1) > Origin(1)-L_char && incenters(i_facet,1) < Origin(1)+L_char && incenters(i_facet,3) > Origin(3)-L_char && incenters(i_facet,3) < Origin(3)+L_char)
                             withinBox = true;

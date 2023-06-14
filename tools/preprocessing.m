@@ -209,10 +209,12 @@ classdef preprocessing < dynamicprops
 
 
             %% &WALLS
-            preprocessing.addvar(obj, 'iwallmom', 1)
+            preprocessing.addvar(obj, 'iwallmom', 3)
             preprocessing.addvar(obj, 'iwalltemp', 1)
 
             %% &PHYSICS
+            preprocessing.addvar(obj, 'ltempeq', 0)
+            preprocessing.addvar(obj, 'lmoist', 0)
             preprocessing.addvar(obj, 'lchem' , 0) % switch for chemistry (not implemented)
             preprocessing.addvar(obj, 'lprofforc', 0)  % switch for 1D geostrophic forcing
             preprocessing.addvar(obj, 'lcoriol', 0)    % switch for coriolis forcing
@@ -223,6 +225,10 @@ classdef preprocessing < dynamicprops
                 disp('No forcing switch config. setup and not a driven simulation so initial velocities and pressure gradients applied.')
             else
                 preprocessing.addvar(obj, 'ldp', 0)
+            end
+
+            if (obj.ltempeq == 0 || obj.iwalltemp==1 && obj.iwallmom==2)
+                obj.iwallmom = 3;
             end
 
             %% &INPS

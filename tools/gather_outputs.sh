@@ -44,26 +44,20 @@ echo ${datapath}
 
 ## call loop for *DUMPS
 for file in *dump.*.000.${expnr}.nc ; do
-	echo $file
     if [ -f $file ]; then
 
         ## Gathering fields along spatial axis.
         echo "Gathering fields along spatial axis."
 
         dumps=${file%.000.${expnr}.nc}
-	echo "dumps"
-	echo $dumps
-	echo ${dumps:0:9}
-        if [ ${dumps:0:9} == "fielddump" ]; then
-	    ymparam="ym"
-	    #echo $ymparam
-            ymparam="v,ym"
-            #ymparam='ym'
 
-        elif [ $dumps == "tdump" ]; then
+        if [ ${dumps:0:9} == "fielddump" ]; then
+            ymparam="v,tau_y,ym"
+
+        elif [ ${dumps:0:5} == "tdump" ]; then
             ymparam="vt,vpwpt,upvpt,ym"
 
-        elif [ $dumps == "slicedump" ]; then
+        elif [ ${dumps:0:9} == "slicedump" ]; then
             ymparam="v_2,v_20,ym"
         else
             ymparam="ym"
@@ -93,7 +87,7 @@ for file in *dump.000.${expnr}.nc ; do
 
         if [ $dumps == "fielddump" ]; then
 	          #xmparam="xm"
-            xmparam="u,xm"
+            xmparam="u,tau_x,xm"
 
         elif [ $dumps == "tdump" ]; then
             xmparam="ut,upwpt,upvpt,xm"

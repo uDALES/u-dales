@@ -49,13 +49,13 @@ preprocessing.generate_prof(r);
 preprocessing.write_prof(r);
 disp(['Written prof.inp.', r.expnr])
 
-if tiled 
+if tiled
     fpath2 = [DA_EXPDIR '/' expnr2 '/'];
     r2 = preprocessing(expnr2,exppath); % for the tiled one
     preprocessing.set_defaults(r2);
     preprocessing.generate_xygrid(r2);
     preprocessing.generate_zgrid(r2);
-end 
+end
 
 if r.nsv>0
     preprocessing.generate_scalar(r);
@@ -67,7 +67,7 @@ if isfile(['factypes.inp.', expnr])
     r.factypes = dlmread(['factypes.inp.', r.expnr],'',3,0);
 else
     preprocessing.write_factypes(r)
-    disp(['Written factypes.inp', r.expnr])
+    disp(['Written factypes.inp.', r.expnr])
 end
 
 
@@ -76,9 +76,17 @@ if r.libm
     TR = stlread(r.stl_file);
     F = TR.ConnectivityList;
     V = TR.Points;
-
     area_facets = facetAreas(F, V); % Useful for checking if area_fluid_IB_c == sum(area_facets)
 
+    % Set facet types
+    nfcts = size(TR.ConnectivityList,1);
+    preprocessing.set_nfcts(r, nfcts);
+    facet_types = ones(nfcts,1); % facet_types are to be user-defined - defaults to type 1 (concrete)
+    preprocessing.write_facets(r, facet_types, TR.faceNormal);
+    disp(['Written facets.inp.', r.expnr])
+
+    calculate_facet_sections_uvw = r.iwallmom > 1;
+    calculate_facet_sections_c = r.ltempeq || r.lmoist;
     if r.gen_geom
         % c-grid (scalars/pressure)
         xgrid_c = r.xf;
@@ -88,7 +96,7 @@ if r.libm
         [X_c,Y_c,Z_c] = ndgrid(xgrid_c,ygrid_c,zgrid_c);
 
         % u-grid
-        xgrid_u = r.xh(1:end-1); %Work smarter not harder
+        xgrid_u = r.xh(1:end-1);
         ygrid_u = r.yf;
         zgrid_u = r.zf;
         [X_u,Y_u,Z_u] = ndgrid(xgrid_u,ygrid_u,zgrid_u);
@@ -102,30 +110,43 @@ if r.libm
         % w-grid
         xgrid_w = r.xf;
         ygrid_w = r.yf;
-        zgrid_w = r.zh;
+        zgrid_w = r.zh(1:end-1);
         [X_w,Y_w,Z_w] = ndgrid(xgrid_w,ygrid_w,zgrid_w);
 
         diag_neighbs = r.diag_neighbs;
         stl_ground = r.stl_ground;
         periodic_x = r.BCxm == 1;
         periodic_y = r.BCym == 1;
+        xsize = r.xlen;
+        ysize = r.ylen;
+        zsize = r.zsize;
         lmypoly = 1; % remove eventually
 
         if tiled == true
             writetiledIBMFiles
         else
             writeIBMFiles; % Could turn into a function and move writing to this script
-        end 
+        end
     else
         if isempty(r.geom_path)
             error('Need to specify the path to geometry files')
         end
-        copy_command = ['cp ' r.geom_path 'solid_* ' fpath];
+        copy_command = ['cp ' r.geom_path 'solid_* ' r.geom_path 'fluid_boundary_* ' fpath];
         system(copy_command);
         copy_command = ['cp ' r.geom_path 'fluid_boundary_* ' fpath];
         system(copy_command);
-        copy_command = ['cp ' r.geom_path 'facet_sections_* ' fpath];
-        system(copy_command);
+        if calculate_facet_sections_uvw
+            copy_command = ['cp ' r.geom_path 'facet_sections_u* ' fpath];
+            system(copy_command);
+            copy_command = ['cp ' r.geom_path 'facet_sections_v* ' fpath];
+            system(copy_command);
+            copy_command = ['cp ' r.geom_path 'facet_sections_w* ' fpath];
+            system(copy_command);
+        end
+        if calculate_facet_sections_c
+            copy_command = ['cp ' r.geom_path 'facet_sections_c* ' fpath];
+            system(copy_command);
+        end
     end
 end
 %% Set facet types
@@ -160,7 +181,7 @@ if r.lEB
         vfsparse = sparse(double(vf));
         preprocessing.write_vfsparse(obj, vfsparse);
         disp(['Written vfsparse.inp.', r.expnr])
-    end     
+    end
     %% Set facet types
     nfcts = size(TR.ConnectivityList,1);
     preprocessing.set_nfcts(r, nfcts);
@@ -235,5 +256,4 @@ setting_types
 %% Determine effective albedo
 efctvalb = 1-sum(Knet)/sum(Sdir+r.Dsky*svf)
 preprocessing.write_efalb(r,efctvalb)
-toc 
-
+toc
