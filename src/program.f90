@@ -24,7 +24,7 @@ program DALESURBAN      !Version 48
 !!----------------------------------------------------------------
 !!     0.0    USE STATEMENTS FOR CORE MODULES
 !!----------------------------------------------------------------
-  use modmpi,            only : initmpi,exitmpi,myid,starttimer, mpi_sum, comm3d, mpierr, my_real, MPI_ALLREDUCE
+  use modmpi,            only : initmpi,exitmpi,myid,starttimer, mpi_sum, comm3d, mpierr, my_real
   use modglobal,         only : initglobal,rk3step,timeleft, totheatflux, lperiodicEBcorr, ltempeq, ib,ie,jb,je,kb,ke
   use modstartup,        only : readnamelists,init2decomp,checkinitvalues,readinitfiles,exitmodules
   use modfields,         only : initfields, thlp

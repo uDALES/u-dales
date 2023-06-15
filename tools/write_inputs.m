@@ -20,11 +20,11 @@
 % This script is run by the bash script da_inp.sh.
 % It used to generate the necessary input files for uDALES.
 tic
-expnr = '094';
-expnr2 = '039';
-tiled =false;
-xtiles = 3;
-ytiles = 2;
+expnr = '100';
+expnr2 = '101';
+tiled =true;
+xtiles = 12;
+ytiles = 6;
 % DA_EXPDIR = getenv('DA_EXPDIR');
 % DA_TOOLSDIR = getenv('DA_TOOLSDIR');
 DA_EXPDIR = '/media/chris/Project3/uDALES2.0/experiments'
@@ -122,10 +122,20 @@ if r.libm
         zsize = r.zsize;
         lmypoly = 1; % remove eventually
 
+%         Dir_ray_u = [0 0 1];
+%         Dir_ray_v = [0 0 1];
+%         Dir_ray_w = [0 0 1];
+%         Dir_ray_c = [0 0 1];
+%         tol_mypoly = 1e-4;
+% 
+%         write_pre_info;
+
         if tiled == true
             writetiledIBMFiles
         else
             writeIBMFiles; % Could turn into a function and move writing to this script
+%             writeIBMFiles_new
+
         end
     else
         if isempty(r.geom_path)
@@ -189,29 +199,29 @@ if r.lEB
     preprocessing.write_facets(r, facet_types, TR.faceNormal);
 
     %%
-    if r.lEB
-        preprocessing.write_facetarea(r, area_facets);
-
-        %% Write STL in View3D input format
-        fpath_facets_view3d = [fpath 'facets.vs3'];
-        STLtoView3D(r.stl_file, fpath_facets_view3d);
-
-        %% Calculate view factors
-        % Add check to see if View3D exists in the tools directory.
-        view3d_exe = [DA_TOOLSDIR '/View3D/build/src/view3d'];
-        fpath_vf = [fpath 'vf.txt'];
-        vf = view3d(view3d_exe, fpath_facets_view3d, fpath_vf);
-        svf = max(1 - sum(vf, 2), 0);
-        preprocessing.write_svf(r, svf);
-
-        if ~r.lvfsparse
-            preprocessing.write_vf(r, vf)
-            disp(['Written vf.nc.inp.', r.expnr])
-        else
-            vfsparse = sparse(double(vf));
-            preprocessing.write_vfsparse(obj, vfsparse);
-            disp(['Written vfsparse.inp.', r.expnr])
-        end
+%     if r.lEB
+%         preprocessing.write_facetarea(r, area_facets);
+% 
+%         %% Write STL in View3D input format
+%         fpath_facets_view3d = [fpath 'facets.vs3'];
+%         STLtoView3D(r.stl_file, fpath_facets_view3d);
+% 
+%         %% Calculate view factors
+%         % Add check to see if View3D exists in the tools directory.
+%         view3d_exe = [DA_TOOLSDIR '/View3D/build/src/view3d'];
+%         fpath_vf = [fpath 'vf.txt'];
+%         vf = view3d(view3d_exe, fpath_facets_view3d, fpath_vf);
+%         svf = max(1 - sum(vf, 2), 0);
+%         preprocessing.write_svf(r, svf);
+% 
+%         if ~r.lvfsparse
+%             preprocessing.write_vf(r, vf)
+%             disp(['Written vf.nc.inp.', r.expnr])
+%         else
+%             vfsparse = sparse(double(vf));
+%             preprocessing.write_vfsparse(obj, vfsparse);
+%             disp(['Written vfsparse.inp.', r.expnr])
+%         end
 
         %% Calculate direct solar radiation (Sdir)
         disp('Calculating direct solar radiation.')
@@ -248,7 +258,6 @@ if r.lEB
             disp(['Written Tfacinit_layers.inp.', r.expnr])
         end
     end
-end
 %% Setting vars
 lamdba_calculation
 setting_types

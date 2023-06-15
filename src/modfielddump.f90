@@ -399,9 +399,9 @@ contains
     real, allocatable :: vars(:,:,:,:), vars1(:,:,:,:), vars2(:,:,:,:)
     integer i,j,k,n
     integer :: writecounter = 1
-    !if (.not. ((timee>=tnextfielddump) .or. (rk3step==0))) return
+    if (.not. ((timee>=tnextfielddump) .or. (rk3step==0))) return
     if (.not. lfielddump) return
-    !if (rk3step/=3 .and. rk3step/=0) return
+    if (rk3step/=3 .and. rk3step/=0) return
     do k=kb,ke
       do j=jb,je
         do i=ib,ie

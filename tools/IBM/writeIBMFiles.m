@@ -107,7 +107,7 @@ if (calculate_facet_sections_uvw)
     fclose(fileID_u);
     disp('Written facet_sections_u.txt')
 
-    lBImin_u = true;
+    lBImin_u = false;
     % Instead of using distance of boundary point to facet section, use distance of
     % boundary point to ALL facets
     if lBImin_u
@@ -125,25 +125,25 @@ if (calculate_facet_sections_uvw)
         fclose(fileID_u);
         disp('Written facet_sections_u_2.txt')
 
-        facet_sections_u_3 = facet_sections_u;
-        for n=1:size(facet_sections_u,1)
-            facet = facet_sections_u(n,1);
-            m = facet_sections_u(n,5); % fluid boundary point
-            inputs.faces = TR.ConnectivityList(facet,:);
-            inputs.nodes = TR.Points;
-            inputs.face_mean_nodes = TR.incenter(facet);
-            inputs.face_normals = TR.faceNormal(facet);
-            [dist, BI, ~] = fastPoint2TriMesh(inputs, fluid_boundary_u(m,:), 0, 0);
-            facet_sections_u_3(n,6) = dist;
-            facet_sections_u_3(n,7:9) = BI;
-        end
-
-        filename_u = [fpath 'facet_sections_u_3.txt'];
-        fileID_u = fopen(filename_u,'W');
-        fprintf(fileID_u, '# facet, area, fluid boundary point, distance\n');
-        fprintf(fileID_u, '%-2d %-4.4f %-4d %-4.8f\n', facet_sections_u_2(:,[1,2,5,6])');
-        fclose(fileID_u);
-        disp('Written facet_sections_u_3.txt')
+%         facet_sections_u_3 = facet_sections_u;
+%         for n=1:size(facet_sections_u,1)
+%             facet = facet_sections_u(n,1);
+%             m = facet_sections_u(n,5); % fluid boundary point
+%             inputs.faces = TR.ConnectivityList(facet,:);
+%             inputs.nodes = TR.Points;
+%             inputs.face_mean_nodes = TR.incenter(facet);
+%             inputs.face_normals = TR.faceNormal(facet);
+%             [dist, BI, ~] = fastPoint2TriMesh(inputs, fluid_boundary_u(m,:), 0, 0);
+%             facet_sections_u_3(n,6) = dist;
+%             facet_sections_u_3(n,7:9) = BI;
+%         end
+% 
+%         filename_u = [fpath 'facet_sections_u_3.txt'];
+%         fileID_u = fopen(filename_u,'W');
+%         fprintf(fileID_u, '# facet, area, fluid boundary point, distance\n');
+%         fprintf(fileID_u, '%-2d %-4.4f %-4d %-4.8f\n', facet_sections_u_2(:,[1,2,5,6])');
+%         fclose(fileID_u);
+%         disp('Written facet_sections_u_3.txt')
 
     end
 else
@@ -218,7 +218,7 @@ if (calculate_facet_sections_uvw)
     fclose(fileID_v);
     disp('Written facet_sections_v.txt')
 
-    lBImin_v = true;
+    lBImin_v = false;
     % Instead of using distance of boundary point to facet section, use distance of
     % boundary point to ALL facets
     if lBImin_v
@@ -236,25 +236,25 @@ if (calculate_facet_sections_uvw)
         fclose(fileID_v);
         disp('Written facet_sections_v_2.txt')
 
-        facet_sections_v_3 = facet_sections_v;
-        for n=1:size(facet_sections_v,1)
-            facet = facet_sections_v(n,1);
-            m = facet_sections_v(n,5); % fluid boundary point
-            inputs.faces = TR.ConnectivityList(facet,:);
-            inputs.nodes = TR.Points;
-            inputs.face_mean_nodes = TR.incenter(facet);
-            inputs.face_normals = TR.faceNormal(facet);
-            [dist, BI, ~] = fastPoint2TriMesh(inputs, fluid_boundary_v(m,:), 0, 0);
-            facet_sections_v_3(n,6) = dist;
-            facet_sections_v_3(n,7:9) = BI;
-        end
-
-        filename_v = [fpath 'facet_sections_v_3.txt'];
-        fileID_v = fopen(filename_v,'W');
-        fprintf(fileID_v, '# facet, area, fluid boundary point, distance\n');
-        fprintf(fileID_v, '%-2d %-4.4f %-4d %-4.8f\n', facet_sections_v_2(:,[1,2,5,6])');
-        fclose(fileID_v);
-        disp('Written facet_sections_v_3.txt')
+%         facet_sections_v_3 = facet_sections_v;
+%         for n=1:size(facet_sections_v,1)
+%             facet = facet_sections_v(n,1);
+%             m = facet_sections_v(n,5); % fluid boundary point
+%             inputs.faces = TR.ConnectivityList(facet,:);
+%             inputs.nodes = TR.Points;
+%             inputs.face_mean_nodes = TR.incenter(facet);
+%             inputs.face_normals = TR.faceNormal(facet);
+%             [dist, BI, ~] = fastPoint2TriMesh(inputs, fluid_boundary_v(m,:), 0, 0);
+%             facet_sections_v_3(n,6) = dist;
+%             facet_sections_v_3(n,7:9) = BI;
+%         end
+% 
+%         filename_v = [fpath 'facet_sections_v_3.txt'];
+%         fileID_v = fopen(filename_v,'W');
+%         fprintf(fileID_v, '# facet, area, fluid boundary point, distance\n');
+%         fprintf(fileID_v, '%-2d %-4.4f %-4d %-4.8f\n', facet_sections_v_2(:,[1,2,5,6])');
+%         fclose(fileID_v);
+%         disp('Written facet_sections_v_3.txt')
     end
 else
     facet_sections_v = [];
@@ -329,7 +329,7 @@ if (calculate_facet_sections_uvw)
     fclose(fileID_w);
     disp('Written facet_sections_w.txt')
 
-    lBImin_w = true;
+    lBImin_w = false;
     % Instead of using distance of boundary point to facet section, use distance of
     % boundary point to ALL facets
     if lBImin_w
@@ -347,25 +347,25 @@ if (calculate_facet_sections_uvw)
         fclose(fileID_w);
         disp('Written facet_sections_w_2.txt')
 
-        facet_sections_w_3 = facet_sections_w;
-        for n=1:size(facet_sections_w,1)
-            facet = facet_sections_w(n,1);
-            m = facet_sections_w(n,5); % fluid boundary point
-            inputs.faces = TR.ConnectivityList(facet,:);
-            inputs.nodes = TR.Points;
-            inputs.face_mean_nodes = TR.incenter(facet);
-            inputs.face_normals = TR.faceNormal(facet);
-            [dist, BI, ~] = fastPoint2TriMesh(inputs, fluid_boundary_w(m,:), 0, 0);
-            facet_sections_w_3(n,6) = dist;
-            facet_sections_w_3(n,7:9) = BI;
-        end
-
-        filename_w = [fpath 'facet_sections_w_3.txt'];
-        fileID_w = fopen(filename_w,'W');
-        fprintf(fileID_w, '# facet, area, fluid boundary point, distance\n');
-        fprintf(fileID_w, '%-2d %-4.4f %-4d %-4.8f\n', facet_sections_w_2(:,[1,2,5,6])');
-        fclose(fileID_w);
-        disp('Written facet_sections_w_3.txt')
+%         facet_sections_w_3 = facet_sections_w;
+%         for n=1:size(facet_sections_w,1)
+%             facet = facet_sections_w(n,1);
+%             m = facet_sections_w(n,5); % fluid boundary point
+%             inputs.faces = TR.ConnectivityList(facet,:);
+%             inputs.nodes = TR.Points;
+%             inputs.face_mean_nodes = TR.incenter(facet);
+%             inputs.face_normals = TR.faceNormal(facet);
+%             [dist, BI, ~] = fastPoint2TriMesh(inputs, fluid_boundary_w(m,:), 0, 0);
+%             facet_sections_w_3(n,6) = dist;
+%             facet_sections_w_3(n,7:9) = BI;
+%         end
+% 
+%         filename_w = [fpath 'facet_sections_w_3.txt'];
+%         fileID_w = fopen(filename_w,'W');
+%         fprintf(fileID_w, '# facet, area, fluid boundary point, distance\n');
+%         fprintf(fileID_w, '%-2d %-4.4f %-4d %-4.8f\n', facet_sections_w_2(:,[1,2,5,6])');
+%         fclose(fileID_w);
+%         disp('Written facet_sections_w_3.txt')
     end
 else
     facet_sections_w = [];
@@ -436,7 +436,7 @@ if (calculate_facet_sections_c)
     fclose(fileID_c);
     disp('Written facet_sections_c.txt')
 
-    lBImin_c = true;
+    lBImin_c = false;
     % Instead of using distance of boundary point to facet section, use distance of
     % boundary point to ALL facets
     if lBImin_c
@@ -454,26 +454,26 @@ if (calculate_facet_sections_c)
         fclose(fileID_c);
         disp('Written facet_sections_c_2.txt')
 
-        facet_sections_c_3 = facet_sections_c;
-        for n=1:size(facet_sections_c,1)
-            facet = facet_sections_c(n,1);
-            m = facet_sections_c(n,5); % fluid boundary point
-            inputs.faces = TR.ConnectivityList(facet,:);
-            inputs.nodes = TR.Points;
-            inputs.face_mean_nodes = TR.incenter(facet);
-            inputs.face_normals = TR.faceNormal(facet);
-            [dist, BI, ~] = fastPoint2TriMesh(inputs, fluid_boundary_c(m,:), 0, 0);
-            facet_sections_c_3(n,6) = dist;
-            facet_sections_c_3(n,7:9) = BI;
-        end
-
-        filename_c = [fpath 'facet_sections_c_3.txt'];
-        fileID_c = fopen(filename_c,'W');
-        fprintf(fileID_c, '# facet, area, fluid boundary point, distance\n');
-        fprintf(fileID_c, '%-2d %-4.4f %-4d %-4.8f\n', facet_sections_c_2(:,[1,2,5,6])');
-        fclose(fileID_c);
-        disp('Written facet_sections_c_3.txt')
-    end
+%         facet_sections_c_3 = facet_sections_c;
+%         for n=1:size(facet_sections_c,1)
+%             facet = facet_sections_c(n,1);
+%             m = facet_sections_c(n,5); % fluid boundary point
+%             inputs.faces = TR.ConnectivityList(facet,:);
+%             inputs.nodes = TR.Points;
+%             inputs.face_mean_nodes = TR.incenter(facet);
+%             inputs.face_normals = TR.faceNormal(facet);
+%             [dist, BI, ~] = fastPoint2TriMesh(inputs, fluid_boundary_c(m,:), 0, 0);
+%             facet_sections_c_3(n,6) = dist;
+%             facet_sections_c_3(n,7:9) = BI;
+%         end
+% 
+%         filename_c = [fpath 'facet_sections_c_3.txt'];
+%         fileID_c = fopen(filename_c,'W');
+%         fprintf(fileID_c, '# facet, area, fluid boundary point, distance\n');
+%         fprintf(fileID_c, '%-2d %-4.4f %-4d %-4.8f\n', facet_sections_c_2(:,[1,2,5,6])');
+%         fclose(fileID_c);
+%         disp('Written facet_sections_c_3.txt')
+     end
 else
     facet_sections_c = [];
 end

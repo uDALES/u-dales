@@ -158,6 +158,7 @@ function [min_distances,min_project_pts,outside]=fastPoint2TriMesh(inputs,pts,us
         end
 
         if ~all(isnan(distances))
+ 
             id = find(distances == min(distances(distances>0)));
             id = id(1);
             min_distances = distances(id);
