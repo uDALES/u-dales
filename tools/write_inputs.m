@@ -20,8 +20,8 @@
 % This script is run by the bash script da_inp.sh.
 % It used to generate the necessary input files for uDALES.
 tic
-expnr = '100';
-expnr2 = '101';
+expnr = '102';
+expnr2 = '103';
 tiled =true;
 xtiles = 12;
 ytiles = 6;
@@ -76,7 +76,9 @@ if r.libm
     TR = stlread(r.stl_file);
     F = TR.ConnectivityList;
     V = TR.Points;
+    %%
     area_facets = facetAreas(F, V); % Useful for checking if area_fluid_IB_c == sum(area_facets)
+    %%
 
     % Set facet types
     nfcts = size(TR.ConnectivityList,1);
@@ -165,10 +167,10 @@ nfcts = size(TR.ConnectivityList,1);
 preprocessing.set_nfcts(r, nfcts);
 facet_types = ones(nfcts,1); % facet_types are to be user-defined - defaults to type 1 (concrete)
 preprocessing.write_facets(r, facet_types, TR.faceNormal);
-
+preprocessing.write_facetarea(r, area_facets);
 %%
 if r.lEB
-    preprocessing.write_facetarea(r, area_facets);
+    
 
     %% Write STL in View3D input format
     fpath_facets_view3d = [fpath 'facets.vs3'];
