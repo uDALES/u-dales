@@ -20,11 +20,11 @@
 % This script is run by the bash script da_inp.sh.
 % It used to generate the necessary input files for uDALES.
 tic
-expnr = '102';
-expnr2 = '103';
+expnr = '043';
+expnr2 = '044';
 tiled =true;
-xtiles = 12;
-ytiles = 6;
+xtiles = 3;
+ytiles = 3;
 % DA_EXPDIR = getenv('DA_EXPDIR');
 % DA_TOOLSDIR = getenv('DA_TOOLSDIR');
 DA_EXPDIR = '/media/chris/Project3/uDALES2.0/experiments'
@@ -261,10 +261,10 @@ if r.lEB
         end
     end
 %% Setting vars
-lamdba_calculation
-setting_types
+%lamdba_calculation
+%setting_types
 
 %% Determine effective albedo
-efctvalb = 1-sum(Knet)/sum(Sdir+r.Dsky*svf)
-preprocessing.write_efalb(r,efctvalb)
+%efctvalb = 1-sum(Knet)/sum(Sdir+r.Dsky*svf)
+%preprocessing.write_efalb(r,efctvalb)
 toc
