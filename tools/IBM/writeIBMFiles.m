@@ -31,7 +31,7 @@ if lmypoly
 	max_height = max(TR.Points(:,3)) + tol_mypoly;
     L_char = max_facet_size(TR.Points,TR.ConnectivityList) + tol_mypoly;
 elseif lmypolyfortran
-	if lwindows
+    if lwindows
         in_mypoly_fortran_path = [DA_TOOLSDIR '/IBM/in_mypoly_fortran/'];
         cd(in_mypoly_fortran_path)
         system('gfortran -O2 -fopenmp in_mypoly_functions.f90 IBM_flagging.f90 -o pre.exe');
