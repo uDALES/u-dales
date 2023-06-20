@@ -28,18 +28,48 @@ nfcts = size(TR,1);
 %% Determine total area of surface
 
 if lmypoly
-    Dir_ray_u = [0 0 1];
-    Dir_ray_v = [0 0 1];
-    Dir_ray_w = [0 0 1];
-    Dir_ray_c = [0 0 1];
-    tol_mypoly = 1e-4;
-    max_height = max(TR.Points(:,3)) + tol_mypoly;
+	max_height = max(TR.Points(:,3)) + tol_mypoly;
     L_char = max_facet_size(TR.Points,TR.ConnectivityList) + tol_mypoly;
+elseif lmypolyfortran
+	if lwindows
+        in_mypoly_fortran_path = [DA_TOOLSDIR '/IBM/in_mypoly_fortran/'];
+        cd(in_mypoly_fortran_path)
+        system('gfortran -O2 -fopenmp in_mypoly_functions.f90 IBM_flagging.f90 -o pre.exe');
+        copyfile('pre.exe',fpath); % remember to build pre.exe in local system. gfortran -O2 -fopenmp in_mypoly_functions.f90 IBM_flagging.f90 -o pre.exe
+        delete pre.exe in_mypoly_functions.mod;
+        cd(fpath)
+        system('pre.exe'); 
+        delete pre.exe inmypoly_inp_info.txt Stl_data.txt vertices.txt zfgrid.txt zhgrid.txt;
+    else
+        cd(DA_EXPDIR)
+        cd ..
+        in_mypoly_command = ['u-dales/tools/IBM/in_mypoly_fortran/pre_run.sh experiments/' expnr];
+        system(in_mypoly_command);
+        cd(fpath)
+    end
 end
 
 %% Calculate u
 disp('Determining solid points for u-grid.')
-if lmypoly
+if lmypolyfortran
+    formatSpec = '%d';
+    fileID = fopen([fpath 'flag_u.txt'],'r');
+    flag_u = fscanf(fileID,formatSpec);
+    fclose(fileID);
+    count = 1;
+    for iy = 1:r.jtot
+        for iz = 1:r.ktot
+            for ix = 1:r.itot
+                if (flag_u(count) == 1)
+                            solid_u(ix,iy,iz) = true;
+                else
+                            solid_u(ix,iy,iz) = false;
+                end
+                count = count+1;
+            end
+        end
+    end
+elseif lmypoly
     solid_u = in_grid_mypoly(TR.Points,TR.ConnectivityList, ...
         TR.incenter,TR.faceNormal,xgrid_u,ygrid_u,zgrid_u,Dir_ray_u,L_char,max_height,tol_mypoly);
 else
@@ -152,7 +182,25 @@ end
 
 %% Calculate v
 disp('Determining solid points for v-grid.')
-if lmypoly
+if lmypolyfortran
+    formatSpec = '%d';
+    fileID = fopen([fpath 'flag_v.txt'],'r');
+    flag_v = fscanf(fileID,formatSpec);
+    fclose(fileID);
+    count = 1;
+    for iy = 1:r.jtot
+        for iz = 1:r.ktot
+            for ix = 1:r.itot
+                if (flag_v(count) == 1)
+                            solid_v(ix,iy,iz) = true;
+                else
+                            solid_v(ix,iy,iz) = false;
+                end
+                count = count+1;
+            end
+        end
+    end
+elseif lmypoly
     solid_v = in_grid_mypoly(TR.Points,TR.ConnectivityList,TR.incenter,TR.faceNormal,xgrid_v,ygrid_v,zgrid_v,Dir_ray_v,L_char,max_height,tol_mypoly);
 else
     solid_v = inpolyhedron(TR.ConnectivityList, TR.Points, ...
@@ -262,7 +310,25 @@ end
 
 %% Calculate w
 disp('Determining solid points for w-grid.')
-if lmypoly
+if lmypolyfortran
+    formatSpec = '%d';
+    fileID = fopen([fpath 'flag_w.txt'],'r');
+    flag_w = fscanf(fileID,formatSpec);
+    fclose(fileID);
+    count = 1;
+    for iy = 1:r.jtot
+        for iz = 1:r.ktot
+            for ix = 1:r.itot
+                if (flag_w(count) == 1)
+                            solid_w(ix,iy,iz) = true;
+                else
+                            solid_w(ix,iy,iz) = false;
+                end
+                count = count+1;
+            end
+        end
+    end
+elseif lmypoly
     solid_w = in_grid_mypoly(TR.Points,TR.ConnectivityList, ...
         TR.incenter,TR.faceNormal,xgrid_w,ygrid_w,zgrid_w,Dir_ray_w,L_char,max_height,tol_mypoly);
 else
@@ -373,7 +439,25 @@ end
 
 %% Calculate c
 disp('Determining solid points for c-grid.')
-if lmypoly
+if lmypolyfortran
+    formatSpec = '%d';
+    fileID = fopen([fpath 'flag_c.txt'],'r');
+    flag_c = fscanf(fileID,formatSpec);
+    fclose(fileID);
+    count = 1;
+    for iy = 1:r.jtot
+        for iz = 1:r.ktot
+            for ix = 1:r.itot
+                if (flag_c(count) == 1)
+                            solid_c(ix,iy,iz) = true;
+                else
+                            solid_c(ix,iy,iz) = false;
+                end
+                count = count+1;
+            end
+        end
+    end
+elseif lmypoly
     solid_c = in_grid_mypoly(TR.Points,TR.ConnectivityList,TR.incenter,TR.faceNormal,xgrid_c,ygrid_c,zgrid_c,Dir_ray_c,L_char,max_height,tol_mypoly);
 else
     solid_c = inpolyhedron(TR.ConnectivityList, TR.Points, ...
@@ -511,6 +595,11 @@ fprintf(fileID_info, ['nfctsecs_w = ', num2str(size(facet_sections_w,1)), '\n'])
 fprintf(fileID_info, ['nfctsecs_c = ', num2str(size(facet_sections_c,1)), '\n']);
 fclose(fileID_info);
 
+%% Clean up exp directory
+if lmypoly
+    delete flag_u.txt flag_v.txt flag_w.txt flag_c.txt;
+end
+
 %% Plot
 figure
 
@@ -527,10 +616,10 @@ xlim([0 xsize])
 ylim([0 ysize])
 zlim([0 zsize])
 
-%scatter3(X_u(solid_u), Y_u(solid_u), Z_u(solid_u), 10,[0,0,1],'filled')
-%scatter3(X_v(solid_v), Y_v(solid_v), Z_v(solid_v), 10,[0,0,1],'filled')
-%scatter3(X_w(solid_w), Y_w(solid_w), Z_w(solid_w), 10,[0,0,1],'filled')
-%scatter3(X_c(solid_c), Y_c(solid_c), Z_c(solid_c), 10,[0,0,1],'filled')
+scatter3(X_u(solid_u), Y_u(solid_u), Z_u(solid_u), 10,[0,0,1],'filled')
+scatter3(X_v(solid_v), Y_v(solid_v), Z_v(solid_v), 10,[0,0,1],'filled')
+scatter3(X_w(solid_w), Y_w(solid_w), Z_w(solid_w), 10,[0,0,1],'filled')
+scatter3(X_c(solid_c), Y_c(solid_c), Z_c(solid_c), 10,[0,0,1],'filled')
 
 %scatter3(X_u(fluid_IB_u), Y_u(fluid_IB_u), Z_u(fluid_IB_u), 10,[0,0,1],'filled')
 %scatter3(X_v(fluid_IB_v), Y_v(fluid_IB_v), Z_v(fluid_IB_v), 10,[0,0,1],'filled')

@@ -20,7 +20,7 @@
 % This script is run by the bash script da_inp.sh.
 % It used to generate the necessary input files for uDALES.
 
-expnr = '103';
+expnr = '991';
 
 DA_EXPDIR = getenv('DA_EXPDIR');
 DA_TOOLSDIR = getenv('DA_TOOLSDIR');
@@ -107,7 +107,16 @@ if r.libm
         xsize = r.xlen;
         ysize = r.ylen;
         zsize = r.zsize;
-        lmypoly = 1; % remove eventually
+        
+        lmypoly = 0;	lmypolyfortran = 1;		% remove eventually
+        lwindows = false;
+        Dir_ray_u = [0 0 1];
+        Dir_ray_v = [0 0 1];
+        Dir_ray_w = [0 0 1];
+        Dir_ray_c = [0 0 1];
+        tol_mypoly = 1e-4;
+        
+        write_pre_info;
         writeIBMFiles; % Could turn into a function and move writing to this script
     else
         if isempty(r.geom_path)
@@ -140,8 +149,13 @@ if r.libm
         STLtoView3D(r.stl_file, fpath_facets_view3d);
 
         %% Calculate view factors
+        % remember to build View3D in local system windows/linux
         % Add check to see if View3D exists in the tools directory.
-        view3d_exe = [DA_TOOLSDIR '/View3D/build/src/view3d'];
+        if lwindows
+            view3d_exe = [DA_TOOLSDIR '/View3D/src/View3D.exe'];
+        else
+            view3d_exe = [DA_TOOLSDIR '/View3D/build/src/view3d'];
+        end
         fpath_vf = [fpath 'vf.txt'];
         vf = view3d(view3d_exe, fpath_facets_view3d, fpath_vf);
         svf = max(1 - sum(vf, 2), 0);
