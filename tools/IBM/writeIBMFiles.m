@@ -28,7 +28,7 @@ nfcts = size(TR,1);
 %% Determine total area of surface
 
 if lmypoly
-	max_height = max(TR.Points(:,3)) + tol_mypoly;
+    max_height = max(TR.Points(:,3)) + tol_mypoly;
     L_char = max_facet_size(TR.Points,TR.ConnectivityList) + tol_mypoly;
 elseif lmypolyfortran
     if lwindows
