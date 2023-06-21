@@ -108,15 +108,14 @@ if r.libm
         ysize = r.ylen;
         zsize = r.zsize;
         
-        lmypoly = 0;	lmypolyfortran = 1;		% remove eventually
+        lmypolyfortran = 1; lmypoly = 0;		% remove eventually
         lwindows = false;
         Dir_ray_u = [0 0 1];
         Dir_ray_v = [0 0 1];
         Dir_ray_w = [0 0 1];
         Dir_ray_c = [0 0 1];
-        tol_mypoly = 1e-4;
+        tol_mypoly = 5e-4;
         
-        write_pre_info;
         writeIBMFiles; % Could turn into a function and move writing to this script
     else
         if isempty(r.geom_path)

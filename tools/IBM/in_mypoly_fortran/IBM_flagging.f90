@@ -136,6 +136,69 @@ program Xie
 
         !$OMP end sections
     !$OMP end parallel
+
+    !$ call OMP_SET_NUM_THREADS(4)
+    !$OMP parallel
+        !$OMP sections private(ix,iy,iz)
+
+            !$OMP section
+            open(unit=1,file='solid_u.txt')
+            write(unit=1,fmt='(a19)') '# position (i,j,k)', NEW_LINE('a')
+            do iy = 1,jtot
+                do iz = 1,ktot
+                    do ix = 1,itot
+                        if (solid_u(ix,iy,iz)) then
+                                write(unit=1,fmt='(i4,x,i4,x,i4,A)',advance='no') ix, iy, iz, NEW_LINE('a')
+                        end if
+                    end do
+                end do
+            end do
+            close(unit=1)
+
+            !$OMP section
+            open(unit=2,file='solid_v.txt')
+            write(unit=2,fmt='(a19)') '# position (i,j,k)', NEW_LINE('a')
+            do iy = 1,jtot
+                do iz = 1,ktot
+                    do ix = 1,itot
+                        if (solid_v(ix,iy,iz)) then
+                                write(unit=2,fmt='(i4,x,i4,x,i4,A)',advance='no') ix, iy, iz, NEW_LINE('a')
+                        end if
+                    end do
+                end do
+            end do
+            close(unit=2)
+
+            !$OMP section
+            open(unit=3,file='solid_w.txt')
+            write(unit=3,fmt='(a19)') '# position (i,j,k)', NEW_LINE('a')
+            do iy = 1,jtot
+                do iz = 1,ktot
+                    do ix = 1,itot
+                        if (solid_w(ix,iy,iz)) then
+                                write(unit=3,fmt='(i4,x,i4,x,i4,A)',advance='no') ix, iy, iz, NEW_LINE('a')
+                        end if
+                    end do
+                end do
+            end do
+            close(unit=3)
+
+            !$OMP section
+            open(unit=4,file='solid_c.txt')
+            write(unit=4,fmt='(a19)') '# position (i,j,k)', NEW_LINE('a')
+            do iy = 1,jtot
+                do iz = 1,ktot
+                    do ix = 1,itot
+                        if (solid_c(ix,iy,iz)) then
+                                write(unit=4,fmt='(i4,x,i4,x,i4,A)',advance='no') ix, iy, iz, NEW_LINE('a')
+                        end if
+                    end do
+                end do
+            end do
+            close(unit=4)
+
+        !$OMP end sections
+    !$OMP end parallel
  
     deallocate(xf,xh,yf,yh,zf,zh,vertices,facets,incenters,faceNormals,solid_u,solid_v,solid_w,solid_c)
     

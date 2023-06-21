@@ -27,10 +27,8 @@
 nfcts = size(TR,1);
 %% Determine total area of surface
 
-if lmypoly
-    max_height = max(TR.Points(:,3)) + tol_mypoly;
-    L_char = max_facet_size(TR.Points,TR.ConnectivityList) + tol_mypoly;
-elseif lmypolyfortran
+if lmypolyfortran
+    write_pre_info;
     if lwindows
         in_mypoly_fortran_path = [DA_TOOLSDIR '/IBM/in_mypoly_fortran/'];
         cd(in_mypoly_fortran_path)
@@ -46,6 +44,11 @@ elseif lmypolyfortran
         in_mypoly_command = ['u-dales/tools/IBM/in_mypoly_fortran/pre_run.sh experiments/' expnr];
         system(in_mypoly_command);
         cd(fpath)
+    end
+else
+    if lmypoly
+        max_height = max(TR.Points(:,3)) + tol_mypoly;
+        L_char = max_facet_size(TR.Points,TR.ConnectivityList) + tol_mypoly;
     end
 end
 
@@ -69,26 +72,31 @@ if lmypolyfortran
             end
         end
     end
-elseif lmypoly
-    solid_u = in_grid_mypoly(TR.Points,TR.ConnectivityList, ...
-        TR.incenter,TR.faceNormal,xgrid_u,ygrid_u,zgrid_u,Dir_ray_u,L_char,max_height,tol_mypoly);
+    solid_ijk_u = readmatrix('solid_u.txt');
+    disp('Written solid_u.txt')
 else
-    solid_u = inpolyhedron(TR.ConnectivityList, TR.Points, ...
-        xgrid_u, ygrid_u, zgrid_u, 'FACENORMALS', TR.faceNormal);
-    solid_u = permute(solid_u, [2 1 3]);
-    %solid_u(1,:,:) = 0;
+    if lmypoly
+        solid_u = in_grid_mypoly(TR.Points,TR.ConnectivityList, ...
+            TR.incenter,TR.faceNormal,xgrid_u,ygrid_u,zgrid_u,Dir_ray_u,L_char,max_height,tol_mypoly);
+    else
+        solid_u = inpolyhedron(TR.ConnectivityList, TR.Points, ...
+            xgrid_u, ygrid_u, zgrid_u, 'FACENORMALS', TR.faceNormal);
+        solid_u = permute(solid_u, [2 1 3]);
+        %solid_u(1,:,:) = 0;
+    end
+    
+    [solid_i_u, solid_j_u, solid_k_u] = ind2sub(size(solid_u), find(solid_u));
+    solid_ijk_u = [solid_i_u, solid_j_u, solid_k_u];
+    filename_u = [fpath 'solid_u.txt'];
+    fileID_u = fopen(filename_u,'W');
+    fprintf(fileID_u, '# position (i,j,k)\n');
+    fclose(fileID_u);
+    dlmwrite(filename_u, solid_ijk_u, '-append','delimiter',' ');
+    disp('Written solid_u.txt')
+    
 end
 
 fluid_u = ~solid_u;
-
-[solid_i_u, solid_j_u, solid_k_u] = ind2sub(size(solid_u), find(solid_u));
-solid_ijk_u = [solid_i_u, solid_j_u, solid_k_u];
-filename_u = [fpath 'solid_u.txt'];
-fileID_u = fopen(filename_u,'W');
-fprintf(fileID_u, '# position (i,j,k)\n');
-fclose(fileID_u);
-dlmwrite(filename_u, solid_ijk_u, '-append','delimiter',' ');
-disp('Written solid_u.txt')
 
 %% Boundary masks
 disp('Determining fluid boundary points for u-grid.')
@@ -200,25 +208,30 @@ if lmypolyfortran
             end
         end
     end
-elseif lmypoly
-    solid_v = in_grid_mypoly(TR.Points,TR.ConnectivityList,TR.incenter,TR.faceNormal,xgrid_v,ygrid_v,zgrid_v,Dir_ray_v,L_char,max_height,tol_mypoly);
+    solid_ijk_v = readmatrix('solid_v.txt');
+    disp('Written solid_v.txt')
 else
-    solid_v = inpolyhedron(TR.ConnectivityList, TR.Points, ...
-        xgrid_v, ygrid_v, zgrid_v, 'FACENORMALS', TR.faceNormal);
-    solid_v = permute(solid_v, [2 1 3]);
-    %solid_v(:,1,:) = 0;
+    if lmypoly
+        solid_v = in_grid_mypoly(TR.Points,TR.ConnectivityList,TR.incenter,TR.faceNormal,xgrid_v,ygrid_v,zgrid_v,Dir_ray_v,L_char,max_height,tol_mypoly);
+    else
+        solid_v = inpolyhedron(TR.ConnectivityList, TR.Points, ...
+            xgrid_v, ygrid_v, zgrid_v, 'FACENORMALS', TR.faceNormal);
+        solid_v = permute(solid_v, [2 1 3]);
+        %solid_v(:,1,:) = 0;
+    end
+    
+    [solid_i_v, solid_j_v, solid_k_v] = ind2sub(size(solid_v), find(solid_v));
+    solid_ijk_v = [solid_i_v, solid_j_v, solid_k_v];
+    filename_v = [fpath 'solid_v.txt'];
+    fileID_v = fopen(filename_v,'W');
+    fprintf(fileID_v, '# position (i,j,k)\n');
+    fclose(fileID_v);
+    dlmwrite(filename_v, solid_ijk_v, '-append','delimiter',' ');
+    disp('Written solid_v.txt')
+    
 end
 
 fluid_v = ~solid_v;
-
-[solid_i_v, solid_j_v, solid_k_v] = ind2sub(size(solid_v), find(solid_v));
-solid_ijk_v = [solid_i_v, solid_j_v, solid_k_v];
-filename_v = [fpath 'solid_v.txt'];
-fileID_v = fopen(filename_v,'W');
-fprintf(fileID_v, '# position (i,j,k)\n');
-fclose(fileID_v);
-dlmwrite(filename_v, solid_ijk_v, '-append','delimiter',' ');
-disp('Written solid_v.txt')
 
 %% Boundary masks
 disp('Determining fluid boundary points for v-grid.')
@@ -328,13 +341,27 @@ if lmypolyfortran
             end
         end
     end
-elseif lmypoly
-    solid_w = in_grid_mypoly(TR.Points,TR.ConnectivityList, ...
-        TR.incenter,TR.faceNormal,xgrid_w,ygrid_w,zgrid_w,Dir_ray_w,L_char,max_height,tol_mypoly);
+    solid_ijk_w = readmatrix('solid_w.txt');
+    disp('Written solid_w.txt')
 else
-    solid_w = inpolyhedron(TR.ConnectivityList, TR.Points, ...
-        xgrid_w, ygrid_w, zgrid_w, 'FACENORMALS', TR.faceNormal);
-    solid_w = permute(solid_w, [2 1 3]);
+    if lmypoly
+        solid_w = in_grid_mypoly(TR.Points,TR.ConnectivityList, ...
+            TR.incenter,TR.faceNormal,xgrid_w,ygrid_w,zgrid_w,Dir_ray_w,L_char,max_height,tol_mypoly);
+    else
+        solid_w = inpolyhedron(TR.ConnectivityList, TR.Points, ...
+           xgrid_w, ygrid_w, zgrid_w, 'FACENORMALS', TR.faceNormal);
+        solid_w = permute(solid_w, [2 1 3]);
+    end
+    
+    [solid_i_w, solid_j_w, solid_k_w] = ind2sub(size(solid_w), find(solid_w));
+    solid_ijk_w = [solid_i_w, solid_j_w, solid_k_w];
+    filename_w = [fpath 'solid_w.txt'];
+    fileID_w = fopen(filename_w,'W');
+    fprintf(fileID_w, '# position (i,j,k)\n');
+    fclose(fileID_w);
+    dlmwrite(filename_w, solid_ijk_w, '-append','delimiter',' ');
+    disp('Written solid_w.txt')
+    
 end
 
 if (stl_ground)
@@ -343,15 +370,6 @@ if (stl_ground)
 end
 
 fluid_w = ~solid_w;
-
-[solid_i_w, solid_j_w, solid_k_w] = ind2sub(size(solid_w), find(solid_w));
-solid_ijk_w = [solid_i_w, solid_j_w, solid_k_w];
-filename_w = [fpath 'solid_w.txt'];
-fileID_w = fopen(filename_w,'W');
-fprintf(fileID_w, '# position (i,j,k)\n');
-fclose(fileID_w);
-dlmwrite(filename_w, solid_ijk_w, '-append','delimiter',' ');
-disp('Written solid_w.txt')
 
 %% Boundary points
 disp('Determining fluid boundary points for w-grid.')
@@ -457,24 +475,29 @@ if lmypolyfortran
             end
         end
     end
-elseif lmypoly
-    solid_c = in_grid_mypoly(TR.Points,TR.ConnectivityList,TR.incenter,TR.faceNormal,xgrid_c,ygrid_c,zgrid_c,Dir_ray_c,L_char,max_height,tol_mypoly);
+    solid_ijk_c = readmatrix('solid_c.txt');
+    disp('Written solid_c.txt')
 else
-    solid_c = inpolyhedron(TR.ConnectivityList, TR.Points, ...
-        xgrid_c, ygrid_c, zgrid_c, 'FACENORMALS', TR.faceNormal);
-    solid_c = permute(solid_c, [2 1 3]);
+    if lmypoly
+        solid_c = in_grid_mypoly(TR.Points,TR.ConnectivityList,TR.incenter,TR.faceNormal,xgrid_c,ygrid_c,zgrid_c,Dir_ray_c,L_char,max_height,tol_mypoly);
+    else
+        solid_c = inpolyhedron(TR.ConnectivityList, TR.Points, ...
+            xgrid_c, ygrid_c, zgrid_c, 'FACENORMALS', TR.faceNormal);
+        solid_c = permute(solid_c, [2 1 3]);
+    end
+    
+    [solid_i_c, solid_j_c, solid_k_c] = ind2sub(size(solid_c), find(solid_c));
+    solid_ijk_c = [solid_i_c, solid_j_c, solid_k_c];
+    filename_c = [fpath 'solid_c.txt'];
+    fileID_c = fopen(filename_c,'W');
+    fprintf(fileID_c, '# position (i,j,k)\n');
+    fclose(fileID_c);
+    dlmwrite(filename_c, solid_ijk_c, '-append','delimiter',' ');
+    disp('Written solid_c.txt')
+    
 end
 
 fluid_c = ~solid_c;
-
-[solid_i_c, solid_j_c, solid_k_c] = ind2sub(size(solid_c), find(solid_c));
-solid_ijk_c = [solid_i_c, solid_j_c, solid_k_c];
-filename_c = [fpath 'solid_c.txt'];
-fileID_c = fopen(filename_c,'W');
-fprintf(fileID_c, '# position (i,j,k)\n');
-fclose(fileID_c);
-dlmwrite(filename_c, solid_ijk_c, '-append','delimiter',' ');
-disp('Written solid_c.txt')
 
 %% Boundary points
 disp('Determining fluid boundary points for c-grid.')
@@ -596,7 +619,7 @@ fprintf(fileID_info, ['nfctsecs_c = ', num2str(size(facet_sections_c,1)), '\n'])
 fclose(fileID_info);
 
 %% Clean up exp directory
-if lmypoly
+if lmypolyfortran
     delete flag_u.txt flag_v.txt flag_w.txt flag_c.txt;
 end
 
