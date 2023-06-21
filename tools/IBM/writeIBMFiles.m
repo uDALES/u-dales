@@ -141,7 +141,7 @@ if (calculate_facet_sections_uvw)
         filename_u = [fpath 'facet_sections_u_3.txt'];
         fileID_u = fopen(filename_u,'W');
         fprintf(fileID_u, '# facet, area, fluid boundary point, distance\n');
-        fprintf(fileID_u, '%-2d %-4.4f %-4d %-4.8f\n', facet_sections_u_2(:,[1,2,5,6])');
+        fprintf(fileID_u, '%-2d %-4.4f %-4d %-4.8f\n', facet_sections_u_3(:,[1,2,5,6])');
         fclose(fileID_u);
         disp('Written facet_sections_u_3.txt')
 
@@ -252,7 +252,7 @@ if (calculate_facet_sections_uvw)
         filename_v = [fpath 'facet_sections_v_3.txt'];
         fileID_v = fopen(filename_v,'W');
         fprintf(fileID_v, '# facet, area, fluid boundary point, distance\n');
-        fprintf(fileID_v, '%-2d %-4.4f %-4d %-4.8f\n', facet_sections_v_2(:,[1,2,5,6])');
+        fprintf(fileID_v, '%-2d %-4.4f %-4d %-4.8f\n', facet_sections_v_3(:,[1,2,5,6])');
         fclose(fileID_v);
         disp('Written facet_sections_v_3.txt')
     end
@@ -363,7 +363,7 @@ if (calculate_facet_sections_uvw)
         filename_w = [fpath 'facet_sections_w_3.txt'];
         fileID_w = fopen(filename_w,'W');
         fprintf(fileID_w, '# facet, area, fluid boundary point, distance\n');
-        fprintf(fileID_w, '%-2d %-4.4f %-4d %-4.8f\n', facet_sections_w_2(:,[1,2,5,6])');
+        fprintf(fileID_w, '%-2d %-4.4f %-4d %-4.8f\n', facet_sections_w_3(:,[1,2,5,6])');
         fclose(fileID_w);
         disp('Written facet_sections_w_3.txt')
     end
@@ -470,7 +470,7 @@ if (calculate_facet_sections_c)
         filename_c = [fpath 'facet_sections_c_3.txt'];
         fileID_c = fopen(filename_c,'W');
         fprintf(fileID_c, '# facet, area, fluid boundary point, distance\n');
-        fprintf(fileID_c, '%-2d %-4.4f %-4d %-4.8f\n', facet_sections_c_2(:,[1,2,5,6])');
+        fprintf(fileID_c, '%-2d %-4.4f %-4d %-4.8f\n', facet_sections_c_3(:,[1,2,5,6])');
         fclose(fileID_c);
         disp('Written facet_sections_c_3.txt')
     end
