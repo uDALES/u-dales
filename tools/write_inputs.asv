@@ -23,7 +23,7 @@ tic
 expnr = '121';
 expnr2 = '122';
 tiled =true;
-xtiles = 8;
+xtiles = ;
 ytiles = 1;
 % DA_EXPDIR = getenv('DA_EXPDIR');
 % DA_TOOLSDIR = getenv('DA_TOOLSDIR');

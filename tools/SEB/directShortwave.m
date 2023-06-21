@@ -128,7 +128,7 @@ bw = zeros(res_eta, res_xi);
 n=0;
 for i = I'
     n=n+1;
-    disp(['Surface: ' num2str(n) ' ; ~ ' num2str(round(n/Nf * 100, 1)) ' % complete'])
+    %disp(['Surface: ' num2str(n) ' ; ~ ' num2str(round(n/Nf * 100, 1)) ' % complete'])
     mask = poly2mask(Vplshift(F(i,:), 1) / delta, Vplshift(F(i,:), 2) / delta, res_eta, res_xi);
     if SS(i) == 0
         bw(mask) = 0;

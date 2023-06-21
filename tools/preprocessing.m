@@ -311,7 +311,9 @@ classdef preprocessing < dynamicprops
                 preprocessing.addvar(obj, 'I', 800); % Direct normal irradiance [W/m2]
                 preprocessing.addvar(obj, 'Dsky', 418.8041); % Diffuse incoming radiation [W/m2]
                 preprocessing.addvar(obj, 'lvfsparse', false) % Switch for turning on lvfsparse
-                preprocessing.addvar(obj, 'psc_res', 0.01); % Poly scan conversion resolution,lower number gives better results for solar radiation calculation
+                %preprocessing.addvar(obj, 'psc_res', 0.01); % Poly scan conversion resolution,lower number gives better results for solar radiation calculation
+                preprocessing.addvar(obj, 'psc_res', 0.02); % Poly scan conversion resolution,lower number gives better results for solar radiation calculation
+                
                 %preprocessing.addvar(obj, 'min_vf', 0.01); % Any vf below this is ignored in sparse format
             end
             preprocessing.addvar(obj, 'facT', 288.) % Initial facet temperatures.
