@@ -143,7 +143,7 @@ program Xie
 
             !$OMP section
             open(unit=1,file='solid_u.txt')
-            write(unit=1,fmt='(a19)') '# position (i,j,k)', NEW_LINE('a')
+            write(unit=1,fmt='(a18)') '# position (i,j,k)'
             do iy = 1,jtot
                 do iz = 1,ktot
                     do ix = 1,itot
@@ -157,7 +157,7 @@ program Xie
 
             !$OMP section
             open(unit=2,file='solid_v.txt')
-            write(unit=2,fmt='(a19)') '# position (i,j,k)', NEW_LINE('a')
+            write(unit=2,fmt='(a18)') '# position (i,j,k)'
             do iy = 1,jtot
                 do iz = 1,ktot
                     do ix = 1,itot
@@ -171,7 +171,7 @@ program Xie
 
             !$OMP section
             open(unit=3,file='solid_w.txt')
-            write(unit=3,fmt='(a19)') '# position (i,j,k)', NEW_LINE('a')
+            write(unit=3,fmt='(a18)') '# position (i,j,k)'
             do iy = 1,jtot
                 do iz = 1,ktot
                     do ix = 1,itot
@@ -185,7 +185,7 @@ program Xie
 
             !$OMP section
             open(unit=4,file='solid_c.txt')
-            write(unit=4,fmt='(a19)') '# position (i,j,k)', NEW_LINE('a')
+            write(unit=4,fmt='(a18)') '# position (i,j,k)'
             do iy = 1,jtot
                 do iz = 1,ktot
                     do ix = 1,itot
