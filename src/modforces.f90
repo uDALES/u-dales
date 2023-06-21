@@ -875,7 +875,7 @@ module modforces
 
   subroutine nudge
     use modglobal,  only : kb,ke,lmoist,ltempeq,lnudge,tnudge,nnudge,numol,nsv
-    use modfields,  only : up,thlp,qtp,svp,u0av,sv0av,thl0av,qt0av,uprof,thlprof,qtprof
+    use modfields,  only : up,vp,thlp,qtp,svp,u0av,v0av,sv0av,thl0av,qt0av,uprof,vprof,thlprof,qtprof
     use modmpi,     only : myid
     implicit none
     integer :: k
@@ -912,23 +912,21 @@ module modforces
 
   subroutine shiftedPBCs
     ! Nudge the flow in a region near the outlet
-    use modglobal, only : ib, ie, jb, je, kb, ke, xh, ds, dyi, xsize, rk3step, dt
-    use modfields, only : u0, v0, w0, u0av, up, vp, wp, vm
+    use modglobal, only : ib, ie, jb, je, kb, ke, xh, ds, dyi, xsize, rk3step, dt, pi
+    use modfields, only : u0, v0, w0, u0av, up, vp, wp
 
     integer :: i, j, k
-    real :: vs, RHS, rk3coef
+    real :: vs
 
     if (ds > 0) then
-    rk3coef = dt / (4. - dble(rk3step))
+
     do i = int(ie/2),ie
       do j = jb,je
         do k = kb,ke
-          vs = 0.5 * 4*atan(1.) * ds / (0.5*xsize) * u0av(k) * sin(4*atan(1.)*(xh(i)-xh(int(ie/2))) / (0.5*xsize))
-          up(i,j,k) = up(i,j,k) - 0.5 * vs * (u0(i,j+1,k) - u0(i,j-1,k)) * dyi
-          vp(i,j,k) = vp(i,j,k) - 0.5 * vs * (v0(i,j+1,k) - v0(i,j-1,k)) * dyi
-          wp(i,j,k) = wp(i,j,k) - 0.5 * vs * (w0(i,j+1,k) - w0(i,j-1,k)) * dyi
-          ! RHS = vp(i,j,k)
-          ! vp(i,j,k) = vp(i,j,k) + (vn - (vm(i,j,k) + rk3coef * RHS)) / rk3coef
+          vs = 0.5 * pi * ds / (0.5*xsize) * u0av(k) * sin(pi*(xh(i)-xh(int(ie/2))) / (2.*0.5*xsize))
+          up(i,j,k) = up(i,j,k) - vs * (u0(i,j,k) - u0(i,j-1,k)) * dyi
+          vp(i,j,k) = vp(i,j,k) - vs * (v0(i,j,k) - v0(i,j-1,k)) * dyi
+          wp(i,j,k) = wp(i,j,k) - vs * (w0(i,j,k) - w0(i,j-1,k)) * dyi
         end do
       end do
     end do
