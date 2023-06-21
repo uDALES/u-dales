@@ -20,10 +20,10 @@
 % This script is run by the bash script da_inp.sh.
 % It used to generate the necessary input files for uDALES.
 tic
-expnr = '121';
-expnr2 = '122';
-tiled =true;
-xtiles = 8;
+expnr = '050';
+expnr2 = '051';
+tiled =false;
+xtiles = 1;
 ytiles = 1;
 % DA_EXPDIR = getenv('DA_EXPDIR');
 % DA_TOOLSDIR = getenv('DA_TOOLSDIR');

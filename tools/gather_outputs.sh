@@ -38,11 +38,11 @@ toolsdir=${scriptdir}  # assume same directory for nco_concatenate_field.sh
   #  module load intel-suite udunits nco/4.6.2
 #fi;
 
-if [ -z $LOCAL_EXECUTE ]; then
-    echo "cluster"
-    #module load intel-suite udunits nco/4.6.2
-    module load nco/5.1.6
-fi;
+#if [ -z $LOCAL_EXECUTE ]; then
+    #echo "cluster"
+    ##module load intel-suite udunits nco/4.6.2
+    #module load nco/5.1.6
+#fi;
 
 ## go to files directory
 cd ${datapath}
@@ -128,7 +128,7 @@ done
  #   module unload intel-suite udunits nco/4.6.2
 #fi;
 
-if [ -z $LOCAL_EXECUTE ]; then
-    module unload nco/5.1.6
-fi;
+#if [ -z $LOCAL_EXECUTE ]; then
+    #module unload nco/5.1.6
+#fi;
 
