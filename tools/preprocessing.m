@@ -475,8 +475,8 @@ classdef preprocessing < dynamicprops
             fname = ['facets.inp.' obj.expnr];
             fileID = fopen(fname,'W');
             fprintf(fileID, '# type, normal\n');
+            fprintf(fileID, '%-4d %-4.4f %-4.4f %-4.4f\n', [types normals]');
             fclose(fileID);
-            dlmwrite(fname, [types, normals], '-append','delimiter',' ','precision','%1.0f');
         end
 
         function write_factypes(obj)
