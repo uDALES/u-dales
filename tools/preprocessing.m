@@ -299,25 +299,26 @@ classdef preprocessing < dynamicprops
             preprocessing.addvar(obj, 'libm', 1)
 
             if obj.lEB
-                preprocessing.addvar(obj, 'solarazimuth', 135); % azimuth angle
+                preprocessing.addvar(obj, 'solarazimuth', 90); % azimuth angle
                 preprocessing.addvar(obj, 'xazimuth', 90);   % azimuth of x-direction wrt N. Default: x = East
                                                              % north -> xazimuth = 0;
                                                              % east  ->            90;
                                                              % south ->            180;
                                                              % west  ->            270;
-                preprocessing.addvar(obj, 'solarzenith', 28.4066); % zenith angle
+                %preprocessing.addvar(obj, 'solarzenith', 28.4066); % zenith angle
+                preprocessing.addvar(obj, 'solarzenith', 45.0); % zenith angle
                 preprocessing.addvar(obj, 'centerweight', 12 / 32);
                 preprocessing.addvar(obj, 'cornerweight', (1 - obj.centerweight) / 4);
                 preprocessing.addvar(obj, 'I', 800); % Direct normal irradiance [W/m2]
                 preprocessing.addvar(obj, 'Dsky', 418.8041); % Diffuse incoming radiation [W/m2]
                 preprocessing.addvar(obj, 'lvfsparse', false) % Switch for turning on lvfsparse
                 %preprocessing.addvar(obj, 'psc_res', 0.01); % Poly scan conversion resolution,lower number gives better results for solar radiation calculation
-                preprocessing.addvar(obj, 'psc_res', 0.02); % Poly scan conversion resolution,lower number gives better results for solar radiation calculation
+                preprocessing.addvar(obj, 'psc_res', 0.1); % Poly scan conversion resolution,lower number gives better results for solar radiation calculation
                 
                 %preprocessing.addvar(obj, 'min_vf', 0.01); % Any vf below this is ignored in sparse format
             end
             preprocessing.addvar(obj, 'facT', 288.) % Initial facet temperatures.
-            preprocessing.addvar(obj, 'nfaclyrs', 3) % Number of facet layers
+            preprocessing.addvar(obj, 'nfaclyrs', 5) % Number of facet layers
 
             preprocessing.generate_factypes(obj)
             preprocessing.addvar(obj, 'facT_file', '')
@@ -358,7 +359,8 @@ classdef preprocessing < dynamicprops
             d_f   = D_f / K;
             C_f   = 1.875e6;
             l_f   = 0.75;
-            k_f   = 0.4e-6;
+            %k_f   = 0.4e-6;
+            k_f   = 0.64e-5;
             if (K == 3)
                 % Reproduce the original factypes.inp (d_f not constant for each layer)
                 f =  [id_f, lGR_f, z0_f, z0h_f, al_f, em_f, 0.1, 0.2, 0.2, C_f * ones(1,K), l_f * ones(1,K), k_f * ones(1,K+1)];
@@ -378,7 +380,7 @@ classdef preprocessing < dynamicprops
             d_dm = D_dm / K;
             C_dm = 1.875e6;
             l_dm = 0.75;
-            k_dm = 0.4e-6;
+            k_dm = 0.64e-5;
             dm = [id_dm, lGR_dm, z0_dm, z0h_dm, al_dm, em_dm, d_dm * ones(1,K), C_dm * ones(1,K), l_dm * ones(1,K), k_dm * ones(1,K+1)];
             factypes = [factypes; dm];
 
@@ -393,7 +395,7 @@ classdef preprocessing < dynamicprops
             d_c = D_c / K;
             C_c = 2.5e6;
             l_c = 1;
-            k_c = 0.4e-6;
+            k_c = 0.64e-5;
             c = [id_c, lGR_c, z0_c, z0h_c, al_c, em_c, d_c * ones(1,K), C_c * ones(1,K), l_c * ones(1,K), k_c * ones(1,K+1)];
             factypes = [factypes; c];
 
@@ -453,7 +455,7 @@ classdef preprocessing < dynamicprops
             d_GR1 = D_GR1 / K;
             C_GR1 = 5e6;
             l_GR1 = 2;
-            k_GR1 = 0.4e-6;
+            k_GR1 = 0.64e-5;
             GR1 = [id_GR1, lGR_GR1, z0_GR1, z0h_GR1, al_GR1, em_GR1, d_GR1 * ones(1,K), C_GR1 * ones(1,K), l_GR1 * ones(1,K), k_GR1 * ones(1,K+1)];
             factypes = [factypes; GR1];
 
@@ -468,7 +470,7 @@ classdef preprocessing < dynamicprops
             d_GR2 = D_GR2 / K;
             C_GR2 = 2e6;
             l_GR2 = 0.8;
-            k_GR2 = 0.4e-6;
+            k_GR2 = 0.64e-5;
             GR2 = [id_GR2, lGR_GR2, z0_GR2, z0h_GR2, al_GR2, em_GR2, d_GR2 * ones(1,K), C_GR2 * ones(1,K), l_GR2 * ones(1,K), k_GR2 * ones(1,K+1)];
             factypes = [factypes; GR2];
 

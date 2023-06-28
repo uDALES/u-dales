@@ -941,7 +941,7 @@ module modforces
   !call MPI_ALLREDUCE(bcqfluxsum,   tot_qflux,1,MY_REAL,MPI_SUM,comm3d,mpierr)
   call MPI_ALLREDUCE(totheatflux,tot_Tflux,1,MY_REAL,MPI_SUM,comm3d,mpierr)
   call MPI_ALLREDUCE(totqflux,tot_qflux,1,MY_REAL,MPI_SUM,comm3d,mpierr)
-  
+
 
 
    if (ltempeq) then
@@ -970,7 +970,7 @@ module modforces
        do j = jb,je
         do k = sinkbase +1,ke ! Only apply the correction over the volume above the buidlings
           !qtp(i,j,k) = qtp(i,j,k) + fraction*tot_qflux*(zh(k+1)-zh(k))/(imax*jtot*(zh(ke+1) - zh(max_height_index+1)))
-          qtp(i,j,k) = qtp(i,j,k) - tot_qflux/(itot*jtot*(ke-sinkbase))
+          qtp(i,j,k) = qtp(i,j,k) - fraction*tot_qflux/(itot*jtot*(ke-sinkbase))
         end do
       end do
     end do
@@ -982,6 +982,7 @@ module modforces
     end do
   end if
   !
+  !write(*,*) 'fraction', fraction 
   end subroutine periodicEBcorr
 
   subroutine shiftedPBCs

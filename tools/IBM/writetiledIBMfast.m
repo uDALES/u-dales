@@ -1,4 +1,4 @@
-%% Edited version to take a one tile from a tiled geometry 
+%% writeIBMfilestiledfast
 
 % addpath('./inpolyhedron/')
 % addpath('./point2trimesh/')
