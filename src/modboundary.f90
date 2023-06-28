@@ -241,13 +241,14 @@ contains
         stop 1
      end select
 
+     if (idriver == 1) call drivergen ! Should be moved elsewhere, as not related to boundary conditions.
+
      ! x inlet
      if (ibrank) then ! set inlet
        ! Momentum
        select case(BCxm)
        case(BCxm_periodic)
          ! Handled in halos
-         if (idriver == 1) call drivergen ! think should be done somewhere else?
        case(BCxm_profile)
          !uouttot = cos(iangle)*ubulk
          call xmi_profile
