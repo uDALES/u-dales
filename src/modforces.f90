@@ -925,16 +925,17 @@ module modforces
       use modfields, only : u0, v0, w0, u0av, up, vp, wp, vm
       use decomp_2d, only : zstart
 
-      integer :: i, j, k
+      integer :: i, j, k, ig
       real :: vs, RHS, rk3coef
 
       if (ds > 0) then
       rk3coef = dt / (4. - dble(rk3step))
       do i = ib,ie
-         if (i + zstart(1) - 1 > itot/2) then
+         ig = i + zstart(1) - 1 ! global i position
+         if (ig > int(itot/2)) then
             do j = jb,je
                do k = kb,ke
-                  vs = 0.5 * pi * ds / (0.5*xlen) * u0av(k) * sin(pi*(xh(i)-xh(int(itot/2))) / (2.*0.5*xlen))
+                  vs = 0.5 * pi * ds / (0.5*xlen) * u0av(k) * sin(pi*(xh(ig)-xh(int(itot/2))) / (2.*0.5*xlen))
                   up(i,j,k) = up(i,j,k) - vs * (u0(i,j,k) - u0(i,j-1,k)) * dyi
                   vp(i,j,k) = vp(i,j,k) - vs * (v0(i,j,k) - v0(i,j-1,k)) * dyi
                   wp(i,j,k) = wp(i,j,k) - vs * (w0(i,j,k) - w0(i,j-1,k)) * dyi
