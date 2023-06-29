@@ -487,7 +487,7 @@ contains
     ! write(11,rec=nstepreaddriver)  (e120(irecydriver,:,:)) !tg3315 removed irecydriver-1
     ! close (unit=11)
 
-    if (ltempeq ) then
+    if (ltempeq) then
       name = 'hdriver_   .'
       ! write (name(13:16)  ,'(i4.4)') nfile
       name(9:11)= cdriverid
@@ -551,7 +551,7 @@ contains
 
   subroutine readdriverfile
     use modfields, only : u0,sv0
-    use modglobal, only : ib,jb,je,jmax,kb,ke,kh,jhc,khc,cexpnr,ifinput,driverstore,ltempeq,lmoist,zh,jh,driverjobnr,nsv,timee,tdriverstart,lsdriver,ibrank,iplanerank,driverid,cdriverid
+    use modglobal, only : ib,jb,je,jmax,kb,ke,kh,jhc,khc,cexpnr,ifinput,driverstore,ltempeq,lmoist,zh,jh,driverjobnr,nsv,timee,tdriverstart,lsdriver,ibrank,iplanerank,driverid,cdriverid,BCxT,BCxT_driver
     use modmpi,    only : cmyid,myid,nprocs,slabsum,excjs
     use modinletdata, only : storetdriver,storeu0driver,storev0driver,storew0driver,storethl0driver,storeqt0driver,storesv0driver,nfile
     implicit none
@@ -667,7 +667,7 @@ contains
     ! enddo
     ! close (unit=11)
 
-    if (ltempeq ) then
+    if (ltempeq .and. (BCxT == BCxT_driver)) then
       name = 'hdriver_   .'
       ! write (name(13:16)  ,'(i4.4)') nfile
       name(9:11)= cdriverid
