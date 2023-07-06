@@ -33,10 +33,9 @@ scriptdir=$(pwd -L)
 popd > /dev/null
 toolsdir=${scriptdir}  # assume same directory for nco_concatenate_field.sh
 
-#if [ -z $LOCAL_EXECUTE ]; then
- #   echo "cluster"
-  #  module load intel-suite udunits nco/4.6.2
-#fi;
+if [ -z $LOCAL_EXECUTE ]; then
+    module load nco
+fi;
 
 #if [ -z $LOCAL_EXECUTE ]; then
     #echo "cluster"
@@ -124,9 +123,9 @@ for file in *dump.000.${expnr}.nc ; do
 done
 
 
-#if [ -z $LOCAL_EXECUTE ]; then
- #   module unload intel-suite udunits nco/4.6.2
-#fi;
+if [ -z $LOCAL_EXECUTE ]; then
+    module unload nco
+fi;
 
 #if [ -z $LOCAL_EXECUTE ]; then
     #module unload nco/5.1.6

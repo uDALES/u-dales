@@ -118,9 +118,9 @@ if r.libm
 %         Dir_ray_w = [0 0 1];
 %         Dir_ray_c = [0 0 1];
 %         tol_mypoly = 1e-4;
-% 
+%
 %         write_pre_info;
-    
+
         writeIBMFiles; % Could turn into a function and move writing to this script
 %             writeIBMFiles_new
 
@@ -154,7 +154,7 @@ facet_types = ones(nfcts,1); % facet_types are to be user-defined - defaults to 
 preprocessing.write_facets(r, facet_types, TR.faceNormal);
 preprocessing.write_facetarea(r, area_facets);
 %%
-toc 
+toc
 if r.lEB
     %% Write STL in View3D input format
     fpath_facets_view3d = [fpath 'facets.vs3'];
@@ -162,7 +162,7 @@ if r.lEB
 
     %% Calculate view factors
     % Add check to see if View3D exists in the tools directory.
-    view3d_exe = [DA_TOOLSDIR '/View3D/build/src/view3d'];
+    view3d_exe = [DA_TO, fractionOLSDIR '/View3D/build/src/view3d'];
     fpath_vf = [fpath 'vf.txt'];
     vf = view3d(view3d_exe, fpath_facets_view3d, fpath_vf);
     toc
@@ -188,11 +188,11 @@ if r.lEB
     %%
 %     if r.lEB
 %         preprocessing.write_facetarea(r, area_facets);
-% 
+%
 %         %% Write STL in View3D input format
 %         fpath_facets_view3d = [fpath 'facets.vs3'];
 %         STLtoView3D(r.stl_file, fpath_facets_view3d);
-% 
+%
 %         %% Calculate view factors
 %         % Add check to see if View3D exists in the tools directory.
 %         view3d_exe = [DA_TOOLSDIR '/View3D/build/src/view3d'];
@@ -200,7 +200,7 @@ if r.lEB
 %         vf = view3d(view3d_exe, fpath_facets_view3d, fpath_vf);
 %         svf = max(1 - sum(vf, 2), 0);
 %         preprocessing.write_svf(r, svf);
-% 
+%
 %         if ~r.lvfsparse
 %             preprocessing.write_vf(r, vf)
 %             disp(['Written vf.nc.inp.', r.expnr])
@@ -217,7 +217,7 @@ if r.lEB
         show_plot_2d = false; % User-defined
         show_plot_3d = true;  % User-defined
         Sdir = directShortwave(F, V, nsun, r.I, r.psc_res, show_plot_2d, show_plot_3d);
-        toc 
+        toc
         %% Calculate net shortwave radiation (Knet)
         disp('Calculating net shortwave radiation.')
         albedos = preprocessing.generate_albedos(r, facet_types);

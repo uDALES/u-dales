@@ -29,5 +29,5 @@ fclose(fileID);
 
 % fprintf('Writing Stl_data.txt ...\n')
 fileID = fopen([fpath 'Stl_data.txt'],'w');
-fprintf(fileID,'%5d %5d %5d %15.10f %15.10f %15.10f %15.10f %15.10f %15.10f\n',[F TR.incenter TR.faceNormal]');  
+fprintf(fileID,'%5d %5d %5d %15.10f %15.10f %15.10f %15.10f %15.10f %15.10f\n',[F TR.incenter TR.faceNormal]');
 fclose(fileID);
