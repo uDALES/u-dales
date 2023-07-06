@@ -46,7 +46,6 @@ echo "#SBATCH --partition=standard" >> job.$exp.slurm
 echo "#SBATCH --qos=${QOS}" >> job.$exp.slurm
 echo "module load epcc-job-env" >> job.$exp.slurm
 echo "export OMP_NUM_THREADS=1" >> job.$exp.slurm
-echo "export SRUN_CPUS_PER_TASK=$SLURM_CPUS_PER_TASK" >> job.$exp.slurm
 echo "srun --distribution=block:block --hint=nomultithread ./u-dales $outdir/namoptions.$exp > $outdir/output.$exp 2>&1" >> job.$exp.slurm
 
 ## gather output files from cores in a single file
