@@ -943,7 +943,6 @@ module modforces
   call MPI_ALLREDUCE(totqflux,tot_qflux,1,MY_REAL,MPI_SUM,comm3d,mpierr)
 
 
-
    if (ltempeq) then
      do i = ib,ie
        do j = jb,je
@@ -958,7 +957,7 @@ module modforces
   sensible_heat_out = (1-fraction)*tot_Tflux/(itot*jtot*(zh(ke+1)-zh(ke)))
     do i = ib,ie
       do j = jb,je
-        thlp(i,j,ke) = thlp(i,j,ke) + sensible_heat_out
+        thlp(i,j,ke) = thlp(i,j,ke) - sensible_heat_out
       end do
     end do
   end if
@@ -977,12 +976,12 @@ module modforces
     latent_heat_out = (1-fraction)*tot_qflux/(itot*jtot*(zh(ke+1)-zh(ke)))
      do i = ib,ie
        do j = jb,je
-        qtp(i,j,ke) = qtp(i,j,ke) + latent_heat_out
+        qtp(i,j,ke) = qtp(i,j,ke) - latent_heat_out
       end do
     end do
   end if
   !
-  !write(*,*) 'fraction', fraction 
+  !write(*,*) 'fraction', fraction
   end subroutine periodicEBcorr
 
   subroutine shiftedPBCs

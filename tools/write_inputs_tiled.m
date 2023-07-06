@@ -20,11 +20,11 @@
 % This script is run by the bash script da_inp.sh.
 % It used to generate the necessary input files for uDALES.
 tic
-expnr = '142';
-expnr2 = '143';
-tiled =true;
-xtiles = 3;
-ytiles = 2;
+expnr = '048';
+expnr2 = '048';
+tiled =false;
+xtiles = 1;
+ytiles = 1;
 % DA_EXPDIR = getenv('DA_EXPDIR');
 % DA_TOOLSDIR = getenv('DA_TOOLSDIR');
 DA_EXPDIR = '/media/chris/Project3/uDALES2.0/experiments'
@@ -187,13 +187,13 @@ if r.lEB
     svf = max(1 - sum(vf, 2), 0);
     preprocessing.write_svf(r, svf);
     preprocessing.write_svf(r2,svftile);
-
+    %%
     if ~r.lvfsparse
         preprocessing.write_vf(r, vf)
         disp(['Written vf.nc.inp.', r.expnr])
     else
         vfsparse = sparse(double(vf));
-        preprocessing.write_vfsparse(obj, vfsparse);
+        preprocessing.write_vfsparse(r, vfsparse);
         disp(['Written vfsparse.inp.', r.expnr])
     end
     %% Set facet types
@@ -249,8 +249,8 @@ if r.lEB
         end
     end
 %% Setting vars
-%lamdba_calculation
-%setting_types
+lamdba_calculation
+setting_types
 
 %% Determine effective albedo
 %efctvalb = 1-sum(Knet)/sum(Sdir+r.Dsky*svf)

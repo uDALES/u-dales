@@ -34,22 +34,22 @@ program Xie
     allocate(incenters(n_fcts*3))
     allocate(faceNormals(n_fcts*3))
     allocate(xf(itot))
-    allocate(xh(itot+1))
+    allocate(xh(itot))
     allocate(yf(jtot))
-    allocate(yh(jtot+1))
+    allocate(yh(jtot))
     allocate(zf(ktot))
-    allocate(zh(ktot+1))
-    allocate(solid_u(itot+1,jtot,ktot))
-    allocate(solid_v(itot,jtot+1,ktot))
-    allocate(solid_w(itot,jtot,ktot+1))
+    allocate(zh(ktot))
+    allocate(solid_u(itot,jtot,ktot))
+    allocate(solid_v(itot,jtot,ktot))
+    allocate(solid_w(itot,jtot,ktot))
     allocate(solid_c(itot,jtot,ktot))
     
 
     xf(1:itot) = [((i-1)*dx+(dx/2.0), i=1,itot)]
-    xh(1:itot+1) = [((i-1)*dx, i=1,itot+1)]
+    xh(1:itot) = [((i-1)*dx, i=1,itot)]
     
     yf(1:jtot) = [((i-1)*dy+(dy/2.0), i=1,jtot)]
-    yh(1:jtot+1) = [((i-1)*dy, i=1,jtot+1)]
+    yh(1:jtot) = [((i-1)*dy, i=1,jtot)]
     
     ! zf(1:ktot) = [((i-1)*dz+(dz/2.0), i=1,ktot)]
     ! zh(1:ktot) = [((i-1)*dz, i=1,ktot)]
@@ -61,11 +61,11 @@ program Xie
     L_char = max_facet_side(n_vert,vertices,n_fcts,facets) + tol
     
     solid_u = is_grid_in_mypoly_func(n_vert,vertices,n_fcts,facets,incenters,faceNormals, &
-                                    itot+1,xh,jtot,yf,ktot,zf,Ray_dir_u,L_char,max_height,tol)
+                                    itot,xh,jtot,yf,ktot,zf,Ray_dir_u,L_char,max_height,tol)
     solid_v = is_grid_in_mypoly_func(n_vert,vertices,n_fcts,facets,incenters,faceNormals, &
-                                    itot,xf,jtot+1,yh,ktot,zf,Ray_dir_v,L_char,max_height,tol)
+                                    itot,xf,jtot,yh,ktot,zf,Ray_dir_v,L_char,max_height,tol)
     solid_w = is_grid_in_mypoly_func(n_vert,vertices,n_fcts,facets,incenters,faceNormals, &
-                                    itot,xf,jtot,yf,ktot+1,zh,Ray_dir_w,L_char,max_height,tol)
+                                    itot,xf,jtot,yf,ktot,zh,Ray_dir_w,L_char,max_height,tol)
     solid_c = is_grid_in_mypoly_func(n_vert,vertices,n_fcts,facets,incenters,faceNormals, &
                                     itot,xf,jtot,yf,ktot,zf,Ray_dir_c,L_char,max_height,tol)
     
@@ -78,7 +78,7 @@ program Xie
             open(unit=1,file='flag_u.txt')
             do iy = 1,jtot
                 do iz = 1,ktot
-                    do ix = 1,itot+1
+                    do ix = 1,itot
                         if (solid_u(ix,iy,iz) .eqv. .true.) then
                                 write(unit=1,fmt='(i1,A)',advance='no') 1, NEW_LINE('a')
                         else
@@ -91,7 +91,7 @@ program Xie
             
             !$OMP section
             open(unit=2,file='flag_v.txt')
-            do iy = 1,jtot+1
+            do iy = 1,jtot
                 do iz = 1,ktot
                     do ix = 1,itot
                         if (solid_v(ix,iy,iz) .eqv. .true.) then
@@ -107,7 +107,7 @@ program Xie
             !$OMP section
             open(unit=3,file='flag_w.txt')
             do iy = 1,jtot
-                do iz = 1,ktot+1
+                do iz = 1,ktot
                     do ix = 1,itot
                         if (solid_w(ix,iy,iz) .eqv. .true.) then
                                 write(unit=3,fmt='(i1,A)',advance='no') 1, NEW_LINE('a')
@@ -128,6 +128,69 @@ program Xie
                                 write(unit=4,fmt='(i1,A)',advance='no') 1, NEW_LINE('a')
                         else
                                 write(unit=4,fmt='(i1,A)',advance='no') 0, NEW_LINE('a')
+                        end if
+                    end do
+                end do
+            end do
+            close(unit=4)
+
+        !$OMP end sections
+    !$OMP end parallel
+
+    !$ call OMP_SET_NUM_THREADS(4)
+    !$OMP parallel
+        !$OMP sections private(ix,iy,iz)
+
+            !$OMP section
+            open(unit=1,file='solid_u.txt')
+            write(unit=1,fmt='(a18)') '# position (i,j,k)'
+            do iy = 1,jtot
+                do iz = 1,ktot
+                    do ix = 1,itot
+                        if (solid_u(ix,iy,iz)) then
+                                write(unit=1,fmt='(i4,x,i4,x,i4,A)',advance='no') ix, iy, iz, NEW_LINE('a')
+                        end if
+                    end do
+                end do
+            end do
+            close(unit=1)
+
+            !$OMP section
+            open(unit=2,file='solid_v.txt')
+            write(unit=2,fmt='(a18)') '# position (i,j,k)'
+            do iy = 1,jtot
+                do iz = 1,ktot
+                    do ix = 1,itot
+                        if (solid_v(ix,iy,iz)) then
+                                write(unit=2,fmt='(i4,x,i4,x,i4,A)',advance='no') ix, iy, iz, NEW_LINE('a')
+                        end if
+                    end do
+                end do
+            end do
+            close(unit=2)
+
+            !$OMP section
+            open(unit=3,file='solid_w.txt')
+            write(unit=3,fmt='(a18)') '# position (i,j,k)'
+            do iy = 1,jtot
+                do iz = 1,ktot
+                    do ix = 1,itot
+                        if (solid_w(ix,iy,iz)) then
+                                write(unit=3,fmt='(i4,x,i4,x,i4,A)',advance='no') ix, iy, iz, NEW_LINE('a')
+                        end if
+                    end do
+                end do
+            end do
+            close(unit=3)
+
+            !$OMP section
+            open(unit=4,file='solid_c.txt')
+            write(unit=4,fmt='(a18)') '# position (i,j,k)'
+            do iy = 1,jtot
+                do iz = 1,ktot
+                    do ix = 1,itot
+                        if (solid_c(ix,iy,iz)) then
+                                write(unit=4,fmt='(i4,x,i4,x,i4,A)',advance='no') ix, iy, iz, NEW_LINE('a')
                         end if
                     end do
                 end do
@@ -157,7 +220,7 @@ subroutine read_data(vertices_file,n_vert,facets_file,n_fcts,zf_file,zh_file,kto
     real, dimension(n_vert*3), intent(out) :: vertices
     integer, dimension(n_fcts*3), intent(out) :: facets
     real, dimension(n_fcts*3), intent(out) :: incenters, faceNormals
-    real, intent(out) :: zf(ktot), zh(ktot+1)
+    real, intent(out) :: zf(ktot), zh(ktot)
 
     integer :: i, kk
 
@@ -193,7 +256,7 @@ subroutine read_data(vertices_file,n_vert,facets_file,n_fcts,zf_file,zh_file,kto
 
         !$OMP section
         open(unit=4,file=zh_file)
-            do i = 1,ktot+1    
+            do i = 1,ktot   
                 read(unit=4,fmt='(f15.10)') zh(i)
             end do
         close(unit=4)

@@ -100,7 +100,7 @@ if lmypoly
         TRtile.incenter,TRtile.faceNormal,xgrid_ut,ygrid_ut,zgrid_ut,Dir_ray_u,L_char,max_height,tol_mypoly);
 else
     solid_u = inpolyhedron(TRtile.ConnectivityList, TRtile.Points, ...
-        xgrid_ut, ygrid_ut, zgrid_utt, 'FACENORMALS', TRtile.faceNormal);
+        xgrid_ut, ygrid_ut, zgrid_ut, 'FACENORMALS', TRtile.faceNormal);
     solid_u = permute(solid_u, [2 1 3]);
 end
 
@@ -337,7 +337,8 @@ for i = 0:xtiles-1
     for j = 0:ytiles-1
         solid_ijk_v_new = solid_ijk_v_original;
         solid_ijk_v_new(:,1) = solid_ijk_v_original(:,1)+i*(length(xgrid_vt));
-        solid_ijk_v_new(:,2) = solid_ijk_v_original(:,2)+j*(length(ygrid_vt)-1);
+        %solid_ijk_v_new(:,2) = solid_ijk_v_original(:,2)+j*(length(ygrid_vt)-1);
+        solid_ijk_v_new(:,2) = solid_ijk_v_original(:,2)+j*(length(ygrid_vt));
         solid_ijk_v_final = [solid_ijk_v_final; solid_ijk_v_new];
     end 
 end

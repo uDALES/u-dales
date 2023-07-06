@@ -360,7 +360,7 @@ classdef preprocessing < dynamicprops
             C_f   = 1.875e6;
             l_f   = 0.75;
             %k_f   = 0.4e-6;
-            k_f   = 0.64e-5;
+            k_f   = 0.64e-4;
             if (K == 3)
                 % Reproduce the original factypes.inp (d_f not constant for each layer)
                 f =  [id_f, lGR_f, z0_f, z0h_f, al_f, em_f, 0.1, 0.2, 0.2, C_f * ones(1,K), l_f * ones(1,K), k_f * ones(1,K+1)];
@@ -380,7 +380,7 @@ classdef preprocessing < dynamicprops
             d_dm = D_dm / K;
             C_dm = 1.875e6;
             l_dm = 0.75;
-            k_dm = 0.64e-5;
+            k_dm = 0.64e-4;
             dm = [id_dm, lGR_dm, z0_dm, z0h_dm, al_dm, em_dm, d_dm * ones(1,K), C_dm * ones(1,K), l_dm * ones(1,K), k_dm * ones(1,K+1)];
             factypes = [factypes; dm];
 
@@ -395,7 +395,7 @@ classdef preprocessing < dynamicprops
             d_c = D_c / K;
             C_c = 2.5e6;
             l_c = 1;
-            k_c = 0.64e-5;
+            k_c = 0.64e-4;
             c = [id_c, lGR_c, z0_c, z0h_c, al_c, em_c, d_c * ones(1,K), C_c * ones(1,K), l_c * ones(1,K), k_c * ones(1,K+1)];
             factypes = [factypes; c];
 
@@ -455,7 +455,7 @@ classdef preprocessing < dynamicprops
             d_GR1 = D_GR1 / K;
             C_GR1 = 5e6;
             l_GR1 = 2;
-            k_GR1 = 0.64e-5;
+            k_GR1 = 0.64e-4;
             GR1 = [id_GR1, lGR_GR1, z0_GR1, z0h_GR1, al_GR1, em_GR1, d_GR1 * ones(1,K), C_GR1 * ones(1,K), l_GR1 * ones(1,K), k_GR1 * ones(1,K+1)];
             factypes = [factypes; GR1];
 
@@ -470,7 +470,7 @@ classdef preprocessing < dynamicprops
             d_GR2 = D_GR2 / K;
             C_GR2 = 2e6;
             l_GR2 = 0.8;
-            k_GR2 = 0.64e-5;
+            k_GR2 = 0.64e-4;
             GR2 = [id_GR2, lGR_GR2, z0_GR2, z0h_GR2, al_GR2, em_GR2, d_GR2 * ones(1,K), C_GR2 * ones(1,K), l_GR2 * ones(1,K), k_GR2 * ones(1,K+1)];
             factypes = [factypes; GR2];
 
@@ -809,6 +809,7 @@ classdef preprocessing < dynamicprops
 
         function write_vfsparse(obj, vfsparse)
             [i,j,s] = find(vfsparse);
+            fpath = ['/media/chris/Project3/uDALES2.0/experiments/' num2str(obj.expnr) '/']
             fID = fopen([fpath 'vfsparse.inp.' num2str(obj.expnr)], 'w');
             fprintf(fID, '%d %d %.6f \n', [i, j, s]');
         end
