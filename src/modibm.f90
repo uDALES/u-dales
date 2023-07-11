@@ -582,14 +582,14 @@ module modibm
      if (ltempeq) then
         ! Solid value should not matter - choose domain-average for visualization.
         call solid(solid_info_c, thlm, thlp, sum(thl0av(kb:ke)*dzf(kb:ke))/zh(ke+1), ih, jh, kh)
-        call advecc2nd_corr_liberal(thl0, thlp)
-        !call advecc2nd_corr_conservative(thl0, thlp)
+        !call advecc2nd_corr_liberal(thl0, thlp)
+        call advecc2nd_corr_conservative(thl0, thlp)
      end if
 
      if (lmoist) then
        call solid(solid_info_c, qtm, qtp, 0., ih, jh, kh)
-       call advecc2nd_corr_liberal(qt0, qtp)
-       !call advecc2nd_corr_conservative(qt0, qtp)
+       !call advecc2nd_corr_liberal(qt0, qtp)
+       call advecc2nd_corr_conservative(qt0, qtp)
     end if
 
     do n=1,nsv
