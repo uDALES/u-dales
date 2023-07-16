@@ -896,7 +896,7 @@ module modforces
 
     do k=kb+nnudge,ke
       up(:,:,k) = up(:,:,k) - (u0av(k) - uprof(k)) / tnudge
-      !vp(:,:,k) = vp(:,:,k) - (v0av(k) - vprof(k)) / tnudge
+      vp(:,:,k) = vp(:,:,k) - (v0av(k) - vprof(k)) / tnudge
    end do
 
     if (nsv>0) then
