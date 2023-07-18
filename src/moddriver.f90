@@ -129,7 +129,7 @@ contains
     use modglobal,   only : ib,ie,jb,je,jgb,jge,kb,ke,zf,zh,dzf,dzhi,timee,btime,totavtime,rk3step,&
                             dt,numol,iplane,lles,idriver,inletav,runavtime,Uinf,lwallfunc,linletRA,&
                             totinletav,lstoreplane,nstore,driverstore,prandtlmoli,numol,grav,lbuoyancy,&
-                            lfixinlet,lfixutauin,tdriverstart,dtdriver,tdriverdump,ltempeq,lmoist,nsv,lsdriver
+                            lfixinlet,lfixutauin,tdriverstart,dtdriver,tdriverdump,ltempeq,lmoist,nsv,lsdriver,lhdriver
     use modfields,   only : u0,v0,w0,e120,thl0,qt0,wm,uprof
     use modsave,     only : writerestartfiles
     use modmpi,      only : slabsum,myid
@@ -333,7 +333,7 @@ contains
   end subroutine drivergen
 
   subroutine writedriverfile
-    use modglobal, only : timee,tdriverstart,ib,ie,ih,jb,je,jh,kb,ke,kh,cexpnr,ifoutput,nstore,ltempeq,lmoist,driverstore,nsv,lsdriver
+    use modglobal, only : timee,tdriverstart,ib,ie,ih,jb,je,jh,kb,ke,kh,cexpnr,ifoutput,nstore,ltempeq,lmoist,driverstore,nsv,lsdriver,lhdriver
     use modfields, only : u0, v0, w0, e120, thl0, qt0, um, sv0
     use modmpi,    only : cmyid,myid
     use modinletdata, only : storetdriver,storeu0driver,storev0driver,storew0driver,storethl0driver,storeqt0driver,&
@@ -541,8 +541,8 @@ contains
   end subroutine writedriverfile
 
   subroutine readdriverfile
-    use modfields, only : u0,sv0
-    use modglobal, only : ib,jb,je,jmax,kb,ke,kh,jhc,khc,cexpnr,ifinput,driverstore,ltempeq,lmoist,zh,jgb,jge,jh,driverjobnr,nsv,timee,tdriverstart,lsdriver
+    use modfields, only : u0,sv0,thlprof
+    use modglobal, only : ib,jb,je,jmax,kb,ke,kh,jhc,khc,cexpnr,ifinput,driverstore,ltempeq,lmoist,zh,jgb,jge,jh,driverjobnr,nsv,timee,tdriverstart,lsdriver,lhdriver
     use modmpi,    only : cmyid,myid,nprocs,slabsum,excjs
     use modinletdata, only : storetdriver,storeu0driver,storev0driver,storew0driver,storethl0driver,storeqt0driver,storesv0driver,nfile
     implicit none
@@ -658,23 +658,34 @@ contains
     ! enddo
     ! close (unit=11)
 
-    if (ltempeq ) then
-      name = 'hdriver_   .'
-      ! write (name(13:16)  ,'(i4.4)') nfile
-      name(9:11)= cmyid
-      ! write (name(18:20)  ,'(i3.3)') filen
-      write (name(13:15)   ,'(i3.3)') driverjobnr
-      write(6,*) 'Reading Driver temperature: ', name
-      ! inquire(file=name,recl=filesize)
-      open(unit=11,file=name,form='unformatted',status='old',action='read',access='direct',recl=filesize)
-      do n = 1,driverstore
-        read(11,rec=n)  ((storethl0driver (j,k,n),j=jb-jh,je+jh),k=kb-kh,ke+kh)
-      end do
-      !if(myid==0) then
-      !  do k=ke,kb,-1
-      !    write(6, '(A,e20.12)') 'Reading thl0(ib,1,:)', storethl0driver(jb,k,1)
-      !  end do
-      !end if
+    if (ltempeq) then
+      if (lhdriver) then
+         name = 'hdriver_   .'
+         ! write (name(13:16)  ,'(i4.4)') nfile
+         name(9:11)= cmyid
+         ! write (name(18:20)  ,'(i3.3)') filen
+         write (name(13:15)   ,'(i3.3)') driverjobnr
+         write(6,*) 'Reading Driver temperature: ', name
+         ! inquire(file=name,recl=filesize)
+         open(unit=11,file=name,form='unformatted',status='old',action='read',access='direct',recl=filesize)
+         do n = 1,driverstore
+            read(11,rec=n)  ((storethl0driver (j,k,n),j=jb-jh,je+jh),k=kb-kh,ke+kh)
+         end do
+         !if(myid==0) then
+         !  do k=ke,kb,-1
+         !    write(6, '(A,e20.12)') 'Reading thl0(ib,1,:)', storethl0driver(jb,k,1)
+         !  end do
+         !end if
+      else
+         do n = 1,driverstore
+           do j=jb-jh,je+jh
+             do k=kb-kh,ke+kh
+                storethl0driver(j,k,n) = thlprof(k)
+             end do
+          end do
+         end do
+      end if
+
 
       close (unit=11)
     end if

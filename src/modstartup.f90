@@ -70,8 +70,8 @@ module modstartup
          lvfsparse,nnz,lfacTlyrs,&
          BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys,ds, &
          BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots, &
-         idriver,tdriverstart,driverjobnr,dtdriver,driverstore,lsdriver, &
-         prandtlturb, fkar
+         idriver,tdriverstart,driverjobnr,dtdriver,driverstore,lsdriver,lhdriver, &
+         lrandomize, prandtlturb, fkar
       use modsurfdata, only:z0, z0h,  wtsurf, wttop, wqtop, wqsurf, wsvsurf, wsvtop, wsvsurfdum, wsvtopdum, ps, thvs, thls, thl_top, qt_top, qts
       ! use modsurface,        only : initsurface
       use modfields, only:initfields, dpdx, ncname
@@ -99,7 +99,7 @@ module modstartup
          courant, diffnr, author, &
          libm, lles, &
          lper2inout, lwalldist, &
-         lreadmean
+         lreadmean, lrandomize
       namelist/DOMAIN/ &
          imax, jtot, kmax, xsize, ysize, &
          xlat, xlon, xday, xtime, ksp
@@ -128,7 +128,7 @@ module modstartup
          lwallfunc
       namelist/DRIVER/ &
          idriver, tdriverstart, driverjobnr, dtdriver, &
-         driverstore, iplane, lsdriver, iangledeg
+         driverstore, iplane, lsdriver, lhdriver, iangledeg
       namelist/WALLS/ &
          nblocks, nfcts, iwallmom, iwalltemp, iwallmoist, iwallscal, prandtlturb, fkar
       namelist/ENERGYBALANCE/ &
@@ -310,6 +310,7 @@ module modstartup
       call MPI_BCAST(dtdriver   ,1,MY_REAL    ,0,comm3d,mpierr)        ! ae1212
       call MPI_BCAST(driverstore,1,MPI_INTEGER ,0,comm3d,mpierr)
       call MPI_BCAST(lsdriver   ,1,MPI_LOGICAL,0,comm3d,mpierr)
+      call MPI_BCAST(lhdriver   ,1,MPI_LOGICAL,0,comm3d,mpierr)
       write (*, *) "sec BC"
          call MPI_BCAST(BCxm, 1, MPI_INTEGER, 0, comm3d, mpierr)
          call MPI_BCAST(BCxT, 1, MPI_INTEGER, 0, comm3d, mpierr)
@@ -470,6 +471,7 @@ module modstartup
       call MPI_BCAST(iadv_thl, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(iadv_qt, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(iadv_sv(1:nsv), nsv, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(lrandomize, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(prandtlturb, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(fkar, 1, MY_REAL, 0, comm3d, mpierr)
       !write(*,*) "sec h"
@@ -712,7 +714,7 @@ module modstartup
          uflowrate, vflowrate,ltempeq, prandtlmoli, freestreamav, &
          tnextfielddump, tfielddump, tsample, tstatsdump, startfile, lprofforc, lchem, k1, JNO2,&
          idriver,dtdriver,driverstore,tdriverstart,tdriverdump,BCxm,xf,xh,ysize, BCxm, BCxT, BCxq, BCxs,&
-         tEB,tnextEB,dtEB
+         tEB,tnextEB,dtEB,lrandomize
       use modsubgriddata, only:ekm, ekh
       use modsurfdata, only:wtsurf, wqsurf, wsvsurf, &
          thls, thvs, ps, qts, svs, sv_top
@@ -946,16 +948,18 @@ module modstartup
             end do
 
             !! add random fluctuations
-            krand = min(krand, ke)
-            do k = kb, krand
-               call randomnize(um, k, randu, irandom, ih, jh)
-            end do
-            do k = kb, krand
-               call randomnize(vm, k, randu, irandom, ih, jh)
-            end do
-            do k = kb, krand
-               call randomnize(wm, k, randu, irandom, ih, jh)
-            end do
+            if (lrandomize) then
+               krand = min(krand, ke)
+               do k = kb, krand
+                  call randomnize(um, k, randu, irandom, ih, jh)
+               end do
+               do k = kb, krand
+                  call randomnize(vm, k, randu, irandom, ih, jh)
+               end do
+               do k = kb, krand
+                  call randomnize(wm, k, randu, irandom, ih, jh)
+               end do
+            end if
 
             !       do k=kb+1,ke-1
             !       do j=jb,je

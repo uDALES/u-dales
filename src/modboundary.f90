@@ -778,10 +778,10 @@ contains
        if (ltempeq ) then
           do j=jb-1,je+1
              do k=kb,ke+1
-                !thl0(ib,j,k) = thl0driver(j,k)
-                !thlm(ib,j,k) = thlmdriver(j,k)
-                thl0(ib-1,j,k) = thl0driver(j,k)
-                thlm(ib-1,j,k) = thlmdriver(j,k)
+                thl0(ib,j,k) = thl0driver(j,k)
+                thlm(ib,j,k) = thlmdriver(j,k)
+                !thl0(ib-1,j,k) = thl0driver(j,k)
+                !thlm(ib-1,j,k) = thlmdriver(j,k)
                 !thlm(ib-1,j,k) = 2*thlm(ib,j,k) - thlm(ib+1,j,k)
                 !thl0(ib-1,j,k) = 2*thl0(ib,j,k) - thl0(ib+1,j,k)
              end do
