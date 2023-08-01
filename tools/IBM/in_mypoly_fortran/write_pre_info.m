@@ -8,7 +8,9 @@ fprintf(fileID,'%15.10f %15.10f %15.10f\n',Dir_ray_u);
 fprintf(fileID,'%15.10f %15.10f %15.10f\n',Dir_ray_v);
 fprintf(fileID,'%15.10f %15.10f %15.10f\n',Dir_ray_w);
 fprintf(fileID,'%15.10f %15.10f %15.10f\n',Dir_ray_c);
-fprintf(fileID,'%5d %5d\n',[length(V) length(F)]);
+fprintf(fileID,'%8d %8d\n',[length(V) length(F)]);
+fprintf(fileID,'%4d\n',n_threads);
+fprintf(fileID,'%d %d\n',[stl_ground diag_neighbs]);
 fclose(fileID);
 
 % fprintf('Writing zhgrid.txt ...\n')
@@ -28,5 +30,5 @@ fclose(fileID);
 
 % fprintf('Writing Stl_data.txt ...\n')
 fileID = fopen([fpath 'Stl_data.txt'],'w');
-fprintf(fileID,'%5d %5d %5d %15.10f %15.10f %15.10f %15.10f %15.10f %15.10f\n',[F TR.incenter TR.faceNormal]');  
+fprintf(fileID,'%8d %8d %8d %15.10f %15.10f %15.10f %15.10f %15.10f %15.10f\n',[F TR.incenter TR.faceNormal]');  
 fclose(fileID);

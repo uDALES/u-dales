@@ -28,13 +28,14 @@ nfcts = size(TR,1);
 %% Determine total area of surface
 
 if lmypolyfortran
+    n_threads = 8;
     write_pre_info;
     if lwindows
         in_mypoly_fortran_path = [DA_TOOLSDIR '/IBM/in_mypoly_fortran/'];
         cd(in_mypoly_fortran_path)
-        system('gfortran -O2 -fopenmp in_mypoly_functions.f90 IBM_flagging.f90 -o pre.exe');
-        copyfile('pre.exe',fpath); % remember to build pre.exe in local system. gfortran -O2 -fopenmp in_mypoly_functions.f90 IBM_flagging.f90 -o pre.exe
-        delete pre.exe in_mypoly_functions.mod;
+        system('gfortran -O2 -fopenmp in_mypoly_functions.f90 ibm_necessary_functions.f90 IBM_flagging.f90 -o pre.exe');
+        copyfile('pre.exe',fpath);
+        delete pre.exe in_mypoly_functions.mod ibm_necessary_functions.mod;
         cd(fpath)
         system('pre.exe'); 
         delete pre.exe inmypoly_inp_info.txt Stl_data.txt vertices.txt zfgrid.txt zhgrid.txt;
@@ -53,8 +54,8 @@ else
 end
 
 %% Calculate u
-disp('Determining solid points for u-grid.')
 if lmypolyfortran
+    
     formatSpec = '%d';
     fileID = fopen([fpath 'flag_u.txt'],'r');
     flag_u = fscanf(fileID,formatSpec);
@@ -72,9 +73,52 @@ if lmypolyfortran
             end
         end
     end
+    
+    fileID = fopen([fpath 'fluid_IB_u.txt'],'r');
+    fluid_IB_u_fort = fscanf(fileID,formatSpec);
+    fclose(fileID);
+    count = 1;
+    for iy = 1:r.jtot
+        for iz = 1:r.ktot
+            for ix = 1:r.itot
+                if (fluid_IB_u_fort(count) == 1)
+                            fluid_IB_u(ix,iy,iz) = true;
+                else
+                            fluid_IB_u(ix,iy,iz) = false;
+                end
+                count = count+1;
+            end
+        end
+    end
+    
+    fileID = fopen([fpath 'solid_IB_u.txt'],'r');
+    solid_IB_u_fort = fscanf(fileID,formatSpec);
+    fclose(fileID);
+    count = 1;
+    for iy = 1:r.jtot
+        for iz = 1:r.ktot
+            for ix = 1:r.itot
+                if (solid_IB_u_fort(count) == 1)
+                            solid_IB_u(ix,iy,iz) = true;
+                else
+                            solid_IB_u(ix,iy,iz) = false;
+                end
+                count = count+1;
+            end
+        end
+    end
+    
     solid_ijk_u = readmatrix('solid_u.txt');
-    disp('Written solid_u.txt')
+    fluid_IB_ijk_u = readmatrix('fluid_boundary_u.txt');
+    fluid_IB_ijk_u = sortrows(fluid_IB_ijk_u,3);
+    fluid_IB_xyz_u = [xgrid_u(fluid_IB_ijk_u(:,1))', ygrid_u(fluid_IB_ijk_u(:,2))', zgrid_u(fluid_IB_ijk_u(:,3))'];
+    solid_IB_ijk_u = readmatrix('solid_boundary_u.txt');
+    solid_IB_ijk_u = sortrows(solid_IB_ijk_u,3);
+    solid_IB_xyz_u = [xgrid_u(solid_IB_ijk_u(:,1))', ygrid_u(solid_IB_ijk_u(:,2))', zgrid_u(solid_IB_ijk_u(:,3))'];
+    
 else
+    
+    disp('Determining solid points for u-grid.')
     if lmypoly
         solid_u = in_grid_mypoly(TR.Points,TR.ConnectivityList, ...
             TR.incenter,TR.faceNormal,xgrid_u,ygrid_u,zgrid_u,Dir_ray_u,L_char,max_height,tol_mypoly);
@@ -94,36 +138,36 @@ else
     dlmwrite(filename_u, solid_ijk_u, '-append','delimiter',' ');
     disp('Written solid_u.txt')
     
+    fluid_u = ~solid_u;
+
+    %% Boundary masks
+    disp('Determining fluid boundary points for u-grid.')
+    [fluid_IB_u, solid_IB_u] = getBoundaryCells(xgrid_u, ygrid_u, zgrid_u, fluid_u, solid_u, diag_neighbs);
+    if (stl_ground)
+        fluid_u_1 = fluid_u(:,:,1);
+        fluid_IB_u_1 = fluid_IB_u(:,:,1);
+        fluid_IB_u_1(fluid_u_1) = true;
+        fluid_IB_u(:,:,1) = fluid_IB_u_1;
+    end
+
+    % Boundary coordinates
+    [fluid_IB_i_u, fluid_IB_j_u, fluid_IB_k_u] = ind2sub(size(fluid_IB_u), find(fluid_IB_u));
+    fluid_IB_xyz_u = [xgrid_u(fluid_IB_i_u)', ygrid_u(fluid_IB_j_u)', zgrid_u(fluid_IB_k_u)'];
+
+    [solid_IB_i_u, solid_IB_j_u, solid_IB_k_u] = ind2sub(size(solid_IB_u), find(solid_IB_u));
+    solid_IB_xyz_u = [xgrid_u(solid_IB_i_u)', ygrid_u(solid_IB_j_u)', zgrid_u(solid_IB_k_u)'];
+
+    % Fluid boundary points
+    fluid_IB_ijk_u = [fluid_IB_i_u, fluid_IB_j_u, fluid_IB_k_u];
+    fluid_boundary_u = fluid_IB_ijk_u;
+    filename_u = [fpath 'fluid_boundary_u.txt'];
+    fileID_u = fopen(filename_u,'W');
+    fprintf(fileID_u, '# position (i,j,k)\n');
+    fclose(fileID_u);
+    dlmwrite(filename_u, fluid_boundary_u, '-append','delimiter',' ');
+    disp('Written fluid_boundary_u.txt')
+    
 end
-
-fluid_u = ~solid_u;
-
-%% Boundary masks
-disp('Determining fluid boundary points for u-grid.')
-[fluid_IB_u, solid_IB_u] = getBoundaryCells(xgrid_u, ygrid_u, zgrid_u, fluid_u, solid_u, diag_neighbs);
-if (stl_ground)
-    fluid_u_1 = fluid_u(:,:,1);
-    fluid_IB_u_1 = fluid_IB_u(:,:,1);
-    fluid_IB_u_1(fluid_u_1) = true;
-    fluid_IB_u(:,:,1) = fluid_IB_u_1;
-end
-
-% Boundary coordinates
-[fluid_IB_i_u, fluid_IB_j_u, fluid_IB_k_u] = ind2sub(size(fluid_IB_u), find(fluid_IB_u));
-fluid_IB_xyz_u = [xgrid_u(fluid_IB_i_u)', ygrid_u(fluid_IB_j_u)', zgrid_u(fluid_IB_k_u)'];
-
-[solid_IB_i_u, solid_IB_j_u, solid_IB_k_u] = ind2sub(size(solid_IB_u), find(solid_IB_u));
-solid_IB_xyz_u = [xgrid_u(solid_IB_i_u)', ygrid_u(solid_IB_j_u)', zgrid_u(solid_IB_k_u)'];
-
-% Fluid boundary points
-fluid_IB_ijk_u = [fluid_IB_i_u, fluid_IB_j_u, fluid_IB_k_u];
-fluid_boundary_u = fluid_IB_ijk_u;
-filename_u = [fpath 'fluid_boundary_u.txt'];
-fileID_u = fopen(filename_u,'W');
-fprintf(fileID_u, '# position (i,j,k)\n');
-fclose(fileID_u);
-dlmwrite(filename_u, fluid_boundary_u, '-append','delimiter',' ');
-disp('Written fluid_boundary_u.txt')
 
 %% Facet sections
 if (calculate_facet_sections_uvw)
@@ -189,8 +233,8 @@ else
 end
 
 %% Calculate v
-disp('Determining solid points for v-grid.')
 if lmypolyfortran
+    
     formatSpec = '%d';
     fileID = fopen([fpath 'flag_v.txt'],'r');
     flag_v = fscanf(fileID,formatSpec);
@@ -208,9 +252,52 @@ if lmypolyfortran
             end
         end
     end
+    
+    fileID = fopen([fpath 'fluid_IB_v.txt'],'r');
+    fluid_IB_v_fort = fscanf(fileID,formatSpec);
+    fclose(fileID);
+    count = 1;
+    for iy = 1:r.jtot
+        for iz = 1:r.ktot
+            for ix = 1:r.itot
+                if (fluid_IB_v_fort(count) == 1)
+                            fluid_IB_v(ix,iy,iz) = true;
+                else
+                            fluid_IB_v(ix,iy,iz) = false;
+                end
+                count = count+1;
+            end
+        end
+    end
+    
+    fileID = fopen([fpath 'solid_IB_v.txt'],'r');
+    solid_IB_v_fort = fscanf(fileID,formatSpec);
+    fclose(fileID);
+    count = 1;
+    for iy = 1:r.jtot
+        for iz = 1:r.ktot
+            for ix = 1:r.itot
+                if (solid_IB_v_fort(count) == 1)
+                            solid_IB_v(ix,iy,iz) = true;
+                else
+                            solid_IB_v(ix,iy,iz) = false;
+                end
+                count = count+1;
+            end
+        end
+    end
+    
     solid_ijk_v = readmatrix('solid_v.txt');
-    disp('Written solid_v.txt')
+    fluid_IB_ijk_v = readmatrix('fluid_boundary_v.txt');
+    fluid_IB_ijk_v = sortrows(fluid_IB_ijk_v,3);
+    fluid_IB_xyz_v = [xgrid_v(fluid_IB_ijk_v(:,1))', ygrid_v(fluid_IB_ijk_v(:,2))', zgrid_v(fluid_IB_ijk_v(:,3))'];
+    solid_IB_ijk_v = readmatrix('solid_boundary_v.txt');
+    solid_IB_ijk_v = sortrows(solid_IB_ijk_v,3);
+    solid_IB_xyz_v = [xgrid_v(solid_IB_ijk_v(:,1))', ygrid_v(solid_IB_ijk_v(:,2))', zgrid_v(solid_IB_ijk_v(:,3))'];
+    
 else
+    
+    disp('Determining solid points for v-grid.')
     if lmypoly
         solid_v = in_grid_mypoly(TR.Points,TR.ConnectivityList,TR.incenter,TR.faceNormal,xgrid_v,ygrid_v,zgrid_v,Dir_ray_v,L_char,max_height,tol_mypoly);
     else
@@ -229,36 +316,36 @@ else
     dlmwrite(filename_v, solid_ijk_v, '-append','delimiter',' ');
     disp('Written solid_v.txt')
     
+    fluid_v = ~solid_v;
+
+    %% Boundary masks
+    disp('Determining fluid boundary points for v-grid.')
+    % Boundary masks
+    [fluid_IB_v, solid_IB_v] = getBoundaryCells(xgrid_v, ygrid_v, zgrid_v, fluid_v, solid_v, diag_neighbs);
+    if (stl_ground)
+        fluid_v_1 = fluid_v(:,:,1);
+        fluid_IB_v_1 = fluid_IB_v(:,:,1);
+        fluid_IB_v_1(fluid_v_1) = true;
+        fluid_IB_v(:,:,1) = fluid_IB_v_1;
+    end
+
+    % Boundary coordinates
+    [fluid_IB_i_v, fluid_IB_j_v, fluid_IB_k_v] = ind2sub(size(fluid_IB_v), find(fluid_IB_v));
+    fluid_IB_xyz_v = [xgrid_v(fluid_IB_i_v)', ygrid_v(fluid_IB_j_v)', zgrid_v(fluid_IB_k_v)'];
+
+    [solid_IB_i_v, solid_IB_j_v, solid_IB_k_v] = ind2sub(size(solid_IB_v), find(solid_IB_v));
+    solid_IB_xyz_v = [xgrid_v(solid_IB_i_v)', ygrid_v(solid_IB_j_v)', zgrid_v(solid_IB_k_v)'];
+
+    fluid_IB_ijk_v = [fluid_IB_i_v, fluid_IB_j_v, fluid_IB_k_v];
+    fluid_boundary_v = fluid_IB_ijk_v;
+    filename_v = [fpath 'fluid_boundary_v.txt'];
+    fileID_v = fopen(filename_v,'W');
+    fprintf(fileID_v, '# position (i,j,k)\n');
+    fclose(fileID_v);
+    dlmwrite(filename_v, fluid_boundary_v, '-append','delimiter',' ');
+    disp('Written fluid_boundary_v.txt')
+    
 end
-
-fluid_v = ~solid_v;
-
-%% Boundary masks
-disp('Determining fluid boundary points for v-grid.')
-% Boundary masks
-[fluid_IB_v, solid_IB_v] = getBoundaryCells(xgrid_v, ygrid_v, zgrid_v, fluid_v, solid_v, diag_neighbs);
-if (stl_ground)
-    fluid_v_1 = fluid_v(:,:,1);
-    fluid_IB_v_1 = fluid_IB_v(:,:,1);
-    fluid_IB_v_1(fluid_v_1) = true;
-    fluid_IB_v(:,:,1) = fluid_IB_v_1;
-end
-
-% Boundary coordinates
-[fluid_IB_i_v, fluid_IB_j_v, fluid_IB_k_v] = ind2sub(size(fluid_IB_v), find(fluid_IB_v));
-fluid_IB_xyz_v = [xgrid_v(fluid_IB_i_v)', ygrid_v(fluid_IB_j_v)', zgrid_v(fluid_IB_k_v)'];
-
-[solid_IB_i_v, solid_IB_j_v, solid_IB_k_v] = ind2sub(size(solid_IB_v), find(solid_IB_v));
-solid_IB_xyz_v = [xgrid_v(solid_IB_i_v)', ygrid_v(solid_IB_j_v)', zgrid_v(solid_IB_k_v)'];
-
-fluid_IB_ijk_v = [fluid_IB_i_v, fluid_IB_j_v, fluid_IB_k_v];
-fluid_boundary_v = fluid_IB_ijk_v;
-filename_v = [fpath 'fluid_boundary_v.txt'];
-fileID_v = fopen(filename_v,'W');
-fprintf(fileID_v, '# position (i,j,k)\n');
-fclose(fileID_v);
-dlmwrite(filename_v, fluid_boundary_v, '-append','delimiter',' ');
-disp('Written fluid_boundary_v.txt')
 
 %% Facet sections
 if (calculate_facet_sections_uvw)
@@ -322,8 +409,8 @@ else
 end
 
 %% Calculate w
-disp('Determining solid points for w-grid.')
 if lmypolyfortran
+    
     formatSpec = '%d';
     fileID = fopen([fpath 'flag_w.txt'],'r');
     flag_w = fscanf(fileID,formatSpec);
@@ -341,9 +428,52 @@ if lmypolyfortran
             end
         end
     end
+    
+    fileID = fopen([fpath 'fluid_IB_w.txt'],'r');
+    fluid_IB_w_fort = fscanf(fileID,formatSpec);
+    fclose(fileID);
+    count = 1;
+    for iy = 1:r.jtot
+        for iz = 1:r.ktot
+            for ix = 1:r.itot
+                if (fluid_IB_w_fort(count) == 1)
+                            fluid_IB_w(ix,iy,iz) = true;
+                else
+                            fluid_IB_w(ix,iy,iz) = false;
+                end
+                count = count+1;
+            end
+        end
+    end
+    
+    fileID = fopen([fpath 'solid_IB_w.txt'],'r');
+    solid_IB_w_fort = fscanf(fileID,formatSpec);
+    fclose(fileID);
+    count = 1;
+    for iy = 1:r.jtot
+        for iz = 1:r.ktot
+            for ix = 1:r.itot
+                if (solid_IB_w_fort(count) == 1)
+                            solid_IB_w(ix,iy,iz) = true;
+                else
+                            solid_IB_w(ix,iy,iz) = false;
+                end
+                count = count+1;
+            end
+        end
+    end
+    
     solid_ijk_w = readmatrix('solid_w.txt');
-    disp('Written solid_w.txt')
+    fluid_IB_ijk_w = readmatrix('fluid_boundary_w.txt');
+    fluid_IB_ijk_w = sortrows(fluid_IB_ijk_w,3);
+    fluid_IB_xyz_w = [xgrid_w(fluid_IB_ijk_w(:,1))', ygrid_w(fluid_IB_ijk_w(:,2))', zgrid_w(fluid_IB_ijk_w(:,3))'];
+    solid_IB_ijk_w = readmatrix('solid_boundary_w.txt');
+    solid_IB_ijk_w = sortrows(solid_IB_ijk_w,3);
+    solid_IB_xyz_w = [xgrid_w(solid_IB_ijk_w(:,1))', ygrid_w(solid_IB_ijk_w(:,2))', zgrid_w(solid_IB_ijk_w(:,3))'];
+    
 else
+    
+    disp('Determining solid points for w-grid.')
     if lmypoly
         solid_w = in_grid_mypoly(TR.Points,TR.ConnectivityList, ...
             TR.incenter,TR.faceNormal,xgrid_w,ygrid_w,zgrid_w,Dir_ray_w,L_char,max_height,tol_mypoly);
@@ -362,36 +492,36 @@ else
     dlmwrite(filename_w, solid_ijk_w, '-append','delimiter',' ');
     disp('Written solid_w.txt')
     
+    if (stl_ground)
+        solid_w_b = solid_w;
+        solid_w_b(:,:,1) = true;
+    end
+
+    fluid_w = ~solid_w;
+
+    %% Boundary points
+    disp('Determining fluid boundary points for w-grid.')
+    % Boundary masks
+    [fluid_IB_w, solid_IB_w] = getBoundaryCells(xgrid_w, ygrid_w, zgrid_w, fluid_w, solid_w_b, diag_neighbs);
+    fluid_IB_w(:,:,1) = 0; % Bottom is always solid
+
+    % Boundary coordinates
+    [fluid_IB_i_w, fluid_IB_j_w, fluid_IB_k_w] = ind2sub(size(fluid_IB_w), find(fluid_IB_w));
+    fluid_IB_xyz_w = [xgrid_w(fluid_IB_i_w)', ygrid_w(fluid_IB_j_w)', zgrid_w(fluid_IB_k_w)'];
+
+    [solid_IB_i_w, solid_IB_j_w, solid_IB_k_w] = ind2sub(size(solid_IB_w), find(solid_IB_w));
+    solid_IB_xyz_w = [xgrid_w(solid_IB_i_w)', ygrid_w(solid_IB_j_w)', zgrid_w(solid_IB_k_w)'];
+
+    fluid_IB_ijk_w = [fluid_IB_i_w, fluid_IB_j_w, fluid_IB_k_w];
+    fluid_boundary_w = fluid_IB_ijk_w;
+    filename_w = [fpath 'fluid_boundary_w.txt'];
+    fileID_w = fopen(filename_w,'W');
+    fprintf(fileID_w, '# position (i,j,k)\n');
+    fclose(fileID_w);
+    dlmwrite(filename_w, fluid_boundary_w, '-append','delimiter',' ');
+    disp('Written fluid_boundary_w.txt')
+    
 end
-
-if (stl_ground)
-    solid_w_b = solid_w;
-    solid_w_b(:,:,1) = true;
-end
-
-fluid_w = ~solid_w;
-
-%% Boundary points
-disp('Determining fluid boundary points for w-grid.')
-% Boundary masks
-[fluid_IB_w, solid_IB_w] = getBoundaryCells(xgrid_w, ygrid_w, zgrid_w, fluid_w, solid_w_b, diag_neighbs);
-fluid_IB_w(:,:,1) = 0; % Bottom is always solid
-
-% Boundary coordinates
-[fluid_IB_i_w, fluid_IB_j_w, fluid_IB_k_w] = ind2sub(size(fluid_IB_w), find(fluid_IB_w));
-fluid_IB_xyz_w = [xgrid_w(fluid_IB_i_w)', ygrid_w(fluid_IB_j_w)', zgrid_w(fluid_IB_k_w)'];
-
-[solid_IB_i_w, solid_IB_j_w, solid_IB_k_w] = ind2sub(size(solid_IB_w), find(solid_IB_w));
-solid_IB_xyz_w = [xgrid_w(solid_IB_i_w)', ygrid_w(solid_IB_j_w)', zgrid_w(solid_IB_k_w)'];
-
-fluid_IB_ijk_w = [fluid_IB_i_w, fluid_IB_j_w, fluid_IB_k_w];
-fluid_boundary_w = fluid_IB_ijk_w;
-filename_w = [fpath 'fluid_boundary_w.txt'];
-fileID_w = fopen(filename_w,'W');
-fprintf(fileID_w, '# position (i,j,k)\n');
-fclose(fileID_w);
-dlmwrite(filename_w, fluid_boundary_w, '-append','delimiter',' ');
-disp('Written fluid_boundary_w.txt')
 
 %% Facet sections
 if (calculate_facet_sections_uvw)
@@ -456,8 +586,8 @@ else
 end
 
 %% Calculate c
-disp('Determining solid points for c-grid.')
 if lmypolyfortran
+    
     formatSpec = '%d';
     fileID = fopen([fpath 'flag_c.txt'],'r');
     flag_c = fscanf(fileID,formatSpec);
@@ -475,9 +605,52 @@ if lmypolyfortran
             end
         end
     end
+    
+    fileID = fopen([fpath 'fluid_IB_c.txt'],'r');
+    fluid_IB_c_fort = fscanf(fileID,formatSpec);
+    fclose(fileID);
+    count = 1;
+    for iy = 1:r.jtot
+        for iz = 1:r.ktot
+            for ix = 1:r.itot
+                if (fluid_IB_c_fort(count) == 1)
+                            fluid_IB_c(ix,iy,iz) = true;
+                else
+                            fluid_IB_c(ix,iy,iz) = false;
+                end
+                count = count+1;
+            end
+        end
+    end
+    
+    fileID = fopen([fpath 'solid_IB_c.txt'],'r');
+    solid_IB_c_fort = fscanf(fileID,formatSpec);
+    fclose(fileID);
+    count = 1;
+    for iy = 1:r.jtot
+        for iz = 1:r.ktot
+            for ix = 1:r.itot
+                if (solid_IB_c_fort(count) == 1)
+                            solid_IB_c(ix,iy,iz) = true;
+                else
+                            solid_IB_c(ix,iy,iz) = false;
+                end
+                count = count+1;
+            end
+        end
+    end
+    
     solid_ijk_c = readmatrix('solid_c.txt');
-    disp('Written solid_c.txt')
+    fluid_IB_ijk_c = readmatrix('fluid_boundary_c.txt');
+    fluid_IB_ijk_c = sortrows(fluid_IB_ijk_c,3);
+    fluid_IB_xyz_c = [xgrid_c(fluid_IB_ijk_c(:,1))', ygrid_c(fluid_IB_ijk_c(:,2))', zgrid_c(fluid_IB_ijk_c(:,3))'];
+    solid_IB_ijk_c = readmatrix('solid_boundary_c.txt');
+    solid_IB_ijk_c = sortrows(solid_IB_ijk_c,3);
+    solid_IB_xyz_c = [xgrid_c(solid_IB_ijk_c(:,1))', ygrid_c(solid_IB_ijk_c(:,2))', zgrid_c(solid_IB_ijk_c(:,3))'];
+    
 else
+    
+    disp('Determining solid points for c-grid.')
     if lmypoly
         solid_c = in_grid_mypoly(TR.Points,TR.ConnectivityList,TR.incenter,TR.faceNormal,xgrid_c,ygrid_c,zgrid_c,Dir_ray_c,L_char,max_height,tol_mypoly);
     else
@@ -495,34 +668,34 @@ else
     dlmwrite(filename_c, solid_ijk_c, '-append','delimiter',' ');
     disp('Written solid_c.txt')
     
+    fluid_c = ~solid_c;
+
+    %% Boundary points
+    disp('Determining fluid boundary points for c-grid.')
+    [fluid_IB_c, solid_IB_c] = getBoundaryCells(xgrid_c, ygrid_c, zgrid_c, fluid_c, solid_c, diag_neighbs);
+    if (stl_ground)
+        fluid_c_1 = fluid_c(:,:,1);
+        fluid_IB_c_1 = fluid_IB_c(:,:,1);
+        fluid_IB_c_1(fluid_c_1) = true;
+        fluid_IB_c(:,:,1) = fluid_IB_c_1;
+    end
+
+    [fluid_IB_i_c, fluid_IB_j_c, fluid_IB_k_c] = ind2sub(size(fluid_IB_c), find(fluid_IB_c));
+    fluid_IB_xyz_c = [xgrid_c(fluid_IB_i_c)', ygrid_c(fluid_IB_j_c)', zgrid_c(fluid_IB_k_c)'];
+
+    [solid_IB_i_c, solid_IB_j_c, solid_IB_k_c] = ind2sub(size(solid_IB_c), find(solid_IB_c));
+    solid_IB_xyz_c = [xgrid_c(solid_IB_i_c)', ygrid_c(solid_IB_j_c)', zgrid_c(solid_IB_k_c)'];
+
+    fluid_IB_ijk_c = [fluid_IB_i_c, fluid_IB_j_c, fluid_IB_k_c];
+    fluid_boundary_c = fluid_IB_ijk_c;
+    filename_c = [fpath 'fluid_boundary_c.txt'];
+    fileID_c = fopen(filename_c,'W');
+    fprintf(fileID_c, '# position (i,j,k), distance to surface, reconstruction point location\n');
+    fclose(fileID_c);
+    dlmwrite(filename_c, fluid_boundary_c, '-append','delimiter',' ');
+    disp('Written fluid_boundary_c.txt')
+    
 end
-
-fluid_c = ~solid_c;
-
-%% Boundary points
-disp('Determining fluid boundary points for c-grid.')
-[fluid_IB_c, solid_IB_c] = getBoundaryCells(xgrid_c, ygrid_c, zgrid_c, fluid_c, solid_c, diag_neighbs);
-if (stl_ground)
-    fluid_c_1 = fluid_c(:,:,1);
-    fluid_IB_c_1 = fluid_IB_c(:,:,1);
-    fluid_IB_c_1(fluid_c_1) = true;
-    fluid_IB_c(:,:,1) = fluid_IB_c_1;
-end
-
-[fluid_IB_i_c, fluid_IB_j_c, fluid_IB_k_c] = ind2sub(size(fluid_IB_c), find(fluid_IB_c));
-fluid_IB_xyz_c = [xgrid_c(fluid_IB_i_c)', ygrid_c(fluid_IB_j_c)', zgrid_c(fluid_IB_k_c)'];
-
-[solid_IB_i_c, solid_IB_j_c, solid_IB_k_c] = ind2sub(size(solid_IB_c), find(solid_IB_c));
-solid_IB_xyz_c = [xgrid_c(solid_IB_i_c)', ygrid_c(solid_IB_j_c)', zgrid_c(solid_IB_k_c)'];
-
-fluid_IB_ijk_c = [fluid_IB_i_c, fluid_IB_j_c, fluid_IB_k_c];
-fluid_boundary_c = fluid_IB_ijk_c;
-filename_c = [fpath 'fluid_boundary_c.txt'];
-fileID_c = fopen(filename_c,'W');
-fprintf(fileID_c, '# position (i,j,k), distance to surface, reconstruction point location\n');
-fclose(fileID_c);
-dlmwrite(filename_c, fluid_boundary_c, '-append','delimiter',' ');
-disp('Written fluid_boundary_c.txt')
 
 %% Facet sections
 if (calculate_facet_sections_c)
@@ -621,6 +794,9 @@ fclose(fileID_info);
 %% Clean up exp directory
 if lmypolyfortran
     delete flag_u.txt flag_v.txt flag_w.txt flag_c.txt;
+    delete fluid_IB_u.txt fluid_IB_v.txt fluid_IB_w.txt fluid_IB_c.txt;
+    delete solid_IB_u.txt solid_IB_v.txt solid_IB_w.txt solid_IB_c.txt;
+    delete solid_boundary_u.txt solid_boundary_v.txt solid_boundary_w.txt solid_boundary_c.txt;
 end
 
 %% Plot
