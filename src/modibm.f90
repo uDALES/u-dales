@@ -46,6 +46,7 @@ module modibm
     end interface
 
    logical :: lbottom = .false.
+   logical :: lnorec = .false.
 
    ! read from namoptions
    integer :: nsolpts_u, nsolpts_v, nsolpts_w, nsolpts_c, &
@@ -1073,7 +1074,7 @@ module modibm
        k = bound_info%bndpts(n,3) - zstart(3) + 1
        if ((i < ib) .or. (i > ie) .or. (j < jb) .or. (j > je)) write(*,*) "problem", i, j
 
-       if (bound_info%lcomprec(sec)) then
+       if (bound_info%lcomprec(sec) .or. lnorec) then
          uvec = interp_velocity_ptr(i, j, k)
          if (iwallmom == 2) then
            Tair = interp_temperature_ptr(i, j, k)
@@ -1091,6 +1092,8 @@ module modibm
                                                  yrec - yf(bound_info%bndpts(n,2)), &
                                                  zrec - zf(bound_info%bndpts(n,3))/))
        end if
+
+       if (log(dist/facz0(fac)) < 1) cycle ! prevents very large fluxes
 
        if (is_equal(uvec, vec0)) cycle
 
@@ -1172,7 +1175,7 @@ module modibm
           stop 1
         end if
 
-       if (bound_info_c%lcomprec(sec)) then ! section aligned with grid - use this cell's velocity
+       if (bound_info_c%lcomprec(sec) .or. lnorec) then ! section aligned with grid - use this cell's velocity
          uvec = interp_velocity_c(i, j, k)
          Tair = thl0(i,j,k)
          qtair = qt0(i,j,k)
@@ -1188,10 +1191,12 @@ module modibm
          Tair  = trilinear_interp_var(thl0, bound_info_c%recids_c(sec,:), xf, yf, zf, xrec, yrec, zrec)
          qtair = trilinear_interp_var( qt0, bound_info_c%recids_c(sec,:), xf, yf, zf, xrec, yrec, zrec)
          dist = bound_info_c%bnddst(sec) + norm2((/xrec - xf(bound_info_c%bndpts(n,1)), &
-                                                 yrec - yf(bound_info_c%bndpts(n,2)), &
-                                                 zrec - zf(bound_info_c%bndpts(n,3))/))
+                                                   yrec - yf(bound_info_c%bndpts(n,2)), &
+                                                   zrec - zf(bound_info_c%bndpts(n,3))/))
 
        end if
+
+       if (log(dist/facz0(fac)) < 1) cycle ! prevents very large fluxes
 
        if (is_equal(uvec, vec0)) cycle
 
