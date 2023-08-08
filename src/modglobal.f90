@@ -97,6 +97,7 @@ module modglobal
    integer, parameter :: BCxs_periodic = 1
    integer, parameter :: BCxs_profile = 2
    integer, parameter :: BCxs_driver = 3
+   integer, parameter :: BCxs_custom = 4 ! Used to demonstrate flow
    ! set defaults
    integer :: BCxm = BCxm_periodic
    integer :: BCxT = BCxT_periodic
@@ -504,7 +505,10 @@ contains
       end if
 
       ! J. Tomas added this for using only kappa scheme for sv(:)
-      if (any(iadv_sv(1:nsv) == iadv_kappa)) then
+      if (any(iadv_sv(1:nsv) == iadv_kappa) .or. (iadv_thl == iadv_kappa)) then
+         ih = 1
+         jh = 1
+         kh = 1
          ihc = 2
          jhc = 2
          khc = 2
@@ -756,7 +760,7 @@ contains
       dxi5 = 0.5*dxi
 
       ! Grid used in kappa scheme advection (extra ghost nodes)
-      if (any(iadv_sv(1:nsv) == iadv_kappa)) then
+      if (any(iadv_sv(1:nsv) == iadv_kappa) .or. (iadv_thl == iadv_kappa)) then
          allocate (dzfc(kb - khc:ke + khc))
          allocate (dxfc(ib - ihc:itot + ihc))
          allocate (dzfci(kb - khc:ke + khc))

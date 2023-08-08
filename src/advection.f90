@@ -31,8 +31,8 @@ subroutine advection
 
    use modglobal, only:lmoist, nsv, iadv_mom, iadv_tke, iadv_thl, iadv_qt, iadv_sv, &
       iadv_cd2, iadv_kappa, iadv_upw, &
-      ltempeq, ih, jh, kh, ihc, jhc, khc, kb, ke
-   use modfields, only:u0, up, v0, vp, w0, wp, e120, e12p, thl0, thlp, qt0, qtp, sv0, svp, pres0, uh, vh, wh, pres0h
+      ltempeq, ih, jh, kh, ihc, jhc, khc, kb, ke, ib, ie, jb, je
+   use modfields, only:u0, up, v0, vp, w0, wp, e120, e12p, thl0, thl0c, thlp, thlpc, qt0, qtp, sv0, svp, pres0, uh, vh, wh, pres0h
    use modsubgriddata, only:loneeqn
    use decomp_2d
    implicit none
@@ -62,7 +62,9 @@ subroutine advection
    case (iadv_cd2)
       if (ltempeq) call advecc_2nd(ih, jh, kh, thl0, thlp)
    case (iadv_kappa)
-      call advecc_kappa(ihc, jhc, khc, thl0, thlp)
+      thlpc(ib:ie,jb:je,kb:ke) = thlp(ib:ie,jb:je,kb:ke)
+      if (ltempeq) call advecc_kappa(ihc, jhc, khc, thl0c, thlpc)
+      thlp(ib:ie,jb:je,kb:ke) = thlpc(ib:ie,jb:je,kb:ke)
    case default
       write(0, *) "ERROR: Unknown advection scheme"
       stop 1
