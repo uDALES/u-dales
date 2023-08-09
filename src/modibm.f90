@@ -1157,6 +1157,8 @@ module modibm
        fac = bound_info%secfacids(sec) ! index of facet
        norm = facnorm(fac,:) ! facet normal
 
+       if (facz0(fac) < eps1) cycle
+
        i = bound_info%bndpts(n,1) - zstart(1) + 1
        j = bound_info%bndpts(n,2) - zstart(2) + 1
        k = bound_info%bndpts(n,3) - zstart(3) + 1
@@ -1254,6 +1256,8 @@ module modibm
        n =   bound_info_c%secbndptids(sec) ! index of boundary point
        fac = bound_info_c%secfacids(sec) ! index of facet
        norm = facnorm(fac,:)
+
+       if (facz0(fac) < eps1) cycle
 
        i = bound_info_c%bndpts(n,1) - zstart(1) + 1 ! should be on this rank!
        j = bound_info_c%bndpts(n,2) - zstart(2) + 1 ! should be on this rank!
