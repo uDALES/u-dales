@@ -583,17 +583,17 @@ module modibm
      ! Solid value does not matter when using second order scheme
      ! Set interior to a constant and boundary to average of fluid neighbours
      if (ltempeq) then
-        !call solid(solid_info_c, thlm, thlp, sum(thl0av(kb:ke)*dzf(kb:ke))/zh(ke+1), ih, jh, kh, mask_c)
+        call solid(solid_info_c, thlm, thlp, sum(thl0av(kb:ke)*dzf(kb:ke))/zh(ke+1), ih, jh, kh, mask_c)
         if (iadv_thl == iadv_cd2) call advecc2nd_corr_liberal(thl0, thlp)
      end if
 
      if (lmoist) then
-       !call solid(solid_info_c, qtm, qtp, 0., ih, jh, kh, mask_c)
+       call solid(solid_info_c, qtm, qtp, 0., ih, jh, kh, mask_c)
        call advecc2nd_corr_liberal(qt0, qtp)
      end if
 
      do n=1,nsv
-        !call solid(solid_info_c, svm(:,:,:,n), svp(:,:,:,n), 0., ihc, jhc, khc, mask_c)
+        call solid(solid_info_c, svm(:,:,:,n), svp(:,:,:,n), 0., ihc, jhc, khc, mask_c)
         if (iadv_sv(n) == iadv_cd2) call advecc2nd_corr_liberal(sv0(:,:,:,n), svp(:,:,:,n))
      end do
 
@@ -633,6 +633,7 @@ module modibm
            rhs(i,j,k) = 0.
            count = 0
 
+           ! Attempt to set zero flux BC
            if (abs(mask(i,j+1,k) - 1.) < eps1) then ! fluid neighbour
              count = count + 1
              var(i,j,k) = var(i,j,k) + var(i,j+1,k)
