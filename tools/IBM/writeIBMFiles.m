@@ -25,26 +25,28 @@
 %   section area, fluid boundary point id, distance to section/surface as a whole (_2)
 
 nfcts = size(TR,1);
-%% Determine total area of surface
+Dir_ray_u = [0 0 1];
+Dir_ray_v = [0 0 1];
+Dir_ray_w = [0 0 1];
+Dir_ray_c = [0 0 1];
+tol_mypoly = 5e-4;
+
+currentPath = pwd;
+activeFilename = matlab.desktop.editor.getActiveFilename;
+[folder, ~, ~] = fileparts(activeFilename);
 
 if lmypolyfortran
+    in_mypoly_fortran_path = [folder '/in_mypoly_fortran/'];
+    addpath(in_mypoly_fortran_path)
     write_pre_info;
-    if lwindows
-        in_mypoly_fortran_path = [DA_TOOLSDIR '/IBM/in_mypoly_fortran/'];
-        cd(in_mypoly_fortran_path)
-        system('gfortran -O2 -fopenmp in_mypoly_functions.f90 IBM_flagging.f90 -o pre.exe');
-        copyfile('pre.exe',fpath); % remember to build pre.exe in local system. gfortran -O2 -fopenmp in_mypoly_functions.f90 IBM_flagging.f90 -o pre.exe
-        delete pre.exe in_mypoly_functions.mod;
-        cd(fpath)
-        system('pre.exe'); 
-        delete pre.exe inmypoly_inp_info.txt Stl_data.txt vertices.txt zfgrid.txt zhgrid.txt;
-    else
-        cd(DA_EXPDIR)
-        cd ..
-        in_mypoly_command = ['u-dales/tools/IBM/in_mypoly_fortran/pre_run.sh experiments/' expnr];
-        system(in_mypoly_command);
-        cd(fpath)
-    end
+    cd(in_mypoly_fortran_path);
+    system('gfortran -O2 -fopenmp in_mypoly_functions.f90 IBM_flagging.f90 -o pre.exe');
+    copyfile('pre.exe', fpath)
+    delete pre.exe in_mypoly_functions.mod
+    cd(fpath)
+    system('./pre.exe')
+    delete pre.exe inmypoly_inp_info.txt Stl_data.txt vertices.txt zfgrid.txt zhgrid.txt;
+    cd(currentPath)
 else
     if lmypoly
         max_height = max(TR.Points(:,3)) + tol_mypoly;
@@ -60,19 +62,20 @@ if lmypolyfortran
     flag_u = fscanf(fileID,formatSpec);
     fclose(fileID);
     count = 1;
-    for iy = 1:r.jtot
-        for iz = 1:r.ktot
-            for ix = 1:r.itot
+    solid_u = false(itot,jtot,ktot);
+    for iy = 1:jtot
+        for iz = 1:ktot
+            for ix = 1:itot
                 if (flag_u(count) == 1)
-                            solid_u(ix,iy,iz) = true;
+                    solid_u(ix,iy,iz) = true;
                 else
-                            solid_u(ix,iy,iz) = false;
+                    solid_u(ix,iy,iz) = false;
                 end
                 count = count+1;
             end
         end
     end
-    solid_ijk_u = readmatrix('solid_u.txt');
+    solid_ijk_u = readmatrix([fpath 'solid_u.txt']);
     disp('Written solid_u.txt')
 else
     if lmypoly
@@ -196,9 +199,9 @@ if lmypolyfortran
     flag_v = fscanf(fileID,formatSpec);
     fclose(fileID);
     count = 1;
-    for iy = 1:r.jtot
-        for iz = 1:r.ktot
-            for ix = 1:r.itot
+    for iy = 1:jtot
+        for iz = 1:ktot
+            for ix = 1:itot
                 if (flag_v(count) == 1)
                             solid_v(ix,iy,iz) = true;
                 else
@@ -208,7 +211,7 @@ if lmypolyfortran
             end
         end
     end
-    solid_ijk_v = readmatrix('solid_v.txt');
+    solid_ijk_v = readmatrix([fpath 'solid_v.txt']);
     disp('Written solid_v.txt')
 else
     if lmypoly
@@ -329,9 +332,9 @@ if lmypolyfortran
     flag_w = fscanf(fileID,formatSpec);
     fclose(fileID);
     count = 1;
-    for iy = 1:r.jtot
-        for iz = 1:r.ktot
-            for ix = 1:r.itot
+    for iy = 1:jtot
+        for iz = 1:ktot
+            for ix = 1:itot
                 if (flag_w(count) == 1)
                             solid_w(ix,iy,iz) = true;
                 else
@@ -341,7 +344,7 @@ if lmypolyfortran
             end
         end
     end
-    solid_ijk_w = readmatrix('solid_w.txt');
+    solid_ijk_w = readmatrix([fpath 'solid_w.txt']);
     disp('Written solid_w.txt')
 else
     if lmypoly
@@ -463,9 +466,9 @@ if lmypolyfortran
     flag_c = fscanf(fileID,formatSpec);
     fclose(fileID);
     count = 1;
-    for iy = 1:r.jtot
-        for iz = 1:r.ktot
-            for ix = 1:r.itot
+    for iy = 1:jtot
+        for iz = 1:ktot
+            for ix = 1:itot
                 if (flag_c(count) == 1)
                             solid_c(ix,iy,iz) = true;
                 else
@@ -475,7 +478,7 @@ if lmypolyfortran
             end
         end
     end
-    solid_ijk_c = readmatrix('solid_c.txt');
+    solid_ijk_c = readmatrix([fpath 'solid_c.txt']);
     disp('Written solid_c.txt')
 else
     if lmypoly
@@ -620,7 +623,9 @@ fclose(fileID_info);
 
 %% Clean up exp directory
 if lmypolyfortran
+    cd(fpath)
     delete flag_u.txt flag_v.txt flag_w.txt flag_c.txt;
+    cd(currentPath)
 end
 
 %% Plot
@@ -640,9 +645,9 @@ ylim([0 ysize])
 zlim([0 zsize])
 
 scatter3(X_u(solid_u), Y_u(solid_u), Z_u(solid_u), 10,[0,0,1],'filled')
-scatter3(X_v(solid_v), Y_v(solid_v), Z_v(solid_v), 10,[0,0,1],'filled')
-scatter3(X_w(solid_w), Y_w(solid_w), Z_w(solid_w), 10,[0,0,1],'filled')
-scatter3(X_c(solid_c), Y_c(solid_c), Z_c(solid_c), 10,[0,0,1],'filled')
+%scatter3(X_v(solid_v), Y_v(solid_v), Z_v(solid_v), 10,[0,0,1],'filled')
+%scatter3(X_w(solid_w), Y_w(solid_w), Z_w(solid_w), 10,[0,0,1],'filled')
+%scatter3(X_c(solid_c), Y_c(solid_c), Z_c(solid_c), 10,[0,0,1],'filled')
 
 %scatter3(X_u(fluid_IB_u), Y_u(fluid_IB_u), Z_u(fluid_IB_u), 10,[0,0,1],'filled')
 %scatter3(X_v(fluid_IB_v), Y_v(fluid_IB_v), Z_v(fluid_IB_v), 10,[0,0,1],'filled')
@@ -653,32 +658,3 @@ scatter3(X_c(solid_c), Y_c(solid_c), Z_c(solid_c), 10,[0,0,1],'filled')
 %scatter3(fluid_IB_xyz_v(:,1),fluid_IB_xyz_v(:,2),fluid_IB_xyz_v(:,3),10,[0,0,1],'filled')
 %scatter3(fluid_IB_xyz_w(:,1),fluid_IB_xyz_w(:,2),fluid_IB_xyz_w(:,3),10,[0,0,1],'filled')
 %scatter3(fluid_IB_xyz_c(:,1),fluid_IB_xyz_c(:,2),fluid_IB_xyz_c(:,3),10,[0,0,1],'filled')
-
-% %% u
-% scatter3(fluid_IB_xyz_u(:,1),fluid_IB_xyz_u(:,2),fluid_IB_xyz_u(:,3),10,[0,0,1],'filled')
-% %scatter3(solid_IB_xyz_u(:,1),solid_IB_xyz_u(:,2),solid_IB_xyz_u(:,3),10,[0,0,1],'filled')
-% %quiver3(fluid_IB_BI_u(:,1), fluid_IB_BI_u(:,2), fluid_IB_BI_u(:,3), fluid_IB_vec_u(:,1), fluid_IB_vec_u(:,2), fluid_IB_vec_u(:,3),'off')
-%scatter3(fluid_IB_rec_u(:,1),fluid_IB_rec_u(:,2),fluid_IB_rec_u(:,3),10,[0,0,1],'filled')
-%quiver3(fluid_IB_xyz_u(:,1), fluid_IB_xyz_u(:,2), fluid_IB_xyz_u(:,3), fluid_IB_rec_vec_u(:,1), fluid_IB_rec_vec_u(:,2), fluid_IB_rec_vec_u(:,3),'off')
-%quiver3(fluid_IB_xyz_u(:,1), fluid_IB_xyz_u(:,2), fluid_IB_xyz_u(:,3), fluid_IB_rec_vec_u(:,1), fluid_IB_rec_vec_u(:,2), fluid_IB_rec_vec_u(:,3),'off')
-%
-% %% v
-% scatter3(fluid_IB_xyz_v(:,1),fluid_IB_xyz_v(:,2),fluid_IB_xyz_v(:,3),10,[0,0,1],'filled')
-% %scatter3(solid_IB_xyz_v(:,1),solid_IB_xyz_v(:,2),solid_IB_xyz_v(:,3),10,[0,0,1],'filled')
-% quiver3(fluid_IB_BI_v(:,1), fluid_IB_BI_v(:,2), fluid_IB_BI_v(:,3), fluid_IB_vec_v(:,1), fluid_IB_vec_v(:,2), fluid_IB_vec_v(:,3),'off')
-% %scatter3(fluid_IB_rec_v(:,1),fluid_IB_rec_v(:,2),fluid_IB_rec_v(:,3),10,[0,0,1],'filled')
-% %quiver3(fluid_IB_xyz_v(:,1), fluid_IB_xyz_v(:,2), fluid_IB_xyz_v(:,3), fluid_IB_rec_vec_v(:,1), fluid_IB_rec_vec_v(:,2), fluid_IB_rec_vec_v(:,3),'off')
-%
-% %% w
-% scatter3(fluid_IB_xyz_w(:,1),fluid_IB_xyz_w(:,2),fluid_IB_xyz_w(:,3),10,[0,0,1],'filled')
-% %scatter3(solid_IB_xyz_w(:,1),solid_IB_xyz_w(:,2),solid_IB_xyz_w(:,3),10,[0,0,1],'filled')
-% quiver3(fluid_IB_BI_w(:,1), fluid_IB_BI_w(:,2), fluid_IB_BI_w(:,3), fluid_IB_vec_w(:,1), fluid_IB_vec_w(:,2), fluid_IB_vec_w(:,3),'off')
-% %scatter3(fluid_IB_rec_w(:,1),fluid_IB_rec_w(:,2),fluid_IB_rec_w(:,3),10,[0,0,1],'filled')
-% %quiver3(fluid_IB_xyz_w(:,1), fluid_IB_xyz_w(:,2), fluid_IB_xyz_w(:,3), fluid_IB_rec_vec_w(:,1), fluid_IB_rec_vec_w(:,2), fluid_IB_rec_vec_w(:,3),'off')
-%
-% %% c
-% scatter3(fluid_IB_xyz_c(:,1),fluid_IB_xyz_c(:,2),fluid_IB_xyz_c(:,3),10,[0,0,1],'filled')
-% %scatter3(solid_IB_xyz_c(:,1),solid_IB_xyz_c(:,2),solid_IB_xyz_c(:,3),10,[0,0,1],'filled')
-% quiver3(fluid_IB_BI_c(:,1), fluid_IB_BI_c(:,2), fluid_IB_BI_c(:,3), fluid_IB_vec_c(:,1), fluid_IB_vec_c(:,2), fluid_IB_vec_c(:,3),'off')
-% %scatter3(fluid_IB_rec_c(:,1),fluid_IB_rec_c(:,2),fluid_IB_rec_c(:,3),10,[0,0,1],'filled')
-% %quiver3(fluid_IB_xyz_c(:,1), fluid_IB_xyz_c(:,2), fluid_IB_xyz_c(:,3), fluid_IB_rec_vec_c(:,1), fluid_IB_rec_vec_c(:,2), fluid_IB_rec_vec_c(:,3),'off')

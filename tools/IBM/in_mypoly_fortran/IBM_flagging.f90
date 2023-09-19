@@ -5,7 +5,7 @@ program Xie
     
     implicit none
     
-    character*3 :: expnr, dummy
+    character*3 :: dummy
     real :: max_height, L_char, tol, Ray_dir_u(3), Ray_dir_v(3), Ray_dir_w(3), Ray_dir_c(3)
     integer :: n_vert, n_fcts
     real :: dx, dy  !, dz
@@ -17,7 +17,6 @@ program Xie
     
 
     open(unit=50,file='inmypoly_inp_info.txt')
-    read(unit=50,fmt='(3a)') expnr
     read(unit=50,fmt='(f15.10,x,f15.10)') dx, dy  !, dz
     read(unit=50,fmt='(i5,x,i5,x,i5)') itot, jtot, ktot
     read(unit=50,fmt='(f15.10)') tol
@@ -25,7 +24,7 @@ program Xie
     read(unit=50,fmt='(f15.10,x,f15.10,x,f15.10)') Ray_dir_v(1), Ray_dir_v(2), Ray_dir_v(3)
     read(unit=50,fmt='(f15.10,x,f15.10,x,f15.10)') Ray_dir_w(1), Ray_dir_w(2), Ray_dir_w(3)
     read(unit=50,fmt='(f15.10,x,f15.10,x,f15.10)') Ray_dir_c(1), Ray_dir_c(2), Ray_dir_c(3)
-    read(unit=50,fmt='(i5,x,i5)') n_vert, n_fcts
+    read(unit=50,fmt='(i8,x,i8)') n_vert, n_fcts
     close(unit=50)
 
 
@@ -236,7 +235,7 @@ subroutine read_data(vertices_file,n_vert,facets_file,n_fcts,zf_file,zh_file,kto
         close(unit=1)
 
         !$OMP section
-        15 format(i5,x,i5,x,i5,x,f15.10,x,f15.10,x,f15.10,x,f15.10,x,f15.10,x,f15.10)
+        15 format(i8,x,i8,x,i8,x,f15.10,x,f15.10,x,f15.10,x,f15.10,x,f15.10,x,f15.10)
         open(unit=2,file=facets_file)
         kk=1
         do i=1,n_fcts
