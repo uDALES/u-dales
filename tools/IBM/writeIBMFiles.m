@@ -41,12 +41,12 @@ if lmypolyfortran
     addpath(in_mypoly_fortran_path)
     write_pre_info;
     cd(in_mypoly_fortran_path);
-    system('gfortran -O2 -fopenmp in_mypoly_functions.f90 ibm_necessary_functions.f90 IBM_flagging.f90 -o pre.exe');
-    copyfile('pre.exe', fpath)
-    delete pre.exe in_mypoly_functions.mod
+    system('gfortran -O2 -fopenmp in_mypoly_functions.f90 ibm_necessary_functions.f90 IBM_flagging.f90 -o pre');
+    copyfile('pre', fpath)
+    delete pre in_mypoly_functions.mod
     cd(fpath)
-    system('./pre.exe')
-    delete pre.exe inmypoly_inp_info.txt Stl_data.txt vertices.txt zfgrid.txt zhgrid.txt;
+    system('./pre')
+    delete pre inmypoly_inp_info.txt Stl_data.txt vertices.txt zfgrid.txt zhgrid.txt;
     cd(currentPath)
 else
     if lmypoly
@@ -81,13 +81,13 @@ if lmypolyfortran
     fluid_IB_u_fort = fscanf(fileID,formatSpec);
     fclose(fileID);
     count = 1;
-    for iy = 1:r.jtot
-        for iz = 1:r.ktot
-            for ix = 1:r.itot
+    for iy = 1:jtot
+        for iz = 1:ktot
+            for ix = 1:itot
                 if (fluid_IB_u_fort(count) == 1)
-                            fluid_IB_u(ix,iy,iz) = true;
+                    fluid_IB_u(ix,iy,iz) = true;
                 else
-                            fluid_IB_u(ix,iy,iz) = false;
+                    fluid_IB_u(ix,iy,iz) = false;
                 end
                 count = count+1;
             end
@@ -98,24 +98,24 @@ if lmypolyfortran
     solid_IB_u_fort = fscanf(fileID,formatSpec);
     fclose(fileID);
     count = 1;
-    for iy = 1:r.jtot
-        for iz = 1:r.ktot
-            for ix = 1:r.itot
+    for iy = 1:jtot
+        for iz = 1:ktot
+            for ix = 1:itot
                 if (solid_IB_u_fort(count) == 1)
-                            solid_IB_u(ix,iy,iz) = true;
+                    solid_IB_u(ix,iy,iz) = true;
                 else
-                            solid_IB_u(ix,iy,iz) = false;
+                    solid_IB_u(ix,iy,iz) = false;
                 end
                 count = count+1;
             end
         end
     end
 
-    solid_ijk_u = readmatrix('solid_u.txt');
-    fluid_IB_ijk_u = readmatrix('fluid_boundary_u.txt');
+    solid_ijk_u = readmatrix([fpath 'solid_u.txt']);
+    fluid_IB_ijk_u = readmatrix([fpath 'fluid_boundary_u.txt']);
     fluid_IB_ijk_u = sortrows(fluid_IB_ijk_u,3);
     fluid_IB_xyz_u = [xgrid_u(fluid_IB_ijk_u(:,1))', ygrid_u(fluid_IB_ijk_u(:,2))', zgrid_u(fluid_IB_ijk_u(:,3))'];
-    solid_IB_ijk_u = readmatrix('solid_boundary_u.txt');
+    solid_IB_ijk_u = readmatrix([fpath 'solid_boundary_u.txt']);
     solid_IB_ijk_u = sortrows(solid_IB_ijk_u,3);
     solid_IB_xyz_u = [xgrid_u(solid_IB_ijk_u(:,1))', ygrid_u(solid_IB_ijk_u(:,2))', zgrid_u(solid_IB_ijk_u(:,3))'];
 
@@ -247,9 +247,9 @@ if lmypolyfortran
         for iz = 1:ktot
             for ix = 1:itot
                 if (flag_v(count) == 1)
-                            solid_v(ix,iy,iz) = true;
+                    solid_v(ix,iy,iz) = true;
                 else
-                            solid_v(ix,iy,iz) = false;
+                    solid_v(ix,iy,iz) = false;
                 end
                 count = count+1;
             end
@@ -260,13 +260,13 @@ if lmypolyfortran
     fluid_IB_v_fort = fscanf(fileID,formatSpec);
     fclose(fileID);
     count = 1;
-    for iy = 1:r.jtot
-        for iz = 1:r.ktot
-            for ix = 1:r.itot
+    for iy = 1:jtot
+        for iz = 1:ktot
+            for ix = 1:itot
                 if (fluid_IB_v_fort(count) == 1)
-                            fluid_IB_v(ix,iy,iz) = true;
+                    fluid_IB_v(ix,iy,iz) = true;
                 else
-                            fluid_IB_v(ix,iy,iz) = false;
+                    fluid_IB_v(ix,iy,iz) = false;
                 end
                 count = count+1;
             end
@@ -277,24 +277,24 @@ if lmypolyfortran
     solid_IB_v_fort = fscanf(fileID,formatSpec);
     fclose(fileID);
     count = 1;
-    for iy = 1:r.jtot
-        for iz = 1:r.ktot
-            for ix = 1:r.itot
+    for iy = 1:jtot
+        for iz = 1:ktot
+            for ix = 1:itot
                 if (solid_IB_v_fort(count) == 1)
-                            solid_IB_v(ix,iy,iz) = true;
+                    solid_IB_v(ix,iy,iz) = true;
                 else
-                            solid_IB_v(ix,iy,iz) = false;
+                    solid_IB_v(ix,iy,iz) = false;
                 end
                 count = count+1;
             end
         end
     end
 
-    solid_ijk_v = readmatrix('solid_v.txt');
-    fluid_IB_ijk_v = readmatrix('fluid_boundary_v.txt');
+    solid_ijk_v = readmatrix([fpath 'solid_v.txt']);
+    fluid_IB_ijk_v = readmatrix([fpath 'fluid_boundary_v.txt']);
     fluid_IB_ijk_v = sortrows(fluid_IB_ijk_v,3);
     fluid_IB_xyz_v = [xgrid_v(fluid_IB_ijk_v(:,1))', ygrid_v(fluid_IB_ijk_v(:,2))', zgrid_v(fluid_IB_ijk_v(:,3))'];
-    solid_IB_ijk_v = readmatrix('solid_boundary_v.txt');
+    solid_IB_ijk_v = readmatrix([fpath 'solid_boundary_v.txt']);
     solid_IB_ijk_v = sortrows(solid_IB_ijk_v,3);
     solid_IB_xyz_v = [xgrid_v(solid_IB_ijk_v(:,1))', ygrid_v(solid_IB_ijk_v(:,2))', zgrid_v(solid_IB_ijk_v(:,3))'];
 
@@ -436,9 +436,9 @@ if lmypolyfortran
     fluid_IB_w_fort = fscanf(fileID,formatSpec);
     fclose(fileID);
     count = 1;
-    for iy = 1:r.jtot
-        for iz = 1:r.ktot
-            for ix = 1:r.itot
+    for iy = 1:jtot
+        for iz = 1:ktot
+            for ix = 1:itot
                 if (fluid_IB_w_fort(count) == 1)
                             fluid_IB_w(ix,iy,iz) = true;
                 else
@@ -453,9 +453,9 @@ if lmypolyfortran
     solid_IB_w_fort = fscanf(fileID,formatSpec);
     fclose(fileID);
     count = 1;
-    for iy = 1:r.jtot
-        for iz = 1:r.ktot
-            for ix = 1:r.itot
+    for iy = 1:jtot
+        for iz = 1:ktot
+            for ix = 1:itot
                 if (solid_IB_w_fort(count) == 1)
                             solid_IB_w(ix,iy,iz) = true;
                 else
@@ -466,11 +466,11 @@ if lmypolyfortran
         end
     end
 
-    solid_ijk_w = readmatrix('solid_w.txt');
-    fluid_IB_ijk_w = readmatrix('fluid_boundary_w.txt');
+    solid_ijk_w = readmatrix([fpath 'solid_w.txt']);
+    fluid_IB_ijk_w = readmatrix([fpath 'fluid_boundary_w.txt']);
     fluid_IB_ijk_w = sortrows(fluid_IB_ijk_w,3);
     fluid_IB_xyz_w = [xgrid_w(fluid_IB_ijk_w(:,1))', ygrid_w(fluid_IB_ijk_w(:,2))', zgrid_w(fluid_IB_ijk_w(:,3))'];
-    solid_IB_ijk_w = readmatrix('solid_boundary_w.txt');
+    solid_IB_ijk_w = readmatrix([fpath 'solid_boundary_w.txt']);
     solid_IB_ijk_w = sortrows(solid_IB_ijk_w,3);
     solid_IB_xyz_w = [xgrid_w(solid_IB_ijk_w(:,1))', ygrid_w(solid_IB_ijk_w(:,2))', zgrid_w(solid_IB_ijk_w(:,3))'];
 
@@ -613,9 +613,9 @@ if lmypolyfortran
     fluid_IB_c_fort = fscanf(fileID,formatSpec);
     fclose(fileID);
     count = 1;
-    for iy = 1:r.jtot
-        for iz = 1:r.ktot
-            for ix = 1:r.itot
+    for iy = 1:jtot
+        for iz = 1:ktot
+            for ix = 1:itot
                 if (fluid_IB_c_fort(count) == 1)
                             fluid_IB_c(ix,iy,iz) = true;
                 else
@@ -630,9 +630,9 @@ if lmypolyfortran
     solid_IB_c_fort = fscanf(fileID,formatSpec);
     fclose(fileID);
     count = 1;
-    for iy = 1:r.jtot
-        for iz = 1:r.ktot
-            for ix = 1:r.itot
+    for iy = 1:jtot
+        for iz = 1:ktot
+            for ix = 1:itot
                 if (solid_IB_c_fort(count) == 1)
                             solid_IB_c(ix,iy,iz) = true;
                 else
@@ -643,11 +643,11 @@ if lmypolyfortran
         end
     end
 
-    solid_ijk_c = readmatrix('solid_c.txt');
-    fluid_IB_ijk_c = readmatrix('fluid_boundary_c.txt');
+    solid_ijk_c = readmatrix([fpath 'solid_c.txt']);
+    fluid_IB_ijk_c = readmatrix([fpath 'fluid_boundary_c.txt']);
     fluid_IB_ijk_c = sortrows(fluid_IB_ijk_c,3);
     fluid_IB_xyz_c = [xgrid_c(fluid_IB_ijk_c(:,1))', ygrid_c(fluid_IB_ijk_c(:,2))', zgrid_c(fluid_IB_ijk_c(:,3))'];
-    solid_IB_ijk_c = readmatrix('solid_boundary_c.txt');
+    solid_IB_ijk_c = readmatrix([fpath 'solid_boundary_c.txt']);
     solid_IB_ijk_c = sortrows(solid_IB_ijk_c,3);
     solid_IB_xyz_c = [xgrid_c(solid_IB_ijk_c(:,1))', ygrid_c(solid_IB_ijk_c(:,2))', zgrid_c(solid_IB_ijk_c(:,3))'];
 
