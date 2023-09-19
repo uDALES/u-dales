@@ -1,20 +1,21 @@
 program Xie
-    
+
     use omp_lib
     use in_mypoly_functions
-    
+    use ibm_necessary_functions
+
     implicit none
-    
-    character*3 :: dummy
+
     real :: max_height, L_char, tol, Ray_dir_u(3), Ray_dir_v(3), Ray_dir_w(3), Ray_dir_c(3)
-    integer :: n_vert, n_fcts
+    integer :: n_vert, n_fcts, n_threads, stl_ground_i, diag_neighbs_i
+    logical :: stl_ground, diag_neighbs
     real :: dx, dy  !, dz
     integer :: itot, jtot, ktot
-    integer :: i, ix, iy, iz
+    integer :: i
     real, allocatable, dimension(:) :: xf, xh, yf, yh, zf, zh, vertices, incenters, faceNormals
     integer, allocatable, dimension(:) :: facets
     logical, allocatable, dimension(:,:,:) :: solid_u, solid_v, solid_w, solid_c
-    
+
 
     open(unit=50,file='inmypoly_inp_info.txt')
     read(unit=50,fmt='(f15.10,x,f15.10)') dx, dy  !, dz
@@ -25,7 +26,25 @@ program Xie
     read(unit=50,fmt='(f15.10,x,f15.10,x,f15.10)') Ray_dir_w(1), Ray_dir_w(2), Ray_dir_w(3)
     read(unit=50,fmt='(f15.10,x,f15.10,x,f15.10)') Ray_dir_c(1), Ray_dir_c(2), Ray_dir_c(3)
     read(unit=50,fmt='(i8,x,i8)') n_vert, n_fcts
+    read(unit=50,fmt='(i4)') n_threads
+    read(unit=50,fmt='(i1,x,i1)') stl_ground_i, diag_neighbs_i
     close(unit=50)
+
+    if (stl_ground_i==1) then
+        stl_ground = .true.
+    elseif (stl_ground_i==0) then
+        stl_ground = .false.
+    else
+        print *, "Incorrect input for 'stl_ground'."
+    end if
+
+    if (diag_neighbs_i==1) then
+        diag_neighbs = .true.
+    elseif (diag_neighbs_i==0) then
+        diag_neighbs = .false.
+    else
+        print *, "Incorrect input for 'diag_neighbs'."
+    end if
 
 
     allocate(vertices(n_vert*3))
@@ -42,274 +61,45 @@ program Xie
     allocate(solid_v(itot,jtot,ktot))
     allocate(solid_w(itot,jtot,ktot))
     allocate(solid_c(itot,jtot,ktot))
-    
+
 
     xf(1:itot) = [((i-1)*dx+(dx/2.0), i=1,itot)]
     xh(1:itot) = [((i-1)*dx, i=1,itot)]
-    
+
     yf(1:jtot) = [((i-1)*dy+(dy/2.0), i=1,jtot)]
     yh(1:jtot) = [((i-1)*dy, i=1,jtot)]
-    
+
     ! zf(1:ktot) = [((i-1)*dz+(dz/2.0), i=1,ktot)]
     ! zh(1:ktot) = [((i-1)*dz, i=1,ktot)]
 
     call read_data('vertices.txt',n_vert,'Stl_data.txt',n_fcts,'zfgrid.txt','zhgrid.txt',ktot, &
                     vertices,facets,incenters,faceNormals,zf,zh)
-    
+
     max_height = MAXVAL(vertices(3:n_vert*3:3)) + tol
     L_char = max_facet_side(n_vert,vertices,n_fcts,facets) + tol
-    
+
+    write(*,*) 'Determining solid points for u-grid.'
     solid_u = is_grid_in_mypoly_func(n_vert,vertices,n_fcts,facets,incenters,faceNormals, &
-                                    itot,xh,jtot,yf,ktot,zf,Ray_dir_u,L_char,max_height,tol)
+                                    itot,xh,jtot,yf,ktot,zf,Ray_dir_u,L_char,max_height,tol,n_threads)
+    write(*,*) 'Determining solid points for v-grid.'
     solid_v = is_grid_in_mypoly_func(n_vert,vertices,n_fcts,facets,incenters,faceNormals, &
-                                    itot,xf,jtot,yh,ktot,zf,Ray_dir_v,L_char,max_height,tol)
+                                    itot,xf,jtot,yh,ktot,zf,Ray_dir_v,L_char,max_height,tol,n_threads)
+    write(*,*) 'Determining solid points for w-grid.'
     solid_w = is_grid_in_mypoly_func(n_vert,vertices,n_fcts,facets,incenters,faceNormals, &
-                                    itot,xf,jtot,yf,ktot,zh,Ray_dir_w,L_char,max_height,tol)
+                                    itot,xf,jtot,yf,ktot,zh,Ray_dir_w,L_char,max_height,tol,n_threads)
+    write(*,*) 'Determining solid points for c-grid.'
     solid_c = is_grid_in_mypoly_func(n_vert,vertices,n_fcts,facets,incenters,faceNormals, &
-                                    itot,xf,jtot,yf,ktot,zf,Ray_dir_c,L_char,max_height,tol)
-    
-    
-    !$ call OMP_SET_NUM_THREADS(4)
-    !$OMP parallel
-        !$OMP sections private(ix,iy,iz)
-            
-            !$OMP section
-            open(unit=1,file='flag_u.txt')
-            do iy = 1,jtot
-                do iz = 1,ktot
-                    do ix = 1,itot
-                        if (solid_u(ix,iy,iz) .eqv. .true.) then
-                                write(unit=1,fmt='(i1,A)',advance='no') 1, NEW_LINE('a')
-                        else
-                                write(unit=1,fmt='(i1,A)',advance='no') 0, NEW_LINE('a')
-                        end if
-                    end do
-                end do
-            end do
-            close(unit=1)
-            
-            !$OMP section
-            open(unit=2,file='flag_v.txt')
-            do iy = 1,jtot
-                do iz = 1,ktot
-                    do ix = 1,itot
-                        if (solid_v(ix,iy,iz) .eqv. .true.) then
-                                write(unit=2,fmt='(i1,A)',advance='no') 1, NEW_LINE('a')
-                        else
-                                write(unit=2,fmt='(i1,A)',advance='no') 0, NEW_LINE('a')
-                        end if
-                    end do
-                end do
-            end do
-            close(unit=2)
-            
-            !$OMP section
-            open(unit=3,file='flag_w.txt')
-            do iy = 1,jtot
-                do iz = 1,ktot
-                    do ix = 1,itot
-                        if (solid_w(ix,iy,iz) .eqv. .true.) then
-                                write(unit=3,fmt='(i1,A)',advance='no') 1, NEW_LINE('a')
-                        else
-                                write(unit=3,fmt='(i1,A)',advance='no') 0, NEW_LINE('a')
-                        end if
-                    end do
-                end do
-            end do
-            close(unit=3)
-            
-            !$OMP section
-            open(unit=4,file='flag_c.txt')
-            do iy = 1,jtot
-                do iz = 1,ktot
-                    do ix = 1,itot
-                        if (solid_c(ix,iy,iz) .eqv. .true.) then
-                                write(unit=4,fmt='(i1,A)',advance='no') 1, NEW_LINE('a')
-                        else
-                                write(unit=4,fmt='(i1,A)',advance='no') 0, NEW_LINE('a')
-                        end if
-                    end do
-                end do
-            end do
-            close(unit=4)
+                                    itot,xf,jtot,yf,ktot,zf,Ray_dir_c,L_char,max_height,tol,n_threads)
 
-        !$OMP end sections
-    !$OMP end parallel
+    call print_solid_flags(itot,jtot,ktot,solid_u,solid_v,solid_w,solid_c)
 
-    !$ call OMP_SET_NUM_THREADS(4)
-    !$OMP parallel
-        !$OMP sections private(ix,iy,iz)
+    call print_solid_points_index(itot,jtot,ktot,solid_u,solid_v,solid_w,solid_c)
 
-            !$OMP section
-            open(unit=1,file='solid_u.txt')
-            write(unit=1,fmt='(a18)') '# position (i,j,k)'
-            do iy = 1,jtot
-                do iz = 1,ktot
-                    do ix = 1,itot
-                        if (solid_u(ix,iy,iz)) then
-                                write(unit=1,fmt='(i4,x,i4,x,i4,A)',advance='no') ix, iy, iz, NEW_LINE('a')
-                        end if
-                    end do
-                end do
-            end do
-            close(unit=1)
+    call boundaryMasks('u', itot, jtot, ktot, solid_u, diag_neighbs, stl_ground)
+    call boundaryMasks('v', itot, jtot, ktot, solid_v, diag_neighbs, stl_ground)
+    call boundaryMasks('w', itot, jtot, ktot, solid_w, diag_neighbs, stl_ground)
+    call boundaryMasks('c', itot, jtot, ktot, solid_c, diag_neighbs, stl_ground)
 
-            !$OMP section
-            open(unit=2,file='solid_v.txt')
-            write(unit=2,fmt='(a18)') '# position (i,j,k)'
-            do iy = 1,jtot
-                do iz = 1,ktot
-                    do ix = 1,itot
-                        if (solid_v(ix,iy,iz)) then
-                                write(unit=2,fmt='(i4,x,i4,x,i4,A)',advance='no') ix, iy, iz, NEW_LINE('a')
-                        end if
-                    end do
-                end do
-            end do
-            close(unit=2)
-
-            !$OMP section
-            open(unit=3,file='solid_w.txt')
-            write(unit=3,fmt='(a18)') '# position (i,j,k)'
-            do iy = 1,jtot
-                do iz = 1,ktot
-                    do ix = 1,itot
-                        if (solid_w(ix,iy,iz)) then
-                                write(unit=3,fmt='(i4,x,i4,x,i4,A)',advance='no') ix, iy, iz, NEW_LINE('a')
-                        end if
-                    end do
-                end do
-            end do
-            close(unit=3)
-
-            !$OMP section
-            open(unit=4,file='solid_c.txt')
-            write(unit=4,fmt='(a18)') '# position (i,j,k)'
-            do iy = 1,jtot
-                do iz = 1,ktot
-                    do ix = 1,itot
-                        if (solid_c(ix,iy,iz)) then
-                                write(unit=4,fmt='(i4,x,i4,x,i4,A)',advance='no') ix, iy, iz, NEW_LINE('a')
-                        end if
-                    end do
-                end do
-            end do
-            close(unit=4)
-
-        !$OMP end sections
-    !$OMP end parallel
- 
     deallocate(xf,xh,yf,yh,zf,zh,vertices,facets,incenters,faceNormals,solid_u,solid_v,solid_w,solid_c)
-    
+
 end program Xie
-
-
-
-!! Subroutine to read STL data from text files vertices_file and facets_file
-subroutine read_data(vertices_file,n_vert,facets_file,n_fcts,zf_file,zh_file,ktot, &
-                     vertices,facets,incenters,faceNormals,zf,zh)
-    
-    use omp_lib
-    
-    implicit none
-
-    integer, intent(in) :: n_vert, n_fcts, ktot
-    character*12, intent(in) :: vertices_file, facets_file
-    character*10, intent(in) :: zf_file, zh_file
-    real, dimension(n_vert*3), intent(out) :: vertices
-    integer, dimension(n_fcts*3), intent(out) :: facets
-    real, dimension(n_fcts*3), intent(out) :: incenters, faceNormals
-    real, intent(out) :: zf(ktot), zh(ktot)
-
-    integer :: i, kk
-
-    !$ call OMP_SET_NUM_THREADS(4)
-    !$OMP parallel
-        !$OMP sections private(i,kk)
-
-        !$OMP section
-        open(unit=1,file=vertices_file)
-        do i=1,n_vert
-            read(unit=1,fmt='(f15.10,x,f15.10,x,f15.10)') vertices(3*i-2), vertices(3*i-1), vertices(3*i)
-        end do
-        close(unit=1)
-
-        !$OMP section
-        15 format(i8,x,i8,x,i8,x,f15.10,x,f15.10,x,f15.10,x,f15.10,x,f15.10,x,f15.10)
-        open(unit=2,file=facets_file)
-        kk=1
-        do i=1,n_fcts
-            read(unit=2,fmt=15) facets(kk), facets(kk+1), facets(kk+2), &
-                                incenters(kk), incenters(kk+1), incenters(kk+2), &
-                                faceNormals(kk), faceNormals(kk+1), faceNormals(kk+2)
-            kk = kk+3
-        end do
-        close(unit=2)
-
-        !$OMP section
-        open(unit=3,file=zf_file)
-        do i = 1,ktot    
-            read(unit=3,fmt='(f15.10)') zf(i)
-        end do
-        close(unit=3)
-
-        !$OMP section
-        open(unit=4,file=zh_file)
-            do i = 1,ktot   
-                read(unit=4,fmt='(f15.10)') zh(i)
-            end do
-        close(unit=4)
-
-        !$OMP end sections
-    !$OMP end parallel
-
-end subroutine read_data
-
-
-
-!! Subroutine to print STL data
-subroutine print_stl_data(n_vert,vertices,n_fcts,facets,incenters,faceNormals)
-    implicit none
-
-    integer, intent(in) :: n_vert, n_fcts
-    real, dimension(n_vert*3), intent(in) :: vertices
-    integer, dimension(n_fcts*3), intent(in) :: facets
-    real, dimension(n_fcts*3), intent(in) :: incenters, faceNormals
-
-    integer :: i, kk
-
-    10 format(f15.10,x,f15.10,x,f15.10)
-
-    kk=1
-    print *,"VERTICES"
-    do i=1,n_vert
-        write(*,fmt=10,advance='no') vertices(kk), vertices(kk+1), vertices(kk+2)
-        write(*,*)
-        kk=kk+3
-    end do
-
-    kk=1
-    print *,"FACETS"
-    do i=1,n_fcts
-        write(*,fmt='(i5,x,i5,x,i5)',advance='no') facets(kk), facets(kk+1), facets(kk+2)
-        write(*,*)
-        kk=kk+3
-    end do
-
-    kk=1
-    print *,"IN-CENTERS"
-    do i=1,n_fcts
-        write(*,fmt=10,advance='no') incenters(kk), incenters(kk+1), incenters(kk+2)
-        write(*,*)
-        kk=kk+3
-    end do
-
-    kk=1
-    print *,"FACE NORMALS"
-    do i=1,n_fcts
-        write(*,fmt=10,advance='no') faceNormals(kk), faceNormals(kk+1), faceNormals(kk+2)
-        write(*,*)
-        kk=kk+3
-    end do
-
-end subroutine print_stl_data
