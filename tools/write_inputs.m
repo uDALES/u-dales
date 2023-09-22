@@ -110,8 +110,11 @@ if r.libm
         itot = r.itot;
         jtot = r.jtot;
         ktot = r.ktot;
+        dx = r.dx;
+        dy = r.dy;
 
         lmypolyfortran = 1; lmypoly = 0;		% remove eventually
+        lwindows = true;
 
         writeIBMFiles; % Could turn into a function and move writing to this script
     else

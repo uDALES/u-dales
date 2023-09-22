@@ -1,6 +1,6 @@
 % fprintf('Writing inmypoly_inp_info.txt ...\n')
 fileID = fopen([fpath 'inmypoly_inp_info.txt'],'w');
-fprintf(fileID,'%15.10f %15.10f %15.10f\n',[dx dy dz]');
+fprintf(fileID,'%15.10f %15.10f\n',[dx dy]');
 fprintf(fileID,'%5d %5d %5d\n',[itot jtot ktot]');
 fprintf(fileID,'%15.10f\n',tol_mypoly);
 fprintf(fileID,'%15.10f %15.10f %15.10f\n',Dir_ray_u);
