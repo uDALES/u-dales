@@ -32,12 +32,12 @@ Dir_ray_c = [0 0 1];
 tol_mypoly = 5e-4;
 
 currentPath = pwd;
-activeFilename = matlab.desktop.editor.getActiveFilename;
+stk = dbstack; activeFilename = which(stk(1).file);
 [folder, ~, ~] = fileparts(activeFilename);
 
 if lmypolyfortran
     n_threads = 8;
-    in_mypoly_fortran_path = [folder '/IBM/in_mypoly_fortran/'];
+    in_mypoly_fortran_path = [folder '/in_mypoly_fortran/'];
     addpath(in_mypoly_fortran_path)
     write_pre_info;
     cd(in_mypoly_fortran_path);
