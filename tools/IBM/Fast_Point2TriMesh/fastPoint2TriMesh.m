@@ -151,7 +151,7 @@ function [min_distances,min_project_pts,outside]=fastPoint2TriMesh(inputs,pts,us
             % the correct sign value
             distance = vecnorm(pts-project_pt,2,2) .* signs;
             % return the sign of each point
-            outside = signs>=0;
+            outside = signs>0;
             distance(~outside) = NaN;
             distances(n) = distance;
             project_pts(n,:) = project_pt;
