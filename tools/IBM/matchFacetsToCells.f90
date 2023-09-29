@@ -1,30 +1,26 @@
 program run
    implicit none
 
-   real ::tol, Ray_dir_u(3), Ray_dir_v(3), Ray_dir_w(3), Ray_dir_c(3)
-   integer :: nVertices, nFaces, stl_ground_i, diag_neighbs_i, n_threads
-   logical :: stl_ground, diag_neighbs, periodic_x, periodic_y
-   real :: dx, dy  !, dz
-   integer :: itot, jtot, ktot, i, j, k, nfluid_IB_c
-   real, allocatable, dimension(:) :: xf, xh, yf, yh, zf, zh
-   real, allocatable, dimension(:,:) :: vertices, faceNormals
-   integer, allocatable, dimension(:,:) :: faces
-   logical, dimension(:,:,:), allocatable :: fluid_IB_c, solid_IB_c
-   real, dimension(:,:), allocatable :: fluid_IB_xyz_c
-   integer, dimension(:), allocatable :: secfacids_c, secbndptids_c
-   real, dimension(:), allocatable :: secareas_c, bnddst_c
+   integer :: itot, jtot, ktot, nFaces, nVertices, periodic_x_i, periodic_y_i, diag_neighbs_i
+   logical :: diag_neighbs, periodic_x, periodic_y
+   real    :: dx, dy  !, dz
+   integer :: i, j, k
+   integer :: nfluid_IB_u, nfluid_IB_v, nfluid_IB_w, nfluid_IB_c
+   real   , allocatable, dimension(:)     :: xf, xh, yf, yh, zf, zh
+   real   , allocatable, dimension(:,:)   :: vertices, faceNormal
+   integer, allocatable, dimension(:,:)   :: connectivityList
+   logical, allocatable, dimension(:,:,:) :: fluid_IB_u, solid_IB_u, fluid_IB_v, solid_IB_v, &
+                                             fluid_IB_w, solid_IB_w, fluid_IB_c, solid_IB_c
+   real   , allocatable, dimension(:,:)   :: fluid_IB_xyz_u, fluid_IB_xyz_v, fluid_IB_xyz_w, fluid_IB_xyz_c
+   integer, allocatable, dimension(:)     :: secfacids_u, secbndptids_u, secfacids_v, secbndptids_v, &
+                                             secfacids_w, secbndptids_w, secfacids_c, secbndptids_c
+   real   , allocatable, dimension(:)     :: secareas_u, bnddst_u, secareas_v, bnddst_v, secareas_w, bnddst_w, secareas_c, bnddst_c
 
-   open(unit=50,file='inmypoly_inp_info.txt')
+   open(unit=50,file='info_matchFacetsToCells.txt')
    read(unit=50,fmt='(f15.10,x,f15.10)') dx, dy  !, dz
    read(unit=50,fmt='(i5,x,i5,x,i5)') itot, jtot, ktot
-   read(unit=50,fmt='(f15.10)') tol
-   read(unit=50,fmt='(f15.10,x,f15.10,x,f15.10)') Ray_dir_u(1), Ray_dir_u(2), Ray_dir_u(3)
-   read(unit=50,fmt='(f15.10,x,f15.10,x,f15.10)') Ray_dir_v(1), Ray_dir_v(2), Ray_dir_v(3)
-   read(unit=50,fmt='(f15.10,x,f15.10,x,f15.10)') Ray_dir_w(1), Ray_dir_w(2), Ray_dir_w(3)
-   read(unit=50,fmt='(f15.10,x,f15.10,x,f15.10)') Ray_dir_c(1), Ray_dir_c(2), Ray_dir_c(3)
-   read(unit=50,fmt='(i8,x,i8)') nVertices, nFaces
-   read(unit=50,fmt='(i4)') n_threads
-   read(unit=50,fmt='(i1,x,i1)') stl_ground_i, diag_neighbs_i
+   read(unit=50,fmt='(i8,x,i8)') nFaces, nVertices
+   read(unit=50,fmt='(i1,x,i1,x,i1)') periodic_x_i, periodic_y_i, diag_neighbs_i
    close(unit=50)
 
    allocate(xf(itot))
@@ -33,11 +29,14 @@ program run
    allocate(yh(jtot))
    allocate(zf(ktot))
    allocate(zh(ktot))
-   allocate(faces(nFaces, 3))
-   allocate(faceNormals(nFaces, 3))
+   allocate(connectivityList(nFaces, 3))
+   allocate(faceNormal(nFaces, 3))
    allocate(vertices(nVertices, 3))
+   allocate(fluid_IB_u(itot,jtot,ktot), solid_IB_u(itot,jtot,ktot))
+   allocate(fluid_IB_v(itot,jtot,ktot), solid_IB_v(itot,jtot,ktot))
+   allocate(fluid_IB_w(itot,jtot,ktot), solid_IB_w(itot,jtot,ktot))
    allocate(fluid_IB_c(itot,jtot,ktot), solid_IB_c(itot,jtot,ktot))
-   allocate(fluid_IB_xyz_c(nfluid_IB_c,3))
+   !allocate(fluid_IB_xyz_c(nfluid_IB_c,3))
 
    xf(1:itot) = [((i-1)*dx+(dx/2.0), i=1,itot)]
    xh(1:itot) = [((i-1)*dx, i=1,itot)]
@@ -46,14 +45,14 @@ program run
    yh(1:jtot) = [((j-1)*dy, j=1,jtot)]
 
    open(unit=3,file='zfgrid.txt')
-   do i = 1,ktot
-      read(unit=3,fmt='(f15.10)') zf(i)
+   do k = 1,ktot
+      read(unit=3,fmt='(f15.10)') zf(k)
    end do
    close(unit=3)
 
    open(unit=4,file='zhgrid.txt')
    do k = 1,ktot
-      read(unit=4,fmt='(f15.10)') zh(i)
+      read(unit=4,fmt='(f15.10)') zh(k)
    end do
    close(unit=4)
 
@@ -78,13 +77,21 @@ program run
    ! periodic_y = .false.
    ! diag_neighbs = .false.
 
-   if (stl_ground_i==1) then
-        stl_ground = .true.
-    elseif (stl_ground_i==0) then
-        stl_ground = .false.
-    else
-        print *, "Incorrect input for 'stl_ground'."
-    end if
+   if (periodic_x_i==1) then
+      periodic_x = .true.
+   elseif (periodic_x_i==0) then
+      periodic_x = .false.
+   else
+      print *, "Incorrect input for 'diag_neighbs'."
+   end if
+
+   if (periodic_y_i==1) then
+      periodic_y = .true.
+   elseif (periodic_y_i==0) then
+      periodic_y = .false.
+   else
+      print *, "Incorrect input for 'diag_neighbs'."
+   end if
 
     if (diag_neighbs_i==1) then
         diag_neighbs = .true.
@@ -99,51 +106,75 @@ program run
    ! jtot = 4
    ! ktot = 4
 
-   nfluid_IB_c = 24
-   periodic_x = .false.
-   periodic_y = .false.
+   ! nfluid_IB_c = 24
+   ! periodic_x = .false.
+   ! periodic_y = .false.
 
-   call readGeometry('faces.txt', 'faceNormals.txt', nFaces, 'vertices.txt', nVertices, &
-     faces, faceNormals, vertices)
+   call readGeometry('faces.txt', nFaces, 'vertices.txt', nVertices, &
+     connectivityList, faceNormal, vertices)
 
+     ! u-grid
+   call readBoundaryPoints(xh, yf, zf, itot, jtot, ktot, &
+     'fluid_IB_u.txt', 'solid_IB_u.txt', 'fluid_boundary_u.txt' , nfluid_IB_u, &
+      fluid_IB_u,       solid_IB_u,       fluid_IB_xyz_u)
+
+   call matchFacetsToCells(connectivityList, faceNormal, nFaces, vertices, nVertices, &
+     fluid_IB_u, solid_IB_u, fluid_IB_xyz_u, nfluid_IB_u, xh, yf, zf, itot, jtot, ktot, &
+     diag_neighbs, periodic_x, periodic_y, secfacids_u, secbndptids_u, secareas_u, bnddst_u)
+
+   ! v-grid
+   call readBoundaryPoints(xf, yh, zf, itot, jtot, ktot, &
+     'fluid_IB_v.txt', 'solid_IB_v.txt', 'fluid_boundary_v.txt' , nfluid_IB_v, &
+      fluid_IB_v,       solid_IB_v,       fluid_IB_xyz_v)
+
+   call matchFacetsToCells(connectivityList, faceNormal, nFaces, vertices, nVertices, &
+     fluid_IB_v, solid_IB_v, fluid_IB_xyz_v, nfluid_IB_v, xf, yh, zf, itot, jtot, ktot, &
+     diag_neighbs, periodic_x, periodic_y, secfacids_v, secbndptids_v, secareas_v, bnddst_v)
+
+   ! w-grid
+   call readBoundaryPoints(xf, yf, zh, itot, jtot, ktot, &
+     'fluid_IB_w.txt', 'solid_IB_w.txt', 'fluid_boundary_w.txt' , nfluid_IB_w, &
+      fluid_IB_w,       solid_IB_w,       fluid_IB_xyz_w)
+
+   call matchFacetsToCells(connectivityList, faceNormal, nFaces, vertices, nVertices, &
+     fluid_IB_w, solid_IB_w, fluid_IB_xyz_w, nfluid_IB_w, xf, yf, zh, itot, jtot, ktot, &
+     diag_neighbs, periodic_x, periodic_y, secfacids_w, secbndptids_w, secareas_w, bnddst_w)
+
+   ! c-grid
    call readBoundaryPoints(xf, yf, zf, itot, jtot, ktot, &
      'fluid_IB_c.txt', 'solid_IB_c.txt', 'fluid_boundary_c.txt' , nfluid_IB_c, &
       fluid_IB_c,       solid_IB_c,       fluid_IB_xyz_c)
 
-   call matchFacetsToCells(faces, faceNormals, nFaces, vertices, nVertices, &
+   call matchFacetsToCells(connectivityList, faceNormal, nFaces, vertices, nVertices, &
       fluid_IB_c, solid_IB_c, fluid_IB_xyz_c, nfluid_IB_c, xf, yf, zf, itot, jtot, ktot, &
       diag_neighbs, periodic_x, periodic_y, secfacids_c, secbndptids_c, secareas_c, bnddst_c)
+
 
    contains
 
 
-   subroutine readGeometry(fname_faces, fname_faceNormals, nFaces, fname_vertices, nVertices, &
-                                 faces,       faceNormals,               vertices)
+   subroutine readGeometry(fname_faces, nFaces, fname_vertices, nVertices, &
+                           connectivityList, faceNormal, vertices)
      character(9), intent(in) :: fname_faces
-     character(15), intent(in) :: fname_faceNormals
      character(12), intent(in) :: fname_vertices
      integer, intent(in) :: nFaces, nVertices
-     integer, intent(out) :: faces(nFaces,3)
-     real   , intent(out) :: faceNormals(nFaces,3), vertices(nVertices,3)
+     integer, intent(out) :: connectivityList(nFaces,3)
+     real   , intent(out) :: faceNormal(nFaces,3), vertices(nVertices,3)
+     real :: incenter(nFaces,3) ! not currently used by this program
      integer, parameter :: ifinput = 1
      integer :: n
 
      open (ifinput, file=fname_faces)
      do n = 1,nFaces
-       read (ifinput, *) faces(n,1), faces(n,2), faces(n,3)
+       read (ifinput, *) connectivityList(n,1), connectivityList(n,2), connectivityList(n,3), &
+                         incenter(n,1), incenter(n,2), incenter(n,3), &
+                         faceNormal(n,1), faceNormal(n,2), faceNormal(n,3)
      end do
      close (ifinput)
 
-     write(*,*) "faces", faces
+     write(*,*) "connectivityList", connectivityList
 
-
-     open (ifinput, file=fname_faceNormals)
-     do n = 1,nFaces
-       read (ifinput, *) faceNormals(n,1), faceNormals(n,2), faceNormals(n,3)
-     end do
-     close (ifinput)
-
-     write(*,*) "faceNormals", faceNormals
+     write(*,*) "faceNormal", faceNormal
 
      open (ifinput, file=fname_vertices)
      do n = 1,nVertices
@@ -162,34 +193,27 @@ program run
 
    character(14), intent(in) :: fname_fluid_IB, fname_solid_IB
    character(20), intent(in) :: fname_fluid_boundary
-   integer, intent(in) :: itot, jtot, ktot, nfluid_IB
+   integer, intent(in) :: itot, jtot, ktot
    real, intent(in) :: xgrid(itot), ygrid(jtot), zgrid(ktot)
+   integer, intent(out) :: nfluid_IB
    logical, dimension(itot,jtot,ktot), intent(out) :: fluid_IB, solid_IB
-   integer, dimension(nfluid_IB,3) :: fluid_IB_ijk
-   real, dimension(nfluid_IB,3), intent(out) :: fluid_IB_xyz
+   integer, allocatable :: fluid_IB_ijk(:,:)
+   real, allocatable, intent(out) :: fluid_IB_xyz(:,:)
    integer :: fluid_IB_read, solid_IB_read, i, j, k, n
    character(80) :: chmess
    integer, parameter :: ifinput = 1
+   integer :: count
 
-   open (ifinput, file=fname_fluid_boundary)
-   read (ifinput, '(a80)') chmess
-   do n = 1,nfluid_IB
-     read (ifinput, *) fluid_IB_ijk(n,1), fluid_IB_ijk(n,2), fluid_IB_ijk(n,3)
-     fluid_IB_xyz(n,:) = (/xgrid(fluid_IB_ijk(n,1)), ygrid(fluid_IB_ijk(n,2)), zgrid(fluid_IB_ijk(n,3))/)
-     write(*,*) fluid_IB_ijk(n,:)
-     write(*,*) fluid_IB_xyz(n,:)
-   end do
-   close (ifinput)
-
-   write(*,*) "fluid_IB_xyz", fluid_IB_xyz
-
-   open (ifinput, file='fluid_IB_c.txt')
+   open (ifinput, file=fname_fluid_IB)
+   nfluid_IB = 0
    do j = 1,jtot
       do k = 1,ktot
            do i = 1,itot
              read (ifinput, *) fluid_IB_read
              if (fluid_IB_read == 1) then
+                write(*,*) nfluid_IB
                  fluid_IB(i,j,k) = .true.
+                 nfluid_IB = nfluid_IB + 1
              else
                  fluid_IB(i,j,k) = .false.
              end if
@@ -198,7 +222,9 @@ program run
    end do
    close (ifinput)
 
-   open (ifinput, file='solid_IB_c.txt')
+   write(*,*) "nfluid_IB", nfluid_IB
+
+   open (ifinput, file=fname_solid_IB)
    do j = 1,jtot
       do k = 1,ktot
            do i = 1,itot
@@ -213,11 +239,27 @@ program run
    end do
    close (ifinput)
 
+   allocate(fluid_IB_ijk(nfluid_IB,3), fluid_IB_xyz(nfluid_IB,3))
+
+   open (ifinput, file=fname_fluid_boundary)
+   read (ifinput, '(a80)') chmess
+   do n = 1,nfluid_IB
+     read (ifinput, *) fluid_IB_ijk(n,1), fluid_IB_ijk(n,2), fluid_IB_ijk(n,3)
+     fluid_IB_xyz(n,:) = (/xgrid(fluid_IB_ijk(n,1)), ygrid(fluid_IB_ijk(n,2)), zgrid(fluid_IB_ijk(n,3))/)
+     write(*,*) fluid_IB_ijk(n,:)
+     write(*,*) fluid_IB_xyz(n,:)
+   end do
+   close (ifinput)
+
+   write(*,*) "fluid_IB_xyz", fluid_IB_xyz
+
+   deallocate(fluid_IB_ijk)
+
 
    end subroutine readBoundaryPoints
 
 
-   subroutine matchFacetsToCells(faces, faceNormal, nFaces, vertices, nVertices, &
+   subroutine matchFacetsToCells(connectivityList, faceNormal, nFaces, vertices, nVertices, &
       fluid_IB, solid_IB, fluid_IB_xyz, nfluid_IB, &
       xgrid, ygrid, zgrid, itot, jtot, ktot, &
       diag_neighbs, periodic_x, periodic_y, &
@@ -225,7 +267,7 @@ program run
 
     use, intrinsic :: ieee_arithmetic
     integer, intent(in) :: nFaces, nVertices, nfluid_IB, itot, jtot, ktot
-    integer, intent(in) :: faces(nFaces,3)
+    integer, intent(in) :: connectivityList(nFaces,3)
     real   , intent(in) :: faceNormal(nFaces,3), vertices(nVertices,3), fluid_IB_xyz(nfluid_IB,3)
     real   , intent(in) :: xgrid(itot), ygrid(jtot), zgrid(ktot)
     logical, intent(in), dimension(itot,jtot,ktot) :: fluid_IB, solid_IB
@@ -248,83 +290,6 @@ program run
                           xyz19, xyz20, xyz21, xyz22, xyz23, xyz24, xyz25, xyz26, xyz27
     integer :: n, m, i, j, k, dir, ids(2)
 
-
-    !allocate(il_comp(itot+1), iu_comp(jtot+1), jl_comp(jtot+1), ju_comp(jtot+1), kl_comp(ktot+1), ku_comp(ktot+1))
-
-    !
-    ! allocate(fluid_IB_ijk(nfluid_IB,3), fluid_IB_xyz(nfluid_IB,3), solid_IB_xyz(nsolid_IB,3))
-    ! open (ifinput, file='fluid_boundary_c.txt')
-    ! read (ifinput, '(a80)') chmess
-    ! do n = 1,nfluid_IB
-    !   read (ifinput, *) fluid_IB_ijk(n,1), fluid_IB_ijk(n,2), fluid_IB_ijk(n,3)
-    !   fluid_IB_xyz(n,:) = (/xgrid(fluid_IB_ijk(n,1)), ygrid(fluid_IB_ijk(n,2)), zgrid(fluid_IB_ijk(n,3))/)
-    ! end do
-    ! close (ifinput)
-    !
-    ! write(*,*) "fluid_IB_xyz", fluid_IB_xyz
-    !
-    !
-    ! allocate(fluid_IB(itot,jtot,ktot), solid_IB(itot,jtot,ktot))
-    ! open (ifinput, file='fluid_IB_c.txt')
-    ! count = 1
-    ! do j = 1,jtot
-    !     do k = 1,ktot
-    !         do i = 1,itot
-    !            read (ifinput, *) fluid_IB_read
-    !            if (fluid_IB_read == 1) then
-    !               fluid_IB(i,j,k) = .true.
-    !            else
-    !               fluid_IB(i,j,k) = .false.
-    !            end if
-    !            count = count+1
-    !         end do
-    !     end do
-    ! end do
-    ! close (ifinput)
-    !
-    ! open (ifinput, file='solid_IB_c.txt')
-    ! count = 1
-    ! do j = 1,jtot
-    !     do k = 1,ktot
-    !         do i = 1,itot
-    !            read (ifinput, *) solid_IB_read
-    !            if (solid_IB_read == 1) then
-    !               solid_IB(i,j,k) = .true.
-    !            else
-    !               solid_IB(i,j,k) = .false.
-    !            end if
-    !            count = count+1
-    !         end do
-    !     end do
-    ! end do
-    ! close (ifinput)
-
-    ! nFaces = 10
-    ! nVertices = 12
-    ! allocate(faces(nFaces, 3))
-    ! allocate(vertices(nVertices, 3))
-    ! allocate(faceNormal(nFaces, 3))
-    ! allocate(incenter(nFaces, 3))
-    !
-    ! open (ifinput, file='faces.txt')
-    ! do n = 1,nFaces
-    !   read (ifinput, *) faces(n,1), faces(n,2), faces(n,3)
-    ! end do
-    ! close (ifinput)
-    !
-    !
-    ! open (ifinput, file='faceNormals.txt')
-    ! do n = 1,nFaces
-    !   read (ifinput, *) faceNormal(n,1), faceNormal(n,2), faceNormal(n,3)
-    ! end do
-    ! close (ifinput)
-    !
-    ! open (ifinput, file='vertices.txt')
-    ! do n = 1,nVertices
-    !   read (ifinput, *) vertices(n,1), vertices(n,2), vertices(n,3)
-    ! end do
-    ! close (ifinput)
-
     allocate(secareas(0))
     allocate(secfacids(0))
     allocate(secbndptids(0))
@@ -341,12 +306,12 @@ program run
           (ygrid(1) == 0. .and. all(abs(abs(faceNormal(n, :)) - (/0.,1.,0./)) < 1e-8)) .or. &
           (zgrid(1) == 0. .and. all(abs(abs(faceNormal(n, :)) - (/0.,0.,1./)) < 1e-8))) cycle
 
-      xmin = minval(vertices(faces(n,:),1))
-      ymin = minval(vertices(faces(n,:),2))
-      zmin = minval(vertices(faces(n,:),3))
-      xmax = maxval(vertices(faces(n,:),1))
-      ymax = maxval(vertices(faces(n,:),2))
-      zmax = maxval(vertices(faces(n,:),3))
+      xmin = minval(vertices(connectivityList(n,:),1))
+      ymin = minval(vertices(connectivityList(n,:),2))
+      zmin = minval(vertices(connectivityList(n,:),3))
+      xmax = maxval(vertices(connectivityList(n,:),1))
+      ymax = maxval(vertices(connectivityList(n,:),2))
+      zmax = maxval(vertices(connectivityList(n,:),3))
 
       write(*,*) "xmin, xmax, ymin, ymax, zmin, zmax", xmin, xmax, ymin, ymax, zmin, zmax
 
@@ -401,7 +366,10 @@ program run
 
       if ((il==0) .or. (iu==0)) write(*,*) "problem with x coord"
       if ((jl==0) .or. (ju==0)) write(*,*) "problem with y coord"
-      if ((kl==0) .or. (ku==0)) write(*,*) "problem with z coord"
+      if ((kl==0) .or. (ku==0)) then
+         write(*,*) "problem with z coord"
+         write(*,*) "kl, ku", kl, ku
+      end if
 
       ! write(*,*) il_comp, il
       ! write(*,*) iu_comp, iu
@@ -437,7 +405,7 @@ program run
                planes(5,:) = (/ 0., 0., 1., zu/)
                planes(6,:) = (/ 0., 0.,-1.,-zl/)
 
-               call sutherlandHodgman3D(vertices(faces(n,:),:), 3, planes, 6, clipVertices)
+               call sutherlandHodgman3D(vertices(connectivityList(n,:),:), 3, planes, 6, clipVertices)
                nClipVertices = size(clipVertices, 1)
                if (nClipVertices == 0) then
                   !nClipFaces = 0
@@ -948,6 +916,11 @@ program run
     do n=1,size(secfacids,1)
       write(*,*) secfacids(n), secareas(n), secbndptids(n), bnddst(n)
    end do
+
+   deallocate(secareas)
+   deallocate(secfacids)
+   deallocate(secbndptids)
+   deallocate(bnddst)
 
 end subroutine matchFacetsToCells
 
