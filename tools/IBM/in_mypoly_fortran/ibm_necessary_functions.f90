@@ -11,7 +11,8 @@ module ibm_necessary_functions
         implicit none
 
         integer, intent(in) :: n_vert, n_fcts, ktot
-        character*12, intent(in) :: vertices_file, facets_file
+        character*9 , intent(in) :: facets_file
+        character*12, intent(in) :: vertices_file 
         character*10, intent(in) :: zf_file, zh_file
         real, dimension(n_vert*3), intent(out) :: vertices
         integer, dimension(n_fcts*3), intent(out) :: facets

@@ -12,6 +12,14 @@ fprintf(fileID,'%4d\n',n_threads);
 fprintf(fileID,'%d %d\n',[stl_ground diag_neighbs]);
 fclose(fileID);
 
+% 
+fileID = fopen([fpath 'info_matchFacetsToCells.txt'],'w');
+fprintf(fileID,'%15.10f %15.10f\n',[dx dy]');
+fprintf(fileID,'%5d %5d %5d\n',[itot jtot ktot]');
+fprintf(fileID,'%8d %8d\n',[size(TR.ConnectivityList, 1), size(TR.Points, 1)]);
+fprintf(fileID,'%d %d %d\n',[periodic_x, periodic_y, diag_neighbs]);
+fclose(fileID);
+
 % fprintf('Writing zhgrid.txt ...\n')
 fileID = fopen([fpath 'zhgrid.txt'],'w');
 fprintf(fileID,'%15.10f\n',zgrid_w');
@@ -27,7 +35,8 @@ fileID = fopen([fpath 'vertices.txt'],'w');
 fprintf(fileID,'%15.10f %15.10f %15.10f\n',TR.Points');
 fclose(fileID);
 
-% fprintf('Writing Stl_data.txt ...\n')
-fileID = fopen([fpath 'Stl_data.txt'],'w');
+% fprintf('Writing faces.txt ...\n')
+fileID = fopen([fpath 'faces.txt'],'w');
 fprintf(fileID,'%8d %8d %8d %15.10f %15.10f %15.10f %15.10f %15.10f %15.10f\n',[TR.ConnectivityList TR.incenter TR.faceNormal]');
 fclose(fileID);
+

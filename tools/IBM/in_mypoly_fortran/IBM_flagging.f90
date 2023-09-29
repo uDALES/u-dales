@@ -72,7 +72,7 @@ program Xie
     ! zf(1:ktot) = [((i-1)*dz+(dz/2.0), i=1,ktot)]
     ! zh(1:ktot) = [((i-1)*dz, i=1,ktot)]
 
-    call read_data('vertices.txt',n_vert,'Stl_data.txt',n_fcts,'zfgrid.txt','zhgrid.txt',ktot, &
+    call read_data('vertices.txt',n_vert,'faces.txt',n_fcts,'zfgrid.txt','zhgrid.txt',ktot, &
                     vertices,facets,incenters,faceNormals,zf,zh)
 
     max_height = MAXVAL(vertices(3:n_vert*3:3)) + tol
