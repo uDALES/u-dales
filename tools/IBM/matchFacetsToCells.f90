@@ -5,7 +5,7 @@ program run
    logical :: diag_neighbs, periodic_x, periodic_y
    real    :: dx, dy  !, dz
    integer :: i, j, k
-   integer :: nfluid_IB_u, nfluid_IB_v, nfluid_IB_w, nfluid_IB_c
+   integer :: nfluid_IB_u, nfluid_IB_v, nfluid_IB_w, nfluid_IB_c, nfacsecs_u, nfacsecs_v, nfacsecs_w, nfacsecs_c
    real   , allocatable, dimension(:)     :: xf, xh, yf, yh, zf, zh
    real   , allocatable, dimension(:,:)   :: vertices, faceNormal
    integer, allocatable, dimension(:,:)   :: connectivityList
@@ -15,6 +15,7 @@ program run
    integer, allocatable, dimension(:)     :: secfacids_u, secbndptids_u, secfacids_v, secbndptids_v, &
                                              secfacids_w, secbndptids_w, secfacids_c, secbndptids_c
    real   , allocatable, dimension(:)     :: secareas_u, bnddst_u, secareas_v, bnddst_v, secareas_w, bnddst_w, secareas_c, bnddst_c
+   real :: start, finish
 
    open(unit=50,file='info_matchFacetsToCells.txt')
    read(unit=50,fmt='(f15.10,x,f15.10)') dx, dy  !, dz
@@ -113,6 +114,7 @@ program run
    call readGeometry('faces.txt', nFaces, 'vertices.txt', nVertices, &
      connectivityList, faceNormal, vertices)
 
+    call cpu_time(start)
      ! u-grid
    call readBoundaryPoints(xh, yf, zf, itot, jtot, ktot, &
      'fluid_IB_u.txt', 'solid_IB_u.txt', 'fluid_boundary_u.txt' , nfluid_IB_u, &
@@ -121,6 +123,9 @@ program run
    call matchFacetsToCells(connectivityList, faceNormal, nFaces, vertices, nVertices, &
      fluid_IB_u, solid_IB_u, fluid_IB_xyz_u, nfluid_IB_u, xh, yf, zf, itot, jtot, ktot, &
      diag_neighbs, periodic_x, periodic_y, secfacids_u, secbndptids_u, secareas_u, bnddst_u)
+
+   nfacsecs_u = size(secfacids_u,1)
+   call writeFacetSections(secfacids_u, secareas_u, secbndptids_u, bnddst_u, nfacsecs_u, 'facet_sections_u_fort.txt')
 
    ! v-grid
    call readBoundaryPoints(xf, yh, zf, itot, jtot, ktot, &
@@ -131,6 +136,9 @@ program run
      fluid_IB_v, solid_IB_v, fluid_IB_xyz_v, nfluid_IB_v, xf, yh, zf, itot, jtot, ktot, &
      diag_neighbs, periodic_x, periodic_y, secfacids_v, secbndptids_v, secareas_v, bnddst_v)
 
+   nfacsecs_v = size(secfacids_v,1)
+   call writeFacetSections(secfacids_v, secareas_v, secbndptids_v, bnddst_v, nfacsecs_v, 'facet_sections_v_fort.txt')
+   !
    ! w-grid
    call readBoundaryPoints(xf, yf, zh, itot, jtot, ktot, &
      'fluid_IB_w.txt', 'solid_IB_w.txt', 'fluid_boundary_w.txt' , nfluid_IB_w, &
@@ -139,6 +147,9 @@ program run
    call matchFacetsToCells(connectivityList, faceNormal, nFaces, vertices, nVertices, &
      fluid_IB_w, solid_IB_w, fluid_IB_xyz_w, nfluid_IB_w, xf, yf, zh, itot, jtot, ktot, &
      diag_neighbs, periodic_x, periodic_y, secfacids_w, secbndptids_w, secareas_w, bnddst_w)
+
+   nfacsecs_w = size(secfacids_w,1)
+   call writeFacetSections(secfacids_w, secareas_w, secbndptids_w, bnddst_w, nfacsecs_w, 'facet_sections_w_fort.txt')
 
    ! c-grid
    call readBoundaryPoints(xf, yf, zf, itot, jtot, ktot, &
@@ -149,6 +160,11 @@ program run
       fluid_IB_c, solid_IB_c, fluid_IB_xyz_c, nfluid_IB_c, xf, yf, zf, itot, jtot, ktot, &
       diag_neighbs, periodic_x, periodic_y, secfacids_c, secbndptids_c, secareas_c, bnddst_c)
 
+   nfacsecs_c = size(secfacids_c,1)
+   call writeFacetSections(secfacids_c, secareas_c, secbndptids_c, bnddst_c, nfacsecs_c, 'facet_sections_c_fort.txt')
+
+call cpu_time(finish)
+print '("Time = ",f6.3," seconds.")',finish-start
 
    contains
 
@@ -172,9 +188,9 @@ program run
      end do
      close (ifinput)
 
-     write(*,*) "connectivityList", connectivityList
+     !write(*,*) "connectivityList", connectivityList
 
-     write(*,*) "faceNormal", faceNormal
+     !write(*,*) "faceNormal", faceNormal
 
      open (ifinput, file=fname_vertices)
      do n = 1,nVertices
@@ -182,7 +198,7 @@ program run
      end do
      close (ifinput)
 
-     write(*,*) "vertices", vertices
+     !write(*,*) "vertices", vertices
 
    end subroutine readGeometry
 
@@ -211,7 +227,7 @@ program run
            do i = 1,itot
              read (ifinput, *) fluid_IB_read
              if (fluid_IB_read == 1) then
-                write(*,*) nfluid_IB
+                !write(*,*) nfluid_IB
                  fluid_IB(i,j,k) = .true.
                  nfluid_IB = nfluid_IB + 1
              else
@@ -246,12 +262,12 @@ program run
    do n = 1,nfluid_IB
      read (ifinput, *) fluid_IB_ijk(n,1), fluid_IB_ijk(n,2), fluid_IB_ijk(n,3)
      fluid_IB_xyz(n,:) = (/xgrid(fluid_IB_ijk(n,1)), ygrid(fluid_IB_ijk(n,2)), zgrid(fluid_IB_ijk(n,3))/)
-     write(*,*) fluid_IB_ijk(n,:)
-     write(*,*) fluid_IB_xyz(n,:)
+     !write(*,*) fluid_IB_ijk(n,:)
+     !write(*,*) fluid_IB_xyz(n,:)
    end do
    close (ifinput)
 
-   write(*,*) "fluid_IB_xyz", fluid_IB_xyz
+   !write(*,*) "fluid_IB_xyz", fluid_IB_xyz
 
    deallocate(fluid_IB_ijk)
 
@@ -300,7 +316,7 @@ program run
     dz = zgrid(2)-zgrid(1)
 
     do n=1,nFaces
-      write(*,*) "facet", n
+      !write(*,*) "facet", n
       ! no shear stress in normal direction
       if ((xgrid(1) == 0. .and. all(abs(abs(faceNormal(n, :)) - (/1.,0.,0./)) < 1e-8)) .or. &
           (ygrid(1) == 0. .and. all(abs(abs(faceNormal(n, :)) - (/0.,1.,0./)) < 1e-8)) .or. &
@@ -313,13 +329,13 @@ program run
       ymax = maxval(vertices(connectivityList(n,:),2))
       zmax = maxval(vertices(connectivityList(n,:),3))
 
-      write(*,*) "xmin, xmax, ymin, ymax, zmin, zmax", xmin, xmax, ymin, ymax, zmin, zmax
+      !write(*,*) "xmin, xmax, ymin, ymax, zmin, zmax", xmin, xmax, ymin, ymax, zmin, zmax
 
       ! ignore facets on the ground and facing down
       if ((abs(zmin) < epsilon(zmin) .and. abs(zmax) < epsilon(zmax)) .and. &
        all(abs(faceNormal(n, :) - (/0.,0.,-1./)) < epsilon(faceNormal(n, 1)))) cycle
 
-       write(*,*) "here"
+       !write(*,*) "here"
 
       tol = 1e-10
       where (xmin >= (/xgrid   -dx/2, xgrid(itot)+dx/2/)-tol)
@@ -385,11 +401,13 @@ program run
       if (iu > itot) iu = itot
       if (ju > jtot) ju = jtot
 
+      !write(*,*) "il, iu, jl, ju, kl, ku", il, iu, jl, ju, kl, ku
+
       do i=il,iu
          do j=jl,ju
             do k=kl,ku
                if (.not.(fluid_IB(i,j,k) .or. solid_IB(i,j,k))) cycle
-               write(*,*) "i,j,k", i, j, k
+               !write(*,*) "i,j,k", i, j, k
                ! Define corners of cube
                xl = xgrid(i) - dx/2
                xu = xgrid(i) + dx/2
@@ -406,8 +424,11 @@ program run
                planes(6,:) = (/ 0., 0.,-1.,-zl/)
 
                call sutherlandHodgman3D(vertices(connectivityList(n,:),:), 3, planes, 6, clipVertices)
+
                nClipVertices = size(clipVertices, 1)
-               if (nClipVertices == 0) then
+               !write(*,*) "nClipVertices", nClipVertices
+               !write(*,*) "clipVertices", clipVertices
+               if (nClipVertices < 3) then
                   !nClipFaces = 0
                   !allocate(clipFaces(nClipFaces,3))
                   !deallocate(clipVertices)
@@ -426,9 +447,11 @@ program run
                   xproj = dot_product(faceNormal(n,:), (/1., 0., 0./))
                   yproj = dot_product(faceNormal(n,:), (/0., 1., 0./))
                   zproj = dot_product(faceNormal(n,:), (/0., 0., 1./))
-                  projvec = (/xproj, yproj, zproj/)
-                  dir = maxloc(abs(projvec), 1)
+                  projvec = abs((/xproj, yproj, zproj/))
+                  dir = maxloc(projvec, 1)
                   proj = projvec(dir)
+
+                  !write(*,*) "dir", dir
 
                   if (dir==0) then
                      write(*,*) "something wrong with finding direction to project in"
@@ -449,7 +472,11 @@ program run
                         dot_product(clipVertices(m, :), planeNormal) * planeNormal
                   end do
 
-                  projArea = polyarea(projVert(:,ids(1)), projVert(:,ids(2)), nClipVertices)
+                  !write(*,*) "projVert", projVert
+
+                  projArea = abs(polyarea(projVert(:,ids(1)), projVert(:,ids(2)), nClipVertices))
+                  !write(*,*) "projArea", projArea
+                  !write(*,*) "proj", proj
                   deallocate(projVert)
 
                   area = projArea / proj
@@ -477,8 +504,17 @@ program run
                      clipFaces(3,:) = (/1, 4, 5/)
                      clipFaces(4,:) = (/1, 5, 6/)
 
+                  elseif (nClipVertices==7) then
+                     nClipFaces = 5
+                     allocate(clipFaces(nClipFaces,3))
+                     clipFaces(1,:) = (/1, 2, 3/)
+                     clipFaces(2,:) = (/1, 3, 4/)
+                     clipFaces(3,:) = (/1, 4, 5/)
+                     clipFaces(4,:) = (/1, 5, 6/)
+                     clipFaces(5,:) = (/1, 6, 7/)
+
                   else
-                     write(*,*) "size of clipped polygon greater than 6"
+                     write(*,*) "not possible for clipped polygon to have more than 7 edges(?)"
                   end if
 
                else
@@ -491,9 +527,6 @@ program run
                if (((xgrid(i) == 0.) .and. periodic_x) .or. ((ygrid(j) == 0.) .and. periodic_y)) then ! Account for periodicity - flux at point N+1
                   area = area * 2.
                end if
-
-               call appendToArray1D_real(secareas, area)
-               call appendToArray1D_integer(secfacids, n)
 
                dists = ieee_value(dists, ieee_quiet_nan)
                angles = ieee_value(angles, ieee_quiet_nan)
@@ -516,9 +549,9 @@ program run
                   if (abs(angle - 1.) < epsilon(angle)) then ! Wall-normal defined, use this cell
                      id = 1 ! not necessary?
                      xyz = xyz1
-                     write(*,*) "normal found"
+                     !write(*,*) "normal found"
                   else
-                     write(*,*) "normal not found, searching adjacent cells"
+                     !write(*,*) "normal not found, searching adjacent cells"
                      ! Not normal, search adjacent fluid IB cells
                      search_adj = .true.
                      if (dist > 0) then
@@ -533,12 +566,12 @@ program run
 
                if (solid_IB(i,j,k) .or. search_adj) then
                    if (solid_IB(i,j,k)) then
-                      write(*,*) "solid_IB"
+                      !write(*,*) "solid_IB"
                   !    xyz1 = (/xgrid(i), ygrid(j), zgrid(k)/)
                   !    loc = findloc(ismember_rows(fluid_IB_xyz, xyz1), .true., 1)
                    end if
                    if (search_adj) then
-                      write(*,*) "search_adj"
+                      !write(*,*) "search_adj"
                    end if
 
 
@@ -837,7 +870,9 @@ program run
 
                   if (isnan(dist)) then
                      write(*,*) "facet ", n, " in cell ", i, j, k, " could not find a cell to give flux to"
-                     write(*,*) "ensure diag_neighbs = true"
+                     deallocate(clipFaces)
+                     deallocate(clipFaceNormal)
+                     cycle
                   end if
 
                   select case (id)
@@ -901,6 +936,8 @@ program run
                end if !(solid_IB(i,j,k) .or. search_adj)
 
                loc = findloc(ismember_rows(fluid_IB_xyz, xyz), .true., 1)
+               call appendToArray1D_real(secareas, area)
+               call appendToArray1D_integer(secfacids, n)
                call appendToArray1D_integer(secbndptids, loc)
                call appendToArray1D_real(bnddst, abs(dist))
 
@@ -912,17 +949,35 @@ program run
 
     end do
 
-    write(*,*) "secfacids ", "secareas ", "secbndptids ", "bnddst"
-    do n=1,size(secfacids,1)
-      write(*,*) secfacids(n), secareas(n), secbndptids(n), bnddst(n)
-   end do
-
-   deallocate(secareas)
-   deallocate(secfacids)
-   deallocate(secbndptids)
-   deallocate(bnddst)
+   !  write(*,*) "secfacids ", "secareas ", "secbndptids ", "bnddst"
+   !  do n=1,size(secfacids,1)
+   !    write(*,*) secfacids(n), secareas(n), secbndptids(n), bnddst(n)
+   ! end do
 
 end subroutine matchFacetsToCells
+
+
+subroutine writeFacetSections(secfacids, secareas, secbndptids, bnddst, nfacsecs, fname_facet_sections)
+   integer, intent(in) :: nfacsecs
+   integer, intent(in), dimension(nfacsecs) :: secfacids, secbndptids
+   real   , intent(in), dimension(nfacsecs) :: secareas, bnddst
+   character(25), intent(in) :: fname_facet_sections
+   integer :: n
+
+
+   open (unit=10,file=fname_facet_sections,action="write")
+   write(10,*) "# facet      area flux point distance"
+   do n=1,nfacsecs
+      !write (10,*) secfacids(n), secareas(n), secbndptids(n), bnddst(n)
+      ! Formatting assumes: #facets < 10 million, #fluid boundary points < 1 billion,
+      ! section area < 1000 m^2 (rounded to cm^2), and distance < 1000m
+      write(unit=10,fmt='(i8,f10.4,i11,f9.4)') secfacids(n), secareas(n), secbndptids(n), bnddst(n)
+   end do
+   close (10)
+
+
+
+end subroutine writeFacetSections
 
 subroutine fastPoint2TriMesh(connectivityList, faceNormal, nFaces, vertices, nVertices, &
     queryPoint, minDistance, interceptPoint)
@@ -1051,6 +1106,7 @@ subroutine sutherlandHodgman3D(subjectPolygon, nVertices, clipPlanes, nPlanes, c
    tempPolygon = subjectPolygon
 
     do i = 1, nPlanes
+      !write(*,*) "i", i
         allocate(inputList(size(tempPolygon, 1), 3))
         inputList = tempPolygon
 
@@ -1060,11 +1116,18 @@ subroutine sutherlandHodgman3D(subjectPolygon, nVertices, clipPlanes, nPlanes, c
             previousVertex = inputList(size(inputList, 1), :)
         end if
 
+        !write(*,*) "inputList", inputList
+        !write(*,*) "previousVertex", previousVertex
         do j = 1, size(inputList, 1)
             if (inside(inputList(j, :), clipPlanes(i, :))) then
+               !write(*,*) "a"
                 if (.not. inside(previousVertex, clipPlanes(i, :))) then
+                   !write(*,*) "b"
                     intersection = computeIntersection(clipPlanes(i, :), previousVertex, inputList(j, :))
-                    call appendToArray2D(tempPolygon, intersection)
+                    !write(*,*) "intersection", intersection
+                    if (.not.(any(ismember_rows(tempPolygon, intersection)))) then
+                       call appendToArray2D(tempPolygon, intersection)
+                    end if
                     ! sizeCatPolygon = size(tempPolygon, 1)
                     ! allocate(catPolygon(sizeCatPolygon, 3))
                     ! catPolygon = tempPolygon
@@ -1075,7 +1138,10 @@ subroutine sutherlandHodgman3D(subjectPolygon, nVertices, clipPlanes, nPlanes, c
                     ! write(*,*) tempPolygon
                     ! deallocate(catPolygon)
                 end if
-                call appendToArray2D(tempPolygon, inputList(j, :))
+
+                if (.not.(any(ismember_rows(tempPolygon, inputList(j, :))))) then
+                   call appendToArray2D(tempPolygon, inputList(j, :))
+                end if
                 ! sizeCatPolygon = size(tempPolygon, 1)
                 ! allocate(catPolygon(sizeCatPolygon, 3))
                 ! catPolygon = tempPolygon
@@ -1087,8 +1153,12 @@ subroutine sutherlandHodgman3D(subjectPolygon, nVertices, clipPlanes, nPlanes, c
                 ! deallocate(catPolygon)
 
             elseif (inside(previousVertex, clipPlanes(i, :))) then
+               !write(*,*) "c"
                 intersection = computeIntersection(clipPlanes(i, :), previousVertex, inputList(j, :))
-                call appendToArray2D(tempPolygon, intersection)
+                if (.not.(any(ismember_rows(tempPolygon, intersection)))) then
+                   !write(*,*) "intersection", intersection
+                   call appendToArray2D(tempPolygon, intersection)
+                end if
                 ! sizeCatPolygon = size(tempPolygon, 1)
                 ! allocate(catPolygon(sizeCatPolygon, 3))
                 ! catPolygon = tempPolygon
@@ -1100,6 +1170,7 @@ subroutine sutherlandHodgman3D(subjectPolygon, nVertices, clipPlanes, nPlanes, c
                 ! deallocate(catPolygon)
 
             end if
+            !rite(*,*) "tempPolygon", tempPolygon
             previousVertex = inputList(j, :)
         end do
         deallocate(inputList)
