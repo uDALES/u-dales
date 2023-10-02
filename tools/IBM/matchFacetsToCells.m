@@ -57,7 +57,7 @@ for facet=1:Nf
     end
 
     if ymax > ygrid(end) + dy/2
-        ju = length(xgrid);
+        ju = length(ygrid);
     end
 
     if isempty(il)
@@ -119,11 +119,10 @@ for facet=1:Nf
                     0  0  1  zrange(2);
                     0  0 -1 -zrange(1)];
 
-                %verts = TR.Points(TR.ConnectivityList(facet,:),:); %nverts x npoints (3x3)
                 clip = sutherlandHodgman3D(TR.Points(TR.ConnectivityList(facet,:),:), planes);
 
                 tol = 1e-10;
-                if ~isempty(clip)
+                if ~(size(clip,1) < 3)
                     if (size(clip,1) == 3) % triangle
                         area = 1/2*norm(cross(clip(2,:)-clip(1,:),clip(3,:)-clip(1,:)));
                         
@@ -175,12 +174,18 @@ for facet=1:Nf
                                 tri = triangulation([1 2 3;1 3 4;1 4 5], clip);
                             case 6
                                 tri = triangulation([1 2 3;1 3 4;1 4 5;1 5 6], clip);
+                            case 7
+                                tri = triangulation([1 2 3;1 3 4;1 4 5;1 5 6; 1 6 7], clip);
+                            otherwise
+                                error('not possible for clipped polygon to have more than 7 edges(?)')
                         end
 
                     else
                         error('something wrong with clipped polygon')
                     end
-                    
+
+                    %area
+
                     % If on the u/v grid on cell 1, double the area to
                     % account for omitting cell N+1.
                     if ((xgrid(i) == 0. && periodic_x) || (ygrid(j) == 0. && periodic_y))% || zgrid(k) == 0.))% && k==1)
