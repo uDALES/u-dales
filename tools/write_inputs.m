@@ -118,6 +118,7 @@ if r.libm
         dy = r.dy;
 
         lmypolyfortran = 1; lmypoly = 0;		% remove eventually
+        lmatchFacetsToCellsFortran = 1;
         lwindows = false;
 
         writeIBMFiles; % Could turn into a function and move writing to this script

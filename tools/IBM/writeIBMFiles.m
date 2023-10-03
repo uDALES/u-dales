@@ -89,7 +89,7 @@ if lmypolyfortran
     else
         system('./pre.exe');
     end
-    delete pre.exe inmypoly_inp_info.txt info_matchFacetsToCells.txt faces.txt vertices.txt zfgrid.txt zhgrid.txt;
+    delete pre.exe inmypoly_inp_info.txt faces.txt vertices.txt zfgrid.txt zhgrid.txt;
     cd(currentPath)
 
     %% u-grid
@@ -595,6 +595,7 @@ else
 end
 
 if lmatchFacetsToCellsFortran
+    disp('Determining facet sections using Fortran.')
     in_mypoly_fortran_path = [folder '/in_mypoly_fortran/'];
     addpath(in_mypoly_fortran_path)
     cd(folder);
@@ -733,7 +734,7 @@ else
     end
 end
 
-lBImin = true;
+lBImin = false;
 % Instead of using distance of boundary point to facet section, use distance of
 % boundary point to ALL facets
 if lBImin
@@ -829,10 +830,10 @@ fclose(fileID_info);
 %% Clean up exp directory
 if lmypolyfortran
     cd(fpath)
-    %delete flag_u.txt flag_v.txt flag_w.txt flag_c.txt;
-    %delete fluid_IB_u.txt fluid_IB_v.txt fluid_IB_w.txt fluid_IB_c.txt;
-    %delete solid_IB_u.txt solid_IB_v.txt solid_IB_w.txt solid_IB_c.txt;
-    %delete solid_boundary_u.txt solid_boundary_v.txt solid_boundary_w.txt solid_boundary_c.txt;
+    delete flag_u.txt flag_v.txt flag_w.txt flag_c.txt;
+    delete fluid_IB_u.txt fluid_IB_v.txt fluid_IB_w.txt fluid_IB_c.txt;
+    delete solid_IB_u.txt solid_IB_v.txt solid_IB_w.txt solid_IB_c.txt;
+    delete solid_boundary_u.txt solid_boundary_v.txt solid_boundary_w.txt solid_boundary_c.txt;
     cd(currentPath)
 end
 

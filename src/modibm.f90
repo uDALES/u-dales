@@ -1241,7 +1241,7 @@ module modibm
 
    subroutine wallfunheat
      use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, xf, yf, zf, xh, yh, zh, dx, dy, dzh, eps1, &
-                           xhat, yhat, zhat, vec0, fkar, ltempeq, lmoist, iwalltemp, iwallmoist, lEB, rk3step, totheatflux, totqflux
+                           xhat, yhat, zhat, vec0, fkar, ltempeq, lmoist, iwalltemp, iwallmoist, lEB, totheatflux, totqflux
      use modfields, only : u0, v0, w0, thl0, thlp, qt0, qtp
      use initfac,   only : facT, facz0, facz0h, facnorm, faca, fachf, facef, facqsat, fachurel, facf, faclGR
      use modsurfdata, only : z0, z0h
@@ -1376,30 +1376,7 @@ module modibm
          end if
        end if
 
-       select case(fac)
-       case(1:16)
-          count_sidem = count_sidem + 1
-          dist_sidem = dist_sidem + dist
-          utan_sidem = utan_sidem + utan
-          Tair_sidem = Tair_sidem + Tair
-          flux_sidem = flux_sidem - flux * bound_info_c%secareas(sec) / (dx*dy*dzh(k))
-       case(49:64)
-          count_sidep = count_sidep + 1
-          dist_sidep = dist_sidep + dist
-          utan_sidep = utan_sidep + utan
-          Tair_sidep = Tair_sidep + Tair
-          flux_sidep = flux_sidep - flux * bound_info_c%secareas(sec) / (dx*dy*dzh(k))
-          !write(*,*) dist_sidep
-       end select
-
      end do
-
-  !    if (rk3step == 3) then
-  !    write(*,*) "count_sidem, dist_sidem, utan_sidem, Tair_sidem, flux_sidem"
-  !    write(*,*) count_sidem, dist_sidem / count_sidem, utan_sidem / count_sidem, Tair_sidem / count_sidem, flux_sidem
-  !    write(*,*) "count_sidep, dist_sidep, utan_sidep, Tair_sidep, flux_sidep"
-  !    write(*,*) count_sidep, dist_sidep / count_sidep, utan_sidep / count_sidep, Tair_sidep / count_sidep, flux_sidep
-  ! end if
 
    end subroutine wallfunheat
 
