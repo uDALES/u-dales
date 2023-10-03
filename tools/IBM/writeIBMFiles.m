@@ -607,6 +607,8 @@ if lmatchFacetsToCellsFortran
     fprintf(fileID,'%15.10f %15.10f\n',[dx dy]');
     fprintf(fileID,'%5d %5d %5d\n',[itot jtot ktot]');
     fprintf(fileID,'%8d %8d\n',[size(TR.ConnectivityList, 1), size(TR.Points, 1)]);
+    fprintf(fileID,'%8d %8d %8d %8d\n',[size(fluid_IB_ijk_u,1) size(fluid_IB_ijk_v,1) size(fluid_IB_ijk_w,1) size(fluid_IB_ijk_c,1)]);
+    fprintf(fileID,'%8d %8d %8d %8d\n',[size(solid_IB_ijk_u,1) size(solid_IB_ijk_v,1) size(solid_IB_ijk_w,1) size(solid_IB_ijk_c,1)]);
     fprintf(fileID,'%d %d %d\n',[periodic_x, periodic_y, diag_neighbs]);
     fclose(fileID);
 
