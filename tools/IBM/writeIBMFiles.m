@@ -650,7 +650,7 @@ if lmatchFacetsToCellsFortran
     facet_sections_w = NaN(size(facet_sections_w_fromfile,1), 9);
     facet_sections_w(:,[1,2,5,6]) = facet_sections_w_fromfile;
 
-    facet_sections_c_fromfile = readmatrix([fpath 'facet_sections_u_fort.txt']);
+    facet_sections_c_fromfile = readmatrix([fpath 'facet_sections_c_fort.txt']);
     facet_sections_c = NaN(size(facet_sections_c_fromfile,1), 9);
     facet_sections_c(:,[1,2,5,6]) = facet_sections_c_fromfile;
 
