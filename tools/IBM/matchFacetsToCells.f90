@@ -120,6 +120,7 @@ program run
 
    nfacsecs_u = size(secfacids_u,1)
    call writeFacetSections(secfacids_u, secareas_u, secbndptids_u, bnddst_u, nfacsecs_u, 'facet_sections_u_fort.txt')
+   write(*,*) 'Written facet_sections_u.txt'
 
    ! v-grid
    call readBoundaryPoints(xf, yh, zf, itot, jtot, ktot, 'fluid_boundary_v.txt' , nfluid_IB_v, &
@@ -131,6 +132,7 @@ program run
 
    nfacsecs_v = size(secfacids_v,1)
    call writeFacetSections(secfacids_v, secareas_v, secbndptids_v, bnddst_v, nfacsecs_v, 'facet_sections_v_fort.txt')
+   write(*,*) 'Written facet_sections_v.txt'
 
    ! w-grid
    call readBoundaryPoints(xf, yf, zh, itot, jtot, ktot, 'fluid_boundary_w.txt' , nfluid_IB_w, &
@@ -142,6 +144,7 @@ program run
 
    nfacsecs_w = size(secfacids_w,1)
    call writeFacetSections(secfacids_w, secareas_w, secbndptids_w, bnddst_w, nfacsecs_w, 'facet_sections_w_fort.txt')
+   write(*,*) 'Written facet_sections_w.txt'
 
    ! c-grid
    call readBoundaryPoints(xf, yf, zf, itot, jtot, ktot, 'fluid_boundary_c.txt' , nfluid_IB_c, &
@@ -153,6 +156,7 @@ program run
 
    nfacsecs_c = size(secfacids_c,1)
    call writeFacetSections(secfacids_c, secareas_c, secbndptids_c, bnddst_c, nfacsecs_c, 'facet_sections_c_fort.txt')
+   write(*,*) 'Written facet_sections_c.txt'
 
    call cpu_time(finish)
    print '("Time = ",f10.3," seconds.")',finish-start
