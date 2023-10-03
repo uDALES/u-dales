@@ -20,7 +20,7 @@
 % This script is run by the bash script da_inp.sh.
 % It used to generate the necessary input files for uDALES.
 tic
-expnr = '047';
+expnr = '997';
 %expnr2 = '131'
 % DA_EXPDIR = getenv('DA_EXPDIR');
 % DA_TOOLSDIR = getenv('DA_TOOLSDIR');
@@ -111,17 +111,19 @@ if r.libm
         xsize = r.xlen;
         ysize = r.ylen;
         zsize = r.zsize;
-        lmypoly = 1; % remove eventually
+        lmypoly = 0; % remove eventually
+        lmypolyfortran = 1;
+        lwindows = 0;
 
-%         Dir_ray_u = [0 0 1];
-%         Dir_ray_v = [0 0 1];
-%         Dir_ray_w = [0 0 1];
-%         Dir_ray_c = [0 0 1];
-%         tol_mypoly = 1e-4;
-%
-%         write_pre_info;
+        Dir_ray_u = [0 0 1];
+        Dir_ray_v = [0 0 1];
+        Dir_ray_w = [0 0 1];
+        Dir_ray_c = [0 0 1];
+        tol_mypoly = 1e-4;
 
-        writeIBMFiles; % Could turn into a function and move writing to this script
+        write_pre_info;
+
+        writeIBMFiles_Dipanjan; % Could turn into a function and move writing to this script
 %             writeIBMFiles_new
 
     else
@@ -162,7 +164,7 @@ if r.lEB
 
     %% Calculate view factors
     % Add check to see if View3D exists in the tools directory.
-    view3d_exe = [DA_TO, fractionOLSDIR '/View3D/build/src/view3d'];
+    view3d_exe = [DA_TOOLSDIR '/View3D/build/src/view3d'];
     fpath_vf = [fpath 'vf.txt'];
     vf = view3d(view3d_exe, fpath_facets_view3d, fpath_vf);
     toc
@@ -176,7 +178,7 @@ if r.lEB
         disp(['Written vf.nc.inp.', r.expnr])
     else
         vfsparse = sparse(double(vf));
-        preprocessing.write_vfsparse(obj, vfsparse);
+        preprocessing.write_vfsparse(r, vfsparse);
         disp(['Written vfsparse.inp.', r.expnr])
     end
     %% Set facet types
@@ -253,4 +255,13 @@ if r.lEB
 %% Determine effective albedo
 % efctvalb = 1-sum(Knet)/sum(Sdir+r.Dsky*svf)
 % preprocessing.write_efalb(r,efctvalb)
+fac_type_table = r.factypes;
+ems = [];
+for i = 1:r.nfcts
+    typ = facet_types(i);
+    typind = find(fac_type_table(:,1)==typ);
+    em = fac_type_table(typind,6);
+    ems = [ems,em];
+end 
+dlmwrite(['emissivity.' expnr], ems');
 toc

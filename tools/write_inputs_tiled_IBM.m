@@ -20,10 +20,10 @@
 % This script is run by the bash script da_inp.sh.
 % It used to generate the necessary input files for uDALES.
 
-expnr = '186'; %This one is the tile
-expnr2 = '187'; %This is the actual full scale experiment.
-xtiles = 3;
-ytiles = 2;
+expnr = '103'; %This one is the tile
+expnr2 = '103'; %This is the actual full scale experiment.
+xtiles = 1;
+ytiles = 1;
 tic
 % DA_EXPDIR = getenv('DA_EXPDIR');
 % DA_TOOLSDIR = getenv('DA_TOOLSDIR');
@@ -146,7 +146,7 @@ if r.libm
         ysize = r.ylen;
         zsize = r.zsize;
         
-        lmypolyfortran = 1; lmypoly = 0;		% remove eventually
+        lmypolyfortran = 0; lmypoly = 1;		% remove eventually
         lwindows = false;
         Dir_ray_u = [0 0 1];
         Dir_ray_v = [0 0 1];
@@ -582,9 +582,20 @@ if r.libm
 end
 %% setting effective albedo
 %cd(fpath2)
-efctvalb = 1-sum(Knet)/sum(Sdir+r.Dsky*svf);
+%efctvalb = 1-sum(Knet)/sum((Sdir+r.Dsky*svf));
+efctvalb = 1-sum(area_facets2.*Knet)/(sum(area_facets2.*(Sdir))+sum(r.Dsky*area_facets2.*svf))
 %preprocessing.write_efalb(r,efctvalb);
+dlmwrite([fpath2 'Sdir.' expnr2], Sdir);
 preprocessing.write_efalb(r2,efctvalb);
+fac_type_table = r.factypes;
+ems = [];
+for i = 1:r.nfcts
+    typ = facet_types(i);
+    typind = find(fac_type_table(:,1)==typ);
+    em = fac_type_table(typind,6);
+    ems = [ems,em];
+end 
+dlmwrite(['emissivity.' expnr], ems');
 % cd(fpath2)
 % efctvalb2 = 1-sum(Knet)/sum(Sdir+r.Dsky*svf);
 % preprocessing.write_efalb(r2,efctvalb2);

@@ -935,13 +935,15 @@ module modforces
   integer :: i, j, k, n
   real :: tot_Tflux, tot_qflux, sensible_heat_out, latent_heat_out  !, !tot_qflux !, sink_points
   !
+  !write(*,*) 'lperiodicEBcorr ', lperiodicEBcorr
+  !write(*,*) 'fraction', fraction
   if (lperiodicEBcorr .eqv. .false.) return
+
   !
   !call MPI_ALLREDUCE(bctfluxsum,   tot_Tflux,1,MY_REAL,MPI_SUM,comm3d,mpierr)
   !call MPI_ALLREDUCE(bcqfluxsum,   tot_qflux,1,MY_REAL,MPI_SUM,comm3d,mpierr)
   call MPI_ALLREDUCE(totheatflux,tot_Tflux,1,MY_REAL,MPI_SUM,comm3d,mpierr)
   call MPI_ALLREDUCE(totqflux,tot_qflux,1,MY_REAL,MPI_SUM,comm3d,mpierr)
-
 
    if (ltempeq) then
      do i = ib,ie
@@ -953,7 +955,6 @@ module modforces
        end do
      end do
    !end if
-
   sensible_heat_out = (1-fraction)*tot_Tflux/(itot*jtot*(zh(ke+1)-zh(ke)))
     do i = ib,ie
       do j = jb,je

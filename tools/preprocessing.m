@@ -299,18 +299,22 @@ classdef preprocessing < dynamicprops
             preprocessing.addvar(obj, 'libm', 1)
 
             if obj.lEB
-                preprocessing.addvar(obj, 'solarazimuth', 90); % azimuth angle
+                %preprocessing.addvar(obj, 'solarazimuth', 90); % azimuth angle
+                %preprocessing.addvar(obj, 'solarazimuth', 135); % azimuth angle for poster image
+                preprocessing.addvar(obj, 'solarazimuth', 135); % azimuth angle for geoms 200-260
                 preprocessing.addvar(obj, 'xazimuth', 90);   % azimuth of x-direction wrt N. Default: x = East
                                                              % north -> xazimuth = 0;
                                                              % east  ->            90;
                                                              % south ->            180;
                                                              % west  ->            270;
                 %preprocessing.addvar(obj, 'solarzenith', 28.4066); % zenith angle
-                preprocessing.addvar(obj, 'solarzenith', 45.0); % zenith angle
+                preprocessing.addvar(obj, 'solarzenith', 45.0); % zenith angle for geoms 200-260
+                %preprocessing.addvar(obj, 'solarzenith', 60); % zenith angle for poster example well heated 
                 preprocessing.addvar(obj, 'centerweight', 12 / 32);
                 preprocessing.addvar(obj, 'cornerweight', (1 - obj.centerweight) / 4);
                 preprocessing.addvar(obj, 'I', 800); % Direct normal irradiance [W/m2]
-                preprocessing.addvar(obj, 'Dsky', 418.8041); % Diffuse incoming radiation [W/m2]
+                %preprocessing.addvar(obj, 'I', 1300); % Direct normal irradiance [W/m2] for poster example well heated 
+                preprocessing.addvar(obj, 'Dsky', 80); % Diffuse incoming radiation [W/m2]
                 preprocessing.addvar(obj, 'lvfsparse', false) % Switch for turning on lvfsparse
                 %preprocessing.addvar(obj, 'psc_res', 0.01); % Poly scan conversion resolution,lower number gives better results for solar radiation calculation
                 preprocessing.addvar(obj, 'psc_res', 0.1); % Poly scan conversion resolution,lower number gives better results for solar radiation calculation
