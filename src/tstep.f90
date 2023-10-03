@@ -171,7 +171,7 @@ subroutine tstep_integrate
   use modmpi, only    : cmyid,myid,nprocs
   use modfields, only : u0,um,up,v0,vm,vp,w0,wm,wp,&
                         thl0,thlm,thlp,qt0,qtm,qtp,e120,e12m,e12p,sv0,svm,svp,uouttot,&
-                        wouttot,dpdxl,dgdt,momfluxb,tfluxb,qfluxb
+                        wouttot,dpdxl,dgdt,momfluxb,tfluxb,qfluxb,thl0c
   use modinletdata, only: totalu,di_test,dr,thetar,thetai,displ,irecy, &
                           dti_test,dtr,thetati,thetatr,q0,lmoi,lmor,utaui,utaur,&
                           storetdriver, nstepread, nstepreaddriver, irecydriver
@@ -239,6 +239,9 @@ subroutine tstep_integrate
         enddo
       enddo
     enddo
+
+  thl0c(ib:ie,jb:je,kb:ke) = thl0(ib:ie,jb:je,kb:ke)
+
   end if
   if (lmoist) then
    do k=kb,ke

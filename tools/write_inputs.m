@@ -111,21 +111,16 @@ if r.libm
         xsize = r.xlen;
         ysize = r.ylen;
         zsize = r.zsize;
-        lmypoly = 0; % remove eventually
-        lmypolyfortran = 1;
-        lwindows = 0;
+        itot = r.itot;
+        jtot = r.jtot;
+        ktot = r.ktot;
+        dx = r.dx;
+        dy = r.dy;
 
-        Dir_ray_u = [0 0 1];
-        Dir_ray_v = [0 0 1];
-        Dir_ray_w = [0 0 1];
-        Dir_ray_c = [0 0 1];
-        tol_mypoly = 1e-4;
+        lmypolyfortran = 1; lmypoly = 0;		% remove eventually
+        lwindows = false;
 
-        write_pre_info;
-
-        writeIBMFiles_Dipanjan; % Could turn into a function and move writing to this script
-%             writeIBMFiles_new
-
+        writeIBMFiles; % Could turn into a function and move writing to this script
     else
         if isempty(r.geom_path)
             error('Need to specify the path to geometry files')
@@ -262,6 +257,6 @@ for i = 1:r.nfcts
     typind = find(fac_type_table(:,1)==typ);
     em = fac_type_table(typind,6);
     ems = [ems,em];
-end 
+end
 dlmwrite(['emissivity.' expnr], ems');
 toc

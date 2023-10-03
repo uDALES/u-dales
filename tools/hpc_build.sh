@@ -49,7 +49,7 @@ then
 elif [ $system == "archer" ]
 then
     module load cmake cray-hdf5 cray-netcdf cray-fftw
-    FC=
+    FC=ftn
     NETCDF_DIR=$NETCDF_DIR
     NETCDF_FORTRAN_DIR=$NETCDF_FORTRAN_DIR
     #FFTW_DOUBLE_LIB=/opt/cray/pe/fftw/3.3.8.9/x86_rome/lib/libfftw3.so

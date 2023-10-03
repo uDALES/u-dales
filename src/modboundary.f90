@@ -70,7 +70,7 @@ contains
                             BCxm_periodic, BCxT_periodic, BCxq_periodic, BCxs_periodic, &
                             BCym_periodic, BCyT_periodic, BCyq_periodic, BCys_periodic, &
                             ibrank, ierank, jbrank, jerank
-      use modfields, only : u0, v0, w0, um, vm, wm, thl0, thlm, qt0, qtm, sv0, svm
+      use modfields, only : u0, v0, w0, um, vm, wm, thl0, thlm, qt0, qtm, sv0, svm, thl0c
       use decomp_2d, only : exchange_halo_z
       implicit none
       integer i, k, n
@@ -83,6 +83,7 @@ contains
       call exchange_halo_z(wm)
       call exchange_halo_z(thl0)
       call exchange_halo_z(thlm)
+      call exchange_halo_z(thl0c, opt_zlevel=(/ihc,jhc,khc/))
       call exchange_halo_z(qt0)
       call exchange_halo_z(qtm)
       do n = 1, nsv
@@ -119,12 +120,12 @@ contains
                                  BCxm_periodic, BCxm_profile, BCxm_driver, &
                                  BCxT_periodic, BCxT_profile, BCxT_driver, &
                                  BCxq_periodic, BCxq_profile, BCxq_driver, &
-                                 BCxs_periodic, BCxs_profile, BCxs_driver, &
+                                 BCxs_periodic, BCxs_profile, BCxs_driver, BCxs_custom, &
                                  BCym_periodic, BCym_profile, BCyT_periodic, BCyT_profile, &
                                  BCyq_periodic, BCyq_profile, BCys_periodic, &
                                  ibrank, ierank, jbrank, jerank, e12min, idriver, &
                                  Uinf, Vinf
-      use modfields,      only : u0, v0, w0, um, vm, wm, thl0, thlm, qt0, qtm, e120, e12m, sv0, svm, u0av, v0av, uout, uouttot, vouttot
+      use modfields,      only : u0, v0, w0, um, vm, wm, thl0, thlm, qt0, qtm, e120, e12m, sv0, svm, u0av, v0av, uout, uouttot, vouttot, thl0c
       use modsubgriddata, only : ekh, ekm, loneeqn
       use modsurfdata,    only : thl_top, qt_top, sv_top, wttop, wqtop, wsvtop
       use modmpi,         only : myid, slabsum, avey_ibm
@@ -206,6 +207,9 @@ contains
      case(BCtopT_flux)
         call fluxtop(thlm, ekh, wttop)
         call fluxtop(thl0, ekh, wttop)
+        do n=1,khc
+           thl0c(:,:,ke+n) = thl0c(:,:,ke+n-1)
+        end do
      case(BCtopT_value)
         call valuetop(thlm, thl_top)
         call valuetop(thl0, thl_top)
@@ -300,6 +304,8 @@ contains
            call xsi_profile
          case(BCxs_driver)
            call xsi_driver
+        case(BCxs_custom)
+           call xsi_custom
          case default
            write(0, *) "ERROR: lateral boundary type for scalars in x-direction undefined"
            stop 1
@@ -487,8 +493,8 @@ contains
 
    !> Sets x/i periodic boundary conditions for the temperature
    subroutine xT_periodic
-      use modglobal, only : ib, ie, ih
-      use modfields, only : thl0, thlm
+      use modglobal, only : ib, ie, ih, ihc
+      use modfields, only : thl0, thlm, thl0c
       integer m
 
       do m = 1, ih
@@ -496,6 +502,11 @@ contains
          thl0(ie + m, :, :) = thl0(ib - 1 + m, :, :)
          thlm(ib - m, :, :) = thlm(ie + 1 - m, :, :)
          thlm(ie + m, :, :) = thlm(ib - 1 + m, :, :)
+      end do
+
+      do m = 1, ihc
+         thl0c(ib - m, :, :) = thl0c(ie + 1 - m, :, :)
+         thl0c(ie + m, :, :) = thl0c(ib - 1 + m, :, :)
       end do
 
       return
@@ -570,8 +581,8 @@ contains
 
    !> Sets y/j periodic boundary conditions for the temperature
    subroutine yT_periodic
-      use modglobal, only : jb, je, jh
-      use modfields, only : thl0, thlm
+      use modglobal, only : jb, je, jh, jhc
+      use modfields, only : thl0, thlm, thl0c
       use modmpi, only:excjs, myid, nprocs
       integer m
 
@@ -580,6 +591,11 @@ contains
          thl0(:, je + m, :) = thl0(:, jb - 1 + m, :)
          thlm(:, jb - m, :) = thlm(:, je + 1 - m, :)
          thlm(:, je + m, :) = thlm(:, jb - 1 + m, :)
+      end do
+
+      do m = 1, jhc
+         thl0c(:, jb - m, :) = thl0c(:, je + 1 - m, :)
+         thl0c(:, je + m, :) = thl0c(:, jb - 1 + m, :)
       end do
 
       return
@@ -782,6 +798,29 @@ contains
      end do
 
    end subroutine xsi_profile
+
+
+     subroutine xsi_custom
+       use modglobal,    only : ib, ie, jb, je, jtot, kb, ke, nsv, ihc
+       use modfields,    only : sv0, svm, svprof
+       use decomp_2d,    only : zstart
+
+       integer j, k, n, m
+
+       do j = jb, je
+          if (j + zstart(2) - 1 == jtot/2) then
+             do k = kb, ke + 1
+                do n = 1, nsv
+                   do m = 1, ihc
+                      sv0(ib - m, j-1:j+1, k, n) = 2*svprof(k, n) - sv0(ib - m + 1, j-1:j+1, k, n)
+                      svm(ib - m, j-1:j+1, k, n) = 2*svprof(k, n) - svm(ib - m + 1, j-1:j+1, k, n)
+                   end do
+                end do
+             end do
+          end if
+       end do
+
+   end subroutine xsi_custom
 
 
    subroutine xsi_driver

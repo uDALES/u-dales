@@ -38,7 +38,6 @@ function clippedPolygon = sutherlandHodgman3D(subjectPolygon,clipPlanes)
     
     %for clipVertex = (1:numVerticies)
     for p = 1:numPlanes
-       
         %clipBoundary = [clipPolygon(clipVertex,:) ; clipVertexPrevious]; % Need to be a plane
         clipPlane = clipPlanes(p,:);
         inputList = clippedPolygon;
@@ -47,21 +46,42 @@ function clippedPolygon = sutherlandHodgman3D(subjectPolygon,clipPlanes)
         if ~isempty(inputList)
             previousVertex = inputList(end,:);
         end
-        
+
         for subjectVertex = (1:size(inputList,1))
-
             if ( inside(inputList(subjectVertex,:),clipPlane) )
-
                 if( not(inside(previousVertex,clipPlane)) )  
                     subjectLineSegment = [previousVertex;inputList(subjectVertex,:)];
-                    clippedPolygon(end+1,:) = computeIntersection(clipPlane,subjectLineSegment);
+                    intersection = computeIntersection(clipPlane,subjectLineSegment);
+                    %clippedPolygon(end+1,:) = computeIntersection(clipPlane,subjectLineSegment);
+                    if isempty(clippedPolygon)
+                        clippedPolygon(end+1,:) = intersection;
+                    else
+                        if ~any(ismember(clippedPolygon, intersection, 'rows'))
+                            clippedPolygon(end+1,:) = intersection;
+                        end
+                    end
                 end
 
-                clippedPolygon(end+1,:) = inputList(subjectVertex,:);
+                if isempty(clippedPolygon)
+                    clippedPolygon(end+1,:) = inputList(subjectVertex,:);
+                else
+                    if ~any(ismember(clippedPolygon, inputList(subjectVertex,:), 'rows'))
+                        clippedPolygon(end+1,:) = inputList(subjectVertex,:);
+                    end
+                end
                 
             elseif( inside(previousVertex,clipPlane) )
                     subjectLineSegment = [previousVertex;inputList(subjectVertex,:)];
-                    clippedPolygon(end+1,:) = computeIntersection(clipPlane,subjectLineSegment);     
+                    intersection = computeIntersection(clipPlane,subjectLineSegment);
+                    %clippedPolygon(end+1,:) = computeIntersection(clipPlane,subjectLineSegment);
+
+                    if isempty(clippedPolygon)
+                        clippedPolygon(end+1,:) = intersection;
+                    else
+                        if ~any(ismember(clippedPolygon, intersection, 'rows'))
+                            clippedPolygon(end+1,:) = intersection;
+                        end
+                    end
             end
             
             previousVertex = inputList(subjectVertex,:);

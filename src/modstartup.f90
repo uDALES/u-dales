@@ -90,7 +90,7 @@ module modstartup
       use modibm,            only : nsolpts_u, nsolpts_v, nsolpts_w, nsolpts_c, &
                                     nbndpts_u, nbndpts_v, nbndpts_w, nbndpts_c, &
                                     nfctsecs_u, nfctsecs_v, nfctsecs_w, nfctsecs_c, &
-                                    createmasks, lbottom
+                                    createmasks, lbottom, lnorec
       use decomp_2d
 
       implicit none
@@ -144,7 +144,7 @@ module modstartup
          nblocks, nfcts, iwallmom, iwalltemp, iwallmoist, iwallscal, &
          nsolpts_u, nsolpts_v, nsolpts_w, nsolpts_c, &
          nbndpts_u, nbndpts_v, nbndpts_w, nbndpts_c, &
-         nfctsecs_u, nfctsecs_v, nfctsecs_w, nfctsecs_c, lbottom, &
+         nfctsecs_u, nfctsecs_v, nfctsecs_w, nfctsecs_c, lbottom, lnorec, &
          prandtlturb, fkar
       namelist/ENERGYBALANCE/ &
          lEB, lwriteEBfiles, lperiodicEBcorr,sinkbase,lconstW, dtEB, bldT, flrT, wsoil, wgrmax, wwilt, wfc, &
@@ -399,6 +399,7 @@ module modstartup
       call MPI_BCAST(nfctsecs_w, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(nfctsecs_c, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(lbottom, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(lnorec, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(luoutflowr, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for turning on/off u-velocity correction for fixed mass outflow rate
       call MPI_BCAST(lvoutflowr, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315: added switch for turning on/off v-velocity correction for fixed mass outflow rate
       call MPI_BCAST(luvolflowr, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! bss166: added switch for turning on/off u-velocity correction for fixed volume flow rate
@@ -823,7 +824,7 @@ module modstartup
          dqtdxls, dqtdyls, dqtdtls, dpdx, dpdxl, dpdyl, &
          wfls, whls, ug, vg, pgx, pgy, uprof, vprof, thlprof, qtprof, e12prof, svprof, &
          v0av, u0av, qt0av, ql0av, thl0av, qt0av, sv0av, exnf, exnh, presf, presh, rhof, &
-         thlpcar, uav, thvh, thvf, IIc, IIcs, IIu, IIus, IIv, IIvs, IIw, IIws, u0h
+         thlpcar, uav, thvh, thvf, IIc, IIcs, IIu, IIus, IIv, IIvs, IIw, IIws, u0h, thl0c
             use modglobal,         only : ib,ie,ih,ihc,jb,je,jh,jhc,kb,ke,kh,khc,kmax,dtmax,dt,runtime,timeleft,timee,ntimee,ntrun,btime,dt_lim,nsv,&
          zf, zh, dzf, dzh, rv, rd, grav, cp, rlv, pref0, om23_gs, jgb, jge, Uinf, Vinf, dy, &
          rslabs, e12min, dzh, dtheta, dqt, dsv, cexpnr, ifinput, lwarmstart, lstratstart, trestart, numol, &
@@ -831,7 +832,7 @@ module modstartup
          uflowrate, vflowrate,ltempeq, prandtlmoli, freestreamav, &
          tnextfielddump, tfielddump, tsample, tstatsdump, startfile, lprofforc, lchem, k1, JNO2,&
          idriver,dtdriver,driverstore,tdriverstart,tdriverdump,xlen,ylen,itot,jtot,ibrank,ierank,jbrank,jerank,BCxm,BCym,lrandomize,BCxq,BCxs,BCxT, BCyq,BCys,BCyT,BCxm_driver,&
-         tEB,tnextEB,dtEB
+         tEB,tnextEB,dtEB,BCxs_custom
       use modsubgriddata, only:ekm, ekh, loneeqn
       use modsurfdata, only:wtsurf, wqsurf, wsvsurf, &
          thls, thvs, ps, qts, svs, sv_top
@@ -1058,6 +1059,13 @@ module modstartup
             end do
             end do
 
+            do k = kb, ke
+               do j = jb - jhc, je + jhc
+                  do i = ib - ihc, ie + ihc
+                     thl0c(i, j, k) = thlprof(k)
+                  end do
+               end do
+            end do
 
             ! if (ibrank) then
             ! do j=jb-1,je+1
@@ -1413,16 +1421,19 @@ module modstartup
             end if ! end if myid==0
 
             call MPI_BCAST(svprof, (ke + kh - (kb - kh))*nsv, MY_REAL, 0, comm3d, mpierr)
-            do k = kb, ke
-               do j = jb - 1, je + 1
-                  do i = ib - 1, ie + 1
-                     do n = 1, nsv
-                        sv0(i, j, k, n) = svprof(k, n)
-                        svm(i, j, k, n) = svprof(k, n)
+
+            if (BCxs /= BCxs_custom) then
+               do k = kb, ke
+                  do j = jb - 1, je + 1
+                     do i = ib - 1, ie + 1
+                        do n = 1, nsv
+                           sv0(i, j, k, n) = svprof(k, n)
+                           svm(i, j, k, n) = svprof(k, n)
+                        end do
                      end do
                   end do
                end do
-            end do
+            end if
 
             if (nsv>0) then !tg3315 set these variables here for now and repeat for warmstart
 
@@ -1431,8 +1442,8 @@ module modstartup
 
               call MPI_BCAST(sv_top, nsv, MY_REAL, 0, comm3d, mpierr)
 
-              write(*,*) 'svprof', svprof
-              write(*,*) 'sv_top', sv_top
+              !write(*,*) 'svprof', svprof
+              !write(*,*) 'sv_top', sv_top
 
             end if
 

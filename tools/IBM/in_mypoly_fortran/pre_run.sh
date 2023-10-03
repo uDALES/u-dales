@@ -40,9 +40,9 @@ pushd $DA_TOOLSDIR/IBM/in_mypoly_fortran/
 
 #	echo "Compiling the Fortran pre-processing code..."
 #	gfortran -O2 in_mypoly_functions.f90 IBM_flagging.f90 -o pre.out
-	gfortran -O2 -fopenmp in_mypoly_functions.f90 IBM_flagging.f90 -o pre.out
+	gfortran -O2 -fopenmp in_mypoly_functions.f90 ibm_necessary_functions.f90 IBM_flagging.f90 -o pre.out
 	cp pre.out $inputdir
-	rm pre.out in_mypoly_functions.mod
+	rm pre.out *.mod
 popd
 
 pushd $inputdir

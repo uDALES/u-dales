@@ -49,13 +49,15 @@ module in_mypoly_functions
 
     end function max_facet_side
 
+
+
     !! Subroutine to check if grid points of a given mesh defined by xgrid, ygrid and zgrid 
     !! are inside or outside a 3D STL defined by the vertices, facets and faceNormals.
     function is_grid_in_mypoly_func(n_vert,vertices,n_fcts,facets,incenters,faceNormals, &
-        nx,xgrid,ny,ygrid,nz,zgrid,Ray_dir,L_char,max_height,tol)
+        nx,xgrid,ny,ygrid,nz,zgrid,Ray_dir,L_char,max_height,tol,n_threads)
         implicit none
 
-        integer, intent(in) :: n_vert, n_fcts, nx, ny, nz
+        integer, intent(in) :: n_vert, n_fcts, nx, ny, nz, n_threads
         real, intent(in) :: L_char, max_height, tol
         real, dimension(3), intent(in) :: Ray_dir
         real, dimension(n_vert*3), intent(in) :: vertices
@@ -72,7 +74,7 @@ module in_mypoly_functions
         integer :: ix, iy, iz
         real, dimension(3) :: Origin
         
-        !$ call OMP_SET_NUM_THREADS(8)
+        !$ call OMP_SET_NUM_THREADS(n_threads)
         !$OMP parallel do default(shared) private(ix,iy,iz,Origin) schedule(dynamic)
         do iy = 1,ny
             do iz = 1,nz
@@ -218,7 +220,7 @@ module in_mypoly_functions
                     else
                             
                         if (counter == 0) then
-                            counter=counter+1;
+                            counter=counter+1
                             facet_intersect_old(9*(counter-1)+1:9*(counter-1)+3) = vert1
                             facet_intersect_old(9*(counter-1)+4:9*(counter-1)+6) = vert2
                             facet_intersect_old(9*(counter-1)+7:9*counter) = vert3

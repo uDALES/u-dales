@@ -46,6 +46,7 @@ module modibm
     end interface
 
    logical :: lbottom = .false.
+   logical :: lnorec = .false.
 
    ! read from namoptions
    integer :: nsolpts_u, nsolpts_v, nsolpts_w, nsolpts_c, &
@@ -563,7 +564,7 @@ module modibm
 
 
    subroutine ibmnorm
-     use modglobal,   only : ih, jh, kh, ihc, jhc, khc, nsv, dzf, zh, kb, ke, kh, nsv, libm, ltempeq, lmoist
+     use modglobal,   only : ih, jh, kh, ihc, jhc, khc, nsv, dzf, zh, kb, ke, kh, nsv, libm, ltempeq, lmoist, iadv_sv, iadv_cd2, iadv_thl
      use modfields,   only : um, vm, wm, thlm, qtm, svm, up, vp, wp, thlp, qtp, svp, thl0, qt0, sv0, thl0av
      use modboundary, only : halos
      use decomp_2d,   only : zstart, zend
@@ -578,32 +579,29 @@ module modibm
      call solid(solid_info_v, vm, vp, 0., ih, jh, kh)
      call solid(solid_info_w, wm, wp, 0., ih, jh, kh)
 
-     ! scalars
+     ! Scalars
+     ! Solid value does not matter when using second order scheme
+     ! Set interior to a constant and boundary to average of fluid neighbours
      if (ltempeq) then
-        ! Solid value should not matter - choose domain-average for visualization.
-        call solid(solid_info_c, thlm, thlp, sum(thl0av(kb:ke)*dzf(kb:ke))/zh(ke+1), ih, jh, kh)
-        !call advecc2nd_corr_liberal(thl0, thlp)
-        call advecc2nd_corr_conservative(thl0, thlp)
+        call solid(solid_info_c, thlm, thlp, sum(thl0av(kb:ke)*dzf(kb:ke))/zh(ke+1), ih, jh, kh, mask_c)
+        if (iadv_thl == iadv_cd2) call advecc2nd_corr_conservative(thl0, thlp)
      end if
 
      if (lmoist) then
-       call solid(solid_info_c, qtm, qtp, 0., ih, jh, kh)
-       !call advecc2nd_corr_liberal(qt0, qtp)
+       call solid(solid_info_c, qtm, qtp, 0., ih, jh, kh, mask_c)
        call advecc2nd_corr_conservative(qt0, qtp)
-    end if
+     end if
 
-    do n=1,nsv
-      call solid(solid_info_c, svm(:,:,:,n), svp(:,:,:,n), 0., ihc, jhc, khc)
-      call solid_boundary(bound_info_c, mask_c, svm(:,:,:,n), svp(:,:,:,n), ihc, jhc, khc)
-      ! The above should be replaced with something like avecc2nd_corr,
-      ! but using the kappa advection scheme rather than the second order one.
-    end do
+     do n=1,nsv
+        call solid(solid_info_c, svm(:,:,:,n), svp(:,:,:,n), 0., ihc, jhc, khc, mask_c)
+        if (iadv_sv(n) == iadv_cd2) call advecc2nd_corr_liberal(sv0(:,:,:,n), svp(:,:,:,n))
+     end do
 
    end subroutine ibmnorm
 
 
-   subroutine solid(solid_info, var, rhs, val, hi, hj, hk)
-     use modglobal, only : ib, ie, jb, je, kb, ke
+   subroutine solid(solid_info, var, rhs, val, hi, hj, hk, mask)
+     use modglobal, only : ib, ie, jb, je, kb, ke, ih, jh, kh, eps1
      use decomp_2d, only : zstart
 
      type(solid_info_type), intent(in) :: solid_info
@@ -611,81 +609,137 @@ module modibm
      real, intent(inout) :: var(ib-hi:ie+hi,jb-hj:je+hj,kb-hk:ke+hk)
      real, intent(inout) :: rhs(ib-hi:ie+hi,jb-hj:je+hj,kb   :ke+hk)
      real, intent(in) :: val
-
+     real, intent(in), optional :: mask(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
+     real :: count
      integer :: i, j, k, n, m
 
-     do m=1,solid_info%nsolptsrank
-      n = solid_info%solptsrank(m)
-       !if (lsolptsrank_u(n)) then
-         i = solid_info%solpts(n,1) - zstart(1) + 1
-         j = solid_info%solpts(n,2) - zstart(2) + 1
-         k = solid_info%solpts(n,3) - zstart(3) + 1
-         var(i,j,k) = val
-         rhs(i,j,k) = 0.
-       !end if
-     end do
+     if (present(mask) .eqv. .false.) then
+        do m=1,solid_info%nsolptsrank
+           n = solid_info%solptsrank(m)
+           i = solid_info%solpts(n,1) - zstart(1) + 1
+           j = solid_info%solpts(n,2) - zstart(2) + 1
+           k = solid_info%solpts(n,3) - zstart(3) + 1
+           var(i,j,k) = val
+           rhs(i,j,k) = 0.
+        end do
+
+     else
+        do m=1,solid_info%nsolptsrank
+           n = solid_info%solptsrank(m)
+           i = solid_info%solpts(n,1) - zstart(1) + 1
+           j = solid_info%solpts(n,2) - zstart(2) + 1
+           k = solid_info%solpts(n,3) - zstart(3) + 1
+           var(i,j,k) = val
+           rhs(i,j,k) = 0.
+           count = 0
+
+           ! Attempt to set zero flux BC
+           if (abs(mask(i,j+1,k) - 1.) < eps1) then ! fluid neighbour
+             count = count + 1
+             var(i,j,k) = var(i,j,k) + var(i,j+1,k)
+             rhs(i,j,k) = rhs(i,j,k) + rhs(i,j+1,k)
+          end if
+
+          if (abs(mask(i,j-1,k) - 1.) < eps1) then
+             count = count + 1
+             var(i,j,k) = var(i,j,k) + var(i,j-1,k)
+             rhs(i,j,k) = rhs(i,j,k) + rhs(i,j-1,k)
+          end if
+
+          if (abs(mask(i,j,k+1) - 1.) < eps1) then
+             count = count + 1
+             var(i,j,k) = var(i,j,k) + var(i,j,k+1)
+             rhs(i,j,k) = rhs(i,j,k) + rhs(i,j,k+1)
+          end if
+
+          if (abs(mask(i,j,k-1) - 1.) < eps1) then
+             count = count + 1
+             var(i,j,k) = var(i,j,k) + var(i,j,k-1)
+             rhs(i,j,k) = rhs(i,j,k) + rhs(i,j,k-1)
+          end if
+
+          if (abs(mask(i+1,j,k) - 1.) < eps1) then
+             count = count + 1
+             var(i,j,k) = var(i,j,k) + var(i+1,j,k)
+             rhs(i,j,k) = rhs(i,j,k) + rhs(i+1,j,k)
+          end if
+
+          if (abs(mask(i-1,j,k) - 1.) < eps1) then
+             count = count + 1
+             var(i,j,k) = var(i,j,k) + var(i-1,j,k)
+             rhs(i,j,k) = rhs(i,j,k) + rhs(i-1,j,k)
+          end if
+
+          if (count > 0) then
+             var(i,j,k) = (var(i,j,k) - val) / count
+             rhs(i,j,k) = rhs(i,j,k) / count
+          end if
+
+       end do
+
+   end if
 
    end subroutine solid
 
 
-   subroutine solid_boundary(bound_info, mask, var, rhs, hi, hj, hk)
-     use modglobal, only : eps1, ib, ie, ih, jb, je, jh, kb, ke, kh
-     use decomp_2d, only : zstart
-     ! uDALES 1 approach
-     ! Not truly conservative
-     type(bound_info_type), intent(in) :: bound_info
-     integer, intent(in) :: hi, hj, hk
-     real, intent(in)    :: mask(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
-     real, intent(inout) :: var(ib-hi:ie+hi,jb-hj:je+hj,kb-hk:ke+hk)
-     real, intent(inout) :: rhs(ib-hi:ie+hi,jb-hj:je+hj,kb   :ke+hk)
-
-     integer i, j, k, n, m
-
-     do m = 1,bound_info%nbndptsrank
-       n = bound_info%bndptsrank(m)
-       i = bound_info%bndpts(n,1) - zstart(1) + 1
-       j = bound_info%bndpts(n,2) - zstart(2) + 1
-       k = bound_info%bndpts(n,3) - zstart(3) + 1
-
-       if (abs(mask(i,j+1,k)) < eps1) then
-         ! rhs(i,j+1,k) = 0.
-         rhs(i,j+1,k) = rhs(i,j,k)
-         var(i,j+1,k) = var(i,j,k)
-       end if
-
-       if (abs(mask(i,j-1,k)) < eps1) then
-         ! rhs(i,j-1,k) = 0.
-         rhs(i,j-1,k) = rhs(i,j,k)
-         var(i,j-1,k) = var(i,j,k)
-       end if
-
-       if (abs(mask(i,j,k+1)) < eps1) then
-         ! rhs(i,j,k+1) = 0.
-         rhs(i,j,k+1) = rhs(i,j,k)
-         var(i,j,k+1) = var(i,j,k)
-       end if
-
-       if (abs(mask(i,j,k-1)) < eps1) then
-         ! rhs(i,j,k-1) = 0.
-         rhs(i,j,k-1) = rhs(i,j,k)
-         var(i,j,k-1) = var(i,j,k)
-       end if
-
-       if (abs(mask(i+1,j,k)) < eps1) then
-         ! rhs(i+1,j,k) = 0.
-         rhs(i+1,j,k) = rhs(i,j,k)
-         var(i+1,j,k) = var(i,j,k)
-       end if
-
-       if (abs(mask(i-1,j,k)) < eps1) then
-         ! rhs(i-1,j,k) = 0.
-         rhs(i-1,j,k) = rhs(i,j,k)
-         var(i-1,j,k) = var(i,j,k)
-       end if
-
-     end do
-
-   end subroutine
+   ! subroutine solid_boundary(bound_info, mask, var, rhs, hi, hj, hk)
+   !   use modglobal, only : eps1, ib, ie, ih, jb, je, jh, kb, ke, kh
+   !   use decomp_2d, only : zstart
+   !   ! uDALES 1 approach
+   !   ! Not truly conservative
+   !   type(bound_info_type), intent(in) :: bound_info
+   !   integer, intent(in) :: hi, hj, hk
+   !   real, intent(in)    :: mask(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
+   !   real, intent(inout) :: var(ib-hi:ie+hi,jb-hj:je+hj,kb-hk:ke+hk)
+   !   real, intent(inout) :: rhs(ib-hi:ie+hi,jb-hj:je+hj,kb   :ke+hk)
+   !
+   !   integer i, j, k, n, m
+   !
+   !   do m = 1,bound_info%nbndptsrank
+   !     n = bound_info%bndptsrank(m)
+   !     i = bound_info%bndpts(n,1) - zstart(1) + 1
+   !     j = bound_info%bndpts(n,2) - zstart(2) + 1
+   !     k = bound_info%bndpts(n,3) - zstart(3) + 1
+   !
+   !     if (abs(mask(i,j+1,k)) < eps1) then
+   !       ! rhs(i,j+1,k) = 0.
+   !       rhs(i,j+1,k) = rhs(i,j,k)
+   !       var(i,j+1,k) = var(i,j,k)
+   !     end if
+   !
+   !     if (abs(mask(i,j-1,k)) < eps1) then
+   !       ! rhs(i,j-1,k) = 0.
+   !       rhs(i,j-1,k) = rhs(i,j,k)
+   !       var(i,j-1,k) = var(i,j,k)
+   !     end if
+   !
+   !     if (abs(mask(i,j,k+1)) < eps1) then
+   !       ! rhs(i,j,k+1) = 0.
+   !       rhs(i,j,k+1) = rhs(i,j,k)
+   !       var(i,j,k+1) = var(i,j,k)
+   !     end if
+   !
+   !     if (abs(mask(i,j,k-1)) < eps1) then
+   !       ! rhs(i,j,k-1) = 0.
+   !       rhs(i,j,k-1) = rhs(i,j,k)
+   !       var(i,j,k-1) = var(i,j,k)
+   !     end if
+   !
+   !     if (abs(mask(i+1,j,k)) < eps1) then
+   !       ! rhs(i+1,j,k) = 0.
+   !       rhs(i+1,j,k) = rhs(i,j,k)
+   !       var(i+1,j,k) = var(i,j,k)
+   !     end if
+   !
+   !     if (abs(mask(i-1,j,k)) < eps1) then
+   !       ! rhs(i-1,j,k) = 0.
+   !       rhs(i-1,j,k) = rhs(i,j,k)
+   !       var(i-1,j,k) = var(i,j,k)
+   !     end if
+   !
+   !   end do
+   !
+   ! end subroutine
 
 
    subroutine advecc2nd_corr_conservative(var, rhs)
@@ -986,9 +1040,12 @@ module modibm
      use modfields, only : u0, v0, w0, thl0, qt0, sv0, up, vp, wp, thlp, qtp, svp, &
                            tau_x, tau_y, tau_z, thl_flux
      use modsubgriddata, only : ekm, ekh
+     use modmpi, only : myid, comm3d, MPI_SUM, mpierr, MY_REAL
 
      real, allocatable :: rhs(:,:,:)
      integer n
+     real :: thl_flux_sum, thl_flux_tot, mom_flux_sum, mom_flux_tot
+     logical thl_flux_file_exists, mom_flux_file_exists
 
       if (.not. libm) return
 
@@ -1011,6 +1068,21 @@ module modibm
         call diffu_corr
         call diffv_corr
         call diffw_corr
+
+        mom_flux_sum = sum(tau_x(ib:ie,jb:je,kb+1:ke) + tau_y(ib:ie,jb:je,kb+1:ke) + tau_z(ib:ie,jb:je,kb+1:ke))
+        call MPI_ALLREDUCE(mom_flux_sum, mom_flux_tot, 1, MY_REAL, MPI_SUM, comm3d, mpierr)
+        if (myid == 0) then
+           if (rk3step == 3) then
+                inquire(file="mom_flux.txt", exist=mom_flux_file_exists)
+                if (mom_flux_file_exists) then
+                  open(12, file="mom_flux.txt", status="old", position="append", action="write")
+                else
+                  open(12, file="mom_flux.txt", status="new", action="write")
+                end if
+                write(12, *) timee, -mom_flux_tot
+                close(12)
+           end if
+        end if
       end if
 
       if (ltempeq .or. lmoist) then
@@ -1021,6 +1093,21 @@ module modibm
         thl_flux(:,:,kb:ke+kh) = thl_flux(:,:,kb:ke+kh) + (thlp - rhs)
         if (ltempeq) call diffc_corr(thl0, thlp, ih, jh, kh)
         if (lmoist)  call diffc_corr(qt0, qtp, ih, jh, kh)
+
+        thl_flux_sum = sum(thl_flux(ib:ie,jb:je,kb+1:ke))
+        call MPI_ALLREDUCE(thl_flux_sum, thl_flux_tot, 1, MY_REAL, MPI_SUM, comm3d, mpierr)
+        if (myid == 0) then
+           if (rk3step == 3) then
+                inquire(file="thl_flux.txt", exist=thl_flux_file_exists)
+                if (thl_flux_file_exists) then
+                  open(12, file="thl_flux.txt", status="old", position="append", action="write")
+                else
+                  open(12, file="thl_flux.txt", status="new", action="write")
+                end if
+                write(12, *) timee, thl_flux_tot
+                close(12)
+           end if
+        end if
       end if
 
       do n = 1,nsv
@@ -1072,12 +1159,14 @@ module modibm
        fac = bound_info%secfacids(sec) ! index of facet
        norm = facnorm(fac,:) ! facet normal
 
+       if (facz0(fac) < eps1) cycle
+
        i = bound_info%bndpts(n,1) - zstart(1) + 1
        j = bound_info%bndpts(n,2) - zstart(2) + 1
        k = bound_info%bndpts(n,3) - zstart(3) + 1
        if ((i < ib) .or. (i > ie) .or. (j < jb) .or. (j > je)) write(*,*) "problem", i, j
 
-       if (bound_info%lcomprec(sec)) then
+       if (bound_info%lcomprec(sec) .or. lnorec) then
          uvec = interp_velocity_ptr(i, j, k)
          if (iwallmom == 2) then
            Tair = interp_temperature_ptr(i, j, k)
@@ -1095,6 +1184,8 @@ module modibm
                                                  yrec - yf(bound_info%bndpts(n,2)), &
                                                  zrec - zf(bound_info%bndpts(n,3))/))
        end if
+
+       if (log(dist/facz0(fac)) < 1) cycle ! prevents very large fluxes
 
        if (is_equal(uvec, vec0)) cycle
 
@@ -1150,7 +1241,7 @@ module modibm
 
    subroutine wallfunheat
      use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, xf, yf, zf, xh, yh, zh, dx, dy, dzh, eps1, &
-                           xhat, yhat, zhat, vec0, fkar, ltempeq, lmoist, iwalltemp, iwallmoist, lEB, totheatflux, totqflux
+                           xhat, yhat, zhat, vec0, fkar, ltempeq, lmoist, iwalltemp, iwallmoist, lEB, rk3step, totheatflux, totqflux
      use modfields, only : u0, v0, w0, thl0, thlp, qt0, qtp
      use initfac,   only : facT, facz0, facz0h, facnorm, faca, fachf, facef, facqsat, fachurel, facf, faclGR
      use modsurfdata, only : z0, z0h
@@ -1169,6 +1260,8 @@ module modibm
        fac = bound_info_c%secfacids(sec) ! index of facet
        norm = facnorm(fac,:)
 
+       if (facz0(fac) < eps1) cycle
+
        i = bound_info_c%bndpts(n,1) - zstart(1) + 1 ! should be on this rank!
        j = bound_info_c%bndpts(n,2) - zstart(2) + 1 ! should be on this rank!
        k = bound_info_c%bndpts(n,3) - zstart(3) + 1 ! should be on this rank!
@@ -1177,7 +1270,7 @@ module modibm
           stop 1
         end if
 
-       if (bound_info_c%lcomprec(sec)) then ! section aligned with grid - use this cell's velocity
+       if (bound_info_c%lcomprec(sec) .or. lnorec) then ! section aligned with grid - use this cell's velocity
          uvec = interp_velocity_c(i, j, k)
          Tair = thl0(i,j,k)
          qtair = qt0(i,j,k)
@@ -1193,10 +1286,12 @@ module modibm
          Tair  = trilinear_interp_var(thl0, bound_info_c%recids_c(sec,:), xf, yf, zf, xrec, yrec, zrec)
          qtair = trilinear_interp_var( qt0, bound_info_c%recids_c(sec,:), xf, yf, zf, xrec, yrec, zrec)
          dist = bound_info_c%bnddst(sec) + norm2((/xrec - xf(bound_info_c%bndpts(n,1)), &
-                                                 yrec - yf(bound_info_c%bndpts(n,2)), &
-                                                 zrec - zf(bound_info_c%bndpts(n,3))/))
+                                                   yrec - yf(bound_info_c%bndpts(n,2)), &
+                                                   zrec - zf(bound_info_c%bndpts(n,3))/))
 
        end if
+
+       if (log(dist/facz0(fac)) < 1) cycle ! prevents very large fluxes
 
        if (is_equal(uvec, vec0)) cycle
 
@@ -1281,7 +1376,30 @@ module modibm
          end if
        end if
 
+       select case(fac)
+       case(1:16)
+          count_sidem = count_sidem + 1
+          dist_sidem = dist_sidem + dist
+          utan_sidem = utan_sidem + utan
+          Tair_sidem = Tair_sidem + Tair
+          flux_sidem = flux_sidem - flux * bound_info_c%secareas(sec) / (dx*dy*dzh(k))
+       case(49:64)
+          count_sidep = count_sidep + 1
+          dist_sidep = dist_sidep + dist
+          utan_sidep = utan_sidep + utan
+          Tair_sidep = Tair_sidep + Tair
+          flux_sidep = flux_sidep - flux * bound_info_c%secareas(sec) / (dx*dy*dzh(k))
+          !write(*,*) dist_sidep
+       end select
+
      end do
+
+  !    if (rk3step == 3) then
+  !    write(*,*) "count_sidem, dist_sidem, utan_sidem, Tair_sidem, flux_sidem"
+  !    write(*,*) count_sidem, dist_sidem / count_sidem, utan_sidem / count_sidem, Tair_sidem / count_sidem, flux_sidem
+  !    write(*,*) "count_sidep, dist_sidep, utan_sidep, Tair_sidep, flux_sidep"
+  !    write(*,*) count_sidep, dist_sidep / count_sidep, utan_sidep / count_sidep, Tair_sidep / count_sidep, flux_sidep
+  ! end if
 
    end subroutine wallfunheat
 

@@ -56,6 +56,7 @@ module modfields
   real, allocatable, target :: u02(:,:,:)        !<   x-component of velocity at time step t-1
 
   real, allocatable, target :: thl0(:,:,:)      !<   liq. water pot. temperature at time step t
+  real, allocatable :: thl0c(:,:,:)      !<   liq. water pot. temperature at time step t
   real, allocatable :: thl0h(:,:,:)     !<   3d-field of theta_l at half levels for kappa scheme
 
   real, allocatable :: qt0h(:,:,:)      !<  3d-field of q_tot   at half levels for kappa scheme
@@ -72,7 +73,7 @@ module modfields
   real, allocatable, target :: rv(:,:,:)        !<   tendency of vm
   real, allocatable, target :: rw(:,:,:)        !<   tendency of wm
   real, allocatable :: thlp(:,:,:)      !<   tendency of thlm
-  !real, allocatable, target :: thlp(:,:,:)      !<   tendency of thlm
+  real, allocatable :: thlpc(:,:,:)      !<   tendency of thlm
   real, allocatable :: e12p(:,:,:)      !<   tendency of e12m
   real, allocatable :: qtp(:,:,:)       !<   tendency of qtm
 
@@ -449,6 +450,7 @@ contains
     ! allocate(thl0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); thl0 = 0.
     ! allocate(thl0h(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); thl0h = 0.
     allocate(thlp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)); thlp = 0.
+    allocate(thlpc(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc)); thlp = 0.
     ! allocate(qtm(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); qtm = 0.
     ! allocate(qt0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); qt0 = 0.
     ! allocate(ql0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); ql0 = 0.
@@ -490,7 +492,9 @@ contains
 
     ! Always have to allocate these, even if ltempeq/lmoist = .false.
     call alloc_z(thlm); thlm = 0.
+    !allocate(thlm(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb-khc:ke+khc)); thlm = 0.
     call alloc_z(thl0); thl0 = 0.
+    allocate(thl0c(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb-khc:ke+khc)); thl0 = 0.
     ! call alloc_z(thlp); thlp = 0.
     call alloc_z(thl0h); thl0h = 0.
     ! call alloc_z(thv0h); thv0h = 0.
