@@ -75,6 +75,7 @@ if r.libm
 
     calculate_facet_sections_uvw = r.iwallmom > 1;
     calculate_facet_sections_c = r.ltempeq || r.lmoist;
+    lwindows = false;
     if r.gen_geom
         % c-grid (scalars/pressure)
         xgrid_c = r.xf;
@@ -115,7 +116,6 @@ if r.libm
 
         lmypolyfortran = 1; lmypoly = 0;		% remove eventually
         lmatchFacetsToCellsFortran = 1;
-        lwindows = false;
 
         writeIBMFiles; % Could turn into a function and move writing to this script
     else
