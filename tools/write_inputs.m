@@ -20,10 +20,12 @@
 % This script is run by the bash script da_inp.sh.
 % It used to generate the necessary input files for uDALES.
 
-expnr = '991';
-
-DA_EXPDIR = getenv('DA_EXPDIR');
-DA_TOOLSDIR = getenv('DA_TOOLSDIR');
+expnr = '136';
+% 
+% DA_EXPDIR = getenv('DA_EXPDIR');
+% DA_TOOLSDIR = getenv('DA_TOOLSDIR');
+DA_EXPDIR = '~/ecse/experiments';
+DA_TOOLSDIR = '~/ecse/u-dales/tools'
 addpath(genpath([DA_TOOLSDIR '/']));
 addpath([DA_TOOLSDIR '/IBM/'])
 addpath([DA_TOOLSDIR '/SEB/'])
@@ -175,8 +177,30 @@ if r.libm
         azimuth = r.solarazimuth - r.xazimuth;
         nsun = [sind(r.solarzenith)*cosd(azimuth), -sind(r.solarzenith)*sind(azimuth), cosd(r.solarzenith)];
         show_plot_2d = false; % User-defined
-        show_plot_3d = true;  % User-defined
-        Sdir = directShortwave(F, V, nsun, r.I, r.psc_res, show_plot_2d, show_plot_3d);
+        show_plot_3d = false;  % User-defined
+        % write
+        ldirectShortwaveFortran = 0;
+        if ldirectShortwaveFortran
+            fileID = fopen([fpath 'info_directShortwave.txt'],'w');
+            fprintf(fileID,'%8d %8d\n',[size(TR.ConnectivityList, 1), size(TR.Points, 1)]);
+            fprintf(fileID,'%15.10f %15.10f %15.10f\n', nsun');
+            fprintf(fileID,'%5.10f\n',r.I);
+            fprintf(fileID,'%5.10f\n',r.psc_res);
+            fclose(fileID);
+
+            fileID = fopen([fpath 'vertices.txt'],'w');
+            fprintf(fileID,'%15.10f %15.10f %15.10f\n',TR.Points');
+            fclose(fileID);
+
+            fileID = fopen([fpath 'faces.txt'],'w');
+            fprintf(fileID,'%8d %8d %8d %15.10f %15.10f %15.10f %15.10f %15.10f %15.10f\n',[TR.ConnectivityList TR.incenter TR.faceNormal]');
+            fclose(fileID);
+            disp('not implemented yet.')
+            return
+        else
+            Sdir = directShortwave(F, V, nsun, r.I, r.psc_res, show_plot_2d, show_plot_3d);
+            dlmwrite('Sdir.txt', Sdir) % for debugging/visualisation purposes
+        end
 
         %% Calculate net shortwave radiation (Knet)
         disp('Calculating net shortwave radiation.')
