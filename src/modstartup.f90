@@ -1976,7 +1976,7 @@ module modstartup
       use modglobal, only:ib, ie, ih, jb, je, jh, kb, ke, kh, dtheta, dqt, dsv, startfile, timee, totavtime, runavtime, &
          iexpnr, ntimee, rk3step, ifinput, nsv, runtime, dt, cexpnr, lreadmean, lreadminl, &
          totinletav, lreadscal, ltempeq, dzf, numol, prandtlmoli
-      use modmpi, only:cmyid, myid
+      use modmpi, only:cmyid, cmyidx, cmyidy, myid
       use modsubgriddata, only:ekm
       use modinlet, only:zinterpolate1d, zinterpolatet1d, zinterpolatew1d, zinterpolate2d
       use modinletdata, only:Uinl, Urec, Wrec, Utav, Tinl, Trec, linuf, linuh, &
@@ -1999,7 +1999,8 @@ module modstartup
       !-----------------------------------------------------------------
       name = startfile
       name(5:5) = 'd'
-      name(15:17) = cmyid
+      name(15:17) = cmyidx
+      name(19:21) = cmyidy
       write (6, *) 'loading ', name
       open (unit=ifinput, file=name, form='unformatted', status='old')
 
