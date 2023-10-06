@@ -3,7 +3,7 @@ function S = directShortwave(F, V, nsun, irradiance, resolution, show_plot_2d, s
 %   conversion.
 % F (#facets x 3/4) is the connectivity list of facets.
 % V (#vertices x 3) is the corresponding vertices.
-% Together these describe the geometry, which should not contain any facets 
+% Together these describe the geometry, which should not contain any facets
 %   that are not included in the energy balance (apart from bounding walls).
 %   Note the geometry can be composed of triangles or quadrilaterals.
 % nsun (1 x 3) is the vector TO the sun (doesn't have to be unitary).
@@ -17,7 +17,7 @@ if nv == 3
     TR = triangulation(F,V);
     % Can use the included methods of the class.
 elseif nv == 4
-    
+
 else
     error('Only triangles or quadrilaterals allowed.')
 end
@@ -71,7 +71,7 @@ nsun = nsun / norm(nsun);
 
 % Self-shading logical vector
 % If SS == true then it is NOT self shading
-SS = N * nsun' > 0;
+visibility = N * nsun' > 0;
 
 % Find centre of geometry at the ground
 Lx = max(V(:,1)) - min(V(:,1));
@@ -101,7 +101,7 @@ Cpg = C + muC * nsun;
 sV = (V - p0) / M;
 Vpl  = sV(:,1:2);
 muV  = sV(:,3);
-Vpg = V + muV * nsun; 
+Vpg = V + muV * nsun;
 
 mu = zeros(Nf,1);
 for i=1:Nf
@@ -112,38 +112,39 @@ end
 
 % Sort in descending order
 [~, I] = sort(mu, 1, 'descend');
-ISS = I(SS(I) == 1);
+%ISS = I(visibility(I) == 1);
 
 % Shift local coordinates so that they are all positive
 Vplshift = Vpl + abs(min(Vpl,[],1));
 
 delta = resolution;
 
-res_xi = ceil(max(Vplshift(:,1)) / delta);
-res_eta = ceil(max(Vplshift(:,2)) / delta);
-bw = zeros(res_eta, res_xi);
+size_xi = ceil(max(Vplshift(:,1)) / delta);
+size_eta = ceil(max(Vplshift(:,2)) / delta);
+bw = zeros(size_eta, size_xi);
 
-%figure
-
-n=0;
+%tic
 for i = I'
-    n=n+1;
     %disp(['Surface: ' num2str(n) ' ; ~ ' num2str(round(n/Nf * 100, 1)) ' % complete'])
-    mask = poly2mask(Vplshift(F(i,:), 1) / delta, Vplshift(F(i,:), 2) / delta, res_eta, res_xi);
-    if SS(i) == 0
-        bw(mask) = 0;
-    else
-        bw(mask) = mask(mask) * i;
-    end
-%   bw(mask) = mask(mask) * i * SS(i);
+    %mask = poly2mask(Vplshift(F(i,:), 1) / delta, Vplshift(F(i,:), 2) / delta, res_eta, res_xi);
+%     if SS(i) == 0
+%         bw(mask) = 0;
+%     else
+%         bw(mask) = mask(mask) * i;
+%     end
+% %   bw(mask) = mask(mask) * i * SS(i);
+
+    [~, bw] = poly2MaskIDs(Vplshift(F(i,:), 1) / delta, Vplshift(F(i,:), 2) / delta, ...
+                                    size_eta, size_xi, bw, i*visibility(i));
 
 end
 
 %% Find radiation
 Ap = histc(bw(:), 1:Nf) * delta^2;
 S = irradiance * Ap ./ A; % Radiation on facet (W/m2)
+%toc
 
-if show_plot_2d  
+if show_plot_2d
     Sbm = zeros(size(bw));
     for i = I'
         Sbm(bw == i) = S(i);
@@ -160,7 +161,7 @@ if show_plot_2d
     ylabel('\eta')
     axis equal tight
 end
-    
+
 if show_plot_3d
     figure
     grid on
@@ -171,7 +172,7 @@ if show_plot_3d
     ylabel('y')
     zlabel('z')
     hold on
-    
+
     % Plot in descending order of distance to plane in order to plot
     % projection onto plane too
     %for i = I
@@ -192,6 +193,4 @@ if show_plot_3d
      axis equal tight
      view(nsun)
 end
-%end
-
-
+end

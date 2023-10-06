@@ -78,6 +78,7 @@ if r.libm
 
     calculate_facet_sections_uvw = r.iwallmom > 1;
     calculate_facet_sections_c = r.ltempeq || r.lmoist;
+    lwindows = false;
     if r.gen_geom
         % c-grid (scalars/pressure)
         xgrid_c = r.xf;
@@ -119,7 +120,6 @@ if r.libm
 
         lmypolyfortran = 1; lmypoly = 0;		% remove eventually
         lmatchFacetsToCellsFortran = 1;
-        lwindows = false;
 
         writeIBMFiles; % Could turn into a function and move writing to this script
     else
@@ -213,9 +213,31 @@ if r.lEB
         azimuth = r.solarazimuth - r.xazimuth;
         nsun = [sind(r.solarzenith)*cosd(azimuth), -sind(r.solarzenith)*sind(azimuth), cosd(r.solarzenith)];
         show_plot_2d = false; % User-defined
-        show_plot_3d = true;  % User-defined
-        Sdir = directShortwave(F, V, nsun, r.I, r.psc_res, show_plot_2d, show_plot_3d);
-        toc
+        show_plot_3d = false;  % User-defined
+        % write
+        ldirectShortwaveFortran = 0;
+        if ldirectShortwaveFortran
+            fileID = fopen([fpath 'info_directShortwave.txt'],'w');
+            fprintf(fileID,'%8d %8d\n',[size(TR.ConnectivityList, 1), size(TR.Points, 1)]);
+            fprintf(fileID,'%15.10f %15.10f %15.10f\n', nsun');
+            fprintf(fileID,'%5.10f\n',r.I);
+            fprintf(fileID,'%5.10f\n',r.psc_res);
+            fclose(fileID);
+
+            fileID = fopen([fpath 'vertices.txt'],'w');
+            fprintf(fileID,'%15.10f %15.10f %15.10f\n',TR.Points');
+            fclose(fileID);
+
+            fileID = fopen([fpath 'faces.txt'],'w');
+            fprintf(fileID,'%8d %8d %8d %15.10f %15.10f %15.10f %15.10f %15.10f %15.10f\n',[TR.ConnectivityList TR.incenter TR.faceNormal]');
+            fclose(fileID);
+            disp('not implemented yet.')
+            return
+        else
+            Sdir = directShortwave(F, V, nsun, r.I, r.psc_res, show_plot_2d, show_plot_3d);
+            dlmwrite('Sdir.txt', Sdir) % for debugging/visualisation purposes
+        end
+
         %% Calculate net shortwave radiation (Knet)
         disp('Calculating net shortwave radiation.')
         albedos = preprocessing.generate_albedos(r, facet_types);
