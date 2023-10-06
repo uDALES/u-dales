@@ -3,9 +3,10 @@
 %expnrs2 = [145, 147, 149, 151, 153, 155, 157, 159, 163, 165, 167, 169, 171, 173, 175, 177, 179, 183, 185, 187, 189, 191, 193, 195, 197, 199];
 %expnrs2 = [211:2:219,231:2:239,251:2:259];
 
-expnrs2 = [999];
+expnrs2 = [303,323,343];
 expnrs1 = expnrs2-1;
 ncpus =1;
+tic
 for e = 1:length(expnrs1)
     expnr = num2str(expnrs1(e));
     expnr2 = num2str(expnrs2(e));
@@ -17,7 +18,6 @@ for e = 1:length(expnrs1)
     %     t2test = stlread(['geom.' expnr2 '.stl'])
     xtiles = 3;
     ytiles = 2;
-    tic
     % DA_EXPDIR = getenv('DA_EXPDIR');
     % DA_TOOLSDIR = getenv('DA_TOOLSDIR');
     DA_EXPDIR = '/media/chris/Project3/uDALES2.0/experiments'
@@ -138,16 +138,25 @@ for e = 1:length(expnrs1)
             xsize = r.xlen;
             ysize = r.ylen;
             zsize = r.zsize;
-            
+
+            itot = r.itot;
+            jtot = r.jtot;
+            ktot = r.ktot;
+            dx = r.dx;
+            dy = r.dy;
+
+
             lmypolyfortran = 1; lmypoly = 0;		% remove eventually
+            lmatchFacetsToCellsFortran = 1;
             lwindows = false;
-            Dir_ray_u = [0 0 1];
-            Dir_ray_v = [0 0 1];
-            Dir_ray_w = [0 0 1];
-            Dir_ray_c = [0 0 1];
-            tol_mypoly = 5e-4;
+%             Dir_ray_u = [0 0 1];
+%             Dir_ray_v = [0 0 1];
+%             Dir_ray_w = [0 0 1];
+%             Dir_ray_c = [0 0 1];
+%             tol_mypoly = 5e-4;
             toc
-            writeIBMFiles_Dipanjan; % Could turn into a function and move writing to this script
+            %writeIBMFiles_Dipanjan; % Could turn into a function and move writing to this script
+            writeIBMFiles
             toc
         else
             if isempty(r.geom_path)
@@ -461,7 +470,7 @@ for e = 1:length(expnrs1)
         fprintf(fileID_info, ['nfctsecs_c = ', num2str(size(facet_sections_c_final,1)), '\n']);
         fprintf(fileID_info, ['sinkbase = ', num2str(max(solid_ijk_c(:,3))), '\n']);
         fclose(fileID_info);
-    
+        toc
         %%
         if r.lEB
             toc
@@ -621,7 +630,7 @@ end
 function lams = lamcal(expnr, area_facets)
 
     stem = '/media/chris/Project3/uDALES2.0/experiments/';
-    fpathstl = [stem expnr '/geom_new.' expnr '.stl'];
+    fpathstl = [stem expnr '/geom.' expnr '.stl'];
     %fpathstl = [stem expnr '/geom.' expnr '.stl'];
     fpathg = [stem  expnr '/green_outline.' expnr];
     fpathfacarea = [stem expnr '/facetarea.inp.' expnr];
