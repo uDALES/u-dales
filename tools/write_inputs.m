@@ -172,42 +172,40 @@ if r.libm
             disp(['Written vfsparse.inp.', r.expnr])
         end
 
-        %% Calculate direct solar radiation (Sdir)
-        disp('Calculating direct solar radiation.')
-        azimuth = r.solarazimuth - r.xazimuth;
-        nsun = [sind(r.solarzenith)*cosd(azimuth), -sind(r.solarzenith)*sind(azimuth), cosd(r.solarzenith)];
-        show_plot_2d = false; % User-defined
-        show_plot_3d = false;  % User-defined
-        % write
-        ldirectShortwaveFortran = 0;
-        if ldirectShortwaveFortran
-            fileID = fopen([fpath 'info_directShortwave.txt'],'w');
-            fprintf(fileID,'%8d %8d\n',[size(TR.ConnectivityList, 1), size(TR.Points, 1)]);
-            fprintf(fileID,'%15.10f %15.10f %15.10f\n', nsun');
-            fprintf(fileID,'%5.10f\n',r.I);
-            fprintf(fileID,'%5.10f\n',r.psc_res);
-            fclose(fileID);
-
-            fileID = fopen([fpath 'vertices.txt'],'w');
-            fprintf(fileID,'%15.10f %15.10f %15.10f\n',TR.Points');
-            fclose(fileID);
-
-            fileID = fopen([fpath 'faces.txt'],'w');
-            fprintf(fileID,'%8d %8d %8d %15.10f %15.10f %15.10f %15.10f %15.10f %15.10f\n',[TR.ConnectivityList TR.incenter TR.faceNormal]');
-            fclose(fileID);
-            disp('not implemented yet.')
-            return
+        %% Calculate shortwave radiation
+        albedos = preprocessing.generate_albedos(r, facet_types);
+        resolution   = r.psc_res;
+        xazimuth     = r.xazimuth;
+        ltimedepsw   = r.ltimedepsw;
+        ldirectShortwaveFortran = 1;
+        lscatter = true;
+ 
+        if ltimedepsw
+            runtime = r.runtime;
+            dtSP    = r.dtSP;
         else
-            Sdir = directShortwave(F, V, nsun, r.I, r.psc_res, show_plot_2d, show_plot_3d);
-            dlmwrite('Sdir.txt', Sdir) % for debugging/visualisation purposes
+            lcustomsw = r.lcustomsw;
+            if lcustomsw
+                solarazimuth = r.solarazimuth;
+                solarzenith  = r.solarzenith;
+                irradiance   = r.I;
+                Dsky         = r.Dsky;
+            else
+                start = datetime(obj.year, obj.month, obj.day, obj.hour, obj.minute, obj.second);
+                longitude = r.longitude;
+                latitude  = r.latitude;
+                timezone  = r.timezone;
+                elevation = r.elevation;
+            end
         end
 
-        %% Calculate net shortwave radiation (Knet)
-        disp('Calculating net shortwave radiation.')
-        albedos = preprocessing.generate_albedos(r, facet_types);
-        Knet = netShortwave(Sdir, r.Dsky, vf, svf, albedos);
-        preprocessing.write_netsw(r, Knet);
+        shortwave;
+        preprocessing.write_netsw(r, Knet(:,1));
         disp(['Written netsw.inp.', r.expnr])
+
+        if r.ltimedepsw
+            % write timedepsw.inp.
+        end
     end
 
     %% Write initial facet temperatures

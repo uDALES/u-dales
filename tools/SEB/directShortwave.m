@@ -123,21 +123,19 @@ size_xi = ceil(max(Vplshift(:,1)) / delta);
 size_eta = ceil(max(Vplshift(:,2)) / delta);
 bw = zeros(size_eta, size_xi);
 
-%tic
+tic
+n = 0;
 for i = I'
+    n=n+1;
     %disp(['Surface: ' num2str(n) ' ; ~ ' num2str(round(n/Nf * 100, 1)) ' % complete'])
-    %mask = poly2mask(Vplshift(F(i,:), 1) / delta, Vplshift(F(i,:), 2) / delta, res_eta, res_xi);
-%     if SS(i) == 0
-%         bw(mask) = 0;
-%     else
-%         bw(mask) = mask(mask) * i;
-%     end
-% %   bw(mask) = mask(mask) * i * SS(i);
+%     mask = poly2mask(Vplshift(F(i,:), 1) / delta, Vplshift(F(i,:), 2) / delta, size_eta, size_xi);
+%     bw(mask) = i * visibility(i);
 
-    [~, bw] = poly2MaskIDs(Vplshift(F(i,:), 1) / delta, Vplshift(F(i,:), 2) / delta, ...
-                                    size_eta, size_xi, bw, i*visibility(i));
+    [~, bw] = poly2maskIDs(Vplshift(F(i,:), 1) / delta, Vplshift(F(i,:), 2) / delta, size_eta, size_xi, ...
+        bw, i*visibility(i));
 
 end
+toc
 
 %% Find radiation
 Ap = histc(bw(:), 1:Nf) * delta^2;

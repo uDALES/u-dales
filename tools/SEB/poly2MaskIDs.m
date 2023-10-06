@@ -1,4 +1,4 @@
-function [out, outIDs] = poly2MaskIDs(xpt,ypt, M,N, outIDs, id)
+function [out, outIDs] = poly2maskIDs(xpt,ypt, M,N, outIDs, id)
 scale = 5.0;
 
 % [edgeRows, edgeColumns] = size(xpt);

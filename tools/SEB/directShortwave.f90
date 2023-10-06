@@ -6,6 +6,7 @@ program run
    real, dimension(3) :: nsun
    real   , allocatable, dimension(:,:)   :: vertices, faceNormal, incenter
    integer, allocatable, dimension(:,:)   :: connectivityList
+   real   , allocatable, dimension(:)     :: Sdir
    integer :: n
 
    open(unit=50,file='info_directShortwave.txt')
@@ -15,10 +16,10 @@ program run
    read(unit=50,fmt='(f15.10)') resolution
    close(unit=50)
 
-   write(*,*) "nFaces, nVertices", nFaces, nVertices
-   write(*,*) "nsun", nsun
-   write(*,*) "irradiance", irradiance
-   write(*,*) "resolution", resolution
+   ! write(*,*) "nFaces, nVertices", nFaces, nVertices
+   ! write(*,*) "nsun", nsun
+   ! write(*,*) "irradiance", irradiance
+   ! write(*,*) "resolution", resolution
 
    !resolution = 1
 
@@ -26,6 +27,7 @@ program run
    allocate(incenter(nFaces, 3))
    allocate(faceNormal(nFaces, 3))
    allocate(vertices(nVertices, 3))
+   allocate(Sdir(nFaces))
 
    call readGeometry('faces.txt', nFaces, 'vertices.txt', nVertices, &
      connectivityList, incenter, faceNormal, vertices)
@@ -42,8 +44,9 @@ program run
 
    nsun = nsun / norm2(nsun) ! make sure the vector to the sun is normalized
    call calculateDirectShortwave(connectivityList, incenter, faceNormal, nFaces, vertices, nVertices, &
-      nsun, irradiance, resolution)
+      nsun, irradiance, resolution, Sdir)
 
+   call writeDirectShortwave(Sdir, nFaces)
 
 
 contains
@@ -76,14 +79,14 @@ contains
 
 
    subroutine calculateDirectShortwave(connectivityList, incenter, faceNormal, nFaces, vertices, nVertices, &
-      nsun, irradiance, resolution)
+      nsun, irradiance, resolution, Sdir)
       integer, intent(in) :: nFaces, nVertices
       integer, intent(in), dimension(nFaces,3)    :: connectivityList
       real   , intent(in), dimension(nFaces,3)    :: incenter, faceNormal
       real   , intent(in), dimension(nVertices,3) :: vertices
       real   , intent(in) :: nsun(3), irradiance, resolution ! nsun must be normalized
-      !real   , intent(out), dimension(nFaces) :: Sdir
-      real   , dimension(nFaces) :: Sdir
+      real   , intent(out), dimension(nFaces) :: Sdir
+      !real   , dimension(nFaces) :: Sdir
       real   , dimension(nFaces,3) :: planeIncenter
       real   , dimension(nFaces) :: areas, distIncenter, projAreas
       integer, dimension(nFaces) :: visibility, sortedFaces ! if visiblity is false then face is self-shaded, i.e. not visible to the sun
@@ -110,15 +113,15 @@ contains
       ymax = maxval(vertices(:,2))
       yrange = ymax - ymin
       p0 = (/xmin+xrange/2., ymin+yrange/2., 0./) + 3.*max(xrange,yrange) * nsun
-      write(*,*) "p0", p0
+      ! write(*,*) "p0", p0
 
       ! define orthonormal basis on the plane
       u1 = -(/nsun(2), -nsun(1), 0./)
       u1 = u1 / norm2(u1)
       u2 = cross_product(u1, nsun)
 
-      write(*,*) "u1", u1
-      write(*,*) "u2", u2
+      ! write(*,*) "u1", u1
+      ! write(*,*) "u2", u2
 
       ! M(1,:) = u1
       ! M(2,:) = u2
@@ -128,19 +131,19 @@ contains
       matrix(:,2) = u2
       matrix(:,3) = -nsun
 
-      write(*,*) "M", matrix
-      write(*,*) matrix(1,:)
-      write(*,*) matrix(2,:)
-      write(*,*) matrix(3,:)
+      ! write(*,*) "M", matrix
+      ! write(*,*) matrix(1,:)
+      ! write(*,*) matrix(2,:)
+      ! write(*,*) matrix(3,:)
 
       invMatrix = matinv3(matrix)
 
-      write(*,*) "matmul(M, Minv)", matmul(matrix, invMatrix)
-
-      write(*,*) "Minv"
-      write(*,*) invMatrix(1,:)
-      write(*,*) invMatrix(2,:)
-      write(*,*) invMatrix(3,:)
+      ! write(*,*) "matmul(M, Minv)", matmul(matrix, invMatrix)
+      !
+      ! write(*,*) "Minv"
+      ! write(*,*) invMatrix(1,:)
+      ! write(*,*) invMatrix(2,:)
+      ! write(*,*) invMatrix(3,:)
             ! solve matrix system M * projIncenter = (incenter - p0)
 
       ! calculate areas and determine visiblity
@@ -173,6 +176,15 @@ contains
          end if
       end do
 
+      ! open (unit=11,file='sortedFaces_fort.txt',action="write")
+      ! do n=1,nFaces
+      !    !write (10,*) secfacids(n), secareas(n), secbndptids(n), bnddst(n)
+      !    ! Formatting assumes: #facets < 10 million, #fluid boundary points < 1 billion,
+      !    ! section area < 1000 m^2 (rounded to cm^2), and distance < 1000m
+      !    write(unit=11,fmt='(i4)') sortedFaces(n)
+      ! end do
+      ! close (11)
+
       ! do n=1,nFaces
       !    write(*,*) sortedFaces(n), distIncenter(n)
       ! end do
@@ -195,7 +207,7 @@ contains
       size_xi = ceiling(maxval(locVertices(:,1) / resolution))
       size_eta = ceiling(maxval(locVertices(:,2) / resolution))
       !write(*,*) "sizeMask1, sizeMask2", sizeMask1, sizeMask2
-      allocate(mask(size_eta, size_xi))
+      !allocate(mask(size_eta, size_xi))
       allocate(maskIDs(size_eta, size_xi))
 
       ! allocate(locCoord1(sizeMask1))
@@ -261,10 +273,10 @@ contains
          do n=1,nFaces
            !write(*,*) "n", n
             m = sortedFaces(n)
-            mask = .false.
+            !mask = .false.
             call poly2maskIDs(locVertices(connectivityList(m, :), 1) / resolution, &
                            locVertices(connectivityList(m, :), 2) / resolution, size_eta, &
-                           size_xi, mask, maskIDs, m*visibility(m))
+                           size_xi, maskIDs, m*visibility(m))
 
             ! call poly2maskIDs([locVertices(connectivityList(m, :), 1) / resolution, &
             !                    locVertices(connectivityList(m, 1), 1) / resolution], &
@@ -289,43 +301,70 @@ contains
          end do
       end do
 
+      ! open (unit=11,file='counts_fort.txt',action="write")
+      ! do n=1,nFaces
+      !    !write (10,*) secfacids(n), secareas(n), secbndptids(n), bnddst(n)
+      !    ! Formatting assumes: #facets < 10 million, #fluid boundary points < 1 billion,
+      !    ! section area < 1000 m^2 (rounded to cm^2), and distance < 1000m
+      !    write(unit=11,fmt='(i8)') counts(n)
+      ! end do
+      ! close (11)
+
             call cpu_time(finish)
 
       projAreas = counts * resolution**2
+
       Sdir = irradiance * projAreas / areas
 
-      write(*,*) "n", "count", "projArea", "Sdir"
-      do n=1,1000
-         write(*,*) n, counts(n), projAreas(n), Sdir(n)
-      end do
+      ! write(*,*) "n", "count", "projArea", "Sdir"
+      ! do n=1,1000
+      !    write(*,*) n, counts(n), projAreas(n), Sdir(n)
+      ! end do
 
       print '("Time = ",f10.3," seconds.")',finish-start
 
    end subroutine calculateDirectShortwave
 
 
-   logical function isInsideTriangle(A, B, C, P)
-      real, intent(in), dimension(2) :: A, B, C, P
-      real, dimension(2) :: v0, v1, v2
-      real :: u, v, dot00, dot01, dot02, dot11, dot12, invDenom
+   subroutine writeDirectShortwave(Sdir, nFaces)
+      integer, intent(in) :: nFaces
+      real   , intent(in), dimension(nFaces) :: Sdir
+      !character(25), intent(in) :: fname_Sdir
+      integer :: n
 
-      v0 = C - A
-      v1 = B - A
-      v2 = P - A
+      open (unit=10,file='Sdir_fort.txt',action="write")
+      do n=1,nFaces
+         write(unit=10,fmt='(f8.2)') Sdir(n)
+      end do
+      close (10)
 
-      dot00 = dot_product(v0, v0)
-      dot01 = dot_product(v0, v1)
-      dot02 = dot_product(v0, v2)
-      dot11 = dot_product(v1, v1)
-      dot12 = dot_product(v1, v2)
+      write(*,*) "written Sdir_fort.txt"
 
-      invDenom = 1. / (dot00 * dot11 - dot01 * dot01)
-      u = (dot11 * dot02 - dot01 * dot12) * invDenom
-      v = (dot00 * dot12 - dot01 * dot02) * invDenom
-      isInsideTriangle = .false.
-      if ((u >= 0) .and. (v >= 0) .and. (u + v < 1)) isInsideTriangle = .true.
+   end subroutine writeDirectShortwave
 
-   end function isInsideTriangle
+
+   ! logical function isInsideTriangle(A, B, C, P)
+   !    real, intent(in), dimension(2) :: A, B, C, P
+   !    real, dimension(2) :: v0, v1, v2
+   !    real :: u, v, dot00, dot01, dot02, dot11, dot12, invDenom
+   !
+   !    v0 = C - A
+   !    v1 = B - A
+   !    v2 = P - A
+   !
+   !    dot00 = dot_product(v0, v0)
+   !    dot01 = dot_product(v0, v1)
+   !    dot02 = dot_product(v0, v2)
+   !    dot11 = dot_product(v1, v1)
+   !    dot12 = dot_product(v1, v2)
+   !
+   !    invDenom = 1. / (dot00 * dot11 - dot01 * dot01)
+   !    u = (dot11 * dot02 - dot01 * dot12) * invDenom
+   !    v = (dot00 * dot12 - dot01 * dot02) * invDenom
+   !    isInsideTriangle = .false.
+   !    if ((u >= 0) .and. (v >= 0) .and. (u + v < 1)) isInsideTriangle = .true.
+   !
+   ! end function isInsideTriangle
 
 
    function cross_product(a,b)
@@ -443,11 +482,13 @@ contains
   !
   ! end subroutine poly2maskIDs
 
-    subroutine poly2maskIDs(xpt, ypt, M, N, out, outIDs, id)
+    !subroutine poly2maskIDs(xpt, ypt, M, N, out, outIDs, id)
+    subroutine poly2maskIDs(xpt, ypt, M, N, outIDs, id)
         real  , intent(in) :: xpt(:), ypt(:) ! assumes x(end) != x(1)
         real, allocatable, dimension(:) :: x, y
         integer, intent(in) :: M, N, id
-        logical, intent(out) :: out(M, N)
+        !logical, intent(out) :: out(M, N)
+        logical :: out(M, N)
         integer, intent(out) :: outIDs(M, N)
         integer :: sizeX
         real    :: scale = 5.0
@@ -569,131 +610,134 @@ contains
         borderPosition = 1
 
         do i = 2, xLength
-           x1 = x(i-1)
-           y1 = y(i-1)
-           x2 = x(i)
-           y2 = y(i)
-            !call intLine(x(i-1), y(i-1), x(i), y(i), xLinePts, yLinePts, borderPosition)
-            dx = nint(abs(x2 - x1))
-            dy = nint(abs(y2 - y1))
-
-            if (dx == 0 .and. dy == 0) then
-                xLinePts(borderPosition) = x1
-                yLinePts(borderPosition) = y1
-                borderPosition = borderPosition + 1
-                return
-            end if
-
-            if (dx >= dy) then
-                m = (y2 - y1) / (x2 - x1)
-                if (x2 > x1) then
-                    !do xVal = x1, x2
-                    do xit = int(x1), int(x2)
-                        xVal = xit + x1-int(x1)
-                        yVal = nint(y1 + m * (xVal - x1))
-                        xLinePts(borderPosition) = xVal
-                        yLinePts(borderPosition) = yVal
-                        borderPosition = borderPosition + 1
-                    end do
-                else
-                    !do xVal = x1, x2, -1
-                    do xit = int(x1), int(x2), -1
-                        xVal = xit + x1-int(x1)
-                        yVal = nint(y1 + m * (xVal - x1))
-                        xLinePts(borderPosition) = xVal
-                        yLinePts(borderPosition) = yVal
-                        borderPosition = borderPosition + 1
-                    end do
-                end if
-            else
-                m = (x2 - x1) / (y2 - y1)
-                if (y2 > y1) then
-                    !do yVal = y1, y2
-                    do yit = int(y1), int(y2)
-                        yVal = yit + y1-int(y1)
-                        xVal = nint(x1 + m * (yVal - y1))
-                        xLinePts(borderPosition) = xVal
-                        yLinePts(borderPosition) = yVal
-                        borderPosition = borderPosition + 1
-                    end do
-                else
-                   !do yVal = y1, y2, -1
-                   do yit = int(y1), int(y2), -1
-                        yVal = yit + y1-int(y1)
-                        xVal = nint(x1 + m * (yVal - y1))
-                        xLinePts(borderPosition) = xVal
-                        yLinePts(borderPosition) = yVal
-                        borderPosition = borderPosition + 1
-                    end do
-                end if
-            end if
+           call intLine(x(i-1),y(i-1),x(i),y(i), xLinePts, yLinePts, borderPosition)
         end do
+        !
+        !    x1 = x(i-1)
+        !    y1 = y(i-1)
+        !    x2 = x(i)
+        !    y2 = y(i)
+        !     !call intLine(x(i-1), y(i-1), x(i), y(i), xLinePts, yLinePts, borderPosition)
+        !     dx = nint(abs(x2 - x1))
+        !     dy = nint(abs(y2 - y1))
+        !
+        !     if (dx == 0 .and. dy == 0) then
+        !         xLinePts(borderPosition) = x1
+        !         yLinePts(borderPosition) = y1
+        !         borderPosition = borderPosition + 1
+        !         cycle
+        !     end if
+        !
+        !     if (dx >= dy) then
+        !         m = (y2 - y1) / (x2 - x1)
+        !         if (x2 > x1) then
+        !             !do xVal = x1, x2
+        !             do xit = int(x1), int(x2)
+        !                 xVal = xit + x1-int(x1)
+        !                 yVal = nint(y1 + m * (xVal - x1))
+        !                 xLinePts(borderPosition) = xVal
+        !                 yLinePts(borderPosition) = yVal
+        !                 borderPosition = borderPosition + 1
+        !             end do
+        !         else
+        !             !do xVal = x1, x2, -1
+        !             do xit = int(x1), int(x2), -1
+        !                 xVal = xit + x1-int(x1)
+        !                 yVal = nint(y1 + m * (xVal - x1))
+        !                 xLinePts(borderPosition) = xVal
+        !                 yLinePts(borderPosition) = yVal
+        !                 borderPosition = borderPosition + 1
+        !             end do
+        !         end if
+        !     else
+        !         m = (x2 - x1) / (y2 - y1)
+        !         if (y2 > y1) then
+        !             !do yVal = y1, y2
+        !             do yit = int(y1), int(y2)
+        !                 yVal = yit + y1-int(y1)
+        !                 xVal = nint(x1 + m * (yVal - y1))
+        !                 xLinePts(borderPosition) = xVal
+        !                 yLinePts(borderPosition) = yVal
+        !                 borderPosition = borderPosition + 1
+        !             end do
+        !         else
+        !            !do yVal = y1, y2, -1
+        !            do yit = int(y1), int(y2), -1
+        !                 yVal = yit + y1-int(y1)
+        !                 xVal = nint(x1 + m * (yVal - y1))
+        !                 xLinePts(borderPosition) = xVal
+        !                 yLinePts(borderPosition) = yVal
+        !                 borderPosition = borderPosition + 1
+        !             end do
+        !         end if
+        !     end if
+        ! end do
 
     end subroutine makeBorder
 
-    ! subroutine intLine(x1, y1, x2, y2, xLinePts, yLinePts, borderPosition)
-    !     real   , intent(in) :: x1, y1, x2, y2
-    !     real   , intent(out) :: xLinePts(:), yLinePts(:)
-    !     integer, intent(inout) :: borderPosition
-    !     integer :: dx, dy
-    !     real    :: m
-    !     integer :: xit, yit
-    !     real :: xVal, yVal
-    !
-    !     dx = nint(abs(x2 - x1))
-    !     dy = nint(abs(y2 - y1))
-    !
-    !     if (dx == 0 .and. dy == 0) then
-    !         xLinePts(borderPosition) = x1
-    !         yLinePts(borderPosition) = y1
-    !         borderPosition = borderPosition + 1
-    !         return
-    !     end if
-    !
-    !     if (dx >= dy) then
-    !         m = (y2 - y1) / (x2 - x1)
-    !         if (x2 > x1) then
-    !             do xVal = x1, x2
-    !             !do xit = int(x1), int(x2)
-    !                !xVal = xit + x1-int(x1)
-    !                 yVal = nint(y1 + m * (xVal - x1))
-    !                 xLinePts(borderPosition) = xVal
-    !                 yLinePts(borderPosition) = yVal
-    !                 borderPosition = borderPosition + 1
-    !             end do
-    !         else
-    !             do xVal = x1, x2, -1
-    !             !do xit = int(x1), int(x2), -1
-    !                !xVal = xit + x1-int(x1)
-    !                 yVal = nint(y1 + m * (xVal - x1))
-    !                 xLinePts(borderPosition) = xVal
-    !                 yLinePts(borderPosition) = yVal
-    !                 borderPosition = borderPosition + 1
-    !             end do
-    !         end if
-    !     else
-    !         m = (x2 - x1) / (y2 - y1)
-    !         if (y2 > y1) then
-    !             do yVal = y1, y2
-    !             !do yit = int(y1), int(y2)
-    !                !yVal = yit + y1-int(y1)
-    !                 xVal = nint(x1 + m * (yVal - y1))
-    !                 xLinePts(borderPosition) = xVal
-    !                 yLinePts(borderPosition) = yVal
-    !                 borderPosition = borderPosition + 1
-    !             end do
-    !         else
-    !            do yVal = y1, y2, -1
-    !            !do yit = int(y1), int(y2), -1
-    !               !yVal = yit + y1-int(y1)
-    !                 xVal = nint(x1 + m * (yVal - y1))
-    !                 xLinePts(borderPosition) = xVal
-    !                 yLinePts(borderPosition) = yVal
-    !                 borderPosition = borderPosition + 1
-    !             end do
-    !         end if
-    !     end if
-    ! end subroutine intLine
+    subroutine intLine(x1, y1, x2, y2, xLinePts, yLinePts, borderPosition)
+        real   , intent(in) :: x1, y1, x2, y2
+        real   , intent(out) :: xLinePts(:), yLinePts(:)
+        integer, intent(inout) :: borderPosition
+        integer :: dx, dy
+        real    :: m
+        integer :: xit, yit
+        real :: xVal, yVal
+
+        dx = nint(abs(x2 - x1))
+        dy = nint(abs(y2 - y1))
+
+        if (dx == 0 .and. dy == 0) then
+            xLinePts(borderPosition) = x1
+            yLinePts(borderPosition) = y1
+            borderPosition = borderPosition + 1
+            return
+        end if
+
+        if (dx >= dy) then
+            m = (y2 - y1) / (x2 - x1)
+            if (x2 > x1) then
+                !do xVal = x1, x2
+                do xit = int(x1), int(x2)
+                    xVal = xit + x1-int(x1)
+                    yVal = nint(y1 + m * (xVal - x1))
+                    xLinePts(borderPosition) = xVal
+                    yLinePts(borderPosition) = yVal
+                    borderPosition = borderPosition + 1
+                end do
+            else
+                !do xVal = x1, x2, -1
+                do xit = int(x1), int(x2), -1
+                    xVal = xit + x1-int(x1)
+                    yVal = nint(y1 + m * (xVal - x1))
+                    xLinePts(borderPosition) = xVal
+                    yLinePts(borderPosition) = yVal
+                    borderPosition = borderPosition + 1
+                end do
+            end if
+        else
+            m = (x2 - x1) / (y2 - y1)
+            if (y2 > y1) then
+                !do yVal = y1, y2
+                do yit = int(y1), int(y2)
+                    yVal = yit + y1-int(y1)
+                    xVal = nint(x1 + m * (yVal - y1))
+                    xLinePts(borderPosition) = xVal
+                    yLinePts(borderPosition) = yVal
+                    borderPosition = borderPosition + 1
+                end do
+            else
+               !do yVal = y1, y2, -1
+               do yit = int(y1), int(y2), -1
+                    yVal = yit + y1-int(y1)
+                    xVal = nint(x1 + m * (yVal - y1))
+                    xLinePts(borderPosition) = xVal
+                    yLinePts(borderPosition) = yVal
+                    borderPosition = borderPosition + 1
+                end do
+            end if
+        end if
+    end subroutine intLine
 
     subroutine parityScan(out, N, minY, maxY, outIDs, id)
         logical, intent(inout) :: out(:,:)
