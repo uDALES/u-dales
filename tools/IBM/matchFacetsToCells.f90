@@ -290,33 +290,33 @@ program run
       if ((abs(zmin) < epsilon(zmin) .and. abs(zmax) < epsilon(zmax)) .and. &
        all(abs(faceNormal(n, :) - (/0.,0.,-1./)) < epsilon(faceNormal(n, 1)))) cycle
 
-      tol = 1e-10
-      where (xmin >= (/xgrid   -dx/2, xgrid(itot)+dx/2/)-tol)
+      tol = 1e-8 ! machine precision errors
+      where (xmin >= (/xgrid   -dx/2., xgrid(itot)+dx/2./)-tol)
          il_comp = .true.
       elsewhere
          il_comp = .false.
       end where
-      where (xmax <= (/xgrid(1)-dx/2, xgrid      +dx/2/)+tol)
+      where (xmax <= (/xgrid(1)-dx/2., xgrid      +dx/2./)+tol)
          iu_comp = .true.
       elsewhere
          iu_comp = .false.
       end where
-      where (ymin >= (/ygrid   -dy/2, ygrid(jtot)+dy/2/)-tol)
+      where (ymin >= (/ygrid   -dy/2., ygrid(jtot)+dy/2./)-tol)
          jl_comp = .true.
       elsewhere
          jl_comp = .false.
       end where
-      where (ymax <= (/ygrid(1)-dy/2, ygrid      +dy/2/)+tol)
+      where (ymax <= (/ygrid(1)-dy/2., ygrid      +dy/2./)+tol)
          ju_comp = .true.
       elsewhere
          ju_comp = .false.
       end where
-      where (zmin >= (/zgrid   -dz/2, zgrid(ktot)+dz/2/)-tol)
+      where (zmin >= (/zgrid   -dz/2., zgrid(ktot)+dz/2./)-tol)
          kl_comp = .true.
       elsewhere
          kl_comp = .false.
       end where
-      where (zmax <= (/zgrid(1)-dz/2, zgrid      +dz/2/)+tol)
+      where (zmax <= (/zgrid(1)-dz/2., zgrid      +dz/2./)+tol)
          ku_comp = .true.
       elsewhere
          ku_comp = .false.

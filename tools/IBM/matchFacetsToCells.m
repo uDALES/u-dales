@@ -44,7 +44,7 @@ for facet=1:Nf
         continue
     end
 
-    tol = 1e-10; % floating point errors
+    tol = 1e-8; % floating point errors
     il = find(xmin >= [xgrid-dx/2, xgrid(end)+dx/2]-tol, 1, 'last');
     iu = find(xmax <= [xgrid(1)-dx/2, xgrid + dx/2]+tol, 1, 'first');
     jl = find(ymin >= [ygrid-dy/2, ygrid(end)+dy/2]-tol, 1, 'last');
