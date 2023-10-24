@@ -270,12 +270,14 @@ program run
     dy = ygrid(2)-ygrid(1)
     dz = zgrid(2)-zgrid(1)
 
+    tol = 1e-8 ! machine precision errors
+
     do n=1,nFaces
       !write(*,*) "facet", n
       ! no shear stress in normal direction
-      if ((xgrid(1) == 0. .and. all(abs(abs(faceNormal(n, :)) - (/1.,0.,0./)) < 1e-8)) .or. &
-          (ygrid(1) == 0. .and. all(abs(abs(faceNormal(n, :)) - (/0.,1.,0./)) < 1e-8)) .or. &
-          (zgrid(1) == 0. .and. all(abs(abs(faceNormal(n, :)) - (/0.,0.,1./)) < 1e-8))) cycle
+      if ((xgrid(1) == 0. .and. all(abs(abs(faceNormal(n, :)) - (/1.,0.,0./)) < tol)) .or. &
+          (ygrid(1) == 0. .and. all(abs(abs(faceNormal(n, :)) - (/0.,1.,0./)) < tol)) .or. &
+          (zgrid(1) == 0. .and. all(abs(abs(faceNormal(n, :)) - (/0.,0.,1./)) < tol))) cycle
 
       xmin = minval(vertices(connectivityList(n,:),1))
       ymin = minval(vertices(connectivityList(n,:),2))
@@ -290,7 +292,6 @@ program run
       if ((abs(zmin) < epsilon(zmin) .and. abs(zmax) < epsilon(zmax)) .and. &
        all(abs(faceNormal(n, :) - (/0.,0.,-1./)) < epsilon(faceNormal(n, 1)))) cycle
 
-      tol = 1e-8 ! machine precision errors
       where (xmin >= (/xgrid   -dx/2., xgrid(itot)+dx/2./)-tol)
          il_comp = .true.
       elsewhere
@@ -362,12 +363,12 @@ program run
                if (.not.(fluid_IB(i,j,k) .or. solid_IB(i,j,k))) cycle
                !write(*,*) "i,j,k", i, j, k
                ! Define corners of cube
-               xl = xgrid(i) - dx/2
-               xu = xgrid(i) + dx/2
-               yl = ygrid(j) - dy/2
-               yu = ygrid(j) + dy/2
-               zl = zgrid(k) - dz/2
-               zu = zgrid(k) + dz/2
+               xl = xgrid(i) - dx/2. - tol
+               xu = xgrid(i) + dx/2. + tol
+               yl = ygrid(j) - dy/2. - tol
+               yu = ygrid(j) + dy/2. + tol
+               zl = zgrid(k) - dz/2. - tol
+               zu = zgrid(k) + dz/2. + tol
 
                planes(1,:) = (/ 1., 0., 0., xu/)
                planes(2,:) = (/-1., 0., 0.,-xl/)
