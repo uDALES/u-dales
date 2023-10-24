@@ -138,7 +138,7 @@ program DALESURBAN      !Version 48
 !   3.4   REMAINING TERMS
 !-----------------------------------------------------
 
-    !call coriolis       !remaining terms of ns equation
+    call coriolis       !remaining terms of ns equation
 
     call forces         !remaining terms of ns equation
 
@@ -166,7 +166,7 @@ program DALESURBAN      !Version 48
 !-----------------------------------------------------------------------
 !   3.5  PRESSURE FLUCTUATIONS, TIME INTEGRATION AND BOUNDARY CONDITIONS
 !-----------------------------------------------------------------------
-    !call grwdamp        !damping at top of the model
+    call grwdamp        !damping at top of the model
 
     call poisson
 
@@ -182,7 +182,7 @@ program DALESURBAN      !Version 48
 
     call boundary
 
-    !call fixthetainf
+    !call fixthetainf ! deprecated
 
 !-----------------------------------------------------
 !   3.6   LIQUID WATER CONTENT AND DIAGNOSTIC FIELDS
