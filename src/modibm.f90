@@ -1064,26 +1064,25 @@ module modibm
         call wallfunmom(zhat, wp, bound_info_w)
         tau_z(:,:,kb:ke+kh) = tau_z(:,:,kb:ke+kh) + (wp - rhs)
 
-        ! This replicates uDALES 1 behaviour, but probably should be done even if not using wall functions
-        call diffu_corr
-        call diffv_corr
-        call diffw_corr
-
-        mom_flux_sum = sum(tau_x(ib:ie,jb:je,kb+1:ke) + tau_y(ib:ie,jb:je,kb+1:ke) + tau_z(ib:ie,jb:je,kb+1:ke))
-        call MPI_ALLREDUCE(mom_flux_sum, mom_flux_tot, 1, MY_REAL, MPI_SUM, comm3d, mpierr)
-        if (myid == 0) then
-           if (rk3step == 3) then
-                inquire(file="mom_flux.txt", exist=mom_flux_file_exists)
-                if (mom_flux_file_exists) then
-                  open(12, file="mom_flux.txt", status="old", position="append", action="write")
-                else
-                  open(12, file="mom_flux.txt", status="new", action="write")
-                end if
-                write(12, *) timee, -mom_flux_tot
-                close(12)
-           end if
-        end if
+        ! mom_flux_sum = sum(tau_x(ib:ie,jb:je,kb+1:ke) + tau_y(ib:ie,jb:je,kb+1:ke) + tau_z(ib:ie,jb:je,kb+1:ke))
+        ! call MPI_ALLREDUCE(mom_flux_sum, mom_flux_tot, 1, MY_REAL, MPI_SUM, comm3d, mpierr)
+        ! if (myid == 0) then
+        !    if (rk3step == 3) then
+        !         inquire(file="mom_flux.txt", exist=mom_flux_file_exists)
+        !         if (mom_flux_file_exists) then
+        !           open(12, file="mom_flux.txt", status="old", position="append", action="write")
+        !         else
+        !           open(12, file="mom_flux.txt", status="new", action="write")
+        !         end if
+        !         write(12, *) timee, -mom_flux_tot
+        !         close(12)
+        !    end if
+        ! end if
       end if
+
+      call diffu_corr
+      call diffv_corr
+      call diffw_corr
 
       if (ltempeq .or. lmoist) then
         rhs = thlp
@@ -1092,20 +1091,20 @@ module modibm
         if (ltempeq) call diffc_corr(thl0, thlp, ih, jh, kh)
         if (lmoist)  call diffc_corr(qt0, qtp, ih, jh, kh)
 
-        thl_flux_sum = sum(thl_flux(ib:ie,jb:je,kb+1:ke))
-        call MPI_ALLREDUCE(thl_flux_sum, thl_flux_tot, 1, MY_REAL, MPI_SUM, comm3d, mpierr)
-        if (myid == 0) then
-           if (rk3step == 3) then
-                inquire(file="thl_flux.txt", exist=thl_flux_file_exists)
-                if (thl_flux_file_exists) then
-                  open(12, file="thl_flux.txt", status="old", position="append", action="write")
-                else
-                  open(12, file="thl_flux.txt", status="new", action="write")
-                end if
-                write(12, *) timee, thl_flux_tot
-                close(12)
-           end if
-        end if
+        ! thl_flux_sum = sum(thl_flux(ib:ie,jb:je,kb+1:ke))
+        ! call MPI_ALLREDUCE(thl_flux_sum, thl_flux_tot, 1, MY_REAL, MPI_SUM, comm3d, mpierr)
+        ! if (myid == 0) then
+        !    if (rk3step == 3) then
+        !         inquire(file="thl_flux.txt", exist=thl_flux_file_exists)
+        !         if (thl_flux_file_exists) then
+        !           open(12, file="thl_flux.txt", status="old", position="append", action="write")
+        !         else
+        !           open(12, file="thl_flux.txt", status="new", action="write")
+        !         end if
+        !         write(12, *) timee, thl_flux_tot
+        !         close(12)
+        !    end if
+        ! end if
       end if
 
       do n = 1,nsv
