@@ -87,7 +87,7 @@ contains
     if (myid==0) then
       call date_and_time(time=timeday)
       write (*,*) '================================================================='
-      write (*,'(3A,F9.2,A,F12.9)') 'Time of Day: ', timeday(1:10),'    Time of Simulation: ', timee, '    dt: ',dtmn
+      write (*,'(3A,F15.5,A,F12.9)') 'Time of Day: ', timeday(1:10),'    Time of Simulation: ', timee, '    dt: ',dtmn
     end if
     call calccourant
     call calcdiffnr
