@@ -91,13 +91,25 @@ module modibm
 
    type(bound_info_type) :: bound_info_u, bound_info_v, bound_info_w, bound_info_c
 
+   integer :: nstatfac=4, ncidfac, nrecfac=0
+   character(80), allocatable :: ncstatfac(:,:)
+   character(80) :: facname = 'fac.xxx.nc'
+   character(80),dimension(1,4) :: tncstatfac
+   real, allocatable :: varsfac(:,:)
+   real, allocatable :: fac_tau_x(:)
+   real, allocatable :: fac_tau_y(:)
+   real, allocatable :: fac_tau_z(:)
+   real, allocatable :: fac_pres(:)
+
    contains
 
    subroutine initibm
      use modglobal, only : libm, xh, xf, yh, yf, zh, zf, xhat, yhat, zhat, vec0, &
                            ib, ie, ih, ihc, jb, je, jh, jhc, kb, ke, kh, khc, nsv, &
-                           iwallmom, lmoist, ltempeq
+                           iwallmom, lmoist, ltempeq, cexpnr, nfcts, lwritefac
      use decomp_2d, only : exchange_halo_z
+     use modmpi,    only : myid
+     use modstat_nc,only: open_nc, define_nc, ncinfo, writestat_dims_nc
 
      real, allocatable :: rhs(:,:,:)
 
@@ -156,6 +168,31 @@ module modibm
      end if
 
      deallocate(rhs)
+
+     ! write facet stresses and pressure to fac.xxx.nc
+     if (lwritefac) then
+       allocate(fac_tau_x(1:nfcts))
+       allocate(fac_tau_y(1:nfcts))
+       allocate(fac_tau_z(1:nfcts))
+       allocate(fac_pres(1:nfcts))
+
+       facname(5:7) = cexpnr
+       allocate(ncstatfac(nstatfac,4))
+       call ncinfo(tncstatfac(1,:),'t', 'Time', 's', 'time')
+       call ncinfo(ncstatfac( 1,:),'tau_x', 'tau_x', 'Pa','ft')
+       call ncinfo(ncstatfac( 2,:),'tau_y', 'tau_y', 'Pa','ft')
+       call ncinfo(ncstatfac( 3,:),'tau_z', 'tau_z', 'Pa','ft')
+       call ncinfo(ncstatfac( 4,:),'pres', 'pressure', 'Pa','ft')
+
+       if (myid==0) then
+         call open_nc(facname, ncidfac, nrecfac, nfcts=nfcts)
+         if (nrecfac==0) then
+           call define_nc(ncidfac, 1, tncstatfac)
+           call writestat_dims_nc(ncidfac)
+         end if
+         call define_nc(ncidfac, nstatfac, ncstatfac)
+       end if
+     end if
 
    end subroutine initibm
 
@@ -1036,11 +1073,12 @@ module modibm
 
    subroutine ibmwallfun
      use modglobal, only : libm, iwallmom, iwalltemp, xhat, yhat, zhat, ltempeq, lmoist, &
-                           ib, ie, ih, ihc, jb, je, jh, jhc, kb, ke, kh, khc, nsv, rk3step, timee
+                           ib, ie, ih, ihc, jb, je, jh, jhc, kb, ke, kh, khc, nsv, rk3step, timee, nfcts, lwritefac
      use modfields, only : u0, v0, w0, thl0, qt0, sv0, up, vp, wp, thlp, qtp, svp, &
                            tau_x, tau_y, tau_z, thl_flux
      use modsubgriddata, only : ekm, ekh
      use modmpi, only : myid, comm3d, MPI_SUM, mpierr, MY_REAL
+     use modstat_nc, only : writestat_nc, writestat_1D_nc, writestat_2D_nc
 
      real, allocatable :: rhs(:,:,:)
      integer n
@@ -1113,15 +1151,31 @@ module modibm
 
       deallocate(rhs)
 
+      if (lwritefac .and. rk3step==3) then
+        if (myid == 0) then
+          allocate(varsfac(nfcts,nstatfac))
+          varsfac(:,1) = fac_tau_x(1:nfcts)
+          varsfac(:,2) = fac_tau_y(1:nfcts)
+          varsfac(:,3) = fac_tau_z(1:nfcts)
+          varsfac(:,4) = fac_pres(1:nfcts)
+          call writestat_nc(ncidfac,1,tncstatfac,(/timee/),nrecfac,.true.)
+          call writestat_1D_nc(ncidfac,nstatfac,ncstatfac,varsfac,nrecfac,nfcts)
+          deallocate(varsfac)
+
+        end if !myid
+      end if
+
     end subroutine ibmwallfun
 
 
    subroutine wallfunmom(dir, rhs, bound_info)
      use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, xf, yf, zf, xh, yh, zh, &
-                           eps1, fkar, dx, dy, dzf, iwallmom, xhat, yhat, zhat, vec0
+                           eps1, fkar, dx, dy, dzf, iwallmom, xhat, yhat, zhat, vec0, nfcts, lwritefac, rk3step
      use modfields, only : u0, v0, w0, thl0, tau_x, tau_y, tau_z
-     use initfac,   only : facT, facz0, facz0h, facnorm
+     use initfac,   only : facT, facz0, facz0h, facnorm, faca
      use decomp_2d, only : zstart
+     use modmpi,    only : comm3d, mpi_sum, mpierr, my_real
+     use modfields, only : pres0
 
      real, intent(in)    :: dir(3)
      real, intent(inout) :: rhs(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
@@ -1132,6 +1186,8 @@ module modibm
           utan, udir, ctm, a, a_is, a_xn, a_yn, a_zn, stress_ix, stress_iy, stress_iz, xrec, yrec, zrec
      real, dimension(3) :: uvec, norm, strm, span, stressvec
      logical :: valid
+     real, dimension(1:nfcts) :: fac_tau_loc, fac_tau, fac_pres_loc
+     !real, dimension(:), allocatable :: fac_tau, fac_pres
 
      procedure(interp_velocity), pointer :: interp_velocity_ptr => null()
      procedure(interp_temperature), pointer :: interp_temperature_ptr => null()
@@ -1148,11 +1204,15 @@ module modibm
        interp_temperature_ptr => interp_temperature_w
      end select
 
+     fac_tau_loc = 0.
+     fac_pres_loc = 0.
+
      do m = 1,bound_info%nfctsecsrank
        sec = bound_info%fctsecsrank(m) ! index of section
        if (bound_info%lskipsec(sec)) cycle
 
        n = bound_info%secbndptids(sec) ! index of boundary point
+       area = bound_info%secareas(sec) ! area of section
        fac = bound_info%secfacids(sec) ! index of facet
        norm = facnorm(fac,:) ! facet normal
 
@@ -1162,6 +1222,8 @@ module modibm
        j = bound_info%bndpts(n,2) - zstart(2) + 1
        k = bound_info%bndpts(n,3) - zstart(3) + 1
        if ((i < ib) .or. (i > ie) .or. (j < jb) .or. (j > je)) write(*,*) "problem", i, j
+
+       fac_pres_loc(fac) = fac_pres_loc(fac) + pres0(i,j,k) * area ! output pressure on facets
 
        if (bound_info%lcomprec(sec) .or. lnorec) then
          uvec = interp_velocity_ptr(i, j, k)
@@ -1226,12 +1288,27 @@ module modibm
 
        stress_dir = sign(stress_dir, dot_product(uvec, dir))
 
-       area = bound_info%secareas(sec)
        vol = dx*dy*dzf(k)
        momvol = stress_dir * area / vol
        rhs(i,j,k) = rhs(i,j,k) - momvol
-
+       fac_tau_loc(fac) = fac_tau_loc(fac) + stress_dir * area ! output stresses on facets
      end do
+
+     if (lwritefac .and. rk3step==3) then
+        fac_tau_loc(1:nfcts) = fac_tau_loc(1:nfcts) / faca(1:nfcts)
+        fac_pres_loc(1:nfcts) = fac_pres_loc(1:nfcts) / faca(1:nfcts)
+        call MPI_ALLREDUCE(fac_tau_loc(1:nfcts), fac_tau(1:nfcts), nfcts, MY_REAL, MPI_SUM, comm3d, mpierr)
+        call MPI_ALLREDUCE(fac_pres_loc(1:nfcts), fac_pres(1:nfcts), nfcts, MY_REAL, MPI_SUM, comm3d, mpierr)
+
+        select case(alignment(dir))
+        case(1)
+           fac_tau_x = fac_tau
+        case(2)
+           fac_tau_y = fac_tau
+        case(3)
+           fac_tau_z = fac_tau
+        end select
+     end if
 
    end subroutine wallfunmom
 
@@ -1240,7 +1317,7 @@ module modibm
      use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, xf, yf, zf, xh, yh, zh, dx, dy, dzh, eps1, &
                            xhat, yhat, zhat, vec0, fkar, ltempeq, lmoist, iwalltemp, iwallmoist, lEB
      use modfields, only : u0, v0, w0, thl0, thlp, qt0, qtp
-     use initfac,   only : facT, facz0, facz0h, facnorm, faca, fachf, facef, facqsat, fachurel, facf, faclGR
+     use initfac,   only : facT, facz0, facz0h, facnorm, fachf, facef, facqsat, fachurel, facf, faclGR
      use modsurfdata, only : z0, z0h
      use modibmdata, only : bctfxm, bctfxp, bctfym, bctfyp, bctfz
      use decomp_2d, only : zstart
