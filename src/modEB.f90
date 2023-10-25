@@ -28,7 +28,7 @@ module modEB
   implicit none
   public :: EB, initEB, intqH, updateGR
 
-  integer :: nstatT=2, nstatEB=5, ncidT, ncidEB, nrecT=0, nrecEB=0
+  integer :: nstatT=2, nstatEB=6, ncidT, ncidEB, nrecT=0, nrecEB=0
   character(80), allocatable :: ncstatT(:,:), ncstatEB(:,:)
   character(80) :: Tname = "facT.xxx.nc", EBname = 'facEB.xxx.nc'
   character(80),dimension(1,4) :: tncstatT, tncstatEB
@@ -308,11 +308,12 @@ contains
 
       allocate(ncstatEB(nstatEB,4))
       call ncinfo(tncstatEB(1,:),'t', 'Time', 's', 'time')
-      call ncinfo(ncstatEB( 1,:),'netsw', 'Shortwave radiation', 'W','ft')
-      call ncinfo(ncstatEB( 2,:),'LWin', 'Longwave radiation', 'W','ft')
-      call ncinfo(ncstatEB( 3,:),'hf', 'Sensible heat flux', 'W','ft')
-      call ncinfo(ncstatEB( 4,:),'ef', 'Latent heat flux', 'W','ft')
-      call ncinfo(ncstatEB( 5,:),'WGR','Moisture?', 'W','ft')
+      call ncinfo(ncstatEB( 1,:),'Knet', 'Net shortwave', 'W/m^2','ft')
+      call ncinfo(ncstatEB( 2,:),'Lin', 'Incoming longwave', 'W/m^2','ft')
+      call ncinfo(ncstatEB( 3,:),'Lout', 'Outgoing longwave', 'W/m^2','ft')
+      call ncinfo(ncstatEB( 4,:),'H', 'Sensible heat', 'W/m^2','ft')
+      call ncinfo(ncstatEB( 5,:),'E', 'Latent heat', 'W/m^2','ft')
+      call ncinfo(ncstatEB( 6,:),'W','Water content', '?','ft')
 
 
       if (myid==0) then
@@ -322,7 +323,7 @@ contains
           call define_nc( ncidT, 1, tncstatT)
           call writestat_dims_nc(ncidT)
         end if
-        if (nrecT==0) then
+        if (nrecEB==0) then
           call define_nc( ncidEB, 1, tncstatEB)
           call writestat_dims_nc(ncidEB)
         end if
@@ -525,9 +526,11 @@ contains
             allocate(varsEB(nfcts,nstatEB))
             varsEB(:,1) = netsw(1:nfcts)
             varsEB(:,2) = facLWin(1:nfcts)
-            varsEB(:,3) = fachfi(1:nfcts)
-            varsEB(:,4) = facefi(1:nfcts)
-            varsEB(:,5) = facwsoil(1:nfcts)
+            varsEB(:,3) = boltz*facem(1:nfcts)*facT(1:nfcts,1)**4
+            varsEB(:,4) = -fachfi(1:nfcts) ! changed sign!
+            varsEB(:,5) = -facefi(1:nfcts) !
+            varsEB(:,6) = facwsoil(1:nfcts)
+            ! add longwave out
             call writestat_nc(ncidEB,1,tncstatEB,(/timee/),nrecEB,.true.)
             call writestat_1D_nc(ncidEB,nstatEB,ncstatEB,varsEB,nrecEB,nfcts)
             deallocate(varsEB)
