@@ -744,9 +744,9 @@ module modstartup
                         consider setting BCxq = ", BCxq_profile
          end if
 
-         if (BCtopm .ne. BCtopm_pressure .and. (myid == 0)) then
-           write (*, *) "Warning: allowing vertical velocity at top might be necessary, &
-                         consider setting BCtopm = ", BCtopm_pressure
+         if (BCtopm .ne. BCtopm_pressure) then
+           if (myid==0) write (*, *) "inflow-outflow: allowing vertical velocity at top, setting BCtopm = 3"
+           BCtopm = BCtopm_pressure
          end if
 
        case(BCxm_driver)
@@ -772,9 +772,9 @@ module modstartup
                          consider setting BCxq = ", BCxq_profile
          end if
 
-         if (BCtopm .ne. BCtopm_pressure .and. (myid == 0)) then
-           write (*, *) "Warning: allowing vertical velocity at top might be necessary, &
-                         consider setting BCtopm = ", BCtopm_pressure
+         if (BCtopm .ne. BCtopm_pressure) then
+            if (myid == 0) write (*, *) "inflow-outflow: allowing vertical velocity at top, setting BCtopm = 3"
+            BCtopm = BCtopm_pressure
          end if
       end select
 
@@ -829,7 +829,7 @@ module modstartup
          uflowrate, vflowrate,ltempeq, prandtlmoli, freestreamav, &
          tnextfielddump, tfielddump, tsample, tstatsdump, startfile, lprofforc, lchem, k1, JNO2,&
          idriver,dtdriver,driverstore,tdriverstart,tdriverdump,xlen,ylen,itot,jtot,ibrank,ierank,jbrank,jerank,BCxm,BCym,lrandomize,BCxq,BCxs,BCxT, BCyq,BCys,BCyT,BCxm_driver,&
-         tEB,tnextEB,dtEB,BCxs_custom
+         tEB,tnextEB,dtEB,BCxs_custom,lEB,lfacTlyrs
       use modsubgriddata, only:ekm, ekh, loneeqn
       use modsurfdata, only:wtsurf, wqsurf, wsvsurf, &
          thls, thvs, ps, qts, svs, sv_top
@@ -1855,6 +1855,10 @@ module modstartup
             ! CvH - only do this for fixed timestepping. In adaptive dt comes from restartfile
             if (.not. ladaptive) dt = dtmax
             !  call boundary
+
+            if (lEB .and. (lfacTlyrs .eqv. .false.)) then
+               write(*,*) "Warmstarting an EB simulation - consider setting internal facet temperatures"
+            end if
          end if ! lwarmstart
       end if ! not lstratstart
       !-----------------------------------------------------------------
