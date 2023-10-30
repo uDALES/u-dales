@@ -1341,9 +1341,10 @@ module modstartup
 
             elseif (idriver==2) then ! idriver
 
-               if (ibrank) call readdriverfile
-
-               call drivergen
+               if (ibrank) then
+                     call readdriverfile
+                  call drivergen
+               end if
 
                do k = kb, ke
                   do j = jb-1, je+1
@@ -1762,9 +1763,10 @@ module modstartup
 
             elseif (idriver==2) then ! idriver
 
-               if (ibrank) call readdriverfile
-
-               call drivergen
+               if (ibrank) then
+                     call readdriverfile
+                  call drivergen
+               end if
 
               !call slabsum(uaverage,kb,ke,u0,ib-1,ie+1,jb-1,je+1,kb-1,ke+1,ib,ie,jb,je,kb,ke)
               !uaverage = uaverage / ((ie-ib+1)*(jge-jgb+1))  ! this gives the i-j-averaged velocity (only correct for equidistant grid?)
