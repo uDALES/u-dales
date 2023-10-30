@@ -178,7 +178,6 @@ contains
       
       if (timee>(runtime+btime)) return
       if(driverid==0) then
-        write(*,*) "timee = ",timee
         if (.not.(lwarmstart)) then
           if (runtime>maxval(storetdriver)) then
             write(*,'(A,F15.5,A,F15.5,A)') "Simulation will stop before runtime = ",runtime,", since last &
