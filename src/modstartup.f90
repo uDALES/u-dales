@@ -2008,7 +2008,7 @@ module modstartup
       dt_lim = timeleft
       !    write(6,*) 'real(dt)*tres= ',rdt, ' dtmax/100= ',dtmax/100
       if ((lwarmstart) .or. (lstratstart)) then ! tg3315 to have cumulative number on restart files
-         read (startfile(6:13), '(i4)') ntrun
+         read (startfile(6:13), '(i8)') ntrun
          ! ntrun = ichar(startfile(6:13))
       else
          ntrun = 0
