@@ -163,7 +163,7 @@ contains
           write(6,*) '=================================================================='
           write(6,*) '*** Starting to write data for driver simulation ***'
           write(6,*) 'Driver recording variables:'
-          write(6,'(A,F9.2,A,I4,A,F12.9)') ' Starting time: ',tdriverdump,' Stored time steps: ',driverstore,'     Inlet record intervals: ',dtdriver
+          write(6,'(A,F15.5,A,I8,A,F12.9)') ' Starting time: ',tdriverdump,' Stored time steps: ',driverstore,'     Inlet record intervals: ',dtdriver
           write(6,*) '=================================================================='
         end if
       end if
@@ -194,7 +194,7 @@ contains
       if (timee>maxval(storetdriver)) then
         if(driverid==0) then
           write(0,'(A,F15.5,A,F15.5)') 'timee: ',timee,'     Final inlet driver time:',maxval(storetdriver)
-          write(0,'(A,I4,A,I4)') 'Inlet driver step: ',nstepreaddriver,'     Total inlet driver steps:',driverstore
+          write(0,'(A,I8,A,I8)') 'Inlet driver step: ',nstepreaddriver,'     Total inlet driver steps:',driverstore
         end if
         stop 'Time in simulation has exceeded the inlet information - no more inlet data available!'
       end if
