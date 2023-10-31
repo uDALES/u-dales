@@ -193,7 +193,7 @@ contains
       ! if (.not. rk3step==1) return
       if (timee>maxval(storetdriver)) then
         if(driverid==0) then
-          write(0,'(A,F9.2,A,F9.2)') 'timee: ',timee,'     Final inlet driver time:',maxval(storetdriver)
+          write(0,'(A,F15.5,A,F15.5)') 'timee: ',timee,'     Final inlet driver time:',maxval(storetdriver)
           write(0,'(A,I4,A,I4)') 'Inlet driver step: ',nstepreaddriver,'     Total inlet driver steps:',driverstore
         end if
         stop 'Time in simulation has exceeded the inlet information - no more inlet data available!'
@@ -215,7 +215,7 @@ contains
       if (abs(elapsrec) < eps) then
 
         if ((driverid==0) .and. ((rk3step==0) .or. (rk3step==3))) then
-          write(*,'(A,I5,A,F10.3,A)') '======= Inputs loaded from driver tstep ',x,' (at ',storetdriver(x),'s) ======='
+          write(*,'(A,I8,A,F15.5,A)') '======= Inputs loaded from driver tstep ',x,' (at ',storetdriver(x),'s) ======='
         end if
 
         u0driver(:,:) = storeu0driver(:,:,x)
@@ -236,7 +236,7 @@ contains
       elseif ((elapsrec > 0.) .and. (x == 1)) then
 
         if ((driverid==0) .and. ((rk3step==0) .or. (rk3step==3))) then
-          write(*,'(A,F10.3,A)') '======= Inputs loaded from the proceeding driver tstep 1 (at ',storetdriver(x),'s) ======='
+          write(*,'(A,F15.5,A)') '======= Inputs loaded from the proceeding driver tstep 1 (at ',storetdriver(x),'s) ======='
         end if
 
         u0driver(:,:) = storeu0driver(:,:,x)
@@ -256,7 +256,7 @@ contains
       elseif (elapsrec < 0.) then
 
         if ((driverid==0) .and. ((rk3step==0) .or. (rk3step==3))) then
-          write(*,'(A,I5,A,F10.3,A,I5,A,F10.3,A)') '======= Inputs interpolated from driver tsteps ',x,' (',storetdriver(x),' s) and ',x+1,' (',storetdriver(x+1),' s) ======='
+          write(*,'(A,I8,A,F15.5,A,I8,A,F15.5,A)') '======= Inputs interpolated from driver tsteps ',x,' (',storetdriver(x),' s) and ',x+1,' (',storetdriver(x+1),' s) ======='
         end if
 
         dtint = (timee-storetdriver(x))/(storetdriver(x+1)-storetdriver(x))
@@ -284,7 +284,7 @@ contains
       elseif (elapsrec > 0.) then
 
         if ((driverid==0) .and. ((rk3step==0) .or. (rk3step==3))) then
-          write(*,'(A,I5,A,F10.3,A,I5,A,F10.3,A)') '======= Inputs interpolated from driver tsteps ',x,' (', storetdriver(x),' s) and ',x-1,' (',storetdriver(x-1),' s) ======='
+          write(*,'(A,I8,A,F15.5,A,I8,A,F15.5,A)') '======= Inputs interpolated from driver tsteps ',x,' (', storetdriver(x),' s) and ',x-1,' (',storetdriver(x-1),' s) ======='
         end if
 
         dtint = (timee-storetdriver(x-1))/(storetdriver(x)-storetdriver(x-1))
