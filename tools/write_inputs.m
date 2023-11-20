@@ -143,8 +143,8 @@ if r.libm
     end
 
     %%
+    preprocessing.write_facetarea(r, area_facets); % always write facet area
     if r.lEB
-        preprocessing.write_facetarea(r, area_facets);
 
         %% Write STL in View3D input format
         fpath_facets_view3d = [fpath 'facets.vs3'];
@@ -177,7 +177,7 @@ if r.libm
         resolution   = r.psc_res;
         xazimuth     = r.xazimuth;
         ltimedepsw   = r.ltimedepsw;
-        ldirectShortwaveFortran = 1;
+        ldirectShortwaveFortran = 0;
         lscatter = true;
  
         if ltimedepsw
