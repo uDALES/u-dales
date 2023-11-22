@@ -308,12 +308,12 @@ contains
 
       allocate(ncstatEB(nstatEB,4))
       call ncinfo(tncstatEB(1,:),'t', 'Time', 's', 'time')
-      call ncinfo(ncstatEB( 1,:),'Knet', 'Net shortwave', 'W/m^2','ft')
-      call ncinfo(ncstatEB( 2,:),'Lin', 'Incoming longwave', 'W/m^2','ft')
-      call ncinfo(ncstatEB( 3,:),'Lout', 'Outgoing longwave', 'W/m^2','ft')
-      call ncinfo(ncstatEB( 4,:),'H', 'Sensible heat', 'W/m^2','ft')
-      call ncinfo(ncstatEB( 5,:),'E', 'Latent heat', 'W/m^2','ft')
-      call ncinfo(ncstatEB( 6,:),'W','Water content', '?','ft')
+      call ncinfo(ncstatEB( 1,:),'netsw', 'Net shortwave', 'W/m^2','ft')
+      call ncinfo(ncstatEB( 2,:),'LWin', 'Incoming longwave', 'W/m^2','ft')
+      call ncinfo(ncstatEB( 3,:),'LWout', 'Outgoing longwave', 'W/m^2','ft')
+      call ncinfo(ncstatEB( 4,:),'hf', 'Sensible heat', 'W/m^2','ft')
+      call ncinfo(ncstatEB( 5,:),'ef', 'Latent heat', 'W/m^2','ft')
+      call ncinfo(ncstatEB( 6,:),'WGR','Water content', '?','ft')
 
 
       if (myid==0) then
@@ -527,8 +527,8 @@ contains
             varsEB(:,1) = netsw(1:nfcts)
             varsEB(:,2) = facLWin(1:nfcts)
             varsEB(:,3) = boltz*facem(1:nfcts)*facT(1:nfcts,1)**4
-            varsEB(:,4) = -fachfi(1:nfcts) ! changed sign!
-            varsEB(:,5) = -facefi(1:nfcts) !
+            varsEB(:,4) = fachfi(1:nfcts)
+            varsEB(:,5) = facefi(1:nfcts)
             varsEB(:,6) = facwsoil(1:nfcts)
             ! add longwave out
             call writestat_nc(ncidEB,1,tncstatEB,(/timee/),nrecEB,.true.)
