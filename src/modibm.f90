@@ -1813,8 +1813,8 @@ module modibm
       ! Uno (2)
       M = prandtlturb*logdz*sqrt(Fm)/Fh !Eq. 14
       dTrough = dT*1./(prandtlturb*logzh/M + 1.) !Eq. 13a
-      cth = abs(utan)*fkar2/(logdz*logdz)*Fh/prandtlturb !Eq. 8
-      flux = cth*dTrough !Eq. 2, Eq. 8
+      flux = abs(utan)*fkar2/(logdz*logdz)*Fh/prandtlturb*dTrough
+      cth = flux / (abs(utan)*dT)
 
       ! ! Uno (8)
       ! cth = abs(utan)*fkar2/(logdz*logdzh)*Fh/prandtlturb !Eq. 8
