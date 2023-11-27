@@ -47,10 +47,10 @@ contains
     integer :: k
 
     if (idriver==1) then
-      if (tdriverstart < timee) then
-        write(0, *) 'ERROR: tdriverstart must be greater than the elapsed time at the start of the simulation'
-        stop 1
-      end if
+      ! if (tdriverstart < timee) then
+      !   write(0, *) 'ERROR: tdriverstart must be greater than the elapsed time at the start of the simulation'
+      !   stop 1
+      ! end if
       tdriverdump = tdriverstart
 
       if ((iplane >= zstart(1)) .and. (iplane <= zend(1))) then
