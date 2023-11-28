@@ -1775,9 +1775,9 @@ module modstartup
               !   uaverage(k) = uaverage(k)*dzf(k)
               ! end do
               ! ubulk = sum(uaverage(kb:ke))/(zh(ke+1)-zh(kb)) !volume-averaged u-velocity
-              if (myid==0) then
-                 write(6,*) 'Modstartup: ubulk=',ubulk
-              end if
+              ! if (myid==0) then
+              !    write(6,*) 'Modstartup: ubulk=',ubulk
+              ! end if
 
             end if ! iinletgen/idriver
 
