@@ -134,8 +134,11 @@
           allocate (facLWin(1:nfcts))
         end if
 
+        ! only need these if iwalltemp=2,iwallmom=2
         allocate (Tfacinit(1:nfcts))
         allocate (Tfacinit_layers(1:nfcts, nfaclyrs))
+
+        ! only need these if lEB=.true.
         allocate (facT(0:nfcts, nfaclyrs+1))
         allocate (facTdash(1:nfcts,nfaclyrs+1))
         allocate (facef(1:nfcts))
@@ -155,7 +158,7 @@
         faclami = 0.; fackappa = 0.; faca = 0.; facain = 0; facets = 0; facnorm = 0.;
         if (lEB) then
            if (lvfsparse) then
-             ivfsparse = 0.; jvfsparse = 0.; vfsparse = 0.
+             ivfsparse = 0; jvfsparse = 0; vfsparse = 0.
            else
              vf = 0.;
            end if

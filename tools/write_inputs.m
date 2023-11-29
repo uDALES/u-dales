@@ -21,11 +21,9 @@
 % It used to generate the necessary input files for uDALES.
 
 expnr = '136';
-% 
-% DA_EXPDIR = getenv('DA_EXPDIR');
-% DA_TOOLSDIR = getenv('DA_TOOLSDIR');
-DA_EXPDIR = '~/ecse/experiments';
-DA_TOOLSDIR = '~/ecse/u-dales/tools'
+%
+DA_EXPDIR = getenv('DA_EXPDIR');
+DA_TOOLSDIR = getenv('DA_TOOLSDIR');
 addpath(genpath([DA_TOOLSDIR '/']));
 addpath([DA_TOOLSDIR '/IBM/'])
 addpath([DA_TOOLSDIR '/SEB/'])
