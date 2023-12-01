@@ -2,8 +2,10 @@
 
 %expnrs2 = [145, 147, 149, 151, 153, 155, 157, 159, 163, 165, 167, 169, 171, 173, 175, 177, 179, 183, 185, 187, 189, 191, 193, 195, 197, 199];
 %expnrs2 = [211:2:219,231:2:239,251:2:259];
-
-expnrs2 = [303,323,343];
+show_plot_2d = false;
+show_plot_3d = false;
+%expnrs2 = [301,303,321,323,341,343];
+expnrs2 = [991];
 expnrs1 = expnrs2-1;
 ncpus =1;
 tic
@@ -509,13 +511,37 @@ for e = 1:length(expnrs1)
     
     
             %% Calculate direct solar radiation (Sdir)
-            disp('Calculating direct solar radiation.')
-            azimuth = r2.solarazimuth - r2.xazimuth;
-            nsun = [sind(r2.solarzenith)*cosd(azimuth), -sind(r2.solarzenith)*sind(azimuth), cosd(r2.solarzenith)];
-            show_plot_2d = false; % User-defined
-            show_plot_3d = true;  % User-defined
+%             disp('Calculating direct solar radiation.')
+              azimuth = r2.solarazimuth - r2.xazimuth;
+              nsun = [sind(r2.solarzenith)*cosd(azimuth), -sind(r2.solarzenith)*sind(azimuth), cosd(r2.solarzenith)];
+%             show_plot_2d = false; % User-defined
+%             show_plot_3d = true;  % User-defined
+%             Sdir = directShortwave(F2, V2, nsun, r2.I, r2.psc_res, show_plot_2d, show_plot_3d);
+           
+
+            ldirectShortwaveFortran = 0;
+        if ldirectShortwaveFortran
+            fileID = fopen([fpath 'info_directShortwave.txt'],'w');
+            fprintf(fileID,'%8d %8d\n',[size(TR.ConnectivityList, 1), size(TR.Points, 1)]);
+            fprintf(fileID,'%15.10f %15.10f %15.10f\n', nsun');
+            fprintf(fileID,'%5.10f\n',r.I);
+            fprintf(fileID,'%5.10f\n',r.psc_res);
+            fclose(fileID);
+
+            fileID = fopen([fpath 'vertices.txt'],'w');
+            fprintf(fileID,'%15.10f %15.10f %15.10f\n',TR.Points');
+            fclose(fileID);
+
+            fileID = fopen([fpath 'faces.txt'],'w');
+            fprintf(fileID,'%8d %8d %8d %15.10f %15.10f %15.10f %15.10f %15.10f %15.10f\n',[TR.ConnectivityList TR.incenter TR.faceNormal]');
+            fclose(fileID);
+            disp('not implemented yet.')
+            return
+        else
+            
             Sdir = directShortwave(F2, V2, nsun, r2.I, r2.psc_res, show_plot_2d, show_plot_3d);
-    
+            dlmwrite([fpath2 '/Sdir.' expnr2 '.txt'], Sdir) % for debugging/visualisation purposes
+        end
             %% Calculate net shortwave radiation (Knet)
             disp('Calculating net shortwave radiation.')
             albedos = preprocessing.generate_albedos(r2, facet_types2);

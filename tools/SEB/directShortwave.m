@@ -125,9 +125,9 @@ bw = zeros(size_eta, size_xi);
 
 %tic
 for i = I'
-    %disp(['Surface: ' num2str(n) ' ; ~ ' num2str(round(n/Nf * 100, 1)) ' % complete'])
-    %mask = poly2mask(Vplshift(F(i,:), 1) / delta, Vplshift(F(i,:), 2) / delta, res_eta, res_xi);
-%     if SS(i) == 0
+%     %disp(['Surface: ' num2str(n) ' ; ~ ' num2str(round(n/Nf * 100, 1)) ' % complete'])
+%     mask = poly2mask(Vplshift(F(i,:), 1) / delta, Vplshift(F(i,:), 2) / delta, size_eta, size_xi);
+%     if visibility(i) == 0
 %         bw(mask) = 0;
 %     else
 %         bw(mask) = mask(mask) * i;

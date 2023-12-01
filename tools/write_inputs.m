@@ -20,7 +20,7 @@
 % This script is run by the bash script da_inp.sh.
 % It used to generate the necessary input files for uDALES.
 tic
-expnr = '997';
+expnr = '989';
 %expnr2 = '131'
 % DA_EXPDIR = getenv('DA_EXPDIR');
 % DA_TOOLSDIR = getenv('DA_TOOLSDIR');
@@ -119,7 +119,7 @@ if r.libm
         dy = r.dy;
 
         lmypolyfortran = 1; lmypoly = 0;		% remove eventually
-        lmatchFacetsToCellsFortran = 1;
+        lmatchFacetsToCellsFortran = 0;
 
         writeIBMFiles; % Could turn into a function and move writing to this script
     else
