@@ -25,9 +25,9 @@
 !
 !> Advection redirection function
    module initfac
-      use modglobal, only:ifinput, nfcts, cexpnr, libm, bldT, flrT, rsmin, wsoil, wfc,&
-                          nfaclyrs, block, lEB, lvfsparse,nnz,lfacTlyrs
-      use modmpi, only:myid, comm3d, mpierr, MPI_INTEGER, MPI_DOUBLE_PRECISION, MY_REAL, nprocs, cmyid, MPI_REAL8, MPI_REAL4, MPI_SUM, mpi_logical
+      use modglobal, only : ifinput, nfcts, cexpnr, libm, bldT, flrT, rsmin, wsoil, wfc, &
+                           nfaclyrs, block, lEB, lvfsparse, nnz, lfacTlyrs, lwritefac
+      use modmpi,   only : myid, comm3d, mpierr, MPI_INTEGER, MPI_DOUBLE_PRECISION, MY_REAL, nprocs, cmyid, MPI_REAL8, MPI_REAL4, MPI_SUM, mpi_logical
       use netcdf
       implicit none
       public :: readfacetfiles,qsat,dqsatdT,netsw
@@ -134,8 +134,11 @@
           allocate (facLWin(1:nfcts))
         end if
 
+        ! only need these if iwalltemp=2,iwallmom=2
         allocate (Tfacinit(1:nfcts))
         allocate (Tfacinit_layers(1:nfcts, nfaclyrs))
+
+        ! only need these if lEB=.true.
         allocate (facT(0:nfcts, nfaclyrs+1))
         allocate (facTdash(1:nfcts,nfaclyrs+1))
         allocate (facef(1:nfcts))
@@ -155,7 +158,7 @@
         faclami = 0.; fackappa = 0.; faca = 0.; facain = 0; facets = 0; facnorm = 0.;
         if (lEB) then
            if (lvfsparse) then
-             ivfsparse = 0.; jvfsparse = 0.; vfsparse = 0.
+             ivfsparse = 0; jvfsparse = 0; vfsparse = 0.
            else
              vf = 0.;
            end if
@@ -247,7 +250,7 @@
               facz0(0) = 0.00999; facz0h(0) = 0.00999; facalb(0) = 0.999; facem(0) = 0.999; facd(0,1)=0.999; facd(0,2)=0.999; facdi(0, 1) = 0.999; facdi(0, 2) = 0.999; facdi(0, 3) = 0.999; faccp(0, 1) = 999.; faccp(0, 2) = 999.
               faccp(0, 3) = 999.; faclami(0, 1) = 0.999; faclami(0, 2) = 0.999; faclami(0, 3) = 0.999; fackappa(0, 1) = 0.00000999; fackappa(0, 2) = 0.00000999; fackappa(0, 3) = 0.00000999; faclGR(0) = .false.
 
-              if (lEB) then
+              if (lEB .or. lwritefac) then
                 ! read facet areas
                 open (ifinput, file='facetarea.inp.'//cexpnr)
                 read (ifinput, '(a80)') chmess
@@ -256,7 +259,9 @@
                   faca(n)
                 end do
                 close (ifinput)
+             end if
 
+             if (lEB) then
                 ! read viewfactors between facets
                 ! Open the file. NF90_NOWRITE tells netCDF we want read-only access to
                 ! the file.

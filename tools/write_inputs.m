@@ -20,7 +20,7 @@
 % This script is run by the bash script da_inp.sh.
 % It used to generate the necessary input files for uDALES.
 tic
-expnr = '989';
+expnr = '988';
 %expnr2 = '131'
 % DA_EXPDIR = getenv('DA_EXPDIR');
 % DA_TOOLSDIR = getenv('DA_TOOLSDIR');
@@ -166,9 +166,6 @@ if r.lEB
     toc
     svf = max(1 - sum(vf, 2), 0);
     preprocessing.write_svf(r, svf);
-
-    preprocessing.write_svf(r, svf)
-
     if ~r.lvfsparse
         preprocessing.write_vf(r, vf)
         disp(['Written vf.nc.inp.', r.expnr])
@@ -184,21 +181,26 @@ if r.lEB
     preprocessing.write_facets(r, facet_types, TR.faceNormal);
 
     %%
+   % preprocessing.write_facetarea(r, area_facets); % always write facet area
 %     if r.lEB
-%         preprocessing.write_facetarea(r, area_facets);
-%
+% 
 %         %% Write STL in View3D input format
 %         fpath_facets_view3d = [fpath 'facets.vs3'];
 %         STLtoView3D(r.stl_file, fpath_facets_view3d);
-%
+% 
 %         %% Calculate view factors
+%         % remember to build View3D in local system windows/linux
 %         % Add check to see if View3D exists in the tools directory.
-%         view3d_exe = [DA_TOOLSDIR '/View3D/build/src/view3d'];
+%         if lwindows
+%             view3d_exe = [DA_TOOLSDIR '/View3D/src/View3D.exe'];
+%         else
+%             view3d_exe = [DA_TOOLSDIR '/View3D/build/src/view3d'];
+%         end
 %         fpath_vf = [fpath 'vf.txt'];
 %         vf = view3d(view3d_exe, fpath_facets_view3d, fpath_vf);
 %         svf = max(1 - sum(vf, 2), 0);
 %         preprocessing.write_svf(r, svf);
-%
+% 
 %         if ~r.lvfsparse
 %             preprocessing.write_vf(r, vf)
 %             disp(['Written vf.nc.inp.', r.expnr])
@@ -208,43 +210,45 @@ if r.lEB
 %             disp(['Written vfsparse.inp.', r.expnr])
 %         end
 
-        %% Calculate direct solar radiation (Sdir)
-        disp('Calculating direct solar radiation.')
-        azimuth = r.solarazimuth - r.xazimuth;
-        nsun = [sind(r.solarzenith)*cosd(azimuth), -sind(r.solarzenith)*sind(azimuth), cosd(r.solarzenith)];
-        show_plot_2d = false; % User-defined
-        show_plot_3d = false;  % User-defined
-        % write
-        ldirectShortwaveFortran = 0;
-        if ldirectShortwaveFortran
-            fileID = fopen([fpath 'info_directShortwave.txt'],'w');
-            fprintf(fileID,'%8d %8d\n',[size(TR.ConnectivityList, 1), size(TR.Points, 1)]);
-            fprintf(fileID,'%15.10f %15.10f %15.10f\n', nsun');
-            fprintf(fileID,'%5.10f\n',r.I);
-            fprintf(fileID,'%5.10f\n',r.psc_res);
-            fclose(fileID);
-
-            fileID = fopen([fpath 'vertices.txt'],'w');
-            fprintf(fileID,'%15.10f %15.10f %15.10f\n',TR.Points');
-            fclose(fileID);
-
-            fileID = fopen([fpath 'faces.txt'],'w');
-            fprintf(fileID,'%8d %8d %8d %15.10f %15.10f %15.10f %15.10f %15.10f %15.10f\n',[TR.ConnectivityList TR.incenter TR.faceNormal]');
-            fclose(fileID);
-            disp('not implemented yet.')
-            return
-        else
-            Sdir = directShortwave(F, V, nsun, r.I, r.psc_res, show_plot_2d, show_plot_3d);
-            dlmwrite('Sdir.txt', Sdir) % for debugging/visualisation purposes
-        end
-
-        %% Calculate net shortwave radiation (Knet)
-        disp('Calculating net shortwave radiation.')
+        %% Calculate shortwave radiation
         albedos = preprocessing.generate_albedos(r, facet_types);
+        resolution   = r.psc_res;
+        xazimuth     = r.xazimuth;
+        ltimedepsw   = r.ltimedepsw;
+        ldirectShortwaveFortran = 0;
+        lscatter = true;
+
+        if ltimedepsw
+            runtime = r.runtime;
+            dtSP    = r.dtSP;
+        else
+            lcustomsw = r.lcustomsw;
+            if lcustomsw
+                solarazimuth = r.solarazimuth;
+                solarzenith  = r.solarzenith;
+                irradiance   = r.I;
+                Dsky         = r.Dsky;
+            else
+                start = datetime(obj.year, obj.month, obj.day, obj.hour, obj.minute, obj.second);
+                longitude = r.longitude;
+                latitude  = r.latitude;
+                timezone  = r.timezone;
+                elevation = r.elevation;
+            end
+        end
+% 
+%         %% Calculate net shortwave radiation (Knet)
+%         disp('Calculating net shortwave radiation.')
+%         albedos = preprocessing.generate_albedos(r, facet_types);
+        shortwave;
         Knet = netShortwave(Sdir, r.Dsky, vf, svf, albedos);
         toc
-        preprocessing.write_netsw(r, Knet);
+        preprocessing.write_netsw(r, Knet(:,1)); % was Knet changed udring ecse merge but might change back.
         disp(['Written netsw.inp.', r.expnr])
+
+        if r.ltimedepsw
+            % write timedepsw.inp.
+        end
     end
 
     %% Write initial facet temperatures

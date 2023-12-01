@@ -119,7 +119,7 @@ program run
      diag_neighbs, periodic_x, periodic_y, secfacids_u, secbndptids_u, secareas_u, bnddst_u)
 
    nfacsecs_u = size(secfacids_u,1)
-   call writeFacetSections(secfacids_u, secareas_u, secbndptids_u, bnddst_u, nfacsecs_u, 'facet_sections_u_fort.txt')
+   call writeFacetSections(secfacids_u, secareas_u, secbndptids_u, bnddst_u, nfacsecs_u, 'facet_sections_u.txt')
    write(*,*) 'Written facet_sections_u.txt'
 
    ! v-grid
@@ -131,7 +131,7 @@ program run
      diag_neighbs, periodic_x, periodic_y, secfacids_v, secbndptids_v, secareas_v, bnddst_v)
 
    nfacsecs_v = size(secfacids_v,1)
-   call writeFacetSections(secfacids_v, secareas_v, secbndptids_v, bnddst_v, nfacsecs_v, 'facet_sections_v_fort.txt')
+   call writeFacetSections(secfacids_v, secareas_v, secbndptids_v, bnddst_v, nfacsecs_v, 'facet_sections_v.txt')
    write(*,*) 'Written facet_sections_v.txt'
 
    ! w-grid
@@ -143,7 +143,7 @@ program run
      diag_neighbs, periodic_x, periodic_y, secfacids_w, secbndptids_w, secareas_w, bnddst_w)
 
    nfacsecs_w = size(secfacids_w,1)
-   call writeFacetSections(secfacids_w, secareas_w, secbndptids_w, bnddst_w, nfacsecs_w, 'facet_sections_w_fort.txt')
+   call writeFacetSections(secfacids_w, secareas_w, secbndptids_w, bnddst_w, nfacsecs_w, 'facet_sections_w.txt')
    write(*,*) 'Written facet_sections_w.txt'
 
    ! c-grid
@@ -155,7 +155,7 @@ program run
       diag_neighbs, periodic_x, periodic_y, secfacids_c, secbndptids_c, secareas_c, bnddst_c)
 
    nfacsecs_c = size(secfacids_c,1)
-   call writeFacetSections(secfacids_c, secareas_c, secbndptids_c, bnddst_c, nfacsecs_c, 'facet_sections_c_fort.txt')
+   call writeFacetSections(secfacids_c, secareas_c, secbndptids_c, bnddst_c, nfacsecs_c, 'facet_sections_c.txt')
    write(*,*) 'Written facet_sections_c.txt'
 
    call cpu_time(finish)
@@ -270,12 +270,14 @@ program run
     dy = ygrid(2)-ygrid(1)
     dz = zgrid(2)-zgrid(1)
 
+    tol = 1e-8 ! machine precision errors
+
     do n=1,nFaces
       !write(*,*) "facet", n
       ! no shear stress in normal direction
-      if ((xgrid(1) == 0. .and. all(abs(abs(faceNormal(n, :)) - (/1.,0.,0./)) < 1e-8)) .or. &
-          (ygrid(1) == 0. .and. all(abs(abs(faceNormal(n, :)) - (/0.,1.,0./)) < 1e-8)) .or. &
-          (zgrid(1) == 0. .and. all(abs(abs(faceNormal(n, :)) - (/0.,0.,1./)) < 1e-8))) cycle
+      if ((xgrid(1) == 0. .and. all(abs(abs(faceNormal(n, :)) - (/1.,0.,0./)) < tol)) .or. &
+          (ygrid(1) == 0. .and. all(abs(abs(faceNormal(n, :)) - (/0.,1.,0./)) < tol)) .or. &
+          (zgrid(1) == 0. .and. all(abs(abs(faceNormal(n, :)) - (/0.,0.,1./)) < tol))) cycle
 
       xmin = minval(vertices(connectivityList(n,:),1))
       ymin = minval(vertices(connectivityList(n,:),2))
@@ -290,33 +292,32 @@ program run
       if ((abs(zmin) < epsilon(zmin) .and. abs(zmax) < epsilon(zmax)) .and. &
        all(abs(faceNormal(n, :) - (/0.,0.,-1./)) < epsilon(faceNormal(n, 1)))) cycle
 
-      tol = 1e-10
-      where (xmin >= (/xgrid   -dx/2, xgrid(itot)+dx/2/)-tol)
+      where (xmin >= (/xgrid   -dx/2., xgrid(itot)+dx/2./)-tol)
          il_comp = .true.
       elsewhere
          il_comp = .false.
       end where
-      where (xmax <= (/xgrid(1)-dx/2, xgrid      +dx/2/)+tol)
+      where (xmax <= (/xgrid(1)-dx/2., xgrid      +dx/2./)+tol)
          iu_comp = .true.
       elsewhere
          iu_comp = .false.
       end where
-      where (ymin >= (/ygrid   -dy/2, ygrid(jtot)+dy/2/)-tol)
+      where (ymin >= (/ygrid   -dy/2., ygrid(jtot)+dy/2./)-tol)
          jl_comp = .true.
       elsewhere
          jl_comp = .false.
       end where
-      where (ymax <= (/ygrid(1)-dy/2, ygrid      +dy/2/)+tol)
+      where (ymax <= (/ygrid(1)-dy/2., ygrid      +dy/2./)+tol)
          ju_comp = .true.
       elsewhere
          ju_comp = .false.
       end where
-      where (zmin >= (/zgrid   -dz/2, zgrid(ktot)+dz/2/)-tol)
+      where (zmin >= (/zgrid   -dz/2., zgrid(ktot)+dz/2./)-tol)
          kl_comp = .true.
       elsewhere
          kl_comp = .false.
       end where
-      where (zmax <= (/zgrid(1)-dz/2, zgrid      +dz/2/)+tol)
+      where (zmax <= (/zgrid(1)-dz/2., zgrid      +dz/2./)+tol)
          ku_comp = .true.
       elsewhere
          ku_comp = .false.
@@ -362,12 +363,12 @@ program run
                if (.not.(fluid_IB(i,j,k) .or. solid_IB(i,j,k))) cycle
                !write(*,*) "i,j,k", i, j, k
                ! Define corners of cube
-               xl = xgrid(i) - dx/2
-               xu = xgrid(i) + dx/2
-               yl = ygrid(j) - dy/2
-               yu = ygrid(j) + dy/2
-               zl = zgrid(k) - dz/2
-               zu = zgrid(k) + dz/2
+               xl = xgrid(i) - dx/2. - tol
+               xu = xgrid(i) + dx/2. + tol
+               yl = ygrid(j) - dy/2. - tol
+               yu = ygrid(j) + dy/2. + tol
+               zl = zgrid(k) - dz/2. - tol
+               zu = zgrid(k) + dz/2. + tol
 
                planes(1,:) = (/ 1., 0., 0., xu/)
                planes(2,:) = (/-1., 0., 0.,-xl/)

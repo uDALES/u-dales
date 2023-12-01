@@ -299,31 +299,48 @@ classdef preprocessing < dynamicprops
             preprocessing.addvar(obj, 'libm', 1)
 
             if obj.lEB
-                %preprocessing.addvar(obj, 'solarazimuth', 90); % azimuth angle
-                %preprocessing.addvar(obj, 'solarazimuth', 135); % azimuth angle for poster image
-                preprocessing.addvar(obj, 'solarazimuth', 135); % azimuth angle for geoms 200-260
                 preprocessing.addvar(obj, 'xazimuth', 90);   % azimuth of x-direction wrt N. Default: x = East
                                                              % north -> xazimuth = 0;
                                                              % east  ->            90;
                                                              % south ->            180;
                                                              % west  ->            270;
-                %preprocessing.addvar(obj, 'solarzenith', 28.4066); % zenith angle
-                preprocessing.addvar(obj, 'solarzenith', 45.0); % zenith angle for geoms 200-260
-                %preprocessing.addvar(obj, 'solarzenith', 60); % zenith angle for poster example well heated 
-                preprocessing.addvar(obj, 'centerweight', 12 / 32);
-                preprocessing.addvar(obj, 'cornerweight', (1 - obj.centerweight) / 4);
-                preprocessing.addvar(obj, 'I', 800); % Direct normal irradiance [W/m2]
-                %preprocessing.addvar(obj, 'I', 1300); % Direct normal irradiance [W/m2] for poster example well heated 
-                preprocessing.addvar(obj, 'Dsky', 80); % Diffuse incoming radiation [W/m2]
+                preprocessing.addvar(obj, 'ltimedepsw', 0)
+                if obj.ltimedepsw
+                    preprocessing.addvar(obj, 'runtime', 0)
+                    preprocessing.addvar(obj, 'dtSP', obj.dtEB) % solar position time step
+                else
+                    preprocessing.addvar(obj, 'lcustomsw', 1)
+                end
+
+                if obj.lcustomsw
+                    preprocessing.addvar(obj, 'solarazimuth', 135); % solar azimuth angle
+                    preprocessing.addvar(obj, 'solarzenith', 28.4066); % zenith angle
+                    preprocessing.addvar(obj, 'I', 800); % Direct normal irradiance [W/m2]
+                    preprocessing.addvar(obj, 'Dsky', 418.8041); % Diffuse incoming radiation [W/m2]
+                else
+                    preprocessing.addvar(obj, 'year', 2023) % check robustness of this
+                    preprocessing.addvar(obj, 'month', 6)
+                    preprocessing.addvar(obj, 'day', 21)
+                    preprocessing.addvar(obj, 'hour', 6)
+                    preprocessing.addvar(obj, 'minute', 0)
+                    preprocessing.addvar(obj, 'second', 0)
+                    preprocessing.addvar(obj, 'longitude', -0.13) % longitude
+                    preprocessing.addvar(obj, 'latitude', 51.5) % latitude
+                    preprocessing.addvar(obj, 'timezone', 0) % timezone
+                    preprocessing.addvar(obj, 'elevation', 0) % timezone
+                end
+
                 preprocessing.addvar(obj, 'lvfsparse', false) % Switch for turning on lvfsparse
                 %preprocessing.addvar(obj, 'psc_res', 0.01); % Poly scan conversion resolution,lower number gives better results for solar radiation calculation
                 preprocessing.addvar(obj, 'psc_res', 0.1); % Poly scan conversion resolution,lower number gives better results for solar radiation calculation
-                
-                %preprocessing.addvar(obj, 'min_vf', 0.01); % Any vf below this is ignored in sparse format
-            end
-            preprocessing.addvar(obj, 'facT', 288.) % Initial facet temperatures.
-            preprocessing.addvar(obj, 'nfaclyrs', 5) % Number of facet layers
 
+                %preprocessing.addvar(obj, 'min_vf', 0.01); % Any vf below this is ignored in sparse format
+                preprocessing.addvar(obj, 'dtEB', 10.) % energy balance timestep
+            end
+
+            preprocessing.addvar(obj, 'facT', 288.) % Initial facet temperatures.
+            preprocessing.addvar(obj, 'nfaclyrs', 3) % Number of facet layers
+            preprocessing.addvar(obj, 'nfcts', 0)
             preprocessing.generate_factypes(obj)
             preprocessing.addvar(obj, 'facT_file', '')
 

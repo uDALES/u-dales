@@ -205,9 +205,14 @@ module modglobal
    logical :: lstat = .false.
    logical :: lEB = .false.
    logical :: lwriteEBfiles = .false.
+   logical :: lwritefac = .false.
+   real    :: dtfac = 10.
+   real    :: tfac = 0. !time of last calculation of facet quantites
+   real    :: tnextfac = 0. !time for next calculation of facet energy balance
    logical :: lperiodicEBcorr = .false. ! Switch used to correct periodic heat build up.
    integer :: sinkbase = 0 ! This is the z index above which a sink is applied in periodicEBcorr scheme
    real    :: fraction = 1 ! Fraction of excess heat removed by volume sink in periodic energy balance correction.
+
    logical :: lvfsparse = .false. !< whether to read in view factors in sparse format
    integer :: nnz !< number of non-zero view factors
    logical :: lconstW = .false.  ! The evaporated water can be removed from the soil (lconstW=false) or the soil moisture can be assumed as constant in time (lconstW=true)

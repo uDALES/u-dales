@@ -53,7 +53,7 @@ contains
                           cexpnr,ntimee,rk3step,ifoutput,nsv,timeleft,dt,ntrun,totavtime,&
                           iinletgen,timee,runavtime,inletav,totinletav,linletRA,ltempeq,lmoist,&
                           dzf,dzfi,dzhi,dxf,dxfi,dyi,dxhi,nstore,numol,dy2i,grav,libm,jmax,nblocks
-    use modmpi,    only : cmyid,myid,slabsum,excjs,comm3d
+    use modmpi,    only : cmyid,cmyidx,cmyidy,myid,slabsum,excjs,comm3d
     use modsubgriddata, only : ekm
     use modibmdata,   only  : ibmxforcevol
     use initfac , only : block
@@ -64,7 +64,7 @@ contains
     logical :: lexitnow = .false.
     integer imin,ihour
     integer i,j,k,n,im,ip,jm,jp,jpp,km,kp,kpp,il,iu,jl,ju,kl,ku
-    character(21) name,name2,name3,name4,linkname
+    character(25) name,name2,name3,name4,linkname
     integer :: ierr, err_code
 
     if (timee == 0) return
@@ -91,10 +91,11 @@ contains
     if (((timee>=tnextrestart)) .or. ((lexitnow) .or. (nstepread == nstore+1))) then
       tnextrestart = tnextrestart+trestart
 
-      name = 'initd        _   .'
+      name = 'initd        _   _   .'
       write (name(6:13)  ,'(i8.8)') ntrun
-      name(15:17)= cmyid
-      name(19:21)= cexpnr
+      name(15:17)= cmyidx
+      name(19:21)= cmyidy
+      name(23:25)= cexpnr
       open  (ifoutput,file=name,form='unformatted',status='replace')
 
       write(ifoutput)  (((mindist(i,j,k),i=ib,ie  ),j=jb,je      ),k=kb,ke   )
@@ -122,10 +123,11 @@ contains
       close (ifoutput)
 
       if (nsv>0) then
-        name  = 'inits        _   .'
+        name  = 'inits        _   _   .'
         write (name(6:13) ,'(i8.8)') ntrun
-        name(15:17) = cmyid
-        name(19:21) = cexpnr
+        name(15:17) = cmyidx
+        name(19:21) = cmyidy
+        name(23:25) = cexpnr
         open  (ifoutput,file=name,form='unformatted')
         write(ifoutput) ((((sv0(i,j,k,n),i=ib-ih,ie+ih),j=jb-jh,je+jh),k=kb,ke+kh),n=1,nsv)
         write(ifoutput)  timee

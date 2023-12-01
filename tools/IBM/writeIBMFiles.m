@@ -596,8 +596,8 @@ end
 
 if lmatchFacetsToCellsFortran
     disp('Determining facet sections using Fortran.')
-    in_mypoly_fortran_path = [folder '/in_mypoly_fortran/'];
-    addpath(in_mypoly_fortran_path)
+%     in_mypoly_fortran_path = [folder '/in_mypoly_fortran/'];
+%     addpath(in_mypoly_fortran_path)
     cd(folder);
     % Needs fluid_IB_u.txt and fluid_boundary_u.txt to be defined.
     system('gfortran -O2 matchFacetsToCells.f90 -o MFTC.exe');
@@ -853,7 +853,7 @@ xlim([0 xsize])
 ylim([0 ysize])
 zlim([0 zsize])
 
-scatter3(X_u(solid_u), Y_u(solid_u), Z_u(solid_u), 10,[0,0,1],'filled')
+%scatter3(X_u(solid_u), Y_u(solid_u), Z_u(solid_u), 10,[0,0,1],'filled')
 %scatter3(X_v(solid_v), Y_v(solid_v), Z_v(solid_v), 10,[0,0,1],'filled')
 %scatter3(X_w(solid_w), Y_w(solid_w), Z_w(solid_w), 10,[0,0,1],'filled')
 %scatter3(X_c(solid_c), Y_c(solid_c), Z_c(solid_c), 10,[0,0,1],'filled')

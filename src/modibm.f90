@@ -91,13 +91,33 @@ module modibm
 
    type(bound_info_type) :: bound_info_u, bound_info_v, bound_info_w, bound_info_c
 
+   integer :: nstatfac=6, ncidfac, nrecfac=0
+   character(80), allocatable :: ncstatfac(:,:)
+   character(80) :: facname = 'fac.xxx.nc'
+   character(80),dimension(1,4) :: tncstatfac
+   real, allocatable :: varsfac(:,:)
+   real, allocatable :: fac_tau_x(:)
+   real, allocatable :: fac_tau_y(:)
+   real, allocatable :: fac_tau_z(:)
+   real, allocatable :: fac_pres(:)
+   real, allocatable :: fac_htc(:)
+   real, allocatable :: fac_cth(:)
+   real, allocatable :: fac_tau_x_av(:)
+   real, allocatable :: fac_tau_y_av(:)
+   real, allocatable :: fac_tau_z_av(:)
+   real, allocatable :: fac_pres_av(:)
+   real, allocatable :: fac_htc_av(:)
+   real, allocatable :: fac_cth_av(:)
+
    contains
 
    subroutine initibm
      use modglobal, only : libm, xh, xf, yh, yf, zh, zf, xhat, yhat, zhat, vec0, &
                            ib, ie, ih, ihc, jb, je, jh, jhc, kb, ke, kh, khc, nsv, &
-                           iwallmom, lmoist, ltempeq
+                           iwallmom, lmoist, ltempeq, cexpnr, nfcts, lwritefac
      use decomp_2d, only : exchange_halo_z
+     use modmpi,    only : myid
+     use modstat_nc,only: open_nc, define_nc, ncinfo, writestat_dims_nc
 
      real, allocatable :: rhs(:,:,:)
 
@@ -156,6 +176,53 @@ module modibm
      end if
 
      deallocate(rhs)
+
+     ! write facet stresses and pressure to fac.xxx.nc
+     if (lwritefac) then
+       allocate(fac_tau_x(1:nfcts))
+       allocate(fac_tau_y(1:nfcts))
+       allocate(fac_tau_z(1:nfcts))
+       allocate(fac_pres(1:nfcts))
+       allocate(fac_htc(1:nfcts))
+       allocate(fac_cth(1:nfcts))
+       fac_tau_x = 0.
+       fac_tau_y = 0.
+       fac_tau_z = 0.
+       fac_pres = 0.
+       fac_htc = 0.
+       fac_cth = 0.
+       allocate(fac_tau_x_av(1:nfcts))
+       allocate(fac_tau_y_av(1:nfcts))
+       allocate(fac_tau_z_av(1:nfcts))
+       allocate(fac_pres_av(1:nfcts))
+       allocate(fac_htc_av(1:nfcts))
+       allocate(fac_cth_av(1:nfcts))
+       fac_tau_x_av = 0.
+       fac_tau_y_av = 0.
+       fac_tau_z_av = 0.
+       fac_pres_av = 0.
+       fac_htc_av = 0.
+       fac_cth_av = 0.
+
+       facname(5:7) = cexpnr
+       allocate(ncstatfac(nstatfac,4))
+       call ncinfo(tncstatfac(1,:),'t', 'Time', 's', 'time')
+       call ncinfo(ncstatfac( 1,:),'tau_x', 'tau_x', 'Pa','ft')
+       call ncinfo(ncstatfac( 2,:),'tau_y', 'tau_y', 'Pa','ft')
+       call ncinfo(ncstatfac( 3,:),'tau_z', 'tau_z', 'Pa','ft')
+       call ncinfo(ncstatfac( 4,:),'pres', 'pressure', 'Pa','ft')
+       call ncinfo(ncstatfac( 5,:),'htc', 'heat transfer coefficient', '','ft')
+       call ncinfo(ncstatfac( 6,:),'cth', 'heat transfer coefficient (Ivo)', '','ft')
+
+       if (myid==0) then
+         call open_nc(facname, ncidfac, nrecfac, nfcts=nfcts)
+         if (nrecfac==0) then
+           call define_nc(ncidfac, 1, tncstatfac)
+           call writestat_dims_nc(ncidfac)
+         end if
+         call define_nc(ncidfac, nstatfac, ncstatfac)
+       end if
+     end if
 
    end subroutine initibm
 
@@ -1038,11 +1105,12 @@ module modibm
 
    subroutine ibmwallfun
      use modglobal, only : libm, iwallmom, iwalltemp, xhat, yhat, zhat, ltempeq, lmoist, rk3step, timee, &
-                           ib, ie, ih, ihc, jb, je, jh, jhc, kb, ke, kh, khc, nsv, totheatflux, totqflux
+                           ib, ie, ih, ihc, jb, je, jh, jhc, kb, ke, kh, khc, nsv, totheatflux, totqflux, nfcts, lwritefac, dt, dtfac, tfac, tnextfac
      use modfields, only : u0, v0, w0, thl0, qt0, sv0, up, vp, wp, thlp, qtp, svp, &
                            tau_x, tau_y, tau_z, thl_flux
      use modsubgriddata, only : ekm, ekh
      use modmpi, only : myid, comm3d, MPI_SUM, mpierr, MY_REAL
+     use modstat_nc, only : writestat_nc, writestat_1D_nc, writestat_2D_nc
 
      real, allocatable :: rhs(:,:,:)
      integer n
@@ -1066,26 +1134,25 @@ module modibm
         call wallfunmom(zhat, wp, bound_info_w)
         tau_z(:,:,kb:ke+kh) = tau_z(:,:,kb:ke+kh) + (wp - rhs)
 
-        ! This replicates uDALES 1 behaviour, but probably should be done even if not using wall functions
-        call diffu_corr
-        call diffv_corr
-        call diffw_corr
-
-        mom_flux_sum = sum(tau_x(ib:ie,jb:je,kb+1:ke) + tau_y(ib:ie,jb:je,kb+1:ke) + tau_z(ib:ie,jb:je,kb+1:ke))
-        call MPI_ALLREDUCE(mom_flux_sum, mom_flux_tot, 1, MY_REAL, MPI_SUM, comm3d, mpierr)
-        if (myid == 0) then
-           if (rk3step == 3) then
-                inquire(file="mom_flux.txt", exist=mom_flux_file_exists)
-                if (mom_flux_file_exists) then
-                  open(12, file="mom_flux.txt", status="old", position="append", action="write")
-                else
-                  open(12, file="mom_flux.txt", status="new", action="write")
-                end if
-                write(12, *) timee, -mom_flux_tot
-                close(12)
-           end if
-        end if
+        ! mom_flux_sum = sum(tau_x(ib:ie,jb:je,kb+1:ke) + tau_y(ib:ie,jb:je,kb+1:ke) + tau_z(ib:ie,jb:je,kb+1:ke))
+        ! call MPI_ALLREDUCE(mom_flux_sum, mom_flux_tot, 1, MY_REAL, MPI_SUM, comm3d, mpierr)
+        ! if (myid == 0) then
+        !    if (rk3step == 3) then
+        !         inquire(file="mom_flux.txt", exist=mom_flux_file_exists)
+        !         if (mom_flux_file_exists) then
+        !           open(12, file="mom_flux.txt", status="old", position="append", action="write")
+        !         else
+        !           open(12, file="mom_flux.txt", status="new", action="write")
+        !         end if
+        !         write(12, *) timee, -mom_flux_tot
+        !         close(12)
+        !    end if
+        ! end if
       end if
+
+      call diffu_corr
+      call diffv_corr
+      call diffw_corr
 
       if (ltempeq .or. lmoist) then
         rhs = thlp
@@ -1096,20 +1163,20 @@ module modibm
         if (ltempeq) call diffc_corr(thl0, thlp, ih, jh, kh)
         if (lmoist)  call diffc_corr(qt0, qtp, ih, jh, kh)
 
-        thl_flux_sum = sum(thl_flux(ib:ie,jb:je,kb+1:ke))
-        call MPI_ALLREDUCE(thl_flux_sum, thl_flux_tot, 1, MY_REAL, MPI_SUM, comm3d, mpierr)
-        if (myid == 0) then
-           if (rk3step == 3) then
-                inquire(file="thl_flux.txt", exist=thl_flux_file_exists)
-                if (thl_flux_file_exists) then
-                  open(12, file="thl_flux.txt", status="old", position="append", action="write")
-                else
-                  open(12, file="thl_flux.txt", status="new", action="write")
-                end if
-                write(12, *) timee, thl_flux_tot
-                close(12)
-           end if
-        end if
+        ! thl_flux_sum = sum(thl_flux(ib:ie,jb:je,kb+1:ke))
+        ! call MPI_ALLREDUCE(thl_flux_sum, thl_flux_tot, 1, MY_REAL, MPI_SUM, comm3d, mpierr)
+        ! if (myid == 0) then
+        !    if (rk3step == 3) then
+        !         inquire(file="thl_flux.txt", exist=thl_flux_file_exists)
+        !         if (thl_flux_file_exists) then
+        !           open(12, file="thl_flux.txt", status="old", position="append", action="write")
+        !         else
+        !           open(12, file="thl_flux.txt", status="new", action="write")
+        !         end if
+        !         write(12, *) timee, thl_flux_tot
+        !         close(12)
+        !    end if
+        ! end if
       end if
 
       do n = 1,nsv
@@ -1118,15 +1185,55 @@ module modibm
 
       deallocate(rhs)
 
+      if (lwritefac .and. rk3step==3) then
+
+        if (myid == 0) then
+            fac_tau_x_av = fac_tau_x_av + dt*fac_tau_x
+            fac_tau_y_av = fac_tau_y_av + dt*fac_tau_y
+            fac_tau_z_av = fac_tau_z_av + dt*fac_tau_z
+            fac_pres_av = fac_pres_av + dt*fac_pres
+            fac_htc_av = fac_htc_av + dt*fac_htc
+            fac_cth_av = fac_cth_av + dt*fac_cth
+
+            if (timee >= tnextfac) then
+               tfac = timee - tfac
+               allocate(varsfac(nfcts,nstatfac))
+               varsfac(:,1) = fac_tau_x_av(1:nfcts)/tfac
+               varsfac(:,2) = fac_tau_y_av(1:nfcts)/tfac
+               varsfac(:,3) = fac_tau_z_av(1:nfcts)/tfac
+               varsfac(:,4) = fac_pres_av(1:nfcts)/tfac
+               varsfac(:,5) = fac_htc_av(1:nfcts)/tfac
+               varsfac(:,6) = fac_cth_av(1:nfcts)/tfac
+               call writestat_nc(ncidfac,1,tncstatfac,(/timee/),nrecfac,.true.)
+               call writestat_1D_nc(ncidfac,nstatfac,ncstatfac,varsfac,nrecfac,nfcts)
+               deallocate(varsfac)
+
+               tfac = timee
+               tnextfac = NINT((timee + dtfac))*1.0
+
+               fac_tau_x_av = 0.
+               fac_tau_y_av = 0.
+               fac_tau_z_av = 0.
+               fac_pres_av = 0.
+               fac_htc_av = 0.
+               fac_cth_av = 0.
+            end if
+
+        end if !myid
+
+      end if
+
     end subroutine ibmwallfun
 
 
    subroutine wallfunmom(dir, rhs, bound_info)
      use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, xf, yf, zf, xh, yh, zh, &
-                           eps1, fkar, dx, dy, dzf, iwallmom, xhat, yhat, zhat, vec0
+                           eps1, fkar, dx, dy, dzf, iwallmom, xhat, yhat, zhat, vec0, nfcts, lwritefac, rk3step
      use modfields, only : u0, v0, w0, thl0, tau_x, tau_y, tau_z
-     use initfac,   only : facT, facz0, facz0h, facnorm
+     use initfac,   only : facT, facz0, facz0h, facnorm, faca
      use decomp_2d, only : zstart
+     use modmpi,    only : comm3d, mpi_sum, mpierr, my_real
+     use modfields, only : pres0
 
      real, intent(in)    :: dir(3)
      real, intent(inout) :: rhs(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
@@ -1137,6 +1244,8 @@ module modibm
           utan, udir, ctm, a, a_is, a_xn, a_yn, a_zn, stress_ix, stress_iy, stress_iz, xrec, yrec, zrec
      real, dimension(3) :: uvec, norm, strm, span, stressvec
      logical :: valid
+     real, dimension(1:nfcts) :: fac_tau_loc, fac_tau, fac_pres_loc
+     !real, dimension(:), allocatable :: fac_tau, fac_pres
 
      procedure(interp_velocity), pointer :: interp_velocity_ptr => null()
      procedure(interp_temperature), pointer :: interp_temperature_ptr => null()
@@ -1153,11 +1262,15 @@ module modibm
        interp_temperature_ptr => interp_temperature_w
      end select
 
+     fac_tau_loc = 0.
+     fac_pres_loc = 0.
+
      do m = 1,bound_info%nfctsecsrank
        sec = bound_info%fctsecsrank(m) ! index of section
        if (bound_info%lskipsec(sec)) cycle
 
        n = bound_info%secbndptids(sec) ! index of boundary point
+       area = bound_info%secareas(sec) ! area of section
        fac = bound_info%secfacids(sec) ! index of facet
        norm = facnorm(fac,:) ! facet normal
 
@@ -1167,6 +1280,8 @@ module modibm
        j = bound_info%bndpts(n,2) - zstart(2) + 1
        k = bound_info%bndpts(n,3) - zstart(3) + 1
        if ((i < ib) .or. (i > ie) .or. (j < jb) .or. (j > je)) write(*,*) "problem", i, j
+
+       fac_pres_loc(fac) = fac_pres_loc(fac) + pres0(i,j,k) * area ! output pressure on facets
 
        if (bound_info%lcomprec(sec) .or. lnorec) then
          uvec = interp_velocity_ptr(i, j, k)
@@ -1231,31 +1346,52 @@ module modibm
 
        stress_dir = sign(stress_dir, dot_product(uvec, dir))
 
-       area = bound_info%secareas(sec)
        vol = dx*dy*dzf(k)
        momvol = stress_dir * area / vol
        rhs(i,j,k) = rhs(i,j,k) - momvol
-
+       fac_tau_loc(fac) = fac_tau_loc(fac) + stress_dir * area ! output stresses on facets
      end do
+
+     if (lwritefac .and. rk3step==3) then
+        fac_tau_loc(1:nfcts) = fac_tau_loc(1:nfcts) / faca(1:nfcts)
+        fac_pres_loc(1:nfcts) = fac_pres_loc(1:nfcts) / faca(1:nfcts)
+        call MPI_ALLREDUCE(fac_tau_loc(1:nfcts), fac_tau(1:nfcts), nfcts, MY_REAL, MPI_SUM, comm3d, mpierr)
+        call MPI_ALLREDUCE(fac_pres_loc(1:nfcts), fac_pres(1:nfcts), nfcts, MY_REAL, MPI_SUM, comm3d, mpierr)
+
+        select case(alignment(dir))
+        case(1)
+           fac_tau_x = fac_tau
+        case(2)
+           fac_tau_y = fac_tau
+        case(3)
+           fac_tau_z = fac_tau
+        end select
+     end if
+
+     ! Do time-averaging like in modEB
 
    end subroutine wallfunmom
 
 
    subroutine wallfunheat
      use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, xf, yf, zf, xh, yh, zh, dx, dy, dzh, eps1, &
-                           xhat, yhat, zhat, vec0, fkar, ltempeq, lmoist, iwalltemp, iwallmoist, lEB, totheatflux, totqflux
+                           xhat, yhat, zhat, vec0, fkar, ltempeq, lmoist, iwalltemp, iwallmoist, lEB,lwritefac, nfcts, rk3step, totheatflux, totqflux
      use modfields, only : u0, v0, w0, thl0, thlp, qt0, qtp
-     use initfac,   only : facT, facz0, facz0h, facnorm, faca, fachf, facef, facqsat, fachurel, facf, faclGR
+     use initfac,   only : facT, facz0, facz0h, facnorm, fachf, facef, facqsat, fachurel, facf, faclGR, faca
+     use modmpi,    only : comm3d, mpi_sum, mpierr, my_real
      use modsurfdata, only : z0, z0h
      use modibmdata, only : bctfxm, bctfxp, bctfym, bctfyp, bctfz
      use decomp_2d, only : zstart
      use modmpi, only : myid
 
      integer i, j, k, n, m, sec, fac
-     real :: dist, flux, area, vol, tempvol, Tair, Tsurf, utan, cth, cveg, hurel, qtair, qwall, resc, ress, xrec, yrec, zrec, fluxTrhs, fluxqrhs
+     real :: dist, flux, area, vol, tempvol, Tair, Tsurf, utan, cth, htc, cveg, hurel, qtair, qwall, resa, resc, ress, xrec, yrec, zrec, fluxTrhs, fluxqrhs
      real, dimension(3) :: uvec, norm, span, strm
+     real, dimension(1:nfcts) :: fac_htc_loc, fac_cth_loc
      logical :: valid
 
+     fac_htc_loc = 0.
+     fac_cth_loc = 0.
      do m = 1,bound_info_c%nfctsecsrank
        sec = bound_info_c%fctsecsrank(m) ! index of section
        n =   bound_info_c%secbndptids(sec) ! index of boundary point
@@ -1323,12 +1459,11 @@ module modibm
            end if
 
          elseif (iwalltemp == 2) then
-           call heat_transfer_coef_flux(utan, dist, facz0(fac), facz0h(fac), Tair, facT(fac, 1), cth, flux)
-
-           ! Outputs 'cth' = heat transfer coefficient x utan = aerodynamic resistance as well as flux
+           call heat_transfer_coef_flux(utan, dist, facz0(fac), facz0h(fac), Tair, facT(fac, 1), cth, flux, htc)
+           fac_cth_loc(fac) = fac_cth_loc(fac) + cth * bound_info_c%secareas(sec) ! output heat transfer coefficients on facets
+           fac_htc_loc(fac) = fac_htc_loc(fac) + htc * bound_info_c%secareas(sec) ! output heat transfer coefficients on facets
          end if
 
-         ! Heat transfer coefficient (cth) could be output here
          ! flux [Km/s]
          ! fluid volumetric sensible heat source/sink = flux * area / volume [K/s]
          ! facet sensible heat flux = volumetric heat capacity of air * flux * sectionarea / facetarea [W/m^2]
@@ -1356,14 +1491,15 @@ module modibm
            end if
 
          elseif (iwallmoist == 2) then
-           qwall = facqsat(fac)
-           hurel = fachurel(fac)
-           resc = facf(fac,4)
-           ress = facf(fac,5)
-           cveg = 0.8
-           ! flux = min(0., cveg * (qtair - qwall)         / (1/cth + resc) + &
-           !           (1 - cveg)* (qtair - qwall * hurel) / (1/cth + ress))
-           flux = moist_flux(cveg, cth, qtair, qwall, hurel, resc, ress)
+            if (abs(htc*abs(utan)) > 0.) then
+               qwall = facqsat(fac) ! saturation humidity
+               hurel = fachurel(fac) ! relative humidity
+               resa = 1./(htc*abs(utan)) ! aerodynamic resistance
+               resc = facf(fac,4) ! canopy resistance
+               ress = facf(fac,5) ! soil resistance
+               cveg = 0.8 ! vegetation fraction
+               flux = moist_flux(cveg, resa, qtair, qwall, hurel, resc, ress)
+            end if
          end if
 
          ! flux [kg/kg m/s]
@@ -1379,6 +1515,13 @@ module modibm
        end if
 
      end do
+
+     if (lwritefac .and. rk3step==3) then
+        fac_cth_loc(1:nfcts) = fac_cth_loc(1:nfcts) / faca(1:nfcts)
+        fac_htc_loc(1:nfcts) = fac_htc_loc(1:nfcts) / faca(1:nfcts)
+        call MPI_ALLREDUCE(fac_cth_loc(1:nfcts), fac_cth(1:nfcts), nfcts, MY_REAL, MPI_SUM, comm3d, mpierr)
+        call MPI_ALLREDUCE(fac_htc_loc(1:nfcts), fac_htc(1:nfcts), nfcts, MY_REAL, MPI_SUM, comm3d, mpierr)
+     end if
 
    end subroutine wallfunheat
 
@@ -1693,12 +1836,12 @@ module modibm
    end function mom_transfer_coef_neutral
 
 
-   subroutine heat_transfer_coef_flux(utan, dist, z0, z0h, Tair, Tsurf, cth, flux)
+   subroutine heat_transfer_coef_flux(utan, dist, z0, z0h, Tair, Tsurf, cth, flux, htc)
      use modglobal, only : grav, fkar, prandtlturb
 
       implicit none
       real, intent(in)  :: dist, z0, z0h, Tsurf, Tair, utan
-      real, intent(out) :: cth, flux
+      real, intent(out) :: cth, flux, htc
       real, parameter :: b1 = 9.4 !parameters from Uno1995
       real, parameter :: b2 = 4.7
       real, parameter :: dm = 7.4
@@ -1746,8 +1889,14 @@ module modibm
       ! Uno (2)
       M = prandtlturb*logdz*sqrt(Fm)/Fh !Eq. 14
       dTrough = dT*1./(prandtlturb*logzh/M + 1.) !Eq. 13a
-      cth = abs(utan)*fkar2/(logdz*logdz)*Fh/prandtlturb !Eq. 8
-      flux = cth*dTrough !Eq. 2, Eq. 8
+      cth = fkar2/(logdz*logdz)*Fh/prandtlturb ! Ivo's heat transfer coefficient
+      flux = abs(utan)*cth*dTrough
+
+      if (abs(abs(utan)*dT) > 0.) then
+         htc = flux / (abs(utan)*dT)
+      else
+         htc = 0.
+      end if
 
       ! ! Uno (8)
       ! cth = abs(utan)*fkar2/(logdz*logdzh)*Fh/prandtlturb !Eq. 8
@@ -1756,11 +1905,11 @@ module modibm
    end subroutine heat_transfer_coef_flux
 
 
-   real function moist_flux(cveg, cth, qtair, qwall, hurel, resc, ress)
-     real, intent(in) :: cveg, cth, qtair, qwall, hurel, resc, ress
+   real function moist_flux(cveg, resa, qtair, qwall, hurel, resc, ress)
+     real, intent(in) :: cveg, resa, qtair, qwall, hurel, resc, ress
 
-     moist_flux = min(0., cveg * (qtair - qwall)         / (1/cth + resc) + &
-                     (1 - cveg)* (qtair - qwall * hurel) / (1/cth + ress))
+     moist_flux = min(0., cveg * (qtair - qwall)         / (resa + resc) + &
+                     (1 - cveg)* (qtair - qwall * hurel) / (resa + ress))
 
    end function moist_flux
 

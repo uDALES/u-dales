@@ -72,7 +72,7 @@ module modstartup
                                     BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots, &
                                     BCxm_periodic, BCym_periodic, &
                                     idriver,tdriverstart,driverjobnr,dtdriver,driverstore,lsdriver, &
-                                    lrandomize, prandtlturb, fkar
+                                    lrandomize, prandtlturb, fkar, lwritefac, dtfac, tfac, tnextfac
       use modsurfdata,       only : z0, z0h,  wtsurf, wttop, wqtop, wqsurf, wsvsurf, wsvtop, wsvsurfdum, wsvtopdum, ps, thvs, thls, thl_top, qt_top, qts
       use modfields,         only : initfields, dpdx, ncname
       use modpois,           only : initpois
@@ -145,7 +145,7 @@ module modstartup
          nsolpts_u, nsolpts_v, nsolpts_w, nsolpts_c, &
          nbndpts_u, nbndpts_v, nbndpts_w, nbndpts_c, &
          nfctsecs_u, nfctsecs_v, nfctsecs_w, nfctsecs_c, lbottom, lnorec, &
-         prandtlturb, fkar
+         prandtlturb, fkar, lwritefac, dtfac
       namelist/ENERGYBALANCE/ &
          lEB, lwriteEBfiles, lperiodicEBcorr,sinkbase,lconstW, dtEB, bldT, flrT, wsoil, wgrmax, wwilt, wfc, &
          skyLW, GRLAI, rsmin, nfaclyrs, lfacTlyrs, lvfsparse, nnz, fraction
@@ -400,6 +400,10 @@ module modstartup
       call MPI_BCAST(nfctsecs_c, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(lbottom, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lnorec, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(lwritefac, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(tfac, 1, MY_REAL, 0, comm3d, mpierr)
+      tnextfac = dtfac
+      call MPI_BCAST(tnextfac, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(luoutflowr, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for turning on/off u-velocity correction for fixed mass outflow rate
       call MPI_BCAST(lvoutflowr, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315: added switch for turning on/off v-velocity correction for fixed mass outflow rate
       call MPI_BCAST(luvolflowr, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! bss166: added switch for turning on/off u-velocity correction for fixed volume flow rate
@@ -747,9 +751,9 @@ module modstartup
                         consider setting BCxq = ", BCxq_profile
          end if
 
-         if (BCtopm .ne. BCtopm_pressure .and. (myid == 0)) then
-           write (*, *) "Warning: allowing vertical velocity at top might be necessary, &
-                         consider setting BCtopm = ", BCtopm_pressure
+         if (BCtopm .ne. BCtopm_pressure) then
+           if (myid==0) write (*, *) "inflow-outflow: allowing vertical velocity at top, setting BCtopm = 3"
+           BCtopm = BCtopm_pressure
          end if
 
        case(BCxm_driver)
@@ -775,9 +779,9 @@ module modstartup
                          consider setting BCxq = ", BCxq_profile
          end if
 
-         if (BCtopm .ne. BCtopm_pressure .and. (myid == 0)) then
-           write (*, *) "Warning: allowing vertical velocity at top might be necessary, &
-                         consider setting BCtopm = ", BCtopm_pressure
+         if (BCtopm .ne. BCtopm_pressure) then
+            if (myid == 0) write (*, *) "inflow-outflow: allowing vertical velocity at top, setting BCtopm = 3"
+            BCtopm = BCtopm_pressure
          end if
       end select
 
@@ -832,7 +836,7 @@ module modstartup
          uflowrate, vflowrate,ltempeq, prandtlmoli, freestreamav, &
          tnextfielddump, tfielddump, tsample, tstatsdump, startfile, lprofforc, lchem, k1, JNO2,&
          idriver,dtdriver,driverstore,tdriverstart,tdriverdump,xlen,ylen,itot,jtot,ibrank,ierank,jbrank,jerank,BCxm,BCym,lrandomize,BCxq,BCxs,BCxT, BCyq,BCys,BCyT,BCxm_driver,&
-         tEB,tnextEB,dtEB,BCxs_custom
+         tEB,tnextEB,dtEB,BCxs_custom,lEB,lfacTlyrs,tfac,tnextfac,dtfac
       use modsubgriddata, only:ekm, ekh, loneeqn
       use modsurfdata, only:wtsurf, wqsurf, wsvsurf, &
          thls, thvs, ps, qts, svs, sv_top
@@ -1859,6 +1863,10 @@ module modstartup
             ! CvH - only do this for fixed timestepping. In adaptive dt comes from restartfile
             if (.not. ladaptive) dt = dtmax
             !  call boundary
+
+            if (lEB .and. (lfacTlyrs .eqv. .false.)) then
+               write(*,*) "Warmstarting an EB simulation - consider setting internal facet temperatures"
+            end if
          end if ! lwarmstart
       end if ! not lstratstart
       !-----------------------------------------------------------------
@@ -1963,6 +1971,8 @@ module modstartup
       tnextfielddump = btime + tfielddump
       tEB = btime
       tnextEB = btime + dtEB
+      tfac = btime
+      tnextfac = btime + dtfac
       deallocate (height, th0av)
 
       !    call boundary
@@ -1981,7 +1991,7 @@ module modstartup
       use modglobal, only:ib, ie, ih, jb, je, jh, kb, ke, kh, dtheta, dqt, dsv, startfile, timee, totavtime, runavtime, &
          iexpnr, ntimee, rk3step, ifinput, nsv, runtime, dt, cexpnr, lreadmean, lreadminl, &
          totinletav, lreadscal, ltempeq, dzf, numol, prandtlmoli
-      use modmpi, only:cmyid, myid
+      use modmpi, only:cmyid, cmyidx, cmyidy, myid
       use modsubgriddata, only:ekm
       use modinlet, only:zinterpolate1d, zinterpolatet1d, zinterpolatew1d, zinterpolate2d
       use modinletdata, only:Uinl, Urec, Wrec, Utav, Tinl, Trec, linuf, linuh, &
@@ -2004,7 +2014,8 @@ module modstartup
       !-----------------------------------------------------------------
       name = startfile
       name(5:5) = 'd'
-      name(15:17) = cmyid
+      name(15:17) = cmyidx
+      name(19:21) = cmyidy
       write (6, *) 'loading ', name
       open (unit=ifinput, file=name, form='unformatted', status='old')
 
