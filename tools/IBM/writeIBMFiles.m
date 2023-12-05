@@ -638,19 +638,19 @@ if lmatchFacetsToCellsFortran
     delete MFTC.exe info_matchFacetsToCells.txt faces.txt vertices.txt zfgrid.txt zhgrid.txt;
     cd(currentPath)
 
-    facet_sections_u_fromfile = readmatrix([fpath 'facet_sections_u_fort.txt']);
+    facet_sections_u_fromfile = readmatrix([fpath 'facet_sections_u.txt']);
     facet_sections_u = NaN(size(facet_sections_u_fromfile,1), 9);
     facet_sections_u(:,[1,2,5,6]) = facet_sections_u_fromfile;
 
-    facet_sections_v_fromfile = readmatrix([fpath 'facet_sections_v_fort.txt']);
+    facet_sections_v_fromfile = readmatrix([fpath 'facet_sections_v.txt']);
     facet_sections_v = NaN(size(facet_sections_v_fromfile,1), 9);
     facet_sections_v(:,[1,2,5,6]) = facet_sections_v_fromfile;
 
-    facet_sections_w_fromfile = readmatrix([fpath 'facet_sections_w_fort.txt']);
+    facet_sections_w_fromfile = readmatrix([fpath 'facet_sections_w.txt']);
     facet_sections_w = NaN(size(facet_sections_w_fromfile,1), 9);
     facet_sections_w(:,[1,2,5,6]) = facet_sections_w_fromfile;
 
-    facet_sections_c_fromfile = readmatrix([fpath 'facet_sections_c_fort.txt']);
+    facet_sections_c_fromfile = readmatrix([fpath 'facet_sections_c.txt']);
     facet_sections_c = NaN(size(facet_sections_c_fromfile,1), 9);
     facet_sections_c(:,[1,2,5,6]) = facet_sections_c_fromfile;
 
