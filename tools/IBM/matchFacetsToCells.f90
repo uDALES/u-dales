@@ -915,7 +915,7 @@ subroutine writeFacetSections(secfacids, secareas, secbndptids, bnddst, nfacsecs
    integer, intent(in) :: nfacsecs
    integer, intent(in), dimension(nfacsecs) :: secfacids, secbndptids
    real   , intent(in), dimension(nfacsecs) :: secareas, bnddst
-   character(25), intent(in) :: fname_facet_sections
+   character(20), intent(in) :: fname_facet_sections
    integer :: n
 
 
