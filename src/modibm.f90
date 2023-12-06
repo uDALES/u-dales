@@ -61,6 +61,7 @@ module modibm
      logical, allocatable :: lsolptsrank(:) !
      integer, allocatable :: solptsrank(:) ! indices of points on current rank
      integer :: nsolptsrank
+     integer, allocatable :: solpts_loc(:,:)
    end TYPE solid_info_type
 
    type(solid_info_type) :: solid_info_u, solid_info_v, solid_info_w, solid_info_c
@@ -68,8 +69,8 @@ module modibm
    TYPE bound_info_type
      integer :: nbndpts
      integer, allocatable :: bndpts(:,:) ! ijk location of fluid boundary point
-     real, allocatable    :: intpts(:,:) ! xyz location of boundary intercept point
-     real, allocatable    :: bndvec(:,:) ! vector from boundary to fluid point (normalised)
+     !real, allocatable    :: intpts(:,:) ! xyz location of boundary intercept point
+     !real, allocatable    :: bndvec(:,:) ! vector from boundary to fluid point (normalised)
      real, allocatable    :: recpts(:,:) ! xyz location of reconstruction point
      integer, allocatable :: recids_u(:,:) ! ijk location of u grid cell that rec point is in
      integer, allocatable :: recids_v(:,:) ! ijk location of u grid cell that rec point is in
@@ -77,9 +78,11 @@ module modibm
      integer, allocatable :: recids_c(:,:) ! ijk location of u grid cell that rec point is in
      real, allocatable    :: bnddst(:) ! distance between surface & bound point
      integer, allocatable :: bndptsrank(:) ! indices of points on current rank
+     !integer, allocatable :: bndpts_loc(:,:) ! indices of points on current rank
      logical, allocatable :: lcomprec(:) ! Switch whether reconstruction point is a computational point
      logical, allocatable :: lskipsec(:) ! Switch whether to skip finding the shear stress at this point
      integer :: nbndptsrank
+     integer, allocatable :: bndpts_loc(:,:) ! ijk location of fluid boundary point on rank
 
      integer :: nfctsecs
      integer, allocatable :: secbndptids(:)
@@ -87,6 +90,17 @@ module modibm
      real,    allocatable :: secareas(:)
      integer, allocatable :: fctsecsrank(:)
      integer :: nfctsecsrank
+     integer, allocatable :: secfacids_loc(:)
+     real   , allocatable :: secareas_loc(:)
+     integer, allocatable :: secbndpts_loc(:,:)
+     real   , allocatable :: bnddst_loc(:)
+     real   , allocatable :: recpts_loc(:,:)
+     integer, allocatable :: recids_u_loc(:,:)
+     integer, allocatable :: recids_v_loc(:,:)
+     integer, allocatable :: recids_w_loc(:,:)
+     integer, allocatable :: recids_c_loc(:,:)
+     logical, allocatable :: lcomprec_loc(:)
+     logical, allocatable :: lskipsec_loc(:)
    end TYPE bound_info_type
 
    type(bound_info_type) :: bound_info_u, bound_info_v, bound_info_w, bound_info_c
@@ -267,17 +281,21 @@ module modibm
        end if
      end do
 
-     ! Store indices of points on current rank - only loop through these points
+     ! Store points on current rank - only loop through these points
      allocate(solid_info%solptsrank(solid_info%nsolptsrank))
+     allocate(solid_info%solpts_loc(solid_info%nsolptsrank,3))
      m = 0
      do n = 1, solid_info%nsolpts
        if (lsolptsrank(n)) then
           m = m + 1
           solid_info%solptsrank(m) = n
+          solid_info%solpts_loc(m,:) = (/solid_info%solpts(n,1),solid_info%solpts(n,2),solid_info%solpts(n,3)/)
        end if
      end do
 
      !write(*,*) "rank ", myid, " has ", solid_info%nsolptsrank, " solid points from ", fname
+
+     deallocate(solid_info%solpts)
 
    end subroutine initibmnorm
 
@@ -337,7 +355,8 @@ module modibm
      !write(*,*) "rank ", myid, " has ", bound_info%nbndptsrank, "points from ", fname_bnd
 
      ! Store indices of points on current rank - only loop through these points
-     allocate(bound_info%bndptsrank(bound_info%nbndptsrank))
+     allocate(bound_info%bndptsrank(bound_info%nbndptsrank)) ! index in global list
+     allocate(bound_info%bndpts_loc(bound_info%nbndptsrank,3)) ! location (on local grid)
      m = 0
      do n = 1, bound_info%nbndpts
        if (lbndptsrank(n)) then
@@ -350,15 +369,16 @@ module modibm
           end if
           m = m + 1
           bound_info%bndptsrank(m) = n
+          bound_info%bndpts_loc(m,:) = (/bound_info%bndpts(n,1),bound_info%bndpts(n,2),bound_info%bndpts(n,3)/)
        end if
      end do
 
      allocate(bound_info%secfacids(bound_info%nfctsecs))
      allocate(bound_info%secareas(bound_info%nfctsecs))
      allocate(bound_info%secbndptids(bound_info%nfctsecs))
-     allocate(bound_info%intpts(bound_info%nfctsecs,3))
+     !allocate(bound_info%intpts(bound_info%nfctsecs,3))
      allocate(bound_info%bnddst(bound_info%nfctsecs))
-     allocate(bound_info%bndvec(bound_info%nfctsecs,3))
+     !allocate(bound_info%bndvec(bound_info%nfctsecs,3))
      allocate(bound_info%recpts(bound_info%nfctsecs,3))
      allocate(bound_info%recids_u(bound_info%nfctsecs,3))
      allocate(bound_info%recids_v(bound_info%nfctsecs,3))
@@ -396,7 +416,6 @@ module modibm
        end do
        close (ifinput)
 
-       ! Calculate vector
        do n = 1,bound_info%nfctsecs
          m = bound_info%secbndptids(n)
          !bound_info%bndvec(n,1) = xgrid(bound_info%bndpts(m,1)) - bound_info%intpts(n,1)
@@ -545,8 +564,8 @@ module modibm
      call MPI_BCAST(bound_info%secfacids,   bound_info%nfctsecs,   MPI_INTEGER, 0, comm3d, mpierr)
      call MPI_BCAST(bound_info%secareas,    bound_info%nfctsecs,   MY_REAL,     0, comm3d, mpierr)
      call MPI_BCAST(bound_info%secbndptids, bound_info%nfctsecs,   MPI_INTEGER, 0, comm3d, mpierr)
-     call MPI_BCAST(bound_info%intpts,      bound_info%nfctsecs*3, MY_REAL,     0, comm3d, mpierr)
-     call MPI_BCAST(bound_info%bndvec,      bound_info%nfctsecs*3, MY_REAL,     0, comm3d, mpierr)
+     !call MPI_BCAST(bound_info%intpts,      bound_info%nfctsecs*3, MY_REAL,     0, comm3d, mpierr)
+     !call MPI_BCAST(bound_info%bndvec,      bound_info%nfctsecs*3, MY_REAL,     0, comm3d, mpierr)
      call MPI_BCAST(bound_info%bnddst,      bound_info%nfctsecs,   MY_REAL,     0, comm3d, mpierr)
      call MPI_BCAST(bound_info%recpts,      bound_info%nfctsecs*3, MY_REAL,     0, comm3d, mpierr)
      call MPI_BCAST(bound_info%recids_u,    bound_info%nfctsecs*3, MPI_INTEGER, 0, comm3d, mpierr)
@@ -569,13 +588,49 @@ module modibm
 
      ! Store indices of sections on current rank - only loop through these sections
      allocate(bound_info%fctsecsrank(bound_info%nfctsecsrank))
+     ! allocate local arrays
+     allocate(bound_info%secfacids_loc(bound_info%nfctsecsrank))
+     allocate(bound_info%secareas_loc(bound_info%nfctsecsrank))
+     allocate(bound_info%secbndpts_loc(bound_info%nfctsecsrank,3))
+     allocate(bound_info%bnddst_loc(bound_info%nfctsecsrank))
+     allocate(bound_info%recpts_loc(bound_info%nfctsecsrank,3))
+     allocate(bound_info%recids_u_loc(bound_info%nfctsecsrank,3))
+     allocate(bound_info%recids_v_loc(bound_info%nfctsecsrank,3))
+     allocate(bound_info%recids_w_loc(bound_info%nfctsecsrank,3))
+     allocate(bound_info%recids_c_loc(bound_info%nfctsecsrank,3))
+     allocate(bound_info%lcomprec_loc(bound_info%nfctsecsrank))
+     allocate(bound_info%lskipsec_loc(bound_info%nfctsecsrank))
+
      m = 0
      do n = 1, bound_info%nfctsecs
        if (lfctsecsrank(n)) then
           m = m + 1
           bound_info%fctsecsrank(m) = n
+          bound_info%secfacids_loc(m) = bound_info%secfacids(n) ! facet id
+          bound_info%secareas_loc(m) = bound_info%secareas(n)
+          bound_info%secbndpts_loc(m,:) = bound_info%bndpts(bound_info%secbndptids(n),:) ! boundary point location (in global coordinates)
+          bound_info%bnddst_loc(m) = bound_info%bnddst(n)
+          bound_info%recpts_loc(m,:) = bound_info%recpts(n,:)
+          bound_info%recids_u_loc(m,:) = bound_info%recids_u(n,:)
+          bound_info%recids_v_loc(m,:) = bound_info%recids_v(n,:)
+          bound_info%recids_w_loc(m,:) = bound_info%recids_w(n,:)
+          bound_info%recids_c_loc(m,:) = bound_info%recids_c(n,:)
+          bound_info%lcomprec_loc(m) = bound_info%lcomprec(n)
+          bound_info%lskipsec_loc(m) = bound_info%lskipsec(n)
        end if
      end do
+
+     deallocate(bound_info%bndpts)
+     deallocate(bound_info%secfacids)
+     deallocate(bound_info%secbndptids)
+     deallocate(bound_info%bnddst)
+     deallocate(bound_info%recpts)
+     deallocate(bound_info%recids_u)
+     deallocate(bound_info%recids_v)
+     deallocate(bound_info%recids_w)
+     deallocate(bound_info%recids_c)
+     deallocate(bound_info%lcomprec)
+     deallocate(bound_info%lskipsec)
 
    end subroutine initibmwallfun
 
@@ -683,21 +738,21 @@ module modibm
      integer :: i, j, k, n, m
 
      if (present(mask) .eqv. .false.) then
-        do m=1,solid_info%nsolptsrank
-           n = solid_info%solptsrank(m)
-           i = solid_info%solpts(n,1) - zstart(1) + 1
-           j = solid_info%solpts(n,2) - zstart(2) + 1
-           k = solid_info%solpts(n,3) - zstart(3) + 1
+        do n=1,solid_info%nsolptsrank
+           !n = solid_info%solptsrank(m)
+           i = solid_info%solpts_loc(n,1) - zstart(1) + 1
+           j = solid_info%solpts_loc(n,2) - zstart(2) + 1
+           k = solid_info%solpts_loc(n,3) - zstart(3) + 1
            var(i,j,k) = val
            rhs(i,j,k) = 0.
         end do
 
      else
-        do m=1,solid_info%nsolptsrank
-           n = solid_info%solptsrank(m)
-           i = solid_info%solpts(n,1) - zstart(1) + 1
-           j = solid_info%solpts(n,2) - zstart(2) + 1
-           k = solid_info%solpts(n,3) - zstart(3) + 1
+        do n=1,solid_info%nsolptsrank
+           !n = solid_info%solptsrank(m)
+           i = solid_info%solpts_loc(n,1) - zstart(1) + 1
+           j = solid_info%solpts_loc(n,2) - zstart(2) + 1
+           k = solid_info%solpts_loc(n,3) - zstart(3) + 1
            var(i,j,k) = val
            rhs(i,j,k) = 0.
            count = 0
@@ -826,11 +881,11 @@ module modibm
      real, intent(inout) :: rhs(ib-ih:ie+ih,jb-jh:je+jh,kb   :ke+kh)
      integer :: i, j, k, n, m
 
-     do m = 1,bound_info_c%nbndptsrank
-      n = bound_info_c%bndptsrank(m)
-         i = bound_info_c%bndpts(n,1) - zstart(1) + 1
-         j = bound_info_c%bndpts(n,2) - zstart(2) + 1
-         k = bound_info_c%bndpts(n,3) - zstart(3) + 1
+     do n = 1,bound_info_c%nbndptsrank
+      !n = bound_info_c%bndptsrank(m)
+         i = bound_info_c%bndpts_loc(n,1) - zstart(1) + 1
+         j = bound_info_c%bndpts_loc(n,2) - zstart(2) + 1
+         k = bound_info_c%bndpts_loc(n,3) - zstart(3) + 1
 
          if ((abs(mask_u(i+1,j,k)) < eps1) .or. (abs(mask_c(i+1,j,k)) < eps1)) then
            rhs(i,j,k) = rhs(i,j,k) + u0(i+1,j,k)*(var(i+1,j,k) + var(i,j,k))*dxi5
@@ -878,11 +933,11 @@ module modibm
      real, intent(inout) :: rhs(ib-ih:ie+ih,jb-jh:je+jh,kb   :ke+kh)
      integer :: i, j, k, n, m
 
-     do m = 1,bound_info_c%nbndptsrank
-      n = bound_info_c%bndptsrank(m)
-         i = bound_info_c%bndpts(n,1) - zstart(1) + 1
-         j = bound_info_c%bndpts(n,2) - zstart(2) + 1
-         k = bound_info_c%bndpts(n,3) - zstart(3) + 1
+     do n = 1,bound_info_c%nbndptsrank
+      !n = bound_info_c%bndptsrank(m)
+         i = bound_info_c%bndpts_loc(n,1) - zstart(1) + 1
+         j = bound_info_c%bndpts_loc(n,2) - zstart(2) + 1
+         k = bound_info_c%bndpts_loc(n,3) - zstart(3) + 1
 
          if (abs(mask_c(i+1,j,k)) < eps1) then ! var(i+1) is solid
            rhs(i,j,k) = rhs(i,j,k) + u0(i+1,j,k)*(var(i+1,j,k) + var(i,j,k))*dxi5 & ! negate contribution added in advection using var(i+1)
@@ -929,11 +984,11 @@ module modibm
      real :: empo, emmo, emop, emom
      integer :: i, j, k, n, m
 
-     do m = 1,bound_info_u%nbndptsrank
-      n = bound_info_u%bndptsrank(m)
-         i = bound_info_u%bndpts(n,1) - zstart(1) + 1
-         j = bound_info_u%bndpts(n,2) - zstart(2) + 1
-         k = bound_info_u%bndpts(n,3) - zstart(3) + 1
+     do n = 1,bound_info_u%nbndptsrank
+      !n = bound_info_u%bndptsrank(m)
+         i = bound_info_u%bndpts_loc(n,1) - zstart(1) + 1
+         j = bound_info_u%bndpts_loc(n,2) - zstart(2) + 1
+         k = bound_info_u%bndpts_loc(n,3) - zstart(3) + 1
 
          if (abs(mask_u(i,j+1,k)) < eps1) then
            empo = 0.25 * ((ekm(i,j,k) + ekm(i,j+1,k)) + (ekm(i-1,j,k) + ekm(i-1,j+1,k)))
@@ -974,11 +1029,11 @@ module modibm
      real :: epmo, emmo, eomp, eomm
      integer :: i, j, k, n, m
 
-     do m = 1,bound_info_v%nbndptsrank
-      n = bound_info_v%bndptsrank(m)
-         i = bound_info_v%bndpts(n,1) - zstart(1) + 1
-         j = bound_info_v%bndpts(n,2) - zstart(2) + 1
-         k = bound_info_v%bndpts(n,3) - zstart(3) + 1
+     do n = 1,bound_info_v%nbndptsrank
+      !n = bound_info_v%bndptsrank(m)
+         i = bound_info_v%bndpts_loc(n,1) - zstart(1) + 1
+         j = bound_info_v%bndpts_loc(n,2) - zstart(2) + 1
+         k = bound_info_v%bndpts_loc(n,3) - zstart(3) + 1
 
          if (abs(mask_v(i+1,j,k)) < eps1) then
            epmo = 0.25 * (ekm(i,j,k) + ekm(i,j-1,k) + ekm(i+1,j-1,k) + ekm(i+1,j,k))
@@ -1018,11 +1073,11 @@ module modibm
      real :: epom, emom, eopm, eomm
      integer :: i, j, k, n, m
 
-     do m = 1,bound_info_w%nbndptsrank
-      n = bound_info_w%bndptsrank(m)
-         i = bound_info_w%bndpts(n,1) - zstart(1) + 1
-         j = bound_info_w%bndpts(n,2) - zstart(2) + 1
-         k = bound_info_w%bndpts(n,3) - zstart(3) + 1
+     do n = 1,bound_info_w%nbndptsrank
+      !n = bound_info_w%bndptsrank(m)
+         i = bound_info_w%bndpts_loc(n,1) - zstart(1) + 1
+         j = bound_info_w%bndpts_loc(n,2) - zstart(2) + 1
+         k = bound_info_w%bndpts_loc(n,3) - zstart(3) + 1
 
          ! Account for solid w points
          if (abs(mask_w(i+1,j,k)) < eps1) then
@@ -1066,11 +1121,11 @@ module modibm
      real, intent(inout) :: rhs(ib-hi:ie+hi,jb-hj:je+hj,kb   :ke+hk)
      integer :: i, j, k, n, m
 
-     do m = 1,bound_info_c%nbndptsrank
-      n = bound_info_c%bndptsrank(m)
-         i = bound_info_c%bndpts(n,1) - zstart(1) + 1
-         j = bound_info_c%bndpts(n,2) - zstart(2) + 1
-         k = bound_info_c%bndpts(n,3) - zstart(3) + 1
+     do n = 1,bound_info_c%nbndptsrank
+      !n = bound_info_c%bndptsrank(m)
+         i = bound_info_c%bndpts_loc(n,1) - zstart(1) + 1
+         j = bound_info_c%bndpts_loc(n,2) - zstart(2) + 1
+         k = bound_info_c%bndpts_loc(n,3) - zstart(3) + 1
 
          if (abs(mask_c(i+1,j,k)) < eps1) then
            rhs(i,j,k) = rhs(i,j,k) - 0.5 * (ekh(i+1,j,k) + ekh(i,j,k)) * (var(i+1,j,k) - var(i,j,k))*dx2i
@@ -1265,41 +1320,45 @@ module modibm
      fac_tau_loc = 0.
      fac_pres_loc = 0.
 
-     do m = 1,bound_info%nfctsecsrank
-       sec = bound_info%fctsecsrank(m) ! index of section
-       if (bound_info%lskipsec(sec)) cycle
+     do sec = 1,bound_info%nfctsecsrank
+       !sec = bound_info%fctsecsrank(m) ! index of section
+       if (bound_info%lskipsec_loc(sec)) cycle
 
-       n = bound_info%secbndptids(sec) ! index of boundary point
-       area = bound_info%secareas(sec) ! area of section
-       fac = bound_info%secfacids(sec) ! index of facet
+       !n = bound_info%secbndptids(sec) ! index of boundary point
+       area = bound_info%secareas_loc(sec) ! area of section
+       fac = bound_info%secfacids_loc(sec) ! index of facet
        norm = facnorm(fac,:) ! facet normal
 
        if (facz0(fac) < eps1) cycle
 
-       i = bound_info%bndpts(n,1) - zstart(1) + 1
-       j = bound_info%bndpts(n,2) - zstart(2) + 1
-       k = bound_info%bndpts(n,3) - zstart(3) + 1
+       ! i = bound_info%bndpts(n,1) - zstart(1) + 1
+       ! j = bound_info%bndpts(n,2) - zstart(2) + 1
+       ! k = bound_info%bndpts(n,3) - zstart(3) + 1
+       i = bound_info%secbndpts_loc(sec,1) - zstart(1) + 1 ! should be on this rank!
+       j = bound_info%secbndpts_loc(sec,2) - zstart(2) + 1 ! should be on this rank!
+       k = bound_info%secbndpts_loc(sec,3) - zstart(3) + 1 ! should be on this rank!
+
        if ((i < ib) .or. (i > ie) .or. (j < jb) .or. (j > je)) write(*,*) "problem", i, j
 
        fac_pres_loc(fac) = fac_pres_loc(fac) + pres0(i,j,k) * area ! output pressure on facets
 
-       if (bound_info%lcomprec(sec) .or. lnorec) then
+       if (bound_info%lcomprec_loc(sec) .or. lnorec) then
          uvec = interp_velocity_ptr(i, j, k)
          if (iwallmom == 2) then
            Tair = interp_temperature_ptr(i, j, k)
          end if
-         dist = bound_info%bnddst(sec)
+         dist = bound_info%bnddst_loc(sec)
        else
-         xrec = bound_info%recpts(sec,1)
-         yrec = bound_info%recpts(sec,2)
-         zrec = bound_info%recpts(sec,3)
-         uvec(1) = trilinear_interp_var(u0, bound_info%recids_u(sec,:), xh, yf, zf, xrec, yrec, zrec)
-         uvec(2) = trilinear_interp_var(v0, bound_info%recids_v(sec,:), xf, yh, zf, xrec, yrec, zrec)
-         uvec(3) = trilinear_interp_var(w0, bound_info%recids_w(sec,:), xf, yf, zh, xrec, yrec, zrec)
-         if (iwallmom == 2) Tair  = trilinear_interp_var(thl0, bound_info%recids_c(sec,:), xf, yf, zf, xrec, yrec, zrec)
-         dist = bound_info%bnddst(sec) + norm2((/xrec - xf(bound_info%bndpts(n,1)), &
-                                                 yrec - yf(bound_info%bndpts(n,2)), &
-                                                 zrec - zf(bound_info%bndpts(n,3))/))
+         xrec = bound_info%recpts_loc(sec,1)
+         yrec = bound_info%recpts_loc(sec,2)
+         zrec = bound_info%recpts_loc(sec,3)
+         uvec(1) = trilinear_interp_var(u0, bound_info%recids_u_loc(sec,:), xh, yf, zf, xrec, yrec, zrec)
+         uvec(2) = trilinear_interp_var(v0, bound_info%recids_v_loc(sec,:), xf, yh, zf, xrec, yrec, zrec)
+         uvec(3) = trilinear_interp_var(w0, bound_info%recids_w_loc(sec,:), xf, yf, zh, xrec, yrec, zrec)
+         if (iwallmom == 2) Tair  = trilinear_interp_var(thl0, bound_info%recids_c_loc(sec,:), xf, yf, zf, xrec, yrec, zrec)
+         dist = bound_info%bnddst_loc(sec) + norm2((/xrec - xf(bound_info%secbndpts_loc(sec,1)), &
+                                                     yrec - yf(bound_info%secbndpts_loc(sec,2)), &
+                                                     zrec - zf(bound_info%secbndpts_loc(sec,3))/))
        end if
 
        if (log(dist/facz0(fac)) < 1) cycle ! prevents very large fluxes
@@ -1322,7 +1381,7 @@ module modibm
 
        stress = ctm * utan**2
 
-       if (bound_info%lcomprec(sec)) then
+       if (bound_info%lcomprec_loc(sec)) then
          a = dot_product(dir, strm)
          stress_dir = a * stress
        else
@@ -1392,40 +1451,48 @@ module modibm
 
      fac_htc_loc = 0.
      fac_cth_loc = 0.
-     do m = 1,bound_info_c%nfctsecsrank
-       sec = bound_info_c%fctsecsrank(m) ! index of section
-       n =   bound_info_c%secbndptids(sec) ! index of boundary point
-       fac = bound_info_c%secfacids(sec) ! index of facet
+     do sec = 1,bound_info_c%nfctsecsrank
+       ! sec = bound_info_c%fctsecsrank(m) ! index of section
+       !n =   bound_info_c%secbndptids(sec) ! index of boundary point
+       fac = bound_info_c%secfacids_loc(sec) ! index of facet
+       area = bound_info_c%secareas_loc(sec) ! area
        norm = facnorm(fac,:)
 
        if (facz0(fac) < eps1) cycle
 
-       i = bound_info_c%bndpts(n,1) - zstart(1) + 1 ! should be on this rank!
-       j = bound_info_c%bndpts(n,2) - zstart(2) + 1 ! should be on this rank!
-       k = bound_info_c%bndpts(n,3) - zstart(3) + 1 ! should be on this rank!
+       ! i = bound_info_c%bndpts(n,1) - zstart(1) + 1 ! should be on this rank!
+       ! j = bound_info_c%bndpts(n,2) - zstart(2) + 1 ! should be on this rank!
+       ! k = bound_info_c%bndpts(n,3) - zstart(3) + 1 ! should be on this rank!
+       i = bound_info_c%secbndpts_loc(sec,1) - zstart(1) + 1 ! should be on this rank!
+       j = bound_info_c%secbndpts_loc(sec,2) - zstart(2) + 1 ! should be on this rank!
+       k = bound_info_c%secbndpts_loc(sec,3) - zstart(3) + 1 ! should be on this rank!
+
        if ((i < ib) .or. (i > ie) .or. (j < jb) .or. (j > je)) then
           write(*,*) "problem in wallfunheat", i, j
           stop 1
         end if
 
-       if (bound_info_c%lcomprec(sec) .or. lnorec) then ! section aligned with grid - use this cell's velocity
+       if (bound_info_c%lcomprec_loc(sec) .or. lnorec) then ! section aligned with grid - use this cell's velocity
          uvec = interp_velocity_c(i, j, k)
          Tair = thl0(i,j,k)
          qtair = qt0(i,j,k)
-         dist = bound_info_c%bnddst(sec)
+         dist = bound_info_c%bnddst_loc(sec)
 
        else ! use velocity at reconstruction point
-         xrec = bound_info_c%recpts(sec,1)
-         yrec = bound_info_c%recpts(sec,2)
-         zrec = bound_info_c%recpts(sec,3)
-         uvec(1) = trilinear_interp_var(u0, bound_info_c%recids_u(sec,:), xh, yf, zf, xrec, yrec, zrec)
-         uvec(2) = trilinear_interp_var(v0, bound_info_c%recids_v(sec,:), xf, yh, zf, xrec, yrec, zrec)
-         uvec(3) = trilinear_interp_var(w0, bound_info_c%recids_w(sec,:), xf, yf, zh, xrec, yrec, zrec)
-         Tair  = trilinear_interp_var(thl0, bound_info_c%recids_c(sec,:), xf, yf, zf, xrec, yrec, zrec)
-         qtair = trilinear_interp_var( qt0, bound_info_c%recids_c(sec,:), xf, yf, zf, xrec, yrec, zrec)
-         dist = bound_info_c%bnddst(sec) + norm2((/xrec - xf(bound_info_c%bndpts(n,1)), &
-                                                   yrec - yf(bound_info_c%bndpts(n,2)), &
-                                                   zrec - zf(bound_info_c%bndpts(n,3))/))
+         xrec = bound_info_c%recpts_loc(sec,1)
+         yrec = bound_info_c%recpts_loc(sec,2)
+         zrec = bound_info_c%recpts_loc(sec,3)
+         uvec(1) = trilinear_interp_var(u0, bound_info_c%recids_u_loc(sec,:), xh, yf, zf, xrec, yrec, zrec)
+         uvec(2) = trilinear_interp_var(v0, bound_info_c%recids_v_loc(sec,:), xf, yh, zf, xrec, yrec, zrec)
+         uvec(3) = trilinear_interp_var(w0, bound_info_c%recids_w_loc(sec,:), xf, yf, zh, xrec, yrec, zrec)
+         Tair  = trilinear_interp_var(thl0, bound_info_c%recids_c_loc(sec,:), xf, yf, zf, xrec, yrec, zrec)
+         qtair = trilinear_interp_var( qt0, bound_info_c%recids_c_loc(sec,:), xf, yf, zf, xrec, yrec, zrec)
+         ! dist = bound_info_c%bnddst(sec) + norm2((/xrec - xf(bound_info_c%bndpts(n,1)), &
+         !                                           yrec - yf(bound_info_c%bndpts(n,2)), &
+         !                                           zrec - zf(bound_info_c%bndpts(n,3))/))
+         dist = bound_info_c%bnddst_loc(sec) + norm2((/xrec - xf(bound_info_c%secbndpts_loc(sec,1)), &
+                                                       yrec - yf(bound_info_c%secbndpts_loc(sec,2)), &
+                                                       zrec - zf(bound_info_c%secbndpts_loc(sec,3))/))
 
        end if
 
@@ -1460,18 +1527,19 @@ module modibm
 
          elseif (iwalltemp == 2) then
            call heat_transfer_coef_flux(utan, dist, facz0(fac), facz0h(fac), Tair, facT(fac, 1), cth, flux, htc)
-           fac_cth_loc(fac) = fac_cth_loc(fac) + cth * bound_info_c%secareas(sec) ! output heat transfer coefficients on facets
-           fac_htc_loc(fac) = fac_htc_loc(fac) + htc * bound_info_c%secareas(sec) ! output heat transfer coefficients on facets
+           fac_cth_loc(fac) = fac_cth_loc(fac) + cth * area ! output heat transfer coefficients on facets
+           fac_htc_loc(fac) = fac_htc_loc(fac) + htc * area ! output heat transfer coefficients on facets
          end if
 
          ! flux [Km/s]
          ! fluid volumetric sensible heat source/sink = flux * area / volume [K/s]
          ! facet sensible heat flux = volumetric heat capacity of air * flux * sectionarea / facetarea [W/m^2]
-         thlp(i,j,k) = thlp(i,j,k) - flux * bound_info_c%secareas(sec) / (dx*dy*dzh(k))
+         thlp(i,j,k) = thlp(i,j,k) - flux * area / (dx*dy*dzh(k))
+
          if (lEB) then
-           fluxTrhs = - flux * bound_info_c%secareas(sec) / (dx*dy*dzh(k)) ! cew216 This is used for the peirodicEBcorr forcing [K/s]
+           fluxTrhs = - flux * area / (dx*dy*dzh(k)) ! cew216 This is used for the peirodicEBcorr forcing [K/s]
            totheatflux = totheatflux + fluxTrhs ! Add the contribution from each point
-           fachf(fac) = fachf(fac) + flux * bound_info_c%secareas(sec) ! [Km^2/s] (will be divided by facetarea(fac) in modEB)
+           fachf(fac) = fachf(fac) + flux * area ! [Km^2/s] (will be divided by facetarea(fac) in modEB)
          end if
        end if
 
@@ -1505,12 +1573,12 @@ module modibm
          ! flux [kg/kg m/s]
          ! fluid volumetric latent heat source/sink = flux * area / volume [kg/kg / s]
          ! facet latent heat flux = volumetric heat capacity of air * flux * sectionarea / facetarea [W/m^2]
-         qtp(i,j,k) = qtp(i,j,k) - flux * bound_info_c%secareas(sec) / (dx*dy*dzh(k))
+         qtp(i,j,k) = qtp(i,j,k) - flux * area / (dx*dy*dzh(k))
 
          if (lEB) then
-           fluxqrhs = - flux * bound_info_c%secareas(sec) / (dx*dy*dzh(k)) ! cew216 This is used for the peirodicEBcorr forcing [K/s]
-           totqflux = totqflux + fluxqrhs ! Add the contribution from each point
-           facef(fac) = facef(fac) + flux * bound_info_c%secareas(sec) ! [Km^2/s] (will be divided by facetarea(fac) in modEB)
+          fluxqrhs = - flux * area / (dx*dy*dzh(k)) ! cew216 This is used for the peirodicEBcorr forcing [K/s]
+          totqflux = totqflux + fluxqrhs ! Add the contribution from each point  
+          facef(fac) = facef(fac) + flux * area ! [Km^2/s] (will be divided by facetarea(fac) in modEB)
          end if
        end if
 
@@ -2062,35 +2130,35 @@ module modibm
       ! Create masking matrices
       IIc = 1; IIu = 1; IIv = 1; IIct = 1; IIw = 1; IIuw = 1; IIvw = 1; IIuv = 1; IIwt = 1; IIut = 1; IIvt = 1; IIuwt = 1; IIcs = 1; IIus = 1; IIvs = 1; IIws = 1; IIuws = 1; IIvws = 1; IIuvs = 1
 
-      do m = 1,solid_info_u%nsolptsrank
-       n = solid_info_u%solptsrank(m)
-          i = solid_info_u%solpts(n,1) - zstart(1) + 1
-          j = solid_info_u%solpts(n,2) - zstart(2) + 1
-          k = solid_info_u%solpts(n,3) - zstart(3) + 1
+      do n = 1,solid_info_u%nsolptsrank
+       !n = solid_info_u%solptsrank(m)
+          i = solid_info_u%solpts_loc(n,1) - zstart(1) + 1
+          j = solid_info_u%solpts_loc(n,2) - zstart(2) + 1
+          k = solid_info_u%solpts_loc(n,3) - zstart(3) + 1
           IIu(i,j,k) = 0
       end do
 
-      do m = 1,solid_info_v%nsolptsrank
-       n = solid_info_v%solptsrank(m)
-          i = solid_info_v%solpts(n,1) - zstart(1) + 1
-          j = solid_info_v%solpts(n,2) - zstart(2) + 1
-          k = solid_info_v%solpts(n,3) - zstart(3) + 1
+      do n = 1,solid_info_v%nsolptsrank
+       !n = solid_info_v%solptsrank(m)
+          i = solid_info_v%solpts_loc(n,1) - zstart(1) + 1
+          j = solid_info_v%solpts_loc(n,2) - zstart(2) + 1
+          k = solid_info_v%solpts_loc(n,3) - zstart(3) + 1
           IIv(i,j,k) = 0
       end do
 
-      do m = 1,solid_info_w%nsolptsrank
-       n = solid_info_w%solptsrank(m)
-          i = solid_info_w%solpts(n,1) - zstart(1) + 1
-          j = solid_info_w%solpts(n,2) - zstart(2) + 1
-          k = solid_info_w%solpts(n,3) - zstart(3) + 1
+      do n = 1,solid_info_w%nsolptsrank
+       !n = solid_info_w%solptsrank(m)
+          i = solid_info_w%solpts_loc(n,1) - zstart(1) + 1
+          j = solid_info_w%solpts_loc(n,2) - zstart(2) + 1
+          k = solid_info_w%solpts_loc(n,3) - zstart(3) + 1
           IIw(i,j,k) = 0
       end do
 
-      do m = 1,solid_info_c%nsolptsrank
-       n = solid_info_c%solptsrank(m)
-          i = solid_info_c%solpts(n,1) - zstart(1) + 1
-          j = solid_info_c%solpts(n,2) - zstart(2) + 1
-          k = solid_info_c%solpts(n,3) - zstart(3) + 1
+      do n = 1,solid_info_c%nsolptsrank
+       !n = solid_info_c%solptsrank(m)
+          i = solid_info_c%solpts_loc(n,1) - zstart(1) + 1
+          j = solid_info_c%solpts_loc(n,2) - zstart(2) + 1
+          k = solid_info_c%solpts_loc(n,3) - zstart(3) + 1
           IIc(i,j,k) = 0
       end do
 
