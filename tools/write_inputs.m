@@ -1,4 +1,4 @@
-%% write_inputs
+%% write_inputs 
 
 % uDALES (https://github.com/uDALES/u-dales).
 
@@ -119,7 +119,7 @@ if r.libm
         dy = r.dy;
 
         lmypolyfortran = 1; lmypoly = 0;		% remove eventually
-        lmatchFacetsToCellsFortran = 0;
+        lmatchFacetsToCellsFortran = 1;
 
         writeIBMFiles; % Could turn into a function and move writing to this script
     else
