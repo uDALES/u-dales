@@ -21,11 +21,9 @@
 % It used to generate the necessary input files for uDALES.
 
 expnr = '136';
-% 
-% DA_EXPDIR = getenv('DA_EXPDIR');
-% DA_TOOLSDIR = getenv('DA_TOOLSDIR');
-DA_EXPDIR = '~/ecse/experiments';
-DA_TOOLSDIR = '~/ecse/u-dales/tools'
+%
+DA_EXPDIR = getenv('DA_EXPDIR');
+DA_TOOLSDIR = getenv('DA_TOOLSDIR');
 addpath(genpath([DA_TOOLSDIR '/']));
 addpath([DA_TOOLSDIR '/IBM/'])
 addpath([DA_TOOLSDIR '/SEB/'])
@@ -143,8 +141,8 @@ if r.libm
     end
 
     %%
+    preprocessing.write_facetarea(r, area_facets); % always write facet area
     if r.lEB
-        preprocessing.write_facetarea(r, area_facets);
 
         %% Write STL in View3D input format
         fpath_facets_view3d = [fpath 'facets.vs3'];
@@ -177,7 +175,7 @@ if r.libm
         resolution   = r.psc_res;
         xazimuth     = r.xazimuth;
         ltimedepsw   = r.ltimedepsw;
-        ldirectShortwaveFortran = 1;
+        ldirectShortwaveFortran = 0;
         lscatter = true;
  
         if ltimedepsw

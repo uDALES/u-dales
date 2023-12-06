@@ -490,15 +490,16 @@ for facet=1:Nf
                             end
                         end
 
-                        % Use maximum dot product
-                        [~, id] = max(abs(angles) ./ (dists / (dx*dy*dz)^(1/3))); % minimise both angles and dists
+                        %[~, id] = max(abs(angles)); % minimise angle
+                        [~, id] = max(abs(angles) ./ (dists / (dx*dy*dz)^(1/3))); % minimise both angle and distance
                         dist = dists(id);
                         BI = BIs(id,:);
 
                         if (isnan(dist))
                             disp(['Facet ' num2str(facet) ' in cell ' num2str(i) ',' num2str(j) ',' num2str(k) ' could not find a cell to give flux to. Ensure diag_neighbs = true, but if persists check geometry for e.g. facets on domain edge.'])
 
-                            figure
+                            %%
+                            %figure
                             
                             if (xgrid(1) == 0)
                                 title('u')
@@ -511,7 +512,7 @@ for facet=1:Nf
                             end
 
                             view(3)
-                            patch('Faces', TR.ConnectivityList, 'Vertices', TR.Points, 'FaceColor', ones(3,1)*69/100, 'FaceAlpha', 0.5)
+                            patch('Faces', TR.ConnectivityList(facet,:), 'Vertices', TR.Points, 'FaceColor', ones(3,1)*69/100, 'FaceAlpha', 0.5)
                             %patch('Faces', [1 2 3], 'Vertices', TR.Points(TR.ConnectivityList(facet,:),:), 'FaceColor', [1,0,0], 'FaceAlpha', 0.5)
                             hold on
                             incenter = TR.incenter(1); faceNormal = TR.faceNormal;
@@ -525,13 +526,13 @@ for facet=1:Nf
                             xlabel('x')
                             ylabel('y')
                             zlabel('z')
-                            xlim([0 xgrid(end)])
-                            ylim([0 ygrid(end)])
-                            zlim([0 zgrid(end)])
-                            %drawnow
+                            %xlim([0 xgrid(end)])
+                            %ylim([0 ygrid(end)])
+                            %zlim([0 zgrid(end)])
+                            drawnow
                             %pause(5)
-                            %continue
-                            return
+                             %continue
+%                             return
                         end
 
                     end
@@ -599,26 +600,36 @@ for facet=1:Nf
                     facet_section(7:9) = BI;
                     facet_sections = [facet_sections; facet_section];
                      
-                    if lplot && count == countlim
-                        max(abs(angles) ./ (dists / (dx*dy*dz)^(1/3)))
+                    if lplot% && count == countlim
+                        dist
                         %figure
                         clf
-                        view(3)
-                        %patch('Faces', TR.ConnectivityList, 'Vertices', TR.Points, 'FaceColor', ones(3,1)*69/100, 'FaceAlpha', 0.5)
+                        %view(3)
+                        view(45,20)
+                        set(gca, 'xtick', [])
+                        set(gca, 'ytick', [])
+                        set(gca, 'ztick', [])
+                        set(gca, 'xcolor', [1 1 1])
+                        set(gca, 'ycolor', [1 1 1])
+                        set(gca, 'zcolor', [1 1 1])
+                        box off
+                        grid off
+                        %% patch('Faces', TR.ConnectivityList, 'Vertices', TR.Points, 'FaceColor', ones(3,1)*69/100, 'FaceAlpha', 0.5)
                         patch('Faces', [1 2 3], 'Vertices', TR.Points(TR.ConnectivityList(facet,:),:), 'FaceColor', [1,0,0], 'FaceAlpha', 0.5)
                         hold on
+                        patch('Faces', TR.ConnectivityList(facet,:), 'Vertices', TR.Points, 'FaceColor', ones(3,1)*85/100, 'FaceAlpha', 1)
                         incenter = TR.incenter; faceNormal = TR.faceNormal;
                         %quiver3(incenter(1), incenter(2), incenter(3), faceNormal(1), faceNormal(2), faceNormal(3))
                         V = [xl yl zl; xu yl zl; xu yu zl; xl yu zl; ...
                             xl yl zu; xu yl zu; xu yu zu; xl yu zu];
                         F = [1 2 3 4; 2 6 7 3; 4 3 7 8; 1 5 8 4; 1 2 6 5; 5 6 7 8];
                         patch('Faces', F, 'Vertices', V, 'FaceColor', [1,1,1], 'FaceAlpha', 0.5)
-
+                        %%
                         scatter3(xgrid(i),ygrid(j),zgrid(k),20,[0,0,0],'filled')
                         scatter3(xyz(1),xyz(2),xyz(3),20,[0,0,0],'filled')
-                        scatter3(BI(1),BI(2),BI(3),20,[0,0,0],'filled')
+                        %scatter3(BI(1),BI(2),BI(3),20,[0,0,0],'filled')
                         vec = xyz - BI;
-                        quiver3(BI(:,1), BI(:,2), BI(:,3), vec(:,1), vec(:,2), vec(:,3),'off')
+                        %quiver3(BI(:,1), BI(:,2), BI(:,3), vec(:,1), vec(:,2), vec(:,3),'off')
                         if ~fluid_IB(i,j,k)
                             xl = xyz(1)-dx/2; xu = xyz(1)+dx/2;
                             yl = xyz(2)-dy/2; yu = xyz(2)+dy/2;
@@ -628,21 +639,24 @@ for facet=1:Nf
                             patch('Faces', F, 'Vertices', V, 'FaceColor', [1,1,1], 'FaceAlpha', 0.5)
                         end
                         %patch('Faces', 1:size(clip,1), 'Vertices', clip, 'FaceColor', [0,0,1], 'FaceAlpha', 0.5)
-                        trisurf(tri)
+                        %trisurf(tri)
+                        patch('Faces', tri.ConnectivityList, 'Vertices', tri.Points+1e-3*[1 0 0], 'FaceColor', [0 0 1], 'FaceAlpha', 1)
                         axis equal
                         %                     xlim([xgrid(il-2) xgrid(iu+2)])
                         %                     ylim([ygrid(jl-2) ygrid(ju+2)])
                         %                     zlim([zgrid(kl-2) zgrid(ku+2)])
 
-                        xlabel('x')
-                        ylabel('y')
-                        zlabel('z')
-                        %xlim([0 xgrid(end)])
-                        %ylim([0 ygrid(end)])
+                        %xlabel('x')
+                        %ylabel('y')
+                        %zlabel('z')
+                        %xlim([70 100])
+                        
+                        %ylim([45 70])
                         %zlim([0 zgrid(end)])
                         drawnow
                         pause(1)
-                        return
+                        %return
+                        %exportgraphics(gcf, ['~/ecse/figures/IBM_animation/' num2str(count) '.png'])
                     end
                 end
             end

@@ -596,8 +596,8 @@ end
 
 if lmatchFacetsToCellsFortran
     disp('Determining facet sections using Fortran.')
-    in_mypoly_fortran_path = [folder '/in_mypoly_fortran/'];
-    addpath(in_mypoly_fortran_path)
+%     in_mypoly_fortran_path = [folder '/in_mypoly_fortran/'];
+%     addpath(in_mypoly_fortran_path)
     cd(folder);
     % Needs fluid_IB_u.txt and fluid_boundary_u.txt to be defined.
     system('gfortran -O2 matchFacetsToCells.f90 -o MFTC.exe');
@@ -638,19 +638,19 @@ if lmatchFacetsToCellsFortran
     delete MFTC.exe info_matchFacetsToCells.txt faces.txt vertices.txt zfgrid.txt zhgrid.txt;
     cd(currentPath)
 
-    facet_sections_u_fromfile = readmatrix([fpath 'facet_sections_u_fort.txt']);
+    facet_sections_u_fromfile = readmatrix([fpath 'facet_sections_u.txt']);
     facet_sections_u = NaN(size(facet_sections_u_fromfile,1), 9);
     facet_sections_u(:,[1,2,5,6]) = facet_sections_u_fromfile;
 
-    facet_sections_v_fromfile = readmatrix([fpath 'facet_sections_v_fort.txt']);
+    facet_sections_v_fromfile = readmatrix([fpath 'facet_sections_v.txt']);
     facet_sections_v = NaN(size(facet_sections_v_fromfile,1), 9);
     facet_sections_v(:,[1,2,5,6]) = facet_sections_v_fromfile;
 
-    facet_sections_w_fromfile = readmatrix([fpath 'facet_sections_w_fort.txt']);
+    facet_sections_w_fromfile = readmatrix([fpath 'facet_sections_w.txt']);
     facet_sections_w = NaN(size(facet_sections_w_fromfile,1), 9);
     facet_sections_w(:,[1,2,5,6]) = facet_sections_w_fromfile;
 
-    facet_sections_c_fromfile = readmatrix([fpath 'facet_sections_c_fort.txt']);
+    facet_sections_c_fromfile = readmatrix([fpath 'facet_sections_c.txt']);
     facet_sections_c = NaN(size(facet_sections_c_fromfile,1), 9);
     facet_sections_c(:,[1,2,5,6]) = facet_sections_c_fromfile;
 
@@ -853,7 +853,7 @@ xlim([0 xsize])
 ylim([0 ysize])
 zlim([0 zsize])
 
-scatter3(X_u(solid_u), Y_u(solid_u), Z_u(solid_u), 10,[0,0,1],'filled')
+%scatter3(X_u(solid_u), Y_u(solid_u), Z_u(solid_u), 10,[0,0,1],'filled')
 %scatter3(X_v(solid_v), Y_v(solid_v), Z_v(solid_v), 10,[0,0,1],'filled')
 %scatter3(X_w(solid_w), Y_w(solid_w), Z_w(solid_w), 10,[0,0,1],'filled')
 %scatter3(X_c(solid_c), Y_c(solid_c), Z_c(solid_c), 10,[0,0,1],'filled')

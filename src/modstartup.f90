@@ -72,7 +72,7 @@ module modstartup
                                     BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots, &
                                     BCxm_periodic, BCym_periodic, &
                                     idriver,tdriverstart,driverjobnr,dtdriver,driverstore,lsdriver, &
-                                    lrandomize, prandtlturb, fkar, lwritefac
+                                    lrandomize, prandtlturb, fkar, lwritefac, dtfac, tfac, tnextfac
       use modsurfdata,       only : z0, z0h,  wtsurf, wttop, wqtop, wqsurf, wsvsurf, wsvtop, wsvsurfdum, wsvtopdum, ps, thvs, thls, thl_top, qt_top, qts
       use modfields,         only : initfields, dpdx, ncname
       use modpois,           only : initpois
@@ -145,7 +145,7 @@ module modstartup
          nsolpts_u, nsolpts_v, nsolpts_w, nsolpts_c, &
          nbndpts_u, nbndpts_v, nbndpts_w, nbndpts_c, &
          nfctsecs_u, nfctsecs_v, nfctsecs_w, nfctsecs_c, lbottom, lnorec, &
-         prandtlturb, fkar, lwritefac
+         prandtlturb, fkar, lwritefac, dtfac
       namelist/ENERGYBALANCE/ &
          lEB, lwriteEBfiles, lconstW, dtEB, bldT, flrT, wsoil, wgrmax, wwilt, wfc, &
          skyLW, GRLAI, rsmin, nfaclyrs, lfacTlyrs, lvfsparse, nnz
@@ -401,6 +401,9 @@ module modstartup
       call MPI_BCAST(lbottom, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lnorec, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lwritefac, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(tfac, 1, MY_REAL, 0, comm3d, mpierr)
+      tnextfac = dtfac
+      call MPI_BCAST(tnextfac, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(luoutflowr, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for turning on/off u-velocity correction for fixed mass outflow rate
       call MPI_BCAST(lvoutflowr, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315: added switch for turning on/off v-velocity correction for fixed mass outflow rate
       call MPI_BCAST(luvolflowr, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! bss166: added switch for turning on/off u-velocity correction for fixed volume flow rate
@@ -829,7 +832,7 @@ module modstartup
          uflowrate, vflowrate,ltempeq, prandtlmoli, freestreamav, &
          tnextfielddump, tfielddump, tsample, tstatsdump, startfile, lprofforc, lchem, k1, JNO2,&
          idriver,dtdriver,driverstore,tdriverstart,tdriverstart_cold,tdriverdump,xlen,ylen,itot,jtot,ibrank,ierank,jbrank,jerank,BCxm,BCym,lrandomize,BCxq,BCxs,BCxT, BCyq,BCys,BCyT,BCxm_driver,&
-         tEB,tnextEB,dtEB,BCxs_custom,lEB,lfacTlyrs
+         tEB,tnextEB,dtEB,BCxs_custom,lEB,lfacTlyrs,tfac,tnextfac,dtfac
       use modsubgriddata, only:ekm, ekh, loneeqn
       use modsurfdata, only:wtsurf, wqsurf, wsvsurf, &
          thls, thvs, ps, qts, svs, sv_top
@@ -2018,6 +2021,8 @@ module modstartup
       tnextfielddump = btime + tfielddump
       tEB = btime
       tnextEB = btime + dtEB
+      tfac = btime
+      tnextfac = btime + dtfac
       deallocate (height, th0av)
 
       !    call boundary

@@ -119,7 +119,7 @@ program run
      diag_neighbs, periodic_x, periodic_y, secfacids_u, secbndptids_u, secareas_u, bnddst_u)
 
    nfacsecs_u = size(secfacids_u,1)
-   call writeFacetSections(secfacids_u, secareas_u, secbndptids_u, bnddst_u, nfacsecs_u, 'facet_sections_u_fort.txt')
+   call writeFacetSections(secfacids_u, secareas_u, secbndptids_u, bnddst_u, nfacsecs_u, 'facet_sections_u.txt')
    write(*,*) 'Written facet_sections_u.txt'
 
    ! v-grid
@@ -131,7 +131,7 @@ program run
      diag_neighbs, periodic_x, periodic_y, secfacids_v, secbndptids_v, secareas_v, bnddst_v)
 
    nfacsecs_v = size(secfacids_v,1)
-   call writeFacetSections(secfacids_v, secareas_v, secbndptids_v, bnddst_v, nfacsecs_v, 'facet_sections_v_fort.txt')
+   call writeFacetSections(secfacids_v, secareas_v, secbndptids_v, bnddst_v, nfacsecs_v, 'facet_sections_v.txt')
    write(*,*) 'Written facet_sections_v.txt'
 
    ! w-grid
@@ -143,7 +143,7 @@ program run
      diag_neighbs, periodic_x, periodic_y, secfacids_w, secbndptids_w, secareas_w, bnddst_w)
 
    nfacsecs_w = size(secfacids_w,1)
-   call writeFacetSections(secfacids_w, secareas_w, secbndptids_w, bnddst_w, nfacsecs_w, 'facet_sections_w_fort.txt')
+   call writeFacetSections(secfacids_w, secareas_w, secbndptids_w, bnddst_w, nfacsecs_w, 'facet_sections_w.txt')
    write(*,*) 'Written facet_sections_w.txt'
 
    ! c-grid
@@ -155,7 +155,7 @@ program run
       diag_neighbs, periodic_x, periodic_y, secfacids_c, secbndptids_c, secareas_c, bnddst_c)
 
    nfacsecs_c = size(secfacids_c,1)
-   call writeFacetSections(secfacids_c, secareas_c, secbndptids_c, bnddst_c, nfacsecs_c, 'facet_sections_c_fort.txt')
+   call writeFacetSections(secfacids_c, secareas_c, secbndptids_c, bnddst_c, nfacsecs_c, 'facet_sections_c.txt')
    write(*,*) 'Written facet_sections_c.txt'
 
    call cpu_time(finish)
@@ -915,7 +915,7 @@ subroutine writeFacetSections(secfacids, secareas, secbndptids, bnddst, nfacsecs
    integer, intent(in) :: nfacsecs
    integer, intent(in), dimension(nfacsecs) :: secfacids, secbndptids
    real   , intent(in), dimension(nfacsecs) :: secareas, bnddst
-   character(25), intent(in) :: fname_facet_sections
+   character(20), intent(in) :: fname_facet_sections
    integer :: n
 
 
