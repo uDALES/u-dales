@@ -332,13 +332,13 @@ contains
       !character(25), intent(in) :: fname_Sdir
       integer :: n
 
-      open (unit=10,file='Sdir_fort.txt',action="write")
+      open (unit=10,file='Sdir.txt',action="write")
       do n=1,nFaces
          write(unit=10,fmt='(f8.2)') Sdir(n)
       end do
       close (10)
 
-      write(*,*) "written Sdir_fort.txt"
+      write(*,*) "written Sdir.txt"
 
    end subroutine writeDirectShortwave
 
