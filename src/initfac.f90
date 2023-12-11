@@ -147,13 +147,17 @@
            allocate (svf(1:nfcts)); svf = 0.
            allocate (netsw(1:nfcts)); netsw = 0.
            allocate (facLWin(1:nfcts)); facLWin = 0.
-           if (lvfsparse) then
-              allocate(ivfsparse(1:nnz)); ivfsparse = 0
-              allocate(jvfsparse(1:nnz)); jvfsparse = 0
-              allocate(vfsparse(1:nnz)); vfsparse = 0.
-           else
-              allocate (vf(1:nfcts, 1:nfcts)); vf = 0.
-           end if
+
+           if (myid==0) then
+             if (lvfsparse) then
+                allocate(ivfsparse(1:nnz)); ivfsparse = 0
+                allocate(jvfsparse(1:nnz)); jvfsparse = 0
+                allocate(vfsparse(1:nnz)); vfsparse = 0.
+             else
+                allocate (vf(1:nfcts, 1:nfcts)); vf = 0.
+             end if
+          end if
+
         end if
 
         ! Read files
