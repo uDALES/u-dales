@@ -41,7 +41,7 @@ echo "#SBATCH --time=${WALLTIME}" >> job.$exp.slurm
 echo "#SBATCH --nodes=${NNODE}" >> job.$exp.slurm
 echo "#SBATCH --tasks-per-node=${NCPU}" >> job.$exp.slurm
 echo "#SBATCH --cpus-per-task=1" >> job.$exp.slurm
-echo "#SBATCH --account=ecseae03" >> job.$exp.slurm
+echo "#SBATCH --account=n02-ASSURE" >> job.$exp.slurm
 echo "#SBATCH --partition=standard" >> job.$exp.slurm
 echo "#SBATCH --qos=${QOS}" >> job.$exp.slurm
 echo "module swap PrgEnv-cray PrgEnv-gnu" >> job.$exp.slurm
