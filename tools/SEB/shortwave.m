@@ -18,6 +18,7 @@
 currentPath = pwd;
 stk = dbstack; activeFilename = which(stk(1).file);
 [folder, ~, ~] = fileparts(activeFilename);
+addpath([folder '/SPA/'])
 
 nfcts = size(TR.ConnectivityList,1);
 npoints = size(TR.Points,1);
@@ -61,7 +62,7 @@ if ~ltimedepsw
         else
             system('./DS.exe');
         end
-        Sdir = dlmread([fpath 'Sdir_fort.txt'], '', 0, 0);
+        Sdir = dlmread([fpath 'Sdir.txt'], '', 0, 0);
         delete DS.exe;
         cd(currentPath)
     else
@@ -84,31 +85,33 @@ if ~ltimedepsw
 else
     [ashraeA, ashraeB, ashraeC] = ASHRAE(start.Month);
     tSP = 0:dtSP:runtime;
-    Sdir_td = zeros(nfcts, length(tSP));
-    Knet_td = zeros(nfcts, length(tSP));
+    Sdir = zeros(nfcts, length(tSP));
+    Knet = zeros(nfcts, length(tSP));
     for n = 1:length(tSP)
+        n
         TOD = start + seconds(tSP(n));
         sp = solarPosition(TOD, longitude, latitude, timezone, elevation);
         solarzenith = sp.zenith;
-        azimuth = sp.azimuth - obj.xazimuth;
-        nsun = [sind(solarzenith)*cosd(azimuth), sind(solarzenith)*-sind(azimuth), cosd(solarzenith)];
-        irradiance = ashraeA * exp(-ashraeB / cosd(solarzenith));
-        Dsky = ashraeC * irradiance;
-        if ldirectShortwaveFortran
-            writeInfo_directShortwave(nfcts, npoints, nsun, irradiance, resolution, fpath)
-            if lwindows
-                system('DS.exe');
+        if solarzenith < 90
+            azimuth = sp.azimuth - xazimuth;
+            nsun = [sind(solarzenith)*cosd(azimuth), sind(solarzenith)*-sind(azimuth), cosd(solarzenith)];
+            irradiance = ashraeA * exp(-ashraeB / cosd(solarzenith));
+            Dsky = ashraeC * irradiance;
+            if ldirectShortwaveFortran
+                writeInfo_directShortwave(nfcts, npoints, nsun, irradiance, resolution, fpath)
+                if lwindows
+                    system('DS.exe');
+                else
+                    system('./DS.exe');
+                end
+                Sdir(:,n) = dlmread([fpath 'Sdir.txt'], '', 0, 0);
             else
-                system('./DS.exe');
+                Sdir(:,n) = directShortwave(F, V, nsun, irradiance, 0.1, true, false);
             end
-            Sdir(:,n) = dlmread([fpath 'Sdir.txt'], '', 0, 0);
-            delete DS.exe;
-        else
-            Sdir(:,n) = directShortwave(F, V, nsun, irradiance, 0.1, true, false);
-        end
 
-        if lscatter
-            Knet(:,n) = reflectedShortwave(Sdir(:,n), Dsky, vf, svf, albedos);
+            if lscatter
+                Knet(:,n) = reflectedShortwave(Sdir(:,n), Dsky, vf, svf, albedos);
+            end
         end
 
     end
