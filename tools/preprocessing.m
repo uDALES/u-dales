@@ -823,7 +823,7 @@ classdef preprocessing < dynamicprops
 
         function write_vfsparse(obj, vfsparse)
             [i,j,s] = find(vfsparse);
-            fID = fopen([fpath 'vfsparse.inp.' num2str(obj.expnr)], 'w');
+            fID = fopen(['vfsparse.inp.' num2str(obj.expnr)], 'w');
             fprintf(fID, '%d %d %.6f \n', [i, j, s]');
         end
 
