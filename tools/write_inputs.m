@@ -166,7 +166,7 @@ if r.libm
             disp(['Written vf.nc.inp.', r.expnr])
         else
             vfsparse = sparse(double(vf));
-            preprocessing.write_vfsparse(obj, vfsparse);
+            preprocessing.write_vfsparse(r, vfsparse);
             disp(['Written vfsparse.inp.', r.expnr])
         end
 
