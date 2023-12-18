@@ -118,3 +118,6 @@ target_include_directories(u-dales PUBLIC ${FFTW_INCLUDE_DIRS})
 #add_dependencies(u-dales fishpack-cmake-project)
 #add_dependencies(u-dales vfftpack-cmake-project)
 add_dependencies(u-dales 2decomp-fft)
+
+## Link MAP
+target_link_options(u-dales PRIVATE -L/work/y07/shared/utils/core/arm/forge/22.1.1/map/libs/default/gnu -lmap-sampler-pmpi -lmap-sampler -Wl,--eh-frame-hdr -Wl,-rpath=/work/y07/shared/utils/core/arm/forge/22.1.1/map/libs/default/gnu)
