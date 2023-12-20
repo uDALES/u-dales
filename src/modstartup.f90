@@ -72,7 +72,9 @@ module modstartup
                                     BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots, &
                                     BCxm_periodic, BCym_periodic, &
                                     idriver,tdriverstart,driverjobnr,dtdriver,driverstore,lsdriver, &
-                                    lrandomize, prandtlturb, fkar, lwritefac, dtfac, tfac, tnextfac
+                                    lrandomize, prandtlturb, fkar, lwritefac, dtfac, tfac, tnextfac, &
+                                    ltrees,ntrees,Qstar,dQdt,lad,lsize,r_s,cd,dec,ud,ltreedump, &
+                                    lpurif,npurif,Qpu,epu
       use modsurfdata,       only : z0, z0h,  wtsurf, wttop, wqtop, wqsurf, wsvsurf, wsvtop, wsvsurfdum, wsvtopdum, ps, thvs, thls, thl_top, qt_top, qts
       use modfields,         only : initfields, dpdx, ncname
       use modpois,           only : initpois
@@ -158,6 +160,10 @@ module modstartup
          lfielddump, tfielddump, fieldvars, &
          ltdump, lydump, lytdump, lxydump, lxytdump, &
          lslicedump, ltkedump, tstatsdump, tsample
+      namelist/TREES/ &
+         ltrees, ntrees, cd, dec, ud, lad, Qstar, dQdt, lsize, r_s, ltreedump
+      namelist/PURIFS/&
+         lpurif, npurif, Qpu, epu
 
       if (myid == 0) then
          if (command_argument_count() >= 1) then
@@ -269,6 +275,24 @@ module modstartup
             stop 1
          endif
          !write (6, CHEMISTRY)
+         rewind (ifnamopt)
+
+         read (ifnamopt, TREES, iostat=ierr)
+         if (ierr > 0) then
+            print *, 'ERROR: Problem in namoptions TREES'
+            print *, 'iostat error: ', ierr
+            stop 1
+         endif
+         !write (6, TREES)
+         rewind (ifnamopt)
+
+         read (ifnamopt, PURIFS, iostat=ierr)
+         if (ierr > 0) then
+            print *, 'ERROR: Problem in namoptions PURIFS'
+            print *, 'iostat error: ', ierr
+            stop 1
+         endif
+         !write (6, PURIFS)
          rewind (ifnamopt)
 
          read (ifnamopt, OUTPUT, iostat=ierr)
@@ -533,6 +557,21 @@ module modstartup
       call MPI_BCAST(lrandomize, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(prandtlturb, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(fkar, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(ltrees, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(ntrees, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(ltreedump, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(Qstar, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(dQdt, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(lsize, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(lad, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(r_s, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(cd, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(dec, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(ud, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(lpurif, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(npurif, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(Qpu, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(epu, 1, MY_REAL, 0, comm3d, mpierr)
 
       ! ! Allocate and initialize core modules
       ! call initglobal
@@ -831,8 +870,8 @@ module modstartup
          ladaptive, tnextrestart, jmax, imax, xh, xf, linoutflow, lper2inout, iinletgen, lreadminl, &
          uflowrate, vflowrate,ltempeq, prandtlmoli, freestreamav, &
          tnextfielddump, tfielddump, tsample, tstatsdump, startfile, lprofforc, lchem, k1, JNO2,&
-         idriver,dtdriver,driverstore,tdriverstart,tdriverdump,xlen,ylen,itot,jtot,ibrank,ierank,jbrank,jerank,BCxm,BCym,lrandomize,BCxq,BCxs,BCxT, BCyq,BCys,BCyT,BCxm_driver,&
-         tEB,tnextEB,dtEB,BCxs_custom,lEB,lfacTlyrs
+         idriver,dtdriver,driverstore,tdriverstart,tdriverstart_cold,tdriverdump,xlen,ylen,itot,jtot,ibrank,ierank,jbrank,jerank,BCxm,BCym,lrandomize,BCxq,BCxs,BCxT, BCyq,BCys,BCyT,BCxm_driver,&
+         tEB,tnextEB,dtEB,BCxs_custom,lEB,lfacTlyrs,tfac,tnextfac,dtfac
       use modsubgriddata, only:ekm, ekh, loneeqn
       use modsurfdata, only:wtsurf, wqsurf, wsvsurf, &
          thls, thvs, ps, qts, svs, sv_top
