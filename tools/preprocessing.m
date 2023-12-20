@@ -140,7 +140,9 @@ classdef preprocessing < dynamicprops
         function set_defaults(obj)
             %% &RUN
             preprocessing.addvar(obj, 'ltrees', 0) % switch for trees (not implemented)
-            if obj.ltrees
+            preprocessing.addvar(obj, 'ltreesfile', 0) % switch for using blocks from a file
+            
+            if obj.ltrees && ~obj.ltreesfile
 %                 error('Trees not currently implemented')
                 % These only work with canyons
                 preprocessing.addvar(obj, 'tree_dz',0) % height above ground
@@ -149,6 +151,7 @@ classdef preprocessing < dynamicprops
                 preprocessing.addvar(obj, 'tree_h',0)  % tree height (z)
                 preprocessing.addvar(obj, 'tree_w',0)  % tree width  (x)
                 preprocessing.addvar(obj, 'tree_b',0)  % tree breadth(y)
+                preprocessing.addvar(obj, 'nrows',0)   % number of tree rows
 %
 %                 preprocessing.addvar(obj, 'nt1',0)
 %                 preprocessing.addvar(obj, 'md',0)
@@ -157,8 +160,7 @@ classdef preprocessing < dynamicprops
 %                 preprocessing.addvar(obj, 'nt2',0)
             end
             % Trees from file
-            preprocessing.addvar(obj, 'ltreesfile', 0) % switch for using blocks from a file
-            if obj.ltreesfile
+            if obj.ltrees && obj.ltreesfile
                 preprocessing.addvar(obj, 'treesfile', '') % name of blocks file
             end
 
@@ -886,13 +888,16 @@ classdef preprocessing < dynamicprops
         end
         
         function generate_trees_from_namoptions(obj)
-            tree_dz = obj.tree_dz;
-            tree_dx = obj.tree_dx;
-            tree_dy = obj.tree_dy;
-            tree_h = obj.tree_h;
-            tree_w = obj.tree_w;
-            tree_b = obj.tree_b;
+            
             if ~obj.ltreesfile  %obj.lcanyons
+                tree_dz = obj.tree_dz;
+                tree_dx = obj.tree_dx;
+                tree_dy = obj.tree_dy;
+                tree_h = obj.tree_h;
+                tree_w = obj.tree_w;
+                tree_b = obj.tree_b;
+                nrows = obj.nrows;
+                jtot = obj.jtot;
 %                 imax = obj.imax;
 %                 jtot = obj.jtot;
 %                 blockwidth = obj.blockwidth;
