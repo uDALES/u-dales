@@ -112,6 +112,34 @@ module modfields
   integer, allocatable :: IIvws(:)          !< 1-D Masking matrix for blocks at y- and z-direction half cells that span ib:ie and 1:jtot
   integer, allocatable :: IIuvs(:)          !< 1-D Masking matrix for blocks at x- and y-direction half cells that span ib:ie and 1:jtot
 
+  real, allocatable :: Rn(:)
+  real, allocatable :: clai(:)
+  real, allocatable :: qc(:)
+  real, allocatable :: qa(:)
+  real, allocatable :: ladzf(:)
+  real, allocatable :: ladzh(:)
+
+  real, allocatable :: tr_u(:,:,:)          !< volumetric drag acting on trees along x
+  real, allocatable :: tr_v(:,:,:)          !< volumetric drag acting on trees along y
+  real, allocatable :: tr_w(:,:,:)          !< volumetric drag acting on trees along z
+  real, allocatable :: tr_qt(:,:,:)
+  real, allocatable :: tr_qtR(:,:,:)
+  real, allocatable :: tr_qtA(:,:,:)
+  real, allocatable :: tr_thl(:,:,:)
+  real, allocatable :: tr_sv(:,:,:,:)       !< tree deposition (scalar sink)
+  real, allocatable :: tr_omega(:,:,:)
+
+  real, allocatable :: tr_ut(:,:,:)
+  real, allocatable :: tr_vt(:,:,:)
+  real, allocatable :: tr_wt(:,:,:)
+  real, allocatable :: tr_qtt(:,:,:)
+  real, allocatable :: tr_qtRt(:,:,:)
+  real, allocatable :: tr_qtAt(:,:,:)
+  real, allocatable :: tr_thlt(:,:,:)
+  real, allocatable :: tr_sv1t(:,:,:)
+  real, allocatable :: tr_sv2t(:,:,:)
+  real, allocatable :: tr_omegat(:,:,:)
+
 !  integer              :: IIbl = 1          !< Switch for if layer at kb is all blocks
 
   ! statistical fields following notation "[statistical name][averaging directions - x,y,z,t][position in grid - i,j,k]"
@@ -410,6 +438,7 @@ module modfields
   character(80), allocatable :: ncstatxyt(:,:)
   character(80), allocatable :: ncstatslice(:,:)
   character(80), allocatable :: ncstatt(:,:)
+  character(80), allocatable :: ncstattr(:,:)
 
   integer, allocatable :: wall(:,:,:,:)             !< wall(ic,jc,kc,1-5) gives the global indices of the wall closest to cell center ic,jc,kc. The 4th and 5th integer gives the corresponding shear components
 
@@ -418,7 +447,7 @@ contains
   subroutine initfields
 
     use modglobal, only : ib,ie,jb,je,ih,jh,kb,ke,kh,jtot,nsv,&
-         ihc,jhc,khc,ltdump,lytdump,lxytdump,lslicedump,ltkedump,ltempeq,lmoist,lchem,lscasrcr!, iadv_kappa,iadv_sv
+         ihc,jhc,khc,ltdump,lytdump,lxytdump,lslicedump,ltkedump,ltempeq,lmoist,lchem,lscasrcr,ltreedump!, iadv_kappa,iadv_sv
     use decomp_2d, only : alloc_z
     ! Allocation of prognostic variables
     implicit none
@@ -589,6 +618,39 @@ contains
     allocate(IIvws(kb:ke+khc))
     allocate(IIuvs(kb:ke+khc))
     IIc=1;IIu=1;IIv=1;IIct=1;IIw=1;IIuw=1;IIvw=1;IIuwt=1;IIut=1;IIvt=1;IIwt=1;IIcs=1;IIus=1;IIvs=1;IIws=1;IIuws=1;IIvws=1;IIuw=1;IIuvs=1
+
+    if (ltreedump) then
+      allocate(qc(1:ke))
+      allocate(qa(1:ke))
+      allocate(ladzf(1:ke))
+      allocate(ladzh(1:ke))
+      allocate(Rn(1:ke))
+      allocate(clai(1:ke))
+
+      allocate(tr_u(ib:ie,jb:je,kb:ke))
+      allocate(tr_v(ib:ie,jb:je,kb:ke))
+      allocate(tr_w(ib:ie,jb:je,kb:ke))
+      allocate(tr_qt(ib:ie,jb:je,kb:ke))
+      allocate(tr_qtR(ib:ie,jb:je,kb:ke))
+      allocate(tr_qtA(ib:ie,jb:je,kb:ke))
+      allocate(tr_thl(ib:ie,jb:je,kb:ke))
+      allocate(tr_sv(ib:ie,jb:je,kb:ke,1:nsv)) 
+      allocate(tr_omega(ib:ie,jb:je,kb:ke))
+
+      allocate(tr_ut(ib:ie,jb:je,kb:ke))
+      allocate(tr_vt(ib:ie,jb:je,kb:ke))
+      allocate(tr_wt(ib:ie,jb:je,kb:ke))
+      allocate(tr_qtt(ib:ie,jb:je,kb:ke))
+      allocate(tr_qtRt(ib:ie,jb:je,kb:ke))
+      allocate(tr_qtAt(ib:ie,jb:je,kb:ke))
+      allocate(tr_thlt(ib:ie,jb:je,kb:ke))
+      allocate(tr_sv1t(ib:ie,jb:je,kb:ke))
+      allocate(tr_sv2t(ib:ie,jb:je,kb:ke))
+      allocate(tr_omegat(ib:ie,jb:je,kb:ke))
+      
+      clai=0.;Rn=0.;qc=0.;qa=0.;ladzf=0.;ladzh=0.;tr_u=0.;tr_v=0.;tr_w=0.;tr_thl=0.;tr_qt=0.;tr_qtR=0.;tr_qtA=0.;tr_sv=0.
+      tr_ut=0.;tr_vt=0.;tr_wt=0.;tr_thlt=0.;tr_qtt=0.;tr_qtRt=0.;tr_qtAt=0.;tr_sv1t=0.;tr_sv2t=0.;tr_omega=0.;tr_omegat=0.
+    end if
 
     ! Statistics - currenly not implemented.
     if (lytdump) then
