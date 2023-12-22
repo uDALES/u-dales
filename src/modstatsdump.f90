@@ -30,9 +30,9 @@ module modstatsdump
   save
 
   !NetCDF variables
-  integer :: ncidy,ncidyt,ncidtke,ncidxy,ncidslice,ncidxyt,nrecy=0,nrecyt=0,nrectke=0,nrecxy=0,&
-             nrecslice=0,nrecxyt=0,nstatyt=34,nstaty=14,nstattke=8,nstatxy=15,nstatslice=8,&
-             nstatxyt=23,ncidt,nrect=0,nstatt=32
+  integer :: ncidy,ncidyt,ncidtke,ncidxy,ncidslice,ncidxyt,ncidtr,nrecy=0,nrecyt=0,nrectke=0,nrecxy=0,&
+             nrecslice=0,nrecxyt=0,nrectr=0,nstatyt=34,nstaty=14,nstattke=8,nstatxy=15,nstatslice=8,&
+             nstatxyt=23,ncidt,nrect=0,nstatt=32,nstattr=10
   character(80) :: yname = 'ydump.xxx.nc'
   character(80) :: ytname = 'ytdump.xxx.nc'
   character(80) :: tkename = 'tkedump.xxx.nc'
@@ -40,6 +40,7 @@ module modstatsdump
   character(80) :: xytname = 'xytdump.xxx.nc'
   character(80) :: tname = 'tdump.xxx.xxx.xxx.nc'
   character(80) :: slicename = 'slicedump.xxx.xxx.nc'
+  character(80) :: trname = 'treedump.xxx.xxx.xxx.nc'
   character(80),dimension(1,4) :: tncstaty
   character(80),dimension(1,4) :: tncstatyt
   character(80),dimension(1,4) :: tncstattke
@@ -47,6 +48,7 @@ module modstatsdump
   character(80),dimension(1,4) :: tncstatslice
   character(80),dimension(1,4) :: tncstatxyt
   character(80),dimension(1,4) :: tncstatt
+  character(80),dimension(1,4) :: tncstattr
 
   integer :: klow,khigh,i,j,k
   real    :: tsamplep,tstatsdumpp,tsample,tstatsdump
@@ -61,14 +63,14 @@ contains
   subroutine initstatsdump
     use modmpi,   only : my_real,mpierr,comm3d,mpi_logical,mpi_integer,mpi_character,cmyid,cmyidx,cmyidy
     use modglobal,only : imax,jmax,kmax,cexpnr,ifnamopt,fname_options,kb,ke,ladaptive,btime,&
-                         nsv,lslicedump,lxytdump
+                         nsv,lslicedump,lxytdump,ltreedump
     use modstat_nc,only: open_nc, define_nc,ncinfo,writestat_dims_nc
-    use modfields,only : ncstaty,ncstatyt,ncstattke,ncstatxy,ncstatslice,ncstatxyt,ncstatt
+    use modfields,only : ncstaty,ncstatyt,ncstattke,ncstatxy,ncstatslice,ncstatxyt,ncstatt,ncstattr
     implicit none
     integer :: ierr
 
     namelist/NAMSTATSDUMP/ &
-         lydump,tsample,klow,khigh,tstatsdump,lytdump,ltkedump,lxydump,lxytdump,ltdump
+         lydump,tsample,klow,khigh,tstatsdump,lytdump,ltkedump,lxydump,lxytdump,ltdump,ltreedump    ! maybe removed; NAMSTATSDUMP is not in use anymore
 
     allocate(ncstaty(nstaty,4))
     allocate(ncstatyt(nstatyt,4))
@@ -77,6 +79,7 @@ contains
     allocate(ncstatslice(nstatslice,4))
     allocate(ncstatxyt(nstatxyt,4))
     allocate(ncstatt(nstatt,4))
+    allocate(ncstattr(nstattr,4))
 
     klow=kb
     khigh=ke
@@ -103,7 +106,8 @@ contains
     call MPI_BCAST(ncstatxy    ,80,MPI_CHARACTER,0,comm3d,mpierr)
     call MPI_BCAST(ncstatxyt   ,80,MPI_CHARACTER,0,comm3d,mpierr)
     call MPI_BCAST(ncstatt     ,80,MPI_CHARACTER,0,comm3d,mpierr)
-    call MPI_BCAST(ltdump      ,1,MPI_LOGICAL,0,comm3d,ierr)
+    call MPI_BCAST(ltdump      ,1,MPI_LOGICAL,0,comm3d,ierr)      ! maybe removed; unnecessary broadcast; this variable already broadcasted in modstartup
+    call MPI_BCAST(ltreedump      ,1,MPI_LOGICAL,0,comm3d,ierr)   ! maybe removed; unnecessary broadcast; this variable already broadcasted in modstartup
 
     !> Generate y-averaged NetCDF: ydump.xxx.nc
     if(lydump) then
@@ -316,6 +320,34 @@ contains
 !      end if
     end if
 
+    !> Generate time averaged NetCDF: treedump.xxx.nc
+    if (ltreedump) then
+
+      trname(10:12) = cmyidx
+      trname(14:16) = cmyidy
+      trname(18:20) = cexpnr
+      call ncinfo(tncstattr(1,:),'time'      ,'Time'                        ,'s'      ,'time')
+      call ncinfo(ncstattr( 1,:),'tr_u'      ,'Drag in x'                   ,'m/s^2'  ,'tttt'  )
+      call ncinfo(ncstattr( 2,:),'tr_v'      ,'Drag in y'                   ,'m/s^2'  ,'tttt'  )
+      call ncinfo(ncstattr( 3,:),'tr_w'      ,'Drag in z'                   ,'m/s^2'  ,'ttmt'  )
+      call ncinfo(ncstattr( 4,:),'tr_thl'    ,'Temp source/ sink'           ,'K/s'    ,'tttt'  )
+      call ncinfo(ncstattr( 5,:),'tr_qt'     ,'Moisture source sink'        ,'1/s'    ,'tttt'  )
+      call ncinfo(ncstattr( 6,:),'tr_qtR'    ,'Moisture source sink'        ,'1/s'    ,'tttt'  )
+      call ncinfo(ncstattr( 7,:),'tr_qtA'    ,'Moisture source sink'        ,'1/s'    ,'tttt'  )
+      call ncinfo(ncstattr( 8,:),'tr_sv1'    ,'Scalar source sink'          ,'kg/m^3s','tttt'  )
+      call ncinfo(ncstattr( 9,:),'tr_sv2'    ,'Scalar source sink'          ,'kg/m^3s','tttt'  )
+      call ncinfo(ncstattr(10,:),'tr_omega'  ,'Decoupling factor'           ,'-'      ,'tttt'  )
+
+!      if (myid==0) then
+        call open_nc(trname, ncidtr, nrectr, n1=imax, n2=jmax, n3=khigh-klow+1)
+        if (nrectr==0) then
+          call define_nc( ncidtr, 1, tncstattr)
+          call writestat_dims_nc(ncidtr)
+        end if
+        call define_nc( ncidtr, nstattr, ncstattr)
+!      end if
+    end if
+
     !> Generate time, y and x averaged NetCDF for tke budget: tkedump.xxx.nc
     if (ltkedump) then
 
@@ -391,12 +423,15 @@ contains
                                wthltk,wqttk,thlthlt,qtqtt,sv1sv1t,sv2sv2t,sv3sv3t,sv4sv4t,wmt,thltk,qttk,thlt,uxyt,vxyt,wxyt,thlxyt,&
                                ncstatxyt,qtxyt,pxyt,ncstatt,uutc,vvtc,wwtc,utc,vtc,wtc,&
                                umt,vmt,sv1t,sv2t,sv3t,sv4t,sv1tk,sv2tk,sv3tk,sv4tk,wsv1tk,wsv2tk,wsv3tk,wsv4tk,&
-                               sv1sgst,sv2sgst,sv3sgst,sv4sgst,qtt,pt,PSSt !,sv1max,sv2max,sv3max,sv4max
+                               sv1sgst,sv2sgst,sv3sgst,sv4sgst,qtt,pt,PSSt,& !,sv1max,sv2max,sv3max,sv4max
+                               ncstattr,tr_u,tr_ut,tr_v,tr_vt,tr_w,tr_wt,tr_thl,tr_thlt,tr_qt,tr_qtR,&
+                               tr_qtA,tr_qtt,tr_qtRt,tr_qtAt,tr_sv,tr_sv1t, PSSt, tr_sv2t,tr_omega,tr_omegat
   use modglobal,        only : ib,ie,ih,ihc,xf,xh,jb,je,jhc,jgb,jge,dy,dyi,jh,ke,kb,kh,khc,rk3step,&
                                timee,cexpnr,tsample,tstatsdump,jtot,imax,jmax,dzf,&
                                ltempeq,zh,dxf,dzf,dzh2i,lprofforc,lscasrcl,&
                                lslicedump,lchem,dzhi,dzfi,dzhiq,dxhi,lmoist,nsv,&
-                               k1,JNO2,lchem
+                               k1,JNO2,lchem,&
+                               ltreedump
 !  use modsubgriddata,   only : ekm,sbshr
   use modstat_nc,       only : writestat_nc,writestat_1D_nc
   use modmpi,           only : myid,cmyid,my_real,mpi_sum,avey_ibm,mpierr,&
@@ -595,7 +630,7 @@ contains
   real, dimension(kb:ke+kh)                    :: uvtxyij
 
   real, allocatable :: field(:,:), varsy(:,:,:),varsyt(:,:,:),varstke(:,:),varsxy(:,:),&
-                       varslice(:,:,:),varsxyt(:,:),varst(:,:,:,:)
+                       varslice(:,:,:),varsxyt(:,:),varst(:,:,:,:),varstr(:,:,:,:)
   real    :: tstatsdumppi,emom
   integer :: i,j,k,ip,im,jp,jm,kp,km
   integer :: writecounter = 1
@@ -1084,6 +1119,25 @@ contains
         ! sv4sgst(ib:ie,jb:je,kb:ke+kh) = (sv4sgst(ib:ie,jb:je,kb:ke+kh)*(tstatsdumpp-tsamplep) + sv4sgs(ib:ie,jb:je,kb:ke+kh)*tsamplep)*tstatsdumppi
       !end if ! ltdump
 
+      if (ltreedump) then
+        tr_ut(ib:ie,jb:je,kb:ke) = (tr_ut(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_u(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
+        tr_vt(ib:ie,jb:je,kb:ke) = (tr_vt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_v(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
+        tr_wt(ib:ie,jb:je,kb:ke) = (tr_wt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_w(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
+        if (ltempeq) then
+          tr_thlt(ib:ie,jb:je,kb:ke) = (tr_thlt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_thl(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
+        end if
+        if (lmoist) then
+          tr_qtt(ib:ie,jb:je,kb:ke) = (tr_qtt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_qt(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
+          tr_qtRt(ib:ie,jb:je,kb:ke) = (tr_qtRt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_qtR(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
+          tr_qtAt(ib:ie,jb:je,kb:ke) = (tr_qtAt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_qtA(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
+          tr_omegat(ib:ie,jb:je,kb:ke) = (tr_omegat(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_omega(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
+        end if
+        if (nsv>0) then
+          tr_sv1t(ib:ie,jb:je,kb:ke) = (tr_sv1t(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_sv(ib:ie,jb:je,kb:ke,1)*tsamplep)*tstatsdumppi
+          tr_sv2t(ib:ie,jb:je,kb:ke) = (tr_sv2t(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_sv(ib:ie,jb:je,kb:ke,2)*tsamplep)*tstatsdumppi
+        end if
+      end if
+
 !      where (IIuwt==0)
 !        upwpyik    = -999
 !        upwpytik   = -999
@@ -1432,6 +1486,26 @@ contains
           call writestat_nc(ncidt,nstatt,ncstatt,varst,nrect,imax,jmax,khigh-klow+1)
 !        end if !myid
          deallocate(varst)
+      end if !ltdump
+
+    ! Final calculations and write t-averaged statistics for the trees
+    if (ltreedump) then
+!        if (myid == 0) then
+          allocate(varstr(imax,jmax,khigh-klow+1,nstattr))
+          call writestat_nc(ncidtr,1,tncstattr,(/timee/),nrectr,.true.)
+          varstr(:,:,:,1)  = tr_ut(ib:ie,jb:je,kb:ke)
+          varstr(:,:,:,2)  = tr_vt(ib:ie,jb:je,kb:ke)
+          varstr(:,:,:,3)  = tr_wt(ib:ie,jb:je,kb:ke)
+          varstr(:,:,:,4)  = tr_thlt(ib:ie,jb:je,kb:ke)
+          varstr(:,:,:,5)  = tr_qtt(ib:ie,jb:je,kb:ke)
+          varstr(:,:,:,6)  = tr_qtRt(ib:ie,jb:je,kb:ke)
+          varstr(:,:,:,7)  = tr_qtAt(ib:ie,jb:je,kb:ke)
+          varstr(:,:,:,8)  = tr_sv1t(ib:ie,jb:je,kb:ke)
+          varstr(:,:,:,9)  = tr_sv2t(ib:ie,jb:je,kb:ke)
+          varstr(:,:,:,10) = tr_omegat(ib:ie,jb:je,kb:ke)
+          call writestat_nc(ncidtr,nstattr,ncstattr,varstr,nrectr,imax,jmax,khigh-klow+1)
+!        end if !myid
+          deallocate(varstr)
       end if !ltdump
 
       if (ltkedump) then
