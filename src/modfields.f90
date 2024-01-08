@@ -620,12 +620,12 @@ contains
     IIc=1;IIu=1;IIv=1;IIct=1;IIw=1;IIuw=1;IIvw=1;IIuwt=1;IIut=1;IIvt=1;IIwt=1;IIcs=1;IIus=1;IIvs=1;IIws=1;IIuws=1;IIvws=1;IIuw=1;IIuvs=1
 
     if (ltreedump) then
-      allocate(qc(1:ke))
-      allocate(qa(1:ke))
-      allocate(ladzf(1:ke))
-      allocate(ladzh(1:ke))
-      allocate(Rn(1:ke))
-      allocate(clai(1:ke))
+      allocate(qc(kb:ke))
+      allocate(qa(kb:ke))
+      allocate(ladzf(kb:ke))
+      allocate(ladzh(kb:ke))
+      allocate(Rn(kb:ke))
+      allocate(clai(kb:ke))
 
       allocate(tr_u(ib:ie,jb:je,kb:ke))
       allocate(tr_v(ib:ie,jb:je,kb:ke))
