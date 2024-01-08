@@ -107,7 +107,7 @@ contains
     call MPI_BCAST(ncstatxyt   ,80,MPI_CHARACTER,0,comm3d,mpierr)
     call MPI_BCAST(ncstatt     ,80,MPI_CHARACTER,0,comm3d,mpierr)
     call MPI_BCAST(ltdump      ,1,MPI_LOGICAL,0,comm3d,ierr)      ! maybe removed; unnecessary broadcast; this variable already broadcasted in modstartup
-    call MPI_BCAST(ltreedump      ,1,MPI_LOGICAL,0,comm3d,ierr)   ! maybe removed; unnecessary broadcast; this variable already broadcasted in modstartup
+    call MPI_BCAST(ltreedump   ,1,MPI_LOGICAL,0,comm3d,ierr)      ! maybe removed; unnecessary broadcast; this variable already broadcasted in modstartup
 
     !> Generate y-averaged NetCDF: ydump.xxx.nc
     if(lydump) then
@@ -1488,8 +1488,8 @@ contains
          deallocate(varst)
       end if !ltdump
 
-    ! Final calculations and write t-averaged statistics for the trees
-    if (ltreedump) then
+      ! Final calculations and write t-averaged statistics for the trees
+      if (ltreedump) then
 !        if (myid == 0) then
           allocate(varstr(imax,jmax,khigh-klow+1,nstattr))
           call writestat_nc(ncidtr,1,tncstattr,(/timee/),nrectr,.true.)
