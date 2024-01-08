@@ -62,7 +62,7 @@ if ~ltimedepsw
         else
             system('./DS.exe');
         end
-        Sdir = dlmread([fpath 'Sdir_fort.txt'], '', 0, 0);
+        Sdir = dlmread([fpath 'Sdir.txt'], '', 0, 0);
         delete DS.exe;
         cd(currentPath)
     else
