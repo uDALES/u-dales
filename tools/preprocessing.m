@@ -884,7 +884,6 @@ classdef preprocessing < dynamicprops
             fprintf(trees, '# tree_n\t il\t   iu\t   jl\t   ju\t   kl\t   ku\t\n');
             fprintf(trees, '%4d\t%4d\t%4d\t%4d\t%4d\t%4d\t\n', obj.trees');
             fclose(trees);
-            preprocessing.plot_blocks_w_trees(obj)
         end
         
         function generate_trees_from_namoptions(obj)
@@ -957,14 +956,14 @@ classdef preprocessing < dynamicprops
         end
 
         function plot_blocks_w_trees(obj)
-            figure
+%             figure
             %title('Blocks', 'interpreter', 'latex')
-            view(3)
+%             view(3)
             
-            if obj.lbottom
-                clr = [0.85, 0.85, 0.85];
-                patch([obj.xh(1)   obj.xh(1)   obj.xh(end)   obj.xh(end)]  , [obj.yh(1) obj.yh(end) obj.yh(end) obj.yh(1)],   [obj.zh(1)   obj.zh(1) obj.zh(1) obj.zh(1)], clr)
-            end
+%             if obj.lbottom
+%                 clr = [0.85, 0.85, 0.85];
+%                 patch([obj.xh(1)   obj.xh(1)   obj.xh(end)   obj.xh(end)]  , [obj.yh(1) obj.yh(end) obj.yh(end) obj.yh(1)],   [obj.zh(1)   obj.zh(1) obj.zh(1) obj.zh(1)], clr)
+%             end
 
 %             if ~obj.lflat && ~obj.lfloors
 %                 clr = [0.85, 0.85, 0.85];
@@ -1010,18 +1009,18 @@ classdef preprocessing < dynamicprops
             end
             
 
-            zlim([0 obj.zh(end)]); %/(r.blockheight-1))
-            xlim([0 obj.xh(end)]); %/(r.blockheight-1))
-            ylim([0 obj.yh(end)]); %/(r.blockheight-1))
+%             zlim([0 obj.zh(end)]); %/(r.blockheight-1))
+%             xlim([0 obj.xh(end)]); %/(r.blockheight-1))
+%             ylim([0 obj.yh(end)]); %/(r.blockheight-1))
 
-            set(gca,'ticklabelinterpreter','latex')
-            xlabel('$x(\mathrm{m})$','interpreter','latex')
-            ylabel('$y(\mathrm{m})$','interpreter','latex')
-            zlabel('$z(\mathrm{m})$','interpreter','latex')
-            set(gca,'BoxStyle','full','Box','on')
-            daspect([1 1 1])
-            set(gca, 'FontSize', 12)
-            grid on
+%             set(gca,'ticklabelinterpreter','latex')
+%             xlabel('$x(\mathrm{m})$','interpreter','latex')
+%             ylabel('$y(\mathrm{m})$','interpreter','latex')
+%             zlabel('$z(\mathrm{m})$','interpreter','latex')
+%             set(gca,'BoxStyle','full','Box','on')
+%             daspect([1 1 1])
+%             set(gca, 'FontSize', 12)
+%             grid on
         end
     end
 
