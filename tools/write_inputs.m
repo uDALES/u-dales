@@ -217,12 +217,17 @@ if r.libm
         resolution   = r.psc_res;
         xazimuth     = r.xazimuth;
         ltimedepsw   = r.ltimedepsw;
-        ldirectShortwaveFortran = 0;
+        ldirectShortwaveFortran = r.ldirectShortwaveFortran;
         lscatter = true;
  
         if ltimedepsw
             runtime = r.runtime;
             dtSP    = r.dtSP;
+            start = datetime(r.year, r.month, r.day, r.hour, r.minute, r.second);
+            longitude = r.longitude;
+            latitude  = r.latitude;
+            timezone  = r.timezone;
+            elevation = r.elevation;
         else
             lcustomsw = r.lcustomsw;
             if lcustomsw
@@ -231,7 +236,7 @@ if r.libm
                 irradiance   = r.I;
                 Dsky         = r.Dsky;
             else
-                start = datetime(obj.year, obj.month, obj.day, obj.hour, obj.minute, obj.second);
+                start = datetime(r.year, r.month, r.day, r.hour, r.minute, r.second);
                 longitude = r.longitude;
                 latitude  = r.latitude;
                 timezone  = r.timezone;
@@ -244,7 +249,7 @@ if r.libm
         disp(['Written netsw.inp.', r.expnr])
 
         if r.ltimedepsw
-            % write timedepsw.inp.
+            preprocessing.write_timedepsw(r, tSP, Knet)
         end
     end
 

@@ -309,6 +309,16 @@ classdef preprocessing < dynamicprops
                     preprocessing.addvar(obj, 'runtime', 0)
                     preprocessing.addvar(obj, 'dtEB', 10.) % energy balance timestep
                     preprocessing.addvar(obj, 'dtSP', obj.dtEB) % solar position time step
+                    preprocessing.addvar(obj, 'year', 2023) % check robustness of this
+                    preprocessing.addvar(obj, 'month', 6)
+                    preprocessing.addvar(obj, 'day', 21)
+                    preprocessing.addvar(obj, 'hour', 6)
+                    preprocessing.addvar(obj, 'minute', 0)
+                    preprocessing.addvar(obj, 'second', 0)
+                    preprocessing.addvar(obj, 'longitude', -0.13) % longitude
+                    preprocessing.addvar(obj, 'latitude', 51.5) % latitude
+                    preprocessing.addvar(obj, 'timezone', 0) % timezone
+                    preprocessing.addvar(obj, 'elevation', 0) % timezone
                 else
                     preprocessing.addvar(obj, 'lcustomsw', 1)
                     if obj.lcustomsw
@@ -330,7 +340,7 @@ classdef preprocessing < dynamicprops
                     end
                 end
 
-                preprocessing.addvar(obj, 'psc_res', 0.01); % Poly scan conversion resolution for solar radiation calculation (lower number = better)
+                preprocessing.addvar(obj, 'psc_res', 0.1); % Poly scan conversion resolution for solar radiation calculation (lower number = better)
                 preprocessing.addvar(obj, 'lvfsparse', false) % view factors given in sparse format
 
                 % view3d output format. 0: text, 1: binary, 2: sparse
@@ -344,6 +354,8 @@ classdef preprocessing < dynamicprops
                 if obj.view3d_out == 2 && ~obj.lvfsparse 
                     error('If sparse view3d output is desired, set lvfsparse=.true. in &ENERGYBALANCE.')
                 end
+
+                preprocessing.addvar(obj, 'ldirectShortwaveFortran', false);
             end
 
             preprocessing.addvar(obj, 'facT', 288.) % Initial facet temperatures.
@@ -861,6 +873,15 @@ classdef preprocessing < dynamicprops
             fprintf(fileID,'# %4s\n','net shortwave on facets [W/m2] (including reflections and diffusive)');
             fprintf(fileID,'%6.4f\n', Knet);
             fclose(fileID);
+        end
+
+        function write_timedepsw(obj, tSP, Knet)
+            fname = ['timedepsw.inp.' obj.expnr];
+            fileID = fopen(fname, 'w');
+            fprintf(fileID,'# %4s\n','time-dependent net shortwave on facets [W/m2]. First line: times (1 x nt), then netsw (nfcts x nt)');
+            fclose(fileID);
+            dlmwrite(fname, tSP, '-append','delimiter',' ','precision','%9.2f')
+            dlmwrite(fname, Knet, '-append','delimiter',' ','precision','%9.4f')
         end
 
         function write_Tfacinit(obj, Tfacinit)
