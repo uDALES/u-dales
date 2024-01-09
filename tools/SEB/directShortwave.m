@@ -158,6 +158,7 @@ if show_plot_2d
     xlabel('\xi')
     ylabel('\eta')
     axis equal tight
+    drawnow
 end
     
 if show_plot_3d
@@ -190,6 +191,7 @@ if show_plot_3d
      hold off
      axis equal tight
      view(nsun)
+     drawnow
 end
 end
 
