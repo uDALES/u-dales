@@ -358,8 +358,6 @@
             call MPI_BCAST(facnorm, nfcts*3, MY_REAL, 0, comm3d, mpierr)
             call MPI_BCAST(faclGR(0:nfcts), nfcts + 1, mpi_logical, 0, comm3d, mpierr)
 
-            write(*,*) "done Bcast"
-
             !call MPI_BCAST(facalb(0:nfcts), nfcts + 1, MY_REAL, 0, comm3d, mpierr)
             !call MPI_BCAST(facem(0:nfcts), nfcts + 1, MY_REAL, 0, comm3d, mpierr)
             !call MPI_BCAST(facd(0:nfcts,1:nfaclyrs),(nfcts+1)*nfaclyrs, MY_REAL, 0, comm3d, mpierr)
@@ -384,8 +382,6 @@
               !call MPI_BCAST(facf(0:nfcts, 1:5), (nfcts + 1)*5, MY_REAL, 0, comm3d, mpierr)
             end if
 
-            write(*,*) "done LES Bcast"
-
             if ((lEB) .or. (iwalltemp == 2) .or. (iwallmom == 2)) then
                call MPI_BCAST(facT(0:nfcts, 1:nfaclyrs+1), (nfcts + 1)*(nfaclyrs+1), MY_REAL, 0, comm3d, mpierr)
                !call MPI_BCAST(Tfacinit(1:nfcts), nfcts, MY_REAL, 0, comm3d, mpierr)
@@ -396,8 +392,6 @@
                   deallocate(Tfacinit_layers)
                end if
             end if
-
-            write(*,*) "done readfacetfiles"
 
           end subroutine readfacetfiles
 
