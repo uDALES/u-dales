@@ -111,16 +111,16 @@ contains
       if (myid==0) then
         open(ifinput,file='timedepsurf.inp.'//cexpnr)
         read(ifinput,'(a80)') chmess
-        write(6,*) chmess
+        !write(6,*) chmess
         read(ifinput,'(a80)') chmess
-        write(6,*) chmess
+        !write(6,*) chmess
 
         !--- load fluxes---
         !t    = 1
         ierr = 0
         do t = 1,ntimedepsurf
           read(ifinput,*, iostat = ierr) timeflux(t), bctfxmt(t), bctfxpt(t), bctfymt(t), bctfypt(t), bctfzt(t)!, bctfzft(t)
-          write(*,*) t, timeflux(t), bctfxmt(t), bctfxpt(t), bctfymt(t), bctfypt(t), bctfzt(t)!, bctfzft(t)
+          !write(*,*) t, timeflux(t), bctfxmt(t), bctfxpt(t), bctfymt(t), bctfypt(t), bctfzt(t)!, bctfzft(t)
           !if (ierr < 0) then
             !stop 'STOP: No time dependend data for end of run (surface fluxes)'
           !end if
@@ -167,7 +167,7 @@ contains
         !---load nudging profiles----
         open(ifinput,file='timedepnudge.inp.'//cexpnr)
         read(ifinput,'(a80)') chmess
-        write(6,*) chmess
+        !write(6,*) chmess
 
         !t = 0
         do t = 1,ntimedepnudge
@@ -181,8 +181,8 @@ contains
             !end if
           end do
 
-          write (*,*) 'timenudge = ',timenudge(t)
-          write(*,*) 'Nudging profiles'
+          !write (*,*) 'timenudge = ',timenudge(t)
+          !write(*,*) 'Nudging profiles'
           do k=kb,ke
             read (ifinput,*) &
             height   (k)  , &
@@ -191,7 +191,7 @@ contains
             uproft   (k,t), &
             vproft   (k,t)
 
-            write(*,*) height(k), thlproft (k,t), qtproft(k,t), uproft(k,t), vproft(k,t)
+            !write(*,*) height(k), thlproft (k,t), qtproft(k,t), uproft(k,t), vproft(k,t)
           end do
         end do
       end if !myid == 0
@@ -217,16 +217,16 @@ contains
       if (myid==0) then
        open(ifinput,file='timedeplw.inp.'//cexpnr)
        read(ifinput,'(a80)') chmess
-       write(6,*) chmess
+       !write(6,*) chmess
        read(ifinput,'(a80)') chmess
-       write(6,*) chmess
+       !write(6,*) chmess
 
        !--- load fluxes---
        !t    = 1
        ierr = 0
        do t = 1,ntimedeplw
           read(ifinput,*, iostat = ierr) timelw(t), skyLWt(t)
-          write(*,*) t, timelw(t), skyLWt(t)
+          !write(*,*) t, timelw(t), skyLWt(t)
           !if (ierr < 0) then
             !stop 'STOP: No time dependend data for end of run (surface fluxes)'
           !end if
@@ -266,7 +266,7 @@ contains
          read (ifinput, *) (netswt(n,t), t=1,ntimedepsw)
         end do
 
-        write(*,*) "read timedepsw"
+        !write(*,*) "read timedepsw"
 
       end if !myid==0
 
