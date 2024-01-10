@@ -980,11 +980,11 @@ contains
 
       inquire(file=name,size=filesize)
 
-      if(driverid==0) then
-        write(6,*) 'Reading time stamps: ', name
-        write(6,*) 'driverstore: ', driverstore
-        write(6,*) 'File size of time in bytes (/8) = ', filesize
-      endif
+      ! if(driverid==0) then
+      !   write(6,*) 'Reading time stamps: ', name
+      !   write(6,*) 'driverstore: ', driverstore
+      !   write(6,*) 'File size of time in bytes (/8) = ', filesize
+      ! endif
       ! driverstore = driverstore/4.
       ! write(6,*) 'driverstore: ', driverstore
       inquire(iolength=filesize)(timee-tdriverstart)
@@ -997,12 +997,12 @@ contains
       do n =  1, driverstore
         read(11, rec=n, IOSTAT=IOS) storetdriver(n)
         if(myid==0) then
-          if(IOS > 0) then
-            write(6,*) 'IOS = ',IOS
-          elseif (IOS<0) then
-            write(6,*) 'n =', n
-          end if
-          write(6,'(A,e20.12)') ' Reading t:', storetdriver(n)
+          ! if(IOS > 0) then
+          !   write(6,*) 'IOS = ',IOS
+          ! elseif (IOS<0) then
+          !   write(6,*) 'n =', n
+          ! end if
+          ! write(6,'(A,e20.12)') ' Reading t:', storetdriver(n)
         end if
       end do
       close (unit=11)
@@ -1026,7 +1026,7 @@ contains
     !write(6,*) 'Reading Driver u-velocity: ', name
     ! inquire(file=name,recl=filesize)
     inquire(iolength=filesize)u0(ib,:,:)
-    write(6,*) 'record length ',filesize
+    !write(6,*) 'record length ',filesize
     open(unit=11,file=name,form='unformatted',status='old',action='read',access='direct',recl=filesize)
     do n = chunkread_s,chunkread_e!1,driverstore
       if(myid==0) write(6,*) 'reading u_driver at step = ',n,'(',n-chunkread_s+1,') time = ',storetdriver(n)
