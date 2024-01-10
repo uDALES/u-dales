@@ -831,7 +831,7 @@ module modstartup
          ladaptive, tnextrestart, jmax, imax, xh, xf, linoutflow, lper2inout, iinletgen, lreadminl, &
          uflowrate, vflowrate,ltempeq, prandtlmoli, freestreamav, &
          tnextfielddump, tfielddump, tsample, tstatsdump, startfile, lprofforc, lchem, k1, JNO2,&
-         idriver,dtdriver,driverstore,tdriverstart,tdriverdump,xlen,ylen,itot,jtot,ibrank,ierank,jbrank,jerank,BCxm,BCym,lrandomize,BCxq,BCxs,BCxT, BCyq,BCys,BCyT,BCxm_driver,&
+         idriver,dtdriver,driverstore,tdriverstart,tdriverstart_cold,tdriverdump,xlen,ylen,itot,jtot,ibrank,ierank,jbrank,jerank,BCxm,BCym,lrandomize,BCxq,BCxs,BCxT, BCyq,BCys,BCyT,BCxm_driver,&
          tEB,tnextEB,dtEB,BCxs_custom,lEB,lfacTlyrs,tfac,tnextfac,dtfac
       use modsubgriddata, only:ekm, ekh, loneeqn
       use modsurfdata, only:wtsurf, wqsurf, wsvsurf, &
@@ -1344,9 +1344,10 @@ module modstartup
 
             elseif (idriver==2) then ! idriver
 
-               if (ibrank) call readdriverfile
-
-               call drivergen
+               if (ibrank) then
+                     call readdriverfile
+                  call drivergen
+               end if
 
                do k = kb, ke
                   do j = jb-1, je+1
@@ -1381,6 +1382,23 @@ module modstartup
 
             elseif (idriver==1) then
 
+               if (runtime < tdriverstart) then
+                  if (myid==0) write(*,*) 'Warning! No driver files will be written as runtime < tdriverstart.'
+               else
+                  if (trestart /= (tdriverstart + (driverstore-1)*dtdriver)) then
+                     trestart = (tdriverstart + (driverstore-1)*dtdriver)
+                  end if
+                  if (myid==0) then
+                     write(*,'(A,F15.5)') 'Warning! for driver simulation, trestart gets set as &
+                                           (tdriverstart + (driverstore-1)*dtdriver), ignoring the &
+                                           trestart mentioned in namoptions. Hence, trestart = ',(tdriverstart + (driverstore-1)*dtdriver)
+                     if (runtime >= tdriverstart .and. runtime+1e-10 < (tdriverstart + (driverstore-1)*dtdriver)) then
+                        write(*,*) 'Warning! Driver files cannot be written upto ', driverstore, ' steps. &
+                                    Consider taking runtime >= (tdriverstart + (driverstore-1)*dtdriver).'
+                     end if
+                  end if
+               end if
+			   
               call drivergen
 
             end if
@@ -1528,7 +1546,7 @@ module modstartup
             call MPI_BCAST(uprof, kmax, MY_REAL, 0, comm3d, mpierr)
             call MPI_BCAST(vprof, kmax, MY_REAL, 0, comm3d, mpierr)
             call MPI_BCAST(e12prof, kmax, MY_REAL, 0, comm3d, mpierr)
-
+            btime = timee
             um = u0
             vm = v0
             wm = w0
@@ -1546,6 +1564,42 @@ module modstartup
               !if(myid==0) then
               !  write(*,*) 'driverstore: ', driverstore
               !end if
+               if (timee>=tdriverstart) then
+                  
+                  tdriverstart_cold = tdriverstart
+                  tdriverstart = timee
+                  if (trestart /= (driverstore-1)*dtdriver) then
+                     trestart = (driverstore-1)*dtdriver
+                  end if
+                  
+                  if (myid==0) then
+                     write(*,'(A,F15.5)') "Warning! during warmstart of driver simulation, tdriverstart &
+                                           gets overwritten by the time instant of initd restartfile, ignoring the &
+                                           tdriverstart mentioned in namoptions. Hence, tdriverstart = ",timee
+                     write(*,'(A,F15.5)') 'Warning! for this driver simulation, trestart gets set as &
+                                           (driverstore-1)*dtdriver, ignoring the trestart mentioned &
+                                           in namoptions. Hence, trestart = ',(driverstore-1)*dtdriver
+                     if ( runtime < (driverstore-1)*dtdriver ) then
+                        write(*,*) 'Warning! Driver files cannot be written upto ', driverstore, ' steps. &
+                                    Consider taking runtime >= (driverstore-1)*dtdriver).'
+                     end if
+                  end if
+                  
+               else ! if (timee<tdriverstart)
+                  if (trestart /= (tdriverstart + (driverstore-1)*dtdriver - btime)) then
+                     trestart = (tdriverstart + (driverstore-1)*dtdriver) - btime
+                  end if
+                  if (myid==0) then
+                     write(*,'(A,F15.5)') 'Warning! for this driver simulation, trestart gets set as &
+                                           (tdriverstart + (driverstore-1)*dtdriver - btime), ignoring the &
+                                           trestart mentioned in namoptions. Hence, trestart = ',(tdriverstart + (driverstore-1)*dtdriver) - btime
+                     if ( (timee + runtime) < (tdriverstart + (driverstore-1)*dtdriver) ) then
+                        write(*,*) 'Warning! Driver files cannot be written upto ', driverstore, ' steps. &
+                                    Consider taking runtime + ',timee,' >= (tdriverstart + (driverstore-1)*dtdriver).'
+                     end if
+                  end if
+               end if
+			   
               call drivergen
               tdriverdump = tdriverstart
             endif
@@ -1712,9 +1766,10 @@ module modstartup
 
             elseif (idriver==2) then ! idriver
 
-               if (ibrank) call readdriverfile
-
-               call drivergen
+               if (ibrank) then
+                     call readdriverfile
+                  call drivergen
+               end if
 
               !call slabsum(uaverage,kb,ke,u0,ib-1,ie+1,jb-1,je+1,kb-1,ke+1,ib,ie,jb,je,kb,ke)
               !uaverage = uaverage / ((ie-ib+1)*(jge-jgb+1))  ! this gives the i-j-averaged velocity (only correct for equidistant grid?)
@@ -1723,9 +1778,9 @@ module modstartup
               !   uaverage(k) = uaverage(k)*dzf(k)
               ! end do
               ! ubulk = sum(uaverage(kb:ke))/(zh(ke+1)-zh(kb)) !volume-averaged u-velocity
-              if (myid==0) then
-                 write(6,*) 'Modstartup: ubulk=',ubulk
-              end if
+              ! if (myid==0) then
+              !    write(6,*) 'Modstartup: ubulk=',ubulk
+              ! end if
 
             end if ! iinletgen/idriver
 
@@ -1956,7 +2011,7 @@ module modstartup
       dt_lim = timeleft
       !    write(6,*) 'real(dt)*tres= ',rdt, ' dtmax/100= ',dtmax/100
       if ((lwarmstart) .or. (lstratstart)) then ! tg3315 to have cumulative number on restart files
-         read (startfile(6:13), '(i4)') ntrun
+         read (startfile(6:13), '(i8)') ntrun
          ! ntrun = ichar(startfile(6:13))
       else
          ntrun = 0

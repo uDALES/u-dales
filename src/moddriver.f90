@@ -47,10 +47,10 @@ contains
     integer :: k
 
     if (idriver==1) then
-      if (tdriverstart < timee) then
-        write(0, *) 'ERROR: tdriverstart must be greater than the elapsed time at the start of the simulation'
-        stop 1
-      end if
+      ! if (tdriverstart < timee) then
+      !   write(0, *) 'ERROR: tdriverstart must be greater than the elapsed time at the start of the simulation'
+      !   stop 1
+      ! end if
       tdriverdump = tdriverstart
 
       if ((iplane >= zstart(1)) .and. (iplane <= zend(1))) then
@@ -137,7 +137,7 @@ contains
                             dt,numol,iplane,lles,idriver,inletav,runavtime,Uinf,lwallfunc,linletRA,&
                             totinletav,lstoreplane,nstore,driverstore,prandtlmoli,numol,grav,lbuoyancy,&
                             lfixinlet,lfixutauin,tdriverstart,dtdriver,tdriverdump,ltempeq,lmoist,nsv,lsdriver,&
-                            ibrank,iplanerank,driverid,cdriverid
+                            ibrank,iplanerank,driverid,cdriverid,runtime,lwarmstart,cdriverjobnr
     use modfields,   only : u0,v0,w0,e120,thl0,qt0,wm,uprof,vprof
     use modsave,     only : writerestartfiles
     use modmpi,      only : slabsum,myid
@@ -146,7 +146,7 @@ contains
     real :: inlrec                              ! time of last inlet record
     real :: elapsrec                            ! time elapsed in this inlet record
     real :: dtint                               ! dt for linear interpolation
-    REAL*8, PARAMETER :: eps = 1d-3
+    REAL*8, PARAMETER :: eps = 1d-4
     integer i,j,k,kk,kdamp,x
 
     if (idriver == 1 .and. iplanerank) then
@@ -163,7 +163,7 @@ contains
           write(6,*) '=================================================================='
           write(6,*) '*** Starting to write data for driver simulation ***'
           write(6,*) 'Driver recording variables:'
-          write(6,'(A,F9.2,A,I4,A,F12.9)') ' Starting time: ',tdriverdump,' Stored time steps: ',driverstore,'     Inlet record intervals: ',dtdriver
+          write(6,'(A,F15.5,A,I8,A,F12.9)') ' Starting time: ',tdriverdump,' Stored time steps: ',driverstore,'     Inlet record intervals: ',dtdriver
           write(6,*) '=================================================================='
         end if
       end if
@@ -175,12 +175,26 @@ contains
       end if
 
     elseif (idriver == 2) then
-
+      
+      if (timee>(runtime+btime)) return
+      if(driverid==0) then
+        if (.not.(lwarmstart)) then
+          if (runtime>maxval(storetdriver)) then
+            write(*,'(A,F15.5,A,F15.5,A)') "Simulation will stop before runtime = ",runtime,", since last &
+                                            read driver time (",maxval(storetdriver),") is less than runtime."
+          end if
+        else ! if lwarmstart
+          if (runtime+btime>maxval(storetdriver)) then
+            write(*,'(A,F15.5,A,F15.5,A)') "Simulation will stop before runtime+btime = ",runtime+btime,", since last &
+                                            read driver time (",maxval(storetdriver),") is less than runtime+btime."
+          end if
+        end if
+      end if
       ! if (.not. rk3step==1) return
       if (timee>maxval(storetdriver)) then
         if(driverid==0) then
-          write(0,'(A,F9.2,A,F9.2)') 'timee: ',timee,'     Final inlet driver time:',maxval(storetdriver)
-          write(0,'(A,I4,A,I4)') 'Inlet driver step: ',nstepreaddriver,'     Total inlet driver steps:',driverstore
+          write(0,'(A,F15.5,A,F15.5)') 'timee: ',timee,'     Final inlet driver time:',maxval(storetdriver)
+          write(0,'(A,I8,A,I8)') 'Inlet driver step: ',nstepreaddriver,'     Total inlet driver steps:',driverstore
         end if
         stop 'Time in simulation has exceeded the inlet information - no more inlet data available!'
       end if
@@ -200,8 +214,8 @@ contains
 
       if (abs(elapsrec) < eps) then
 
-        if ((driverid==0) .and. (rk3step==1)) then
-          write(*,'(A,I5,A,F10.3,A)') '======= Inputs loaded from driver tstep ',x,' (at ',storetdriver(x),'s) ======='
+        if ((driverid==0) .and. ((rk3step==0) .or. (rk3step==3))) then
+          write(*,'(A,I8,A,F15.5,A)') '======= Inputs loaded from driver tstep ',x,' (at ',storetdriver(x),'s) ======='
         end if
 
         u0driver(:,:) = storeu0driver(:,:,x)
@@ -221,8 +235,8 @@ contains
         nstepreaddriver = x
       elseif ((elapsrec > 0.) .and. (x == 1)) then
 
-        if ((driverid==0) .and. (rk3step==1)) then
-          write(*,'(A,F10.3,A)') '======= Inputs loaded from the proceeding driver tstep 1 (at ',storetdriver(x),'s) ======='
+        if ((driverid==0) .and. ((rk3step==0) .or. (rk3step==3))) then
+          write(*,'(A,F15.5,A)') '======= Inputs loaded from the proceeding driver tstep 1 (at ',storetdriver(x),'s) ======='
         end if
 
         u0driver(:,:) = storeu0driver(:,:,x)
@@ -241,8 +255,8 @@ contains
         nstepreaddriver = x
       elseif (elapsrec < 0.) then
 
-        if ((driverid==0) .and. (rk3step==1)) then
-          write(*,'(A,I5,A,F10.3,A,I5,A,F10.3,A)') '======= Inputs interpolated from driver tsteps ',x,' (',storetdriver(x),' s) and ',x+1,' (',storetdriver(x+1),' s) ======='
+        if ((driverid==0) .and. ((rk3step==0) .or. (rk3step==3))) then
+          write(*,'(A,I8,A,F15.5,A,I8,A,F15.5,A)') '======= Inputs interpolated from driver tsteps ',x,' (',storetdriver(x),' s) and ',x+1,' (',storetdriver(x+1),' s) ======='
         end if
 
         dtint = (timee-storetdriver(x))/(storetdriver(x+1)-storetdriver(x))
@@ -269,8 +283,8 @@ contains
         nstepreaddriver = x
       elseif (elapsrec > 0.) then
 
-        if ((driverid==0) .and. (rk3step==1)) then
-          write(*,'(A,I5,A,F10.3,A,I5,A,F10.3,A)') '======= Inputs interpolated from driver tsteps ',x,' (', storetdriver(x),' s) and ',x-1,' (',storetdriver(x-1),' s) ======='
+        if ((driverid==0) .and. ((rk3step==0) .or. (rk3step==3))) then
+          write(*,'(A,I8,A,F15.5,A,I8,A,F15.5,A)') '======= Inputs interpolated from driver tsteps ',x,' (', storetdriver(x),' s) and ',x-1,' (',storetdriver(x-1),' s) ======='
         end if
 
         dtint = (timee-storetdriver(x-1))/(storetdriver(x)-storetdriver(x-1))
@@ -317,7 +331,7 @@ contains
       ! thlmdriver = thl0driver
       ! qtmdriver = qt0driver
 
-      if (rk3step <= 1) then
+      if (rk3step==0 .or. rk3step==3) then
         umdriver = u0driver
         vmdriver = v0driver
         wmdriver = w0driver
@@ -342,7 +356,7 @@ contains
   end subroutine drivergen
 
   subroutine writedriverfile
-    use modglobal, only : timee,tdriverstart,ib,ie,ih,jb,je,jh,kb,ke,kh,cexpnr,ifoutput,nstore,ltempeq,lmoist,driverstore,nsv,lsdriver,ibrank,iplanerank,driverid,cdriverid
+    use modglobal, only : runtime,timee,tdriverstart,tdriverstart_cold,ib,ie,ih,jb,je,jh,kb,ke,kh,cexpnr,ifoutput,nstore,ltempeq,lmoist,driverstore,dtdriver,nsv,lsdriver,ibrank,iplanerank,driverid,cdriverid,btime,lwarmstart
     use modfields, only : u0, v0, w0, e120, thl0, qt0, um, sv0
     use modmpi,    only : cmyid,myid
     use modinletdata, only : storetdriver,storeu0driver,storev0driver,storew0driver,storethl0driver,storeqt0driver,&
@@ -405,9 +419,20 @@ contains
       ! write(ifoutput)  ( storetdriver (n),  n=1,nstore)
       ! write(6,'(A,F9.2)') 'Writing time stamp to file: ', timee-tdriverstart
 
-      write(11,rec=nstepreaddriver)  ( timee-tdriverstart)
+      if (.not.(lwarmstart)) then
+        write(11,rec=nstepreaddriver)  ( timee-tdriverstart)
+        write(*,*) 'Driver time:' , timee-tdriverstart
+      else ! if lwarmstart
+        if (btime<tdriverstart) then
+          write(11,rec=nstepreaddriver)  ( timee-tdriverstart)
+          write(*,*) 'Driver time:' , timee-tdriverstart
+        else 
+          write(11,rec=nstepreaddriver)  ( timee-tdriverstart_cold)
+          write(*,*) 'Driver time:' , timee-tdriverstart_cold
+        end if
+      end if
+
       close (unit=11)
-      write(*,*) 'Driver time:' , timee-tdriverstart
     end if
 
     name = 'udriver_   .'
@@ -547,11 +572,30 @@ contains
       close (unit=11)
     end if
 
+    if (.not.(lwarmstart)) then
+      if (driverid==0 .and. runtime+1e-10 < (tdriverstart + (driverstore-1)*dtdriver)) then
+        write(*,*) 'Warning! Driver files cannot be written upto ', driverstore, ' steps. &
+                    Consider taking runtime >= (tdriverstart + (driverstore-1)*dtdriver).'
+      end if
+    else ! if lwarmstart
+      if (btime<tdriverstart) then
+        if(driverid==0 .and. (btime + runtime) < (tdriverstart + (driverstore-1)*dtdriver) ) then
+          write(*,*) 'Warning! Driver files cannot be written upto ', driverstore, ' steps. &
+                      Consider taking runtime + ',btime,' >= (tdriverstart + (driverstore-1)*dtdriver).'
+        end if
+      else 
+        if (driverid==0 .and. runtime+1e-10 < (driverstore-1)*dtdriver ) then
+          write(*,*) 'Warning! Driver files cannot be written upto ', driverstore, ' steps. &
+                      Consider taking runtime >= (driverstore-1)*dtdriver).'
+        end if
+      end if
+    end if
+	
   end subroutine writedriverfile
 
   subroutine readdriverfile
     use modfields, only : u0,sv0
-    use modglobal, only : ib,jb,je,jmax,kb,ke,kh,jhc,khc,cexpnr,ifinput,driverstore,ltempeq,lmoist,zh,jh,driverjobnr,nsv,timee,tdriverstart,lsdriver,ibrank,iplanerank,driverid,cdriverid,BCxT,BCxT_driver
+    use modglobal, only : ib,jb,je,jmax,kb,ke,kh,jhc,khc,cexpnr,ifinput,driverstore,ltempeq,lmoist,zh,jh,driverjobnr,cdriverjobnr,nsv,timee,tdriverstart,lsdriver,ibrank,iplanerank,driverid,cdriverid,BCxT,BCxT_driver,lwarmstart
     use modmpi,    only : cmyid,myid,nprocs,slabsum,excjs
     use modinletdata, only : storetdriver,storeu0driver,storev0driver,storew0driver,storethl0driver,storeqt0driver,storesv0driver,nfile
     implicit none
@@ -560,9 +604,18 @@ contains
     integer :: j,k,m,n,js,jf,jfdum,jsdum
     character(24) :: name
 
+    write(cdriverjobnr, '(i3.3)') driverjobnr
     if (driverid==0) then
       write(*,*) '========================================================================'
       write(*,*) '*** Reading precursor driver simulation ***'
+      if (.not.(lwarmstart)) then
+        write(*,*) "NOTE: ensure ylen,ytot,nprocy == ylen,ytot,nprocy of driver case ",cdriverjobnr,", respectively"
+        write(*,*) "NOTE: ensure ztot == ztot of driver case ",cdriverjobnr
+        write(*,*) "NOTE: ensure z dircetion grid (i.e. zsize and other parameters if stretching) == z dircetion grid of driver case ",cdriverjobnr
+        write(*,*) "NOTE: ensure driverstore <= last driver entry step count in driver case ",cdriverjobnr, ", check corresponding simulation log."
+      else ! if lwarmstart
+        write(*,*) "NOTE: ensure driverstore <= last driver entry step count in driver case ",cdriverjobnr, ", check corresponding simulation log."
+      end if
     end if
 
     name = 'tdriver_   .'
@@ -598,7 +651,7 @@ contains
         write(6,'(A,e20.12)') ' Reading t:', storetdriver(n)
       end if
     end do
-    storetdriver = storetdriver + timee !tg3315 added in case using a warmstart...
+    ! storetdriver = storetdriver + timee !tg3315 added in case using a warmstart...
     close (unit=11)
     ! write(*,*) 'storetdriver', storetdriver
     ! end if

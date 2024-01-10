@@ -124,7 +124,8 @@ contains
                                  BCym_periodic, BCym_profile, BCyT_periodic, BCyT_profile, &
                                  BCyq_periodic, BCyq_profile, BCys_periodic, &
                                  ibrank, ierank, jbrank, jerank, e12min, idriver, &
-                                 Uinf, Vinf
+                                 Uinf, Vinf, &
+                                 rk3step				
       use modfields,      only : u0, v0, w0, um, vm, wm, thl0, thlm, qt0, qtm, e120, e12m, sv0, svm, u0av, v0av, uout, uouttot, vouttot, thl0c
       use modsubgriddata, only : ekh, ekm, loneeqn
       use modsurfdata,    only : thl_top, qt_top, sv_top, wttop, wqtop, wsvtop
@@ -258,7 +259,9 @@ contains
          call xmi_profile
        case(BCxm_driver)
          !uouttot = ubulk ! does this hold for all forcings of precursor simulations? tg3315
-         call drivergen ! think this should be done at the start of an rk3 loop?
+         if(rk3step==0 .or. rk3step==3) then 
+          call drivergen ! think this should be done at the start of an rk3 loop?
+         end if
          call xmi_driver
        case default
          write(0, *) "ERROR: lateral boundary type for veloctiy in x-direction undefined"
