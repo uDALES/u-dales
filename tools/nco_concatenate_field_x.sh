@@ -35,7 +35,7 @@ if (( n > 1 )) ; then
 
     if [ $xmparam = "xm" ] ; then
         echo "No variable dependent on xm other than xm itself. omitting xm."
-        for file in ${dumps}.???.nc; do
+        for file in ${dumps}.???.???.nc; do
             ncpdq -64 -a xt,time,zt,zm,yt,ym -C -x -v ${xmparam} ${file} "tmp${file#${dumps}}"
         done
         ncrcat -64 tmp.*.nc fieldtmp2.nc

@@ -93,14 +93,14 @@ if lmypolyfortran
     cd(currentPath)
 
     %% u-grid
-    solid_ijk_u = readmatrix([fpath 'solid_u.txt']);
-    fluid_IB_ijk_u = readmatrix([fpath 'fluid_boundary_u.txt']);
+    solid_ijk_u = readmatrix([fpath 'solid_u.txt'],'Range', 2);
+    fluid_IB_ijk_u = readmatrix([fpath 'fluid_boundary_u.txt'],'Range', 2);
     %fluid_IB_ijk_u = sortrows(fluid_IB_ijk_u,3);
     fluid_boundary_u = fluid_IB_ijk_u;
     fluid_IB_xyz_u = [xgrid_u(fluid_IB_ijk_u(:,1))', ygrid_u(fluid_IB_ijk_u(:,2))', zgrid_u(fluid_IB_ijk_u(:,3))'];
-    solid_IB_ijk_u = readmatrix([fpath 'solid_boundary_u.txt']);
+    solid_IB_ijk_u = readmatrix([fpath 'solid_boundary_u.txt'],'Range', 2);
     %solid_IB_ijk_u = sortrows(solid_IB_ijk_u,3);
-    solid_IB_xyz_u = [xgrid_u(solid_IB_ijk_u(:,1))', ygrid_u(solid_IB_ijk_u(:,2))', zgrid_u(solid_IB_ijk_u(:,3))'];
+%     solid_IB_xyz_u = [xgrid_u(solid_IB_ijk_u(:,1))', ygrid_u(solid_IB_ijk_u(:,2))', zgrid_u(solid_IB_ijk_u(:,3))'];
 
     solid_u = false(itot,jtot,ktot);
     for n=1:size(solid_ijk_u,1)
@@ -174,14 +174,14 @@ if lmypolyfortran
 
 
     %% v-grid
-    solid_ijk_v = readmatrix([fpath 'solid_v.txt']);
-    fluid_IB_ijk_v = readmatrix([fpath 'fluid_boundary_v.txt']);
+    solid_ijk_v = readmatrix([fpath 'solid_v.txt'],'Range', 2);
+    fluid_IB_ijk_v = readmatrix([fpath 'fluid_boundary_v.txt'],'Range', 2);
     %fluid_IB_ijk_v = sortrows(fluid_IB_ijk_v,3);
     fluid_boundary_v = fluid_IB_ijk_v;
     fluid_IB_xyz_v = [xgrid_v(fluid_IB_ijk_v(:,1))', ygrid_v(fluid_IB_ijk_v(:,2))', zgrid_v(fluid_IB_ijk_v(:,3))'];
-    solid_IB_ijk_v = readmatrix([fpath 'solid_boundary_v.txt']);
+    solid_IB_ijk_v = readmatrix([fpath 'solid_boundary_v.txt'],'Range', 2);
     %solid_IB_ijk_v = sortrows(solid_IB_ijk_v,3);
-    solid_IB_xyz_v = [xgrid_v(solid_IB_ijk_v(:,1))', ygrid_v(solid_IB_ijk_v(:,2))', zgrid_v(solid_IB_ijk_v(:,3))'];
+%     solid_IB_xyz_v = [xgrid_v(solid_IB_ijk_v(:,1))', ygrid_v(solid_IB_ijk_v(:,2))', zgrid_v(solid_IB_ijk_v(:,3))'];
     
     solid_v = false(itot,jtot,ktot);
     for n=1:size(solid_ijk_v,1)
@@ -253,14 +253,14 @@ if lmypolyfortran
 
     %% w-grid
     % w
-    solid_ijk_w = readmatrix([fpath 'solid_w.txt']);
-    fluid_IB_ijk_w = readmatrix([fpath 'fluid_boundary_w.txt']);
+    solid_ijk_w = readmatrix([fpath 'solid_w.txt'],'Range', 2);
+    fluid_IB_ijk_w = readmatrix([fpath 'fluid_boundary_w.txt'],'Range', 2);
     %fluid_IB_ijk_w = sortrows(fluid_IB_ijk_w,3);
     fluid_boundary_w = fluid_IB_ijk_w;
     fluid_IB_xyz_w = [xgrid_w(fluid_IB_ijk_w(:,1))', ygrid_w(fluid_IB_ijk_w(:,2))', zgrid_w(fluid_IB_ijk_w(:,3))'];
-    solid_IB_ijk_w = readmatrix([fpath 'solid_boundary_w.txt']);
+    solid_IB_ijk_w = readmatrix([fpath 'solid_boundary_w.txt'],'Range', 2);
     %solid_IB_ijk_w = sortrows(solid_IB_ijk_w,3);
-    solid_IB_xyz_w = [xgrid_w(solid_IB_ijk_w(:,1))', ygrid_w(solid_IB_ijk_w(:,2))', zgrid_w(solid_IB_ijk_w(:,3))'];
+%     solid_IB_xyz_w = [xgrid_w(solid_IB_ijk_w(:,1))', ygrid_w(solid_IB_ijk_w(:,2))', zgrid_w(solid_IB_ijk_w(:,3))'];
     % Convert from sparse (list) format to mask (3D array)
 
     solid_w = false(itot,jtot,ktot);
@@ -332,14 +332,14 @@ if lmypolyfortran
 %     end
 
     %% c-grid
-    solid_ijk_c = readmatrix([fpath 'solid_c.txt']);
-    fluid_IB_ijk_c = readmatrix([fpath 'fluid_boundary_c.txt']);
+    solid_ijk_c = readmatrix([fpath 'solid_c.txt'],'Range', 2);
+    fluid_IB_ijk_c = readmatrix([fpath 'fluid_boundary_c.txt'],'Range', 2);
     %fluid_IB_ijk_c = sortrows(fluid_IB_ijk_c,3);
     fluid_boundary_c = fluid_IB_ijk_c;
     fluid_IB_xyz_c = [xgrid_c(fluid_IB_ijk_c(:,1))', ygrid_c(fluid_IB_ijk_c(:,2))', zgrid_c(fluid_IB_ijk_c(:,3))'];
-    solid_IB_ijk_c = readmatrix([fpath 'solid_boundary_c.txt']);
+    solid_IB_ijk_c = readmatrix([fpath 'solid_boundary_c.txt'],'Range', 2);
     %solid_IB_ijk_c = sortrows(solid_IB_ijk_c,3);
-    solid_IB_xyz_c = [xgrid_c(solid_IB_ijk_c(:,1))', ygrid_c(solid_IB_ijk_c(:,2))', zgrid_c(solid_IB_ijk_c(:,3))'];
+%     solid_IB_xyz_c = [xgrid_c(solid_IB_ijk_c(:,1))', ygrid_c(solid_IB_ijk_c(:,2))', zgrid_c(solid_IB_ijk_c(:,3))'];
 
     % Convert from sparse (list) format to mask (3D array)
     solid_c = false(itot,jtot,ktot);
@@ -638,19 +638,19 @@ if lmatchFacetsToCellsFortran
     delete MFTC.exe info_matchFacetsToCells.txt faces.txt vertices.txt zfgrid.txt zhgrid.txt;
     cd(currentPath)
 
-    facet_sections_u_fromfile = readmatrix([fpath 'facet_sections_u.txt']);
+    facet_sections_u_fromfile = readmatrix([fpath 'facet_sections_u.txt'],'Range', 2);
     facet_sections_u = NaN(size(facet_sections_u_fromfile,1), 9);
     facet_sections_u(:,[1,2,5,6]) = facet_sections_u_fromfile;
 
-    facet_sections_v_fromfile = readmatrix([fpath 'facet_sections_v.txt']);
+    facet_sections_v_fromfile = readmatrix([fpath 'facet_sections_v.txt'],'Range', 2);
     facet_sections_v = NaN(size(facet_sections_v_fromfile,1), 9);
     facet_sections_v(:,[1,2,5,6]) = facet_sections_v_fromfile;
 
-    facet_sections_w_fromfile = readmatrix([fpath 'facet_sections_w.txt']);
+    facet_sections_w_fromfile = readmatrix([fpath 'facet_sections_w.txt'],'Range', 2);
     facet_sections_w = NaN(size(facet_sections_w_fromfile,1), 9);
     facet_sections_w(:,[1,2,5,6]) = facet_sections_w_fromfile;
 
-    facet_sections_c_fromfile = readmatrix([fpath 'facet_sections_c.txt']);
+    facet_sections_c_fromfile = readmatrix([fpath 'facet_sections_c.txt'],'Range', 2);
     facet_sections_c = NaN(size(facet_sections_c_fromfile,1), 9);
     facet_sections_c(:,[1,2,5,6]) = facet_sections_c_fromfile;
 
@@ -853,10 +853,10 @@ xlim([0 xsize])
 ylim([0 ysize])
 zlim([0 zsize])
 
-%scatter3(X_u(solid_u), Y_u(solid_u), Z_u(solid_u), 10,[0,0,1],'filled')
-%scatter3(X_v(solid_v), Y_v(solid_v), Z_v(solid_v), 10,[0,0,1],'filled')
-%scatter3(X_w(solid_w), Y_w(solid_w), Z_w(solid_w), 10,[0,0,1],'filled')
-%scatter3(X_c(solid_c), Y_c(solid_c), Z_c(solid_c), 10,[0,0,1],'filled')
+scatter3(X_u(solid_u), Y_u(solid_u), Z_u(solid_u), 10,[0,0,1],'filled')
+scatter3(X_v(solid_v), Y_v(solid_v), Z_v(solid_v), 10,[0,0,1],'filled')
+scatter3(X_w(solid_w), Y_w(solid_w), Z_w(solid_w), 10,[0,0,1],'filled')
+scatter3(X_c(solid_c), Y_c(solid_c), Z_c(solid_c), 10,[0,0,1],'filled')
 
 %scatter3(X_u(fluid_IB_u), Y_u(fluid_IB_u), Z_u(fluid_IB_u), 10,[0,0,1],'filled')
 %scatter3(X_v(fluid_IB_v), Y_v(fluid_IB_v), Z_v(fluid_IB_v), 10,[0,0,1],'filled')

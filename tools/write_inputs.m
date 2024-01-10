@@ -20,10 +20,12 @@
 % This script is run by the bash script da_inp.sh.
 % It used to generate the necessary input files for uDALES.
 
-expnr = '136';
+expnr = '901';
 %
-DA_EXPDIR = getenv('DA_EXPDIR');
-DA_TOOLSDIR = getenv('DA_TOOLSDIR');
+% DA_EXPDIR = getenv('DA_EXPDIR');
+% DA_TOOLSDIR = getenv('DA_TOOLSDIR');
+DA_EXPDIR = 'D:/Postdoc1/simulation/treeu2/experiments';
+DA_TOOLSDIR = 'D:/Postdoc1/simulation/treeu2/u-dales/tools';
 addpath(genpath([DA_TOOLSDIR '/']));
 addpath([DA_TOOLSDIR '/IBM/'])
 addpath([DA_TOOLSDIR '/SEB/'])
@@ -51,13 +53,19 @@ if r.nsv>0
     disp(['Written scalar.inp.', r.expnr])
 end
 
+if r.ltrees || r.ltreesfile
+    disp('Generating trees')
+    preprocessing.generate_trees_from_namoptions(r);
+    preprocessing.write_trees(r);
+    disp(['Written trees.inp.', r.expnr])
+end
+
 if isfile(['factypes.inp.', expnr])
     r.factypes = dlmread(['factypes.inp.', r.expnr],'',3,0);
 else
     preprocessing.write_factypes(r)
     disp(['Written factypes.inp.', r.expnr])
 end
-
 
 if r.libm
     %% Read the .stl file and write necessary ibm files
@@ -75,7 +83,7 @@ if r.libm
 
     calculate_facet_sections_uvw = r.iwallmom > 1;
     calculate_facet_sections_c = r.ltempeq || r.lmoist;
-    lwindows = false;
+    lwindows = true;
     if r.gen_geom
         % c-grid (scalars/pressure)
         xgrid_c = r.xf;
@@ -175,7 +183,7 @@ if r.libm
         resolution   = r.psc_res;
         xazimuth     = r.xazimuth;
         ltimedepsw   = r.ltimedepsw;
-        ldirectShortwaveFortran = 0;
+        ldirectShortwaveFortran = 1;
         lscatter = true;
  
         if ltimedepsw

@@ -35,6 +35,8 @@ program DALESURBAN      !Version 48
   use modforces,         only : calcfluidvolumes,forces,coriolis,lstend,fixuinf1,fixuinf2,fixthetainf,nudge,masscorr,shiftedPBCs
   use modpois,           only : initpois,poisson
   use modibm,            only : initibm,createmasks,ibmwallfun,ibmnorm,bottom
+  use modtrees,          only : createtrees,trees
+  use modpurifiers,      only : createpurifiers,purifiers
   use initfac,           only : readfacetfiles
   use modEB,             only : initEB,EB
   use moddriver,         only : initdriver
@@ -106,6 +108,10 @@ program DALESURBAN      !Version 48
 
   call boundary
 
+  call createtrees
+
+  call createpurifiers
+
   !call fielddump
 
 !------------------------------------------------------
@@ -154,6 +160,8 @@ program DALESURBAN      !Version 48
 
     call EB
 
+    call trees
+
     call scalsource     ! adds continuous forces in specified region of domain
 
 !------------------------------------------------------
@@ -169,6 +177,8 @@ program DALESURBAN      !Version 48
     call grwdamp        !damping at top of the model
 
     call poisson
+
+    call purifiers      !placing of purifiers here may need to be checked
 
     call tstep_integrate
 
