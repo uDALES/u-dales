@@ -62,7 +62,7 @@ if ~ltimedepsw
         else
             system('./DS.exe');
         end
-        Sdir = dlmread([fpath 'Sdir_fort.txt'], '', 0, 0);
+        Sdir = dlmread([fpath 'Sdir.txt'], '', 0, 0);
         delete DS.exe;
         cd(currentPath)
     else
@@ -106,15 +106,26 @@ else
                 end
                 Sdir(:,n) = dlmread([fpath 'Sdir.txt'], '', 0, 0);
             else
-                Sdir(:,n) = directShortwave(F, V, nsun, irradiance, 0.1, true, false);
+                Sdir(:,n) = directShortwave(F, V, nsun, irradiance, resolution, true, false);
             end
 
             if lscatter
-                Knet(:,n) = reflectedShortwave(Sdir(:,n), Dsky, vf, svf, albedos);
+                Knet(:,n) = netShortwave(Sdir(:,n), Dsky, vf, svf, albedos);
             end
         end
 
     end
+
+    % write to netcdf for visualisation
+    ncid = netcdf.create('Sdir.nc', 'NC_WRITE');
+    dimidrow = netcdf.defDim(ncid,'rows', nfcts);
+    dimidcol = netcdf.defDim(ncid,'columns', length(tSP));
+    varid_tSP = netcdf.defVar(ncid,'tSP','NC_FLOAT',dimidcol);
+    varid_Sdir = netcdf.defVar(ncid,'Sdir','NC_FLOAT',[dimidrow dimidcol]);
+    netcdf.endDef(ncid);
+    netcdf.putVar(ncid,varid_tSP,tSP);
+    netcdf.putVar(ncid,varid_Sdir,Sdir);
+    netcdf.close(ncid);
 end
 
 

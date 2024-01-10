@@ -307,17 +307,8 @@ classdef preprocessing < dynamicprops
                 preprocessing.addvar(obj, 'ltimedepsw', 0)
                 if obj.ltimedepsw
                     preprocessing.addvar(obj, 'runtime', 0)
+                    preprocessing.addvar(obj, 'dtEB', 10.) % energy balance timestep
                     preprocessing.addvar(obj, 'dtSP', obj.dtEB) % solar position time step
-                else
-                    preprocessing.addvar(obj, 'lcustomsw', 1)
-                end
-
-                if obj.lcustomsw
-                    preprocessing.addvar(obj, 'solarazimuth', 135); % solar azimuth angle
-                    preprocessing.addvar(obj, 'solarzenith', 28.4066); % zenith angle
-                    preprocessing.addvar(obj, 'I', 800); % Direct normal irradiance [W/m2]
-                    preprocessing.addvar(obj, 'Dsky', 418.8041); % Diffuse incoming radiation [W/m2]
-                else
                     preprocessing.addvar(obj, 'year', 2023) % check robustness of this
                     preprocessing.addvar(obj, 'month', 6)
                     preprocessing.addvar(obj, 'day', 21)
@@ -328,14 +319,43 @@ classdef preprocessing < dynamicprops
                     preprocessing.addvar(obj, 'latitude', 51.5) % latitude
                     preprocessing.addvar(obj, 'timezone', 0) % timezone
                     preprocessing.addvar(obj, 'elevation', 0) % timezone
+                else
+                    preprocessing.addvar(obj, 'lcustomsw', 1)
+                    if obj.lcustomsw
+                        preprocessing.addvar(obj, 'solarazimuth', 135); % solar azimuth angle
+                        preprocessing.addvar(obj, 'solarzenith', 28.4066); % zenith angle
+                        preprocessing.addvar(obj, 'I', 800); % Direct normal irradiance [W/m2]
+                        preprocessing.addvar(obj, 'Dsky', 418.8041); % Diffuse incoming radiation [W/m2]
+                    else
+                        preprocessing.addvar(obj, 'year', 2023) % check robustness of this
+                        preprocessing.addvar(obj, 'month', 6)
+                        preprocessing.addvar(obj, 'day', 21)
+                        preprocessing.addvar(obj, 'hour', 6)
+                        preprocessing.addvar(obj, 'minute', 0)
+                        preprocessing.addvar(obj, 'second', 0)
+                        preprocessing.addvar(obj, 'longitude', -0.13) % longitude
+                        preprocessing.addvar(obj, 'latitude', 51.5) % latitude
+                        preprocessing.addvar(obj, 'timezone', 0) % timezone
+                        preprocessing.addvar(obj, 'elevation', 0) % timezone
+                    end
                 end
 
-                preprocessing.addvar(obj, 'lvfsparse', false) % Switch for turning on lvfsparse
-                %preprocessing.addvar(obj, 'psc_res', 0.01); % Poly scan conversion resolution,lower number gives better results for solar radiation calculation
-                preprocessing.addvar(obj, 'psc_res', 0.1); % Poly scan conversion resolution,lower number gives better results for solar radiation calculation
+                preprocessing.addvar(obj, 'psc_res', 0.1); % Poly scan conversion resolution for solar radiation calculation (lower number = better)
+                preprocessing.addvar(obj, 'lvfsparse', false) % view factors given in sparse format
 
-                %preprocessing.addvar(obj, 'min_vf', 0.01); % Any vf below this is ignored in sparse format
-                preprocessing.addvar(obj, 'dtEB', 10.) % energy balance timestep
+                % view3d output format. 0: text, 1: binary, 2: sparse
+                preprocessing.addvar(obj, 'calc_vf', true)
+                if obj.calc_vf
+                    preprocessing.addvar(obj, 'maxD', Inf) % maximum distance to check view factors
+                else
+                  preprocessing.addvar(obj, 'vf_path', '');
+                end
+                preprocessing.addvar(obj, 'view3d_out', 0);
+                if obj.view3d_out == 2 && ~obj.lvfsparse
+                    error('If sparse view3d output is desired, set lvfsparse=.true. in &ENERGYBALANCE.')
+                end
+
+                preprocessing.addvar(obj, 'ldirectShortwaveFortran', false);
             end
 
             preprocessing.addvar(obj, 'facT', 288.) % Initial facet temperatures.
@@ -829,10 +849,11 @@ classdef preprocessing < dynamicprops
         end
 
         function write_vfsparse(obj, vfsparse)
-            [i,j,s] = find(vfsparse);
-            fpath = ['/media/chris/Project3/uDALES2.0/experiments/' num2str(obj.expnr) '/']
-            fID = fopen([fpath 'vfsparse.inp.' num2str(obj.expnr)], 'w');
-            fprintf(fID, '%d %d %.6f \n', [i, j, s]');
+            %[i,j,s] = find(vfsparse);
+            [i,j,~] = find(vfsparse >= 5e-7); % round to 6 decimal places
+            s = full(vfsparse(vfsparse >= 5e-7));
+            fID = fopen(['vfsparse.inp.' num2str(obj.expnr)], 'w');
+            fprintf(fID, '%d %d %.6f\n', sortrows([i, j, s])'); % write to 6 decimal places, sorted by rows
         end
 
         function write_svf(obj, svf)
@@ -859,12 +880,23 @@ classdef preprocessing < dynamicprops
             fclose(fileID);
         end
 
+
         function write_efalb(obj,efalb)
             fname = ['efalb.' obj.expnr];
             fileID = fopen(fname, 'w');
             fprintf(fileID,'# %4s\n','Effective albedo');
             fprintf(fileID,'%6.4f\n', efalb);
             fclose(fileID);
+        end
+
+        function write_timedepsw(obj, tSP, Knet)
+            fname = ['timedepsw.inp.' obj.expnr];
+            fileID = fopen(fname, 'w');
+            fprintf(fileID,'# %4s\n','time-dependent net shortwave on facets [W/m2]. First line: times (1 x nt), then netsw (nfcts x nt)');
+            fclose(fileID);
+            dlmwrite(fname, tSP, '-append','delimiter',' ','precision','%9.2f')
+            dlmwrite(fname, Knet, '-append','delimiter',' ','precision','%9.4f')
+
         end
 
         function write_Tfacinit(obj, Tfacinit)

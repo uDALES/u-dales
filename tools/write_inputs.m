@@ -1,4 +1,4 @@
-%% write_inputs 
+%% write_inputs
 
 % uDALES (https://github.com/uDALES/u-dales).
 
@@ -152,75 +152,122 @@ facet_types = ones(nfcts,1); % facet_types are to be user-defined - defaults to 
 preprocessing.write_facets(r, facet_types, TR.faceNormal);
 preprocessing.write_facetarea(r, area_facets);
 %%
-toc
-if r.lEB
-    %% Write STL in View3D input format
-    fpath_facets_view3d = [fpath 'facets.vs3'];
-    STLtoView3D(r.stl_file, fpath_facets_view3d);
+% toc
+% if r.lEB
+%     %% Write STL in View3D input format
+%     fpath_facets_view3d = [fpath 'facets.vs3'];
+%     STLtoView3D(r.stl_file, fpath_facets_view3d);
+% 
+%     %% Calculate view factors
+%     % Add check to see if View3D exists in the tools directory.
+%     view3d_exe = [DA_TOOLSDIR '/View3D/build/src/view3d'];
+%     fpath_vf = [fpath 'vf.txt'];
+%     vf = view3d(view3d_exe, fpath_facets_view3d, fpath_vf);
+%     toc
+%     svf = max(1 - sum(vf, 2), 0);
+%     preprocessing.write_svf(r, svf);
+%     if ~r.lvfsparse
+%         preprocessing.write_vf(r, vf)
+%         disp(['Written vf.nc.inp.', r.expnr])
+%     else
+%         vfsparse = sparse(double(vf));
+%         preprocessing.write_vfsparse(r, vfsparse);
+%         disp(['Written vfsparse.inp.', r.expnr])
+%     end
+%     %% Set facet types
+%     nfcts = size(TR.ConnectivityList,1);
+%     preprocessing.set_nfcts(r, nfcts);
+%     facet_types = ones(nfcts,1); % facet_types are to be user-defined - defaults to type 1 (concrete)
+%     preprocessing.write_facets(r, facet_types, TR.faceNormal);
+% 
+%     preprocessing.write_facetarea(r, area_facets); % always write facet area
+    if r.lEB
+        %% Write STL in View3D input format
+        fpath_facets_view3d = [fpath 'facets.vs3'];
+        STLtoView3D(r.stl_file, fpath_facets_view3d, r.view3d_out, r.maxD);
 
-    %% Calculate view factors
-    % Add check to see if View3D exists in the tools directory.
-    view3d_exe = [DA_TOOLSDIR '/View3D/build/src/view3d'];
-    fpath_vf = [fpath 'vf.txt'];
-    vf = view3d(view3d_exe, fpath_facets_view3d, fpath_vf);
-    toc
-    svf = max(1 - sum(vf, 2), 0);
-    preprocessing.write_svf(r, svf);
-    if ~r.lvfsparse
-        preprocessing.write_vf(r, vf)
-        disp(['Written vf.nc.inp.', r.expnr])
-    else
-        vfsparse = sparse(double(vf));
-        preprocessing.write_vfsparse(r, vfsparse);
-        disp(['Written vfsparse.inp.', r.expnr])
-    end
-    %% Set facet types
-    nfcts = size(TR.ConnectivityList,1);
-    preprocessing.set_nfcts(r, nfcts);
-    facet_types = ones(nfcts,1); % facet_types are to be user-defined - defaults to type 1 (concrete)
-    preprocessing.write_facets(r, facet_types, TR.faceNormal);
+        %% Calculate view factors
+        % remember to build View3D in local system windows/linux
+        % Add check to see if View3D exists in the tools directory.
+        if lwindows
+            view3d_exe = [DA_TOOLSDIR '/View3D/src/View3D.exe'];
+        else
+            view3d_exe = [DA_TOOLSDIR '/View3D/build/src/view3d'];
+        end
 
-    %%
-   % preprocessing.write_facetarea(r, area_facets); % always write facet area
-%     if r.lEB
-% 
-%         %% Write STL in View3D input format
-%         fpath_facets_view3d = [fpath 'facets.vs3'];
-%         STLtoView3D(r.stl_file, fpath_facets_view3d);
-% 
-%         %% Calculate view factors
-%         % remember to build View3D in local system windows/linux
-%         % Add check to see if View3D exists in the tools directory.
-%         if lwindows
-%             view3d_exe = [DA_TOOLSDIR '/View3D/src/View3D.exe'];
-%         else
-%             view3d_exe = [DA_TOOLSDIR '/View3D/build/src/view3d'];
-%         end
-%         fpath_vf = [fpath 'vf.txt'];
-%         vf = view3d(view3d_exe, fpath_facets_view3d, fpath_vf);
-%         svf = max(1 - sum(vf, 2), 0);
-%         preprocessing.write_svf(r, svf);
-% 
-%         if ~r.lvfsparse
-%             preprocessing.write_vf(r, vf)
-%             disp(['Written vf.nc.inp.', r.expnr])
-%         else
-%             vfsparse = sparse(double(vf));
-%             preprocessing.write_vfsparse(obj, vfsparse);
-%             disp(['Written vfsparse.inp.', r.expnr])
-%         end
+        %vf = view3d(view3d_exe, fpath_facets_view3d, fpath_vf);
+        if r.calc_vf % run view3d
+            if r.view3d_out == 0 % text
+                fpath_vf = [fpath 'vf.txt'];
+            elseif r.view3d_out == 1 % binary
+                fpath_vf = [fpath 'vf.bin'];
+            elseif r.view3d_out == 2 % sparse
+                fpath_vf = [fpath 'vfsparse.inp.' r.expnr];
+            end
+
+            view3d_execution_command = [view3d_exe ' ' fpath_facets_view3d ' ' fpath_vf];
+            system(view3d_execution_command);
+        else % view3d has already been run - read output file
+            fpath_vf = r.vf_path;
+        end
+
+        if r.view3d_out == 0
+            vf = dlmread(fpath_vf, ' ', 2, 0);
+            vf(end,:) = [];
+            vf = sparse(vf);
+        elseif r.view3d_out == 1
+            fID = fopen(fpath_vf);
+            area = fread(fID, 8+r.nfcts, 'single'); % first 8 bytes are header
+            vf = fread(fID, r.nfcts^2, 'single');
+            fclose(fID);
+            %vf = reshape(vf, [nfcts, nfcts])'; % transpose to get in row-major order
+            %vf = sparse(vf);
+            %svf = max(1 - sum(vf, 2), 0);
+            % since doing above sometimes exceeds array size...
+            vf = reshape(vf, [r.nfcts, r.nfcts]);
+            vf = sparse(vf);
+            vf = vf';
+        elseif r.view3d_out == 2
+            ijs = dlmread(fpath_vf, ' ', 0, 0);
+            vf = sparse(ijs(:,1), ijs(:,2), ijs(:,3));
+        end
+
+        svf = max(1 - sum(vf, 2), 0);
+        preprocessing.write_svf(r, svf);
+
+        % write uDALES view factor file
+        if (r.view3d_out == 0 || r.view3d_out == 1)  % view3d_out==2 is already sparse
+            if ~r.lvfsparse
+                preprocessing.write_vf(r, vf)
+                disp(['Written vf.nc.inp.', r.expnr])
+            else
+                %vfsparse = sparse(double(vf));
+                preprocessing.write_vfsparse(r, vf);
+                disp(['Written vfsparse.inp.', r.expnr])
+            end
+            if r.calc_vf
+                delete(fpath_vf) % remove view3d output file
+            end
+        elseif (r.view3d_out == 2 && ~r.calc_vf)
+            copyfile(fpath_vf, [fpath 'vfsparse.inp.' r.expnr]);
+        end
 
         %% Calculate shortwave radiation
         albedos = preprocessing.generate_albedos(r, facet_types);
         resolution   = r.psc_res;
         xazimuth     = r.xazimuth;
         ltimedepsw   = r.ltimedepsw;
-        ldirectShortwaveFortran = 0;
+        ldirectShortwaveFortran = r.ldirectShortwaveFortran;
         lscatter = true;
 
         if ltimedepsw
             runtime = r.runtime;
             dtSP    = r.dtSP;
+            start = datetime(r.year, r.month, r.day, r.hour, r.minute, r.second);
+            longitude = r.longitude;
+            latitude  = r.latitude;
+            timezone  = r.timezone;
+            elevation = r.elevation;
         else
             lcustomsw = r.lcustomsw;
             if lcustomsw
@@ -229,14 +276,14 @@ if r.lEB
                 irradiance   = r.I;
                 Dsky         = r.Dsky;
             else
-                start = datetime(obj.year, obj.month, obj.day, obj.hour, obj.minute, obj.second);
+                start = datetime(r.year, r.month, r.day, r.hour, r.minute, r.second);
                 longitude = r.longitude;
                 latitude  = r.latitude;
                 timezone  = r.timezone;
                 elevation = r.elevation;
             end
         end
-% 
+%
 %         %% Calculate net shortwave radiation (Knet)
 %         disp('Calculating net shortwave radiation.')
 %         albedos = preprocessing.generate_albedos(r, facet_types);
@@ -247,7 +294,7 @@ if r.lEB
         disp(['Written netsw.inp.', r.expnr])
 
         if r.ltimedepsw
-            % write timedepsw.inp.
+            preprocessing.write_timedepsw(r, tSP, Knet)
         end
     end
 
