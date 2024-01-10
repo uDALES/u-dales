@@ -437,7 +437,7 @@ contains
     integer t,n
     real fac
 
-    if(.not.(ltimedepsw)) return
+    if(.not.(ltimedepsw .and. myid==0)) return
 
     if ((rk3step .eq. 3) .and. (timee .ge. tnextEB)) then
 
