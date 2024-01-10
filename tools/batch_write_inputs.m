@@ -5,7 +5,7 @@
 show_plot_2d = false;
 show_plot_3d = false;
 %expnrs2 = [301,303,321,323,341,343];
-expnrs2 = [991];
+expnrs2 = [060];
 expnrs1 = expnrs2-1;
 ncpus =1;
 tic
