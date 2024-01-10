@@ -183,7 +183,7 @@ if r.libm
             %vf = reshape(vf, [nfcts, nfcts])'; % transpose to get in row-major order
             %vf = sparse(vf);
             %svf = max(1 - sum(vf, 2), 0);
-            % since doing above sometimes exceeds array size... 
+            % since doing above sometimes exceeds array size...
             vf = reshape(vf, [r.nfcts, r.nfcts]);
             vf = sparse(vf);
             vf = vf';
@@ -219,7 +219,7 @@ if r.libm
         ltimedepsw   = r.ltimedepsw;
         ldirectShortwaveFortran = r.ldirectShortwaveFortran;
         lscatter = true;
- 
+
         if ltimedepsw
             runtime = r.runtime;
             dtSP    = r.dtSP;

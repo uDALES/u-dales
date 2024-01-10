@@ -206,7 +206,7 @@ classdef preprocessing < dynamicprops
             %% &ENERGYBALANCE
             preprocessing.addvar(obj, 'lEB', 0)
             preprocessing.addvar(obj, 'lfacTlyrs', 0)
-            
+
 
             %% &WALLS
             preprocessing.addvar(obj, 'iwallmom', 3)
@@ -238,8 +238,8 @@ classdef preprocessing < dynamicprops
             preprocessing.addvar(obj, 'gen_geom', true) % generate the geometry from scratch
             preprocessing.addvar(obj, 'geom_path', '') % if not generating the geometry, the path to the geometry files
             preprocessing.addvar(obj, 'diag_neighbs', true)
-            preprocessing.addvar(obj, 'stl_ground', true) % Does STL include facets at ground 
-            
+            preprocessing.addvar(obj, 'stl_ground', true) % Does STL include facets at ground
+
             if obj.lzstretch
                 preprocessing.addvar(obj, 'stretchconst', 0.01)
                 preprocessing.addvar(obj, 'lstretchexp', 0)
@@ -351,7 +351,7 @@ classdef preprocessing < dynamicprops
                   preprocessing.addvar(obj, 'vf_path', '');
                 end
                 preprocessing.addvar(obj, 'view3d_out', 0);
-                if obj.view3d_out == 2 && ~obj.lvfsparse 
+                if obj.view3d_out == 2 && ~obj.lvfsparse
                     error('If sparse view3d output is desired, set lvfsparse=.true. in &ENERGYBALANCE.')
                 end
 
