@@ -125,12 +125,12 @@ contains
                                  BCyq_periodic, BCyq_profile, BCys_periodic, &
                                  ibrank, ierank, jbrank, jerank, e12min, idriver, &
                                  Uinf, Vinf, &
-                                 rk3step				
+                                 rk3step, lchunkread
       use modfields,      only : u0, v0, w0, um, vm, wm, thl0, thlm, qt0, qtm, e120, e12m, sv0, svm, u0av, v0av, uout, uouttot, vouttot, thl0c
       use modsubgriddata, only : ekh, ekm, loneeqn
       use modsurfdata,    only : thl_top, qt_top, sv_top, wttop, wqtop, wsvtop
       use modmpi,         only : myid, slabsum, avey_ibm
-      use moddriver,      only : drivergen
+      use moddriver,      only : drivergen, driverchunkread
       use modinletdata,   only : ubulk, vbulk, iangle
       use decomp_2d,      only : exchange_halo_z
 
@@ -260,6 +260,7 @@ contains
        case(BCxm_driver)
          !uouttot = ubulk ! does this hold for all forcings of precursor simulations? tg3315
          if(rk3step==0 .or. rk3step==3) then 
+          if (lchunkread) call driverchunkread
           call drivergen ! think this should be done at the start of an rk3 loop?
          end if
          call xmi_driver

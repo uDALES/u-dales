@@ -403,6 +403,9 @@ module modglobal
    integer :: driverid
    character(3) :: cdriverid
 
+   logical :: lchunkread = .false.     !< * logical switch for chunkwise reading of driver files
+   integer :: chunkread_size = 100      !< * chunk size of each reading
+
    real    :: courant = -1.
    real    :: diffnr = 0.25
    real    :: dt_lim

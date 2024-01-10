@@ -71,7 +71,7 @@ module modstartup
                                     BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys,BCzp,ds, &
                                     BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots, &
                                     BCxm_periodic, BCym_periodic, &
-                                    idriver,tdriverstart,driverjobnr,dtdriver,driverstore,lsdriver, &
+                                    idriver,tdriverstart,driverjobnr,dtdriver,driverstore,lsdriver,lchunkread,chunkread_size, &
                                     lrandomize, prandtlturb, fkar, lwritefac, dtfac, tfac, tnextfac, &
                                     ltrees,ntrees,Qstar,dQdt,lad,lsize,r_s,cd,dec,ud,ltreedump, &
                                     lpurif,npurif,Qpu,epu
@@ -141,7 +141,8 @@ module modstartup
          lwallfunc
       namelist/DRIVER/ &
          idriver, tdriverstart, driverjobnr, dtdriver, &
-         driverstore, iplane, lsdriver, iangledeg
+         driverstore, iplane, lsdriver, iangledeg, &
+         lchunkread, chunkread_size
       namelist/WALLS/ &
          nblocks, nfcts, iwallmom, iwalltemp, iwallmoist, iwallscal, &
          nsolpts_u, nsolpts_v, nsolpts_w, nsolpts_c, &
@@ -387,6 +388,8 @@ module modstartup
       call MPI_BCAST(dtdriver   ,1,MY_REAL    ,0,comm3d,mpierr)        ! ae1212
       call MPI_BCAST(driverstore,1,MPI_INTEGER ,0,comm3d,mpierr)
       call MPI_BCAST(lsdriver   ,1,MPI_LOGICAL,0,comm3d,mpierr)
+      call MPI_BCAST(lchunkread ,1,MPI_LOGICAL,0,comm3d,mpierr)
+      call MPI_BCAST(chunkread_size,1,MPI_LOGICAL,0,comm3d,mpierr)
       !call MPI_BCAST(BCxm, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(BCxT, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(BCxq, 1, MPI_INTEGER, 0, comm3d, mpierr)
@@ -870,7 +873,7 @@ module modstartup
          ladaptive, tnextrestart, jmax, imax, xh, xf, linoutflow, lper2inout, iinletgen, lreadminl, &
          uflowrate, vflowrate,ltempeq, prandtlmoli, freestreamav, &
          tnextfielddump, tfielddump, tsample, tstatsdump, startfile, lprofforc, lchem, k1, JNO2,&
-         idriver,dtdriver,driverstore,tdriverstart,tdriverstart_cold,tdriverdump,xlen,ylen,itot,jtot,ibrank,ierank,jbrank,jerank,BCxm,BCym,lrandomize,BCxq,BCxs,BCxT, BCyq,BCys,BCyT,BCxm_driver,&
+         idriver,dtdriver,driverstore,tdriverstart,tdriverstart_cold,tdriverdump,lchunkread,xlen,ylen,itot,jtot,ibrank,ierank,jbrank,jerank,BCxm,BCym,lrandomize,BCxq,BCxs,BCxT, BCyq,BCys,BCyT,BCxm_driver,&
          tEB,tnextEB,dtEB,BCxs_custom,lEB,lfacTlyrs,tfac,tnextfac,dtfac
       use modsubgriddata, only:ekm, ekh, loneeqn
       use modsurfdata, only:wtsurf, wqsurf, wsvsurf, &
@@ -887,7 +890,7 @@ module modstartup
          storeu0driver,storeumdriver,storev0driver,storew0driver,storee120driver,storethl0driver,storeqt0driver,&
          nstepreaddriver
       use modinlet, only:readinletfile
-      use moddriver, only: readdriverfile,initdriver,drivergen
+      use moddriver, only: readdriverfile,initdriver,drivergen,readdriverfile_chunk
       use decomp_2d, only : exchange_halo_z, update_halo, decomp_main
 
       integer i, j, k, n
@@ -1384,7 +1387,11 @@ module modstartup
             elseif (idriver==2) then ! idriver
 
                if (ibrank) then
+                  if (lchunkread) then
+                      call readdriverfile_chunk
+                  else
                      call readdriverfile
+                  end if
                   call drivergen
                end if
 
@@ -1806,7 +1813,11 @@ module modstartup
             elseif (idriver==2) then ! idriver
 
                if (ibrank) then
+                  if (lchunkread) then
+                      call readdriverfile_chunk
+                  else
                      call readdriverfile
+                  end if
                   call drivergen
                end if
 

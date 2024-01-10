@@ -227,4 +227,9 @@ module modinletdata
 
     integer :: irecydriver
     integer :: nstepreaddriver=0
+
+    integer :: chunkreadctr = 1             ! chunk reading counter
+    integer :: chunkread_s = 0              ! chunk reading loop start
+    integer :: chunkread_e = 0              ! chunk reading loop end
+    
 end module
