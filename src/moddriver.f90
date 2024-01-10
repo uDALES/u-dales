@@ -240,7 +240,7 @@ contains
         end if
         stop 'Time in simulation has exceeded the inlet information - no more inlet data available!'
       end if
-      
+
       if (.not.(lchunkread)) then
 
         x = minloc(abs(storetdriver-timee),1)
@@ -278,7 +278,7 @@ contains
             sv0driver(:,:,:) = storesv0driver(:,:,:,x)
           end if
           nstepreaddriver = x
-        
+
         elseif ((elapsrec > 0.) .and. (x == 1)) then
 
           if ((driverid==0) .and. ((rk3step==0) .or. (rk3step==3))) then
@@ -463,7 +463,7 @@ contains
 
         end if
         nstepreaddriver = x    !! Not sure.. may need modification
-        
+
       end if
 
       ! rotate
@@ -947,7 +947,7 @@ contains
     integer :: fileid, IOS, filesize, filesizes
     integer :: j,k,m,n,js,jf,jfdum,jsdum
     character(24) :: name
-    
+
     write(cdriverjobnr, '(i3.3)') driverjobnr
 
     chunkread_s = (chunkreadctr-1)*chunkread_size + 1
@@ -1023,7 +1023,7 @@ contains
     name(9:11)= cdriverid
     ! write (name(18:20)  ,'(i3.3)') filen
     write (name(13:15)   ,'(i3.3)') driverjobnr
-    write(6,*) 'Reading Driver u-velocity: ', name
+    !write(6,*) 'Reading Driver u-velocity: ', name
     ! inquire(file=name,recl=filesize)
     inquire(iolength=filesize)u0(ib,:,:)
     write(6,*) 'record length ',filesize
@@ -1052,7 +1052,7 @@ contains
     name(9:11)= cdriverid
     ! write (name(18:20)  ,'(i3.3)') filen
     write (name(13:15)   ,'(i3.3)') driverjobnr
-    write(6,*) 'Reading Driver v-velocity: ', name
+    !write(6,*) 'Reading Driver v-velocity: ', name
     ! inquire(file=name,recl=filesize)
     ! inquire(iolength=filesize)u0(ib,:,:)
     open(unit=11,file=name,form='unformatted',status='old',action='read',access='direct',recl=filesize)
@@ -1071,7 +1071,7 @@ contains
     name(9:11)= cdriverid
     ! write (name(18:20)  ,'(i3.3)') filen
     write (name(13:15)   ,'(i3.3)') driverjobnr
-    write(6,*) 'Reading Driver w-velocity: ', name
+    !write(6,*) 'Reading Driver w-velocity: ', name
     ! inquire(file=name,recl=filesize)
     ! inquire(iolength=filesize)u0(ib,:,:)
     open(unit=11,file=name,form='unformatted',status='old',action='read',access='direct',recl=filesize)
@@ -1110,7 +1110,7 @@ contains
       name(9:11)= cdriverid
       ! write (name(18:20)  ,'(i3.3)') filen
       write (name(13:15)   ,'(i3.3)') driverjobnr
-      write(6,*) 'Reading Driver temperature: ', name
+      !write(6,*) 'Reading Driver temperature: ', name
       ! inquire(file=name,recl=filesize)
       open(unit=11,file=name,form='unformatted',status='old',action='read',access='direct',recl=filesize)
       do n = chunkread_s,chunkread_e!1,driverstore
@@ -1136,7 +1136,7 @@ contains
       name(9:11)= cdriverid
       ! write (name(18:20)  ,'(i3.3)') filen
       write (name(13:15)   ,'(i3.3)') driverjobnr
-      write(6,*) 'Reading Driver moisture: ', name
+      !write(6,*) 'Reading Driver moisture: ', name
       ! inquire(file=name,recl=filesize)
       open(unit=11,file=name,form='unformatted',status='old',action='read',access='direct',recl=filesize)
       do n = chunkread_s,chunkread_e!1,driverstore
@@ -1158,7 +1158,7 @@ contains
       name(9:11)= cdriverid
       ! write (name(18:20)  ,'(i3.3)') filen
       write (name(13:15)   ,'(i3.3)') driverjobnr
-      write(6,*) 'Reading Driver scalar: ', name
+      !write(6,*) 'Reading Driver scalar: ', name
       ! inquire(file=name,recl=filesize)
       inquire(iolength=filesizes)sv0(ib,:,:,:)
       open(unit=12,file=name,form='unformatted',status='old',action='read',access='direct',recl=filesizes)
@@ -1175,7 +1175,7 @@ contains
     use modglobal,    only : timee,ibrank,idriver,lchunkread
     use modinletdata, only : storetdriver, chunkread_e
     use modmpi,       only : myid
-    
+
     ! if (idriver==2 .and. lchunkread .and. timee > storetdriver(chunkread_e)) then
     !   if (myid==0) then
     !     write(6,*) 'Current timee = ', timee, '; last read storetdriver = ', storetdriver(chunkread_e), &
