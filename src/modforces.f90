@@ -884,36 +884,33 @@ module modforces
 
   subroutine nudge
     use modglobal,  only : kb,ke,lmoist,ltempeq,lnudge,tnudge,nnudge,numol,nsv
-    use modfields,  only : thlp,qtp,svp,sv0av,thl0av,qt0av,up,vp,u0av,v0av,uprof,vprof
+    use modfields,  only : thlp,qtp,svp,sv0av,thl0av,qt0av,up,vp,u0av,v0av,uprof,vprof,thlprof,qtprof,svprof
     use modmpi,     only : myid
     implicit none
-    integer :: k
-    real :: numoli
-
-    numoli = 1/numol
+    integer :: k, n
 
     if (lnudge .eqv. .false.) return
 
     do k=kb+nnudge,ke
       up(:,:,k) = up(:,:,k) - (u0av(k) - uprof(k)) / tnudge
-      !vp(:,:,k) = vp(:,:,k) - (v0av(k) - vprof(k)) / tnudge
+      vp(:,:,k) = vp(:,:,k) - (v0av(k) - vprof(k)) / tnudge
    end do
 
-    if (nsv>0) then
-      do k=ke-nnudge,ke
-        svp(:,:,k,1) = svp(:,:,k,1) - ( sv0av(k,1) - 0. ) / (tnudge/2 + (ke-k)*tnudge/nnudge)
+    do n=1,nsv
+      do k=kb+nnudge,ke
+        svp(:,:,k,n) = svp(:,:,k,n) - (sv0av(k,n) - svprof(k,n)) / tnudge
       end do
-    end if
+    end do
 
     if (ltempeq) then
-      do k=ke-nnudge,ke
-        thlp(:,:,k) = thlp(:,:,k) - ( thl0av(k) - 288 ) / (tnudge/2 + (ke-k)*tnudge/nnudge)
+      do k=kb+nnudge,ke
+       thlp(:,:,k) = thlp(:,:,k) - (thl0av(k) - thlprof(k)) / tnudge
       end do
     end if !ltempeq
 
     if (lmoist) then
-      do k=ke-nnudge,ke
-        qtp(:,:,k) = qtp(:,:,k) - ( qt0av(k) - 0. ) / (tnudge/2 +(ke-k)*tnudge/nnudge)
+      do k=kb+nnudge,ke
+        qtp(:,:,k) = qtp(:,:,k) - (qt0av(k) - qtprof(k)) / tnudge
       end do
     end if !lmoist
 
