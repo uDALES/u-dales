@@ -51,12 +51,14 @@ for file in *dump.*.000.${expnr}.nc ; do
 
         if [ ${dumps:0:9} == "fielddump" ]; then
             ymparam="v,tau_y,ym"
+	    #ymparam="v,ym"
 
         elif [ ${dumps:0:5} == "tdump" ]; then
             ymparam="vt,vpwpt,upvpt,ym"
 
         elif [ ${dumps:0:9} == "slicedump" ]; then
             ymparam="v_2,v_20,ym"
+
         else
             ymparam="ym"
         fi
@@ -84,14 +86,15 @@ for file in *dump.000.${expnr}.nc ; do
         dumps=${file%.000.${expnr}.nc}
 
         if [ $dumps == "fielddump" ]; then
-	          #xmparam="xm"
             xmparam="u,tau_x,xm"
+	    #xmparam="u,xm"
 
         elif [ $dumps == "tdump" ]; then
             xmparam="ut,upwpt,upvpt,xm"
 
         elif [ $dumps == "slicedump" ]; then
             xmparam="u_2,u_20,xm"
+
         else
             xmparam="xm"
         fi
