@@ -217,7 +217,7 @@ contains
       end if
 
     elseif (idriver == 2) then
-      
+
       if (timee>(runtime+btime)) return
       if(driverid==0) then
         if (.not.(lwarmstart)) then
@@ -240,7 +240,7 @@ contains
         end if
         stop 'Time in simulation has exceeded the inlet information - no more inlet data available!'
       end if
-      
+
       if (.not.(lchunkread)) then
 
         x = minloc(abs(storetdriver-timee),1)
@@ -278,7 +278,7 @@ contains
             sv0driver(:,:,:) = storesv0driver(:,:,:,x)
           end if
           nstepreaddriver = x
-        
+
         elseif ((elapsrec > 0.) .and. (x == 1)) then
 
           if ((driverid==0) .and. ((rk3step==0) .or. (rk3step==3))) then
@@ -463,7 +463,7 @@ contains
 
         end if
         nstepreaddriver = x    !! Not sure.. may need modification
-        
+
       end if
 
       ! rotate
@@ -588,7 +588,7 @@ contains
         if (btime<tdriverstart) then
           write(11,rec=nstepreaddriver)  ( timee-tdriverstart)
           write(*,*) 'Driver time:' , timee-tdriverstart
-        else 
+        else
           write(11,rec=nstepreaddriver)  ( timee-tdriverstart_cold)
           write(*,*) 'Driver time:' , timee-tdriverstart_cold
         end if
@@ -745,14 +745,14 @@ contains
           write(*,*) 'Warning! Driver files cannot be written upto ', driverstore, ' steps. &
                       Consider taking runtime + ',btime,' >= (tdriverstart + (driverstore-1)*dtdriver).'
         end if
-      else 
+      else
         if (driverid==0 .and. runtime+1e-10 < (driverstore-1)*dtdriver ) then
           write(*,*) 'Warning! Driver files cannot be written upto ', driverstore, ' steps. &
                       Consider taking runtime >= (driverstore-1)*dtdriver).'
         end if
       end if
     end if
-	
+
   end subroutine writedriverfile
 
   subroutine readdriverfile
@@ -773,7 +773,7 @@ contains
       if (.not.(lwarmstart)) then
         write(*,*) "NOTE: ensure ylen,ytot,nprocy == ylen,ytot,nprocy of driver case ",cdriverjobnr,", respectively"
         write(*,*) "NOTE: ensure ztot == ztot of driver case ",cdriverjobnr
-        write(*,*) "NOTE: ensure z dircetion grid (i.e. zsize and other parameters if stretching) == z dircetion grid of driver case ",cdriverjobnr
+        write(*,*) "NOTE: ensure z direction grid (i.e. zsize and other parameters if stretching) == z direction grid of driver case ",cdriverjobnr
         write(*,*) "NOTE: ensure driverstore <= last driver entry step count in driver case ",cdriverjobnr, ", check corresponding simulation log."
       else ! if lwarmstart
         write(*,*) "NOTE: ensure driverstore <= last driver entry step count in driver case ",cdriverjobnr, ", check corresponding simulation log."
@@ -788,30 +788,30 @@ contains
 
     inquire(file=name,size=filesize)
 
-    if(driverid==0) then
-      write(6,*) 'Reading time stamps: ', name
-      write(6,*) 'driverstore: ', driverstore
-      write(6,*) 'File size of time in bytes (/8) = ', filesize
-    endif
+    ! if(driverid==0) then
+    !   write(6,*) 'Reading time stamps: ', name
+    !   write(6,*) 'driverstore: ', driverstore
+    !   write(6,*) 'File size of time in bytes (/8) = ', filesize
+    ! endif
     ! driverstore = driverstore/4.
     ! write(6,*) 'driverstore: ', driverstore
     inquire(iolength=filesize)(timee-tdriverstart)
     open(unit=11,file=name,form='unformatted',status='old',action='read',access='direct',recl=filesize,IOSTAT=IOS)
-    if(myid==0) then
-      if (IOS > 0) then
-        write(6,*) 'IOS = ',IOS
-      endif
-    endif
+    ! if(myid==0) then
+    !   if (IOS > 0) then
+    !     write(6,*) 'IOS = ',IOS
+    !   endif
+    ! endif
     do n =  1, driverstore
       read(11, rec=n, IOSTAT=IOS) storetdriver(n)
-      if(myid==0) then
-        if(IOS > 0) then
-          write(6,*) 'IOS = ',IOS
-        elseif (IOS<0) then
-          write(6,*) 'n =', n
-        end if
-        write(6,'(A,e20.12)') ' Reading t:', storetdriver(n)
-      end if
+      ! if(myid==0) then
+      !   if(IOS > 0) then
+      !     write(6,*) 'IOS = ',IOS
+      !   elseif (IOS<0) then
+      !     write(6,*) 'n =', n
+      !   end if
+      !   write(6,'(A,e20.12)') ' Reading t:', storetdriver(n)
+      ! end if
     end do
     ! storetdriver = storetdriver + timee !tg3315 added in case using a warmstart...
     close (unit=11)
@@ -822,10 +822,10 @@ contains
     name(9:11)= cdriverid
     ! write (name(18:20)  ,'(i3.3)') filen
     write (name(13:15)   ,'(i3.3)') driverjobnr
-    write(6,*) 'Reading Driver u-velocity: ', name
+    !write(6,*) 'Reading Driver u-velocity: ', name
     ! inquire(file=name,recl=filesize)
     inquire(iolength=filesize)u0(ib,:,:)
-    write(6,*) 'record length ',filesize
+    !write(6,*) 'record length ',filesize
     open(unit=11,file=name,form='unformatted',status='old',action='read',access='direct',recl=filesize)
     do n = 1,driverstore
       read(11,rec=n)  ((storeu0driver (j,k,n),j=jb-jh,je+jh),k=kb-kh,ke+kh)
@@ -845,7 +845,7 @@ contains
     name(9:11)= cdriverid
     ! write (name(18:20)  ,'(i3.3)') filen
     write (name(13:15)   ,'(i3.3)') driverjobnr
-    write(6,*) 'Reading Driver v-velocity: ', name
+    !write(6,*) 'Reading Driver v-velocity: ', name
     ! inquire(file=name,recl=filesize)
     ! inquire(iolength=filesize)u0(ib,:,:)
     open(unit=11,file=name,form='unformatted',status='old',action='read',access='direct',recl=filesize)
@@ -859,7 +859,7 @@ contains
     name(9:11)= cdriverid
     ! write (name(18:20)  ,'(i3.3)') filen
     write (name(13:15)   ,'(i3.3)') driverjobnr
-    write(6,*) 'Reading Driver w-velocity: ', name
+    !write(6,*) 'Reading Driver w-velocity: ', name
     ! inquire(file=name,recl=filesize)
     ! inquire(iolength=filesize)u0(ib,:,:)
     open(unit=11,file=name,form='unformatted',status='old',action='read',access='direct',recl=filesize)
@@ -888,7 +888,7 @@ contains
       name(9:11)= cdriverid
       ! write (name(18:20)  ,'(i3.3)') filen
       write (name(13:15)   ,'(i3.3)') driverjobnr
-      write(6,*) 'Reading Driver temperature: ', name
+      !write(6,*) 'Reading Driver temperature: ', name
       ! inquire(file=name,recl=filesize)
       open(unit=11,file=name,form='unformatted',status='old',action='read',access='direct',recl=filesize)
       do n = 1,driverstore
@@ -909,7 +909,7 @@ contains
       name(9:11)= cdriverid
       ! write (name(18:20)  ,'(i3.3)') filen
       write (name(13:15)   ,'(i3.3)') driverjobnr
-      write(6,*) 'Reading Driver moisture: ', name
+      !write(6,*) 'Reading Driver moisture: ', name
       ! inquire(file=name,recl=filesize)
       open(unit=11,file=name,form='unformatted',status='old',action='read',access='direct',recl=filesize)
       do n = 1,driverstore
@@ -924,7 +924,7 @@ contains
       name(9:11)= cdriverid
       ! write (name(18:20)  ,'(i3.3)') filen
       write (name(13:15)   ,'(i3.3)') driverjobnr
-      write(6,*) 'Reading Driver scalar: ', name
+      !write(6,*) 'Reading Driver scalar: ', name
       ! inquire(file=name,recl=filesize)
       inquire(iolength=filesizes)sv0(ib,:,:,:)
       open(unit=12,file=name,form='unformatted',status='old',action='read',access='direct',recl=filesizes)
@@ -947,7 +947,7 @@ contains
     integer :: fileid, IOS, filesize, filesizes
     integer :: j,k,m,n,js,jf,jfdum,jsdum
     character(24) :: name
-    
+
     write(cdriverjobnr, '(i3.3)') driverjobnr
 
     chunkread_s = (chunkreadctr-1)*chunkread_size + 1
@@ -980,11 +980,11 @@ contains
 
       inquire(file=name,size=filesize)
 
-      if(driverid==0) then
-        write(6,*) 'Reading time stamps: ', name
-        write(6,*) 'driverstore: ', driverstore
-        write(6,*) 'File size of time in bytes (/8) = ', filesize
-      endif
+      ! if(driverid==0) then
+      !   write(6,*) 'Reading time stamps: ', name
+      !   write(6,*) 'driverstore: ', driverstore
+      !   write(6,*) 'File size of time in bytes (/8) = ', filesize
+      ! endif
       ! driverstore = driverstore/4.
       ! write(6,*) 'driverstore: ', driverstore
       inquire(iolength=filesize)(timee-tdriverstart)
@@ -997,12 +997,12 @@ contains
       do n =  1, driverstore
         read(11, rec=n, IOSTAT=IOS) storetdriver(n)
         if(myid==0) then
-          if(IOS > 0) then
-            write(6,*) 'IOS = ',IOS
-          elseif (IOS<0) then
-            write(6,*) 'n =', n
-          end if
-          write(6,'(A,e20.12)') ' Reading t:', storetdriver(n)
+          ! if(IOS > 0) then
+          !   write(6,*) 'IOS = ',IOS
+          ! elseif (IOS<0) then
+          !   write(6,*) 'n =', n
+          ! end if
+          ! write(6,'(A,e20.12)') ' Reading t:', storetdriver(n)
         end if
       end do
       close (unit=11)
@@ -1023,10 +1023,10 @@ contains
     name(9:11)= cdriverid
     ! write (name(18:20)  ,'(i3.3)') filen
     write (name(13:15)   ,'(i3.3)') driverjobnr
-    write(6,*) 'Reading Driver u-velocity: ', name
+    !write(6,*) 'Reading Driver u-velocity: ', name
     ! inquire(file=name,recl=filesize)
     inquire(iolength=filesize)u0(ib,:,:)
-    write(6,*) 'record length ',filesize
+    !write(6,*) 'record length ',filesize
     open(unit=11,file=name,form='unformatted',status='old',action='read',access='direct',recl=filesize)
     do n = chunkread_s,chunkread_e!1,driverstore
       if(myid==0) write(6,*) 'reading u_driver at step = ',n,'(',n-chunkread_s+1,') time = ',storetdriver(n)
@@ -1052,7 +1052,7 @@ contains
     name(9:11)= cdriverid
     ! write (name(18:20)  ,'(i3.3)') filen
     write (name(13:15)   ,'(i3.3)') driverjobnr
-    write(6,*) 'Reading Driver v-velocity: ', name
+    !write(6,*) 'Reading Driver v-velocity: ', name
     ! inquire(file=name,recl=filesize)
     ! inquire(iolength=filesize)u0(ib,:,:)
     open(unit=11,file=name,form='unformatted',status='old',action='read',access='direct',recl=filesize)
@@ -1071,7 +1071,7 @@ contains
     name(9:11)= cdriverid
     ! write (name(18:20)  ,'(i3.3)') filen
     write (name(13:15)   ,'(i3.3)') driverjobnr
-    write(6,*) 'Reading Driver w-velocity: ', name
+    !write(6,*) 'Reading Driver w-velocity: ', name
     ! inquire(file=name,recl=filesize)
     ! inquire(iolength=filesize)u0(ib,:,:)
     open(unit=11,file=name,form='unformatted',status='old',action='read',access='direct',recl=filesize)
@@ -1110,7 +1110,7 @@ contains
       name(9:11)= cdriverid
       ! write (name(18:20)  ,'(i3.3)') filen
       write (name(13:15)   ,'(i3.3)') driverjobnr
-      write(6,*) 'Reading Driver temperature: ', name
+      !write(6,*) 'Reading Driver temperature: ', name
       ! inquire(file=name,recl=filesize)
       open(unit=11,file=name,form='unformatted',status='old',action='read',access='direct',recl=filesize)
       do n = chunkread_s,chunkread_e!1,driverstore
@@ -1136,7 +1136,7 @@ contains
       name(9:11)= cdriverid
       ! write (name(18:20)  ,'(i3.3)') filen
       write (name(13:15)   ,'(i3.3)') driverjobnr
-      write(6,*) 'Reading Driver moisture: ', name
+      !write(6,*) 'Reading Driver moisture: ', name
       ! inquire(file=name,recl=filesize)
       open(unit=11,file=name,form='unformatted',status='old',action='read',access='direct',recl=filesize)
       do n = chunkread_s,chunkread_e!1,driverstore
@@ -1158,7 +1158,7 @@ contains
       name(9:11)= cdriverid
       ! write (name(18:20)  ,'(i3.3)') filen
       write (name(13:15)   ,'(i3.3)') driverjobnr
-      write(6,*) 'Reading Driver scalar: ', name
+      !write(6,*) 'Reading Driver scalar: ', name
       ! inquire(file=name,recl=filesize)
       inquire(iolength=filesizes)sv0(ib,:,:,:)
       open(unit=12,file=name,form='unformatted',status='old',action='read',access='direct',recl=filesizes)
@@ -1175,7 +1175,7 @@ contains
     use modglobal,    only : timee,ibrank,idriver,lchunkread
     use modinletdata, only : storetdriver, chunkread_e
     use modmpi,       only : myid
-    
+
     ! if (idriver==2 .and. lchunkread .and. timee > storetdriver(chunkread_e)) then
     !   if (myid==0) then
     !     write(6,*) 'Current timee = ', timee, '; last read storetdriver = ', storetdriver(chunkread_e), &
