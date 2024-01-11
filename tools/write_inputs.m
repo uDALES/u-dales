@@ -22,10 +22,8 @@
 
 expnr = '901';
 %
-% DA_EXPDIR = getenv('DA_EXPDIR');
-% DA_TOOLSDIR = getenv('DA_TOOLSDIR');
-DA_EXPDIR = 'D:/Postdoc1/simulation/treeu2/experiments';
-DA_TOOLSDIR = 'D:/Postdoc1/simulation/treeu2/u-dales/tools';
+DA_EXPDIR = getenv('DA_EXPDIR');
+DA_TOOLSDIR = getenv('DA_TOOLSDIR');
 addpath(genpath([DA_TOOLSDIR '/']));
 addpath([DA_TOOLSDIR '/IBM/'])
 addpath([DA_TOOLSDIR '/SEB/'])
@@ -83,7 +81,7 @@ if r.libm
 
     calculate_facet_sections_uvw = r.iwallmom > 1;
     calculate_facet_sections_c = r.ltempeq || r.lmoist;
-    lwindows = true;
+    lwindows = false;
     if r.gen_geom
         % c-grid (scalars/pressure)
         xgrid_c = r.xf;
@@ -183,7 +181,7 @@ if r.libm
         resolution   = r.psc_res;
         xazimuth     = r.xazimuth;
         ltimedepsw   = r.ltimedepsw;
-        ldirectShortwaveFortran = 1;
+        ldirectShortwaveFortran = 0;
         lscatter = true;
  
         if ltimedepsw
