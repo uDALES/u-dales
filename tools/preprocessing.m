@@ -139,7 +139,7 @@ classdef preprocessing < dynamicprops
 
         function set_defaults(obj)
             %% &RUN
-            preprocessing.addvar(obj, 'ltrees', 0) % switch for trees (not implemented)
+            preprocessing.addvar(obj, 'ltrees', 0) % switch for trees
             preprocessing.addvar(obj, 'ltreesfile', 0) % switch for using blocks from a file
             
             if obj.ltrees && ~obj.ltreesfile
