@@ -52,11 +52,12 @@ contains
           !         tree(n,5), &
           !         tree(n,6)                 
           ! end do
+          close (ifinput)
         end if
 
       end if ! end if myid==0
 
-      call MPI_BCAST(ntrees ,1,MPI_INTEGER ,0,comm3d,mpierr)
+      ! call MPI_BCAST(ntrees ,1,MPI_INTEGER ,0,comm3d,mpierr)
       call MPI_BCAST(tree ,6*ntrees,MPI_INTEGER ,0,comm3d,mpierr)
 
       !! capability to read lad of trees from a lad.inp.xxx file
