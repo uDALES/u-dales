@@ -389,7 +389,7 @@ module modstartup
       call MPI_BCAST(driverstore,1,MPI_INTEGER ,0,comm3d,mpierr)
       call MPI_BCAST(lsdriver   ,1,MPI_LOGICAL,0,comm3d,mpierr)
       call MPI_BCAST(lchunkread ,1,MPI_LOGICAL,0,comm3d,mpierr)
-      call MPI_BCAST(chunkread_size,1,MPI_LOGICAL,0,comm3d,mpierr)
+      call MPI_BCAST(chunkread_size,1,MPI_INTEGER,0,comm3d,mpierr)
       !call MPI_BCAST(BCxm, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(BCxT, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(BCxq, 1, MPI_INTEGER, 0, comm3d, mpierr)

@@ -465,9 +465,9 @@ contains
     allocate(up(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)) ; up=0.
     allocate(vp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)) ; vp = 0.
     allocate(wp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))  ; wp = 0.
-    allocate(ru(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)) ; up=0.
-    allocate(rv(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)) ; vp = 0.
-    allocate(rw(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))  ; wp = 0.
+    allocate(ru(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)) ; ru=0.
+    allocate(rv(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)) ; rv = 0.
+    allocate(rw(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))  ; rw = 0.
     ! allocate(pres0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); pres0 = 0.
     !
     ! ! Always have to allocate these, even if they are constant
@@ -476,7 +476,7 @@ contains
     ! allocate(thl0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); thl0 = 0.
     ! allocate(thl0h(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); thl0h = 0.
     allocate(thlp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)); thlp = 0.
-    allocate(thlpc(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc)); thlp = 0.
+    allocate(thlpc(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc)); thlpc = 0.
     ! allocate(qtm(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); qtm = 0.
     ! allocate(qt0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); qt0 = 0.
     ! allocate(ql0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); ql0 = 0.
@@ -520,7 +520,7 @@ contains
     call alloc_z(thlm); thlm = 0.
     !allocate(thlm(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb-khc:ke+khc)); thlm = 0.
     call alloc_z(thl0); thl0 = 0.
-    allocate(thl0c(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb-khc:ke+khc)); thl0 = 0.
+    allocate(thl0c(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb-khc:ke+khc)); thl0c = 0.
     ! call alloc_z(thlp); thlp = 0.
     call alloc_z(thl0h); thl0h = 0.
     ! call alloc_z(thv0h); thv0h = 0.
@@ -771,7 +771,7 @@ contains
       allocate(slice6(ib:ie,jb:je))
       allocate(slice7(ib:ie,jb:je))
       allocate(slice8(ib:ie,jb:je))
-      slice6=0.;slice7=0.;slice8=0.;umt=0.;vmt=0.;sv1t=0.;sv2t=0.;sv3t=0.;sv4t=0.;sv1tk=0.;sv2tk=0.;sv3tk=0.;sv4tk=0.
+      slice=0.;slice2=0.;slice3=0.;slice4=0.;slice5=0.;slice6=0.;slice7=0.;slice8=0.
     end if
 
     if (lscasrcr .and. nsv>0) then
