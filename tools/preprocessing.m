@@ -289,18 +289,19 @@ classdef preprocessing < dynamicprops
             	preprocessing.addvar(obj, 'lscasrcr', 0)    % switch for network of scalar point source
             	preprocessing.addvar(obj, 'xS', -1)         % x-position of scalar point source [m]
             	preprocessing.addvar(obj, 'yS', -1)         % y-position of scalar point source [m]
-            	preprocessing.addvar(obj, 'xS', -1)         % z-position of scalar point source [m]
-           	 preprocessing.addvar(obj, 'SS', -1)         % source strength of scalar line/ point source
-            	preprocessing.addvar(obj, 'sigS', -1)       % standard deviation/ spread of scalar line/ point source
-            	if ((obj.lscasrc) && any([obj.xS==-1 obj.yS==-1 obj.zS==-1 obj.SS==-1 obj.sigS==-1]))
-                    error('Must set non-zero xS, yS, zS, SS and sigS for scalar point source')
-            	end
-            	if ((obj.lscasrcl) && any([obj.SS==-1 obj.sigS==-1]))
-                    error('Must set non-zero SS and sigS for scalar line source')
-            	end
-            	if obj.lscasrcr
-                    error('Network of point sources not currently implemented')
-            	end
+            	preprocessing.addvar(obj, 'zS', -1)         % z-position of scalar point source [m]
+                preprocessing.addvar(obj, 'SSp', -1)        % source strength of scalar point source
+            	preprocessing.addvar(obj, 'sigSp', -1)      % standard deviation/spread of scalar point source [g] - per unit time??
+            	preprocessing.addvar(obj, 'nscasrc', 0)     % number of scalar point sources
+                preprocessing.addvar(obj, 'xSb', -1)        % x-position of scalar line source begining point [m]
+                preprocessing.addvar(obj, 'ySb', -1)        % y-position of scalar line source begining point [m]
+                preprocessing.addvar(obj, 'zSb', -1)        % z-position of scalar line source begining point [m]
+                preprocessing.addvar(obj, 'xSe', -1)        % x-position of scalar line source ending point [m]
+                preprocessing.addvar(obj, 'ySe', -1)        % y-position of scalar line source ending point [m]
+                preprocessing.addvar(obj, 'zSe', -1)        % z-position of scalar line source ending point [m]
+                preprocessing.addvar(obj, 'SSl', -1)        % source strength of scalar line source [g/m] - per unit time??
+            	preprocessing.addvar(obj, 'sigSl', -1)      % standard deviation/spread of scalar line source
+                preprocessing.addvar(obj, 'nscasrcl', 0)    % number of scalar point sources
             end
 
             preprocessing.addvar(obj, 'lapse', 0)  % lapse rate [K/s]
@@ -838,6 +839,70 @@ classdef preprocessing < dynamicprops
             fprintf(scalar, '%-60s\n', '# z scaN,  N=1,2...nsv');
             fprintf(scalar, ['%-20.15f' repmat(' %-14.10f',[1,obj.nsv])  '\n'], obj.sc');
             fclose(scalar);
+        end
+        
+        function generate_scalarsources(obj)
+            if ((obj.lscasrc) && (obj.nscasrc<2) && any([obj.nsv==0 obj.nscasrc<1 obj.xS==-1 obj.yS==-1 obj.zS==-1 obj.SSp==-1 obj.sigSp==-1]))
+                error('Must set non-zero positive nsv and nscasrc under &SCALARS, and appropriate xS, yS, zS, SSp and sigSp under &INPS for scalar point source')
+            end
+            if ((obj.lscasrcl) && (obj.nscasrcl<2) && any([obj.nsv==0 obj.nscasrcl<1 obj.xSb==-1 obj.ySb==-1 obj.zSb==-1 obj.xSe==-1 obj.ySe==-1 obj.zSe==-1 obj.SSl==-1 obj.sigSl==-1]))
+                error('Must set non-zero positive nsv and nscasrcl &SCALARS, and appropriate xSb, ySb, zSb, xSe, ySe, zSe, SSl and sigSl under &INPS for scalar line source')
+            end
+            if obj.lscasrcr
+                error('Network of point sources not currently implemented')
+            end
+            
+            if (obj.lscasrc)
+                preprocessing.addvar(obj, 'scasrcp', zeros(obj.nscasrc, 5));
+                if (obj.nscasrc==1)
+                    obj.scasrcp(1) = obj.xS;
+                    obj.scasrcp(2) = obj.yS;
+                    obj.scasrcp(3) = obj.zS;
+                    obj.scasrcp(4) = obj.SSp;
+                    obj.scasrcp(5) = obj.sigSp;
+                end
+                if (obj.nscasrc>1 || obj.nsv>1)
+                    disp('Warning!! Manually set appropriate xS, yS, zS, SS and sigS for scalar source points in scalarsourcep.inp.')
+                end
+            end
+            if (obj.lscasrcl)
+                preprocessing.addvar(obj, 'scasrcl', zeros(obj.nscasrcl, 8));
+                if (obj.nscasrcl==1)
+                    obj.scasrcl(1) = obj.xSb;
+                    obj.scasrcl(2) = obj.ySb;
+                    obj.scasrcl(3) = obj.zSb;
+                    obj.scasrcl(4) = obj.xSe;
+                    obj.scasrcl(5) = obj.ySe;
+                    obj.scasrcl(6) = obj.zSe;
+                    obj.scasrcl(7) = obj.SSl;
+                    obj.scasrcl(8) = obj.sigSl;
+                end
+                if (obj.nscasrcl>1 || obj.nsv>1)
+                    disp('Warning!! Manually set appropriate xSb, ySb, zSb, xSe, ySe, zSe, SS and sigS for scalar source lines in scalarsourcel.inp.')
+                end
+            end
+        end
+        
+        function write_scalarsources(obj)
+            for ii=1:obj.nsv
+                if (obj.lscasrc)
+                    scasrcp = fopen(['scalarsourcep.inp.' num2str(ii) '.' obj.expnr], 'w');
+                    fprintf(scasrcp, '%-30s\n', '# Scalar point source data');
+                    fprintf(scasrcp, '%-60s\n', '#xS yS zS SS sigS');
+                    fprintf(scasrcp, '%-12.6f\t %-12.6f\t %-12.6f\t %-12.6f\t %-12.6f\t\n', obj.scasrcp');
+                    fclose(scasrcp);
+                end
+                if (obj.lscasrcl)
+                    scasrcl = fopen(['scalarsourcel.inp.' num2str(ii) '.' obj.expnr], 'w');
+                    fprintf(scasrcl, '%-30s\n', '# Scalar line source data');
+                    fprintf(scasrcl, '%-60s\n', '#xSb ySb zSb xSe ySe zSe SS sigS');
+                    fprintf(scasrcl, '%-12.6f\t %-12.6f\t %-12.6f\t %-12.6f\t %-12.6f\t %-12.6f\t %-12.6f\t %-12.6f\t\n', obj.scasrcl');
+                    fclose(scasrcl);
+                end
+            end
+            if ((obj.lscasrc) || (obj.lscasrcl))
+                disp('Ensure scalar source locations do not intersect any building !! If sure, ignore this message.')  % needs to be removed later
+            end
         end
 
         function set_nfcts(obj, nfcts)
