@@ -906,6 +906,7 @@ module modstartup
       real, dimension(kb:ke + 1) :: waverage
       real, dimension(kb:ke + 1) :: uprofrot
       real, dimension(kb:ke + 1) :: vprofrot
+      real, dimension(kb:ke+kh)  :: u_init, v_init, thl_init, qt_init
       real tv, ran, ran1
 
       character(80) chmess
@@ -1444,7 +1445,7 @@ module modstartup
                      end if
                   end if
                end if
-			   
+
               call drivergen
 
             end if
@@ -1540,8 +1541,14 @@ module modstartup
             write (*, *) "doing warmstart"
             call readrestartfiles
 
-            ! Still read initial profiles for nudging
+            ! average initial profiles
+            call avexy_ibm(u_init(kb:ke+kh),u0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
+            call avexy_ibm(v_init(kb:ke+kh),v0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
+            call avexy_ibm(thl_init(kb:ke+kh),thl0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+            call avexy_ibm(qt_init(kb:ke+kh),qt0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+
             if (myid == 0) then
+               ! Read profiles from file (potentially for forcing)
                open (ifinput, file='prof.inp.'//cexpnr)
                read (ifinput, '(a80)') chmess
                write (*, '(a80)') chmess
@@ -1556,6 +1563,21 @@ module modstartup
                      vprof(k), &
                      e12prof(k)
                end do
+               close (ifinput)
+
+               ! Write initial profile
+               open (ifinput, file='prof_restart.'//cexpnr)
+               write (ifinput, '(a80)') 'height    thl     qt      u      v     e12'
+               do k = kb, ke
+                  write (ifinput, '(f7.1,2f8.1,3f7.1)') &
+                     height(k), &
+                     thl_init(k), &
+                     qt_init(k), &
+                     u_init(k), &
+                     v_init(k), &
+                     e12prof(k)
+               end do
+               close (ifinput)
 
                ! Apply rotation in horizontal
                !write (6, *) 'iangle = ', iangle
@@ -1564,19 +1586,6 @@ module modstartup
                !vprofrot = vprof*cos(iangle) + uprof*sin(iangle)
                !uprof = uprofrot
                !vprof = vprofrot
-
-               close (ifinput)
-               write (*, *) 'height    thl     qt      u      v     e12'
-               do k = ke, kb, -1
-                  write (*, '(f7.1,2f8.1,3f7.1)') &
-                     height(k), &
-                     thlprof(k), &
-                     qtprof(k), &
-                     uprof(k), &
-                     vprof(k), &
-                     e12prof(k)
-
-               end do
 
                if (minval(e12prof(kb:ke)) < e12min) then
                   write (*, *) 'e12 value is zero (or less) in prof.inp'
@@ -1611,13 +1620,13 @@ module modstartup
               !  write(*,*) 'driverstore: ', driverstore
               !end if
                if (timee>=tdriverstart) then
-                  
+
                   tdriverstart_cold = tdriverstart
                   tdriverstart = timee
                   if (trestart /= (driverstore-1)*dtdriver) then
                      trestart = (driverstore-1)*dtdriver
                   end if
-                  
+
                   if (myid==0) then
                      write(*,'(A,F15.5)') "Warning! during warmstart of driver simulation, tdriverstart &
                                            gets overwritten by the time instant of initd restartfile, ignoring the &
@@ -1630,7 +1639,7 @@ module modstartup
                                     Consider taking runtime >= (driverstore-1)*dtdriver).'
                      end if
                   end if
-                  
+
                else ! if (timee<tdriverstart)
                   if (trestart /= (tdriverstart + (driverstore-1)*dtdriver - btime)) then
                      trestart = (tdriverstart + (driverstore-1)*dtdriver) - btime
@@ -1645,7 +1654,7 @@ module modstartup
                      end if
                   end if
                end if
-			   
+
               call drivergen
               tdriverdump = tdriverstart
             endif
