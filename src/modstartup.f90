@@ -930,7 +930,7 @@ module modstartup
          if (myid == 0) then
             open (ifinput, file='prof.inp.'//cexpnr)
             read (ifinput, '(a80)') chmess
-            write (*, '(a80)') chmess
+            !write (*, '(a80)') chmess
             read (ifinput, '(a80)') chmess
 
             do k = kb, ke
@@ -1551,7 +1551,7 @@ module modstartup
                ! Read profiles from file (potentially for forcing)
                open (ifinput, file='prof.inp.'//cexpnr)
                read (ifinput, '(a80)') chmess
-               write (*, '(a80)') chmess
+               !write (*, '(a80)') chmess
                read (ifinput, '(a80)') chmess
 
                do k = kb, ke
@@ -1567,9 +1567,10 @@ module modstartup
 
                ! Write initial profile
                open (ifinput, file='prof_restart.'//cexpnr)
-               write (ifinput, '(a80)') 'height    thl     qt      u      v     e12'
+               write (ifinput, *) '# SDBL flow'
+               write (ifinput, *) '# z thl qt u v e12'
                do k = kb, ke
-                  write (ifinput, '(f7.1,2f8.1,3f7.1)') &
+                  write (ifinput, '(f20.15,5f12.6)') &
                      height(k), &
                      thl_init(k), &
                      qt_init(k), &
