@@ -1538,7 +1538,7 @@ module modstartup
          !    call thermodynamics ! turned off when pot. temp = temp.
 
          else !if lwarmstart
-            write (*, *) "doing warmstart"
+            !write (*, *) "doing warmstart"
             call readrestartfiles
 
             ! average initial profiles
@@ -1587,11 +1587,13 @@ module modstartup
                !uprof = uprofrot
                !vprof = vprofrot
 
-               if (minval(e12prof(kb:ke)) < e12min) then
-                  write (*, *) 'e12 value is zero (or less) in prof.inp'
-                  do k = kb, ke
+               if (loneeqn) then
+                 if (minval(e12prof(kb:ke)) < e12min) then
+                   write (*, *) 'e12 value is zero (or less) in prof.inp'
+                   do k = kb, ke
                      e12prof(k) = max(e12prof(k), e12min)
-                  end do
+                   end do
+                 end if
                end if
 
             end if ! end if myid==0
@@ -1974,7 +1976,7 @@ module modstartup
             !  call boundary
 
             if (lEB .and. (lfacTlyrs .eqv. .false.)) then
-               write(*,*) "Warmstarting an EB simulation - consider setting internal facet temperatures"
+               if (myid==0) write(*,*) "Warmstarting an EB simulation - consider setting internal facet temperatures"
             end if
          end if ! lwarmstart
       end if ! not lstratstart
@@ -2125,7 +2127,7 @@ module modstartup
       name(5:5) = 'd'
       name(15:17) = cmyidx
       name(19:21) = cmyidy
-      write (6, *) 'loading ', name
+      !write (6, *) 'loading ', name
       open (unit=ifinput, file=name, form='unformatted', status='old')
 
       read (ifinput) (((mindist(i, j, k), i=ib, ie), j=jb, je), k=kb, ke)
@@ -2142,16 +2144,16 @@ module modstartup
       read (ifinput) (((ql0h(i, j, k), i=ib - ih, ie + ih), j=jb - jh, je + jh), k=kb, ke + kh)
       read (ifinput) timee, dt
       close (ifinput)
-      write (6, *) 'finished loading ', name
+      !write (6, *) 'finished loading ', name
 
       if ((nsv > 0) .and. (lreadscal)) then
          name(5:5) = 's'
-         write (6, *) 'loading ', name
+         !write (6, *) 'loading ', name
          open (unit=ifinput, file=name, form='unformatted')
          read (ifinput) ((((sv0(i, j, k, n), i=ib - ih, ie + ih), j=jb - jh, je + jh), k=kb, ke + kh), n=1, nsv)
          read (ifinput) timee
          close (ifinput)
-         write (6, *) 'finished loading ', name
+         !write (6, *) 'finished loading ', name
       elseif ((nsv > 0) .and. (.not. lreadscal)) then
          sv0 = 0.
          svprof = 0.
