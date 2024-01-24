@@ -904,6 +904,39 @@ classdef preprocessing < dynamicprops
                 disp('Ensure scalar source locations do not intersect any building !! If sure, ignore this message.')  % needs to be removed later
             end
         end
+        
+        function plot_scalarsources(obj)
+            for ii=1:obj.nsv
+                if (obj.lscasrc)
+                    fileID = fopen(['scalarsourcep.inp.' num2str(ii) '.' obj.expnr], 'r');
+                    header_line1 = fgetl(fileID);
+                    header_line2 = fgetl(fileID);
+                    data = [];
+                    for i = 1:obj.nscasrc
+                        data_line = fgetl(fileID);
+                        data(i,:) = str2double(strsplit(data_line,'\t '));
+                    end
+                    fclose(fileID);
+                    for i = 1:obj.nscasrc
+                        plot3(data(i,1),data(i,2),data(i,3),'o','MarkerSize',round(15*data(i,5)),'MarkerFaceColor',[0, 0, data(i,4)/max(data(:,4))],'MarkerEdgeColor','black')
+                    end
+                end
+                if (obj.lscasrcl)
+                    fileID = fopen(['scalarsourcel.inp.' num2str(ii) '.' obj.expnr], 'r');
+                    header_line1 = fgetl(fileID);
+                    header_line2 = fgetl(fileID);
+                    data = [];
+                    for i = 1:obj.nscasrcl
+                        data_line = fgetl(fileID);
+                        data(i,:) = str2double(strsplit(data_line,'\t '));
+                    end
+                    fclose(fileID);
+                    for i = 1:obj.nscasrcl
+                        plot3([data(i,1) data(i,4)],[data(i,2) data(i,5)],[data(i,3) data(i,6)],'LineWidth',round(5*data(i,8)),'Color',[0, 0, data(i,7)/max(data(:,7))])
+                    end
+                end
+            end
+        end
 
         function set_nfcts(obj, nfcts)
             obj.nfcts = nfcts;
