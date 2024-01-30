@@ -75,7 +75,11 @@ if r.libm
     % Set facet types
     nfcts = size(TR.ConnectivityList,1);
     preprocessing.set_nfcts(r, nfcts);
-    facet_types = ones(nfcts,1); % facet_types are to be user-defined - defaults to type 1 (concrete)
+    if r.read_types
+        facet_types = dlmread(r.types_path, '', 1, 0);
+    else
+        facet_types = ones(nfcts,1); % defaults to type 1
+    end
     preprocessing.write_facets(r, facet_types, TR.faceNormal);
     disp(['Written facets.inp.', r.expnr])
 

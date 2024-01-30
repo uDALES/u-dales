@@ -308,6 +308,10 @@ classdef preprocessing < dynamicprops
             preprocessing.addvar(obj, 'R',0)   % radiative forcing [*units?*]
 
             preprocessing.addvar(obj, 'libm', 1)
+            preprocessing.addvar(obj, 'read_types', 0)
+            if obj.read_types
+                preprocessing.addvar(obj, 'types_path', 0)
+            end
 
             if obj.lEB
                 preprocessing.addvar(obj, 'xazimuth', 90);   % azimuth of x-direction wrt N. Default: x = East
