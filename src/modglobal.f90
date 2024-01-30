@@ -323,13 +323,14 @@ module modglobal
    integer :: ntree_max = 0
    integer :: ntrees = 0
    !real, allocatable :: ladz(:)                  !< field with leaf area density data
-   real    :: cd = 0., ud = 0., Qstar = 0., dQdt = 0., dec = 0., lad = 0., lsize = 0., r_s = 0.  !< current set of tree parameters 
+   real    :: cd = 0., ud = 0., Qstar = 0., dQdt = 0., dec = 0., lad = 0., lsize = 0., r_s = 0.  !< current set of tree parameters
             ! volumetric drag coefficient, deposition velocity, net radiation, dQ*/dt , extinction coefficient, leaf area density, characteristic leaf size, stomatal resistance, respectively
    real    :: tr_A = 0.
 
    logical :: lnudge = .false.                   !< switch for applying nudging at the top of the domain
+   logical :: lnudgevel = .true.                 !< switch for nudging velocities
    real    :: tnudge = 50.                       !< time scale for nudging
-   integer :: nnudge = 10
+   integer :: nnudge = 0                         !< number of points from kb to start nudging
 
    !chemistry
    logical :: lchem = .false.    ! switch for basic chemistry

@@ -883,7 +883,7 @@ module modforces
   end subroutine lstend
 
   subroutine nudge
-    use modglobal,  only : kb,ke,lmoist,ltempeq,lnudge,tnudge,nnudge,numol,nsv
+    use modglobal,  only : kb,ke,lmoist,ltempeq,lnudge,lnudgevel,tnudge,nnudge,numol,nsv
     use modfields,  only : thlp,qtp,svp,sv0av,thl0av,qt0av,up,vp,u0av,v0av,uprof,vprof,thlprof,qtprof,svprof
     use modmpi,     only : myid
     implicit none
@@ -891,10 +891,12 @@ module modforces
 
     if (lnudge .eqv. .false.) return
 
-    do k=kb+nnudge,ke
-      up(:,:,k) = up(:,:,k) - (u0av(k) - uprof(k)) / tnudge
-      vp(:,:,k) = vp(:,:,k) - (v0av(k) - vprof(k)) / tnudge
-   end do
+    if (lnudgevel) then
+      do k=kb+nnudge,ke
+         up(:,:,k) = up(:,:,k) - (u0av(k) - uprof(k)) / tnudge
+         vp(:,:,k) = vp(:,:,k) - (v0av(k) - vprof(k)) / tnudge
+      end do
+    end if
 
     do n=1,nsv
       do k=kb+nnudge,ke
