@@ -6,11 +6,11 @@ This list refers to the original code-base [DALES](https://github.com/dalesteam/
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
-| imax | 64 | | See `itot` in [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
-| jtot | 64 | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
-| kmax | 96 | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
-| xsize | -1 | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
-| ysize | -1 | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
+| itot | 64 | | Number of points in x-direction (imax in uDALES v1). | |
+| jtot | 64 | | Number of points in y-direction. | |
+| ktot | 96 | | Number of points in z-direction (kmax in uDALES v1).| |
+| xlen | -1 | | Domain size in x-direction (xsize in uDALES v1).| |
+| ylen | -1 | | Domain size in x-direction (ysize in uDALES v1).| |
 | xlat | 52. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | xlon | 0. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | xday | 1. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
@@ -35,7 +35,7 @@ Possible advection schemes:
 | iadv_thl | -1 | 2, 7 | Advection scheme for temperature. Also in [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | - |
 | iadv_qt | -1 | 2 | Advection scheme for moisture. Also in [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | - |
 | iadv_sv | -1 | 1, 2, 7 | Advection scheme for scalars. Also in [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | - |
-| ipoiss | 1 | 0, 1 | Poisson solver. 0 = Fast Fourier Transformation, 1 = Cyclic reduction scheme. *Default will change to 0 in the future.* | - |
+| ipoiss | 0 | 0 | Poisson solver. 0 = Fast Fourier Transform. | - |
 
 ## Namelist PHYSICS
 
@@ -57,10 +57,18 @@ Possible advection schemes:
 | ifixuinf | 0 | 1, 2 | Choice for free stream forcing. (0 = nothing) | |
 | lvinf | .false. | .true., .false. | Use Vinf instead of Uinf for the fixed velocity at infinity | |
 | tscale | | | Timescale: domain height*Uinf/utau\*\*2 | |
-| lnudge | .false. | | Switch for applying nudging at the top of the domain | |
-| tnudge | 50. | | Time scale for nudging | |
-| nnudge | 10 | | | |
+| lnudge | .false. | .true., .false. | Switch for nudging flow to profiles (in `prof.inp.xxx`) | |
+| nnudge | 0 | `INTEGER` | Number of points from bottom to nudge. | |
+| tnudge | 50. | `REAL` | Time scale for nudging | |
 | dpdx | 0. | | Constant pressure gradient forcing in x. | |
+| ltimedepsurf | .false. | .true., .false. | Time-dependent surface heat flux (`bctfz` etc - see BC section) | |
+| ntimedepsurf | 0 | `REAL` | Number of time-dependent surface heat fluxes in file `timedepsurf.inp.xxx` | |
+| ltimedepnudge | .false. | .true., .false. | Time-dependent nudging profiles | |
+| ntimedepnudge | 0 | `REAL` | Number of time-dependent nudging profiles in file `timedepnudge.inp.xxx` | |
+| ltimedepsw | .false. | .true., .false. | Time-dependent shortwave radiation on facets | |
+| ntimedepsw | 0 | `REAL` | Number of time-dependent shortwave radiative fluxes in file `timedepsw.inp.xxx` | |
+| ltimedeplw | .false. | .true., .false. | Time-dependent longwave radiation on facets | |
+| ntimedeplw | 0 | `REAL` | Number of time-dependent shortwave radiative fluxes in file `timedeplw.inp.xxx` | |
 
 ## Namelist RUN
 
@@ -70,7 +78,6 @@ Possible advection schemes:
 | runtime | 300 | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | dtmax | 20 | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | lwarmstart | .false. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
-| lper2inout | .false. | .true., .false. | Switch that determines type of restart: .true. means switching from periodic to in/outflow: inlet profile is read from `prof.inp`. *Potentially deprecated. May be removed in the future.* | |
 | startfile | '' | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | **lstratstart** | .false. | .true., .false. | *Description missing* | |
 | trestart | 10000. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
@@ -81,12 +88,10 @@ Possible advection schemes:
 | randqt | 0. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). Default changed from 1e-5. | |
 | ladaptive | .false. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | courant | -1 | | Default sets it to 1.5 or 1.1 (if Kappa or upwind scheme is used). These are different values than in [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
-| **diffnr** | 0.25 | | Diffusion number? Used to determine adaptive time step. | |
+| **diffnr** | 0.25 | | Diffusion number. Used to determine adaptive time step. | |
 | author | '' | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | lles | .true. | .true., .false. | Switch that determines whether the subgrid model is turned on or constant ekm and ekh are used (DNS) | - |
-| libm | .true. | | Switch that determines whether the Immersed Boundary Method is turned on. *Deprecated. Will be removed in the future.* | |
-| lreadmean | .false. | | Switch that determines whether mean variables should be read from means#myid#.#expnr# *Potentially deprecated. May be removed in the future.* | |
-| lwalldist | .false. | | Switch that determines whether the wall distances should be computed for the subgrid models. *Potentially deprecated. May be removed in the future.* | |
+| libm | .true. | | Switch that determines whether the Immersed Boundary Method is turned on. | |
 
 ## Namelist OUTPUT
 
@@ -133,11 +138,11 @@ Possible advection schemes:
 
 Switches for boundary conditions: momentum (m), temperature (T), humidity (q) and scalars (s).
 
-Lateral BCs (BCx, BCy): 1 = periodic, > 1 special in/outflow conditions
+Lateral BCs (BCx, BCy): 1 = periodic, > 1 in/outflow conditions.
 
 BCs at the top (BCtop): 1 = freeslip, 2 = noslip, 3 = determined by inflow conditions
 
-BCs at the bottom (BCbot; only effective if not covered with road facets): 1 = flux, 2 = wall function
+BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 = flux, 2 = wall function
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
@@ -157,11 +162,16 @@ BCs at the bottom (BCbot; only effective if not covered with road facets): 1 = f
 | BCbotT | 1 | | Boundary condition for temperature at domain bottom. | |
 | BCbotq | 1 | | Boundary condition for humidity at domain bottom. | |
 | BCbots | 1 | | Boundary condition for scalars at domain bottom. | |
-| bctfxm | 0. | | Bounary Condition Temperature Flux X-minus-wall. | |
-| bctfxp | 0. | | Bounary Condition Temperature Flux X-plus-wall. | |
-| bctfym | 0. | | Bounary Condition Temperature Flux Y-minus-wall. | |
-| bctfyp | 0. | | Bounary Condition Temperature Flux y-plus-wall. | |
-| bctfz | 0. | | Bounary Condition Temperature Flux z top-wall. | |
+| bctfxm | 0 | `REAL` | Temperature flux on facets with surface normal in -x direction. | |
+| bctfxp | 0 | `REAL` | Temperature flux on facets with surface normal in +x direction. | |
+| bctfym | 0 | `REAL` | Temperature flux on facets with surface normal in -y direction. | |
+| bctfyp | 0 | `REAL` | Temperature flux on facets with surface normal in +y direction. | |
+| bctfz | 0 | `REAL` | Temperature flux on facets with surface normal in +z direction. | |
+| bcqfxm | 0 | `REAL` | Moisture flux on facets with surface normal in -x direction. | |
+| bcqfxp | 0 | `REAL` | Moisture flux on facets with surface normal in +x direction. | |
+| bcqfym | 0 | `REAL` | Moisture flux on facets with surface normal in -y direction. | |
+| bcqfyp | 0 | `REAL` | Moisture flux on facets with surface normal in +y direction. | |
+| bcqfz | 0 | `REAL` | Moisture flux on facets with surface normal in +z direction. | |
 | thl_top | -1. | | Temperature at the top boundary. | |
 | qt_top | -1. | | Humidity at the top boundary. | |
 | wttop | 0. | | Temperature flux at the top boundary. | |
@@ -190,7 +200,9 @@ BCs at the bottom (BCbot; only effective if not covered with road facets): 1 = f
 | skyLW | 0. | `REAL` | Long-wave radiation from the sky. | |
 | GRLAI | 2. | `REAL` | Leaf area index of a green roof. | |
 | rsmin | 110. | `REAL` | Minimum resistance of soil/plant. | |
-| nwalllayers | 3 | `INTEGER` | Number of layers making up each facet. | |
+| nfaclyrs | 3 | `INTEGER` | Number of layers making up each facet (nwalllayers in uDALES v1). | |
+| lvfsparse | .false. | .true., .false. | Switch for view factors in sparse (text) format. | |
+| nnz | 0 | `INTEGER` | Number of non-zero view factors (only used with sparse view factor format | |
 
 ## Namelist WALLS
 
@@ -204,10 +216,24 @@ BCs at the bottom (BCbot; only effective if not covered with road facets): 1 = f
 | ---- | ------- | --------------- | ----------- | ---- |
 | nblocks | 0 | `INTEGER` | Number of blocks specified in `blocks.inp`. | - |
 | nfcts | -1 | `INTEGER` | Number of facets specified in `facets.inp`. | - |
-| iwallmom | 2 | 2, 3 (1 currently not implemented) | Building wall momentum flux. | - |
+| iwallmom | 2 | 1, 2, 3 (1 means zero flux) | Building wall momentum flux. | - |
 | iwalltemp | 1 | 1, 2 |  Building wall temperature flux. | - |
 | iwallmoist | 1 | 1, 2 |  Building wall moisture flux. | - |
 | iwallscal | 1 | 1, 2 | Building wall scalar flux | - |
+| lbottom | .false. | .true., .false. | Switch for using wall function as bottom BC (should be used only if no ground facets) | - |
+| nsolpts_u | 0 | `INTEGER` | Number of solid points on u-grid. | - |
+| nsolpts_v | 0 | `INTEGER` | Number of solid points on v-grid. | - |
+| nsolpts_w | 0 | `INTEGER` | Number of solid points on w-grid. | - |
+| nsolpts_c | 0 | `INTEGER` | Number of solid points on c-grid. | - |
+| nbndpts_u | 0 | `INTEGER` | Number of fluid boundary points on u-grid. | - |
+| nbndpts_v | 0 | `INTEGER` | Number of fluid boundary points on v-grid. | - |
+| nbndpts_w | 0 | `INTEGER` | Number of fluid boundary points on w-grid. | - |
+| nbndpts_c | 0 | `INTEGER` | Number of fluid boundary points on c-grid. | - |
+| nfctsecs_u | 0 | `INTEGER` | Number of facet sections on u-grid. | - |
+| nfctsecs_v | 0 | `INTEGER` | Number of facet sections on v-grid. | - |
+| nfctsecs_w | 0 | `INTEGER` | Number of facet sections on w-grid. | - |
+| nfctsecs_c | 0 | `INTEGER` | Number of facet sections on c-grid. | - |
+
 
 ## Namelist SCALARS
 
@@ -248,18 +274,7 @@ BCs at the bottom (BCbot; only effective if not covered with road facets): 1 = f
 
 ## Namelist INLET
 
-*This section will be updated with the next version.*
-
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
-| Uinf | 0. | | | |
-| Vinf | 0. | | | |
-| inletav | 0. | | | |
-| lstoreplane | .false. | | | |
-| linletRA | .false. | | | |
-| lfixinlet | .false. | | | |
-| lfixutauin | .false. | | | |
-| lreadminl | .false. | | | |
-| di | 0.09 | | | |
-| dti | | | | |
-| lwallfunc | .true. | | Switch that determines whether wall functions are used to compute the wall-shear stress. *Deprecated, only in use in modinlet. Will be removed in the future.* | |
+| Uinf | 0. | `REAL` | Fixed velocity at domain top (x-direction). | m/s |
+| Vinf | 0. | `REAL` | Fixed velocity at domain top (y-direction). | m/s |
