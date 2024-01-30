@@ -2,7 +2,7 @@ function TR_out = operateUnitCube(scale, shift, divisions)
     % Shift defines where the centre of the cubes are
     % Scale defines how large they are
 
-    TR_in = stlread('~/ecse/data/cube.stl'); 
+    TR_in = stlread('cube.stl'); 
     % this cube is centred on the origin and has side length 1
     % scaling is done first, then shifting
     % So for a regular array of cube size(s) size Hx, Hy, Hz
