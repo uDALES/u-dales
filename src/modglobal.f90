@@ -56,6 +56,7 @@ module modglobal
    integer ::  nsv = 0 !< Number of additional scalar fields
    integer ::  nvar = 0
    character(50) :: fieldvars = ''
+   character(50) :: slicevars = ''
 
    integer ::  ih = 3
    integer ::  jh = 3
@@ -74,6 +75,8 @@ module modglobal
    logical :: lwarmstart = .false. !<   flag for "cold" or "warm" start
    logical :: lstratstart = .false.
    logical :: lfielddump = .false. !< switch to enable the fielddump
+   logical :: lslice = .true. !< swith to enable slicedump
+   integer :: jslice = 1 !, index to be used for yslice
    logical :: lreadscal = .false. !<   flag for reading scalar pollutant field (warm start)
 
    !Switches for boundary conditions

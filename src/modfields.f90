@@ -404,6 +404,7 @@ module modfields
   real              :: fluidvol                     !< fluid volume (excluding blocks)
 
   character(80), allocatable :: ncname(:,:)
+  character(80), allocatable :: ncname_slice(:,:)
   character(80), allocatable :: ncname1(:,:)
   character(80), allocatable :: ncname2(:,:)
   character(80), allocatable :: ncstaty(:,:)

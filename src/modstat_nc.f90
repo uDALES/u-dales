@@ -436,6 +436,13 @@ contains
     integer :: iret,n,varid
     do n=1,nvar
       iret = nf90_inq_varid(ncid, ncname(n,1), VarID)
+      write(*,*) 'ncid', ncid
+      write(*,*) 'VarID', VarID
+      write(*,*) 'size(vars)', size(vars)
+      write(*,*) 'dim1', dim1
+      write(*,*) 'dim2', dim2
+      write(*,*) 'nrec', nrec
+      write(*,*) 'n', n 
       iret = nf90_put_var(ncid, VarID, vars(1:dim1,1:dim2,n),(/1,1,nrec/),(/dim1,dim2,1/))
     end do
     iret = nf90_sync(ncid)

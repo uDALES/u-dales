@@ -56,7 +56,7 @@ module modstartup
       !-----------------------------------------------------------------|
 
       use modglobal,         only : initglobal, iexpnr, runtime, dtmax,  &
-                                    lwarmstart, lstratstart, lfielddump, lreadscal, startfile, tfielddump, fieldvars, tsample, tstatsdump, trestart, &
+                                    lwarmstart, lstratstart, lfielddump,lslice,jslice, lreadscal, startfile, tfielddump, fieldvars,slicevars, tsample, tstatsdump, trestart, &
                                     nsv, itot, jtot, ktot, xlen, ylen, xlat, xlon, xday, xtime, lwalldist, &
                                     lmoist, lcoriol, igrw_damp, geodamptime, ifnamopt, fname_options, &
                                     xS,yS,zS,SS,sigS,iwallmom,iwalltemp,iwallmoist,iwallscal,ipoiss,iadv_mom,iadv_tke,iadv_thl,iadv_qt,iadv_sv,courant,diffnr,ladaptive,author,&
@@ -155,7 +155,7 @@ module modstartup
       namelist/CHEMISTRY/ &
          lchem, k1, JNO2
       namelist/OUTPUT/ &
-         lfielddump, tfielddump, fieldvars, &
+         lfielddump,lslice,jslice, tfielddump, fieldvars, slicevars, &
          ltdump, lydump, lytdump, lxydump, lxytdump, &
          lslicedump, ltkedump, tstatsdump, tsample
 
@@ -328,6 +328,7 @@ module modstartup
       call MPI_BCAST(lwarmstart, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lstratstart, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lfielddump, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(lslice, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lreadscal, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch to read scalar pollutant fields (warm start)
       call MPI_BCAST(lscasrc, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315
       call MPI_BCAST(lscasrcl, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315

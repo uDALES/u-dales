@@ -45,6 +45,7 @@ program DALESURBAN      !Version 48
   use modchecksim,     only : initchecksim,checksim
   use modstat_nc,      only : initstat_nc
   use modfielddump,    only : initfielddump,fielddump,exitfielddump
+  !use modslicedump,    only : initslicedump, slicedump, exitslicedump
   use modstatsdump,    only : initstatsdump,statsdump,exitstatsdump    !tg3315
   use modtimedep,      only : inittimedep,timedep
   implicit none
@@ -105,6 +106,8 @@ program DALESURBAN      !Version 48
   call inittimedep
 
   call initfielddump
+
+  !call initslicedump
 
   call boundary
 
@@ -184,6 +187,8 @@ program DALESURBAN      !Version 48
 
     call fielddump
 
+    !call slicedump
+
     call statsdump
 
     call boundary
@@ -212,6 +217,7 @@ program DALESURBAN      !Version 48
 !-------------------------------------------------------
   call exitfielddump
   call exitstatsdump     !tg3315
+  !call exitslicedump
   !call exitmodules
   !call exittest
   call exitmpi

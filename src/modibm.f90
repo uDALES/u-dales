@@ -1538,7 +1538,8 @@ module modibm
 
          if (lEB) then
            fluxTrhs = - flux * area / (dx*dy*dzh(k)) ! cew216 This is used for the peirodicEBcorr forcing [K/s]
-           totheatflux = totheatflux + fluxTrhs ! Add the contribution from each point
+           !totheatflux = totheatflux + fluxTrhs ! Add the contribution from each point
+           totheatflux = totheatflux + flux*area ! [Km^3s^-1] This sums the flux over all facets
            fachf(fac) = fachf(fac) + flux * area ! [Km^2/s] (will be divided by facetarea(fac) in modEB)
          end if
        end if
@@ -1577,7 +1578,8 @@ module modibm
 
          if (lEB) then
           fluxqrhs = - flux * area / (dx*dy*dzh(k)) ! cew216 This is used for the peirodicEBcorr forcing [K/s]
-          totqflux = totqflux + fluxqrhs ! Add the contribution from each point
+          !totqflux = totqflux + fluxqrhs ! Add the contribution from each point
+          totqflux = totqflux + flux*area ! [Km^3s^-1] This sums the flux over all facets
           facef(fac) = facef(fac) + flux * area ! [Km^2/s] (will be divided by facetarea(fac) in modEB)
          end if
        end if

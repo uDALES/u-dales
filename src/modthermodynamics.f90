@@ -488,10 +488,10 @@ contains
              do i=ib,ie
                 tl  = thl(i,j,k)*exner(k)
 
-                !if (tl<100) then ! This is put in to prevent crashing at the start of simulation with conservative IBM
-                  !tl = 100
+                if (tl<100) then ! This is put in to prevent crashing at the start of simulation with conservative IBM
+                  tl = 100
                   !write(*,*) 'tl ', tl
-                !end if
+                end if
                 es  = es0*exp(at*(tl-tmelt)/(tl-bt))
                 qsl = rd/rv*es/(pressure(k)-(1-rd/rv)*es)
                 b1  = rlv**2/(tl**2*cp*rv)
