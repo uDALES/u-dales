@@ -5,7 +5,7 @@
 show_plot_2d = false;
 show_plot_3d = false;
 %expnrs2 = [301,303,321,323,341,343];
- expnrs2 = [501];
+ expnrs2 = [401];
 % expnrs1= [059];
 
 expnrs1 = expnrs2-1;
@@ -73,7 +73,7 @@ for e = 1:length(expnrs1)
         disp(['Written factypes.inp.', r2.expnr])
     end
     cd(fpath)
-    tic 
+    
     if r.libm
         %% Read the .stl file and write necessary ibm files
         TR = stlread(r.stl_file);
@@ -471,7 +471,6 @@ for e = 1:length(expnrs1)
         fprintf(fileID_info, ['nfctsecs_c = ', num2str(size(facet_sections_c_final,1)), '\n']);
         fprintf(fileID_info, ['sinkbase = ', num2str(max(solid_ijk_c(:,3))), '\n']);
         fclose(fileID_info);
-        toc
         %%
         if r.lEB
             preprocessing.write_facetarea(r, area_facets);

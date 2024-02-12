@@ -18,7 +18,8 @@
 % Copyright (C) 2016-2023 the uDALES Team.
 
 % This script is run by the bash script da_inp.sh.
-% It used to generate the necessary input files for uDALES
+% It used to generate the necessary input files for uDALES.
+tic
 expnr = ['064'];
 %expnr2 = '131'
 % DA_EXPDIR = getenv('DA_EXPDIR');
@@ -180,7 +181,6 @@ preprocessing.write_facetarea(r, area_facets);
 %     preprocessing.write_facets(r, facet_types, TR.faceNormal);
 % 
 %     preprocessing.write_facetarea(r, area_facets); % always write facet area
-%%    
     if r.lEB
         %% Write STL in View3D input format
         fpath_facets_view3d = [fpath 'facets.vs3'];
@@ -291,6 +291,7 @@ preprocessing.write_facetarea(r, area_facets);
 %         albedos = preprocessing.generate_albedos(r, facet_types);
         shortwave;
         Knet = netShortwave(Sdir, r.Dsky, vf, svf, albedos);
+        toc
         preprocessing.write_netsw(r, Knet(:,1)); % was Knet changed udring ecse merge but might change back.
         disp(['Written netsw.inp.', r.expnr])
 
@@ -334,3 +335,4 @@ for i = 1:r.nfcts
     ems = [ems,em];
 end
 dlmwrite(['emissivity.' expnr], ems');
+toc
