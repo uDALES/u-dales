@@ -124,8 +124,26 @@ if r.libm
         dx = r.dx;
         dy = r.dy;
 
-        lmypolyfortran = 1; lmypoly = 0;		% remove eventually
-        lmatchFacetsToCellsFortran = 1;
+        if r.isolid_bound == 1
+            lmypolyfortran = 1;
+            lmypoly = 0;
+        elseif r.isolid_bound == 2
+            lmypolyfortran = 0;
+            lmypoly = 1;
+        elseif r.isolid_bound == 3
+            lmypolyfortran = 0;
+            lmypoly = 0;
+        else
+            error('Unrecognised option for fluid/solid point classification')
+        end
+
+        if r.ifacsec == 1
+            lmatchFacetsToCellsFortran = 1;
+        elseif r.ifacsec == 2
+            lmatchFacetsToCellsFortran = 0;
+        else
+            error('Unrecognised option for facet section calculation')
+        end
 
         writeIBMFiles; % Could turn into a function and move writing to this script
     else
@@ -227,8 +245,16 @@ if r.libm
         resolution   = r.psc_res;
         xazimuth     = r.xazimuth;
         ltimedepsw   = r.ltimedepsw;
-        ldirectShortwaveFortran = r.ldirectShortwaveFortran;
+        lcustomsw = r.lcustomsw;
         lscatter = true;
+
+        if r.ishortwave == 1
+            ldirectShortwaveFortran = 1;
+        elseif r.ishortwave == 2
+            ldirectShortwaveFortran = 0;
+        else
+            error('Unrecognised option for shortwave calculation')
+        end
 
         if ltimedepsw
             runtime = r.runtime;
@@ -239,7 +265,7 @@ if r.libm
             timezone  = r.timezone;
             elevation = r.elevation;
         else
-            lcustomsw = r.lcustomsw;
+
             if lcustomsw
                 solarazimuth = r.solarazimuth;
                 solarzenith  = r.solarzenith;

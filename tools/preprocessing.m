@@ -308,6 +308,16 @@ classdef preprocessing < dynamicprops
             preprocessing.addvar(obj, 'R',0)   % radiative forcing [*units?*]
 
             preprocessing.addvar(obj, 'libm', 1)
+
+            preprocessing.addvar(obj, 'isolid_bound', 1) 
+            % Option for solid/fluid detection and boundary points calculation;
+            % 1: inmypoly_fortran (Fortran), 2: inmypoly (MATLAB) (useful for debugging), 
+            % 3: inpolyhedron (MATLAB): https://www.mathworks.com/matlabcentral/fileexchange/37856-inpolyhedron-are-points-inside-a-triangulated-volume
+
+            preprocessing.addvar(obj, 'ifacsec', 1)
+            % Option for facet section calculation (matchFacetsToCells)
+            % 1: Fortran, 2: MATLAB (useful for debugging)
+
             preprocessing.addvar(obj, 'read_types', 0)
             if obj.read_types
                 preprocessing.addvar(obj, 'types_path', 0)
@@ -370,7 +380,9 @@ classdef preprocessing < dynamicprops
                     error('If sparse view3d output is desired, set lvfsparse=.true. in &ENERGYBALANCE.')
                 end
 
-                preprocessing.addvar(obj, 'ldirectShortwaveFortran', false);
+                preprocessing.addvar(obj, 'ishortwave', 1)
+                % Option for direct shortwave radiation calculation
+                % 1: Fortran, 2: MATLAB (useful for debugging)
             end
 
             preprocessing.addvar(obj, 'facT', 288.) % Initial facet temperatures.
