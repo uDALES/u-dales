@@ -62,22 +62,28 @@ for facet=1:Nf
     end
 
     if isempty(il)
-        error('problem with lower x coord'); 
+        disp(['Warning: skipping facet ' num2str(facet) ' as it is out of bounds in lower x direction.'])
+        continue
     end
     if isempty(iu)
-        error('problem with upper x coord');
+        disp(['Warning: skipping facet ' num2str(facet) ' as it is out of bounds in upper x direction.'])
+        continue
     end
     if isempty(jl)
-        error('problem with lower y coord');
+        disp(['Warning: skipping facet ' num2str(facet) ' as it is out of bounds in lower y direction.'])
+        continue
     end
     if isempty(ju)
-        error('problem with upper y coord'); 
+        disp(['Warning: skipping facet ' num2str(facet) ' as it is out of bounds in upper y direction.'])
+        continue
     end
     if isempty(kl)
-        error('problem with lower z coord')
+        disp(['Warning: skipping facet ' num2str(facet) ' as it is out of bounds in lower z direction.'])
+        continue
     end
     if isempty(ku)
-        error('problem with upper z coord')
+        disp(['Warning: skipping facet ' num2str(facet) ' as it is out of bounds in upper z direction.'])
+        continue
     end
     
     % Facet exists in cell N+1.
@@ -120,11 +126,11 @@ for facet=1:Nf
                     0  0  1  zrange(2);
                     0  0 -1 -zrange(1)];
 
-                clip = sutherlandHodgman3D(TR.Points(TR.ConnectivityList(facet,:),:), planes);
+                clip_verts = sutherlandHodgman3D(TR.Points(TR.ConnectivityList(facet,:),:), planes);
 
-                if ~(size(clip,1) < 3)
-                    if (size(clip,1) == 3) % triangle
-                        area = 1/2*norm(cross(clip(2,:)-clip(1,:),clip(3,:)-clip(1,:)));
+                if ~(size(clip_verts,1) < 3)
+                    if (size(clip_verts,1) == 3) % triangle
+                        area = 1/2*norm(cross(clip_verts(2,:)-clip_verts(1,:),clip_verts(3,:)-clip_verts(1,:)));
                         
                         % Remove anything below 1 square centimetre,
                         % as we only write to this precision.
@@ -133,9 +139,9 @@ for facet=1:Nf
                             continue
                         end
 
-                        tri = triangulation([1 2 3], clip);
+                        tri = triangulation([1 2 3], clip_verts);
 
-                    elseif(size(clip,1) > 3) % other polygon
+                    elseif(size(clip_verts,1) > 3) % other polygon
                         xangle = dot(TR.faceNormal(facet), [1 0 0]);
                         yangle = dot(TR.faceNormal(facet), [0 1 0]);
                         zangle = dot(TR.faceNormal(facet), [0 0 1]);
@@ -152,9 +158,9 @@ for facet=1:Nf
                             ids = [1 2];
                         end
 
-                        projVert = zeros(size(clip,1),3);
-                        for m = 1:size(clip,1)
-                            projVert(m,:) = clip(m,:) - dot(clip(m,:), planeNormal) * planeNormal;
+                        projVert = zeros(size(clip_verts,1),3);
+                        for m = 1:size(clip_verts,1)
+                            projVert(m,:) = clip_verts(m,:) - dot(clip_verts(m,:), planeNormal) * planeNormal;
                         end
 
                         projArea = polyarea(projVert(:,ids(1)), projVert(:,ids(2)));
@@ -167,18 +173,12 @@ for facet=1:Nf
                             continue
                         end
 
-                        switch size(clip,1)
-                            case 4
-                                tri = triangulation([1 2 3;1 3 4], clip);
-                            case 5
-                                tri = triangulation([1 2 3;1 3 4;1 4 5], clip);
-                            case 6
-                                tri = triangulation([1 2 3;1 3 4;1 4 5;1 5 6], clip);
-                            case 7
-                                tri = triangulation([1 2 3;1 3 4;1 4 5;1 5 6; 1 6 7], clip);
-                            otherwise
-                                error('not possible for clipped polygon to have more than 7 edges(?)')
+                        nclip_faces = size(clip_verts,1) - 2;
+                        clip_faces = zeros(nclip_faces, 3);
+                        for n=1:nclip_faces
+                            clip_faces(n,:) = [1 n+1 n+2];
                         end
+                        tri = triangulation(clip_faces, clip_verts);
 
                     else
                         error('something wrong with clipped polygon')
@@ -638,7 +638,7 @@ for facet=1:Nf
                                 xl yl zu; xu yl zu; xu yu zu; xl yu zu];
                             patch('Faces', F, 'Vertices', V, 'FaceColor', [1,1,1], 'FaceAlpha', 0.5)
                         end
-                        %patch('Faces', 1:size(clip,1), 'Vertices', clip, 'FaceColor', [0,0,1], 'FaceAlpha', 0.5)
+                        %patch('Faces', 1:size(clip_verts,1), 'Vertices', clip_verts, 'FaceColor', [0,0,1], 'FaceAlpha', 0.5)
                         %trisurf(tri)
                         patch('Faces', tri.ConnectivityList, 'Vertices', tri.Points+1e-3*[1 0 0], 'FaceColor', [0 0 1], 'FaceAlpha', 1)
                         axis equal
