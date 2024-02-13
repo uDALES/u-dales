@@ -19,6 +19,7 @@ ktot = length(zgrid);
 facet_sections = [];
 
 lplot = false; if lplot; figure; end % for debugging
+lshow = false; if lplot; figure; end % for debugging
 count = 0;
 countlim = inf;
 Nf = size(TR.ConnectivityList,1);
@@ -97,7 +98,6 @@ for facet=1:Nf
         ju = length(ygrid);
     end
     
-
     %stopflag = false;
     for i=il:iu
         for j=jl:ju
@@ -212,9 +212,7 @@ for facet=1:Nf
                     inputs.face_normals(all(inputs.face_normals == 0, 2),:) = NaN;
                     %[face_mean_nodes, face_normals] = getFaceCenterAndNormals(inputs.faces,inputs.nodes);
 
-                    count = count+1;
-
-
+                    %count = count+1;
 
                     if fluid_IB(i,j,k)
                         [~, loc] = ismember([xgrid(i), ygrid(j), zgrid(k)], fluid_IB_xyz, 'rows');
@@ -495,7 +493,7 @@ for facet=1:Nf
                         dist = dists(id);
                         BI = BIs(id,:);
 
-                        if (isnan(dist))
+                        if (isnan(dist) && lshow)
                             disp(['Facet ' num2str(facet) ' in cell ' num2str(i) ',' num2str(j) ',' num2str(k) ' could not find a cell to give flux to. Ensure diag_neighbs = true, but if persists check geometry for e.g. facets on domain edge.'])
 
                             %%
@@ -512,7 +510,12 @@ for facet=1:Nf
                             end
 
                             view(3)
-                            patch('Faces', TR.ConnectivityList(facet,:), 'Vertices', TR.Points, 'FaceColor', ones(3,1)*69/100, 'FaceAlpha', 0.5)
+                            if count==0
+                                patch('Faces', TR.ConnectivityList, 'Vertices', TR.Points, 'FaceColor', ones(3,1)*69/100, 'FaceAlpha', 0)
+                                count = count+1;
+                            end
+                            hold on
+                            patch('Faces', TR.ConnectivityList(facet,:), 'Vertices', TR.Points, 'FaceColor', ones(3,1)*69/100, 'FaceAlpha', 1)
                             %patch('Faces', [1 2 3], 'Vertices', TR.Points(TR.ConnectivityList(facet,:),:), 'FaceColor', [1,0,0], 'FaceAlpha', 0.5)
                             hold on
                             incenter = TR.incenter(1); faceNormal = TR.faceNormal;
@@ -531,8 +534,8 @@ for facet=1:Nf
                             %zlim([0 zgrid(end)])
                             drawnow
                             %pause(5)
-                             continue
-%                             return
+                            continue
+
                         end
 
                     end

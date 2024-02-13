@@ -154,7 +154,7 @@ if show_plot_2d
     colormap gray
     c = colorbar;
     c.Title.String = 'Direct solar radiation [W/m^2]';
-    %caxis([0,1])
+    caxis([0 irradiance])
     xlabel('\xi')
     ylabel('\eta')
     axis equal tight
