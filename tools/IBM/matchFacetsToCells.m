@@ -531,7 +531,7 @@ for facet=1:Nf
                             %zlim([0 zgrid(end)])
                             drawnow
                             %pause(5)
-                             %continue
+                             continue
 %                             return
                         end
 
