@@ -245,8 +245,36 @@ if r.libm
         resolution   = r.psc_res;
         xazimuth     = r.xazimuth;
         ltimedepsw   = r.ltimedepsw;
-        lcustomsw = r.lcustomsw;
         lscatter = true;
+
+        if r.isolar == 1 % custom solar position
+           lcustomsw = true;
+           lweatherfile = false;
+           solarazimuth = r.solarazimuth;
+           solarzenith  = r.solarzenith;
+           irradiance   = r.I;
+           Dsky         = r.Dsky;
+        elseif r.isolar == 2 % from latitude & longitude, using ASHRAE
+           lcustomsw = false;
+           lweatherfile = false;
+           longitude = r.longitude;
+           latitude  = r.latitude;
+           timezone  = r.timezone;
+           elevation = r.elevation;
+           start = datetime(r.year, r.month, r.day, r.hour, r.minute, r.second);
+        elseif r.isolar == 3 % from weather file
+            lcustomsw = false;
+            lweatherfile = true;
+            weatherfname = r.weatherfname;
+            start = datetime(r.year, r.month, r.day, r.hour, r.minute, r.second);
+        else
+            error('Unrecognised option for solar position calculation')
+        end
+
+        if ltimedepsw
+            runtime = r.runtime;
+            dtSP    = r.dtSP;
+        end
 
         if r.ishortwave == 1
             ldirectShortwaveFortran = 1;
@@ -256,29 +284,33 @@ if r.libm
             error('Unrecognised option for shortwave calculation')
         end
 
-        if ltimedepsw
-            runtime = r.runtime;
-            dtSP    = r.dtSP;
-            start = datetime(r.year, r.month, r.day, r.hour, r.minute, r.second);
-            longitude = r.longitude;
-            latitude  = r.latitude;
-            timezone  = r.timezone;
-            elevation = r.elevation;
-        else
-
-            if lcustomsw
-                solarazimuth = r.solarazimuth;
-                solarzenith  = r.solarzenith;
-                irradiance   = r.I;
-                Dsky         = r.Dsky;
-            else
-                start = datetime(r.year, r.month, r.day, r.hour, r.minute, r.second);
-                longitude = r.longitude;
-                latitude  = r.latitude;
-                timezone  = r.timezone;
-                elevation = r.elevation;
-            end
-        end
+        % 
+        % 
+        %     if lweatherfile
+        %         weatherfname = r.weatherfname;
+        %     else
+        %         longitude = r.longitude;
+        %         latitude  = r.latitude;
+        %         timezone  = r.timezone;
+        %         elevation = r.elevation;
+        %     end
+        % else
+        %     if lcustomsw
+        %         solarazimuth = r.solarazimuth;
+        %         solarzenith  = r.solarzenith;
+        %         irradiance   = r.I;
+        %         Dsky         = r.Dsky;
+        %     elseif lweatherfile
+        %         weatherfname = r.weatherfname;
+        %         start = datetime(r.year, r.month, r.day, r.hour, r.minute, r.second);
+        %     else
+        %         start = datetime(r.year, r.month, r.day, r.hour, r.minute, r.second);
+        %         longitude = r.longitude;
+        %         latitude  = r.latitude;
+        %         timezone  = r.timezone;
+        %         elevation = r.elevation;
+        %     end
+        % end
 
         shortwave;
         preprocessing.write_netsw(r, Knet(:,1));

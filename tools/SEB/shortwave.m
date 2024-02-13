@@ -6,14 +6,14 @@
 % TR
 % ltimedepsw
 % xazimuth
-% if ltimedepsw is true, then also need:
-%   start (in datetime format), runtime, dtSP
-%   longitude, latitude, timezone, elevation
-% if ltimedepsw is false, then need lcustomSW
-% if lcustomsw is false, then need start, longitude, latitude, timezone, elevation
-% if lcustomsw is true, then need solarazimuth, solarzenith, irradiance, and Dsky
+% if ltimedepsw is true, then need:
+% start (in datetime format), runtime, dtSP
+% if lweatherfile is true; weatherfname
+% else need longitude, latitude, timezone, elevation
+% if ltimedepsw is false, can also use lcustomsw
+% if lcustomsw is true, then need solarazimuth, solarzenith, irradiance,
+%   and Dsky (and not longitude etc or a weatherfile)
 % if lscatter is true, the net shortwave is calculated using albedos, vf, svf, albedos
-
 
 currentPath = pwd;
 stk = dbstack; activeFilename = which(stk(1).file);
@@ -36,11 +36,25 @@ if ldirectShortwaveFortran
     system('gfortran -O3 directShortwave.f90 -o DS.exe');
     copyfile('DS.exe', fpath)
     delete DS.exe
-    cd(currentPath)
 end
 
+cd(fpath)
 if ~ltimedepsw
-    if lcustomsw % custom solar position and irradiance - default true
+    if lcustomsw % custom solar position and irradiance
+        azimuth = solarazimuth - xazimuth;
+    elseif lweatherfile
+        datestring = datestr(start, 'ddmmyy');
+        timenum = start.Hour * 3600;
+        timedepdata = readtable(weatherfname);
+        id = find(table2array(timedepdata(:,1)) == str2num(datestring) & ...
+            table2array(timedepdata(:,2)) == timenum);
+        %timedeptime = table2array(timedepdata(ids, 'TIME'));
+        %timedepTair = table2array(timedepdata(ids, 'TAIR')) + 273.15;
+        irradiance = table2array(timedepdata(id, 'HELIOM'));
+        Dsky = table2array(timedepdata(id, 'DIFSOLAR'));
+        %timedepLsky = table2array(timedepdata(ids, 'IRSKYT'));
+        solarzenith = table2array(timedepdata(id, 'SOLAR'));
+        solarazimuth = table2array(timedepdata(id, 'SOLAR_1'))+90;
         azimuth = solarazimuth - xazimuth;
     else
         sp = solarPosition(start, longitude, latitude, timezone, elevation);
@@ -64,7 +78,7 @@ if ~ltimedepsw
         end
         Sdir = dlmread([fpath 'Sdir.txt'], '', 0, 0);
         delete DS.exe;
-        cd(currentPath)
+        %cd(currentPath)
     else
         disp('Calculating shortwave radiation using MATLAB.')
         show_plot_2d = false; % User-defined
@@ -83,41 +97,100 @@ if ~ltimedepsw
     end
 
 else
-    [ashraeA, ashraeB, ashraeC] = ASHRAE(start.Month);
-    tSP = 0:dtSP:runtime;
-    Sdir = zeros(nfcts, length(tSP));
-    Knet = zeros(nfcts, length(tSP));
-    for n = 1:length(tSP)
-        n
-        TOD = start + seconds(tSP(n));
-        sp = solarPosition(TOD, longitude, latitude, timezone, elevation);
-        solarzenith = sp.zenith;
-        if solarzenith < 90
-            azimuth = sp.azimuth - xazimuth;
-            nsun = [sind(solarzenith)*cosd(azimuth), sind(solarzenith)*-sind(azimuth), cosd(solarzenith)];
-            irradiance = ashraeA * exp(-ashraeB / cosd(solarzenith));
-            Dsky = ashraeC * irradiance;
-            if ldirectShortwaveFortran
-                writeInfo_directShortwave(nfcts, npoints, nsun, irradiance, resolution, fpath)
-                if lwindows
-                    system('DS.exe');
-                else
-                    system('./DS.exe');
-                end
-                Sdir(:,n) = dlmread([fpath 'Sdir.txt'], '', 0, 0);
-            else
-                Sdir(:,n) = directShortwave(F, V, nsun, irradiance, resolution, true, false);
-            end
+    if lweatherfile
+        datestring = datestr(start, 'ddmmyy');
+        timedepdata = readtable(weatherfname);
+        %ids = find(table2array(timedepdata(:,1)) == 10600); % June
+        ids = find(table2array(timedepdata(:,1)) == str2num(datestring)); % can't have leading zero in day!
+        timedeptime = table2array(timedepdata(ids, 'TIME'));
+        %timedepTair = table2array(timedepdata(ids, 'TAIR')) + 273.15;
+        timedepI = table2array(timedepdata(ids, 'HELIOM'));
+        timedepDsky = table2array(timedepdata(ids, 'DIFSOLAR'));
+        %timedepLsky = table2array(timedepdata(ids, 'IRSKYT'));
+        timedepzenith = table2array(timedepdata(ids, 'SOLAR'));
+        timedepazimuth = table2array(timedepdata(ids, 'SOLAR_1'))+90;
+        
+        timedepazimuth_shift = circshift(timedepazimuth, -hour(start));
+        timedepzenith_shift = circshift(timedepzenith, -hour(start));
+        timedepI_shift = circshift(timedepI, -hour(start));
+        timedepDsky_shift = circshift(timedepDsky, -hour(start));
 
-            if lscatter
-                Knet(:,n) = netShortwave(Sdir(:,n), Dsky, vf, svf, albedos);
+        %%
+        tSP = 0:dtSP:runtime;
+        zenith_interp = interp1(timedeptime, timedepzenith_shift, tSP, 'makima');
+        azimuth_interp = interp1(timedeptime, timedepazimuth_shift, tSP, 'makima');
+        I_interp = interp1(timedeptime, timedepI_shift, tSP, 'makima');
+        Dsky_interp = interp1(timedeptime, timedepDsky_shift, tSP, 'makima');
+
+        %%
+        Sdir = zeros(nfcts, length(tSP));
+        Knet = zeros(nfcts, length(tSP));
+        for n = 1:length(tSP)
+            n
+            solarzenith = zenith_interp(n);
+            irradiance = I_interp(n);
+            if (solarzenith < 90 && irradiance > 0)
+                solarazimuth = azimuth_interp(n);
+                azimuth = solarazimuth - xazimuth;
+                nsun = [sind(solarzenith)*cosd(azimuth), sind(solarzenith)*-sind(azimuth), cosd(solarzenith)];
+                Dsky = Dsky_interp(n);
+                if ldirectShortwaveFortran
+                    writeInfo_directShortwave(nfcts, npoints, nsun, irradiance, resolution, fpath)
+                    if lwindows
+                        system('DS.exe');
+                    else
+                        system('./DS.exe');
+                    end
+                    Sdir(:,n) = dlmread([fpath 'Sdir.txt'], '', 0, 0);
+                else
+                    Sdir(:,n) = directShortwave(F, V, nsun, irradiance, resolution, true, false);
+                end
+
+                if lscatter
+                    Knet(:,n) = netShortwave(Sdir(:,n), Dsky, vf, svf, albedos);
+                end
             end
         end
+    else
+        [ashraeA, ashraeB, ashraeC] = ASHRAE(start.Month);
+        tSP = 0:dtSP:runtime;
+        Sdir = zeros(nfcts, length(tSP));
+        Knet = zeros(nfcts, length(tSP));
+        for n = 1:length(tSP)
+            n
+            TOD = start + seconds(tSP(n));
+            sp = solarPosition(TOD, longitude, latitude, timezone, elevation);
+            solarzenith = sp.zenith;
+            if solarzenith < 90
+                azimuth = sp.azimuth - xazimuth;
+                nsun = [sind(solarzenith)*cosd(azimuth), sind(solarzenith)*-sind(azimuth), cosd(solarzenith)];
+                irradiance = ashraeA * exp(-ashraeB / cosd(solarzenith));
+                Dsky = ashraeC * irradiance;
+                if ldirectShortwaveFortran
+                    writeInfo_directShortwave(nfcts, npoints, nsun, irradiance, resolution, fpath)
+                    if lwindows
+                        system('DS.exe');
+                    else
+                        system('./DS.exe');
+                    end
+                    Sdir(:,n) = dlmread([fpath 'Sdir.txt'], '', 0, 0);
+                else
+                    Sdir(:,n) = directShortwave(F, V, nsun, irradiance, resolution, false, false);
+                end
 
+                if lscatter
+                    Knet(:,n) = netShortwave(Sdir(:,n), Dsky, vf, svf, albedos);
+                end
+            end
+
+        end
+    end
+    if ldirectShortwaveFortran
+        delete vertices.txt faces.txt info_directShortwave.txt DS.exe Sdir.txt;
     end
 
-    % write to netcdf for visualisation
-    ncid = netcdf.create('Sdir.nc', 'NC_WRITE');
+    %% write to netcdf for visualisation
+    ncid = netcdf.create(['Sdir.nc'], 'NC_WRITE');
     dimidrow = netcdf.defDim(ncid,'rows', nfcts);
     dimidcol = netcdf.defDim(ncid,'columns', length(tSP));
     varid_tSP = netcdf.defVar(ncid,'tSP','NC_FLOAT',dimidcol);
@@ -127,7 +200,7 @@ else
     netcdf.putVar(ncid,varid_Sdir,Sdir);
     netcdf.close(ncid);
 end
-
+cd(currentPath)
 
 function writeInfo_directShortwave(nfcts, npoints, nsun, irradiance, resolution, fpath)
     fileID = fopen([fpath 'info_directShortwave.txt'],'w');
