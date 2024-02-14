@@ -437,10 +437,13 @@ module modibm
              bound_info%lskipsec(n) = .false.
            end if
 
-         else ! need to reconstruct
+         else
            bound_info%lcomprec(n) = .false.
            bound_info%lskipsec(n) = .false.
 
+           if (lnorec) cycle
+
+           ! Find reconstruction point
            ! cell centre (of current grid)
            xc = xgrid(bound_info%bndpts(m,1))
            yc = ygrid(bound_info%bndpts(m,2))
