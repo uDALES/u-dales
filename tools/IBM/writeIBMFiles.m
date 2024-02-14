@@ -30,6 +30,7 @@ Dir_ray_v = [0 0 1];
 Dir_ray_w = [0 0 1];
 Dir_ray_c = [0 0 1];
 tol_mypoly = 5e-4;
+tol_inpolyhedron = 5e-3;
 
 currentPath = pwd;
 stk = dbstack; activeFilename = which(stk(1).file);
@@ -424,7 +425,7 @@ else
     else
         disp('Determining fluid/solid points using MATLAB (inpolyhedron).')
         solid_u = inpolyhedron(TR.ConnectivityList, TR.Points, ...
-            xgrid_u, ygrid_u, zgrid_u, 'FACENORMALS', TR.faceNormal);
+            xgrid_u, ygrid_u, zgrid_u, 'FACENORMALS', TR.faceNormal, 'TOL', tol_inpolyhedron);
         solid_u = permute(solid_u, [2 1 3]);
         %solid_u(1,:,:) = 0;
     end
@@ -444,7 +445,7 @@ else
         solid_v = in_grid_mypoly(TR.Points,TR.ConnectivityList,TR.incenter,TR.faceNormal,xgrid_v,ygrid_v,zgrid_v,Dir_ray_v,L_char,max_height,tol_mypoly);
     else
         solid_v = inpolyhedron(TR.ConnectivityList, TR.Points, ...
-            xgrid_v, ygrid_v, zgrid_v, 'FACENORMALS', TR.faceNormal);
+            xgrid_v, ygrid_v, zgrid_v, 'FACENORMALS', TR.faceNormal, 'TOL', tol_inpolyhedron);
         solid_v = permute(solid_v, [2 1 3]);
         %solid_v(:,1,:) = 0;
     end
@@ -464,7 +465,7 @@ else
             TR.incenter,TR.faceNormal,xgrid_w,ygrid_w,zgrid_w,Dir_ray_w,L_char,max_height,tol_mypoly);
     else
         solid_w = inpolyhedron(TR.ConnectivityList, TR.Points, ...
-           xgrid_w, ygrid_w, zgrid_w, 'FACENORMALS', TR.faceNormal);
+           xgrid_w, ygrid_w, zgrid_w, 'FACENORMALS', TR.faceNormal, 'TOL', tol_inpolyhedron);
         solid_w = permute(solid_w, [2 1 3]);
     end
 
@@ -586,7 +587,7 @@ else
         solid_c = in_grid_mypoly(TR.Points,TR.ConnectivityList,TR.incenter,TR.faceNormal,xgrid_c,ygrid_c,zgrid_c,Dir_ray_c,L_char,max_height,tol_mypoly);
     else
         solid_c = inpolyhedron(TR.ConnectivityList, TR.Points, ...
-            xgrid_c, ygrid_c, zgrid_c, 'FACENORMALS', TR.faceNormal);
+            xgrid_c, ygrid_c, zgrid_c, 'FACENORMALS', TR.faceNormal, 'TOL', tol_inpolyhedron);
         solid_c = permute(solid_c, [2 1 3]);
     end
 
