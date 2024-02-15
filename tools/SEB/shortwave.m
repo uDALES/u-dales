@@ -38,6 +38,11 @@ if ldirectShortwaveFortran
     delete DS.exe
 end
 
+if ~lscatter
+    % geometric factor accounting for facet orientation for diffuse sky irradiance.
+    Fss = (1 + dot(TR.faceNormal, repmat([0 0 1], nfcts, 1), 2)) / 2;
+end
+
 cd(fpath)
 if ~ltimedepsw
     if lcustomsw % custom solar position and irradiance
@@ -48,11 +53,10 @@ if ~ltimedepsw
         timedepdata = readtable(weatherfname);
         id = find(table2array(timedepdata(:,1)) == str2num(datestring) & ...
             table2array(timedepdata(:,2)) == timenum);
-        %timedeptime = table2array(timedepdata(ids, 'TIME'));
-        %timedepTair = table2array(timedepdata(ids, 'TAIR')) + 273.15;
+        Tair = table2array(timedepdata(id, 'TAIR')) + 273.15; % not used here, but in case needed
         irradiance = table2array(timedepdata(id, 'HELIOM'));
         Dsky = table2array(timedepdata(id, 'DIFSOLAR'));
-        %timedepLsky = table2array(timedepdata(ids, 'IRSKYT'));
+        Lsky = table2array(timedepdata(id, 'IRSKYT')); % not used here, but in case needed
         solarzenith = table2array(timedepdata(id, 'SOLAR'));
         solarazimuth = table2array(timedepdata(id, 'SOLAR_1'))+90;
         azimuth = solarazimuth - xazimuth;
@@ -94,19 +98,20 @@ if ~ltimedepsw
     if lscatter
         % Calculate net shortwave radiation (Knet)
         Knet = netShortwave(Sdir, Dsky, vf, svf, albedos);
+    else
+        Knet = (1 - albedos) .* (Sdir + Dsky * Fss);
     end
 
 else
     if lweatherfile
         datestring = datestr(start, 'ddmmyy');
         timedepdata = readtable(weatherfname);
-        %ids = find(table2array(timedepdata(:,1)) == 10600); % June
-        ids = find(table2array(timedepdata(:,1)) == str2num(datestring)); % can't have leading zero in day!
+        ids = find(table2array(timedepdata(:,1)) == str2num(datestring));
         timedeptime = table2array(timedepdata(ids, 'TIME'));
-        %timedepTair = table2array(timedepdata(ids, 'TAIR')) + 273.15;
+        timedepTair = table2array(timedepdata(ids, 'TAIR')) + 273.15;
         timedepI = table2array(timedepdata(ids, 'HELIOM'));
         timedepDsky = table2array(timedepdata(ids, 'DIFSOLAR'));
-        %timedepLsky = table2array(timedepdata(ids, 'IRSKYT'));
+        timedepLsky = table2array(timedepdata(ids, 'IRSKYT'));
         timedepzenith = table2array(timedepdata(ids, 'SOLAR'));
         timedepazimuth = table2array(timedepdata(ids, 'SOLAR_1'))+90;
         
@@ -115,7 +120,6 @@ else
         timedepI_shift = circshift(timedepI, -hour(start));
         timedepDsky_shift = circshift(timedepDsky, -hour(start));
 
-        %%
         tSP = 0:dtSP:runtime;
         zenith_interp = interp1(timedeptime, timedepzenith_shift, tSP, 'makima');
         azimuth_interp = interp1(timedeptime, timedepazimuth_shift, tSP, 'makima');
@@ -180,6 +184,8 @@ else
 
                 if lscatter
                     Knet(:,n) = netShortwave(Sdir(:,n), Dsky, vf, svf, albedos);
+                else
+                    Knet(:,n) = (1 - albedos) .* (Sdir(:,n) + Dsky * Fss);
                 end
             end
 
