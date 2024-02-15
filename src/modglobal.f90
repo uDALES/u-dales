@@ -220,7 +220,7 @@ module modglobal
 !  logical :: ifixuinf   = .true. !dpdxl relaxed to have Uinf 1. dpdx = (1/dt)*(Uh-Uinf)2. d/dt(dpdx) = 1/tau*(Uh-Uinf)
    integer :: ifixuinf = 0
    logical :: lvinf = .false. !use Vinf instead of Uinf for the fixed velocity at infinity
-   logical :: lrandomize = .true.
+   logical :: lrandomize = .false.
 
    logical :: ibrank
    logical :: ierank
@@ -329,7 +329,7 @@ module modglobal
 
    logical :: lnudge = .false.                   !< switch for applying nudging at the top of the domain
    logical :: lnudgevel = .true.                 !< switch for nudging velocities
-   real    :: tnudge = 50.                       !< time scale for nudging
+   real    :: tnudge = 60.                       !< time scale for nudging
    integer :: nnudge = 0                         !< number of points from kb to start nudging
 
    !chemistry

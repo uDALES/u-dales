@@ -350,10 +350,10 @@ module modforces
 
     use modglobal, only : ib,ie,jb,je,ih,jh,kb,ke,kh,dzf,dxf,dy,zh,dt,rk3step,&
                           uflowrate,vflowrate,linoutflow,&
-                          luoutflowr,lvoutflowr,luvolflowr,lvvolflowr
+                          luoutflowr,lvoutflowr,luvolflowr,lvvolflowr,ierank,jerank
     use modfields, only : um,up,vm,vp,uout,uouttot,udef,vout,vouttot,vdef,&
-                          uoutarea,voutarea,fluidvol,IIu,IIv,IIus
-    use modmpi,    only : myid,comm3d,mpierr,nprocs,MY_REAL,sumy_ibm,avexy_ibm,barrou
+                          uoutarea,voutarea,fluidvol,IIu,IIv,IIus,IIvs
+    use modmpi,    only : myid,comm3d,mpierr,nprocs,MY_REAL,sumy_ibm,sumx_ibm,avexy_ibm
 
     real, dimension(ib:ie, kb:ke) :: uvol
     real, dimension(ib:ie, kb:ke) :: uvolold
@@ -370,29 +370,35 @@ module modforces
       rk3coef = dt / (4. - dble(rk3step))
       rk3coefi = 1 / rk3coef
 
-      udef = 0.
-      uout = 0.
-      uoutflow = 0.
-      uoutold = 0.
+      if (ierank) then
+         udef = 0.
+         uout = 0.
+         uoutflow = 0.
+         uoutold = 0.
 
-      ! integrate u fixed at outlet ie along y
-      call sumy_ibm(uout,up(ie,jb:je,kb:ke)*dy,ie,ie,jb,je,kb,ke,IIu(ie,jb:je,kb:ke))  ! u tendency at previous time step
-      call sumy_ibm(uoutold,um(ie,jb:je,kb:ke)*dy,ie,ie,jb,je,kb,ke,IIu(ie,jb:je,kb:ke))  ! u at previous time step
+         ! integrate u fixed at outlet ie along y
+         call sumy_ibm(uout,up(ie,jb:je,kb:ke)*dy,ie,ie,jb,je,kb,ke,IIu(ie,jb:je,kb:ke))  ! u tendency at previous time step
+         call sumy_ibm(uoutold,um(ie,jb:je,kb:ke)*dy,ie,ie,jb,je,kb,ke,IIu(ie,jb:je,kb:ke))  ! u at previous time step
 
-      ! integrate u in z
-      do k=kb,ke
-        uout(k) = rk3coef*uout(k)*dzf(k)
-        uoutold(k) = uoutold(k)*dzf(k)
-      end do
-      uoutflow = sum(uout(kb:ke))
-      uflowrateold = sum(uoutold(kb:ke))
+         ! integrate u in z
+         do k=kb,ke
+            uout(k) = rk3coef*uout(k)*dzf(k)
+            uoutold(k) = uoutold(k)*dzf(k)
+         end do
 
-      ! average over outflow area
-      uoutflow = uoutflow/uoutarea
-      uflowrateold = uflowrateold/uoutarea
+         uoutflow = sum(uout(kb:ke))
+         uflowrateold = sum(uoutold(kb:ke))
 
-      ! flow correction to match outflow rate
-      udef = uflowrate - (uoutflow + uflowrateold)
+         ! average over outflow area
+         uoutflow = uoutflow/uoutarea
+         uflowrateold = uflowrateold/uoutarea
+
+         ! flow correction to match outflow rate
+         udef = uflowrate - (uoutflow + uflowrateold)
+      end if
+
+      call MPI_BCAST(udef, 1, MY_REAL, nprocs-1, comm3d, mpierr)
+
       do k = kb,ke
         do j = jb,je
             do i = ib,ie
@@ -463,36 +469,41 @@ module modforces
       rk3coef = dt / (4. - dble(rk3step))
       rk3coefi = 1 / rk3coef
 
-      vdef = 0.
-      vout = 0.
-      voutflow = 0.
-      voutold = 0.
+      if (jerank) then
+         vdef = 0.
+         vout = 0.
+         voutflow = 0.
+         voutold = 0.
 
-      ! integrate v fixed at outlet je along x
-      if (myid==nprocs-1) then
-        do k=kb,ke
-          vout(k) = sum(vp(ib:ie,je,k)*IIv(ib:ie,je,k)*dxf(ib:ie))  ! v tendency at previous time step
-          voutold(k) = sum(vm(ib:ie,je,k)*IIv(ib:ie,je,k)*dxf(ib:ie))  ! v at previous time step
-        end do
+         ! integrate v fixed at outlet je along x
+         ! if (myid==nprocs-1) then
+         !    do k=kb,ke
+         !       vout(k) = sum(vp(ib:ie,je,k)*IIv(ib:ie,je,k)*dxf(ib:ie))  ! v tendency at previous time step
+         !       voutold(k) = sum(vm(ib:ie,je,k)*IIv(ib:ie,je,k)*dxf(ib:ie))  ! v at previous time step
+         !    end do
+         ! end if
+         call sumy_ibm(vout,vp(ib:je,je,kb:ke)*dxf(1),ib,ie,je,je,kb,ke,IIv(ib:ie,je,kb:ke))  ! v tendency at previous time step
+         call sumy_ibm(voutold,vm(ib:ie,je,kb:ke)*dxf(1),ib,ie,je,je,kb,ke,IIv(ib:ie,je,kb:ke))  ! v at previous time step
+
+         ! integrate v in z
+         do k=kb,ke
+            vout(k) = rk3coef*vout(k)*dzf(k)
+            voutold(k) = voutold(k)*dzf(k)
+         end do
+
+         voutflow = sum(vout(kb:ke))
+         vflowrateold = sum(voutold(kb:ke))
+
+         ! average over outflow area
+         voutflow = voutflow/voutarea
+         vflowrateold = vflowrateold/voutarea
+
+         ! flow correction to match outflow rate
+         vdef = vflowrate - (voutflow + vflowrateold)
       end if
 
-      call MPI_BCAST(vout,ke-kb+1,MY_REAL ,nprocs-1,comm3d,mpierr)
-      call MPI_BCAST(voutold,ke-kb+1,MY_REAL ,nprocs-1,comm3d,mpierr)
+      call MPI_BCAST(vdef, 1, MY_REAL, nprocs-1, comm3d, mpierr)
 
-      ! integrate v in z
-      do k=kb,ke
-        vout(k) = rk3coef*vout(k)*dzf(k)
-        voutold(k) = voutold(k)*dzf(k)
-      end do
-      voutflow = sum(vout(kb:ke))
-      vflowrateold = sum(voutold(kb:ke))
-
-      ! average over outflow area
-      voutflow = voutflow/voutarea
-      vflowrateold = vflowrateold/voutarea
-
-      ! flow correction to match outflow rate
-      vdef = vflowrate - (voutflow + vflowrateold)
       do k = kb,ke
         do j = jb,je
             do i = ib,ie
@@ -512,27 +523,35 @@ module modforces
       vvol = 0.
       vvolold = 0.
 
-      ! integrate v in y
-      call sumy_ibm(vvol,vp(ib:ie,jb:je,kb:ke)*dy,ib,ie,jb,je,kb,ke,IIv(ib:ie,jb:je,kb:ke))  ! v tendency at previous time step
-      call sumy_ibm(vvolold,vm(ib:ie,jb:je,kb:ke)*dy,ib,ie,jb,je,kb,ke,IIv(ib:ie,jb:je,kb:ke))  ! v at previous time step
+      ! ! integrate v in y
+      ! call sumy_ibm(vvol,vp(ib:ie,jb:je,kb:ke)*dy,ib,ie,jb,je,kb,ke,IIv(ib:ie,jb:je,kb:ke))  ! v tendency at previous time step
+      ! call sumy_ibm(vvolold,vm(ib:ie,jb:je,kb:ke)*dy,ib,ie,jb,je,kb,ke,IIv(ib:ie,jb:je,kb:ke))  ! v at previous time step
+      !
+      ! ! integrate v in x
+      ! do k=kb,ke
+      !   vout(k) = sum(vvol(ib:ie,k)*dxf(ib:ie))
+      !   voutold(k) = sum(vvolold(ib:ie,k)*dxf(ib:ie))
+      ! end do
+      !
+      ! ! integrate v in z
+      ! do k=kb,ke
+      !   vout(k) = rk3coef*vout(k)*dzf(k)
+      !   voutold(k) = voutold(k)*dzf(k)
+      ! end do
+      ! voutflow = sum(vout(kb:ke))
+      ! vflowrateold = sum(voutold(kb:ke))
+      !
+      ! ! average over fluid volume
+      ! voutflow = voutflow/fluidvol
+      ! vflowrateold = vflowrateold/fluidvol
 
-      ! integrate v in x
-      do k=kb,ke
-        vout(k) = sum(vvol(ib:ie,k)*dxf(ib:ie))
-        voutold(k) = sum(vvolold(ib:ie,k)*dxf(ib:ie))
-      end do
-
-      ! integrate v in z
-      do k=kb,ke
-        vout(k) = rk3coef*vout(k)*dzf(k)
-        voutold(k) = voutold(k)*dzf(k)
-      end do
-      voutflow = sum(vout(kb:ke))
-      vflowrateold = sum(voutold(kb:ke))
+      ! Assumes equidistant grid
+      call avexy_ibm(vout(kb:ke+kh),vp(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
+      call avexy_ibm(voutold(kb:ke+kh),vm(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
 
       ! average over fluid volume
-      voutflow = voutflow/fluidvol
-      vflowrateold = vflowrateold/fluidvol
+      voutflow = rk3coef*sum(vout(kb:ke)*dzf(kb:ke)) / zh(ke+1)
+      vflowrateold =  sum(voutold(kb:ke)*dzf(kb:ke)) / zh(ke+1)
 
       ! flow correction to match outflow rate
       vdef = vflowrate - (voutflow + vflowrateold)
@@ -551,9 +570,9 @@ module modforces
   subroutine uoutletarea(area)
     ! calculates outlet area of domain for u-velocity excluding blocks
 
-    use modglobal, only   : ib,ie,jb,je,kb,ke,dy,dzf
+    use modglobal, only   : ib,ie,jb,je,kb,ke,dy,dzf,ierank
     use modfields, only   : IIc
-    use modmpi, only      : sumy_ibm
+    use modmpi, only      : myid,comm3d,mpierr,nprocs,MY_REAL,sumy_ibm
 
     implicit none
     real, intent(out)       :: area
@@ -562,7 +581,10 @@ module modforces
 
     sumy = 0.
     ! integrate fluid area at outflow plane in y
-    call sumy_ibm(sumy,IIc(ie,jb:je,kb:ke)*dy,ie,ie,jb,je,kb,ke,IIc(ie,jb:je,kb:ke))
+    if (ierank) then
+      call sumy_ibm(sumy,IIc(ie,jb:je,kb:ke)*dy,ie,ie,jb,je,kb,ke,IIc(ie,jb:je,kb:ke))
+    end if
+    call MPI_BCAST(sumy,ke-kb+1,MY_REAL,nprocs-1,comm3d,mpierr)
 
     ! integrate fluid area at outflow plane in z
     do k=kb,ke
@@ -575,9 +597,9 @@ module modforces
   subroutine voutletarea(area)
     ! calculates outlet area of domain for v-velocity excluding blocks
 
-    use modglobal, only : ib,ie,jb,je,kb,ke,dxf,dzf
+    use modglobal, only : ib,ie,jb,je,kb,ke,dxf,dzf,jerank
     use modfields, only : IIc
-    use modmpi,    only : myid,comm3d,mpierr,nprocs,MY_REAL
+    use modmpi,    only : myid,comm3d,mpierr,nprocs,MY_REAL,sumx_ibm
 
     implicit none
     real, intent(out)       :: area
@@ -586,13 +608,11 @@ module modforces
 
     sumx = 0.
     ! integrate fluid area at outflow plane in x
-    if (myid==nprocs-1) then
-      do k=kb,ke
-        sumx(k) = sum(IIc(ib:ie,je,k)*dxf(ib:ie))
-      end do
+    if (jerank) then
+      call sumx_ibm(sumx,IIc(ib:ie,je,kb:ke)*dxf(1),ib,ie,je,je,kb,ke,IIc(ib:ie,je,kb:ke))
     end if
 
-    call MPI_BCAST(sumx,ke-kb+1,MY_REAL,nprocs-1,comm3d,mpierr)
+    call MPI_BCAST(sumx,ke-kb+1,MY_REAL,jerank,comm3d,mpierr)
 
     ! integrate fluid area at outflow plane in z
     do k=kb,ke
@@ -934,7 +954,7 @@ module modforces
          if (ig > int(itot/2)) then
             do j = jb,je
                do k = kb,ke
-                  vs = 0.5 * pi * ds / (0.5*xlen) * u0av(k) * sin(pi*(xh(ig)-xh(int(itot/2))) / (2.*0.5*xlen))
+                  vs = 0.5 * pi * ds / (0.5*xlen) * u0av(k) * sin(pi*(xh(ig)-xh(int(itot/2))) / (0.5*xlen))
                   up(i,j,k) = up(i,j,k) - vs * (u0(i,j,k) - u0(i,j-1,k)) * dyi
                   vp(i,j,k) = vp(i,j,k) - vs * (v0(i,j,k) - v0(i,j-1,k)) * dyi
                   wp(i,j,k) = wp(i,j,k) - vs * (w0(i,j,k) - w0(i,j-1,k)) * dyi

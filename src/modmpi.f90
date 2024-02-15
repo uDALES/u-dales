@@ -725,4 +725,24 @@ subroutine excjs(a,sx,ex,sy,ey,sz,ez,ih,jh)
 
     end subroutine sumy_ibm
 
+
+    subroutine sumx_ibm(sumx,var,ib,ie,jb,je,kb,ke,II)
+     ! This routine sums up a variable over the x direction,
+     ! only including the fluid cells.
+     implicit none
+     integer                 :: ib,ie,jb,je,kb,ke
+     real                    :: sumx(jb:je,kb:ke)
+     real                    :: sumproc(jb:je,kb:ke)
+     real                    :: var(ib:ie,jb:je,kb:ke)
+     integer                 :: II(ib:ie,jb:je,kb:ke)
+
+     sumproc = 0.
+     sumx  = 0.
+
+     sumproc = sum(var(ib:ie,jb:je,kb:ke)*II(ib:ie,jb:je,kb:ke), DIM=1)
+
+     call MPI_ALLREDUCE(sumproc(jb:je,kb:ke), sumx(jb:je,kb:ke), (ke-kb+1)*(je-jb+1), MY_REAL,MPI_SUM, comm3d,mpierr)
+
+     end subroutine sumx_ibm
+
 end module
