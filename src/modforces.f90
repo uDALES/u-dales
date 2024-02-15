@@ -612,7 +612,7 @@ module modforces
       call sumx_ibm(sumx,IIc(ib:ie,je,kb:ke)*dxf(1),ib,ie,je,je,kb,ke,IIc(ib:ie,je,kb:ke))
     end if
 
-    call MPI_BCAST(sumx,ke-kb+1,MY_REAL,jerank,comm3d,mpierr)
+    call MPI_BCAST(sumx,ke-kb+1,MY_REAL,nprocs-1,comm3d,mpierr)
 
     ! integrate fluid area at outflow plane in z
     do k=kb,ke
