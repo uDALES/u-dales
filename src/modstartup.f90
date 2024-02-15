@@ -687,7 +687,8 @@ module modstartup
                               BCym_periodic, BCym_profile, BCyT_periodic, BCyT_profile, &
                               BCyq_periodic, BCyq_profile, &
                               iinletgen,linoutflow,ltempeq,iwalltemp,iwallmom,&
-                              ipoiss,POISS_FFT2D,POISS_FFT3D,POISS_CYC
+                              ipoiss,POISS_FFT2D,POISS_FFT3D,POISS_CYC,&
+                              lydump,lytdump,luoutflowr,lvoutflowr
       use modmpi,      only : myid, comm3d, mpierr, MPI_INTEGER, MPI_LOGICAL, nprocx, nprocy
       use modglobal,   only : idriver
       implicit none
@@ -857,6 +858,21 @@ module modstartup
                          consider setting BCtopm = ", BCtopm_pressure
          end if
        end select
+
+       if ((lydump .or. lytdump) .and. (nprocx > 1)) then
+          write(*, *) "Error: y-averaged statistics not currently implemented for nprocx > 1."
+          stop 1
+       end if
+
+       if ((luoutflowr) .and. (nprocx > 1)) then
+          write(*, *) "Error: constant x outflow only possible for nprocx = 1."
+          stop 1
+       end if
+
+       if ((lvoutflowr) .and. (nprocy > 1)) then
+          write(*, *) "Error: constant y outflow only possible for nprocy = 1."
+          stop 1
+       end if
 
    end subroutine checkinitvalues
 
