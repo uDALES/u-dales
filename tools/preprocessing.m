@@ -353,7 +353,7 @@ classdef preprocessing < dynamicprops
                    preprocessing.addvar(obj, 'minute', 0)
                    preprocessing.addvar(obj, 'second', 0)
                    preprocessing.addvar(obj, 'year', 2011)
-                   preprocessing.addvar(obj, 'month', 6)
+                   preprocessing.addvar(obj, 'month', 9)
                    preprocessing.addvar(obj, 'day', 30)
                elseif obj.isolar == 3
                    preprocessing.addvar(obj, 'weatherfname', '')
