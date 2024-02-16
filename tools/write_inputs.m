@@ -91,25 +91,25 @@ if r.libm
         xgrid_c = r.xf;
         ygrid_c = r.yf;
         zgrid_c = r.zf;
-        [X_c,Y_c,Z_c] = ndgrid(xgrid_c,ygrid_c,zgrid_c);
+        %[X_c,Y_c,Z_c] = ndgrid(xgrid_c,ygrid_c,zgrid_c);
 
         % u-grid
         xgrid_u = r.xh(1:end-1);
         ygrid_u = r.yf;
         zgrid_u = r.zf;
-        [X_u,Y_u,Z_u] = ndgrid(xgrid_u,ygrid_u,zgrid_u);
+        %[X_u,Y_u,Z_u] = ndgrid(xgrid_u,ygrid_u,zgrid_u);
 
         % v-grid
         xgrid_v = r.xf;
         ygrid_v = r.yh(1:end-1);
         zgrid_v = r.zf;
-        [X_v,Y_v,Z_v] = ndgrid(xgrid_v,ygrid_v,zgrid_v);
+        %[X_v,Y_v,Z_v] = ndgrid(xgrid_v,ygrid_v,zgrid_v);
 
         % w-grid
         xgrid_w = r.xf;
         ygrid_w = r.yf;
         zgrid_w = r.zh(1:end-1);
-        [X_w,Y_w,Z_w] = ndgrid(xgrid_w,ygrid_w,zgrid_w);
+        %[X_w,Y_w,Z_w] = ndgrid(xgrid_w,ygrid_w,zgrid_w);
 
         diag_neighbs = r.diag_neighbs;
         stl_ground = r.stl_ground;
