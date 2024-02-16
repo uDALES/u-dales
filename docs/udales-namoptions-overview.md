@@ -11,11 +11,6 @@ This list refers to the original code-base [DALES](https://github.com/dalesteam/
 | ktot | 96 | | Number of points in z-direction (kmax in uDALES v1).| |
 | xlen | -1 | | Domain size in x-direction (xsize in uDALES v1).| |
 | ylen | -1 | | Domain size in x-direction (ysize in uDALES v1).| |
-| xlat | 52. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
-| xlon | 0. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
-| xday | 1. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
-| xtime | 0. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
-| ksp | -1 | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). (Setting to -1 calculates default value) | |
 
 ## Namelist DYNAMICS
 
@@ -48,8 +43,8 @@ Possible advection schemes:
 | ltempeq | .false. | .true., .false. | Switch for solving temperature equation. | - |
 | lbuoyancy | .false. | .true., .false. | Switch for buoyancy force in temperature equation. | - |
 | lprofforc | .false. | .true., .false. | Switch for nudging flow to a profile (forcing). | - |
-| luoutflowr | .false. | .true., .false. | Switch that determines whether u-velocity is corrected to get a fixed outflow rate | |
-| lvoutflowr | .false. | .true., .false. | Switch that determines whether u-velocity is corrected to get a fixed outflow rate | |
+| luoutflowr | .false. | .true., .false. | Switch that determines whether u-velocity is corrected to get a fixed outflow rate. *Only functional when x-direction is not parellelised.* | |
+| lvoutflowr | .false. | .true., .false. | Switch that determines whether u-velocity is corrected to get a fixed outflow rate. *Only functional when y-direction is not parellelised.* | |
 | luvolflowr | .false. | .true., .false. | Switch that determines whether u-velocity is corrected to get a fixed volume flow rate | |
 | lvvolflowr | .false. | .true., .false. | Switch that determines whether u-velocity is corrected to get a fixed volume flow rate | |
 | uflowrate | 1. | `REAL` | U-velocity flow rate for out- or volume-flow forcing. | m/s |
@@ -59,11 +54,11 @@ Possible advection schemes:
 | tscale | | | Timescale: domain height*Uinf/utau\*\*2 | |
 | lnudge | .false. | .true., .false. | Switch for nudging flow to profiles (in `prof.inp.xxx`) | |
 | nnudge | 0 | `INTEGER` | Number of points from bottom to nudge. | |
-| tnudge | 50. | `REAL` | Time scale for nudging | |
+| tnudge | 60. | `REAL` | Time scale for nudging | |
 | dpdx | 0. | | Constant pressure gradient forcing in x. | |
-| ltimedepsurf | .false. | .true., .false. | Time-dependent surface heat flux (`bctfz` etc - see BC section) | |
+| ltimedepsurf | .false. | .true., .false. | Switch for time-dependent surface heat flux (`bctfz` etc - see BC section) | |
 | ntimedepsurf | 0 | `REAL` | Number of time-dependent surface heat fluxes in file `timedepsurf.inp.xxx` | |
-| ltimedepnudge | .false. | .true., .false. | Time-dependent nudging profiles | |
+| ltimedepnudge | .false. | .true., .false. | Switch for time-dependent profiles. When `lnudge = .true.`, then this switch causes the nudging profile to vary in time. If using inflow-outflow boundary conditions with inflow given by profile (`BCxm/BCxT/BCxq = 2`), then the inflow profile varies in time. | |
 | ntimedepnudge | 0 | `REAL` | Number of time-dependent nudging profiles in file `timedepnudge.inp.xxx` | |
 | ltimedepsw | .false. | .true., .false. | Time-dependent shortwave radiation on facets | |
 | ntimedepsw | 0 | `REAL` | Number of time-dependent shortwave radiative fluxes in file `timedepsw.inp.xxx` | |
@@ -79,7 +74,6 @@ Possible advection schemes:
 | dtmax | 20 | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | lwarmstart | .false. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | startfile | '' | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
-| **lstratstart** | .false. | .true., .false. | *Description missing* | |
 | trestart | 10000. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | irandom | 0 | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | krand | | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). Setting no value will return kmax. | |
@@ -88,10 +82,10 @@ Possible advection schemes:
 | randqt | 0. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). Default changed from 1e-5. | |
 | ladaptive | .false. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | courant | -1 | | Default sets it to 1.5 or 1.1 (if Kappa or upwind scheme is used). These are different values than in [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
-| **diffnr** | 0.25 | | Diffusion number. Used to determine adaptive time step. | |
 | author | '' | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). | |
 | lles | .true. | .true., .false. | Switch that determines whether the subgrid model is turned on or constant ekm and ekh are used (DNS) | - |
 | libm | .true. | | Switch that determines whether the Immersed Boundary Method is turned on. | |
+| lrandomize | .true. | | Switch that determines whether initial field is randomised. *Currently not independent of domain decomposition.* | 
 
 ## Namelist OUTPUT
 
@@ -103,8 +97,8 @@ Possible advection schemes:
 | tsample | 5. | | Sample time for statistics. | s |
 | tstatsdump | 10000. | | Output time for statistics. | s |
 | ltdump | .false. | .true., .false. | Switch to output time-averaged statistics. | - |
-| lydump | .false. | .true., .false. | Switch to output y-averaged statistics. | - |
-| lytdump | .false. | .true., .false. | Switch to output y- and time- averaged statistics. | - |
+| lydump | .false. | .true., .false. | Switch to output y-averaged statistics. *Only functional if x-direction is not parallelised.* | - |
+| lytdump | .false. | .true., .false. | Switch to output y- and time- averaged statistics. *Only functional if x-direction is not parallelised.* | - |
 | lxydump | .false. | .true., .false. | Switch to output x- and y- averaged statistics. | - |
 | lxytdump | .false. | .true., .false. | Switch to output x-, y- and time-averaged statistics. | - |
 | lslicedump | .false. | .true., .false. | Switch to output slices in the xy-plane. | - |
@@ -138,30 +132,26 @@ Possible advection schemes:
 
 Switches for boundary conditions: momentum (m), temperature (T), humidity (q) and scalars (s).
 
-Lateral BCs (BCx, BCy): 1 = periodic, > 1 in/outflow conditions.
+Lateral BCs (BCx, BCy): 1 = periodic, 2 in/outflow conditions, inflow given by profile (usually constant), 3: in/outflow conditions, inflow given by precursor simulation.
 
-BCs at the top (BCtop): 1 = freeslip, 2 = noslip, 3 = determined by inflow conditions
+BCs at the top (BCtop): 1 = freeslip, 2 = noslip, 3 = should be used with inflow/outflow conditions.
 
-BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 = flux, 2 = wall function
+BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 = flux, 2 = wall function, 3 = neutral wall function.
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
-| BCxm | 1 | | Domain boundary condition for momentum in x. | |
-| BCxT | 1 | | Domain boundary condition for temperature in x. | |
-| BCxq | 1 | | Domain boundary condition for humidity in x. | |
-| BCxs | 1 | | Domain boundary condition for scalars in x. | |
-| BCym | 1 | | Domain boundary condition for momentum in y. | |
-| BCyT | 1 | | Domain boundary condition for temperature in y. | |
-| BCyq | 1 | | Domain boundary condition for humidity in y. | |
-| BCys | 1 | | Domain boundary condition for scalars in y. | |
-| BCtopm | 1 | | Boundary condition for momentum at domain top. | |
-| BCtopT | 1 | | Boundary condition for temperature at domain top. | |
-| BCtopq | 1 | | Boundary condition for humidity at domain top. | |
-| BCtops | 1 | | Boundary condition for scalars at domain top. | |
-| BCbotm | 2 | | Boundary condition for momentum at domain bottom. | |
-| BCbotT | 1 | | Boundary condition for temperature at domain bottom. | |
-| BCbotq | 1 | | Boundary condition for humidity at domain bottom. | |
-| BCbots | 1 | | Boundary condition for scalars at domain bottom. | |
+| BCxm | 1 | 1,2,3 | Domain boundary condition for momentum in x. | |
+| BCxT | 1 | 1,2,3 | Domain boundary condition for temperature in x. | |
+| BCxq | 1 | 1,2,3 | Domain boundary condition for humidity in x. | |
+| BCxs | 1 | 1,2,3 | Domain boundary condition for scalars in x. | |
+| BCym | 1 | 1,2 | Domain boundary condition for momentum in y. | |
+| BCyT | 1 | 1,2 | Domain boundary condition for temperature in y. | |
+| BCyq | 1 | 1,2 | Domain boundary condition for humidity in y. | |
+| BCys | 1 | 1,2 | Domain boundary condition for scalars in y. | |
+| BCtopm | 1 | 1,2,3 | Boundary condition for momentum at domain top. | |
+| BCtopT | 1 | 1,2 | Boundary condition for temperature at domain top. | |
+| BCtopq | 1 | 1,2 | Boundary condition for humidity at domain top. | |
+| BCtops | 1 | 1,2 | Boundary condition for scalars at domain top. | |
 | bctfxm | 0 | `REAL` | Temperature flux on facets with surface normal in -x direction. | |
 | bctfxp | 0 | `REAL` | Temperature flux on facets with surface normal in +x direction. | |
 | bctfym | 0 | `REAL` | Temperature flux on facets with surface normal in -y direction. | |
@@ -175,14 +165,18 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | thl_top | -1. | | Temperature at the top boundary. | |
 | qt_top | -1. | | Humidity at the top boundary. | |
 | wttop | 0. | | Temperature flux at the top boundary. | |
-| qts | -1. | | Used in modthermodynamics to get a BC for the moisture profile. | |
-| wsvsurfdum | | | Scalar boundary conditions bottom. | |
 | wsvtopdum | | | Scalar boundary conditions top. | |
-| wtsurf | -1. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). *Currently need to be set to reasonable values for subroutine bottom.* | |
-| wqsurf | -1. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). *Currently need to be set to reasonable values for subroutine bottom.* | |
-| thls | -1. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). *Currently need to be set to reasonable values for subroutine bottom.* | |
-| z0 | -1. | | See [DALES](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf). *Currently need to be set to reasonable values for subroutine bottom.* | |
-| z0h | -1. | | Facet roughness length for heat. *Currently need to be set to reasonable values for subroutine bottom.* | |
+| BCbotm | 2 | 1,2,3 | Boundary condition for momentum at domain bottom (if `lbottom = .true.`). | |
+| BCbotT | 1 | 1,2 | Boundary condition for temperature at domain bottom (if `lbottom = .true.`). | |
+| BCbotq | 1 | 1 | Boundary condition for humidity at domain bottom (if `lbottom = .true.`). | |
+| BCbots | 1 | 1 | Boundary condition for scalars at domain bottom (if `lbottom = .true.`). | |
+| wtsurf | -1. | | Temperature flux at domain bottom (if `lbottom = .true.`). *Currently need to be set to reasonable values for subroutine bottom.* | |
+| wqsurf | -1. | | Moisture flux at domain bottom (if `lbottom = .true.`). *Currently need to be set to reasonable values for subroutine bottom.* | |
+| wsvsurfdum | | | Scalar flux at domain bottom (if `lbottom = .true.`). | |
+| thls | -1. | | Temperature at domain bottom (if `lbottom = .true.`). *Currently need to be set to reasonable values for subroutine bottom.* | |
+| qts | -1. | | Moisture at domain bottom (if `lbottom = .true.`). Used in modthermodynamics to get a BC for the moisture profile. | |
+| z0 | -1. | | Momentum roughness length of the domain bottom (if `lbottom = .true.`). *Currently need to be set to reasonable values for subroutine bottom.* | |
+| z0h | -1. | | Heat roughness length of the domain bottom (if `lbottom = .true.`). *Currently need to be set to reasonable values for subroutine bottom.* | |
 
 ## Namelist ENERGYBALANCE
 
@@ -192,7 +186,8 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | lwriteEBfiles | .false. | .true., .false. | Switch for writing facet temperatures and energy budget to file. | - |
 | lconstW | .false. | .true., .false. | Switch whether soil moisture is assumed as constant in time (.true.) or the evaporated water is from the soil (.false.). | - |
 | dtEB | 10. | `REAL` | Time interval between calculations of facet energy balance. | s |
-| bldT | 0. | `REAL` | Internal temperature of the buildings, currently also ground temperature at a depth equal to floor facet thickness. | K |
+| bldT | 0. | `REAL` | Internal temperature of the buildings. | K |
+| flrT | 0. | `REAL` | Internal temperature of the ground. | K |
 | wsoil | 0. | `REAL` | Water content of soil. | kg/m3 |
 | wgrmax | 450. | `REAL` | Maximum water content. | kg/m3 |
 | wwilt | 171. | `REAL` | Water content at wilting point. | kg/m3 |
@@ -220,7 +215,7 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | iwalltemp | 1 | 1, 2 |  Building wall temperature flux. | - |
 | iwallmoist | 1 | 1, 2 |  Building wall moisture flux. | - |
 | iwallscal | 1 | 1, 2 | Building wall scalar flux | - |
-| lbottom | .false. | .true., .false. | Switch for using wall function as bottom BC (should be used only if no ground facets) | - |
+| lbottom | .false. | .true., .false. | Switch for using wall function as bottom BC. *Used only if no ground facets.* | - |
 | nsolpts_u | 0 | `INTEGER` | Number of solid points on u-grid. | - |
 | nsolpts_v | 0 | `INTEGER` | Number of solid points on v-grid. | - |
 | nsolpts_w | 0 | `INTEGER` | Number of solid points on w-grid. | - |
@@ -233,7 +228,7 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | nfctsecs_v | 0 | `INTEGER` | Number of facet sections on v-grid. | - |
 | nfctsecs_w | 0 | `INTEGER` | Number of facet sections on w-grid. | - |
 | nfctsecs_c | 0 | `INTEGER` | Number of facet sections on c-grid. | - |
-
+| lnorec | .false. | .true., .false. | Switch for not using reconstruction. | - |
 
 ## Namelist SCALARS
 
