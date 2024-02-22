@@ -126,7 +126,7 @@ contains
                                  ibrank, ierank, jbrank, jerank, e12min, idriver, &
                                  Uinf, Vinf, &
                                  rk3step, lchunkread
-      use modfields,      only : u0, v0, w0, um, vm, wm, thl0, thlm, qt0, qtm, e120, e12m, sv0, svm, u0av, v0av, uout, uouttot, vouttot, thl0c
+      use modfields,      only : u0, v0, w0, um, vm, wm, thl0, thlm, qt0, qtm, e120, e12m, sv0, svm, u0av, v0av, uouttot, vouttot, thl0c
       use modsubgriddata, only : ekh, ekm, loneeqn
       use modsurfdata,    only : thl_top, qt_top, sv_top, wttop, wqtop, wsvtop
       use modmpi,         only : myid, slabsum, avey_ibm

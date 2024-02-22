@@ -351,16 +351,19 @@ module modforces
     use modglobal, only : ib,ie,jb,je,ih,jh,kb,ke,kh,dzf,dxf,dy,zh,dt,rk3step,&
                           uflowrate,vflowrate,linoutflow,&
                           luoutflowr,lvoutflowr,luvolflowr,lvvolflowr
-    use modfields, only : um,up,vm,vp,uout,uouttot,udef,vout,vouttot,vdef,&
+    use modfields, only : um,up,vm,vp,uouttot,udef,vouttot,vdef,&
                           uoutarea,voutarea,fluidvol,IIu,IIv,IIus,IIvs
     use modmpi,    only : myid,comm3d,mpierr,nprocs,MY_REAL,sumy_ibm,sumx_ibm,avexy_ibm
 
-    real, dimension(ib:ie, kb:ke) :: uvol
-    real, dimension(ib:ie, kb:ke) :: vvol
+    real, dimension(kb:ke+kh)     :: uvol
+    real, dimension(kb:ke+kh)     :: vvol
     real, dimension(kb:ke+kh)     :: uvolold
     real, dimension(kb:ke+kh)     :: vvolold
+    real, dimension(kb:ke)        :: uout
+    real, dimension(kb:ke)        :: vout
     real, dimension(kb:ke)        :: uoutold
     real, dimension(kb:ke)        :: voutold
+
     real                          rk3coef,rk3coefi,&
                                   uoutflow,voutflow,&
                                   uflowrateold,vflowrateold
@@ -413,39 +416,16 @@ module modforces
       rk3coefi = 1 / rk3coef
 
       udef = 0.
-      uout = 0.
       uoutflow = 0.
       uvol = 0.
       uvolold = 0.
 
-      ! ! integrate u in y
-      ! call sumy_ibm(uvol,up(ib:ie,jb:je,kb:ke)*dy,ib,ie,jb,je,kb,ke,IIu(ib:ie,jb:je,kb:ke))  ! u tendency at previous time step
-      ! call sumy_ibm(uvolold,um(ib:ie,jb:je,kb:ke)*dy,ib,ie,jb,je,kb,ke,IIu(ib:ie,jb:je,kb:ke))  ! u at previous time step
-
-      ! ! integrate u in x
-      ! do k=kb,ke
-      !   uout(k) = sum(uvol(ib:ie,k)*dxf(ib:ie))
-      !   uoutold(k) = sum(uvolold(ib:ie,k)*dxf(ib:ie))
-      ! end do
-
-      ! ! integrate u in z
-      ! do k=kb,ke
-      !   uout(k) = rk3coef*uout(k)*dzf(k)
-      !   uoutold(k) = uoutold(k)*dzf(k)
-      ! end do
-      ! uoutflow = sum(uout(kb:ke))
-      ! uflowrateold = sum(uoutold(kb:ke))
-      !
-      ! ! average over fluid volume
-      ! uoutflow = uoutflow/fluidvol
-      ! uflowrateold = uflowrateold/fluidvol
-
       ! Assumes equidistant grid
-      call avexy_ibm(uout(kb:ke+kh),up(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
+      call avexy_ibm(uvol(kb:ke+kh),up(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
       call avexy_ibm(uvolold(kb:ke+kh),um(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
 
       ! average over fluid volume
-      uoutflow = rk3coef*sum(uout(kb:ke)*dzf(kb:ke)) / zh(ke+1)
+      uoutflow = rk3coef*sum(uvol(kb:ke)*dzf(kb:ke)) / zh(ke+1)
       uflowrateold =  sum(uvolold(kb:ke)*dzf(kb:ke)) / zh(ke+1)
 
       ! flow correction to match outflow rate
@@ -510,39 +490,16 @@ module modforces
       rk3coefi = 1 / rk3coef
 
       vdef = 0.
-      vout = 0.
       voutflow = 0.
       vvol = 0.
       vvolold = 0.
 
-      ! ! integrate v in y
-      ! call sumy_ibm(vvol,vp(ib:ie,jb:je,kb:ke)*dy,ib,ie,jb,je,kb,ke,IIv(ib:ie,jb:je,kb:ke))  ! v tendency at previous time step
-      ! call sumy_ibm(vvolold,vm(ib:ie,jb:je,kb:ke)*dy,ib,ie,jb,je,kb,ke,IIv(ib:ie,jb:je,kb:ke))  ! v at previous time step
-      !
-      ! ! integrate v in x
-      ! do k=kb,ke
-      !   vout(k) = sum(vvol(ib:ie,k)*dxf(ib:ie))
-      !   voutold(k) = sum(vvolold(ib:ie,k)*dxf(ib:ie))
-      ! end do
-      !
-      ! ! integrate v in z
-      ! do k=kb,ke
-      !   vout(k) = rk3coef*vout(k)*dzf(k)
-      !   voutold(k) = voutold(k)*dzf(k)
-      ! end do
-      ! voutflow = sum(vout(kb:ke))
-      ! vflowrateold = sum(voutold(kb:ke))
-      !
-      ! ! average over fluid volume
-      ! voutflow = voutflow/fluidvol
-      ! vflowrateold = vflowrateold/fluidvol
-
       ! Assumes equidistant grid
-      call avexy_ibm(vout(kb:ke+kh),vp(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
+      call avexy_ibm(vvol(kb:ke+kh),vp(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
       call avexy_ibm(vvolold(kb:ke+kh),vm(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
 
       ! average over fluid volume
-      voutflow = rk3coef*sum(vout(kb:ke)*dzf(kb:ke)) / zh(ke+1)
+      voutflow = rk3coef*sum(vvol(kb:ke)*dzf(kb:ke)) / zh(ke+1)
       vflowrateold =  sum(vvolold(kb:ke)*dzf(kb:ke)) / zh(ke+1)
 
       ! flow correction to match outflow rate
