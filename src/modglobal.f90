@@ -399,6 +399,8 @@ module modglobal
    integer :: driverstore         !<     * number of stored driver steps for inlet (automatically calculated)
    integer :: driverjobnr         !<     * Job number of the driver inlet generation run (idriver == 2)
    character(3) :: cdriverjobnr
+   logical :: lhdriver = .false.    !<     * switch for reading temperature driver files
+   logical :: lqdriver = .false.    !<     * switch for reading temperature driver files
    logical :: lsdriver = .false.   !<     * switch for reading scalar driver files
    logical :: iplanerank = .false.
    integer :: driverid

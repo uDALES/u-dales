@@ -37,7 +37,7 @@ save
 
 contains
   subroutine initdriver
-    use modglobal, only : ih,ib,ie,jh,jb,je,kb,ke,kh,jhc,khc,idriver,lchunkread,chunkread_size,iplane,xf,lstoreplane,nstore,Uinf,ltempeq,lmoist,pi,zf,zh,driverstore,tdriverstart,tdriverdump,timeleft,dtdriver,nsv,timee,lsdriver,ibrank,iplanerank,driverid,cdriverid
+    use modglobal, only : ih,ib,ie,jh,jb,je,kb,ke,kh,jhc,khc,idriver,lchunkread,chunkread_size,iplane,xf,lstoreplane,nstore,Uinf,ltempeq,lmoist,pi,zf,zh,driverstore,tdriverstart,tdriverdump,timeleft,dtdriver,nsv,timee,lhdriver,lqdriver,lsdriver,ibrank,iplanerank,driverid,cdriverid
     use modfields, only : um
     use modmpi, only : myid,nprocs,myidy,nprocy
     use decomp_2d, only : zstart, zend
@@ -110,13 +110,13 @@ contains
         allocate(wmdriver(jb-jh:je+jh,kb-kh:ke+kh))
         !allocate(e12mdriver(jb-jh:je+jh,kb-kh:ke+kh))
 
-        if (ltempeq ) then
+        if (ltempeq .and. lhdriver) then
           allocate(storethl0driver(jb-jh:je+jh,kb-kh:ke+kh,1:driverstore))
           allocate(storethlmdriver(jb-jh:je+kh,kb-kh:ke+kh,1:driverstore))
           allocate(thl0driver(jb-jh:je+jh,kb-kh:ke+kh))
           allocate(thlmdriver(jb-jh:je+jh,kb-kh:ke+kh))
         end if
-        if (lmoist ) then
+        if (lmoist .and. lqdriver) then
           allocate(storeqt0driver(jb-jh:je+jh,kb-kh:ke+kh,1:driverstore))
           allocate(storeqtmdriver(jb-jh:je+jh,kb-kh:ke+kh,1:driverstore))
           allocate(qt0driver(jb-jh:je+jh,kb-kh:ke+kh))
@@ -148,13 +148,13 @@ contains
         allocate(wmdriver(jb-jh:je+jh,kb-kh:ke+kh))
         !allocate(e12mdriver(jb-jh:je+jh,kb-kh:ke+kh))
 
-        if (ltempeq ) then
+        if (ltempeq .and. lhdriver) then
           allocate(storethl0driver(jb-jh:je+jh,kb-kh:ke+kh,0:chunkread_size))
           allocate(storethlmdriver(jb-jh:je+kh,kb-kh:ke+kh,0:chunkread_size))
           allocate(thl0driver(jb-jh:je+jh,kb-kh:ke+kh))
           allocate(thlmdriver(jb-jh:je+jh,kb-kh:ke+kh))
         end if
-        if (lmoist ) then
+        if (lmoist .and. lqdriver) then
           allocate(storeqt0driver(jb-jh:je+jh,kb-kh:ke+kh,0:chunkread_size))
           allocate(storeqtmdriver(jb-jh:je+jh,kb-kh:ke+kh,0:chunkread_size))
           allocate(qt0driver(jb-jh:je+jh,kb-kh:ke+kh))
@@ -178,7 +178,7 @@ contains
     use modglobal,   only : ib,ie,ih,jb,je,jh,kb,ke,kh,zf,zh,dzf,dzhi,timee,btime,totavtime,rk3step,&
                             dt,numol,iplane,lles,idriver,inletav,runavtime,Uinf,lwallfunc,linletRA,&
                             totinletav,lstoreplane,nstore,driverstore,prandtlmoli,numol,grav,lbuoyancy,&
-                            lfixinlet,lfixutauin,tdriverstart,dtdriver,tdriverdump,lchunkread,chunkread_size,ltempeq,lmoist,nsv,lsdriver,&
+                            lfixinlet,lfixutauin,tdriverstart,dtdriver,tdriverdump,lchunkread,chunkread_size,ltempeq,lmoist,nsv,lhdriver,lqdriver,lsdriver,&
                             ibrank,iplanerank,driverid,cdriverid,runtime,lwarmstart,cdriverjobnr
     use modfields,   only : u0,v0,w0,e120,thl0,qt0,wm,uprof,vprof
     use modsave,     only : writerestartfiles
@@ -268,10 +268,10 @@ contains
           w0driver(:,:) = storew0driver(:,:,x)
 
           !e120driver(:,:) = storee120driver(:,:,x)
-          if (ltempeq) then
+          if (ltempeq .and. lhdriver) then
             thl0driver(:,:) = storethl0driver(:,:,x)
           end if
-          if (lmoist) then
+          if (lmoist .and. lqdriver) then
             qt0driver(:,:) = storeqt0driver(:,:,x)
           end if
           if (nsv>0 .and. lsdriver) then
@@ -289,10 +289,10 @@ contains
           v0driver(:,:) = storev0driver(:,:,x)
           w0driver(:,:) = storew0driver(:,:,x)
           ! e120driver(:,:) = storee120driver(:,:,x)
-          if (ltempeq) then
+          if (ltempeq .and. lhdriver) then
             thl0driver(:,:) = storethl0driver(:,:,x)
           end if
-          if (lmoist) then
+          if (lmoist .and. lqdriver) then
             qt0driver(:,:) = storeqt0driver(:,:,x)
           end if
           if (nsv>0 .and. lsdriver) then
@@ -318,10 +318,10 @@ contains
           v0driver(:,:) = storev0driver(:,:,x) + (storev0driver(:,:,x+1)-storev0driver(:,:,x))*dtint
           w0driver(:,:) = storew0driver(:,:,x) + (storew0driver(:,:,x+1)-storew0driver(:,:,x))*dtint
           ! e120driver(:,:) = storee120driver(:,:,x) + (storee120driver(:,:,x+1)-storee120driver(:,:,x))*dtint
-          if (ltempeq) then
+          if (ltempeq .and. lhdriver) then
             thl0driver(:,:) = storethl0driver(:,:,x) + (storethl0driver(:,:,x+1)-storethl0driver(:,:,x))*dtint
           end if
-          if (lmoist) then
+          if (lmoist .and. lqdriver) then
             qt0driver(:,:) = storeqt0driver(:,:,x) + (storeqt0driver(:,:,x+1)-storeqt0driver(:,:,x))*dtint
           end if
           if (nsv>0 .and. lsdriver) then
@@ -340,10 +340,10 @@ contains
           v0driver(:,:) = storev0driver(:,:,x-1) + (storev0driver(:,:,x)-storev0driver(:,:,x-1))*dtint
           w0driver(:,:) = storew0driver(:,:,x-1) + (storew0driver(:,:,x)-storew0driver(:,:,x-1))*dtint
           ! e120driver(:,:) = storee120driver(:,:,x-1) + (storee120driver(:,:,x)-storee120driver(:,:,x-1))*dtint
-          if (ltempeq) then
+          if (ltempeq .and. lhdriver) then
             thl0driver(:,:) = storethl0driver(:,:,x-1) + (storethl0driver(:,:,x)-storethl0driver(:,:,x-1))*dtint
           end if
-          if (lmoist) then
+          if (lmoist .and. lqdriver) then
             qt0driver(:,:) = storeqt0driver(:,:,x-1) + (storeqt0driver(:,:,x)-storeqt0driver(:,:,x-1))*dtint
           end if
           if (nsv>0 .and. lsdriver) then
@@ -382,10 +382,10 @@ contains
           w0driver(:,:) = storew0driver(:,:,xc)
 
           !e120driver(:,:) = storee120driver(:,:,xc)
-          if (ltempeq) then
+          if (ltempeq .and. lhdriver) then
             thl0driver(:,:) = storethl0driver(:,:,xc)
           end if
-          if (lmoist) then
+          if (lmoist .and. lqdriver) then
             qt0driver(:,:) = storeqt0driver(:,:,xc)
           end if
           if (nsv>0 .and. lsdriver) then
@@ -402,10 +402,10 @@ contains
           v0driver(:,:) = storev0driver(:,:,xc)
           w0driver(:,:) = storew0driver(:,:,xc)
           ! e120driver(:,:) = storee120driver(:,:,xc)
-          if (ltempeq) then
+          if (ltempeq .and. lhdriver) then
             thl0driver(:,:) = storethl0driver(:,:,xc)
           end if
-          if (lmoist) then
+          if (lmoist .and. lqdriver) then
             qt0driver(:,:) = storeqt0driver(:,:,xc)
           end if
           if (nsv>0 .and. lsdriver) then
@@ -430,10 +430,10 @@ contains
           v0driver(:,:) = storev0driver(:,:,xc) + (storev0driver(:,:,xc+1)-storev0driver(:,:,xc))*dtint
           w0driver(:,:) = storew0driver(:,:,xc) + (storew0driver(:,:,xc+1)-storew0driver(:,:,xc))*dtint
           ! e120driver(:,:) = storee120driver(:,:,xc) + (storee120driver(:,:,xc+1)-storee120driver(:,:,xc))*dtint
-          if (ltempeq) then
+          if (ltempeq .and. lhdriver) then
             thl0driver(:,:) = storethl0driver(:,:,xc) + (storethl0driver(:,:,xc+1)-storethl0driver(:,:,xc))*dtint
           end if
-          if (lmoist) then
+          if (lmoist .and. lqdriver) then
             qt0driver(:,:) = storeqt0driver(:,:,xc) + (storeqt0driver(:,:,xc+1)-storeqt0driver(:,:,xc))*dtint
           end if
           if (nsv>0 .and. lsdriver) then
@@ -451,10 +451,10 @@ contains
           v0driver(:,:) = storev0driver(:,:,xc-1) + (storev0driver(:,:,xc)-storev0driver(:,:,xc-1))*dtint
           w0driver(:,:) = storew0driver(:,:,xc-1) + (storew0driver(:,:,xc)-storew0driver(:,:,xc-1))*dtint
           ! e120driver(:,:) = storee120driver(:,:,xc-1) + (storee120driver(:,:,xc)-storee120driver(:,:,xc-1))*dtint
-          if (ltempeq) then
+          if (ltempeq .and. lhdriver) then
             thl0driver(:,:) = storethl0driver(:,:,xc-1) + (storethl0driver(:,:,xc)-storethl0driver(:,:,xc-1))*dtint
           end if
-          if (lmoist) then
+          if (lmoist .and. lqdriver) then
             qt0driver(:,:) = storeqt0driver(:,:,xc-1) + (storeqt0driver(:,:,xc)-storeqt0driver(:,:,xc-1))*dtint
           end if
           if (nsv>0 .and. lsdriver) then
@@ -498,10 +498,10 @@ contains
         vmdriver = v0driver
         wmdriver = w0driver
         !e12mdriver = e120driver
-        if (ltempeq) then
+        if (ltempeq .and. lhdriver) then
           thlmdriver = thl0driver
         end if
-        if (lmoist) then
+        if (lmoist .and. lqdriver) then
           qtmdriver = qt0driver
         end if
         if (nsv>0 .and. lsdriver) then
@@ -518,7 +518,7 @@ contains
   end subroutine drivergen
 
   subroutine writedriverfile
-    use modglobal, only : runtime,timee,tdriverstart,tdriverstart_cold,ib,ie,ih,jb,je,jh,kb,ke,kh,cexpnr,ifoutput,nstore,ltempeq,lmoist,driverstore,dtdriver,nsv,lsdriver,ibrank,iplanerank,driverid,cdriverid,btime,lwarmstart
+    use modglobal, only : runtime,timee,tdriverstart,tdriverstart_cold,ib,ie,ih,jb,je,jh,kb,ke,kh,cexpnr,ifoutput,nstore,ltempeq,lmoist,driverstore,dtdriver,nsv,lhdriver,lqdriver,lsdriver,ibrank,iplanerank,driverid,cdriverid,btime,lwarmstart
     use modfields, only : u0, v0, w0, e120, thl0, qt0, um, sv0
     use modmpi,    only : cmyid,myid
     use modinletdata, only : storetdriver,storeu0driver,storev0driver,storew0driver,storethl0driver,storeqt0driver,&
@@ -757,7 +757,7 @@ contains
 
   subroutine readdriverfile
     use modfields, only : u0,sv0
-    use modglobal, only : ib,jb,je,jmax,kb,ke,kh,jhc,khc,cexpnr,ifinput,driverstore,ltempeq,lmoist,zh,jh,driverjobnr,cdriverjobnr,nsv,timee,tdriverstart,lsdriver,ibrank,iplanerank,driverid,cdriverid,BCxT,BCxT_driver,lwarmstart
+    use modglobal, only : ib,jb,je,jmax,kb,ke,kh,jhc,khc,cexpnr,ifinput,driverstore,ltempeq,lmoist,zh,jh,driverjobnr,cdriverjobnr,nsv,timee,tdriverstart,lhdriver,lqdriver,lsdriver,ibrank,iplanerank,driverid,cdriverid,lwarmstart
     use modmpi,    only : cmyid,myid,nprocs,slabsum,excjs
     use modinletdata, only : storetdriver,storeu0driver,storev0driver,storew0driver,storethl0driver,storeqt0driver,storesv0driver,nfile
     implicit none
@@ -882,7 +882,7 @@ contains
     ! enddo
     ! close (unit=11)
 
-    if (ltempeq .and. (BCxT == BCxT_driver)) then
+    if (ltempeq .and. lhdriver) then
       name = 'hdriver_   .'
       ! write (name(13:16)  ,'(i4.4)') nfile
       name(9:11)= cdriverid
@@ -903,7 +903,7 @@ contains
       close (unit=11)
     end if
 
-    if (lmoist ) then
+    if (lmoist .and. lqdriver) then
       name = 'qdriver_   .'
       ! write (name(13:16)  ,'(i4.4)') nfile
       name(9:11)= cdriverid
@@ -938,7 +938,7 @@ contains
 
   subroutine readdriverfile_chunk
     use modfields, only : u0,sv0
-    use modglobal, only : ib,jb,je,jmax,kb,ke,kh,jhc,khc,cexpnr,ifinput,driverstore,chunkread_size,ltempeq,lmoist,zh,jh,driverjobnr,cdriverjobnr,nsv,timee,tdriverstart,lsdriver,ibrank,iplanerank,driverid,cdriverid,BCxT,BCxT_driver,lwarmstart
+    use modglobal, only : ib,jb,je,jmax,kb,ke,kh,jhc,khc,cexpnr,ifinput,driverstore,chunkread_size,ltempeq,lmoist,zh,jh,driverjobnr,cdriverjobnr,nsv,timee,tdriverstart,lhdriver,lqdriver,lsdriver,ibrank,iplanerank,driverid,cdriverid,lwarmstart
     use modmpi,    only : cmyid,myid,nprocs,slabsum,excjs
     use modinletdata, only : storetdriver,storeu0driver,storev0driver,storew0driver,storethl0driver,storeqt0driver,storesv0driver,nfile, &
                              chunkreadctr, chunkread_s, chunkread_e
@@ -1099,7 +1099,7 @@ contains
     ! enddo
     ! close (unit=11)
 
-    if (ltempeq .and. (BCxT == BCxT_driver)) then
+    if (ltempeq .and. lhdriver) then
       do k = kb-kh,ke+kh
         do j = jb-jh,je+jh
           storethl0driver(j,k,0) = storethl0driver (j,k,chunkread_size)
@@ -1125,7 +1125,7 @@ contains
       close (unit=11)
     end if
 
-    if (lmoist ) then
+    if (lmoist .and. lqdriver) then
       do k = kb-kh,ke+kh
         do j = jb-jh,je+jh
           storeqt0driver(j,k,0) = storeqt0driver (j,k,chunkread_size)
@@ -1195,7 +1195,7 @@ contains
   end subroutine driverchunkread
 
   subroutine exitdriver
-    use modglobal,      only : idriver,lstoreplane,ltempeq,lmoist,nsv,lsdriver,ibrank,iplanerank
+    use modglobal,      only : idriver,lstoreplane,ltempeq,lmoist,nsv,lhdriver,lqdriver,lsdriver,ibrank,iplanerank
 
     if (idriver==1 .and. iplanerank) then
       !if (lstoreplane ) then
@@ -1212,10 +1212,10 @@ contains
       !end if
     else if (idriver == 2) then
       deallocate(storetdriver, storeu0driver,storev0driver,storew0driver,u0driver,v0driver,w0driver) !,e120driver,storee120driver)
-      if (ltempeq ) then
+      if (ltempeq .and. lhdriver) then
         deallocate(storethl0driver,thl0driver)
       end if
-      if (lmoist ) then
+      if (lmoist .and. lqdriver) then
         deallocate(storeqt0driver,qt0driver)
       end if
       if (nsv>0 .and. lsdriver) then

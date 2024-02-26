@@ -71,7 +71,7 @@ module modstartup
                                     BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys,BCzp,ds, &
                                     BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots, &
                                     BCxm_periodic, BCym_periodic, &
-                                    idriver,tdriverstart,driverjobnr,dtdriver,driverstore,lsdriver,lchunkread,chunkread_size, &
+                                    idriver,tdriverstart,driverjobnr,dtdriver,driverstore,lchunkread,chunkread_size, &
                                     lrandomize, prandtlturb, fkar, lwritefac, dtfac, tfac, tnextfac, &
                                     ltrees,ntrees,Qstar,dQdt,lad,lsize,r_s,cd,dec,ud,ltreedump, &
                                     lpurif,npurif,Qpu,epu
@@ -141,7 +141,7 @@ module modstartup
          lwallfunc
       namelist/DRIVER/ &
          idriver, tdriverstart, driverjobnr, dtdriver, &
-         driverstore, iplane, lsdriver, iangledeg, &
+         driverstore, iplane, iangledeg, &
          lchunkread, chunkread_size
       namelist/WALLS/ &
          nblocks, nfcts, iwallmom, iwalltemp, iwallmoist, iwallscal, &
@@ -388,7 +388,6 @@ module modstartup
       call MPI_BCAST(driverjobnr,1,MPI_INTEGER,0,comm3d,mpierr)        ! ae1212
       call MPI_BCAST(dtdriver   ,1,MY_REAL    ,0,comm3d,mpierr)        ! ae1212
       call MPI_BCAST(driverstore,1,MPI_INTEGER ,0,comm3d,mpierr)
-      call MPI_BCAST(lsdriver   ,1,MPI_LOGICAL,0,comm3d,mpierr)
       call MPI_BCAST(lchunkread ,1,MPI_LOGICAL,0,comm3d,mpierr)
       call MPI_BCAST(chunkread_size,1,MPI_INTEGER,0,comm3d,mpierr)
       !call MPI_BCAST(BCxm, 1, MPI_INTEGER, 0, comm3d, mpierr)
@@ -688,7 +687,8 @@ module modstartup
                               BCyq_periodic, BCyq_profile, &
                               iinletgen,linoutflow,ltempeq,iwalltemp,iwallmom,&
                               ipoiss,POISS_FFT2D,POISS_FFT3D,POISS_CYC,&
-                              lydump,lytdump,luoutflowr,lvoutflowr
+                              lydump,lytdump,luoutflowr,lvoutflowr,&
+                              lhdriver,lqdriver,lsdriver
       use modmpi,      only : myid, comm3d, mpierr, MPI_INTEGER, MPI_LOGICAL, nprocx, nprocy
       use modglobal,   only : idriver
       implicit none
@@ -804,19 +804,31 @@ module modstartup
 
          !if (myid == 0) write (*, *) "x inflow velocity given by file from precursor simulation"
 
-         if (ltempeq .and. (BCxT .ne. BCxT_driver) .and. (myid == 0)) then
-           write (*, *) "Warning: x inflow temperature not given by precursor, &
-                         consider setting BCxT = ", BCxT_profile
+         if (ltempeq) then
+           if (BCxT == BCxT_driver) then
+             lhdriver = .true.
+           else
+             lhdriver = .false.
+             if (myid==0) write (*, *) "Warning: x inflow temperature not given by precursor."
+           end if
          end if
 
-         if (lmoist .and. (BCxq .ne. BCxq_driver) .and. (myid == 0)) then
-           write (*, *) "Warning: x inflow moisture not given by precursor, &
-                         consider setting BCxq = ", BCxq_profile
+         if (lmoist) then
+           if (BCxq == BCxq_driver) then
+             lqdriver = .true.
+           else
+             lqdriver = .false.
+             if (myid==0) write (*, *) "Warning: x inflow humidity not given by precursor."
+           end if
          end if
 
-         if ((nsv > 0) .and. (BCxs .ne. BCxs_driver) .and. (myid == 0)) then
-           write (*, *) "Warning: x inflow scalars not given by precursor, &
-                         consider setting BCxq = ", BCxq_profile
+         if (nsv > 0) then
+           if (BCxs == BCxs_driver) then
+             lsdriver = .true.
+           else
+             lsdriver = .false.
+             if (myid == 0) write (*, *) "Warning: x inflow scalars not given by precursor."
+           end if
          end if
 
          if (BCtopm .ne. BCtopm_pressure) then
