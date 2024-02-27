@@ -1029,7 +1029,7 @@ contains
     !write(6,*) 'record length ',filesize
     open(unit=11,file=name,form='unformatted',status='old',action='read',access='direct',recl=filesize)
     do n = chunkread_s,chunkread_e!1,driverstore
-      if(myid==0) write(6,*) 'reading u_driver at step = ',n,'(',n-chunkread_s+1,') time = ',storetdriver(n)
+      !if(myid==0) write(6,*) 'reading u_driver at step = ',n,'(',n-chunkread_s+1,') time = ',storetdriver(n)
       read(11,rec=n)  ((storeu0driver (j,k,n-chunkread_s+1),j=jb-jh,je+jh),k=kb-kh,ke+kh)
       ! if(myid==0) then
         ! write(6, '(A,e20.12)') 'Reading u(irecydriver, jb, kb)', storeu0driver(jb,kb,n)
