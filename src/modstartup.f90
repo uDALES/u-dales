@@ -1425,16 +1425,16 @@ module modstartup
                   call drivergen
                end if
 
-               do k = kb, ke
-                  do j = jb-1, je+1
-                     do i = ib-1, ie+1
-                        u0(i, j, k) = u0driver(j, k)
-                        um(i, j, k) = umdriver(j, k)
-                        v0(i, j, k) = v0driver(j, k)
-                        vm(i, j, k) = vmdriver(j, k)
-                     end do
-                  end do
-               end do
+               ! do k = kb, ke
+               !    do j = jb-1, je+1
+               !       do i = ib-1, ie+1
+               !          u0(i, j, k) = u0driver(j, k)
+               !          um(i, j, k) = umdriver(j, k)
+               !          v0(i, j, k) = v0driver(j, k)
+               !          vm(i, j, k) = vmdriver(j, k)
+               !       end do
+               !    end do
+               ! end do
 
                ! if(myid==0) then
                  ! write(*,*) 'Driver inlet velocity'

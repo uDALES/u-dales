@@ -86,7 +86,7 @@ contains
       end if
 
 
-    else if (idriver == 2) then
+    else if (idriver == 2 .and. ibrank) then
 
       allocate(storetdriver(1:driverstore))
 
@@ -216,7 +216,7 @@ contains
         call writedriverfile
       end if
 
-    elseif (idriver == 2) then
+    elseif (idriver == 2) then ! this gets called in modboundary when ibrank=.true., so no need for switch
 
       if (timee>(runtime+btime)) return
       if(driverid==0) then
@@ -756,6 +756,7 @@ contains
   end subroutine writedriverfile
 
   subroutine readdriverfile
+    ! this gets called in modstartup (readinitfiles) when ibrank=.true.
     use modfields, only : u0,sv0
     use modglobal, only : ib,jb,je,jmax,kb,ke,kh,jhc,khc,cexpnr,ifinput,driverstore,ltempeq,lmoist,zh,jh,driverjobnr,cdriverjobnr,nsv,timee,tdriverstart,lhdriver,lqdriver,lsdriver,ibrank,iplanerank,driverid,cdriverid,lwarmstart
     use modmpi,    only : cmyid,myid,nprocs,slabsum,excjs
@@ -1210,7 +1211,7 @@ contains
           deallocate(storesv0driver)
         end if
       !end if
-    else if (idriver == 2) then
+    else if (idriver == 2 .and. ibrank)  then
       deallocate(storetdriver, storeu0driver,storev0driver,storew0driver,u0driver,v0driver,w0driver) !,e120driver,storee120driver)
       if (ltempeq .and. lhdriver) then
         deallocate(storethl0driver,thl0driver)
