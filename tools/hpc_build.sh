@@ -17,7 +17,7 @@
 
 # Copyright (C) 2016-2019 the uDALES Team.
 
-set -ex
+set -e
 
 # Usage: ./tools/hpc_build.sh [icl, archer, cca, common] [debug, release]
 
@@ -30,9 +30,9 @@ capitalize() {
     echo $* | sed -e "s/\b\(.\)/\u\1/g"
 }
 
-echo "--- Debug info ---"
-echo "env: " `env`
-echo "PATH: " ${PATH}
+#echo "--- Debug info ---"
+#echo "env: " `env`
+#echo "PATH: " ${PATH}
 
 NPROC=2 # TODO: make into a arg var.
 system=$1

@@ -81,7 +81,7 @@ if ~ltimedepsw
             system('./DS.exe');
         end
         Sdir = dlmread([fpath 'Sdir.txt'], '', 0, 0);
-        delete DS.exe;
+        delete vertices.txt faces.txt info_directShortwave.txt DS.exe;
         %cd(currentPath)
     else
         disp('Calculating shortwave radiation using MATLAB.')
@@ -121,10 +121,11 @@ else
         timedepDsky_shift = circshift(timedepDsky, -hour(start));
 
         tSP = 0:dtSP:runtime;
-        zenith_interp = interp1(timedeptime, timedepzenith_shift, tSP, 'makima');
-        azimuth_interp = interp1(timedeptime, timedepazimuth_shift, tSP, 'makima');
-        I_interp = interp1(timedeptime, timedepI_shift, tSP, 'makima');
-        Dsky_interp = interp1(timedeptime, timedepDsky_shift, tSP, 'makima');
+        % currently assumes the weather file is cyclic
+        zenith_interp = interp1([timedeptime; 86400], [timedepzenith_shift; timedepzenith_shift(1)], tSP, 'makima');
+        azimuth_interp = interp1([timedeptime; 86400], [timedepazimuth_shift; timedepazimuth_shift(1)], tSP, 'makima');
+        I_interp = interp1([timedeptime; 86400], [timedepI_shift; timedepI_shift(1)], tSP, 'makima');
+        Dsky_interp = interp1([timedeptime; 86400], [timedepDsky_shift; timedepDsky_shift(1)], tSP, 'makima');
 
         %%
         Sdir = zeros(nfcts, length(tSP));

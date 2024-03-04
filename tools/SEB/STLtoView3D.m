@@ -18,7 +18,7 @@ else
 end
 
 fprintf(fID,'! %4s %6s %6s %6s\r\n','#', 'x', 'y', 'z');
-fprintf(fID,'V %4d %6.2f %6.2f %6.2f\r\n',[(1:nV)', V]');
+fprintf(fID,'V %4d %6.6f %6.6f %6.6f\r\n',[(1:nV)', V]');
 fprintf(fID,'! %4s %6s %6s %6s %6s %6s %6s %6s %6s\r\n','#', 'v1', 'v2', 'v3', 'v4', 'base', 'cmb', 'emit', 'name' );
 fprintf(fID,'S %4d %6d %6d %6d %6d %6d %6d %6d %6df\r\n',[(1:nF)', [F zeros(nF,1)], zeros(nF,3), (1:nF)']');
 fprintf(fID,'End of Data\r\n');

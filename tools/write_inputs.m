@@ -173,10 +173,6 @@ if r.libm
     if r.lEB
         lscatter = true;
         if lscatter
-            %% Write STL in View3D input format
-            fpath_facets_view3d = [fpath 'facets.vs3'];
-            STLtoView3D(r.stl_file, fpath_facets_view3d, r.view3d_out, r.maxD);
-
             %% Calculate view factors
             % remember to build View3D in local system windows/linux
             % Add check to see if View3D exists in the tools directory.
@@ -188,6 +184,10 @@ if r.libm
 
             %vf = view3d(view3d_exe, fpath_facets_view3d, fpath_vf);
             if r.calc_vf % run view3d
+                % Write STL in View3D input format
+                fpath_facets_view3d = [fpath 'facets.vs3'];
+                STLtoView3D(r.stl_file, fpath_facets_view3d, r.view3d_out, r.maxD);
+                
                 if r.view3d_out == 0 % text
                     fpath_vf = [fpath 'vf.txt'];
                 elseif r.view3d_out == 1 % binary

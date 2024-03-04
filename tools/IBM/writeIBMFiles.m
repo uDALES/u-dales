@@ -891,9 +891,9 @@ view(3)
 
 axis equal tight
 
-xlim([0 xsize])
-ylim([0 ysize])
-zlim([0 zsize])
+% xlim([0 xsize])
+% ylim([0 ysize])
+% zlim([0 zsize])
 
 % Uncomment to view solid points
 %scatter3(xgrid_u(solid_ijk_u(:,1)),ygrid_u(solid_ijk_u(:,2)),zgrid_u(solid_ijk_u(:,3)),10,[0,0,1],'filled')
