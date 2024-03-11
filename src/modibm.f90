@@ -304,7 +304,7 @@ module modibm
      use modglobal, only : ifinput, ib, ie, itot, ih, jb, je, jtot, jh, kb, ktot, kh, &
                            xf, yf, zf, xh, yh, zh, dx, dy, dzh, dzf, xhat, yhat, zhat
      use modmpi,    only : myid, comm3d, MPI_INTEGER, MY_REAL, MPI_LOGICAL, mpierr
-     use initfac,   only : facnorm
+     use initfac,   only : facnorm, facz0
      use decomp_2d, only : zstart, zend
 
      character(20), intent(in) :: fname_bnd, fname_sec
@@ -428,20 +428,18 @@ module modibm
          norm = facnorm(bound_info%secfacids(n),:)
          norm_align = alignment(norm)
 
-         if (norm_align /= 0) then ! this facet normal is in x, y, or z direction
-           bound_info%lcomprec(n) = .true. ! simple reconstruction
-           if (dir_align == norm_align) then ! the normal is in the same direction
-             ! don't need to calculate shear stress as no tangential component
+           if (dir_align == norm_align) then
+             ! the facet is aligned with the grid AND in the same direction as the current velocity grid direction (not relevant to scalars)
+             ! therefore no tangential component, don't need to calculate shear stress
              bound_info%lskipsec(n) = .true.
            else
              bound_info%lskipsec(n) = .false.
            end if
 
-         else
-           bound_info%lcomprec(n) = .false.
-           bound_info%lskipsec(n) = .false.
-
-           if (lnorec) cycle
+           if (log(bound_info%bnddst(n)/facz0(bound_info%secfacids(n))) > 1. .or. lnorec) then ! the wall function is well-defined
+             bound_info%lcomprec(n) = .true. ! do simple reconstruction
+           else ! need to reconstruct
+             bound_info%lcomprec(n) = .false.
 
            ! Find reconstruction point
            ! cell centre (of current grid)
@@ -1360,7 +1358,10 @@ module modibm
                                                      zrec - zf(bound_info%secbndpts_loc(sec,3))/))
        end if
 
-       if (log(dist/facz0(fac)) < 1) cycle ! prevents very large fluxes
+       if (log(dist/facz0(fac)) <= 1.) then
+          cycle
+          !dist = facz0(fac)+facz0h(fac)
+       end if
 
        if (is_equal(uvec, vec0)) cycle
 
@@ -1494,7 +1495,10 @@ module modibm
 
        end if
 
-       if (log(dist/facz0(fac)) < 1) cycle ! prevents very large fluxes
+       if (log(dist/facz0(fac)) <= 1.) then
+          cycle
+          !dist = facz0(fac)+facz0h(fac)
+       end if
 
        if (is_equal(uvec, vec0)) cycle
 
