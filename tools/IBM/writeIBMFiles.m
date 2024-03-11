@@ -101,7 +101,11 @@ if lmypolyfortran
     fluid_IB_xyz_u = [xgrid_u(fluid_IB_ijk_u(:,1))', ygrid_u(fluid_IB_ijk_u(:,2))', zgrid_u(fluid_IB_ijk_u(:,3))'];
     solid_IB_ijk_u = readmatrix([fpath 'solid_boundary_u.txt'],'Range', 2);
     %solid_IB_ijk_u = sortrows(solid_IB_ijk_u,3);
-    solid_IB_xyz_u = [xgrid_u(solid_IB_ijk_u(:,1))', ygrid_u(solid_IB_ijk_u(:,2))', zgrid_u(solid_IB_ijk_u(:,3))'];
+    if isempty(solid_IB_ijk_u)
+        solid_IB_xyz_u = [];
+    else
+        solid_IB_xyz_u = [xgrid_u(solid_IB_ijk_u(:,1))', ygrid_u(solid_IB_ijk_u(:,2))', zgrid_u(solid_IB_ijk_u(:,3))'];
+    end
 
     solid_u = false(itot,jtot,ktot);
     for n=1:size(solid_ijk_u,1)
@@ -182,7 +186,11 @@ if lmypolyfortran
     fluid_IB_xyz_v = [xgrid_v(fluid_IB_ijk_v(:,1))', ygrid_v(fluid_IB_ijk_v(:,2))', zgrid_v(fluid_IB_ijk_v(:,3))'];
     solid_IB_ijk_v = readmatrix([fpath 'solid_boundary_v.txt'],'Range', 2);
     %solid_IB_ijk_v = sortrows(solid_IB_ijk_v,3);
-    solid_IB_xyz_v = [xgrid_v(solid_IB_ijk_v(:,1))', ygrid_v(solid_IB_ijk_v(:,2))', zgrid_v(solid_IB_ijk_v(:,3))'];
+    if isempty(solid_IB_ijk_v)
+        solid_IB_xyz_v = [];
+    else
+        solid_IB_xyz_v = [xgrid_v(solid_IB_ijk_v(:,1))', ygrid_v(solid_IB_ijk_v(:,2))', zgrid_v(solid_IB_ijk_v(:,3))'];
+    end
     
     solid_v = false(itot,jtot,ktot);
     for n=1:size(solid_ijk_v,1)
@@ -261,9 +269,13 @@ if lmypolyfortran
     fluid_IB_xyz_w = [xgrid_w(fluid_IB_ijk_w(:,1))', ygrid_w(fluid_IB_ijk_w(:,2))', zgrid_w(fluid_IB_ijk_w(:,3))'];
     solid_IB_ijk_w = readmatrix([fpath 'solid_boundary_w.txt'],'Range', 2);
     %solid_IB_ijk_w = sortrows(solid_IB_ijk_w,3);
-    solid_IB_xyz_w = [xgrid_w(solid_IB_ijk_w(:,1))', ygrid_w(solid_IB_ijk_w(:,2))', zgrid_w(solid_IB_ijk_w(:,3))'];
+    if isempty(solid_IB_ijk_w)
+        solid_IB_xyz_w = [];
+    else
+        solid_IB_xyz_w = [xgrid_w(solid_IB_ijk_w(:,1))', ygrid_w(solid_IB_ijk_w(:,2))', zgrid_w(solid_IB_ijk_w(:,3))'];
+    end
+    
     % Convert from sparse (list) format to mask (3D array)
-
     solid_w = false(itot,jtot,ktot);
     for n=1:size(solid_ijk_w,1)
         solid_w(solid_ijk_w(n,1), solid_ijk_w(n,2), solid_ijk_w(n,3)) = true;
@@ -340,8 +352,12 @@ if lmypolyfortran
     fluid_IB_xyz_c = [xgrid_c(fluid_IB_ijk_c(:,1))', ygrid_c(fluid_IB_ijk_c(:,2))', zgrid_c(fluid_IB_ijk_c(:,3))'];
     solid_IB_ijk_c = readmatrix([fpath 'solid_boundary_c.txt'],'Range', 2);
     %solid_IB_ijk_c = sortrows(solid_IB_ijk_c,3);
-    solid_IB_xyz_c = [xgrid_c(solid_IB_ijk_c(:,1))', ygrid_c(solid_IB_ijk_c(:,2))', zgrid_c(solid_IB_ijk_c(:,3))'];
-
+    if isempty(solid_IB_ijk_c)
+        solid_IB_xyz_c = [];
+    else
+        solid_IB_xyz_c = [xgrid_c(solid_IB_ijk_c(:,1))', ygrid_c(solid_IB_ijk_c(:,2))', zgrid_c(solid_IB_ijk_c(:,3))'];
+    end
+    
     % Convert from sparse (list) format to mask (3D array)
     solid_c = false(itot,jtot,ktot);
     for n=1:size(solid_ijk_c,1)
@@ -896,10 +912,26 @@ axis equal tight
 % zlim([0 zsize])
 
 % Uncomment to view solid points
-%scatter3(xgrid_u(solid_ijk_u(:,1)),ygrid_u(solid_ijk_u(:,2)),zgrid_u(solid_ijk_u(:,3)),10,[0,0,1],'filled')
-%scatter3(xgrid_v(solid_ijk_v(:,1)),ygrid_v(solid_ijk_v(:,2)),zgrid_v(solid_ijk_v(:,3)),10,[0,0,1],'filled')
-%scatter3(xgrid_w(solid_ijk_w(:,1)),ygrid_w(solid_ijk_w(:,2)),zgrid_w(solid_ijk_w(:,3)),10,[0,0,1],'filled')
-%scatter3(xgrid_c(solid_ijk_c(:,1)),ygrid_c(solid_ijk_c(:,2)),zgrid_c(solid_ijk_c(:,3)),10,[0,0,1],'filled')
+%if isempty(solid_IB_ijk_u)
+%    scatter3(xgrid_u([]),ygrid_u([]),zgrid_u([]),10,[0,0,1],'filled')
+%else
+%    scatter3(xgrid_u(solid_ijk_u(:,1)),ygrid_u(solid_ijk_u(:,2)),zgrid_u(solid_ijk_u(:,3)),10,[0,0,1],'filled')
+%end
+%if isempty(solid_IB_ijk_v)
+%    scatter3(xgrid_v([]),ygrid_v([]),zgrid_v([]),10,[0,0,1],'filled')
+%else
+%    scatter3(xgrid_v(solid_ijk_v(:,1)),ygrid_v(solid_ijk_v(:,2)),zgrid_v(solid_ijk_v(:,3)),10,[0,0,1],'filled')
+%end
+%if isempty(solid_IB_ijk_w)
+%    scatter3(xgrid_w([]),ygrid_w([]),zgrid_w([]),10,[0,0,1],'filled')
+%else
+%    scatter3(xgrid_w(solid_ijk_w(:,1)),ygrid_w(solid_ijk_w(:,2)),zgrid_w(solid_ijk_w(:,3)),10,[0,0,1],'filled')
+%end
+%if isempty(solid_IB_ijk_c)
+%    scatter3(xgrid_c([]),ygrid_c([]),zgrid_c([]),10,[0,0,1],'filled')
+%else
+%    scatter3(xgrid_c(solid_ijk_c(:,1)),ygrid_c(solid_ijk_c(:,2)),zgrid_c(solid_ijk_c(:,3)),10,[0,0,1],'filled')
+%end
 
 % Uncomment to view fluid boundary points
 %scatter3(fluid_IB_xyz_u(:,1),fluid_IB_xyz_u(:,2),fluid_IB_xyz_u(:,3),10,[0,0,1],'filled')
