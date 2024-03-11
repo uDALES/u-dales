@@ -154,7 +154,7 @@ module modstartup
          skyLW, GRLAI, rsmin, nfaclyrs, lfacTlyrs, lvfsparse, nnz
       namelist/SCALARS/ &
          lreadscal, lscasrc, lscasrcl, lscasrcr, &
-         nsv, xS, yS, zS, SS, sigS
+         nsv, nscasrc, nscasrcl								!!xS, yS, zS, SS, sigS
       namelist/CHEMISTRY/ &
          lchem, k1, JNO2
       namelist/OUTPUT/ &
@@ -378,11 +378,11 @@ module modstartup
       call MPI_BCAST(linletRA, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for turning on/off Running Average in inletgenerator
       call MPI_BCAST(lfixinlet, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for keeping average inlet velocit and temp fixed at inlet (iinletgen=1,2)
       call MPI_BCAST(lfixutauin, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for keeping utau fixed at inlet (iinletgen=1,2)
-      call MPI_BCAST(xS, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(yS, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(zS, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(SS, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(sigS, 1, MY_REAL, 0, comm3d, mpierr)
+      !call MPI_BCAST(xS, 1, MY_REAL, 0, comm3d, mpierr)
+      !call MPI_BCAST(yS, 1, MY_REAL, 0, comm3d, mpierr)
+      !call MPI_BCAST(zS, 1, MY_REAL, 0, comm3d, mpierr)
+      !call MPI_BCAST(SS, 1, MY_REAL, 0, comm3d, mpierr)
+      !call MPI_BCAST(sigS, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(idriver    ,1,MPI_INTEGER,0,comm3d,mpierr)        ! ae1212: Added switch for driver inlet simulation
       call MPI_BCAST(tdriverstart,1,MY_REAL   ,0,comm3d,mpierr)        ! ae1212
       call MPI_BCAST(driverjobnr,1,MPI_INTEGER,0,comm3d,mpierr)        ! ae1212
@@ -457,6 +457,8 @@ module modstartup
       call MPI_BCAST(tnextEB, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(dtmax, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(nsv, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(nscasrc,1,MPI_INTEGER,0,comm3d,mpierr)
+      call MPI_BCAST(nscasrcl,1,MPI_INTEGER,0,comm3d,mpierr)
       call MPI_BCAST(fieldvars, 50, MPI_CHARACTER, 0, comm3d, mpierr)
       !call MPI_BCAST(nstat      ,1,MPI_INTEGER,0,comm3d,mpierr) !tg3315
       !call MPI_BCAST(ncstat     ,80,MPI_CHARACTER,0,comm3d,mpierr) !tg3315

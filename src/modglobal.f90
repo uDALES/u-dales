@@ -315,8 +315,14 @@ module modglobal
    real, allocatable :: ySa(:)
    real, allocatable :: zSa(:)
    real    :: xS = 0., yS = 0., zS = 0.
+   real    :: xSb = 0., ySb = 0., zSb = 0.
+   real    :: xSe = 0., ySe = 0., zSe = 0.
    real    :: SS = 0.
    real    :: sigS = 0.
+   integer :: nscasrc = 0              !< number of scalar point sources
+   integer :: nscasrcl = 0              !< number of scalar line sources
+   real, allocatable :: scasrcp(:,:,:)    !< field with data from scalarsourcep.inp.xxx containing coordinates of the source points, strength and standard deviation
+   real, allocatable :: scasrcl(:,:,:)    !< field with data from scalarsourcel.inp.xxx containing coordinates of the end points of line sources, strength per unit length and standard deviation
 
    !trees
    integer, allocatable :: tree(:,:)             !< field with data from tree.inp.xxx

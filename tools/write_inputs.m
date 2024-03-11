@@ -49,6 +49,11 @@ if r.nsv>0
     preprocessing.generate_scalar(r);
     preprocessing.write_scalar(r);
     disp(['Written scalar.inp.', r.expnr])
+    if (r.lscasrc || r.lscasrcl)
+        preprocessing.generate_scalarsources(r);
+        preprocessing.write_scalarsources(r);
+        disp(['Written scalarsources.inp.', r.expnr])
+    end
 end
 
 if r.ltrees || r.ltreesfile
