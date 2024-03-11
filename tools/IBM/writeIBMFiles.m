@@ -30,6 +30,7 @@ Dir_ray_v = [0 0 1];
 Dir_ray_w = [0 0 1];
 Dir_ray_c = [0 0 1];
 tol_mypoly = 5e-4;
+tol_inpolyhedron = 5e-3;
 
 currentPath = pwd;
 stk = dbstack; activeFilename = which(stk(1).file);
@@ -100,7 +101,7 @@ if lmypolyfortran
     fluid_IB_xyz_u = [xgrid_u(fluid_IB_ijk_u(:,1))', ygrid_u(fluid_IB_ijk_u(:,2))', zgrid_u(fluid_IB_ijk_u(:,3))'];
     solid_IB_ijk_u = readmatrix([fpath 'solid_boundary_u.txt'],'Range', 2);
     %solid_IB_ijk_u = sortrows(solid_IB_ijk_u,3);
-%     solid_IB_xyz_u = [xgrid_u(solid_IB_ijk_u(:,1))', ygrid_u(solid_IB_ijk_u(:,2))', zgrid_u(solid_IB_ijk_u(:,3))'];
+    solid_IB_xyz_u = [xgrid_u(solid_IB_ijk_u(:,1))', ygrid_u(solid_IB_ijk_u(:,2))', zgrid_u(solid_IB_ijk_u(:,3))'];
 
     solid_u = false(itot,jtot,ktot);
     for n=1:size(solid_ijk_u,1)
@@ -181,7 +182,7 @@ if lmypolyfortran
     fluid_IB_xyz_v = [xgrid_v(fluid_IB_ijk_v(:,1))', ygrid_v(fluid_IB_ijk_v(:,2))', zgrid_v(fluid_IB_ijk_v(:,3))'];
     solid_IB_ijk_v = readmatrix([fpath 'solid_boundary_v.txt'],'Range', 2);
     %solid_IB_ijk_v = sortrows(solid_IB_ijk_v,3);
-%     solid_IB_xyz_v = [xgrid_v(solid_IB_ijk_v(:,1))', ygrid_v(solid_IB_ijk_v(:,2))', zgrid_v(solid_IB_ijk_v(:,3))'];
+    solid_IB_xyz_v = [xgrid_v(solid_IB_ijk_v(:,1))', ygrid_v(solid_IB_ijk_v(:,2))', zgrid_v(solid_IB_ijk_v(:,3))'];
     
     solid_v = false(itot,jtot,ktot);
     for n=1:size(solid_ijk_v,1)
@@ -260,7 +261,7 @@ if lmypolyfortran
     fluid_IB_xyz_w = [xgrid_w(fluid_IB_ijk_w(:,1))', ygrid_w(fluid_IB_ijk_w(:,2))', zgrid_w(fluid_IB_ijk_w(:,3))'];
     solid_IB_ijk_w = readmatrix([fpath 'solid_boundary_w.txt'],'Range', 2);
     %solid_IB_ijk_w = sortrows(solid_IB_ijk_w,3);
-%     solid_IB_xyz_w = [xgrid_w(solid_IB_ijk_w(:,1))', ygrid_w(solid_IB_ijk_w(:,2))', zgrid_w(solid_IB_ijk_w(:,3))'];
+    solid_IB_xyz_w = [xgrid_w(solid_IB_ijk_w(:,1))', ygrid_w(solid_IB_ijk_w(:,2))', zgrid_w(solid_IB_ijk_w(:,3))'];
     % Convert from sparse (list) format to mask (3D array)
 
     solid_w = false(itot,jtot,ktot);
@@ -339,7 +340,7 @@ if lmypolyfortran
     fluid_IB_xyz_c = [xgrid_c(fluid_IB_ijk_c(:,1))', ygrid_c(fluid_IB_ijk_c(:,2))', zgrid_c(fluid_IB_ijk_c(:,3))'];
     solid_IB_ijk_c = readmatrix([fpath 'solid_boundary_c.txt'],'Range', 2);
     %solid_IB_ijk_c = sortrows(solid_IB_ijk_c,3);
-%     solid_IB_xyz_c = [xgrid_c(solid_IB_ijk_c(:,1))', ygrid_c(solid_IB_ijk_c(:,2))', zgrid_c(solid_IB_ijk_c(:,3))'];
+    solid_IB_xyz_c = [xgrid_c(solid_IB_ijk_c(:,1))', ygrid_c(solid_IB_ijk_c(:,2))', zgrid_c(solid_IB_ijk_c(:,3))'];
 
     % Convert from sparse (list) format to mask (3D array)
     solid_c = false(itot,jtot,ktot);
@@ -412,18 +413,19 @@ if lmypolyfortran
 
 else
     %% Solid/fluid detection
-    disp('Determining fluid/solid points using MATLAB.')
     if lmypoly
         max_height = max(TR.Points(:,3)) + tol_mypoly;
         L_char = max_facet_size(TR.Points,TR.ConnectivityList) + tol_mypoly;
     end
 
     if lmypoly
+       disp('Determining fluid/solid points using MATLAB.')
         solid_u = in_grid_mypoly(TR.Points,TR.ConnectivityList, ...
             TR.incenter,TR.faceNormal,xgrid_u,ygrid_u,zgrid_u,Dir_ray_u,L_char,max_height,tol_mypoly);
     else
+        disp('Determining fluid/solid points using MATLAB (inpolyhedron).')
         solid_u = inpolyhedron(TR.ConnectivityList, TR.Points, ...
-            xgrid_u, ygrid_u, zgrid_u, 'FACENORMALS', TR.faceNormal);
+            xgrid_u, ygrid_u, zgrid_u, 'FACENORMALS', TR.faceNormal, 'TOL', tol_inpolyhedron);
         solid_u = permute(solid_u, [2 1 3]);
         %solid_u(1,:,:) = 0;
     end
@@ -443,7 +445,7 @@ else
         solid_v = in_grid_mypoly(TR.Points,TR.ConnectivityList,TR.incenter,TR.faceNormal,xgrid_v,ygrid_v,zgrid_v,Dir_ray_v,L_char,max_height,tol_mypoly);
     else
         solid_v = inpolyhedron(TR.ConnectivityList, TR.Points, ...
-            xgrid_v, ygrid_v, zgrid_v, 'FACENORMALS', TR.faceNormal);
+            xgrid_v, ygrid_v, zgrid_v, 'FACENORMALS', TR.faceNormal, 'TOL', tol_inpolyhedron);
         solid_v = permute(solid_v, [2 1 3]);
         %solid_v(:,1,:) = 0;
     end
@@ -463,7 +465,7 @@ else
             TR.incenter,TR.faceNormal,xgrid_w,ygrid_w,zgrid_w,Dir_ray_w,L_char,max_height,tol_mypoly);
     else
         solid_w = inpolyhedron(TR.ConnectivityList, TR.Points, ...
-           xgrid_w, ygrid_w, zgrid_w, 'FACENORMALS', TR.faceNormal);
+           xgrid_w, ygrid_w, zgrid_w, 'FACENORMALS', TR.faceNormal, 'TOL', tol_inpolyhedron);
         solid_w = permute(solid_w, [2 1 3]);
     end
 
@@ -499,6 +501,8 @@ else
     solid_IB_xyz_u = [xgrid_u(solid_IB_i_u)', ygrid_u(solid_IB_j_u)', zgrid_u(solid_IB_k_u)'];
 
     fluid_IB_ijk_u = [fluid_IB_i_u, fluid_IB_j_u, fluid_IB_k_u];
+    solid_IB_ijk_u = [solid_IB_i_u, solid_IB_j_u, solid_IB_k_u];
+
     fluid_boundary_u = fluid_IB_ijk_u;
     filename_u = [fpath 'fluid_boundary_u.txt'];
     fileID_u = fopen(filename_u,'W');
@@ -506,6 +510,14 @@ else
     fclose(fileID_u);
     dlmwrite(filename_u, fluid_boundary_u, '-append','delimiter',' ');
     disp('Written fluid_boundary_u.txt')
+
+    solid_boundary_u = solid_IB_ijk_u;
+    filename_u = [fpath 'solid_boundary_u.txt'];
+    fileID_u = fopen(filename_u,'W');
+    fprintf(fileID_u, '# position (i,j,k)\n');
+    fclose(fileID_u);
+    dlmwrite(filename_u, solid_boundary_u, '-append','delimiter',' ');
+    disp('Written solid_boundary_u.txt')
 
     % v
     [fluid_IB_v, solid_IB_v] = getBoundaryCells(xgrid_v, ygrid_v, zgrid_v, fluid_v, solid_v, diag_neighbs);
@@ -523,6 +535,8 @@ else
     solid_IB_xyz_v = [xgrid_v(solid_IB_i_v)', ygrid_v(solid_IB_j_v)', zgrid_v(solid_IB_k_v)'];
 
     fluid_IB_ijk_v = [fluid_IB_i_v, fluid_IB_j_v, fluid_IB_k_v];
+    solid_IB_ijk_v = [solid_IB_i_v, solid_IB_j_v, solid_IB_k_v];
+
     fluid_boundary_v = fluid_IB_ijk_v;
     filename_v = [fpath 'fluid_boundary_v.txt'];
     fileID_v = fopen(filename_v,'W');
@@ -530,6 +544,14 @@ else
     fclose(fileID_v);
     dlmwrite(filename_v, fluid_boundary_v, '-append','delimiter',' ');
     disp('Written fluid_boundary_v.txt')
+
+    solid_boundary_v = solid_IB_ijk_v;
+    filename_v = [fpath 'solid_boundary_v.txt'];
+    fileID_v = fopen(filename_v,'W');
+    fprintf(fileID_v, '# position (i,j,k)\n');
+    fclose(fileID_v);
+    dlmwrite(filename_v, solid_boundary_v, '-append','delimiter',' ');
+    disp('Written solid_boundary_v.txt')
 
     % w
     [fluid_IB_w, solid_IB_w] = getBoundaryCells(xgrid_w, ygrid_w, zgrid_w, fluid_w, solid_w_b, diag_neighbs);
@@ -542,6 +564,8 @@ else
     solid_IB_xyz_w = [xgrid_w(solid_IB_i_w)', ygrid_w(solid_IB_j_w)', zgrid_w(solid_IB_k_w)'];
 
     fluid_IB_ijk_w = [fluid_IB_i_w, fluid_IB_j_w, fluid_IB_k_w];
+    solid_IB_ijk_w = [solid_IB_i_w, solid_IB_j_w, solid_IB_k_w];
+
     fluid_boundary_w = fluid_IB_ijk_w;
     filename_w = [fpath 'fluid_boundary_w.txt'];
     fileID_w = fopen(filename_w,'W');
@@ -550,12 +574,20 @@ else
     dlmwrite(filename_w, fluid_boundary_w, '-append','delimiter',' ');
     disp('Written fluid_boundary_w.txt')
 
+    solid_boundary_w = solid_IB_ijk_w;
+    filename_w = [fpath 'solid_boundary_w.txt'];
+    fileID_w = fopen(filename_w,'W');
+    fprintf(fileID_w, '# position (i,j,k)\n');
+    fclose(fileID_w);
+    dlmwrite(filename_w, solid_boundary_w, '-append','delimiter',' ');
+    disp('Written solid_boundary_w.txt')
+
     % c
     if lmypoly
         solid_c = in_grid_mypoly(TR.Points,TR.ConnectivityList,TR.incenter,TR.faceNormal,xgrid_c,ygrid_c,zgrid_c,Dir_ray_c,L_char,max_height,tol_mypoly);
     else
         solid_c = inpolyhedron(TR.ConnectivityList, TR.Points, ...
-            xgrid_c, ygrid_c, zgrid_c, 'FACENORMALS', TR.faceNormal);
+            xgrid_c, ygrid_c, zgrid_c, 'FACENORMALS', TR.faceNormal, 'TOL', tol_inpolyhedron);
         solid_c = permute(solid_c, [2 1 3]);
     end
 
@@ -584,13 +616,23 @@ else
     solid_IB_xyz_c = [xgrid_c(solid_IB_i_c)', ygrid_c(solid_IB_j_c)', zgrid_c(solid_IB_k_c)'];
 
     fluid_IB_ijk_c = [fluid_IB_i_c, fluid_IB_j_c, fluid_IB_k_c];
+    solid_IB_ijk_c = [solid_IB_i_c, solid_IB_j_c, solid_IB_k_c];
+
     fluid_boundary_c = fluid_IB_ijk_c;
     filename_c = [fpath 'fluid_boundary_c.txt'];
     fileID_c = fopen(filename_c,'W');
-    fprintf(fileID_c, '# position (i,j,k), distance to surface, reconstruction point location\n');
+    fprintf(fileID_c, '# position (i,j,k)\n');
     fclose(fileID_c);
     dlmwrite(filename_c, fluid_boundary_c, '-append','delimiter',' ');
     disp('Written fluid_boundary_c.txt')
+
+    solid_boundary_c = solid_IB_ijk_c;
+    filename_c = [fpath 'solid_boundary_c.txt'];
+    fileID_c = fopen(filename_c,'W');
+    fprintf(fileID_c, '# position (i,j,k)\n');
+    fclose(fileID_c);
+    dlmwrite(filename_c, solid_boundary_c, '-append','delimiter',' ');
+    disp('Written solid_boundary_c.txt')
 
 end
 
@@ -849,20 +891,17 @@ view(3)
 
 axis equal tight
 
-xlim([0 xsize])
-ylim([0 ysize])
-zlim([0 zsize])
+% xlim([0 xsize])
+% ylim([0 ysize])
+% zlim([0 zsize])
 
-%scatter3(X_u(solid_u), Y_u(solid_u), Z_u(solid_u), 10,[0,0,1],'filled')
-%scatter3(X_v(solid_v), Y_v(solid_v), Z_v(solid_v), 10,[0,0,1],'filled')
-%scatter3(X_w(solid_w), Y_w(solid_w), Z_w(solid_w), 10,[0,0,1],'filled')
-%scatter3(X_c(solid_c), Y_c(solid_c), Z_c(solid_c), 10,[0,0,1],'filled')
+% Uncomment to view solid points
+%scatter3(xgrid_u(solid_ijk_u(:,1)),ygrid_u(solid_ijk_u(:,2)),zgrid_u(solid_ijk_u(:,3)),10,[0,0,1],'filled')
+%scatter3(xgrid_v(solid_ijk_v(:,1)),ygrid_v(solid_ijk_v(:,2)),zgrid_v(solid_ijk_v(:,3)),10,[0,0,1],'filled')
+%scatter3(xgrid_w(solid_ijk_w(:,1)),ygrid_w(solid_ijk_w(:,2)),zgrid_w(solid_ijk_w(:,3)),10,[0,0,1],'filled')
+%scatter3(xgrid_c(solid_ijk_c(:,1)),ygrid_c(solid_ijk_c(:,2)),zgrid_c(solid_ijk_c(:,3)),10,[0,0,1],'filled')
 
-%scatter3(X_u(fluid_IB_u), Y_u(fluid_IB_u), Z_u(fluid_IB_u), 10,[0,0,1],'filled')
-%scatter3(X_v(fluid_IB_v), Y_v(fluid_IB_v), Z_v(fluid_IB_v), 10,[0,0,1],'filled')
-%scatter3(X_w(fluid_IB_w), Y_u(fluid_IB_w), Z_u(fluid_IB_w), 10,[0,0,1],'filled')
-%scatter3(X_c(fluid_IB_c), Y_u(fluid_IB_c), Z_u(fluid_IB_c), 10,[0,0,1],'filled')
-
+% Uncomment to view fluid boundary points
 %scatter3(fluid_IB_xyz_u(:,1),fluid_IB_xyz_u(:,2),fluid_IB_xyz_u(:,3),10,[0,0,1],'filled')
 %scatter3(fluid_IB_xyz_v(:,1),fluid_IB_xyz_v(:,2),fluid_IB_xyz_v(:,3),10,[0,0,1],'filled')
 %scatter3(fluid_IB_xyz_w(:,1),fluid_IB_xyz_w(:,2),fluid_IB_xyz_w(:,3),10,[0,0,1],'filled')

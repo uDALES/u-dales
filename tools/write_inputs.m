@@ -80,7 +80,11 @@ if r.libm
     % Set facet types
     nfcts = size(TR.ConnectivityList,1);
     preprocessing.set_nfcts(r, nfcts);
-    facet_types = ones(nfcts,1); % facet_types are to be user-defined - defaults to type 1 (concrete)
+    if r.read_types
+        facet_types = dlmread(r.types_path, '', 1, 0);
+    else
+        facet_types = ones(r.nfcts,1); % defaults to type 1
+    end
     preprocessing.write_facets(r, facet_types, TR.faceNormal);
     disp(['Written facets.inp.', r.expnr])
 
@@ -92,25 +96,25 @@ if r.libm
         xgrid_c = r.xf;
         ygrid_c = r.yf;
         zgrid_c = r.zf;
-        [X_c,Y_c,Z_c] = ndgrid(xgrid_c,ygrid_c,zgrid_c);
+        %[X_c,Y_c,Z_c] = ndgrid(xgrid_c,ygrid_c,zgrid_c);
 
         % u-grid
         xgrid_u = r.xh(1:end-1);
         ygrid_u = r.yf;
         zgrid_u = r.zf;
-        [X_u,Y_u,Z_u] = ndgrid(xgrid_u,ygrid_u,zgrid_u);
+        %[X_u,Y_u,Z_u] = ndgrid(xgrid_u,ygrid_u,zgrid_u);
 
         % v-grid
         xgrid_v = r.xf;
         ygrid_v = r.yh(1:end-1);
         zgrid_v = r.zf;
-        [X_v,Y_v,Z_v] = ndgrid(xgrid_v,ygrid_v,zgrid_v);
+        %[X_v,Y_v,Z_v] = ndgrid(xgrid_v,ygrid_v,zgrid_v);
 
         % w-grid
         xgrid_w = r.xf;
         ygrid_w = r.yf;
         zgrid_w = r.zh(1:end-1);
-        [X_w,Y_w,Z_w] = ndgrid(xgrid_w,ygrid_w,zgrid_w);
+        %[X_w,Y_w,Z_w] = ndgrid(xgrid_w,ygrid_w,zgrid_w);
 
         diag_neighbs = r.diag_neighbs;
         stl_ground = r.stl_ground;
@@ -125,8 +129,26 @@ if r.libm
         dx = r.dx;
         dy = r.dy;
 
-        lmypolyfortran = 1; lmypoly = 0;		% remove eventually
-        lmatchFacetsToCellsFortran = 1;
+        if r.isolid_bound == 1
+            lmypolyfortran = 1;
+            lmypoly = 0;
+        elseif r.isolid_bound == 2
+            lmypolyfortran = 0;
+            lmypoly = 1;
+        elseif r.isolid_bound == 3
+            lmypolyfortran = 0;
+            lmypoly = 0;
+        else
+            error('Unrecognised option for fluid/solid point classification')
+        end
+
+        if r.ifacsec == 1
+            lmatchFacetsToCellsFortran = 1;
+        elseif r.ifacsec == 2
+            lmatchFacetsToCellsFortran = 0;
+        else
+            error('Unrecognised option for facet section calculation')
+        end
 
         writeIBMFiles; % Could turn into a function and move writing to this script
     else
@@ -152,75 +174,79 @@ if r.libm
     end
 
     preprocessing.write_facetarea(r, area_facets); % always write facet area
+    %%
     if r.lEB
-        %% Write STL in View3D input format
-        fpath_facets_view3d = [fpath 'facets.vs3'];
-        STLtoView3D(r.stl_file, fpath_facets_view3d, r.view3d_out, r.maxD);
-
-        %% Calculate view factors
-        % remember to build View3D in local system windows/linux
-        % Add check to see if View3D exists in the tools directory.
-        if lwindows
-            view3d_exe = [DA_TOOLSDIR '/View3D/src/View3D.exe'];
-        else
-            view3d_exe = [DA_TOOLSDIR '/View3D/build/src/view3d'];
-        end
-
-        %vf = view3d(view3d_exe, fpath_facets_view3d, fpath_vf);
-        if r.calc_vf % run view3d
-            if r.view3d_out == 0 % text
-                fpath_vf = [fpath 'vf.txt'];
-            elseif r.view3d_out == 1 % binary
-                fpath_vf = [fpath 'vf.bin'];
-            elseif r.view3d_out == 2 % sparse
-                fpath_vf = [fpath 'vfsparse.inp.' r.expnr];
-            end
-
-            view3d_execution_command = [view3d_exe ' ' fpath_facets_view3d ' ' fpath_vf];
-            system(view3d_execution_command);
-        else % view3d has already been run - read output file
-            fpath_vf = r.vf_path;
-        end
-
-        if r.view3d_out == 0
-            vf = dlmread(fpath_vf, ' ', 2, 0);
-            vf(end,:) = [];
-            vf = sparse(vf);
-        elseif r.view3d_out == 1
-            fID = fopen(fpath_vf);
-            area = fread(fID, 8+r.nfcts, 'single'); % first 8 bytes are header
-            vf = fread(fID, r.nfcts^2, 'single');
-            fclose(fID);
-            %vf = reshape(vf, [nfcts, nfcts])'; % transpose to get in row-major order
-            %vf = sparse(vf);
-            %svf = max(1 - sum(vf, 2), 0);
-            % since doing above sometimes exceeds array size...
-            vf = reshape(vf, [r.nfcts, r.nfcts]);
-            vf = sparse(vf);
-            vf = vf';
-        elseif r.view3d_out == 2
-            ijs = dlmread(fpath_vf, ' ', 0, 0);
-            vf = sparse(ijs(:,1), ijs(:,2), ijs(:,3));
-        end
-
-        svf = max(1 - sum(vf, 2), 0);
-        preprocessing.write_svf(r, svf);
-
-        % write uDALES view factor file
-        if (r.view3d_out == 0 || r.view3d_out == 1)  % view3d_out==2 is already sparse
-            if ~r.lvfsparse
-                preprocessing.write_vf(r, vf)
-                disp(['Written vf.nc.inp.', r.expnr])
+        lscatter = true;
+        if lscatter
+            %% Calculate view factors
+            % remember to build View3D in local system windows/linux
+            % Add check to see if View3D exists in the tools directory.
+            if lwindows
+                view3d_exe = [DA_TOOLSDIR '/View3D/src/View3D.exe'];
             else
-                %vfsparse = sparse(double(vf));
-                preprocessing.write_vfsparse(r, vf);
-                disp(['Written vfsparse.inp.', r.expnr])
+                view3d_exe = [DA_TOOLSDIR '/View3D/build/src/view3d'];
             end
-            if r.calc_vf
-                delete(fpath_vf) % remove view3d output file
+
+            %vf = view3d(view3d_exe, fpath_facets_view3d, fpath_vf);
+            if r.calc_vf % run view3d
+                % Write STL in View3D input format
+                fpath_facets_view3d = [fpath 'facets.vs3'];
+                STLtoView3D(r.stl_file, fpath_facets_view3d, r.view3d_out, r.maxD);
+                
+                if r.view3d_out == 0 % text
+                    fpath_vf = [fpath 'vf.txt'];
+                elseif r.view3d_out == 1 % binary
+                    fpath_vf = [fpath 'vf.bin'];
+                elseif r.view3d_out == 2 % sparse
+                    fpath_vf = [fpath 'vfsparse.inp.' r.expnr];
+                end
+
+                view3d_execution_command = [view3d_exe ' ' fpath_facets_view3d ' ' fpath_vf];
+                system(view3d_execution_command);
+            else % view3d has already been run - read output file
+                fpath_vf = r.vf_path;
             end
-        elseif (r.view3d_out == 2 && ~r.calc_vf)
-            copyfile(fpath_vf, [fpath 'vfsparse.inp.' r.expnr]);
+
+            if r.view3d_out == 0
+                vf = dlmread(fpath_vf, ' ', 2, 0);
+                vf(end,:) = [];
+                vf = sparse(vf);
+            elseif r.view3d_out == 1
+                fID = fopen(fpath_vf);
+                area = fread(fID, 8+r.nfcts, 'single'); % first 8 bytes are header
+                vf = fread(fID, r.nfcts^2, 'single');
+                fclose(fID);
+                %vf = reshape(vf, [nfcts, nfcts])'; % transpose to get in row-major order
+                %vf = sparse(vf);
+                %svf = max(1 - sum(vf, 2), 0);
+                % since doing above sometimes exceeds array size...
+                vf = reshape(vf, [r.nfcts, r.nfcts]);
+                vf = sparse(vf);
+                vf = vf';
+            elseif r.view3d_out == 2
+                ijs = dlmread(fpath_vf, ' ', 0, 0);
+                vf = sparse(ijs(:,1), ijs(:,2), ijs(:,3), r.nfcts, r.nfcts);
+            end
+
+            svf = max(1 - sum(vf, 2), 0);
+            preprocessing.write_svf(r, svf);
+
+            % write uDALES view factor file
+            if (r.view3d_out == 0 || r.view3d_out == 1)  % view3d_out==2 is already sparse
+                if ~r.lvfsparse
+                    preprocessing.write_vf(r, vf)
+                    disp(['Written vf.nc.inp.', r.expnr])
+                else
+                    %vfsparse = sparse(double(vf));
+                    preprocessing.write_vfsparse(r, vf);
+                    disp(['Written vfsparse.inp.', r.expnr])
+                end
+                if r.calc_vf
+                    delete(fpath_vf) % remove view3d output file
+                end
+            elseif (r.view3d_out == 2 && ~r.calc_vf)
+                copyfile(fpath_vf, [fpath 'vfsparse.inp.' r.expnr]);
+            end
         end
 
         %% Calculate shortwave radiation
@@ -228,31 +254,42 @@ if r.libm
         resolution   = r.psc_res;
         xazimuth     = r.xazimuth;
         ltimedepsw   = r.ltimedepsw;
-        ldirectShortwaveFortran = r.ldirectShortwaveFortran;
-        lscatter = true;
+
+        if r.isolar == 1 % custom solar position
+           lcustomsw = true;
+           lweatherfile = false;
+           solarazimuth = r.solarazimuth;
+           solarzenith  = r.solarzenith;
+           irradiance   = r.I;
+           Dsky         = r.Dsky;
+        elseif r.isolar == 2 % from latitude & longitude, using ASHRAE
+           lcustomsw = false;
+           lweatherfile = false;
+           longitude = r.longitude;
+           latitude  = r.latitude;
+           timezone  = r.timezone;
+           elevation = r.elevation;
+           start = datetime(r.year, r.month, r.day, r.hour, r.minute, r.second);
+        elseif r.isolar == 3 % from weather file
+            lcustomsw = false;
+            lweatherfile = true;
+            weatherfname = r.weatherfname;
+            start = datetime(r.year, r.month, r.day, r.hour, r.minute, r.second);
+        else
+            error('Unrecognised option for solar position calculation')
+        end
 
         if ltimedepsw
             runtime = r.runtime;
             dtSP    = r.dtSP;
-            start = datetime(r.year, r.month, r.day, r.hour, r.minute, r.second);
-            longitude = r.longitude;
-            latitude  = r.latitude;
-            timezone  = r.timezone;
-            elevation = r.elevation;
+        end
+
+        if r.ishortwave == 1
+            ldirectShortwaveFortran = 1;
+        elseif r.ishortwave == 2
+            ldirectShortwaveFortran = 0;
         else
-            lcustomsw = r.lcustomsw;
-            if lcustomsw
-                solarazimuth = r.solarazimuth;
-                solarzenith  = r.solarzenith;
-                irradiance   = r.I;
-                Dsky         = r.Dsky;
-            else
-                start = datetime(r.year, r.month, r.day, r.hour, r.minute, r.second);
-                longitude = r.longitude;
-                latitude  = r.latitude;
-                timezone  = r.timezone;
-                elevation = r.elevation;
-            end
+            error('Unrecognised option for shortwave calculation')
         end
 
         shortwave;
@@ -272,7 +309,7 @@ if r.libm
         facT_file = r.facT_file;
         lfacTlyrs = r.lfacTlyrs;
         if ~r.lfacTlyrs
-            Tfacinit = ones(nfcts,1) .* r.facT;
+            Tfacinit = ones(r.nfcts,1) .* r.facT;
             preprocessing.write_Tfacinit(r, Tfacinit)
             disp(['Written Tfacinit.inp.', r.expnr])
             % Could always read in facet temperature as layers, defaulting to linear?

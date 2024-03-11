@@ -408,7 +408,6 @@ module modfields
 
   real, allocatable :: thlpcar(:)                    !< prescribed radiatively forced thl tendency
   real, allocatable :: SW_up_TOA(:,:), SW_dn_TOA(:,:), LW_up_TOA(:,:), LW_dn_TOA(:,:)
-  real, allocatable :: uout(:)                      !< height average outlet velocity (used in convective outflow BC)
   real, allocatable :: wout(:)                      !< j-averaged top velocity
   real, allocatable :: friction(:)                  !< skin-friction coeff: from y-line-averaged shear
   real, allocatable :: momthick(:)                  !< momentum thickness: y-line average
@@ -418,7 +417,6 @@ module modfields
   real              :: wouttot                      !< area-averaveraged top velocity
   real              :: udef
   real              :: vdef
-  real, allocatable :: vout(:)
 
   real              :: thlsrcdt                     ! thlsrc -> thlsrcdt is used to solve 1-order ODE for thlsrc
   real              :: dgdt                         ! g = dp/dx -> dgdt is used to solve 1-order ODE for dpdx
@@ -584,8 +582,6 @@ contains
     allocate(sv0av(kb:ke+khc,nsv)); sv0av = 0.
     allocate(svprof(kb:ke+kh,nsv)); svprof = 0.
     allocate(thlpcar(kb:ke+kh)); thlpcar = 0.
-    allocate(uout(kb:ke+kh)); uout = 0.         ! height average outlet velocity (used in convective outflow BC)
-    allocate(vout(kb:ke)); vout = 0.
     allocate(wout(ib:ie)); wout = 0.;        ! j -averaged top velocity
     !allocate(friction(ib:ie)); friction = 0. ! line-averaged (along j) skin friction
     !allocate(momthick(ib:ie)); momthick = 0.     ! line-averaged (along j) momentum thickness

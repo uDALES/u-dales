@@ -18,9 +18,9 @@ ktot = length(zgrid);
 
 facet_sections = [];
 
-lplot = false; if lplot; figure; end % for debugging
-count = 0;
-countlim = inf;
+lplot_diagram = false; if lplot_diagram; figure; end % for plotting process
+lplot_noflux = true; if lplot_noflux; figure; end % for showing debugging
+count_diagram = 0; count_noflux = 0; countlim = inf;
 Nf = size(TR.ConnectivityList,1);
 tol = 1e-8; % floating point errors
 
@@ -62,22 +62,28 @@ for facet=1:Nf
     end
 
     if isempty(il)
-        error('problem with lower x coord'); 
+        disp(['Warning: skipping facet ' num2str(facet) ' as it is out of bounds in lower x direction.'])
+        continue
     end
     if isempty(iu)
-        error('problem with upper x coord');
+        disp(['Warning: skipping facet ' num2str(facet) ' as it is out of bounds in upper x direction.'])
+        continue
     end
     if isempty(jl)
-        error('problem with lower y coord');
+        disp(['Warning: skipping facet ' num2str(facet) ' as it is out of bounds in lower y direction.'])
+        continue
     end
     if isempty(ju)
-        error('problem with upper y coord'); 
+        disp(['Warning: skipping facet ' num2str(facet) ' as it is out of bounds in upper y direction.'])
+        continue
     end
     if isempty(kl)
-        error('problem with lower z coord')
+        disp(['Warning: skipping facet ' num2str(facet) ' as it is out of bounds in lower z direction.'])
+        continue
     end
     if isempty(ku)
-        error('problem with upper z coord')
+        disp(['Warning: skipping facet ' num2str(facet) ' as it is out of bounds in upper z direction.'])
+        continue
     end
     
     % Facet exists in cell N+1.
@@ -91,7 +97,6 @@ for facet=1:Nf
         ju = length(ygrid);
     end
     
-
     %stopflag = false;
     for i=il:iu
         for j=jl:ju
@@ -120,11 +125,11 @@ for facet=1:Nf
                     0  0  1  zrange(2);
                     0  0 -1 -zrange(1)];
 
-                clip = sutherlandHodgman3D(TR.Points(TR.ConnectivityList(facet,:),:), planes);
+                clip_verts = sutherlandHodgman3D(TR.Points(TR.ConnectivityList(facet,:),:), planes);
 
-                if ~(size(clip,1) < 3)
-                    if (size(clip,1) == 3) % triangle
-                        area = 1/2*norm(cross(clip(2,:)-clip(1,:),clip(3,:)-clip(1,:)));
+                if ~(size(clip_verts,1) < 3)
+                    if (size(clip_verts,1) == 3) % triangle
+                        area = 1/2*norm(cross(clip_verts(2,:)-clip_verts(1,:),clip_verts(3,:)-clip_verts(1,:)));
                         
                         % Remove anything below 1 square centimetre,
                         % as we only write to this precision.
@@ -133,9 +138,9 @@ for facet=1:Nf
                             continue
                         end
 
-                        tri = triangulation([1 2 3], clip);
+                        tri = triangulation([1 2 3], clip_verts);
 
-                    elseif(size(clip,1) > 3) % other polygon
+                    elseif(size(clip_verts,1) > 3) % other polygon
                         xangle = dot(TR.faceNormal(facet), [1 0 0]);
                         yangle = dot(TR.faceNormal(facet), [0 1 0]);
                         zangle = dot(TR.faceNormal(facet), [0 0 1]);
@@ -152,9 +157,9 @@ for facet=1:Nf
                             ids = [1 2];
                         end
 
-                        projVert = zeros(size(clip,1),3);
-                        for m = 1:size(clip,1)
-                            projVert(m,:) = clip(m,:) - dot(clip(m,:), planeNormal) * planeNormal;
+                        projVert = zeros(size(clip_verts,1),3);
+                        for m = 1:size(clip_verts,1)
+                            projVert(m,:) = clip_verts(m,:) - dot(clip_verts(m,:), planeNormal) * planeNormal;
                         end
 
                         projArea = polyarea(projVert(:,ids(1)), projVert(:,ids(2)));
@@ -167,18 +172,12 @@ for facet=1:Nf
                             continue
                         end
 
-                        switch size(clip,1)
-                            case 4
-                                tri = triangulation([1 2 3;1 3 4], clip);
-                            case 5
-                                tri = triangulation([1 2 3;1 3 4;1 4 5], clip);
-                            case 6
-                                tri = triangulation([1 2 3;1 3 4;1 4 5;1 5 6], clip);
-                            case 7
-                                tri = triangulation([1 2 3;1 3 4;1 4 5;1 5 6; 1 6 7], clip);
-                            otherwise
-                                error('not possible for clipped polygon to have more than 7 edges(?)')
+                        nclip_faces = size(clip_verts,1) - 2;
+                        clip_faces = zeros(nclip_faces, 3);
+                        for n=1:nclip_faces
+                            clip_faces(n,:) = [1 n+1 n+2];
                         end
+                        tri = triangulation(clip_faces, clip_verts);
 
                     else
                         error('something wrong with clipped polygon')
@@ -212,9 +211,7 @@ for facet=1:Nf
                     inputs.face_normals(all(inputs.face_normals == 0, 2),:) = NaN;
                     %[face_mean_nodes, face_normals] = getFaceCenterAndNormals(inputs.faces,inputs.nodes);
 
-                    count = count+1;
-
-
+                    count_diagram = count_diagram + 1;
 
                     if fluid_IB(i,j,k)
                         [~, loc] = ismember([xgrid(i), ygrid(j), zgrid(k)], fluid_IB_xyz, 'rows');
@@ -495,44 +492,49 @@ for facet=1:Nf
                         dist = dists(id);
                         BI = BIs(id,:);
 
-                        if (isnan(dist))
+                        if isnan(dist)
                             disp(['Facet ' num2str(facet) ' in cell ' num2str(i) ',' num2str(j) ',' num2str(k) ' could not find a cell to give flux to. Ensure diag_neighbs = true, but if persists check geometry for e.g. facets on domain edge.'])
 
-                            %%
-                            %figure
-                            
-                            if (xgrid(1) == 0)
-                                title('u')
-                            elseif (ygrid(1) == 0)
-                                title('v')
-                            elseif (zgrid(1) == 0)
-                                title('w')
-                            else
-                                title('c')
+                            if lplot_noflux
+                                if (xgrid(1) == 0)
+                                    title('u')
+                                elseif (ygrid(1) == 0)
+                                    title('v')
+                                elseif (zgrid(1) == 0)
+                                    title('w')
+                                else
+                                    title('c')
+                                end
+
+                                view(3)
+                                if count_noflux == 0
+                                    patch('Faces', TR.ConnectivityList, 'Vertices', TR.Points, 'FaceColor', ones(3,1)*69/100, 'FaceAlpha', 0)
+                                    count_noflux = count_noflux + 1;
+                                end
+                                hold on
+                                patch('Faces', TR.ConnectivityList(facet,:), 'Vertices', TR.Points, 'FaceColor', ones(3,1)*69/100, 'FaceAlpha', 1)
+                                %patch('Faces', [1 2 3], 'Vertices', TR.Points(TR.ConnectivityList(facet,:),:), 'FaceColor', [1,0,0], 'FaceAlpha', 0.5)
+                                hold on
+                                incenter = TR.incenter(1); faceNormal = TR.faceNormal;
+                                quiver3(incenter(1), incenter(2), incenter(3), faceNormal(1), faceNormal(2), faceNormal(3))
+                                V = [xl yl zl; xu yl zl; xu yu zl; xl yu zl; ...
+                                    xl yl zu; xu yl zu; xu yu zu; xl yu zu];
+                                F = [1 2 3 4; 2 6 7 3; 4 3 7 8; 1 5 8 4; 1 2 6 5; 5 6 7 8];
+                                patch('Faces', F, 'Vertices', V, 'FaceColor', [1,1,1], 'FaceAlpha', 0.5)
+                                trisurf(tri)
+                                axis equal
+                                xlabel('x')
+                                ylabel('y')
+                                zlabel('z')
+                                xlim([0 xgrid(end)])
+                                ylim([0 ygrid(end)])
+                                zlim([0 zgrid(end)])
+                                drawnow
+                                %pause(5)
                             end
 
-                            view(3)
-                            patch('Faces', TR.ConnectivityList(facet,:), 'Vertices', TR.Points, 'FaceColor', ones(3,1)*69/100, 'FaceAlpha', 0.5)
-                            %patch('Faces', [1 2 3], 'Vertices', TR.Points(TR.ConnectivityList(facet,:),:), 'FaceColor', [1,0,0], 'FaceAlpha', 0.5)
-                            hold on
-                            incenter = TR.incenter(1); faceNormal = TR.faceNormal;
-                            quiver3(incenter(1), incenter(2), incenter(3), faceNormal(1), faceNormal(2), faceNormal(3))
-                            V = [xl yl zl; xu yl zl; xu yu zl; xl yu zl; ...
-                                xl yl zu; xu yl zu; xu yu zu; xl yu zu];
-                            F = [1 2 3 4; 2 6 7 3; 4 3 7 8; 1 5 8 4; 1 2 6 5; 5 6 7 8];
-                            patch('Faces', F, 'Vertices', V, 'FaceColor', [1,1,1], 'FaceAlpha', 0.5)
-                            trisurf(tri)
-                            axis equal
-                            xlabel('x')
-                            ylabel('y')
-                            zlabel('z')
-                            %xlim([0 xgrid(end)])
-                            %ylim([0 ygrid(end)])
-                            %zlim([0 zgrid(end)])
-                            drawnow
-                            %pause(5)
-                             %continue
-%                             return
+                            continue
+
                         end
 
                     end
@@ -600,11 +602,8 @@ for facet=1:Nf
                     facet_section(7:9) = BI;
                     facet_sections = [facet_sections; facet_section];
                      
-                    if lplot% && count == countlim
-                        dist
-                        %figure
+                    if lplot_diagram && count_diagram == countlim
                         clf
-                        %view(3)
                         view(45,20)
                         set(gca, 'xtick', [])
                         set(gca, 'ytick', [])
@@ -614,7 +613,7 @@ for facet=1:Nf
                         set(gca, 'zcolor', [1 1 1])
                         box off
                         grid off
-                        %% patch('Faces', TR.ConnectivityList, 'Vertices', TR.Points, 'FaceColor', ones(3,1)*69/100, 'FaceAlpha', 0.5)
+                        % patch('Faces', TR.ConnectivityList, 'Vertices', TR.Points, 'FaceColor', ones(3,1)*69/100, 'FaceAlpha', 0.5)
                         patch('Faces', [1 2 3], 'Vertices', TR.Points(TR.ConnectivityList(facet,:),:), 'FaceColor', [1,0,0], 'FaceAlpha', 0.5)
                         hold on
                         patch('Faces', TR.ConnectivityList(facet,:), 'Vertices', TR.Points, 'FaceColor', ones(3,1)*85/100, 'FaceAlpha', 1)
@@ -624,7 +623,7 @@ for facet=1:Nf
                             xl yl zu; xu yl zu; xu yu zu; xl yu zu];
                         F = [1 2 3 4; 2 6 7 3; 4 3 7 8; 1 5 8 4; 1 2 6 5; 5 6 7 8];
                         patch('Faces', F, 'Vertices', V, 'FaceColor', [1,1,1], 'FaceAlpha', 0.5)
-                        %%
+
                         scatter3(xgrid(i),ygrid(j),zgrid(k),20,[0,0,0],'filled')
                         scatter3(xyz(1),xyz(2),xyz(3),20,[0,0,0],'filled')
                         %scatter3(BI(1),BI(2),BI(3),20,[0,0,0],'filled')
@@ -638,7 +637,7 @@ for facet=1:Nf
                                 xl yl zu; xu yl zu; xu yu zu; xl yu zu];
                             patch('Faces', F, 'Vertices', V, 'FaceColor', [1,1,1], 'FaceAlpha', 0.5)
                         end
-                        %patch('Faces', 1:size(clip,1), 'Vertices', clip, 'FaceColor', [0,0,1], 'FaceAlpha', 0.5)
+                        %patch('Faces', 1:size(clip_verts,1), 'Vertices', clip_verts, 'FaceColor', [0,0,1], 'FaceAlpha', 0.5)
                         %trisurf(tri)
                         patch('Faces', tri.ConnectivityList, 'Vertices', tri.Points+1e-3*[1 0 0], 'FaceColor', [0 0 1], 'FaceAlpha', 1)
                         axis equal
@@ -656,7 +655,7 @@ for facet=1:Nf
                         drawnow
                         pause(1)
                         %return
-                        %exportgraphics(gcf, ['~/ecse/figures/IBM_animation/' num2str(count) '.png'])
+                        %exportgraphics(gcf, ['~/ecse/figures/IBM_animation/' num2str(count_diagram) '.png'])
                     end
                 end
             end

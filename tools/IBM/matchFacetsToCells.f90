@@ -273,7 +273,6 @@ program run
     tol = 1e-8 ! machine precision errors
 
     do n=1,nFaces
-      !write(*,*) "facet", n
       ! no shear stress in normal direction
       if ((xgrid(1) == 0. .and. all(abs(abs(faceNormal(n, :)) - (/1.,0.,0./)) < tol)) .or. &
           (ygrid(1) == 0. .and. all(abs(abs(faceNormal(n, :)) - (/0.,1.,0./)) < tol)) .or. &
@@ -285,8 +284,6 @@ program run
       xmax = maxval(vertices(connectivityList(n,:),1))
       ymax = maxval(vertices(connectivityList(n,:),2))
       zmax = maxval(vertices(connectivityList(n,:),3))
-
-      !write(*,*) "xmin, xmax, ymin, ymax, zmin, zmax", xmin, xmax, ymin, ymax, zmin, zmax
 
       ! ignore facets on the ground and facing down
       if ((abs(zmin) < epsilon(zmin) .and. abs(zmax) < epsilon(zmax)) .and. &
@@ -334,19 +331,30 @@ program run
       if (xmax > xgrid(itot) + dx/2) iu = itot
       if (ymax > ygrid(jtot) + dy/2) ju = jtot
 
-      if ((il==0) .or. (iu==0)) write(*,*) "problem with x coord"
-      if ((jl==0) .or. (ju==0)) write(*,*) "problem with y coord"
-      if ((kl==0) .or. (ku==0)) then
-         write(*,*) "problem with z coord"
-         write(*,*) "kl, ku", kl, ku
+      if (il==0) then
+         write(*,*) "Warning: skipping facet ", n, " as it is out of bounds in lower x direction."
+         continue
       end if
-
-      ! write(*,*) il_comp, il
-      ! write(*,*) iu_comp, iu
-      ! write(*,*) jl_comp, jl
-      ! write(*,*) ju_comp, ju
-      ! write(*,*) kl_comp, kl
-      ! write(*,*) ku_comp, ku
+      if (iu==0) then
+         write(*,*) "Warning: skipping facet ", n, " as it is out of bounds in upper x direction."
+         continue
+      end if
+      if (jl==0) then
+         write(*,*) "warning: skipping facet ", n, " as it is out of bounds in lower y direction."
+         continue
+      end if
+      if (ju==0) then
+         write(*,*) "warning: skipping facet ", n, " as it is out of bounds in upper y direction."
+         continue
+      end if
+      if (kl==0) then
+         write(*,*) "warning: skipping facet ", n, " as it is out of bounds in lower z direction."
+         continue
+      end if
+      if (ku==0) then
+         write(*,*) "warning: skipping facet ", n, " as it is out of bounds in upper z direction."
+         continue
+      end if
 
       ! Facet exists in cell N+1.
       ! Freqently occurs for u and v grids, currently the solution is to
@@ -355,13 +363,10 @@ program run
       if (iu > itot) iu = itot
       if (ju > jtot) ju = jtot
 
-      !write(*,*) "il, iu, jl, ju, kl, ku", il, iu, jl, ju, kl, ku
-
       do i=il,iu
          do j=jl,ju
             do k=kl,ku
                if (.not.(fluid_IB(i,j,k) .or. solid_IB(i,j,k))) cycle
-               !write(*,*) "i,j,k", i, j, k
                ! Define corners of cube
                xl = xgrid(i) - dx/2. - tol
                xu = xgrid(i) + dx/2. + tol
@@ -380,8 +385,7 @@ program run
                call sutherlandHodgman3D(vertices(connectivityList(n,:),:), 3, planes, 6, clipVertices)
 
                nClipVertices = size(clipVertices, 1)
-               !write(*,*) "nClipVertices", nClipVertices
-               !write(*,*) "clipVertices", clipVertices
+
                if (nClipVertices < 3) then
                   !nClipFaces = 0
                   !allocate(clipFaces(nClipFaces,3))
@@ -405,8 +409,6 @@ program run
                   dir = maxloc(projvec, 1)
                   proj = projvec(dir)
 
-                  !write(*,*) "dir", dir
-
                   if (dir==0) then
                      write(*,*) "something wrong with finding direction to project in"
                   elseif (dir==1) then
@@ -426,57 +428,23 @@ program run
                         dot_product(clipVertices(m, :), planeNormal) * planeNormal
                   end do
 
-                  !write(*,*) "projVert", projVert
-
                   projArea = abs(polyarea(projVert(:,ids(1)), projVert(:,ids(2)), nClipVertices))
-                  !write(*,*) "projArea", projArea
-                  !write(*,*) "proj", proj
+
                   deallocate(projVert)
 
                   area = projArea / proj
 
                   if (area < 1e-5) cycle
 
-                  if (nClipVertices==4) then
-                     nClipFaces = 2
-                     allocate(clipFaces(nClipFaces,3))
-                     clipFaces(1,:) = (/1, 2, 3/)
-                     clipFaces(2,:) = (/1, 3, 4/)
-
-                  elseif (nClipVertices==5) then
-                     nClipFaces = 3
-                     allocate(clipFaces(nClipFaces,3))
-                     clipFaces(1,:) = (/1, 2, 3/)
-                     clipFaces(2,:) = (/1, 3, 4/)
-                     clipFaces(3,:) = (/1, 4, 5/)
-
-                  elseif (nClipVertices==6) then
-                     nClipFaces = 4
-                     allocate(clipFaces(nClipFaces,3))
-                     clipFaces(1,:) = (/1, 2, 3/)
-                     clipFaces(2,:) = (/1, 3, 4/)
-                     clipFaces(3,:) = (/1, 4, 5/)
-                     clipFaces(4,:) = (/1, 5, 6/)
-
-                  elseif (nClipVertices==7) then
-                     nClipFaces = 5
-                     allocate(clipFaces(nClipFaces,3))
-                     clipFaces(1,:) = (/1, 2, 3/)
-                     clipFaces(2,:) = (/1, 3, 4/)
-                     clipFaces(3,:) = (/1, 4, 5/)
-                     clipFaces(4,:) = (/1, 5, 6/)
-                     clipFaces(5,:) = (/1, 6, 7/)
-
-                  else
-                     write(*,*) "not possible for clipped polygon to have more than 7 edges(?)"
-                  end if
+                  nClipFaces = nClipVertices - 2
+                  allocate(clipFaces(nClipFaces,3))
+                  do m=1,nClipFaces
+                     clipFaces(m,:) = (/1, m+1, m+2/)
+                  end do
 
                else
                  write(*,*) "something wrong with clipped polygon"
                end if
-
-               !write(*,*) "clipFaces", clipFaces
-               !write(*,*) "area", area
 
                if (((xgrid(i) == 0.) .and. periodic_x) .or. ((ygrid(j) == 0.) .and. periodic_y)) then ! Account for periodicity - flux at point N+1
                   area = area * 2.
@@ -515,19 +483,9 @@ program run
                         BIs(1,:) = BI
                      end if
                   end if
-                  !write(*,*) "dist", dist
                end if
 
                if (solid_IB(i,j,k) .or. search_adj) then
-                   if (solid_IB(i,j,k)) then
-                      !write(*,*) "solid_IB"
-                  !    xyz1 = (/xgrid(i), ygrid(j), zgrid(k)/)
-                  !    loc = findloc(ismember_rows(fluid_IB_xyz, xyz1), .true., 1)
-                   end if
-                   if (search_adj) then
-                      !write(*,*) "search_adj"
-                   end if
-
 
                    if (i /= 1) then
                       if (fluid_IB(i-1,j,k)) then
@@ -902,11 +860,6 @@ program run
       end do
 
     end do
-
-   !  write(*,*) "secfacids ", "secareas ", "secbndptids ", "bnddst"
-   !  do n=1,size(secfacids,1)
-   !    write(*,*) secfacids(n), secareas(n), secbndptids(n), bnddst(n)
-   ! end do
 
 end subroutine matchFacetsToCells
 

@@ -310,64 +310,78 @@ classdef preprocessing < dynamicprops
 
             preprocessing.addvar(obj, 'libm', 1)
 
+            preprocessing.addvar(obj, 'isolid_bound', 1) 
+            % Option for solid/fluid detection and boundary points calculation;
+            % 1: inmypoly_fortran (Fortran), 2: inmypoly (MATLAB) (useful for debugging), 
+            % 3: inpolyhedron (MATLAB): https://www.mathworks.com/matlabcentral/fileexchange/37856-inpolyhedron-are-points-inside-a-triangulated-volume
+
+            preprocessing.addvar(obj, 'ifacsec', 1)
+            % Option for facet section calculation (matchFacetsToCells)
+            % 1: Fortran, 2: MATLAB (useful for debugging)
+
+            preprocessing.addvar(obj, 'read_types', 0)
+            if obj.read_types
+                preprocessing.addvar(obj, 'types_path', 0)
+            end
+
             if obj.lEB
                 preprocessing.addvar(obj, 'xazimuth', 90);   % azimuth of x-direction wrt N. Default: x = East
                                                              % north -> xazimuth = 0;
                                                              % east  ->            90;
                                                              % south ->            180;
                                                              % west  ->            270;
-                preprocessing.addvar(obj, 'ltimedepsw', 0)
-                if obj.ltimedepsw
-                    preprocessing.addvar(obj, 'runtime', 0)
-                    preprocessing.addvar(obj, 'dtEB', 10.) % energy balance timestep
-                    preprocessing.addvar(obj, 'dtSP', obj.dtEB) % solar position time step
-                    preprocessing.addvar(obj, 'year', 2023) % check robustness of this
-                    preprocessing.addvar(obj, 'month', 6)
-                    preprocessing.addvar(obj, 'day', 21)
-                    preprocessing.addvar(obj, 'hour', 6)
-                    preprocessing.addvar(obj, 'minute', 0)
-                    preprocessing.addvar(obj, 'second', 0)
-                    preprocessing.addvar(obj, 'longitude', -0.13) % longitude
-                    preprocessing.addvar(obj, 'latitude', 51.5) % latitude
-                    preprocessing.addvar(obj, 'timezone', 0) % timezone
-                    preprocessing.addvar(obj, 'elevation', 0) % timezone
-                else
-                    preprocessing.addvar(obj, 'lcustomsw', 1)
-                    if obj.lcustomsw
-                        preprocessing.addvar(obj, 'solarazimuth', 135); % solar azimuth angle
-                        preprocessing.addvar(obj, 'solarzenith', 28.4066); % zenith angle
-                        preprocessing.addvar(obj, 'I', 800); % Direct normal irradiance [W/m2]
-                        preprocessing.addvar(obj, 'Dsky', 418.8041); % Diffuse incoming radiation [W/m2]
-                    else
-                        preprocessing.addvar(obj, 'year', 2023) % check robustness of this
-                        preprocessing.addvar(obj, 'month', 6)
-                        preprocessing.addvar(obj, 'day', 21)
-                        preprocessing.addvar(obj, 'hour', 6)
-                        preprocessing.addvar(obj, 'minute', 0)
-                        preprocessing.addvar(obj, 'second', 0)
-                        preprocessing.addvar(obj, 'longitude', -0.13) % longitude
-                        preprocessing.addvar(obj, 'latitude', 51.5) % latitude
-                        preprocessing.addvar(obj, 'timezone', 0) % timezone
-                        preprocessing.addvar(obj, 'elevation', 0) % timezone
-                    end
-                end
+               preprocessing.addvar(obj, 'ltimedepsw', 0)
+               preprocessing.addvar(obj, 'ishortwave', 1)
+               % Option for direct shortwave radiation calculation
+               % 1: Fortran, 2: MATLAB (useful for debugging)
+               preprocessing.addvar(obj, 'isolar', 1)
+               % 1: custom (uDALES v1), 2: from lat/long, 3: from weatherfile
+               preprocessing.addvar(obj, 'runtime', 0)
+               preprocessing.addvar(obj, 'dtEB', 10.) % energy balance timestep
+               preprocessing.addvar(obj, 'dtSP', obj.dtEB) % solar position time step
+
+               if obj.isolar == 1
+                   preprocessing.addvar(obj, 'solarazimuth', 135); % solar azimuth angle
+                   preprocessing.addvar(obj, 'solarzenith', 28.4066); % zenith angle
+                   preprocessing.addvar(obj, 'I', 800); % Direct normal irradiance [W/m2]
+                   preprocessing.addvar(obj, 'Dsky', 418.8041); % Diffuse incoming radiation [W/m2]
+               elseif obj.isolar == 2
+                   preprocessing.addvar(obj, 'longitude', -0.13) % longitude
+                   preprocessing.addvar(obj, 'latitude', 51.5) % latitude
+                   preprocessing.addvar(obj, 'timezone', 0) % timezone
+                   preprocessing.addvar(obj, 'elevation', 0) % timezone
+                   preprocessing.addvar(obj, 'hour', 6)
+                   preprocessing.addvar(obj, 'minute', 0)
+                   preprocessing.addvar(obj, 'second', 0)
+                   preprocessing.addvar(obj, 'year', 2011)
+                   preprocessing.addvar(obj, 'month', 9)
+                   preprocessing.addvar(obj, 'day', 30)
+               elseif obj.isolar == 3
+                   preprocessing.addvar(obj, 'weatherfname', '')
+                   preprocessing.addvar(obj, 'hour', 0)
+                   preprocessing.addvar(obj, 'minute', 0)
+                   preprocessing.addvar(obj, 'second', 0)
+                   preprocessing.addvar(obj, 'year', 0)
+                   preprocessing.addvar(obj, 'month', 6)
+                   preprocessing.addvar(obj, 'day', 1)
+               end
 
                 preprocessing.addvar(obj, 'psc_res', 0.1); % Poly scan conversion resolution for solar radiation calculation (lower number = better)
                 preprocessing.addvar(obj, 'lvfsparse', false) % view factors given in sparse format
 
                 % view3d output format. 0: text, 1: binary, 2: sparse
                 preprocessing.addvar(obj, 'calc_vf', true)
-                if obj.calc_vf
-                    preprocessing.addvar(obj, 'maxD', Inf) % maximum distance to check view factors
-                else
-                  preprocessing.addvar(obj, 'vf_path', '');
+                preprocessing.addvar(obj, 'maxD', Inf) % maximum distance to check view factors
+
+                if ~obj.calc_vf
+                   preprocessing.addvar(obj, 'vf_path', '');
                 end
+
                 preprocessing.addvar(obj, 'view3d_out', 0);
                 if obj.view3d_out == 2 && ~obj.lvfsparse
                     error('If sparse view3d output is desired, set lvfsparse=.true. in &ENERGYBALANCE.')
                 end
 
-                preprocessing.addvar(obj, 'ldirectShortwaveFortran', false);
             end
 
             preprocessing.addvar(obj, 'facT', 288.) % Initial facet temperatures.

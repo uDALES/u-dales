@@ -59,8 +59,8 @@ module modstartup
                                     lwarmstart, lstratstart, lfielddump, lreadscal, startfile, tfielddump, fieldvars, tsample, tstatsdump, trestart, &
                                     nsv, itot, jtot, ktot, xlen, ylen, xlat, xlon, xday, xtime, lwalldist, &
                                     lmoist, lcoriol, igrw_damp, geodamptime, ifnamopt, fname_options, &
-                                    xS,yS,zS,SS,sigS,nscasrc,nscasrcl,iwallmom,iwalltemp,iwallmoist,iwallscal,ipoiss,iadv_mom,iadv_tke,iadv_thl,iadv_qt,iadv_sv,courant,diffnr,ladaptive,author,&
-                                    linoutflow, lper2inout, libm, lnudge, tnudge, nnudge, lles, luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, &
+                                    xS,yS,zS,SS,sigS,iwallmom,iwalltemp,iwallmoist,iwallscal,ipoiss,iadv_mom,iadv_tke,iadv_thl,iadv_qt,iadv_sv,courant,diffnr,ladaptive,author,&
+                                    linoutflow, lper2inout, libm, lnudge, lnudgevel, tnudge, nnudge, lles, luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, &
                                     uflowrate, vflowrate, lstoreplane, iplane, &
                                     lreadmean, iinletgen, inletav, lreadminl, Uinf, Vinf, linletRA, nblocks, &
                                     lscalrec,lSIRANEinout,lscasrc,lscasrcl,lscasrcr,lydump,lytdump,lxydump,lxytdump,lslicedump,ltdump,ltkedump,lzerogradtop,&
@@ -71,7 +71,7 @@ module modstartup
                                     BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys,BCzp,ds, &
                                     BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots, &
                                     BCxm_periodic, BCym_periodic, &
-                                    idriver,tdriverstart,driverjobnr,dtdriver,driverstore,lsdriver,lchunkread,chunkread_size, &
+                                    idriver,tdriverstart,driverjobnr,dtdriver,driverstore,lchunkread,chunkread_size, &
                                     lrandomize, prandtlturb, fkar, lwritefac, dtfac, tfac, tnextfac, &
                                     ltrees,ntrees,Qstar,dQdt,lad,lsize,r_s,cd,dec,ud,ltreedump, &
                                     lpurif,npurif,Qpu,epu
@@ -120,7 +120,7 @@ module modstartup
          lprofforc, ifixuinf, lvinf, tscale, dpdx, &
          luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, &
          uflowrate, vflowrate, &
-         lnudge, tnudge, nnudge, &
+         lnudge, lnudgevel, tnudge, nnudge, &
          ltimedepsurf, ntimedepsurf, ltimedepnudge, ntimedepnudge, &
          ltimedeplw, ntimedeplw, ltimedepsw, ntimedepsw
       namelist/DYNAMICS/ &
@@ -141,7 +141,7 @@ module modstartup
          lwallfunc
       namelist/DRIVER/ &
          idriver, tdriverstart, driverjobnr, dtdriver, &
-         driverstore, iplane, lsdriver, iangledeg, &
+         driverstore, iplane, iangledeg, &
          lchunkread, chunkread_size
       namelist/WALLS/ &
          nblocks, nfcts, iwallmom, iwalltemp, iwallmoist, iwallscal, &
@@ -362,6 +362,7 @@ module modstartup
       call MPI_BCAST(lper2inout, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for restart periodic flow to inoutflow
       call MPI_BCAST(libm, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for turning on/off IBM method
       call MPI_BCAST(lnudge, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(lnudgevel, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(nnudge, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(tnudge, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(ltimedepsurf, 1, MPI_LOGICAL, 0, comm3d, mpierr)
@@ -387,7 +388,6 @@ module modstartup
       call MPI_BCAST(driverjobnr,1,MPI_INTEGER,0,comm3d,mpierr)        ! ae1212
       call MPI_BCAST(dtdriver   ,1,MY_REAL    ,0,comm3d,mpierr)        ! ae1212
       call MPI_BCAST(driverstore,1,MPI_INTEGER ,0,comm3d,mpierr)
-      call MPI_BCAST(lsdriver   ,1,MPI_LOGICAL,0,comm3d,mpierr)
       call MPI_BCAST(lchunkread ,1,MPI_LOGICAL,0,comm3d,mpierr)
       call MPI_BCAST(chunkread_size,1,MPI_INTEGER,0,comm3d,mpierr)
       !call MPI_BCAST(BCxm, 1, MPI_INTEGER, 0, comm3d, mpierr)
@@ -688,7 +688,9 @@ module modstartup
                               BCym_periodic, BCym_profile, BCyT_periodic, BCyT_profile, &
                               BCyq_periodic, BCyq_profile, &
                               iinletgen,linoutflow,ltempeq,iwalltemp,iwallmom,&
-                              ipoiss,POISS_FFT2D,POISS_FFT3D,POISS_CYC
+                              ipoiss,POISS_FFT2D,POISS_FFT3D,POISS_CYC,&
+                              lydump,lytdump,luoutflowr,lvoutflowr,&
+                              lhdriver,lqdriver,lsdriver
       use modmpi,      only : myid, comm3d, mpierr, MPI_INTEGER, MPI_LOGICAL, nprocx, nprocy
       use modglobal,   only : idriver
       implicit none
@@ -804,19 +806,31 @@ module modstartup
 
          !if (myid == 0) write (*, *) "x inflow velocity given by file from precursor simulation"
 
-         if (ltempeq .and. (BCxT .ne. BCxT_driver) .and. (myid == 0)) then
-           write (*, *) "Warning: x inflow temperature not given by precursor, &
-                         consider setting BCxT = ", BCxT_profile
+         if (ltempeq) then
+           if (BCxT == BCxT_driver) then
+             lhdriver = .true.
+           else
+             lhdriver = .false.
+             if (myid==0) write (*, *) "Warning: x inflow temperature not given by precursor."
+           end if
          end if
 
-         if (lmoist .and. (BCxq .ne. BCxq_driver) .and. (myid == 0)) then
-           write (*, *) "Warning: x inflow moisture not given by precursor, &
-                         consider setting BCxq = ", BCxq_profile
+         if (lmoist) then
+           if (BCxq == BCxq_driver) then
+             lqdriver = .true.
+           else
+             lqdriver = .false.
+             if (myid==0) write (*, *) "Warning: x inflow humidity not given by precursor."
+           end if
          end if
 
-         if ((nsv > 0) .and. (BCxs .ne. BCxs_driver) .and. (myid == 0)) then
-           write (*, *) "Warning: x inflow scalars not given by precursor, &
-                         consider setting BCxq = ", BCxq_profile
+         if (nsv > 0) then
+           if (BCxs == BCxs_driver) then
+             lsdriver = .true.
+           else
+             lsdriver = .false.
+             if (myid == 0) write (*, *) "Warning: x inflow scalars not given by precursor."
+           end if
          end if
 
          if (BCtopm .ne. BCtopm_pressure) then
@@ -858,6 +872,21 @@ module modstartup
                          consider setting BCtopm = ", BCtopm_pressure
          end if
        end select
+
+       if ((lydump .or. lytdump) .and. (nprocx > 1)) then
+          write(*, *) "Error: y-averaged statistics not currently implemented for nprocx > 1."
+          stop 1
+       end if
+
+       if ((luoutflowr) .and. (nprocx > 1)) then
+          write(*, *) "Error: constant x outflow only possible for nprocx = 1."
+          stop 1
+       end if
+
+       if ((lvoutflowr) .and. (nprocy > 1)) then
+          write(*, *) "Error: constant y outflow only possible for nprocy = 1."
+          stop 1
+       end if
 
    end subroutine checkinitvalues
 
@@ -908,6 +937,7 @@ module modstartup
       real, dimension(kb:ke + 1) :: waverage
       real, dimension(kb:ke + 1) :: uprofrot
       real, dimension(kb:ke + 1) :: vprofrot
+      real, dimension(kb:ke+kh)  :: u_init, v_init, thl_init, qt_init
       real tv, ran, ran1
 
       character(80) chmess
@@ -931,7 +961,7 @@ module modstartup
          if (myid == 0) then
             open (ifinput, file='prof.inp.'//cexpnr)
             read (ifinput, '(a80)') chmess
-            write (*, '(a80)') chmess
+            !write (*, '(a80)') chmess
             read (ifinput, '(a80)') chmess
 
             do k = kb, ke
@@ -1397,16 +1427,16 @@ module modstartup
                   call drivergen
                end if
 
-               do k = kb, ke
-                  do j = jb-1, je+1
-                     do i = ib-1, ie+1
-                        u0(i, j, k) = u0driver(j, k)
-                        um(i, j, k) = umdriver(j, k)
-                        v0(i, j, k) = v0driver(j, k)
-                        vm(i, j, k) = vmdriver(j, k)
-                     end do
-                  end do
-               end do
+               ! do k = kb, ke
+               !    do j = jb-1, je+1
+               !       do i = ib-1, ie+1
+               !          u0(i, j, k) = u0driver(j, k)
+               !          um(i, j, k) = umdriver(j, k)
+               !          v0(i, j, k) = v0driver(j, k)
+               !          vm(i, j, k) = vmdriver(j, k)
+               !       end do
+               !    end do
+               ! end do
 
                ! if(myid==0) then
                  ! write(*,*) 'Driver inlet velocity'
@@ -1446,7 +1476,7 @@ module modstartup
                      end if
                   end if
                end if
-			   
+
               call drivergen
 
             end if
@@ -1539,14 +1569,20 @@ module modstartup
          !    call thermodynamics ! turned off when pot. temp = temp.
 
          else !if lwarmstart
-            write (*, *) "doing warmstart"
+            !write (*, *) "doing warmstart"
             call readrestartfiles
 
-            ! Still read initial profiles for nudging
+            ! average initial profiles
+            call avexy_ibm(u_init(kb:ke+kh),u0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
+            call avexy_ibm(v_init(kb:ke+kh),v0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
+            call avexy_ibm(thl_init(kb:ke+kh),thl0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+            call avexy_ibm(qt_init(kb:ke+kh),qt0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+
             if (myid == 0) then
+               ! Read profiles from file (potentially for forcing)
                open (ifinput, file='prof.inp.'//cexpnr)
                read (ifinput, '(a80)') chmess
-               write (*, '(a80)') chmess
+               !write (*, '(a80)') chmess
                read (ifinput, '(a80)') chmess
 
                do k = kb, ke
@@ -1558,6 +1594,22 @@ module modstartup
                      vprof(k), &
                      e12prof(k)
                end do
+               close (ifinput)
+
+               ! Write initial profile
+               open (ifinput, file='prof_restart.'//cexpnr)
+               write (ifinput, *) '# SDBL flow'
+               write (ifinput, *) '# z thl qt u v e12'
+               do k = kb, ke
+                  write (ifinput, '(f20.15,5f12.6)') &
+                     height(k), &
+                     thl_init(k), &
+                     qt_init(k), &
+                     u_init(k), &
+                     v_init(k), &
+                     e12prof(k)
+               end do
+               close (ifinput)
 
                ! Apply rotation in horizontal
                !write (6, *) 'iangle = ', iangle
@@ -1567,24 +1619,13 @@ module modstartup
                !uprof = uprofrot
                !vprof = vprofrot
 
-               close (ifinput)
-               write (*, *) 'height    thl     qt      u      v     e12'
-               do k = ke, kb, -1
-                  write (*, '(f7.1,2f8.1,3f7.1)') &
-                     height(k), &
-                     thlprof(k), &
-                     qtprof(k), &
-                     uprof(k), &
-                     vprof(k), &
-                     e12prof(k)
-
-               end do
-
-               if (minval(e12prof(kb:ke)) < e12min) then
-                  write (*, *) 'e12 value is zero (or less) in prof.inp'
-                  do k = kb, ke
+               if (loneeqn) then
+                 if (minval(e12prof(kb:ke)) < e12min) then
+                   write (*, *) 'e12 value is zero (or less) in prof.inp'
+                   do k = kb, ke
                      e12prof(k) = max(e12prof(k), e12min)
-                  end do
+                   end do
+                 end if
                end if
 
             end if ! end if myid==0
@@ -1613,13 +1654,13 @@ module modstartup
               !  write(*,*) 'driverstore: ', driverstore
               !end if
                if (timee>=tdriverstart) then
-                  
+
                   tdriverstart_cold = tdriverstart
                   tdriverstart = timee
                   if (trestart /= (driverstore-1)*dtdriver) then
                      trestart = (driverstore-1)*dtdriver
                   end if
-                  
+
                   if (myid==0) then
                      write(*,'(A,F15.5)') "Warning! during warmstart of driver simulation, tdriverstart &
                                            gets overwritten by the time instant of initd restartfile, ignoring the &
@@ -1632,7 +1673,7 @@ module modstartup
                                     Consider taking runtime >= (driverstore-1)*dtdriver).'
                      end if
                   end if
-                  
+
                else ! if (timee<tdriverstart)
                   if (trestart /= (tdriverstart + (driverstore-1)*dtdriver - btime)) then
                      trestart = (tdriverstart + (driverstore-1)*dtdriver) - btime
@@ -1647,7 +1688,7 @@ module modstartup
                      end if
                   end if
                end if
-			   
+
               call drivergen
               tdriverdump = tdriverstart
             endif
@@ -1967,7 +2008,7 @@ module modstartup
             !  call boundary
 
             if (lEB .and. (lfacTlyrs .eqv. .false.)) then
-               write(*,*) "Warmstarting an EB simulation - consider setting internal facet temperatures"
+               if (myid==0) write(*,*) "Warmstarting an EB simulation - consider setting internal facet temperatures"
             end if
          end if ! lwarmstart
       end if ! not lstratstart
@@ -2118,7 +2159,7 @@ module modstartup
       name(5:5) = 'd'
       name(15:17) = cmyidx
       name(19:21) = cmyidy
-      write (6, *) 'loading ', name
+      !write (6, *) 'loading ', name
       open (unit=ifinput, file=name, form='unformatted', status='old')
 
       read (ifinput) (((mindist(i, j, k), i=ib, ie), j=jb, je), k=kb, ke)
@@ -2135,16 +2176,16 @@ module modstartup
       read (ifinput) (((ql0h(i, j, k), i=ib - ih, ie + ih), j=jb - jh, je + jh), k=kb, ke + kh)
       read (ifinput) timee, dt
       close (ifinput)
-      write (6, *) 'finished loading ', name
+      !write (6, *) 'finished loading ', name
 
       if ((nsv > 0) .and. (lreadscal)) then
          name(5:5) = 's'
-         write (6, *) 'loading ', name
+         !write (6, *) 'loading ', name
          open (unit=ifinput, file=name, form='unformatted')
          read (ifinput) ((((sv0(i, j, k, n), i=ib - ih, ie + ih), j=jb - jh, je + jh), k=kb, ke + kh), n=1, nsv)
          read (ifinput) timee
          close (ifinput)
-         write (6, *) 'finished loading ', name
+         !write (6, *) 'finished loading ', name
       elseif ((nsv > 0) .and. (.not. lreadscal)) then
          sv0 = 0.
          svprof = 0.

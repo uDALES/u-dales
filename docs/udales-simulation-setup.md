@@ -20,11 +20,11 @@ Determined by `BCtopm`. Possible values:
 
 - 1: free-slip, i.e. zero flux.
 - 2: no-slip, i.e. zero velocity.
-- 3: determined by inflow conditions.
+- 3: variable vertical velocity (necessary with inflow-outflow lateral boundary conditions).
 
-#### Bottom (below floor facets)
+#### Bottom
 
-These are de facto useless, as the bottom of the domain is covered by floor facets. Determined by `BCbotm`. Possible values:
+NB: only relevant if the bottom of the domain is not covered by floor facets. Determined by `BCbotm`. Possible values:
 
 - 1: free slip, i.e. zero flux.
 - 2: flux given by wall function involving temperature.
@@ -43,11 +43,15 @@ Determined by `iwallmom`. Possible values:
 Determined by `BCxm`. Possible values:
 
 - 1: periodic
-- 2/3/4: inflow/outflow (write more on this)
+- 2: inflow-outflow, fixed profile
+- 3: inflow-outflow, inflow given by time-varying profile from precursor simulation
 
 #### y
 
-Only possible value is 1: periodic.
+Determined by `BCym`. Possible values:
+
+- 1: periodic
+- 2: inflow-outflow, fixed profile
 
 ### Temperature
 
@@ -71,18 +75,25 @@ Determined by `BCbotT`. Possible values:
 
 Determined by `iwalltemp`. Possible values:
 
-- 1: constant flux given by `bctfxm` and `bctfxp` for x-walls, `bctfym` and `bctfyp` for y-walls, and `bctfz` for z-walls. (write more on this - what are x/y/z-walls)
-- 2: flux given by wall function involving temperature.
+- 1: constant flux given by `bctfxm`/`bctfxp` for facets with normal in -/+ x-direction, `bctfym`/`bctfyp` for facets with normal in -/+ y-direction, and `bctfz` for facets with normal in +z direction.
+- 2: flux given by wall function.
 
 ### Moisture
 
+Determined by `iwallmoist`. Possible values:
+
+- 1: constant flux given by `bcqfxm`/`bcqfxp` for facets with normal in -/+ x-direction, `bcqfym`/`bctfyp` for facets with normal in -/+ y-direction, and `bcqfz` for facets with normal in +z direction.
+- 2: flux given by wall function.
+
 ### Scalars
 
-## Buildings and blocks
+TBC
 
-uDALES uses the immersed boundary method (IBM) to capture buildings in the fluid domain. The implementation of the IBM supports grid-conforming obstacles and therefore uDALES is able to model cuboid building forms. Both idealised and realistic urban morphologies can be captured via this implementation and can be automatically generated using uDALES' pre-processing routines (see [pre-processing](./udales-pre-processing.md)).
+## Facets
 
-The information for the positions of the blocks in the fluid domain is found in `blocks.inp.xxx`. Columns 1 to 6 in `blocks.inp.xxx` denote the start and end positions of the blocks using cell centres as reference points. For example, `il` is the position of the west-most block in the x-direction and `zu` is the position of the top block in the z-direction. Each row therefore provides the three-dimensional indices required to position one block. Columns 7 to 10 indicate the corrsponding facets, which are detailed in the input file `facets.inp.xxx`. The facets file indicates the orientation of the facet, the wall type (corresponding to a row of `walltypes.inp.xxx` and therefore indicating the roughness length, heat capacity etc. of that surface) and its block number. Finally `Tfacinit.inp.xxx` indicates the initial temperature of each facet where applicable.
+uDALES uses the immersed boundary method (IBM) to capture buildings in the fluid domain. This geometry is prescribed by an STL file, and this is used to generate the necessary input files for the IBM are generated using uDALES' pre-processing routines (see [pre-processing](./udales-pre-processing.md)). 
+
+The `facets.inp.xxx` file indicates the the type (corresponding to a row of `factypes.inp.xxx` and therefore indicating the roughness length, heat capacity etc. of that surface) and its surface normal. Finally `Tfacinit.inp.xxx` indicates the initial temperature of each facet where applicable.
 
 ## Driver simulations
 
@@ -111,7 +122,7 @@ It is necessary to first have run a simulation following the above instructions.
 - The driven simulation must have the same `jtot`, `ysize`, `kmax` and `zgrid.inp.xxx` as its corresponding precursor simulation.
 - The driven simulation must use the same number of cores as the precursor simulation.
 - It is not necessary to apply a forcing to the driven simulation due to the enforced inlet-outlet boundary conditions.
-- `BCxm = 5` is the current index to enforce the required inlet-outlet boundary conditions. Boundary conditions in the x-direction for other prognostic variables will be overwritten by this and therefore do not need to be set. **!! we could automate this at a later date if suitable !!**.
+- `BCxm = 3` is the current index to enforce the required inlet-outlet boundary conditions. Boundary conditions in the x-direction for other prognostic variables will be overwritten by this and therefore do not need to be set.
 - The \*driver\* files from the precursor simulation must be copied from its output directory to the experiments directory of the driven simulation. For example, if the precursor is 001 and the driven simulation is 002 and you are working from the top uDALES directory: `cp outputs/001/*driver* experiments/002/`.
 - `driverstore` must be equal to or less than the number of timesteps saved in the \*driver\* files (equivalent value of `driverstore` in the precursor simulation).
 - `driverjobnr` must equal the job number of the corresponding precursor simulation. Following the above example: `driverjobnr = 001`.

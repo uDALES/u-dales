@@ -126,7 +126,7 @@ contains
                                  ibrank, ierank, jbrank, jerank, e12min, idriver, &
                                  Uinf, Vinf, &
                                  rk3step, lchunkread
-      use modfields,      only : u0, v0, w0, um, vm, wm, thl0, thlm, qt0, qtm, e120, e12m, sv0, svm, u0av, v0av, uout, uouttot, vouttot, thl0c
+      use modfields,      only : u0, v0, w0, um, vm, wm, thl0, thlm, qt0, qtm, e120, e12m, sv0, svm, u0av, v0av, uouttot, vouttot, thl0c
       use modsubgriddata, only : ekh, ekm, loneeqn
       use modsurfdata,    only : thl_top, qt_top, sv_top, wttop, wqtop, wsvtop
       use modmpi,         only : myid, slabsum, avey_ibm
@@ -259,7 +259,7 @@ contains
          call xmi_profile
        case(BCxm_driver)
          !uouttot = ubulk ! does this hold for all forcings of precursor simulations? tg3315
-         if(rk3step==0 .or. rk3step==3) then 
+         if(rk3step==0 .or. rk3step==3) then
           if (lchunkread) call driverchunkread
           call drivergen ! think this should be done at the start of an rk3 loop?
          end if
@@ -724,13 +724,26 @@ contains
        use modfields, only : thl0, thlm, thlprof
        integer j, k
 
+       ! set ghost cell
+       ! do j = jb - 1, je + 1
+       !   do k = kb, ke + 1
+       !     thl0(ib - 1, j, k) = 2*thlprof(k) - thl0(ib, j, k)
+       !     thlm(ib - 1, j, k) = 2*thlprof(k) - thlm(ib, j, k)
+       !   end do
+       ! end do
        do j = jb - 1, je + 1
          do k = kb, ke + 1
-           ! thl0(ib - 1, j, k) = 2*thlprof(k) - thl0(ib, j, k)
-           ! thlm(ib - 1, j, k) = 2*thlprof(k) - thlm(ib, j, k)
+           thl0(ib - 1, j, k) = thlprof(k)
+           thlm(ib - 1, j, k) = thlprof(k)
+         end do
+       end do
+
+       ! set first internal cell as well
+       do j = jb - 1, je + 1
+        do k = kb, ke
            thl0(ib, j, k) = thlprof(k)
            thlm(ib, j, k) = thlprof(k)
-         end do
+        end do
        end do
 
      end subroutine xTi_profile
