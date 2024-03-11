@@ -153,8 +153,8 @@ module in_mypoly_functions
 
         real, dimension(3) :: vert1, vert2, vert3
         real, dimension(n_fcts*9) :: facet_intersect_old
-        integer :: i, i_facet, kk, j, counter, count2, max_i(1)
-        logical :: withinBox, intersect_on(2)
+        integer :: i, i_facet, kk, j, counter, count1, count2, max_i(1)
+        logical :: withinBox, intersect_on(3)
 
         !! Take x axis, or y axis or positive z axis even with carefull cohice of this ray direction there 
         !! might be wrong prediction. To resolve this one must shoot at the least three rays along the three 
@@ -165,6 +165,7 @@ module in_mypoly_functions
         is_in_mypoly = .false.
         max_i = MAXLOC(ABS(Ray_dir))
         counter = 0
+        count1 = 0
 
         kk = 1
         iloop: do i_facet = 1,n_fcts
@@ -221,38 +222,49 @@ module in_mypoly_functions
                             
                         if (counter == 0) then
                             counter=counter+1
-                            facet_intersect_old(9*(counter-1)+1:9*(counter-1)+3) = vert1
-                            facet_intersect_old(9*(counter-1)+4:9*(counter-1)+6) = vert2
-                            facet_intersect_old(9*(counter-1)+7:9*counter) = vert3
+                            if (intersect_on(3)) then
+                                count1 = count1 + 1
+                                facet_intersect_old(9*(count1-1)+1:9*(count1-1)+3) = vert1
+                                facet_intersect_old(9*(count1-1)+4:9*(count1-1)+6) = vert2
+                                facet_intersect_old(9*(count1-1)+7:9*count1) = vert3
+                            end if
                         else
 
-                            count2 = 0
+                            if (.not.(intersect_on(3))) then
+                                counter=counter+1
+                            else
 
-                            do_j: do j = 1,3*counter
-                                
-                                if (vert1(1) == facet_intersect_old(3*(j-1)+1) .and. vert1(2) == facet_intersect_old(3*(j-1)+2) &
-                                .and. vert1(3) == facet_intersect_old(3*j)) then
-                                    count2 = 1
-                                    exit do_j
-                                elseif (vert2(1) == facet_intersect_old(3*(j-1)+1) &
-                                    .and. vert2(2) == facet_intersect_old(3*(j-1)+2) &
-                                    .and. vert2(3) == facet_intersect_old(3*j)) then
-                                    count2 = 1
-                                    exit do_j
-                                elseif (vert3(1) == facet_intersect_old(3*(j-1)+1) &
-                                    .and. vert3(2) == facet_intersect_old(3*(j-1)+2) &
-                                    .and. vert3(3) == facet_intersect_old(3*j)) then
-                                    count2 = 1
-                                    exit do_j
+                                count2 = 0
+
+                                do_j: do j = 1,3*count1
+                                    
+                                    if (vert1(1) == facet_intersect_old(3*(j-1)+1) &
+                                    .and. vert1(2) == facet_intersect_old(3*(j-1)+2) &
+                                    .and. vert1(3) == facet_intersect_old(3*j)) then
+                                        count2 = 1
+                                        exit do_j
+                                    elseif (vert2(1) == facet_intersect_old(3*(j-1)+1) &
+                                        .and. vert2(2) == facet_intersect_old(3*(j-1)+2) &
+                                        .and. vert2(3) == facet_intersect_old(3*j)) then
+                                        count2 = 1
+                                        exit do_j
+                                    elseif (vert3(1) == facet_intersect_old(3*(j-1)+1) &
+                                        .and. vert3(2) == facet_intersect_old(3*(j-1)+2) &
+                                        .and. vert3(3) == facet_intersect_old(3*j)) then
+                                        count2 = 1
+                                        exit do_j
+                                    end if
+
+                                end do do_j
+
+                                if (count2 == 0) then
+                                    counter = counter + 1
+                                    count1 = count1 + 1
+                                    facet_intersect_old(9*(count1-1)+1:9*(count1-1)+3) = vert1
+                                    facet_intersect_old(9*(count1-1)+4:9*(count1-1)+6) = vert2
+                                    facet_intersect_old(9*(count1-1)+7:9*count1) = vert3
                                 end if
 
-                            end do do_j
-
-                            if (count2 == 0) then
-                                counter=counter+1
-                                facet_intersect_old(9*(counter-1)+1:9*(counter-1)+3) = vert1
-                                facet_intersect_old(9*(counter-1)+4:9*(counter-1)+6) = vert2
-                                facet_intersect_old(9*(counter-1)+7:9*counter) = vert3
                             end if
 
                         end if
@@ -280,12 +292,15 @@ module in_mypoly_functions
     !! Function to check if a given point (Origin) lie on a triangular plane element formed by the
     !! three points A, B and C (given by vertA, vertB and vertC) in 3D 
     !! logical function point_on_triangle(Origin, vertA, vertB, vertC, incenter, faceNormal, tol)
-    logical function point_on_triangle(Origin, edge1, edge2, ray2, incenter, faceNormal, tol)
+    function point_on_triangle(Origin, edge1, edge2, ray2, incenter, faceNormal, tol)
         implicit none
 
         !! real, dimension(3), intent(in) :: Origin, vertA, vertB, vertC, incenter, faceNormal
         real, dimension(3), intent(in) :: Origin, edge1, edge2, ray2, incenter, faceNormal
         real, intent(in) :: tol
+
+        logical, dimension(2) :: point_on_triangle      
+        !the first element is for wheather the point is on the triangle, and the second one is for wheather the point is on the edge provided it is on the triangle
 
         !! real, dimension(3) :: Vec, edge1, edge2, ray2, deno
         real, dimension(3) :: Vec, deno
@@ -330,17 +345,25 @@ module in_mypoly_functions
                 a = neu_1/max_deno
                 b = neu_2/max_deno
                 if (a>=0 .and. b>=0 .and. a+b<=1) then
-                    point_on_triangle = .true.
+                    point_on_triangle(1) = .true.
+                    if (a<tol .or. b<tol .or. ABS(a+b-1.0)<tol) then
+                        point_on_triangle(2) = .true.
+                    else
+                        point_on_triangle(2) = .false.
+                    end if
                 else
-                    point_on_triangle = .false.
+                    point_on_triangle(1) = .false.
+                    point_on_triangle(2) = .false.
                 end if
             else
-                point_on_triangle = .false.
+                point_on_triangle(1) = .false.
+                point_on_triangle(2) = .false.
             end if
 
         else
 
-            point_on_triangle = .false.
+            point_on_triangle(1) = .false.
+            point_on_triangle(2) = .false.
 
         end if
 
@@ -356,7 +379,10 @@ module in_mypoly_functions
         real, dimension(3), intent(in) :: Origin, Dir, vertA, vertB, vertC, incenter, faceNormal
         real, intent(in) :: tol
 
-        logical, dimension(2) :: point_triangle_intersect
+        logical, dimension(3) :: point_triangle_intersect
+        ! the first element is for wheather the ray from the given origin point intersects the triangle
+        ! the second element says if the ray intersects then wheather the origin point is on the triangle
+        ! the third element says if the ray intersects and the point is on the triangle, then wheather the point is on the triangle edge
 
         ! real, external :: determinant
         ! logical, external :: point_line_segment_intersect
@@ -364,6 +390,7 @@ module in_mypoly_functions
         real, dimension(3) :: edge1, edge2, ray2
         real :: det1, det_t, det_a, det_b, t, a, b
         integer :: i
+        logical :: is_pointOnTriangle(2)
 
         edge1 = vertB - vertA
         edge2 = vertC - vertA
@@ -389,24 +416,40 @@ module in_mypoly_functions
             ! ray intersects the plane within the domain bounded by the triangle (inclusive of edge and vertices)
             if (a>=0 .and. b>=0 .and. a+b<=1 .and. t>=0) then 
                 point_triangle_intersect(1) = .true.
-                if (point_on_triangle(Origin, edge1, edge2, ray2, incenter, faceNormal, tol)) then ! Origin point lies on the triangle
+                
+                ! if (point_on_triangle(Origin, edge1, edge2, ray2, incenter, faceNormal, tol)) then ! Origin point lies on the triangle
+                if (t<tol) then ! Origin point lies on the triangle
                     point_triangle_intersect(2) = .true.
-                else        ! %Origin point dos not lie on the triangle
+                else            ! %Origin point does not lie on the triangle
                     point_triangle_intersect(2) = .false.
                 end if
+
+                if (a<tol .or. b<tol .or. ABS(a+b-1.0)<tol) then
+                    point_triangle_intersect(3) = .true.
+                else
+                    point_triangle_intersect(3) = .false.
+                end if
+
             else            ! ray DOES NOT intersect the plane within the domain bounded by the triangle
                 point_triangle_intersect(1) = .false.
                 point_triangle_intersect(2) = .false.
+                point_triangle_intersect(3) = .false.
             end if
 
         else if (ABS(det_a)<tol .and. ABS(det_b)<tol .and. ABS(det_t)<tol) then ! ray is parallel to the plane of triangle and lie on the plane
-
-            if (point_on_triangle(Origin, edge1, edge2, ray2, incenter, faceNormal, tol)) then ! Origin point lies on the triangle
+            is_pointOnTriangle = point_on_triangle(Origin, edge1, edge2, ray2, incenter, faceNormal, tol)
+            if (is_pointOnTriangle(1)) then ! Origin point lies on the triangle
                 point_triangle_intersect(1) = .true.
                 point_triangle_intersect(2) = .true.
+                if (is_pointOnTriangle(2)) then
+                    point_triangle_intersect(3) = .true.    ! Origin point lies on one of the edges of the triangle
+                else
+                    point_triangle_intersect(3) = .false.
+                end if
             else        ! % Origin point is outside the triangle
                 point_triangle_intersect(1) = .false.
                 point_triangle_intersect(2) = .false.
+                point_triangle_intersect(3) = .false.
             end if
             
             ! if (point_line_segment_intersect(Origin,Dir,vertA,vertB)) then
@@ -423,6 +466,7 @@ module in_mypoly_functions
 
             point_triangle_intersect(1) = .false.
             point_triangle_intersect(2) = .false.
+            point_triangle_intersect(3) = .false.
 
         end if
 
