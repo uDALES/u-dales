@@ -30,7 +30,8 @@ Dir_ray_v = [0 0 1];
 Dir_ray_w = [0 0 1];
 Dir_ray_c = [0 0 1];
 tol_mypoly = 5e-4;
-tol_inpolyhedron = 5e-3;
+tol_inpolyhedron = 5e-2; %z0=5e-2; tol_inpolyhedron = ceil(z0*exp(1)*1000)/1000;
+lcheckdist = false;
 
 currentPath = pwd;
 stk = dbstack; activeFilename = which(stk(1).file);
@@ -419,16 +420,63 @@ else
     end
 
     if lmypoly
-       disp('Determining fluid/solid points using MATLAB.')
+        disp('Determining fluid/solid points using MATLAB.')
         solid_u = in_grid_mypoly(TR.Points,TR.ConnectivityList, ...
             TR.incenter,TR.faceNormal,xgrid_u,ygrid_u,zgrid_u,Dir_ray_u,L_char,max_height,tol_mypoly);
     else
         disp('Determining fluid/solid points using MATLAB (inpolyhedron).')
-        solid_u = inpolyhedron(TR.ConnectivityList, TR.Points, ...
-            xgrid_u, ygrid_u, zgrid_u, 'FACENORMALS', TR.faceNormal, 'TOL', tol_inpolyhedron);
+        solid_u = inpolyhedron(TR.ConnectivityList, TR.Points, xgrid_u, ygrid_u, zgrid_u, ...
+           'FACENORMALS', TR.faceNormal, 'TOL', tol_inpolyhedron);
         solid_u = permute(solid_u, [2 1 3]);
         %solid_u(1,:,:) = 0;
+
+        % check for fluid points very close to surface
+        if lcheckdist
+            fluid_u = ~solid_u;
+            [fluid_IB_u, ~] = getBoundaryCells(xgrid_u, ygrid_u, zgrid_u, fluid_u, solid_u, diag_neighbs);
+            if (stl_ground)
+                fluid_u_1 = fluid_u(:,:,1);
+                fluid_IB_u_1 = fluid_IB_u(:,:,1);
+                fluid_IB_u_1(fluid_u_1) = true;
+                fluid_IB_u(:,:,1) = fluid_IB_u_1;
+            end
+
+            [fluid_IB_i_u, fluid_IB_j_u, fluid_IB_k_u] = ind2sub(size(fluid_IB_u), find(fluid_IB_u));
+            fluid_IB_xyz_u = [xgrid_u(fluid_IB_i_u)', ygrid_u(fluid_IB_j_u)', zgrid_u(fluid_IB_k_u)'];
+
+            [dists, ~, ~, ~] = point2trimesh('Faces', TR.ConnectivityList, 'Vertices', TR.Points, ...
+                'QueryPoints', fluid_IB_xyz_u, 'UseSubSurface', false);
+
+            for n=1:size(fluid_IB_xyz_u,1)
+                if abs(dists(n)) < tol_inpolyhedron
+                    [~, i] = ismember(fluid_IB_xyz_u(n,1), xgrid_u);
+                    [~, j] = ismember(fluid_IB_xyz_u(n,2), ygrid_u);
+                    [~, k] = ismember(fluid_IB_xyz_u(n,3), zgrid_u);
+                    solid_u(i,j,k) = true;
+                end
+            end
+        end
     end
+
+    % check for acute corners - single column of solid cells
+    solid_u_copy = solid_u;
+    for k=1:ktot
+        for j=1:itot
+            for i=1:itot
+                if solid_u(i,j,k) && (i ~= 1 && i ~= itot)
+                    if ~solid_u(i+1,j,k) && ~solid_u(i-1,j,k)
+                        solid_u_copy(i,j,k) = false;
+                    end
+                end
+                if solid_u(i,j,k) && (j ~= 1 && j ~= jtot)
+                    if ~solid_u(i,j+1,k) && ~solid_u(i,j-1,k)
+                        solid_u_copy(i,j,k) = false;
+                    end
+                end
+            end
+        end
+    end
+    solid_u = solid_u_copy;
 
     % Convert from mask (3D array) to sparse (list) format
     [solid_i_u, solid_j_u, solid_k_u] = ind2sub(size(solid_u), find(solid_u));
@@ -444,11 +492,57 @@ else
     if lmypoly
         solid_v = in_grid_mypoly(TR.Points,TR.ConnectivityList,TR.incenter,TR.faceNormal,xgrid_v,ygrid_v,zgrid_v,Dir_ray_v,L_char,max_height,tol_mypoly);
     else
-        solid_v = inpolyhedron(TR.ConnectivityList, TR.Points, ...
-            xgrid_v, ygrid_v, zgrid_v, 'FACENORMALS', TR.faceNormal, 'TOL', tol_inpolyhedron);
+        solid_v = inpolyhedron(TR.ConnectivityList, TR.Points, xgrid_v, ygrid_v, zgrid_v, ...
+            'FACENORMALS', TR.faceNormal, 'TOL', tol_inpolyhedron);
         solid_v = permute(solid_v, [2 1 3]);
         %solid_v(:,1,:) = 0;
+
+        if lcheckdist
+            fluid_v = ~solid_v;
+            [fluid_IB_v, ~] = getBoundaryCells(xgrid_v, ygrid_v, zgrid_v, fluid_v, solid_v, diag_neighbs);
+            if (stl_ground)
+                fluid_v_1 = fluid_v(:,:,1);
+                fluid_IB_v_1 = fluid_IB_v(:,:,1);
+                fluid_IB_v_1(fluid_v_1) = true;
+                fluid_IB_v(:,:,1) = fluid_IB_v_1;
+            end
+
+            [fluid_IB_i_v, fluid_IB_j_v, fluid_IB_k_v] = ind2sub(size(fluid_IB_v), find(fluid_IB_v));
+            fluid_IB_xyz_v = [xgrid_v(fluid_IB_i_v)', ygrid_v(fluid_IB_j_v)', zgrid_v(fluid_IB_k_v)'];
+
+            [dists, ~, ~, ~] = point2trimesh('Faces', TR.ConnectivityList, 'Vertices', TR.Points, ...
+                'QueryPoints', fluid_IB_xyz_v, 'UseSubSurface', false);
+
+            for n=1:size(fluid_IB_xyz_v,1)
+                if abs(dists(n)) < tol_inpolyhedron
+                    [~, i] = ismember(fluid_IB_xyz_v(n,1), xgrid_v);
+                    [~, j] = ismember(fluid_IB_xyz_v(n,2), ygrid_v);
+                    [~, k] = ismember(fluid_IB_xyz_v(n,3), zgrid_v);
+                    solid_v(i,j,k) = true;
+                end
+            end
+        end
     end
+
+    % check for acute corners - single column of solid cells
+    solid_v_copy = solid_v;
+    for k=1:ktot
+        for j=1:itot
+            for i=1:itot
+                if solid_v(i,j,k) && (i ~= 1 && i ~= itot)
+                    if ~solid_v(i+1,j,k) && ~solid_v(i-1,j,k)
+                        solid_v_copy(i,j,k) = false;
+                    end
+                end
+                if solid_v(i,j,k) && (j ~= 1 && j ~= jtot)
+                    if ~solid_v(i,j+1,k) && ~solid_v(i,j-1,k)
+                        solid_v_copy(i,j,k) = false;
+                    end
+                end
+            end
+        end
+    end
+    solid_v = solid_v_copy;
 
     [solid_i_v, solid_j_v, solid_k_v] = ind2sub(size(solid_v), find(solid_v));
     solid_ijk_v = [solid_i_v, solid_j_v, solid_k_v];
@@ -464,10 +558,55 @@ else
         solid_w = in_grid_mypoly(TR.Points,TR.ConnectivityList, ...
             TR.incenter,TR.faceNormal,xgrid_w,ygrid_w,zgrid_w,Dir_ray_w,L_char,max_height,tol_mypoly);
     else
-        solid_w = inpolyhedron(TR.ConnectivityList, TR.Points, ...
-           xgrid_w, ygrid_w, zgrid_w, 'FACENORMALS', TR.faceNormal, 'TOL', tol_inpolyhedron);
+        solid_w = inpolyhedron(F, V, xgrid_w, ygrid_w, zgrid_w, 'FACENORMALS', TR.faceNormal, 'TOL', tol_inpolyhedron);
         solid_w = permute(solid_w, [2 1 3]);
+
+        if lcheckdist
+            if (stl_ground)
+                solid_w_b = solid_w;
+                solid_w_b(:,:,1) = true;
+            end
+            fluid_w = ~solid_w;
+
+            [fluid_IB_w, ~] = getBoundaryCells(xgrid_w, ygrid_w, zgrid_w, fluid_w, solid_w_b, diag_neighbs);
+            fluid_IB_w(:,:,1) = 0; % Bottom is always solid
+
+            [fluid_IB_i_w, fluid_IB_j_w, fluid_IB_k_w] = ind2sub(size(fluid_IB_w), find(fluid_IB_w));
+            fluid_IB_xyz_w = [xgrid_w(fluid_IB_i_w)', ygrid_w(fluid_IB_j_w)', zgrid_w(fluid_IB_k_w)'];
+
+            [dists, ~, ~, ~] = point2trimesh('Faces', TR.ConnectivityList, 'Vertices', TR.Points, ...
+                'QueryPoints', fluid_IB_xyz_w, 'UseSubSurface', false);
+
+            for n=1:size(fluid_IB_xyz_w,1)
+                if abs(dists(n)) < tol_inpolyhedron
+                    [~, i] = ismember(fluid_IB_xyz_w(n,1), xgrid_w);
+                    [~, j] = ismember(fluid_IB_xyz_w(n,2), ygrid_w);
+                    [~, k] = ismember(fluid_IB_xyz_w(n,3), zgrid_w);
+                    solid_w(i,j,k) = true;
+                end
+            end
+        end
     end
+
+    % check for acute corners - single column of solid cells
+    solid_w_copy = solid_w;
+    for k=1:ktot
+        for j=1:itot
+            for i=1:itot
+                if solid_w(i,j,k) && (i ~= 1 && i ~= itot)
+                    if ~solid_w(i+1,j,k) && ~solid_w(i-1,j,k)
+                        solid_w_copy(i,j,k) = false;
+                    end
+                end
+                if solid_w(i,j,k) && (j ~= 1 && j ~= jtot)
+                    if ~solid_w(i,j+1,k) && ~solid_w(i,j-1,k)
+                        solid_w_copy(i,j,k) = false;
+                    end
+                end
+            end
+        end
+    end
+    solid_w = solid_w_copy;
 
     [solid_i_w, solid_j_w, solid_k_w] = ind2sub(size(solid_w), find(solid_w));
     solid_ijk_w = [solid_i_w, solid_j_w, solid_k_w];
@@ -586,10 +725,60 @@ else
     if lmypoly
         solid_c = in_grid_mypoly(TR.Points,TR.ConnectivityList,TR.incenter,TR.faceNormal,xgrid_c,ygrid_c,zgrid_c,Dir_ray_c,L_char,max_height,tol_mypoly);
     else
-        solid_c = inpolyhedron(TR.ConnectivityList, TR.Points, ...
-            xgrid_c, ygrid_c, zgrid_c, 'FACENORMALS', TR.faceNormal, 'TOL', tol_inpolyhedron);
+        solid_c = inpolyhedron(TR.ConnectivityList, TR.Points, xgrid_c, ygrid_c, zgrid_c, ...
+            'FACENORMALS', TR.faceNormal, 'TOL', tol_inpolyhedron);
         solid_c = permute(solid_c, [2 1 3]);
+
+        if lcheckdist
+            fluid_c = ~solid_c;
+            [fluid_IB_c, ~] = getBoundaryCells(xgrid_c, ygrid_c, zgrid_c, fluid_c, solid_c, diag_neighbs);
+            if (stl_ground)
+                fluid_c_1 = fluid_c(:,:,1);
+                fluid_IB_c_1 = fluid_IB_c(:,:,1);
+                fluid_IB_c_1(fluid_c_1) = true;
+                fluid_IB_c(:,:,1) = fluid_IB_c_1;
+            end
+
+            [fluid_IB_i_c, fluid_IB_j_c, fluid_IB_k_c] = ind2sub(size(fluid_IB_c), find(fluid_IB_c));
+            fluid_IB_xyz_c = [xgrid_c(fluid_IB_i_c)', ygrid_c(fluid_IB_j_c)', zgrid_c(fluid_IB_k_c)'];
+
+            [dists, ~, ~, ~] = point2trimesh('Faces', TR.ConnectivityList, 'Vertices', TR.Points, ...
+                'QueryPoints', fluid_IB_xyz_c, 'UseSubSurface', false);
+
+            for n=1:size(fluid_IB_xyz_c,1)
+                if abs(dists(n)) < tol_inpolyhedron
+                    [~, i] = ismember(fluid_IB_xyz_c(n,1), xgrid_c);
+                    [~, j] = ismember(fluid_IB_xyz_c(n,2), ygrid_c);
+                    [~, k] = ismember(fluid_IB_xyz_c(n,3), zgrid_c);
+                    solid_c(i,j,k) = true;
+                end
+            end
+        end
     end
+
+    % check for acute corners - single column of solid cells
+    solid_c_copy = solid_c;
+    %solid_c_corners = false(itot,jtot,ktot);
+
+    for k=1:ktot
+        for j=1:itot
+            for i=1:itot
+                if solid_c(i,j,k) && (i ~= 1 && i ~= itot)
+                    if ~solid_c(i+1,j,k) && ~solid_c(i-1,j,k)
+                        solid_c_copy(i,j,k) = false;
+                        %solid_c_corners(i,j,k) = true;
+                    end
+                end
+                if solid_c(i,j,k) && (j ~= 1 && j ~= jtot)
+                    if ~solid_c(i,j+1,k) && ~solid_c(i,j-1,k)
+                        solid_c_copy(i,j,k) = false;
+                        %solid_c_corners(i,j,k) = true;
+                    end
+                end
+            end
+        end
+    end
+    solid_c = solid_c_copy;
 
     [solid_i_c, solid_j_c, solid_k_c] = ind2sub(size(solid_c), find(solid_c));
     solid_ijk_c = [solid_i_c, solid_j_c, solid_k_c];
