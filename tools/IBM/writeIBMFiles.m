@@ -477,16 +477,18 @@ else
     % check for acute corners - single column of solid cells
     solid_u_copy = solid_u;
     for k=1:ktot
-        for j=1:itot
+        for j=1:jtot
             for i=1:itot
-                if solid_u(i,j,k) && (i ~= 1 && i ~= itot)
-                    if ~solid_u(i+1,j,k) && ~solid_u(i-1,j,k)
-                        solid_u_copy(i,j,k) = false;
+                if solid_u(i,j,k)
+                    if i ~= 1 && i ~= itot
+                        if ~solid_u(i+1,j,k) && ~solid_u(i-1,j,k)
+                            solid_u_copy(i,j,k) = false;
+                        end
                     end
-                end
-                if solid_u(i,j,k) && (j ~= 1 && j ~= jtot)
-                    if ~solid_u(i,j+1,k) && ~solid_u(i,j-1,k)
-                        solid_u_copy(i,j,k) = false;
+                    if j ~= 1 && j ~= jtot
+                        if ~solid_u(i,j+1,k) && ~solid_u(i,j-1,k)
+                            solid_u_copy(i,j,k) = false;
+                        end
                     end
                 end
             end
@@ -543,16 +545,18 @@ else
     % check for acute corners - single column of solid cells
     solid_v_copy = solid_v;
     for k=1:ktot
-        for j=1:itot
+        for j=1:jtot
             for i=1:itot
-                if solid_v(i,j,k) && (i ~= 1 && i ~= itot)
-                    if ~solid_v(i+1,j,k) && ~solid_v(i-1,j,k)
-                        solid_v_copy(i,j,k) = false;
+                if solid_v(i,j,k)
+                    if i ~= 1 && i ~= itot
+                        if ~solid_v(i+1,j,k) && ~solid_v(i-1,j,k)
+                            solid_v_copy(i,j,k) = false;
+                        end
                     end
-                end
-                if solid_v(i,j,k) && (j ~= 1 && j ~= jtot)
-                    if ~solid_v(i,j+1,k) && ~solid_v(i,j-1,k)
-                        solid_v_copy(i,j,k) = false;
+                    if j ~= 1 && j ~= jtot
+                        if ~solid_v(i,j+1,k) && ~solid_v(i,j-1,k)
+                            solid_v_copy(i,j,k) = false;
+                        end
                     end
                 end
             end
@@ -607,16 +611,18 @@ else
     % check for acute corners - single column of solid cells
     solid_w_copy = solid_w;
     for k=1:ktot
-        for j=1:itot
+        for j=1:jtot
             for i=1:itot
-                if solid_w(i,j,k) && (i ~= 1 && i ~= itot)
-                    if ~solid_w(i+1,j,k) && ~solid_w(i-1,j,k)
-                        solid_w_copy(i,j,k) = false;
+                if solid_w(i,j,k)
+                    if i ~= 1 && i ~= itot
+                        if ~solid_w(i+1,j,k) && ~solid_w(i-1,j,k)
+                            solid_w_copy(i,j,k) = false;
+                        end
                     end
-                end
-                if solid_w(i,j,k) && (j ~= 1 && j ~= jtot)
-                    if ~solid_w(i,j+1,k) && ~solid_w(i,j-1,k)
-                        solid_w_copy(i,j,k) = false;
+                    if j ~= 1 && j ~= jtot
+                        if ~solid_w(i,j+1,k) && ~solid_w(i,j-1,k)
+                            solid_w_copy(i,j,k) = false;
+                        end
                     end
                 end
             end
@@ -777,18 +783,20 @@ else
     %solid_c_corners = false(itot,jtot,ktot);
 
     for k=1:ktot
-        for j=1:itot
+        for j=1:jtot
             for i=1:itot
-                if solid_c(i,j,k) && (i ~= 1 && i ~= itot)
-                    if ~solid_c(i+1,j,k) && ~solid_c(i-1,j,k)
-                        solid_c_copy(i,j,k) = false;
-                        %solid_c_corners(i,j,k) = true;
+                if solid_c(i,j,k)
+                    if i ~= 1 && i ~= itot
+                        if ~solid_c(i+1,j,k) && ~solid_c(i-1,j,k)
+                            solid_c_copy(i,j,k) = false;
+                            %solid_c_corners(i,j,k) = true;
+                        end
                     end
-                end
-                if solid_c(i,j,k) && (j ~= 1 && j ~= jtot)
-                    if ~solid_c(i,j+1,k) && ~solid_c(i,j-1,k)
-                        solid_c_copy(i,j,k) = false;
-                        %solid_c_corners(i,j,k) = true;
+                    if j ~= 1 && j ~= jtot
+                        if ~solid_c(i,j+1,k) && ~solid_c(i,j-1,k)
+                            solid_c_copy(i,j,k) = false;
+                            %solid_c_corners(i,j,k) = true;
+                        end
                     end
                 end
             end
