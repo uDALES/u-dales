@@ -234,7 +234,7 @@ if r.libm
             % write uDALES view factor file
             if (r.view3d_out == 0 || r.view3d_out == 1)  % view3d_out==2 is already sparse
                 if ~r.lvfsparse
-                    preprocessing.write_vf(r, vf)
+                    preprocessing.write_vf(r, full(vf))
                     disp(['Written vf.nc.inp.', r.expnr])
                 else
                     %vfsparse = sparse(double(vf));
