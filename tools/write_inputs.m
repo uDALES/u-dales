@@ -73,23 +73,11 @@ end
 if r.libm
     %% Read the .stl file and write necessary ibm files
     TR = stlread(r.stl_file);
-    F = TR.ConnectivityList;
-    V = TR.Points;
-    area_facets = facetAreas(F, V); % Useful for checking if area_fluid_IB_c == sum(area_facets)
-
-    % Set facet types
     nfcts = size(TR.ConnectivityList,1);
     preprocessing.set_nfcts(r, nfcts);
-    if r.read_types
-        facet_types = dlmread(r.types_path, '', 1, 0);
-    else
-        facet_types = ones(r.nfcts,1); % defaults to type 1
-    end
-    preprocessing.write_facets(r, facet_types, TR.faceNormal);
-    disp(['Written facets.inp.', r.expnr])
 
     calculate_facet_sections_uvw = r.iwallmom > 1;
-    calculate_facet_sections_c = r.ltempeq || r.lmoist;
+    calculate_facet_sections_c = r.ltempeq || r.lmoist || r.lwritefac;
     lwindows = false;
     if r.gen_geom
         % c-grid (scalars/pressure)
@@ -173,8 +161,31 @@ if r.libm
         end
     end
 
-    preprocessing.write_facetarea(r, area_facets); % always write facet area
-    %%
+    % Set facet types
+    if r.read_types
+        facet_types = dlmread(r.types_path, '', 1, 0);
+    else
+        facet_types = ones(r.nfcts,1); % defaults to type 1
+    end
+
+    %% set type of facets that are not linked with (heat) fluid points to 0
+    % make sure this does what is desired by looking at the factypes file
+    if calculate_facet_sections_c
+        facet_sections_c_fromfile = readmatrix([fpath 'facet_sections_c.txt'],'Range', 2);
+        facets_used = unique(facet_sections_c_fromfile(:,1));
+        facets_unused = setdiff(1:r.nfcts, facets_used);
+        facet_types(facets_unused,1) = 0;
+    end
+
+    preprocessing.write_facets(r, facet_types, TR.faceNormal);
+    disp(['Written facets.inp.', r.expnr])
+
+    area_facets = facetAreas(TR.ConnectivityList, TR.Points);
+    if r.lEB || r.lwritefac
+        preprocessing.write_facetarea(r, area_facets);
+        disp(['Written facetarea.inp.', r.expnr])
+    end
+
     if r.lEB
         lscatter = true;
         if lscatter

@@ -222,6 +222,7 @@ classdef preprocessing < dynamicprops
             preprocessing.addvar(obj, 'iwallmom', 3)
             preprocessing.addvar(obj, 'iwalltemp', 1)
             preprocessing.addvar(obj, 'lbottom', 0)
+            preprocessing.addvar(obj, 'lwritefac', 0)
 
             %% &PHYSICS
             preprocessing.addvar(obj, 'ltempeq', 0)
