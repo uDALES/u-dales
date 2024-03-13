@@ -218,12 +218,21 @@
                 !facalb(n) = factypes(i, 5) !surface shortwave albedo
                 facem(n) = factypes(i, 6)  !surface longwave emissivity
 
-                do j = 1, nfaclyrs !for all layers
-                  facdi(n, j) = 1 / factypes(i, 6 + j) !inverse of facet thickness of layer j
-                  facd(n, j) = factypes(i, 6 + j) !facet thickness of layer j
-                  faclami(n, j) = 1 / factypes(i, 6 + 2 * nfaclyrs + j) !inverse of heat conductivity of layer j
-                  faccp(n, j) = factypes(i, 6 + nfaclyrs + j) !specific heat capacity of layer j
-                end do
+                if (facets(n) < -100) then !it's a bounding wall, or more generally a facet for which we don't want to model SEB
+                  do j = 1, nfaclyrs
+                    facdi(n, j) = 0.
+                    facd(n,j) = 0.
+                    faclami(n, j) = 0.
+                    faccp(n, j) = 0.
+                  end do
+                else
+                  do j = 1, nfaclyrs !for all layers
+                    facdi(n, j) = 1 / factypes(i, 6 + j) !inverse of facet thickness of layer j
+                    facd(n, j) = factypes(i, 6 + j) !facet thickness of layer j
+                    faclami(n, j) = 1 / factypes(i, 6 + 2 * nfaclyrs + j) !inverse of heat conductivity of layer j
+                    faccp(n, j) = factypes(i, 6 + nfaclyrs + j) !specific heat capacity of layer j
+                  end do
+                end if
 
                 do j= 1,nfaclyrs+1
                   fackappa(n, j) = factypes(i, 6 + 3 * nfaclyrs + j) !heat diffusivity of layer 1

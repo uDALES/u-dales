@@ -351,16 +351,15 @@ contains
 
       else
          do n = 1, nfcts
-            if (facets(n) < -100) then !it's a bounding wall, no need to update incoming longwave
-               cycle
-            else
-               ltemp = 0.
-               do m = 1, nfcts  !for n, sum over all other m facets
-                  !ltemp = ltemp + vf(m, n)*faca(m)/faca(n)*facem(m)*boltz*facT(m, 1)**4 ![W/m2]
-                  ltemp = ltemp + vf(n, m)*facem(m)*boltz*facT(m, 1)**4 ![W/m2]
-               end do
-               facLWin(n) = (ltemp + svf(n)*skyLW)*facem(n)
-            end if
+            if (facets(n) < -100) cycle
+
+            ltemp = 0.
+            do m = 1, nfcts  !for n, sum over all other m facets
+               !ltemp = ltemp + vf(m, n)*faca(m)/faca(n)*facem(m)*boltz*facT(m, 1)**4 ![W/m2]
+               ltemp = ltemp + vf(n, m)*facem(m)*boltz*facT(m, 1)**4 ![W/m2]
+            end do
+            facLWin(n) = (ltemp + svf(n)*skyLW)*facem(n)
+
          end do
       end if
 
@@ -462,9 +461,8 @@ contains
 
 
         do n = 1, nfcts
-          ! if (facets(n, 2) < -100) then !it's a bounding wall, no reason to do energy balance
-          !    cycle
-          ! else
+          if (facets(n) < -100) cycle
+
           !calculate wallflux and update surface temperature
           !! define time dependent fluxes
           ab = faclami(n, 1)*boltz*facem(n)*(facT(n, 1)**3) ! ab*T is the Stefan-Boltzman law
