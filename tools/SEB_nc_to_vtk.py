@@ -13,12 +13,12 @@ mesh = meshio.read(stl_file)
 points = mesh.points
 cells = mesh.cells
 
-file_emissivity = expdir + "/emissivity.txt"
+#file_emissivity = expdir + "/emissivity.txt"
 
 file_facEB = expdir + "/facEB." + expnr + ".nc"
 file_facT = expdir + "/facT." + expnr + ".nc"
 
-emissivity_float = np.genfromtxt(file_emissivity, delimiter=',')
+#emissivity_float = np.genfromtxt(file_emissivity, delimiter=',')
 
 dataset_facEB = nc.Dataset(file_facEB)
 dataset_facT = nc.Dataset(file_facT)
