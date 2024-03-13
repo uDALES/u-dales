@@ -34,7 +34,7 @@ popd > /dev/null
 toolsdir=${scriptdir}  # assume same directory for nco_concatenate_field.sh
 
 if [ -z $LOCAL_EXECUTE ]; then
-    module load nco
+    module load nco gsl
 fi;
 
 ## go to files directory
