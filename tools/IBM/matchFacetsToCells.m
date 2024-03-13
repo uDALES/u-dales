@@ -62,41 +62,41 @@ for facet=1:Nf
     end
 
     if isempty(il)
-        disp(['Warning: skipping facet ' num2str(facet) ' as it is out of bounds in lower x direction.'])
+        %disp(['Warning: skipping facet ' num2str(facet) ' as it is out of bounds in lower x direction.'])
         continue
     end
     if isempty(iu)
-        disp(['Warning: skipping facet ' num2str(facet) ' as it is out of bounds in upper x direction.'])
+        %disp(['Warning: skipping facet ' num2str(facet) ' as it is out of bounds in upper x direction.'])
         continue
     end
     if isempty(jl)
-        disp(['Warning: skipping facet ' num2str(facet) ' as it is out of bounds in lower y direction.'])
+        %disp(['Warning: skipping facet ' num2str(facet) ' as it is out of bounds in lower y direction.'])
         continue
     end
     if isempty(ju)
-        disp(['Warning: skipping facet ' num2str(facet) ' as it is out of bounds in upper y direction.'])
+        %disp(['Warning: skipping facet ' num2str(facet) ' as it is out of bounds in upper y direction.'])
         continue
     end
     if isempty(kl)
-        disp(['Warning: skipping facet ' num2str(facet) ' as it is out of bounds in lower z direction.'])
+        %disp(['Warning: skipping facet ' num2str(facet) ' as it is out of bounds in lower z direction.'])
         continue
     end
     if isempty(ku)
-        disp(['Warning: skipping facet ' num2str(facet) ' as it is out of bounds in upper z direction.'])
+        %disp(['Warning: skipping facet ' num2str(facet) ' as it is out of bounds in upper z direction.'])
         continue
     end
-    
+
     % Facet exists in cell N+1.
     % Freqently occurs for u and v grids, currently the solution is to
     % double cell 1 areas in periodic cases (because cell N+1 = cell 1).
-    % This causes small errors due to the shape of facets. 
+    % This causes small errors due to the shape of facets.
     if iu > length(xgrid)
         iu = length(xgrid);
     end
     if ju > length(ygrid)
         ju = length(ygrid);
     end
-    
+
     %stopflag = false;
     for i=il:iu
         for j=jl:ju
@@ -130,7 +130,7 @@ for facet=1:Nf
                 if ~(size(clip_verts,1) < 3)
                     if (size(clip_verts,1) == 3) % triangle
                         area = 1/2*norm(cross(clip_verts(2,:)-clip_verts(1,:),clip_verts(3,:)-clip_verts(1,:)));
-                        
+
                         % Remove anything below 1 square centimetre,
                         % as we only write to this precision.
                         if (area < 1e-5)
@@ -224,12 +224,14 @@ for facet=1:Nf
                         angle = dot(TR.faceNormal(facet), (xyz1 - BI)/vecnorm((xyz1 - BI)));
 
                         if (abs(angle - 1) < eps) % Wall-normal defined, use this cell
+                        %if (abs(angle - 1) < eps && dist > tol_inpolyhedron) % Wall-normal defined, use this cell
                             id = 1;
                             xyz = xyz1;
                         else
                             % Not normal, search adjacent fluid IB cells
                             search_adj = true;
                             if (dist > 0)
+                            %if (dist > tol_inpolyhedron)
                                 % Include in comparison
                                 dists(1) = dist;
                                 angles(1) = dot(TR.faceNormal(facet), (xyz1 - BI)/vecnorm((xyz1 - BI)));
@@ -487,6 +489,7 @@ for facet=1:Nf
                             end
                         end
 
+                        %dists(dists < tol_inpolyhedron) = NaN;
                         %[~, id] = max(abs(angles)); % minimise angle
                         [~, id] = max(abs(angles) ./ (dists / (dx*dy*dz)^(1/3))); % minimise both angle and distance
                         dist = dists(id);
@@ -601,7 +604,7 @@ for facet=1:Nf
                     facet_section(6) = abs(dist);
                     facet_section(7:9) = BI;
                     facet_sections = [facet_sections; facet_section];
-                     
+
                     if lplot_diagram && count_diagram == countlim
                         clf
                         view(45,20)
@@ -649,7 +652,7 @@ for facet=1:Nf
                         %ylabel('y')
                         %zlabel('z')
                         %xlim([70 100])
-                        
+
                         %ylim([45 70])
                         %zlim([0 zgrid(end)])
                         drawnow

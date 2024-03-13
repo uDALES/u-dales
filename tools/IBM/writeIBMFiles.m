@@ -578,7 +578,8 @@ else
         solid_w = in_grid_mypoly(TR.Points,TR.ConnectivityList, ...
             TR.incenter,TR.faceNormal,xgrid_w,ygrid_w,zgrid_w,Dir_ray_w,L_char,max_height,tol_mypoly);
     else
-        solid_w = inpolyhedron(F, V, xgrid_w, ygrid_w, zgrid_w, 'FACENORMALS', TR.faceNormal, 'TOL', tol_inpolyhedron);
+        solid_w = inpolyhedron(TR.ConnectivityList, TR.Points, xgrid_w, ygrid_w, zgrid_w, ...
+            'FACENORMALS', TR.faceNormal, 'TOL', tol_inpolyhedron);
         solid_w = permute(solid_w, [2 1 3]);
 
         if lcheckdist

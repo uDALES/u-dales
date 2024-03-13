@@ -254,12 +254,12 @@ program run
     logical :: search_adj
     integer :: il, iu, jl, ju, kl, ku, nClipFaces, nClipVertices, id, loc
     real :: dx, dy, dz, xmin, xmax, ymin, ymax, zmin, zmax, xl, xu, yl, yu, zl, zu, tol, &
-            planes(6,4), area, planeNormal(3), xproj, yproj, zproj, proj, projVec(3), projArea, &
+            planes(6,4), area, area_miss, planeNormal(3), xproj, yproj, zproj, proj, projVec(3), projArea, &
             dist, dists(27), angle, angles(27), BI(3), BIs(27,3)
     real, dimension(3) :: xyz, xyz1, xyz2, xyz3, xyz4, xyz5, xyz6, xyz7, xyz8, xyz9, &
                           xyz10, xyz11, xyz12, xyz13, xyz14, xyz15, xyz16, xyz17, xyz18, &
                           xyz19, xyz20, xyz21, xyz22, xyz23, xyz24, xyz25, xyz26, xyz27
-    integer :: n, m, i, j, k, dir, ids(2)
+    integer :: n, m, i, j, k, p, dir, ids(2)
 
     allocate(secareas(0))
     allocate(secfacids(0))
@@ -332,28 +332,28 @@ program run
       if (ymax > ygrid(jtot) + dy/2) ju = jtot
 
       if (il==0) then
-         write(*,*) "Warning: skipping facet ", n, " as it is out of bounds in lower x direction."
-         continue
+         !write(*,*) "Warning: skipping facet ", n, " as it is out of bounds in lower x direction."
+         cycle
       end if
       if (iu==0) then
-         write(*,*) "Warning: skipping facet ", n, " as it is out of bounds in upper x direction."
-         continue
+         !write(*,*) "Warning: skipping facet ", n, " as it is out of bounds in upper x direction."
+         cycle
       end if
       if (jl==0) then
-         write(*,*) "warning: skipping facet ", n, " as it is out of bounds in lower y direction."
-         continue
+         !write(*,*) "warning: skipping facet ", n, " as it is out of bounds in lower y direction."
+         cycle
       end if
       if (ju==0) then
-         write(*,*) "warning: skipping facet ", n, " as it is out of bounds in upper y direction."
-         continue
+         !write(*,*) "warning: skipping facet ", n, " as it is out of bounds in upper y direction."
+         cycle
       end if
       if (kl==0) then
-         write(*,*) "warning: skipping facet ", n, " as it is out of bounds in lower z direction."
-         continue
+         !write(*,*) "warning: skipping facet ", n, " as it is out of bounds in lower z direction."
+         cycle
       end if
       if (ku==0) then
-         write(*,*) "warning: skipping facet ", n, " as it is out of bounds in upper z direction."
-         continue
+         !write(*,*) "warning: skipping facet ", n, " as it is out of bounds in upper z direction."
+         cycle
       end if
 
       ! Facet exists in cell N+1.
@@ -469,6 +469,7 @@ program run
                   angle = dot_product(faceNormal(n,:), (xyz1 - BI)/norm2(xyz1 - BI))
 
                   if (abs(angle - 1.) < epsilon(angle)) then ! Wall-normal defined, use this cell
+                  !if (abs(angle - 1.) < epsilon(angle) .and. dist > 0.05*exp(1.)) then ! Wall-normal defined, use this cell
                      id = 1 ! not necessary?
                      xyz = xyz1
                      !write(*,*) "normal found"
@@ -477,6 +478,7 @@ program run
                      ! Not normal, search adjacent fluid IB cells
                      search_adj = .true.
                      if (dist > 0) then
+                     !if (dist > 0.05*exp(1.)) then
                         ! Include in comparison
                         dists(1) = dist
                         angles(1) = angle
@@ -658,7 +660,7 @@ program run
                            xyz17 = (/xgrid(i), ygrid(j-1), zgrid(k+1)/)
                            call fastPoint2TriMesh(clipFaces, clipFaceNormal, nClipFaces, clipVertices, nClipVertices, &
                               xyz17, dist, BI)
-                           dists(17) = dist;
+                           dists(17) = dist
                            angles(17) = dot_product(faceNormal(n,:), (xyz17 - BI)/norm2(xyz17 - BI))
                            BIs(17,:) = BI
                         end if
@@ -713,7 +715,7 @@ program run
                            xyz22 = (/xgrid(i-1), ygrid(j+1), zgrid(k-1)/)
                            call fastPoint2TriMesh(clipFaces, clipFaceNormal, nClipFaces, clipVertices, nClipVertices, &
                               xyz22, dist, BI)
-                           dists(22) = dist;
+                           dists(22) = dist
                            angles(22) = dot_product(faceNormal(n,:), (xyz22 - BI)/norm2(xyz22 - BI))
                            BIs(22,:) = BI
                         end if
@@ -746,7 +748,7 @@ program run
                            xyz25 = (/xgrid(i+1), ygrid(j-1), zgrid(k+1)/)
                            call fastPoint2TriMesh(clipFaces, clipFaceNormal, nClipFaces, clipVertices, nClipVertices, &
                               xyz25, dist, BI)
-                           dists(25) = dist;
+                           dists(25) = dist
                            angles(25) = dot_product(faceNormal(n,:), (xyz25 - BI)/norm2(xyz25 - BI))
                            BIs(25,:) = BI
                         end if
@@ -768,7 +770,7 @@ program run
                            xyz27 = (/xgrid(i+1), ygrid(j+1), zgrid(k+1)/)
                            call fastPoint2TriMesh(clipFaces, clipFaceNormal, nClipFaces, clipVertices, nClipVertices, &
                               xyz27, dist, BI)
-                           dists(27) = dist;
+                           dists(27) = dist
                            angles(27) = dot_product(faceNormal(n,:), (xyz27 - BI)/norm2(xyz27 - BI))
                            BIs(27,:) = BI
                         end if
@@ -776,12 +778,19 @@ program run
 
                   end if ! diag_neighbs
 
+                  ! do p = 1,27
+                  !   if (dists(p) < 0.05*exp(1.)) then
+                  !       dists(p) = ieee_value(dists(p), ieee_quiet_nan)
+                  !    end if
+                  ! end do
+
                   id = maxloc(abs(angles) / (dists / (dx*dy*dz)**(1./3.)), 1)
                   dist = dists(id)
                   BI = BIs(id,:)
 
                   if (isnan(dist)) then
-                     write(*,*) "facet ", n, " in cell ", i, j, k, " could not find a cell to give flux to"
+                     !write(*,*) "facet ", n, " in cell ", i, j, k, " could not find a cell to give flux to"
+                     area_miss = area_miss + area
                      deallocate(clipFaces)
                      deallocate(clipFaceNormal)
                      cycle
@@ -858,8 +867,9 @@ program run
             end do
          end do
       end do
-
     end do
+
+   write(*,*) "Total area missing flux: ", area_miss, " m^2"
 
 end subroutine matchFacetsToCells
 
@@ -878,6 +888,9 @@ subroutine writeFacetSections(secfacids, secareas, secbndptids, bnddst, nfacsecs
       !write (10,*) secfacids(n), secareas(n), secbndptids(n), bnddst(n)
       ! Formatting assumes: #facets < 10 million, #fluid boundary points < 1 billion,
       ! section area < 1000 m^2 (rounded to cm^2), and distance < 1000m
+      ! if (bnddst(n) < 0.05*exp(1.)) then
+      !    write(*,*) bnddst(n)
+      !  end if
       write(unit=10,fmt='(i8,f10.4,i11,f9.4)') secfacids(n), secareas(n), secbndptids(n), bnddst(n)
    end do
    close (10)

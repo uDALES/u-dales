@@ -175,7 +175,7 @@ module modibm
        call initibmwallfun('fluid_boundary_w.txt', 'facet_sections_w.txt', zhat, bound_info_w)
      end if
 
-     if (ltempeq .or. lmoist .or. nsv>0) then
+     if (ltempeq .or. lmoist .or. nsv>0 .or. lwritefac) then
        solid_info_c%nsolpts = nsolpts_c
        call initibmnorm('solid_c.txt', solid_info_c)
 
@@ -302,7 +302,7 @@ module modibm
 
    subroutine initibmwallfun(fname_bnd, fname_sec, dir, bound_info)
      use modglobal, only : ifinput, ib, ie, itot, ih, jb, je, jtot, jh, kb, ktot, kh, &
-                           xf, yf, zf, xh, yh, zh, dx, dy, dzh, dzf, xhat, yhat, zhat
+                           xf, yf, zf, xh, yh, zh, dx, dy, dzh, dzf, xhat, yhat, zhat, eps1
      use modmpi,    only : myid, comm3d, MPI_INTEGER, MY_REAL, MPI_LOGICAL, mpierr
      use initfac,   only : facnorm, facz0
      use decomp_2d, only : zstart, zend
@@ -356,7 +356,7 @@ module modibm
 
      ! Store indices of points on current rank - only loop through these points
      allocate(bound_info%bndptsrank(bound_info%nbndptsrank)) ! index in global list
-     allocate(bound_info%bndpts_loc(bound_info%nbndptsrank,3)) ! location (on local grid)
+     allocate(bound_info%bndpts_loc(bound_info%nbndptsrank,3)) ! location
      m = 0
      do n = 1, bound_info%nbndpts
        if (lbndptsrank(n)) then
@@ -428,19 +428,19 @@ module modibm
          norm = facnorm(bound_info%secfacids(n),:)
          norm_align = alignment(norm)
 
-           if (dir_align == norm_align) then
-             ! the facet is aligned with the grid AND in the same direction as the current velocity grid direction (not relevant to scalars)
-             ! therefore no tangential component, don't need to calculate shear stress
-             bound_info%lskipsec(n) = .true.
-           else
-             bound_info%lskipsec(n) = .false.
-           end if
+         if ((dir_align /= 0 .and. dir_align == norm_align) .or. (facz0(bound_info%secfacids(n)) < eps1)) then
+           ! (for velocities) if the facet is aligned with the grid AND in the same direction as the current velocity grid direction
+           ! therefore no tangential component, don't need to calculate shear stress
+           bound_info%lskipsec(n) = .true.
+           cycle
+         else
+            bound_info%lskipsec(n) = .false.
+         end if
 
-           if (log(bound_info%bnddst(n)/facz0(bound_info%secfacids(n))) > 1. .or. lnorec) then ! the wall function is well-defined
-             bound_info%lcomprec(n) = .true. ! do simple reconstruction
-           else ! need to reconstruct
-             bound_info%lcomprec(n) = .false.
-
+         if (log(bound_info%bnddst(n)/facz0(bound_info%secfacids(n))) > 1. .or. lnorec) then ! the wall function is well-defined
+            bound_info%lcomprec(n) = .true. ! do simple reconstruction
+         else ! need to reconstruct
+           bound_info%lcomprec(n) = .false.
            ! Find reconstruction point
            ! cell centre (of current grid)
            xc = xgrid(bound_info%bndpts(m,1))
@@ -478,16 +478,12 @@ module modibm
 
            if (pos == 0) then
              write(*,*) "ERROR: no intersection found"
+             stop 1
            else
              bound_info%recpts(n,:) = inter(pos,:) ! x y z
            end if
 
-           ! find which cell the point lies in for
-           ! findloc will return 0 when the point is on the lower domain edge(?)
-           ! because e.g. xf = [0.5 0.5+dx 0.5+2*dx ... Lx]
-           ! but the reconstruction point could be [0 y z]
-           ! so when these ids are used we should include a point beyond this lower boundary,
-           ! i.e. xf0 = [-0.5 0.5 0.5+dx ... Lx]
+           ! find which cell the point lies in
            bound_info%recids_u(n,1) = findloc(bound_info%recpts(n,1) >= xh, .true., 1, back=.true.)
            bound_info%recids_u(n,2) = findloc(bound_info%recpts(n,2) >= yf, .true., 1, back=.true.)
            bound_info%recids_u(n,3) = findloc(bound_info%recpts(n,3) >= zf, .true., 1, back=.true.)
@@ -504,9 +500,25 @@ module modibm
            bound_info%recids_c(n,2) = findloc(bound_info%recpts(n,2) >= yf, .true., 1, back=.true.)
            bound_info%recids_c(n,3) = findloc(bound_info%recpts(n,3) >= zf, .true., 1, back=.true.)
 
-           ! Add check to see if recids are all available to current rank.
+           ! check to see if recids is inside the domain
+           if (bound_info%recids_u(m,1) == 0 .or. bound_info%recids_u(m,2) == 0 .or. bound_info%recids_u(m,3) == 0) then
+               bound_info%lskipsec(n) = .true.
+               cycle
+           end if
+           if (bound_info%recids_v(m,1) == 0 .or. bound_info%recids_v(m,2) == 0 .or. bound_info%recids_v(m,3) == 0) then
+               bound_info%lskipsec(n) = .true.
+             cycle
+           end if
+           if (bound_info%recids_w(m,1) == 0 .or. bound_info%recids_w(m,2) == 0 .or. bound_info%recids_w(m,3) == 0) then
+               bound_info%lskipsec(n) = .true.
+               cycle
+           end if
+           if (bound_info%recids_c(m,1) == 0 .or. bound_info%recids_c(m,2) == 0 .or. bound_info%recids_c(m,3) == 0) then
+               bound_info%lskipsec(n) = .true.
+             cycle
+           end if
 
-           !recpts should lie inside the box defined by these corners
+           !check recpts is inside the box defined by the corners
            ! u
            if ((bound_info%recpts(n,1) < xh(bound_info%recids_u(n,1))) .or. &
                (bound_info%recpts(n,1) > xh(bound_info%recids_u(n,1)+1))) then
@@ -557,7 +569,6 @@ module modibm
              write(*,*) "ERROR: z out of bounds"
              stop 1
            end if
-
          end if
        end do
      end if ! myid==0
@@ -610,6 +621,14 @@ module modibm
           bound_info%secfacids_loc(m) = bound_info%secfacids(n) ! facet id
           bound_info%secareas_loc(m) = bound_info%secareas(n)
           bound_info%secbndpts_loc(m,:) = bound_info%bndpts(bound_info%secbndptids(n),:) ! boundary point location (in global coordinates)
+
+          if (bound_info%bndpts(bound_info%secbndptids(n),1) < zstart(1) .or. bound_info%bndpts(bound_info%secbndptids(n),1) > zend(1)) then
+            write(*,*) "problem in x boundary points on : ", myid, n, bound_info%secbndptids(n), bound_info%bndpts(bound_info%secbndptids(n),1), zstart(1), zend(1)
+          end if
+          if (bound_info%bndpts(bound_info%secbndptids(n),2) < zstart(2) .or. bound_info%bndpts(bound_info%secbndptids(n),2) > zend(2)) then
+             write(*,*) "problem in y boundary points on rank: ", myid, n, bound_info%secbndptids(n), bound_info%bndpts(bound_info%secbndptids(n),2), zstart(2), zend(2)
+          end if
+
           bound_info%bnddst_loc(m) = bound_info%bnddst(n)
           bound_info%recpts_loc(m,:) = bound_info%recpts(n,:)
           bound_info%recids_u_loc(m,:) = bound_info%recids_u(n,:)
@@ -1208,7 +1227,7 @@ module modibm
       call diffv_corr
       call diffw_corr
 
-      if (ltempeq .or. lmoist) then
+      if (ltempeq .or. lmoist .or. lwritefac) then
         rhs = thlp
         call wallfunheat
         thl_flux(:,:,kb:ke+kh) = thl_flux(:,:,kb:ke+kh) + (thlp - rhs)
@@ -1285,7 +1304,6 @@ module modibm
      use initfac,   only : facT, facz0, facz0h, facnorm, faca
      use decomp_2d, only : zstart
      use modmpi,    only : comm3d, mpi_sum, mpierr, my_real
-     use modfields, only : pres0
 
      real, intent(in)    :: dir(3)
      real, intent(inout) :: rhs(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
@@ -1296,7 +1314,7 @@ module modibm
           utan, udir, ctm, a, a_is, a_xn, a_yn, a_zn, stress_ix, stress_iy, stress_iz, xrec, yrec, zrec
      real, dimension(3) :: uvec, norm, strm, span, stressvec
      logical :: valid
-     real, dimension(1:nfcts) :: fac_tau_loc, fac_tau, fac_pres_loc
+     real, dimension(1:nfcts) :: fac_tau_loc, fac_tau
      !real, dimension(:), allocatable :: fac_tau, fac_pres
 
      procedure(interp_velocity), pointer :: interp_velocity_ptr => null()
@@ -1315,18 +1333,16 @@ module modibm
      end select
 
      fac_tau_loc = 0.
-     fac_pres_loc = 0.
 
      do sec = 1,bound_info%nfctsecsrank
        !sec = bound_info%fctsecsrank(m) ! index of section
-       if (bound_info%lskipsec_loc(sec)) cycle
-
        !n = bound_info%secbndptids(sec) ! index of boundary point
        area = bound_info%secareas_loc(sec) ! area of section
        fac = bound_info%secfacids_loc(sec) ! index of facet
        norm = facnorm(fac,:) ! facet normal
 
-       if (facz0(fac) < eps1) cycle
+       if (bound_info%lskipsec_loc(sec)) cycle
+       !if (facz0(fac) < eps1) cycle
 
        ! i = bound_info%bndpts(n,1) - zstart(1) + 1
        ! j = bound_info%bndpts(n,2) - zstart(2) + 1
@@ -1335,9 +1351,10 @@ module modibm
        j = bound_info%secbndpts_loc(sec,2) - zstart(2) + 1 ! should be on this rank!
        k = bound_info%secbndpts_loc(sec,3) - zstart(3) + 1 ! should be on this rank!
 
-       if ((i < ib) .or. (i > ie) .or. (j < jb) .or. (j > je)) write(*,*) "problem", i, j
-
-       fac_pres_loc(fac) = fac_pres_loc(fac) + pres0(i,j,k) * area ! output pressure on facets
+       if ((i < ib) .or. (i > ie) .or. (j < jb) .or. (j > je)) then
+          write(*,*) "problem in wallfunmom", alignment(dir),  bound_info%secbndpts_loc(sec,1), bound_info%secbndpts_loc(sec,2)
+          stop 1
+       end if
 
        if (bound_info%lcomprec_loc(sec) .or. lnorec) then
          uvec = interp_velocity_ptr(i, j, k)
@@ -1359,7 +1376,7 @@ module modibm
        end if
 
        if (log(dist/facz0(fac)) <= 1.) then
-          cycle
+          cycle ! ideally would set a value for dist that gives a resonable (large) flux
           !dist = facz0(fac)+facz0h(fac)
        end if
 
@@ -1413,9 +1430,7 @@ module modibm
 
      if (lwritefac .and. rk3step==3) then
         fac_tau_loc(1:nfcts) = fac_tau_loc(1:nfcts) / faca(1:nfcts)
-        fac_pres_loc(1:nfcts) = fac_pres_loc(1:nfcts) / faca(1:nfcts)
         call MPI_ALLREDUCE(fac_tau_loc(1:nfcts), fac_tau(1:nfcts), nfcts, MY_REAL, MPI_SUM, comm3d, mpierr)
-        call MPI_ALLREDUCE(fac_pres_loc(1:nfcts), fac_pres(1:nfcts), nfcts, MY_REAL, MPI_SUM, comm3d, mpierr)
 
         select case(alignment(dir))
         case(1)
@@ -1435,7 +1450,7 @@ module modibm
    subroutine wallfunheat
      use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, xf, yf, zf, xh, yh, zh, dx, dy, dzh, eps1, &
                            xhat, yhat, zhat, vec0, fkar, ltempeq, lmoist, iwalltemp, iwallmoist, lEB, lwritefac, nfcts, rk3step
-     use modfields, only : u0, v0, w0, thl0, thlp, qt0, qtp
+     use modfields, only : u0, v0, w0, thl0, thlp, qt0, qtp, pres0
      use initfac,   only : facT, facz0, facz0h, facnorm, fachf, facef, facqsat, fachurel, facf, faclGR, faca
      use modmpi,    only : comm3d, mpi_sum, mpierr, my_real
      use modsurfdata, only : z0, z0h
@@ -1445,19 +1460,18 @@ module modibm
      integer i, j, k, n, m, sec, fac
      real :: dist, flux, area, vol, tempvol, Tair, Tsurf, utan, cth, htc, cveg, hurel, qtair, qwall, resa, resc, ress, xrec, yrec, zrec
      real, dimension(3) :: uvec, norm, span, strm
-     real, dimension(1:nfcts) :: fac_htc_loc, fac_cth_loc
+     real, dimension(1:nfcts) :: fac_htc_loc, fac_cth_loc, fac_pres_loc
      logical :: valid
 
      fac_htc_loc = 0.
      fac_cth_loc = 0.
+     fac_pres_loc = 0.
      do sec = 1,bound_info_c%nfctsecsrank
        ! sec = bound_info_c%fctsecsrank(m) ! index of section
        !n =   bound_info_c%secbndptids(sec) ! index of boundary point
        fac = bound_info_c%secfacids_loc(sec) ! index of facet
        area = bound_info_c%secareas_loc(sec) ! area
        norm = facnorm(fac,:)
-
-       if (facz0(fac) < eps1) cycle
 
        ! i = bound_info_c%bndpts(n,1) - zstart(1) + 1 ! should be on this rank!
        ! j = bound_info_c%bndpts(n,2) - zstart(2) + 1 ! should be on this rank!
@@ -1470,6 +1484,11 @@ module modibm
           write(*,*) "problem in wallfunheat", i, j
           stop 1
         end if
+
+       fac_pres_loc(fac) = fac_pres_loc(fac) + pres0(i,j,k) * area ! output pressure on facets
+
+       if (bound_info_c%lskipsec_loc(sec)) cycle
+       !if (facz0(fac) < eps1) cycle
 
        if (bound_info_c%lcomprec_loc(sec) .or. lnorec) then ! section aligned with grid - use this cell's velocity
          uvec = interp_velocity_c(i, j, k)
@@ -1585,8 +1604,10 @@ module modibm
      if (lwritefac .and. rk3step==3) then
         fac_cth_loc(1:nfcts) = fac_cth_loc(1:nfcts) / faca(1:nfcts)
         fac_htc_loc(1:nfcts) = fac_htc_loc(1:nfcts) / faca(1:nfcts)
+        fac_pres_loc(1:nfcts) = fac_pres_loc(1:nfcts) / faca(1:nfcts)
         call MPI_ALLREDUCE(fac_cth_loc(1:nfcts), fac_cth(1:nfcts), nfcts, MY_REAL, MPI_SUM, comm3d, mpierr)
         call MPI_ALLREDUCE(fac_htc_loc(1:nfcts), fac_htc(1:nfcts), nfcts, MY_REAL, MPI_SUM, comm3d, mpierr)
+        call MPI_ALLREDUCE(fac_pres_loc(1:nfcts), fac_pres(1:nfcts), nfcts, MY_REAL, MPI_SUM, comm3d, mpierr)
      end if
 
    end subroutine wallfunheat

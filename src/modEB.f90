@@ -351,8 +351,7 @@ contains
 
       else
          do n = 1, nfcts
-            if (facets(n) < -100) cycle
-
+            !if (facets(n) < -100) cycle
             ltemp = 0.
             do m = 1, nfcts  !for n, sum over all other m facets
                !ltemp = ltemp + vf(m, n)*faca(m)/faca(n)*facem(m)*boltz*facT(m, 1)**4 ![W/m2]
