@@ -202,8 +202,8 @@ if r.libm
             if r.calc_vf % run view3d
                 % Write STL in View3D input format
                 fpath_facets_view3d = [fpath 'facets.vs3'];
-                STLtoView3D(r.stl_file, fpath_facets_view3d, r.view3d_out, r.maxD);
-                
+                STLtoView3D(r.stl_file, fpath_facets_view3d, r.view3d_out, r.maxD, 0, 0);
+
                 if r.view3d_out == 0 % text
                     fpath_vf = [fpath 'vf.txt'];
                 elseif r.view3d_out == 1 % binary
