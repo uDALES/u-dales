@@ -40,10 +40,9 @@
       real, allocatable    :: facz0h(:) !roughness for heat and moisture on facets
       real, allocatable    :: facalb(:) !facet shortwave albedo
       real, allocatable    :: facem(:) !facet longwave emissivity of all 5 faces of the blocks
-      real, allocatable    :: facdi(:, :) !inverse facet thickness
       real, allocatable    :: facd(:,:) !facet thickness
       real, allocatable    :: faccp(:, :) !facet specific heat capacity
-      real, allocatable    :: faclami(:, :) !inverse facet heat conductivity
+      real, allocatable    :: faclam(:, :) !inverse facet heat conductivity
       real, allocatable    :: fackappa(:, :) !facet heat diffusivity (lambda/(rho cp))
       real, allocatable    :: faca(:) !facet area
       !integer, allocatable :: facain(:) !facet area as sum of indeces
@@ -118,11 +117,10 @@
         if (myid==0) then
           !allocate (facalb(0:nfcts)); facalb = 0.
           allocate (facem(0:nfcts)); facem = 0.
-          allocate (facdi(0:nfcts, nfaclyrs)); facdi = 0.
           allocate (facd(0:nfcts, nfaclyrs)); facd = 0.
           allocate (faccp(0:nfcts, nfaclyrs)); faccp = 0.
-          allocate (faclami(0:nfcts, nfaclyrs)); faclami = 0.
-          allocate (fackappa(0:nfcts, nfaclyrs+1)); fackappa = 0.
+          allocate (faclam(0:nfcts, nfaclyrs+1)); faclam = 0.
+          !allocate (fackappa(0:nfcts, nfaclyrs+1)); fackappa = 0.
         end if
 
         ! quantities needed when temperature/humidity of facets is specified
@@ -220,28 +218,23 @@
 
                 if (facets(n) < -100) then !it's a bounding wall, or more generally a facet for which we don't want to model SEB
                   do j = 1, nfaclyrs
-                    facdi(n, j) = 0.
                     facd(n,j) = 0.
-                    faclami(n, j) = 0.
+                    faclam(n, j) = 0.
                     faccp(n, j) = 0.
                   end do
                 else
                   do j = 1, nfaclyrs !for all layers
-                    facdi(n, j) = 1 / factypes(i, 6 + j) !inverse of facet thickness of layer j
                     facd(n, j) = factypes(i, 6 + j) !facet thickness of layer j
-                    faclami(n, j) = 1 / factypes(i, 6 + 2 * nfaclyrs + j) !inverse of heat conductivity of layer j
                     faccp(n, j) = factypes(i, 6 + nfaclyrs + j) !specific heat capacity of layer j
+                    faclam(n, j) = factypes(i, 6 + 2 * nfaclyrs + j) !inverse of heat conductivity of layer j
                   end do
                 end if
+                faclam(n, nfaclyrs+1) = faclam(n, nfaclyrs)
 
-                do j= 1,nfaclyrs+1
-                  fackappa(n, j) = factypes(i, 6 + 3 * nfaclyrs + j) !heat diffusivity of layer 1
-                end do
+                ! do j= 1,nfaclyrs+1
+                !   fackappa(n, j) = factypes(i, 6 + 3 * nfaclyrs + j) !heat diffusivity of layer 1
+                ! end do
               end do
-
-              !give some dummy values for block internal facets (i.e. facets with walltype 0)
-              facz0(0) = 0.00999; facz0h(0) = 0.00999; facem(0) = 0.999; facd(0,1)=0.999; facd(0,2)=0.999; facdi(0, 1) = 0.999; facdi(0, 2) = 0.999; facdi(0, 3) = 0.999; faccp(0, 1) = 999.; faccp(0, 2) = 999.
-              faccp(0, 3) = 999.; faclami(0, 1) = 0.999; faclami(0, 2) = 0.999; faclami(0, 3) = 0.999; fackappa(0, 1) = 0.00000999; fackappa(0, 2) = 0.00000999; fackappa(0, 3) = 0.00000999; faclGR(0) = .false.
 
               if (lEB .or. lwritefac) then
                 ! read facet areas
@@ -370,9 +363,8 @@
             !call MPI_BCAST(facalb(0:nfcts), nfcts + 1, MY_REAL, 0, comm3d, mpierr)
             !call MPI_BCAST(facem(0:nfcts), nfcts + 1, MY_REAL, 0, comm3d, mpierr)
             !call MPI_BCAST(facd(0:nfcts,1:nfaclyrs),(nfcts+1)*nfaclyrs, MY_REAL, 0, comm3d, mpierr)
-            !call MPI_BCAST(facdi(0:nfcts, 1:nfaclyrs), (nfcts + 1)*nfaclyrs, MY_REAL, 0, comm3d, mpierr)
             !call MPI_BCAST(faccp(0:nfcts, 1:nfaclyrs), (nfcts + 1)*nfaclyrs, MY_REAL, 0, comm3d, mpierr)
-            !call MPI_BCAST(faclami(0:nfcts, 1:nfaclyrs), (nfcts + 1)*nfaclyrs, MY_REAL, 0, comm3d, mpierr)
+            !call MPI_BCAST(faclam(0:nfcts, 1:nfaclyrs), (nfcts + 1)*nfaclyrs, MY_REAL, 0, comm3d, mpierr)
             !call MPI_BCAST(fackappa(0:nfcts, 1:nfaclyrs+1), (nfcts + 1)*(nfaclyrs+1), MY_REAL, 0, comm3d, mpierr)
 
             if (lEB) then

@@ -249,7 +249,7 @@ contains
   subroutine initEB
     !initialise everything necessary to calculate the energy balance
     use modglobal, only:AM, BM,CM,DM,EM,FM,GM, HM, IDM, inAM, bb,w,dumv,Tdash, bldT, nfcts,nfaclyrs
-    use initfac, only:facdi, faccp, faclami, fackappa, netsw, facem, fachf, facef, fachfi, facT, facLWin,facefi,facwsoil,facf,facets,facTdash,facqsat,facf,fachurel
+    use initfac, only:facd, faccp, faclam, fackappa, netsw, facem, fachf, facef, fachfi, facT, facLWin,facefi,facwsoil,facf,facets,facTdash,facqsat,facf,fachurel
     use modmpi, only:myid, comm3d, mpierr, MPI_INTEGER, MPI_DOUBLE_PRECISION, MY_REAL, nprocs, cmyid, MPI_REAL8, MPI_REAL4, MPI_SUM
     use modstat_nc,only: open_nc, define_nc,ncinfo,writestat_dims_nc
     integer :: i,j,k,l,m,n
@@ -380,7 +380,7 @@ contains
     ! E = max(0,(1-vegetation%) * rhoa * (qa-qsat(TGR)*hu) * (1/(rs+ra))
 
     use modglobal, only:nfcts, rlv, rlvi, rhoa, cp, wfc, wwilt, wsoil, rsmin, GRLAI, tEB, rsmax, lconstW
-    use initfac, only:netSW, faccth, fachurel, faclGR, facwsoil, facf, facef, facT, facefi, facqsat, facdi, faca, qsat
+    use initfac, only:netSW, faccth, fachurel, faclGR, facwsoil, facf, facef, facT, facefi, facqsat, facd, faca, qsat
 
     integer :: n
     real :: vfraction = 0.8 !fraction of GR covered in vegetation, should be made into a proper model parameter (-> modglobal)
@@ -395,7 +395,7 @@ contains
         facefi(n) = facefi(n)/tEB/faca(n)*rhoa*rlv !mean heat flux since last EB calculation (time average)
 
         if (.not. lconstW) then !remove water from soil
-          facwsoil(n) = max(facwsoil(n) + facefi(n)*tEB*rlvi*facdi(n, 1), 0.) !ils13, careful this assumes water only being present in the first layer!!!
+          facwsoil(n) = max(facwsoil(n) + facefi(n)*tEB*rlvi/facd(n, 1), 0.) !ils13, careful this assumes water only being present in the first layer!!!
         end if
 
         !update canopy resistance used in wf_gr
@@ -418,7 +418,7 @@ contains
   subroutine EB
     !calculates the energy balance for every facet
     use modglobal, only: nfcts, boltz, tEB, AM, BM,CM,DM,EM,FM,GM,HM, inAM, bb,w, dumv,Tdash, timee, tnextEB, rk3step, rhoa, cp, lEB, ntrun, lwriteEBfiles,nfaclyrs
-    use initfac, only: faclami, netsw, facem, fachf, facef, fachfi, facT, facLWin, faca,facefi,facf,facets,facTdash,facqsat,facwsoil,facf,fachurel,facd,facdi,fackappa
+    use initfac, only: faclam, faccp, netsw, facem, fachf, facef, fachfi, facT, facLWin, faca,facefi,facf,facets,facTdash,facqsat,facwsoil,facf,fachurel,facd,fackappa
     use modmpi, only: myid, comm3d, mpierr, MPI_INTEGER, MPI_DOUBLE_PRECISION, MY_REAL, nprocs, cmyid, MPI_REAL8, MPI_REAL4, MPI_SUM
     use modstat_nc, only : writestat_nc, writestat_1D_nc, writestat_2D_nc
     real  :: ca = 0., cb = 0., cc = 0., cd = 0., ce = 0., cf = 0.
@@ -464,19 +464,19 @@ contains
 
           !calculate wallflux and update surface temperature
           !! define time dependent fluxes
-          ab = faclami(n, 1)*boltz*facem(n)*(facT(n, 1)**3) ! ab*T is the Stefan-Boltzman law
-          bb(1) = -faclami(n, 1)*(netsw(n) + facLWin(n) + fachfi(n) + facefi(n)) !net surface flux
+          ab = boltz*facem(n)*(facT(n, 1)**3)/faclam(n, 1) ! ab*T is the Stefan-Boltzman law
+          bb(1) = -(netsw(n) + facLWin(n) + fachfi(n) + facefi(n))/faclam(n, 1) !net surface flux
 
           !!define the matrices to solve wall heat flux
           !! CREATE MATRICES BASED ON WALL PROPERTIES
           i=1;m=0; !position along columns, placeholder for layerindex since only 3 layers implemented (initfac.f90)
           do j=1,nfaclyrs
             m=j  !!CARE!!! ONLY 3 LAYERS ARE CURRENTLY BEING READ FROM INPUT FILES. PROPERTIES OF LAYER 3 ARE USED FOR SUBSEQUENT LAYERS!!!
-            ca=facdi(n,m)
+            ca=1./facd(n,m)
             BM(j+1,i)=-ca
             BM(j+1,i+1)=ca
-            EM(j,i)=-fackappa(n,m)
-            EM(j,i+1)=fackappa(n,m+1)
+            EM(j,i)=-faclam(n,m) / faccp(n,m)
+            EM(j,i+1)=faclam(n,m+1) / faccp(n,m)
             cb=facd(n,m)/2
             CM(j,i)=cb
             CM(j,i+1)=cb
