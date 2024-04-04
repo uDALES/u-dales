@@ -475,17 +475,17 @@ contains
             ca=1./facd(n,m)
             BM(j+1,i)=-ca
             BM(j+1,i+1)=ca
-            EM(j,i)=-faclam(n,m) / faccp(n,m)
-            EM(j,i+1)=faclam(n,m+1) / faccp(n,m)
-            cb=facd(n,m)/2
+            EM(j,i)=-faclam(n,m)
+            EM(j,i+1)=faclam(n,m+1)
+            cb=faccp(n,m)*facd(n,m)/2.
             CM(j,i)=cb
             CM(j,i+1)=cb
-            ca=cb**2*0.33333333
+            ca=faccp(n,m)*facd(n,m)**2/12.
             DM(j,i)=ca
             DM(j,i+1)=-ca
             i=i+1
           end do
-          CM(nfaclyrs+1,nfaclyrs+1)=1.0
+          CM(nfaclyrs+1,nfaclyrs+1)=1.
           BM(1,1)=ab
 
 

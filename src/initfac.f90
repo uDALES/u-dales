@@ -226,7 +226,11 @@
                   do j = 1, nfaclyrs !for all layers
                     facd(n, j) = factypes(i, 6 + j) !facet thickness of layer j
                     faccp(n, j) = factypes(i, 6 + nfaclyrs + j) !specific heat capacity of layer j
-                    faclam(n, j) = factypes(i, 6 + 2 * nfaclyrs + j) !inverse of heat conductivity of layer j
+                    !faclam(n, j) = factypes(i, 6 + 2 * nfaclyrs + j) !heat conductivity of layer j
+                  end do
+                  faclam(n, 1) = factypes(i, 6 + 2 * nfaclyrs + 1)
+                  do j = 2, nfaclyrs
+                    faclam(n, j) = (factypes(i, 6 + 2 * nfaclyrs + j - 1) + factypes(i, 6 + 2 * nfaclyrs + j))/2. !inverse of heat conductivity of layer j
                   end do
                 end if
                 faclam(n, nfaclyrs+1) = faclam(n, nfaclyrs)
