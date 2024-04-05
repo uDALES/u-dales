@@ -255,6 +255,7 @@ classdef preprocessing < dynamicprops
             if obj.lzstretch
                 preprocessing.addvar(obj, 'stretchconst', 0.01)
                 preprocessing.addvar(obj, 'lstretchexp', 0)
+                preprocessing.addvar(obj, 'lstretchexpcheck', 0)
                 preprocessing.addvar(obj, 'lstretchtanh', 0)
                 preprocessing.addvar(obj, 'lstretch2tanh', 0)
                 preprocessing.addvar(obj, 'hlin', 0)
@@ -661,6 +662,8 @@ classdef preprocessing < dynamicprops
             else
                 if obj.lstretchexp
                    preprocessing.stretch_exp(obj)
+                elseif obj.lstretchexpcheck
+                    preprocessing.stretch_exp_check(obj)
                 elseif obj.lstretchtanh
                     preprocessing.stretch_tanh(obj)
                 elseif obj.lstretch2tanh
@@ -668,6 +671,11 @@ classdef preprocessing < dynamicprops
                 else
                     error('Invalid stretch');
                 end
+                figure;plot(obj.dzf);
+                title('dz variation','interpreter','latex')
+                xlabel('$k$','interpreter','latex')
+                ylabel('$dz$','interpreter','latex')
+                axis tight
             end
         end
 
@@ -700,6 +708,70 @@ classdef preprocessing < dynamicprops
                 obj.zf(i) = (obj.zh(i) + obj.zh(i+1)) / 2 ;
                 obj.dzf(i) = obj.zh(i+1) - obj.zh(i);
             end
+        end
+        
+        function stretch_exp_check(obj)
+            il = round(obj.hlin / obj.dzlin);
+            ir  = obj.ktot - il;
+            z0 = il*obj.dzlin;    % hlin will be modified as z0
+            
+            preprocessing.addvar(obj, 'zf', zeros(1, obj.ktot));
+            preprocessing.addvar(obj, 'dzf', zeros(1, obj.ktot));
+            preprocessing.addvar(obj, 'zh', zeros(1, obj.ktot+1));
+
+            % Introduce zhat(xi) = (z(xi)-z0) / L where xi = [0, 1] is the
+            % computational space variable which is discretised uniformly. Note that
+            % zhat = [0, 1] also by construction.
+            %
+            % Use a function zhat = A (exp(alpha xi)-1) to represent the
+            % grid-nonuniformity. There are three conditions on this function:
+            %
+            %   zhat(0) = 0,       zhat(1) = 1.
+            %
+            %   dz/dxi(0) = dz/dzhat dzhat/dxi = L dzhat/dxi <= dz0*N
+            %
+            % Solving this for the function above results in
+            %
+            % A = 1 / (exp(alpha)-1) and
+            %
+            % alpha / (exp(alpha)-1) = (dz0*N)/L
+            %
+            % The last equation will need to be determined via a root finding procedure.
+
+            L = obj.zsize-z0;
+            dxi = 1/ir;
+            xi = 0:dxi:1;
+
+            % determine alpha; alpha is exponential stretch constant
+            alpha = fzero(@(alpha) alpha - (obj.dzlin*ir)/L *(exp(alpha)-1), 1);
+            A = 1/(exp(alpha)-1);
+            %fprintf('alpha value chosen: alpha = %8.4f\n', alpha)
+
+            zhat = @(xi) A*(exp(alpha*xi)-1);
+            z = @(xi) z0 + zhat(xi)*L;
+
+            % create grid
+            obj.zh(1:il+1) = 0:obj.dzlin:z0; % linear part
+            obj.zh(il+1:obj.ktot+1) = z(xi); % stretched part
+
+            % perform grid quality checks
+            dz = diff(obj.zh);
+            stretch = dz(2:end)./dz(1:end-1);
+            if (min(stretch) < 0.95 || max(stretch) > 1.05)
+                fprintf('WARNING -- generated grid is of bad quality')
+                fprintf('Stretching factor = dz(n+1)/dz(n) should be between 0.95 and 1.05\n')
+                fprintf('min value = %8.3f\n', min(stretch))
+                fprintf('max value = %8.3f\n', max(stretch))
+            end
+
+            % give a warning if the grid is refined near the top
+            if (alpha<0)
+                fprintf('WARNING -- possibly incorrect value for alpha')
+                fprintf('The calculated value of alpha is less than zero, which implies you are refining the grid towards the domain top.') 
+            end
+            
+            obj.zf = (obj.zh(2:end) + obj.zh(1:end - 1))/2.0;
+            obj.dzf = obj.zh(2:end) - obj.zh(1:end - 1);
         end
 
         function stretch_tanh(obj)
@@ -1101,7 +1173,7 @@ classdef preprocessing < dynamicprops
             preprocessing.addvar(obj, 'trees', trees)
         end
 
-        function plot_blocks_w_trees(obj)
+        function plot_trees(obj)
 %             figure
             %title('Blocks', 'interpreter', 'latex')
 %             view(3)
