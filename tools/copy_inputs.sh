@@ -162,7 +162,7 @@ fi
 driverfiles=$DA_WORKDIR_SRC/$src"/"?"driver_"*
 for dfile in $driverfiles ; do
     if [ -f $dfile ]; then
-      ln -s $dfile $DA_EXPDIR/$tar/
+      ln -s $dfile $DA_EXPDIR/$tar
     fi
   done
 if [ -f $dfile ]; then
@@ -179,3 +179,13 @@ fi
 
 # copy *.txt files for IBM implementation
   cp $DA_EXPDIR_SRC/$src/*.txt $DA_EXPDIR/$tar
+
+# copy any available scalar source files
+  scalarsourcefiles=$DA_EXPDIR_SRC/$src/"scalarsource"*
+  for sfile in $scalarsourcefiles ; do
+    if [ -f $sfile ]; then
+      sfilenew="${sfile%.$src}"
+      sfilename="${sfilenew##*$src/}"
+      cp $sfile $DA_EXPDIR/$tar/$sfilename"."$tar
+    fi
+  done
