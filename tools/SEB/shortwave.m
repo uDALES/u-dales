@@ -69,37 +69,45 @@ if ~ltimedepsw
         Dsky = ashraeC * irradiance;
     end
 
-    nsun = [sind(solarzenith)*cosd(azimuth), sind(solarzenith)*-sind(azimuth), cosd(solarzenith)];
-
-    if ldirectShortwaveFortran
-        disp('Calculating shortwave radiation using Fortran.')
-        cd(fpath)
-        writeInfo_directShortwave(nfcts, npoints, nsun, irradiance, resolution, fpath)
-        if lwindows
-            system('DS.exe');
+    if (irradiance > 0 || Dsky > 0)
+        nsun = [sind(solarzenith)*cosd(azimuth), sind(solarzenith)*-sind(azimuth), cosd(solarzenith)];
+        if ldirectShortwaveFortran
+            disp('Calculating shortwave radiation using Fortran.')
+            cd(fpath)
+            writeInfo_directShortwave(nfcts, npoints, nsun, irradiance, resolution, fpath)
+            if lwindows
+                system('DS.exe');
+            else
+                system('./DS.exe');
+            end
+            Sdir = dlmread([fpath 'Sdir.txt'], '', 0, 0);
+            delete vertices.txt faces.txt info_directShortwave.txt DS.exe;
+            %cd(currentPath)
         else
-            system('./DS.exe');
+            disp('Calculating shortwave radiation using MATLAB.')
+            show_plot_2d = false; % User-defined
+            show_plot_3d = false;  % User-defined
+            Sdir = directShortwave(F, V, nsun, irradiance, resolution, show_plot_2d, show_plot_3d);
+            %dlmwrite('Sdir.txt', Sdir) % for debugging/visualisation purposes
+            fileID = fopen([fpath 'Sdir.txt'], 'w');
+            fprintf(fileID,'%8.2f\n', Sdir');
+            fclose(fileID);
+            disp('written Sdir.txt')
         end
-        Sdir = dlmread([fpath 'Sdir.txt'], '', 0, 0);
-        delete vertices.txt faces.txt info_directShortwave.txt DS.exe;
-        %cd(currentPath)
-    else
-        disp('Calculating shortwave radiation using MATLAB.')
-        show_plot_2d = false; % User-defined
-        show_plot_3d = false;  % User-defined
-        Sdir = directShortwave(F, V, nsun, irradiance, resolution, show_plot_2d, show_plot_3d);
-        %dlmwrite('Sdir.txt', Sdir) % for debugging/visualisation purposes
-        fileID = fopen([fpath 'Sdir.txt'], 'w');
-        fprintf(fileID,'%8.2f\n', Sdir');
-        fclose(fileID);
-        disp('written Sdir.txt')
-    end
 
-    if lscatter
-        % Calculate net shortwave radiation (Knet)
-        Knet = netShortwave(Sdir, Dsky, vf, svf, albedos);
+        if lscatter
+            % Calculate net shortwave radiation (Knet)
+            Knet = netShortwave(Sdir, Dsky, vf, svf, albedos);
+        else
+            Knet = (1 - albedos) .* (Sdir + Dsky * Fss);
+        end
+
     else
-        Knet = (1 - albedos) .* (Sdir + Dsky * Fss);
+        Sdir = zeros(nfcts, 1);
+        Knet = zeros(nfcts, 1);
+        if ldirectShortwaveFortran
+            delete vertices.txt faces.txt info_directShortwave.txt DS.exe;
+        end
     end
 
 else
