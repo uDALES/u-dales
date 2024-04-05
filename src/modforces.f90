@@ -40,7 +40,7 @@ module modforces
   private
   public :: forces, coriolis, lstend,fixuinf1,fixuinf2,fixthetainf,&
             detfreestream,detfreestrtmp,nudge,&
-            masscorr,uoutletarea,voutletarea,fluidvolume,calcfluidvolumes,shiftedPBCs
+            masscorr,uoutletarea,voutletarea,fluidvolume,calcfluidvolumes,shiftedPBCs, periodicEBcorr
   contains
 
   subroutine forces
@@ -881,6 +881,96 @@ module modforces
     end if !lmoist
 
   end subroutine nudge
+
+  subroutine periodicEBcorr
+  ! added by cew216
+! ! use a volume sink to counter a  heat/moisture flux from the SEB
+! ! sink acts above buildings
+  !
+  ! use initfac, only :  max_height_index
+  use modfields, only : thlp, qtp
+  !use modglobal, only: ltempeq, lperiodicEBcorr, ib, ie, jb, je, kb, ke, imax, jtot
+  use modglobal, only : ltempeq, lmoist, lperiodicEBcorr, ib, ie, jb, je, kb, ke,&
+                          itot, jtot, totheatflux,sinkbase, totqflux, &
+                          zh, dx, dy ,dzh, fraction
+  use modmpi, only : comm3d, mpierr, MY_REAL, myid, MPI_SUM
+  !
+  integer :: i, j, k, n, M
+  real :: tot_Tflux, tot_qflux, sensible_heat_out, latent_heat_out,R_theta,R_q, H_proj, E_proj, R_theta_scaled,R_q_scaled, abl_height,phi_theta_t,phi_q_t  !, !tot_qflux !, sink_points
+  !
+  !write(*,*) 'lperiodicEBcorr ', lperiodicEBcorr
+  !write(*,*) 'fraction', fraction
+  if (lperiodicEBcorr .eqv. .false.) return
+
+  !
+  !call MPI_ALLREDUCE(bctfluxsum,   tot_Tflux,1,MY_REAL,MPI_SUM,comm3d,mpierr)
+  !call MPI_ALLREDUCE(bcqfluxsum,   tot_qflux,1,MY_REAL,MPI_SUM,comm3d,mpierr)
+  call MPI_ALLREDUCE(totheatflux,tot_Tflux,1,MY_REAL,MPI_SUM,comm3d,mpierr)
+  call MPI_ALLREDUCE(totqflux,tot_qflux,1,MY_REAL,MPI_SUM,comm3d,mpierr)
+  ! Grylls 2021;  R=(phitop-phibot)/l= -phibot/hABL
+  ! Since tot_Tflux = phibot/LxLydeltaV
+  ! according to  M if use new tot_Tflux then we have phibot = tot_heatflux/lxly
+  ! then define phitop = (1-frac)phibot
+  ! R = frac*(phitop-phibot)/l
+  ! then needs scaling because of the sink based! code this and comment it.
+  !name sinkbase with a k so we now its a vertical index
+  !!!! The point is to define phitop phibot and R above the loop so the stuff in the loop looks like the eqns.
+  ! Do the same for humidity
+  ! This follows the work in Grylls 2021
+  H_proj = tot_Tflux/(itot*jtot) ! [Kms^-1]This is total heat flux in divided by the domain cross section.
+  E_proj = tot_qflux/(itot*jtot)
+  abl_height = ke/fraction ! We reverse engineer the ABL height from domain height and fraction
+  R_theta = H_proj/abl_height ![Ks^-1] This is the forcing F\theta from Grylls 2021
+  R_q = E_proj/abl_height
+ ! Ke is the number of points in the vertical over which we would apply R if we included the canopy
+  M = ke - (sinkbase+1) +1 ! The number of points over which we will apply rscaled. We only apply the forcing above the canopy so it has to be made bigger.
+  R_theta_scaled = R_theta * ke/(M) ! [Ks^-1]The forcing is scaled up beacuse we do not apply it to the whole volume, only to points above the canopy. We add one to sinkbase to be above the buildings and add 1 to (ke-(sinkbase+1)) to correctly count the points.
+  R_q_scaled = R_q * ke/(M)
+  !phi_theta_t = 0 ! For debugging the flux profile !(1-fraction)*H_proj! The heat flux out the top of the domain.
+  phi_theta_t = (1-fraction)*H_proj
+  phi_q_t = (1-fraction)*E_proj
+
+   if (ltempeq) then
+     do i = ib,ie
+       do j = jb,je
+         do k = sinkbase +1 , ke!max_height_index +1 , ke ! Only apply the correction over the volume above the buidlings
+           !thlp(i,j,k) = thlp(i,j,k) + fraction*tot_Tflux*(zh(k+1)-zh(k))/(imax*jtot*(zh(ke+1) - zh(max_height_index+1)))
+           !thlp(i,j,k) = thlp(i,j,k) - fraction*tot_Tflux/(itot*jtot*(ke-sinkbase)) ! Most recent working version pre M changes cew216 20240112
+           thlp(i,j,k) = thlp(i,j,k) + R_theta_scaled
+         end do
+       end do
+     end do
+   !end if
+  !sensible_heat_out = (1-fraction)*tot_Tflux/(itot*jtot)
+    do i = ib,ie
+      do j = jb,je
+        thlp(i,j,ke) = thlp(i,j,ke) + phi_theta_t
+      end do
+    end do
+  end if
+  !
+  !
+  !
+  if (lmoist) then
+    do i = ib,ie
+       do j = jb,je
+        do k = sinkbase +1,ke ! Only apply the correction over the volume above the buidlings
+          !qtp(i,j,k) = qtp(i,j,k) + fraction*tot_qflux*(zh(k+1)-zh(k))/(imax*jtot*(zh(ke+1) - zh(max_height_index+1)))
+          !qtp(i,j,k) = qtp(i,j,k) - fraction*tot_qflux/(itot*jtot*(ke-sinkbase))
+          qtp(i,j,k) = qtp(i,j,k) + R_q_scaled
+        end do
+      end do
+    end do
+    latent_heat_out = (1-fraction)*tot_qflux/(itot*jtot*(zh(ke+1)-zh(ke)))
+     do i = ib,ie
+       do j = jb,je
+        qtp(i,j,ke) = qtp(i,j,ke) + phi_q_t
+      end do
+    end do
+  end if
+  !
+  !write(*,*) 'fraction', fraction
+  end subroutine periodicEBcorr
 
   subroutine shiftedPBCs
       ! Nudge the flow in a region near the outlet
