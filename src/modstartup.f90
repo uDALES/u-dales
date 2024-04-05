@@ -67,7 +67,7 @@ module modstartup
                                     lzerogradtopscal, lbuoyancy, ltempeq, &
                                     lfixinlet, lfixutauin, pi, &
                                     thlsrc, ifixuinf, lvinf, tscale, ltempinout, lmoistinout,  &
-                                    lwallfunc,lprofforc,lchem,k1,JNO2,rv,rd,tnextEB,tEB,dtEB,bldT,flrT,wsoil,wgrmax,wwilt,wfc,skyLW,GRLAI,rsmin,nfcts,lEB,lwriteEBfiles,nfaclyrs,lconstW,lvfsparse,nnz,lfacTlyrs, &
+                                    lwallfunc,lprofforc,lchem,k1,JNO2,rv,rd,tnextEB,tEB,dtEB,bldT,flrT, lperiodicEBcorr, fraction,sinkbase,wsoil,wgrmax,wwilt,wfc,skyLW,GRLAI,rsmin,nfcts,lEB,lwriteEBfiles,nfaclyrs,lconstW,lvfsparse,nnz,lfacTlyrs, &
                                     BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys,BCzp,ds, &
                                     BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots, &
                                     BCxm_periodic, BCym_periodic, &
@@ -150,8 +150,8 @@ module modstartup
          nfctsecs_u, nfctsecs_v, nfctsecs_w, nfctsecs_c, lbottom, lnorec, &
          prandtlturb, fkar, lwritefac, dtfac
       namelist/ENERGYBALANCE/ &
-         lEB, lwriteEBfiles, lconstW, dtEB, bldT, flrT, wsoil, wgrmax, wwilt, wfc, &
-         skyLW, GRLAI, rsmin, nfaclyrs, lfacTlyrs, lvfsparse, nnz
+         lEB, lwriteEBfiles, lperiodicEBcorr, sinkbase, lconstW, dtEB, bldT, flrT, wsoil, wgrmax, wwilt, wfc, &
+         skyLW, GRLAI, rsmin, nfaclyrs, lfacTlyrs, lvfsparse, nnz, fraction
       namelist/SCALARS/ &
          lreadscal, lscasrc, lscasrcl, lscasrcr, &
          nsv, nscasrc, nscasrcl								!!xS, yS, zS, SS, sigS
@@ -538,6 +538,9 @@ module modstartup
       call MPI_BCAST(dtEB, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(bldT, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(flrT, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(lperiodicEBcorr, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(sinkbase, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(fraction, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(skyLW, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(GRLAI, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(rsmin, 1, MY_REAL, 0, comm3d, mpierr)

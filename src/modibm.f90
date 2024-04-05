@@ -1178,7 +1178,7 @@ module modibm
 
    subroutine ibmwallfun
      use modglobal, only : libm, iwallmom, iwalltemp, xhat, yhat, zhat, ltempeq, lmoist, &
-                           ib, ie, ih, ihc, jb, je, jh, jhc, kb, ke, kh, khc, nsv, rk3step, timee, nfcts, lwritefac, dt, dtfac, tfac, tnextfac
+                           ib, ie, ih, ihc, jb, je, jh, jhc, kb, ke, kh, khc, nsv, totheatflux, totqflux, nfcts, rk3step, timee, nfcts, lwritefac, dt, dtfac, tfac, tnextfac
      use modfields, only : u0, v0, w0, thl0, qt0, sv0, up, vp, wp, thlp, qtp, svp, &
                            tau_x, tau_y, tau_z, thl_flux
      use modsubgriddata, only : ekm, ekh
@@ -1229,6 +1229,8 @@ module modibm
 
       if (ltempeq .or. lmoist .or. lwritefac) then
         rhs = thlp
+        totheatflux = 0 ! Reset total heat flux to zero so we only account for that in this step.
+        totqflux = 0
         call wallfunheat
         thl_flux(:,:,kb:ke+kh) = thl_flux(:,:,kb:ke+kh) + (thlp - rhs)
         if (ltempeq) call diffc_corr(thl0, thlp, ih, jh, kh)
@@ -1449,7 +1451,7 @@ module modibm
 
    subroutine wallfunheat
      use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, xf, yf, zf, xh, yh, zh, dx, dy, dzh, eps1, &
-                           xhat, yhat, zhat, vec0, fkar, ltempeq, lmoist, iwalltemp, iwallmoist, lEB, lwritefac, nfcts, rk3step
+                           xhat, yhat, zhat, vec0, fkar, ltempeq, lmoist, iwalltemp, iwallmoist, lEB, lwritefac, nfcts, rk3step, totheatflux, totqflux
      use modfields, only : u0, v0, w0, thl0, thlp, qt0, qtp, pres0
      use initfac,   only : facT, facz0, facz0h, facnorm, fachf, facef, facqsat, fachurel, facf, faclGR, faca
      use modmpi,    only : comm3d, mpi_sum, mpierr, my_real
@@ -1558,6 +1560,7 @@ module modibm
          thlp(i,j,k) = thlp(i,j,k) - flux * area / (dx*dy*dzh(k))
 
          if (lEB) then
+           totheatflux = totheatflux + flux*area ! [Km^3s^-1] This sums the flux over all facets
            fachf(fac) = fachf(fac) + flux * area ! [Km^2/s] (will be divided by facetarea(fac) in modEB)
          end if
        end if
@@ -1592,6 +1595,7 @@ module modibm
          ! flux [kg/kg m/s]
          ! fluid volumetric latent heat source/sink = flux * area / volume [kg/kg / s]
          ! facet latent heat flux = volumetric heat capacity of air * flux * sectionarea / facetarea [W/m^2]
+         totqflux = totqflux + flux*area ! [Km^3s^-1] This sums the flux over all facets
          qtp(i,j,k) = qtp(i,j,k) - flux * area / (dx*dy*dzh(k))
 
          if (lEB) then
