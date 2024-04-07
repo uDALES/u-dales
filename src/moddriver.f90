@@ -769,8 +769,8 @@ contains
 
     write(cdriverjobnr, '(i3.3)') driverjobnr
     if (driverid==0) then
-      write(*,*) '========================================================================'
-      write(*,*) '*** Reading precursor driver simulation ***'
+      write(*,*) "Consider setting 'trestart' as '(driverstore-1)*dtdriver' of driver case ", cdriverjobnr, &
+                  " or a value such that (((driverstore-1)*dtdriver)/trestart) is an integer. Ignore, if set already."
       if (.not.(lwarmstart)) then
         write(*,*) "NOTE: ensure ylen,ytot,nprocy == ylen,ytot,nprocy of driver case ",cdriverjobnr,", respectively"
         write(*,*) "NOTE: ensure ztot == ztot of driver case ",cdriverjobnr
@@ -779,6 +779,8 @@ contains
       else ! if lwarmstart
         write(*,*) "NOTE: ensure driverstore <= last driver entry step count in driver case ",cdriverjobnr, ", check corresponding simulation log."
       end if
+      write(*,*) '========================================================================'
+      write(*,*) '*** Reading precursor driver simulation ***'
     end if
 
     name = 'tdriver_   .'
