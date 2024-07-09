@@ -123,16 +123,12 @@ classdef postProcess_func
         end
 
         
-        function easy_statistics(synInput_path,filename,zoriginal,vel1,vel2,z)
+        function easy_statistics(filename,zoriginal,Uoriginal,vpvp_original,vel1,vel2,z)
             global H u_H
             
             set(groot,'defaultAxesTickLabelInterpreter','latex');  
             set(groot,'defaulttextinterpreter','latex');
             set(groot,'defaultLegendInterpreter','latex');
-
-            fileID = fopen([synInput_path filename],'r');
-            vpvp_original = fscanf(fileID,'%f');
-            fclose(fileID);
             
             if(filename(1)=='u')
                 fprintf('Make sure you have provided u data as the first velocity input.\n');
@@ -150,10 +146,6 @@ classdef postProcess_func
                     for k = 1:length(z)
                         vel2(:,k,:) = vel2(:,k,:) - vel2_ty(k);
                     end
-                    
-                    fileID = fopen([synInput_path 'ut.txt'],'r');
-                    Uoriginal = fscanf(fileID,'%f');
-                    fclose(fileID);
 
                     figure
                     hold on
@@ -170,8 +162,11 @@ classdef postProcess_func
                     title(['Mean inflow : $\overline{' filename(1) '}$'])
                     
                     figure
+                    pcolor(vel2_t')
+                    shading interp
+
+                    figure
                     contourf(vel2_t')
-                    
                 end           
             end
             
@@ -194,8 +189,7 @@ classdef postProcess_func
             xlabel(['$\overline{' filename(1) '^{\prime}' filename(3) '^{\prime}}$'],'FontSize',24)
             ylabel('$z/H$','FontSize',24)
             legend('Original input', 'Synthetic inflow')
-            title(['Easy statistics : $\overline{' filename(1) '^{\prime}' filename(3) '^{\prime}}$'])
-            
+            title(['Easy statistics : $\overline{' filename(1) '^{\prime}' filename(3) '^{\prime}}$'])  
         end
         
     end 

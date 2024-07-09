@@ -27,8 +27,8 @@ outdir=$DA_WORKDIR/$exp
 
 ## copy files to execution and output directory
 mkdir -p $outdir
-cp -P $inputdir/* $outdir
-cp $DA_BUILD $outdir
+cp -r -P $inputdir/* $outdir
+cp -r $DA_BUILD $outdir
 pushd $outdir
 
 echo "writing job.$exp.slurm"

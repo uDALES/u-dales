@@ -53,7 +53,7 @@ echo "module load intel-suite/2017.6 mpi/intel-2018 cmake/3.14.0 git/2.14.3" >> 
 
 ## copy files to execution and output directory
 echo "mkdir -p $outdir" >> job.$exp
-echo "cp $inputdir/* $outdir" >> job.$exp
+echo "cp -r $inputdir/* $outdir" >> job.$exp
 
 ## go to execution and output directory
 echo "pushd $outdir" >> job.$exp
