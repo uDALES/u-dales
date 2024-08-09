@@ -45,7 +45,7 @@ uDALES is supported to run on Linux, macOS and Windows Subsystem for Linux (WSL)
 - [CMake](https://cmake.org/) >= 3.9.
 - [NetCDF-Fortran](https://www.unidata.ucar.edu/downloads/netcdf/index.jsp) >= 4.
 - [GNU](https://gcc.gnu.org/wiki/GFortran) <= 9, [Intel](https://software.intel.com/content/www/us/en/develop/documentation/fortran-compiler-developer-guide-and-reference/top.html), or [Cray](https://pubs.cray.com/) Fortran compiler.
-- A recent version of [MPICH](https://www.mpich.org/) or [Open-MPI](https://www.open-mpi.org/).
+- A recent version of [MPICH](https://www.mpich.org/) or [Open-MPI](https://www.open-mpi.org/). 
 - [FFTW](http://www.fftw.org/) 
 
 ### Project setup
@@ -85,7 +85,7 @@ On macOS, use [Homebrew](https://docs.brew.sh) to install the required libraries
 
 ```sh
 brew update
-brew install git cmake gcc@9 netcdf open-mpi nco python3 fftw
+brew install git cmake gcc netcdf netcdf-fortran mpich nco python3 fftw
 ```
 
 
