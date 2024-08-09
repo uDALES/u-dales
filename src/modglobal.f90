@@ -190,8 +190,18 @@ module modglobal
    logical :: lxytdump   = .false.  !<  switch to output x-, y- and time-averaged statistics every tstatsdump
    logical :: lscasrcr  = .false.  !<  switch for network of point sources at lowest level
    logical :: ltkedump = .false. !tg3315
-   logical :: lslicedump= .false.  !<  switch to output slices in the xy-plane every tstatsdump
+   logical :: lkslicedump= .false.  !<  switch to output slices in the xy-plane every tsample
+   logical :: lislicedump= .false.  !<  switch to output slices in the yz-plane every tsample
+   logical :: ljslicedump= .false.  !<  switch to output slices in the xz-plane every tsample
+   integer :: kslice    = 1! k at which to output slice in xy-plane
+   integer :: islice    = 1! i at which to output slice in yz-plane
+   integer :: jslice    = 1! j at which to output slice in xz-plane
+   integer :: isliceloc    ! local islice on core
+   logical :: islicerank    ! cpu that islice is on
+   integer :: jsliceloc    ! local jslice on core
+   logical :: jslicerank    ! cpu that jslice is on
    logical :: ltdump    = .false.      !<  switch to output time-averaged statistics every tstatsdump
+   logical :: lmintdump    = .false.      !<  switch to output prognostic statistics every tstatsdump
 
    logical :: ltrees = .false.         !<  switch to turn on trees module
    logical :: lpurif = .false.         !<  switch to turn on purifiers module

@@ -226,15 +226,6 @@ module modfields
   real, allocatable :: qtt(:,:,:) ! bss116
   real, allocatable :: pt(:,:,:)  ! bss116
 
-  real, allocatable :: slice(:,:)
-  real, allocatable :: slice2(:,:)
-  real, allocatable :: slice3(:,:)
-  real, allocatable :: slice4(:,:)
-  real, allocatable :: slice5(:,:)
-  real, allocatable :: slice6(:,:)
-  real, allocatable :: slice7(:,:)
-  real, allocatable :: slice8(:,:)
-
   ! fields for scalar sources
   real, allocatable :: scar(:,:)
   real, allocatable :: scarl(:,:)
@@ -434,9 +425,12 @@ module modfields
   character(80), allocatable :: ncstattke(:,:)
   character(80), allocatable :: ncstatxy(:,:)
   character(80), allocatable :: ncstatxyt(:,:)
-  character(80), allocatable :: ncstatslice(:,:)
+  character(80), allocatable :: ncstatkslice(:,:)
+  character(80), allocatable :: ncstatislice(:,:)
+  character(80), allocatable :: ncstatjslice(:,:)
   character(80), allocatable :: ncstatt(:,:)
   character(80), allocatable :: ncstattr(:,:)
+  character(80), allocatable :: ncstatmint(:,:)
 
   integer, allocatable :: wall(:,:,:,:)             !< wall(ic,jc,kc,1-5) gives the global indices of the wall closest to cell center ic,jc,kc. The 4th and 5th integer gives the corresponding shear components
 
@@ -445,7 +439,7 @@ contains
   subroutine initfields
 
     use modglobal, only : ib,ie,jb,je,ih,jh,kb,ke,kh,jtot,nsv,&
-         ihc,jhc,khc,ltdump,lytdump,lxytdump,lslicedump,ltkedump,ltempeq,lmoist,lchem,lscasrcr,ltreedump!, iadv_kappa,iadv_sv
+         ihc,jhc,khc,ltdump,lmintdump,lytdump,lxytdump,ltkedump,ltempeq,lmoist,lchem,lscasrcr,ltreedump!, iadv_kappa,iadv_sv
     use decomp_2d, only : alloc_z
     ! Allocation of prognostic variables
     implicit none
@@ -684,7 +678,7 @@ contains
       uxyt=0.;vxyt=0.;wxyt=0.;thlxyt=0.;qtxyt=0.;pxyt=0.;usgsxyt=0.;vsgsxyt=0.;thlsgsxyt=0.;
     end if
 
-    if (lxytdump .or. lytdump .or. ltdump) then
+    if (lxytdump .or. lytdump .or. ltdump .or. lmintdump) then
       allocate(umt(ib:ie,jb:je,kb:ke+kh)); umt = 0;
       allocate(vmt(ib:ie,jb:je,kb:ke+kh)); vmt = 0;
       allocate(wmt(ib:ie,jb:je,kb:ke+kh)); wmt = 0;
@@ -752,22 +746,10 @@ contains
         allocate(PSSt(ib:ie,jb:je,kb:ke+kh)); PSSt = 0;
       !end if
       ! uwtik=0.;wthltk=0.;wqttk=0.;thlthlt=0.;qtqtt=0.;sv1sv1t=0.;sv2sv2t=0.;sv3sv3t=0.;sv4sv4t=0.;uutc=0.;vvtc=0.;wwtc=0.;vwtjk=0.;uvtij=0.;utik=0.;wtik=0.;wtjk=0.;vtjk=0.;utij=0.;vtij=0.;
-      ! wmt=0.;thltk=0.;qttk=0.;thlt=0.;slice=0.;slice2=0.;slice3=0.;slice4=0.;slice5=0.;utc=0.;vtc=0.;wtc=0.
+      ! wmt=0.;thltk=0.;qttk=0.;thlt=0.;utc=0.;vtc=0.;wtc=0.
       ! wsv1tk=0.;wsv2tk=0.;wsv3tk=0.;wsv4tk=0.;sv1sgst=0.;sv2sgst=0.;sv3sgst=0.;sv4sgst=0.;qtt=0.;pt=0.
       ! PSSt = 0. !sv1max = 0.; sv2max = 0.; sv3max = 0.; sv4max = 0.
 
-    end if
-
-    if (lslicedump) then
-      allocate(slice(ib:ie,jb:je))
-      allocate(slice2(ib:ie,jb:je))
-      allocate(slice3(ib:ie,jb:je))
-      allocate(slice4(ib:ie,jb:je))
-      allocate(slice5(ib:ie,jb:je))
-      allocate(slice6(ib:ie,jb:je))
-      allocate(slice7(ib:ie,jb:je))
-      allocate(slice8(ib:ie,jb:je))
-      slice=0.;slice2=0.;slice3=0.;slice4=0.;slice5=0.;slice6=0.;slice7=0.;slice8=0.
     end if
 
     if (lscasrcr .and. nsv>0) then

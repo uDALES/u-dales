@@ -63,7 +63,8 @@ module modstartup
                                     linoutflow, lper2inout, libm, lnudge, lnudgevel, tnudge, nnudge, lles, luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, &
                                     uflowrate, vflowrate, lstoreplane, iplane, &
                                     lreadmean, iinletgen, inletav, lreadminl, Uinf, Vinf, linletRA, nblocks, &
-                                    lscalrec,lSIRANEinout,lscasrc,lscasrcl,lscasrcr,lydump,lytdump,lxydump,lxytdump,lslicedump,ltdump,ltkedump,lzerogradtop,&
+                                    lscalrec,lSIRANEinout,lscasrc,lscasrcl,lscasrcr,lydump,lytdump,lxydump,lxytdump,ltdump,lmintdump,ltkedump,lzerogradtop,&
+                                    lkslicedump,lislicedump,ljslicedump,kslice,islice,jslice,&
                                     lzerogradtopscal, lbuoyancy, ltempeq, &
                                     lfixinlet, lfixutauin, pi, &
                                     thlsrc, ifixuinf, lvinf, tscale, ltempinout, lmoistinout,  &
@@ -159,8 +160,8 @@ module modstartup
          lchem, k1, JNO2
       namelist/OUTPUT/ &
          lfielddump, tfielddump, fieldvars, &
-         ltdump, lydump, lytdump, lxydump, lxytdump, &
-         lslicedump, ltkedump, tstatsdump, tsample
+         ltdump, lydump, lytdump, lxydump, lxytdump, lmintdump, &
+         lkslicedump, kslice, lislicedump, islice, ljslicedump, jslice, ltkedump, tstatsdump, tsample
       namelist/TREES/ &
          ltrees, ntrees, cd, dec, ud, lad, Qstar, dQdt, lsize, r_s, ltreedump
       namelist/PURIFS/&
@@ -441,8 +442,14 @@ module modstartup
       call MPI_BCAST(lytdump, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315 added switch for writing statistics files
       call MPI_BCAST(lxydump, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315 added switch for writing statistics files
       call MPI_BCAST(lxytdump, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315 added switch for writing statistics files
-      call MPI_BCAST(lslicedump, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315 added switch for writing statistics files
+      call MPI_BCAST(lkslicedump, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(lislicedump, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(ljslicedump, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(kslice, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(islice, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(jslice, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(ltdump, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315 added switch for writing statistics files
+      call MPI_BCAST(lmintdump, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315 added switch for writing statistics files
       call MPI_BCAST(ltkedump, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315 added switch for writing tke budget files
       call MPI_BCAST(iplane, 1, MPI_INTEGER, 0, comm3d, mpierr) ! J.Tomas: ib+iplane is the i-plane that is stored if lstoreplane is .true.
       call MPI_BCAST(startfile, 50, MPI_CHARACTER, 0, comm3d, mpierr)

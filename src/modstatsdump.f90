@@ -22,7 +22,7 @@
 !
 module modstatsdump
 
-  use modglobal, only : dt,lydump,lytdump,ltkedump,lxydump,lxytdump,ltdump,ifoutput !,nstat
+  use modglobal, only : dt,lydump,lytdump,ltkedump,lxydump,lxytdump,ltdump,lmintdump,ifoutput !,nstat
   use modmpi, only : myid
   implicit none
   private
@@ -30,25 +30,31 @@ module modstatsdump
   save
 
   !NetCDF variables
-  integer :: ncidy,ncidyt,ncidtke,ncidxy,ncidslice,ncidxyt,ncidtr,nrecy=0,nrecyt=0,nrectke=0,nrecxy=0,&
-             nrecslice=0,nrecxyt=0,nrectr=0,nstatyt=34,nstaty=14,nstattke=8,nstatxy=15,nstatslice=8,&
-             nstatxyt=23,ncidt,nrect=0,nstatt=32,nstattr=10
+  integer :: ncidy,ncidyt,ncidtke,ncidxy,ncidkslice,ncidislice,ncidjslice,ncidxyt,ncidtr,nrecy=0,nrecyt=0,nrectke=0,nrecxy=0,&
+             nreckslice=0,nrecislice=0,nrecjslice=0,nrecxyt=0,nrectr=0,nstatyt=34,nstaty=14,nstattke=8,nstatxy=15,nstatkslice=5,nstatislice=5,nstatjslice=5,&
+             nstatxyt=23,ncidt,nrect=0,nstatt=32,nstattr=10,ncidmint,nrecmint=0,nstatmint=6
   character(80) :: yname = 'ydump.xxx.nc'
   character(80) :: ytname = 'ytdump.xxx.nc'
   character(80) :: tkename = 'tkedump.xxx.nc'
   character(80) :: xyname = 'xydump.xxx.nc'
   character(80) :: xytname = 'xytdump.xxx.nc'
   character(80) :: tname = 'tdump.xxx.xxx.xxx.nc'
-  character(80) :: slicename = 'slicedump.xxx.xxx.nc'
+  character(80) :: mintname = 'mintdump.xxx.xxx.xxx.nc'
+  character(80) :: kslicename = 'kslicedump.xxx.xxx.xxx.nc'
+  character(80) :: islicename = 'islicedump.xxx.xxx.xxx.nc'
+  character(80) :: jslicename = 'jslicedump.xxx.xxx.xxx.nc'
   character(80) :: trname = 'treedump.xxx.xxx.xxx.nc'
   character(80),dimension(1,4) :: tncstaty
   character(80),dimension(1,4) :: tncstatyt
   character(80),dimension(1,4) :: tncstattke
   character(80),dimension(1,4) :: tncstatxy
-  character(80),dimension(1,4) :: tncstatslice
+  character(80),dimension(1,4) :: tncstatkslice
+  character(80),dimension(1,4) :: tncstatislice
+  character(80),dimension(1,4) :: tncstatjslice
   character(80),dimension(1,4) :: tncstatxyt
   character(80),dimension(1,4) :: tncstatt
   character(80),dimension(1,4) :: tncstattr
+  character(80),dimension(1,4) :: tncstatmint
 
   integer :: klow,khigh,i,j,k
   real    :: tsamplep,tstatsdumpp,tsample,tstatsdump
@@ -62,24 +68,28 @@ contains
 
   subroutine initstatsdump
     use modmpi,   only : my_real,mpierr,comm3d,mpi_logical,mpi_integer,mpi_character,cmyid,cmyidx,cmyidy
-    use modglobal,only : imax,jmax,kmax,cexpnr,ifnamopt,fname_options,kb,ke,ladaptive,btime,&
-                         nsv,lslicedump,lxytdump,ltreedump
+    use modglobal,only : imax,jmax,kmax,cexpnr,ifnamopt,fname_options,ib,ie,jb,je,kb,ke,ladaptive,btime,&
+                         nsv,lkslicedump,lislicedump,ljslicedump,lxytdump,lxytdump,ltreedump,ib,ie,islice,islicerank,isliceloc,jslice,jslicerank,jsliceloc
     use modstat_nc,only: open_nc, define_nc,ncinfo,writestat_dims_nc
-    use modfields,only : ncstaty,ncstatyt,ncstattke,ncstatxy,ncstatslice,ncstatxyt,ncstatt,ncstattr
+    use modfields, only : ncstaty,ncstatyt,ncstattke,ncstatxy,ncstatkslice,ncstatislice,ncstatjslice,ncstatxyt,ncstatt,ncstattr,ncstatmint
+    use decomp_2d, only : zstart, zend
     implicit none
     integer :: ierr
 
     namelist/NAMSTATSDUMP/ &
-         lydump,tsample,klow,khigh,tstatsdump,lytdump,ltkedump,lxydump,lxytdump,ltdump,ltreedump    ! maybe removed; NAMSTATSDUMP is not in use anymore
+         lydump,tsample,klow,khigh,tstatsdump,lytdump,ltkedump,lxydump,lxytdump,ltdump,ltreedump,lmintdump    ! maybe removed; NAMSTATSDUMP is not in use anymore
 
     allocate(ncstaty(nstaty,4))
     allocate(ncstatyt(nstatyt,4))
     allocate(ncstattke(nstattke,4))
     allocate(ncstatxy(nstatxy,4))
-    allocate(ncstatslice(nstatslice,4))
+    allocate(ncstatkslice(nstatkslice,4))
+    allocate(ncstatislice(nstatislice,4))
+    allocate(ncstatjslice(nstatjslice,4))
     allocate(ncstatxyt(nstatxyt,4))
     allocate(ncstatt(nstatt,4))
     allocate(ncstattr(nstattr,4))
+    allocate(ncstatmint(nstatmint,4))
 
     klow=kb
     khigh=ke
@@ -99,6 +109,7 @@ contains
     call MPI_BCAST(klow        ,1,MPI_INTEGER,0,comm3d,ierr) !have to do this? just want nc for first CPU
     call MPI_BCAST(khigh       ,1,MPI_INTEGER,0,comm3d,ierr)
     call MPI_BCAST(nstatt      ,1,MPI_INTEGER,0,comm3d,ierr)
+    call MPI_BCAST(nstatmint      ,1,MPI_INTEGER,0,comm3d,ierr)
     ! call MPI_BCAST(nstaty      ,1,MPI_INTEGER,0,comm3d,ierr)
     call MPI_BCAST(ncstatyt    ,80,MPI_CHARACTER,0,comm3d,mpierr)
     call MPI_BCAST(ncstaty     ,80,MPI_CHARACTER,0,comm3d,mpierr)
@@ -106,8 +117,10 @@ contains
     call MPI_BCAST(ncstatxy    ,80,MPI_CHARACTER,0,comm3d,mpierr)
     call MPI_BCAST(ncstatxyt   ,80,MPI_CHARACTER,0,comm3d,mpierr)
     call MPI_BCAST(ncstatt     ,80,MPI_CHARACTER,0,comm3d,mpierr)
+    call MPI_BCAST(ncstatmint     ,80,MPI_CHARACTER,0,comm3d,mpierr)
     call MPI_BCAST(ltdump      ,1,MPI_LOGICAL,0,comm3d,ierr)      ! maybe removed; unnecessary broadcast; this variable already broadcasted in modstartup
     call MPI_BCAST(ltreedump   ,1,MPI_LOGICAL,0,comm3d,ierr)      ! maybe removed; unnecessary broadcast; this variable already broadcasted in modstartup
+    call MPI_BCAST(lmintdump      ,1,MPI_LOGICAL,0,comm3d,ierr)
 
     !> Generate y-averaged NetCDF: ydump.xxx.nc
     if(lydump) then
@@ -320,6 +333,29 @@ contains
 !      end if
     end if
 
+    if (lmintdump) then
+
+      mintname(10:12) = cmyidx
+      mintname(14:16) = cmyidy
+      mintname(18:20) = cexpnr
+      call ncinfo(tncstatmint(1,:),'time'      ,'Time'                        ,'s'      ,'time')
+      call ncinfo(ncstatmint( 1,:),'ut'        ,'Streamwise velocity'         ,'m/s'    ,'mttt'  )
+      call ncinfo(ncstatmint( 2,:),'vt'        ,'Spanwise velocity'           ,'m/s'    ,'tmtt'  )
+      call ncinfo(ncstatmint( 3,:),'wt'        ,'Vertical velocity'           ,'m/s'    ,'ttmt'  )
+      call ncinfo(ncstatmint( 4,:),'thlt'      ,'Temperature'                 ,'K'      ,'tttt'  )
+      call ncinfo(ncstatmint( 5,:),'qtt'       ,'Moisture'                    ,'kg/kg'  ,'tttt'  )
+      call ncinfo(ncstatmint( 6,:),'pt'        ,'Pressure'                    ,'kgm/s^2','tttt'  )
+
+    !      if (myid==0) then
+        call open_nc(mintname, ncidmint, nrecmint, n1=imax, n2=jmax, n3=khigh-klow+1)
+        if (nrecmint==0) then
+          call define_nc( ncidmint, 1, tncstatmint)
+          call writestat_dims_nc(ncidmint)
+        end if
+        call define_nc( ncidmint, nstatmint, ncstatmint)
+    !      end if
+    end if
+
     !> Generate time averaged NetCDF: treedump.xxx.nc
     if (ltreedump) then
 
@@ -374,29 +410,89 @@ contains
     endif
 
     !> Generate sliced NetCDF: slicedump.xxx.xxx.nc
-    if (lslicedump) then
+    if (lkslicedump) then
 
-      slicename(11:13) = cmyid
-      slicename(15:17) = cexpnr
+      kslicename(12:14) = cmyidx
+      kslicename(16:18) = cmyidy
+      kslicename(20:22) = cexpnr
 
-      call ncinfo(tncstatslice(1,:),'time'     ,'Time'   ,'s'   ,'time')
-      call ncinfo(ncstatslice( 1,:),'sca_kb1'  ,'Scalar field at kb', '-', 'tt0t')
-      call ncinfo(ncstatslice( 2,:),'sca_ave1' ,'Averaged scalar field over canyon', '-', 'tt0t')
-      call ncinfo(ncstatslice( 3,:),'sca_kb2'  ,'Scalar field at kb+1', '-', 'tt0t')
-      call ncinfo(ncstatslice( 4,:),'sca_ave2' ,'Averaged scalar field over canyon', '-', 'tt0t')
-      call ncinfo(ncstatslice( 5,:),'sca_kb3'  ,'Scalar field at kb+1', '-', 'tt0t')
-      call ncinfo(ncstatslice( 6,:),'sca_ave3' ,'Averaged scalar field over canyon', '-', 'tt0t')
-      call ncinfo(ncstatslice( 7,:),'u_kb'     ,'Streamwise velocity at kb', '-', 'mt0t')
-      call ncinfo(ncstatslice( 8,:),'v_kb'     ,'Spanwise velocity at kb', '-', 'tm0t')
+      call ncinfo(tncstatkslice(1,:),'time'     ,'Time'   ,'s'   ,'time')
+      call ncinfo(ncstatkslice( 1,:),'u_kslice'     ,'Streamwise velocity at kslice', '-', 'mt0t')
+      call ncinfo(ncstatkslice( 2,:),'v_kslice'     ,'Spanwise velocity at kslice', '-', 'tm0t')
+      call ncinfo(ncstatkslice( 3,:),'w_kslice'     ,'Vertical velocity at kslice', '-', 'tt0t')
+      call ncinfo(ncstatkslice( 4,:),'thl_kslice'   ,'Potential temperature at kslice', '-', 'tt0t')
+      call ncinfo(ncstatkslice( 5,:),'qt_kslice'    ,'Specific humidity at kslice', '-', 'tt0t')
 
-      call open_nc(slicename, ncidslice, nrecslice, n1=imax, n2=jmax)
+      call open_nc(kslicename, ncidkslice, nreckslice, n1=imax, n2=jmax)
 
-      if (nrecslice==0) then
-        call define_nc( ncidslice, 1, tncstatslice)
-        call writestat_dims_nc(ncidslice)
+      if (nreckslice==0) then
+        call define_nc( ncidkslice, 1, tncstatkslice)
+        call writestat_dims_nc(ncidkslice)
       end if
 
-      call define_nc( ncidslice, nstatslice, ncstatslice)
+      call define_nc( ncidkslice, nstatkslice, ncstatkslice)
+
+    end if
+
+    if (lislicedump) then
+
+      islicename(12:14) = cmyidx
+      islicename(16:18) = cmyidy
+      islicename(20:22) = cexpnr
+
+      call ncinfo(tncstatislice(1,:),'time'     ,'Time'   ,'s'   ,'time')
+      call ncinfo(ncstatislice( 1,:),'u_islice'     ,'Streamwise velocity at islice', '-', '0ttt')
+      call ncinfo(ncstatislice( 2,:),'v_islice'     ,'Spanwise velocity at islice', '-', '0mtt')
+      call ncinfo(ncstatislice( 3,:),'w_islice'     ,'Vertical velocity at islice', '-', '0tmt')
+      call ncinfo(ncstatislice( 4,:),'thl_islice'   ,'Potential temperature at islice', '-', '0ttt')
+      call ncinfo(ncstatislice( 5,:),'qt_islice'    ,'Specific humidity at islice', '-', '0ttt')
+
+      if ((islice >= zstart(1)) .and. (islice <= zend(1))) then
+        islicerank = .true.
+        isliceloc = islice - zstart(1) + 1
+      else
+        islicerank = .false.
+      end if
+
+      if (islicerank) then
+        call open_nc(islicename, ncidislice, nrecislice, n2=jmax, n3=khigh-klow+1)
+        if (nrecislice==0) then
+          call define_nc( ncidislice, 1, tncstatislice)
+          call writestat_dims_nc(ncidislice)
+        end if
+        call define_nc( ncidislice, nstatislice, ncstatislice)
+      end if
+
+    end if
+
+    if (ljslicedump) then
+
+      jslicename(12:14) = cmyidx
+      jslicename(16:18) = cmyidy
+      jslicename(20:22) = cexpnr
+
+      call ncinfo(tncstatjslice(1,:),'time'     ,'Time'   ,'s'   ,'time')
+      call ncinfo(ncstatjslice( 1,:),'u_jslice'     ,'Streamwise velocity at jslice', '-', 'm0tt')
+      call ncinfo(ncstatjslice( 2,:),'v_jslice'     ,'Spanwise velocity at jslice', '-', 't0tt')
+      call ncinfo(ncstatjslice( 3,:),'w_jslice'     ,'Vertical velocity at jslice', '-', 't0mt')
+      call ncinfo(ncstatjslice( 4,:),'thl_jslice'   ,'Potential temperature at jslice', '-', 't0tt')
+      call ncinfo(ncstatjslice( 5,:),'qt_jslice'    ,'Specific humidity at jslice', '-', 't0tt')
+
+      if ((jslice >= zstart(2)) .and. (jslice <= zend(2))) then
+        jslicerank = .true.
+        jsliceloc = jslice - zstart(2) + 1
+      else
+        jslicerank = .false.
+      end if
+
+      if (jslicerank) then
+         call open_nc(jslicename, ncidjslice, nrecjslice, n1=imax, n3=khigh-klow+1)
+         if (nrecjslice==0) then
+            call define_nc( ncidjslice, 1, tncstatjslice)
+            call writestat_dims_nc(ncidjslice)
+         end if
+         call define_nc( ncidjslice, nstatjslice, ncstatjslice)
+      end if
 
     end if
 
@@ -412,11 +508,10 @@ contains
 
   subroutine statsdump
 
-  use modfields,        only : um,up,vm,wm,svm,qtm,thlm,pres0,ncstaty,ncstatxy,ncstatyt,ncstattke,&
-                               ncstatslice,t_t,t_v,t_p,t_sgs,d_sgs,p_b,p_t,adv,&
+  use modfields,        only : um,up,vm,wm,svm,qtm,thlm,pres0,ncstaty,ncstatxy,ncstatyt,ncstattke,ncstatmint,&
+                               ncstatkslice,ncstatislice,ncstatjslice,t_t,t_v,t_p,t_sgs,d_sgs,p_b,p_t,adv,&
                                IIc,IIu,IIv,IIw,IIuw,IIvw,IIct,IIwt,IIut,IIvt,IIuwt,IIuv,&
                                IIcs,IIws,IIus,IIvs,IIuws,IIvws,IIuvs,&
-                               slice,slice2,slice3,slice4,slice5,slice6,slice7,slice8,&
                                vyt,uyt,wyt,thlyt,qtyt,&
                                sca1yt,sca2yt,sca3yt,thlsgsyt,qtsgsyt,sv1sgsyt,sv2sgsyt,sv3sgsyt,usgsyt,wsgsyt,&
                                usgsxyt,thlsgsxyt,vsgsxyt,uwtik,vwtjk,uvtij,utik,wtik,wtjk,vtjk,utij,vtij,&
@@ -429,8 +524,8 @@ contains
   use modglobal,        only : ib,ie,ih,ihc,xf,xh,jb,je,jhc,jgb,jge,dy,dyi,jh,ke,kb,kh,khc,rk3step,&
                                timee,cexpnr,tsample,tstatsdump,jtot,imax,jmax,dzf,&
                                ltempeq,zh,dxf,dzf,dzh2i,lprofforc,lscasrcl,&
-                               lslicedump,lchem,dzhi,dzfi,dzhiq,dxhi,lmoist,nsv,&
-                               k1,JNO2,lchem,&
+                               lkslicedump,lislicedump,ljslicedump,lchem,dzhi,dzfi,dzhiq,dxhi,lmoist,nsv,&
+                               k1,JNO2,lchem,kslice,islice,jslice,isliceloc,jsliceloc,islicerank,jslicerank,&
                                ltreedump
 !  use modsubgriddata,   only : ekm,sbshr
   use modstat_nc,       only : writestat_nc,writestat_1D_nc
@@ -630,13 +725,14 @@ contains
   real, dimension(kb:ke+kh)                    :: uvtxyij
 
   real, allocatable :: field(:,:), varsy(:,:,:),varsyt(:,:,:),varstke(:,:),varsxy(:,:),&
-                       varslice(:,:,:),varsxyt(:,:),varst(:,:,:,:),varstr(:,:,:,:)
+                       varkslice(:,:,:),varislice(:,:,:),varjslice(:,:,:),varsxyt(:,:),varst(:,:,:,:),varstr(:,:,:,:),varsmint(:,:,:,:)
   real    :: tstatsdumppi,emom
   integer :: i,j,k,ip,im,jp,jm,kp,km
   integer :: writecounter = 1
   integer :: reclength
 
-  if (.not.(lytdump .or. lydump .or. lxydump .or. lxytdump .or. ltdump)) return
+  if (.not.(lytdump .or. lydump .or. lxydump .or. lxytdump .or. ltdump .or. lmintdump &
+    .or. lkslicedump.or. lislicedump.or. ljslicedump)) return
 
   allocate(thlk(ib:ie,jb:je,kb:ke+kh))
   allocate(qtk(ib:ie,jb:je,kb:ke+kh))
@@ -693,7 +789,7 @@ contains
 
   if (tsamplep > tsample) then
 
-    if (lytdump .or. lydump .or. lxydump .or. lxytdump .or. ltdump) then
+    if (lytdump .or. lydump .or. lxydump .or. lxytdump .or. ltdump .or. lmintdump) then
 
       ! wpthlptyk=0.;wpqtptyk=0.;wpsv1ptyk=0.;wpsv2ptyk=0.
 
@@ -1019,7 +1115,7 @@ contains
       ! Average 3-D fields in time
       ! tg3315 may be possible to do less calculations by splitting up
       ! some calcs not necessary for xyt or yt...
-      if (lxytdump .or. lytdump .or. ltdump) then
+      if (lxytdump .or. lytdump .or. ltdump .or. lmintdump) then
         uwtik(:,:,kb:ke+kh) = (uwtik(:,:,kb:ke+kh)*(tstatsdumpp-tsamplep) + wik(:,:,kb:ke+kh)*uik(:,:,kb:ke+kh)*tsamplep)*tstatsdumppi
         vwtjk(:,:,kb:ke+kh) = (vwtjk(:,:,kb:ke+kh)*(tstatsdumpp-tsamplep) + wjk(:,:,kb:ke+kh)*vjk(:,:,kb:ke+kh)*tsamplep)*tstatsdumppi
         uvtij(:,:,kb:ke+kh) = (uvtij(:,:,kb:ke+kh)*(tstatsdumpp-tsamplep) + uij(:,:,kb:ke+kh)*vij(:,:,kb:ke+kh)*tsamplep)*tstatsdumppi
@@ -1143,27 +1239,7 @@ contains
 !        upwpytik   = -999
 !      endwhere
 
-      ! EXAMPLE FOR OTHER SLICE PLANES
-      !> slice over purifier
-!      if (nprocs>7) then
-!      if (myid==7) then
-!        sca1y(ib:ie,kb:ke) = (sca1y(ib:ie,kb:ke)*(tstatsdumpp-tsamplep) + svm(ib:ie,2,kb:ke,1)*tsamplep)*tstatsdumppi
-!      end if
-!      end if
-
-    end if ! lytdump .or. lydump .or. lxydump .or. lxytdump
-
-    ! slicedump fields are generalised so can define what is required here
-    if (lslicedump) then
-      slice = (slice*(tstatsdumpp-tsamplep) + (0.5*(svm(ib:ie,jb:je,kb,1)+svm(ib:ie,jb:je,kb+1,1)))*tsamplep)*tstatsdumppi
-      slice2 = (slice2*(tstatsdumpp-tsamplep) + (sum(svm(ib:ie,jb:je,kb:kb+8,1),3)/9.)*tsamplep)*tstatsdumppi
-      slice3 = (slice3*(tstatsdumpp-tsamplep) + (0.5*(svm(ib:ie,jb:je,kb,2)+svm(ib:ie,jb:je,kb+1,2)))*tsamplep)*tstatsdumppi
-      slice4 = (slice4*(tstatsdumpp-tsamplep) + (sum(svm(ib:ie,jb:je,kb:kb+8,2),3)/9.)*tsamplep)*tstatsdumppi
-      slice5 = (slice5*(tstatsdumpp-tsamplep) + (0.5*(svm(ib:ie,jb:je,kb,3)+svm(ib:ie,jb:je,kb+1,3)))*tsamplep)*tstatsdumppi
-      slice6 = (slice6*(tstatsdumpp-tsamplep) + (sum(svm(ib:ie,jb:je,kb:kb+8,3),3)/9.)*tsamplep)*tstatsdumppi
-      slice7 = (slice7*(tstatsdumpp-tsamplep) + (um(ib:ie,jb:je,kb)+um(ib:ie,jb:je,kb+1))*tsamplep)*tstatsdumppi
-      slice8 = (slice8*(tstatsdumpp-tsamplep) + (vm(ib:ie,jb:je,kb)+vm(ib:ie,jb:je,kb+1))*tsamplep)*tstatsdumppi
-    endif !lslicedump
+    end if ! lytdump .or. lydump .or. lxydump .or. lxytdump .or. ltdump .or. lmintdump
 
     ! Write y-averaged statistics every tsample
     if (lydump) then
@@ -1222,6 +1298,46 @@ contains
           call writestat_1D_nc(ncidxy,nstatxy,ncstatxy,varsxy,nrecxy,khigh-klow+1)
       end if !myid
     end if !lxydump
+
+    if (lkslicedump) then
+     allocate(varkslice(imax,jmax,nstatkslice))
+     call writestat_nc(ncidkslice,1,tncstatkslice,(/timee/),nreckslice,.true.)
+     varkslice(:,:,1) = um(ib:ie,jb:je,kslice)
+     varkslice(:,:,2) = vm(ib:ie,jb:je,kslice)
+     varkslice(:,:,3) = 0.5*(wm(ib:ie,jb:je,kslice)+wm(ib:ie,jb:je,kslice+1)) ! assumes equidistant
+     varkslice(:,:,4) = thlm(ib:ie,jb:je,kslice)
+     varkslice(:,:,5) = qtm(ib:ie,jb:je,kslice)
+     call writestat_nc(ncidkslice,nstatkslice,ncstatkslice,varkslice,nreckslice,imax,jmax)
+
+    endif
+
+    if (lislicedump) then
+      if (islicerank) then
+        allocate(varislice(jmax,khigh-klow+1,nstatislice))
+        call writestat_nc(ncidislice,1,tncstatislice,(/timee/),nrecislice,.true.)
+        varislice(:,:,1) = 0.5*(um(isliceloc,jb:je,kb:ke)+um(isliceloc+1,jb:je,kb:ke))
+        varislice(:,:,2) = vm(isliceloc,jb:je,kb:ke)
+        varislice(:,:,3) = wm(isliceloc,jb:je,kb:ke)
+        varislice(:,:,4) = thlm(isliceloc,jb:je,kb:ke)
+        varislice(:,:,5) = qtm(isliceloc,jb:je,kb:ke)
+        call writestat_nc(ncidislice,nstatislice,ncstatislice,varislice,nrecislice,jmax,khigh-klow+1)
+
+      endif
+    endif
+
+    if (ljslicedump) then
+       if (jslicerank) then
+         allocate(varjslice(imax,khigh-klow+1,nstatjslice))
+         call writestat_nc(ncidjslice,1,tncstatjslice,(/timee/),nrecjslice,.true.)
+         varjslice(:,:,1) = um(ib:ie,jsliceloc,kb:ke)
+         varjslice(:,:,2) = 0.5*(vm(ib:ie,jsliceloc,kb:ke)+vm(ib:ie,jsliceloc+1,kb:ke))
+         varjslice(:,:,3) = wm(ib:ie,jsliceloc,kb:ke)
+         varjslice(:,:,4) = thlm(ib:ie,jsliceloc,kb:ke)
+         varjslice(:,:,5) = qtm(ib:ie,jsliceloc,kb:ke)
+         call writestat_nc(ncidjslice,nstatjslice,ncstatjslice,varjslice,nrecjslice,imax,khigh-klow+1)
+
+      endif
+    endif
 
     if (ltkedump) then
       !call genstats(tsamplep,tstatsdumpp,umc,vmc,wmc)
@@ -1488,6 +1604,22 @@ contains
          deallocate(varst)
       end if !ltdump
 
+      if (lmintdump) then
+     !      if (myid == 0) then
+            allocate(varsmint(imax,jmax,khigh-klow+1,nstatmint))
+            call writestat_nc(ncidmint,1,tncstatmint,(/timee/),nrecmint,.true.)
+            varsmint(:,:,:,1)  = umt(ib:ie,jb:je,kb:ke)
+            varsmint(:,:,:,2)  = vmt(ib:ie,jb:je,kb:ke)
+            varsmint(:,:,:,3)  = wmt(ib:ie,jb:je,kb:ke)
+            varsmint(:,:,:,4)  = thlt(ib:ie,jb:je,kb:ke)
+            varsmint(:,:,:,5)  = qtt(ib:ie,jb:je,kb:ke)
+            varsmint(:,:,:,6)  = pt(ib:ie,jb:je,kb:ke)
+
+            call writestat_nc(ncidmint,nstatmint,ncstatmint,varsmint,nrecmint,imax,jmax,khigh-klow+1)
+     !        end if !myid
+           deallocate(varsmint)
+        end if !lmintdump
+
       ! Final calculations and write t-averaged statistics for the trees
       if (ltreedump) then
 !        if (myid == 0) then
@@ -1524,29 +1656,6 @@ contains
           call writestat_1D_nc(ncidtke,nstattke,ncstattke,varstke,nrectke,khigh-klow+1)
         end if !myid
       endif !ltkedump
-
-      if (lslicedump) then
-
-        allocate(varslice(imax,jmax,nstatslice))
-        call writestat_nc(ncidslice,1,tncstatslice,(/timee/),nrecslice,.true.)
-
-        varslice(:,:,1) = slice
-        varslice(:,:,2) = slice2
-        varslice(:,:,3) = slice3
-        varslice(:,:,4) = slice4
-        varslice(:,:,5) = slice5
-        varslice(:,:,6) = slice6
-        varslice(:,:,7) = slice7
-        varslice(:,:,8) = slice8
-
-        ! write(*,*) myid
-        ! write(*,*) 'ncidslice,1,tncstatslice,(/timee/),nrecslice,.true.', ncidslice,1,tncstatslice,(/timee/),nrecslice
-
-        call writestat_nc(ncidslice,nstatslice,ncstatslice,varslice,nrecslice,imax,jmax)
-
-        ! deallocate(varslice)
-
-      endif
 
       tstatsdumpp = dt
 
@@ -1919,7 +2028,7 @@ contains
 
   subroutine exitstatsdump
       use modstat_nc, only : exitstat_nc
-      use modglobal, only  : lslicedump,ltdump
+      use modglobal, only  : ltdump
     implicit none
 
 !       if (lydump) then
@@ -1933,10 +2042,6 @@ contains
 
 !      if (ltkedump) then
 !        call exitstat_nc(ncidtke)
-!      endif
-
-!      if (lslicedump) then
-!        call exitstat_nc(ncidslice)
 !      endif
 
 !       if (ltdump) then

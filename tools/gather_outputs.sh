@@ -45,19 +45,30 @@ for file in *dump.*.000.${expnr}.nc ; do
     if [ -f $file ]; then
 
         ## Gathering fields along spatial axis.
-        echo "Gathering fields along spatial axis."
+        #echo "Gathering fields along spatial axis."
 
         dumps=${file%.000.${expnr}.nc}
 
         if [ ${dumps:0:9} == "fielddump" ]; then
-            #ymparam="v,tau_y,ym"
+            echo "Merging fielddump along y-direction."
+	    #ymparam="v,tau_y,ym"
 	    ymparam="v,ym"
 
         elif [ ${dumps:0:5} == "tdump" ]; then
-            ymparam="vt,vpwpt,upvpt,ym"
+            echo "Merging tdump along y-direction."
+	    ymparam="vt,vpwpt,upvpt,ym"
 
-        elif [ ${dumps:0:9} == "slicedump" ]; then
-            ymparam="v_2,v_20,ym"
+        elif [ ${dumps:0:8} == "mintdump" ]; then
+            echo "Merging mintdump along y-direction."
+	    ymparam="vt,ym"
+
+        elif [ ${dumps:0:10} == "kslicedump" ]; then
+            echo "Merging kslicedump along y-direction."
+	    ymparam="v_kslice,ym"
+
+        elif [ ${dumps:0:10} == "islicedump" ]; then
+            echo "Merging islicedump along y-direction."
+	    ymparam="v_islice,ym"
 
         else
             ymparam="ym"
@@ -72,28 +83,64 @@ for file in *dump.*.000.${expnr}.nc ; do
         ${toolsdir}/nco_concatenate_field_y.sh $dumps $ymparam $outfile
         echo "Merging done."
 
+	if [ ${dumps:0:10} == "islicedump" ]; then
+	    # remove procx from name
+            mv $outfile "islicedump.${expnr}.nc"
+    	fi
+
     fi
 
 done
+
+
+#for file in islicedump.???.${expnr}.nc ; do
+#        if [ -f $file ]; then
+#                procy=${file:15:3}
+#                # remove procx from name
+#                mv $file "islicedump.${expnr}.nc"
+#
+#        fi
+#done
+
+
+for file in jslicedump.???.???.${expnr}.nc ; do
+	if [ -f $file ]; then
+		procx=${file:11:3}
+                # remove procy from name
+                cp $file "jslicedump.${procx}.${expnr}.nc"
+	fi
+done
+
 
 for file in *dump.000.${expnr}.nc ; do
 
     if [ -f $file ]; then
 
         ## Gathering fields along spatial axis.
-        echo "Gathering fields along spatial axis."
+        #echo "Gathering fields along spatial axis."
 
         dumps=${file%.000.${expnr}.nc}
 
         if [ $dumps == "fielddump" ]; then
+	    "Merging fielddump along x-direction."
             #xmparam="u,tau_x,xm"
 	    xmparam="u,xm"
 
         elif [ $dumps == "tdump" ]; then
+	    echo "Merging tdump along x-direction."	
             xmparam="ut,upwpt,upvpt,xm"
 
-        elif [ $dumps == "slicedump" ]; then
-            xmparam="u_2,u_20,xm"
+	elif [ $dumps == "mintdump" ]; then
+            echo "Merging mintdump along x-direction."
+	    xmparam="ut,xm"
+
+	elif [ $dumps == "kslicedump" ]; then
+            echo "Merging kslicedump along x-direction."
+            xmparam="u_kslice,xm"
+
+        elif [ $dumps == "jslicedump" ]; then
+            echo "Merging jslicedump along x-direction."
+            xmparam="u_jslice,xm"
 
         else
             xmparam="xm"
@@ -107,6 +154,10 @@ for file in *dump.000.${expnr}.nc ; do
 
         ${toolsdir}/nco_concatenate_field_x.sh $dumps $xmparam $outfile
         echo "Merging done."
+
+	if [ $dumps == "jslicedump" ]; then
+            rm ${dumps}.???.${expnr}.nc
+    	fi
 
     fi
 
