@@ -174,7 +174,8 @@ if r.libm
         facet_sections_c_fromfile = readmatrix([fpath 'facet_sections_c.txt'],'Range', 2);
         facets_used = unique(facet_sections_c_fromfile(:,1));
         facets_unused = setdiff(1:r.nfcts, facets_used);
-        facet_types(facets_unused,1) = 0;
+        %facet_types(facets_unused,1) = 0;
+        dlmwrite(['facets_unused.' r.expnr], facets_unused', 'precision', '%d')
     end
 
     preprocessing.write_facets(r, facet_types, TR.faceNormal);
