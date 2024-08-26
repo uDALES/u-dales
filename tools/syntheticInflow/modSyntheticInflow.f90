@@ -5,35 +5,29 @@
 !!   1) namoptions to read: iexpnr, dtmax,runtime, nprocy, itot,jtot,ktot, xlen,ylen, ltempeq,lmoist
 !!   2) prof.inp. to read z info
 !!
-!!   Note all the below variables should be at cell edges starting from z = 0 to z = zsize. 
-!!   Hence, length(ut) is length(zh)+1. This is true for all the input files (3) to (18).
-!!   Also, the mean shoud be computed along t, x, and y
+!!   Note all the below profiles should be at cell edges starting from z = 0 to z = zsize. 
+!!   Hence, length of the profiles is ktot+1. These are mean profiles averaged along t and y at a given x
 !!
 !!   3) length_time_scales_u.txt --> to read length and time scales of u as function of z.
-!!   4) length_time_scales_v.txt --> to read length and time scales of u as function of z.
-!!   5) length_time_scales_w.txt --> to read length and time scales of u as function of z.
+!!   4) length_time_scales_v.txt --> to read length and time scales of v as function of z.
+!!   5) length_time_scales_w.txt --> to read length and time scales of w as function of z.
 !!
-!!   6) ut.txt    --> to read mean u0 as function of z only.
-!!   7) upup.txt  --> to read mean u'u' as function of z.
-!!   8) upvp.txt  --> to read mean u'v' as function of z.
-!!   9) upwp.txt  --> to read mean u'w' as function of z.
-!!  10) vpvp.txt  --> to read mean v'v' as function of z.
-!!  11) vpwp.txt  --> to read mean v'w' as function of z.
-!!  12) wpwp.txt  --> to read mean w'w' as function of z.
+!!   6) Reynolds_stress_profiles_velocity.txt --> to read z, u0, u'u', u'v', v'v', u'w',
+!!                                                v'w', w'w' as function of z only.
 !!
 !!  IF (ltempeq .eqv. .TRUE.) THEN
-!!      13) length_time_scales_temp.txt --> to read length and time scales of u as function of z.
-!!      14) thlt.txt  --> to read mean temperature (thl0) as function of z.
-!!      15) thlpthlpt.txt  --> to read mean thlpthlp as function of z.
-!!      16) wpthlpt.txt  --> to read mean w'thlp as function of z.
+!!      7) length_time_scales_temp.txt --> to read length and time scales of temp as function of z.
+!!      8) Reynolds_stress_profiles_temp.txt --> to read z, temperature (thl0), u'th', v'th',
+!!												 w'th', th'th' as function of z.
 !!  END IF
 !!
 !!  IF (lmoist .eqv. .TRUE.) THEN
-!!      17) length_time_scales_qt.txt --> to read length and time scales of u as function of z.
-!!      18) qtt.txt  --> to read mean moisture (qt0) as function of z.
+!!      9) length_time_scales_qt.txt --> to read length and time scales of moisture as function of z.
+!!      10) Reynolds_stress_profiles_moist.txt --> to read z, moisture (qt0), u'q', v'q', w'q',
+!!												   th'q', q'q' as function of z.
 !!  END IF
-
-!! For creating the files (3) to (18), one can look at the 'write_Reynolds_stress.m' file inside the
+!!
+!! For creating the files (3) to (10), one can look at the 'write_Reynolds_stress.m' file inside the
 !! 'u-dales/tools/syntheticInflow/' directory.
 
 
@@ -51,15 +45,20 @@ PROGRAM synInflowGen
     INTEGER :: iexpnr
     CHARACTER(3) :: cexpnr
     INTEGER :: ny, nz, nt
-    INTEGER :: itot, jtot, ktot
+    INTEGER :: itot, jtot, ktot, jh, kh
+    INTEGER, PARAMETER :: jb = 1
+    INTEGER, PARAMETER :: kb = 1
+    INTEGER, PARAMETER :: iadv_cd2 = 2
+    INTEGER, PARAMETER :: iadv_fluxlimiter = 5
+    INTEGER, PARAMETER :: iadv_kappa = 7
     INTEGER :: nprocy
     REAL(KIND=dp) :: dt_sig
     REAL(KIND=dp) :: dx, dy, ddy
     REAL(KIND=dp) :: xlen, ylen, runtime, dtmax
-    REAL(KIND=dp), DIMENSION(:), ALLOCATABLE :: yf, yh, zf, zh, ydriver, zdriver, dz, ddz
+    REAL(KIND=dp), DIMENSION(:), ALLOCATABLE :: yf, yh, zf, zh, ydriver, zdriver, dummyz, dz, ddz
     REAL(KIND=dp) :: u_bulk, ztotal
-    LOGICAL :: lcalc_time_and_length_scale = .FALSE.
-    LOGICAL :: lcheck_driver_outputs = .TRUE.
+    LOGICAL :: lcalc_time_and_length_scale = .TRUE.
+    LOGICAL :: lcheck_driver_outputs = .FALSE.
 
     !! ################################################################################
 
@@ -118,6 +117,22 @@ PROGRAM synInflowGen
 
     !! ################################################################################
 
+    LOGICAL :: lwarmstart, lstratstart, ladaptive, libm, lles, lper2inout, lwalldist, lreadmean, &
+               lrandomize, lcoriol, lbuoyancy, lprofforc, lvinf, luoutflowr, lvoutflowr, luvolflowr, &
+               lvvolflowr, lnudge, ltimedepsurf, ltimedepnudge, ltimedeplw, ltimedepsw, lqlnr
+    CHARACTER(90) :: startfile, author
+    REAL :: trestart, randu, randthl, randqt, courant, diffnr, xlat, xlon, xday, xtime, ps, &
+            tscale, dpdx, uflowrate, vflowrate, tnudge
+    INTEGER :: irandom, krand, nprocx, ksp, igrw_damp, ifixuinf, nnudge, ntimedepsurf, ntimedepnudge, &
+               ntimedeplw, ntimedepsw, ipoiss, iadv_mom, iadv_tke, iadv_thl, iadv_qt, iadv_sv, ilimiter
+
+    iadv_mom = iadv_cd2
+    iadv_tke = -1
+    iadv_thl = -1
+    iadv_qt = -1
+
+    !! ################################################################################
+
     CALL read_namelist 
     
     CALL init_synInflowGen
@@ -156,18 +171,8 @@ PROGRAM synInflowGen
         CHARACTER(90) :: chmess
         INTEGER, PARAMETER :: ifinput = 1, ifnamopt = 3
         INTEGER :: ierr, j, k
+        integer :: advarr(4)
 
-        !! ################################################################################
-        LOGICAL :: lwarmstart, lstratstart, ladaptive, libm, lles, lper2inout, lwalldist, lreadmean, lrandomize, &
-                   lcoriol, lbuoyancy, lprofforc, lvinf, luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, lnudge, &
-                   ltimedepsurf, ltimedepnudge, ltimedeplw, ltimedepsw
-        CHARACTER(90) :: startfile, author
-        REAL :: trestart, randu, randthl, randqt, courant, diffnr, xlat, xlon, xday, xtime, ps, tscale, dpdx, &
-                uflowrate, vflowrate, tnudge
-        INTEGER :: irandom, krand, nprocx, ksp, igrw_damp, ifixuinf, nnudge, ntimedepsurf, ntimedepnudge, &
-                   ntimedeplw, ntimedepsw
-        !! ################################################################################
-        
         NAMELIST /RUN/ &
             iexpnr, lwarmstart, lstratstart, startfile, &
             runtime, dtmax, trestart, ladaptive, &
@@ -191,6 +196,12 @@ PROGRAM synInflowGen
             lnudge, tnudge, nnudge, &
             ltimedepsurf, ntimedepsurf, ltimedepnudge, ntimedepnudge, &
             ltimedeplw, ntimedeplw, ltimedepsw, ntimedepsw
+        namelist/DYNAMICS/ &
+            lqlnr, ipoiss, &
+            iadv_mom, iadv_tke, iadv_thl, iadv_qt, iadv_sv, &
+            ilimiter
+        namelist/STG/ &
+            lcalc_time_and_length_scale, lcheck_driver_outputs
 
         IF (COMMAND_ARGUMENT_COUNT() >= 1) THEN
             CALL GET_COMMAND_ARGUMENT(1, fname_options(12:14))
@@ -209,7 +220,6 @@ PROGRAM synInflowGen
                 WRITE(0, *) 'iostat error: ', ierr
                 STOP 1
             END IF
-            ! WRITE(6, DOMAIN)
             REWIND(ifnamopt)
 
             READ(ifnamopt, RUN, IOSTAT=ierr)
@@ -218,7 +228,6 @@ PROGRAM synInflowGen
                 WRITE(0, *) 'iostat error: ', ierr
                 STOP 1
             END IF
-            ! WRITE(6, RUN)
             REWIND(ifnamopt)
 
             READ(ifnamopt, PHYSICS, iostat=ierr)
@@ -227,11 +236,42 @@ PROGRAM synInflowGen
                 WRITE(0, *) 'iostat error: ', ierr
                 STOP 1
             END IF
-            ! WRITE(6, PHYSICS)
+            REWIND(ifnamopt)
+
+            READ (ifnamopt, DYNAMICS, iostat=ierr)
+            IF (ierr > 0) THEN
+                WRITE(0, *) 'ERROR: Problem in namoptions DYNAMICS'
+                WRITE(0, *) 'iostat error: ', ierr
+                STOP 1
+            END IF
+            REWIND(ifnamopt)
+
+            READ (ifnamopt, STG, iostat=ierr)
+            IF (ierr > 0) THEN
+                WRITE(0, *) 'ERROR: Problem in namoptions STG'
+                WRITE(0, *) 'iostat error: ', ierr
+                STOP 1
+            END IF
             REWIND(ifnamopt)
 
         CLOSE(ifnamopt)
         !! ########## namoptions reading is done here. ###########
+
+        IF (iadv_tke < 0) iadv_tke = iadv_mom
+        IF (iadv_thl < 0) iadv_thl = iadv_mom
+        IF (iadv_qt < 0) iadv_qt = iadv_mom
+
+        advarr = (/iadv_mom, iadv_tke, iadv_thl, iadv_qt/)
+        IF (any(advarr == iadv_kappa)) THEN
+            jh = 2
+            kh = 1
+        ELSEIF (any(advarr == iadv_cd2)) THEN
+            jh = 1
+            kh = 1
+        ELSEIF (any(advarr == iadv_fluxlimiter)) THEN
+            jh = 2
+            kh = 2
+        END IF
 
         WRITE(cexpnr,'(i3.3)') iexpnr
         ny = jtot
@@ -242,11 +282,12 @@ PROGRAM synInflowGen
         dy = ylen/REAL(jtot, KIND=dp)
         ddy = 1.0d0/dy
 
-        ALLOCATE( yf(1:jtot), yh(1:jtot), zf(1:ktot), zh(1:ktot), ydriver(0:ny), zdriver(0:nz) )
+        ALLOCATE( yf(jb:jtot), yh(jb:jtot), zf(kb:ktot), zh(kb:ktot), ydriver(0:ny) )
+        ALLOCATE( zdriver(0:nz), dummyz(0:nz) )
         ALLOCATE( dz(0:nz), ddz(0:nz) )
     
-        yf(1:jtot) = [((j-1)*dy+(dy/2.0d0), j=1,jtot)]
-        yh(1:jtot) = [((j-1)*dy, j=1,jtot)]
+        yf(1:jtot) = [((j-1)*dy+(dy/2.0d0), j=jb,jtot)]
+        yh(1:jtot) = [((j-1)*dy, j=jb,jtot)]
         
         OPEN(ifinput, FILE='prof.inp.'//cexpnr,STATUS='OLD',IOSTAT=ierr)
         IF (ierr /= 0) THEN
@@ -255,37 +296,32 @@ PROGRAM synInflowGen
         END IF
         READ(ifinput, '(A72)') chmess
         READ(ifinput, '(A72)') chmess
-        DO k = 1,ktot
+        DO k = kb,ktot
             READ(ifinput, *) zf(k)
         END DO
         CLOSE(ifinput)
 
-        DO k = 1,ktot
-            IF (k==1) THEN
-                zh(k) = 0.0d0;
-            ELSE
-                zh(k) = (zf(k)+zf(k-1))/2.0d0
-            END IF
+        zh(kb) = 0.0d0
+        DO k = kb, ktot-1
+            zh(k + 1) = zh(k) + 2.0d0*(zf(k) - zh(k))
         END DO
-
+        
         ydriver(0:ny-1) = yh(1:jtot)
-        ydriver(ny) = yf(jtot) + (yf(jtot)-yf(jtot-1))/2.0d0
+        ydriver(ny) = jtot*dy
 
-        zdriver(0:nz-1) = zh(1:ktot)
-        zdriver(nz) = zf(ktot) + (zf(ktot)-zf(ktot-1))/2.0d0
+        zdriver(0:nz-1) = zh(kb:ktot)
+        zdriver(nz) = zh(ktot) + 2.0d0*(zf(ktot)-zh(ktot))
 
-        DO k = 0,nz
-            IF (k==nz) THEN
-                dz(k) = zdriver(k)-zdriver(k-1)
-            ELSE
-                dz(k) = zdriver(k+1)-zdriver(k)
-            END IF
+        dz(0) = 2.0d0 * zf(kb) 
+        DO k = 2,nz
+            dz(k-1) = zf(k) - zf(k - 1)
         END DO
+        dz(nz) = 2.0d0 * ( zdriver(nz)-zf(ktot) )
 
         ddz = 1.0d0/dz
 
         ! DO k = 0,nz
-        !     WRITE(*,*) k , " ", zf(k), " ", zh(k), " ", zdriver(k), " ", dz(k)
+        !     WRITE(*,'(i0.3,3x,f8.4,3x,f8.4,3x,f8.4,3x,f8.4)') k, zf(k), zh(k), zdriver(k), dz(k)
         ! END DO
 
         IF (lcheck_driver_outputs) THEN
@@ -320,7 +356,9 @@ PROGRAM synInflowGen
         ALLOCATE( psiu_new(0:ny,0:nz), psiv_new(0:ny,0:nz), psiw_new(0:ny,0:nz) )
 
         ALLOCATE( udriver(0:ny,0:nz), vdriver(0:ny,0:nz), wdriver(0:ny,0:nz) )
-        ALLOCATE( u0(1:jtot,1:ktot), v0(1:jtot,1:ktot), w0(1:jtot,1:ktot) )
+        ALLOCATE( u0(jb-jh:jtot+jh,kb-kh:ktot+kh) )
+        ALLOCATE( v0(jb-jh:jtot+jh,kb-kh:ktot+kh) )
+        ALLOCATE( w0(jb-jh:jtot+jh,kb-kh:ktot+kh) )
         
         IF (ltempeq) THEN
             ALLOCATE( tempmean(0:nz), R41(0:nz), R42(0:nz), R43(0:nz), R44(0:nz) )
@@ -331,7 +369,8 @@ PROGRAM synInflowGen
             ALLOCATE( NtempY2(0:nz), NtempZ2(0:nz) )
             ALLOCATE( psitemp(0:ny,0:nz) )
             ALLOCATE( psitemp_new(0:ny,0:nz) )
-            ALLOCATE( tempdriver(0:ny,0:nz), thl0(1:jtot,1:ktot) )
+            ALLOCATE( tempdriver(0:ny,0:nz) )
+            ALLOCATE( thl0(jb-jh:jtot+jh,kb-kh:ktot+kh) )
         END IF
         
         IF (lmoist) THEN
@@ -343,7 +382,8 @@ PROGRAM synInflowGen
             ALLOCATE( NqtY2(0:nz), NqtZ2(0:nz) )
             ALLOCATE( psiqt(0:ny,0:nz) )
             ALLOCATE( psiqt_new(0:ny,0:nz) )
-            ALLOCATE( qtdriver(0:ny,0:nz), qt0(1:jtot,1:ktot) )
+            ALLOCATE( qtdriver(0:ny,0:nz) )
+            ALLOCATE( qt0(jb-jh:jtot+jh,kb-kh:ktot+kh) )
         END IF
 
         !! ################################################################################
@@ -432,6 +472,7 @@ PROGRAM synInflowGen
 
         INTEGER :: k
         LOGICAL :: lexist
+        CHARACTER(80) chmess
         
         ! REAL(KIND=dp), PARAMETER :: zsize = 0.96d0, u_ABL = 0.348d0, z0 = 0.0009d0, von_K = 0.42d0
         ! REAL(KIND=dp) :: dz_t
@@ -441,9 +482,20 @@ PROGRAM synInflowGen
         !     umean(k) = (u_ABL/von_K) * LOG( ( REAL(k*dz_t,KIND=dp) + z0 ) / z0 )
         ! END DO
         ! !$OMP END PARALLEL DO
-        OPEN(80,FILE='ut.txt')
-            READ(80,*)(umean(k),  k = 0, nz)
-        CLOSE(80)
+
+        INQUIRE(FILE='Reynolds_stress_profiles_velocity.txt',EXIST=lexist)
+        IF (lexist) THEN
+            OPEN(80,FILE='Reynolds_stress_profiles_velocity.txt')
+                READ (80, '(a80)') chmess
+                DO k = 0, nz
+                    READ(80,*) dummyz(k), umean(k), R11(k), R21(k), R22(k), R31(k), R32(k), R33(k)
+                END DO
+            CLOSE(80)
+        ELSE
+            WRITE(*,*) " 'Reynolds_stress_profiles_velocity.txt' does not exist in experiments/", cexpnr, &
+                         '/syntheticInflow_inputs/'
+            STOP 1
+        END IF
 
         ztotal = SUM( dz(1:nz-1) ) + (dz(0) + dz(nz)) / 2.0d0
         u_bulk = SUM( umean(1:nz-1)*dz(1:nz-1) ) + ( umean(0)*dz(0) + umean(nz)*dz(nz) ) / 2.0d0
@@ -451,63 +503,24 @@ PROGRAM synInflowGen
 
         !! ################################################################################
 
-        OPEN(81,FILE='upup.txt')
-            READ(81,*)(R11(k),  k = 0, nz)
-        CLOSE(81)
-        OPEN(82,FILE='upvp.txt')
-            READ(82,*)(R21(k),  k = 0, nz)
-        CLOSE(82)
-        OPEN(83,FILE='vpvp.txt')
-            READ(83,*)(R22(k),  k = 0, nz)
-        CLOSE(83)
-        OPEN(84,FILE='upwp.txt')
-            READ(84,*)(R31(k),  k = 0, nz)
-        CLOSE(84)
-        OPEN(85,FILE='vpwp.txt')
-            READ(85,*)(R32(k),  k = 0, nz)
-        CLOSE(85)
-        OPEN(86,FILE='wpwp.txt')
-            READ(86,*)(R33(k),  k = 0, nz)
-        CLOSE(86)
-
-        !! ################################################################################
-
         IF (ltempeq) THEN
-            OPEN(87,FILE='thlt.txt')
-                READ(87,*)(tempmean(k),  k = 0, nz)
-            CLOSE(87)
-            R41 = 0.0001d0
-            R42 = 0.0001d0
-            R43 = 0.0001d0
-            R44 = 0.0001d0
-            ! OPEN(88,FILE='thlpthlpt.txt')
-            !     READ(88,*)(R43(k),  k = 0, nz)
-            ! CLOSE(88)
-            ! OPEN(89,FILE='wpthlpt.txt')
-            !     READ(89,*)(R44(k),  k = 0, nz)
-            ! CLOSE(89)
-            R41(0) = 0.0d0
-            R42(0) = 0.0d0
-            R43(0) = 0.0d0
-            R44(0) = 0.0d0
+            OPEN(82,FILE='Reynolds_stress_profiles_temp.txt')
+                READ (82, '(a80)') chmess
+                DO k = 0, nz
+                    READ(82,*) dummyz(k), tempmean(k), R41(k), R42(k), R43(k), R44(k)
+                END DO
+            CLOSE(82)
         END IF
         
         !! ################################################################################
 
         IF (lmoist) THEN
-            OPEN(90,FILE='qtt.txt')
-                READ(90,*)(qtmean(k),  k = 0, nz)
-            CLOSE(90)
-            R51 = 0.0001d0
-            R52 = 0.0001d0
-            R53 = 0.0001d0
-            R54 = 0.0001d0
-            R55 = 0.0001d0
-            R51(0) = 0.0d0
-            R52(0) = 0.0d0
-            R53(0) = 0.0d0
-            R54(0) = 0.0d0
-            R55(0) = 0.0d0
+            OPEN(83,FILE='Reynolds_stress_profiles_moist.txt')
+                READ (83, '(a80)') chmess
+                DO k = 0, nz
+                    READ(83,*) dummyz(k), qtmean(k), R51(k), R52(k), R53(k), R54(k), R55(k)
+                END DO
+            CLOSE(83)
         END IF
 
         !! ################################################################################
@@ -521,39 +534,45 @@ PROGRAM synInflowGen
             INQUIRE(FILE='length_time_scales_u.txt',EXIST=lexist)
             IF (lexist) THEN
                 OPEN(91, FILE='length_time_scales_u.txt')
+                READ (91, '(a80)') chmess
                 DO k = 0,nz
-                    READ(91, *) nluy(k), nluz(k), tu_scale(k)
+                    READ(91, *) dummyz(k), nluy(k), nluz(k), tu_scale(k)
                 END DO
                 CLOSE(91)
             ELSE
-                WRITE(*,*) " 'length_time_scales_u.txt' does not exist in the work folder."
+                WRITE(*,*) " 'length_time_scales_u.txt' does not exist in experiments/", cexpnr, &
+                           '/syntheticInflow_inputs/'
                 STOP 1
             END IF
 
             OPEN(92, FILE='length_time_scales_v.txt')
+            READ (92, '(a80)') chmess
             DO k = 0,nz
-                READ(92, *) nlvy(k), nlvz(k), tv_scale(k)
+                READ(92, *) dummyz(k), nlvy(k), nlvz(k), tv_scale(k)
             END DO
             CLOSE(92)
 
             OPEN(93, FILE='length_time_scales_w.txt')
+            READ (93, '(a80)') chmess
             DO k = 0,nz
-                READ(93, *) nlwy(k), nlwz(k), tw_scale(k)
+                READ(93, *) dummyz(k), nlwy(k), nlwz(k), tw_scale(k)
             END DO
             CLOSE(93)
 
             IF (ltempeq) THEN
                 OPEN(94, FILE='length_time_scales_temp.txt')
+                READ (94, '(a80)') chmess
                 DO k = 0,nz
-                    READ(94, *) nltempy(k), nltempz(k), ttemp_scale(k)
+                    READ(94, *) dummyz(k), nltempy(k), nltempz(k), ttemp_scale(k)
                 END DO
                 CLOSE(94)
             END IF
 
             IF (lmoist) THEN
                 OPEN(95, FILE='length_time_scales_qt.txt')
+                READ (95, '(a80)') chmess
                 DO k = 0,nz
-                    READ(95, *) nlqty(k), nlqtz(k), tqt_scale(k)
+                    READ(95, *) dummyz(k), nlqty(k), nlqtz(k), tqt_scale(k)
                 END DO
                 CLOSE(95)
             END IF
@@ -602,6 +621,14 @@ PROGRAM synInflowGen
         tv_scale(0) = tv_scale(1)
         tw_scale(0) = tw_scale(1)
 
+        WRITE(*,*) 'z   nluy    nluz    tu_scale    nlvy    nlvz    tv_scale    nlwy    nlwz    tw_scale'
+        DO k = 0, nz
+            WRITE(*,'(f10.5,4x,i0.3,4x,i0.3,4x,f10.5,4x,i0.3,4x,i0.3,4x,f10.5,4x,i0.3,4x,i0.3,4x,f10.5)') &
+                    zdriver(k), nluy(k), nluz(k), tu_scale(k), &
+                    nlvy(k), nlvz(k), tv_scale(k), &
+                    nlwy(k), nlwz(k), tw_scale(k)
+        END DO
+
         !! ################################################################################
 
         IF (ltempeq) THEN
@@ -617,6 +644,12 @@ PROGRAM synInflowGen
             nltempy(0) = nltempy(1)
             nltempz(0) = nltempz(1)
             ttemp_scale(0) = ttemp_scale(1)
+
+            WRITE(*,*) 'z   nltempy    nltempz    ttemp_scale'
+            DO k = 0, nz
+                WRITE(*,'(f10.5,4x,i0.3,4x,i0.3,4x,f10.5)') &
+                        zdriver(k), nltempy(k), nltempz(k), ttemp_scale(k)
+            END DO
         END IF
 
         !! ################################################################################
@@ -634,6 +667,11 @@ PROGRAM synInflowGen
             nlqty(0) = nlqty(1)
             nlqtz(0) = nlqtz(1)
             tqt_scale(0) = tqt_scale(1)
+
+            WRITE(*,*) 'z   nlqty    nlqtz    tqt_scale'
+            DO k = 0, nz
+                WRITE(*,'(f10.5,4x,i0.3,4x,i0.3,4x,f10.5)') zdriver(k), nlqty(k), nlqtz(k), tqt_scale(k)
+            END DO
         END IF
 
     END SUBROUTINE calc_time_and_length_scale
@@ -676,11 +714,11 @@ PROGRAM synInflowGen
         IF (lmoist) THEN
             !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(k) SCHEDULE(DYNAMIC)
             DO k = 0,nz
-                a51(k) = R51(k)/(a11(k)+1.0E-9)
-                a52(k) = ( R52(k) - a21(k)*a51(k) ) / (a22(k)+1.0E-9)
-                a53(k) = ( R53(k) - a31(k)*a51(k) - a32(k)*a52(k) ) / (a33(k)+1.0E-9)
-                a54(k) = ( R54(k) - a41(k)*a51(k) - a42(k)*a52(k) - a43(k)*a53(k) ) / (a44(k)+1.0E-9)
-                a55(k) = SQRT( ABS( R55(k) - a51(k)*a51(k) - a52(k)*a52(k) - a53(k)*a53(k) - a54(k)*a54(k) ) )
+             a51(k) = R51(k)/(a11(k)+1.0E-9)
+             a52(k) = ( R52(k) - a21(k)*a51(k) ) / (a22(k)+1.0E-9)
+             a53(k) = ( R53(k) - a31(k)*a51(k) - a32(k)*a52(k) ) / (a33(k)+1.0E-9)
+             a54(k) = ( R54(k) - a41(k)*a51(k) - a42(k)*a52(k) - a43(k)*a53(k) ) / (a44(k)+1.0E-9)
+             a55(k) = SQRT( ABS( R55(k) - a51(k)*a51(k) - a52(k)*a52(k) - a53(k)*a53(k) - a54(k)*a54(k) ) )
             END DO
             !$OMP END PARALLEL DO
         END IF
@@ -783,7 +821,6 @@ PROGRAM synInflowGen
         !$OMP END PARALLEL DO
 
         CALL massFluxCorrection
-        CALL bilinear_interp
 
         IF (ltempeq) THEN
 
@@ -828,21 +865,22 @@ PROGRAM synInflowGen
             DO k = 0,nz
                 DO j = 0,ny
                     qtdriver(j,k) = qtmean(k) + a51(k) * psiu(j,k) + a52(k) * psiv(j,k) &
-                                          + a53(k) * psiw(j,k) + a54(k) * psitemp(j,k) + a55(k) * psiqt(j,k)
+                                        + a53(k) * psiw(j,k) + a54(k) * psitemp(j,k) + a55(k) * psiqt(j,k)
                 END DO
             END DO
             !$OMP END PARALLEL DO
 
         END IF
         
-        CALL write_synInflow_driver_file(1)
+        CALL bilinear_interp
+        CALL write_driver(1)
 
         IF (lcheck_driver_outputs) THEN
-            CALL write_driver_file_1(0,ny,0,nz,'u',udriver)
-            CALL write_driver_file_1(0,ny,0,nz,'v',vdriver)
-            CALL write_driver_file_1(0,ny,0,nz,'w',wdriver)
-            IF(ltempeq) CALL write_driver_file_1(0,ny,0,nz,'t',tempdriver)
-            IF(lmoist) CALL write_driver_file_1(0,ny,0,nz,'q',qtdriver)
+            CALL write_driver_txt(0,ny,0,nz,'u',udriver)
+            CALL write_driver_txt(0,ny,0,nz,'v',vdriver)
+            CALL write_driver_txt(0,ny,0,nz,'w',wdriver)
+            IF(ltempeq) CALL write_driver_txt(0,ny,0,nz,'t',tempdriver)
+            IF(lmoist) CALL write_driver_txt(0,ny,0,nz,'q',qtdriver)
         END IF
 
 
@@ -872,8 +910,6 @@ PROGRAM synInflowGen
             !$OMP END PARALLEL DO
 
             CALL massFluxCorrection
-
-            CALL bilinear_interp
             
             IF (ltempeq) THEN
                 CALL calc_psi(NtempY2,NtempZ2,btempy,btempz,psitemp_new)
@@ -895,20 +931,21 @@ PROGRAM synInflowGen
                     DO j = 0,ny
                         psiqt(j,k) = psiqt(j,k)*expqt1(k) + psiqt_new(j,k)*expqt2(k)
                         qtdriver(j,k) = qtmean(k) + a51(k) * psiu(j,k) + a52(k) * psiv(j,k) &
-                                               + a53(k) * psiw(j,k) + a54(k) * psitemp(j,k) + a55(k) * psiqt(j,k)
+                                        + a53(k) * psiw(j,k) + a54(k) * psitemp(j,k) + a55(k) * psiqt(j,k)
                     END DO
                 END DO
                 !$OMP END PARALLEL DO
             END IF
 
-            CALL write_synInflow_driver_file(it+1)
+            CALL bilinear_interp
+            CALL write_driver(it+1)
 
             IF (lcheck_driver_outputs) THEN
-                CALL write_driver_file_1(0,ny,0,nz,'u',udriver)
-                CALL write_driver_file_1(0,ny,0,nz,'v',vdriver)
-                CALL write_driver_file_1(0,ny,0,nz,'w',wdriver)
-                IF(ltempeq) CALL write_driver_file_1(0,ny,0,nz,'t',tempdriver)
-                IF(lmoist) CALL write_driver_file_1(0,ny,0,nz,'q',qtdriver)
+                CALL write_driver_txt(0,ny,0,nz,'u',udriver)
+                CALL write_driver_txt(0,ny,0,nz,'v',vdriver)
+                CALL write_driver_txt(0,ny,0,nz,'w',wdriver)
+                IF(ltempeq) CALL write_driver_txt(0,ny,0,nz,'t',tempdriver)
+                IF(lmoist) CALL write_driver_txt(0,ny,0,nz,'q',qtdriver)
             END IF
 
         END DO
@@ -1017,57 +1054,94 @@ PROGRAM synInflowGen
         INTEGER :: j, k
 
         !$OMP PARALLEL DO COLLAPSE(2) DEFAULT(SHARED) PRIVATE(j,k) SCHEDULE(DYNAMIC,8)
-        DO k = 1,ktot
-            DO j = 1,jtot
-                u0(j,k) = ( ( ( udriver(j-1,k-1) + udriver(j,k-1) ) / 2.0d0 ) &
-                          + ( ( udriver(j-1,k) + udriver(j,k) ) / 2.0d0 ) ) / 2.0d0
+        DO k = kb,ktot
+            DO j = jb,jtot
+                u0(j,k) = ( ( ( udriver(j-1,k-1) + udriver(j,k-1) ) / 2.0d0 ) * dz(k) &
+                          + ( ( udriver(j-1,k) + udriver(j,k) ) / 2.0d0 ) * dz(k-1) ) / ( dz(k) + dz(k-1) )
             END DO
         END DO
         !$OMP END PARALLEL DO
 
         !$OMP PARALLEL DO COLLAPSE(2) DEFAULT(SHARED) PRIVATE(j,k) SCHEDULE(DYNAMIC,8)
-        DO k = 1,ktot
-            DO j = 1,jtot
-                v0(j,k) = ( vdriver(j-1,k-1) + vdriver(j-1,k) ) / 2.0d0
+        DO k = kb,ktot
+            DO j = jb,jtot
+                v0(j,k) = ( vdriver(j-1,k-1) * dz(k) + vdriver(j-1,k) * dz(k-1) ) / ( dz(k) + dz(k-1) )
             END DO
         END DO
         !$OMP END PARALLEL DO
 
         !$OMP PARALLEL DO COLLAPSE(2) DEFAULT(SHARED) PRIVATE(j,k) SCHEDULE(DYNAMIC,8)
-        DO k = 1,ktot
-            DO j = 1,jtot
+        DO k = kb,ktot
+            DO j = jb,jtot
                 w0(j,k) = ( wdriver(j-1,k-1) + wdriver(j,k-1) ) / 2.0d0
             END DO
         END DO
         !$OMP END PARALLEL DO
 
+        DO k = 1,kh
+            u0(:,kb-k) = u0(:,kb-k+1)
+            u0(:,ktot+k) = u0(:,ktot+k-1)
+            v0(:,kb-k) = v0(:,kb-k+1)
+            v0(:,ktot+k) = v0(:,ktot+k-1)
+            w0(:,kb-k) = w0(:,kb-k+1)
+            w0(:,ktot+k) = w0(:,ktot+k-1)
+        END DO
+        DO j = 1,jh
+            u0(jb-j,:) = u0(:,jb-j+1)
+            u0(jtot+j,:) = u0(jtot+j-1,:)
+            v0(jb-j,:) = v0(:,jb-j+1)
+            v0(jtot+j,:) = v0(jtot+j-1,:)
+            w0(jb-j,:) = w0(:,jb-j+1)
+            w0(jtot+j,:) = w0(jtot+j-1,:)
+        END DO
+
         IF (ltempeq) THEN
             !$OMP PARALLEL DO COLLAPSE(2) DEFAULT(SHARED) PRIVATE(j,k) SCHEDULE(DYNAMIC,8)
-            DO k = 1,ktot
-                DO j = 1,jtot
-                    thl0(j,k) = ( ( ( tempdriver(j-1,k-1) + tempdriver(j,k-1) ) / 2.0d0 ) &
-                                   + ( ( tempdriver(j-1,k) + tempdriver(j,k) ) / 2.0d0 ) ) / 2.0d0
+            DO k = kb,ktot
+                DO j = jb,jtot
+                    thl0(j,k) = ( ( ( tempdriver(j-1,k-1) + tempdriver(j,k-1) ) / 2.0d0 ) * dz(k) &
+                                + ( ( tempdriver(j-1,k) + tempdriver(j,k) ) / 2.0d0 ) * dz(k-1) ) &
+                                / ( dz(k) + dz(k-1) )
                 END DO
             END DO
             !$OMP END PARALLEL DO
+
+            DO k = 1,kh
+                thl0(:,kb-k) = thl0(:,kb-k+1)
+                thl0(:,ktot+k) = thl0(:,ktot+k-1)
+            END DO
+            DO j = 1,jh
+                thl0(jb-j,:) = thl0(:,jb-j+1)
+                thl0(jtot+j,:) = thl0(jtot+j-1,:)
+            END DO
         END IF
 
         IF (lmoist) THEN
             !$OMP PARALLEL DO COLLAPSE(2) DEFAULT(SHARED) PRIVATE(j,k) SCHEDULE(DYNAMIC,8)
-            DO k = 1,ktot
-                DO j = 1,jtot
-                    qt0(j,k) = ( ( ( qtdriver(j-1,k-1) + qtdriver(j,k-1) ) / 2.0d0 ) &
-                               + ( ( qtdriver(j-1,k) + qtdriver(j,k) ) / 2.0d0 ) ) / 2.0d0
+            DO k = kb,ktot
+                DO j = jb,jtot
+                    qt0(j,k) = ( ( ( qtdriver(j-1,k-1) + qtdriver(j,k-1) ) / 2.0d0 ) * dz(k) &
+                               + ( ( qtdriver(j-1,k) + qtdriver(j,k) ) / 2.0d0 ) * dz(k-1) ) &
+                               / ( dz(k) + dz(k-1) )
                 END DO
             END DO
             !$OMP END PARALLEL DO
+
+            DO k = 1,kh
+                qt0(:,kb-k) = qt0(:,kb-k+1)
+                qt0(:,ktot+k) = qt0(:,ktot+k-1)
+            END DO
+            DO j = 1,jh
+                qt0(jb-j,:) = qt0(:,jb-j+1)
+                qt0(jtot+j,:) = qt0(jtot+j-1,:)
+            END DO
         END IF
 
     END SUBROUTINE bilinear_interp
 
 
 
-    SUBROUTINE write_driver_file_1(js,je,ks,ke,ch,vel)
+    SUBROUTINE write_driver_txt(js,je,ks,ke,ch,vel)
         IMPLICIT NONE
 
         INTEGER, INTENT(IN) :: js,je,ks,ke
@@ -1088,7 +1162,7 @@ PROGRAM synInflowGen
         ELSE
             OPEN(UNIT=file_unit,FILE=filename,FORM='FORMATTED',STATUS='REPLACE', &
                     POSITION='APPEND',ACTION='WRITE',IOSTAT=ios)
-            IF (IOS > 0) WRITE(6,*) 'IOS = ',IOS,' while creating ',filename,' in write_driver_file_1'
+            IF (IOS > 0) WRITE(6,*) 'IOS = ',IOS,' while creating ',filename,' in write_driver_txt'
         END IF
         DO k = ks,ke
             DO j = js,je
@@ -1097,11 +1171,11 @@ PROGRAM synInflowGen
         END DO
         CLOSE(UNIT=file_unit)
 
-    END SUBROUTINE write_driver_file_1
+    END SUBROUTINE write_driver_txt
 
 
 
-    SUBROUTINE write_synInflow_driver_file(nstepdriver)
+    SUBROUTINE write_driver(nstepdriver)
         IMPLICIT NONE
 
         INTEGER, INTENT(IN) :: nstepdriver
@@ -1114,7 +1188,6 @@ PROGRAM synInflowGen
         CHARACTER(15) :: name
         CHARACTER(3) :: cdriverid
         LOGICAL :: lexist
-        ! use decomp_2d, only : zstart, zend
         
         IF (MOD(jtot,nprocy)/=0) THEN
             WRITE(*,*) "ERROR !! jtot must be divisible by nprocy; give correct input parameters."
@@ -1122,7 +1195,6 @@ PROGRAM synInflowGen
         END IF
         y_driver_len = jtot/nprocy
         tdriverstart = 0.0d0 * dt_sig
-
 
         IF (nstepdriver==1) THEN
             WRITE(6,*) '=================================================================='
@@ -1161,7 +1233,7 @@ PROGRAM synInflowGen
         WRITE(*,*) 'Driver time:' , timee-tdriverstart
 
 
-        INQUIRE(IOLENGTH=filesizev)u0(:,:)
+        INQUIRE(IOLENGTH=filesizev)u0(jb-jh:y_driver_len+jh,:)
         
         DO driverid = 0,nprocy-1
             
@@ -1180,8 +1252,7 @@ PROGRAM synInflowGen
                 OPEN(UNIT=11,FILE=name,FORM='UNFORMATTED',STATUS='REPLACE',ACCESS='DIRECT', &
                         RECL=filesizev,ACTION='WRITE')
             END IF
-            WRITE(11,REC=nstepdriver) (u0(y_driver_len*driverid+1:y_driver_len*(driverid+1),:))
-            ! WRITE(11,REC=nstepdriver) (u0(zstart(2):zend(2),:))
+            WRITE(11,REC=nstepdriver) (u0(y_driver_len*driverid+1-jh:y_driver_len*(driverid+1)+jh,:))
             CLOSE(UNIT=11)
 
             name = 'vdriver_   .'
@@ -1197,8 +1268,7 @@ PROGRAM synInflowGen
                 OPEN(UNIT=11,FILE=name,FORM='UNFORMATTED',STATUS='REPLACE',ACCESS='DIRECT', &
                         RECL=filesizev,ACTION='WRITE')
             END IF
-            WRITE(11,REC=nstepdriver) (v0(y_driver_len*driverid+1:y_driver_len*(driverid+1),:))
-            ! WRITE(11,REC=nstepdriver) (v0(zstart(2):zend(2),:))
+            WRITE(11,REC=nstepdriver) (v0(y_driver_len*driverid+1-jh:y_driver_len*(driverid+1)+jh,:))
             CLOSE (UNIT=11)
 
             name = 'wdriver_   .'
@@ -1214,8 +1284,7 @@ PROGRAM synInflowGen
                 OPEN(UNIT=11,FILE=name,FORM='UNFORMATTED',STATUS='REPLACE',ACCESS='DIRECT', &
                         RECL=filesizev,ACTION='WRITE')
             END IF
-            WRITE(11,REC=nstepdriver) (w0(y_driver_len*driverid+1:y_driver_len*(driverid+1),:))
-            ! WRITE(11,REC=nstepdriver) (w0(zstart(2):zend(2),:))
+            WRITE(11,REC=nstepdriver) (w0(y_driver_len*driverid+1-jh:y_driver_len*(driverid+1)+jh,:))
             CLOSE(UNIT=11)
 
             IF (ltempeq) THEN
@@ -1232,8 +1301,7 @@ PROGRAM synInflowGen
                     OPEN(UNIT=11,FILE=name,FORM='UNFORMATTED',STATUS='REPLACE',ACCESS='DIRECT', &
                             RECL=filesizev,ACTION='WRITE')
                 END IF
-                WRITE(11,REC=nstepdriver) (thl0(y_driver_len*driverid+1:y_driver_len*(driverid+1),:))
-                ! WRITE(11,REC=nstepdriver) (thl0(zstart(2):zend(2),:))
+                WRITE(11,REC=nstepdriver) (thl0(y_driver_len*driverid+1-jh:y_driver_len*(driverid+1)+jh,:))
                 CLOSE (UNIT=11)
             END IF
 
@@ -1251,219 +1319,18 @@ PROGRAM synInflowGen
                     OPEN(UNIT=11,FILE=name,FORM='UNFORMATTED',STATUS='REPLACE',ACCESS='DIRECT', &
                             RECL=filesizev,ACTION='WRITE')
                 END IF
-                ! write(ifoutput)  (((storew0driver (j,k,n),j=jb,je),k=kb,ke+1),n=1,nstore)
-                WRITE(11,REC=nstepdriver) (qt0(y_driver_len*driverid+1:y_driver_len*(driverid+1),:))
-                ! WRITE(11,REC=nstepdriver) (qt0(zstart(2):zend(2),:))
+                
+                WRITE(11,REC=nstepdriver) (qt0(y_driver_len*driverid+1-jh:y_driver_len*(driverid+1)+jh,:))
                 CLOSE (UNIT=11)
             END IF
 
         END DO
 
-    END SUBROUTINE write_synInflow_driver_file
+    END SUBROUTINE write_driver
 
-
-
-    SUBROUTINE read_synInflow_driver_file
-        IMPLICIT NONE
-
-        REAL(KIND=dp), DIMENSION(:), ALLOCATABLE :: storetdriver
-        REAL(KIND=dp), DIMENSION(:,:,:), ALLOCATABLE :: storeu0driver, storev0driver, storew0driver
-        REAL(KIND=dp), DIMENSION(:,:,:), ALLOCATABLE :: storethl0driver, storeqt0driver
-        REAL(KIND=dp) :: tdriverstart, timee
-        CHARACTER(15) :: name
-        CHARACTER(3) :: cdriverid
-        INTEGER :: driverjobnr
-        INTEGER :: ios, driverid, filesize
-        INTEGER :: driverstore, nstepdriver, y_driver_len, j, k
-
-        INTEGER :: BCxT, BCxT_driver
-
-        y_driver_len = (ny+1)/nprocy
-        driverstore = nt+1
-        driverjobnr = iexpnr
-        tdriverstart = 0.0d0 * dt_sig
-        timee = 0
-
-        IF (ltempeq) BCxT = 0
-        IF (ltempeq) BCxT_driver = 0
-
-        ALLOCATE( storetdriver(1:driverstore), storeu0driver(1:jtot,1:ktot,1:driverstore), &
-                  storev0driver(1:jtot,1:ktot,1:driverstore), storew0driver(1:jtot,1:ktot,1:driverstore) )
-        IF (ltempeq .AND. (BCxT == BCxT_driver)) ALLOCATE( storethl0driver(1:jtot,1:ktot,1:driverstore) )
-        IF (lmoist) ALLOCATE( storeqt0driver(1:jtot,1:ktot,1:driverstore) )
-        
-        WRITE(*,*) '========================================================================'
-        WRITE(*,*) '*** Reading precursor driver simulation ***'
-        
-        !##############################################################################################
-        name = 'tdriver_   .'
-        name(9:11) = '000'
-        WRITE(name(13:15),'(i3.3)') driverjobnr
-
-        INQUIRE(FILE=name,SIZE=filesize)
-
-        WRITE(6,*) 'Reading time stamps: ', name
-        WRITE(6,*) 'driverstore: ', driverstore
-        WRITE(6,*) 'File size of time in bytes (/8) = ', filesize
-        
-        INQUIRE(IOLENGTH=filesize)(timee-tdriverstart)
-        OPEN(UNIT=11,FILE=name,FORM='UNFORMATTED',STATUS='OLD',ACCESS='DIRECT', &
-                    RECL=filesize,ACTION='READ',IOSTAT=ios)
-        IF (IOS > 0) THEN
-            WRITE(6,*) 'IOS = ',ios,' while openning ',name,' for reading driver data in modSynInflowGen'
-        END IF
-        DO nstepdriver = 1,driverstore
-            READ(11, REC=nstepdriver, IOSTAT=ios) storetdriver(nstepdriver)
-            IF (ios>0) THEN
-                WRITE(6,*) 'IOS = ',ios,' while reading ',name,' in modSynInflowGen'
-            ELSEIF (IOS<0) THEN
-                WRITE(6,*) 'n =', nstepdriver
-            END IF
-            WRITE(6,'(A,e20.12)') ' Reading t:', storetdriver(nstepdriver)    
-        END DO
-        storetdriver = storetdriver + timee ! in case using a warmstart...
-        CLOSE(UNIT=11)
-
-        !##############################################################################################
-        DO driverid = 0,nprocy-1
-                
-            WRITE(cdriverid,'(I3.3)') driverid
-        
-            name = 'udriver_   .'
-            name(9:11) = cdriverid
-            WRITE(name(13:15),'(i3.3)') driverjobnr
-            WRITE(6,*) 'Reading Driver u-velocity: ', name
-            INQUIRE(IOLENGTH=filesize)storeu0driver(:,:,0)
-            IF (driverid==0) WRITE(6,*) 'record length ',filesize
-            OPEN(UNIT=11,FILE=name,FORM='UNFORMATTED',STATUS='OLD',ACCESS='DIRECT', &
-                         RECL=filesize,ACTION='READ')
-            DO nstepdriver = 1,driverstore
-                READ(11,REC=nstepdriver) &
-                ((storeu0driver(j,k,nstepdriver),j=y_driver_len*driverid+1,y_driver_len*(driverid+1)),k=1,ktot)
-            END DO
-            CLOSE(UNIT=11)
-
-            name = 'vdriver_   .'
-            name(9:11) = cdriverid
-            WRITE(name(13:15),'(i3.3)') driverjobnr
-            WRITE(6,*) 'Reading Driver v-velocity: ', name
-            OPEN(UNIT=11,FILE=name,FORM='UNFORMATTED',STATUS='OLD',ACCESS='DIRECT', &
-                         RECL=filesize,ACTION='READ')
-            DO nstepdriver = 1,driverstore
-                READ(11,REC=nstepdriver) &  !((storev0driver (j,k,n),j=jb-jh,je+jh),k=kb-kh,ke+kh)
-                ((storev0driver(j,k,nstepdriver),j=y_driver_len*driverid+1,y_driver_len*(driverid+1)),k=1,ktot)
-            END DO
-            CLOSE(UNIT=11)
-
-            name = 'wdriver_   .'
-            name(9:11) = cdriverid
-            WRITE(name(13:15),'(i3.3)') driverjobnr
-            WRITE(6,*) 'Reading Driver w-velocity: ', name
-            OPEN(UNIT=11,FILE=name,FORM='UNFORMATTED',STATUS='OLD',ACCESS='DIRECT', &
-                         RECL=filesize,ACTION='READ')
-            DO nstepdriver = 1,driverstore
-                READ(11,REC=nstepdriver) &  !((storew0driver (j,k,n),j=jb-jh,je+jh),k=kb-kh,ke+kh)
-                ((storew0driver(j,k,nstepdriver),j=y_driver_len*driverid+1,y_driver_len*(driverid+1)),k=1,ktot)
-            END DO
-            CLOSE(UNIT=11)
-
-            IF (ltempeq .AND. (BCxT == BCxT_driver)) THEN
-                name = 'hdriver_   .'
-                name(9:11) = cdriverid
-                WRITE(name(13:15),'(i3.3)') driverjobnr
-                WRITE(6,*) 'Reading Driver temperature: ', name
-                OPEN(UNIT=11,FILE=name,FORM='UNFORMATTED',STATUS='OLD',ACCESS='DIRECT', &
-                             RECL=filesize,ACTION='READ')
-                DO nstepdriver = 1,driverstore
-                    READ(11,REC=nstepdriver) &  !((storethl0driver (j,k,n),j=jb-jh,je+jh),k=kb-kh,ke+kh)
-                    ((storethl0driver(j,k,nstepdriver),j=y_driver_len*driverid+1,y_driver_len*(driverid+1)),k=1,ktot)
-                END DO
-                CLOSE(UNIT=11)
-            END IF
-            
-            IF (lmoist) THEN
-                name = 'qdriver_   .'
-                name(9:11)= cdriverid
-                WRITE(name(13:15),'(i3.3)') driverjobnr
-                WRITE(6,*) 'Reading Driver moisture: ', name
-                OPEN(UNIT=11,FILE=name,FORM='UNFORMATTED',STATUS='OLD',ACCESS='DIRECT', &
-                             RECL=filesize,ACTION='READ')
-                DO nstepdriver = 1,driverstore
-                    READ(11,REC=nstepdriver) &  !((storeqt0driver (j,k,n),j=jb-jh,je+jh),k=kb-kh,ke+kh)
-                    ((storeqt0driver(j,k,nstepdriver),j=y_driver_len*driverid+1,y_driver_len*(driverid+1)),k=1,ktot)
-                END DO
-                CLOSE(UNIT=11)
-            END IF
-
-        END DO
-        
-        !$OMP PARALLEL DEFAULT(SHARED) NUM_THREADS(5)
-            !$OMP SECTIONS
-
-                !$OMP SECTION
-                !$    CALL write_driver_file(1,jtot,1,ktot,1,driverstore,'a',storeu0driver,OMP_GET_THREAD_NUM())
-
-                !$OMP SECTION
-                !$    CALL write_driver_file(1,jtot,1,ktot,1,driverstore,'b',storev0driver,OMP_GET_THREAD_NUM())
-
-                !$OMP SECTION
-                !$    CALL write_driver_file(1,jtot,1,ktot,1,driverstore,'c',storew0driver,OMP_GET_THREAD_NUM())
-
-                !$OMP SECTION
-                !$    IF (ltempeq .AND. (BCxT == BCxT_driver)) THEN
-                !$        CALL write_driver_file(1,jtot,1,ktot,1,driverstore,'d',storethl0driver,OMP_GET_THREAD_NUM())
-                !$    END IF
-
-                !$OMP SECTION
-                !$    IF (lmoist) CALL write_driver_file(1,jtot,1,ktot,1,driverstore,'e',storeqt0driver,OMP_GET_THREAD_NUM())
-
-            !$OMP END SECTIONS
-        !$OMP END PARALLEL
-        
-        ! CALL write_driver_file(1,jtot,1,ktot,1,driverstore,'a',storeu0driver,10)
-        ! CALL write_driver_file(1,jtot,1,ktot,1,driverstore,'b',storev0driver,10)
-        ! CALL write_driver_file(1,jtot,1,ktot,1,driverstore,'c',storew0driver,10)
-        ! IF (ltempeq .AND. (BCxT == BCxT_driver)) THEN
-        !     CALL write_driver_file(1,jtot,1,ktot,1,driverstore,'d',storethl0driver,10)
-        ! END IF
-        ! IF (lmoist) CALL write_driver_file(1,jtot,1,ktot,1,driverstore,'e',storeqt0driver,10)
-
-        DEALLOCATE( storetdriver,storeu0driver,storev0driver,storew0driver )
-        IF (ltempeq .AND. (BCxT == BCxT_driver)) DEALLOCATE( storethl0driver )
-        IF (lmoist) DEALLOCATE( storeqt0driver )
-
-    END SUBROUTINE read_synInflow_driver_file
-
-    SUBROUTINE write_driver_file(js,je,ks,ke,ts,te,ch,vel,fileID)
-        IMPLICIT NONE
-
-        INTEGER, INTENT(IN) :: js,je,ks,ke,ts,te, fileID
-        CHARACTER, INTENT(IN) :: ch
-        REAL(KIND=dp), DIMENSION(js:je,ks:ke,ts:te), INTENT(IN) :: vel
-
-        INTEGER :: j, k, it
-        CHARACTER*12 :: filename
-
-        filename = ch // "_driver.txt"
-        
-        OPEN(UNIT=fileID,FILE=filename)
-        DO it = ts,te
-            DO k = ks,ke
-                DO j = js,je
-                    WRITE(UNIT=fileID,FMT='(f15.10,x)',ADVANCE='NO') vel(j,k,it)
-                END DO
-            END DO
-            WRITE(UNIT=fileID,FMT='(A)',ADVANCE='NO') NEW_LINE('a')
-        END DO
-        CLOSE(UNIT=fileID)
-
-        WRITE(*,*) filename, " written successfully."
-    END SUBROUTINE write_driver_file
 
     SUBROUTINE finish_synInflowGen
         IMPLICIT NONE
-
-        ! CALL read_synInflow_driver_file
 
         DEALLOCATE( seed )
         DEALLOCATE( dz, ddz, yf, yh, zf, zh, ydriver, zdriver )
@@ -1476,7 +1343,8 @@ PROGRAM synInflowGen
         DEALLOCATE( buy, buz, bvy, bvz, bwy, bwz )
         DEALLOCATE( psiu, psiv, psiw )
         DEALLOCATE( psiu_new, psiv_new, psiw_new )
-        DEALLOCATE( udriver, vdriver, wdriver, u0, v0, w0 )
+        DEALLOCATE( udriver, vdriver, wdriver )
+        DEALLOCATE( u0, v0, w0 )
 
         IF (ltempeq) THEN
             DEALLOCATE( tempmean, R41, R42, R43, R44 )
@@ -1488,7 +1356,8 @@ PROGRAM synInflowGen
             DEALLOCATE( btempy, btempz )
             DEALLOCATE( psitemp )
             DEALLOCATE( psitemp_new )
-            DEALLOCATE( tempdriver, thl0 )
+            DEALLOCATE( tempdriver )
+            DEALLOCATE( thl0 )
         END IF
 
         IF (lmoist) THEN
@@ -1501,7 +1370,8 @@ PROGRAM synInflowGen
             DEALLOCATE( bqty, bqtz )
             DEALLOCATE( psiqt )
             DEALLOCATE( psiqt_new )
-            DEALLOCATE( qtdriver, qt0 )
+            DEALLOCATE( qtdriver )
+            DEALLOCATE( qt0 )
         END IF
 
         WRITE(*,*) "Synthetic inflow generator completed successfully."

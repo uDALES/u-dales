@@ -66,7 +66,7 @@ echo "Starting job for case $exp..."
 
 ## copy files to output directory
 mkdir -p $outdir
-cp ./* $outdir
+cp -r ./* $outdir
 
 ## go to execution and output directory
 pushd $outdir

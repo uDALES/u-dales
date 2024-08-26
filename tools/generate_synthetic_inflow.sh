@@ -90,9 +90,9 @@ if [ case==1 ]; then
 
 	## cleaning work dircetory
 	rm -f synInflow_executable
-	rm -f ut.txt upup.txt upvp.txt upwp.txt vpvp.txt vpwp.txt wpwp.txt
-	rm -f thlt.txt thlpthlpt.txt wpthlpt.txt
-	rm -f qtt.txt
+	rm -f Reynolds_stress_profiles_velocity.txt
+	rm -f Reynolds_stress_profiles_temp.txt
+	rm -f Reynolds_stress_profiles_moist.txt
 	rm -f length_time_scales_u.txt length_time_scales_v.txt length_time_scales_w.txt
 	rm -f length_time_scales_temp.txt length_time_scales_qt.txt
 	

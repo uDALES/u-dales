@@ -2,21 +2,29 @@ clear all;
 
 global ny nz nt dt_sig dy dz H u_H ltemp lmoist
 
-expstr = '799';
-DA_EXPDIR = 'D:/Postdoc1/simulation/testu2/experiments';
-DA_TOOLSDIR = 'D:/Postdoc1/simulation/testu2/u-dales/tools';
+expstr = '980';
+DA_EXP = 'D:/Postdoc1/simulation/ecse1/experiments';
+DA_WORK = 'D:/Postdoc1/simulation/ecse1/outputs';
+DA_TOOLSDIR = 'D:/Postdoc1/simulation/ecse1/u-dales/tools';
 
-nly = 4; nlz = 4; nlt = 25; nltw = 35;
-dy = 1.8/128; dz = 0.96/128;
-H = 0.16; u_H = 4.3;
-ltemp = true; lmoist = true;
+nly = 4; nlz = 4; 
+nlt = 25; nltu = 25; nltv = 25; nltw = 35;      %t_scale/dtmax
 
-ny = 257; nz = 129; nt = 2501; dt_sig = 0.02;  % jtot+1; ktot+1; ceil(runtime/dtmax)+1; dtmax;
+ylen = 1.8; zsize = 0.96; 
+jtot = 64; ktot = 32;
+dtmax = 0.02; runtime = 20.0;
+ltemp = false; lmoist = false;
+
+H = 0.16; u_H = 4.1;
+
+ny = jtot+1; nz = ktot+1; nt = ceil(runtime/dtmax)+1; dt_sig = dtmax;
+dy = ylen/jtot;
+dz = zsize/ktot;
 
 %%
 addpath([DA_TOOLSDIR '/syntheticInflow']);
-synInput_path = [DA_EXPDIR '/' expstr '/syntheticInflow_inputs/'];
-cd([DA_EXPDIR '/' expstr]);
+synInput_path = [DA_EXP '/' expstr '/syntheticInflow_inputs/'];
+cd([DA_WORK '/' expstr]);
 %%
 
 fileID = fopen('z_driver.txt','r');
@@ -53,17 +61,19 @@ clear w_driver
 
 %%
 
-postProcess_func.easy_statistics(synInput_path,'upup.txt',z_driver,u,u,zt)
-postProcess_func.easy_statistics(synInput_path,'upvp.txt',z_driver,u,v,zt)
-postProcess_func.easy_statistics(synInput_path,'upwp.txt',z_driver,u,w,zm)
-postProcess_func.easy_statistics(synInput_path,'vpvp.txt',z_driver,v,v,zt)
-postProcess_func.easy_statistics(synInput_path,'vpwp.txt',z_driver,v,w,zm)
-postProcess_func.easy_statistics(synInput_path,'wpwp.txt',z_driver,w,w,zt)
+profile_vel = readmatrix([synInput_path 'Reynolds_stress_profiles_velocity.txt'],'Range', 2);
+
+postProcess_func.easy_statistics('upup',profile_vel(:,1),profile_vel(:,2),profile_vel(:,3),u,u,zt)
+postProcess_func.easy_statistics('upvp',profile_vel(:,1),profile_vel(:,2),profile_vel(:,4),u,v,zt)
+postProcess_func.easy_statistics('vpvp',profile_vel(:,1),profile_vel(:,2),profile_vel(:,5),v,v,zt)
+postProcess_func.easy_statistics('upwp',profile_vel(:,1),profile_vel(:,2),profile_vel(:,6),u,w,zm)
+postProcess_func.easy_statistics('vpwp',profile_vel(:,1),profile_vel(:,2),profile_vel(:,7),v,w,zm)
+postProcess_func.easy_statistics('wpwp',profile_vel(:,1),profile_vel(:,2),profile_vel(:,8),w,w,zt)
 
 %%
 
-postProcess_func.plot_autocorr_t(nlt,u,'u');
-postProcess_func.plot_autocorr_t(nlt,v,'v');
+postProcess_func.plot_autocorr_t(nltu,u,'u');
+postProcess_func.plot_autocorr_t(nltv,v,'v');
 postProcess_func.plot_autocorr_t(nltw,w,'w');
 
 %%
