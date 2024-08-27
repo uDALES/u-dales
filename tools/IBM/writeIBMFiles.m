@@ -1094,22 +1094,22 @@ if lmypolyfortran
 end
 
 %% Plot
-figure
+% figure
+% 
+% patch('Faces', TR.ConnectivityList, 'Vertices', TR.Points, 'FaceColor', ones(3,1)*0.85, 'FaceAlpha', 1)
+% hold on
+% incenters = TR.incenter;
+% faceNormals = TR.faceNormal;
+% %quiver3(incenters(:,1), incenters(:,2), incenters(:,3), faceNormals(:,1), faceNormals(:,2), faceNormals(:,3), 0)
+% view(3)
+% 
+% axis equal tight
 
-patch('Faces', TR.ConnectivityList, 'Vertices', TR.Points, 'FaceColor', ones(3,1)*0.85, 'FaceAlpha', 1)
-hold on
-incenters = TR.incenter;
-faceNormals = TR.faceNormal;
-%quiver3(incenters(:,1), incenters(:,2), incenters(:,3), faceNormals(:,1), faceNormals(:,2), faceNormals(:,3), 0)
-view(3)
+% % xlim([0 xsize])
+% % ylim([0 ysize])
+% % zlim([0 zsize])
 
-axis equal tight
-
-% xlim([0 xsize])
-% ylim([0 ysize])
-% zlim([0 zsize])
-
-% Uncomment to view solid points
+% %%Uncomment to view solid points
 %if isempty(solid_IB_ijk_u)
 %    scatter3(xgrid_u([]),ygrid_u([]),zgrid_u([]),10,[0,0,1],'filled')
 %else
@@ -1131,7 +1131,7 @@ axis equal tight
 %    scatter3(xgrid_c(solid_ijk_c(:,1)),ygrid_c(solid_ijk_c(:,2)),zgrid_c(solid_ijk_c(:,3)),10,[0,0,1],'filled')
 %end
 
-% Uncomment to view fluid boundary points
+% %%Uncomment to view fluid boundary points
 %scatter3(fluid_IB_xyz_u(:,1),fluid_IB_xyz_u(:,2),fluid_IB_xyz_u(:,3),10,[0,0,1],'filled')
 %scatter3(fluid_IB_xyz_v(:,1),fluid_IB_xyz_v(:,2),fluid_IB_xyz_v(:,3),10,[0,0,1],'filled')
 %scatter3(fluid_IB_xyz_w(:,1),fluid_IB_xyz_w(:,2),fluid_IB_xyz_w(:,3),10,[0,0,1],'filled')
