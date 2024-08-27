@@ -23,7 +23,7 @@ if (( $# == 1 )) ; then
     datapath=$1
     expnr="${datapath: -3}"  ## set experiment number via path
 else
-	echo "error: call scipt as `basename $0` experiment-directory."
+	echo "error: call script as `basename $0` experiment-directory."
 	exit 0
 fi
 
@@ -34,33 +34,42 @@ popd > /dev/null
 toolsdir=${scriptdir}  # assume same directory for nco_concatenate_field.sh
 
 if [ -z $LOCAL_EXECUTE ]; then
-    echo "cluster"
-    module load intel-suite udunits nco/4.6.2
+    module load nco gsl
 fi;
 
 ## go to files directory
 cd ${datapath}
 
 ## call loop for *DUMPS
-
-for file in *dump.000.${expnr}.nc ; do
-
+for file in *dump.*.000.${expnr}.nc ; do
     if [ -f $file ]; then
 
         ## Gathering fields along spatial axis.
-        echo "Gathering fields along spatial axis."
+        #echo "Gathering fields along spatial axis."
 
         dumps=${file%.000.${expnr}.nc}
 
-        if [ $dumps == "fielddump" ]; then
-            # ymparam="ym"
-            ymparam="v,ym"
+        if [ ${dumps:0:9} == "fielddump" ]; then
+            echo "Merging fielddump along y-direction."
+	    #ymparam="v,tau_y,ym"
+	    ymparam="v,ym"
 
-        elif [ $dumps == "tdump" ]; then
-            ymparam="vt,vpwpt,upvpt,ym"
+        elif [ ${dumps:0:5} == "tdump" ]; then
+            echo "Merging tdump along y-direction."
+	    ymparam="vt,vpwpt,upvpt,ym"
 
-        elif [ $dumps == "slicedump" ]; then
-            ymparam="v_2,v_20,ym"
+        elif [ ${dumps:0:8} == "mintdump" ]; then
+            echo "Merging mintdump along y-direction."
+	    ymparam="vt,ym"
+
+        elif [ ${dumps:0:10} == "kslicedump" ]; then
+            echo "Merging kslicedump along y-direction."
+	    ymparam="v_kslice,ym"
+
+        elif [ ${dumps:0:10} == "islicedump" ]; then
+            echo "Merging islicedump along y-direction."
+	    ymparam="v_islice,ym"
+
         else
             ymparam="ym"
         fi
@@ -71,13 +80,91 @@ for file in *dump.000.${expnr}.nc ; do
         echo "Gathering ${dumps} files with ym-dependent variables ${ymparam}."
         echo "Saving output to ${outfile}."
 
-        ${toolsdir}/nco_concatenate_field.sh $dumps $ymparam $outfile
+        ${toolsdir}/nco_concatenate_field_y.sh $dumps $ymparam $outfile
         echo "Merging done."
+
+	if [ ${dumps:0:10} == "islicedump" ]; then
+	    # remove procx from name
+            mv $outfile "islicedump.${expnr}.nc"
+    	fi
 
     fi
 
 done
 
+
+#for file in islicedump.???.${expnr}.nc ; do
+#        if [ -f $file ]; then
+#                procy=${file:15:3}
+#                # remove procx from name
+#                mv $file "islicedump.${expnr}.nc"
+#
+#        fi
+#done
+
+
+for file in jslicedump.???.???.${expnr}.nc ; do
+	if [ -f $file ]; then
+		procx=${file:11:3}
+                # remove procy from name
+                cp $file "jslicedump.${procx}.${expnr}.nc"
+	fi
+done
+
+
+for file in *dump.000.${expnr}.nc ; do
+
+    if [ -f $file ]; then
+
+        ## Gathering fields along spatial axis.
+        #echo "Gathering fields along spatial axis."
+
+        dumps=${file%.000.${expnr}.nc}
+
+        if [ $dumps == "fielddump" ]; then
+	    "Merging fielddump along x-direction."
+            #xmparam="u,tau_x,xm"
+	    xmparam="u,xm"
+
+        elif [ $dumps == "tdump" ]; then
+	    echo "Merging tdump along x-direction."	
+            xmparam="ut,upwpt,upvpt,xm"
+
+	elif [ $dumps == "mintdump" ]; then
+            echo "Merging mintdump along x-direction."
+	    xmparam="ut,xm"
+
+	elif [ $dumps == "kslicedump" ]; then
+            echo "Merging kslicedump along x-direction."
+            xmparam="u_kslice,xm"
+
+        elif [ $dumps == "jslicedump" ]; then
+            echo "Merging jslicedump along x-direction."
+            xmparam="u_jslice,xm"
+
+        else
+            xmparam="xm"
+        fi
+
+        outfile="${dumps}.${expnr}.nc"
+
+        echo "We are in ${datapath}."
+        echo "Gathering ${dumps} files with xm-dependent variables ${xmparam}."
+        echo "Saving output to ${outfile}."
+
+        ${toolsdir}/nco_concatenate_field_x.sh $dumps $xmparam $outfile
+        echo "Merging done."
+
+	if [ $dumps == "jslicedump" ]; then
+            rm ${dumps}.???.${expnr}.nc
+    	fi
+
+    fi
+
+done
+
+
 if [ -z $LOCAL_EXECUTE ]; then
-    module unload intel-suite udunits nco/4.6.2
+    module unload nco
 fi;
+

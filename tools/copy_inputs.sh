@@ -81,7 +81,7 @@ if [ ! -d $DA_EXPDIR_SRC/$src ]; then
 fi
 
 # list of files to copy
-declare -a tocopy=("/namoptions." "/lscale.inp." "/prof.inp." "/scalar.inp." "/xgrid.inp." "/zgrid.inp." "/blocks.inp." "/purifs.inp." "/trees.inp." "/scals.inp." "/lad.inp." "/facetarea.inp." "/facetnumbers.inp." "/facets.inp." "/netsw.inp." "/pf1sf2.inp." "/svf.inp." "/Tfacinit.inp." "/Tfacinitnudged.inp." "/vf.nc.inp." "/walltypes.inp.")
+declare -a tocopy=("/namoptions." "/lscale.inp." "/prof.inp." "/scalar.inp." "/purifs.inp." "/trees.inp." "/scals.inp." "/lad.inp." "/facetarea.inp." "/facets.inp." "/netsw.inp." "/svf.inp." "/Tfacinit.inp." "/vf.nc.inp." "/factypes.inp.")
 
 # copy and rename files
 case $case in
@@ -128,7 +128,7 @@ elif [ $start == "w" ]; then
   else
     # create links
     startfilen=${startfilen##*/}  # retain the part after the last slash
-    startfilen=${startfilen%_*}   # retain the part before the underscore
+    startfilen=${startfilen%_*_*}   # retain the part before the underscore
     ln -s $DA_WORKDIR_SRC/$src"/"*$startfilen* $DA_EXPDIR/$tar/
   fi
 
@@ -139,7 +139,7 @@ elif [ $start == "w" ]; then
   else
     # create links
     scalarfilen=${scalarfilen##*/}  # retain the part after the last slash
-    scalarfilen=${scalarfilen%_*}   # retain the part before the underscore
+    scalarfilen=${scalarfilen%_*_*}   # retain the part before the underscore
     ln -s $DA_WORKDIR_SRC/$src"/"*$scalarfilen* $DA_EXPDIR/$tar/
   fi
 
@@ -150,18 +150,19 @@ elif [ $start == "w" ]; then
   echo "Creating links to warmstart files in $DA_WORKDIR_SRC/$src."
 
   sed -i.bak -e '/lwarmstart/s/.*/lwarmstart   = .true./g' $DA_EXPDIR/$tar"/namoptions."$tar # set warmstart to true in namoptions
-  sed -i.bak -e "/startfile/s/.*/startfile    = '$startfilen\_xxx.$tar'/g" $DA_EXPDIR/$tar"/namoptions."$tar # change startfile to newest restartfiles
+  sed -i.bak -e "/startfile/s/.*/startfile    = '$startfilen\_xxx_xxx.$tar'/g" $DA_EXPDIR/$tar"/namoptions."$tar # change startfile to newest restartfiles
   rm $DA_EXPDIR/$tar"/namoptions."$tar".bak"
   # Note that this only works if lwarmstart and startfile are defined in namoptions!
   # TODO: If they are not defined under RUN section in namoptions, add them!
-  echo "Warning! Check that lwarmstart = .true. and startfile = '${startfilen}_xxx.${tar}' in namoptions. If not, add them to the RUN section."
+  echo "Warning! Check that lwarmstart = .true. and startfile = '${startfilen}_xxx_xxx.${tar}' in namoptions. If not, add them to the RUN section."
+
 fi
 
 # link any available driver files (without renaming)
 driverfiles=$DA_WORKDIR_SRC/$src"/"?"driver_"*
 for dfile in $driverfiles ; do
     if [ -f $dfile ]; then
-      ln -s $dfile $DA_EXPDIR/$tar/
+      ln -s $dfile $DA_EXPDIR/$tar
     fi
   done
 if [ -f $dfile ]; then
@@ -175,3 +176,16 @@ if [ -f $config_script ] ; then
 else
   echo 'Skipping config file (no config.sh file found).'
 fi
+
+# copy *.txt files for IBM implementation
+  cp $DA_EXPDIR_SRC/$src/*.txt $DA_EXPDIR/$tar
+
+# copy any available scalar source files
+  scalarsourcefiles=$DA_EXPDIR_SRC/$src/"scalarsource"*
+  for sfile in $scalarsourcefiles ; do
+    if [ -f $sfile ]; then
+      sfilenew="${sfile%.$src}"
+      sfilename="${sfilenew##*$src/}"
+      cp $sfile $DA_EXPDIR/$tar/$sfilename"."$tar
+    fi
+  done

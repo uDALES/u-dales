@@ -144,4 +144,3 @@
      phir = max(0., min(2.*ri, min(1./3.+2./3.*ri, 2.)))
      rlim = 0.5*phir*d1
   end function rlim
-

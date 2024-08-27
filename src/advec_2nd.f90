@@ -1,4 +1,4 @@
-  
+
 !> \file advec_2nd.f90
 !!  Does advection with a 2nd order central differencing scheme.
 !! \par Revision list
@@ -33,7 +33,7 @@
 !> Advection at cell center
 subroutine advecc_2nd(hi, hj, hk, putin, putout)
 
-   use modglobal, only:ih, jh, kh, kb, ke, ib, ie, jb, je, dxf, dxhi, dxfi5, dyi5, dzf, dzfi5, dzhi, libm, jmax, dxfi, dzfi, dyi
+   use modglobal, only:ih, jh, kh, kb, ke, ib, ie, jb, je, dxi, dxi5, dyi, dyi5, dzf, dzfi, dzhi, dzfi5, libm, jmax
    use modfields, only:u0, v0, w0
    use modibm, only:nxwallsnorm, nzwallsnorm, nywallsm, nywallsp, ywallsm, ywallsp, &
       xwallsnorm, zwallsnorm, iypluswall, iyminwall, nyminwall, nypluswall
@@ -60,12 +60,12 @@ subroutine advecc_2nd(hi, hj, hk, putin, putout)
             ip = i + 1
             putout(i, j, k) = putout(i, j, k) - ( &
                               ( &
-                              u0(ip, j, k)*(putin(ip, j, k)*dxf(i) + putin(i, j, k)*dxf(ip))*dxhi(ip) &
-                              - u0(i, j, k)*(putin(im, j, k)*dxf(i) + putin(i, j, k)*dxf(im))*dxhi(i) & ! d(uc)/dx
-                              )*dxfi5(i) &
-                              + ( & !
+                              u0(ip, j, k)*(putin(ip, j, k) + putin(i, j, k)) &
+                            - u0(i, j, k)*(putin(im, j, k) + putin(i, j, k)) & ! d(uc)/dx
+                              )*dxi5 &
+                            + ( & !
                               v0(i, jp, k)*(putin(i, jp, k) + putin(i, j, k)) &
-                              - v0(i, j, k)*(putin(i, jm, k) + putin(i, j, k)) & ! d(vc)/dy
+                            - v0(i, j, k)*(putin(i, jm, k) + putin(i, j, k)) & ! d(vc)/dy
                               )*dyi5)
          end do
       end do
@@ -82,7 +82,7 @@ subroutine advecc_2nd(hi, hj, hk, putin, putout)
             kp = k + 1
             putout(i, j, k) = putout(i, j, k) - ( &
                               w0(i, j, kp)*(putin(i, j, kp)*dzf(k) + putin(i, j, k)*dzf(kp))*dzhi(kp) &
-                              - w0(i, j, k)*(putin(i, j, km)*dzf(k) + putin(i, j, k)*dzf(km))*dzhi(k) &
+                            - w0(i, j, k)*(putin(i, j, km)*dzf(k) + putin(i, j, k)*dzf(km))*dzhi(k) &
                               )*dzfi5(k)
          end do
       end do
@@ -93,11 +93,12 @@ end subroutine advecc_2nd
 !> Advection at the u point.
 subroutine advecu_2nd(putin, putout)
 
-   use modglobal, only:ih, ib, ie, jb, je, jh, kb, ke, kh, dxhiq, dyiq, dzf, dzfi5, dzhi, dxhi, libm
-   use modfields, only:u0, v0, w0, pres0
+   use modglobal, only:ih, ib, ie, jb, je, jh, kb, ke, kh, dxi, dxiq, dyiq, dzf, dzfi5, dzhi, libm, imax, jmax, ktot
+   use modfields, only:u0, v0, w0, pres0, uh, vh, wh, pres0h
    use modibm, only:nxwallsnorm, nzwallsnorm, nywallsm, nywallsp, ywallsm, ywallsp, &
       xwallsnorm, zwallsnorm
    use modmpi, only:myid
+   use decomp_2d
    implicit none
 
    real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb - kh:ke + kh), intent(in)  :: putin !< Input: the u-field
@@ -117,13 +118,13 @@ subroutine advecu_2nd(putin, putout)
             putout(i, j, k) = putout(i, j, k) - ( &
                               ( &
                               (putin(i, j, k) + putin(ip, j, k))*(u0(i, j, k) + u0(ip, j, k)) &
-                              - (putin(i, j, k) + putin(im, j, k))*(u0(i, j, k) + u0(im, j, k)) & ! d(uu)/dx
-                              )*dxhiq(i) &
-                              + ( &
+                            - (putin(i, j, k) + putin(im, j, k))*(u0(i, j, k) + u0(im, j, k)) & ! d(uu)/dx
+                              )*dxiq &
+                            + ( &
                               (putin(i, j, k) + putin(i, jp, k))*(v0(i, jp, k) + v0(im, jp, k)) &
-                              - (putin(i, j, k) + putin(i, jm, k))*(v0(i, j, k) + v0(im, j, k)) & ! d(vu)/dy
+                            - (putin(i, j, k) + putin(i, jm, k))*(v0(i, j, k) +  v0(im, j, k)) & ! d(vu)/dy
                               )*dyiq) &
-                              - ((pres0(i, j, k) - pres0(i - 1, j, k))*dxhi(i)) ! - dp/dx
+                            - ((pres0(i, j, k) - pres0(i - 1, j, k))*dxi) ! - dp/dx
 
          end do
       end do
@@ -140,9 +141,9 @@ subroutine advecu_2nd(putin, putout)
             kp = k + 1
             putout(i, j, k) = putout(i, j, k) - ( &
                               (putin(i, j, kp)*dzf(k) + putin(i, j, k)*dzf(kp))*dzhi(kp) &
-                              *(w0(i, j, kp) + w0(im, j, kp)) &
-                              - (putin(i, j, k)*dzf(km) + putin(i, j, km)*dzf(k))*dzhi(k) &
-                              *(w0(i, j, k) + w0(im, j, k)) &
+                            * (w0(i, j, kp) + w0(im, j, kp)) &
+                            - (putin(i, j, k)*dzf(km) + putin(i, j, km)*dzf(k))*dzhi(k) &
+                            * (w0(i, j, k) + w0(im, j, k)) &
                               )*0.5*dzfi5(k)
          end do
       end do
@@ -153,7 +154,7 @@ end subroutine advecu_2nd
 !> Advection at the v point.
 subroutine advecv_2nd(putin, putout)
 
-   use modglobal, only:ih, ib, ie, jh, jb, je, kb, ke, kh, dxf, dxhi, dxfiq, dyiq, dzf, dzfi5, dzhi, dyi
+   use modglobal, only:ih, ib, ie, jh, jb, je, kb, ke, kh, dx, dxi, dxiq, dyiq, dzf, dzfi5, dzhi, dyi
    use modfields, only:u0, v0, w0, pres0
    implicit none
 
@@ -173,16 +174,15 @@ subroutine advecv_2nd(putin, putout)
 
             putout(i, j, k) = putout(i, j, k) - ( &
                               ( &
-                              (u0(ip, j, k) + u0(ip, jm, k)) &
-                              *(putin(i, j, k)*dxf(ip) + putin(ip, j, k)*dxf(i))*dxhi(ip) &
-                              - (u0(i, j, k) + u0(i, jm, k)) &
-                              *(putin(i, j, k)*dxf(im) + putin(im, j, k)*dxf(i))*dxhi(i) & ! d(uv)/dx
-                              )*dxfiq(i) &
-                              + ( &
-                              (v0(i, jp, k) + v0(i, j, k))*(putin(i, j, k) + putin(i, jp, k)) &
-                              - (v0(i, jm, k) + v0(i, j, k))*(putin(i, j, k) + putin(i, jm, k)) & ! d(vv)/dy
-                              )*dyiq) &
-                              - ((pres0(i, j, k) - pres0(i, j - 1, k))*dyi) ! - dp/dy
+                              (u0(ip, j, k) + u0(ip, jm, k))*(putin(i, j, k) + putin(ip, j, k)) &
+                            - (u0(i, j, k)  + u0(i, jm, k)) *(putin(i, j, k) + putin(im, j, k)) & ! d(uv)/dx
+                              )*dxiq &
+                            + ( &
+                              ( v0(i, jp, k) + v0(i, j, k))*(putin(i, j, k) + putin(i, jp, k)) &
+                            - (v0(i, jm, k) + v0(i, j, k))*(putin(i, j, k) + putin(i, jm, k)) & ! d(vv)/dy
+                              )*dyiq &
+                              ) &
+                            - ((pres0(i, j, k) - pres0(i, jm, k))*dyi) ! - dp/dy
 
          end do
       end do
@@ -199,9 +199,9 @@ subroutine advecv_2nd(putin, putout)
             kp = k + 1
             putout(i, j, k) = putout(i, j, k) - ( &
                               (w0(i, j, kp) + w0(i, jm, kp)) &
-                              *(putin(i, j, kp)*dzf(k) + putin(i, j, k)*dzf(kp))*dzhi(kp) &
-                              - (w0(i, j, k) + w0(i, jm, k)) &
-                              *(putin(i, j, km)*dzf(k) + putin(i, j, k)*dzf(km))*dzhi(k) &
+                            * (putin(i, j, kp)*dzf(k) + putin(i, j, k)*dzf(kp))*dzhi(kp) &
+                            - (w0(i, j, k) + w0(i, jm, k)) &
+                            * (putin(i, j, km)*dzf(k) + putin(i, j, k)*dzf(km))*dzhi(k) &
                               )*0.5*dzfi5(k)
          end do
       end do
@@ -212,7 +212,7 @@ end subroutine advecv_2nd
 !> Advection at the w point.
 subroutine advecw_2nd(putin, putout)
 
-   use modglobal, only:ih, ib, ie, jh, jb, je, kb, ke, kh, dxf, dxhi, dxfiq, dyiq, dzf, dzhi, dzhiq
+   use modglobal, only:ih, ib, ie, jh, jb, je, kb, ke, kh, dx, dxi, dxiq, dyiq, dzf, dzhi, dzhiq
    use modfields, only:u0, v0, w0, pres0
    ! use modmpi, only : myid
    implicit none
@@ -232,27 +232,21 @@ subroutine advecw_2nd(putin, putout)
             im = i - 1
             ip = i + 1
 
-            putout(i, j, k) = -( &
+            putout(i, j, k) = putout(i, j, k) - ( &
                               ( &
-                              (putin(ip, j, k)*dxf(i) + putin(i, j, k)*dxf(ip))*dxhi(ip) & ! d(uw)/dx
-                              *(dzf(km)*u0(ip, j, k) + dzf(k)*u0(ip, j, km)) &
-                              - (putin(i, j, k)*dxf(im) + putin(im, j, k)*dxf(i))*dxhi(i) &
-                              *(dzf(km)*u0(i, j, k) + dzf(k)*u0(i, j, km)) &
-                              )*dxfiq(i)*dzhi(k) &
-                              + &
-                              ( &
-                              (putin(i, jp, k) + putin(i, j, k)) & ! d(vw)/dy
-                              *(dzf(km)*v0(i, jp, k) + dzf(k)*v0(i, jp, km)) &
-                              - (putin(i, j, k) + putin(i, j - 1, k)) &
-                              *(dzf(km)*v0(i, j, k) + dzf(k)*v0(i, j, km)) &
-                              )*dyiq*dzhi(k) &
-                              + &
-                              ( &
-                              (putin(i, j, k) + putin(i, j, kp))*(w0(i, j, k) + w0(i, j, kp)) & ! d(ww)/dz
-                              - (putin(i, j, k) + putin(i, j, km))*(w0(i, j, k) + w0(i, j, km)) &
-                              )*dzhiq(k) &
+                              (putin(ip, j, k) + putin(i, j, k))*(dzf(km)*u0(ip, j, k) + dzf(k)*u0(ip, j, km)) &
+                            - (putin(i, j, k)  + putin(im, j, k))*(dzf(km)*u0(i, j, k) + dzf(k)*u0(i, j, km)) &
+                              )*dxiq*dzhi(k) & ! d(uw)/dx
+                            + ( &
+                              (putin(i, jp, k) + putin(i, j, k))*(dzf(km)*v0(i, jp, k) + dzf(k)*v0(i, jp, km)) &
+                            - (putin(i, j, k) + putin(i, jm, k))*(dzf(km)*v0(i, j, k) + dzf(k)*v0(i, j, km)) &
+                              )*dyiq*dzhi(k) & ! d(vw)/dy
+                            + ( &
+                              (putin(i, j, k) + putin(i, j, kp))*(w0(i, j, k) + w0(i, j, kp)) &
+                            - (putin(i, j, k) + putin(i, j, km))*(w0(i, j, k) + w0(i, j, km)) &
+                              )*dzhiq(k) & ! d(ww)/dz
                               ) &
-                              - ((pres0(i, j, k) - pres0(i, j, k - 1))*dzhi(k)) ! - dp/dz
+                            - ((pres0(i, j, k) - pres0(i, j, km))*dzhi(k)) ! - dp/dz
 
          end do
       end do

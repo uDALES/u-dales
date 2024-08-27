@@ -58,7 +58,7 @@ contains
         write(0, *) 'iostat error: ', ierr
         stop 1
       endif
-      write(6 ,NAMCHECKSIM)
+      !write(6 ,NAMCHECKSIM)
       close(ifnamopt)
 
       if ((.not. ladaptive) .and. (tcheck < dtmax)) then
@@ -87,7 +87,7 @@ contains
     if (myid==0) then
       call date_and_time(time=timeday)
       write (*,*) '================================================================='
-      write (*,'(3A,F9.2,A,F12.9)') 'Time of Day: ', timeday(1:10),'    Time of Simulation: ', timee, '    dt: ',dtmn
+      write (*,'(3A,F15.5,A,F12.9)') 'Time of Day: ', timeday(1:10),'    Time of Simulation: ', timee, '    dt: ',dtmn
     end if
     call calccourant
     call calcdiffnr
@@ -191,7 +191,7 @@ contains
 !> Checks local and total divergence
   subroutine chkdiv
 
-    use modglobal, only : ib,ie,jb,je,ke,kb,dxf,dxfi,dy,dzf
+    use modglobal, only : ib,ie,jb,je,ke,kb,dx,dxi,dy,dyi,dzf,dzfi
     use modfields, only : u0,v0,w0!,divergentie
     use modmpi,    only : myid,comm3d,mpi_sum,mpi_max,my_real,mpierr
     implicit none
@@ -211,12 +211,12 @@ contains
     do j=jb,je
     do i=ib,ie
       div = &
-                (u0(i+1,j,k) - u0(i,j,k) )*dxfi(i) + &
-                (v0(i,j+1,k) - v0(i,j,k) )/dy + &
-                (w0(i,j,k+1) - w0(i,j,k) )/dzf(k)
+                (u0(i+1,j,k) - u0(i,j,k) )*dxi + &
+                (v0(i,j+1,k) - v0(i,j,k) )*dyi + &
+                (w0(i,j,k+1) - w0(i,j,k) )*dzfi(k)
 !      divergentie(i,j,k)=div
       divmaxl = max(divmaxl,abs(div))
-      divtotl = divtotl + div*dxf(i)*dy*dzf(k)
+      divtotl = divtotl + div*dx*dy*dzf(k)
     end do
     end do
     end do
@@ -234,4 +234,3 @@ contains
   end subroutine chkdiv
 
 end module modchecksim
-

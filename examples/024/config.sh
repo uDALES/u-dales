@@ -1,0 +1,9 @@
+export DA_EXPDIR=~/ecse/experiments
+export DA_TOOLSDIR=~/ecse/u-dales/tools
+export DA_BUILD=~/ecse/u-dales/build/release/u-dales
+export DA_WORKDIR=/work/ecseae03/ecseae03/so-ecse
+export NCPU=128
+export NNODE=8
+export WALLTIME="24:00:00"
+export MEM="256gb"
+export QOS="lowpriority"                 

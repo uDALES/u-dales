@@ -45,7 +45,8 @@ uDALES is supported to run on Linux, macOS and Windows Subsystem for Linux (WSL)
 - [CMake](https://cmake.org/) >= 3.9.
 - [NetCDF-Fortran](https://www.unidata.ucar.edu/downloads/netcdf/index.jsp) >= 4.
 - [GNU](https://gcc.gnu.org/wiki/GFortran) <= 9, [Intel](https://software.intel.com/content/www/us/en/develop/documentation/fortran-compiler-developer-guide-and-reference/top.html), or [Cray](https://pubs.cray.com/) Fortran compiler.
-- A recenet version of [MPICH](https://www.mpich.org/) or [Open-MPI](https://www.open-mpi.org/).
+- A recent version of [MPICH](https://www.mpich.org/) or [Open-MPI](https://www.open-mpi.org/). 
+- [FFTW](http://www.fftw.org/) 
 
 ### Project setup
 
@@ -75,7 +76,7 @@ On high performance computing (HPC) clusters, these software and libraries shoul
 
 ```sh
 sudo apt-get update && sudo apt-get upgrade -y
-sudo apt-get install -y git cmake gfortran libopenmpi-dev openmpi-bin libnetcdf-dev libnetcdff-dev nco python3 python3-pip
+sudo apt-get install -y git cmake gfortran libopenmpi-dev openmpi-bin libnetcdf-dev libnetcdff-dev nco python3 python3-pip libfftw3-dev
 ```
 
 ### macOS
@@ -84,7 +85,7 @@ On macOS, use [Homebrew](https://docs.brew.sh) to install the required libraries
 
 ```sh
 brew update
-brew install git cmake gcc@9 netcdf open-mpi nco python3
+brew install git cmake gcc netcdf netcdf-fortran mpich nco python3 fftw
 ```
 
 
@@ -128,7 +129,12 @@ This creates a Git repository for your own projects named `<PROJECT_NAME>` with 
 └── u-dales     # uDALES model development repository (submodule).
 ```
 
-In the next steps we will assume your current working directory is the top-level project directory you just created with Cookiecutter.
+Alternatively, one can create this folder structure manually, and clone the repository into the top-level directory:
+```sh
+git clone --recurse-submodules https://github.com/uDALES/u-dales
+```
+
+In the next steps we will assume your current working directory is the top-level project directory.
 
 ### Build on common systems
 
@@ -149,7 +155,17 @@ You can compile in parallel mode by passing Make the `j` flag followed by the nu
 
 ### Build on HPCs
 
-If you are a High Performance Cluster (HPC) user you are likely using the [Environment Modules package](http://modules.sourceforge.net/) for the dynamic modification of the user's environment via modulefiles and therefore you may need to hint CMake the PATH to NetCDF (see below how).
+To compile uDALES (in release mode) on the ICL cluster use:
+```sh
+./u-dales/tools/hpc_build icl release
+```
+
+To compile uDALES (in release mode) on ARCHER2, use:
+```sh
+./u-dales/tools/hpc_build archer release
+```
+
+Information for developers: if you are a High Performance Cluster (HPC) user you are likely using the [Environment Modules package](http://modules.sourceforge.net/) for the dynamic modification of the user's environment via modulefiles and therefore you may need to hint CMake the PATH to NetCDF (see below how).
 
 Here we show how to compile uDALES using the [HPC at ICL](https://www.imperial.ac.uk/admin-services/ict/self-service/research-support/rcs/) as an example, therefore please note that the specific names/versions installed on your system may be different.
 
@@ -230,7 +246,7 @@ Now to set-up a new experiment (here we use case `009`) based on a previous exam
 
 ## Run
 
-The scripts `local_execute.sh` and `hpc_execute.sh` in `u-dales/tools` are used as wrappers to run simulations on your local machine and HPC at ICL respectively. These scripts contain several helpers to run the simulations and merge outputs from several CPUs into a single file (see [Post-processing](./udales-post-processing.md) for more info about the individual scripts).
+The scripts `local_execute.sh` (for local machines), `hpc_execute.sh` (for ICL cluster) and `archer_execute.sh` (for ARCHER2) in `u-dales/tools` are used as wrappers to run simulations. These scripts contain several helpers to run the simulations and merge outputs from several CPUs into a single file (see [Post-processing](./udales-post-processing.md) for more info about the individual scripts).
 
 The scripts require several variables to be set up. Below is an example setup for copying and pasting. You can also specify these parameters in a `config.sh` file within the experiment directory, which is then read by the scripts.
 
@@ -258,16 +274,15 @@ Then, to start the simulation, run:
 ./u-dales/tools/local_execute.sh experiments/009
 ```
 
-### Run on HPCs
+### Run on ICL cluster
 
 ``` sh
 export DA_TOOLSDIR=$(pwd)/u-dales/tools # Directory of scripts
 export DA_BUILD=$(pwd)/u-dales/build/release/u-dales # Build file
-export NCPU=2 # Number of CPUs to use for a simulation
-
+export NCPU=24 # Number of CPUs to use for a simulation
 export NNODE=1 # Number of nodes to use for a simulation
 export WALLTIME="00:30:00" # Maximum runtime for simulation in hours:minutes:seconds
-export MEM="2gb" # Memory request per node
+export MEM="128gb" # Memory request per node
 ```
 
 For guidance on how to set the parameters on HPC, have a look at [Job sizing guidance](https://www.imperial.ac.uk/admin-services/ict/self-service/research-support/rcs/computing/job-sizing-guidance/).
@@ -279,6 +294,28 @@ Then, to start the simulation, run:
 
 # General syntax: hpc_execute.sh exp_directory
 ./u-dales/tools/hpc_execute.sh experiments/009
+```
+
+### Run on ARCHER2
+``` sh
+export DA_TOOLSDIR=$(pwd)/u-dales/tools # Directory of scripts
+export DA_BUILD=$(pwd)/u-dales/build/release/u-dales # Build file
+export NCPU=128 # Number of CPUs to use for a simulation
+export NNODE=1 # Number of nodes to use for a simulation
+export WALLTIME="24:00:00" # Maximum runtime for simulation in hours:minutes:seconds
+export MEM="256gb" # Memory request per node
+export QOS="standard" # Queue
+```
+
+For guidance on how to set the parameters on ARCHER2, have a look at the [ARCHER2 documentation](https://docs.archer2.ac.uk/user-guide/). In particular, take care to edit the `archer_execute.sh` script so that the account corresponds to one you can use.
+Then, to start the simulation, run:
+
+``` sh
+# We assume you are running the following commands from your
+# top-level project directory.
+
+# General syntax: hpc_execute.sh exp_directory
+./u-dales/tools/archer_execute.sh experiments/009
 ```
 
 ## What's next?

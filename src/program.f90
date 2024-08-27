@@ -24,83 +24,122 @@ program DALESURBAN      !Version 48
 !!----------------------------------------------------------------
 !!     0.0    USE STATEMENTS FOR CORE MODULES
 !!----------------------------------------------------------------
-  use modmpi,            only : myid, initmpi
-  use modglobal,         only : rk3step,timeleft,ib,jb,kb,ke
-  use modstartup,        only : startup,exitmodules
+  use modmpi,            only : initmpi,exitmpi,myid,starttimer
+  use modglobal,         only : initglobal,rk3step,timeleft
+  use modstartup,        only : readnamelists,init2decomp,checkinitvalues,readinitfiles,exitmodules
+  use modfields,         only : initfields
   use modsave,           only : writerestartfiles
-  use modboundary,       only : boundary, grwdamp,tqaver
-  use modthermodynamics, only : thermodynamics
-!  use modsurface,        only : surface
-  use modsubgrid,        only : subgrid
-  use modforces,         only : forces,coriolis,lstend,fixuinf1,fixuinf2,fixthetainf,nudge, masscorr
-  use modpois,           only : poisson
-  use modibm,            only : createwalls,ibmwallfun,ibmnorm,nearwall,bottom
+  use modboundary,       only : initboundary,boundary,grwdamp,halos
+  use modthermodynamics, only : initthermodynamics,thermodynamics
+  use modsubgrid,        only : initsubgrid,subgrid
+  use modforces,         only : calcfluidvolumes,forces,coriolis,lstend,fixuinf1,fixuinf2,fixthetainf,nudge,masscorr,shiftedPBCs,periodicEBcorr
+  use modpois,           only : initpois,poisson
+  use modibm,            only : initibm,createmasks,ibmwallfun,ibmnorm,bottom
+  use modtrees,          only : createtrees,trees
+  use modpurifiers,      only : createpurifiers,purifiers
   use initfac,           only : readfacetfiles
   use modEB,             only : initEB,EB
+  use moddriver,         only : initdriver
 
 !----------------------------------------------------------------
 !     0.1     USE STATEMENTS FOR ADDONS STATISTICAL ROUTINES
 !----------------------------------------------------------------
-  use modchecksim,     only : initchecksim, checksim
+  use modchecksim,     only : initchecksim,checksim
   use modstat_nc,      only : initstat_nc
-  use modfielddump,    only : initfielddump, fielddump,exitfielddump
+  use modfielddump,    only : initfielddump,fielddump,exitfielddump
   use modstatsdump,    only : initstatsdump,statsdump,exitstatsdump    !tg3315
-  !use modbudget,       only : initbudget, budgetstat, exitbudget
+  use modtimedep,      only : inittimedep,timedep
   implicit none
-
 
 !----------------------------------------------------------------
 !     1      READ NAMELISTS,INITIALISE GRID, CONSTANTS AND FIELDS
 !----------------------------------------------------------------
   call initmpi
-  write(*,*) "done initmpi"
-  call startup
-  write(*,*) "done startup"
+
+  !call startup
+  call readnamelists
+
+  call init2decomp
+
+  call checkinitvalues
+
+  call initglobal
+
+  call initfields
+
+  call initboundary
+
+  call initthermodynamics
+
+  call initsubgrid
+
+  ! call initinlet
+
+  call initdriver
+
+  call initpois
+
+  call readfacetfiles
+  ! These should be combined once file format is sorted
+  call initibm
+
+  call createmasks
+
+  call calcfluidvolumes
+
+  call readinitfiles
+
+  call createscals
 
 !---------------------------------------------------------
 !      2     INITIALIZE STATISTICAL ROUTINES AND ADD-ONS
 !---------------------------------------------------------
-  call initchecksim
-  call initstat_nc
+  call initchecksim ! Could be deprecated
+
+  call initstat_nc ! Could be deprecated
+
+  call initstatsdump
+
+  call initEB
+
+  call inittimedep
 
   call initfielddump
-  call initstatsdump !tg3315
 
-  call readfacetfiles
-  call initEB
-  write(*,*) "done init stuff"
+  call boundary
 
-  write(6,*) 'Determine immersed walls'
-  call createwalls    ! determine walls/blocks
- ! call nearwall       ! determine minimum distance and corresponding shear components, ils13 10.07.17, commented, not functional at the moment, not needed for vreman but for smag., fix in modibm
-  write(6,*) 'Finished determining immersed walls'
+  call createtrees
 
-  call boundary  !ils13 22.06.2017 inserted boundary here to get values at ghost cells before iteration starts
+  call createpurifiers
 
-!  not necessary but abates the fact that temp field is randomised by randomisation of just velocity fields
-!  (because advection at start of time loop without being divergence free)
-!  call poisson
+  !call fielddump
 
 !------------------------------------------------------
 !   3.0   MAIN TIME LOOP
 !------------------------------------------------------
-  write(*,*)'START myid ', myid
+  !write(*,*) 'Starting rank ', myid
+  call starttimer
   do while ((timeleft>0) .or. (rk3step < 3))
+
     call tstep_update
+
+    call timedep
 
 !-----------------------------------------------------
 !   3.2   ADVECTION AND DIFFUSION
 !-----------------------------------------------------
-  
-    call advection                ! now also includes predicted pressure gradient term  
+
+    call advection ! includes predicted pressure gradient term
+
+    call shiftedPBCs
 
     call subgrid
+
 !-----------------------------------------------------
 !   3.3   THE SURFACE LAYER
 !-----------------------------------------------------
 
     call bottom
-
 !-----------------------------------------------------
 !   3.4   REMAINING TERMS
 !-----------------------------------------------------
@@ -111,17 +150,20 @@ program DALESURBAN      !Version 48
 
     call lstend         !large scale forcings
 
-    call nudge          ! nudge top cells of fields to enforce steady-state 
+    call nudge          ! nudge top cells of fields to enforce steady-state
 
     call ibmwallfun     ! immersed boundary forcing: only shear forces.
+    call periodicEBcorr
 
     call masscorr       ! correct pred. velocity pup to get correct mass flow
-                                                                                         
-    call ibmnorm        ! immersed boundary forcing: set normal velocities to zero  
+
+    call ibmnorm        ! immersed boundary forcing: set normal velocities to zero
 
     call EB
 
-    call scalsource     ! adds continuous forces in specified region of domain                                                   
+    call trees
+
+    call scalsource     ! adds continuous forces in specified region of domain
 
 !------------------------------------------------------
 !   3.4   EXECUTE ADD ONS
@@ -137,11 +179,21 @@ program DALESURBAN      !Version 48
 
     call poisson
 
+    call purifiers      !placing of purifiers here may need to be checked
+
     call tstep_integrate
+
+    call halos
+
+    call checksim
+
+    call fielddump
+
+    call statsdump
 
     call boundary
 
-    call fixthetainf
+    !call fixthetainf ! deprecated
 
 !-----------------------------------------------------
 !   3.6   LIQUID WATER CONTENT AND DIAGNOSTIC FIELDS
@@ -152,14 +204,9 @@ program DALESURBAN      !Version 48
 !   3.7  WRITE RESTARTFILES AND DO STATISTICS
 !------------------------------------------------------
 
-    call checksim
-   ! call writedatafiles   ! write data files for later analysis
     call writerestartfiles
-    call fielddump
-    call statsdump        ! tg3315
- 
-  end do
 
+  end do
 !-------------------------------------------------------
 !             END OF TIME LOOP
 !-------------------------------------------------------
@@ -167,8 +214,10 @@ program DALESURBAN      !Version 48
 !--------------------------------------------------------
 !    4    FINALIZE ADD ONS AND THE MAIN PROGRAM
 !-------------------------------------------------------
-  call exitfielddump  
+  call exitfielddump
   call exitstatsdump     !tg3315
-  call exitmodules
+  !call exitmodules
+  !call exittest
+  call exitmpi
 
 end program DALESURBAN

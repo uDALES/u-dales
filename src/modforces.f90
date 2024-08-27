@@ -40,7 +40,7 @@ module modforces
   private
   public :: forces, coriolis, lstend,fixuinf1,fixuinf2,fixthetainf,&
             detfreestream,detfreestrtmp,nudge,&
-            masscorr,uoutletarea,voutletarea,fluidvolume,calcfluidvolumes
+            masscorr,uoutletarea,voutletarea,fluidvolume,calcfluidvolumes,shiftedPBCs, periodicEBcorr
   contains
 
   subroutine forces
@@ -79,8 +79,6 @@ module modforces
     !ILS13 replace thvsi by thvh
     ! thvsi = 1./thvsi
 
- 
-       !write(*,*) 'thvh',thvh
        do k=kb+1,ke
           do j=jb,je
              do i=ib,ie
@@ -140,8 +138,8 @@ module modforces
 
   subroutine detfreestream(freestream)
     use modglobal, only : ib,ie,jb,je,kb,ke,kh,dxf,xh,dt,&
-                          Uinf,lvinf,dy
-    use modfields, only : u0,dpdxl,dgdt,dpdx,v0
+                          Uinf,Vinf,lvinf,dy
+    use modfields, only : u0,dpdxl,dgdt,dpdx,v0,u0av,v0av
     use modmpi, only    : myid,comm3d,mpierr,mpi_sum,my_real,nprocs
     implicit none
     real, intent(out) :: freestream
@@ -150,28 +148,9 @@ module modforces
     integer i,j
 
     if (lvinf) then
-        vtop = 0.
-        do j =jb,je
-          do i =ib,ie
-            vtop = vtop + 0.5*(v0(i,j,ke)+u0(i,j+1,ke))*dy
-          end do
-        end do
-        vtop = vtop / ( (je-jb+1)*(xh(ie+1)-xh(ib) ) )
-        call MPI_ALLREDUCE(vtop,   dum,1,MY_REAL,MPI_SUM,comm3d,mpierr)
-        freestream = dum / nprocs
+        freestream = v0av(ke)
     else
-        utop = 0.
-        do j =jb,je
-          do i =ib,ie
-            !dum=0.5*(u0(i,j,ke)+u0(i+1,j,ke))*dxf(i)
-            !utop = utop + dum
-            utop = utop + 0.5*(u0(i,j,ke)+u0(i+1,j,ke))*dxf(i)
-          end do
-        end do
-        utop = utop / ( (je-jb+1)*(xh(ie+1)-xh(ib) ) )
-        call MPI_ALLREDUCE(utop,   dum,1,MY_REAL,MPI_SUM,comm3d,mpierr)
-        freestream = dum / nprocs
-    !write(*,*) "myid,utop,dum,freestream",myid,utop,dum,freestream
+        freestream = u0av(ke)
     end if
 
   end subroutine detfreestream
@@ -254,7 +233,7 @@ module modforces
     use modglobal, only : ib,ie,jb,je,kb,ke,kh,dxf,xh,dt,&
                           Uinf,Vinf,ifixuinf,tscale,timee,rk3step,inletav,&
                           freestreamav,lvinf
-    use modfields, only : u0,dpdxl,dgdt,dpdx,up,vp
+    use modfields, only : u0,dpdxl,dgdt,dpdx,up,vp,u0av,v0av
     use modmpi, only    : myid,comm3d,mpierr,mpi_sum,my_real,nprocs
     implicit none
 
@@ -283,25 +262,26 @@ module modforces
 
       ! ! dpdxl(:) = dpdx + (1./rk3coef) * (freestream - Uinf)
       ! dpdxl(:) = dpdx + (1./dt) * (freestream - Uinf)
-      call detfreestream(freestream)
+      !call detfreestream(freestream)
       ! write(*,*) "freestream",freestream
       if (lvinf) then
         do k=kb,ke
           do i=ib,ie
             do j=jb,je
-              vp(i,j,k) = vp(i,j,k) - (1./dt) * (freestream - Vinf)
+              vp(i,j,k) = vp(i,j,k) - (1./dt) * (v0av(ke) - Vinf)
             enddo
           enddo
         enddo
-      else
+      end if
+      !else
         do k=kb,ke
           do j=jb,je
             do i=ib,ie
-              up(i,j,k) = up(i,j,k) - (1./dt) * (freestream - Uinf)
+              up(i,j,k) = up(i,j,k) - (1./dt) * (u0av(ke) - Uinf)
             enddo
           enddo
         enddo
-      endif
+      !endif
       ! if (myid==0) then
       !   write(*,*), "freestream", freestream
       !   write(*,*), "Uinf", Uinf
@@ -315,7 +295,7 @@ module modforces
       !   3002    format (13(6e20.12))
       !   close(11)
       ! endif
- 
+
     end if
 
   end subroutine fixuinf1
@@ -368,19 +348,22 @@ module modforces
   subroutine masscorr
     !> correct the velocities to get prescribed flow rate
 
-    use modglobal, only : ib,ie,jb,je,ih,jh,kb,ke,dzf,dxf,dy,dt,rk3step,&
+    use modglobal, only : ib,ie,jb,je,ih,jh,kb,ke,kh,dzf,dxf,dy,zh,dt,rk3step,&
                           uflowrate,vflowrate,linoutflow,&
                           luoutflowr,lvoutflowr,luvolflowr,lvvolflowr
-    use modfields, only : um,up,vm,vp,uout,uouttot,udef,vout,vouttot,vdef,&
-                          uoutarea,voutarea,fluidvol,IIu,IIv
-    use modmpi,    only : myid,comm3d,mpierr,nprocs,MY_REAL,sumy_ibm
+    use modfields, only : um,up,vm,vp,uouttot,udef,vouttot,vdef,&
+                          uoutarea,voutarea,fluidvol,IIu,IIv,IIus,IIvs
+    use modmpi,    only : myid,comm3d,mpierr,nprocs,MY_REAL,sumy_ibm,sumx_ibm,avexy_ibm
 
-    real, dimension(ib:ie, kb:ke) :: uvol
-    real, dimension(ib:ie, kb:ke) :: uvolold
-    real, dimension(ib:ie, kb:ke) :: vvol
-    real, dimension(ib:ie, kb:ke) :: vvolold
+    real, dimension(kb:ke+kh)     :: uvol
+    real, dimension(kb:ke+kh)     :: vvol
+    real, dimension(kb:ke+kh)     :: uvolold
+    real, dimension(kb:ke+kh)     :: vvolold
+    real, dimension(kb:ke)        :: uout
+    real, dimension(kb:ke)        :: vout
     real, dimension(kb:ke)        :: uoutold
     real, dimension(kb:ke)        :: voutold
+
     real                          rk3coef,rk3coefi,&
                                   uoutflow,voutflow,&
                                   uflowrateold,vflowrateold
@@ -390,6 +373,7 @@ module modforces
       rk3coef = dt / (4. - dble(rk3step))
       rk3coefi = 1 / rk3coef
 
+      ! Assumes ie=itot
       udef = 0.
       uout = 0.
       uoutflow = 0.
@@ -401,9 +385,10 @@ module modforces
 
       ! integrate u in z
       do k=kb,ke
-        uout(k) = rk3coef*uout(k)*dzf(k)
-        uoutold(k) = uoutold(k)*dzf(k)
+         uout(k) = rk3coef*uout(k)*dzf(k)
+         uoutold(k) = uoutold(k)*dzf(k)
       end do
+
       uoutflow = sum(uout(kb:ke))
       uflowrateold = sum(uoutold(kb:ke))
 
@@ -413,6 +398,7 @@ module modforces
 
       ! flow correction to match outflow rate
       udef = uflowrate - (uoutflow + uflowrateold)
+
       do k = kb,ke
         do j = jb,je
             do i = ib,ie
@@ -430,33 +416,17 @@ module modforces
       rk3coefi = 1 / rk3coef
 
       udef = 0.
-      uout = 0.
       uoutflow = 0.
-      uoutold = 0.
       uvol = 0.
       uvolold = 0.
 
-      ! integrate u in y
-      call sumy_ibm(uvol,up(ib:ie,jb:je,kb:ke)*dy,ib,ie,jb,je,kb,ke,IIu(ib:ie,jb:je,kb:ke))  ! u tendency at previous time step
-      call sumy_ibm(uvolold,um(ib:ie,jb:je,kb:ke)*dy,ib,ie,jb,je,kb,ke,IIu(ib:ie,jb:je,kb:ke))  ! u at previous time step
-
-      ! integrate u in x
-      do k=kb,ke
-        uout(k) = sum(uvol(ib:ie,k)*dxf(ib:ie))
-        uoutold(k) = sum(uvolold(ib:ie,k)*dxf(ib:ie))
-      end do
-
-      ! integrate u in z
-      do k=kb,ke
-        uout(k) = rk3coef*uout(k)*dzf(k)
-        uoutold(k) = uoutold(k)*dzf(k)
-      end do
-      uoutflow = sum(uout(kb:ke))
-      uflowrateold = sum(uoutold(kb:ke))
+      ! Assumes equidistant grid
+      call avexy_ibm(uvol(kb:ke+kh),up(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
+      call avexy_ibm(uvolold(kb:ke+kh),um(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
 
       ! average over fluid volume
-      uoutflow = uoutflow/fluidvol
-      uflowrateold = uflowrateold/fluidvol
+      uoutflow = rk3coef*sum(uvol(kb:ke)*dzf(kb:ke)) / zh(ke+1)
+      uflowrateold =  sum(uvolold(kb:ke)*dzf(kb:ke)) / zh(ke+1)
 
       ! flow correction to match outflow rate
       udef = uflowrate - (uoutflow + uflowrateold)
@@ -475,27 +445,28 @@ module modforces
       rk3coef = dt / (4. - dble(rk3step))
       rk3coefi = 1 / rk3coef
 
+      ! Assumes je=jtot
       vdef = 0.
       vout = 0.
       voutflow = 0.
       voutold = 0.
 
       ! integrate v fixed at outlet je along x
-      if (myid==nprocs-1) then
-        do k=kb,ke
-          vout(k) = sum(vp(ib:ie,je,k)*IIv(ib:ie,je,k)*dxf(ib:ie))  ! v tendency at previous time step
-          voutold(k) = sum(vm(ib:ie,je,k)*IIv(ib:ie,je,k)*dxf(ib:ie))  ! v at previous time step
-        end do
-      end if
-
-      call MPI_BCAST(vout,ke-kb+1,MY_REAL ,nprocs-1,comm3d,mpierr)
-      call MPI_BCAST(voutold,ke-kb+1,MY_REAL ,nprocs-1,comm3d,mpierr)
+      ! if (myid==nprocs-1) then
+      !    do k=kb,ke
+      !       vout(k) = sum(vp(ib:ie,je,k)*IIv(ib:ie,je,k)*dxf(ib:ie))  ! v tendency at previous time step
+      !       voutold(k) = sum(vm(ib:ie,je,k)*IIv(ib:ie,je,k)*dxf(ib:ie))  ! v at previous time step
+      !    end do
+      ! end if
+      call sumy_ibm(vout,vp(ib:je,je,kb:ke)*dxf(1),ib,ie,je,je,kb,ke,IIv(ib:ie,je,kb:ke))  ! v tendency at previous time step
+      call sumy_ibm(voutold,vm(ib:ie,je,kb:ke)*dxf(1),ib,ie,je,je,kb,ke,IIv(ib:ie,je,kb:ke))  ! v at previous time step
 
       ! integrate v in z
       do k=kb,ke
-        vout(k) = rk3coef*vout(k)*dzf(k)
-        voutold(k) = voutold(k)*dzf(k)
+         vout(k) = rk3coef*vout(k)*dzf(k)
+         voutold(k) = voutold(k)*dzf(k)
       end do
+
       voutflow = sum(vout(kb:ke))
       vflowrateold = sum(voutold(kb:ke))
 
@@ -505,6 +476,7 @@ module modforces
 
       ! flow correction to match outflow rate
       vdef = vflowrate - (voutflow + vflowrateold)
+
       do k = kb,ke
         do j = jb,je
             do i = ib,ie
@@ -518,33 +490,17 @@ module modforces
       rk3coefi = 1 / rk3coef
 
       vdef = 0.
-      vout = 0.
       voutflow = 0.
-      voutold = 0.
       vvol = 0.
       vvolold = 0.
 
-      ! integrate v in y
-      call sumy_ibm(vvol,vp(ib:ie,jb:je,kb:ke)*dy,ib,ie,jb,je,kb,ke,IIv(ib:ie,jb:je,kb:ke))  ! v tendency at previous time step
-      call sumy_ibm(vvolold,vm(ib:ie,jb:je,kb:ke)*dy,ib,ie,jb,je,kb,ke,IIv(ib:ie,jb:je,kb:ke))  ! v at previous time step
-
-      ! integrate v in x
-      do k=kb,ke
-        vout(k) = sum(vvol(ib:ie,k)*dxf(ib:ie))
-        voutold(k) = sum(vvolold(ib:ie,k)*dxf(ib:ie))
-      end do
-
-      ! integrate v in z
-      do k=kb,ke
-        vout(k) = rk3coef*vout(k)*dzf(k)
-        voutold(k) = voutold(k)*dzf(k)
-      end do
-      voutflow = sum(vout(kb:ke))
-      vflowrateold = sum(voutold(kb:ke))
+      ! Assumes equidistant grid
+      call avexy_ibm(vvol(kb:ke+kh),vp(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
+      call avexy_ibm(vvolold(kb:ke+kh),vm(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
 
       ! average over fluid volume
-      voutflow = voutflow/fluidvol
-      vflowrateold = vflowrateold/fluidvol
+      voutflow = rk3coef*sum(vvol(kb:ke)*dzf(kb:ke)) / zh(ke+1)
+      vflowrateold =  sum(vvolold(kb:ke)*dzf(kb:ke)) / zh(ke+1)
 
       ! flow correction to match outflow rate
       vdef = vflowrate - (voutflow + vflowrateold)
@@ -563,7 +519,7 @@ module modforces
   subroutine uoutletarea(area)
     ! calculates outlet area of domain for u-velocity excluding blocks
 
-    use modglobal, only   : ib,ie,jb,je,kb,ke,dy,dzf
+    use modglobal, only   : ib,ie,jb,je,kb,ke,dy,dzf,ierank
     use modfields, only   : IIc
     use modmpi, only      : sumy_ibm
 
@@ -574,6 +530,7 @@ module modforces
 
     sumy = 0.
     ! integrate fluid area at outflow plane in y
+    ! Assumes ie=itot
     call sumy_ibm(sumy,IIc(ie,jb:je,kb:ke)*dy,ie,ie,jb,je,kb,ke,IIc(ie,jb:je,kb:ke))
 
     ! integrate fluid area at outflow plane in z
@@ -587,9 +544,9 @@ module modforces
   subroutine voutletarea(area)
     ! calculates outlet area of domain for v-velocity excluding blocks
 
-    use modglobal, only : ib,ie,jb,je,kb,ke,dxf,dzf
+    use modglobal, only : ib,ie,jb,je,kb,ke,dxf,dzf,jerank
     use modfields, only : IIc
-    use modmpi,    only : myid,comm3d,mpierr,nprocs,MY_REAL
+    use modmpi,    only : sumx_ibm
 
     implicit none
     real, intent(out)       :: area
@@ -598,13 +555,8 @@ module modforces
 
     sumx = 0.
     ! integrate fluid area at outflow plane in x
-    if (myid==nprocs-1) then
-      do k=kb,ke
-        sumx(k) = sum(IIc(ib:ie,je,k)*dxf(ib:ie))
-      end do
-    end if
-
-    call MPI_BCAST(sumx,ke-kb+1,MY_REAL,nprocs-1,comm3d,mpierr)
+    ! Assumes je=jtot
+    call sumx_ibm(sumx,IIc(ib:ie,je,kb:ke)*dxf(1),ib,ie,je,je,kb,ke,IIc(ib:ie,je,kb:ke))
 
     ! integrate fluid area at outflow plane in z
     do k=kb,ke
@@ -617,26 +569,29 @@ module modforces
   subroutine fluidvolume(volume)
     ! calculates fluid volume of domain excluding blocks
 
-    use modglobal, only   : ib,ie,jb,je,kb,ke,dy,dxf,dzf
-    use modfields, only   : IIc
-    use modmpi, only      : sumy_ibm
+    use modglobal, only   : ib,ie,ih,jb,je,jh,kb,ke,kh,dy,dxf,dzf
+    use modfields, only   : IIc, IIcs
+    use modmpi, only      : sumy_ibm, avexy_ibm
 
     implicit none
     real, intent(out)             :: volume
     real, dimension(ib:ie,kb:ke)  :: sumy
-    real, dimension(kb:ke)        :: sumxy
+    real, dimension(kb:ke+kh)        :: sumxy
     integer                          k
 
     sumy = 0.
     sumxy = 0.
 
-    ! integrate fluid volume in y
-    call sumy_ibm(sumy,IIc(ib:ie,jb:je,kb:ke)*dy,ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke))
+    ! ! integrate fluid volume in y
+    ! call sumy_ibm(sumy,IIc(ib:ie,jb:je,kb:ke)*dy,ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke))
+    !
+    ! ! integrate fluid area in x
+    ! do k=kb,ke
+    !   sumxy(k) = sum(sumy(ib:ie,k)*dxf(ib:ie))
+    ! end do
 
-    ! integrate fluid area in x
-    do k=kb,ke
-      sumxy(k) = sum(sumy(ib:ie,k)*dxf(ib:ie))
-    end do
+    ! Equidistant x
+    call avexy_ibm(sumxy(kb:ke+kh),IIc(ib:ie,jb:je,kb:ke+kh)*dxf(1)*dy,ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
 
     ! integrate fluid area in z
     volume = sum(sumxy(kb:ke)*dzf(kb:ke))
@@ -892,35 +847,158 @@ module modforces
   end subroutine lstend
 
   subroutine nudge
-    use modglobal,  only : kb,ke,lmoist,ltempeq,lnudge,tnudge,nnudge,numol,nsv
-    use modfields,  only : thlp,qtp,svp,sv0av,thl0av,qt0av
+    use modglobal,  only : kb,ke,lmoist,ltempeq,lnudge,lnudgevel,tnudge,nnudge,numol,nsv
+    use modfields,  only : thlp,qtp,svp,sv0av,thl0av,qt0av,up,vp,u0av,v0av,uprof,vprof,thlprof,qtprof,svprof
     use modmpi,     only : myid
     implicit none
-    integer :: k
-    real :: numoli
-
-    numoli = 1/numol
+    integer :: k, n
 
     if (lnudge .eqv. .false.) return
 
-    if (nsv>0) then
-      do k=ke-nnudge,ke
-        svp(:,:,k,1) = svp(:,:,k,1) - ( sv0av(k,1) - 0. ) / (tnudge/2 + (ke-k)*tnudge/nnudge)
+    if (lnudgevel) then
+      do k=kb+nnudge,ke
+         up(:,:,k) = up(:,:,k) - (u0av(k) - uprof(k)) / tnudge
+         vp(:,:,k) = vp(:,:,k) - (v0av(k) - vprof(k)) / tnudge
       end do
     end if
 
+    do n=1,nsv
+      do k=kb+nnudge,ke
+        svp(:,:,k,n) = svp(:,:,k,n) - (sv0av(k,n) - svprof(k,n)) / tnudge
+      end do
+    end do
+
     if (ltempeq) then
-      do k=ke-nnudge,ke
-        thlp(:,:,k) = thlp(:,:,k) - ( thl0av(k) - 288 ) / (tnudge/2 + (ke-k)*tnudge/nnudge)
+      do k=kb+nnudge,ke
+       thlp(:,:,k) = thlp(:,:,k) - (thl0av(k) - thlprof(k)) / tnudge
       end do
     end if !ltempeq
 
     if (lmoist) then
-      do k=ke-nnudge,ke
-        qtp(:,:,k) = qtp(:,:,k) - ( qt0av(k) - 0. ) / (tnudge/2 +(ke-k)*tnudge/nnudge)
+      do k=kb+nnudge,ke
+        qtp(:,:,k) = qtp(:,:,k) - (qt0av(k) - qtprof(k)) / tnudge
       end do
     end if !lmoist
 
   end subroutine nudge
+
+  subroutine periodicEBcorr
+  ! added by cew216
+! ! use a volume sink to counter a  heat/moisture flux from the SEB
+! ! sink acts above buildings
+  !
+  ! use initfac, only :  max_height_index
+  use modfields, only : thlp, qtp
+  !use modglobal, only: ltempeq, lperiodicEBcorr, ib, ie, jb, je, kb, ke, imax, jtot
+  use modglobal, only : ltempeq, lmoist, lperiodicEBcorr, ib, ie, jb, je, kb, ke,&
+                          itot, jtot, totheatflux,sinkbase, totqflux, &
+                          zh, dx, dy ,dzh, fraction
+  use modmpi, only : comm3d, mpierr, MY_REAL, myid, MPI_SUM
+  !
+  integer :: i, j, k, n, M
+  real :: tot_Tflux, tot_qflux, sensible_heat_out, latent_heat_out,R_theta,R_q, H_proj, E_proj, R_theta_scaled,R_q_scaled, abl_height,phi_theta_t,phi_q_t  !, !tot_qflux !, sink_points
+  !
+  !write(*,*) 'lperiodicEBcorr ', lperiodicEBcorr
+  !write(*,*) 'fraction', fraction
+  if (lperiodicEBcorr .eqv. .false.) return
+
+  !
+  !call MPI_ALLREDUCE(bctfluxsum,   tot_Tflux,1,MY_REAL,MPI_SUM,comm3d,mpierr)
+  !call MPI_ALLREDUCE(bcqfluxsum,   tot_qflux,1,MY_REAL,MPI_SUM,comm3d,mpierr)
+  call MPI_ALLREDUCE(totheatflux,tot_Tflux,1,MY_REAL,MPI_SUM,comm3d,mpierr)
+  call MPI_ALLREDUCE(totqflux,tot_qflux,1,MY_REAL,MPI_SUM,comm3d,mpierr)
+  ! Grylls 2021;  R=(phitop-phibot)/l= -phibot/hABL
+  ! Since tot_Tflux = phibot/LxLydeltaV
+  ! according to  M if use new tot_Tflux then we have phibot = tot_heatflux/lxly
+  ! then define phitop = (1-frac)phibot
+  ! R = frac*(phitop-phibot)/l
+  ! then needs scaling because of the sink based! code this and comment it.
+  !name sinkbase with a k so we now its a vertical index
+  !!!! The point is to define phitop phibot and R above the loop so the stuff in the loop looks like the eqns.
+  ! Do the same for humidity
+  ! This follows the work in Grylls 2021
+  H_proj = tot_Tflux/(itot*jtot) ! [Kms^-1]This is total heat flux in divided by the domain cross section.
+  E_proj = tot_qflux/(itot*jtot)
+  abl_height = ke/fraction ! We reverse engineer the ABL height from domain height and fraction
+  R_theta = H_proj/abl_height ![Ks^-1] This is the forcing F\theta from Grylls 2021
+  R_q = E_proj/abl_height
+ ! Ke is the number of points in the vertical over which we would apply R if we included the canopy
+  M = ke - (sinkbase+1) +1 ! The number of points over which we will apply rscaled. We only apply the forcing above the canopy so it has to be made bigger.
+  R_theta_scaled = R_theta * ke/(M) ! [Ks^-1]The forcing is scaled up beacuse we do not apply it to the whole volume, only to points above the canopy. We add one to sinkbase to be above the buildings and add 1 to (ke-(sinkbase+1)) to correctly count the points.
+  R_q_scaled = R_q * ke/(M)
+  !phi_theta_t = 0 ! For debugging the flux profile !(1-fraction)*H_proj! The heat flux out the top of the domain.
+  phi_theta_t = (1-fraction)*H_proj
+  phi_q_t = (1-fraction)*E_proj
+
+   if (ltempeq) then
+     do i = ib,ie
+       do j = jb,je
+         do k = sinkbase +1 , ke!max_height_index +1 , ke ! Only apply the correction over the volume above the buidlings
+           !thlp(i,j,k) = thlp(i,j,k) + fraction*tot_Tflux*(zh(k+1)-zh(k))/(imax*jtot*(zh(ke+1) - zh(max_height_index+1)))
+           !thlp(i,j,k) = thlp(i,j,k) - fraction*tot_Tflux/(itot*jtot*(ke-sinkbase)) ! Most recent working version pre M changes cew216 20240112
+           thlp(i,j,k) = thlp(i,j,k) + R_theta_scaled
+         end do
+       end do
+     end do
+   !end if
+  !sensible_heat_out = (1-fraction)*tot_Tflux/(itot*jtot)
+    do i = ib,ie
+      do j = jb,je
+        thlp(i,j,ke) = thlp(i,j,ke) + phi_theta_t
+      end do
+    end do
+  end if
+  !
+  !
+  !
+  if (lmoist) then
+    do i = ib,ie
+       do j = jb,je
+        do k = sinkbase +1,ke ! Only apply the correction over the volume above the buidlings
+          !qtp(i,j,k) = qtp(i,j,k) + fraction*tot_qflux*(zh(k+1)-zh(k))/(imax*jtot*(zh(ke+1) - zh(max_height_index+1)))
+          !qtp(i,j,k) = qtp(i,j,k) - fraction*tot_qflux/(itot*jtot*(ke-sinkbase))
+          qtp(i,j,k) = qtp(i,j,k) + R_q_scaled
+        end do
+      end do
+    end do
+    latent_heat_out = (1-fraction)*tot_qflux/(itot*jtot*(zh(ke+1)-zh(ke)))
+     do i = ib,ie
+       do j = jb,je
+        qtp(i,j,ke) = qtp(i,j,ke) + phi_q_t
+      end do
+    end do
+  end if
+  !
+  !write(*,*) 'fraction', fraction
+  end subroutine periodicEBcorr
+
+  subroutine shiftedPBCs
+      ! Nudge the flow in a region near the outlet
+      use modglobal, only : ib, itot, ie, jb, je, kb, ke, xh, ds, dyi, xlen, rk3step, dt, pi
+      use modfields, only : u0, v0, w0, u0av, up, vp, wp, vm
+      use decomp_2d, only : zstart
+
+      integer :: i, j, k, ig
+      real :: vs, RHS, rk3coef
+
+      if (ds > 0) then
+      rk3coef = dt / (4. - dble(rk3step))
+      do i = ib,ie
+         ig = i + zstart(1) - 1 ! global i position
+         if (ig > int(itot/2)) then
+            do j = jb,je
+               do k = kb,ke
+                  vs = 0.5 * pi * ds / (0.5*xlen) * u0av(k) * sin(pi*(xh(ig)-xh(int(itot/2))) / (0.5*xlen))
+                  up(i,j,k) = up(i,j,k) - vs * (u0(i,j,k) - u0(i,j-1,k)) * dyi
+                  vp(i,j,k) = vp(i,j,k) - vs * (v0(i,j,k) - v0(i,j-1,k)) * dyi
+                  wp(i,j,k) = wp(i,j,k) - vs * (w0(i,j,k) - w0(i,j-1,k)) * dyi
+               end do
+            end do
+         end if
+      end do
+
+      end if
+
+   end subroutine shiftedPBCs
 
 end module modforces

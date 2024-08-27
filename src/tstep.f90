@@ -44,7 +44,7 @@ subroutine tstep_update
 
 
   use modglobal, only : ib,ie,jb,je,rk3step,timee,runtime,dtmax,dt,ntimee,ntrun,courant,diffnr,&
-                        kb,ke,dxh,dxhi,dxh2i,dyi,dy2i,dzh,dt_lim,ladaptive,timeleft,dt,lwarmstart,&
+                        kb,ke,dx,dxi,dx2i,dyi,dy2i,dzh,dt_lim,ladaptive,timeleft,dt,lwarmstart,&
                         dzh2i,tEB,tnextEB,dtEB
   use modfields, only : um,vm,wm
   use modsubgriddata, only : ekm,ekh
@@ -57,7 +57,7 @@ subroutine tstep_update
 !  logical,save  :: spinup=.true.
   logical,save  :: spinup=.false.
 
-   
+
   if(lwarmstart) spinup = .false.
   rk3step = mod(rk3step,3) + 1
   if(rk3step == 1) then
@@ -73,10 +73,10 @@ subroutine tstep_update
         do k=kb,ke
         do j=jb,je
         do i=ib,ie
-          courtotl = max(courtotl,(abs(um(i,j,k))*dxhi(i) + abs(vm(i,j,k))*dyi + abs(wm(i,j,k))/dzh(k))*dt)
+          courtotl = max(courtotl,(abs(um(i,j,k))*dxi + abs(vm(i,j,k))*dyi + abs(wm(i,j,k))/dzh(k))*dt)
 !          diffnrtotl = max(diffnrtotl,  ekm(i,j,k)*(1/dzh(k)**2 + dxh2i(i) + dy2i)*dt )
-          diffnrtotl = max(diffnrtotl,  ekm(i,j,k)*(dzh2i(k) + dxh2i(i) + dy2i)*dt, & 
-                                        ekh(i,j,k)*(dzh2i(k) + dxh2i(i) + dy2i)*dt ) 
+          diffnrtotl = max(diffnrtotl,  ekm(i,j,k)*(dzh2i(k) + dx2i + dy2i)*dt, &
+                                        ekh(i,j,k)*(dzh2i(k) + dx2i + dy2i)*dt )
         end do
         end do
         end do
@@ -110,10 +110,10 @@ subroutine tstep_update
         do k=kb,ke
         do j=jb,je
         do i=ib,ie
-          courtotl = max(courtotl,(abs(um(i,j,k))*dxhi(i) + abs(vm(i,j,k))*dyi + abs(wm(i,j,k))/dzh(k))*dt)
-          diffnrtotl = max(diffnrtotl,  ekm(i,j,k)*(dzh2i(k) + dxh2i(i) + dy2i)*dt,&
-                                        ekh(i,j,k)*(dzh2i(k) + dxh2i(i) + dy2i)*dt ) 
-!          if (diffnrtotl ==  ekh(i,j,k)*(dzh2i(k) + dxh2i(i) + dy2i)*dt) then 
+          courtotl = max(courtotl,(abs(um(i,j,k))*dxi + abs(vm(i,j,k))*dyi + abs(wm(i,j,k))/dzh(k))*dt)
+          diffnrtotl = max(diffnrtotl,  ekm(i,j,k)*(dzh2i(k) + dx2i + dy2i)*dt,&
+                                        ekh(i,j,k)*(dzh2i(k) + dx2i + dy2i)*dt )
+!          if (diffnrtotl ==  ekh(i,j,k)*(dzh2i(k) + dxh2i(i) + dy2i)*dt) then
 !           imin = i
 !           kmin = k
 !          end if
@@ -126,11 +126,11 @@ subroutine tstep_update
         call MPI_ALLREDUCE(diffnrtotl,diffnrtot,1,MY_REAL,MPI_MAX,comm3d,mpierr)
         if (courtot <= 0) then
           write(6,*) 'courtot=0!'
-        end if 
+        end if
         if (diffnrtot <= 0) then
           write(6,*) 'diffnrtot=0!'
-        end if 
-        dt = min(dtmax,dt*courant/courtot,dt*diffnr/diffnrtot)          
+        end if
+        dt = min(dtmax,dt*courant/courtot,dt*diffnr/diffnrtot)
         timeleft=timeleft-dt
         dt_lim = timeleft
         timee   = timee  + dt
@@ -140,7 +140,7 @@ subroutine tstep_update
         dt = dtmax
         ntimee  = ntimee + 1
         ntrun   = ntrun  + 1
-        timee   = timee  + dt 
+        timee   = timee  + dt
         timeleft=timeleft-dt
       end if
     end if
@@ -166,17 +166,19 @@ subroutine tstep_integrate
 
 
   use modglobal, only : ib,ie,jb,jgb,je,kb,ke,nsv,dt,rk3step,e12min,lmoist,timee,ntrun,&
-                        linoutflow, iinletgen,ltempeq,idriver,&
-                        dzf,dzhi,dzf,dxhi,dxf,ifixuinf,thlsrc,lchem
+                        linoutflow, iinletgen,ltempeq,idriver,BCtopm,BCtopm_pressure,BCxm_periodic,BCym_periodic, &
+                        dzf,dzhi,dzf,dxf,ifixuinf,thlsrc,lchem,ibrank,ierank,jerank,jbrank,BCxm,BCym,ihc,jhc,khc,dyi,dxfi,BCxT,BCxq,BCxs,BCyT,BCyq,BCys
   use modmpi, only    : cmyid,myid,nprocs
   use modfields, only : u0,um,up,v0,vm,vp,w0,wm,wp,&
                         thl0,thlm,thlp,qt0,qtm,qtp,e120,e12m,e12p,sv0,svm,svp,uouttot,&
-                        wouttot,dpdxl,dgdt,momfluxb,tfluxb,qfluxb
+                        wouttot,dpdxl,dgdt,momfluxb,tfluxb,qfluxb,thl0c
   use modinletdata, only: totalu,di_test,dr,thetar,thetai,displ,irecy, &
                           dti_test,dtr,thetati,thetatr,q0,lmoi,lmor,utaui,utaur,&
                           storetdriver, nstepread, nstepreaddriver, irecydriver
   use modsubgriddata, only : loneeqn,ekm,ekh
   use modchem, only : chem
+  use decomp_2d, only : exchange_halo_z
+  use modpois, only : pij, dpdztop
 
   implicit none
 
@@ -187,7 +189,7 @@ subroutine tstep_integrate
   rk3coefi = 1./rk3coef
 
   if(ifixuinf==2) then
-    dpdxl(:) = dpdxl(:) + dgdt*rk3coef 
+    dpdxl(:) = dpdxl(:) + dgdt*rk3coef
 !    if(ltempeq) then
 !      thlsrc = thlsrc + thlsrcdt*rk3coef
 !    end if
@@ -216,11 +218,11 @@ subroutine tstep_integrate
         do i=ib,ie
           u0(i,j,k)   = um(i,j,k)   + rk3coef * up(i,j,k)
           v0(i,j,k)   = vm(i,j,k)   + rk3coef * vp(i,j,k)
-          w0(i,j,k)   = wm(i,j,k)   + rk3coef * wp(i,j,k) 
+          w0(i,j,k)   = wm(i,j,k)   + rk3coef * wp(i,j,k)
           do n=1,nsv
             sv0(i,j,k,n) = svm(i,j,k,n) + rk3coef * svp(i,j,k,n)
           enddo
-        enddo 
+        enddo
       enddo
     enddo
   end if
@@ -230,50 +232,65 @@ subroutine tstep_integrate
   end if
 
   if (ltempeq) then
- ! if (myid==0) then
- ! write(*,*) "thlp(20,1,46)",thlp(20,1,46)  
- ! end if
   do k=kb,ke
       do j=jb,je
         do i=ib,ie
           thl0(i,j,k) = thlm(i,j,k) + rk3coef * thlp(i,j,k)
-        enddo 
-      enddo 
+        enddo
+      enddo
     enddo
+
+  thl0c(ib:ie,jb:je,kb:ke) = thl0(ib:ie,jb:je,kb:ke)
+
   end if
   if (lmoist) then
    do k=kb,ke
      do j=jb,je
        do i=ib,ie
          qt0(i,j,k) = qtm(i,j,k) + rk3coef * qtp(i,j,k)
-       enddo 
+       enddo
       enddo
     enddo
   end if
 
-  
-  if (linoutflow) then
-    if ((iinletgen == 0) .and. (idriver /= 2)) then
-      u0(ie+1,jb:je,kb:ke) = um(ie+1,jb:je,kb:ke)  + rk3coef * up(ie+1,jb:je,kb:ke)
-    else
-      u0(ib-1,jb:je,kb:ke) = um(ib-1,jb:je,kb:ke)  + rk3coef * up(ib-1,jb:je,kb:ke)
-      u0(ie+1,jb:je,kb:ke) = um(ie+1,jb:je,kb:ke)  + rk3coef * up(ie+1,jb:je,kb:ke)
-    end if
+  if ((BCxm .ne. BCxm_periodic) .and. ierank) then
+    u0(ie+1,jb:je,kb:ke) = um(ie+1,jb:je,kb:ke)  + rk3coef * up(ie+1,jb:je,kb:ke)
   end if
 
-!up to here
+  if ((BCym .ne. BCym_periodic) .and. jerank) then
+    v0(ib:ie,je+1,kb:ke) = vm(ib:ie,je+1,kb:ke)  + rk3coef * vp(ib:ie,je+1,kb:ke)
+  end if
 
-!  Write some statistics to monitoring file 
+  if (BCtopm .eq. BCtopm_pressure) then
+    ! do i=ib,ie
+    !   do j=jb,je
+    !     ! w0(i,j,ke+1) = w0(i,j,ke) - dzhi(ke)*((u0(i+1,j,ke)-u0(i,j,ke))*dxfi(i) + &
+    !     !                                       (v0(i,j+1,ke)-v0(i,j,ke))*dyi)
+    !     ! if (myid ==0 .and. (i==32 .and. j==1)) write(*,*) rk3coefi*(w0(i,j,ke) - dzhi(ke)*((u0(i+1,j,ke)-u0(i,j,ke))*dxfi(i) + &
+    !     ! (v0(i,j+1,ke)-v0(i,j,ke))*dyi) - wm(i,j,ke+1)), &
+    !     ! dpdztop(i,j), &
+    !     ! 2*pij(ke)*dzhi(ke+1)
+    !     !
+    !     ! wp(i,j,ke+1) = rk3coefi*(w0(i,j,ke) - dzhi(ke)*((u0(i+1,j,ke)-u0(i,j,ke))*dxfi(i) + &
+    !     !            (v0(i,j+1,ke)-v0(i,j,ke))*dyi) - wm(i,j,ke+1))
+    !     ! wp(i,j,ke+1) = 2*pij(ke)*dzhi(ke+1)
+    !   end do
+    ! end do
+    w0(ib:ie,jb:je,ke+1) = wm(ib:ie,jb:je,ke+1)  + rk3coef * wp(ib:ie,jb:je,ke+1)
+  end if
+
+
+!  Write some statistics to monitoring file
       if ((myid==0) .and. (rk3step==3)) then
         open(unit=11,file='monitor'//cmyid//'.txt',position='append')
-        if (iinletgen == 1) then 
+        if (iinletgen == 1) then
           write(11,3001) timee
         elseif (idriver == 1) then
           write(11, '(I4)') nstepreaddriver
           write(11, 3001) timee, u0(irecydriver,1,32)
         ! elseif (idriver == 2) then
           ! write(11, '(I4)') nstepreaddriver
-          ! write(11, 3001) timee, storetdriver(nstepreaddriver), u0(irecydriver, 1, 32)              
+          ! write(11, 3001) timee, storetdriver(nstepreaddriver), u0(irecydriver, 1, 32)
         else
           write(11,3001) timee
         end if
@@ -285,7 +302,7 @@ subroutine tstep_integrate
           write(11,3002) timee,dpdxl(kb)
 3002      format (13(6e20.12))
           close(11)
-          
+
           if (ltempeq) then
             open(unit=11,file='thlsrc.txt',position='append')
             write(11,3002) timee,thlsrc
@@ -314,4 +331,5 @@ subroutine tstep_integrate
     svm = sv0
     qtm = qt0
   end if
+
 end subroutine tstep_integrate

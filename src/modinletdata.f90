@@ -84,13 +84,13 @@ module modinletdata
     real, allocatable :: qtpqtpavinl(:) !< j-averaged time-averaged thl'thl' at the inlet
     real, allocatable :: qtpupavinl(:)   !< j-averaged time-averaged thl'u' at the inlet
     real, allocatable :: qtpwpavinl(:)   !< j-averaged time-averaged thl'w' at the inlet
-    real, allocatable :: zfin(:)                       ! zf from inlet simulation 
-    real, allocatable :: zhin(:)                       ! zh from inlet simulation 
-    real, allocatable :: dzfin(:)                      ! dzf from inlet simulation 
-    real, allocatable :: dzhin(:)                      ! dzh from inlet simulation 
-    real, allocatable :: heavif(:)          !< Heaviside function for u,v 
-    real, allocatable :: heavih(:)          !< Heaviside function for w 
-    real, allocatable :: heavit(:)          !< Heaviside function for t 
+    real, allocatable :: zfin(:)                       ! zf from inlet simulation
+    real, allocatable :: zhin(:)                       ! zh from inlet simulation
+    real, allocatable :: dzfin(:)                      ! dzf from inlet simulation
+    real, allocatable :: dzhin(:)                      ! dzh from inlet simulation
+    real, allocatable :: heavif(:)          !< Heaviside function for u,v
+    real, allocatable :: heavih(:)          !< Heaviside function for w
+    real, allocatable :: heavit(:)          !< Heaviside function for t
     integer, allocatable :: loclowif(:)   !< index of lower zir at full level
     integer, allocatable :: locupif(:)    !< index of upper zir at full level
     integer, allocatable :: loclowih(:)   !< index of lower zir at half level
@@ -101,11 +101,11 @@ module modinletdata
     integer, allocatable :: locupoh(:)    !< index of upper zor at half level
     integer, allocatable :: loclowot(:)   !< index of lower zot at full level
     integer, allocatable :: locupot(:)    !< index of upper zot at full level
-    integer, allocatable :: linlf(:)      !< index of lower zfin 
-    integer, allocatable :: linuf(:)      !< index of upper zfin 
-    integer, allocatable :: linlh(:)      !< index of lower zhin 
-    integer, allocatable :: linuh(:)      !< index of upper zhin 
-    
+    integer, allocatable :: linlf(:)      !< index of lower zfin
+    integer, allocatable :: linuf(:)      !< index of upper zfin
+    integer, allocatable :: linlh(:)      !< index of lower zhin
+    integer, allocatable :: linuh(:)      !< index of upper zhin
+
     real :: di=0.09        !< delta at inlet  (should be prescribed in namoptions!)  corresponds to critertion 0.99
 !    real :: di=0.12        !< delta at inlet  (should be prescribed in namoptions!)  corresponds to critertion 1.0
 !    real :: di=0.0645        !< delta at inlet  (should be prescribed in namoptions!) corresponds to criterion 0.95
@@ -127,7 +127,8 @@ module modinletdata
     real :: lmor      !< Obukhov length at recycle
     real :: q0        !< wall heat flux at recycle
     real :: deltat=0.  !< full time step (set to zero at start of sim)
-    real :: ubulk=0.   !< Bulk velocity (to be determined at first time step)   
+    real :: ubulk=0.   !< Bulk velocity (to be determined at first time step)
+    real :: vbulk=0.   !< Bulk velocity (to be determined at first time step)
     real :: totalu=0.  !< Bulk velocity inlet
     real :: totaluold=0.  !< old bulk velocity inlet
     real :: ddispdx=0.    !< spatial variation of displacement thickness (d/dx(delta*))
@@ -145,7 +146,7 @@ module modinletdata
 ! Needed for interpolation in y-direction
     integer :: jgbin
     integer :: jgein
-    integer :: jgtotinl      !< total number of cells in y-direction of inlet files (all procs together)   
+    integer :: jgtotinl      !< total number of cells in y-direction of inlet files (all procs together)
     integer :: jbin
     integer :: jein
     integer :: jtotin
@@ -172,22 +173,22 @@ module modinletdata
     integer, allocatable :: yloclowf(:)
     integer, allocatable :: ylocuph(:)
     integer, allocatable :: yloclowh(:)
-    
+
     real :: dyin
 
 
- 
+
     integer :: irecy  !< ib + irecy is the i-index of recycle station
-    
+
     integer :: nfile=0   !< file number to be read or written
     integer :: nstepread=1   !< time step number in file containing inlet plane
     integer :: rk3stepin=1   !< rk3step in inlet plane data
     integer :: kbin
-    integer :: kein    
-    integer :: nprocsinl     !< number of procs at used in inletdata files (only used for inletgen==2)    
-    integer :: inlfactor     !< ratio of number of processors in this sim and in inlet data files (only used for inletgen==2)    
+    integer :: kein
+    integer :: nprocsinl     !< number of procs at used in inletdata files (only used for inletgen==2)
+    integer :: inlfactor     !< ratio of number of processors in this sim and in inlet data files (only used for inletgen==2)
     logical :: lzinzsim = .true.      ! lzinzsim is .true. when inlet zgrid equals sim zgrid
-    
+
 ! Inlet driver simulation variables - idriver - ae1212
 
     real, allocatable :: storeu0driver(:,:,:)
@@ -200,6 +201,8 @@ module modinletdata
     real, allocatable :: storetdriver(:)
     real, allocatable :: u0driver(:,:)
     real, allocatable :: v0driver(:,:)
+    real, allocatable :: u0driverrot(:,:)
+    real, allocatable :: v0driverrot(:,:)
     real, allocatable :: w0driver(:,:)
     real, allocatable :: e120driver(:,:)
     real, allocatable :: tdriver(:)
@@ -221,7 +224,12 @@ module modinletdata
     real, allocatable :: qtmdriver(:,:)
     real, allocatable :: storesvmdriver(:,:,:,:)
     real, allocatable :: svmdriver(:,:,:)
-    
+
     integer :: irecydriver
     integer :: nstepreaddriver=0
+
+    integer :: chunkreadctr = 1             ! chunk reading counter
+    integer :: chunkread_s = 0              ! chunk reading loop start
+    integer :: chunkread_e = 0              ! chunk reading loop end
+    
 end module

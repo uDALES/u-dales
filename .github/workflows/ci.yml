@@ -17,6 +17,8 @@ jobs:
     steps:
     - name: Check-out project
       uses: actions/checkout@v2
+      with:
+        submodules: recursive
 
     - name: Set up repository
       # Clone all history leading to the tip of a single branch
@@ -31,6 +33,7 @@ jobs:
     - name: Install python dependencies
       uses: conda-incubator/setup-miniconda@v2
       with:
+        miniconda-version: "latest"
         auto-update-conda: true
         activate-environment: udales
         environment-file: environment.yml

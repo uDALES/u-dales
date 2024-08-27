@@ -17,7 +17,7 @@
 
 # Copyright (C) 2016-2019 the uDALES Team.
 
-set -ex
+set -e
 
 # Usage: ./tools/hpc_build.sh [icl, archer, cca, common] [debug, release]
 
@@ -30,9 +30,9 @@ capitalize() {
     echo $* | sed -e "s/\b\(.\)/\u\1/g"
 }
 
-echo "--- Debug info ---"
-echo "env: " `env`
-echo "PATH: " ${PATH}
+#echo "--- Debug info ---"
+#echo "env: " `env`
+#echo "PATH: " ${PATH}
 
 NPROC=2 # TODO: make into a arg var.
 system=$1
@@ -41,17 +41,19 @@ build_type=$2
 
 if [ $system == "icl" ]
 then
-    module load cmake/3.14.0 git/2.14.3 intel-suite/2017.6 mpi/intel-2018
+    module load cmake/3.18.2 git/2.14.3 intel-suite/2020.2 mpi/intel-2019.8.254
     FC=mpiifort
     NETCDF_DIR=/apps/netcdf/4.4.1-c
     NETCDF_FORTRAN_DIR=/apps/netcdf/4.4.4-fortran
 
 elif [ $system == "archer" ]
 then
-    module load cmake cray-hdf5 cray-netcdf
-    FC=
-    NETCDF_DIR=/opt/cray/netcdf/4.4.1.1/CRAY/8.3
-    NETCDF_FORTRAN_DIR=/opt/cray/netcdf/4.4.1.1/CRAY/8.3
+    module load cmake cray-hdf5 cray-netcdf cray-fftw
+    FC=ftn
+    NETCDF_DIR=$NETCDF_DIR
+    NETCDF_FORTRAN_DIR=$NETCDF_FORTRAN_DIR
+    #FFTW_DOUBLE_LIB=/opt/cray/pe/fftw/3.3.8.9/x86_rome/lib/libfftw3.so
+    #FFTW_FLOAT_LIB=/opt/cray/pe/fftw/3.3.8.9/x86_rome/lib/libfftw3f.so
 
 elif [ $system == "cca" ]
 then
@@ -80,6 +82,8 @@ cmake_build_type="$(capitalize $build_type)"
 FC=$FC cmake -DNETCDF_DIR=$NETCDF_DIR \
              -DNETCDF_FORTRAN_DIR=$NETCDF_FORTRAN_DIR \
              -DCMAKE_BUILD_TYPE=cmake_build_type \
+	     -DFFTW_DOUBLE_OPENMP_LIB=$FFTW_DOUBLE_LIB \
+	     -DFFTW_FLOAT_OPENMP_LIB=$FFTW_FLOAT_LIB \
               ../../ 2>&1 | tee -a $path_to_build_dir/config.log
 make -j$NPROC 2>&1 | tee -a $path_to_build_dir/build.log
 popd

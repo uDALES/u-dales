@@ -27,8 +27,8 @@ outdir=$DA_WORKDIR/$exp
 
 ## copy files to execution and output directory
 mkdir -p $outdir
-cp -P $inputdir/* $outdir
-cp $DA_BUILD $outdir
+cp -r -P $inputdir/* $outdir
+cp -r $DA_BUILD $outdir
 pushd $outdir
 
 echo "writing job.$exp.slurm"
@@ -41,7 +41,7 @@ echo "#SBATCH --time=${WALLTIME}" >> job.$exp.slurm
 echo "#SBATCH --nodes=${NNODE}" >> job.$exp.slurm
 echo "#SBATCH --tasks-per-node=${NCPU}" >> job.$exp.slurm
 echo "#SBATCH --cpus-per-task=1" >> job.$exp.slurm
-echo "#SBATCH --account=e01-ICL-Reeuwijk" >> job.$exp.slurm
+echo "#SBATCH --account=n02-ASSURE" >> job.$exp.slurm
 echo "#SBATCH --partition=standard" >> job.$exp.slurm
 echo "#SBATCH --qos=${QOS}" >> job.$exp.slurm
 echo "module load epcc-job-env" >> job.$exp.slurm
