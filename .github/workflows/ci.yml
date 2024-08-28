@@ -14,16 +14,10 @@ jobs:
     
     steps:
     - name: Check-out project
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         submodules: recursive
-
-    - name: Set up repository
-      # Clone all history leading to the tip of a single branch
-      # See https://stackoverflow.com/a/44036486.
-      run: |
-        git remote set-branches --add origin master
-        git fetch origin master
+        fetch-depth: 0  # get all branches
 
     - name: Install system dependencies
       run: bash .github/scripts/install_deps.sh
