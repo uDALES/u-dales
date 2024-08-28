@@ -4,6 +4,7 @@
 !> Input air purifiers into DALES model.
 
 module modpurifiers
+use mpi
 implicit none
 save
 

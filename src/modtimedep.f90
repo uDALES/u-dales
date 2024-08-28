@@ -31,6 +31,7 @@
 
 module modtimedep
 
+use mpi
 
 implicit none
 private

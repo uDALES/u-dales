@@ -33,6 +33,7 @@
 !
 
 module modsubgrid
+  use mpi
   use modsubgriddata
   implicit none
   save

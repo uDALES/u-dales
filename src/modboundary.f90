@@ -21,6 +21,7 @@
 !! \par Authors
 !!
 module modboundary
+   use mpi
 
    implicit none
    save

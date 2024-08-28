@@ -24,6 +24,7 @@
 !
 module modEB
   use modglobal
+  use mpi
 
   implicit none
   public :: EB, initEB, intqH, updateGR
