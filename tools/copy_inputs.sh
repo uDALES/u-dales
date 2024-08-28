@@ -18,9 +18,9 @@
 # Copyright (C) 2016-2019 the uDALES Team.
 
 # examples:
-# new sim: "copy_inputs.sh 2 1" or "copy_inputs.sh 2 1 c"
+# new sim: "copy_inputs.sh 1 2" or "copy_inputs.sh 1 2 c"
 # continue with old sim: "copy_inputs.sh 1 1 w"
-# continue with new sim  "copy_inputs.sh 2 1 w"
+# continue with new sim  "copy_inputs.sh 1 2 w"
 
 set -e
 
@@ -35,15 +35,15 @@ fi
 if (( $# < 2 )) ; then
   echo "usage: `basename $0` sim#1 sim#2 (start)"
   echo "prepares a new simulation with DALES"
-  echo "   sim#1: number of new simulation"
-  echo "   sim#2: number of simulation upon which the newone is based"
+  echo "   sim#1: number of simulation upon which the new one is based"
+  echo "   sim#2: number of new simulation"
   echo "   start (optional): (c)old- or (w)arm-start, c is default"
   echo "... execution terminated"
   exit 0
 fi
 
-tar=$(printf "%03.0f" $1)    # pad argument 1 (target simulation) with zeros
-src=$(printf "%03.0f" $2)    # pad argument 2 (origin) with zeros
+src=$(printf "%03.0f" $1)    # pad argument 1 (origin) with zeros
+tar=$(printf "%03.0f" $2)    # pad argument 2 (target simulation) with zeros
 start=${3:-c}                # default argument 3 to c (coldstart) if not provided
 case=1                       # default value 1 (target folder does not exist or overwrite, 2=only copy files that don't exist, 3=interactive)
 
