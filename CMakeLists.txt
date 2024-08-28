@@ -77,6 +77,7 @@ find_package(NetCDF REQUIRED COMPONENTS F90)
 include_directories(${NETCDF_F90_INCLUDE_DIRS})
 
 file(GLOB_RECURSE src_f90 "src/*.f90")
+list(FILTER src_f90 EXCLUDE REGEX ".*/program.f90")
 
 #add_subdirectory(external)
 
@@ -101,20 +102,38 @@ set_property(CACHE FFT_Choice PROPERTY STRINGS generic fftw3)
 
 add_subdirectory(2decomp-fft)
 
-add_executable(u-dales ${src_f90})
+
+# build as a library first for unit testing
+add_library(u-dales-lib ${src_f90})
 include_directories(2decomp-fft)
 
-target_link_libraries(u-dales ${CMLIB_CMAKE_LIBRARY})
-target_link_libraries(u-dales MPI::MPI_Fortran)
-target_link_libraries(u-dales ${NETCDF_F90_LIBRARIES})
+target_link_libraries(u-dales-lib ${CMLIB_CMAKE_LIBRARY})
+target_link_libraries(u-dales-lib MPI::MPI_Fortran)
+target_link_libraries(u-dales-lib ${NETCDF_F90_LIBRARIES})
 #target_link_libraries(u-dales ${FISHPACK_LIBRARY})
 #target_link_libraries(u-dales ${VFFTPACK_LIBRARY})
-target_link_libraries(u-dales ${FFTW_LIBRARIES})
-target_link_libraries(u-dales 2decomp-fft)
+target_link_libraries(u-dales-lib ${FFTW_LIBRARIES})
+target_link_libraries(u-dales-lib 2decomp-fft)
 
-target_include_directories(u-dales PUBLIC $<TARGET_PROPERTY:2decomp-fft,BINARY_DIR>)
-target_include_directories(u-dales PUBLIC ${FFTW_INCLUDE_DIRS})
+target_include_directories(u-dales-lib PUBLIC $<TARGET_PROPERTY:2decomp-fft,BINARY_DIR>)
+target_include_directories(u-dales-lib PUBLIC ${FFTW_INCLUDE_DIRS})
 
 #add_dependencies(u-dales fishpack-cmake-project)
 #add_dependencies(u-dales vfftpack-cmake-project)
-add_dependencies(u-dales 2decomp-fft)
+add_dependencies(u-dales-lib 2decomp-fft)
+
+add_executable(u-dales ${CMAKE_SOURCE_DIR}/src/program.f90)
+target_link_libraries(u-dales u-dales-lib)
+
+find_package(
+  PFUNIT REQUIRED
+  VERSION 4.10
+  PATHS ${CMAKE_SOURCE_DIR}/unit_tests/pFUnit/build/installed/PFUNIT-4.10/
+)
+enable_testing()
+
+add_pfunit_ctest(
+  unit_tests
+  TEST_SOURCES ${CMAKE_SOURCE_DIR}/unit_tests/test_simple.pf
+  LINK_LIBRARIES u-dales-lib
+)
