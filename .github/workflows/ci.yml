@@ -9,7 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ['ubuntu-latest', 'macos-latest']
+        os: ['ubuntu-22.04', 'macos-14']
         build-type: ['Debug', 'Release']
     
     steps:
@@ -35,18 +35,18 @@ jobs:
       # See https://github.com/conda-incubator/setup-miniconda#IMPORTANT.
       shell: bash -l {0}
       run: |
-        if [ ${{ matrix.os }} = 'macos-latest' ]; then export FC=gfortran-12; fi
+        if [ ${{ matrix.os }} = 'macos-14 ]; then export FC=gfortran-12; fi
         python3 -u tests/run_tests.py master $GITHUB_SHA ${{ matrix.build-type}}
 
     - name: Build docs
-      if: matrix.os == 'ubuntu-latest' && matrix.build-type == 'Release'
+      if: matrix.os == 'ubuntu-22.04' && matrix.build-type == 'Release'
       shell: bash -l {0}
       run: |
         mkdocs build --site-dir build/html
         ford docs/udales-docs-software.md
 
     - name: Publish docs
-      if: matrix.os == 'ubuntu-latest' && matrix.build-type == 'Release' && github.event_name == 'push' && github.ref == 'refs/heads/master'
+      if: matrix.os == 'ubuntu-22.04' && matrix.build-type == 'Release' && github.event_name == 'push' && github.ref == 'refs/heads/master'
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
