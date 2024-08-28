@@ -22,6 +22,7 @@
 !  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
 module modibm
+   use mpi
    use modibmdata
    !use wf_uno
    implicit none

@@ -4,6 +4,7 @@
 !> Input trees into DALES model.
 
 module modtrees
+use mpi
 implicit none
 save
 

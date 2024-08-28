@@ -28,6 +28,7 @@
 !  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
 module modinlet
+use mpi
 use modinletdata
 implicit none
 save

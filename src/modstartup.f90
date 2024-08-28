@@ -33,6 +33,7 @@
 
 module modstartup
 
+   use mpi
    implicit none
    ! private
    ! public :: startup,trestart
