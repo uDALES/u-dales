@@ -416,7 +416,7 @@ module modglobal
    logical :: ladaptive = .false. !<    * adaptive timestepping on or off
 
    real    :: tdriverstart = 0.   !<     * time at which to start recording inlet driver file (only necessary if idriver == 1)
-   real    :: tdriverstart_cold = 0.	!< to store tdriverstart of cold started simulation while doing warmstart
+   real    :: tdriverstart_cold = 0.   !< to store tdriverstart of cold started simulation while doing warmstart
    real    :: tdriverdump         !<     * time in inlet driver simulation at which data dumps are made (idriver == 1)
    real    :: dtdriver = 0.1      !<     * time frequency at which inlet driver data dumps are made (idriver == 1)
    integer :: driverstore         !<     * number of stored driver steps for inlet (automatically calculated)

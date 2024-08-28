@@ -304,10 +304,10 @@ contains
           iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_tttts,VarID)
 
 !Facet information
-		case ('ft')
-		  iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_ft,VarID)
-		case ('flt')
-		  iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_flt,VarID)
+       case ('ft')
+          iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_ft,VarID)
+       case ('flt')
+          iret=nf90_def_var(ncID,sx(n,1),NF90_FLOAT,dim_flt,VarID)
 
         case default
         write(0, *) 'nvar', nvar, sx(n,:)
