@@ -65,26 +65,22 @@ pushd $1
 
 popd
 
-####### modified function for sed -i
-function sedi { if [[ "$OSTYPE" == "darwin"* ]]; then
-        		sed -i '' "$1" "$2"
-		elif [[ "$OSTYPE" == "linux-gnu" ]]; then
-        		sed -i "$1" "$2"
-		fi;}
-
-
-####### set iexpnir in matlab file
-sedi "/expnr = '/s/.*/expnr = '$iexpnr';/g" $DA_TOOLSDIR"/write_inputs.m"
-
 ###### RUN MATLAB SCRIPT
 cd $DA_TOOLSDIR/
-matlab -nodesktop -nosplash -r "write_inputs; quit"
+matlab -nodesktop -nojvm -nosplash -r "expnr=$iexpnr; write_inputs; quit"
 cd $DA_EXPDIR/$iexpnr
 
 
 ###### alter files in namoptions
 
-update_namoptions() {
+####### modified function for sed -i
+function sedi { if [[ "$OSTYPE" == "darwin"* ]]; then
+        		sed -i '' "$1" "$2"
+		elif [[ "$OSTYPE" == "linux"* ]]; then
+        		sed -i "$1" "$2"
+		fi;}
+
+function update_namoptions() {
     local filename=$1
     local varname=$2
     local sub_offset=$3  # number of garbage lines in the specific file
