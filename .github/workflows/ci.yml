@@ -53,6 +53,8 @@ jobs:
     - name: Run MATLAB unit tests
       if: matrix.os == 'ubuntu-latest'
       uses: matlab-actions/run-tests@v2
+      with:
+        select-by-tag: Unit
 
     - name: Build docs
       if: matrix.os == 'ubuntu-latest' && matrix.build-type == 'Release'

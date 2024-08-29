@@ -1,7 +1,7 @@
 % Unit tests for the preprocessing class
 classdef test_preprocessing < matlab.unittest.TestCase
 
-    methods(Test)
+    methods(Test, TestTags = {'Unit'})
 
         % Test preprocessing.set_nfcts
         function test_set_nfcts(testCase)
