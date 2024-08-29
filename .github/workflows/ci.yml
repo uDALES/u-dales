@@ -11,6 +11,9 @@ jobs:
       matrix:
         os: ['ubuntu-22.04', 'macos-14']
         build-type: ['Debug', 'Release']
+        include:
+          - os: macos-14
+            FC: gfortran-12  # add the FC variable to macos runs
     defaults:
       run:
         # 'shell' required to activate environment.
@@ -36,8 +39,7 @@ jobs:
 
     - name: Build and test uDALES
       run: |
-        if [ ${{ matrix.os }} = 'macos-14 ]; then export FC=gfortran-12; fi
-        python3 -u tests/run_tests.py master $GITHUB_SHA ${{ matrix.build-type}}
+        FC=${{ matrix.FC }} python3 -u tests/run_tests.py master $GITHUB_SHA ${{ matrix.build-type}}
 
     - name: Build docs
       if: matrix.os == 'ubuntu-22.04' && matrix.build-type == 'Release'
