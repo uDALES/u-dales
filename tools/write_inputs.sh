@@ -74,7 +74,7 @@ if [ $start == "c" ]; then
 cat <<EOF > pre-job.$iexpnr
 
 #PBS -l walltime=24:00:00
-#PBS -l select=1:ncpus=16:mem=50gb
+#PBS -l select=1:ncpus=8:mem=50gb
 
 module load tools/prod
 module load MATLAB/2023a_Update_3

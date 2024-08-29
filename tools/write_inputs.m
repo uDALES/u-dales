@@ -20,6 +20,7 @@
 % This script is run by the bash script da_inp.sh.
 % It used to generate the necessary input files for uDALES.
 
+%
 if exist('expnr', 'var')
     expnr = sprintf('%03d',expnr);
 else
@@ -27,9 +28,10 @@ else
     return;  % Terminate the script
 end
 
-%
 DA_EXPDIR = getenv('DA_EXPDIR');
 DA_TOOLSDIR = getenv('DA_TOOLSDIR');
+%
+
 addpath(genpath([DA_TOOLSDIR '/']));
 addpath([DA_TOOLSDIR '/IBM/'])
 addpath([DA_TOOLSDIR '/SEB/'])
