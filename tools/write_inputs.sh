@@ -39,7 +39,7 @@ then
     exit 0
 fi
 
-start=$2     # pass 'c' if needs to be run on hpc compute node
+start=${2:-""}     # pass 'c' if needs to be run on hpc compute node
 
 # go to experiment directory
 pushd $1
