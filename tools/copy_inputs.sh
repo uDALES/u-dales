@@ -98,7 +98,7 @@ if [ ! -d $DA_EXPDIR/$src ]; then
 fi
 
 # list of files to copy
-declare -a tocopy=("/namoptions." "/lscale.inp." "/prof.inp." "/scalar.inp." "/purifs.inp." "/trees.inp." "/scals.inp." "/lad.inp." "/facetarea.inp." "/facets.inp." "/facets_unused." "/netsw.inp." "/svf.inp." "/Tfacinit.inp." "/vf.nc.inp." "/factypes.inp.")
+declare -a tocopy=("/namoptions." "/lscale.inp." "/prof.inp." "/scalar.inp." "/purifs.inp." "/trees.inp." "/scals.inp." "/lad.inp." "/facetarea.inp." "/facets.inp." "/facets_unused." "/netsw.inp." "/svf.inp." "/Tfacinit.inp." "/vf.nc.inp." "/factypes.inp." "/timedepsw.inp." "/timedeplw.inp." "/timedepnudge.inp." "/vfsparse.inp.")
 
 # copy and rename files
 case $case in
@@ -208,10 +208,7 @@ if [ -f $dfile ]; then
 fi
 
 # copy config script for execution
-config_script=$DA_EXPDIR/$src/config.sh
-if [ -f $config_script ] ; then
-  cp $config_script $DA_EXPDIR/$tar
-fi
+cp $DA_EXPDIR/$src/config.sh $DA_EXPDIR/$tar
 
 # copy STL for execution
 stlfile=$(find $DA_EXPDIR/$src -iname "*.stl")
@@ -220,12 +217,19 @@ if [ -f "$stlfile" ] ; then
 fi
 
 # copy *.txt files for IBM implementation
-IBM_files=$DA_EXPDIR/$src/*.txt
-for ibmfile in $IBM_files ; do
-  if [ -f $ibmfile ]; then
-    cp $ibmfile $DA_EXPDIR/$tar
-  fi
-done
+function copy_files() {
+    local filename=$1
+    filepath=$DA_EXPDIR/$src/$filename*".txt"
+    for file in $filepath ; do
+      if [ -f $file ]; then
+        cp $file $DA_EXPDIR/$tar
+      fi
+    done
+}
+copy_files "solid_"
+copy_files "facet_sections_"
+copy_files "fluid_boundary_"
+copy_files "info"
 
 # copy any available scalar source files
 scalarsourcefiles=$DA_EXPDIR/$src/"scalarsource"*
