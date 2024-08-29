@@ -11,7 +11,11 @@ jobs:
       matrix:
         os: ['ubuntu-22.04', 'macos-14']
         build-type: ['Debug', 'Release']
-    
+    defaults:
+      run:
+        # 'shell' required to activate environment.
+        # See https://github.com/conda-incubator/setup-miniconda#IMPORTANT.
+        shell: bash -el {0}
     steps:
     - name: Check-out project
       uses: actions/checkout@v4
@@ -31,16 +35,12 @@ jobs:
         environment-file: environment.yml
 
     - name: Build and test uDALES
-      # 'shell' required to activate environment.
-      # See https://github.com/conda-incubator/setup-miniconda#IMPORTANT.
-      shell: bash -l {0}
       run: |
         if [ ${{ matrix.os }} = 'macos-14 ]; then export FC=gfortran-12; fi
         python3 -u tests/run_tests.py master $GITHUB_SHA ${{ matrix.build-type}}
 
     - name: Build docs
       if: matrix.os == 'ubuntu-22.04' && matrix.build-type == 'Release'
-      shell: bash -l {0}
       run: |
         mkdocs build --site-dir build/html
         ford docs/udales-docs-software.md
