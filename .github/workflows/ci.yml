@@ -46,6 +46,14 @@ jobs:
         if [ ${{ matrix.os }} = 'macos-latest' ]; then export FC=gfortran-12; fi
         python3 -u tests/run_tests.py master $GITHUB_SHA ${{ matrix.build-type}}
 
+    - name: Set up MATLAB
+      if: matrix.os == 'ubuntu-latest'
+      uses: matlab-actions/setup-matlab@v2
+
+    - name: Run MATLAB unit tests
+      if: matrix.os == 'ubuntu-latest'
+      uses: matlab-actions/run-tests@v2
+
     - name: Build docs
       if: matrix.os == 'ubuntu-latest' && matrix.build-type == 'Release'
       shell: bash -l {0}
