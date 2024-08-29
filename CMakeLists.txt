@@ -25,6 +25,12 @@ if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type (default Release)" FORCE)
 endif()
 
+# check that cmake build type is a valid value
+set(CMAKE_CONFIGURATION_TYPES Debug Release)
+if (NOT ${CMAKE_BUILD_TYPE} IN_LIST CMAKE_CONFIGURATION_TYPES)
+  message(FATAL_ERROR "Build type '${CMAKE_BUILD_TYPE}' not supported.")
+endif()
+
 set(SKIP_UPDATE_EXTERNAL_PROJECTS OFF CACHE STRING "Update external projects")
 if (SKIP_UPDATE_EXTERNAL_PROJECTS)
     message(STATUS "Skipping updating external projects")
