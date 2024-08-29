@@ -41,16 +41,3 @@ jobs:
       run: |
         FC=${{ matrix.FC }} python3 -u tests/run_tests.py master $GITHUB_SHA ${{ matrix.build-type}}
 
-    - name: Build docs
-      if: matrix.os == 'ubuntu-22.04' && matrix.build-type == 'Release'
-      run: |
-        mkdocs build --site-dir build/html
-        ford docs/udales-docs-software.md
-
-    - name: Publish docs
-      if: matrix.os == 'ubuntu-22.04' && matrix.build-type == 'Release' && github.event_name == 'push' && github.ref == 'refs/heads/master'
-      uses: peaceiris/actions-gh-pages@v3
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: build/html/
-        force_orphan: true
