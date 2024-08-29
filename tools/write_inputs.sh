@@ -34,7 +34,7 @@ if (( $# < 1 ))
 then
     echo "The path to case/experiment folder must be set."
 	echo "usage: FROM THE TOP LEVEL DIRECTORY run: u-dales/tools/write_inputs.sh <PATH_TO_CASE> (start)"
-	echo "   start (optional): (c)ompute node"
+	echo "   start (optional): (c)ompute node or (l)ogin node"
 	echo "... execution terminated"
     exit 0
 fi
@@ -96,9 +96,18 @@ EOF
 	qsub pre-job.$iexpnr
 	echo "pre-job.$iexpnr submitted."
 
+elif [ $start == "l" ]; then
+	module load tools/prod
+	module load MATLAB/2023a_Update_3
+	module load gcc/11.2.0
+	export MATLAB_USE_USERWORK=1
+	cd $DA_TOOLSDIR
+	matlab -nodesktop -nojvm -nosplash -r "expnr=$iexpnr; write_inputs; quit"
+	cd $DA_EXPDIR
+	cd ..
 else
 	###### RUN MATLAB SCRIPT
-	cd $DA_TOOLSDIR/
+	cd $DA_TOOLSDIR
 	matlab -nodesktop -nojvm -nosplash -r "expnr=$iexpnr; write_inputs; quit"
 	cd $DA_EXPDIR
 	cd ..
