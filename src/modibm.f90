@@ -244,7 +244,7 @@ module modibm
 
    subroutine initibmnorm(fname, solid_info)
      use modglobal, only : ifinput
-     use modmpi,    only : myid, comm3d, MPI_INTEGER, mpierr
+     use modmpi,    only : myid, comm3d, mpierr
      use decomp_2d, only : zstart, zend
 
      character(11), intent(in) :: fname
@@ -304,7 +304,7 @@ module modibm
    subroutine initibmwallfun(fname_bnd, fname_sec, dir, bound_info)
      use modglobal, only : ifinput, ib, ie, itot, ih, jb, je, jtot, jh, kb, ktot, kh, &
                            xf, yf, zf, xh, yh, zh, dx, dy, dzh, dzf, xhat, yhat, zhat, eps1
-     use modmpi,    only : myid, comm3d, MPI_INTEGER, MY_REAL, MPI_LOGICAL, mpierr
+     use modmpi,    only : myid, comm3d, MY_REAL, mpierr
      use initfac,   only : facnorm, facz0
      use decomp_2d, only : zstart, zend
 
@@ -2116,7 +2116,7 @@ module modibm
       use modfields, only : IIc,  IIu,  IIv,  IIw,  IIuw,  IIvw,  IIuv,  &
                             IIcs, IIus, IIvs, IIws, IIuws, IIvws, IIuvs, &
                             IIct, IIut, IIvt, IIwt, IIuwt, um, u0, vm, v0, wm, w0
-      use modmpi,    only : myid, comm3d, mpierr, MPI_INTEGER, MPI_DOUBLE_PRECISION, MY_REAL, nprocs, MPI_SUM
+      use modmpi,    only : myid, comm3d, mpierr, MY_REAL, nprocs
       use decomp_2d, only : zstart, exchange_halo_z
 
       integer :: IIcl(kb:ke + khc), IIul(kb:ke + khc), IIvl(kb:ke + khc), IIwl(kb:ke + khc), IIuwl(kb:ke + khc), IIvwl(kb:ke + khc), IIuvl(kb:ke + khc)
