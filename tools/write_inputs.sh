@@ -84,7 +84,7 @@ cd $DA_TOOLSDIR
 
 export DA_TOOLSDIR=$DA_TOOLSDIR
 export DA_EXPDIR=$DA_EXPDIR
-export MATLAB_USE_USERWORK=1
+export MATLAB_USE_USERWORK=0
 
 matlab -nodesktop -nojvm -nosplash -r "expnr=$iexpnr; write_inputs; quit"
 
