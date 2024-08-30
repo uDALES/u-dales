@@ -10,14 +10,6 @@ nprocy       = 2
 libm         = .true.
 /
 
-&OUTPUT
-lfielddump   = .false.
-lxytdump     = .true.
-ltdump       = .false.
-tstatsdump   = 50.
-tsample      = 1.
-/
-
 &DOMAIN
 itot         = 256
 jtot         = 128
@@ -37,13 +29,13 @@ uflowrate    = 1.0
 ipoiss       = 0
 /
 
-&NAMSUBGRID
-lvreman      = .true.
-/
-
 &BC
 wtsurf       = 0.
 wqsurf       = 0.
+/
+
+&NAMSUBGRID
+lvreman      = .true.
 /
 
 &WALLS
@@ -68,6 +60,14 @@ tdriverstart = 100.
 dtdriver     = 1.
 driverstore  = 101
 iplane       = 256
+/
+
+&OUTPUT
+lfielddump   = .false.
+lxytdump     = .true.
+ltdump       = .false.
+tstatsdump   = 50.
+tsample      = 1.
 /
 
 &INPS

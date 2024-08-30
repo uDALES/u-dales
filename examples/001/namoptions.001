@@ -12,11 +12,6 @@ libm         = .false.
 lrandomize   = .true.
 /
 
-&OUTPUT
-lfielddump   = .true.
-tfielddump   = 10.
-fieldvars    = 'u0,v0,w0'
-/
 
 &DOMAIN
 itot         = 64
@@ -35,9 +30,6 @@ igrw_damp    = 0
 ipoiss       = 0
 /
 
-&NAMSUBGRID
-lvreman      = .true.
-/
 
 &BC
 thls         = 288.
@@ -45,11 +37,21 @@ z0           = 0.01
 z0h          = 0.000067
 /
 
+&NAMSUBGRID
+lvreman      = .true.
+/
+
+
 &WALLS
 nfcts = 0
 lbottom = .true.
 /
 
+&OUTPUT
+lfielddump   = .true.
+tfielddump   = 10.
+fieldvars    = 'u0,v0,w0'
+/
 
 &INP
 zsize        = 64

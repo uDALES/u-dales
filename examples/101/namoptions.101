@@ -13,15 +13,6 @@ libm         = .true.
 lrandomize   = .true.
 /
 
-&OUTPUT
-lfielddump   = .true.
-tfielddump   = 10.
-fieldvars    = 'u0,v0,w0,th,s1'
-lxytdump     = .true.
-tstatsdump   = 10.
-tsample      = 1.
-/
-
 &DOMAIN
 itot         = 64
 jtot         = 64
@@ -45,10 +36,6 @@ iadv_thl     = 2
 iadv_sv      = 7
 /
 
-&NAMSUBGRID
-lvreman      = .true.
-/
-
 &BC
 wtsurf       = 0.
 wqsurf       = 0.
@@ -56,6 +43,10 @@ thls         = 295.
 thl_top      = 285.
 BCtopT       = 2
 BCxs         = 2
+/
+
+&NAMSUBGRID
+lvreman      = .true.
 /
 
 &WALLS
@@ -79,6 +70,15 @@ iwalltemp    = 2
 nsv          = 1
 lscasrcl     = .true.
 nscasrcl     = 1
+/
+
+&OUTPUT
+lfielddump   = .true.
+tfielddump   = 10.
+fieldvars    = 'u0,v0,w0,th,s1'
+lxytdump     = .true.
+tstatsdump   = 10.
+tsample      = 1.
 /
 
 &INPS

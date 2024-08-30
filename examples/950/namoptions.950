@@ -10,15 +10,7 @@ nprocy       = 2
 libm         = .true.
 /
 
-&OUTPUT
-lfielddump   = .true.
-tfielddump   = 20.
-fieldvars    = 'u0,v0'
-lxytdump     = .true.
-ltdump       = .true.
-tstatsdump   = 99.
-tsample      = 1.
-/
+
 
 &DOMAIN
 itot         = 256
@@ -39,13 +31,13 @@ uflowrate    = 1.0
 ipoiss       = 0
 /
 
-&NAMSUBGRID
-lvreman      = .true.
-/
-
 &BC
 BCxm         = 3
 BCtopm       = 3
+/
+
+&NAMSUBGRID
+lvreman      = .true.
 /
 
 &WALLS
@@ -68,6 +60,16 @@ nfctsecs_c = 96215
 idriver      = 2
 driverjobnr  = 949
 driverstore  = 101
+/
+
+&OUTPUT
+lfielddump   = .true.
+tfielddump   = 20.
+fieldvars    = 'u0,v0'
+lxytdump     = .true.
+ltdump       = .true.
+tstatsdump   = 99.
+tsample      = 1.
 /
 
 &INPS

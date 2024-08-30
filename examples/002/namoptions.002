@@ -12,11 +12,6 @@ libm         = .true.
 lrandomize   = .true.
 /
 
-&OUTPUT
-lxytdump     = .true.
-tstatsdump   = 10.
-tsample      = 1.
-/
 
 &DOMAIN
 itot         = 64
@@ -55,6 +50,11 @@ nfctsecs_w = 7168
 nfctsecs_c = 10720
 /
 
+&OUTPUT
+lxytdump     = .true.
+tstatsdump   = 10.
+tsample      = 1.
+/
 
 &INP
 zsize        = 64
@@ -62,4 +62,3 @@ u0           = 2.
 dpdx         = 0.0001
 stl_file     = geom.002.STL
 /
-
