@@ -22,6 +22,7 @@
 !
 module modstatsdump
 
+  use mpi
   use modglobal, only : dt,lydump,lytdump,ltkedump,lxydump,lxytdump,ltdump,lmintdump,ifoutput !,nstat
   use modmpi, only : myid
   implicit none

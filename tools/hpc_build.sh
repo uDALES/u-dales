@@ -81,7 +81,7 @@ pushd $path_to_build_dir
 cmake_build_type="$(capitalize $build_type)"
 FC=$FC cmake -DNETCDF_DIR=$NETCDF_DIR \
              -DNETCDF_FORTRAN_DIR=$NETCDF_FORTRAN_DIR \
-             -DCMAKE_BUILD_TYPE=cmake_build_type \
+             -DCMAKE_BUILD_TYPE=$cmake_build_type \
 	     -DFFTW_DOUBLE_OPENMP_LIB=$FFTW_DOUBLE_LIB \
 	     -DFFTW_FLOAT_OPENMP_LIB=$FFTW_FLOAT_LIB \
               ../../ 2>&1 | tee -a $path_to_build_dir/config.log

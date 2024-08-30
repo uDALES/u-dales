@@ -27,6 +27,7 @@
 !
 module modfielddump
 
+  use mpi
   use modglobal, only : longint
   use modfields, only : ncname, ncname1, ncname2
   implicit none

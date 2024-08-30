@@ -4,13 +4,14 @@
 !> Input air purifiers into DALES model.
 
 module modpurifiers
+use mpi
 implicit none
 save
 
 contains
     subroutine createpurifiers
     use modglobal,  only : lpurif,npurif,purif,cexpnr,ifinput
-    use modmpi,     only : myid,MPI_INTEGER,comm3d,mpierr
+    use modmpi,     only : myid,comm3d,mpierr
 
     implicit none
     integer :: n

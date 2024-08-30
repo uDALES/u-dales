@@ -122,7 +122,7 @@ for file in *dump.000.${expnr}.nc ; do
         dumps=${file%.000.${expnr}.nc}
 
         if [ $dumps == "fielddump" ]; then
-	    "Merging fielddump along x-direction."
+	    echo "Merging fielddump along x-direction."
             #xmparam="u,tau_x,xm"
 	    xmparam="u,xm"
 

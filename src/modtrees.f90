@@ -4,6 +4,7 @@
 !> Input trees into DALES model.
 
 module modtrees
+use mpi
 implicit none
 save
 
@@ -12,7 +13,7 @@ contains
     use modglobal,  only : ltrees,ntrees,tree,cexpnr,ifinput,zh,zf,dzh,dzfi,dzhi,dzf,Qstar,&
                            dec,lad,kb,ke,cp,rhoa,ntree_max,dQdt,tr_A,dy,xh
     use modfields,  only : um,vm,wm,thlm,qt0,svp,up,vp,wp,thlp,qtp,Rn,clai,qc,qa,ladzh,ladzf
-    use modmpi,     only : myid,MPI_INTEGER,comm3d,mpierr,MY_REAL
+    use modmpi,     only : myid,comm3d,mpierr,MY_REAL
     use modsurfdata,only : wtsurf
     use modibmdata ,only : bctfz
     implicit none

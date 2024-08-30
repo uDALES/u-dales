@@ -33,6 +33,7 @@
 
 module modstartup
 
+   use mpi
    implicit none
    ! private
    ! public :: startup,trestart
@@ -701,7 +702,7 @@ module modstartup
                               ipoiss,POISS_FFT2D,POISS_FFT3D,POISS_CYC,&
                               lydump,lytdump,luoutflowr,lvoutflowr,&
                               lhdriver,lqdriver,lsdriver
-      use modmpi,      only : myid, comm3d, mpierr, MPI_INTEGER, MPI_LOGICAL, nprocx, nprocy
+      use modmpi,      only : myid, comm3d, mpierr, nprocx, nprocy
       use modglobal,   only : idriver
       implicit none
       real :: d(1:itot-1)
@@ -2397,8 +2398,8 @@ module modstartup
    !    use modfields, only:IIc, IIu, IIv, IIw, IIuw, IIvw, IIuv, IIct, IIwt, IIut, IIuwt, IIvt,&
    !       IIcs, IIus, IIuws, IIvws, IIuvs, IIvs, IIws, &
    !       um, u0, vm, v0, wm, w0
-   !    use modmpi, only:myid, comm3d, mpierr, MPI_INTEGER, MPI_DOUBLE_PRECISION, MY_REAL, nprocs, &
-   !       cmyid, MPI_REAL8, MPI_REAL4, MPI_SUM, excjs
+   !    use modmpi, only:myid, comm3d, mpierr, MY_REAL, nprocs, &
+   !       cmyid, excjs
    !    ! use initfac, only:block
    !    integer k, n, il, iu, jl, ju, kl, ku
    !    integer :: IIcl(kb:ke + khc), IIul(kb:ke + khc), IIvl(kb:ke + khc), IIwl(kb:ke + khc), IIuwl(kb:ke + khc), IIvwl(kb:ke + khc), IIuvl(kb:ke + khc)
