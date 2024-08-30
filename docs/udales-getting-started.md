@@ -203,10 +203,10 @@ Now to set-up a new experiment (here we use case `009`) based on a previous exam
 # We assume you are running the following commands from your
 # top-level project directory.
 
-# General syntax: copy_inputs.sh new_exp_id old_exp_id
+# General syntax: copy_inputs.sh old_exp_id new_exp_id
 # To set up a new simulation starting from the restart files of another simulation
-# ("warmstart"), use the 'w' flag. E.g.: copy_inputs.sh new_exp_id old_exp_id w
-./u-dales/tools/copy_inputs.sh 009 001
+# ("warmstart"), use the 'w' flag. E.g.: copy_inputs.sh old_exp_id new_exp_id w
+./u-dales/tools/copy_inputs.sh 001 009
 ```
 
 ## Run
