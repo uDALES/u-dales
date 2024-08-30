@@ -1,19 +1,23 @@
 &RUN
 iexpnr       = 201
-runtime      = 11.
+runtime      = 200.
 trestart     = 10.
-dtmax        = 1.
+dtmax        = 1
 irandom      = 43
 randqt       = 2.5e-5
 randthl      = 0.001
 randu        = 0.01
 ladaptive    = .true.
+nprocx       = 2
+nprocy       = 2
+libm         = .true.
+lrandomize   = .true.
 /
 
 &OUTPUT
 lfielddump   = .true.
 tfielddump   = 10.
-fieldvars    = 'u0,v0,w0,th'
+fieldvars    = 'u0,v0,w0,th,qt'
 ltdump       = .true.
 lxytdump     = .true.
 tstatsdump   = 10.
@@ -21,18 +25,18 @@ tsample      = 1.
 /
 
 &DOMAIN
-imax         = 128
+itot         = 128
 jtot         = 128
-kmax         = 128
-xsize        = 128
-ysize        = 128
+ktot         = 128
+xlen         = 128
+ylen         = 128
 /
 
 &PHYSICS
 lbuoyancy    = .true.
 ltempeq      = .true.
 lmoist       = .true.
-ps           = 101500.00
+ps           = 101500.
 igrw_damp    = 0
 lcoriol      = .true.
 lnudge       = .true.
@@ -41,9 +45,9 @@ nnudge       = 64
 /
 
 &DYNAMICS
+ipoiss       = 0
 iadv_thl     = 2
 iadv_qt      = 2
-ipoiss       = 0
 /
 
 &NAMSUBGRID
@@ -53,17 +57,25 @@ lvreman      = .true.
 &BC
 wtsurf       = 0.
 wqsurf       = 0.
-thls         = 288.
-z0           = 0.01
-z0h          = 0.000067
 thl_top      = 288.
 qt_top       = 0.0
 qts          = 0.0
 /
 
 &WALLS
-nblocks      = 261
-nfcts        = 421
+nfcts = 994
+nsolpts_u = 83971
+nsolpts_v = 84665
+nsolpts_w = 94153
+nsolpts_c = 80230
+nbndpts_u = 34122
+nbndpts_v = 34122
+nbndpts_w = 33660
+nbndpts_c = 33660
+nfctsecs_u = 31658
+nfctsecs_v = 29918
+nfctsecs_w = 22352
+nfctsecs_c = 36594
 iwalltemp    = 2
 iwallmoist   = 2
 /
@@ -71,26 +83,25 @@ iwallmoist   = 2
 &ENERGYBALANCE
 lEB          = .true.
 lconstW      = .true.
+lwriteEBfiles = .true.
 dtEB         = 2.
 bldT         = 301.0
 wsoil        = 314.0
 wgrmax       = 451.0
 wwilt        = 172.0
 wfc          = 314.0
-skyLW        = 201.0
+skyLW        = 395.0
 GRLAI        = 2.1
 rsmin        = 200.0
+nfaclyrs     = 5 
 /
 
 &INPS
-zsize        = 160
-lblocksfile  = .true.
-blocksfile   = buildings.201
-lzstretch    = .true.
-stretchconst = 0.01
-lstretchexp  = .true.
-hlin         = 40
-dzlin        = 1
-thl0         = 290.
+zsize        = 128
 u0           = 1.5
+thl0         = 295
+qt0          = 0.01
+facT         = 295
+stl_ground   = .true.
+stl_file     = geom.201.STL
 /
