@@ -91,50 +91,45 @@ brew install git cmake gcc netcdf netcdf-fortran mpich nco python3 fftw
 
 ## Installation
 
-The installation and set-up of uDALES is straightforward thanks to the use of a [Cookiecutter repository](https://github.com/uDALES/cookiecutter-u-dales) to create a project template for uDALES with a generic folder structure set-up that you can later use to set up your own experiments.
-
-Please make sure that you have created a new (private) repository on your GitHub account and made note of the URL as we need this later to configure Cookiecutter.
-
 ### Repository set-up
 
-First, install [Cookiecutter](https://github.com/cookiecutter/cookiecutter) from your command prompt:
+Create a top-level directory, for example called "uDALES":
 
-``` sh
-python3 -m pip install --user cookiecutter
+```sh
+mkdir uDALES
 ```
 
-Then, to create a new uDALES project within the current working directory:
+Clone the u-dales repository into the top-level directory:
 
-``` sh
-cookiecutter https://github.com/uDALES/cookiecutter-u-dales
+```sh
+cd uDALES
+git clone --recurse-submodules https://github.com/uDALES/u-dales.git
 ```
 
-and fill in the required fields when prompted. `<PROJECT_NAME>` is the name of the generated project directory and `<GITHUB_PROJECT_REMOTE>` is the URL to your remote GitHub account (this is optional, you can just press the return key to leave this empty). E.g.:
+Create directories for experiment set-ups and output data:
 
-``` sh
-directory_name [<PROJECT_NAME>]: neutral_experiments
-github_project_remote [<GITHUB_PROJECT_REMOTE>]: https://github.com/<MY_GITHUB_USERNAME>/<MY_NEW_EMPTY_REPO>.git
+```sh
+mkdir experiments outputs
 ```
 
-This creates a Git repository for your own projects named `<PROJECT_NAME>` with the [uDALES model development repository](https://github.com/uDALES/u-dales) as submodule, and a generic tree that you can use to set up your own experiments:
+such that your directory tree resembles the following:
 
 ``` sh
 .
-├── data        # Contains or links to any external data used by the experiments.
-├── docs        # Relevant documentation or papers used for the experiment.
+├── ...
 ├── experiments # Configuration files grouped by experiment number.
 │   └── <N>     # Any configurations files needed by uDALES to run experiment <N>.
 │   └── ...
-├── tools       # Additional or specialized tools other then the ones included with uDALES.
+├── ...
+├── outputs     # Additional or specialized tools other then the ones included with uDALES.
+│   └── <N>     # Output from experiment <N>.
+│   └── ...
+├── ...
 └── u-dales     # uDALES model development repository (submodule).
 ```
 
-Alternatively, one can create this folder structure manually, and clone the repository into the top-level directory:
-```sh
-git clone --recurse-submodules https://github.com/uDALES/u-dales
-```
-
 In the next steps we will assume your current working directory is the top-level project directory.
+
 
 ### Build on common systems
 
@@ -156,11 +151,13 @@ You can compile in parallel mode by passing Make the `j` flag followed by the nu
 ### Build on HPCs
 
 To compile uDALES (in release mode) on the ICL cluster use:
+
 ```sh
 ./u-dales/tools/hpc_build icl release
 ```
 
 To compile uDALES (in release mode) on ARCHER2, use:
+
 ```sh
 ./u-dales/tools/hpc_build archer release
 ```
@@ -297,6 +294,7 @@ Then, to start the simulation, run:
 ```
 
 ### Run on ARCHER2
+
 ``` sh
 export DA_TOOLSDIR=$(pwd)/u-dales/tools # Directory of scripts
 export DA_BUILD=$(pwd)/u-dales/build/release/u-dales # Build file
