@@ -291,7 +291,7 @@ If you are looking for information on how to install or use Singularity on your 
 First clone the uDALES repository with:
 
 ```sh
-https://github.com/uDALES/u-dales.git
+git clone https://github.com/uDALES/u-dales.git
 ```
 
 Then, to build and download the Singularity image use:
