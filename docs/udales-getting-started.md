@@ -14,7 +14,7 @@ uDALES is supported to run on Linux, macOS and Windows Subsystem for Linux (WSL)
 
 - [CMake](https://cmake.org/) >= 3.9.
 - [NetCDF-Fortran](https://www.unidata.ucar.edu/downloads/netcdf/index.jsp) >= 4.
-- [GNU](https://gcc.gnu.org/wiki/GFortran) <= 9, [Intel](https://software.intel.com/content/www/us/en/develop/documentation/fortran-compiler-developer-guide-and-reference/top.html), or [Cray](https://pubs.cray.com/) Fortran compiler.
+- [GNU](https://gcc.gnu.org/wiki/GFortran) >= 9, [Intel](https://software.intel.com/content/www/us/en/develop/documentation/fortran-compiler-developer-guide-and-reference/top.html), or [Cray](https://pubs.cray.com/) Fortran compiler.
 - A recent version of [MPICH](https://www.mpich.org/) or [Open-MPI](https://www.open-mpi.org/). 
 - [FFTW](http://www.fftw.org/) 
 
@@ -30,7 +30,7 @@ To set up a project template for uDALES with a generic folder structure that you
 
 When you create your own experiments, you will need to set up specific input files. We have a system in place that does that for you, written in MATLAB. Information can be found under [pre-processing](./udales-pre-processing.md) and is not discussed in the getting-started set-up.
 
-- [MATLAB](https://www.mathworks.com/products/matlab.html)
+- [MATLAB](https://www.mathworks.com/products/matlab.html) >= R2017b
 
 #### Post-processing
 
