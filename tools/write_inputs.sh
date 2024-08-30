@@ -100,7 +100,7 @@ elif [ $start == "l" ]; then
 	module load tools/prod
 	module load MATLAB/2023a_Update_3
 	module load gcc/11.2.0
-	export MATLAB_USE_USERWORK=1
+	export MATLAB_USE_USERWORK=0
 	cd $DA_TOOLSDIR
 	matlab -nodesktop -nojvm -nosplash -r "expnr=$iexpnr; write_inputs; quit"
 	cd $DA_EXPDIR
