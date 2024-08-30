@@ -24,8 +24,7 @@
 if exist('expnr', 'var')
     expnr = sprintf('%03d',expnr);
 else
-    disp('Error: No input argument provided. The script will terminate.');
-    return;  % Terminate the script
+    error('Error: No input argument provided. The script will terminate.')
 end
 
 DA_EXPDIR = getenv('DA_EXPDIR');
