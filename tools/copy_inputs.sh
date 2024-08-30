@@ -30,7 +30,7 @@ if (( $# < 2 )) ; then
   echo "   sim#2: three digit integer case number of the new simulation"
   echo "   start (optional): (c)old- or (w)arm-start, c is default"
   echo "... execution terminated"
-  exit 0
+  exit 1
 fi
 
 # go to experiment directory
@@ -45,7 +45,7 @@ pushd $1
    	 source config.sh
 	else
 	 echo "config.sh must be set inside $1"
-     exit 0
+     exit 1
 	fi
 
 	## check if required variables are set
