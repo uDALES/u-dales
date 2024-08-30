@@ -1,8 +1,8 @@
 # Getting Started
 
-Getting started with uDALES to set up your own experiments is straightforward. This guide goes through the steps required to [install](#installation) uDALES, and [set-up](#set-up) and [run](#run) a simple example. Results are outputted in netCDF format, for a quick inspection you can use GUI tools such as [Panoply](https://www.giss.nasa.gov/tools/panoply/) or [ncview](http://meteora.ucsd.edu/~pierce/ncview_home_page.html). To learn more about pre- and post-processing steps see the [what's next section](#whats-next).
+Getting started with uDALES to set up your own experiments is straightforward. This guide goes through the steps required to [install](#installation) uDALES, and [set-up](#set-up) and [run](#run) a simple example. Results are output in netCDF format, for a quick inspection you can use GUI tools such as [Panoply](https://www.giss.nasa.gov/tools/panoply/) or [ncview](http://meteora.ucsd.edu/~pierce/ncview_home_page.html). To learn more about pre- and post-processing steps see the [what's next section](#whats-next).
 
-If you have [Singularity](https://sylabs.io/) available on your system, you can use the provided scripts under `tools/singularity` to build and run uDALES cases locally or on HPC environments. See [Singularity](#singularity) for instructions; otherwise, see the section below.
+If you have [Singularity](https://sylabs.io/) available on your system, you can use the provided scripts under `tools/singularity` to build and run uDALES cases locally or on HPC environments. See [Singularity](#singularity) for instructions; otherwise, see the next section.
 
 ## Installation
 
@@ -34,7 +34,7 @@ When you create your own experiments, you will need to set up specific input fil
 
 #### Post-processing
 
-For better organised netcdf output files, you will need:
+For better organised netCDF output files, you will need:
 
 - [netCDF Operators](https://github.com/nco/nco) (NCO).
 
@@ -130,7 +130,7 @@ To compile uDALES (in release mode) on ARCHER2, use:
 ./u-dales/tools/hpc_build archer release
 ```
 
-Information for developers: if you are a High Performance Cluster (HPC) user you are likely using the [Environment Modules package](http://modules.sourceforge.net/) for the dynamic modification of the user's environment via modulefiles and therefore you may need to hint CMake the PATH to NetCDF (see below how).
+Information for developers: if you are a High Performance Cluster (HPC) user you are likely using the [Environment Modules package](http://modules.sourceforge.net/) for the dynamic modification of the user's environment via modulefiles and therefore you may need to hint CMake the PATH to netCDF (see below how).
 
 Here we show how to compile uDALES using the [HPC at ICL](https://www.imperial.ac.uk/admin-services/ict/self-service/research-support/rcs/) as an example, therefore please note that the specific names/versions installed on your system may be different.
 
@@ -141,7 +141,7 @@ module avail # list available modules
 
 ``` sh
 # This is an example, please check with the previous command for the exact name of the
-# modules available on your system. This will load NetCDF compiled with Intel Suite
+# modules available on your system. This will load netCDF compiled with Intel Suite
 # 2019.4 and add the correct version of icc and ifort to the PATH.
 module load intel-suite/2017.6 mpi/intel-2018 cmake/3.14.0 git/2.14.3
 ```
@@ -159,7 +159,7 @@ make
 popd
 ```
 
-where `NETCDF_DIR` and `NETCDF_FORTRAN_DIR` indicates the absolute path to your NetCDF-C and NetCDF-Fortran installation directories. Here, we use the utilities `nc-config` and `nf-config` to hint CMake the location of NetCDF, but you can simply pass the absolute path to the NetCDF-C and NetCDF-Fortran manually instead. You can compile in parallel mode by passing Make the `j` flag followed by the number of CPU cores to use. For example, to compile with 2 cores do `make -j2`.
+where `NETCDF_DIR` and `NETCDF_FORTRAN_DIR` indicates the absolute path to your netCDF-C and netCDF-Fortran installation directories. Here, we use the utilities `nc-config` and `nf-config` to hint CMake the location of netCDF, but you can simply pass the absolute path to the netCDF-C and netCDF-Fortran manually instead. You can compile in parallel mode by passing Make the `j` flag followed by the number of CPU cores to use. For example, to compile with 2 cores do `make -j2`.
 
 ### Build defaults/options
 
@@ -168,8 +168,8 @@ By default uDALES will compile in `Release` mode. You can change this by specify
 | Name                            | Options            | Default   | Description                                   |
 | ------------------------------- | ------------------ | --------- | --------------------------------------------- |
 | `CMAKE_BUILD_TYPE`              | `Release`, `Debug` | `Release` | Whether to optimise/build with debug flags    |
-| `NETCDF4_DIR`                   | `<path>`           | -         | Path to NetCDF-C installation directory       |
-| `NETCDF_FORTRAN_DIR`            | `<path>`           | -         | Path to NetCDF-Fortran installation directory |
+| `NETCDF4_DIR`                   | `<path>`           | -         | Path to netCDF-C installation directory       |
+| `NETCDF_FORTRAN_DIR`            | `<path>`           | -         | Path to netCDF-Fortran installation directory |
 | `SKIP_UPDATE_EXTERNAL_PROJECTS` | `ON`, `OFF`        | `OFF`     | Whether to skip updating external projects    |
 
 ## Set-up
