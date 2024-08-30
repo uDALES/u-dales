@@ -168,8 +168,8 @@ elif [ $start == "w" ]; then
     ln -s $DA_WORKDIR/$src"/"*$startfilen* $DA_EXPDIR/$tar/
   fi
 
-  update_namoptions 'lwarmstart' '.true.' '&RUN'
   update_namoptions 'startfile' $startfilen\_xxx_xxx.$tar '&RUN'
+  update_namoptions 'lwarmstart' '.true.' '&RUN'
 
   # scalar warmstart files
   scalarwarmstart=$DA_WORKDIR/$src"/inits"*
