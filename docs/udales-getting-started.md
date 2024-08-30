@@ -250,7 +250,7 @@ export WALLTIME="00:30:00" # Maximum runtime for simulation in hours:minutes:sec
 export MEM="128gb" # Memory request per node
 ```
 
-For guidance on how to set the parameters on HPC, have a look at [Job sizing guidance](https://www.imperial.ac.uk/admin-services/ict/self-service/research-support/rcs/computing/job-sizing-guidance/).
+For guidance on how to set the parameters on HPC, have a look at [Job sizing guidance](https://icl-rcs-user-guide.readthedocs.io/en/latest/hpc/queues/job-sizing-guidance/).
 Then, to start the simulation, run:
 
 ``` sh
