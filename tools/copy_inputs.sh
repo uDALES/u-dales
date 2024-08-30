@@ -26,7 +26,7 @@ set -e
 if (( $# < 2 )) ; then
   echo "usage: `basename $0` sim#1_local_path sim#2 (start)"
   echo "prepares a new simulation based on an old one with uDALES"
-  echo "   sim#1: local path of source case upon which the new one will be based on"
+  echo "   sim#1: local path of source case upon which the new one will be based"
   echo "   sim#2: three digit integer case number of the new simulation"
   echo "   start (optional): (c)old- or (w)arm-start, c is default"
   echo "... execution terminated"
