@@ -39,7 +39,7 @@ then
     exit 0
 fi
 
-start=${2:-"x"}     # pass 'c' if needs to be run on hpc compute node
+start=${2:-"x"}     # pass 'c' if needs to be run on hpc compute node, or 'l' if to be run on login node
 
 # go to experiment directory
 pushd $1
@@ -88,7 +88,7 @@ export MATLAB_USE_USERWORK=0
 
 matlab -nodesktop -nojvm -nosplash -r "expnr=$iexpnr; write_inputs; quit"
 
-mv "pre-job.$iexpnr*" $DA_EXPDIR/$iexpnr
+mv pre-job.$iexpnr* $DA_EXPDIR/$iexpnr
 
 EOF
 
