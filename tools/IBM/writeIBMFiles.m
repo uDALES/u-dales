@@ -1084,24 +1084,24 @@ fprintf(fileID_info, ['nfctsecs_c = ', num2str(size(facet_sections_c,1)), '\n'])
 fclose(fileID_info);
 
 %%
-namoptionfile = [fpath '/namoptions.' expnr];
+namoptionsfile = [fpath '/namoptions.' expnr];
 
-update_namoption(namoptionfile,'nfctsecs_c',size(facet_sections_c,1));
-update_namoption(namoptionfile,'nfctsecs_w',size(facet_sections_w,1));
-update_namoption(namoptionfile,'nfctsecs_v',size(facet_sections_v,1));
-update_namoption(namoptionfile,'nfctsecs_u',size(facet_sections_u,1));
+update_namoptions(namoptionsfile,'nfctsecs_c',size(facet_sections_c,1));
+update_namoptions(namoptionsfile,'nfctsecs_w',size(facet_sections_w,1));
+update_namoptions(namoptionsfile,'nfctsecs_v',size(facet_sections_v,1));
+update_namoptions(namoptionsfile,'nfctsecs_u',size(facet_sections_u,1));
 
-update_namoption(namoptionfile,'nbndpts_c',size(fluid_IB_xyz_c,1));
-update_namoption(namoptionfile,'nbndpts_w',size(fluid_IB_xyz_w,1));
-update_namoption(namoptionfile,'nbndpts_v',size(fluid_IB_xyz_v,1));
-update_namoption(namoptionfile,'nbndpts_u',size(fluid_IB_xyz_u,1));
+update_namoptions(namoptionsfile,'nbndpts_c',size(fluid_IB_xyz_c,1));
+update_namoptions(namoptionsfile,'nbndpts_w',size(fluid_IB_xyz_w,1));
+update_namoptions(namoptionsfile,'nbndpts_v',size(fluid_IB_xyz_v,1));
+update_namoptions(namoptionsfile,'nbndpts_u',size(fluid_IB_xyz_u,1));
 
-update_namoption(namoptionfile,'nsolpts_c',size(solid_ijk_c,1));
-update_namoption(namoptionfile,'nsolpts_w',size(solid_ijk_w,1));
-update_namoption(namoptionfile,'nsolpts_v',size(solid_ijk_v,1));
-update_namoption(namoptionfile,'nsolpts_u',size(solid_ijk_u,1));
+update_namoptions(namoptionsfile,'nsolpts_c',size(solid_ijk_c,1));
+update_namoptions(namoptionsfile,'nsolpts_w',size(solid_ijk_w,1));
+update_namoptions(namoptionsfile,'nsolpts_v',size(solid_ijk_v,1));
+update_namoptions(namoptionsfile,'nsolpts_u',size(solid_ijk_u,1));
 
-update_namoption(namoptionfile,'nfcts',nfcts);
+update_namoptions(namoptionsfile,'nfcts',nfcts);
 
 %% Clean up exp directory
 if lmypolyfortran
@@ -1158,8 +1158,8 @@ end
 %scatter3(fluid_IB_xyz_c(:,1),fluid_IB_xyz_c(:,2),fluid_IB_xyz_c(:,3),10,[0,0,1],'filled')
 
 %%
-function update_namoption(namoptionfile,varname,count)
-    namoptions_content = fileread(namoptionfile);
+function update_namoptions(namoptionsfile,varname,count)
+    namoptions_content = fileread(namoptionsfile);
     pattern = [varname ' * = * \d+'];
     
     if ~isempty(regexp(namoptions_content, ['\<' varname '\>'], 'once'))
@@ -1172,7 +1172,7 @@ function update_namoption(namoptionfile,varname,count)
         new_content = [new_content sprintf('\n/')];
     end
     
-    fid = fopen(namoptionfile, 'w');
+    fid = fopen(namoptionsfile, 'w');
     fwrite(fid, new_content);
     fclose(fid);
 end
