@@ -418,7 +418,7 @@ contains
 
   subroutine EB
     !calculates the energy balance for every facet
-    use modglobal, only: nfcts, boltz, tEB, AM, BM,CM,DM,EM,FM,GM,HM, inAM, bb,w, dumv,Tdash, timee, tnextEB, rk3step, rhoa, cp, lEB, ntrun, lwriteEBfiles,nfaclyrs
+    use modglobal, only: nfcts, boltz, tEB, AM, BM,CM,DM,EM,FM,GM,HM, inAM, bb,w, dumv,Tdash, timee, dtEB, tnextEB, rk3step, rhoa, cp, lEB, ntrun, lwriteEBfiles,nfaclyrs
     use initfac, only: faclam, faccp, netsw, facem, fachf, facef, fachfi, facT, facLWin, faca,facefi,facf,facets,facTdash,facqsat,facwsoil,facf,fachurel,facd,fackappa
     use modmpi, only: myid, comm3d, mpierr, MY_REAL, nprocs, cmyid
     use modstat_nc, only : writestat_nc, writestat_1D_nc, writestat_2D_nc
