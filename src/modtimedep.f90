@@ -396,8 +396,7 @@ contains
   end subroutine timedepnudge
 
   subroutine timedeplw
-    use modglobal,    only : timee, skyLW, rk3step
-    use modEB,        only : tnextEB
+    use modglobal,    only : timee, skyLW, rk3step, tnextEB
     use modmpi,       only : myid
 
     implicit none
@@ -429,9 +428,8 @@ contains
   end subroutine timedeplw
 
   subroutine timedepsw
-    use modglobal, only : timee, nfcts, rk3step
+    use modglobal, only : timee, nfcts, rk3step, tnextEB
     use initfac, only : netsw
-    use modEB, only : tnextEB
     use modmpi, only : myid
 
     implicit none
