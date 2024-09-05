@@ -33,10 +33,13 @@ set -e
 if (( $# < 1 )) 
 then
     echo "The path to case/experiment folder must be set."
-	echo "usage: FROM THE TOP LEVEL DIRECTORY run: u-dales/tools/write_inputs.sh <PATH_TO_CASE> "
+	echo "usage: FROM THE TOP LEVEL DIRECTORY run: u-dales/tools/write_inputs.sh <PATH_TO_CASE> (start)"
+	echo "   start (optional): (c)ompute node or (l)ogin node"
 	echo "... execution terminated"
     exit 0
 fi
+
+start=${2:-"x"}     # pass 'c' if needs to be run on hpc compute node, or 'l' if to be run on login node
 
 # go to experiment directory
 pushd $1
@@ -65,58 +68,96 @@ pushd $1
 
 popd
 
-####### modified function for sed -i
-function sedi { if [[ "$OSTYPE" == "darwin"* ]]; then
-        		sed -i '' "$1" "$2"
-		elif [[ "$OSTYPE" == "linux-gnu" ]]; then
-        		sed -i "$1" "$2"
-		fi;}
+if [ $start == "c" ]; then
 
+###### RUN MATLAB SCRIPT through HPC job script
+cat <<EOF > pre-job.$iexpnr
 
-####### set iexpnir in matlab file
-sedi "/expnr = '/s/.*/expnr = '$iexpnr';/g" $DA_TOOLSDIR"/write_inputs.m"
+#PBS -l walltime=24:00:00
+#PBS -l select=1:ncpus=8:mem=50gb
 
-###### RUN MATLAB SCRIPT
-cd $DA_TOOLSDIR/
-matlab -nodesktop -nosplash -r "write_inputs; quit"
-cd $DA_EXPDIR/$iexpnr
+module load tools/prod
+module load MATLAB/2023a_Update_3
+module load gcc/11.2.0
+
+cd $DA_TOOLSDIR
+
+export DA_TOOLSDIR=$DA_TOOLSDIR
+export DA_EXPDIR=$DA_EXPDIR
+export MATLAB_USE_USERWORK=0
+
+matlab -nodesktop -nojvm -nosplash -r "expnr=$iexpnr; write_inputs; quit"
+
+mv pre-job.$iexpnr* $DA_EXPDIR/$iexpnr
+
+EOF
+
+## submit job.exp file to queue
+	qsub pre-job.$iexpnr
+	echo "pre-job.$iexpnr submitted."
+
+elif [ $start == "l" ]; then
+	module load tools/prod
+	module load MATLAB/2023a_Update_3
+	module load gcc/11.2.0
+	export MATLAB_USE_USERWORK=0
+	cd $DA_TOOLSDIR
+	matlab -nodesktop -nojvm -nosplash -r "expnr=$iexpnr; write_inputs; quit"
+	cd $DA_EXPDIR
+	cd ..
+else
+	###### RUN MATLAB SCRIPT
+	cd $DA_TOOLSDIR
+	matlab -nodesktop -nojvm -nosplash -r "expnr=$iexpnr; write_inputs; quit"
+	cd $DA_EXPDIR
+	cd ..
+fi
+
 
 
 ###### alter files in namoptions
+# cd $DA_EXPDIR/$iexpnr
 
-update_namoptions() {
-    local filename=$1
-    local varname=$2
-    local sub_offset=$3  # number of garbage lines in the specific file
+# ####### modified function for sed -i
+# function sedi { if [[ "$OSTYPE" == "darwin"* ]]; then
+#         		sed -i '' "$1" "$2"
+# 		elif [[ "$OSTYPE" == "linux"* ]]; then
+#         		sed -i "$1" "$2"
+# 		fi;}
 
-    if [ -f "$DA_EXPDIR/$iexpnr/${filename}" ]; then
-        local count=$(wc -l < "$DA_EXPDIR/$iexpnr/${filename}")
-		count=$(($count-$sub_offset))
-    else
-        local count=0
-    fi
+# function update_namoptions() {
+#     local filename=$1
+#     local varname=$2
+#     local sub_offset=$3  # number of garbage lines in the specific file
 
-    if grep -w -q "$varname" "$DA_EXPDIR/$iexpnr/namoptions.$iexpnr"; then
-        sedi "/^$varname =/s/.*/$varname = $count/g" "$DA_EXPDIR/$iexpnr/namoptions.$iexpnr"
-    else
-        sedi '/&WALLS/a\'$'\n'"$varname = $count"$'\n' "$DA_EXPDIR/$iexpnr/namoptions.$iexpnr"
-    fi
-}
+#     if [ -f "$DA_EXPDIR/$iexpnr/${filename}" ]; then
+#         local count=$(wc -l < "$DA_EXPDIR/$iexpnr/${filename}")
+# 		count=$(($count-$sub_offset))
+#     else
+#         local count=0
+#     fi
 
-# Call the function for blocks
-update_namoptions "facet_sections_c.txt" "nfctsecs_c" 1
-update_namoptions "facet_sections_w.txt" "nfctsecs_w" 1
-update_namoptions "facet_sections_v.txt" "nfctsecs_v" 1
-update_namoptions "facet_sections_u.txt" "nfctsecs_u" 1
+#     if grep -w -q "$varname" "$DA_EXPDIR/$iexpnr/namoptions.$iexpnr"; then
+#         sedi "/^$varname =/s/.*/$varname = $count/g" "$DA_EXPDIR/$iexpnr/namoptions.$iexpnr"
+#     else
+#         sedi '/&WALLS/a\'$'\n'"$varname = $count"$'\n' "$DA_EXPDIR/$iexpnr/namoptions.$iexpnr"
+#     fi
+# }
 
-update_namoptions "fluid_boundary_c.txt" "nbndpts_c" 2
-update_namoptions "fluid_boundary_w.txt" "nbndpts_w" 2
-update_namoptions "fluid_boundary_v.txt" "nbndpts_v" 2
-update_namoptions "fluid_boundary_u.txt" "nbndpts_u" 2
+# # Call the function for blocks
+# update_namoptions "facet_sections_c.txt" "nfctsecs_c" 1
+# update_namoptions "facet_sections_w.txt" "nfctsecs_w" 1
+# update_namoptions "facet_sections_v.txt" "nfctsecs_v" 1
+# update_namoptions "facet_sections_u.txt" "nfctsecs_u" 1
 
-update_namoptions "solid_c.txt" "nsolpts_c" 2
-update_namoptions "solid_w.txt" "nsolpts_w" 2
-update_namoptions "solid_v.txt" "nsolpts_v" 2
-update_namoptions "solid_u.txt" "nsolpts_u" 2
+# update_namoptions "fluid_boundary_c.txt" "nbndpts_c" 2
+# update_namoptions "fluid_boundary_w.txt" "nbndpts_w" 2
+# update_namoptions "fluid_boundary_v.txt" "nbndpts_v" 2
+# update_namoptions "fluid_boundary_u.txt" "nbndpts_u" 2
 
-update_namoptions "facets.inp.$iexpnr" "nfcts" 1
+# update_namoptions "solid_c.txt" "nsolpts_c" 2
+# update_namoptions "solid_w.txt" "nsolpts_w" 2
+# update_namoptions "solid_v.txt" "nsolpts_v" 2
+# update_namoptions "solid_u.txt" "nsolpts_u" 2
+
+# update_namoptions "facets.inp.$iexpnr" "nfcts" 1
