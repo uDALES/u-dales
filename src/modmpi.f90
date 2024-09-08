@@ -312,70 +312,70 @@ contains
 !   return
 !   end subroutine excjs
 
-subroutine exci(a,sx,ex,sy,ey,sz,ez)
-  implicit none
-  integer sx, ex, sy, ey, sz, ez
-  real a(sx:ex, sy:ey, sz:ez)
-  integer status(MPI_STATUS_SIZE)
-  integer ii, i, j, k
-  integer reqe, reqw
-  integer ewsize
-  real,allocatable, dimension(:) :: sende,recve
-  real,allocatable, dimension(:) :: sendw,recvw
+! subroutine exci(a,sx,ex,sy,ey,sz,ez)
+!   implicit none
+!   integer sx, ex, sy, ey, sz, ez
+!   real a(sx:ex, sy:ey, sz:ez)
+!   integer status(MPI_STATUS_SIZE)
+!   integer ii, i, j, k
+!   integer reqe, reqw
+!   integer ewsize
+!   real,allocatable, dimension(:) :: sende,recve
+!   real,allocatable, dimension(:) :: sendw,recvw
 
-!   Calculate buffer size
-  ewsize = (ey - sy + 1)*(ez - sz + 1)
+! !   Calculate buffer size
+!   ewsize = (ey - sy + 1)*(ez - sz + 1)
 
-!   Allocate send / receive buffers
-  allocate(sende(ewsize),sendw(ewsize))
-  allocate(recve(ewsize),recvw(ewsize))
+! !   Allocate send / receive buffers
+!   allocate(sende(ewsize),sendw(ewsize))
+!   allocate(recve(ewsize),recvw(ewsize))
 
-  if(nprocx .gt. 1)then
-    !   Send east/west
-    ii = 0
-    do k=sz,ez
-    do j=sy,ey
-      ii = ii + 1
-      sende(ii) = a(ex-i+1,j,k)
-      sendw(ii) = a(sx+i-1,j,k)
-    enddo
-    enddo
+!   if(nprocx .gt. 1)then
+!     !   Send east/west
+!     ii = 0
+!     do k=sz,ez
+!     do j=sy,ey
+!       ii = ii + 1
+!       sende(ii) = a(ex-i+1,j,k)
+!       sendw(ii) = a(sx+i-1,j,k)
+!     enddo
+!     enddo
 
-    call MPI_ISEND(sende, ewsize, MY_REAL, nbreast, 6, comm3d, reqe, mpierr)
-    call MPI_ISEND(sendw, ewsize, MY_REAL, nbrwest, 7, comm3d, reqw, mpierr)
+!     call MPI_ISEND(sende, ewsize, MY_REAL, nbreast, 6, comm3d, reqe, mpierr)
+!     call MPI_ISEND(sendw, ewsize, MY_REAL, nbrwest, 7, comm3d, reqw, mpierr)
 
-    !   Receive west/east
-    call MPI_RECV(recvw, ewsize, MY_REAL, nbrwest, 6, comm3d, status, mpierr)
-    call MPI_RECV(recve, ewsize, MY_REAL, nbreast, 7, comm3d, status, mpierr)
+!     !   Receive west/east
+!     call MPI_RECV(recvw, ewsize, MY_REAL, nbrwest, 6, comm3d, status, mpierr)
+!     call MPI_RECV(recve, ewsize, MY_REAL, nbreast, 7, comm3d, status, mpierr)
 
-    ii = 0
-    do k=sz,ez
-    do j=sy,ey
-      ii = ii + 1
-      a(sx-i,j,k) = recvw(ii)
-      a(ex+i,j,k) = recve(ii)
-    enddo
-    enddo
-  else
-    ! Single processor, make sure the field is periodic
-    do k=sz,ez
-    do j=sy,ey
-      a(sx-i,j,k) = a(ex-i+1,j,k)
-      a(ex+i,j,k) = a(sx+i-1,j,k)
-    enddo
-    enddo
-  endif
+!     ii = 0
+!     do k=sz,ez
+!     do j=sy,ey
+!       ii = ii + 1
+!       a(sx-i,j,k) = recvw(ii)
+!       a(ex+i,j,k) = recve(ii)
+!     enddo
+!     enddo
+!   else
+!     ! Single processor, make sure the field is periodic
+!     do k=sz,ez
+!     do j=sy,ey
+!       a(sx-i,j,k) = a(ex-i+1,j,k)
+!       a(ex+i,j,k) = a(sx+i-1,j,k)
+!     enddo
+!     enddo
+!   endif
 
-  if(nprocx.gt.1)then
-    call MPI_WAIT(reqe, status, mpierr)
-    call MPI_WAIT(reqw, status, mpierr)
-  endif
+!   if(nprocx.gt.1)then
+!     call MPI_WAIT(reqe, status, mpierr)
+!     call MPI_WAIT(reqw, status, mpierr)
+!   endif
 
-  deallocate (sende, sendw)
-  deallocate (recve, recvw)
+!   deallocate (sende, sendw)
+!   deallocate (recve, recvw)
 
-  return
-end subroutine exci
+!   return
+! end subroutine exci
 
 subroutine excis(a,sx,ex,sy,ey,sz,ez,ih,jh)
   implicit none
@@ -448,70 +448,70 @@ subroutine excis(a,sx,ex,sy,ey,sz,ez,ih,jh)
   return
 end subroutine excis
 
-subroutine excj(a,sx,ex,sy,ey,sz,ez)
-  implicit none
-  integer sx, ex, sy, ey, sz, ez
-  real a(sx:ex, sy:ey, sz:ez)
-  integer status(MPI_STATUS_SIZE)
-  integer ii, i, j, k
-  integer reqn, reqs
-  integer nssize
-  real,allocatable, dimension(:) :: sendn,recvn
-  real,allocatable, dimension(:) :: sends,recvs
+! subroutine excj(a,sx,ex,sy,ey,sz,ez)
+!   implicit none
+!   integer sx, ex, sy, ey, sz, ez
+!   real a(sx:ex, sy:ey, sz:ez)
+!   integer status(MPI_STATUS_SIZE)
+!   integer ii, i, j, k
+!   integer reqn, reqs
+!   integer nssize
+!   real,allocatable, dimension(:) :: sendn,recvn
+!   real,allocatable, dimension(:) :: sends,recvs
 
-!   Calculate buffer size
-  nssize = (ex - sx + 1)*(ez - sz + 1)
+! !   Calculate buffer size
+!   nssize = (ex - sx + 1)*(ez - sz + 1)
 
-!   Allocate send / receive buffers
-  allocate(sendn(nssize),sends(nssize))
-  allocate(recvn(nssize),recvs(nssize))
+! !   Allocate send / receive buffers
+!   allocate(sendn(nssize),sends(nssize))
+!   allocate(recvn(nssize),recvs(nssize))
 
-  if(nprocy .gt. 1)then
-    !   Send north/south
-    ii = 0
-    do k=sz,ez
-    do i=sx,ex
-      ii = ii + 1
-      sendn(ii) = a(i,ey-j+1,k)
-      sends(ii) = a(i,sy+j-1,k)
-    enddo
-    enddo
+!   if(nprocy .gt. 1)then
+!     !   Send north/south
+!     ii = 0
+!     do k=sz,ez
+!     do i=sx,ex
+!       ii = ii + 1
+!       sendn(ii) = a(i,ey-j+1,k)
+!       sends(ii) = a(i,sy+j-1,k)
+!     enddo
+!     enddo
 
-    call MPI_ISEND(sendn, nssize, MY_REAL, nbrnorth, 4, comm3d, reqn, mpierr)
-    call MPI_ISEND(sends, nssize, MY_REAL, nbrsouth, 5, comm3d, reqs, mpierr)
+!     call MPI_ISEND(sendn, nssize, MY_REAL, nbrnorth, 4, comm3d, reqn, mpierr)
+!     call MPI_ISEND(sends, nssize, MY_REAL, nbrsouth, 5, comm3d, reqs, mpierr)
 
-    !   Receive south/north
-    call MPI_RECV(recvs, nssize, MY_REAL, nbrsouth, 4, comm3d, status, mpierr)
-    call MPI_RECV(recvn, nssize, MY_REAL, nbrnorth, 5, comm3d, status, mpierr)
+!     !   Receive south/north
+!     call MPI_RECV(recvs, nssize, MY_REAL, nbrsouth, 4, comm3d, status, mpierr)
+!     call MPI_RECV(recvn, nssize, MY_REAL, nbrnorth, 5, comm3d, status, mpierr)
 
-    ii = 0
-    do k=sz,ez
-    do i=sx,ex
-      ii = ii + 1
-      a(i,sy-j,k) = recvs(ii)
-      a(i,ey+j,k) = recvn(ii)
-    enddo
-    enddo
-  else
-    ! Single processor, make sure the field is periodic
-    do k=sz,ez
-    do i=sx,ex
-      a(i,sy-j,k) = a(i,ey-j+1,k)
-      a(i,ey+j,k) = a(i,sy+j-1,k)
-    enddo
-    enddo
-  endif
+!     ii = 0
+!     do k=sz,ez
+!     do i=sx,ex
+!       ii = ii + 1
+!       a(i,sy-j,k) = recvs(ii)
+!       a(i,ey+j,k) = recvn(ii)
+!     enddo
+!     enddo
+!   else
+!     ! Single processor, make sure the field is periodic
+!     do k=sz,ez
+!     do i=sx,ex
+!       a(i,sy-j,k) = a(i,ey-j+1,k)
+!       a(i,ey+j,k) = a(i,sy+j-1,k)
+!     enddo
+!     enddo
+!   endif
 
-  if(nprocy.gt.1)then
-    call MPI_WAIT(reqn, status, mpierr)
-    call MPI_WAIT(reqs, status, mpierr)
-  endif
+!   if(nprocy.gt.1)then
+!     call MPI_WAIT(reqn, status, mpierr)
+!     call MPI_WAIT(reqs, status, mpierr)
+!   endif
 
-  deallocate (sendn, sends)
-  deallocate (recvn, recvs)
+!   deallocate (sendn, sends)
+!   deallocate (recvn, recvs)
 
-  return
-  end subroutine excj
+!   return
+!   end subroutine excj
 
 
 subroutine excjs(a,sx,ex,sy,ey,sz,ez,ih,jh)
