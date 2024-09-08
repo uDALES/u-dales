@@ -88,6 +88,9 @@ export MATLAB_USE_USERWORK=0
 
 matlab -nodesktop -nojvm -nosplash -r "expnr=$iexpnr; write_inputs; quit"
 
+cd $DA_EXPDIR
+cd ..
+
 mv pre-job.$iexpnr* $DA_EXPDIR/$iexpnr
 
 EOF
