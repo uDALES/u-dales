@@ -2147,8 +2147,8 @@ module modstartup
          totinletav, lreadscal, ltempeq, dzf, numol, prandtlmoli
       use modmpi, only:cmyid, cmyidx, cmyidy, myid
       use modsubgriddata, only:ekm
-      use modinlet, only:zinterpolate1d, zinterpolatet1d, zinterpolatew1d, zinterpolate2d
-      use modinletdata, only:Uinl, Urec, Wrec, Utav, Tinl, Trec, linuf, linuh, &
+      use modinlet, only:zinterpolate1d, zinterpolatet1d, zinterpolatew1d, zinterpolate2d, &
+		 Uinl, Urec, Wrec, Utav, Tinl, Trec, &
          kbin, kein, lzinzsim, utaui, Ttav, ttaui
 
       real, dimension(ib:ie, jb:je, kb:ke)  ::  dummy3d

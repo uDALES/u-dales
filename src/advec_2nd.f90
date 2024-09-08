@@ -37,7 +37,6 @@ subroutine advecc_2nd(hi, hj, hk, putin, putout)
    use modfields, only:u0, v0, w0
    use modibm, only:nxwallsnorm, nzwallsnorm, nywallsm, nywallsp, ywallsm, ywallsp, &
       xwallsnorm, zwallsnorm, iypluswall, iyminwall, nyminwall, nypluswall
-   use modibmdata, only:nxwall, ixwall
    use initfac, only:block
    use modmpi, only:myid
    implicit none

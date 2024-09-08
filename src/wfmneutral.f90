@@ -37,6 +37,7 @@ SUBROUTINE wfmneutral(hi,hj,hk,iout1,iout2,iomomflux,utang1,utang2,z0,n,ind,wfor
    REAL :: utang2Int !Interpolated 2nd tangential velocity component needed for stability calculation (to T location)
    REAL :: fkar2 !fkar^2, von Karman constant squared
    REAL :: emmo = 0., epmo = 0., epom = 0., emom = 0., eopm = 0., eomm = 0., empo = 0.
+   REAL :: umin = 0.0001 !m^2/s^2
 
    INTEGER, INTENT(in) :: hi !<size of halo in i
    INTEGER, INTENT(in) :: hj !<size of halo in j
