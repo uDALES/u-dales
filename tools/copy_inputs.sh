@@ -44,18 +44,18 @@ pushd $1
 	if [ -f config.sh ]; then
    	 source config.sh
 	else
-	 echo "config.sh must be set inside $1"
+	 echo "config.sh must be set inside $inputdir"
      exit 1
 	fi
 
 	## check if required variables are set
 	if [ -z $DA_EXPDIR ]; then
-		echo "Experiment directory DA_EXPDIR must be set $1/config.sh"
-		exit
+		echo "Experiment directory DA_EXPDIR must be set $inputdir/config.sh"
+		exit 1
 	fi;
   if [ -z $DA_WORKDIR ]; then
-		echo "Experiment directory DA_WORKDIR must be set $1/config.sh"
-		exit
+		echo "Experiment directory DA_WORKDIR must be set $inputdir/config.sh"
+		exit 1
 	fi;
 
 popd

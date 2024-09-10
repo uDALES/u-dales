@@ -36,7 +36,7 @@ then
 	echo "usage: FROM THE TOP LEVEL DIRECTORY run: u-dales/tools/write_inputs.sh <PATH_TO_CASE> (start)"
 	echo "   start (optional): (c)ompute node or (l)ogin node"
 	echo "... execution terminated"
-    exit 0
+    exit 1
 fi
 
 start=${2:-"x"}     # pass 'c' if needs to be run on hpc compute node, or 'l' if to be run on login node
@@ -52,18 +52,18 @@ pushd $1
 	if [ -f config.sh ]; then
    	 source config.sh
 	else
-	 echo "config.sh must be set inside $1"
-     exit 0
+	 echo "config.sh must be set inside $inputdir"
+     exit 1
 	fi
 
 	## check if required variables are set
 	if [ -z $DA_TOOLSDIR ]; then
-	    echo "Script directory DA_TOOLSDIR must be set inside $1/config.sh"
-	    exit
+	    echo "Script directory DA_TOOLSDIR must be set inside $inputdir/config.sh"
+	    exit 1
 	fi;
 	if [ -z $DA_EXPDIR ]; then
-		echo "Experiment directory DA_EXPDIR must be set $1/config.sh"
-		exit
+		echo "Experiment directory DA_EXPDIR must be set $inputdir/config.sh"
+		exit 1
 	fi;
 
 popd

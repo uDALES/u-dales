@@ -5,7 +5,8 @@ set -e
 if (( $# < 1 ))
 then
  echo "The experiment directory must be set."
- exit
+ echo "usage: FROM THE TOP LEVEL DIRECTORY run: bash ./u-dales/tools/archer_execute.sh <PATH_TO_CASE>"
+ exit 1
 fi
 
 ## go to experiment directory
@@ -20,7 +21,36 @@ echo "experiment number: $exp"
 ## read in additional variables
 if [ -f config.sh ]; then
     source config.sh
+else
+    echo "config.sh must be there inside $inputdir"
+    exit 1
 fi
+
+## check if required variables are set
+if [ -z $DA_WORKDIR ]; then
+    echo "Script directory DA_WORKDIR must be set inside $inputdir/config.sh"
+    exit 1
+fi;
+if [ -z $DA_BUILD ]; then
+    echo "Script directory DA_BUILD must be set inside $inputdir/config.sh"
+    exit 1
+fi;
+if [ -z $NNODE ]; then
+    echo "Script directory NNODE must be set inside $inputdir/config.sh"
+    exit 1
+fi;
+if [ -z $NCPU ]; then
+    echo "Script directory NCPU must be set inside $inputdir/config.sh"
+    exit 1
+fi;
+if [ -z $WALLTIME ]; then
+    echo "Script directory WALLTIME must be set inside $inputdir/config.sh"
+    exit 1
+fi;
+if [ -z $QOS ]; then
+    echo "Script directory QOS must be set inside $inputdir/config.sh"
+    exit 1
+fi;
 
 ## set the output directory
 outdir=$DA_WORKDIR/$exp
@@ -34,22 +64,21 @@ pushd $outdir
 echo "writing job.$exp.slurm"
 
 ## write new job.exp.slurm file
-echo "#!/bin/bash" > job.$exp.slurm
-
-echo "#SBATCH --job-name=${exp}" >> job.$exp.slurm
-echo "#SBATCH --time=${WALLTIME}" >> job.$exp.slurm
-echo "#SBATCH --nodes=${NNODE}" >> job.$exp.slurm
-echo "#SBATCH --tasks-per-node=${NCPU}" >> job.$exp.slurm
-echo "#SBATCH --cpus-per-task=1" >> job.$exp.slurm
-echo "#SBATCH --account=n02-ASSURE" >> job.$exp.slurm
-echo "#SBATCH --partition=standard" >> job.$exp.slurm
-echo "#SBATCH --qos=${QOS}" >> job.$exp.slurm
-echo "module load epcc-job-env" >> job.$exp.slurm
-echo "export OMP_NUM_THREADS=1" >> job.$exp.slurm
-echo "srun --distribution=block:block --hint=nomultithread ./u-dales $outdir/namoptions.$exp > $outdir/output.$exp 2>&1" >> job.$exp.slurm
-
-## gather output files from cores in a single file
-echo "$DA_TOOLSDIR/gather_outputs.sh $outdir " >> job.$exp.slurm
+cat <<EOF > job.$exp.slurm
+#!/bin/bash
+#SBATCH --job-name=${exp}
+#SBATCH --time=${WALLTIME}
+#SBATCH --nodes=${NNODE}
+#SBATCH --tasks-per-node=${NCPU}
+#SBATCH --cpus-per-task=1
+#SBATCH --account=n02-ASSURE
+#SBATCH --partition=standard
+#SBATCH --qos=${QOS}
+module load epcc-job-env
+export OMP_NUM_THREADS=1
+srun --distribution=block:block --hint=nomultithread ./u-dales $outdir/namoptions.$exp > $outdir/output.$exp 2>&1
+$DA_TOOLSDIR/gather_outputs.sh $outdir
+EOF
 
 ## submit job.exp file to queue
 sbatch job.$exp.slurm
