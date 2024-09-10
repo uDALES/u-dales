@@ -70,7 +70,7 @@ contains
   subroutine initstatsdump
     use modmpi,   only : my_real,mpierr,comm3d,mpi_logical,mpi_integer,mpi_character,cmyid,cmyidx,cmyidy
     use modglobal,only : imax,jmax,kmax,cexpnr,ifnamopt,fname_options,ib,ie,jb,je,kb,ke,ladaptive,btime,&
-                         nsv,lkslicedump,lislicedump,ljslicedump,lxytdump,lxytdump,ltreedump,ib,ie,islice,islicerank,isliceloc,jslice,jslicerank,jsliceloc
+                         nsv,lkslicedump,lislicedump,ljslicedump,ltreedump,ib,ie,islice,islicerank,isliceloc,jslice,jslicerank,jsliceloc
     use modstat_nc,only: open_nc, define_nc,ncinfo,writestat_dims_nc
     use modfields, only : ncstaty,ncstatyt,ncstattke,ncstatxy,ncstatkslice,ncstatislice,ncstatjslice,ncstatxyt,ncstatt,ncstattr,ncstatmint
     use decomp_2d, only : zstart, zend
@@ -119,8 +119,8 @@ contains
     call MPI_BCAST(ncstatxyt   ,80,MPI_CHARACTER,0,comm3d,mpierr)
     call MPI_BCAST(ncstatt     ,80,MPI_CHARACTER,0,comm3d,mpierr)
     call MPI_BCAST(ncstatmint     ,80,MPI_CHARACTER,0,comm3d,mpierr)
-    call MPI_BCAST(ltdump      ,1,MPI_LOGICAL,0,comm3d,ierr)      ! maybe removed; unnecessary broadcast; this variable already broadcasted in modstartup
-    call MPI_BCAST(ltreedump   ,1,MPI_LOGICAL,0,comm3d,ierr)      ! maybe removed; unnecessary broadcast; this variable already broadcasted in modstartup
+    !call MPI_BCAST(ltdump      ,1,MPI_LOGICAL,0,comm3d,ierr)      ! maybe removed; unnecessary broadcast; this variable already broadcasted in modstartup
+    !call MPI_BCAST(ltreedump   ,1,MPI_LOGICAL,0,comm3d,ierr)      ! maybe removed; unnecessary broadcast; this variable already broadcasted in modstartup
     call MPI_BCAST(lmintdump      ,1,MPI_LOGICAL,0,comm3d,ierr)
 
     !> Generate y-averaged NetCDF: ydump.xxx.nc
