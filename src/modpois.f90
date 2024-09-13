@@ -1030,7 +1030,7 @@ contains
 
     use modfields, only : u0, v0, w0, up, vp, wp, pres0, IIc, IIcs, uouttot
     use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,dxi,dxhi,dyi,dzhi,linoutflow,rslabs,ibrank,ierank,jbrank,jerank,dxfi,BCtopm,BCtopm_pressure
-    use modmpi,    only : myid,excj,slabsum,avexy_ibm
+    use modmpi,    only : myid,slabsum,avexy_ibm
     use modboundary,only : bcp
     implicit none
     integer i,j,k

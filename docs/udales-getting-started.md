@@ -1,70 +1,40 @@
 # Getting Started
 
-Getting started with uDALES to set up your own experiments is straightforward. This guide goes through the steps required to [install](#installation) uDALES, and [set-up](#set-up) and [run](#run) a simple example. Results are outputted in netCDF format, for a quick inspection you can use GUI tools such as [Panoply](https://www.giss.nasa.gov/tools/panoply/) or [ncview](http://meteora.ucsd.edu/~pierce/ncview_home_page.html). To learn more about pre- and post-processing steps see the [what's next section](#whats-next).
+Getting started with uDALES to set up your own experiments is straightforward. This guide goes through the steps required to [install](#installation) uDALES, and [set-up](#set-up) and [run](#run) a simple example. Results are output in netCDF format, for a quick inspection you can use GUI tools such as [Panoply](https://www.giss.nasa.gov/tools/panoply/) or [ncview](http://meteora.ucsd.edu/~pierce/ncview_home_page.html). To learn more about pre- and post-processing steps see the [what's next section](#whats-next).
 
+If you have [Singularity](https://sylabs.io/) available on your system, you can use the provided scripts under `tools/singularity` to build and run uDALES cases locally or on HPC environments. See [Singularity](#singularity) for instructions; otherwise, see the next section.
 
-## Singularity
+## Installation
 
-If you have [Singularity](https://sylabs.io/) available on your system, you can use the provided scripts under `tools/singularity` to build and run uDALES cases locally or on HPC environments, for other options, see the sections below. If you are looking for information on how to install or use Singularity on your system, please refer to the [Singularity documentation ](https://sylabs.io/docs). The use of Singularity is undoubtedly the easiest way to build and run cases in uDALES as all dependencies are provided and uDALES will compile out of the box. Furthermore, users wishing to achieve a reasonable level of scientific reproducibility may archive software, tools, and data with their Singularity image containing OS and external libraries to an open access repository (e.g. [Meyer et al., 2020](https://doi.org/10.1029/2019MS001961)).
+### Prerequisites
 
-First clone the uDALES repository with:
-
-```sh
-https://github.com/uDALES/u-dales.git
-```
-
-Then, to build and download the Singularity image use:
-
-```sh
-singularity build --remote tools/singularity/image.sif tools/singularity/image.def
-```
-
-then, to install uDALES use:
-
-```sh
-# udales_build.sh <NPROC> [Debug, Release]
-./tools/singularity/udales_build.sh 2 Release
-```
-
-Finally, to run an example case use:
-
-```sh
-# udales_run.sh <NPROC> <BUILD_TYPE> <PATH_TO_CASE> <NAMELIST>
-./tools/singularity/udales_run.sh 2 Release examples/001 namoptions.001
-```
-
-If you are looking to run the build and run commands on HPC, we have provided a sample script under `tools/singularity/udales_pbs_submit.sh`, you can modify and run it with `qsub tools/singularity/udales_pbs_submit.sh`.
-
-
-## Prerequisites when not using Singularity
-
-### uDALES
+#### uDALES
 
 uDALES is supported to run on Linux, macOS and Windows Subsystem for Linux (WSL). Please ensure that the latest version of the following libraries and software are available on your system:
 
 - [CMake](https://cmake.org/) >= 3.9.
 - [NetCDF-Fortran](https://www.unidata.ucar.edu/downloads/netcdf/index.jsp) >= 4.
-- [GNU](https://gcc.gnu.org/wiki/GFortran) <= 9, [Intel](https://software.intel.com/content/www/us/en/develop/documentation/fortran-compiler-developer-guide-and-reference/top.html), or [Cray](https://pubs.cray.com/) Fortran compiler.
+- [GNU](https://gcc.gnu.org/wiki/GFortran) >= 9, [Intel](https://software.intel.com/content/www/us/en/develop/documentation/fortran-compiler-developer-guide-and-reference/top.html), or [Cray](https://pubs.cray.com/) Fortran compiler.
 - A recent version of [MPICH](https://www.mpich.org/) or [Open-MPI](https://www.open-mpi.org/). 
 - [FFTW](http://www.fftw.org/) 
 
-### Project setup
+#### Project setup
 
-This guide helps you set up a project template for uDALES with a generic folder structure set-up that you can later use to set up your own experiments. For this you also need:
+To set up a project template for uDALES with a generic folder structure that you can later use to set up your own experiments, you will need:
 
 - [Git](https://git-scm.com/) >= 2.
 - A [GitHub](https://github.com) account. (optional)
 - [Python](https://www.python.org/) >= 3.6.
 
-### Pre-processing
+#### Pre-processing
 
 When you create your own experiments, you will need to set up specific input files. We have a system in place that does that for you, written in MATLAB. Information can be found under [pre-processing](./udales-pre-processing.md) and is not discussed in the getting-started set-up.
 
-- [MATLAB](https://www.mathworks.com/products/matlab.html)
+- [MATLAB](https://www.mathworks.com/products/matlab.html) >= R2017b
 
-### Post-processing
+#### Post-processing
 
-For better organised netcdf output files, you will need:
+For better organised netCDF output files, you will need:
 
 - [netCDF Operators](https://github.com/nco/nco) (NCO).
 
@@ -89,52 +59,45 @@ brew install git cmake gcc netcdf netcdf-fortran mpich nco python3 fftw
 ```
 
 
-## Installation
-
-The installation and set-up of uDALES is straightforward thanks to the use of a [Cookiecutter repository](https://github.com/uDALES/cookiecutter-u-dales) to create a project template for uDALES with a generic folder structure set-up that you can later use to set up your own experiments.
-
-Please make sure that you have created a new (private) repository on your GitHub account and made note of the URL as we need this later to configure Cookiecutter.
-
 ### Repository set-up
 
-First, install [Cookiecutter](https://github.com/cookiecutter/cookiecutter) from your command prompt:
+Create a top-level directory, for example called "uDALES":
 
-``` sh
-python3 -m pip install --user cookiecutter
+```sh
+mkdir uDALES
 ```
 
-Then, to create a new uDALES project within the current working directory:
+Clone the u-dales repository into the top-level directory:
 
-``` sh
-cookiecutter https://github.com/uDALES/cookiecutter-u-dales
+```sh
+cd uDALES
+git clone --recurse-submodules https://github.com/uDALES/u-dales.git
 ```
 
-and fill in the required fields when prompted. `<PROJECT_NAME>` is the name of the generated project directory and `<GITHUB_PROJECT_REMOTE>` is the URL to your remote GitHub account (this is optional, you can just press the return key to leave this empty). E.g.:
+Create directories for experiment set-ups and output data:
 
-``` sh
-directory_name [<PROJECT_NAME>]: neutral_experiments
-github_project_remote [<GITHUB_PROJECT_REMOTE>]: https://github.com/<MY_GITHUB_USERNAME>/<MY_NEW_EMPTY_REPO>.git
+```sh
+mkdir experiments outputs
 ```
 
-This creates a Git repository for your own projects named `<PROJECT_NAME>` with the [uDALES model development repository](https://github.com/uDALES/u-dales) as submodule, and a generic tree that you can use to set up your own experiments:
+such that your directory tree resembles the following:
 
 ``` sh
 .
-├── data        # Contains or links to any external data used by the experiments.
-├── docs        # Relevant documentation or papers used for the experiment.
+├── ...
 ├── experiments # Configuration files grouped by experiment number.
 │   └── <N>     # Any configurations files needed by uDALES to run experiment <N>.
 │   └── ...
-├── tools       # Additional or specialized tools other then the ones included with uDALES.
+├── ...
+├── outputs     # Additional or specialized tools other then the ones included with uDALES.
+│   └── <N>     # Output from experiment <N>.
+│   └── ...
+├── ...
 └── u-dales     # uDALES model development repository (submodule).
 ```
 
-Alternatively, one can create this folder structure manually, and clone the repository into the top-level directory:
-```sh
-git clone --recurse-submodules https://github.com/uDALES/u-dales
-```
-
 In the next steps we will assume your current working directory is the top-level project directory.
+
 
 ### Build on common systems
 
@@ -156,16 +119,18 @@ You can compile in parallel mode by passing Make the `j` flag followed by the nu
 ### Build on HPCs
 
 To compile uDALES (in release mode) on the ICL cluster use:
+
 ```sh
 ./u-dales/tools/hpc_build icl release
 ```
 
 To compile uDALES (in release mode) on ARCHER2, use:
+
 ```sh
 ./u-dales/tools/hpc_build archer release
 ```
 
-Information for developers: if you are a High Performance Cluster (HPC) user you are likely using the [Environment Modules package](http://modules.sourceforge.net/) for the dynamic modification of the user's environment via modulefiles and therefore you may need to hint CMake the PATH to NetCDF (see below how).
+Information for developers: if you are a High Performance Cluster (HPC) user you are likely using the [Environment Modules package](http://modules.sourceforge.net/) for the dynamic modification of the user's environment via modulefiles and therefore you may need to hint CMake the PATH to netCDF (see below how).
 
 Here we show how to compile uDALES using the [HPC at ICL](https://www.imperial.ac.uk/admin-services/ict/self-service/research-support/rcs/) as an example, therefore please note that the specific names/versions installed on your system may be different.
 
@@ -176,7 +141,7 @@ module avail # list available modules
 
 ``` sh
 # This is an example, please check with the previous command for the exact name of the
-# modules available on your system. This will load NetCDF compiled with Intel Suite
+# modules available on your system. This will load netCDF compiled with Intel Suite
 # 2019.4 and add the correct version of icc and ifort to the PATH.
 module load intel-suite/2017.6 mpi/intel-2018 cmake/3.14.0 git/2.14.3
 ```
@@ -194,7 +159,7 @@ make
 popd
 ```
 
-where `NETCDF_DIR` and `NETCDF_FORTRAN_DIR` indicates the absolute path to your NetCDF-C and NetCDF-Fortran installation directories. Here, we use the utilities `nc-config` and `nf-config` to hint CMake the location of NetCDF, but you can simply pass the absolute path to the NetCDF-C and NetCDF-Fortran manually instead. You can compile in parallel mode by passing Make the `j` flag followed by the number of CPU cores to use. For example, to compile with 2 cores do `make -j2`.
+where `NETCDF_DIR` and `NETCDF_FORTRAN_DIR` indicates the absolute path to your netCDF-C and netCDF-Fortran installation directories. Here, we use the utilities `nc-config` and `nf-config` to hint CMake the location of netCDF, but you can simply pass the absolute path to the netCDF-C and netCDF-Fortran manually instead. You can compile in parallel mode by passing Make the `j` flag followed by the number of CPU cores to use. For example, to compile with 2 cores do `make -j2`.
 
 ### Build defaults/options
 
@@ -203,8 +168,8 @@ By default uDALES will compile in `Release` mode. You can change this by specify
 | Name                            | Options            | Default   | Description                                   |
 | ------------------------------- | ------------------ | --------- | --------------------------------------------- |
 | `CMAKE_BUILD_TYPE`              | `Release`, `Debug` | `Release` | Whether to optimise/build with debug flags    |
-| `NETCDF4_DIR`                   | `<path>`           | -         | Path to NetCDF-C installation directory       |
-| `NETCDF_FORTRAN_DIR`            | `<path>`           | -         | Path to NetCDF-Fortran installation directory |
+| `NETCDF4_DIR`                   | `<path>`           | -         | Path to netCDF-C installation directory       |
+| `NETCDF_FORTRAN_DIR`            | `<path>`           | -         | Path to netCDF-Fortran installation directory |
 | `SKIP_UPDATE_EXTERNAL_PROJECTS` | `ON`, `OFF`        | `OFF`     | Whether to skip updating external projects    |
 
 ## Set-up
@@ -238,10 +203,10 @@ Now to set-up a new experiment (here we use case `009`) based on a previous exam
 # We assume you are running the following commands from your
 # top-level project directory.
 
-# General syntax: copy_inputs.sh new_exp_id old_exp_id
+# General syntax: copy_inputs.sh old_exp_id new_exp_id
 # To set up a new simulation starting from the restart files of another simulation
-# ("warmstart"), use the 'w' flag. E.g.: copy_inputs.sh new_exp_id old_exp_id w
-./u-dales/tools/copy_inputs.sh 009 001
+# ("warmstart"), use the 'w' flag. E.g.: copy_inputs.sh old_exp_id new_exp_id w
+./u-dales/tools/copy_inputs.sh 001 009
 ```
 
 ## Run
@@ -285,7 +250,7 @@ export WALLTIME="00:30:00" # Maximum runtime for simulation in hours:minutes:sec
 export MEM="128gb" # Memory request per node
 ```
 
-For guidance on how to set the parameters on HPC, have a look at [Job sizing guidance](https://www.imperial.ac.uk/admin-services/ict/self-service/research-support/rcs/computing/job-sizing-guidance/).
+For guidance on how to set the parameters on HPC, have a look at [Job sizing guidance](https://icl-rcs-user-guide.readthedocs.io/en/latest/hpc/queues/job-sizing-guidance/).
 Then, to start the simulation, run:
 
 ``` sh
@@ -297,6 +262,7 @@ Then, to start the simulation, run:
 ```
 
 ### Run on ARCHER2
+
 ``` sh
 export DA_TOOLSDIR=$(pwd)/u-dales/tools # Directory of scripts
 export DA_BUILD=$(pwd)/u-dales/build/release/u-dales # Build file
@@ -317,6 +283,39 @@ Then, to start the simulation, run:
 # General syntax: hpc_execute.sh exp_directory
 ./u-dales/tools/archer_execute.sh experiments/009
 ```
+
+## Singularity
+
+If you are looking for information on how to install or use Singularity on your system, please refer to the [Singularity documentation ](https://sylabs.io/docs). The use of Singularity is undoubtedly the easiest way to build and run cases in uDALES as all dependencies are provided and uDALES will compile out of the box. Furthermore, users wishing to achieve a reasonable level of scientific reproducibility may archive software, tools, and data with their Singularity image containing OS and external libraries to an open access repository (e.g. [Meyer et al., 2020](https://doi.org/10.1029/2019MS001961)).
+
+First clone the uDALES repository with:
+
+```sh
+git clone https://github.com/uDALES/u-dales.git
+```
+
+Then, to build and download the Singularity image use:
+
+```sh
+singularity build --remote tools/singularity/image.sif tools/singularity/image.def
+```
+
+then, to install uDALES use:
+
+```sh
+# udales_build.sh <NPROC> [Debug, Release]
+./tools/singularity/udales_build.sh 2 Release
+```
+
+Finally, to run an example case use:
+
+```sh
+# udales_run.sh <NPROC> <BUILD_TYPE> <PATH_TO_CASE> <NAMELIST>
+./tools/singularity/udales_run.sh 2 Release examples/001 namoptions.001
+```
+
+If you are looking to run the build and run commands on HPC, we have provided a sample script under `tools/singularity/udales_pbs_submit.sh`, you can modify and run it with `qsub tools/singularity/udales_pbs_submit.sh`.
+
 
 ## What's next?
 

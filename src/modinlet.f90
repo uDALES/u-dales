@@ -1921,6 +1921,7 @@ contains
     integer fileid
     integer j,k,n,js,jf,jfdum,jsdum
     character(24) name
+      filen = -5   ! should be checked carefully if in use ever
       jfdum = jbdum-1  ! initial value
       do fileid = filenumstart, filenumstart+(filestoread-1)
         if (filen == -1) then
@@ -1928,7 +1929,7 @@ contains
         else
           filen = fileid - floor(real(fileid)/real(nprocsinl))*nprocsinl  ! loop over proc's
         end if
-!        write(6,*) '!!!!! filen = ', filen
+       write(6,*) '!!!!! filen = ', filen
         name = 'inlet/inlet_    k   .'
         write (name(13:16)  ,'(i4.4)') nfile
         write (name(18:20)  ,'(i3.3)') filen

@@ -34,7 +34,7 @@ capitalize() {
 #echo "env: " `env`
 #echo "PATH: " ${PATH}
 
-NPROC=2 # TODO: make into a arg var.
+NPROC=4 # TODO: make into a arg var.
 system=$1
 build_type=$2
 
@@ -81,7 +81,7 @@ pushd $path_to_build_dir
 cmake_build_type="$(capitalize $build_type)"
 FC=$FC cmake -DNETCDF_DIR=$NETCDF_DIR \
              -DNETCDF_FORTRAN_DIR=$NETCDF_FORTRAN_DIR \
-             -DCMAKE_BUILD_TYPE=cmake_build_type \
+             -DCMAKE_BUILD_TYPE=$cmake_build_type \
 	     -DFFTW_DOUBLE_OPENMP_LIB=$FFTW_DOUBLE_LIB \
 	     -DFFTW_FLOAT_OPENMP_LIB=$FFTW_FLOAT_LIB \
               ../../ 2>&1 | tee -a $path_to_build_dir/config.log

@@ -28,7 +28,7 @@
       use mpi
       use modglobal, only : ifinput, nfcts, cexpnr, libm, bldT, flrT, rsmin, wsoil, wfc, &
                            nfaclyrs, block, lEB, lvfsparse, nnz, lfacTlyrs, lwritefac
-      use modmpi,   only : myid, comm3d, mpierr, MPI_INTEGER, MPI_DOUBLE_PRECISION, MY_REAL, nprocs, cmyid, MPI_REAL8, MPI_REAL4, MPI_SUM, mpi_logical
+      use modmpi,   only : myid, comm3d, mpierr, MY_REAL, nprocs, cmyid
       use netcdf
       implicit none
       public :: readfacetfiles,qsat,dqsatdT,netsw
