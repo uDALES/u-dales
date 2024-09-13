@@ -156,7 +156,7 @@ module modstartup
          skyLW, GRLAI, rsmin, nfaclyrs, lfacTlyrs, lvfsparse, nnz, fraction
       namelist/SCALARS/ &
          lreadscal, lscasrc, lscasrcl, lscasrcr, &
-         nsv, nscasrc, nscasrcl								!!xS, yS, zS, SS, sigS
+         nsv, nscasrc, nscasrcl !!xS, yS, zS, SS, sigS
       namelist/CHEMISTRY/ &
          lchem, k1, JNO2
       namelist/OUTPUT/ &
@@ -796,12 +796,12 @@ module modstartup
 
          if (ltempeq .and. (BCxT .ne. BCxT_profile) .and. (myid == 0)) then
            write (*, *) "Warning: x inflow temperature not given by profile, &
-                         consider setting BCxT = ", BCxT_profile
+                         &consider setting BCxT = ", BCxT_profile
          end if
 
          if (lmoist .and. (BCxq .ne. BCxq_profile) .and. (myid == 0)) then
            write (*, *) "Warning: x inflow moisture not given by profile, &
-                        consider setting BCxq = ", BCxq_profile
+                        &consider setting BCxq = ", BCxq_profile
          end if
 
          if (BCtopm .ne. BCtopm_pressure) then
@@ -870,17 +870,17 @@ module modstartup
 
          if (ltempeq .and. (BCyT .ne. BCyT_profile) .and. (myid == 0)) then
            write (*, *) "Warning: y inflow temperature not given by profile, &
-                         consider setting BCyT = ", BCyT_profile
+                         &consider setting BCyT = ", BCyT_profile
          end if
 
          if (lmoist .and. (BCyq .ne. BCyq_profile) .and. (myid == 0)) then
            write (*, *) "Warning: y inflow moisture not given by profile, &
-                        consider setting BCyq = ", BCyq_profile
+                        &consider setting BCyq = ", BCyq_profile
          end if
 
          if (BCtopm .ne. BCtopm_pressure .and. (myid == 0)) then
            write (*, *) "Warning: allowing vertical velocity at top might be necessary, &
-                         consider setting BCtopm = ", BCtopm_pressure
+                         &consider setting BCtopm = ", BCtopm_pressure
          end if
        end select
 
@@ -1483,7 +1483,7 @@ module modstartup
                                            trestart mentioned in namoptions. Hence, trestart = ',(tdriverstart + (driverstore-1)*dtdriver)
                      if (runtime >= tdriverstart .and. runtime+1e-10 < (tdriverstart + (driverstore-1)*dtdriver)) then
                         write(*,*) 'Warning! Driver files cannot be written upto ', driverstore, ' steps. &
-                                    Consider taking runtime >= (tdriverstart + (driverstore-1)*dtdriver).'
+                                    &Consider taking runtime >= (tdriverstart + (driverstore-1)*dtdriver).'
                      end if
                   end if
                end if
@@ -1673,15 +1673,15 @@ module modstartup
                   end if
 
                   if (myid==0) then
-                     write(*,'(A,F15.5)') "Warning! during warmstart of driver simulation, tdriverstart &
-                                           gets overwritten by the time instant of initd restartfile, ignoring the &
-                                           tdriverstart mentioned in namoptions. Hence, tdriverstart = ",timee
+                     write(*,'(A,F15.5)') "Warning! during warmstart of driver simulat ion, tdriverstart &
+                                           &gets overwritten by the time instant of initd restartfile, ignoring the &
+                                           &tdriverstart mentioned in namoptions. Hence, tdriverstart = ",timee
                      write(*,'(A,F15.5)') 'Warning! for this driver simulation, trestart gets set as &
                                            (driverstore-1)*dtdriver, ignoring the trestart mentioned &
                                            in namoptions. Hence, trestart = ',(driverstore-1)*dtdriver
                      if ( runtime < (driverstore-1)*dtdriver ) then
                         write(*,*) 'Warning! Driver files cannot be written upto ', driverstore, ' steps. &
-                                    Consider taking runtime >= (driverstore-1)*dtdriver).'
+                                    &Consider taking runtime >= (driverstore-1)*dtdriver).'
                      end if
                   end if
 
@@ -1695,7 +1695,7 @@ module modstartup
                                            trestart mentioned in namoptions. Hence, trestart = ',(tdriverstart + (driverstore-1)*dtdriver) - btime
                      if ( (timee + runtime) < (tdriverstart + (driverstore-1)*dtdriver) ) then
                         write(*,*) 'Warning! Driver files cannot be written upto ', driverstore, ' steps. &
-                                    Consider taking runtime + ',timee,' >= (tdriverstart + (driverstore-1)*dtdriver).'
+                                    &Consider taking runtime + ',timee,' >= (tdriverstart + (driverstore-1)*dtdriver).'
                      end if
                   end if
                end if

@@ -50,9 +50,9 @@ save
   real, allocatable :: pz_top(:,:,:), py_top(:,:,:), px_top(:,:,:)
   integer :: ibc1, ibc2, kbc1, kbc2
 
-  integer*8 :: plan_r2fc_x, plan_r2fc_y, plan_fc2r_x, plan_fc2r_y
-  integer*8 :: plan_r2fr_x, plan_r2fr_y, plan_fr2r_x, plan_fr2r_y
-  integer*8 :: plan_r2fr_z, plan_fr2r_z
+  integer :: plan_r2fc_x, plan_r2fc_y, plan_fc2r_x, plan_fc2r_y
+  integer :: plan_r2fr_x, plan_r2fr_y, plan_fr2r_x, plan_fr2r_y
+  integer :: plan_r2fr_z, plan_fr2r_z
   real, allocatable :: Sxr(:), Sxfr(:), Syr(:), Syfr(:), Szr(:), Szfr(:)
   complex, allocatable :: Sxfc(:), Syfc(:)
   type(DECOMP_INFO) :: sp

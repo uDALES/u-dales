@@ -188,7 +188,7 @@ contains
     real :: inlrec                              ! time of last inlet record
     real :: elapsrec                            ! time elapsed in this inlet record
     real :: dtint                               ! dt for linear interpolation
-    REAL*8, PARAMETER :: eps = 1d-4
+    real, PARAMETER :: eps = 1d-4
     integer i,j,k,kk,kdamp,x,xc
 
     if (idriver == 1 .and. iplanerank) then
@@ -223,12 +223,12 @@ contains
         if (.not.(lwarmstart)) then
           if (runtime>maxval(storetdriver)) then
             write(*,'(A,F15.5,A,F15.5,A)') "Simulation will stop before runtime = ",runtime,", since last &
-                                            read driver time (",maxval(storetdriver),") is less than runtime."
+                                            &read driver time (",maxval(storetdriver),") is less than runtime."
           end if
         else ! if lwarmstart
           if (runtime+btime>maxval(storetdriver)) then
             write(*,'(A,F15.5,A,F15.5,A)') "Simulation will stop before runtime+btime = ",runtime+btime,", since last &
-                                            read driver time (",maxval(storetdriver),") is less than runtime+btime."
+                                            &read driver time (",maxval(storetdriver),") is less than runtime+btime."
           end if
         end if
       end if
@@ -737,18 +737,18 @@ contains
     if (.not.(lwarmstart)) then
       if (driverid==0 .and. runtime+1e-10 < (tdriverstart + (driverstore-1)*dtdriver)) then
         write(*,*) 'Warning! Driver files cannot be written upto ', driverstore, ' steps. &
-                    Consider taking runtime >= (tdriverstart + (driverstore-1)*dtdriver).'
+                    &Consider taking runtime >= (tdriverstart + (driverstore-1)*dtdriver).'
       end if
     else ! if lwarmstart
       if (btime<tdriverstart) then
         if(driverid==0 .and. (btime + runtime) < (tdriverstart + (driverstore-1)*dtdriver) ) then
           write(*,*) 'Warning! Driver files cannot be written upto ', driverstore, ' steps. &
-                      Consider taking runtime + ',btime,' >= (tdriverstart + (driverstore-1)*dtdriver).'
+                      &Consider taking runtime + ',btime,' >= (tdriverstart + (driverstore-1)*dtdriver).'
         end if
       else
         if (driverid==0 .and. runtime+1e-10 < (driverstore-1)*dtdriver ) then
           write(*,*) 'Warning! Driver files cannot be written upto ', driverstore, ' steps. &
-                      Consider taking runtime >= (driverstore-1)*dtdriver).'
+                      &Consider taking runtime >= (driverstore-1)*dtdriver).'
         end if
       end if
     end if

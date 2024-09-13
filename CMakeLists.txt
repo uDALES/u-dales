@@ -39,7 +39,7 @@ endif()
 find_package(MPI REQUIRED)
 
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
-    set(CMAKE_Fortran_FLAGS "-fdefault-real-8 -ffree-line-length-none -ffpe-trap=invalid,zero,overflow")
+    set(CMAKE_Fortran_FLAGS "-fdefault-real-8 -ffree-line-length-none -ffpe-trap=invalid,zero,overflow -std=f2008")
     set(CMAKE_Fortran_FLAGS_DEBUG "-g -fbacktrace -O0 -finit-real=nan -fcheck=all -Wall -Wextra -Wuninitialized -Warray-bounds -Wconversion")
     set(CMAKE_Fortran_FLAGS_RELEASE "-O3")
 elseif(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
