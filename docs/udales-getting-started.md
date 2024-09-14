@@ -46,7 +46,7 @@ On high performance computing (HPC) clusters, these software and libraries shoul
 
 ```sh
 sudo apt-get update && sudo apt-get upgrade -y
-sudo apt-get install -y git cmake gfortran libopenmpi-dev openmpi-bin libnetcdf-dev libnetcdff-dev nco python3 python3-pip libfftw3-dev
+sudo apt-get install -y git cmake gfortran libomp-dev libopenmpi-dev openmpi-bin libnetcdf-dev libnetcdff-dev nco python3 python3-pip libfftw3-dev
 ```
 
 ### macOS
@@ -88,11 +88,11 @@ such that your directory tree resembles the following:
 ├── experiments # Configuration files grouped by experiment number.
 │   └── <N>     # Any configurations files needed by uDALES to run experiment <N>.
 │   └── ...
-├── ...
+│
 ├── outputs     # Additional or specialized tools other then the ones included with uDALES.
 │   └── <N>     # Output from experiment <N>.
 │   └── ...
-├── ...
+│
 └── u-dales     # uDALES model development repository (submodule).
 ```
 
@@ -116,19 +116,28 @@ popd
 
 You can compile in parallel mode by passing Make the `j` flag followed by the number of CPU cores to use. For example, to compile with 2 cores do `make -j2`.
 
-### Build on HPCs
+### Build u-dales executable
 
-To compile uDALES (in release mode) on the ICL cluster use:
-
-```sh
-./u-dales/tools/hpc_build icl release
-```
-
-To compile uDALES (in release mode) on ARCHER2, use:
+To compile uDALES (in release mode) on a *common/local ubuntu or mac system* run:
 
 ```sh
-./u-dales/tools/hpc_build archer release
+tools/build_executable.sh common release
 ```
+from being inside the u-dales dircetory.
+
+To compile uDALES (in release mode) on the *ICL HPC cluster* run:
+
+```sh
+tools/build_executable.sh icl release
+```
+from being inside the u-dales dircetory.
+
+To compile uDALES (in release mode) on *ARCHER2*, use:
+
+```sh
+tools/build_executable.sh archer release
+```
+from being inside the u-dales dircetory.
 
 Information for developers: if you are a High Performance Cluster (HPC) user you are likely using the [Environment Modules package](http://modules.sourceforge.net/) for the dynamic modification of the user's environment via modulefiles and therefore you may need to hint CMake the PATH to netCDF (see below how).
 
@@ -142,8 +151,8 @@ module avail # list available modules
 ``` sh
 # This is an example, please check with the previous command for the exact name of the
 # modules available on your system. This will load netCDF compiled with Intel Suite
-# 2019.4 and add the correct version of icc and ifort to the PATH.
-module load intel-suite/2017.6 mpi/intel-2018 cmake/3.14.0 git/2.14.3
+# 2020.2 and add the correct version of icc and ifort to the PATH.
+module load intel-suite/2020.2 mpi/intel-2019.8.254 cmake/3.18.2 git/2.14.3
 ```
 
 Then, to build the uDALES executable, run the following commands:
@@ -204,9 +213,10 @@ Now to set-up a new experiment (here we use case `009`) based on a previous exam
 # top-level project directory.
 
 # General syntax: copy_inputs.sh old_exp_id new_exp_id
+u-dales/tools/copy_inputs.sh experiments/001 009
 # To set up a new simulation starting from the restart files of another simulation
 # ("warmstart"), use the 'w' flag. E.g.: copy_inputs.sh old_exp_id new_exp_id w
-./u-dales/tools/copy_inputs.sh 001 009
+u-dales/tools/copy_inputs.sh experiments/001 009 w
 ```
 
 ## Run
