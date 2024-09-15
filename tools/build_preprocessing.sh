@@ -19,7 +19,7 @@ then
     module load cmake/3.18.2
 elif [ $system == "common" ]
 then
-
+    echo "Building View3D on local system."
 else
     echo "This configuration is not avalable"
     exit 1
