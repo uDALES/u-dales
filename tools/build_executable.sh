@@ -19,10 +19,10 @@
 
 set -e
 
-# Usage: ./tools/hpc_build.sh [icl, archer, cca, common] [debug, release]
+# Usage: ./tools/build_executable.sh [icl, archer, cca, common] [debug, release]
 
 if [ ! -d src ]; then
-    echo "Please run this script from the project folder"
+    echo "Please run this script from being inside the u-dales folder"
     exit 1
 fi
 

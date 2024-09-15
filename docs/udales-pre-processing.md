@@ -134,7 +134,7 @@ The solar parameters can also be varied in time using the `ltimedepsw` switch. T
 
 ## Run
 
-The MATLAB script `write_inputs.m` will write the necessary [input files](#Input-files). The shell script `write_inputs.sh` is a wrapper around the MATLAB script, allowing it to be called from the command line. For more info about the functions see [Developer's guide](#developers-guide). The script requires several variables to be set up. Below is an example setup for copying and pasting. You can also specify these parameters in a `config.sh` file within the experiment directory, which is then read by the scripts.
+The MATLAB script `write_inputs.m` will write the necessary [input files](#Input-files). The shell script `write_inputs.sh` is a wrapper around the MATLAB script, allowing it to be called from the command line. For more info about the functions see [Developer's guide](#developers-guide). The script requires several variables to be set up. Three main files must be there inside the experiment case directory 1) an appropriately set namoptions.001 (assumming 001 is the case directory name) file, 2) an STL file of the  building geometry (except for few special cases), and 3) the config.sh file. Below is an example setup for copying and pasting. You need to specify these parameters in a `config.sh` file within the experiment directory, which is then read by the scripts.
 
 ``` sh
 # We assume you are running the following commands from your
@@ -144,18 +144,43 @@ export DA_TOOLSDIR=$(pwd)/u-dales/tools # Directory of the scripts
 export DA_EXPDIR=$(pwd)/experiments #  The top-level directory of the simulation setups
 ```
 
+Before running the preprocessing, one must build the View3D submodule. This is a one time task and should be done as soon as you clone u-dales from GitHub.
+```sh
+# We assume you are running the following commands from u-dales directory.
+
+# To build on local/common ubuntu or mac systems
+./tools/build_preprocessing.sh common
+
+# To build on ICL HPC
+./tools/build_preprocessing.sh icl
+```sh
+
 Then, to start the pre-processing, run:
 
+For local ubuntu or mac
 ``` sh
 # We assume you are running the following commands from your
 # top-level project directory.
 
 # General syntax: write_inputs.sh exp_id
-./u-dales/tools/write_inputs.sh 001
+./u-dales/tools/write_inputs.sh experiments/001
 ```
 
-Replace 001 with the number of your simulation.
+For ICL HPC
+``` sh
+# We assume you are running the following commands from your
+# top-level project directory.
 
+# General syntax: write_inputs.sh esperiments/exp_id run_node_type
+
+# To run preprocessing on HPC log in node (not recomended)
+./u-dales/tools/write_inputs.sh experiments/001 l
+
+# To run preprocessing on HPC compute node (recomended)
+./u-dales/tools/write_inputs.sh experiments/001 c
+```
+
+In above example commands, replace 001 with the number of your simulation.
 ## Developer's guide
 
 The `u-dales/tools/preprocessing.m` matlab class contains the functionality for preprocessing. The constructor reads the parameters in `namoptions` and stores them as member variables, and defines default variables for those not specified. These are then used in the member functions. In these member functions, additional data structures are also stored as member variables, including those used repeatedly and those eventually written to files, so that one can easily view and manipulate them using the matlab IDE.
