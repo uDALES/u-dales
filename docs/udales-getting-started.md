@@ -46,7 +46,7 @@ On high performance computing (HPC) clusters, these software and libraries shoul
 
 ```sh
 sudo apt-get update && sudo apt-get upgrade -y
-sudo apt-get install -y git cmake gfortran libomp-dev libopenmpi-dev openmpi-bin libnetcdf-dev libnetcdff-dev nco python3 python3-pip libfftw3-dev
+sudo apt-get install -y git cmake gfortran libopenmpi-dev openmpi-bin libnetcdf-dev libnetcdff-dev nco python3 python3-pip libfftw3-dev
 ```
 
 ### macOS
@@ -84,23 +84,16 @@ such that your directory tree resembles the following:
 
 ``` sh
 .
-uDALES
-│
+├── ...
 ├── experiments # Configuration files grouped by experiment number.
-│   └── <N>     # Any configurations files needed by uDALES to run experiment <N> a three digit integer number.
+│   └── <N>     # Any configurations files needed by uDALES to run experiment <N>.
 │   └── ...
-│
+├── ...
 ├── outputs     # Additional or specialized tools other then the ones included with uDALES.
 │   └── <N>     # Output from experiment <N>.
 │   └── ...
-│
+├── ...
 └── u-dales     # uDALES model development repository (submodule).
-│   └── 2decomp-fft
-│   └── ...
-│   └── src
-│   └── ...
-│   └── tools
-│   └── ...
 ```
 
 In the next steps we will assume your current working directory is the top-level project directory.
@@ -123,28 +116,19 @@ popd
 
 You can compile in parallel mode by passing Make the `j` flag followed by the number of CPU cores to use. For example, to compile with 2 cores do `make -j2`.
 
-### Build u-dales executable
+### Build on HPCs
 
-To compile uDALES (in release mode) on a *common/local ubuntu or mac system* run:
-
-```sh
-tools/build_executable.sh common release
-```
-from being inside the u-dales dircetory.
-
-To compile uDALES (in release mode) on the *ICL HPC cluster* run:
+To compile uDALES (in release mode) on the ICL cluster use:
 
 ```sh
-tools/build_executable.sh icl release
+./u-dales/tools/hpc_build icl release
 ```
-from being inside the u-dales dircetory.
 
-To compile uDALES (in release mode) on *ARCHER2*, use:
+To compile uDALES (in release mode) on ARCHER2, use:
 
 ```sh
-tools/build_executable.sh archer release
+./u-dales/tools/hpc_build archer release
 ```
-from being inside the u-dales dircetory.
 
 Information for developers: if you are a High Performance Cluster (HPC) user you are likely using the [Environment Modules package](http://modules.sourceforge.net/) for the dynamic modification of the user's environment via modulefiles and therefore you may need to hint CMake the PATH to netCDF (see below how).
 
@@ -158,8 +142,8 @@ module avail # list available modules
 ``` sh
 # This is an example, please check with the previous command for the exact name of the
 # modules available on your system. This will load netCDF compiled with Intel Suite
-# 2020.2 and add the correct version of icc and ifort to the PATH.
-module load intel-suite/2020.2 mpi/intel-2019.8.254 cmake/3.18.2 git/2.14.3
+# 2019.4 and add the correct version of icc and ifort to the PATH.
+module load intel-suite/2017.6 mpi/intel-2018 cmake/3.14.0 git/2.14.3
 ```
 
 Then, to build the uDALES executable, run the following commands:
@@ -190,10 +174,7 @@ By default uDALES will compile in `Release` mode. You can change this by specify
 
 ## Set-up
 
-To set up a new simulation, `copy_inputs.sh` in `u-dales/tools/` is used to create a new simulation setup `new_exp_id` based on another simulation `old_exp_id`. All `exp_ids` are three digit integer numbers, e.g. 001, and are stored in directories of that name. Each experiment case directory must contain a config.sh file where appropriate paths for DA_EXPDIR (experiments directory), DA_WORKDIR (outputs directory), DA_TOOLSDIR (u-dales/tools directory) are set using export.
-
-<!--
-Scripts requires several variables to be set up. You can do this by copying and pasting the snippet below or by including it in a bash script (or bash profile if you are unlikely to change them).
+To set up a new simulation, `copy_inputs.sh` in `u-dales/tools/` is used to create a new simulation setup `new_exp_id` based on another simulation `old_exp_id`. All `exp_ids` are three digit numbers, e.g. 001, and are stored in directories of that name. Scripts requires several variables to be set up. You can do this by copying and pasting the snippet below or by including it in a bash script (or bash profile if you are unlikely to change them).
 
 ``` sh
 # We assume you are running the following commands from your
@@ -215,8 +196,6 @@ If you set up a new experiment on HPC, also use:
 export DA_WORKDIR=$EPHEMERAL # Output top-level directory on HPC
 export DA_WORKDIR_SRC=$EPHEMERAL
 ```
--->
-
 
 Now to set-up a new experiment (here we use case `009`) based on a previous example (here we use case `001`), run:
 
@@ -225,10 +204,9 @@ Now to set-up a new experiment (here we use case `009`) based on a previous exam
 # top-level project directory.
 
 # General syntax: copy_inputs.sh old_exp_id new_exp_id
-u-dales/tools/copy_inputs.sh experiments/001 009
 # To set up a new simulation starting from the restart files of another simulation
 # ("warmstart"), use the 'w' flag. E.g.: copy_inputs.sh old_exp_id new_exp_id w
-u-dales/tools/copy_inputs.sh experiments/001 009 w
+./u-dales/tools/copy_inputs.sh 001 009
 ```
 
 ## Run
@@ -303,7 +281,7 @@ Then, to start the simulation, run:
 # top-level project directory.
 
 # General syntax: hpc_execute.sh exp_directory
-bash ./u-dales/tools/archer_execute.sh experiments/009
+./u-dales/tools/archer_execute.sh experiments/009
 ```
 
 ## Singularity

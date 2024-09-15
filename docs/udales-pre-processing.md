@@ -146,30 +146,15 @@ export DA_EXPDIR=$(pwd)/experiments #  The top-level directory of the simulation
 
 Then, to start the pre-processing, run:
 
-For local ubuntu or mac
 ``` sh
 # We assume you are running the following commands from your
 # top-level project directory.
 
 # General syntax: write_inputs.sh exp_id
-./u-dales/tools/write_inputs.sh experiments/001
+./u-dales/tools/write_inputs.sh 001
 ```
 
-For ICL HPC
-``` sh
-# We assume you are running the following commands from your
-# top-level project directory.
-
-# General syntax: write_inputs.sh esperiments/exp_id run_node_type
-
-# To run preprocessing on HPC log in node (not recomended)
-./u-dales/tools/write_inputs.sh experiments/001 l
-
-# To run preprocessing on HPC compute node (recomended)
-./u-dales/tools/write_inputs.sh experiments/001 c
-```
-
-In above example commands, replace 001 with the number of your simulation.
+Replace 001 with the number of your simulation.
 
 ## Developer's guide
 
