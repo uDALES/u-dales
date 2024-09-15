@@ -84,9 +84,10 @@ such that your directory tree resembles the following:
 
 ``` sh
 .
-├── ...
+uDALES
+│
 ├── experiments # Configuration files grouped by experiment number.
-│   └── <N>     # Any configurations files needed by uDALES to run experiment <N>.
+│   └── <N>     # Any configurations files needed by uDALES to run experiment <N> a three digit integer number.
 │   └── ...
 │
 ├── outputs     # Additional or specialized tools other then the ones included with uDALES.
@@ -94,6 +95,12 @@ such that your directory tree resembles the following:
 │   └── ...
 │
 └── u-dales     # uDALES model development repository (submodule).
+│   └── 2decomp-fft
+│   └── ...
+│   └── src
+│   └── ...
+│   └── tools
+│   └── ...
 ```
 
 In the next steps we will assume your current working directory is the top-level project directory.
@@ -183,7 +190,10 @@ By default uDALES will compile in `Release` mode. You can change this by specify
 
 ## Set-up
 
-To set up a new simulation, `copy_inputs.sh` in `u-dales/tools/` is used to create a new simulation setup `new_exp_id` based on another simulation `old_exp_id`. All `exp_ids` are three digit numbers, e.g. 001, and are stored in directories of that name. Scripts requires several variables to be set up. You can do this by copying and pasting the snippet below or by including it in a bash script (or bash profile if you are unlikely to change them).
+To set up a new simulation, `copy_inputs.sh` in `u-dales/tools/` is used to create a new simulation setup `new_exp_id` based on another simulation `old_exp_id`. All `exp_ids` are three digit integer numbers, e.g. 001, and are stored in directories of that name. Each experiment case directory must contain a config.sh file where appropriate paths for DA_EXPDIR (experiments directory), DA_WORKDIR (outputs directory), DA_TOOLSDIR (u-dales/tools directory) are set using export.
+
+<!--
+Scripts requires several variables to be set up. You can do this by copying and pasting the snippet below or by including it in a bash script (or bash profile if you are unlikely to change them).
 
 ``` sh
 # We assume you are running the following commands from your
@@ -205,6 +215,8 @@ If you set up a new experiment on HPC, also use:
 export DA_WORKDIR=$EPHEMERAL # Output top-level directory on HPC
 export DA_WORKDIR_SRC=$EPHEMERAL
 ```
+-->
+
 
 Now to set-up a new experiment (here we use case `009`) based on a previous example (here we use case `001`), run:
 
@@ -291,7 +303,7 @@ Then, to start the simulation, run:
 # top-level project directory.
 
 # General syntax: hpc_execute.sh exp_directory
-./u-dales/tools/archer_execute.sh experiments/009
+bash ./u-dales/tools/archer_execute.sh experiments/009
 ```
 
 ## Singularity
