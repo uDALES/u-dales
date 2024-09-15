@@ -2,7 +2,7 @@
 
 set -e
 
-# Usage: ./tools/build_preprocessing.sh [icl]
+# Usage: ./tools/build_preprocessing.sh [common / icl]
 
 if [ ! -d tools ]; then
     echo "Please run this script from being inside the u-dales folder"
@@ -17,6 +17,9 @@ system=$1
 if [ $system == "icl" ]
 then
     module load cmake/3.18.2
+elif [ $system == "common" ]
+then
+
 else
     echo "This configuration is not avalable"
     exit 1
