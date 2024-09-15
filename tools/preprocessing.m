@@ -1240,6 +1240,26 @@ classdef preprocessing < dynamicprops
 %             set(gca, 'FontSize', 12)
 %             grid on
         end
+
+        function update_namoptions(namoptionsfile,sectionname,varname,value)
+            namoptions_content = fileread(namoptionsfile);
+            pattern = [varname ' * = * \d+'];
+            
+            if ~isempty(regexp(namoptions_content, ['\<' varname '\>'], 'once'))
+                new_content = regexprep(namoptions_content, pattern, sprintf('%s = %d', varname, value));
+            elseif contains(namoptions_content, sectionname)
+                new_content = regexprep(namoptions_content, sectionname, sprintf([sectionname '\n%s = %d'], varname, value));
+            else
+                namoptions_content = [namoptions_content sprintf(['\n' sectionname])];
+                new_content = regexprep(namoptions_content, sectionname, sprintf([sectionname '\n%s = %d'], varname, value));
+                new_content = [new_content sprintf('\n/')];
+            end
+            
+            fid = fopen(namoptionsfile, 'w');
+            fwrite(fid, new_content);
+            fclose(fid);
+        end
+        
     end
 
     methods (Static, Access = protected)

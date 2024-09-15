@@ -36,9 +36,14 @@ addpath([DA_TOOLSDIR '/IBM/'])
 addpath([DA_TOOLSDIR '/SEB/'])
 exppath = [DA_EXPDIR '/'];
 fpath = [DA_EXPDIR '/' expnr '/'];
+namoptionsfile = [fpath 'namoptions.' expnr];
 cd(fpath)
 
 r = preprocessing(expnr, exppath); % reads namoptions file and creates the object r
+
+if (r.iexpnr ~= str2double(expnr))
+    error('Error: appropriate iexpnr must be set under &RUN in namoptions. iexpnr should be the same as the experiment case name.')
+end
 
 preprocessing.set_defaults(r);
 preprocessing.generate_xygrid(r);
@@ -146,6 +151,24 @@ if r.libm
         end
 
         writeIBMFiles; % Could turn into a function and move writing to this script
+
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nfctsecs_c',size(facet_sections_c,1));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nfctsecs_w',size(facet_sections_w,1));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nfctsecs_v',size(facet_sections_v,1));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nfctsecs_u',size(facet_sections_u,1));
+        
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nbndpts_c',size(fluid_IB_xyz_c,1));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nbndpts_w',size(fluid_IB_xyz_w,1));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nbndpts_v',size(fluid_IB_xyz_v,1));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nbndpts_u',size(fluid_IB_xyz_u,1));
+        
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nsolpts_c',size(solid_ijk_c,1));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nsolpts_w',size(solid_ijk_w,1));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nsolpts_v',size(solid_ijk_v,1));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nsolpts_u',size(solid_ijk_u,1));
+        
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nfcts',nfcts);
+
     else
         if isempty(r.geom_path)
             error('Need to specify the path to geometry files')
