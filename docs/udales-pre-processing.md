@@ -145,15 +145,15 @@ export DA_EXPDIR=$(pwd)/experiments #  The top-level directory of the simulation
 ```
 
 Before running the preprocessing, one must build the View3D submodule. This is a one time task and should be done as soon as you clone u-dales from GitHub.
-```sh
-# We assume you are running the following commands from u-dales directory.
+``` sh
+# We assume you are running the following commands from the u-dales directory.
 
 # To build on local/common ubuntu or mac systems
 ./tools/build_preprocessing.sh common
 
 # To build on ICL HPC
 ./tools/build_preprocessing.sh icl
-```sh
+```
 
 Then, to start the pre-processing, run:
 
@@ -181,6 +181,7 @@ For ICL HPC
 ```
 
 In above example commands, replace 001 with the number of your simulation.
+
 ## Developer's guide
 
 The `u-dales/tools/preprocessing.m` matlab class contains the functionality for preprocessing. The constructor reads the parameters in `namoptions` and stores them as member variables, and defines default variables for those not specified. These are then used in the member functions. In these member functions, additional data structures are also stored as member variables, including those used repeatedly and those eventually written to files, so that one can easily view and manipulate them using the matlab IDE.
