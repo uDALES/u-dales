@@ -282,12 +282,19 @@ if r.libm
                     %vfsparse = sparse(double(vf));
                     preprocessing.write_vfsparse(r, vf);
                     disp(['Written vfsparse.inp.', r.expnr])
+                    preprocessing.update_namoptions(namoptionsfile,'&ENERGYBALANCE','nnz',nnz(vf));
                 end
                 if r.calc_vf
                     delete(fpath_vf) % remove view3d output file
                 end
-            elseif (r.view3d_out == 2 && ~r.calc_vf)
-                copyfile(fpath_vf, [fpath 'vfsparse.inp.' r.expnr]);
+            elseif r.view3d_out == 2
+                if r.calc_vf
+                    disp(['View3D has written vfsparse.inp.', r.expnr])
+                else
+                    copyfile(fpath_vf, [fpath 'vfsparse.inp.' r.expnr]);
+                    disp(['Copied vfsparse.inp.', r.expnr, ' from ' fpath_vf])
+                end
+                preprocessing.update_namoptions(namoptionsfile,'&ENERGYBALANCE','nnz',nnz(vf));
             end
         end
 
