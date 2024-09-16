@@ -1,0 +1,794 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="TODO:">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>bcpup &ndash; uDALES</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <link href="../css/font-awesome.min.css" rel="stylesheet">
+    <link href="../css/local.css" rel="stylesheet">
+      <link  href="../tipuesearch/tipuesearch.css" rel="stylesheet">
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/dalesurban.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>bcpup
+      <small>Subroutine</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 0.8% of total for procedures.">111 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/modboundary.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/modboundary.f90.html'>modboundary.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/modboundary.html'>modboundary</a></li>
+            <li class="breadcrumb-item active" aria-current="page">bcpup</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    $(function () {
+    $('[data-bs-toggle="tooltip"]').tooltip()
+    })
+  </script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+      <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+    <div class="card card-primary">
+      <div class="card-header text-left"><h3 class="card-title">Source Code</h3></div>
+      <div class="list-group">
+        <a class="list-group-item" href="../proc/bcpup.html#src">bcpup</a>
+      </div>
+    </div>
+
+
+  </div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    <h2>public  subroutine bcpup(pup, pvp, pwp, rk3coef)  
+</h2>
+        <div class="card mb-4">
+      <h3 class="card-header card-title bg-light">Uses</h3>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+              <ul class="list-inline">
+                  <li class="list-inline-item"><a href='../module/modinletdata.html'>modinletdata</a></li>
+                  <li class="list-inline-item"><a href='../module/modfields.html'>modfields</a></li>
+                  <li class="list-inline-item"><a href='../module/modmpi.html'>modmpi</a></li>
+                  <li class="list-inline-item"><a href='../module/modglobal.html'>modglobal</a></li>
+                  <li class="list-inline-item">decomp_2d</li>
+              </ul>
+            </li>
+            <li class="list-group-item">
+              <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.50.0 (0)
+ -->
+<!-- Title: proc~~bcpup~~UsesGraph Pages: 1 -->
+<svg id="procbcpupUsesGraph" width="293pt" height="179pt"
+ viewBox="0.00 0.00 293.00 179.32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~bcpup~~UsesGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 175.32)">
+<title>proc~~bcpup~~UsesGraph</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-175.32 289,-175.32 289,4 -4,4"/>
+<!-- proc~bcpup -->
+<g id="proc~~bcpup~~UsesGraph_node1" class="node">
+<title>proc~bcpup</title>
+<polygon fill="none" stroke="black" points="285,-108 231,-108 231,-84 285,-84 285,-108"/>
+<text text-anchor="middle" x="258" y="-93.6" font-family="Helvetica,sans-Serif" font-size="10.50">bcpup</text>
+</g>
+<!-- decomp_2d -->
+<g id="proc~~bcpup~~UsesGraph_node2" class="node">
+<title>decomp_2d</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="75,-170 0,-170 0,-146 75,-146 75,-170"/>
+<text text-anchor="middle" x="37.5" y="-155.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">decomp_2d</text>
+</g>
+<!-- proc~bcpup&#45;&gt;decomp_2d -->
+<g id="proc~~bcpup~~UsesGraph_edge1" class="edge">
+<title>proc~bcpup&#45;&gt;decomp_2d</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M249.57,-108.08C239.42,-123.29 219.63,-148.68 195,-159 160.29,-173.54 117.32,-172.05 85.2,-167.63"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="85.59,-164.15 75.18,-166.1 84.54,-171.07 85.59,-164.15"/>
+</g>
+<!-- module~modfields -->
+<g id="proc~~bcpup~~UsesGraph_node3" class="node">
+<title>module~modfields</title>
+<g id="a_proc~~bcpup~~UsesGraph_node3"><a xlink:href="../module/modfields.html" xlink:title="modfields">
+<polygon fill="#337ab7" stroke="#337ab7" points="185.5,-150 120.5,-150 120.5,-126 185.5,-126 185.5,-150"/>
+<text text-anchor="middle" x="153" y="-135.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modfields</text>
+</a>
+</g>
+</g>
+<!-- proc~bcpup&#45;&gt;module~modfields -->
+<g id="proc~~bcpup~~UsesGraph_edge2" class="edge">
+<title>proc~bcpup&#45;&gt;module~modfields</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M230.74,-106.71C219.25,-111.39 205.53,-116.99 192.88,-122.14"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="191.42,-118.96 183.48,-125.98 194.06,-125.44 191.42,-118.96"/>
+</g>
+<!-- module~modglobal -->
+<g id="proc~~bcpup~~UsesGraph_node4" class="node">
+<title>module~modglobal</title>
+<g id="a_proc~~bcpup~~UsesGraph_node4"><a xlink:href="../module/modglobal.html" xlink:title="modglobal">
+<polygon fill="#337ab7" stroke="#337ab7" points="188,-108 118,-108 118,-84 188,-84 188,-108"/>
+<text text-anchor="middle" x="153" y="-93.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modglobal</text>
+</a>
+</g>
+</g>
+<!-- proc~bcpup&#45;&gt;module~modglobal -->
+<g id="proc~~bcpup~~UsesGraph_edge3" class="edge">
+<title>proc~bcpup&#45;&gt;module~modglobal</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M230.74,-96C220.99,-96 209.62,-96 198.68,-96"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="198.38,-92.5 188.38,-96 198.38,-99.5 198.38,-92.5"/>
+</g>
+<!-- module~modinletdata -->
+<g id="proc~~bcpup~~UsesGraph_node5" class="node">
+<title>module~modinletdata</title>
+<g id="a_proc~~bcpup~~UsesGraph_node5"><a xlink:href="../module/modinletdata.html" xlink:title="modinletdata">
+<polygon fill="#337ab7" stroke="#337ab7" points="195,-66 111,-66 111,-42 195,-42 195,-66"/>
+<text text-anchor="middle" x="153" y="-51.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modinletdata</text>
+</a>
+</g>
+</g>
+<!-- proc~bcpup&#45;&gt;module~modinletdata -->
+<g id="proc~~bcpup~~UsesGraph_edge4" class="edge">
+<title>proc~bcpup&#45;&gt;module~modinletdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M230.74,-85.29C219.25,-80.61 205.53,-75.01 192.88,-69.86"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="194.06,-66.56 183.48,-66.02 191.42,-73.04 194.06,-66.56"/>
+</g>
+<!-- module~modmpi -->
+<g id="proc~~bcpup~~UsesGraph_node6" class="node">
+<title>module~modmpi</title>
+<g id="a_proc~~bcpup~~UsesGraph_node6"><a xlink:href="../module/modmpi.html" xlink:title="modmpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="181.5,-24 124.5,-24 124.5,0 181.5,0 181.5,-24"/>
+<text text-anchor="middle" x="153" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modmpi</text>
+</a>
+</g>
+</g>
+<!-- proc~bcpup&#45;&gt;module~modmpi -->
+<g id="proc~~bcpup~~UsesGraph_edge5" class="edge">
+<title>proc~bcpup&#45;&gt;module~modmpi</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M247.01,-83.71C235.51,-70.09 215.53,-48.08 195,-33 193.22,-31.69 191.35,-30.42 189.42,-29.2"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="191.17,-26.16 180.77,-24.13 187.63,-32.21 191.17,-26.16"/>
+</g>
+<!-- module~modfields&#45;&gt;decomp_2d -->
+<g id="proc~~bcpup~~UsesGraph_edge6" class="edge">
+<title>module~modfields&#45;&gt;decomp_2d</title>
+<path fill="none" stroke="#cbff00" stroke-dasharray="5,2" d="M120.38,-143.57C109.53,-145.48 97.13,-147.67 85.33,-149.75"/>
+<polygon fill="#cbff00" stroke="#cbff00" points="84.4,-146.36 75.16,-151.54 85.62,-153.25 84.4,-146.36"/>
+</g>
+<!-- mpi -->
+<g id="proc~~bcpup~~UsesGraph_node7" class="node">
+<title>mpi</title>
+<g id="a_proc~~bcpup~~UsesGraph_node7"><a xlink:href="http://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node410.htm" xlink:title="mpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="64.5,-24 10.5,-24 10.5,0 64.5,0 64.5,-24"/>
+<text text-anchor="middle" x="37.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi</text>
+</a>
+</g>
+</g>
+<!-- module~modmpi&#45;&gt;mpi -->
+<g id="proc~~bcpup~~UsesGraph_edge7" class="edge">
+<title>module~modmpi&#45;&gt;mpi</title>
+<path fill="none" stroke="#cc00ff" stroke-dasharray="5,2" d="M124.23,-12C109.38,-12 90.89,-12 74.9,-12"/>
+<polygon fill="#cc00ff" stroke="#cc00ff" points="74.81,-8.5 64.81,-12 74.81,-15.5 74.81,-8.5"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#UsesGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="UsesGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.50.0 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="518pt" height="32pt"
+ viewBox="0.00 0.00 517.50 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-28 513.5,-28 513.5,4 -4,4"/>
+<!-- Module -->
+<g id="node1" class="node">
+<title>Module</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-24 0,-24 0,0 54,0 54,-24"/>
+<text text-anchor="middle" x="27" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Module</text>
+</g>
+<!-- Submodule -->
+<g id="node2" class="node">
+<title>Submodule</title>
+<polygon fill="#5bc0de" stroke="#5bc0de" points="145.5,-24 72.5,-24 72.5,0 145.5,0 145.5,-24"/>
+<text text-anchor="middle" x="109" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Submodule</text>
+</g>
+<!-- Subroutine -->
+<g id="node3" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="234,-24 164,-24 164,0 234,0 234,-24"/>
+<text text-anchor="middle" x="199" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node4" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="310,-24 252,-24 252,0 310,0 310,-24"/>
+<text text-anchor="middle" x="281" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="386,-24 328,-24 328,0 386,0 386,-24"/>
+<text text-anchor="middle" x="357" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="509.5,-24 404.5,-24 404.5,0 509.5,0 509.5,-24"/>
+<text text-anchor="middle" x="457" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a submodule to the (sub)module which it is
+descended from. Dashed arrows point from a module or program unit to 
+modules which it uses.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+            </li>
+        </ul>
+      </div>
+    </div>
+
+
+
+
+    <h3>Arguments</h3>
+        <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-pup"></span>
+              real,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(ib - ih:ie + ih, jb - jh:je + jh, kb:ke + kh)
+            </td>
+            <td>::</td>
+            <td><strong>pup</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-pvp"></span>
+              real,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(ib - ih:ie + ih, jb - jh:je + jh, kb:ke + kh)
+            </td>
+            <td>::</td>
+            <td><strong>pvp</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-pwp"></span>
+              real,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(ib - ih:ie + ih, jb - jh:je + jh, kb:ke + kh)
+            </td>
+            <td>::</td>
+            <td><strong>pwp</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-rk3coef~17"></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>rk3coef</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+    <br>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Calls</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.50.0 (0)
+ -->
+<!-- Title: proc~~bcpup~~CallsGraph Pages: 1 -->
+<svg id="procbcpupCallsGraph" width="325pt" height="74pt"
+ viewBox="0.00 0.00 325.00 74.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~bcpup~~CallsGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 70)">
+<title>proc~~bcpup~~CallsGraph</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-70 321,-70 321,4 -4,4"/>
+<!-- proc~bcpup -->
+<g id="proc~~bcpup~~CallsGraph_node1" class="node">
+<title>proc~bcpup</title>
+<polygon fill="none" stroke="black" points="54,-45 0,-45 0,-21 54,-21 54,-45"/>
+<text text-anchor="middle" x="27" y="-30.6" font-family="Helvetica,sans-Serif" font-size="10.50">bcpup</text>
+</g>
+<!-- exchange_halo_z -->
+<g id="proc~~bcpup~~CallsGraph_node2" class="node">
+<title>exchange_halo_z</title>
+<polygon fill="#777777" stroke="#777777" points="193,-66 90,-66 90,-42 193,-42 193,-66"/>
+<text text-anchor="middle" x="141.5" y="-51.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">exchange_halo_z</text>
+</g>
+<!-- proc~bcpup&#45;&gt;exchange_halo_z -->
+<g id="proc~~bcpup~~CallsGraph_edge1" class="edge">
+<title>proc~bcpup&#45;&gt;exchange_halo_z</title>
+<path fill="none" stroke="#ff0000" d="M54.09,-37.87C61.91,-39.33 70.83,-41 79.9,-42.69"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="79.29,-46.13 89.76,-44.53 80.57,-39.25 79.29,-46.13"/>
+</g>
+<!-- proc~avexy_ibm -->
+<g id="proc~~bcpup~~CallsGraph_node3" class="node">
+<title>proc~avexy_ibm</title>
+<g id="a_proc~~bcpup~~CallsGraph_node3"><a xlink:href="../proc/avexy_ibm.html" xlink:title="avexy_ibm">
+<polygon fill="#d9534f" stroke="#d9534f" points="176,-24 107,-24 107,0 176,0 176,-24"/>
+<text text-anchor="middle" x="141.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">avexy_ibm</text>
+</a>
+</g>
+</g>
+<!-- proc~bcpup&#45;&gt;proc~avexy_ibm -->
+<g id="proc~~bcpup~~CallsGraph_edge2" class="edge">
+<title>proc~bcpup&#45;&gt;proc~avexy_ibm</title>
+<path fill="none" stroke="#ff0000" d="M54.09,-28.13C66.73,-25.77 82.26,-22.87 96.64,-20.19"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="97.67,-23.55 106.86,-18.28 96.39,-16.67 97.67,-23.55"/>
+</g>
+<!-- mpi_allreduce -->
+<g id="proc~~bcpup~~CallsGraph_node4" class="node">
+<title>mpi_allreduce</title>
+<polygon fill="#777777" stroke="#777777" points="317,-24 229,-24 229,0 317,0 317,-24"/>
+<text text-anchor="middle" x="273" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi_allreduce</text>
+</g>
+<!-- proc~avexy_ibm&#45;&gt;mpi_allreduce -->
+<g id="proc~~bcpup~~CallsGraph_edge3" class="edge">
+<title>proc~avexy_ibm&#45;&gt;mpi_allreduce</title>
+<path fill="none" stroke="#00ffff" d="M176.19,-12C189.09,-12 204.15,-12 218.46,-12"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="218.71,-15.5 228.71,-12 218.71,-8.5 218.71,-15.5"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CallsGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CallsGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.50.0 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 27.51" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.86 0.86) rotate(0) translate(4 28)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-28 741.5,-28 741.5,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="70,-24 0,-24 0,0 70,0 70,-24"/>
+<text text-anchor="middle" x="35" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="146,-24 88,-24 88,0 146,0 146,-24"/>
+<text text-anchor="middle" x="117" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="225.5,-24 164.5,-24 164.5,0 225.5,0 225.5,-24"/>
+<text text-anchor="middle" x="195" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="374,-24 244,-24 244,0 374,0 374,-24"/>
+<text text-anchor="middle" x="309" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="537.5,-24 392.5,-24 392.5,0 537.5,0 537.5,-24"/>
+<text text-anchor="middle" x="465" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="614,-24 556,-24 556,0 614,0 614,-24"/>
+<text text-anchor="middle" x="585" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="737.5,-24 632.5,-24 632.5,0 737.5,0 737.5,-24"/>
+<text text-anchor="middle" x="685" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <br>
+
+
+    
+    
+
+    
+    
+
+
+
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="hl codehilite"><pre><span></span><span class="w">   </span><span class="k">subroutine </span><span class="n">bcpup</span><span class="p">(</span><span class="n">pup</span><span class="p">,</span><span class="w"> </span><span class="n">pvp</span><span class="p">,</span><span class="w"> </span><span class="n">pwp</span><span class="p">,</span><span class="w"> </span><span class="n">rk3coef</span><span class="p">)</span>
+
+<span class="w">     </span><span class="k">use </span><span class="n">modglobal</span><span class="p">,</span><span class="w">    </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">ib</span><span class="p">,</span><span class="w"> </span><span class="n">ie</span><span class="p">,</span><span class="w"> </span><span class="n">jb</span><span class="p">,</span><span class="w"> </span><span class="n">je</span><span class="p">,</span><span class="w"> </span><span class="n">ih</span><span class="p">,</span><span class="w"> </span><span class="n">jh</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span><span class="p">,</span><span class="w"> </span><span class="n">kh</span><span class="p">,</span><span class="w"> </span><span class="n">rk3step</span><span class="p">,</span><span class="w"> </span><span class="n">dxi</span><span class="p">,</span><span class="w"> </span><span class="n">dyi</span><span class="p">,</span><span class="w"> </span><span class="n">dzhi</span><span class="p">,</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                              </span><span class="n">ibrank</span><span class="p">,</span><span class="w"> </span><span class="n">ierank</span><span class="p">,</span><span class="w"> </span><span class="n">jbrank</span><span class="p">,</span><span class="w"> </span><span class="n">jerank</span><span class="p">,</span><span class="w"> </span><span class="n">BCxm</span><span class="p">,</span><span class="w"> </span><span class="n">BCym</span><span class="p">,</span><span class="w"> </span><span class="n">BCtopm</span><span class="p">,</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                              </span><span class="n">BCtopm_freeslip</span><span class="p">,</span><span class="w"> </span><span class="n">BCtopm_noslip</span><span class="p">,</span><span class="w"> </span><span class="n">BCtopm_pressure</span><span class="p">,</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                              </span><span class="n">BCxm_periodic</span><span class="p">,</span><span class="w"> </span><span class="n">BCxm_profile</span><span class="p">,</span><span class="w"> </span><span class="n">BCxm_driver</span><span class="p">,</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                              </span><span class="n">BCym_periodic</span><span class="p">,</span><span class="w"> </span><span class="n">BCym_profile</span>
+<span class="w">     </span><span class="k">use </span><span class="n">modfields</span><span class="p">,</span><span class="w">    </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">pres0</span><span class="p">,</span><span class="w"> </span><span class="n">up</span><span class="p">,</span><span class="w"> </span><span class="n">vp</span><span class="p">,</span><span class="w"> </span><span class="n">wp</span><span class="p">,</span><span class="w"> </span><span class="n">um</span><span class="p">,</span><span class="w"> </span><span class="n">vm</span><span class="p">,</span><span class="w"> </span><span class="n">wm</span><span class="p">,</span><span class="w"> </span><span class="n">w0</span><span class="p">,</span><span class="w"> </span><span class="n">u0</span><span class="p">,</span><span class="w"> </span><span class="n">v0</span><span class="p">,</span><span class="w"> </span><span class="n">uouttot</span><span class="p">,</span><span class="w"> </span><span class="n">vouttot</span><span class="p">,</span><span class="w"> </span><span class="n">uinit</span><span class="p">,</span><span class="w"> </span><span class="n">vinit</span><span class="p">,</span><span class="w"> </span><span class="n">uprof</span><span class="p">,</span><span class="w"> </span><span class="n">vprof</span><span class="p">,</span><span class="w"> </span><span class="n">pres0</span><span class="p">,</span><span class="w"> </span><span class="n">IIc</span><span class="p">,</span><span class="w"> </span><span class="n">IIcs</span>
+<span class="w">     </span><span class="k">use </span><span class="n">modmpi</span><span class="p">,</span><span class="w">       </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">excjs</span><span class="p">,</span><span class="w"> </span><span class="n">excis</span><span class="p">,</span><span class="w"> </span><span class="n">myid</span><span class="p">,</span><span class="w"> </span><span class="n">avexy_ibm</span>
+<span class="w">     </span><span class="k">use </span><span class="n">modinletdata</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">u0driver</span>
+<span class="w">     </span><span class="k">use </span><span class="n">decomp_2d</span><span class="p">,</span><span class="w">    </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">exchange_halo_z</span>
+
+<span class="w">     </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">dimension</span><span class="p">(</span><span class="n">ib</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">ih</span><span class="p">,</span><span class="w"> </span><span class="n">jb</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">jh</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">kh</span><span class="p">),</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">pup</span>
+<span class="w">     </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">dimension</span><span class="p">(</span><span class="n">ib</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">ih</span><span class="p">,</span><span class="w"> </span><span class="n">jb</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">jh</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">kh</span><span class="p">),</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">pvp</span>
+<span class="w">     </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">dimension</span><span class="p">(</span><span class="n">ib</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">ih</span><span class="p">,</span><span class="w"> </span><span class="n">jb</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">jh</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">kh</span><span class="p">),</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">pwp</span>
+<span class="w">     </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">dimension</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">pres0ij</span>
+
+<span class="w">     </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">rk3coef</span>
+<span class="w">     </span><span class="kt">real </span><span class="n">rk3coefi</span>
+
+<span class="w">     </span><span class="kt">integer </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span>
+
+<span class="w">     </span><span class="n">rk3coefi</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.</span><span class="o">/</span><span class="n">rk3coef</span>
+
+<span class="w">     </span><span class="c">! if (jbrank) write(*,*) &quot;jb before exhange_halo &quot;, pvp(ie/2,jb,ke)</span>
+<span class="w">     </span><span class="c">! if (jerank) write(*,*) &quot;je before exhange_halo &quot;, pvp(ie/2,je+1,ke)</span>
+<span class="w">     </span><span class="c">! Watch this communication as it is slightly different to normal -</span>
+<span class="w">     </span><span class="c">! maybe safer to just resize to kb-kh:ke+kh</span>
+<span class="w">     </span><span class="k">call </span><span class="n">exchange_halo_z</span><span class="p">(</span><span class="n">pup</span><span class="p">,</span><span class="w"> </span><span class="n">opt_zlevel</span><span class="o">=</span><span class="p">(</span><span class="o">/</span><span class="n">ih</span><span class="p">,</span><span class="n">jh</span><span class="p">,</span><span class="mi">0</span><span class="o">/</span><span class="p">))</span>
+<span class="w">     </span><span class="k">call </span><span class="n">exchange_halo_z</span><span class="p">(</span><span class="n">pvp</span><span class="p">,</span><span class="w"> </span><span class="n">opt_zlevel</span><span class="o">=</span><span class="p">(</span><span class="o">/</span><span class="n">ih</span><span class="p">,</span><span class="n">jh</span><span class="p">,</span><span class="mi">0</span><span class="o">/</span><span class="p">))</span>
+<span class="w">     </span><span class="k">call </span><span class="n">exchange_halo_z</span><span class="p">(</span><span class="n">pwp</span><span class="p">,</span><span class="w"> </span><span class="n">opt_zlevel</span><span class="o">=</span><span class="p">(</span><span class="o">/</span><span class="n">ih</span><span class="p">,</span><span class="n">jh</span><span class="p">,</span><span class="mi">0</span><span class="o">/</span><span class="p">))</span>
+<span class="w">     </span><span class="c">! if (jbrank) write(*,*) &quot;jb after exhange_halo &quot;, pvp(ie/2,jb,ke)</span>
+<span class="w">     </span><span class="c">! if (jerank) write(*,*) &quot;je after exhange_halo &quot;, pvp(ie/2,je+1,ke)</span>
+
+<span class="w">     </span><span class="k">select case</span><span class="p">(</span><span class="n">BCtopm</span><span class="p">)</span>
+<span class="w">     </span><span class="k">case</span><span class="p">(</span><span class="n">BCtopm_freeslip</span><span class="p">,</span><span class="w"> </span><span class="n">BCtopm_noslip</span><span class="p">)</span>
+<span class="w">       </span><span class="k">do </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jb</span><span class="p">,</span><span class="w"> </span><span class="n">je</span>
+<span class="w">         </span><span class="k">do </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ib</span><span class="p">,</span><span class="w"> </span><span class="n">ie</span>
+<span class="w">           </span><span class="n">pwp</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<span class="w">           </span><span class="n">pwp</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">kh</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<span class="w">         </span><span class="k">end do</span>
+<span class="k">       end do</span>
+
+<span class="k">     case</span><span class="p">(</span><span class="n">BCtopm_pressure</span><span class="p">)</span>
+<span class="w">       </span><span class="k">call </span><span class="n">avexy_ibm</span><span class="p">(</span><span class="n">pres0ij</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">),</span><span class="n">pres0</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">),</span><span class="n">ib</span><span class="p">,</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="p">,</span><span class="n">ih</span><span class="p">,</span><span class="n">jh</span><span class="p">,</span><span class="n">kh</span><span class="p">,</span><span class="n">IIc</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">),</span><span class="n">IIcs</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">),.</span><span class="n">false</span><span class="p">.)</span>
+
+<span class="w">       </span><span class="k">do </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jb</span><span class="p">,</span><span class="w"> </span><span class="n">je</span>
+<span class="w">         </span><span class="k">do </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ib</span><span class="p">,</span><span class="w"> </span><span class="n">ie</span>
+<span class="w">           </span><span class="n">pwp</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="p">)</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<span class="w">           </span><span class="c">!pwp(i, j, ke + 1) = wm(i, j, ke+1) * rk3coefi - (-pres0ij(ke) - pres0(i,j,ke)) * dzhi(ke+1) ! Doesn&#39;t work</span>
+<span class="w">           </span><span class="n">pwp</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">wm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">rk3coefi</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">pres0ij</span><span class="p">(</span><span class="n">ke</span><span class="p">)</span><span class="o">*</span><span class="n">dzhi</span><span class="p">(</span><span class="n">ke</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+<span class="w">           </span><span class="n">wp</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pwp</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">wm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">ke</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">rk3coefi</span>
+<span class="w">         </span><span class="k">end do</span>
+<span class="k">       end do</span>
+<span class="k">     end select</span><span class="w"> </span><span class="c">!BCtopm</span>
+
+<span class="w">     </span><span class="k">select case</span><span class="p">(</span><span class="n">BCxm</span><span class="p">)</span>
+<span class="w">     </span><span class="k">case</span><span class="p">(</span><span class="n">BCxm_periodic</span><span class="p">)</span>
+<span class="w">       </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ibrank</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">ierank</span><span class="p">)</span><span class="w"> </span><span class="k">then</span><span class="w"> </span><span class="c">! not parallelised in x</span>
+<span class="w">         </span><span class="k">do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span>
+<span class="w">            </span><span class="k">do </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jb</span><span class="p">,</span><span class="w"> </span><span class="n">je</span>
+<span class="w">               </span><span class="n">pup</span><span class="p">(</span><span class="n">ie</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pup</span><span class="p">(</span><span class="n">ib</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="c">! cyclic</span>
+<span class="w">            </span><span class="k">end do</span>
+<span class="k">         end do</span>
+<span class="k">       end if</span>
+
+<span class="k">     case</span><span class="p">(</span><span class="n">BCxm_profile</span><span class="p">)</span>
+<span class="w">       </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ibrank</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">         do </span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span>
+<span class="w">           </span><span class="k">do </span><span class="n">j</span><span class="o">=</span><span class="n">jb</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">je</span><span class="o">+</span><span class="mi">1</span>
+<span class="w">             </span><span class="n">pup</span><span class="p">(</span><span class="n">ib</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">uprof</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">rk3coefi</span>
+<span class="w">             </span><span class="n">up</span><span class="p">(</span><span class="n">ib</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<span class="w">           </span><span class="k">end do</span>
+<span class="k">         end do</span>
+<span class="k">       end if</span>
+
+<span class="k">       if</span><span class="w"> </span><span class="p">(</span><span class="n">ierank</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">         do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kb</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span>
+<span class="w">           </span><span class="k">do </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jb</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">je</span><span class="o">+</span><span class="mi">1</span>
+<span class="w">             </span><span class="c">! convective</span>
+<span class="w">             </span><span class="n">pup</span><span class="p">(</span><span class="n">ie</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">um</span><span class="p">(</span><span class="n">ie</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">rk3coefi</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="p">(</span><span class="n">u0</span><span class="p">(</span><span class="n">ie</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">u0</span><span class="p">(</span><span class="n">ie</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">dxi</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">uouttot</span><span class="w"> </span><span class="c">!u0(ie,j,k) ! du/dt +u*du/dx=0 -&gt; pup(i)=um(i)/rk3coef -um(i)*(um(i)-um(i-1))/dxf(i-1)</span>
+<span class="w">             </span><span class="c">! Neumann</span>
+<span class="w">             </span><span class="c">!pup(ie+1,j,k) = pup(ie,j,k)</span>
+<span class="w">             </span><span class="n">up</span><span class="p">(</span><span class="n">ie</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pup</span><span class="p">(</span><span class="n">ie</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">um</span><span class="p">(</span><span class="n">ie</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">rk3coefi</span>
+<span class="w">           </span><span class="k">end do</span>
+<span class="k">         end do</span>
+<span class="w">         </span><span class="c">! Neumann at bottom - performs better with no slip</span>
+<span class="w">         </span><span class="n">pup</span><span class="p">(</span><span class="n">ie</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="p">:,</span><span class="w"> </span><span class="n">kb</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pup</span><span class="p">(</span><span class="n">ie</span><span class="p">,</span><span class="w"> </span><span class="p">:,</span><span class="w"> </span><span class="n">kb</span><span class="p">)</span>
+<span class="w">         </span><span class="n">up</span><span class="p">(</span><span class="n">ie</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="p">:,</span><span class="w"> </span><span class="n">kb</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pup</span><span class="p">(</span><span class="n">ie</span><span class="o">+</span><span class="mi">1</span><span class="p">,:</span><span class="w"> </span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">um</span><span class="p">(</span><span class="n">ie</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="p">:,</span><span class="w"> </span><span class="n">kb</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">rk3coefi</span>
+<span class="w">       </span><span class="k">end if</span>
+
+<span class="k">     case</span><span class="p">(</span><span class="n">BCxm_driver</span><span class="p">)</span>
+<span class="w">       </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ibrank</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">         do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span>
+<span class="w">           </span><span class="k">do </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jb</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">je</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span>
+<span class="w">             </span><span class="n">pup</span><span class="p">(</span><span class="n">ib</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">u0driver</span><span class="p">(</span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">rk3coefi</span>
+<span class="w">             </span><span class="n">up</span><span class="p">(</span><span class="n">ib</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span><span class="w"> </span><span class="c">! u(ib) only evolves according to pressure correction</span>
+<span class="w">           </span><span class="k">end do</span>
+<span class="k">         end do</span>
+<span class="k">       end if</span>
+
+<span class="k">       if</span><span class="w"> </span><span class="p">(</span><span class="n">ierank</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">         do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span>
+<span class="w">           </span><span class="k">do </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jb</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">je</span><span class="o">+</span><span class="mi">1</span>
+<span class="w">             </span><span class="n">pup</span><span class="p">(</span><span class="n">ie</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">um</span><span class="p">(</span><span class="n">ie</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">rk3coefi</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="p">(</span><span class="n">u0</span><span class="p">(</span><span class="n">ie</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">u0</span><span class="p">(</span><span class="n">ie</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">dxi</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">uouttot</span><span class="w">    </span><span class="c">! du/dt +u*du/dx=0 -&gt; pup(i)=um(i)/rk3coef -um(i)*(um(i)-um(i-1))/dxf(i-1)</span>
+<span class="w">             </span><span class="c">! !Neumann</span>
+<span class="w">             </span><span class="c">!pup(ie+1,j,k) = pup(ie,j,k)</span>
+<span class="w">             </span><span class="n">up</span><span class="p">(</span><span class="n">ie</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pup</span><span class="p">(</span><span class="n">ie</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">um</span><span class="p">(</span><span class="n">ie</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">rk3coefi</span>
+<span class="w">           </span><span class="k">end do</span>
+<span class="k">         end do</span>
+<span class="w">         </span><span class="c">! Neumann at bottom - performs better with no slip</span>
+<span class="w">         </span><span class="c">! pup(ie+1, :, kb) = pup(ie, :, kb)</span>
+<span class="w">         </span><span class="c">! up(ie+1, :, kb) = pup(ie+1, :, kb) - um(ie+1, :, kb) * rk3coefi</span>
+<span class="w">       </span><span class="k">end if</span>
+<span class="k">    end select</span><span class="w"> </span><span class="c">! BCxm</span>
+
+<span class="w">    </span><span class="k">select case</span><span class="p">(</span><span class="n">BCym</span><span class="p">)</span>
+<span class="w">    </span><span class="k">case</span><span class="p">(</span><span class="n">BCym_periodic</span><span class="p">)</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">jbrank</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">jerank</span><span class="p">)</span><span class="w"> </span><span class="k">then</span><span class="w"> </span><span class="c">! not parallelised in y</span>
+<span class="w">        </span><span class="k">do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span>
+<span class="w">           </span><span class="k">do </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ib</span><span class="p">,</span><span class="w"> </span><span class="n">ie</span>
+<span class="w">              </span><span class="n">pvp</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">je</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pvp</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">jb</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="c">! cyclic</span>
+<span class="w">           </span><span class="k">end do</span>
+<span class="k">        end do</span>
+<span class="k">      end if</span>
+
+<span class="k">    case</span><span class="p">(</span><span class="n">BCym_profile</span><span class="p">)</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">jbrank</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">        do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span>
+<span class="w">          </span><span class="k">do </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ib</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">ie</span><span class="o">+</span><span class="mi">1</span>
+<span class="w">            </span><span class="n">pvp</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">jb</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">vprof</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">rk3coefi</span>
+<span class="w">            </span><span class="n">vp</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">jb</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<span class="w">          </span><span class="k">end do</span>
+<span class="k">        end do</span>
+<span class="k">      end if</span>
+
+<span class="k">      if</span><span class="w"> </span><span class="p">(</span><span class="n">jerank</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">        do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span>
+<span class="w">          </span><span class="k">do </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ib</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">ie</span><span class="o">+</span><span class="mi">1</span>
+<span class="w">            </span><span class="c">! change to vouttot</span>
+<span class="w">            </span><span class="n">pvp</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">je</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">vm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">je</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">rk3coefi</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="p">(</span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">je</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">je</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">dyi</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">vouttot</span>
+<span class="w">            </span><span class="n">vp</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">je</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pvp</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">je</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">vm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">je</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">rk3coefi</span>
+<span class="w">          </span><span class="k">end do</span>
+<span class="k">        end do</span>
+<span class="k">        </span><span class="n">pvp</span><span class="p">(:,</span><span class="w"> </span><span class="n">je</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pvp</span><span class="p">(:,</span><span class="w"> </span><span class="n">je</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="p">)</span>
+<span class="w">        </span><span class="n">vp</span><span class="p">(:,</span><span class="w"> </span><span class="n">je</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pvp</span><span class="p">(:,</span><span class="w"> </span><span class="n">je</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">vm</span><span class="p">(:,</span><span class="w"> </span><span class="n">je</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="p">)</span><span class="o">*</span><span class="n">rk3coefi</span>
+<span class="w">      </span><span class="k">end if</span>
+
+<span class="k">    end select</span>
+
+<span class="k">   end subroutine </span><span class="n">bcpup</span>
+</pre></div>
+
+    </section>
+    <br>
+    
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2024 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2024-09-16 16:10              </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+
+    <!-- Bootstrap core JavaScript -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>    
+
+    <!-- MathJax JavaScript
+             ================================================== -->
+             <!-- Placed at the end of the document so the pages load faster -->
+        <script type="text/x-mathjax-config">
+          MathJax.Hub.Config({
+          TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } },
+          jax: ['input/TeX','input/MathML','output/HTML-CSS'],
+          extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']
+          });
+        </script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+          <script src="../tipuesearch/tipuesearch_content.js"></script>
+          <script src="../tipuesearch/tipuesearch_set.js"></script>
+          <script src="../tipuesearch/tipuesearch.js"></script>
+
+  </body>
+</html>
