@@ -14,16 +14,16 @@ This list refers to the original code-base [DALES](https://github.com/dalesteam/
 | dtmax | 20 | > 0 | Maximum allowed numerical integration timestep. | [s] |
 | trestart | 10000. | 0 < trestart < runtime | Time at which restart files are written, trestart > runtime will prevent restart files being written.  | [s] |
 | ladaptive | .false. | .true. or .false. | Switch for adaptive time-stepping, .true. recommended. | - |
-| irandom | 0 | Positive integer. | Seed for random number generation. | - |
-| randu | 0.0 | Positive real number. | Amplitude of velocity field randomisation. | [m/s] |
-| randthl | 0.0 | Positive real number. | Amplitude of temperature field randomisation. | [K] |
-| randq | 0.0 | Positive real number. | Amplitude of moisture field randomisation. | [kg/kg] |
-| courant | -1 | 1 <= courant <=2 | Courant number, default sets it to 1.5 or 1.1 (if Kappa or upwind scheme is used). | - |
+| irandom | 0 | `INTEGER` > 0 | Seed for random number generation. | - |
+| randu | 0.0 |`REAL` > 0 | Amplitude of velocity field randomisation. | [m/s] |
+| randthl | 0.0 | `REAL` > 0 | Amplitude of temperature field randomisation. | [K] |
+| randq | 0.0 | `REAL` > 0 | Amplitude of moisture field randomisation. | [kg/kg] |
+| courant | 1.1 | 1 <= courant <=2 | Courant number, default sets it to 1.5 or 1.1 (if Kappa or upwind scheme is used). | - |
 | libm | .true. | .true. or .false. | Switch that determines whether the Immersed Boundary Method is turned on. | - |
-| lles | .true. | .true. or .false. | Switch that determines whether the subgrid model is turned on or constant ekm and ekh are used (DNS) | - |
+| lles | .true. | .true. or .false. | Switch that determines whether the subgrid model is turned on or constant ekm and ekh are used (DNS). | - |
 | lrandomize | .true. | .true. or .false. | Switch that determines whether initial field is randomised.| - | 
-| nprocx | -  | Positive integer. | Number of parallelisations in the x-direction, must be a divisor of itot. | - |
-| nprocy | -  | Positive integer. | Number of parallelisations in the y-direction, must be a divisor of jtot anf ktot. | - |
+| nprocx | -  | `INTEGER` > 0 | Number of pencils in the x-direction (see 2decomp documentation [https://2decomp-fft.github.io/]), must be a divisor of itot. | - |
+| nprocy | -  | `INTEGER` > 0 | Number of pencils in the y-direction (see 2decomp documentation [https://2decomp-fft.github.io/]), must be a divisor of jtot and ktot. | - |
 
 
 
@@ -33,16 +33,16 @@ This list refers to the original code-base [DALES](https://github.com/dalesteam/
 | ---- | ------- | --------------- | ----------- | ---- |
 | itot | 96 | `INTEGER` > 0  | Number of points in x-direction. | - |
 | jtot | 96 | `INTEGER` > 0  | Number of points in y-direction. | - |
-| ktot | 96 | `INTEGER` > 0  | Number of points in k-direction. | - |
-| xlen | -1 | `Real` > 0 | Domain size in x-direction.| - |
-| ylen | -1 | `Real` > 0 | Domain size in x-direction.| - |
+| ktot | 96 | `INTEGER` > 0  | Number of points in z-direction. | - |
+| xlen | -1 | `REAL` > 0 | Domain size in x-direction.| - |
+| ylen | -1 | `REAL` > 0 | Domain size in x-direction.| - |
 
 
 ## Namelist PHYSICS
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
-| ps | -1 | `Real` > 0 | Air pressure at surface, recommend using standard pressure.| [Pa] |
+| ps | -1 | `REAL` > 0 | Air pressure at surface, recommend using standard pressure.| [Pa] |
 | igrw_damp | 0 | 0, 1. | Switch to enable gravity wave damping.| - |
 | ltempeq | .false. | .true. or .false. | Switch for solving temperature equation. | - |
 | lbuoyancy | .false. | .true. or .false. | Switch for buoyancy force in temperature equation. | - |
@@ -85,17 +85,17 @@ Possible advection schemes:
 
 2 = 2nd order central difference scheme
 
-7 = Kappa (flux limited) scheme. This scheme designed for quantities that should never become negative.
+7 = Kappa (flux limited) scheme. This scheme can only be applied to passive scalars.
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
 | lqlnr | .false. | .true. or .false. | Logical for calculation of liquid water concentration. | - |
 | ipoiss | 0 | 0 | Poisson solver. 0 = Fast Fourier Transform. | - |
 | iadv_mom | 2 | 2 | Advection scheme for momentum. | - |
-| iadv_tke | -1 | 2 | Advection scheme for TKE. Only used if `loneeqn = True`. | - |
-| iadv_thl | -1 | 2, 7 | Advection scheme for temperature. | - |
-| iadv_qt | -1 | 2 | Advection scheme for moisture. | - |
-| iadv_sv | -1 | 1, 2, 7 | Advection scheme for scalars. | - |
+| iadv_tke | 2 | 2 | Advection scheme for TKE. Only used if `loneeqn = True`. | - |
+| iadv_thl | 2 | 2 | Advection scheme for temperature. | - |
+| iadv_qt | 2 | 2 | Advection scheme for moisture. | - |
+| iadv_sv | 7 | 1, 2, 7 | Advection scheme for scalars. | - |
 
 ## Namelist BC
 
@@ -138,12 +138,12 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | BCbotT | 1 | 1,2 | Boundary condition for temperature at domain bottom (if `lbottom = .true.`). | - |
 | BCbotq | 1 | 1 | Boundary condition for humidity at domain bottom (if `lbottom = .true.`). | - |
 | BCbots | 1 | 1 | Boundary condition for scalars at domain bottom (if `lbottom = .true.`). | - |
-| wtsurf | -1. |`REAL` | Temperature flux at domain bottom (if `lbottom = .true.`). *Currently need to be set to reasonable values for subroutine bottom.* | [Km/s] |
-| wqsurf | -1. | `REAL`| Moisture flux at domain bottom (if `lbottom = .true.`). *Currently need to be set to reasonable values for subroutine bottom.* | [m/s] |
-| thls | -1. |  `REAL`| Temperature at domain bottom (if `lbottom = .true.`). *Currently need to be set to reasonable values for subroutine bottom.* | [K] |
+| wtsurf | -1. |`REAL` | Temperature flux at domain bottom (if `lbottom = .true.`). | [Km/s] |
+| wqsurf | -1. | `REAL`| Moisture flux at domain bottom (if `lbottom = .true.`).  | [m/s] |
+| thls | -1. |  `REAL`| Temperature at domain bottom (if `lbottom = .true.`).  | [K] |
 | qts | -1. | `REAL` | Moisture at domain bottom (if `lbottom = .true.`). Used in modthermodynamics to get a BC for the moisture profile. | [kg/kg] |
-| z0 | -1. |  `REAL`| Momentum roughness length of the domain bottom (if `lbottom = .true.`). *Currently need to be set to reasonable values for subroutine bottom.* | [m] |
-| z0h | -1. |  `REAL`| Heat roughness length of the domain bottom (if `lbottom = .true.`). *Currently need to be set to reasonable values for subroutine bottom.* | [m] |
+| z0 | -1. |  `REAL`| Momentum roughness length of the domain bottom (if `lbottom = .true.`).  | [m] |
+| z0h | -1. |  `REAL`| Heat roughness length of the domain bottom (if `lbottom = .true.`).| [m] |
 
 <!---
 | wsvtopdum | 0 | | Scalar boundary conditions top. | - |
@@ -154,26 +154,30 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
 | lvreman | .false. | .true. or .false. | Switch for Vreman (2004) sub-grid scheme. | - |
-| c_vreman | 0.07 | `REAL` | Model constant for Vreman scheme. | - |
+<!-- | c_vreman | 0.07 | `REAL` | Model constant for Vreman scheme. | - | --->
+<!---
 | lbuoycorr | .false. | .true. or .false. | Switch for buoyancy correlation in the Vreman scheme. | - |
-| loneeqn | .false. | .true., .false. | Switch for one-equation sub-grid scheme. | - |
+| loneeqn | .false. | .true. or .false. | Switch for one-equation sub-grid scheme. | - |
 | ldelta | .false. | .true. or .false. | Switch for diminished sfs in stable flow. | - |
 | lmason | .false. | .true. or .false.| Switch for decreased length scale near the surface | - |
-| cf | 2.5 | `Real` > 0 | Filter constant. | - |
-| cn | 0.76 | `Real` > 0 | Subfilter scale parameter. | - |
-| Rigc | 0.25 | `Real` > 0 | Critical Richardson number. | - |
-| Prandtl | 0.333 |`Real` > 0 | Prandtl number. | - |
+--->
+| cf | 2.5 | `REAL` > 0 | Filter constant. | - |
+| cn | 0.76 | `REAL` > 0 | Subfilter scale parameter. | - |
+| Rigc | 0.25 | `REAL` > 0 | Critical Richardson number. | - |
+<!---
+| Prandtl | 0.333 |`REAL` > 0 | Prandtl number. | - |
 | lsmagorinsky | .false . | .true. or .false. | Switch for Smagorinsky subgrid scheme. | - |
 | cs | -1 | > 0 | Smagorinsky constant. | - |
 | nmason | 2 | > 0 | Exponent in Mason correction function.| - |
+--->
 
-
-
+<!---
 ## Namelist NAMCHECKSIM
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
 | tcheck | 0 | > 0 |  Time interval between checks of velocity divergence and Courant numbers.| [s] |
+--->
 
 ## Namelist WALLS
 
@@ -221,16 +225,15 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | wgrmax | 450. | `REAL` | Maximum water content. | [kg/m3] |
 | wwilt | 171. | `REAL` | Water content at wilting point. | [kg/m3] |
 | wfc | 313. | `REAL` | Water content at field capacity. | [kg/m3] |
-| skyLW | 0. | `REAL` | Long-wave radiation from the sky. | - |
-| GRLAI | 2. | `REAL` | Leaf area index of a green roof. | - |
-| rsmin | 110. | `REAL` | Minimum resistance of soil/plant. | - |
+| skyLW | 0. | `REAL` | Long-wave radiation from the sky. | [W/m2] |
+| GRLAI | 2. | `REAL` | Leaf area index of a green roof. | [m2/m2] |
+| rsmin | 110. | `REAL` | Minimum resistance of soil/plant. | [s/m] |
 | nfaclyrs | 3 | `INTEGER` | Number of layers making up each facet (nwalllayers in uDALES v1). | - |
 | lvfsparse | .false. | .true. or .false. | Switch for view factors in sparse (text) format. | - |
 | nnz | 0 | `INTEGER` | Number of non-zero view factors (only used with sparse view factor format. | - |
 | lperiodicEBcorr | .false. | .true. or .false. | Switch for preventing over-heating and moisture saturation in periodic simualtions. | - |
 | sinkbase | 0 | `INTEGER` > 0  | k index above which the periodicEBcorr sink is applied (should be above height of tallest building). | - |
-| sinkbase | 0 | `INTEGER` > 0  | k index above which the periodicEBcorr sink is applied (should be above height of tallest building). | - |
-| fraction | 0 | `Real` > 0  | Ratio of domain height to uncapped boundary layer height. | - |
+| fraction | 0 | `REAL` > 0  | Ratio of domain height to uncapped boundary layer height. | - |
 
 ## Namelist SCALARS
 
@@ -322,9 +325,9 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | solarazimuth | 135       |  `REAL`            | Solar azimuth, used if isolar = 1.                                   | [degrees] |
 | solarzenith  | 28.4066   |  `REAL`               | Solar zenith, used if isolar = 1 .                                  | [degrees] |
 | I            | 800       |  `REAL` > 0               | Shortwave direct normal irradiance (DNI), used if isolar = 1.                  | W/m^2   |
-| Dsky         | 418.8041  |  `REAL` > 0               | Diffuse sky irradiance,, used if isolar = 1.                          | W/m^2   |
+| Dsky         | 418.8041  |  `REAL` > 0               | Diffuse sky irradiance, used if isolar = 1.                          | W/m^2   |
 | year      | -       |   `INTEGER`   | Year.                                               | -     |
-| month     | -       | 1 <= `INTEGER` <= 12         | Month (where 6 corresponds to June), if isloar = 2 or 3.                | -     |
+| month     | -       | 1 <= `INTEGER` <= 12         | Month (where 6 corresponds to June), if isoloar = 2 or 3.                | -     |
 | day       | -       |  1 <= `INTEGER` <= 31       | Day, if isloar = 2 or 3.                                                | -     |
 | hour      | 6       | 0 <= `INTEGER` <= 23        | Hour (0 for midnight, 23 for 11pm), if isloar = 2 or 3.                 | [hours]     |
 | minute    | 0       | 0 <= `INTEGER` <= 59       | Minute, if isloar = 2 or 3.                                             | [mins]     |
