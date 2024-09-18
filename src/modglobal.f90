@@ -511,6 +511,7 @@ contains
    subroutine initglobal
       use modmpi,   only : myid, comm3d, my_real, mpierr
       use decomp_2d
+      use decomp_2d_mpi, only : nrank, nproc
       implicit none
 
       integer :: advarr(4)

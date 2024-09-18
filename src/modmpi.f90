@@ -57,7 +57,7 @@ save
 
 contains
   subroutine initmpi
-    use decomp_2d, only : nrank, nproc
+    use decomp_2d_mpi, only : nrank, nproc
     implicit none
     ! integer dims(1)
     ! logical periods(1)
