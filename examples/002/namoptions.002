@@ -2,29 +2,27 @@
 iexpnr       = 002
 runtime      = 11.
 trestart     = 10.
-dtmax        = 1.
+dtmax        = 1
 irandom      = 43
 randu        = 0.01
 ladaptive    = .true.
+nprocx       = 2
+nprocy       = 2
+libm         = .true.
+lrandomize   = .true.
 /
 
-&OUTPUT
-lxydump      = .true.
-lxytdump     = .true.
-tstatsdump   = 10.
-tsample      = 1.
-/
 
 &DOMAIN
-imax         = 64
+itot         = 64
 jtot         = 64
-kmax         = 64
-xsize        = 64
-ysize        = 64
+ktot         = 64
+xlen         = 64
+ylen         = 64
 /
 
 &PHYSICS
-ps           = 101500.00
+ps           = 101500.
 igrw_damp    = 0
 /
 
@@ -36,25 +34,31 @@ ipoiss       = 0
 lvreman      = .true.
 /
 
-&BC
-wtsurf       = 0.
-wqsurf       = 0.
-thls         = 288.
-z0           = 0.01
-z0h          = 0.000067
-/
-
 &WALLS
-nblocks      = 17
-nfcts        = 33
+nfcts = 1024
+nsolpts_u = 17408
+nsolpts_v = 17408
+nsolpts_w = 20480
+nsolpts_c = 16384
+nbndpts_u = 8576
+nbndpts_v = 8576
+nbndpts_w = 8448
+nbndpts_c = 8448
+nfctsecs_u = 10815
+nfctsecs_v = 10811
+nfctsecs_w = 7168
+nfctsecs_c = 10720
 /
 
-&INPS
-lcube        = .true.
+&OUTPUT
+lxytdump     = .true.
+tstatsdump   = 10.
+tsample      = 1.
+/
+
+&INP
 zsize        = 64
-blockheight  = 16
-blockwidth   = 16
-canyonwidth  = 16
-dpdx         = 0.0001
 u0           = 2.
+dpdx         = 0.0001
+stl_file     = geom.002.STL
 /

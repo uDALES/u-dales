@@ -1,0 +1,13 @@
+nfcts = 2885
+nsolpts_u = 9216
+nsolpts_v = 9216
+nsolpts_w = 12288
+nsolpts_c = 8192
+nbndpts_u = 8960
+nbndpts_v = 8960
+nbndpts_w = 8704
+nbndpts_c = 8704
+nfctsecs_u = 13354
+nfctsecs_v = 12712
+nfctsecs_w = 10240
+nfctsecs_c = 12240
