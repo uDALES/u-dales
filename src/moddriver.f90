@@ -37,14 +37,11 @@ save
 
 contains
   subroutine initdriver
-    use modglobal, only : ih,ib,ie,jh,jb,je,kb,ke,kh,jhc,khc,idriver,lchunkread,chunkread_size,iplane,xf,lstoreplane,nstore,Uinf,ltempeq,lmoist,pi,zf,zh,driverstore,tdriverstart,tdriverdump,timeleft,dtdriver,nsv,timee,lhdriver,lqdriver,lsdriver,ibrank,iplanerank,driverid,cdriverid
-    use modfields, only : um
-    use modmpi, only : myid,nprocs,myidy,nprocy
+    use modglobal, only : jh,jb,je,kb,ke,kh,jhc,khc,idriver,lchunkread,chunkread_size,iplane,ltempeq,lmoist,driverstore,tdriverstart,tdriverdump,nsv,lhdriver,lqdriver,lsdriver,ibrank,iplanerank,driverid,cdriverid
+    use modmpi, only : myidy,nprocy
     use decomp_2d, only : zstart, zend
 
     implicit none
-    real    :: pfi, epsi
-    integer :: k
 
     if (idriver==1) then
       ! if (tdriverstart < timee) then
@@ -175,21 +172,17 @@ contains
   end subroutine initdriver
 
   subroutine drivergen
-    use modglobal,   only : ib,ie,ih,jb,je,jh,kb,ke,kh,zf,zh,dzf,dzhi,timee,btime,totavtime,rk3step,&
-                            dt,numol,iplane,lles,idriver,inletav,runavtime,Uinf,lwallfunc,linletRA,&
-                            totinletav,lstoreplane,nstore,driverstore,prandtlmoli,numol,grav,lbuoyancy,&
-                            lfixinlet,lfixutauin,tdriverstart,dtdriver,tdriverdump,lchunkread,chunkread_size,ltempeq,lmoist,nsv,lhdriver,lqdriver,lsdriver,&
-                            ibrank,iplanerank,driverid,cdriverid,runtime,lwarmstart,cdriverjobnr
-    use modfields,   only : u0,v0,w0,e120,thl0,qt0,wm,uprof,vprof
+    use modglobal,   only : timee,btime,rk3step,idriver,driverstore,&
+                            tdriverstart,dtdriver,tdriverdump,lchunkread,chunkread_size,ltempeq,lmoist,nsv,lhdriver,lqdriver,lsdriver,&
+                            iplanerank,driverid,runtime,lwarmstart
     use modsave,     only : writerestartfiles
     use modmpi,      only : slabsum,myid
     implicit none
 
-    real :: inlrec                              ! time of last inlet record
     real :: elapsrec                            ! time elapsed in this inlet record
     real :: dtint                               ! dt for linear interpolation
-    real, PARAMETER :: eps = 1d-4
-    integer i,j,k,kk,kdamp,x,xc
+    real, PARAMETER :: eps = 1e-4
+    integer x,xc
 
     if (idriver == 1 .and. iplanerank) then
 
@@ -518,15 +511,12 @@ contains
   end subroutine drivergen
 
   subroutine writedriverfile
-    use modglobal, only : runtime,timee,tdriverstart,tdriverstart_cold,ib,ie,ih,jb,je,jh,kb,ke,kh,cexpnr,ifoutput,nstore,ltempeq,lmoist,driverstore,dtdriver,nsv,lhdriver,lqdriver,lsdriver,ibrank,iplanerank,driverid,cdriverid,btime,lwarmstart
-    use modfields, only : u0, v0, w0, e120, thl0, qt0, um, sv0
-    use modmpi,    only : cmyid,myid
-    use modinletdata, only : storetdriver,storeu0driver,storev0driver,storew0driver,storethl0driver,storeqt0driver,&
-                             storesv0driver,nfile,nstepreaddriver
+    use modglobal, only : runtime,timee,tdriverstart,tdriverstart_cold,jb,je,jh,kb,ke,kh,cexpnr,ltempeq,lmoist,driverstore,dtdriver,nsv,driverid,cdriverid,btime,lwarmstart
+    use modfields, only : u0, v0, w0, thl0, qt0, sv0
+    use modinletdata, only : nstepreaddriver
     implicit none
-    integer :: fileid, IOS
-    integer :: i,j,k,n
-    integer :: filesizet, filesizev, filesizetest1, filesizetest2, filesizes
+    integer :: IOS
+    integer :: filesizet, filesizev, filesizes
     character(15) :: name
     logical :: lexist
     real, allocatable :: arraysizetest(:,:)
@@ -758,13 +748,12 @@ contains
   subroutine readdriverfile
     ! this gets called in modstartup (readinitfiles) when ibrank=.true.
     use modfields, only : u0,sv0
-    use modglobal, only : ib,jb,je,jmax,kb,ke,kh,jhc,khc,cexpnr,ifinput,driverstore,ltempeq,lmoist,zh,jh,driverjobnr,cdriverjobnr,nsv,timee,tdriverstart,lhdriver,lqdriver,lsdriver,ibrank,iplanerank,driverid,cdriverid,lwarmstart
-    use modmpi,    only : cmyid,myid,nprocs,slabsum,excjs
-    use modinletdata, only : storetdriver,storeu0driver,storev0driver,storew0driver,storethl0driver,storeqt0driver,storesv0driver,nfile
+    use modglobal, only : ib,jb,je,kb,ke,kh,jhc,khc,driverstore,ltempeq,lmoist,jh,driverjobnr,cdriverjobnr,nsv,timee,tdriverstart,lhdriver,lqdriver,lsdriver,driverid,cdriverid,lwarmstart
+    use modmpi,    only : slabsum,excjs
+    use modinletdata, only : storetdriver,storeu0driver,storev0driver,storew0driver,storethl0driver,storeqt0driver,storesv0driver
     implicit none
-    integer :: filen,filee
-    integer :: fileid, IOS, filesize, filesizes
-    integer :: j,k,m,n,js,jf,jfdum,jsdum
+    integer :: IOS, filesize, filesizes
+    integer :: j,k,m,n
     character(24) :: name
 
     write(cdriverjobnr, '(i3.3)') driverjobnr
@@ -941,14 +930,13 @@ contains
 
   subroutine readdriverfile_chunk
     use modfields, only : u0,sv0
-    use modglobal, only : ib,jb,je,jmax,kb,ke,kh,jhc,khc,cexpnr,ifinput,driverstore,chunkread_size,ltempeq,lmoist,zh,jh,driverjobnr,cdriverjobnr,nsv,timee,tdriverstart,lhdriver,lqdriver,lsdriver,ibrank,iplanerank,driverid,cdriverid,lwarmstart
-    use modmpi,    only : cmyid,myid,nprocs,slabsum,excjs
-    use modinletdata, only : storetdriver,storeu0driver,storev0driver,storew0driver,storethl0driver,storeqt0driver,storesv0driver,nfile, &
+    use modglobal, only : ib,jb,je,kb,ke,kh,jhc,khc,driverstore,chunkread_size,ltempeq,lmoist,jh,driverjobnr,cdriverjobnr,nsv,timee,tdriverstart,lhdriver,lqdriver,lsdriver,driverid,cdriverid,lwarmstart
+    use modmpi,    only : myid,slabsum,excjs
+    use modinletdata, only : storetdriver,storeu0driver,storev0driver,storew0driver,storethl0driver,storeqt0driver,storesv0driver, &
                              chunkreadctr, chunkread_s, chunkread_e
     implicit none
-    integer :: filen,filee
-    integer :: fileid, IOS, filesize, filesizes
-    integer :: j,k,m,n,js,jf,jfdum,jsdum
+    integer :: IOS, filesize, filesizes
+    integer :: j,k,m,n
     character(24) :: name
 
     write(cdriverjobnr, '(i3.3)') driverjobnr
@@ -1175,7 +1163,7 @@ contains
   end subroutine readdriverfile_chunk
 
   subroutine driverchunkread
-    use modglobal,    only : timee,ibrank,idriver,lchunkread
+    use modglobal,    only : timee,ibrank
     use modinletdata, only : storetdriver, chunkread_e
     use modmpi,       only : myid
 
@@ -1198,7 +1186,7 @@ contains
   end subroutine driverchunkread
 
   subroutine exitdriver
-    use modglobal,      only : idriver,lstoreplane,ltempeq,lmoist,nsv,lhdriver,lqdriver,lsdriver,ibrank,iplanerank
+    use modglobal,      only : idriver,ltempeq,lmoist,nsv,lhdriver,lqdriver,lsdriver,ibrank,iplanerank
 
     if (idriver==1 .and. iplanerank) then
       !if (lstoreplane ) then
