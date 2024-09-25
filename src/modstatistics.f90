@@ -30,7 +30,7 @@ module modstatistics
   save
 
   !NetCDF variables
-  integer :: klow,khigh,i,j,k
+  integer :: i,j,k
 !  real    :: tsamplep,tstatsdumpp,tsample,tstatsdump
 
 contains
@@ -41,11 +41,10 @@ contains
 
   subroutine genstats(tsamplep,tstatsdumpp,umint,vmint,wmint)
 
-  use modfields,        only : um,up,vm,wm,thlm,uav,vav,wav,uuav,vvav,wwav,uvav,vwav,uwav,thlav,thlwav,thlthlav, &
+  use modfields,        only : thlm,uav,vav,wav,uuav,vvav,wwav,uvav,vwav,uwav,thlav,thlwav,thlthlav, &
                                upupav,vpvpav,wpwpav,upvpav,upwpav,vpwpav,thlpwpav
-  use modglobal,        only : ib,ie,ih,jb,je,dy,jh,ke,kb,kh,rk3step,timee,cexpnr,tsample,tstatsdump,&
-                               ltempeq,dxf,dzf,dzhi
-  use modmpi,           only : myid,cmyid,my_real,mpi_sum,mpierr,comm3d
+  use modglobal,        only : ib,ie,ih,jb,je,jh,ke,kb,kh,rk3step,&
+                               ltempeq,dzf,dzhi
   implicit none
 
   real, dimension(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)     :: umint
@@ -148,13 +147,12 @@ contains
  
   subroutine tkestats(tsamplep,tstatsdumpp) ! change of variable names not yet translated across to here ! tg3315 30/11/17
 
-  use modfields,        only : u0,v0,w0,thlm,uyt,vyt,wyt,thlyt,pres0,&
+  use modfields,        only : u0,v0,w0,&
                                tvmx,tvmy,tvmz,strain2av,tsgsmx1,tsgsmx2,tsgsmy1,tsgsmy2,&
-                               tsgsmz1,tsgsmz2,pres0
-  use modglobal,        only : ib,ie,ih,jb,je,jgb,jge,dy,jh,ke,kb,kh,rk3step,cexpnr,tsample,tstatsdump,dzf,zh,dxf,dzf,numol,&
-                               dzfi,dxfi,dyi,dy2i,dxfiq,dxhiq,dyiq,dzfi5,dzh,dzf,dzhi,dzhiq,dxf,dxhi
+                               tsgsmz1,tsgsmz2
+  use modglobal,        only : ib,ie,ih,jb,je,jh,ke,kb,kh,dzf,dxf,dzf,numol,&
+                               dzfi,dxfi,dyi,dy2i,dzf,dzhi,dzhiq,dxf,dxhi
   use modstat_nc,       only : writestat_nc
-  use modsurfdata,      only : thls
   use modsubgriddata,   only : ekm
   implicit none
 
@@ -173,7 +171,7 @@ contains
 !  real :: dummy                            
  
   integer i,j,k,im,ip,jm,jp,km,kp
-  real tstatsdumppi,tsamplep,tstatsdumpp,strain2,tkesgs,nusgs,&
+  real tstatsdumppi,tsamplep,tstatsdumpp,strain2,&
         emom,eomm,eopm,epom,emmo,eomp,epmo,emop,empo,dummy
 
   tekm(:,:,:) = ekm(:,:,:) - numol

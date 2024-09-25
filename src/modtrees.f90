@@ -10,15 +10,14 @@ save
 
 contains
     subroutine createtrees
-    use modglobal,  only : ltrees,ntrees,tree,cexpnr,ifinput,zh,zf,dzh,dzfi,dzhi,dzf,Qstar,&
-                           dec,lad,kb,ke,cp,rhoa,ntree_max,dQdt,tr_A,dy,xh
-    use modfields,  only : um,vm,wm,thlm,qt0,svp,up,vp,wp,thlp,qtp,Rn,clai,qc,qa,ladzh,ladzf
+    use modglobal,  only : ltrees,ntrees,tree,cexpnr,ifinput,dzf,Qstar,&
+                           dec,lad,ke,cp,rhoa,ntree_max,dQdt,tr_A,dy,xh
+    use modfields,  only : Rn,clai,qc,qa,ladzh,ladzf
     use modmpi,     only : myid,comm3d,mpierr,MY_REAL
     use modsurfdata,only : wtsurf
     use modibmdata ,only : bctfz
     implicit none
     integer :: n,k
-    real :: Rq
     character(80) chmess
 
     if ((ltrees .eqv. .false.) .or. (ntrees==0)) return
@@ -165,17 +164,16 @@ contains
     end subroutine createtrees
 
     subroutine trees
-    use modglobal,  only : ib,ie,jb,je,kb,ke,ih,jh,dzf,xh,dxf,numol,prandtlmol,rlv,cp,tree,&
-                           ntrees,ltrees,itot,jtot,cd,ud,lmoist,nsv,dxf,dy,dzf,dzfi,zf,dy,zh,&
-                           ltempeq,pref0,r_s,lad,rhoa,ntree_max,lsize,Qstar,dQdt,BCxs,tr_A,&
+    use modglobal,  only : ib,ie,jb,je,kb,ke,dzf,xh,dxf,numol,rlv,cp,tree,&
+                           ntrees,ltrees,itot,jtot,cd,ud,lmoist,nsv,dxf,dy,dzf,dzfi,dy,zh,&
+                           ltempeq,pref0,r_s,rhoa,ntree_max,lsize,Qstar,dQdt,BCxs,tr_A,&
                            rslabs,kmax,rv,rd
-    use modfields,  only : um,vm,wm,thlm,qtm,svp,up,vp,wp,thlp,qtp,svm,Rn,qc,qa,thlm,clai,&
+    use modfields,  only : um,vm,wm,thlm,qtm,svp,up,vp,wp,thlp,qtp,svm,Rn,qa,thlm,&
                            ladzf,ladzh,IIcs,tr_omega,&
                            tr_u,tr_v,tr_w,tr_qt,tr_qtR,tr_qtA,tr_thl,tr_sv,thlpcar
     use modmpi,     only : myidx,myidy,mpi_sum,mpierr,comm3d,mpierr,my_real,nprocx,nprocy
-    use modsurfdata,only : wtsurf,wttop,wqtop
+    use modsurfdata,only : wttop,wqtop
     use modibmdata, only : bctfz
-    use modsubgriddata, only : ekh
     implicit none
     integer :: i,j,k,n,m,il,iu,jl,ju,kl,ku
     real :: e_sat,e_vap,qh,qe,shade,r_a,s,D,numoli,gam,Rq,qhmin,qhmax,omega

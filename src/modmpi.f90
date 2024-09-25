@@ -611,10 +611,10 @@ subroutine excjs(a,sx,ex,sy,ey,sz,ez,ih,jh)
     return
   end subroutine slabsum
 
-  subroutine avexy_ibm(aver,var,ib,ie,jb,je,kb,ke,ih,jh,kh,II,IIs,lnan)
+  subroutine avexy_ibm(aver,var,ib,ie,jb,je,kb,ke,kh,II,IIs,lnan)
     implicit none
 
-    integer :: ib,ie,jb,je,kb,ke,ih,jh,kh
+    integer :: ib,ie,jb,je,kb,ke,kh
     real    :: aver(kb:ke+kh)
     real    :: var(ib:ie,jb:je,kb:ke+kh)
     integer :: II(ib:ie,jb:je,kb:ke+kh)
@@ -689,7 +689,6 @@ subroutine excjs(a,sx,ex,sy,ey,sz,ez,ih,jh)
   real                    :: var(ib:ie,jb:je,kb:ke)
   integer                 :: II(ib:ie,jb:je,kb:ke)
   integer                 :: IIt(ib:ie,kb:ke)
-  logical                 :: lytdump,lnan
 
   avero = 0.
   aver  = 0.

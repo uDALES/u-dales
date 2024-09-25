@@ -39,32 +39,19 @@ contains
 
     use mpi
 
-    use modsurfdata,only: ustar,thlflux,qtflux,svflux,dudz,dvdz,dthldz,dqtdz,ps,thls,qts,thvs,oblav
-
-    use modfields, only : u0,v0,w0,thl0,qt0,ql0,ql0h,e120,dthvdz,presf,presh,sv0,mindist,wall,&
-                          uav,vav,wav,uuav,vvav,wwav,uvav,uwav,vwav,thlav,thl2av,qtav,qlav,ql2av,qt2av,svav,sv2av,momthick,&
-                          friction,displthick,pres0,viscratioav,thluav,thlvav,thlwav,qtuav,qtvav,qtwav,qluav,qlvav,qlwav,svuav,svvav,svwav,&
-                          upupav,vpvpav,wpwpav,thlpthlpav,qlpqlpav,qtpqtpav,svpsvpav,upvpav,upwpav,vpwpav,thlpupav,thlpvpav,&
-                          thlpwpav,qlpupav,qlpvpav,qlpwpav,qtpupav,qtpvpav,qtpwpav,svpupav,svpvpav,svpwpav,presav,&
-                          uusgsav,vvsgsav,wwsgsav,uwsgsav,thlusgsav,thlwsgsav,qlusgsav,qlwsgsav,qtusgsav,qtwsgsav,svusgsav,svwsgsav,tkesgsav,&
-                          strain2av,disssgsav,t_vav,tvmx,tvmy,tvmz,tsgsmx1,tsgsmx2,tsgsmy1,tsgsmy2,tsgsmz1,&
-                          tsgsmz2,t_sgsav,nusgsav,tpm,t_pav,ttmx,ttmy,ttmz,t_tav,p_bav,d_sgsav,p_tav,tkeadv
-    use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,trestart,tnextrestart,dt_lim,timee,btime,xh,&
-                          cexpnr,ntimee,rk3step,ifoutput,nsv,timeleft,dt,ntrun,totavtime,&
-                          iinletgen,timee,runavtime,inletav,totinletav,linletRA,ltempeq,lmoist,&
-                          dzf,dzfi,dzhi,dxf,dxfi,dyi,dxhi,nstore,numol,dy2i,grav,libm,jmax,nblocks
-    use modmpi,    only : cmyid,cmyidx,cmyidy,myid,slabsum,excjs,comm3d
+    use modfields, only : u0,v0,w0,thl0,qt0,ql0,ql0h,e120,sv0,mindist,wall,&
+                          pres0
+    use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,trestart,tnextrestart,timee,&
+                          cexpnr,rk3step,ifoutput,nsv,dt,ntrun,&
+                          iinletgen,timee,nstore
+    use modmpi,    only : cmyidx,cmyidy,myid,slabsum,excjs,comm3d
     use modsubgriddata, only : ekm
-    use modibmdata,   only  : ibmxforcevol
-    use initfac , only : block
-    use modinletdata, only   : Urec,Wrec,Uinl,Utav,QLinl,QTinl,QLrec,QTrec,QTtav,QLtav,Ttav,upupavinl,vpvpavinl,wpwpavinl,upwpavinl,&
-                               thlpthlpavinl,thlpupavinl,thlpwpavinl,qlpqlpavinl,qlpupavinl,qlpwpavinl,qtpqtpavinl,qtpupavinl,qtpwpavinl,Tinl,Trec,nstepread
+    use modinletdata, only   : nstepread
 
     implicit none
     logical :: lexitnow = .false.
-    integer imin,ihour
-    integer i,j,k,n,im,ip,jm,jp,jpp,km,kp,kpp,il,iu,jl,ju,kl,ku
-    character(25) name,name2,name3,name4,linkname
+    integer i,j,k,n
+    character(25) name
     integer :: ierr, err_code
 
     if (timee == 0) return

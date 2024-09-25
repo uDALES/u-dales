@@ -15,17 +15,15 @@
 !
 !  Copyright 2006-2021 the uDALES Team.
 !
-SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utang1,utang2,Tcell,Twall,z0,z0h,n,ind,wforient)
+SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,obcTfluxA,utang1,utang2,Tcell,Twall,z0,z0h,wforient)
    !wfuno
    !calculating wall function for momentum and scalars following Cai2012&Uno1995, extension of Louis 1979 method to rough walls
    !fluxes in m2/s2 and Km/s
-   USE modglobal, ONLY : dzf,dzfi,dzh2i,dzhi,dzhiq,dy,dyi,dy2i,dyi5,dxf,dxh,dxfi,dxhi,dxh2i,ib,ie,jb,je,kb,ke,fkar,grav,jmax,rk3step,kmax,jge,jgb
+   USE modglobal, ONLY : dzf,dzfi,dzh2i,dzhi,dzhiq,dxf,dxhi,ib,ie,jb,je,kb,ke,fkar,grav
    USE modsubgriddata, ONLY:ekh, ekm
-   USE modmpi, ONLY:myid
-   USE initfac, ONLY:block
    USE modibmdata
    REAL, EXTERNAL :: unom
-   INTEGER i, j, k, jl, ju, kl, ku, il, iu, km, im, jm, ip, jp, kp
+   INTEGER i, j, k, jl, ju, ku, il, iu, km
    REAL :: Ribl0 = 0. !initial guess of Ribl based on Ts
 
    REAL :: bcTflux = 0. !temp storage for temperature flux
@@ -43,7 +41,7 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
    REAL :: utangInt !Interpolated absolute tangential velocity
    REAL :: dT !Temperature difference between wall and cell
    REAL :: fkar2 !fkar^2, von Karman constant squared
-   REAL :: emmo = 0., epmo = 0., epom = 0., emom = 0., eopm = 0., eomm = 0., empo = 0.
+   REAL :: emom = 0., eomm = 0.
    REAL :: umin = 0.0001 !m^2/s^2
 
    INTEGER, INTENT(in) :: hi !<size of halo in i
@@ -55,15 +53,12 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
    REAL, INTENT(inout) :: iot(ib - hi:ie + hi, jb - hj:je + hj, kb:ke + hk) !updated prognostic temperature
    REAL, INTENT(inout) :: iomomflux(ib - hi:ie + hi, jb - hj:je + hj, kb-hk:ke + hk) !a field to save the momentum flux
    REAL, INTENT(inout) :: iotflux(ib - hi:ie + hi, jb - hj:je + hj, kb-hk:ke + hk) !a field to save the heat flux
-   REAL, INTENT(inout) :: iocth(ib - hi:ie + hi, jb - hj:je + hj, kb-hk:ke + hk) !heat transfer coefficient, used to calculate moisture flux
    REAL, INTENT(in)    :: Tcell(ib - hi:ie + hi, jb - hj:je + hj, kb - hk:ke + hk) !Temperature of fluid cell
    REAL, INTENT(in)    :: Twall !Temperature of surfaces !SINCE EVERY WALL HAS PRECISELY ONE TEMPERATURE (at the outside). CAREFUL IF THIS EVER CHANGES (i.e. multiple EB facets per wall)
    REAL, INTENT(in)    :: z0
    REAL, INTENT(in)    :: z0h
    REAL, INTENT(in)    :: utang1(ib - hi:ie + hi, jb - hj:je + hj, kb - hk:ke + hk) !tangential velocity field
    REAL, INTENT(in)    :: utang2(ib - hi:ie + hi, jb - hj:je + hj, kb - hk:ke + hk) !second tangential velocity field
-   INTEGER, INTENT(in) :: n ! number of the block, used to get i,j,k-indeces
-   INTEGER, INTENT(in) :: ind ! in case of y-wall (case 3x & 4x) "ind" is used for j-index, otherwise this is irrelevant
    INTEGER, INTENT(in) :: wforient !orientation of the facet see below:
    !frist digit, orientation of wall, determines iteration indices
    !second digit, if for momentum or for scalar (necessary because of staggered grid -> which variable to interpolate)
@@ -101,7 +96,7 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
             utangInt = max(umin, (utang1Int**2 + utang2Int**2))
             dT = ((Tcell(i, j, k) + Tcell(i - 1, j, k)) - (Twall + Twall))*0.5
             Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
-            ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+            ctm = unom(logdz, logzh, sqdz, Ribl0, fkar2) !save result and update field
             !dummy = (utang1Int**2)*ctm
             dummy = abs(utang1Int)*sqrt(utangInt)*ctm
             bcmomflux = SIGN(dummy, utang1Int) !bcmomflux=u_star^2
@@ -119,7 +114,7 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
             utangInt = max(umin, (utang1Int**2 + utang2Int**2))
             dT = ((Tcell(i, j, k) + Tcell(i, j - 1, k)) - (Twall + Twall))*0.5
             Ribl0 = grav*delta*dT*2/((Twall + Twall)*utangInt) !Eq. 6, guess initial Ri
-            ctm = unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !save result and update field
+            ctm = unom(logdz, logzh, sqdz, Ribl0, fkar2) !save result and update field
             !dummy = (utang2Int**2)*ctm !save result and update field
             dummy = abs(utang2Int)*sqrt(utangInt)*ctm
             bcmomflux = SIGN(dummy, utang2Int)
@@ -151,7 +146,7 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
             utangInt = max(umin, (utang1Int**2 + utang2Int**2))
             dT = (Tcell(i, j, ku) - Twall)
             Ribl0 = grav*delta*dT/(Twall*utangInt) !
-            call unoh(bcTflux, cth, logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2)
+            call unoh(bcTflux, cth, logdz, logzh, sqdz, utangInt, dT, Ribl0, fkar2)
             obcTfluxA = obcTfluxA + bcTflux
             iotflux(i, j, k) = iotflux(i, j, k) + bcTflux*dzfi(k)
             iot(i, j, ku) = iot(i, j, ku) + &
@@ -168,13 +163,13 @@ END SUBROUTINE wfuno
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!FUNCTIONS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !for scalar
 !FUNCTION unoh(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !for heat, the bit that does not change no matter what wall
-SUBROUTINE unoh(otf, octh, logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !for heat, the bit that does not change no matter what wall
+SUBROUTINE unoh(otf, octh, logdz, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !for heat, the bit that does not change no matter what wall
    use modglobal, only : prandtlturb
 !flux in Km/s
    IMPLICIT NONE
-   REAL, INTENT(in) :: logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2
+   REAL, INTENT(in) :: logdz, logzh, sqdz, utangInt, dT, Ribl0, fkar2
    REAL, INTENT(out) :: octh, otf
-   REAL :: Ribl1, Fm, Fh, cm, ch, M, dTrough, cth
+   REAL :: Ribl1, Fm, Fh, cm, ch, M, dTrough
    REAL, PARAMETER :: b1 = 9.4 !parameters from Uno1995
    REAL, PARAMETER :: b2 = 4.7
    REAL, PARAMETER :: dm = 7.4
@@ -221,12 +216,12 @@ END SUBROUTINE unoh
 
 !!!!!!!!!!!!!
 !for momentum
-REAL FUNCTION unom(logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2) !for momentum, this bit is not depended on orientation etc
+REAL FUNCTION unom(logdz, logzh, sqdz, Ribl0, fkar2) !for momentum, this bit is not depended on orientation etc
    use modglobal, only : prandtlturb
 !momentum flux in m2/s2
 !dT,utang and logdzh are unused and could be removed
    IMPLICIT NONE
-   REAL, INTENT(in) :: logdz, logdzh, logzh, sqdz, utangInt, dT, Ribl0, fkar2
+   REAL, INTENT(in) :: logdz, logzh, sqdz, Ribl0, fkar2
    REAL :: Ribl1, Fm, Fh, cm, ch, Ctm, M
    REAL, PARAMETER :: b1 = 9.4 !parameters from Uno1995
    REAL, PARAMETER :: b2 = 4.7

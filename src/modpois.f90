@@ -46,9 +46,8 @@ save
   real, allocatable, target :: Fxy(:,:,:), Fxyz(:,:,:)
   real, allocatable :: xrt(:), yrt(:), zrt(:)
   real, allocatable, target :: xyzrt(:,:,:), bxyzrt(:,:,:)
-  real, allocatable :: a(:), b(:), c(:), ax(:), bx(:), cx(:) ! coefficients for tridiagonal matrix
-  real, allocatable :: pz_top(:,:,:), py_top(:,:,:), px_top(:,:,:)
-  integer :: ibc1, ibc2, kbc1, kbc2
+  real, allocatable :: a(:), b(:), c(:) ! coefficients for tridiagonal matrix
+  integer :: kbc1, kbc2
 
   integer :: plan_r2fc_x, plan_r2fc_y, plan_fc2r_x, plan_fc2r_y
   integer :: plan_r2fr_x, plan_r2fr_y, plan_fr2r_x, plan_fr2r_y
@@ -56,17 +55,15 @@ save
   real, allocatable :: Sxr(:), Sxfr(:), Syr(:), Syfr(:), Szr(:), Szfr(:)
   complex, allocatable :: Sxfc(:), Syfc(:)
   type(DECOMP_INFO) :: sp
-  type(DECOMP_INFO) :: decomp_top
   real, allocatable :: dpdztop(:,:)
   real, allocatable :: pij(:)
 
 contains
   subroutine initpois
     use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,imax,jmax,itot,jtot,ktot, &
-                          dxi,dzh,dzf,dy,dyi,dxfi,dzfi,ipoiss,pi,linoutflow,&
+                          dxi,dzh,dzf,dyi,dzfi,ipoiss,pi,&
                           POISS_FFT2D,POISS_FFT3D,POISS_CYC,POISS_FFT2D_2DECOMP,&
-                          BCxm,BCym,BCzp,BCtopm,BCtopm_pressure
-    use modmpi,    only : myidx, myidy, myid
+                          BCxm,BCym,BCzp
     use modfields, only : rhobf, rhobh
 
     implicit none
@@ -416,15 +413,13 @@ contains
   end subroutine initpois
 
   subroutine poisson
-    use modglobal, only : ib,ie,ih,jb,je,kb,ke,kh,itot,jtot,ktot,dy,dzf,dzh,linoutflow,iinletgen,ipoiss,POISS_FFT2D,POISS_FFT3D,POISS_CYC,POISS_FFT2D_2DECOMP,imax,jmax,eps1,BCxm,BCym,BCzp,ibrank,jbrank
-    use modmpi, only : myid,nprocs,barrou
+    use modglobal, only : ib,ie,jb,je,kb,ke,itot,jtot,ktot,ipoiss,POISS_FFT2D,POISS_FFT3D,POISS_CYC,POISS_FFT2D_2DECOMP,imax,jmax,BCxm,BCym,BCzp
+    use modmpi, only : barrou
     implicit none
-    integer ibc1,ibc2,kbc1,kbc2,ksen
     complex, allocatable, dimension(:,:,:) :: Fx, Fy, Fz
     real, allocatable, dimension(:,:,:) :: px, py, pz
     !real, allocatable, dimension(:) :: FFTI, FFTJ, winew, wjnew
     real, allocatable, dimension(:,:,:) :: Fzr, d
-    real, dimension(1:ktot) :: vout
     real    z,ak,bk,bbk
     integer i, j, k
     real fac
@@ -915,10 +910,9 @@ contains
   ! Adapted fillps for RK3 time loop
 
 
-    use modfields, only : up, vp, wp, um, vm, wm,u0,v0,w0,IIw,IIws
-    use modglobal, only : rk3step, ib,ie,jb,je,kb,ke,ih,jh,kh,dxi,dxfi,dyi,dzfi,dt,&
-                          linoutflow,libm,dtmax,ierank,jerank,pi,dy,imax,jmax,ylen,xf,zf,jbrank
-    use modmpi,    only : excjs, myidx, myidy, avexy_ibm, myid
+    use modfields, only : up, vp, wp, um, vm, wm
+    use modglobal, only : rk3step, ib,ie,jb,je,kb,ke,dxi,dyi,dzfi,dt
+    use modmpi,    only : excjs, avexy_ibm
     use modboundary, only: bcpup
 !    use modibm,    only : ibmnorm
 
@@ -926,7 +920,6 @@ contains
     !real,allocatable :: pup(:,:,:), pvp(:,:,:), pwp(:,:,:)
     integer i,j,k
     real rk3coef,rk3coefi
-    real, dimension(kb:ke+kh) :: wpxy
 
     ! allocate(pup(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
     ! allocate(pvp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
@@ -935,7 +928,7 @@ contains
     if (rk3step == 0) then ! dt not defined yet
       rk3coef = 1.
     else
-      rk3coef = dt / (4. - dble(rk3step))
+      rk3coef = dt / (4. - real(rk3step))
     end if
     rk3coefi = 1. / rk3coef
 
@@ -1028,9 +1021,9 @@ contains
     !                                                                 |
     !-----------------------------------------------------------------|
 
-    use modfields, only : u0, v0, w0, up, vp, wp, pres0, IIc, IIcs, uouttot
-    use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,dxi,dxhi,dyi,dzhi,linoutflow,rslabs,ibrank,ierank,jbrank,jerank,dxfi,BCtopm,BCtopm_pressure
-    use modmpi,    only : myid,slabsum,avexy_ibm
+    use modfields, only : up, vp, wp, pres0, IIc, IIcs
+    use modglobal, only : ib,ie,jb,je,kb,ke,kh,dxi,dyi,dzhi,BCtopm,BCtopm_pressure
+    use modmpi,    only : slabsum,avexy_ibm
     use modboundary,only : bcp
     implicit none
     integer i,j,k
@@ -1060,7 +1053,7 @@ contains
 
     if (BCtopm .eq. BCtopm_pressure) then
       ! Get out the slab averaged dp/dz = <rhw>
-      call avexy_ibm(pij(kb:ke+kh),p(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+      call avexy_ibm(pij(kb:ke+kh),p(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
 
       do i=ib,ie
         do j=jb,je
@@ -1108,9 +1101,8 @@ contains
   end subroutine tderive
 
   subroutine solmpj(x)
-    use modmpi,    only : myid,comm3d,mpierr,nprocs, barrou
-    use modglobal, only : imax,jmax,ktot,isen,itot,jtot,pi,dyi,dzf,dzh,dxfi, kb, ke, kh,kmax, ib, ie, jb, je, kb, ke, linoutflow, ierank, jerank, ibrank, jbrank, BCxm, BCym
-    use modfields, only : rhobf, rhobh
+    use modmpi,    only : barrou
+    use modglobal, only : imax,jmax,ktot
 
     implicit none
 
@@ -1118,7 +1110,7 @@ contains
     real, dimension(imax,jmax,ktot) :: d
     real, dimension(imax,jmax,ktot), intent(INOUT) :: x
     !real, allocatable, dimension(:) :: FFTI, FFTJ, winew, wjnew
-    real    z,ak,bk,bbk,fac
+    real    z,ak,bk,bbk
     integer i, j, k
 
     do j=1,zsize(2)

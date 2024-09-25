@@ -276,7 +276,7 @@
 
 subroutine createscals
 
-  use modglobal,  only : nsv,cexpnr,ifinput,lscasrc,nscasrc,scasrcp,lscasrcl,nscasrcl,scasrcl,lscasrcr
+  use modglobal,  only : nsv,cexpnr,ifinput,lscasrc,nscasrc,scasrcp,lscasrcl,nscasrcl,scasrcl
   use modmpi,     only : myid,MY_REAL,comm3d,mpierr
   implicit none
   integer :: n,m
@@ -378,17 +378,15 @@ end subroutine
 
 subroutine scalsource
 
-  use modglobal,  only : pi,nsv,ib,ie,jb,je,kb,ke,ih,jh,kh,ihc,jhc,khc,xf,zf,xh,zh,dx,dy,imax,itot,jmax,jtot,lchem,&
-                         xS,yS,zS,xSb,ySb,zSb,xSe,ySe,zSe,SS,sigS,lscasrc,lscasrcl,lscasrcr,libm,dxfi,dzfi,nscasrc,scasrcp,nscasrcl,scasrcl
-  use modfields,  only : svp,svpp
-  use modmpi,     only : myid,myidx,myidy,mpierr,MY_REAL,comm3d,MPI_SUM
+  use modglobal,  only : pi,nsv,ib,ie,jb,je,kb,ke,zf,dx,dy,imax,jmax,&
+                         xS,yS,zS,xSb,ySb,zSb,xSe,ySe,zSe,SS,sigS,lscasrc,lscasrcl,dzfi,nscasrc,scasrcp,nscasrcl,scasrcl
+  use modfields,  only : svp
+  use modmpi,     only : myidx,myidy
 
   implicit none
   integer :: i,j,k,n,ns
   real :: dxi, dyi
   real :: ra2 = 0.
-  real :: scalsum = 0.
-  real :: scalsumt = 0.
   real :: px = 0., py = 0., pz = 0.0, vx = 0., vy = 0., vz = 0., lsx = 0., lsy = 0., lsz = 0., dot_projection = 0.
 
   dxi = 1./dx

@@ -219,9 +219,8 @@ contains
 
   subroutine intqH !time integration of heat and latent heat from facets
     use modglobal, only:nfcts, dt, rk3step, lEB
-    use initfac, only:faccth, fachfsum, fachf, fachfi, facef, facefi, facefsum
-    use modmpi, only:nprocs, myid, comm3d, mpierr, mpi_sum, my_real
-    real :: dummy
+    use initfac, only:fachfsum, fachf, fachfi, facef, facefi, facefsum
+    use modmpi, only:myid, comm3d, mpierr, mpi_sum, my_real
     integer :: n
 
     if (.not. lEB) return
@@ -249,12 +248,10 @@ contains
 
   subroutine initEB
     !initialise everything necessary to calculate the energy balance
-    use modglobal, only:AM, BM,CM,DM,EM,FM,GM, HM, IDM, inAM, bb,w,dumv,Tdash, bldT, nfcts,nfaclyrs
-    use initfac, only:facd, faccp, faclam, fackappa, netsw, facem, fachf, facef, fachfi, facT, facLWin,facefi,facwsoil,facf,facets,facTdash,facqsat,facf,fachurel
-    use modmpi, only:myid, comm3d, mpierr, MY_REAL, nprocs, cmyid
+    use modglobal, only:AM, BM,CM,DM,EM,FM,GM, HM, IDM, inAM, bb,w,dumv,nfcts,nfaclyrs
+    use modmpi, only:myid
     use modstat_nc,only: open_nc, define_nc,ncinfo,writestat_dims_nc
-    integer :: i,j,k,l,m,n
-    real :: dum
+    integer :: j,m
 
     if (.not. lEB) return
 
@@ -338,7 +335,7 @@ contains
   subroutine calclw
     !calculate the longwave exchange between facets
     use modglobal, only:nfcts, boltz, skyLW, nnz
-    use initfac, only:facem, vf, svf, faca, facT, facLWin, facets, vfsparse, ivfsparse, jvfsparse
+    use initfac, only:facem, vf, svf, facT, facLWin, vfsparse, ivfsparse, jvfsparse
     integer :: n, m, i, j
     real :: ltemp = 0.
 
@@ -380,11 +377,10 @@ contains
     ! bare soil
     ! E = max(0,(1-vegetation%) * rhoa * (qa-qsat(TGR)*hu) * (1/(rs+ra))
 
-    use modglobal, only:nfcts, rlv, rlvi, rhoa, cp, wfc, wwilt, wsoil, rsmin, GRLAI, tEB, rsmax, lconstW
-    use initfac, only:netSW, faccth, fachurel, faclGR, facwsoil, facf, facef, facT, facefi, facqsat, facd, faca, qsat
+    use modglobal, only:nfcts, rlv, rlvi, rhoa, wfc, wwilt, rsmin, GRLAI, tEB, rsmax, lconstW
+    use initfac, only:netSW, fachurel, faclGR, facwsoil, facf, facT, facefi, facqsat, facd, faca, qsat
 
     integer :: n
-    real :: vfraction = 0.8 !fraction of GR covered in vegetation, should be made into a proper model parameter (-> modglobal)
     real :: dum
     do n = 1, nfcts
 
@@ -418,14 +414,13 @@ contains
 
   subroutine EB
     !calculates the energy balance for every facet
-    use modglobal, only: nfcts, boltz, tEB, AM, BM,CM,DM,EM,FM,GM,HM, inAM, bb,w, dumv,Tdash, timee, dtEB, tnextEB, rk3step, rhoa, cp, lEB, ntrun, lwriteEBfiles,nfaclyrs
-    use initfac, only: faclam, faccp, netsw, facem, fachf, facef, fachfi, facT, facLWin, faca,facefi,facf,facets,facTdash,facqsat,facwsoil,facf,fachurel,facd,fackappa
-    use modmpi, only: myid, comm3d, mpierr, MY_REAL, nprocs, cmyid
+    use modglobal, only: nfcts, boltz, tEB, BM,CM,DM,EM,FM,GM,HM, inAM, bb,w, dumv,timee, dtEB, tnextEB, rk3step, rhoa, cp, lEB, lwriteEBfiles,nfaclyrs
+    use initfac, only: faclam, faccp, netsw, facem, fachfi, facT, facLWin, faca,facefi,facf,facets,facTdash,facqsat,facwsoil,facf,fachurel,facd
+    use modmpi, only: myid, comm3d, mpierr, MY_REAL
     use modstat_nc, only : writestat_nc, writestat_1D_nc, writestat_2D_nc
-    real  :: ca = 0., cb = 0., cc = 0., cd = 0., ce = 0., cf = 0.
+    real  :: ca = 0., cb = 0.
     real  :: ab = 0.
-    integer :: l, n, m,i,j
-    character(19) name
+    integer :: n, m,i,j
 
     if (.not. (lEB)) return
     !calculate latent heat flux from vegetation and soil
