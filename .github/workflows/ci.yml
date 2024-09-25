@@ -1,31 +1,30 @@
 name: CI
 
-on: [push, pull_request]
+on: [pull_request]
 
 jobs:
   main:
-    # https://stackoverflow.com/a/59775665/8893833
-    if: "!contains(github.event.commits[0].message, '[skip ci]')"
     name: ${{ matrix.os }} ${{ matrix.build-type }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: ['ubuntu-latest', 'macos-latest']
+        os: ['ubuntu-22.04', 'macos-14']
         build-type: ['Debug', 'Release']
-    
+        include:
+          - os: macos-14
+            FC: gfortran-12  # add the FC variable to macos runs
+    defaults:
+      run:
+        # 'shell' required to activate environment.
+        # See https://github.com/conda-incubator/setup-miniconda#IMPORTANT.
+        shell: bash -el {0}
     steps:
     - name: Check-out project
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         submodules: recursive
-
-    - name: Set up repository
-      # Clone all history leading to the tip of a single branch
-      # See https://stackoverflow.com/a/44036486.
-      run: |
-        git remote set-branches --add origin master
-        git fetch origin master
+        fetch-depth: 0  # get all branches
 
     - name: Install system dependencies
       run: bash .github/scripts/install_deps.sh
@@ -39,24 +38,6 @@ jobs:
         environment-file: environment.yml
 
     - name: Build and test uDALES
-      # 'shell' required to activate environment.
-      # See https://github.com/conda-incubator/setup-miniconda#IMPORTANT.
-      shell: bash -l {0}
       run: |
-        if [ ${{ matrix.os }} = 'macos-latest' ]; then export FC=gfortran-12; fi
-        python3 -u tests/run_tests.py master $GITHUB_SHA ${{ matrix.build-type}}
+        FC=${{ matrix.FC }} python3 -u tests/run_tests.py master $GITHUB_SHA ${{ matrix.build-type}}
 
-    - name: Build docs
-      if: matrix.os == 'ubuntu-latest' && matrix.build-type == 'Release'
-      shell: bash -l {0}
-      run: |
-        mkdocs build --site-dir build/html
-        ford docs/udales-docs-software.md
-
-    - name: Publish docs
-      if: matrix.os == 'ubuntu-latest' && matrix.build-type == 'Release' && github.event_name == 'push' && github.ref == 'refs/heads/master'
-      uses: peaceiris/actions-gh-pages@v3
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: build/html/
-        force_orphan: true
