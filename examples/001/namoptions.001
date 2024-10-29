@@ -2,10 +2,49 @@
 iexpnr       = 001
 runtime      = 11.
 trestart     = 10.
-dtmax        = 1.
+dtmax        = 1
 irandom      = 43
 randu        = 0.01
 ladaptive    = .true.
+nprocx       = 2
+nprocy       = 2
+libm         = .false.
+lrandomize   = .true.
+/
+
+
+&DOMAIN
+itot         = 64
+jtot         = 64
+ktot         = 64
+xlen         = 64
+ylen         = 64
+/
+
+&PHYSICS
+ps           = 101500.
+igrw_damp    = 0
+/
+
+&DYNAMICS
+ipoiss       = 0
+/
+
+
+&BC
+thls         = 288.
+z0           = 0.01
+z0h          = 0.000067
+/
+
+&NAMSUBGRID
+lvreman      = .true.
+/
+
+
+&WALLS
+nfcts = 0
+lbottom = .true.
 /
 
 &OUTPUT
@@ -14,42 +53,9 @@ tfielddump   = 10.
 fieldvars    = 'u0,v0,w0'
 /
 
-&DOMAIN
-imax         = 64
-jtot         = 64
-kmax         = 64
-xsize        = 64
-ysize        = 64
-/
-
-&PHYSICS
-ps           = 101500.00
-igrw_damp    = 0
-/
-
-&DYNAMICS
-ipoiss       = 0
-/
-
-&NAMSUBGRID
-lvreman      = .true.
-/
-
-&BC
-wtsurf       = 0.
-wqsurf       = 0.
-thls         = 288.
-z0           = 0.01
-z0h          = 0.000067
-/
-
-&WALLS
-nfcts        = 0
-/
-
-&INPS
-lflat        = .true.
+&INP
 zsize        = 64
-dpdx         = 0.0001
 u0           = 2.
+dpdx         = 0.0001
 /
+
