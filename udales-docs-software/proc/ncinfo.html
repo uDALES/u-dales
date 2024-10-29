@@ -1,0 +1,520 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="TODO:">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>ncinfo &ndash; uDALES</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <link href="../css/font-awesome.min.css" rel="stylesheet">
+    <link href="../css/local.css" rel="stylesheet">
+      <link  href="../tipuesearch/tipuesearch.css" rel="stylesheet">
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/dalesurban.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>ncinfo
+      <small>Subroutine</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 0.1% of total for procedures.">9 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/modstat_nc.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/modstat_nc.f90.html'>modstat_nc.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/modstat_nc.html'>modstat_nc</a></li>
+            <li class="breadcrumb-item active" aria-current="page">ncinfo</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    $(function () {
+    $('[data-bs-toggle="tooltip"]').tooltip()
+    })
+  </script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+      <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+    <div class="card card-primary">
+      <div class="card-header text-left"><h3 class="card-title">Source Code</h3></div>
+      <div class="list-group">
+        <a class="list-group-item" href="../proc/ncinfo.html#src">ncinfo</a>
+      </div>
+    </div>
+
+
+  </div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    <h2>public  subroutine ncinfo(out, in1, in2, in3, in4)  
+</h2>
+    
+
+
+
+    <h3>Arguments</h3>
+        <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-out"></span>
+              character(len=*),
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(4)
+            </td>
+            <td>::</td>
+            <td><strong>out</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-in1"></span>
+              character(len=*),
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>in1</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-in2"></span>
+              character(len=*),
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>in2</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-in3"></span>
+              character(len=*),
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>in3</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-in4"></span>
+              character(len=*),
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>in4</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+    <br>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Called by</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.50.0 (0)
+ -->
+<!-- Title: proc~~ncinfo~~CalledByGraph Pages: 1 -->
+<svg id="procncinfoCalledByGraph" width="304pt" height="158pt"
+ viewBox="0.00 0.00 304.00 158.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~ncinfo~~CalledByGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 154)">
+<title>proc~~ncinfo~~CalledByGraph</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-154 300,-154 300,4 -4,4"/>
+<!-- proc~ncinfo -->
+<g id="proc~~ncinfo~~CalledByGraph_node1" class="node">
+<title>proc~ncinfo</title>
+<polygon fill="none" stroke="black" points="296,-87 242,-87 242,-63 296,-63 296,-87"/>
+<text text-anchor="middle" x="269" y="-72.6" font-family="Helvetica,sans-Serif" font-size="10.50">ncinfo</text>
+</g>
+<!-- proc~initeb -->
+<g id="proc~~ncinfo~~CalledByGraph_node2" class="node">
+<title>proc~initeb</title>
+<g id="a_proc~~ncinfo~~CalledByGraph_node2"><a xlink:href="../proc/initeb.html" xlink:title="initEB">
+<polygon fill="#d9534f" stroke="#d9534f" points="190.5,-150 136.5,-150 136.5,-126 190.5,-126 190.5,-150"/>
+<text text-anchor="middle" x="163.5" y="-135.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">initEB</text>
+</a>
+</g>
+</g>
+<!-- proc~initeb&#45;&gt;proc~ncinfo -->
+<g id="proc~~ncinfo~~CalledByGraph_edge1" class="edge">
+<title>proc~initeb&#45;&gt;proc~ncinfo</title>
+<path fill="none" stroke="#ff0000" d="M189.79,-125.85C195.21,-123.06 200.85,-120.03 206,-117 218.47,-109.66 231.81,-100.77 242.91,-93.06"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="245.1,-95.8 251.27,-87.18 241.08,-90.07 245.1,-95.8"/>
+</g>
+<!-- proc~initfielddump -->
+<g id="proc~~ncinfo~~CalledByGraph_node3" class="node">
+<title>proc~initfielddump</title>
+<g id="a_proc~~ncinfo~~CalledByGraph_node3"><a xlink:href="../proc/initfielddump.html" xlink:title="initfielddump">
+<polygon fill="#d9534f" stroke="#d9534f" points="205,-108 122,-108 122,-84 205,-84 205,-108"/>
+<text text-anchor="middle" x="163.5" y="-93.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">initfielddump</text>
+</a>
+</g>
+</g>
+<!-- proc~initfielddump&#45;&gt;proc~ncinfo -->
+<g id="proc~~ncinfo~~CalledByGraph_edge2" class="edge">
+<title>proc~initfielddump&#45;&gt;proc~ncinfo</title>
+<path fill="none" stroke="#ff0000" d="M205.11,-87.76C213.98,-85.96 223.32,-84.07 231.99,-82.31"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="232.71,-85.73 241.82,-80.31 231.32,-78.87 232.71,-85.73"/>
+</g>
+<!-- proc~initibm -->
+<g id="proc~~ncinfo~~CalledByGraph_node4" class="node">
+<title>proc~initibm</title>
+<g id="a_proc~~ncinfo~~CalledByGraph_node4"><a xlink:href="../proc/initibm.html" xlink:title="initibm">
+<polygon fill="#d9534f" stroke="#d9534f" points="190.5,-66 136.5,-66 136.5,-42 190.5,-42 190.5,-66"/>
+<text text-anchor="middle" x="163.5" y="-51.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">initibm</text>
+</a>
+</g>
+</g>
+<!-- proc~initibm&#45;&gt;proc~ncinfo -->
+<g id="proc~~ncinfo~~CalledByGraph_edge3" class="edge">
+<title>proc~initibm&#45;&gt;proc~ncinfo</title>
+<path fill="none" stroke="#ff0000" d="M190.62,-59.3C203.12,-61.84 218.29,-64.91 231.88,-67.67"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="231.39,-71.14 241.89,-69.7 232.79,-64.28 231.39,-71.14"/>
+</g>
+<!-- proc~initstatsdump -->
+<g id="proc~~ncinfo~~CalledByGraph_node5" class="node">
+<title>proc~initstatsdump</title>
+<g id="a_proc~~ncinfo~~CalledByGraph_node5"><a xlink:href="../proc/initstatsdump.html" xlink:title="initstatsdump">
+<polygon fill="#d9534f" stroke="#d9534f" points="206,-24 121,-24 121,0 206,0 206,-24"/>
+<text text-anchor="middle" x="163.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">initstatsdump</text>
+</a>
+</g>
+</g>
+<!-- proc~initstatsdump&#45;&gt;proc~ncinfo -->
+<g id="proc~~ncinfo~~CalledByGraph_edge4" class="edge">
+<title>proc~initstatsdump&#45;&gt;proc~ncinfo</title>
+<path fill="none" stroke="#ff0000" d="M189.79,-24.15C195.21,-26.94 200.85,-29.97 206,-33 218.47,-40.34 231.81,-49.23 242.91,-56.94"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="241.08,-59.93 251.27,-62.82 245.1,-54.2 241.08,-59.93"/>
+</g>
+<!-- program~dalesurban -->
+<g id="proc~~ncinfo~~CalledByGraph_node6" class="node">
+<title>program~dalesurban</title>
+<g id="a_proc~~ncinfo~~CalledByGraph_node6"><a xlink:href="../program/dalesurban.html" xlink:title="DALESURBAN">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="85,-87 0,-87 0,-63 85,-63 85,-87"/>
+<text text-anchor="middle" x="42.5" y="-72.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">DALESURBAN</text>
+</a>
+</g>
+</g>
+<!-- program~dalesurban&#45;&gt;proc~initeb -->
+<g id="proc~~ncinfo~~CalledByGraph_edge5" class="edge">
+<title>program~dalesurban&#45;&gt;proc~initeb</title>
+<path fill="none" stroke="#ff0000" d="M65.46,-87.11C80.93,-95.6 102.16,-107.13 121,-117 123.7,-118.42 126.51,-119.87 129.34,-121.32"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="127.8,-124.47 138.3,-125.9 130.99,-118.24 127.8,-124.47"/>
+</g>
+<!-- program~dalesurban&#45;&gt;proc~initfielddump -->
+<g id="proc~~ncinfo~~CalledByGraph_edge6" class="edge">
+<title>program~dalesurban&#45;&gt;proc~initfielddump</title>
+<path fill="none" stroke="#7fff00" d="M85.12,-82.34C93.79,-83.87 103.01,-85.5 111.96,-87.08"/>
+<polygon fill="#7fff00" stroke="#7fff00" points="111.45,-90.55 121.91,-88.84 112.67,-83.65 111.45,-90.55"/>
+</g>
+<!-- program~dalesurban&#45;&gt;proc~initibm -->
+<g id="proc~~ncinfo~~CalledByGraph_edge7" class="edge">
+<title>program~dalesurban&#45;&gt;proc~initibm</title>
+<path fill="none" stroke="#00ffff" d="M85.12,-67.66C98.55,-65.28 113.33,-62.68 126.33,-60.38"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="127.09,-63.8 136.33,-58.62 125.87,-56.91 127.09,-63.8"/>
+</g>
+<!-- program~dalesurban&#45;&gt;proc~initstatsdump -->
+<g id="proc~~ncinfo~~CalledByGraph_edge8" class="edge">
+<title>program~dalesurban&#45;&gt;proc~initstatsdump</title>
+<path fill="none" stroke="#7f00ff" d="M65.46,-62.89C80.93,-54.4 102.16,-42.87 121,-33 123.7,-31.58 126.51,-30.13 129.34,-28.68"/>
+<polygon fill="#7f00ff" stroke="#7f00ff" points="130.99,-31.76 138.3,-24.1 127.8,-25.53 130.99,-31.76"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CalledByGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CalledByGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.50.0 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 27.51" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.86 0.86) rotate(0) translate(4 28)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-28 741.5,-28 741.5,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="70,-24 0,-24 0,0 70,0 70,-24"/>
+<text text-anchor="middle" x="35" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="146,-24 88,-24 88,0 146,0 146,-24"/>
+<text text-anchor="middle" x="117" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="225.5,-24 164.5,-24 164.5,0 225.5,0 225.5,-24"/>
+<text text-anchor="middle" x="195" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="374,-24 244,-24 244,0 374,0 374,-24"/>
+<text text-anchor="middle" x="309" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="537.5,-24 392.5,-24 392.5,0 537.5,0 537.5,-24"/>
+<text text-anchor="middle" x="465" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="614,-24 556,-24 556,0 614,0 614,-24"/>
+<text text-anchor="middle" x="585" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="737.5,-24 632.5,-24 632.5,0 737.5,0 737.5,-24"/>
+<text text-anchor="middle" x="685" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <br>
+
+
+    
+    
+
+    
+    
+
+
+
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="hl codehilite"><pre><span></span><span class="w">  </span><span class="k">subroutine </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">out</span><span class="p">,</span><span class="n">in1</span><span class="p">,</span><span class="n">in2</span><span class="p">,</span><span class="n">in3</span><span class="p">,</span><span class="n">in4</span><span class="p">)</span>
+
+<span class="w">    </span><span class="k">implicit none</span>
+<span class="k">    </span><span class="kt">character</span><span class="p">(</span><span class="o">*</span><span class="p">),</span><span class="w"> </span><span class="k">dimension</span><span class="p">(</span><span class="mi">4</span><span class="p">),</span><span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="n">out</span>
+<span class="w">    </span><span class="kt">character</span><span class="p">(</span><span class="o">*</span><span class="p">),</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="n">in1</span><span class="p">,</span><span class="n">in2</span><span class="p">,</span><span class="n">in3</span><span class="p">,</span><span class="n">in4</span>
+<span class="w">    </span><span class="n">out</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">in1</span>
+<span class="w">    </span><span class="n">out</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">in2</span>
+<span class="w">    </span><span class="n">out</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">in3</span>
+<span class="w">    </span><span class="n">out</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">in4</span>
+<span class="w">  </span><span class="k">end subroutine </span><span class="n">ncinfo</span>
+</pre></div>
+
+    </section>
+    <br>
+    
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2024 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2024-10-29 15:16              </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+
+    <!-- Bootstrap core JavaScript -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>    
+
+    <!-- MathJax JavaScript
+             ================================================== -->
+             <!-- Placed at the end of the document so the pages load faster -->
+        <script type="text/x-mathjax-config">
+          MathJax.Hub.Config({
+          TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } },
+          jax: ['input/TeX','input/MathML','output/HTML-CSS'],
+          extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']
+          });
+        </script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+          <script src="../tipuesearch/tipuesearch_content.js"></script>
+          <script src="../tipuesearch/tipuesearch_set.js"></script>
+          <script src="../tipuesearch/tipuesearch.js"></script>
+
+  </body>
+</html>

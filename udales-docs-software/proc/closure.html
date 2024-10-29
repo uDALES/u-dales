@@ -1,0 +1,1020 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="TODO:">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>closure &ndash; uDALES</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <link href="../css/font-awesome.min.css" rel="stylesheet">
+    <link href="../css/local.css" rel="stylesheet">
+      <link  href="../tipuesearch/tipuesearch.css" rel="stylesheet">
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/dalesurban.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>closure
+      <small>Subroutine</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 1.1% of total for procedures.">147 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/modsubgrid.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/modsubgrid.f90.html'>modsubgrid.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/modsubgrid.html'>modsubgrid</a></li>
+            <li class="breadcrumb-item active" aria-current="page">closure</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    $(function () {
+    $('[data-bs-toggle="tooltip"]').tooltip()
+    })
+  </script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+      <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+    <div class="card card-primary">
+      <div class="card-header text-left"><h3 class="card-title">Source Code</h3></div>
+      <div class="list-group">
+        <a class="list-group-item" href="../proc/closure.html#src">closure</a>
+      </div>
+    </div>
+
+
+  </div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    <h2>public  subroutine closure()  
+</h2>
+        <div class="card mb-4">
+      <h3 class="card-header card-title bg-light">Uses</h3>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+              <ul class="list-inline">
+                  <li class="list-inline-item"><a href='../module/modglobal.html'>modglobal</a></li>
+                  <li class="list-inline-item"><a href='../module/modsurfdata.html'>modsurfdata</a></li>
+                  <li class="list-inline-item"><a href='../module/modmpi.html'>modmpi</a></li>
+                  <li class="list-inline-item"><a href='../module/modinletdata.html'>modinletdata</a></li>
+                  <li class="list-inline-item"><a href='../module/modboundary.html'>modboundary</a></li>
+                  <li class="list-inline-item"><a href='../module/modfields.html'>modfields</a></li>
+              </ul>
+            </li>
+            <li class="list-group-item">
+              <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.50.0 (0)
+ -->
+<!-- Title: proc~~closure~~UsesGraph Pages: 1 -->
+<svg id="procclosureUsesGraph" width="297pt" height="242pt"
+ viewBox="0.00 0.00 297.00 242.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~closure~~UsesGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 238)">
+<title>proc~~closure~~UsesGraph</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-238 293,-238 293,4 -4,4"/>
+<!-- proc~closure -->
+<g id="proc~~closure~~UsesGraph_node1" class="node">
+<title>proc~closure</title>
+<polygon fill="none" stroke="black" points="289,-129 235,-129 235,-105 289,-105 289,-129"/>
+<text text-anchor="middle" x="262" y="-114.6" font-family="Helvetica,sans-Serif" font-size="10.50">closure</text>
+</g>
+<!-- module~modboundary -->
+<g id="proc~~closure~~UsesGraph_node2" class="node">
+<title>module~modboundary</title>
+<g id="a_proc~~closure~~UsesGraph_node2"><a xlink:href="../module/modboundary.html" xlink:title="modboundary">
+<polygon fill="#337ab7" stroke="#337ab7" points="199,-192 111,-192 111,-168 199,-168 199,-192"/>
+<text text-anchor="middle" x="155" y="-177.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modboundary</text>
+</a>
+</g>
+</g>
+<!-- proc~closure&#45;&gt;module~modboundary -->
+<g id="proc~~closure~~UsesGraph_edge1" class="edge">
+<title>proc~closure&#45;&gt;module~modboundary</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M244.57,-129.06C232.31,-137.84 214.98,-149.75 199,-159 196.51,-160.44 193.9,-161.88 191.25,-163.29"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="189.53,-160.24 182.23,-167.92 192.73,-166.47 189.53,-160.24"/>
+</g>
+<!-- module~modfields -->
+<g id="proc~~closure~~UsesGraph_node3" class="node">
+<title>module~modfields</title>
+<g id="a_proc~~closure~~UsesGraph_node3"><a xlink:href="../module/modfields.html" xlink:title="modfields">
+<polygon fill="#337ab7" stroke="#337ab7" points="187.5,-234 122.5,-234 122.5,-210 187.5,-210 187.5,-234"/>
+<text text-anchor="middle" x="155" y="-219.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modfields</text>
+</a>
+</g>
+</g>
+<!-- proc~closure&#45;&gt;module~modfields -->
+<g id="proc~~closure~~UsesGraph_edge2" class="edge">
+<title>proc~closure&#45;&gt;module~modfields</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M254.48,-129.29C244.53,-147.07 224.07,-180.12 199,-201 197.64,-202.13 196.21,-203.22 194.73,-204.27"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="192.49,-201.54 185.84,-209.78 196.18,-207.49 192.49,-201.54"/>
+</g>
+<!-- module~modglobal -->
+<g id="proc~~closure~~UsesGraph_node4" class="node">
+<title>module~modglobal</title>
+<g id="a_proc~~closure~~UsesGraph_node4"><a xlink:href="../module/modglobal.html" xlink:title="modglobal">
+<polygon fill="#337ab7" stroke="#337ab7" points="190,-150 120,-150 120,-126 190,-126 190,-150"/>
+<text text-anchor="middle" x="155" y="-135.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modglobal</text>
+</a>
+</g>
+</g>
+<!-- proc~closure&#45;&gt;module~modglobal -->
+<g id="proc~~closure~~UsesGraph_edge3" class="edge">
+<title>proc~closure&#45;&gt;module~modglobal</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M234.77,-122.25C224.35,-124.33 212.05,-126.79 200.32,-129.14"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="199.33,-125.76 190.21,-131.16 200.7,-132.63 199.33,-125.76"/>
+</g>
+<!-- module~modinletdata -->
+<g id="proc~~closure~~UsesGraph_node5" class="node">
+<title>module~modinletdata</title>
+<g id="a_proc~~closure~~UsesGraph_node5"><a xlink:href="../module/modinletdata.html" xlink:title="modinletdata">
+<polygon fill="#337ab7" stroke="#337ab7" points="197,-108 113,-108 113,-84 197,-84 197,-108"/>
+<text text-anchor="middle" x="155" y="-93.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modinletdata</text>
+</a>
+</g>
+</g>
+<!-- proc~closure&#45;&gt;module~modinletdata -->
+<g id="proc~~closure~~UsesGraph_edge4" class="edge">
+<title>proc~closure&#45;&gt;module~modinletdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M234.77,-111.75C226.39,-110.08 216.8,-108.16 207.26,-106.25"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="207.89,-102.81 197.4,-104.28 206.52,-109.67 207.89,-102.81"/>
+</g>
+<!-- module~modmpi -->
+<g id="proc~~closure~~UsesGraph_node6" class="node">
+<title>module~modmpi</title>
+<g id="a_proc~~closure~~UsesGraph_node6"><a xlink:href="../module/modmpi.html" xlink:title="modmpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="183.5,-66 126.5,-66 126.5,-42 183.5,-42 183.5,-66"/>
+<text text-anchor="middle" x="155" y="-51.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modmpi</text>
+</a>
+</g>
+</g>
+<!-- proc~closure&#45;&gt;module~modmpi -->
+<g id="proc~~closure~~UsesGraph_edge5" class="edge">
+<title>proc~closure&#45;&gt;module~modmpi</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M244.57,-104.94C232.31,-96.16 214.98,-84.25 199,-75 196.51,-73.56 193.9,-72.12 191.25,-70.71"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="192.73,-67.53 182.23,-66.08 189.53,-73.76 192.73,-67.53"/>
+</g>
+<!-- module~modsurfdata -->
+<g id="proc~~closure~~UsesGraph_node7" class="node">
+<title>module~modsurfdata</title>
+<g id="a_proc~~closure~~UsesGraph_node7"><a xlink:href="../module/modsurfdata.html" xlink:title="modsurfdata">
+<polygon fill="#337ab7" stroke="#337ab7" points="195.5,-24 114.5,-24 114.5,0 195.5,0 195.5,-24"/>
+<text text-anchor="middle" x="155" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modsurfdata</text>
+</a>
+</g>
+</g>
+<!-- proc~closure&#45;&gt;module~modsurfdata -->
+<g id="proc~~closure~~UsesGraph_edge6" class="edge">
+<title>proc~closure&#45;&gt;module~modsurfdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M254.48,-104.71C244.53,-86.93 224.07,-53.88 199,-33 197.64,-31.87 196.21,-30.78 194.73,-29.73"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="196.18,-26.51 185.84,-24.22 192.49,-32.46 196.18,-26.51"/>
+</g>
+<!-- mpi -->
+<g id="proc~~closure~~UsesGraph_node9" class="node">
+<title>mpi</title>
+<g id="a_proc~~closure~~UsesGraph_node9"><a xlink:href="http://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node410.htm" xlink:title="mpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="64.5,-129 10.5,-129 10.5,-105 64.5,-105 64.5,-129"/>
+<text text-anchor="middle" x="37.5" y="-114.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi</text>
+</a>
+</g>
+</g>
+<!-- module~modboundary&#45;&gt;mpi -->
+<g id="proc~~closure~~UsesGraph_edge7" class="edge">
+<title>module~modboundary&#45;&gt;mpi</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M128.38,-167.86C122.63,-165.03 116.57,-161.97 111,-159 96.4,-151.22 80.46,-142.06 67.25,-134.28"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="68.98,-131.24 58.6,-129.16 65.42,-137.26 68.98,-131.24"/>
+</g>
+<!-- decomp_2d -->
+<g id="proc~~closure~~UsesGraph_node8" class="node">
+<title>decomp_2d</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="75,-234 0,-234 0,-210 75,-210 75,-234"/>
+<text text-anchor="middle" x="37.5" y="-219.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">decomp_2d</text>
+</g>
+<!-- module~modfields&#45;&gt;decomp_2d -->
+<g id="proc~~closure~~UsesGraph_edge8" class="edge">
+<title>module~modfields&#45;&gt;decomp_2d</title>
+<path fill="none" stroke="#ffff00" stroke-dasharray="5,2" d="M122.44,-222C111.06,-222 97.97,-222 85.56,-222"/>
+<polygon fill="#ffff00" stroke="#ffff00" points="85.34,-218.5 75.34,-222 85.34,-225.5 85.34,-218.5"/>
+</g>
+<!-- module~modmpi&#45;&gt;mpi -->
+<g id="proc~~closure~~UsesGraph_edge9" class="edge">
+<title>module~modmpi&#45;&gt;mpi</title>
+<path fill="none" stroke="#0000ff" stroke-dasharray="5,2" d="M128.38,-66.14C122.63,-68.97 116.57,-72.03 111,-75 96.4,-82.78 80.46,-91.94 67.25,-99.72"/>
+<polygon fill="#0000ff" stroke="#0000ff" points="65.42,-96.74 58.6,-104.84 68.98,-102.76 65.42,-96.74"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#UsesGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="UsesGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.50.0 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="518pt" height="32pt"
+ viewBox="0.00 0.00 517.50 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-28 513.5,-28 513.5,4 -4,4"/>
+<!-- Module -->
+<g id="node1" class="node">
+<title>Module</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-24 0,-24 0,0 54,0 54,-24"/>
+<text text-anchor="middle" x="27" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Module</text>
+</g>
+<!-- Submodule -->
+<g id="node2" class="node">
+<title>Submodule</title>
+<polygon fill="#5bc0de" stroke="#5bc0de" points="145.5,-24 72.5,-24 72.5,0 145.5,0 145.5,-24"/>
+<text text-anchor="middle" x="109" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Submodule</text>
+</g>
+<!-- Subroutine -->
+<g id="node3" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="234,-24 164,-24 164,0 234,0 234,-24"/>
+<text text-anchor="middle" x="199" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node4" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="310,-24 252,-24 252,0 310,0 310,-24"/>
+<text text-anchor="middle" x="281" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="386,-24 328,-24 328,0 386,0 386,-24"/>
+<text text-anchor="middle" x="357" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="509.5,-24 404.5,-24 404.5,0 509.5,0 509.5,-24"/>
+<text text-anchor="middle" x="457" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a submodule to the (sub)module which it is
+descended from. Dashed arrows point from a module or program unit to 
+modules which it uses.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+            </li>
+        </ul>
+      </div>
+    </div>
+
+
+
+
+    <h3>Arguments</h3>
+    <em>None</em>
+    <br>
+    <br>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Calls</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.50.0 (0)
+ -->
+<!-- Title: proc~~closure~~CallsGraph Pages: 1 -->
+<svg id="procclosureCallsGraph" width="301pt" height="32pt"
+ viewBox="0.00 0.00 301.00 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~closure~~CallsGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 28)">
+<title>proc~~closure~~CallsGraph</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-28 297,-28 297,4 -4,4"/>
+<!-- proc~closure -->
+<g id="proc~~closure~~CallsGraph_node1" class="node">
+<title>proc~closure</title>
+<polygon fill="none" stroke="black" points="54,-24 0,-24 0,0 54,0 54,-24"/>
+<text text-anchor="middle" x="27" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50">closure</text>
+</g>
+<!-- proc~closurebc -->
+<g id="proc~~closure~~CallsGraph_node2" class="node">
+<title>proc~closurebc</title>
+<g id="a_proc~~closure~~CallsGraph_node2"><a xlink:href="../proc/closurebc.html" xlink:title="closurebc">
+<polygon fill="#d9534f" stroke="#d9534f" points="154,-24 90,-24 90,0 154,0 154,-24"/>
+<text text-anchor="middle" x="122" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">closurebc</text>
+</a>
+</g>
+</g>
+<!-- proc~closure&#45;&gt;proc~closurebc -->
+<g id="proc~~closure~~CallsGraph_edge1" class="edge">
+<title>proc~closure&#45;&gt;proc~closurebc</title>
+<path fill="none" stroke="#ff0000" d="M54.4,-12C62.27,-12 71.08,-12 79.66,-12"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="79.92,-15.5 89.92,-12 79.92,-8.5 79.92,-15.5"/>
+</g>
+<!-- exchange_halo_z -->
+<g id="proc~~closure~~CallsGraph_node3" class="node">
+<title>exchange_halo_z</title>
+<polygon fill="#777777" stroke="#777777" points="293,-24 190,-24 190,0 293,0 293,-24"/>
+<text text-anchor="middle" x="241.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">exchange_halo_z</text>
+</g>
+<!-- proc~closurebc&#45;&gt;exchange_halo_z -->
+<g id="proc~~closure~~CallsGraph_edge2" class="edge">
+<title>proc~closurebc&#45;&gt;exchange_halo_z</title>
+<path fill="none" stroke="#ff0000" d="M154.18,-12C162,-12 170.66,-12 179.39,-12"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="179.62,-15.5 189.62,-12 179.62,-8.5 179.62,-15.5"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CallsGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CallsGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.50.0 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 27.51" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.86 0.86) rotate(0) translate(4 28)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-28 741.5,-28 741.5,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="70,-24 0,-24 0,0 70,0 70,-24"/>
+<text text-anchor="middle" x="35" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="146,-24 88,-24 88,0 146,0 146,-24"/>
+<text text-anchor="middle" x="117" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="225.5,-24 164.5,-24 164.5,0 225.5,0 225.5,-24"/>
+<text text-anchor="middle" x="195" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="374,-24 244,-24 244,0 374,0 374,-24"/>
+<text text-anchor="middle" x="309" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="537.5,-24 392.5,-24 392.5,0 537.5,0 537.5,-24"/>
+<text text-anchor="middle" x="465" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="614,-24 556,-24 556,0 614,0 614,-24"/>
+<text text-anchor="middle" x="585" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="737.5,-24 632.5,-24 632.5,0 737.5,0 737.5,-24"/>
+<text text-anchor="middle" x="685" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Called by</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.50.0 (0)
+ -->
+<!-- Title: proc~~closure~~CalledByGraph Pages: 1 -->
+<svg id="procclosureCalledByGraph" width="273pt" height="32pt"
+ viewBox="0.00 0.00 273.00 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~closure~~CalledByGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 28)">
+<title>proc~~closure~~CalledByGraph</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-28 269,-28 269,4 -4,4"/>
+<!-- proc~closure -->
+<g id="proc~~closure~~CalledByGraph_node1" class="node">
+<title>proc~closure</title>
+<polygon fill="none" stroke="black" points="265,-24 211,-24 211,0 265,0 265,-24"/>
+<text text-anchor="middle" x="238" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50">closure</text>
+</g>
+<!-- proc~subgrid -->
+<g id="proc~~closure~~CalledByGraph_node2" class="node">
+<title>proc~subgrid</title>
+<g id="a_proc~~closure~~CalledByGraph_node2"><a xlink:href="../proc/subgrid.html" xlink:title="subgrid">
+<polygon fill="#d9534f" stroke="#d9534f" points="175,-24 121,-24 121,0 175,0 175,-24"/>
+<text text-anchor="middle" x="148" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">subgrid</text>
+</a>
+</g>
+</g>
+<!-- proc~subgrid&#45;&gt;proc~closure -->
+<g id="proc~~closure~~CalledByGraph_edge1" class="edge">
+<title>proc~subgrid&#45;&gt;proc~closure</title>
+<path fill="none" stroke="#ff0000" d="M175.4,-12C183.39,-12 192.31,-12 200.82,-12"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="200.92,-15.5 210.92,-12 200.92,-8.5 200.92,-15.5"/>
+</g>
+<!-- program~dalesurban -->
+<g id="proc~~closure~~CalledByGraph_node3" class="node">
+<title>program~dalesurban</title>
+<g id="a_proc~~closure~~CalledByGraph_node3"><a xlink:href="../program/dalesurban.html" xlink:title="DALESURBAN">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="85,-24 0,-24 0,0 85,0 85,-24"/>
+<text text-anchor="middle" x="42.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">DALESURBAN</text>
+</a>
+</g>
+</g>
+<!-- program~dalesurban&#45;&gt;proc~subgrid -->
+<g id="proc~~closure~~CalledByGraph_edge2" class="edge">
+<title>program~dalesurban&#45;&gt;proc~subgrid</title>
+<path fill="none" stroke="#ff0000" d="M85,-12C93.54,-12 102.47,-12 110.81,-12"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="110.97,-15.5 120.97,-12 110.97,-8.5 110.97,-15.5"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CalledByGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CalledByGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.50.0 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 27.51" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.86 0.86) rotate(0) translate(4 28)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-28 741.5,-28 741.5,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="70,-24 0,-24 0,0 70,0 70,-24"/>
+<text text-anchor="middle" x="35" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="146,-24 88,-24 88,0 146,0 146,-24"/>
+<text text-anchor="middle" x="117" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="225.5,-24 164.5,-24 164.5,0 225.5,0 225.5,-24"/>
+<text text-anchor="middle" x="195" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="374,-24 244,-24 244,0 374,0 374,-24"/>
+<text text-anchor="middle" x="309" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="537.5,-24 392.5,-24 392.5,0 537.5,0 537.5,-24"/>
+<text text-anchor="middle" x="465" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="614,-24 556,-24 556,0 614,0 614,-24"/>
+<text text-anchor="middle" x="585" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="737.5,-24 632.5,-24 632.5,0 737.5,0 737.5,-24"/>
+<text text-anchor="middle" x="685" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <br>
+
+
+    
+    
+
+    
+    
+
+
+
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="hl codehilite"><pre><span></span><span class="w">  </span><span class="k">subroutine </span><span class="n">closure</span>
+
+<span class="w">    </span><span class="c">!-----------------------------------------------------------------|</span>
+<span class="w">    </span><span class="c">!                                                                 |</span>
+<span class="w">    </span><span class="c">!*** *closure*  calculates K-coefficients                         |</span>
+<span class="w">    </span><span class="c">!                                                                 |</span>
+<span class="w">    </span><span class="c">!      Hans Cuijpers   I.M.A.U.   06/01/1995                      |</span>
+<span class="w">    </span><span class="c">!                                                                 |</span>
+<span class="w">    </span><span class="c">!     purpose.                                                    |</span>
+<span class="w">    </span><span class="c">!     --------                                                    |</span>
+<span class="w">    </span><span class="c">!                                                                 |</span>
+<span class="w">    </span><span class="c">!     All the K-closure factors are calculated.                   |</span>
+<span class="w">    </span><span class="c">!                                                                 |</span>
+<span class="w">    </span><span class="c">!     ekm(i,j,k) = k sub m : for velocity-closure                 |</span>
+<span class="w">    </span><span class="c">!     ekh(i,j,k) = k sub h : for temperture-closure               |</span>
+<span class="w">    </span><span class="c">!     ekh(i,j,k) = k sub h = k sub c : for concentration-closure  |</span>
+<span class="w">    </span><span class="c">!                                                                 |</span>
+<span class="w">    </span><span class="c">!     We will use the next model for these factors:               |</span>
+<span class="w">    </span><span class="c">!                                                                 |</span>
+<span class="w">    </span><span class="c">!     k sub m = 0.12 * l * sqrt(E)                                |</span>
+<span class="w">    </span><span class="c">!                                                                 |</span>
+<span class="w">    </span><span class="c">!     k sub h = k sub c = ( 1 + (2*l)/D ) * k sub m               |</span>
+<span class="w">    </span><span class="c">!                                                                 |</span>
+<span class="w">    </span><span class="c">!           where : l = mixing length  ( in model = z2 )          |</span>
+<span class="w">    </span><span class="c">!                   E = subgrid energy                            |</span>
+<span class="w">    </span><span class="c">!                   D = grid-size distance                        |</span>
+<span class="w">    </span><span class="c">!                                                                 |</span>
+<span class="w">    </span><span class="c">!**   interface.                                                  |</span>
+<span class="w">    </span><span class="c">!     ----------                                                  |</span>
+<span class="w">    </span><span class="c">!                                                                 |</span>
+<span class="w">    </span><span class="c">!             *closure* is called from *program*.                 |</span>
+<span class="w">    </span><span class="c">!                                                                 |</span>
+<span class="w">    </span><span class="c">!-----------------------------------------------------------------|</span>
+
+<span class="w">    </span><span class="k">use </span><span class="n">modglobal</span><span class="p">,</span><span class="w">   </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">ib</span><span class="p">,</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="p">,</span><span class="n">kh</span><span class="p">,</span><span class="n">ih</span><span class="p">,</span><span class="n">jh</span><span class="p">,</span><span class="n">jmax</span><span class="p">,</span><span class="n">delta</span><span class="p">,</span><span class="n">ekmin</span><span class="p">,</span><span class="n">grav</span><span class="p">,</span><span class="w"> </span><span class="n">zf</span><span class="p">,</span><span class="w"> </span><span class="n">fkar</span><span class="p">,</span><span class="n">jgb</span><span class="p">,</span><span class="n">jge</span><span class="p">,&amp;</span>
+<span class="w">         </span><span class="n">dx</span><span class="p">,</span><span class="n">dxi</span><span class="p">,</span><span class="n">dxiq</span><span class="p">,</span><span class="n">dx2</span><span class="p">,</span><span class="n">dy2</span><span class="p">,</span><span class="n">dyi</span><span class="p">,</span><span class="n">dyiq</span><span class="p">,</span><span class="n">dzf</span><span class="p">,</span><span class="n">dzf2</span><span class="p">,</span><span class="n">dzfi</span><span class="p">,</span><span class="n">dzhi</span><span class="p">,</span><span class="n">rk3step</span><span class="p">,</span><span class="n">rslabs</span><span class="p">,</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">         </span><span class="n">numol</span><span class="p">,</span><span class="n">numoli</span><span class="p">,</span><span class="n">prandtlmoli</span><span class="p">,</span><span class="n">lles</span><span class="p">,</span><span class="w"> </span><span class="n">rk3step</span><span class="p">,</span><span class="n">dzfiq</span><span class="p">,</span><span class="n">lbuoyancy</span><span class="p">,</span><span class="n">dzh</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modfields</span><span class="p">,</span><span class="w">   </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">dthvdz</span><span class="p">,</span><span class="n">e120</span><span class="p">,</span><span class="n">u0</span><span class="p">,</span><span class="n">v0</span><span class="p">,</span><span class="n">w0</span><span class="p">,</span><span class="n">thl0</span><span class="p">,</span><span class="n">mindist</span><span class="p">,</span><span class="n">wall</span><span class="p">,</span><span class="n">shear</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modsurfdata</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">dudz</span><span class="p">,</span><span class="n">dvdz</span><span class="p">,</span><span class="n">thvs</span><span class="p">,</span><span class="n">ustar</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modmpi</span><span class="p">,</span><span class="w">    </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">excjs</span><span class="p">,</span><span class="w"> </span><span class="n">myid</span><span class="p">,</span><span class="w"> </span><span class="n">nprocs</span><span class="p">,</span><span class="w"> </span><span class="n">comm3d</span><span class="p">,</span><span class="w"> </span><span class="n">mpierr</span><span class="p">,</span><span class="w"> </span><span class="n">my_real</span><span class="p">,</span><span class="n">mpi_sum</span><span class="p">,</span><span class="n">slabsumi</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modboundary</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">closurebc</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modinletdata</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">utaui</span>
+<span class="w">    </span><span class="k">implicit none</span>
+
+<span class="k">    </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">dimension</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">shearbot</span>
+<span class="w">    </span><span class="kt">real</span><span class="w">    </span><span class="kd">::</span><span class="w"> </span><span class="n">strain2</span><span class="p">,</span><span class="n">mlen</span><span class="p">,</span><span class="n">uhor</span><span class="p">,</span><span class="n">distplus</span><span class="p">,</span><span class="n">utaubot</span><span class="p">,</span><span class="n">a11</span><span class="p">,</span><span class="n">a12</span><span class="p">,</span><span class="n">a13</span><span class="p">,</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">         </span><span class="n">a21</span><span class="p">,</span><span class="n">a22</span><span class="p">,</span><span class="n">a23</span><span class="p">,</span><span class="n">a31</span><span class="p">,</span><span class="n">a32</span><span class="p">,</span><span class="n">a33</span><span class="p">,</span><span class="n">aa</span><span class="p">,</span><span class="n">b11</span><span class="p">,</span><span class="n">b12</span><span class="p">,</span><span class="n">b13</span><span class="p">,</span><span class="n">b21</span><span class="p">,</span><span class="n">b22</span><span class="p">,</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">         </span><span class="n">b23</span><span class="p">,</span><span class="n">b33</span><span class="p">,</span><span class="n">bb</span><span class="p">,</span><span class="n">const</span><span class="p">,</span><span class="n">const2</span>
+<span class="w">    </span><span class="kt">integer</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">,</span><span class="n">kp</span><span class="p">,</span><span class="n">km</span><span class="p">,</span><span class="n">jp</span><span class="p">,</span><span class="n">jm</span><span class="p">,</span><span class="n">im</span><span class="p">,</span><span class="n">ip</span><span class="p">,</span><span class="n">iw</span><span class="p">,</span><span class="n">jw</span><span class="p">,</span><span class="n">kw</span><span class="p">,</span><span class="n">c1</span><span class="p">,</span><span class="n">c2</span>
+
+<span class="w">    </span><span class="c">!  if (lles  .and. rk3step == 1) then        ! compute ekm and ekh only once in complete RK-cycle</span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="n">lsmagorinsky</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">       do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span>
+<span class="w">          </span><span class="n">kp</span><span class="o">=</span><span class="n">k</span><span class="o">+</span><span class="mi">1</span>
+<span class="w">          </span><span class="n">km</span><span class="o">=</span><span class="n">k</span><span class="o">-</span><span class="mi">1</span>
+<span class="w">          </span><span class="k">do </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ib</span><span class="p">,</span><span class="n">ie</span>
+<span class="w">             </span><span class="n">ip</span><span class="o">=</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span>
+<span class="w">             </span><span class="n">im</span><span class="o">=</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span>
+<span class="w">             </span><span class="n">mlen</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">csz</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">delta</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">k</span><span class="p">)</span>
+<span class="w">             </span><span class="k">do </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jb</span><span class="p">,</span><span class="n">je</span>
+<span class="w">                </span><span class="n">jp</span><span class="o">=</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span>
+<span class="w">                </span><span class="n">jm</span><span class="o">=</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span>
+
+<span class="w">                </span><span class="c">! iw = wall(i,j,k,1)   ! indices of closest wall</span>
+<span class="w">                </span><span class="c">! jw = wall(i,j,k,2)-myid*jmax   ! indices of closest wall in local j-index</span>
+<span class="w">                </span><span class="c">! kw = wall(i,j,k,3)</span>
+<span class="w">                </span><span class="c">! c1 = wall(i,j,k,4)   ! shear stress component</span>
+<span class="w">                </span><span class="c">! c2 = wall(i,j,k,5)   ! shear stress component</span>
+<span class="w">                </span><span class="c">! if ((jw &gt;= jb-1) .and. (jw &lt;= je+1)) then      ! check if jw is within the halo of this proc</span>
+<span class="w">                </span><span class="c">!    !write(*,&#39;(A,E9.2,A,E9.2,A,E9.2,A,E9.2)&#39;) &#39;component1:&#39;, c1, &#39;component2:&#39;, c2, &#39;shear c1:&#39;, shear(iw,jw,kw,c1), &#39;shear c2:&#39;, shear(iw,jw,kw,c2)</span>
+<span class="w">                </span><span class="c">!    distplus = mindist(i,j,k)*sqrt(abs(shear(iw,jw,kw,c1))+abs(shear(iw,jw,kw,c2)))*numoli</span>
+<span class="w">                </span><span class="c">!    damp(i,j,k) = sqrt(1. - exp((-distplus*0.04)**3.))            ! Wall-damping according to Piomelli</span>
+<span class="w">                </span><span class="c">!    !    write(*,&#39;(A,2(1pE9.2))&#39;) &#39;damp, distplus&#39;, damp(i,j,k), distplus</span>
+<span class="w">                </span><span class="c">! else</span>
+<span class="w">                   </span><span class="n">damp</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.</span>
+<span class="w">                </span><span class="c">! end if</span>
+
+
+<span class="w">                   </span><span class="n">strain2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">((</span><span class="n">u0</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">-</span><span class="n">u0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">))</span><span class="w">    </span><span class="o">*</span><span class="n">dxi</span><span class="w">      </span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                           </span><span class="o">+</span><span class="w"> </span><span class="p">((</span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">jp</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">-</span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">))</span><span class="w">    </span><span class="o">*</span><span class="n">dyi</span><span class="w">      </span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                           </span><span class="o">+</span><span class="w"> </span><span class="p">((</span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">kp</span><span class="p">)</span><span class="o">-</span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">))</span><span class="w">    </span><span class="o">*</span><span class="n">dzfi</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w">  </span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>
+
+<span class="w">                   </span><span class="n">strain2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">strain2</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mf">0.125</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                           </span><span class="o">+</span><span class="w"> </span><span class="p">((</span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">kp</span><span class="p">)</span><span class="o">-</span><span class="n">w0</span><span class="p">(</span><span class="n">im</span><span class="p">,</span><span class="n">j</span><span class="w"> </span><span class="p">,</span><span class="n">kp</span><span class="p">))</span><span class="o">*</span><span class="n">dxi</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">u0</span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">kp</span><span class="p">)</span><span class="o">-</span><span class="n">u0</span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="w"> </span><span class="p">))</span><span class="o">*</span><span class="n">dzhi</span><span class="p">(</span><span class="n">kp</span><span class="p">))</span><span class="o">**</span><span class="mi">2</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                           </span><span class="o">+</span><span class="w"> </span><span class="p">((</span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="w"> </span><span class="p">)</span><span class="o">-</span><span class="n">w0</span><span class="p">(</span><span class="n">im</span><span class="p">,</span><span class="n">j</span><span class="w"> </span><span class="p">,</span><span class="n">k</span><span class="w"> </span><span class="p">))</span><span class="o">*</span><span class="n">dxi</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">u0</span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="w"> </span><span class="p">)</span><span class="o">-</span><span class="n">u0</span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">km</span><span class="p">))</span><span class="o">*</span><span class="n">dzhi</span><span class="p">(</span><span class="n">k</span><span class="w"> </span><span class="p">))</span><span class="o">**</span><span class="mi">2</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                           </span><span class="o">+</span><span class="w"> </span><span class="p">((</span><span class="n">w0</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="w"> </span><span class="p">)</span><span class="o">-</span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="p">,</span><span class="n">j</span><span class="w"> </span><span class="p">,</span><span class="n">k</span><span class="w"> </span><span class="p">))</span><span class="o">*</span><span class="n">dxi</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">u0</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="w"> </span><span class="p">)</span><span class="o">-</span><span class="n">u0</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">km</span><span class="p">))</span><span class="o">*</span><span class="n">dzhi</span><span class="p">(</span><span class="n">k</span><span class="w"> </span><span class="p">))</span><span class="o">**</span><span class="mi">2</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                           </span><span class="o">+</span><span class="w"> </span><span class="p">((</span><span class="n">w0</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">kp</span><span class="p">)</span><span class="o">-</span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="p">,</span><span class="n">j</span><span class="w"> </span><span class="p">,</span><span class="n">kp</span><span class="p">))</span><span class="o">*</span><span class="n">dxi</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">u0</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">kp</span><span class="p">)</span><span class="o">-</span><span class="n">u0</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="w"> </span><span class="p">))</span><span class="o">*</span><span class="n">dzhi</span><span class="p">(</span><span class="n">kp</span><span class="p">))</span><span class="o">**</span><span class="mi">2</span><span class="w"> </span><span class="p">)</span>
+
+<span class="w">                   </span><span class="n">strain2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">strain2</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mf">0.125</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                           </span><span class="o">+</span><span class="w"> </span><span class="p">((</span><span class="n">u0</span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="p">,</span><span class="n">jp</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">-</span><span class="n">u0</span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="p">,</span><span class="n">j</span><span class="w"> </span><span class="p">,</span><span class="n">k</span><span class="p">))</span><span class="o">*</span><span class="n">dyi</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="p">,</span><span class="n">jp</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">-</span><span class="n">v0</span><span class="p">(</span><span class="n">im</span><span class="p">,</span><span class="n">jp</span><span class="p">,</span><span class="n">k</span><span class="p">))</span><span class="o">*</span><span class="n">dxi</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                           </span><span class="o">+</span><span class="w"> </span><span class="p">((</span><span class="n">u0</span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="p">,</span><span class="n">j</span><span class="w"> </span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">-</span><span class="n">u0</span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="p">,</span><span class="n">jm</span><span class="p">,</span><span class="n">k</span><span class="p">))</span><span class="o">*</span><span class="n">dyi</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="p">,</span><span class="n">j</span><span class="w"> </span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">-</span><span class="n">v0</span><span class="p">(</span><span class="n">im</span><span class="p">,</span><span class="n">j</span><span class="w"> </span><span class="p">,</span><span class="n">k</span><span class="p">))</span><span class="o">*</span><span class="n">dxi</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                           </span><span class="o">+</span><span class="w"> </span><span class="p">((</span><span class="n">u0</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="n">j</span><span class="w"> </span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">-</span><span class="n">u0</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="n">jm</span><span class="p">,</span><span class="n">k</span><span class="p">))</span><span class="o">*</span><span class="n">dyi</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">v0</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="n">j</span><span class="w"> </span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">-</span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="p">,</span><span class="n">j</span><span class="w"> </span><span class="p">,</span><span class="n">k</span><span class="p">))</span><span class="o">*</span><span class="n">dxi</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                           </span><span class="o">+</span><span class="w"> </span><span class="p">((</span><span class="n">u0</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="n">jp</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">-</span><span class="n">u0</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="n">j</span><span class="w"> </span><span class="p">,</span><span class="n">k</span><span class="p">))</span><span class="o">*</span><span class="n">dyi</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">v0</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="n">jp</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">-</span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="p">,</span><span class="n">jp</span><span class="p">,</span><span class="n">k</span><span class="p">))</span><span class="o">*</span><span class="n">dxi</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="w"> </span><span class="p">)</span>
+
+<span class="w">                   </span><span class="n">strain2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">strain2</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mf">0.125</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                           </span><span class="o">+</span><span class="w"> </span><span class="p">((</span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="w"> </span><span class="p">,</span><span class="n">kp</span><span class="p">)</span><span class="o">-</span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="w"> </span><span class="p">,</span><span class="n">k</span><span class="w"> </span><span class="p">))</span><span class="o">*</span><span class="n">dzhi</span><span class="p">(</span><span class="n">kp</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="w"> </span><span class="p">,</span><span class="n">kp</span><span class="p">)</span><span class="o">-</span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">jm</span><span class="p">,</span><span class="n">kp</span><span class="p">))</span><span class="o">*</span><span class="n">dyi</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                           </span><span class="o">+</span><span class="w"> </span><span class="p">((</span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="w"> </span><span class="p">,</span><span class="n">k</span><span class="w"> </span><span class="p">)</span><span class="o">-</span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="w"> </span><span class="p">,</span><span class="n">km</span><span class="p">))</span><span class="o">*</span><span class="n">dzhi</span><span class="p">(</span><span class="n">k</span><span class="w"> </span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="w"> </span><span class="p">,</span><span class="n">k</span><span class="w"> </span><span class="p">)</span><span class="o">-</span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">jm</span><span class="p">,</span><span class="n">k</span><span class="w"> </span><span class="p">))</span><span class="o">*</span><span class="n">dyi</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                           </span><span class="o">+</span><span class="w"> </span><span class="p">((</span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">jp</span><span class="p">,</span><span class="n">k</span><span class="w"> </span><span class="p">)</span><span class="o">-</span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">jp</span><span class="p">,</span><span class="n">km</span><span class="p">))</span><span class="o">*</span><span class="n">dzhi</span><span class="p">(</span><span class="n">k</span><span class="w"> </span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">jp</span><span class="p">,</span><span class="n">k</span><span class="w"> </span><span class="p">)</span><span class="o">-</span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="w"> </span><span class="p">,</span><span class="n">k</span><span class="w"> </span><span class="p">))</span><span class="o">*</span><span class="n">dyi</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                           </span><span class="o">+</span><span class="w"> </span><span class="p">((</span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">jp</span><span class="p">,</span><span class="n">kp</span><span class="p">)</span><span class="o">-</span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">jp</span><span class="p">,</span><span class="n">k</span><span class="w"> </span><span class="p">))</span><span class="o">*</span><span class="n">dzhi</span><span class="p">(</span><span class="n">kp</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">jp</span><span class="p">,</span><span class="n">kp</span><span class="p">)</span><span class="o">-</span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="w"> </span><span class="p">,</span><span class="n">kp</span><span class="p">))</span><span class="o">*</span><span class="n">dyi</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="w"> </span><span class="p">)</span>
+
+<span class="w">                </span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">mlen</span><span class="o">*</span><span class="n">damp</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="o">**</span><span class="w"> </span><span class="mf">2.</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="nb">sqrt</span><span class="p">(</span><span class="mf">2.</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">strain2</span><span class="p">)</span>
+<span class="w">                </span><span class="n">ekh</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">prandtli</span>
+<span class="w">             </span><span class="k">end do</span>
+<span class="k">          end do</span>
+<span class="k">       end do</span>
+<span class="k">       </span><span class="n">damp</span><span class="p">(:,:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">max</span><span class="p">(</span><span class="n">damp</span><span class="p">(:,:,:),</span><span class="n">dampmin</span><span class="p">)</span>
+<span class="w">       </span><span class="n">ekm</span><span class="p">(:,:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ekm</span><span class="p">(:,:,:)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">numol</span><span class="w">                             </span><span class="c">! add molecular viscosity</span>
+<span class="w">       </span><span class="n">ekh</span><span class="p">(:,:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ekh</span><span class="p">(:,:,:)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">numol</span><span class="o">*</span><span class="n">prandtlmoli</span><span class="w">                 </span><span class="c">! add molecular diffusivity</span>
+
+<span class="w">       </span><span class="c">! ekm(:,:,:) = max(ekm(:,:,:),ekmin)</span>
+<span class="w">       </span><span class="c">! ekh(:,:,:) = max(ekh(:,:,:),ekmin)</span>
+<span class="w">     </span><span class="k">elseif</span><span class="p">(</span><span class="n">lvreman</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+
+<span class="k">       if</span><span class="w"> </span><span class="p">((</span><span class="n">lbuoyancy</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="p">(</span><span class="n">lbuoycorr</span><span class="p">))</span><span class="w"> </span><span class="k">then</span>
+<span class="k">         </span><span class="n">const</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">prandtli</span><span class="o">*</span><span class="n">grav</span><span class="o">/</span><span class="p">(</span><span class="n">thvs</span><span class="o">*</span><span class="nb">sqrt</span><span class="p">(</span><span class="mf">2.</span><span class="o">*</span><span class="mf">3.</span><span class="p">))</span>
+<span class="w">         </span><span class="k">do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span>
+<span class="w">           </span><span class="n">kp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">k</span><span class="o">+</span><span class="mi">1</span>
+<span class="w">           </span><span class="n">km</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">k</span><span class="o">-</span><span class="mi">1</span>
+<span class="w">           </span><span class="k">do </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jb</span><span class="p">,</span><span class="n">je</span>
+<span class="w">             </span><span class="n">jp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">j</span><span class="o">+</span><span class="mi">1</span>
+<span class="w">             </span><span class="n">jm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">j</span><span class="o">-</span><span class="mi">1</span>
+<span class="w">             </span><span class="k">do </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ib</span><span class="p">,</span><span class="n">ie</span><span class="w">        </span><span class="c">! aij = du_j / dx_i</span>
+<span class="w">               </span><span class="n">ip</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i</span><span class="o">+</span><span class="mi">1</span>
+<span class="w">               </span><span class="n">im</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i</span><span class="o">-</span><span class="mi">1</span>
+
+<span class="w">               </span><span class="n">a11</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">u0</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">u0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">dxi</span>
+
+<span class="w">               </span><span class="n">a12</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">v0</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="n">jp</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">v0</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">v0</span><span class="p">(</span><span class="n">im</span><span class="p">,</span><span class="n">jp</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">v0</span><span class="p">(</span><span class="n">im</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="p">)</span><span class="o">*</span><span class="n">dxiq</span>
+
+<span class="w">               </span><span class="n">a13</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">w0</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">kp</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">w0</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">w0</span><span class="p">(</span><span class="n">im</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">kp</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">w0</span><span class="p">(</span><span class="n">im</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="p">)</span><span class="o">*</span><span class="n">dxiq</span>
+
+<span class="w">               </span><span class="n">a21</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">u0</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="n">jp</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">u0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">jp</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">u0</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="n">jm</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">u0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">jm</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="p">)</span><span class="o">*</span><span class="n">dyiq</span>
+
+<span class="w">               </span><span class="n">a22</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">jp</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">dyi</span>
+
+<span class="w">               </span><span class="n">a23</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">jp</span><span class="p">,</span><span class="n">kp</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">jp</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">jm</span><span class="p">,</span><span class="n">kp</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">jm</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="p">)</span><span class="o">*</span><span class="n">dyiq</span>
+
+<span class="w">               </span><span class="n">a31</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                     </span><span class="p">((</span><span class="n">u0</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">kp</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">u0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">kp</span><span class="p">))</span><span class="o">*</span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">u0</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w">  </span><span class="o">+</span><span class="w"> </span><span class="n">u0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="o">*</span><span class="n">dzf</span><span class="p">(</span><span class="n">kp</span><span class="p">))</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">dzhi</span><span class="p">(</span><span class="n">kp</span><span class="p">)</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                   </span><span class="o">-</span><span class="w"> </span><span class="p">((</span><span class="n">u0</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w">  </span><span class="o">+</span><span class="w"> </span><span class="n">u0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="o">*</span><span class="n">dzf</span><span class="p">(</span><span class="n">km</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="p">(</span><span class="n">u0</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">km</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">u0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">km</span><span class="p">))</span><span class="o">*</span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="p">))</span><span class="w">  </span><span class="o">*</span><span class="w"> </span><span class="n">dzhi</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w">  </span><span class="p">&amp;</span>
+<span class="w">                     </span><span class="p">)</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                   </span><span class="o">*</span><span class="w"> </span><span class="n">dzfiq</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+
+<span class="w">               </span><span class="n">a32</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                     </span><span class="p">((</span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">jp</span><span class="p">,</span><span class="n">kp</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">kp</span><span class="p">))</span><span class="o">*</span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">jp</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w">  </span><span class="o">+</span><span class="w"> </span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="o">*</span><span class="n">dzf</span><span class="p">(</span><span class="n">kp</span><span class="p">))</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">dzhi</span><span class="p">(</span><span class="n">kp</span><span class="p">)</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                   </span><span class="o">-</span><span class="w"> </span><span class="p">((</span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">jp</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w">  </span><span class="o">+</span><span class="w"> </span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="o">*</span><span class="n">dzf</span><span class="p">(</span><span class="n">km</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="p">(</span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">jp</span><span class="p">,</span><span class="n">km</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">km</span><span class="p">))</span><span class="o">*</span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="p">))</span><span class="w">  </span><span class="o">*</span><span class="w"> </span><span class="n">dzhi</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w">  </span><span class="p">&amp;</span>
+<span class="w">                     </span><span class="p">)</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                     </span><span class="o">*</span><span class="n">dzfiq</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+
+<span class="w">               </span><span class="n">a33</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">kp</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">dzfi</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+
+<span class="w">               </span><span class="n">aa</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">a11</span><span class="o">*</span><span class="n">a11</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">a21</span><span class="o">*</span><span class="n">a21</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">a31</span><span class="o">*</span><span class="n">a31</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">               </span><span class="n">a12</span><span class="o">*</span><span class="n">a12</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">a22</span><span class="o">*</span><span class="n">a22</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">a32</span><span class="o">*</span><span class="n">a32</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">               </span><span class="n">a13</span><span class="o">*</span><span class="n">a13</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">a23</span><span class="o">*</span><span class="n">a23</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">a33</span><span class="o">*</span><span class="n">a33</span>
+
+<span class="w">               </span><span class="n">b11</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dx2</span><span class="o">*</span><span class="n">a11</span><span class="o">*</span><span class="n">a11</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">dy2</span><span class="o">*</span><span class="n">a21</span><span class="o">*</span><span class="n">a21</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">dzf2</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">a31</span><span class="o">*</span><span class="n">a31</span>
+<span class="w">               </span><span class="n">b22</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dx2</span><span class="o">*</span><span class="n">a12</span><span class="o">*</span><span class="n">a12</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">dy2</span><span class="o">*</span><span class="n">a22</span><span class="o">*</span><span class="n">a22</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">dzf2</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">a32</span><span class="o">*</span><span class="n">a32</span>
+<span class="w">               </span><span class="n">b12</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dx2</span><span class="o">*</span><span class="n">a11</span><span class="o">*</span><span class="n">a12</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">dy2</span><span class="o">*</span><span class="n">a21</span><span class="o">*</span><span class="n">a22</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">dzf2</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">a31</span><span class="o">*</span><span class="n">a32</span>
+<span class="w">               </span><span class="n">b33</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dx2</span><span class="o">*</span><span class="n">a13</span><span class="o">*</span><span class="n">a13</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">dy2</span><span class="o">*</span><span class="n">a23</span><span class="o">*</span><span class="n">a23</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">dzf2</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">a33</span><span class="o">*</span><span class="n">a33</span>
+<span class="w">               </span><span class="n">b13</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dx2</span><span class="o">*</span><span class="n">a11</span><span class="o">*</span><span class="n">a13</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">dy2</span><span class="o">*</span><span class="n">a21</span><span class="o">*</span><span class="n">a23</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">dzf2</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">a31</span><span class="o">*</span><span class="n">a33</span>
+<span class="w">               </span><span class="n">b23</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dx2</span><span class="o">*</span><span class="n">a12</span><span class="o">*</span><span class="n">a13</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">dy2</span><span class="o">*</span><span class="n">a22</span><span class="o">*</span><span class="n">a23</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">dzf2</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">a32</span><span class="o">*</span><span class="n">a33</span>
+<span class="w">               </span><span class="n">bb</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">b11</span><span class="o">*</span><span class="n">b22</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">b12</span><span class="o">*</span><span class="n">b12</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">b11</span><span class="o">*</span><span class="n">b33</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">b13</span><span class="o">*</span><span class="n">b13</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">b22</span><span class="o">*</span><span class="n">b33</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">b23</span><span class="o">*</span><span class="n">b23</span>
+
+<span class="w">               </span><span class="n">dthvdz</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">thl0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">-</span><span class="n">thl0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">/</span><span class="p">(</span><span class="n">dzh</span><span class="p">(</span><span class="n">k</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="n">dzh</span><span class="p">(</span><span class="n">k</span><span class="p">))</span>
+<span class="w">               </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">dthvdz</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">                 </span><span class="n">const2</span><span class="o">=</span><span class="p">(</span><span class="n">bb</span><span class="o">/</span><span class="n">aa</span><span class="p">)</span>
+<span class="w">               </span><span class="k">else</span>
+<span class="k">                 </span><span class="n">const2</span><span class="o">=</span><span class="p">(</span><span class="n">bb</span><span class="o">/</span><span class="n">aa</span><span class="p">)</span><span class="o">-</span><span class="p">(</span><span class="n">delta</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">**</span><span class="mi">4</span><span class="p">)</span><span class="o">*</span><span class="n">dthvdz</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">const</span>
+<span class="w">                 </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">const2</span><span class="w"> </span><span class="o">&lt;</span><span class="mf">0.0</span><span class="p">)</span><span class="w"> </span><span class="n">const2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0</span>
+<span class="w">               </span><span class="k">end if</span>
+<span class="k">               </span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">=</span><span class="n">c_vreman</span><span class="o">*</span><span class="nb">sqrt</span><span class="p">(</span><span class="n">const2</span><span class="p">)</span>
+<span class="w">               </span><span class="n">ekh</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">=</span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">prandtli</span>
+<span class="w">             </span><span class="k">end do</span>
+<span class="k">           end do</span>
+<span class="k">         end do</span>
+<span class="k">         </span><span class="n">ekm</span><span class="p">(:,:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ekm</span><span class="p">(:,:,:)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">numol</span><span class="w">                             </span><span class="c">! add molecular viscosity</span>
+<span class="w">         </span><span class="n">ekh</span><span class="p">(:,:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ekh</span><span class="p">(:,:,:)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">numol</span><span class="o">*</span><span class="n">prandtlmoli</span><span class="w">                 </span><span class="c">! add molecular diffusivity</span>
+
+<span class="w">       </span><span class="k">else</span><span class="w">  </span><span class="c">! neutral case</span>
+
+<span class="w">         </span><span class="k">do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span>
+<span class="w">           </span><span class="n">kp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">k</span><span class="o">+</span><span class="mi">1</span>
+<span class="w">           </span><span class="n">km</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">k</span><span class="o">-</span><span class="mi">1</span>
+<span class="w">           </span><span class="k">do </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jb</span><span class="p">,</span><span class="n">je</span>
+<span class="w">             </span><span class="n">jp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">j</span><span class="o">+</span><span class="mi">1</span>
+<span class="w">             </span><span class="n">jm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">j</span><span class="o">-</span><span class="mi">1</span>
+<span class="w">             </span><span class="k">do </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ib</span><span class="p">,</span><span class="n">ie</span><span class="w">        </span><span class="c">! aij = du_j / dx_i</span>
+<span class="w">               </span><span class="n">ip</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i</span><span class="o">+</span><span class="mi">1</span>
+<span class="w">               </span><span class="n">im</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i</span><span class="o">-</span><span class="mi">1</span>
+<span class="w">               </span><span class="n">a11</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">u0</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">u0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">dxi</span>
+
+<span class="w">               </span><span class="n">a12</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">v0</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="n">jp</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">v0</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">v0</span><span class="p">(</span><span class="n">im</span><span class="p">,</span><span class="n">jp</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">v0</span><span class="p">(</span><span class="n">im</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="p">)</span><span class="o">*</span><span class="n">dxiq</span>
+
+<span class="w">               </span><span class="n">a13</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">w0</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">kp</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">w0</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">w0</span><span class="p">(</span><span class="n">im</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">kp</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">w0</span><span class="p">(</span><span class="n">im</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="p">)</span><span class="o">*</span><span class="n">dxiq</span>
+
+<span class="w">               </span><span class="n">a21</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">u0</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="n">jp</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">u0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">jp</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">u0</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="n">jm</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">u0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">jm</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="p">)</span><span class="o">*</span><span class="n">dyiq</span>
+
+<span class="w">               </span><span class="n">a22</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">jp</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">dyi</span>
+
+<span class="w">               </span><span class="n">a23</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">jp</span><span class="p">,</span><span class="n">kp</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">jp</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">jm</span><span class="p">,</span><span class="n">kp</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">jm</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="p">)</span><span class="o">*</span><span class="n">dyiq</span>
+
+<span class="w">          </span><span class="n">a31</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                </span><span class="p">((</span><span class="n">u0</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">kp</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">u0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">kp</span><span class="p">))</span><span class="o">*</span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">u0</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w">  </span><span class="o">+</span><span class="w"> </span><span class="n">u0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="o">*</span><span class="n">dzf</span><span class="p">(</span><span class="n">kp</span><span class="p">))</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">dzhi</span><span class="p">(</span><span class="n">kp</span><span class="p">)</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">              </span><span class="o">-</span><span class="w"> </span><span class="p">((</span><span class="n">u0</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w">  </span><span class="o">+</span><span class="w"> </span><span class="n">u0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="o">*</span><span class="n">dzf</span><span class="p">(</span><span class="n">km</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="p">(</span><span class="n">u0</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">km</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">u0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">km</span><span class="p">))</span><span class="o">*</span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="p">))</span><span class="w">  </span><span class="o">*</span><span class="w"> </span><span class="n">dzhi</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w">  </span><span class="p">&amp;</span>
+<span class="w">                </span><span class="p">)</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">              </span><span class="o">*</span><span class="w"> </span><span class="n">dzfiq</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+
+<span class="w">          </span><span class="n">a32</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                </span><span class="p">((</span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">jp</span><span class="p">,</span><span class="n">kp</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">kp</span><span class="p">))</span><span class="o">*</span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">jp</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w">  </span><span class="o">+</span><span class="w"> </span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="o">*</span><span class="n">dzf</span><span class="p">(</span><span class="n">kp</span><span class="p">))</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">dzhi</span><span class="p">(</span><span class="n">kp</span><span class="p">)</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">              </span><span class="o">-</span><span class="w"> </span><span class="p">((</span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">jp</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w">  </span><span class="o">+</span><span class="w"> </span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="o">*</span><span class="n">dzf</span><span class="p">(</span><span class="n">km</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="p">(</span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">jp</span><span class="p">,</span><span class="n">km</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">km</span><span class="p">))</span><span class="o">*</span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="p">))</span><span class="w">  </span><span class="o">*</span><span class="w"> </span><span class="n">dzhi</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w">  </span><span class="p">&amp;</span>
+<span class="w">                </span><span class="p">)</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                </span><span class="o">*</span><span class="n">dzfiq</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+
+<span class="w">          </span><span class="n">a33</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">kp</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">dzfi</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+
+<span class="w">          </span><span class="n">aa</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">a11</span><span class="o">*</span><span class="n">a11</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">a21</span><span class="o">*</span><span class="n">a21</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">a31</span><span class="o">*</span><span class="n">a31</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                </span><span class="n">a12</span><span class="o">*</span><span class="n">a12</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">a22</span><span class="o">*</span><span class="n">a22</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">a32</span><span class="o">*</span><span class="n">a32</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                </span><span class="n">a13</span><span class="o">*</span><span class="n">a13</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">a23</span><span class="o">*</span><span class="n">a23</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">a33</span><span class="o">*</span><span class="n">a33</span>
+
+<span class="w">          </span><span class="n">b11</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dx2</span><span class="o">*</span><span class="n">a11</span><span class="o">*</span><span class="n">a11</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">dy2</span><span class="o">*</span><span class="n">a21</span><span class="o">*</span><span class="n">a21</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">dzf2</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">a31</span><span class="o">*</span><span class="n">a31</span>
+<span class="w">          </span><span class="n">b22</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dx2</span><span class="o">*</span><span class="n">a12</span><span class="o">*</span><span class="n">a12</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">dy2</span><span class="o">*</span><span class="n">a22</span><span class="o">*</span><span class="n">a22</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">dzf2</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">a32</span><span class="o">*</span><span class="n">a32</span>
+<span class="w">          </span><span class="n">b12</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dx2</span><span class="o">*</span><span class="n">a11</span><span class="o">*</span><span class="n">a12</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">dy2</span><span class="o">*</span><span class="n">a21</span><span class="o">*</span><span class="n">a22</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">dzf2</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">a31</span><span class="o">*</span><span class="n">a32</span>
+<span class="w">          </span><span class="n">b33</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dx2</span><span class="o">*</span><span class="n">a13</span><span class="o">*</span><span class="n">a13</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">dy2</span><span class="o">*</span><span class="n">a23</span><span class="o">*</span><span class="n">a23</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">dzf2</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">a33</span><span class="o">*</span><span class="n">a33</span>
+<span class="w">          </span><span class="n">b13</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dx2</span><span class="o">*</span><span class="n">a11</span><span class="o">*</span><span class="n">a13</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">dy2</span><span class="o">*</span><span class="n">a21</span><span class="o">*</span><span class="n">a23</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">dzf2</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">a31</span><span class="o">*</span><span class="n">a33</span>
+<span class="w">          </span><span class="n">b23</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dx2</span><span class="o">*</span><span class="n">a12</span><span class="o">*</span><span class="n">a13</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">dy2</span><span class="o">*</span><span class="n">a22</span><span class="o">*</span><span class="n">a23</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">dzf2</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">a32</span><span class="o">*</span><span class="n">a33</span>
+<span class="w">          </span><span class="n">bb</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">b11</span><span class="o">*</span><span class="n">b22</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">b12</span><span class="o">*</span><span class="n">b12</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">b11</span><span class="o">*</span><span class="n">b33</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">b13</span><span class="o">*</span><span class="n">b13</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">b22</span><span class="o">*</span><span class="n">b33</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">b23</span><span class="o">*</span><span class="n">b23</span>
+<span class="w">          </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">bb</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mf">0.00000001</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">            </span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<span class="w">            </span><span class="n">ekh</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<span class="w">          </span><span class="k">else</span>
+<span class="k">            </span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">c_vreman</span><span class="o">*</span><span class="nb">sqrt</span><span class="p">(</span><span class="n">bb</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">aa</span><span class="p">)</span>
+<span class="w">            </span><span class="n">ekh</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">prandtli</span>
+<span class="w">          </span><span class="k">end if</span>
+<span class="k">        end do</span>
+<span class="k">      end do</span>
+<span class="k">    end do</span>
+<span class="w">    </span><span class="c">! ekm(:,:,:) = max(ekm(:,:,:),ekmin)</span>
+<span class="w">    </span><span class="c">! ekh(:,:,:) = max(ekh(:,:,:),ekmin)</span>
+<span class="w">    </span><span class="k">end if</span><span class="w"> </span><span class="c">! lbuoyancy</span>
+
+<span class="w">    </span><span class="n">ekm</span><span class="p">(:,:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ekm</span><span class="p">(:,:,:)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">numol</span><span class="w">                             </span><span class="c">! add molecular viscosity</span>
+<span class="w">    </span><span class="n">ekh</span><span class="p">(:,:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ekh</span><span class="p">(:,:,:)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">numol</span><span class="o">*</span><span class="n">prandtlmoli</span><span class="w">                 </span><span class="c">! add molecular diffusivity</span>
+
+<span class="w">   </span><span class="c">! TKE scheme</span>
+<span class="w">    </span><span class="k">elseif</span><span class="w"> </span><span class="p">(</span><span class="n">loneeqn</span><span class="w"> </span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">       do </span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span>
+<span class="w">          </span><span class="k">do </span><span class="n">j</span><span class="o">=</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span>
+<span class="w">             </span><span class="k">do </span><span class="n">i</span><span class="o">=</span><span class="n">ib</span><span class="p">,</span><span class="n">ie</span>
+<span class="w">                </span><span class="c">! iw = wall(i,j,k,1)   ! indices of closest wall</span>
+<span class="w">                </span><span class="c">! jw = wall(i,j,k,2)-myid*jmax   ! indices of closest wall in local j-index</span>
+<span class="w">                </span><span class="c">! kw = wall(i,j,k,3)</span>
+<span class="w">                </span><span class="c">! c1 = wall(i,j,k,4)   ! shear stress component</span>
+<span class="w">                </span><span class="c">! c2 = wall(i,j,k,5)   ! shear stress component</span>
+
+<span class="w">                </span><span class="c">!ILS13 removed near-wall damping 25.06.2014</span>
+<span class="w">                </span><span class="c">!if (jw &gt;= jb-1 .and. jw &lt;= je+1) then      ! check if jw is within the halo of this proc</span>
+<span class="w">                </span><span class="c">!  distplus = mindist(i,j,k)*sqrt(abs(shear(iw,jw,kw,c1))+abs(shear(iw,jw,kw,c2)))*numoli</span>
+<span class="w">                </span><span class="c">!  damp(i,j,k) = sqrt(1. - exp((-distplus*0.04)**3.))            ! Wall-damping according to Piomelli</span>
+<span class="w">                </span><span class="c">!else</span>
+<span class="w">                </span><span class="n">damp</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.</span>
+<span class="w">                </span><span class="c">!end if</span>
+<span class="w">                </span><span class="k">if</span><span class="w"> </span><span class="p">((</span><span class="n">ldelta</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="p">(</span><span class="n">dthvdz</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">&lt;=</span><span class="mi">0</span><span class="p">))</span><span class="w"> </span><span class="k">then</span>
+<span class="k">                   </span><span class="n">zlt</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">delta</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">k</span><span class="p">)</span>
+<span class="w">                   </span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cm</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">zlt</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="n">damp</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="w"> </span><span class="n">e120</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="c">!* 0.5! LES with near-wall damping !!! added factor 0.5 for shear-driven flow</span>
+<span class="w">                   </span><span class="n">ekh</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">ch1</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">ch2</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w">               </span><span class="c">! maybe ekh should be calculated from (molecular) Prandtl number</span>
+<span class="w">                   </span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">numol</span><span class="w">                     </span><span class="c">! add molecular viscosity</span>
+<span class="w">                   </span><span class="n">ekh</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ekh</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">numol</span><span class="o">*</span><span class="n">prandtlmoli</span><span class="w">         </span><span class="c">! add molecular diffusivity</span>
+<span class="w">                </span><span class="k">else</span>
+<span class="w">                   </span><span class="c">!            zlt(i,j,k) = min(delta(i,k),cn*e120(i,j,k)/sqrt(grav/thvs*abs(dthvdz(i,j,k))))</span>
+<span class="w">                   </span><span class="n">zlt</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">min</span><span class="p">(</span><span class="n">delta</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">k</span><span class="p">),</span><span class="n">cn</span><span class="o">*</span><span class="n">e120</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">/</span><span class="nb">sqrt</span><span class="p">(</span><span class="n">grav</span><span class="o">/</span><span class="n">thvs</span><span class="o">*</span><span class="nb">abs</span><span class="p">(</span><span class="n">dthvdz</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">))))</span><span class="w">   </span><span class="c">!thls is used</span>
+<span class="w">                   </span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cm</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">zlt</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="n">damp</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="w"> </span><span class="n">e120</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="c">!* 0.5     ! LES with near-wall damping !!! added factor 0.5 for shear-driven flow</span>
+<span class="w">                   </span><span class="n">ekh</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">ch1</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">ch2</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">zlt</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">/</span><span class="n">delta</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="c">!  needed in LES!</span>
+<span class="w">                   </span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">numol</span><span class="w">                     </span><span class="c">! add molecular viscosity</span>
+<span class="w">                   </span><span class="n">ekh</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ekh</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">numol</span><span class="o">*</span><span class="n">prandtlmoli</span><span class="w">          </span><span class="c">! add molecular diffusivity</span>
+<span class="w">               </span><span class="k">endif</span>
+<span class="k">             end do</span>
+<span class="k">          end do</span>
+<span class="k">       end do</span>
+
+<span class="k">      </span><span class="n">damp</span><span class="p">(:,:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">max</span><span class="p">(</span><span class="n">damp</span><span class="p">(:,:,:),</span><span class="n">dampmin</span><span class="p">)</span>
+<span class="w">      </span><span class="c">! ekm(:,:,:) = max(ekm(:,:,:),ekmin)</span>
+<span class="w">      </span><span class="c">! ekh(:,:,:) = max(ekh(:,:,:),ekmin)</span>
+<span class="w">    </span><span class="k">else</span><span class="w">   </span><span class="c">! no subgrid model (DNS!)</span>
+<span class="w">       </span><span class="n">ekm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">numol</span>
+<span class="w">       </span><span class="n">ekh</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">numol</span><span class="o">*</span><span class="n">prandtlmoli</span>
+<span class="w">    </span><span class="k">end if</span>
+
+<span class="w">    </span><span class="c">!*************************************************************</span>
+<span class="w">    </span><span class="c">!     Set boundary condition for K-closure factors.          ! Also other BC&#39;s!!</span>
+<span class="w">    </span><span class="c">!*************************************************************</span>
+<span class="w">    </span><span class="k">call </span><span class="n">closurebc</span>
+
+<span class="w">    </span><span class="k">return</span>
+<span class="k">  end subroutine </span><span class="n">closure</span>
+</pre></div>
+
+    </section>
+    <br>
+    
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2024 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2024-10-29 15:16              </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+
+    <!-- Bootstrap core JavaScript -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>    
+
+    <!-- MathJax JavaScript
+             ================================================== -->
+             <!-- Placed at the end of the document so the pages load faster -->
+        <script type="text/x-mathjax-config">
+          MathJax.Hub.Config({
+          TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } },
+          jax: ['input/TeX','input/MathML','output/HTML-CSS'],
+          extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']
+          });
+        </script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+          <script src="../tipuesearch/tipuesearch_content.js"></script>
+          <script src="../tipuesearch/tipuesearch_set.js"></script>
+          <script src="../tipuesearch/tipuesearch.js"></script>
+
+  </body>
+</html>
