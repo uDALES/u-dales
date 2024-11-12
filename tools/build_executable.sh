@@ -62,6 +62,12 @@ then
     NETCDF_DIR=$NETCDF_DIR
     NETCDF_FORTRAN_DIR=$NETCDF_DIR
 
+elif [ $system == "gpu" ]
+then
+    FC=mpif90
+    NETCDF_DIR=/home/dipanjan/mygpu/netcdf-c-4.9.2/netcdfc
+    NETCDF_FORTRAN_DIR=/home/dipanjan/mygpu/netcdf-fortran-4.6.1/netcdff
+
 elif [ $system == "common" ]
 then
     FC=
