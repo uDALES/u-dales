@@ -683,8 +683,8 @@ contains
 
       rslabs = real(itot*jtot)
 
-      dx = xlen/float(itot)
-      dy = ylen/float(jtot)
+      dx = xlen/real(itot)
+      dy = ylen/real(jtot)
 
       ! MPI
 
