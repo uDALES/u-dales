@@ -27,7 +27,7 @@ module modstatsdump
   use modmpi, only : myid
   implicit none
   private
-  PUBLIC :: initstatsdump,statsdump,exitstatsdump
+  PUBLIC :: initstatsdump,statsdump,tkestatsdump,exchange_halo_z_gpu_stats,exitstatsdump
   save
 
   !NetCDF variables
@@ -1814,13 +1814,17 @@ contains
       call exchange_halo_z(tvmx, opt_zlevel=(/ih,jh,0/))
       call exchange_halo_z(tsgsmx1, opt_zlevel=(/ih,jh,0/))
       call exchange_halo_z(tsgsmx2, opt_zlevel=(/ih,jh,0/))
-      call exchange_halo_z(dummyx, opt_zlevel=(/ih,jh,0/))
+!$acc data copyin(dummyx) copyout(dummyx)
+      call exchange_halo_z_gpu_stats(dummyx)
+!$acc end data
       call exchange_halo_z(ttmx, opt_zlevel=(/ih,jh,0/))
 
       call exchange_halo_z(tvmy, opt_zlevel=(/ih,jh,0/))
       call exchange_halo_z(tsgsmy1, opt_zlevel=(/ih,jh,0/))
       call exchange_halo_z(tsgsmy2, opt_zlevel=(/ih,jh,0/))
-      call exchange_halo_z(dummyy, opt_zlevel=(/ih,jh,0/))
+!$acc data copyin(dummyy) copyout(dummyy)
+      call exchange_halo_z_gpu_stats(dummyy)
+!$acc end data
       call exchange_halo_z(ttmy, opt_zlevel=(/ih,jh,0/))
 
       ! BC's
@@ -2022,6 +2026,22 @@ contains
      call avexy_ibm(t_v(kb:ke+kh),t_vav(:,:,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc,IIcs,.true.)
 
    end subroutine tkestatsdump
+
+
+   subroutine exchange_halo_z_gpu_stats(dummy)
+      use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke
+      use decomp_2d, only : exchange_halo_z
+      implicit none
+
+      real, dimension(ib-1:ie+1,jb-1:je+1,kb:ke), intent(inout) :: dummy
+
+#if defined(_GPU)
+      attributes(device) :: dummy
+#endif
+
+      call exchange_halo_z(dummy, opt_zlevel=(/ih,jh,0/))
+   end subroutine exchange_halo_z_gpu_stats
+
 
   !-------------------------
   !> Clean up when leaving the run

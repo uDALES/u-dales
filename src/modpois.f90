@@ -99,7 +99,7 @@ contains
       if (BCxm == 1) then ! periodic
         fac = 1./(2.*itot)
         do i=3,itot,2
-          xrt(i-1)=-4.*dxi*dxi*(sin(float((i-1))*pi*fac))**2
+          xrt(i-1)=-4.*dxi*dxi*(sin(real((i-1))*pi*fac))**2
           xrt(i)  = xrt(i-1)
         end do
         xrt(1    ) = 0.
@@ -112,7 +112,7 @@ contains
       else ! Neumann-Neumann
         fac = 1./(2.*itot)
         do i=1,itot
-          xrt(i)=-4.*dxi*dxi*(sin(float((i-1))*pi*fac))**2
+          xrt(i)=-4.*dxi*dxi*(sin(real((i-1))*pi*fac))**2
         end do
 
         allocate(Sxr(0:itot-1), Sxfr(0:itot-1))
@@ -123,7 +123,7 @@ contains
       if (BCym == 1) then ! periodic
         fac = 1./(2.*jtot)
         do j=3,jtot,2
-          yrt(j-1)=-4.*dyi*dyi*(sin(float((j-1))*pi*fac))**2
+          yrt(j-1)=-4.*dyi*dyi*(sin(real((j-1))*pi*fac))**2
           yrt(j  )= yrt(j-1)
         end do
         yrt(1    ) = 0.
@@ -136,7 +136,7 @@ contains
       else ! Neumann-Neumann
         fac = 1./(2.*jtot)
         do j=1,jtot
-          yrt(j)=-4.*dyi*dyi*(sin(float((j-1))*pi*fac))**2
+          yrt(j)=-4.*dyi*dyi*(sin(real((j-1))*pi*fac))**2
         end do
 
         allocate(Syr(0:jtot-1), Syfr(0:jtot-1))
@@ -181,7 +181,7 @@ contains
         fac = 1./(2.*ktot)
 
         do k=2,ktot
-          zrt(k)=-4.*dzi*dzi*(sin(float((k-1))*pi*fac))**2
+          zrt(k)=-4.*dzi*dzi*(sin(real((k-1))*pi*fac))**2
         end do
         zrt(1) = 0.
 
@@ -235,7 +235,7 @@ contains
 
       fac = 1./itot
       do i=2,itot/2
-        xrt(i)=-4.*dxi*dxi*(sin(float((i-1))*pi*fac))**2
+        xrt(i)=-4.*dxi*dxi*(sin(real((i-1))*pi*fac))**2
       end do
       xrt(1) = 0.
       xrt(itot/2+1) = -4.*dxi*dxi
@@ -243,7 +243,7 @@ contains
       ! This is not correct - needs to be complex
       ! fac = 1./(2.*jtot)
       ! do j=3,jtot,2
-      !   yrt(j-1)=-4.*dyi*dyi*(sin(float((j-1))*pi*fac))**2
+      !   yrt(j-1)=-4.*dyi*dyi*(sin(real((j-1))*pi*fac))**2
       !   yrt(j  )= yrt(j-1)
       ! end do
       ! yrt(1    ) = 0.
@@ -251,7 +251,7 @@ contains
 
       fac = 1./jtot ! Periodic
       do j=1,jtot
-        yrt(j)=-4.*dyi*dyi*(sin(float((j-1))*pi*fac))**2
+        yrt(j)=-4.*dyi*dyi*(sin(real((j-1))*pi*fac))**2
       end do
 
       kbc1 = 1 ! Neumann
@@ -307,21 +307,21 @@ contains
 
       fac = 1./itot
       do i=2,itot
-        xrt(i)=-4.*dxi*dxi*(sin(float((i-1))*pi*fac))**2
+        xrt(i)=-4.*dxi*dxi*(sin(real((i-1))*pi*fac))**2
       end do
       xrt(1    ) = 0.
       xrt(itot ) = -4.*dxi*dxi
 
       fac = 1./jtot
       do j=2,jtot
-        yrt(j)=-4.*dyi*dyi*(sin(float((j-1))*pi*fac))**2
+        yrt(j)=-4.*dyi*dyi*(sin(real((j-1))*pi*fac))**2
       end do
       yrt(1    ) = 0.
       yrt(jtot ) = -4.*dyi*dyi
 
       fac = 1./ktot
       do k=2,ktot/2
-        zrt(k)=-4.*dzi*dzi*(sin(float((k-1))*pi*fac))**2
+        zrt(k)=-4.*dzi*dzi*(sin(real((k-1))*pi*fac))**2
       end do
       zrt(1) = 0.
       zrt(ktot/2+1) = -4.*dzi*dzi
@@ -363,7 +363,7 @@ contains
       ! yrt(1) = 0.
       ! yrt(jtot)=-4./(dy*dy)
       ! do j=3,jtot,2
-      !   yrt(j-1)=(-4./(dy*dy))*(sin(float((j-1))*pi/(2.*jtot)))**2
+      !   yrt(j-1)=(-4./(dy*dy))*(sin(real((j-1))*pi/(2.*jtot)))**2
       !   yrt(j)= yrt(j-1)
       ! end do
       !

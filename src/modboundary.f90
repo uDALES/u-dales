@@ -26,7 +26,7 @@ module modboundary
    implicit none
    save
    private
-   public :: initboundary, boundary, grwdamp, ksp, tqaver, halos, bcp, bcpup, closurebc, &
+   public :: initboundary, boundary, grwdamp, ksp, tqaver, halos, exchange_halo_z_gpu_boundary, exchange_halo_z_gpu_bcp, bcp, exchange_halo_z_gpu_bcpup, bcpup, closurebc, &
              xm_periodic, xT_periodic, xq_periodic, xs_periodic, ym_periodic, yT_periodic, yq_periodic, ys_periodic
    integer :: ksp = -1 !<    lowest level of sponge layer
    real, allocatable :: tsc(:) !<   damping coefficients to be used in grwdamp.
@@ -66,15 +66,58 @@ contains
    ! Needs to be called before divergence is calculated
    subroutine halos
 
-      use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, ihc, jhc, khc, nsv, &
-                            BCxm, BCym, BCxT, BCyT, BCxq, BCyq, BCxs, BCys, &
+      use modglobal, only : BCxm, BCym, BCxT, BCyT, BCxq, BCyq, BCxs, BCys, &
                             BCxm_periodic, BCxT_periodic, BCxq_periodic, BCxs_periodic, &
                             BCym_periodic, BCyT_periodic, BCyq_periodic, BCys_periodic, &
                             ibrank, ierank, jbrank, jerank
-      use modfields, only : u0, v0, w0, um, vm, wm, thl0, thlm, qt0, qtm, sv0, svm, thl0c
+      use modfields, only : u0, v0, w0, um, vm, wm, thl0, thlm, thl0c, qt0, qtm, sv0, svm
+      implicit none
+
+!$acc data copyin(u0,v0,w0,um,vm,wm,thl0,thlm,thl0c,qt0,qtm,sv0,svm) copyout(u0,v0,w0,um,vm,wm,thl0,thlm,thl0c,qt0,qtm,sv0,svm)
+      call exchange_halo_z_gpu_boundary(u0, v0, w0, um, vm, wm, thl0, thlm, thl0c, qt0, qtm, sv0, svm)
+!$acc end data
+
+      if (ibrank .and. ierank) then ! not parallelized in x
+        if (BCxm == BCxm_periodic) call xm_periodic
+        if (BCxT == BCxT_periodic) call xT_periodic
+        if (BCxq == BCxq_periodic) call xq_periodic
+        if (BCxs == BCxs_periodic) call xs_periodic
+      end if
+
+      if (jbrank .and. jerank) then ! not parallelized in x
+        if (BCym == BCym_periodic) call ym_periodic
+        if (BCyT == BCyT_periodic) call yT_periodic
+        if (BCyq == BCyq_periodic) call yq_periodic
+        if (BCys == BCys_periodic) call ys_periodic
+      end if
+
+   end subroutine halos
+   
+   subroutine exchange_halo_z_gpu_boundary(u0, v0, w0, um, vm, wm, thl0, thlm, thl0c, qt0, qtm, sv0, svm)
+      
+      use modglobal, only : ihc, jhc, khc, nsv
       use decomp_2d, only : exchange_halo_z
       implicit none
-      integer i, k, n
+      
+      integer n
+      
+      real, intent(inout) :: u0(:,:,:)        !<  temporary copy of u0
+      real, intent(inout) :: v0(:,:,:)        !<  temporary copy of v0
+      real, intent(inout) :: w0(:,:,:)        !<  temporary copy of w0
+      real, intent(inout) :: um(:,:,:)        !<  temporary copy of um
+      real, intent(inout) :: vm(:,:,:)        !<  temporary copy of vm
+      real, intent(inout) :: wm(:,:,:)        !<  temporary copy of wm
+      real, intent(inout) :: thl0(:,:,:)      !<  temporary copy of thl0
+      real, intent(inout) :: thlm(:,:,:)      !<  temporary copy of thlm
+      real, intent(inout) :: thl0c(:,:,:)     !<  temporary copy of thl0c
+      real, intent(inout) :: qt0(:,:,:)       !<  temporary copy of qt0
+      real, intent(inout) :: qtm(:,:,:)       !<  temporary copy of qtm
+      real, intent(inout) :: sv0(:,:,:,:)     !<  temporary copy of sv0
+      real, intent(inout) :: svm(:,:,:,:)     !<  temporary copy of svm
+
+#if defined(_GPU)
+      attributes(device) :: u0, v0, w0, um, vm, wm, thl0, thlm, thl0c, qt0, qtm, sv0, svm
+#endif
 
       call exchange_halo_z(u0)
       call exchange_halo_z(v0)
@@ -92,21 +135,7 @@ contains
          call exchange_halo_z(svm(:, :, :, n), opt_zlevel=(/ihc,jhc,khc/))
       enddo
 
-      if (ibrank .and. ierank) then ! not parallelized in x
-        if (BCxm == BCxm_periodic) call xm_periodic
-        if (BCxT == BCxT_periodic) call xT_periodic
-        if (BCxq == BCxq_periodic) call xq_periodic
-        if (BCxs == BCxs_periodic) call xs_periodic
-      end if
-
-      if (jbrank .and. jerank) then ! not parallelized in x
-        if (BCym == BCym_periodic) call ym_periodic
-        if (BCyT == BCyT_periodic) call yT_periodic
-        if (BCyq == BCyq_periodic) call yq_periodic
-        if (BCys == BCys_periodic) call ys_periodic
-      end if
-
-    end subroutine halos
+   end subroutine exchange_halo_z_gpu_boundary
 
 
    !>
@@ -1144,6 +1173,25 @@ contains
    end subroutine yso_Neumann
 
 
+   subroutine exchange_halo_z_gpu_bcpup(pup,pvp,pwp)
+     use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh
+     use decomp_2d, only : exchange_halo_z
+     implicit none
+
+     real, dimension(ib-ih:ie+ih, jb-jh:je+jh, kb:ke+kh), intent(inout) :: pup
+     real, dimension(ib-ih:ie+ih, jb-jh:je+jh, kb:ke+kh), intent(inout) :: pvp
+     real, dimension(ib-ih:ie+ih, jb-jh:je+jh, kb:ke+kh), intent(inout) :: pwp
+
+#if defined(_GPU)
+     attributes(device) :: pup,pvp,pwp
+#endif
+
+     call exchange_halo_z(pup, opt_zlevel=(/ih,jh,0/))
+     call exchange_halo_z(pvp, opt_zlevel=(/ih,jh,0/))
+     call exchange_halo_z(pwp, opt_zlevel=(/ih,jh,0/))
+   end subroutine exchange_halo_z_gpu_bcpup
+
+
    !>set boundary conditions pup,pvp,pwp in subroutine fillps in modpois.f90
    subroutine bcpup(pup, pvp, pwp, rk3coef)
 
@@ -1173,9 +1221,11 @@ contains
      ! if (jerank) write(*,*) "je before exhange_halo ", pvp(ie/2,je+1,ke)
      ! Watch this communication as it is slightly different to normal -
      ! maybe safer to just resize to kb-kh:ke+kh
-     call exchange_halo_z(pup, opt_zlevel=(/ih,jh,0/))
-     call exchange_halo_z(pvp, opt_zlevel=(/ih,jh,0/))
-     call exchange_halo_z(pwp, opt_zlevel=(/ih,jh,0/))
+     
+!$acc data copyin(pup,pvp,pwp) copyout(pup,pvp,pwp)
+     call exchange_halo_z_gpu_bcpup(pup,pvp,pwp)
+!$acc end data
+
      ! if (jbrank) write(*,*) "jb after exhange_halo ", pvp(ie/2,jb,ke)
      ! if (jerank) write(*,*) "je after exhange_halo ", pvp(ie/2,je+1,ke)
 
@@ -1297,6 +1347,22 @@ contains
 
    end subroutine bcpup
 
+
+   subroutine exchange_halo_z_gpu_bcp(p)
+     use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh
+     use decomp_2d, only : exchange_halo_z
+     implicit none
+
+     real, dimension(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh), intent(inout) :: p
+
+#if defined(_GPU)
+     attributes(device) :: p
+#endif
+
+     call exchange_halo_z(p)
+   end subroutine exchange_halo_z_gpu_bcp
+
+
    !>set pressure boundary conditions
    subroutine bcp(p)
 
@@ -1316,7 +1382,10 @@ contains
      end if
      rk3coefi = 1. / rk3coef
 
-     call exchange_halo_z(p)
+!$acc data copyin(p) copyout(p)
+     call exchange_halo_z_gpu_bcp(p)
+!$acc end data
+
      call exchange_halo_z(pres0)
 
      if (BCxm .eq. BCxm_periodic) then
