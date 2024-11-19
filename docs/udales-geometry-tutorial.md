@@ -37,7 +37,7 @@ help udgeom.udgeom
 ```
 
 
-```text:Output
+```text
   udgeom Geometry class for uDALES
      The udgeom class contains the triangulated surface.
 
@@ -51,7 +51,7 @@ methods(geom);             % show the methods the class contains
 ```
 
 
-```text:Output
+```text
 Methods for class udgeom.udgeom:
 
 chcpath  gohome   gopath   load     save     show     udgeom   
@@ -87,7 +87,7 @@ help udgeom.createFlatSurface
 ```
 
 
-```text:Output
+```text
   createFlatSurface    creates flat surface consisting of triangular facets
  
      geom = createFlatSurface(xsize, ysize, edgelength) returns a geom
@@ -131,7 +131,7 @@ help udgeom.createCanyons
 ```
 
 
-```text:Output
+```text
   createCanyons    creates one-dimensional street canyons
  
      geom = createCanyons(xsize, ysize, B, W, H, shift, edgelength) returns
@@ -190,7 +190,7 @@ help udgeom.createCubes
 ```
 
 
-```text:Output
+```text
   createCubes    creates cubes, either a single one or an array of cubes.
  
      geom = createCubes(xsize, ysize, Hx, Hy, Hz, Cx, Cy, geom_option, edgelength)
@@ -260,7 +260,7 @@ help udgeom.createRealistic
 ```
 
 
-```text:Output
+```text
   createRealistic    creates a realistic urban surface based on an stl file
                      that contains the buildings. The function adds the
                      ground surface.  
