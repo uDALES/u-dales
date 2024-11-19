@@ -1,7 +1,7 @@
 Publication list
 ================
 
-The uDALES software was used in the following publications :
+uDALES was used in the following publications :
 
 2024
 - The drag length is key to quantifying tree canopy drag[@Majumdar2025].
