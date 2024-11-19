@@ -16,7 +16,7 @@ uDALES supports several manners to create urban surfaces. It is possible to run 
 
 
 
-```matlab:Code
+```matlab
 % preamble
 clear variables
 close all
@@ -32,7 +32,7 @@ The udgeom class contains the uDALES urban surface. It is the output of the geom
 
 
 
-```matlab:Code
+```matlab
 help udgeom.udgeom
 ```
 
@@ -45,7 +45,7 @@ help udgeom.udgeom
 ```
 
 
-```matlab:Code
+```matlab
 geom = udgeom.udgeom();    % create udgeom instance. 
 methods(geom);             % show the methods the class contains
 ```
@@ -60,7 +60,7 @@ Methods of udgeom.udgeom inherited from handle.
 ```
 
 
-```matlab:Code
+```matlab
 geom.load('uDALES.stl')    % load an STL file from the current directory (can be changed in constructor)
 geom.show()                % show the geometry
 xlabel('x [m]'); 
@@ -71,7 +71,7 @@ ylabel('y [m]')
 ![figure_0.png](geometry_tutorial_media/figure_0.png)
 
 
-```matlab:Code
+```matlab
 geom.save('uDALES2.stl')   % saves the object as an STL file
 ```
 
@@ -82,7 +82,7 @@ This function creates flat surfaces
 
 
 
-```matlab:Code
+```matlab
 help udgeom.createFlatSurface
 ```
 
@@ -104,7 +104,7 @@ See below for an example how to use this function.
 
 
 
-```matlab:Code
+```matlab
 % domain size
 xsize = 96;           % [m]
 ysize = xsize;        % [m]
@@ -126,7 +126,7 @@ This function creates one-dimensional street canyons
 
 
 
-```matlab:Code
+```matlab
 help udgeom.createCanyons
 ```
 
@@ -155,7 +155,7 @@ See below for an example how to use this function.
 
 
 
-```matlab:Code
+```matlab
 % domain size
 xsize = 96;       % domain size in x-direction
 ysize = 96;       % domain size in y-direction
@@ -185,7 +185,7 @@ This function creates cubes, either a single one or an array of cubes.
 
 
 
-```matlab:Code
+```matlab
 help udgeom.createCubes
 ```
 
@@ -216,7 +216,7 @@ See below for an example how to use this function.
 
 
 
-```matlab:Code
+```matlab
 % domain size
 xsize = 96; 
 ysize = 96; 
@@ -255,7 +255,7 @@ This function creates a realistic urban surface based on an stl file that contai
 
 
 
-```matlab:Code
+```matlab
 help udgeom.createRealistic
 ```
 
@@ -288,7 +288,7 @@ See below for an example how to use this function.
 
 
 
-```matlab:Code
+```matlab
 % stl file containing buildings only
 stlfile = 'uDALES.stl';
 
