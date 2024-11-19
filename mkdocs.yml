@@ -63,8 +63,10 @@ nav:
   - "User's docs":
     - Set-up: udales-simulation-setup.md
     - Configuration: udales-namoptions-overview.md
+    - Geometry generation: udales-geometry-tutorial.md
     - Pre-processing: udales-pre-processing.md
     - Post-processing: udales-post-processing.md
+    - Visualization: udales-postproc-tutorial.md
   - How to cite: udales-how-to-cite.md
   - Publication list: udales-pub-list.md
   - Development notes: DEVELOP.md
