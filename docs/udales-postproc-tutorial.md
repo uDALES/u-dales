@@ -32,7 +32,7 @@ The uDALES postprocessing class is called `udbase`. Typically, you will create a
 
 
 
-```matlab:Code
+```matlab
 % preamble
 clear variables
 close all
@@ -69,12 +69,12 @@ To view all simulation input parameters, simply type
 
 
 
-```matlab:Code
+```matlab
 sim
 ```
 
 
-```text:Output
+```text
 sim = 
   udbase with properties:
 
@@ -154,12 +154,12 @@ To access a parameter directly, use the syntax `object.prop`. To access the doma
 
 
 
-```matlab:Code
+```matlab
 sim.xlen
 ```
 
 
-```text:Output
+```text
 ans = 160
 ```
 
@@ -169,7 +169,7 @@ The geometry stored in the STL file, if present, has been also loaded, which can
 
 
 
-```matlab:Code
+```matlab
 sim.geom.show();
 ```
 
@@ -183,7 +183,7 @@ uDALES uses a grid that is staggered, which means that not all variables are def
 
 
 
-```matlab:Code
+```matlab
 % 2D view of staggered grid arrangement
 % (x-z direction; grid layout in other directions is identical)
 %
@@ -300,12 +300,12 @@ where $A$ is the total surface area (\texttt{sim.xlen*sim.ylen)}. In many cases,
 
 # **load_stat_xyt: l**oading time- and slab-averaged data
 
-```matlab:Code
+```matlab
 help sim.load_stat_xyt
 ```
 
 
-```text:Output
+```text
 --- help for udbase/load_stat_xyt ---
 
   A method to retrieve plane- and time-averaged 1D statistics
@@ -326,12 +326,12 @@ This method loads a single output variable `var `at a time. In order to understa
 
 
 
-```matlab:Code
+```matlab
 sim.load_stat_xyt();
 ```
 
 
-```text:Output
+```text
 Contents of xytdump.110.nc:
        Name                     Description                  Units     Size     Dimensions
     ___________    _____________________________________    _______    _____    __________
@@ -370,12 +370,12 @@ Before showing how to display the data, we note that the variable `'time'` has a
 
 
 
-```matlab:Code
+```matlab
 txyt = sim.load_stat_xyt('time')
 ```
 
 
-```text:Output
+```text
 txyt = 3x1 single column vector
 1.0e+03 *
 
@@ -391,22 +391,22 @@ There are three times at which output has been generated. This can be understood
 
 
 
-```matlab:Code
+```matlab
 sim.tstatsdump
 ```
 
 
-```text:Output
+```text
 ans = 2000
 ```
 
 
-```matlab:Code
+```matlab
 sim.runtime
 ```
 
 
-```text:Output
+```text
 ans = 6002
 ```
 
@@ -421,7 +421,7 @@ The vertical coordinate $z$ and mean streamwise velocity $\langle \bar{u} \rangl
 
 
 
-```matlab:Code
+```matlab
 zm   = sim.load_stat_xyt('zm');
 uxyt = sim.load_stat_xyt('uxyt');
 ```
@@ -432,7 +432,7 @@ Since $\langle \bar{u} \rangle$ is the streamwise velocity, it is defined in the
 
 
 
-```matlab:Code
+```matlab
 tstart = 0;
 leg = cell(size(txyt)); % create a cell array to store each of the legend entries
 figure
@@ -463,7 +463,7 @@ Using the continuity equation it can be shown that for period domains $\langle \
 
 
 
-```matlab:Code
+```matlab
 zt      = sim.load_stat_xyt('zt');      % location of vertical fluxes of horizontal momentum
 upwpxyt = sim.load_stat_xyt('upwpxyt'); % turbulence fluxes (p indicates prime)
 uwxyt   = sim.load_stat_xyt('uwxyt');   % dispersive fluxes
@@ -475,7 +475,7 @@ Note that these terms should be plotted against against `zt` (cell center) since
 
 
 
-```matlab:Code
+```matlab
 figure
 subplot(1,3,1);
 plot(upwpxyt, zt, 'LineWidth',1);
@@ -513,12 +513,12 @@ The turbulent and dispersive fluxes show substantial variation for all three cur
 
 # load_stat_t: loading time-averaged data
 
-```matlab:Code
+```matlab
 help sim.load_stat_t
 ```
 
 
-```text:Output
+```text
 --- help for udbase/load_stat_t ---
 
   A method to retrieve time-averaged statistics from the tdump file 
@@ -538,12 +538,12 @@ The time-averaged field data is stored in the `tdump.expnr.nc` file. The variabl
 
 
 
-```matlab:Code
+```matlab
 sim.load_stat_t();
 ```
 
 
-```text:Output
+```text
 Contents of tdump.110.nc:
        Name                      Description                    Units         Size            Dimensions   
     ___________    ________________________________________    _______    _____________    ________________
@@ -595,7 +595,7 @@ We load the time-averaged streamwise velocity field u, and the coordinates it re
 
 
 
-```matlab:Code
+```matlab
 ut = sim.load_stat_t('ut');
 tt = sim.load_stat_t('time');
 xm = sim.load_stat_t('xm'); % we are interested in plotting u  
@@ -609,7 +609,7 @@ We plot a horizontal slice at the mean building height `z=10m`, choosing to use 
 
 
 
-```matlab:Code
+```matlab
 % find the k-index closest to z=10 m
 zloc = 10;
 k = find(abs(zt - zloc) == min(abs(zt - zloc)), 1);
@@ -634,7 +634,7 @@ You can see that where the buildings are, the velocity is zero. However, since t
 
 
 
-```matlab:Code
+```matlab
 curut = ut(:,:,:,n);
 curut(sim.Su) = NaN;
 
@@ -655,7 +655,7 @@ Similarly, we can plot a vertical slice in the middle of the y-domain as follows
 
 
 
-```matlab:Code
+```matlab
 j = sim.jtot/2+1; % select the index in the middle of the domain span
 
 figure
@@ -671,12 +671,12 @@ title(['$\overline u(x, y=', num2str(yt(j), '%8.1f'), 'm, z)$'], 'Interpreter','
 
 # load_field: loading instantaneous 3D data
 
-```matlab:Code
+```matlab
 help sim.load_field
 ```
 
 
-```text:Output
+```text
 --- help for udbase/load_field ---
 
    A method to retrieve instantaneous 3D data from from the fielddump file.
@@ -696,12 +696,12 @@ The instantaneous field data is stored in the field`dump.expnr.nc` file, again, 
 
 
 
-```matlab:Code
+```matlab
 sim.load_field();
 ```
 
 
-```text:Output
+```text
 Contents of fielddump.110.nc:
     Name                  Description                   Units        Size            Dimensions   
     ____    ________________________________________    _____    _____________    ________________
@@ -724,12 +724,12 @@ The variable `time `contains the times at which output is written. Let's load th
 
 
 
-```matlab:Code
+```matlab
 t = sim.load_field('time')
 ```
 
 
-```text:Output
+```text
 t = 3x1 single column vector
 1.0e+03 *
 
@@ -745,12 +745,12 @@ These times can be understood by noticing that the output interval requested in 
 
 
 
-```matlab:Code
+```matlab
 sim.tfielddump
 ```
 
 
-```text:Output
+```text
 ans = 2000
 ```
 
@@ -760,7 +760,7 @@ We load the data, once more using the horizontal velocity
 
 
 
-```matlab:Code
+```matlab
 u  = sim.load_field('u');
 xm = sim.load_field('xm');
 yt = sim.load_field('yt');
@@ -773,7 +773,7 @@ We plot the instantaneous horizontal velocity at the same locations as in the pr
 
 
 
-```matlab:Code
+```matlab
 n = length(t); % choose last output time 
 
 % set the u-value inside buildings to NaN
@@ -792,7 +792,7 @@ title(['$u(x, y, z=', num2str(zt(k), '%8.1f'), 'm, t=', num2str(t(n), '%8.0f'),'
 ![figure_6.png](postproc_tutorial_media/figure_6.png)
 
 
-```matlab:Code
+```matlab
 figure
 pcolor(xm, zt, squeeze(curu(:,j,:))');   
 shading flat; axis equal tight; colorbar
@@ -806,12 +806,12 @@ title(['$u(x, y, z=', num2str(zt(k), '%8.1f'), 'm, t=', num2str(t(n), '%8.0f'),'
 
 # load_slice: loading instantaneous 2D slice data
 
-```matlab:Code
+```matlab
 help sim.load_slice
 ```
 
 
-```text:Output
+```text
 --- help for udbase/load_slice ---
 
   A method to retrieve instantaneous 2D slices from from the slicedump file.
@@ -836,12 +836,12 @@ uDALES is capable of outputting slices along the `x`, `y` or `z`-direction. In t
 
 
 
-```matlab:Code
+```matlab
 sim.lkslicedump
 ```
 
 
-```text:Output
+```text
 ans = 1
 ```
 
@@ -851,12 +851,12 @@ at index
 
 
 
-```matlab:Code
+```matlab
 sim.kslice
 ```
 
 
-```text:Output
+```text
 ans = 21
 ```
 
@@ -866,12 +866,12 @@ and output instantaneous slices at time-intervals
 
 
 
-```matlab:Code
+```matlab
 sim.tsample
 ```
 
 
-```text:Output
+```text
 ans = 3
 ```
 
@@ -891,12 +891,12 @@ To list all the variables stored in `kslicedump.expnr.nc`, we use
 
 
 
-```matlab:Code
+```matlab
 sim.load_slice('k');
 ```
 
 
-```text:Output
+```text
 Contents of kslicedump.110.nc:
        Name                     Description                   Units        Size         Dimensions 
     __________    ________________________________________    _____    ____________    ____________
@@ -923,7 +923,7 @@ To load the data, we specify the variables we wish to load:
 
 
 
-```matlab:Code
+```matlab
 xm = sim.load_slice('k', 'xm');
 yt = sim.load_slice('k', 'yt');
 uk = sim.load_slice('k', 'u_kslice');
@@ -936,7 +936,7 @@ We plot this horizontal slice of the instantaneous velocity at the last output t
 
 
 
-```matlab:Code
+```matlab
 n = length(t); % choose the last time-step
 
 % Replace the data at building locations with NaNs
