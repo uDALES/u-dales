@@ -8,4 +8,5 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
 elif [[ "$OSTYPE" == "darwin"* ]]; then
     brew install netcdf netcdf-fortran open-mpi graphviz fftw
     brew link gcc
+    brew link --overwrite pkgconf --dry-run
 fi
