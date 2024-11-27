@@ -33,12 +33,8 @@
 !> Advection at cell center
 subroutine advecc_2nd(hi, hj, hk, putin, putout)
 
-   use modglobal, only:ih, jh, kh, kb, ke, ib, ie, jb, je, dxi, dxi5, dyi, dyi5, dzf, dzfi, dzhi, dzfi5, libm, jmax
+   use modglobal, only:kb, ke, ib, ie, jb, je, dxi5, dyi5, dzf, dzhi, dzfi5
    use modfields, only:u0, v0, w0
-   use modibm, only:nxwallsnorm, nzwallsnorm, nywallsm, nywallsp, ywallsm, ywallsp, &
-      xwallsnorm, zwallsnorm, iypluswall, iyminwall, nyminwall, nypluswall
-   use initfac, only:block
-   use modmpi, only:myid
    implicit none
 
    integer, intent(in) :: hi !< size of halo in i
@@ -47,7 +43,7 @@ subroutine advecc_2nd(hi, hj, hk, putin, putout)
    real, dimension(ib - hi:ie + hi, jb - hj:je + hj, kb - hk:ke + hk), intent(in)  :: putin !< Input: the cell centered field
    real, dimension(ib - hi:ie + hi, jb - hj:je + hj, kb:ke + hk), intent(inout) :: putout !< Output: the tendency
 
-   integer :: i, j, k, ip, im, jp, jm, kp, km, il, iu, jl, ju, kl, ku, n
+   integer :: i, j, k, ip, im, jp, jm, kp, km
    do k = kb, ke
       km = k - 1
       kp = k + 1
@@ -92,18 +88,16 @@ end subroutine advecc_2nd
 !> Advection at the u point.
 subroutine advecu_2nd(putin, putout)
 
-   use modglobal, only:ih, ib, ie, jb, je, jh, kb, ke, kh, dxi, dxiq, dyiq, dzf, dzfi5, dzhi, libm, imax, jmax, ktot
-   use modfields, only:u0, v0, w0, pres0, uh, vh, wh, pres0h
-   use modibm, only:nxwallsnorm, nzwallsnorm, nywallsm, nywallsp, ywallsm, ywallsp, &
-      xwallsnorm, zwallsnorm
-   use modmpi, only:myid
+   use modglobal, only:ih, ib, ie, jb, je, jh, kb, ke, kh, dxi, dxiq, dyiq, dzf, dzfi5, dzhi
+   use modfields, only:u0, v0, w0, pres0
+
    use decomp_2d
    implicit none
 
    real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb - kh:ke + kh), intent(in)  :: putin !< Input: the u-field
    real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb:ke + kh), intent(inout) :: putout !< Output: the tendency
 
-   integer :: i, j, k, ip, im, jp, jm, kp, km, il, iu, jl, ju, kl, ku, n
+   integer :: i, j, k, ip, im, jp, jm, kp, km
 
    do k = kb, ke
       km = k - 1
@@ -153,7 +147,7 @@ end subroutine advecu_2nd
 !> Advection at the v point.
 subroutine advecv_2nd(putin, putout)
 
-   use modglobal, only:ih, ib, ie, jh, jb, je, kb, ke, kh, dx, dxi, dxiq, dyiq, dzf, dzfi5, dzhi, dyi
+   use modglobal, only:ih, ib, ie, jh, jb, je, kb, ke, kh, dxiq, dyiq, dzf, dzfi5, dzhi, dyi
    use modfields, only:u0, v0, w0, pres0
    implicit none
 
@@ -211,7 +205,7 @@ end subroutine advecv_2nd
 !> Advection at the w point.
 subroutine advecw_2nd(putin, putout)
 
-   use modglobal, only:ih, ib, ie, jh, jb, je, kb, ke, kh, dx, dxi, dxiq, dyiq, dzf, dzhi, dzhiq
+   use modglobal, only:ih, ib, ie, jh, jb, je, kb, ke, kh, dxiq, dyiq, dzf, dzhi, dzhiq
    use modfields, only:u0, v0, w0, pres0
    ! use modmpi, only : myid
    implicit none

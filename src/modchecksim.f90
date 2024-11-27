@@ -74,7 +74,7 @@ contains
   end subroutine initchecksim
 !>Run checksim. Timekeeping, and output
   subroutine checksim
-    use modglobal, only : timee, rk3step, dt_lim,dt
+    use modglobal, only : timee, rk3step, dt
     use modmpi,    only : myid
     implicit none
     character(20) :: timeday
@@ -98,7 +98,7 @@ contains
   end subroutine checksim
 !>      Calculates the courant number as in max(w)*deltat/deltaz
   subroutine calccourant
-    use modglobal, only : ib,ie,jb,je,kb,ke,kh,dxhi,dyi,dzhi,dt,timee
+    use modglobal, only : ib,ie,jb,je,kb,ke,dxhi,dyi,dzhi
     use modfields, only : um,vm,wm
     use modmpi,    only : myid,comm3d,mpierr,mpi_max,my_real
     implicit none
@@ -128,7 +128,7 @@ contains
 !> Calculates the diffusion number as max(ekm) *deltat/deltax**2
   subroutine calcdiffnr
 
-    use modglobal,      only : ib,ie,jb,je,kb,ke,kh,dxh2i,dy2i,dzh,dt,timee
+    use modglobal,      only : ib,ie,jb,je,kb,ke,dxh2i,dy2i,dzh
     use modsubgriddata, only : ekm,ekh
     use modmpi,         only : myid,comm3d,mpierr,mpi_max,my_real
     implicit none
@@ -163,8 +163,8 @@ contains
 
     use modglobal, only : ib,ie,jb,je,ke,kb,dy,dxh,dzh
     use modfields, only : u0,v0,w0
-    use modmpi,    only : myid,comm3d,mpi_sum,mpi_max,my_real,mpierr
-    use modsubgriddata, only : ekm,ekh
+    use modmpi,    only : myid,comm3d,mpi_max,my_real,mpierr
+    use modsubgriddata, only : ekm
     implicit none
 
     real reyntotl,reyntot
