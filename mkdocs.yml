@@ -58,13 +58,17 @@ extra_javascript:
 # Page tree
 nav:
   - Home: index.md
-  - Getting Started: udales-getting-started.md
-  - Examples: udales-example-simulations.md
-  - "User's docs":
-    - Set-up: udales-simulation-setup.md
-    - Configuration: udales-namoptions-overview.md
+  - Installation: udales-getting-started.md
+  - Workflow: udales-workflow.md
+  - "Simulation inputs":
+    - Input parameters: udales-namoptions-overview.md
+    - Geometry generation: udales-geometry-tutorial.md
+  - "Running the simulation":
     - Pre-processing: udales-pre-processing.md
+    - Running uDALES: udales-simulation-setup.md
     - Post-processing: udales-post-processing.md
+  - Visualization: udales-postproc-tutorial.md
+  - Examples: udales-example-simulations.md
   - How to cite: udales-how-to-cite.md
   - Publication list: udales-pub-list.md
   - Development notes: DEVELOP.md

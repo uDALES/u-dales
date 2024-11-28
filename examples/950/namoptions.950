@@ -1,0 +1,81 @@
+&RUN
+iexpnr       = 950
+runtime      = 100.
+dtmax        = 1.
+irandom      = 43
+randu        = 0.01
+ladaptive    = .true.
+nprocx       = 2
+nprocy       = 2
+libm         = .true.
+/
+
+
+
+&DOMAIN
+itot         = 256
+jtot         = 128
+ktot         = 128
+xlen         = 256
+ylen         = 128
+/
+
+&PHYSICS
+ps           = 101325.00
+igrw_damp    = 0
+luvolflowr   = .true.
+uflowrate    = 1.0
+/
+
+&DYNAMICS
+ipoiss       = 0
+/
+
+&BC
+BCxm         = 3
+BCtopm       = 3
+/
+
+&NAMSUBGRID
+lvreman      = .true.
+/
+
+&WALLS
+nfcts = 6612
+nsolpts_u = 44440
+nsolpts_v = 39200
+nsolpts_w = 74098
+nsolpts_c = 41340
+nbndpts_u = 51568
+nbndpts_v = 51368
+nbndpts_w = 51428
+nbndpts_c = 51428
+nfctsecs_u = 89447
+nfctsecs_v = 88790
+nfctsecs_w = 37702
+nfctsecs_c = 96215
+/
+
+&DRIVER
+idriver      = 2
+driverjobnr  = 949
+driverstore  = 101
+/
+
+&OUTPUT
+lfielddump   = .true.
+tfielddump   = 20.
+fieldvars    = 'u0,v0'
+lxytdump     = .true.
+ltdump       = .true.
+tstatsdump   = 99.
+tsample      = 1.
+/
+
+&INPS
+zsize        = 128
+u0           = 1.0
+stl_ground   = .true.
+diag_neighbs = .true.
+stl_file     = uDALES_shape.STL
+/
