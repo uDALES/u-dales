@@ -1,6 +1,6 @@
 # Project information
 site_name: 'uDALES'
-site_description: 'TODO:'
+site_description: 'Documentation for the building-resolving urban multi-physics code uDALES'
 site_author: 'The uDALES Team'
 site_url: 'https://uDALES.github.io/u-dales'
 
