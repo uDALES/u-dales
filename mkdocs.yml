@@ -67,8 +67,8 @@ nav:
     - Pre-processing: udales-pre-processing.md
     - Running uDALES: udales-simulation-setup.md
     - Post-processing: udales-post-processing.md
-  - Visualization: udales-postproc-tutorial.md
-  - Examples: udales-example-simulations.md
+  - Visualization with udbase: udales-postproc-tutorial.md
+  - Example simulations: udales-example-simulations.md
   - How to cite: udales-how-to-cite.md
   - Publication list: udales-pub-list.md
   - Development notes: DEVELOP.md
