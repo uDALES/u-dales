@@ -26,7 +26,7 @@ module modboundary
    implicit none
    save
    private
-   public :: initboundary, boundary, grwdamp, ksp, tqaver, halos, exchange_halo_z_gpu_boundary, exchange_halo_z_gpu_bcp, bcp, exchange_halo_z_gpu_bcpup, bcpup, closurebc, &
+   public :: initboundary, boundary, grwdamp, ksp, tqaver, halos, bcp, bcpup, closurebc, &
              xm_periodic, xT_periodic, xq_periodic, xs_periodic, ym_periodic, yT_periodic, yq_periodic, ys_periodic
    integer :: ksp = -1 !<    lowest level of sponge layer
    real, allocatable :: tsc(:) !<   damping coefficients to be used in grwdamp.
@@ -71,11 +71,33 @@ contains
                             BCym_periodic, BCyT_periodic, BCyq_periodic, BCys_periodic, &
                             ibrank, ierank, jbrank, jerank
       use modfields, only : u0, v0, w0, um, vm, wm, thl0, thlm, thl0c, qt0, qtm, sv0, svm
+      use modgpu,    only : exchange_halo_z_gpu_alloc_z, exchange_halo_z_gpu_ihc, exchange_halo_z_gpu_scalar
       implicit none
 
-!$acc data copyin(u0,v0,w0,um,vm,wm,thl0,thlm,thl0c,qt0,qtm,sv0,svm) copyout(u0,v0,w0,um,vm,wm,thl0,thlm,thl0c,qt0,qtm,sv0,svm)
-      call exchange_halo_z_gpu_boundary(u0, v0, w0, um, vm, wm, thl0, thlm, thl0c, qt0, qtm, sv0, svm)
+!$acc data copyin(u0, v0, w0, um, vm, wm) copyout(u0, v0, w0, um, vm, wm)
+      call exchange_halo_z_gpu_alloc_z(u0)
+      call exchange_halo_z_gpu_alloc_z(v0)
+      call exchange_halo_z_gpu_alloc_z(w0)
+      call exchange_halo_z_gpu_alloc_z(um)
+      call exchange_halo_z_gpu_alloc_z(vm)
+      call exchange_halo_z_gpu_alloc_z(wm)
 !$acc end data
+
+!$acc data copyin(thl0, thlm, qt0, qtm) copyout(thl0, thlm, qt0, qtm)
+      call exchange_halo_z_gpu_alloc_z(thl0)
+      call exchange_halo_z_gpu_alloc_z(thlm)
+      call exchange_halo_z_gpu_alloc_z(qt0)
+      call exchange_halo_z_gpu_alloc_z(qtm)
+!$acc end data
+
+!$acc data copyin(thl0c) copyout(thl0c)
+      call exchange_halo_z_gpu_ihc(thl0c)
+!$acc end data
+
+!$acc data copyin(sv0, svm) copyout(sv0, svm)
+      call exchange_halo_z_gpu_scalar(sv0, svm)
+!$acc end data
+
 
       if (ibrank .and. ierank) then ! not parallelized in x
         if (BCxm == BCxm_periodic) call xm_periodic
@@ -92,50 +114,6 @@ contains
       end if
 
    end subroutine halos
-   
-   subroutine exchange_halo_z_gpu_boundary(u0, v0, w0, um, vm, wm, thl0, thlm, thl0c, qt0, qtm, sv0, svm)
-      
-      use modglobal, only : ihc, jhc, khc, nsv
-      use decomp_2d, only : exchange_halo_z
-      implicit none
-      
-      integer n
-      
-      real, intent(inout) :: u0(:,:,:)        !<  temporary copy of u0
-      real, intent(inout) :: v0(:,:,:)        !<  temporary copy of v0
-      real, intent(inout) :: w0(:,:,:)        !<  temporary copy of w0
-      real, intent(inout) :: um(:,:,:)        !<  temporary copy of um
-      real, intent(inout) :: vm(:,:,:)        !<  temporary copy of vm
-      real, intent(inout) :: wm(:,:,:)        !<  temporary copy of wm
-      real, intent(inout) :: thl0(:,:,:)      !<  temporary copy of thl0
-      real, intent(inout) :: thlm(:,:,:)      !<  temporary copy of thlm
-      real, intent(inout) :: thl0c(:,:,:)     !<  temporary copy of thl0c
-      real, intent(inout) :: qt0(:,:,:)       !<  temporary copy of qt0
-      real, intent(inout) :: qtm(:,:,:)       !<  temporary copy of qtm
-      real, intent(inout) :: sv0(:,:,:,:)     !<  temporary copy of sv0
-      real, intent(inout) :: svm(:,:,:,:)     !<  temporary copy of svm
-
-#if defined(_GPU)
-      attributes(device) :: u0, v0, w0, um, vm, wm, thl0, thlm, thl0c, qt0, qtm, sv0, svm
-#endif
-
-      call exchange_halo_z(u0)
-      call exchange_halo_z(v0)
-      call exchange_halo_z(w0)
-      call exchange_halo_z(um)
-      call exchange_halo_z(vm)
-      call exchange_halo_z(wm)
-      call exchange_halo_z(thl0)
-      call exchange_halo_z(thlm)
-      call exchange_halo_z(thl0c, opt_zlevel=(/ihc,jhc,khc/))
-      call exchange_halo_z(qt0)
-      call exchange_halo_z(qtm)
-      do n = 1, nsv
-         call exchange_halo_z(sv0(:, :, :, n), opt_zlevel=(/ihc,jhc,khc/))
-         call exchange_halo_z(svm(:, :, :, n), opt_zlevel=(/ihc,jhc,khc/))
-      enddo
-
-   end subroutine exchange_halo_z_gpu_boundary
 
 
    !>
@@ -162,8 +140,6 @@ contains
       use modmpi,         only : myid, slabsum, avey_ibm
       use moddriver,      only : drivergen, driverchunkread
       use modinletdata,   only : ubulk, vbulk, iangle
-      use decomp_2d,      only : exchange_halo_z
-
       implicit none
       real, dimension(kb:ke) :: uaverage, vaverage
       real, dimension(ib:ie,kb:ke) :: uavey
@@ -425,11 +401,14 @@ contains
                                 ibrank, ierank, jbrank, jerank, BCtopm, BCxm, BCym, &
                                 BCtopm_freeslip, BCtopm_noslip, BCtopm_pressure, &
                                 BCxm_periodic, BCym_periodic
-     use decomp_2d,      only : exchange_halo_z
+     use modgpu,         only : exchange_halo_z_gpu
+     implicit none
      integer i, j
 
-     call exchange_halo_z(ekm)
-     call exchange_halo_z(ekh)
+!$acc data copyin(ekm, ekh) copyout(ekm, ekh)
+     call exchange_halo_z_gpu(ekm)
+     call exchange_halo_z_gpu(ekh)
+!$acc end data
 
      ! Top and bottom
      if ((BCtopm .eq. BCtopm_freeslip) .or. (BCtopm .eq. BCtopm_pressure)) then
@@ -1173,25 +1152,6 @@ contains
    end subroutine yso_Neumann
 
 
-   subroutine exchange_halo_z_gpu_bcpup(pup,pvp,pwp)
-     use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh
-     use decomp_2d, only : exchange_halo_z
-     implicit none
-
-     real, dimension(ib-ih:ie+ih, jb-jh:je+jh, kb:ke+kh), intent(inout) :: pup
-     real, dimension(ib-ih:ie+ih, jb-jh:je+jh, kb:ke+kh), intent(inout) :: pvp
-     real, dimension(ib-ih:ie+ih, jb-jh:je+jh, kb:ke+kh), intent(inout) :: pwp
-
-#if defined(_GPU)
-     attributes(device) :: pup,pvp,pwp
-#endif
-
-     call exchange_halo_z(pup, opt_zlevel=(/ih,jh,0/))
-     call exchange_halo_z(pvp, opt_zlevel=(/ih,jh,0/))
-     call exchange_halo_z(pwp, opt_zlevel=(/ih,jh,0/))
-   end subroutine exchange_halo_z_gpu_bcpup
-
-
    !>set boundary conditions pup,pvp,pwp in subroutine fillps in modpois.f90
    subroutine bcpup(pup, pvp, pwp, rk3coef)
 
@@ -1203,7 +1163,8 @@ contains
      use modfields,    only : pres0, up, vp, wp, um, vm, wm, w0, u0, v0, uouttot, vouttot, uinit, vinit, uprof, vprof, pres0, IIc, IIcs
      use modmpi,       only : excjs, excis, myid, avexy_ibm
      use modinletdata, only : u0driver
-     use decomp_2d,    only : exchange_halo_z
+     use modgpu, only       : exchange_halo_z_gpu_kb_opt_ih
+     implicit none
 
      real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb:ke + kh), intent(inout) :: pup
      real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb:ke + kh), intent(inout) :: pvp
@@ -1222,8 +1183,10 @@ contains
      ! Watch this communication as it is slightly different to normal -
      ! maybe safer to just resize to kb-kh:ke+kh
      
-!$acc data copyin(pup,pvp,pwp) copyout(pup,pvp,pwp)
-     call exchange_halo_z_gpu_bcpup(pup,pvp,pwp)
+!$acc data copyin(pup, pvp, pwp) copyout(pup, pvp, pwp)
+     call exchange_halo_z_gpu_kb_opt_ih(pup)
+     call exchange_halo_z_gpu_kb_opt_ih(pvp)
+     call exchange_halo_z_gpu_kb_opt_ih(pwp)
 !$acc end data
 
      ! if (jbrank) write(*,*) "jb after exhange_halo ", pvp(ie/2,jb,ke)
@@ -1346,22 +1309,7 @@ contains
     end select
 
    end subroutine bcpup
-
-
-   subroutine exchange_halo_z_gpu_bcp(p)
-     use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh
-     use decomp_2d, only : exchange_halo_z
-     implicit none
-
-     real, dimension(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh), intent(inout) :: p
-
-#if defined(_GPU)
-     attributes(device) :: p
-#endif
-
-     call exchange_halo_z(p)
-   end subroutine exchange_halo_z_gpu_bcp
-
+   
 
    !>set pressure boundary conditions
    subroutine bcp(p)
@@ -1369,7 +1317,8 @@ contains
      use modglobal, only : ib, ie, jb, je, ih, jh, kb, ke, kh, dyi, rk3step, dt, &
                            ibrank, ierank, jbrank, jerank, BCxm, BCym, BCxm_periodic, BCym_periodic
      use modfields, only : pres0, up, u0, um, uouttot, vp, v0
-     use decomp_2d, only : exchange_halo_z
+     use modgpu,    only : exchange_halo_z_gpu, exchange_halo_z_gpu_alloc_z
+     implicit none
 
      real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb - kh:ke + kh), intent(inout) :: p !< pressure
      integer i, j, k
@@ -1382,11 +1331,10 @@ contains
      end if
      rk3coefi = 1. / rk3coef
 
-!$acc data copyin(p) copyout(p)
-     call exchange_halo_z_gpu_bcp(p)
+!$acc data copyin(p, pres0) copyout(p, pres0)
+     call exchange_halo_z_gpu(p)
+     call exchange_halo_z_gpu_alloc_z(pres0)
 !$acc end data
-
-     call exchange_halo_z(pres0)
 
      if (BCxm .eq. BCxm_periodic) then
        if (ibrank .and. ierank) then
