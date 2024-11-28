@@ -33,4 +33,4 @@ DOI = {10.5194/gmd-15-5309-2022}
 
 ```
 
-If you are looking to also cite a specific version of the software, you can find correposding version-specific DOIs on [Zenodo](https://doi.org/10.5281/zenodo.5111496).
+If you are looking to also cite a specific version of the software, you can find corresponding version-specific DOIs on [Zenodo](https://doi.org/10.5281/zenodo.5111496).
