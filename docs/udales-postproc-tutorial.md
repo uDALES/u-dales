@@ -240,7 +240,7 @@ Scalars (potential temperature, specific humidity, pollutants) are always define
 
 
 
-**You can always look up where the variables are defined from the output variable information using the ****`load_..`****. methods. **.
+**You can always look up where the variables are defined from the output variable information using the load... methods. **
 
 
 # Averages used in uDALES output
@@ -298,7 +298,7 @@ $\langle \bar{\varphi \;} \rangle_C \left(z\right)=\frac{1}{A}\int_{{\;}_{\Omega
 where $A$ is the total surface area (\texttt{sim.xlen*sim.ylen)}. In many cases, it is more convenient to work with comprehensive averages than intrinsic averages, particularly when considering averaged budgets of momentum, temperature etc [3]. To convert the intrinsic-average output from uDALES into a comprehensive average, simply multiply the intrinsic average by $A_f /A$ as shown above. Time and intrinsically-averaged data is contained in the xy`tdump.expnr.nc `file.
 
 
-# **load_stat_xyt: l**oading time- and slab-averaged data
+# load_stat_xyt: loading time- and slab-averaged data
 
 ```matlab
 help sim.load_stat_xyt
