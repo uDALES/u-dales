@@ -1,0 +1,1079 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="TODO:">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>wallfunmom &ndash; uDALES</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <link href="../css/font-awesome.min.css" rel="stylesheet">
+    <link href="../css/local.css" rel="stylesheet">
+      <link  href="../tipuesearch/tipuesearch.css" rel="stylesheet">
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/dalesurban.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>wallfunmom
+      <small>Subroutine</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 0.8% of total for procedures.">104 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/modibm.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/modibm.f90.html'>modibm.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/modibm.html'>modibm</a></li>
+            <li class="breadcrumb-item active" aria-current="page">wallfunmom</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    $(function () {
+    $('[data-bs-toggle="tooltip"]').tooltip()
+    })
+  </script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+      <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+    <div class="card card-primary">
+      <div class="card-header text-left"><h3 class="card-title">Source Code</h3></div>
+      <div class="list-group">
+        <a class="list-group-item" href="../proc/wallfunmom.html#src">wallfunmom</a>
+      </div>
+    </div>
+
+
+  </div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    <h2>public  subroutine wallfunmom(dir, rhs, bound_info)  
+</h2>
+        <div class="card mb-4">
+      <h3 class="card-header card-title bg-light">Uses</h3>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+              <ul class="list-inline">
+                  <li class="list-inline-item"><a href='../module/initfac.html'>initfac</a></li>
+                  <li class="list-inline-item"><a href='../module/modfields.html'>modfields</a></li>
+                  <li class="list-inline-item">decomp_2d</li>
+                  <li class="list-inline-item"><a href='../module/modmpi.html'>modmpi</a></li>
+                  <li class="list-inline-item"><a href='../module/modglobal.html'>modglobal</a></li>
+              </ul>
+            </li>
+            <li class="list-group-item">
+              <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.50.0 (0)
+ -->
+<!-- Title: proc~~wallfunmom~~UsesGraph Pages: 1 -->
+<svg id="procwallfunmomUsesGraph" width="389pt" height="205pt"
+ viewBox="0.00 0.00 389.00 205.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~wallfunmom~~UsesGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 201)">
+<title>proc~~wallfunmom~~UsesGraph</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-201 385,-201 385,4 -4,4"/>
+<!-- proc~wallfunmom -->
+<g id="proc~~wallfunmom~~UsesGraph_node1" class="node">
+<title>proc~wallfunmom</title>
+<polygon fill="none" stroke="black" points="381,-136 302,-136 302,-112 381,-112 381,-136"/>
+<text text-anchor="middle" x="341.5" y="-121.6" font-family="Helvetica,sans-Serif" font-size="10.50">wallfunmom</text>
+</g>
+<!-- decomp_2d -->
+<g id="proc~~wallfunmom~~UsesGraph_node2" class="node">
+<title>decomp_2d</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="165,-197 90,-197 90,-173 165,-173 165,-197"/>
+<text text-anchor="middle" x="127.5" y="-182.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">decomp_2d</text>
+</g>
+<!-- proc~wallfunmom&#45;&gt;decomp_2d -->
+<g id="proc~~wallfunmom~~UsesGraph_edge1" class="edge">
+<title>proc~wallfunmom&#45;&gt;decomp_2d</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M330.67,-136.01C317.68,-150.83 293.23,-175.27 266,-185 237.1,-195.32 202.54,-195.28 175.3,-192.67"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="175.57,-189.18 165.25,-191.57 174.81,-196.14 175.57,-189.18"/>
+</g>
+<!-- module~initfac -->
+<g id="proc~~wallfunmom~~UsesGraph_node3" class="node">
+<title>module~initfac</title>
+<g id="a_proc~~wallfunmom~~UsesGraph_node3"><a xlink:href="../module/initfac.html" xlink:title="initfac">
+<polygon fill="#337ab7" stroke="#337ab7" points="260.5,-96 206.5,-96 206.5,-72 260.5,-72 260.5,-96"/>
+<text text-anchor="middle" x="233.5" y="-81.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">initfac</text>
+</a>
+</g>
+</g>
+<!-- proc~wallfunmom&#45;&gt;module~initfac -->
+<g id="proc~~wallfunmom~~UsesGraph_edge2" class="edge">
+<title>proc~wallfunmom&#45;&gt;module~initfac</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M308.7,-112C296.57,-107.42 282.67,-102.18 270.21,-97.47"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="271.17,-94.1 260.58,-93.84 268.7,-100.65 271.17,-94.1"/>
+</g>
+<!-- module~modfields -->
+<g id="proc~~wallfunmom~~UsesGraph_node4" class="node">
+<title>module~modfields</title>
+<g id="a_proc~~wallfunmom~~UsesGraph_node4"><a xlink:href="../module/modfields.html" xlink:title="modfields">
+<polygon fill="#337ab7" stroke="#337ab7" points="266,-176 201,-176 201,-152 266,-152 266,-176"/>
+<text text-anchor="middle" x="233.5" y="-161.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modfields</text>
+</a>
+</g>
+</g>
+<!-- proc~wallfunmom&#45;&gt;module~modfields -->
+<g id="proc~~wallfunmom~~UsesGraph_edge3" class="edge">
+<title>proc~wallfunmom&#45;&gt;module~modfields</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M308.7,-136C298.32,-139.92 286.65,-144.32 275.68,-148.46"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="274.4,-145.2 266.28,-152.01 276.87,-151.75 274.4,-145.2"/>
+</g>
+<!-- module~modglobal -->
+<g id="proc~~wallfunmom~~UsesGraph_node5" class="node">
+<title>module~modglobal</title>
+<g id="a_proc~~wallfunmom~~UsesGraph_node5"><a xlink:href="../module/modglobal.html" xlink:title="modglobal">
+<polygon fill="#337ab7" stroke="#337ab7" points="162.5,-146 92.5,-146 92.5,-122 162.5,-122 162.5,-146"/>
+<text text-anchor="middle" x="127.5" y="-131.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modglobal</text>
+</a>
+</g>
+</g>
+<!-- proc~wallfunmom&#45;&gt;module~modglobal -->
+<g id="proc~~wallfunmom~~UsesGraph_edge4" class="edge">
+<title>proc~wallfunmom&#45;&gt;module~modglobal</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M301.62,-125.83C265.23,-127.55 210.92,-130.11 172.86,-131.91"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="172.41,-128.42 162.59,-132.39 172.74,-135.42 172.41,-128.42"/>
+</g>
+<!-- module~modmpi -->
+<g id="proc~~wallfunmom~~UsesGraph_node6" class="node">
+<title>module~modmpi</title>
+<g id="a_proc~~wallfunmom~~UsesGraph_node6"><a xlink:href="../module/modmpi.html" xlink:title="modmpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="156,-24 99,-24 99,0 156,0 156,-24"/>
+<text text-anchor="middle" x="127.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modmpi</text>
+</a>
+</g>
+</g>
+<!-- proc~wallfunmom&#45;&gt;module~modmpi -->
+<g id="proc~~wallfunmom~~UsesGraph_edge5" class="edge">
+<title>proc~wallfunmom&#45;&gt;module~modmpi</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M328.28,-111.8C314.25,-98.35 290.07,-76.8 266,-63 233.99,-44.65 194.16,-30.73 165.62,-22.11"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="166.61,-18.75 156.03,-19.28 164.63,-25.46 166.61,-18.75"/>
+</g>
+<!-- module~initfac&#45;&gt;module~modglobal -->
+<g id="proc~~wallfunmom~~UsesGraph_edge6" class="edge">
+<title>module~initfac&#45;&gt;module~modglobal</title>
+<path fill="none" stroke="#cbff00" stroke-dasharray="5,2" d="M207.32,-96.1C194.01,-102.5 177.46,-110.46 162.97,-117.43"/>
+<polygon fill="#cbff00" stroke="#cbff00" points="161.3,-114.35 153.8,-121.83 164.33,-120.66 161.3,-114.35"/>
+</g>
+<!-- module~initfac&#45;&gt;module~modmpi -->
+<g id="proc~~wallfunmom~~UsesGraph_edge7" class="edge">
+<title>module~initfac&#45;&gt;module~modmpi</title>
+<path fill="none" stroke="#cbff00" stroke-dasharray="5,2" d="M217.61,-71.9C204.19,-61.2 183.74,-45.4 165,-33 163.31,-31.88 161.55,-30.76 159.77,-29.64"/>
+<polygon fill="#cbff00" stroke="#cbff00" points="161.14,-26.38 150.77,-24.22 157.53,-32.38 161.14,-26.38"/>
+</g>
+<!-- mpi -->
+<g id="proc~~wallfunmom~~UsesGraph_node7" class="node">
+<title>mpi</title>
+<g id="a_proc~~wallfunmom~~UsesGraph_node7"><a xlink:href="http://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node410.htm" xlink:title="mpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-65 0,-65 0,-41 54,-41 54,-65"/>
+<text text-anchor="middle" x="27" y="-50.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi</text>
+</a>
+</g>
+</g>
+<!-- module~initfac&#45;&gt;mpi -->
+<g id="proc~~wallfunmom~~UsesGraph_edge8" class="edge">
+<title>module~initfac&#45;&gt;mpi</title>
+<path fill="none" stroke="#cbff00" stroke-dasharray="5,2" d="M206.47,-84.51C177.68,-84.57 130.07,-83.21 90,-75 81.31,-73.22 72.2,-70.5 63.7,-67.57"/>
+<polygon fill="#cbff00" stroke="#cbff00" points="64.68,-64.2 54.09,-64.08 62.29,-70.78 64.68,-64.2"/>
+</g>
+<!-- netcdf -->
+<g id="proc~~wallfunmom~~UsesGraph_node8" class="node">
+<title>netcdf</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="154.5,-66 100.5,-66 100.5,-42 154.5,-42 154.5,-66"/>
+<text text-anchor="middle" x="127.5" y="-51.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">netcdf</text>
+</g>
+<!-- module~initfac&#45;&gt;netcdf -->
+<g id="proc~~wallfunmom~~UsesGraph_edge9" class="edge">
+<title>module~initfac&#45;&gt;netcdf</title>
+<path fill="none" stroke="#cbff00" stroke-dasharray="5,2" d="M206.26,-76.43C193.57,-72.77 178.15,-68.32 164.39,-64.35"/>
+<polygon fill="#cbff00" stroke="#cbff00" points="165.31,-60.98 154.74,-61.57 163.37,-67.7 165.31,-60.98"/>
+</g>
+<!-- module~modfields&#45;&gt;decomp_2d -->
+<g id="proc~~wallfunmom~~UsesGraph_edge10" class="edge">
+<title>module~modfields&#45;&gt;decomp_2d</title>
+<path fill="none" stroke="#00ff66" stroke-dasharray="5,2" d="M200.73,-170.41C192.66,-172.04 183.82,-173.83 175.17,-175.58"/>
+<polygon fill="#00ff66" stroke="#00ff66" points="174.29,-172.18 165.18,-177.59 175.67,-179.05 174.29,-172.18"/>
+</g>
+<!-- module~modmpi&#45;&gt;mpi -->
+<g id="proc~~wallfunmom~~UsesGraph_edge11" class="edge">
+<title>module~modmpi&#45;&gt;mpi</title>
+<path fill="none" stroke="#cc00ff" stroke-dasharray="5,2" d="M98.8,-23.53C87.86,-28.08 75.16,-33.37 63.56,-38.2"/>
+<polygon fill="#cc00ff" stroke="#cc00ff" points="62.03,-35.05 54.14,-42.12 64.72,-41.51 62.03,-35.05"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#UsesGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="UsesGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.50.0 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="518pt" height="32pt"
+ viewBox="0.00 0.00 517.50 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-28 513.5,-28 513.5,4 -4,4"/>
+<!-- Module -->
+<g id="node1" class="node">
+<title>Module</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-24 0,-24 0,0 54,0 54,-24"/>
+<text text-anchor="middle" x="27" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Module</text>
+</g>
+<!-- Submodule -->
+<g id="node2" class="node">
+<title>Submodule</title>
+<polygon fill="#5bc0de" stroke="#5bc0de" points="145.5,-24 72.5,-24 72.5,0 145.5,0 145.5,-24"/>
+<text text-anchor="middle" x="109" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Submodule</text>
+</g>
+<!-- Subroutine -->
+<g id="node3" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="234,-24 164,-24 164,0 234,0 234,-24"/>
+<text text-anchor="middle" x="199" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node4" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="310,-24 252,-24 252,0 310,0 310,-24"/>
+<text text-anchor="middle" x="281" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="386,-24 328,-24 328,0 386,0 386,-24"/>
+<text text-anchor="middle" x="357" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="509.5,-24 404.5,-24 404.5,0 509.5,0 509.5,-24"/>
+<text text-anchor="middle" x="457" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a submodule to the (sub)module which it is
+descended from. Dashed arrows point from a module or program unit to 
+modules which it uses.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+            </li>
+        </ul>
+      </div>
+    </div>
+
+
+
+
+    <h3>Arguments</h3>
+        <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-dir~2"></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>dir</strong>(3)</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-rhs~7"></span>
+              real,
+            </td>
+<td>intent(inout)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>rhs</strong>(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bound_info~2"></span>
+              type(<a href='../type/bound_info_type.html'>bound_info_type</a>)
+            </td>
+<td></td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>bound_info</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+    <br>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Calls</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.50.0 (0)
+ -->
+<!-- Title: proc~~wallfunmom~~CallsGraph Pages: 1 -->
+<svg id="procwallfunmomCallsGraph" width="413pt" height="361pt"
+ viewBox="0.00 0.00 413.00 361.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~wallfunmom~~CallsGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 357)">
+<title>proc~~wallfunmom~~CallsGraph</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-357 409,-357 409,4 -4,4"/>
+<!-- proc~wallfunmom -->
+<g id="proc~~wallfunmom~~CallsGraph_node1" class="node">
+<title>proc~wallfunmom</title>
+<polygon fill="none" stroke="black" points="79,-210 0,-210 0,-186 79,-186 79,-210"/>
+<text text-anchor="middle" x="39.5" y="-195.6" font-family="Helvetica,sans-Serif" font-size="10.50">wallfunmom</text>
+</g>
+<!-- mpi_allreduce -->
+<g id="proc~~wallfunmom~~CallsGraph_node2" class="node">
+<title>mpi_allreduce</title>
+<polygon fill="#777777" stroke="#777777" points="240.5,-353 152.5,-353 152.5,-329 240.5,-329 240.5,-353"/>
+<text text-anchor="middle" x="196.5" y="-338.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi_allreduce</text>
+</g>
+<!-- proc~wallfunmom&#45;&gt;mpi_allreduce -->
+<g id="proc~~wallfunmom~~CallsGraph_edge1" class="edge">
+<title>proc~wallfunmom&#45;&gt;mpi_allreduce</title>
+<path fill="none" stroke="#ff0000" d="M44.42,-210.18C53.03,-234.89 75.95,-290.99 115,-320 123.09,-326.01 132.74,-330.3 142.51,-333.37"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="141.7,-336.77 152.27,-336.04 143.55,-330.02 141.7,-336.77"/>
+</g>
+<!-- proc~alignment -->
+<g id="proc~~wallfunmom~~CallsGraph_node3" class="node">
+<title>proc~alignment</title>
+<g id="a_proc~~wallfunmom~~CallsGraph_node3"><a xlink:href="../proc/alignment.html" xlink:title="alignment">
+<polygon fill="#d94e8f" stroke="#d94e8f" points="230,-311 163,-311 163,-287 230,-287 230,-311"/>
+<text text-anchor="middle" x="196.5" y="-296.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">alignment</text>
+</a>
+</g>
+</g>
+<!-- proc~wallfunmom&#45;&gt;proc~alignment -->
+<g id="proc~~wallfunmom~~CallsGraph_edge2" class="edge">
+<title>proc~wallfunmom&#45;&gt;proc~alignment</title>
+<path fill="none" stroke="#ff0000" d="M49.5,-210.16C62.3,-226.66 87.32,-256 115,-273 126.46,-280.03 140.01,-285.36 152.7,-289.3"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="152.05,-292.76 162.63,-292.17 154,-286.04 152.05,-292.76"/>
+</g>
+<!-- proc~is_equal -->
+<g id="proc~~wallfunmom~~CallsGraph_node4" class="node">
+<title>proc~is_equal</title>
+<g id="a_proc~~wallfunmom~~CallsGraph_node4"><a xlink:href="../proc/is_equal.html" xlink:title="is_equal">
+<polygon fill="#d94e8f" stroke="#d94e8f" points="387.5,-272 331.5,-272 331.5,-248 387.5,-248 387.5,-272"/>
+<text text-anchor="middle" x="359.5" y="-257.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">is_equal</text>
+</a>
+</g>
+</g>
+<!-- proc~wallfunmom&#45;&gt;proc~is_equal -->
+<g id="proc~~wallfunmom~~CallsGraph_edge3" class="edge">
+<title>proc~wallfunmom&#45;&gt;proc~is_equal</title>
+<path fill="none" stroke="#ff0000" d="M57,-210.08C71.5,-219.99 93.57,-233.42 115,-240 185.65,-261.67 272.91,-263.11 321.46,-261.82"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="321.61,-265.31 331.49,-261.49 321.39,-258.32 321.61,-265.31"/>
+</g>
+<!-- proc~local_coords -->
+<g id="proc~~wallfunmom~~CallsGraph_node5" class="node">
+<title>proc~local_coords</title>
+<g id="a_proc~~wallfunmom~~CallsGraph_node5"><a xlink:href="../proc/local_coords.html" xlink:title="local_coords">
+<polygon fill="#d9534f" stroke="#d9534f" points="236,-231 157,-231 157,-207 236,-207 236,-231"/>
+<text text-anchor="middle" x="196.5" y="-216.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">local_coords</text>
+</a>
+</g>
+</g>
+<!-- proc~wallfunmom&#45;&gt;proc~local_coords -->
+<g id="proc~~wallfunmom~~CallsGraph_edge4" class="edge">
+<title>proc~wallfunmom&#45;&gt;proc~local_coords</title>
+<path fill="none" stroke="#ff0000" d="M79.21,-203.25C99.65,-206.01 124.93,-209.44 146.7,-212.39"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="146.36,-215.87 156.74,-213.75 147.3,-208.94 146.36,-215.87"/>
+</g>
+<!-- proc~mom_transfer_coef_neutral -->
+<g id="proc~~wallfunmom~~CallsGraph_node6" class="node">
+<title>proc~mom_transfer_coef_neutral</title>
+<g id="a_proc~~wallfunmom~~CallsGraph_node6"><a xlink:href="../proc/mom_transfer_coef_neutral.html" xlink:title="mom_transfer_coef_neutral">
+<polygon fill="#d94e8f" stroke="#d94e8f" points="276.5,-189 116.5,-189 116.5,-165 276.5,-165 276.5,-189"/>
+<text text-anchor="middle" x="196.5" y="-174.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mom_transfer_coef_neutral</text>
+</a>
+</g>
+</g>
+<!-- proc~wallfunmom&#45;&gt;proc~mom_transfer_coef_neutral -->
+<g id="proc~~wallfunmom~~CallsGraph_edge5" class="edge">
+<title>proc~wallfunmom&#45;&gt;proc~mom_transfer_coef_neutral</title>
+<path fill="none" stroke="#ff0000" d="M79.21,-192.75C87.67,-191.61 96.95,-190.35 106.46,-189.06"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="107.01,-192.52 116.45,-187.71 106.07,-185.58 107.01,-192.52"/>
+</g>
+<!-- proc~mom_transfer_coef_stability -->
+<g id="proc~~wallfunmom~~CallsGraph_node7" class="node">
+<title>proc~mom_transfer_coef_stability</title>
+<g id="a_proc~~wallfunmom~~CallsGraph_node7"><a xlink:href="../proc/mom_transfer_coef_stability.html" xlink:title="mom_transfer_coef_stability">
+<polygon fill="#d94e8f" stroke="#d94e8f" points="278,-147 115,-147 115,-123 278,-123 278,-147"/>
+<text text-anchor="middle" x="196.5" y="-132.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mom_transfer_coef_stability</text>
+</a>
+</g>
+</g>
+<!-- proc~wallfunmom&#45;&gt;proc~mom_transfer_coef_stability -->
+<g id="proc~~wallfunmom~~CallsGraph_edge6" class="edge">
+<title>proc~wallfunmom&#45;&gt;proc~mom_transfer_coef_stability</title>
+<path fill="none" stroke="#ff0000" d="M58.81,-185.9C73.5,-176.64 94.9,-164.13 115,-156 120.32,-153.85 125.92,-151.86 131.6,-150.04"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="132.63,-153.38 141.18,-147.12 130.59,-146.68 132.63,-153.38"/>
+</g>
+<!-- proc~trilinear_interp_var -->
+<g id="proc~~wallfunmom~~CallsGraph_node8" class="node">
+<title>proc~trilinear_interp_var</title>
+<g id="a_proc~~wallfunmom~~CallsGraph_node8"><a xlink:href="../proc/trilinear_interp_var.html" xlink:title="trilinear_interp_var">
+<polygon fill="#d94e8f" stroke="#d94e8f" points="253.5,-66 139.5,-66 139.5,-42 253.5,-42 253.5,-66"/>
+<text text-anchor="middle" x="196.5" y="-51.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">trilinear_interp_var</text>
+</a>
+</g>
+</g>
+<!-- proc~wallfunmom&#45;&gt;proc~trilinear_interp_var -->
+<g id="proc~~wallfunmom~~CallsGraph_edge7" class="edge">
+<title>proc~wallfunmom&#45;&gt;proc~trilinear_interp_var</title>
+<path fill="none" stroke="#ff0000" d="M45.02,-185.8C54.39,-162.13 78.2,-109.78 115,-81 120.38,-76.79 126.46,-73.22 132.79,-70.19"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="134.41,-73.31 142.22,-66.14 131.65,-66.88 134.41,-73.31"/>
+</g>
+<!-- zstart -->
+<g id="proc~~wallfunmom~~CallsGraph_node9" class="node">
+<title>zstart</title>
+<polygon fill="#777777" stroke="#777777" points="386.5,-108 332.5,-108 332.5,-84 386.5,-84 386.5,-108"/>
+<text text-anchor="middle" x="359.5" y="-93.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">zstart</text>
+</g>
+<!-- proc~wallfunmom&#45;&gt;zstart -->
+<g id="proc~~wallfunmom~~CallsGraph_edge8" class="edge">
+<title>proc~wallfunmom&#45;&gt;zstart</title>
+<path fill="none" stroke="#ff0000" d="M47.05,-185.89C58.17,-166.74 82.68,-129.99 115,-114 182.21,-80.74 272.82,-84.85 322.39,-90.57"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="321.96,-94.04 332.32,-91.8 322.82,-87.1 321.96,-94.04"/>
+</g>
+<!-- proc~alignment&#45;&gt;proc~is_equal -->
+<g id="proc~~wallfunmom~~CallsGraph_edge9" class="edge">
+<title>proc~alignment&#45;&gt;proc~is_equal</title>
+<path fill="none" stroke="#ffbf00" d="M230.08,-291.11C256.48,-284.71 293.69,-275.7 321.26,-269.02"/>
+<polygon fill="#ffbf00" stroke="#ffbf00" points="322.42,-272.34 331.31,-266.59 320.77,-265.54 322.42,-272.34"/>
+</g>
+<!-- proc~local_coords&#45;&gt;proc~is_equal -->
+<g id="proc~~wallfunmom~~CallsGraph_edge11" class="edge">
+<title>proc~local_coords&#45;&gt;proc~is_equal</title>
+<path fill="none" stroke="#00ff3f" d="M236.06,-228.82C262.02,-235.43 296.04,-244.09 321.63,-250.61"/>
+<polygon fill="#00ff3f" stroke="#00ff3f" points="320.78,-254.01 331.33,-253.08 322.51,-247.22 320.78,-254.01"/>
+</g>
+<!-- proc~cross_product -->
+<g id="proc~~wallfunmom~~CallsGraph_node10" class="node">
+<title>proc~cross_product</title>
+<g id="a_proc~~wallfunmom~~CallsGraph_node10"><a xlink:href="../proc/cross_product.html" xlink:title="cross_product">
+<polygon fill="#d94e8f" stroke="#d94e8f" points="402,-230 317,-230 317,-206 402,-206 402,-230"/>
+<text text-anchor="middle" x="359.5" y="-215.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">cross_product</text>
+</a>
+</g>
+</g>
+<!-- proc~local_coords&#45;&gt;proc~cross_product -->
+<g id="proc~~wallfunmom~~CallsGraph_edge10" class="edge">
+<title>proc~local_coords&#45;&gt;proc~cross_product</title>
+<path fill="none" stroke="#00ff3f" d="M236.06,-218.76C257.2,-218.63 283.69,-218.46 306.62,-218.32"/>
+<polygon fill="#00ff3f" stroke="#00ff3f" points="306.89,-221.82 316.87,-218.26 306.85,-214.82 306.89,-221.82"/>
+</g>
+<!-- proc~trilinear_interp_var&#45;&gt;zstart -->
+<g id="proc~~wallfunmom~~CallsGraph_edge14" class="edge">
+<title>proc~trilinear_interp_var&#45;&gt;zstart</title>
+<path fill="none" stroke="#7f00ff" d="M243.64,-66.04C268.73,-72.58 299.3,-80.56 322.6,-86.63"/>
+<polygon fill="#7f00ff" stroke="#7f00ff" points="321.86,-90.06 332.42,-89.2 323.63,-83.29 321.86,-90.06"/>
+</g>
+<!-- proc~eval_corners -->
+<g id="proc~~wallfunmom~~CallsGraph_node11" class="node">
+<title>proc~eval_corners</title>
+<g id="a_proc~~wallfunmom~~CallsGraph_node11"><a xlink:href="../proc/eval_corners.html" xlink:title="eval_corners">
+<polygon fill="#d94e8f" stroke="#d94e8f" points="400,-66 319,-66 319,-42 400,-42 400,-66"/>
+<text text-anchor="middle" x="359.5" y="-51.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">eval_corners</text>
+</a>
+</g>
+</g>
+<!-- proc~trilinear_interp_var&#45;&gt;proc~eval_corners -->
+<g id="proc~~wallfunmom~~CallsGraph_edge12" class="edge">
+<title>proc~trilinear_interp_var&#45;&gt;proc~eval_corners</title>
+<path fill="none" stroke="#7f00ff" d="M253.81,-54C271.53,-54 290.98,-54 308.25,-54"/>
+<polygon fill="#7f00ff" stroke="#7f00ff" points="308.69,-57.5 318.69,-54 308.69,-50.5 308.69,-57.5"/>
+</g>
+<!-- proc~trilinear_interp -->
+<g id="proc~~wallfunmom~~CallsGraph_node12" class="node">
+<title>proc~trilinear_interp</title>
+<g id="a_proc~~wallfunmom~~CallsGraph_node12"><a xlink:href="../proc/trilinear_interp.html" xlink:title="trilinear_interp">
+<polygon fill="#d94e8f" stroke="#d94e8f" points="405,-24 314,-24 314,0 405,0 405,-24"/>
+<text text-anchor="middle" x="359.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">trilinear_interp</text>
+</a>
+</g>
+</g>
+<!-- proc~trilinear_interp_var&#45;&gt;proc~trilinear_interp -->
+<g id="proc~~wallfunmom~~CallsGraph_edge13" class="edge">
+<title>proc~trilinear_interp_var&#45;&gt;proc~trilinear_interp</title>
+<path fill="none" stroke="#7f00ff" d="M243.64,-41.96C262.48,-37.05 284.41,-31.33 304.03,-26.21"/>
+<polygon fill="#7f00ff" stroke="#7f00ff" points="304.95,-29.59 313.75,-23.68 303.19,-22.81 304.95,-29.59"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CallsGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CallsGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.50.0 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 27.51" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.86 0.86) rotate(0) translate(4 28)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-28 741.5,-28 741.5,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="70,-24 0,-24 0,0 70,0 70,-24"/>
+<text text-anchor="middle" x="35" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="146,-24 88,-24 88,0 146,0 146,-24"/>
+<text text-anchor="middle" x="117" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="225.5,-24 164.5,-24 164.5,0 225.5,0 225.5,-24"/>
+<text text-anchor="middle" x="195" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="374,-24 244,-24 244,0 374,0 374,-24"/>
+<text text-anchor="middle" x="309" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="537.5,-24 392.5,-24 392.5,0 537.5,0 537.5,-24"/>
+<text text-anchor="middle" x="465" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="614,-24 556,-24 556,0 614,0 614,-24"/>
+<text text-anchor="middle" x="585" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="737.5,-24 632.5,-24 632.5,0 737.5,0 737.5,-24"/>
+<text text-anchor="middle" x="685" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Called by</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.50.0 (0)
+ -->
+<!-- Title: proc~~wallfunmom~~CalledByGraph Pages: 1 -->
+<svg id="procwallfunmomCalledByGraph" width="315pt" height="32pt"
+ viewBox="0.00 0.00 315.00 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~wallfunmom~~CalledByGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 28)">
+<title>proc~~wallfunmom~~CalledByGraph</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-28 311,-28 311,4 -4,4"/>
+<!-- proc~wallfunmom -->
+<g id="proc~~wallfunmom~~CalledByGraph_node1" class="node">
+<title>proc~wallfunmom</title>
+<polygon fill="none" stroke="black" points="307,-24 228,-24 228,0 307,0 307,-24"/>
+<text text-anchor="middle" x="267.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50">wallfunmom</text>
+</g>
+<!-- proc~ibmwallfun -->
+<g id="proc~~wallfunmom~~CalledByGraph_node2" class="node">
+<title>proc~ibmwallfun</title>
+<g id="a_proc~~wallfunmom~~CalledByGraph_node2"><a xlink:href="../proc/ibmwallfun.html" xlink:title="ibmwallfun">
+<polygon fill="#d9534f" stroke="#d9534f" points="192,-24 121,-24 121,0 192,0 192,-24"/>
+<text text-anchor="middle" x="156.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">ibmwallfun</text>
+</a>
+</g>
+</g>
+<!-- proc~ibmwallfun&#45;&gt;proc~wallfunmom -->
+<g id="proc~~wallfunmom~~CalledByGraph_edge1" class="edge">
+<title>proc~ibmwallfun&#45;&gt;proc~wallfunmom</title>
+<path fill="none" stroke="#ff0000" d="M192.29,-12C200.35,-12 209.08,-12 217.62,-12"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="217.88,-15.5 227.88,-12 217.88,-8.5 217.88,-15.5"/>
+</g>
+<!-- program~dalesurban -->
+<g id="proc~~wallfunmom~~CalledByGraph_node3" class="node">
+<title>program~dalesurban</title>
+<g id="a_proc~~wallfunmom~~CalledByGraph_node3"><a xlink:href="../program/dalesurban.html" xlink:title="DALESURBAN">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="85,-24 0,-24 0,0 85,0 85,-24"/>
+<text text-anchor="middle" x="42.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">DALESURBAN</text>
+</a>
+</g>
+</g>
+<!-- program~dalesurban&#45;&gt;proc~ibmwallfun -->
+<g id="proc~~wallfunmom~~CalledByGraph_edge2" class="edge">
+<title>program~dalesurban&#45;&gt;proc~ibmwallfun</title>
+<path fill="none" stroke="#ff0000" d="M85.2,-12C93.52,-12 102.28,-12 110.69,-12"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="110.72,-15.5 120.72,-12 110.72,-8.5 110.72,-15.5"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CalledByGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CalledByGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.50.0 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 27.51" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.86 0.86) rotate(0) translate(4 28)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-28 741.5,-28 741.5,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="70,-24 0,-24 0,0 70,0 70,-24"/>
+<text text-anchor="middle" x="35" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="146,-24 88,-24 88,0 146,0 146,-24"/>
+<text text-anchor="middle" x="117" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="225.5,-24 164.5,-24 164.5,0 225.5,0 225.5,-24"/>
+<text text-anchor="middle" x="195" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="374,-24 244,-24 244,0 374,0 374,-24"/>
+<text text-anchor="middle" x="309" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="537.5,-24 392.5,-24 392.5,0 537.5,0 537.5,-24"/>
+<text text-anchor="middle" x="465" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="614,-24 556,-24 556,0 614,0 614,-24"/>
+<text text-anchor="middle" x="585" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="737.5,-24 632.5,-24 632.5,0 737.5,0 737.5,-24"/>
+<text text-anchor="middle" x="685" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <br>
+
+
+    
+    
+
+    
+    
+
+
+
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="hl codehilite"><pre><span></span><span class="w">   </span><span class="k">subroutine </span><span class="n">wallfunmom</span><span class="p">(</span><span class="n">dir</span><span class="p">,</span><span class="w"> </span><span class="n">rhs</span><span class="p">,</span><span class="w"> </span><span class="n">bound_info</span><span class="p">)</span>
+<span class="w">     </span><span class="k">use </span><span class="n">modglobal</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">ib</span><span class="p">,</span><span class="w"> </span><span class="n">ie</span><span class="p">,</span><span class="w"> </span><span class="n">ih</span><span class="p">,</span><span class="w"> </span><span class="n">jb</span><span class="p">,</span><span class="w"> </span><span class="n">je</span><span class="p">,</span><span class="w"> </span><span class="n">jh</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span><span class="p">,</span><span class="w"> </span><span class="n">kh</span><span class="p">,</span><span class="w"> </span><span class="n">xf</span><span class="p">,</span><span class="w"> </span><span class="n">yf</span><span class="p">,</span><span class="w"> </span><span class="n">zf</span><span class="p">,</span><span class="w"> </span><span class="n">xh</span><span class="p">,</span><span class="w"> </span><span class="n">yh</span><span class="p">,</span><span class="w"> </span><span class="n">zh</span><span class="p">,</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                           </span><span class="n">eps1</span><span class="p">,</span><span class="w"> </span><span class="n">fkar</span><span class="p">,</span><span class="w"> </span><span class="n">dx</span><span class="p">,</span><span class="w"> </span><span class="n">dy</span><span class="p">,</span><span class="w"> </span><span class="n">dzf</span><span class="p">,</span><span class="w"> </span><span class="n">iwallmom</span><span class="p">,</span><span class="w"> </span><span class="n">xhat</span><span class="p">,</span><span class="w"> </span><span class="n">yhat</span><span class="p">,</span><span class="w"> </span><span class="n">zhat</span><span class="p">,</span><span class="w"> </span><span class="n">vec0</span><span class="p">,</span><span class="w"> </span><span class="n">nfcts</span><span class="p">,</span><span class="w"> </span><span class="n">lwritefac</span><span class="p">,</span><span class="w"> </span><span class="n">rk3step</span>
+<span class="w">     </span><span class="k">use </span><span class="n">modfields</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">u0</span><span class="p">,</span><span class="w"> </span><span class="n">v0</span><span class="p">,</span><span class="w"> </span><span class="n">w0</span><span class="p">,</span><span class="w"> </span><span class="n">thl0</span><span class="p">,</span><span class="w"> </span><span class="n">tau_x</span><span class="p">,</span><span class="w"> </span><span class="n">tau_y</span><span class="p">,</span><span class="w"> </span><span class="n">tau_z</span>
+<span class="w">     </span><span class="k">use </span><span class="n">initfac</span><span class="p">,</span><span class="w">   </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">facT</span><span class="p">,</span><span class="w"> </span><span class="n">facz0</span><span class="p">,</span><span class="w"> </span><span class="n">facz0h</span><span class="p">,</span><span class="w"> </span><span class="n">facnorm</span><span class="p">,</span><span class="w"> </span><span class="n">faca</span>
+<span class="w">     </span><span class="k">use </span><span class="n">decomp_2d</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">zstart</span>
+<span class="w">     </span><span class="k">use </span><span class="n">modmpi</span><span class="p">,</span><span class="w">    </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">comm3d</span><span class="p">,</span><span class="w"> </span><span class="n">mpi_sum</span><span class="p">,</span><span class="w"> </span><span class="n">mpierr</span><span class="p">,</span><span class="w"> </span><span class="n">my_real</span>
+
+<span class="w">     </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w">    </span><span class="kd">::</span><span class="w"> </span><span class="n">dir</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+<span class="w">     </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">rhs</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<span class="w">     </span><span class="k">type</span><span class="p">(</span><span class="n">bound_info_type</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">bound_info</span>
+
+<span class="w">     </span><span class="kt">integer </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">,</span><span class="w"> </span><span class="n">n</span><span class="p">,</span><span class="w"> </span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="n">sec</span><span class="p">,</span><span class="w"> </span><span class="n">pt</span><span class="p">,</span><span class="w"> </span><span class="n">fac</span>
+<span class="w">     </span><span class="kt">real </span><span class="n">dist</span><span class="p">,</span><span class="w"> </span><span class="n">stress</span><span class="p">,</span><span class="w"> </span><span class="n">stress_dir</span><span class="p">,</span><span class="w"> </span><span class="n">stress_aligned</span><span class="p">,</span><span class="w"> </span><span class="n">area</span><span class="p">,</span><span class="w"> </span><span class="n">vol</span><span class="p">,</span><span class="w"> </span><span class="n">momvol</span><span class="p">,</span><span class="w"> </span><span class="n">Tair</span><span class="p">,</span><span class="w"> </span><span class="n">Tsurf</span><span class="p">,</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">y</span><span class="p">,</span><span class="w"> </span><span class="n">z</span><span class="p">,</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">          </span><span class="n">utan</span><span class="p">,</span><span class="w"> </span><span class="n">udir</span><span class="p">,</span><span class="w"> </span><span class="n">ctm</span><span class="p">,</span><span class="w"> </span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="n">a_is</span><span class="p">,</span><span class="w"> </span><span class="n">a_xn</span><span class="p">,</span><span class="w"> </span><span class="n">a_yn</span><span class="p">,</span><span class="w"> </span><span class="n">a_zn</span><span class="p">,</span><span class="w"> </span><span class="n">stress_ix</span><span class="p">,</span><span class="w"> </span><span class="n">stress_iy</span><span class="p">,</span><span class="w"> </span><span class="n">stress_iz</span><span class="p">,</span><span class="w"> </span><span class="n">xrec</span><span class="p">,</span><span class="w"> </span><span class="n">yrec</span><span class="p">,</span><span class="w"> </span><span class="n">zrec</span>
+<span class="w">     </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">dimension</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">uvec</span><span class="p">,</span><span class="w"> </span><span class="n">norm</span><span class="p">,</span><span class="w"> </span><span class="n">strm</span><span class="p">,</span><span class="w"> </span><span class="n">span</span><span class="p">,</span><span class="w"> </span><span class="n">stressvec</span>
+<span class="w">     </span><span class="kt">logical</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">valid</span>
+<span class="w">     </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">dimension</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">nfcts</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">fac_tau_loc</span><span class="p">,</span><span class="w"> </span><span class="n">fac_tau</span>
+<span class="w">     </span><span class="c">!real, dimension(:), allocatable :: fac_tau, fac_pres</span>
+
+<span class="w">     </span><span class="k">procedure</span><span class="p">(</span><span class="n">interp_velocity</span><span class="p">),</span><span class="w"> </span><span class="k">pointer</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">interp_velocity_ptr</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="nb">null</span><span class="p">()</span>
+<span class="w">     </span><span class="k">procedure</span><span class="p">(</span><span class="n">interp_temperature</span><span class="p">),</span><span class="w"> </span><span class="k">pointer</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">interp_temperature_ptr</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="nb">null</span><span class="p">()</span>
+
+<span class="w">     </span><span class="k">select case</span><span class="p">(</span><span class="n">alignment</span><span class="p">(</span><span class="n">dir</span><span class="p">))</span>
+<span class="w">     </span><span class="k">case</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="w">       </span><span class="n">interp_velocity_ptr</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">interp_velocity_u</span>
+<span class="w">       </span><span class="n">interp_temperature_ptr</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">interp_temperature_u</span>
+<span class="w">     </span><span class="k">case</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="w">       </span><span class="n">interp_velocity_ptr</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">interp_velocity_v</span>
+<span class="w">       </span><span class="n">interp_temperature_ptr</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">interp_temperature_v</span>
+<span class="w">     </span><span class="k">case</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+<span class="w">       </span><span class="n">interp_velocity_ptr</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">interp_velocity_w</span>
+<span class="w">       </span><span class="n">interp_temperature_ptr</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">interp_temperature_w</span>
+<span class="w">     </span><span class="k">end select</span>
+
+<span class="k">     </span><span class="n">fac_tau_loc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+
+<span class="w">     </span><span class="k">do </span><span class="n">sec</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="n">bound_info</span><span class="p">%</span><span class="n">nfctsecsrank</span>
+<span class="w">       </span><span class="c">!sec = bound_info%fctsecsrank(m) ! index of section</span>
+<span class="w">       </span><span class="c">!n = bound_info%secbndptids(sec) ! index of boundary point</span>
+<span class="w">       </span><span class="n">area</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">bound_info</span><span class="p">%</span><span class="n">secareas_loc</span><span class="p">(</span><span class="n">sec</span><span class="p">)</span><span class="w"> </span><span class="c">! area of section</span>
+<span class="w">       </span><span class="n">fac</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">bound_info</span><span class="p">%</span><span class="n">secfacids_loc</span><span class="p">(</span><span class="n">sec</span><span class="p">)</span><span class="w"> </span><span class="c">! index of facet</span>
+<span class="w">       </span><span class="n">norm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">facnorm</span><span class="p">(</span><span class="n">fac</span><span class="p">,:)</span><span class="w"> </span><span class="c">! facet normal</span>
+
+<span class="w">       </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">bound_info</span><span class="p">%</span><span class="n">lskipsec_loc</span><span class="p">(</span><span class="n">sec</span><span class="p">))</span><span class="w"> </span><span class="k">cycle</span>
+<span class="w">       </span><span class="c">!if (facz0(fac) &lt; eps1) cycle</span>
+
+<span class="w">       </span><span class="c">! i = bound_info%bndpts(n,1) - zstart(1) + 1</span>
+<span class="w">       </span><span class="c">! j = bound_info%bndpts(n,2) - zstart(2) + 1</span>
+<span class="w">       </span><span class="c">! k = bound_info%bndpts(n,3) - zstart(3) + 1</span>
+<span class="w">       </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">bound_info</span><span class="p">%</span><span class="n">secbndpts_loc</span><span class="p">(</span><span class="n">sec</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">zstart</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="c">! should be on this rank!</span>
+<span class="w">       </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">bound_info</span><span class="p">%</span><span class="n">secbndpts_loc</span><span class="p">(</span><span class="n">sec</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">zstart</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="c">! should be on this rank!</span>
+<span class="w">       </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">bound_info</span><span class="p">%</span><span class="n">secbndpts_loc</span><span class="p">(</span><span class="n">sec</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">zstart</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="c">! should be on this rank!</span>
+
+<span class="w">       </span><span class="k">if</span><span class="w"> </span><span class="p">((</span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">ib</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">ie</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="p">(</span><span class="n">j</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">jb</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="p">(</span><span class="n">j</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">je</span><span class="p">))</span><span class="w"> </span><span class="k">then</span>
+<span class="k">          write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="s2">&quot;problem in wallfunmom&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">alignment</span><span class="p">(</span><span class="n">dir</span><span class="p">),</span><span class="w">  </span><span class="n">bound_info</span><span class="p">%</span><span class="n">secbndpts_loc</span><span class="p">(</span><span class="n">sec</span><span class="p">,</span><span class="mi">1</span><span class="p">),</span><span class="w"> </span><span class="n">bound_info</span><span class="p">%</span><span class="n">secbndpts_loc</span><span class="p">(</span><span class="n">sec</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+<span class="w">          </span><span class="k">stop </span><span class="mi">1</span>
+<span class="w">       </span><span class="k">end if</span>
+
+<span class="k">       if</span><span class="w"> </span><span class="p">(</span><span class="n">bound_info</span><span class="p">%</span><span class="n">lcomprec_loc</span><span class="p">(</span><span class="n">sec</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="n">lnorec</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">         </span><span class="n">uvec</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">interp_velocity_ptr</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span>
+<span class="w">         </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">iwallmom</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">           </span><span class="n">Tair</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">interp_temperature_ptr</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span>
+<span class="w">         </span><span class="k">end if</span>
+<span class="k">         </span><span class="n">dist</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">bound_info</span><span class="p">%</span><span class="n">bnddst_loc</span><span class="p">(</span><span class="n">sec</span><span class="p">)</span>
+<span class="w">       </span><span class="k">else</span>
+<span class="k">         </span><span class="n">xrec</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">bound_info</span><span class="p">%</span><span class="n">recpts_loc</span><span class="p">(</span><span class="n">sec</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+<span class="w">         </span><span class="n">yrec</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">bound_info</span><span class="p">%</span><span class="n">recpts_loc</span><span class="p">(</span><span class="n">sec</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+<span class="w">         </span><span class="n">zrec</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">bound_info</span><span class="p">%</span><span class="n">recpts_loc</span><span class="p">(</span><span class="n">sec</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span>
+<span class="w">         </span><span class="n">uvec</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">trilinear_interp_var</span><span class="p">(</span><span class="n">u0</span><span class="p">,</span><span class="w"> </span><span class="n">bound_info</span><span class="p">%</span><span class="n">recids_u_loc</span><span class="p">(</span><span class="n">sec</span><span class="p">,:),</span><span class="w"> </span><span class="n">xh</span><span class="p">,</span><span class="w"> </span><span class="n">yf</span><span class="p">,</span><span class="w"> </span><span class="n">zf</span><span class="p">,</span><span class="w"> </span><span class="n">xrec</span><span class="p">,</span><span class="w"> </span><span class="n">yrec</span><span class="p">,</span><span class="w"> </span><span class="n">zrec</span><span class="p">)</span>
+<span class="w">         </span><span class="n">uvec</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">trilinear_interp_var</span><span class="p">(</span><span class="n">v0</span><span class="p">,</span><span class="w"> </span><span class="n">bound_info</span><span class="p">%</span><span class="n">recids_v_loc</span><span class="p">(</span><span class="n">sec</span><span class="p">,:),</span><span class="w"> </span><span class="n">xf</span><span class="p">,</span><span class="w"> </span><span class="n">yh</span><span class="p">,</span><span class="w"> </span><span class="n">zf</span><span class="p">,</span><span class="w"> </span><span class="n">xrec</span><span class="p">,</span><span class="w"> </span><span class="n">yrec</span><span class="p">,</span><span class="w"> </span><span class="n">zrec</span><span class="p">)</span>
+<span class="w">         </span><span class="n">uvec</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">trilinear_interp_var</span><span class="p">(</span><span class="n">w0</span><span class="p">,</span><span class="w"> </span><span class="n">bound_info</span><span class="p">%</span><span class="n">recids_w_loc</span><span class="p">(</span><span class="n">sec</span><span class="p">,:),</span><span class="w"> </span><span class="n">xf</span><span class="p">,</span><span class="w"> </span><span class="n">yf</span><span class="p">,</span><span class="w"> </span><span class="n">zh</span><span class="p">,</span><span class="w"> </span><span class="n">xrec</span><span class="p">,</span><span class="w"> </span><span class="n">yrec</span><span class="p">,</span><span class="w"> </span><span class="n">zrec</span><span class="p">)</span>
+<span class="w">         </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">iwallmom</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="n">Tair</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">trilinear_interp_var</span><span class="p">(</span><span class="n">thl0</span><span class="p">,</span><span class="w"> </span><span class="n">bound_info</span><span class="p">%</span><span class="n">recids_c_loc</span><span class="p">(</span><span class="n">sec</span><span class="p">,:),</span><span class="w"> </span><span class="n">xf</span><span class="p">,</span><span class="w"> </span><span class="n">yf</span><span class="p">,</span><span class="w"> </span><span class="n">zf</span><span class="p">,</span><span class="w"> </span><span class="n">xrec</span><span class="p">,</span><span class="w"> </span><span class="n">yrec</span><span class="p">,</span><span class="w"> </span><span class="n">zrec</span><span class="p">)</span>
+<span class="w">         </span><span class="n">dist</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">bound_info</span><span class="p">%</span><span class="n">bnddst_loc</span><span class="p">(</span><span class="n">sec</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">norm2</span><span class="p">((</span><span class="o">/</span><span class="n">xrec</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">xf</span><span class="p">(</span><span class="n">bound_info</span><span class="p">%</span><span class="n">secbndpts_loc</span><span class="p">(</span><span class="n">sec</span><span class="p">,</span><span class="mi">1</span><span class="p">)),</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                                                     </span><span class="n">yrec</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">yf</span><span class="p">(</span><span class="n">bound_info</span><span class="p">%</span><span class="n">secbndpts_loc</span><span class="p">(</span><span class="n">sec</span><span class="p">,</span><span class="mi">2</span><span class="p">)),</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                                                     </span><span class="n">zrec</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">zf</span><span class="p">(</span><span class="n">bound_info</span><span class="p">%</span><span class="n">secbndpts_loc</span><span class="p">(</span><span class="n">sec</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span><span class="o">/</span><span class="p">))</span>
+<span class="w">       </span><span class="k">end if</span>
+
+<span class="k">       if</span><span class="w"> </span><span class="p">(</span><span class="nb">log</span><span class="p">(</span><span class="n">dist</span><span class="o">/</span><span class="n">facz0</span><span class="p">(</span><span class="n">fac</span><span class="p">))</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mf">1.</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">          cycle</span><span class="w"> </span><span class="c">! ideally would set a value for dist that gives a resonable (large) flux</span>
+<span class="w">          </span><span class="c">!dist = facz0(fac)+facz0h(fac)</span>
+<span class="w">       </span><span class="k">end if</span>
+
+<span class="k">       if</span><span class="w"> </span><span class="p">(</span><span class="n">is_equal</span><span class="p">(</span><span class="n">uvec</span><span class="p">,</span><span class="w"> </span><span class="n">vec0</span><span class="p">))</span><span class="w"> </span><span class="k">cycle</span>
+
+<span class="k">       call </span><span class="n">local_coords</span><span class="p">(</span><span class="n">uvec</span><span class="p">,</span><span class="w"> </span><span class="n">norm</span><span class="p">,</span><span class="w"> </span><span class="n">span</span><span class="p">,</span><span class="w"> </span><span class="n">strm</span><span class="p">,</span><span class="w"> </span><span class="n">valid</span><span class="p">)</span>
+<span class="w">       </span><span class="k">if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="n">valid</span><span class="p">)</span><span class="w"> </span><span class="k">cycle</span>
+
+<span class="k">       </span><span class="n">utan</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">dot_product</span><span class="p">(</span><span class="n">uvec</span><span class="p">,</span><span class="w"> </span><span class="n">strm</span><span class="p">)</span>
+<span class="w">       </span><span class="c">!utan = max(0.01, utan) ! uDALES 1</span>
+
+<span class="w">       </span><span class="c">! calcualate momentum transfer coefficient</span>
+<span class="w">       </span><span class="c">! make into interface somehow? because iwallmom doesn&#39;t change in the loop</span>
+<span class="w">       </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">iwallmom</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="k">then</span><span class="w"> </span><span class="c">! stability included</span>
+<span class="w">         </span><span class="n">ctm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">mom_transfer_coef_stability</span><span class="p">(</span><span class="n">utan</span><span class="p">,</span><span class="w"> </span><span class="n">dist</span><span class="p">,</span><span class="w"> </span><span class="n">facz0</span><span class="p">(</span><span class="n">fac</span><span class="p">),</span><span class="w"> </span><span class="n">facz0h</span><span class="p">(</span><span class="n">fac</span><span class="p">),</span><span class="w"> </span><span class="n">Tair</span><span class="p">,</span><span class="w"> </span><span class="n">facT</span><span class="p">(</span><span class="n">fac</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span>
+<span class="w">       </span><span class="k">else if</span><span class="w"> </span><span class="p">(</span><span class="n">iwallmom</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">3</span><span class="p">)</span><span class="w"> </span><span class="k">then</span><span class="w"> </span><span class="c">! neutral</span>
+<span class="w">         </span><span class="n">ctm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">mom_transfer_coef_neutral</span><span class="p">(</span><span class="n">dist</span><span class="p">,</span><span class="w"> </span><span class="n">facz0</span><span class="p">(</span><span class="n">fac</span><span class="p">))</span>
+<span class="w">       </span><span class="k">end if</span>
+
+<span class="k">       </span><span class="n">stress</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ctm</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">utan</span><span class="o">**</span><span class="mi">2</span>
+
+<span class="w">       </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">bound_info</span><span class="p">%</span><span class="n">lcomprec_loc</span><span class="p">(</span><span class="n">sec</span><span class="p">))</span><span class="w"> </span><span class="k">then</span>
+<span class="k">         </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">dot_product</span><span class="p">(</span><span class="n">dir</span><span class="p">,</span><span class="w"> </span><span class="n">strm</span><span class="p">)</span>
+<span class="w">         </span><span class="n">stress_dir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">stress</span>
+<span class="w">       </span><span class="k">else</span>
+<span class="w">         </span><span class="c">! Rotation from local (strm,span,norm) to global (xhat,yhat,zhat) basis</span>
+<span class="w">         </span><span class="c">! \tau&#39;_ij = a_ip a_jq \tau_pq</span>
+<span class="w">         </span><span class="c">! \tau_pq in local coordinates is something like \tau \delta_13, because we only have \tau_{strm,norm})</span>
+<span class="w">         </span><span class="n">a_is</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">dot_product</span><span class="p">(</span><span class="n">dir</span><span class="p">,</span><span class="w"> </span><span class="n">strm</span><span class="p">)</span>
+<span class="w">         </span><span class="n">a_xn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">dot_product</span><span class="p">(</span><span class="n">xhat</span><span class="p">,</span><span class="w"> </span><span class="n">norm</span><span class="p">)</span>
+<span class="w">         </span><span class="n">a_yn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">dot_product</span><span class="p">(</span><span class="n">yhat</span><span class="p">,</span><span class="w"> </span><span class="n">norm</span><span class="p">)</span>
+<span class="w">         </span><span class="n">a_zn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">dot_product</span><span class="p">(</span><span class="n">zhat</span><span class="p">,</span><span class="w"> </span><span class="n">norm</span><span class="p">)</span>
+
+<span class="w">         </span><span class="n">stress_ix</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">a_is</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">a_xn</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">stress</span>
+<span class="w">         </span><span class="n">stress_iy</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">a_is</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">a_yn</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">stress</span>
+<span class="w">         </span><span class="n">stress_iz</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">a_is</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">a_zn</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">stress</span>
+
+<span class="w">         </span><span class="n">stressvec</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">stress_ix</span>
+<span class="w">         </span><span class="n">stressvec</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">stress_iy</span>
+<span class="w">         </span><span class="n">stressvec</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">stress_iz</span>
+<span class="w">         </span><span class="n">stress_dir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">norm2</span><span class="p">(</span><span class="n">stressvec</span><span class="p">)</span>
+<span class="w">       </span><span class="k">end if</span>
+
+<span class="k">       </span><span class="n">stress_dir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">sign</span><span class="p">(</span><span class="n">stress_dir</span><span class="p">,</span><span class="w"> </span><span class="nb">dot_product</span><span class="p">(</span><span class="n">uvec</span><span class="p">,</span><span class="w"> </span><span class="n">dir</span><span class="p">))</span>
+
+<span class="w">       </span><span class="n">vol</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dx</span><span class="o">*</span><span class="n">dy</span><span class="o">*</span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+<span class="w">       </span><span class="n">momvol</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">stress_dir</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">area</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">vol</span>
+<span class="w">       </span><span class="n">rhs</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rhs</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">momvol</span>
+<span class="w">       </span><span class="n">fac_tau_loc</span><span class="p">(</span><span class="n">fac</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fac_tau_loc</span><span class="p">(</span><span class="n">fac</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">stress_dir</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">area</span><span class="w"> </span><span class="c">! output stresses on facets</span>
+<span class="w">     </span><span class="k">end do</span>
+
+<span class="k">     if</span><span class="w"> </span><span class="p">(</span><span class="n">lwritefac</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">rk3step</span><span class="o">==</span><span class="mi">3</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">        </span><span class="n">fac_tau_loc</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">nfcts</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fac_tau_loc</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">nfcts</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">faca</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">nfcts</span><span class="p">)</span>
+<span class="w">        </span><span class="k">call </span><span class="n">MPI_ALLREDUCE</span><span class="p">(</span><span class="n">fac_tau_loc</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">nfcts</span><span class="p">),</span><span class="w"> </span><span class="n">fac_tau</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">nfcts</span><span class="p">),</span><span class="w"> </span><span class="n">nfcts</span><span class="p">,</span><span class="w"> </span><span class="n">MY_REAL</span><span class="p">,</span><span class="w"> </span><span class="n">MPI_SUM</span><span class="p">,</span><span class="w"> </span><span class="n">comm3d</span><span class="p">,</span><span class="w"> </span><span class="n">mpierr</span><span class="p">)</span>
+
+<span class="w">        </span><span class="k">select case</span><span class="p">(</span><span class="n">alignment</span><span class="p">(</span><span class="n">dir</span><span class="p">))</span>
+<span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="w">           </span><span class="n">fac_tau_x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fac_tau</span>
+<span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="w">           </span><span class="n">fac_tau_y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fac_tau</span>
+<span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+<span class="w">           </span><span class="n">fac_tau_z</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fac_tau</span>
+<span class="w">        </span><span class="k">end select</span>
+<span class="k">     end if</span>
+
+<span class="w">     </span><span class="c">! Do time-averaging like in modEB</span>
+
+<span class="w">   </span><span class="k">end subroutine </span><span class="n">wallfunmom</span>
+</pre></div>
+
+    </section>
+    <br>
+    
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2024 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2024-12-08 20:44 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+
+    <!-- Bootstrap core JavaScript -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>    
+
+    <!-- MathJax JavaScript
+             ================================================== -->
+             <!-- Placed at the end of the document so the pages load faster -->
+        <script type="text/x-mathjax-config">
+          MathJax.Hub.Config({
+          TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } },
+          jax: ['input/TeX','input/MathML','output/HTML-CSS'],
+          extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']
+          });
+        </script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+          <script src="../tipuesearch/tipuesearch_content.js"></script>
+          <script src="../tipuesearch/tipuesearch_set.js"></script>
+          <script src="../tipuesearch/tipuesearch.js"></script>
+
+  </body>
+</html>
