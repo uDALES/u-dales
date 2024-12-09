@@ -66,38 +66,35 @@ contains
    ! Needs to be called before divergence is calculated
    subroutine halos
 
-      use modglobal, only : BCxm, BCym, BCxT, BCyT, BCxq, BCyq, BCxs, BCys, &
+      use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, ihc, jhc, khc, nsv, &
+                            BCxm, BCym, BCxT, BCyT, BCxq, BCyq, BCxs, BCys, &
                             BCxm_periodic, BCxT_periodic, BCxq_periodic, BCxs_periodic, &
                             BCym_periodic, BCyT_periodic, BCyq_periodic, BCys_periodic, &
                             ibrank, ierank, jbrank, jerank
-      use modfields, only : u0, v0, w0, um, vm, wm, thl0, thlm, thl0c, qt0, qtm, sv0, svm
-      use modgpu,    only : exchange_halo_z_gpu_alloc_z, exchange_halo_z_gpu_ihc, exchange_halo_z_gpu_scalar
+      use modfields, only : u0, v0, w0, um, vm, wm, thl0, thlm, qt0, qtm, sv0, svm, thl0c
+      use decomp_2d, only : exchange_halo_z
       implicit none
+      integer i, k, n
 
-!$acc data copyin(u0, v0, w0, um, vm, wm) copyout(u0, v0, w0, um, vm, wm)
-      call exchange_halo_z_gpu_alloc_z(u0)
-      call exchange_halo_z_gpu_alloc_z(v0)
-      call exchange_halo_z_gpu_alloc_z(w0)
-      call exchange_halo_z_gpu_alloc_z(um)
-      call exchange_halo_z_gpu_alloc_z(vm)
-      call exchange_halo_z_gpu_alloc_z(wm)
+!$acc data create(u0, v0, w0, um, vm, wm, thl0, thlm, thl0c, qt0, qtm, sv0, svm)
+!$acc update device(u0, v0, w0, um, vm, wm, thl0, thlm, thl0c, qt0, qtm, sv0, svm)
+      call exchange_halo_z(u0)
+      call exchange_halo_z(v0)
+      call exchange_halo_z(w0)
+      call exchange_halo_z(um)
+      call exchange_halo_z(vm)
+      call exchange_halo_z(wm)
+      call exchange_halo_z(thl0)
+      call exchange_halo_z(thlm)
+      call exchange_halo_z(thl0c, opt_zlevel=(/ihc,jhc,khc/))
+      call exchange_halo_z(qt0)
+      call exchange_halo_z(qtm)
+      do n = 1, nsv
+         call exchange_halo_z(sv0(:, :, :, n), opt_zlevel=(/ihc,jhc,khc/))
+         call exchange_halo_z(svm(:, :, :, n), opt_zlevel=(/ihc,jhc,khc/))
+      enddo
+!$acc update host(u0, v0, w0, um, vm, wm, thl0, thlm, thl0c, qt0, qtm, sv0, svm)
 !$acc end data
-
-!$acc data copyin(thl0, thlm, qt0, qtm) copyout(thl0, thlm, qt0, qtm)
-      call exchange_halo_z_gpu_alloc_z(thl0)
-      call exchange_halo_z_gpu_alloc_z(thlm)
-      call exchange_halo_z_gpu_alloc_z(qt0)
-      call exchange_halo_z_gpu_alloc_z(qtm)
-!$acc end data
-
-!$acc data copyin(thl0c) copyout(thl0c)
-      call exchange_halo_z_gpu_ihc(thl0c)
-!$acc end data
-
-!$acc data copyin(sv0, svm) copyout(sv0, svm)
-      call exchange_halo_z_gpu_scalar(sv0, svm)
-!$acc end data
-
 
       if (ibrank .and. ierank) then ! not parallelized in x
         if (BCxm == BCxm_periodic) call xm_periodic
@@ -113,7 +110,7 @@ contains
         if (BCys == BCys_periodic) call ys_periodic
       end if
 
-   end subroutine halos
+    end subroutine halos
 
 
    !>
@@ -401,13 +398,14 @@ contains
                                 ibrank, ierank, jbrank, jerank, BCtopm, BCxm, BCym, &
                                 BCtopm_freeslip, BCtopm_noslip, BCtopm_pressure, &
                                 BCxm_periodic, BCym_periodic
-     use modgpu,         only : exchange_halo_z_gpu
-     implicit none
+     use decomp_2d,      only : exchange_halo_z
      integer i, j
 
-!$acc data copyin(ekm, ekh) copyout(ekm, ekh)
-     call exchange_halo_z_gpu(ekm)
-     call exchange_halo_z_gpu(ekh)
+!$acc data create(ekm, ekh)
+!$acc update device(ekm, ekh)
+     call exchange_halo_z(ekm)
+     call exchange_halo_z(ekh)
+!$acc update host(ekm, ekh)
 !$acc end data
 
      ! Top and bottom
@@ -1163,8 +1161,7 @@ contains
      use modfields,    only : pres0, up, vp, wp, um, vm, wm, w0, u0, v0, uouttot, vouttot, uinit, vinit, uprof, vprof, pres0, IIc, IIcs
      use modmpi,       only : excjs, excis, myid, avexy_ibm
      use modinletdata, only : u0driver
-     use modgpu, only       : exchange_halo_z_gpu_kb_opt_ih
-     implicit none
+     use decomp_2d,    only : exchange_halo_z
 
      real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb:ke + kh), intent(inout) :: pup
      real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb:ke + kh), intent(inout) :: pvp
@@ -1182,13 +1179,13 @@ contains
      ! if (jerank) write(*,*) "je before exhange_halo ", pvp(ie/2,je+1,ke)
      ! Watch this communication as it is slightly different to normal -
      ! maybe safer to just resize to kb-kh:ke+kh
-     
-!$acc data copyin(pup, pvp, pwp) copyout(pup, pvp, pwp)
-     call exchange_halo_z_gpu_kb_opt_ih(pup)
-     call exchange_halo_z_gpu_kb_opt_ih(pvp)
-     call exchange_halo_z_gpu_kb_opt_ih(pwp)
+!$acc data create(pup, pvp, pwp)
+!$acc update device(pup, pvp, pwp)
+     call exchange_halo_z(pup, opt_zlevel=(/ih,jh,0/))
+     call exchange_halo_z(pvp, opt_zlevel=(/ih,jh,0/))
+     call exchange_halo_z(pwp, opt_zlevel=(/ih,jh,0/))
+!$acc update host(pup, pvp, pwp)
 !$acc end data
-
      ! if (jbrank) write(*,*) "jb after exhange_halo ", pvp(ie/2,jb,ke)
      ! if (jerank) write(*,*) "je after exhange_halo ", pvp(ie/2,je+1,ke)
 
@@ -1309,7 +1306,6 @@ contains
     end select
 
    end subroutine bcpup
-   
 
    !>set pressure boundary conditions
    subroutine bcp(p)
@@ -1317,8 +1313,7 @@ contains
      use modglobal, only : ib, ie, jb, je, ih, jh, kb, ke, kh, dyi, rk3step, dt, &
                            ibrank, ierank, jbrank, jerank, BCxm, BCym, BCxm_periodic, BCym_periodic
      use modfields, only : pres0, up, u0, um, uouttot, vp, v0
-     use modgpu,    only : exchange_halo_z_gpu, exchange_halo_z_gpu_alloc_z
-     implicit none
+     use decomp_2d, only : exchange_halo_z
 
      real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb - kh:ke + kh), intent(inout) :: p !< pressure
      integer i, j, k
@@ -1331,9 +1326,11 @@ contains
      end if
      rk3coefi = 1. / rk3coef
 
-!$acc data copyin(p, pres0) copyout(p, pres0)
-     call exchange_halo_z_gpu(p)
-     call exchange_halo_z_gpu_alloc_z(pres0)
+!$acc data create(p, pres0)
+!$acc update device(p, pres0)
+     call exchange_halo_z(p)
+     call exchange_halo_z(pres0)
+!$acc update host(p, pres0)
 !$acc end data
 
      if (BCxm .eq. BCxm_periodic) then

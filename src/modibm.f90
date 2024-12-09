@@ -127,12 +127,13 @@ module modibm
    contains
 
    subroutine initibm
-     use modglobal,  only : libm, xh, xf, yh, yf, zh, zf, xhat, yhat, zhat, vec0, &
-                            ib, ie, ih, ihc, jb, je, jh, jhc, kb, ke, kh, khc, nsv, &
-                            iwallmom, lmoist, ltempeq, cexpnr, nfcts, lwritefac
-     use modmpi,     only : myid
-     use modstat_nc, only : open_nc, define_nc, ncinfo, writestat_dims_nc
-     use modgpu,     only : exchange_halo_z_gpu
+     use modglobal, only : libm, xh, xf, yh, yf, zh, zf, xhat, yhat, zhat, vec0, &
+                           ib, ie, ih, ihc, jb, je, jh, jhc, kb, ke, kh, khc, nsv, &
+                           iwallmom, lmoist, ltempeq, cexpnr, nfcts, lwritefac
+     use decomp_2d, only : exchange_halo_z
+     use modmpi,    only : myid
+     use modstat_nc,only: open_nc, define_nc, ncinfo, writestat_dims_nc
+
      real, allocatable :: rhs(:,:,:)
 
      if (.not. libm) return
@@ -159,13 +160,12 @@ module modibm
      call solid(solid_info_u, mask_u, rhs, 0., ih, jh, kh)
      call solid(solid_info_v, mask_v, rhs, 0., ih, jh, kh)
      call solid(solid_info_w, mask_w, rhs, 0., ih, jh, kh)
-     !! call exchange_halo_z(mask_u)!, opt_zlevel=(/ih,jh,0/))
-     !! call exchange_halo_z(mask_v)!, opt_zlevel=(/ih,jh,0/))
-     !! call exchange_halo_z(mask_w)!, opt_zlevel=(/ih,jh,0/))
-!$acc data copyin(mask_u, mask_v, mask_w) copyout(mask_u, mask_v, mask_w)
-     call exchange_halo_z_gpu(mask_u)
-     call exchange_halo_z_gpu(mask_v)
-     call exchange_halo_z_gpu(mask_w)
+!$acc data create(mask_u, mask_v, mask_w)
+!$acc update device(mask_u, mask_v, mask_w)
+     call exchange_halo_z(mask_u)!, opt_zlevel=(/ih,jh,0/))
+     call exchange_halo_z(mask_v)!, opt_zlevel=(/ih,jh,0/))
+     call exchange_halo_z(mask_w)!, opt_zlevel=(/ih,jh,0/))
+!$acc update host(mask_u, mask_v, mask_w)
 !$acc end data
 
      if (iwallmom > 1) then
@@ -191,11 +191,11 @@ module modibm
        allocate(mask_c(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); mask_c = 1.
        mask_c(:,:,kb-kh) = 0.
        call solid(solid_info_c, mask_c, rhs, 0., ih, jh, kh)
-       !! call exchange_halo_z(mask_c)!, opt_zlevel=(/ih,jh,0/))
-!$acc data copyin(mask_c) copyout(mask_c)
-       call exchange_halo_z_gpu(mask_c)
+!$acc data create(mask_c)
+!$acc update device(mask_c)
+       call exchange_halo_z(mask_c)!, opt_zlevel=(/ih,jh,0/))
+!$acc update host(mask_c)
 !$acc end data
-
      end if
 
      deallocate(rhs)

@@ -27,7 +27,7 @@ module modstatsdump
   use modmpi, only : myid
   implicit none
   private
-  PUBLIC :: initstatsdump,statsdump,tkestatsdump,exitstatsdump
+  PUBLIC :: initstatsdump,statsdump,exitstatsdump
   save
 
   !NetCDF variables
@@ -1687,7 +1687,6 @@ contains
   use modsurfdata,      only : thls
   use modsubgrid,       only : ekh
   use decomp_2d,        only : exchange_halo_z
-  use modgpu,           only : exchange_halo_z_gpu_kbke_opt_ih
   implicit none
 
   real, dimension(ib:ie,jb:je,kb:ke)  :: disssgsfl     ! average subgrid visc. * average rate of strain squared : 2*<nu_t>*<Sij>*<Sij>
@@ -1812,30 +1811,20 @@ contains
       ! call excjs( dummyy,  ib,ie,jb,je,kb,ke,0,1)   ! jb-1 is not used
       ! call excjs( ttmy   , ib,ie,jb,je,kb,ke,0,1)   ! jb-1 is not used
 
-      ! call exchange_halo_z(tvmx, opt_zlevel=(/ih,jh,0/))
-      ! call exchange_halo_z(tsgsmx1, opt_zlevel=(/ih,jh,0/))
-      ! call exchange_halo_z(tsgsmx2, opt_zlevel=(/ih,jh,0/))
-      ! call exchange_halo_z(dummyx, opt_zlevel=(/ih,jh,0/))
-      ! call exchange_halo_z(ttmx, opt_zlevel=(/ih,jh,0/))
-!$acc data copyin(tvmx, tsgsmx1, tsgsmx2, dummyx, ttmx) copyout(tvmx, tsgsmx1, tsgsmx2, dummyx, ttmx)
-      call exchange_halo_z_gpu_kbke_opt_ih(tvmx)
-      call exchange_halo_z_gpu_kbke_opt_ih(tsgsmx1)
-      call exchange_halo_z_gpu_kbke_opt_ih(tsgsmx2)
-      call exchange_halo_z_gpu_kbke_opt_ih(dummyx)
-      call exchange_halo_z_gpu_kbke_opt_ih(ttmx)
-!$acc end data
+!$acc data create(tvmx, tsgsmx1, tsgsmx2, dummyx, ttmx, tvmy, tsgsmy1, tsgsmy2, dummyy, ttmy)
+!$acc update device(tvmx, tsgsmx1, tsgsmx2, dummyx, ttmx, tvmy, tsgsmy1, tsgsmy2, dummyy, ttmy)
+      call exchange_halo_z(tvmx, opt_zlevel=(/ih,jh,0/))
+      call exchange_halo_z(tsgsmx1, opt_zlevel=(/ih,jh,0/))
+      call exchange_halo_z(tsgsmx2, opt_zlevel=(/ih,jh,0/))
+      call exchange_halo_z(dummyx, opt_zlevel=(/ih,jh,0/))
+      call exchange_halo_z(ttmx, opt_zlevel=(/ih,jh,0/))
 
-      ! call exchange_halo_z(tvmy, opt_zlevel=(/ih,jh,0/))
-      ! call exchange_halo_z(tsgsmy1, opt_zlevel=(/ih,jh,0/))
-      ! call exchange_halo_z(tsgsmy2, opt_zlevel=(/ih,jh,0/))
-      ! call exchange_halo_z(dummyy, opt_zlevel=(/ih,jh,0/))
-      ! call exchange_halo_z(ttmy, opt_zlevel=(/ih,jh,0/))
-!$acc data copyin(tvmy, tsgsmy1, tsgsmy2, dummyy, ttmy) copyout(tvmy, tsgsmy1, tsgsmy2, dummyy, ttmy)
-      call exchange_halo_z_gpu_kbke_opt_ih(tvmy)
-      call exchange_halo_z_gpu_kbke_opt_ih(tsgsmy1)
-      call exchange_halo_z_gpu_kbke_opt_ih(tsgsmy2)
-      call exchange_halo_z_gpu_kbke_opt_ih(dummyy)
-      call exchange_halo_z_gpu_kbke_opt_ih(ttmy)
+      call exchange_halo_z(tvmy, opt_zlevel=(/ih,jh,0/))
+      call exchange_halo_z(tsgsmy1, opt_zlevel=(/ih,jh,0/))
+      call exchange_halo_z(tsgsmy2, opt_zlevel=(/ih,jh,0/))
+      call exchange_halo_z(dummyy, opt_zlevel=(/ih,jh,0/))
+      call exchange_halo_z(ttmy, opt_zlevel=(/ih,jh,0/))
+!$acc update host(tvmx, tsgsmx1, tsgsmx2, dummyx, ttmx, tvmy, tsgsmy1, tsgsmy2, dummyy, ttmy)
 !$acc end data
 
       ! BC's
@@ -2037,7 +2026,6 @@ contains
      call avexy_ibm(t_v(kb:ke+kh),t_vav(:,:,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc,IIcs,.true.)
 
    end subroutine tkestatsdump
-
 
   !-------------------------
   !> Clean up when leaving the run
