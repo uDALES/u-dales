@@ -18,8 +18,8 @@
 # Copyright (C) 2016-2019 the uDALES Team.
 
 # examples:
-# new sim: "copy_inputs.sh 1 2" or "copy_inputs.sh 1 2 c"
-# continue with new sim  "copy_inputs.sh 1 2 w"
+# new sim: "copy_inputs.sh path/1 2" or "copy_inputs.sh path/1 2 c"
+# continue with new sim  "copy_inputs.sh path/1 2 w"
 
 set -e
 
@@ -240,3 +240,12 @@ for sfile in $scalarsourcefiles ; do
     cp $sfile $DA_EXPDIR/$tar/$sfilename"."$tar
   fi
 done
+
+# copy any available SEB and radiation related files
+copy_files "Sdir"
+
+vsfile=$(find $DA_EXPDIR/$src -iname "*.vs3")
+if [ -f "$vsfile" ] ; then
+  cp "$vsfile" $DA_EXPDIR/$tar
+fi
+
