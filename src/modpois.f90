@@ -457,8 +457,12 @@ contains
       !   call rffti(jtot,wjnew)
       ! end if
 
+!$acc data create(px, py, pz)
+!$acc update device(px, py, pz)
       call transpose_z_to_y(pz, py)
       call transpose_y_to_x(py, px)
+!$acc update host(px, py, pz)
+!$acc end data
 
       ! In x-pencil, do FFT in x-direction
       if (BCxm == 1) then
@@ -502,7 +506,11 @@ contains
 
       end if
 
+!$acc data create(px, py)
+!$acc update device(px, py)
       call transpose_x_to_y(px, py)
+!$acc update host(px, py)
+!$acc end data
 
       ! In y-pencil, do FFT in y-direction
       if (BCym == 1) then
@@ -546,7 +554,12 @@ contains
 
       end if
 
+!$acc data create(py, pz)
+!$acc update device(py, pz)
       call transpose_y_to_z(py,pz)
+!$acc update host(py, pz)
+!$acc end data
+
       Fxy = pz
 
       ! In z-pencil
@@ -594,7 +607,11 @@ contains
 
       Fxyz = pz
 
+!$acc data create(py, pz)
+!$acc update device(py, pz)
       call transpose_z_to_y(pz,py)
+!$acc update host(py, pz)
+!$acc end data
       ! call transpose_z_to_y(pz_top, py_top, decomp_top)
 
       ! In y-pencil, do backward FFT in y direction
@@ -648,7 +665,11 @@ contains
         end do
       end if
 
+!$acc data create(px, py)
+!$acc update device(px, py)
       call transpose_y_to_x(py,px)
+!$acc update host(px, py)
+!$acc end data
       ! call transpose_y_to_x(py_top,px_top,decomp_top)
 
       ! In x-pencil, do backward FFT in x-direction
@@ -699,8 +720,12 @@ contains
 
       end if
 
+!$acc data create(px, py, pz)
+!$acc update device(px, py, pz)
       call transpose_x_to_y(px, py)
       call transpose_y_to_z(py, pz)
+!$acc update host(px, py, pz)
+!$acc end data
 
       ! call transpose_x_to_y(px_top,py_top,decomp_top)
       ! call transpose_y_to_z(py_top,pz_top,decomp_top)
