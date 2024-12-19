@@ -17,20 +17,16 @@
 !
 SUBROUTINE wfGR(hi,hj,hk,ioq,ioqflux,icth,obcqfluxA,qcell,qwall,hurel,resc,ress,n,ind,wforient)
    !wfGR
-   USE modglobal, ONLY : dzf,dzfi,dzh2i,dzhi,dzhiq,dy,dyi,dy2i,dyi5,dxf,dxh,dxfi,dxhi,dxh2i,ib,ie,jb,je,kb,ke,fkar,grav,jmax,rk3step
+   USE modglobal, ONLY : dzf,dzfi,dzh2i,dyi,dy2i,dxf,dxh,dxfi,dxh2i,ib,ie,jb,je,kb,ke,fkar,jmax
    USE modsubgriddata, ONLY:ekh
    USE modmpi, ONLY:myid
    USE initfac, ONLY:block
    USE modibmdata
-   INTEGER i, j, k, jl, ju, kl, ku, il, iu, km, im, jm, ip, jp, kp
+   INTEGER i, j, k, jl, ju, kl, ku, il, iu, km, im, jm, ip, jp
 
    REAL :: bcqflux = 0. !temp storage for temperature flux
-   REAL :: bcmomflux = 0. !temp storage for momentum flux
-   REAL :: dummy = 0. !for debugging
    REAL :: delta = 0. !distance from wall
    REAL :: fkar2 !fkar^2, von Karman constant squared
-   REAL :: emmo = 0., epmo = 0., epom = 0., emom = 0., eopm = 0., eomm = 0., empo = 0.
-   REAL :: umin = 0.0001 !m^2/s^2
    REAL :: cveg=0.8 !hardcoded for now, !fraction of GR covered in vegetation, should be made into a proper model parameter (-> modglobal)
 
    INTEGER, INTENT(in) :: hi !<size of halo in i

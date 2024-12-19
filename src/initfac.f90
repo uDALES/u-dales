@@ -86,7 +86,7 @@
     contains
 
       subroutine readfacetfiles
-        use modglobal, only: block, cexpnr, iwallmom, iwalltemp, iwallmoist
+        use modglobal, only: cexpnr, iwallmom, iwalltemp, iwallmoist
         implicit none
 
         !use modglobal, only:block
@@ -99,7 +99,7 @@
         !use modglobal, only : nblocks, nfcts, cexpnr, ifinput
         character (len = 13) :: FILE_VF = 'vf.nc.inp.xxx'
         integer :: ncid, varid
-        integer :: n = 0, m = 0, i = 0, j = 0, k = 0, io = 0
+        integer :: n = 0, m = 0, i = 0, j = 0, io = 0
         integer :: iret
 
         if (.not.(nfcts > 0)) return

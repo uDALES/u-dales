@@ -15,18 +15,16 @@
 !
 !  Copyright 2006-2021 the uDALES Team.
 !
-SUBROUTINE wfmneutral(hi,hj,hk,iout1,iout2,iomomflux,utang1,utang2,z0,n,ind,wforient)
+SUBROUTINE wfmneutral(hi,hj,hk,iout1,iout2,iomomflux,utang1,utang2,z0,wforient)
    !wfmneutral
    !wf for momentum under neutral conditions
    !calculating wall function for momentum assuming neutral conditions
    !follow approach in wfuno
    !fluxes in m2/s2
-   USE modglobal, ONLY : dzf,dzfi,dzh2i,dzhi,dzhiq,dy,dyi,dy2i,dyi5,dxf,dxh,dxfi,dxhi,dxh2i,ib,ie,jb,je,kb,ke,fkar,jmax,rk3step,kmax,jge,jgb
-   USE modsubgriddata, ONLY:ekh, ekm
-   USE modmpi, ONLY:myid
-   USE initfac, ONLY:block
+   USE modglobal, ONLY : dzf,dzfi,dzhi,dzhiq,dxf,dxhi,ib,ie,jb,je,kb,ke,fkar
+   USE modsubgriddata, ONLY:ekm
    USE modibmdata
-   INTEGER i, j, k, jl, ju, kl, ku, il, iu, km, im, jm, ip, jp, kp
+   INTEGER i, j, k, jl, ju, il, iu, km
 
    REAL :: bcmomflux = 0. !temp storage for momentum flux
    REAL :: ctm = 0. !momentum transfer coefficient
@@ -36,7 +34,7 @@ SUBROUTINE wfmneutral(hi,hj,hk,iout1,iout2,iomomflux,utang1,utang2,z0,n,ind,wfor
    REAL :: utang1Int !Interpolated 1st tangential velocity component needed for stability calculation (to T location)
    REAL :: utang2Int !Interpolated 2nd tangential velocity component needed for stability calculation (to T location)
    REAL :: fkar2 !fkar^2, von Karman constant squared
-   REAL :: emmo = 0., epmo = 0., epom = 0., emom = 0., eopm = 0., eomm = 0., empo = 0.
+   REAL :: emom = 0., eomm = 0.
    REAL :: umin = 0.0001 !m^2/s^2
 
    INTEGER, INTENT(in) :: hi !<size of halo in i
@@ -48,8 +46,6 @@ SUBROUTINE wfmneutral(hi,hj,hk,iout1,iout2,iomomflux,utang1,utang2,z0,n,ind,wfor
    REAL, INTENT(in)    :: z0
    REAL, INTENT(in)    :: utang1(ib - hi:ie + hi, jb - hj:je + hj, kb - hk:ke + hk) !tangential velocity field
    REAL, INTENT(in)    :: utang2(ib - hi:ie + hi, jb - hj:je + hj, kb - hk:ke + hk) !second tangential velocity field
-   INTEGER, INTENT(in) :: n ! number of the block, used to get i,j,k-indeces
-   INTEGER, INTENT(in) :: ind ! in case of y-wall (case 3x & 4x) "ind" is used for j-index, otherwise this is irrelevant
    INTEGER, INTENT(in) :: wforient !orientation of the facet see below:
    !frist digit, orientation of wall, determines iteration indices
    !second digit, if for momentum or for scalar (necessary because of staggered grid -> which variable to interpolate)

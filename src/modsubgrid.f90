@@ -41,16 +41,11 @@ module modsubgrid
 
 contains
   subroutine initsubgrid
-    use modglobal, only : ih,ib,ie,jh,jb,je,kb,ke,kh,delta,zf,fkar, &
-         pi,ifnamopt,fname_options
-    use modmpi, only : myid
+    use modglobal, only : ih,ib,ie,jh,jb,je,kb,ke,kh,pi
 
     implicit none
 
-    integer   :: i, k
-
     real :: ceps, ch
-    real :: mlen
 
     call subgridnamelist
 
@@ -82,8 +77,8 @@ contains
   end subroutine initsubgrid
 
   subroutine subgridnamelist
-    use modglobal, only : pi,ifnamopt,fname_options,lles
-    use modmpi,    only : myid, nprocs, comm3d, mpierr, my_real, mpi_logical, mpi_integer
+    use modglobal, only : ifnamopt,fname_options,lles
+    use modmpi,    only : myid, comm3d, mpierr, my_real, mpi_logical
 
     implicit none
 
@@ -131,13 +126,11 @@ contains
     ! Diffusion subroutines
     ! Thijs Heus, Chiel van Heerwaarden, 15 June 2007
 
-    use modglobal, only : ih,jh,kh,nsv, lmoist,lles, ib,ie,jb,je,kb,ke,imax,jmax,kmax,&
+    use modglobal, only : ih,jh,kh,nsv, lmoist,&
          ihc,jhc,khc,ltempeq
-    use modfields, only : up,vp,wp,e12p,thl0,thlp,qt0,qtp,sv0,svp,shear
-    use modsurfdata,only : ustar,thlflux,qtflux,svflux
-    use modmpi, only : myid, comm3d, mpierr, my_real,nprocs
+    use modfields, only : up,vp,wp,e12p,thl0,thlp,qt0,qtp,sv0,svp
     implicit none
-    integer n, proces
+    integer n
 
     call closure
     call diffu(up)
@@ -193,21 +186,19 @@ contains
     !                                                                 |
     !-----------------------------------------------------------------|
 
-    use modglobal,   only : ib,ie,jb,je,kb,ke,kh,ih,jh,jmax,delta,ekmin,grav, zf, fkar,jgb,jge,&
-         dx,dxi,dxiq,dx2,dy2,dyi,dyiq,dzf,dzf2,dzfi,dzhi,rk3step,rslabs, &
-         numol,numoli,prandtlmoli,lles, rk3step,dzfiq,lbuoyancy,dzh
-    use modfields,   only : dthvdz,e120,u0,v0,w0,thl0,mindist,wall,shear
-    use modsurfdata, only : dudz,dvdz,thvs,ustar
-    use modmpi,    only : excjs, myid, nprocs, comm3d, mpierr, my_real,mpi_sum,slabsumi
+    use modglobal,   only : ib,ie,jb,je,kb,ke,delta,grav, &
+         dxi,dxiq,dx2,dy2,dyi,dyiq,dzf,dzf2,dzfi,dzhi, &
+         numol,prandtlmoli,dzfiq,lbuoyancy,dzh
+    use modfields,   only : dthvdz,e120,u0,v0,w0,thl0
+    use modsurfdata, only : thvs
+    use modmpi,    only : excjs,slabsumi
     use modboundary, only : closurebc
-    use modinletdata, only : utaui
     implicit none
 
-    real, dimension(ib:ie) :: shearbot
-    real    :: strain2,mlen,uhor,distplus,utaubot,a11,a12,a13, &
-         a21,a22,a23,a31,a32,a33,aa,b11,b12,b13,b21,b22, &
+    real    :: strain2,mlen,a11,a12,a13, &
+         a21,a22,a23,a31,a32,a33,aa,b11,b12,b13,b22, &
          b23,b33,bb,const,const2
-    integer :: i,j,k,kp,km,jp,jm,im,ip,iw,jw,kw,c1,c2
+    integer :: i,j,k,kp,km,jp,jm,im,ip
 
     !  if (lles  .and. rk3step == 1) then        ! compute ekm and ekh only once in complete RK-cycle
     if(lsmagorinsky) then
@@ -478,11 +469,10 @@ contains
     !                                                                 |
     !-----------------------------------------------------------------|
 
-    use modglobal,   only : ib,ie,jb,je,kb,ke,dxi,delta,dy,dyi,dzfi,dzhi,grav,numol,prandtlmol,&
-         dzh, delta
-    use modfields,   only : u0,v0,w0,e120,e12p,dthvdz,thl0,thvf
-    use modsurfdata,  only : dudz,dvdz,thvs
-!    use modmpi,       only : myid
+    use modglobal,   only : ib,ie,jb,je,kb,ke,dxi,delta,dyi,dzfi,dzhi,grav,numol,prandtlmol,&
+         delta
+    use modfields,   only : u0,v0,w0,e120,e12p,dthvdz
+    use modsurfdata,  only : thvs
     implicit none
 
     real    tdef2,prandtlmoli
@@ -582,9 +572,8 @@ contains
 
   subroutine diffc (hi,hj,hk,putin,putout)
 
-    use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,dx2i,dzf,dzfi,dyi,dy2i,&
-         dzhi,dzh2i,jmax, numol, prandtlmoli,lles
-    use modmpi, only : myid
+    use modglobal, only : ib,ie,jb,je,kb,ke,dx2i,dzf,dzfi,dy2i,&
+         dzhi,dzh2i,numol, prandtlmoli,lles
     implicit none
 
     integer, intent(in) :: hi                                                  !<size of halo in i
@@ -671,9 +660,8 @@ contains
   subroutine diffe(putout)
 
     use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,dx2i,dzf,dzfi,&
-         dy2i,dzhi,dzh2i,jmax
+         dy2i,dzh2i
     use modfields, only : e120
-    use modmpi,    only : myid
     implicit none
 
     real, intent(inout) :: putout(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
@@ -716,17 +704,13 @@ contains
 
   subroutine diffu (putout)
 
-    use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,kmax,dx2i,dxi,lles,&
-         dzf,dzfi,dy,dyi,dy2i,dzhi,dzhiq,jmax,numol
+    use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,dx2i,dxi,lles,&
+         dzf,dzfi,dyi,dzhi,dzhiq,numol
     use modfields, only : u0,v0,w0
-    use modsurfdata,only : ustar
-    use modmpi, only    : myid
     implicit none
 
     real, intent(inout) :: putout(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
     real                :: emmo,emom,emop,empo
-    real                :: fu,dummy
-    real                :: ucu, upcu
     integer             :: i,j,k,jm,jp,km,kp
 
     if (lles) then
@@ -827,16 +811,13 @@ contains
   subroutine diffv (putout)
 
     use modglobal, only   : ib,ie,ih,jb,je,jh,kb,ke,kh,dxi,dzf,dzfi,dyi,&
-         dy2i,dzhi,dzhiq,jmax,numol,lles
+         dy2i,dzhi,dzhiq,numol,lles
     use modfields, only   : u0,v0,w0
-    use modsurfdata,only  : ustar
-    use modmpi, only      : myid
 
     implicit none
 
     real, intent(inout) :: putout(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
     real                :: emmo, eomm,eomp,epmo
-    real                :: fv, vcv,vpcv
     integer             :: i,j,k,jm,jp,km,kp
 
     if (lles) then
@@ -941,10 +922,9 @@ contains
 
   subroutine diffw(putout)
 
-    use modglobal, only   : ib,ie,ih,jb,je,jh,kb,ke,kh,kmax,dxi,dy,&
-         dyi,dy2i,dzf,dzfi,dzhi,dzhiq,jmax,numol,lles
+    use modglobal, only   : ib,ie,ih,jb,je,jh,kb,ke,kh,dxi,&
+         dyi,dzf,dzfi,dzhi,dzhiq,numol,lles
     use modfields, only   : u0,v0,w0
-    use modmpi, only      : myid
     implicit none
 
     !*****************************************************************
