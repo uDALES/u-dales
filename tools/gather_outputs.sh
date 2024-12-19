@@ -58,6 +58,10 @@ for file in *dump.*.000.${expnr}.nc ; do
             echo "Merging tdump along y-direction."
 	    ymparam="vt,vpwpt,upvpt,ym"
 
+        elif [ ${dumps:0:5} == "sdump" ]; then
+            echo "Merging sdump along y-direction."
+	    ymparam="vt,vpwpt,upvpt,vsgst,ym"
+
         elif [ ${dumps:0:8} == "mintdump" ]; then
             echo "Merging mintdump along y-direction."
 	    ymparam="vt,ym"
@@ -129,6 +133,10 @@ for file in *dump.000.${expnr}.nc ; do
         elif [ $dumps == "tdump" ]; then
 	    echo "Merging tdump along x-direction."	
             xmparam="ut,upwpt,upvpt,xm"
+
+        elif [ $dumps == "sdump" ]; then
+	    echo "Merging sdump along x-direction."	
+            xmparam="ut,upwpt,upvpt,usgst,xm"
 
 	elif [ $dumps == "mintdump" ]; then
             echo "Merging mintdump along x-direction."
