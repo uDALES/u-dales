@@ -41,6 +41,7 @@ module modstat_nc
       module procedure writestat_3D_nc
       module procedure writestat_3D_short_nc
       module procedure writestat_time_new_nc
+      module procedure writestat_1D_var_nc
       module procedure writestat_3D_var_nc
     end interface writestat_nc
 contains
@@ -506,6 +507,18 @@ contains
 
   end subroutine writestat_3D_short_nc
 
+  subroutine writestat_1D_var_nc(ncid,ncname,var,nrec,dim)
+    implicit none
+    integer,      intent(in) :: ncid, nrec, dim
+    real,         intent(in) :: var(dim)
+    character(*), intent(in) :: ncname
+
+    integer :: iret, VarID
+
+    iret = nf90_inq_varid(ncid, ncname, VarID)
+    iret = nf90_put_var(ncid, VarID, var, (/1,nrec/), (/dim,1/))
+    iret = nf90_sync(ncid)
+  end subroutine writestat_1D_var_nc
   subroutine writestat_3D_var_nc(ncid,ncname,var,nrec,dim1,dim2,dim3)
     implicit none
     integer,      intent(in) :: ncid, nrec, dim1, dim2, dim3

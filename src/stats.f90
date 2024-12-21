@@ -1,29 +1,27 @@
 module stats
-  use modglobal,  only : cexpnr, ltdump, ltempeq, lmoist, lchem, nsv, rk3step, &
-                         ib, ie, jb, je, kb, ke, kh, &
+  use modglobal,  only : cexpnr, ltdump, lxytdump, ltempeq, lmoist, lchem, nsv, rk3step, &
+                         ib, ie, ih, jb, je, jh, kb, ke, kh, &
                          dxf, dzf, dzfi, dxhi, dzhi, dzh2i, dyi, dzhiq, &
                          timee, tstatsdump, tsample, dt, &
                          k1, JNO2
-  use modfields,  only : um, vm, wm, pres0, thlm, qtm, svm, IIc
+  use modfields,  only : um, vm, wm, pres0, thlm, qtm, svm, &
+                         IIc, IIu, IIus, IIv, IIvs, IIw, IIws, IIc, IIcs, IIuw, IIuws, IIvw, IIvws, IIuv, IIuvs
   use modsubgrid, only : ekh, ekm
-  use modmpi,     only : cmyidx, cmyidy, myid
+  use modmpi,     only : cmyidx, cmyidy, myid, avexy_ibm
   use modstat_nc, only : ncinfo, open_nc, define_nc, writestat_dims_nc, writestat_nc
   implicit none
   public :: stats_init, stats_main, stats_exit
-            ! stats_allocate_vel, stats_allocate_temp, stats_allocate_moist, stats_allocate_scalar, stats_allocate_PSS
-            ! stats_compute_vel,  stats_compute_temp,  stats_compute_moist,  stats_compute_scalar , stats_compute_PSS
-            ! stats_write_vel,    stats_write_temp,    stats_write_moist,    stats_write_scalar   , stats_write_PSS
-            ! stats_compute_tavg, stats_interpolate_k, stats_compute_sgs
   save
 
   integer :: xdim, ydim, zdim
   real    :: tsamplep, tstatsdumpp, tstatsdumppi
   
   character(80)              :: filenamet
-  character(80), allocatable :: tVars(:,:)
-  integer                    :: ctrt, dumpcount, ncidt, nrect
+  character(80)              :: filenamexyt
+  character(80), allocatable :: tVars(:,:), xytVars(:,:)
+  integer                    :: ctrt, ncidt, nrect, ctrxyt, ncidxyt, nrecxyt, dumpcount
 
-  !! Variables to store time averaged quantities
+  !!> Variables to store time averaged quantities
   real, allocatable :: ut(:,:,:)
   real, allocatable :: vt(:,:,:)
   real, allocatable :: wt(:,:,:)
@@ -93,10 +91,49 @@ module stats
   real, allocatable :: PSS(:,:,:)
   real, allocatable :: PSSt(:,:,:)
 
+  !!> Variables to store time, y and x averaged quantities
+  real, allocatable :: uxyt(:)
+  real, allocatable :: vxyt(:)
+  real, allocatable :: wxyt(:)
+  real, allocatable :: pxyt(:)
+  real, allocatable :: upwpxytik(:)
+  real, allocatable :: vpwpxytjk(:)
+  real, allocatable :: upvpxytij(:)
+  real, allocatable :: uwxytik(:)
+  real, allocatable :: vwxytjk(:)
+  real, allocatable :: uvxytij(:)
+  real, allocatable :: uuxyti(:)
+  real, allocatable :: vvxytj(:)
+  real, allocatable :: wwxytk(:)
+  real, allocatable :: upupxytc(:)
+  real, allocatable :: vpvpxytc(:)
+  real, allocatable :: wpwpxytc(:)
+  real, allocatable :: tkexytc(:)
+  real, allocatable :: usgsxyt(:)
+  real, allocatable :: vsgsxyt(:)
+  real, allocatable :: wsgsxyt(:)
+
+  real, allocatable :: thlxyt(:)
+  real, allocatable :: wpthlpxytk(:)
+  real, allocatable :: wthlxytk(:)
+  real, allocatable :: thlpthlpxyt(:)
+  real, allocatable :: thlsgsxyt(:)
+
+  real, allocatable :: qtxyt(:)
+  real, allocatable :: wpqtpxytk(:)
+  real, allocatable :: wqtxytk(:)
+  real, allocatable :: qtpqtpxyt(:)
+  real, allocatable :: qtsgsxyt(:)
+
+  interface stats_compute_tavg
+    module procedure stats_compute_tavg_1D
+    module procedure stats_compute_tavg_3D
+  end interface stats_compute_tavg
+
   contains
     subroutine stats_init
       implicit none
-      integer :: tVarsCount
+      integer :: tVarsCount, xytVarsCount
       character(80), dimension(1,4) :: tVar0
       
       xdim = ie-ib+1
@@ -106,6 +143,16 @@ module stats
       tstatsdumpp = 0.
       dumpcount = 0
       nrect = 0
+      nrecxyt = 0
+
+      if(ltdump .or. lxytdump) then
+        call ncinfo(tVar0( 1,:), 'time', 'Time', 's', 'time')
+
+        !> allocate variables to compute time-averaged quantities
+        call stats_allocate_tavg_vel
+        if (ltempeq) call stats_allocate_tavg_temp
+        if (lmoist)  call stats_allocate_tavg_moist
+      end if
 
       !> Generate time averaged NetCDF: stats.xxx.xxx.xxx.nc
       if (ltdump) then
@@ -121,25 +168,46 @@ module stats
         if (nsv>0) tVarsCount = tVarsCount + 4*nsv
         if ((lchem) .and. (nsv>2)) tVarsCount = tVarsCount + 1
 
-        !> Array to store the variable description of the quantities to be written
-        allocate(tVars(tVarsCount,4))
-        
+        allocate(tVars(tVarsCount,4))   !!> Array to store the variable description of the quantities to be written
         ctrt = 0
-        call stats_allocate_vel
-        if (ltempeq) call stats_allocate_temp
-        if (lmoist)  call stats_allocate_moist
-        if (nsv>0)   call stats_allocate_scalar
-        if ((lchem) .and. (nsv>2)) call stats_allocate_PSS
+        call stats_ncdescription_tavg_vel
+        if (ltempeq) call stats_ncdescription_tavg_temp
+        if (lmoist)  call stats_ncdescription_tavg_moist
+        if (nsv>0)   call stats_allocate_tavg_scalar
+        if ((lchem) .and. (nsv>2)) call stats_allocate_tavg_PSS
         
-        call ncinfo(tVar0( 1,:), 'time', 'Time', 's', 'time')
         call open_nc(filenamet, ncidt, nrect, n1=xdim, n2=ydim, n3=zdim)
         if (nrect==0) then
           call define_nc(ncidt, 1, tVar0)
           call writestat_dims_nc(ncidt)
         end if
         call define_nc(ncidt, tVarsCount, tVars)
-        
         deallocate(tVars)
+      end if
+
+      !> Generate time, y and x averaged NetCDF: xytdump.xxx.nc
+      if (lxytdump) then
+        filenamexyt = 'xysdump.xxx.nc'
+        filenamexyt(9:11) = cexpnr
+
+        xytVarsCount = 20
+        if (ltempeq) xytVarsCount = xytVarsCount + 5
+        if (lmoist)  xytVarsCount = xytVarsCount + 5
+
+        allocate(xytVars(xytVarsCount,4))   !!> Array to store the variable description of the quantities to be written
+        ctrxyt = 0
+        call stats_allocate_xytavg_vel
+        if (ltempeq) call stats_allocate_xytavg_temp
+        if (lmoist)  call stats_allocate_xytavg_moist
+
+        if (myid==0) then
+          call open_nc(filenamexyt, ncidxyt, nrecxyt, n3=zdim)
+          if (nrecxyt==0) then
+            call define_nc( ncidxyt, 1,  tVar0)
+            call writestat_dims_nc(ncidxyt)
+          end if
+          call define_nc( ncidxyt, xytVarsCount, xytVars)
+        end if
       end if
     end subroutine stats_init
 
@@ -147,51 +215,72 @@ module stats
       implicit none
 
       if (.not. rk3step==3)  return
-      
-      if(ltdump) then
-        if (tsamplep > tsample) then
-          tstatsdumppi = 1./tstatsdumpp
-          call stats_compute_vel
-          if (ltempeq) call stats_compute_temp
-          if (lmoist)  call stats_compute_moist
-          if (nsv>0)   call stats_compute_scalar
-          if ((lchem) .and. (nsv>2)) call stats_compute_PSS
-          tsamplep = dt
-        else
-          tsamplep = tsamplep + dt
-        endif
 
-        if (tstatsdumpp > tstatsdump) then
-          dumpcount = dumpcount + 1
+      if (tsamplep > tsample) then
+        tstatsdumppi = 1./tstatsdumpp
+
+        if(ltdump .or. lxytdump) then
+          call stats_compute_tavg_vel
+          if (ltempeq) call stats_compute_tavg_temp
+          if (lmoist)  call stats_compute_tavg_moist
+        end if
+
+        if(ltdump) then
+          if (nsv>0)   call stats_compute_tavg_scalar
+          if ((lchem) .and. (nsv>2)) call stats_compute_tavg_PSS
+        end if
+        
+        tsamplep = dt
+      else
+        tsamplep = tsamplep + dt
+      endif
+
+      if (tstatsdumpp > tstatsdump) then
+        dumpcount = dumpcount + 1
+        if (myid==0) then
+          write(*,*) "---------------------------------"
+          write(*,*) "Writing time average statistics"
+          write(*,*) "dump count ::: ", dumpcount
+          write(*,*) "timee ::: ", timee
+          write(*,*) "---------------------------------"
+        end if
+        
+        if(ltdump) then
+          call writestat_nc(ncidt, 'time', timee, nrect, .true.)
+          call stats_write_tavg_vel
+          if (ltempeq) call stats_write_tavg_temp
+          if (lmoist)  call stats_write_tavg_moist
+          if (nsv>0)   call stats_write_tavg_scalar
+          if ((lchem) .and. (nsv>2)) call stats_write_tavg_PSS
+        end if
+
+        if(lxytdump) then
+          call stats_compute_xytavg_vel
+          if (ltempeq) call stats_compute_xytavg_temp
+          if (lmoist)  call stats_compute_xytavg_moist
           if (myid==0) then
-            write(*,*) "---------------------------------"
-            write(*,*) "Writing time average statistics"
-            write(*,*) "dump count ::: ", dumpcount
-            write(*,*) "timee ::: ", timee
-            write(*,*) "---------------------------------"
+            call writestat_nc(ncidxyt, 'time', timee, nrecxyt, .true.)
+            call stats_write_xytavg_vel
+            if (ltempeq) call stats_write_xytavg_temp
+            if (lmoist)  call stats_write_xytavg_moist
           end if
-          call stats_write_vel
-          if (ltempeq) call stats_write_temp
-          if (lmoist)  call stats_write_moist
-          if (nsv>0)   call stats_write_scalar
-          if ((lchem) .and. (nsv>2)) call stats_write_PSS
-          tstatsdumpp = dt
-        else
-          tstatsdumpp = tstatsdumpp + dt
-        endif
-      end if
+        end if
+
+        tstatsdumpp = dt
+      else
+        tstatsdumpp = tstatsdumpp + dt
+      endif
+
     end subroutine stats_main
 
 
     !! ## %% Time averaging initialization routines
-    subroutine stats_allocate_vel
+    subroutine stats_allocate_tavg_vel
       implicit none
-      !> allocate variables to compute time-averaged quantities
       allocate(ut(ib:ie,jb:je,kb:ke+kh))   ; ut = 0;
       allocate(vt(ib:ie,jb:je,kb:ke+kh))   ; vt = 0;
       allocate(wt(ib:ie,jb:je,kb:ke+kh))   ; wt = 0;
       allocate(pt(ib:ie,jb:je,kb:ke+kh))   ; pt = 0;
-
       allocate(uik(ib:ie,jb:je,kb:ke+kh))
       allocate(wik(ib:ie,jb:je,kb:ke+kh))
       allocate(vjk(ib:ie,jb:je,kb:ke+kh))
@@ -224,7 +313,9 @@ module stats
       allocate(usgst(ib:ie,jb:je,kb:ke+kh)); usgst = 0;
       allocate(vsgst(ib:ie,jb:je,kb:ke+kh)); vsgst = 0;
       allocate(wsgst(ib:ie,jb:je,kb:ke+kh)); wsgst = 0;
-
+    end subroutine stats_allocate_tavg_vel
+    subroutine stats_ncdescription_tavg_vel
+      implicit none
       !> Generate variable description for the quantities to be written in the time averaged NetCDF: stats.xxx.xxx.xxx.nc
       call ncinfo( tVars(ctrt+ 1,:), 'ut'       , 'Streamwise velocity'       , 'm/s'       , 'mttt' )
       call ncinfo( tVars(ctrt+ 2,:), 'vt'       , 'Spanwise velocity'         , 'm/s'       , 'tmtt' )
@@ -244,9 +335,9 @@ module stats
       call ncinfo( tVars(ctrt+13,:), 'vsgst'    , 'SGS v flux'                , 'm^2/s^2'   , 'tmmt' )
       call ncinfo( tVars(ctrt+14,:), 'wsgst'    , 'SGS w flux'                , 'm^2/s^2'   , 'ttmt' )
       ctrt = ctrt+14
-    end subroutine stats_allocate_vel
+    end subroutine stats_ncdescription_tavg_vel
 
-    subroutine stats_allocate_temp
+    subroutine stats_allocate_tavg_temp
       implicit none
       allocate(thlk(ib:ie,jb:je,kb:ke+kh))
       allocate(thlt(ib:ie,jb:je,kb:ke+kh))   ; thlt    = 0;
@@ -255,14 +346,17 @@ module stats
       allocate(thlthlt(ib:ie,jb:je,kb:ke+kh)); thlthlt = 0;
       allocate(thlsgs(ib:ie,jb:je,kb:ke+kh))
       allocate(thlsgst(ib:ie,jb:je,kb:ke+kh)); thlsgst = 0;
+    end subroutine stats_allocate_tavg_temp
+    subroutine stats_ncdescription_tavg_temp
+      implicit none
       call ncinfo( tVars(ctrt+1,:) , 'thlt'     , 'Temperature'               , 'K'         , 'tttt' )
       call ncinfo( tVars(ctrt+2,:) , 'wpthlpt'  , 'Turbulent heat flux'       , 'K m/s'     , 'ttmt' )
       call ncinfo( tVars(ctrt+3,:) , 'thlpthlpt', 'Temperature variance'      , 'K^2'       , 'tttt' )
       call ncinfo( tVars(ctrt+4,:) , 'thlsgst'  , 'SGS temperature flux'      , 'K m/s'     , 'ttmt' )
       ctrt = ctrt+4
-    end subroutine stats_allocate_temp
+    end subroutine stats_ncdescription_tavg_temp
 
-    subroutine stats_allocate_moist
+    subroutine stats_allocate_tavg_moist
       implicit none
       allocate(qtk(ib:ie,jb:je,kb:ke+kh))
       allocate(qtt(ib:ie,jb:je,kb:ke+kh))   ; qtt    = 0;
@@ -271,14 +365,17 @@ module stats
       allocate(qtqtt(ib:ie,jb:je,kb:ke+kh)) ; qtqtt  = 0;
       allocate(qtsgs(ib:ie,jb:je,kb:ke+kh))
       allocate(qtsgst(ib:ie,jb:je,kb:ke+kh)); qtsgst = 0;
+    end subroutine stats_allocate_tavg_moist
+    subroutine stats_ncdescription_tavg_moist
+      implicit none
       call ncinfo( tVars(ctrt+1,:) , 'qtt'      , 'Moisture'                  , 'kg/kg'     , 'tttt' )
       call ncinfo( tVars(ctrt+2,:) , 'wpqtpt'   , 'Turbulent moisture flux'   , 'kg m/kg s' , 'ttmt' )
       call ncinfo( tVars(ctrt+3,:) , 'qtpqtpt'  , 'Moisture variance'         , 'kg^2/kg^2' , 'tttt' )
       call ncinfo( tVars(ctrt+4,:) , 'qtsgst'   , 'SGS moisture flux'         , 'kg m/kg s' , 'ttmt' )
       ctrt = ctrt+4
-    end subroutine stats_allocate_moist
+    end subroutine stats_ncdescription_tavg_moist
 
-    subroutine stats_allocate_scalar
+    subroutine stats_allocate_tavg_scalar
       integer :: n
       character(2) :: sid
       allocate(svtname(nsv))
@@ -304,23 +401,101 @@ module stats
         call ncinfo(tVars(ctrt+3*nsv+n,:), trim(svsgsname(n))  , 'SGS scalar flux '//trim(sid)       , 'g/m^2s' , 'ttmt' )
       end do
       ctrt = ctrt+4*nsv
-    end subroutine stats_allocate_scalar
+    end subroutine stats_allocate_tavg_scalar
 
-    subroutine stats_allocate_PSS
+    subroutine stats_allocate_tavg_PSS
       implicit none
       allocate(PSS(ib:ie,jb:je,kb:ke+kh))
       allocate(PSSt(ib:ie,jb:je,kb:ke+kh)); PSSt = 0;
       call ncinfo( tVars(ctrt+1,:) , 'PSSt'      , 'PSS defect'                , 'gm/s'      , 'tttt' )
       ctrt = ctrt+1
-    end subroutine stats_allocate_PSS
+    end subroutine stats_allocate_tavg_PSS
+
+
+    !! ## %% Time, y and x averaging initialization routines
+    subroutine stats_allocate_xytavg_vel
+      implicit none
+      allocate(uxyt(kb:ke+kh))
+      allocate(vxyt(kb:ke+kh))
+      allocate(wxyt(kb:ke+kh))
+      allocate(pxyt(kb:ke+kh))
+      allocate(upwpxytik(kb:ke+kh))
+      allocate(vpwpxytjk(kb:ke+kh))
+      allocate(upvpxytij(kb:ke+kh))
+      allocate(uwxytik(kb:ke+kh))
+      allocate(vwxytjk(kb:ke+kh))
+      allocate(uvxytij(kb:ke+kh))
+      allocate(uuxyti(kb:ke+kh))
+      allocate(vvxytj(kb:ke+kh))
+      allocate(wwxytk(kb:ke+kh))
+      allocate(upupxytc(kb:ke+kh))
+      allocate(vpvpxytc(kb:ke+kh))
+      allocate(wpwpxytc(kb:ke+kh))
+      allocate(tkexytc(kb:ke+kh))
+      allocate(usgsxyt(kb:ke+kh))
+      allocate(vsgsxyt(kb:ke+kh))
+      allocate(wsgsxyt(kb:ke+kh))
+
+      call ncinfo( xytVars(ctrxyt+ 1,:), 'uxyt'        , 'Streamwise velocity'      , 'm/s'       , 'tt' )
+      call ncinfo( xytVars(ctrxyt+ 2,:), 'vxyt'        , 'Spanwise velocity'        , 'm/s'       , 'tt' )
+      call ncinfo( xytVars(ctrxyt+ 3,:), 'wxyt'        , 'Vertical velocity'        , 'm/s'       , 'mt' )
+      call ncinfo( xytVars(ctrxyt+ 4,:), 'pxyt'        , 'Kinematic Pressure'       , 'm^2/s^2'   , 'tt' )
+      call ncinfo( xytVars(ctrxyt+ 5,:), 'upwpxyt'     , 'Turbulent mom. flux'      , 'm^2/s^2'   , 'mt' )
+      call ncinfo( xytVars(ctrxyt+ 6,:), 'vpwpxyt'     , 'Turbulent mom. flux'      , 'm^2/s^2'   , 'mt' )
+      call ncinfo( xytVars(ctrxyt+ 7,:), 'upvpxyt'     , 'Turbulent mom. flux'      , 'm^2/s^2'   , 'mt' )
+      call ncinfo( xytVars(ctrxyt+ 8,:), 'uwxyt'       , 'Kinematic mom. flux'      , 'm^2/s^2'   , 'mt' )
+      call ncinfo( xytVars(ctrxyt+ 9,:), 'vwxyt'       , 'Kinematic mom. flux'      , 'm^2/s^2'   , 'mt' )
+      call ncinfo( xytVars(ctrxyt+10,:), 'uvxyt'       , 'Kinematic mom. flux'      , 'm^2/s^2'   , 'mt' )
+      call ncinfo( xytVars(ctrxyt+11,:), 'uuxyt'       , 'Kinematic mom. flux'      , 'm^2/s^2'   , 'tt' )
+      call ncinfo( xytVars(ctrxyt+12,:), 'vvxyt'       , 'Kinematic mom. flux'      , 'm^2/s^2'   , 'tt' )
+      call ncinfo( xytVars(ctrxyt+13,:), 'wwxyt'       , 'Kinematic mom. flux'      , 'm^2/s^2'   , 'mt' )
+      call ncinfo( xytVars(ctrxyt+14,:), 'upuptxyc'    , 'u variance'               , 'm^2/s^2'   , 'tt' )
+      call ncinfo( xytVars(ctrxyt+15,:), 'vpvptxyc'    , 'v variance'               , 'm^2/s^2'   , 'tt' )
+      call ncinfo( xytVars(ctrxyt+16,:), 'wpwptxyc'    , 'w variance'               , 'm^2/s^2'   , 'tt' )
+      call ncinfo( xytVars(ctrxyt+17,:), 'tketxyc'     , 'TKE'                      , 'm^2/s^2'   , 'tt' )
+      call ncinfo( xytVars(ctrxyt+18,:), 'usgsxyt'     , 'SGS mom. flux'            , 'm^2/s^2'   , 'mt' )
+      call ncinfo( xytVars(ctrxyt+19,:), 'vsgsxyt'     , 'SGS mom. flux'            , 'm^2/s^2'   , 'mt' )
+      call ncinfo( xytVars(ctrxyt+20,:), 'wsgsxyt'     , 'SGS mom. flux'            , 'm^2/s^2'   , 'mt' )
+      ctrxyt = ctrxyt+20
+    end subroutine stats_allocate_xytavg_vel
+
+    subroutine stats_allocate_xytavg_temp
+      implicit none
+      allocate(thlxyt(kb:ke+kh))
+      allocate(wpthlpxytk(kb:ke+kh))
+      allocate(wthlxytk(kb:ke+kh))
+      allocate(thlpthlpxyt(kb:ke+kh))
+      allocate(thlsgsxyt(kb:ke+kh))
+      call ncinfo( xytVars(ctrxyt+ 1,:), 'thlxyt'      , 'Temperature'              , 'K'         , 'tt' )
+      call ncinfo( xytVars(ctrxyt+ 2,:), 'wpthlpxyt'   , 'Turbulent heat flux'      , 'K m/s'     , 'mt' )
+      call ncinfo( xytVars(ctrxyt+ 3,:), 'wthlxyt'     , 'Kinematic heat flux'      , 'K m/s'     , 'mt' )
+      call ncinfo( xytVars(ctrxyt+ 4,:), 'thlpthlptxy' , 'Temp. variance'           , 'K^2'       , 'tt' )
+      call ncinfo( xytVars(ctrxyt+ 5,:), 'thlsgsxyt'   , 'SGS heat flux'            , 'K m/s'     , 'mt' )
+      ctrxyt = ctrxyt+5
+    end subroutine stats_allocate_xytavg_temp
+
+    subroutine stats_allocate_xytavg_moist
+      implicit none
+      allocate(qtxyt(kb:ke+kh))
+      allocate(wpqtpxytk(kb:ke+kh))
+      allocate(wqtxytk(kb:ke+kh))
+      allocate(qtpqtpxyt(kb:ke+kh))
+      allocate(qtsgsxyt(kb:ke+kh))
+      call ncinfo( xytVars(ctrxyt+ 1,:), 'qtxyt'       , 'Moisture'                 , 'kg/kg'     , 'tt' )
+      call ncinfo( xytVars(ctrxyt+ 2,:), 'wpqtpxyt'    , 'Turbulent moisture flux'  , 'kg m/kg s' , 'mt' )
+      call ncinfo( xytVars(ctrxyt+ 3,:), 'wqtxyt'      , 'Kinematic moisture flux'  , 'kg m/kg s' , 'mt' )
+      call ncinfo( xytVars(ctrxyt+ 4,:), 'qtpqtptxy'   , 'Moisture variance'        , 'kg^2/kg^2' , 'tt' )
+      call ncinfo( xytVars(ctrxyt+ 5,:), 'qtsgsxyt'    , 'SGS moisture flux'        , 'kg m/kg s' , 'mt' )
+      ctrxyt = ctrxyt+5
+    end subroutine stats_allocate_xytavg_moist
 
 
     !! ## %% Time averaging computations routines
-    subroutine stats_compute_vel
+    subroutine stats_compute_tavg_vel
       implicit none
       integer :: i, j, k
       real    :: emom
-      
+
       !> Perform required interpolations to cell centers
       do k=kb,ke+kh
         do j=jb,je
@@ -334,7 +509,14 @@ module stats
             uc(i,j,k)  = 0.5*dxhi(i)*(um(i,j,k)*dxf(i-1) + um(i-1,j,k)*dxf(i))
             vc(i,j,k)  = 0.5*        (vm(i,j,k)          + vm(i,j-1,k))
             wc(i,j,k)  = 0.5*dzhi(k)*(wm(i,j,k)*dzf(k-1) + wm(i,j,k-1)*dzf(k))
+          end do
+        end do
+      end do
 
+      !> Perform required interpolations to cell centers
+      do k=kb,ke+kh
+        do j=jb,je
+          do i=ib,ie
             ! SGS fluxes
             ! interps ekm to cell corner (uw)
             emom = ( dzf(k-1) * ( ekm(i,j,k)*dxf(i-1)  + ekm(i-1,j,k)*dxf(i) )  + &
@@ -345,10 +527,8 @@ module stats
             ! interps ekm to cell corner (vw)
             emom = ( dzf(k-1) * ( ekm(i,j,k)  + ekm(i,j-1,k) )  + &
                      dzf(k)   * ( ekm(i,j,k-1) + ekm(i,j-1,k-1) ) ) * dzhiq(k)
-
             vsgs(i,j,k)  = emom * ( (vm(i,j,k)-vm(i,j,k-1)) *dzhi(k) &
                             +(wm(i,j,k)-wm(i,j-1,k))  *dyi)
-
           end do
         end do
       end do
@@ -368,21 +548,21 @@ module stats
       call stats_compute_tavg(wt, wm(ib:ie,jb:je,kb:ke+kh))
       call stats_compute_tavg(pt, pres0(ib:ie,jb:je,kb:ke+kh))
 
-      call stats_compute_tavg(utik,  uik)
-      call stats_compute_tavg(wtik,  wik)
+      call stats_compute_tavg(utik , uik)
+      call stats_compute_tavg(wtik , wik)
       call stats_compute_tavg(uwtik, wik*uik)
 
-      call stats_compute_tavg(vtjk,  vjk)
-      call stats_compute_tavg(wtjk,  wjk)
+      call stats_compute_tavg(vtjk , vjk)
+      call stats_compute_tavg(wtjk , wjk)
       call stats_compute_tavg(vwtjk, vjk*wjk)
 
-      call stats_compute_tavg(utij,  uij)
-      call stats_compute_tavg(vtij,  vij)
+      call stats_compute_tavg(utij , uij)
+      call stats_compute_tavg(vtij , vij)
       call stats_compute_tavg(uvtij, uij*vij)
 
-      call stats_compute_tavg(utc,  uc(ib:ie,jb:je,kb:ke+kh))
-      call stats_compute_tavg(vtc,  vc(ib:ie,jb:je,kb:ke+kh))
-      call stats_compute_tavg(wtc,  wc(ib:ie,jb:je,kb:ke+kh))
+      call stats_compute_tavg(utc , uc(ib:ie,jb:je,kb:ke+kh))
+      call stats_compute_tavg(vtc , vc(ib:ie,jb:je,kb:ke+kh))
+      call stats_compute_tavg(wtc , wc(ib:ie,jb:je,kb:ke+kh))
       call stats_compute_tavg(uutc, uc(ib:ie,jb:je,kb:ke+kh)*uc(ib:ie,jb:je,kb:ke+kh))
       call stats_compute_tavg(vvtc, vc(ib:ie,jb:je,kb:ke+kh)*vc(ib:ie,jb:je,kb:ke+kh))
       call stats_compute_tavg(wwtc, wc(ib:ie,jb:je,kb:ke+kh)*wc(ib:ie,jb:je,kb:ke+kh))
@@ -390,33 +570,33 @@ module stats
       call stats_compute_tavg(usgst,  usgs)
       call stats_compute_tavg(vsgst,  vsgs)
       call stats_compute_tavg(wsgst,  wsgs)
-    end subroutine stats_compute_vel
+    end subroutine stats_compute_tavg_vel
 
-    subroutine stats_compute_temp
+    subroutine stats_compute_tavg_temp
       implicit none
       call stats_interpolate_k(thlk, thlm(ib:ie,jb:je,kb-kh:ke+kh))
       call stats_compute_sgs(thlsgs, thlm(ib:ie,jb:je,kb-kh:ke+kh), ekh(ib:ie,jb:je,kb-kh:ke+kh))
 
-      call stats_compute_tavg(thlt,    thlm(ib:ie,jb:je,kb:ke+kh))
-      call stats_compute_tavg(thltk,   thlk)
-      call stats_compute_tavg(wthltk,  wm(ib:ie,jb:je,kb:ke+kh)*thlk)
+      call stats_compute_tavg(thlt   , thlm(ib:ie,jb:je,kb:ke+kh))
+      call stats_compute_tavg(thltk  , thlk)
+      call stats_compute_tavg(wthltk , wm(ib:ie,jb:je,kb:ke+kh)*thlk)
       call stats_compute_tavg(thlthlt, thlm(ib:ie,jb:je,kb:ke+kh)*thlm(ib:ie,jb:je,kb:ke+kh))
       call stats_compute_tavg(thlsgst, thlsgs)
-    end subroutine stats_compute_temp
+    end subroutine stats_compute_tavg_temp
 
-    subroutine stats_compute_moist
+    subroutine stats_compute_tavg_moist
       implicit none
       call stats_interpolate_k(qtk, qtm(ib:ie,jb:je,kb-kh:ke+kh))
       call stats_compute_sgs(qtsgs, qtm(ib:ie,jb:je,kb-kh:ke+kh), ekh(ib:ie,jb:je,kb-kh:ke+kh))
 
-      call stats_compute_tavg(qtt,    qtm(ib:ie,jb:je,kb:ke+kh) )
-      call stats_compute_tavg(qttk,   qtk)
-      call stats_compute_tavg(wqttk,  wm(ib:ie,jb:je,kb:ke+kh)*qtk)
-      call stats_compute_tavg(qtqtt,  qtm(ib:ie,jb:je,kb:ke+kh)*qtm(ib:ie,jb:je,kb:ke+kh))
+      call stats_compute_tavg(qtt   , qtm(ib:ie,jb:je,kb:ke+kh) )
+      call stats_compute_tavg(qttk  , qtk)
+      call stats_compute_tavg(wqttk , wm(ib:ie,jb:je,kb:ke+kh)*qtk)
+      call stats_compute_tavg(qtqtt , qtm(ib:ie,jb:je,kb:ke+kh)*qtm(ib:ie,jb:je,kb:ke+kh))
       call stats_compute_tavg(qtsgst, qtsgs)
-    end subroutine stats_compute_moist
+    end subroutine stats_compute_tavg_moist
 
-    subroutine stats_compute_scalar
+    subroutine stats_compute_tavg_scalar
       implicit none
       integer :: n
       do n = 1, nsv
@@ -429,9 +609,9 @@ module stats
         call stats_compute_tavg(svsvt(:,:,:,n) , svm(ib:ie,jb:je,kb:ke+kh,n)*svm(ib:ie,jb:je,kb:ke+kh,n) )
         call stats_compute_tavg(svsgst(:,:,:,n), svsgs(:,:,:,n) )
       end do
-    end subroutine stats_compute_scalar
+    end subroutine stats_compute_tavg_scalar
 
-    subroutine stats_compute_PSS
+    subroutine stats_compute_tavg_PSS
       implicit none
       integer :: i, j, k
       do k=kb,ke
@@ -444,16 +624,108 @@ module stats
         end do
       end do
       call stats_compute_tavg(PSSt, PSS)
-    end subroutine stats_compute_PSS
+    end subroutine stats_compute_tavg_PSS
+
+
+    !! ## %% Time, y and x averaging computations routines
+    subroutine stats_compute_xytavg_vel
+      implicit none
+      !> Mean
+      uxyt = 0.; vxyt = 0.; wxyt = 0; pxyt = 0;
+      call avexy_ibm(uxyt(kb:ke+kh),ut(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
+      call avexy_ibm(vxyt(kb:ke+kh),vt(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
+      call avexy_ibm(wxyt(kb:ke+kh),wt(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+      call avexy_ibm(pxyt(kb:ke+kh),pt(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+
+      !> Turbulent fluxes
+      upwpxytik = 0; vpwpxytjk = 0; upvpxytij = 0;
+      call avexy_ibm(upwpxytik(kb:ke+kh),uwtik(ib:ie,jb:je,kb:ke+kh)-utik(ib:ie,jb:je,kb:ke+kh)*wtik(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh),.false.)
+      call avexy_ibm(vpwpxytjk(kb:ke+kh),vwtjk(ib:ie,jb:je,kb:ke+kh)-vtjk(ib:ie,jb:je,kb:ke+kh)*wtjk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIvw(ib:ie,jb:je,kb:ke+kh),IIvws(kb:ke+kh),.false.)
+      call avexy_ibm(upvpxytij(kb:ke+kh),uvtij(ib:ie,jb:je,kb:ke+kh)-utij(ib:ie,jb:je,kb:ke+kh)*vtij(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIuv(ib:ie,jb:je,kb:ke+kh),IIuvs(kb:ke+kh),.false.)
+
+      !> Advective fluxes
+      uwxytik = 0; vwxytjk = 0; uvxytij = 0; uuxyti = 0; vvxytj = 0; wwxytk = 0;
+      call avexy_ibm(uwxytik(kb:ke+kh),utik(ib:ie,jb:je,kb:ke+kh)*wtik(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh),.false.)
+      call avexy_ibm(vwxytjk(kb:ke+kh),vtjk(ib:ie,jb:je,kb:ke+kh)*wtjk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIvw(ib:ie,jb:je,kb:ke+kh),IIvws(kb:ke+kh),.false.)
+      call avexy_ibm(uvxytij(kb:ke+kh),utij(ib:ie,jb:je,kb:ke+kh)*vtij(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIuv(ib:ie,jb:je,kb:ke+kh),IIuvs(kb:ke+kh),.false.)
+      call avexy_ibm(uuxyti(kb:ke+kh),ut(ib:ie,jb:je,kb:ke+kh)*ut(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
+      call avexy_ibm(vvxytj(kb:ke+kh),vt(ib:ie,jb:je,kb:ke+kh)*vt(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
+      call avexy_ibm(wwxytk(kb:ke+kh),wt(ib:ie,jb:je,kb:ke+kh)*wt(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+
+      !> Variances and TKE
+      upupxytc = 0; vpvpxytc = 0; wpwpxytc = 0; tkexytc = 0;
+      call avexy_ibm(upupxytc(kb:ke+kh),uutc(ib:ie,jb:je,kb:ke+kh)-utc(ib:ie,jb:je,kb:ke+kh)*utc(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+      call avexy_ibm(vpvpxytc(kb:ke+kh),vvtc(ib:ie,jb:je,kb:ke+kh)-vtc(ib:ie,jb:je,kb:ke+kh)*vtc(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+      call avexy_ibm(wpwpxytc(kb:ke+kh),wwtc(ib:ie,jb:je,kb:ke+kh)-wtc(ib:ie,jb:je,kb:ke+kh)*wtc(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+      call avexy_ibm(tkexytc(kb:ke+kh),0.5*((wwtc(ib:ie,jb:je,kb:ke+kh)-wtc(ib:ie,jb:je,kb:ke+kh)*wtc(ib:ie,jb:je,kb:ke+kh))+(vvtc(ib:ie,jb:je,kb:ke+kh)-vtc(ib:ie,jb:je,kb:ke+kh)*vtc(ib:ie,jb:je,kb:ke+kh))+(uutc(ib:ie,jb:je,kb:ke+kh)-utc(ib:ie,jb:je,kb:ke+kh)*utc(ib:ie,jb:je,kb:ke+kh))),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+
+      !> SGS fluxes
+      usgsxyt = 0; vsgsxyt = 0; wsgsxyt = 0;
+      call avexy_ibm(usgsxyt(kb:ke+kh),usgst(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh),.false.)
+      call avexy_ibm(vsgsxyt(kb:ke+kh),vsgst(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIvw(ib:ie,jb:je,kb:ke+kh),IIvws(kb:ke+kh),.false.)
+      call avexy_ibm(wsgsxyt(kb:ke+kh),wsgst(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+    end subroutine stats_compute_xytavg_vel
+
+    subroutine stats_compute_xytavg_temp
+      implicit none
+      !> Mean
+      thlxyt = 0.;
+      call avexy_ibm(thlxyt(kb:ke+kh),thlt(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+      
+      !> Turbulent flux
+      wpthlpxytk = 0;
+      call avexy_ibm(wpthlpxytk(kb:ke+kh),wthltk(ib:ie,jb:je,kb:ke+kh)-wt(ib:ie,jb:je,kb:ke+kh)*thltk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+      
+      !> Advective flux
+      wthlxytk = 0;
+      call avexy_ibm(wthlxytk(kb:ke+kh),wt(ib:ie,jb:je,kb:ke+kh)*thltk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+      
+      !> Variance
+      thlpthlpxyt = 0;
+      call avexy_ibm(thlpthlpxyt(kb:ke+kh),thlthlt(ib:ie,jb:je,kb:ke+kh)-thlt(ib:ie,jb:je,kb:ke+kh)*thlt(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+      
+      !> SGS flux
+      thlsgsxyt = 0;
+      call avexy_ibm(thlsgsxyt(kb:ke+kh),thlsgst(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+    end subroutine stats_compute_xytavg_temp
+
+    subroutine stats_compute_xytavg_moist
+      implicit none
+      !> Mean
+      qtxyt = 0.;
+      call avexy_ibm(qtxyt(kb:ke+kh),qtt(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+      
+      !> Turbulent flux
+      wpqtpxytk = 0;
+      call avexy_ibm(wpqtpxytk(kb:ke+kh),wqttk(ib:ie,jb:je,kb:ke+kh)-wt(ib:ie,jb:je,kb:ke+kh)*qttk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+      
+      !> Advective flux
+      wqtxytk = 0;
+      call avexy_ibm(wqtxytk(kb:ke+kh),wt(ib:ie,jb:je,kb:ke+kh)*qttk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+      
+      !> Variance
+      qtpqtpxyt = 0;
+      call avexy_ibm(qtpqtpxyt(kb:ke+kh),qtqtt(ib:ie,jb:je,kb:ke+kh)-qtt(ib:ie,jb:je,kb:ke+kh)*qtt(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+      
+      !> SGS flux
+      qtsgsxyt = 0;
+      call avexy_ibm(qtsgsxyt(kb:ke+kh),qtsgst(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+    end subroutine stats_compute_xytavg_moist
 
 
     !! ## %% Low level routines
-    subroutine stats_compute_tavg(vart,var)
+    subroutine stats_compute_tavg_1D(vart,var)
+      implicit none
+      real, intent(inout) :: vart(:)
+      real, intent(in)    :: var(:)
+      vart = ( vart*(tstatsdumpp-tsamplep) + var*tsamplep )*tstatsdumppi
+    end subroutine stats_compute_tavg_1D
+    subroutine stats_compute_tavg_3D(vart,var)
       implicit none
       real, intent(inout) :: vart(:,:,:)
       real, intent(in)    :: var(:,:,:)
       vart = ( vart*(tstatsdumpp-tsamplep) + var*tsamplep )*tstatsdumppi
-    end subroutine stats_compute_tavg
+    end subroutine stats_compute_tavg_3D
 
     subroutine stats_interpolate_k(vark,varm)
       implicit none
@@ -479,14 +751,8 @@ module stats
 
 
     !! ## %% Time averaged statistics writing routines 
-    subroutine stats_write_vel
+    subroutine stats_write_tavg_vel
       implicit none
-      real, allocatable :: upuptc(:,:,:)
-      real, allocatable :: vpvptc(:,:,:)
-      real, allocatable :: wpwptc(:,:,:)
-      real, allocatable :: tketc(:,:,:)
-
-      call writestat_nc(ncidt, 'time', timee, nrect, .true.)
       call writestat_nc(ncidt, 'ut', ut(:,:,kb:ke), nrect, xdim, ydim, zdim)
       call writestat_nc(ncidt, 'vt', vt(:,:,kb:ke), nrect, xdim, ydim, zdim)
       call writestat_nc(ncidt, 'wt', wt(:,:,kb:ke), nrect, xdim, ydim, zdim)
@@ -495,42 +761,34 @@ module stats
       call writestat_nc(ncidt, 'upwpt', uwtik(:,:,kb:ke) - utik(:,:,kb:ke)*wtik(:,:,kb:ke), nrect, xdim, ydim, zdim)
       call writestat_nc(ncidt, 'vpwpt', vwtjk(:,:,kb:ke) - vtjk(:,:,kb:ke)*wtjk(:,:,kb:ke), nrect, xdim, ydim, zdim)
       call writestat_nc(ncidt, 'upvpt', uvtij(:,:,kb:ke) - utij(:,:,kb:ke)*vtij(:,:,kb:ke), nrect, xdim, ydim, zdim)
-
-      allocate(upuptc(ib:ie,jb:je,kb:ke+kh))
-      allocate(vpvptc(ib:ie,jb:je,kb:ke+kh))
-      allocate(wpwptc(ib:ie,jb:je,kb:ke+kh))
-      allocate(tketc(ib:ie,jb:je,kb:ke+kh))
-      upuptc = uutc - utc*utc
-      vpvptc = vvtc - vtc*vtc
-      wpwptc = wwtc - wtc*wtc
-      tketc = 0.5*(upuptc + vpvptc + wpwptc)
-      call writestat_nc(ncidt, 'upuptc', upuptc(:,:,kb:ke), nrect, xdim, ydim, zdim)
-      call writestat_nc(ncidt, 'vpvptc', vpvptc(:,:,kb:ke), nrect, xdim, ydim, zdim)
-      call writestat_nc(ncidt, 'wpwptc', wpwptc(:,:,kb:ke), nrect, xdim, ydim, zdim)
-      call writestat_nc(ncidt, 'tketc' , tketc(:,:,kb:ke) , nrect, xdim, ydim, zdim)
-      deallocate(upuptc,vpvptc,wpwptc,tketc)
+      
+      call writestat_nc(ncidt, 'upuptc', uutc(:,:,kb:ke)-utc(:,:,kb:ke)*utc(:,:,kb:ke), nrect, xdim, ydim, zdim)
+      call writestat_nc(ncidt, 'vpvptc', vvtc(:,:,kb:ke)-vtc(:,:,kb:ke)*vtc(:,:,kb:ke), nrect, xdim, ydim, zdim)
+      call writestat_nc(ncidt, 'wpwptc', wwtc(:,:,kb:ke)-wtc(:,:,kb:ke)*wtc(:,:,kb:ke), nrect, xdim, ydim, zdim)
+      call writestat_nc(ncidt, 'tketc' , 0.5*( (uutc(:,:,kb:ke)-utc(:,:,kb:ke)*utc(:,:,kb:ke)) + (vvtc(:,:,kb:ke)-vtc(:,:,kb:ke)*vtc(:,:,kb:ke)) + (wwtc(:,:,kb:ke)-wtc(:,:,kb:ke)*wtc(:,:,kb:ke)) ) , nrect, xdim, ydim, zdim)
 
       call writestat_nc(ncidt, 'usgst', usgst(:,:,kb:ke), nrect, xdim, ydim, zdim)
       call writestat_nc(ncidt, 'vsgst', vsgst(:,:,kb:ke), nrect, xdim, ydim, zdim)
       call writestat_nc(ncidt, 'wsgst', wsgst(:,:,kb:ke), nrect, xdim, ydim, zdim)
-    end subroutine stats_write_vel
+    end subroutine stats_write_tavg_vel
 
-    subroutine stats_write_temp
+    subroutine stats_write_tavg_temp
       implicit none
       call writestat_nc(ncidt, 'thlt'     , thlt(:,:,kb:ke)                                     , nrect, xdim, ydim, zdim)
       call writestat_nc(ncidt, 'wpthlpt'  , wthltk(:,:,kb:ke) - wt(:,:,kb:ke)*thltk(:,:,kb:ke)  , nrect, xdim, ydim, zdim)
       call writestat_nc(ncidt, 'thlpthlpt', thlthlt(:,:,kb:ke) - thlt(:,:,kb:ke)*thlt(:,:,kb:ke), nrect, xdim, ydim, zdim)
-    end subroutine stats_write_temp
+      call writestat_nc(ncidt, 'thlsgst'  , thlsgst(:,:,kb:ke)                                  , nrect, xdim, ydim, zdim)
+    end subroutine stats_write_tavg_temp
 
-    subroutine stats_write_moist
+    subroutine stats_write_tavg_moist
       implicit none
       call writestat_nc(ncidt, 'qtt'    , qtt(:,:,kb:ke)                                  , nrect, xdim, ydim, zdim)
       call writestat_nc(ncidt, 'wpqtpt' , wqttk(:,:,kb:ke) - wt(:,:,kb:ke)*qttk(:,:,kb:ke), nrect, xdim, ydim, zdim)
       call writestat_nc(ncidt, 'qtpqtpt', qtqtt(:,:,kb:ke) - qtt(:,:,kb:ke)*qtt(:,:,kb:ke), nrect, xdim, ydim, zdim)
       call writestat_nc(ncidt, 'qtsgst' , qtsgst(:,:,kb:ke)                               , nrect, xdim, ydim, zdim)
-    end subroutine stats_write_moist
+    end subroutine stats_write_tavg_moist
 
-    subroutine stats_write_scalar
+    subroutine stats_write_tavg_scalar
       implicit none
       integer :: n
       do n = 1, nsv
@@ -539,26 +797,79 @@ module stats
         call writestat_nc(ncidt, trim(svpsvptname(n)), svsvt(:,:,kb:ke,n) - svt(:,:,kb:ke,n)*svt(:,:,kb:ke,n), nrect, xdim, ydim, zdim)
         call writestat_nc(ncidt, trim(svsgsname(n))  , svsgst(:,:,kb:ke,n)                                   , nrect, xdim, ydim, zdim)
       end do
-    end subroutine stats_write_scalar
+    end subroutine stats_write_tavg_scalar
 
-    subroutine stats_write_PSS
+    subroutine stats_write_tavg_PSS
       implicit none
       call writestat_nc(ncidt, 'PSSt', PSSt(:,:,kb:ke), nrect, xdim, ydim, zdim)
-    end subroutine stats_write_PSS
+    end subroutine stats_write_tavg_PSS
+
+
+    !! ## %% Time, y and x averaged statistics writing routines 
+    subroutine stats_write_xytavg_vel
+      implicit none
+      call writestat_nc(ncidxyt, 'uxyt'       , uxyt(kb:ke)       , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'vxyt'       , vxyt(kb:ke)       , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'wxyt'       , wxyt(kb:ke)       , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'pxyt'       , pxyt(kb:ke)       , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'upwpxyt'    , upwpxytik(kb:ke)  , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'vpwpxyt'    , vpwpxytjk(kb:ke)  , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'upvpxyt'    , upvpxytij(kb:ke)  , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'uwxyt'      , uwxytik(kb:ke)    , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'vwxyt'      , vwxytjk(kb:ke)    , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'uvxyt'      , uvxytij(kb:ke)    , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'uuxyt'      , uuxyti(kb:ke)     , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'vvxyt'      , vvxytj(kb:ke)     , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'wwxyt'      , wwxytk(kb:ke)     , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'upuptxyc'   , upupxytc(kb:ke)   , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'vpvptxyc'   , vpvpxytc(kb:ke)   , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'wpwptxyc'   , wpwpxytc(kb:ke)   , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'tketxyc'    , tkexytc(kb:ke)    , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'usgsxyt'    , usgsxyt(kb:ke)    , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'vsgsxyt'    , vsgsxyt(kb:ke)    , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'wsgsxyt'    , wsgsxyt(kb:ke)    , nrecxyt, zdim)
+    end subroutine stats_write_xytavg_vel
+    
+    subroutine stats_write_xytavg_temp
+      implicit none
+      call writestat_nc(ncidxyt, 'thlxyt'     , thlxyt(kb:ke)     , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'wpthlpxyt'  , wpthlpxytk(kb:ke) , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'wthlxyt'    , wthlxytk(kb:ke)   , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'thlpthlptxy', thlpthlpxyt(kb:ke), nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'thlsgsxyt'  , thlsgsxyt(kb:ke)  , nrecxyt, zdim)
+    end subroutine stats_write_xytavg_temp
+    
+    subroutine stats_write_xytavg_moist
+      implicit none
+      call writestat_nc(ncidxyt, 'qtxyt'      , qtxyt(kb:ke)      , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'wpqtpxyt'   , wpqtpxytk(kb:ke)  , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'wqtxyt'     , wqtxytk(kb:ke)    , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'qtpqtptxy'  , qtpqtpxyt(kb:ke)  , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'qtsgsxyt'   , qtsgsxyt(kb:ke)   , nrecxyt, zdim)
+    end subroutine stats_write_xytavg_moist
 
 
     subroutine stats_exit
       implicit none
-      if (ltdump) then
+      if (ltdump .or. lxytdump) then
         deallocate(ut,vt,wt,pt)
         deallocate(uik,wik,vjk,wjk,uij,vij,uc,vc,wc)
-        deallocate(utik,wtik,uwtik,vtjk,wtjk,vwtjk,utij,vtij,uvtij)
         deallocate(utc,vtc,wtc,uutc,vvtc,wwtc)
+        deallocate(utik,wtik,uwtik,vtjk,wtjk,vwtjk,utij,vtij,uvtij)
         deallocate(usgs,vsgs,wsgs,usgst,vsgst,wsgst)
         if (ltempeq) deallocate(thlt,thlk,thltk,wthltk,thlthlt,thlsgs,thlsgst)
         if (lmoist)  deallocate(qtt,qtk,qttk,wqttk,qtqtt,qtsgs,qtsgst)
+      end if
+      if (ltdump) then  
         if (nsv>0)   deallocate(svtname,wpsvptname,svpsvptname,svsgsname,svt,svk,svtk,wsvtk,svsvt,svsgs,svsgst)
         if ((lchem) .and. (nsv>2)) deallocate(PSS,PSSt)
+      end if
+      if (lxytdump) then
+        deallocate(uxyt,vxyt,wxyt,pxyt,usgsxyt,vsgsxyt,wsgsxyt)
+        deallocate(upwpxytik,vpwpxytjk,upvpxytij,upupxytc,vpvpxytc,wpwpxytc,tkexytc)
+        deallocate(uwxytik,vwxytjk,uvxytij,uuxyti,vvxytj,wwxytk)
+        if (ltempeq) deallocate(thlxyt,wpthlpxytk,wthlxytk,thlpthlpxyt,thlsgsxyt)
+        if (lmoist)  deallocate(qtxyt,wpqtpxytk,wqtxytk,qtpqtpxyt,qtsgsxyt)
       end if
     end subroutine stats_exit
 end module stats
