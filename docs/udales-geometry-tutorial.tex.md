@@ -10,7 +10,7 @@ uDALES supports several manners to create urban surfaces. It is possible to run 
    -  [**udgeom.createCubes**](#udgeomcreatecubes). This function creates cubes, either a single one or an array of cubes. 
    -  [**udgeom.createRealistic**](#udgeomcreaterealistic). This function creates a realistic urban surface based on an stl file that contains the buildings. The function adds the ground surface. 
 
-
+**The live matlab file of this tutorial can be found in the repository in the folder /docs/tutorial_mlx.**
 
 **Note that the uDALES/tools/matlab path must be added via the Set Path button in order to use the udgeom package. Alternatively, it can be added using the addpath function inside the script (done here).**
 
@@ -60,9 +60,73 @@ Methods of udgeom.udgeom inherited from handle.
 ```
 
 
+
+These files can be used as follows
+
+
+
 ```matlab
+help geom.load
+```
+
+
+```text
+--- help for udgeom.udgeom/load ---
+
+  load an STL file.
+  
+  example:
+    obj.load(obj, filename)
+```
+
+
+```matlab
+help geom.save
+```
+
+
+```text
+--- help for udgeom.udgeom/save ---
+
+  save an STL file.
+ 
+  example:
+    obj.save(obj, filename)
+```
+
+
+```matlab
+help geom.show
+```
+
+
+```text
+--- help for udgeom.udgeom/show ---
+
+  plot the geometry
+ 
+  show(obj, colorbuildings)
+        colorbuildings (optional): boolean parameter on whether
+                                   to colour buildings. This
+                                   parameter is true by default.
+                                   Needs to be set to false for 
+                                   large geometries.
+ 
+  examples:
+    obj.show();
+    obj.show(false);
+```
+
+
+
+Here is a simple example on how to use this class:
+
+
+
+```matlab
+
 geom.load('uDALES.stl')    % load an STL file from the current directory (can be changed in constructor)
-geom.show()                % show the geometry
+geom.show();               % show the geometry
 xlabel('x [m]'); 
 ylabel('y [m]')
 ```
