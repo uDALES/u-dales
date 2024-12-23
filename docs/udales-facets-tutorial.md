@@ -145,9 +145,6 @@ title('skyline in y-direction')
 ![figure_0.png](facets_tutorial_media/figure_0.png)
 
 
-```matlab
-
-```
 
 # plot_fac_type: display surface types
 

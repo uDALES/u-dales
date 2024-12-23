@@ -29,19 +29,19 @@ The **`udbase`** post-processing class reads in most important input parameters,
    -  **calculate_frontal_properties**. This method calculates the skylines, frontal areas and blockage ratios in the x- and y-direction. 
    -  **plot_fac_type.** This method displays the type of surface for each facet. 
    -  **assign_prop_to_fac**. This method assigns a property of the facet type to each of the facets, so it can be used for calculation and visualisation 
-   -  **plot_fac. **This method displays a surface variable on the mesh. 
-   -  **load_fac_momentum. **This method loads instantaneous momentum surface data from `fac.expnr.nc`. The first index is the facet id and second index is time. 
-   -  **load_fac_eb. **This method loads instantaneous surface energy balance data from `facEB.expnr.nc`. The first index is the facet id and second index is time. 
-   -  **load_seb. **This method loads all instantaneous surface energy balance terms. The first index is the facet id and second index is time. 
-   -  **load_fac_temperature. **This method loads instantaneous facet temperature data `facT.expnr.nc`. The first index is the facet id, the second is the layer index and the third index is time. 
-   -  **area_average_seb. **This method calculates the area-averaged surface energy balance from the facet surface energy balances obtained using `load_seb`. 
-   -  **area_average_fac. **This method performs area-averaging over (a selection of) the facets. The facet index is assumed to be the first index of the array. 
-   -  **time_average. **This method performs time-averaging on an array; where time is assumed to be the last index of the array. 
+   -  **plot_fac**. This method displays a surface variable on the mesh. 
+   -  **load_fac_momentum**. This method loads instantaneous momentum surface data from `fac.expnr.nc`. The first index is the facet id and second index is time. 
+   -  **load_fac_eb**. This method loads instantaneous surface energy balance data from `facEB.expnr.nc`. The first index is the facet id and second index is time. 
+   -  **load_seb**. This method loads all instantaneous surface energy balance terms. The first index is the facet id and second index is time. 
+   -  **load_fac_temperature**. This method loads instantaneous facet temperature data `facT.expnr.nc`. The first index is the facet id, the second is the layer index and the third index is time. 
+   -  **area_average_seb**. This method calculates the area-averaged surface energy balance from the facet surface energy balances obtained using `load_seb`. 
+   -  **area_average_fac**. This method performs area-averaging over (a selection of) the facets. The facet index is assumed to be the first index of the array. 
+   -  **time_average**. This method performs time-averaging on an array; where time is assumed to be the last index of the array. 
    -  **convert_fac_to_field**. This method converts a facet variable to a density in a 3D field, so it can be used for post-processing (e.g. calculating distributed drag). 
 
 
 
-**The live matlab file of this tutorial can be found in the repository in the folder /docs/tutorial_mlx. **
+**The live matlab file of this tutorial can be found in the repository in the folder /docs/tutorial_mlx.**
 
 
 # Initialising udbase
