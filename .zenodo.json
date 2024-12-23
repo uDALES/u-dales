@@ -50,20 +50,25 @@
         {
           "scheme": "doi", 
           "identifier": "10.5194/gmd-17-6277-2024", 
-          "relation": "isSupplementTo", 
+          "relation": "isDescribedBy", 
           "resource_type": "publication-article"
-        }
+        },
         {
           "scheme": "doi", 
           "identifier": "10.5194/gmd-15-5309-2022", 
-          "relation": "isSupplementTo", 
+          "relation": "isDescribedBy", 
           "resource_type": "publication-article"
-        }          
+        },       
         {
           "scheme": "doi", 
           "identifier": "10.21105/joss.03055", 
-          "relation": "isSupplementTo", 
+          "relation": "isDescribedBy", 
           "resource_type": "publication-article"
-        }
+      }
+      ],
+   "communities": [
+      {
+         "identifier": "vanreeuwijklab"
+      }
       ]
 }
