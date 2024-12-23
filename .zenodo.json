@@ -10,6 +10,18 @@
       ],
     "creators": [
         {
+          "orcid": "0000-0003-3253-1896", 
+          "name": "Owens, S."
+        },
+        {
+          "orcid": "0000-0002-3551-3768", 
+          "name": "Majumdar, D."
+        },
+        {
+          "orcid": "0009-0003-9610-5674", 
+          "name": "Wilson, C.E."
+        },
+        {
           "orcid": "0000-0002-0948-4932", 
           "name": "Grylls, T."
         },
@@ -20,10 +32,6 @@
         {
           "orcid": "0000-0001-9638-5643", 
           "name": "Sützl, B."
-        },
-        {
-          "orcid": "0000-0003-3253-1896", 
-          "name": "Owens, S."
         },
         {
           "orcid": "0000-0002-7071-7547", 
@@ -39,6 +47,18 @@
         "id": "GPL-3.0"
       },
       "related_identifiers": [
+        {
+          "scheme": "doi", 
+          "identifier": "10.5194/gmd-17-6277-2024", 
+          "relation": "isSupplementTo", 
+          "resource_type": "publication-article"
+        }
+        {
+          "scheme": "doi", 
+          "identifier": "10.5194/gmd-15-5309-2022", 
+          "relation": "isSupplementTo", 
+          "resource_type": "publication-article"
+        }          
         {
           "scheme": "doi", 
           "identifier": "10.21105/joss.03055", 
