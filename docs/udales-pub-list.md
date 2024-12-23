@@ -1,11 +1,7 @@
 Publication list
 ================
 
-uDALES was used in the following publications :
-
-## 2024
-- The drag length is key to quantifying tree canopy drag[@Majumdar2025].
-- A conservative immersed boundary method for the multi-physics urban large-eddy simulation model uDALES v2.0[@Owens2024].
+uDALES was used in the following publications [@Majumdar2025, @Owens2024].
 
 ## 2022
 - How trees affect urban air quality: It depends on the source[@Grylls2022].
