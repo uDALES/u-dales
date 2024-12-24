@@ -94,7 +94,9 @@ classdef udgeom < handle
       
       function load(obj, filename)
          % load an STL file.
-         % load(obj, filename)          
+         % 
+         % example:
+         %   obj.load(obj, filename)
           
          obj.gopath()
          obj.stl = stlread(filename);
@@ -105,7 +107,9 @@ classdef udgeom < handle
       
       function save(obj, filename)
          % save an STL file.
-         % save(obj, filename)
+         %
+         % example:
+         %   obj.save(obj, filename)
 
          obj.gopath()
          stlwrite(obj.stl, filename)
@@ -114,9 +118,24 @@ classdef udgeom < handle
       
       % -------------------------------------------------------------- %
       
-      function show(obj)
+      function show(obj, varargin)
          % plot the geometry
-         % plot(obj)
+         %
+         % show(obj, colorbuildings)
+         %       colorbuildings (optional): boolean parameter on whether
+         %                                  to colour buildings. This
+         %                                  parameter is true by default.
+         %                                  Needs to be set to false for 
+         %                                  large geometries.
+         %
+         % examples:
+         %   obj.show();
+         %   obj.show(false);
+
+         color_buildings = true;
+         if ~isempty(varargin)
+             color_buildings = varargin{1};
+         end
 
          faceNormals = faceNormal(obj.stl);
          incenters = incenter(obj.stl);
@@ -126,14 +145,16 @@ classdef udgeom < handle
                'FaceColor', ones(3,1)*0.85, 'FaceAlpha', 1) 
          hold on
          
-         for i=1:length(incenters(:,1))
-            if incenters(i,3)>0
-               A = obj.stl.Points(obj.stl.ConnectivityList(i,1),:);
-               B = obj.stl.Points(obj.stl.ConnectivityList(i,2),:);
-               C = obj.stl.Points(obj.stl.ConnectivityList(i,3),:);
-               fill3([A(1) B(1) C(1)], [A(2) B(2) C(2)], [A(3) B(3) C(3)], ...
-                     [0.73 0.83 0.96])
-            end
+         if (color_buildings)
+             for i=1:length(incenters(:,1))
+                 if incenters(i,3)>0
+                     A = obj.stl.Points(obj.stl.ConnectivityList(i,1),:);
+                     B = obj.stl.Points(obj.stl.ConnectivityList(i,2),:);
+                     C = obj.stl.Points(obj.stl.ConnectivityList(i,3),:);
+                     fill3([A(1) B(1) C(1)], [A(2) B(2) C(2)], [A(3) B(3) C(3)], ...
+                         [0.73 0.83 0.96])
+                 end
+             end
          end
          
          quiver3(incenters(:,1), incenters(:,2), incenters(:,3), ...
