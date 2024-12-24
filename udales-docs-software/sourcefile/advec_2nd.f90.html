@@ -1,0 +1,908 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="TODO:">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>advec_2nd.f90 &ndash; uDALES</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <link href="../css/font-awesome.min.css" rel="stylesheet">
+    <link href="../css/local.css" rel="stylesheet">
+      <link  href="../tipuesearch/tipuesearch.css" rel="stylesheet">
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/dalesurban.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>advec_2nd.f90
+      <small>Source File</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 0.9% of total for source files.">132 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/advec_2nd.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+            <li class="breadcrumb-item active" aria-current="page">advec_2nd.f90</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    $(function () {
+    $('[data-bs-toggle="tooltip"]').tooltip()
+    })
+  </script>
+
+  </div>
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+        <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+      <div class="card mb-4">
+      <a data-bs-toggle="collapse" href="#subs-0"
+         aria-expanded="false" aria-controls="subs-0">
+         <h4 class="card-header bg-primary text-white">Subroutines</h4>
+      </a>
+      <div id="subs-0" class="collapse">
+        <div class="list-group list-group-flush">
+            <a class="list-group-item" href="../proc/advecc_2nd.html">advecc_2nd</a>
+            <a class="list-group-item" href="../proc/advecu_2nd.html">advecu_2nd</a>
+            <a class="list-group-item" href="../proc/advecv_2nd.html">advecv_2nd</a>
+            <a class="list-group-item" href="../proc/advecw_2nd.html">advecw_2nd</a>
+        </div>
+      </div>
+    </div>
+
+  
+  
+  
+  
+  
+  
+  
+    <div class="card card-primary">
+      <div class="card-header text-left"><h3 class="card-title">Source Code</h3></div>
+      <div class="list-group">
+        <a class="list-group-item" href="../sourcefile/advec_2nd.f90.html#src">advec_2nd.f90</a>
+      </div>
+    </div>
+
+
+  </div>
+
+    </div>
+    <div class="col-md-9" id='text'>
+      
+      <br>
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">This file depends on</h3>
+          </div>
+          <div class="card-body">
+            <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.50.0 (0)
+ -->
+<!-- Title: sourcefile~~advec_2nd.f90~~EfferentGraph Pages: 1 -->
+<svg id="sourcefileadvec_2ndf90EfferentGraph" width="641pt" height="348pt"
+ viewBox="0.00 0.00 641.00 348.16" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph" class="graph" transform="scale(0.65 0.65) rotate(0) translate(4 534.26)">
+<title>sourcefile~~advec_2nd.f90~~EfferentGraph</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-534.26 987,-534.26 987,4 -4,4"/>
+<!-- sourcefile~advec_2nd.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_node1" class="node">
+<title>sourcefile~advec_2nd.f90</title>
+<polygon fill="none" stroke="black" points="983,-376.26 892,-376.26 892,-352.26 983,-352.26 983,-376.26"/>
+<text text-anchor="middle" x="937.5" y="-361.86" font-family="Helvetica,sans-Serif" font-size="10.50">advec_2nd.f90</text>
+</g>
+<!-- sourcefile~initfac.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_node2" class="node">
+<title>sourcefile~initfac.f90</title>
+<g id="a_sourcefile~~advec_2nd.f90~~EfferentGraph_node2"><a xlink:href="../sourcefile/initfac.f90.html" xlink:title="initfac.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="332.5,-450.26 266.5,-450.26 266.5,-426.26 332.5,-426.26 332.5,-450.26"/>
+<text text-anchor="middle" x="299.5" y="-435.86" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">initfac.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~advec_2nd.f90&#45;&gt;sourcefile~initfac.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_edge1" class="edge">
+<title>sourcefile~advec_2nd.f90&#45;&gt;sourcefile~initfac.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M816.5,-478.26C653.5,-555.46 428.88,-487.01 339.48,-453.85"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="340.6,-450.53 330.01,-450.28 338.13,-457.08 340.6,-450.53"/>
+</g>
+<!-- sourcefile~modfields.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_node3" class="node">
+<title>sourcefile~modfields.f90</title>
+<g id="a_sourcefile~~advec_2nd.f90~~EfferentGraph_node3"><a xlink:href="../sourcefile/modfields.f90.html" xlink:title="modfields.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="342,-370.26 257,-370.26 257,-346.26 342,-346.26 342,-370.26"/>
+<text text-anchor="middle" x="299.5" y="-355.86" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modfields.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~advec_2nd.f90&#45;&gt;sourcefile~modfields.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_edge2" class="edge">
+<title>sourcefile~advec_2nd.f90&#45;&gt;sourcefile~modfields.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M928.89,-376.32C912.4,-401.17 870.61,-457.46 818.5,-478.26"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M816.5,-478.26C811.02,-480.45 482.04,-401.85 352.3,-370.72"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="352.75,-367.22 342.2,-368.29 351.11,-374.03 352.75,-367.22"/>
+</g>
+<!-- sourcefile~modglobal.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_node4" class="node">
+<title>sourcefile~modglobal.f90</title>
+<g id="a_sourcefile~~advec_2nd.f90~~EfferentGraph_node4"><a xlink:href="../sourcefile/modglobal.f90.html" xlink:title="modglobal.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="203,-390.26 113,-390.26 113,-366.26 203,-366.26 203,-390.26"/>
+<text text-anchor="middle" x="158" y="-375.86" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modglobal.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~advec_2nd.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_edge3" class="edge">
+<title>sourcefile~advec_2nd.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M816.5,-478.26C710.12,-521.06 673.17,-478.26 558.5,-478.26 558.5,-478.26 558.5,-478.26 436,-478.26 348.04,-478.26 318.44,-497.04 239,-459.26 210.8,-445.86 186.94,-418.15 172.8,-398.9"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="175.47,-396.62 166.84,-390.48 169.76,-400.66 175.47,-396.62"/>
+</g>
+<!-- sourcefile~modibm.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_node5" class="node">
+<title>sourcefile~modibm.f90</title>
+<g id="a_sourcefile~~advec_2nd.f90~~EfferentGraph_node5"><a xlink:href="../sourcefile/modibm.f90.html" xlink:title="modibm.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="856,-376.26 779,-376.26 779,-352.26 856,-352.26 856,-376.26"/>
+<text text-anchor="middle" x="817.5" y="-361.86" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modibm.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~advec_2nd.f90&#45;&gt;sourcefile~modibm.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_edge4" class="edge">
+<title>sourcefile~advec_2nd.f90&#45;&gt;sourcefile~modibm.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M891.89,-364.26C883.54,-364.26 874.78,-364.26 866.33,-364.26"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="866.24,-360.77 856.24,-364.26 866.24,-367.77 866.24,-360.77"/>
+</g>
+<!-- sourcefile~modmpi.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_node6" class="node">
+<title>sourcefile~modmpi.f90</title>
+<g id="a_sourcefile~~advec_2nd.f90~~EfferentGraph_node6"><a xlink:href="../sourcefile/modmpi.f90.html" xlink:title="modmpi.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="77,-390.26 0,-390.26 0,-366.26 77,-366.26 77,-390.26"/>
+<text text-anchor="middle" x="38.5" y="-375.86" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modmpi.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~advec_2nd.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_edge5" class="edge">
+<title>sourcefile~advec_2nd.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M934.56,-352.19C923.68,-289.2 864.46,-1.26 691,-1.26 691,-1.26 691,-1.26 556.5,-1.26 441.66,-1.26 405.82,9.52 300.5,-36.26"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M298.5,-36.26C273.01,-47.27 260.45,-37.64 239,-55.26 182.13,-101.99 217.87,-156.09 159,-200.26"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M157,-200.26C100.96,-242.32 63.57,-319.44 47.88,-356.83"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="44.57,-355.67 44.03,-366.25 51.05,-358.32 44.57,-355.67"/>
+</g>
+<!-- sourcefile~initfac.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_edge6" class="edge">
+<title>sourcefile~initfac.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M270.27,-426.12C249,-416.97 219.63,-404.34 196.4,-394.35"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="197.76,-391.12 187.19,-390.39 194.99,-397.56 197.76,-391.12"/>
+</g>
+<!-- sourcefile~initfac.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_edge7" class="edge">
+<title>sourcefile~initfac.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M281.07,-450.28C254.42,-467.1 202.1,-493.92 159,-478.26"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M157,-478.26C113.76,-462.56 75.65,-422.92 55.25,-398.53"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="57.82,-396.14 48.8,-390.6 52.4,-400.56 57.82,-396.14"/>
+</g>
+<!-- sourcefile~modfields.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_edge8" class="edge">
+<title>sourcefile~modfields.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#cbff00" stroke-dasharray="5,2" d="M256.65,-364.27C243.08,-366.21 227.84,-368.4 213.5,-370.45"/>
+<polygon fill="#cbff00" stroke="#cbff00" points="212.65,-367.04 203.25,-371.92 213.64,-373.97 212.65,-367.04"/>
+</g>
+<!-- sourcefile~modglobal.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_edge9" class="edge">
+<title>sourcefile~modglobal.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#00ff66" stroke-dasharray="5,2" d="M112.91,-378.26C104.58,-378.26 95.83,-378.26 87.38,-378.26"/>
+<polygon fill="#00ff66" stroke="#00ff66" points="87.29,-374.77 77.29,-378.26 87.29,-381.77 87.29,-374.77"/>
+</g>
+<!-- sourcefile~modibm.f90&#45;&gt;sourcefile~initfac.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_edge10" class="edge">
+<title>sourcefile~modibm.f90&#45;&gt;sourcefile~initfac.f90</title>
+<path fill="none" stroke="#0066ff" stroke-dasharray="5,2" d="M778.82,-372.43C767.34,-374.78 754.68,-377.26 743,-379.26 596.61,-404.4 421.41,-424.97 342.58,-433.72"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="342.11,-430.25 332.55,-434.83 342.88,-437.21 342.11,-430.25"/>
+</g>
+<!-- sourcefile~modibm.f90&#45;&gt;sourcefile~modfields.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_edge12" class="edge">
+<title>sourcefile~modibm.f90&#45;&gt;sourcefile~modfields.f90</title>
+<path fill="none" stroke="#0066ff" stroke-dasharray="5,2" d="M436,-364.26C408.38,-363.6 377.61,-362.28 352.39,-361.05"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="352.46,-357.55 342.3,-360.55 352.11,-364.54 352.46,-357.55"/>
+</g>
+<!-- sourcefile~modibm.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_edge13" class="edge">
+<title>sourcefile~modibm.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#0066ff" stroke-dasharray="5,2" d="M436,-364.26C401.58,-363.29 394.27,-375.92 360,-379.26 306.48,-384.5 292.78,-379.6 239,-379.26 230.61,-379.21 221.73,-379.13 213.06,-379.03"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="213.05,-375.53 203.01,-378.91 212.97,-382.53 213.05,-375.53"/>
+</g>
+<!-- sourcefile~modibm.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_edge15" class="edge">
+<title>sourcefile~modibm.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#0066ff" stroke-dasharray="5,2" d="M813.8,-352.19C804.29,-312.43 768.66,-184.19 691,-115.26"/>
+<path fill="none" stroke="#0066ff" stroke-dasharray="5,2" d="M689,-115.26C601.83,-37.89 554.34,-32.1 438,-39.26"/>
+<path fill="none" stroke="#0066ff" stroke-dasharray="5,2" d="M436,-39.26C375.79,-41.22 355.74,-12.25 300.5,-36.26"/>
+</g>
+<!-- sourcefile~modboundary.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_node7" class="node">
+<title>sourcefile~modboundary.f90</title>
+<g id="a_sourcefile~~advec_2nd.f90~~EfferentGraph_node7"><a xlink:href="../sourcefile/modboundary.f90.html" xlink:title="modboundary.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="743,-250.26 637,-250.26 637,-226.26 743,-226.26 743,-250.26"/>
+<text text-anchor="middle" x="690" y="-235.86" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modboundary.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modibm.f90&#45;&gt;sourcefile~modboundary.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_edge11" class="edge">
+<title>sourcefile~modibm.f90&#45;&gt;sourcefile~modboundary.f90</title>
+<path fill="none" stroke="#0066ff" stroke-dasharray="5,2" d="M804.47,-352.18C782.69,-330.32 736.57,-284.02 710.33,-257.67"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="712.72,-255.11 703.18,-250.49 707.76,-260.05 712.72,-255.11"/>
+</g>
+<!-- sourcefile~modibmdata.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_node8" class="node">
+<title>sourcefile~modibmdata.f90</title>
+<g id="a_sourcefile~~advec_2nd.f90~~EfferentGraph_node8"><a xlink:href="../sourcefile/modibmdata.f90.html" xlink:title="modibmdata.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="350,-328.26 249,-328.26 249,-304.26 350,-304.26 350,-328.26"/>
+<text text-anchor="middle" x="299.5" y="-313.86" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modibmdata.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modibm.f90&#45;&gt;sourcefile~modibmdata.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_edge14" class="edge">
+<title>sourcefile~modibm.f90&#45;&gt;sourcefile~modibmdata.f90</title>
+<path fill="none" stroke="#0066ff" stroke-dasharray="5,2" d="M778.89,-364.87C710.85,-365.82 562.82,-367.29 438,-364.26"/>
+<path fill="none" stroke="#0066ff" stroke-dasharray="5,2" d="M436,-364.26C400.17,-363.25 393.79,-349.23 360,-337.26 354.9,-335.46 349.56,-333.57 344.25,-331.69"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="345.39,-328.39 334.8,-328.36 343.06,-334.99 345.39,-328.39"/>
+</g>
+<!-- sourcefile~modstat_nc.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_node9" class="node">
+<title>sourcefile~modstat_nc.f90</title>
+<g id="a_sourcefile~~advec_2nd.f90~~EfferentGraph_node9"><a xlink:href="../sourcefile/modstat_nc.f90.html" xlink:title="modstat_nc.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="346.5,-530.26 252.5,-530.26 252.5,-506.26 346.5,-506.26 346.5,-530.26"/>
+<text text-anchor="middle" x="299.5" y="-515.86" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modstat_nc.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modibm.f90&#45;&gt;sourcefile~modstat_nc.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_edge16" class="edge">
+<title>sourcefile~modibm.f90&#45;&gt;sourcefile~modstat_nc.f90</title>
+<path fill="none" stroke="#0066ff" stroke-dasharray="5,2" d="M794.35,-376.4C779.95,-384.05 760.64,-393.84 743,-401.26 628.23,-449.59 599.01,-462.89 478,-492.26 437.92,-501.99 391.81,-508.61 356.63,-512.74"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="356.09,-509.28 346.55,-513.89 356.88,-516.23 356.09,-509.28"/>
+</g>
+<!-- sourcefile~modsubgriddata.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_node10" class="node">
+<title>sourcefile~modsubgriddata.f90</title>
+<g id="a_sourcefile~~advec_2nd.f90~~EfferentGraph_node10"><a xlink:href="../sourcefile/modsubgriddata.f90.html" xlink:title="modsubgriddata.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="360,-130.26 239,-130.26 239,-106.26 360,-106.26 360,-130.26"/>
+<text text-anchor="middle" x="299.5" y="-115.86" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modsubgriddata.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modibm.f90&#45;&gt;sourcefile~modsubgriddata.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_edge17" class="edge">
+<title>sourcefile~modibm.f90&#45;&gt;sourcefile~modsubgriddata.f90</title>
+<path fill="none" stroke="#0066ff" stroke-dasharray="5,2" d="M689,-115.26C642.09,-76.67 468.86,-93.87 370.29,-107.46"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="369.53,-104.03 360.11,-108.89 370.5,-110.96 369.53,-104.03"/>
+</g>
+<!-- sourcefile~modsurfdata.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_node11" class="node">
+<title>sourcefile~modsurfdata.f90</title>
+<g id="a_sourcefile~~advec_2nd.f90~~EfferentGraph_node11"><a xlink:href="../sourcefile/modsurfdata.f90.html" xlink:title="modsurfdata.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="350,-88.26 249,-88.26 249,-64.26 350,-64.26 350,-88.26"/>
+<text text-anchor="middle" x="299.5" y="-73.86" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modsurfdata.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modibm.f90&#45;&gt;sourcefile~modsurfdata.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_edge18" class="edge">
+<title>sourcefile~modibm.f90&#45;&gt;sourcefile~modsurfdata.f90</title>
+<path fill="none" stroke="#0066ff" stroke-dasharray="5,2" d="M436,-39.26C402.98,-41.3 366.9,-51.57 340.28,-60.77"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="338.82,-57.58 330.57,-64.23 341.16,-64.17 338.82,-57.58"/>
+</g>
+<!-- sourcefile~modboundary.f90&#45;&gt;sourcefile~modfields.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_edge20" class="edge">
+<title>sourcefile~modboundary.f90&#45;&gt;sourcefile~modfields.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M556.5,-278.26C502.58,-290.59 489.51,-296.13 438,-316.26"/>
+</g>
+<!-- sourcefile~modboundary.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_edge21" class="edge">
+<title>sourcefile~modboundary.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M654.48,-250.35C628.38,-259.12 591.53,-270.71 558.5,-278.26"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M556.5,-278.26C505.16,-290 490.38,-272.8 438,-278.26"/>
+</g>
+<!-- sourcefile~modboundary.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_edge23" class="edge">
+<title>sourcefile~modboundary.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M675.34,-226.22C658.59,-211.81 628.96,-187.46 601,-170.26 569.86,-151.11 333.9,-21.41 300.5,-36.26"/>
+</g>
+<!-- sourcefile~modboundary.f90&#45;&gt;sourcefile~modsubgriddata.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_edge24" class="edge">
+<title>sourcefile~modboundary.f90&#45;&gt;sourcefile~modsubgriddata.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M436,-157.26C418.92,-154.89 379.58,-143.31 347.67,-133.38"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="348.63,-130.01 338.04,-130.37 346.53,-136.69 348.63,-130.01"/>
+</g>
+<!-- sourcefile~modboundary.f90&#45;&gt;sourcefile~modsurfdata.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_edge25" class="edge">
+<title>sourcefile~modboundary.f90&#45;&gt;sourcefile~modsurfdata.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M662.25,-226.2C617.14,-206.64 522.58,-169.03 438,-157.26"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M436,-157.26C394.41,-146.19 397.69,-118.04 360,-97.26 356.74,-95.47 353.29,-93.78 349.77,-92.2"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="350.92,-88.88 340.34,-88.27 348.23,-95.35 350.92,-88.88"/>
+</g>
+<!-- sourcefile~moddriver.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_node12" class="node">
+<title>sourcefile~moddriver.f90</title>
+<g id="a_sourcefile~~advec_2nd.f90~~EfferentGraph_node12"><a xlink:href="../sourcefile/moddriver.f90.html" xlink:title="moddriver.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="601,-250.26 514,-250.26 514,-226.26 601,-226.26 601,-250.26"/>
+<text text-anchor="middle" x="557.5" y="-235.86" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">moddriver.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modboundary.f90&#45;&gt;sourcefile~moddriver.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_edge19" class="edge">
+<title>sourcefile~modboundary.f90&#45;&gt;sourcefile~moddriver.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M636.67,-238.26C628.3,-238.26 619.64,-238.26 611.26,-238.26"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="611.22,-234.77 601.22,-238.26 611.22,-241.77 611.22,-234.77"/>
+</g>
+<!-- sourcefile~modinletdata.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_node13" class="node">
+<title>sourcefile~modinletdata.f90</title>
+<g id="a_sourcefile~~advec_2nd.f90~~EfferentGraph_node13"><a xlink:href="../sourcefile/modinletdata.f90.html" xlink:title="modinletdata.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="351.5,-172.26 247.5,-172.26 247.5,-148.26 351.5,-148.26 351.5,-172.26"/>
+<text text-anchor="middle" x="299.5" y="-157.86" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modinletdata.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modboundary.f90&#45;&gt;sourcefile~modinletdata.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_edge22" class="edge">
+<title>sourcefile~modboundary.f90&#45;&gt;sourcefile~modinletdata.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M436,-157.26C411.84,-153.91 385.03,-153.76 361.68,-154.77"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="361.36,-151.28 351.56,-155.29 361.72,-158.28 361.36,-151.28"/>
+</g>
+<!-- sourcefile~modstat_nc.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_edge26" class="edge">
+<title>sourcefile~modstat_nc.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#00ff66" stroke-dasharray="5,2" d="M262.39,-506.25C254.2,-502.54 245.89,-497.9 239,-492.26 207.27,-466.32 182.49,-424.76 169.36,-399.63"/>
+<polygon fill="#00ff66" stroke="#00ff66" points="172.41,-397.9 164.76,-390.57 166.17,-401.07 172.41,-397.9"/>
+</g>
+<!-- sourcefile~modstat_nc.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_edge27" class="edge">
+<title>sourcefile~modstat_nc.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#00ff66" stroke-dasharray="5,2" d="M252.44,-506.78C225,-499.51 189.67,-489.4 159,-478.26"/>
+</g>
+<!-- sourcefile~moddriver.f90&#45;&gt;sourcefile~modfields.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_edge28" class="edge">
+<title>sourcefile~moddriver.f90&#45;&gt;sourcefile~modfields.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M535.45,-250.5C528.51,-254.7 520.83,-259.54 514,-264.26 480.34,-287.54 476.12,-301.37 438,-316.26"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M436,-316.26C408.76,-326.91 377.64,-336.71 352.1,-344.17"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="350.88,-340.88 342.24,-347.01 352.82,-347.6 350.88,-340.88"/>
+</g>
+<!-- sourcefile~moddriver.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_edge29" class="edge">
+<title>sourcefile~moddriver.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M532.29,-250.44C508.86,-261.25 471.99,-275.71 438,-278.26"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M436,-278.26C348.37,-284.85 318.32,-257.44 239,-295.26 210.18,-309.01 186.2,-337.87 172.23,-357.66"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="169.27,-355.79 166.54,-366.02 175.06,-359.73 169.27,-355.79"/>
+</g>
+<!-- sourcefile~moddriver.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_edge31" class="edge">
+<title>sourcefile~moddriver.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M436,-198.26C406,-191.39 183.8,-182.03 159,-200.26"/>
+</g>
+<!-- sourcefile~moddriver.f90&#45;&gt;sourcefile~modinletdata.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_edge30" class="edge">
+<title>sourcefile~moddriver.f90&#45;&gt;sourcefile~modinletdata.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M526.29,-226.19C502.63,-217.2 468.69,-205.3 438,-198.26"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M436,-198.26C407.09,-191.64 375.13,-182.75 349.52,-175.24"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="350.26,-171.81 339.67,-172.33 348.27,-178.52 350.26,-171.81"/>
+</g>
+<!-- sourcefile~modsave.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_node14" class="node">
+<title>sourcefile~modsave.f90</title>
+<g id="a_sourcefile~~advec_2nd.f90~~EfferentGraph_node14"><a xlink:href="../sourcefile/modsave.f90.html" xlink:title="modsave.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="478,-250.26 396,-250.26 396,-226.26 478,-226.26 478,-250.26"/>
+<text text-anchor="middle" x="437" y="-235.86" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modsave.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~moddriver.f90&#45;&gt;sourcefile~modsave.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_edge32" class="edge">
+<title>sourcefile~moddriver.f90&#45;&gt;sourcefile~modsave.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M513.72,-238.26C505.52,-238.26 496.86,-238.26 488.44,-238.26"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="488.35,-234.77 478.35,-238.26 488.35,-241.77 488.35,-234.77"/>
+</g>
+<!-- sourcefile~modsave.f90&#45;&gt;sourcefile~initfac.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_edge33" class="edge">
+<title>sourcefile~modsave.f90&#45;&gt;sourcefile~initfac.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M430.98,-250.29C420.13,-275.54 392.8,-335.39 360,-379.26 349.1,-393.84 334.64,-408.27 322.71,-419.2"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="320.03,-416.9 314.92,-426.17 324.71,-422.11 320.03,-416.9"/>
+</g>
+<!-- sourcefile~modsave.f90&#45;&gt;sourcefile~modfields.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_edge34" class="edge">
+<title>sourcefile~modsave.f90&#45;&gt;sourcefile~modfields.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M429.74,-250.45C418.5,-271.16 392.97,-313.34 360,-337.26 357.3,-339.23 354.39,-341.02 351.37,-342.66"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="349.58,-339.64 342.06,-347.1 352.59,-345.95 349.58,-339.64"/>
+</g>
+<!-- sourcefile~modsave.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_edge35" class="edge">
+<title>sourcefile~modsave.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M298.5,-238.26C270.41,-243.17 261.26,-244.44 239,-262.26 206.46,-288.32 181.8,-331.08 168.94,-356.76"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="165.67,-355.48 164.45,-366.01 171.97,-358.54 165.67,-355.48"/>
+</g>
+<!-- sourcefile~modsave.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_edge38" class="edge">
+<title>sourcefile~modsave.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M395.96,-234.67C368.82,-233.11 332.25,-232.72 300.5,-238.26"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M298.5,-238.26C235.2,-249.32 210.77,-162.2 159,-200.26"/>
+</g>
+<!-- sourcefile~modsave.f90&#45;&gt;sourcefile~modibmdata.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_edge36" class="edge">
+<title>sourcefile~modsave.f90&#45;&gt;sourcefile~modibmdata.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M415.13,-250.28C392.51,-263.3 356.24,-284.18 330.56,-298.96"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="328.54,-296.08 321.62,-304.11 332.03,-302.15 328.54,-296.08"/>
+</g>
+<!-- sourcefile~modsave.f90&#45;&gt;sourcefile~modsubgriddata.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_edge39" class="edge">
+<title>sourcefile~modsave.f90&#45;&gt;sourcefile~modsubgriddata.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M412.77,-226.14C406.8,-222.27 400.73,-217.59 396,-212.26 371.98,-185.22 387.05,-163.28 360,-139.26 358.53,-137.96 356.96,-136.73 355.34,-135.57"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="357.1,-132.55 346.72,-130.41 353.5,-138.56 357.1,-132.55"/>
+</g>
+<!-- sourcefile~modsave.f90&#45;&gt;sourcefile~modsurfdata.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_edge40" class="edge">
+<title>sourcefile~modsave.f90&#45;&gt;sourcefile~modsurfdata.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M411.37,-226.06C405.68,-222.29 400.1,-217.68 396,-212.26 363.63,-169.59 397.18,-135.81 360,-97.26 358.93,-96.16 357.8,-95.11 356.62,-94.11"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="358.38,-91.08 348.16,-88.32 354.43,-96.86 358.38,-91.08"/>
+</g>
+<!-- sourcefile~modsave.f90&#45;&gt;sourcefile~modinletdata.f90 -->
+<g id="sourcefile~~advec_2nd.f90~~EfferentGraph_edge37" class="edge">
+<title>sourcefile~modsave.f90&#45;&gt;sourcefile~modinletdata.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M415.13,-226.25C392.51,-213.23 356.24,-192.35 330.56,-177.57"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="332.03,-174.38 321.62,-172.42 328.54,-180.45 332.03,-174.38"/>
+</g>
+</g>
+</svg>
+</div>                <script>
+                  var pansourcefileadvec_2ndf90EfferentGraph = svgPanZoom('#sourcefileadvec_2ndf90EfferentGraph',
+                    {zoomEnabled: true, controlIconsEnabled: true, fit: true, center: true,}
+                  );
+                </script>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#EfferentGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="EfferentGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.50.0 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="202pt" height="32pt"
+ viewBox="0.00 0.00 201.50 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-28 197.5,-28 197.5,4 -4,4"/>
+<!-- Source File -->
+<g id="node1" class="node">
+<title>Source File</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="70,-24 0,-24 0,0 70,0 70,-24"/>
+<text text-anchor="middle" x="35" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Source File</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node2" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="193.5,-24 88.5,-24 88.5,0 193.5,0 193.5,-24"/>
+<text text-anchor="middle" x="141" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a file to a file which it depends on. A file
+is dependent upon another if the latter must be compiled before the former
+can be.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+          </div>
+        </div>
+<br>
+      <section>
+        <h2><span class="anchor" id="src"></span>Source Code</h2>
+        <div class="hl codehilite"><pre><span></span><a id="ln-1" name="ln-1" href="#ln-1"></a><span class="c">!&gt; \file advec_2nd.f90</span>
+<a id="ln-2" name="ln-2" href="#ln-2"></a><span class="c">!!  Does advection with a 2nd order central differencing scheme.</span>
+<a id="ln-3" name="ln-3" href="#ln-3"></a><span class="c">!! \par Revision list</span>
+<a id="ln-4" name="ln-4" href="#ln-4"></a><span class="c">!! \par Authors</span>
+<a id="ln-5" name="ln-5" href="#ln-5"></a><span class="c">!! Second order central differencing can be used for variables where neither very</span>
+<a id="ln-6" name="ln-6" href="#ln-6"></a><span class="c">!! high accuracy nor strict monotonicity is necessary.</span>
+<a id="ln-7" name="ln-7" href="#ln-7"></a><span class="c">!! \latexonly</span>
+<a id="ln-8" name="ln-8" href="#ln-8"></a><span class="c">!!\begin{eqnarray}</span>
+<a id="ln-9" name="ln-9" href="#ln-9"></a><span class="c">!! F_{i-\frac{1}{2}}^{2nd} &amp;=&amp;</span>
+<a id="ln-10" name="ln-10" href="#ln-10"></a><span class="c">!!\fav{u}_{i-\frac{1}{2}}\frac{\phi_{i}+\phi_{i-1}}{2},</span>
+<a id="ln-11" name="ln-11" href="#ln-11"></a><span class="c">!!\end{eqnarray}</span>
+<a id="ln-12" name="ln-12" href="#ln-12"></a><span class="c">!! \endlatexonly</span>
+<a id="ln-13" name="ln-13" href="#ln-13"></a><span class="c">!!</span>
+<a id="ln-14" name="ln-14" href="#ln-14"></a><span class="c">!  This file is part of DALES.</span>
+<a id="ln-15" name="ln-15" href="#ln-15"></a><span class="c">!</span>
+<a id="ln-16" name="ln-16" href="#ln-16"></a><span class="c">! DALES is free software; you can redistribute it and/or modify</span>
+<a id="ln-17" name="ln-17" href="#ln-17"></a><span class="c">! it under the terms of the GNU General Public License as published by</span>
+<a id="ln-18" name="ln-18" href="#ln-18"></a><span class="c">! the Free Software Foundation; either version 3 of the License, or</span>
+<a id="ln-19" name="ln-19" href="#ln-19"></a><span class="c">! (at your option) any later version.</span>
+<a id="ln-20" name="ln-20" href="#ln-20"></a><span class="c">!</span>
+<a id="ln-21" name="ln-21" href="#ln-21"></a><span class="c">! DALES is distributed in the hope that it will be useful,</span>
+<a id="ln-22" name="ln-22" href="#ln-22"></a><span class="c">! but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<a id="ln-23" name="ln-23" href="#ln-23"></a><span class="c">! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</span>
+<a id="ln-24" name="ln-24" href="#ln-24"></a><span class="c">! GNU General Public License for more details.</span>
+<a id="ln-25" name="ln-25" href="#ln-25"></a><span class="c">!</span>
+<a id="ln-26" name="ln-26" href="#ln-26"></a><span class="c">! You should have received a copy of the GNU General Public License</span>
+<a id="ln-27" name="ln-27" href="#ln-27"></a><span class="c">! along with this program.  If not, see &lt;http://www.gnu.org/licenses/&gt;.</span>
+<a id="ln-28" name="ln-28" href="#ln-28"></a><span class="c">!</span>
+<a id="ln-29" name="ln-29" href="#ln-29"></a><span class="c">!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI</span>
+<a id="ln-30" name="ln-30" href="#ln-30"></a><span class="c">!</span>
+<a id="ln-31" name="ln-31" href="#ln-31"></a>
+<a id="ln-32" name="ln-32" href="#ln-32"></a><span class="c">!&gt; Advection at cell center</span>
+<a id="ln-33" name="ln-33" href="#ln-33"></a><span class="k">subroutine </span><span class="n">advecc_2nd</span><span class="p">(</span><span class="n">hi</span><span class="p">,</span><span class="w"> </span><span class="n">hj</span><span class="p">,</span><span class="w"> </span><span class="n">hk</span><span class="p">,</span><span class="w"> </span><span class="n">putin</span><span class="p">,</span><span class="w"> </span><span class="n">putout</span><span class="p">)</span>
+<a id="ln-34" name="ln-34" href="#ln-34"></a>
+<a id="ln-35" name="ln-35" href="#ln-35"></a><span class="w">   </span><span class="k">use </span><span class="n">modglobal</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="n">ih</span><span class="p">,</span><span class="w"> </span><span class="n">jh</span><span class="p">,</span><span class="w"> </span><span class="n">kh</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span><span class="p">,</span><span class="w"> </span><span class="n">ib</span><span class="p">,</span><span class="w"> </span><span class="n">ie</span><span class="p">,</span><span class="w"> </span><span class="n">jb</span><span class="p">,</span><span class="w"> </span><span class="n">je</span><span class="p">,</span><span class="w"> </span><span class="n">dxi</span><span class="p">,</span><span class="w"> </span><span class="n">dxi5</span><span class="p">,</span><span class="w"> </span><span class="n">dyi</span><span class="p">,</span><span class="w"> </span><span class="n">dyi5</span><span class="p">,</span><span class="w"> </span><span class="n">dzf</span><span class="p">,</span><span class="w"> </span><span class="n">dzfi</span><span class="p">,</span><span class="w"> </span><span class="n">dzhi</span><span class="p">,</span><span class="w"> </span><span class="n">dzfi5</span><span class="p">,</span><span class="w"> </span><span class="n">libm</span><span class="p">,</span><span class="w"> </span><span class="n">jmax</span>
+<a id="ln-36" name="ln-36" href="#ln-36"></a><span class="w">   </span><span class="k">use </span><span class="n">modfields</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="n">u0</span><span class="p">,</span><span class="w"> </span><span class="n">v0</span><span class="p">,</span><span class="w"> </span><span class="n">w0</span>
+<a id="ln-37" name="ln-37" href="#ln-37"></a><span class="w">   </span><span class="k">use </span><span class="n">modibm</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="n">nxwallsnorm</span><span class="p">,</span><span class="w"> </span><span class="n">nzwallsnorm</span><span class="p">,</span><span class="w"> </span><span class="n">nywallsm</span><span class="p">,</span><span class="w"> </span><span class="n">nywallsp</span><span class="p">,</span><span class="w"> </span><span class="n">ywallsm</span><span class="p">,</span><span class="w"> </span><span class="n">ywallsp</span><span class="p">,</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-38" name="ln-38" href="#ln-38"></a><span class="w">      </span><span class="n">xwallsnorm</span><span class="p">,</span><span class="w"> </span><span class="n">zwallsnorm</span><span class="p">,</span><span class="w"> </span><span class="n">iypluswall</span><span class="p">,</span><span class="w"> </span><span class="n">iyminwall</span><span class="p">,</span><span class="w"> </span><span class="n">nyminwall</span><span class="p">,</span><span class="w"> </span><span class="n">nypluswall</span>
+<a id="ln-39" name="ln-39" href="#ln-39"></a><span class="w">   </span><span class="k">use </span><span class="n">initfac</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="k">block</span>
+<a id="ln-40" name="ln-40" href="#ln-40"></a><span class="k">   use </span><span class="n">modmpi</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="n">myid</span>
+<a id="ln-41" name="ln-41" href="#ln-41"></a><span class="w">   </span><span class="k">implicit none</span>
+<a id="ln-42" name="ln-42" href="#ln-42"></a>
+<a id="ln-43" name="ln-43" href="#ln-43"></a><span class="k">   </span><span class="kt">integer</span><span class="p">,</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">hi</span><span class="w"> </span><span class="c">!&lt; size of halo in i</span>
+<a id="ln-44" name="ln-44" href="#ln-44"></a><span class="w">   </span><span class="kt">integer</span><span class="p">,</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">hj</span><span class="w"> </span><span class="c">!&lt; size of halo in j</span>
+<a id="ln-45" name="ln-45" href="#ln-45"></a><span class="w">   </span><span class="kt">integer</span><span class="p">,</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">hk</span><span class="w"> </span><span class="c">!&lt; size of halo in k</span>
+<a id="ln-46" name="ln-46" href="#ln-46"></a><span class="w">   </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">dimension</span><span class="p">(</span><span class="n">ib</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">hi</span><span class="p">:</span><span class="n">ie</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hi</span><span class="p">,</span><span class="w"> </span><span class="n">jb</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">hj</span><span class="p">:</span><span class="n">je</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hj</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">hk</span><span class="p">:</span><span class="n">ke</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hk</span><span class="p">),</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w">  </span><span class="kd">::</span><span class="w"> </span><span class="n">putin</span><span class="w"> </span><span class="c">!&lt; Input: the cell centered field</span>
+<a id="ln-47" name="ln-47" href="#ln-47"></a><span class="w">   </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">dimension</span><span class="p">(</span><span class="n">ib</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">hi</span><span class="p">:</span><span class="n">ie</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hi</span><span class="p">,</span><span class="w"> </span><span class="n">jb</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">hj</span><span class="p">:</span><span class="n">je</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hj</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hk</span><span class="p">),</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">putout</span><span class="w"> </span><span class="c">!&lt; Output: the tendency</span>
+<a id="ln-48" name="ln-48" href="#ln-48"></a>
+<a id="ln-49" name="ln-49" href="#ln-49"></a><span class="w">   </span><span class="kt">integer</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">,</span><span class="w"> </span><span class="n">ip</span><span class="p">,</span><span class="w"> </span><span class="n">im</span><span class="p">,</span><span class="w"> </span><span class="n">jp</span><span class="p">,</span><span class="w"> </span><span class="n">jm</span><span class="p">,</span><span class="w"> </span><span class="n">kp</span><span class="p">,</span><span class="w"> </span><span class="n">km</span><span class="p">,</span><span class="w"> </span><span class="n">il</span><span class="p">,</span><span class="w"> </span><span class="n">iu</span><span class="p">,</span><span class="w"> </span><span class="n">jl</span><span class="p">,</span><span class="w"> </span><span class="n">ju</span><span class="p">,</span><span class="w"> </span><span class="n">kl</span><span class="p">,</span><span class="w"> </span><span class="n">ku</span><span class="p">,</span><span class="w"> </span><span class="n">n</span>
+<a id="ln-50" name="ln-50" href="#ln-50"></a><span class="w">   </span><span class="k">do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span>
+<a id="ln-51" name="ln-51" href="#ln-51"></a><span class="w">      </span><span class="n">km</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-52" name="ln-52" href="#ln-52"></a><span class="w">      </span><span class="n">kp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-53" name="ln-53" href="#ln-53"></a><span class="w">      </span><span class="k">do </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jb</span><span class="p">,</span><span class="w"> </span><span class="n">je</span>
+<a id="ln-54" name="ln-54" href="#ln-54"></a><span class="w">         </span><span class="n">jm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-55" name="ln-55" href="#ln-55"></a><span class="w">         </span><span class="n">jp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-56" name="ln-56" href="#ln-56"></a><span class="w">         </span><span class="k">do </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ib</span><span class="p">,</span><span class="w"> </span><span class="n">ie</span>
+<a id="ln-57" name="ln-57" href="#ln-57"></a><span class="w">            </span><span class="n">im</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-58" name="ln-58" href="#ln-58"></a><span class="w">            </span><span class="n">ip</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-59" name="ln-59" href="#ln-59"></a><span class="w">            </span><span class="n">putout</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">putout</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-60" name="ln-60" href="#ln-60"></a><span class="w">                              </span><span class="p">(</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-61" name="ln-61" href="#ln-61"></a><span class="w">                              </span><span class="n">u0</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">putin</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-62" name="ln-62" href="#ln-62"></a><span class="w">                            </span><span class="o">-</span><span class="w"> </span><span class="n">u0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">putin</span><span class="p">(</span><span class="n">im</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="p">&amp;</span><span class="w"> </span><span class="c">! d(uc)/dx</span>
+<a id="ln-63" name="ln-63" href="#ln-63"></a><span class="w">                              </span><span class="p">)</span><span class="o">*</span><span class="n">dxi5</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-64" name="ln-64" href="#ln-64"></a><span class="w">                            </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="p">&amp;</span><span class="w"> </span><span class="c">!</span>
+<a id="ln-65" name="ln-65" href="#ln-65"></a><span class="w">                              </span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">jp</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">jp</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-66" name="ln-66" href="#ln-66"></a><span class="w">                            </span><span class="o">-</span><span class="w"> </span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">jm</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="p">&amp;</span><span class="w"> </span><span class="c">! d(vc)/dy</span>
+<a id="ln-67" name="ln-67" href="#ln-67"></a><span class="w">                              </span><span class="p">)</span><span class="o">*</span><span class="n">dyi5</span><span class="p">)</span>
+<a id="ln-68" name="ln-68" href="#ln-68"></a><span class="w">         </span><span class="k">end do</span>
+<a id="ln-69" name="ln-69" href="#ln-69"></a><span class="k">      end do</span>
+<a id="ln-70" name="ln-70" href="#ln-70"></a><span class="k">   end do</span>
+<a id="ln-71" name="ln-71" href="#ln-71"></a>
+<a id="ln-72" name="ln-72" href="#ln-72"></a><span class="k">   do </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jb</span><span class="p">,</span><span class="w"> </span><span class="n">je</span>
+<a id="ln-73" name="ln-73" href="#ln-73"></a><span class="w">      </span><span class="n">jm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-74" name="ln-74" href="#ln-74"></a><span class="w">      </span><span class="n">jp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-75" name="ln-75" href="#ln-75"></a><span class="w">      </span><span class="k">do </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ib</span><span class="p">,</span><span class="w"> </span><span class="n">ie</span>
+<a id="ln-76" name="ln-76" href="#ln-76"></a><span class="w">         </span><span class="n">im</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-77" name="ln-77" href="#ln-77"></a><span class="w">         </span><span class="n">ip</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-78" name="ln-78" href="#ln-78"></a><span class="w">         </span><span class="k">do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span>
+<a id="ln-79" name="ln-79" href="#ln-79"></a><span class="w">            </span><span class="n">km</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-80" name="ln-80" href="#ln-80"></a><span class="w">            </span><span class="n">kp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-81" name="ln-81" href="#ln-81"></a><span class="w">            </span><span class="n">putout</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">putout</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-82" name="ln-82" href="#ln-82"></a><span class="w">                              </span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">kp</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">kp</span><span class="p">)</span><span class="o">*</span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">dzf</span><span class="p">(</span><span class="n">kp</span><span class="p">))</span><span class="o">*</span><span class="n">dzhi</span><span class="p">(</span><span class="n">kp</span><span class="p">)</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-83" name="ln-83" href="#ln-83"></a><span class="w">                            </span><span class="o">-</span><span class="w"> </span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">km</span><span class="p">)</span><span class="o">*</span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">dzf</span><span class="p">(</span><span class="n">km</span><span class="p">))</span><span class="o">*</span><span class="n">dzhi</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-84" name="ln-84" href="#ln-84"></a><span class="w">                              </span><span class="p">)</span><span class="o">*</span><span class="n">dzfi5</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+<a id="ln-85" name="ln-85" href="#ln-85"></a><span class="w">         </span><span class="k">end do</span>
+<a id="ln-86" name="ln-86" href="#ln-86"></a><span class="k">      end do</span>
+<a id="ln-87" name="ln-87" href="#ln-87"></a><span class="k">   end do</span>
+<a id="ln-88" name="ln-88" href="#ln-88"></a>
+<a id="ln-89" name="ln-89" href="#ln-89"></a><span class="k">end subroutine </span><span class="n">advecc_2nd</span>
+<a id="ln-90" name="ln-90" href="#ln-90"></a>
+<a id="ln-91" name="ln-91" href="#ln-91"></a><span class="c">!&gt; Advection at the u point.</span>
+<a id="ln-92" name="ln-92" href="#ln-92"></a><span class="k">subroutine </span><span class="n">advecu_2nd</span><span class="p">(</span><span class="n">putin</span><span class="p">,</span><span class="w"> </span><span class="n">putout</span><span class="p">)</span>
+<a id="ln-93" name="ln-93" href="#ln-93"></a>
+<a id="ln-94" name="ln-94" href="#ln-94"></a><span class="w">   </span><span class="k">use </span><span class="n">modglobal</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="n">ih</span><span class="p">,</span><span class="w"> </span><span class="n">ib</span><span class="p">,</span><span class="w"> </span><span class="n">ie</span><span class="p">,</span><span class="w"> </span><span class="n">jb</span><span class="p">,</span><span class="w"> </span><span class="n">je</span><span class="p">,</span><span class="w"> </span><span class="n">jh</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span><span class="p">,</span><span class="w"> </span><span class="n">kh</span><span class="p">,</span><span class="w"> </span><span class="n">dxi</span><span class="p">,</span><span class="w"> </span><span class="n">dxiq</span><span class="p">,</span><span class="w"> </span><span class="n">dyiq</span><span class="p">,</span><span class="w"> </span><span class="n">dzf</span><span class="p">,</span><span class="w"> </span><span class="n">dzfi5</span><span class="p">,</span><span class="w"> </span><span class="n">dzhi</span><span class="p">,</span><span class="w"> </span><span class="n">libm</span><span class="p">,</span><span class="w"> </span><span class="n">imax</span><span class="p">,</span><span class="w"> </span><span class="n">jmax</span><span class="p">,</span><span class="w"> </span><span class="n">ktot</span>
+<a id="ln-95" name="ln-95" href="#ln-95"></a><span class="w">   </span><span class="k">use </span><span class="n">modfields</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="n">u0</span><span class="p">,</span><span class="w"> </span><span class="n">v0</span><span class="p">,</span><span class="w"> </span><span class="n">w0</span><span class="p">,</span><span class="w"> </span><span class="n">pres0</span><span class="p">,</span><span class="w"> </span><span class="n">uh</span><span class="p">,</span><span class="w"> </span><span class="n">vh</span><span class="p">,</span><span class="w"> </span><span class="n">wh</span><span class="p">,</span><span class="w"> </span><span class="n">pres0h</span>
+<a id="ln-96" name="ln-96" href="#ln-96"></a><span class="w">   </span><span class="k">use </span><span class="n">modibm</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="n">nxwallsnorm</span><span class="p">,</span><span class="w"> </span><span class="n">nzwallsnorm</span><span class="p">,</span><span class="w"> </span><span class="n">nywallsm</span><span class="p">,</span><span class="w"> </span><span class="n">nywallsp</span><span class="p">,</span><span class="w"> </span><span class="n">ywallsm</span><span class="p">,</span><span class="w"> </span><span class="n">ywallsp</span><span class="p">,</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-97" name="ln-97" href="#ln-97"></a><span class="w">      </span><span class="n">xwallsnorm</span><span class="p">,</span><span class="w"> </span><span class="n">zwallsnorm</span>
+<a id="ln-98" name="ln-98" href="#ln-98"></a><span class="w">   </span><span class="k">use </span><span class="n">modmpi</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="n">myid</span>
+<a id="ln-99" name="ln-99" href="#ln-99"></a><span class="w">   </span><span class="k">use </span><span class="n">decomp_2d</span>
+<a id="ln-100" name="ln-100" href="#ln-100"></a><span class="w">   </span><span class="k">implicit none</span>
+<a id="ln-101" name="ln-101" href="#ln-101"></a>
+<a id="ln-102" name="ln-102" href="#ln-102"></a><span class="k">   </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">dimension</span><span class="p">(</span><span class="n">ib</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">ih</span><span class="p">,</span><span class="w"> </span><span class="n">jb</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">jh</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">kh</span><span class="p">),</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w">  </span><span class="kd">::</span><span class="w"> </span><span class="n">putin</span><span class="w"> </span><span class="c">!&lt; Input: the u-field</span>
+<a id="ln-103" name="ln-103" href="#ln-103"></a><span class="w">   </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">dimension</span><span class="p">(</span><span class="n">ib</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">ih</span><span class="p">,</span><span class="w"> </span><span class="n">jb</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">jh</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">kh</span><span class="p">),</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">putout</span><span class="w"> </span><span class="c">!&lt; Output: the tendency</span>
+<a id="ln-104" name="ln-104" href="#ln-104"></a>
+<a id="ln-105" name="ln-105" href="#ln-105"></a><span class="w">   </span><span class="kt">integer</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">,</span><span class="w"> </span><span class="n">ip</span><span class="p">,</span><span class="w"> </span><span class="n">im</span><span class="p">,</span><span class="w"> </span><span class="n">jp</span><span class="p">,</span><span class="w"> </span><span class="n">jm</span><span class="p">,</span><span class="w"> </span><span class="n">kp</span><span class="p">,</span><span class="w"> </span><span class="n">km</span><span class="p">,</span><span class="w"> </span><span class="n">il</span><span class="p">,</span><span class="w"> </span><span class="n">iu</span><span class="p">,</span><span class="w"> </span><span class="n">jl</span><span class="p">,</span><span class="w"> </span><span class="n">ju</span><span class="p">,</span><span class="w"> </span><span class="n">kl</span><span class="p">,</span><span class="w"> </span><span class="n">ku</span><span class="p">,</span><span class="w"> </span><span class="n">n</span>
+<a id="ln-106" name="ln-106" href="#ln-106"></a>
+<a id="ln-107" name="ln-107" href="#ln-107"></a><span class="w">   </span><span class="k">do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span>
+<a id="ln-108" name="ln-108" href="#ln-108"></a><span class="w">      </span><span class="n">km</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-109" name="ln-109" href="#ln-109"></a><span class="w">      </span><span class="n">kp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-110" name="ln-110" href="#ln-110"></a><span class="w">      </span><span class="k">do </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jb</span><span class="p">,</span><span class="w"> </span><span class="n">je</span>
+<a id="ln-111" name="ln-111" href="#ln-111"></a><span class="w">         </span><span class="n">jm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-112" name="ln-112" href="#ln-112"></a><span class="w">         </span><span class="n">jp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-113" name="ln-113" href="#ln-113"></a><span class="w">         </span><span class="k">do </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ib</span><span class="p">,</span><span class="w"> </span><span class="n">ie</span>
+<a id="ln-114" name="ln-114" href="#ln-114"></a><span class="w">            </span><span class="n">im</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-115" name="ln-115" href="#ln-115"></a><span class="w">            </span><span class="n">ip</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-116" name="ln-116" href="#ln-116"></a><span class="w">            </span><span class="n">putout</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">putout</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-117" name="ln-117" href="#ln-117"></a><span class="w">                              </span><span class="p">(</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-118" name="ln-118" href="#ln-118"></a><span class="w">                              </span><span class="p">(</span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">putin</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">))</span><span class="o">*</span><span class="p">(</span><span class="n">u0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">u0</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-119" name="ln-119" href="#ln-119"></a><span class="w">                            </span><span class="o">-</span><span class="w"> </span><span class="p">(</span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">putin</span><span class="p">(</span><span class="n">im</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">))</span><span class="o">*</span><span class="p">(</span><span class="n">u0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">u0</span><span class="p">(</span><span class="n">im</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="p">&amp;</span><span class="w"> </span><span class="c">! d(uu)/dx</span>
+<a id="ln-120" name="ln-120" href="#ln-120"></a><span class="w">                              </span><span class="p">)</span><span class="o">*</span><span class="n">dxiq</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-121" name="ln-121" href="#ln-121"></a><span class="w">                            </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-122" name="ln-122" href="#ln-122"></a><span class="w">                              </span><span class="p">(</span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">jp</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">))</span><span class="o">*</span><span class="p">(</span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">jp</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">v0</span><span class="p">(</span><span class="n">im</span><span class="p">,</span><span class="w"> </span><span class="n">jp</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-123" name="ln-123" href="#ln-123"></a><span class="w">                            </span><span class="o">-</span><span class="w"> </span><span class="p">(</span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">jm</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">))</span><span class="o">*</span><span class="p">(</span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w">  </span><span class="n">v0</span><span class="p">(</span><span class="n">im</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="p">&amp;</span><span class="w"> </span><span class="c">! d(vu)/dy</span>
+<a id="ln-124" name="ln-124" href="#ln-124"></a><span class="w">                              </span><span class="p">)</span><span class="o">*</span><span class="n">dyiq</span><span class="p">)</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-125" name="ln-125" href="#ln-125"></a><span class="w">                            </span><span class="o">-</span><span class="w"> </span><span class="p">((</span><span class="n">pres0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">pres0</span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">))</span><span class="o">*</span><span class="n">dxi</span><span class="p">)</span><span class="w"> </span><span class="c">! - dp/dx</span>
+<a id="ln-126" name="ln-126" href="#ln-126"></a>
+<a id="ln-127" name="ln-127" href="#ln-127"></a><span class="w">         </span><span class="k">end do</span>
+<a id="ln-128" name="ln-128" href="#ln-128"></a><span class="k">      end do</span>
+<a id="ln-129" name="ln-129" href="#ln-129"></a><span class="k">   end do</span>
+<a id="ln-130" name="ln-130" href="#ln-130"></a>
+<a id="ln-131" name="ln-131" href="#ln-131"></a><span class="k">   do </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jb</span><span class="p">,</span><span class="w"> </span><span class="n">je</span>
+<a id="ln-132" name="ln-132" href="#ln-132"></a><span class="w">      </span><span class="n">jm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-133" name="ln-133" href="#ln-133"></a><span class="w">      </span><span class="n">jp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-134" name="ln-134" href="#ln-134"></a><span class="w">      </span><span class="k">do </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ib</span><span class="p">,</span><span class="w"> </span><span class="n">ie</span>
+<a id="ln-135" name="ln-135" href="#ln-135"></a><span class="w">         </span><span class="n">im</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-136" name="ln-136" href="#ln-136"></a><span class="w">         </span><span class="n">ip</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-137" name="ln-137" href="#ln-137"></a><span class="w">         </span><span class="k">do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span>
+<a id="ln-138" name="ln-138" href="#ln-138"></a><span class="w">            </span><span class="n">km</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-139" name="ln-139" href="#ln-139"></a><span class="w">            </span><span class="n">kp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-140" name="ln-140" href="#ln-140"></a><span class="w">            </span><span class="n">putout</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">putout</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-141" name="ln-141" href="#ln-141"></a><span class="w">                              </span><span class="p">(</span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">kp</span><span class="p">)</span><span class="o">*</span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">dzf</span><span class="p">(</span><span class="n">kp</span><span class="p">))</span><span class="o">*</span><span class="n">dzhi</span><span class="p">(</span><span class="n">kp</span><span class="p">)</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-142" name="ln-142" href="#ln-142"></a><span class="w">                            </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">kp</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">w0</span><span class="p">(</span><span class="n">im</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">kp</span><span class="p">))</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-143" name="ln-143" href="#ln-143"></a><span class="w">                            </span><span class="o">-</span><span class="w"> </span><span class="p">(</span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">dzf</span><span class="p">(</span><span class="n">km</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">km</span><span class="p">)</span><span class="o">*</span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="p">))</span><span class="o">*</span><span class="n">dzhi</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-144" name="ln-144" href="#ln-144"></a><span class="w">                            </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">w0</span><span class="p">(</span><span class="n">im</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-145" name="ln-145" href="#ln-145"></a><span class="w">                              </span><span class="p">)</span><span class="o">*</span><span class="mf">0.5</span><span class="o">*</span><span class="n">dzfi5</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+<a id="ln-146" name="ln-146" href="#ln-146"></a><span class="w">         </span><span class="k">end do</span>
+<a id="ln-147" name="ln-147" href="#ln-147"></a><span class="k">      end do</span>
+<a id="ln-148" name="ln-148" href="#ln-148"></a><span class="k">   end do</span>
+<a id="ln-149" name="ln-149" href="#ln-149"></a>
+<a id="ln-150" name="ln-150" href="#ln-150"></a><span class="k">end subroutine </span><span class="n">advecu_2nd</span>
+<a id="ln-151" name="ln-151" href="#ln-151"></a>
+<a id="ln-152" name="ln-152" href="#ln-152"></a><span class="c">!&gt; Advection at the v point.</span>
+<a id="ln-153" name="ln-153" href="#ln-153"></a><span class="k">subroutine </span><span class="n">advecv_2nd</span><span class="p">(</span><span class="n">putin</span><span class="p">,</span><span class="w"> </span><span class="n">putout</span><span class="p">)</span>
+<a id="ln-154" name="ln-154" href="#ln-154"></a>
+<a id="ln-155" name="ln-155" href="#ln-155"></a><span class="w">   </span><span class="k">use </span><span class="n">modglobal</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="n">ih</span><span class="p">,</span><span class="w"> </span><span class="n">ib</span><span class="p">,</span><span class="w"> </span><span class="n">ie</span><span class="p">,</span><span class="w"> </span><span class="n">jh</span><span class="p">,</span><span class="w"> </span><span class="n">jb</span><span class="p">,</span><span class="w"> </span><span class="n">je</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span><span class="p">,</span><span class="w"> </span><span class="n">kh</span><span class="p">,</span><span class="w"> </span><span class="n">dx</span><span class="p">,</span><span class="w"> </span><span class="n">dxi</span><span class="p">,</span><span class="w"> </span><span class="n">dxiq</span><span class="p">,</span><span class="w"> </span><span class="n">dyiq</span><span class="p">,</span><span class="w"> </span><span class="n">dzf</span><span class="p">,</span><span class="w"> </span><span class="n">dzfi5</span><span class="p">,</span><span class="w"> </span><span class="n">dzhi</span><span class="p">,</span><span class="w"> </span><span class="n">dyi</span>
+<a id="ln-156" name="ln-156" href="#ln-156"></a><span class="w">   </span><span class="k">use </span><span class="n">modfields</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="n">u0</span><span class="p">,</span><span class="w"> </span><span class="n">v0</span><span class="p">,</span><span class="w"> </span><span class="n">w0</span><span class="p">,</span><span class="w"> </span><span class="n">pres0</span>
+<a id="ln-157" name="ln-157" href="#ln-157"></a><span class="w">   </span><span class="k">implicit none</span>
+<a id="ln-158" name="ln-158" href="#ln-158"></a>
+<a id="ln-159" name="ln-159" href="#ln-159"></a><span class="k">   </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">dimension</span><span class="p">(</span><span class="n">ib</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">ih</span><span class="p">,</span><span class="w"> </span><span class="n">jb</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">jh</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">kh</span><span class="p">),</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w">  </span><span class="kd">::</span><span class="w"> </span><span class="n">putin</span><span class="w"> </span><span class="c">!&lt; Input: the v-field</span>
+<a id="ln-160" name="ln-160" href="#ln-160"></a><span class="w">   </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">dimension</span><span class="p">(</span><span class="n">ib</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">ih</span><span class="p">,</span><span class="w"> </span><span class="n">jb</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">jh</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">kh</span><span class="p">),</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">putout</span><span class="w"> </span><span class="c">!&lt; Output: the tendency</span>
+<a id="ln-161" name="ln-161" href="#ln-161"></a>
+<a id="ln-162" name="ln-162" href="#ln-162"></a><span class="w">   </span><span class="kt">integer</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">,</span><span class="w"> </span><span class="n">ip</span><span class="p">,</span><span class="w"> </span><span class="n">im</span><span class="p">,</span><span class="w"> </span><span class="n">jp</span><span class="p">,</span><span class="w"> </span><span class="n">jm</span><span class="p">,</span><span class="w"> </span><span class="n">kp</span><span class="p">,</span><span class="w"> </span><span class="n">km</span>
+<a id="ln-163" name="ln-163" href="#ln-163"></a><span class="w">   </span><span class="k">do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span>
+<a id="ln-164" name="ln-164" href="#ln-164"></a><span class="w">      </span><span class="n">km</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-165" name="ln-165" href="#ln-165"></a><span class="w">      </span><span class="n">kp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-166" name="ln-166" href="#ln-166"></a><span class="w">      </span><span class="k">do </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jb</span><span class="p">,</span><span class="w"> </span><span class="n">je</span>
+<a id="ln-167" name="ln-167" href="#ln-167"></a><span class="w">         </span><span class="n">jm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-168" name="ln-168" href="#ln-168"></a><span class="w">         </span><span class="n">jp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-169" name="ln-169" href="#ln-169"></a><span class="w">         </span><span class="k">do </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ib</span><span class="p">,</span><span class="w"> </span><span class="n">ie</span>
+<a id="ln-170" name="ln-170" href="#ln-170"></a><span class="w">            </span><span class="n">im</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-171" name="ln-171" href="#ln-171"></a><span class="w">            </span><span class="n">ip</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-172" name="ln-172" href="#ln-172"></a>
+<a id="ln-173" name="ln-173" href="#ln-173"></a><span class="w">            </span><span class="n">putout</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">putout</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-174" name="ln-174" href="#ln-174"></a><span class="w">                              </span><span class="p">(</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-175" name="ln-175" href="#ln-175"></a><span class="w">                              </span><span class="p">(</span><span class="n">u0</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">u0</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="w"> </span><span class="n">jm</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">))</span><span class="o">*</span><span class="p">(</span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">putin</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-176" name="ln-176" href="#ln-176"></a><span class="w">                            </span><span class="o">-</span><span class="w"> </span><span class="p">(</span><span class="n">u0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w">  </span><span class="o">+</span><span class="w"> </span><span class="n">u0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">jm</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="o">*</span><span class="p">(</span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">putin</span><span class="p">(</span><span class="n">im</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="p">&amp;</span><span class="w"> </span><span class="c">! d(uv)/dx</span>
+<a id="ln-177" name="ln-177" href="#ln-177"></a><span class="w">                              </span><span class="p">)</span><span class="o">*</span><span class="n">dxiq</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-178" name="ln-178" href="#ln-178"></a><span class="w">                            </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-179" name="ln-179" href="#ln-179"></a><span class="w">                              </span><span class="p">(</span><span class="w"> </span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">jp</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">))</span><span class="o">*</span><span class="p">(</span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">jp</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-180" name="ln-180" href="#ln-180"></a><span class="w">                            </span><span class="o">-</span><span class="w"> </span><span class="p">(</span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">jm</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">))</span><span class="o">*</span><span class="p">(</span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">jm</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="p">&amp;</span><span class="w"> </span><span class="c">! d(vv)/dy</span>
+<a id="ln-181" name="ln-181" href="#ln-181"></a><span class="w">                              </span><span class="p">)</span><span class="o">*</span><span class="n">dyiq</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-182" name="ln-182" href="#ln-182"></a><span class="w">                              </span><span class="p">)</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-183" name="ln-183" href="#ln-183"></a><span class="w">                            </span><span class="o">-</span><span class="w"> </span><span class="p">((</span><span class="n">pres0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">pres0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">jm</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">))</span><span class="o">*</span><span class="n">dyi</span><span class="p">)</span><span class="w"> </span><span class="c">! - dp/dy</span>
+<a id="ln-184" name="ln-184" href="#ln-184"></a>
+<a id="ln-185" name="ln-185" href="#ln-185"></a><span class="w">         </span><span class="k">end do</span>
+<a id="ln-186" name="ln-186" href="#ln-186"></a><span class="k">      end do</span>
+<a id="ln-187" name="ln-187" href="#ln-187"></a><span class="k">   end do</span>
+<a id="ln-188" name="ln-188" href="#ln-188"></a>
+<a id="ln-189" name="ln-189" href="#ln-189"></a><span class="k">   do </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jb</span><span class="p">,</span><span class="w"> </span><span class="n">je</span>
+<a id="ln-190" name="ln-190" href="#ln-190"></a><span class="w">      </span><span class="n">jm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-191" name="ln-191" href="#ln-191"></a><span class="w">      </span><span class="n">jp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-192" name="ln-192" href="#ln-192"></a><span class="w">      </span><span class="k">do </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ib</span><span class="p">,</span><span class="w"> </span><span class="n">ie</span>
+<a id="ln-193" name="ln-193" href="#ln-193"></a><span class="w">         </span><span class="n">im</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-194" name="ln-194" href="#ln-194"></a><span class="w">         </span><span class="n">ip</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-195" name="ln-195" href="#ln-195"></a><span class="w">         </span><span class="k">do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span>
+<a id="ln-196" name="ln-196" href="#ln-196"></a><span class="w">            </span><span class="n">km</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-197" name="ln-197" href="#ln-197"></a><span class="w">            </span><span class="n">kp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-198" name="ln-198" href="#ln-198"></a><span class="w">            </span><span class="n">putout</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">putout</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-199" name="ln-199" href="#ln-199"></a><span class="w">                              </span><span class="p">(</span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">kp</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">jm</span><span class="p">,</span><span class="w"> </span><span class="n">kp</span><span class="p">))</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-200" name="ln-200" href="#ln-200"></a><span class="w">                            </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">kp</span><span class="p">)</span><span class="o">*</span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">dzf</span><span class="p">(</span><span class="n">kp</span><span class="p">))</span><span class="o">*</span><span class="n">dzhi</span><span class="p">(</span><span class="n">kp</span><span class="p">)</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-201" name="ln-201" href="#ln-201"></a><span class="w">                            </span><span class="o">-</span><span class="w"> </span><span class="p">(</span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">jm</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-202" name="ln-202" href="#ln-202"></a><span class="w">                            </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">km</span><span class="p">)</span><span class="o">*</span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">dzf</span><span class="p">(</span><span class="n">km</span><span class="p">))</span><span class="o">*</span><span class="n">dzhi</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-203" name="ln-203" href="#ln-203"></a><span class="w">                              </span><span class="p">)</span><span class="o">*</span><span class="mf">0.5</span><span class="o">*</span><span class="n">dzfi5</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+<a id="ln-204" name="ln-204" href="#ln-204"></a><span class="w">         </span><span class="k">end do</span>
+<a id="ln-205" name="ln-205" href="#ln-205"></a><span class="k">      end do</span>
+<a id="ln-206" name="ln-206" href="#ln-206"></a><span class="k">   end do</span>
+<a id="ln-207" name="ln-207" href="#ln-207"></a>
+<a id="ln-208" name="ln-208" href="#ln-208"></a><span class="k">end subroutine </span><span class="n">advecv_2nd</span>
+<a id="ln-209" name="ln-209" href="#ln-209"></a>
+<a id="ln-210" name="ln-210" href="#ln-210"></a><span class="c">!&gt; Advection at the w point.</span>
+<a id="ln-211" name="ln-211" href="#ln-211"></a><span class="k">subroutine </span><span class="n">advecw_2nd</span><span class="p">(</span><span class="n">putin</span><span class="p">,</span><span class="w"> </span><span class="n">putout</span><span class="p">)</span>
+<a id="ln-212" name="ln-212" href="#ln-212"></a>
+<a id="ln-213" name="ln-213" href="#ln-213"></a><span class="w">   </span><span class="k">use </span><span class="n">modglobal</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="n">ih</span><span class="p">,</span><span class="w"> </span><span class="n">ib</span><span class="p">,</span><span class="w"> </span><span class="n">ie</span><span class="p">,</span><span class="w"> </span><span class="n">jh</span><span class="p">,</span><span class="w"> </span><span class="n">jb</span><span class="p">,</span><span class="w"> </span><span class="n">je</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span><span class="p">,</span><span class="w"> </span><span class="n">kh</span><span class="p">,</span><span class="w"> </span><span class="n">dx</span><span class="p">,</span><span class="w"> </span><span class="n">dxi</span><span class="p">,</span><span class="w"> </span><span class="n">dxiq</span><span class="p">,</span><span class="w"> </span><span class="n">dyiq</span><span class="p">,</span><span class="w"> </span><span class="n">dzf</span><span class="p">,</span><span class="w"> </span><span class="n">dzhi</span><span class="p">,</span><span class="w"> </span><span class="n">dzhiq</span>
+<a id="ln-214" name="ln-214" href="#ln-214"></a><span class="w">   </span><span class="k">use </span><span class="n">modfields</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="n">u0</span><span class="p">,</span><span class="w"> </span><span class="n">v0</span><span class="p">,</span><span class="w"> </span><span class="n">w0</span><span class="p">,</span><span class="w"> </span><span class="n">pres0</span>
+<a id="ln-215" name="ln-215" href="#ln-215"></a><span class="w">   </span><span class="c">! use modmpi, only : myid</span>
+<a id="ln-216" name="ln-216" href="#ln-216"></a><span class="w">   </span><span class="k">implicit none</span>
+<a id="ln-217" name="ln-217" href="#ln-217"></a>
+<a id="ln-218" name="ln-218" href="#ln-218"></a><span class="k">   </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">dimension</span><span class="p">(</span><span class="n">ib</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">ih</span><span class="p">,</span><span class="w"> </span><span class="n">jb</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">jh</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">kh</span><span class="p">),</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w">  </span><span class="kd">::</span><span class="w"> </span><span class="n">putin</span><span class="w"> </span><span class="c">!&lt; Input: the w-field</span>
+<a id="ln-219" name="ln-219" href="#ln-219"></a><span class="w">   </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">dimension</span><span class="p">(</span><span class="n">ib</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">ih</span><span class="p">,</span><span class="w"> </span><span class="n">jb</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">jh</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">kh</span><span class="p">),</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">putout</span><span class="w"> </span><span class="c">!&lt; Output: the tendency</span>
+<a id="ln-220" name="ln-220" href="#ln-220"></a>
+<a id="ln-221" name="ln-221" href="#ln-221"></a><span class="w">   </span><span class="kt">integer</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">,</span><span class="w"> </span><span class="n">ip</span><span class="p">,</span><span class="w"> </span><span class="n">im</span><span class="p">,</span><span class="w"> </span><span class="n">jp</span><span class="p">,</span><span class="w"> </span><span class="n">jm</span><span class="p">,</span><span class="w"> </span><span class="n">kp</span><span class="p">,</span><span class="w"> </span><span class="n">km</span>
+<a id="ln-222" name="ln-222" href="#ln-222"></a>
+<a id="ln-223" name="ln-223" href="#ln-223"></a><span class="w">   </span><span class="k">do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kb</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span>
+<a id="ln-224" name="ln-224" href="#ln-224"></a><span class="w">      </span><span class="n">km</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-225" name="ln-225" href="#ln-225"></a><span class="w">      </span><span class="n">kp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-226" name="ln-226" href="#ln-226"></a><span class="w">      </span><span class="k">do </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jb</span><span class="p">,</span><span class="w"> </span><span class="n">je</span>
+<a id="ln-227" name="ln-227" href="#ln-227"></a><span class="w">         </span><span class="n">jm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-228" name="ln-228" href="#ln-228"></a><span class="w">         </span><span class="n">jp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-229" name="ln-229" href="#ln-229"></a><span class="w">         </span><span class="k">do </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ib</span><span class="p">,</span><span class="w"> </span><span class="n">ie</span>
+<a id="ln-230" name="ln-230" href="#ln-230"></a><span class="w">            </span><span class="n">im</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-231" name="ln-231" href="#ln-231"></a><span class="w">            </span><span class="n">ip</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-232" name="ln-232" href="#ln-232"></a>
+<a id="ln-233" name="ln-233" href="#ln-233"></a><span class="w">            </span><span class="n">putout</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">putout</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-234" name="ln-234" href="#ln-234"></a><span class="w">                              </span><span class="p">(</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-235" name="ln-235" href="#ln-235"></a><span class="w">                              </span><span class="p">(</span><span class="n">putin</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">))</span><span class="o">*</span><span class="p">(</span><span class="n">dzf</span><span class="p">(</span><span class="n">km</span><span class="p">)</span><span class="o">*</span><span class="n">u0</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">u0</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">km</span><span class="p">))</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-236" name="ln-236" href="#ln-236"></a><span class="w">                            </span><span class="o">-</span><span class="w"> </span><span class="p">(</span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w">  </span><span class="o">+</span><span class="w"> </span><span class="n">putin</span><span class="p">(</span><span class="n">im</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">))</span><span class="o">*</span><span class="p">(</span><span class="n">dzf</span><span class="p">(</span><span class="n">km</span><span class="p">)</span><span class="o">*</span><span class="n">u0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">u0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">km</span><span class="p">))</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-237" name="ln-237" href="#ln-237"></a><span class="w">                              </span><span class="p">)</span><span class="o">*</span><span class="n">dxiq</span><span class="o">*</span><span class="n">dzhi</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="p">&amp;</span><span class="w"> </span><span class="c">! d(uw)/dx</span>
+<a id="ln-238" name="ln-238" href="#ln-238"></a><span class="w">                            </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-239" name="ln-239" href="#ln-239"></a><span class="w">                              </span><span class="p">(</span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">jp</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">))</span><span class="o">*</span><span class="p">(</span><span class="n">dzf</span><span class="p">(</span><span class="n">km</span><span class="p">)</span><span class="o">*</span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">jp</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">jp</span><span class="p">,</span><span class="w"> </span><span class="n">km</span><span class="p">))</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-240" name="ln-240" href="#ln-240"></a><span class="w">                            </span><span class="o">-</span><span class="w"> </span><span class="p">(</span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">jm</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">))</span><span class="o">*</span><span class="p">(</span><span class="n">dzf</span><span class="p">(</span><span class="n">km</span><span class="p">)</span><span class="o">*</span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">km</span><span class="p">))</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-241" name="ln-241" href="#ln-241"></a><span class="w">                              </span><span class="p">)</span><span class="o">*</span><span class="n">dyiq</span><span class="o">*</span><span class="n">dzhi</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="p">&amp;</span><span class="w"> </span><span class="c">! d(vw)/dy</span>
+<a id="ln-242" name="ln-242" href="#ln-242"></a><span class="w">                            </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-243" name="ln-243" href="#ln-243"></a><span class="w">                              </span><span class="p">(</span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">kp</span><span class="p">))</span><span class="o">*</span><span class="p">(</span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">kp</span><span class="p">))</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-244" name="ln-244" href="#ln-244"></a><span class="w">                            </span><span class="o">-</span><span class="w"> </span><span class="p">(</span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">km</span><span class="p">))</span><span class="o">*</span><span class="p">(</span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">km</span><span class="p">))</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-245" name="ln-245" href="#ln-245"></a><span class="w">                              </span><span class="p">)</span><span class="o">*</span><span class="n">dzhiq</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="p">&amp;</span><span class="w"> </span><span class="c">! d(ww)/dz</span>
+<a id="ln-246" name="ln-246" href="#ln-246"></a><span class="w">                              </span><span class="p">)</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-247" name="ln-247" href="#ln-247"></a><span class="w">                            </span><span class="o">-</span><span class="w"> </span><span class="p">((</span><span class="n">pres0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">pres0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">km</span><span class="p">))</span><span class="o">*</span><span class="n">dzhi</span><span class="p">(</span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="c">! - dp/dz</span>
+<a id="ln-248" name="ln-248" href="#ln-248"></a>
+<a id="ln-249" name="ln-249" href="#ln-249"></a><span class="w">         </span><span class="k">end do</span>
+<a id="ln-250" name="ln-250" href="#ln-250"></a><span class="k">      end do</span>
+<a id="ln-251" name="ln-251" href="#ln-251"></a><span class="k">   end do</span>
+<a id="ln-252" name="ln-252" href="#ln-252"></a><span class="k">end subroutine </span><span class="n">advecw_2nd</span>
+</pre></div>
+
+      </section>
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2024 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2024-12-24 10:50 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+
+    <!-- Bootstrap core JavaScript -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>    
+
+    <!-- MathJax JavaScript
+             ================================================== -->
+             <!-- Placed at the end of the document so the pages load faster -->
+        <script type="text/x-mathjax-config">
+          MathJax.Hub.Config({
+          TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } },
+          jax: ['input/TeX','input/MathML','output/HTML-CSS'],
+          extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']
+          });
+        </script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+          <script src="../tipuesearch/tipuesearch_content.js"></script>
+          <script src="../tipuesearch/tipuesearch_set.js"></script>
+          <script src="../tipuesearch/tipuesearch.js"></script>
+
+  </body>
+</html>
