@@ -1,6 +1,6 @@
 {
     "title": "uDALES: large-eddy-simulation software for urban flow, dispersion, and microclimate modelling",
-    "description": "<p>uDALES, a free and open-source large-eddy-simulation software for urban flow, dispersion, and microclimate modelling. For more information about uDALES, please refer to the <a href=\"https://github.com/uDALES/u-dales#readme\">uDALES repository on GitHub</a>.</p>", 
+    "description": "<p>uDALES is a free and open-source large-eddy-simulation software for urban flow, dispersion, and microclimate modelling. For more information about uDALES, please refer to the <a href=\"https://github.com/uDALES/u-dales#readme\">uDALES repository on GitHub</a>.</p>", 
     "keywords": [
         "fluid-dynamics", 
         "computational-fluid-dynamics", 
