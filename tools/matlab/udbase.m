@@ -266,7 +266,7 @@ classdef udbase < dynamicprops
                     dict(newkey(i)) = "Custom walltype";
                 end
                 %factypes.name = dict(factypes.id);% dict only available >= Matlab2022b
-                factypes.name = arrayfun(@(x) dict(x), factypes.id, 'UniformOutput', false);
+                factypes.name = string(arrayfun(@(x) dict(x), factypes.id, 'UniformOutput', false));
                 factypes.lGR = factypedata(:, 2);
                 factypes.z0 = factypedata(:, 3);
                 factypes.z0h = factypedata(:, 4);
@@ -687,6 +687,7 @@ classdef udbase < dynamicprops
                 patch('Faces', tcons, 'Vertices', ps, 'FaceVertexCData',c, ...
                       'FaceColor','flat', 'EdgeColor', 'None')
             end
+            legend(labels)
         end
 
         % ------------------------------------------------------------- %
