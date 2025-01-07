@@ -1,14 +1,12 @@
-# Getting Started
+# Installation
 
 Getting started with uDALES to set up your own experiments is straightforward. This guide goes through the steps required to [install](#installation) uDALES, and [set-up](#set-up) and [run](#run) a simple example. Results are output in netCDF format, for a quick inspection you can use GUI tools such as [Panoply](https://www.giss.nasa.gov/tools/panoply/) or [ncview](http://meteora.ucsd.edu/~pierce/ncview_home_page.html). To learn more about pre- and post-processing steps see the [what's next section](#whats-next).
 
 If you have [Singularity](https://sylabs.io/) available on your system, you can use the provided scripts under `tools/singularity` to build and run uDALES cases locally or on HPC environments. See [Singularity](#singularity) for instructions; otherwise, see the next section.
 
-## Installation
+## Prerequisites
 
-### Prerequisites
-
-#### uDALES
+### uDALES
 
 uDALES is supported to run on Linux, macOS and Windows Subsystem for Linux (WSL). Please ensure that the latest version of the following libraries and software are available on your system:
 
@@ -18,7 +16,7 @@ uDALES is supported to run on Linux, macOS and Windows Subsystem for Linux (WSL)
 - A recent version of [MPICH](https://www.mpich.org/) or [Open-MPI](https://www.open-mpi.org/). 
 - [FFTW](http://www.fftw.org/) 
 
-#### Project setup
+### Project setup
 
 To set up a project template for uDALES with a generic folder structure that you can later use to set up your own experiments, you will need:
 
@@ -26,15 +24,15 @@ To set up a project template for uDALES with a generic folder structure that you
 - A [GitHub](https://github.com) account. (optional)
 - [Python](https://www.python.org/) >= 3.6.
 
-#### Pre-processing
+### Pre-processing
 
-When you create your own experiments, you will need to set up specific input files. We have a system in place that does that for you, written in MATLAB. Information can be found under [pre-processing](./udales-pre-processing.md) and is not discussed in the getting-started set-up.
+When you create your own experiments, the input data needs to be processed before the simulation can be performed. For this reason, uDALES has a suite of pre-processing routines written in several languages including MATLAB. For information on how perform the pre-processing, see [pre-processing](./udales-pre-processing.md).
 
 - [MATLAB](https://www.mathworks.com/products/matlab.html) >= R2017b
 
-#### Post-processing
+### Post-processing
 
-For better organised netCDF output files, you will need:
+The uDALES output data are stored in netCDF files. However, as the code is parallel, these need to be merged before they can be conveniently visualised an processed using Python, MATLAB or other languages. The merging is performed with the NCO package:
 
 - [netCDF Operators](https://github.com/nco/nco) (NCO).
 
@@ -42,14 +40,14 @@ On local systems, these software and libraries (except MATLAB) should be availab
 
 On high performance computing (HPC) clusters, these software and libraries should have already been installed. Please refer to the specific documentation to load the above software and libraries. Alternatively, you can install all the required packages easily after installing [Linuxbrew](https://docs.brew.sh/Homebrew-on-Linux) and using the instructions for [macOS](#macos).
 
-### Linux/WSL (Ubuntu)
+## Linux/WSL (Ubuntu)
 
 ```sh
 sudo apt-get update && sudo apt-get upgrade -y
 sudo apt-get install -y git cmake gfortran libomp-dev libopenmpi-dev openmpi-bin libnetcdf-dev libnetcdff-dev nco python3 python3-pip libfftw3-dev
 ```
 
-### macOS
+## macOS
 
 On macOS, use [Homebrew](https://docs.brew.sh) to install the required libraries. If you do not have Homebrew installed on your system, install it from the [Homebrew installation page](https://docs.brew.sh/Installation) then, to install all the required dependencies, including support for MPI, run the following commands from your terminal prompt:
 
@@ -58,8 +56,7 @@ brew update
 brew install git cmake gcc netcdf netcdf-fortran mpich nco python3 fftw
 ```
 
-
-### Repository set-up
+## Repository set-up
 
 Create a top-level directory, for example called "uDALES":
 
@@ -106,7 +103,7 @@ myproject
 In the next steps we will assume your current working directory is the top-level project directory.
 
 
-### Build on common systems
+## Build on common systems
 
 To compile uDALES (in release mode) on common/local uvuntu or mac systems using helper script, run:
 
@@ -131,7 +128,7 @@ popd
 
 You can compile in parallel mode by passing Make the `j` flag followed by the number of CPU cores to use. For example, to compile with 2 cores do `make -j2`.
 
-### Build on HPCs
+## Build on HPCs
 
 To compile uDALES (in release mode) on the ICL HPC cluster run:
 
@@ -178,7 +175,7 @@ popd
 
 where `NETCDF_DIR` and `NETCDF_FORTRAN_DIR` indicates the absolute path to your netCDF-C and netCDF-Fortran installation directories. Here, we use the utilities `nc-config` and `nf-config` to hint CMake the location of netCDF, but you can simply pass the absolute path to the netCDF-C and netCDF-Fortran manually instead. You can compile in parallel mode by passing Make the `j` flag followed by the number of CPU cores to use. For example, to compile with 2 cores do `make -j2`.
 
-### Build defaults/options
+## Build defaults/options
 
 By default uDALES will compile in `Release` mode. You can change this by specifying the option (or flag) at configure time. The general syntax for specifying an option in CMake is `-D<flag_name>=<flag_value>` where `<flag_name>` is the option/flag name and `<flag_value>` is the option/flag value. The following options can be specified when configuring uDALES:
 
@@ -189,125 +186,7 @@ By default uDALES will compile in `Release` mode. You can change this by specify
 | `NETCDF_FORTRAN_DIR`            | `<path>`           | -         | Path to netCDF-Fortran installation directory |
 | `SKIP_UPDATE_EXTERNAL_PROJECTS` | `ON`, `OFF`        | `OFF`     | Whether to skip updating external projects    |
 
-## Set-up
-
-To set up a new simulation, `copy_inputs.sh` in `u-dales/tools/` is used to create a new simulation setup `new_exp_id` based on another simulation `old_exp_id`. All `exp_ids` are three digit integer numbers, e.g. 001, and are stored in directories of that name. Each experiment case directory must contain a config.sh file where appropriate paths for DA_EXPDIR (experiments directory), DA_WORKDIR (outputs directory), DA_TOOLSDIR (u-dales/tools directory) are set using export.
-
-<!--
-Scripts requires several variables to be set up. You can do this by copying and pasting the snippet below or by including it in a bash script (or bash profile if you are unlikely to change them).
-
-``` sh
-# We assume you are running the following commands from your
-# top-level project directory.
-
-export DA_EXPDIR=$(pwd)/experiments #  The top-level directory of the simulation setups.
-export DA_WORKDIR=$(pwd)/outputs # Output top-level directory
-
-# If source directories (DA_EXPDIR_SRC, DA_WORKDIR_SRC) are not set,
-# the experiment set-up folder will be copied from the same target directory.
-# I.e. DA_EXPDIR_SRC==DA_EXPDIR and DA_WORKDIR_SRC==DA_WORKDIR.
-export DA_EXPDIR_SRC=$(pwd)/u-dales/examples
-export DA_WORKDIR_SRC=$(pwd)/u-dales/examples
-```
-
-If you set up a new experiment on HPC, also use:
-
-``` sh
-export DA_WORKDIR=$EPHEMERAL # Output top-level directory on HPC
-export DA_WORKDIR_SRC=$EPHEMERAL
-```
--->
-
-Now to set-up a new experiment (here we use case `009`) based on a previous example (here we use case `001`), run:
-
-``` sh
-# We assume you are running the following commands from your
-# top-level project directory.
-
-# General syntax: copy_inputs.sh old_exp_id new_exp_id
-u-dales/tools/copy_inputs.sh experiments/001 009
-
-# To set up a new simulation starting from the restart files of another simulation
-# ("warmstart"), use the 'w' flag. E.g.: copy_inputs.sh old_exp_id new_exp_id w
-u-dales/tools/copy_inputs.sh experiments/001 009 w
-```
-
-## Run
-
-The scripts `local_execute.sh` (for local machines), `hpc_execute.sh` (for ICL cluster) and `archer_execute.sh` (for ARCHER2) in `u-dales/tools` are used as wrappers to run simulations. These scripts contain several helpers to run the simulations and merge outputs from several CPUs into a single file (see [Post-processing](./udales-post-processing.md) for more info about the individual scripts).
-
-The scripts require several variables to be set up. Below is an example setup for copying and pasting. You can also specify these parameters in a `config.sh` file within the experiment directory, which is then read by the scripts.
-
-Note that you need to choose the number of CPUs you are using to run the simulation such that the number of grid cells in the y-direction (`jtot` parameter in the `namoptions` input file) is a multiple of the number of CPUs.
-
-### Run on common systems
-
-``` sh
-# We assume you are running the following commands from your
-# top-level project directory.
-
-export DA_TOOLSDIR=$(pwd)/u-dales/tools # Directory of scripts
-export DA_BUILD=$(pwd)/u-dales/build/release/u-dales # Build file
-export NCPU=2 # Number of CPUs to use for a simulation
-export DA_WORKDIR=$(pwd)/outputs # Output top-level directory
-```
-
-Then, to start the simulation, run:
-
-``` sh
-# We assume you are running the following commands from your
-# top-level project directory.
-
-# General syntax: local_execute.sh exp_directory
-./u-dales/tools/local_execute.sh experiments/009
-```
-
-### Run on ICL cluster
-
-``` sh
-export DA_TOOLSDIR=$(pwd)/u-dales/tools # Directory of scripts
-export DA_BUILD=$(pwd)/u-dales/build/release/u-dales # Build file
-export NCPU=24 # Number of CPUs to use for a simulation
-export NNODE=1 # Number of nodes to use for a simulation
-export WALLTIME="00:30:00" # Maximum runtime for simulation in hours:minutes:seconds
-export MEM="128gb" # Memory request per node
-```
-
-For guidance on how to set the parameters on HPC, have a look at [Job sizing guidance](https://icl-rcs-user-guide.readthedocs.io/en/latest/hpc/queues/job-sizing-guidance/).
-Then, to start the simulation, run:
-
-``` sh
-# We assume you are running the following commands from your
-# top-level project directory.
-
-# General syntax: hpc_execute.sh exp_directory
-./u-dales/tools/hpc_execute.sh experiments/009
-```
-
-### Run on ARCHER2
-
-``` sh
-export DA_TOOLSDIR=$(pwd)/u-dales/tools # Directory of scripts
-export DA_BUILD=$(pwd)/u-dales/build/release/u-dales # Build file
-export NCPU=128 # Number of CPUs to use for a simulation
-export NNODE=1 # Number of nodes to use for a simulation
-export WALLTIME="24:00:00" # Maximum runtime for simulation in hours:minutes:seconds
-export MEM="256gb" # Memory request per node
-export QOS="standard" # Queue
-```
-
-For guidance on how to set the parameters on ARCHER2, have a look at the [ARCHER2 documentation](https://docs.archer2.ac.uk/user-guide/). In particular, take care to edit the `archer_execute.sh` script so that the account corresponds to one you can use.
-Then, to start the simulation, run:
-
-``` sh
-# We assume you are running the following commands from your
-# top-level project directory.
-
-# General syntax: hpc_execute.sh exp_directory
-bash ./u-dales/tools/archer_execute.sh experiments/009
-```
-
-## Singularity
+# Singularity
 
 If you are looking for information on how to install or use Singularity on your system, please refer to the [Singularity documentation ](https://sylabs.io/docs). The use of Singularity is undoubtedly the easiest way to build and run cases in uDALES as all dependencies are provided and uDALES will compile out of the box. Furthermore, users wishing to achieve a reasonable level of scientific reproducibility may archive software, tools, and data with their Singularity image containing OS and external libraries to an open access repository (e.g. [Meyer et al., 2020](https://doi.org/10.1029/2019MS001961)).
 

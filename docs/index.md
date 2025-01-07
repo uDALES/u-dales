@@ -1,6 +1,6 @@
 # uDALES Docs
 
-This is the documentation for the uDALES (urban Dutch Atmospheric Large Eddy Simulation) model. It contains user's guides and general reference documentation. If you are new to uDALES, please follow our [getting started guide](udales-getting-started.md) first.
+This is the documentation for uDALES, an open-source multi-physics microscale urban modelling tool, capable of performing large-eddy simulation (LES) of urban airflow, heat transfer, and pollutant dispersion. This documentation contains user's guides and general reference documentation. 
 
 |                                                            |                                                            |
 | :--------------------------------------------------------: | :--------------------------------------------------------: |
