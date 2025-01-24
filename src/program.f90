@@ -25,6 +25,9 @@ program DALESURBAN      !Version 48
 !!     0.0    USE STATEMENTS FOR CORE MODULES
 !!----------------------------------------------------------------
   use modmpi,            only : initmpi,exitmpi,myid,starttimer
+#if defined(_GPU)
+  use cudamodule,        only : initCUDA, updateDevice, updateHost, exitCUDA
+#endif
   use modglobal,         only : initglobal,rk3step,timeleft
   use modstartup,        only : readnamelists,init2decomp,checkinitvalues,readinitfiles,exitmodules
   use modfields,         only : initfields
@@ -64,6 +67,10 @@ program DALESURBAN      !Version 48
   call checkinitvalues
 
   call initglobal
+
+#if defined(_GPU)
+  call initCUDA
+#endif
 
   call initfields
 
@@ -128,9 +135,13 @@ program DALESURBAN      !Version 48
 !-----------------------------------------------------
 !   3.2   ADVECTION AND DIFFUSION
 !-----------------------------------------------------
-
+#if defined(_GPU)
+    call updateDevice
+#endif
     call advection ! includes predicted pressure gradient term
-
+#if defined(_GPU)
+    call updateHost
+#endif
     call shiftedPBCs
 
     call subgrid
@@ -218,6 +229,11 @@ program DALESURBAN      !Version 48
   call exitstatsdump     !tg3315
   !call exitmodules
   !call exittest
+
+#if defined(_GPU)
+  call exitCUDA
+#endif
+
   call exitmpi
 
 end program DALESURBAN
