@@ -972,33 +972,40 @@ module modforces
   !write(*,*) 'fraction', fraction
   end subroutine periodicEBcorr
 
-  subroutine shiftedPBCs
-      ! Nudge the flow in a region near the outlet
+  subroutine shiftedPBCs        ! Nudge the flow in a region near the outlet
+#if defined(_GPU)
+      use cudafor
+      use cudamodule, only : griddim, blockdim, checkCUDA, shiftedPBCs_cuda
+#else
       use modglobal, only : ib, itot, ie, jb, je, kb, ke, xh, ds, dyi, xlen, rk3step, dt, pi
-      use modfields, only : u0, v0, w0, u0av, up, vp, wp, vm
+      use modfields, only : u0, v0, w0, u0av, up, vp, wp
       use decomp_2d, only : zstart
+#endif
 
       integer :: i, j, k, ig
-      real :: vs, RHS, rk3coef
-
+      real :: vs, rk3coef
+      
+#if defined(_GPU)
+      call shiftedPBCs_cuda<<<griddim,blockdim>>>()
+      call checkCUDA( cudaGetLastError(), 'shiftedPBCs_cuda' )
+#else
       if (ds > 0) then
-      rk3coef = dt / (4. - dble(rk3step))
-      do i = ib,ie
-         ig = i + zstart(1) - 1 ! global i position
-         if (ig > int(itot/2)) then
-            do j = jb,je
-               do k = kb,ke
-                  vs = 0.5 * pi * ds / (0.5*xlen) * u0av(k) * sin(pi*(xh(ig)-xh(int(itot/2))) / (0.5*xlen))
-                  up(i,j,k) = up(i,j,k) - vs * (u0(i,j,k) - u0(i,j-1,k)) * dyi
-                  vp(i,j,k) = vp(i,j,k) - vs * (v0(i,j,k) - v0(i,j-1,k)) * dyi
-                  wp(i,j,k) = wp(i,j,k) - vs * (w0(i,j,k) - w0(i,j-1,k)) * dyi
+         rk3coef = dt / (4. - dble(rk3step))
+         do i = ib,ie
+            ig = i + zstart(1) - 1 ! global i position
+            if (ig > int(itot/2)) then
+               do j = jb,je
+                  do k = kb,ke
+                     vs = 0.5 * pi * ds / (0.5*xlen) * u0av(k) * sin(pi*(xh(ig)-xh(int(itot/2))) / (0.5*xlen))
+                     up(i,j,k) = up(i,j,k) - vs * (u0(i,j,k) - u0(i,j-1,k)) * dyi
+                     vp(i,j,k) = vp(i,j,k) - vs * (v0(i,j,k) - v0(i,j-1,k)) * dyi
+                     wp(i,j,k) = wp(i,j,k) - vs * (w0(i,j,k) - w0(i,j-1,k)) * dyi
+                  end do
                end do
-            end do
-         end if
-      end do
-
+            end if
+         end do
       end if
-
+#endif
    end subroutine shiftedPBCs
 
 end module modforces

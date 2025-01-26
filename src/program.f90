@@ -135,14 +135,18 @@ program DALESURBAN      !Version 48
 !-----------------------------------------------------
 !   3.2   ADVECTION AND DIFFUSION
 !-----------------------------------------------------
+
 #if defined(_GPU)
     call updateDevice
 #endif
+    
     call advection ! includes predicted pressure gradient term
+
+    call shiftedPBCs
+
 #if defined(_GPU)
     call updateHost
 #endif
-    call shiftedPBCs
 
     call subgrid
 

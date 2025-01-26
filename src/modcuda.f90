@@ -1,20 +1,23 @@
 module cudamodule
 #if defined(_GPU)        
    use cudafor
-   use modglobal, only : ib, ie, jb, je, kb, ke, ih, jh, kh, ihc, jhc, khc, dxi5, dyi5, dzf, dzhi, dzfi5, dzhiq, dxiq, dyiq, dxi, dyi, &
-                         loneeqn, ltempeq, lmoist, nsv
-   use modfields, only : u0, v0, w0, pres0, e120, thl0, qt0, sv0, up, vp, wp, e12p, thlp, qtp, svp
+   use modglobal, only : pi, xlen, xh, itot, ib, ie, jb, je, kb, ke, ih, jh, kh, ihc, jhc, khc, &
+                         dxi5, dyi5, dzf, dzhi, dzfi5, dzhiq, dxiq, dyiq, dxi, dyi, &
+                         loneeqn, ltempeq, lmoist, nsv, ds, rk3step, dt
+   use modfields, only : u0, v0, w0, pres0, e120, thl0, qt0, sv0, up, vp, wp, e12p, thlp, qtp, svp, u0av
+   use decomp_2d, only : zstart
    implicit none
- !  public :: initCUDA, updateDeviceVariables, checkCUDA, saxpy, advecc_2nd_cuda, advecu_2nd_cuda, advecv_2nd_cuda
    save
 
    type(dim3) :: griddim, blockdim
 
-   integer, device :: ib_d, ie_d, jb_d, je_d, kb_d, ke_d, ih_d, jh_d, kh_d
-   real, device    :: dxi5_d, dyi5_d, dxiq_d, dyiq_d, dxi_d, dyi_d
-   real, device, allocatable :: dzf_d(:), dzhi_d(:), dzfi5_d(:), dzhiq_d(:)
+   integer, device :: itot_d, ib_d, ie_d, jb_d, je_d, kb_d, ke_d, ih_d, jh_d, kh_d, rk3step_d
+   real, device    :: dxi5_d, dyi5_d, dxiq_d, dyiq_d, dxi_d, dyi_d, &
+                      pi_d, xlen_d, ds_d, dt_d
+   real, device, allocatable :: dzf_d(:), dzhi_d(:), dzfi5_d(:), dzhiq_d(:), xh_d(:), u0av_d(:)
    real, device, allocatable :: u0_d(:,:,:), v0_d(:,:,:), w0_d(:,:,:), pres0_d(:,:,:), e120_d(:,:,:), thl0_d(:,:,:), qt0_d(:,:,:), sv0_d(:,:,:,:)
    real, device, allocatable :: up_d(:,:,:), vp_d(:,:,:), wp_d(:,:,:), e12p_d(:,:,:), thlp_d(:,:,:), qtp_d(:,:,:), svp_d(:,:,:,:)
+   integer, device, dimension(3) :: zstart_d
 
    contains
       subroutine initCUDA
@@ -47,6 +50,7 @@ module cudamodule
          blockdim  = dim3(threadnumx,threadnumy,threadnumz)
          griddim   = dim3(blocknumx,blocknumy,blocknumz)
 
+         itot_d = itot
          ib_d = ib
          ie_d = ie
          ih_d = ih
@@ -100,6 +104,15 @@ module cudamodule
             allocate(svp_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc,nsv))
          end if
 
+         pi_d = pi
+         xlen_d = xlen
+         ds_d = ds
+         zstart_d = zstart
+         allocate (xh_d(ib:itot+ih))
+         xh_d = xh
+
+         allocate(u0av_d(kb:ke+kh))
+
       end subroutine initCUDA
 
       subroutine exitCUDA
@@ -115,6 +128,8 @@ module cudamodule
 
       subroutine updateDevice
          implicit none
+         dt_d = dt
+         rk3step_d = rk3step
          u0_d = u0
          v0_d = v0
          w0_d = w0
@@ -138,6 +153,7 @@ module cudamodule
      !       sv0_d = sv0
      !       svp_d = svp
      !    end if
+         u0av_d = u0av
       end subroutine updateDevice
 
       subroutine updateHost
@@ -177,23 +193,16 @@ module cudamodule
          end if
       end subroutine checkCUDA
 
-      attributes(global) subroutine saxpy(c)
+      attributes(device) subroutine tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
          implicit none
-         real :: c(ib_d:ie_d,jb_d:je_d,kb_d:ke_d)
-         integer :: i, j, k, tidx, tidy, stridex, stridey, kk
+         integer :: tidx, tidy, tidz, stridex, stridey, stridez
          tidx = (blockIDx%x - 1) * blockDim%x + threadIdx%x
          tidy = (blockIDx%y - 1) * blockDim%y + threadIdx%y
+         tidz = (blockIDx%z - 1) * blockDim%z + threadIdx%z
          stridex = gridDim%x * blockDim%x
          stridey = gridDim%y * blockDim%y
-         
-         do k = kb_d, ke_d
-            do j = tidy, je_d, stridey
-               do i = tidx, ie_d, stridex
-                  c(i,j,k) = ih_d + jh_d + kh_d
-               end do
-            end do
-         end do
-      end subroutine saxpy
+         stridez = gridDim%z * blockDim%z
+      end subroutine tidandstride
       
       !> Advection at cell center
       attributes(global) subroutine advecc_2nd_cuda(hi, hj, hk, putin, putout)
@@ -206,13 +215,8 @@ module cudamodule
          
          integer :: tidx, tidy, tidz, stridex, stridey, stridez
          integer :: i, j, k, im, ip, jm, jp, km, kp
-               
-         tidx = (blockIDx%x - 1) * blockDim%x + threadIdx%x
-         tidy = (blockIDx%y - 1) * blockDim%y + threadIdx%y
-         tidz = (blockIDx%z - 1) * blockDim%z + threadIdx%z
-         stridex = gridDim%x * blockDim%x
-         stridey = gridDim%y * blockDim%y
-         stridez = gridDim%z * blockDim%z
+         
+         call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
 
          do i = tidx, ie_d, stridex
             im = i - 1
@@ -262,13 +266,8 @@ module cudamodule
 
          integer :: tidx, tidy, tidz, stridex, stridey, stridez         
          integer :: i, j, k, im, ip, jm, jp, km, kp
-                                                               
-         tidx = (blockIDx%x - 1) * blockDim%x + threadIdx%x
-         tidy = (blockIDx%y - 1) * blockDim%y + threadIdx%y                                               
-         tidz = (blockIDx%z - 1) * blockDim%z + threadIdx%z                                             
-         stridex = gridDim%x * blockDim%x                              
-         stridey = gridDim%y * blockDim%y                              
-         stridez = gridDim%z * blockDim%z
+
+         call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
 
          do i = tidx, ie_d, stridex
             im = i - 1
@@ -323,12 +322,7 @@ module cudamodule
          integer :: tidx, tidy, tidz, stridex, stridey, stridez
          integer :: i, j, k, im, ip, jm, jp, km, kp
 
-         tidx = (blockIDx%x - 1) * blockDim%x + threadIdx%x
-         tidy = (blockIDx%y - 1) * blockDim%y + threadIdx%y
-         tidz = (blockIDx%z - 1) * blockDim%z + threadIdx%z
-         stridex = gridDim%x * blockDim%x
-         stridey = gridDim%y * blockDim%y
-         stridez = gridDim%z * blockDim%z
+         call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
 
          do i = tidx, ie_d, stridex
             im = i - 1
@@ -385,12 +379,7 @@ module cudamodule
          integer :: tidx, tidy, tidz, stridex, stridey, stridez
          integer :: i, j, k, im, ip, jm, jp, km, kp
 
-         tidx = (blockIDx%x - 1) * blockDim%x + threadIdx%x
-         tidy = (blockIDx%y - 1) * blockDim%y + threadIdx%y
-         tidz = (blockIDx%z - 1) * blockDim%z + threadIdx%z
-         stridex = gridDim%x * blockDim%x
-         stridey = gridDim%y * blockDim%y
-         stridez = gridDim%z * blockDim%z
+         call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
 
          do i = tidx, ie_d, stridex
             im = i - 1
@@ -421,6 +410,35 @@ module cudamodule
          end do
 
       end subroutine advecw_2nd_cuda
+
+      attributes(global) subroutine shiftedPBCs_cuda()
+         implicit none
+         integer :: tidx, tidy, tidz, stridex, stridey, stridez
+         integer :: i, j, k, ig
+         real :: vs, rk3coef
+
+         if (ds_d > 0) then
+
+            call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+
+            rk3coef = dt_d / (4. - dble(rk3step_d))
+
+            do i = tidx, ie_d, stridex
+               ig = i + zstart_d(1) - 1 ! global i position
+               if (ig > int(itot_d/2)) then
+                  do j = tidy, je_d, stridey
+                     do k = tidz, ke_d, stridez
+                        vs = 0.5 * pi_d * ds_d / (0.5*xlen_d) * u0av_d(k) * sin(pi_d*(xh_d(ig)-xh_d(int(itot_d/2))) / (0.5*xlen_d))
+                        up_d(i,j,k) = up_d(i,j,k) - vs * (u0_d(i,j,k) - u0_d(i,j-1,k)) * dyi_d
+                        vp_d(i,j,k) = vp_d(i,j,k) - vs * (v0_d(i,j,k) - v0_d(i,j-1,k)) * dyi_d
+                        wp_d(i,j,k) = wp_d(i,j,k) - vs * (w0_d(i,j,k) - w0_d(i,j-1,k)) * dyi_d
+                     end do
+                  end do
+               end if
+            end do
+
+         end if
+      end subroutine shiftedPBCs_cuda
 
 #endif
 end module cudamodule

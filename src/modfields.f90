@@ -394,7 +394,11 @@ module modfields
   real, allocatable :: ql0av(:)         !<   slab averaged q_liq
 
   real, allocatable :: thl0av(:)        !<   slab averaged th_liq
+#if defined(_GPU)
+  real, allocatable, pinned :: u0av(:)          !<   slab averaged u
+#else
   real, allocatable :: u0av(:)          !<   slab averaged u
+#endif
   real, allocatable :: v0av(:)          !<   slab averaged v
   real, allocatable :: ug(:)            !<   geostrophic u-wind
   real, allocatable :: vg(:)            !<   geostrophic v-wind

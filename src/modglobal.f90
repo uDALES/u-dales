@@ -465,7 +465,17 @@ module modglobal
    real, allocatable   :: bb(:),w(:),dumv(:),Tdash(:) !vector for the facet energy balance
 
    real :: rslabs
-   real, allocatable :: dzf(:) !<  thickness of full level
+#if defined(_GPU)
+  real, allocatable, pinned :: dzf(:) !<  thickness of full level
+  real, allocatable, pinned :: dzhi(:) !<  1/dzh
+  real, allocatable, pinned :: dzfi5(:) !<  0.5*(1/dzf)
+  real, allocatable, pinned :: dzhiq(:) !<  0.25*(1/dzh)
+#else
+  real, allocatable :: dzf(:) !<  thickness of full level
+  real, allocatable :: dzhi(:) !<  1/dzh
+  real, allocatable :: dzfi5(:) !<  0.5*(1/dzf)
+  real, allocatable :: dzhiq(:) !<  0.25*(1/dzh)
+#endif
    real, allocatable :: dzfc(:) !<  thickness of full level (extra ghost nodes (used in k-scheme)
    real, allocatable :: dzfci(:) !<  1/dzfc
    real, allocatable :: dzf2(:) !<  thickness of full level squared
@@ -474,10 +484,7 @@ module modglobal
    real, allocatable :: zf(:) !<  height of full level [m]
    real, allocatable :: dzfi(:) !<  1/dzf
    real, allocatable :: dzfiq(:) !<  0.25*(1/dzf)
-   real, allocatable :: dzfi5(:) !<  0.5*(1/dzf)
-   real, allocatable :: dzhi(:) !<  1/dzh
    real, allocatable :: dzhci(:) !<  1/dzh (extra ghost nodes (used in k-scheme)
-   real, allocatable :: dzhiq(:) !<  0.25*(1/dzh)
    real, allocatable :: dzh2i(:) !<  1/dzh^2
    real, allocatable :: zhi(:) !<  1/zh
    real, allocatable :: zfi(:) !<  1/zf
@@ -493,7 +500,11 @@ module modglobal
    real, allocatable :: dxhci(:) !<  = 1/dxh (with extra ghost nodes (used in k-scheme))
    real, allocatable :: dxhiq(:) !<  = 0.25*(1/dxh)
    real, allocatable :: dxh2i(:) !<  = 1/dxh^2
+#if defined(_GPU)
+   real, allocatable, pinned :: xh(:) !<  height of half level [m]
+#else
    real, allocatable :: xh(:) !<  height of half level [m]
+#endif
    real, allocatable :: xf(:) !<  height of full level [m]
    real, allocatable :: yh(:) !<  height of half level [m]
    real, allocatable :: yf(:) !<  height of full level [m]
