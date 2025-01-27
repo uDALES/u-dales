@@ -63,10 +63,11 @@ module modfields
   real, allocatable, target :: u02(:,:,:)        !<   x-component of velocity at time step t-1
 #if defined(_GPU)
   real, allocatable, pinned, target :: thl0(:,:,:)
+  real, allocatable, pinned         :: thl0c(:,:,:)      !<   liq. water pot. temperature at time step t
 #else
   real, allocatable, target :: thl0(:,:,:)      !<   liq. water pot. temperature at time step t
+  real, allocatable         :: thl0c(:,:,:)      !<   liq. water pot. temperature at time step t
 #endif
-  real, allocatable :: thl0c(:,:,:)      !<   liq. water pot. temperature at time step t
   real, allocatable :: thl0h(:,:,:)     !<   3d-field of theta_l at half levels for kappa scheme
 
   real, allocatable :: qt0h(:,:,:)      !<  3d-field of q_tot   at half levels for kappa scheme

@@ -24,6 +24,7 @@ program DALESURBAN      !Version 48
 !!----------------------------------------------------------------
 !!     0.0    USE STATEMENTS FOR CORE MODULES
 !!----------------------------------------------------------------
+  use mpi
   use modmpi,            only : initmpi,exitmpi,myid,starttimer
 #if defined(_GPU)
   use cudamodule,        only : initCUDA, updateDevice, updateHost, exitCUDA
@@ -53,6 +54,8 @@ program DALESURBAN      !Version 48
   use modstatsdump,    only : initstatsdump,statsdump,exitstatsdump    !tg3315
   use modtimedep,      only : inittimedep,timedep
   implicit none
+
+  real    :: stime
 
 !----------------------------------------------------------------
 !     1      READ NAMELISTS,INITIALISE GRID, CONSTANTS AND FIELDS
@@ -139,11 +142,13 @@ program DALESURBAN      !Version 48
 #if defined(_GPU)
     call updateDevice
 #endif
-    
+    stime = MPI_Wtime()
+
     call advection ! includes predicted pressure gradient term
 
     call shiftedPBCs
 
+    write(6,*)'(advection + shiftedPBCs) time = ', MPI_Wtime() - stime
 #if defined(_GPU)
     call updateHost
 #endif
