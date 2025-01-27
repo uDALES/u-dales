@@ -518,6 +518,22 @@ contains
       integer :: i, j, k, n
       character(80) chmess
 
+      ! Global constants
+
+      ! Select advection scheme for scalars. If not set in the options file, the momentum scheme is used
+      if (iadv_tke < 0) iadv_tke = iadv_mom
+      if (iadv_thl < 0) iadv_thl = iadv_mom
+      if (iadv_qt < 0) iadv_qt = iadv_mom
+
+      !CvH remove where
+      !where (iadv_sv<0)  iadv_sv  = iadv_mom
+
+      !tg3315 added - only uses kappa advection scheme...
+      do n = 1, nsv
+         iadv_sv(n) = iadv_kappa
+      end do
+      !ends here
+
       !timestepping
       if (courant < 0) then
          select case (iadv_mom)
@@ -621,22 +637,6 @@ contains
       end if
 
       !write(*,*) "myid, ibrank, ierank", myid, ibrank, ierank
-
-      ! Global constants
-
-      ! Select advection scheme for scalars. If not set in the options file, the momentum scheme is used
-      if (iadv_tke < 0) iadv_tke = iadv_mom
-      if (iadv_thl < 0) iadv_thl = iadv_mom
-      if (iadv_qt < 0) iadv_qt = iadv_mom
-
-      !CvH remove where
-      !where (iadv_sv<0)  iadv_sv  = iadv_mom
-
-      !tg3315 added - only uses kappa advection scheme...
-      do n = 1, nsv
-         iadv_sv(n) = iadv_kappa
-      end do
-      !ends here
 
       phi = xlat*pi/180.
       colat = cos(phi)
