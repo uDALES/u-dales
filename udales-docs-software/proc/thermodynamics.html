@@ -1,0 +1,825 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="TODO:">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>thermodynamics &ndash; uDALES</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <link href="../css/font-awesome.min.css" rel="stylesheet">
+    <link href="../css/local.css" rel="stylesheet">
+      <link  href="../tipuesearch/tipuesearch.css" rel="stylesheet">
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/dalesurban.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>thermodynamics
+      <small>Subroutine</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 0.2% of total for procedures.">28 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/modthermodynamics.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/modthermodynamics.f90.html'>modthermodynamics.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/modthermodynamics.html'>modthermodynamics</a></li>
+            <li class="breadcrumb-item active" aria-current="page">thermodynamics</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    $(function () {
+    $('[data-bs-toggle="tooltip"]').tooltip()
+    })
+  </script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+      <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+    <div class="card card-primary">
+      <div class="card-header text-left"><h3 class="card-title">Source Code</h3></div>
+      <div class="list-group">
+        <a class="list-group-item" href="../proc/thermodynamics.html#src">thermodynamics</a>
+      </div>
+    </div>
+
+
+  </div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    <h2>public  subroutine thermodynamics()  
+</h2>
+        <div class="card mb-4">
+      <h3 class="card-header card-title bg-light">Uses</h3>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+              <ul class="list-inline">
+                  <li class="list-inline-item"><a href='../module/modfields.html'>modfields</a></li>
+                  <li class="list-inline-item"><a href='../module/modmpi.html'>modmpi</a></li>
+                  <li class="list-inline-item"><a href='../module/modglobal.html'>modglobal</a></li>
+              </ul>
+            </li>
+            <li class="list-group-item">
+              <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.50.0 (0)
+ -->
+<!-- Title: proc~~thermodynamics~~UsesGraph Pages: 1 -->
+<svg id="procthermodynamicsUsesGraph" width="328pt" height="116pt"
+ viewBox="0.00 0.00 328.00 116.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~thermodynamics~~UsesGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 112)">
+<title>proc~~thermodynamics~~UsesGraph</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-112 324,-112 324,4 -4,4"/>
+<!-- proc~thermodynamics -->
+<g id="proc~~thermodynamics~~UsesGraph_node1" class="node">
+<title>proc~thermodynamics</title>
+<polygon fill="none" stroke="black" points="320,-66 217,-66 217,-42 320,-42 320,-66"/>
+<text text-anchor="middle" x="268.5" y="-51.6" font-family="Helvetica,sans-Serif" font-size="10.50">thermodynamics</text>
+</g>
+<!-- module~modfields -->
+<g id="proc~~thermodynamics~~UsesGraph_node2" class="node">
+<title>module~modfields</title>
+<g id="a_proc~~thermodynamics~~UsesGraph_node2"><a xlink:href="../module/modfields.html" xlink:title="modfields">
+<polygon fill="#337ab7" stroke="#337ab7" points="178.5,-108 113.5,-108 113.5,-84 178.5,-84 178.5,-108"/>
+<text text-anchor="middle" x="146" y="-93.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modfields</text>
+</a>
+</g>
+</g>
+<!-- proc~thermodynamics&#45;&gt;module~modfields -->
+<g id="proc~~thermodynamics~~UsesGraph_edge1" class="edge">
+<title>proc~thermodynamics&#45;&gt;module~modfields</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M232.97,-66.04C219.07,-70.88 202.92,-76.51 188.4,-81.57"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="186.94,-78.37 178.65,-84.97 189.24,-84.98 186.94,-78.37"/>
+</g>
+<!-- module~modglobal -->
+<g id="proc~~thermodynamics~~UsesGraph_node3" class="node">
+<title>module~modglobal</title>
+<g id="a_proc~~thermodynamics~~UsesGraph_node3"><a xlink:href="../module/modglobal.html" xlink:title="modglobal">
+<polygon fill="#337ab7" stroke="#337ab7" points="181,-66 111,-66 111,-42 181,-42 181,-66"/>
+<text text-anchor="middle" x="146" y="-51.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modglobal</text>
+</a>
+</g>
+</g>
+<!-- proc~thermodynamics&#45;&gt;module~modglobal -->
+<g id="proc~~thermodynamics~~UsesGraph_edge2" class="edge">
+<title>proc~thermodynamics&#45;&gt;module~modglobal</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M216.75,-54C208.33,-54 199.67,-54 191.43,-54"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="191.27,-50.5 181.27,-54 191.27,-57.5 191.27,-50.5"/>
+</g>
+<!-- module~modmpi -->
+<g id="proc~~thermodynamics~~UsesGraph_node4" class="node">
+<title>module~modmpi</title>
+<g id="a_proc~~thermodynamics~~UsesGraph_node4"><a xlink:href="../module/modmpi.html" xlink:title="modmpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="174.5,-24 117.5,-24 117.5,0 174.5,0 174.5,-24"/>
+<text text-anchor="middle" x="146" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modmpi</text>
+</a>
+</g>
+</g>
+<!-- proc~thermodynamics&#45;&gt;module~modmpi -->
+<g id="proc~~thermodynamics~~UsesGraph_edge3" class="edge">
+<title>proc~thermodynamics&#45;&gt;module~modmpi</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M232.97,-41.96C217.79,-36.68 199.94,-30.45 184.45,-25.05"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="185.25,-21.63 174.66,-21.64 182.95,-28.24 185.25,-21.63"/>
+</g>
+<!-- decomp_2d -->
+<g id="proc~~thermodynamics~~UsesGraph_node5" class="node">
+<title>decomp_2d</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="75,-108 0,-108 0,-84 75,-84 75,-108"/>
+<text text-anchor="middle" x="37.5" y="-93.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">decomp_2d</text>
+</g>
+<!-- module~modfields&#45;&gt;decomp_2d -->
+<g id="proc~~thermodynamics~~UsesGraph_edge4" class="edge">
+<title>module~modfields&#45;&gt;decomp_2d</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M113.33,-96C104.51,-96 94.73,-96 85.23,-96"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="85.1,-92.5 75.1,-96 85.1,-99.5 85.1,-92.5"/>
+</g>
+<!-- mpi -->
+<g id="proc~~thermodynamics~~UsesGraph_node6" class="node">
+<title>mpi</title>
+<g id="a_proc~~thermodynamics~~UsesGraph_node6"><a xlink:href="http://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node410.htm" xlink:title="mpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="64.5,-24 10.5,-24 10.5,0 64.5,0 64.5,-24"/>
+<text text-anchor="middle" x="37.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi</text>
+</a>
+</g>
+</g>
+<!-- module~modmpi&#45;&gt;mpi -->
+<g id="proc~~thermodynamics~~UsesGraph_edge5" class="edge">
+<title>module~modmpi&#45;&gt;mpi</title>
+<path fill="none" stroke="#0000ff" stroke-dasharray="5,2" d="M117.3,-12C104.33,-12 88.72,-12 74.82,-12"/>
+<polygon fill="#0000ff" stroke="#0000ff" points="74.6,-8.5 64.6,-12 74.6,-15.5 74.6,-8.5"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#UsesGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="UsesGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.50.0 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="518pt" height="32pt"
+ viewBox="0.00 0.00 517.50 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-28 513.5,-28 513.5,4 -4,4"/>
+<!-- Module -->
+<g id="node1" class="node">
+<title>Module</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-24 0,-24 0,0 54,0 54,-24"/>
+<text text-anchor="middle" x="27" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Module</text>
+</g>
+<!-- Submodule -->
+<g id="node2" class="node">
+<title>Submodule</title>
+<polygon fill="#5bc0de" stroke="#5bc0de" points="145.5,-24 72.5,-24 72.5,0 145.5,0 145.5,-24"/>
+<text text-anchor="middle" x="109" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Submodule</text>
+</g>
+<!-- Subroutine -->
+<g id="node3" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="234,-24 164,-24 164,0 234,0 234,-24"/>
+<text text-anchor="middle" x="199" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node4" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="310,-24 252,-24 252,0 310,0 310,-24"/>
+<text text-anchor="middle" x="281" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="386,-24 328,-24 328,0 386,0 386,-24"/>
+<text text-anchor="middle" x="357" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="509.5,-24 404.5,-24 404.5,0 509.5,0 509.5,-24"/>
+<text text-anchor="middle" x="457" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a submodule to the (sub)module which it is
+descended from. Dashed arrows point from a module or program unit to 
+modules which it uses.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+            </li>
+        </ul>
+      </div>
+    </div>
+
+
+
+
+    <h3>Arguments</h3>
+    <em>None</em>
+    <br>
+    <br>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Calls</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.50.0 (0)
+ -->
+<!-- Title: proc~~thermodynamics~~CallsGraph Pages: 1 -->
+<svg id="procthermodynamicsCallsGraph" width="452pt" height="173pt"
+ viewBox="0.00 0.00 452.00 172.80" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~thermodynamics~~CallsGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 168.8)">
+<title>proc~~thermodynamics~~CallsGraph</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-168.8 448,-168.8 448,4 -4,4"/>
+<!-- proc~thermodynamics -->
+<g id="proc~~thermodynamics~~CallsGraph_node1" class="node">
+<title>proc~thermodynamics</title>
+<polygon fill="none" stroke="black" points="103,-108 0,-108 0,-84 103,-84 103,-108"/>
+<text text-anchor="middle" x="51.5" y="-93.6" font-family="Helvetica,sans-Serif" font-size="10.50">thermodynamics</text>
+</g>
+<!-- proc~avexy_ibm -->
+<g id="proc~~thermodynamics~~CallsGraph_node2" class="node">
+<title>proc~avexy_ibm</title>
+<g id="a_proc~~thermodynamics~~CallsGraph_node2"><a xlink:href="../proc/avexy_ibm.html" xlink:title="avexy_ibm">
+<polygon fill="#d9534f" stroke="#d9534f" points="320,-149 251,-149 251,-125 320,-125 320,-149"/>
+<text text-anchor="middle" x="285.5" y="-134.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">avexy_ibm</text>
+</a>
+</g>
+</g>
+<!-- proc~thermodynamics&#45;&gt;proc~avexy_ibm -->
+<g id="proc~~thermodynamics~~CallsGraph_edge1" class="edge">
+<title>proc~thermodynamics&#45;&gt;proc~avexy_ibm</title>
+<path fill="none" stroke="#ff0000" d="M63.98,-108.17C79.35,-123.48 108.26,-148.99 139,-159 174.25,-170.48 216.28,-161.88 246.08,-152.27"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="247.36,-155.53 255.7,-149 245.1,-148.91 247.36,-155.53"/>
+</g>
+<!-- proc~calc_halflev -->
+<g id="proc~~thermodynamics~~CallsGraph_node3" class="node">
+<title>proc~calc_halflev</title>
+<g id="a_proc~~thermodynamics~~CallsGraph_node3"><a xlink:href="../proc/calc_halflev.html" xlink:title="calc_halflev">
+<polygon fill="#d9534f" stroke="#d9534f" points="215,-150 139,-150 139,-126 215,-126 215,-150"/>
+<text text-anchor="middle" x="177" y="-135.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">calc_halflev</text>
+</a>
+</g>
+</g>
+<!-- proc~thermodynamics&#45;&gt;proc~calc_halflev -->
+<g id="proc~~thermodynamics~~CallsGraph_edge2" class="edge">
+<title>proc~thermodynamics&#45;&gt;proc~calc_halflev</title>
+<path fill="none" stroke="#ff0000" d="M87.89,-108.04C101.33,-112.6 116.81,-117.87 131.02,-122.7"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="130.01,-126.06 140.6,-125.96 132.26,-119.43 130.01,-126.06"/>
+</g>
+<!-- proc~calthv -->
+<g id="proc~~thermodynamics~~CallsGraph_node4" class="node">
+<title>proc~calthv</title>
+<g id="a_proc~~thermodynamics~~CallsGraph_node4"><a xlink:href="../proc/calthv.html" xlink:title="calthv">
+<polygon fill="#d9534f" stroke="#d9534f" points="204,-108 150,-108 150,-84 204,-84 204,-108"/>
+<text text-anchor="middle" x="177" y="-93.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">calthv</text>
+</a>
+</g>
+</g>
+<!-- proc~thermodynamics&#45;&gt;proc~calthv -->
+<g id="proc~~thermodynamics~~CallsGraph_edge3" class="edge">
+<title>proc~thermodynamics&#45;&gt;proc~calthv</title>
+<path fill="none" stroke="#ff0000" d="M103.09,-96C115.33,-96 128.17,-96 139.61,-96"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="139.67,-99.5 149.67,-96 139.67,-92.5 139.67,-99.5"/>
+</g>
+<!-- proc~diagfld -->
+<g id="proc~~thermodynamics~~CallsGraph_node5" class="node">
+<title>proc~diagfld</title>
+<g id="a_proc~~thermodynamics~~CallsGraph_node5"><a xlink:href="../proc/diagfld.html" xlink:title="diagfld">
+<polygon fill="#d9534f" stroke="#d9534f" points="204,-66 150,-66 150,-42 204,-42 204,-66"/>
+<text text-anchor="middle" x="177" y="-51.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">diagfld</text>
+</a>
+</g>
+</g>
+<!-- proc~thermodynamics&#45;&gt;proc~diagfld -->
+<g id="proc~~thermodynamics~~CallsGraph_edge4" class="edge">
+<title>proc~thermodynamics&#45;&gt;proc~diagfld</title>
+<path fill="none" stroke="#ff0000" d="M87.89,-83.96C104.18,-78.42 123.49,-71.86 139.87,-66.29"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="141.3,-69.5 149.64,-62.97 139.04,-62.87 141.3,-69.5"/>
+</g>
+<!-- proc~thermo -->
+<g id="proc~~thermodynamics~~CallsGraph_node6" class="node">
+<title>proc~thermo</title>
+<g id="a_proc~~thermodynamics~~CallsGraph_node6"><a xlink:href="../proc/thermo.html" xlink:title="thermo">
+<polygon fill="#d9534f" stroke="#d9534f" points="204,-24 150,-24 150,0 204,0 204,-24"/>
+<text text-anchor="middle" x="177" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">thermo</text>
+</a>
+</g>
+</g>
+<!-- proc~thermodynamics&#45;&gt;proc~thermo -->
+<g id="proc~~thermodynamics~~CallsGraph_edge5" class="edge">
+<title>proc~thermodynamics&#45;&gt;proc~thermo</title>
+<path fill="none" stroke="#ff0000" d="M68.06,-83.84C85.1,-70.73 113.4,-49.51 139,-33 140.92,-31.76 142.91,-30.52 144.93,-29.29"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="147.01,-32.13 153.84,-24.03 143.45,-26.1 147.01,-32.13"/>
+</g>
+<!-- mpi_allreduce -->
+<g id="proc~~thermodynamics~~CallsGraph_node7" class="node">
+<title>mpi_allreduce</title>
+<polygon fill="#777777" stroke="#777777" points="444,-149 356,-149 356,-125 444,-125 444,-149"/>
+<text text-anchor="middle" x="400" y="-134.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi_allreduce</text>
+</g>
+<!-- proc~avexy_ibm&#45;&gt;mpi_allreduce -->
+<g id="proc~~thermodynamics~~CallsGraph_edge6" class="edge">
+<title>proc~avexy_ibm&#45;&gt;mpi_allreduce</title>
+<path fill="none" stroke="#ff0000" d="M320.25,-137C328.25,-137 336.98,-137 345.62,-137"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="345.67,-140.5 355.67,-137 345.67,-133.5 345.67,-140.5"/>
+</g>
+<!-- proc~diagfld&#45;&gt;proc~avexy_ibm -->
+<g id="proc~~thermodynamics~~CallsGraph_edge7" class="edge">
+<title>proc~diagfld&#45;&gt;proc~avexy_ibm</title>
+<path fill="none" stroke="#0066ff" d="M201.17,-66.15C205.86,-68.88 210.68,-71.9 215,-75 233.01,-87.92 251.66,-104.78 265.1,-117.66"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="262.76,-120.26 272.37,-124.72 267.64,-115.24 262.76,-120.26"/>
+</g>
+<!-- proc~fromztop -->
+<g id="proc~~thermodynamics~~CallsGraph_node8" class="node">
+<title>proc~fromztop</title>
+<g id="a_proc~~thermodynamics~~CallsGraph_node8"><a xlink:href="../proc/fromztop.html" xlink:title="fromztop">
+<polygon fill="#d9534f" stroke="#d9534f" points="315.5,-66 255.5,-66 255.5,-42 315.5,-42 315.5,-66"/>
+<text text-anchor="middle" x="285.5" y="-51.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">fromztop</text>
+</a>
+</g>
+</g>
+<!-- proc~diagfld&#45;&gt;proc~fromztop -->
+<g id="proc~~thermodynamics~~CallsGraph_edge8" class="edge">
+<title>proc~diagfld&#45;&gt;proc~fromztop</title>
+<path fill="none" stroke="#0066ff" d="M204.05,-54C216.42,-54 231.46,-54 245.18,-54"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="245.34,-57.5 255.34,-54 245.34,-50.5 245.34,-57.5"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CallsGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CallsGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.50.0 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 27.51" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.86 0.86) rotate(0) translate(4 28)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-28 741.5,-28 741.5,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="70,-24 0,-24 0,0 70,0 70,-24"/>
+<text text-anchor="middle" x="35" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="146,-24 88,-24 88,0 146,0 146,-24"/>
+<text text-anchor="middle" x="117" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="225.5,-24 164.5,-24 164.5,0 225.5,0 225.5,-24"/>
+<text text-anchor="middle" x="195" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="374,-24 244,-24 244,0 374,0 374,-24"/>
+<text text-anchor="middle" x="309" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="537.5,-24 392.5,-24 392.5,0 537.5,0 537.5,-24"/>
+<text text-anchor="middle" x="465" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="614,-24 556,-24 556,0 614,0 614,-24"/>
+<text text-anchor="middle" x="585" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="737.5,-24 632.5,-24 632.5,0 737.5,0 737.5,-24"/>
+<text text-anchor="middle" x="685" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Called by</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.50.0 (0)
+ -->
+<!-- Title: proc~~thermodynamics~~CalledByGraph Pages: 1 -->
+<svg id="procthermodynamicsCalledByGraph" width="343pt" height="52pt"
+ viewBox="0.00 0.00 343.00 52.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~thermodynamics~~CalledByGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 48)">
+<title>proc~~thermodynamics~~CalledByGraph</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-48 339,-48 339,4 -4,4"/>
+<!-- proc~thermodynamics -->
+<g id="proc~~thermodynamics~~CalledByGraph_node1" class="node">
+<title>proc~thermodynamics</title>
+<polygon fill="none" stroke="black" points="335,-44 232,-44 232,-20 335,-20 335,-44"/>
+<text text-anchor="middle" x="283.5" y="-29.6" font-family="Helvetica,sans-Serif" font-size="10.50">thermodynamics</text>
+</g>
+<!-- proc~readinitfiles -->
+<g id="proc~~thermodynamics~~CalledByGraph_node2" class="node">
+<title>proc~readinitfiles</title>
+<g id="a_proc~~thermodynamics~~CalledByGraph_node2"><a xlink:href="../proc/readinitfiles.html" xlink:title="readinitfiles">
+<polygon fill="#d9534f" stroke="#d9534f" points="196,-24 121,-24 121,0 196,0 196,-24"/>
+<text text-anchor="middle" x="158.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">readinitfiles</text>
+</a>
+</g>
+</g>
+<!-- proc~readinitfiles&#45;&gt;proc~thermodynamics -->
+<g id="proc~~thermodynamics~~CalledByGraph_edge1" class="edge">
+<title>proc~readinitfiles&#45;&gt;proc~thermodynamics</title>
+<path fill="none" stroke="#ff0000" d="M196.07,-17.95C204.2,-19.27 213.03,-20.7 221.84,-22.14"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="221.3,-25.59 231.73,-23.74 222.42,-18.68 221.3,-25.59"/>
+</g>
+<!-- program~dalesurban -->
+<g id="proc~~thermodynamics~~CalledByGraph_node3" class="node">
+<title>program~dalesurban</title>
+<g id="a_proc~~thermodynamics~~CalledByGraph_node3"><a xlink:href="../program/dalesurban.html" xlink:title="DALESURBAN">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="85,-44 0,-44 0,-20 85,-20 85,-44"/>
+<text text-anchor="middle" x="42.5" y="-29.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">DALESURBAN</text>
+</a>
+</g>
+</g>
+<!-- program~dalesurban&#45;&gt;proc~thermodynamics -->
+<g id="proc~~thermodynamics~~CalledByGraph_edge2" class="edge">
+<title>program~dalesurban&#45;&gt;proc~thermodynamics</title>
+<path fill="none" stroke="#ff0000" d="M85.33,-32.64C96.88,-32.79 109.43,-32.93 121,-33 154.33,-33.22 162.67,-33.19 196,-33 204.31,-32.95 213.07,-32.88 221.7,-32.79"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="221.77,-36.29 231.73,-32.68 221.69,-29.29 221.77,-36.29"/>
+</g>
+<!-- program~dalesurban&#45;&gt;proc~readinitfiles -->
+<g id="proc~~thermodynamics~~CalledByGraph_edge3" class="edge">
+<title>program~dalesurban&#45;&gt;proc~readinitfiles</title>
+<path fill="none" stroke="#ff0000" d="M85.3,-24.67C93.61,-23.21 102.39,-21.67 110.86,-20.18"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="111.72,-23.58 120.97,-18.41 110.51,-16.69 111.72,-23.58"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CalledByGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CalledByGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.50.0 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 27.51" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.86 0.86) rotate(0) translate(4 28)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-28 741.5,-28 741.5,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="70,-24 0,-24 0,0 70,0 70,-24"/>
+<text text-anchor="middle" x="35" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="146,-24 88,-24 88,0 146,0 146,-24"/>
+<text text-anchor="middle" x="117" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="225.5,-24 164.5,-24 164.5,0 225.5,0 225.5,-24"/>
+<text text-anchor="middle" x="195" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="374,-24 244,-24 244,0 374,0 374,-24"/>
+<text text-anchor="middle" x="309" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="537.5,-24 392.5,-24 392.5,0 537.5,0 537.5,-24"/>
+<text text-anchor="middle" x="465" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="614,-24 556,-24 556,0 614,0 614,-24"/>
+<text text-anchor="middle" x="585" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="737.5,-24 632.5,-24 632.5,0 737.5,0 737.5,-24"/>
+<text text-anchor="middle" x="685" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <br>
+
+
+    
+    
+
+    
+    
+
+
+
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="hl codehilite"><pre><span></span><span class="w">  </span><span class="k">subroutine </span><span class="n">thermodynamics</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modglobal</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">lmoist</span><span class="p">,</span><span class="w"> </span><span class="n">timee</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span><span class="p">,</span><span class="w"> </span><span class="n">kh</span><span class="p">,</span><span class="w"> </span><span class="n">ib</span><span class="p">,</span><span class="w"> </span><span class="n">ih</span><span class="p">,</span><span class="w"> </span><span class="n">ie</span><span class="p">,</span><span class="w"> </span><span class="n">jb</span><span class="p">,</span><span class="w"> </span><span class="n">jh</span><span class="p">,</span><span class="w"> </span><span class="n">je</span><span class="p">,</span><span class="n">rlv</span><span class="p">,</span><span class="w"> </span><span class="n">cp</span><span class="p">,</span><span class="w"> </span><span class="n">rslabs</span><span class="p">,</span><span class="w"> </span><span class="n">rd</span><span class="p">,</span><span class="w"> </span><span class="n">rv</span><span class="p">,</span><span class="w"> </span><span class="n">libm</span><span class="p">,</span><span class="w"> </span><span class="n">eps1</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modfields</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">thl0</span><span class="p">,</span><span class="n">thl0h</span><span class="p">,</span><span class="n">qt0</span><span class="p">,</span><span class="n">qt0h</span><span class="p">,</span><span class="n">ql0</span><span class="p">,</span><span class="n">ql0h</span><span class="p">,</span><span class="n">presf</span><span class="p">,</span><span class="n">presh</span><span class="p">,</span><span class="n">exnf</span><span class="p">,</span><span class="n">exnh</span><span class="p">,</span><span class="n">thvh</span><span class="p">,</span><span class="n">thv0h</span><span class="p">,</span><span class="n">qt0av</span><span class="p">,</span><span class="n">ql0av</span><span class="p">,</span><span class="n">thvf</span><span class="p">,</span><span class="n">rhof</span><span class="p">,</span><span class="n">IIc</span><span class="p">,</span><span class="n">IIw</span><span class="p">,</span><span class="n">IIcs</span><span class="p">,</span><span class="n">IIws</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modmpi</span><span class="p">,</span><span class="w">    </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">slabsum</span><span class="p">,</span><span class="n">avexy_ibm</span><span class="p">,</span><span class="n">myid</span>
+<span class="c">!ILS13 added variables behind &quot;exnh&quot;</span>
+<span class="w">    </span><span class="k">implicit none</span>
+<span class="k">    </span><span class="kt">integer</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">k</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">timee</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">call </span><span class="n">diagfld</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">lmoist</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">       call </span><span class="n">thermo</span><span class="p">(</span><span class="n">thl0</span><span class="p">,</span><span class="n">qt0</span><span class="p">,</span><span class="n">ql0</span><span class="p">,</span><span class="n">presf</span><span class="p">,</span><span class="n">exnf</span><span class="p">)</span>
+<span class="w">    </span><span class="k">end if</span>
+
+<span class="k">    call </span><span class="n">diagfld</span>
+<span class="w">    </span><span class="k">call </span><span class="n">calc_halflev</span><span class="w"> </span><span class="c">!calculate halflevel values of qt0 and thl0</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">lmoist</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">       call </span><span class="n">thermo</span><span class="p">(</span><span class="n">thl0h</span><span class="p">,</span><span class="n">qt0h</span><span class="p">,</span><span class="n">ql0h</span><span class="p">,</span><span class="n">presh</span><span class="p">,</span><span class="n">exnh</span><span class="p">)</span>
+<span class="w">    </span><span class="k">end if</span>
+<span class="k">    call </span><span class="n">calthv</span>
+
+<span class="c">!ILS13 introduced from DALES4.0   13.05.2015</span>
+<span class="w">    </span><span class="n">thvh</span><span class="o">=</span><span class="mf">0.</span>
+<span class="c">!    call slabsum(thvh,kb,ke+kh,thv0h(:,:,kb:ke+kh),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh) !redefine halflevel thv using calculated thv</span>
+<span class="c">!    thvh = thvh/rslabs</span>
+<span class="w">    </span><span class="k">call </span><span class="n">avexy_ibm</span><span class="p">(</span><span class="n">thvh</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">),</span><span class="n">thv0h</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">),</span><span class="n">ib</span><span class="p">,</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="p">,</span><span class="n">ih</span><span class="p">,</span><span class="n">jh</span><span class="p">,</span><span class="n">kh</span><span class="p">,</span><span class="n">IIw</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">),</span><span class="n">IIws</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">),.</span><span class="n">false</span><span class="p">.)</span>
+
+<span class="c">!    if (libm) then</span>
+<span class="c">!      call avexy_ibm(thvh(kb:ke),thv0h(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIws(kb:ke))    </span>
+<span class="c">!    else</span>
+<span class="c">!      call slabsum(thvh,kb,ke+kh,thv0h(:,:,kb:ke+kh),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)</span>
+<span class="c">!     !redefine halflevel thv using calculated thv</span>
+<span class="c">!     thvh = thvh/rslabs</span>
+<span class="c">!    end if</span>
+
+<span class="w">    </span><span class="n">thvh</span><span class="p">(</span><span class="n">kb</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">th0av</span><span class="p">(</span><span class="n">kb</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">+</span><span class="p">(</span><span class="n">rv</span><span class="o">/</span><span class="n">rd</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">qt0av</span><span class="p">(</span><span class="n">kb</span><span class="p">)</span><span class="o">-</span><span class="n">rv</span><span class="o">/</span><span class="n">rd</span><span class="o">*</span><span class="n">ql0av</span><span class="p">(</span><span class="n">kb</span><span class="p">))</span><span class="w"> </span><span class="c">! override first level</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">thvh</span><span class="p">(</span><span class="n">kb</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span><span class="o">&lt;</span><span class="n">eps1</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">      </span><span class="n">thvh</span><span class="p">(</span><span class="n">kb</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">th0av</span><span class="p">(</span><span class="n">kb</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">+</span><span class="p">(</span><span class="n">rv</span><span class="o">/</span><span class="n">rd</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">qt0av</span><span class="p">(</span><span class="n">kb</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">-</span><span class="n">rv</span><span class="o">/</span><span class="n">rd</span><span class="o">*</span><span class="n">ql0av</span><span class="p">(</span><span class="n">kb</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span><span class="w"> </span><span class="c">! override second level if all blocks at kb</span>
+<span class="w">    </span><span class="k">end if</span>
+<span class="c">!    where (thvh==0) !override slabs completely covered by blocks</span>
+<span class="c">!      thvh = th0av(kb)*(1+(rv/rd-1)*qt0av(kb)-rv/rd*ql0av(kb))</span>
+<span class="c">!    endwhere</span>
+
+<span class="w">    </span><span class="k">do </span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span>
+<span class="c">!    thv0(ib+ih:ie,jb+jh:je,k) = (thl0(ib+ih:ie,jb+ih:je,k)+rlv*ql0(ib+ih:ie,jb+ih:je,k)/(cp*exnf(k)))*(1+(rv/rd-1)*qt0(ib+ih:ie,jb+ih:je,k)-rv/rd*ql0(ib+ih:ie,jb+ih:je,k))</span>
+<span class="w">    </span><span class="n">thv0</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">thl0</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">+</span><span class="n">rlv</span><span class="o">*</span><span class="n">ql0</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">cp</span><span class="o">*</span><span class="n">exnf</span><span class="p">(</span><span class="n">k</span><span class="p">)))</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">+</span><span class="p">(</span><span class="n">rv</span><span class="o">/</span><span class="n">rd</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">qt0</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">-</span><span class="n">rv</span><span class="o">/</span><span class="n">rd</span><span class="o">*</span><span class="n">ql0</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">k</span><span class="p">))</span>
+<span class="w">    </span><span class="k">enddo</span>
+<span class="k">    </span><span class="n">thvf</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0</span>
+
+<span class="w">    </span><span class="c">!write(*,*) &quot;thv0&quot;,thv0</span>
+<span class="c">!    call slabsum(thvf,kb,ke+kh,thv0,ib,ie+ih,jb,je+jh,kb,ke+kh,ib+ih,ie,jb+ih,je,kb,ke+kh)</span>
+<span class="c">!    call slabsum(thvf,kb,ke+kh,thv0,ib,ie,jb,je,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)</span>
+<span class="w">    </span><span class="k">call </span><span class="n">avexy_ibm</span><span class="p">(</span><span class="n">thvf</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">),</span><span class="n">thv0</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">),</span><span class="n">ib</span><span class="p">,</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="p">,</span><span class="n">ih</span><span class="p">,</span><span class="n">jh</span><span class="p">,</span><span class="n">kh</span><span class="p">,</span><span class="n">IIc</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">),</span><span class="n">IIcs</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">),.</span><span class="n">false</span><span class="p">.)</span>
+<span class="c">!    write(*,*) &#39;IIc(2,2,:), myid&#39; , IIc(12,2,:), myid</span>
+
+<span class="c">!    where (thvf==0) !override slabs completely covered by blocks</span>
+<span class="c">!      thvf = th0av(kb)*(1+(rv/rd-1)*qt0av(kb)-rv/rd*ql0av(kb))</span>
+<span class="c">!    endwhere</span>
+
+<span class="c">!    thvf = thvf/rslabs</span>
+<span class="w">    </span><span class="c">!write(*,*) &quot;thvf&quot;,thvf</span>
+<span class="w">    </span><span class="c">!write(*,*) &quot;exnf&quot;,exnf</span>
+<span class="w">   </span>
+<span class="c">!    do k=1,k1</span>
+<span class="c">!      rhof(k) = presf(k)/(rd*thvf(k)*exnf(k))</span>
+<span class="c">!    end do</span>
+
+<span class="w">  </span><span class="k">end subroutine </span><span class="n">thermodynamics</span>
+</pre></div>
+
+    </section>
+    <br>
+    
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2025 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2025-01-27 21:12 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+
+    <!-- Bootstrap core JavaScript -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>    
+
+    <!-- MathJax JavaScript
+             ================================================== -->
+             <!-- Placed at the end of the document so the pages load faster -->
+        <script type="text/x-mathjax-config">
+          MathJax.Hub.Config({
+          TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } },
+          jax: ['input/TeX','input/MathML','output/HTML-CSS'],
+          extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']
+          });
+        </script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+          <script src="../tipuesearch/tipuesearch_content.js"></script>
+          <script src="../tipuesearch/tipuesearch_set.js"></script>
+          <script src="../tipuesearch/tipuesearch.js"></script>
+
+  </body>
+</html>

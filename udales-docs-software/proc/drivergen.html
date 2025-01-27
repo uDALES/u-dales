@@ -1,0 +1,1039 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="TODO:">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>drivergen &ndash; uDALES</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <link href="../css/font-awesome.min.css" rel="stylesheet">
+    <link href="../css/local.css" rel="stylesheet">
+      <link  href="../tipuesearch/tipuesearch.css" rel="stylesheet">
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/dalesurban.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>drivergen
+      <small>Subroutine</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 1.7% of total for procedures.">224 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/moddriver.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/moddriver.f90.html'>moddriver.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/moddriver.html'>moddriver</a></li>
+            <li class="breadcrumb-item active" aria-current="page">drivergen</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    $(function () {
+    $('[data-bs-toggle="tooltip"]').tooltip()
+    })
+  </script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+      <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+    <div class="card card-primary">
+      <div class="card-header text-left"><h3 class="card-title">Source Code</h3></div>
+      <div class="list-group">
+        <a class="list-group-item" href="../proc/drivergen.html#src">drivergen</a>
+      </div>
+    </div>
+
+
+  </div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    <h2>public  subroutine drivergen()  
+</h2>
+        <div class="card mb-4">
+      <h3 class="card-header card-title bg-light">Uses</h3>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+              <ul class="list-inline">
+                  <li class="list-inline-item"><a href='../module/modfields.html'>modfields</a></li>
+                  <li class="list-inline-item"><a href='../module/modmpi.html'>modmpi</a></li>
+                  <li class="list-inline-item"><a href='../module/modsave.html'>modsave</a></li>
+                  <li class="list-inline-item"><a href='../module/modglobal.html'>modglobal</a></li>
+              </ul>
+            </li>
+            <li class="list-group-item">
+              <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.50.0 (0)
+ -->
+<!-- Title: proc~~drivergen~~UsesGraph Pages: 1 -->
+<svg id="procdrivergenUsesGraph" width="289pt" height="158pt"
+ viewBox="0.00 0.00 289.00 158.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~drivergen~~UsesGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 154)">
+<title>proc~~drivergen~~UsesGraph</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-154 285,-154 285,4 -4,4"/>
+<!-- proc~drivergen -->
+<g id="proc~~drivergen~~UsesGraph_node1" class="node">
+<title>proc~drivergen</title>
+<polygon fill="none" stroke="black" points="281,-87 217,-87 217,-63 281,-63 281,-87"/>
+<text text-anchor="middle" x="249" y="-72.6" font-family="Helvetica,sans-Serif" font-size="10.50">drivergen</text>
+</g>
+<!-- module~modfields -->
+<g id="proc~~drivergen~~UsesGraph_node2" class="node">
+<title>module~modfields</title>
+<g id="a_proc~~drivergen~~UsesGraph_node2"><a xlink:href="../module/modfields.html" xlink:title="modfields">
+<polygon fill="#337ab7" stroke="#337ab7" points="178.5,-150 113.5,-150 113.5,-126 178.5,-126 178.5,-150"/>
+<text text-anchor="middle" x="146" y="-135.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modfields</text>
+</a>
+</g>
+</g>
+<!-- proc~drivergen&#45;&gt;module~modfields -->
+<g id="proc~~drivergen~~UsesGraph_edge1" class="edge">
+<title>proc~drivergen&#45;&gt;module~modfields</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M228.67,-87.16C215.3,-95.57 197.09,-106.99 181,-117 179.28,-118.07 177.5,-119.17 175.71,-120.28"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="173.45,-117.57 166.79,-125.81 177.14,-123.52 173.45,-117.57"/>
+</g>
+<!-- module~modglobal -->
+<g id="proc~~drivergen~~UsesGraph_node3" class="node">
+<title>module~modglobal</title>
+<g id="a_proc~~drivergen~~UsesGraph_node3"><a xlink:href="../module/modglobal.html" xlink:title="modglobal">
+<polygon fill="#337ab7" stroke="#337ab7" points="181,-108 111,-108 111,-84 181,-84 181,-108"/>
+<text text-anchor="middle" x="146" y="-93.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modglobal</text>
+</a>
+</g>
+</g>
+<!-- proc~drivergen&#45;&gt;module~modglobal -->
+<g id="proc~~drivergen~~UsesGraph_edge2" class="edge">
+<title>proc~drivergen&#45;&gt;module~modglobal</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M216.87,-81.47C208.71,-83.17 199.75,-85.03 191.04,-86.84"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="190.09,-83.47 181.01,-88.93 191.51,-90.32 190.09,-83.47"/>
+</g>
+<!-- module~modmpi -->
+<g id="proc~~drivergen~~UsesGraph_node4" class="node">
+<title>module~modmpi</title>
+<g id="a_proc~~drivergen~~UsesGraph_node4"><a xlink:href="../module/modmpi.html" xlink:title="modmpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="174.5,-66 117.5,-66 117.5,-42 174.5,-42 174.5,-66"/>
+<text text-anchor="middle" x="146" y="-51.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modmpi</text>
+</a>
+</g>
+</g>
+<!-- proc~drivergen&#45;&gt;module~modmpi -->
+<g id="proc~~drivergen~~UsesGraph_edge3" class="edge">
+<title>proc~drivergen&#45;&gt;module~modmpi</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M216.87,-68.53C206.68,-66.41 195.25,-64.03 184.63,-61.82"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="185.27,-58.38 174.77,-59.77 183.85,-65.24 185.27,-58.38"/>
+</g>
+<!-- module~modsave -->
+<g id="proc~~drivergen~~UsesGraph_node5" class="node">
+<title>module~modsave</title>
+<g id="a_proc~~drivergen~~UsesGraph_node5"><a xlink:href="../module/modsave.html" xlink:title="modsave">
+<polygon fill="#337ab7" stroke="#337ab7" points="176.5,-24 115.5,-24 115.5,0 176.5,0 176.5,-24"/>
+<text text-anchor="middle" x="146" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modsave</text>
+</a>
+</g>
+</g>
+<!-- proc~drivergen&#45;&gt;module~modsave -->
+<g id="proc~~drivergen~~UsesGraph_edge4" class="edge">
+<title>proc~drivergen&#45;&gt;module~modsave</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M228.67,-62.84C215.3,-54.43 197.09,-43.01 181,-33 179.28,-31.93 177.5,-30.83 175.71,-29.72"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="177.14,-26.48 166.79,-24.19 173.45,-32.43 177.14,-26.48"/>
+</g>
+<!-- decomp_2d -->
+<g id="proc~~drivergen~~UsesGraph_node6" class="node">
+<title>decomp_2d</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="75,-150 0,-150 0,-126 75,-126 75,-150"/>
+<text text-anchor="middle" x="37.5" y="-135.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">decomp_2d</text>
+</g>
+<!-- module~modfields&#45;&gt;decomp_2d -->
+<g id="proc~~drivergen~~UsesGraph_edge5" class="edge">
+<title>module~modfields&#45;&gt;decomp_2d</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M113.33,-138C104.51,-138 94.73,-138 85.23,-138"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="85.1,-134.5 75.1,-138 85.1,-141.5 85.1,-134.5"/>
+</g>
+<!-- mpi -->
+<g id="proc~~drivergen~~UsesGraph_node7" class="node">
+<title>mpi</title>
+<g id="a_proc~~drivergen~~UsesGraph_node7"><a xlink:href="http://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node410.htm" xlink:title="mpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="64.5,-66 10.5,-66 10.5,-42 64.5,-42 64.5,-66"/>
+<text text-anchor="middle" x="37.5" y="-51.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi</text>
+</a>
+</g>
+</g>
+<!-- module~modmpi&#45;&gt;mpi -->
+<g id="proc~~drivergen~~UsesGraph_edge6" class="edge">
+<title>module~modmpi&#45;&gt;mpi</title>
+<path fill="none" stroke="#00ffff" stroke-dasharray="5,2" d="M117.3,-54C104.33,-54 88.72,-54 74.82,-54"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="74.6,-50.5 64.6,-54 74.6,-57.5 74.6,-50.5"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#UsesGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="UsesGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.50.0 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="518pt" height="32pt"
+ viewBox="0.00 0.00 517.50 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-28 513.5,-28 513.5,4 -4,4"/>
+<!-- Module -->
+<g id="node1" class="node">
+<title>Module</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-24 0,-24 0,0 54,0 54,-24"/>
+<text text-anchor="middle" x="27" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Module</text>
+</g>
+<!-- Submodule -->
+<g id="node2" class="node">
+<title>Submodule</title>
+<polygon fill="#5bc0de" stroke="#5bc0de" points="145.5,-24 72.5,-24 72.5,0 145.5,0 145.5,-24"/>
+<text text-anchor="middle" x="109" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Submodule</text>
+</g>
+<!-- Subroutine -->
+<g id="node3" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="234,-24 164,-24 164,0 234,0 234,-24"/>
+<text text-anchor="middle" x="199" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node4" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="310,-24 252,-24 252,0 310,0 310,-24"/>
+<text text-anchor="middle" x="281" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="386,-24 328,-24 328,0 386,0 386,-24"/>
+<text text-anchor="middle" x="357" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="509.5,-24 404.5,-24 404.5,0 509.5,0 509.5,-24"/>
+<text text-anchor="middle" x="457" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a submodule to the (sub)module which it is
+descended from. Dashed arrows point from a module or program unit to 
+modules which it uses.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+            </li>
+        </ul>
+      </div>
+    </div>
+
+
+
+
+    <h3>Arguments</h3>
+    <em>None</em>
+    <br>
+    <br>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Calls</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.50.0 (0)
+ -->
+<!-- Title: proc~~drivergen~~CallsGraph Pages: 1 -->
+<svg id="procdrivergenCallsGraph" width="195pt" height="32pt"
+ viewBox="0.00 0.00 195.00 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~drivergen~~CallsGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 28)">
+<title>proc~~drivergen~~CallsGraph</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-28 191,-28 191,4 -4,4"/>
+<!-- proc~drivergen -->
+<g id="proc~~drivergen~~CallsGraph_node1" class="node">
+<title>proc~drivergen</title>
+<polygon fill="none" stroke="black" points="64,-24 0,-24 0,0 64,0 64,-24"/>
+<text text-anchor="middle" x="32" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50">drivergen</text>
+</g>
+<!-- proc~writedriverfile -->
+<g id="proc~~drivergen~~CallsGraph_node2" class="node">
+<title>proc~writedriverfile</title>
+<g id="a_proc~~drivergen~~CallsGraph_node2"><a xlink:href="../proc/writedriverfile.html" xlink:title="writedriverfile">
+<polygon fill="#d9534f" stroke="#d9534f" points="187,-24 100,-24 100,0 187,0 187,-24"/>
+<text text-anchor="middle" x="143.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">writedriverfile</text>
+</a>
+</g>
+</g>
+<!-- proc~drivergen&#45;&gt;proc~writedriverfile -->
+<g id="proc~~drivergen~~CallsGraph_edge1" class="edge">
+<title>proc~drivergen&#45;&gt;proc~writedriverfile</title>
+<path fill="none" stroke="#ff0000" d="M64.09,-12C72.08,-12 80.92,-12 89.68,-12"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="89.89,-15.5 99.89,-12 89.89,-8.5 89.89,-15.5"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CallsGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CallsGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.50.0 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 27.51" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.86 0.86) rotate(0) translate(4 28)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-28 741.5,-28 741.5,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="70,-24 0,-24 0,0 70,0 70,-24"/>
+<text text-anchor="middle" x="35" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="146,-24 88,-24 88,0 146,0 146,-24"/>
+<text text-anchor="middle" x="117" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="225.5,-24 164.5,-24 164.5,0 225.5,0 225.5,-24"/>
+<text text-anchor="middle" x="195" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="374,-24 244,-24 244,0 374,0 374,-24"/>
+<text text-anchor="middle" x="309" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="537.5,-24 392.5,-24 392.5,0 537.5,0 537.5,-24"/>
+<text text-anchor="middle" x="465" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="614,-24 556,-24 556,0 614,0 614,-24"/>
+<text text-anchor="middle" x="585" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="737.5,-24 632.5,-24 632.5,0 737.5,0 737.5,-24"/>
+<text text-anchor="middle" x="685" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Called by</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.50.0 (0)
+ -->
+<!-- Title: proc~~drivergen~~CalledByGraph Pages: 1 -->
+<svg id="procdrivergenCalledByGraph" width="304pt" height="74pt"
+ viewBox="0.00 0.00 304.00 74.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~drivergen~~CalledByGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 70)">
+<title>proc~~drivergen~~CalledByGraph</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-70 300,-70 300,4 -4,4"/>
+<!-- proc~drivergen -->
+<g id="proc~~drivergen~~CalledByGraph_node1" class="node">
+<title>proc~drivergen</title>
+<polygon fill="none" stroke="black" points="296,-45 232,-45 232,-21 296,-21 296,-45"/>
+<text text-anchor="middle" x="264" y="-30.6" font-family="Helvetica,sans-Serif" font-size="10.50">drivergen</text>
+</g>
+<!-- proc~boundary -->
+<g id="proc~~drivergen~~CalledByGraph_node2" class="node">
+<title>proc~boundary</title>
+<g id="a_proc~~drivergen~~CalledByGraph_node2"><a xlink:href="../proc/boundary.html" xlink:title="boundary">
+<polygon fill="#d9534f" stroke="#d9534f" points="190.5,-66 126.5,-66 126.5,-42 190.5,-42 190.5,-66"/>
+<text text-anchor="middle" x="158.5" y="-51.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">boundary</text>
+</a>
+</g>
+</g>
+<!-- proc~boundary&#45;&gt;proc~drivergen -->
+<g id="proc~~drivergen~~CalledByGraph_edge1" class="edge">
+<title>proc~boundary&#45;&gt;proc~drivergen</title>
+<path fill="none" stroke="#ff0000" d="M190.55,-47.7C200.48,-45.69 211.62,-43.42 222.14,-41.29"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="222.86,-44.71 231.97,-39.3 221.47,-37.85 222.86,-44.71"/>
+</g>
+<!-- proc~readinitfiles -->
+<g id="proc~~drivergen~~CalledByGraph_node3" class="node">
+<title>proc~readinitfiles</title>
+<g id="a_proc~~drivergen~~CalledByGraph_node3"><a xlink:href="../proc/readinitfiles.html" xlink:title="readinitfiles">
+<polygon fill="#d9534f" stroke="#d9534f" points="196,-24 121,-24 121,0 196,0 196,-24"/>
+<text text-anchor="middle" x="158.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">readinitfiles</text>
+</a>
+</g>
+</g>
+<!-- proc~readinitfiles&#45;&gt;proc~drivergen -->
+<g id="proc~~drivergen~~CalledByGraph_edge2" class="edge">
+<title>proc~readinitfiles&#45;&gt;proc~drivergen</title>
+<path fill="none" stroke="#ff0000" d="M196.28,-19.46C204.54,-21.14 213.36,-22.93 221.79,-24.64"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="221.32,-28.11 231.82,-26.67 222.71,-21.25 221.32,-28.11"/>
+</g>
+<!-- program~dalesurban -->
+<g id="proc~~drivergen~~CalledByGraph_node4" class="node">
+<title>program~dalesurban</title>
+<g id="a_proc~~drivergen~~CalledByGraph_node4"><a xlink:href="../program/dalesurban.html" xlink:title="DALESURBAN">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="85,-45 0,-45 0,-21 85,-21 85,-45"/>
+<text text-anchor="middle" x="42.5" y="-30.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">DALESURBAN</text>
+</a>
+</g>
+</g>
+<!-- program~dalesurban&#45;&gt;proc~boundary -->
+<g id="proc~~drivergen~~CalledByGraph_edge3" class="edge">
+<title>program~dalesurban&#45;&gt;proc~boundary</title>
+<path fill="none" stroke="#ff0000" d="M85.3,-40.7C95.5,-42.58 106.4,-44.59 116.56,-46.46"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="115.95,-49.9 126.42,-48.27 117.22,-43.02 115.95,-49.9"/>
+</g>
+<!-- program~dalesurban&#45;&gt;proc~readinitfiles -->
+<g id="proc~~drivergen~~CalledByGraph_edge4" class="edge">
+<title>program~dalesurban&#45;&gt;proc~readinitfiles</title>
+<path fill="none" stroke="#00ffff" d="M85.3,-25.3C93.71,-23.75 102.59,-22.12 111.13,-20.54"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="111.77,-23.98 120.97,-18.73 110.5,-17.1 111.77,-23.98"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CalledByGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CalledByGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.50.0 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 27.51" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.86 0.86) rotate(0) translate(4 28)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-28 741.5,-28 741.5,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="70,-24 0,-24 0,0 70,0 70,-24"/>
+<text text-anchor="middle" x="35" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="146,-24 88,-24 88,0 146,0 146,-24"/>
+<text text-anchor="middle" x="117" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="225.5,-24 164.5,-24 164.5,0 225.5,0 225.5,-24"/>
+<text text-anchor="middle" x="195" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="374,-24 244,-24 244,0 374,0 374,-24"/>
+<text text-anchor="middle" x="309" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="537.5,-24 392.5,-24 392.5,0 537.5,0 537.5,-24"/>
+<text text-anchor="middle" x="465" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="614,-24 556,-24 556,0 614,0 614,-24"/>
+<text text-anchor="middle" x="585" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="737.5,-24 632.5,-24 632.5,0 737.5,0 737.5,-24"/>
+<text text-anchor="middle" x="685" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <br>
+
+
+    
+    
+
+    
+    
+
+
+
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="hl codehilite"><pre><span></span><span class="w">  </span><span class="k">subroutine </span><span class="n">drivergen</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modglobal</span><span class="p">,</span><span class="w">   </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">ib</span><span class="p">,</span><span class="n">ie</span><span class="p">,</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span><span class="p">,</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="p">,</span><span class="n">kh</span><span class="p">,</span><span class="n">zf</span><span class="p">,</span><span class="n">zh</span><span class="p">,</span><span class="n">dzf</span><span class="p">,</span><span class="n">dzhi</span><span class="p">,</span><span class="n">timee</span><span class="p">,</span><span class="n">btime</span><span class="p">,</span><span class="n">totavtime</span><span class="p">,</span><span class="n">rk3step</span><span class="p">,&amp;</span>
+<span class="w">                            </span><span class="n">dt</span><span class="p">,</span><span class="n">numol</span><span class="p">,</span><span class="n">iplane</span><span class="p">,</span><span class="n">lles</span><span class="p">,</span><span class="n">idriver</span><span class="p">,</span><span class="n">inletav</span><span class="p">,</span><span class="n">runavtime</span><span class="p">,</span><span class="n">Uinf</span><span class="p">,</span><span class="n">lwallfunc</span><span class="p">,</span><span class="n">linletRA</span><span class="p">,&amp;</span>
+<span class="w">                            </span><span class="n">totinletav</span><span class="p">,</span><span class="n">lstoreplane</span><span class="p">,</span><span class="n">nstore</span><span class="p">,</span><span class="n">driverstore</span><span class="p">,</span><span class="n">prandtlmoli</span><span class="p">,</span><span class="n">numol</span><span class="p">,</span><span class="n">grav</span><span class="p">,</span><span class="n">lbuoyancy</span><span class="p">,&amp;</span>
+<span class="w">                            </span><span class="n">lfixinlet</span><span class="p">,</span><span class="n">lfixutauin</span><span class="p">,</span><span class="n">tdriverstart</span><span class="p">,</span><span class="n">dtdriver</span><span class="p">,</span><span class="n">tdriverdump</span><span class="p">,</span><span class="n">lchunkread</span><span class="p">,</span><span class="n">chunkread_size</span><span class="p">,</span><span class="n">ltempeq</span><span class="p">,</span><span class="n">lmoist</span><span class="p">,</span><span class="n">nsv</span><span class="p">,</span><span class="n">lhdriver</span><span class="p">,</span><span class="n">lqdriver</span><span class="p">,</span><span class="n">lsdriver</span><span class="p">,&amp;</span>
+<span class="w">                            </span><span class="n">ibrank</span><span class="p">,</span><span class="n">iplanerank</span><span class="p">,</span><span class="n">driverid</span><span class="p">,</span><span class="n">cdriverid</span><span class="p">,</span><span class="n">runtime</span><span class="p">,</span><span class="n">lwarmstart</span><span class="p">,</span><span class="n">cdriverjobnr</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modfields</span><span class="p">,</span><span class="w">   </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">u0</span><span class="p">,</span><span class="n">v0</span><span class="p">,</span><span class="n">w0</span><span class="p">,</span><span class="n">e120</span><span class="p">,</span><span class="n">thl0</span><span class="p">,</span><span class="n">qt0</span><span class="p">,</span><span class="n">wm</span><span class="p">,</span><span class="n">uprof</span><span class="p">,</span><span class="n">vprof</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modsave</span><span class="p">,</span><span class="w">     </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">writerestartfiles</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modmpi</span><span class="p">,</span><span class="w">      </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">slabsum</span><span class="p">,</span><span class="n">myid</span>
+<span class="w">    </span><span class="k">implicit none</span>
+
+<span class="k">    </span><span class="kt">real</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">inlrec</span><span class="w">                              </span><span class="c">! time of last inlet record</span>
+<span class="w">    </span><span class="kt">real</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">elapsrec</span><span class="w">                            </span><span class="c">! time elapsed in this inlet record</span>
+<span class="w">    </span><span class="kt">real</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">dtint</span><span class="w">                               </span><span class="c">! dt for linear interpolation</span>
+<span class="w">    </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">PARAMETER</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">eps</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="n">d</span><span class="o">-</span><span class="mi">4</span>
+<span class="w">    </span><span class="kt">integer </span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">,</span><span class="n">kk</span><span class="p">,</span><span class="n">kdamp</span><span class="p">,</span><span class="n">x</span><span class="p">,</span><span class="n">xc</span>
+
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">idriver</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">iplanerank</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+
+<span class="w">      </span><span class="c">! if (.not. (rk3step==3)) return</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="p">(</span><span class="n">timee</span><span class="o">&gt;=</span><span class="n">tdriverstart</span><span class="p">))</span><span class="w"> </span><span class="k">return</span>
+<span class="k">      if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="p">(</span><span class="n">timee</span><span class="o">&gt;=</span><span class="n">tdriverdump</span><span class="p">))</span><span class="w"> </span><span class="k">return</span>
+<span class="k">      if</span><span class="w"> </span><span class="p">(</span><span class="n">nstepreaddriver</span><span class="o">&gt;=</span><span class="n">driverstore</span><span class="p">)</span><span class="w"> </span><span class="k">return</span>
+<span class="k">      if</span><span class="w"> </span><span class="p">(</span><span class="n">nstepreaddriver</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="w">        </span><span class="c">! tdriverdump = timee</span>
+<span class="w">        </span><span class="n">tdriverdump</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tdriverstart</span>
+<span class="w">        </span><span class="c">! tdriverstart = timee   !Update tdriverstart to the actual recorded value</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">((</span><span class="n">driverid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="p">(</span><span class="n">rk3step</span><span class="o">==</span><span class="mi">3</span><span class="p">))</span><span class="w"> </span><span class="k">then</span>
+<span class="k">          write</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;==================================================================&#39;</span>
+<span class="w">          </span><span class="k">write</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;*** Starting to write data for driver simulation ***&#39;</span>
+<span class="w">          </span><span class="k">write</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;Driver recording variables:&#39;</span>
+<span class="w">          </span><span class="k">write</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="s1">&#39;(A,F15.5,A,I8,A,F12.9)&#39;</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39; Starting time: &#39;</span><span class="p">,</span><span class="n">tdriverdump</span><span class="p">,</span><span class="s1">&#39; Stored time steps: &#39;</span><span class="p">,</span><span class="n">driverstore</span><span class="p">,</span><span class="s1">&#39;     Inlet record intervals: &#39;</span><span class="p">,</span><span class="n">dtdriver</span>
+<span class="w">          </span><span class="k">write</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;==================================================================&#39;</span>
+<span class="w">        </span><span class="k">end if</span>
+<span class="k">      end if</span>
+<span class="k">      if</span><span class="p">(</span><span class="n">rk3step</span><span class="o">==</span><span class="mi">3</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">        </span><span class="n">nstepreaddriver</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nstepreaddriver</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span>
+<span class="w">        </span><span class="n">tdriverdump</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tdriverdump</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">dtdriver</span>
+<span class="w">        </span><span class="c">! storetinlet(nstepreaddriver) = timee - tdriverstart</span>
+<span class="w">        </span><span class="k">call </span><span class="n">writedriverfile</span>
+<span class="w">      </span><span class="k">end if</span>
+
+<span class="k">    elseif</span><span class="w"> </span><span class="p">(</span><span class="n">idriver</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="k">then</span><span class="w"> </span><span class="c">! this gets called in modboundary when ibrank=.true., so no need for switch</span>
+
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">timee</span><span class="o">&gt;</span><span class="p">(</span><span class="n">runtime</span><span class="o">+</span><span class="n">btime</span><span class="p">))</span><span class="w"> </span><span class="k">return</span>
+<span class="k">      if</span><span class="p">(</span><span class="n">driverid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">        if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.(</span><span class="n">lwarmstart</span><span class="p">))</span><span class="w"> </span><span class="k">then</span>
+<span class="k">          if</span><span class="w"> </span><span class="p">(</span><span class="n">runtime</span><span class="o">&gt;</span><span class="nb">maxval</span><span class="p">(</span><span class="n">storetdriver</span><span class="p">))</span><span class="w"> </span><span class="k">then</span>
+<span class="k">            write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="s1">&#39;(A,F15.5,A,F15.5,A)&#39;</span><span class="p">)</span><span class="w"> </span><span class="s2">&quot;Simulation will stop before runtime = &quot;</span><span class="p">,</span><span class="n">runtime</span><span class="p">,</span><span class="s2">&quot;, since last &amp;</span>
+<span class="s2">                                            &amp;read driver time (&quot;</span><span class="p">,</span><span class="nb">maxval</span><span class="p">(</span><span class="n">storetdriver</span><span class="p">),</span><span class="s2">&quot;) is less than runtime.&quot;</span>
+<span class="w">          </span><span class="k">end if</span>
+<span class="k">        else</span><span class="w"> </span><span class="c">! if lwarmstart</span>
+<span class="w">          </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">runtime</span><span class="o">+</span><span class="n">btime</span><span class="o">&gt;</span><span class="nb">maxval</span><span class="p">(</span><span class="n">storetdriver</span><span class="p">))</span><span class="w"> </span><span class="k">then</span>
+<span class="k">            write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="s1">&#39;(A,F15.5,A,F15.5,A)&#39;</span><span class="p">)</span><span class="w"> </span><span class="s2">&quot;Simulation will stop before runtime+btime = &quot;</span><span class="p">,</span><span class="n">runtime</span><span class="o">+</span><span class="n">btime</span><span class="p">,</span><span class="s2">&quot;, since last &amp;</span>
+<span class="s2">                                            &amp;read driver time (&quot;</span><span class="p">,</span><span class="nb">maxval</span><span class="p">(</span><span class="n">storetdriver</span><span class="p">),</span><span class="s2">&quot;) is less than runtime+btime.&quot;</span>
+<span class="w">          </span><span class="k">end if</span>
+<span class="k">        end if</span>
+<span class="k">      end if</span>
+<span class="w">      </span><span class="c">! if (.not. rk3step==1) return</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">timee</span><span class="o">&gt;</span><span class="nb">maxval</span><span class="p">(</span><span class="n">storetdriver</span><span class="p">))</span><span class="w"> </span><span class="k">then</span>
+<span class="k">        if</span><span class="p">(</span><span class="n">driverid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">          write</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="s1">&#39;(A,F15.5,A,F15.5)&#39;</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;timee: &#39;</span><span class="p">,</span><span class="n">timee</span><span class="p">,</span><span class="s1">&#39;     Final inlet driver time:&#39;</span><span class="p">,</span><span class="nb">maxval</span><span class="p">(</span><span class="n">storetdriver</span><span class="p">)</span>
+<span class="w">          </span><span class="k">write</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="s1">&#39;(A,I8,A,I8)&#39;</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;Inlet driver step: &#39;</span><span class="p">,</span><span class="n">nstepreaddriver</span><span class="p">,</span><span class="s1">&#39;     Total inlet driver steps:&#39;</span><span class="p">,</span><span class="n">driverstore</span>
+<span class="w">        </span><span class="k">end if</span>
+<span class="k">        stop</span><span class="w"> </span><span class="s1">&#39;Time in simulation has exceeded the inlet information - no more inlet data available!&#39;</span>
+<span class="w">      </span><span class="k">end if</span>
+
+<span class="k">      if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.(</span><span class="n">lchunkread</span><span class="p">))</span><span class="w"> </span><span class="k">then</span>
+
+<span class="k">        </span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">minloc</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">storetdriver</span><span class="o">-</span><span class="n">timee</span><span class="p">),</span><span class="mi">1</span><span class="p">)</span>
+<span class="w">        </span><span class="n">elapsrec</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storetdriver</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">timee</span>
+<span class="w">        </span><span class="k">if</span><span class="p">(</span><span class="n">myid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="w">          </span><span class="c">! if(rk3step==1) then</span>
+<span class="w">          </span><span class="c">! write(6,*) &#39;============ Inlet interpolating =============&#39;</span>
+<span class="w">          </span><span class="c">! write(6,*) &#39;Inlet interpolation time = &#39;, elapsrec</span>
+<span class="w">          </span><span class="c">! write(6,&#39;(A,F9.4)&#39;) &#39;Inlet driver time stamp (x)  = &#39;, storetdriver(x)</span>
+<span class="w">          </span><span class="c">! write(6,&#39;(A,F9.4)&#39;) &#39;Inlet driver time stamp (x+1) = &#39;, storetdriver(x+1)</span>
+<span class="w">          </span><span class="c">! write(6,&#39;(A,F9.4)&#39;) &#39;Inlet driver time stamp (x-1) = &#39;, storetdriver(x-1)</span>
+<span class="w">          </span><span class="c">! write(6,&#39;(A,E20.12)&#39;) &#39;Reading driver velocity: storeu0driver(je,ke,x) = &#39;, storeu0driver(je,ke,x)</span>
+<span class="w">          </span><span class="c">! write(6,*) &#39;Inlet step = &#39;,nstepreaddriver</span>
+<span class="w">          </span><span class="c">! end if</span>
+<span class="w">        </span><span class="k">end if</span>
+
+<span class="k">        if</span><span class="w"> </span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">elapsrec</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">eps</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+
+<span class="k">          if</span><span class="w"> </span><span class="p">((</span><span class="n">driverid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="p">((</span><span class="n">rk3step</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="p">(</span><span class="n">rk3step</span><span class="o">==</span><span class="mi">3</span><span class="p">)))</span><span class="w"> </span><span class="k">then</span>
+<span class="k">            write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="s1">&#39;(A,I8,A,F15.5,A)&#39;</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;======= Inputs loaded from driver tstep &#39;</span><span class="p">,</span><span class="n">x</span><span class="p">,</span><span class="s1">&#39; (at &#39;</span><span class="p">,</span><span class="n">storetdriver</span><span class="p">(</span><span class="n">x</span><span class="p">),</span><span class="s1">&#39;s) =======&#39;</span>
+<span class="w">          </span><span class="k">end if</span>
+
+<span class="k">          </span><span class="n">u0driver</span><span class="p">(:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storeu0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">)</span>
+<span class="w">          </span><span class="n">v0driver</span><span class="p">(:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storev0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">)</span>
+<span class="w">          </span><span class="n">w0driver</span><span class="p">(:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storew0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">)</span>
+
+<span class="w">          </span><span class="c">!e120driver(:,:) = storee120driver(:,:,x)</span>
+<span class="w">          </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ltempeq</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">lhdriver</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">            </span><span class="n">thl0driver</span><span class="p">(:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storethl0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">)</span>
+<span class="w">          </span><span class="k">end if</span>
+<span class="k">          if</span><span class="w"> </span><span class="p">(</span><span class="n">lmoist</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">lqdriver</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">            </span><span class="n">qt0driver</span><span class="p">(:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storeqt0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">)</span>
+<span class="w">          </span><span class="k">end if</span>
+<span class="k">          if</span><span class="w"> </span><span class="p">(</span><span class="n">nsv</span><span class="o">&gt;</span><span class="mi">0</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">lsdriver</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">            </span><span class="n">sv0driver</span><span class="p">(:,:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storesv0driver</span><span class="p">(:,:,:,</span><span class="n">x</span><span class="p">)</span>
+<span class="w">          </span><span class="k">end if</span>
+<span class="k">          </span><span class="n">nstepreaddriver</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">x</span>
+
+<span class="w">        </span><span class="k">elseif</span><span class="w"> </span><span class="p">((</span><span class="n">elapsrec</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mf">0.</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="p">(</span><span class="n">x</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">1</span><span class="p">))</span><span class="w"> </span><span class="k">then</span>
+
+<span class="k">          if</span><span class="w"> </span><span class="p">((</span><span class="n">driverid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="p">((</span><span class="n">rk3step</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="p">(</span><span class="n">rk3step</span><span class="o">==</span><span class="mi">3</span><span class="p">)))</span><span class="w"> </span><span class="k">then</span>
+<span class="k">            write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="s1">&#39;(A,F15.5,A)&#39;</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;======= Inputs loaded from the proceeding driver tstep 1 (at &#39;</span><span class="p">,</span><span class="n">storetdriver</span><span class="p">(</span><span class="n">x</span><span class="p">),</span><span class="s1">&#39;s) =======&#39;</span>
+<span class="w">          </span><span class="k">end if</span>
+
+<span class="k">          </span><span class="n">u0driver</span><span class="p">(:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storeu0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">)</span>
+<span class="w">          </span><span class="n">v0driver</span><span class="p">(:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storev0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">)</span>
+<span class="w">          </span><span class="n">w0driver</span><span class="p">(:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storew0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">)</span>
+<span class="w">          </span><span class="c">! e120driver(:,:) = storee120driver(:,:,x)</span>
+<span class="w">          </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ltempeq</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">lhdriver</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">            </span><span class="n">thl0driver</span><span class="p">(:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storethl0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">)</span>
+<span class="w">          </span><span class="k">end if</span>
+<span class="k">          if</span><span class="w"> </span><span class="p">(</span><span class="n">lmoist</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">lqdriver</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">            </span><span class="n">qt0driver</span><span class="p">(:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storeqt0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">)</span>
+<span class="w">          </span><span class="k">end if</span>
+<span class="k">          if</span><span class="w"> </span><span class="p">(</span><span class="n">nsv</span><span class="o">&gt;</span><span class="mi">0</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">lsdriver</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">            </span><span class="n">sv0driver</span><span class="p">(:,:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storesv0driver</span><span class="p">(:,:,:,</span><span class="n">x</span><span class="p">)</span>
+<span class="w">          </span><span class="k">end if</span>
+<span class="k">          </span><span class="n">nstepreaddriver</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">x</span>
+
+<span class="w">        </span><span class="k">elseif</span><span class="w"> </span><span class="p">(</span><span class="n">elapsrec</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mf">0.</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+
+<span class="k">          if</span><span class="w"> </span><span class="p">((</span><span class="n">driverid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="p">((</span><span class="n">rk3step</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="p">(</span><span class="n">rk3step</span><span class="o">==</span><span class="mi">3</span><span class="p">)))</span><span class="w"> </span><span class="k">then</span>
+<span class="k">            write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="s1">&#39;(A,I8,A,F15.5,A,I8,A,F15.5,A)&#39;</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;======= Inputs interpolated from driver tsteps &#39;</span><span class="p">,</span><span class="n">x</span><span class="p">,</span><span class="s1">&#39; (&#39;</span><span class="p">,</span><span class="n">storetdriver</span><span class="p">(</span><span class="n">x</span><span class="p">),</span><span class="s1">&#39; s) and &#39;</span><span class="p">,</span><span class="n">x</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="s1">&#39; (&#39;</span><span class="p">,</span><span class="n">storetdriver</span><span class="p">(</span><span class="n">x</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span><span class="s1">&#39; s) =======&#39;</span>
+<span class="w">          </span><span class="k">end if</span>
+
+<span class="k">          </span><span class="n">dtint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">timee</span><span class="o">-</span><span class="n">storetdriver</span><span class="p">(</span><span class="n">x</span><span class="p">))</span><span class="o">/</span><span class="p">(</span><span class="n">storetdriver</span><span class="p">(</span><span class="n">x</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">-</span><span class="n">storetdriver</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+<span class="w">          </span><span class="c">! if(myid==0) then</span>
+<span class="w">          </span><span class="c">! write(6,&#39;(A,I4)&#39;) &#39;x: &#39;, x</span>
+<span class="w">          </span><span class="c">! write(6,&#39;(A,F9.4)&#39;) &#39;dtint: &#39;, dtint</span>
+<span class="w">          </span><span class="c">! write(6,&#39;(A,E20.12)&#39;) &#39;storeu0driver(1,32,x): &#39;, storeu0driver(1,32,x)</span>
+<span class="w">          </span><span class="c">! write(6,&#39;(A,E20.12)&#39;) &#39;storeu0driver(1,32,x+1): &#39;, storeu0driver(1,32,x+1)</span>
+<span class="w">          </span><span class="c">! write(6,&#39;(A,E20.12)&#39;) &#39;u0driver(1,32): &#39;,  storeu0driver(1,32,x) + (storeu0driver(1,32,x+1)-storeu0driver(1,32,x))*dtint</span>
+<span class="w">          </span><span class="c">! end if</span>
+<span class="w">          </span><span class="n">u0driver</span><span class="p">(:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storeu0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">storeu0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">-</span><span class="n">storeu0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">))</span><span class="o">*</span><span class="n">dtint</span>
+<span class="w">          </span><span class="n">v0driver</span><span class="p">(:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storev0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">storev0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">-</span><span class="n">storev0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">))</span><span class="o">*</span><span class="n">dtint</span>
+<span class="w">          </span><span class="n">w0driver</span><span class="p">(:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storew0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">storew0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">-</span><span class="n">storew0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">))</span><span class="o">*</span><span class="n">dtint</span>
+<span class="w">          </span><span class="c">! e120driver(:,:) = storee120driver(:,:,x) + (storee120driver(:,:,x+1)-storee120driver(:,:,x))*dtint</span>
+<span class="w">          </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ltempeq</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">lhdriver</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">            </span><span class="n">thl0driver</span><span class="p">(:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storethl0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">storethl0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">-</span><span class="n">storethl0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">))</span><span class="o">*</span><span class="n">dtint</span>
+<span class="w">          </span><span class="k">end if</span>
+<span class="k">          if</span><span class="w"> </span><span class="p">(</span><span class="n">lmoist</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">lqdriver</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">            </span><span class="n">qt0driver</span><span class="p">(:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storeqt0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">storeqt0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">-</span><span class="n">storeqt0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">))</span><span class="o">*</span><span class="n">dtint</span>
+<span class="w">          </span><span class="k">end if</span>
+<span class="k">          if</span><span class="w"> </span><span class="p">(</span><span class="n">nsv</span><span class="o">&gt;</span><span class="mi">0</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">lsdriver</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">            </span><span class="n">sv0driver</span><span class="p">(:,:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storesv0driver</span><span class="p">(:,:,:,</span><span class="n">x</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">storesv0driver</span><span class="p">(:,:,:,</span><span class="n">x</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">-</span><span class="n">storesv0driver</span><span class="p">(:,:,:,</span><span class="n">x</span><span class="p">))</span><span class="o">*</span><span class="n">dtint</span>
+<span class="w">          </span><span class="k">end if</span>
+<span class="k">          </span><span class="n">nstepreaddriver</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">x</span>
+
+<span class="w">        </span><span class="k">elseif</span><span class="w"> </span><span class="p">(</span><span class="n">elapsrec</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mf">0.</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+
+<span class="k">          if</span><span class="w"> </span><span class="p">((</span><span class="n">driverid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="p">((</span><span class="n">rk3step</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="p">(</span><span class="n">rk3step</span><span class="o">==</span><span class="mi">3</span><span class="p">)))</span><span class="w"> </span><span class="k">then</span>
+<span class="k">            write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="s1">&#39;(A,I8,A,F15.5,A,I8,A,F15.5,A)&#39;</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;======= Inputs interpolated from driver tsteps &#39;</span><span class="p">,</span><span class="n">x</span><span class="p">,</span><span class="s1">&#39; (&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">storetdriver</span><span class="p">(</span><span class="n">x</span><span class="p">),</span><span class="s1">&#39; s) and &#39;</span><span class="p">,</span><span class="n">x</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="s1">&#39; (&#39;</span><span class="p">,</span><span class="n">storetdriver</span><span class="p">(</span><span class="n">x</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span><span class="s1">&#39; s) =======&#39;</span>
+<span class="w">          </span><span class="k">end if</span>
+
+<span class="k">          </span><span class="n">dtint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">timee</span><span class="o">-</span><span class="n">storetdriver</span><span class="p">(</span><span class="n">x</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">/</span><span class="p">(</span><span class="n">storetdriver</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">-</span><span class="n">storetdriver</span><span class="p">(</span><span class="n">x</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+<span class="w">          </span><span class="n">u0driver</span><span class="p">(:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storeu0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">storeu0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">)</span><span class="o">-</span><span class="n">storeu0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">*</span><span class="n">dtint</span>
+<span class="w">          </span><span class="n">v0driver</span><span class="p">(:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storev0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">storev0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">)</span><span class="o">-</span><span class="n">storev0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">*</span><span class="n">dtint</span>
+<span class="w">          </span><span class="n">w0driver</span><span class="p">(:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storew0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">storew0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">)</span><span class="o">-</span><span class="n">storew0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">*</span><span class="n">dtint</span>
+<span class="w">          </span><span class="c">! e120driver(:,:) = storee120driver(:,:,x-1) + (storee120driver(:,:,x)-storee120driver(:,:,x-1))*dtint</span>
+<span class="w">          </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ltempeq</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">lhdriver</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">            </span><span class="n">thl0driver</span><span class="p">(:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storethl0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">storethl0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">)</span><span class="o">-</span><span class="n">storethl0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">*</span><span class="n">dtint</span>
+<span class="w">          </span><span class="k">end if</span>
+<span class="k">          if</span><span class="w"> </span><span class="p">(</span><span class="n">lmoist</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">lqdriver</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">            </span><span class="n">qt0driver</span><span class="p">(:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storeqt0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">storeqt0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="p">)</span><span class="o">-</span><span class="n">storeqt0driver</span><span class="p">(:,:,</span><span class="n">x</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">*</span><span class="n">dtint</span>
+<span class="w">          </span><span class="k">end if</span>
+<span class="k">          if</span><span class="w"> </span><span class="p">(</span><span class="n">nsv</span><span class="o">&gt;</span><span class="mi">0</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">lsdriver</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">            </span><span class="n">sv0driver</span><span class="p">(:,:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storesv0driver</span><span class="p">(:,:,:,</span><span class="n">x</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">storesv0driver</span><span class="p">(:,:,:,</span><span class="n">x</span><span class="p">)</span><span class="o">-</span><span class="n">storesv0driver</span><span class="p">(:,:,:,</span><span class="n">x</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">*</span><span class="n">dtint</span>
+<span class="w">          </span><span class="k">end if</span>
+<span class="k">          </span><span class="n">nstepreaddriver</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">x</span>
+
+<span class="w">        </span><span class="k">end if</span>
+
+<span class="k">      else</span><span class="w"> </span><span class="c">! if (lchunkread)</span>
+
+<span class="w">        </span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">minloc</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">storetdriver</span><span class="o">-</span><span class="n">timee</span><span class="p">),</span><span class="mi">1</span><span class="p">)</span>
+<span class="w">        </span><span class="n">xc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">mod</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">chunkread_size</span><span class="p">)</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">xc</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="n">xc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="p">(</span><span class="n">chunkreadctr</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span><span class="o">*</span><span class="n">chunkread_size</span>
+<span class="w">        </span><span class="n">elapsrec</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storetdriver</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">timee</span>
+<span class="w">        </span><span class="k">if</span><span class="p">(</span><span class="n">myid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="w">          </span><span class="c">! if(rk3step==1) then</span>
+<span class="w">          </span><span class="c">! write(6,*) &#39;============ Inlet interpolating =============&#39;</span>
+<span class="w">          </span><span class="c">! write(6,*) &#39;Inlet interpolation time = &#39;, elapsrec</span>
+<span class="w">          </span><span class="c">! write(6,&#39;(A,F9.4)&#39;) &#39;Inlet driver time stamp (x)  = &#39;, storetdriver(x)</span>
+<span class="w">          </span><span class="c">! write(6,&#39;(A,F9.4)&#39;) &#39;Inlet driver time stamp (x+1) = &#39;, storetdriver(x+1)</span>
+<span class="w">          </span><span class="c">! write(6,&#39;(A,F9.4)&#39;) &#39;Inlet driver time stamp (x-1) = &#39;, storetdriver(x-1)</span>
+<span class="w">          </span><span class="c">! write(6,&#39;(A,E20.12)&#39;) &#39;Reading driver velocity: storeu0driver(je,ke,x) = &#39;, storeu0driver(je,ke,x)</span>
+<span class="w">          </span><span class="c">! write(6,*) &#39;Inlet step = &#39;,nstepreaddriver</span>
+<span class="w">          </span><span class="c">! end if</span>
+<span class="w">        </span><span class="k">end if</span>
+
+<span class="k">        if</span><span class="w"> </span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">elapsrec</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">eps</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+
+<span class="k">          if</span><span class="w"> </span><span class="p">((</span><span class="n">driverid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="p">((</span><span class="n">rk3step</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="p">(</span><span class="n">rk3step</span><span class="o">==</span><span class="mi">3</span><span class="p">)))</span><span class="w"> </span><span class="k">then</span>
+<span class="k">            write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="s1">&#39;(A,I8,A,I8,A,F15.5,A)&#39;</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;======= Inputs loaded from driver tstep &#39;</span><span class="p">,</span><span class="n">x</span><span class="p">,</span><span class="s1">&#39;(&#39;</span><span class="p">,</span><span class="n">xc</span><span class="p">,</span><span class="s1">&#39;) (at &#39;</span><span class="p">,</span><span class="n">storetdriver</span><span class="p">(</span><span class="n">x</span><span class="p">),</span><span class="s1">&#39;s) =======&#39;</span>
+<span class="w">          </span><span class="k">end if</span>
+
+<span class="k">          </span><span class="n">u0driver</span><span class="p">(:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storeu0driver</span><span class="p">(:,:,</span><span class="n">xc</span><span class="p">)</span>
+<span class="w">          </span><span class="n">v0driver</span><span class="p">(:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storev0driver</span><span class="p">(:,:,</span><span class="n">xc</span><span class="p">)</span>
+<span class="w">          </span><span class="n">w0driver</span><span class="p">(:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storew0driver</span><span class="p">(:,:,</span><span class="n">xc</span><span class="p">)</span>
+
+<span class="w">          </span><span class="c">!e120driver(:,:) = storee120driver(:,:,xc)</span>
+<span class="w">          </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ltempeq</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">lhdriver</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">            </span><span class="n">thl0driver</span><span class="p">(:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storethl0driver</span><span class="p">(:,:,</span><span class="n">xc</span><span class="p">)</span>
+<span class="w">          </span><span class="k">end if</span>
+<span class="k">          if</span><span class="w"> </span><span class="p">(</span><span class="n">lmoist</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">lqdriver</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">            </span><span class="n">qt0driver</span><span class="p">(:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storeqt0driver</span><span class="p">(:,:,</span><span class="n">xc</span><span class="p">)</span>
+<span class="w">          </span><span class="k">end if</span>
+<span class="k">          if</span><span class="w"> </span><span class="p">(</span><span class="n">nsv</span><span class="o">&gt;</span><span class="mi">0</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">lsdriver</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">            </span><span class="n">sv0driver</span><span class="p">(:,:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storesv0driver</span><span class="p">(:,:,:,</span><span class="n">xc</span><span class="p">)</span>
+<span class="w">          </span><span class="k">end if</span>
+
+<span class="k">        elseif</span><span class="w"> </span><span class="p">((</span><span class="n">elapsrec</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mf">0.</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="p">(</span><span class="n">x</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">1</span><span class="p">))</span><span class="w"> </span><span class="k">then</span>
+
+<span class="k">          if</span><span class="w"> </span><span class="p">((</span><span class="n">driverid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="p">((</span><span class="n">rk3step</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="p">(</span><span class="n">rk3step</span><span class="o">==</span><span class="mi">3</span><span class="p">)))</span><span class="w"> </span><span class="k">then</span>
+<span class="k">            write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="s1">&#39;(A,F15.5,A,I8,A,I8)&#39;</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;======= Inputs loaded from the proceeding driver tstep 1 (at &#39;</span><span class="p">,</span><span class="n">storetdriver</span><span class="p">(</span><span class="n">x</span><span class="p">),</span><span class="s1">&#39;s) =======&#39;</span><span class="p">,</span><span class="n">x</span><span class="p">,</span><span class="s1">&#39;  &#39;</span><span class="p">,</span><span class="n">xc</span>
+<span class="w">          </span><span class="k">end if</span>
+
+<span class="k">          </span><span class="n">u0driver</span><span class="p">(:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storeu0driver</span><span class="p">(:,:,</span><span class="n">xc</span><span class="p">)</span>
+<span class="w">          </span><span class="n">v0driver</span><span class="p">(:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storev0driver</span><span class="p">(:,:,</span><span class="n">xc</span><span class="p">)</span>
+<span class="w">          </span><span class="n">w0driver</span><span class="p">(:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storew0driver</span><span class="p">(:,:,</span><span class="n">xc</span><span class="p">)</span>
+<span class="w">          </span><span class="c">! e120driver(:,:) = storee120driver(:,:,xc)</span>
+<span class="w">          </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ltempeq</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">lhdriver</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">            </span><span class="n">thl0driver</span><span class="p">(:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storethl0driver</span><span class="p">(:,:,</span><span class="n">xc</span><span class="p">)</span>
+<span class="w">          </span><span class="k">end if</span>
+<span class="k">          if</span><span class="w"> </span><span class="p">(</span><span class="n">lmoist</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">lqdriver</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">            </span><span class="n">qt0driver</span><span class="p">(:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storeqt0driver</span><span class="p">(:,:,</span><span class="n">xc</span><span class="p">)</span>
+<span class="w">          </span><span class="k">end if</span>
+<span class="k">          if</span><span class="w"> </span><span class="p">(</span><span class="n">nsv</span><span class="o">&gt;</span><span class="mi">0</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">lsdriver</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">            </span><span class="n">sv0driver</span><span class="p">(:,:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storesv0driver</span><span class="p">(:,:,:,</span><span class="n">xc</span><span class="p">)</span>
+<span class="w">          </span><span class="k">end if</span>
+
+<span class="k">        elseif</span><span class="w"> </span><span class="p">(</span><span class="n">elapsrec</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mf">0.</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+
+<span class="k">          if</span><span class="w"> </span><span class="p">((</span><span class="n">driverid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="p">((</span><span class="n">rk3step</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="p">(</span><span class="n">rk3step</span><span class="o">==</span><span class="mi">3</span><span class="p">)))</span><span class="w"> </span><span class="k">then</span>
+<span class="k">            write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="s1">&#39;(A,I8,A,I8,A,F15.5,A,I8,A,I8,A,F15.5,A)&#39;</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;======= Inputs interpolated from driver tsteps &#39;</span><span class="p">,</span><span class="n">x</span><span class="p">,</span><span class="s1">&#39;(&#39;</span><span class="p">,</span><span class="n">xc</span><span class="p">,</span><span class="s1">&#39;) (&#39;</span><span class="p">,</span><span class="n">storetdriver</span><span class="p">(</span><span class="n">x</span><span class="p">),</span><span class="s1">&#39; s) and &#39;</span><span class="p">,</span><span class="n">x</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="s1">&#39;(&#39;</span><span class="p">,</span><span class="n">xc</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="s1">&#39;) (&#39;</span><span class="p">,</span><span class="n">storetdriver</span><span class="p">(</span><span class="n">x</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span><span class="s1">&#39; s) =======&#39;</span>
+<span class="w">          </span><span class="k">end if</span>
+
+<span class="k">          </span><span class="n">dtint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">timee</span><span class="o">-</span><span class="n">storetdriver</span><span class="p">(</span><span class="n">x</span><span class="p">))</span><span class="o">/</span><span class="p">(</span><span class="n">storetdriver</span><span class="p">(</span><span class="n">x</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">-</span><span class="n">storetdriver</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+<span class="w">          </span><span class="c">! if(myid==0) then</span>
+<span class="w">          </span><span class="c">! write(6,&#39;(A,I4)&#39;) &#39;x: &#39;, x</span>
+<span class="w">          </span><span class="c">! write(6,&#39;(A,F9.4)&#39;) &#39;dtint: &#39;, dtint</span>
+<span class="w">          </span><span class="c">! write(6,&#39;(A,E20.12)&#39;) &#39;storeu0driver(1,32,x): &#39;, storeu0driver(1,32,x)</span>
+<span class="w">          </span><span class="c">! write(6,&#39;(A,E20.12)&#39;) &#39;storeu0driver(1,32,x+1): &#39;, storeu0driver(1,32,x+1)</span>
+<span class="w">          </span><span class="c">! write(6,&#39;(A,E20.12)&#39;) &#39;u0driver(1,32): &#39;,  storeu0driver(1,32,x) + (storeu0driver(1,32,x+1)-storeu0driver(1,32,x))*dtint</span>
+<span class="w">          </span><span class="c">! end if</span>
+<span class="w">          </span><span class="n">u0driver</span><span class="p">(:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storeu0driver</span><span class="p">(:,:,</span><span class="n">xc</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">storeu0driver</span><span class="p">(:,:,</span><span class="n">xc</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">-</span><span class="n">storeu0driver</span><span class="p">(:,:,</span><span class="n">xc</span><span class="p">))</span><span class="o">*</span><span class="n">dtint</span>
+<span class="w">          </span><span class="n">v0driver</span><span class="p">(:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storev0driver</span><span class="p">(:,:,</span><span class="n">xc</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">storev0driver</span><span class="p">(:,:,</span><span class="n">xc</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">-</span><span class="n">storev0driver</span><span class="p">(:,:,</span><span class="n">xc</span><span class="p">))</span><span class="o">*</span><span class="n">dtint</span>
+<span class="w">          </span><span class="n">w0driver</span><span class="p">(:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storew0driver</span><span class="p">(:,:,</span><span class="n">xc</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">storew0driver</span><span class="p">(:,:,</span><span class="n">xc</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">-</span><span class="n">storew0driver</span><span class="p">(:,:,</span><span class="n">xc</span><span class="p">))</span><span class="o">*</span><span class="n">dtint</span>
+<span class="w">          </span><span class="c">! e120driver(:,:) = storee120driver(:,:,xc) + (storee120driver(:,:,xc+1)-storee120driver(:,:,xc))*dtint</span>
+<span class="w">          </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ltempeq</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">lhdriver</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">            </span><span class="n">thl0driver</span><span class="p">(:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storethl0driver</span><span class="p">(:,:,</span><span class="n">xc</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">storethl0driver</span><span class="p">(:,:,</span><span class="n">xc</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">-</span><span class="n">storethl0driver</span><span class="p">(:,:,</span><span class="n">xc</span><span class="p">))</span><span class="o">*</span><span class="n">dtint</span>
+<span class="w">          </span><span class="k">end if</span>
+<span class="k">          if</span><span class="w"> </span><span class="p">(</span><span class="n">lmoist</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">lqdriver</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">            </span><span class="n">qt0driver</span><span class="p">(:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storeqt0driver</span><span class="p">(:,:,</span><span class="n">xc</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">storeqt0driver</span><span class="p">(:,:,</span><span class="n">xc</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">-</span><span class="n">storeqt0driver</span><span class="p">(:,:,</span><span class="n">xc</span><span class="p">))</span><span class="o">*</span><span class="n">dtint</span>
+<span class="w">          </span><span class="k">end if</span>
+<span class="k">          if</span><span class="w"> </span><span class="p">(</span><span class="n">nsv</span><span class="o">&gt;</span><span class="mi">0</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">lsdriver</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">            </span><span class="n">sv0driver</span><span class="p">(:,:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storesv0driver</span><span class="p">(:,:,:,</span><span class="n">xc</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">storesv0driver</span><span class="p">(:,:,:,</span><span class="n">xc</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">-</span><span class="n">storesv0driver</span><span class="p">(:,:,:,</span><span class="n">xc</span><span class="p">))</span><span class="o">*</span><span class="n">dtint</span>
+<span class="w">          </span><span class="k">end if</span>
+
+<span class="k">        elseif</span><span class="w"> </span><span class="p">(</span><span class="n">elapsrec</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mf">0.</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+
+<span class="k">          if</span><span class="w"> </span><span class="p">((</span><span class="n">driverid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="p">((</span><span class="n">rk3step</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="p">(</span><span class="n">rk3step</span><span class="o">==</span><span class="mi">3</span><span class="p">)))</span><span class="w"> </span><span class="k">then</span>
+<span class="k">            write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="s1">&#39;(A,I8,A,I8,A,F15.5,A,I8,A,I8,A,F15.5,A)&#39;</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;======= Inputs interpolated from driver tsteps &#39;</span><span class="p">,</span><span class="n">x</span><span class="p">,</span><span class="s1">&#39;(&#39;</span><span class="p">,</span><span class="n">xc</span><span class="p">,</span><span class="s1">&#39;) (&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">storetdriver</span><span class="p">(</span><span class="n">x</span><span class="p">),</span><span class="s1">&#39; s) and &#39;</span><span class="p">,</span><span class="n">x</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="s1">&#39;(&#39;</span><span class="p">,</span><span class="n">xc</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="s1">&#39;) (&#39;</span><span class="p">,</span><span class="n">storetdriver</span><span class="p">(</span><span class="n">x</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span><span class="s1">&#39; s) =======&#39;</span>
+<span class="w">          </span><span class="k">end if</span>
+
+<span class="k">          </span><span class="n">dtint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">timee</span><span class="o">-</span><span class="n">storetdriver</span><span class="p">(</span><span class="n">x</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">/</span><span class="p">(</span><span class="n">storetdriver</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">-</span><span class="n">storetdriver</span><span class="p">(</span><span class="n">x</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+<span class="w">          </span><span class="n">u0driver</span><span class="p">(:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storeu0driver</span><span class="p">(:,:,</span><span class="n">xc</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">storeu0driver</span><span class="p">(:,:,</span><span class="n">xc</span><span class="p">)</span><span class="o">-</span><span class="n">storeu0driver</span><span class="p">(:,:,</span><span class="n">xc</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">*</span><span class="n">dtint</span>
+<span class="w">          </span><span class="n">v0driver</span><span class="p">(:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storev0driver</span><span class="p">(:,:,</span><span class="n">xc</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">storev0driver</span><span class="p">(:,:,</span><span class="n">xc</span><span class="p">)</span><span class="o">-</span><span class="n">storev0driver</span><span class="p">(:,:,</span><span class="n">xc</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">*</span><span class="n">dtint</span>
+<span class="w">          </span><span class="n">w0driver</span><span class="p">(:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storew0driver</span><span class="p">(:,:,</span><span class="n">xc</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">storew0driver</span><span class="p">(:,:,</span><span class="n">xc</span><span class="p">)</span><span class="o">-</span><span class="n">storew0driver</span><span class="p">(:,:,</span><span class="n">xc</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">*</span><span class="n">dtint</span>
+<span class="w">          </span><span class="c">! e120driver(:,:) = storee120driver(:,:,xc-1) + (storee120driver(:,:,xc)-storee120driver(:,:,xc-1))*dtint</span>
+<span class="w">          </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ltempeq</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">lhdriver</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">            </span><span class="n">thl0driver</span><span class="p">(:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storethl0driver</span><span class="p">(:,:,</span><span class="n">xc</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">storethl0driver</span><span class="p">(:,:,</span><span class="n">xc</span><span class="p">)</span><span class="o">-</span><span class="n">storethl0driver</span><span class="p">(:,:,</span><span class="n">xc</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">*</span><span class="n">dtint</span>
+<span class="w">          </span><span class="k">end if</span>
+<span class="k">          if</span><span class="w"> </span><span class="p">(</span><span class="n">lmoist</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">lqdriver</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">            </span><span class="n">qt0driver</span><span class="p">(:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storeqt0driver</span><span class="p">(:,:,</span><span class="n">xc</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">storeqt0driver</span><span class="p">(:,:,</span><span class="n">xc</span><span class="p">)</span><span class="o">-</span><span class="n">storeqt0driver</span><span class="p">(:,:,</span><span class="n">xc</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">*</span><span class="n">dtint</span>
+<span class="w">          </span><span class="k">end if</span>
+<span class="k">          if</span><span class="w"> </span><span class="p">(</span><span class="n">nsv</span><span class="o">&gt;</span><span class="mi">0</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">lsdriver</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">            </span><span class="n">sv0driver</span><span class="p">(:,:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storesv0driver</span><span class="p">(:,:,:,</span><span class="n">xc</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">storesv0driver</span><span class="p">(:,:,:,</span><span class="n">xc</span><span class="p">)</span><span class="o">-</span><span class="n">storesv0driver</span><span class="p">(:,:,:,</span><span class="n">xc</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">*</span><span class="n">dtint</span>
+<span class="w">          </span><span class="k">end if</span>
+
+<span class="k">        end if</span>
+<span class="k">        </span><span class="n">nstepreaddriver</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">x</span><span class="w">    </span><span class="c">!! Not sure.. may need modification</span>
+
+<span class="w">      </span><span class="k">end if</span>
+
+<span class="w">      </span><span class="c">! rotate</span>
+<span class="w">      </span><span class="n">u0driverrot</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">u0driver</span><span class="o">*</span><span class="nb">cos</span><span class="p">(</span><span class="n">iangle</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">v0driver</span><span class="o">*</span><span class="nb">sin</span><span class="p">(</span><span class="n">iangle</span><span class="p">)</span>
+<span class="w">      </span><span class="n">v0driverrot</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">v0driver</span><span class="o">*</span><span class="nb">cos</span><span class="p">(</span><span class="n">iangle</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">u0driver</span><span class="o">*</span><span class="nb">sin</span><span class="p">(</span><span class="n">iangle</span><span class="p">)</span>
+<span class="w">      </span><span class="n">u0driver</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">u0driverrot</span>
+<span class="w">      </span><span class="n">v0driver</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">v0driverrot</span>
+
+<span class="w">      </span><span class="c">! if(myid==0) then</span>
+<span class="w">        </span><span class="c">! write(6,&#39;(A,F9.4)&#39;) &#39;Simulation time: &#39;, timee</span>
+<span class="w">        </span><span class="c">! write(6,&#39;(A,F9.4)&#39;) &#39;dtint: &#39;, dtint</span>
+<span class="w">        </span><span class="c">! write(6,*) &#39;Velocities interpolated:&#39;</span>
+<span class="w">        </span><span class="c">! write(6,&#39;(A,e20.12)&#39;) &#39;storeu0driver(je,ke,x-1): &#39;, storeu0driver(je,ke,x-1)</span>
+<span class="w">        </span><span class="c">! write(6,&#39;(A,e20.12)&#39;) &#39;storeu0driver(je,ke,x): &#39;, storeu0driver(je,ke,x)</span>
+<span class="w">        </span><span class="c">! write(6,&#39;(A,e20.12)&#39;) &#39;storeu0driver(je,ke,x+1): &#39;, storeu0driver(je,ke,x+1)</span>
+<span class="w">        </span><span class="c">! write(6,&#39;(A,e20.12)&#39;) &#39;Interpolated inlet velocity (jb,20): &#39;, u0driver(jb,20)</span>
+<span class="w">        </span><span class="c">! write(6,*) &#39;Temperatures interpolated:&#39;</span>
+<span class="w">        </span><span class="c">! write(6,&#39;(A,e20.12)&#39;) &#39;storethl0driver(je,20,x-1): &#39;, storethl0driver(jb,20,x-1)</span>
+<span class="w">        </span><span class="c">! write(6,&#39;(A,e20.12)&#39;) &#39;storethl0driver(je,20,x): &#39;, storethl0driver(jb,20,x)</span>
+<span class="w">        </span><span class="c">! write(6,&#39;(A,e20.12)&#39;) &#39;storethl0driver(je,20,x+1): &#39;, storethl0driver(jb,20,x+1)</span>
+<span class="w">        </span><span class="c">! write(6,&#39;(A,e20.12)&#39;) &#39;Interpolated inlet temperature (jb,20): &#39;, thl0driver(jb,20)</span>
+<span class="w">      </span><span class="c">! end if</span>
+
+<span class="w">      </span><span class="c">! umdriver = u0driver   ! MAYBE ITS BETTER TO WRITE THE M VARIABLES TO FILE TOO AND JUST READ THEM - THOUGH CURRENTLY THIS IS NOT DONE FOR RESTART FILES?? ae1212</span>
+<span class="w">      </span><span class="c">! vmdriver = v0driver   ! EDIT READ AND WRITE INLET FILES (AND CHECK MODBOUNDARY &amp; MODSURFACE) TO INCLUDE M VARIABLES</span>
+<span class="w">      </span><span class="c">! wmdriver = w0driver</span>
+<span class="w">      </span><span class="c">! thlmdriver = thl0driver</span>
+<span class="w">      </span><span class="c">! qtmdriver = qt0driver</span>
+
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">rk3step</span><span class="o">==</span><span class="mi">0</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="n">rk3step</span><span class="o">==</span><span class="mi">3</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">        </span><span class="n">umdriver</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">u0driver</span>
+<span class="w">        </span><span class="n">vmdriver</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">v0driver</span>
+<span class="w">        </span><span class="n">wmdriver</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">w0driver</span>
+<span class="w">        </span><span class="c">!e12mdriver = e120driver</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ltempeq</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">lhdriver</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">          </span><span class="n">thlmdriver</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">thl0driver</span>
+<span class="w">        </span><span class="k">end if</span>
+<span class="k">        if</span><span class="w"> </span><span class="p">(</span><span class="n">lmoist</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">lqdriver</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">          </span><span class="n">qtmdriver</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">qt0driver</span>
+<span class="w">        </span><span class="k">end if</span>
+<span class="k">        if</span><span class="w"> </span><span class="p">(</span><span class="n">nsv</span><span class="o">&gt;</span><span class="mi">0</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">lsdriver</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">          </span><span class="n">svmdriver</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sv0driver</span>
+<span class="w">        </span><span class="k">end if</span>
+<span class="k">      end if</span>
+
+<span class="k">    else</span>
+
+<span class="k">      return</span>
+
+<span class="k">    end if</span><span class="w">  </span><span class="c">! idrivergen</span>
+
+<span class="w">  </span><span class="k">end subroutine </span><span class="n">drivergen</span>
+</pre></div>
+
+    </section>
+    <br>
+    
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2025 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2025-01-27 21:12 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+
+    <!-- Bootstrap core JavaScript -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>    
+
+    <!-- MathJax JavaScript
+             ================================================== -->
+             <!-- Placed at the end of the document so the pages load faster -->
+        <script type="text/x-mathjax-config">
+          MathJax.Hub.Config({
+          TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } },
+          jax: ['input/TeX','input/MathML','output/HTML-CSS'],
+          extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']
+          });
+        </script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+          <script src="../tipuesearch/tipuesearch_content.js"></script>
+          <script src="../tipuesearch/tipuesearch_set.js"></script>
+          <script src="../tipuesearch/tipuesearch.js"></script>
+
+  </body>
+</html>

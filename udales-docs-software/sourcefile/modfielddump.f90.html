@@ -1,0 +1,1203 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="TODO:">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>modfielddump.f90 &ndash; uDALES</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <link href="../css/font-awesome.min.css" rel="stylesheet">
+    <link href="../css/local.css" rel="stylesheet">
+      <link  href="../tipuesearch/tipuesearch.css" rel="stylesheet">
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/dalesurban.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>modfielddump.f90
+      <small>Source File</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 1.6% of total for source files.">243 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/modfielddump.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+            <li class="breadcrumb-item active" aria-current="page">modfielddump.f90</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    $(function () {
+    $('[data-bs-toggle="tooltip"]').tooltip()
+    })
+  </script>
+
+  </div>
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+        <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+      <div class="card mb-4">
+      <a data-bs-toggle="collapse" href="#mods-0"
+         aria-expanded="false" aria-controls="mods-0">
+         <h4 class="card-header bg-primary text-white">Modules</h4>
+      </a>
+      <div id="mods-0" class="collapse">
+        <div class="list-group list-group-flush">
+            <a class="list-group-item" href="../module/modfielddump.html">modfielddump</a>
+        </div>
+      </div>
+    </div>
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+    <div class="card card-primary">
+      <div class="card-header text-left"><h3 class="card-title">Source Code</h3></div>
+      <div class="list-group">
+        <a class="list-group-item" href="../sourcefile/modfielddump.f90.html#src">modfielddump.f90</a>
+      </div>
+    </div>
+
+
+  </div>
+
+    </div>
+    <div class="col-md-9" id='text'>
+      
+      <br>
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">This file depends on</h3>
+          </div>
+          <div class="card-body">
+            <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.50.0 (0)
+ -->
+<!-- Title: sourcefile~~modfielddump.f90~~EfferentGraph Pages: 1 -->
+<svg id="sourcefilemodfielddumpf90EfferentGraph" width="641pt" height="378pt"
+ viewBox="0.00 0.00 641.00 378.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph" class="graph" transform="scale(0.63 0.63) rotate(0) translate(4 596.75)">
+<title>sourcefile~~modfielddump.f90~~EfferentGraph</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-596.75 1014,-596.75 1014,4 -4,4"/>
+<!-- sourcefile~modfielddump.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_node1" class="node">
+<title>sourcefile~modfielddump.f90</title>
+<polygon fill="none" stroke="black" points="1010,-256.9 899,-256.9 899,-232.9 1010,-232.9 1010,-256.9"/>
+<text text-anchor="middle" x="954.5" y="-242.5" font-family="Helvetica,sans-Serif" font-size="10.50">modfielddump.f90</text>
+</g>
+<!-- sourcefile~modfields.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_node2" class="node">
+<title>sourcefile~modfields.f90</title>
+<g id="a_sourcefile~~modfielddump.f90~~EfferentGraph_node2"><a xlink:href="../sourcefile/modfields.f90.html" xlink:title="modfields.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="342,-453.9 257,-453.9 257,-429.9 342,-429.9 342,-453.9"/>
+<text text-anchor="middle" x="299.5" y="-439.5" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modfields.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modfielddump.f90&#45;&gt;sourcefile~modfields.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_edge1" class="edge">
+<title>sourcefile~modfielddump.f90&#45;&gt;sourcefile~modfields.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M952.92,-256.92C949.9,-304.64 931.65,-481.58 825.5,-551.9"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M823.5,-551.9C743.05,-605.2 448.05,-499.27 340.27,-457.67"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="341.32,-454.33 330.74,-453.97 338.79,-460.85 341.32,-454.33"/>
+</g>
+<!-- sourcefile~modglobal.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_node3" class="node">
+<title>sourcefile~modglobal.f90</title>
+<g id="a_sourcefile~~modfielddump.f90~~EfferentGraph_node3"><a xlink:href="../sourcefile/modglobal.f90.html" xlink:title="modglobal.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="203,-53.9 113,-53.9 113,-29.9 203,-29.9 203,-53.9"/>
+<text text-anchor="middle" x="158" y="-39.5" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modglobal.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modfielddump.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_edge2" class="edge">
+<title>sourcefile~modfielddump.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M823.5,-551.9C794.52,-575.07 662.78,-597.58 562,-589.9"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M560,-589.9C483.38,-586.05 287.89,-522.02 239,-462.9 187.6,-400.74 165.88,-141.84 160.44,-64.08"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="163.92,-63.71 159.75,-53.97 156.93,-64.19 163.92,-63.71"/>
+</g>
+<!-- sourcefile~modibm.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_node4" class="node">
+<title>sourcefile~modibm.f90</title>
+<g id="a_sourcefile~~modfielddump.f90~~EfferentGraph_node4"><a xlink:href="../sourcefile/modibm.f90.html" xlink:title="modibm.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="863,-256.9 786,-256.9 786,-232.9 863,-232.9 863,-256.9"/>
+<text text-anchor="middle" x="824.5" y="-242.5" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modibm.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modfielddump.f90&#45;&gt;sourcefile~modibm.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_edge3" class="edge">
+<title>sourcefile~modfielddump.f90&#45;&gt;sourcefile~modibm.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M898.85,-244.9C890.44,-244.9 881.81,-244.9 873.56,-244.9"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="873.35,-241.4 863.35,-244.9 873.35,-248.4 873.35,-241.4"/>
+</g>
+<!-- sourcefile~modmpi.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_node5" class="node">
+<title>sourcefile~modmpi.f90</title>
+<g id="a_sourcefile~~modfielddump.f90~~EfferentGraph_node5"><a xlink:href="../sourcefile/modmpi.f90.html" xlink:title="modmpi.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="77,-53.9 0,-53.9 0,-29.9 77,-29.9 77,-53.9"/>
+<text text-anchor="middle" x="38.5" y="-39.5" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modmpi.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modfielddump.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_edge4" class="edge">
+<title>sourcefile~modfielddump.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M560,-589.9C505.8,-588.36 492.14,-592.97 438,-589.9"/>
+</g>
+<!-- sourcefile~modstat_nc.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_node6" class="node">
+<title>sourcefile~modstat_nc.f90</title>
+<g id="a_sourcefile~~modfielddump.f90~~EfferentGraph_node6"><a xlink:href="../sourcefile/modstat_nc.f90.html" xlink:title="modstat_nc.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="608,-34.9 514,-34.9 514,-10.9 608,-10.9 608,-34.9"/>
+<text text-anchor="middle" x="561" y="-20.5" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modstat_nc.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modfielddump.f90&#45;&gt;sourcefile~modstat_nc.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_edge5" class="edge">
+<title>sourcefile~modfielddump.f90&#45;&gt;sourcefile~modstat_nc.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M947.85,-232.61C932.9,-201.63 889.04,-120.26 825.5,-83.9"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M823.5,-83.9C772.92,-54.96 750.27,-71.68 698,-45.9"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M696,-45.9C672,-34.07 642.97,-28.2 618.08,-25.34"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="618.35,-21.85 608.05,-24.33 617.65,-28.82 618.35,-21.85"/>
+</g>
+<!-- sourcefile~modsurfdata.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_node7" class="node">
+<title>sourcefile~modsurfdata.f90</title>
+<g id="a_sourcefile~~modfielddump.f90~~EfferentGraph_node7"><a xlink:href="../sourcefile/modsurfdata.f90.html" xlink:title="modsurfdata.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="350,-133.9 249,-133.9 249,-109.9 350,-109.9 350,-133.9"/>
+<text text-anchor="middle" x="299.5" y="-119.5" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modsurfdata.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modfielddump.f90&#45;&gt;sourcefile~modsurfdata.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_edge6" class="edge">
+<title>sourcefile~modfielddump.f90&#45;&gt;sourcefile~modsurfdata.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M823.5,-83.9C746.05,-39.59 480.53,-85.43 360.39,-109.33"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="359.38,-105.96 350.27,-111.36 360.76,-112.83 359.38,-105.96"/>
+</g>
+<!-- sourcefile~modfields.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_edge7" class="edge">
+<title>sourcefile~modfields.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M281.82,-429.73C268.25,-418.93 249.65,-401.95 239,-382.9 178.18,-274.17 163.47,-121.06 160.02,-64.26"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="163.5,-63.73 159.46,-53.93 156.51,-64.11 163.5,-63.73"/>
+</g>
+<!-- sourcefile~modglobal.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_edge8" class="edge">
+<title>sourcefile~modglobal.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#ffff00" stroke-dasharray="5,2" d="M112.91,-41.9C104.58,-41.9 95.83,-41.9 87.38,-41.9"/>
+<polygon fill="#ffff00" stroke="#ffff00" points="87.29,-38.4 77.29,-41.9 87.29,-45.4 87.29,-38.4"/>
+</g>
+<!-- sourcefile~modibm.f90&#45;&gt;sourcefile~modfields.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_edge11" class="edge">
+<title>sourcefile~modibm.f90&#45;&gt;sourcefile~modfields.f90</title>
+<path fill="none" stroke="#00ff00" stroke-dasharray="5,2" d="M809.28,-257.01C794.58,-269.45 770.9,-289.29 750,-305.9 687.92,-355.23 681.18,-383.37 608,-413.9 537.58,-443.28 513.99,-431 438,-437.9"/>
+</g>
+<!-- sourcefile~modibm.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_edge12" class="edge">
+<title>sourcefile~modibm.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#00ff00" stroke-dasharray="5,2" d="M436,-121.9C395.22,-106.17 281.14,-74.67 212.77,-56.24"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="213.59,-52.83 203.03,-53.62 211.78,-59.59 213.59,-52.83"/>
+</g>
+<!-- sourcefile~modibm.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_edge14" class="edge">
+<title>sourcefile~modibm.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#00ff00" stroke-dasharray="5,2" d="M817.4,-256.98C786.52,-316.27 640.84,-574.45 438,-589.9"/>
+<path fill="none" stroke="#00ff00" stroke-dasharray="5,2" d="M436,-589.9C398.71,-593.33 360.95,-607.44 239,-511.9 191.41,-474.62 203,-443.35 159,-401.9"/>
+</g>
+<!-- sourcefile~modibm.f90&#45;&gt;sourcefile~modstat_nc.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_edge15" class="edge">
+<title>sourcefile~modibm.f90&#45;&gt;sourcefile~modstat_nc.f90</title>
+<path fill="none" stroke="#00ff00" stroke-dasharray="5,2" d="M820.53,-232.68C810.76,-195.54 775.66,-84.21 698,-45.9"/>
+</g>
+<!-- sourcefile~modibm.f90&#45;&gt;sourcefile~modsurfdata.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_edge17" class="edge">
+<title>sourcefile~modibm.f90&#45;&gt;sourcefile~modsurfdata.f90</title>
+<path fill="none" stroke="#00ff00" stroke-dasharray="5,2" d="M436,-121.9C412.28,-112.76 384.44,-111.33 360.19,-112.74"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="359.75,-109.26 350.04,-113.5 360.27,-116.24 359.75,-109.26"/>
+</g>
+<!-- sourcefile~initfac.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_node8" class="node">
+<title>sourcefile~initfac.f90</title>
+<g id="a_sourcefile~~modfielddump.f90~~EfferentGraph_node8"><a xlink:href="../sourcefile/initfac.f90.html" xlink:title="initfac.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="332.5,-53.9 266.5,-53.9 266.5,-29.9 332.5,-29.9 332.5,-53.9"/>
+<text text-anchor="middle" x="299.5" y="-39.5" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">initfac.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modibm.f90&#45;&gt;sourcefile~initfac.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_edge9" class="edge">
+<title>sourcefile~modibm.f90&#45;&gt;sourcefile~initfac.f90</title>
+<path fill="none" stroke="#00ff00" stroke-dasharray="5,2" d="M785.72,-239.94C734.78,-233.1 641.31,-220 562,-205.9"/>
+<path fill="none" stroke="#00ff00" stroke-dasharray="5,2" d="M560,-205.9C496.31,-189.23 499.42,-145.6 438,-121.9"/>
+<path fill="none" stroke="#00ff00" stroke-dasharray="5,2" d="M436,-121.9C397.34,-106.99 396.06,-88.31 360,-67.9 353.94,-64.47 347.33,-61.18 340.8,-58.17"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="341.91,-54.83 331.36,-53.96 339.06,-61.22 341.91,-54.83"/>
+</g>
+<!-- sourcefile~modboundary.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_node9" class="node">
+<title>sourcefile~modboundary.f90</title>
+<g id="a_sourcefile~~modfielddump.f90~~EfferentGraph_node9"><a xlink:href="../sourcefile/modboundary.f90.html" xlink:title="modboundary.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="750,-296.9 644,-296.9 644,-272.9 750,-272.9 750,-296.9"/>
+<text text-anchor="middle" x="697" y="-282.5" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modboundary.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modibm.f90&#45;&gt;sourcefile~modboundary.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_edge10" class="edge">
+<title>sourcefile~modibm.f90&#45;&gt;sourcefile~modboundary.f90</title>
+<path fill="none" stroke="#00ff00" stroke-dasharray="5,2" d="M785.85,-256.91C773.3,-260.9 759.16,-265.41 745.94,-269.62"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="744.53,-266.4 736.06,-272.77 746.65,-273.07 744.53,-266.4"/>
+</g>
+<!-- sourcefile~modibmdata.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_node10" class="node">
+<title>sourcefile~modibmdata.f90</title>
+<g id="a_sourcefile~~modfielddump.f90~~EfferentGraph_node10"><a xlink:href="../sourcefile/modibmdata.f90.html" xlink:title="modibmdata.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="350,-175.9 249,-175.9 249,-151.9 350,-151.9 350,-175.9"/>
+<text text-anchor="middle" x="299.5" y="-161.5" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modibmdata.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modibm.f90&#45;&gt;sourcefile~modibmdata.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_edge13" class="edge">
+<title>sourcefile~modibm.f90&#45;&gt;sourcefile~modibmdata.f90</title>
+<path fill="none" stroke="#00ff00" stroke-dasharray="5,2" d="M436,-121.9C431.56,-120.19 383.02,-135.88 345.29,-148.57"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="343.83,-145.37 335.47,-151.88 346.07,-152 343.83,-145.37"/>
+</g>
+<!-- sourcefile~modsubgriddata.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_node11" class="node">
+<title>sourcefile~modsubgriddata.f90</title>
+<g id="a_sourcefile~~modfielddump.f90~~EfferentGraph_node11"><a xlink:href="../sourcefile/modsubgriddata.f90.html" xlink:title="modsubgriddata.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="360,-217.9 239,-217.9 239,-193.9 360,-193.9 360,-217.9"/>
+<text text-anchor="middle" x="299.5" y="-203.5" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modsubgriddata.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modibm.f90&#45;&gt;sourcefile~modsubgriddata.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_edge16" class="edge">
+<title>sourcefile~modibm.f90&#45;&gt;sourcefile~modsubgriddata.f90</title>
+<path fill="none" stroke="#00ff00" stroke-dasharray="5,2" d="M560,-205.9C496.45,-195.43 422.94,-196.66 370.42,-199.78"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="369.97,-196.3 360.21,-200.43 370.41,-203.29 369.97,-196.3"/>
+</g>
+<!-- sourcefile~modstat_nc.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_edge18" class="edge">
+<title>sourcefile~modstat_nc.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#0000ff" stroke-dasharray="5,2" d="M298.5,-1.9C263.36,-4.38 224.99,-16.08 197.4,-26.2"/>
+<polygon fill="#0000ff" stroke="#0000ff" points="195.87,-23.03 187.75,-29.83 198.34,-29.58 195.87,-23.03"/>
+</g>
+<!-- sourcefile~modstat_nc.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_edge19" class="edge">
+<title>sourcefile~modstat_nc.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#0000ff" stroke-dasharray="5,2" d="M513.61,-14.92C461.72,-6.97 375.12,3.34 300.5,-1.9"/>
+<path fill="none" stroke="#0000ff" stroke-dasharray="5,2" d="M298.5,-1.9C236.6,-5.35 220.74,3.75 159,-1.9"/>
+<path fill="none" stroke="#0000ff" stroke-dasharray="5,2" d="M157,-1.9C127.71,-4.59 96.25,-15.78 73.26,-25.65"/>
+<polygon fill="#0000ff" stroke="#0000ff" points="71.68,-22.52 63.96,-29.76 74.52,-28.92 71.68,-22.52"/>
+</g>
+<!-- sourcefile~initfac.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_edge20" class="edge">
+<title>sourcefile~initfac.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M266.5,-41.9C250.69,-41.9 231.18,-41.9 213.14,-41.9"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="213.01,-38.4 203.01,-41.9 213.01,-45.4 213.01,-38.4"/>
+</g>
+<!-- sourcefile~initfac.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_edge21" class="edge">
+<title>sourcefile~initfac.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M266.62,-29.84C232.3,-17.38 179.82,0 159,-1.9"/>
+</g>
+<!-- sourcefile~modboundary.f90&#45;&gt;sourcefile~modfields.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_edge23" class="edge">
+<title>sourcefile~modboundary.f90&#45;&gt;sourcefile~modfields.f90</title>
+<path fill="none" stroke="#7fff00" stroke-dasharray="5,2" d="M560,-399.9C510.42,-427.6 494.56,-432.77 438,-437.9"/>
+<path fill="none" stroke="#7fff00" stroke-dasharray="5,2" d="M436,-437.9C408.4,-440.41 377.51,-441.46 352.21,-441.86"/>
+<polygon fill="#7fff00" stroke="#7fff00" points="352.05,-438.36 342.09,-441.99 352.14,-445.36 352.05,-438.36"/>
+</g>
+<!-- sourcefile~modboundary.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_edge24" class="edge">
+<title>sourcefile~modboundary.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#7fff00" stroke-dasharray="5,2" d="M436,-243.9C348.31,-238.19 310.3,-278.28 239,-226.9 184.76,-187.83 166.92,-104.05 161.36,-64.05"/>
+<polygon fill="#7fff00" stroke="#7fff00" points="164.82,-63.48 160.1,-54 157.87,-64.36 164.82,-63.48"/>
+</g>
+<!-- sourcefile~modboundary.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_edge26" class="edge">
+<title>sourcefile~modboundary.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#7fff00" stroke-dasharray="5,2" d="M560,-399.9C522.32,-420.95 518.84,-437.96 478,-451.9 377.37,-486.27 339.74,-496.93 239,-462.9 196.64,-448.6 191.32,-432.8 159,-401.9"/>
+</g>
+<!-- sourcefile~modboundary.f90&#45;&gt;sourcefile~modsurfdata.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_edge28" class="edge">
+<title>sourcefile~modboundary.f90&#45;&gt;sourcefile~modsurfdata.f90</title>
+<path fill="none" stroke="#7fff00" stroke-dasharray="5,2" d="M656.73,-272.85C630.02,-264.66 593.89,-253.6 562,-243.9"/>
+<path fill="none" stroke="#7fff00" stroke-dasharray="5,2" d="M560,-243.9C464.72,-214.94 451.58,-182 360,-142.9 355.63,-141.04 351.04,-139.21 346.42,-137.44"/>
+<polygon fill="#7fff00" stroke="#7fff00" points="347.56,-134.13 336.97,-133.94 345.13,-140.7 347.56,-134.13"/>
+</g>
+<!-- sourcefile~modboundary.f90&#45;&gt;sourcefile~modsubgriddata.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_edge27" class="edge">
+<title>sourcefile~modboundary.f90&#45;&gt;sourcefile~modsubgriddata.f90</title>
+<path fill="none" stroke="#7fff00" stroke-dasharray="5,2" d="M560,-243.9C508.12,-228.14 492.11,-247.43 438,-243.9"/>
+<path fill="none" stroke="#7fff00" stroke-dasharray="5,2" d="M436,-243.9C402.6,-241.73 366.14,-231 339.47,-221.49"/>
+<polygon fill="#7fff00" stroke="#7fff00" points="340.34,-218.09 329.75,-217.93 337.93,-224.66 340.34,-218.09"/>
+</g>
+<!-- sourcefile~moddriver.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_node12" class="node">
+<title>sourcefile~moddriver.f90</title>
+<g id="a_sourcefile~~modfielddump.f90~~EfferentGraph_node12"><a xlink:href="../sourcefile/moddriver.f90.html" xlink:title="moddriver.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="604.5,-316.9 517.5,-316.9 517.5,-292.9 604.5,-292.9 604.5,-316.9"/>
+<text text-anchor="middle" x="561" y="-302.5" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">moddriver.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modboundary.f90&#45;&gt;sourcefile~moddriver.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_edge22" class="edge">
+<title>sourcefile~modboundary.f90&#45;&gt;sourcefile~moddriver.f90</title>
+<path fill="none" stroke="#7fff00" stroke-dasharray="5,2" d="M643.81,-292.69C634.31,-294.11 624.39,-295.59 614.88,-297.01"/>
+<polygon fill="#7fff00" stroke="#7fff00" points="614.12,-293.59 604.74,-298.52 615.15,-300.51 614.12,-293.59"/>
+</g>
+<!-- sourcefile~modinletdata.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_node13" class="node">
+<title>sourcefile~modinletdata.f90</title>
+<g id="a_sourcefile~~modfielddump.f90~~EfferentGraph_node13"><a xlink:href="../sourcefile/modinletdata.f90.html" xlink:title="modinletdata.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="351.5,-373.9 247.5,-373.9 247.5,-349.9 351.5,-349.9 351.5,-373.9"/>
+<text text-anchor="middle" x="299.5" y="-359.5" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modinletdata.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~modboundary.f90&#45;&gt;sourcefile~modinletdata.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_edge25" class="edge">
+<title>sourcefile~modboundary.f90&#45;&gt;sourcefile~modinletdata.f90</title>
+<path fill="none" stroke="#7fff00" stroke-dasharray="5,2" d="M685.96,-296.94C665.38,-320.74 615.78,-373.81 562,-399.9"/>
+<path fill="none" stroke="#7fff00" stroke-dasharray="5,2" d="M560,-399.9C484.95,-436.32 384.43,-401.16 333.32,-378.21"/>
+<polygon fill="#7fff00" stroke="#7fff00" points="334.62,-374.96 324.07,-373.95 331.69,-381.31 334.62,-374.96"/>
+</g>
+<!-- sourcefile~moddriver.f90&#45;&gt;sourcefile~modfields.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_edge29" class="edge">
+<title>sourcefile~moddriver.f90&#45;&gt;sourcefile~modfields.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M436,-399.9C409.04,-411.5 377.81,-421.4 352.14,-428.68"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="350.92,-425.38 342.23,-431.43 352.8,-432.12 350.92,-425.38"/>
+</g>
+<!-- sourcefile~moddriver.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_edge30" class="edge">
+<title>sourcefile~moddriver.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M517.41,-311.82C494,-315.55 464.42,-320.15 438,-323.9"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M436,-323.9C348.56,-336.32 306.57,-354.77 239,-297.9 167.46,-237.7 158.93,-114.42 158.58,-64.07"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="162.08,-63.97 158.61,-53.96 155.08,-63.94 162.08,-63.97"/>
+</g>
+<!-- sourcefile~moddriver.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_edge32" class="edge">
+<title>sourcefile~moddriver.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M548.56,-317.23C528.42,-338.08 484.36,-379.96 438,-399.9"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M436,-399.9C407.73,-412.07 181.42,-422.99 159,-401.9"/>
+</g>
+<!-- sourcefile~moddriver.f90&#45;&gt;sourcefile~modinletdata.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_edge31" class="edge">
+<title>sourcefile~moddriver.f90&#45;&gt;sourcefile~modinletdata.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M436,-323.9C404.47,-328.38 369.92,-338.15 343.6,-346.66"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="342.34,-343.39 333.94,-349.85 344.53,-350.04 342.34,-343.39"/>
+</g>
+<!-- sourcefile~modsave.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_node14" class="node">
+<title>sourcefile~modsave.f90</title>
+<g id="a_sourcefile~~modfielddump.f90~~EfferentGraph_node14"><a xlink:href="../sourcefile/modsave.f90.html" xlink:title="modsave.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="478,-295.9 396,-295.9 396,-271.9 478,-271.9 478,-295.9"/>
+<text text-anchor="middle" x="437" y="-281.5" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modsave.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~moddriver.f90&#45;&gt;sourcefile~modsave.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_edge33" class="edge">
+<title>sourcefile~moddriver.f90&#45;&gt;sourcefile~modsave.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M517.33,-297.56C507.95,-295.94 497.92,-294.22 488.27,-292.56"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="488.84,-289.1 478.39,-290.86 487.65,-296 488.84,-289.1"/>
+</g>
+<!-- sourcefile~modsave.f90&#45;&gt;sourcefile~modfields.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_edge35" class="edge">
+<title>sourcefile~modsave.f90&#45;&gt;sourcefile~modfields.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M412.77,-296.03C406.8,-299.9 400.73,-304.58 396,-309.9 371.98,-336.95 381.13,-353.54 360,-382.9 349.44,-397.58 335.1,-411.92 323.15,-422.78"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="320.49,-420.46 315.33,-429.71 325.14,-425.7 320.49,-420.46"/>
+</g>
+<!-- sourcefile~modsave.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_edge36" class="edge">
+<title>sourcefile~modsave.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M395.83,-288.19C368.63,-290.05 332.04,-290.51 300.5,-283.9"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M298.5,-283.9C270.59,-278.06 258.84,-280.38 239,-259.9 184.55,-203.7 166.68,-107.4 161.22,-64.12"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="164.68,-63.61 160.06,-54.08 157.73,-64.42 164.68,-63.61"/>
+</g>
+<!-- sourcefile~modsave.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_edge39" class="edge">
+<title>sourcefile~modsave.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M298.5,-283.9C219.02,-267.26 218.16,-457.53 159,-401.9"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M157,-401.9C56.9,-307.78 41.93,-127.41 39.81,-64.34"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="43.3,-63.88 39.54,-53.98 36.3,-64.06 43.3,-63.88"/>
+</g>
+<!-- sourcefile~modsave.f90&#45;&gt;sourcefile~modsurfdata.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_edge41" class="edge">
+<title>sourcefile~modsave.f90&#45;&gt;sourcefile~modsurfdata.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M411.37,-271.7C405.68,-267.93 400.1,-263.32 396,-257.9 363.63,-215.23 397.18,-181.45 360,-142.9 358.93,-141.8 357.8,-140.75 356.62,-139.75"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="358.38,-136.72 348.16,-133.96 354.43,-142.49 358.38,-136.72"/>
+</g>
+<!-- sourcefile~modsave.f90&#45;&gt;sourcefile~initfac.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_edge34" class="edge">
+<title>sourcefile~modsave.f90&#45;&gt;sourcefile~initfac.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M410.66,-271.64C405.12,-267.91 399.8,-263.34 396,-257.9 354.99,-199.22 394.79,-163.47 360,-100.9 351.3,-85.26 337.22,-71.02 324.94,-60.46"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="327.14,-57.74 317.2,-54.06 322.68,-63.13 327.14,-57.74"/>
+</g>
+<!-- sourcefile~modsave.f90&#45;&gt;sourcefile~modibmdata.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_edge37" class="edge">
+<title>sourcefile~modsave.f90&#45;&gt;sourcefile~modibmdata.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M412.77,-271.78C406.8,-267.91 400.73,-263.23 396,-257.9 371.98,-230.86 387.05,-208.92 360,-184.9 358.53,-183.6 356.96,-182.37 355.34,-181.21"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="357.1,-178.19 346.72,-176.05 353.5,-184.19 357.1,-178.19"/>
+</g>
+<!-- sourcefile~modsave.f90&#45;&gt;sourcefile~modsubgriddata.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_edge40" class="edge">
+<title>sourcefile~modsave.f90&#45;&gt;sourcefile~modsubgriddata.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M415.13,-271.89C392.51,-258.87 356.24,-237.99 330.56,-223.21"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="332.03,-220.02 321.62,-218.06 328.54,-226.09 332.03,-220.02"/>
+</g>
+<!-- sourcefile~modsave.f90&#45;&gt;sourcefile~modinletdata.f90 -->
+<g id="sourcefile~~modfielddump.f90~~EfferentGraph_edge38" class="edge">
+<title>sourcefile~modsave.f90&#45;&gt;sourcefile~modinletdata.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M415.13,-295.92C392.51,-308.94 356.24,-329.82 330.56,-344.6"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="328.54,-341.72 321.62,-349.75 332.03,-347.79 328.54,-341.72"/>
+</g>
+</g>
+</svg>
+</div>                <script>
+                  var pansourcefilemodfielddumpf90EfferentGraph = svgPanZoom('#sourcefilemodfielddumpf90EfferentGraph',
+                    {zoomEnabled: true, controlIconsEnabled: true, fit: true, center: true,}
+                  );
+                </script>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#EfferentGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="EfferentGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.50.0 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="202pt" height="32pt"
+ viewBox="0.00 0.00 201.50 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-28 197.5,-28 197.5,4 -4,4"/>
+<!-- Source File -->
+<g id="node1" class="node">
+<title>Source File</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="70,-24 0,-24 0,0 70,0 70,-24"/>
+<text text-anchor="middle" x="35" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Source File</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node2" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="193.5,-24 88.5,-24 88.5,0 193.5,0 193.5,-24"/>
+<text text-anchor="middle" x="141" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a file to a file which it depends on. A file
+is dependent upon another if the latter must be compiled before the former
+can be.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Files dependent on this one</h3>
+          </div>
+          <div class="card-body">
+            <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.50.0 (0)
+ -->
+<!-- Title: sourcefile~~modfielddump.f90~~AfferentGraph Pages: 1 -->
+<svg id="sourcefilemodfielddumpf90AfferentGraph" width="234pt" height="32pt"
+ viewBox="0.00 0.00 234.00 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="sourcefile~~modfielddump.f90~~AfferentGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 28)">
+<title>sourcefile~~modfielddump.f90~~AfferentGraph</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-28 230,-28 230,4 -4,4"/>
+<!-- sourcefile~modfielddump.f90 -->
+<g id="sourcefile~~modfielddump.f90~~AfferentGraph_node1" class="node">
+<title>sourcefile~modfielddump.f90</title>
+<polygon fill="none" stroke="black" points="111,-24 0,-24 0,0 111,0 111,-24"/>
+<text text-anchor="middle" x="55.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50">modfielddump.f90</text>
+</g>
+<!-- sourcefile~program.f90 -->
+<g id="sourcefile~~modfielddump.f90~~AfferentGraph_node2" class="node">
+<title>sourcefile~program.f90</title>
+<g id="a_sourcefile~~modfielddump.f90~~AfferentGraph_node2"><a xlink:href="../sourcefile/program.f90.html" xlink:title="program.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="226,-24 147,-24 147,0 226,0 226,-24"/>
+<text text-anchor="middle" x="186.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">program.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~program.f90&#45;&gt;sourcefile~modfielddump.f90 -->
+<g id="sourcefile~~modfielddump.f90~~AfferentGraph_edge1" class="edge">
+<title>sourcefile~program.f90&#45;&gt;sourcefile~modfielddump.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M146.8,-12C138.79,-12 130.16,-12 121.51,-12"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="121.39,-8.5 111.39,-12 121.39,-15.5 121.39,-8.5"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#AfferentGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="AfferentGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.50.0 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="202pt" height="32pt"
+ viewBox="0.00 0.00 201.50 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-28 197.5,-28 197.5,4 -4,4"/>
+<!-- Source File -->
+<g id="node1" class="node">
+<title>Source File</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="70,-24 0,-24 0,0 70,0 70,-24"/>
+<text text-anchor="middle" x="35" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Source File</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node2" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="193.5,-24 88.5,-24 88.5,0 193.5,0 193.5,-24"/>
+<text text-anchor="middle" x="141" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a file to a file which it depends on. A file
+is dependent upon another if the latter must be compiled before the former
+can be.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+          </div>
+        </div>
+<br>
+      <section>
+        <h2><span class="anchor" id="src"></span>Source Code</h2>
+        <div class="hl codehilite"><pre><span></span><a id="ln-1" name="ln-1" href="#ln-1"></a><span class="c">!&gt; \file modfielddump.f90</span>
+<a id="ln-2" name="ln-2" href="#ln-2"></a><span class="c">!!  Dumps 3D fields of several variables</span>
+<a id="ln-3" name="ln-3" href="#ln-3"></a><span class="c">!&gt;</span>
+<a id="ln-4" name="ln-4" href="#ln-4"></a><span class="c">!!  Dumps 3D fields of several variables Written to wb*.myid.expnr</span>
+<a id="ln-5" name="ln-5" href="#ln-5"></a><span class="c">!! If netcdf is true, this module leads the fielddump.myid.expnr.nc output</span>
+<a id="ln-6" name="ln-6" href="#ln-6"></a><span class="c">!!  \author Jasper Tomas, TU Delft Match 31 2014</span>
+<a id="ln-7" name="ln-7" href="#ln-7"></a><span class="c">!!  \author Thijs Heus,MPI-M</span>
+<a id="ln-8" name="ln-8" href="#ln-8"></a><span class="c">!!  \par Revision list</span>
+<a id="ln-9" name="ln-9" href="#ln-9"></a><span class="c">!! Possibility to write tecplot (formatted!!) file</span>
+<a id="ln-10" name="ln-10" href="#ln-10"></a><span class="c">!</span>
+<a id="ln-11" name="ln-11" href="#ln-11"></a><span class="c">!  This file is part of DALES.</span>
+<a id="ln-12" name="ln-12" href="#ln-12"></a><span class="c">!</span>
+<a id="ln-13" name="ln-13" href="#ln-13"></a><span class="c">! DALES is free software; you can redistribute it and/or modify</span>
+<a id="ln-14" name="ln-14" href="#ln-14"></a><span class="c">! it under the terms of the GNU General Public License as published by</span>
+<a id="ln-15" name="ln-15" href="#ln-15"></a><span class="c">! the Free Software Foundation; either version 3 of the License, or</span>
+<a id="ln-16" name="ln-16" href="#ln-16"></a><span class="c">! (at your option) any later version.</span>
+<a id="ln-17" name="ln-17" href="#ln-17"></a><span class="c">!</span>
+<a id="ln-18" name="ln-18" href="#ln-18"></a><span class="c">! DALES is distributed in the hope that it will be useful,</span>
+<a id="ln-19" name="ln-19" href="#ln-19"></a><span class="c">! but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<a id="ln-20" name="ln-20" href="#ln-20"></a><span class="c">! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</span>
+<a id="ln-21" name="ln-21" href="#ln-21"></a><span class="c">! GNU General Public License for more details.</span>
+<a id="ln-22" name="ln-22" href="#ln-22"></a><span class="c">!</span>
+<a id="ln-23" name="ln-23" href="#ln-23"></a><span class="c">! You should have received a copy of the GNU General Public License</span>
+<a id="ln-24" name="ln-24" href="#ln-24"></a><span class="c">! along with this program.  If not, see &lt;http://www.gnu.org/licenses/&gt;.</span>
+<a id="ln-25" name="ln-25" href="#ln-25"></a><span class="c">!</span>
+<a id="ln-26" name="ln-26" href="#ln-26"></a><span class="c">!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI</span>
+<a id="ln-27" name="ln-27" href="#ln-27"></a><span class="c">!</span>
+<a id="ln-28" name="ln-28" href="#ln-28"></a><span class="k">module </span><span class="n">modfielddump</span>
+<a id="ln-29" name="ln-29" href="#ln-29"></a>
+<a id="ln-30" name="ln-30" href="#ln-30"></a><span class="w">  </span><span class="k">use </span><span class="n">mpi</span>
+<a id="ln-31" name="ln-31" href="#ln-31"></a><span class="w">  </span><span class="k">use </span><span class="n">modglobal</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">longint</span>
+<a id="ln-32" name="ln-32" href="#ln-32"></a><span class="w">  </span><span class="k">use </span><span class="n">modfields</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">ncname</span><span class="p">,</span><span class="w"> </span><span class="n">ncname1</span><span class="p">,</span><span class="w"> </span><span class="n">ncname2</span>
+<a id="ln-33" name="ln-33" href="#ln-33"></a><span class="w">  </span><span class="k">implicit none</span>
+<a id="ln-34" name="ln-34" href="#ln-34"></a><span class="k">  private</span>
+<a id="ln-35" name="ln-35" href="#ln-35"></a><span class="k">  PUBLIC</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">initfielddump</span><span class="p">,</span><span class="w"> </span><span class="n">fielddump</span><span class="p">,</span><span class="n">exitfielddump</span>
+<a id="ln-36" name="ln-36" href="#ln-36"></a><span class="w">  </span><span class="k">save</span>
+<a id="ln-37" name="ln-37" href="#ln-37"></a><span class="w">  </span><span class="c">!NetCDF variables</span>
+<a id="ln-38" name="ln-38" href="#ln-38"></a><span class="w">  </span><span class="kt">integer</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">ncid</span><span class="p">,</span><span class="n">ncid1</span><span class="p">,</span><span class="n">ncid2</span><span class="p">,</span><span class="n">nrec</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span>
+<a id="ln-39" name="ln-39" href="#ln-39"></a><span class="c">!  real, pointer :: point</span>
+<a id="ln-40" name="ln-40" href="#ln-40"></a><span class="w">  </span><span class="k">type </span><span class="n">domainptr</span>
+<a id="ln-41" name="ln-41" href="#ln-41"></a><span class="w">    </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">pointer</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">point</span><span class="p">(:,:,:)</span>
+<a id="ln-42" name="ln-42" href="#ln-42"></a><span class="w">  </span><span class="k">end type </span><span class="n">domainptr</span>
+<a id="ln-43" name="ln-43" href="#ln-43"></a><span class="w">  </span><span class="k">type</span><span class="p">(</span><span class="n">domainptr</span><span class="p">),</span><span class="w"> </span><span class="k">dimension</span><span class="p">(</span><span class="mi">30</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">pfields</span>
+<a id="ln-44" name="ln-44" href="#ln-44"></a>
+<a id="ln-45" name="ln-45" href="#ln-45"></a><span class="w">  </span><span class="kt">character</span><span class="p">(</span><span class="mi">80</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">fname</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;fielddump.xxx.xxx.xxx.nc&#39;</span>
+<a id="ln-46" name="ln-46" href="#ln-46"></a><span class="w">  </span><span class="kt">character</span><span class="p">(</span><span class="mi">80</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">fname1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;fielddump.xxx.xxx.xxx.1.nc&#39;</span>
+<a id="ln-47" name="ln-47" href="#ln-47"></a><span class="w">  </span><span class="kt">character</span><span class="p">(</span><span class="mi">80</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">fname2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;fielddump.xxx.xxx.xxx.2.nc&#39;</span>
+<a id="ln-48" name="ln-48" href="#ln-48"></a><span class="w">  </span><span class="c">!dimension(nvar,4) :: ncname</span>
+<a id="ln-49" name="ln-49" href="#ln-49"></a><span class="w">  </span><span class="kt">character</span><span class="p">(</span><span class="mi">80</span><span class="p">),</span><span class="k">dimension</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">4</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">tncname</span>
+<a id="ln-50" name="ln-50" href="#ln-50"></a><span class="w">  </span><span class="kt">character</span><span class="p">(</span><span class="mi">80</span><span class="p">),</span><span class="k">dimension</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">4</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">tncname1</span>
+<a id="ln-51" name="ln-51" href="#ln-51"></a><span class="w">  </span><span class="kt">character</span><span class="p">(</span><span class="mi">80</span><span class="p">),</span><span class="k">dimension</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">4</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">tncname2</span>
+<a id="ln-52" name="ln-52" href="#ln-52"></a>
+<a id="ln-53" name="ln-53" href="#ln-53"></a><span class="w">  </span><span class="kt">integer</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">ilow</span><span class="p">,</span><span class="n">ihigh</span><span class="p">,</span><span class="n">jlow</span><span class="p">,</span><span class="n">jhigh</span><span class="p">,</span><span class="n">klow</span><span class="p">,</span><span class="n">khigh</span><span class="p">,</span><span class="n">nvar</span>
+<a id="ln-54" name="ln-54" href="#ln-54"></a><span class="w">  </span><span class="kt">logical</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">ldiracc</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span><span class="w"> </span><span class="c">!&lt; switch for doing direct access writing (on/off)</span>
+<a id="ln-55" name="ln-55" href="#ln-55"></a><span class="w">  </span><span class="kt">logical</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">lbinary</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span><span class="w"> </span><span class="c">!</span>
+<a id="ln-56" name="ln-56" href="#ln-56"></a><span class="w">  </span><span class="kt">logical</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">lhalos</span>
+<a id="ln-57" name="ln-57" href="#ln-57"></a>
+<a id="ln-58" name="ln-58" href="#ln-58"></a><span class="k">contains</span>
+<a id="ln-59" name="ln-59" href="#ln-59"></a><span class="w"> </span><span class="c">!&gt; Initializing fielddump. Read out the namelist, initializing the variables</span>
+<a id="ln-60" name="ln-60" href="#ln-60"></a><span class="w">  </span><span class="k">subroutine </span><span class="n">initfielddump</span>
+<a id="ln-61" name="ln-61" href="#ln-61"></a><span class="w">    </span><span class="k">use </span><span class="n">modmpi</span><span class="p">,</span><span class="w">   </span><span class="k">only</span><span class="w">   </span><span class="p">:</span><span class="n">myid</span><span class="p">,</span><span class="n">my_real</span><span class="p">,</span><span class="n">mpierr</span><span class="p">,</span><span class="n">comm3d</span><span class="p">,</span><span class="n">mpi_logical</span><span class="p">,</span><span class="n">mpi_integer</span><span class="p">,</span><span class="n">cmyidx</span><span class="p">,</span><span class="n">cmyidy</span><span class="p">,</span><span class="n">mpi_character</span>
+<a id="ln-62" name="ln-62" href="#ln-62"></a><span class="w">    </span><span class="k">use </span><span class="n">modglobal</span><span class="p">,</span><span class="k">only</span><span class="w">   </span><span class="p">:</span><span class="n">imax</span><span class="p">,</span><span class="n">jmax</span><span class="p">,</span><span class="n">kmax</span><span class="p">,</span><span class="n">imax1</span><span class="p">,</span><span class="n">jmax1</span><span class="p">,</span><span class="n">kmax1</span><span class="p">,</span><span class="n">imax2</span><span class="p">,</span><span class="n">jmax2</span><span class="p">,</span><span class="n">kmax2</span><span class="p">,</span><span class="n">cexpnr</span><span class="p">,</span><span class="n">ifnamopt</span><span class="p">,</span><span class="n">fname_options</span><span class="p">,</span><span class="n">dtmax</span><span class="p">,</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="p">,</span><span class="w"> </span><span class="n">ladaptive</span><span class="p">,</span><span class="n">dt_lim</span><span class="p">,</span><span class="n">btime</span><span class="p">,</span><span class="n">nsv</span><span class="p">,</span><span class="n">fieldvars</span><span class="p">,</span><span class="n">ib</span><span class="p">,</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="p">,</span><span class="w"> </span><span class="n">ih</span><span class="p">,</span><span class="n">jh</span><span class="p">,</span><span class="n">lfielddump</span><span class="p">,</span><span class="n">ktot</span><span class="p">,</span><span class="n">kh</span>
+<a id="ln-63" name="ln-63" href="#ln-63"></a><span class="w">    </span><span class="k">use </span><span class="n">modstat_nc</span><span class="p">,</span><span class="k">only</span><span class="w">  </span><span class="p">:</span><span class="w"> </span><span class="n">open_nc</span><span class="p">,</span><span class="w"> </span><span class="n">define_nc</span><span class="p">,</span><span class="n">ncinfo</span><span class="p">,</span><span class="n">writestat_dims_nc</span>
+<a id="ln-64" name="ln-64" href="#ln-64"></a><span class="w">    </span><span class="k">use </span><span class="n">modfields</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w">  </span><span class="p">:</span><span class="w"> </span><span class="n">u0</span><span class="p">,</span><span class="n">v0</span><span class="p">,</span><span class="n">w0</span><span class="p">,</span><span class="n">thl0</span><span class="p">,</span><span class="n">sv0</span><span class="p">,</span><span class="n">ql0</span><span class="p">,</span><span class="n">qt0</span><span class="p">,</span><span class="n">pres0</span><span class="p">,</span><span class="n">div</span><span class="p">,</span><span class="n">dudx</span><span class="p">,</span><span class="n">dvdy</span><span class="p">,</span><span class="n">dwdz</span><span class="p">,</span><span class="n">ru</span><span class="p">,</span><span class="n">rv</span><span class="p">,</span><span class="n">rw</span><span class="p">,</span><span class="n">tau_x</span><span class="p">,</span><span class="w"> </span><span class="n">tau_y</span><span class="p">,</span><span class="w"> </span><span class="n">tau_z</span><span class="p">,</span><span class="w"> </span><span class="n">thl_flux</span>
+<a id="ln-65" name="ln-65" href="#ln-65"></a><span class="w">    </span><span class="k">use </span><span class="n">modpois</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">p</span><span class="p">,</span><span class="w"> </span><span class="n">pup</span><span class="p">,</span><span class="n">pvp</span><span class="p">,</span><span class="n">pwp</span><span class="p">,</span><span class="w"> </span><span class="n">rhs</span><span class="p">,</span><span class="w"> </span><span class="n">dpupdx</span><span class="p">,</span><span class="w"> </span><span class="n">dpvpdy</span><span class="p">,</span><span class="w"> </span><span class="n">dpwpdz</span><span class="p">,</span><span class="w"> </span><span class="n">xyzrt</span><span class="p">,</span><span class="w"> </span><span class="n">Fxy</span><span class="p">,</span><span class="w"> </span><span class="n">Fxyz</span>
+<a id="ln-66" name="ln-66" href="#ln-66"></a><span class="w">    </span><span class="k">use </span><span class="n">modibm</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">mask_u</span><span class="p">,</span><span class="w"> </span><span class="n">mask_v</span><span class="p">,</span><span class="w"> </span><span class="n">mask_w</span><span class="p">,</span><span class="w"> </span><span class="n">mask_c</span>
+<a id="ln-67" name="ln-67" href="#ln-67"></a><span class="w">    </span><span class="k">implicit none</span>
+<a id="ln-68" name="ln-68" href="#ln-68"></a><span class="k">    </span><span class="kt">integer</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">ierr</span><span class="p">,</span><span class="w"> </span><span class="n">n</span>
+<a id="ln-69" name="ln-69" href="#ln-69"></a>
+<a id="ln-70" name="ln-70" href="#ln-70"></a><span class="w">    </span><span class="c">!type(domainptr), dimension(nvar) :: pfields</span>
+<a id="ln-71" name="ln-71" href="#ln-71"></a>
+<a id="ln-72" name="ln-72" href="#ln-72"></a><span class="w">    </span><span class="n">nvar</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="nb">LEN</span><span class="p">(</span><span class="nb">trim</span><span class="p">(</span><span class="n">fieldvars</span><span class="p">))</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="mi">3</span>
+<a id="ln-73" name="ln-73" href="#ln-73"></a>
+<a id="ln-74" name="ln-74" href="#ln-74"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">nvar</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<a id="ln-75" name="ln-75" href="#ln-75"></a><span class="k">      </span><span class="n">lfielddump</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<a id="ln-76" name="ln-76" href="#ln-76"></a><span class="w">      </span><span class="k">print</span><span class="w"> </span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;empty fieldvars therefore lfielddump = .false. and no instantaneous fields outputted&#39;</span>
+<a id="ln-77" name="ln-77" href="#ln-77"></a><span class="w">      </span><span class="k">return</span>
+<a id="ln-78" name="ln-78" href="#ln-78"></a><span class="k">    else</span>
+<a id="ln-79" name="ln-79" href="#ln-79"></a><span class="k">      allocate</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="n">nvar</span><span class="p">,</span><span class="mi">4</span><span class="p">))</span>
+<a id="ln-80" name="ln-80" href="#ln-80"></a><span class="w">    </span><span class="k">end if</span>
+<a id="ln-81" name="ln-81" href="#ln-81"></a>
+<a id="ln-82" name="ln-82" href="#ln-82"></a>
+<a id="ln-83" name="ln-83" href="#ln-83"></a>
+<a id="ln-84" name="ln-84" href="#ln-84"></a>
+<a id="ln-85" name="ln-85" href="#ln-85"></a><span class="k">    </span><span class="n">lhalos</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<a id="ln-86" name="ln-86" href="#ln-86"></a>
+<a id="ln-87" name="ln-87" href="#ln-87"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">lhalos</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<a id="ln-88" name="ln-88" href="#ln-88"></a><span class="k">      </span><span class="n">ilow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span>
+<a id="ln-89" name="ln-89" href="#ln-89"></a><span class="w">      </span><span class="n">ihigh</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span>
+<a id="ln-90" name="ln-90" href="#ln-90"></a><span class="w">      </span><span class="n">jlow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span>
+<a id="ln-91" name="ln-91" href="#ln-91"></a><span class="w">      </span><span class="n">jhigh</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">je</span><span class="o">+</span><span class="n">jh</span>
+<a id="ln-92" name="ln-92" href="#ln-92"></a><span class="w">      </span><span class="n">klow</span><span class="o">=</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span>
+<a id="ln-93" name="ln-93" href="#ln-93"></a><span class="w">      </span><span class="n">khigh</span><span class="o">=</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span>
+<a id="ln-94" name="ln-94" href="#ln-94"></a><span class="w">    </span><span class="k">else</span>
+<a id="ln-95" name="ln-95" href="#ln-95"></a><span class="k">      </span><span class="n">ilow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ib</span>
+<a id="ln-96" name="ln-96" href="#ln-96"></a><span class="w">      </span><span class="n">ihigh</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ie</span>
+<a id="ln-97" name="ln-97" href="#ln-97"></a><span class="w">      </span><span class="n">jlow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jb</span>
+<a id="ln-98" name="ln-98" href="#ln-98"></a><span class="w">      </span><span class="n">jhigh</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">je</span>
+<a id="ln-99" name="ln-99" href="#ln-99"></a><span class="w">      </span><span class="n">klow</span><span class="o">=</span><span class="n">kb</span>
+<a id="ln-100" name="ln-100" href="#ln-100"></a><span class="w">      </span><span class="n">khigh</span><span class="o">=</span><span class="n">ke</span>
+<a id="ln-101" name="ln-101" href="#ln-101"></a><span class="w">    </span><span class="k">end if</span>
+<a id="ln-102" name="ln-102" href="#ln-102"></a>
+<a id="ln-103" name="ln-103" href="#ln-103"></a>
+<a id="ln-104" name="ln-104" href="#ln-104"></a><span class="c">!ils13 13.08.18: why is this broadcast, doesn&#39;t every processor do it anyway?</span>
+<a id="ln-105" name="ln-105" href="#ln-105"></a><span class="w">    </span><span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">klow</span><span class="w">        </span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">MPI_INTEGER</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="n">comm3d</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+<a id="ln-106" name="ln-106" href="#ln-106"></a><span class="w">    </span><span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">khigh</span><span class="w">       </span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">MPI_INTEGER</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="n">comm3d</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+<a id="ln-107" name="ln-107" href="#ln-107"></a><span class="w">    </span><span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">lfielddump</span><span class="w">  </span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">MPI_LOGICAL</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="n">comm3d</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+<a id="ln-108" name="ln-108" href="#ln-108"></a><span class="w">    </span><span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">ldiracc</span><span class="w">     </span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">MPI_LOGICAL</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="n">comm3d</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+<a id="ln-109" name="ln-109" href="#ln-109"></a><span class="w">    </span><span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">lbinary</span><span class="w">     </span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">MPI_LOGICAL</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="n">comm3d</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+<a id="ln-110" name="ln-110" href="#ln-110"></a><span class="w">    </span><span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">ncname</span><span class="w">     </span><span class="p">,</span><span class="mi">80</span><span class="p">,</span><span class="n">MPI_CHARACTER</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="n">comm3d</span><span class="p">,</span><span class="n">mpierr</span><span class="p">)</span>
+<a id="ln-111" name="ln-111" href="#ln-111"></a><span class="w">    </span><span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">nvar</span><span class="w">       </span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">MPI_INTEGER</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="n">comm3d</span><span class="p">,</span><span class="n">mpierr</span><span class="p">)</span>
+<a id="ln-112" name="ln-112" href="#ln-112"></a>
+<a id="ln-113" name="ln-113" href="#ln-113"></a><span class="w">    </span><span class="c">!    dt_lim = min(dt_lim,tnext)</span>
+<a id="ln-114" name="ln-114" href="#ln-114"></a>
+<a id="ln-115" name="ln-115" href="#ln-115"></a><span class="w">    </span><span class="k">if</span><span class="p">(.</span><span class="nb">not</span><span class="p">.(</span><span class="n">lfielddump</span><span class="p">))</span><span class="w"> </span><span class="k">return</span>
+<a id="ln-116" name="ln-116" href="#ln-116"></a>
+<a id="ln-117" name="ln-117" href="#ln-117"></a><span class="k">    </span><span class="n">fname</span><span class="p">(</span><span class="mi">11</span><span class="p">:</span><span class="mi">13</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cmyidx</span>
+<a id="ln-118" name="ln-118" href="#ln-118"></a><span class="w">    </span><span class="n">fname</span><span class="p">(</span><span class="mi">15</span><span class="p">:</span><span class="mi">17</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cmyidy</span>
+<a id="ln-119" name="ln-119" href="#ln-119"></a><span class="w">    </span><span class="n">fname</span><span class="p">(</span><span class="mi">19</span><span class="p">:</span><span class="mi">21</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cexpnr</span>
+<a id="ln-120" name="ln-120" href="#ln-120"></a><span class="w">    </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">tncname</span><span class="p">(</span><span class="mi">1</span><span class="p">,:),</span><span class="s1">&#39;time&#39;</span><span class="p">,</span><span class="s1">&#39;Time&#39;</span><span class="p">,</span><span class="s1">&#39;s&#39;</span><span class="p">,</span><span class="s1">&#39;time&#39;</span><span class="p">)</span>
+<a id="ln-121" name="ln-121" href="#ln-121"></a>
+<a id="ln-122" name="ln-122" href="#ln-122"></a><span class="w">    </span><span class="c">! tg3315 reads in fields specified by fieldvars</span>
+<a id="ln-123" name="ln-123" href="#ln-123"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">lhalos</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<a id="ln-124" name="ln-124" href="#ln-124"></a>
+<a id="ln-125" name="ln-125" href="#ln-125"></a><span class="k">    do </span><span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">nvar</span>
+<a id="ln-126" name="ln-126" href="#ln-126"></a><span class="w">      </span><span class="k">select case</span><span class="p">(</span><span class="n">fieldvars</span><span class="p">(</span><span class="mi">3</span><span class="o">*</span><span class="n">n</span><span class="o">-</span><span class="mi">2</span><span class="p">:</span><span class="mi">3</span><span class="o">*</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+<a id="ln-127" name="ln-127" href="#ln-127"></a><span class="w">      </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;u0&#39;</span><span class="p">)</span>
+<a id="ln-128" name="ln-128" href="#ln-128"></a><span class="w">        </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;u&#39;</span><span class="p">,</span><span class="s1">&#39;West-East velocity&#39;</span><span class="p">,</span><span class="s1">&#39;m/s&#39;</span><span class="p">,</span><span class="s1">&#39;mttt&#39;</span><span class="p">)</span>
+<a id="ln-129" name="ln-129" href="#ln-129"></a><span class="w">        </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">u0</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<a id="ln-130" name="ln-130" href="#ln-130"></a><span class="w">      </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;v0&#39;</span><span class="p">)</span>
+<a id="ln-131" name="ln-131" href="#ln-131"></a><span class="w">        </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;v&#39;</span><span class="p">,</span><span class="s1">&#39;South-North velocity&#39;</span><span class="p">,</span><span class="s1">&#39;m/s&#39;</span><span class="p">,</span><span class="s1">&#39;tmtt&#39;</span><span class="p">)</span>
+<a id="ln-132" name="ln-132" href="#ln-132"></a><span class="w">        </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">v0</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<a id="ln-133" name="ln-133" href="#ln-133"></a><span class="w">      </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;w0&#39;</span><span class="p">)</span>
+<a id="ln-134" name="ln-134" href="#ln-134"></a><span class="w">        </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;w&#39;</span><span class="p">,</span><span class="s1">&#39;Vertical velocity&#39;</span><span class="p">,</span><span class="s1">&#39;m/s&#39;</span><span class="p">,</span><span class="s1">&#39;ttmt&#39;</span><span class="p">)</span>
+<a id="ln-135" name="ln-135" href="#ln-135"></a><span class="w">        </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">w0</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<a id="ln-136" name="ln-136" href="#ln-136"></a><span class="w">      </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;th&#39;</span><span class="p">)</span>
+<a id="ln-137" name="ln-137" href="#ln-137"></a><span class="w">        </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;thl&#39;</span><span class="p">,</span><span class="s1">&#39;Liquid water potential temperature&#39;</span><span class="p">,</span><span class="s1">&#39;K&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="p">)</span>
+<a id="ln-138" name="ln-138" href="#ln-138"></a><span class="w">        </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">thl0</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<a id="ln-139" name="ln-139" href="#ln-139"></a><span class="w">      </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;ql&#39;</span><span class="p">)</span>
+<a id="ln-140" name="ln-140" href="#ln-140"></a><span class="w">        </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;ql&#39;</span><span class="p">,</span><span class="s1">&#39;Liquid water mixing ratio&#39;</span><span class="p">,</span><span class="s1">&#39;1e-5kg/kg&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="p">)</span>
+<a id="ln-141" name="ln-141" href="#ln-141"></a><span class="w">        </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">ql0</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<a id="ln-142" name="ln-142" href="#ln-142"></a><span class="w">      </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;qt&#39;</span><span class="p">)</span>
+<a id="ln-143" name="ln-143" href="#ln-143"></a><span class="w">        </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;qt&#39;</span><span class="p">,</span><span class="s1">&#39;Total water mixing ratio&#39;</span><span class="p">,</span><span class="s1">&#39;1e-5kg/kg&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="p">)</span>
+<a id="ln-144" name="ln-144" href="#ln-144"></a><span class="w">        </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">qt0</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<a id="ln-145" name="ln-145" href="#ln-145"></a><span class="w">      </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;s1&#39;</span><span class="p">)</span>
+<a id="ln-146" name="ln-146" href="#ln-146"></a><span class="w">        </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;sca1&#39;</span><span class="p">,</span><span class="s1">&#39;scalar 1&#39;</span><span class="p">,</span><span class="s1">&#39;M&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="p">)</span>
+<a id="ln-147" name="ln-147" href="#ln-147"></a><span class="w">        </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">sv0</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+<a id="ln-148" name="ln-148" href="#ln-148"></a><span class="w">      </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;s2&#39;</span><span class="p">)</span>
+<a id="ln-149" name="ln-149" href="#ln-149"></a><span class="w">        </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;sca2&#39;</span><span class="p">,</span><span class="s1">&#39;scalar 2&#39;</span><span class="p">,</span><span class="s1">&#39;M&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="p">)</span>
+<a id="ln-150" name="ln-150" href="#ln-150"></a><span class="w">        </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">sv0</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+<a id="ln-151" name="ln-151" href="#ln-151"></a><span class="w">      </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;s3&#39;</span><span class="p">)</span>
+<a id="ln-152" name="ln-152" href="#ln-152"></a><span class="w">        </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;sca3&#39;</span><span class="p">,</span><span class="s1">&#39;scalar 3&#39;</span><span class="p">,</span><span class="s1">&#39;M&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="p">)</span>
+<a id="ln-153" name="ln-153" href="#ln-153"></a><span class="w">        </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">sv0</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span>
+<a id="ln-154" name="ln-154" href="#ln-154"></a><span class="w">      </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;s4&#39;</span><span class="p">)</span>
+<a id="ln-155" name="ln-155" href="#ln-155"></a><span class="w">        </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;sca4&#39;</span><span class="p">,</span><span class="s1">&#39;scalar 4&#39;</span><span class="p">,</span><span class="s1">&#39;M&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="p">)</span>
+<a id="ln-156" name="ln-156" href="#ln-156"></a><span class="w">        </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">sv0</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">,</span><span class="mi">4</span><span class="p">)</span>
+<a id="ln-157" name="ln-157" href="#ln-157"></a><span class="w">      </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;s5&#39;</span><span class="p">)</span>
+<a id="ln-158" name="ln-158" href="#ln-158"></a><span class="w">        </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;sca5&#39;</span><span class="p">,</span><span class="s1">&#39;scalar 5&#39;</span><span class="p">,</span><span class="s1">&#39;M&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="p">)</span>
+<a id="ln-159" name="ln-159" href="#ln-159"></a><span class="w">        </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">sv0</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">,</span><span class="mi">5</span><span class="p">)</span>
+<a id="ln-160" name="ln-160" href="#ln-160"></a><span class="w">      </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;p0&#39;</span><span class="p">)</span>
+<a id="ln-161" name="ln-161" href="#ln-161"></a><span class="w">        </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;pres&#39;</span><span class="p">,</span><span class="s1">&#39;pressure field&#39;</span><span class="p">,</span><span class="s1">&#39;M&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="p">)</span>
+<a id="ln-162" name="ln-162" href="#ln-162"></a><span class="w">        </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">pres0</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<a id="ln-163" name="ln-163" href="#ln-163"></a><span class="w">      </span><span class="c">! case(&#39;pd&#39;)</span>
+<a id="ln-164" name="ln-164" href="#ln-164"></a><span class="w">      </span><span class="c">!   call ncinfo(ncname( n,:),&#39;p&#39;,&#39;pressure correction&#39;,&#39;M&#39;,&#39;tttt&#39;)</span>
+<a id="ln-165" name="ln-165" href="#ln-165"></a><span class="w">      </span><span class="c">!   pfields(n)%point =&gt; p(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)</span>
+<a id="ln-166" name="ln-166" href="#ln-166"></a><span class="w">      </span><span class="c">! case(&#39;pu&#39;)</span>
+<a id="ln-167" name="ln-167" href="#ln-167"></a><span class="w">      </span><span class="c">!   call ncinfo(ncname( n,:),&#39;pup&#39;,&#39;predicted u&#39;,&#39;M&#39;,&#39;mttt&#39;)</span>
+<a id="ln-168" name="ln-168" href="#ln-168"></a><span class="w">      </span><span class="c">!   pfields(n)%point =&gt; pup(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)</span>
+<a id="ln-169" name="ln-169" href="#ln-169"></a><span class="w">      </span><span class="c">! case(&#39;pv&#39;)</span>
+<a id="ln-170" name="ln-170" href="#ln-170"></a><span class="w">      </span><span class="c">!   call ncinfo(ncname( n,:),&#39;pvp&#39;,&#39;predicted v&#39;,&#39;M&#39;,&#39;tmtt&#39;)</span>
+<a id="ln-171" name="ln-171" href="#ln-171"></a><span class="w">      </span><span class="c">!   pfields(n)%point =&gt; pvp(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)</span>
+<a id="ln-172" name="ln-172" href="#ln-172"></a><span class="w">      </span><span class="c">! case(&#39;pw&#39;)</span>
+<a id="ln-173" name="ln-173" href="#ln-173"></a><span class="w">      </span><span class="c">!   call ncinfo(ncname( n,:),&#39;pwp&#39;,&#39;predicted w&#39;,&#39;M&#39;,&#39;ttmt&#39;)</span>
+<a id="ln-174" name="ln-174" href="#ln-174"></a><span class="w">      </span><span class="c">!   pfields(n)%point =&gt; pwp(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)</span>
+<a id="ln-175" name="ln-175" href="#ln-175"></a><span class="w">      </span><span class="c">! case(&#39;du&#39;)</span>
+<a id="ln-176" name="ln-176" href="#ln-176"></a><span class="w">      </span><span class="c">!   call ncinfo(ncname( n,:),&#39;dpupdx&#39;,&#39;&#39;,&#39;M&#39;,&#39;tttt&#39;)</span>
+<a id="ln-177" name="ln-177" href="#ln-177"></a><span class="w">      </span><span class="c">!   pfields(n)%point =&gt; dpupdx(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)</span>
+<a id="ln-178" name="ln-178" href="#ln-178"></a><span class="w">      </span><span class="c">! case(&#39;dv&#39;)</span>
+<a id="ln-179" name="ln-179" href="#ln-179"></a><span class="w">      </span><span class="c">!   call ncinfo(ncname( n,:),&#39;dpvpdy&#39;,&#39;&#39;,&#39;M&#39;,&#39;tttt&#39;)</span>
+<a id="ln-180" name="ln-180" href="#ln-180"></a><span class="w">      </span><span class="c">!   pfields(n)%point =&gt; dpvpdy(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)</span>
+<a id="ln-181" name="ln-181" href="#ln-181"></a><span class="w">      </span><span class="c">! case(&#39;dw&#39;)</span>
+<a id="ln-182" name="ln-182" href="#ln-182"></a><span class="w">      </span><span class="c">!   call ncinfo(ncname( n,:),&#39;dpwpdz&#39;,&#39;&#39;,&#39;M&#39;,&#39;tttt&#39;)</span>
+<a id="ln-183" name="ln-183" href="#ln-183"></a><span class="w">      </span><span class="c">!   pfields(n)%point =&gt; dpwpdz(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)</span>
+<a id="ln-184" name="ln-184" href="#ln-184"></a><span class="w">      </span><span class="c">! case default</span>
+<a id="ln-185" name="ln-185" href="#ln-185"></a><span class="w">      </span><span class="c">!   call ncinfo(ncname( n,:),&#39;u&#39;,&#39;West-East velocity&#39;,&#39;m/s&#39;,&#39;mttt&#39;)</span>
+<a id="ln-186" name="ln-186" href="#ln-186"></a><span class="w">      </span><span class="c">!   pfields(n)%point =&gt; u0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)</span>
+<a id="ln-187" name="ln-187" href="#ln-187"></a><span class="w">      </span><span class="k">end select</span>
+<a id="ln-188" name="ln-188" href="#ln-188"></a><span class="k">    end do</span>
+<a id="ln-189" name="ln-189" href="#ln-189"></a>
+<a id="ln-190" name="ln-190" href="#ln-190"></a><span class="k">    else</span>
+<a id="ln-191" name="ln-191" href="#ln-191"></a>
+<a id="ln-192" name="ln-192" href="#ln-192"></a><span class="k">      do </span><span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">nvar</span>
+<a id="ln-193" name="ln-193" href="#ln-193"></a><span class="w">        </span><span class="k">select case</span><span class="p">(</span><span class="n">fieldvars</span><span class="p">(</span><span class="mi">3</span><span class="o">*</span><span class="n">n</span><span class="o">-</span><span class="mi">2</span><span class="p">:</span><span class="mi">3</span><span class="o">*</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+<a id="ln-194" name="ln-194" href="#ln-194"></a><span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;u0&#39;</span><span class="p">)</span>
+<a id="ln-195" name="ln-195" href="#ln-195"></a><span class="w">          </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;u&#39;</span><span class="p">,</span><span class="s1">&#39;West-East velocity&#39;</span><span class="p">,</span><span class="s1">&#39;m/s&#39;</span><span class="p">,</span><span class="s1">&#39;mttt&#39;</span><span class="p">)</span>
+<a id="ln-196" name="ln-196" href="#ln-196"></a><span class="w">          </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">u0</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<a id="ln-197" name="ln-197" href="#ln-197"></a><span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;v0&#39;</span><span class="p">)</span>
+<a id="ln-198" name="ln-198" href="#ln-198"></a><span class="w">          </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;v&#39;</span><span class="p">,</span><span class="s1">&#39;South-North velocity&#39;</span><span class="p">,</span><span class="s1">&#39;m/s&#39;</span><span class="p">,</span><span class="s1">&#39;tmtt&#39;</span><span class="p">)</span>
+<a id="ln-199" name="ln-199" href="#ln-199"></a><span class="w">          </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">v0</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<a id="ln-200" name="ln-200" href="#ln-200"></a><span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;w0&#39;</span><span class="p">)</span>
+<a id="ln-201" name="ln-201" href="#ln-201"></a><span class="w">          </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;w&#39;</span><span class="p">,</span><span class="s1">&#39;Vertical velocity&#39;</span><span class="p">,</span><span class="s1">&#39;m/s&#39;</span><span class="p">,</span><span class="s1">&#39;ttmt&#39;</span><span class="p">)</span>
+<a id="ln-202" name="ln-202" href="#ln-202"></a><span class="w">          </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">w0</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<a id="ln-203" name="ln-203" href="#ln-203"></a><span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;th&#39;</span><span class="p">)</span>
+<a id="ln-204" name="ln-204" href="#ln-204"></a><span class="w">          </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;thl&#39;</span><span class="p">,</span><span class="s1">&#39;Liquid water potential temperature&#39;</span><span class="p">,</span><span class="s1">&#39;K&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="p">)</span>
+<a id="ln-205" name="ln-205" href="#ln-205"></a><span class="w">          </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">thl0</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<a id="ln-206" name="ln-206" href="#ln-206"></a><span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;ql&#39;</span><span class="p">)</span>
+<a id="ln-207" name="ln-207" href="#ln-207"></a><span class="w">          </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;ql&#39;</span><span class="p">,</span><span class="s1">&#39;Liquid water mixing ratio&#39;</span><span class="p">,</span><span class="s1">&#39;1e-5kg/kg&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="p">)</span>
+<a id="ln-208" name="ln-208" href="#ln-208"></a><span class="w">          </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">ql0</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<a id="ln-209" name="ln-209" href="#ln-209"></a><span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;qt&#39;</span><span class="p">)</span>
+<a id="ln-210" name="ln-210" href="#ln-210"></a><span class="w">          </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;qt&#39;</span><span class="p">,</span><span class="s1">&#39;Total water mixing ratio&#39;</span><span class="p">,</span><span class="s1">&#39;1e-5kg/kg&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="p">)</span>
+<a id="ln-211" name="ln-211" href="#ln-211"></a><span class="w">          </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">qt0</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<a id="ln-212" name="ln-212" href="#ln-212"></a><span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;s1&#39;</span><span class="p">)</span>
+<a id="ln-213" name="ln-213" href="#ln-213"></a><span class="w">          </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;sca1&#39;</span><span class="p">,</span><span class="s1">&#39;scalar 1&#39;</span><span class="p">,</span><span class="s1">&#39;M&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="p">)</span>
+<a id="ln-214" name="ln-214" href="#ln-214"></a><span class="w">          </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">sv0</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+<a id="ln-215" name="ln-215" href="#ln-215"></a><span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;s2&#39;</span><span class="p">)</span>
+<a id="ln-216" name="ln-216" href="#ln-216"></a><span class="w">          </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;sca2&#39;</span><span class="p">,</span><span class="s1">&#39;scalar 2&#39;</span><span class="p">,</span><span class="s1">&#39;M&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="p">)</span>
+<a id="ln-217" name="ln-217" href="#ln-217"></a><span class="w">          </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">sv0</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+<a id="ln-218" name="ln-218" href="#ln-218"></a><span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;s3&#39;</span><span class="p">)</span>
+<a id="ln-219" name="ln-219" href="#ln-219"></a><span class="w">          </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;sca3&#39;</span><span class="p">,</span><span class="s1">&#39;scalar 3&#39;</span><span class="p">,</span><span class="s1">&#39;M&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="p">)</span>
+<a id="ln-220" name="ln-220" href="#ln-220"></a><span class="w">          </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">sv0</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span>
+<a id="ln-221" name="ln-221" href="#ln-221"></a><span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;s4&#39;</span><span class="p">)</span>
+<a id="ln-222" name="ln-222" href="#ln-222"></a><span class="w">          </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;sca4&#39;</span><span class="p">,</span><span class="s1">&#39;scalar 4&#39;</span><span class="p">,</span><span class="s1">&#39;M&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="p">)</span>
+<a id="ln-223" name="ln-223" href="#ln-223"></a><span class="w">          </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">sv0</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">,</span><span class="mi">4</span><span class="p">)</span>
+<a id="ln-224" name="ln-224" href="#ln-224"></a><span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;s5&#39;</span><span class="p">)</span>
+<a id="ln-225" name="ln-225" href="#ln-225"></a><span class="w">          </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;sca5&#39;</span><span class="p">,</span><span class="s1">&#39;scalar 5&#39;</span><span class="p">,</span><span class="s1">&#39;M&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="p">)</span>
+<a id="ln-226" name="ln-226" href="#ln-226"></a><span class="w">          </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">sv0</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">,</span><span class="mi">5</span><span class="p">)</span>
+<a id="ln-227" name="ln-227" href="#ln-227"></a><span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;p0&#39;</span><span class="p">)</span>
+<a id="ln-228" name="ln-228" href="#ln-228"></a><span class="w">          </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;pres&#39;</span><span class="p">,</span><span class="s1">&#39;pressure field&#39;</span><span class="p">,</span><span class="s1">&#39;M&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="p">)</span>
+<a id="ln-229" name="ln-229" href="#ln-229"></a><span class="w">          </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">pres0</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<a id="ln-230" name="ln-230" href="#ln-230"></a><span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;tx&#39;</span><span class="p">)</span>
+<a id="ln-231" name="ln-231" href="#ln-231"></a><span class="w">          </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;tau_x&#39;</span><span class="p">,</span><span class="s1">&#39;stress x&#39;</span><span class="p">,</span><span class="s1">&#39;M&#39;</span><span class="p">,</span><span class="s1">&#39;mttt&#39;</span><span class="p">)</span>
+<a id="ln-232" name="ln-232" href="#ln-232"></a><span class="w">          </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">tau_x</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<a id="ln-233" name="ln-233" href="#ln-233"></a><span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;ty&#39;</span><span class="p">)</span>
+<a id="ln-234" name="ln-234" href="#ln-234"></a><span class="w">          </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;tau_y&#39;</span><span class="p">,</span><span class="s1">&#39;stress y&#39;</span><span class="p">,</span><span class="s1">&#39;M&#39;</span><span class="p">,</span><span class="s1">&#39;tmtt&#39;</span><span class="p">)</span>
+<a id="ln-235" name="ln-235" href="#ln-235"></a><span class="w">          </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">tau_y</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<a id="ln-236" name="ln-236" href="#ln-236"></a><span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;tz&#39;</span><span class="p">)</span>
+<a id="ln-237" name="ln-237" href="#ln-237"></a><span class="w">          </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;tau_z&#39;</span><span class="p">,</span><span class="s1">&#39;stress z&#39;</span><span class="p">,</span><span class="s1">&#39;M&#39;</span><span class="p">,</span><span class="s1">&#39;ttmt&#39;</span><span class="p">)</span>
+<a id="ln-238" name="ln-238" href="#ln-238"></a><span class="w">          </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">tau_z</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<a id="ln-239" name="ln-239" href="#ln-239"></a><span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;hf&#39;</span><span class="p">)</span>
+<a id="ln-240" name="ln-240" href="#ln-240"></a><span class="w">          </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;thl_flux&#39;</span><span class="p">,</span><span class="s1">&#39;heat flux&#39;</span><span class="p">,</span><span class="s1">&#39;M&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="p">)</span>
+<a id="ln-241" name="ln-241" href="#ln-241"></a><span class="w">          </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">thl_flux</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<a id="ln-242" name="ln-242" href="#ln-242"></a><span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;mu&#39;</span><span class="p">)</span>
+<a id="ln-243" name="ln-243" href="#ln-243"></a><span class="w">          </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;mask_u&#39;</span><span class="p">,</span><span class="s1">&#39;mask u&#39;</span><span class="p">,</span><span class="s1">&#39;M&#39;</span><span class="p">,</span><span class="s1">&#39;mttt&#39;</span><span class="p">)</span>
+<a id="ln-244" name="ln-244" href="#ln-244"></a><span class="w">          </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">mask_u</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<a id="ln-245" name="ln-245" href="#ln-245"></a><span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;mv&#39;</span><span class="p">)</span>
+<a id="ln-246" name="ln-246" href="#ln-246"></a><span class="w">          </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;mask_v&#39;</span><span class="p">,</span><span class="s1">&#39;mask v&#39;</span><span class="p">,</span><span class="s1">&#39;M&#39;</span><span class="p">,</span><span class="s1">&#39;tmtt&#39;</span><span class="p">)</span>
+<a id="ln-247" name="ln-247" href="#ln-247"></a><span class="w">          </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">mask_v</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<a id="ln-248" name="ln-248" href="#ln-248"></a><span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;mw&#39;</span><span class="p">)</span>
+<a id="ln-249" name="ln-249" href="#ln-249"></a><span class="w">          </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;mask_w&#39;</span><span class="p">,</span><span class="s1">&#39;mask w&#39;</span><span class="p">,</span><span class="s1">&#39;M&#39;</span><span class="p">,</span><span class="s1">&#39;ttmt&#39;</span><span class="p">)</span>
+<a id="ln-250" name="ln-250" href="#ln-250"></a><span class="w">          </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">mask_w</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<a id="ln-251" name="ln-251" href="#ln-251"></a><span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;mc&#39;</span><span class="p">)</span>
+<a id="ln-252" name="ln-252" href="#ln-252"></a><span class="w">          </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;mask_c&#39;</span><span class="p">,</span><span class="s1">&#39;mask c&#39;</span><span class="p">,</span><span class="s1">&#39;M&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="p">)</span>
+<a id="ln-253" name="ln-253" href="#ln-253"></a><span class="w">          </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">mask_c</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<a id="ln-254" name="ln-254" href="#ln-254"></a><span class="w">        </span><span class="c">! case(&#39;pd&#39;)</span>
+<a id="ln-255" name="ln-255" href="#ln-255"></a><span class="w">        </span><span class="c">!   call ncinfo(ncname( n,:),&#39;p&#39;,&#39;pressure correction&#39;,&#39;M&#39;,&#39;tttt&#39;)</span>
+<a id="ln-256" name="ln-256" href="#ln-256"></a><span class="w">        </span><span class="c">!   pfields(n)%point =&gt; p(ib:ie,jb:je,kb:ke)</span>
+<a id="ln-257" name="ln-257" href="#ln-257"></a><span class="w">        </span><span class="c">! case(&#39;pu&#39;)</span>
+<a id="ln-258" name="ln-258" href="#ln-258"></a><span class="w">        </span><span class="c">!   call ncinfo(ncname( n,:),&#39;pup&#39;,&#39;predicted u&#39;,&#39;M&#39;,&#39;mttt&#39;)</span>
+<a id="ln-259" name="ln-259" href="#ln-259"></a><span class="w">        </span><span class="c">!   pfields(n)%point =&gt; pup(ib:ie,jb:je,kb:ke)</span>
+<a id="ln-260" name="ln-260" href="#ln-260"></a><span class="w">        </span><span class="c">! case(&#39;pv&#39;)</span>
+<a id="ln-261" name="ln-261" href="#ln-261"></a><span class="w">        </span><span class="c">!   call ncinfo(ncname( n,:),&#39;pvp&#39;,&#39;predicted v&#39;,&#39;M&#39;,&#39;tmtt&#39;)</span>
+<a id="ln-262" name="ln-262" href="#ln-262"></a><span class="w">        </span><span class="c">!   pfields(n)%point =&gt; pvp(ib:ie,jb:je,kb:ke)</span>
+<a id="ln-263" name="ln-263" href="#ln-263"></a><span class="w">        </span><span class="c">! case(&#39;pw&#39;)</span>
+<a id="ln-264" name="ln-264" href="#ln-264"></a><span class="w">        </span><span class="c">!   call ncinfo(ncname( n,:),&#39;pwp&#39;,&#39;predicted w&#39;,&#39;M&#39;,&#39;ttmt&#39;)</span>
+<a id="ln-265" name="ln-265" href="#ln-265"></a><span class="w">        </span><span class="c">!   pfields(n)%point =&gt; pwp(ib:ie,jb:je,kb:ke)</span>
+<a id="ln-266" name="ln-266" href="#ln-266"></a><span class="w">        </span><span class="c">! case(&#39;rs&#39;)</span>
+<a id="ln-267" name="ln-267" href="#ln-267"></a><span class="w">        </span><span class="c">!   call ncinfo(ncname( n,:),&#39;rhs&#39;,&#39;rhs of poisson equation&#39;,&#39;M&#39;,&#39;tttt&#39;)</span>
+<a id="ln-268" name="ln-268" href="#ln-268"></a><span class="w">        </span><span class="c">!   pfields(n)%point =&gt; rhs(ib:ie,jb:je,kb:ke)</span>
+<a id="ln-269" name="ln-269" href="#ln-269"></a><span class="w">        </span><span class="c">! case(&#39;du&#39;)</span>
+<a id="ln-270" name="ln-270" href="#ln-270"></a><span class="w">        </span><span class="c">!   call ncinfo(ncname( n,:),&#39;dpupdx&#39;,&#39;&#39;,&#39;M&#39;,&#39;tttt&#39;)</span>
+<a id="ln-271" name="ln-271" href="#ln-271"></a><span class="w">        </span><span class="c">!   pfields(n)%point =&gt; dpupdx(ib:ie,jb:je,kb:ke)</span>
+<a id="ln-272" name="ln-272" href="#ln-272"></a><span class="w">        </span><span class="c">! case(&#39;dv&#39;)</span>
+<a id="ln-273" name="ln-273" href="#ln-273"></a><span class="w">        </span><span class="c">!   call ncinfo(ncname( n,:),&#39;dpvpdy&#39;,&#39;&#39;,&#39;M&#39;,&#39;tttt&#39;)</span>
+<a id="ln-274" name="ln-274" href="#ln-274"></a><span class="w">        </span><span class="c">!   pfields(n)%point =&gt; dpvpdy(ib:ie,jb:je,kb:ke)</span>
+<a id="ln-275" name="ln-275" href="#ln-275"></a><span class="w">        </span><span class="c">! case(&#39;dw&#39;)</span>
+<a id="ln-276" name="ln-276" href="#ln-276"></a><span class="w">        </span><span class="c">!   call ncinfo(ncname( n,:),&#39;dpwpdz&#39;,&#39;&#39;,&#39;M&#39;,&#39;tttt&#39;)</span>
+<a id="ln-277" name="ln-277" href="#ln-277"></a><span class="w">        </span><span class="c">!   pfields(n)%point =&gt; dpwpdz(ib:ie,jb:je,kb:ke)</span>
+<a id="ln-278" name="ln-278" href="#ln-278"></a><span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;di&#39;</span><span class="p">)</span>
+<a id="ln-279" name="ln-279" href="#ln-279"></a><span class="w">          </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;div&#39;</span><span class="p">,</span><span class="s1">&#39;Divergence after pressure correction&#39;</span><span class="p">,</span><span class="s1">&#39;M&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="p">)</span>
+<a id="ln-280" name="ln-280" href="#ln-280"></a><span class="w">          </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">div</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<a id="ln-281" name="ln-281" href="#ln-281"></a><span class="w">        </span><span class="c">! case(&#39;ft&#39;)</span>
+<a id="ln-282" name="ln-282" href="#ln-282"></a><span class="w">        </span><span class="c">!   call ncinfo(ncname( n,:),&#39;ft&#39;,&#39;Fourier transformed data in x and y&#39;,&#39;M&#39;,&#39;tttt&#39;)</span>
+<a id="ln-283" name="ln-283" href="#ln-283"></a><span class="w">        </span><span class="c">!   pfields(n)%point =&gt; Fxy(ib:ie,jb:je,kb:ke)</span>
+<a id="ln-284" name="ln-284" href="#ln-284"></a><span class="w">        </span><span class="c">! case(&#39;ge&#39;)</span>
+<a id="ln-285" name="ln-285" href="#ln-285"></a><span class="w">        </span><span class="c">!   call ncinfo(ncname( n,:),&#39;ge&#39;,&#39;Fourier transformed data in x and y and done GE in z&#39;,&#39;M&#39;,&#39;tttt&#39;)</span>
+<a id="ln-286" name="ln-286" href="#ln-286"></a><span class="w">        </span><span class="c">!   pfields(n)%point =&gt; Fxyz(ib:ie,jb:je,kb:ke)</span>
+<a id="ln-287" name="ln-287" href="#ln-287"></a><span class="w">        </span><span class="c">! case(&#39;ux&#39;)</span>
+<a id="ln-288" name="ln-288" href="#ln-288"></a><span class="w">        </span><span class="c">!   call ncinfo(ncname( n,:),&#39;dudx&#39;,&#39;&#39;,&#39;M&#39;,&#39;tttt&#39;)</span>
+<a id="ln-289" name="ln-289" href="#ln-289"></a><span class="w">        </span><span class="c">!   pfields(n)%point =&gt; dudx(ib:ie,jb:je,kb:ke)</span>
+<a id="ln-290" name="ln-290" href="#ln-290"></a><span class="w">        </span><span class="c">! case(&#39;vy&#39;)</span>
+<a id="ln-291" name="ln-291" href="#ln-291"></a><span class="w">        </span><span class="c">!   call ncinfo(ncname( n,:),&#39;dvdy&#39;,&#39;&#39;,&#39;M&#39;,&#39;tttt&#39;)</span>
+<a id="ln-292" name="ln-292" href="#ln-292"></a><span class="w">        </span><span class="c">!   pfields(n)%point =&gt; dvdy(ib:ie,jb:je,kb:ke)</span>
+<a id="ln-293" name="ln-293" href="#ln-293"></a><span class="w">        </span><span class="c">! case(&#39;wz&#39;)</span>
+<a id="ln-294" name="ln-294" href="#ln-294"></a><span class="w">        </span><span class="c">!   call ncinfo(ncname( n,:),&#39;dwdz&#39;,&#39;&#39;,&#39;M&#39;,&#39;tttt&#39;)</span>
+<a id="ln-295" name="ln-295" href="#ln-295"></a><span class="w">        </span><span class="c">!   pfields(n)%point =&gt; dwdz(ib:ie,jb:je,kb:ke)</span>
+<a id="ln-296" name="ln-296" href="#ln-296"></a><span class="w">        </span><span class="c">! case(&#39;up&#39;)</span>
+<a id="ln-297" name="ln-297" href="#ln-297"></a><span class="w">        </span><span class="c">!   call ncinfo(ncname( n,:),&#39;up&#39;,&#39;&#39;,&#39;M&#39;,&#39;tttt&#39;)</span>
+<a id="ln-298" name="ln-298" href="#ln-298"></a><span class="w">        </span><span class="c">!   pfields(n)%point =&gt; ru(ib:ie,jb:je,kb:ke)</span>
+<a id="ln-299" name="ln-299" href="#ln-299"></a><span class="w">        </span><span class="c">! case(&#39;vp&#39;)</span>
+<a id="ln-300" name="ln-300" href="#ln-300"></a><span class="w">        </span><span class="c">!   call ncinfo(ncname( n,:),&#39;vp&#39;,&#39;&#39;,&#39;M&#39;,&#39;tttt&#39;)</span>
+<a id="ln-301" name="ln-301" href="#ln-301"></a><span class="w">        </span><span class="c">!   pfields(n)%point =&gt; rv(ib:ie,jb:je,kb:ke)</span>
+<a id="ln-302" name="ln-302" href="#ln-302"></a><span class="w">        </span><span class="c">! case(&#39;wp&#39;)</span>
+<a id="ln-303" name="ln-303" href="#ln-303"></a><span class="w">        </span><span class="c">!   call ncinfo(ncname( n,:),&#39;wp&#39;,&#39;&#39;,&#39;M&#39;,&#39;tttt&#39;)</span>
+<a id="ln-304" name="ln-304" href="#ln-304"></a><span class="w">        </span><span class="c">!   pfields(n)%point =&gt; rw(ib:ie,jb:je,kb:ke)</span>
+<a id="ln-305" name="ln-305" href="#ln-305"></a><span class="w">        </span><span class="c">! case(&#39;rt&#39;)</span>
+<a id="ln-306" name="ln-306" href="#ln-306"></a><span class="w">        </span><span class="c">!   call ncinfo(ncname( n,:),&#39;xyzrt&#39;,&#39;Wavenumbers&#39;,&#39;M&#39;,&#39;tttt&#39;)</span>
+<a id="ln-307" name="ln-307" href="#ln-307"></a><span class="w">        </span><span class="c">!   pfields(n)%point =&gt; xyzrt(1:sp%zsz(1),1:sp%zsz(2),1:ktot)</span>
+<a id="ln-308" name="ln-308" href="#ln-308"></a><span class="w">        </span><span class="k">case </span><span class="n">default</span>
+<a id="ln-309" name="ln-309" href="#ln-309"></a><span class="w">          </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;u&#39;</span><span class="p">,</span><span class="s1">&#39;West-East velocity&#39;</span><span class="p">,</span><span class="s1">&#39;m/s&#39;</span><span class="p">,</span><span class="s1">&#39;mttt&#39;</span><span class="p">)</span>
+<a id="ln-310" name="ln-310" href="#ln-310"></a><span class="w">          </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">u0</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<a id="ln-311" name="ln-311" href="#ln-311"></a><span class="w">        </span><span class="k">end select</span>
+<a id="ln-312" name="ln-312" href="#ln-312"></a><span class="k">      end do</span>
+<a id="ln-313" name="ln-313" href="#ln-313"></a>
+<a id="ln-314" name="ln-314" href="#ln-314"></a><span class="k">    end if</span>
+<a id="ln-315" name="ln-315" href="#ln-315"></a>
+<a id="ln-316" name="ln-316" href="#ln-316"></a><span class="w">    </span><span class="c">!call ncinfo(ncname( n,:),&#39;u&#39;,&#39;West-East velocity&#39;,&#39;m/s&#39;,&#39;mttt&#39;)</span>
+<a id="ln-317" name="ln-317" href="#ln-317"></a><span class="w">    </span><span class="c">!call open_nc( fname, ncid, nrec, n1=imax+2, n2=jmax+2, n3=khigh-klow+1)</span>
+<a id="ln-318" name="ln-318" href="#ln-318"></a><span class="w">    </span><span class="k">call </span><span class="n">open_nc</span><span class="p">(</span><span class="w"> </span><span class="n">fname</span><span class="p">,</span><span class="w"> </span><span class="n">ncid</span><span class="p">,</span><span class="w"> </span><span class="n">nrec</span><span class="p">,</span><span class="w"> </span><span class="n">n1</span><span class="o">=</span><span class="n">ihigh</span><span class="o">-</span><span class="n">ilow</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">n2</span><span class="o">=</span><span class="n">jhigh</span><span class="o">-</span><span class="n">jlow</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">n3</span><span class="o">=</span><span class="n">khigh</span><span class="o">-</span><span class="n">klow</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+<a id="ln-319" name="ln-319" href="#ln-319"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">nrec</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<a id="ln-320" name="ln-320" href="#ln-320"></a><span class="k">      call </span><span class="n">define_nc</span><span class="p">(</span><span class="w"> </span><span class="n">ncid</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">tncname</span><span class="p">)</span>
+<a id="ln-321" name="ln-321" href="#ln-321"></a><span class="w">      </span><span class="k">call </span><span class="n">writestat_dims_nc</span><span class="p">(</span><span class="n">ncid</span><span class="p">)</span>
+<a id="ln-322" name="ln-322" href="#ln-322"></a><span class="w">    </span><span class="k">end if</span>
+<a id="ln-323" name="ln-323" href="#ln-323"></a>
+<a id="ln-324" name="ln-324" href="#ln-324"></a><span class="k">    call </span><span class="n">define_nc</span><span class="p">(</span><span class="w"> </span><span class="n">ncid</span><span class="p">,</span><span class="w"> </span><span class="n">nvar</span><span class="p">,</span><span class="w"> </span><span class="n">ncname</span><span class="p">)</span>
+<a id="ln-325" name="ln-325" href="#ln-325"></a><span class="w">    </span><span class="c">!call open_nc( fname, ncid, nrec, n1=imax+2, n2=jmax+2, n3=khigh-klow+1)</span>
+<a id="ln-326" name="ln-326" href="#ln-326"></a><span class="w">    </span><span class="k">call </span><span class="n">open_nc</span><span class="p">(</span><span class="w"> </span><span class="n">fname</span><span class="p">,</span><span class="w"> </span><span class="n">ncid</span><span class="p">,</span><span class="w"> </span><span class="n">nrec</span><span class="p">,</span><span class="w"> </span><span class="n">n1</span><span class="o">=</span><span class="n">ihigh</span><span class="o">-</span><span class="n">ilow</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">n2</span><span class="o">=</span><span class="n">jhigh</span><span class="o">-</span><span class="n">jlow</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">n3</span><span class="o">=</span><span class="n">khigh</span><span class="o">-</span><span class="n">klow</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+<a id="ln-327" name="ln-327" href="#ln-327"></a>
+<a id="ln-328" name="ln-328" href="#ln-328"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">nrec</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<a id="ln-329" name="ln-329" href="#ln-329"></a><span class="k">      call </span><span class="n">define_nc</span><span class="p">(</span><span class="w"> </span><span class="n">ncid</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">tncname</span><span class="p">)</span>
+<a id="ln-330" name="ln-330" href="#ln-330"></a><span class="w">      </span><span class="k">call </span><span class="n">writestat_dims_nc</span><span class="p">(</span><span class="n">ncid</span><span class="p">)</span>
+<a id="ln-331" name="ln-331" href="#ln-331"></a><span class="w">    </span><span class="k">end if</span>
+<a id="ln-332" name="ln-332" href="#ln-332"></a><span class="k">    call </span><span class="n">define_nc</span><span class="p">(</span><span class="w"> </span><span class="n">ncid</span><span class="p">,</span><span class="w"> </span><span class="n">nvar</span><span class="p">,</span><span class="w"> </span><span class="n">ncname</span><span class="p">)</span>
+<a id="ln-333" name="ln-333" href="#ln-333"></a>
+<a id="ln-334" name="ln-334" href="#ln-334"></a><span class="w">     </span><span class="c">!   ! X-pencil</span>
+<a id="ln-335" name="ln-335" href="#ln-335"></a><span class="w">     </span><span class="c">!</span>
+<a id="ln-336" name="ln-336" href="#ln-336"></a><span class="w">     </span><span class="c">!   fname1(11:13) = cmyidx</span>
+<a id="ln-337" name="ln-337" href="#ln-337"></a><span class="w">     </span><span class="c">!   fname1(15:17) = cmyidy</span>
+<a id="ln-338" name="ln-338" href="#ln-338"></a><span class="w">     </span><span class="c">!   fname1(19:21) = cexpnr</span>
+<a id="ln-339" name="ln-339" href="#ln-339"></a><span class="w">     </span><span class="c">!   call ncinfo(tncname1(1,:),&#39;time&#39;,&#39;Time&#39;,&#39;s&#39;,&#39;time&#39;)</span>
+<a id="ln-340" name="ln-340" href="#ln-340"></a><span class="w">     </span><span class="c">!   call ncinfo(ncname1(1,:),&#39;u&#39;,&#39;West-East velocity&#39;,&#39;m/s&#39;,&#39;mttt&#39;)</span>
+<a id="ln-341" name="ln-341" href="#ln-341"></a><span class="w">     </span><span class="c">!</span>
+<a id="ln-342" name="ln-342" href="#ln-342"></a><span class="w">     </span><span class="c">!   !write(*,*) &quot;done defining pfields&quot;</span>
+<a id="ln-343" name="ln-343" href="#ln-343"></a><span class="w">     </span><span class="c">!</span>
+<a id="ln-344" name="ln-344" href="#ln-344"></a><span class="w">     </span><span class="c">!   call open_nc( fname1, ncid1, nrec, n1=imax1+2, n2=jmax1+2, n3=kmax1+2)</span>
+<a id="ln-345" name="ln-345" href="#ln-345"></a><span class="w">     </span><span class="c">!</span>
+<a id="ln-346" name="ln-346" href="#ln-346"></a><span class="w">     </span><span class="c">!   if (nrec==0) then</span>
+<a id="ln-347" name="ln-347" href="#ln-347"></a><span class="w">     </span><span class="c">!     call define_nc( ncid1, 1, tncname1)</span>
+<a id="ln-348" name="ln-348" href="#ln-348"></a><span class="w">     </span><span class="c">!     call writestat_dims_nc(ncid1)</span>
+<a id="ln-349" name="ln-349" href="#ln-349"></a><span class="w">     </span><span class="c">!   end if</span>
+<a id="ln-350" name="ln-350" href="#ln-350"></a><span class="w">     </span><span class="c">!   call define_nc( ncid1, nvar, ncname1)</span>
+<a id="ln-351" name="ln-351" href="#ln-351"></a><span class="w">     </span><span class="c">!   call open_nc( fname1, ncid1, nrec, n1=imax1+2, n2=jmax1+2, n3=kmax1+2)</span>
+<a id="ln-352" name="ln-352" href="#ln-352"></a><span class="w">     </span><span class="c">!   ! call open_nc( fname, ncid, nrec, n1=imax+2, n2=jmax+2, n3=khigh-klow+1)  !if want to print ghostcells</span>
+<a id="ln-353" name="ln-353" href="#ln-353"></a><span class="w">     </span><span class="c">!   if (nrec==0) then</span>
+<a id="ln-354" name="ln-354" href="#ln-354"></a><span class="w">     </span><span class="c">!     call define_nc( ncid1, 1, tncname1)</span>
+<a id="ln-355" name="ln-355" href="#ln-355"></a><span class="w">     </span><span class="c">!     call writestat_dims_nc(ncid1)</span>
+<a id="ln-356" name="ln-356" href="#ln-356"></a><span class="w">     </span><span class="c">!  end if</span>
+<a id="ln-357" name="ln-357" href="#ln-357"></a><span class="w">     </span><span class="c">!  call define_nc( ncid1, nvar, ncname1)</span>
+<a id="ln-358" name="ln-358" href="#ln-358"></a><span class="w">     </span><span class="c">!</span>
+<a id="ln-359" name="ln-359" href="#ln-359"></a><span class="w">     </span><span class="c">!</span>
+<a id="ln-360" name="ln-360" href="#ln-360"></a><span class="w">     </span><span class="c">!  ! Y-pencil</span>
+<a id="ln-361" name="ln-361" href="#ln-361"></a><span class="w">     </span><span class="c">!</span>
+<a id="ln-362" name="ln-362" href="#ln-362"></a><span class="w">     </span><span class="c">!  fname2(11:13) = cmyidx</span>
+<a id="ln-363" name="ln-363" href="#ln-363"></a><span class="w">     </span><span class="c">!  fname2(15:17) = cmyidy</span>
+<a id="ln-364" name="ln-364" href="#ln-364"></a><span class="w">     </span><span class="c">!  fname2(19:21) = cexpnr</span>
+<a id="ln-365" name="ln-365" href="#ln-365"></a><span class="w">     </span><span class="c">!  call ncinfo(tncname2(1,:),&#39;time&#39;,&#39;Time&#39;,&#39;s&#39;,&#39;time&#39;)</span>
+<a id="ln-366" name="ln-366" href="#ln-366"></a><span class="w">     </span><span class="c">!  call ncinfo(ncname2( 1,:),&#39;u&#39;,&#39;West-East velocity&#39;,&#39;m/s&#39;,&#39;mttt&#39;)</span>
+<a id="ln-367" name="ln-367" href="#ln-367"></a><span class="w">     </span><span class="c">!</span>
+<a id="ln-368" name="ln-368" href="#ln-368"></a><span class="w">     </span><span class="c">!  call open_nc( fname2, ncid2, nrec, n1=imax2+2, n2=jmax2+2, n3=kmax2+2)</span>
+<a id="ln-369" name="ln-369" href="#ln-369"></a><span class="w">     </span><span class="c">!  if (nrec==0) then</span>
+<a id="ln-370" name="ln-370" href="#ln-370"></a><span class="w">     </span><span class="c">!    call define_nc( ncid2, 1, tncname2)</span>
+<a id="ln-371" name="ln-371" href="#ln-371"></a><span class="w">     </span><span class="c">!    call writestat_dims_nc(ncid2)</span>
+<a id="ln-372" name="ln-372" href="#ln-372"></a><span class="w">     </span><span class="c">!  end if</span>
+<a id="ln-373" name="ln-373" href="#ln-373"></a><span class="w">     </span><span class="c">!  call define_nc( ncid2, nvar, ncname2)</span>
+<a id="ln-374" name="ln-374" href="#ln-374"></a><span class="w">     </span><span class="c">!  call open_nc( fname2, ncid2, nrec, n1=imax2+2, n2=jmax2+2, n3=kmax2+2)</span>
+<a id="ln-375" name="ln-375" href="#ln-375"></a><span class="w">     </span><span class="c">!  ! call open_nc( fname, ncid, nrec, n1=imax+2, n2=jmax+2, n3=khigh-klow+1)  !if want to print ghostcells</span>
+<a id="ln-376" name="ln-376" href="#ln-376"></a><span class="w">     </span><span class="c">!  if (nrec==0) then</span>
+<a id="ln-377" name="ln-377" href="#ln-377"></a><span class="w">     </span><span class="c">!    call define_nc( ncid2, 1, tncname2)</span>
+<a id="ln-378" name="ln-378" href="#ln-378"></a><span class="w">     </span><span class="c">!    call writestat_dims_nc(ncid2)</span>
+<a id="ln-379" name="ln-379" href="#ln-379"></a><span class="w">     </span><span class="c">! end if</span>
+<a id="ln-380" name="ln-380" href="#ln-380"></a><span class="w">     </span><span class="c">! call define_nc( ncid2, nvar, ncname2)</span>
+<a id="ln-381" name="ln-381" href="#ln-381"></a>
+<a id="ln-382" name="ln-382" href="#ln-382"></a><span class="w">  </span><span class="k">end subroutine </span><span class="n">initfielddump</span>
+<a id="ln-383" name="ln-383" href="#ln-383"></a>
+<a id="ln-384" name="ln-384" href="#ln-384"></a><span class="w">  </span><span class="c">!&gt; Do fielddump. Collect data to truncated (2 byte) integers, and write them to file</span>
+<a id="ln-385" name="ln-385" href="#ln-385"></a><span class="w">  </span><span class="k">subroutine </span><span class="n">fielddump</span>
+<a id="ln-386" name="ln-386" href="#ln-386"></a><span class="w">    </span><span class="k">use </span><span class="n">modfields</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">u0</span><span class="p">,</span><span class="n">v0</span><span class="p">,</span><span class="n">w0</span><span class="p">,</span><span class="n">thl0</span><span class="p">,</span><span class="n">qt0</span><span class="p">,</span><span class="n">ql0</span><span class="p">,</span><span class="n">sv0</span><span class="p">,</span><span class="n">pres0</span><span class="p">,</span><span class="n">u01</span><span class="p">,</span><span class="n">u02</span><span class="p">,</span><span class="n">u0h</span><span class="p">,</span><span class="n">um</span><span class="p">,</span><span class="n">div</span><span class="p">,</span><span class="n">dudx</span><span class="p">,</span><span class="n">dvdy</span><span class="p">,</span><span class="n">dwdz</span><span class="p">,</span><span class="n">tau_x</span><span class="w">  </span><span class="c">!ILS13 21.04.2015 changed to u0 from um  etc</span>
+<a id="ln-387" name="ln-387" href="#ln-387"></a><span class="w">    </span><span class="k">use </span><span class="n">modsurfdata</span><span class="p">,</span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">thls</span><span class="p">,</span><span class="n">qts</span><span class="p">,</span><span class="n">thvs</span>
+<a id="ln-388" name="ln-388" href="#ln-388"></a><span class="w">    </span><span class="k">use </span><span class="n">modglobal</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">ib</span><span class="p">,</span><span class="n">ie</span><span class="p">,</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span><span class="p">,</span><span class="n">jh</span><span class="p">,</span><span class="n">ke</span><span class="p">,</span><span class="n">kb</span><span class="p">,</span><span class="n">kh</span><span class="p">,</span><span class="n">rk3step</span><span class="p">,</span><span class="n">timee</span><span class="p">,</span><span class="n">dt_lim</span><span class="p">,</span><span class="n">cexpnr</span><span class="p">,</span><span class="n">ifoutput</span><span class="p">,</span><span class="n">imax</span><span class="p">,</span><span class="n">jmax</span><span class="p">,&amp;</span>
+<a id="ln-389" name="ln-389" href="#ln-389"></a><span class="w">                          </span><span class="n">tfielddump</span><span class="p">,</span><span class="w"> </span><span class="n">tnextfielddump</span><span class="p">,</span><span class="n">nsv</span><span class="p">,</span><span class="w"> </span><span class="n">lfielddump</span><span class="p">,</span><span class="w"> </span><span class="n">ktot</span><span class="p">,</span><span class="n">fieldvars</span><span class="p">,</span><span class="w"> </span><span class="n">imax1</span><span class="p">,</span><span class="n">jmax1</span><span class="p">,</span><span class="n">kmax1</span><span class="p">,</span><span class="n">imax2</span><span class="p">,</span><span class="n">jmax2</span><span class="p">,</span><span class="n">kmax2</span><span class="p">,</span><span class="n">rk3step</span><span class="p">,</span><span class="n">dyi</span><span class="p">,</span><span class="n">dxfi</span><span class="p">,</span><span class="n">dzhi</span>
+<a id="ln-390" name="ln-390" href="#ln-390"></a><span class="w">    </span><span class="c">!use modmpi,    only : myid,cmyid</span>
+<a id="ln-391" name="ln-391" href="#ln-391"></a><span class="w">    </span><span class="c">!use modsubgriddata, only : ekm,sbshr</span>
+<a id="ln-392" name="ln-392" href="#ln-392"></a><span class="w">    </span><span class="k">use </span><span class="n">modstat_nc</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">writestat_nc</span>
+<a id="ln-393" name="ln-393" href="#ln-393"></a><span class="w">    </span><span class="k">use </span><span class="n">modmpi</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">myid</span><span class="p">,</span><span class="n">cmyid</span>
+<a id="ln-394" name="ln-394" href="#ln-394"></a><span class="w">    </span><span class="k">implicit none</span>
+<a id="ln-395" name="ln-395" href="#ln-395"></a>
+<a id="ln-396" name="ln-396" href="#ln-396"></a><span class="k">    </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">allocatable</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">vars</span><span class="p">(:,:,:,:),</span><span class="w"> </span><span class="n">vars1</span><span class="p">(:,:,:,:),</span><span class="w"> </span><span class="n">vars2</span><span class="p">(:,:,:,:)</span>
+<a id="ln-397" name="ln-397" href="#ln-397"></a><span class="w">    </span><span class="kt">integer </span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">,</span><span class="n">n</span>
+<a id="ln-398" name="ln-398" href="#ln-398"></a><span class="w">    </span><span class="kt">integer</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">writecounter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-399" name="ln-399" href="#ln-399"></a>
+<a id="ln-400" name="ln-400" href="#ln-400"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="p">((</span><span class="n">timee</span><span class="o">&gt;=</span><span class="n">tnextfielddump</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="p">(</span><span class="n">rk3step</span><span class="o">==</span><span class="mi">0</span><span class="p">)))</span><span class="w"> </span><span class="k">return</span>
+<a id="ln-401" name="ln-401" href="#ln-401"></a>
+<a id="ln-402" name="ln-402" href="#ln-402"></a><span class="k">    if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="n">lfielddump</span><span class="p">)</span><span class="w"> </span><span class="k">return</span>
+<a id="ln-403" name="ln-403" href="#ln-403"></a>
+<a id="ln-404" name="ln-404" href="#ln-404"></a><span class="k">    if</span><span class="w"> </span><span class="p">(</span><span class="n">rk3step</span><span class="o">/=</span><span class="mi">3</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">rk3step</span><span class="o">/=</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">return</span>
+<a id="ln-405" name="ln-405" href="#ln-405"></a>
+<a id="ln-406" name="ln-406" href="#ln-406"></a><span class="k">    do </span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span>
+<a id="ln-407" name="ln-407" href="#ln-407"></a><span class="w">      </span><span class="k">do </span><span class="n">j</span><span class="o">=</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span>
+<a id="ln-408" name="ln-408" href="#ln-408"></a><span class="w">        </span><span class="k">do </span><span class="n">i</span><span class="o">=</span><span class="n">ib</span><span class="p">,</span><span class="n">ie</span>
+<a id="ln-409" name="ln-409" href="#ln-409"></a><span class="w">          </span><span class="n">dudx</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">u0</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">u0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="p">)</span><span class="o">*</span><span class="n">dxfi</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+<a id="ln-410" name="ln-410" href="#ln-410"></a><span class="w">          </span><span class="n">dvdy</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="p">)</span><span class="o">*</span><span class="n">dyi</span>
+<a id="ln-411" name="ln-411" href="#ln-411"></a><span class="w">          </span><span class="n">dwdz</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="p">)</span><span class="o">*</span><span class="n">dzhi</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+<a id="ln-412" name="ln-412" href="#ln-412"></a><span class="w">          </span><span class="n">div</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">u0</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">u0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="p">)</span><span class="o">*</span><span class="n">dxfi</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-413" name="ln-413" href="#ln-413"></a><span class="w">            </span><span class="p">(</span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="p">)</span><span class="o">*</span><span class="n">dyi</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="ln-414" name="ln-414" href="#ln-414"></a><span class="w">            </span><span class="p">(</span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="p">)</span><span class="o">*</span><span class="n">dzhi</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+<a id="ln-415" name="ln-415" href="#ln-415"></a><span class="w">        </span><span class="k">end do</span>
+<a id="ln-416" name="ln-416" href="#ln-416"></a><span class="k">      end do</span>
+<a id="ln-417" name="ln-417" href="#ln-417"></a><span class="k">    end do</span>
+<a id="ln-418" name="ln-418" href="#ln-418"></a>
+<a id="ln-419" name="ln-419" href="#ln-419"></a><span class="k">    if</span><span class="w"> </span><span class="p">(</span><span class="n">rk3step</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">3</span><span class="p">)</span><span class="w"> </span><span class="n">tnextfielddump</span><span class="o">=</span><span class="n">tnextfielddump</span><span class="o">+</span><span class="n">tfielddump</span>
+<a id="ln-420" name="ln-420" href="#ln-420"></a>
+<a id="ln-421" name="ln-421" href="#ln-421"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">lhalos</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<a id="ln-422" name="ln-422" href="#ln-422"></a><span class="k">      allocate</span><span class="p">(</span><span class="n">vars</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">,</span><span class="n">nvar</span><span class="p">));</span><span class="w"> </span><span class="n">vars</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<a id="ln-423" name="ln-423" href="#ln-423"></a><span class="w">      </span><span class="k">do </span><span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">nvar</span>
+<a id="ln-424" name="ln-424" href="#ln-424"></a><span class="w">        </span><span class="n">vars</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">,</span><span class="n">n</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span>
+<a id="ln-425" name="ln-425" href="#ln-425"></a><span class="w">      </span><span class="k">end do</span>
+<a id="ln-426" name="ln-426" href="#ln-426"></a>
+<a id="ln-427" name="ln-427" href="#ln-427"></a><span class="k">    else</span>
+<a id="ln-428" name="ln-428" href="#ln-428"></a><span class="k">      allocate</span><span class="p">(</span><span class="n">vars</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">,</span><span class="n">nvar</span><span class="p">));</span><span class="w"> </span><span class="n">vars</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<a id="ln-429" name="ln-429" href="#ln-429"></a><span class="w">      </span><span class="k">do </span><span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">nvar</span>
+<a id="ln-430" name="ln-430" href="#ln-430"></a><span class="w">        </span><span class="n">vars</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">,</span><span class="n">n</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span>
+<a id="ln-431" name="ln-431" href="#ln-431"></a><span class="w">      </span><span class="k">end do</span>
+<a id="ln-432" name="ln-432" href="#ln-432"></a><span class="k">    end if</span>
+<a id="ln-433" name="ln-433" href="#ln-433"></a>
+<a id="ln-434" name="ln-434" href="#ln-434"></a><span class="k">   call </span><span class="n">writestat_nc</span><span class="p">(</span><span class="n">ncid</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">tncname</span><span class="p">,(</span><span class="o">/</span><span class="n">timee</span><span class="o">/</span><span class="p">),</span><span class="n">nrec</span><span class="p">,.</span><span class="n">true</span><span class="p">.)</span>
+<a id="ln-435" name="ln-435" href="#ln-435"></a><span class="w">   </span><span class="c">!call writestat_nc(ncid,nvar,ncname,vars,nrec,imax+2,jmax+2,khigh-klow+1)</span>
+<a id="ln-436" name="ln-436" href="#ln-436"></a><span class="w">   </span><span class="k">call </span><span class="n">writestat_nc</span><span class="p">(</span><span class="n">ncid</span><span class="p">,</span><span class="n">nvar</span><span class="p">,</span><span class="n">ncname</span><span class="p">,</span><span class="n">vars</span><span class="p">,</span><span class="n">nrec</span><span class="p">,</span><span class="n">ihigh</span><span class="o">-</span><span class="n">ilow</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">jhigh</span><span class="o">-</span><span class="n">jlow</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">khigh</span><span class="o">-</span><span class="n">klow</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+<a id="ln-437" name="ln-437" href="#ln-437"></a>
+<a id="ln-438" name="ln-438" href="#ln-438"></a><span class="w">   </span><span class="k">deallocate</span><span class="p">(</span><span class="n">vars</span><span class="p">)</span>
+<a id="ln-439" name="ln-439" href="#ln-439"></a>
+<a id="ln-440" name="ln-440" href="#ln-440"></a><span class="w">  </span><span class="k">end subroutine </span><span class="n">fielddump</span>
+<a id="ln-441" name="ln-441" href="#ln-441"></a>
+<a id="ln-442" name="ln-442" href="#ln-442"></a><span class="w">  </span><span class="c">!&gt; Clean up when leaving the run</span>
+<a id="ln-443" name="ln-443" href="#ln-443"></a><span class="w">  </span><span class="k">subroutine </span><span class="n">exitfielddump</span>
+<a id="ln-444" name="ln-444" href="#ln-444"></a><span class="w">      </span><span class="k">use </span><span class="n">modglobal</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">lfielddump</span>
+<a id="ln-445" name="ln-445" href="#ln-445"></a><span class="w">      </span><span class="k">use </span><span class="n">modstat_nc</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">exitstat_nc</span>
+<a id="ln-446" name="ln-446" href="#ln-446"></a><span class="w">    </span><span class="k">implicit none</span>
+<a id="ln-447" name="ln-447" href="#ln-447"></a>
+<a id="ln-448" name="ln-448" href="#ln-448"></a><span class="k">       if</span><span class="w"> </span><span class="p">(</span><span class="n">lfielddump</span><span class="p">)</span><span class="w"> </span><span class="k">call </span><span class="n">exitstat_nc</span><span class="p">(</span><span class="n">ncid</span><span class="p">)</span>
+<a id="ln-449" name="ln-449" href="#ln-449"></a><span class="w">  </span><span class="k">end subroutine </span><span class="n">exitfielddump</span>
+<a id="ln-450" name="ln-450" href="#ln-450"></a>
+<a id="ln-451" name="ln-451" href="#ln-451"></a><span class="k">end module </span><span class="n">modfielddump</span>
+</pre></div>
+
+      </section>
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2025 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2025-01-27 21:12 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+
+    <!-- Bootstrap core JavaScript -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>    
+
+    <!-- MathJax JavaScript
+             ================================================== -->
+             <!-- Placed at the end of the document so the pages load faster -->
+        <script type="text/x-mathjax-config">
+          MathJax.Hub.Config({
+          TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } },
+          jax: ['input/TeX','input/MathML','output/HTML-CSS'],
+          extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']
+          });
+        </script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+          <script src="../tipuesearch/tipuesearch_content.js"></script>
+          <script src="../tipuesearch/tipuesearch_set.js"></script>
+          <script src="../tipuesearch/tipuesearch.js"></script>
+
+  </body>
+</html>

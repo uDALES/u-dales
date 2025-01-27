@@ -1,0 +1,1349 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="TODO:">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>modibmdata &ndash; uDALES</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <link href="../css/font-awesome.min.css" rel="stylesheet">
+    <link href="../css/local.css" rel="stylesheet">
+      <link  href="../tipuesearch/tipuesearch.css" rel="stylesheet">
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/dalesurban.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>modibmdata
+      <small>Module</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 0.3% of total for modules and submodules.">46 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/modibmdata.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/modibmdata.f90.html'>modibmdata.f90</a></li>
+            <li class="breadcrumb-item active" aria-current="page">modibmdata</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    $(function () {
+    $('[data-bs-toggle="tooltip"]').tooltip()
+    })
+  </script>
+
+  </div>
+
+  <div class="row">
+    <div class="col-md-3">
+        <div id="sidebar">
+      <h3>Contents</h3>
+  
+      <div class="card mb-4">
+      <a data-bs-toggle="collapse" href="#vars-0"
+         aria-expanded="false" aria-controls="vars-0">
+         <h4 class="card-header bg-primary text-white">Variables</h4>
+      </a>
+      <div id="vars-0" class="collapse">
+        <div class="list-group list-group-flush">
+            <a class="list-group-item" href="../module/modibmdata.html#variable-xwallsglobal">xwallsglobal</a>
+            <a class="list-group-item" href="../module/modibmdata.html#variable-ywallsglobal">ywallsglobal</a>
+            <a class="list-group-item" href="../module/modibmdata.html#variable-zwallsglobal">zwallsglobal</a>
+            <a class="list-group-item" href="../module/modibmdata.html#variable-xwallsshear">xwallsshear</a>
+            <a class="list-group-item" href="../module/modibmdata.html#variable-ywallsp">ywallsp</a>
+            <a class="list-group-item" href="../module/modibmdata.html#variable-ywallsm">ywallsm</a>
+            <a class="list-group-item" href="../module/modibmdata.html#variable-zwallsshear">zwallsshear</a>
+            <a class="list-group-item" href="../module/modibmdata.html#variable-xwallsnorm">xwallsnorm</a>
+            <a class="list-group-item" href="../module/modibmdata.html#variable-ywallsnorm">ywallsnorm</a>
+            <a class="list-group-item" href="../module/modibmdata.html#variable-zwallsnorm">zwallsnorm</a>
+            <a class="list-group-item" href="../module/modibmdata.html#variable-nxwall">nxwall</a>
+            <a class="list-group-item" href="../module/modibmdata.html#variable-ixwall">ixwall</a>
+            <a class="list-group-item" href="../module/modibmdata.html#variable-nywall">nywall</a>
+            <a class="list-group-item" href="../module/modibmdata.html#variable-iyminwall">iyminwall</a>
+            <a class="list-group-item" href="../module/modibmdata.html#variable-nyminwall">nyminwall</a>
+            <a class="list-group-item" href="../module/modibmdata.html#variable-iywall">iywall</a>
+            <a class="list-group-item" href="../module/modibmdata.html#variable-nypluswall">nypluswall</a>
+            <a class="list-group-item" href="../module/modibmdata.html#variable-iypluswall">iypluswall</a>
+            <a class="list-group-item" href="../module/modibmdata.html#variable-ibmxforce">ibmxforce</a>
+            <a class="list-group-item" href="../module/modibmdata.html#variable-ibmxforcevol">ibmxforcevol</a>
+            <a class="list-group-item" href="../module/modibmdata.html#variable-ibmxforcevolp">ibmxforcevolp</a>
+            <a class="list-group-item" href="../module/modibmdata.html#variable-sumctm">sumctm</a>
+            <a class="list-group-item" href="../module/modibmdata.html#variable-bctfluxa">bcTfluxA</a>
+            <a class="list-group-item" href="../module/modibmdata.html#variable-bcqfluxa">bcqfluxA</a>
+            <a class="list-group-item" href="../module/modibmdata.html#variable-bctfxm">bctfxm</a>
+            <a class="list-group-item" href="../module/modibmdata.html#variable-bctfxp">bctfxp</a>
+            <a class="list-group-item" href="../module/modibmdata.html#variable-bctfym">bctfym</a>
+            <a class="list-group-item" href="../module/modibmdata.html#variable-bctfyp">bctfyp</a>
+            <a class="list-group-item" href="../module/modibmdata.html#variable-bctfz">bctfz</a>
+            <a class="list-group-item" href="../module/modibmdata.html#variable-bcqfxm">bcqfxm</a>
+            <a class="list-group-item" href="../module/modibmdata.html#variable-bcqfxp">bcqfxp</a>
+            <a class="list-group-item" href="../module/modibmdata.html#variable-bcqfym">bcqfym</a>
+            <a class="list-group-item" href="../module/modibmdata.html#variable-bcqfyp">bcqfyp</a>
+            <a class="list-group-item" href="../module/modibmdata.html#variable-bcqfz">bcqfz</a>
+            <a class="list-group-item" href="../module/modibmdata.html#variable-nxwallsnorm">nxwallsnorm</a>
+            <a class="list-group-item" href="../module/modibmdata.html#variable-nywallsnorm">nywallsnorm</a>
+            <a class="list-group-item" href="../module/modibmdata.html#variable-nzwallsnorm">nzwallsnorm</a>
+            <a class="list-group-item" href="../module/modibmdata.html#variable-nxwallsshear">nxwallsshear</a>
+            <a class="list-group-item" href="../module/modibmdata.html#variable-nywallsp">nywallsp</a>
+            <a class="list-group-item" href="../module/modibmdata.html#variable-nywallsm">nywallsm</a>
+            <a class="list-group-item" href="../module/modibmdata.html#variable-nzwallsshear">nzwallsshear</a>
+            <a class="list-group-item" href="../module/modibmdata.html#variable-offset">offset</a>
+        </div>
+      </div>
+    </div>
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+
+  </div>
+
+    </div>
+
+    <div class="col-md-9" id='text'>
+      
+<br>      
+          <div class="card">
+      <h3 class="card-header card-title bg-light">Used by</h3>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+              <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.50.0 (0)
+ -->
+<!-- Title: module~~modibmdata~~UsedByGraph Pages: 1 -->
+<svg id="modulemodibmdataUsedByGraph" width="344pt" height="557pt"
+ viewBox="0.00 0.00 344.00 557.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="module~~modibmdata~~UsedByGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 553)">
+<title>module~~modibmdata~~UsedByGraph</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-553 340,-553 340,4 -4,4"/>
+<!-- module~modibmdata -->
+<g id="module~~modibmdata~~UsedByGraph_node1" class="node">
+<title>module~modibmdata</title>
+<polygon fill="none" stroke="black" points="81,-276 0,-276 0,-252 81,-252 81,-276"/>
+<text text-anchor="middle" x="40.5" y="-261.6" font-family="Helvetica,sans-Serif" font-size="10.50">modibmdata</text>
+</g>
+<!-- module~modibm -->
+<g id="module~~modibmdata~~UsedByGraph_node2" class="node">
+<title>module~modibm</title>
+<g id="a_module~~modibmdata~~UsedByGraph_node2"><a xlink:href="../module/modibm.html" xlink:title="modibm">
+<polygon fill="#337ab7" stroke="#337ab7" points="193,-486 136,-486 136,-462 193,-462 193,-486"/>
+<text text-anchor="middle" x="164.5" y="-471.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modibm</text>
+</a>
+</g>
+</g>
+<!-- module~modibm&#45;&gt;module~modibmdata -->
+<g id="module~~modibmdata~~UsedByGraph_edge1" class="edge">
+<title>module~modibm&#45;&gt;module~modibmdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M135.7,-465.58C128.92,-462.49 122.14,-458.38 117,-453 70.98,-404.9 51.8,-325.23 44.89,-286.51"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="48.28,-285.6 43.18,-276.31 41.38,-286.75 48.28,-285.6"/>
+</g>
+<!-- proc~advecc_kappa -->
+<g id="module~~modibmdata~~UsedByGraph_node3" class="node">
+<title>proc~advecc_kappa</title>
+<g id="a_module~~modibmdata~~UsedByGraph_node3"><a xlink:href="../proc/advecc_kappa.html" xlink:title="advecc_kappa">
+<polygon fill="#d9534f" stroke="#d9534f" points="209,-444 120,-444 120,-420 209,-420 209,-444"/>
+<text text-anchor="middle" x="164.5" y="-429.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">advecc_kappa</text>
+</a>
+</g>
+</g>
+<!-- proc~advecc_kappa&#45;&gt;module~modibmdata -->
+<g id="module~~modibmdata~~UsedByGraph_edge2" class="edge">
+<title>proc~advecc_kappa&#45;&gt;module~modibmdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M129.28,-419.83C124.84,-417.35 120.59,-414.42 117,-411 79.64,-375.47 57.53,-317.4 47.67,-285.93"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="51.02,-284.92 44.79,-276.35 44.32,-286.93 51.02,-284.92"/>
+</g>
+<!-- proc~createtrees -->
+<g id="module~~modibmdata~~UsedByGraph_node4" class="node">
+<title>proc~createtrees</title>
+<g id="a_module~~modibmdata~~UsedByGraph_node4"><a xlink:href="../proc/createtrees.html" xlink:title="createtrees">
+<polygon fill="#d9534f" stroke="#d9534f" points="201,-402 128,-402 128,-378 201,-378 201,-402"/>
+<text text-anchor="middle" x="164.5" y="-387.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">createtrees</text>
+</a>
+</g>
+</g>
+<!-- proc~createtrees&#45;&gt;module~modibmdata -->
+<g id="module~~modibmdata~~UsedByGraph_edge3" class="edge">
+<title>proc~createtrees&#45;&gt;module~modibmdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M130.7,-377.84C125.85,-375.31 121.11,-372.37 117,-369 88.26,-345.49 65.15,-308.53 52.38,-285.32"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="55.36,-283.46 47.56,-276.29 49.18,-286.76 55.36,-283.46"/>
+</g>
+<!-- proc~forces -->
+<g id="module~~modibmdata~~UsedByGraph_node5" class="node">
+<title>proc~forces</title>
+<g id="a_module~~modibmdata~~UsedByGraph_node5"><a xlink:href="../proc/forces.html" xlink:title="forces">
+<polygon fill="#d9534f" stroke="#d9534f" points="191.5,-360 137.5,-360 137.5,-336 191.5,-336 191.5,-360"/>
+<text text-anchor="middle" x="164.5" y="-345.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">forces</text>
+</a>
+</g>
+</g>
+<!-- proc~forces&#45;&gt;module~modibmdata -->
+<g id="module~~modibmdata~~UsedByGraph_edge4" class="edge">
+<title>proc~forces&#45;&gt;module~modibmdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M137.27,-337.65C130.48,-334.57 123.31,-330.95 117,-327 96.62,-314.23 75.8,-296.43 61.2,-283.01"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="63.47,-280.33 53.77,-276.06 58.68,-285.45 63.47,-280.33"/>
+</g>
+<!-- proc~inittimedep -->
+<g id="module~~modibmdata~~UsedByGraph_node6" class="node">
+<title>proc~inittimedep</title>
+<g id="a_module~~modibmdata~~UsedByGraph_node6"><a xlink:href="../proc/inittimedep.html" xlink:title="inittimedep">
+<polygon fill="#d9534f" stroke="#d9534f" points="201,-318 128,-318 128,-294 201,-294 201,-318"/>
+<text text-anchor="middle" x="164.5" y="-303.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">inittimedep</text>
+</a>
+</g>
+</g>
+<!-- proc~inittimedep&#45;&gt;module~modibmdata -->
+<g id="module~~modibmdata~~UsedByGraph_edge5" class="edge">
+<title>proc~inittimedep&#45;&gt;module~modibmdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M128.54,-293.96C115.27,-289.4 99.97,-284.13 85.94,-279.3"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="87.06,-275.98 76.47,-276.04 84.78,-282.6 87.06,-275.98"/>
+</g>
+<!-- proc~readnamelists -->
+<g id="module~~modibmdata~~UsedByGraph_node7" class="node">
+<title>proc~readnamelists</title>
+<g id="a_module~~modibmdata~~UsedByGraph_node7"><a xlink:href="../proc/readnamelists.html" xlink:title="readnamelists">
+<polygon fill="#d9534f" stroke="#d9534f" points="336,-549 248,-549 248,-525 336,-525 336,-549"/>
+<text text-anchor="middle" x="292" y="-534.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">readnamelists</text>
+</a>
+</g>
+</g>
+<!-- proc~readnamelists&#45;&gt;module~modibmdata -->
+<g id="module~~modibmdata~~UsedByGraph_edge6" class="edge">
+<title>proc~readnamelists&#45;&gt;module~modibmdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M247.64,-537.81C208.7,-536.19 152.38,-527.69 117,-495 56.02,-438.66 44.18,-332.45 41.96,-286.32"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="45.45,-286.06 41.59,-276.2 38.46,-286.32 45.45,-286.06"/>
+</g>
+<!-- proc~readnamelists&#45;&gt;module~modibm -->
+<g id="module~~modibmdata~~UsedByGraph_edge17" class="edge">
+<title>proc~readnamelists&#45;&gt;module~modibm</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M265.95,-524.86C260.06,-521.97 253.8,-518.89 248,-516 231.44,-507.74 213.1,-498.42 197.92,-490.66"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="199.41,-487.49 188.92,-486.05 196.22,-493.72 199.41,-487.49"/>
+</g>
+<!-- proc~timedepsurf -->
+<g id="module~~modibmdata~~UsedByGraph_node8" class="node">
+<title>proc~timedepsurf</title>
+<g id="a_module~~modibmdata~~UsedByGraph_node8"><a xlink:href="../proc/timedepsurf.html" xlink:title="timedepsurf">
+<polygon fill="#d9534f" stroke="#d9534f" points="203,-276 126,-276 126,-252 203,-252 203,-276"/>
+<text text-anchor="middle" x="164.5" y="-261.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">timedepsurf</text>
+</a>
+</g>
+</g>
+<!-- proc~timedepsurf&#45;&gt;module~modibmdata -->
+<g id="module~~modibmdata~~UsedByGraph_edge7" class="edge">
+<title>proc~timedepsurf&#45;&gt;module~modibmdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M125.9,-264C115.07,-264 103.09,-264 91.63,-264"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="91.3,-260.5 81.3,-264 91.3,-267.5 91.3,-260.5"/>
+</g>
+<!-- proc~trees -->
+<g id="module~~modibmdata~~UsedByGraph_node9" class="node">
+<title>proc~trees</title>
+<g id="a_module~~modibmdata~~UsedByGraph_node9"><a xlink:href="../proc/trees.html" xlink:title="trees">
+<polygon fill="#d9534f" stroke="#d9534f" points="191.5,-234 137.5,-234 137.5,-210 191.5,-210 191.5,-234"/>
+<text text-anchor="middle" x="164.5" y="-219.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">trees</text>
+</a>
+</g>
+</g>
+<!-- proc~trees&#45;&gt;module~modibmdata -->
+<g id="module~~modibmdata~~UsedByGraph_edge8" class="edge">
+<title>proc~trees&#45;&gt;module~modibmdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M137.33,-231.01C122.46,-236.13 103.45,-242.67 86.28,-248.58"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="84.74,-245.41 76.43,-251.98 87.02,-252.03 84.74,-245.41"/>
+</g>
+<!-- proc~wallfunheat -->
+<g id="module~~modibmdata~~UsedByGraph_node10" class="node">
+<title>proc~wallfunheat</title>
+<g id="a_module~~modibmdata~~UsedByGraph_node10"><a xlink:href="../proc/wallfunheat.html" xlink:title="wallfunheat">
+<polygon fill="#d9534f" stroke="#d9534f" points="202,-192 127,-192 127,-168 202,-168 202,-192"/>
+<text text-anchor="middle" x="164.5" y="-177.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">wallfunheat</text>
+</a>
+</g>
+</g>
+<!-- proc~wallfunheat&#45;&gt;module~modibmdata -->
+<g id="module~~modibmdata~~UsedByGraph_edge9" class="edge">
+<title>proc~wallfunheat&#45;&gt;module~modibmdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M133.36,-192.17C127.78,-194.82 122.1,-197.8 117,-201 96.62,-213.77 75.8,-231.57 61.2,-244.99"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="58.68,-242.55 53.77,-251.94 63.47,-247.67 58.68,-242.55"/>
+</g>
+<!-- proc~wfgr -->
+<g id="module~~modibmdata~~UsedByGraph_node11" class="node">
+<title>proc~wfgr</title>
+<g id="a_module~~modibmdata~~UsedByGraph_node11"><a xlink:href="../proc/wfgr.html" xlink:title="wfGR">
+<polygon fill="#d9534f" stroke="#d9534f" points="191.5,-150 137.5,-150 137.5,-126 191.5,-126 191.5,-150"/>
+<text text-anchor="middle" x="164.5" y="-135.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">wfGR</text>
+</a>
+</g>
+</g>
+<!-- proc~wfgr&#45;&gt;module~modibmdata -->
+<g id="module~~modibmdata~~UsedByGraph_edge10" class="edge">
+<title>proc~wfgr&#45;&gt;module~modibmdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M137.02,-147.1C130.08,-150.22 122.9,-154.18 117,-159 88.26,-182.51 65.15,-219.47 52.38,-242.68"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="49.18,-241.24 47.56,-251.71 55.36,-244.54 49.18,-241.24"/>
+</g>
+<!-- proc~wfmneutral -->
+<g id="module~~modibmdata~~UsedByGraph_node12" class="node">
+<title>proc~wfmneutral</title>
+<g id="a_module~~modibmdata~~UsedByGraph_node12"><a xlink:href="../proc/wfmneutral.html" xlink:title="wfmneutral">
+<polygon fill="#d9534f" stroke="#d9534f" points="201,-108 128,-108 128,-84 201,-84 201,-108"/>
+<text text-anchor="middle" x="164.5" y="-93.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">wfmneutral</text>
+</a>
+</g>
+</g>
+<!-- proc~wfmneutral&#45;&gt;module~modibmdata -->
+<g id="module~~modibmdata~~UsedByGraph_edge11" class="edge">
+<title>proc~wfmneutral&#45;&gt;module~modibmdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M129.28,-108.17C124.84,-110.65 120.59,-113.58 117,-117 79.64,-152.53 57.53,-210.6 47.67,-242.07"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="44.32,-241.07 44.79,-251.65 51.02,-243.08 44.32,-241.07"/>
+</g>
+<!-- proc~wfuno -->
+<g id="module~~modibmdata~~UsedByGraph_node13" class="node">
+<title>proc~wfuno</title>
+<g id="a_module~~modibmdata~~UsedByGraph_node13"><a xlink:href="../proc/wfuno.html" xlink:title="wfuno">
+<polygon fill="#d9534f" stroke="#d9534f" points="191.5,-66 137.5,-66 137.5,-42 191.5,-42 191.5,-66"/>
+<text text-anchor="middle" x="164.5" y="-51.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">wfuno</text>
+</a>
+</g>
+</g>
+<!-- proc~wfuno&#45;&gt;module~modibmdata -->
+<g id="module~~modibmdata~~UsedByGraph_edge12" class="edge">
+<title>proc~wfuno&#45;&gt;module~modibmdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M137.15,-61.77C129.89,-64.93 122.51,-69.24 117,-75 70.98,-123.1 51.8,-202.77 44.89,-241.49"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="41.38,-241.25 43.18,-251.69 48.28,-242.4 41.38,-241.25"/>
+</g>
+<!-- proc~writerestartfiles -->
+<g id="module~~modibmdata~~UsedByGraph_node14" class="node">
+<title>proc~writerestartfiles</title>
+<g id="a_module~~modibmdata~~UsedByGraph_node14"><a xlink:href="../proc/writerestartfiles.html" xlink:title="writerestartfiles">
+<polygon fill="#d9534f" stroke="#d9534f" points="212,-24 117,-24 117,0 212,0 212,-24"/>
+<text text-anchor="middle" x="164.5" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">writerestartfiles</text>
+</a>
+</g>
+</g>
+<!-- proc~writerestartfiles&#45;&gt;module~modibmdata -->
+<g id="module~~modibmdata~~UsedByGraph_edge13" class="edge">
+<title>proc~writerestartfiles&#45;&gt;module~modibmdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M127.84,-24.22C123.82,-26.67 120.08,-29.57 117,-33 61.93,-94.38 46.94,-196.67 42.93,-241.64"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="39.43,-241.53 42.13,-251.77 46.41,-242.08 39.43,-241.53"/>
+</g>
+<!-- proc~advecc_2nd -->
+<g id="module~~modibmdata~~UsedByGraph_node15" class="node">
+<title>proc~advecc_2nd</title>
+<g id="a_module~~modibmdata~~UsedByGraph_node15"><a xlink:href="../proc/advecc_2nd.html" xlink:title="advecc_2nd">
+<polygon fill="#d9534f" stroke="#d9534f" points="330,-507 254,-507 254,-483 330,-483 330,-507"/>
+<text text-anchor="middle" x="292" y="-492.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">advecc_2nd</text>
+</a>
+</g>
+</g>
+<!-- proc~advecc_2nd&#45;&gt;module~modibm -->
+<g id="module~~modibmdata~~UsedByGraph_edge14" class="edge">
+<title>proc~advecc_2nd&#45;&gt;module~modibm</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M253.69,-488.76C237.8,-486.1 219.3,-483 203.36,-480.33"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="203.74,-476.85 193.3,-478.65 202.59,-483.75 203.74,-476.85"/>
+</g>
+<!-- proc~advecu_2nd -->
+<g id="module~~modibmdata~~UsedByGraph_node16" class="node">
+<title>proc~advecu_2nd</title>
+<g id="a_module~~modibmdata~~UsedByGraph_node16"><a xlink:href="../proc/advecu_2nd.html" xlink:title="advecu_2nd">
+<polygon fill="#d9534f" stroke="#d9534f" points="330.5,-465 253.5,-465 253.5,-441 330.5,-441 330.5,-465"/>
+<text text-anchor="middle" x="292" y="-450.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">advecu_2nd</text>
+</a>
+</g>
+</g>
+<!-- proc~advecu_2nd&#45;&gt;module~modibm -->
+<g id="module~~modibmdata~~UsedByGraph_edge15" class="edge">
+<title>proc~advecu_2nd&#45;&gt;module~modibm</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M253.35,-459.3C237.47,-461.96 219.04,-465.04 203.16,-467.7"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="202.44,-464.27 193.15,-469.37 203.59,-471.17 202.44,-464.27"/>
+</g>
+<!-- proc~initfielddump -->
+<g id="module~~modibmdata~~UsedByGraph_node17" class="node">
+<title>proc~initfielddump</title>
+<g id="a_module~~modibmdata~~UsedByGraph_node17"><a xlink:href="../proc/initfielddump.html" xlink:title="initfielddump">
+<polygon fill="#d9534f" stroke="#d9534f" points="333.5,-423 250.5,-423 250.5,-399 333.5,-399 333.5,-423"/>
+<text text-anchor="middle" x="292" y="-408.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">initfielddump</text>
+</a>
+</g>
+</g>
+<!-- proc~initfielddump&#45;&gt;module~modibm -->
+<g id="module~~modibmdata~~UsedByGraph_edge16" class="edge">
+<title>proc~initfielddump&#45;&gt;module~modibm</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M265.38,-423.13C259.62,-425.96 253.57,-429.02 248,-432 231.67,-440.74 228.46,-444.51 212,-453 208.91,-454.59 205.68,-456.19 202.43,-457.75"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="200.84,-454.63 193.26,-462.03 203.81,-460.97 200.84,-454.63"/>
+</g>
+<!-- program~dalesurban -->
+<g id="module~~modibmdata~~UsedByGraph_node18" class="node">
+<title>program~dalesurban</title>
+<g id="a_module~~modibmdata~~UsedByGraph_node18"><a xlink:href="../program/dalesurban.html" xlink:title="DALESURBAN">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="334.5,-381 249.5,-381 249.5,-357 334.5,-357 334.5,-381"/>
+<text text-anchor="middle" x="292" y="-366.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">DALESURBAN</text>
+</a>
+</g>
+</g>
+<!-- program~dalesurban&#45;&gt;module~modibm -->
+<g id="module~~modibmdata~~UsedByGraph_edge18" class="edge">
+<title>program~dalesurban&#45;&gt;module~modibm</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M260.38,-381.09C255.93,-383.63 251.64,-386.59 248,-390 224.47,-412.05 235.86,-431.3 212,-453 209.06,-455.67 205.72,-458.05 202.22,-460.16"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="200.52,-457.1 193.3,-464.86 203.78,-463.3 200.52,-457.1"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#UsedByGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="UsedByGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.50.0 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="518pt" height="32pt"
+ viewBox="0.00 0.00 517.50 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-28 513.5,-28 513.5,4 -4,4"/>
+<!-- Module -->
+<g id="node1" class="node">
+<title>Module</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-24 0,-24 0,0 54,0 54,-24"/>
+<text text-anchor="middle" x="27" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Module</text>
+</g>
+<!-- Submodule -->
+<g id="node2" class="node">
+<title>Submodule</title>
+<polygon fill="#5bc0de" stroke="#5bc0de" points="145.5,-24 72.5,-24 72.5,0 145.5,0 145.5,-24"/>
+<text text-anchor="middle" x="109" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Submodule</text>
+</g>
+<!-- Subroutine -->
+<g id="node3" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="234,-24 164,-24 164,0 234,0 234,-24"/>
+<text text-anchor="middle" x="199" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node4" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="310,-24 252,-24 252,0 310,0 310,-24"/>
+<text text-anchor="middle" x="281" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="386,-24 328,-24 328,0 386,0 386,-24"/>
+<text text-anchor="middle" x="357" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="509.5,-24 404.5,-24 404.5,0 509.5,0 509.5,-24"/>
+<text text-anchor="middle" x="457" y="-9.6" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a submodule to the (sub)module which it is
+descended from. Dashed arrows point from a module or program unit to 
+modules which it uses.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+            </li>
+        </ul>
+      </div>
+    </div>
+
+      <br>
+
+
+        <section>
+          <h2>Variables</h2>
+            <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Visibility</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+<th></th><th scope="col">Initial</th>        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-xwallsglobal"></span>
+              integer,
+            </td>
+              <td>public,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>xwallsglobal</strong>(:,:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ywallsglobal"></span>
+              integer,
+            </td>
+              <td>public,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>ywallsglobal</strong>(:,:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-zwallsglobal"></span>
+              integer,
+            </td>
+              <td>public,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>zwallsglobal</strong>(:,:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-xwallsshear"></span>
+              integer,
+            </td>
+              <td>public,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>xwallsshear</strong>(:,:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ywallsp"></span>
+              integer,
+            </td>
+              <td>public,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>ywallsp</strong>(:,:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ywallsm"></span>
+              integer,
+            </td>
+              <td>public,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>ywallsm</strong>(:,:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-zwallsshear"></span>
+              integer,
+            </td>
+              <td>public,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>zwallsshear</strong>(:,:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-xwallsnorm"></span>
+              integer,
+            </td>
+              <td>public,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>xwallsnorm</strong>(:,:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ywallsnorm"></span>
+              integer,
+            </td>
+              <td>public,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>ywallsnorm</strong>(:,:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-zwallsnorm"></span>
+              integer,
+            </td>
+              <td>public,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>zwallsnorm</strong>(:,:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nxwall"></span>
+              integer,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nxwall</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ixwall"></span>
+              integer,
+            </td>
+              <td>public,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>ixwall</strong>(:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nywall"></span>
+              integer,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nywall</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iyminwall"></span>
+              integer,
+            </td>
+              <td>public,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>iyminwall</strong>(:,:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nyminwall"></span>
+              integer,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nyminwall</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iywall"></span>
+              integer,
+            </td>
+              <td>public,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>iywall</strong>(:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nypluswall"></span>
+              integer,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nypluswall</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iypluswall"></span>
+              integer,
+            </td>
+              <td>public,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>iypluswall</strong>(:,:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ibmxforce"></span>
+              real,
+            </td>
+              <td>public,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>ibmxforce</strong>(:,:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ibmxforcevol"></span>
+              real,
+            </td>
+              <td>public,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>ibmxforcevol</strong>(:,:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ibmxforcevolp"></span>
+              real,
+            </td>
+              <td>public,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>ibmxforcevolp</strong>(:,:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-sumctm"></span>
+              real,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>sumctm</strong></td>
+<td> =</td>
+                <td>0.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bctfluxa"></span>
+              real,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>bcTfluxA</strong></td>
+<td> =</td>
+                <td>0.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bcqfluxa"></span>
+              real,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>bcqfluxA</strong></td>
+<td> =</td>
+                <td>0.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bctfxm"></span>
+              real,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>bctfxm</strong></td>
+<td> =</td>
+                <td>0.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bctfxp"></span>
+              real,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>bctfxp</strong></td>
+<td> =</td>
+                <td>0.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bctfym"></span>
+              real,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>bctfym</strong></td>
+<td> =</td>
+                <td>0.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bctfyp"></span>
+              real,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>bctfyp</strong></td>
+<td> =</td>
+                <td>0.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bctfz"></span>
+              real,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>bctfz</strong></td>
+<td> =</td>
+                <td>0.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bcqfxm"></span>
+              real,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>bcqfxm</strong></td>
+<td> =</td>
+                <td>0.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bcqfxp"></span>
+              real,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>bcqfxp</strong></td>
+<td> =</td>
+                <td>0.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bcqfym"></span>
+              real,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>bcqfym</strong></td>
+<td> =</td>
+                <td>0.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bcqfyp"></span>
+              real,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>bcqfyp</strong></td>
+<td> =</td>
+                <td>0.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bcqfz"></span>
+              real,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>bcqfz</strong></td>
+<td> =</td>
+                <td>0.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nxwallsnorm"></span>
+              integer,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nxwallsnorm</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nywallsnorm"></span>
+              integer,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nywallsnorm</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nzwallsnorm"></span>
+              integer,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nzwallsnorm</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nxwallsshear"></span>
+              integer,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nxwallsshear</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nywallsp"></span>
+              integer,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nywallsp</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nywallsm"></span>
+              integer,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nywallsm</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nzwallsshear"></span>
+              integer,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nzwallsshear</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-offset"></span>
+              integer,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>offset</strong></td>
+<td> =</td>
+                <td>1</td>
+            <td>
+                
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+        </section>
+        <br>
+
+
+
+
+
+
+
+
+
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2025 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2025-01-27 21:12 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+
+    <!-- Bootstrap core JavaScript -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>    
+
+    <!-- MathJax JavaScript
+             ================================================== -->
+             <!-- Placed at the end of the document so the pages load faster -->
+        <script type="text/x-mathjax-config">
+          MathJax.Hub.Config({
+          TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } },
+          jax: ['input/TeX','input/MathML','output/HTML-CSS'],
+          extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']
+          });
+        </script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+          <script src="../tipuesearch/tipuesearch_content.js"></script>
+          <script src="../tipuesearch/tipuesearch_set.js"></script>
+          <script src="../tipuesearch/tipuesearch.js"></script>
+
+  </body>
+</html>
