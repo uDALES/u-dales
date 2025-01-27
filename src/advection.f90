@@ -38,8 +38,8 @@ subroutine advection
    use cudafor
    use cudamodule, only : griddim, blockdim, checkCUDA, &
                           u0_d, v0_d, w0_d, e120_d, thl0_d, thl0c_d, qt0_d, sv0_d, up_d, vp_d, wp_d, e12p_d, thlp_d, thlpc_d, qtp_d, svp_d, &
-                          advecc_2nd_cuda, advecu_2nd_cuda, advecv_2nd_cuda, advecw_2nd_cuda, &
-                          advecc_kappa_ducdx_cuda, advecc_kappa_dvcdy_cuda, advecc_kappa_dwcdz_cuda, advecc_kappa_reset_cuda, advecc_kappa_add_cuda, thlptothlpc_cuda, thlpctothlp_cuda
+                          advecc_2nd_cuda, advecu_2nd_cuda, advecv_2nd_cuda, advecw_2nd_cuda, advecc_upw_cuda, &
+                          advecc_kappa_reset_cuda, advecc_kappa_ducdx_cuda, advecc_kappa_dvcdy_cuda, advecc_kappa_dwcdz_cuda, advecc_kappa_add_cuda, thlptothlpc_cuda, thlpctothlp_cuda
 #endif
    implicit none
    integer :: n
@@ -91,14 +91,14 @@ subroutine advection
 #endif
          case (iadv_kappa)
 #if defined(_GPU)
-            call thlptothlpc_cuda<<<griddim,blockdim>>>()
+            call thlptothlpc_cuda<<<griddim,blockdim>>>
             call checkCUDA( cudaGetLastError(), 'thlptothlpc_cuda' )
 
             ! -d(u tlh)/dx
             call advecc_kappa_reset_cuda<<<griddim,blockdim>>>(ihc, jhc, khc)
             call checkCUDA( cudaGetLastError(), 'advecc_kappa_reset_cuda 1st call in temp' )
             call advecc_kappa_ducdx_cuda<<<griddim,blockdim>>>(ihc, jhc, khc, thl0c_d)
-            call checkCUDA( cudaGetLastError(), 'advecc_kappa_ducdx_cuda' )
+            call checkCUDA( cudaGetLastError(), 'advecc_kappa_ducdx_cuda in temp' )
             call advecc_kappa_add_cuda<<<griddim,blockdim>>>(ihc, jhc, khc, thlpc_d)
             call checkCUDA( cudaGetLastError(), 'advecc_kappa_add_cuda 1st call in temp' )
 
@@ -106,7 +106,7 @@ subroutine advection
             call advecc_kappa_reset_cuda<<<griddim,blockdim>>>(ihc, jhc, khc)
             call checkCUDA( cudaGetLastError(), 'advecc_kappa_reset_cuda 2nd call in temp' )
             call advecc_kappa_dvcdy_cuda<<<griddim,blockdim>>>(ihc, jhc, khc, thl0c_d)
-            call checkCUDA( cudaGetLastError(), 'advecc_kappa_ducdx_cuda' )
+            call checkCUDA( cudaGetLastError(), 'advecc_kappa_dvcdy_cuda in temp' )
             call advecc_kappa_add_cuda<<<griddim,blockdim>>>(ihc, jhc, khc, thlpc_d)
             call checkCUDA( cudaGetLastError(), 'advecc_kappa_add_cuda 2nd call in temp' )
 
@@ -114,11 +114,11 @@ subroutine advection
             call advecc_kappa_reset_cuda<<<griddim,blockdim>>>(ihc, jhc, khc)
             call checkCUDA( cudaGetLastError(), 'advecc_kappa_reset_cuda 3rd call in temp' )
             call advecc_kappa_dwcdz_cuda<<<griddim,blockdim>>>(ihc, jhc, khc, thl0c_d)
-            call checkCUDA( cudaGetLastError(), 'advecc_kappa_ducdx_cuda' )
+            call checkCUDA( cudaGetLastError(), 'advecc_kappa_dwcdz_cuda in temp' )
             call advecc_kappa_add_cuda<<<griddim,blockdim>>>(ihc, jhc, khc, thlpc_d)
             call checkCUDA( cudaGetLastError(), 'advecc_kappa_add_cuda 3rd call in temp' )
 
-            call thlpctothlp_cuda<<<griddim,blockdim>>>()
+            call thlpctothlp_cuda<<<griddim,blockdim>>>
             call checkCUDA( cudaGetLastError(), 'thlpctothlp_cuda' )
 #else
             thlpc(ib:ie,jb:je,kb:ke) = thlp(ib:ie,jb:je,kb:ke)
@@ -156,12 +156,13 @@ subroutine advection
             call advecc_2nd(ihc, jhc, khc, sv0(:, :, :, n), svp(:, :, :, n))
 #endif
          case (iadv_kappa)
+            write(*,*) "Inside kappa scheme.", ih, jh, kh, ihc, jhc, khc
 #if defined(_GPU)
             ! -d(uc)/dx
             call advecc_kappa_reset_cuda<<<griddim,blockdim>>>(ihc, jhc, khc)
             call checkCUDA( cudaGetLastError(), 'advecc_kappa_reset_cuda 1st call in scalar' )
             call advecc_kappa_ducdx_cuda<<<griddim,blockdim>>>(ihc, jhc, khc, sv0_d(:, :, :, n))
-            call checkCUDA( cudaGetLastError(), 'advecc_kappa_ducdx_cuda' )
+            call checkCUDA( cudaGetLastError(), 'advecc_kappa_ducdx_cuda in scalar' )
             call advecc_kappa_add_cuda<<<griddim,blockdim>>>(ihc, jhc, khc, svp_d(:, :, :, n))
             call checkCUDA( cudaGetLastError(), 'advecc_kappa_add_cuda 1st call in scalar' )
 
@@ -169,7 +170,7 @@ subroutine advection
             call advecc_kappa_reset_cuda<<<griddim,blockdim>>>(ihc, jhc, khc)
             call checkCUDA( cudaGetLastError(), 'advecc_kappa_reset_cuda 2nd call in scalar' )
             call advecc_kappa_dvcdy_cuda<<<griddim,blockdim>>>(ihc, jhc, khc, sv0_d(:, :, :, n))
-            call checkCUDA( cudaGetLastError(), 'advecc_kappa_ducdx_cuda' )
+            call checkCUDA( cudaGetLastError(), 'advecc_kappa_dvcdy_cuda in scalar' )
             call advecc_kappa_add_cuda<<<griddim,blockdim>>>(ihc, jhc, khc, svp_d(:, :, :, n))
             call checkCUDA( cudaGetLastError(), 'advecc_kappa_add_cuda 2nd call in scalar' )
 
@@ -177,14 +178,20 @@ subroutine advection
             call advecc_kappa_reset_cuda<<<griddim,blockdim>>>(ihc, jhc, khc)
             call checkCUDA( cudaGetLastError(), 'advecc_kappa_reset_cuda 3rd call in scalar' )
             call advecc_kappa_dwcdz_cuda<<<griddim,blockdim>>>(ihc, jhc, khc, sv0_d(:, :, :, n))
-            call checkCUDA( cudaGetLastError(), 'advecc_kappa_ducdx_cuda' )
+            call checkCUDA( cudaGetLastError(), 'advecc_kappa_dwcdz_cuda in scalar' )
             call advecc_kappa_add_cuda<<<griddim,blockdim>>>(ihc, jhc, khc, svp_d(:, :, :, n))
             call checkCUDA( cudaGetLastError(), 'advecc_kappa_add_cuda 3rd call in scalar' )
 #else
             call advecc_kappa(ihc, jhc, khc, sv0(:, :, :, n), svp(:, :, :, n))
 #endif
          case (iadv_upw)
+            write(*,*) "Inside upwind scheme.", ih, jh, kh, ihc, jhc, khc
+#if defined(_GPU)
+            call advecc_upw_cuda<<<griddim,blockdim>>>(ihc, jhc, khc, sv0_d(:, :, :, n), svp_d(:, :, :, n))
+            call checkCUDA( cudaGetLastError(), 'advecc_upw_cuda for svp' )
+#else
             call advecc_upw(ihc, jhc, khc, sv0(:, :, :, n), svp(:, :, :, n))
+#endif
          case default
             write(0, *) "ERROR: Unknown advection scheme"
             stop 1

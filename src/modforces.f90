@@ -986,7 +986,7 @@ module modforces
       real :: vs, rk3coef
       
 #if defined(_GPU)
-      call shiftedPBCs_cuda<<<griddim,blockdim>>>()
+      call shiftedPBCs_cuda<<<griddim,blockdim>>>
       call checkCUDA( cudaGetLastError(), 'shiftedPBCs_cuda' )
 #else
       if (ds > 0) then

@@ -4,7 +4,7 @@ module cudamodule
    use modglobal, only : itot, ib, ie, jb, je, kb, ke, ih, jh, kh, ihc, jhc, khc, &
                          dxi5, dyi5, dzf, dzhi, dzfi5, dzhiq, dxiq, dyiq, dxi, dyi, &
                          loneeqn, ltempeq, lmoist, nsv, &
-                         iadv_sv, iadv_thl, iadv_kappa, dxhci, dxfc, dxfci, dzhci, dzfc, dzfci, eps1, &
+                         iadv_sv, iadv_thl, iadv_kappa, iadv_upw, dxhci, dxfc, dxfci, dzhci, dzfc, dzfci, eps1, &
                          pi, xlen, xh, ds, rk3step, dt
    use modfields, only : u0, v0, w0, pres0, e120, thl0, thl0c, qt0, sv0, up, vp, wp, e12p, thlp, thlpc, qtp, svp, u0av
    use decomp_2d, only : zstart
@@ -113,7 +113,7 @@ module cudamodule
             allocate(svp_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc,nsv))
          end if
 
-         if (any(iadv_sv(1:nsv) == iadv_kappa) .or. (iadv_thl == iadv_kappa)) then
+         if (any(iadv_sv(1:nsv) == iadv_kappa) .or. any(iadv_sv(1:nsv) == iadv_upw) .or. (iadv_thl == iadv_kappa)) then
             allocate(dumu_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
             allocate(duml_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
             allocate (dxhci_d(ib - 1:itot + ihc))
@@ -154,7 +154,7 @@ module cudamodule
          end if
          if (lmoist) deallocate(qt0_d, qtp_d)
          if (nsv>0) deallocate(sv0_d, svp_d)
-         if (any(iadv_sv(1:nsv) == iadv_kappa) .or. (iadv_thl == iadv_kappa)) then
+         if (any(iadv_sv(1:nsv) == iadv_kappa) .or. any(iadv_sv(1:nsv) == iadv_upw) .or. (iadv_thl == iadv_kappa)) then
             deallocate(dumu_d, duml_d, dxhci_d, dxfc_d, dxfci_d, dzhci, dzfc, dzfci)
          end if
          deallocate(xh_d, u0av_d)
@@ -242,7 +242,8 @@ module cudamodule
          stridez = gridDim%z * blockDim%z
       end subroutine tidandstride
       
-      !> Advection at cell center
+
+      !> Advection at cell center central difference
       attributes(global) subroutine advecc_2nd_cuda(hi, hj, hk, putin, putout)
          implicit none
          
@@ -295,7 +296,8 @@ module cudamodule
 
       end subroutine advecc_2nd_cuda
      
-      !> Advection at the u point.
+
+      !> Advection at the u point. central difference
       attributes(global) subroutine advecu_2nd_cuda(putin, putout)
          implicit none
              
@@ -351,7 +353,8 @@ module cudamodule
 
       end subroutine advecu_2nd_cuda
 
-      !> Advection at the v point.
+
+      !> Advection at the v point. central difference
       attributes(global) subroutine advecv_2nd_cuda(putin, putout)
          implicit none
          real, dimension(ib_d - ih_d:ie_d + ih_d, jb_d - jh_d:je_d + jh_d, kb_d - kh_d:ke_d + kh_d), intent(in)    :: putin
@@ -407,7 +410,8 @@ module cudamodule
 
       end subroutine advecv_2nd_cuda
 
-      !> Advection at the w point.
+
+      !> Advection at the w point. central difference
       attributes(global) subroutine advecw_2nd_cuda(putin, putout)
          implicit none
          
@@ -451,6 +455,20 @@ module cudamodule
 
 
       !> Advection at cell center through kappa scheme
+      attributes(global) subroutine advecc_kappa_reset_cuda(hi, hj, hk)
+         implicit none
+         integer, value, intent(in) :: hi, hj, hk
+         integer :: i, j, k, tidx, tidy, tidz, stridex, stridey, stridez
+         call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+         do k = tidz, ke_d + hk, stridez
+            do j = tidy - hj, je_d + hj, stridey
+               do i = tidx - hi, ie_d + hi, stridex
+                  dumu_d(i,j,k) = 0.
+                  duml_d(i,j,k) = 0.
+               end do
+            end do
+         end do
+      end subroutine advecc_kappa_reset_cuda
 
       ! -d(uc)/dx (stretched grid)
       attributes(global) subroutine advecc_kappa_ducdx_cuda(hi, hj, hk, var)
@@ -542,21 +560,6 @@ module cudamodule
          end do
       end subroutine advecc_kappa_dwcdz_cuda
 
-      attributes(global) subroutine advecc_kappa_reset_cuda(hi, hj, hk)
-         implicit none
-         integer, value, intent(in) :: hi, hj, hk
-         integer :: i, j, k, tidx, tidy, tidz, stridex, stridey, stridez
-         call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
-         do k = tidz, ke_d + hk, stridez
-            do j = tidy - hj, je_d + hj, stridey
-               do i = tidx - hi, ie_d + hi, stridex
-                  dumu_d(i,j,k) = 0.
-                  duml_d(i,j,k) = 0.
-               end do
-            end do
-         end do
-      end subroutine advecc_kappa_reset_cuda
-
       attributes(global) subroutine advecc_kappa_add_cuda(hi, hj, hk, varp)
          implicit none
          integer, value, intent(in) :: hi, hj, hk
@@ -583,7 +586,7 @@ module cudamodule
          rlim_cuda = 0.5*phir*d1
       end function rlim_cuda
 
-      attributes(global) subroutine thlptothlpc_cuda()
+      attributes(global) subroutine thlptothlpc_cuda
          implicit none
          integer :: i, j, k, tidx, tidy, tidz, stridex, stridey, stridez
          call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
@@ -596,7 +599,7 @@ module cudamodule
          end do
       end subroutine thlptothlpc_cuda
 
-      attributes(global) subroutine thlpctothlp_cuda()
+      attributes(global) subroutine thlpctothlp_cuda
          implicit none
          integer :: i, j, k, tidx, tidy, tidz, stridex, stridey, stridez
          call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
@@ -610,7 +613,67 @@ module cudamodule
       end subroutine thlpctothlp_cuda
 
 
-      attributes(global) subroutine shiftedPBCs_cuda()
+      !> Advection at cell center through upwind scheme
+      attributes(global) subroutine advecc_upw_cuda(hi, hj, hk, putin, putout)
+         implicit none
+         integer, value, intent(in) :: hi, hj, hk
+         real, dimension(ib_d - hi:ie_d + hi, jb_d - hj:je_d + hj, kb_d - hk:ke_d + hk), intent(in)    :: putin
+         real, dimension(ib_d - hi:ie_d + hi, jb_d - hj:je_d + hj, kb_d:ke_d + hk)     , intent(inout) :: putout
+         integer :: i, j, k, tidx, tidy, tidz, stridex, stridey, stridez
+         real    :: fluxr, fluxl, fluxb, fluxf, fluxu, fluxd
+         
+         call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+         
+         do k = tidz, ke_d, stridez
+            do j = tidy, je_d, stridey
+               do i = tidx, ie_d, stridex
+                  if (u0_d(i+1, j, k) > 0) then   
+                     fluxr = putin(i, j, k)
+                  else
+                     fluxr = putin(i + 1, j, k)
+                  end if
+
+                  if (u0_d(i, j, k) > 0) then
+                     fluxl = putin(i - 1, j, k)
+                  else
+                     fluxl = putin(i, j, k)
+                  end if
+
+                  if (v0_d(i, j+1, k) > 0) then
+                     fluxb = putin(i, j, k)
+                  else
+                     fluxb = putin(i, j + 1, k)
+                  end if
+
+                  if (v0_d(i, j, k) > 0) then
+                     fluxf = putin(i, j - 1, k)
+                  else
+                     fluxf = putin(i, j, k)
+                  end if
+
+                  if (w0_d(i, j, k+1) > 0) then
+                     fluxu = putin(i, j, k)
+                  else
+                     fluxu = putin(i, j, k + 1)
+                  end if
+
+                  if (w0_d(i, j, k) > 0) then
+                     fluxd = putin(i, j, k - 1)
+                  else
+                     fluxd = putin(i, j, k)
+                  end if
+
+                  putout(i, j, k) = putout(i, j, k) &
+                                    - (u0_d(i + 1, j, k)*fluxr - u0_d(i, j, k)*fluxl)*dxfci_d(i) & ! -d(uc)/dx (stretched grid)
+                                    - (v0_d(i, j + 1, k)*fluxb - v0_d(i, j, k)*fluxf)*dyi_d &      ! -d(vc)/dy (no stretched grid)
+                                    - (w0_d(i, j, k + 1)*fluxu - w0_d(i, j, k)*fluxd)*dzfci_d(k)   ! -d(wc)/dz (stretched grid)
+               end do
+            end do
+         end do
+      end subroutine advecc_upw_cuda
+
+
+      attributes(global) subroutine shiftedPBCs_cuda
          implicit none
          integer :: tidx, tidy, tidz, stridex, stridey, stridez
          integer :: i, j, k, ig
