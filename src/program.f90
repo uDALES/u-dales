@@ -27,7 +27,8 @@ program DALESURBAN      !Version 48
   use mpi
   use modmpi,            only : initmpi,exitmpi,myid,starttimer
 #if defined(_GPU)
-  use cudamodule,        only : initCUDA, updateDevice, updateHost, exitCUDA
+  use cudafor
+  use cudamodule,        only : initCUDA, updateDevice, updateHost, checkCUDA, exitCUDA
 #endif
   use modglobal,         only : initglobal,rk3step,timeleft
   use modstartup,        only : readnamelists,init2decomp,checkinitvalues,readinitfiles,exitmodules
@@ -148,6 +149,9 @@ program DALESURBAN      !Version 48
 
     call shiftedPBCs
 
+#if defined(_GPU)
+    call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize in program' )
+#endif
     write(6,*)'(advection + shiftedPBCs) time = ', MPI_Wtime() - stime
 #if defined(_GPU)
     call updateHost

@@ -837,7 +837,7 @@ contains
       dxi5 = 0.5*dxi
 
       ! Grid used in kappa scheme advection (extra ghost nodes)
-      if (any(iadv_sv(1:nsv) == iadv_kappa) .or. (iadv_thl == iadv_kappa)) then
+      if (any(iadv_sv(1:nsv) == iadv_kappa) .or. any(iadv_sv(1:nsv) == iadv_upw) .or. (iadv_thl == iadv_kappa)) then
          allocate (dzfc(kb - khc:ke + khc))
          allocate (dxfc(ib - ihc:itot + ihc))
          allocate (dzfci(kb - khc:ke + khc))

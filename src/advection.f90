@@ -156,7 +156,6 @@ subroutine advection
             call advecc_2nd(ihc, jhc, khc, sv0(:, :, :, n), svp(:, :, :, n))
 #endif
          case (iadv_kappa)
-            write(*,*) "Inside kappa scheme.", ih, jh, kh, ihc, jhc, khc
 #if defined(_GPU)
             ! -d(uc)/dx
             call advecc_kappa_reset_cuda<<<griddim,blockdim>>>(ihc, jhc, khc)
@@ -185,7 +184,6 @@ subroutine advection
             call advecc_kappa(ihc, jhc, khc, sv0(:, :, :, n), svp(:, :, :, n))
 #endif
          case (iadv_upw)
-            write(*,*) "Inside upwind scheme.", ih, jh, kh, ihc, jhc, khc
 #if defined(_GPU)
             call advecc_upw_cuda<<<griddim,blockdim>>>(ihc, jhc, khc, sv0_d(:, :, :, n), svp_d(:, :, :, n))
             call checkCUDA( cudaGetLastError(), 'advecc_upw_cuda for svp' )

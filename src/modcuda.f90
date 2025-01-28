@@ -627,46 +627,46 @@ module cudamodule
          do k = tidz, ke_d, stridez
             do j = tidy, je_d, stridey
                do i = tidx, ie_d, stridex
-                  if (u0_d(i+1, j, k) > 0) then   
-                     fluxr = putin(i, j, k)
-                  else
-                     fluxr = putin(i + 1, j, k)
-                  end if
-
-                  if (u0_d(i, j, k) > 0) then
-                     fluxl = putin(i - 1, j, k)
-                  else
-                     fluxl = putin(i, j, k)
-                  end if
-
-                  if (v0_d(i, j+1, k) > 0) then
-                     fluxb = putin(i, j, k)
-                  else
-                     fluxb = putin(i, j + 1, k)
-                  end if
-
-                  if (v0_d(i, j, k) > 0) then
-                     fluxf = putin(i, j - 1, k)
-                  else
-                     fluxf = putin(i, j, k)
-                  end if
-
-                  if (w0_d(i, j, k+1) > 0) then
-                     fluxu = putin(i, j, k)
-                  else
-                     fluxu = putin(i, j, k + 1)
-                  end if
-
-                  if (w0_d(i, j, k) > 0) then
-                     fluxd = putin(i, j, k - 1)
-                  else
-                     fluxd = putin(i, j, k)
-                  end if
-
-                  putout(i, j, k) = putout(i, j, k) &
-                                    - (u0_d(i + 1, j, k)*fluxr - u0_d(i, j, k)*fluxl)*dxfci_d(i) & ! -d(uc)/dx (stretched grid)
-                                    - (v0_d(i, j + 1, k)*fluxb - v0_d(i, j, k)*fluxf)*dyi_d &      ! -d(vc)/dy (no stretched grid)
-                                    - (w0_d(i, j, k + 1)*fluxu - w0_d(i, j, k)*fluxd)*dzfci_d(k)   ! -d(wc)/dz (stretched grid)
+                   if (u0_d(i+1, j, k) > 0) then   
+                      fluxr = putin(i, j, k)
+                   else
+                      fluxr = putin(i + 1, j, k)
+                   end if
+ 
+                   if (u0_d(i, j, k) > 0) then
+                      fluxl = putin(i - 1, j, k)
+                   else
+                      fluxl = putin(i, j, k)
+                   end if
+ 
+                   if (v0_d(i, j+1, k) > 0) then
+                      fluxb = putin(i, j, k)
+                   else
+                      fluxb = putin(i, j + 1, k)
+                   end if
+ 
+                   if (v0_d(i, j, k) > 0) then
+                      fluxf = putin(i, j - 1, k)
+                   else
+                      fluxf = putin(i, j, k)
+                   end if
+ 
+                   if (w0_d(i, j, k+1) > 0) then
+                      fluxu = putin(i, j, k)
+                   else
+                      fluxu = putin(i, j, k + 1)
+                   end if
+ 
+                   if (w0_d(i, j, k) > 0) then
+                      fluxd = putin(i, j, k - 1)
+                   else
+                      fluxd = putin(i, j, k)
+                   end if
+ 
+                   putout(i, j, k) = putout(i, j, k) &
+                                     - (u0_d(i + 1, j, k)*fluxr - u0_d(i, j, k)*fluxl)*dxfci_d(i) & ! -d(uc)/dx (stretched grid)
+                                     - (v0_d(i, j + 1, k)*fluxb - v0_d(i, j, k)*fluxf)*dyi_d &      ! -d(vc)/dy (no stretched grid)
+                                     - (w0_d(i, j, k + 1)*fluxu - w0_d(i, j, k)*fluxd)*dzfci_d(k)   ! -d(wc)/dz (stretched grid)
                end do
             end do
          end do
