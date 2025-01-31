@@ -61,15 +61,21 @@ save
   real :: c_vreman  = 0.07      !< model constant for subgrid-scale model by Vreman (2004)        
 !  real :: c_vreman  = 0.025      !< model constant for subgrid-scale model by Vreman (2004) corresponds with smag_const=0.1       
 
+#if defined(_GPU)
+  real, pinned, allocatable :: ekm(:,:,:)   !< k-coefficient for momentum
+  real, pinned, allocatable :: ekh(:,:,:)   !< k-coefficient for heat and q_tot
+  real, pinned, allocatable :: zlt(:,:,:)   !< filter width
+  real, pinned, allocatable :: damp(:,:,:)      !< used in van Driest/Piomelli damping function
+#else
   real, allocatable :: ekm(:,:,:)   !< k-coefficient for momentum
   real, allocatable :: ekh(:,:,:)   !< k-coefficient for heat and q_tot
+  real, allocatable :: zlt(:,:,:)   !< filter width
+  real, allocatable :: damp(:,:,:)      !< used in van Driest/Piomelli damping function
+#endif
 
   real, allocatable :: sbdiss(:,:,:)!< dissiation
   real, allocatable :: sbshr(:,:,:) !< shear production
   real, allocatable :: sbbuo(:,:,:) !< buoyancy production / destruction
-  real, allocatable :: zlt(:,:,:)   !< filter width
-  
-  real, allocatable :: csz(:,:)       !< Smagorinsky constant
-  real, allocatable :: damp(:,:,:)      !< used in van Driest/Piomelli damping function
+  real, allocatable :: csz(:,:)     !< Smagorinsky constant
 end module modsubgriddata
 

@@ -130,34 +130,107 @@ contains
 
     ! Diffusion subroutines
     ! Thijs Heus, Chiel van Heerwaarden, 15 June 2007
-
+    use mpi
     use modglobal, only : ih,jh,kh,nsv, lmoist,lles, ib,ie,jb,je,kb,ke,imax,jmax,kmax,&
          ihc,jhc,khc,ltempeq
     use modfields, only : up,vp,wp,e12p,thl0,thlp,qt0,qtp,sv0,svp,shear
     use modsurfdata,only : ustar,thlflux,qtflux,svflux
     use modmpi, only : myid, comm3d, mpierr, my_real,nprocs
+#if defined(_GPU)
+    use cudafor
+    use modcuda, only : griddim, blockdim, checkCUDA, up_d, vp_d, wp_d, e12p_d, ekm_d, &
+                        ekh_d, thl0_d, thlp_d, qt0_d, qtp_d, sv0_d, svp_d, damp_d, zlt_d
+#endif
     implicit none
     integer n, proces
+    real subtime
 
     call closure
+
+#if defined(_GPU)
+    ekm_d = ekm
+    ekh_d = ekh
+#endif
+
+    subtime = MPI_Wtime()
+
+#if defined(_GPU)
+    call diffu_cuda<<<griddim,blockdim>>>(up_d)
+    call checkCUDA( cudaGetLastError(), 'diffu_cuda in modsubgrid' )
+
+    call diffv_cuda<<<griddim,blockdim>>>(vp_d)
+    call checkCUDA( cudaGetLastError(), 'diffv_cuda in modsubgrid' )
+
+    call diffw_cuda<<<griddim,blockdim>>>(wp_d)
+    call checkCUDA( cudaGetLastError(), 'diffw_cuda in modsubgrid' )
+#else
     call diffu(up)
     call diffv(vp)
     call diffw(wp)
+#endif
 
-    if (loneeqn) call diffe(e12p)   ! only in case of LES with 1-eq subgrid model
+    if (loneeqn) then ! only in case of LES with 1-eq subgrid model
+#if defined(_GPU)
+       call diffe_cuda<<<griddim,blockdim>>>(e12p_d)
+       call checkCUDA( cudaGetLastError(), 'diffe_cuda in modsubgrid' )
+#else
+       call diffe(e12p)
+#endif
+    end if
 
-    if (ltempeq) call diffc(ih,jh,kh,thl0,thlp)
-    if (lmoist)  call diffc(ih,jh,kh,qt0,qtp)
+    if (ltempeq) then
+#if defined(_GPU)
+       call diffc_cuda<<<griddim,blockdim>>>(ih,jh,kh,thl0_d,thlp_d)
+       call checkCUDA( cudaGetLastError(), 'diffc_cuda for thlp in modsubgrid' )
+#else
+       call diffc(ih,jh,kh,thl0,thlp)
+#endif
+    end if
+    
+    if (lmoist) then
+#if defined(_GPU)
+       call diffc_cuda<<<griddim,blockdim>>>(ih,jh,kh,qt0_d,qtp_d)
+       call checkCUDA( cudaGetLastError(), 'diffc_cuda for qtp in modsubgrid' )
+#else
+       call diffc(ih,jh,kh,qt0,qtp)
+#endif
+    end if
+    
     do n=1,nsv
+#if defined(_GPU)
+       call diffc_cuda<<<griddim,blockdim>>>(ihc,jhc,khc,sv0_d(:,:,:,n),svp_d(:,:,:,n))
+       call checkCUDA( cudaGetLastError(), 'diffc_cuda for svp in modsubgrid' )
+#else
        call diffc(ihc,jhc,khc,sv0(:,:,:,n),svp(:,:,:,n))
+#endif
     end do
-    if (loneeqn) call sources       ! only in case of LES with 1-eq subgrid model
-  end subroutine
+
+    if (loneeqn) then
+#if defined(_GPU)
+       zlt_d = zlt
+       damp_d = damp
+       call sources_cuda<<<griddim,blockdim>>>
+       call checkCUDA( cudaGetLastError(), 'sources_cuda in modsubgrid' )
+       call sources_sum_cuda<<<griddim,blockdim>>>
+       call checkCUDA( cudaGetLastError(), 'sources_sum_cuda in modsubgrid' )
+#else
+       call sources       ! only in case of LES with 1-eq subgrid model
+#endif
+    end if
+
+#if defined(_GPU)
+    call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize in subgrid' )
+#endif
+    write(6,*)'Sub time = ', MPI_Wtime() - subtime
+
+  end subroutine subgrid
+
 
   subroutine exitsubgrid
     implicit none
     deallocate(ekm,ekh,zlt,sbdiss,sbbuo,sbshr,csz)
   end subroutine exitsubgrid
+
 
   subroutine closure
 
@@ -455,6 +528,78 @@ contains
   end subroutine closure
 
 
+#if defined(_GPU)
+  attributes(global) subroutine sources_cuda
+     use modcuda, only : ie_d, je_d, ke_d, dxi_d, dyi_d, dzfi_d, dzhi_d, delta_d, &
+                         u0_d, v0_d, w0_d, e120_d, ekm_d, ekh_d, dthvdz_d, &
+                         damp_d, zlt_d, sbshr_d, sbbuo_d, sbdiss_d, &
+                         numol_d, prandtlmoli_d, grav_d, thvs_d, ce1_d, ce2_d, &
+                         tidandstride
+     implicit none
+
+     real                :: tdef2
+     integer             :: i, j, k, im, ip, jm, jp, km, kp
+     integer             :: tidx, tidy, tidz, stridex, stridey, stridez
+
+     call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+
+     do k = tidz+1, ke_d, stridez
+        kp = k + 1
+        km = k - 1
+        do j = tidy, je_d, stridey
+           jp = j + 1
+           jm = j - 1
+           do i = tidx, ie_d, stridex
+              ip = i + 1
+              im = i - 1
+
+              tdef2 = 2. * ( &
+                      ((u0_d(ip,j,k)-u0_d(i,j,k)) * dxi_d     )**2 &
+                    + ((v0_d(i,jp,k)-v0_d(i,j,k)) * dyi_d     )**2 &
+                    + ((w0_d(i,j,kp)-w0_d(i,j,k)) * dzfi_d(k) )**2 )
+
+              tdef2 = tdef2 + 0.25 * ( &
+                      ((w0_d(i ,j,kp)-w0_d(im,j,kp)) * dxi_d + (u0_d(i ,j,kp)-u0_d(i ,j,k )) * dzhi_d(kp))**2 &
+                    + ((w0_d(i ,j,k )-w0_d(im,j,k )) * dxi_d + (u0_d(i ,j,k )-u0_d(i ,j,km)) * dzhi_d(k ))**2 &
+                    + ((w0_d(ip,j,k )-w0_d(i ,j,k )) * dxi_d + (u0_d(ip,j,k )-u0_d(ip,j,km)) * dzhi_d(k ))**2 &
+                    + ((w0_d(ip,j,kp)-w0_d(i,j,kp))  * dxi_d + (u0_d(ip,j,kp)-u0_d(ip,j,k )) * dzhi_d(kp))**2 )
+
+              tdef2 = tdef2 + 0.25 * ( &
+                      ((u0_d(i ,jp,k)-u0_d(i ,j ,k)) * dyi_d + (v0_d(i ,jp,k)-v0_d(im,jp,k)) * dxi_d)**2 &
+                    + ((u0_d(i ,j ,k)-u0_d(i ,jm,k)) * dyi_d + (v0_d(i ,j ,k)-v0_d(im,j ,k)) * dxi_d)**2 &
+                    + ((u0_d(ip,j ,k)-u0_d(ip,jm,k)) * dyi_d + (v0_d(ip,j ,k)-v0_d(i ,j ,k)) * dxi_d)**2 &
+                    + ((u0_d(ip,jp,k)-u0_d(ip,j ,k)) * dyi_d + (v0_d(ip,jp,k)-v0_d(i ,jp,k)) * dxi_d)**2 )
+
+              tdef2 = tdef2 + 0.25 * ( &
+                      ((v0_d(i,j ,kp)-v0_d(i,j ,k )) * dzhi_d(kp) + (w0_d(i,j ,kp)-w0_d(i,jm,kp)) * dyi_d)**2 &
+                    + ((v0_d(i,j ,k )-v0_d(i,j ,km)) * dzhi_d(k ) + (w0_d(i,j ,k )-w0_d(i,jm,k )) * dyi_d)**2 &
+                    + ((v0_d(i,jp,k )-v0_d(i,jp,km)) * dzhi_d(k ) + (w0_d(i,jp,k )-w0_d(i,j ,k )) * dyi_d)**2 &
+                    + ((v0_d(i,jp,kp)-v0_d(i,jp,k )) * dzhi_d(kp) + (w0_d(i,jp,kp)-w0_d(i,j ,kp)) * dyi_d)**2 )
+
+              sbshr_d(i,j,k)  = (ekm_d(i,j,k)-numol_d)*tdef2/ ( 2*e120_d(i,j,k))
+
+              sbbuo_d(i,j,k)  = -(ekh_d(i,j,k)-numol_d*prandtlmoli_d)*grav_d/thvs_d*dthvdz_d(i,j,k)/ ( 2*e120_d(i,j,k))
+
+              sbdiss_d(i,j,k) = - 2. * (ce1_d + ce2_d*zlt_d(i,j,k)/delta_d(i,k)) * e120_d(i,j,k)**2 /(2.*damp_d(i,j,k)*zlt_d(i,j,k))
+           end do
+        end do
+     end do
+  end subroutine sources_cuda
+
+  attributes(global) subroutine sources_sum_cuda
+     use modcuda, only : ie_d, je_d, ke_d, e12p_d, sbshr_d, sbbuo_d, sbdiss_d, tidandstride
+     implicit none
+     integer :: i, j, k, tidx, tidy, tidz, stridex, stridey, stridez
+     call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+     do k = tidz, ke_d, stridez
+        do j = tidy, je_d, stridey
+           do i = tidx, ie_d, stridex
+              e12p_d(i,j,k) = e12p_d(i,j,k) + sbshr_d(i,j,k) + sbbuo_d(i,j,k) + sbdiss_d(i,j,k)
+           end do
+        end do
+     end do
+  end subroutine sources_sum_cuda
+#else
   subroutine sources     ! only in case of LES computation
 
     !-----------------------------------------------------------------|
@@ -579,7 +724,86 @@ contains
     return
 
   end subroutine sources
+#endif
 
+
+#if defined(_GPU)
+  attributes(global) subroutine diffc_cuda(hi,hj,hk,putin,putout)
+     use modcuda, only : ib_d, ie_d, jb_d, je_d, kb_d, ke_d, lles_d, &
+                         dx2i_d, dy2i_d, dzf_d, dzfi_d, dzhi_d, dzh2i_d, &
+                         ekh_d, numol_d, prandtlmoli_d, tidandstride
+     implicit none
+
+     integer, value, intent(in) :: hi, hj, hk
+     real, intent(in)    :: putin(ib_d-hi:ie_d+hi, jb_d-hj:je_d+hj, kb_d-hk:ke_d+hk)
+     real, intent(inout) :: putout(ib_d-hi:ie_d+hi, jb_d-hj:je_d+hj, kb_d  :ke_d+hk)
+
+     real                :: cekh
+     integer             :: i, j, k, im, ip, jm, jp, km, kp
+     integer             :: tidx, tidy, tidz, stridex, stridey, stridez
+
+     call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+
+     if (lles_d) then
+        do k = tidz, ke_d, stridez
+           kp = k + 1
+           km = k - 1
+           do j = tidy, je_d, stridey
+              jp = j + 1
+              jm = j - 1
+              do i = tidx, ie_d, stridex
+                 ip = i + 1
+                 im = i - 1
+                 putout(i,j,k) = putout(i,j,k) &
+                               + 0.5 * ( &
+                                 ( &
+                                 (ekh_d(ip,j,k)+ekh_d(i,j,k)) *(putin(ip,j,k)-putin(i,j,k)) &
+                               - (ekh_d(i,j,k)+ekh_d(im,j,k)) *(putin(i,j,k)-putin(im,j,k)) &
+                                 ) * dx2i_d &
+                               + ( &
+                                 (ekh_d(i,jp,k)+ekh_d(i,j,k)) *(putin(i,jp,k)-putin(i,j,k)) &
+                               - (ekh_d(i,j,k)+ekh_d(i,jm,k)) *(putin(i,j,k)-putin(i,jm,k)) &
+                                 ) * dy2i_d &
+                               + ( &
+                                 (dzf_d(kp)*ekh_d(i,j,k) + dzf_d(k)*ekh_d(i,j,kp)) * (putin(i,j,kp)-putin(i,j,k)) * dzh2i_d(kp) &
+                               - (dzf_d(km)*ekh_d(i,j,k) + dzf_d(k)*ekh_d(i,j,km)) * (putin(i,j,k)-putin(i,j,km)) * dzh2i_d(k) &
+                                 ) * dzfi_d(k) &
+                                 )
+              end do
+           end do
+        end do
+     else ! DNS
+        cekh = numol_d* prandtlmoli_d
+        do k = tidz, ke_d, stridez
+           kp = k + 1
+           km = k - 1
+           do j = tidy, je_d, stridey
+              jp = j + 1
+              jm = j - 1
+              do i = tidx, ie_d, stridex
+                 ip = i + 1
+                 im = i - 1
+                 putout(i,j,k) = putout(i,j,k) &
+                               + ( &
+                                 ( &
+                                 cekh *(putin(ip,j,k)-putin(i,j,k)) &
+                               - cekh *(putin(i,j,k)-putin(im,j,k)) &
+                                 ) * dx2i_d &
+                               + ( &
+                                 cekh *(putin(i,jp,k)-putin(i,j,k)) &
+                               - cekh *(putin(i,j,k)-putin(i,jm,k)) &
+                                 ) * dy2i_d &
+                               + ( &
+                                 cekh * (putin(i,j,kp)-putin(i,j,k)) * dzhi_d(kp) &
+                               - cekh * (putin(i,j,k)-putin(i,j,km)) * dzhi_d(k) &
+                                 ) * dzfi_d(k) &
+                                 )
+              end do
+           end do
+        end do
+     end if
+  end subroutine diffc_cuda
+#else
   subroutine diffc (hi,hj,hk,putin,putout)
 
     use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,dx2i,dzf,dzfi,dyi,dy2i,&
@@ -665,9 +889,52 @@ contains
     end if ! lles=.true.
 
   end subroutine diffc
+#endif
 
 
+#if defined(_GPU)
+  attributes(global) subroutine diffe_cuda(putout)
+     use modcuda, only : ib_d, ie_d, jb_d, je_d, kb_d, ke_d, ih_d, jh_d, kh_d, &
+                         dx2i_d, dy2i_d, dzf_d, dzfi_d, dzh2i_d, &
+                         ekm_d, e120_d, tidandstride
+     implicit none
 
+     real, intent(inout) :: putout(ib_d-ih_d:ie_d+ih_d, jb_d-jh_d:je_d+jh_d, kb_d:ke_d+kh_d)
+     integer             :: i, j, k, im, ip, jm, jp, km, kp
+     integer             :: tidx, tidy, tidz, stridex, stridey, stridez
+
+     call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+
+     do k = tidz, ke_d, stridez
+        kp = k + 1
+        km = k - 1
+        do j = tidy, je_d, stridey
+           jp = j + 1
+           jm = j - 1
+           do i = tidx, ie_d, stridex
+              ip = i + 1
+              im = i - 1
+
+              putout(i,j,k) = putout(i,j,k) &
+                            + 1.0 * ( &
+                              ( &
+                              (ekm_d(ip,j,k)+ekm_d(i ,j,k)) * (e120_d(ip,j,k)-e120_d(i ,j,k)) &
+                            - (ekm_d(i ,j,k)+ekm_d(im,j,k)) * (e120_d(i ,j,k)-e120_d(im,j,k)) &
+                              ) * dx2i_d &
+                            + ( &
+                              (ekm_d(i,jp,k)+ekm_d(i,j ,k)) * (e120_d(i,jp,k)-e120_d(i,j ,k)) &
+                            - (ekm_d(i,j ,k)+ekm_d(i,jm,k)) * (e120_d(i,j ,k)-e120_d(i,jm,k)) &
+                              ) * dy2i_d &
+                            + ( &
+                              (dzf_d(kp)*ekm_d(i,j,k) + dzf_d(k)*ekm_d(i,j,kp)) * (e120_d(i,j,kp)-e120_d(i,j,k)) *dzh2i_d(kp) &
+                            - (dzf_d(km)*ekm_d(i,j,k) + dzf_d(k)*ekm_d(i,j,km)) * (e120_d(i,j,k)-e120_d(i,j,km)) *dzh2i_d(k)  &
+                              ) * dzfi_d(k) &
+                              )
+           end do
+        end do
+     end do
+  end subroutine diffe_cuda
+#else
   subroutine diffe(putout)
 
     use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,dx2i,dzf,dzfi,&
@@ -712,8 +979,110 @@ contains
 
 
   end subroutine diffe
+#endif
 
 
+#if defined(_GPU)
+  attributes(global) subroutine diffu_cuda(putout)
+     use modcuda, only : ib_d, ie_d, jb_d, je_d, kb_d, ke_d, ih_d, jh_d, kh_d, lles_d, &
+                         dxi_d, dyi_d, dx2i_d, dzf_d, dzfi_d, dzhi_d, dzhiq_d, &
+                         ekm_d, u0_d, v0_d, w0_d, numol_d, tidandstride
+     implicit none
+
+     real, intent(inout) :: putout(ib_d-ih_d:ie_d+ih_d, jb_d-jh_d:je_d+jh_d, kb_d:ke_d+kh_d)
+     real                :: emmo, emom, emop, empo
+     integer             :: i, j, k, im, jm, jp, km, kp
+     integer             :: tidx, tidy, tidz, stridex, stridey, stridez
+
+     call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+
+     if (lles_d) then
+        do k = tidz, ke_d, stridez
+           kp = k + 1   
+           km = k - 1
+           do j = tidy, je_d, stridey
+              jp = j + 1
+              jm = j - 1
+              do i = tidx, ie_d, stridex
+                 im = i - 1
+                 emom = ( dzf_d(km) * ( ekm_d(i,j,k)  + ekm_d(im,j,k) )  + &
+                          dzf_d(k)  * ( ekm_d(i,j,km) + ekm_d(im,j,km))) * dzhiq_d(k)
+
+                 emop = ( dzf_d(kp) * ( ekm_d(i,j,k)  + ekm_d(im,j,k))   + &
+                          dzf_d(k)  * ( ekm_d(i,j,kp) + ekm_d(im,j,kp))) * dzhiq_d(kp)
+
+                 empo = 0.25 * ( ekm_d(i,j,k) + ekm_d(i,jp,k) + ekm_d(im,j ,k) + ekm_d(im,jp,k) )
+
+                 emmo = 0.25 * ( ekm_d(i,j,k) + ekm_d(i,jm,k) + ekm_d(im,jm,k) + ekm_d(im,j ,k) )
+
+                 ! Discretized diffusion term
+                 putout(i,j,k) = putout(i,j,k) &
+                               + ( &
+                                 ekm_d(i,j,k)  * (u0_d(i+1,j,k)-u0_d(i,j,k)) &
+                               - ekm_d(im,j,k) * (u0_d(i,j,k)-u0_d(im,j,k)) &
+                                 ) * 2. * dx2i_d &
+                               + ( &
+                                  empo * ( &
+                                         (u0_d(i,jp,k)-u0_d(i,j,k))   *dyi_d &
+                                       + (v0_d(i,jp,k)-v0_d(im,jp,k)) *dxi_d &
+                                         ) &
+                                 -emmo * ( &
+                                         (u0_d(i,j,k)-u0_d(i,jm,k))   *dyi_d &
+                                       + (v0_d(i,j,k)-v0_d(im,j,k))   *dxi_d &
+                                       ) &
+                                 ) * dyi_d &
+                               + ( &
+                                 emop * ( &
+                                        (u0_d(i,j,kp)-u0_d(i,j,k))   *dzhi_d(kp) &
+                                      + (w0_d(i,j,kp)-w0_d(im,j,kp)) *dxi_d) &
+                                -emom * ( &
+                                        (u0_d(i,j,k)-u0_d(i,j,km))   *dzhi_d(k) &
+                                      + (w0_d(i,j,k)-w0_d(im,j,k))   *dxi_d) &
+                                 ) *dzfi_d(k)
+              end do
+           end do
+        end do
+     else ! DNS
+        do k = tidz, ke_d, stridez
+           kp = k + 1
+           km = k - 1
+           do j = tidy, je_d, stridey
+              jp = j + 1
+              jm = j - 1
+              do i = tidx, ie_d, stridex
+                 im = i - 1
+                 ! Discretized diffusion term
+                 putout(i,j,k) = putout(i,j,k) &
+                               + ( &
+                                 numol_d * (u0_d(i+1,j,k)-u0_d(i,j,k)) *dxi_d &
+                               - numol_d * (u0_d(i,j,k)-u0_d(im,j,k))  *dxi_d &
+                                 ) * 2. * dxi_d &
+                               + ( &
+                                 numol_d * ( &
+                                           (u0_d(i,jp,k)-u0_d(i,j,k))  *dyi_d &
+                                         + (v0_d(i,jp,k)-v0_d(im,jp,k))*dxi_d &
+                                           ) &
+                               - numol_d * ( &
+                                           (u0_d(i,j,k)-u0_d(i,jm,k))  *dyi_d &
+                                         + (v0_d(i,j,k)-v0_d(im,j,k))  *dxi_d &
+                                           ) &
+                                 ) * dyi_d &
+                               + ( &
+                                 numol_d * ( &
+                                           (u0_d(i,j,kp)-u0_d(i,j,k))  *dzhi_d(kp) &
+                                         + (w0_d(i,j,kp)-w0_d(im,j,kp))*dxi_d &
+                                           ) &
+                               - numol_d * ( &
+                                           (u0_d(i,j,k)-u0_d(i,j,km))  *dzhi_d(k) &
+                                         + (w0_d(i,j,k)-w0_d(im,j,k))  *dxi_d &
+                                           ) &
+                                 ) *dzfi_d(k)
+              end do
+           end do
+        end do
+     end if ! lles
+  end subroutine diffu_cuda
+#else
   subroutine diffu (putout)
 
     use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,kmax,dx2i,dxi,lles,&
@@ -822,8 +1191,114 @@ contains
     end if   ! lles
 
   end subroutine diffu
+#endif
 
 
+#if defined(_GPU)
+  attributes(global) subroutine diffv_cuda(putout)
+     use modcuda, only : ib_d, ie_d, jb_d, je_d, kb_d, ke_d, ih_d, jh_d, kh_d, lles_d, &
+                         dxi_d, dyi_d, dy2i_d, dzf_d, dzfi_d, dzhi_d, dzhiq_d, &
+                         ekm_d, u0_d, v0_d, w0_d, numol_d, tidandstride
+     implicit none
+
+     real, intent(inout) :: putout(ib_d-ih_d:ie_d+ih_d, jb_d-jh_d:je_d+jh_d, kb_d:ke_d+kh_d)
+     real                :: emmo, eomm, eomp, epmo
+     integer             :: i, j, k, im, ip, jm, jp, km, kp
+     integer             :: tidx, tidy, tidz, stridex, stridey, stridez
+
+     call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+
+     if (lles_d) then
+        do k = tidz, ke_d, stridez
+           kp = k + 1
+           km = k - 1
+           do j = tidy, je_d, stridey
+              jp = j + 1
+              jm = j - 1
+              do i = tidx, ie_d, stridex
+                 ip = i + 1
+                 im = i - 1
+
+                 eomm = ( dzf_d(km) * ( ekm_d(i,j,k)  + ekm_d(i,jm,k)  )  + &
+                          dzf_d(k)  * ( ekm_d(i,j,km) + ekm_d(i,jm,km) ) ) * dzhiq_d(k)
+
+                 eomp = ( dzf_d(kp) * ( ekm_d(i,j,k)  + ekm_d(i,jm,k)  )  + &
+                          dzf_d(k)  * ( ekm_d(i,j,kp) + ekm_d(i,jm,kp) ) ) * dzhiq_d(kp)
+
+                 emmo = 0.25  * ( ekm_d(i,j,k)+ekm_d(i,jm,k)+ekm_d(im,jm,k)+ekm_d(im,j,k) )
+
+                 epmo = 0.25  * ( ekm_d(i,j,k)+ekm_d(i,jm,k)+ekm_d(ip,jm,k)+ekm_d(ip,j,k) )
+
+                 ! discretized diffusion term
+                 putout(i,j,k) = putout(i,j,k) &
+                               + ( &
+                                 epmo * ( &
+                                        (v0_d(ip,j,k)-v0_d(i,j,k))   *dxi_d &
+                                      + (u0_d(ip,j,k)-u0_d(ip,jm,k)) *dyi_d &
+                                        ) &
+                                -emmo * ( &
+                                        (v0_d(i,j,k)-v0_d(im,j,k)) *dxi_d &
+                                      + (u0_d(i,j,k)-u0_d(i,jm,k)) *dyi_d &
+                                        ) &
+                                 ) * dxi_d &        ! = d/dx( Km*(dv/dx + du/dy) )
+                               + ( &
+                                 ekm_d(i,j,k) * (v0_d(i,jp,k)-v0_d(i,j,k)) &
+                               - ekm_d(i,jm,k)* (v0_d(i,j,k)-v0_d(i,jm,k)) &
+                                 ) * 2. * dy2i_d &        ! = d/dy( 2*Km*(dv/dy) )
+                               + ( &
+                                 eomp * ( &
+                                        (v0_d(i,j,kp)-v0_d(i,j,k))   *dzhi_d(kp) &
+                                      + (w0_d(i,j,kp)-w0_d(i,jm,kp)) *dyi_d &
+                                        ) &
+                               - eomm * ( &
+                                        (v0_d(i,j,k)-v0_d(i,j,km))   *dzhi_d(k) &
+                                      + (w0_d(i,j,k)-w0_d(i,jm,k))   *dyi_d &
+                                      ) &
+                                 ) * dzfi_d(k)       ! = d/dz( Km*(dv/dz + dw/dy) )
+              end do
+           end do
+        end do
+     else ! DNS
+        do k = tidz, ke_d, stridez
+           kp = k + 1
+           km = k - 1
+           do j = tidy, je_d, stridey
+              jp = j + 1
+              jm = j - 1
+              do i = tidx, ie_d, stridex
+                 ip = i + 1
+                 im = i - 1
+                 putout(i,j,k) = putout(i,j,k) &
+                               + ( &
+                                 numol_d * ( &
+                                           (v0_d(ip,j,k)-v0_d(i,j,k))   *dxi_d &
+                                         + (u0_d(ip,j,k)-u0_d(ip,jm,k)) *dyi_d &
+                                           ) &
+                               - numol_d * ( &
+                                           (v0_d(i,j,k)-v0_d(im,j,k))   *dxi_d &
+                                         + (u0_d(i,j,k)-u0_d(i,jm,k))   *dyi_d &
+                                           ) &
+                                 ) * dxi_d &        ! = d/dx( Km*(dv/dx + du/dy) )
+                               + ( &
+                                 numol_d * (v0_d(i,jp,k)-v0_d(i,j,k)) &
+                               - numol_d * (v0_d(i,j,k)-v0_d(i,jm,k)) &
+                                 ) * 2. * dy2i_d &        ! = d/dy( 2*Km*(dv/dy) )
+                               + ( &
+                                 numol_d * ( &
+                                           (v0_d(i,j,kp)-v0_d(i,j,k))   *dzhi_d(kp) &
+                                         + (w0_d(i,j,kp)-w0_d(i,jm,kp)) *dyi_d &
+                                           ) &
+                               - numol_d * ( &
+                                           (v0_d(i,j,k)-v0_d(i,j,km))   *dzhi_d(k) &
+                                         + (w0_d(i,j,k)-w0_d(i,jm,k))   *dyi_d &
+                                           ) &
+                                 ) * dzfi_d(k)       ! = d/dz( Km*(dv/dz + dw/dy) )
+              end do
+           end do
+        end do
+     end if
+  end subroutine diffv_cuda
+#else
   subroutine diffv (putout)
 
     use modglobal, only   : ib,ie,ih,jb,je,jh,kb,ke,kh,dxi,dzf,dzfi,dyi,&
@@ -936,9 +1411,117 @@ contains
 
 
   end subroutine diffv
+#endif
 
 
+#if defined(_GPU)
+  attributes(global) subroutine diffw_cuda(putout)
+     use modcuda, only : ib_d, ie_d, jb_d, je_d, kb_d, ke_d, ih_d, jh_d, kh_d, lles_d, &
+                         dxi_d, dyi_d, dzf_d, dzfi_d, dzhi_d, dzhiq_d, &
+                         ekm_d, u0_d, v0_d, w0_d, numol_d, tidandstride
+     implicit none
 
+     real, intent(inout) :: putout(ib_d-ih_d:ie_d+ih_d, jb_d-jh_d:je_d+jh_d, kb_d:ke_d+kh_d)
+     real                :: emom, eomm, eopm, epom
+     integer             :: i, j, k, im, ip, jm, jp, km, kp
+     integer             :: tidx, tidy, tidz, stridex, stridey, stridez
+
+     call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+
+     if (lles_d) then
+        do k = tidz+1, ke_d, stridez
+           kp = k + 1
+           km = k - 1
+           do j = tidy, je_d, stridey
+              jp = j + 1
+              jm = j - 1
+              do i = tidx, ie_d, stridex
+                 ip = i + 1
+                 im = i - 1
+
+                 emom = ( dzf_d(km) * ( ekm_d(i,j,k)  + ekm_d(im,j,k)  )  + &
+                          dzf_d(k)  * ( ekm_d(i,j,km) + ekm_d(im,j,km) ) ) * dzhiq_d(k)
+
+                 eomm = ( dzf_d(km) * ( ekm_d(i,j,k)  + ekm_d(i,jm,k)  )  + &
+                          dzf_d(k)  * ( ekm_d(i,j,km) + ekm_d(i,jm,km) ) ) * dzhiq_d(k)
+
+                 eopm = ( dzf_d(km) * ( ekm_d(i,j,k)  + ekm_d(i,jp,k)  )  + &
+                          dzf_d(k)  * ( ekm_d(i,j,km) + ekm_d(i,jp,km) ) ) * dzhiq_d(k)
+
+                 epom = ( dzf_d(km) * ( ekm_d(i,j,k)  + ekm_d(ip,j,k)  )  + &
+                          dzf_d(k)  * ( ekm_d(i,j,km) + ekm_d(ip,j,km) ) ) * dzhiq_d(k)
+
+                ! discretized diffusion term
+                putout(i,j,k) = putout(i,j,k) &
+                              + ( &
+                                epom * ( &
+                                       (w0_d(ip,j,k)-w0_d(i,j,k))   *dxi_d &
+                                     + (u0_d(ip,j,k)-u0_d(ip,j,km)) *dzhi_d(k) &
+                                       ) &
+                              - emom * ( &
+                                       (w0_d(i,j,k)-w0_d(im,j,k))   *dxi_d &
+                                     + (u0_d(i,j,k)-u0_d(i,j,km))   *dzhi_d(k) &
+                                       ) &
+                                ) * dxi_d &
+                              + ( &
+                                eopm * ( &
+                                       (w0_d(i,jp,k)-w0_d(i,j,k))   *dyi_d &
+                                     + (v0_d(i,jp,k)-v0_d(i,jp,km)) *dzhi_d(k) &
+                                       ) &
+                               -eomm * ( &
+                                       (w0_d(i,j,k)-w0_d(i,jm,k))   *dyi_d &
+                                     + (v0_d(i,j,k)-v0_d(i,j,km))   *dzhi_d(k) &
+                                       ) &
+                                )*dyi_d &
+                              + ( &
+                                ekm_d(i,j,k) * (w0_d(i,j,kp)-w0_d(i,j,k)) *dzfi_d(k) &
+                              - ekm_d(i,j,km)* (w0_d(i,j,k)-w0_d(i,j,km)) *dzfi_d(km) &
+                                ) * 2. * dzhi_d(k)
+              end do
+           end do
+        end do
+     else ! DNS
+        do k = tidz+1, ke_d, stridez
+           kp = k + 1
+           km = k - 1
+           do j = tidy, je_d, stridey
+              jp = j + 1
+              jm = j - 1
+              do i = tidx, ie_d, stridex
+                 ip = i + 1
+                 im = i - 1
+                 ! discretized diffusion term
+                 putout(i,j,k) = putout(i,j,k) &
+                               + ( &
+                                 numol_d * ( &
+                                           (w0_d(ip,j,k)-w0_d(i,j,k))   *dxi_d &
+                                         + (u0_d(ip,j,k)-u0_d(ip,j,km)) *dzhi_d(k) &
+                                           ) &
+                               - numol_d * ( &
+                                           (w0_d(i,j,k)-w0_d(im,j,k))   *dxi_d &
+                                         + (u0_d(i,j,k)-u0_d(i,j,km))   *dzhi_d(k) &
+                                           ) &
+                                 )*dxi_d &
+                               + ( &
+                                 numol_d * ( &
+                                           (w0_d(i,jp,k)-w0_d(i,j,k))   *dyi_d &
+                                         + (v0_d(i,jp,k)-v0_d(i,jp,km)) *dzhi_d(k) &
+                                           ) &
+                               - numol_d * ( &
+                                           (w0_d(i,j,k)-w0_d(i,jm,k))   *dyi_d &
+                                         + (v0_d(i,j,k)-v0_d(i,j,km))   *dzhi_d(k) &
+                                           ) &
+                                 )*dyi_d &
+                               + ( &
+                                 numol_d * (w0_d(i,j,kp)-w0_d(i,j,k)) *dzfi_d(k) &
+                               - numol_d * (w0_d(i,j,k)-w0_d(i,j,km)) *dzfi_d(km) &
+                                 ) * 2. * dzhi_d(k)
+              end do
+           end do
+        end do
+     end if
+  end subroutine diffw_cuda
+#else
   subroutine diffw(putout)
 
     use modglobal, only   : ib,ie,ih,jb,je,jh,kb,ke,kh,kmax,dxi,dy,&
@@ -1048,5 +1631,6 @@ contains
     end if
 
   end subroutine diffw
+#endif
 
 end module modsubgrid

@@ -396,7 +396,7 @@ module modfields
 
   real, allocatable :: thl0av(:)        !<   slab averaged th_liq
 #if defined(_GPU)
-  real, allocatable, pinned :: u0av(:)          !<   slab averaged u
+  real, allocatable, pinned :: u0av(:)
 #else
   real, allocatable :: u0av(:)          !<   slab averaged u
 #endif
@@ -422,7 +422,11 @@ module modfields
   real, allocatable :: dvdyls(:)                     !<   large scale y-gradient of v
   real, allocatable :: wfls  (:)                     !<   large scale y-gradient of v
   real, allocatable :: ql0h(:,:,:)
+#if defined(_GPU)
+  real, allocatable, pinned :: dthvdz(:,:,:)
+#else
   real, allocatable :: dthvdz(:,:,:)                 !<   theta_v at half level
+#endif
 
   real, allocatable :: thlprof(:)                    !<   initial thl-profile
   real, allocatable :: qtprof(:)                     !<   initial qt-profile

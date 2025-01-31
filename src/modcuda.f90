@@ -1,28 +1,47 @@
-module cudamodule
+module modcuda
 #if defined(_GPU)        
    use cudafor
-   use modglobal, only : itot, ib, ie, jb, je, kb, ke, ih, jh, kh, ihc, jhc, khc, &
-                         dxi5, dyi5, dzf, dzhi, dzfi5, dzhiq, dxiq, dyiq, dxi, dyi, &
-                         loneeqn, ltempeq, lmoist, nsv, &
-                         iadv_sv, iadv_thl, iadv_kappa, iadv_upw, dxhci, dxfc, dxfci, dzhci, dzfc, dzfci, eps1, &
-                         pi, xlen, xh, ds, rk3step, dt
-   use modfields, only : u0, v0, w0, pres0, e120, thl0, thl0c, qt0, sv0, up, vp, wp, e12p, thlp, thlpc, qtp, svp, u0av
-   use decomp_2d, only : zstart
+   use modglobal,      only: itot, ib, ie, jb, je, kb, ke, ih, jh, kh, ihc, jhc, khc, &
+                             dxi, dx2i, dxi5, dxiq, dyi, dy2i, dyi5, dyiq, dzf, dzfi, dzfi5, dzhi, dzh2i, dzhiq, &
+                             dzfc, dzfci, dzhci, dxfc, dxfci, dxhci, delta, &
+                             ltempeq, lmoist, nsv, lles, &
+                             iadv_sv, iadv_thl, iadv_kappa, iadv_upw, &
+                             xlen, ds, xh, &
+                             rk3step, dt, &
+                             pi, eps1, numol, prandtlmoli, grav
+   use modfields,      only: u0, v0, w0, pres0, e120, thl0, thl0c, qt0, sv0, &
+                             up, vp, wp, e12p, thlp, thlpc, qtp, svp, &
+                             u0av, dthvdz
+   use modsubgriddata, only: loneeqn, lsmagorinsky, ekm, ekh, sbshr, sbbuo, sbdiss, zlt, damp, ce1, ce2
+   use modsurfdata,    only: thvs
+   use decomp_2d,      only: zstart
    implicit none
    save
 
    type(dim3) :: griddim, blockdim
 
    integer, device :: itot_d, ib_d, ie_d, jb_d, je_d, kb_d, ke_d, ih_d, jh_d, kh_d, rk3step_d
-   real, device    :: dxi5_d, dyi5_d, dxiq_d, dyiq_d, dxi_d, dyi_d, eps1_d, &
-                      pi_d, xlen_d, ds_d, dt_d
-   real, device, allocatable :: dzf_d(:), dzhi_d(:), dzfi5_d(:), dzhiq_d(:), &
-                                dxhci_d(:), dxfc_d(:), dxfci_d(:), dzhci_d(:), dzfc_d(:), dzfci_d(:), &
+   logical, device :: lles_d
+   real,    device :: dxi_d, dx2i_d, dxi5_d, dxiq_d, dyi_d, dy2i_d, dyi5_d, dyiq_d, &
+                      xlen_d, ds_d, &
+                      eps1_d, pi_d, numol_d, prandtlmoli_d, grav_d, &
+                      thvs_d, ce1_d, ce2_d, &
+                      dt_d
+
+   integer, device, dimension(3) :: zstart_d
+
+   real, device, allocatable :: dzf_d(:), dzfi_d(:), dzhi_d(:), dzh2i_d(:), dzfi5_d(:), dzhiq_d(:), &
+                                dzfc_d(:), dzfci_d(:), dzhci_d(:), dxfc_d(:), dxfci_d(:), dxhci_d(:), &
                                 xh_d(:), u0av_d(:)
+
+   real, device, allocatable :: delta_d(:, :)
+
    real, device, allocatable :: u0_d(:,:,:), v0_d(:,:,:), w0_d(:,:,:), pres0_d(:,:,:), e120_d(:,:,:), thl0_d(:,:,:), thl0c_d(:,:,:), qt0_d(:,:,:), sv0_d(:,:,:,:)
    real, device, allocatable :: up_d(:,:,:), vp_d(:,:,:), wp_d(:,:,:), e12p_d(:,:,:), thlp_d(:,:,:), thlpc_d(:,:,:), qtp_d(:,:,:), svp_d(:,:,:,:)
+   real, device, allocatable :: dthvdz_d(:,:,:)
+   real, device, allocatable :: ekm_d(:,:,:), ekh_d(:,:,:), sbshr_d(:,:,:), sbbuo_d(:,:,:), sbdiss_d(:,:,:), zlt_d(:,:,:), damp_d(:,:,:)
+
    real, device, allocatable :: dumu_d(:,:,:), duml_d(:,:,:)
-   integer, device, dimension(3) :: zstart_d
 
    contains
       subroutine initCUDA
@@ -92,6 +111,10 @@ module cudamodule
          if (loneeqn) then
             allocate(e120_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
             allocate(e12p_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+            allocate(sbshr_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+            allocate(sbbuo_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+            allocate(sbdiss_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+            allocate(zlt_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
          end if
 
          if (ltempeq) then
@@ -140,14 +163,39 @@ module cudamodule
 
          allocate(u0av_d(kb:ke+kh))
 
+         lles_d = lles
+         allocate(ekm_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+         allocate(ekh_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+         dx2i_d = dx2i
+         allocate (dzfi_d(kb - kh:ke + kh))
+         dzfi_d = dzfi
+         numol_d = numol
+         prandtlmoli_d = prandtlmoli
+         dy2i_d = dy2i
+         allocate (dzh2i_d(kb:ke + kh))
+         dzh2i_d = dzh2i
+         grav_d = grav
+         thvs_d = thvs
+         allocate(dthvdz_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+         write(*,*) ce1, ce2
+         ce1_d = ce1
+         ce2_d = ce2
+
+         if (lsmagorinsky .or. loneeqn) then
+            allocate(damp_d(ib:ie,jb:je,kb:ke))
+         end if
+
+         allocate(delta_d(ib-ih:itot+ih, kb:ke + kh))
+         delta_d = delta
+
       end subroutine initCUDA
 
       subroutine exitCUDA
          implicit none
-         deallocate(dzf_d, dzhi_d, dzfi5_d, dzhiq_d)
+         deallocate(dzf_d, dzfi_d, dzh2i_d, dzhi_d, dzfi5_d, dzhiq_d, delta_d)
          deallocate(u0_d, v0_d, w0_d, pres0_d)
          deallocate(up_d, vp_d, wp_d)
-         if (loneeqn) deallocate(e120_d, e12p_d)
+         if (loneeqn) deallocate(e120_d, e12p_d, sbshr_d, sbbuo_d, sbdiss_d, zlt_d)
          if (ltempeq) then
             deallocate(thl0_d, thlp_d)
             if (iadv_thl == iadv_kappa) deallocate(thl0c_d, thlpc_d)
@@ -158,6 +206,11 @@ module cudamodule
             deallocate(dumu_d, duml_d, dxhci_d, dxfc_d, dxfci_d, dzhci, dzfc, dzfci)
          end if
          deallocate(xh_d, u0av_d)
+         deallocate(ekm_d, ekh_d)
+         if (lsmagorinsky .or. loneeqn) then
+            deallocate(damp_d)
+         end if
+         deallocate(dthvdz_d)
       end subroutine exitCUDA
 
       subroutine updateDevice
@@ -192,6 +245,7 @@ module cudamodule
             svp_d = svp
          end if
          u0av_d = u0av
+         dthvdz_d = dthvdz
       end subroutine updateDevice
 
       subroutine updateHost
@@ -581,7 +635,7 @@ module cudamodule
          real, intent(in) :: d1 !< Scalar flux at 1.5 cells upwind
          real, intent(in) :: d2 !< Scalar flux at 0.5 cells upwind
          real :: ri, phir
-         ri = (d2 + eps1_d)/(d1 + eps1)
+         ri = (d2 + eps1_d)/(d1 + eps1_d)
          phir = max(0., min(2.*ri, min(1./3.+2./3.*ri, 2.)))
          rlim_cuda = 0.5*phir*d1
       end function rlim_cuda
@@ -703,4 +757,4 @@ module cudamodule
       end subroutine shiftedPBCs_cuda
 
 #endif
-end module cudamodule
+end module modcuda

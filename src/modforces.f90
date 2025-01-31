@@ -975,7 +975,7 @@ module modforces
   subroutine shiftedPBCs        ! Nudge the flow in a region near the outlet
 #if defined(_GPU)
       use cudafor
-      use cudamodule, only : griddim, blockdim, checkCUDA, shiftedPBCs_cuda
+      use modcuda,   only : griddim, blockdim, checkCUDA, shiftedPBCs_cuda
 #else
       use modglobal, only : ib, itot, ie, jb, je, kb, ke, xh, ds, dyi, xlen, rk3step, dt, pi
       use modfields, only : u0, v0, w0, u0av, up, vp, wp

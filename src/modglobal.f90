@@ -467,7 +467,9 @@ module modglobal
    real :: rslabs
 #if defined(_GPU)
   real, allocatable, pinned :: dzf(:) !<  thickness of full level
+  real, allocatable, pinned :: dzfi(:) !<  1/dzf
   real, allocatable, pinned :: dzhi(:) !<  1/dzh
+  real, allocatable, pinned :: dzh2i(:) !<  1/dzh^2
   real, allocatable, pinned :: dzfi5(:) !<  0.5*(1/dzf)
   real, allocatable, pinned :: dzhiq(:) !<  0.25*(1/dzh)
   real, allocatable, pinned :: dzfc(:) !<  thickness of full level (extra ghost nodes (used in k-scheme)
@@ -475,7 +477,9 @@ module modglobal
   real, allocatable, pinned :: dzhci(:) !<  1/dzh (extra ghost nodes (used in k-scheme)
 #else
   real, allocatable :: dzf(:) !<  thickness of full level
+  real, allocatable :: dzfi(:) !<  1/dzf
   real, allocatable :: dzhi(:) !<  1/dzh
+  real, allocatable :: dzh2i(:) !<  1/dzh^2
   real, allocatable :: dzfi5(:) !<  0.5*(1/dzf)
   real, allocatable :: dzhiq(:) !<  0.25*(1/dzh)
   real, allocatable :: dzfc(:) !<  thickness of full level (extra ghost nodes (used in k-scheme)
@@ -486,9 +490,7 @@ module modglobal
    real, allocatable :: dzh(:) !<  thickness of half level
    real, allocatable :: zh(:) !<  height of half level [m]
    real, allocatable :: zf(:) !<  height of full level [m]
-   real, allocatable :: dzfi(:) !<  1/dzf
    real, allocatable :: dzfiq(:) !<  0.25*(1/dzf)
-   real, allocatable :: dzh2i(:) !<  1/dzh^2
    real, allocatable :: zhi(:) !<  1/zh
    real, allocatable :: zfi(:) !<  1/zf
    real, allocatable :: dxf(:) !<  thickness of full level
@@ -522,7 +524,11 @@ module modglobal
    real, allocatable :: yf(:) !<  height of full level [m]
    real :: xlen = -1. !<  domain size in x-direction
    real :: ylen = -1. !<  domain size in y-direction
+#if defined(_GPU)
+   real, allocatable, pinned :: delta(:, :) !<  (dx*dy*dz)**(1/3)
+#else
    real, allocatable :: delta(:, :) !<  (dx*dy*dz)**(1/3)
+#endif
 
    logical :: lmomsubs = .false. !<  switch to apply subsidence on the momentum or not
    character(80) :: author = '', version = 'DALES U'

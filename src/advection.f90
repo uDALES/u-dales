@@ -36,10 +36,10 @@ subroutine advection
    use decomp_2d
 #if defined(_GPU)
    use cudafor
-   use cudamodule, only : griddim, blockdim, checkCUDA, &
-                          u0_d, v0_d, w0_d, e120_d, thl0_d, thl0c_d, qt0_d, sv0_d, up_d, vp_d, wp_d, e12p_d, thlp_d, thlpc_d, qtp_d, svp_d, &
-                          advecc_2nd_cuda, advecu_2nd_cuda, advecv_2nd_cuda, advecw_2nd_cuda, advecc_upw_cuda, &
-                          advecc_kappa_reset_cuda, advecc_kappa_ducdx_cuda, advecc_kappa_dvcdy_cuda, advecc_kappa_dwcdz_cuda, advecc_kappa_add_cuda, thlptothlpc_cuda, thlpctothlp_cuda
+   use modcuda, only : griddim, blockdim, checkCUDA, &
+                       u0_d, v0_d, w0_d, e120_d, thl0_d, thl0c_d, qt0_d, sv0_d, up_d, vp_d, wp_d, e12p_d, thlp_d, thlpc_d, qtp_d, svp_d, &
+                       advecc_2nd_cuda, advecu_2nd_cuda, advecv_2nd_cuda, advecw_2nd_cuda, advecc_upw_cuda, &
+                       advecc_kappa_reset_cuda, advecc_kappa_ducdx_cuda, advecc_kappa_dvcdy_cuda, advecc_kappa_dwcdz_cuda, advecc_kappa_add_cuda, thlptothlpc_cuda, thlpctothlp_cuda
 #endif
    implicit none
    integer :: n
