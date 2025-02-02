@@ -207,8 +207,6 @@ contains
 
     if (loneeqn) then
 #if defined(_GPU)
-       zlt_d = zlt
-       damp_d = damp
        call sources_cuda<<<griddim,blockdim>>>
        call checkCUDA( cudaGetLastError(), 'sources_cuda in modsubgrid' )
        call sources_sum_cuda<<<griddim,blockdim>>>
@@ -231,6 +229,134 @@ contains
     deallocate(ekm,ekh,zlt,sbdiss,sbbuo,sbshr,csz)
   end subroutine exitsubgrid
 
+
+#if defined(_GPU)
+  attributes(global) subroutine closure_cuda
+     use modcuda, only: ie_d, je_d, ke_d, ih_d, jh_d, kh_d, dxi_d, dyi_d, dzfi_d, dzhi_d, delta_d, &
+                        lsmagorinsky_d, lvreman_d, loneeqn_d, ldelta_d, &
+                        numol_d, prandtlmoli_d, prandtli_d, &
+                        u0_d, v0_d, w0_d, e120_d, ekm_d, ekh_d, &
+                        csz_d, damp_d, dampmin_d, zlt_d, grav_d, thvs_d, dthvdz_d, cm_d, cn_d, ch1_d, ch2_d, &
+                        tidandstride
+     implicit none
+     integer :: i, j, k, im, ip, jm, jp, km, kp
+     integer :: tidx, tidy, tidz, stridex, stridey, stridez
+     real    :: strain2, mlen
+
+     call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+
+     if (lsmagorinsky_d) then
+
+        do k = tidz, ke_d, stridez
+           kp = k + 1
+           km = k - 1
+           do i = tidx, ie_d, stridex
+              ip = i + 1
+              im = i - 1
+              mlen = csz_d(i,k) * delta_d(i,k)
+              do j = tidy, je_d, stridey
+                 jp = j + 1
+                 jm = j - 1
+
+                 damp_d(i,j,k) = 1.
+
+                 strain2 = ((u0_d(ip,j,k)-u0_d(i,j,k))    *dxi_d      )**2 &
+                         + ((v0_d(i,jp,k)-v0_d(i,j,k))    *dyi_d      )**2 &
+                         + ((w0_d(i,j,kp)-w0_d(i,j,k))    *dzfi_d(k)  )**2
+
+                 strain2 = strain2 + 0.125 * ( &
+                         + ((w0_d(i ,j,kp)-w0_d(im,j ,kp))*dxi_d + (u0_d(i ,j,kp)-u0_d(i ,j,k ))*dzhi_d(kp))**2 &
+                         + ((w0_d(i ,j,k )-w0_d(im,j ,k ))*dxi_d + (u0_d(i ,j,k )-u0_d(i ,j,km))*dzhi_d(k ))**2 &
+                         + ((w0_d(ip,j,k )-w0_d(i ,j ,k ))*dxi_d + (u0_d(ip,j,k )-u0_d(ip,j,km))*dzhi_d(k ))**2 &
+                         + ((w0_d(ip,j,kp)-w0_d(i ,j ,kp))*dxi_d + (u0_d(ip,j,kp)-u0_d(ip,j,k ))*dzhi_d(kp))**2 )
+
+                 strain2 = strain2 + 0.125 * ( &
+                         + ((u0_d(i ,jp,k)-u0_d(i ,j ,k))*dyi_d + (v0_d(i ,jp,k)-v0_d(im,jp,k))*dxi_d)**2 &
+                         + ((u0_d(i ,j ,k)-u0_d(i ,jm,k))*dyi_d + (v0_d(i ,j ,k)-v0_d(im,j ,k))*dxi_d)**2 &
+                         + ((u0_d(ip,j ,k)-u0_d(ip,jm,k))*dyi_d + (v0_d(ip,j ,k)-v0_d(i ,j ,k))*dxi_d)**2 &
+                         + ((u0_d(ip,jp,k)-u0_d(ip,j ,k))*dyi_d + (v0_d(ip,jp,k)-v0_d(i ,jp,k))*dxi_d)**2 )
+
+                 strain2 = strain2 + 0.125 * ( &
+                         + ((v0_d(i,j ,kp)-v0_d(i,j ,k ))*dzhi_d(kp) + (w0_d(i,j ,kp)-w0_d(i,jm,kp))*dyi_d)**2 &
+                         + ((v0_d(i,j ,k )-v0_d(i,j ,km))*dzhi_d(k ) + (w0_d(i,j ,k )-w0_d(i,jm,k ))*dyi_d)**2 &
+                         + ((v0_d(i,jp,k )-v0_d(i,jp,km))*dzhi_d(k ) + (w0_d(i,jp,k )-w0_d(i,j ,k ))*dyi_d)**2 &
+                         + ((v0_d(i,jp,kp)-v0_d(i,jp,k ))*dzhi_d(kp) + (w0_d(i,jp,kp)-w0_d(i,j ,kp))*dyi_d)**2 )
+
+                 ekm_d(i,j,k) = (mlen*damp_d(i,j,k)) ** 2. * sqrt(2. * strain2)
+                 ekh_d(i,j,k) = ekm_d(i,j,k) * prandtli_d
+
+                 ekm_d(i,j,k) = ekm_d(i,j,k) + numol_d
+                 ekh_d(i,j,k) = ekh_d(i,j,k) + numol_d*prandtlmoli_d
+
+                 damp_d(i,j,k) = max( damp_d(i,j,k), dampmin_d )
+              end do
+           end do
+        end do
+
+     elseif(lvreman_d) then
+
+     elseif(loneeqn_d) then
+
+        do k = tidz, ke_d, stridez
+           do j = tidy, je_d, stridey
+              do i = tidx, ie_d, stridex
+                 
+                 damp_d(i,j,k) = 1.
+
+                 if ((ldelta_d) .or. (dthvdz_d(i,j,k)<=0)) then
+                    zlt_d(i,j,k) = delta_d(i,k)
+                    ekm_d(i,j,k) = cm_d * zlt_d(i,j,k) *damp_d(i,j,k)* e120_d(i,j,k)
+                    ekh_d(i,j,k) = (ch1_d + ch2_d) * ekm_d(i,j,k)
+                 else
+                    zlt_d(i,j,k) = min(delta_d(i,k),cn_d*e120_d(i,j,k)/sqrt(grav_d/thvs_d*abs(dthvdz_d(i,j,k))))
+                    ekm_d(i,j,k) = cm_d * zlt_d(i,j,k) *damp_d(i,j,k)* e120_d(i,j,k)
+                    ekh_d(i,j,k) = (ch1_d + ch2_d * zlt_d(i,j,k)/delta_d(i,k)) * ekm_d(i,j,k)
+                 end if
+
+                 ekm_d(i,j,k) = ekm_d(i,j,k) + numol_d
+                 ekh_d(i,j,k) = ekh_d(i,j,k) + numol_d*prandtlmoli_d
+
+                 damp_d(i,j,k) = max( damp_d(i,j,k), dampmin_d )
+              end do
+           end do
+        end do
+
+     else
+
+        do k = tidz, ke_d, stridez
+           do j = tidy, je_d, stridey
+              do i = tidx, ie_d, stridex
+                 ekm_d(i,j,k) = numol_d
+                 ekh_d(i,j,k) = numol_d*prandtlmoli_d
+              end do
+           end do
+        end do
+
+     end if
+
+  end subroutine closure_cuda
+
+  attributes(global) subroutine update_ek_cuda
+     use modcuda, only : ie_d, je_d, ke_d, ih_d, jh_d, kh_d, &
+                         lsmagorinsky_d, lvreman_d, loneeqn_d, &
+                         numol_d, prandtlmoli_d, ekm_d, ekh_d, tidandstride
+     implicit none
+     integer :: i, j, k, tidx, tidy, tidz, stridex, stridey, stridez
+
+     call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+
+     if (lsmagorinsky_d) then
+        ! Do nothing
+     elseif(lvreman_d) then
+       
+     elseif(loneeqn_d) then
+        ! Do nothing
+     else
+        ! Do nothing
+     end if
+
+  end subroutine update_ek_cuda
+#endif
 
   subroutine closure
 
@@ -537,9 +663,9 @@ contains
                          tidandstride
      implicit none
 
-     real                :: tdef2
-     integer             :: i, j, k, im, ip, jm, jp, km, kp
-     integer             :: tidx, tidy, tidz, stridex, stridey, stridez
+     real    :: tdef2
+     integer :: i, j, k, im, ip, jm, jp, km, kp
+     integer :: tidx, tidy, tidz, stridex, stridey, stridez
 
      call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
 

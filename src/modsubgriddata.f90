@@ -64,18 +64,17 @@ save
 #if defined(_GPU)
   real, pinned, allocatable :: ekm(:,:,:)   !< k-coefficient for momentum
   real, pinned, allocatable :: ekh(:,:,:)   !< k-coefficient for heat and q_tot
-  real, pinned, allocatable :: zlt(:,:,:)   !< filter width
-  real, pinned, allocatable :: damp(:,:,:)      !< used in van Driest/Piomelli damping function
+  real, pinned, allocatable :: csz(:,:)     !< Smagorinsky constant
 #else
   real, allocatable :: ekm(:,:,:)   !< k-coefficient for momentum
   real, allocatable :: ekh(:,:,:)   !< k-coefficient for heat and q_tot
-  real, allocatable :: zlt(:,:,:)   !< filter width
-  real, allocatable :: damp(:,:,:)      !< used in van Driest/Piomelli damping function
+  real, allocatable :: csz(:,:)     !< Smagorinsky constant
 #endif
 
+  real, allocatable :: zlt(:,:,:)   !< filter width
+  real, allocatable :: damp(:,:,:)  !< used in van Driest/Piomelli damping function
   real, allocatable :: sbdiss(:,:,:)!< dissiation
   real, allocatable :: sbshr(:,:,:) !< shear production
   real, allocatable :: sbbuo(:,:,:) !< buoyancy production / destruction
-  real, allocatable :: csz(:,:)     !< Smagorinsky constant
 end module modsubgriddata
 
