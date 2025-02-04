@@ -466,34 +466,37 @@ module modglobal
 
    real :: rslabs
 #if defined(_GPU)
-  real, allocatable, pinned :: dzf(:) !<  thickness of full level
-  real, allocatable, pinned :: dzfi(:) !<  1/dzf
-  real, allocatable, pinned :: dzhi(:) !<  1/dzh
-  real, allocatable, pinned :: dzh2i(:) !<  1/dzh^2
-  real, allocatable, pinned :: dzfi5(:) !<  0.5*(1/dzf)
-  real, allocatable, pinned :: dzhiq(:) !<  0.25*(1/dzh)
-  real, allocatable, pinned :: dzfc(:) !<  thickness of full level (extra ghost nodes (used in k-scheme)
-  real, allocatable, pinned :: dzfci(:) !<  1/dzfc
-  real, allocatable, pinned :: dzhci(:) !<  1/dzh (extra ghost nodes (used in k-scheme)
+  real, allocatable, pinned :: dzf(:)
+  real, allocatable, pinned :: dzf2(:)
+  real, allocatable, pinned :: dzfi(:)
+  real, allocatable, pinned :: dzfi5(:)
+  real, allocatable, pinned :: dzfiq(:)
+  real, allocatable, pinned :: dzh(:)
+  real, allocatable, pinned :: dzhi(:)
+  real, allocatable, pinned :: dzh2i(:)
+  real, allocatable, pinned :: dzhiq(:)
+  real, allocatable, pinned :: dzfc(:)
+  real, allocatable, pinned :: dzfci(:)
+  real, allocatable, pinned :: dzhci(:)
 #else
-  real, allocatable :: dzf(:) !<  thickness of full level
-  real, allocatable :: dzfi(:) !<  1/dzf
-  real, allocatable :: dzhi(:) !<  1/dzh
-  real, allocatable :: dzh2i(:) !<  1/dzh^2
+  real, allocatable :: dzf(:)   !<  thickness of full level
+  real, allocatable :: dzf2(:)  !<  thickness of full level squared
+  real, allocatable :: dzfi(:)  !<  1/dzf
   real, allocatable :: dzfi5(:) !<  0.5*(1/dzf)
+  real, allocatable :: dzfiq(:) !<  0.25*(1/dzf)
+  real, allocatable :: dzh(:)   !<  thickness of half level
+  real, allocatable :: dzhi(:)  !<  1/dzh
+  real, allocatable :: dzh2i(:) !<  1/dzh^2
   real, allocatable :: dzhiq(:) !<  0.25*(1/dzh)
-  real, allocatable :: dzfc(:) !<  thickness of full level (extra ghost nodes (used in k-scheme)
+  real, allocatable :: dzfc(:)  !<  thickness of full level (extra ghost nodes (used in k-scheme)
   real, allocatable :: dzfci(:) !<  1/dzfc
   real, allocatable :: dzhci(:) !<  1/dzh (extra ghost nodes (used in k-scheme)
 #endif
-   real, allocatable :: dzf2(:) !<  thickness of full level squared
-   real, allocatable :: dzh(:) !<  thickness of half level
-   real, allocatable :: zh(:) !<  height of half level [m]
-   real, allocatable :: zf(:) !<  height of full level [m]
-   real, allocatable :: dzfiq(:) !<  0.25*(1/dzf)
-   real, allocatable :: zhi(:) !<  1/zh
-   real, allocatable :: zfi(:) !<  1/zf
-   real, allocatable :: dxf(:) !<  thickness of full level
+   real, allocatable :: zh(:)   !<  height of half level [m]
+   real, allocatable :: zf(:)   !<  height of full level [m]
+   real, allocatable :: zhi(:)  !<  1/zh
+   real, allocatable :: zfi(:)  !<  1/zf
+   real, allocatable :: dxf(:)  !<  thickness of full level
 #if defined(_GPU)
    real, allocatable, pinned :: dxfc(:) !<  thickness of full level (extra ghost nodes (used in k-scheme)
    real, allocatable, pinned :: dxfci(:) !<  1/dxfc

@@ -2,9 +2,12 @@ module modcuda
 #if defined(_GPU)        
    use cudafor
    use modglobal,      only: itot, ib, ie, jb, je, kb, ke, ih, jh, kh, ihc, jhc, khc, &
-                             dxi, dx2i, dxi5, dxiq, dyi, dy2i, dyi5, dyiq, dzf, dzfi, dzfi5, dzhi, dzh2i, dzhiq, &
+                             dx2, dxi, dx2i, dxi5, dxiq, dy2, dyi, dy2i, dyi5, dyiq, &
+                             dzf, dzf2, dzfi, dzfi5, dzfiq, dzh, dzhi, dzh2i, dzhiq, &
                              dzfc, dzfci, dzhci, dxfc, dxfci, dxhci, delta, &
-                             ltempeq, lmoist, nsv, lles, &
+                             ltempeq, lmoist, nsv, lles, lbuoyancy, &
+                             BCxm, BCxm_periodic, BCym, BCym_periodic, &
+                             BCtopm, BCtopm_freeslip, BCtopm_pressure, BCtopm_noslip, &
                              iadv_sv, iadv_thl, iadv_kappa, iadv_upw, &
                              xlen, ds, xh, &
                              rk3step, dt, &
@@ -12,10 +15,10 @@ module modcuda
    use modfields,      only: u0, v0, w0, pres0, e120, thl0, thl0c, qt0, sv0, &
                              up, vp, wp, e12p, thlp, thlpc, qtp, svp, &
                              u0av, dthvdz
-   use modsubgriddata, only: lsmagorinsky, lvreman, loneeqn, ldelta, &
+   use modsubgriddata, only: lsmagorinsky, lvreman, loneeqn, ldelta, lbuoycorr, &
                              ekm, ekh, &
                              sbshr, sbbuo, sbdiss, zlt, damp, csz, &
-                             cn, cm, ch1, ch2, ce1, ce2, dampmin, prandtli
+                             cn, cm, ch1, ch2, ce1, ce2, dampmin, prandtli, c_vreman
    use modsurfdata,    only: thvs
    use decomp_2d,      only: zstart
    implicit none
@@ -23,17 +26,21 @@ module modcuda
 
    type(dim3) :: griddim, blockdim
 
-   integer, device :: itot_d, ib_d, ie_d, jb_d, je_d, kb_d, ke_d, ih_d, jh_d, kh_d, rk3step_d
-   logical, device :: lles_d, lsmagorinsky_d, lvreman_d, loneeqn_d, ldelta_d
-   real,    device :: dxi_d, dx2i_d, dxi5_d, dxiq_d, dyi_d, dy2i_d, dyi5_d, dyiq_d, &
+   integer, device :: itot_d, ib_d, ie_d, jb_d, je_d, kb_d, ke_d, ih_d, jh_d, kh_d, rk3step_d, &
+                      BCxm_d, BCxm_periodic_d, BCym_d, BCym_periodic_d, &
+                      BCtopm_d, BCtopm_freeslip_d, BCtopm_pressure_d, BCtopm_noslip_d
+   
+   logical, device :: lles_d, lsmagorinsky_d, lvreman_d, loneeqn_d, ldelta_d, lbuoyancy_d, lbuoycorr_d
+
+   real,    device :: dx2_d, dxi_d, dx2i_d, dxi5_d, dxiq_d, dy2_d, dyi_d, dy2i_d, dyi5_d, dyiq_d, &
                       xlen_d, ds_d, &
-                      eps1_d, pi_d, numol_d, prandtlmoli_d, prandtli_d, grav_d, dampmin_d, &
+                      eps1_d, pi_d, numol_d, prandtlmoli_d, prandtli_d, grav_d, dampmin_d, c_vreman_d, &
                       thvs_d, cn_d, cm_d, ch1_d, ch2_d, ce1_d, ce2_d, &
                       dt_d
 
    integer, device, dimension(3) :: zstart_d
 
-   real, device, allocatable :: dzf_d(:), dzfi_d(:), dzhi_d(:), dzh2i_d(:), dzfi5_d(:), dzhiq_d(:), &
+   real, device, allocatable :: dzf_d(:), dzf2_d(:), dzfi_d(:), dzfi5_d(:), dzfiq_d(:), dzh_d(:), dzhi_d(:), dzh2i_d(:), dzhiq_d(:), &
                                 dzfc_d(:), dzfci_d(:), dzhci_d(:), dxfc_d(:), dxfci_d(:), dxhci_d(:), &
                                 xh_d(:), u0av_d(:)
 
@@ -53,6 +60,7 @@ module modcuda
          integer :: blocknumx, blocknumy, blocknumz
          type(cudaDeviceProp) :: props
          integer :: deviceID, SMcount
+         
          call checkCUDA( cudaGetDevice( deviceID ), 'cudaGetDevice_in_modcuda' )
          call checkCUDA( cudaGetDeviceProperties(props, deviceId), 'cudaGetDeviceProperties_in_modcuda' )
          
@@ -87,20 +95,49 @@ module modcuda
          kb_d = kb
          ke_d = ke
          kh_d = kh
+
+         dx2_d  = dx2
+         dxi_d  = dxi
          dxi5_d = dxi5
-         dyi5_d = dyi5
          dxiq_d = dxiq
+         dx2i_d = dx2i
+
+         dy2_d  = dy2
+         dyi_d  = dyi
+         dyi5_d = dyi5
          dyiq_d = dyiq
-         dxi_d = dxi
-         dyi_d = dyi
+         dy2i_d = dy2i
+
          allocate (dzf_d(kb - kh:ke + kh))
-         allocate (dzhi_d(kb:ke + kh))
+         allocate (dzf2_d(kb - kh:ke + kh))
+         allocate (dzfi_d(kb - kh:ke + kh))
          allocate (dzfi5_d(kb - kh:ke + kh))
+         allocate (dzfiq_d(kb - kh:ke + kh))
+         allocate (dzh_d(kb:ke + kh))
+         allocate (dzhi_d(kb:ke + kh))
+         allocate (dzh2i_d(kb:ke + kh))
          allocate (dzhiq_d(kb:ke + kh))
-         dzf_d = dzf
-         dzhi_d = dzhi
+         dzf_d   = dzf
+         dzf2_d  = dzf2
+         dzfi_d  = dzfi
          dzfi5_d = dzfi5
+         dzfiq_d = dzfiq
+         dzh_d   = dzh
+         dzhi_d  = dzhi
+         dzh2i_d = dzh2i
          dzhiq_d = dzhiq
+
+         allocate(delta_d(ib-ih:itot+ih, kb:ke + kh))
+         delta_d = delta
+
+         BCxm_d            = BCxm
+         BCxm_periodic_d   = BCxm_periodic
+         BCym_d            = BCym
+         BCym_periodic_d   = BCym_periodic
+         BCtopm_d          = BCtopm
+         BCtopm_freeslip_d = BCtopm_freeslip
+         BCtopm_pressure_d = BCtopm_pressure
+         BCtopm_noslip_d   = BCtopm_noslip
 
          allocate(u0_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
          allocate(v0_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
@@ -139,6 +176,10 @@ module modcuda
             allocate(svp_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc,nsv))
          end if
 
+         allocate(ekm_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+         allocate(ekh_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+         allocate(dthvdz_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+
          if (any(iadv_sv(1:nsv) == iadv_kappa) .or. any(iadv_sv(1:nsv) == iadv_upw) .or. (iadv_thl == iadv_kappa)) then
             allocate(dumu_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
             allocate(duml_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
@@ -155,8 +196,8 @@ module modcuda
             dzfc_d  = dzfc
             dzfci_d = dzfci
          end if
+         
          eps1_d = eps1
-
          pi_d     = pi
          xlen_d   = xlen
          ds_d     = ds
@@ -166,40 +207,31 @@ module modcuda
 
          allocate(u0av_d(kb:ke+kh))
 
-         lles_d = lles
+         lles_d         = lles
          lsmagorinsky_d = lsmagorinsky
-         lvreman_d = lvreman
-         loneeqn_d = loneeqn
-         ldelta_d  = ldelta
-         allocate(ekm_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-         allocate(ekh_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-         dx2i_d = dx2i
-         allocate (dzfi_d(kb - kh:ke + kh))
-         dzfi_d = dzfi
-         numol_d = numol
+         lvreman_d      = lvreman
+         loneeqn_d      = loneeqn
+         ldelta_d       = ldelta
+         lbuoyancy_d    = lbuoyancy
+         lbuoycorr_d    = lbuoycorr
+
+         numol_d       = numol
          prandtlmoli_d = prandtlmoli
-         
-         dy2i_d = dy2i
-         allocate (dzh2i_d(kb:ke + kh))
-         dzh2i_d = dzh2i
-         grav_d = grav
-         thvs_d = thvs
-         allocate(dthvdz_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
-         cm_d = cm
-         cn_d = cn
-         ch1_d = ch1
-         ch2_d = ch2
-         ce1_d = ce1
-         ce2_d = ce2
-         prandtli_d = prandtli
+         grav_d        = grav
+         thvs_d        = thvs
+         cm_d          = cm
+         cn_d          = cn
+         ch1_d         = ch1
+         ch2_d         = ch2
+         ce1_d         = ce1
+         ce2_d         = ce2
+         prandtli_d    = prandtli
+         c_vreman_d    = c_vreman
 
          if (lsmagorinsky .or. loneeqn) then
             allocate(damp_d(ib:ie,jb:je,kb:ke))
             dampmin_d = dampmin
          end if
-
-         allocate(delta_d(ib-ih:itot+ih, kb:ke + kh))
-         delta_d = delta
 
          if (lsmagorinsky) then
             allocate(csz_d(ib-ih:ie+ih,kb:ke+kh))
@@ -210,7 +242,7 @@ module modcuda
 
       subroutine exitCUDA
          implicit none
-         deallocate(dzf_d, dzfi_d, dzh2i_d, dzhi_d, dzfi5_d, dzhiq_d, delta_d)
+         deallocate(dzf_d, dzf2_d, dzfi_d, dzfi5_d, dzfiq_d, dzh_d, dzhi_d, dzh2i_d, dzhiq_d, delta_d)
          deallocate(u0_d, v0_d, w0_d, pres0_d)
          deallocate(up_d, vp_d, wp_d)
          if (loneeqn) deallocate(e120_d, e12p_d, sbshr_d, sbbuo_d, sbdiss_d, zlt_d)
@@ -293,6 +325,8 @@ module modcuda
      !       sv0 = sv0_d
             svp = svp_d
          end if
+         ekm = ekm_d
+         ekh = ekh_d
       end subroutine updateHost
 
       subroutine checkCUDA(istat, kernelname)

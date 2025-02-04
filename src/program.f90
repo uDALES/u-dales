@@ -149,12 +149,12 @@ program DALESURBAN      !Version 48
 
     call shiftedPBCs
 
+    call subgrid
+
 #if defined(_GPU)
     call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize in program' )
 #endif
-    write(6,*)'(advection + shiftedPBCs) time = ', MPI_Wtime() - stime
-
-    call subgrid
+    write(6,*)'(advection + shiftedPBCs + subgrid) time = ', MPI_Wtime() - stime
 
 #if defined(_GPU)
     call updateHost
