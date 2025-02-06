@@ -1,4 +1,7 @@
-# Namoptions overview
+# Input parameters
+
+Below we specify the input parameters in the `namoptions` file of your experiment. 
+
 <!--
 This list 
 This list refers to the original code-base [DALES](https://github.com/dalesteam/dales). The latest version of the namoptions overview of DALES is documented [here](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf).

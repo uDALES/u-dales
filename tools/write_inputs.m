@@ -212,10 +212,9 @@ if r.libm
     disp(['Written facets.inp.', r.expnr])
 
     area_facets = facetAreas(TR.ConnectivityList, TR.Points);
-    if r.lEB || r.lwritefac
-        preprocessing.write_facetarea(r, area_facets);
-        disp(['Written facetarea.inp.', r.expnr])
-    end
+    preprocessing.write_facetarea(r, area_facets);
+    disp(['Written facetarea.inp.', r.expnr])
+
 
     if r.lEB
         lscatter = true;

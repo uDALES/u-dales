@@ -1,12 +1,12 @@
-# An introduction to uDALES post-processing with MATLAB
+# Working with uDALES field data in MATLAB
 
 
-This section describes how to read and process output of the LES code uDALES using MATLAB. Apart from showing how to use the `udbase` post-processing class, it describes some important concepts, such as the [grid layout](#udales-grid-layout), [variable locations](#udales-grid-layout) and [averaging procedures](#averages-used-in-udales-output).
+This tutorial describes how to read and process field data output of the LES code uDALES using MATLAB. In addition, it describes some important concepts, such as the [grid layout](#udales-grid-layout), [variable locations](#udales-grid-layout) and [averaging procedures](#averages-used-in-udales-output).
 
 
 
 
-The **`udbase`** post-processing class reads in most important input parameters, and contains a number of methods to load data:
+The **`udbase`** post-processing class reads in most important input parameters, and contains a number of methods to load field data:
 
 
 
@@ -15,15 +15,15 @@ The **`udbase`** post-processing class reads in most important input parameters,
    -  [**load_field**](#load_field-loading-instantaneous-3d-data). This method loads instantaneous 3D data from the file `fielddump.expnr.nc`. Several output times may be present in the data. 
    -  [**load_slice**](#load_slice-loading-instantaneous-2d-slice-data). This method loads instantaneous 2D slices of instantaneous 3D data from the file `Xslicedump.expnr.nc`. Several output times may be present in the data. 
 
+
+
+**The live matlab file of this tutorial can be found in the repository in the folder /docs/tutorial_mlx.**
+
+
 # Initialising udbase
 
 
 The starting point of this tutorial is that you have run a simulation and have merged the output files. If the simulations were performed on a HPC system, **we assume that you have copied the output directory to your own workstation**. Some of the netCDF (*.nc) files may be very large and you may only want to copy these if you plan to analyse the data.
-
-
-
-
-The uDALES postprocessing class is called `udbase`. Typically, you will create a post-processing script in the output directory on your workstation, but it is also possible to have the output directory located in another directory. This is particularly useful if you are comparing several different simulations at the same time. Here, we will show how to use data from simulation 110 (`expnr=110) `that is located in a different directory from the one you are working in.
 
 
 
@@ -44,137 +44,12 @@ addpath('../matlab')
 expnr = 110;
 expdir = '../experiments/110';
 sim = udbase(expnr, expdir);
-
-% note that if the simulation output is in the current directory, you can simply use
-% sim = udbase(expnr);
-```
-
-
-
-The constructor of the `udbase` class reads in the following files:
-
-
-
-   -  `namoptions.expnr. C`ontains the simulation input parameters. 
-   -  `xxx.stl.` Contains the urban geometry used for the simulation [optional].  
-   -  `solid_u.txt. `Contains the indices of the u-volumes occupied by buildings. 
-   -  `solid_v.txt. `Contains the indices of the v-volumes occupied by buildings. 
-   -  `solid_w.txt. `Contains the indices of the w-volumes occupied by buildings. 
-   -  `solid_c.txt. `Contains the indices of the scalar volumes occupied by buildings. 
-
-# Accessing simulation properties
-
-
-To view all simulation input parameters, simply type
-
-
-
-```matlab
-sim
 ```
 
 
 ```text
-sim = 
-  udbase with properties:
-
-           expnr: '110'
-            geom: [1x1 udgeom.udgeom]
-              Su: [128x128x256 logical]
-              Sv: [128x128x256 logical]
-              Sw: [128x128x256 logical]
-              Sc: [128x128x256 logical]
-              ps: 101500
-      tstatsdump: 2000
-       fieldvars: ''u0,v0,w0''
-       nsolpts_u: 100224
-       nbndpts_u: 69280
-      tfielddump: 2000
-              z0: 0.0100
-            dpdx: 0.0042
-          kslice: 21
-      nfctsecs_w: 54312
-      lfielddump: 1
-          iexpnr: 110
-      nfctsecs_u: 52208
-       nsolpts_v: 100224
-          nprocy: 16
-      stl_ground: 1
-            thls: 288
-     lkslicedump: 1
-          ltdump: 1
-          wqsurf: 0
-       nbndpts_v: 69280
-             z0h: 6.7000e-05
-          wtsurf: 0
-           dtmax: 1
-    diag_neighbs: 1
-       ladaptive: 1
-         irandom: 43
-              u0: 3
-          ipoiss: 0
-          nprocx: 16
-      nfctsecs_c: 0
-       igrw_damp: 0
-            ylen: 160
-       nbndpts_w: 65776
-            libm: 1
-         runtime: 6002
-            xlen: 160
-      nfctsecs_v: 52363
-            jtot: 128
-       nbndpts_c: 66496
-            itot: 128
-       nsolpts_c: 89088
-        trestart: 6000
-           randu: 0.0100
-        lxytdump: 1
-           zsize: 120
-         lvreman: 1
-        stl_file: 'xie_castro_2008.stl'
-            ktot: 256
-           nfcts: 1102
-       nsolpts_w: 104192
-         tsample: 3
-
+Warning: prof.inp.110 not found. Assuming equidistant grid.
 ```
-
-
-
-For a complete list of parameters and their meaning, please consult the pre-processing documentation. Some commonly used parameters are 
-
-
-
-   -  `xlen`, `ylen` and `zsize `that represent the domain size   
-   -  `itot`, `jtot` and `ktot `that represent the total number of grid cells 
-
-
-
-To access a parameter directly, use the syntax `object.prop`. To access the domain length in x-direction, use
-
-
-
-```matlab
-sim.xlen
-```
-
-
-```text
-ans = 160
-```
-
-
-
-The geometry stored in the STL file, if present, has been also loaded, which can be visualised using the method below. This method will produce an error if STL file does not exist or been loaded.
-
-
-
-```matlab
-sim.geom.show();
-```
-
-
-![figure_0.png](postproc_tutorial_media/figure_0.png)
 
 # uDALES grid layout
 
@@ -205,6 +80,10 @@ uDALES uses a grid that is staggered, which means that not all variables are def
 %   xm(i) = (i-1) * dx;     xt(i) = (i-1/2) * dx
 %   ym(j) = (j-1) * dy;     yt(j) = (j-1/2) * dy
 %   zm(k) = (k-1) * dz;     zt(k) = (k-1/2) * dz 
+%
+%   Grid increments:
+%   dzt(k) = zm(k+1) - zm(k)
+%   dzm(k) = zt(k) - zt(k-1)
 %
 %   Note that z does not have to be equidistant.
 ```
@@ -240,7 +119,7 @@ Scalars (potential temperature, specific humidity, pollutants) are always define
 
 
 
-**You can always look up where the variables are defined from the output variable information using the load... methods. **
+**You can always look up where the variables are defined from the output variable information using the load.. methods.**
 
 
 # Averages used in uDALES output
@@ -266,12 +145,12 @@ where the overbar denotes time-averaging. The time-averaged data is contained in
 
 
 
-Often, we are interested in the quantities that are additionally averaged in the horizontal plane. This is often referred to as a **slab average**.  In this case it is common to further decompose the time-averaged quantity $\bar{\varphi \;}$ into a spatial average $\langle \bar{\varphi \;} \rangle \left(z\right)$ (i.e., average over the horizontal surface)  and its spatial variation ${{\bar{\varphi \;} }^{\prime } }^{\prime } \left(x,y,z\right)=\bar{\varphi \;} \left(x,y,z\right)-\langle \bar{\varphi \;} \rangle \left(z\right)$. Upon substituting this expression into the equation above, we obtain the triple decomposition [3]: 
+Often, we are interested in the quantities that are additionally averaged in the horizontal plane. This is often referred to as a **slab average**.  In this case it is common to further decompose the time-averaged quantity $\bar{\varphi \;}$ into a spatial average $\langle \bar{\varphi \;} \rangle \left(z\right)$ (i.e., average over the horizontal surface)  and its spatial variation $\bar{\varphi \;} "\left(x,y,z\right)=\bar{\varphi \;} \left(x,y,z\right)-\langle \bar{\varphi \;} \rangle \left(z\right)$. Upon substituting this expression into the equation above, we obtain the triple decomposition [3]: 
 
 
 
 
-$\varphi \left(x,y,z,t\right)=\langle \bar{\varphi \;} \rangle \left(z\right)+{{\bar{\varphi \;} }^{\prime } }^{\prime } \left(x,y,z\right)\;+\varphi {\;}^{\prime } \left(x,y,z,t\right)$.
+$\varphi \left(x,y,z,t\right)=\langle \bar{\varphi \;} \rangle \left(z\right)+\bar{\varphi \;} "\left(x,y,z\right)\;+\varphi {\;}^{\prime } \left(x,y,z,t\right)$.
 
 
 
@@ -295,7 +174,7 @@ $\langle \bar{\varphi \;} \rangle_C \left(z\right)=\frac{1}{A}\int_{{\;}_{\Omega
 
 
 
-where $A$ is the total surface area (\texttt{sim.xlen*sim.ylen)}. In many cases, it is more convenient to work with comprehensive averages than intrinsic averages, particularly when considering averaged budgets of momentum, temperature etc [3]. To convert the intrinsic-average output from uDALES into a comprehensive average, simply multiply the intrinsic average by $A_f /A$ as shown above. Time and intrinsically-averaged data is contained in the xy`tdump.expnr.nc `file.
+where $A$ is the total surface area. In many cases, it is more convenient to work with comprehensive averages than intrinsic averages, particularly when considering averaged budgets of momentum, temperature etc [3]. To convert the intrinsic-average output from uDALES into a comprehensive average, simply multiply the intrinsic average by $A_f /A$ as shown above. Time and intrinsically-averaged data is contained in the xy`tdump.expnr.nc `file.
 
 
 # load_stat_xyt: loading time- and slab-averaged data
@@ -450,7 +329,7 @@ legend(leg, 'Location','northwest', 'Interpreter', 'latex')
 ```
 
 
-![figure_1.png](postproc_tutorial_media/figure_1.png)
+![figure_0.png](fields_tutorial_media/figure_0.png)
 
 
 
@@ -459,7 +338,7 @@ As can be seen, during the first time-interval, the flow is substantially slower
 
 
 
-Using the continuity equation it can be shown that for period domains $\langle \bar{w} \rangle =0$, which also implies that $\langle \bar{w} "\rangle =0$. This means that the dispersive momentum flux $\langle {\bar{u\;} }^" \;{\bar{w} }^" \rangle$ is equal to $\langle \bar{\;u} \;\bar{\;w} \rangle$. Thus, we can load the mean turbulent horizontal momentum flux $\langle \bar{u^{\prime } w^{\prime } } \rangle$ and dispersive flux $\langle {\bar{u\;} }^" \;{\bar{w} }^" \rangle$ can be loaded as:
+Using the continuity equation it can be shown that for period domains $\langle \bar{w} \rangle =0$, which also implies that $\langle \bar{w} "\rangle =0$. This means that the dispersive momentum flux $\langle \bar{u\;} "\bar{w\;} "\rangle$ is equal to $\langle \bar{\;u} \;\bar{\;w} \rangle$. Thus, we can load the mean turbulent horizontal momentum flux $\langle \bar{u^{\prime } w^{\prime } } \rangle$ and dispersive flux $\langle \bar{u\;} "\bar{w\;} "\rangle$ can be loaded as:
 
 
 
@@ -499,7 +378,7 @@ legend(leg, 'Location','northwest', 'Interpreter', 'latex')
 ```
 
 
-![figure_2.png](postproc_tutorial_media/figure_2.png)
+![figure_1.png](fields_tutorial_media/figure_1.png)
 
 
 
@@ -626,7 +505,7 @@ title(['$\overline u(x, y, z=', num2str(zt(k), '%8.1f'), 'm)$; no NaNs'], 'Inter
 ```
 
 
-![figure_3.png](postproc_tutorial_media/figure_3.png)
+![figure_2.png](fields_tutorial_media/figure_2.png)
 
 
 
@@ -647,7 +526,7 @@ title(['$\overline u(x, y, z=', num2str(zt(k), '%8.1f'), 'm)$'], 'Interpreter','
 ```
 
 
-![figure_4.png](postproc_tutorial_media/figure_4.png)
+![figure_3.png](fields_tutorial_media/figure_3.png)
 
 
 
@@ -667,7 +546,7 @@ title(['$\overline u(x, y=', num2str(yt(j), '%8.1f'), 'm, z)$'], 'Interpreter','
 ```
 
 
-![figure_5.png](postproc_tutorial_media/figure_5.png)
+![figure_4.png](fields_tutorial_media/figure_4.png)
 
 # load_field: loading instantaneous 3D data
 
@@ -789,7 +668,7 @@ title(['$u(x, y, z=', num2str(zt(k), '%8.1f'), 'm, t=', num2str(t(n), '%8.0f'),'
 ```
 
 
-![figure_6.png](postproc_tutorial_media/figure_6.png)
+![figure_5.png](fields_tutorial_media/figure_5.png)
 
 
 ```matlab
@@ -802,7 +681,7 @@ title(['$u(x, y, z=', num2str(zt(k), '%8.1f'), 'm, t=', num2str(t(n), '%8.0f'),'
 ```
 
 
-![figure_7.png](postproc_tutorial_media/figure_7.png)
+![figure_6.png](fields_tutorial_media/figure_6.png)
 
 # load_slice: loading instantaneous 2D slice data
 
@@ -950,14 +829,14 @@ curu(squeeze(sim.Su(:,:,sim.kslice))) = NaN;
 figure
 pcolor(xm, yt, curu');
 shading flat; axis equal tight;
-xlabel('$x$ [m]', 'Interpreter','latex')                   
+xlabel('$x$ [m]', 'Interpreter','latex')                  
 ylabel('$y$ [m]', 'Interpreter','latex')
 colorbar
 title(['$u(x,y,z=', num2str(zm(sim.kslice), '%8.1f'), 'm, t=', num2str(t(n), '%8.0f'), 's)$'], 'Interpreter','latex')
 ```
 
 
-![figure_8.png](postproc_tutorial_media/figure_8.png)
+![figure_7.png](fields_tutorial_media/figure_7.png)
 
 # References
 
@@ -977,6 +856,6 @@ title(['$u(x,y,z=', num2str(zm(sim.kslice), '%8.1f'), 'm, t=', num2str(t(n), '%8
 
 
 
-[4] Sutzl BS, Rooney GG,  van Reeuwijk M (2020) Drag Distribution in Idealized Heterogeneous Urban Environments. Boundary-Layer Meteorol 178,225-248.
+[4] Suetzl BS, Rooney GG,  van Reeuwijk M (2020) Drag Distribution in Idealized Heterogeneous Urban Environments. Boundary-Layer Meteorol 178,225-248.
 
 
