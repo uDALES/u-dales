@@ -972,25 +972,56 @@ module modforces
   !write(*,*) 'fraction', fraction
   end subroutine periodicEBcorr
 
+
+#if defined(_GPU)
+  attributes(global) subroutine shiftedPBCs_cuda
+     use modcuda,   only : ie_d, je_d, ke_d, itot_d, zstart_d, dyi_d, &
+                           ds_d, xh_d, xlen_d, pi_d, &
+                           u0_d, v0_d, w0_d, u0av_d, up_d, vp_d, wp_d, &
+                           tidandstride
+     implicit none
+     integer :: tidx, tidy, tidz, stridex, stridey, stridez
+     integer :: i, j, k, ig
+     real    :: vs
+
+     call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+
+     do i = tidx, ie_d, stridex
+        ig = i + zstart_d(1) - 1 ! global i position
+        if (ig > int(itot_d/2)) then
+           do j = tidy, je_d, stridey
+              do k = tidz, ke_d, stridez
+                 vs = 0.5 * pi_d * ds_d / (0.5*xlen_d) * u0av_d(k) * sin(pi_d*(xh_d(ig)-xh_d(int(itot_d/2))) / (0.5*xlen_d))
+                 up_d(i,j,k) = up_d(i,j,k) - vs * (u0_d(i,j,k) - u0_d(i,j-1,k)) * dyi_d
+                 vp_d(i,j,k) = vp_d(i,j,k) - vs * (v0_d(i,j,k) - v0_d(i,j-1,k)) * dyi_d
+                 wp_d(i,j,k) = wp_d(i,j,k) - vs * (w0_d(i,j,k) - w0_d(i,j-1,k)) * dyi_d
+              end do
+           end do
+        end if
+     end do
+  end subroutine shiftedPBCs_cuda
+#endif
+
   subroutine shiftedPBCs        ! Nudge the flow in a region near the outlet
+      use modglobal, only : ds
 #if defined(_GPU)
       use cudafor
-      use modcuda,   only : griddim, blockdim, checkCUDA, shiftedPBCs_cuda
+      use modcuda,   only : griddim, blockdim, checkCUDA
 #else
-      use modglobal, only : ib, itot, ie, jb, je, kb, ke, xh, ds, dyi, xlen, rk3step, dt, pi
+      use modglobal, only : ib, itot, ie, jb, je, kb, ke, xh, dyi, xlen, pi
       use modfields, only : u0, v0, w0, u0av, up, vp, wp
       use decomp_2d, only : zstart
 #endif
-
+      implicit none
       integer :: i, j, k, ig
-      real :: vs, rk3coef
-      
-#if defined(_GPU)
-      call shiftedPBCs_cuda<<<griddim,blockdim>>>
-      call checkCUDA( cudaGetLastError(), 'shiftedPBCs_cuda' )
-#else
+      real :: vs
+
       if (ds > 0) then
-         rk3coef = dt / (4. - dble(rk3step))
+
+#if defined(_GPU)
+         call shiftedPBCs_cuda<<<griddim,blockdim>>>
+         call checkCUDA( cudaGetLastError(), 'shiftedPBCs_cuda' )
+#else
          do i = ib,ie
             ig = i + zstart(1) - 1 ! global i position
             if (ig > int(itot/2)) then
@@ -1004,8 +1035,9 @@ module modforces
                end do
             end if
          end do
-      end if
 #endif
+
+      end if
    end subroutine shiftedPBCs
 
 end module modforces
