@@ -28,18 +28,24 @@
 
 !> Advection redirection function
 subroutine advection
-   use modglobal, only:lmoist, nsv, iadv_mom, iadv_tke, iadv_thl, iadv_qt, iadv_sv, &
-      iadv_cd2, iadv_kappa, iadv_upw, &
-      ltempeq, ih, jh, kh, ihc, jhc, khc, kb, ke, ib, ie, jb, je
-   use modfields, only:u0, up, v0, vp, w0, wp, e120, e12p, thl0, thl0c, thlp, thlpc, qt0, qtp, sv0, svp, pres0, uh, vh, wh, pres0h
-   use modsubgriddata, only:loneeqn
-   use decomp_2d
+   use modglobal,       only: ib, ie, jb, je, kb, ke, ih, jh, kh, ihc, jhc, khc, &
+                              iadv_mom, iadv_tke, iadv_thl, iadv_qt, iadv_sv, &
+                              iadv_cd2, iadv_kappa, iadv_upw, &
+                              ltempeq, lmoist, nsv
+   use modsubgriddata,  only: loneeqn
+
 #if defined(_GPU)
    use cudafor
-   use modcuda, only : griddim, blockdim, checkCUDA, &
-                       u0_d, v0_d, w0_d, e120_d, thl0_d, thl0c_d, qt0_d, sv0_d, up_d, vp_d, wp_d, e12p_d, thlp_d, thlpc_d, qtp_d, svp_d, &
-                       advecc_2nd_cuda, advecu_2nd_cuda, advecv_2nd_cuda, advecw_2nd_cuda, advecc_upw_cuda, &
-                       advecc_kappa_reset_cuda, advecc_kappa_ducdx_cuda, advecc_kappa_dvcdy_cuda, advecc_kappa_dwcdz_cuda, advecc_kappa_add_cuda, thlptothlpc_cuda, thlpctothlp_cuda
+   use modcuda,         only: griddim, blockdim, checkCUDA, thlptothlpc_cuda, thlpctothlp_cuda, &
+                              u0_d, up_d, v0_d, vp_d, w0_d, wp_d, e120_d, e12p_d, thl0_d, thl0c_d, thlp_d, thlpc_d, qt0_d, qtp_d, sv0_d, svp_d
+   use advection_2nd,   only: advecc_2nd_cuda, advecu_2nd_cuda, advecv_2nd_cuda, advecw_2nd_cuda
+   use advection_kappa, only: advecc_kappa_reset_cuda, advecc_kappa_ducdx_cuda, advecc_kappa_dvcdy_cuda, advecc_kappa_dwcdz_cuda, advecc_kappa_add_cuda
+   use advection_upw,   only: advecc_upw_cuda
+#else
+   use modfields,       only: u0, up, v0, vp, w0, wp, e120, e12p, thl0, thl0c, thlp, thlpc, qt0, qtp, sv0, svp
+   use advection_2nd,   only: advecc_2nd, advecu_2nd, advecv_2nd, advecw_2nd
+   use advection_kappa, only: advecc_kappa
+   use advection_upw,   only: advecc_upw
 #endif
    implicit none
    integer :: n
