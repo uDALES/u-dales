@@ -189,20 +189,22 @@ module modcuda
          allocate(ekh_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
          allocate(dthvdz_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
 
-         if (any(iadv_sv(1:nsv) == iadv_kappa) .or. any(iadv_sv(1:nsv) == iadv_upw) .or. (iadv_thl == iadv_kappa)) then
+         if (any(iadv_sv(1:nsv) == iadv_kappa) .or. (iadv_thl == iadv_kappa)) then
             allocate(dumu_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
             allocate(duml_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
             allocate (dxhci_d(ib - 1:itot + ihc))
             allocate (dxfc_d(ib - ihc:itot + ihc))
-            allocate (dxfci_d(ib - ihc:itot + ihc))
             allocate (dzhci_d(kb - 1:ke + khc))
             allocate (dzfc_d(kb - khc:ke + khc))
-            allocate (dzfci_d(kb - khc:ke + khc))
             dxhci_d = dxhci
             dxfc_d  = dxfc
-            dxfci_d = dxfci
             dzhci_d = dzhci
             dzfc_d  = dzfc
+         end if
+         if (any(iadv_sv(1:nsv) == iadv_kappa) .or. any(iadv_sv(1:nsv) == iadv_upw) .or. (iadv_thl == iadv_kappa)) then
+            allocate (dxfci_d(ib - ihc:itot + ihc))
+            allocate (dzfci_d(kb - khc:ke + khc))
+            dxfci_d = dxfci
             dzfci_d = dzfci
          end if
          
@@ -266,8 +268,11 @@ module modcuda
          end if
          if (lmoist) deallocate(qt0_d, qtp_d)
          if (nsv>0) deallocate(sv0_d, svp_d)
+         if (any(iadv_sv(1:nsv) == iadv_kappa) .or. (iadv_thl == iadv_kappa)) then
+            deallocate(dumu_d, duml_d, dxhci_d, dxfc_d, dzhci_d, dzfc_d)
+         end if
          if (any(iadv_sv(1:nsv) == iadv_kappa) .or. any(iadv_sv(1:nsv) == iadv_upw) .or. (iadv_thl == iadv_kappa)) then
-            deallocate(dumu_d, duml_d, dxhci_d, dxfc_d, dxfci_d, dzhci, dzfc, dzfci)
+            deallocate(dxfci_d, dzfci_d)
          end if
          deallocate(xh_d, u0av_d)
          deallocate(ekm_d, ekh_d)
