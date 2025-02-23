@@ -31,13 +31,17 @@ module modfields
   real, allocatable :: vm(:,:,:)        !<   y-component of velocity at time step t-1
   real, allocatable :: wm(:,:,:)        !<   z-component of velocity at time step t-1
   real, allocatable :: thlm(:,:,:)      !<   liq. water pot. temperature at time step t-1
+#if defined(_GPU)
+  real, allocatable, pinned :: e12m(:,:,:)
+#else
   real, allocatable :: e12m(:,:,:)      !<   turb. kin. energy at time step t-1
+#endif
   real, allocatable :: qtm(:,:,:)       !<   total specific humidity at time step t
 #if defined(_GPU)
   real, allocatable, pinned, target :: u0(:,:,:)
   real, allocatable, pinned, target :: v0(:,:,:)
   real, allocatable, pinned, target :: w0(:,:,:)
-  real, allocatable, pinned, target :: pres0(:,:,:)     !<   pressure at time step t
+  real, allocatable, pinned, target :: pres0(:,:,:)
 #else
   real, allocatable, target :: u0(:,:,:)        !<   x-component of velocity at time step t
   real, allocatable, target :: v0(:,:,:)        !<   y-component of velocity at time step t
@@ -63,64 +67,72 @@ module modfields
   real, allocatable, target :: u02(:,:,:)        !<   x-component of velocity at time step t-1
 #if defined(_GPU)
   real, allocatable, pinned, target :: thl0(:,:,:)
-  real, allocatable, pinned         :: thl0c(:,:,:)      !<   liq. water pot. temperature at time step t
+  real, allocatable, pinned         :: thl0c(:,:,:)
 #else
-  real, allocatable, target :: thl0(:,:,:)      !<   liq. water pot. temperature at time step t
-  real, allocatable         :: thl0c(:,:,:)      !<   liq. water pot. temperature at time step t
+  real, allocatable,         target :: thl0(:,:,:)      !<   liq. water pot. temperature at time step t
+  real, allocatable                 :: thl0c(:,:,:)     !<   liq. water pot. temperature at time step t
 #endif
   real, allocatable :: thl0h(:,:,:)     !<   3d-field of theta_l at half levels for kappa scheme
 
   real, allocatable :: qt0h(:,:,:)      !<  3d-field of q_tot   at half levels for kappa scheme
 #if defined(_GPU)
-  real, allocatable, pinned :: e120(:,:,:)
+  real, allocatable, pinned         :: e120(:,:,:)
   real, allocatable, pinned, target :: qt0(:,:,:)
 #else
-  real, allocatable :: e120(:,:,:)      !<   turb. kin. energy at time step t
-  real, allocatable, target :: qt0(:,:,:)       !<   total specific humidity at time step t
+  real, allocatable                 :: e120(:,:,:)      !<   turb. kin. energy at time step t
+  real, allocatable,         target :: qt0(:,:,:)       !<   total specific humidity at time step t
 #endif
 
 #if defined(_GPU)
-  real, allocatable, pinned :: up(:,:,:)
-  real, allocatable, pinned :: vp(:,:,:)
-  real, allocatable, pinned :: wp(:,:,:)
+  real, allocatable, pinned         :: up(:,:,:)
+  real, allocatable, pinned         :: vp(:,:,:)
+  real, allocatable, pinned         :: wp(:,:,:)
 #else
-  real, allocatable :: up(:,:,:)        !<   tendency of um
-  real, allocatable :: vp(:,:,:)        !<   tendency of vm
-  real, allocatable :: wp(:,:,:)        !<   tendency of wm
+  real, allocatable                 :: up(:,:,:)        !<   tendency of um
+  real, allocatable                 :: vp(:,:,:)        !<   tendency of vm
+  real, allocatable                 :: wp(:,:,:)        !<   tendency of wm
 #endif
   real, allocatable, target :: ru(:,:,:)        !<   tendency of um
   real, allocatable, target :: rv(:,:,:)        !<   tendency of vm
   real, allocatable, target :: rw(:,:,:)        !<   tendency of wm
 #if defined(_GPU)
-  real, allocatable, pinned :: thlp(:,:,:)
-  real, allocatable, pinned :: thlpc(:,:,:)
-  real, allocatable, pinned :: e12p(:,:,:)
-  real, allocatable, pinned :: qtp(:,:,:)
+  real, allocatable, pinned         :: thlp(:,:,:)
+  real, allocatable, pinned         :: thlpc(:,:,:)
+  real, allocatable, pinned         :: e12p(:,:,:)
+  real, allocatable, pinned         :: qtp(:,:,:)
 #else
-  real, allocatable :: thlp(:,:,:)      !<   tendency of thlm
-  real, allocatable :: thlpc(:,:,:)      !<   tendency of thlm
-  real, allocatable :: e12p(:,:,:)      !<   tendency of e12m
-  real, allocatable :: qtp(:,:,:)       !<   tendency of qtm
+  real, allocatable                 :: thlp(:,:,:)      !<   tendency of thlm
+  real, allocatable                 :: thlpc(:,:,:)     !<   tendency of thlm
+  real, allocatable                 :: e12p(:,:,:)      !<   tendency of e12m
+  real, allocatable                 :: qtp(:,:,:)       !<   tendency of qtm
 #endif
 
   real, allocatable :: svm(:,:,:,:)     !<  scalar sv(n) at time step t-1
 #if defined(_GPU)
   real, allocatable, pinned, target :: sv0(:,:,:,:)
-  real, allocatable, pinned :: svp(:,:,:,:)
+  real, allocatable, pinned         :: svp(:,:,:,:)
 #else
-  real, allocatable, target :: sv0(:,:,:,:)     !<  scalar sv(n) at time step t
-  real, allocatable :: svp(:,:,:,:)     !<  tendency of sv(n)
+  real, allocatable,         target :: sv0(:,:,:,:)     !<  scalar sv(n) at time step t
+  real, allocatable                 :: svp(:,:,:,:)             !<  tendency of sv(n)
 #endif
   real, allocatable :: svpp(:,:,:,:)
 
-  real, allocatable, target :: tau_x(:,:,:), tau_y(:,:,:), tau_z(:,:,:), thl_flux(:,:,:)
+#if defined(_GPU)
+  real, allocatable, pinned, target :: tau_x(:,:,:), tau_y(:,:,:), tau_z(:,:,:), thl_flux(:,:,:)
+#else
+  real, allocatable,         target :: tau_x(:,:,:), tau_y(:,:,:), tau_z(:,:,:), thl_flux(:,:,:)
+#endif
 
   ! Diagnostic variables
   real, allocatable :: mindist(:,:,:)   !< minimal distance of cell center to a wall
 
   real, allocatable :: shear(:,:,:,:)   !<   wall shear (last rank indicates the type of shear componenten (uym, uyp, etc.)
 
-   real, allocatable :: momfluxb(:,:,:) !< fields for the wallfluxes of total momentum
+#if defined(_GPU)
+  real, allocatable, pinned         :: momfluxb(:,:,:)
+#else
+  real, allocatable                 :: momfluxb(:,:,:) !< fields for the wallfluxes of total momentum
+#endif
    real, allocatable :: tfluxb(:,:,:)  !< heat
    real, allocatable :: qfluxb(:,:,:)  !< and moisture
    real, allocatable :: cth(:,:,:)     !< heat transfer coefficient

@@ -2,10 +2,10 @@ module modcuda
 #if defined(_GPU)        
    use cudafor
    use modglobal,      only: itot, ib, ie, jb, je, kb, ke, ih, jh, kh, ihc, jhc, khc, &
-                             dx2, dxi, dx2i, dxi5, dxiq, dy2, dyi, dy2i, dyi5, dyiq, &
+                             dx2, dxi, dx2i, dxi5, dxiq, dy2, dyi, dy2i, dyi5, dyiq, dxf, dxhi, &
                              dzf, dzf2, dzfi, dzfi5, dzfiq, dzh, dzhi, dzh2i, dzhiq, &
                              dzfc, dzfci, dzhci, dxfc, dxfci, dxhci, delta, &
-                             ltempeq, lmoist, nsv, lles, lbuoyancy, &
+                             ltempeq, lmoist, nsv, lles, lbuoyancy, lbottom, &
                              BCxm, BCxm_periodic, BCym, BCym_periodic, &
                              BCtopm, BCtopm_freeslip, BCtopm_pressure, BCtopm_noslip, &
                              iadv_sv, iadv_thl, iadv_kappa, iadv_upw, &
@@ -14,7 +14,7 @@ module modcuda
    use modfields,      only: u0, v0, w0, pres0, e120, thl0, thl0c, qt0, sv0, &
                              up, vp, wp, e12p, thlp, thlpc, qtp, svp, &
                              e12m, &
-                             tau_x, tau_y, tau_z, thl_flux, &
+                             tau_x, tau_y, tau_z, thl_flux, momfluxb, &
                              u0av, dthvdz
    use modsubgriddata, only: lsmagorinsky, lvreman, loneeqn, ldelta, lbuoycorr, &
                              ekm, ekh, &
@@ -43,6 +43,7 @@ module modcuda
 
    real, device, allocatable :: dzf_d(:), dzf2_d(:), dzfi_d(:), dzfi5_d(:), dzfiq_d(:), dzh_d(:), dzhi_d(:), dzh2i_d(:), dzhiq_d(:), &
                                 dzfc_d(:), dzfci_d(:), dzhci_d(:), dxfc_d(:), dxfci_d(:), dxhci_d(:), &
+                                dxf_d(:), dxhi_d(:), &
                                 xh_d(:), u0av_d(:)
 
    real, device, allocatable :: delta_d(:, :), csz_d(:,:)
@@ -50,7 +51,7 @@ module modcuda
    real, device, allocatable :: u0_d(:,:,:), v0_d(:,:,:), w0_d(:,:,:), pres0_d(:,:,:), e120_d(:,:,:), thl0_d(:,:,:), thl0c_d(:,:,:), qt0_d(:,:,:), sv0_d(:,:,:,:)
    real, device, allocatable :: up_d(:,:,:), vp_d(:,:,:), wp_d(:,:,:), e12p_d(:,:,:), thlp_d(:,:,:), thlpc_d(:,:,:), qtp_d(:,:,:), svp_d(:,:,:,:)
    real, device, allocatable :: e12m_d(:,:,:)
-   real, device, allocatable :: tau_x_d(:,:,:), tau_y_d(:,:,:), tau_z_d(:,:,:), thl_flux_d(:,:,:)
+   real, device, allocatable :: tau_x_d(:,:,:), tau_y_d(:,:,:), tau_z_d(:,:,:), thl_flux_d(:,:,:), momfluxb_d(:,:,:)
    real, device, allocatable :: dthvdz_d(:,:,:)
    real, device, allocatable :: ekm_d(:,:,:), ekh_d(:,:,:), sbshr_d(:,:,:), sbbuo_d(:,:,:), sbdiss_d(:,:,:), zlt_d(:,:,:), damp_d(:,:,:)
 
@@ -110,6 +111,11 @@ module modcuda
          dyi5_d = dyi5
          dyiq_d = dyiq
          dy2i_d = dy2i
+
+         allocate (dxf_d(ib-ih:itot+ih))
+         allocate (dxhi_d(ib:itot+ih))
+         dxf_d  = dxf
+         dxhi_d = dxhi
 
          allocate (dzf_d(kb - kh:ke + kh))
          allocate (dzf2_d(kb - kh:ke + kh))
@@ -253,11 +259,13 @@ module modcuda
          wqsurf_d = wqsurf
          wtsurf_d = wtsurf
 
+         if (lbottom) allocate(momfluxb_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+
       end subroutine initCUDA
 
       subroutine exitCUDA
          implicit none
-         deallocate(dzf_d, dzf2_d, dzfi_d, dzfi5_d, dzfiq_d, dzh_d, dzhi_d, dzh2i_d, dzhiq_d, delta_d)
+         deallocate(dxf_d, dxhi_d, dzf_d, dzf2_d, dzfi_d, dzfi5_d, dzfiq_d, dzh_d, dzhi_d, dzh2i_d, dzhiq_d, delta_d)
          deallocate(u0_d, v0_d, w0_d, pres0_d)
          deallocate(up_d, vp_d, wp_d)
          deallocate(tau_x_d, tau_y_d, tau_z_d)
@@ -281,6 +289,7 @@ module modcuda
          end if
          if (lsmagorinsky) deallocate(csz_d)
          deallocate(dthvdz_d)
+         if (lbottom) deallocate(momfluxb_d)
       end subroutine exitCUDA
 
       subroutine updateDevice
@@ -321,6 +330,7 @@ module modcuda
          end if
          u0av_d = u0av
          dthvdz_d = dthvdz
+         if (lbottom) momfluxb_d = momfluxb
       end subroutine updateDevice
 
       subroutine updateHost
@@ -349,6 +359,7 @@ module modcuda
          end if
          ekm = ekm_d
          ekh = ekh_d
+         if (lbottom) momfluxb = momfluxb_d
       end subroutine updateHost
 
       subroutine checkCUDA(istat, kernelname)

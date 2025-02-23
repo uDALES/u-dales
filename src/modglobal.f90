@@ -177,6 +177,7 @@ module modglobal
    logical :: lmoistinout = .false. !<  seperate switch for inflow/outflow BC for moisture (only necessary when linoutflow.eqv..false.).
    logical :: lper2inout = .false. !<  switch that determines type of restart: .true. means switching from periodic to in/outflow: inlet profile is read from prof.inp
    logical :: libm = .true. !<  switch that determines whether the Immersed Boundary Method is turned on
+   logical :: lbottom = .false. !< switch that determines if the bottom is considered as flat rough ground in the absence of stl facets
    logical :: lwalldist = .false. !<  switch that determines whether the wall distances should be computed
    logical :: lles = .true. !<  switch that determines whether the subgrid model is turned on or constant ekm and ekh are used (DNS)
    logical :: linletRA = .false. !<  switch that determines whether a Running Average should be used (.true.) in inlet generator
@@ -496,11 +497,12 @@ module modglobal
    real, allocatable :: zf(:)   !<  height of full level [m]
    real, allocatable :: zhi(:)  !<  1/zh
    real, allocatable :: zfi(:)  !<  1/zf
-   real, allocatable :: dxf(:)  !<  thickness of full level
 #if defined(_GPU)
-   real, allocatable, pinned :: dxfc(:) !<  thickness of full level (extra ghost nodes (used in k-scheme)
-   real, allocatable, pinned :: dxfci(:) !<  1/dxfc
+   real, allocatable, pinned :: dxf(:)
+   real, allocatable, pinned :: dxfc(:)
+   real, allocatable, pinned :: dxfci(:)
 #else
+   real, allocatable :: dxf(:)  !<  thickness of full level
    real, allocatable :: dxfc(:) !<  thickness of full level (extra ghost nodes (used in k-scheme)
    real, allocatable :: dxfci(:) !<  1/dxfc
 #endif
@@ -509,10 +511,11 @@ module modglobal
    real, allocatable :: dxfiq(:) !<  = 0.25*(1/dxf)
    real, allocatable :: dxfi5(:) !<  = 0.5*(1/dxf)
    real, allocatable :: dxh(:) !<  thickness of half level
-   real, allocatable :: dxhi(:) !<  = 1/dxh
 #if defined(_GPU)
+   real, allocatable, pinned :: dxhi(:)
    real, allocatable, pinned :: dxhci(:) !<  = 1/dxh (with extra ghost nodes (used in k-scheme))
 #else
+   real, allocatable :: dxhi(:) !<  = 1/dxh
    real, allocatable :: dxhci(:) !<  = 1/dxh (with extra ghost nodes (used in k-scheme))
 #endif
    real, allocatable :: dxhiq(:) !<  = 0.25*(1/dxh)
