@@ -5,16 +5,16 @@ module modcuda
                              dx2, dxi, dx2i, dxi5, dxiq, dy2, dyi, dy2i, dyi5, dyiq, dxf, dxhi, &
                              dzf, dzf2, dzfi, dzfi5, dzfiq, dzh, dzhi, dzh2i, dzhiq, &
                              dzfc, dzfci, dzhci, dxfc, dxfci, dxhci, delta, &
-                             ltempeq, lmoist, nsv, lles, lbuoyancy, lbottom, &
+                             ltempeq, lmoist, nsv, lles, lbuoyancy, &
                              BCxm, BCxm_periodic, BCym, BCym_periodic, &
                              BCtopm, BCtopm_freeslip, BCtopm_pressure, BCtopm_noslip, &
                              iadv_sv, iadv_thl, iadv_kappa, iadv_upw, &
                              xlen, ds, xh, &
-                             pi, eps1, numol, prandtlmoli, grav
+                             pi, eps1, numol, prandtlmoli, prandtlturb, grav, fkar2
    use modfields,      only: u0, v0, w0, pres0, e120, thl0, thl0c, qt0, sv0, &
                              up, vp, wp, e12p, thlp, thlpc, qtp, svp, &
                              e12m, &
-                             tau_x, tau_y, tau_z, thl_flux, momfluxb, &
+                             tau_x, tau_y, tau_z, thl_flux, &
                              u0av, dthvdz
    use modsubgriddata, only: lsmagorinsky, lvreman, loneeqn, ldelta, lbuoycorr, &
                              ekm, ekh, &
@@ -35,7 +35,7 @@ module modcuda
 
    real,    device :: dx2_d, dxi_d, dx2i_d, dxi5_d, dxiq_d, dy2_d, dyi_d, dy2i_d, dyi5_d, dyiq_d, &
                       xlen_d, ds_d, &
-                      eps1_d, pi_d, numol_d, prandtlmoli_d, prandtli_d, grav_d, dampmin_d, c_vreman_d, &
+                      eps1_d, pi_d, numol_d, prandtlmoli_d, prandtlturb_d, prandtli_d, grav_d, dampmin_d, c_vreman_d, fkar2_d, &
                       cn_d, cm_d, ch1_d, ch2_d, ce1_d, ce2_d, &
                       thvs_d, wtsurf_d, wqsurf_d
 
@@ -51,7 +51,7 @@ module modcuda
    real, device, allocatable :: u0_d(:,:,:), v0_d(:,:,:), w0_d(:,:,:), pres0_d(:,:,:), e120_d(:,:,:), thl0_d(:,:,:), thl0c_d(:,:,:), qt0_d(:,:,:), sv0_d(:,:,:,:)
    real, device, allocatable :: up_d(:,:,:), vp_d(:,:,:), wp_d(:,:,:), e12p_d(:,:,:), thlp_d(:,:,:), thlpc_d(:,:,:), qtp_d(:,:,:), svp_d(:,:,:,:)
    real, device, allocatable :: e12m_d(:,:,:)
-   real, device, allocatable :: tau_x_d(:,:,:), tau_y_d(:,:,:), tau_z_d(:,:,:), thl_flux_d(:,:,:), momfluxb_d(:,:,:)
+   real, device, allocatable :: tau_x_d(:,:,:), tau_y_d(:,:,:), tau_z_d(:,:,:), thl_flux_d(:,:,:)
    real, device, allocatable :: dthvdz_d(:,:,:)
    real, device, allocatable :: ekm_d(:,:,:), ekh_d(:,:,:), sbshr_d(:,:,:), sbbuo_d(:,:,:), sbdiss_d(:,:,:), zlt_d(:,:,:), damp_d(:,:,:)
 
@@ -235,6 +235,7 @@ module modcuda
 
          numol_d       = numol
          prandtlmoli_d = prandtlmoli
+         prandtlturb_d = prandtlturb
          grav_d        = grav
          thvs_d        = thvs
          cm_d          = cm
@@ -245,6 +246,7 @@ module modcuda
          ce2_d         = ce2
          prandtli_d    = prandtli
          c_vreman_d    = c_vreman
+         fkar2_d       = fkar2
 
          if (lsmagorinsky .or. loneeqn) then
             allocate(damp_d(ib:ie,jb:je,kb:ke))
@@ -258,8 +260,6 @@ module modcuda
 
          wqsurf_d = wqsurf
          wtsurf_d = wtsurf
-
-         if (lbottom) allocate(momfluxb_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
 
       end subroutine initCUDA
 
@@ -289,7 +289,6 @@ module modcuda
          end if
          if (lsmagorinsky) deallocate(csz_d)
          deallocate(dthvdz_d)
-         if (lbottom) deallocate(momfluxb_d)
       end subroutine exitCUDA
 
       subroutine updateDevice
@@ -330,7 +329,6 @@ module modcuda
          end if
          u0av_d = u0av
          dthvdz_d = dthvdz
-         if (lbottom) momfluxb_d = momfluxb
       end subroutine updateDevice
 
       subroutine updateHost
@@ -359,7 +357,6 @@ module modcuda
          end if
          ekm = ekm_d
          ekh = ekh_d
-         if (lbottom) momfluxb = momfluxb_d
       end subroutine updateHost
 
       subroutine checkCUDA(istat, kernelname)

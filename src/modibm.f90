@@ -27,7 +27,7 @@ module modibm
    !use wf_uno
    implicit none
    save
-   public :: initibm, ibmnorm, ibmwallfun, bottom, lbottom, createmasks, &
+   public :: initibm, ibmnorm, ibmwallfun, bottom, createmasks, &
              nsolpts_u, nsolpts_v, nsolpts_w, nsolpts_c, &
              nbndpts_u, nbndpts_v, nbndpts_w, nbndpts_c, &
              nfctsecs_u, nfctsecs_v, nfctsecs_w, nfctsecs_c, &
@@ -46,9 +46,7 @@ module modibm
       end function interp_temperature
     end interface
 
-   logical :: lbottom = .false.
    logical :: lnorec = .false.
-
    ! read from namoptions
    integer :: nsolpts_u, nsolpts_v, nsolpts_w, nsolpts_c, &
               nbndpts_u, nbndpts_v, nbndpts_w, nbndpts_c, &
@@ -1877,7 +1875,7 @@ module modibm
      ! surface tangential velocity 'utan' at a distance 'dist' from the surface,
      ! for a surface with momentum roughness length z0 and heat roughness length z0h.
      ! Stability are included using the air temperature Tair and surface temperature Tsurf.
-     use modglobal, only : grav, fkar, prandtlturb
+     use modglobal, only : grav, fkar2, prandtlturb
 
       implicit none
       real, intent(in) :: dist, z0, z0h, Tsurf, Tair, utan
@@ -1885,7 +1883,7 @@ module modibm
       real, parameter :: b2 = 4.7
       real, parameter :: dm = 7.4
       real, parameter :: dh = 5.3
-      real :: dT, Ribl0, logdz, logdzh, logzh, sqdz, fkar2, Ribl1, Fm, Fh, cm, ch, Ctm, M
+      real :: dT, Ribl0, logdz, logdzh, logzh, sqdz, Ribl1, Fm, Fh, cm, ch, Ctm, M
 
       dT = Tair - Tsurf
       Ribl0 = grav * dist * dT / (Tsurf * utan**2) !Eq. 6, guess initial Ri
@@ -1894,7 +1892,6 @@ module modibm
       logdzh = LOG(dist/z0h)
       logzh = LOG(z0/z0h)
       sqdz = SQRT(dist/z0)
-      fkar2 = fkar**2
 
       IF (Ribl0 > 0.) THEN !0.25 approx critical for bulk Richardson number  => stable
          Fm = 1./(1. + b2*Ribl0)**2 !Eq. 4
@@ -1937,7 +1934,7 @@ module modibm
 
 
    subroutine heat_transfer_coef_flux(utan, dist, z0, z0h, Tair, Tsurf, cth, flux, htc)
-     use modglobal, only : grav, fkar, prandtlturb
+     use modglobal, only : grav, fkar2, prandtlturb
 
       implicit none
       real, intent(in)  :: dist, z0, z0h, Tsurf, Tair, utan
@@ -1947,7 +1944,7 @@ module modibm
       real, parameter :: dm = 7.4
       real, parameter :: dh = 5.3
       !real :: Pr
-      real :: dT, Ribl0, logdz, logdzh, logzh, sqdz, fkar2, Ribl1, Fm, Fh, cm, ch, M, dTrough
+      real :: dT, Ribl0, logdz, logdzh, logzh, sqdz, Ribl1, Fm, Fh, cm, ch, M, dTrough
 
       !Pr = 1.
       !Pr = prandtlmol
@@ -1958,7 +1955,6 @@ module modibm
       logdzh = log(dist/z0h)
       logzh = log(z0/z0h)
       sqdz = sqrt(dist/z0)
-      fkar2 = fkar**2
 
       cth = 0.
       flux = 0.
@@ -2014,19 +2010,182 @@ module modibm
    end function moist_flux
 
 
+#if defined(_GPU)
+   attributes(global) subroutine bottom_set_tau_cuda
+      use modcuda, only : ih_d, jh_d, kh_d, ie_d, je_d, kb_d, ke_d, &
+                          loneeqn_d, ltempeq_d, &
+                          e120_d, e12m_d, up_d, vp_d, wp_d, thlp_d, &
+                          tau_x_d, tau_y_d, tau_z_d, thl_flux_d, &
+                          tidandstride
+      implicit none
+
+      integer :: i, j, k, tidx, tidy, tidz, stridex, stridey, stridez
+
+      call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+
+      if (loneeqn_d) then
+         if (tidz == kb_d) then
+            do j = tidy - jh_d, je_d + jh_d, stridey
+               do i = tidx - ih_d, ie_d + ih_d, stridex
+                  e120_d(i, j, kb_d - 1) = e120_d(i, j, kb_d)
+                  e12m_d(i, j, kb_d - 1) = e12m_d(i, j, kb_d)
+               end do
+            end do
+         end if
+      end if
+
+      do k = tidz, ke_d + kh_d, stridez
+         do j = tidy - jh_d, je_d + jh_d, stridey
+            do i = tidx - ih_d, ie_d + ih_d, stridex
+               tau_x_d(i,j,k) = up_d(i,j,k)
+               tau_y_d(i,j,k) = vp_d(i,j,k)
+               tau_z_d(i,j,k) = wp_d(i,j,k)
+            end do
+         end do
+      end do
+
+      if (ltempeq_d) then
+         do k = tidz, ke_d + kh_d, stridez
+            do j = tidy - jh_d, je_d + jh_d, stridey
+               do i = tidx - ih_d, ie_d + ih_d, stridex
+                  thl_flux_d(i,j,k) = thlp_d(i,j,k)
+               end do
+            end do
+         end do
+      end if
+   end subroutine bottom_set_tau_cuda
+
+   attributes(global) subroutine bottom_update_thlp_cuda
+      use modcuda, only : ie_d, je_d, kb_d, dzf_d, dzfi_d, dzh2i_d, wtsurf_d, &
+                          ekh_d, thl0_d, thlp_d, &
+                          tidandstride
+      implicit none
+      integer :: i, j, tidx, tidy, tidz, stridex, stridey, stridez
+
+      call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+
+      if (tidz == kb_d) then
+         do j = tidy, je_d, stridey
+            do i = tidx, ie_d, stridex
+               thlp_d(i, j, kb_d) = thlp_d(i, j, kb_d) + ( &
+                                    0.5*(dzf_d(kb_d - 1)*ekh_d(i, j, kb_d) + dzf_d(kb_d)*ekh_d(i, j, kb_d - 1)) &
+                                    *(thl0_d(i, j, kb_d) - thl0_d(i, j, kb_d - 1)) &
+                                    *dzh2i_d(kb_d) &
+                                    - wtsurf_d &
+                                    )*dzfi_d(kb_d)
+            end do
+         end do
+     end if
+   end subroutine bottom_update_thlp_cuda
+
+   attributes(global) subroutine bottom_update_qtp_cuda
+      use modcuda, only : ie_d, je_d, kb_d, dzf_d, dzfi_d, dzh2i_d, wqsurf_d, &
+                          ekh_d, qt0_d, qtp_d, &
+                          tidandstride
+      implicit none
+      integer :: i, j, tidx, tidy, tidz, stridex, stridey, stridez
+
+      call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+
+      if (tidz == kb_d) then  
+         do j = tidy, je_d, stridey
+            do i = tidx, ie_d, stridex
+               qtp_d(i, j, kb_d) = qtp_d(i, j, kb_d) + ( &
+                                   0.5*(dzf_d(kb_d - 1)*ekh_d(i, j, kb_d) + dzf_d(kb_d)*ekh_d(i, j, kb_d - 1)) &
+                                   *(qt0_d(i, j, kb_d) - qt0_d(i, j, kb_d - 1)) &
+                                   *dzh2i_d(kb_d) &
+                                   + wqsurf_d &
+                                   )*dzfi_d(kb_d)
+            end do
+         end do
+      end if
+   end subroutine bottom_update_qtp_cuda
+
+   attributes(global) subroutine bottom_update_svp_cuda(m)
+      use modcuda, only : ie_d, je_d, kb_d, dzf_d, dzfi_d, dzh2i_d, &
+                          ekh_d, sv0_d, svp_d, &
+                          tidandstride
+      implicit none
+      integer, value, intent(in) :: m
+      integer :: i, j, tidx, tidy, tidz, stridex, stridey, stridez
+
+      call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+
+      if (tidz == kb_d) then
+         do j = tidy, je_d, stridey
+            do i = tidx, ie_d, stridex
+               svp_d(i, j, kb_d, m) = svp_d(i, j, kb_d, m) + ( &
+                                      0.5*(dzf_d(kb_d - 1)*ekh_d(i, j, kb_d) + dzf_d(kb_d)*ekh_d(i, j, kb_d - 1)) &
+                                      *(sv0_d(i, j, kb_d, m) - sv0_d(i, j, kb_d - 1, m)) &
+                                      *dzh2i_d(kb_d) &
+                                      + 0. &
+                                      )*dzfi_d(kb_d)
+            end do
+         end do
+      end if
+   end subroutine bottom_update_svp_cuda
+
+   attributes(global) subroutine bottom_update_tau_cuda
+      use modcuda, only : ih_d, jh_d, kh_d, ie_d, je_d, ke_d, &
+                          ltempeq_d, &
+                          up_d, vp_d, wp_d, thlp_d, &
+                          tau_x_d, tau_y_d, tau_z_d, thl_flux_d, &
+                          tidandstride
+      implicit none
+
+      integer :: i, j, k, tidx, tidy, tidz, stridex, stridey, stridez
+
+      call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+
+      do k = tidz, ke_d + kh_d, stridez
+         do j = tidy - jh_d, je_d + jh_d, stridey
+            do i = tidx - ih_d, ie_d + ih_d, stridex
+               tau_x_d(i,j,k) = up_d(i,j,k) - tau_x_d(i,j,k)
+               tau_y_d(i,j,k) = vp_d(i,j,k) - tau_y_d(i,j,k)
+               tau_z_d(i,j,k) = wp_d(i,j,k) - tau_z_d(i,j,k)
+            end do
+         end do
+      end do
+
+      if (ltempeq_d) then
+         do k = tidz, ke_d + kh_d, stridez
+            do j = tidy - jh_d, je_d + jh_d, stridey
+               do i = tidx - ih_d, ie_d + ih_d, stridex
+                  thl_flux_d(i,j,k) = thlp_d(i,j,k) - thl_flux_d(i,j,k)
+               end do
+            end do
+         end do
+      end if
+   end subroutine bottom_update_tau_cuda
+#endif
+
    subroutine bottom
-     ! By Ivo Suter.
+      ! By Ivo Suter.
       !kind of obsolete when road facets are being used
       !vegetated floor not added (could simply be copied from vegetated horizontal facets)
-      use modglobal, only:ib, ie, ih, jh, kb,ke,kh, jb, je, kb, numol, prandtlmol, dzh, nsv, &
-         dxf, dxhi, dzf, dzfi, numoli, ltempeq, khc, lmoist, BCbotT, BCbotq, BCbotm, BCbots, dzh2i, libm
-      use modfields, only : u0,v0,e120,um,vm,w0,wm,e12m,thl0,qt0,sv0,thlm,qtm,svm,up,vp,wp,thlp,qtp,svp,shear,momfluxb,tfluxb,cth,tau_x,tau_y,tau_z,thl_flux
-      use modsurfdata, only:thlflux, qtflux, svflux, ustar, thvs, wtsurf, wqsurf, thls, z0, z0h
-      use modsubgriddata, only:ekm, ekh
-      use modmpi, only:myid
+      use modglobal,   only: ih, jh, kh, lbottom, ltempeq, lmoist, nsv, BCbotm, BCbotT, BCbotq, BCbots
+      use modsurfdata, only: thls, z0, z0h
+#if defined(_GPU)
+      use cudafor
+      use modcuda,              only: griddim, blockdim, checkCUDA, u0_d, v0_d, thl0_d, up_d, vp_d, thlp_d
+      use wallfunction_neutral, only: wfmneutral_cuda
+      use wallfunction_uno,     only: wfuno_cuda
+#else
+      use modglobal,            only: ib, ie, jb, je, kb, ke, dzf, dzfi, dzh2i
+      use modfields,            only: u0, v0, e120, thl0, qt0, sv0, e12m, up, vp, wp, thlp, qtp, svp, &
+                                      tau_x, tau_y, tau_z, thl_flux
+      use modsurfdata,          only: wtsurf, wqsurf
+      use modsubgriddata,       only: ekh
+      use wallfunction_neutral, only: wfmneutral
+      use wallfunction_uno,     only: wfuno
+#endif
       implicit none
-      integer :: i, j, jp, jm, m
+      integer :: i, j, m
 
+#if defined(_GPU)
+      call bottom_set_tau_cuda<<<griddim,blockdim>>>
+      call checkCUDA( cudaGetLastError(), 'bottom_set_tau_cuda' )
+#else
       e120(:, :, kb - 1) = e120(:, :, kb)
       e12m(:, :, kb - 1) = e12m(:, :, kb)
       ! wm(:, :, kb) = 0. ! SO moved to modboundary
@@ -2035,85 +2194,120 @@ module modibm
       tau_y(:,:,kb:ke+kh) = vp
       tau_z(:,:,kb:ke+kh) = wp
       thl_flux(:,:,kb:ke+kh) = thlp
+#endif
 
-      !if (.not.(libm)) then
       if (lbottom) then
-      !momentum
-      if (BCbotm.eq.2) then
-      call wfuno(ih, jh, kh, up, vp, thlp, momfluxb, tfluxb, cth, bcTfluxA, u0, v0, thl0, thls, z0, z0h, 0, 1, 91)
-      elseif (BCbotm.eq.3) then
-      call wfmneutral(ih, jh, kh, up, vp, momfluxb, u0, v0, z0, 0, 1, 91)
-      else
-      write(0, *) "ERROR: bottom boundary type for momentum undefined"
-      stop 1
-      end if
-
-
-      if (ltempeq) then
-         if (BCbotT.eq.1) then !neumann/fixed flux bc for temperature
-            do j = jb, je
-               do i = ib, ie
-                  thlp(i, j, kb) = thlp(i, j, kb) &
-                                   + ( &
-                                   0.5*(dzf(kb - 1)*ekh(i, j, kb) + dzf(kb)*ekh(i, j, kb - 1)) &
-                                   *(thl0(i, j, kb) - thl0(i, j, kb - 1)) &
-                                   *dzh2i(kb) &
-                                   - wtsurf &
-                                   )*dzfi(kb)
-               end do
-            end do
-         else if (BCbotT.eq.2) then !wall function bc for temperature (fixed temperature)
-            call wfuno(ih, jh, kh, up, vp, thlp, momfluxb, tfluxb, cth, bcTfluxA, u0, v0, thl0, thls, z0, z0h, 0, 1, 92)
+         !momentum
+         if (BCbotm.eq.2) then
+#if defined(_GPU)
+            call wfuno_cuda<<<griddim,blockdim>>>(ih, jh, kh, up_d, vp_d, thlp_d, u0_d, v0_d, thl0_d, thls, z0, z0h, 0, 1, 91)
+            call checkCUDA( cudaGetLastError(), 'wfuno_cuda under BCbotm' )
+#else
+            call wfuno(ih, jh, kh, up, vp, thlp, u0, v0, thl0, thls, z0, z0h, 0, 1, 91)
+#endif
+         elseif (BCbotm.eq.3) then
+#if defined(_GPU)
+            call wfmneutral_cuda<<<griddim,blockdim>>>(ih, jh, kh, up_d, vp_d, u0_d, v0_d, z0, 0, 1, 91)
+            call checkCUDA( cudaGetLastError(), 'wfmneutral_cuda' )
+#else
+            call wfmneutral(ih, jh, kh, up, vp, u0, v0, z0, 0, 1, 91)
+#endif
          else
-         write(0, *) "ERROR: bottom boundary type for temperature undefined"
-         stop 1
+            write(0, *) "ERROR: bottom boundary type for momentum undefined"
+            stop 1
          end if
-      end if ! ltempeq
 
-      if (lmoist) then
-         if (BCbotq.eq.1) then !neumann/fixed flux bc for moisture
-            do j = jb, je
-               do i = ib, ie
-                  qtp(i, j, kb) = qtp(i, j, kb) + ( &
-                                  0.5*(dzf(kb - 1)*ekh(i, j, kb) + dzf(kb)*ekh(i, j, kb - 1)) &
-                                  *(qt0(i, j, kb) - qt0(i, j, kb - 1)) &
-                                  *dzh2i(kb) &
-                                  + wqsurf &
-                                  )*dzfi(kb)
-               end do
-            end do
-         else
-          write(0, *) "ERROR: bottom boundary type for moisture undefined"
-          stop 1
-         end if !
-      end if !lmoist
 
-      if (nsv>0) then
-         if (BCbots.eq.1) then !neumann/fixed flux bc for moisture
-            do j = jb, je
-               do i = ib, ie
-                  do m = 1, nsv
-                      svp(i, j, kb, m) = svp(i, j, kb, m) + ( &
+         if (ltempeq) then
+            if (BCbotT.eq.1) then !neumann/fixed flux bc for temperature
+#if defined(_GPU)
+               call bottom_update_thlp_cuda<<<griddim,blockdim>>>
+               call checkCUDA( cudaGetLastError(), 'bottom_update_thlp_cuda' )
+#else
+               do j = jb, je
+                  do i = ib, ie
+                     thlp(i, j, kb) = thlp(i, j, kb) &
+                                      + ( &
                                       0.5*(dzf(kb - 1)*ekh(i, j, kb) + dzf(kb)*ekh(i, j, kb - 1)) &
-                                     *(sv0(i, j, kb, m) - sv0(i, j, kb - 1, m)) &
+                                      *(thl0(i, j, kb) - thl0(i, j, kb - 1)) &
+                                      *dzh2i(kb) &
+                                      - wtsurf &
+                                      )*dzfi(kb)
+                  end do
+               end do
+#endif
+            else if (BCbotT.eq.2) then !wall function bc for temperature (fixed temperature)
+#if defined(_GPU)
+               call wfuno_cuda<<<griddim,blockdim>>>(ih, jh, kh, up_d, vp_d, thlp_d, u0_d, v0_d, thl0_d, thls, z0, z0h, 0, 1, 92)
+               call checkCUDA( cudaGetLastError(), 'wfuno_cuda under BCbotT' )
+#else
+               call wfuno(ih, jh, kh, up, vp, thlp, u0, v0, thl0, thls, z0, z0h, 0, 1, 92)
+#endif
+            else
+               write(0, *) "ERROR: bottom boundary type for temperature undefined"
+               stop 1
+            end if
+         end if ! ltempeq
+
+         if (lmoist) then
+            if (BCbotq.eq.1) then !neumann/fixed flux bc for moisture
+#if defined(_GPU)
+               call bottom_update_qtp_cuda<<<griddim,blockdim>>>
+               call checkCUDA( cudaGetLastError(), 'bottom_update_qtp_cuda' )
+#else
+               do j = jb, je
+                  do i = ib, ie
+                     qtp(i, j, kb) = qtp(i, j, kb) + ( &
+                                     0.5*(dzf(kb - 1)*ekh(i, j, kb) + dzf(kb)*ekh(i, j, kb - 1)) &
+                                     *(qt0(i, j, kb) - qt0(i, j, kb - 1)) &
                                      *dzh2i(kb) &
-                                     + 0. &
+                                     + wqsurf &
                                      )*dzfi(kb)
                   end do
                end do
-            end do
-         else
-          write(0, *) "ERROR: bottom boundary type for scalars undefined"
-          stop 1
-         end if !
-      end if
+#endif
+            else
+               write(0, *) "ERROR: bottom boundary type for moisture undefined"
+               stop 1
+            end if
+         end if !lmoist
+
+         if (nsv>0) then
+            if (BCbots.eq.1) then !neumann/fixed flux bc for moisture
+               do m = 1, nsv
+#if defined(_GPU)
+                  call bottom_update_svp_cuda<<<griddim,blockdim>>>(m)
+                  call checkCUDA( cudaGetLastError(), 'bottom_update_svp_cuda' )
+#else
+                  do j = jb, je
+                     do i = ib, ie
+                        svp(i, j, kb, m) = svp(i, j, kb, m) + ( &
+                                           0.5*(dzf(kb - 1)*ekh(i, j, kb) + dzf(kb)*ekh(i, j, kb - 1)) &
+                                           *(sv0(i, j, kb, m) - sv0(i, j, kb - 1, m)) &
+                                           *dzh2i(kb) &
+                                           + 0. &
+                                           )*dzfi(kb)
+                     end do
+                  end do
+#endif
+               end do
+            else
+               write(0, *) "ERROR: bottom boundary type for scalars undefined"
+               stop 1
+            end if
+         end if
 
       end if
 
+#if defined(_GPU)
+      call bottom_update_tau_cuda<<<griddim,blockdim>>>
+      call checkCUDA( cudaGetLastError(), 'bottom_update_tau_cuda' )
+#else
       tau_x(:,:,kb:ke+kh) = up - tau_x(:,:,kb:ke+kh)
       tau_y(:,:,kb:ke+kh) = vp - tau_y(:,:,kb:ke+kh)
       tau_z(:,:,kb:ke+kh) = wp - tau_z(:,:,kb:ke+kh)
       thl_flux(:,:,kb:ke+kh) = thlp - thl_flux(:,:,kb:ke+kh)
+#endif
 
       return
    end subroutine bottom

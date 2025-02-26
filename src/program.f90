@@ -151,20 +151,20 @@ program DALESURBAN      !Version 48
 
     call subgrid
 
-#if defined(_GPU)
-    call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize in program' )
-#endif
-    write(6,*)'(advection + shiftedPBCs + subgrid) time = ', MPI_Wtime() - stime
-
-#if defined(_GPU)
-    call updateHost
-#endif
-
 !-----------------------------------------------------
 !   3.3   THE SURFACE LAYER
 !-----------------------------------------------------
 
     call bottom
+
+#if defined(_GPU)
+    call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize in program' )
+#endif
+    write(6,*)'(advection + shiftedPBCs + subgrid + bottom) time = ', MPI_Wtime() - stime
+
+#if defined(_GPU)
+    call updateHost
+#endif
 !-----------------------------------------------------
 !   3.4   REMAINING TERMS
 !-----------------------------------------------------

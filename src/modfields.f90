@@ -130,10 +130,11 @@ module modfields
 
 #if defined(_GPU)
   real, allocatable, pinned         :: momfluxb(:,:,:)
+  real, allocatable, pinned         :: tfluxb(:,:,:)
 #else
   real, allocatable                 :: momfluxb(:,:,:) !< fields for the wallfluxes of total momentum
+  real, allocatable                 :: tfluxb(:,:,:)  !< heat
 #endif
-   real, allocatable :: tfluxb(:,:,:)  !< heat
    real, allocatable :: qfluxb(:,:,:)  !< and moisture
    real, allocatable :: cth(:,:,:)     !< heat transfer coefficient
 
