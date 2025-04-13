@@ -1,5 +1,5 @@
 module stats
-  use modglobal,  only : cexpnr, ltdump, lxytdump, lxydump, lytdump, ltempeq, lmoist, lchem, nsv, rk3step, &
+  use modglobal,  only : cexpnr, ltdump, lxytdump, lxydump, lytdump, lydump, ltempeq, lmoist, lchem, nsv, rk3step, &
                          ib, ie, ih, jb, je, jh, kb, ke, kh, &
                          dxf, dzf, dzfi, dxhi, dzhi, dzh2i, dyi, dzhiq, &
                          timee, tstatsdump, tsample, dt, &
@@ -8,7 +8,7 @@ module stats
                          IIu, IIus, IIut, IIv, IIvs, IIvt, IIw, IIws, IIwt, IIc, IIcs, IIct, &
                          IIuw, IIuws, IIuwt, IIvw, IIvws, IIuv, IIuvs
   use modsubgrid, only : ekh, ekm
-  use modmpi,     only : cmyidx, cmyidy, myid, avexy_ibm, avey_ibm
+  use modmpi,     only : cmyidx, cmyidy, myid, myidy, avexy_ibm, avey_ibm
   use modstat_nc, only : ncinfo, open_nc, define_nc, writestat_dims_nc, writestat_nc
   implicit none
   public :: stats_init, stats_main, stats_exit
@@ -21,11 +21,13 @@ module stats
   character(80)              :: filenamexyt
   character(80)              :: filenamexy
   character(80)              :: filenameyt
-  character(80), allocatable :: tVars(:,:), xytVars(:,:), xyVars(:,:), ytVars(:,:)
+  character(80)              :: filenamey
+  character(80), allocatable :: tVars(:,:), xytVars(:,:), xyVars(:,:), ytVars(:,:), yVars(:,:)
   integer                    :: ctrt,   ncidt,   nrect, &
                                 ctrxyt, ncidxyt, nrecxyt, &
                                 ctrxy,  ncidxy,  nrecxy, &
                                 ctryt,  ncidyt,  nrecyt, &
+                                ctry,   ncidy,   nrecy, &
                                 dumpcount
 
   !!> Variables to store time averaged quantities
@@ -204,6 +206,40 @@ module stats
   real, allocatable :: svpsvpyt(:,:,:)
   real, allocatable :: svsgsyt(:,:,:)
 
+  !!> Variables to store y averaged quantities
+  real, allocatable :: uy(:,:)
+  real, allocatable :: vy(:,:)
+  real, allocatable :: wy(:,:)
+  real, allocatable :: py(:,:)
+  real, allocatable :: upwpyik(:,:)
+  real, allocatable :: uwyik(:,:)
+  real, allocatable :: uyik(:,:)
+  real, allocatable :: wyik(:,:)
+  real, allocatable :: usgsy(:,:)
+  real, allocatable :: wsgsy(:,:)
+
+  real, allocatable :: thly(:,:)
+  real, allocatable :: wpthlpyk(:,:)
+  real, allocatable :: wthlyk(:,:)
+  real, allocatable :: thlyk(:,:)
+  real, allocatable :: thlsgsy(:,:)
+
+  real, allocatable :: qty(:,:)
+  real, allocatable :: wpqtpyk(:,:)
+  real, allocatable :: wqtyk(:,:)
+  real, allocatable :: qtyk(:,:)
+  real, allocatable :: qtsgsy(:,:)
+
+  character(10), allocatable :: svyname(:)
+  character(20), allocatable :: wpsvpyname(:)
+  character(20), allocatable :: wsvyname(:)
+  character(10), allocatable :: svsgsyname(:)
+  real, allocatable :: svy(:,:,:)
+  real, allocatable :: wpsvpyk(:,:,:)
+  real, allocatable :: wsvyk(:,:,:)
+  real, allocatable :: svyk(:,:,:)
+  real, allocatable :: svsgsy(:,:,:)
+
 
   interface stats_compute_tavg
     module procedure stats_compute_tavg_1D
@@ -213,7 +249,7 @@ module stats
   contains
     subroutine stats_init
       implicit none
-      integer :: tVarsCount, xytVarsCount, xyVarsCount, ytVarsCount
+      integer :: tVarsCount, xytVarsCount, xyVarsCount, ytVarsCount, yVarsCount
       character(80), dimension(1,4) :: tVar0
       
       xdim = ie-ib+1
@@ -226,14 +262,15 @@ module stats
       nrecxyt = 0
       nrecxy  = 0
       nrecyt  = 0
+      nrecy   = 0
 
-      if(ltdump .or. lxytdump .or. lxydump .or. lytdump) then
+      if(ltdump .or. lxytdump .or. lxydump .or. lytdump .or. lydump) then
         call ncinfo(tVar0( 1,:), 'time', 'Time', 's', 'time')
         call stats_allocate_interpolate_and_sgs_vel
         if (ltempeq) call stats_allocate_interpolate_and_sgs_temp
         if (lmoist)  call stats_allocate_interpolate_and_sgs_moist
       end if
-      if(ltdump .or. lytdump) then
+      if(ltdump .or. lytdump .or. lydump) then
         if (nsv>0)   call stats_allocate_interpolate_and_sgs_scalar
       end if
 
@@ -303,7 +340,7 @@ module stats
         end if
       end if
 
-      !> Generate y and x averaged NetCDF: xydump.xxx.nc
+      !> Generate y and x averaged NetCDF: xydumps.xxx.nc
       if (lxydump) then
         filenamexy = 'xydumps.xxx.nc'
         filenamexy(9:11) = cexpnr
@@ -328,10 +365,11 @@ module stats
         end if
       end if
 
-      !> Generate time and y averaged NetCDF: xytdump.xxx.nc
+      !> Generate time and y averaged NetCDF: ytdump.xxx.xxx.nc
       if (lytdump) then
-        filenameyt = 'ysdump.xxx.nc'
-        filenameyt(8:10) = cexpnr
+        filenameyt = 'ysdump.xxx.xxx.nc'
+        filenameyt(8:10)  = cmyidx
+        filenameyt(12:14) = cexpnr
 
         ytVarsCount = 11
         if (ltempeq) ytVarsCount = ytVarsCount + 5
@@ -345,13 +383,41 @@ module stats
         if (lmoist)  call stats_allocate_ytavg_moist
         if (nsv>0)   call stats_allocate_ytavg_scalar
 
-        if (myid==0) then
+        if (myidy==0) then
           call open_nc(filenameyt, ncidyt, nrecyt, n1=xdim, n3=zdim)
           if (nrecyt==0) then
             call define_nc(ncidyt, 1,  tVar0)
             call writestat_dims_nc(ncidyt)
           end if
           call define_nc(ncidyt, ytVarsCount, ytVars)
+        end if
+      end if
+
+      !> Generate y averaged NetCDF: ydumps.xxx.xxx.nc
+      if (lydump) then
+        filenamey = 'ydumps.xxx.xxx.nc'
+        filenamey(8:10)  = cmyidx
+        filenamey(12:14) = cexpnr
+
+        yVarsCount = 8
+        if (ltempeq) yVarsCount = yVarsCount + 4
+        if (lmoist)  yVarsCount = yVarsCount + 4
+        if (nsv>0)   yVarsCount = yVarsCount + 4*nsv
+
+        allocate(yVars(yVarsCount,4))   !!> Array to store the variable description of the quantities to be written
+        ctry = 0
+        call stats_allocate_yavg_vel
+        if (ltempeq) call stats_allocate_yavg_temp
+        if (lmoist)  call stats_allocate_yavg_moist
+        if (nsv>0)   call stats_allocate_yavg_scalar
+
+        if (myidy==0) then
+          call open_nc(filenamey, ncidy, nrecy, n1=xdim, n3=zdim)
+          if (nrecy==0) then
+            call define_nc(ncidy, 1,  tVar0)
+            call writestat_dims_nc(ncidy)
+          end if
+          call define_nc(ncidy, yVarsCount, yVars)
         end if
       end if
     end subroutine stats_init
@@ -364,12 +430,12 @@ module stats
       if (tsamplep > tsample) then        ! at every stats sampling instance
         tstatsdumppi = 1./tstatsdumpp
 
-        if(ltdump .or. lxytdump .or. lxydump .or. lytdump) then
+        if(ltdump .or. lxytdump .or. lxydump .or. lytdump .or. lydump) then
           call stats_interpolate_and_sgs_vel
           if (ltempeq) call stats_interpolate_and_sgs_temp
           if (lmoist)  call stats_interpolate_and_sgs_moist
         end if
-        if(ltdump .or. lytdump) then
+        if(ltdump .or. lytdump .or. lydump) then
           if (nsv>0)   call stats_interpolate_and_sgs_scalar
         end if
 
@@ -394,6 +460,20 @@ module stats
             call stats_write_xyavg_vel
             if (ltempeq) call stats_write_xyavg_temp
             if (lmoist)  call stats_write_xyavg_moist
+          end if
+        end if
+
+        if(lydump) then
+          call stats_compute_yavg_vel
+          if (ltempeq) call stats_compute_yavg_temp
+          if (lmoist)  call stats_compute_yavg_moist
+          if (nsv>0)   call stats_compute_yavg_scalar
+          if (myidy==0) then
+            call writestat_nc(ncidy, 'time', timee, nrecy, .true.)
+            call stats_write_yavg_vel
+            if (ltempeq) call stats_write_yavg_temp
+            if (lmoist)  call stats_write_yavg_moist
+            if (nsv>0)   call stats_write_yavg_scalar
           end if
         end if
         
@@ -438,7 +518,7 @@ module stats
           if (ltempeq) call stats_compute_ytavg_temp
           if (lmoist)  call stats_compute_ytavg_moist
           if (nsv>0)   call stats_compute_ytavg_scalar
-          if (myid==0) then
+          if (myidy==0) then
             call writestat_nc(ncidyt, 'time', timee, nrecyt, .true.)
             call stats_write_ytavg_vel
             if (ltempeq) call stats_write_ytavg_temp
@@ -789,7 +869,7 @@ module stats
       call ncinfo( ytVars(ctryt+ 7,:), 'upupytc'    , 'u variance'               , 'm^2/s^2'   , 't0tt' )
       call ncinfo( ytVars(ctryt+ 8,:), 'vpvpytc'    , 'v variance'               , 'm^2/s^2'   , 't0tt' )
       call ncinfo( ytVars(ctryt+ 9,:), 'wpwpytc'    , 'w variance'               , 'm^2/s^2'   , 't0tt' )
-      call ncinfo( ytVars(ctryt+10,:), 'usgsyt'     , 'SGS mom. flux'            , 'm^2/s^2'   , 't0mt' )
+      call ncinfo( ytVars(ctryt+10,:), 'usgsyt'     , 'SGS mom. flux'            , 'm^2/s^2'   , 'm0mt' )
       call ncinfo( ytVars(ctryt+11,:), 'wsgsyt'     , 'SGS mom. flux'            , 'm^2/s^2'   , 't0mt' )
       ctryt = ctryt+11
     end subroutine stats_allocate_ytavg_vel
@@ -852,6 +932,85 @@ module stats
       end do
       ctryt = ctryt+5*nsv
     end subroutine stats_allocate_ytavg_scalar
+
+
+    !! ## %% y averaging initialization routines
+    subroutine stats_allocate_yavg_vel
+      implicit none
+      allocate(uy(ib:ie,kb:ke))
+      allocate(vy(ib:ie,kb:ke))
+      allocate(wy(ib:ie,kb:ke))
+      allocate(py(ib:ie,kb:ke))
+      allocate(upwpyik(ib:ie,kb:ke))
+      allocate(uwyik(ib:ie,kb:ke))
+      allocate(uyik(ib:ie,kb:ke))
+      allocate(wyik(ib:ie,kb:ke))
+      allocate(usgsy(ib:ie,kb:ke))
+      allocate(wsgsy(ib:ie,kb:ke))
+      call ncinfo( yVars(ctry+ 1,:), 'uy'        , 'Streamwise velocity'      , 'm/s'       , 'm0tt' )
+      call ncinfo( yVars(ctry+ 2,:), 'vy'        , 'Spanwise velocity'        , 'm/s'       , 't0tt' )
+      call ncinfo( yVars(ctry+ 3,:), 'wy'        , 'Vertical velocity'        , 'm/s'       , 't0mt' )
+      call ncinfo( yVars(ctry+ 4,:), 'py'        , 'Kinematic Pressure'       , 'm^2/s^2'   , 't0tt' )
+      call ncinfo( yVars(ctry+ 5,:), 'upwpy'     , 'Turbulent mom. flux'      , 'm^2/s^2'   , 'm0mt' )
+      call ncinfo( yVars(ctry+ 6,:), 'uwy'       , 'Kinematic mom. flux'      , 'm^2/s^2'   , 'm0mt' )
+      call ncinfo( yVars(ctry+ 7,:), 'usgsy'     , 'SGS mom. flux'            , 'm^2/s^2'   , 'm0mt' )
+      call ncinfo( yVars(ctry+ 8,:), 'wsgsy'     , 'SGS mom. flux'            , 'm^2/s^2'   , 't0mt' )
+      ctry = ctry+8
+    end subroutine stats_allocate_yavg_vel
+
+    subroutine stats_allocate_yavg_temp
+      implicit none
+      allocate(thly(ib:ie,kb:ke))
+      allocate(wpthlpyk(ib:ie,kb:ke))
+      allocate(wthlyk(ib:ie,kb:ke))
+      allocate(thlyk(ib:ie,kb:ke))
+      allocate(thlsgsy(ib:ie,kb:ke))
+      call ncinfo( yVars(ctry+ 1,:), 'thly'      , 'Temperature'              , 'K'         , 't0tt' )
+      call ncinfo( yVars(ctry+ 2,:), 'wpthlpy'   , 'Turbulent heat flux'      , 'K m/s'     , 't0mt' )
+      call ncinfo( yVars(ctry+ 3,:), 'wthly'     , 'Kinematic heat flux'      , 'K m/s'     , 't0mt' )
+      call ncinfo( yVars(ctry+ 4,:), 'thlsgsy'   , 'SGS heat flux'            , 'K m/s'     , 't0mt' )
+      ctry = ctry+4
+    end subroutine stats_allocate_yavg_temp
+
+    subroutine stats_allocate_yavg_moist
+      implicit none
+      allocate(qty(ib:ie,kb:ke))
+      allocate(wpqtpyk(ib:ie,kb:ke))
+      allocate(wqtyk(ib:ie,kb:ke))
+      allocate(qtyk(ib:ie,kb:ke))
+      allocate(qtsgsy(ib:ie,kb:ke))
+      call ncinfo( yVars(ctry+ 1,:), 'qty'       , 'Moisture'                 , 'kg/kg'     , 't0tt' )
+      call ncinfo( yVars(ctry+ 2,:), 'wpqtpy'    , 'Turbulent moisture flux'  , 'kg m/kg s' , 't0mt' )
+      call ncinfo( yVars(ctry+ 3,:), 'wqty'      , 'Kinematic moisture flux'  , 'kg m/kg s' , 't0mt' )
+      call ncinfo( yVars(ctry+ 4,:), 'qtsgsy'    , 'SGS moisture flux'        , 'kg m/kg s' , 't0mt' )
+      ctry = ctry+4
+    end subroutine stats_allocate_yavg_moist
+
+    subroutine stats_allocate_yavg_scalar
+      integer :: n
+      character(2) :: sid
+      allocate(svyname(nsv))
+      allocate(wpsvpyname(nsv))
+      allocate(wsvyname(nsv))
+      allocate(svsgsyname(nsv))
+      allocate(svy(ib:ie,kb:ke,nsv))
+      allocate(wpsvpyk(ib:ie,kb:ke,nsv))
+      allocate(wsvyk(ib:ie,kb:ke,nsv))
+      allocate(svyk(ib:ie,kb:ke,nsv))
+      allocate(svsgsy(ib:ie,kb:ke,nsv))
+      do n = 1, nsv
+        write (sid, '(I0)') n
+        svyname(n)     = 'sca'//trim(sid)//'y'                      ! sca1y       at n = 1
+        wpsvpyname(n)  = 'wpsca'//trim(sid)//'py'                   ! wpsca1py    at n = 1
+        wsvyname(n)    = 'wsca'//trim(sid)//'y'                     ! wsca1y      at n = 1
+        svsgsyname(n)  = 'sca'//trim(sid)//'sgsy'                   ! sca1sgsy    at n = 1
+        call ncinfo(yVars(ctry+n,:)      , trim(svyname(n))    , 'Concentration field '//trim(sid)   , 'g/m^3'  , 't0tt' )
+        call ncinfo(yVars(ctry+nsv+n,:)  , trim(wpsvpyname(n)) , 'Turbulent scalar flux '//trim(sid) , 'g/m^2s' , 't0mt' )
+        call ncinfo(yVars(ctry+2*nsv+n,:), trim(wsvyname(n))   , 'Kinematic scalar flux '//trim(sid) , 'g/m^2s' , 't0mt' )
+        call ncinfo(yVars(ctry+3*nsv+n,:), trim(svsgsyname(n)) , 'SGS scalar flux '//trim(sid)       , 'g/m^2s' , 't0mt' )
+      end do
+      ctry = ctry+4*nsv
+    end subroutine stats_allocate_yavg_scalar
 
 
     !! ## %% Interpolate variables at cell faces and compute sgs fluxes
@@ -1207,6 +1366,77 @@ module stats
       end do
     end subroutine stats_compute_ytavg_scalar
 
+    !! ## %% Time and y averaging computations routines
+    subroutine stats_compute_yavg_vel
+      implicit none
+      !> Mean
+      call avey_ibm(uy,um(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIu(ib:ie,jb:je,kb:ke),IIut(ib:ie,kb:ke))
+      call avey_ibm(vy,vm(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIv(ib:ie,jb:je,kb:ke),IIvt(ib:ie,kb:ke))
+      call avey_ibm(wy,wm(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+      call avey_ibm(py,pres0(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
+
+      !> Advective fluxes and some necesseary mean
+      call avey_ibm(uwyik,uik(ib:ie,jb:je,kb:ke)*wik(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIuw(ib:ie,jb:je,kb:ke),IIuwt(ib:ie,kb:ke))
+      call avey_ibm(uyik,uik(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIuw(ib:ie,jb:je,kb:ke),IIuwt(ib:ie,kb:ke))
+      call avey_ibm(wyik,wik(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIuw(ib:ie,jb:je,kb:ke),IIuwt(ib:ie,kb:ke))
+
+      !> Turbulent fluxes
+      upwpyik = uwyik - uyik*wyik
+      where (IIuwt==0)
+        upwpyik    = -999.0
+      endwhere
+
+      !> SGS fluxes
+      call avey_ibm(usgsy,usgs(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIuw(ib:ie,jb:je,kb:ke),IIuwt(ib:ie,kb:ke))
+      call avey_ibm(wsgsy,wsgs(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+    end subroutine stats_compute_yavg_vel
+
+    subroutine stats_compute_yavg_temp
+      implicit none
+      call avey_ibm(thly,thlm(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
+      call avey_ibm(wthlyk,wm(ib:ie,jb:je,kb:ke)*thlk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+      call avey_ibm(thlyk,thlk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+      
+      wpthlpyk = wthlyk - wy*thlyk
+      where (IIwt==0)
+        wpthlpyk  = -999.0
+      endwhere
+      
+      call avey_ibm(thlsgsy,thlsgs(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+    end subroutine stats_compute_yavg_temp
+
+    subroutine stats_compute_yavg_moist
+      implicit none
+      call avey_ibm(qty,qtm(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
+      call avey_ibm(wqtyk,wm(ib:ie,jb:je,kb:ke)*qtk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+      call avey_ibm(qtyk,thlk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+      
+      wpqtpyk = wqtyk - wy*qtyk
+      where (IIwt==0)
+        wpqtpyk  = -999.0
+      endwhere
+
+      call avey_ibm(qtsgsy,qtsgs(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+    end subroutine stats_compute_yavg_moist
+
+    subroutine stats_compute_yavg_scalar
+      implicit none
+      integer :: n
+      do n = 1, nsv
+        call avey_ibm(svy(:,:,n),svm(ib:ie,jb:je,kb:ke,n),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
+
+        call avey_ibm(wsvyk,wm(ib:ie,jb:je,kb:ke)*svk(ib:ie,jb:je,kb:ke,n),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+        call avey_ibm(svyk,svk(ib:ie,jb:je,kb:ke,n),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+
+        wpsvpyk(:,:,n) = wsvyk(:,:,n) - wy*svyk(:,:,n)
+        where (IIwt==0)
+          wpsvpyk(:,:,n)  = -999.0
+        endwhere
+
+        call avey_ibm(svsgsy(:,:,n),svsgs(ib:ie,jb:je,kb:ke,n),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+      end do
+    end subroutine stats_compute_yavg_scalar
+
 
     !! ## %% Time averaged statistics writing routines 
     subroutine stats_write_tavg_vel
@@ -1392,9 +1622,50 @@ module stats
     end subroutine stats_write_ytavg_scalar
 
 
+    !! ## %% y averaged statistics writing routines 
+    subroutine stats_write_yavg_vel
+      implicit none
+      call writestat_nc(ncidy, 'uy'    , uy     , nrecy, xdim, zdim)
+      call writestat_nc(ncidy, 'vy'    , vy     , nrecy, xdim, zdim)
+      call writestat_nc(ncidy, 'wy'    , wy     , nrecy, xdim, zdim)
+      call writestat_nc(ncidy, 'py'    , py     , nrecy, xdim, zdim)
+      call writestat_nc(ncidy, 'upwpy' , upwpyik, nrecy, xdim, zdim)
+      call writestat_nc(ncidy, 'uwy'   , uwyik  , nrecy, xdim, zdim)
+      call writestat_nc(ncidy, 'usgsy' , usgsy  , nrecy, xdim, zdim)
+      call writestat_nc(ncidy, 'wsgsy' , wsgsy  , nrecy, xdim, zdim)
+    end subroutine stats_write_yavg_vel
+
+    subroutine stats_write_yavg_temp
+      implicit none
+      call writestat_nc(ncidy, 'thly'     , thly     , nrecy, xdim, zdim)
+      call writestat_nc(ncidy, 'wpthlpy'  , wpthlpyk , nrecy, xdim, zdim)
+      call writestat_nc(ncidy, 'wthly'    , wthlyk   , nrecy, xdim, zdim)
+      call writestat_nc(ncidy, 'thlsgsy'  , thlsgsy  , nrecy, xdim, zdim)
+    end subroutine stats_write_yavg_temp
+
+    subroutine stats_write_yavg_moist
+      implicit none
+      call writestat_nc(ncidy, 'qty'     , qty     , nrecy, xdim, zdim)
+      call writestat_nc(ncidy, 'wpqtpy'  , wpqtpyk , nrecy, xdim, zdim)
+      call writestat_nc(ncidy, 'wqty'    , wqtyk   , nrecy, xdim, zdim)
+      call writestat_nc(ncidy, 'qtsgsy'  , qtsgsy  , nrecy, xdim, zdim)
+    end subroutine stats_write_yavg_moist
+
+    subroutine stats_write_yavg_scalar
+      implicit none
+      integer :: n
+      do n = 1, nsv
+        call writestat_nc(ncidy, trim(svyname(n))    , svy(:,:,n)     , nrecy, xdim, zdim)
+        call writestat_nc(ncidy, trim(wpsvpyname(n)) , wpsvpyk(:,:,n) , nrecy, xdim, zdim)
+        call writestat_nc(ncidy, trim(wsvyname(n))   , wsvyk(:,:,n)   , nrecy, xdim, zdim)
+        call writestat_nc(ncidy, trim(svsgsyname(n)) , svsgsy(:,:,n)  , nrecy, xdim, zdim)
+      end do
+    end subroutine stats_write_yavg_scalar
+
+
     subroutine stats_exit
       implicit none
-      if (ltdump .or. lxytdump .or. lxydump .or. lytdump) then
+      if (ltdump .or. lxytdump .or. lxydump .or. lytdump .or. lydump) then
         deallocate(uik,wik,vjk,wjk,uij,vij,uc,vc,wc,usgs,vsgs,wsgs)
         if (ltempeq) deallocate(thlk,thlsgs)
         if (lmoist)  deallocate(qtk,qtsgs)
@@ -1441,6 +1712,14 @@ module stats
         if (ltempeq) deallocate(thlyt,wpthlpytk,wthlytk,thlpthlpyt,thlsgsyt)
         if (lmoist)  deallocate(qtyt,wpqtpytk,wqtytk,qtpqtpyt,qtsgsyt)
         if (nsv>0)   deallocate(svytname,wpsvpytname,wsvytname,svpsvpytname,svsgsytname,svyt,wpsvpytk,wsvytk,svpsvpyt,svsgsyt)
+      end if
+
+      if (lytdump) then
+        deallocate(uy,vy,wy,py,usgsy,wsgsy)
+        deallocate(upwpyik,uwyik,uyik,wyik)
+        if (ltempeq) deallocate(thly,wpthlpyk,wthlyk,thlyk,thlsgsy)
+        if (lmoist)  deallocate(qty,wpqtpyk,wqtyk,qtyk,qtsgsy)
+        if (nsv>0)   deallocate(svyname,wpsvpyname,wsvyname,svsgsyname,svy,wpsvpyk,wsvyk,svyk,svsgsy)
       end if
     end subroutine stats_exit
 end module stats
