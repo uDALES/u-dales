@@ -1,12 +1,14 @@
 module stats
-  use modglobal,  only : cexpnr, ltdump, lxytdump, lxydump, lytdump, lydump, ltempeq, lmoist, lchem, nsv, rk3step, &
+  use modglobal,  only : cexpnr, ltempeq, lmoist, lchem, nsv, rk3step, &
+                         ltdump, lxytdump, lxydump, lytdump, lydump, ltreedump, &
                          ib, ie, ih, jb, je, jh, kb, ke, kh, &
                          dxf, dzf, dzfi, dxhi, dzhi, dzh2i, dyi, dzhiq, &
                          timee, tstatsdump, tsample, dt, &
                          k1, JNO2
   use modfields,  only : um, vm, wm, pres0, thlm, qtm, svm, &
                          IIu, IIus, IIut, IIv, IIvs, IIvt, IIw, IIws, IIwt, IIc, IIcs, IIct, &
-                         IIuw, IIuws, IIuwt, IIvw, IIvws, IIuv, IIuvs
+                         IIuw, IIuws, IIuwt, IIvw, IIvws, IIuv, IIuvs, &
+                         tr_u, tr_v, tr_w, tr_thl, tr_qt, tr_qtR, tr_qtA, tr_omega, tr_sv
   use modsubgrid, only : ekh, ekm
   use modmpi,     only : cmyidx, cmyidy, myid, myidy, avexy_ibm, avey_ibm
   use modstat_nc, only : ncinfo, open_nc, define_nc, writestat_dims_nc, writestat_nc
@@ -22,12 +24,14 @@ module stats
   character(80)              :: filenamexy
   character(80)              :: filenameyt
   character(80)              :: filenamey
-  character(80), allocatable :: tVars(:,:), xytVars(:,:), xyVars(:,:), ytVars(:,:), yVars(:,:)
-  integer                    :: ctrt,   ncidt,   nrect, &
-                                ctrxyt, ncidxyt, nrecxyt, &
-                                ctrxy,  ncidxy,  nrecxy, &
-                                ctryt,  ncidyt,  nrecyt, &
-                                ctry,   ncidy,   nrecy, &
+  character(80)              :: filenametree
+  character(80), allocatable :: tVars(:,:), xytVars(:,:), xyVars(:,:), ytVars(:,:), yVars(:,:), treeVars(:,:)
+  integer                    :: ctrt,    ncidt,    nrect, &
+                                ctrxyt,  ncidxyt,  nrecxyt, &
+                                ctrxy,   ncidxy,   nrecxy, &
+                                ctryt,   ncidyt,   nrecyt, &
+                                ctry,    ncidy,    nrecy, &
+                                ctrtree, ncidtree, nrectree, &
                                 dumpcount
 
   !!> Variables to store time averaged quantities
@@ -240,16 +244,29 @@ module stats
   real, allocatable :: svyk(:,:,:)
   real, allocatable :: svsgsy(:,:,:)
 
+  !!> Variables to store time averaged tree quantities
+  real, allocatable :: tr_ut(:,:,:)
+  real, allocatable :: tr_vt(:,:,:)
+  real, allocatable :: tr_wt(:,:,:)
+  real, allocatable :: tr_thlt(:,:,:)
+  real, allocatable :: tr_qtt(:,:,:)
+  real, allocatable :: tr_qtRt(:,:,:)
+  real, allocatable :: tr_qtAt(:,:,:)
+  real, allocatable :: tr_omegat(:,:,:)
+  character(10), allocatable :: svtreename(:)
+  real, allocatable :: tr_svt(:,:,:,:)
+
 
   interface stats_compute_tavg
     module procedure stats_compute_tavg_1D
     module procedure stats_compute_tavg_3D
   end interface stats_compute_tavg
 
+
   contains
     subroutine stats_init
       implicit none
-      integer :: tVarsCount, xytVarsCount, xyVarsCount, ytVarsCount, yVarsCount
+      integer :: tVarsCount, xytVarsCount, xyVarsCount, ytVarsCount, yVarsCount, treeVarsCount
       character(80), dimension(1,4) :: tVar0
       
       xdim = ie-ib+1
@@ -258,14 +275,16 @@ module stats
       tsamplep = 0.
       tstatsdumpp = 0.
       dumpcount = 0
-      nrect   = 0
-      nrecxyt = 0
-      nrecxy  = 0
-      nrecyt  = 0
-      nrecy   = 0
+      nrect    = 0
+      nrecxyt  = 0
+      nrecxy   = 0
+      nrecyt   = 0
+      nrecy    = 0
+      nrectree = 0
+
+      call ncinfo(tVar0( 1,:), 'time', 'Time', 's', 'time')
 
       if(ltdump .or. lxytdump .or. lxydump .or. lytdump .or. lydump) then
-        call ncinfo(tVar0( 1,:), 'time', 'Time', 's', 'time')
         call stats_allocate_interpolate_and_sgs_vel
         if (ltempeq) call stats_allocate_interpolate_and_sgs_temp
         if (lmoist)  call stats_allocate_interpolate_and_sgs_moist
@@ -338,6 +357,7 @@ module stats
           end if
           call define_nc(ncidxyt, xytVarsCount, xytVars)
         end if
+        deallocate(xytVars)
       end if
 
       !> Generate y and x averaged NetCDF: xydumps.xxx.nc
@@ -363,6 +383,7 @@ module stats
           end if
           call define_nc(ncidxy, xyVarsCount, xyVars)
         end if
+        deallocate(xyVars)
       end if
 
       !> Generate time and y averaged NetCDF: ytdump.xxx.xxx.nc
@@ -391,13 +412,14 @@ module stats
           end if
           call define_nc(ncidyt, ytVarsCount, ytVars)
         end if
+        deallocate(ytVars)
       end if
 
-      !> Generate y averaged NetCDF: ydumps.xxx.xxx.nc
+      !> Generate y averaged NetCDF: stats_ydump.xxx.xxx.nc
       if (lydump) then
-        filenamey = 'ydumps.xxx.xxx.nc'
-        filenamey(8:10)  = cmyidx
-        filenamey(12:14) = cexpnr
+        filenamey = 'stats_ydump.xxx.xxx.nc'
+        filenamey(13:15)  = cmyidx
+        filenamey(17:19) = cexpnr
 
         yVarsCount = 8
         if (ltempeq) yVarsCount = yVarsCount + 4
@@ -419,8 +441,37 @@ module stats
           end if
           call define_nc(ncidy, yVarsCount, yVars)
         end if
+        deallocate(yVars)
+      end if
+
+      !> Generate time averaged tree data NetCDF: stats_treedump.xxx.xxx.xxx.nc
+      if (ltreedump) then
+        filenametree = 'stats_treedump.xxx.xxx.xxx.nc'
+        filenametree(16:18) = cmyidx
+        filenametree(20:22) = cmyidy
+        filenametree(24:26) = cexpnr
+
+        treeVarsCount = 3
+        if (ltempeq) treeVarsCount = treeVarsCount + 1
+        if (lmoist)  treeVarsCount = treeVarsCount + 4
+        if (nsv>0)   treeVarsCount = treeVarsCount + nsv
+        allocate(treeVars(treeVarsCount,4))   !!> Array to store the variable description of the quantities to be written
+        ctrtree = 0
+        call stats_allocate_tree_vel
+        if (ltempeq) call stats_allocate_tree_temp
+        if (lmoist)  call stats_allocate_tree_moist
+        if (nsv>0)   call stats_allocate_tree_scalar
+
+        call open_nc(filenametree, ncidtree, nrectree, n1=xdim, n2=ydim, n3=zdim)
+        if (nrectree==0) then
+          call define_nc(ncidtree, 1, tVar0)
+          call writestat_dims_nc(ncidtree)
+        end if
+        call define_nc(ncidtree, treeVarsCount, treeVars)
+        deallocate(treeVars)
       end if
     end subroutine stats_init
+
 
     subroutine stats_main
       implicit none
@@ -476,6 +527,13 @@ module stats
             if (nsv>0)   call stats_write_yavg_scalar
           end if
         end if
+
+        if(ltreedump) then
+          call stats_compute_tree_vel
+          if (ltempeq) call stats_compute_tree_temp
+          if (lmoist)  call stats_compute_tree_moist
+          if (nsv>0)   call stats_compute_tree_scalar
+        end if
         
         tsamplep = dt
       else
@@ -525,6 +583,14 @@ module stats
             if (lmoist)  call stats_write_ytavg_moist
             if (nsv>0)   call stats_write_ytavg_scalar
           end if
+        end if
+
+        if(ltreedump) then
+          call writestat_nc(ncidtree, 'time', timee, nrectree, .true.)
+          call stats_write_tree_vel
+          if (ltempeq) call stats_write_tree_temp
+          if (lmoist)  call stats_write_tree_moist
+          if (nsv>0)   call stats_write_tree_scalar
         end if
 
         tstatsdumpp = dt
@@ -1012,6 +1078,52 @@ module stats
       ctry = ctry+4*nsv
     end subroutine stats_allocate_yavg_scalar
 
+    !! ## %% time averaging tree data initialization routines
+    subroutine stats_allocate_tree_vel
+      implicit none
+      allocate(tr_ut(ib:ie,jb:je,kb:ke))     ; tr_ut     = 0;
+      allocate(tr_vt(ib:ie,jb:je,kb:ke))     ; tr_vt     = 0;
+      allocate(tr_wt(ib:ie,jb:je,kb:ke))     ; tr_wt     = 0;
+      call ncinfo( treeVars(ctrtree+ 1,:), 'tr_u'      , 'Drag in x'            , 'm/s^2'   , 'tttt' )
+      call ncinfo( treeVars(ctrtree+ 2,:), 'tr_v'      , 'Drag in y'            , 'm/s^2'   , 'tttt' )
+      call ncinfo( treeVars(ctrtree+ 3,:), 'tr_w'      , 'Drag in z'            , 'm/s^2'   , 'ttmt' )
+      ctrtree = ctrtree+3
+    end subroutine stats_allocate_tree_vel
+
+    subroutine stats_allocate_tree_temp
+      implicit none
+      allocate(tr_thlt(ib:ie,jb:je,kb:ke))   ; tr_thlt   = 0;
+      call ncinfo( treeVars(ctrtree+ 1,:), 'tr_thl'    , 'Temp source/ sink'    , 'K/s'     , 'tttt' )
+      ctrtree = ctrtree+1
+    end subroutine stats_allocate_tree_temp
+
+    subroutine stats_allocate_tree_moist
+      implicit none
+      allocate(tr_qtt(ib:ie,jb:je,kb:ke))    ; tr_qtt    = 0;
+      allocate(tr_qtRt(ib:ie,jb:je,kb:ke))   ; tr_qtRt   = 0;
+      allocate(tr_qtAt(ib:ie,jb:je,kb:ke))   ; tr_qtAt   = 0;
+      allocate(tr_omegat(ib:ie,jb:je,kb:ke)) ; tr_omegat = 0;
+      call ncinfo( treeVars(ctrtree+ 1,:), 'tr_qt'     , 'Moisture source sink' , '1/s'     , 'tttt' )
+      call ncinfo( treeVars(ctrtree+ 2,:), 'tr_qtR'    , 'Moisture source sink' , '1/s'     , 'tttt' )
+      call ncinfo( treeVars(ctrtree+ 3,:), 'tr_qtA'    , 'Moisture source sink' , '1/s'     , 'tttt' )
+      call ncinfo( treeVars(ctrtree+ 4,:), 'tr_omega'  , 'Decoupling factor'    , '-'       , 'tttt' )
+      ctrtree = ctrtree+4
+    end subroutine stats_allocate_tree_moist
+
+    subroutine stats_allocate_tree_scalar
+      implicit none
+      integer :: n
+      character(2) :: sid
+      allocate(svtreename(nsv))
+      allocate(tr_svt(ib:ie,jb:je,kb:ke,nsv)); tr_svt = 0;
+      do n = 1, nsv
+        write (sid, '(I0)') n
+        svtreename(n) = 'tr_sv'//trim(sid)         ! tr_sv1       at n = 1
+        call ncinfo( treeVars(ctrtree+ n,:), trim(svtreename(n)) , 'Scalar source sink '//trim(sid) , 'kg/m^3s' , 'tttt' )
+      end do
+      ctrtree = ctrtree+nsv
+    end subroutine stats_allocate_tree_scalar
+
 
     !! ## %% Interpolate variables at cell faces and compute sgs fluxes
     subroutine stats_interpolate_and_sgs_vel
@@ -1366,6 +1478,7 @@ module stats
       end do
     end subroutine stats_compute_ytavg_scalar
 
+
     !! ## %% Time and y averaging computations routines
     subroutine stats_compute_yavg_vel
       implicit none
@@ -1436,6 +1549,36 @@ module stats
         call avey_ibm(svsgsy(:,:,n),svsgs(ib:ie,jb:je,kb:ke,n),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
       end do
     end subroutine stats_compute_yavg_scalar
+
+
+    !! ## %% Time averaging tree data computations routines
+    subroutine stats_compute_tree_vel
+      implicit none 
+      call stats_compute_tavg(tr_ut,     tr_u(ib:ie,jb:je,kb:ke))
+      call stats_compute_tavg(tr_vt,     tr_v(ib:ie,jb:je,kb:ke))
+      call stats_compute_tavg(tr_wt,     tr_w(ib:ie,jb:je,kb:ke))
+    end subroutine stats_compute_tree_vel
+
+    subroutine stats_compute_tree_temp
+      implicit none 
+      call stats_compute_tavg(tr_thlt,   tr_thl(ib:ie,jb:je,kb:ke))
+    end subroutine stats_compute_tree_temp
+
+    subroutine stats_compute_tree_moist
+      implicit none 
+      call stats_compute_tavg(tr_qtt,    tr_qt(ib:ie,jb:je,kb:ke))
+      call stats_compute_tavg(tr_qtRt,   tr_qtR(ib:ie,jb:je,kb:ke))
+      call stats_compute_tavg(tr_qtAt,   tr_qtA(ib:ie,jb:je,kb:ke))
+      call stats_compute_tavg(tr_omegat, tr_omega(ib:ie,jb:je,kb:ke))
+    end subroutine stats_compute_tree_moist
+
+    subroutine stats_compute_tree_scalar
+      implicit none
+      integer :: n
+      do n = 1, nsv
+        call stats_compute_tavg(tr_svt(:,:,:,n), tr_sv(ib:ie,jb:je,kb:ke,n))
+      end do
+    end subroutine stats_compute_tree_scalar
 
 
     !! ## %% Time averaged statistics writing routines 
@@ -1663,6 +1806,35 @@ module stats
     end subroutine stats_write_yavg_scalar
 
 
+    !! ## %% Time averaged tree data statistics writing routines 
+    subroutine stats_write_tree_vel
+      implicit none
+      call writestat_nc(ncidtree, 'tr_u'    , tr_ut    , nrectree, xdim, ydim, zdim)
+      call writestat_nc(ncidtree, 'tr_v'    , tr_vt    , nrectree, xdim, ydim, zdim)
+      call writestat_nc(ncidtree, 'tr_w'    , tr_wt    , nrectree, xdim, ydim, zdim)
+    end subroutine stats_write_tree_vel
+
+    subroutine stats_write_tree_temp
+      implicit none
+      call writestat_nc(ncidtree, 'tr_thl'  , tr_thlt  , nrectree, xdim, ydim, zdim)
+    end subroutine stats_write_tree_temp
+
+    subroutine stats_write_tree_moist
+      implicit none
+      call writestat_nc(ncidtree, 'tr_qt'   , tr_qtt   , nrectree, xdim, ydim, zdim)
+      call writestat_nc(ncidtree, 'tr_qtR'  , tr_qtRt  , nrectree, xdim, ydim, zdim)
+      call writestat_nc(ncidtree, 'tr_qtA'  , tr_qtAt  , nrectree, xdim, ydim, zdim)
+      call writestat_nc(ncidtree, 'tr_omega', tr_omegat, nrectree, xdim, ydim, zdim)
+    end subroutine stats_write_tree_moist
+
+    subroutine stats_write_tree_scalar
+      implicit none
+      integer :: n
+      do n = 1, nsv
+        call writestat_nc(ncidtree, trim(svtreename(n)), tr_svt(:,:,:,n), nrectree, xdim, ydim, zdim)
+      end do
+    end subroutine stats_write_tree_scalar
+
     subroutine stats_exit
       implicit none
       if (ltdump .or. lxytdump .or. lxydump .or. lytdump .or. lydump) then
@@ -1720,6 +1892,13 @@ module stats
         if (ltempeq) deallocate(thly,wpthlpyk,wthlyk,thlyk,thlsgsy)
         if (lmoist)  deallocate(qty,wpqtpyk,wqtyk,qtyk,qtsgsy)
         if (nsv>0)   deallocate(svyname,wpsvpyname,wsvyname,svsgsyname,svy,wpsvpyk,wsvyk,svyk,svsgsy)
+      end if
+
+      if (ltreedump) then
+        deallocate(tr_ut,tr_vt,tr_wt)
+        if (ltempeq) deallocate(tr_thlt)
+        if (lmoist)  deallocate(tr_qtt,tr_qtRt,tr_qtAt,tr_omegat)
+        if (nsv>0)   deallocate(svtreename,tr_svt)
       end if
     end subroutine stats_exit
 end module stats
