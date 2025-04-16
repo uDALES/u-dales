@@ -884,10 +884,10 @@ module modstartup
          end if
        end select
 
-       if ((lydump .or. lytdump) .and. (nprocx > 1)) then
-          write(*, *) "Error: y-averaged statistics not currently implemented for nprocx > 1."
-          stop 1
-       end if
+      !  if ((lydump .or. lytdump) .and. (nprocx > 1)) then
+      !     write(*, *) "Error: y-averaged statistics not currently implemented for nprocx > 1."
+      !     stop 1
+      !  end if
 
        if ((luoutflowr) .and. (nprocx > 1)) then
           write(*, *) "Error: constant x outflow only possible for nprocx = 1."
