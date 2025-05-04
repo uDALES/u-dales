@@ -10,7 +10,7 @@ module stats
                          IIuw, IIuws, IIuwt, IIvw, IIvws, IIuv, IIuvs, &
                          tr_u, tr_v, tr_w, tr_thl, tr_qt, tr_qtR, tr_qtA, tr_omega, tr_sv
   use modsubgrid, only : ekh, ekm
-  use modmpi,     only : cmyidx, cmyidy, myid, myidy, avexy_ibm, avey_ibm
+  use modmpi,     only : cmyidx, cmyidy, myid, myidy, spatial_avg
   use modstat_nc, only : ncinfo, open_nc, define_nc, writestat_dims_nc, writestat_nc
   implicit none
   public :: stats_init, stats_main, stats_exit
@@ -303,12 +303,12 @@ module stats
         if (nsv>0)   call stats_allocate_tavg_scalar
       end if
 
-      !> Generate time averaged NetCDF: stats.xxx.xxx.xxx.nc
+      !> Generate time averaged NetCDF: stats_t_out.xxx.xxx.xxx.nc
       if (ltdump) then
-        filenamet = 'sdump.xxx.xxx.xxx.nc'
-        filenamet(7:9) = cmyidx
-        filenamet(11:13) = cmyidy
-        filenamet(15:17) = cexpnr
+        filenamet = 'stats_t_out.xxx.xxx.xxx.nc'
+        filenamet(13:15) = cmyidx
+        filenamet(17:19) = cmyidy
+        filenamet(21:23) = cexpnr
         
         !> Total numbers of variables to be written
         tVarsCount = 14
@@ -334,10 +334,10 @@ module stats
         deallocate(tVars)
       end if
 
-      !> Generate time, y and x averaged NetCDF: xytdump.xxx.nc
+      !> Generate time, y and x averaged NetCDF: stats_xyt_out.xxx.nc
       if (lxytdump) then
-        filenamexyt = 'xysdump.xxx.nc'
-        filenamexyt(9:11) = cexpnr
+        filenamexyt = 'stats_xyt_out.xxx.nc'
+        filenamexyt(15:17) = cexpnr
 
         xytVarsCount = 20
         if (ltempeq) xytVarsCount = xytVarsCount + 5
@@ -360,10 +360,10 @@ module stats
         deallocate(xytVars)
       end if
 
-      !> Generate y and x averaged NetCDF: xydumps.xxx.nc
+      !> Generate y and x averaged NetCDF: stats_xy_out.xxx.nc
       if (lxydump) then
-        filenamexy = 'xydumps.xxx.nc'
-        filenamexy(9:11) = cexpnr
+        filenamexy = 'stats_xy_out.xxx.nc'
+        filenamexy(14:16) = cexpnr
 
         xyVarsCount = 16
         if (ltempeq) xyVarsCount = xyVarsCount + 4
@@ -386,11 +386,11 @@ module stats
         deallocate(xyVars)
       end if
 
-      !> Generate time and y averaged NetCDF: ytdump.xxx.xxx.nc
+      !> Generate time and y averaged NetCDF: stats_yt_out.xxx.xxx.nc
       if (lytdump) then
-        filenameyt = 'ysdump.xxx.xxx.nc'
-        filenameyt(8:10)  = cmyidx
-        filenameyt(12:14) = cexpnr
+        filenameyt = 'stats_yt_out.xxx.xxx.nc'
+        filenameyt(14:16)  = cmyidx
+        filenameyt(18:20) = cexpnr
 
         ytVarsCount = 11
         if (ltempeq) ytVarsCount = ytVarsCount + 5
@@ -415,9 +415,9 @@ module stats
         deallocate(ytVars)
       end if
 
-      !> Generate y averaged NetCDF: stats_ydump.xxx.xxx.nc
+      !> Generate y averaged NetCDF: stats_y_out.xxx.xxx.nc
       if (lydump) then
-        filenamey = 'stats_ydump.xxx.xxx.nc'
+        filenamey = 'stats_y_out.xxx.xxx.nc'
         filenamey(13:15)  = cmyidx
         filenamey(17:19) = cexpnr
 
@@ -444,9 +444,9 @@ module stats
         deallocate(yVars)
       end if
 
-      !> Generate time averaged tree data NetCDF: stats_treedump.xxx.xxx.xxx.nc
+      !> Generate time averaged tree data NetCDF: stats_tree_out.xxx.xxx.xxx.nc
       if (ltreedump) then
-        filenametree = 'stats_treedump.xxx.xxx.xxx.nc'
+        filenametree = 'stats_tree_out.xxx.xxx.xxx.nc'
         filenametree(16:18) = cmyidx
         filenametree(20:22) = cmyidy
         filenametree(24:26) = cexpnr
@@ -666,23 +666,23 @@ module stats
     subroutine stats_ncdescription_tavg_vel
       implicit none
       !> Generate variable description for the quantities to be written in the time averaged NetCDF: stats.xxx.xxx.xxx.nc
-      call ncinfo( tVars(ctrt+ 1,:), 'ut'       , 'Streamwise velocity'       , 'm/s'       , 'mttt' )
-      call ncinfo( tVars(ctrt+ 2,:), 'vt'       , 'Spanwise velocity'         , 'm/s'       , 'tmtt' )
-      call ncinfo( tVars(ctrt+ 3,:), 'wt'       , 'Vertical velocity'         , 'm/s'       , 'ttmt' )
-      call ncinfo( tVars(ctrt+ 4,:), 'pt'       , 'Kinematic Pressure'        , 'm^2/s^2'   , 'tttt' )
+      call ncinfo( tVars(ctrt+ 1,:), 'u'       , 'Streamwise velocity'        , 'm/s'       , 'mttt' )
+      call ncinfo( tVars(ctrt+ 2,:), 'v'       , 'Spanwise velocity'          , 'm/s'       , 'tmtt' )
+      call ncinfo( tVars(ctrt+ 3,:), 'w'       , 'Vertical velocity'          , 'm/s'       , 'ttmt' )
+      call ncinfo( tVars(ctrt+ 4,:), 'p'       , 'Kinematic Pressure'         , 'm^2/s^2'   , 'tttt' )
 
-      call ncinfo( tVars(ctrt+ 5,:), 'upwpt'    , 'Turbulent momentum flux'   , 'm^2/s^2'   , 'mtmt' )
-      call ncinfo( tVars(ctrt+ 6,:), 'vpwpt'    , 'Turbulent momentum flux'   , 'm^2/s^2'   , 'tmmt' )
-      call ncinfo( tVars(ctrt+ 7,:), 'upvpt'    , 'Turbulent momentum flux'   , 'm^2/s^2'   , 'mmtt' )
+      call ncinfo( tVars(ctrt+ 5,:), 'upwp'    , 'Turbulent momentum flux'    , 'm^2/s^2'   , 'mtmt' )
+      call ncinfo( tVars(ctrt+ 6,:), 'vpwp'    , 'Turbulent momentum flux'    , 'm^2/s^2'   , 'tmmt' )
+      call ncinfo( tVars(ctrt+ 7,:), 'upvp'    , 'Turbulent momentum flux'    , 'm^2/s^2'   , 'mmtt' )
 
-      call ncinfo( tVars(ctrt+ 8,:), 'upuptc'   , 'u variance'                , 'm^2/s^2'   , 'tttt' )
-      call ncinfo( tVars(ctrt+ 9,:), 'vpvptc'   , 'v variance'                , 'm^2/s^2'   , 'tttt' )
-      call ncinfo( tVars(ctrt+10,:), 'wpwptc'   , 'w variance'                , 'm^2/s^2'   , 'tttt' )
-      call ncinfo( tVars(ctrt+11,:), 'tketc'    , 'TKE'                       , 'm^2/s^2'   , 'tttt' )
+      call ncinfo( tVars(ctrt+ 8,:), 'upup'    , 'u variance - cell centered' , 'm^2/s^2'   , 'tttt' )
+      call ncinfo( tVars(ctrt+ 9,:), 'vpvp'    , 'v variance - cell centered' , 'm^2/s^2'   , 'tttt' )
+      call ncinfo( tVars(ctrt+10,:), 'wpwp'    , 'w variance - cell centered' , 'm^2/s^2'   , 'tttt' )
+      call ncinfo( tVars(ctrt+11,:), 'tke'     , 'TKE - cell centered'        , 'm^2/s^2'   , 'tttt' )
 
-      call ncinfo( tVars(ctrt+12,:), 'usgst'    , 'SGS u flux'                , 'm^2/s^2'   , 'mtmt' )
-      call ncinfo( tVars(ctrt+13,:), 'vsgst'    , 'SGS v flux'                , 'm^2/s^2'   , 'tmmt' )
-      call ncinfo( tVars(ctrt+14,:), 'wsgst'    , 'SGS w flux'                , 'm^2/s^2'   , 'ttmt' )
+      call ncinfo( tVars(ctrt+12,:), 'usgs'    , 'SGS u flux'                 , 'm^2/s^2'   , 'mtmt' )
+      call ncinfo( tVars(ctrt+13,:), 'vsgs'    , 'SGS v flux'                 , 'm^2/s^2'   , 'tmmt' )
+      call ncinfo( tVars(ctrt+14,:), 'wsgs'    , 'SGS w flux'                 , 'm^2/s^2'   , 'ttmt' )
       ctrt = ctrt+14
     end subroutine stats_ncdescription_tavg_vel
 
@@ -696,10 +696,10 @@ module stats
     end subroutine stats_allocate_tavg_temp
     subroutine stats_ncdescription_tavg_temp
       implicit none
-      call ncinfo( tVars(ctrt+1,:) , 'thlt'     , 'Temperature'               , 'K'         , 'tttt' )
-      call ncinfo( tVars(ctrt+2,:) , 'wpthlpt'  , 'Turbulent heat flux'       , 'K m/s'     , 'ttmt' )
-      call ncinfo( tVars(ctrt+3,:) , 'thlpthlpt', 'Temperature variance'      , 'K^2'       , 'tttt' )
-      call ncinfo( tVars(ctrt+4,:) , 'thlsgst'  , 'SGS temperature flux'      , 'K m/s'     , 'ttmt' )
+      call ncinfo( tVars(ctrt+1,:) , 'thl'     , 'Temperature'               , 'K'         , 'tttt' )
+      call ncinfo( tVars(ctrt+2,:) , 'wpthlp'  , 'Turbulent heat flux'       , 'K m/s'     , 'ttmt' )
+      call ncinfo( tVars(ctrt+3,:) , 'thlpthlp', 'Temperature variance'      , 'K^2'       , 'tttt' )
+      call ncinfo( tVars(ctrt+4,:) , 'thlsgs'  , 'SGS temperature flux'      , 'K m/s'     , 'ttmt' )
       ctrt = ctrt+4
     end subroutine stats_ncdescription_tavg_temp
 
@@ -713,10 +713,10 @@ module stats
     end subroutine stats_allocate_tavg_moist
     subroutine stats_ncdescription_tavg_moist
       implicit none
-      call ncinfo( tVars(ctrt+1,:) , 'qtt'      , 'Moisture'                  , 'kg/kg'     , 'tttt' )
-      call ncinfo( tVars(ctrt+2,:) , 'wpqtpt'   , 'Turbulent moisture flux'   , 'kg m/kg s' , 'ttmt' )
-      call ncinfo( tVars(ctrt+3,:) , 'qtpqtpt'  , 'Moisture variance'         , 'kg^2/kg^2' , 'tttt' )
-      call ncinfo( tVars(ctrt+4,:) , 'qtsgst'   , 'SGS moisture flux'         , 'kg m/kg s' , 'ttmt' )
+      call ncinfo( tVars(ctrt+1,:) , 'qt'      , 'Moisture'                  , 'kg/kg'     , 'tttt' )
+      call ncinfo( tVars(ctrt+2,:) , 'wpqtp'   , 'Turbulent moisture flux'   , 'kg m/kg s' , 'ttmt' )
+      call ncinfo( tVars(ctrt+3,:) , 'qtpqtp'  , 'Moisture variance'         , 'kg^2/kg^2' , 'tttt' )
+      call ncinfo( tVars(ctrt+4,:) , 'qtsgs'   , 'SGS moisture flux'         , 'kg m/kg s' , 'ttmt' )
       ctrt = ctrt+4
     end subroutine stats_ncdescription_tavg_moist
 
@@ -738,10 +738,10 @@ module stats
       allocate(svsgsname(nsv))
       do n = 1, nsv
         write (sid, '(I0)') n
-        svtname(n)     = 'sca'//trim(sid)//'t'                      ! sca1t       at n = 1
-        wpsvptname(n)  = 'wpsca'//trim(sid)//'pt'                   ! wpsca1pt    at n = 1
-        svpsvptname(n) = 'sca'//trim(sid)//'psca'//trim(sid)//'pt'  ! sca1psca1pt at n = 1
-        svsgsname(n)   = 'sv'//trim(sid)//'sgs'                     ! sv1sgs      at n = 1
+        svtname(n)     = 's'//trim(sid)                        ! s1       at n = 1
+        wpsvptname(n)  = 'wps'//trim(sid)//'p'                 ! wps1p    at n = 1
+        svpsvptname(n) = 's'//trim(sid)//'ps'//trim(sid)//'p'  ! s1ps1p   at n = 1
+        svsgsname(n)   = 's'//trim(sid)//'sgs'                 ! s1sgs    at n = 1
         call ncinfo(tVars(ctrt+n,:)      , trim(svtname(n))    , 'Concentration field '//trim(sid)   , 'g/m^3'  , 'tttt' )
         call ncinfo(tVars(ctrt+nsv+n,:)  , trim(wpsvptname(n)) , 'Turbulent scalar flux '//trim(sid) , 'g/m^2s' , 'ttmt' )
         call ncinfo(tVars(ctrt+2*nsv+n,:), trim(svpsvptname(n)), 'Concentration variance '//trim(sid), 'g^2/m^6', 'tttt' )
@@ -754,7 +754,7 @@ module stats
       implicit none
       allocate(PSS(ib:ie,jb:je,kb:ke+kh))
       allocate(PSSt(ib:ie,jb:je,kb:ke+kh)); PSSt = 0;
-      call ncinfo( tVars(ctrt+1,:) , 'PSSt'      , 'PSS defect'                , 'gm/s'      , 'tttt' )
+      call ncinfo( tVars(ctrt+1,:) , 'PSS'      , 'PSS defect'                , 'gm/s'      , 'tttt' )
       ctrt = ctrt+1
     end subroutine stats_allocate_tavg_PSS
 
@@ -783,26 +783,26 @@ module stats
       allocate(vsgsxyt(kb:ke+kh))
       allocate(wsgsxyt(kb:ke+kh))
 
-      call ncinfo( xytVars(ctrxyt+ 1,:), 'uxyt'        , 'Streamwise velocity'      , 'm/s'       , 'tt' )
-      call ncinfo( xytVars(ctrxyt+ 2,:), 'vxyt'        , 'Spanwise velocity'        , 'm/s'       , 'tt' )
-      call ncinfo( xytVars(ctrxyt+ 3,:), 'wxyt'        , 'Vertical velocity'        , 'm/s'       , 'mt' )
-      call ncinfo( xytVars(ctrxyt+ 4,:), 'pxyt'        , 'Kinematic Pressure'       , 'm^2/s^2'   , 'tt' )
-      call ncinfo( xytVars(ctrxyt+ 5,:), 'upwpxyt'     , 'Turbulent mom. flux'      , 'm^2/s^2'   , 'mt' )
-      call ncinfo( xytVars(ctrxyt+ 6,:), 'vpwpxyt'     , 'Turbulent mom. flux'      , 'm^2/s^2'   , 'mt' )
-      call ncinfo( xytVars(ctrxyt+ 7,:), 'upvpxyt'     , 'Turbulent mom. flux'      , 'm^2/s^2'   , 'tt' )
-      call ncinfo( xytVars(ctrxyt+ 8,:), 'uwxyt'       , 'Kinematic mom. flux'      , 'm^2/s^2'   , 'mt' )
-      call ncinfo( xytVars(ctrxyt+ 9,:), 'vwxyt'       , 'Kinematic mom. flux'      , 'm^2/s^2'   , 'mt' )
-      call ncinfo( xytVars(ctrxyt+10,:), 'uvxyt'       , 'Kinematic mom. flux'      , 'm^2/s^2'   , 'tt' )
-      call ncinfo( xytVars(ctrxyt+11,:), 'uuxyt'       , 'Kinematic mom. flux'      , 'm^2/s^2'   , 'tt' )
-      call ncinfo( xytVars(ctrxyt+12,:), 'vvxyt'       , 'Kinematic mom. flux'      , 'm^2/s^2'   , 'tt' )
-      call ncinfo( xytVars(ctrxyt+13,:), 'wwxyt'       , 'Kinematic mom. flux'      , 'm^2/s^2'   , 'mt' )
-      call ncinfo( xytVars(ctrxyt+14,:), 'upuptxyc'    , 'u variance'               , 'm^2/s^2'   , 'tt' )
-      call ncinfo( xytVars(ctrxyt+15,:), 'vpvptxyc'    , 'v variance'               , 'm^2/s^2'   , 'tt' )
-      call ncinfo( xytVars(ctrxyt+16,:), 'wpwptxyc'    , 'w variance'               , 'm^2/s^2'   , 'tt' )
-      call ncinfo( xytVars(ctrxyt+17,:), 'tketxyc'     , 'TKE'                      , 'm^2/s^2'   , 'tt' )
-      call ncinfo( xytVars(ctrxyt+18,:), 'usgsxyt'     , 'SGS mom. flux'            , 'm^2/s^2'   , 'mt' )
-      call ncinfo( xytVars(ctrxyt+19,:), 'vsgsxyt'     , 'SGS mom. flux'            , 'm^2/s^2'   , 'mt' )
-      call ncinfo( xytVars(ctrxyt+20,:), 'wsgsxyt'     , 'SGS mom. flux'            , 'm^2/s^2'   , 'mt' )
+      call ncinfo( xytVars(ctrxyt+ 1,:), 'u'        , 'Streamwise velocity'        , 'm/s'       , 'tt' )
+      call ncinfo( xytVars(ctrxyt+ 2,:), 'v'        , 'Spanwise velocity'          , 'm/s'       , 'tt' )
+      call ncinfo( xytVars(ctrxyt+ 3,:), 'w'        , 'Vertical velocity'          , 'm/s'       , 'mt' )
+      call ncinfo( xytVars(ctrxyt+ 4,:), 'p'        , 'Kinematic Pressure'         , 'm^2/s^2'   , 'tt' )
+      call ncinfo( xytVars(ctrxyt+ 5,:), 'upwp'     , 'Turbulent mom. flux'        , 'm^2/s^2'   , 'mt' )
+      call ncinfo( xytVars(ctrxyt+ 6,:), 'vpwp'     , 'Turbulent mom. flux'        , 'm^2/s^2'   , 'mt' )
+      call ncinfo( xytVars(ctrxyt+ 7,:), 'upvp'     , 'Turbulent mom. flux'        , 'm^2/s^2'   , 'tt' )
+      call ncinfo( xytVars(ctrxyt+ 8,:), 'uw'       , 'Mean mom. flux'             , 'm^2/s^2'   , 'mt' )
+      call ncinfo( xytVars(ctrxyt+ 9,:), 'vw'       , 'Mean mom. flux'             , 'm^2/s^2'   , 'mt' )
+      call ncinfo( xytVars(ctrxyt+10,:), 'uv'       , 'Mean mom. flux'             , 'm^2/s^2'   , 'tt' )
+      call ncinfo( xytVars(ctrxyt+11,:), 'uu'       , 'Mean mom. flux'             , 'm^2/s^2'   , 'tt' )
+      call ncinfo( xytVars(ctrxyt+12,:), 'vv'       , 'Mean mom. flux'             , 'm^2/s^2'   , 'tt' )
+      call ncinfo( xytVars(ctrxyt+13,:), 'ww'       , 'Mean mom. flux'             , 'm^2/s^2'   , 'mt' )
+      call ncinfo( xytVars(ctrxyt+14,:), 'upup'     , 'u variance - cell centered' , 'm^2/s^2'   , 'tt' )
+      call ncinfo( xytVars(ctrxyt+15,:), 'vpvp'     , 'v variance - cell centered' , 'm^2/s^2'   , 'tt' )
+      call ncinfo( xytVars(ctrxyt+16,:), 'wpwp'     , 'w variance - cell centered' , 'm^2/s^2'   , 'tt' )
+      call ncinfo( xytVars(ctrxyt+17,:), 'tke'      , 'TKE - cell centered'        , 'm^2/s^2'   , 'tt' )
+      call ncinfo( xytVars(ctrxyt+18,:), 'usgs'     , 'SGS mom. flux'              , 'm^2/s^2'   , 'mt' )
+      call ncinfo( xytVars(ctrxyt+19,:), 'vsgs'     , 'SGS mom. flux'              , 'm^2/s^2'   , 'mt' )
+      call ncinfo( xytVars(ctrxyt+20,:), 'wsgs'     , 'SGS mom. flux'              , 'm^2/s^2'   , 'mt' )
       ctrxyt = ctrxyt+20
     end subroutine stats_allocate_xytavg_vel
 
@@ -813,11 +813,11 @@ module stats
       allocate(wthlxytk(kb:ke+kh))
       allocate(thlpthlpxyt(kb:ke+kh))
       allocate(thlsgsxyt(kb:ke+kh))
-      call ncinfo( xytVars(ctrxyt+ 1,:), 'thlxyt'      , 'Temperature'              , 'K'         , 'tt' )
-      call ncinfo( xytVars(ctrxyt+ 2,:), 'wpthlpxyt'   , 'Turbulent heat flux'      , 'K m/s'     , 'mt' )
-      call ncinfo( xytVars(ctrxyt+ 3,:), 'wthlxyt'     , 'Kinematic heat flux'      , 'K m/s'     , 'mt' )
-      call ncinfo( xytVars(ctrxyt+ 4,:), 'thlpthlptxy' , 'Temp. variance'           , 'K^2'       , 'tt' )
-      call ncinfo( xytVars(ctrxyt+ 5,:), 'thlsgsxyt'   , 'SGS heat flux'            , 'K m/s'     , 'mt' )
+      call ncinfo( xytVars(ctrxyt+ 1,:), 'thl'      , 'Temperature'              , 'K'         , 'tt' )
+      call ncinfo( xytVars(ctrxyt+ 2,:), 'wpthlp'   , 'Turbulent heat flux'      , 'K m/s'     , 'mt' )
+      call ncinfo( xytVars(ctrxyt+ 3,:), 'wthl'     , 'Mean heat flux'           , 'K m/s'     , 'mt' )
+      call ncinfo( xytVars(ctrxyt+ 4,:), 'thlpthlp' , 'Temp. variance'           , 'K^2'       , 'tt' )
+      call ncinfo( xytVars(ctrxyt+ 5,:), 'thlsgs'   , 'SGS heat flux'            , 'K m/s'     , 'mt' )
       ctrxyt = ctrxyt+5
     end subroutine stats_allocate_xytavg_temp
 
@@ -828,11 +828,11 @@ module stats
       allocate(wqtxytk(kb:ke+kh))
       allocate(qtpqtpxyt(kb:ke+kh))
       allocate(qtsgsxyt(kb:ke+kh))
-      call ncinfo( xytVars(ctrxyt+ 1,:), 'qtxyt'       , 'Moisture'                 , 'kg/kg'     , 'tt' )
-      call ncinfo( xytVars(ctrxyt+ 2,:), 'wpqtpxyt'    , 'Turbulent moisture flux'  , 'kg m/kg s' , 'mt' )
-      call ncinfo( xytVars(ctrxyt+ 3,:), 'wqtxyt'      , 'Kinematic moisture flux'  , 'kg m/kg s' , 'mt' )
-      call ncinfo( xytVars(ctrxyt+ 4,:), 'qtpqtptxy'   , 'Moisture variance'        , 'kg^2/kg^2' , 'tt' )
-      call ncinfo( xytVars(ctrxyt+ 5,:), 'qtsgsxyt'    , 'SGS moisture flux'        , 'kg m/kg s' , 'mt' )
+      call ncinfo( xytVars(ctrxyt+ 1,:), 'qt'       , 'Moisture'                 , 'kg/kg'     , 'tt' )
+      call ncinfo( xytVars(ctrxyt+ 2,:), 'wpqtp'    , 'Turbulent moisture flux'  , 'kg m/kg s' , 'mt' )
+      call ncinfo( xytVars(ctrxyt+ 3,:), 'wqt'      , 'Mean moisture flux'       , 'kg m/kg s' , 'mt' )
+      call ncinfo( xytVars(ctrxyt+ 4,:), 'qtpqtp'   , 'Moisture variance'        , 'kg^2/kg^2' , 'tt' )
+      call ncinfo( xytVars(ctrxyt+ 5,:), 'qtsgs'    , 'SGS moisture flux'        , 'kg m/kg s' , 'mt' )
       ctrxyt = ctrxyt+5
     end subroutine stats_allocate_xytavg_moist
 
@@ -863,22 +863,22 @@ module stats
       allocate(vsgsxy(kb:ke+kh))
       allocate(wsgsxy(kb:ke+kh))
 
-      call ncinfo( xyVars(ctrxy+ 1,:), 'uxy'        , 'Streamwise velocity'      , 'm/s'       , 'tt' )
-      call ncinfo( xyVars(ctrxy+ 2,:), 'vxy'        , 'Spanwise velocity'        , 'm/s'       , 'tt' )
-      call ncinfo( xyVars(ctrxy+ 3,:), 'wxy'        , 'Vertical velocity'        , 'm/s'       , 'mt' )
-      call ncinfo( xyVars(ctrxy+ 4,:), 'pxy'        , 'Kinematic Pressure'       , 'm^2/s^2'   , 'tt' )
-      call ncinfo( xyVars(ctrxy+ 5,:), 'upwpxy'     , 'Turbulent mom. flux'      , 'm^2/s^2'   , 'mt' )
-      call ncinfo( xyVars(ctrxy+ 6,:), 'vpwpxy'     , 'Turbulent mom. flux'      , 'm^2/s^2'   , 'mt' )
-      call ncinfo( xyVars(ctrxy+ 7,:), 'upvpxy'     , 'Turbulent mom. flux'      , 'm^2/s^2'   , 'tt' )
-      call ncinfo( xyVars(ctrxy+ 8,:), 'uwxy'       , 'Kinematic mom. flux'      , 'm^2/s^2'   , 'mt' )
-      call ncinfo( xyVars(ctrxy+ 9,:), 'vwxy'       , 'Kinematic mom. flux'      , 'm^2/s^2'   , 'mt' )
-      call ncinfo( xyVars(ctrxy+10,:), 'uvxy'       , 'Kinematic mom. flux'      , 'm^2/s^2'   , 'tt' )
-      call ncinfo( xyVars(ctrxy+11,:), 'uuxy'       , 'Kinematic mom. flux'      , 'm^2/s^2'   , 'tt' )
-      call ncinfo( xyVars(ctrxy+12,:), 'vvxy'       , 'Kinematic mom. flux'      , 'm^2/s^2'   , 'tt' )
-      call ncinfo( xyVars(ctrxy+13,:), 'wwxy'       , 'Kinematic mom. flux'      , 'm^2/s^2'   , 'mt' )
-      call ncinfo( xyVars(ctrxy+14,:), 'usgsxy'     , 'SGS mom. flux'            , 'm^2/s^2'   , 'mt' )
-      call ncinfo( xyVars(ctrxy+15,:), 'vsgsxy'     , 'SGS mom. flux'            , 'm^2/s^2'   , 'mt' )
-      call ncinfo( xyVars(ctrxy+16,:), 'wsgsxy'     , 'SGS mom. flux'            , 'm^2/s^2'   , 'mt' )
+      call ncinfo( xyVars(ctrxy+ 1,:), 'u'        , 'Streamwise velocity'      , 'm/s'       , 'tt' )
+      call ncinfo( xyVars(ctrxy+ 2,:), 'v'        , 'Spanwise velocity'        , 'm/s'       , 'tt' )
+      call ncinfo( xyVars(ctrxy+ 3,:), 'w'        , 'Vertical velocity'        , 'm/s'       , 'mt' )
+      call ncinfo( xyVars(ctrxy+ 4,:), 'p'        , 'Kinematic Pressure'       , 'm^2/s^2'   , 'tt' )
+      call ncinfo( xyVars(ctrxy+ 5,:), 'upwp'     , 'Turbulent mom. flux'      , 'm^2/s^2'   , 'mt' )
+      call ncinfo( xyVars(ctrxy+ 6,:), 'vpwp'     , 'Turbulent mom. flux'      , 'm^2/s^2'   , 'mt' )
+      call ncinfo( xyVars(ctrxy+ 7,:), 'upvp'     , 'Turbulent mom. flux'      , 'm^2/s^2'   , 'tt' )
+      call ncinfo( xyVars(ctrxy+ 8,:), 'uw'       , 'Advective mom. flux'      , 'm^2/s^2'   , 'mt' )
+      call ncinfo( xyVars(ctrxy+ 9,:), 'vw'       , 'Advective mom. flux'      , 'm^2/s^2'   , 'mt' )
+      call ncinfo( xyVars(ctrxy+10,:), 'uv'       , 'Advective mom. flux'      , 'm^2/s^2'   , 'tt' )
+      call ncinfo( xyVars(ctrxy+11,:), 'uu'       , 'Advective mom. flux'      , 'm^2/s^2'   , 'tt' )
+      call ncinfo( xyVars(ctrxy+12,:), 'vv'       , 'Advective mom. flux'      , 'm^2/s^2'   , 'tt' )
+      call ncinfo( xyVars(ctrxy+13,:), 'ww'       , 'Advective mom. flux'      , 'm^2/s^2'   , 'mt' )
+      call ncinfo( xyVars(ctrxy+14,:), 'usgs'     , 'SGS mom. flux'            , 'm^2/s^2'   , 'mt' )
+      call ncinfo( xyVars(ctrxy+15,:), 'vsgs'     , 'SGS mom. flux'            , 'm^2/s^2'   , 'mt' )
+      call ncinfo( xyVars(ctrxy+16,:), 'wsgs'     , 'SGS mom. flux'            , 'm^2/s^2'   , 'mt' )
       ctrxy = ctrxy+16
     end subroutine stats_allocate_xyavg_vel
 
@@ -889,10 +889,10 @@ module stats
       allocate(wthlxyk(kb:ke+kh))
       allocate(thlxyk(kb:ke+kh))
       allocate(thlsgsxy(kb:ke+kh))
-      call ncinfo( xyVars(ctrxy+ 1,:), 'thlxy'      , 'Temperature'              , 'K'         , 'tt' )
-      call ncinfo( xyVars(ctrxy+ 2,:), 'wpthlpxy'   , 'Turbulent heat flux'      , 'K m/s'     , 'mt' )
-      call ncinfo( xyVars(ctrxy+ 3,:), 'wthlxy'     , 'Advective heat flux'      , 'K m/s'     , 'mt' )
-      call ncinfo( xyVars(ctrxy+ 4,:), 'thlsgsxy'   , 'SGS heat flux'            , 'K m/s'     , 'mt' )
+      call ncinfo( xyVars(ctrxy+ 1,:), 'thl'      , 'Temperature'              , 'K'         , 'tt' )
+      call ncinfo( xyVars(ctrxy+ 2,:), 'wpthlp'   , 'Turbulent heat flux'      , 'K m/s'     , 'mt' )
+      call ncinfo( xyVars(ctrxy+ 3,:), 'wthl'     , 'Advective heat flux'      , 'K m/s'     , 'mt' )
+      call ncinfo( xyVars(ctrxy+ 4,:), 'thlsgs'   , 'SGS heat flux'            , 'K m/s'     , 'mt' )
       ctrxy = ctrxy+4
     end subroutine stats_allocate_xyavg_temp
 
@@ -903,10 +903,10 @@ module stats
       allocate(wqtxyk(kb:ke+kh))
       allocate(qtxyk(kb:ke+kh))
       allocate(qtsgsxy(kb:ke+kh))
-      call ncinfo( xyVars(ctrxy+ 1,:), 'qtxy'       , 'Moisture'                 , 'kg/kg'     , 'tt' )
-      call ncinfo( xyVars(ctrxy+ 2,:), 'wpqtpxy'    , 'Turbulent moisture flux'  , 'kg m/kg s' , 'mt' )
-      call ncinfo( xyVars(ctrxy+ 3,:), 'wqtxy'      , 'Advective moisture flux'  , 'kg m/kg s' , 'mt' )
-      call ncinfo( xyVars(ctrxy+ 4,:), 'qtsgsxy'    , 'SGS moisture flux'        , 'kg m/kg s' , 'mt' )
+      call ncinfo( xyVars(ctrxy+ 1,:), 'qt'       , 'Moisture'                 , 'kg/kg'     , 'tt' )
+      call ncinfo( xyVars(ctrxy+ 2,:), 'wpqtp'    , 'Turbulent moisture flux'  , 'kg m/kg s' , 'mt' )
+      call ncinfo( xyVars(ctrxy+ 3,:), 'wqt'      , 'Advective moisture flux'  , 'kg m/kg s' , 'mt' )
+      call ncinfo( xyVars(ctrxy+ 4,:), 'qtsgs'    , 'SGS moisture flux'        , 'kg m/kg s' , 'mt' )
       ctrxy = ctrxy+4
     end subroutine stats_allocate_xyavg_moist
 
@@ -926,17 +926,17 @@ module stats
       allocate(usgsyt(ib:ie,kb:ke))
       allocate(wsgsyt(ib:ie,kb:ke))
 
-      call ncinfo( ytVars(ctryt+ 1,:), 'uyt'        , 'Streamwise velocity'      , 'm/s'       , 'm0tt' )
-      call ncinfo( ytVars(ctryt+ 2,:), 'vyt'        , 'Spanwise velocity'        , 'm/s'       , 't0tt' )
-      call ncinfo( ytVars(ctryt+ 3,:), 'wyt'        , 'Vertical velocity'        , 'm/s'       , 't0mt' )
-      call ncinfo( ytVars(ctryt+ 4,:), 'pyt'        , 'Kinematic Pressure'       , 'm^2/s^2'   , 't0tt' )
-      call ncinfo( ytVars(ctryt+ 5,:), 'upwpyt'     , 'Turbulent mom. flux'      , 'm^2/s^2'   , 'm0mt' )
-      call ncinfo( ytVars(ctryt+ 6,:), 'uwyt'       , 'Kinematic mom. flux'      , 'm^2/s^2'   , 'm0mt' )
-      call ncinfo( ytVars(ctryt+ 7,:), 'upupytc'    , 'u variance'               , 'm^2/s^2'   , 't0tt' )
-      call ncinfo( ytVars(ctryt+ 8,:), 'vpvpytc'    , 'v variance'               , 'm^2/s^2'   , 't0tt' )
-      call ncinfo( ytVars(ctryt+ 9,:), 'wpwpytc'    , 'w variance'               , 'm^2/s^2'   , 't0tt' )
-      call ncinfo( ytVars(ctryt+10,:), 'usgsyt'     , 'SGS mom. flux'            , 'm^2/s^2'   , 'm0mt' )
-      call ncinfo( ytVars(ctryt+11,:), 'wsgsyt'     , 'SGS mom. flux'            , 'm^2/s^2'   , 't0mt' )
+      call ncinfo( ytVars(ctryt+ 1,:), 'u'        , 'Streamwise velocity'        , 'm/s'       , 'm0tt' )
+      call ncinfo( ytVars(ctryt+ 2,:), 'v'        , 'Spanwise velocity'          , 'm/s'       , 't0tt' )
+      call ncinfo( ytVars(ctryt+ 3,:), 'w'        , 'Vertical velocity'          , 'm/s'       , 't0mt' )
+      call ncinfo( ytVars(ctryt+ 4,:), 'p'        , 'Mean Pressure'              , 'm^2/s^2'   , 't0tt' )
+      call ncinfo( ytVars(ctryt+ 5,:), 'upwp'     , 'Turbulent mom. flux'        , 'm^2/s^2'   , 'm0mt' )
+      call ncinfo( ytVars(ctryt+ 6,:), 'uw'       , 'Mean mom. flux'             , 'm^2/s^2'   , 'm0mt' )
+      call ncinfo( ytVars(ctryt+ 7,:), 'upup'     , 'u variance - cell centered' , 'm^2/s^2'   , 't0tt' )
+      call ncinfo( ytVars(ctryt+ 8,:), 'vpvp'     , 'v variance - cell centered' , 'm^2/s^2'   , 't0tt' )
+      call ncinfo( ytVars(ctryt+ 9,:), 'wpwp'     , 'w variance - cell centered' , 'm^2/s^2'   , 't0tt' )
+      call ncinfo( ytVars(ctryt+10,:), 'usgs'     , 'SGS mom. flux'              , 'm^2/s^2'   , 'm0mt' )
+      call ncinfo( ytVars(ctryt+11,:), 'wsgs'     , 'SGS mom. flux'              , 'm^2/s^2'   , 't0mt' )
       ctryt = ctryt+11
     end subroutine stats_allocate_ytavg_vel
 
@@ -947,11 +947,11 @@ module stats
       allocate(wthlytk(ib:ie,kb:ke))
       allocate(thlpthlpyt(ib:ie,kb:ke))
       allocate(thlsgsyt(ib:ie,kb:ke))
-      call ncinfo( ytVars(ctryt+ 1,:), 'thlyt'      , 'Temperature'              , 'K'         , 't0tt' )
-      call ncinfo( ytVars(ctryt+ 2,:), 'wpthlpyt'   , 'Turbulent heat flux'      , 'K m/s'     , 't0mt' )
-      call ncinfo( ytVars(ctryt+ 3,:), 'wthlyt'     , 'Kinematic heat flux'      , 'K m/s'     , 't0mt' )
-      call ncinfo( ytVars(ctryt+ 4,:), 'thlpthlpyt' , 'Temp. variance'           , 'K^2'       , 't0tt' )
-      call ncinfo( ytVars(ctryt+ 5,:), 'thlsgsyt'   , 'SGS heat flux'            , 'K m/s'     , 't0mt' )
+      call ncinfo( ytVars(ctryt+ 1,:), 'thl'      , 'Temperature'              , 'K'         , 't0tt' )
+      call ncinfo( ytVars(ctryt+ 2,:), 'wpthlp'   , 'Turbulent heat flux'      , 'K m/s'     , 't0mt' )
+      call ncinfo( ytVars(ctryt+ 3,:), 'wthl'     , 'Mean heat flux'           , 'K m/s'     , 't0mt' )
+      call ncinfo( ytVars(ctryt+ 4,:), 'thlpthlp' , 'Temp. variance'           , 'K^2'       , 't0tt' )
+      call ncinfo( ytVars(ctryt+ 5,:), 'thlsgs'   , 'SGS heat flux'            , 'K m/s'     , 't0mt' )
       ctryt = ctryt+5
     end subroutine stats_allocate_ytavg_temp
 
@@ -962,11 +962,11 @@ module stats
       allocate(wqtytk(ib:ie,kb:ke))
       allocate(qtpqtpyt(ib:ie,kb:ke))
       allocate(qtsgsyt(ib:ie,kb:ke))
-      call ncinfo( ytVars(ctryt+ 1,:), 'qtyt'       , 'Moisture'                 , 'kg/kg'     , 't0tt' )
-      call ncinfo( ytVars(ctryt+ 2,:), 'wpqtpyt'    , 'Turbulent moisture flux'  , 'kg m/kg s' , 't0mt' )
-      call ncinfo( ytVars(ctryt+ 3,:), 'wqtyt'      , 'Kinematic moisture flux'  , 'kg m/kg s' , 't0mt' )
-      call ncinfo( ytVars(ctryt+ 4,:), 'qtpqtpyt'   , 'Moisture variance'        , 'kg^2/kg^2' , 't0tt' )
-      call ncinfo( ytVars(ctryt+ 5,:), 'qtsgsyt'    , 'SGS moisture flux'        , 'kg m/kg s' , 't0mt' )
+      call ncinfo( ytVars(ctryt+ 1,:), 'qt'       , 'Moisture'                 , 'kg/kg'     , 't0tt' )
+      call ncinfo( ytVars(ctryt+ 2,:), 'wpqtp'    , 'Turbulent moisture flux'  , 'kg m/kg s' , 't0mt' )
+      call ncinfo( ytVars(ctryt+ 3,:), 'wqt'      , 'Mean moisture flux'       , 'kg m/kg s' , 't0mt' )
+      call ncinfo( ytVars(ctryt+ 4,:), 'qtpqtp'   , 'Moisture variance'        , 'kg^2/kg^2' , 't0tt' )
+      call ncinfo( ytVars(ctryt+ 5,:), 'qtsgs'    , 'SGS moisture flux'        , 'kg m/kg s' , 't0mt' )
       ctryt = ctryt+5
     end subroutine stats_allocate_ytavg_moist
 
@@ -985,14 +985,14 @@ module stats
       allocate(svsgsyt(ib:ie,kb:ke,nsv))
       do n = 1, nsv
         write (sid, '(I0)') n
-        svytname(n)     = 'sca'//trim(sid)//'yt'                      ! sca1yt       at n = 1
-        wpsvpytname(n)  = 'wpsca'//trim(sid)//'pyt'                   ! wpsca1pyt    at n = 1
-        wsvytname(n)    = 'wsca'//trim(sid)//'yt'                     ! wsca1yt      at n = 1
-        svpsvpytname(n) = 'sca'//trim(sid)//'psca'//trim(sid)//'pyt'  ! sca1psca1pyt at n = 1
-        svsgsytname(n)  = 'sca'//trim(sid)//'sgsyt'                   ! sca1sgsyt    at n = 1
+        svytname(n)     = 's'//trim(sid)                        ! s1       at n = 1
+        wpsvpytname(n)  = 'wps'//trim(sid)//'p'                 ! wps1p    at n = 1
+        wsvytname(n)    = 'ws'//trim(sid)                       ! ws1      at n = 1
+        svpsvpytname(n) = 's'//trim(sid)//'ps'//trim(sid)//'p'  ! s1ps1p   at n = 1
+        svsgsytname(n)  = 's'//trim(sid)//'sgs'                 ! s1sgs    at n = 1
         call ncinfo(ytVars(ctryt+n,:)      , trim(svytname(n))    , 'Concentration field '//trim(sid)   , 'g/m^3'  , 't0tt' )
         call ncinfo(ytVars(ctryt+nsv+n,:)  , trim(wpsvpytname(n)) , 'Turbulent scalar flux '//trim(sid) , 'g/m^2s' , 't0mt' )
-        call ncinfo(ytVars(ctryt+2*nsv+n,:), trim(wsvytname(n))   , 'Kinematic scalar flux '//trim(sid) , 'g/m^2s' , 't0mt' )
+        call ncinfo(ytVars(ctryt+2*nsv+n,:), trim(wsvytname(n))   , 'Mean scalar flux '//trim(sid)      , 'g/m^2s' , 't0mt' )
         call ncinfo(ytVars(ctryt+3*nsv+n,:), trim(svpsvpytname(n)), 'Concentration variance '//trim(sid), 'g^2/m^6', 't0tt' )
         call ncinfo(ytVars(ctryt+4*nsv+n,:), trim(svsgsytname(n)) , 'SGS scalar flux '//trim(sid)       , 'g/m^2s' , 't0mt' )
       end do
@@ -1013,14 +1013,14 @@ module stats
       allocate(wyik(ib:ie,kb:ke))
       allocate(usgsy(ib:ie,kb:ke))
       allocate(wsgsy(ib:ie,kb:ke))
-      call ncinfo( yVars(ctry+ 1,:), 'uy'        , 'Streamwise velocity'      , 'm/s'       , 'm0tt' )
-      call ncinfo( yVars(ctry+ 2,:), 'vy'        , 'Spanwise velocity'        , 'm/s'       , 't0tt' )
-      call ncinfo( yVars(ctry+ 3,:), 'wy'        , 'Vertical velocity'        , 'm/s'       , 't0mt' )
-      call ncinfo( yVars(ctry+ 4,:), 'py'        , 'Kinematic Pressure'       , 'm^2/s^2'   , 't0tt' )
-      call ncinfo( yVars(ctry+ 5,:), 'upwpy'     , 'Turbulent mom. flux'      , 'm^2/s^2'   , 'm0mt' )
-      call ncinfo( yVars(ctry+ 6,:), 'uwy'       , 'Kinematic mom. flux'      , 'm^2/s^2'   , 'm0mt' )
-      call ncinfo( yVars(ctry+ 7,:), 'usgsy'     , 'SGS mom. flux'            , 'm^2/s^2'   , 'm0mt' )
-      call ncinfo( yVars(ctry+ 8,:), 'wsgsy'     , 'SGS mom. flux'            , 'm^2/s^2'   , 't0mt' )
+      call ncinfo( yVars(ctry+ 1,:), 'u'        , 'Streamwise velocity'      , 'm/s'       , 'm0tt' )
+      call ncinfo( yVars(ctry+ 2,:), 'v'        , 'Spanwise velocity'        , 'm/s'       , 't0tt' )
+      call ncinfo( yVars(ctry+ 3,:), 'w'        , 'Vertical velocity'        , 'm/s'       , 't0mt' )
+      call ncinfo( yVars(ctry+ 4,:), 'p'        , 'Kinematic Pressure'       , 'm^2/s^2'   , 't0tt' )
+      call ncinfo( yVars(ctry+ 5,:), 'upwp'     , 'Turbulent mom. flux'      , 'm^2/s^2'   , 'm0mt' )
+      call ncinfo( yVars(ctry+ 6,:), 'uw'       , 'Advective mom. flux'      , 'm^2/s^2'   , 'm0mt' )
+      call ncinfo( yVars(ctry+ 7,:), 'usgs'     , 'SGS mom. flux'            , 'm^2/s^2'   , 'm0mt' )
+      call ncinfo( yVars(ctry+ 8,:), 'wsgs'     , 'SGS mom. flux'            , 'm^2/s^2'   , 't0mt' )
       ctry = ctry+8
     end subroutine stats_allocate_yavg_vel
 
@@ -1031,10 +1031,10 @@ module stats
       allocate(wthlyk(ib:ie,kb:ke))
       allocate(thlyk(ib:ie,kb:ke))
       allocate(thlsgsy(ib:ie,kb:ke))
-      call ncinfo( yVars(ctry+ 1,:), 'thly'      , 'Temperature'              , 'K'         , 't0tt' )
-      call ncinfo( yVars(ctry+ 2,:), 'wpthlpy'   , 'Turbulent heat flux'      , 'K m/s'     , 't0mt' )
-      call ncinfo( yVars(ctry+ 3,:), 'wthly'     , 'Kinematic heat flux'      , 'K m/s'     , 't0mt' )
-      call ncinfo( yVars(ctry+ 4,:), 'thlsgsy'   , 'SGS heat flux'            , 'K m/s'     , 't0mt' )
+      call ncinfo( yVars(ctry+ 1,:), 'thl'      , 'Temperature'              , 'K'         , 't0tt' )
+      call ncinfo( yVars(ctry+ 2,:), 'wpthlp'   , 'Turbulent heat flux'      , 'K m/s'     , 't0mt' )
+      call ncinfo( yVars(ctry+ 3,:), 'wthl'     , 'Advective heat flux'      , 'K m/s'     , 't0mt' )
+      call ncinfo( yVars(ctry+ 4,:), 'thlsgs'   , 'SGS heat flux'            , 'K m/s'     , 't0mt' )
       ctry = ctry+4
     end subroutine stats_allocate_yavg_temp
 
@@ -1045,10 +1045,10 @@ module stats
       allocate(wqtyk(ib:ie,kb:ke))
       allocate(qtyk(ib:ie,kb:ke))
       allocate(qtsgsy(ib:ie,kb:ke))
-      call ncinfo( yVars(ctry+ 1,:), 'qty'       , 'Moisture'                 , 'kg/kg'     , 't0tt' )
-      call ncinfo( yVars(ctry+ 2,:), 'wpqtpy'    , 'Turbulent moisture flux'  , 'kg m/kg s' , 't0mt' )
-      call ncinfo( yVars(ctry+ 3,:), 'wqty'      , 'Kinematic moisture flux'  , 'kg m/kg s' , 't0mt' )
-      call ncinfo( yVars(ctry+ 4,:), 'qtsgsy'    , 'SGS moisture flux'        , 'kg m/kg s' , 't0mt' )
+      call ncinfo( yVars(ctry+ 1,:), 'qt'       , 'Moisture'                 , 'kg/kg'     , 't0tt' )
+      call ncinfo( yVars(ctry+ 2,:), 'wpqtp'    , 'Turbulent moisture flux'  , 'kg m/kg s' , 't0mt' )
+      call ncinfo( yVars(ctry+ 3,:), 'wqt'      , 'Advective moisture flux'  , 'kg m/kg s' , 't0mt' )
+      call ncinfo( yVars(ctry+ 4,:), 'qtsgs'    , 'SGS moisture flux'        , 'kg m/kg s' , 't0mt' )
       ctry = ctry+4
     end subroutine stats_allocate_yavg_moist
 
@@ -1066,13 +1066,13 @@ module stats
       allocate(svsgsy(ib:ie,kb:ke,nsv))
       do n = 1, nsv
         write (sid, '(I0)') n
-        svyname(n)     = 'sca'//trim(sid)//'y'                      ! sca1y       at n = 1
-        wpsvpyname(n)  = 'wpsca'//trim(sid)//'py'                   ! wpsca1py    at n = 1
-        wsvyname(n)    = 'wsca'//trim(sid)//'y'                     ! wsca1y      at n = 1
-        svsgsyname(n)  = 'sca'//trim(sid)//'sgsy'                   ! sca1sgsy    at n = 1
+        svyname(n)     = 's'//trim(sid)                      ! s1       at n = 1
+        wpsvpyname(n)  = 'wps'//trim(sid)//'p'               ! wps1p    at n = 1
+        wsvyname(n)    = 'ws'//trim(sid)                     ! ws1      at n = 1
+        svsgsyname(n)  = 's'//trim(sid)//'sgs'               ! s1sgs    at n = 1
         call ncinfo(yVars(ctry+n,:)      , trim(svyname(n))    , 'Concentration field '//trim(sid)   , 'g/m^3'  , 't0tt' )
         call ncinfo(yVars(ctry+nsv+n,:)  , trim(wpsvpyname(n)) , 'Turbulent scalar flux '//trim(sid) , 'g/m^2s' , 't0mt' )
-        call ncinfo(yVars(ctry+2*nsv+n,:), trim(wsvyname(n))   , 'Kinematic scalar flux '//trim(sid) , 'g/m^2s' , 't0mt' )
+        call ncinfo(yVars(ctry+2*nsv+n,:), trim(wsvyname(n))   , 'Advective scalar flux '//trim(sid) , 'g/m^2s' , 't0mt' )
         call ncinfo(yVars(ctry+3*nsv+n,:), trim(svsgsyname(n)) , 'SGS scalar flux '//trim(sid)       , 'g/m^2s' , 't0mt' )
       end do
       ctry = ctry+4*nsv
@@ -1320,52 +1320,52 @@ module stats
     subroutine stats_compute_xytavg_vel
       implicit none
       !> Means
-      call avexy_ibm(uxyt,ut(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
-      call avexy_ibm(vxyt,vt(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
-      call avexy_ibm(wxyt,wt(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
-      call avexy_ibm(pxyt,pt(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+      call spatial_avg(uxyt,ut(ib:ie,jb:je,kb:ke+kh),kb,ke,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
+      call spatial_avg(vxyt,vt(ib:ie,jb:je,kb:ke+kh),kb,ke,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
+      call spatial_avg(wxyt,wt(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+      call spatial_avg(pxyt,pt(ib:ie,jb:je,kb:ke+kh),kb,ke,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
 
       !> Turbulent fluxes
-      call avexy_ibm(upwpxytik,uwtik(ib:ie,jb:je,kb:ke+kh)-utik(ib:ie,jb:je,kb:ke+kh)*wtik(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh),.false.)
-      call avexy_ibm(vpwpxytjk,vwtjk(ib:ie,jb:je,kb:ke+kh)-vtjk(ib:ie,jb:je,kb:ke+kh)*wtjk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIvw(ib:ie,jb:je,kb:ke+kh),IIvws(kb:ke+kh),.false.)
-      call avexy_ibm(upvpxytij,uvtij(ib:ie,jb:je,kb:ke+kh)-utij(ib:ie,jb:je,kb:ke+kh)*vtij(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIuv(ib:ie,jb:je,kb:ke+kh),IIuvs(kb:ke+kh),.false.)
+      call spatial_avg(upwpxytik,uwtik(ib:ie,jb:je,kb:ke+kh)-utik(ib:ie,jb:je,kb:ke+kh)*wtik(ib:ie,jb:je,kb:ke+kh),kb,ke,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh),.false.)
+      call spatial_avg(vpwpxytjk,vwtjk(ib:ie,jb:je,kb:ke+kh)-vtjk(ib:ie,jb:je,kb:ke+kh)*wtjk(ib:ie,jb:je,kb:ke+kh),kb,ke,IIvw(ib:ie,jb:je,kb:ke+kh),IIvws(kb:ke+kh),.false.)
+      call spatial_avg(upvpxytij,uvtij(ib:ie,jb:je,kb:ke+kh)-utij(ib:ie,jb:je,kb:ke+kh)*vtij(ib:ie,jb:je,kb:ke+kh),kb,ke,IIuv(ib:ie,jb:je,kb:ke+kh),IIuvs(kb:ke+kh),.false.)
 
       !> Advective fluxes
-      call avexy_ibm(uwxytik,utik(ib:ie,jb:je,kb:ke+kh)*wtik(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh),.false.)
-      call avexy_ibm(vwxytjk,vtjk(ib:ie,jb:je,kb:ke+kh)*wtjk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIvw(ib:ie,jb:je,kb:ke+kh),IIvws(kb:ke+kh),.false.)
-      call avexy_ibm(uvxytij,utij(ib:ie,jb:je,kb:ke+kh)*vtij(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIuv(ib:ie,jb:je,kb:ke+kh),IIuvs(kb:ke+kh),.false.)
-      call avexy_ibm(uuxyti,ut(ib:ie,jb:je,kb:ke+kh)*ut(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
-      call avexy_ibm(vvxytj,vt(ib:ie,jb:je,kb:ke+kh)*vt(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
-      call avexy_ibm(wwxytk,wt(ib:ie,jb:je,kb:ke+kh)*wt(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+      call spatial_avg(uwxytik,utik(ib:ie,jb:je,kb:ke+kh)*wtik(ib:ie,jb:je,kb:ke+kh),kb,ke,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh),.false.)
+      call spatial_avg(vwxytjk,vtjk(ib:ie,jb:je,kb:ke+kh)*wtjk(ib:ie,jb:je,kb:ke+kh),kb,ke,IIvw(ib:ie,jb:je,kb:ke+kh),IIvws(kb:ke+kh),.false.)
+      call spatial_avg(uvxytij,utij(ib:ie,jb:je,kb:ke+kh)*vtij(ib:ie,jb:je,kb:ke+kh),kb,ke,IIuv(ib:ie,jb:je,kb:ke+kh),IIuvs(kb:ke+kh),.false.)
+      call spatial_avg(uuxyti,ut(ib:ie,jb:je,kb:ke+kh)*ut(ib:ie,jb:je,kb:ke+kh),kb,ke,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
+      call spatial_avg(vvxytj,vt(ib:ie,jb:je,kb:ke+kh)*vt(ib:ie,jb:je,kb:ke+kh),kb,ke,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
+      call spatial_avg(wwxytk,wt(ib:ie,jb:je,kb:ke+kh)*wt(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
 
       !> Variances and TKE
-      call avexy_ibm(upupxytc,uutc(ib:ie,jb:je,kb:ke+kh)-utc(ib:ie,jb:je,kb:ke+kh)*utc(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
-      call avexy_ibm(vpvpxytc,vvtc(ib:ie,jb:je,kb:ke+kh)-vtc(ib:ie,jb:je,kb:ke+kh)*vtc(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
-      call avexy_ibm(wpwpxytc,wwtc(ib:ie,jb:je,kb:ke+kh)-wtc(ib:ie,jb:je,kb:ke+kh)*wtc(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
-      call avexy_ibm(tkexytc,0.5*((wwtc(ib:ie,jb:je,kb:ke+kh)-wtc(ib:ie,jb:je,kb:ke+kh)*wtc(ib:ie,jb:je,kb:ke+kh))+(vvtc(ib:ie,jb:je,kb:ke+kh)-vtc(ib:ie,jb:je,kb:ke+kh)*vtc(ib:ie,jb:je,kb:ke+kh))+(uutc(ib:ie,jb:je,kb:ke+kh)-utc(ib:ie,jb:je,kb:ke+kh)*utc(ib:ie,jb:je,kb:ke+kh))),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+      call spatial_avg(upupxytc,uutc(ib:ie,jb:je,kb:ke+kh)-utc(ib:ie,jb:je,kb:ke+kh)*utc(ib:ie,jb:je,kb:ke+kh),kb,ke,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+      call spatial_avg(vpvpxytc,vvtc(ib:ie,jb:je,kb:ke+kh)-vtc(ib:ie,jb:je,kb:ke+kh)*vtc(ib:ie,jb:je,kb:ke+kh),kb,ke,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+      call spatial_avg(wpwpxytc,wwtc(ib:ie,jb:je,kb:ke+kh)-wtc(ib:ie,jb:je,kb:ke+kh)*wtc(ib:ie,jb:je,kb:ke+kh),kb,ke,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+      call spatial_avg(tkexytc,0.5*((wwtc(ib:ie,jb:je,kb:ke+kh)-wtc(ib:ie,jb:je,kb:ke+kh)*wtc(ib:ie,jb:je,kb:ke+kh))+(vvtc(ib:ie,jb:je,kb:ke+kh)-vtc(ib:ie,jb:je,kb:ke+kh)*vtc(ib:ie,jb:je,kb:ke+kh))+(uutc(ib:ie,jb:je,kb:ke+kh)-utc(ib:ie,jb:je,kb:ke+kh)*utc(ib:ie,jb:je,kb:ke+kh))),kb,ke,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
 
       !> SGS fluxes
-      call avexy_ibm(usgsxyt,usgst(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh),.false.)
-      call avexy_ibm(vsgsxyt,vsgst(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIvw(ib:ie,jb:je,kb:ke+kh),IIvws(kb:ke+kh),.false.)
-      call avexy_ibm(wsgsxyt,wsgst(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+      call spatial_avg(usgsxyt,usgst(ib:ie,jb:je,kb:ke+kh),kb,ke,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh),.false.)
+      call spatial_avg(vsgsxyt,vsgst(ib:ie,jb:je,kb:ke+kh),kb,ke,IIvw(ib:ie,jb:je,kb:ke+kh),IIvws(kb:ke+kh),.false.)
+      call spatial_avg(wsgsxyt,wsgst(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
     end subroutine stats_compute_xytavg_vel
 
     subroutine stats_compute_xytavg_temp
       implicit none
-      call avexy_ibm(thlxyt,thlt(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
-      call avexy_ibm(wpthlpxytk,wthltk(ib:ie,jb:je,kb:ke+kh)-wt(ib:ie,jb:je,kb:ke+kh)*thltk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
-      call avexy_ibm(wthlxytk,wt(ib:ie,jb:je,kb:ke+kh)*thltk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
-      call avexy_ibm(thlpthlpxyt,thlthlt(ib:ie,jb:je,kb:ke+kh)-thlt(ib:ie,jb:je,kb:ke+kh)*thlt(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
-      call avexy_ibm(thlsgsxyt,thlsgst(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+      call spatial_avg(thlxyt,thlt(ib:ie,jb:je,kb:ke+kh),kb,ke,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+      call spatial_avg(wpthlpxytk,wthltk(ib:ie,jb:je,kb:ke+kh)-wt(ib:ie,jb:je,kb:ke+kh)*thltk(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+      call spatial_avg(wthlxytk,wt(ib:ie,jb:je,kb:ke+kh)*thltk(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+      call spatial_avg(thlpthlpxyt,thlthlt(ib:ie,jb:je,kb:ke+kh)-thlt(ib:ie,jb:je,kb:ke+kh)*thlt(ib:ie,jb:je,kb:ke+kh),kb,ke,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+      call spatial_avg(thlsgsxyt,thlsgst(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
     end subroutine stats_compute_xytavg_temp
 
     subroutine stats_compute_xytavg_moist
       implicit none
-      call avexy_ibm(qtxyt,qtt(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
-      call avexy_ibm(wpqtpxytk,wqttk(ib:ie,jb:je,kb:ke+kh)-wt(ib:ie,jb:je,kb:ke+kh)*qttk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
-      call avexy_ibm(wqtxytk,wt(ib:ie,jb:je,kb:ke+kh)*qttk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
-      call avexy_ibm(qtpqtpxyt,qtqtt(ib:ie,jb:je,kb:ke+kh)-qtt(ib:ie,jb:je,kb:ke+kh)*qtt(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
-      call avexy_ibm(qtsgsxyt,qtsgst(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+      call spatial_avg(qtxyt,qtt(ib:ie,jb:je,kb:ke+kh),kb,ke,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+      call spatial_avg(wpqtpxytk,wqttk(ib:ie,jb:je,kb:ke+kh)-wt(ib:ie,jb:je,kb:ke+kh)*qttk(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+      call spatial_avg(wqtxytk,wt(ib:ie,jb:je,kb:ke+kh)*qttk(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+      call spatial_avg(qtpqtpxyt,qtqtt(ib:ie,jb:je,kb:ke+kh)-qtt(ib:ie,jb:je,kb:ke+kh)*qtt(ib:ie,jb:je,kb:ke+kh),kb,ke,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+      call spatial_avg(qtsgsxyt,qtsgst(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
     end subroutine stats_compute_xytavg_moist
 
 
@@ -1373,25 +1373,25 @@ module stats
     subroutine stats_compute_xyavg_vel
       implicit none
       !> Mean
-      call avexy_ibm(uxy,um(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
-      call avexy_ibm(vxy,vm(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
-      call avexy_ibm(wxy,wm(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
-      call avexy_ibm(pxy,pres0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+      call spatial_avg(uxy,um(ib:ie,jb:je,kb:ke+kh),kb,ke,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
+      call spatial_avg(vxy,vm(ib:ie,jb:je,kb:ke+kh),kb,ke,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
+      call spatial_avg(wxy,wm(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+      call spatial_avg(pxy,pres0(ib:ie,jb:je,kb:ke+kh),kb,ke,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
 
       !> Advective fluxes and some necesseary mean
-      call avexy_ibm(uwxyik,uik(ib:ie,jb:je,kb:ke+kh)*wik(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh),.true.)
-      call avexy_ibm(uxyik,uik(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh),.true.)
-      call avexy_ibm(wxyik,wik(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh),.true.)
-      call avexy_ibm(vwxyjk,vjk(ib:ie,jb:je,kb:ke+kh)*wjk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIvw(ib:ie,jb:je,kb:ke+kh),IIvws(kb:ke+kh),.true.)
-      call avexy_ibm(vxyjk,vjk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIvw(ib:ie,jb:je,kb:ke+kh),IIvws(kb:ke+kh),.true.)
-      call avexy_ibm(wxyjk,wjk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIvw(ib:ie,jb:je,kb:ke+kh),IIvws(kb:ke+kh),.true.)
-      call avexy_ibm(uvxyij,uij(ib:ie,jb:je,kb:ke+kh)*vij(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIuv(ib:ie,jb:je,kb:ke+kh),IIuvs(kb:ke+kh),.true.)
-      call avexy_ibm(uxyij,uij(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIuv(ib:ie,jb:je,kb:ke+kh),IIuvs(kb:ke+kh),.true.)
-      call avexy_ibm(vxyij,vij(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIuv(ib:ie,jb:je,kb:ke+kh),IIuvs(kb:ke+kh),.true.)
+      call spatial_avg(uwxyik,uik(ib:ie,jb:je,kb:ke+kh)*wik(ib:ie,jb:je,kb:ke+kh),kb,ke,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh),.true.)
+      call spatial_avg(uxyik,uik(ib:ie,jb:je,kb:ke+kh),kb,ke,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh),.true.)
+      call spatial_avg(wxyik,wik(ib:ie,jb:je,kb:ke+kh),kb,ke,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh),.true.)
+      call spatial_avg(vwxyjk,vjk(ib:ie,jb:je,kb:ke+kh)*wjk(ib:ie,jb:je,kb:ke+kh),kb,ke,IIvw(ib:ie,jb:je,kb:ke+kh),IIvws(kb:ke+kh),.true.)
+      call spatial_avg(vxyjk,vjk(ib:ie,jb:je,kb:ke+kh),kb,ke,IIvw(ib:ie,jb:je,kb:ke+kh),IIvws(kb:ke+kh),.true.)
+      call spatial_avg(wxyjk,wjk(ib:ie,jb:je,kb:ke+kh),kb,ke,IIvw(ib:ie,jb:je,kb:ke+kh),IIvws(kb:ke+kh),.true.)
+      call spatial_avg(uvxyij,uij(ib:ie,jb:je,kb:ke+kh)*vij(ib:ie,jb:je,kb:ke+kh),kb,ke,IIuv(ib:ie,jb:je,kb:ke+kh),IIuvs(kb:ke+kh),.true.)
+      call spatial_avg(uxyij,uij(ib:ie,jb:je,kb:ke+kh),kb,ke,IIuv(ib:ie,jb:je,kb:ke+kh),IIuvs(kb:ke+kh),.true.)
+      call spatial_avg(vxyij,vij(ib:ie,jb:je,kb:ke+kh),kb,ke,IIuv(ib:ie,jb:je,kb:ke+kh),IIuvs(kb:ke+kh),.true.)
 
-      call avexy_ibm(uuxyi,um(ib:ie,jb:je,kb:ke+kh)*um(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.true.)
-      call avexy_ibm(vvxyj,vm(ib:ie,jb:je,kb:ke+kh)*vm(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.true.)
-      call avexy_ibm(wwxyk,wm(ib:ie,jb:je,kb:ke+kh)*wm(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.true.)
+      call spatial_avg(uuxyi,um(ib:ie,jb:je,kb:ke+kh)*um(ib:ie,jb:je,kb:ke+kh),kb,ke,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.true.)
+      call spatial_avg(vvxyj,vm(ib:ie,jb:je,kb:ke+kh)*vm(ib:ie,jb:je,kb:ke+kh),kb,ke,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.true.)
+      call spatial_avg(wwxyk,wm(ib:ie,jb:je,kb:ke+kh)*wm(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.true.)
 
       !> Turbulent fluxes
       upwpxyik = uwxyik - uxyik*wxyik
@@ -1399,27 +1399,27 @@ module stats
       upvpxyij = uvxyij - uxyij*vxyij
 
       !> SGS fluxes
-      call avexy_ibm(usgsxy,usgs(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh),.false.)
-      call avexy_ibm(vsgsxy,vsgs(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIvw(ib:ie,jb:je,kb:ke+kh),IIvws(kb:ke+kh),.false.)
-      call avexy_ibm(wsgsxy,wsgs(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+      call spatial_avg(usgsxy,usgs(ib:ie,jb:je,kb:ke+kh),kb,ke,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh),.false.)
+      call spatial_avg(vsgsxy,vsgs(ib:ie,jb:je,kb:ke+kh),kb,ke,IIvw(ib:ie,jb:je,kb:ke+kh),IIvws(kb:ke+kh),.false.)
+      call spatial_avg(wsgsxy,wsgs(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
     end subroutine stats_compute_xyavg_vel
 
     subroutine stats_compute_xyavg_temp
       implicit none
-      call avexy_ibm(thlxy,thlm(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
-      call avexy_ibm(wthlxyk,wm(ib:ie,jb:je,kb:ke+kh)*thlk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.true.)
-      call avexy_ibm(thlxyk,thlk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.true.)
+      call spatial_avg(thlxy,thlm(ib:ie,jb:je,kb:ke+kh),kb,ke,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+      call spatial_avg(wthlxyk,wm(ib:ie,jb:je,kb:ke+kh)*thlk(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.true.)
+      call spatial_avg(thlxyk,thlk(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.true.)
       wpthlpxyk = wthlxyk - wxy*thlxyk
-      call avexy_ibm(thlsgsxy,thlsgs(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+      call spatial_avg(thlsgsxy,thlsgs(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
     end subroutine stats_compute_xyavg_temp
 
     subroutine stats_compute_xyavg_moist
       implicit none
-      call avexy_ibm(qtxy,qtm(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
-      call avexy_ibm(wqtxyk,wm(ib:ie,jb:je,kb:ke+kh)*qtk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.true.)
-      call avexy_ibm(qtxyk,qtk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.true.)
+      call spatial_avg(qtxy,qtm(ib:ie,jb:je,kb:ke+kh),kb,ke,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+      call spatial_avg(wqtxyk,wm(ib:ie,jb:je,kb:ke+kh)*qtk(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.true.)
+      call spatial_avg(qtxyk,qtk(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.true.)
       wpqtpxyk = wqtxyk - wxy*qtxyk
-      call avexy_ibm(qtsgsxy,qtsgs(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+      call spatial_avg(qtsgsxy,qtsgs(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
     end subroutine stats_compute_xyavg_moist
 
 
@@ -1427,71 +1427,71 @@ module stats
     subroutine stats_compute_ytavg_vel
       implicit none
       !> Mean
-      call avey_ibm(uyt,ut(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIu(ib:ie,jb:je,kb:ke),IIut(ib:ie,kb:ke))
-      call avey_ibm(vyt,vt(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIv(ib:ie,jb:je,kb:ke),IIvt(ib:ie,kb:ke))
-      call avey_ibm(wyt,wt(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
-      call avey_ibm(pyt,pt(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
+      call spatial_avg(uyt,ut(ib:ie,jb:je,kb:ke),IIu(ib:ie,jb:je,kb:ke),IIut)
+      call spatial_avg(vyt,vt(ib:ie,jb:je,kb:ke),IIv(ib:ie,jb:je,kb:ke),IIvt)
+      call spatial_avg(wyt,wt(ib:ie,jb:je,kb:ke),IIw(ib:ie,jb:je,kb:ke),IIwt)
+      call spatial_avg(pyt,pt(ib:ie,jb:je,kb:ke),IIc(ib:ie,jb:je,kb:ke),IIct)
 
       !> Turbulent fluxes
-      call avey_ibm(upwpytik,uwtik(ib:ie,jb:je,kb:ke)-utik(ib:ie,jb:je,kb:ke)*wtik(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIuw(ib:ie,jb:je,kb:ke),IIuwt(ib:ie,kb:ke))
+      call spatial_avg(upwpytik,uwtik(ib:ie,jb:je,kb:ke)-utik(ib:ie,jb:je,kb:ke)*wtik(ib:ie,jb:je,kb:ke),IIuw(ib:ie,jb:je,kb:ke),IIuwt)
       
       !> Advective fluxes
-      call avey_ibm(uwytik,utik(ib:ie,jb:je,kb:ke)*wtik(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIuw(ib:ie,jb:je,kb:ke),IIuwt(ib:ie,kb:ke))
+      call spatial_avg(uwytik,utik(ib:ie,jb:je,kb:ke)*wtik(ib:ie,jb:je,kb:ke),IIuw(ib:ie,jb:je,kb:ke),IIuwt)
 
       !> Variances
-      call avey_ibm(upupytc,uutc(ib:ie,jb:je,kb:ke)-utc(ib:ie,jb:je,kb:ke)*utc(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
-      call avey_ibm(vpvpytc,vvtc(ib:ie,jb:je,kb:ke)-vtc(ib:ie,jb:je,kb:ke)*vtc(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
-      call avey_ibm(wpwpytc,wwtc(ib:ie,jb:je,kb:ke)-wtc(ib:ie,jb:je,kb:ke)*wtc(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
+      call spatial_avg(upupytc,uutc(ib:ie,jb:je,kb:ke)-utc(ib:ie,jb:je,kb:ke)*utc(ib:ie,jb:je,kb:ke),IIc(ib:ie,jb:je,kb:ke),IIct)
+      call spatial_avg(vpvpytc,vvtc(ib:ie,jb:je,kb:ke)-vtc(ib:ie,jb:je,kb:ke)*vtc(ib:ie,jb:je,kb:ke),IIc(ib:ie,jb:je,kb:ke),IIct)
+      call spatial_avg(wpwpytc,wwtc(ib:ie,jb:je,kb:ke)-wtc(ib:ie,jb:je,kb:ke)*wtc(ib:ie,jb:je,kb:ke),IIc(ib:ie,jb:je,kb:ke),IIct)
 
       !> SGS fluxes
-      call avey_ibm(usgsyt,usgst(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIuw(ib:ie,jb:je,kb:ke),IIuwt(ib:ie,kb:ke))
-      call avey_ibm(wsgsyt,wsgst(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+      call spatial_avg(usgsyt,usgst(ib:ie,jb:je,kb:ke),IIuw(ib:ie,jb:je,kb:ke),IIuwt)
+      call spatial_avg(wsgsyt,wsgst(ib:ie,jb:je,kb:ke),IIw(ib:ie,jb:je,kb:ke),IIwt)
     end subroutine stats_compute_ytavg_vel
 
     subroutine stats_compute_ytavg_temp
       implicit none
-      call avey_ibm(thlyt,thlt(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
-      call avey_ibm(wpthlpytk,wthltk(ib:ie,jb:je,kb:ke)-wt(ib:ie,jb:je,kb:ke)*thltk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
-      call avey_ibm(wthlytk,wt(ib:ie,jb:je,kb:ke)*thltk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
-      call avey_ibm(thlpthlpyt,thlthlt(ib:ie,jb:je,kb:ke)-thlt(ib:ie,jb:je,kb:ke)*thlt(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
-      call avey_ibm(thlsgsyt,thlsgst(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+      call spatial_avg(thlyt,thlt(ib:ie,jb:je,kb:ke),IIc(ib:ie,jb:je,kb:ke),IIct)
+      call spatial_avg(wpthlpytk,wthltk(ib:ie,jb:je,kb:ke)-wt(ib:ie,jb:je,kb:ke)*thltk(ib:ie,jb:je,kb:ke),IIw(ib:ie,jb:je,kb:ke),IIwt)
+      call spatial_avg(wthlytk,wt(ib:ie,jb:je,kb:ke)*thltk(ib:ie,jb:je,kb:ke),IIw(ib:ie,jb:je,kb:ke),IIwt)
+      call spatial_avg(thlpthlpyt,thlthlt(ib:ie,jb:je,kb:ke)-thlt(ib:ie,jb:je,kb:ke)*thlt(ib:ie,jb:je,kb:ke),IIc(ib:ie,jb:je,kb:ke),IIct)
+      call spatial_avg(thlsgsyt,thlsgst(ib:ie,jb:je,kb:ke),IIw(ib:ie,jb:je,kb:ke),IIwt)
     end subroutine stats_compute_ytavg_temp
 
     subroutine stats_compute_ytavg_moist
       implicit none
-      call avey_ibm(qtyt,qtt(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
-      call avey_ibm(wpqtpytk,wqttk(ib:ie,jb:je,kb:ke)-wt(ib:ie,jb:je,kb:ke)*qttk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
-      call avey_ibm(wqtytk,wt(ib:ie,jb:je,kb:ke)*qttk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
-      call avey_ibm(qtpqtpyt,qtqtt(ib:ie,jb:je,kb:ke)-qtt(ib:ie,jb:je,kb:ke)*qtt(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
-      call avey_ibm(qtsgsyt,qtsgst(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+      call spatial_avg(qtyt,qtt(ib:ie,jb:je,kb:ke),IIc(ib:ie,jb:je,kb:ke),IIct)
+      call spatial_avg(wpqtpytk,wqttk(ib:ie,jb:je,kb:ke)-wt(ib:ie,jb:je,kb:ke)*qttk(ib:ie,jb:je,kb:ke),IIw(ib:ie,jb:je,kb:ke),IIwt)
+      call spatial_avg(wqtytk,wt(ib:ie,jb:je,kb:ke)*qttk(ib:ie,jb:je,kb:ke),IIw(ib:ie,jb:je,kb:ke),IIwt)
+      call spatial_avg(qtpqtpyt,qtqtt(ib:ie,jb:je,kb:ke)-qtt(ib:ie,jb:je,kb:ke)*qtt(ib:ie,jb:je,kb:ke),IIc(ib:ie,jb:je,kb:ke),IIct)
+      call spatial_avg(qtsgsyt,qtsgst(ib:ie,jb:je,kb:ke),IIw(ib:ie,jb:je,kb:ke),IIwt)
     end subroutine stats_compute_ytavg_moist
 
     subroutine stats_compute_ytavg_scalar
       implicit none
       integer :: n
       do n = 1, nsv
-        call avey_ibm(svyt(:,:,n),svt(ib:ie,jb:je,kb:ke,n),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
-        call avey_ibm(wpsvpytk(:,:,n),wsvtk(ib:ie,jb:je,kb:ke,n)-wt(ib:ie,jb:je,kb:ke)*svtk(ib:ie,jb:je,kb:ke,n),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
-        call avey_ibm(wsvytk(:,:,n),wt(ib:ie,jb:je,kb:ke)*svtk(ib:ie,jb:je,kb:ke,n),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
-        call avey_ibm(svpsvpyt(:,:,n),svsvt(ib:ie,jb:je,kb:ke,n)-svt(ib:ie,jb:je,kb:ke,n)*svt(ib:ie,jb:je,kb:ke,n),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
-        call avey_ibm(svsgsyt(:,:,n),svsgst(ib:ie,jb:je,kb:ke,n),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+        call spatial_avg(svyt(:,:,n),svt(ib:ie,jb:je,kb:ke,n),IIc(ib:ie,jb:je,kb:ke),IIct)
+        call spatial_avg(wpsvpytk(:,:,n),wsvtk(ib:ie,jb:je,kb:ke,n)-wt(ib:ie,jb:je,kb:ke)*svtk(ib:ie,jb:je,kb:ke,n),IIw(ib:ie,jb:je,kb:ke),IIwt)
+        call spatial_avg(wsvytk(:,:,n),wt(ib:ie,jb:je,kb:ke)*svtk(ib:ie,jb:je,kb:ke,n),IIw(ib:ie,jb:je,kb:ke),IIwt)
+        call spatial_avg(svpsvpyt(:,:,n),svsvt(ib:ie,jb:je,kb:ke,n)-svt(ib:ie,jb:je,kb:ke,n)*svt(ib:ie,jb:je,kb:ke,n),IIc(ib:ie,jb:je,kb:ke),IIct)
+        call spatial_avg(svsgsyt(:,:,n),svsgst(ib:ie,jb:je,kb:ke,n),IIw(ib:ie,jb:je,kb:ke),IIwt)
       end do
     end subroutine stats_compute_ytavg_scalar
 
 
-    !! ## %% Time and y averaging computations routines
+    !! ## %% y averaging computations routines
     subroutine stats_compute_yavg_vel
       implicit none
       !> Mean
-      call avey_ibm(uy,um(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIu(ib:ie,jb:je,kb:ke),IIut(ib:ie,kb:ke))
-      call avey_ibm(vy,vm(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIv(ib:ie,jb:je,kb:ke),IIvt(ib:ie,kb:ke))
-      call avey_ibm(wy,wm(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
-      call avey_ibm(py,pres0(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
+      call spatial_avg(uy,um(ib:ie,jb:je,kb:ke),IIu(ib:ie,jb:je,kb:ke),IIut)
+      call spatial_avg(vy,vm(ib:ie,jb:je,kb:ke),IIv(ib:ie,jb:je,kb:ke),IIvt)
+      call spatial_avg(wy,wm(ib:ie,jb:je,kb:ke),IIw(ib:ie,jb:je,kb:ke),IIwt)
+      call spatial_avg(py,pres0(ib:ie,jb:je,kb:ke),IIc(ib:ie,jb:je,kb:ke),IIct)
 
       !> Advective fluxes and some necesseary mean
-      call avey_ibm(uwyik,uik(ib:ie,jb:je,kb:ke)*wik(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIuw(ib:ie,jb:je,kb:ke),IIuwt(ib:ie,kb:ke))
-      call avey_ibm(uyik,uik(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIuw(ib:ie,jb:je,kb:ke),IIuwt(ib:ie,kb:ke))
-      call avey_ibm(wyik,wik(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIuw(ib:ie,jb:je,kb:ke),IIuwt(ib:ie,kb:ke))
+      call spatial_avg(uwyik,uik(ib:ie,jb:je,kb:ke)*wik(ib:ie,jb:je,kb:ke),IIuw(ib:ie,jb:je,kb:ke),IIuwt)
+      call spatial_avg(uyik,uik(ib:ie,jb:je,kb:ke),IIuw(ib:ie,jb:je,kb:ke),IIuwt)
+      call spatial_avg(wyik,wik(ib:ie,jb:je,kb:ke),IIuw(ib:ie,jb:je,kb:ke),IIuwt)
 
       !> Turbulent fluxes
       upwpyik = uwyik - uyik*wyik
@@ -1500,53 +1500,53 @@ module stats
       endwhere
 
       !> SGS fluxes
-      call avey_ibm(usgsy,usgs(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIuw(ib:ie,jb:je,kb:ke),IIuwt(ib:ie,kb:ke))
-      call avey_ibm(wsgsy,wsgs(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+      call spatial_avg(usgsy,usgs(ib:ie,jb:je,kb:ke),IIuw(ib:ie,jb:je,kb:ke),IIuwt)
+      call spatial_avg(wsgsy,wsgs(ib:ie,jb:je,kb:ke),IIw(ib:ie,jb:je,kb:ke),IIwt)
     end subroutine stats_compute_yavg_vel
 
     subroutine stats_compute_yavg_temp
       implicit none
-      call avey_ibm(thly,thlm(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
-      call avey_ibm(wthlyk,wm(ib:ie,jb:je,kb:ke)*thlk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
-      call avey_ibm(thlyk,thlk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+      call spatial_avg(thly,thlm(ib:ie,jb:je,kb:ke),IIc(ib:ie,jb:je,kb:ke),IIct)
+      call spatial_avg(wthlyk,wm(ib:ie,jb:je,kb:ke)*thlk(ib:ie,jb:je,kb:ke),IIw(ib:ie,jb:je,kb:ke),IIwt)
+      call spatial_avg(thlyk,thlk(ib:ie,jb:je,kb:ke),IIw(ib:ie,jb:je,kb:ke),IIwt)
       
       wpthlpyk = wthlyk - wy*thlyk
       where (IIwt==0)
         wpthlpyk  = -999.0
       endwhere
       
-      call avey_ibm(thlsgsy,thlsgs(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+      call spatial_avg(thlsgsy,thlsgs(ib:ie,jb:je,kb:ke),IIw(ib:ie,jb:je,kb:ke),IIwt)
     end subroutine stats_compute_yavg_temp
 
     subroutine stats_compute_yavg_moist
       implicit none
-      call avey_ibm(qty,qtm(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
-      call avey_ibm(wqtyk,wm(ib:ie,jb:je,kb:ke)*qtk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
-      call avey_ibm(qtyk,thlk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+      call spatial_avg(qty,qtm(ib:ie,jb:je,kb:ke),IIc(ib:ie,jb:je,kb:ke),IIct)
+      call spatial_avg(wqtyk,wm(ib:ie,jb:je,kb:ke)*qtk(ib:ie,jb:je,kb:ke),IIw(ib:ie,jb:je,kb:ke),IIwt)
+      call spatial_avg(qtyk,thlk(ib:ie,jb:je,kb:ke),IIw(ib:ie,jb:je,kb:ke),IIwt)
       
       wpqtpyk = wqtyk - wy*qtyk
       where (IIwt==0)
         wpqtpyk  = -999.0
       endwhere
 
-      call avey_ibm(qtsgsy,qtsgs(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+      call spatial_avg(qtsgsy,qtsgs(ib:ie,jb:je,kb:ke),IIw(ib:ie,jb:je,kb:ke),IIwt)
     end subroutine stats_compute_yavg_moist
 
     subroutine stats_compute_yavg_scalar
       implicit none
       integer :: n
       do n = 1, nsv
-        call avey_ibm(svy(:,:,n),svm(ib:ie,jb:je,kb:ke,n),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
+        call spatial_avg(svy(:,:,n),svm(ib:ie,jb:je,kb:ke,n),IIc(ib:ie,jb:je,kb:ke),IIct)
 
-        call avey_ibm(wsvyk,wm(ib:ie,jb:je,kb:ke)*svk(ib:ie,jb:je,kb:ke,n),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
-        call avey_ibm(svyk,svk(ib:ie,jb:je,kb:ke,n),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+        call spatial_avg(wsvyk(:,:,n),wm(ib:ie,jb:je,kb:ke)*svk(ib:ie,jb:je,kb:ke,n),IIw(ib:ie,jb:je,kb:ke),IIwt)
+        call spatial_avg(svyk(:,:,n),svk(ib:ie,jb:je,kb:ke,n),IIw(ib:ie,jb:je,kb:ke),IIwt)
 
         wpsvpyk(:,:,n) = wsvyk(:,:,n) - wy*svyk(:,:,n)
         where (IIwt==0)
           wpsvpyk(:,:,n)  = -999.0
         endwhere
 
-        call avey_ibm(svsgsy(:,:,n),svsgs(ib:ie,jb:je,kb:ke,n),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+        call spatial_avg(svsgsy(:,:,n),svsgs(ib:ie,jb:je,kb:ke,n),IIw(ib:ie,jb:je,kb:ke),IIwt)
       end do
     end subroutine stats_compute_yavg_scalar
 
@@ -1584,39 +1584,39 @@ module stats
     !! ## %% Time averaged statistics writing routines 
     subroutine stats_write_tavg_vel
       implicit none
-      call writestat_nc(ncidt, 'ut', ut(:,:,kb:ke), nrect, xdim, ydim, zdim)
-      call writestat_nc(ncidt, 'vt', vt(:,:,kb:ke), nrect, xdim, ydim, zdim)
-      call writestat_nc(ncidt, 'wt', wt(:,:,kb:ke), nrect, xdim, ydim, zdim)
-      call writestat_nc(ncidt, 'pt', pt(:,:,kb:ke), nrect, xdim, ydim, zdim)
+      call writestat_nc(ncidt, 'u', ut(:,:,kb:ke), nrect, xdim, ydim, zdim)
+      call writestat_nc(ncidt, 'v', vt(:,:,kb:ke), nrect, xdim, ydim, zdim)
+      call writestat_nc(ncidt, 'w', wt(:,:,kb:ke), nrect, xdim, ydim, zdim)
+      call writestat_nc(ncidt, 'p', pt(:,:,kb:ke), nrect, xdim, ydim, zdim)
 
-      call writestat_nc(ncidt, 'upwpt', uwtik(:,:,kb:ke) - utik(:,:,kb:ke)*wtik(:,:,kb:ke), nrect, xdim, ydim, zdim)
-      call writestat_nc(ncidt, 'vpwpt', vwtjk(:,:,kb:ke) - vtjk(:,:,kb:ke)*wtjk(:,:,kb:ke), nrect, xdim, ydim, zdim)
-      call writestat_nc(ncidt, 'upvpt', uvtij(:,:,kb:ke) - utij(:,:,kb:ke)*vtij(:,:,kb:ke), nrect, xdim, ydim, zdim)
+      call writestat_nc(ncidt, 'upwp', uwtik(:,:,kb:ke) - utik(:,:,kb:ke)*wtik(:,:,kb:ke), nrect, xdim, ydim, zdim)
+      call writestat_nc(ncidt, 'vpwp', vwtjk(:,:,kb:ke) - vtjk(:,:,kb:ke)*wtjk(:,:,kb:ke), nrect, xdim, ydim, zdim)
+      call writestat_nc(ncidt, 'upvp', uvtij(:,:,kb:ke) - utij(:,:,kb:ke)*vtij(:,:,kb:ke), nrect, xdim, ydim, zdim)
       
-      call writestat_nc(ncidt, 'upuptc', uutc(:,:,kb:ke)-utc(:,:,kb:ke)*utc(:,:,kb:ke), nrect, xdim, ydim, zdim)
-      call writestat_nc(ncidt, 'vpvptc', vvtc(:,:,kb:ke)-vtc(:,:,kb:ke)*vtc(:,:,kb:ke), nrect, xdim, ydim, zdim)
-      call writestat_nc(ncidt, 'wpwptc', wwtc(:,:,kb:ke)-wtc(:,:,kb:ke)*wtc(:,:,kb:ke), nrect, xdim, ydim, zdim)
-      call writestat_nc(ncidt, 'tketc' , 0.5*( (uutc(:,:,kb:ke)-utc(:,:,kb:ke)*utc(:,:,kb:ke)) + (vvtc(:,:,kb:ke)-vtc(:,:,kb:ke)*vtc(:,:,kb:ke)) + (wwtc(:,:,kb:ke)-wtc(:,:,kb:ke)*wtc(:,:,kb:ke)) ) , nrect, xdim, ydim, zdim)
+      call writestat_nc(ncidt, 'upup', uutc(:,:,kb:ke)-utc(:,:,kb:ke)*utc(:,:,kb:ke), nrect, xdim, ydim, zdim)
+      call writestat_nc(ncidt, 'vpvp', vvtc(:,:,kb:ke)-vtc(:,:,kb:ke)*vtc(:,:,kb:ke), nrect, xdim, ydim, zdim)
+      call writestat_nc(ncidt, 'wpwp', wwtc(:,:,kb:ke)-wtc(:,:,kb:ke)*wtc(:,:,kb:ke), nrect, xdim, ydim, zdim)
+      call writestat_nc(ncidt, 'tke' , 0.5*( (uutc(:,:,kb:ke)-utc(:,:,kb:ke)*utc(:,:,kb:ke)) + (vvtc(:,:,kb:ke)-vtc(:,:,kb:ke)*vtc(:,:,kb:ke)) + (wwtc(:,:,kb:ke)-wtc(:,:,kb:ke)*wtc(:,:,kb:ke)) ) , nrect, xdim, ydim, zdim)
 
-      call writestat_nc(ncidt, 'usgst', usgst(:,:,kb:ke), nrect, xdim, ydim, zdim)
-      call writestat_nc(ncidt, 'vsgst', vsgst(:,:,kb:ke), nrect, xdim, ydim, zdim)
-      call writestat_nc(ncidt, 'wsgst', wsgst(:,:,kb:ke), nrect, xdim, ydim, zdim)
+      call writestat_nc(ncidt, 'usgs', usgst(:,:,kb:ke), nrect, xdim, ydim, zdim)
+      call writestat_nc(ncidt, 'vsgs', vsgst(:,:,kb:ke), nrect, xdim, ydim, zdim)
+      call writestat_nc(ncidt, 'wsgs', wsgst(:,:,kb:ke), nrect, xdim, ydim, zdim)
     end subroutine stats_write_tavg_vel
 
     subroutine stats_write_tavg_temp
       implicit none
-      call writestat_nc(ncidt, 'thlt'     , thlt(:,:,kb:ke)                                     , nrect, xdim, ydim, zdim)
-      call writestat_nc(ncidt, 'wpthlpt'  , wthltk(:,:,kb:ke) - wt(:,:,kb:ke)*thltk(:,:,kb:ke)  , nrect, xdim, ydim, zdim)
-      call writestat_nc(ncidt, 'thlpthlpt', thlthlt(:,:,kb:ke) - thlt(:,:,kb:ke)*thlt(:,:,kb:ke), nrect, xdim, ydim, zdim)
-      call writestat_nc(ncidt, 'thlsgst'  , thlsgst(:,:,kb:ke)                                  , nrect, xdim, ydim, zdim)
+      call writestat_nc(ncidt, 'thl'     , thlt(:,:,kb:ke)                                     , nrect, xdim, ydim, zdim)
+      call writestat_nc(ncidt, 'wpthlp'  , wthltk(:,:,kb:ke) - wt(:,:,kb:ke)*thltk(:,:,kb:ke)  , nrect, xdim, ydim, zdim)
+      call writestat_nc(ncidt, 'thlpthlp', thlthlt(:,:,kb:ke) - thlt(:,:,kb:ke)*thlt(:,:,kb:ke), nrect, xdim, ydim, zdim)
+      call writestat_nc(ncidt, 'thlsgs'  , thlsgst(:,:,kb:ke)                                  , nrect, xdim, ydim, zdim)
     end subroutine stats_write_tavg_temp
 
     subroutine stats_write_tavg_moist
       implicit none
-      call writestat_nc(ncidt, 'qtt'    , qtt(:,:,kb:ke)                                  , nrect, xdim, ydim, zdim)
-      call writestat_nc(ncidt, 'wpqtpt' , wqttk(:,:,kb:ke) - wt(:,:,kb:ke)*qttk(:,:,kb:ke), nrect, xdim, ydim, zdim)
-      call writestat_nc(ncidt, 'qtpqtpt', qtqtt(:,:,kb:ke) - qtt(:,:,kb:ke)*qtt(:,:,kb:ke), nrect, xdim, ydim, zdim)
-      call writestat_nc(ncidt, 'qtsgst' , qtsgst(:,:,kb:ke)                               , nrect, xdim, ydim, zdim)
+      call writestat_nc(ncidt, 'qt'    , qtt(:,:,kb:ke)                                  , nrect, xdim, ydim, zdim)
+      call writestat_nc(ncidt, 'wpqtp' , wqttk(:,:,kb:ke) - wt(:,:,kb:ke)*qttk(:,:,kb:ke), nrect, xdim, ydim, zdim)
+      call writestat_nc(ncidt, 'qtpqtp', qtqtt(:,:,kb:ke) - qtt(:,:,kb:ke)*qtt(:,:,kb:ke), nrect, xdim, ydim, zdim)
+      call writestat_nc(ncidt, 'qtsgs' , qtsgst(:,:,kb:ke)                               , nrect, xdim, ydim, zdim)
     end subroutine stats_write_tavg_moist
 
     subroutine stats_write_tavg_scalar
@@ -1632,124 +1632,124 @@ module stats
 
     subroutine stats_write_tavg_PSS
       implicit none
-      call writestat_nc(ncidt, 'PSSt', PSSt(:,:,kb:ke), nrect, xdim, ydim, zdim)
+      call writestat_nc(ncidt, 'PSS', PSSt(:,:,kb:ke), nrect, xdim, ydim, zdim)
     end subroutine stats_write_tavg_PSS
 
 
     !! ## %% Time, y and x averaged statistics writing routines 
     subroutine stats_write_xytavg_vel
       implicit none
-      call writestat_nc(ncidxyt, 'uxyt'       , uxyt(kb:ke)       , nrecxyt, zdim)
-      call writestat_nc(ncidxyt, 'vxyt'       , vxyt(kb:ke)       , nrecxyt, zdim)
-      call writestat_nc(ncidxyt, 'wxyt'       , wxyt(kb:ke)       , nrecxyt, zdim)
-      call writestat_nc(ncidxyt, 'pxyt'       , pxyt(kb:ke)       , nrecxyt, zdim)
-      call writestat_nc(ncidxyt, 'upwpxyt'    , upwpxytik(kb:ke)  , nrecxyt, zdim)
-      call writestat_nc(ncidxyt, 'vpwpxyt'    , vpwpxytjk(kb:ke)  , nrecxyt, zdim)
-      call writestat_nc(ncidxyt, 'upvpxyt'    , upvpxytij(kb:ke)  , nrecxyt, zdim)
-      call writestat_nc(ncidxyt, 'uwxyt'      , uwxytik(kb:ke)    , nrecxyt, zdim)
-      call writestat_nc(ncidxyt, 'vwxyt'      , vwxytjk(kb:ke)    , nrecxyt, zdim)
-      call writestat_nc(ncidxyt, 'uvxyt'      , uvxytij(kb:ke)    , nrecxyt, zdim)
-      call writestat_nc(ncidxyt, 'uuxyt'      , uuxyti(kb:ke)     , nrecxyt, zdim)
-      call writestat_nc(ncidxyt, 'vvxyt'      , vvxytj(kb:ke)     , nrecxyt, zdim)
-      call writestat_nc(ncidxyt, 'wwxyt'      , wwxytk(kb:ke)     , nrecxyt, zdim)
-      call writestat_nc(ncidxyt, 'upuptxyc'   , upupxytc(kb:ke)   , nrecxyt, zdim)
-      call writestat_nc(ncidxyt, 'vpvptxyc'   , vpvpxytc(kb:ke)   , nrecxyt, zdim)
-      call writestat_nc(ncidxyt, 'wpwptxyc'   , wpwpxytc(kb:ke)   , nrecxyt, zdim)
-      call writestat_nc(ncidxyt, 'tketxyc'    , tkexytc(kb:ke)    , nrecxyt, zdim)
-      call writestat_nc(ncidxyt, 'usgsxyt'    , usgsxyt(kb:ke)    , nrecxyt, zdim)
-      call writestat_nc(ncidxyt, 'vsgsxyt'    , vsgsxyt(kb:ke)    , nrecxyt, zdim)
-      call writestat_nc(ncidxyt, 'wsgsxyt'    , wsgsxyt(kb:ke)    , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'u'       , uxyt(kb:ke)       , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'v'       , vxyt(kb:ke)       , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'w'       , wxyt(kb:ke)       , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'p'       , pxyt(kb:ke)       , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'upwp'    , upwpxytik(kb:ke)  , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'vpwp'    , vpwpxytjk(kb:ke)  , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'upvp'    , upvpxytij(kb:ke)  , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'uw'      , uwxytik(kb:ke)    , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'vw'      , vwxytjk(kb:ke)    , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'uv'      , uvxytij(kb:ke)    , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'uu'      , uuxyti(kb:ke)     , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'vv'      , vvxytj(kb:ke)     , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'ww'      , wwxytk(kb:ke)     , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'upup'    , upupxytc(kb:ke)   , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'vpvp'    , vpvpxytc(kb:ke)   , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'wpwp'    , wpwpxytc(kb:ke)   , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'tke'     , tkexytc(kb:ke)    , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'usgs'    , usgsxyt(kb:ke)    , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'vsgs'    , vsgsxyt(kb:ke)    , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'wsgs'    , wsgsxyt(kb:ke)    , nrecxyt, zdim)
     end subroutine stats_write_xytavg_vel
     
     subroutine stats_write_xytavg_temp
       implicit none
-      call writestat_nc(ncidxyt, 'thlxyt'     , thlxyt(kb:ke)     , nrecxyt, zdim)
-      call writestat_nc(ncidxyt, 'wpthlpxyt'  , wpthlpxytk(kb:ke) , nrecxyt, zdim)
-      call writestat_nc(ncidxyt, 'wthlxyt'    , wthlxytk(kb:ke)   , nrecxyt, zdim)
-      call writestat_nc(ncidxyt, 'thlpthlptxy', thlpthlpxyt(kb:ke), nrecxyt, zdim)
-      call writestat_nc(ncidxyt, 'thlsgsxyt'  , thlsgsxyt(kb:ke)  , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'thl'     , thlxyt(kb:ke)     , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'wpthlp'  , wpthlpxytk(kb:ke) , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'wthl'    , wthlxytk(kb:ke)   , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'thlpthlp', thlpthlpxyt(kb:ke), nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'thlsgs'  , thlsgsxyt(kb:ke)  , nrecxyt, zdim)
     end subroutine stats_write_xytavg_temp
     
     subroutine stats_write_xytavg_moist
       implicit none
-      call writestat_nc(ncidxyt, 'qtxyt'      , qtxyt(kb:ke)      , nrecxyt, zdim)
-      call writestat_nc(ncidxyt, 'wpqtpxyt'   , wpqtpxytk(kb:ke)  , nrecxyt, zdim)
-      call writestat_nc(ncidxyt, 'wqtxyt'     , wqtxytk(kb:ke)    , nrecxyt, zdim)
-      call writestat_nc(ncidxyt, 'qtpqtptxy'  , qtpqtpxyt(kb:ke)  , nrecxyt, zdim)
-      call writestat_nc(ncidxyt, 'qtsgsxyt'   , qtsgsxyt(kb:ke)   , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'qt'      , qtxyt(kb:ke)      , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'wpqtp'   , wpqtpxytk(kb:ke)  , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'wqt'     , wqtxytk(kb:ke)    , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'qtpqtp'  , qtpqtpxyt(kb:ke)  , nrecxyt, zdim)
+      call writestat_nc(ncidxyt, 'qtsgs'   , qtsgsxyt(kb:ke)   , nrecxyt, zdim)
     end subroutine stats_write_xytavg_moist
 
 
     !! ## %% y and x averaged statistics writing routines 
     subroutine stats_write_xyavg_vel
       implicit none
-      call writestat_nc(ncidxy, 'uxy'       , uxy(kb:ke)       , nrecxy, zdim)
-      call writestat_nc(ncidxy, 'vxy'       , vxy(kb:ke)       , nrecxy, zdim)
-      call writestat_nc(ncidxy, 'wxy'       , wxy(kb:ke)       , nrecxy, zdim)
-      call writestat_nc(ncidxy, 'pxy'       , pxy(kb:ke)       , nrecxy, zdim)
-      call writestat_nc(ncidxy, 'upwpxy'    , upwpxyik(kb:ke)  , nrecxy, zdim)
-      call writestat_nc(ncidxy, 'vpwpxy'    , vpwpxyjk(kb:ke)  , nrecxy, zdim)
-      call writestat_nc(ncidxy, 'upvpxy'    , upvpxyij(kb:ke)  , nrecxy, zdim)
-      call writestat_nc(ncidxy, 'uwxy'      , uwxyik(kb:ke)    , nrecxy, zdim)
-      call writestat_nc(ncidxy, 'vwxy'      , vwxyjk(kb:ke)    , nrecxy, zdim)
-      call writestat_nc(ncidxy, 'uvxy'      , uvxyij(kb:ke)    , nrecxy, zdim)
-      call writestat_nc(ncidxy, 'uuxy'      , uuxyi(kb:ke)     , nrecxy, zdim)
-      call writestat_nc(ncidxy, 'vvxy'      , vvxyj(kb:ke)     , nrecxy, zdim)
-      call writestat_nc(ncidxy, 'wwxy'      , wwxyk(kb:ke)     , nrecxy, zdim)
-      call writestat_nc(ncidxy, 'usgsxy'    , usgsxy(kb:ke)    , nrecxy, zdim)
-      call writestat_nc(ncidxy, 'vsgsxy'    , vsgsxy(kb:ke)    , nrecxy, zdim)
-      call writestat_nc(ncidxy, 'wsgsxy'    , wsgsxy(kb:ke)    , nrecxy, zdim)
+      call writestat_nc(ncidxy, 'u'       , uxy(kb:ke)       , nrecxy, zdim)
+      call writestat_nc(ncidxy, 'v'       , vxy(kb:ke)       , nrecxy, zdim)
+      call writestat_nc(ncidxy, 'w'       , wxy(kb:ke)       , nrecxy, zdim)
+      call writestat_nc(ncidxy, 'p'       , pxy(kb:ke)       , nrecxy, zdim)
+      call writestat_nc(ncidxy, 'upwp'    , upwpxyik(kb:ke)  , nrecxy, zdim)
+      call writestat_nc(ncidxy, 'vpwp'    , vpwpxyjk(kb:ke)  , nrecxy, zdim)
+      call writestat_nc(ncidxy, 'upvp'    , upvpxyij(kb:ke)  , nrecxy, zdim)
+      call writestat_nc(ncidxy, 'uw'      , uwxyik(kb:ke)    , nrecxy, zdim)
+      call writestat_nc(ncidxy, 'vw'      , vwxyjk(kb:ke)    , nrecxy, zdim)
+      call writestat_nc(ncidxy, 'uv'      , uvxyij(kb:ke)    , nrecxy, zdim)
+      call writestat_nc(ncidxy, 'uu'      , uuxyi(kb:ke)     , nrecxy, zdim)
+      call writestat_nc(ncidxy, 'vv'      , vvxyj(kb:ke)     , nrecxy, zdim)
+      call writestat_nc(ncidxy, 'ww'      , wwxyk(kb:ke)     , nrecxy, zdim)
+      call writestat_nc(ncidxy, 'usgs'    , usgsxy(kb:ke)    , nrecxy, zdim)
+      call writestat_nc(ncidxy, 'vsgs'    , vsgsxy(kb:ke)    , nrecxy, zdim)
+      call writestat_nc(ncidxy, 'wsgs'    , wsgsxy(kb:ke)    , nrecxy, zdim)
     end subroutine stats_write_xyavg_vel
 
     subroutine stats_write_xyavg_temp
       implicit none
-      call writestat_nc(ncidxy, 'thlxy'     , thlxy(kb:ke)     , nrecxy, zdim)
-      call writestat_nc(ncidxy, 'wpthlpxy'  , wpthlpxyk(kb:ke) , nrecxy, zdim)
-      call writestat_nc(ncidxy, 'wthlxy'    , wthlxyk(kb:ke)   , nrecxy, zdim)
-      call writestat_nc(ncidxy, 'thlsgsxy'  , thlsgsxy(kb:ke)  , nrecxy, zdim)
+      call writestat_nc(ncidxy, 'thl'     , thlxy(kb:ke)     , nrecxy, zdim)
+      call writestat_nc(ncidxy, 'wpthlp'  , wpthlpxyk(kb:ke) , nrecxy, zdim)
+      call writestat_nc(ncidxy, 'wthl'    , wthlxyk(kb:ke)   , nrecxy, zdim)
+      call writestat_nc(ncidxy, 'thlsgs'  , thlsgsxy(kb:ke)  , nrecxy, zdim)
     end subroutine stats_write_xyavg_temp
 
     subroutine stats_write_xyavg_moist
       implicit none
-      call writestat_nc(ncidxy, 'qtxy'      , qtxy(kb:ke)      , nrecxy, zdim)
-      call writestat_nc(ncidxy, 'wpqtpxy'   , wpqtpxyk(kb:ke)  , nrecxy, zdim)
-      call writestat_nc(ncidxy, 'wqtxy'     , wqtxyk(kb:ke)    , nrecxy, zdim)
-      call writestat_nc(ncidxy, 'qtsgsxy'   , qtsgsxy(kb:ke)   , nrecxy, zdim)
+      call writestat_nc(ncidxy, 'qt'      , qtxy(kb:ke)      , nrecxy, zdim)
+      call writestat_nc(ncidxy, 'wpqtp'   , wpqtpxyk(kb:ke)  , nrecxy, zdim)
+      call writestat_nc(ncidxy, 'wqt'     , wqtxyk(kb:ke)    , nrecxy, zdim)
+      call writestat_nc(ncidxy, 'qtsgs'   , qtsgsxy(kb:ke)   , nrecxy, zdim)
     end subroutine stats_write_xyavg_moist
 
 
     !! ## %% Time and y averaged statistics writing routines 
     subroutine stats_write_ytavg_vel
       implicit none
-      call writestat_nc(ncidyt, 'uyt'    , uyt     , nrecyt, xdim, zdim)
-      call writestat_nc(ncidyt, 'vyt'    , vyt     , nrecyt, xdim, zdim)
-      call writestat_nc(ncidyt, 'wyt'    , wyt     , nrecyt, xdim, zdim)
-      call writestat_nc(ncidyt, 'pyt'    , pyt     , nrecyt, xdim, zdim)
-      call writestat_nc(ncidyt, 'upwpyt' , upwpytik, nrecyt, xdim, zdim)
-      call writestat_nc(ncidyt, 'uwyt'   , uwytik  , nrecyt, xdim, zdim)
-      call writestat_nc(ncidyt, 'upupytc', upupytc , nrecyt, xdim, zdim)
-      call writestat_nc(ncidyt, 'vpvpytc', vpvpytc , nrecyt, xdim, zdim)
-      call writestat_nc(ncidyt, 'wpwpytc', wpwpytc , nrecyt, xdim, zdim)
-      call writestat_nc(ncidyt, 'usgsyt' , usgsyt  , nrecyt, xdim, zdim)
-      call writestat_nc(ncidyt, 'wsgsyt' , wsgsyt  , nrecyt, xdim, zdim)
+      call writestat_nc(ncidyt, 'u'    , uyt     , nrecyt, xdim, zdim)
+      call writestat_nc(ncidyt, 'v'    , vyt     , nrecyt, xdim, zdim)
+      call writestat_nc(ncidyt, 'w'    , wyt     , nrecyt, xdim, zdim)
+      call writestat_nc(ncidyt, 'p'    , pyt     , nrecyt, xdim, zdim)
+      call writestat_nc(ncidyt, 'upwp' , upwpytik, nrecyt, xdim, zdim)
+      call writestat_nc(ncidyt, 'uw'   , uwytik  , nrecyt, xdim, zdim)
+      call writestat_nc(ncidyt, 'upup' , upupytc , nrecyt, xdim, zdim)
+      call writestat_nc(ncidyt, 'vpvp' , vpvpytc , nrecyt, xdim, zdim)
+      call writestat_nc(ncidyt, 'wpwp' , wpwpytc , nrecyt, xdim, zdim)
+      call writestat_nc(ncidyt, 'usgs' , usgsyt  , nrecyt, xdim, zdim)
+      call writestat_nc(ncidyt, 'wsgs' , wsgsyt  , nrecyt, xdim, zdim)
     end subroutine stats_write_ytavg_vel
 
     subroutine stats_write_ytavg_temp
       implicit none
-      call writestat_nc(ncidyt, 'thlyt'     , thlyt     , nrecyt, xdim, zdim)
-      call writestat_nc(ncidyt, 'wpthlpyt'  , wpthlpytk , nrecyt, xdim, zdim)
-      call writestat_nc(ncidyt, 'wthlyt'    , wthlytk   , nrecyt, xdim, zdim)
-      call writestat_nc(ncidyt, 'thlpthlpyt', thlpthlpyt, nrecyt, xdim, zdim)
-      call writestat_nc(ncidyt, 'thlsgsyt'  , thlsgsyt  , nrecyt, xdim, zdim)
+      call writestat_nc(ncidyt, 'thl'     , thlyt     , nrecyt, xdim, zdim)
+      call writestat_nc(ncidyt, 'wpthlp'  , wpthlpytk , nrecyt, xdim, zdim)
+      call writestat_nc(ncidyt, 'wthl'    , wthlytk   , nrecyt, xdim, zdim)
+      call writestat_nc(ncidyt, 'thlpthlp', thlpthlpyt, nrecyt, xdim, zdim)
+      call writestat_nc(ncidyt, 'thlsgs'  , thlsgsyt  , nrecyt, xdim, zdim)
     end subroutine stats_write_ytavg_temp
 
     subroutine stats_write_ytavg_moist
       implicit none
-      call writestat_nc(ncidyt, 'qtyt'     , qtyt     , nrecyt, xdim, zdim)
-      call writestat_nc(ncidyt, 'wpqtpyt'  , wpqtpytk , nrecyt, xdim, zdim)
-      call writestat_nc(ncidyt, 'wqtyt'    , wqtytk   , nrecyt, xdim, zdim)
-      call writestat_nc(ncidyt, 'qtpqtpyt' , qtpqtpyt , nrecyt, xdim, zdim)
-      call writestat_nc(ncidyt, 'qtsgsyt'  , qtsgsyt  , nrecyt, xdim, zdim)
+      call writestat_nc(ncidyt, 'qt'     , qtyt     , nrecyt, xdim, zdim)
+      call writestat_nc(ncidyt, 'wpqtp'  , wpqtpytk , nrecyt, xdim, zdim)
+      call writestat_nc(ncidyt, 'wqt'    , wqtytk   , nrecyt, xdim, zdim)
+      call writestat_nc(ncidyt, 'qtpqtp' , qtpqtpyt , nrecyt, xdim, zdim)
+      call writestat_nc(ncidyt, 'qtsgs'  , qtsgsyt  , nrecyt, xdim, zdim)
     end subroutine stats_write_ytavg_moist
 
     subroutine stats_write_ytavg_scalar
@@ -1768,30 +1768,30 @@ module stats
     !! ## %% y averaged statistics writing routines 
     subroutine stats_write_yavg_vel
       implicit none
-      call writestat_nc(ncidy, 'uy'    , uy     , nrecy, xdim, zdim)
-      call writestat_nc(ncidy, 'vy'    , vy     , nrecy, xdim, zdim)
-      call writestat_nc(ncidy, 'wy'    , wy     , nrecy, xdim, zdim)
-      call writestat_nc(ncidy, 'py'    , py     , nrecy, xdim, zdim)
-      call writestat_nc(ncidy, 'upwpy' , upwpyik, nrecy, xdim, zdim)
-      call writestat_nc(ncidy, 'uwy'   , uwyik  , nrecy, xdim, zdim)
-      call writestat_nc(ncidy, 'usgsy' , usgsy  , nrecy, xdim, zdim)
-      call writestat_nc(ncidy, 'wsgsy' , wsgsy  , nrecy, xdim, zdim)
+      call writestat_nc(ncidy, 'u'    , uy     , nrecy, xdim, zdim)
+      call writestat_nc(ncidy, 'v'    , vy     , nrecy, xdim, zdim)
+      call writestat_nc(ncidy, 'w'    , wy     , nrecy, xdim, zdim)
+      call writestat_nc(ncidy, 'p'    , py     , nrecy, xdim, zdim)
+      call writestat_nc(ncidy, 'upwp' , upwpyik, nrecy, xdim, zdim)
+      call writestat_nc(ncidy, 'uw'   , uwyik  , nrecy, xdim, zdim)
+      call writestat_nc(ncidy, 'usgs' , usgsy  , nrecy, xdim, zdim)
+      call writestat_nc(ncidy, 'wsgs' , wsgsy  , nrecy, xdim, zdim)
     end subroutine stats_write_yavg_vel
 
     subroutine stats_write_yavg_temp
       implicit none
-      call writestat_nc(ncidy, 'thly'     , thly     , nrecy, xdim, zdim)
-      call writestat_nc(ncidy, 'wpthlpy'  , wpthlpyk , nrecy, xdim, zdim)
-      call writestat_nc(ncidy, 'wthly'    , wthlyk   , nrecy, xdim, zdim)
-      call writestat_nc(ncidy, 'thlsgsy'  , thlsgsy  , nrecy, xdim, zdim)
+      call writestat_nc(ncidy, 'thl'     , thly     , nrecy, xdim, zdim)
+      call writestat_nc(ncidy, 'wpthlp'  , wpthlpyk , nrecy, xdim, zdim)
+      call writestat_nc(ncidy, 'wthl'    , wthlyk   , nrecy, xdim, zdim)
+      call writestat_nc(ncidy, 'thlsgs'  , thlsgsy  , nrecy, xdim, zdim)
     end subroutine stats_write_yavg_temp
 
     subroutine stats_write_yavg_moist
       implicit none
-      call writestat_nc(ncidy, 'qty'     , qty     , nrecy, xdim, zdim)
-      call writestat_nc(ncidy, 'wpqtpy'  , wpqtpyk , nrecy, xdim, zdim)
-      call writestat_nc(ncidy, 'wqty'    , wqtyk   , nrecy, xdim, zdim)
-      call writestat_nc(ncidy, 'qtsgsy'  , qtsgsy  , nrecy, xdim, zdim)
+      call writestat_nc(ncidy, 'qt'     , qty     , nrecy, xdim, zdim)
+      call writestat_nc(ncidy, 'wpqtp'  , wpqtpyk , nrecy, xdim, zdim)
+      call writestat_nc(ncidy, 'wqt'    , wqtyk   , nrecy, xdim, zdim)
+      call writestat_nc(ncidy, 'qtsgs'  , qtsgsy  , nrecy, xdim, zdim)
     end subroutine stats_write_yavg_moist
 
     subroutine stats_write_yavg_scalar

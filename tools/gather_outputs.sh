@@ -96,6 +96,31 @@ for file in *dump.*.000.${expnr}.nc ; do
 
 done
 
+## call loop for *DUMPS
+for file in stats_*_out.*.000.${expnr}.nc ; do
+    if [ -f $file ]; then
+        ## Gathering fields along spatial axis y.
+
+        dumps=${file%.000.${expnr}.nc}
+
+        if [ ${dumps:0:11} == "stats_t_out" ]; then
+            echo "Merging stats_t_out along y-direction."
+	        ymparam="v,vpwp,upvp,vsgs,ym"
+        else
+            ymparam="ym"
+        fi
+
+        outfile="${dumps}.${expnr}.nc"
+
+        echo "We are in ${datapath}."
+        echo "Gathering ${dumps} files with ym-dependent variables ${ymparam}."
+        echo "Saving output to ${outfile}."
+
+        ${toolsdir}/nco_concatenate_field_y.sh $dumps $ymparam $outfile
+        echo "Merging done."
+    fi
+done
+
 
 #for file in islicedump.???.${expnr}.nc ; do
 #        if [ -f $file ]; then
@@ -169,6 +194,33 @@ for file in *dump.000.${expnr}.nc ; do
 
     fi
 
+done
+
+## Gathering fields along spatial axis x.
+for file in stats_*_out.000.${expnr}.nc ; do
+    if [ -f $file ]; then
+
+        dumps=${file%.000.${expnr}.nc}
+
+        if [ $dumps == "stats_t_out" ]; then
+	        echo "Merging stats_t_out along x-direction."	
+            xmparam="u,upwp,upvp,usgs,xm"
+        elif [ $dumps == "stats_yt_out" ] || [ $dumps == "stats_y_out" ]; then
+	        echo "Merging $dumps along x-direction."	
+            xmparam="u,upwp,uw,usgs,xm"
+        else
+            xmparam="xm"
+        fi
+
+        outfile="${dumps}.${expnr}.nc"
+
+        echo "We are in ${datapath}."
+        echo "Gathering ${dumps} files with xm-dependent variables ${xmparam}."
+        echo "Saving output to ${outfile}."
+
+        ${toolsdir}/nco_concatenate_field_x.sh $dumps $xmparam $outfile
+        echo "Merging done."
+    fi
 done
 
 
