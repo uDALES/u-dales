@@ -3,8 +3,9 @@
 This is the development repository for the uDALES (urban Dutch Atmospheric Large Eddy Simulation) model. It contains the uDALES software source-code, tests, documentation, and examples with tools to pre- and post-process inputs and outputs.
 
 <div align="center">
-<img src="docs/assets/images/fielddump_slice_2D.102.png" alt="uDALES" height="256">
-<img src="docs/assets/images/fielddump_slice_3D.102.png" alt="uDALES" height="256"> 
+<img src="docs/assets/images/T_5fps.gif" alt="uDALES" height="256">
+<img src="docs/assets/images/M_5fps.gif" alt="uDALES" height="256"> 
+<img src="docs/assets/images/w_5fps.gif" alt="uDALES" height="256">
 </div>
 
 ---
