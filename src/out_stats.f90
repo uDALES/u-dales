@@ -790,12 +790,12 @@ module stats
       call ncinfo( xytVars(ctrxyt+ 5,:), 'upwp'     , 'Turbulent mom. flux'        , 'm^2/s^2'   , 'mt' )
       call ncinfo( xytVars(ctrxyt+ 6,:), 'vpwp'     , 'Turbulent mom. flux'        , 'm^2/s^2'   , 'mt' )
       call ncinfo( xytVars(ctrxyt+ 7,:), 'upvp'     , 'Turbulent mom. flux'        , 'm^2/s^2'   , 'tt' )
-      call ncinfo( xytVars(ctrxyt+ 8,:), 'uw'       , 'Mean mom. flux'             , 'm^2/s^2'   , 'mt' )
-      call ncinfo( xytVars(ctrxyt+ 9,:), 'vw'       , 'Mean mom. flux'             , 'm^2/s^2'   , 'mt' )
-      call ncinfo( xytVars(ctrxyt+10,:), 'uv'       , 'Mean mom. flux'             , 'm^2/s^2'   , 'tt' )
-      call ncinfo( xytVars(ctrxyt+11,:), 'uu'       , 'Mean mom. flux'             , 'm^2/s^2'   , 'tt' )
-      call ncinfo( xytVars(ctrxyt+12,:), 'vv'       , 'Mean mom. flux'             , 'm^2/s^2'   , 'tt' )
-      call ncinfo( xytVars(ctrxyt+13,:), 'ww'       , 'Mean mom. flux'             , 'm^2/s^2'   , 'mt' )
+      call ncinfo( xytVars(ctrxyt+ 8,:), 'uw'       , 'Dispersive mom. flux'       , 'm^2/s^2'   , 'mt' )
+      call ncinfo( xytVars(ctrxyt+ 9,:), 'vw'       , 'Dispersive mom. flux'       , 'm^2/s^2'   , 'mt' )
+      call ncinfo( xytVars(ctrxyt+10,:), 'uv'       , 'Dispersive mom. flux'       , 'm^2/s^2'   , 'tt' )
+      call ncinfo( xytVars(ctrxyt+11,:), 'uu'       , 'Dispersive mom. flux'       , 'm^2/s^2'   , 'tt' )
+      call ncinfo( xytVars(ctrxyt+12,:), 'vv'       , 'Dispersive mom. flux'       , 'm^2/s^2'   , 'tt' )
+      call ncinfo( xytVars(ctrxyt+13,:), 'ww'       , 'Dispersive mom. flux'       , 'm^2/s^2'   , 'mt' )
       call ncinfo( xytVars(ctrxyt+14,:), 'upup'     , 'u variance - cell centered' , 'm^2/s^2'   , 'tt' )
       call ncinfo( xytVars(ctrxyt+15,:), 'vpvp'     , 'v variance - cell centered' , 'm^2/s^2'   , 'tt' )
       call ncinfo( xytVars(ctrxyt+16,:), 'wpwp'     , 'w variance - cell centered' , 'm^2/s^2'   , 'tt' )
@@ -815,7 +815,7 @@ module stats
       allocate(thlsgsxyt(kb:ke+kh))
       call ncinfo( xytVars(ctrxyt+ 1,:), 'thl'      , 'Temperature'              , 'K'         , 'tt' )
       call ncinfo( xytVars(ctrxyt+ 2,:), 'wpthlp'   , 'Turbulent heat flux'      , 'K m/s'     , 'mt' )
-      call ncinfo( xytVars(ctrxyt+ 3,:), 'wthl'     , 'Mean heat flux'           , 'K m/s'     , 'mt' )
+      call ncinfo( xytVars(ctrxyt+ 3,:), 'wthl'     , 'Dispersive heat flux'     , 'K m/s'     , 'mt' )
       call ncinfo( xytVars(ctrxyt+ 4,:), 'thlpthlp' , 'Temp. variance'           , 'K^2'       , 'tt' )
       call ncinfo( xytVars(ctrxyt+ 5,:), 'thlsgs'   , 'SGS heat flux'            , 'K m/s'     , 'mt' )
       ctrxyt = ctrxyt+5
@@ -830,7 +830,7 @@ module stats
       allocate(qtsgsxyt(kb:ke+kh))
       call ncinfo( xytVars(ctrxyt+ 1,:), 'qt'       , 'Moisture'                 , 'kg/kg'     , 'tt' )
       call ncinfo( xytVars(ctrxyt+ 2,:), 'wpqtp'    , 'Turbulent moisture flux'  , 'kg m/kg s' , 'mt' )
-      call ncinfo( xytVars(ctrxyt+ 3,:), 'wqt'      , 'Mean moisture flux'       , 'kg m/kg s' , 'mt' )
+      call ncinfo( xytVars(ctrxyt+ 3,:), 'wqt'      , 'Dispersive moisture flux' , 'kg m/kg s' , 'mt' )
       call ncinfo( xytVars(ctrxyt+ 4,:), 'qtpqtp'   , 'Moisture variance'        , 'kg^2/kg^2' , 'tt' )
       call ncinfo( xytVars(ctrxyt+ 5,:), 'qtsgs'    , 'SGS moisture flux'        , 'kg m/kg s' , 'mt' )
       ctrxyt = ctrxyt+5
@@ -929,9 +929,9 @@ module stats
       call ncinfo( ytVars(ctryt+ 1,:), 'u'        , 'Streamwise velocity'        , 'm/s'       , 'm0tt' )
       call ncinfo( ytVars(ctryt+ 2,:), 'v'        , 'Spanwise velocity'          , 'm/s'       , 't0tt' )
       call ncinfo( ytVars(ctryt+ 3,:), 'w'        , 'Vertical velocity'          , 'm/s'       , 't0mt' )
-      call ncinfo( ytVars(ctryt+ 4,:), 'p'        , 'Mean Pressure'              , 'm^2/s^2'   , 't0tt' )
+      call ncinfo( ytVars(ctryt+ 4,:), 'p'        , 'Kinematic Pressure'         , 'm^2/s^2'   , 't0tt' )
       call ncinfo( ytVars(ctryt+ 5,:), 'upwp'     , 'Turbulent mom. flux'        , 'm^2/s^2'   , 'm0mt' )
-      call ncinfo( ytVars(ctryt+ 6,:), 'uw'       , 'Mean mom. flux'             , 'm^2/s^2'   , 'm0mt' )
+      call ncinfo( ytVars(ctryt+ 6,:), 'uw'       , 'Dispersive mom. flux'       , 'm^2/s^2'   , 'm0mt' )
       call ncinfo( ytVars(ctryt+ 7,:), 'upup'     , 'u variance - cell centered' , 'm^2/s^2'   , 't0tt' )
       call ncinfo( ytVars(ctryt+ 8,:), 'vpvp'     , 'v variance - cell centered' , 'm^2/s^2'   , 't0tt' )
       call ncinfo( ytVars(ctryt+ 9,:), 'wpwp'     , 'w variance - cell centered' , 'm^2/s^2'   , 't0tt' )
@@ -949,7 +949,7 @@ module stats
       allocate(thlsgsyt(ib:ie,kb:ke))
       call ncinfo( ytVars(ctryt+ 1,:), 'thl'      , 'Temperature'              , 'K'         , 't0tt' )
       call ncinfo( ytVars(ctryt+ 2,:), 'wpthlp'   , 'Turbulent heat flux'      , 'K m/s'     , 't0mt' )
-      call ncinfo( ytVars(ctryt+ 3,:), 'wthl'     , 'Mean heat flux'           , 'K m/s'     , 't0mt' )
+      call ncinfo( ytVars(ctryt+ 3,:), 'wthl'     , 'Dispersive heat flux'     , 'K m/s'     , 't0mt' )
       call ncinfo( ytVars(ctryt+ 4,:), 'thlpthlp' , 'Temp. variance'           , 'K^2'       , 't0tt' )
       call ncinfo( ytVars(ctryt+ 5,:), 'thlsgs'   , 'SGS heat flux'            , 'K m/s'     , 't0mt' )
       ctryt = ctryt+5
@@ -964,7 +964,7 @@ module stats
       allocate(qtsgsyt(ib:ie,kb:ke))
       call ncinfo( ytVars(ctryt+ 1,:), 'qt'       , 'Moisture'                 , 'kg/kg'     , 't0tt' )
       call ncinfo( ytVars(ctryt+ 2,:), 'wpqtp'    , 'Turbulent moisture flux'  , 'kg m/kg s' , 't0mt' )
-      call ncinfo( ytVars(ctryt+ 3,:), 'wqt'      , 'Mean moisture flux'       , 'kg m/kg s' , 't0mt' )
+      call ncinfo( ytVars(ctryt+ 3,:), 'wqt'      , 'Dispersive moisture flux' , 'kg m/kg s' , 't0mt' )
       call ncinfo( ytVars(ctryt+ 4,:), 'qtpqtp'   , 'Moisture variance'        , 'kg^2/kg^2' , 't0tt' )
       call ncinfo( ytVars(ctryt+ 5,:), 'qtsgs'    , 'SGS moisture flux'        , 'kg m/kg s' , 't0mt' )
       ctryt = ctryt+5
@@ -992,7 +992,7 @@ module stats
         svsgsytname(n)  = 's'//trim(sid)//'sgs'                 ! s1sgs    at n = 1
         call ncinfo(ytVars(ctryt+n,:)      , trim(svytname(n))    , 'Concentration field '//trim(sid)   , 'g/m^3'  , 't0tt' )
         call ncinfo(ytVars(ctryt+nsv+n,:)  , trim(wpsvpytname(n)) , 'Turbulent scalar flux '//trim(sid) , 'g/m^2s' , 't0mt' )
-        call ncinfo(ytVars(ctryt+2*nsv+n,:), trim(wsvytname(n))   , 'Mean scalar flux '//trim(sid)      , 'g/m^2s' , 't0mt' )
+        call ncinfo(ytVars(ctryt+2*nsv+n,:), trim(wsvytname(n))   , 'Dispersive scalar flux '//trim(sid), 'g/m^2s' , 't0mt' )
         call ncinfo(ytVars(ctryt+3*nsv+n,:), trim(svpsvpytname(n)), 'Concentration variance '//trim(sid), 'g^2/m^6', 't0tt' )
         call ncinfo(ytVars(ctryt+4*nsv+n,:), trim(svsgsytname(n)) , 'SGS scalar flux '//trim(sid)       , 'g/m^2s' , 't0mt' )
       end do
@@ -1330,7 +1330,7 @@ module stats
       call spatial_avg(vpwpxytjk,vwtjk(ib:ie,jb:je,kb:ke+kh)-vtjk(ib:ie,jb:je,kb:ke+kh)*wtjk(ib:ie,jb:je,kb:ke+kh),kb,ke,IIvw(ib:ie,jb:je,kb:ke+kh),IIvws(kb:ke+kh),.false.)
       call spatial_avg(upvpxytij,uvtij(ib:ie,jb:je,kb:ke+kh)-utij(ib:ie,jb:je,kb:ke+kh)*vtij(ib:ie,jb:je,kb:ke+kh),kb,ke,IIuv(ib:ie,jb:je,kb:ke+kh),IIuvs(kb:ke+kh),.false.)
 
-      !> Advective fluxes
+      !> Dispersive fluxes
       call spatial_avg(uwxytik,utik(ib:ie,jb:je,kb:ke+kh)*wtik(ib:ie,jb:je,kb:ke+kh),kb,ke,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh),.false.)
       call spatial_avg(vwxytjk,vtjk(ib:ie,jb:je,kb:ke+kh)*wtjk(ib:ie,jb:je,kb:ke+kh),kb,ke,IIvw(ib:ie,jb:je,kb:ke+kh),IIvws(kb:ke+kh),.false.)
       call spatial_avg(uvxytij,utij(ib:ie,jb:je,kb:ke+kh)*vtij(ib:ie,jb:je,kb:ke+kh),kb,ke,IIuv(ib:ie,jb:je,kb:ke+kh),IIuvs(kb:ke+kh),.false.)
@@ -1435,7 +1435,7 @@ module stats
       !> Turbulent fluxes
       call spatial_avg(upwpytik,uwtik(ib:ie,jb:je,kb:ke)-utik(ib:ie,jb:je,kb:ke)*wtik(ib:ie,jb:je,kb:ke),IIuw(ib:ie,jb:je,kb:ke),IIuwt)
       
-      !> Advective fluxes
+      !> Dispersive fluxes
       call spatial_avg(uwytik,utik(ib:ie,jb:je,kb:ke)*wtik(ib:ie,jb:je,kb:ke),IIuw(ib:ie,jb:je,kb:ke),IIuwt)
 
       !> Variances
