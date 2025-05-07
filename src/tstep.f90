@@ -43,15 +43,15 @@
 subroutine tstep_update
 
 
-  use modglobal, only : ib,ie,jb,je,rk3step,timee,runtime,dtmax,dt,ntimee,ntrun,courant,diffnr,&
-                        kb,ke,dx,dxi,dx2i,dyi,dy2i,dzh,dt_lim,ladaptive,timeleft,dt,lwarmstart,&
+  use modglobal, only : ib,ie,jb,je,rk3step,timee,dtmax,dt,ntimee,ntrun,courant,diffnr,&
+                        kb,ke,dxi,dx2i,dyi,dy2i,dzh,dt_lim,ladaptive,timeleft,dt,lwarmstart,&
                         dzh2i
   use modfields, only : um,vm,wm
   use modsubgriddata, only : ekm,ekh
-  use modmpi,    only : myid,comm3d,mpierr,mpi_max,my_real
+  use modmpi,    only : comm3d,mpierr,mpi_max,my_real
   implicit none
 
-  integer       :: i, j, k,imin,kmin
+  integer       :: i, j, k
   real,save     :: courtot=-1.,diffnrtot=-1.
   real          :: courtotl,courold,diffnrtotl,diffnrold
 !  logical,save  :: spinup=.true.
@@ -165,27 +165,24 @@ end subroutine tstep_update
 subroutine tstep_integrate
 
 
-  use modglobal, only : ib,ie,jb,jgb,je,kb,ke,nsv,dt,rk3step,e12min,lmoist,timee,ntrun,&
-                        linoutflow, iinletgen,ltempeq,idriver,BCtopm,BCtopm_pressure,BCxm_periodic,BCym_periodic, &
-                        dzf,dzhi,dzf,dxf,ifixuinf,thlsrc,lchem,ibrank,ierank,jerank,jbrank,BCxm,BCym,ihc,jhc,khc,dyi,dxfi,BCxT,BCxq,BCxs,BCyT,BCyq,BCys
-  use modmpi, only    : cmyid,myid,nprocs
+  use modglobal, only : ib,ie,jb,je,kb,ke,nsv,dt,rk3step,e12min,lmoist,timee,&
+                        iinletgen,ltempeq,idriver,BCtopm,BCtopm_pressure,BCxm_periodic,BCym_periodic, &
+                        ifixuinf,thlsrc,lchem,ierank,jerank,BCxm,BCym
+  use modmpi, only    : cmyid,myid
   use modfields, only : u0,um,up,v0,vm,vp,w0,wm,wp,&
-                        thl0,thlm,thlp,qt0,qtm,qtp,e120,e12m,e12p,sv0,svm,svp,uouttot,&
-                        wouttot,dpdxl,dgdt,momfluxb,tfluxb,qfluxb,thl0c
-  use modinletdata, only: totalu,di_test,dr,thetar,thetai,displ,irecy, &
-                          dti_test,dtr,thetati,thetatr,q0,lmoi,lmor,utaui,utaur,&
-                          storetdriver, nstepread, nstepreaddriver, irecydriver
-  use modsubgriddata, only : loneeqn,ekm,ekh
+                        thl0,thlm,thlp,qt0,qtm,qtp,e120,e12m,e12p,sv0,svm,svp,&
+                        dpdxl,dgdt,thl0c
+  use modinletdata, only: nstepreaddriver, irecydriver
+  use modsubgriddata, only : loneeqn
   use modchem, only : chem
   use decomp_2d, only : exchange_halo_z
-  use modpois, only : pij, dpdztop
 
   implicit none
 
-  integer i,j,k,n,m
+  integer i,j,k,n
   real rk3coef,rk3coefi
 
-  rk3coef = dt / (4. - dble(rk3step))
+  rk3coef = dt / (4. - real(rk3step))
   rk3coefi = 1./rk3coef
 
   if(ifixuinf==2) then

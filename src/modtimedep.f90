@@ -75,9 +75,8 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine inittimedep
     use modmpi,    only :myid,my_real,mpi_logical,mpierr,comm3d
-    use modglobal, only :cexpnr,kb,ke,kh,kmax,ifinput,runtime,zf,skyLW,nfcts
+    use modglobal, only :kb,ke,kh,kmax,cexpnr,ifinput,skyLW,nfcts
     use modibmdata, only : bctfxm, bctfxp, bctfym, bctfyp, bctfz!, bctfzf
-    use modfields, only: thlprof
     !use initfac, only : netsw !Should probably be moved to somewhere else
 
     implicit none
@@ -85,7 +84,6 @@ contains
     character (80):: chmess
     character (1) :: chmess1
     integer :: k,t,n,ierr
-    real :: dummyr
     real, allocatable, dimension (:) :: height
 
     ltimedep = (ltimedepsurf .or. ltimedepnudge) .or. (ltimedeplw .or. ltimedepsw)
@@ -319,7 +317,6 @@ contains
   end subroutine timedep
 
   subroutine timedepsurf
-    use modmpi,     only : myid
     use modglobal,  only : timee
     use modibmdata, only : bctfxm, bctfxp, bctfym, bctfyp, bctfz!, bctfzf
     implicit none
@@ -358,11 +355,10 @@ contains
 
   subroutine timedepnudge
     use modfields,   only : thlprof, qtprof, uprof, vprof
-    use modglobal,   only : timee,dzf,dzh,kb,ke,kh,kmax
-    use modmpi,      only : myid
+    use modglobal,   only : timee
 
     implicit none
-    integer t,k
+    integer t
     real fac
 
     if(.not.(ltimedepnudge)) return
@@ -397,10 +393,9 @@ contains
 
   subroutine timedeplw
     use modglobal,    only : timee, skyLW, rk3step, tnextEB
-    use modmpi,       only : myid
 
     implicit none
-    integer t,k
+    integer t
     real fac
 
     if(.not.(ltimedeplw)) return

@@ -23,7 +23,7 @@
 !> Advection at cell center
 subroutine advecc_upw(hi, hj, hk, putin, putout)
 
-   use modglobal, only:ib, ie, ih, jb, je, jh, kb, ke, dyi, dxfci, dzfci
+   use modglobal, only:ib, ie, jb, je, kb, ke, dyi, dxfci, dzfci
    use modfields, only:u0, v0, w0
    implicit none
 

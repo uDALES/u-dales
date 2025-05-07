@@ -61,7 +61,7 @@ contains
       end subroutine createpurifiers
 
       subroutine purifiers
-      use modglobal,  only : ib,ie,jb,je,kb,ke,ih,xf,xh,zh,purif,npurif,lpurif,itot,jtot,Qpu,epu,dy,nsv
+      use modglobal,  only : ib,ie,jb,je,xh,zh,purif,npurif,lpurif,itot,jtot,Qpu,epu,dy,nsv
       use modfields,  only : um,vm,wm,u0,v0,w0,up,vp,wp,svp,svm,sv0
       use modmpi,     only : myidx,myidy,nprocx,nprocy
 

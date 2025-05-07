@@ -45,11 +45,7 @@ contains
 
 
   subroutine initstat_nc
-    use modglobal, only : kmax,ifnamopt,fname_options,iexpnr
-    use modmpi,    only : mpierr,mpi_logical,comm3d,myid
     implicit none
-
-    integer             :: ierr
 
   end subroutine initstat_nc
 !
@@ -345,7 +341,7 @@ contains
    if (status /= nf90_noerr) call nchandle_error(status)
  end subroutine exitstat_nc
   subroutine writestat_dims_nc(ncid)
-    use modglobal, only : xf,xh,yf,yh,dy,zf,zh,jmax,imax,kb,dxh
+    use modglobal, only : xf,xh,yf,yh,zf,zh,jmax,imax,dxh
     use modmpi, only : myidx, myidy
     implicit none
     integer, intent(in) :: ncid
