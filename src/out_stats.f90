@@ -13,6 +13,7 @@ module stats
   use modmpi,     only : cmyidx, cmyidy, myid, myidy, spatial_avg
   use modstat_nc, only : ncinfo, open_nc, define_nc, writestat_dims_nc, writestat_nc
   implicit none
+  private
   public :: stats_init, stats_main, stats_exit
   save
 
@@ -25,7 +26,9 @@ module stats
   character(80)              :: filenameyt
   character(80)              :: filenamey
   character(80)              :: filenametree
+  character(80)              :: timeVar(1,4)
   character(80), allocatable :: tVars(:,:), xytVars(:,:), xyVars(:,:), ytVars(:,:), yVars(:,:), treeVars(:,:)
+  integer                    :: tVarsCount, xytVarsCount, xyVarsCount, ytVarsCount, yVarsCount, treeVarsCount
   integer                    :: ctrt,    ncidt,    nrect, &
                                 ctrxyt,  ncidxyt,  nrecxyt, &
                                 ctrxy,   ncidxy,   nrecxy, &
@@ -266,8 +269,8 @@ module stats
   contains
     subroutine stats_init
       implicit none
-      integer :: tVarsCount, xytVarsCount, xyVarsCount, ytVarsCount, yVarsCount, treeVarsCount
-      character(80), dimension(1,4) :: tVar0
+      
+      if(.not.(ltdump .or. lxytdump .or. lxydump .or. lytdump .or. lydump .or. ltreedump)) return
       
       xdim = ie-ib+1
       ydim = je-jb+1
@@ -275,22 +278,15 @@ module stats
       tsamplep = 0.
       tstatsdumpp = 0.
       dumpcount = 0
-      nrect    = 0
-      nrecxyt  = 0
-      nrecxy   = 0
-      nrecyt   = 0
-      nrecy    = 0
-      nrectree = 0
-
-      call ncinfo(tVar0( 1,:), 'time', 'Time', 's', 'time')
+      call ncinfo(timeVar( 1,:), 'time', 'Time', 's', 'time')
 
       if(ltdump .or. lxytdump .or. lxydump .or. lytdump .or. lydump) then
-        call stats_allocate_interpolate_and_sgs_vel
-        if (ltempeq) call stats_allocate_interpolate_and_sgs_temp
-        if (lmoist)  call stats_allocate_interpolate_and_sgs_moist
+        call stats_allocate_interp_and_sgs_vel
+        if (ltempeq) call stats_allocate_interp_and_sgs_temp
+        if (lmoist)  call stats_allocate_interp_and_sgs_moist
       end if
       if(ltdump .or. lytdump .or. lydump) then
-        if (nsv>0)   call stats_allocate_interpolate_and_sgs_scalar
+        if (nsv>0)   call stats_allocate_interp_and_sgs_scalar
       end if
 
       if(ltdump .or. lxytdump .or. lytdump) then
@@ -305,11 +301,6 @@ module stats
 
       !> Generate time averaged NetCDF: stats_t_out.xxx.xxx.xxx.nc
       if (ltdump) then
-        filenamet = 'stats_t_out.xxx.xxx.xxx.nc'
-        filenamet(13:15) = cmyidx
-        filenamet(17:19) = cmyidy
-        filenamet(21:23) = cexpnr
-        
         !> Total numbers of variables to be written
         tVarsCount = 14
         if (ltempeq) tVarsCount = tVarsCount + 4
@@ -323,75 +314,49 @@ module stats
         if (ltempeq) call stats_ncdescription_tavg_temp
         if (lmoist)  call stats_ncdescription_tavg_moist
         if (nsv>0)   call stats_ncdescription_tavg_scalar
-        if ((lchem) .and. (nsv>2)) call stats_allocate_tavg_PSS
+        if ((lchem) .and. (nsv>2)) call stats_init_tavg_PSS
         
-        call open_nc(filenamet, ncidt, nrect, n1=xdim, n2=ydim, n3=zdim)
-        if (nrect==0) then
-          call define_nc(ncidt, 1, tVar0)
-          call writestat_dims_nc(ncidt)
-        end if
-        call define_nc(ncidt, tVarsCount, tVars)
+        call stats_createnc_tavg
+        
         deallocate(tVars)
       end if
 
       !> Generate time, y and x averaged NetCDF: stats_xyt_out.xxx.nc
       if (lxytdump) then
-        filenamexyt = 'stats_xyt_out.xxx.nc'
-        filenamexyt(15:17) = cexpnr
-
         xytVarsCount = 20
         if (ltempeq) xytVarsCount = xytVarsCount + 5
         if (lmoist)  xytVarsCount = xytVarsCount + 5
 
         allocate(xytVars(xytVarsCount,4))   !!> Array to store the variable description of the quantities to be written
         ctrxyt = 0
-        call stats_allocate_xytavg_vel
-        if (ltempeq) call stats_allocate_xytavg_temp
-        if (lmoist)  call stats_allocate_xytavg_moist
+        call stats_init_xytavg_vel
+        if (ltempeq) call stats_init_xytavg_temp
+        if (lmoist)  call stats_init_xytavg_moist
 
-        if (myid==0) then
-          call open_nc(filenamexyt, ncidxyt, nrecxyt, n3=zdim)
-          if (nrecxyt==0) then
-            call define_nc(ncidxyt, 1,  tVar0)
-            call writestat_dims_nc(ncidxyt)
-          end if
-          call define_nc(ncidxyt, xytVarsCount, xytVars)
-        end if
+        call stats_createnc_xytavg
+        
         deallocate(xytVars)
       end if
 
       !> Generate y and x averaged NetCDF: stats_xy_out.xxx.nc
       if (lxydump) then
-        filenamexy = 'stats_xy_out.xxx.nc'
-        filenamexy(14:16) = cexpnr
-
         xyVarsCount = 16
         if (ltempeq) xyVarsCount = xyVarsCount + 4
         if (lmoist)  xyVarsCount = xyVarsCount + 4
 
         allocate(xyVars(xyVarsCount,4))   !!> Array to store the variable description of the quantities to be written
         ctrxy = 0
-        call stats_allocate_xyavg_vel
-        if (ltempeq) call stats_allocate_xyavg_temp
-        if (lmoist)  call stats_allocate_xyavg_moist
+        call stats_init_xyavg_vel
+        if (ltempeq) call stats_init_xyavg_temp
+        if (lmoist)  call stats_init_xyavg_moist
 
-        if (myid==0) then
-          call open_nc(filenamexy, ncidxy, nrecxy, n3=zdim)
-          if (nrecxy==0) then
-            call define_nc(ncidxy, 1,  tVar0)
-            call writestat_dims_nc(ncidxy)
-          end if
-          call define_nc(ncidxy, xyVarsCount, xyVars)
-        end if
+        call stats_createnc_xyavg
+        
         deallocate(xyVars)
       end if
 
       !> Generate time and y averaged NetCDF: stats_yt_out.xxx.xxx.nc
       if (lytdump) then
-        filenameyt = 'stats_yt_out.xxx.xxx.nc'
-        filenameyt(14:16)  = cmyidx
-        filenameyt(18:20) = cexpnr
-
         ytVarsCount = 11
         if (ltempeq) ytVarsCount = ytVarsCount + 5
         if (lmoist)  ytVarsCount = ytVarsCount + 5
@@ -399,28 +364,18 @@ module stats
 
         allocate(ytVars(ytVarsCount,4))   !!> Array to store the variable description of the quantities to be written
         ctryt = 0
-        call stats_allocate_ytavg_vel
-        if (ltempeq) call stats_allocate_ytavg_temp
-        if (lmoist)  call stats_allocate_ytavg_moist
-        if (nsv>0)   call stats_allocate_ytavg_scalar
+        call stats_init_ytavg_vel
+        if (ltempeq) call stats_init_ytavg_temp
+        if (lmoist)  call stats_init_ytavg_moist
+        if (nsv>0)   call stats_init_ytavg_scalar
 
-        if (myidy==0) then
-          call open_nc(filenameyt, ncidyt, nrecyt, n1=xdim, n3=zdim)
-          if (nrecyt==0) then
-            call define_nc(ncidyt, 1,  tVar0)
-            call writestat_dims_nc(ncidyt)
-          end if
-          call define_nc(ncidyt, ytVarsCount, ytVars)
-        end if
+        call stats_createnc_ytavg
+        
         deallocate(ytVars)
       end if
 
       !> Generate y averaged NetCDF: stats_y_out.xxx.xxx.nc
       if (lydump) then
-        filenamey = 'stats_y_out.xxx.xxx.nc'
-        filenamey(13:15)  = cmyidx
-        filenamey(17:19) = cexpnr
-
         yVarsCount = 8
         if (ltempeq) yVarsCount = yVarsCount + 4
         if (lmoist)  yVarsCount = yVarsCount + 4
@@ -428,46 +383,31 @@ module stats
 
         allocate(yVars(yVarsCount,4))   !!> Array to store the variable description of the quantities to be written
         ctry = 0
-        call stats_allocate_yavg_vel
-        if (ltempeq) call stats_allocate_yavg_temp
-        if (lmoist)  call stats_allocate_yavg_moist
-        if (nsv>0)   call stats_allocate_yavg_scalar
+        call stats_init_yavg_vel
+        if (ltempeq) call stats_init_yavg_temp
+        if (lmoist)  call stats_init_yavg_moist
+        if (nsv>0)   call stats_init_yavg_scalar
 
-        if (myidy==0) then
-          call open_nc(filenamey, ncidy, nrecy, n1=xdim, n3=zdim)
-          if (nrecy==0) then
-            call define_nc(ncidy, 1,  tVar0)
-            call writestat_dims_nc(ncidy)
-          end if
-          call define_nc(ncidy, yVarsCount, yVars)
-        end if
+        call stats_createnc_yavg
+
         deallocate(yVars)
       end if
 
       !> Generate time averaged tree data NetCDF: stats_tree_out.xxx.xxx.xxx.nc
       if (ltreedump) then
-        filenametree = 'stats_tree_out.xxx.xxx.xxx.nc'
-        filenametree(16:18) = cmyidx
-        filenametree(20:22) = cmyidy
-        filenametree(24:26) = cexpnr
-
         treeVarsCount = 3
         if (ltempeq) treeVarsCount = treeVarsCount + 1
         if (lmoist)  treeVarsCount = treeVarsCount + 4
         if (nsv>0)   treeVarsCount = treeVarsCount + nsv
         allocate(treeVars(treeVarsCount,4))   !!> Array to store the variable description of the quantities to be written
         ctrtree = 0
-        call stats_allocate_tree_vel
-        if (ltempeq) call stats_allocate_tree_temp
-        if (lmoist)  call stats_allocate_tree_moist
-        if (nsv>0)   call stats_allocate_tree_scalar
+        call stats_init_tree_vel
+        if (ltempeq) call stats_init_tree_temp
+        if (lmoist)  call stats_init_tree_moist
+        if (nsv>0)   call stats_init_tree_scalar
 
-        call open_nc(filenametree, ncidtree, nrectree, n1=xdim, n2=ydim, n3=zdim)
-        if (nrectree==0) then
-          call define_nc(ncidtree, 1, tVar0)
-          call writestat_dims_nc(ncidtree)
-        end if
-        call define_nc(ncidtree, treeVarsCount, treeVars)
+        call stats_createnc_tree
+        
         deallocate(treeVars)
       end if
     end subroutine stats_init
@@ -477,6 +417,7 @@ module stats
       implicit none
 
       if (.not. rk3step==3)  return
+      if(.not.(ltdump .or. lxytdump .or. lxydump .or. lytdump .or. lydump .or. ltreedump)) return
 
       if (tsamplep > tsample) then        ! at every stats sampling instance
         tstatsdumppi = 1./tstatsdumpp
@@ -602,7 +543,7 @@ module stats
 
 
     !! ## %% Interpolated and sgs fields initialization routines
-    subroutine stats_allocate_interpolate_and_sgs_vel
+    subroutine stats_allocate_interp_and_sgs_vel
       implicit none
       allocate(uik(ib:ie,jb:je,kb:ke+kh))
       allocate(wik(ib:ie,jb:je,kb:ke+kh))
@@ -616,25 +557,25 @@ module stats
       allocate(usgs(ib:ie,jb:je,kb:ke+kh))
       allocate(vsgs(ib:ie,jb:je,kb:ke+kh))
       allocate(wsgs(ib:ie,jb:je,kb:ke+kh))
-    end subroutine stats_allocate_interpolate_and_sgs_vel
+    end subroutine stats_allocate_interp_and_sgs_vel
 
-    subroutine stats_allocate_interpolate_and_sgs_temp
+    subroutine stats_allocate_interp_and_sgs_temp
       implicit none
       allocate(thlk(ib:ie,jb:je,kb:ke+kh))
       allocate(thlsgs(ib:ie,jb:je,kb:ke+kh))
-    end subroutine stats_allocate_interpolate_and_sgs_temp
+    end subroutine stats_allocate_interp_and_sgs_temp
 
-    subroutine stats_allocate_interpolate_and_sgs_moist
+    subroutine stats_allocate_interp_and_sgs_moist
       implicit none
       allocate(qtk(ib:ie,jb:je,kb:ke+kh))
       allocate(qtsgs(ib:ie,jb:je,kb:ke+kh))
-    end subroutine stats_allocate_interpolate_and_sgs_moist
+    end subroutine stats_allocate_interp_and_sgs_moist
 
-    subroutine stats_allocate_interpolate_and_sgs_scalar
+    subroutine stats_allocate_interp_and_sgs_scalar
       implicit none
       allocate(svk(ib:ie,jb:je,kb:ke+kh,nsv))
       allocate(svsgs(ib:ie,jb:je,kb:ke+kh,nsv))
-    end subroutine stats_allocate_interpolate_and_sgs_scalar
+    end subroutine stats_allocate_interp_and_sgs_scalar
       
 
     !! ## %% Time averaging initialization routines
@@ -750,17 +691,33 @@ module stats
       ctrt = ctrt+4*nsv
     end subroutine stats_ncdescription_tavg_scalar
 
-    subroutine stats_allocate_tavg_PSS
+    subroutine stats_init_tavg_PSS
       implicit none
       allocate(PSS(ib:ie,jb:je,kb:ke+kh))
       allocate(PSSt(ib:ie,jb:je,kb:ke+kh)); PSSt = 0;
       call ncinfo( tVars(ctrt+1,:) , 'PSS'      , 'PSS defect'                , 'gm/s'      , 'tttt' )
       ctrt = ctrt+1
-    end subroutine stats_allocate_tavg_PSS
+    end subroutine stats_init_tavg_PSS
+
+    subroutine stats_createnc_tavg
+      implicit none
+      filenamet = 'stats_t_out.xxx.xxx.xxx.nc'
+      filenamet(13:15) = cmyidx
+      filenamet(17:19) = cmyidy
+      filenamet(21:23) = cexpnr
+
+      nrect = 0
+      call open_nc(filenamet, ncidt, nrect, n1=xdim, n2=ydim, n3=zdim)
+      if (nrect==0) then
+        call define_nc(ncidt, 1, timeVar)
+        call writestat_dims_nc(ncidt)
+      end if
+      call define_nc(ncidt, tVarsCount, tVars)
+    end subroutine stats_createnc_tavg
 
 
     !! ## %% Time, y and x averaging initialization routines
-    subroutine stats_allocate_xytavg_vel
+    subroutine stats_init_xytavg_vel
       implicit none
       allocate(uxyt(kb:ke+kh))
       allocate(vxyt(kb:ke+kh))
@@ -804,9 +761,9 @@ module stats
       call ncinfo( xytVars(ctrxyt+19,:), 'vsgs'     , 'SGS mom. flux'              , 'm^2/s^2'   , 'mt' )
       call ncinfo( xytVars(ctrxyt+20,:), 'wsgs'     , 'SGS mom. flux'              , 'm^2/s^2'   , 'mt' )
       ctrxyt = ctrxyt+20
-    end subroutine stats_allocate_xytavg_vel
+    end subroutine stats_init_xytavg_vel
 
-    subroutine stats_allocate_xytavg_temp
+    subroutine stats_init_xytavg_temp
       implicit none
       allocate(thlxyt(kb:ke+kh))
       allocate(wpthlpxytk(kb:ke+kh))
@@ -819,9 +776,9 @@ module stats
       call ncinfo( xytVars(ctrxyt+ 4,:), 'thlpthlp' , 'Temp. variance'           , 'K^2'       , 'tt' )
       call ncinfo( xytVars(ctrxyt+ 5,:), 'thlsgs'   , 'SGS heat flux'            , 'K m/s'     , 'mt' )
       ctrxyt = ctrxyt+5
-    end subroutine stats_allocate_xytavg_temp
+    end subroutine stats_init_xytavg_temp
 
-    subroutine stats_allocate_xytavg_moist
+    subroutine stats_init_xytavg_moist
       implicit none
       allocate(qtxyt(kb:ke+kh))
       allocate(wpqtpxytk(kb:ke+kh))
@@ -834,11 +791,27 @@ module stats
       call ncinfo( xytVars(ctrxyt+ 4,:), 'qtpqtp'   , 'Moisture variance'        , 'kg^2/kg^2' , 'tt' )
       call ncinfo( xytVars(ctrxyt+ 5,:), 'qtsgs'    , 'SGS moisture flux'        , 'kg m/kg s' , 'mt' )
       ctrxyt = ctrxyt+5
-    end subroutine stats_allocate_xytavg_moist
+    end subroutine stats_init_xytavg_moist
+
+    subroutine stats_createnc_xytavg
+      implicit none
+      filenamexyt = 'stats_xyt_out.xxx.nc'
+      filenamexyt(15:17) = cexpnr
+
+      nrecxyt = 0
+      if (myid==0) then
+        call open_nc(filenamexyt, ncidxyt, nrecxyt, n3=zdim)
+        if (nrecxyt==0) then
+          call define_nc(ncidxyt, 1,  timeVar)
+          call writestat_dims_nc(ncidxyt)
+        end if
+        call define_nc(ncidxyt, xytVarsCount, xytVars)
+      end if
+    end subroutine stats_createnc_xytavg
 
 
     !! ## %% y and x averaging initialization routines
-    subroutine stats_allocate_xyavg_vel
+    subroutine stats_init_xyavg_vel
       implicit none
       allocate(uxy(kb:ke+kh))
       allocate(vxy(kb:ke+kh))
@@ -880,9 +853,9 @@ module stats
       call ncinfo( xyVars(ctrxy+15,:), 'vsgs'     , 'SGS mom. flux'            , 'm^2/s^2'   , 'mt' )
       call ncinfo( xyVars(ctrxy+16,:), 'wsgs'     , 'SGS mom. flux'            , 'm^2/s^2'   , 'mt' )
       ctrxy = ctrxy+16
-    end subroutine stats_allocate_xyavg_vel
+    end subroutine stats_init_xyavg_vel
 
-    subroutine stats_allocate_xyavg_temp
+    subroutine stats_init_xyavg_temp
       implicit none
       allocate(thlxy(kb:ke+kh))
       allocate(wpthlpxyk(kb:ke+kh))
@@ -894,9 +867,9 @@ module stats
       call ncinfo( xyVars(ctrxy+ 3,:), 'wthl'     , 'Advective heat flux'      , 'K m/s'     , 'mt' )
       call ncinfo( xyVars(ctrxy+ 4,:), 'thlsgs'   , 'SGS heat flux'            , 'K m/s'     , 'mt' )
       ctrxy = ctrxy+4
-    end subroutine stats_allocate_xyavg_temp
+    end subroutine stats_init_xyavg_temp
 
-    subroutine stats_allocate_xyavg_moist
+    subroutine stats_init_xyavg_moist
       implicit none
       allocate(qtxy(kb:ke+kh))
       allocate(wpqtpxyk(kb:ke+kh))
@@ -908,11 +881,27 @@ module stats
       call ncinfo( xyVars(ctrxy+ 3,:), 'wqt'      , 'Advective moisture flux'  , 'kg m/kg s' , 'mt' )
       call ncinfo( xyVars(ctrxy+ 4,:), 'qtsgs'    , 'SGS moisture flux'        , 'kg m/kg s' , 'mt' )
       ctrxy = ctrxy+4
-    end subroutine stats_allocate_xyavg_moist
+    end subroutine stats_init_xyavg_moist
+
+    subroutine stats_createnc_xyavg
+      implicit none
+      filenamexy = 'stats_xy_out.xxx.nc'
+      filenamexy(14:16) = cexpnr
+
+      nrecxy = 0
+      if (myid==0) then
+        call open_nc(filenamexy, ncidxy, nrecxy, n3=zdim)
+        if (nrecxy==0) then
+          call define_nc(ncidxy, 1,  timeVar)
+          call writestat_dims_nc(ncidxy)
+        end if
+        call define_nc(ncidxy, xyVarsCount, xyVars)
+      end if
+    end subroutine stats_createnc_xyavg
 
 
     !! ## %% Time and y averaging initialization routines
-    subroutine stats_allocate_ytavg_vel
+    subroutine stats_init_ytavg_vel
       implicit none
       allocate(uyt(ib:ie,kb:ke))
       allocate(vyt(ib:ie,kb:ke))
@@ -938,9 +927,9 @@ module stats
       call ncinfo( ytVars(ctryt+10,:), 'usgs'     , 'SGS mom. flux'              , 'm^2/s^2'   , 'm0mt' )
       call ncinfo( ytVars(ctryt+11,:), 'wsgs'     , 'SGS mom. flux'              , 'm^2/s^2'   , 't0mt' )
       ctryt = ctryt+11
-    end subroutine stats_allocate_ytavg_vel
+    end subroutine stats_init_ytavg_vel
 
-    subroutine stats_allocate_ytavg_temp
+    subroutine stats_init_ytavg_temp
       implicit none
       allocate(thlyt(ib:ie,kb:ke))
       allocate(wpthlpytk(ib:ie,kb:ke))
@@ -953,9 +942,9 @@ module stats
       call ncinfo( ytVars(ctryt+ 4,:), 'thlpthlp' , 'Temp. variance'           , 'K^2'       , 't0tt' )
       call ncinfo( ytVars(ctryt+ 5,:), 'thlsgs'   , 'SGS heat flux'            , 'K m/s'     , 't0mt' )
       ctryt = ctryt+5
-    end subroutine stats_allocate_ytavg_temp
+    end subroutine stats_init_ytavg_temp
 
-    subroutine stats_allocate_ytavg_moist
+    subroutine stats_init_ytavg_moist
       implicit none
       allocate(qtyt(ib:ie,kb:ke))
       allocate(wpqtpytk(ib:ie,kb:ke))
@@ -968,9 +957,9 @@ module stats
       call ncinfo( ytVars(ctryt+ 4,:), 'qtpqtp'   , 'Moisture variance'        , 'kg^2/kg^2' , 't0tt' )
       call ncinfo( ytVars(ctryt+ 5,:), 'qtsgs'    , 'SGS moisture flux'        , 'kg m/kg s' , 't0mt' )
       ctryt = ctryt+5
-    end subroutine stats_allocate_ytavg_moist
+    end subroutine stats_init_ytavg_moist
 
-    subroutine stats_allocate_ytavg_scalar
+    subroutine stats_init_ytavg_scalar
       integer :: n
       character(2) :: sid
       allocate(svytname(nsv))
@@ -997,11 +986,28 @@ module stats
         call ncinfo(ytVars(ctryt+4*nsv+n,:), trim(svsgsytname(n)) , 'SGS scalar flux '//trim(sid)       , 'g/m^2s' , 't0mt' )
       end do
       ctryt = ctryt+5*nsv
-    end subroutine stats_allocate_ytavg_scalar
+    end subroutine stats_init_ytavg_scalar
+
+    subroutine stats_createnc_ytavg
+      implicit none
+      filenameyt = 'stats_yt_out.xxx.xxx.nc'
+      filenameyt(14:16)  = cmyidx
+      filenameyt(18:20) = cexpnr
+
+      nrecyt = 0
+      if (myidy==0) then
+        call open_nc(filenameyt, ncidyt, nrecyt, n1=xdim, n3=zdim)
+        if (nrecyt==0) then
+          call define_nc(ncidyt, 1,  timeVar)
+          call writestat_dims_nc(ncidyt)
+        end if
+        call define_nc(ncidyt, ytVarsCount, ytVars)
+      end if
+    end subroutine stats_createnc_ytavg
 
 
     !! ## %% y averaging initialization routines
-    subroutine stats_allocate_yavg_vel
+    subroutine stats_init_yavg_vel
       implicit none
       allocate(uy(ib:ie,kb:ke))
       allocate(vy(ib:ie,kb:ke))
@@ -1022,9 +1028,9 @@ module stats
       call ncinfo( yVars(ctry+ 7,:), 'usgs'     , 'SGS mom. flux'            , 'm^2/s^2'   , 'm0mt' )
       call ncinfo( yVars(ctry+ 8,:), 'wsgs'     , 'SGS mom. flux'            , 'm^2/s^2'   , 't0mt' )
       ctry = ctry+8
-    end subroutine stats_allocate_yavg_vel
+    end subroutine stats_init_yavg_vel
 
-    subroutine stats_allocate_yavg_temp
+    subroutine stats_init_yavg_temp
       implicit none
       allocate(thly(ib:ie,kb:ke))
       allocate(wpthlpyk(ib:ie,kb:ke))
@@ -1036,9 +1042,9 @@ module stats
       call ncinfo( yVars(ctry+ 3,:), 'wthl'     , 'Advective heat flux'      , 'K m/s'     , 't0mt' )
       call ncinfo( yVars(ctry+ 4,:), 'thlsgs'   , 'SGS heat flux'            , 'K m/s'     , 't0mt' )
       ctry = ctry+4
-    end subroutine stats_allocate_yavg_temp
+    end subroutine stats_init_yavg_temp
 
-    subroutine stats_allocate_yavg_moist
+    subroutine stats_init_yavg_moist
       implicit none
       allocate(qty(ib:ie,kb:ke))
       allocate(wpqtpyk(ib:ie,kb:ke))
@@ -1050,9 +1056,9 @@ module stats
       call ncinfo( yVars(ctry+ 3,:), 'wqt'      , 'Advective moisture flux'  , 'kg m/kg s' , 't0mt' )
       call ncinfo( yVars(ctry+ 4,:), 'qtsgs'    , 'SGS moisture flux'        , 'kg m/kg s' , 't0mt' )
       ctry = ctry+4
-    end subroutine stats_allocate_yavg_moist
+    end subroutine stats_init_yavg_moist
 
-    subroutine stats_allocate_yavg_scalar
+    subroutine stats_init_yavg_scalar
       integer :: n
       character(2) :: sid
       allocate(svyname(nsv))
@@ -1076,10 +1082,28 @@ module stats
         call ncinfo(yVars(ctry+3*nsv+n,:), trim(svsgsyname(n)) , 'SGS scalar flux '//trim(sid)       , 'g/m^2s' , 't0mt' )
       end do
       ctry = ctry+4*nsv
-    end subroutine stats_allocate_yavg_scalar
+    end subroutine stats_init_yavg_scalar
+
+    subroutine stats_createnc_yavg
+      implicit none
+      filenamey = 'stats_y_out.xxx.xxx.nc'
+      filenamey(13:15)  = cmyidx
+      filenamey(17:19) = cexpnr
+      
+      nrecy = 0
+      if (myidy==0) then
+        call open_nc(filenamey, ncidy, nrecy, n1=xdim, n3=zdim)
+        if (nrecy==0) then
+          call define_nc(ncidy, 1,  timeVar)
+          call writestat_dims_nc(ncidy)
+        end if
+        call define_nc(ncidy, yVarsCount, yVars)
+      end if
+    end subroutine stats_createnc_yavg
+
 
     !! ## %% time averaging tree data initialization routines
-    subroutine stats_allocate_tree_vel
+    subroutine stats_init_tree_vel
       implicit none
       allocate(tr_ut(ib:ie,jb:je,kb:ke))     ; tr_ut     = 0;
       allocate(tr_vt(ib:ie,jb:je,kb:ke))     ; tr_vt     = 0;
@@ -1088,16 +1112,16 @@ module stats
       call ncinfo( treeVars(ctrtree+ 2,:), 'tr_v'      , 'Drag in y'            , 'm/s^2'   , 'tttt' )
       call ncinfo( treeVars(ctrtree+ 3,:), 'tr_w'      , 'Drag in z'            , 'm/s^2'   , 'ttmt' )
       ctrtree = ctrtree+3
-    end subroutine stats_allocate_tree_vel
+    end subroutine stats_init_tree_vel
 
-    subroutine stats_allocate_tree_temp
+    subroutine stats_init_tree_temp
       implicit none
       allocate(tr_thlt(ib:ie,jb:je,kb:ke))   ; tr_thlt   = 0;
       call ncinfo( treeVars(ctrtree+ 1,:), 'tr_thl'    , 'Temp source/ sink'    , 'K/s'     , 'tttt' )
       ctrtree = ctrtree+1
-    end subroutine stats_allocate_tree_temp
+    end subroutine stats_init_tree_temp
 
-    subroutine stats_allocate_tree_moist
+    subroutine stats_init_tree_moist
       implicit none
       allocate(tr_qtt(ib:ie,jb:je,kb:ke))    ; tr_qtt    = 0;
       allocate(tr_qtRt(ib:ie,jb:je,kb:ke))   ; tr_qtRt   = 0;
@@ -1108,9 +1132,9 @@ module stats
       call ncinfo( treeVars(ctrtree+ 3,:), 'tr_qtA'    , 'Moisture source sink' , '1/s'     , 'tttt' )
       call ncinfo( treeVars(ctrtree+ 4,:), 'tr_omega'  , 'Decoupling factor'    , '-'       , 'tttt' )
       ctrtree = ctrtree+4
-    end subroutine stats_allocate_tree_moist
+    end subroutine stats_init_tree_moist
 
-    subroutine stats_allocate_tree_scalar
+    subroutine stats_init_tree_scalar
       implicit none
       integer :: n
       character(2) :: sid
@@ -1122,7 +1146,23 @@ module stats
         call ncinfo( treeVars(ctrtree+ n,:), trim(svtreename(n)) , 'Scalar source sink '//trim(sid) , 'kg/m^3s' , 'tttt' )
       end do
       ctrtree = ctrtree+nsv
-    end subroutine stats_allocate_tree_scalar
+    end subroutine stats_init_tree_scalar
+
+    subroutine stats_createnc_tree
+      implicit none
+      filenametree = 'stats_tree_out.xxx.xxx.xxx.nc'
+      filenametree(16:18) = cmyidx
+      filenametree(20:22) = cmyidy
+      filenametree(24:26) = cexpnr
+
+      nrectree = 0
+      call open_nc(filenametree, ncidtree, nrectree, n1=xdim, n2=ydim, n3=zdim)
+      if (nrectree==0) then
+        call define_nc(ncidtree, 1, timeVar)
+        call writestat_dims_nc(ncidtree)
+      end if
+      call define_nc(ncidtree, treeVarsCount, treeVars)
+    end subroutine stats_createnc_tree
 
 
     !! ## %% Interpolate variables at cell faces and compute sgs fluxes
@@ -1837,6 +1877,8 @@ module stats
 
     subroutine stats_exit
       implicit none
+      if(.not.(ltdump .or. lxytdump .or. lxydump .or. lytdump .or. lydump .or. ltreedump)) return
+
       if (ltdump .or. lxytdump .or. lxydump .or. lytdump .or. lydump) then
         deallocate(uik,wik,vjk,wjk,uij,vij,uc,vc,wc,usgs,vsgs,wsgs)
         if (ltempeq) deallocate(thlk,thlsgs)
