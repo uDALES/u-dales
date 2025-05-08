@@ -3,8 +3,9 @@
 This is the development repository for uDALES, capable of performing large-eddy simulation (LES) of urban airflow, heat transfer, and pollutant dispersion. It contains the uDALES software source-code, tests, documentation, and examples with tools to pre- and post-process inputs and outputs. For user guides, tutorials, general reference documentation and publications, please visit the [uDALES website](https://udales.github.io/u-dales/).
 
 <div align="center">
-<img src="docs/assets/images/fielddump_slice_2D.102.png" alt="uDALES" height="256">
-<img src="docs/assets/images/fielddump_slice_3D.102.png" alt="uDALES" height="256"> 
+<img src="docs/assets/images/T_5fps.gif" alt="uDALES" height="256">
+<img src="docs/assets/images/M_5fps.gif" alt="uDALES" height="256"> 
+<img src="docs/assets/images/w_5fps.gif" alt="uDALES" height="256">
 </div>
 
 ## Copyright and license
