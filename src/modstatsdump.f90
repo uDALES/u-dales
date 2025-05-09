@@ -60,6 +60,11 @@ module modstatsdump
   integer :: klow,khigh,i,j,k
   real    :: tsamplep,tstatsdumpp,tsample,tstatsdump
 
+  integer :: isliceloc    ! local islice on core
+  logical :: islicerank    ! cpu that islice is on
+  integer :: jsliceloc    ! local jslice on core
+  logical :: jslicerank    ! cpu that jslice is on
+
 
 contains
 
@@ -70,7 +75,7 @@ contains
   subroutine initstatsdump
     use modmpi,   only : my_real,mpierr,comm3d,mpi_logical,mpi_integer,mpi_character,cmyid,cmyidx,cmyidy
     use modglobal,only : imax,jmax,kmax,cexpnr,ifnamopt,fname_options,ib,ie,jb,je,kb,ke,ladaptive,btime,&
-                         nsv,lkslicedump,lislicedump,ljslicedump,ltreedump,ib,ie,islice,islicerank,isliceloc,jslice,jslicerank,jsliceloc
+                         nsv,lkslicedump,lislicedump,ljslicedump,ltreedump,ib,ie,islice,jslice
     use modstat_nc,only: open_nc, define_nc,ncinfo,writestat_dims_nc
     use modfields, only : ncstaty,ncstatyt,ncstattke,ncstatxy,ncstatkslice,ncstatislice,ncstatjslice,ncstatxyt,ncstatt,ncstattr,ncstatmint
     use decomp_2d, only : zstart, zend
@@ -181,8 +186,8 @@ contains
       call ncinfo(ncstatyt( 19,:),'wsca2yt'   ,'Kinematic scalar flux'     ,'K m/s'   ,'t0mt')
       call ncinfo(ncstatyt( 20,:),'wsca3yt'   ,'Kinematic scalar flux'     ,'K m/s'   ,'t0mt')
 
-      call ncinfo(ncstatyt( 21,:),'upupyt'     ,'mom. variance'            ,'m^2/s^2' ,'m0tt')
-      call ncinfo(ncstatyt( 22,:),'wpwpyt'     ,'mom. variance'            ,'m^2/s^2' ,'t0mt')
+      call ncinfo(ncstatyt( 21,:),'upupyt'     ,'mom. variance'            ,'m^2/s^2' ,'t0tt')
+      call ncinfo(ncstatyt( 22,:),'wpwpyt'     ,'mom. variance'            ,'m^2/s^2' ,'t0tt')
       call ncinfo(ncstatyt( 23,:),'thlpthlpyt' ,'temp. variance'           ,'K^2'     ,'t0tt')
       call ncinfo(ncstatyt( 24,:),'qtpqtpyt'   ,'moisture. variance'       ,'kg^2/kg^2','t0tt')
       call ncinfo(ncstatyt( 25,:),'sca1tpsca1pyt','scalar. variance'       ,'M^2'     ,'t0tt')
@@ -526,7 +531,7 @@ contains
                                timee,cexpnr,tsample,tstatsdump,jtot,imax,jmax,dzf,&
                                ltempeq,zh,dxf,dzf,dzh2i,lprofforc,lscasrcl,&
                                lkslicedump,lislicedump,ljslicedump,lchem,dzhi,dzfi,dzhiq,dxhi,lmoist,nsv,&
-                               k1,JNO2,lchem,kslice,islice,jslice,isliceloc,jsliceloc,islicerank,jslicerank,&
+                               k1,JNO2,lchem,kslice,islice,jslice,&
                                ltreedump
 !  use modsubgriddata,   only : ekm,sbshr
   use modstat_nc,       only : writestat_nc,writestat_1D_nc
@@ -810,7 +815,7 @@ contains
             vij(i,j,k) = 0.5*dxhi(i)*(vm(i,j,k)*dxf(i-1) + vm(i-1,j,k)*dxf(i))
             uc (i,j,k) = 0.5*dxhi(i)*(um(i,j,k)*dxf(i-1) + um(i-1,j,k)*dxf(i))
             vc (i,j,k) = 0.5*        (vm(i,j,k)          + vm(i,j-1,k))
-            wc (i,j,k) = 0.5*dzhi(k)*(wm(i,j,k)*dzf(k-1) + wm(i,j,k-1)*dzf(k))
+            wc (i,j,k) = 0.5*dzhi(k)*(wm(i,j,k)*dzf(k-1) + wm(i,j,k-1)*dzf(k))  !! Needs careful checking DMajumdar
 
             ! SGS fluxes
             ! interps ekm to cell corner (uw)
@@ -1520,7 +1525,7 @@ contains
     vpwptjk = vwtjk - vtjk*wtjk
     upvptij = uvtij - utij*vtij
     if (ltempeq) then
-      wpthlptk = wthltk - wmt*thlk
+      wpthlptk = wthltk - wmt*thltk
     end if
     if (nsv>0) then
       wpsv1p = wsv1tk - wmt*sv1tk

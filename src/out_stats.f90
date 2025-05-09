@@ -1183,7 +1183,8 @@ module stats
             vij(i,j,k) = 0.5*dxhi(i)*(vm(i,j,k)*dxf(i-1) + vm(i-1,j,k)*dxf(i))
             uc(i,j,k)  = 0.5*dxhi(i)*(um(i,j,k)*dxf(i-1) + um(i-1,j,k)*dxf(i))
             vc(i,j,k)  = 0.5*        (vm(i,j,k)          + vm(i,j-1,k))
-            wc(i,j,k)  = 0.5*dzhi(k)*(wm(i,j,k)*dzf(k-1) + wm(i,j,k-1)*dzf(k))
+            wc(i,j,k)  = 0.5*dzhi(k)*(wm(i,j,k)*dzf(k-1) + wm(i,j,k-1)*dzf(k))  !! Needs careful checking DMajumdar
+            ! wc(i,j,k)  = 0.5*dzfi(k)*(wm(i,j,k+1)*dzh(k) + wm(i,j,k)*dzh(k+1)) 
           end do
         end do
       end do

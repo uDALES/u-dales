@@ -56,6 +56,7 @@ module modglobal
    integer ::  nsv = 0 !< Number of additional scalar fields
    integer ::  nvar = 0
    character(50) :: fieldvars = ''
+   character(50) :: slicevars = ''
 
    integer ::  ih = 3
    integer ::  jh = 3
@@ -196,10 +197,6 @@ module modglobal
    integer :: kslice    = 1! k at which to output slice in xy-plane
    integer :: islice    = 1! i at which to output slice in yz-plane
    integer :: jslice    = 1! j at which to output slice in xz-plane
-   integer :: isliceloc    ! local islice on core
-   logical :: islicerank    ! cpu that islice is on
-   integer :: jsliceloc    ! local jslice on core
-   logical :: jslicerank    ! cpu that jslice is on
    logical :: ltdump    = .false.      !<  switch to output time-averaged statistics every tstatsdump
    logical :: lmintdump    = .false.      !<  switch to output prognostic statistics every tstatsdump
 

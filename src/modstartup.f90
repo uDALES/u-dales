@@ -57,7 +57,7 @@ module modstartup
       !-----------------------------------------------------------------|
 
       use modglobal,         only : initglobal, iexpnr, runtime, dtmax,  &
-                                    lwarmstart, lstratstart, lfielddump, lreadscal, startfile, tfielddump, fieldvars, tsample, tstatsdump, trestart, &
+                                    lwarmstart, lstratstart, lfielddump, lreadscal, startfile, tfielddump, fieldvars, slicevars, tsample, tstatsdump, trestart, &
                                     nsv, itot, jtot, ktot, xlen, ylen, xlat, xlon, xday, xtime, lwalldist, &
                                     lmoist, lcoriol, igrw_damp, geodamptime, ifnamopt, fname_options, &
                                     nscasrc,nscasrcl,iwallmom,iwalltemp,iwallmoist,iwallscal,ipoiss,iadv_mom,iadv_tke,iadv_thl,iadv_qt,iadv_sv,courant,diffnr,ladaptive,author,&
@@ -161,8 +161,9 @@ module modstartup
          lchem, k1, JNO2
       namelist/OUTPUT/ &
          lfielddump, tfielddump, fieldvars, &
-         ltdump, lydump, lytdump, lxydump, lxytdump, lmintdump, &
-         lkslicedump, kslice, lislicedump, islice, ljslicedump, jslice, ltkedump, tstatsdump, tsample
+         ltdump, lydump, lytdump, lxydump, lxytdump, lmintdump, ltkedump, &
+         slicevars, lkslicedump, kslice, lislicedump, islice, ljslicedump, jslice, &
+         tstatsdump, tsample
       namelist/TREES/ &
          ltrees, ntrees, cd, dec, ud, lad, Qstar, dQdt, lsize, r_s, ltreedump
       namelist/PURIFS/&
@@ -468,6 +469,7 @@ module modstartup
       call MPI_BCAST(nscasrc,1,MPI_INTEGER,0,comm3d,mpierr)
       call MPI_BCAST(nscasrcl,1,MPI_INTEGER,0,comm3d,mpierr)
       call MPI_BCAST(fieldvars, 50, MPI_CHARACTER, 0, comm3d, mpierr)
+      call MPI_BCAST(slicevars, 50, MPI_CHARACTER, 0, comm3d, mpierr)
       !call MPI_BCAST(nstat      ,1,MPI_INTEGER,0,comm3d,mpierr) !tg3315
       !call MPI_BCAST(ncstat     ,80,MPI_CHARACTER,0,comm3d,mpierr) !tg3315
       call MPI_BCAST(ifixuinf, 1, MPI_INTEGER, 0, comm3d, mpierr)
