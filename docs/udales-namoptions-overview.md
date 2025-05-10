@@ -14,17 +14,19 @@ This list refers to the original code-base [DALES](https://github.com/dalesteam/
 | lwarmstart | .false. | .true. or .false. | If .true. simulation reads in restart file to initialize fields.  | - |
 | startfile | '' | 'initd00001234_xxx_xxx.000'| Name of restart file, the last three digits should match iexpnr. | - |
 | runtime | 300 | > 0 | Simulation time. | [s] |
-| dtmax | 20 | > 0 | Maximum allowed numerical integration timestep. | [s] |
 | trestart | 10000. | 0 < trestart < runtime | Time at which restart files are written, trestart > runtime will prevent restart files being written.  | [s] |
+| dtmax | 20 | > 0 | Maximum allowed numerical integration timestep. | [s] |
 | ladaptive | .false. | .true. or .false. | Switch for adaptive time-stepping, .true. recommended. | - |
-| irandom | 0 | `INTEGER` > 0 | Seed for random number generation. | - |
-| randu | 0.0 |`REAL` > 0 | Amplitude of velocity field randomisation. | [m/s] |
-| randthl | 0.0 | `REAL` > 0 | Amplitude of temperature field randomisation. | [K] |
-| randq | 0.0 | `REAL` > 0 | Amplitude of moisture field randomisation. | [kg/kg] |
 | courant | 1.1 | 1 <= courant <=2 | Courant number, default sets it to 1.5 or 1.1 (if Kappa or upwind scheme is used). | - |
+| lrandomize | .true. | .true. or .false. | Switch that determines whether initial field is randomised.| - | 
+| irandom | 43 | `INTEGER` > 0 | Seed for random number generation. | - |
+| randu | 0.01 |`REAL` > 0 | Amplitude of velocity field randomisation. | [m/s] |
+<!---
+| randthl | 0.0 | `REAL` > 0 | Amplitude of temperature field randomisation. | [K] |
+| randqt | 0.0 | `REAL` > 0 | Amplitude of moisture field randomisation. | [kg/kg] |
+--->
 | libm | .true. | .true. or .false. | Switch that determines whether the Immersed Boundary Method is turned on. | - |
 | lles | .true. | .true. or .false. | Switch that determines whether the subgrid model is turned on or constant ekm and ekh are used (DNS). | - |
-| lrandomize | .true. | .true. or .false. | Switch that determines whether initial field is randomised.| - | 
 | nprocx | -  | `INTEGER` > 0 | Number of pencils in the x-direction (see 2decomp documentation [https://2decomp-fft.github.io/]), must be a divisor of itot. | - |
 | nprocy | -  | `INTEGER` > 0 | Number of pencils in the y-direction (see 2decomp documentation [https://2decomp-fft.github.io/]), must be a divisor of jtot and ktot. | - |
 
