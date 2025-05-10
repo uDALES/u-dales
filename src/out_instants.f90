@@ -284,9 +284,9 @@ module instant_slice
     subroutine instant_write_kslice
       implicit none
       call writestat_nc(ncidkslice, 'time', timee, nreckslice, .true.)
-      if (present('u0')) call writestat_nc(ncidkslice, 'u' , um(ib:ie,jb:je,kslice)                                   , nreckslice, xdim, ydim)
-      if (present('v0')) call writestat_nc(ncidkslice, 'v' , vm(ib:ie,jb:je,kslice)                                   , nreckslice, xdim, ydim)
-      if (present('w0')) call writestat_nc(ncidkslice, 'w' , 0.5*dzfi(kslice)*(wm(ib:ie,jb:je,kslice+1)*dzh(kslice) + wm(ib:ie,jb:je,kslice)*dzh(kslice+1)) , nreckslice, xdim, ydim)
+      if (present('u0')) call writestat_nc(ncidkslice, 'u' , um(ib:ie,jb:je,kslice)                                , nreckslice, xdim, ydim)
+      if (present('v0')) call writestat_nc(ncidkslice, 'v' , vm(ib:ie,jb:je,kslice)                                , nreckslice, xdim, ydim)
+      if (present('w0')) call writestat_nc(ncidkslice, 'w' , 0.5*(wm(ib:ie,jb:je,kslice)+wm(ib:ie,jb:je,kslice+1)) , nreckslice, xdim, ydim)
       if (present('th') .and. ltempeq) call writestat_nc(ncidkslice, 'thl' , thlm(ib:ie,jb:je,kslice)  , nreckslice, xdim, ydim)
       if (present('qt') .and. lmoist)  call writestat_nc(ncidkslice, 'qt'  , qtm(ib:ie,jb:je,kslice)   , nreckslice, xdim, ydim)
       if (present('s1') .and. nsv>0)   call writestat_nc(ncidkslice, 's1'  , svm(ib:ie,jb:je,kslice,1) , nreckslice, xdim, ydim)
