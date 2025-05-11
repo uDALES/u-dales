@@ -862,7 +862,7 @@ module modstartup
           write (*, *) "Warning: moisture not periodic in y, consider setting BCxq = ", BCxq_periodic
         end if
 
-      case(BCxm_profile)
+      case(BCym_profile)
          linoutflow = .true.
          call MPI_BCAST(linoutflow, 1, MPI_LOGICAL, 0, comm3d, mpierr)
 
