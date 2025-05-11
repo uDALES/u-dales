@@ -367,7 +367,7 @@ module modglobal
                          POISS_FFT3D = 2, &
                          POISS_FFT2D_2DECOMP = 3
 
-   integer :: ipoiss   = POISS_CYC
+   integer :: ipoiss   = POISS_FFT2D
 
    !Advection scheme
    integer, parameter :: iadv_upw = 1  !< first order upwind scheme

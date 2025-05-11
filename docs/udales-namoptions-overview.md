@@ -47,8 +47,8 @@ This list refers to the original code-base [DALES](https://github.com/dalesteam/
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
-| ps | -1 | `REAL` > 0 | Air pressure at surface, recommend using standard pressure.| [Pa] |
-| igrw_damp | 0 | 0, 1. | Switch to enable gravity wave damping.| - |
+| ps | 101325 | `REAL` > 0 | Air pressure at surface, recommend using standard pressure.| [Pa] |
+| igrw_damp | 0 | 0, 1, 2, 3 | Integer switch to enable gravity wave damping.| - |
 | ltempeq | .false. | .true. or .false. | Switch for solving temperature equation. | - |
 | lbuoyancy | .false. | .true. or .false. | Switch for buoyancy force in temperature equation. | - |
 | lmoist | .false. | .true. or .false. | Switch for solving moisture equation. | - |
@@ -95,7 +95,7 @@ Possible advection schemes:
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
 | lqlnr | .false. | .true. or .false. | Logical for calculation of liquid water concentration. | - |
-| ipoiss | 0 | 0 | Poisson solver. 0 = Fast Fourier Transform. | - |
+| ipoiss | 0 | 0 | Poisson solver. 0 = using 2D Fast Fourier Transform. | - |
 | iadv_mom | 2 | 2 | Advection scheme for momentum. | - |
 | iadv_tke | 2 | 2 | Advection scheme for TKE. Only used if `loneeqn = True`. | - |
 | iadv_thl | 2 | 2 | Advection scheme for temperature. | - |
@@ -158,7 +158,7 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
-| lvreman | .false. | .true. or .false. | Switch for Vreman (2004) sub-grid scheme. | - |
+| lvreman | .true. | .true. or .false. | Switch for Vreman (2004) sub-grid scheme. | - |
 <!-- | c_vreman | 0.07 | `REAL` | Model constant for Vreman scheme. | - | --->
 <!---
 | lbuoycorr | .false. | .true. or .false. | Switch for buoyancy correlation in the Vreman scheme. | - |
