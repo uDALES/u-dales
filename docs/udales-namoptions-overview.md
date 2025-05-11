@@ -21,16 +21,15 @@ This list refers to the original code-base [DALES](https://github.com/dalesteam/
 | lrandomize | .true. | .true. or .false. | Switch that determines whether initial field is randomised.| - | 
 | irandom | 43 | `INTEGER` > 0 | Seed for random number generation. | - |
 | randu | 0.01 |`REAL` > 0 | Amplitude of velocity field randomisation. | [m/s] |
-<!---
-| randthl | 0.0 | `REAL` > 0 | Amplitude of temperature field randomisation. | [K] |
-| randqt | 0.0 | `REAL` > 0 | Amplitude of moisture field randomisation. | [kg/kg] |
---->
 | libm | .true. | .true. or .false. | Switch that determines whether the Immersed Boundary Method is turned on. | - |
 | lles | .true. | .true. or .false. | Switch that determines whether the subgrid model is turned on or constant ekm and ekh are used (DNS). | - |
 | nprocx | -  | `INTEGER` > 0 | Number of pencils in the x-direction (see 2decomp documentation [https://2decomp-fft.github.io/]), must be a divisor of itot. | - |
 | nprocy | -  | `INTEGER` > 0 | Number of pencils in the y-direction (see 2decomp documentation [https://2decomp-fft.github.io/]), must be a divisor of jtot and ktot. | - |
 
-
+<!---
+| randthl | 0.0 | `REAL` > 0 | Amplitude of temperature field randomisation. | [K] |
+| randqt | 0.0 | `REAL` > 0 | Amplitude of moisture field randomisation. | [kg/kg] |
+--->
 
 ## Namelist DOMAIN
 
