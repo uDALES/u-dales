@@ -38,7 +38,7 @@ SAVE
   ! Surface properties
   real, allocatable :: tskin      (:,:) !<  Skin temperature [K]
   real, allocatable :: qskin      (:,:) !<  Skin specific humidity [kg/kg]
-  real              :: ps       = 101325    !<  Surface pressure [Pa]
+  real              :: ps       = 101325.    !<  Surface pressure [Pa]
 
   ! Surface energy balance
   logical           :: lmostlocal  = .false.  !<  Switch to apply MOST locally to get local Obukhov length
