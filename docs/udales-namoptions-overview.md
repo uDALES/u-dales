@@ -269,8 +269,9 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | lfielddump | .false. | .true. or .false. | Switch for instantaneous field output. | - |
 | tfielddump | 10000. | | Output time for fields. | [s] |
 | fieldvars | '' | Any of the given labels, several are seperated by a comma: u0,v0,w0,th,ql,qt,p0,s1,s2,s3,s4,s5 | Variable names of fields. | - |
-| tsample | 5. | | Sample time for statistics. | [s] |
-| tstatsdump | 10000. | | Output time for statistics. | [s] |
+| tsample | 5. | `REAL` | Sample time for statistics. | [s] |
+| tstatsdump | 10000. | `REAL` | Output time for statistics. | [s] |
+| tstatstart | 0. | `REAL` | Time from which statistics computation or data sampling starts. | [s] |
 | ltdump | .false. | .true. or .false. | Switch to output time-averaged statistics. | - |
 | lydump | .false. | .true. or .false. | Switch to output y-averaged statistics. *Only functional if x-direction is not parallelised.* | - |
 | lytdump | .false. | .true. or .false. | Switch to output y- and time- averaged statistics. *Only functional if x-direction is not parallelised.* | - |

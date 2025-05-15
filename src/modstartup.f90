@@ -57,7 +57,7 @@ module modstartup
       !-----------------------------------------------------------------|
 
       use modglobal,         only : initglobal, iexpnr, runtime, dtmax,  &
-                                    lwarmstart, lstratstart, lfielddump, lreadscal, startfile, tfielddump, fieldvars, tsample, tstatsdump, trestart, &
+                                    lwarmstart, lstratstart, lfielddump, lreadscal, startfile, tfielddump, fieldvars, tsample, tstatsdump, tstatstart, trestart, &
                                     nsv, itot, jtot, ktot, xlen, ylen, xlat, xlon, xday, xtime, lwalldist, &
                                     lmoist, lcoriol, igrw_damp, geodamptime, ifnamopt, fname_options, &
                                     nscasrc,nscasrcl,iwallmom,iwalltemp,iwallmoist,iwallscal,ipoiss,iadv_mom,iadv_tke,iadv_thl,iadv_qt,iadv_sv,courant,diffnr,ladaptive,author,&
@@ -162,7 +162,8 @@ module modstartup
       namelist/OUTPUT/ &
          lfielddump, tfielddump, fieldvars, &
          ltdump, lydump, lytdump, lxydump, lxytdump, lmintdump, &
-         lkslicedump, kslice, lislicedump, islice, ljslicedump, jslice, ltkedump, tstatsdump, tsample
+         lkslicedump, kslice, lislicedump, islice, ljslicedump, jslice, ltkedump, tstatsdump, tsample, &
+         tstatstart
       namelist/TREES/ &
          ltrees, ntrees, cd, dec, ud, lad, Qstar, dQdt, lsize, r_s, ltreedump
       namelist/PURIFS/&
@@ -460,6 +461,7 @@ module modstartup
       call MPI_BCAST(tfielddump, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(tsample, 1, MY_REAL, 0, comm3d, mpierr) !tg3315
       call MPI_BCAST(tstatsdump, 1, MY_REAL, 0, comm3d, mpierr) !tg3315
+      call MPI_BCAST(tstatstart, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(tEB, 1, MY_REAL, 0, comm3d, mpierr)
       tnextEB = dtEB
       call MPI_BCAST(tnextEB, 1, MY_REAL, 0, comm3d, mpierr)
