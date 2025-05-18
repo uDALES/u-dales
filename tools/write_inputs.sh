@@ -111,7 +111,7 @@ elif [ $start == "l" ]; then
 else
 	###### RUN MATLAB SCRIPT
 	cd $DA_TOOLSDIR
-	matlab -nodesktop -nojvm -nosplash -r "expnr=$iexpnr; write_inputs; quit"
+	nohup matlab -nodesktop -nojvm -nosplash -r "expnr=$iexpnr; write_inputs; quit" > $inputdir/write_inputs.$iexpnr.log 2>&1 &
 	cd $DA_EXPDIR
 	cd ..
 fi
