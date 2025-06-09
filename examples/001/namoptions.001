@@ -1,61 +1,51 @@
 &RUN
 iexpnr       = 001
-runtime      = 11.
-trestart     = 10.
-dtmax        = 1
-irandom      = 43
-randu        = 0.01
+runtime      = 21.
+trestart     = 20.
+dtmax        = 1.
 ladaptive    = .true.
-nprocx       = 2
+nprocx       = 4
 nprocy       = 2
-libm         = .false.
-lrandomize   = .true.
-/
-
-
-&DOMAIN
-itot         = 64
-jtot         = 64
-ktot         = 64
-xlen         = 64
-ylen         = 64
-/
-
-&PHYSICS
-ps           = 101500.
-igrw_damp    = 0
-/
-
-&DYNAMICS
-ipoiss       = 0
-/
-
-
-&BC
-thls         = 288.
-z0           = 0.01
-z0h          = 0.000067
-/
-
-&NAMSUBGRID
-lvreman      = .true.
-/
-
-
-&WALLS
-nfcts = 0
-lbottom = .true.
 /
 
 &OUTPUT
 lfielddump   = .true.
-tfielddump   = 10.
+tfielddump   = 5.
 fieldvars    = 'u0,v0,w0'
+ltdump       = .true.
+lxytdump     = .true.
+tstatsdump   = 10.
+tsample      = 1.
+/
+
+&DOMAIN
+itot         = 128
+jtot         = 128
+ktot         = 128
+xlen         = 64
+ylen         = 64
 /
 
 &INP
-zsize        = 64
-u0           = 2.
+zsize        = 64.
+u0           = 1.
 dpdx         = 0.0001
+stl_file     = flat_ground.stl
 /
 
+
+&WALLS
+nfcts = 128
+nsolpts_u = 0
+nsolpts_v = 0
+nsolpts_w = 16384
+nsolpts_c = 0
+nbndpts_u = 16384
+nbndpts_v = 16384
+nbndpts_w = 16384
+nbndpts_c = 16384
+nfctsecs_u = 17788
+nfctsecs_v = 17788
+nfctsecs_w = 0
+nfctsecs_c = 16896
+/

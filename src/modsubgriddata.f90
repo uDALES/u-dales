@@ -37,7 +37,7 @@ save
   logical :: ldelta       = .false. !<  switch for subgrid length formulation (on/off)
   logical :: lmason       = .false. !<  switch for decreased length scale near the surface
   logical :: lsmagorinsky = .false. !<  switch for smagorinsky subgrid scheme
-  logical :: lvreman      = .false. !<  switch for Vreman (2004) subgrid scheme
+  logical :: lvreman      = .true. !<  switch for Vreman (2004) subgrid scheme
   logical :: lbuoycorr    = .false. !<  switch for buoyancy correction in Vreman (2004) subgrid scheme
   logical :: loneeqn      = .false. !<  switch for one-eqn subgrid scheme
   real :: cf      = 2.5  !< filter constant

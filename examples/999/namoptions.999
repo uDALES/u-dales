@@ -1,0 +1,44 @@
+&RUN
+iexpnr       = 999
+runtime      = 21.
+trestart     = 20.
+dtmax        = 1.
+ladaptive    = .true.
+nprocx       = 4
+nprocy       = 2
+libm         = .false.
+/
+
+&OUTPUT
+lfielddump   = .true.
+tfielddump   = 5.
+fieldvars    = 'u0,v0,w0'
+ltdump       = .true.
+lxytdump     = .true.
+tstatsdump   = 10.
+tsample      = 1.
+/
+
+&DOMAIN
+itot         = 128
+jtot         = 128
+ktot         = 128
+xlen         = 64
+ylen         = 64
+/
+
+&INP
+zsize        = 64.
+u0           = 1.
+dpdx         = 0.0001
+/
+
+&BC
+z0           = 0.05
+z0h          = 0.00035
+/
+
+&WALLS
+nfcts = 0
+lbottom = .true.
+/

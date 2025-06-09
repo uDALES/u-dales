@@ -369,7 +369,7 @@ module modglobal
                          POISS_FFT3D = 2, &
                          POISS_FFT2D_2DECOMP = 3
 
-   integer :: ipoiss   = POISS_CYC
+   integer :: ipoiss   = POISS_FFT2D
 
    !Advection scheme
    integer, parameter :: iadv_upw = 1  !< first order upwind scheme
@@ -388,6 +388,7 @@ module modglobal
    real    :: tfielddump = 10000. !< Time step for field outputs
    real    :: tsample = 5. !<    Sample time steps for statistics
    real    :: tstatsdump = 10000. !< Time step for statistics outputs tg3315
+   real    :: tstatstart = 0.      !< Starting time of statistic computation
    real    :: tnextrestart !<     * each trestart sec. a restart file is written to disk
    real    :: tscale !       timescale: domain height*Uinf/utau**2
    real    :: tnextfielddump !<
