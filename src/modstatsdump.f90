@@ -181,8 +181,8 @@ contains
       call ncinfo(ncstatyt( 19,:),'wsca2yt'   ,'Kinematic scalar flux'     ,'K m/s'   ,'t0mt')
       call ncinfo(ncstatyt( 20,:),'wsca3yt'   ,'Kinematic scalar flux'     ,'K m/s'   ,'t0mt')
 
-      call ncinfo(ncstatyt( 21,:),'upupyt'     ,'mom. variance'            ,'m^2/s^2' ,'m0tt')
-      call ncinfo(ncstatyt( 22,:),'wpwpyt'     ,'mom. variance'            ,'m^2/s^2' ,'t0mt')
+      call ncinfo(ncstatyt( 21,:),'upupyt'     ,'mom. variance'            ,'m^2/s^2' ,'t0tt')
+      call ncinfo(ncstatyt( 22,:),'wpwpyt'     ,'mom. variance'            ,'m^2/s^2' ,'t0tt')
       call ncinfo(ncstatyt( 23,:),'thlpthlpyt' ,'temp. variance'           ,'K^2'     ,'t0tt')
       call ncinfo(ncstatyt( 24,:),'qtpqtpyt'   ,'moisture. variance'       ,'kg^2/kg^2','t0tt')
       call ncinfo(ncstatyt( 25,:),'sca1tpsca1pyt','scalar. variance'       ,'M^2'     ,'t0tt')
@@ -812,7 +812,7 @@ contains
             vij(i,j,k) = 0.5*dxhi(i)*(vm(i,j,k)*dxf(i-1) + vm(i-1,j,k)*dxf(i))
             uc (i,j,k) = 0.5*dxhi(i)*(um(i,j,k)*dxf(i-1) + um(i-1,j,k)*dxf(i))
             vc (i,j,k) = 0.5*        (vm(i,j,k)          + vm(i,j-1,k))
-            wc (i,j,k) = 0.5*dzhi(k)*(wm(i,j,k)*dzf(k-1) + wm(i,j,k-1)*dzf(k))
+            wc (i,j,k) = 0.5*( wm(i,j,k+1) + wm(i,j,k) ) 
 
             ! SGS fluxes
             ! interps ekm to cell corner (uw)
@@ -1522,7 +1522,7 @@ contains
     vpwptjk = vwtjk - vtjk*wtjk
     upvptij = uvtij - utij*vtij
     if (ltempeq) then
-      wpthlptk = wthltk - wmt*thlk
+      wpthlptk = wthltk - wmt*thltk
     end if
     if (nsv>0) then
       wpsv1p = wsv1tk - wmt*sv1tk
