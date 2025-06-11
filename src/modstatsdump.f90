@@ -1522,7 +1522,7 @@ contains
     vpwptjk = vwtjk - vtjk*wtjk
     upvptij = uvtij - utij*vtij
     if (ltempeq) then
-      wpthlptk = wthltk - wmt*thlk
+      wpthlptk = wthltk - wmt*thltk
     end if
     if (nsv>0) then
       wpsv1p = wsv1tk - wmt*sv1tk
