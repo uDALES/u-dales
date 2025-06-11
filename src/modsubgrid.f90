@@ -354,8 +354,8 @@ contains
                     ekm_d(i,j,k)=c_vreman_d*sqrt(const2)
                     ekh_d(i,j,k)=ekm_d(i,j,k)*prandtli_d
 
-                    ekm_d(i,j,k) = ekm_d(i,j,k) + numol_d
-                    ekh_d(i,j,k) = ekh_d(i,j,k) + numol_d*prandtlmoli_d
+                    ! ekm_d(i,j,k) = ekm_d(i,j,k) + numol_d
+                    ! ekh_d(i,j,k) = ekh_d(i,j,k) + numol_d*prandtlmoli_d
 
                  end do
               end do
