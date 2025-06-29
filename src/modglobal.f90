@@ -361,6 +361,12 @@ module modglobal
    integer :: npurif = 0
    real    :: Qpu = 0., epu = 0.                 !< flowrate and efficiency of purifiers
 
+   ! Heat pump
+   logical :: lheatpump = .false.   !< switch for heat pump
+   integer :: nhppoints = 0         !< number of heat pump grid points
+   real    :: Q_dot_hp = 0.         !< rate of heat extracted from the ambient air by the heat pump (W)
+   real    :: w_hp_exhaust = 0.     !< exhaust vertical velocity of the heat pump (m/s)
+
    ! Poisson solver
    integer, parameter :: POISS_FFT2D = 0, &
                          POISS_CYC   = 1, &

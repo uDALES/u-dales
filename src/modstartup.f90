@@ -76,7 +76,8 @@ module modstartup
                                     idriver,tdriverstart,driverjobnr,dtdriver,driverstore,lchunkread,chunkread_size, &
                                     lrandomize, prandtlturb, fkar, lwritefac, dtfac, tfac, tnextfac, &
                                     ltrees,ntrees,Qstar,dQdt,lad,lsize,r_s,cd,dec,ud,ltreedump, &
-                                    lpurif,npurif,Qpu,epu
+                                    lpurif,npurif,Qpu,epu, &
+                                    lheatpump, nhppoints, Q_dot_hp, w_hp_exhaust
       use modsurfdata,       only : z0, z0h,  wtsurf, wttop, wqtop, wqsurf, wsvsurf, wsvtop, wsvsurfdum, wsvtopdum, ps, thvs, thls, thl_top, qt_top, qts
       use modfields,         only : initfields, dpdx, ncname
       use modpois,           only : initpois
@@ -166,8 +167,10 @@ module modstartup
          tstatstart
       namelist/TREES/ &
          ltrees, ntrees, cd, dec, ud, lad, Qstar, dQdt, lsize, r_s, ltreedump
-      namelist/PURIFS/&
+      namelist/PURIFS/ &
          lpurif, npurif, Qpu, epu
+      namelist/HEATPUMP/ &
+         lheatpump, nhppoints, Q_dot_hp, w_hp_exhaust
 
       if (myid == 0) then
          if (command_argument_count() >= 1) then
@@ -297,6 +300,15 @@ module modstartup
             stop 1
          endif
          !write (6, PURIFS)
+         rewind (ifnamopt)
+
+         read (ifnamopt, HEATPUMP, iostat=ierr)
+         if (ierr > 0) then
+            print *, 'ERROR: Problem in namoptions HEATPUMP'
+            print *, 'iostat error: ', ierr
+            stop 1
+         endif
+         !write (6, HEATPUMP)
          rewind (ifnamopt)
 
          read (ifnamopt, OUTPUT, iostat=ierr)
@@ -590,6 +602,10 @@ module modstartup
       call MPI_BCAST(npurif, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(Qpu, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(epu, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(lheatpump, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(nhppoints, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(Q_dot_hp, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(w_hp_exhaust, 1, MY_REAL, 0, comm3d, mpierr)
 
       ! ! Allocate and initialize core modules
       ! call initglobal
