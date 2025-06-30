@@ -14,7 +14,7 @@ module modheatpump
 contains
 
   subroutine init_heatpump
-    use modglobal, only : lheatpump, nhppoints, Q_dot_hp, rhoa, cp, ifinput, cexpnr
+    use modglobal, only : lheatpump, nhppoints, Q_dot_hp, rhoa, cp, ifinput, cexpnr, ltempeq
     use modmpi,    only : myid, comm3d, mpierr
     use decomp_2d, only : zstart, zend
     implicit none
@@ -22,7 +22,7 @@ contains
     integer :: n
     character(80) :: chmess
 
-    if (.not.(lheatpump) .or. (nhppoints<1)) return
+    if (.not.(lheatpump) .or. .not.(ltempeq) .or. (nhppoints<1)) return
 
     allocate(idhppts_global(nhppoints,3))  ! Allocate global heat pump points array
     allocate(lhpptsrank(nhppoints))        ! Allocate logical array for heat pump points on this rank
@@ -55,33 +55,35 @@ contains
   end subroutine init_heatpump
 
   subroutine heatpump
-    use modglobal,  only : lheatpump, nhppoints, w_hp_exhaust, dxi, dyi, dzfi
-    use modfields,  only : wp, thlp
+    use modglobal,  only : lheatpump, nhppoints, w_hp_exhaust, dxi, dyi, dzfi, ltempeq
+    use modfields,  only : wm, w0, wp, thlp
     use modmpi,     only : myidx, myidy
     use decomp_2d,  only : zsize
     implicit none
 
     integer :: n, i, j, k
 
-    if (.not.(lheatpump) .or. (nhppoints<1)) return
-
+    if (.not.(lheatpump) .or. .not.(ltempeq) .or. (nhppoints<1)) return
+    
     do n = 1, nhppoints
       if (lhpptsrank(n)) then
         i = idhppts_global(n,1) - myidx*zsize(1)
         j = idhppts_global(n,2) - myidy*zsize(2)
         k = idhppts_global(n,3)
 
-        wp(i,j,k+1) = w_hp_exhaust ! Set exhaust velocity at heat pump point [m/s], at input 'w' cell face k+1
+        wm(i,j,k+1) = w_hp_exhaust ! Set exhaust velocity at heat pump point [m/s], at input 'w' cell face k+1
+        w0(i,j,k+1) = w_hp_exhaust
+        !wp(i,j,k+1) = 0.
         thlp(i,j,k) = thlp(i,j,k) - thl_dot_hp * dxi * dyi * dzfi(k)  ! [K/s], at cell center k
       end if
     end do
   end subroutine heatpump
 
   subroutine exit_heatpump
-    use modglobal, only : lheatpump, nhppoints
+    use modglobal, only : lheatpump, nhppoints, ltempeq
     implicit none
 
-    if (.not.(lheatpump) .or. (nhppoints<1)) return
+    if (.not.(lheatpump) .or. .not.(ltempeq) .or. (nhppoints<1)) return
 
     deallocate(idhppts_global,lhpptsrank) ! Deallocate global heat pump points array and logical array
   end subroutine exit_heatpump
