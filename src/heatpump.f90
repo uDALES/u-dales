@@ -10,11 +10,12 @@ module modheatpump
   logical, allocatable :: lhpptsrank(:)  ! Logical array indicating if heat pump points are on this rank
 
   real :: thl_dot_hp  ! Rate of change of temperature due to heat loss from the heat pump in [Km^3/s]
+  real :: w_hp_exhaust ! Exhaust velocity at heat pump points in [m/s]
 
 contains
 
   subroutine init_heatpump
-    use modglobal, only : lheatpump, nhppoints, Q_dot_hp, rhoa, cp, ifinput, cexpnr, ltempeq
+    use modglobal, only : lheatpump, nhppoints, Q_dot_hp, QH_dot_hp, rhoa, cp, ifinput, cexpnr, ltempeq, dxi, dyi
     use modmpi,    only : myid, comm3d, mpierr
     use decomp_2d, only : zstart, zend
     implicit none
@@ -50,12 +51,14 @@ contains
       end if
     end do
     
-    thl_dot_hp = Q_dot_hp / (nhppoints*rhoa*cp) ! Calculate temperature change rate from heat loss [Km^3/s]
+    thl_dot_hp = QH_dot_hp / (nhppoints*rhoa*cp) ! Calculate temperature change rate from heat loss [Km^3/s]
     
+    w_hp_exhaust = Q_dot_hp / (nhppoints*dxi*dyi) ! Calculate exhaust velocity at heat pump points [m/s]
+
   end subroutine init_heatpump
 
   subroutine heatpump
-    use modglobal,  only : lheatpump, nhppoints, w_hp_exhaust, dxi, dyi, dzfi, ltempeq
+    use modglobal,  only : lheatpump, lfan_hp, nhppoints, dxi, dyi, dzfi, ltempeq
     use modfields,  only : wm, w0, wp, thlp
     use modmpi,     only : myidx, myidy
     use decomp_2d,  only : zsize
@@ -71,9 +74,12 @@ contains
         j = idhppts_global(n,2) - myidy*zsize(2)
         k = idhppts_global(n,3)
 
-        wm(i,j,k+1) = w_hp_exhaust ! Set exhaust velocity at heat pump point [m/s], at input 'w' cell face k+1
-        w0(i,j,k+1) = w_hp_exhaust
-        !wp(i,j,k+1) = 0.
+        if (lfan_hp) then ! Heat pump fan is on
+          wm(i,j,k+1) = w_hp_exhaust ! Set exhaust velocity at heat pump point [m/s], at input 'w' cell face k+1
+          w0(i,j,k+1) = w_hp_exhaust
+          !wp(i,j,k+1) = 0.
+        end if
+        
         thlp(i,j,k) = thlp(i,j,k) - thl_dot_hp * dxi * dyi * dzfi(k)  ! [K/s], at cell center k
       end if
     end do

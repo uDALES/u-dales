@@ -363,9 +363,10 @@ module modglobal
 
    ! Heat pump
    logical :: lheatpump = .false.   !< switch for heat pump
+   logical :: lfan_hp = .true.      !< switch for heat pump fan on/off
    integer :: nhppoints = 0         !< number of heat pump grid points
-   real    :: Q_dot_hp = 0.         !< rate of heat extracted from the ambient air by the heat pump (W)
-   real    :: w_hp_exhaust = 0.     !< exhaust vertical velocity of the heat pump (m/s)
+   real    :: QH_dot_hp = 0.        !< Total rate of heat extracted from the ambient air by the heat pump (W)
+   real    :: Q_dot_hp = 0.         !< Total volume flux going out from the heat pump in vertical direction(m^3/s)
 
    ! Poisson solver
    integer, parameter :: POISS_FFT2D = 0, &
