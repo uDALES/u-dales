@@ -40,29 +40,21 @@ if [ -f config.sh ]; then
 fi
 
 ## set the output directory
-outdir=$EPHEMERAL/$exp
+outdir=$DA_WORKDIR/$exp
 
 echo "writing job.$exp."
 
 ## write new job.exp file for HPC
-echo "#PBS -l walltime=${WALLTIME}" > job.$exp
-echo "#PBS -l select=${NNODE}:ncpus=${NCPU}:mem=${MEM}" >> job.$exp
-
-## load modules required for the execution
-echo "module load intel-suite/2017.6 mpi/intel-2018 cmake/3.14.0 git/2.14.3" >> job.$exp
-
-## copy files to execution and output directory
-echo "mkdir -p $outdir" >> job.$exp
-echo "cp -r $inputdir/* $outdir" >> job.$exp
-
-## go to execution and output directory
-echo "pushd $outdir" >> job.$exp
-
-## execute program with mpi
-echo "mpiexec -n $(( $NCPU * $NNODE )) $DA_BUILD $outdir/namoptions.$exp > $outdir/output.$exp 2>&1" >> job.$exp
-
-## gather output files from cores in a single file
-echo "$DA_TOOLSDIR/gather_outputs.sh $outdir " >> job.$exp
+cat <<EOF > job.$exp
+#PBS -l walltime=${WALLTIME}
+#PBS -l select=${NNODE}:ncpus=${NCPU}:mem=${MEM}
+module load intel/2025a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a FFTW/3.3.9-intel-2021a CMake/3.29.3-GCCcore-13.3.0 git/2.45.1-GCCcore-13.3.0
+mkdir -p $outdir
+cp -r $inputdir/* $outdir
+pushd $outdir
+mpiexec -n $(( $NCPU * $NNODE )) $DA_BUILD $outdir/namoptions.$exp > $outdir/output.$exp 2>&1
+$DA_TOOLSDIR/gather_outputs.sh $outdir
+EOF
 
 ## submit job.exp file to queue
 qsub job.$exp
