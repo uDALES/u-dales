@@ -53,7 +53,7 @@ contains
     
     thl_dot_hp = QH_dot_hp / (nhppoints*rhoa*cp) ! Calculate temperature change rate from heat loss [Km^3/s]
     
-    w_hp_exhaust = Q_dot_hp / (nhppoints*dxi*dyi) ! Calculate exhaust velocity at heat pump points [m/s]
+    w_hp_exhaust = (Q_dot_hp/nhppoints)*dxi*dyi  ! Calculate exhaust velocity at heat pump points [m/s]
 
   end subroutine init_heatpump
 
