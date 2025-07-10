@@ -49,7 +49,7 @@ echo "#PBS -l walltime=${WALLTIME}" > job.$exp
 echo "#PBS -l select=${NNODE}:ncpus=${NCPU}:mem=${MEM}" >> job.$exp
 
 ## load modules required for the execution
-echo "module load intel-suite/2017.6 mpi/intel-2018 cmake/3.14.0 git/2.14.3" >> job.$exp
+echo "module load intel/2025a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a FFTW/3.3.9-intel-2021a CMake/3.29.3-GCCcore-13.3.0 git/2.45.1-GCCcore-13.3.0" >> job.$exp
 
 ## copy files to execution and output directory
 echo "mkdir -p $outdir" >> job.$exp
