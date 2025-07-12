@@ -70,7 +70,7 @@ cat <<EOF > post-job.$exp
 #!/bin/bash
 #PBS -l walltime=${WALLTIME}
 #PBS -l select=${NNODE}:ncpus=${NCPU}:mem=${MEM}
-module load intel/2025a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a NCO/5.2.9-foss-2024a GSL/2.8-GCC-13.3.0
+module load intel/2024a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a NCO/5.2.9-foss-2024a GSL/2.8-GCC-13.3.0
 $DA_TOOLSDIR/gather_outputs.sh $outdir
 EOF
 
