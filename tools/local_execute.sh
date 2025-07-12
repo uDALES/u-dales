@@ -77,7 +77,6 @@ mpiexec -n $NCPU --oversubscribe $DA_BUILD namoptions.$exp 2>&1 | tee -a run.$ex
 ## Merge output files across outputs.
 if (($NCPU > 1 )); then
     echo "Merging outputs across cores into one..."
-    export LOCAL_EXECUTE=1
     $DA_TOOLSDIR/gather_outputs.sh $outdir
 fi
 
