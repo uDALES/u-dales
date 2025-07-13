@@ -74,7 +74,7 @@ module load intel/2024a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023
 $DA_TOOLSDIR/gather_outputs.sh $outdir
 EOF
 
-## submit job.exp file to queue
+## submit post-job.exp file to queue
 qsub post-job.$exp
 
 echo "post-job.$exp submitted."
