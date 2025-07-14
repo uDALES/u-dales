@@ -21,17 +21,17 @@ set -e
 
 if (( $# < 1 ))
 then
- echo "The output case directory must be set."
- echo "usage: FROM THE TOP LEVEL DIRECTORY run: bash ./u-dales/tools/hpc_gather.sh <PATH_TO_OUTPUT_CASE>"
+ echo "The experiment directory must be set."
+ echo "usage: FROM THE TOP LEVEL DIRECTORY run: u-dales/tools/hpc_gather.sh <PATH_TO_CASE>"
  exit 1
 fi
 
-## go to output case directory
+## go to experiment directory
 pushd $1
-outdir=$(pwd)
+inputdir=$(pwd)
 
 ## set experiment number via path
-exp="${outdir: -3}"
+exp="${inputdir: -3}"
 
 echo "experiment number: $exp"
 
@@ -39,38 +39,47 @@ echo "experiment number: $exp"
 if [ -f config.sh ]; then
     source config.sh
 else
-    echo "config.sh must be there inside $outdir"
+    echo "config.sh must be there inside $inputdir"
     exit 1
 fi
 
 ## check if required variables are set
+if [ -z $DA_WORKDIR ]; then
+    echo "Script directory DA_WORKDIR must be set inside $inputdir/config.sh"
+    exit 1
+fi;
 if [ -z $DA_TOOLSDIR ]; then
-    echo "Script directory DA_TOOLSDIR must be set inside $outdir/config.sh"
+    echo "Script directory DA_TOOLSDIR must be set inside $inputdir/config.sh"
     exit 1
 fi;
 if [ -z $NNODE ]; then
-    echo "Script directory NNODE must be set inside $outdir/config.sh"
+    echo "Script directory NNODE must be set inside $inputdir/config.sh"
     exit 1
 fi;
 if [ -z $NCPU ]; then
-    echo "Script directory NCPU must be set inside $outdir/config.sh"
+    echo "Script directory NCPU must be set inside $inputdir/config.sh"
     exit 1
 fi;
 if [ -z $WALLTIME ]; then
-    echo "Script directory WALLTIME must be set inside $outdir/config.sh"
+    echo "Script directory WALLTIME must be set inside $inputdir/config.sh"
     exit 1
 fi;
 if [ -z $MEM ]; then
-    echo "Script directory MEM must be set inside $outdir/config.sh"
+    echo "Script directory MEM must be set inside $inputdir/config.sh"
     exit 1
 fi;
+
+## set the output directory
+outdir=$DA_WORKDIR/$exp
+
+echo "writing post-job.$exp."
 
 ## write post-job.exp file for HPC
 cat <<EOF > post-job.$exp
 #!/bin/bash
 #PBS -l walltime=${WALLTIME}
 #PBS -l select=${NNODE}:ncpus=${NCPU}:mem=${MEM}
-module load intel/2024a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a NCO/5.2.9-foss-2024a GSL/2.8-GCC-13.3.0
+module load NCO/5.2.9-foss-2024a GSL/2.8-GCC-13.3.0
 $DA_TOOLSDIR/gather_outputs.sh $outdir
 EOF
 
@@ -78,5 +87,3 @@ EOF
 qsub post-job.$exp
 
 echo "post-job.$exp submitted."
-
-popd

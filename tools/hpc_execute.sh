@@ -22,7 +22,7 @@ set -e
 if (( $# < 1 ))
 then
  echo "The experiment directory must be set."
- echo "usage: FROM THE TOP LEVEL DIRECTORY run: bash ./u-dales/tools/hpc_execute.sh <PATH_TO_CASE>"
+ echo "usage: FROM THE TOP LEVEL DIRECTORY run: u-dales/tools/hpc_execute.sh <PATH_TO_CASE>"
  exit 1
 fi
 
@@ -53,7 +53,7 @@ if [ -z $DA_BUILD ]; then
     exit 1
 fi;
 if [ -z $DA_TOOLSDIR ]; then
-    echo "Script directory DA_TOOLSDIR must be set inside $outdir/config.sh"
+    echo "Script directory DA_TOOLSDIR must be set inside $inputdir/config.sh"
     exit 1
 fi;
 if [ -z $NNODE ]; then
@@ -76,11 +76,6 @@ fi;
 ## set the output directory
 outdir=$DA_WORKDIR/$exp
 
-## copy files to execution and output directory
-mkdir -p $outdir
-cp -r $inputdir/* $outdir
-pushd $outdir
-
 echo "writing job.$exp."
 
 ## write new job.exp file for HPC
@@ -88,8 +83,12 @@ cat <<EOF > job.$exp
 #!/bin/bash
 #PBS -l walltime=${WALLTIME}
 #PBS -l select=${NNODE}:ncpus=${NCPU}:mem=${MEM}
-module load intel/2025a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a FFTW/3.3.9-intel-2021a CMake/3.29.3-GCCcore-13.3.0 git/2.45.1-GCCcore-13.3.0 NCO/5.2.9-foss-2024a GSL/2.8-GCC-13.3.0
+module load intel/2025a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a FFTW/3.3.9-intel-2021a CMake/3.29.3-GCCcore-13.3.0 git/2.45.1-GCCcore-13.3.0
+mkdir -p $outdir
+cp -r $inputdir/* $outdir
+pushd $outdir
 mpiexec -n $(( $NCPU * $NNODE )) $DA_BUILD $outdir/namoptions.$exp > $outdir/output.$exp 2>&1
+module load NCO/5.2.9-foss-2024a GSL/2.8-GCC-13.3.0
 $DA_TOOLSDIR/gather_outputs.sh $outdir
 EOF
 
@@ -97,5 +96,3 @@ EOF
 qsub job.$exp
 
 echo "job.$exp submitted."
-
-popd
