@@ -35,7 +35,7 @@ toolsdir=${scriptdir}  # assume same directory for nco_concatenate_field.sh
 
 if [ -z $LOCAL_EXECUTE ]; then
     echo "cluster"
-    module load intel-suite udunits nco/4.6.2
+    module load intel/2024a UDUNITS/2.2.28-GCCcore-13.3.0 NCO/5.2.9-foss-2024a
 fi;
 
 ## go to files directory
@@ -78,5 +78,5 @@ for file in *dump.*.000.${expnr}.nc ; do
 done
 
 if [ -z $LOCAL_EXECUTE ]; then
-    module unload intel-suite udunits nco/4.6.2
+    module unload intel/2024a UDUNITS/2.2.28-GCCcore-13.3.0 NCO/5.2.9-foss-2024a
 fi;

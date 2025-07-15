@@ -31,7 +31,7 @@ fi
 
 if [ -z $LOCAL_EXECUTE ]; then
     echo "cluster"
-    module load intel-suite udunits nco/4.6.2
+    module load intel/2024a UDUNITS/2.2.28-GCCcore-13.3.0 NCO/5.2.9-foss-2024a
 fi;
 
 echo "Merging two fields along time."
@@ -112,5 +112,5 @@ for file in $dumpslist ; do
 done
        
 if [ -z $LOCAL_EXECUTE ]; then
-    module unload intel-suite udunits nco/4.6.2
+    module unload intel/2024a UDUNITS/2.2.28-GCCcore-13.3.0 NCO/5.2.9-foss-2024a
 fi;

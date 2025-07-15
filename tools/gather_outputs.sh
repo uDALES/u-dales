@@ -33,10 +33,6 @@ scriptdir=$(pwd -L)
 popd > /dev/null
 toolsdir=${scriptdir}  # assume same directory for nco_concatenate_field.sh
 
-if [ -z $LOCAL_EXECUTE ]; then
-    module load nco gsl
-fi;
-
 ## go to files directory
 cd ${datapath}
 
@@ -162,9 +158,3 @@ for file in *dump.000.${expnr}.nc ; do
     fi
 
 done
-
-
-if [ -z $LOCAL_EXECUTE ]; then
-    module unload nco
-fi;
-
