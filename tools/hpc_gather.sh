@@ -22,7 +22,7 @@ set -e
 if (( $# < 1 ))
 then
  echo "The experiment directory must be set."
- echo "usage: FROM THE TOP LEVEL DIRECTORY run: u-dales/tools/hpc_execute.sh <PATH_TO_CASE>"
+ echo "usage: FROM THE TOP LEVEL DIRECTORY run: u-dales/tools/hpc_gather.sh <PATH_TO_CASE>"
  exit 1
 fi
 
@@ -46,10 +46,6 @@ fi
 ## check if required variables are set
 if [ -z $DA_WORKDIR ]; then
     echo "Script directory DA_WORKDIR must be set inside $inputdir/config.sh"
-    exit 1
-fi;
-if [ -z $DA_BUILD ]; then
-    echo "Script directory DA_BUILD must be set inside $inputdir/config.sh"
     exit 1
 fi;
 if [ -z $DA_TOOLSDIR ]; then
@@ -76,23 +72,18 @@ fi;
 ## set the output directory
 outdir=$DA_WORKDIR/$exp
 
-echo "writing job.$exp."
+echo "writing post-job.$exp."
 
-## write new job.exp file for HPC
-cat <<EOF > job.$exp
+## write post-job.exp file for HPC
+cat <<EOF > post-job.$exp
 #!/bin/bash
 #PBS -l walltime=${WALLTIME}
 #PBS -l select=${NNODE}:ncpus=${NCPU}:mem=${MEM}
-module load intel/2025a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a FFTW/3.3.9-intel-2021a CMake/3.29.3-GCCcore-13.3.0 git/2.45.1-GCCcore-13.3.0
-mkdir -p $outdir
-cp -r $inputdir/* $outdir
-pushd $outdir
-mpiexec -n $(( $NCPU * $NNODE )) $DA_BUILD $outdir/namoptions.$exp > $outdir/output.$exp 2>&1
 module load NCO/5.2.9-foss-2024a
 $DA_TOOLSDIR/gather_outputs.sh $outdir
 EOF
 
-## submit job.exp file to queue
-qsub job.$exp
+## submit post-job.exp file to queue
+qsub post-job.$exp
 
-echo "job.$exp submitted."
+echo "post-job.$exp submitted."

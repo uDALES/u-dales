@@ -35,6 +35,10 @@ if [ -z $DA_BUILD ]; then
     echo "Script directory DA_BUILD must be set inside $inputdir/config.sh"
     exit 1
 fi;
+if [ -z $DA_TOOLSDIR ]; then
+    echo "Script directory DA_TOOLSDIR must be set inside $outdir/config.sh"
+    exit 1
+fi;
 if [ -z $NNODE ]; then
     echo "Script directory NNODE must be set inside $inputdir/config.sh"
     exit 1
@@ -77,6 +81,7 @@ cat <<EOF > job.$exp.slurm
 module load epcc-job-env
 export OMP_NUM_THREADS=1
 srun --distribution=block:block --hint=nomultithread ./u-dales $outdir/namoptions.$exp > $outdir/output.$exp 2>&1
+module load nco gsl
 $DA_TOOLSDIR/gather_outputs.sh $outdir
 EOF
 

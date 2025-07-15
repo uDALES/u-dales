@@ -59,6 +59,7 @@ cat <<EOF > post-job.$exp.slurm
 #SBATCH --partition=standard
 #SBATCH --qos=${QOS}
 
+module load nco gsl
 $DA_TOOLSDIR/gather_outputs.sh $outdir
 EOF
 
