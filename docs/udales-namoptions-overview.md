@@ -355,6 +355,18 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | k1 | 0. | | Rate constant (O3 + NO -> NO2 + 02 ). Chemistry model parameter. | |
 | JNO2 | 0. | | NO2 photolysis rate. Chemistry model parameter. | |
 
+
+## Namelist HEATPUMP
+
+| Name | Default | Possible values | Description | Unit |
+| ---- | ------- | --------------- | ----------- | ---- |
+| lheatpump | .false. | .true. or .false. | Switch for basic heat pump. |  |
+| lfan_hp | .true. | .true. or .false. | Switch for heat pump fan on/off. |  |
+| nhppoints | 0 | `INTEGER` | Number of heat pump grid points. |  |
+| Q_dot_hp | 0. | `REAL` | Total volume flux emission from the heat pump in vertical direction. | [m^3/s] |
+| QH_dot_hp | 0. | `REAL` | Rate of total heat extracted from the ambient air by the heat pump. | [W] |
+
+
 <!---
 ## Namelist INLET
 
