@@ -41,10 +41,10 @@ build_type=$2
 
 if [ $system == "icl" ]
 then
-    module load cmake/3.18.2 git/2.14.3 intel-suite/2020.2 mpi/intel-2019.8.254
+    module load intel/2025a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a FFTW/3.3.9-intel-2021a CMake/3.29.3-GCCcore-13.3.0 git/2.45.1-GCCcore-13.3.0
     FC=mpiifort
-    NETCDF_DIR=/apps/netcdf/4.4.1-c
-    NETCDF_FORTRAN_DIR=/apps/netcdf/4.4.4-fortran
+    NETCDF_DIR=/sw-eb/software/netCDF/4.9.2-iimpi-2023a
+    NETCDF_FORTRAN_DIR=/sw-eb/software/netCDF-Fortran/4.6.1-iimpi-2023a
 
 elif [ $system == "archer" ]
 then
