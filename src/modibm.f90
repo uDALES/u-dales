@@ -2055,11 +2055,12 @@ module modibm
       end if
    end subroutine bottom_set_tau_cuda
 
-   attributes(global) subroutine bottom_update_thlp_cuda
-      use modcuda, only : ie_d, je_d, kb_d, dzf_d, dzfi_d, dzh2i_d, wtsurf_d, &
+   attributes(global) subroutine bottom_update_thlp_cuda(wtsurf)
+      use modcuda, only : ie_d, je_d, kb_d, dzf_d, dzfi_d, dzh2i_d, &
                           ekh_d, thl0_d, thlp_d, &
                           tidandstride
       implicit none
+      real, value, intent(in) :: wtsurf
       integer :: i, j, tidx, tidy, tidz, stridex, stridey, stridez
 
       call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
@@ -2071,18 +2072,19 @@ module modibm
                                     0.5*(dzf_d(kb_d - 1)*ekh_d(i, j, kb_d) + dzf_d(kb_d)*ekh_d(i, j, kb_d - 1)) &
                                     *(thl0_d(i, j, kb_d) - thl0_d(i, j, kb_d - 1)) &
                                     *dzh2i_d(kb_d) &
-                                    - wtsurf_d &
+                                    - wtsurf &
                                     )*dzfi_d(kb_d)
             end do
          end do
      end if
    end subroutine bottom_update_thlp_cuda
 
-   attributes(global) subroutine bottom_update_qtp_cuda
-      use modcuda, only : ie_d, je_d, kb_d, dzf_d, dzfi_d, dzh2i_d, wqsurf_d, &
+   attributes(global) subroutine bottom_update_qtp_cuda(wqsurf)
+      use modcuda, only : ie_d, je_d, kb_d, dzf_d, dzfi_d, dzh2i_d, &
                           ekh_d, qt0_d, qtp_d, &
                           tidandstride
       implicit none
+      real, value, intent(in) :: wqsurf
       integer :: i, j, tidx, tidy, tidz, stridex, stridey, stridez
 
       call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
@@ -2094,7 +2096,7 @@ module modibm
                                    0.5*(dzf_d(kb_d - 1)*ekh_d(i, j, kb_d) + dzf_d(kb_d)*ekh_d(i, j, kb_d - 1)) &
                                    *(qt0_d(i, j, kb_d) - qt0_d(i, j, kb_d - 1)) &
                                    *dzh2i_d(kb_d) &
-                                   + wqsurf_d &
+                                   + wqsurf &
                                    )*dzfi_d(kb_d)
             end do
          end do
@@ -2164,7 +2166,7 @@ module modibm
       !kind of obsolete when road facets are being used
       !vegetated floor not added (could simply be copied from vegetated horizontal facets)
       use modglobal,   only: ih, jh, kh, lbottom, ltempeq, lmoist, nsv, BCbotm, BCbotT, BCbotq, BCbots
-      use modsurfdata, only: thls, z0, z0h
+      use modsurfdata, only: thls, z0, z0h, wtsurf, wqsurf
 #if defined(_GPU)
       use cudafor
       use modcuda,              only: griddim, blockdim, checkCUDA, u0_d, v0_d, thl0_d, up_d, vp_d, thlp_d
@@ -2174,7 +2176,6 @@ module modibm
       use modglobal,            only: ib, ie, jb, je, kb, ke, dzf, dzfi, dzh2i
       use modfields,            only: u0, v0, e120, thl0, qt0, sv0, e12m, up, vp, wp, thlp, qtp, svp, &
                                       tau_x, tau_y, tau_z, thl_flux
-      use modsurfdata,          only: wtsurf, wqsurf
       use modsubgriddata,       only: ekh
       use wallfunction_neutral, only: wfmneutral
       use wallfunction_uno,     only: wfuno
@@ -2221,7 +2222,7 @@ module modibm
          if (ltempeq) then
             if (BCbotT.eq.1) then !neumann/fixed flux bc for temperature
 #if defined(_GPU)
-               call bottom_update_thlp_cuda<<<griddim,blockdim>>>
+               call bottom_update_thlp_cuda<<<griddim,blockdim>>>(wtsurf)
                call checkCUDA( cudaGetLastError(), 'bottom_update_thlp_cuda' )
 #else
                do j = jb, je
@@ -2252,7 +2253,7 @@ module modibm
          if (lmoist) then
             if (BCbotq.eq.1) then !neumann/fixed flux bc for moisture
 #if defined(_GPU)
-               call bottom_update_qtp_cuda<<<griddim,blockdim>>>
+               call bottom_update_qtp_cuda<<<griddim,blockdim>>>(wqsurf)
                call checkCUDA( cudaGetLastError(), 'bottom_update_qtp_cuda' )
 #else
                do j = jb, je

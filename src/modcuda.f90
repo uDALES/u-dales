@@ -20,7 +20,7 @@ module modcuda
                              ekm, ekh, &
                              sbshr, sbbuo, sbdiss, zlt, damp, csz, &
                              cn, cm, ch1, ch2, ce1, ce2, dampmin, prandtli, c_vreman
-   use modsurfdata,    only: thvs, wtsurf, wqsurf
+   use modsurfdata,    only: thvs
    use decomp_2d,      only: zstart
    implicit none
    save
@@ -37,7 +37,7 @@ module modcuda
                       xlen_d, ds_d, &
                       eps1_d, pi_d, numol_d, prandtlmoli_d, prandtlturb_d, prandtli_d, grav_d, dampmin_d, c_vreman_d, fkar2_d, &
                       cn_d, cm_d, ch1_d, ch2_d, ce1_d, ce2_d, &
-                      thvs_d, wtsurf_d, wqsurf_d
+                      thvs_d
 
    integer, device, dimension(3) :: zstart_d
 
@@ -257,9 +257,6 @@ module modcuda
             allocate(csz_d(ib-ih:ie+ih,kb:ke+kh))
             csz_d = csz
          end if
-
-         wqsurf_d = wqsurf
-         wtsurf_d = wtsurf
 
          allocate(ug_d(kb:ke+kh))
          ug_d = ug
