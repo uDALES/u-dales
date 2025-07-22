@@ -618,6 +618,72 @@ module modforces
 
   end subroutine calcfluidvolumes
 
+#if defined(_GPU)
+  attributes(global) subroutine coriolis_cuda(om22, om23)
+     use modcuda,   only : ie_d, je_d, ke_d, kb_d, dzf_d, dzhi_d, &
+                           u0_d, v0_d, w0_d, up_d, vp_d, wp_d, &
+                           tidandstride
+     implicit none
+
+     real, value, intent(in) :: om22, om23
+
+     integer :: tidx, tidy, tidz, stridex, stridey, stridez
+     integer :: i, j, k, im, ip, jm, jp, km, kp
+
+     call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+
+     do k = tidz, ke_d, stridez
+        km = k - 1
+        kp = k + 1
+        do j = tidy, je_d, stridey
+           jm = j - 1
+           jp = j + 1
+           do i = tidx, ie_d, stridex
+              im = i - 1
+              ip = i + 1
+
+              up_d(i,j,k) = up_d(i,j,k)  &
+                           +(v0_d(i,j,k)+v0_d(i,jp,k)+v0_d(im,j,k)+v0_d(im,jp,k))*om23*0.25 &
+                           -(w0_d(i,j,k)+w0_d(i,j,kp)+w0_d(im,j,kp)+w0_d(im,j,k))*om22*0.25
+
+              vp_d(i,j,k) = vp_d(i,j,k) &
+                           -(u0_d(i,j,k)+u0_d(i,jm,k)+u0_d(ip,jm,k)+u0_d(ip,j,k))*om23*0.25
+
+              if (k == kb_d) then
+                 wp_d(i,j,k) = 0.0
+              else
+                 wp_d(i,j,k) = wp_d(i,j,k) &
+                             + ( ( ( dzf_d(km) * ( u0_d(i,j,k)  + u0_d(ip,j,k) )    &
+                                   + dzf_d(k)  * ( u0_d(i,j,km) + u0_d(ip,j,km) ) ) * dzhi_d(k) ) &
+                               * om22*0.25 )
+              end if
+
+           end do
+        end do
+     end do
+  end subroutine coriolis_cuda
+
+  attributes(global) subroutine profforc_cuda(om23)
+     use modcuda,   only : ie_d, je_d, ke_d, u0_d, up_d, ug_d, tidandstride
+     implicit none
+
+     real, value, intent(in) :: om23
+     
+     integer :: tidx, tidy, tidz, stridex, stridey, stridez
+     integer :: i, j, k
+
+     call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+
+     do k = tidz, ke_d, stridez
+        do j = tidy, je_d, stridey
+           do i = tidx, ie_d, stridex
+              up_d(i,j,k) = up_d(i,j,k) + om23*(ug_d(k) - u0_d(i,j,k))
+           end do
+        end do
+     end do
+  end subroutine profforc_cuda
+#endif
+
   subroutine coriolis
 
     !-----------------------------------------------------------------|
@@ -636,102 +702,120 @@ module modforces
     !                                                                 |
     !-----------------------------------------------------------------|
 
-    ! use modglobal, only : i1,j1,kmax,dzh,dzf,om22,om23
-    use modglobal, only : ib,ie,jb,je,kb,ke,kh,dzh,dzf,om22,om23,lcoriol,lprofforc,timee
-    use modfields, only : u0,v0,w0,up,vp,wp,ug,vg
-    use modmpi, only : myid
+    use modglobal, only : om22,om23,lcoriol,lprofforc
+#if defined(_GPU)
+    use cudafor
+    use modcuda,   only : griddim, blockdim, checkCUDA
+#else
+    use modglobal, only : ib,ie,jb,je,kb,ke,kh,dzh,dzf
+    use modfields, only : u0,v0,w0,up,vp,wp,ug
+    use modmpi,    only : myid
+#endif
     implicit none
 
-    integer i, j, k, jm, jp, km, kp
+#if !defined(_GPU)
+    integer :: i, j, k, jm, jp, km, kp
     real, dimension(kb:ke+kh) :: ugg
-    real om23g
+    real :: om23g
+#endif
 
-    if (lcoriol ) then
-      ! if (myid==0) then
-      !   write(*,*) "up before coriol",up(3,3,ke)
-      ! end if
-      do k=kb+1,ke
-        kp=k+1
-        km=k-1
-        do j=jb,je
-          jp=j+1
-          jm=j-1
+    if (lcoriol) then
+
+#if defined(_GPU)
+       call coriolis_cuda<<<griddim,blockdim>>>(om22, om23)
+       call checkCUDA( cudaGetLastError(), 'coriolis_cuda' )
+#else
+       ! if (myid==0) then
+       !   write(*,*) "up before coriol",up(3,3,ke)
+       ! end if
+       do k=kb+1,ke
+          kp=k+1
+          km=k-1
+          do j=jb,je
+             jp=j+1
+             jm=j-1
+             do i=ib,ie
+
+                up(i,j,k) = up(i,j,k)  &
+                           +((v0(i,j,k)+v0(i,jp,k)+v0(i-1,j,k)+v0(i-1,jp,k))*om23*0.25) &
+                           -((w0(i,j,k)+w0(i,j,kp)+w0(i-1,j,kp)+w0(i-1,j,k))*om22*0.25)
+
+                vp(i,j,k) = vp(i,j,k)  &
+                           -((u0(i,j,k)+u0(i,jm,k)+u0(i+1,jm,k)+u0(i+1,j,k))*om23*0.25)
+
+                wp(i,j,k) = wp(i,j,k) &
+                          + ( ( ( dzf(km) * ( u0(i,j,k)  + u0(i+1,j,k) )    &
+                                + dzf(k)  * ( u0(i,j,km) + u0(i+1,j,km) ) ) / dzh(k) ) &
+                            * om22*0.25 )
+
+             end do
+          end do
+          ! -------------------------------------------end i&j-loop
+       end do
+       ! -------------------------------------------end k-loop
+
+       ! --------------------------------------------
+       ! special treatment for lowest full level: k=1
+       ! --------------------------------------------
+
+       do j=jb,je
+          jp = j+1
+          jm = j-1
           do i=ib,ie
 
-            up(i,j,k) = up(i,j,k)  &
-                  +((v0(i,j,k)+v0(i,jp,k)+v0(i-1,j,k)+v0(i-1,jp,k))*om23*0.25) &
-                  -((w0(i,j,k)+w0(i,j,kp)+w0(i-1,j,kp)+w0(i-1,j,k))*om22*0.25)
+             up(i,j,kb) = up(i,j,kb)  &
+                         +(v0(i,j,kb)+v0(i,jp,kb)+v0(i-1,j,kb)+v0(i-1,jp,kb))*om23*0.25 &
+                         -(w0(i,j,kb)+w0(i,j ,kb+1)+w0(i-1,j,kb+1)+w0(i-1,j ,kb))*om22*0.25
 
-            vp(i,j,k) = vp(i,j,k)  &
-                  -((u0(i,j,k)+u0(i,jm,k)+u0(i+1,jm,k)+u0(i+1,j,k))*om23*0.25)
+             vp(i,j,kb) = vp(i,j,kb) &
+                         -(u0(i,j,kb)+u0(i,jm,kb)+u0(i+1,jm,kb)+u0(i+1,j,kb))*om23*0.25
 
-
-            wp(i,j,k) = wp(i,j,k) +(( (dzf(km) * (u0(i,j,k)  + u0(i+1,j,k) )    &
-                        +    dzf(k)  * (u0(i,j,km) + u0(i+1,j,km))  ) / dzh(k) ) &
-                        * om22*0.25)
+             wp(i,j,kb) = 0.0
 
           end do
-        end do
-        ! -------------------------------------------end i&j-loop
-      end do
-      ! -------------------------------------------end k-loop
-
-      ! --------------------------------------------
-      ! special treatment for lowest full level: k=1
-      ! --------------------------------------------
-
-      do j=jb,je
-        jp = j+1
-        jm = j-1
-        do i=ib,ie
-
-          up(i,j,kb) = up(i,j,kb)  &
-                +(v0(i,j,kb)+v0(i,jp,kb)+v0(i-1,j,kb)+v0(i-1,jp,kb))*om23*0.25 &
-                -(w0(i,j,kb)+w0(i,j ,kb+1)+w0(i-1,j,kb+1)+w0(i-1,j ,kb))*om22*0.25
-
-          vp(i,j,kb) = vp(i,j,kb) &
-                -(u0(i,j,kb)+u0(i,jm,kb)+u0(i+1,jm,kb)+u0(i+1,j,kb))*om23*0.25
-
-          wp(i,j,kb) = 0.0
-
-        end do
-      end do
-      ! ----------------------------------------------end i,j-loop
-      ! if (myid==0) then
-      !   write(*,*) "up after coriol",up(3,3,ke)
-      ! end if
+       end do
+       ! ----------------------------------------------end i,j-loop
+       ! if (myid==0) then
+       !   write(*,*) "up after coriol",up(3,3,ke)
+       ! end if
+#endif
 
     elseif (lprofforc) then
 
-      ugg(:) = ug(:)
-      om23g = om23
+#if defined(_GPU)
+       call profforc_cuda<<<griddim,blockdim>>>(om23)
+       call checkCUDA( cudaGetLastError(), 'profforc_cuda' )
+#else
+       ugg(:) = ug(:)
+       om23g = om23
 
-      do k=kb+1,ke
-        do j=jb,je
+       do k=kb+1,ke
+          do j=jb,je
+             do i=ib,ie
+
+                up(i,j,k) = up(i,j,k) + om23g*(ugg(k) - u0(i,j,k))
+
+             end do
+          end do
+       end do
+
+       ! --------------------------------------------
+       ! special treatment for lowest full level: k=1
+       ! --------------------------------------------
+
+       do j=jb,je
+          jp = j+1
+          jm = j-1
           do i=ib,ie
 
-            up(i,j,k) = up(i,j,k) + om23g*(ugg(k) - u0(i,j,k))
+             up(i,j,kb) = up(i,j,kb) + om23g*(ugg(kb) - u0(i,j,kb))
 
-          enddo
-        enddo
-      enddo
-
-      ! --------------------------------------------
-      ! special treatment for lowest full level: k=1
-      ! --------------------------------------------
-
-      do j=jb,je
-        jp = j+1
-        jm = j-1
-        do i=ib,ie
-
-          up(i,j,kb) = up(i,j,kb) + om23g*(ugg(kb) - u0(i,j,kb))
-
-        enddo
-      enddo
-      ! if (myid==0) then
-      !   write(*,*) "up after profforc",up(3,3,ke)
-      ! end if
+          end do
+       end do
+       ! if (myid==0) then
+       !   write(*,*) "up after profforc",up(3,3,ke)
+       ! end if
+#endif
 
     endif !lcoriol and lprofforc
 

@@ -15,7 +15,7 @@ module modcuda
                              up, vp, wp, e12p, thlp, thlpc, qtp, svp, &
                              e12m, &
                              tau_x, tau_y, tau_z, thl_flux, &
-                             u0av, dthvdz
+                             u0av, dthvdz, ug
    use modsubgriddata, only: lsmagorinsky, lvreman, loneeqn, ldelta, lbuoycorr, &
                              ekm, ekh, &
                              sbshr, sbbuo, sbdiss, zlt, damp, csz, &
@@ -44,7 +44,7 @@ module modcuda
    real, device, allocatable :: dzf_d(:), dzf2_d(:), dzfi_d(:), dzfi5_d(:), dzfiq_d(:), dzh_d(:), dzhi_d(:), dzh2i_d(:), dzhiq_d(:), &
                                 dzfc_d(:), dzfci_d(:), dzhci_d(:), dxfc_d(:), dxfci_d(:), dxhci_d(:), &
                                 dxf_d(:), dxhi_d(:), &
-                                xh_d(:), u0av_d(:)
+                                xh_d(:), u0av_d(:), ug_d(:)
 
    real, device, allocatable :: delta_d(:, :), csz_d(:,:)
 
@@ -71,9 +71,9 @@ module modcuda
          !! SMcount = props%multiProcessorCount
          !! write(*,*) props%warpsize, props%multiProcessorCount, props%maxThreadsPerBlock, props%maxThreadsPerMultiProcessor
 
-         threadnumx = props%warpsize/4
-         threadnumy = props%warpsize/4
-         threadnumz = 1
+         threadnumx = props%warpsize/2
+         threadnumy = props%warpsize/8
+         threadnumz = 2
          if (threadnumx*threadnumy*threadnumz > props%maxThreadsPerBlock) then
             write(*,*) "Incorrect block dimension configuration."
             stop 1
@@ -81,7 +81,7 @@ module modcuda
 
          blocknumx = min( max( floor(real( (ie - ib + 1)/threadnumx ) ), 1 ), props%maxGridSize(1) )
          blocknumy = min( max( floor(real( (je - jb + 1)/threadnumy ) ), 1 ), props%maxGridSize(2) )
-         blocknumz = min( max( floor(real( (ke - kb + 1)/threadnumz ) ), 1 ), props%maxGridSize(3) )
+         blocknumz = 32 ! min( max( floor(real( (ke - kb + 1)/threadnumz ) ), 1 ), props%maxGridSize(3) )
 
          write(*,*) "CUDA block dimension: (", threadnumx, ",", threadnumy, ",", threadnumz, ")"
          write(*,*) "CUDA grid dimension:  (", blocknumx, ",", blocknumy, ",", blocknumz, ")"
@@ -261,6 +261,9 @@ module modcuda
          wqsurf_d = wqsurf
          wtsurf_d = wtsurf
 
+         allocate(ug_d(kb:ke+kh))
+         ug_d = ug
+
       end subroutine initCUDA
 
       subroutine exitCUDA
@@ -289,6 +292,7 @@ module modcuda
          end if
          if (lsmagorinsky) deallocate(csz_d)
          deallocate(dthvdz_d)
+         deallocate(ug_d)
       end subroutine exitCUDA
 
       subroutine updateDevice

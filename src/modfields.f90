@@ -414,7 +414,11 @@ module modfields
   real, allocatable :: u0av(:)          !<   slab averaged u
 #endif
   real, allocatable :: v0av(:)          !<   slab averaged v
+#if defined(_GPU)
+  real, allocatable, pinned :: ug(:)
+#else
   real, allocatable :: ug(:)            !<   geostrophic u-wind
+#endif
   real, allocatable :: vg(:)            !<   geostrophic v-wind
 
   real, allocatable :: pgx(:)            !<   driving pressure gradient in x, this is dp/dx [(\Delta p) / (\Delta x)] across one cell, already divided by \rho -> in units of [m/s^2]

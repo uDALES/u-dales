@@ -160,19 +160,20 @@ program DALESURBAN      !Version 48
 
     call bottom
 
-#if defined(_GPU)
-    call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize in program' )
-#endif
-    write(6,*)'(advection + shiftedPBCs + subgrid + bottom) time = ', MPI_Wtime() - stime
-
-#if defined(_GPU)
-    call updateHost
-#endif
 !-----------------------------------------------------
 !   3.4   REMAINING TERMS
 !-----------------------------------------------------
 
     call coriolis       !remaining terms of ns equation
+
+#if defined(_GPU)
+    call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize in program' )
+#endif
+    write(6,*)'(advection + shiftedPBCs + subgrid + bottom + coriolis) time = ', MPI_Wtime() - stime
+
+#if defined(_GPU)
+    call updateHost
+#endif
 
     call forces         !remaining terms of ns equation
 
