@@ -329,21 +329,17 @@ help udgeom.createRealistic
                      that contains the buildings. The function adds the
                      ground surface.  
  
-     geom = createRealistic(stlfile, xsize_og, ysize_og, shift, edgelength)
+     geom = createRealistic(stlfile, xsize, ysize, shift, edgelength)
      returns a geom instance that can be saved to an stl file. 
          stlfile:    the STL file that contains the buildings (NOT the
                      ground)
-         xsize_og:   length of the original domain in x-direction
-         ysize_og:   length of the original domain in y-direction
+         xsize:      length of the new domain in x-direction
+         ysize:      length of the new domain in y-direction
          shift:      array that shifts the geometry. shift[1], shift[2] and
                      shift[3] represent, respectively, the shift in x-, y-
                      and z-direction.
          edgelength: the length of individual facets. Best taken as xsize
                      (or ysize) divided by an integer number.
- 
-  Note that the output domain size is
-      xsize = xsize_og + shift[1]
-      ysize = ysize_og + shift[2]
 ```
 
 
@@ -357,8 +353,8 @@ See below for an example how to use this function.
 stlfile = 'uDALES.stl';
 
 % original domain size
-xsize_og = 256; 
-ysize_og = 128; 
+xsize = 256; 
+ysize = 128; 
 
 % example translation to make domain larger in x direction
 shift = [20 0 0];
@@ -366,7 +362,7 @@ shift = [20 0 0];
 % ground facet size
 edgelength = 16;
 
-geom = udgeom.createRealistic(stlfile, xsize_og, ysize_og, shift, edgelength);
+geom = udgeom.createRealistic(stlfile, xsize, ysize, shift, edgelength);
 geom.show; 
 xlabel('x [m]'); 
 ylabel('y [m]')
