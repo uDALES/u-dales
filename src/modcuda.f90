@@ -294,40 +294,61 @@ module modcuda
 
       subroutine updateDevice
          implicit none
+         integer :: n
+
          u0_d = u0
          v0_d = v0
          w0_d = w0
          pres0_d = pres0
-         up_d = up
-         vp_d = vp
-         wp_d = wp
+
+         call initfield<<<griddim,blockdim>>>(up_d, 0.)
+         call checkCUDA( cudaGetLastError(), 'initfield up_d' )
+
+         call initfield<<<griddim,blockdim>>>(vp_d, 0.)
+         call checkCUDA( cudaGetLastError(), 'initfield vp_d' )
+
+         call initfield<<<griddim,blockdim>>>(wp_d, 0.)
+         call checkCUDA( cudaGetLastError(), 'initfield wp_d' )
+
          tau_x_d = tau_x
          tau_y_d = tau_y
          tau_z_d = tau_z
 
          if (loneeqn) then
-            e120_d = e120
-            e12p_d = e12p
             e12m_d = e12m
+            e120_d = e120
+            call initfield<<<griddim,blockdim>>>(e12p_d, 0.)
+            call checkCUDA( cudaGetLastError(), 'initfield e12p_d' )
          end if
 
          if (ltempeq) then
             thl0_d = thl0
-            thlp_d = thlp
+            call initfield<<<griddim,blockdim>>>(thlp_d, 0.)
+            call checkCUDA( cudaGetLastError(), 'initfield thlp_d' )
+
             if (iadv_thl == iadv_kappa) then
                thl0c_d = thl0c
-               thlpc_d = thlpc
+               call initfield<<<griddim,blockdim>>>(thlpc_d, 0.)
+               call checkCUDA( cudaGetLastError(), 'initfield thlpc_d' )
             end if
+
             thl_flux_d = thl_flux
          end if
+
          if (lmoist) then
             qt0_d = qt0
-            qtp_d = qtp
+            call initfield<<<griddim,blockdim>>>(qtp_d, 0.)
+            call checkCUDA( cudaGetLastError(), 'initfield qtp_d' )
          end if
+
          if (nsv>0) then
             sv0_d = sv0
-            svp_d = svp
+            do n = 1, nsv
+               call initfield<<<griddim,blockdim>>>(svp_d(:, :, :, n), 0.)
+               call checkCUDA( cudaGetLastError(), 'initfield svp_d' )
+            end do
          end if
+
          u0av_d = u0av
          dthvdz_d = dthvdz
       end subroutine updateDevice
@@ -341,9 +362,9 @@ module modcuda
          tau_y = tau_y_d
          tau_z = tau_z_d
          if (loneeqn) then
+            e12m = e12m_d
             e120 = e120_d
             e12p = e12p_d
-            e12m = e12m_d
          end if
          if (ltempeq) then
             thlp = thlp_d
@@ -379,6 +400,25 @@ module modcuda
          stridey = gridDim%y * blockDim%y
          stridez = gridDim%z * blockDim%z
       end subroutine tidandstride
+
+      attributes(global) subroutine initfield(var, varvalue)
+         implicit none
+         real, dimension(ib_d-ih_d:ie_d+ih_d, jb_d-jh_d:je_d+jh_d, kb_d:ke_d+kh_d), intent(inout) :: var
+         real, value, intent(in) :: varvalue
+
+         integer :: tidx, tidy, tidz, stridex, stridey, stridez
+         integer :: i, j, k
+
+         call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+
+         do i = tidx-ih_d, ie_d+ih_d, stridex
+            do j = tidy-jh_d, je_d+jh_d, stridey
+               do k = tidz, ke_d+kh_d, stridez
+                  var(i,j,k) = varvalue
+               end do
+            end do
+         end do
+      end subroutine initfield
       
       ! copy routines called inside advection, for kappa scheme of thlp
       attributes(global) subroutine thlptothlpc_cuda
