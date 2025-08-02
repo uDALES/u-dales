@@ -142,10 +142,12 @@ program DALESURBAN      !Version 48
 !-----------------------------------------------------
 !   3.2   ADVECTION AND DIFFUSION
 !-----------------------------------------------------
-
+    stime = MPI_Wtime()
 #if defined(_GPU)
     call updateDevice
 #endif
+    write(6,'(A,F10.6)')'updateDevice time = ', MPI_Wtime() - stime
+
     stime = MPI_Wtime()
 
     call advection ! includes predicted pressure gradient term
@@ -166,16 +168,18 @@ program DALESURBAN      !Version 48
 
     call coriolis       !remaining terms of ns equation
 
+    call forces         !remaining terms of ns equation
+
 #if defined(_GPU)
     call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize in program' )
 #endif
-    write(6,*)'(advection + shiftedPBCs + subgrid + bottom + coriolis) time = ', MPI_Wtime() - stime
+    write(6,'(A,F10.6)')'(advection to forces) time = ', MPI_Wtime() - stime
 
+    stime = MPI_Wtime()
 #if defined(_GPU)
     call updateHost
 #endif
-
-    call forces         !remaining terms of ns equation
+    write(6,'(A,F10.6)')'updateHost time = ', MPI_Wtime() - stime
 
     call lstend         !large scale forcings
 
@@ -208,7 +212,9 @@ program DALESURBAN      !Version 48
 !-----------------------------------------------------------------------
     call grwdamp        !damping at top of the model
 
+    stime = MPI_Wtime()
     call poisson
+    write(6,'(A,F10.6)')'possion time = ', MPI_Wtime() - stime
 
     call purifiers      !placing of purifiers here may need to be checked
 

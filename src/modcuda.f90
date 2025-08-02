@@ -5,17 +5,19 @@ module modcuda
                              dx2, dxi, dx2i, dxi5, dxiq, dy2, dyi, dy2i, dyi5, dyiq, dxf, dxhi, &
                              dzf, dzf2, dzfi, dzfi5, dzfiq, dzh, dzhi, dzh2i, dzhiq, &
                              dzfc, dzfci, dzhci, dxfc, dxfci, dxhci, delta, &
-                             ltempeq, lmoist, nsv, lles, lbuoyancy, &
+                             ltempeq, lmoist, nsv, lles, lbuoyancy, ltrees, &
                              BCxm, BCxm_periodic, BCym, BCym_periodic, &
                              BCtopm, BCtopm_freeslip, BCtopm_pressure, BCtopm_noslip, &
                              iadv_sv, iadv_thl, iadv_kappa, iadv_upw, &
                              xlen, ds, xh, &
-                             pi, eps1, numol, prandtlmoli, prandtlturb, grav, fkar2
+                             pi, eps1, numol, prandtlmoli, prandtlturb, grav, fkar2, &
+                             ifixuinf
    use modfields,      only: u0, v0, w0, pres0, e120, thl0, thl0c, qt0, sv0, &
                              up, vp, wp, e12p, thlp, thlpc, qtp, svp, &
                              e12m, &
                              tau_x, tau_y, tau_z, thl_flux, &
-                             u0av, dthvdz, ug
+                             u0av, dthvdz, ug, &
+                             dpdxl, dpdyl, thv0h, thvh, thlpcar
    use modsubgriddata, only: lsmagorinsky, lvreman, loneeqn, ldelta, lbuoycorr, &
                              ekm, ekh, &
                              sbshr, sbbuo, sbdiss, zlt, damp, csz, &
@@ -44,7 +46,8 @@ module modcuda
    real, device, allocatable :: dzf_d(:), dzf2_d(:), dzfi_d(:), dzfi5_d(:), dzfiq_d(:), dzh_d(:), dzhi_d(:), dzh2i_d(:), dzhiq_d(:), &
                                 dzfc_d(:), dzfci_d(:), dzhci_d(:), dxfc_d(:), dxfci_d(:), dxhci_d(:), &
                                 dxf_d(:), dxhi_d(:), &
-                                xh_d(:), u0av_d(:), ug_d(:)
+                                xh_d(:), u0av_d(:), ug_d(:), &
+                                dpdxl_d(:), dpdyl_d(:), thvh_d(:), thlpcar_d(:)
 
    real, device, allocatable :: delta_d(:, :), csz_d(:,:)
 
@@ -54,6 +57,7 @@ module modcuda
    real, device, allocatable :: tau_x_d(:,:,:), tau_y_d(:,:,:), tau_z_d(:,:,:), thl_flux_d(:,:,:)
    real, device, allocatable :: dthvdz_d(:,:,:)
    real, device, allocatable :: ekm_d(:,:,:), ekh_d(:,:,:), sbshr_d(:,:,:), sbbuo_d(:,:,:), sbdiss_d(:,:,:), zlt_d(:,:,:), damp_d(:,:,:)
+   real, device, allocatable :: thv0h_d(:,:,:)
 
    real, device, allocatable :: dumu_d(:,:,:), duml_d(:,:,:)
 
@@ -179,6 +183,10 @@ module modcuda
                allocate(thlpc_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
             end if
             allocate(thl_flux_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+            allocate(thv0h_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+            allocate(thvh_d(kb:ke+kh))
+            allocate(thlpcar_d(kb:ke+kh))
+            thlpcar_d = thlpcar
          end if
 
          if (lmoist) then
@@ -214,7 +222,7 @@ module modcuda
             dzfci_d = dzfci
          end if
          
-         eps1_d = eps1
+         eps1_d   = eps1
          pi_d     = pi
          xlen_d   = xlen
          ds_d     = ds
@@ -261,6 +269,11 @@ module modcuda
          allocate(ug_d(kb:ke+kh))
          ug_d = ug
 
+         allocate(dpdxl_d(kb:ke+kh))
+         allocate(dpdyl_d(kb:ke+kh))
+         dpdxl_d = dpdxl
+         dpdyl_d = dpdyl
+
       end subroutine initCUDA
 
       subroutine exitCUDA
@@ -273,6 +286,7 @@ module modcuda
          if (ltempeq) then
             deallocate(thl0_d, thlp_d, thl_flux_d)
             if (iadv_thl == iadv_kappa) deallocate(thl0c_d, thlpc_d)
+            deallocate(thv0h_d, thvh_d, thlpcar_d)
          end if
          if (lmoist) deallocate(qt0_d, qtp_d)
          if (nsv>0) deallocate(sv0_d, svp_d)
@@ -290,6 +304,7 @@ module modcuda
          if (lsmagorinsky) deallocate(csz_d)
          deallocate(dthvdz_d)
          deallocate(ug_d)
+         deallocate(dpdxl_d, dpdyl_d)
       end subroutine exitCUDA
 
       subroutine updateDevice
@@ -333,6 +348,12 @@ module modcuda
             end if
 
             thl_flux_d = thl_flux
+
+            thv0h_d = thv0h
+            thvh_d  = thvh
+            if (ltrees .and. lmoist) then
+               thlpcar_d = thlpcar
+            end if
          end if
 
          if (lmoist) then
@@ -351,6 +372,10 @@ module modcuda
 
          u0av_d = u0av
          dthvdz_d = dthvdz
+         
+         if(ifixuinf==2) then
+            dpdxl_d = dpdxl
+         end if
       end subroutine updateDevice
 
       subroutine updateHost

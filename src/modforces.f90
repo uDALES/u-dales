@@ -43,8 +43,49 @@ module modforces
             masscorr,uoutletarea,voutletarea,fluidvolume,calcfluidvolumes,shiftedPBCs, periodicEBcorr
   contains
 
-  subroutine forces
+#if defined(_GPU)
+  attributes(global) subroutine forces_cuda(lbuoyancy, ltempeq, grav)
+     use modcuda,   only : ie_d, je_d, ke_d, kb_d, &
+                           up_d, vp_d, wp_d, thlp_d, &
+                           dpdxl_d, dpdyl_d, thv0h_d, thvh_d, thlpcar_d, &
+                           tidandstride
+     implicit none
 
+     logical, value, intent(in) :: lbuoyancy, ltempeq
+     real   , value, intent(in) :: grav
+
+     integer :: tidx, tidy, tidz, stridex, stridey, stridez
+     integer :: i, j, k
+
+     call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+
+     do k = tidz, ke_d, stridez
+        do j = tidy, je_d, stridey
+           do i = tidx, ie_d, stridex
+
+              up_d(i,j,k) = up_d(i,j,k) - dpdxl_d(k)
+
+              vp_d(i,j,k) = vp_d(i,j,k) - dpdyl_d(k)
+
+              if (k == kb_d) then
+                 wp_d(i,j,k) = 0.0
+              else
+                 if (lbuoyancy .and. ltempeq) then
+                    wp_d(i,j,k) = wp_d(i,j,k) + grav * (thv0h_d(i,j,k)-thvh_d(k))/thvh_d(k)
+                 end if
+              end if
+
+              if (ltempeq) then
+                 thlp_d(i,j,k) = thlp_d(i,j,k)+thlpcar_d(k)
+              end if
+
+           end do
+        end do
+     end do
+  end subroutine forces_cuda
+#endif
+
+  subroutine forces
     !-----------------------------------------------------------------|
     !                                                                 |
     !      Hans Cuijpers   I.M.A.U.                                   |
@@ -63,21 +104,23 @@ module modforces
     !                                                                 |
     !-----------------------------------------------------------------|
 
-    !  use modglobal, only : i1,j1,kmax,dzh,dzf,grav
-    use modglobal, only : ib,ie,jb,je,kb,ke,kh,dzhi,dzf,grav,lbuoyancy
-    use modfields, only : u0,v0,w0,up,vp,wp,thv0h,dpdxl,dpdyl,thlp,thlpcar,thvh
-    use modibmdata, only : nxwallsnorm, xwallsnorm
-    use modsurfdata,only : thvs
-    use modmpi, only : myid
+    use modglobal, only : lbuoyancy, grav, ltempeq
+#if defined(_GPU)
+    use cudafor
+    use modcuda, only: griddim, blockdim, checkCUDA
+#else
+    use modglobal, only : ib,ie,jb,je,kb,ke
+    use modfields, only : up,vp,wp,thv0h,dpdxl,dpdyl,thlp,thlpcar,thvh
+#endif
     implicit none
 
-    real thvsi
-    integer i, j, k, n, jm, jp, km, kp
+    integer :: i, j, k
 
-
-    if (lbuoyancy ) then
-    !ILS13 replace thvsi by thvh
-    ! thvsi = 1./thvsi
+#if defined(_GPU)
+    call forces_cuda<<<griddim,blockdim>>>(lbuoyancy, ltempeq, grav)
+    call checkCUDA( cudaGetLastError(), 'forces_cuda' )
+#else
+    if (lbuoyancy .and. ltempeq) then
 
        do k=kb+1,ke
           do j=jb,je
@@ -118,8 +161,6 @@ module modforces
     !     --------------------------------------------
 
     do j=jb,je
-       jp = j+1
-       jm = j-1
        do i=ib,ie
 
           up(i,j,kb) = up(i,j,kb) - dpdxl(kb)
@@ -131,9 +172,8 @@ module modforces
        end do
     end do
     !     ----------------------------------------------end i,j-loop
+#endif
 
-
-    return
   end subroutine forces
 
   subroutine detfreestream(freestream)

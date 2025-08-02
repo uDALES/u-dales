@@ -230,7 +230,7 @@ contains
   attributes(global) subroutine closure_cuda
      use modcuda, only: ie_d, je_d, ke_d, ih_d, jh_d, kh_d, dx2_d, dxi_d, dxiq_d, dy2_d, dyi_d, dyiq_d, &
                         dzh_d, dzf_d, dzf2_d, dzfi_d, dzfiq_d, dzhi_d, delta_d, &
-                        lsmagorinsky_d, lvreman_d, loneeqn_d, ldelta_d, lbuoyancy_d, lbuoycorr_d, &
+                        lsmagorinsky_d, lvreman_d, loneeqn_d, ldelta_d, lbuoyancy_d, lbuoycorr_d, ltempeq_d, &
                         numol_d, prandtlmoli_d, prandtli_d, grav_d, thvs_d, &
                         u0_d, v0_d, w0_d, thl0_d, e120_d, ekm_d, ekh_d, &
                         csz_d, damp_d, dampmin_d, zlt_d, dthvdz_d, cm_d, cn_d, ch1_d, ch2_d, c_vreman_d, &
@@ -292,7 +292,7 @@ contains
 
      elseif(lvreman_d) then
 
-        if ((lbuoyancy_d) .and. (lbuoycorr_d)) then
+        if ((lbuoyancy_d) .and. (lbuoycorr_d) .and. ltempeq_d) then
            const = prandtli_d*grav_d/(thvs_d*sqrt(2.*3.))
            do k = tidz, ke_d, stridez
               kp = k + 1
@@ -509,7 +509,7 @@ contains
 
     use modglobal,   only : ib,ie,jb,je,kb,ke,kh,ih,jh,jmax,delta,ekmin,grav, zf, fkar,jgb,jge,&
          dx,dxi,dxiq,dx2,dy2,dyi,dyiq,dzf,dzf2,dzfi,dzhi,rk3step,rslabs, &
-         numol,numoli,prandtlmoli,lles, rk3step,dzfiq,lbuoyancy,dzh
+         numol,numoli,prandtlmoli,lles, rk3step,dzfiq,lbuoyancy,dzh,ltempeq
     use modfields,   only : dthvdz,e120,u0,v0,w0,thl0,mindist,wall,shear
     use modsurfdata, only : dudz,dvdz,thvs,ustar
     use modmpi,    only : excjs, myid, nprocs, comm3d, mpierr, my_real,mpi_sum,slabsumi
@@ -586,7 +586,7 @@ contains
        ! ekh(:,:,:) = max(ekh(:,:,:),ekmin)
      elseif(lvreman) then
 
-       if ((lbuoyancy) .and. (lbuoycorr)) then
+       if (lbuoyancy .and. lbuoycorr .and. ltempeq) then
          const = prandtli*grav/(thvs*sqrt(2.*3.))
          do k = kb,ke
            kp = k+1

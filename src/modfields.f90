@@ -393,7 +393,11 @@ module modfields
 
   real, allocatable, target :: ql0(:,:,:)       !<   liquid water content
 
+#if defined(_GPU)
+  real, allocatable, pinned :: thv0h(:,:,:)
+#else
   real, allocatable :: thv0h(:,:,:)     !<   theta_v at half level
+#endif
 
   real, allocatable :: whls(:)          !<   large scale vert velocity at half levels
 
@@ -402,7 +406,11 @@ module modfields
   real, allocatable :: exnf(:)          !<   hydrostatic exner function at full level
   real, allocatable :: exnh(:)          !<   hydrostatic exner function at half level
   real, allocatable :: thvf(:)          !<   hydrostatic exner function at full level
+#if defined(_GPU)
+  real, allocatable, pinned :: thvh(:)
+#else
   real, allocatable :: thvh(:)          !<   hydrostatic exner function at half level
+#endif
   real, allocatable :: rhof(:)          !<   slab averaged density at full level
   real, allocatable :: qt0av(:)         !<   slab averaged q_tot
   real, allocatable :: ql0av(:)         !<   slab averaged q_liq
@@ -424,8 +432,13 @@ module modfields
   real, allocatable :: pgx(:)            !<   driving pressure gradient in x, this is dp/dx [(\Delta p) / (\Delta x)] across one cell, already divided by \rho -> in units of [m/s^2]
   real, allocatable :: pgy(:)            !<   driving pressure gradient in y [m/s^2]
 
+#if defined(_GPU)
+  real, allocatable, pinned :: dpdxl(:)
+  real, allocatable, pinned :: dpdyl(:)
+#else
   real, allocatable :: dpdxl(:)                      !<   large scale pressure x-gradient [m/s^2]
   real, allocatable :: dpdyl(:)                      !<   large scale pressure y-gradient [m/s^2]
+#endif
 
   real, allocatable :: dthldxls(:)                   !<   large scale x-gradient of th_liq
   real, allocatable :: dthldyls(:)                   !<   large scale y-gradient of th_liq
@@ -456,7 +469,11 @@ module modfields
   real, allocatable :: rhobf(:)
   real, allocatable :: rhobh(:)
 
+#if defined(_GPU)
+  real, allocatable, pinned :: thlpcar(:)
+#else
   real, allocatable :: thlpcar(:)                    !< prescribed radiatively forced thl tendency
+#endif
   real, allocatable :: SW_up_TOA(:,:), SW_dn_TOA(:,:), LW_up_TOA(:,:), LW_dn_TOA(:,:)
   real, allocatable :: wout(:)                      !< j-averaged top velocity
   real, allocatable :: friction(:)                  !< skin-friction coeff: from y-line-averaged shear
