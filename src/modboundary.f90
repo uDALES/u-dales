@@ -72,26 +72,28 @@ contains
                             BCym_periodic, BCyT_periodic, BCyq_periodic, BCys_periodic, &
                             ibrank, ierank, jbrank, jerank
       use modfields, only : u0, v0, w0, um, vm, wm, thl0, thlm, qt0, qtm, sv0, svm, thl0c
-      use decomp_2d, only : exchange_halo_z
+      use m_halo, only : halo_exchange
+      use decomp_2d, only: decomp_main
+
       implicit none
       integer i, k, n
 
 !$acc data create(u0, v0, w0, um, vm, wm, thl0, thlm, thl0c, qt0, qtm, sv0, svm)
 !$acc update device(u0, v0, w0, um, vm, wm, thl0, thlm, thl0c, qt0, qtm, sv0, svm)
-      call exchange_halo_z(u0)
-      call exchange_halo_z(v0)
-      call exchange_halo_z(w0)
-      call exchange_halo_z(um)
-      call exchange_halo_z(vm)
-      call exchange_halo_z(wm)
-      call exchange_halo_z(thl0)
-      call exchange_halo_z(thlm)
-      call exchange_halo_z(thl0c, opt_zlevel=(/ihc,jhc,khc/))
-      call exchange_halo_z(qt0)
-      call exchange_halo_z(qtm)
+      call halo_exchange(u0, 3)
+      call halo_exchange(v0, 3)
+      call halo_exchange(w0, 3)
+      call halo_exchange(um, 3)
+      call halo_exchange(vm, 3)
+      call halo_exchange(wm, 3)
+      call halo_exchange(thl0, 3)
+      call halo_exchange(thlm, 3)
+      call halo_exchange(thl0c, 3, opt_levels=(/ihc,jhc,khc/))
+      call halo_exchange(qt0, 3)
+      call halo_exchange(qtm, 3)
       do n = 1, nsv
-         call exchange_halo_z(sv0(:, :, :, n), opt_zlevel=(/ihc,jhc,khc/))
-         call exchange_halo_z(svm(:, :, :, n), opt_zlevel=(/ihc,jhc,khc/))
+         call halo_exchange(sv0(:, :, :, n), 3, opt_levels=(/ihc,jhc,khc/))
+         call halo_exchange(svm(:, :, :, n), 3, opt_levels=(/ihc,jhc,khc/))
       enddo
 !$acc update host(u0, v0, w0, um, vm, wm, thl0, thlm, thl0c, qt0, qtm, sv0, svm)
 !$acc end data
@@ -538,7 +540,8 @@ contains
                                 ibrank, ierank, jbrank, jerank, BCtopm, BCxm, BCym, &
                                 BCtopm_freeslip, BCtopm_noslip, BCtopm_pressure, &
                                 BCxm_periodic, BCym_periodic
-     use decomp_2d,      only : exchange_halo_z, zstart, zend
+     use decomp_2d,      only : zstart, zend
+     use m_halo,         only : halo_exchange
 #if defined(_GPU)
      use cudafor
      use modcuda,        only : ekm_d, ekh_d, griddim, blockdim, checkCUDA
@@ -547,11 +550,11 @@ contains
 
 #if defined(_GPU)
      call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize in closurebc' )
-     call exchange_halo_z(ekm_d)
-     call exchange_halo_z(ekh_d)
+     call halo_exchange(ekm_d, 3)
+     call halo_exchange(ekh_d, 3)
 #else
-     call exchange_halo_z(ekm)
-     call exchange_halo_z(ekh)
+     call halo_exchange(ekm, 3)
+     call halo_exchange(ekh, 3)
 #endif
 
 #if defined(_GPU)
@@ -1322,7 +1325,7 @@ contains
      use modfields,    only : pres0, up, vp, wp, um, vm, wm, w0, u0, v0, uouttot, vouttot, uinit, vinit, uprof, vprof, pres0, IIc, IIcs
      use modmpi,       only : excjs, excis, myid, avexy_ibm
      use modinletdata, only : u0driver
-     use decomp_2d,    only : exchange_halo_z
+     use m_halo,       only : halo_exchange
 
      real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb:ke + kh), intent(inout) :: pup
      real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb:ke + kh), intent(inout) :: pvp
@@ -1342,9 +1345,9 @@ contains
      ! maybe safer to just resize to kb-kh:ke+kh
 !$acc data create(pup, pvp, pwp)
 !$acc update device(pup, pvp, pwp)
-     call exchange_halo_z(pup, opt_zlevel=(/ih,jh,0/))
-     call exchange_halo_z(pvp, opt_zlevel=(/ih,jh,0/))
-     call exchange_halo_z(pwp, opt_zlevel=(/ih,jh,0/))
+     call halo_exchange(pup, 3, opt_levels=(/ih,jh,0/))
+     call halo_exchange(pvp, 3, opt_levels=(/ih,jh,0/))
+     call halo_exchange(pwp, 3, opt_levels=(/ih,jh,0/))
 !$acc update host(pup, pvp, pwp)
 !$acc end data
      ! if (jbrank) write(*,*) "jb after exhange_halo ", pvp(ie/2,jb,ke)
@@ -1474,7 +1477,7 @@ contains
      use modglobal, only : ib, ie, jb, je, ih, jh, kb, ke, kh, dyi, rk3step, dt, &
                            ibrank, ierank, jbrank, jerank, BCxm, BCym, BCxm_periodic, BCym_periodic
      use modfields, only : pres0, up, u0, um, uouttot, vp, v0
-     use decomp_2d, only : exchange_halo_z
+     use m_halo,    only : halo_exchange
 
      real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb - kh:ke + kh), intent(inout) :: p !< pressure
      integer i, j, k
@@ -1489,8 +1492,8 @@ contains
 
 !$acc data create(p, pres0)
 !$acc update device(p, pres0)
-     call exchange_halo_z(p)
-     call exchange_halo_z(pres0)
+     call halo_exchange(p, 3)
+     call halo_exchange(pres0, 3)
 !$acc update host(p, pres0)
 !$acc end data
 

@@ -80,12 +80,12 @@ contains
     allocate(pvp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
     allocate(pwp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
     call alloc_z(p)
-    call alloc_z(rhs, opt_zlevel=(/0,0,0/))
+    call alloc_z(rhs, opt_levels=(/0,0,0/))
     call alloc_z(dpupdx)
     call alloc_z(dpvpdy)
     call alloc_z(dpwpdz)
-    call alloc_z(Fxy, opt_zlevel=(/0,0,0/))
-    call alloc_z(Fxyz, opt_zlevel=(/0,0,0/))
+    call alloc_z(Fxy, opt_levels=(/0,0,0/))
+    call alloc_z(Fxyz, opt_levels=(/0,0,0/))
 
     if (ipoiss == POISS_FFT2D) then
       allocate(xrt(itot))
@@ -439,9 +439,9 @@ contains
 
     select case (ipoiss)
     case (POISS_FFT2D)
-      call alloc_x(px, opt_xlevel=(/0,0,0/))
-      call alloc_y(py, opt_ylevel=(/0,0,0/))
-      call alloc_z(pz, opt_zlevel=(/0,0,0/))
+      call alloc_x(px, opt_levels=(/0,0,0/))
+      call alloc_y(py, opt_levels=(/0,0,0/))
+      call alloc_z(pz, opt_levels=(/0,0,0/))
 
       pz = p(ib:ie,jb:je,kb:ke)
 
@@ -743,9 +743,9 @@ contains
       ! DMajumdar: this POISS_FFT2D_2DECOMP has been commented as it's creating compilation error when
       ! using pbartholomew/2decomp-fft. If one wishes to use POISS_FFT2D_2DECOMP, needs to be rectified.
       
-      ! call alloc_x(px, opt_xlevel=(/0,0,0/))
-      ! call alloc_y(py, opt_ylevel=(/0,0,0/))
-      ! call alloc_z(pz, opt_zlevel=(/0,0,0/))
+      ! call alloc_x(px, opt_levels=(/0,0,0/))
+      ! call alloc_y(py, opt_levels=(/0,0,0/))
+      ! call alloc_z(pz, opt_levels=(/0,0,0/))
       ! allocate(Fx(sp%xsz(1),sp%xsz(2),sp%xsz(3)))
       ! allocate(Fy(sp%ysz(1),sp%ysz(2),sp%ysz(3)))
       ! allocate(Fz(sp%zsz(1),sp%zsz(2),sp%zsz(3)))
@@ -842,7 +842,7 @@ contains
       allocate(Fz(sp%zsz(1),sp%zsz(2),sp%zsz(3)))
       allocate(Fzr(imax,jmax,ktot))
 
-      call alloc_z(pz, opt_zlevel=(/0,0,0/))
+      call alloc_z(pz, opt_levels=(/0,0,0/))
       pz = p(ib:ie,jb:je,kb:ke)
 
       call decomp_2d_fft_3d(pz,Fx) ! start in z-pencil in physical space, end in x-pencil in Fourier space
