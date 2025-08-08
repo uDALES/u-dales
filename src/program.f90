@@ -170,18 +170,18 @@ program DALESURBAN      !Version 48
 
     call forces         !remaining terms of ns equation
 
+    call lstend         !large scale forcings
+
 #if defined(_GPU)
     call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize in program' )
 #endif
-    write(6,'(A,F10.6)')'(advection to forces) time = ', MPI_Wtime() - stime
+    write(6,'(A,F10.6)')'(advection to lstend) time = ', MPI_Wtime() - stime
 
     stime = MPI_Wtime()
 #if defined(_GPU)
     call updateHost
 #endif
     write(6,'(A,F10.6)')'updateHost time = ', MPI_Wtime() - stime
-
-    call lstend         !large scale forcings
 
     call nudge          ! nudge top cells of fields to enforce steady-state
 

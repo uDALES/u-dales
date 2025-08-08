@@ -399,8 +399,6 @@ module modfields
   real, allocatable :: thv0h(:,:,:)     !<   theta_v at half level
 #endif
 
-  real, allocatable :: whls(:)          !<   large scale vert velocity at half levels
-
   real, allocatable :: presf(:)         !<   hydrostatic pressure at full level
   real, allocatable :: presh(:)         !<   hydrostatic pressure at half level
   real, allocatable :: exnf(:)          !<   hydrostatic exner function at full level
@@ -412,19 +410,21 @@ module modfields
   real, allocatable :: thvh(:)          !<   hydrostatic exner function at half level
 #endif
   real, allocatable :: rhof(:)          !<   slab averaged density at full level
-  real, allocatable :: qt0av(:)         !<   slab averaged q_tot
   real, allocatable :: ql0av(:)         !<   slab averaged q_liq
 
-  real, allocatable :: thl0av(:)        !<   slab averaged th_liq
 #if defined(_GPU)
   real, allocatable, pinned :: u0av(:)
-#else
-  real, allocatable :: u0av(:)          !<   slab averaged u
-#endif
-  real, allocatable :: v0av(:)          !<   slab averaged v
-#if defined(_GPU)
+  real, allocatable, pinned :: v0av(:)
+  real, allocatable, pinned :: thl0av(:)
+  real, allocatable, pinned :: qt0av(:)
+  real, allocatable, pinned :: sv0av(:,:)
   real, allocatable, pinned :: ug(:)
 #else
+  real, allocatable :: u0av(:)          !<   slab averaged u
+  real, allocatable :: v0av(:)          !<   slab averaged v
+  real, allocatable :: thl0av(:)        !<   slab averaged th_liq
+  real, allocatable :: qt0av(:)         !<   slab averaged q_tot
+  real, allocatable :: sv0av(:,:)       !<   slab average of sv(n)
   real, allocatable :: ug(:)            !<   geostrophic u-wind
 #endif
   real, allocatable :: vg(:)            !<   geostrophic v-wind
@@ -435,21 +435,30 @@ module modfields
 #if defined(_GPU)
   real, allocatable, pinned :: dpdxl(:)
   real, allocatable, pinned :: dpdyl(:)
+  real, allocatable, pinned :: dudxls(:)
+  real, allocatable, pinned :: dudyls(:)
+  real, allocatable, pinned :: dvdxls(:)
+  real, allocatable, pinned :: dvdyls(:)
+  real, allocatable, pinned :: dthldxls(:)
+  real, allocatable, pinned :: dthldyls(:)
+  real, allocatable, pinned :: dqtdxls(:)
+  real, allocatable, pinned :: dqtdyls(:)
+  real, allocatable, pinned :: dqtdtls(:)
+  real, allocatable, pinned :: whls(:)
 #else
   real, allocatable :: dpdxl(:)                      !<   large scale pressure x-gradient [m/s^2]
   real, allocatable :: dpdyl(:)                      !<   large scale pressure y-gradient [m/s^2]
-#endif
-
+  real, allocatable :: dudxls(:)                     !<   large scale x-gradient of u
+  real, allocatable :: dudyls(:)                     !<   large scale y-gradient of u
+  real, allocatable :: dvdxls(:)                     !<   large scale x-gradient of v
+  real, allocatable :: dvdyls(:)                     !<   large scale y-gradient of v
   real, allocatable :: dthldxls(:)                   !<   large scale x-gradient of th_liq
   real, allocatable :: dthldyls(:)                   !<   large scale y-gradient of th_liq
   real, allocatable :: dqtdxls(:)                    !<   large scale x-gradient of q_tot
   real, allocatable :: dqtdyls(:)                    !<   large scale y-gradient of q_tot
-  real, allocatable :: dqtdtls(:)                    !<   large scale y-gradient of q_tot
-  real, allocatable :: dudxls(:)                     !<   large scale x-gradient of u
-
-  real, allocatable :: dudyls(:)                     !<   large scale y-gradient of u
-  real, allocatable :: dvdxls(:)                     !<   large scale x-gradient of v
-  real, allocatable :: dvdyls(:)                     !<   large scale y-gradient of v
+  real, allocatable :: dqtdtls(:)                    !<   large scale temporal gradient of q_tot
+  real, allocatable :: whls(:)                       !<   large scale vertical velocity at half levels
+#endif
   real, allocatable :: wfls  (:)                     !<   large scale y-gradient of v
   real, allocatable :: ql0h(:,:,:)
 #if defined(_GPU)
@@ -463,7 +472,6 @@ module modfields
   real, allocatable :: uprof(:)                      !<   initial u-profile
   real, allocatable :: vprof(:)                      !<   initial v-profile
   real, allocatable :: e12prof(:)                    !<   initial subgrid TKE profile
-  real, allocatable :: sv0av(:,:)                    !<   slab average of sv(n)
   real, allocatable :: svprof(:,:)                   !<   initial sv(n)-profile
   real, allocatable :: qlprof(:)
   real, allocatable :: rhobf(:)

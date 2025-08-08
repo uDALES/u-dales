@@ -173,7 +173,6 @@ module modforces
     end do
     !     ----------------------------------------------end i,j-loop
 #endif
-
   end subroutine forces
 
   subroutine detfreestream(freestream)
@@ -859,8 +858,110 @@ module modforces
 
     endif !lcoriol and lprofforc
 
-    return
   end subroutine coriolis
+
+#if defined(_GPU)
+    attributes(global) subroutine lstend_cuda(lmomsubs, ltempeq, lmoist, nsv)
+      use modcuda,   only : ie_d, je_d, ke_d, kb_d, dzhi_d, &
+                            up_d, vp_d, thlp_d, qtp_d, svp_d, &
+                            whls_d, u0av_d, v0av_d, thl0av_d, qt0av_d, sv0av_d, &
+                            dudxls_d, dudyls_d, dvdxls_d, dvdyls_d, dthldxls_d, dthldyls_d, dqtdxls_d, dqtdyls_d, dqtdtls_d, &
+                            tidandstride
+      implicit none
+
+      logical, value, intent(in) :: lmomsubs, ltempeq, lmoist
+      integer, value, intent(in) :: nsv
+
+      integer :: tidx, tidy, tidz, stridex, stridey, stridez
+      integer :: i, j, k, n
+
+      real :: subs_u, subs_v, subs_thl, subs_qt, subs_sv
+
+      call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+
+      subs_u   = 0.
+      subs_v   = 0.
+      subs_thl = 0.
+      subs_qt  = 0.
+      subs_sv  = 0.
+
+      do k = tidz, ke_d, stridez
+
+        if (lmomsubs) then
+          if ( whls_d(k+1) .lt. 0 ) then
+            subs_u = whls_d(k+1) * (u0av_d(k+1) - u0av_d(k))*dzhi_d(k+1)
+            subs_v = whls_d(k+1) * (v0av_d(k+1) - v0av_d(k))*dzhi_d(k+1)
+          elseif (k .gt. kb_d) then
+            subs_u = whls_d(k) * (u0av_d(k) - u0av_d(k-1))*dzhi_d(k)
+            subs_v = whls_d(k) * (v0av_d(k) - v0av_d(k-1))*dzhi_d(k)
+          end if
+        end if
+
+        do j = tidy, je_d, stridey
+          do i = tidx, ie_d, stridex            
+            up_d(i,j,k) = up_d(i,j,k) - u0av_d(k)*dudxls_d(k) - v0av_d(k)*dudyls_d(k) - subs_u
+            vp_d(i,j,k) = vp_d(i,j,k) - u0av_d(k)*dvdxls_d(k) - v0av_d(k)*dvdyls_d(k) - subs_v
+          end do
+        end do
+
+      end do
+
+      if (ltempeq) then
+        do k = tidz, ke_d, stridez
+
+          if ( whls_d(k+1) .lt. 0 ) then
+            subs_thl = whls_d(k+1) * (thl0av_d(k+1) - thl0av_d(k))*dzhi_d(k+1)
+          elseif (k .gt. kb_d) then
+            subs_thl = whls_d(k) * (thl0av_d(k) - thl0av_d(k-1))*dzhi_d(k)
+          end if
+
+          do j = tidy, je_d, stridey
+            do i = tidx, ie_d, stridex
+              thlp_d(i,j,k) = thlp_d(i,j,k) - u0av_d(k)*dthldxls_d(k) - v0av_d(k)*dthldyls_d(k) - subs_thl
+            end do
+          end do
+
+        end do
+      end if
+
+      if (lmoist) then
+        do k = tidz, ke_d, stridez
+
+          if ( whls_d(k+1) .lt. 0 ) then
+            subs_qt = whls_d(k+1) * (qt0av_d(k+1) - qt0av_d(k))*dzhi_d(k+1)
+          elseif (k .gt. kb_d) then
+            subs_qt = whls_d(k) * (qt0av_d(k) - qt0av_d(k-1))*dzhi_d(k)
+          end if
+
+          do j = tidy, je_d, stridey
+            do i = tidx, ie_d, stridex
+              qtp_d(i,j,k)  = qtp_d(i,j,k) - u0av_d(k)*dqtdxls_d(k) - v0av_d(k)*dqtdyls_d(k) - subs_qt + dqtdtls_d(k)
+            end do
+          end do
+
+        end do
+      end if
+
+      do n = 1, nsv
+        do k = tidz, ke_d, stridez
+
+          if ( whls_d(k+1) .lt. 0 ) then
+            subs_sv = whls_d(k+1) * (sv0av_d(k+1,n) - sv0av_d(k,n))*dzhi_d(k+1)
+          elseif (k .gt. kb_d) then
+            subs_sv = whls_d(k) * (sv0av_d(k,n) - sv0av_d(k-1,n))*dzhi_d(k)
+          end if
+
+          do j = tidy, je_d, stridey
+            do i = tidx, ie_d, stridex
+              svp_d(i,j,k,n) = svp_d(i,j,k,n) - subs_sv
+            end do
+          end do
+
+        end do
+      end do
+
+    end subroutine lstend_cuda
+#endif
 
   subroutine lstend
 
@@ -883,16 +984,27 @@ module modforces
     !                                                                 |
     !-----------------------------------------------------------------|
 
-    use modglobal, only : ib,ie,jb,je,kb,ke,kh,dzh,nsv,lmomsubs
+    use modglobal, only : lmomsubs, ltempeq, lmoist, nsv
+#if defined(_GPU)
+    use cudafor
+    use modcuda, only: griddim, blockdim, checkCUDA
+#else
+    use modglobal, only : ib,ie,jb,je,kb,ke,dzh
     use modfields, only : up,vp,thlp,qtp,svp,&
                           whls, u0av,v0av,thl0av,qt0av,sv0av,&
                           dudxls,dudyls,dvdxls,dvdyls,dthldxls,dthldyls,dqtdxls,dqtdyls,dqtdtls
-    use modmpi, only: myid
+#endif
     implicit none
 
+#if !defined(_GPU)
     integer k,n
     real subs_thl,subs_qt,subs_u,subs_v,subs_sv
+#endif
 
+#if defined(_GPU)
+    call lstend_cuda<<<griddim,blockdim>>>(lmomsubs, ltempeq, lmoist, nsv)
+    call checkCUDA( cudaGetLastError(), 'lstend_cuda' )
+#else
     ! if (ltimedep) then
     !   ! call ls
     ! end if
@@ -922,7 +1034,6 @@ module modforces
       endif
       do n=1,nsv
         subs_sv =  whls(k+1)  *(sv0av(k+1,n)-sv0av(k,n)  )/dzh(k+1)
-        ! svp(2:i1,2:j1,1,n) = svp(2:i1,2:j1,1,n)-subs_sv
         svp(ib:ie,jb:je,kb,n) = svp(ib:ie,jb:je,kb,n)-subs_sv
       enddo
     endif
@@ -966,8 +1077,7 @@ module modforces
       vp  (ib:ie,jb:je,k) = vp  (ib:ie,jb:je,k)-u0av(k)*dvdxls  (k)-v0av(k)*dvdyls  (k)-subs_v
 
     enddo
-
-    return
+#endif
   end subroutine lstend
 
   subroutine nudge
@@ -1098,12 +1208,15 @@ module modforces
 
 
 #if defined(_GPU)
-  attributes(global) subroutine shiftedPBCs_cuda
-     use modcuda,   only : ie_d, je_d, ke_d, itot_d, zstart_d, dyi_d, &
-                           ds_d, xh_d, xlen_d, pi_d, &
+  attributes(global) subroutine shiftedPBCs_cuda(ds, itot, xlen, pi)
+     use modcuda,   only : ie_d, je_d, ke_d, zstart_d, dyi_d, xh_d, &
                            u0_d, v0_d, w0_d, u0av_d, up_d, vp_d, wp_d, &
                            tidandstride
      implicit none
+
+     integer, value, intent(in) :: itot
+     real   , value, intent(in) :: ds, xlen, pi
+
      integer :: tidx, tidy, tidz, stridex, stridey, stridez
      integer :: i, j, k, ig
      real    :: vs
@@ -1112,10 +1225,10 @@ module modforces
 
      do i = tidx, ie_d, stridex
         ig = i + zstart_d(1) - 1 ! global i position
-        if (ig > int(itot_d/2)) then
+        if (ig > int(itot/2)) then
            do j = tidy, je_d, stridey
               do k = tidz, ke_d, stridez
-                 vs = 0.5 * pi_d * ds_d / (0.5*xlen_d) * u0av_d(k) * sin(pi_d*(xh_d(ig)-xh_d(int(itot_d/2))) / (0.5*xlen_d))
+                 vs = 0.5 * pi * ds / (0.5*xlen) * u0av_d(k) * sin(pi*(xh_d(ig)-xh_d(int(itot/2))) / (0.5*xlen))
                  up_d(i,j,k) = up_d(i,j,k) - vs * (u0_d(i,j,k) - u0_d(i,j-1,k)) * dyi_d
                  vp_d(i,j,k) = vp_d(i,j,k) - vs * (v0_d(i,j,k) - v0_d(i,j-1,k)) * dyi_d
                  wp_d(i,j,k) = wp_d(i,j,k) - vs * (w0_d(i,j,k) - w0_d(i,j-1,k)) * dyi_d
@@ -1127,12 +1240,12 @@ module modforces
 #endif
 
   subroutine shiftedPBCs        ! Nudge the flow in a region near the outlet
-      use modglobal, only : ds
+      use modglobal, only : ds, itot, xlen, pi
 #if defined(_GPU)
       use cudafor
       use modcuda,   only : griddim, blockdim, checkCUDA
 #else
-      use modglobal, only : ib, itot, ie, jb, je, kb, ke, xh, dyi, xlen, pi
+      use modglobal, only : ib, ie, jb, je, kb, ke, xh, dyi
       use modfields, only : u0, v0, w0, u0av, up, vp, wp
       use decomp_2d, only : zstart
 #endif
@@ -1143,7 +1256,7 @@ module modforces
       if (ds > 0) then
 
 #if defined(_GPU)
-         call shiftedPBCs_cuda<<<griddim,blockdim>>>
+         call shiftedPBCs_cuda<<<griddim,blockdim>>>(ds, itot, xlen, pi)
          call checkCUDA( cudaGetLastError(), 'shiftedPBCs_cuda' )
 #else
          do i = ib,ie

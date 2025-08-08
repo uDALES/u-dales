@@ -9,15 +9,16 @@ module modcuda
                              BCxm, BCxm_periodic, BCym, BCym_periodic, &
                              BCtopm, BCtopm_freeslip, BCtopm_pressure, BCtopm_noslip, &
                              iadv_sv, iadv_thl, iadv_kappa, iadv_upw, &
-                             xlen, ds, xh, &
-                             pi, eps1, numol, prandtlmoli, prandtlturb, grav, fkar2, &
+                             xh, &
+                             eps1, numol, prandtlmoli, prandtlturb, grav, fkar2, &
                              ifixuinf
    use modfields,      only: u0, v0, w0, pres0, e120, thl0, thl0c, qt0, sv0, &
                              up, vp, wp, e12p, thlp, thlpc, qtp, svp, &
                              e12m, &
                              tau_x, tau_y, tau_z, thl_flux, &
-                             u0av, dthvdz, ug, &
-                             dpdxl, dpdyl, thv0h, thvh, thlpcar
+                             u0av, v0av, thl0av, qt0av, sv0av, dthvdz, ug, whls, &
+                             dpdxl, dpdyl, thv0h, thvh, thlpcar, &
+                             dudxls, dudyls, dvdxls, dvdyls, dthldxls, dthldyls, dqtdxls, dqtdyls, dqtdtls
    use modsubgriddata, only: lsmagorinsky, lvreman, loneeqn, ldelta, lbuoycorr, &
                              ekm, ekh, &
                              sbshr, sbbuo, sbdiss, zlt, damp, csz, &
@@ -29,15 +30,14 @@ module modcuda
 
    type(dim3) :: griddim, blockdim
 
-   integer, device :: itot_d, ib_d, ie_d, jb_d, je_d, kb_d, ke_d, ih_d, jh_d, kh_d, &
+   integer, device :: ib_d, ie_d, jb_d, je_d, kb_d, ke_d, ih_d, jh_d, kh_d, &
                       BCxm_d, BCxm_periodic_d, BCym_d, BCym_periodic_d, &
                       BCtopm_d, BCtopm_freeslip_d, BCtopm_pressure_d, BCtopm_noslip_d
    
    logical, device :: ltempeq_d, lles_d, lsmagorinsky_d, lvreman_d, loneeqn_d, ldelta_d, lbuoyancy_d, lbuoycorr_d
 
    real,    device :: dx2_d, dxi_d, dx2i_d, dxi5_d, dxiq_d, dy2_d, dyi_d, dy2i_d, dyi5_d, dyiq_d, &
-                      xlen_d, ds_d, &
-                      eps1_d, pi_d, numol_d, prandtlmoli_d, prandtlturb_d, prandtli_d, grav_d, dampmin_d, c_vreman_d, fkar2_d, &
+                      eps1_d, numol_d, prandtlmoli_d, prandtlturb_d, prandtli_d, grav_d, dampmin_d, c_vreman_d, fkar2_d, &
                       cn_d, cm_d, ch1_d, ch2_d, ce1_d, ce2_d, &
                       thvs_d
 
@@ -46,10 +46,11 @@ module modcuda
    real, device, allocatable :: dzf_d(:), dzf2_d(:), dzfi_d(:), dzfi5_d(:), dzfiq_d(:), dzh_d(:), dzhi_d(:), dzh2i_d(:), dzhiq_d(:), &
                                 dzfc_d(:), dzfci_d(:), dzhci_d(:), dxfc_d(:), dxfci_d(:), dxhci_d(:), &
                                 dxf_d(:), dxhi_d(:), &
-                                xh_d(:), u0av_d(:), ug_d(:), &
-                                dpdxl_d(:), dpdyl_d(:), thvh_d(:), thlpcar_d(:)
+                                xh_d(:), u0av_d(:), v0av_d(:), ug_d(:), whls_d(:), thl0av_d(:), qt0av_d(:), &
+                                dpdxl_d(:), dpdyl_d(:), thvh_d(:), thlpcar_d(:), &
+                                dudxls_d(:), dudyls_d(:), dvdxls_d(:), dvdyls_d(:), dthldxls_d(:), dthldyls_d(:), dqtdxls_d(:), dqtdyls_d(:), dqtdtls_d(:)
 
-   real, device, allocatable :: delta_d(:, :), csz_d(:,:)
+   real, device, allocatable :: delta_d(:, :), csz_d(:,:), sv0av_d(:,:)
 
    real, device, allocatable :: u0_d(:,:,:), v0_d(:,:,:), w0_d(:,:,:), pres0_d(:,:,:), e120_d(:,:,:), thl0_d(:,:,:), thl0c_d(:,:,:), qt0_d(:,:,:), sv0_d(:,:,:,:)
    real, device, allocatable :: up_d(:,:,:), vp_d(:,:,:), wp_d(:,:,:), e12p_d(:,:,:), thlp_d(:,:,:), thlpc_d(:,:,:), qtp_d(:,:,:), svp_d(:,:,:,:)
@@ -93,7 +94,6 @@ module modcuda
          blockdim  = dim3(threadnumx,threadnumy,threadnumz)
          griddim   = dim3(blocknumx,blocknumy,blocknumz)
 
-         itot_d = itot
          ib_d = ib
          ie_d = ie
          ih_d = ih
@@ -165,6 +165,28 @@ module modcuda
          allocate(tau_y_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
          allocate(tau_z_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
 
+         allocate(u0av_d(kb:ke+kh))
+         allocate(v0av_d(kb:ke+kh))
+
+         allocate(ug_d(kb:ke+kh))
+         allocate(whls_d(kb:ke+kh))
+         ug_d = ug
+         whls_d = whls
+
+         allocate(dpdxl_d(kb:ke+kh))
+         allocate(dpdyl_d(kb:ke+kh))
+         dpdxl_d = dpdxl
+         dpdyl_d = dpdyl
+
+         allocate(dudxls_d(kb:ke+kh))
+         allocate(dudyls_d(kb:ke+kh))
+         allocate(dvdxls_d(kb:ke+kh))
+         allocate(dvdyls_d(kb:ke+kh))
+         dudxls_d = dudxls
+         dudyls_d = dudyls
+         dvdxls_d = dvdxls
+         dvdyls_d = dvdyls
+
          if (loneeqn) then
             allocate(e120_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
             allocate(e12p_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
@@ -185,18 +207,33 @@ module modcuda
             allocate(thl_flux_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
             allocate(thv0h_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
             allocate(thvh_d(kb:ke+kh))
+            allocate(thl0av_d(kb:ke+kh))
+
             allocate(thlpcar_d(kb:ke+kh))
+            allocate(dthldxls_d(kb:ke+kh))
+            allocate(dthldyls_d(kb:ke+kh))
             thlpcar_d = thlpcar
+            dthldxls_d = dthldxls
+            dthldyls_d = dthldyls
          end if
 
          if (lmoist) then
             allocate(qt0_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
             allocate(qtp_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+            allocate(qt0av_d(kb:ke+kh))
+
+            allocate(dqtdxls_d(kb:ke+kh))
+            allocate(dqtdyls_d(kb:ke+kh))
+            allocate(dqtdtls_d(kb:ke+kh))
+            dqtdxls_d = dqtdxls
+            dqtdyls_d = dqtdyls
+            dqtdtls_d = dqtdtls
          end if
 
          if (nsv>0) then
             allocate(sv0_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb-khc:ke+khc,nsv))
             allocate(svp_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc,nsv))
+            allocate(sv0av_d(kb:ke+khc,nsv))
          end if
 
          allocate(ekm_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
@@ -223,14 +260,9 @@ module modcuda
          end if
          
          eps1_d   = eps1
-         pi_d     = pi
-         xlen_d   = xlen
-         ds_d     = ds
          zstart_d = zstart
          allocate (xh_d(ib:itot+ih))
          xh_d = xh
-
-         allocate(u0av_d(kb:ke+kh))
 
          ltempeq_d      = ltempeq
          lles_d         = lles
@@ -266,14 +298,6 @@ module modcuda
             csz_d = csz
          end if
 
-         allocate(ug_d(kb:ke+kh))
-         ug_d = ug
-
-         allocate(dpdxl_d(kb:ke+kh))
-         allocate(dpdyl_d(kb:ke+kh))
-         dpdxl_d = dpdxl
-         dpdyl_d = dpdyl
-
       end subroutine initCUDA
 
       subroutine exitCUDA
@@ -282,29 +306,30 @@ module modcuda
          deallocate(u0_d, v0_d, w0_d, pres0_d)
          deallocate(up_d, vp_d, wp_d)
          deallocate(tau_x_d, tau_y_d, tau_z_d)
+         deallocate(u0av_d, v0av_d, ug_d, whls_d)
+         deallocate(dpdxl_d, dpdyl_d, dudxls_d, dudyls_d, dvdxls_d, dvdyls_d)
          if (loneeqn) deallocate(e120_d, e12p_d, e12m_d, sbshr_d, sbbuo_d, sbdiss_d, zlt_d)
          if (ltempeq) then
             deallocate(thl0_d, thlp_d, thl_flux_d)
             if (iadv_thl == iadv_kappa) deallocate(thl0c_d, thlpc_d)
-            deallocate(thv0h_d, thvh_d, thlpcar_d)
+            deallocate(thv0h_d, thvh_d, thl0av_d, thlpcar_d)
+            deallocate(dthldxls_d, dthldyls_d)
          end if
-         if (lmoist) deallocate(qt0_d, qtp_d)
-         if (nsv>0) deallocate(sv0_d, svp_d)
+         if (lmoist) deallocate(qt0_d, qtp_d, qt0av_d, dqtdxls_d, dqtdyls_d, dqtdtls_d)
+         if (nsv>0) deallocate(sv0_d, svp_d, sv0av_d)
          if (any(iadv_sv(1:nsv) == iadv_kappa) .or. (iadv_thl == iadv_kappa)) then
             deallocate(dumu_d, duml_d, dxhci_d, dxfc_d, dzhci_d, dzfc_d)
          end if
          if (any(iadv_sv(1:nsv) == iadv_kappa) .or. any(iadv_sv(1:nsv) == iadv_upw) .or. (iadv_thl == iadv_kappa)) then
             deallocate(dxfci_d, dzfci_d)
          end if
-         deallocate(xh_d, u0av_d)
+         deallocate(xh_d)
          deallocate(ekm_d, ekh_d)
          if (lsmagorinsky .or. loneeqn) then
             deallocate(damp_d)
          end if
          if (lsmagorinsky) deallocate(csz_d)
          deallocate(dthvdz_d)
-         deallocate(ug_d)
-         deallocate(dpdxl_d, dpdyl_d)
       end subroutine exitCUDA
 
       subroutine updateDevice
@@ -329,6 +354,9 @@ module modcuda
          tau_y_d = tau_y
          tau_z_d = tau_z
 
+         u0av_d = u0av
+         v0av_d = v0av
+
          if (loneeqn) then
             e12m_d = e12m
             e120_d = e120
@@ -349,8 +377,9 @@ module modcuda
 
             thl_flux_d = thl_flux
 
-            thv0h_d = thv0h
-            thvh_d  = thvh
+            thv0h_d    = thv0h
+            thvh_d     = thvh
+            thl0av_d   = thl0av
             if (ltrees .and. lmoist) then
                thlpcar_d = thlpcar
             end if
@@ -360,6 +389,7 @@ module modcuda
             qt0_d = qt0
             call initfield<<<griddim,blockdim>>>(qtp_d, 0.)
             call checkCUDA( cudaGetLastError(), 'initfield qtp_d' )
+            qt0av_d = qt0av
          end if
 
          if (nsv>0) then
@@ -368,9 +398,9 @@ module modcuda
                call initfield<<<griddim,blockdim>>>(svp_d(:, :, :, n), 0.)
                call checkCUDA( cudaGetLastError(), 'initfield svp_d' )
             end do
+            sv0av_d = sv0av
          end if
 
-         u0av_d = u0av
          dthvdz_d = dthvdz
          
          if(ifixuinf==2) then
