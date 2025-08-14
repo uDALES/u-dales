@@ -28,6 +28,7 @@
 module modpois
 use decomp_2d
 use decomp_2d_fft
+use decomp_2d_constants
 
 implicit none
 
@@ -225,7 +226,7 @@ contains
 
 
     elseif (ipoiss == POISS_FFT2D_2DECOMP) then
-      call decomp_2d_fft_init(1) ! 1 means x pencil
+      call decomp_2d_fft_init(PHYSICAL_IN_X) ! means x pencil
       call decomp_info_init(itot/2+1, jtot, ktot, sp)
       allocate(xrt(itot/2+1))
       allocate(yrt(jtot))
@@ -296,7 +297,7 @@ contains
       end do
 
     elseif (ipoiss == POISS_FFT3D) then ! periodic in all 3 dimension (probably not useful)
-      call decomp_2d_fft_init(3) ! 3 means z pencil
+      call decomp_2d_fft_init(PHYSICAL_IN_Z) ! means z pencil
       call decomp_info_init(itot, jtot, ktot/2+1, sp) ! have to do this because sp is not public
       ! Generate wavenumbers assuming FFTW implementation
 
@@ -431,7 +432,7 @@ contains
 
     call fillps
 
-    rhs = p(ib:ie,jb:je,kb:ke)
+    ! rhs = p(ib:ie,jb:je,kb:ke)   ! needs to be uncommented for fielddump to write correct value of rhs
 
 !  ibc?=1: neumann
 !  ibc?=2: periodic
@@ -444,6 +445,8 @@ contains
       call alloc_z(pz, opt_zlevel=(/0,0,0/))
 
       pz = p(ib:ie,jb:je,kb:ke)
+
+!      write(*,*) pz(1,1,1), pz(ie/4,je/4,ke/4), pz(ie/2,je/2,ke/2), pz(3*ie/4, 3*je/4, 3*ke/4), pz(ie,je,ke)
 
       ! if (BCxm == 1) then
       !   allocate(FFTI(itot))
@@ -458,11 +461,14 @@ contains
       ! end if
 
 !$acc data create(px, py, pz)
-!$acc update device(px, py, pz)
+!$acc update device(pz)
       call transpose_z_to_y(pz, py)
       call transpose_y_to_x(py, px)
-!$acc update host(px, py, pz)
+!$acc update host(px)
 !$acc end data
+
+!      write(*,*) pz(1,1,1), pz(ie/4,je/4,ke/4), pz(ie/2,je/2,ke/2), pz(3*ie/4, 3*je/4, 3*ke/4), pz(ie,je,ke)
+!      write(*,*) px(1,1,1), px(ie/4,je/4,ke/4), px(ie/2,je/2,ke/2), px(3*ie/4, 3*je/4, 3*ke/4), px(ie,je,ke)
 
       ! In x-pencil, do FFT in x-direction
       if (BCxm == 1) then
@@ -494,6 +500,10 @@ contains
         end do
         px = px*fac
 
+!        write(*,*) px(1,1,1), px(ie/4,je/4,ke/4), px(ie/2,je/2,ke/2), px(3*ie/4, 3*je/4, 3*ke/4), px(ie,je,ke)
+
+!        write(*,*) px(1,1,1), px(2,1,1), px(3,1,1), px(ie/2-2,je/4,ke/4), px(ie/2-1,je/4,ke/4), px(ie-2,je,ke), px(ie-1,je,ke), px(ie,je,ke)
+
       else
         fac = 1./sqrt(2.*itot)
         do k=1,xsize(3)
@@ -507,10 +517,12 @@ contains
       end if
 
 !$acc data create(px, py)
-!$acc update device(px, py)
+!$acc update device(px)
       call transpose_x_to_y(px, py)
-!$acc update host(px, py)
+!$acc update host(py)
 !$acc end data
+
+!      write(*,*) py(1,1,1), py(2,1,1), py(3,1,1), py(ie/2-2,je/4,ke/4), py(ie/2-1,je/4,ke/4), py(ie-2,je,ke), py(ie-1,je,ke), py(ie,je,ke)
 
       ! In y-pencil, do FFT in y-direction
       if (BCym == 1) then
@@ -542,6 +554,10 @@ contains
         end do
         py = py*fac
 
+!        write(*,*) py(1,1,1), py(2,1,1), py(3,1,1), py(ie/2-2,je/4,ke/4), py(ie/2-1,je/4,ke/4), py(ie-2,je,ke), py(ie-1,je,ke), py(ie,je,ke)
+
+!        write(*,*) py(1,1,1), py(1,2,1), py(1,3,1), py(ie/4,je/2-2,ke/4), py(ie/4,je/2-1,ke/4), py(ie,je-2,ke), py(ie,je-1,ke), py(ie,je,ke)
+
       else
         fac = 1./sqrt(2.*jtot)
         do i=1,ysize(1)
@@ -555,9 +571,9 @@ contains
       end if
 
 !$acc data create(py, pz)
-!$acc update device(py, pz)
+!$acc update device(py)
       call transpose_y_to_z(py,pz)
-!$acc update host(py, pz)
+!$acc update host(pz)
 !$acc end data
 
       Fxy = pz
@@ -608,9 +624,9 @@ contains
       Fxyz = pz
 
 !$acc data create(py, pz)
-!$acc update device(py, pz)
+!$acc update device(pz)
       call transpose_z_to_y(pz,py)
-!$acc update host(py, pz)
+!$acc update host(py)
 !$acc end data
       ! call transpose_z_to_y(pz_top, py_top, decomp_top)
 
@@ -666,9 +682,9 @@ contains
       end if
 
 !$acc data create(px, py)
-!$acc update device(px, py)
+!$acc update device(py)
       call transpose_y_to_x(py,px)
-!$acc update host(px, py)
+!$acc update host(px)
 !$acc end data
       ! call transpose_y_to_x(py_top,px_top,decomp_top)
 
@@ -721,11 +737,13 @@ contains
       end if
 
 !$acc data create(px, py, pz)
-!$acc update device(px, py, pz)
+!$acc update device(px)
       call transpose_x_to_y(px, py)
       call transpose_y_to_z(py, pz)
-!$acc update host(px, py, pz)
+!$acc update host(pz)
 !$acc end data
+
+!      write(*,*) pz(1,1,1), pz(ie/4,je/4,ke/4), pz(ie/2,je/2,ke/2), pz(3*ie/4, 3*je/4, 3*ke/4), pz(ie,je,ke)
 
       ! call transpose_x_to_y(px_top,py_top,decomp_top)
       ! call transpose_y_to_z(py_top,pz_top,decomp_top)
@@ -737,103 +755,182 @@ contains
       ! if (BCxm == 1) deallocate(FFTI, winew)
       ! if (BCym == 1) deallocate(FFTJ, wjnew)
 
+!      write(*,*) p(1,1,1), p(ie/4,je/4,ke/4), p(ie/2,je/2,ke/2), p(3*ie/4, 3*je/4, 3*ke/4), p(ie,je,ke)
+
     case(POISS_FFT2D_2DECOMP)
-      write(0, *) 'ERROR: POISS_FFT2D_2DECOMP cannot be used.'
-      stop 1
-      ! DMajumdar: this POISS_FFT2D_2DECOMP has been commented as it's creating compilation error when
-      ! using pbartholomew/2decomp-fft. If one wishes to use POISS_FFT2D_2DECOMP, needs to be rectified.
-      
-      ! call alloc_x(px, opt_xlevel=(/0,0,0/))
-      ! call alloc_y(py, opt_ylevel=(/0,0,0/))
-      ! call alloc_z(pz, opt_zlevel=(/0,0,0/))
-      ! allocate(Fx(sp%xsz(1),sp%xsz(2),sp%xsz(3)))
-      ! allocate(Fy(sp%ysz(1),sp%ysz(2),sp%ysz(3)))
-      ! allocate(Fz(sp%zsz(1),sp%zsz(2),sp%zsz(3)))
-      ! allocate(d (sp%zsz(1),sp%zsz(2),sp%zsz(3)))
+#if defined(_GPU)
+      write(*,*) "POISS_FFT2D_2DECOMP on GPU with generic."
+#else
+      write(*,*) "POISS_FFT2D_2DECOMP on CPU."
+#endif
+      call alloc_x(px, opt_xlevel=(/0,0,0/))
+      call alloc_y(py, opt_ylevel=(/0,0,0/))
+      call alloc_z(pz, opt_zlevel=(/0,0,0/))
+      allocate(Fx(sp%xsz(1),sp%xsz(2),sp%xsz(3)))
+      allocate(Fy(sp%ysz(1),sp%ysz(2),sp%ysz(3)))
+      allocate(Fz(sp%zsz(1),sp%zsz(2),sp%zsz(3)))
+      allocate(d (sp%zsz(1),sp%zsz(2),sp%zsz(3)))
 
-      ! pz = p(ib:ie,jb:je,kb:ke)
+!      write(*,*) sp%xsz(1),sp%xsz(2),sp%xsz(3), size(Fx)
 
-      ! ! Starting in z-pencil, transpose to x-pencil
-      ! call transpose_z_to_y(pz, py)
-      ! call transpose_y_to_x(py, px)
+      pz = p(ib:ie,jb:je,kb:ke)
 
-      ! ! Do forward FFT in x direction
-      ! call r2c_1m_x(px, Fx)
-      ! Fx = Fx/sqrt(1.*itot)
+!      write(*,*) pz(1,1,1), pz(ie/4,je/4,ke/4), pz(ie/2,je/2,ke/2), pz(3*ie/4, 3*je/4, 3*ke/4), pz(ie,je,ke)
 
-      ! ! Transpose to y-pencil
-      ! call transpose_x_to_y(Fx, Fy, sp)
+      ! Starting in z-pencil, transpose to x-pencil
+!$acc data create(px, py, pz)
+!$acc update device(pz)
+      call transpose_z_to_y(pz, py)
+      call transpose_y_to_x(py, px)
+!$acc update host(px)
+!$acc end data
 
-      ! ! Do forward FFT in y direction
-      ! call c2c_1m_y(Fy, -1, plan(0,2))
-      ! Fy = Fy/sqrt(1.*jtot)
+!      write(*,*) pz(1,1,1), pz(ie/4,je/4,ke/4), pz(ie/2,je/2,ke/2), pz(3*ie/4, 3*je/4, 3*ke/4), pz(ie,je,ke)
+!      write(*,*) px(1,1,1), px(ie/4,je/4,ke/4), px(ie/2,je/2,ke/2), px(3*ie/4, 3*je/4, 3*ke/4), px(ie,je,ke)
 
-      ! ! Transpose to z-pencil
-      ! call transpose_y_to_z(Fy, Fz, sp)
+      ! Do forward FFT in x direction
+! #if defined(_GPU)
+! !$acc data create(px, Fx)
+! !$acc update device(px, Fx)
+!       call r2c_1m_x(px, Fx)    ! fft_cufft
+! !$acc update host(px, Fx)
+! !$acc end data
+! #else
+      call r2c_1m_x(px, Fx)    ! fft_generic
+! #endif
+      Fx = Fx/sqrt(1.*itot)
 
-      ! ! Solve system using Gaussian elimination
-      ! do j=1,sp%zsz(2)
-      !   do i=1,sp%zsz(1)
-      !     z         = 1./(b(1)+xyzrt(i,j,1))
-      !     d(i,j,1)  = c(1)*z
-      !     Fz(i,j,1) = Fz(i,j,1)*z
-      !   end do
-      ! end do
+!      write(*,*) Fx(1,1,1), Fx(2,1,1), Fx(ie/4,je/4,ke/4), Fx(ie/2,je,ke), Fx(ie/2+1,je,ke)
 
-      ! do k=2,sp%zsz(3)-1
-      !   do j=1,sp%zsz(2)
-      !     do i=1,sp%zsz(1)
-      !       bbk       = b(k)+xyzrt(i,j,k)
-      !       z         = 1./(bbk-a(k)*d(i,j,k-1))
-      !       d(i,j,k)  = c(k)*z
-      !       Fz(i,j,k) = (Fz(i,j,k)-a(k)*Fz(i,j,k-1))*z
-      !     end do
-      !   end do
-      ! end do
+      ! Transpose to y-pencil
+!$acc data create(Fx, Fy, sp)
+!$acc update device(Fx, sp)
+      call transpose_x_to_y(Fx, Fy, sp)
+!$acc update host(Fy)
+!$acc end data
 
-      ! ak = a(ktot)
-      ! bk = b(ktot)
-      ! do j=1,sp%zsz(2)
-      !   do i=1,sp%zsz(1)
-      !     bbk = bk + xyzrt(i,j,ktot)
-      !     z        = bbk-ak*d(i,j,ktot-1)
-      !     if(z/=0.) then
-      !       Fz(i,j,ktot) = (Fz(i,j,ktot)-ak*Fz(i,j,ktot-1))/z
-      !     else
-      !       Fz(i,j,ktot) =0.
-      !     end if
-      !   end do
-      ! end do
+!      write(*,*) Fy(1,1,1), Fy(2,1,1), Fy(ie/4,je/4,ke/4), Fy(ie/2,je,ke), Fy(ie/2+1,je,ke)
 
-      ! do k=sp%zsz(3)-1,1,-1
-      !   do j=1,sp%zsz(2)
-      !     do i=1,sp%zsz(1)
-      !       Fz(i,j,k) = Fz(i,j,k)-d(i,j,k)*Fz(i,j,k+1)
-      !     end do
-      !   end do
-      ! end do
+      ! Do forward FFT in y direction
+! #if defined(_GPU)
+! !$acc data create(Fy)
+! !$acc update device(Fy)
+!       call c2c_1m_y(Fy, -1, plan(-1,2)) ! fft_cufft
+! !$acc update host(Fy)
+! !$acc end data
+! #else
+!       ! call c2c_1m_y(Fy, plan(-1,2))     ! fft_fftw3_f03
+      call c2c_1m_y(Fy, -1, sp)         ! fft_generic
+! #endif
+      Fy = Fy/sqrt(1.*jtot)
 
-      ! ! Tranpose to y-pencil
-      ! call transpose_z_to_y(Fz, Fy, sp)
+!      write(*,*) Fy(1,1,1), Fy(2,1,1), Fy(ie/4,je/4,ke/4), Fy(ie/2,je,ke), Fy(ie/2+1,je,ke)
 
-      ! ! Do backward FFT in y direction
-      ! call c2c_1m_y(Fy, 1, plan(2,2))
-      ! Fy = Fy/sqrt(1.*jtot)
+!      write(*,*) Fy(1,1,1), Fy(1,2,1), Fy(ie/4,je/4,ke/4), Fy(ie,je/2,ke), Fy(ie,je/2+1,ke)
 
-      ! ! Transpose to x-pencil
-      ! call transpose_y_to_x(Fy, Fx, sp)
+      ! Transpose to z-pencil
+!$acc data create(Fy, Fz, sp)
+!$acc update device(Fy, sp)
+      call transpose_y_to_z(Fy, Fz, sp)
+!$acc update host(Fz)
+!$acc end data
 
-      ! ! Do backward FFT in x direction
-      ! call c2r_1m_x(Fx, px)
-      ! px = px/sqrt(1.*itot)
+      ! Solve system using Gaussian elimination
+      do j=1,sp%zsz(2)
+        do i=1,sp%zsz(1)
+          z         = 1./(b(1)+xyzrt(i,j,1))
+          d(i,j,1)  = c(1)*z
+          Fz(i,j,1) = Fz(i,j,1)*z
+        end do
+      end do
 
-      ! ! Tranpose to z-pencil
-      ! call transpose_x_to_y(px, py)
-      ! call transpose_y_to_z(py, pz)
+      do k=2,sp%zsz(3)-1
+        do j=1,sp%zsz(2)
+          do i=1,sp%zsz(1)
+            bbk       = b(k)+xyzrt(i,j,k)
+            z         = 1./(bbk-a(k)*d(i,j,k-1))
+            d(i,j,k)  = c(k)*z
+            Fz(i,j,k) = (Fz(i,j,k)-a(k)*Fz(i,j,k-1))*z
+          end do
+        end do
+      end do
 
-      ! p(ib:ie,jb:je,kb:ke) = pz
+      ak = a(ktot)
+      bk = b(ktot)
+      do j=1,sp%zsz(2)
+        do i=1,sp%zsz(1)
+          bbk = bk + xyzrt(i,j,ktot)
+          z        = bbk-ak*d(i,j,ktot-1)
+          if(z/=0.) then
+            Fz(i,j,ktot) = (Fz(i,j,ktot)-ak*Fz(i,j,ktot-1))/z
+          else
+            Fz(i,j,ktot) =0.
+          end if
+        end do
+      end do
 
-      ! deallocate(px,py,pz,Fx,Fy,Fz,d)
+      do k=sp%zsz(3)-1,1,-1
+        do j=1,sp%zsz(2)
+          do i=1,sp%zsz(1)
+            Fz(i,j,k) = Fz(i,j,k)-d(i,j,k)*Fz(i,j,k+1)
+          end do
+        end do
+      end do
+
+      ! Tranpose to y-pencil
+!$acc data create(Fz, Fy, sp)
+!$acc update device(Fz, sp)
+      call transpose_z_to_y(Fz, Fy, sp)
+!$acc update host(Fy)
+!$acc end data
+
+      ! Do backward FFT in y direction
+! #if defined(_GPU)
+! !$acc data create(Fy)
+! !$acc update device(Fy)
+!      call c2c_1m_y(Fy, 1, plan(1,2))   ! fft_cufft
+! !$acc update host(Fy)
+! !$acc end data
+! #else
+!       ! call c2c_1m_y(Fy, plan(1,2))      ! fft_fftw_f03
+      call c2c_1m_y(Fy, 1, sp)          ! fft_generic
+! #endif
+      Fy = Fy/sqrt(1.*jtot)
+
+      ! Transpose to x-pencil
+!$acc data create(Fy, Fx, sp)
+!$acc update device(Fy, sp)
+      call transpose_y_to_x(Fy, Fx, sp)
+!$acc update host(Fx)
+!$acc end data
+
+      ! Do backward FFT in x direction
+! #if defined(_GPU)
+! !$acc data create(Fx, px)
+! !$acc update device(Fx, px)
+!       call c2r_1m_x(Fx, px)     ! fft_cufft
+! !$acc update host(Fx, px)
+! !$acc end data
+! #else
+      call c2r_1m_x(Fx, px)     ! fft_generic
+! #endif
+      px = px/sqrt(1.*itot)
+
+      ! Tranpose to z-pencil
+!$acc data create(px, py, pz)
+!$acc update device(px)
+      call transpose_x_to_y(px, py)
+      call transpose_y_to_z(py, pz)
+!$acc update host(pz)
+!$acc end data
+
+!      write(*,*) pz(1,1,1), pz(ie/4,je/4,ke/4), pz(ie/2,je/2,ke/2), pz(3*ie/4, 3*je/4, 3*ke/4), pz(ie,je,ke)
+
+      p(ib:ie,jb:je,kb:ke) = pz
+
+      deallocate(px,py,pz,Fx,Fy,Fz,d)
+
+!      write(*,*) p(1,1,1), p(ie/4,je/4,ke/4), p(ie/2,je/2,ke/2), p(3*ie/4, 3*je/4, 3*ke/4), p(ie,je,ke)
 
 
     case (POISS_FFT3D)
@@ -1005,15 +1102,16 @@ contains
       end do
     end do
 
-    do k=kb,ke
-      do j=jb,je
-        do i=ib,ie
-          dpupdx(i,j,k) = (pup(i+1,j,k)-pup(i,j,k)) * dxi
-          dpvpdy(i,j,k) = (pvp(i,j+1,k)-pvp(i,j,k)) * dyi
-          dpwpdz(i,j,k) = (pwp(i,j,k+1)-pwp(i,j,k)) * dzfi(k)
-        end do
-      end do
-    end do
+    ! Following loops need to be uncommented for fielddump to write correct value of dpupdx, dpvpdy, dpwpdz
+    !do k=kb,ke
+    !  do j=jb,je
+    !    do i=ib,ie
+    !      dpupdx(i,j,k) = (pup(i+1,j,k)-pup(i,j,k)) * dxi
+    !      dpvpdy(i,j,k) = (pvp(i,j+1,k)-pvp(i,j,k)) * dyi
+    !      dpwpdz(i,j,k) = (pwp(i,j,k+1)-pwp(i,j,k)) * dzfi(k)
+    !    end do
+    !  end do
+    !end do
 
     ! ! MOMS
     ! do k=kb,ke
