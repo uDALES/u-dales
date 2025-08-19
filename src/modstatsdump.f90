@@ -1688,7 +1688,7 @@ contains
   use modmpi,           only : myid,cmyid,my_real,mpi_sum,avey_ibm,mpierr,comm3d,excjs,avexy_ibm
   use modsurfdata,      only : thls
   use modsubgrid,       only : ekh
-  use decomp_2d,        only : exchange_halo_z
+  use m_halo,           only : halo_exchange
   implicit none
 
   real, dimension(ib:ie,jb:je,kb:ke)  :: disssgsfl     ! average subgrid visc. * average rate of strain squared : 2*<nu_t>*<Sij>*<Sij>
@@ -1815,17 +1815,17 @@ contains
 
 !$acc data create(tvmx, tsgsmx1, tsgsmx2, dummyx, ttmx, tvmy, tsgsmy1, tsgsmy2, dummyy, ttmy)
 !$acc update device(tvmx, tsgsmx1, tsgsmx2, dummyx, ttmx, tvmy, tsgsmy1, tsgsmy2, dummyy, ttmy)
-      call exchange_halo_z(tvmx, opt_zlevel=(/ih,jh,0/))
-      call exchange_halo_z(tsgsmx1, opt_zlevel=(/ih,jh,0/))
-      call exchange_halo_z(tsgsmx2, opt_zlevel=(/ih,jh,0/))
-      call exchange_halo_z(dummyx, opt_zlevel=(/ih,jh,0/))
-      call exchange_halo_z(ttmx, opt_zlevel=(/ih,jh,0/))
+      call halo_exchange(tvmx, 3, opt_levels=(/ih,jh,0/))
+      call halo_exchange(tsgsmx1, 3, opt_levels=(/ih,jh,0/))
+      call halo_exchange(tsgsmx2, 3, opt_levels=(/ih,jh,0/))
+      call halo_exchange(dummyx, 3, opt_levels=(/ih,jh,0/))
+      call halo_exchange(ttmx, 3, opt_levels=(/ih,jh,0/))
 
-      call exchange_halo_z(tvmy, opt_zlevel=(/ih,jh,0/))
-      call exchange_halo_z(tsgsmy1, opt_zlevel=(/ih,jh,0/))
-      call exchange_halo_z(tsgsmy2, opt_zlevel=(/ih,jh,0/))
-      call exchange_halo_z(dummyy, opt_zlevel=(/ih,jh,0/))
-      call exchange_halo_z(ttmy, opt_zlevel=(/ih,jh,0/))
+      call halo_exchange(tvmy, 3, opt_levels=(/ih,jh,0/))
+      call halo_exchange(tsgsmy1, 3, opt_levels=(/ih,jh,0/))
+      call halo_exchange(tsgsmy2, 3, opt_levels=(/ih,jh,0/))
+      call halo_exchange(dummyy, 3, opt_levels=(/ih,jh,0/))
+      call halo_exchange(ttmy, 3, opt_levels=(/ih,jh,0/))
 !$acc update host(tvmx, tsgsmx1, tsgsmx2, dummyx, ttmx, tvmy, tsgsmy1, tsgsmy2, dummyy, ttmy)
 !$acc end data
 
