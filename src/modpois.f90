@@ -763,9 +763,9 @@ contains
 #else
       write(*,*) "POISS_FFT2D_2DECOMP on CPU."
 #endif
-      call alloc_x(px, opt_xlevel=(/0,0,0/))
-      call alloc_y(py, opt_ylevel=(/0,0,0/))
-      call alloc_z(pz, opt_zlevel=(/0,0,0/))
+      call alloc_x(px, opt_levels=(/0,0,0/))
+      call alloc_y(py, opt_levels=(/0,0,0/))
+      call alloc_z(pz, opt_levels=(/0,0,0/))
       allocate(Fx(sp%xsz(1),sp%xsz(2),sp%xsz(3)))
       allocate(Fy(sp%ysz(1),sp%ysz(2),sp%ysz(3)))
       allocate(Fz(sp%zsz(1),sp%zsz(2),sp%zsz(3)))
