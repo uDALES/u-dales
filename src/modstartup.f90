@@ -651,6 +651,7 @@ module modstartup
 
    subroutine init2decomp
      use decomp_2d
+     use decomp_2d_mpi, only : DECOMP_2D_COMM_CART_Z
      use modglobal, only : itot, jtot, ktot, BCxm, BCym, BCxm_periodic, Bcym_periodic
      use modmpi,    only : comm3d, myid, myidx, myidy, cmyidx, cmyidy, nprocx, nprocy, &
                            nbreast, nbrwest, nbrnorth, nbrsouth, mpierr
@@ -953,7 +954,7 @@ module modstartup
          nstepreaddriver
       use modinlet, only:readinletfile
       use moddriver, only: readdriverfile,initdriver,drivergen,readdriverfile_chunk
-      use decomp_2d, only : exchange_halo_z, update_halo, decomp_main
+      use decomp_2d, only : decomp_main
 
       integer i, j, k, n
 

@@ -128,7 +128,7 @@ module modibm
      use modglobal, only : libm, xh, xf, yh, yf, zh, zf, xhat, yhat, zhat, vec0, &
                            ib, ie, ih, ihc, jb, je, jh, jhc, kb, ke, kh, khc, nsv, &
                            iwallmom, lmoist, ltempeq, cexpnr, nfcts, lwritefac
-     use decomp_2d, only : exchange_halo_z
+     use m_halo, only : halo_exchange
      use modmpi,    only : myid
      use modstat_nc,only: open_nc, define_nc, ncinfo, writestat_dims_nc
 
@@ -160,9 +160,9 @@ module modibm
      call solid(solid_info_w, mask_w, rhs, 0., ih, jh, kh)
 !$acc data create(mask_u, mask_v, mask_w)
 !$acc update device(mask_u, mask_v, mask_w)
-     call exchange_halo_z(mask_u)!, opt_zlevel=(/ih,jh,0/))
-     call exchange_halo_z(mask_v)!, opt_zlevel=(/ih,jh,0/))
-     call exchange_halo_z(mask_w)!, opt_zlevel=(/ih,jh,0/))
+     call halo_exchange(mask_u, 3)!, opt_zlevel=(/ih,jh,0/))
+     call halo_exchange(mask_v, 3)!, opt_zlevel=(/ih,jh,0/))
+     call halo_exchange(mask_w, 3)!, opt_zlevel=(/ih,jh,0/))
 !$acc update host(mask_u, mask_v, mask_w)
 !$acc end data
 
@@ -191,7 +191,7 @@ module modibm
        call solid(solid_info_c, mask_c, rhs, 0., ih, jh, kh)
 !$acc data create(mask_c)
 !$acc update device(mask_c)
-       call exchange_halo_z(mask_c)!, opt_zlevel=(/ih,jh,0/))
+       call halo_exchange(mask_c, 3)!, opt_zlevel=(/ih,jh,0/))
 !$acc update host(mask_c)
 !$acc end data
      end if
@@ -2320,7 +2320,8 @@ module modibm
                             IIcs, IIus, IIvs, IIws, IIuws, IIvws, IIuvs, &
                             IIct, IIut, IIvt, IIwt, IIuwt, um, u0, vm, v0, wm, w0
       use modmpi,    only : myid, comm3d, mpierr, MY_REAL, nprocs
-      use decomp_2d, only : zstart, exchange_halo_z
+      use decomp_2d, only : zstart
+      use m_halo,    only : halo_exchange
 
       integer :: IIcl(kb:ke + khc), IIul(kb:ke + khc), IIvl(kb:ke + khc), IIwl(kb:ke + khc), IIuwl(kb:ke + khc), IIvwl(kb:ke + khc), IIuvl(kb:ke + khc)
       integer :: IIcd(ib:ie, kb:ke)
@@ -2404,9 +2405,9 @@ module modibm
       end do
 
       ! Can't do this because no interface for integers
-      ! call exchange_halo_z(IIuv, opt_zlevel=(/ihc,jhc,0/))
-      ! call exchange_halo_z(IIuv, opt_zlevel=(/ihc,jhc,0/))
-      ! call exchange_halo_z(IIvw, opt_zlevel=(/ihc,jhc,0/))
+      ! call halo_exchange(IIuv, 3, opt_zlevel=(/ihc,jhc,0/))
+      ! call halo_exchange(IIuv, 3, opt_zlevel=(/ihc,jhc,0/))
+      ! call halo_exchange(IIvw, 3, opt_zlevel=(/ihc,jhc,0/))
 
       do k = kb, ke + khc
          IIcl(k) = sum(IIc(ib:ie, jb:je, k))
