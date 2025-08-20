@@ -77,7 +77,7 @@ contains
         if (lfan_hp) then ! Heat pump fan is on
           wm(i,j,k+1) = w_hp_exhaust ! Set exhaust velocity at heat pump point [m/s], at input 'w' cell face k+1
           w0(i,j,k+1) = w_hp_exhaust
-          !wp(i,j,k+1) = 0.
+          wp(i,j,k+1) = 0.
         end if
         
         thlp(i,j,k) = thlp(i,j,k) - thl_dot_hp * dxi * dyi * dzfi(k)  ! [K/s], at cell center k

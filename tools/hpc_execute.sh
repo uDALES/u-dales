@@ -82,7 +82,7 @@ echo "writing job.$exp."
 cat <<EOF > job.$exp
 #!/bin/bash
 #PBS -l walltime=${WALLTIME}
-#PBS -l select=${NNODE}:ncpus=${NCPU}:mem=${MEM}
+#PBS -l select=${NNODE}:ncpus=${NCPU}:mpiprocs=$(( $NCPU * $NNODE )):mem=${MEM}
 module load intel/2025a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a FFTW/3.3.9-intel-2021a CMake/3.29.3-GCCcore-13.3.0 git/2.45.1-GCCcore-13.3.0
 mkdir -p $outdir
 cp -r $inputdir/* $outdir
