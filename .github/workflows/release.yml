@@ -1,0 +1,36 @@
+name: Release
+
+on:
+  release:
+    types:
+      - released
+
+jobs:
+  docs:
+    name: Publish docs
+    runs-on: ubuntu-22.04
+    defaults:
+      run:
+        # 'shell' required to activate environment.
+        # See https://github.com/conda-incubator/setup-miniconda#IMPORTANT.
+        shell: bash -el {0}
+    steps:
+    - name: Check-out project
+      uses: actions/checkout@v4
+    - name: Install python dependencies
+      uses: conda-incubator/setup-miniconda@v2
+      with:
+        miniconda-version: "latest"
+        auto-update-conda: true
+        activate-environment: udales
+        environment-file: environment.yml
+    - name: Build docs
+      run: |
+        mkdocs build --site-dir build/html
+        ford docs/udales-docs-software.md
+    - name: Publish docs
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: build/html/
+        force_orphan: true
