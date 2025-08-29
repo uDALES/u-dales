@@ -1,10 +1,9 @@
-[submodule "2decomp-fft"]
-	path = 2decomp-fft
-	url = https://github.com/pbartholomew08/2decomp-fft.git
-	branch = update
-
 [submodule "tools/View3D"]
 	path = tools/View3D
 	url = https://github.com/uDALES/View3D.git
 	branch = master
 
+[submodule "2decomp-fft"]
+	path = 2decomp-fft
+	url = https://github.com/pbartholomew08/2decomp-fft.git
+	branch = feat--halo-exchange--udales

@@ -587,10 +587,10 @@ contains
     ! call alloc_z(wp); wp = 0.
     call alloc_z(pres0); pres0 = 0.
 
-    call alloc_z(div, opt_zlevel=(/0,0,0/))
-    call alloc_z(dudx, opt_zlevel=(/0,0,0/))
-    call alloc_z(dvdy, opt_zlevel=(/0,0,0/))
-    call alloc_z(dwdz, opt_zlevel=(/0,0,0/))
+    call alloc_z(div, opt_levels=(/0,0,0/))
+    call alloc_z(dudx, opt_levels=(/0,0,0/))
+    call alloc_z(dvdy, opt_levels=(/0,0,0/))
+    call alloc_z(dwdz, opt_levels=(/0,0,0/))
 
     ! Always have to allocate these, even if ltempeq/lmoist = .false.
     call alloc_z(thlm); thlm = 0.
@@ -610,7 +610,7 @@ contains
     call alloc_z(e12m); e12m = 0.
     call alloc_z(e120); e120 = 0.
     ! call alloc_z(e12p); e12p = 0.
-    call alloc_z(mindist, opt_zlevel=(/0,0,0/)); mindist = 0.
+    call alloc_z(mindist, opt_levels=(/0,0,0/)); mindist = 0.
 
     ! These always have to be allocated differently?
     !if (nsv>0) then
