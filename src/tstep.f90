@@ -177,7 +177,7 @@ subroutine tstep_integrate
                           storetdriver, nstepread, nstepreaddriver, irecydriver
   use modsubgriddata, only : loneeqn,ekm,ekh
   use modchem, only : chem
-  use modpois, only : pij, dpdztop
+  use modpois, only : pij
 
   implicit none
 

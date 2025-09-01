@@ -372,7 +372,6 @@ module modglobal
 
    ! Poisson solver
    integer, parameter :: POISS_FFT2D = 0, &
-                         POISS_CYC   = 1, &
                          POISS_FFT3D = 2, &
                          POISS_FFT2D_2DECOMP = 3
 

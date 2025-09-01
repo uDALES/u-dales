@@ -35,7 +35,7 @@ implicit none
 include "fftw3.f"
 
 private
-public :: initpois,poisson,exitpois,p,pup,pvp,pwp,rhs,dpupdx,dpvpdy,dpwpdz,xyzrt,sp,Fxy,Fxyz,dpdztop,pij
+public :: initpois,poisson,exitpois,p,pup,pvp,pwp,rhs,dpupdx,dpvpdy,dpwpdz,xyzrt,sp,Fxy,Fxyz,pij
 save
 
   real, allocatable, target :: p(:,:,:)   ! difference between p at previous and new step (p = P_new - P_old)
@@ -58,14 +58,13 @@ save
   complex, allocatable :: Sxfc(:), Syfc(:)
   type(DECOMP_INFO) :: sp
   type(DECOMP_INFO) :: decomp_top
-  real, allocatable :: dpdztop(:,:)
   real, allocatable :: pij(:)
 
 contains
   subroutine initpois
     use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,imax,jmax,itot,jtot,ktot, &
                           dxi,dzh,dzf,dy,dyi,dxfi,dzfi,ipoiss,pi,linoutflow,&
-                          POISS_FFT2D,POISS_FFT3D,POISS_CYC,POISS_FFT2D_2DECOMP,&
+                          POISS_FFT2D,POISS_FFT3D,POISS_FFT2D_2DECOMP,&
                           BCxm,BCym,BCzp,BCtopm,BCtopm_pressure
     use modmpi,    only : myidx, myidy, myid
     use modfields, only : rhobf, rhobh
@@ -73,8 +72,9 @@ contains
     implicit none
     real dzi, fac, b_top_D, b_top_N
     integer i,j,k,iv,jv,kv
+    logical, dimension(3) :: skip_c2c = [.false., .false., .true.]
 
-    allocate(dpdztop(ib:ie,jb:je), pij(kb:ke+kh))
+    allocate(pij(kb:ke+kh))
 
     !allocate(p(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
     allocate(pup(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
@@ -89,6 +89,7 @@ contains
     call alloc_z(Fxyz, opt_levels=(/0,0,0/))
 
     if (ipoiss == POISS_FFT2D) then
+
       allocate(xrt(itot))
       allocate(yrt(jtot))
       allocate(zrt(ktot))
@@ -109,7 +110,6 @@ contains
         allocate(Sxr(0:itot-1), Sxfc(0:itot/2))
         call dfftw_plan_dft_r2c_1d(plan_r2fc_x,itot,Sxr,Sxfc,FFTW_MEASURE)
         call dfftw_plan_dft_c2r_1d(plan_fc2r_x,itot,Sxfc,Sxr,FFTW_MEASURE)
-
       else ! Neumann-Neumann
         fac = 1./(2.*itot)
         do i=1,itot
@@ -133,7 +133,6 @@ contains
         allocate(Syr(0:jtot-1), Syfc(0:jtot/2))
         call dfftw_plan_dft_r2c_1d(plan_r2fc_y,jtot,Syr,Syfc,FFTW_MEASURE)
         call dfftw_plan_dft_c2r_1d(plan_fc2r_y,jtot,Syfc,Syr,FFTW_MEASURE)
-
       else ! Neumann-Neumann
         fac = 1./(2.*jtot)
         do j=1,jtot
@@ -175,7 +174,6 @@ contains
         a(1) = 0.
         c(ktot) = 0.
         zrt = 0.
-
       else ! cosine transform
         dzi = dzfi(1) ! Assumes equidistant in z
 
@@ -189,16 +187,13 @@ contains
         allocate(Szr(0:ktot-1), Szfr(0:ktot-1))
         call dfftw_plan_r2r_1d(plan_r2fr_z,ktot,Szr,Szfr,FFTW_REDFT10,FFTW_MEASURE)
         call dfftw_plan_r2r_1d(plan_fr2r_z,ktot,Szfr,Szr,FFTW_REDFT01,FFTW_MEASURE)
-
       end if
 
       ! In z-pencil in spectral space - same dims as physical space in this case
       do k=1,zsize(3)
         do j=1,zsize(2)
-          !jv = j + myidy*zsize(2)!jmax
           jv = j-1 + zstart(2)
           do i=1,zsize(1)
-            !iv = i + myidx*zsize(1)!imax ! is this correct in all cases? what if zsize is not constant on each rank?
             iv = i-1 + zstart(1)
             xyzrt(i,j,k) = rhobf(k)*(xrt(iv)+yrt(jv)+zrt(k))
           end do
@@ -219,15 +214,16 @@ contains
         end do
       end do
 
-      ! call decomp_info_init(itot, jtot, 1, decomp_top)
-      ! allocate(px_top(1:decomp_top%xsz(1),1:decomp_top%xsz(2),1:decomp_top%xsz(3)))
-      ! allocate(py_top(1:decomp_top%ysz(1),1:decomp_top%ysz(2),1:decomp_top%ysz(3)))
-      ! allocate(pz_top(1:decomp_top%zsz(1),1:decomp_top%zsz(2),1:decomp_top%zsz(3)))
-
-
     elseif (ipoiss == POISS_FFT2D_2DECOMP) then
-      call decomp_2d_fft_init(PHYSICAL_IN_X) ! means x pencil
+      
+      if ((BCxm .ne. BCxm_periodic) .or. (BCym .ne. BCym_periodic)) then
+        write(*,*) "Error: Invalid choice for ipois in namoptions. Use ipoiss = 0"
+        stop 1
+      end if
+
+      call decomp_2d_fft_init(PHYSICAL_IN_X, opt_skip_XYZ_c2c=skip_c2c)
       call decomp_info_init(itot/2+1, jtot, ktot, sp)
+
       allocate(xrt(itot/2+1))
       allocate(yrt(jtot))
       allocate(zrt(ktot))
@@ -240,15 +236,6 @@ contains
       end do
       xrt(1) = 0.
       xrt(itot/2+1) = -4.*dxi*dxi
-
-      ! This is not correct - needs to be complex
-      ! fac = 1./(2.*jtot)
-      ! do j=3,jtot,2
-      !   yrt(j-1)=-4.*dyi*dyi*(sin(real((j-1))*pi*fac))**2
-      !   yrt(j  )= yrt(j-1)
-      ! end do
-      ! yrt(1    ) = 0.
-      ! yrt(jtot ) = -4.*dyi*dyi
 
       fac = 1./jtot ! Periodic
       do j=1,jtot
@@ -296,10 +283,15 @@ contains
         end do
       end do
 
-    elseif (ipoiss == POISS_FFT3D) then ! periodic in all 3 dimension (probably not useful)
+    elseif (ipoiss == POISS_FFT3D) then ! periodic in all 3 dimension (may not work correctly, needs proper inspection)
+      
+      write(*,*) "Error: Invalid choice for ipois in namoptions. Use eiter 0 or 3"
+      stop 1
+
       call decomp_2d_fft_init(PHYSICAL_IN_Z) ! means z pencil
       call decomp_info_init(itot, jtot, ktot/2+1, sp) ! have to do this because sp is not public
-      ! Generate wavenumbers assuming FFTW implementation
+
+      !!! Generate wavenumbers assuming FFTW implementation
 
       dzi = dzfi(1) ! Assumes equidistant in z
       allocate(xrt(itot))
@@ -327,18 +319,6 @@ contains
       zrt(1) = 0.
       zrt(ktot/2+1) = -4.*dzi*dzi
 
-      ! ! In z-pencil in spectral space
-      ! allocate(xyzrt(imax,jmax,ktot)) ! should be ktot/2+1?
-      ! do k=1,ktot/2+1
-      !   do j=1,jmax
-      !     jv = j + myidy*jmax
-      !     do i=1,imax
-      !       iv = i + myidx*imax
-      !       xyzrt(i,j,k) = rhobf(k)*(xrt(iv)+yrt(jv)+zrt(k))
-      !     end do
-      !   end do
-      ! end do
-
       ! In x-pencil in spectral space: sp%xsz(1)=itot
       allocate(xyzrt(sp%xsz(1),sp%xsz(2),sp%xsz(3)))
       do k=1,sp%xsz(3)
@@ -352,91 +332,28 @@ contains
         end do
       end do
 
-
-    elseif (ipoiss == POISS_CYC) then
-      ! Not supported
-
-      ! allocate(yrt(jtot))
-      ! allocate(ax(itot), bx(itot), cx(itot))
-      ! allocate(a(ktot), b(ktot), c(ktot))
-      !
-      ! ! spanwise - periodic
-      ! yrt(1) = 0.
-      ! yrt(jtot)=-4./(dy*dy)
-      ! do j=3,jtot,2
-      !   yrt(j-1)=(-4./(dy*dy))*(sin(real((j-1))*pi/(2.*jtot)))**2
-      !   yrt(j)= yrt(j-1)
-      ! end do
-      !
-      ! if (linoutflow ) then
-      !   ibc1 = 1 ! Neumann
-      !   ibc2 = 3 ! Dirichlet
-      ! else
-      !   ibc1 = 2
-      !   ibc2 = 2
-      ! endif
-      ! kbc1 = 1
-      ! kbc2 = 1
-      !
-      ! do i=1,itot
-      !   ax(i) =  1./(dxf(i)*dxh(i))
-      !   cx(i) =  1./(dxf(i)*dxh(i+1))
-      !   bx(i) =  - (ax(i) + cx(i))
-      ! end do
-      !
-      ! if (ibc1 .eq.1) then
-      !   !bx(1) = bx(1) + ax(1)
-      !   bx(1) = -cx(1)
-      ! !elseif (ibc1 .eq. 2) then
-      !   !bx(1) = bx(1)
-      ! elseif (ibc1 .eq. 3) then
-      !   bx(1) = bx(1) - ax(1) ! not convinced this is right
-      !   !bx(1) = cx(1)
-      ! end if
-      !
-      ! if (ibc2 .eq. 1) then
-      !   !bx(itot) = bx(itot) + cx(itot)
-      !   bx(itot) = -ax(1)
-      ! !elseif (ibc2 .eq. 2) then
-      !   !bx(itot) = bx(itot)
-      ! elseif (ibc2 .eq. 3) then
-      !   !bx(itot) = bx(itot) - cx(itot)
-      !   bx(itot) = ax(itot)
-      ! end if
-      !
-      ! if (ibc1 .ne. 2) then
-      !   ax(1)    = 0.
-      ! end if
-      !
-      ! if (ibc2 .ne. 2) then
-      !   cx(itot) = 0.
-      ! end if
-
     end if ! ipoiss
 
   end subroutine initpois
 
   subroutine poisson
-    use modglobal, only : ib,ie,ih,jb,je,kb,ke,kh,itot,jtot,ktot,dy,dzf,dzh,linoutflow,iinletgen,ipoiss,POISS_FFT2D,POISS_FFT3D,POISS_CYC,POISS_FFT2D_2DECOMP,imax,jmax,eps1,BCxm,BCym,BCzp,ibrank,jbrank
+    use modglobal, only : ib,ie,ih,jb,je,kb,ke,kh,itot,jtot,ktot,dy,dzf,dzh,linoutflow,iinletgen,ipoiss,POISS_FFT2D,POISS_FFT3D,POISS_FFT2D_2DECOMP,imax,jmax,eps1,BCxm,BCym,BCzp,ibrank,jbrank
     use modmpi, only : myid,nprocs,barrou
     implicit none
     integer ibc1,ibc2,kbc1,kbc2,ksen
     complex, allocatable, dimension(:,:,:) :: Fx, Fy, Fz
     real, allocatable, dimension(:,:,:) :: px, py, pz
-    !real, allocatable, dimension(:) :: FFTI, FFTJ, winew, wjnew
     real, allocatable, dimension(:,:,:) :: Fzr, d
     real, dimension(1:ktot) :: vout
     real    z,ak,bk,bbk
     integer i, j, k
+    integer :: sp_zst3, sp_zst2, sp_zst1
+    integer :: sp_zen3, sp_zen2, sp_zen1
     real fac
 
     call fillps
 
     ! rhs = p(ib:ie,jb:je,kb:ke)   ! needs to be uncommented for fielddump to write correct value of rhs
-
-!  ibc?=1: neumann
-!  ibc?=2: periodic
-!  ibc?=3: dirichlet
 
     select case (ipoiss)
     case (POISS_FFT2D)
@@ -446,20 +363,6 @@ contains
 
       pz = p(ib:ie,jb:je,kb:ke)
 
-!      write(*,*) pz(1,1,1), pz(ie/4,je/4,ke/4), pz(ie/2,je/2,ke/2), pz(3*ie/4, 3*je/4, 3*ke/4), pz(ie,je,ke)
-
-      ! if (BCxm == 1) then
-      !   allocate(FFTI(itot))
-      !   allocate(winew(2*itot+15))
-      !   call rffti(itot,winew)
-      ! end if
-
-      ! if (BCym == 1) then
-      !   allocate(FFTJ(jtot))
-      !   allocate(wjnew(2*jtot+15))
-      !   call rffti(jtot,wjnew)
-      ! end if
-
 !$acc data create(px, py, pz)
 !$acc update device(pz)
       call transpose_z_to_y(pz, py)
@@ -467,24 +370,9 @@ contains
 !$acc update host(px)
 !$acc end data
 
-!      write(*,*) pz(1,1,1), pz(ie/4,je/4,ke/4), pz(ie/2,je/2,ke/2), pz(3*ie/4, 3*je/4, 3*ke/4), pz(ie,je,ke)
-!      write(*,*) px(1,1,1), px(ie/4,je/4,ke/4), px(ie/2,je/2,ke/2), px(3*ie/4, 3*je/4, 3*ke/4), px(ie,je,ke)
-
       ! In x-pencil, do FFT in x-direction
       if (BCxm == 1) then
         fac = 1./sqrt(itot*1.)
-
-        ! do k=1,xsize(3)
-        !   do j=1,xsize(2)
-        !     do i=1,xsize(1)!itot
-        !       FFTI(i) = px(i,j,k)
-        !     end do
-        !     call rfftf(itot,FFTI,winew)
-        !     do i=1,xsize(1)
-        !       px(i,j,k) = FFTI(i)*fac
-        !     end do
-        !   end do
-        ! end do
 
         do k=1,xsize(3)
           do j=1,xsize(2)
@@ -499,11 +387,6 @@ contains
           end do
         end do
         px = px*fac
-
-!        write(*,*) px(1,1,1), px(ie/4,je/4,ke/4), px(ie/2,je/2,ke/2), px(3*ie/4, 3*je/4, 3*ke/4), px(ie,je,ke)
-
-!        write(*,*) px(1,1,1), px(2,1,1), px(3,1,1), px(ie/2-2,je/4,ke/4), px(ie/2-1,je/4,ke/4), px(ie-2,je,ke), px(ie-1,je,ke), px(ie,je,ke)
-
       else
         fac = 1./sqrt(2.*itot)
         do k=1,xsize(3)
@@ -513,7 +396,6 @@ contains
             px(:,j,k) = Sxfr*fac
           end do
         end do
-
       end if
 
 !$acc data create(px, py)
@@ -522,23 +404,9 @@ contains
 !$acc update host(py)
 !$acc end data
 
-!      write(*,*) py(1,1,1), py(2,1,1), py(3,1,1), py(ie/2-2,je/4,ke/4), py(ie/2-1,je/4,ke/4), py(ie-2,je,ke), py(ie-1,je,ke), py(ie,je,ke)
-
       ! In y-pencil, do FFT in y-direction
       if (BCym == 1) then
         fac = 1./sqrt(jtot*1.)
-
-        ! do i=1,ysize(1)
-        !   do k=1,ysize(3)
-        !     do j=1,ysize(2)!jtot
-        !       FFTJ(j) = py(i,j,k)
-        !     end do
-        !     call rfftf(jtot,FFTJ,wjnew)
-        !     do j=1,ysize(2)
-        !       py(i,j,k)=FFTJ(j)*fac
-        !     end do
-        !   end do
-        ! end do
 
         do i=1,ysize(1)
           do k=1,ysize(3)
@@ -553,11 +421,6 @@ contains
           end do
         end do
         py = py*fac
-
-!        write(*,*) py(1,1,1), py(2,1,1), py(3,1,1), py(ie/2-2,je/4,ke/4), py(ie/2-1,je/4,ke/4), py(ie-2,je,ke), py(ie-1,je,ke), py(ie,je,ke)
-
-!        write(*,*) py(1,1,1), py(1,2,1), py(1,3,1), py(ie/4,je/2-2,ke/4), py(ie/4,je/2-1,ke/4), py(ie,je-2,ke), py(ie,je-1,ke), py(ie,je,ke)
-
       else
         fac = 1./sqrt(2.*jtot)
         do i=1,ysize(1)
@@ -567,7 +430,6 @@ contains
             py(i,:,k) = Syfr*fac
           end do
         end do
-
       end if
 
 !$acc data create(py, pz)
@@ -581,10 +443,6 @@ contains
       ! In z-pencil
       if (BCzp == 1) then
         call solmpj(pz)
-
-      ! pz_top(:,:,1) = pz(:,:,ktot)
-      ! if (ibrank .and. jbrank) pz_top(1,1,1) =-pz(1,1,ktot) ! Dirichlet for zero mode
-
       else
         ! Cosine transform in z
         fac = 1./sqrt(2.*ktot)
@@ -618,7 +476,6 @@ contains
             pz(i,j,:) = Szr*fac
           end do
         end do
-
       end if ! BCzp
 
       Fxyz = pz
@@ -628,24 +485,10 @@ contains
       call transpose_z_to_y(pz,py)
 !$acc update host(py)
 !$acc end data
-      ! call transpose_z_to_y(pz_top, py_top, decomp_top)
 
       ! In y-pencil, do backward FFT in y direction
       if (BCym == 1) then
         fac = 1./sqrt(jtot*1.)
-
-        ! do i=1,ysize(1)
-        !   do k=1,ysize(3)
-        !     do j=1,ysize(2)!jtot
-        !       FFTJ(j) = py(i,j,k)
-        !     end do
-        !     call rfftb(jtot,FFTJ,wjnew)
-        !     do j=1,ysize(2)
-        !       py(i,j,k) = FFTJ(j)*fac
-        !     end do
-        !   end do
-        ! end do
-
         do i=1,ysize(1)
           do k=1,ysize(3)
             Syfc(0) = CMPLX(py(i,1,k), 0.)
@@ -657,19 +500,6 @@ contains
             py(i,:,k) = Syr*fac
           end do
         end do
-
-        ! if (size(py_top,3) > 0) then
-        !   do i=1,decomp_top%ysz(1)
-        !     Syfc(0) = CMPLX(py_top(i,1,1), 0.)
-        !     do j=1,jtot/2-1
-        !       Syfc(j) = CMPLX(py_top(i,2*j,1), py_top(i,2*j+1,1))
-        !     end do
-        !     Syfc(jtot/2) = CMPLX(py_top(i,jtot,1), 0.)
-        !     call dfftw_execute(plan_fc2r_y)
-        !     py_top(i,:,1) = Syr*fac
-        !   end do
-        ! end if
-
       else
         fac = 1./sqrt(2.*jtot)
         do i=1,ysize(1)
@@ -686,24 +516,10 @@ contains
       call transpose_y_to_x(py,px)
 !$acc update host(px)
 !$acc end data
-      ! call transpose_y_to_x(py_top,px_top,decomp_top)
 
       ! In x-pencil, do backward FFT in x-direction
       if (BCxm == 1) then
         fac = 1./sqrt(itot*1.)
-
-        ! do k=1,xsize(3)
-        !   do j=1,xsize(2)
-        !     do i=1,xsize(1)
-        !       FFTI(i) = px(i,j,k)
-        !     end do
-        !     call rfftb(itot,FFTI,winew)
-        !     do i=1,xsize(1)
-        !       px(i,j,k) = FFTI(i)*fac
-        !     end do
-        !   end do
-        ! end do
-
         do k=1,xsize(3)
           do j=1,xsize(2)
             Sxfc(0) = CMPLX(px(1,j,k), 0.)
@@ -715,7 +531,6 @@ contains
             px(:,j,k) = Sxr*fac
           end do
         end do
-
       else
         fac = 1./sqrt(2.*itot)
         do k=1,xsize(3)
@@ -725,15 +540,6 @@ contains
             px(:,j,k) = Sxr*fac
           end do
         end do
-
-        ! if (size(px_top,3) > 0) then
-        !   do j=1,decomp_top%xsz(2)
-        !     Sxfr = px_top(:,j,1)
-        !     call dfftw_execute(plan_fr2r_x)
-        !     px_top(:,j,1) = Sxr*fac
-        !   end do
-        ! end if
-
       end if
 
 !$acc data create(px, py, pz)
@@ -743,110 +549,56 @@ contains
 !$acc update host(pz)
 !$acc end data
 
-!      write(*,*) pz(1,1,1), pz(ie/4,je/4,ke/4), pz(ie/2,je/2,ke/2), pz(3*ie/4, 3*je/4, 3*ke/4), pz(ie,je,ke)
-
-      ! call transpose_x_to_y(px_top,py_top,decomp_top)
-      ! call transpose_y_to_z(py_top,pz_top,decomp_top)
-
       p(ib:ie,jb:je,kb:ke) = pz
-      ! p(ib:ie,jb:je, ke+1) = pz_top(:,:,1)
 
       deallocate(px,py,pz)
-      ! if (BCxm == 1) deallocate(FFTI, winew)
-      ! if (BCym == 1) deallocate(FFTJ, wjnew)
-
-!      write(*,*) p(1,1,1), p(ie/4,je/4,ke/4), p(ie/2,je/2,ke/2), p(3*ie/4, 3*je/4, 3*ke/4), p(ie,je,ke)
 
     case(POISS_FFT2D_2DECOMP)
 #if defined(_GPU)
-      write(*,*) "POISS_FFT2D_2DECOMP on GPU with generic."
+      write(*,*) "POISS_FFT2D_2DECOMP on GPU."
 #else
       write(*,*) "POISS_FFT2D_2DECOMP on CPU."
 #endif
       call alloc_x(px, opt_levels=(/0,0,0/))
       call alloc_y(py, opt_levels=(/0,0,0/))
       call alloc_z(pz, opt_levels=(/0,0,0/))
-      allocate(Fx(sp%xsz(1),sp%xsz(2),sp%xsz(3)))
-      allocate(Fy(sp%ysz(1),sp%ysz(2),sp%ysz(3)))
       allocate(Fz(sp%zsz(1),sp%zsz(2),sp%zsz(3)))
       allocate(d (sp%zsz(1),sp%zsz(2),sp%zsz(3)))
 
-!      write(*,*) sp%xsz(1),sp%xsz(2),sp%xsz(3), size(Fx)
+      sp_zst1=sp%zst(1);sp_zst2=sp%zst(2);sp_zst3=sp%zst(3);
+      sp_zen1=sp%zen(1);sp_zen2=sp%zen(2);sp_zen3=sp%zen(3);
 
       pz = p(ib:ie,jb:je,kb:ke)
 
-!      write(*,*) pz(1,1,1), pz(ie/4,je/4,ke/4), pz(ie/2,je/2,ke/2), pz(3*ie/4, 3*je/4, 3*ke/4), pz(ie,je,ke)
+!$acc data create(px, py, pz, Fz, a, b, c, d, xyzrt)
+!$acc update device(pz, a, b, c, xyzrt)
 
       ! Starting in z-pencil, transpose to x-pencil
-!$acc data create(px, py, pz)
-!$acc update device(pz)
       call transpose_z_to_y(pz, py)
       call transpose_y_to_x(py, px)
-!$acc update host(px)
-!$acc end data
 
-!      write(*,*) pz(1,1,1), pz(ie/4,je/4,ke/4), pz(ie/2,je/2,ke/2), pz(3*ie/4, 3*je/4, 3*ke/4), pz(ie,je,ke)
-!      write(*,*) px(1,1,1), px(ie/4,je/4,ke/4), px(ie/2,je/2,ke/2), px(3*ie/4, 3*je/4, 3*ke/4), px(ie,je,ke)
+      ! Forward FFT
+      call decomp_2d_fft_3d(px, Fz)
 
-      ! Do forward FFT in x direction
-! #if defined(_GPU)
-! !$acc data create(px, Fx)
-! !$acc update device(px, Fx)
-!       call r2c_1m_x(px, Fx)    ! fft_cufft
-! !$acc update host(px, Fx)
-! !$acc end data
-! #else
-      call r2c_1m_x(px, Fx)    ! fft_generic
-! #endif
-      Fx = Fx/sqrt(1.*itot)
-
-!      write(*,*) Fx(1,1,1), Fx(2,1,1), Fx(ie/4,je/4,ke/4), Fx(ie/2,je,ke), Fx(ie/2+1,je,ke)
-
-      ! Transpose to y-pencil
-!$acc data create(Fx, Fy, sp)
-!$acc update device(Fx, sp)
-      call transpose_x_to_y(Fx, Fy, sp)
-!$acc update host(Fy)
-!$acc end data
-
-!      write(*,*) Fy(1,1,1), Fy(2,1,1), Fy(ie/4,je/4,ke/4), Fy(ie/2,je,ke), Fy(ie/2+1,je,ke)
-
-      ! Do forward FFT in y direction
-! #if defined(_GPU)
-! !$acc data create(Fy)
-! !$acc update device(Fy)
-!       call c2c_1m_y(Fy, -1, plan(-1,2)) ! fft_cufft
-! !$acc update host(Fy)
-! !$acc end data
-! #else
-!       ! call c2c_1m_y(Fy, plan(-1,2))     ! fft_fftw3_f03
-      call c2c_1m_y(Fy, -1, sp)         ! fft_generic
-! #endif
-      Fy = Fy/sqrt(1.*jtot)
-
-!      write(*,*) Fy(1,1,1), Fy(2,1,1), Fy(ie/4,je/4,ke/4), Fy(ie/2,je,ke), Fy(ie/2+1,je,ke)
-
-!      write(*,*) Fy(1,1,1), Fy(1,2,1), Fy(ie/4,je/4,ke/4), Fy(ie,je/2,ke), Fy(ie,je/2+1,ke)
-
-      ! Transpose to z-pencil
-!$acc data create(Fy, Fz, sp)
-!$acc update device(Fy, sp)
-      call transpose_y_to_z(Fy, Fz, sp)
-!$acc update host(Fz)
-!$acc end data
+!$acc kernels
+      Fz = Fz/sqrt(1.*itot*jtot)
+!$acc end kernels
 
       ! Solve system using Gaussian elimination
-      do j=1,sp%zsz(2)
-        do i=1,sp%zsz(1)
+!$acc kernels default(present)
+      do j=1,sp_zen2
+        do i=1,sp_zen1
           z         = 1./(b(1)+xyzrt(i,j,1))
           d(i,j,1)  = c(1)*z
           Fz(i,j,1) = Fz(i,j,1)*z
         end do
       end do
+!$acc end kernels
 
-      do k=2,sp%zsz(3)-1
-        do j=1,sp%zsz(2)
-          do i=1,sp%zsz(1)
+!$acc kernels default(present)
+      do k=2,sp_zen3-1
+        do j=1,sp_zen2
+          do i=1,sp_zen1
             bbk       = b(k)+xyzrt(i,j,k)
             z         = 1./(bbk-a(k)*d(i,j,k-1))
             d(i,j,k)  = c(k)*z
@@ -854,11 +606,14 @@ contains
           end do
         end do
       end do
+!$acc end kernels
 
       ak = a(ktot)
       bk = b(ktot)
-      do j=1,sp%zsz(2)
-        do i=1,sp%zsz(1)
+
+!$acc kernels default(present)
+      do j=1,sp_zen2
+        do i=1,sp_zen1
           bbk = bk + xyzrt(i,j,ktot)
           z        = bbk-ak*d(i,j,ktot-1)
           if(z/=0.) then
@@ -868,125 +623,43 @@ contains
           end if
         end do
       end do
+!$acc end kernels
 
-      do k=sp%zsz(3)-1,1,-1
-        do j=1,sp%zsz(2)
-          do i=1,sp%zsz(1)
+!$acc kernels default(present)
+      do k=sp_zen3-1,1,-1
+        do j=1,sp_zen2
+          do i=1,sp_zen1
             Fz(i,j,k) = Fz(i,j,k)-d(i,j,k)*Fz(i,j,k+1)
           end do
         end do
       end do
+!$acc end kernels
 
-      ! Tranpose to y-pencil
-!$acc data create(Fz, Fy, sp)
-!$acc update device(Fz, sp)
-      call transpose_z_to_y(Fz, Fy, sp)
-!$acc update host(Fy)
-!$acc end data
+      ! Inverse FFT
+      call decomp_2d_fft_3d(Fz, px)
 
-      ! Do backward FFT in y direction
-! #if defined(_GPU)
-! !$acc data create(Fy)
-! !$acc update device(Fy)
-!      call c2c_1m_y(Fy, 1, plan(1,2))   ! fft_cufft
-! !$acc update host(Fy)
-! !$acc end data
-! #else
-!       ! call c2c_1m_y(Fy, plan(1,2))      ! fft_fftw_f03
-      call c2c_1m_y(Fy, 1, sp)          ! fft_generic
-! #endif
-      Fy = Fy/sqrt(1.*jtot)
+!$acc kernels
+      px = px/sqrt(1.*itot*jtot)
+!$acc end kernels
 
-      ! Transpose to x-pencil
-!$acc data create(Fy, Fx, sp)
-!$acc update device(Fy, sp)
-      call transpose_y_to_x(Fy, Fx, sp)
-!$acc update host(Fx)
-!$acc end data
-
-      ! Do backward FFT in x direction
-! #if defined(_GPU)
-! !$acc data create(Fx, px)
-! !$acc update device(Fx, px)
-!       call c2r_1m_x(Fx, px)     ! fft_cufft
-! !$acc update host(Fx, px)
-! !$acc end data
-! #else
-      call c2r_1m_x(Fx, px)     ! fft_generic
-! #endif
-      px = px/sqrt(1.*itot)
-
-      ! Tranpose to z-pencil
-!$acc data create(px, py, pz)
-!$acc update device(px)
       call transpose_x_to_y(px, py)
       call transpose_y_to_z(py, pz)
+
 !$acc update host(pz)
 !$acc end data
 
-!      write(*,*) pz(1,1,1), pz(ie/4,je/4,ke/4), pz(ie/2,je/2,ke/2), pz(3*ie/4, 3*je/4, 3*ke/4), pz(ie,je,ke)
-
       p(ib:ie,jb:je,kb:ke) = pz
 
-      deallocate(px,py,pz,Fx,Fy,Fz,d)
-
-!      write(*,*) p(1,1,1), p(ie/4,je/4,ke/4), p(ie/2,je/2,ke/2), p(3*ie/4, 3*je/4, 3*ke/4), p(ie,je,ke)
-
+      deallocate(px,py,pz,Fz,d)
 
     case (POISS_FFT3D)
-      allocate(Fx(sp%xsz(1),sp%xsz(2),sp%xsz(3)))
-      allocate(Fy(sp%ysz(1),sp%ysz(2),sp%ysz(3)))
-      allocate(Fz(sp%zsz(1),sp%zsz(2),sp%zsz(3)))
-      allocate(Fzr(imax,jmax,ktot))
 
+      allocate(Fz(sp%zsz(1),sp%zsz(2),sp%zsz(3)))
       call alloc_z(pz, opt_levels=(/0,0,0/))
+
       pz = p(ib:ie,jb:je,kb:ke)
 
       call decomp_2d_fft_3d(pz,Fx) ! start in z-pencil in physical space, end in x-pencil in Fourier space
-
-      ! call transpose_x_to_y(Fx,Fy,sp)
-      ! call transpose_y_to_z(Fy,Fz,sp)
-      !
-      ! ! !Convert to real
-      ! ! do i=ib,ie
-      ! !   do j=jb,je
-      ! !     Fzr(i,j,1) = REAL(Fz(i,j,1))
-      ! !     do k=2,ktot/2
-      ! !       Fzr(i,j,2*(k-1))   = REAL(Fz(i,j,k))
-      ! !       Fzr(i,j,2*(k-1)+1) = AIMAG(Fz(i,j,k))
-      ! !     end do
-      ! !     Fzr(i,j,ktot) = REAL(Fz(i,j,ktot/2+1))
-      ! !   end do
-      ! ! end do
-      ! ! Divide by wavenumbers in Fourier space
-      ! do i=1,sp%zsz(1)
-      !   do j=1,sp%zsz(2)
-      !     do k=1,sp%zsz(3)
-      !     !do k=1,ktot
-      !       if (xyzrt(i,j,k) .ne. 0.) then
-      !         Fz(i,j,k) = Fz(i,j,k) / CMPLX(xyzrt(i,j,k) * (itot*jtot*ktot))
-      !         !Fzr(i,j,k) = Fzr(i,j,k) / (xyzrt(i,j,k) * (itot*jtot*ktot*2))
-      !       else
-      !         Fz(i,j,k) = CMPLX(0.)
-      !       end if
-      !
-      !     end do
-      !   end do
-      ! end do
-      !
-      ! ! !convert back to complex
-      ! ! do i=ib,ie
-      ! !   do j=jb,je
-      ! !     Fz(i,j,1) = CMPLX(Fzr(i,j,1), 0.)
-      ! !     do k=2,ktot/2
-      ! !       Fz(i,j,k) = CMPLX(Fzr(i,j,2*(k-1)), Fzr(i,j,2*(k-1)+1))
-      ! !     end do
-      ! !     Fz(i,j,ktot/2+1) = CMPLX(Fzr(i,j,ktot), 0.)
-      ! !   end do
-      ! ! end do
-      !
-      ! call transpose_z_to_y(Fz,Fy,sp)
-      ! call transpose_y_to_x(Fy,Fx,sp)
 
       ! Divide by wavenumbers in Fourier space
       do i=1,sp%xsz(1)
@@ -1005,25 +678,11 @@ contains
 
       p(ib:ie,jb:je,kb:ke) = pz
 
-      deallocate(Fx,Fy,Fz,pz)
+      deallocate(Fz,pz)
 
-    case (POISS_CYC)
-      ! if (linoutflow ) then
-      !   ibc1 = 1      ! inlet
-      !   ibc2 = 3      ! outlet
-      ! else
-      !   ibc1 = 2
-      !   ibc2 = 2
-      ! endif
-      ! kbc1 = 1
-      ! kbc2 = 1
-      !ksen = ktot/nprocs ! This needs changing - nprocs no longer defined
-      !call poisr(p,dxf,dxh,dy,dzf,dzh, &
-                 !ibc1,ibc2,kbc1,kbc2,ksen)
-      !call poisr
     case default
       write(0, *) "Invalid choice for Poisson solver"
-       stop 1
+      stop 1
     end select
 
     call tderive

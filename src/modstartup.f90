@@ -720,7 +720,7 @@ module modstartup
                               BCym_periodic, BCym_profile, BCyT_periodic, BCyT_profile, &
                               BCyq_periodic, BCyq_profile, &
                               iinletgen,linoutflow,ltempeq,iwalltemp,iwallmom,&
-                              ipoiss,POISS_FFT2D,POISS_FFT3D,POISS_CYC,&
+                              ipoiss,POISS_FFT2D,POISS_FFT3D,&
                               lydump,lytdump,luoutflowr,lvoutflowr,&
                               lhdriver,lqdriver,lsdriver
       use modmpi,      only : myid, comm3d, mpierr, nprocx, nprocy
