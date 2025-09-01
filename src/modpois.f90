@@ -65,7 +65,7 @@ contains
     use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,imax,jmax,itot,jtot,ktot, &
                           dxi,dzh,dzf,dy,dyi,dxfi,dzfi,ipoiss,pi,linoutflow,&
                           POISS_FFT2D,POISS_FFT3D,POISS_FFT2D_2DECOMP,&
-                          BCxm,BCym,BCzp,BCtopm,BCtopm_pressure
+                          BCxm,BCym,BCzp,BCtopm,BCtopm_pressure,BCxm_periodic,BCym_periodic
     use modmpi,    only : myidx, myidy, myid
     use modfields, only : rhobf, rhobh
 
