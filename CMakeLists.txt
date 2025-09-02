@@ -38,6 +38,7 @@ endif()
 
 find_package(MPI REQUIRED)
 
+set(UDALES_DECOMP2D_ARGS "")
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
     set(CMAKE_Fortran_FLAGS "-fdefault-real-8 -ffree-line-length-none -ffpe-trap=invalid,zero,overflow -std=f2008 -cpp")
     set(CMAKE_Fortran_FLAGS_DEBUG "-g -fbacktrace -O0 -finit-real=nan -fcheck=all -Wall -Wextra -Wuninitialized -Warray-bounds -Wconversion")
@@ -59,6 +60,7 @@ elseif(CMAKE_Fortran_COMPILER_ID MATCHES "NVHPC")
     set(CMAKE_Fortran_FLAGS_DEBUG "-g -O0 -Mincoming=nan -Mbounds -Mwarn -Mchkstk -traceback -Minfo=all")
     set(CMAKE_Fortran_FLAGS_RELEASE "-fast -Kieee")
     add_definitions(-D_GPU)
+    set(UDALES_DECOMP2D_ARGS "-DBUILD_TARGET=gpu")
 else()
     message(FATAL_ERROR "Only GNU, Intel, and Cray Fortran compilers are supported")
 endif()
@@ -110,6 +112,7 @@ file(GLOB_RECURSE src_f90 "src/*.f90")
 #ExternalProject_Get_Property(vfftpack-cmake-project binary_dir)
 #set(VFFTPACK_LIBRARY ${binary_dir}/${CMAKE_STATIC_LIBRARY_PREFIX}vfftpack_static${CMAKE_STATIC_LIBRARY_SUFFIX})
 
+# Preconfigure DECOMP2D options
 option(DOUBLE_PRECISION "Build 2decomp_fft with double precision" ON)
 if (DOUBLE_PRECISION)
   add_definitions("-DDOUBLE_PREC")
@@ -123,11 +126,14 @@ endif()
 set(FFT_Choice "fftw3" CACHE STRING "FFT for 2decomp_fft (generic is the default)")
 set_property(CACHE FFT_Choice PROPERTY STRINGS generic fftw3)
 
-#add_subdirectory(2decomp-fft)
 
 add_executable(u-dales ${src_f90})
-#include_directories(2decomp-fft)
-include_directories(${CMAKE_SOURCE_DIR}/2decomp-fft/build/include)
+
+# Find and link DECOMP2D
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
+find_package(DECOMP2D REQUIRED)
+include_directories(${2decomp_INCLUDE_DIR})
+target_link_libraries(u-dales decomp2d)
 
 target_link_libraries(u-dales ${CMLIB_CMAKE_LIBRARY})
 target_link_libraries(u-dales MPI::MPI_Fortran)
@@ -139,12 +145,8 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "NVHPC")
 endif()
 message("FFTW_LIBRARIES :  (${FFTW_LIBRARIES}).")
 target_link_libraries(u-dales ${FFTW_LIBRARIES})
-#target_link_libraries(u-dales 2decomp-fft)
-target_link_libraries(u-dales ${CMAKE_SOURCE_DIR}/2decomp-fft/build/lib/libdecomp2d.a)
 
-#target_include_directories(u-dales PUBLIC $<TARGET_PROPERTY:2decomp-fft,BINARY_DIR>)
 target_include_directories(u-dales PUBLIC ${FFTW_INCLUDE_DIRS})
 
 #add_dependencies(u-dales fishpack-cmake-project)
 #add_dependencies(u-dales vfftpack-cmake-project)
-#add_dependencies(u-dales 2decomp-fft)
