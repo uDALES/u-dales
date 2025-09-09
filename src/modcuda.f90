@@ -11,6 +11,7 @@ module modcuda
                              iadv_sv, iadv_thl, iadv_kappa, iadv_upw, &
                              xh, &
                              eps1, numol, prandtlmoli, prandtlturb, grav, fkar2, &
+                             rlv, cp, rd, rv, es0, at, bt, tmelt, &
                              ifixuinf
    use modfields,      only: u0, v0, w0, pres0, e120, thl0, thl0c, qt0, sv0, &
                              up, vp, wp, e12p, thlp, thlpc, qtp, svp, &
@@ -18,12 +19,14 @@ module modcuda
                              tau_x, tau_y, tau_z, thl_flux, &
                              u0av, v0av, thl0av, qt0av, sv0av, dthvdz, ug, whls, &
                              dpdxl, dpdyl, thv0h, thvh, thlpcar, &
-                             dudxls, dudyls, dvdxls, dvdyls, dthldxls, dthldyls, dqtdxls, dqtdyls, dqtdtls
+                             dudxls, dudyls, dvdxls, dvdyls, dthldxls, dthldyls, dqtdxls, dqtdyls, dqtdtls, &
+                             ql0, ql0h, qt0h, thl0h, presf, presh, exnf, exnh, ql0av, thvf, rhof
    use modsubgriddata, only: lsmagorinsky, lvreman, loneeqn, ldelta, lbuoycorr, &
                              ekm, ekh, &
                              sbshr, sbbuo, sbdiss, zlt, damp, csz, &
                              cn, cm, ch1, ch2, ce1, ce2, dampmin, prandtli, c_vreman
    use modsurfdata,    only: thvs
+   use modthermodynamics, only: thv0, th0av
    use decomp_2d,      only: zstart
    implicit none
    save
@@ -39,7 +42,8 @@ module modcuda
    real,    device :: dx2_d, dxi_d, dx2i_d, dxi5_d, dxiq_d, dy2_d, dyi_d, dy2i_d, dyi5_d, dyiq_d, &
                       eps1_d, numol_d, prandtlmoli_d, prandtlturb_d, prandtli_d, grav_d, dampmin_d, c_vreman_d, fkar2_d, &
                       cn_d, cm_d, ch1_d, ch2_d, ce1_d, ce2_d, &
-                      thvs_d
+                      thvs_d, &
+                      rlv_d, cp_d, rd_d, rv_d, es0_d, at_d, bt_d, tmelt_d
 
    integer, device, dimension(3) :: zstart_d
 
@@ -59,6 +63,11 @@ module modcuda
    real, device, allocatable :: dthvdz_d(:,:,:)
    real, device, allocatable :: ekm_d(:,:,:), ekh_d(:,:,:), sbshr_d(:,:,:), sbbuo_d(:,:,:), sbdiss_d(:,:,:), zlt_d(:,:,:), damp_d(:,:,:)
    real, device, allocatable :: thv0h_d(:,:,:)
+
+   ! Thermodynamics device arrays
+   real, device, allocatable :: ql0_d(:,:,:), ql0h_d(:,:,:), qt0h_d(:,:,:), thl0h_d(:,:,:)
+   real, device, allocatable :: presf_d(:), presh_d(:), exnf_d(:), exnh_d(:)
+   real, device, allocatable :: thv0_d(:,:,:), th0av_d(:), ql0av_d(:), thvf_d(:), rhof_d(:)
 
    real, device, allocatable :: dumu_d(:,:,:), duml_d(:,:,:)
 
@@ -240,6 +249,21 @@ module modcuda
          allocate(ekh_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
          allocate(dthvdz_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
 
+         ! Thermodynamics device arrays
+         allocate(ql0_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+         allocate(ql0h_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+         allocate(qt0h_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+         allocate(thl0h_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+         allocate(presf_d(kb:ke+kh))
+         allocate(presh_d(kb:ke+kh))
+         allocate(exnf_d(kb:ke+kh))
+         allocate(exnh_d(kb:ke+kh))
+         allocate(thv0_d(ib:ie,jb:je,kb:ke+kh))
+         allocate(th0av_d(kb:ke+kh))
+         allocate(ql0av_d(kb:ke+kh))
+         allocate(thvf_d(kb:ke+kh))
+         allocate(rhof_d(kb:ke+kh))
+
          if (any(iadv_sv(1:nsv) == iadv_kappa) .or. (iadv_thl == iadv_kappa)) then
             allocate(dumu_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
             allocate(duml_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
@@ -288,6 +312,16 @@ module modcuda
          c_vreman_d    = c_vreman
          fkar2_d       = fkar2
 
+         ! Thermodynamics constants
+         rlv_d   = rlv
+         cp_d    = cp
+         rd_d    = rd
+         rv_d    = rv
+         es0_d   = es0
+         at_d    = at
+         bt_d    = bt
+         tmelt_d = tmelt
+
          if (lsmagorinsky .or. loneeqn) then
             allocate(damp_d(ib:ie,jb:je,kb:ke))
             dampmin_d = dampmin
@@ -330,6 +364,9 @@ module modcuda
          end if
          if (lsmagorinsky) deallocate(csz_d)
          deallocate(dthvdz_d)
+         ! Thermodynamics device arrays
+         deallocate(ql0_d, ql0h_d, qt0h_d, thl0h_d, presf_d, presh_d, exnf_d, exnh_d)
+         deallocate(thv0_d, th0av_d, ql0av_d, thvf_d, rhof_d)
       end subroutine exitCUDA
 
       subroutine updateDevice
@@ -402,6 +439,21 @@ module modcuda
          end if
 
          dthvdz_d = dthvdz
+
+         ! Thermodynamics arrays
+         ql0_d = ql0
+         ql0h_d = ql0h
+         qt0h_d = qt0h  
+         thl0h_d = thl0h
+         presf_d = presf
+         presh_d = presh
+         exnf_d = exnf
+         exnh_d = exnh
+         thv0_d = thv0
+         th0av_d = th0av
+         ql0av_d = ql0av
+         thvf_d = thvf
+         rhof_d = rhof
          
          if(ifixuinf==2) then
             dpdxl_d = dpdxl

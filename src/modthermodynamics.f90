@@ -58,18 +58,34 @@ contains
     use modglobal, only : lmoist, timee, kb, ke, kh, ib, ih, ie, jb, jh, je,rlv, cp, rslabs, rd, rv, libm, eps1
     use modfields, only : thl0,thl0h,qt0,qt0h,ql0,ql0h,presf,presh,exnf,exnh,thvh,thv0h,qt0av,ql0av,thvf,rhof,IIc,IIw,IIcs,IIws
     use modmpi,    only : slabsum,avexy_ibm,myid
+#if defined(_GPU)
+    use cudafor
+    use modcuda,   only : griddim, blockdim, checkCUDA, &
+                          thl0_d, thl0h_d, qt0_d, qt0h_d, ql0_d, ql0h_d, &
+                          presf_d, presh_d, exnf_d, exnh_d, thv0h_d, thv0_d, &
+                          th0av_d, ql0av_d, thvf_d, rhof_d, thvh_d, qt0av_d, &
+                          updateDevice, updateHost
+#endif
 !ILS13 added variables behind "exnh"
     implicit none
     integer :: k
     if (timee==0) call diagfld
     if (lmoist) then
+#if defined(_GPU)
+       call thermo_cuda(thl0_d,qt0_d,ql0_d,presf_d,exnf_d)
+#else
        call thermo(thl0,qt0,ql0,presf,exnf)
+#endif
     end if
 
     call diagfld
     call calc_halflev !calculate halflevel values of qt0 and thl0
     if (lmoist) then
+#if defined(_GPU)
+       call thermo_cuda(thl0h_d,qt0h_d,ql0h_d,presh_d,exnh_d)
+#else
        call thermo(thl0h,qt0h,ql0h,presh,exnh)
+#endif
     end if
     call calthv
 
@@ -97,7 +113,13 @@ contains
 
     do k=kb,ke+kh
 !    thv0(ib+ih:ie,jb+jh:je,k) = (thl0(ib+ih:ie,jb+ih:je,k)+rlv*ql0(ib+ih:ie,jb+ih:je,k)/(cp*exnf(k)))*(1+(rv/rd-1)*qt0(ib+ih:ie,jb+ih:je,k)-rv/rd*ql0(ib+ih:ie,jb+ih:je,k))
+#if defined(_GPU)
+    ! GPU version - use CUDA kernel for thv0 calculation
+    call calc_thv0_cuda<<<griddim,blockdim>>>(k)
+    call checkCUDA( cudaGetLastError(), 'calc_thv0_cuda' )
+#else
     thv0(ib:ie,jb:je,k) = (thl0(ib:ie,jb:je,k)+rlv*ql0(ib:ie,jb:je,k)/(cp*exnf(k)))*(1+(rv/rd-1)*qt0(ib:ie,jb:je,k)-rv/rd*ql0(ib:ie,jb:je,k))
+#endif
     enddo
     thvf = 0.0
 
@@ -131,6 +153,12 @@ contains
     use modglobal, only : lmoist,ib,ie,jb,je,kb,ke,kh,zf,zh,dzh,rlv,rd,rv,cp,eps1
     use modfields, only : thl0,thl0h,ql0,ql0h,qt0,qt0h,sv0,exnf,exnh,thv0h,dthvdz
     use modsurfdata,only : dthldz,dqtdz
+#if defined(_GPU)
+    use cudafor
+    use modcuda,   only : griddim, blockdim, checkCUDA, &
+                          thl0_d, thl0h_d, ql0_d, ql0h_d, qt0_d, qt0h_d, &
+                          exnf_d, exnh_d, thv0h_d, dthvdz_d
+#endif
 
     implicit none
 
@@ -142,6 +170,13 @@ contains
     dthvdz = 0.0
     if (lmoist) then
 
+#if defined(_GPU)
+       call calc_thv0h_cuda<<<griddim,blockdim>>>
+       call checkCUDA( cudaGetLastError(), 'calc_thv0h_cuda' )
+
+       call calc_dthvdz_cuda<<<griddim,blockdim>>>
+       call checkCUDA( cudaGetLastError(), 'calc_dthvdz_cuda' )
+#else
        do  k=kb,ke+kh
           do  j=jb,je
              do  i=ib,ie
@@ -199,6 +234,7 @@ contains
             dthvdz(i,j,kb)=0.
           end do
        end do
+#endif
 
     else
        !      thv0h = thl0h
@@ -505,11 +541,22 @@ contains
     use modglobal, only : ib,ie,jb,je,kb,ke,kh,dzf,dzh,iadv_thl, iadv_qt, iadv_kappa
     use modfields, only : thl0,thl0h,qt0,qt0h
     use modsurfdata,only: qts,thls
+#if defined(_GPU)
+    use cudafor
+    use modcuda,   only : griddim, blockdim, checkCUDA, &
+                          thl0_d, thl0h_d, qt0_d, qt0h_d
+#endif
     implicit none
 
     integer :: i,j,k
 
+#if defined(_GPU)
+    call calc_thl0h_cuda<<<griddim,blockdim>>>
+    call checkCUDA( cudaGetLastError(), 'calc_thl0h_cuda' )
 
+    call calc_qt0h_cuda<<<griddim,blockdim>>>
+    call checkCUDA( cudaGetLastError(), 'calc_qt0h_cuda' )
+#else
     !      do  k=kb+1,ke+kh
     do  k=kb,ke+kh
        do  j=jb,je
@@ -530,7 +577,171 @@ contains
        end do
     end do
           qt0h(ib:ie,jb:je,kb)  = qts
+#endif
 
   end subroutine calc_halflev
+
+#if defined(_GPU)
+  ! GPU kernels for thermodynamics
+
+  !> GPU kernel for thermo calculation
+  attributes(global) subroutine thermo_cuda(thl, qt, ql, pressure, exner)
+    use modcuda, only: ib_d, ie_d, jb_d, je_d, kb_d, ke_d, kh_d, ih_d, jh_d, &
+                       tidandstride, rd_d, rv_d, rlv_d, cp_d, es0_d, at_d, bt_d, tmelt_d
+    implicit none
+    real, device, dimension(ib_d-ih_d:ie_d+ih_d,jb_d-jh_d:je_d+jh_d,kb_d-kh_d:ke_d+kh_d), intent(in) :: thl, qt
+    real, device, dimension(kb_d:ke_d+kh_d), intent(in) :: pressure, exner
+    real, device, dimension(ib_d-ih_d:ie_d+ih_d,jb_d-jh_d:je_d+jh_d,kb_d:ke_d+kh_d), intent(out) :: ql
+
+    integer :: tidx, tidy, tidz, stridex, stridey, stridez
+    integer :: i, j, k
+    real :: tl, es, qsl, b1, qs
+
+    call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+
+    do k = tidz+kb_d, ke_d+kh_d, stridez
+       do j = tidy+jb_d, je_d, stridey
+          do i = tidx+ib_d, ie_d, stridex
+             tl  = thl(i,j,k)*exner(k)
+             es  = es0_d*exp(at_d*(tl-tmelt_d)/(tl-bt_d))
+             qsl = rd_d/rv_d*es/(pressure(k)-(1-rd_d/rv_d)*es)
+             b1  = rlv_d**2/(tl**2*cp_d*rv_d)
+             qs  = qsl*(1.+b1*qt(i,j,k))/(1.+b1*qsl)
+             ql(i,j,k) = max(qt(i,j,k)-qs, 0.)
+          end do
+       end do
+    end do
+  end subroutine thermo_cuda
+
+  !> GPU kernel for thv0 calculation
+  attributes(global) subroutine calc_thv0_cuda(k_level)
+    use modcuda, only: ib_d, ie_d, jb_d, je_d, tidandstride, &
+                       thl0_d, qt0_d, ql0_d, thv0_d, exnf_d, &
+                       rlv_d, cp_d, rd_d, rv_d
+    implicit none
+    integer, value, intent(in) :: k_level
+
+    integer :: tidx, tidy, tidz, stridex, stridey, stridez
+    integer :: i, j
+
+    call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+
+    do j = tidy+jb_d, je_d, stridey
+       do i = tidx+ib_d, ie_d, stridex
+          thv0_d(i,j,k_level) = (thl0_d(i,j,k_level)+rlv_d*ql0_d(i,j,k_level)/(cp_d*exnf_d(k_level))) &
+                                *(1+(rv_d/rd_d-1)*qt0_d(i,j,k_level)-rv_d/rd_d*ql0_d(i,j,k_level))
+       end do
+    end do
+  end subroutine calc_thv0_cuda
+
+  !> GPU kernel for thv0h calculation
+  attributes(global) subroutine calc_thv0h_cuda
+    use modcuda, only: ib_d, ie_d, jb_d, je_d, kb_d, ke_d, kh_d, &
+                       tidandstride, thl0h_d, qt0h_d, ql0h_d, thv0h_d, exnh_d, &
+                       rlv_d, cp_d, rd_d, rv_d
+    implicit none
+
+    integer :: tidx, tidy, tidz, stridex, stridey, stridez
+    integer :: i, j, k
+
+    call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+
+    do k = tidz+kb_d, ke_d+kh_d, stridez
+       do j = tidy+jb_d, je_d, stridey
+          do i = tidx+ib_d, ie_d, stridex
+             thv0h_d(i,j,k) = (thl0h_d(i,j,k)+rlv_d*ql0h_d(i,j,k)/(cp_d*exnh_d(k))) &
+                             *(1+(rv_d/rd_d-1)*qt0h_d(i,j,k)-rv_d/rd_d*ql0h_d(i,j,k))
+          end do
+       end do
+    end do
+  end subroutine calc_thv0h_cuda
+
+  !> GPU kernel for dthvdz calculation (simplified version)
+  attributes(global) subroutine calc_dthvdz_cuda
+    use modcuda, only: ib_d, ie_d, jb_d, je_d, kb_d, ke_d, tidandstride, &
+                       dthvdz_d, eps1_d
+    implicit none
+
+    integer :: tidx, tidy, tidz, stridex, stridey, stridez
+    integer :: i, j, k
+
+    call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+
+    ! Set boundary condition for kb
+    do j = tidy+jb_d, je_d, stridey
+       do i = tidx+ib_d, ie_d, stridex
+          dthvdz_d(i,j,kb_d) = 0.
+       end do
+    end do
+
+    ! Apply eps1 threshold 
+    do k = tidz+kb_d, ke_d, stridez
+       do j = tidy+jb_d, je_d, stridey
+          do i = tidx+ib_d, ie_d, stridex
+             if(abs(dthvdz_d(i,j,k)) < eps1_d) then
+                dthvdz_d(i,j,k) = sign(eps1_d, dthvdz_d(i,j,k))
+             end if
+          end do
+       end do
+    end do
+  end subroutine calc_dthvdz_cuda
+
+  !> GPU kernel for thl0h calculation (half-level interpolation)
+  attributes(global) subroutine calc_thl0h_cuda
+    use modcuda, only: ib_d, ie_d, jb_d, je_d, kb_d, ke_d, kh_d, &
+                       tidandstride, thl0_d, thl0h_d, dzf_d, dzh_d
+    use modsurfdata, only: thls
+    implicit none
+
+    integer :: tidx, tidy, tidz, stridex, stridey, stridez
+    integer :: i, j, k
+
+    call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+
+    do k = tidz+kb_d, ke_d+kh_d, stridez
+       do j = tidy+jb_d, je_d, stridey
+          do i = tidx+ib_d, ie_d, stridex
+             thl0h_d(i,j,k) = (thl0_d(i,j,k)*dzf_d(k-1)+thl0_d(i,j,k-1)*dzf_d(k))/(2*dzh_d(k))
+          end do
+       end do
+    end do
+
+    ! Set boundary condition at kb
+    do j = tidy+jb_d, je_d, stridey
+       do i = tidx+ib_d, ie_d, stridex
+          thl0h_d(i,j,kb_d) = thls
+       end do
+    end do
+  end subroutine calc_thl0h_cuda
+
+  !> GPU kernel for qt0h calculation (half-level interpolation)
+  attributes(global) subroutine calc_qt0h_cuda
+    use modcuda, only: ib_d, ie_d, jb_d, je_d, kb_d, ke_d, kh_d, &
+                       tidandstride, qt0_d, qt0h_d, dzf_d, dzh_d
+    use modsurfdata, only: qts
+    implicit none
+
+    integer :: tidx, tidy, tidz, stridex, stridey, stridez
+    integer :: i, j, k
+
+    call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+
+    do k = tidz+kb_d, ke_d+kh_d, stridez
+       do j = tidy+jb_d, je_d, stridey
+          do i = tidx+ib_d, ie_d, stridex
+             qt0h_d(i,j,k) = (qt0_d(i,j,k)*dzf_d(k-1)+qt0_d(i,j,k-1)*dzf_d(k))/(2*dzh_d(k))
+          end do
+       end do
+    end do
+
+    ! Set boundary condition at kb
+    do j = tidy+jb_d, je_d, stridey
+       do i = tidx+ib_d, ie_d, stridex
+          qt0h_d(i,j,kb_d) = qts
+       end do
+    end do
+  end subroutine calc_qt0h_cuda
+
+#endif
 
 end module modthermodynamics
