@@ -28,7 +28,7 @@ program DALESURBAN      !Version 48
   use modmpi,            only : initmpi,exitmpi,myid,starttimer
 #if defined(_GPU)
   use cudafor
-  use modcuda,           only : initCUDA, updateDevice, updateHost, checkCUDA, exitCUDA
+  use modcuda,           only : initCUDA, updateDevice, updateDevicePriorPoiss, updateHost, updateHostAfterPoiss, checkCUDA, exitCUDA
 #endif
   use modglobal,         only : initglobal,rk3step,timeleft
   use modstartup,        only : readnamelists,init2decomp,checkinitvalues,readinitfiles,exitmodules
@@ -212,6 +212,9 @@ program DALESURBAN      !Version 48
 !-----------------------------------------------------------------------
     call grwdamp        !damping at top of the model
 
+#if defined(_GPU)
+    call updateDevicePriorPoiss
+#endif
     stime = MPI_Wtime()
     call poisson
     write(6,'(A,F10.6)')'possion time = ', MPI_Wtime() - stime

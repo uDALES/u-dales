@@ -34,7 +34,7 @@ capitalize() {
 #echo "env: " `env`
 #echo "PATH: " ${PATH}
 
-NPROC=4 # TODO: make into a arg var.
+NPROC=8 # TODO: make into a arg var.
 system=$1
 build_type=$2
 

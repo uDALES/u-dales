@@ -1314,162 +1314,359 @@ contains
    end subroutine yso_Neumann
 
 
-   !>set boundary conditions pup,pvp,pwp in subroutine fillps in modpois.f90
-   subroutine bcpup(pup, pvp, pwp, rk3coef)
+#if defined(_GPU)
+   attributes(global) subroutine bcpup_pwp_BCtopm_xslip_cuda
+     use modcuda, only: pwp_d, ie_d, je_d, kb_d, ke_d, kh_d, tidandstride
+     implicit none
+     integer :: i, j, tidx, tidy, tidz, stridex, stridey, stridez
+     call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+     if (tidz==kb_d) then
+       do j = tidy, je_d, stridey
+         do i = tidx, ie_d, stridex
+           pwp_d(i, j, kb_d) = 0.
+         end do
+       end do
+     end if
+     if (tidz==stridez) then
+       do j = tidy, je_d, stridey
+         do i = tidx, ie_d, stridex
+           pwp_d(i, j, ke_d + kh_d) = 0.
+         end do
+       end do
+     end if
+   end subroutine bcpup_pwp_BCtopm_xslip_cuda
 
-     use modglobal,    only : ib, ie, jb, je, ih, jh, kb, ke, kh, rk3step, dxi, dyi, dzhi, &
+   attributes(global) subroutine bcpup_pwp_BCtopm_pressure_cuda(rk3coefi, pres0ij_ke)
+     use modcuda, only: pwp_d, wm_d, wp_d, ie_d, je_d, kb_d, ke_d, dzhi_d, tidandstride
+     implicit none
+     real, value, intent(in) :: rk3coefi, pres0ij_ke
+     integer :: i, j, tidx, tidy, tidz, stridex, stridey, stridez
+     call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+     if (tidz==kb_d) then
+       do j = tidy, je_d, stridey
+         do i = tidx, ie_d, stridex
+           pwp_d(i, j, kb_d)  = 0.
+         end do
+       end do
+     end if
+     if (tidz==stridez) then
+       do j = tidy, je_d, stridey
+         do i = tidx, ie_d, stridex
+           pwp_d(i, j, ke_d + 1) = wm_d(i, j, ke_d+1) * rk3coefi + 2 * pres0ij_ke*dzhi_d(ke_d+1)
+           wp_d(i, j, ke_d + 1) = pwp_d(i, j, ke_d+1) - wm_d(i,j,ke_d+1) * rk3coefi
+         end do
+       end do
+     end if
+   end subroutine bcpup_pwp_BCtopm_pressure_cuda
+
+   attributes(global) subroutine bcpup_pup_BCxm_periodic_cuda
+     use modcuda, only: pup_d, ib_d, ie_d, je_d, ke_d, tidandstride
+     implicit none
+     integer :: j, k, tidx, tidy, tidz, stridex, stridey, stridez
+     call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+     if (tidx == ib_d) then
+       do k = tidz, ke_d, stridez
+         do j = tidy, je_d, stridey
+           pup_d(ie_d+1, j, k) = pup_d(ib_d, j, k)
+         end do
+       end do
+     end if
+   end subroutine bcpup_pup_BCxm_periodic_cuda
+
+   attributes(global) subroutine bcpup_pup_BCxm_profile_cuda(ibrank, ierank, rk3coefi, dxi, uouttot)
+     use modcuda, only: pup_d, up_d, um_d, u0_d, uprof_d, ib_d, ie_d, je_d, kb_d, ke_d, tidandstride
+     implicit none
+     logical, value, intent(in) :: ibrank, ierank
+     real   , value, intent(in) :: rk3coefi, dxi, uouttot
+     integer :: j, k, tidx, tidy, tidz, stridex, stridey, stridez
+     call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+     if (ibrank) then
+       if (tidx == ib_d) then
+         do k = tidz, ke_d, stridez
+           do j = tidy-1, je_d+1, stridey
+             pup_d(ib_d, j, k) = uprof_d(k) * rk3coefi
+             up_d(ib_d, j, k) = 0.
+           end do
+         end do
+       end if
+     end if
+     if (ierank) then
+       if (tidx == stridex) then
+         do k = tidz, ke_d, stridez
+           do j = tidy-1, je_d+1, stridey
+             if (k==kb_d) then
+               pup_d(ie_d+1, j, k) = pup_d(ie_d, j, k)
+             else
+               pup_d(ie_d+1, j, k) = um_d(ie_d+1, j, k) * rk3coefi - (u0_d(ie_d+1, j, k) - u0_d(ie_d,j,k)) * dxi * uouttot
+             end if
+             up_d(ie_d+1, j, k)  = pup_d(ie_d+1, j, k) - um_d(ie_d+1, j, k) * rk3coefi
+           end do
+         end do
+       end if
+     end if
+   end subroutine bcpup_pup_BCxm_profile_cuda 
+   
+   attributes(global) subroutine bcpup_pup_BCxm_driver_cuda(ibrank, ierank, rk3coefi, dxi, uouttot)
+     use modcuda, only: pup_d, up_d, um_d, u0_d, u0driver_d, ib_d, ie_d, je_d, ke_d, tidandstride
+     implicit none
+     logical, value, intent(in) :: ibrank, ierank
+     real   , value, intent(in) :: rk3coefi, dxi, uouttot
+     integer :: j, k, tidx, tidy, tidz, stridex, stridey, stridez
+     call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+     if (ibrank) then
+       if (tidx == ib_d) then
+         do k = tidz, ke_d, stridez
+           do j = tidy-1, je_d+1, stridey
+             pup_d(ib_d, j, k) = u0driver_d(j, k) * rk3coefi
+             up_d(ib_d, j, k) = 0.
+           end do
+         end do
+       end if
+     end if
+     if (ierank) then
+       if (tidx == stridex) then
+         do k = tidz, ke_d, stridez
+           do j = tidy-1, je_d+1, stridey
+             pup_d(ie_d+1, j, k) = um_d(ie_d+1, j, k) * rk3coefi - ( u0_d(ie_d+1, j, k) - u0_d(ie_d, j, k) ) * dxi * uouttot
+             up_d(ie_d+1, j, k)  = pup_d(ie_d+1, j, k) - um_d(ie_d+1, j, k)*rk3coefi
+           end do
+         end do
+       end if
+     end if
+   end subroutine bcpup_pup_BCxm_driver_cuda
+ 
+   attributes(global) subroutine bcpup_pvp_BCym_periodic_cuda
+     use modcuda, only: pvp_d, ie_d, jb_d, je_d, ke_d, tidandstride
+     implicit none
+     integer :: i, k, tidx, tidy, tidz, stridex, stridey, stridez
+     call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+     if (tidy == jb_d) then
+       do k = tidz, ke_d, stridez
+         do i = tidx, ie_d, stridex
+           pvp_d(i, je_d+1, k) = pvp_d(i, jb_d, k)
+         end do
+       end do
+     end if
+   end subroutine bcpup_pvp_BCym_periodic_cuda
+   
+   attributes(global) subroutine bcpup_pvp_BCym_profile_cuda(jbrank, jerank, rk3coefi, dyi, vouttot)
+     use modcuda, only: pvp_d, vp_d, vm_d, v0_d, vprof_d, ie_d, jb_d, je_d, kb_d, ke_d, tidandstride
+     implicit none
+     logical, value, intent(in) :: jbrank, jerank
+     real   , value, intent(in) :: rk3coefi, dyi, vouttot
+     integer :: i, k, tidx, tidy, tidz, stridex, stridey, stridez
+     call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+     if (jbrank) then
+       if (tidy == jb_d) then
+         do k = tidz, ke_d, stridez
+           do i = tidx-1, ie_d+1, stridex
+             pvp_d(i, jb_d, k) = vprof_d(k) * rk3coefi
+             vp_d(i, jb_d, k) = 0.
+           end do
+         end do
+       end if
+     end if
+     if (jerank) then
+       if (tidy == stridey) then
+         do k = tidz, ke_d, stridez
+           do i = tidx-1, ie_d+1, stridex
+             if (k==kb_d) then
+               pvp_d(i, je_d+1, k) = pvp_d(i, je_d, k)
+             else
+               pvp_d(i, je_d+1, k) = vm_d(i, je_d+1, k) * rk3coefi - ( v0_d(i, je_d+1, k) - v0_d(i, je_d, k) ) * dyi * vouttot
+             end if
+             vp_d(i, je_d+1, k)  = pvp_d(i, je_d+1, k) - vm_d(i, je_d+1, k) * rk3coefi
+           end do
+         end do
+       end if
+     end if
+   end subroutine bcpup_pvp_BCym_profile_cuda
+#endif
+
+   !>set boundary conditions pup,pvp,pwp in subroutine fillps in modpois.f90
+   subroutine bcpup(rk3coefi)
+     use modglobal,    only : ib, ie, ih, jb, je, jh, kb, ke, kh, dxi, dyi, dzhi, &
                               ibrank, ierank, jbrank, jerank, BCxm, BCym, BCtopm, &
                               BCtopm_freeslip, BCtopm_noslip, BCtopm_pressure, &
                               BCxm_periodic, BCxm_profile, BCxm_driver, &
                               BCym_periodic, BCym_profile
-     use modfields,    only : pres0, up, vp, wp, um, vm, wm, w0, u0, v0, uouttot, vouttot, uinit, vinit, uprof, vprof, pres0, IIc, IIcs
-     use modmpi,       only : excjs, excis, myid, avexy_ibm
-     use modinletdata, only : u0driver
+     use modfields,    only : uouttot, vouttot, pres0, pres0, IIc, IIcs
+     use modmpi,       only : avexy_ibm
      use m_halo,       only : halo_exchange
-
-     real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb:ke + kh), intent(inout) :: pup
-     real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb:ke + kh), intent(inout) :: pvp
-     real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb:ke + kh), intent(inout) :: pwp
+#if defined(_GPU)
+     use cudafor
+     use modcuda,      only : pup_d, pvp_d, pwp_d, griddim, blockdim, checkCUDA
+#else
+     use modfields,    only : pup, pvp, pwp, up, vp, wp, um, vm, wm, u0, v0, uprof, vprof
+     use modinletdata, only : u0driver
+#endif
+     implicit none
+     real, intent(in) :: rk3coefi
      real, dimension(kb:ke+kh) :: pres0ij
+     integer :: i, j, k
 
-     real, intent(in) :: rk3coef
-     real rk3coefi
-
-     integer i, j, k
-
-     rk3coefi = 1./rk3coef
-
-     ! if (jbrank) write(*,*) "jb before exhange_halo ", pvp(ie/2,jb,ke)
-     ! if (jerank) write(*,*) "je before exhange_halo ", pvp(ie/2,je+1,ke)
-     ! Watch this communication as it is slightly different to normal -
-     ! maybe safer to just resize to kb-kh:ke+kh
-!$acc data create(pup, pvp, pwp)
-!$acc update device(pup, pvp, pwp)
+#if defined(_GPU)
+     call halo_exchange(pup_d, 3, opt_levels=(/ih,jh,0/))
+     call halo_exchange(pvp_d, 3, opt_levels=(/ih,jh,0/))
+     call halo_exchange(pwp_d, 3, opt_levels=(/ih,jh,0/))
+#else
      call halo_exchange(pup, 3, opt_levels=(/ih,jh,0/))
      call halo_exchange(pvp, 3, opt_levels=(/ih,jh,0/))
      call halo_exchange(pwp, 3, opt_levels=(/ih,jh,0/))
-!$acc update host(pup, pvp, pwp)
-!$acc end data
-     ! if (jbrank) write(*,*) "jb after exhange_halo ", pvp(ie/2,jb,ke)
-     ! if (jerank) write(*,*) "je after exhange_halo ", pvp(ie/2,je+1,ke)
+#endif
 
      select case(BCtopm)
-     case(BCtopm_freeslip, BCtopm_noslip)
-       do j = jb, je
-         do i = ib, ie
-           pwp(i, j, kb) = 0.
-           pwp(i, j, ke + kh) = 0.
+       case(BCtopm_freeslip, BCtopm_noslip)
+#if defined(_GPU)
+         call bcpup_pwp_BCtopm_xslip_cuda<<<griddim,blockdim>>>
+         call checkCUDA( cudaGetLastError(), 'bcpup_pwp_BCtopm_xslip_cuda' )
+#else
+         do j = jb, je
+           do i = ib, ie
+             pwp(i, j, kb) = 0.
+             pwp(i, j, ke + kh) = 0.
+           end do
          end do
-       end do
+#endif
 
-     case(BCtopm_pressure)
-       call avexy_ibm(pres0ij(kb:ke+kh),pres0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+       case(BCtopm_pressure)
+         call avexy_ibm(pres0ij(kb:ke+kh),pres0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
 
-       do j = jb, je
-         do i = ib, ie
-           pwp(i, j, kb)  = 0.
-           !pwp(i, j, ke + 1) = wm(i, j, ke+1) * rk3coefi - (-pres0ij(ke) - pres0(i,j,ke)) * dzhi(ke+1) ! Doesn't work
-           pwp(i, j, ke + 1) = wm(i, j, ke+1) * rk3coefi + 2 * pres0ij(ke)*dzhi(ke+1)
-           wp(i, j, ke + 1) = pwp(i, j, ke+1) - wm(i,j,ke+1) * rk3coefi
+#if defined(_GPU)
+         call bcpup_pwp_BCtopm_pressure_cuda<<<griddim,blockdim>>>(rk3coefi, pres0ij(ke))
+         call checkCUDA( cudaGetLastError(), 'bcpup_pwp_BCtopm_pressure_cuda' )
+#else
+         do j = jb, je
+           do i = ib, ie
+             pwp(i, j, kb)  = 0.
+             !pwp(i, j, ke + 1) = wm(i, j, ke+1) * rk3coefi - (-pres0ij(ke) - pres0(i,j,ke)) * dzhi(ke+1) ! Doesn't work
+             pwp(i, j, ke + 1) = wm(i, j, ke+1) * rk3coefi + 2 * pres0ij(ke)*dzhi(ke+1)
+             wp(i, j, ke + 1) = pwp(i, j, ke+1) - wm(i,j,ke+1) * rk3coefi
+           end do
          end do
-       end do
+#endif
      end select !BCtopm
 
      select case(BCxm)
-     case(BCxm_periodic)
-       if (ibrank .and. ierank) then ! not parallelised in x
-         do k = kb, ke
-            do j = jb, je
-               pup(ie+1, j, k) = pup(ib, j, k) ! cyclic
-            end do
-         end do
-       end if
-
-     case(BCxm_profile)
-       if (ibrank) then
-         do k=kb,ke
-           do j=jb-1,je+1
-             pup(ib, j, k) = uprof(k) * rk3coefi
-             up(ib, j, k) = 0.
+       case(BCxm_periodic)
+         if (ibrank .and. ierank) then ! not parallelised in x
+#if defined(_GPU)
+           call bcpup_pup_BCxm_periodic_cuda<<<griddim,blockdim>>>
+           call checkCUDA( cudaGetLastError(), 'bcpup_pup_BCxm_periodic_cuda' )
+#else
+           do k = kb, ke
+              do j = jb, je
+                 pup(ie+1, j, k) = pup(ib, j, k) ! cyclic
+              end do
            end do
-         end do
-       end if
+#endif
+         end if
 
-       if (ierank) then
-         do k = kb+1, ke
-           do j = jb-1, je+1
-             ! convective
-             pup(ie+1, j, k) = um(ie+1, j, k) * rk3coefi - (u0(ie+1, j, k) - u0(ie,j,k)) * dxi * uouttot !u0(ie,j,k) ! du/dt +u*du/dx=0 -> pup(i)=um(i)/rk3coef -um(i)*(um(i)-um(i-1))/dxf(i-1)
-             ! Neumann
-             !pup(ie+1,j,k) = pup(ie,j,k)
-             up(ie+1, j, k) = pup(ie+1, j, k) - um(ie+1,j,k)*rk3coefi
+       case(BCxm_profile)
+#if defined(_GPU)
+         call bcpup_pup_BCxm_profile_cuda<<<griddim,blockdim>>>(ibrank, ierank, rk3coefi, dxi, uouttot)
+         call checkCUDA( cudaGetLastError(), 'bcpup_pup_BCxm_profile_cuda' )
+#else
+         if (ibrank) then
+           do k=kb,ke
+             do j=jb-1,je+1
+               pup(ib, j, k) = uprof(k) * rk3coefi
+               up(ib, j, k) = 0.
+             end do
            end do
-         end do
-         ! Neumann at bottom - performs better with no slip
-         pup(ie+1, :, kb) = pup(ie, :, kb)
-         up(ie+1, :, kb) = pup(ie+1,: , kb) - um(ie+1, :, kb) * rk3coefi
-       end if
+         end if
 
-     case(BCxm_driver)
-       if (ibrank) then
-         do k = kb, ke
-           do j = jb - 1, je + 1
-             pup(ib, j, k) = u0driver(j, k) * rk3coefi
-             up(ib, j, k) = 0. ! u(ib) only evolves according to pressure correction
+         if (ierank) then
+           do k = kb+1, ke
+             do j = jb-1, je+1
+               ! convective
+               pup(ie+1, j, k) = um(ie+1, j, k) * rk3coefi - (u0(ie+1, j, k) - u0(ie,j,k)) * dxi * uouttot !u0(ie,j,k) ! du/dt +u*du/dx=0 -> pup(i)=um(i)/rk3coef -um(i)*(um(i)-um(i-1))/dxf(i-1)
+               ! Neumann
+               !pup(ie+1,j,k) = pup(ie,j,k)
+               up(ie+1, j, k) = pup(ie+1, j, k) - um(ie+1,j,k)*rk3coefi
+             end do
            end do
-         end do
-       end if
+           ! Neumann at bottom - performs better with no slip
+           pup(ie+1, :, kb) = pup(ie, :, kb)
+           up(ie+1, :, kb) = pup(ie+1,: , kb) - um(ie+1, :, kb) * rk3coefi
+         end if
+#endif
 
-       if (ierank) then
-         do k = kb, ke
-           do j = jb-1, je+1
-             pup(ie+1, j, k) = um(ie+1, j, k) * rk3coefi - (u0(ie+1, j, k) - u0(ie, j, k)) * dxi * uouttot    ! du/dt +u*du/dx=0 -> pup(i)=um(i)/rk3coef -um(i)*(um(i)-um(i-1))/dxf(i-1)
-             ! !Neumann
-             !pup(ie+1,j,k) = pup(ie,j,k)
-             up(ie+1, j, k) = pup(ie+1, j, k) - um(ie+1, j, k) * rk3coefi
+       case(BCxm_driver)
+#if defined(_GPU)
+         call bcpup_pup_BCxm_driver_cuda<<<griddim,blockdim>>>(ibrank, ierank, rk3coefi, dxi, uouttot)
+         call checkCUDA( cudaGetLastError(), 'bcpup_pup_BCxm_driver_cuda' )
+#else
+         if (ibrank) then
+           do k = kb, ke
+             do j = jb - 1, je + 1
+               pup(ib, j, k) = u0driver(j, k) * rk3coefi
+               up(ib, j, k) = 0. ! u(ib) only evolves according to pressure correction
+             end do
            end do
-         end do
-         ! Neumann at bottom - performs better with no slip
-         ! pup(ie+1, :, kb) = pup(ie, :, kb)
-         ! up(ie+1, :, kb) = pup(ie+1, :, kb) - um(ie+1, :, kb) * rk3coefi
-       end if
-    end select ! BCxm
+         end if
 
-    select case(BCym)
-    case(BCym_periodic)
-      if (jbrank .and. jerank) then ! not parallelised in y
-        do k = kb, ke
-           do i = ib, ie
-              pvp(i, je+1, k) = pvp(i, jb, k) ! cyclic
+         if (ierank) then
+           do k = kb, ke
+             do j = jb-1, je+1
+               pup(ie+1, j, k) = um(ie+1, j, k) * rk3coefi - (u0(ie+1, j, k) - u0(ie, j, k)) * dxi * uouttot    ! du/dt +u*du/dx=0 -> pup(i)=um(i)/rk3coef -um(i)*(um(i)-um(i-1))/dxf(i-1)
+               ! !Neumann
+               !pup(ie+1,j,k) = pup(ie,j,k)
+               up(ie+1, j, k) = pup(ie+1, j, k) - um(ie+1, j, k) * rk3coefi
+             end do
            end do
-        end do
-      end if
+           ! Neumann at bottom - performs better with no slip
+           ! pup(ie+1, :, kb) = pup(ie, :, kb)
+           ! up(ie+1, :, kb) = pup(ie+1, :, kb) - um(ie+1, :, kb) * rk3coefi
+         end if
+#endif
+     end select ! BCxm
+    
+     select case(BCym)
+       case(BCym_periodic)
+         if (jbrank .and. jerank) then ! not parallelised in y
+#if defined(_GPU)
+           call bcpup_pvp_BCym_periodic_cuda<<<griddim,blockdim>>>
+           call checkCUDA( cudaGetLastError(), 'bcpup_pvp_BCym_periodic_cuda' )
+#else
+           do k = kb, ke
+             do i = ib, ie
+               pvp(i, je+1, k) = pvp(i, jb, k) ! cyclic
+             end do
+           end do
+#endif
+         end if
 
-    case(BCym_profile)
-      if (jbrank) then
-        do k = kb, ke
-          do i = ib-1, ie+1
-            pvp(i,jb,k) = vprof(k)*rk3coefi
-            vp(i,jb,k) = 0.
-          end do
-        end do
-      end if
+       case(BCym_profile)
+#if defined(_GPU)
+         call bcpup_pvp_BCym_profile_cuda<<<griddim,blockdim>>>(jbrank, jerank, rk3coefi, dyi, vouttot)
+         call checkCUDA( cudaGetLastError(), 'bcpup_pvp_BCym_profile_cuda' )
+#else
+         if (jbrank) then
+           do k = kb, ke
+             do i = ib-1, ie+1
+               pvp(i,jb,k) = vprof(k)*rk3coefi
+               vp(i,jb,k) = 0.
+             end do
+           end do
+         end if
 
-      if (jerank) then
-        do k = kb, ke
-          do i = ib-1, ie+1
-            ! change to vouttot
-            pvp(i, je+1, k) = vm(i, je+1, k) * rk3coefi - (v0(i, je+1, k) - v0(i, je, k)) * dyi * vouttot
-            vp(i, je+1, k) = pvp(i, je+1, k) - vm(i,je+1,k)*rk3coefi
-          end do
-        end do
-        pvp(:, je+1, kb) = pvp(:, je, kb)
-        vp(:, je+1, kb) = pvp(:, je+1, kb) - vm(:, je+1, kb)*rk3coefi
-      end if
-
-    end select
+         if (jerank) then
+           do k = kb, ke
+             do i = ib-1, ie+1
+               ! change to vouttot
+               pvp(i, je+1, k) = vm(i, je+1, k) * rk3coefi - (v0(i, je+1, k) - v0(i, je, k)) * dyi * vouttot
+               vp(i, je+1, k) = pvp(i, je+1, k) - vm(i,je+1,k)*rk3coefi
+             end do
+           end do
+           pvp(:, je+1, kb) = pvp(:, je, kb)
+           vp(:, je+1, kb) = pvp(:, je+1, kb) - vm(:, je+1, kb)*rk3coefi
+         end if
+#endif
+     end select ! BCym
 
    end subroutine bcpup
+
 
    !>set pressure boundary conditions
    subroutine bcp(p)

@@ -199,7 +199,11 @@ module modinletdata
     real, allocatable :: storeqt0driver(:,:,:)
     real, allocatable :: storesv0driver(:,:,:,:)
     real, allocatable :: storetdriver(:)
+#if defined(_GPU)
+    real, allocatable, pinned :: u0driver(:,:)
+#else
     real, allocatable :: u0driver(:,:)
+#endif
     real, allocatable :: v0driver(:,:)
     real, allocatable :: u0driverrot(:,:)
     real, allocatable :: v0driverrot(:,:)

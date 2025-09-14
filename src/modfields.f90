@@ -27,13 +27,16 @@ module modfields
   ! Prognostic variables
 
   real, allocatable :: worksave(:)      !<   Used in POISR!
+  real, allocatable :: thlm(:,:,:)      !<   liq. water pot. temperature at time step t-1
+#if defined(_GPU)
+  real, allocatable, pinned :: um(:,:,:)
+  real, allocatable, pinned :: vm(:,:,:)
+  real, allocatable, pinned :: wm(:,:,:)
+  real, allocatable, pinned :: e12m(:,:,:)
+#else
   real, allocatable :: um(:,:,:)        !<   x-component of velocity at time step t-1
   real, allocatable :: vm(:,:,:)        !<   y-component of velocity at time step t-1
   real, allocatable :: wm(:,:,:)        !<   z-component of velocity at time step t-1
-  real, allocatable :: thlm(:,:,:)      !<   liq. water pot. temperature at time step t-1
-#if defined(_GPU)
-  real, allocatable, pinned :: e12m(:,:,:)
-#else
   real, allocatable :: e12m(:,:,:)      !<   turb. kin. energy at time step t-1
 #endif
   real, allocatable :: qtm(:,:,:)       !<   total specific humidity at time step t
@@ -92,6 +95,7 @@ module modfields
   real, allocatable                 :: vp(:,:,:)        !<   tendency of vm
   real, allocatable                 :: wp(:,:,:)        !<   tendency of wm
 #endif
+  real, allocatable, target :: pup(:,:,:), pvp(:,:,:), pwp(:,:,:)
   real, allocatable, target :: ru(:,:,:)        !<   tendency of um
   real, allocatable, target :: rv(:,:,:)        !<   tendency of vm
   real, allocatable, target :: rw(:,:,:)        !<   tendency of wm
@@ -469,8 +473,13 @@ module modfields
 
   real, allocatable :: thlprof(:)                    !<   initial thl-profile
   real, allocatable :: qtprof(:)                     !<   initial qt-profile
+#if defined(_GPU)
+  real, allocatable, pinned :: uprof(:)
+  real, allocatable, pinned :: vprof(:)
+#else
   real, allocatable :: uprof(:)                      !<   initial u-profile
   real, allocatable :: vprof(:)                      !<   initial v-profile
+#endif
   real, allocatable :: e12prof(:)                    !<   initial subgrid TKE profile
   real, allocatable :: svprof(:,:)                   !<   initial sv(n)-profile
   real, allocatable :: qlprof(:)

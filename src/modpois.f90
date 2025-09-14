@@ -30,26 +30,35 @@ use decomp_2d
 use decomp_2d_fft
 use decomp_2d_constants
 
+use modglobal, only : ipoiss, POISS_FFT2D, POISS_FFT2D_2DECOMP, POISS_FFT3D, &
+                      BCxm, BCym, BCzp, BCxm_periodic, BCym_periodic
+#if defined(_GPU)
+use modcuda,   only : p_d, pup_d, pvp_d, pwp_d
+#else
+use modfields, only : pup, pvp, pwp
+#endif
 implicit none
 
 include "fftw3.f"
 
 private
-public :: initpois,poisson,exitpois,p,pup,pvp,pwp,rhs,dpupdx,dpvpdy,dpwpdz,xyzrt,sp,Fxy,Fxyz,pij
+public :: initpois,poisson,exitpois,p,rhs,dpupdx,dpvpdy,dpwpdz,xyzrt,sp,Fxy,Fxyz,pij
 save
-
-  real, allocatable, target :: p(:,:,:)   ! difference between p at previous and new step (p = P_new - P_old)
-  real, allocatable, target :: pup(:,:,:), pvp(:,:,:), pwp(:,:,:)
+  real, allocatable, target :: p(:,:,:)     ! difference between p at previous and new step (p = P_new - P_old)
   real, allocatable, target :: rhs(:,:,:)   ! rhs of pressure solver
   real, allocatable, target :: dpupdx(:,:,:)
   real, allocatable, target :: dpvpdy(:,:,:)
   real, allocatable, target :: dpwpdz(:,:,:)
+
+  real,    allocatable :: px(:,:,:), py(:,:,:), pz(:,:,:)
+  complex, allocatable :: Fx(:,:,:), Fz(:,:,:)
   real, allocatable, target :: Fxy(:,:,:), Fxyz(:,:,:)
+
   real, allocatable :: xrt(:), yrt(:), zrt(:)
   real, allocatable, target :: xyzrt(:,:,:), bxyzrt(:,:,:)
   real, allocatable :: a(:), b(:), c(:), ax(:), bx(:), cx(:) ! coefficients for tridiagonal matrix
   real, allocatable :: pz_top(:,:,:), py_top(:,:,:), px_top(:,:,:)
-  integer :: ibc1, ibc2, kbc1, kbc2
+  integer :: kbc1, kbc2
 
   integer(kind=selected_int_kind(18)) :: plan_r2fc_x, plan_r2fc_y, plan_fc2r_x, plan_fc2r_y
   integer(kind=selected_int_kind(18)) :: plan_r2fr_x, plan_r2fr_y, plan_fr2r_x, plan_fr2r_y
@@ -60,12 +69,13 @@ save
   type(DECOMP_INFO) :: decomp_top
   real, allocatable :: pij(:)
 
+  integer :: sp_zst3, sp_zst2, sp_zst1, sp_zen3, sp_zen2, sp_zen1
+
 contains
   subroutine initpois
     use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,imax,jmax,itot,jtot,ktot, &
-                          dxi,dzh,dzf,dy,dyi,dxfi,dzfi,ipoiss,pi,linoutflow,&
-                          POISS_FFT2D,POISS_FFT3D,POISS_FFT2D_2DECOMP,&
-                          BCxm,BCym,BCzp,BCtopm,BCtopm_pressure,BCxm_periodic,BCym_periodic
+                          dxi,dzh,dzf,dy,dyi,dxfi,dzfi,pi,linoutflow,&
+                          BCtopm,BCtopm_pressure
     use modmpi,    only : myidx, myidy, myid
     use modfields, only : rhobf, rhobh
 
@@ -74,21 +84,32 @@ contains
     integer i,j,k,iv,jv,kv
     logical, dimension(3) :: skip_c2c = [.false., .false., .true.]
 
-    allocate(pij(kb:ke+kh))
-
-    !allocate(p(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+#if defined(_GPU)
+    allocate(pup_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+    allocate(pvp_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+    allocate(pwp_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+    allocate(p_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+#else
     allocate(pup(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
     allocate(pvp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
     allocate(pwp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+#endif
     call alloc_z(p)
-    call alloc_z(rhs, opt_levels=(/0,0,0/))
-    call alloc_z(dpupdx)
-    call alloc_z(dpvpdy)
-    call alloc_z(dpwpdz)
-    call alloc_z(Fxy, opt_levels=(/0,0,0/))
-    call alloc_z(Fxyz, opt_levels=(/0,0,0/))
+    ! call alloc_z(rhs, opt_levels=(/0,0,0/))
+    ! call alloc_z(dpupdx)
+    ! call alloc_z(dpvpdy)
+    ! call alloc_z(dpwpdz)
+
+    allocate(pij(kb:ke+kh))
 
     if (ipoiss == POISS_FFT2D) then
+
+      call alloc_x(px, opt_levels=(/0,0,0/))
+      call alloc_y(py, opt_levels=(/0,0,0/))
+      call alloc_z(pz, opt_levels=(/0,0,0/))
+
+      ! call alloc_z(Fxy, opt_levels=(/0,0,0/))
+      ! call alloc_z(Fxyz, opt_levels=(/0,0,0/))
 
       allocate(xrt(itot))
       allocate(yrt(jtot))
@@ -98,7 +119,7 @@ contains
       allocate(bxyzrt(imax,jmax,ktot))
 
       ! generate Eigenvalues xrt and yrt
-      if (BCxm == 1) then ! periodic
+      if (BCxm == BCxm_periodic) then ! periodic
         fac = 1./(2.*itot)
         do i=3,itot,2
           xrt(i-1)=-4.*dxi*dxi*(sin(real((i-1))*pi*fac))**2
@@ -121,7 +142,7 @@ contains
         call dfftw_plan_r2r_1d(plan_fr2r_x,itot,Sxfr,Sxr,FFTW_REDFT01,FFTW_MEASURE)
       end if
 
-      if (BCym == 1) then ! periodic
+      if (BCym == BCym_periodic) then ! periodic
         fac = 1./(2.*jtot)
         do j=3,jtot,2
           yrt(j-1)=-4.*dyi*dyi*(sin(real((j-1))*pi*fac))**2
@@ -224,6 +245,14 @@ contains
       call decomp_2d_fft_init(PHYSICAL_IN_X, opt_skip_XYZ_c2c=skip_c2c)
       call decomp_info_init(itot/2+1, jtot, ktot, sp)
 
+      call alloc_x(px, opt_levels=(/0,0,0/))
+      call alloc_y(py, opt_levels=(/0,0,0/))
+      call alloc_z(pz, opt_levels=(/0,0,0/))
+      allocate(Fz(sp%zsz(1),sp%zsz(2),sp%zsz(3)))
+
+      sp_zst1=sp%zst(1);sp_zst2=sp%zst(2);sp_zst3=sp%zst(3);
+      sp_zen1=sp%zen(1);sp_zen2=sp%zen(2);sp_zen3=sp%zen(3);
+
       allocate(xrt(itot/2+1))
       allocate(yrt(jtot))
       allocate(zrt(ktot))
@@ -291,6 +320,9 @@ contains
       call decomp_2d_fft_init(PHYSICAL_IN_Z) ! means z pencil
       call decomp_info_init(itot, jtot, ktot/2+1, sp) ! have to do this because sp is not public
 
+      call alloc_z(pz, opt_levels=(/0,0,0/))
+      allocate(Fx(sp%xsz(1),sp%xsz(2),sp%xsz(3)))
+
       !!! Generate wavenumbers assuming FFTW implementation
 
       dzi = dzfi(1) ! Assumes equidistant in z
@@ -335,33 +367,47 @@ contains
     end if ! ipoiss
 
   end subroutine initpois
+  
+  
+#if defined(_GPU)
+   attributes(global) subroutine printdata(ii, jj, kk)
+     use modcuda, only: ie_d, je_d, ke_d, tidandstride
+     implicit none
+     integer, value, intent(in) :: ii, jj, kk
+     integer :: tidx, tidy, tidz, stridex, stridey, stridez, i, j, k
+     call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+     do k = tidz, ke_d, stridez
+       do j = tidy, je_d, stridey
+         do i = tidx, ie_d, stridex
+           if (i==ii .and. j==jj .and. k==kk) then
+             write(*,*) "p_d(", i,",",j,",",k,")", p_d(i,j,k)
+           end if
+         end do
+       end do
+     end do
+   end subroutine printdata
+#endif
+  
 
   subroutine poisson
-    use modglobal, only : ib,ie,ih,jb,je,kb,ke,kh,itot,jtot,ktot,dy,dzf,dzh,linoutflow,iinletgen,ipoiss,POISS_FFT2D,POISS_FFT3D,POISS_FFT2D_2DECOMP,imax,jmax,eps1,BCxm,BCym,BCzp,ibrank,jbrank
-    use modmpi, only : myid,nprocs,barrou
+    use modglobal, only : ib,ie,jb,je,kb,ke,itot,jtot,ktot
+#if defined(_GPU)
+    use cudafor
+    use modcuda,      only: griddim, blockdim, checkCUDA, updateHostAfterPoiss
+#endif
     implicit none
-    integer ibc1,ibc2,kbc1,kbc2,ksen
-    complex, allocatable, dimension(:,:,:) :: Fx, Fy, Fz
-    real, allocatable, dimension(:,:,:) :: px, py, pz
-    real, allocatable, dimension(:,:,:) :: Fzr, d
-    real, dimension(1:ktot) :: vout
-    real    z,ak,bk,bbk
-    integer i, j, k
-    integer :: sp_zst3, sp_zst2, sp_zst1
-    integer :: sp_zen3, sp_zen2, sp_zen1
-    real fac
+    real, allocatable :: d(:,:,:)
+    real    :: fac
+    real    :: z, ak, bk, bbk
+    integer :: i, j, k
 
     call fillps
-
     ! rhs = p(ib:ie,jb:je,kb:ke)   ! needs to be uncommented for fielddump to write correct value of rhs
+
+    pz = p(ib:ie,jb:je,kb:ke)
 
     select case (ipoiss)
     case (POISS_FFT2D)
-      call alloc_x(px, opt_levels=(/0,0,0/))
-      call alloc_y(py, opt_levels=(/0,0,0/))
-      call alloc_z(pz, opt_levels=(/0,0,0/))
-
-      pz = p(ib:ie,jb:je,kb:ke)
 
 !$acc data create(px, py, pz)
 !$acc update device(pz)
@@ -371,9 +417,8 @@ contains
 !$acc end data
 
       ! In x-pencil, do FFT in x-direction
-      if (BCxm == 1) then
+      if (BCxm == BCxm_periodic) then
         fac = 1./sqrt(itot*1.)
-
         do k=1,xsize(3)
           do j=1,xsize(2)
             Sxr = px(:,j,k)
@@ -405,9 +450,8 @@ contains
 !$acc end data
 
       ! In y-pencil, do FFT in y-direction
-      if (BCym == 1) then
+      if (BCym == BCym_periodic) then
         fac = 1./sqrt(jtot*1.)
-
         do i=1,ysize(1)
           do k=1,ysize(3)
             Syr = py(i,:,k)
@@ -438,7 +482,7 @@ contains
 !$acc update host(pz)
 !$acc end data
 
-      Fxy = pz
+      ! Fxy = pz
 
       ! In z-pencil
       if (BCzp == 1) then
@@ -455,9 +499,9 @@ contains
         end do
 
         ! Divide by wavenumbers
-        do i=1,imax
-          do j=1,jmax
-            do k=1,ktot
+        do k=1,zsize(3)
+          do j=1,zsize(2)
+           do i=1,zsize(1)
               if (xyzrt(i,j,k) .ne. 0.) then
                 pz(i,j,k) = pz(i,j,k) / xyzrt(i,j,k)
               else
@@ -477,8 +521,7 @@ contains
           end do
         end do
       end if ! BCzp
-
-      Fxyz = pz
+      ! Fxyz = pz
 
 !$acc data create(py, pz)
 !$acc update device(pz)
@@ -487,7 +530,7 @@ contains
 !$acc end data
 
       ! In y-pencil, do backward FFT in y direction
-      if (BCym == 1) then
+      if (BCym == BCym_periodic) then
         fac = 1./sqrt(jtot*1.)
         do i=1,ysize(1)
           do k=1,ysize(3)
@@ -518,7 +561,7 @@ contains
 !$acc end data
 
       ! In x-pencil, do backward FFT in x-direction
-      if (BCxm == 1) then
+      if (BCxm == BCxm_periodic) then
         fac = 1./sqrt(itot*1.)
         do k=1,xsize(3)
           do j=1,xsize(2)
@@ -549,26 +592,81 @@ contains
 !$acc update host(pz)
 !$acc end data
 
-      p(ib:ie,jb:je,kb:ke) = pz
-
-      deallocate(px,py,pz)
-
     case(POISS_FFT2D_2DECOMP)
 #if defined(_GPU)
       write(*,*) "POISS_FFT2D_2DECOMP on GPU."
 #else
       write(*,*) "POISS_FFT2D_2DECOMP on CPU."
 #endif
-      call alloc_x(px, opt_levels=(/0,0,0/))
-      call alloc_y(py, opt_levels=(/0,0,0/))
-      call alloc_z(pz, opt_levels=(/0,0,0/))
-      allocate(Fz(sp%zsz(1),sp%zsz(2),sp%zsz(3)))
-      allocate(d (sp%zsz(1),sp%zsz(2),sp%zsz(3)))
 
-      sp_zst1=sp%zst(1);sp_zst2=sp%zst(2);sp_zst3=sp%zst(3);
-      sp_zen1=sp%zen(1);sp_zen2=sp%zen(2);sp_zen3=sp%zen(3);
+      allocate(d(sp%zsz(1),sp%zsz(2),sp%zsz(3)))
+      
+      
+#if defined(_GPU)
+    call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize' )
+    write(*,*) "pz(", ib, ",", jb, ",", kb, ")", pz(ib,jb,kb)
+    call printdata<<<griddim,blockdim>>>(ib, jb, kb)
 
-      pz = p(ib:ie,jb:je,kb:ke)
+    call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize' )
+    write(*,*) "pz(", ie/2, ",", je/2, ",", kb, ")", pz(ie/2,je/2,kb)
+    call printdata<<<griddim,blockdim>>>(ie/2, je/2, kb)
+
+    call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize' )
+    write(*,*) "pz(", ie, ",", je, ",", ke, ")", pz(ie,je,ke)
+    call printdata<<<griddim,blockdim>>>(ie, je, ke)
+
+    call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize' )
+    write(*,*) "pz(", ie/2, ",", je/2, ",", ke/2, ")", pz(ie/2,je/2,ke/2)
+    call printdata<<<griddim,blockdim>>>(ie/2, je/2, ke/2)
+
+    call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize' )
+    write(*,*) "pz(", ie/4, ",", je/2, ",", ke, ")", pz(ie/4,je/2,ke)
+    call printdata<<<griddim,blockdim>>>(ie/4, je/2, ke)
+
+    call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize' )
+    write(*,*) "pz(", ie, ",", je/2, ",", ke/4, ")", pz(ie,je/2,ke/4)
+    call printdata<<<griddim,blockdim>>>(ie, je/2, ke/4)
+
+    call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize' )
+    write(*,*) "pz(", ie/4, ",", je/4, ",", ke/4, ")", pz(ie/4,je/4,ke/4)
+    call printdata<<<griddim,blockdim>>>(ie/4, je/4, ke/4)
+
+    call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize' )
+    write(*,*) "pz(", 3*ie/4, ",", 3*je/4, ",", 3*ke/4, ")", pz(3*ie/4,3*je/4,3*ke/4)
+    call printdata<<<griddim,blockdim>>>(3*ie/4, 3*je/4, 3*ke/4)
+
+    call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize' )
+    write(*,*) "pz(", ib, ",", je/2, ",", kb, ")", pz(ib,je/2,kb)
+    call printdata<<<griddim,blockdim>>>(ib, je/2, kb)
+
+    call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize' )
+    write(*,*) "pz(", ie/2, ",", jb, ",", kb, ")", pz(ie/2,jb,kb)
+    call printdata<<<griddim,blockdim>>>(ie/2, jb, kb)
+
+    call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize' )
+    write(*,*) "p(", ie/2, ",", je, ",", ke/4, ")", p(ie/2,je,ke/4)
+    call printdata<<<griddim,blockdim>>>(ie/2, je, ke/4)
+
+    call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize' )
+    write(*,*) "p(", ie/2, ",", je/4, ",", kb, ")", p(ie/2,je/4,kb)
+    call printdata<<<griddim,blockdim>>>(ie/2, je/4, kb)
+
+    call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize' )
+#endif
+      
+
+#if defined(_GPU)
+      ! Starting in z-pencil, transpose to x-pencil
+!      call transpose_z_to_y(pz_d, py_d)
+!      call transpose_y_to_x(py_d, px_d)
+
+      ! Forward FFT
+!      call decomp_2d_fft_3d(px_d, Fz_d)
+
+!      !$acc kernels default(present)
+!      Fz_d = Fz_d/sqrt(1.*itot*jtot)
+!      !$acc end kernels
+#endif
 
 !$acc data create(px, py, pz, Fz, a, b, c, d, xyzrt)
 !$acc update device(pz, a, b, c, xyzrt)
@@ -648,16 +746,9 @@ contains
 !$acc update host(pz)
 !$acc end data
 
-      p(ib:ie,jb:je,kb:ke) = pz
-
-      deallocate(px,py,pz,Fz,d)
+      deallocate(d)
 
     case (POISS_FFT3D)
-
-      allocate(Fz(sp%zsz(1),sp%zsz(2),sp%zsz(3)))
-      call alloc_z(pz, opt_levels=(/0,0,0/))
-
-      pz = p(ib:ie,jb:je,kb:ke)
 
       call decomp_2d_fft_3d(pz,Fx) ! start in z-pencil in physical space, end in x-pencil in Fourier space
 
@@ -676,14 +767,16 @@ contains
 
       call decomp_2d_fft_3d(Fx,pz)
 
-      p(ib:ie,jb:je,kb:ke) = pz
-
-      deallocate(Fz,pz)
-
     case default
       write(0, *) "Invalid choice for Poisson solver"
       stop 1
     end select
+
+    p(ib:ie,jb:je,kb:ke) = pz
+
+#if defined(_GPU)
+    call updateHostAfterPoiss
+#endif
 
     call tderive
 
@@ -691,32 +784,89 @@ contains
 
   subroutine exitpois
     implicit none
-    deallocate(p, xrt, yrt, xyzrt, a, b, c)
+
+#if defined(_GPU)
+    deallocate(p_d, pup_d, pvp_d, pwp_d)
+#else
+    deallocate(pup, pvp, pwp)
+#endif
+
+    deallocate(p, pij)
+    ! deallocate(rhs, dpupdx, dpvpdy, dpwpdz)
+
+    select case (ipoiss)
+      case (POISS_FFT2D)
+        deallocate(px, py, pz)
+        ! deallocate(Fxy, Fxyz)
+        deallocate(xrt, yrt, zrt, xyzrt, a, b, c, bxyzrt)
+      case (POISS_FFT2D_2DECOMP)
+        deallocate(px, py, pz, Fz)
+        deallocate(xrt, yrt, zrt, xyzrt, a, b, c)
+      case (POISS_FFT3D)
+        deallocate(pz, Fx)
+        deallocate(xrt, yrt, zrt, xyzrt)
+      case default
+        write(0, *) "Invalid choice for Poisson solver"
+        stop 1
+    end select
   end subroutine exitpois
 !
 ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  subroutine fillps
+#if defined(_GPU)
+  attributes(global) subroutine compute_pup_cuda(rk3coefi)
+    use modcuda, only    : ie_d, je_d, ke_d, &
+                           up_d, vp_d, wp_d, um_d, vm_d, wm_d, &
+                           tidandstride
+    implicit none
+    real   , value, intent(in) :: rk3coefi
+    integer :: tidx, tidy, tidz, stridex, stridey, stridez
+    integer :: i, j, k
+    call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+    do k = tidz, ke_d, stridez
+      do j = tidy, je_d, stridey
+        do i = tidx, ie_d, stridex
+          pup_d(i,j,k) = up_d(i,j,k) + um_d(i,j,k) * rk3coefi
+          pvp_d(i,j,k) = vp_d(i,j,k) + vm_d(i,j,k) * rk3coefi
+          pwp_d(i,j,k) = wp_d(i,j,k) + wm_d(i,j,k) * rk3coefi
+        end do
+      end do
+    end do
+  end subroutine compute_pup_cuda
 
+  attributes(global) subroutine compute_p_cuda(dxi, dyi)
+    use modcuda, only : ie_d, je_d, ke_d, dzfi_d, &
+                        p_d, pup_d, pvp_d, pwp_d, tidandstride
+    implicit none
+    real   , value, intent(in) :: dxi, dyi
+    integer :: tidx, tidy, tidz, stridex, stridey, stridez
+    integer :: i, j, k
+    call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+    do k = tidz, ke_d, stridez
+      do j = tidy, je_d, stridey
+        do i = tidx, ie_d, stridex
+          p_d(i,j,k) = ( pup_d(i+1,j,k)-pup_d(i,j,k) ) * dxi &
+                     + ( pvp_d(i,j+1,k)-pvp_d(i,j,k) ) * dyi &
+                     + ( pwp_d(i,j,k+1)-pwp_d(i,j,k) ) * dzfi_d(k)
+        end do
+      end do
+    end do
+  end subroutine compute_p_cuda
+#endif
+  subroutine fillps
   ! Chiel van Heerwaarden,  19 June 2007
   ! Adapted fillps for RK3 time loop
-
-
-    use modfields, only : up, vp, wp, um, vm, wm,u0,v0,w0,IIw,IIws
-    use modglobal, only : rk3step, ib,ie,jb,je,kb,ke,ih,jh,kh,dxi,dxfi,dyi,dzfi,dt,&
-                          linoutflow,libm,dtmax,ierank,jerank,pi,dy,imax,jmax,ylen,xf,zf,jbrank
-    use modmpi,    only : excjs, myidx, myidy, avexy_ibm, myid
-    use modboundary, only: bcpup
-!    use modibm,    only : ibmnorm
-
+    use modfields,   only : up, vp, wp, um, vm, wm
+    use modglobal,   only : rk3step, ib, ie, jb, je, kb, ke, dxi, dyi, dzfi, dt, &
+                            pi, dy, imax, jmax, ylen, xf, zf
+    use modboundary, only : bcpup
+#if defined(_GPU)
+    use cudafor
+    use modcuda,      only: griddim, blockdim, checkCUDA
+#endif
     implicit none
-    !real,allocatable :: pup(:,:,:), pvp(:,:,:), pwp(:,:,:)
-    integer i,j,k
-    real rk3coef,rk3coefi
-    real, dimension(kb:ke+kh) :: wpxy
 
-    ! allocate(pup(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
-    ! allocate(pvp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
-    ! allocate(pwp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+    integer :: i, j, k
+    real    :: rk3coef, rk3coefi
 
     if (rk3step == 0) then ! dt not defined yet
       rk3coef = 1.
@@ -725,6 +875,10 @@ contains
     end if
     rk3coefi = 1. / rk3coef
 
+#if defined(_GPU)
+    call compute_pup_cuda<<<griddim,blockdim>>>(rk3coefi)
+    call checkCUDA( cudaGetLastError(), 'compute_pup_cuda' )
+#else
     do k=kb,ke
       do j=jb,je
         do i=ib,ie
@@ -734,6 +888,7 @@ contains
         end do
       end do
     end do
+#endif
 
   !****************************************************************
 
@@ -749,19 +904,24 @@ contains
   !     The right-hand p is therefore filled in this partical way.
 
   !**************************************************************
-   call bcpup(pup,pvp,pwp,rk3coef)   ! boundary conditions for pup,pvp,pwp
+    call bcpup(rk3coefi)   ! boundary conditions for pup,pvp,pwp
 
+#if defined(_GPU)
+    call compute_p_cuda<<<griddim,blockdim>>>(dxi, dyi)
+    call checkCUDA( cudaGetLastError(), 'compute_p_cuda' )
+    p = p_d
+#else
     do k=kb,ke
       do j=jb,je
         do i=ib,ie
-          p(i,j,k)  =  ( pup(i+1,j,k)-pup(i,j,k) ) * dxi &         ! see equation 5.72
-                          +( pvp(i,j+1,k)-pvp(i,j,k) ) * dyi &
-                          +( pwp(i,j,k+1)-pwp(i,j,k) ) * dzfi(k)
+          p(i,j,k) = ( pup(i+1,j,k)-pup(i,j,k) ) * dxi &         ! see equation 5.72
+                   + ( pvp(i,j+1,k)-pvp(i,j,k) ) * dyi &
+                   + ( pwp(i,j,k+1)-pwp(i,j,k) ) * dzfi(k)
         end do
       end do
     end do
-
-    ! Following loops need to be uncommented for fielddump to write correct value of dpupdx, dpvpdy, dpwpdz
+#endif
+    ! This block needs to be uncommented to write correct value of dpupdx, dpvpdy, dpwpdz through fielddump
     !do k=kb,ke
     !  do j=jb,je
     !    do i=ib,ie
@@ -782,9 +942,6 @@ contains
     !     end do
     !   end do
     ! end do
-
-    !deallocate( pup,pvp,pwp )
-
   end subroutine fillps
 
 

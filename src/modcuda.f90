@@ -6,7 +6,7 @@ module modcuda
                              dzf, dzf2, dzfi, dzfi5, dzfiq, dzh, dzhi, dzh2i, dzhiq, &
                              dzfc, dzfci, dzhci, dxfc, dxfci, dxhci, delta, &
                              ltempeq, lmoist, nsv, lles, lbuoyancy, ltrees, &
-                             BCxm, BCxm_periodic, BCym, BCym_periodic, &
+                             BCxm, BCxm_periodic, BCxm_profile, BCxm_driver, BCym, BCym_periodic, BCym_profile, &
                              BCtopm, BCtopm_freeslip, BCtopm_pressure, BCtopm_noslip, &
                              iadv_sv, iadv_thl, iadv_kappa, iadv_upw, &
                              xh, &
@@ -14,16 +14,18 @@ module modcuda
                              ifixuinf
    use modfields,      only: u0, v0, w0, pres0, e120, thl0, thl0c, qt0, sv0, &
                              up, vp, wp, e12p, thlp, thlpc, qtp, svp, &
-                             e12m, &
+                             um, vm, wm, e12m, &
                              tau_x, tau_y, tau_z, thl_flux, &
                              u0av, v0av, thl0av, qt0av, sv0av, dthvdz, ug, whls, &
                              dpdxl, dpdyl, thv0h, thvh, thlpcar, &
-                             dudxls, dudyls, dvdxls, dvdyls, dthldxls, dthldyls, dqtdxls, dqtdyls, dqtdtls
+                             dudxls, dudyls, dvdxls, dvdyls, dthldxls, dthldyls, dqtdxls, dqtdyls, dqtdtls, &
+                             uprof, vprof
    use modsubgriddata, only: lsmagorinsky, lvreman, loneeqn, ldelta, lbuoycorr, &
                              ekm, ekh, &
                              sbshr, sbbuo, sbdiss, zlt, damp, csz, &
                              cn, cm, ch1, ch2, ce1, ce2, dampmin, prandtli, c_vreman
    use modsurfdata,    only: thvs
+   use modinletdata,   only: u0driver
    use decomp_2d,      only: zstart
    implicit none
    save
@@ -48,13 +50,15 @@ module modcuda
                                 dxf_d(:), dxhi_d(:), &
                                 xh_d(:), u0av_d(:), v0av_d(:), ug_d(:), whls_d(:), thl0av_d(:), qt0av_d(:), &
                                 dpdxl_d(:), dpdyl_d(:), thvh_d(:), thlpcar_d(:), &
-                                dudxls_d(:), dudyls_d(:), dvdxls_d(:), dvdyls_d(:), dthldxls_d(:), dthldyls_d(:), dqtdxls_d(:), dqtdyls_d(:), dqtdtls_d(:)
+                                dudxls_d(:), dudyls_d(:), dvdxls_d(:), dvdyls_d(:), dthldxls_d(:), dthldyls_d(:), dqtdxls_d(:), dqtdyls_d(:), dqtdtls_d(:), &
+                                uprof_d(:), vprof_d(:)
 
-   real, device, allocatable :: delta_d(:, :), csz_d(:,:), sv0av_d(:,:)
+   real, device, allocatable :: delta_d(:, :), csz_d(:,:), sv0av_d(:,:), u0driver_d(:,:)
 
    real, device, allocatable :: u0_d(:,:,:), v0_d(:,:,:), w0_d(:,:,:), pres0_d(:,:,:), e120_d(:,:,:), thl0_d(:,:,:), thl0c_d(:,:,:), qt0_d(:,:,:), sv0_d(:,:,:,:)
    real, device, allocatable :: up_d(:,:,:), vp_d(:,:,:), wp_d(:,:,:), e12p_d(:,:,:), thlp_d(:,:,:), thlpc_d(:,:,:), qtp_d(:,:,:), svp_d(:,:,:,:)
-   real, device, allocatable :: e12m_d(:,:,:)
+   real, device, allocatable :: um_d(:,:,:), vm_d(:,:,:), wm_d(:,:,:), e12m_d(:,:,:)
+   real, device, allocatable :: p_d(:,:,:), pup_d(:,:,:), pvp_d(:,:,:), pwp_d(:,:,:)
    real, device, allocatable :: tau_x_d(:,:,:), tau_y_d(:,:,:), tau_z_d(:,:,:), thl_flux_d(:,:,:)
    real, device, allocatable :: dthvdz_d(:,:,:)
    real, device, allocatable :: ekm_d(:,:,:), ekh_d(:,:,:), sbshr_d(:,:,:), sbbuo_d(:,:,:), sbdiss_d(:,:,:), zlt_d(:,:,:), damp_d(:,:,:)
@@ -157,6 +161,10 @@ module modcuda
          allocate(w0_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
          allocate(pres0_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
          
+         allocate(um_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+         allocate(vm_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+         allocate(wm_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+
          allocate(up_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
          allocate(vp_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
          allocate(wp_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
@@ -186,6 +194,10 @@ module modcuda
          dudyls_d = dudyls
          dvdxls_d = dvdxls
          dvdyls_d = dvdyls
+
+         allocate(uprof_d(kb:ke+kh))
+         allocate(vprof_d(kb:ke+kh))
+         allocate(u0driver_d(jb-jh:je+jh,kb-kh:ke+kh))
 
          if (loneeqn) then
             allocate(e120_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
@@ -303,11 +315,11 @@ module modcuda
       subroutine exitCUDA
          implicit none
          deallocate(dxf_d, dxhi_d, dzf_d, dzf2_d, dzfi_d, dzfi5_d, dzfiq_d, dzh_d, dzhi_d, dzh2i_d, dzhiq_d, delta_d)
-         deallocate(u0_d, v0_d, w0_d, pres0_d)
-         deallocate(up_d, vp_d, wp_d)
+         deallocate(u0_d, v0_d, w0_d, pres0_d, um_d, vm_d, wm_d, up_d, vp_d, wp_d)
          deallocate(tau_x_d, tau_y_d, tau_z_d)
          deallocate(u0av_d, v0av_d, ug_d, whls_d)
          deallocate(dpdxl_d, dpdyl_d, dudxls_d, dudyls_d, dvdxls_d, dvdyls_d)
+         deallocate(uprof_d, vprof_d, u0driver_d)
          if (loneeqn) deallocate(e120_d, e12p_d, e12m_d, sbshr_d, sbbuo_d, sbdiss_d, zlt_d)
          if (ltempeq) then
             deallocate(thl0_d, thlp_d, thl_flux_d)
@@ -407,6 +419,41 @@ module modcuda
             dpdxl_d = dpdxl
          end if
       end subroutine updateDevice
+
+      subroutine updateDevicePriorPoiss
+         up_d = up
+         vp_d = vp
+         wp_d = wp
+         um_d = um
+         vm_d = vm
+         wm_d = wm
+         if (BCxm==BCxm_profile .or. BCxm==BCxm_driver) then
+            u0_d = u0
+         end if
+         if (BCxm == BCxm_profile) then
+           uprof_d = uprof
+         end if
+         if (BCxm == BCxm_driver) then
+           u0driver_d = u0driver
+         end if
+         if (BCym == BCym_profile) then
+           v0_d = v0
+           vprof_d = vprof
+         end if
+      end subroutine updateDevicePriorPoiss
+
+      subroutine updateHostAfterPoiss
+         implicit none
+         if (BCxm==BCxm_profile .or. BCxm==BCxm_driver) then
+            up = up_d
+         end if
+         if (BCym==BCym_profile) then
+            vp = vp_d
+         end if
+         if (BCtopm==BCtopm_pressure) then
+            wp = wp_d
+         end if
+      end subroutine updateHostAfterPoiss
 
       subroutine updateHost
          implicit none
