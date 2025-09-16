@@ -486,6 +486,11 @@ contains
           do j=jb,je
              do i=ib,ie
                 tl  = thl(i,j,k)*exner(k)
+                
+                if (tl<100) then
+                    tl=100
+                end if
+                
                 es  = es0*exp(at*(tl-tmelt)/(tl-bt))
                 qsl = rd/rv*es/(pressure(k)-(1-rd/rv)*es)
                 b1  = rlv**2/(tl**2*cp*rv)
