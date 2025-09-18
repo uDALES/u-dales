@@ -56,9 +56,18 @@ save
 
   real, allocatable :: xrt(:), yrt(:), zrt(:)
   real, allocatable, target :: xyzrt(:,:,:), bxyzrt(:,:,:)
-  real, allocatable :: a(:), b(:), c(:), ax(:), bx(:), cx(:) ! coefficients for tridiagonal matrix
-  real, allocatable :: pz_top(:,:,:), py_top(:,:,:), px_top(:,:,:)
-  integer :: kbc1, kbc2
+
+  !! coefficients for tridiagonal matrix
+  real, allocatable :: b(:), c(:)
+#if defined(_GPU)
+  real, allocatable, pinned :: a(:)
+  real, allocatable, pinned :: zz(:,:,:), dd(:,:,:)
+  real, allocatable, device :: a_d(:)
+  real, allocatable, device :: zz_d(:,:,:), dd_d(:,:,:)
+#else
+  real, allocatable :: a(:)
+  real, allocatable :: zz(:,:,:), dd(:,:,:)
+#endif
 
   integer(kind=selected_int_kind(18)) :: plan_r2fc_x, plan_r2fc_y, plan_fc2r_x, plan_fc2r_y
   integer(kind=selected_int_kind(18)) :: plan_r2fr_x, plan_r2fr_y, plan_fr2r_x, plan_fr2r_y
@@ -80,6 +89,7 @@ contains
     use modfields, only : rhobf, rhobh
 
     implicit none
+    integer :: kbc1, kbc2
     real dzi, fac, b_top_D, b_top_N
     integer i,j,k,iv,jv,kv
     logical, dimension(3) :: skip_c2c = [.false., .false., .true.]
@@ -258,6 +268,8 @@ contains
       allocate(zrt(ktot))
       allocate(xyzrt(sp%zsz(1),sp%zsz(2),sp%zsz(3)))
       allocate(a(ktot), b(ktot), c(ktot))
+      allocate(zz(sp%zsz(1),sp%zsz(2),sp%zsz(3)))
+      allocate(dd(sp%zsz(1),sp%zsz(2),sp%zsz(3)))
 
       fac = 1./itot
       do i=2,itot/2
@@ -311,6 +323,32 @@ contains
           end do
         end do
       end do
+      
+      !! compute the coefficients necessary for the Gaussian elimination along z-direction
+      do k=1,ktot
+        do j=sp_zst2,sp_zen2
+          do i=sp_zst1,sp_zen1
+            if (k==1) then
+              zz(i,j,k) = 1./( b(k) + xyzrt(i,j,k)                    )
+              dd(i,j,k) = c(k)*zz(i,j,k)
+            elseif (k==ktot) then
+              zz(i,j,k) =      b(k) + xyzrt(i,j,k) - a(k)*dd(i,j,k-1)
+            else
+              zz(i,j,k) = 1./( b(k) + xyzrt(i,j,k) - a(k)*dd(i,j,k-1) )
+              dd(i,j,k) = c(k)*zz(i,j,k)
+            end if
+          end do
+        end do
+      end do
+      
+#if defined(_GPU)
+      allocate(a_d(ktot))
+      allocate(zz_d(sp%zsz(1),sp%zsz(2),sp%zsz(3)))
+      allocate(dd_d(sp%zsz(1),sp%zsz(2),sp%zsz(3)))
+      a_d  = a
+      zz_d = zz
+      dd_d = dd
+#endif
 
     elseif (ipoiss == POISS_FFT3D) then ! periodic in all 3 dimension (may not work correctly, needs proper inspection)
       
@@ -390,31 +428,33 @@ contains
   
 
   subroutine poisson
-    use modglobal, only : ib,ie,jb,je,kb,ke,itot,jtot,ktot
+    use modglobal, only: ib,ie,jb,je,kb,ke,itot,jtot,ktot
 #if defined(_GPU)
     use cudafor
-    use modcuda,      only: griddim, blockdim, checkCUDA, updateHostAfterPoiss
+    use modcuda,   only: griddim, blockdim, checkCUDA, updateHostAfterPoiss
 #endif
     implicit none
-    real, allocatable :: d(:,:,:)
     real    :: fac
-    real    :: z, ak, bk, bbk
     integer :: i, j, k
 
     call fillps
     ! rhs = p(ib:ie,jb:je,kb:ke)   ! needs to be uncommented for fielddump to write correct value of rhs
 
-    pz = p(ib:ie,jb:je,kb:ke)
-
     select case (ipoiss)
     case (POISS_FFT2D)
 
-!$acc data create(px, py, pz)
-!$acc update device(pz)
+      !$acc data create(px, py, pz)
+#if defined(_GPU)
+      !$acc kernels default(present)
+      pz = p_d(ib:ie,jb:je,kb:ke)
+      !$acc end kernels
+#else
+      pz = p(ib:ie,jb:je,kb:ke)
+#endif
       call transpose_z_to_y(pz, py)
       call transpose_y_to_x(py, px)
-!$acc update host(px)
-!$acc end data
+      !$acc update host(px)
+      !$acc end data
 
       ! In x-pencil, do FFT in x-direction
       if (BCxm == BCxm_periodic) then
@@ -443,11 +483,11 @@ contains
         end do
       end if
 
-!$acc data create(px, py)
-!$acc update device(px)
+      !$acc data create(px, py)
+      !$acc update device(px)
       call transpose_x_to_y(px, py)
-!$acc update host(py)
-!$acc end data
+      !$acc update host(py)
+      !$acc end data
 
       ! In y-pencil, do FFT in y-direction
       if (BCym == BCym_periodic) then
@@ -476,11 +516,11 @@ contains
         end do
       end if
 
-!$acc data create(py, pz)
-!$acc update device(py)
+      !$acc data create(py, pz)
+      !$acc update device(py)
       call transpose_y_to_z(py,pz)
-!$acc update host(pz)
-!$acc end data
+      !$acc update host(pz)
+      !$acc end data
 
       ! Fxy = pz
 
@@ -523,11 +563,11 @@ contains
       end if ! BCzp
       ! Fxyz = pz
 
-!$acc data create(py, pz)
-!$acc update device(pz)
+      !$acc data create(py, pz)
+      !$acc update device(pz)
       call transpose_z_to_y(pz,py)
-!$acc update host(py)
-!$acc end data
+      !$acc update host(py)
+      !$acc end data
 
       ! In y-pencil, do backward FFT in y direction
       if (BCym == BCym_periodic) then
@@ -554,11 +594,11 @@ contains
         end do
       end if
 
-!$acc data create(px, py)
-!$acc update device(py)
+      !$acc data create(px, py)
+      !$acc update device(py)
       call transpose_y_to_x(py,px)
-!$acc update host(px)
-!$acc end data
+      !$acc update host(px)
+      !$acc end data
 
       ! In x-pencil, do backward FFT in x-direction
       if (BCxm == BCxm_periodic) then
@@ -585,170 +625,128 @@ contains
         end do
       end if
 
-!$acc data create(px, py, pz)
-!$acc update device(px)
+      !$acc data create(px, py, pz)
+      !$acc update device(px)
       call transpose_x_to_y(px, py)
       call transpose_y_to_z(py, pz)
-!$acc update host(pz)
-!$acc end data
+#if defined (_GPU)
+      !$acc kernels default(present)
+      p_d(ib:ie,jb:je,kb:ke) = pz
+      !$acc end kernels
+#else
+      p(ib:ie,jb:je,kb:ke) = pz
+#endif
+      !$acc end data
 
     case(POISS_FFT2D_2DECOMP)
+
 #if defined(_GPU)
-      write(*,*) "POISS_FFT2D_2DECOMP on GPU."
+      !$acc data create(px, py, pz, Fz)
+
+      !$acc kernels default(present)
+      pz = p_d(ib:ie,jb:je,kb:ke)
+      !$acc end kernels
 #else
-      write(*,*) "POISS_FFT2D_2DECOMP on CPU."
+      pz = p(ib:ie,jb:je,kb:ke)
 #endif
 
-      allocate(d(sp%zsz(1),sp%zsz(2),sp%zsz(3)))
-      
-      
-#if defined(_GPU)
-    call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize' )
-    write(*,*) "pz(", ib, ",", jb, ",", kb, ")", pz(ib,jb,kb)
-    call printdata<<<griddim,blockdim>>>(ib, jb, kb)
-
-    call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize' )
-    write(*,*) "pz(", ie/2, ",", je/2, ",", kb, ")", pz(ie/2,je/2,kb)
-    call printdata<<<griddim,blockdim>>>(ie/2, je/2, kb)
-
-    call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize' )
-    write(*,*) "pz(", ie, ",", je, ",", ke, ")", pz(ie,je,ke)
-    call printdata<<<griddim,blockdim>>>(ie, je, ke)
-
-    call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize' )
-    write(*,*) "pz(", ie/2, ",", je/2, ",", ke/2, ")", pz(ie/2,je/2,ke/2)
-    call printdata<<<griddim,blockdim>>>(ie/2, je/2, ke/2)
-
-    call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize' )
-    write(*,*) "pz(", ie/4, ",", je/2, ",", ke, ")", pz(ie/4,je/2,ke)
-    call printdata<<<griddim,blockdim>>>(ie/4, je/2, ke)
-
-    call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize' )
-    write(*,*) "pz(", ie, ",", je/2, ",", ke/4, ")", pz(ie,je/2,ke/4)
-    call printdata<<<griddim,blockdim>>>(ie, je/2, ke/4)
-
-    call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize' )
-    write(*,*) "pz(", ie/4, ",", je/4, ",", ke/4, ")", pz(ie/4,je/4,ke/4)
-    call printdata<<<griddim,blockdim>>>(ie/4, je/4, ke/4)
-
-    call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize' )
-    write(*,*) "pz(", 3*ie/4, ",", 3*je/4, ",", 3*ke/4, ")", pz(3*ie/4,3*je/4,3*ke/4)
-    call printdata<<<griddim,blockdim>>>(3*ie/4, 3*je/4, 3*ke/4)
-
-    call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize' )
-    write(*,*) "pz(", ib, ",", je/2, ",", kb, ")", pz(ib,je/2,kb)
-    call printdata<<<griddim,blockdim>>>(ib, je/2, kb)
-
-    call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize' )
-    write(*,*) "pz(", ie/2, ",", jb, ",", kb, ")", pz(ie/2,jb,kb)
-    call printdata<<<griddim,blockdim>>>(ie/2, jb, kb)
-
-    call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize' )
-    write(*,*) "p(", ie/2, ",", je, ",", ke/4, ")", p(ie/2,je,ke/4)
-    call printdata<<<griddim,blockdim>>>(ie/2, je, ke/4)
-
-    call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize' )
-    write(*,*) "p(", ie/2, ",", je/4, ",", kb, ")", p(ie/2,je/4,kb)
-    call printdata<<<griddim,blockdim>>>(ie/2, je/4, kb)
-
-    call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize' )
-#endif
-      
-
-#if defined(_GPU)
-      ! Starting in z-pencil, transpose to x-pencil
-!      call transpose_z_to_y(pz_d, py_d)
-!      call transpose_y_to_x(py_d, px_d)
-
-      ! Forward FFT
-!      call decomp_2d_fft_3d(px_d, Fz_d)
-
-!      !$acc kernels default(present)
-!      Fz_d = Fz_d/sqrt(1.*itot*jtot)
-!      !$acc end kernels
-#endif
-
-!$acc data create(px, py, pz, Fz, a, b, c, d, xyzrt)
-!$acc update device(pz, a, b, c, xyzrt)
-
-      ! Starting in z-pencil, transpose to x-pencil
+      !!!! Starting in z-pencil, transpose to x-pencil
       call transpose_z_to_y(pz, py)
       call transpose_y_to_x(py, px)
 
-      ! Forward FFT
+      !!!! Forward FFT
       call decomp_2d_fft_3d(px, Fz)
 
-!$acc kernels
+      !$acc kernels default(present)
       Fz = Fz/sqrt(1.*itot*jtot)
-!$acc end kernels
+      !$acc end kernels
 
-      ! Solve system using Gaussian elimination
-!$acc kernels default(present)
+      !!!! Solve system using Gaussian elimination
+      !$acc kernels default(present)
       do j=1,sp_zen2
         do i=1,sp_zen1
-          z         = 1./(b(1)+xyzrt(i,j,1))
-          d(i,j,1)  = c(1)*z
-          Fz(i,j,1) = Fz(i,j,1)*z
+#if defined(_GPU)
+          Fz(i,j,1) = Fz(i,j,1)*zz_d(i,j,1)
+#else
+          Fz(i,j,1) = Fz(i,j,1)*zz(i,j,1)
+#endif
         end do
       end do
-!$acc end kernels
+      !$acc end kernels
 
-!$acc kernels default(present)
+      !$acc kernels default(present)
       do k=2,sp_zen3-1
         do j=1,sp_zen2
           do i=1,sp_zen1
-            bbk       = b(k)+xyzrt(i,j,k)
-            z         = 1./(bbk-a(k)*d(i,j,k-1))
-            d(i,j,k)  = c(k)*z
-            Fz(i,j,k) = (Fz(i,j,k)-a(k)*Fz(i,j,k-1))*z
+#if defined(_GPU)
+            Fz(i,j,k) = (Fz(i,j,k)-a_d(k)*Fz(i,j,k-1))*zz_d(i,j,k)
+#else
+            Fz(i,j,k) = (Fz(i,j,k)-a(k)*Fz(i,j,k-1))*zz(i,j,k)
+#endif
           end do
         end do
       end do
-!$acc end kernels
+      !$acc end kernels
 
-      ak = a(ktot)
-      bk = b(ktot)
-
-!$acc kernels default(present)
+      !$acc kernels default(present)
       do j=1,sp_zen2
         do i=1,sp_zen1
-          bbk = bk + xyzrt(i,j,ktot)
-          z        = bbk-ak*d(i,j,ktot-1)
-          if(z/=0.) then
-            Fz(i,j,ktot) = (Fz(i,j,ktot)-ak*Fz(i,j,ktot-1))/z
+#if defined(_GPU)
+          if(zz_d(i,j,ktot)/=0.) then
+            Fz(i,j,ktot) = (Fz(i,j,ktot)-a_d(ktot)*Fz(i,j,ktot-1))/zz_d(i,j,ktot)
           else
             Fz(i,j,ktot) =0.
           end if
+#else
+          if(zz(i,j,ktot)/=0.) then
+            Fz(i,j,ktot) = (Fz(i,j,ktot)-a(ktot)*Fz(i,j,ktot-1))/zz(i,j,ktot)
+          else
+            Fz(i,j,ktot) =0.
+          end if
+#endif
         end do
       end do
-!$acc end kernels
+      !$acc end kernels
 
-!$acc kernels default(present)
+      !$acc kernels default(present)
       do k=sp_zen3-1,1,-1
         do j=1,sp_zen2
           do i=1,sp_zen1
-            Fz(i,j,k) = Fz(i,j,k)-d(i,j,k)*Fz(i,j,k+1)
+#if defined(_GPU)
+            Fz(i,j,k) = Fz(i,j,k)-dd_d(i,j,k)*Fz(i,j,k+1)
+#else
+            Fz(i,j,k) = Fz(i,j,k)-dd(i,j,k)*Fz(i,j,k+1)
+#endif
           end do
         end do
       end do
-!$acc end kernels
+      !$acc end kernels
 
-      ! Inverse FFT
+      !!!! Inverse FFT
       call decomp_2d_fft_3d(Fz, px)
 
-!$acc kernels
+      !$acc kernels default(present)
       px = px/sqrt(1.*itot*jtot)
-!$acc end kernels
+      !$acc end kernels
 
+      !!!! From x-pencil transpose back to z-pencil
       call transpose_x_to_y(px, py)
       call transpose_y_to_z(py, pz)
 
-!$acc update host(pz)
-!$acc end data
+#if defined (_GPU)
+      !$acc kernels default(present)
+      p_d(ib:ie,jb:je,kb:ke) = pz
+      !$acc end kernels
 
-      deallocate(d)
+      !$acc end data
+#else
+      p(ib:ie,jb:je,kb:ke) = pz
+#endif
 
     case (POISS_FFT3D)
+      ! This block needs careful rectification for GPU run
+
+      pz = p(ib:ie,jb:je,kb:ke)
 
       call decomp_2d_fft_3d(pz,Fx) ! start in z-pencil in physical space, end in x-pencil in Fourier space
 
@@ -767,14 +765,15 @@ contains
 
       call decomp_2d_fft_3d(Fx,pz)
 
+      p(ib:ie,jb:je,kb:ke) = pz
+
     case default
       write(0, *) "Invalid choice for Poisson solver"
       stop 1
     end select
 
-    p(ib:ie,jb:je,kb:ke) = pz
-
 #if defined(_GPU)
+    p = p_d
     call updateHostAfterPoiss
 #endif
 
@@ -801,7 +800,10 @@ contains
         deallocate(xrt, yrt, zrt, xyzrt, a, b, c, bxyzrt)
       case (POISS_FFT2D_2DECOMP)
         deallocate(px, py, pz, Fz)
-        deallocate(xrt, yrt, zrt, xyzrt, a, b, c)
+        deallocate(xrt, yrt, zrt, xyzrt, a, b, c, zz, dd)
+#if defined(_GPU)
+        deallocate(a_d, zz_d, dd_d)
+#endif
       case (POISS_FFT3D)
         deallocate(pz, Fx)
         deallocate(xrt, yrt, zrt, xyzrt)
@@ -909,7 +911,6 @@ contains
 #if defined(_GPU)
     call compute_p_cuda<<<griddim,blockdim>>>(dxi, dyi)
     call checkCUDA( cudaGetLastError(), 'compute_p_cuda' )
-    p = p_d
 #else
     do k=kb,ke
       do j=jb,je
