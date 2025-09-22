@@ -215,9 +215,17 @@ program DALESURBAN      !Version 48
 #if defined(_GPU)
     call updateDevicePriorPoiss
 #endif
+
     stime = MPI_Wtime()
     call poisson
+#if defined(_GPU)
+    call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize in program' )
+#endif
     write(6,'(A,F10.6)')'possion time = ', MPI_Wtime() - stime
+
+#if defined(_GPU)
+    call updateHostAfterPoiss
+#endif
 
     call purifiers      !placing of purifiers here may need to be checked
 

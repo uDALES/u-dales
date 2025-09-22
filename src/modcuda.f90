@@ -427,6 +427,7 @@ module modcuda
          um_d = um
          vm_d = vm
          wm_d = wm
+         pres0_d = pres0
          if (BCxm==BCxm_profile .or. BCxm==BCxm_driver) then
             u0_d = u0
          end if
@@ -444,15 +445,10 @@ module modcuda
 
       subroutine updateHostAfterPoiss
          implicit none
-         if (BCxm==BCxm_profile .or. BCxm==BCxm_driver) then
-            up = up_d
-         end if
-         if (BCym==BCym_profile) then
-            vp = vp_d
-         end if
-         if (BCtopm==BCtopm_pressure) then
-            wp = wp_d
-         end if
+         up = up_d
+         vp = vp_d
+         wp = wp_d
+         pres0 = pres0_d
       end subroutine updateHostAfterPoiss
 
       subroutine updateHost

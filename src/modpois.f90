@@ -33,10 +33,11 @@ use decomp_2d_constants
 use modglobal, only : ipoiss, POISS_FFT2D, POISS_FFT2D_2DECOMP, POISS_FFT3D, &
                       BCxm, BCym, BCzp, BCxm_periodic, BCym_periodic
 #if defined(_GPU)
-use modcuda,   only : p_d, pup_d, pvp_d, pwp_d
+use modcuda,   only : pup_d, pvp_d, pwp_d, p_d
 #else
 use modfields, only : pup, pvp, pwp
 #endif
+use modfields, only : p
 implicit none
 
 include "fftw3.f"
@@ -44,7 +45,6 @@ include "fftw3.f"
 private
 public :: initpois,poisson,exitpois,p,rhs,dpupdx,dpvpdy,dpwpdz,xyzrt,sp,Fxy,Fxyz,pij
 save
-  real, allocatable, target :: p(:,:,:)     ! difference between p at previous and new step (p = P_new - P_old)
   real, allocatable, target :: rhs(:,:,:)   ! rhs of pressure solver
   real, allocatable, target :: dpupdx(:,:,:)
   real, allocatable, target :: dpvpdy(:,:,:)
@@ -85,13 +85,11 @@ contains
     use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,imax,jmax,itot,jtot,ktot, &
                           dxi,dzh,dzf,dy,dyi,dxfi,dzfi,pi,linoutflow,&
                           BCtopm,BCtopm_pressure
-    use modmpi,    only : myidx, myidy, myid
     use modfields, only : rhobf, rhobh
-
     implicit none
     integer :: kbc1, kbc2
-    real dzi, fac, b_top_D, b_top_N
-    integer i,j,k,iv,jv,kv
+    integer :: i, j, k, iv, jv, kv
+    real    :: dzi, fac, b_top_D, b_top_N
     logical, dimension(3) :: skip_c2c = [.false., .false., .true.]
 
 #if defined(_GPU)
@@ -405,34 +403,9 @@ contains
     end if ! ipoiss
 
   end subroutine initpois
-  
-  
-#if defined(_GPU)
-   attributes(global) subroutine printdata(ii, jj, kk)
-     use modcuda, only: ie_d, je_d, ke_d, tidandstride
-     implicit none
-     integer, value, intent(in) :: ii, jj, kk
-     integer :: tidx, tidy, tidz, stridex, stridey, stridez, i, j, k
-     call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
-     do k = tidz, ke_d, stridez
-       do j = tidy, je_d, stridey
-         do i = tidx, ie_d, stridex
-           if (i==ii .and. j==jj .and. k==kk) then
-             write(*,*) "p_d(", i,",",j,",",k,")", p_d(i,j,k)
-           end if
-         end do
-       end do
-     end do
-   end subroutine printdata
-#endif
-  
 
   subroutine poisson
     use modglobal, only: ib,ie,jb,je,kb,ke,itot,jtot,ktot
-#if defined(_GPU)
-    use cudafor
-    use modcuda,   only: griddim, blockdim, checkCUDA, updateHostAfterPoiss
-#endif
     implicit none
     real    :: fac
     integer :: i, j, k
@@ -772,11 +745,6 @@ contains
       stop 1
     end select
 
-#if defined(_GPU)
-    p = p_d
-    call updateHostAfterPoiss
-#endif
-
     call tderive
 
   end subroutine poisson
@@ -812,8 +780,8 @@ contains
         stop 1
     end select
   end subroutine exitpois
-!
 ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 #if defined(_GPU)
   attributes(global) subroutine compute_pup_cuda(rk3coefi)
     use modcuda, only    : ie_d, je_d, ke_d, &
@@ -860,6 +828,7 @@ contains
     use modfields,   only : up, vp, wp, um, vm, wm
     use modglobal,   only : rk3step, ib, ie, jb, je, kb, ke, dxi, dyi, dzfi, dt, &
                             pi, dy, imax, jmax, ylen, xf, zf
+    use modmpi,      only : myidx, myidy
     use modboundary, only : bcpup
 #if defined(_GPU)
     use cudafor
@@ -945,7 +914,45 @@ contains
     ! end do
   end subroutine fillps
 
+#if defined(_GPU)
+  attributes(global) subroutine tderive_update_upvpwp_cuda(dxi, dyi)
+    use modcuda, only: ie_d, je_d, kb_d, ke_d, up_d, vp_d, wp_d, p_d, dzhi_d, tidandstride
+    implicit none
+    real, value, intent(in) :: dxi, dyi
+    integer :: tidx, tidy, tidz, stridex, stridey, stridez, i, j, k
 
+    call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+
+    do i = tidx, ie_d, stridex
+      do j = tidy, je_d, stridey
+        do k = tidz, ke_d, stridez
+          up_d(i,j,k) = up_d(i,j,k)-(p_d(i,j,k)-p_d(i-1,j,k))*dxi
+          vp_d(i,j,k) = vp_d(i,j,k)-(p_d(i,j,k)-p_d(i,j-1,k))*dyi
+          if (k .ne. kb_d) then
+            wp_d(i,j,k) = wp_d(i,j,k)-(p_d(i,j,k)-p_d(i,j,k-1))*dzhi_d(k)
+          end if
+        end do
+      end do
+    end do
+  end subroutine tderive_update_upvpwp_cuda
+   
+  attributes(global) subroutine tderive_update_wptop_cuda(pijke)
+    use modcuda, only: ie_d, je_d, kb_d, ke_d, wp_d, dzhi_d, tidandstride
+    implicit none
+    real, value, intent(in) :: pijke
+    integer :: tidx, tidy, tidz, stridex, stridey, stridez, i, j
+
+    call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+
+    if (tidz == kb_d) then
+      do i = tidx, ie_d, stridex
+        do j = tidy, je_d, stridey
+          wp_d(i,j,ke_d+1) = wp_d(i,j,ke_d+1) + 2*pijke*dzhi_d(ke_d+1)
+        end do
+      end do
+    end if
+  end subroutine tderive_update_wptop_cuda
+#endif
   subroutine tderive
 
     !-----------------------------------------------------------------|
@@ -968,29 +975,30 @@ contains
     !                                                                 |
     !**   interface.                                                  |
     !     ----------                                                  |
-    !                                                                 |
-    !             *tderive* is called from *program*.                 |
-    !                                                                 |
     !-----------------------------------------------------------------|
 
-    use modfields, only : u0, v0, w0, up, vp, wp, pres0, IIc, IIcs, uouttot
-    use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,dxi,dxhi,dyi,dzhi,linoutflow,rslabs,ibrank,ierank,jbrank,jerank,dxfi,BCtopm,BCtopm_pressure
-    use modmpi,    only : myid,slabsum,avexy_ibm
-    use modboundary,only : bcp
+    use modfields,   only: up, vp, wp, pres0, IIc, IIcs
+    use modglobal,   only: ib,ie,ih,jb,je,jh,kb,ke,kh,dxi,dyi,dzhi,linoutflow,rslabs,BCtopm,BCtopm_pressure
+    use modmpi,      only: slabsum, avexy_ibm
+    use modboundary, only: bcp
+#if defined(_GPU)
+     use cudafor
+     use modcuda,    only: griddim, blockdim, checkCUDA, pres0_d
+#endif
     implicit none
-    integer i,j,k
-    !real, dimension(kb:ke+kh) :: pij
-    !real :: pijk
+    integer :: i, j, k
 
     ! **  Boundary conditions **************
-
-    call bcp(p) ! boundary conditions for p.
+    call bcp ! boundary conditions for p.
 
     !*****************************************************************
     ! **  Calculate time-derivative for the velocities with known ****
     ! **  pressure gradients.  ***************************************
     !*****************************************************************
-
+#if defined(_GPU)
+    call tderive_update_upvpwp_cuda<<<griddim,blockdim>>>(dxi, dyi)
+    call checkCUDA( cudaGetLastError(), 'tderive_update_upvpwp_cuda' )
+#else
     do i=ib,ie
       do j=jb,je
         up(i,j,kb) = up(i,j,kb)-(p(i,j,kb)-p(i-1,j,kb))*dxi
@@ -1002,18 +1010,26 @@ contains
         end do
       end do
     end do
+#endif
 
     if (BCtopm .eq. BCtopm_pressure) then
       ! Get out the slab averaged dp/dz = <rhw>
+#if defined(_GPU)
+      p = p_d
+#endif
       call avexy_ibm(pij(kb:ke+kh),p(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
 
+#if defined(_GPU)
+      call tderive_update_wptop_cuda<<<griddim,blockdim>>>(pij(ke))
+      call checkCUDA( cudaGetLastError(), 'tderive_update_wptop_cuda' )
+#else
       do i=ib,ie
         do j=jb,je
           !wp(i,j,ke+1) = -(-pij(ke)-p(i,j,ke))*dzhi(ke+1) ! Doesn't work
           wp(i,j,ke+1) = wp(i,j,ke+1) + 2*pij(ke)*dzhi(ke+1)
         end do
       end do
-
+#endif
     end if
 
     ! tg3315 02/02/2019
@@ -1034,22 +1050,26 @@ contains
     ! https://epubs.siam.org/doi/pdf/10.1137/0711042
 
     !pij =0.; pijk=0.;
-
     ! if (.not. linoutflow) then
     !   call slabsum(pij(kb:ke),kb,ke,p(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,ib,ie,jb,je,kb,ke)
     !   pij = pij/rslabs
     !   pijk = sum(pij(kb:ke))/(ke-kb)
     ! end if
 
+    !$acc kernels default(present)
     do k=kb-1,ke+1
       do j=jb-1,je+1
         do i=ib-1,ie+1
+#if defined(_GPU)
+          pres0_d(i,j,k)=pres0_d(i,j,k)+p_d(i,j,k)
+#else
           pres0(i,j,k)=pres0(i,j,k)+p(i,j,k)!-pijk ! update of the pressure: P_new = P_old + p
-        enddo
-      enddo
-    enddo
+#endif
+        end do
+      end do
+    end do
+    !$acc end kernels
 
-    return
   end subroutine tderive
 
   subroutine solmpj(x)

@@ -1669,92 +1669,135 @@ contains
 
 
    !>set pressure boundary conditions
-   subroutine bcp(p)
-
-     use modglobal, only : ib, ie, jb, je, ih, jh, kb, ke, kh, dyi, rk3step, dt, &
+   subroutine bcp
+     use modglobal, only : ib, ie, jb, je, kb, ke, &
                            ibrank, ierank, jbrank, jerank, BCxm, BCym, BCxm_periodic, BCym_periodic
-     use modfields, only : pres0, up, u0, um, uouttot, vp, v0
      use m_halo,    only : halo_exchange
+#if defined(_GPU)
+     use cudafor
+     use modcuda,   only : p_d, pres0_d
+#else
+     use modfields, only : p, pres0
+#endif
+     implicit none
+     integer :: i, j, k
 
-     real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb - kh:ke + kh), intent(inout) :: p !< pressure
-     integer i, j, k
-     real rk3coef, rk3coefi
-
-     if (rk3step == 0) then ! dt not defined yet
-       rk3coef = 1.
-     else
-       rk3coef = dt / (4. - dble(rk3step))
-     end if
-     rk3coefi = 1. / rk3coef
-
-!$acc data create(p, pres0)
-!$acc update device(p, pres0)
+#if defined(_GPU)
+     call halo_exchange(p_d, 3)
+     call halo_exchange(pres0_d, 3)
+#else
      call halo_exchange(p, 3)
      call halo_exchange(pres0, 3)
-!$acc update host(p, pres0)
-!$acc end data
+#endif
 
      if (BCxm .eq. BCxm_periodic) then
+     
        if (ibrank .and. ierank) then
+         !$acc kernels default(present)
          do j = jb, je
            do k = kb, ke
+#if defined(_GPU)
+             p_d(ib-1, j, k) = p_d(ie, j, k)
+             p_d(ie+1, j, k) = p_d(ib, j, k)
+#else
              p(ib-1, j, k) = p(ie, j, k)
              p(ie+1, j, k) = p(ib, j, k)
              !pres0(ib - 1, j, k) = pres0(ie, j, k)
              !pres0(ie + 1, j, k) = pres0(ib, j, k)
+#endif
            end do
          end do
+         !$acc end kernels
        end if
 
      else
+     
        if (ibrank) then
+         !$acc kernels default(present)
          do k = kb, ke
            do j = jb-1, je+1
+#if defined(_GPU)
+             p_d(ib-1, j, k) = p_d(ib, j, k)
+             pres0_d(ib-1, j, k) = pres0_d(ib, j, k)
+#else
              p(ib-1, j, k) = p(ib, j, k)
              pres0(ib-1, j, k) = pres0(ib, j, k)
+#endif
            end do
          end do
+         !$acc end kernels
        end if
 
        if (ierank) then
+         !$acc kernels default(present)
          do k = kb, ke
            do j = jb-1, je+1
+#if defined(_GPU)
+             p_d(ie+1, j, k) = p_d(ie, j, k)
+             pres0_d(ie+1, j, k) = pres0_d(ie, j, k)
+#else
              p(ie+1, j, k) = p(ie, j, k)
              pres0(ie+1, j, k) = pres0(ie, j, k)
+#endif
            end do
          end do
+         !$acc end kernels
        end if
 
      end if ! BCxm
 
      if (BCym .eq. BCym_periodic) then
+
        if (jbrank .and. jerank) then
+         !$acc kernels default(present)
          do i = ib, ie
            do k = kb, ke
+#if defined(_GPU)
+             p_d(i, jb-1, k) = p_d(i, je, k)
+             p_d(i, je+1, k) = p_d(i, jb, k)
+#else
              p(i, jb-1, k) = p(i, je, k)
              p(i, je+1, k) = p(i, jb, k)
              !pres0(ib - 1, j, k) = pres0(ie, j, k)
              !pres0(ie + 1, j, k) = pres0(ib, j, k)
+#endif
            end do
          end do
+         !$acc end kernels
        end if
+
      else
+
        if (jbrank) then
+         !$acc kernels default(present)
          do k = kb, ke
            do i = ib-1, ie+1
+#if defined(_GPU)
+             p_d(i,jb-1,k) = p_d(i,jb,k)
+             pres0_d(i,jb-1,k) = pres0_d(i,jb,k)
+#else
              p(i,jb-1,k) = p(i,jb,k)
              pres0(i,jb-1,k) = pres0(i,jb,k)
-           enddo
-         enddo
+#endif
+           end do
+         end do
+         !$acc end kernels
        end if
 
        if (jerank) then
+         !$acc kernels default(present)
          do k = kb, ke
            do i = ib-1, ie+1
+#if defined(_GPU)
+             p_d(i, je+1, k) = p_d(i,je,k)
+             pres0_d(i, je+1, k) = pres0_d(i,je,k)
+#else
              p(i, je+1, k) = p(i,je,k)
              pres0(i, je+1, k) = pres0(i,je,k)
+#endif
            end do
          end do
+         !$acc end kernels
        end if
 
      end if !BCym

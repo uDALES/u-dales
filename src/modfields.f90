@@ -90,15 +90,14 @@ module modfields
   real, allocatable, pinned         :: up(:,:,:)
   real, allocatable, pinned         :: vp(:,:,:)
   real, allocatable, pinned         :: wp(:,:,:)
+  real, allocatable, pinned, target :: p(:,:,:)
 #else
   real, allocatable                 :: up(:,:,:)        !<   tendency of um
   real, allocatable                 :: vp(:,:,:)        !<   tendency of vm
   real, allocatable                 :: wp(:,:,:)        !<   tendency of wm
+  real, allocatable,         target :: p(:,:,:)         !< difference between p at previous and new step (p = P_new - P_old) or the pressure correction
 #endif
-  real, allocatable, target :: pup(:,:,:), pvp(:,:,:), pwp(:,:,:)
-  real, allocatable, target :: ru(:,:,:)        !<   tendency of um
-  real, allocatable, target :: rv(:,:,:)        !<   tendency of vm
-  real, allocatable, target :: rw(:,:,:)        !<   tendency of wm
+  real, allocatable,         target :: pup(:,:,:), pvp(:,:,:), pwp(:,:,:) !< prediction of the velocity fields, not yet divergence free
 #if defined(_GPU)
   real, allocatable, pinned         :: thlp(:,:,:)
   real, allocatable, pinned         :: thlpc(:,:,:)
@@ -550,9 +549,6 @@ contains
     allocate(up(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)) ; up=0.
     allocate(vp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)) ; vp = 0.
     allocate(wp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))  ; wp = 0.
-    allocate(ru(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)) ; ru=0.
-    allocate(rv(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)) ; rv = 0.
-    allocate(rw(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))  ; rw = 0.
     ! allocate(pres0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); pres0 = 0.
     !
     ! ! Always have to allocate these, even if they are constant
