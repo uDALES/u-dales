@@ -383,6 +383,7 @@ module modglobal
    real    :: tfielddump = 10000. !< Time step for field outputs
    real    :: tsample = 5. !<    Sample time steps for statistics
    real    :: tstatsdump = 10000. !< Time step for statistics outputs tg3315
+   real    :: tstatstart = 0.      !< Starting time of statistic computation
    real    :: tnextrestart !<     * each trestart sec. a restart file is written to disk
    real    :: tscale !       timescale: domain height*Uinf/utau**2
    real    :: tnextfielddump !<

@@ -3,7 +3,7 @@ module stats
                          ltdump, lxytdump, lxydump, lytdump, lydump, ltreedump, &
                          ib, ie, ih, jb, je, jh, kb, ke, kh, &
                          dxf, dzf, dzfi, dxhi, dzhi, dzh2i, dyi, dzhiq, &
-                         timee, tstatsdump, tsample, dt, &
+                         timee, tstatsdump, tstatstart, tsample, dt, runtime, &
                          k1, JNO2
   use modfields,  only : um, vm, wm, pres0, thlm, qtm, svm, &
                          IIu, IIus, IIut, IIv, IIvs, IIvt, IIw, IIws, IIwt, IIc, IIcs, IIct, &
@@ -271,6 +271,17 @@ module stats
       implicit none
       
       if(.not.(ltdump .or. lxytdump .or. lxydump .or. lytdump .or. lydump .or. ltreedump)) return
+
+      if(runtime <= tstatstart + tstatsdump) then
+        if(myid==0) then
+          write(*,*) "ERROR: no statistics file will be written as runtime <= tstatstart + tstatsdump. &
+                      &Note that runtime must be greater than tstatstart + tstatsdump for writing statistics files."
+          write(*,*) "You have used runtime = ", runtime, ", tstatstart = ", tstatstart, ", and &
+                     &tstatsdump = ", tstatsdump
+          write(*,*) "Either correct the time settings or change all the stats writing flags to false."
+          stop 1
+        end if
+      end if
       
       xdim = ie-ib+1
       ydim = je-jb+1
@@ -416,6 +427,7 @@ module stats
     subroutine stats_main
       implicit none
 
+      if (timee < tstatstart) return
       if (.not. rk3step==3)  return
       if(.not.(ltdump .or. lxytdump .or. lxydump .or. lytdump .or. lydump .or. ltreedump)) return
 

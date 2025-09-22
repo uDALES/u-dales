@@ -1,9 +1,10 @@
 module instant_slice
-  use modglobal,  only : cexpnr, rk3step, ltempeq, lmoist, nsv, tsample, dt, timee, &
+  use modglobal,  only : cexpnr, rk3step, ltempeq, lmoist, nsv, tsample, dt, timee, runtime, &
                          slicevars, lislicedump, islice, ljslicedump, jslice, lkslicedump, kslice, &
-                         ib, ie, jb, je, kb, ke, dzfi, dzh
+                         ib, ie, jb, je, kb, ke, dzfi, dzh, &
+                         timee, tstatstart
   use modfields,  only : um, vm, wm, thlm, qtm, svm
-  use modmpi,     only : cmyidx, cmyidy
+  use modmpi,     only : myid, cmyidx, cmyidy
   use decomp_2d,  only : zstart, zend
   use modstat_nc, only : ncinfo, open_nc, define_nc, writestat_dims_nc, writestat_nc
   implicit none
@@ -46,6 +47,16 @@ module instant_slice
                   &and lkslicedump are set to false, and no instantaneous slice will be outputted !!"
         return
       end if
+
+      if(runtime <= tstatstart) then
+        if(myid==0) then
+          write(*,*) "ERROR: no instantaneous slice will be written as runtime <= tstatstart. Note that runtime &
+                      &must be greater than tstatstart for wiriting slice files."
+          write(*,*) "You have used runtime = ", runtime, ", tstatstart = ", tstatstart
+          write(*,*) "Either correct the time settings or change all the slice writing flags to false."
+          stop 1
+        end if
+      end if
       
       xdim = ie-ib+1
       ydim = je-jb+1
@@ -78,6 +89,7 @@ module instant_slice
 
     subroutine instant_main
       implicit none
+      if (timee < tstatstart) return
       if (.not. rk3step==3)  return
       if(.not.(lislicedump .or. ljslicedump .or. lkslicedump)) return
 
