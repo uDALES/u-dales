@@ -103,8 +103,13 @@ for file in stats_*_out.*.000.${expnr}.nc ; do
         dumps=${file%.000.${expnr}.nc}
 
         if [ ${dumps:0:11} == "stats_t_out" ]; then
-            echo "Merging stats_t_out along y-direction."
+            echo "Merging ${dumps:0:11} along y-direction."
 	        ymparam="v,vpwp,upvp,vsgs,ym"
+        elif [ ${dumps:0:14} == "stats_tree_out" ]; then
+            echo "Merging ${dumps:0:14} along y-direction."
+	        ymparam="tr_v,ym"
+        else
+            ymparam="ym"
         fi
 
         outfile="${dumps}.${expnr}.nc"
@@ -234,11 +239,16 @@ for file in stats_*_out.000.${expnr}.nc ; do
         dumps=${file%.000.${expnr}.nc}
 
         if [ $dumps == "stats_t_out" ]; then
-	        echo "Merging stats_t_out along x-direction."	
+	        echo "Merging $dumps along x-direction."	
             xmparam="u,upwp,upvp,usgs,xm"
         elif [ $dumps == "stats_yt_out" ] || [ $dumps == "stats_y_out" ]; then
 	        echo "Merging $dumps along x-direction."	
             xmparam="u,upwp,uw,usgs,xm"
+        elif [ $dumps == "stats_tree_out" ]; then
+	        echo "Merging $dumps along x-direction."	
+            xmparam="tr_u,xm"
+        else
+            xmparam="xm"
         fi
 
         outfile="${dumps}.${expnr}.nc"

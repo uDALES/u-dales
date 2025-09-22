@@ -1120,8 +1120,8 @@ module stats
       allocate(tr_ut(ib:ie,jb:je,kb:ke))     ; tr_ut     = 0;
       allocate(tr_vt(ib:ie,jb:je,kb:ke))     ; tr_vt     = 0;
       allocate(tr_wt(ib:ie,jb:je,kb:ke))     ; tr_wt     = 0;
-      call ncinfo( treeVars(ctrtree+ 1,:), 'tr_u'      , 'Drag in x'            , 'm/s^2'   , 'tttt' )
-      call ncinfo( treeVars(ctrtree+ 2,:), 'tr_v'      , 'Drag in y'            , 'm/s^2'   , 'tttt' )
+      call ncinfo( treeVars(ctrtree+ 1,:), 'tr_u'      , 'Drag in x'            , 'm/s^2'   , 'mttt' )
+      call ncinfo( treeVars(ctrtree+ 2,:), 'tr_v'      , 'Drag in y'            , 'm/s^2'   , 'tmtt' )
       call ncinfo( treeVars(ctrtree+ 3,:), 'tr_w'      , 'Drag in z'            , 'm/s^2'   , 'ttmt' )
       ctrtree = ctrtree+3
     end subroutine stats_init_tree_vel
