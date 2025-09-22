@@ -37,6 +37,7 @@ program DALESURBAN      !Version 48
   use modibm,            only : initibm,createmasks,ibmwallfun,ibmnorm,bottom
   use modtrees,          only : createtrees,trees
   use modpurifiers,      only : createpurifiers,purifiers
+  use modheatpump,       only : init_heatpump,heatpump,exit_heatpump
   use initfac,           only : readfacetfiles
   use modEB,             only : initEB,EB
   use moddriver,         only : initdriver
@@ -116,6 +117,8 @@ program DALESURBAN      !Version 48
 
   call createpurifiers
 
+  call init_heatpump
+
   !call fielddump
 
 !------------------------------------------------------
@@ -166,6 +169,8 @@ program DALESURBAN      !Version 48
     call EB
 
     call trees
+
+    call heatpump
 
     call scalsource     ! adds continuous forces in specified region of domain
 
@@ -222,6 +227,7 @@ program DALESURBAN      !Version 48
 !-------------------------------------------------------
   call exitfielddump
   call exitstatsdump     !tg3315
+  call exit_heatpump
   call stats_exit
   !call exitmodules
   !call exittest

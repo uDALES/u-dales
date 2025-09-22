@@ -14,21 +14,22 @@ This list refers to the original code-base [DALES](https://github.com/dalesteam/
 | lwarmstart | .false. | .true. or .false. | If .true. simulation reads in restart file to initialize fields.  | - |
 | startfile | '' | 'initd00001234_xxx_xxx.000'| Name of restart file, the last three digits should match iexpnr. | - |
 | runtime | 300 | > 0 | Simulation time. | [s] |
-| dtmax | 20 | > 0 | Maximum allowed numerical integration timestep. | [s] |
 | trestart | 10000. | 0 < trestart < runtime | Time at which restart files are written, trestart > runtime will prevent restart files being written.  | [s] |
+| dtmax | 20 | > 0 | Maximum allowed numerical integration timestep. | [s] |
 | ladaptive | .false. | .true. or .false. | Switch for adaptive time-stepping, .true. recommended. | - |
-| irandom | 0 | `INTEGER` > 0 | Seed for random number generation. | - |
-| randu | 0.0 |`REAL` > 0 | Amplitude of velocity field randomisation. | [m/s] |
-| randthl | 0.0 | `REAL` > 0 | Amplitude of temperature field randomisation. | [K] |
-| randq | 0.0 | `REAL` > 0 | Amplitude of moisture field randomisation. | [kg/kg] |
 | courant | 1.1 | 1 <= courant <=2 | Courant number, default sets it to 1.5 or 1.1 (if Kappa or upwind scheme is used). | - |
+| lrandomize | .true. | .true. or .false. | Switch that determines whether initial field is randomised.| - | 
+| irandom | 43 | `INTEGER` > 0 | Seed for random number generation. | - |
+| randu | 0.01 |`REAL` > 0 | Amplitude of velocity field randomisation. | [m/s] |
 | libm | .true. | .true. or .false. | Switch that determines whether the Immersed Boundary Method is turned on. | - |
 | lles | .true. | .true. or .false. | Switch that determines whether the subgrid model is turned on or constant ekm and ekh are used (DNS). | - |
-| lrandomize | .true. | .true. or .false. | Switch that determines whether initial field is randomised.| - | 
 | nprocx | -  | `INTEGER` > 0 | Number of pencils in the x-direction (see 2decomp documentation [https://2decomp-fft.github.io/]), must be a divisor of itot. | - |
 | nprocy | -  | `INTEGER` > 0 | Number of pencils in the y-direction (see 2decomp documentation [https://2decomp-fft.github.io/]), must be a divisor of jtot and ktot. | - |
 
-
+<!---
+| randthl | 0.0 | `REAL` > 0 | Amplitude of temperature field randomisation. | [K] |
+| randqt | 0.0 | `REAL` > 0 | Amplitude of moisture field randomisation. | [kg/kg] |
+--->
 
 ## Namelist DOMAIN
 
@@ -45,8 +46,8 @@ This list refers to the original code-base [DALES](https://github.com/dalesteam/
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
-| ps | -1 | `REAL` > 0 | Air pressure at surface, recommend using standard pressure.| [Pa] |
-| igrw_damp | 0 | 0, 1. | Switch to enable gravity wave damping.| - |
+| ps | 101325 | `REAL` > 0 | Air pressure at surface, recommend using standard pressure.| [Pa] |
+| igrw_damp | 0 | 0, 1, 2, 3 | Integer switch to enable gravity wave damping.| - |
 | ltempeq | .false. | .true. or .false. | Switch for solving temperature equation. | - |
 | lbuoyancy | .false. | .true. or .false. | Switch for buoyancy force in temperature equation. | - |
 | lmoist | .false. | .true. or .false. | Switch for solving moisture equation. | - |
@@ -93,7 +94,7 @@ Possible advection schemes:
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
 | lqlnr | .false. | .true. or .false. | Logical for calculation of liquid water concentration. | - |
-| ipoiss | 0 | 0 | Poisson solver. 0 = Fast Fourier Transform. | - |
+| ipoiss | 0 | 0 | Poisson solver. 0 = using 2D Fast Fourier Transform. | - |
 | iadv_mom | 2 | 2 | Advection scheme for momentum. | - |
 | iadv_tke | 2 | 2 | Advection scheme for TKE. Only used if `loneeqn = True`. | - |
 | iadv_thl | 2 | 2 | Advection scheme for temperature. | - |
@@ -156,7 +157,7 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
-| lvreman | .false. | .true. or .false. | Switch for Vreman (2004) sub-grid scheme. | - |
+| lvreman | .true. | .true. or .false. | Switch for Vreman (2004) sub-grid scheme. | - |
 <!-- | c_vreman | 0.07 | `REAL` | Model constant for Vreman scheme. | - | --->
 <!---
 | lbuoycorr | .false. | .true. or .false. | Switch for buoyancy correlation in the Vreman scheme. | - |
@@ -268,8 +269,9 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | lfielddump | .false. | .true. or .false. | Switch for instantaneous field output. | - |
 | tfielddump | 10000. | | Output time for fields. | [s] |
 | fieldvars | '' | Any of the given labels, several are seperated by a comma: u0,v0,w0,th,ql,qt,p0,s1,s2,s3,s4,s5 | Variable names of fields. | - |
-| tsample | 5. | | Sample time for statistics. | [s] |
-| tstatsdump | 10000. | | Output time for statistics. | [s] |
+| tsample | 5. | `REAL` | Sample time for statistics. | [s] |
+| tstatsdump | 10000. | `REAL` | Output time for statistics. | [s] |
+| tstatstart | 0. | `REAL` | Time from which statistics computation or data sampling starts. | [s] |
 | ltdump | .false. | .true. or .false. | Switch to output time-averaged statistics. | - |
 | lydump | .false. | .true. or .false. | Switch to output y-averaged statistics. *Only functional if x-direction is not parallelised.* | - |
 | lytdump | .false. | .true. or .false. | Switch to output y- and time- averaged statistics. *Only functional if x-direction is not parallelised.* | - |
@@ -352,6 +354,18 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | lchem | .false. | .true., .false. | Switch for basic chemistry. | - |
 | k1 | 0. | | Rate constant (O3 + NO -> NO2 + 02 ). Chemistry model parameter. | |
 | JNO2 | 0. | | NO2 photolysis rate. Chemistry model parameter. | |
+
+
+## Namelist HEATPUMP
+
+| Name | Default | Possible values | Description | Unit |
+| ---- | ------- | --------------- | ----------- | ---- |
+| lheatpump | .false. | .true. or .false. | Switch for basic heat pump. |  |
+| lfan_hp | .true. | .true. or .false. | Switch for heat pump fan on/off. |  |
+| nhppoints | 0 | `INTEGER` | Number of heat pump grid points. |  |
+| Q_dot_hp | 0. | `REAL` | Total volume flux emission from the heat pump in vertical direction. | [m^3/s] |
+| QH_dot_hp | 0. | `REAL` | Rate of total heat extracted from the ambient air by the heat pump. | [W] |
+
 
 <!---
 ## Namelist INLET

@@ -82,7 +82,7 @@ contains
   end subroutine initsubgrid
 
   subroutine subgridnamelist
-    use modglobal, only : pi,ifnamopt,fname_options,lles
+    use modglobal, only : pi,ifnamopt,fname_options,lles,lbuoyancy
     use modmpi,    only : myid, nprocs, comm3d, mpierr, my_real, mpi_logical, mpi_integer
 
     implicit none
@@ -122,6 +122,8 @@ contains
     if ((lsmagorinsky) .or. (lvreman) .or. (loneeqn)) then
        lles =.true.
     endif
+
+    if (lbuoyancy) lbuoycorr = .true.
 
 
   end subroutine subgridnamelist
@@ -334,8 +336,8 @@ contains
              end do
            end do
          end do
-         ekm(:,:,:) = ekm(:,:,:) + numol                             ! add molecular viscosity
-         ekh(:,:,:) = ekh(:,:,:) + numol*prandtlmoli                 ! add molecular diffusivity
+        !  ekm(:,:,:) = ekm(:,:,:) + numol                             ! add molecular viscosity
+        !  ekh(:,:,:) = ekh(:,:,:) + numol*prandtlmoli                 ! add molecular diffusivity
 
        else  ! neutral case
 

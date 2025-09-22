@@ -60,12 +60,11 @@ nav:
   - Home: index.md
   - Installation: udales-installation.md
   - "Simulation inputs":
-    - Boundary conditions: udales-boundary-conditions.md
     - List of input parameters: udales-namoptions-overview.md
+    - Boundary conditions: udales-boundary-conditions.md
     - Geometry generation: udales-geometry-tutorial.md
     - Copying from other simulations: udales-copy-inputs.md
     - Precursor simulations: udales-driver-simulations.md
-    - Example simulations: udales-example-simulations.md
   - "Running the simulation":
     - Pre-processing: udales-pre-processing.md
     - Running uDALES: udales-simulation-setup.md
@@ -74,6 +73,7 @@ nav:
     - udbase: udales-udbase-tutorial.md
     - Flow fields and statistics: udales-fields-tutorial.md
     - Facets: udales-facets-tutorial.md
+  - Example simulations: udales-example-simulations.md
   - How to cite: udales-how-to-cite.md
   - Publication list: udales-pub-list.md
   - Development notes: DEVELOP.md

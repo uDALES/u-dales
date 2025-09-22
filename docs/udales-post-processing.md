@@ -1,7 +1,7 @@
 # Post-processing
 
-uDALES saves the outputs as NetCDF files. If a simulation is run on several processors, each processor writes independent output files. The script `nco_concatenate_field.sh` in the `tools` directory can be used to gather these output files into a single file.
-The wrapper script `gather_outputs.sh` does this automatically for all output fields of the simulation. The script is automatically called after a simulation run when using `local_execute.sh` or `hpc_execute.sh` for executing your simulation.
+uDALES saves the outputs as NetCDF files. If a simulation is run on several processors, each processor writes independent output files. The scripts `nco_concatenate_field_x.sh` and `nco_concatenate_field_y.sh` in the `tools` directory can be used together to gather these output files into a single file.
+The wrapper script `gather_outputs.sh` does this automatically for all output fields of the simulation. The script is automatically called after a simulation run when using `local_execute.sh` or `hpc_execute.sh` or `archer_execute.sh` for executing your simulation.
 
 If you have separate output files of a continuous simulation, e.g. because one simulation is the warmstart of the other simulation, you can append these output files into a single file using the script `append_outputs.sh`.
 
@@ -17,7 +17,15 @@ To gather the output files of serveral processors from your simulation to a sing
 ./u-dales/tools/gather_outputs.sh outputs/009
 ```
 
-Replace 009 with the number of your simulation.
+Replace 009 with the number of your simulation. When on the ARCHER2 cluster, one should carry out the gather operation on the copute nodes using the wrapper script `archer_gather.sh` as below,
+
+``` sh
+# We assume you are running the following commands from your
+# top-level project directory.
+
+# General syntax: gather_outputs.sh <path-to-exp-outputs>
+./u-dales/tools/archer_gather.sh outputs/009
+```
 
 ## Append two output files
 

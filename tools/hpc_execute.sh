@@ -22,7 +22,8 @@ set -e
 if (( $# < 1 ))
 then
  echo "The experiment directory must be set."
- exit
+ echo "usage: FROM THE TOP LEVEL DIRECTORY run: u-dales/tools/hpc_execute.sh <PATH_TO_CASE>"
+ exit 1
 fi
 
 ## go to experiment directory
@@ -37,32 +38,59 @@ echo "experiment number: $exp"
 ## read in additional variables
 if [ -f config.sh ]; then
     source config.sh
+else
+    echo "config.sh must be there inside $inputdir"
+    exit 1
 fi
 
+## check if required variables are set
+if [ -z $DA_WORKDIR ]; then
+    echo "Script directory DA_WORKDIR must be set inside $inputdir/config.sh"
+    exit 1
+fi;
+if [ -z $DA_BUILD ]; then
+    echo "Script directory DA_BUILD must be set inside $inputdir/config.sh"
+    exit 1
+fi;
+if [ -z $DA_TOOLSDIR ]; then
+    echo "Script directory DA_TOOLSDIR must be set inside $inputdir/config.sh"
+    exit 1
+fi;
+if [ -z $NNODE ]; then
+    echo "Script directory NNODE must be set inside $inputdir/config.sh"
+    exit 1
+fi;
+if [ -z $NCPU ]; then
+    echo "Script directory NCPU must be set inside $inputdir/config.sh"
+    exit 1
+fi;
+if [ -z $WALLTIME ]; then
+    echo "Script directory WALLTIME must be set inside $inputdir/config.sh"
+    exit 1
+fi;
+if [ -z $MEM ]; then
+    echo "Script directory MEM must be set inside $inputdir/config.sh"
+    exit 1
+fi;
+
 ## set the output directory
-outdir=$EPHEMERAL/$exp
+outdir=$DA_WORKDIR/$exp
 
 echo "writing job.$exp."
 
 ## write new job.exp file for HPC
-echo "#PBS -l walltime=${WALLTIME}" > job.$exp
-echo "#PBS -l select=${NNODE}:ncpus=${NCPU}:mem=${MEM}" >> job.$exp
-
-## load modules required for the execution
-echo "module load intel-suite/2017.6 mpi/intel-2018 cmake/3.14.0 git/2.14.3" >> job.$exp
-
-## copy files to execution and output directory
-echo "mkdir -p $outdir" >> job.$exp
-echo "cp -r $inputdir/* $outdir" >> job.$exp
-
-## go to execution and output directory
-echo "pushd $outdir" >> job.$exp
-
-## execute program with mpi
-echo "mpiexec -n $(( $NCPU * $NNODE )) $DA_BUILD $outdir/namoptions.$exp > $outdir/output.$exp 2>&1" >> job.$exp
-
-## gather output files from cores in a single file
-echo "$DA_TOOLSDIR/gather_outputs.sh $outdir " >> job.$exp
+cat <<EOF > job.$exp
+#!/bin/bash
+#PBS -l walltime=${WALLTIME}
+#PBS -l select=${NNODE}:ncpus=${NCPU}:mpiprocs=$(( $NCPU * $NNODE )):mem=${MEM}
+module load intel/2025a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a FFTW/3.3.9-intel-2021a CMake/3.29.3-GCCcore-13.3.0 git/2.45.1-GCCcore-13.3.0
+mkdir -p $outdir
+cp -r $inputdir/* $outdir
+pushd $outdir
+mpiexec -n $(( $NCPU * $NNODE )) $DA_BUILD $outdir/namoptions.$exp > $outdir/output.$exp 2>&1
+module load NCO/5.2.9-foss-2024a
+$DA_TOOLSDIR/gather_outputs.sh $outdir
+EOF
 
 ## submit job.exp file to queue
 qsub job.$exp
