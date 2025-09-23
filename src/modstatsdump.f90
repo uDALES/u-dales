@@ -188,8 +188,6 @@ contains
 
       call ncinfo(ncstatyt( 21,:),'upupyt'     ,'mom. variance'            ,'m^2/s^2' ,'t0tt')
       call ncinfo(ncstatyt( 22,:),'wpwpyt'     ,'mom. variance'            ,'m^2/s^2' ,'t0tt')
-      call ncinfo(ncstatyt( 21,:),'upupyt'     ,'mom. variance'            ,'m^2/s^2' ,'t0tt')
-      call ncinfo(ncstatyt( 22,:),'wpwpyt'     ,'mom. variance'            ,'m^2/s^2' ,'t0tt')
       call ncinfo(ncstatyt( 23,:),'thlpthlpyt' ,'temp. variance'           ,'K^2'     ,'t0tt')
       call ncinfo(ncstatyt( 24,:),'qtpqtpyt'   ,'moisture. variance'       ,'kg^2/kg^2','t0tt')
       call ncinfo(ncstatyt( 25,:),'sca1tpsca1pyt','scalar. variance'       ,'M^2'     ,'t0tt')
@@ -531,7 +529,6 @@ contains
                                tr_qtA,tr_qtt,tr_qtRt,tr_qtAt,tr_sv,tr_sv1t, PSSt, tr_sv2t,tr_omega,tr_omegat
   use modglobal,        only : ib,ie,ih,ihc,xf,xh,jb,je,jhc,jgb,jge,dy,dyi,jh,ke,kb,kh,khc,rk3step,&
                                timee,cexpnr,tsample,tstatsdump,tstatstart,jtot,imax,jmax,dzf,&
-                               timee,cexpnr,tsample,tstatsdump,tstatstart,jtot,imax,jmax,dzf,&
                                ltempeq,zh,dxf,dzf,dzh2i,lprofforc,lscasrcl,&
                                lkslicedump,lislicedump,ljslicedump,lchem,dzhi,dzfi,dzhiq,dxhi,lmoist,nsv,&
                                k1,JNO2,lchem,kslice,islice,jslice,&
@@ -739,8 +736,6 @@ contains
   integer :: i,j,k,ip,im,jp,jm,kp,km
   integer :: writecounter = 1
   integer :: reclength
-
-  if (timee < tstatstart) return
 
   if (timee < tstatstart) return
 
@@ -1532,7 +1527,6 @@ contains
     vpwptjk = vwtjk - vtjk*wtjk
     upvptij = uvtij - utij*vtij
     if (ltempeq) then
-      wpthlptk = wthltk - wmt*thltk
       wpthlptk = wthltk - wmt*thltk
     end if
     if (nsv>0) then
