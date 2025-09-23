@@ -220,9 +220,9 @@ for file in *dump.000.${expnr}.nc ; do
         ${toolsdir}/nco_concatenate_field_x.sh $dumps $xmparam $outfile
         echo "Merging done."
 
-	if [ $dumps == "jslicedump" ]; then
-            rm ${dumps}.???.${expnr}.nc
-    	fi
+	# if [ $dumps == "jslicedump" ]; then
+    #         rm ${dumps}.???.${expnr}.nc
+    # 	fi
 
     fi
 
@@ -277,14 +277,8 @@ for file in *slice.000.${expnr}.nc ; do
         ${toolsdir}/nco_concatenate_field_x.sh $dumps $xmparam $outfile
         echo "Merging done."
 
-	    if [ $dumps == "jslice" ]; then
-            rm ${dumps}.???.${expnr}.nc
-    	fi
+	    # if [ $dumps == "jslice" ]; then
+        #     rm ${dumps}.???.${expnr}.nc
+    	# fi
     fi
 done
-
-
-if [ -z $LOCAL_EXECUTE ]; then
-    module unload nco
-fi;
-
