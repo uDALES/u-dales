@@ -28,6 +28,8 @@ classdef udgeom < handle
 
    properties (SetAccess = protected)
       stl;                     % stl of the geometry
+      outline;                 % outline edges calculated using calculateOutline
+      buildings;               % cell array of individual building triangulations (lazy loaded)
    end   
    
    methods
@@ -50,7 +52,8 @@ classdef udgeom < handle
                 % Check if the input argument is a triangulation object
                 elseif isa(varargin{1}, 'triangulation')
                     obj.stl = varargin{1};
-                    % You can add more logic here if needed for triangulation object input
+                    % Calculate and store outline edges with default angle threshold
+                    [obj.outline, ~] = udgeom.calculateOutline(obj.stl, 45);
                 else
                     error('Input must be either a string or a triangulation object.');
                 end
@@ -101,6 +104,11 @@ classdef udgeom < handle
          obj.gopath()
          obj.stl = stlread(filename);
          obj.gohome()
+         
+         % Calculate and store outline edges with default angle threshold
+         if ~isempty(obj.stl)
+             [obj.outline, ~] = udgeom.calculateOutline(obj.stl, 45);
+         end
       end
       
       % -------------------------------------------------------------- %
@@ -114,6 +122,55 @@ classdef udgeom < handle
          obj.gopath()
          stlwrite(obj.stl, filename)
          obj.gohome()
+      end
+      
+      % -------------------------------------------------------------- %
+      
+      function building_components = get_buildings(obj)
+         % Get individual building components with lazy loading.
+         %
+         % building_components = get_buildings(obj)
+         %   Returns cell array of triangulation objects, one for each building
+         %
+         % Example:
+         %   buildings = geom.get_buildings();
+         %   num_buildings = length(buildings);
+         
+         if isempty(obj.stl)
+             warning('No STL geometry loaded. Load geometry first.');
+             building_components = {};
+             return;
+         end
+         
+         % Lazy load buildings if not already computed
+         if isempty(obj.buildings)
+             obj.buildings = udgeom.splitBuildings(obj.stl);
+         end
+         
+         building_components = obj.buildings;
+      end
+      
+      % -------------------------------------------------------------- %
+      
+      function calculate_outline_edges(obj, angle_threshold)
+         % Recalculate outline edges with a custom angle threshold.
+         %
+         % calculate_outline_edges(obj, angle_threshold)
+         %   angle_threshold: Angle threshold in degrees for detecting sharp edges
+         %
+         % Example:
+         %   obj.calculate_outline_edges(30);  % More aggressive edge detection
+         
+         if isempty(obj.stl)
+             warning('No STL geometry loaded. Load geometry first.');
+             return;
+         end
+         
+         if nargin < 2
+             angle_threshold = 45; % Default angle threshold
+         end
+         
+         [obj.outline, ~] = udgeom.calculateOutline(obj.stl, angle_threshold);
       end
       
       % -------------------------------------------------------------- %
@@ -140,7 +197,7 @@ classdef udgeom < handle
          faceNormals = faceNormal(obj.stl);
          incenters = incenter(obj.stl);
          
-         figure
+         %figure
          patch('Faces', obj.stl.ConnectivityList, 'Vertices', obj.stl.Points, ...
                'FaceColor', ones(3,1)*0.85, 'FaceAlpha', 1) 
          hold on
@@ -163,6 +220,92 @@ classdef udgeom < handle
          axis equal tight
          set(gca,"Box","on")
          set(gca,"BoxStyle","full")
+      end
+      
+      % -------------------------------------------------------------- %
+      
+      function show_outline(obj, angle_threshold)
+         % Plot the geometry outline edges
+         %
+         % show_outline(obj) plots the precomputed outline edges of the geometry
+         % show_outline(obj, angle_threshold) recalculates outline with custom threshold
+         %
+         % Parameters:
+         %   angle_threshold (optional): Angle threshold in degrees for edge detection
+         %                              If not provided, uses precomputed outline
+         %
+         % Examples:
+         %   obj.show_outline();     % Use precomputed outline
+         %   obj.show_outline(30);   % Recalculate with 30° threshold
+
+         if isempty(obj.stl)
+             warning('No STL geometry loaded. Load geometry first.');
+             return;
+         end
+
+         % Handle optional angle_threshold argument
+         if nargin < 2
+             angle_threshold = [];
+         end
+
+         % Determine which outline to use
+         if isempty(angle_threshold)
+             % Use precomputed outline if available
+             if isempty(obj.outline)
+                 % Calculate with default threshold if not available
+                 obj.calculate_outline_edges(45);
+             end
+             outline_edges = obj.outline;
+         else
+             % Recalculate with custom threshold
+             [outline_edges, ~] = udgeom.calculateOutline(obj.stl, angle_threshold);
+         end
+
+         if isempty(outline_edges)
+             warning('No outline edges found.');
+             return;
+         end
+
+         % Create figure and plot mesh and outline
+         hold on;
+
+         % Plot the mesh without edge lines
+         patch('Faces', obj.stl.ConnectivityList, 'Vertices', obj.stl.Points, ...
+               'FaceColor', [0.85 0.85 0.85], ...
+               'EdgeColor', 'none', ...
+               'FaceAlpha', 0.8);
+
+         % Get points
+         points = obj.stl.Points;
+
+         % Prepare line segment coordinates for efficient plotting
+         n_edges = size(outline_edges, 1);
+         coords = nan(3*n_edges, 3);
+
+         % Fill coordinate array (point1, point2, NaN for each edge)
+         for i = 1:n_edges
+             idx = 3*(i-1) + 1;
+             coords(idx,:)   = points(outline_edges(i,1),:);
+             coords(idx+1,:) = points(outline_edges(i,2),:);
+             % coords(idx+2,:) remains NaN for line separation
+         end
+
+         % Plot outline edges with thinner lines
+         line(coords(:,1), coords(:,2), coords(:,3), ...
+              'Color', 'k', ...
+              'LineStyle', '-');
+
+         % Set up the plot
+         view(3);
+         axis equal tight;
+         grid on;
+         xlabel('x [m]');
+         ylabel('y [m]');
+         zlabel('z [m]');
+         set(gca, 'Box', 'on');
+         set(gca, 'BoxStyle', 'full');
+         
+         hold off;
       end
    end
 end

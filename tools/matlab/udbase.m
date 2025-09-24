@@ -508,15 +508,34 @@ classdef udbase < dynamicprops
 
         % ------------------------------------------------------------- %
 
-        function fld = convert_fac_to_field(obj, var, facsec, dz)
+        function fld = convert_fac_to_field(obj, var, facsec, dz, building_ids)
             % Method for converting a facet variable to a density in a 3D
             % field. 
             %
-            % convert_fac_to_field(OBJ, var) converts the facet variable var  
-            %                                to a 3D field density.   
+            % Inputs:
+            %   var:     facet variable (e.g. from load_fac_eb, load_fac_temperature, etc)
+            %   facsec:  facet section structure (e.g. obj.facsec.u)
+            %   dz:      vertical grid spacing at cell centers (obj.dzt)
+            %   building_ids (optional): array of building IDs to include. If not
+            %                            specified, all buildings are included.
             %
-            % Example:
-            %   fld = obj.convert_fac_to_field(var);
+            % Outputs: 
+            %   fld:     3D field density (itot x jtot x ktot)
+            %
+            % The facsec and dz inputs are required since the routine does not know where % on the staggered grid the variable is located.
+            %
+            % convert_fac_to_field(OBJ, var, facsec, dz) converts the facet variable var  
+            %                                to a 3D field density for all facets.   
+            %
+            % convert_fac_to_field(OBJ, var, facsec, dz, building_ids) converts only
+            %                                facets from the specified building IDs.
+            %
+            % Examples:
+            %   % Convert all facets
+            %   fld = obj.convert_fac_to_field(var, sim.facsec.c, sim.dzt);
+            %
+            %   % Convert only specific buildings
+            %   fld = obj.convert_fac_to_field(var, sim.facsec.c, sim.dzt, [1, 5, 10]);
 
              % Function only works when required data has been loaded.
             if (~obj.lffacet_sections)
@@ -526,15 +545,65 @@ classdef udbase < dynamicprops
                        ' to execute.']);
             end
 
+            % Handle optional building_ids parameter
+            if nargin < 5
+                building_ids_to_use = [];
+            else
+                % Validate building IDs
+                if ~isnumeric(building_ids) || ~all(building_ids > 0) || ~all(mod(building_ids,1) == 0)
+                    error('Building IDs must be an array of positive integers');
+                end
+                building_ids_to_use = building_ids;
+            end
+
             fld = zeros(obj.itot, obj.jtot, obj.ktot, 'single');
             facsec_ind = sub2ind(size(fld), ...
                                  facsec.locs(:, 1), ...
                                  facsec.locs(:, 2), ...
                                  facsec.locs(:, 3));
 
+            % If building IDs specified, get face mask for filtering
+            if ~isempty(building_ids_to_use)
+                % Get buildings from geometry object
+                buildings = obj.geom.get_buildings();
+                
+                % Create face mask for specified buildings
+                num_buildings = length(buildings);
+                building_ids_to_use = building_ids_to_use(building_ids_to_use <= num_buildings);
+                
+                cons = obj.geom.stl.ConnectivityList;
+                face_mask = false(size(cons, 1), 1);
+                
+                for building_id = building_ids_to_use
+                    if building_id <= num_buildings && ~isempty(buildings{building_id}) && ...
+                       isa(buildings{building_id}, 'triangulation')
+                        
+                        building_faces = buildings{building_id}.ConnectivityList;
+                        
+                        % Find matching faces in original connectivity list
+                        for j = 1:size(building_faces, 1)
+                            for k = 1:size(cons, 1)
+                                if isequal(sort(building_faces(j,:)), sort(cons(k,:)))
+                                    face_mask(k) = true;
+                                    break;
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+
             % loop over all facet sections and create density field for var
             for m = 1:length(facsec.area) 
                 facid = facsec.facid(m);
+                
+                % If building filtering is active, check if this face should be included
+                if ~isempty(building_ids_to_use)
+                    if ~face_mask(facid)
+                        continue; % Skip this facet if it's not in the specified buildings
+                    end
+                end
+                
                 fld(facsec_ind(m)) = fld(facsec_ind(m)) ...
                                    + var(facid) .* facsec.area(m) ...
                                    / (obj.dx * obj.dy * dz(facsec.locs(m, 3)));
@@ -613,23 +682,156 @@ classdef udbase < dynamicprops
 
         % ------------------------------------------------------------- %
 
-        function plot_fac(obj, var)
+        function plot_fac(obj, var, building_ids)
             % A method for plotting a facet variable var as a 3D surface
             %
-            % plot_fac(OBJ, var) plots variable var
+            % plot_fac(OBJ, var) plots variable var for all facets
             %
-            % Example (plot net shortwave radiation):
+            % plot_fac(OBJ, var, building_ids) plots variable var only for 
+            % the specified building IDs (array of positive integers)
+            %
+            % Examples:
+            %   % Plot net shortwave radiation for all buildings
             %   obj.plot_fac(K); 
+            %
+            %   % Plot only for specific buildings
+            %   obj.plot_fac(K, [1, 5, 10]);
 
             % Function only works when required data has been loaded.
             if (~obj.lfgeom)
                 error('This method requires a geometry (STL) file.');
             end 
 
+            % Handle optional building_ids parameter
+            if nargin < 3
+                building_ids_to_plot = [];
+            else
+                % Validate building IDs
+                if ~isnumeric(building_ids) || ~all(building_ids > 0) || ~all(mod(building_ids,1) == 0)
+                    error('Building IDs must be an array of positive integers');
+                end
+                building_ids_to_plot = building_ids;
+            end
+
             cons = obj.geom.stl.ConnectivityList;
             points = obj.geom.stl.Points;
-            patch('Faces', cons, 'Vertices', points, 'FaceVertexCData',var,'FaceColor','flat', 'EdgeColor', 'None')
+            
+            % If BuildingIDs specified, filter faces and data
+            if ~isempty(building_ids_to_plot)
+                % Get buildings from geometry object
+                buildings = obj.geom.get_buildings();
+                
+                % Validate building IDs
+                num_buildings = length(buildings);
+                building_ids_to_plot = building_ids_to_plot(building_ids_to_plot <= num_buildings);
+                
+                % Create a mask for faces belonging to specified buildings
+                face_mask = false(size(cons, 1), 1);
+                
+                for building_id = building_ids_to_plot
+                    if building_id <= num_buildings && ~isempty(buildings{building_id}) && ...
+                       isa(buildings{building_id}, 'triangulation')
+                        
+                        building_faces = buildings{building_id}.ConnectivityList;
+                        
+                        % Find which faces in the original geometry match this building's faces
+                        for j = 1:size(building_faces, 1)
+                            % Find matching faces in original connectivity list
+                            for k = 1:size(cons, 1)
+                                if isequal(sort(building_faces(j,:)), sort(cons(k,:)))
+                                    face_mask(k) = true;
+                                    break;
+                                end
+                            end
+                        end
+                    end
+                end
+                
+                if any(face_mask)
+                    % Plot only selected faces with corresponding variable values
+                    selected_faces = cons(face_mask, :);
+                    selected_var = var(face_mask);
+                    patch('Faces', selected_faces, 'Vertices', points, 'FaceVertexCData', selected_var, ...
+                          'FaceColor', 'flat', 'EdgeColor', 'None');
+                    
+                    % Add building outlines for selected buildings
+                    hold on;
+                    obj.add_building_outlines(building_ids_to_plot);
+                    hold off;
+                else
+                    warning('No valid faces found for the specified building IDs');
+                end
+            else
+                % Plot all facets (original behavior)
+                patch('Faces', cons, 'Vertices', points, 'FaceVertexCData', var, ...
+                      'FaceColor', 'flat', 'EdgeColor', 'None');
+                
+                % Add outlines for all buildings
+                hold on;
+                obj.add_building_outlines([]);
+                hold off;
+            end
         end 
+
+        % ------------------------------------------------------------- %
+        
+
+        
+        % ------------------------------------------------------------- %
+        
+        function add_building_outlines(obj, building_ids)
+            % Helper method to add building outlines to current plot
+            % If building_ids is empty, adds outlines for all buildings
+            
+            if ~obj.lfgeom
+                return; % Skip if no geometry loaded
+            end
+            
+            % Get buildings from geometry object
+            buildings = obj.geom.get_buildings();
+            
+            % Determine which buildings to outline
+            if isempty(building_ids)
+                buildings_to_outline = 1:length(buildings);
+            else
+                buildings_to_outline = building_ids(building_ids <= length(buildings));
+            end
+            
+            % Add outlines for each building
+            for building_id = buildings_to_outline
+                if ~isempty(buildings{building_id}) && isa(buildings{building_id}, 'triangulation')
+                    try
+                        % Calculate outline edges for this building
+                        [boundary_edges, ~] = udgeom.calculateOutline(buildings{building_id}, 45);
+                        
+                        if ~isempty(boundary_edges)
+                            % Get points from the building triangulation
+                            building_points = buildings{building_id}.Points;
+                            
+                            % Prepare line segment coordinates
+                            n_edges = size(boundary_edges, 1);
+                            coords = nan(3*n_edges, 3);
+                            
+                            % Fill coordinate array
+                            for i = 1:n_edges
+                                idx = 3*(i-1) + 1;
+                                coords(idx,:)   = building_points(boundary_edges(i,1),:);
+                                coords(idx+1,:) = building_points(boundary_edges(i,2),:);
+                            end
+                            
+                            % Draw edge lines
+                            line(coords(:,1), coords(:,2), coords(:,3), ...
+                                 'Color', 'k', ...
+                                 'LineWidth', 0.5, ...
+                                 'LineStyle', '-');
+                        end
+                    catch
+                        % Skip buildings that cause errors in outline calculation
+                        continue;
+                    end
+                end
+            end
+        end
 
         % ------------------------------------------------------------- %
 
@@ -688,6 +890,149 @@ classdef udbase < dynamicprops
                       'FaceColor','flat', 'EdgeColor', 'None')
             end
             legend(labels)
+        end
+
+
+        
+        function plot_building_ids(obj, varargin)
+            % A method for plotting building IDs from above (x,y view) with distinct colors
+            %
+            % plot_building_ids(OBJ) creates a top-view plot showing buildings 
+            % in different colors with building IDs at center of gravity
+            %
+            % plot_building_ids(OBJ, 'FontSize', size) sets the font size 
+            % for building ID labels (default: 12)
+            %
+            % EXAMPLES:
+            %   % Basic usage
+            %   obj.plot_building_ids();
+            %
+            %   % With custom font size
+            %   obj.plot_building_ids('FontSize', 14);
+            %
+            % SEE ALSO: udgeom.splitBuildings, plot_outline
+            
+            % Parse optional arguments (only FontSize allowed)
+            p = inputParser;
+            addParameter(p, 'FontSize', 12, @(x) isnumeric(x) && isscalar(x) && x > 0);
+            parse(p, varargin{:});
+            
+            font_size = p.Results.FontSize;
+            
+            % Get buildings from geometry object
+            if isempty(obj.geom) || isempty(obj.geom.stl)
+                error('Geometry data not available. Cannot split buildings.');
+            end
+            
+            building_triangulations = obj.geom.get_buildings();
+            
+            if isempty(building_triangulations)
+                error('No buildings found in the geometry.');
+            end
+            num_buildings = length(building_triangulations);
+            
+            % Generate distinct colors using default HSV scheme
+            colors = hsv(num_buildings);
+            
+            % Create visualization figure with default settings
+            figure;
+            hold on;
+            view(2);
+            axis equal;
+            grid on;
+            
+            xlabel('X [m]'); 
+            ylabel('Y [m]');
+            title(sprintf('Building Layout with IDs (Total: %d)', num_buildings));
+            
+            % Plot each building and add ID labels
+            plotted_buildings = 0;
+            
+            for i = 1:num_buildings
+                if ~isempty(building_triangulations{i}) && ...
+                   isa(building_triangulations{i}, 'triangulation')
+                    
+                    TR = building_triangulations{i};
+                    points = TR.Points;
+                    faces = TR.ConnectivityList;
+                    
+                    % Skip if building has no faces or points
+                    if isempty(points) || size(points, 1) < 3 || isempty(faces)
+                        continue;
+                    end
+                    
+                    % Get only the points that are actually used by this building's faces
+                    used_point_indices = unique(faces(:));
+                    building_points = points(used_point_indices, :);
+                    
+                    % Create 2D projection by ignoring Z-coordinate
+                    x_coords = building_points(:, 1);
+                    y_coords = building_points(:, 2);
+                    
+                    % Check for valid coordinate range
+                    if all(isnan(x_coords)) || all(isnan(y_coords)) || isempty(x_coords)
+                        continue;
+                    end
+                    
+                    % Plot exact building outline using boundary edges (not internal triangles)
+                    try
+                        % Remap face indices to match the extracted points
+                        % Create a map from original indices to new indices
+                        [~, face_remapped] = ismember(faces, used_point_indices);
+                        
+                        % Create 2D triangulation from remapped faces and extracted points
+                        building_tri_2d = triangulation(face_remapped, [x_coords, y_coords]);
+                        
+                        % Find the boundary edges (external outline only)
+                        boundary_edges = freeBoundary(building_tri_2d);
+                        
+                        if ~isempty(boundary_edges)
+                            % Get boundary points in order
+                            boundary_points = building_tri_2d.Points(boundary_edges(:,1), :);
+                            
+                            % Plot building as filled polygon using boundary
+                            fill(boundary_points(:,1), boundary_points(:,2), colors(i,:), ...
+                                 'EdgeColor', 'k', ...
+                                 'LineWidth', 0.5, ...
+                                 'FaceAlpha', 0.7);
+                            
+                            % Calculate centroid from boundary points
+                            centroid_x = mean(boundary_points(:,1));
+                            centroid_y = mean(boundary_points(:,2));
+                        else
+                            % Fallback to all points if boundary detection fails
+                            centroid_x = mean(x_coords);
+                            centroid_y = mean(y_coords);
+                            scatter(x_coords, y_coords, 100, colors(i,:), 'filled', ...
+                                   'MarkerEdgeColor', 'k', 'LineWidth', 1);
+                        end
+                        
+                    catch
+                        % Fallback: use simple centroid and scatter plot
+                        centroid_x = mean(x_coords);
+                        centroid_y = mean(y_coords);
+                        
+                        % Plot as scatter points if boundary detection fails
+                        scatter(x_coords, y_coords, 100, colors(i,:), 'filled', ...
+                               'MarkerEdgeColor', 'k', 'LineWidth', 1);
+                        
+                    end
+                    
+                    % Add building ID text at centroid with transparent white background
+                    text(centroid_x, centroid_y, sprintf('%d', i), ...
+                         'HorizontalAlignment', 'center', ...
+                         'VerticalAlignment', 'middle', ...
+                         'FontSize', 8, ...
+                         'FontWeight', 'bold', ...
+                         'Color', 'black', ...
+                         'BackgroundColor', [1 1 1 0.7], ...
+                         'Margin', 1);
+                    
+                    plotted_buildings = plotted_buildings + 1;
+                end
+            end
+            
+            hold off;
         end
 
         % ------------------------------------------------------------- %

@@ -1,6 +1,7 @@
 # build directory and compiled objects
 build/
 temp/
+tmp/
 tests/outputs/
 .vscode/
 *.o
