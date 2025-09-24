@@ -1022,8 +1022,8 @@ classdef udbase < dynamicprops
             axis equal;
             box on;
             
-            xlabel('X [m]'); 
-            ylabel('Y [m]');
+            xlabel('x [m]'); 
+            ylabel('x [m]');
             title(sprintf('Building Layout with IDs (Total: %d)', num_buildings));
             
             % Plot each building and add ID labels
