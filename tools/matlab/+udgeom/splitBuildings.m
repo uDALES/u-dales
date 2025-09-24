@@ -1,4 +1,4 @@
-function building_components = splitBuildings(mesh_TR, varargin)
+function [building_components, face_to_building_map] = splitBuildings(mesh_TR, varargin)
 % SPLITBUILDINGS Separate connected building components from a triangulated mesh
 %
 % SYNTAX:
@@ -112,17 +112,26 @@ function building_components = splitBuildings(mesh_TR, varargin)
     % Store original face count for statistics
     original_faces = size(mesh_TR.ConnectivityList, 1);
     
-    % Automatically remove ground-level faces unless disabled
+    % Process with or without ground removal
     if remove_ground
-        % Call the private deleteGround function to remove Z=0 faces
-        processed_mesh = deleteGround(mesh_TR);
-        remaining_faces = size(processed_mesh.ConnectivityList, 1);
-        removed_faces = original_faces - remaining_faces;
-        fprintf('Ground preprocessing: %d faces removed, %d faces remaining\n', removed_faces, remaining_faces);
+        % Use deleteGround function with face mapping
+        fprintf('Ground preprocessing: removing ground faces using deleteGround\n');
+        
+        % Apply deleteGround and get both the processed mesh and face mapping
+        [processed_mesh, processed_to_original_map] = deleteGround(mesh_TR);
+        
+        original_face_count = size(mesh_TR.ConnectivityList, 1);
+        processed_face_count = size(processed_mesh.ConnectivityList, 1);
+        
+        fprintf('Ground preprocessing: %d faces after deleteGround (removed %d ground faces)\n', ...
+                processed_face_count, original_face_count - processed_face_count);
+        fprintf('Ground preprocessing: direct mapping provided by deleteGround\n');
     else
-        % Use the mesh as-is without ground removal
+        % Use all faces without ground removal
         processed_mesh = mesh_TR;
-        fprintf('Ground preprocessing: Ground faces preserved (all %d faces kept)\n', original_faces);
+        fprintf('Ground preprocessing: using all %d faces for building separation\n', original_faces);
+        % Direct 1:1 mapping
+        processed_to_original_map = (1:original_faces)';
     end
     
     %% EXTRACT MESH DATA
@@ -174,14 +183,33 @@ function building_components = splitBuildings(mesh_TR, varargin)
     % Process each connected component
     for i = 1:num_components
         % Extract faces belonging to current component
-        component_faces = faces(components == i, :);
+        component_face_indices = find(components == i);
+        component_faces = faces(component_face_indices, :);
         
         if ~isempty(component_faces)
-            % Create triangulation object for this building component
-            % Suppress warning about unreferenced points (expected behavior for consistent indexing)
-            warning('off', 'MATLAB:triangulation:PtsNotInTriWarnId');
-            building_components{i} = triangulation(component_faces, points);
-            warning('on', 'MATLAB:triangulation:PtsNotInTriWarnId');
+            % Create compact triangulation with only the points this building uses
+            % Find unique vertices used by this building's faces
+            used_vertex_indices = unique(component_faces(:));
+            building_points = points(used_vertex_indices, :);
+            
+            % Remap face connectivity to use compact vertex indices
+            [~, new_face_indices] = ismember(component_faces, used_vertex_indices);
+            compact_faces = reshape(new_face_indices, size(component_faces));
+            
+            % Create compact triangulation object for this building component
+            building_triangulation = triangulation(compact_faces, building_points);
+            
+            % Map processed face indices back to original face indices
+            original_face_indices = processed_to_original_map(component_face_indices);
+            
+            % Store both triangulation and original face indices
+            building_components{i} = struct();
+            building_components{i}.triangulation = building_triangulation;
+            building_components{i}.original_face_indices = original_face_indices;
+            
+            % For backward compatibility, also add triangulation properties directly
+            building_components{i}.ConnectivityList = building_triangulation.ConnectivityList;
+            building_components{i}.Points = building_triangulation.Points;
         end
     end
     
@@ -213,6 +241,43 @@ function building_components = splitBuildings(mesh_TR, varargin)
         fprintf('  Largest building: %d faces\n', largest_building_faces);
         fprintf('  Smallest building: %d faces\n', smallest_building_faces);
         fprintf('  Average faces per building: %.1f\n', total_building_faces / valid_buildings);
+    end
+    
+    % Create face-to-building mapping for the original geometry
+    % Note: components array maps processed faces to building IDs
+    % We need to map this back to original face indices if ground was removed
+    
+    % Debug: Check if components is empty
+    if isempty(components)
+        warning('No components found in splitBuildings');
+        face_to_building_map = [];
+        return;
+    end
+    
+    fprintf('Creating face-to-building mapping: %d faces, %d components\n', ...
+            length(components), num_components);
+    
+    if remove_ground && ~isempty(processed_mesh.ConnectivityList)
+        % If ground was removed, we need to create a full mapping for the original geometry
+        original_num_faces = size(mesh_TR.ConnectivityList, 1);
+        face_to_building_map = zeros(original_num_faces, 1); % 0 means ground/unassigned
+        
+        fprintf('Mapping %d processed building assignments back to %d original faces\n', ...
+                length(components), original_num_faces);
+        
+        % Use the direct mapping we created during deleteGround processing
+        for i = 1:length(components)
+            original_face_idx = processed_to_original_map(i);
+            if original_face_idx > 0 && original_face_idx <= original_num_faces
+                face_to_building_map(original_face_idx) = components(i);
+            end
+        end
+        
+        fprintf('Successfully mapped %d faces to buildings\n', sum(face_to_building_map > 0));
+    else
+        % No ground removal, direct mapping
+        face_to_building_map = components(:);
+        fprintf('Direct mapping: %d faces mapped\n', length(face_to_building_map));
     end
 
 end

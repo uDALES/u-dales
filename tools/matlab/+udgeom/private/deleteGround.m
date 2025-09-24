@@ -1,4 +1,4 @@
-function filtered_TR = deleteGround(TR)
+function [filtered_TR, face_mapping] = deleteGround(TR)
 % DELETEGROUND Remove ground-level faces from a triangulated mesh
 %
 % SYNTAX:
@@ -27,6 +27,10 @@ function filtered_TR = deleteGround(TR)
 %                 * Reduced connectivity list (ground faces eliminated)
 %                 * Compacted vertex list (unused vertices removed)
 %                 * Proper reindexing to maintain mesh integrity
+%   face_mapping - Array mapping filtered face indices to original face indices:
+%                  * Length equals number of faces in filtered_TR
+%                  * face_mapping(i) gives original face index for filtered face i
+%                  * Enables reconstruction of full geometry mapping
 %
 % ALGORITHM:
 %   1. Extract mesh connectivity and vertex coordinates
@@ -51,9 +55,10 @@ function filtered_TR = deleteGround(TR)
 %   TR_original = stlread('urban_scene.stl');
 %   
 %   % Remove ground plane for building analysis
-%   TR_buildings = deleteGround(TR_original);
+%   [TR_buildings, face_mapping] = deleteGround(TR_original);
 %   
-%   % Result: Clean mesh with only elevated structures
+%   % Result: Clean mesh with mapping to original face indices
+%   original_face_1 = face_mapping(1);  % Original index of first filtered face
 %
 % APPLICATIONS:
 %   - Urban flow simulation preprocessing
@@ -122,7 +127,12 @@ function filtered_TR = deleteGround(TR)
     % Construct new triangulation object with ground faces removed
     filtered_TR = triangulation(new_faces, new_points);
     
+    %% CREATE FACE MAPPING
+    % Create mapping from filtered face indices to original face indices
+    original_face_indices = find(~faces_z0);  % Indices of non-ground faces in original mesh
+    face_mapping = original_face_indices;     % Direct mapping array
+    
     %% FILTERING COMPLETE
-    % Ground filtering completed silently
+    % Ground filtering completed with mapping information
 
 end

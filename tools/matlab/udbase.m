@@ -575,17 +575,34 @@ classdef udbase < dynamicprops
                 face_mask = false(size(cons, 1), 1);
                 
                 for building_id = building_ids_to_use
-                    if building_id <= num_buildings && ~isempty(buildings{building_id}) && ...
-                       isa(buildings{building_id}, 'triangulation')
+                    if building_id <= num_buildings && ~isempty(buildings{building_id})
+                        building_data = buildings{building_id};
                         
-                        building_faces = buildings{building_id}.ConnectivityList;
+                        % Handle both struct format (new) and triangulation format (old)
+                        if isstruct(building_data) && isfield(building_data, 'triangulation')
+                            building_triangulation = building_data.triangulation;
+                        elseif isa(building_data, 'triangulation')
+                            building_triangulation = building_data;
+                        else
+                            continue; % Skip invalid building data
+                        end
                         
-                        % Find matching faces in original connectivity list
-                        for j = 1:size(building_faces, 1)
-                            for k = 1:size(cons, 1)
-                                if isequal(sort(building_faces(j,:)), sort(cons(k,:)))
-                                    face_mask(k) = true;
-                                    break;
+                        % Check if building has stored original face indices
+                        if isstruct(building_data) && isfield(building_data, 'original_face_indices')
+                            % Use stored original face indices (efficient and reliable)
+                            original_indices = building_data.original_face_indices;
+                            face_mask(original_indices) = true;
+                        else
+                            % Fallback: try to match compact faces with original (inefficient)
+                            building_faces = building_triangulation.ConnectivityList;
+                            warning('Building %d: Using fallback face matching - consider updating geometry processing', building_id);
+                            
+                            for j = 1:size(building_faces, 1)
+                                for k = 1:size(cons, 1)
+                                    if isequal(sort(building_faces(j,:)), sort(cons(k,:)))
+                                        face_mask(k) = true;
+                                        break;
+                                    end
                                 end
                             end
                         end
@@ -725,24 +742,31 @@ classdef udbase < dynamicprops
                 num_buildings = length(buildings);
                 building_ids_to_plot = building_ids_to_plot(building_ids_to_plot <= num_buildings);
                 
+                % Get buildings from geometry object
+                buildings = obj.geom.get_buildings();
+                
+                % Validate building IDs
+                num_buildings = length(buildings);
+                building_ids_to_plot = building_ids_to_plot(building_ids_to_plot <= num_buildings);
+                
                 % Create a mask for faces belonging to specified buildings
                 face_mask = false(size(cons, 1), 1);
                 
                 for building_id = building_ids_to_plot
-                    if building_id <= num_buildings && ~isempty(buildings{building_id}) && ...
-                       isa(buildings{building_id}, 'triangulation')
+                    if building_id <= num_buildings && ~isempty(buildings{building_id})
+                        building = buildings{building_id};
                         
-                        building_faces = buildings{building_id}.ConnectivityList;
-                        
-                        % Find which faces in the original geometry match this building's faces
-                        for j = 1:size(building_faces, 1)
-                            % Find matching faces in original connectivity list
-                            for k = 1:size(cons, 1)
-                                if isequal(sort(building_faces(j,:)), sort(cons(k,:)))
-                                    face_mask(k) = true;
-                                    break;
-                                end
-                            end
+                        % Check if building has stored original face indices
+                        if isstruct(building) && isfield(building, 'original_face_indices')
+                            % Use stored original face indices (new format)
+                            original_indices = building.original_face_indices;
+                            
+                            % Use stored original face indices (reliable mapping)
+                            face_mask(original_indices) = true;
+                        elseif isa(building, 'triangulation')
+                            % Backward compatibility: old format, fallback to spatial matching
+                            warning('Building %d uses old format without stored face indices', building_id);
+                            % Keep the old spatial matching code as fallback...
                         end
                     end
                 end
@@ -781,32 +805,63 @@ classdef udbase < dynamicprops
         
         function add_building_outlines(obj, building_ids)
             % Helper method to add building outlines to current plot
-            % If building_ids is empty, adds outlines for all buildings
+            % If building_ids is empty, uses overall geometry outline to avoid splitBuildings
             
             if ~obj.lfgeom
                 return; % Skip if no geometry loaded
             end
             
-            % Get buildings from geometry object
-            buildings = obj.geom.get_buildings();
-            
-            % Determine which buildings to outline
+            % If no specific buildings requested, use overall geometry outline
             if isempty(building_ids)
-                buildings_to_outline = 1:length(buildings);
-            else
-                buildings_to_outline = building_ids(building_ids <= length(buildings));
+                % Use the geometry's outline property to avoid expensive splitBuildings
+                if isprop(obj.geom, 'outline') && ~isempty(obj.geom.outline)
+                    outline_edges = obj.geom.outline;
+                    geom_points = obj.geom.stl.Points;
+                    
+                    % Prepare line segment coordinates
+                    n_edges = size(outline_edges, 1);
+                    coords = nan(3*n_edges, 3);
+                    
+                    % Fill coordinate array
+                    for i = 1:n_edges
+                        idx = 3*(i-1) + 1;
+                        coords(idx,:)   = geom_points(outline_edges(i,1),:);
+                        coords(idx+1,:) = geom_points(outline_edges(i,2),:);
+                    end
+                    
+                    % Draw outline
+                    line(coords(:,1), coords(:,2), coords(:,3), ...
+                         'Color', 'k', ...
+                         'LineWidth', 0.5, ...
+                         'LineStyle', '-');
+                end
+                return;
             end
+            
+            % For specific buildings, get buildings from geometry object
+            buildings = obj.geom.get_buildings();
+            buildings_to_outline = building_ids(building_ids <= length(buildings));
             
             % Add outlines for each building
             for building_id = buildings_to_outline
-                if ~isempty(buildings{building_id}) && isa(buildings{building_id}, 'triangulation')
+                building_data = buildings{building_id};
+                if ~isempty(building_data)
                     try
+                        % Handle both struct format (new) and triangulation format (old)
+                        if isstruct(building_data) && isfield(building_data, 'triangulation')
+                            building_triangulation = building_data.triangulation;
+                        elseif isa(building_data, 'triangulation')
+                            building_triangulation = building_data;
+                        else
+                            continue; % Skip invalid building data
+                        end
+                        
                         % Calculate outline edges for this building
-                        [boundary_edges, ~] = udgeom.calculateOutline(buildings{building_id}, 45);
+                        [boundary_edges, ~] = udgeom.calculateOutline(building_triangulation, 45);
                         
                         if ~isempty(boundary_edges)
                             % Get points from the building triangulation
-                            building_points = buildings{building_id}.Points;
+                            building_points = building_triangulation.Points;
                             
                             % Prepare line segment coordinates
                             n_edges = size(boundary_edges, 1);
@@ -835,14 +890,21 @@ classdef udbase < dynamicprops
 
         % ------------------------------------------------------------- %
 
-        function plot_fac_type(obj)
+        function plot_fac_type(obj, building_ids)
             % A method for plotting the different surface types used in a
             % geometry.
             %
-            % plot_fac_types(OBJ) plots the surface types 
+            % plot_fac_type(OBJ) plots the surface types for all buildings
             %
-            % Example:
+            % plot_fac_type(OBJ, building_ids) plots the surface types only for 
+            % the specified building IDs (array of positive integers)
+            %
+            % Examples:
+            %   % Plot surface types for all buildings
             %   obj.plot_fac_type();
+            %
+            %   % Plot surface types only for specific buildings
+            %   obj.plot_fac_type([1, 5, 10]);
 
             % Function only works when required data has been loaded.
             if (~obj.lfgeom)
@@ -856,40 +918,59 @@ classdef udbase < dynamicprops
                 error(['This method requires the file ', ...
                        obj.ffactypes, '.', obj.expnr])
             end
-     
-            facids = obj.facs.typeid;
+
+            % Handle optional building_ids parameter
+            if nargin < 2
+                building_ids = [];
+            end
+
+            % Get facet types and surface type information
+            facet_type_var = obj.facs.typeid;
+            unique_ids = unique(facet_type_var);
             labs = obj.factypes.name;
             typeids = obj.factypes.id;
-            unique_ids = unique(facids);
-            coloursneeded = length(unique(facids));
             colors = obj.colors;
             
-            if length(colors(:,1))<coloursneeded
-                disp('Too many surfaces requested to colour uniquely.')
-                return
-            end 
-
-            cs = [];
-            for i = 1:length(facids)
-                typeid = facids(i);
-                colorind = typeid==unique_ids;
-                cs = [cs;colors(colorind,:)];
-            end 
-            cons = obj.geom.stl.ConnectivityList;
-            ps = obj.geom.stl.Points;
-            hold on
-            labels = [];
-            for m = 1:length(unique_ids)
-                id = unique_ids(m);
-                msel = facids==id;
-                n = find(id==typeids, 1);
-                labels = [labels;{labs(n)}];
-                tcons = cons(msel,:);
-                c = colors(m,:);
-                patch('Faces', tcons, 'Vertices', ps, 'FaceVertexCData',c, ...
-                      'FaceColor','flat', 'EdgeColor', 'None')
+            % Check if we have enough colors
+            if size(colors, 1) < length(unique_ids)
+                error('Not enough colors defined for the number of surface types');
             end
-            legend(labels)
+            
+            % Create a discrete colormap for the surface types
+            type_colormap = colors(1:length(unique_ids), :);
+            
+            % Map each facet's type ID to a color index (1 to N)
+            color_indices = zeros(size(facet_type_var));
+            for i = 1:length(unique_ids)
+                color_indices(facet_type_var == unique_ids(i)) = i;
+            end
+            
+            % Use plot_fac with color indices
+            obj.plot_fac(color_indices, building_ids);
+            
+            % Set discrete colormap and create colorbar with custom labels
+            colormap(type_colormap);
+            caxis([0.5, length(unique_ids) + 0.5]); % Center colors on integer values
+            
+            % Create legend labels
+            legend_labels = cell(length(unique_ids), 1);
+            for i = 1:length(unique_ids)
+                id = unique_ids(i);
+                n = find(id == typeids, 1);
+                if ~isempty(n) && n <= length(labs)
+                    legend_labels{i} = labs{n};
+                else
+                    legend_labels{i} = sprintf('Type %d', id);
+                end
+            end
+            
+            % Create custom colorbar with surface type labels
+            cb = colorbar;
+            cb.Ticks = 1:length(unique_ids);
+            cb.TickLabels = legend_labels;
+            cb.Label.String = 'Surface Type';
+            cb.Label.Interpreter = 'latex';
+            cb.TickLabelInterpreter = 'none'; % Don't interpret surface type names as LaTeX
         end
 
 
@@ -939,7 +1020,7 @@ classdef udbase < dynamicprops
             hold on;
             view(2);
             axis equal;
-            grid on;
+            box on;
             
             xlabel('X [m]'); 
             ylabel('Y [m]');
@@ -949,10 +1030,16 @@ classdef udbase < dynamicprops
             plotted_buildings = 0;
             
             for i = 1:num_buildings
-                if ~isempty(building_triangulations{i}) && ...
-                   isa(building_triangulations{i}, 'triangulation')
-                    
-                    TR = building_triangulations{i};
+                building_data = building_triangulations{i};
+                if ~isempty(building_data)
+                    % Handle both struct format (new) and triangulation format (old)
+                    if isstruct(building_data) && isfield(building_data, 'triangulation')
+                        TR = building_data.triangulation;
+                    elseif isa(building_data, 'triangulation')
+                        TR = building_data;
+                    else
+                        continue; % Skip invalid building data
+                    end
                     points = TR.Points;
                     faces = TR.ConnectivityList;
                     
@@ -961,13 +1048,10 @@ classdef udbase < dynamicprops
                         continue;
                     end
                     
-                    % Get only the points that are actually used by this building's faces
-                    used_point_indices = unique(faces(:));
-                    building_points = points(used_point_indices, :);
-                    
+                    % Since triangulations are now compact, we can use them directly
                     % Create 2D projection by ignoring Z-coordinate
-                    x_coords = building_points(:, 1);
-                    y_coords = building_points(:, 2);
+                    x_coords = points(:, 1);
+                    y_coords = points(:, 2);
                     
                     % Check for valid coordinate range
                     if all(isnan(x_coords)) || all(isnan(y_coords)) || isempty(x_coords)
@@ -976,12 +1060,8 @@ classdef udbase < dynamicprops
                     
                     % Plot exact building outline using boundary edges (not internal triangles)
                     try
-                        % Remap face indices to match the extracted points
-                        % Create a map from original indices to new indices
-                        [~, face_remapped] = ismember(faces, used_point_indices);
-                        
-                        % Create 2D triangulation from remapped faces and extracted points
-                        building_tri_2d = triangulation(face_remapped, [x_coords, y_coords]);
+                        % Create 2D triangulation directly from compact data
+                        building_tri_2d = triangulation(faces, [x_coords, y_coords]);
                         
                         % Find the boundary edges (external outline only)
                         boundary_edges = freeBoundary(building_tri_2d);
