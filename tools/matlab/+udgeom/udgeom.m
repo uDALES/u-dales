@@ -30,6 +30,7 @@ classdef udgeom < handle
       stl;                     % stl of the geometry
       outline;                 % outline edges calculated using calculateOutline
       buildings;               % cell array of individual building triangulations (lazy loaded)
+      face_to_building_map;    % array mapping each face index to its building ID (lazy loaded)
    end   
    
    methods
@@ -144,10 +145,36 @@ classdef udgeom < handle
          
          % Lazy load buildings if not already computed
          if isempty(obj.buildings)
-             obj.buildings = udgeom.splitBuildings(obj.stl);
+             [obj.buildings, obj.face_to_building_map] = udgeom.splitBuildings(obj.stl);
          end
          
          building_components = obj.buildings;
+      end
+      
+      % -------------------------------------------------------------- %
+      
+      function face_map = get_face_to_building_map(obj)
+         % Get mapping from face indices to building IDs.
+         %
+         % face_map = get_face_to_building_map(obj)
+         %   Returns array where face_map(i) is the building ID for face i
+         %
+         % Example:
+         %   face_map = geom.get_face_to_building_map();
+         %   building_1_faces = find(face_map == 1);
+         
+         if isempty(obj.stl)
+             warning('No STL geometry loaded. Load geometry first.');
+             face_map = [];
+             return;
+         end
+         
+         % Ensure buildings and mapping are computed
+         if isempty(obj.face_to_building_map)
+             obj.get_buildings(); % This will compute both buildings and mapping
+         end
+         
+         face_map = obj.face_to_building_map;
       end
       
       % -------------------------------------------------------------- %
@@ -197,7 +224,7 @@ classdef udgeom < handle
          faceNormals = faceNormal(obj.stl);
          incenters = incenter(obj.stl);
          
-         %figure
+         figure
          patch('Faces', obj.stl.ConnectivityList, 'Vertices', obj.stl.Points, ...
                'FaceColor', ones(3,1)*0.85, 'FaceAlpha', 1) 
          hold on
@@ -220,6 +247,7 @@ classdef udgeom < handle
          axis equal tight
          set(gca,"Box","on")
          set(gca,"BoxStyle","full")
+         hold off
       end
       
       % -------------------------------------------------------------- %
@@ -267,6 +295,7 @@ classdef udgeom < handle
          end
 
          % Create figure and plot mesh and outline
+         figure
          hold on;
 
          % Plot the mesh without edge lines
