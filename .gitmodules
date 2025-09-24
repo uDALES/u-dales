@@ -6,3 +6,6 @@
 	path = tools/View3D
 	url = https://github.com/uDALES/View3D.git
 	branch = master
+[submodule "external/json-fortran"]
+	path = external/json-fortran
+	url = https://github.com/jacobwilliams/json-fortran.git
