@@ -1,0 +1,1264 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "u-DALES Namelist Parameters",
+  "description": "Schema for u-DALES atmospheric simulation parameters",
+  "type": "object",
+  "properties": {
+    "RUN": {
+      "type": "object",
+      "description": "Runtime control parameters",
+      "properties": {
+        "iexpnr": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 999,
+          "default": 0,
+          "description": "Three digit integer. Experiment case number"
+        },
+        "lwarmstart": {
+          "type": "boolean",
+          "default": false,
+          "description": "If true simulation reads in restart file to initialize fields"
+        },
+        "lstratstart": {
+          "type": "boolean",
+          "default": false,
+          "description": "If true simulation reads restart files as warm start but overwrites thl and qt from profile"
+        },
+        "startfile": {
+          "type": "string",
+          "default": "",
+          "description": "Name of restart file, the last three digits should match iexpnr"
+        },
+        "runtime": {
+          "type": "number",
+          "minimum": 0,
+          "default": 300,
+          "description": "Simulation time [s]"
+        },
+        "trestart": {
+          "type": "number",
+          "minimum": 0,
+          "default": 10000,
+          "description": "Time at which restart files are written [s]"
+        },
+        "dtmax": {
+          "type": "number",
+          "minimum": 0,
+          "default": 20,
+          "description": "Maximum allowed numerical integration timestep [s]"
+        },
+        "ladaptive": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for adaptive time-stepping, true recommended"
+        },
+        "courant": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 2,
+          "default": 1.1,
+          "description": "Courant number"
+        },
+        "diffnr": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0.8,
+          "description": "Diffusion number for numerical stability"
+        },
+        "author": {
+          "type": "string",
+          "default": "",
+          "description": "Author name for simulation metadata"
+        },
+        "lrandomize": {
+          "type": "boolean",
+          "default": true,
+          "description": "Switch that determines whether initial field is randomised"
+        },
+        "irandom": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 43,
+          "description": "Seed for random number generation"
+        },
+        "randu": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0.01,
+          "description": "Amplitude of velocity field randomisation [m/s]"
+        },
+        "randthl": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0.0,
+          "description": "Amplitude of temperature field randomisation [K]"
+        },
+        "randqt": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0.0,
+          "description": "Amplitude of moisture field randomisation [kg/kg]"
+        },
+        "krand": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 2147483647,
+          "description": "Upper limit for random number generation"
+        },
+        "libm": {
+          "type": "boolean",
+          "default": true,
+          "description": "Switch that determines whether the Immersed Boundary Method is turned on"
+        },
+        "lles": {
+          "type": "boolean",
+          "default": true,
+          "description": "Switch that determines whether the subgrid model is turned on or constant ekm and ekh are used (DNS)"
+        },
+        "lper2inout": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for restart periodic flow to inoutflow"
+        },
+        "lwalldist": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for computing wall distances"
+        },
+        "lreadmean": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for reading mean variables from means files"
+        },
+        "nprocx": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of pencils in the x-direction, must be a divisor of itot"
+        },
+        "nprocy": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of pencils in the y-direction, must be a divisor of jtot and ktot"
+        }
+      },
+      "required": ["nprocx", "nprocy"]
+    },
+    "DOMAIN": {
+      "type": "object",
+      "description": "Domain geometry parameters",
+      "properties": {
+        "itot": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 96,
+          "description": "Number of points in x-direction"
+        },
+        "jtot": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 96,
+          "description": "Number of points in y-direction"
+        },
+        "ktot": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 96,
+          "description": "Number of points in z-direction"
+        },
+        "xlen": {
+          "type": "number",
+          "minimum": 0,
+          "default": -1,
+          "description": "Domain size in x-direction [m]"
+        },
+        "ylen": {
+          "type": "number",
+          "minimum": 0,
+          "default": -1,
+          "description": "Domain size in y-direction [m]"
+        },
+        "xlat": {
+          "type": "number",
+          "minimum": -90,
+          "maximum": 90,
+          "default": 52.0,
+          "description": "Latitude of domain center [degrees]"
+        },
+        "xlon": {
+          "type": "number",
+          "minimum": -180,
+          "maximum": 180,
+          "default": 5.0,
+          "description": "Longitude of domain center [degrees]"
+        },
+        "xday": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 366,
+          "default": 1,
+          "description": "Day of year for simulation"
+        },
+        "xtime": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 24,
+          "default": 12.0,
+          "description": "Time of day for simulation start [hours]"
+        },
+        "ksp": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1,
+          "description": "Index of first grid point above surface for pressure"
+        }
+      }
+    },
+    "PHYSICS": {
+      "type": "object",
+      "description": "Physical process parameters",
+      "properties": {
+        "ps": {
+          "type": "number",
+          "minimum": 0,
+          "default": 101325,
+          "description": "Air pressure at surface [Pa]"
+        },
+        "igrw_damp": {
+          "type": "integer",
+          "enum": [0, 1, 2, 3],
+          "default": 0,
+          "description": "Integer switch to enable gravity wave damping"
+        },
+        "ltempeq": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for solving temperature equation"
+        },
+        "lbuoyancy": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for buoyancy force in temperature equation"
+        },
+        "lmoist": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for solving moisture equation"
+        },
+        "lcoriol": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for including the Coriolis force"
+        },
+        "lprofforc": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for profile forcing"
+        },
+        "ifixuinf": {
+          "type": "integer",
+          "default": 0,
+          "description": "Switch for fixing u-velocity at infinity"
+        },
+        "lvinf": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for v-velocity at infinity"
+        },
+        "tscale": {
+          "type": "number",
+          "default": 1.0,
+          "description": "Time scale factor"
+        },
+        "dpdx": {
+          "type": "number",
+          "default": 0.0,
+          "description": "Pressure gradient in x-direction [Pa/m]"
+        },
+        "luoutflowr": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for u-velocity correction for fixed mass outflow rate"
+        },
+        "lvoutflowr": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for v-velocity correction for fixed mass outflow rate"
+        },
+        "luvolflowr": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for u-velocity correction for fixed volume flow rate"
+        },
+        "lvvolflowr": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for v-velocity correction for fixed volume flow rate"
+        },
+        "uflowrate": {
+          "type": "number",
+          "default": 0.0,
+          "description": "Fixed u-velocity flow rate [m/s]"
+        },
+        "vflowrate": {
+          "type": "number",
+          "default": 0.0,
+          "description": "Fixed v-velocity flow rate [m/s]"
+        },
+        "lnudge": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for nudging"
+        },
+        "lnudgevel": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for velocity nudging"
+        },
+        "tnudge": {
+          "type": "number",
+          "default": 3600.0,
+          "description": "Nudging time scale [s]"
+        },
+        "nnudge": {
+          "type": "integer",
+          "default": 1,
+          "description": "Number of nudging points"
+        },
+        "ltimedepsurf": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for time-dependent surface forcing"
+        },
+        "ntimedepsurf": {
+          "type": "integer",
+          "default": 1,
+          "description": "Number of time-dependent surface forcing points"
+        },
+        "ltimedepnudge": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for time-dependent nudging"
+        },
+        "ntimedepnudge": {
+          "type": "integer",
+          "default": 1,
+          "description": "Number of time-dependent nudging points"
+        },
+        "ltimedeplw": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for time-dependent longwave forcing"
+        },
+        "ntimedeplw": {
+          "type": "integer",
+          "default": 1,
+          "description": "Number of time-dependent longwave forcing points"
+        },
+        "ltimedepsw": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for time-dependent shortwave forcing"
+        },
+        "ntimedepsw": {
+          "type": "integer",
+          "default": 1,
+          "description": "Number of time-dependent shortwave forcing points"
+        }
+      }
+    },
+    "DYNAMICS": {
+      "type": "object",
+      "description": "Numerical dynamics parameters",
+      "properties": {
+        "lqlnr": {
+          "type": "boolean",
+          "default": false,
+          "description": "Logical for calculation of liquid water concentration"
+        },
+        "ipoiss": {
+          "type": "integer",
+          "enum": [0],
+          "default": 0,
+          "description": "Poisson solver. 0 = using 2D Fast Fourier Transform"
+        },
+        "iadv_mom": {
+          "type": "integer",
+          "enum": [1, 2, 7],
+          "default": 2,
+          "description": "Advection scheme for momentum (1=upwind, 2=central, 7=kappa)"
+        },
+        "iadv_tke": {
+          "type": "integer",
+          "enum": [1, 2, 7],
+          "default": 2,
+          "description": "Advection scheme for TKE"
+        },
+        "iadv_thl": {
+          "type": "integer",
+          "enum": [1, 2, 7],
+          "default": 2,
+          "description": "Advection scheme for temperature"
+        },
+        "iadv_qt": {
+          "type": "integer",
+          "enum": [1, 2, 7],
+          "default": 2,
+          "description": "Advection scheme for moisture"
+        },
+        "iadv_sv": {
+          "type": "integer",
+          "enum": [1, 2, 7],
+          "default": 7,
+          "description": "Advection scheme for scalars"
+        }
+      }
+    },
+    "BC": {
+      "type": "object",
+      "description": "Boundary condition parameters",
+      "properties": {
+        "BCxm": {
+          "type": "integer",
+          "default": 1,
+          "description": "Boundary condition for momentum in x-direction (west)"
+        },
+        "BCxT": {
+          "type": "integer",
+          "default": 1,
+          "description": "Boundary condition for temperature in x-direction (west)"
+        },
+        "BCxq": {
+          "type": "integer",
+          "default": 1,
+          "description": "Boundary condition for moisture in x-direction (west)"
+        },
+        "BCxs": {
+          "type": "integer",
+          "default": 1,
+          "description": "Boundary condition for scalars in x-direction (west)"
+        },
+        "BCym": {
+          "type": "integer",
+          "default": 1,
+          "description": "Boundary condition for momentum in y-direction (south)"
+        },
+        "BCyT": {
+          "type": "integer",
+          "default": 1,
+          "description": "Boundary condition for temperature in y-direction (south)"
+        },
+        "BCyq": {
+          "type": "integer",
+          "default": 1,
+          "description": "Boundary condition for moisture in y-direction (south)"
+        },
+        "BCys": {
+          "type": "integer",
+          "default": 1,
+          "description": "Boundary condition for scalars in y-direction (south)"
+        },
+        "BCtopm": {
+          "type": "integer",
+          "default": 2,
+          "description": "Boundary condition for momentum at top"
+        },
+        "BCtopT": {
+          "type": "integer",
+          "default": 2,
+          "description": "Boundary condition for temperature at top"
+        },
+        "BCtopq": {
+          "type": "integer",
+          "default": 2,
+          "description": "Boundary condition for moisture at top"
+        },
+        "BCtops": {
+          "type": "integer",
+          "default": 2,
+          "description": "Boundary condition for scalars at top"
+        },
+        "BCbotm": {
+          "type": "integer",
+          "default": 1,
+          "description": "Boundary condition for momentum at bottom"
+        },
+        "BCbotT": {
+          "type": "integer",
+          "default": 1,
+          "description": "Boundary condition for temperature at bottom"
+        },
+        "BCbotq": {
+          "type": "integer",
+          "default": 1,
+          "description": "Boundary condition for moisture at bottom"
+        },
+        "BCbots": {
+          "type": "integer",
+          "default": 1,
+          "description": "Boundary condition for scalars at bottom"
+        },
+        "bctfxm": {
+          "type": "number",
+          "default": 288.0,
+          "description": "Fixed temperature at west boundary [K]"
+        },
+        "bctfxp": {
+          "type": "number",
+          "default": 288.0,
+          "description": "Fixed temperature at east boundary [K]"
+        },
+        "bctfym": {
+          "type": "number",
+          "default": 288.0,
+          "description": "Fixed temperature at south boundary [K]"
+        },
+        "bctfyp": {
+          "type": "number",
+          "default": 288.0,
+          "description": "Fixed temperature at north boundary [K]"
+        },
+        "bctfz": {
+          "type": "number",
+          "default": 288.0,
+          "description": "Fixed temperature at top/bottom boundary [K]"
+        },
+        "bcqfxm": {
+          "type": "number",
+          "default": 0.0,
+          "description": "Fixed moisture at west boundary [kg/kg]"
+        },
+        "bcqfxp": {
+          "type": "number",
+          "default": 0.0,
+          "description": "Fixed moisture at east boundary [kg/kg]"
+        },
+        "bcqfym": {
+          "type": "number",
+          "default": 0.0,
+          "description": "Fixed moisture at south boundary [kg/kg]"
+        },
+        "bcqfyp": {
+          "type": "number",
+          "default": 0.0,
+          "description": "Fixed moisture at north boundary [kg/kg]"
+        },
+        "bcqfz": {
+          "type": "number",
+          "default": 0.0,
+          "description": "Fixed moisture at top/bottom boundary [kg/kg]"
+        },
+        "wttop": {
+          "type": "number",
+          "default": 0.0,
+          "description": "Surface heat flux at top [K*m/s]"
+        },
+        "thl_top": {
+          "type": "number",
+          "default": 288.0,
+          "description": "Fixed temperature at top [K]"
+        },
+        "qt_top": {
+          "type": "number",
+          "default": 0.0,
+          "description": "Fixed moisture at top [kg/kg]"
+        },
+        "qts": {
+          "type": "number",
+          "default": 0.0,
+          "description": "Surface moisture [kg/kg]"
+        },
+        "wsvsurfdum": {
+          "type": "array",
+          "items": {"type": "number"},
+          "default": [],
+          "description": "Surface scalar fluxes [varies]"
+        },
+        "wsvtopdum": {
+          "type": "array",
+          "items": {"type": "number"},
+          "default": [],
+          "description": "Top scalar fluxes [varies]"
+        },
+        "wtsurf": {
+          "type": "number",
+          "default": 0.0,
+          "description": "Surface heat flux [K*m/s]"
+        },
+        "wqsurf": {
+          "type": "number",
+          "default": 0.0,
+          "description": "Surface moisture flux [kg/kg*m/s]"
+        },
+        "thls": {
+          "type": "number",
+          "default": 288.0,
+          "description": "Surface temperature [K]"
+        },
+        "z0": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0.1,
+          "description": "Surface roughness length for momentum [m]"
+        },
+        "z0h": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0.01,
+          "description": "Surface roughness length for heat [m]"
+        },
+        "BCzp": {
+          "type": "integer",
+          "default": 1,
+          "description": "Boundary condition for pressure in z-direction"
+        },
+        "ds": {
+          "type": "number",
+          "default": 1.0,
+          "description": "Grid spacing parameter [m]"
+        }
+      }
+    },
+    "INLET": {
+      "type": "object",
+      "description": "Inlet boundary condition parameters",
+      "properties": {
+        "Uinf": {
+          "type": "number",
+          "default": 1.0,
+          "description": "Free stream velocity in x-direction [m/s]"
+        },
+        "Vinf": {
+          "type": "number",
+          "default": 0.0,
+          "description": "Free stream velocity in y-direction [m/s]"
+        },
+        "di": {
+          "type": "number",
+          "default": 1.0,
+          "description": "Inlet distance parameter [m]"
+        },
+        "dti": {
+          "type": "number",
+          "default": 1.0,
+          "description": "Inlet time step parameter [s]"
+        },
+        "inletav": {
+          "type": "number",
+          "default": 600.0,
+          "description": "Inlet averaging time [s]"
+        },
+        "linletRA": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for running average in inlet generator"
+        },
+        "lstoreplane": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for storing i-plane data to serve as inlet for future simulation"
+        },
+        "lreadminl": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for reading mean inlet/recycle plane profiles"
+        },
+        "lfixinlet": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for keeping average inlet velocity and temperature fixed at inlet"
+        },
+        "lfixutauin": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for keeping utau fixed at inlet"
+        },
+        "lwallfunc": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for wall function"
+        }
+      }
+    },
+    "DRIVER": {
+      "type": "object",
+      "description": "Driver inlet simulation parameters",
+      "properties": {
+        "idriver": {
+          "type": "integer",
+          "default": 0,
+          "description": "Switch for driver inlet simulation"
+        },
+        "tdriverstart": {
+          "type": "number",
+          "default": 0.0,
+          "description": "Driver start time [s]"
+        },
+        "driverjobnr": {
+          "type": "integer",
+          "default": 0,
+          "description": "Driver job number"
+        },
+        "dtdriver": {
+          "type": "number",
+          "default": 1.0,
+          "description": "Driver time step [s]"
+        },
+        "driverstore": {
+          "type": "integer",
+          "default": 1,
+          "description": "Driver storage interval"
+        },
+        "iplane": {
+          "type": "integer",
+          "default": 2,
+          "description": "i-plane that is stored if lstoreplane is true"
+        },
+        "iangledeg": {
+          "type": "number",
+          "default": 0.0,
+          "description": "Angle in degrees for inlet"
+        },
+        "lchunkread": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for chunk reading"
+        },
+        "chunkread_size": {
+          "type": "integer",
+          "default": 1,
+          "description": "Chunk read size"
+        }
+      }
+    },
+    "WALLS": {
+      "type": "object",
+      "description": "Wall and IBM parameters",
+      "properties": {
+        "nblocks": {
+          "type": "integer",
+          "default": 0,
+          "description": "Number of blocks used in IBM"
+        },
+        "nfcts": {
+          "type": "integer",
+          "default": 0,
+          "description": "Number of facets"
+        },
+        "iwallmom": {
+          "type": "integer",
+          "default": 1,
+          "description": "Wall treatment for momentum (1=no wall function, 2=werner-wengle, 3=uno)"
+        },
+        "iwalltemp": {
+          "type": "integer",
+          "default": 1,
+          "description": "Wall treatment for temperature (1=no wall function/fixed flux, 2=no wall function/fixed value, 3=uno)"
+        },
+        "iwallmoist": {
+          "type": "integer",
+          "default": 1,
+          "description": "Wall treatment for moisture (1=no wall function/fixed flux, 2=no wall function/fixed value, 3=uno)"
+        },
+        "iwallscal": {
+          "type": "integer",
+          "default": 1,
+          "description": "Wall treatment for scalars"
+        },
+        "nsolpts_u": {
+          "type": "integer",
+          "default": 0,
+          "description": "Number of solid points for u-velocity"
+        },
+        "nsolpts_v": {
+          "type": "integer",
+          "default": 0,
+          "description": "Number of solid points for v-velocity"
+        },
+        "nsolpts_w": {
+          "type": "integer",
+          "default": 0,
+          "description": "Number of solid points for w-velocity"
+        },
+        "nsolpts_c": {
+          "type": "integer",
+          "default": 0,
+          "description": "Number of solid points for scalars"
+        },
+        "nbndpts_u": {
+          "type": "integer",
+          "default": 0,
+          "description": "Number of boundary points for u-velocity"
+        },
+        "nbndpts_v": {
+          "type": "integer",
+          "default": 0,
+          "description": "Number of boundary points for v-velocity"
+        },
+        "nbndpts_w": {
+          "type": "integer",
+          "default": 0,
+          "description": "Number of boundary points for w-velocity"
+        },
+        "nbndpts_c": {
+          "type": "integer",
+          "default": 0,
+          "description": "Number of boundary points for scalars"
+        },
+        "nfctsecs_u": {
+          "type": "integer",
+          "default": 0,
+          "description": "Number of facet sections for u-velocity"
+        },
+        "nfctsecs_v": {
+          "type": "integer",
+          "default": 0,
+          "description": "Number of facet sections for v-velocity"
+        },
+        "nfctsecs_w": {
+          "type": "integer",
+          "default": 0,
+          "description": "Number of facet sections for w-velocity"
+        },
+        "nfctsecs_c": {
+          "type": "integer",
+          "default": 0,
+          "description": "Number of facet sections for scalars"
+        },
+        "lbottom": {
+          "type": "boolean",
+          "default": true,
+          "description": "Switch for bottom boundary"
+        },
+        "lnorec": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for no reconstruction"
+        },
+        "prandtlturb": {
+          "type": "number",
+          "default": 0.33,
+          "description": "Turbulent Prandtl number"
+        },
+        "fkar": {
+          "type": "number",
+          "default": 0.41,
+          "description": "Von Karman constant"
+        },
+        "lwritefac": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for writing facet data"
+        },
+        "dtfac": {
+          "type": "number",
+          "default": 60.0,
+          "description": "Facet output time interval [s]"
+        }
+      }
+    },
+    "ENERGYBALANCE": {
+      "type": "object",
+      "description": "Energy balance parameters",
+      "properties": {
+        "lEB": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for energy balance"
+        },
+        "lwriteEBfiles": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for writing energy balance files"
+        },
+        "lperiodicEBcorr": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for periodic energy balance correction"
+        },
+        "sinkbase": {
+          "type": "integer",
+          "default": 1,
+          "description": "Sink base parameter"
+        },
+        "lconstW": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for constant W"
+        },
+        "dtEB": {
+          "type": "number",
+          "default": 60.0,
+          "description": "Energy balance time step [s]"
+        },
+        "bldT": {
+          "type": "number",
+          "default": 288.0,
+          "description": "Building temperature [K]"
+        },
+        "flrT": {
+          "type": "number",
+          "default": 288.0,
+          "description": "Floor temperature [K]"
+        },
+        "wsoil": {
+          "type": "number",
+          "default": 0.3,
+          "description": "Soil moisture content [m3/m3]"
+        },
+        "wgrmax": {
+          "type": "number",
+          "default": 0.5,
+          "description": "Maximum grass moisture content [m3/m3]"
+        },
+        "wwilt": {
+          "type": "number",
+          "default": 0.1,
+          "description": "Wilting point moisture content [m3/m3]"
+        },
+        "wfc": {
+          "type": "number",
+          "default": 0.4,
+          "description": "Field capacity moisture content [m3/m3]"
+        },
+        "skyLW": {
+          "type": "number",
+          "default": 400.0,
+          "description": "Sky longwave radiation [W/m2]"
+        },
+        "GRLAI": {
+          "type": "number",
+          "default": 2.0,
+          "description": "Grass leaf area index"
+        },
+        "rsmin": {
+          "type": "number",
+          "default": 50.0,
+          "description": "Minimum stomatal resistance [s/m]"
+        },
+        "nfaclyrs": {
+          "type": "integer",
+          "default": 5,
+          "description": "Number of facet layers"
+        },
+        "lfacTlyrs": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for facet temperature layers"
+        },
+        "lvfsparse": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for sparse vegetation fraction"
+        },
+        "nnz": {
+          "type": "integer",
+          "default": 0,
+          "description": "Number of non-zero elements"
+        },
+        "fraction": {
+          "type": "number",
+          "default": 1.0,
+          "description": "Fraction parameter"
+        }
+      }
+    },
+    "SCALARS": {
+      "type": "object",
+      "description": "Scalar transport parameters",
+      "properties": {
+        "lreadscal": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch to read scalar pollutant fields (warm start)"
+        },
+        "lscasrc": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for scalar source"
+        },
+        "lscasrcl": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for scalar source left"
+        },
+        "lscasrcr": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for scalar source right"
+        },
+        "nsv": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "description": "Number of scalar variables"
+        },
+        "nscasrc": {
+          "type": "integer",
+          "default": 0,
+          "description": "Number of scalar sources"
+        },
+        "nscasrcl": {
+          "type": "integer",
+          "default": 0,
+          "description": "Number of scalar sources left"
+        }
+      }
+    },
+    "OUTPUT": {
+      "type": "object",
+      "description": "Output control parameters",
+      "properties": {
+        "lfielddump": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for instantaneous field output"
+        },
+        "tfielddump": {
+          "type": "number",
+          "minimum": 0,
+          "default": 10000,
+          "description": "Output time for fields [s]"
+        },
+        "fieldvars": {
+          "type": "string",
+          "default": "",
+          "description": "Variable names of fields (u0,v0,w0,th,ql,qt,p0,s1,s2,s3,s4,s5)"
+        },
+        "tsample": {
+          "type": "number",
+          "minimum": 0,
+          "default": 5.0,
+          "description": "Sample time for statistics [s]"
+        },
+        "tstatsdump": {
+          "type": "number",
+          "minimum": 0,
+          "default": 10000,
+          "description": "Output time for statistics [s]"
+        },
+        "tstatstart": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0,
+          "description": "Time from which statistics computation or data sampling starts [s]"
+        },
+        "ltdump": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch to output time-averaged statistics"
+        },
+        "lydump": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for writing y-averaged statistics files"
+        },
+        "lytdump": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for writing y-time averaged statistics files"
+        },
+        "lxydump": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for writing xy-averaged statistics files"
+        },
+        "lxytdump": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for writing xy-time averaged statistics files"
+        },
+        "lmintdump": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for writing minimum time statistics files"
+        },
+        "lkslicedump": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for writing k-slice data"
+        },
+        "kslice": {
+          "type": "integer",
+          "default": 1,
+          "description": "k-level for slice output"
+        },
+        "lislicedump": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for writing i-slice data"
+        },
+        "islice": {
+          "type": "integer",
+          "default": 1,
+          "description": "i-level for slice output"
+        },
+        "ljslicedump": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for writing j-slice data"
+        },
+        "jslice": {
+          "type": "integer",
+          "default": 1,
+          "description": "j-level for slice output"
+        },
+        "ltkedump": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for writing TKE budget files"
+        }
+      }
+    },
+    "TREES": {
+      "type": "object",
+      "description": "Vegetation/tree parameters",
+      "properties": {
+        "ltrees": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for trees/vegetation"
+        },
+        "ntrees": {
+          "type": "integer",
+          "default": 0,
+          "description": "Number of trees"
+        },
+        "cd": {
+          "type": "number",
+          "default": 0.2,
+          "description": "Drag coefficient for trees"
+        },
+        "dec": {
+          "type": "number",
+          "default": 1.0,
+          "description": "Deciduous factor"
+        },
+        "ud": {
+          "type": "number",
+          "default": 1.0,
+          "description": "Wind speed at canopy top [m/s]"
+        },
+        "lad": {
+          "type": "number",
+          "default": 0.1,
+          "description": "Leaf area density [m2/m3]"
+        },
+        "Qstar": {
+          "type": "number",
+          "default": 0.0,
+          "description": "Net radiation [W/m2]"
+        },
+        "dQdt": {
+          "type": "number",
+          "default": 0.0,
+          "description": "Time rate of change of net radiation [W/m2/s]"
+        },
+        "lsize": {
+          "type": "number",
+          "default": 0.1,
+          "description": "Leaf size [m]"
+        },
+        "r_s": {
+          "type": "number",
+          "default": 100.0,
+          "description": "Stomatal resistance [s/m]"
+        },
+        "ltreedump": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for tree output"
+        }
+      }
+    },
+    "PURIFS": {
+      "type": "object",
+      "description": "Air purification parameters",
+      "properties": {
+        "lpurif": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for air purification"
+        },
+        "npurif": {
+          "type": "integer",
+          "default": 0,
+          "description": "Number of purification units"
+        },
+        "Qpu": {
+          "type": "number",
+          "default": 0.0,
+          "description": "Purification rate [m3/s]"
+        },
+        "epu": {
+          "type": "number",
+          "default": 0.0,
+          "description": "Purification efficiency"
+        }
+      }
+    },
+    "HEATPUMP": {
+      "type": "object",
+      "description": "Heat pump parameters",
+      "properties": {
+        "lheatpump": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for heat pump"
+        },
+        "lfan_hp": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for heat pump fan"
+        },
+        "nhppoints": {
+          "type": "integer",
+          "default": 0,
+          "description": "Number of heat pump points"
+        },
+        "Q_dot_hp": {
+          "type": "number",
+          "default": 0.0,
+          "description": "Heat pump cooling rate [W]"
+        },
+        "QH_dot_hp": {
+          "type": "number",
+          "default": 0.0,
+          "description": "Heat pump heating rate [W]"
+        }
+      }
+    },
+    "INPS": {
+      "type": "object",
+      "description": "Initial conditions and input parameters",
+      "properties": {
+        "u0": {
+          "type": "number",
+          "default": 0,
+          "description": "Initial u-velocity. Also applied as geostrophic term [m/s]"
+        },
+        "v0": {
+          "type": "number",
+          "default": 0,
+          "description": "Initial v-velocity. Also applied as geostrophic term [m/s]"
+        },
+        "thl0": {
+          "type": "number",
+          "default": 288,
+          "description": "Temperature at z = 0 [K]"
+        },
+        "qt0": {
+          "type": "number",
+          "default": 0,
+          "description": "Specific humidity at z = 0 [kg/kg]"
+        },
+        "facT": {
+          "type": "number",
+          "minimum": 0,
+          "default": 288,
+          "description": "Facet temperature [K]"
+        }
+      }
+    }
+  }
+}

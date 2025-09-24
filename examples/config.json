@@ -1,0 +1,49 @@
+{
+  "RUN": {
+    "iexpnr": 1,
+    "runtime": 100.0,
+    "dtmax": 1.0,
+    "trestart": 0.0,
+    "lwarmstart": false,
+    "lstratstart": false,
+    "ladaptive": true,
+    "nprocx": 1,
+    "nprocy": 1
+  },
+  "DOMAIN": {
+    "itot": 64,
+    "jtot": 64,
+    "ktot": 64,
+    "xlen": 32.0,
+    "ylen": 32.0
+  },
+  "PHYSICS": {
+    "lcoriol": false,
+    "lmoist": false,
+    "isurf": 1,
+    "iradiation": 0,
+    "timerad": 0.0
+  },
+  "DYNAMICS": {
+    "iadv_mom": 2,
+    "iadv_tke": 2,
+    "iadv_thl": 2,
+    "iadv_qt": 2,
+    "cu": -1.0,
+    "cv": -1.0
+  },
+  "OUTPUT": {
+    "lfielddump": true,
+    "tfielddump": 10.0,
+    "fieldvars": "u0,v0,w0,thl0",
+    "ltdump": true,
+    "tstatsdump": 10.0,
+    "tsample": 1.0
+  },
+  "INP": {
+    "zsize": 32.0,
+    "u0": 1.0,
+    "v0": 0.0,
+    "stl_file": "geometry.stl"
+  }
+}
