@@ -6,7 +6,8 @@
 !>
 !! Modstartup reads the namelists and initial data, sets the fields and calls
 !! the inits of the other routines where necessary. Reading of the
-!! restart files also live in this module.
+!! restart files also live in this module. Also supports JSON input format
+!! when compiled with USE_JSON_INPUT.
 !!  \author Jasper Tomas, TU Delft
 !!  \author Chiel van Heerwaarden, Wageningen U.R.
 !!  \author Thijs Heus,MPI-M
@@ -34,6 +35,10 @@
 module modstartup
 
    use mpi
+#ifdef USE_JSON_INPUT
+   use json_module, wp => json_RK, CK => json_CK
+   use iso_fortran_env, only: real64
+#endif
    implicit none
    ! private
    ! public :: startup,trestart
@@ -44,6 +49,248 @@ module modstartup
    real :: randu = 0.01, randthl = 0.0, randqt = 0.0 !    * uvw,thl and qt amplitude of randomnization
 
    contains
+
+   subroutine readconfig
+      !-----------------------------------------------------------------|
+      !                                                                 |
+      !     Wrapper subroutine to read configuration from either       |
+      !     JSON or namelist format based on compilation flags         |
+      !                                                                 |
+      !-----------------------------------------------------------------|
+      
+#ifdef USE_JSON_INPUT
+      ! Check if JSON file exists, otherwise fall back to namelist
+      logical :: json_exists
+      inquire(file='config.json', exist=json_exists)
+      
+      if (json_exists) then
+         call readjsonconfig
+      else
+         call readnamelists
+      end if
+#else
+      call readnamelists
+#endif
+      
+   end subroutine readconfig
+
+#ifdef USE_JSON_INPUT
+   subroutine readjsonconfig
+
+      !-----------------------------------------------------------------|
+      !                                                                 |
+      !     Reads configuration from JSON file                         |
+      !                                                                 |
+      !     Uses existing module defaults when parameters not found    |
+      !-----------------------------------------------------------------|
+
+      use modmpi,            only : myid, comm3d, mpierr, my_real, mpi_logical, mpi_integer
+
+      type(json_file) :: json
+      logical :: found
+      character(len=80) :: json_fname = 'config.json'
+      
+      ! Temporary variables to preserve existing default values
+      integer :: temp_int
+      real :: temp_real
+      logical :: temp_logical
+      character(kind=CK,len=:), allocatable :: temp_string
+
+      if (myid == 0) then
+         ! Initialize JSON parser
+         call json%initialize()
+         
+         ! Load JSON file
+         call json%load_file(json_fname)
+         if (json%failed()) then
+            write(0,*) 'ERROR: Could not load JSON file: ', json_fname
+            call json%print_error_message()
+            stop 1
+         end if
+         
+         ! Read RUN parameters - use existing values as defaults
+         call json%get('RUN.iexpnr', temp_int, found)
+         if (found) iexpnr = temp_int
+         
+         call json%get('RUN.lwarmstart', temp_logical, found)
+         if (found) lwarmstart = temp_logical
+         
+         call json%get('RUN.lstratstart', temp_logical, found)
+         if (found) lstratstart = temp_logical
+         
+         call json%get('RUN.startfile', temp_string, found)
+         if (found) startfile = temp_string
+         
+         call json%get('RUN.runtime', temp_real, found)
+         if (found) runtime = temp_real
+         
+         call json%get('RUN.trestart', temp_real, found)
+         if (found) trestart = temp_real
+         
+         call json%get('RUN.dtmax', temp_real, found)
+         if (found) dtmax = temp_real
+         
+         call json%get('RUN.ladaptive', temp_logical, found)
+         if (found) ladaptive = temp_logical
+         
+         call json%get('RUN.courant', temp_real, found)
+         if (found) courant = temp_real
+         
+         call json%get('RUN.diffnr', temp_real, found)
+         if (found) diffnr = temp_real
+         
+         call json%get('RUN.author', temp_string, found)
+         if (found) author = temp_string
+         
+         call json%get('RUN.lrandomize', temp_logical, found)
+         if (found) lrandomize = temp_logical
+         
+         call json%get('RUN.irandom', temp_int, found)
+         if (found) irandom = temp_int
+         
+         call json%get('RUN.randu', temp_real, found)
+         if (found) randu = temp_real
+         
+         call json%get('RUN.randthl', temp_real, found)
+         if (found) randthl = temp_real
+         
+         call json%get('RUN.randqt', temp_real, found)
+         if (found) randqt = temp_real
+         
+         call json%get('RUN.krand', temp_int, found)
+         if (found) krand = temp_int
+         
+         call json%get('RUN.libm', temp_logical, found)
+         if (found) libm = temp_logical
+         
+         call json%get('RUN.lles', temp_logical, found)
+         if (found) lles = temp_logical
+         
+         call json%get('RUN.nprocx', temp_int, found)
+         if (found) then
+            nprocx = temp_int
+         else
+            write(0,*) 'ERROR: nprocx is required but not found in JSON'
+            stop 1
+         end if
+         
+         call json%get('RUN.nprocy', temp_int, found)
+         if (found) then
+            nprocy = temp_int
+         else
+            write(0,*) 'ERROR: nprocy is required but not found in JSON'
+            stop 1
+         end if
+         
+         ! Read DOMAIN parameters - use existing values as defaults
+         call json%get('DOMAIN.itot', temp_int, found)
+         if (found) itot = temp_int
+         
+         call json%get('DOMAIN.jtot', temp_int, found)
+         if (found) jtot = temp_int
+         
+         call json%get('DOMAIN.ktot', temp_int, found)
+         if (found) ktot = temp_int
+         
+         call json%get('DOMAIN.xlen', temp_real, found)
+         if (found) xlen = temp_real
+         
+         call json%get('DOMAIN.ylen', temp_real, found)
+         if (found) ylen = temp_real
+         
+         ! Read PHYSICS parameters - use existing values as defaults
+         call json%get('PHYSICS.ps', temp_real, found)
+         if (found) ps = temp_real
+         
+         call json%get('PHYSICS.ltempeq', temp_logical, found)
+         if (found) ltempeq = temp_logical
+         
+         call json%get('PHYSICS.lbuoyancy', temp_logical, found)
+         if (found) lbuoyancy = temp_logical
+         
+         call json%get('PHYSICS.lmoist', temp_logical, found)
+         if (found) lmoist = temp_logical
+         
+         call json%get('PHYSICS.lcoriol', temp_logical, found)
+         if (found) lcoriol = temp_logical
+         
+         ! Read DYNAMICS parameters - use existing values as defaults
+         call json%get('DYNAMICS.lqlnr', temp_logical, found)
+         if (found) lqlnr = temp_logical
+         
+         call json%get('DYNAMICS.ipoiss', temp_int, found)
+         if (found) ipoiss = temp_int
+         
+         call json%get('DYNAMICS.iadv_mom', temp_int, found)
+         if (found) iadv_mom = temp_int
+         
+         call json%get('DYNAMICS.iadv_tke', temp_int, found)
+         if (found) iadv_tke = temp_int
+         
+         call json%get('DYNAMICS.iadv_thl', temp_int, found)
+         if (found) iadv_thl = temp_int
+         
+         call json%get('DYNAMICS.iadv_qt', temp_int, found)
+         if (found) iadv_qt = temp_int
+         
+         call json%get('DYNAMICS.iadv_sv', temp_int, found)
+         if (found) iadv_sv = temp_int
+         
+         ! Read OUTPUT parameters - use existing values as defaults
+         call json%get('OUTPUT.lfielddump', temp_logical, found)
+         if (found) lfielddump = temp_logical
+         
+         call json%get('OUTPUT.tfielddump', temp_real, found)
+         if (found) tfielddump = temp_real
+         
+         call json%get('OUTPUT.fieldvars', temp_string, found)
+         if (found) fieldvars = temp_string
+         
+         call json%get('OUTPUT.tsample', temp_real, found)
+         if (found) tsample = temp_real
+         
+         call json%get('OUTPUT.tstatsdump', temp_real, found)
+         if (found) tstatsdump = temp_real
+         
+         call json%get('OUTPUT.tstatstart', temp_real, found)
+         if (found) tstatstart = temp_real
+         
+         ! Read INPS parameters - use existing values as defaults
+         call json%get('INPS.u0', temp_real, found)
+         if (found) u0 = temp_real
+         
+         call json%get('INPS.v0', temp_real, found)
+         if (found) v0 = temp_real
+         
+         call json%get('INPS.thl0', temp_real, found)
+         if (found) thl0 = temp_real
+         
+         call json%get('INPS.qt0', temp_real, found)
+         if (found) qt0 = temp_real
+         
+         call json%get('INPS.facT', temp_real, found)
+         if (found) facT = temp_real
+         
+         ! Clean up
+         call json%destroy()
+      end if
+
+      ! Broadcast parameters to all processes (same as in readnamelists)
+      call MPI_BCAST(itot,1,MPI_INTEGER,0,comm3d,mpierr)
+      call MPI_BCAST(jtot,1,MPI_INTEGER,0,comm3d,mpierr)
+      call MPI_BCAST(ktot,1,MPI_INTEGER,0,comm3d,mpierr)
+      call MPI_BCAST(nprocx,1,MPI_INTEGER,0,comm3d,mpierr)
+      call MPI_BCAST(nprocy,1,MPI_INTEGER,0,comm3d,mpierr)
+      call MPI_BCAST(iexpnr,1,MPI_INTEGER,0,comm3d,mpierr)
+      call MPI_BCAST(runtime,1,MY_REAL,0,comm3d,mpierr)
+      call MPI_BCAST(dtmax,1,MY_REAL,0,comm3d,mpierr)
+      call MPI_BCAST(lwarmstart,1,MPI_LOGICAL,0,comm3d,mpierr)
+      call MPI_BCAST(lfielddump,1,MPI_LOGICAL,0,comm3d,mpierr)
+      call MPI_BCAST(ltempeq,1,MPI_LOGICAL,0,comm3d,mpierr)
+      call MPI_BCAST(lmoist,1,MPI_LOGICAL,0,comm3d,mpierr)
+
+   end subroutine readjsonconfig
+#endif
 
    subroutine readnamelists
 

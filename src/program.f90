@@ -26,7 +26,7 @@ program DALESURBAN      !Version 48
 !!----------------------------------------------------------------
   use modmpi,            only : initmpi,exitmpi,myid,starttimer
   use modglobal,         only : initglobal,rk3step,timeleft
-  use modstartup,        only : readnamelists,init2decomp,checkinitvalues,readinitfiles,exitmodules
+  use modstartup,        only : readconfig,init2decomp,checkinitvalues,readinitfiles,exitmodules
   use modfields,         only : initfields
   use modsave,           only : writerestartfiles
   use modboundary,       only : initboundary,boundary,grwdamp,halos
@@ -60,7 +60,7 @@ program DALESURBAN      !Version 48
   call initmpi
 
   !call startup
-  call readnamelists
+  call readconfig
 
   call init2decomp
 

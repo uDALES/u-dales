@@ -25,3 +25,41 @@ python run_tests.py master dmey/patch-1 Release
 
 Tests outputs are saved under `tests/outputs` and currently include a boxplots of approximate errors for all four dimensional (3D space + time) quantities included in the uDALES output netCDF files.
 
+## JSON Input Tests
+
+Additional tests for the JSON input functionality are located in the `json_test/` subdirectory:
+
+- **`json_test/test_json_input.py`**: Unit tests for JSON input schema extraction and parameter validation
+- **`json_test/test_json_integration.py`**: Integration tests comparing namelist vs JSON input methods  
+- **`json_test/demo_json_testing.py`**: Demonstration script showing all JSON testing capabilities
+- **`json_test/test_comprehensive_schema.py`**: Comprehensive test of all 224 schema parameters
+
+To run the JSON input tests:
+
+```bash
+cd json_test/
+
+# Run all JSON tests with a single command
+python3 run_all_json_tests.py
+
+# Or run individual tests:
+
+# Unit tests using Python unittest framework
+python3 -m unittest test_json_input.py
+python3 -m unittest test_json_integration.py
+
+# Or run tests directly
+python3 test_json_input.py        # Unit tests for JSON schema extraction
+python3 test_json_integration.py  # Integration tests comparing namelist vs JSON
+python3 demo_json_testing.py      # Demonstration of all features
+python3 test_comprehensive_schema.py  # Test all 224 parameters with non-default values
+
+# Validate a JSON input file
+python3 ../../docs/validate_json_input.py config.json
+
+# Show schema information  
+python3 ../../docs/validate_json_input.py --schema-info
+```
+
+All JSON test outputs are organized in the `json_test/` directory structure. See `json_test/README.md` for detailed documentation.
+
