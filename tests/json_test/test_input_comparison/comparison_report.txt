@@ -1,7 +1,0 @@
-==================================================
-u-DALES Input Method Comparison Report
-==================================================
-Generated: Wed Sep 24 20:09:25 BST 2025
-
-RESULT: ✓ IDENTICAL
-Both input methods produce identical parameter sets.

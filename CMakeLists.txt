@@ -102,12 +102,9 @@ if (SINGLE_PRECISION_OUTPUT)
   add_definitions("-DSAVE_SINGLE")
 endif()
 
-option(USE_JSON_INPUT "Enable JSON input format support" OFF)
-if(USE_JSON_INPUT)
-    message(STATUS "Building with JSON input support")
-    add_subdirectory(external/json-fortran)
-    add_definitions("-DUSE_JSON_INPUT")
-endif()
+# Always enable JSON input support
+message(STATUS "Building with JSON input support (always enabled)")
+add_subdirectory(external/json-fortran)
 
 set(FFT_Choice "fftw3" CACHE STRING "FFT for 2decomp_fft (generic is the default)")
 set_property(CACHE FFT_Choice PROPERTY STRINGS generic fftw3)
@@ -125,9 +122,8 @@ target_link_libraries(u-dales ${NETCDF_F90_LIBRARIES})
 target_link_libraries(u-dales ${FFTW_LIBRARIES})
 target_link_libraries(u-dales 2decomp-fft)
 
-if(USE_JSON_INPUT)
-    target_link_libraries(u-dales jsonfortran-static)
-endif()
+# Always link JSON support
+target_link_libraries(u-dales jsonfortran-static)
 
 target_include_directories(u-dales PUBLIC $<TARGET_PROPERTY:2decomp-fft,BINARY_DIR>)
 target_include_directories(u-dales PUBLIC ${FFTW_INCLUDE_DIRS})
