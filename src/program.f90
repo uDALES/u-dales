@@ -52,6 +52,7 @@ program DALESURBAN      !Version 48
   use stats,           only : stats_init,stats_main,stats_exit !DMajumdar
   use instant_slice,   only : instant_init,instant_main !DMajumdar
   use modtimedep,      only : inittimedep,timedep
+  use tests,           only : tests_json
   implicit none
 
 !----------------------------------------------------------------
@@ -65,6 +66,10 @@ program DALESURBAN      !Version 48
   call init2decomp
 
   call checkinitvalues
+
+  ! Determine run mode and execute tests if needed
+  call set_runmode
+  call execute_runmode_actions
 
   call initglobal
 
@@ -232,5 +237,54 @@ program DALESURBAN      !Version 48
   !call exitmodules
   !call exittest
   call exitmpi
+
+contains
+
+  subroutine set_runmode
+    use modglobal, only : lwarmstart, runmode, RUN_COLDSTART, RUN_WARMSTART, TEST_JSON, TEST_IO
+    implicit none
+    
+    ! If runmode is already set from namelist (non-default), keep it
+    ! Otherwise, set runmode based on lwarmstart configuration
+    if (runmode == RUN_COLDSTART) then  ! Default value, check lwarmstart
+      if (lwarmstart) then
+        runmode = RUN_WARMSTART
+      else
+        runmode = RUN_COLDSTART
+      end if
+    end if
+    
+    ! runmode can now be set directly in namelists:
+    ! runmode = 1 (RUN_COLDSTART) - normal cold start
+    ! runmode = 2 (RUN_WARMSTART) - normal warm start  
+    ! runmode = 1001 (TEST_JSON) - run JSON tests
+    ! runmode = 1002 (TEST_IO) - run IO tests
+  end subroutine set_runmode
+
+  subroutine execute_runmode_actions
+    use modglobal, only : runmode, RUN_COLDSTART, RUN_WARMSTART, TEST_JSON, TEST_IO
+    implicit none
+    
+    select case (runmode)
+      case (RUN_COLDSTART)
+        ! Normal cold start - no special actions needed
+        continue
+      case (RUN_WARMSTART)
+        ! Normal warm start - no special actions needed
+        continue
+      case (TEST_JSON)
+        ! Execute JSON tests
+        call tests_json
+        ! Stop execution after tests (tests are standalone)
+        stop 'JSON tests completed successfully'
+      case (TEST_IO)
+        ! Execute IO tests (placeholder for future implementation)
+        write(*,*) 'TEST_IO mode not yet implemented'
+        stop 'TEST_IO mode not implemented'
+      case default
+        write(*,*) 'Unknown runmode:', runmode
+        stop 'Invalid runmode specified'
+    end select
+  end subroutine execute_runmode_actions
 
 end program DALESURBAN
