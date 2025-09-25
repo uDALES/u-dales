@@ -1,0 +1,86 @@
+#!/bin/bash
+
+# ud_nam2json - Convert uDALES namoptions files to JSON parameters files
+# Usage: ud_nam2json namoptions.XXX [parameters.XXX]
+
+# Help and argument checking
+case "${1:-}" in
+    -h|--help|"")
+        echo "Usage: $0 <namoptions.XXX>"
+        echo "Convert uDALES namoptions (Fortran namelist) to JSON parameters"
+        echo "Output will be named parameters.XXX (where XXX is extracted from input)"
+        echo "Example: $0 namoptions.001 -> parameters.001"
+        exit ${1:+0}
+        ;;
+esac
+
+[[ -f "$1" ]] || { echo "Error: File '$1' not found" >&2; exit 1; }
+
+# Extract extension from input filename (everything after the last dot)
+INPUT_FILE="$1"
+if [[ "$INPUT_FILE" =~ \.([^./]+)$ ]]; then
+    EXTENSION="${BASH_REMATCH[1]}"
+    OUTPUT_FILE="parameters.$EXTENSION"
+else
+    echo "Error: Input file must have format 'namoptions.XXX'" >&2
+    exit 1
+fi
+
+# AWK script to convert namoptions to JSON
+awk '
+function format_value(v) {
+    gsub(/^[ \t]+|[ \t]+$/, "", v)  # trim whitespace
+    
+    # Boolean values - check for .true./.false. patterns
+    if (match(tolower(v), /^\.?(true|t)\.?$/)) return "true"
+    if (match(tolower(v), /^\.?(false|f)\.?$/)) return "false"
+    
+    # Pure integers (including with leading zeros)
+    if (match(v, /^-?[0-9]+$/) && !match(v, /\./)) 
+        return sprintf("%d", v)  # removes leading zeros
+    
+    # Floating point numbers (including those ending with .)
+    if (match(v, /^-?[0-9]*\.[0-9]*$/)) {
+        if (match(v, /\.$/)) gsub(/\.$/, "", v)  # remove trailing dot
+        return v + 0
+    }
+    
+    # Scientific notation
+    if (match(v, /^-?[0-9]*\.?[0-9]*[eE][+-]?[0-9]+$/)) 
+        return v + 0
+    
+    # Strings - remove existing quotes and add double quotes
+    gsub(/^['\''\"]*|['\''\"]*$/, "", v)
+    return "\"" v "\""
+}
+
+BEGIN { 
+    print "{"
+    first_section = 1
+}
+
+/^[ \t]*&[A-Z_]+/ {
+    if (!first_section) print "  },"
+    first_section = 0
+    match($0, /&([A-Z_]+)/, arr)
+    print "  \"" arr[1] "\": {"
+    first_param = 1
+    next
+}
+
+/^[ \t]*\// { next }  # skip section end
+
+/^[ \t]*[a-zA-Z_][a-zA-Z0-9_]*[ \t]*=/ {
+    match($0, /^[ \t]*([a-zA-Z_][a-zA-Z0-9_]*)[ \t]*=[ \t]*(.*)/, arr)
+    if (!first_param) print ","
+    first_param = 0
+    printf "    \"%s\": %s", arr[1], format_value(arr[2])
+}
+
+END {
+    print ""
+    print "  }"
+    print "}"
+}' "$INPUT_FILE" > "$OUTPUT_FILE"
+
+echo "Successfully converted '$INPUT_FILE' to '$OUTPUT_FILE'"

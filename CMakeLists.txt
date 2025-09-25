@@ -15,7 +15,7 @@
 
 # Copyright (C) 2019 the uDALES Team.
 
-cmake_minimum_required(VERSION 3.9)
+cmake_minimum_required(VERSION 3.16...3.29)
 project(uDALES Fortran)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
@@ -131,3 +131,10 @@ target_include_directories(u-dales PUBLIC ${FFTW_INCLUDE_DIRS})
 #add_dependencies(u-dales fishpack-cmake-project)
 #add_dependencies(u-dales vfftpack-cmake-project)
 add_dependencies(u-dales 2decomp-fft)
+
+# Create bin directory and copy executable as final build step
+add_custom_command(TARGET u-dales POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_SOURCE_DIR}/bin
+    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:u-dales> ${CMAKE_SOURCE_DIR}/bin/
+    COMMENT "Copying u-dales executable to bin directory"
+)

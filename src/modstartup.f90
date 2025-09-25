@@ -38,7 +38,7 @@ module modstartup
    use mpi
    use json_module, wp => json_RK, CK => json_CK
    use iso_fortran_env, only: real64
-   use modglobal
+   use modglobal, mg_rv => rv
    use modsurfdata
    use modfields
    use modpois
@@ -57,6 +57,7 @@ module modstartup
    implicit none
    ! private
    ! public :: startup,trestart
+   public :: RUN, DOMAIN, PHYSICS, DYNAMICS, BC, INLET, DRIVER, WALLS, ENERGYBALANCE, SCALARS, CHEMISTRY, OUTPUT, TREES, PURIFS, HEATPUMP
    save
 
    integer(KIND=selected_int_kind(6)) :: irandom = 43 !    * number to seed the randomnizer with
@@ -160,7 +161,7 @@ module modstartup
       dr = di ! initial value is needed
       di_test = di ! initial value is needed
       iangle = iangledeg*pi/180.
-      thvs = thls*(1.+(rv/rd - 1.)*qts)
+      thvs = thls*(1.+(mg_rv/rd - 1.)*qts)
       
       ! Allocate and broadcast arrays
       allocate (wsvsurf(1:nsv))

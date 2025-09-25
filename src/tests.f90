@@ -2,9 +2,9 @@ module tests
   use MPI
   use decomp_2d
   use modglobal  ! Import all global variables for comprehensive output
-  use modmpi, only : comm3d, mpi_integer, mpi_logical, my_real, mpierr
+  use modmpi, only : comm3d, my_real, mpierr, myid
   use json_module
-  use modstartup, only : readnamelists, readjsonconfig
+  use modstartup, only : readnamelists, readjsonconfig, RUN, DOMAIN, PHYSICS, DYNAMICS, BC, INLET, DRIVER, WALLS, ENERGYBALANCE, SCALARS, CHEMISTRY, OUTPUT, TREES, PURIFS, HEATPUMP
 
   implicit none
 
@@ -52,7 +52,7 @@ module tests
       
       implicit none
       
-      integer :: ierr, last_proc, nprocs
+      integer :: ierr, last_proc, nprocs, myid
       
       ! Get MPI information
       call MPI_COMM_RANK(MPI_COMM_WORLD, myid, ierr)
@@ -142,11 +142,13 @@ module tests
       write(iunit, nml=BC)
       write(iunit, nml=INLET)
       write(iunit, nml=DRIVER)
+      write(iunit, nml=WALLS)
+      write(iunit, nml=ENERGYBALANCE)
       write(iunit, nml=SCALARS)
       write(iunit, nml=CHEMISTRY)
       write(iunit, nml=OUTPUT)
       write(iunit, nml=TREES)
-      write(iunit, nml=PURIFIERS)
+      write(iunit, nml=PURIFS)
       write(iunit, nml=HEATPUMP)
       
       close(iunit)
