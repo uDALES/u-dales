@@ -25,7 +25,7 @@ program DALESURBAN      !Version 48
 !!     0.0    USE STATEMENTS FOR CORE MODULES
 !!----------------------------------------------------------------
   use modmpi,            only : initmpi,exitmpi,myid,starttimer
-  use modglobal,         only : initglobal,rk3step,timeleft
+  use modglobal,         only : initglobal,rk3step,timeleft,runmode,TEST_JSON,TEST_IO
   use modstartup,        only : readconfig,init2decomp,checkinitvalues,readinitfiles,exitmodules
   use modfields,         only : initfields
   use modsave,           only : writerestartfiles
@@ -48,6 +48,7 @@ program DALESURBAN      !Version 48
   use modchecksim,     only : initchecksim,checksim
   use modstat_nc,      only : initstat_nc
   use modfielddump,    only : initfielddump,fielddump,exitfielddump
+  use tests,           only : tests_json
   use modstatsdump,    only : initstatsdump,statsdump,exitstatsdump    !tg3315
   use stats,           only : stats_init,stats_main,stats_exit !DMajumdar
   use instant_slice,   only : instant_init,instant_main !DMajumdar
@@ -67,10 +68,29 @@ program DALESURBAN      !Version 48
 
   call checkinitvalues
 
-  ! Determine run mode and execute tests if needed
-  call set_runmode
-  call execute_runmode_actions
-
+  ! Execute tests if needed
+   
+  select case (runmode)
+  
+      case (TEST_JSON)
+        ! Execute JSON tests
+        call tests_json
+        call exitmodules
+        ! Stop execution after tests (tests are standalone)
+        stop 'JSON tests completed successfully'
+      case (TEST_IO)
+        ! Execute IO tests (placeholder for future implementation)
+        write(*,*) 'TEST_IO mode not yet implemented'
+        call exitmodules
+        stop 'TEST_IO mode not implemented'
+      case default
+        write(*,*) 'Unknown runmode:', runmode
+        call exitmodules
+        stop 'Invalid runmode specified'
+  end select
+  
+  ! Perform simulations
+  
   call initglobal
 
   call initfields
@@ -239,27 +259,6 @@ program DALESURBAN      !Version 48
   call exitmpi
 
 contains
-
-  subroutine set_runmode
-    use modglobal, only : lwarmstart, runmode, RUN_COLDSTART, RUN_WARMSTART, TEST_JSON, TEST_IO
-    implicit none
-    
-    ! If runmode is already set from namelist (non-default), keep it
-    ! Otherwise, set runmode based on lwarmstart configuration
-    if (runmode == RUN_COLDSTART) then  ! Default value, check lwarmstart
-      if (lwarmstart) then
-        runmode = RUN_WARMSTART
-      else
-        runmode = RUN_COLDSTART
-      end if
-    end if
-    
-    ! runmode can now be set directly in namelists:
-    ! runmode = 1 (RUN_COLDSTART) - normal cold start
-    ! runmode = 2 (RUN_WARMSTART) - normal warm start  
-    ! runmode = 1001 (TEST_JSON) - run JSON tests
-    ! runmode = 1002 (TEST_IO) - run IO tests
-  end subroutine set_runmode
 
   subroutine execute_runmode_actions
     use modglobal, only : runmode, RUN_COLDSTART, RUN_WARMSTART, TEST_JSON, TEST_IO

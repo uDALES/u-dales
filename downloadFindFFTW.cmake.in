@@ -1,11 +1,19 @@
-cmake_minimum_required(VERSION 2.8.2)
+cmake_minimum_required(VERSION 3.16)
 
 project(findFFTW-download NONE)
 
 include(ExternalProject)
 
+# Ensure we have a working git
+find_package(Git QUIET)
+if(NOT GIT_FOUND)
+    message(FATAL_ERROR "Git not found")
+endif()
+
 ExternalProject_Add(findFFTW_download
     GIT_REPOSITORY    "https://github.com/egpbos/findfftw.git"
+    GIT_SHALLOW       TRUE
+    GIT_PROGRESS      TRUE
     CONFIGURE_COMMAND ""
     BUILD_COMMAND     ""
     INSTALL_COMMAND   ""

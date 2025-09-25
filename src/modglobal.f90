@@ -74,12 +74,13 @@ module modglobal
    integer, parameter :: longint = 8
    
    ! Run mode constants and variable
+   integer, parameter :: RUN_SIMULATION = 1
    integer, parameter :: RUN_COLDSTART = 1
    integer, parameter :: RUN_WARMSTART = 2
    integer, parameter :: TEST_JSON = 1001
    integer, parameter :: TEST_IO = 1002
-   integer :: runmode = RUN_COLDSTART
-   
+   integer :: runmode = RUN_SIMULATION
+
    logical :: lwarmstart = .false. !<   flag for "cold" or "warm" start
    logical :: lstratstart = .false.
    logical :: lfielddump = .false. !< switch to enable the fielddump
@@ -280,6 +281,7 @@ module modglobal
    real :: wsoil = 0. !water content of soil (kg/m3)
    real :: bldT = 0. !building internal temperature, currently also ground temperature at a depth equal to floor facet thickness
    real :: flrT = 0. !ground internal temperature
+   real :: facT = 288. !initial facet temperature [K]
    real :: skyLW = 0. !longwave radiation from the sky
    real :: gres = 0. !saturation vapour pressure of green roof
    real :: grqs = 0. !saturation humidity of green roof
