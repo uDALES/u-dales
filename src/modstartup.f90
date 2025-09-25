@@ -8,6 +8,7 @@
 !! the inits of the other routines where necessary. Reading of the
 !! restart files also live in this module. Also supports JSON input format
 !! when compiled with USE_JSON_INPUT.
+!!  \author Maarten van Reeuwijk, Imperial College London
 !!  \author Jasper Tomas, TU Delft
 !!  \author Chiel van Heerwaarden, Wageningen U.R.
 !!  \author Thijs Heus,MPI-M
@@ -135,8 +136,8 @@ module modstartup
    subroutine readconfig
       !-----------------------------------------------------------------|
       !                                                                 |
-      !     Wrapper subroutine to read configuration from either       |
-      !     JSON or namelist input. JSON is always available.          |
+      !     Wrapper subroutine to read configuration from either        |
+      !     JSON or namelist input. JSON is always available.           |
       !                                                                 |
       !-----------------------------------------------------------------|
       
@@ -149,7 +150,63 @@ module modstartup
       else
          call readnamelists
       end if
+
+      ! Broadcast parameters to all processes
+      call broadcast_config_parameters
+
+      ! Specific initializations that need to happen after broadcast
+      tnextfac = dtfac
+      tnextEB = dtEB
+      dr = di ! initial value is needed
+      di_test = di ! initial value is needed
+      iangle = iangledeg*pi/180.
+      thvs = thls*(1.+(rv/rd - 1.)*qts)
       
+      ! Allocate and broadcast arrays
+      allocate (wsvsurf(1:nsv))
+      wsvsurf = wsvsurfdum(1:nsv)
+      call MPI_BCAST(wsvsurf(1:nsv), nsv, MY_REAL, 0, comm3d, mpierr)
+      allocate (wsvtop(1:nsv))
+      wsvtop = wsvtopdum(1:nsv)
+      call MPI_BCAST(wsvtop(1:nsv), nsv, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(iadv_sv(1:nsv), nsv, MPI_INTEGER, 0, comm3d, mpierr)
+
+      ! ! Allocate and initialize core modules
+      ! call initglobal
+      ! !write (*, *) "done initglobal"
+      ! call initfields
+      ! !write (*, *) "done initfields"
+      ! call initboundary
+      ! !write (*, *) "done initboundary"
+      ! call initthermodynamics
+      ! ! write (*, *) "done initthermodynamics"
+      ! ! !!depreated!!
+      ! ! ! call initsurface
+      ! ! write (*, *) "done initsurface"
+      ! call initsubgrid
+      ! !write (*, *) "done initsubgrid"
+      ! ! call initpois
+      ! ! write (*, *) "done initpois"
+      ! ! call initinlet ! added by J. Tomas: initialize inlet generator
+      ! ! write (*, *) "done initinlet"
+      ! call initdriver  ! added by ae1212: initialise driver inlet
+      ! ! write(*,*) "done initdriver"
+      ! call checkinitvalues
+      ! !write (*, *) "done checkinitvalues"
+      ! call initpois
+      ! !write (*, *) "done initpois"
+      ! ! write (6, *) 'Determine masking matrices'
+      ! call createmasks ! determine walls/blocks
+      ! ! write (6, *) 'Finished determining masking matrices'
+      ! ! ! calculate fluid volume and outlet areas, needs masking matrices
+      ! call calcfluidvolumes
+      ! !
+      ! call readinitfiles
+      ! !write (*, *) "done readinitfiles"
+      ! ! write (*, *) "done startup"
+      ! !
+      ! ! call createscals
+      ! ! write (*, *) "done create scals"
    end subroutine readconfig
 
    subroutine readjsonconfig
@@ -165,7 +222,7 @@ module modstartup
 
       type(json_file) :: json
       logical :: found
-      character(len=80) :: json_fname = 'config.json'
+      character(len=80) :: json_fname
       
       ! Temporary variables to preserve existing default values
       integer :: temp_int
@@ -174,13 +231,18 @@ module modstartup
       character(kind=CK,len=:), allocatable :: temp_string
 
       if (myid == 0) then
+         if (command_argument_count() >= 1) then
+            call get_command_argument(1, json_fname)
+         end if
+         !write (*, *) fname_options
+
          ! Initialize JSON parser
          call json%initialize()
          
          ! Load JSON file
          call json%load_file(json_fname)
          if (json%failed()) then
-            write(0,*) 'ERROR: Could not load JSON file: ', json_fname
+            write(0,*) 'ERROR: Could not load JSON file: ', trim(json_fname)
             call json%print_error_message()
             stop 1
          end if
@@ -354,10 +416,6 @@ module modstartup
          ! Clean up
          call json%destroy()
       end if
-
-      ! Broadcast parameters to all processes
-      call broadcast_config_parameters
-
    end subroutine readjsonconfig
 
    subroutine readnamelists
@@ -524,97 +582,6 @@ module modstartup
          !write (6, OUTPUT)
          close (ifnamopt)
       end if
-
-      ! if (BCxm .eq. BCxm_periodic .and. nprocx > 1) then
-      !   periodic_bc(1) = .true.
-      ! else
-      !   periodic_bc(1) = .false.
-      ! end if
-      !
-      ! if (BCym .eq. BCym_periodic .and. nprocy > 1) then
-      !   periodic_bc(2) = .true.
-      ! else
-      !   periodic_bc(2) = .false.
-      ! end if
-      !
-      ! periodic_bc(3) = .false.
-      ! call decomp_2d_init(itot,jtot,ktot,nprocx,nprocy,periodic_bc)
-      ! !myid = nrank
-      ! !write(cmyid,'(i3.3)') myid
-      !
-      ! comm3d = DECOMP_2D_COMM_CART_Z
-      ! !write(*,*) "myid", myid
-      ! call MPI_CART_COORDS(comm3d,myid,2,myids,mpierr)
-      ! !write(*,*) "myids", myids
-      ! myidx = myids(1)
-      ! myidy = myids(2)
-      ! ! write(*,*) "myid", " myids", myid, myids'
-      !
-      ! write(cmyidx,'(i3.3)') myidx
-      ! write(cmyidy,'(i3.3)') myidy
-      !
-      ! call MPI_CART_SHIFT(comm3d, 0,  1, nbrwest,  nbreast ,   mpierr)
-      ! call MPI_CART_SHIFT(comm3d, 1,  1, nbrsouth, nbrnorth,   mpierr)
-
-      !call init2decomp
-
-      ! Broadcast parameters to all processes
-      call broadcast_config_parameters
-      
-      ! Specific initializations that need to happen after broadcast
-      tnextfac = dtfac
-      tnextEB = dtEB
-      dr = di ! initial value is needed
-      di_test = di ! initial value is needed
-      iangle = iangledeg*pi/180.
-      thvs = thls*(1.+(rv/rd - 1.)*qts)
-      
-      ! Allocate and broadcast arrays
-      allocate (wsvsurf(1:nsv))
-      wsvsurf = wsvsurfdum(1:nsv)
-      call MPI_BCAST(wsvsurf(1:nsv), nsv, MY_REAL, 0, comm3d, mpierr)
-      allocate (wsvtop(1:nsv))
-      wsvtop = wsvtopdum(1:nsv)
-      call MPI_BCAST(wsvtop(1:nsv), nsv, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(iadv_sv(1:nsv), nsv, MPI_INTEGER, 0, comm3d, mpierr)
-
-      ! ! Allocate and initialize core modules
-      ! call initglobal
-      ! !write (*, *) "done initglobal"
-      ! call initfields
-      ! !write (*, *) "done initfields"
-      ! call initboundary
-      ! !write (*, *) "done initboundary"
-      ! call initthermodynamics
-      ! ! write (*, *) "done initthermodynamics"
-      ! ! !!depreated!!
-      ! ! ! call initsurface
-      ! ! write (*, *) "done initsurface"
-      ! call initsubgrid
-      ! !write (*, *) "done initsubgrid"
-      ! ! call initpois
-      ! ! write (*, *) "done initpois"
-      ! ! call initinlet ! added by J. Tomas: initialize inlet generator
-      ! ! write (*, *) "done initinlet"
-      ! call initdriver  ! added by ae1212: initialise driver inlet
-      ! ! write(*,*) "done initdriver"
-      ! call checkinitvalues
-      ! !write (*, *) "done checkinitvalues"
-      ! call initpois
-      ! !write (*, *) "done initpois"
-      ! ! write (6, *) 'Determine masking matrices'
-      ! call createmasks ! determine walls/blocks
-      ! ! write (6, *) 'Finished determining masking matrices'
-      ! ! ! calculate fluid volume and outlet areas, needs masking matrices
-      ! call calcfluidvolumes
-      ! !
-      ! call readinitfiles
-      ! !write (*, *) "done readinitfiles"
-      ! ! write (*, *) "done startup"
-      ! !
-      ! ! call createscals
-      ! ! write (*, *) "done create scals"
-
    end subroutine readnamelists
 
 
@@ -1482,14 +1449,14 @@ module modstartup
             end if
 
             !---------------------------------------------------------------
-            !  1.2 randomnize fields
+            !  1.2 randomize fields
             !---------------------------------------------------------------
             !     if (iinletgen /= 2 .and. iinletgen /= 1) then
             !       write(6,*) 'randomnizing temperature!'
             !       krand  = min(krand,ke)
             !        do k = kb,ke !edited tg3315 krand --> ke
-            !          call randomnize(thlm,k,randthl,irandom,ih,jh)
-            !          call randomnize(thl0,k,randthl,irandom,ih,jh)
+            !          call randomize(thlm,k,randthl,irandom,ih,jh)
+            !          call randomize(thl0,k,randthl,irandom,ih,jh)
             !        end do
             !       end if
 
