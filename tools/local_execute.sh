@@ -67,13 +67,26 @@ echo "Starting job for case $exp..."
 ## copy files to output directory
 mkdir -p $outdir
 cp -r ./* $outdir
-cp $DA_TOOLSDIR/bind.sh $outdir
+
+## Check if the build supports GPU (CUDA)
+GPU_ENABLED=false
+if ldd $DA_BUILD 2>/dev/null | grep -q "libcuda\|libcudart\|libcufft"; then
+    GPU_ENABLED=true
+    echo "GPU build detected - using bind.sh for execution"
+    cp $DA_TOOLSDIR/bind.sh $outdir
+else
+    echo "CPU build detected - running without bind.sh"
+fi
 
 ## go to execution and output directory
 pushd $outdir
 
-## execute program with mpi
-mpiexec -n $NCPU ./bind.sh $DA_BUILD namoptions.$exp 2>&1 | tee -a output.$exp.log
+## execute program with mpi (conditionally use bind.sh for GPU builds)
+if [ "$GPU_ENABLED" = true ]; then
+    mpiexec -n $NCPU ./bind.sh $DA_BUILD namoptions.$exp 2>&1 | tee -a output.$exp.log
+else
+    mpiexec -n $NCPU $DA_BUILD namoptions.$exp 2>&1 | tee -a output.$exp.log
+fi
 
 ## Merge output files across outputs.
 if (($NCPU > 1 )); then
