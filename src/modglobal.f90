@@ -85,6 +85,7 @@ module modglobal
    logical :: lstratstart = .false.
    logical :: lfielddump = .false. !< switch to enable the fielddump
    logical :: lreadscal = .false. !<   flag for reading scalar pollutant field (warm start)
+   logical :: json_input = .true. !<   flag for JSON input (true) vs Fortran namelist input (false)
 
    !Switches for boundary conditions
    !momentum (m), temperature (T), humidity (q) and scalars (s)

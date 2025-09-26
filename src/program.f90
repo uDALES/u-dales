@@ -60,9 +60,20 @@ program DALESURBAN      !Version 48
 !     1      READ NAMELISTS,INITIALISE GRID, CONSTANTS AND FIELDS
 !----------------------------------------------------------------
   call initmpi
-
+  call exitmpi
+  stop
   !call startup
   call readconfig
+
+  write(*,*) 'Runmode is ', myid, runmode
+  select case (runmode)
+        case (TEST_JSON)
+        ! Execute JSON tests
+        call tests_json
+        call exitmpi
+        ! Stop execution after tests (tests are standalone)
+        stop 'JSON tests completed successfully'
+  end select
 
   call init2decomp
 
@@ -71,21 +82,14 @@ program DALESURBAN      !Version 48
   ! Execute tests if needed
    
   select case (runmode)
-  
-      case (TEST_JSON)
-        ! Execute JSON tests
-        call tests_json
-        call exitmodules
-        ! Stop execution after tests (tests are standalone)
-        stop 'JSON tests completed successfully'
       case (TEST_IO)
         ! Execute IO tests (placeholder for future implementation)
         write(*,*) 'TEST_IO mode not yet implemented'
-        call exitmodules
+        call exitmpi
         stop 'TEST_IO mode not implemented'
       case default
         write(*,*) 'Unknown runmode:', runmode
-        call exitmodules
+        call exitmpi
         stop 'Invalid runmode specified'
   end select
   
