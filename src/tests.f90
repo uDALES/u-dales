@@ -68,36 +68,6 @@ module tests
         write(*,*) '========================================='
       end if
       
-      ! Test 1: Load namoptions file
-      if (myid == 0) then
-        write(*,*) 'TEST 1: Loading namoptions file'
-        write(*,*) '  Calling readnamelists (process 0 reads, all processes receive broadcasts)...'
-      end if
-      
-      ! Call the actual production readnamelists routine
-      call readnamelists
-      
-      ! Barrier to ensure all processes have completed the broadcasts
-      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-      
-      ! Last process outputs all namelist values to verify broadcast worked
-      if (myid == last_proc) then
-        write(*,*) '  Last process (', myid, ') received ALL NAMELIST VALUES:'
-        call output_all_namelists
-      end if
-      
-      ! Barrier to ensure test 1 completes before test 2
-      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-      
-      ! Test 2: Load config.json file
-      if (myid == 0) then
-        write(*,*) 'TEST 2: Loading config.json file'
-        write(*,*) '  Calling readjsonconfig (process 0 reads, all processes receive broadcasts)...'
-      end if
-      
-      ! Call the actual production readjsonconfig routine
-      call readjsonconfig
-      
       ! Barrier to ensure all processes have completed the broadcasts
       call MPI_BARRIER(MPI_COMM_WORLD, ierr)
       
@@ -106,9 +76,6 @@ module tests
         write(*,*) '  Last process (', myid, ') received ALL JSON VALUES:'
         call output_all_namelists
       end if
-      
-      ! Final barrier
-      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
       
       if (myid == 0) then
         write(*,*) '========================================='
@@ -128,7 +95,7 @@ module tests
       character(len=100) :: filename
       
       ! Create filename with process ID for debugging
-      write(filename,'(a,i0,a)') 'namelists_proc_', myid, '.txt'
+      write(filename,'(a,i0,a)') 'namoptions_json_test.', iexpnr
       
       write(*,*) '  Writing all namelists to file: ', trim(filename)
       

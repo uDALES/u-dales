@@ -20,7 +20,9 @@ esac
 INPUT_FILE="$1"
 if [[ "$INPUT_FILE" =~ \.([^./]+)$ ]]; then
     EXTENSION="${BASH_REMATCH[1]}"
-    OUTPUT_FILE="parameters.$EXTENSION"
+    # Extract directory path from input file and place output there
+    INPUT_DIR=$(dirname "$INPUT_FILE")
+    OUTPUT_FILE="$INPUT_DIR/parameters.$EXTENSION"
 else
     echo "Error: Input file must have format 'namoptions.XXX'" >&2
     exit 1
