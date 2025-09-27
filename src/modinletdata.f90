@@ -143,6 +143,9 @@ module modinletdata
     real :: iangle    !< inflow angle in radians (change with respect to inlet velocity that is read in)
     real :: iangledeg=0. !< inflow angle in degrees (change with respect to inlet velocity that is read in)
 
+    ! input parameter for INFO field
+    integer :: kmaxin  !< number of vertical levels in inlet files
+
 ! Needed for interpolation in y-direction
     integer :: jgbin
     integer :: jgein

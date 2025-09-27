@@ -2247,37 +2247,36 @@ contains
   integer ierr,k,kk,kmaxin,j,jj
   real ysizeproc
 
-      namelist/INFO/nprocsinl,jgtotinl,kmaxin,dtin,wtop,totalreadu
+!      namelist/INFO/nprocsinl,jgtotinl,kmaxin,dtin,wtop,totalreadu
 
   namezinlet = 'zgrid.inl'
   namezinfo  = 'zgrid.inf'
 
     if (myid==0) then
 
-
       open(ifinput,file=namezinfo,status='old',iostat=ierr)
         if (ierr /= 0) then
           write(0, *) 'ERROR: zgrid.inf does not exist'
           stop 1
         end if
-        read (ifinput,INFO,iostat=ierr)
-        if (ierr > 0) then
-          write(0, *) 'Problem in zgrid.inf INFO'
-          write(0, *) 'iostat error: ', ierr
-          stop 1
-        endif
-        write(6,INFO)
-      close(ifinput)
+   !      read (ifinput,INFO,iostat=ierr)
+   !     if (ierr > 0) then
+   !       write(0, *) 'Problem in zgrid.inf INFO'
+   !       write(0, *) 'iostat error: ', ierr
+   !       stop 1
+   !     endif
+   !     write(6,INFO)
+   !   close(ifinput)
     end if
     kbin = 0
     kein = kmaxin-1
-    call MPI_BCAST(nprocsinl,1,MPI_INTEGER,0,comm3d,mpierr)
-    call MPI_BCAST(jgtotinl ,1,MPI_INTEGER,0,comm3d,mpierr)
-    call MPI_BCAST(kbin     ,1,MPI_INTEGER,0,comm3d,mpierr)
-    call MPI_BCAST(kein     ,1,MPI_INTEGER,0,comm3d,mpierr)
-    call MPI_BCAST(dtin     ,1,MY_REAL,0,comm3d,mpierr)
-    call MPI_BCAST(wtop     ,1,MY_REAL,0,comm3d,mpierr)
-    call MPI_BCAST(totalreadu ,1,MY_REAL,0,comm3d,mpierr)
+!    call MPI_BCAST(nprocsinl,1,MPI_INTEGER,0,comm3d,mpierr)
+!    call MPI_BCAST(jgtotinl ,1,MPI_INTEGER,0,comm3d,mpierr)
+!    call MPI_BCAST(kbin     ,1,MPI_INTEGER,0,comm3d,mpierr)
+!    call MPI_BCAST(kein     ,1,MPI_INTEGER,0,comm3d,mpierr)
+!    call MPI_BCAST(dtin     ,1,MY_REAL,0,comm3d,mpierr)
+!    call MPI_BCAST(wtop     ,1,MY_REAL,0,comm3d,mpierr)
+!    call MPI_BCAST(totalreadu ,1,MY_REAL,0,comm3d,mpierr)
     allocate(zhin(kbin   :kein+1))
     allocate(zfin(kbin   :kein+1))
     allocate(dzfin(kbin-1:kein+1))

@@ -8,24 +8,16 @@ This report shows the status of variables with color coding:
 
 ## Executive Summary
 
-- **Total Namelist Variables**: 249
-- **JSON Support**: 220 variables
-- **Namelist Broadcasts**: 199 variables
-- **Non-namelist Broadcasts**: 106 variables (internal/computed)
-- **Schema Coverage**: 225 variables
+- **Total Namelist Variables**: 251
+- **JSON Support**: 245 variables
+- **Namelist Broadcasts**: 245 variables
+- **Non-namelist Broadcasts**: 107 variables (internal/computed)
+- **Schema Coverage**: 224 variables
 
 **Status Distribution:**
-- 🟢 **170 variables** with full support
-- 🟠 **47 variables** with warnings
-- 🔴 **42 variables** with errors
-
-## 🚨 Critical Configuration Issue
-
-**JSON Coverage Gap**: 220 JSON reads vs 199 namelist broadcasts
-**Missing JSON Support**: 21 namelist variables
-
-This means many namelist variables are broadcast to all MPI processes but cannot be configured via JSON.
-Additionally, 106 internal/computed variables are also broadcast (this is normal).
+- 🟢 **207 variables** with full support
+- 🟠 **54 variables** with warnings
+- 🔴 **0 variables** with errors
 
 ## Variables by Namelist
 *Only showing variables that are defined in Fortran namelists*
@@ -47,18 +39,10 @@ Additionally, 106 internal/computed variables are also broadcast (this is normal
 
 ### DRIVER Namelist *(defined in modstartup.f90)*
 
+🟢 **Full Support**: `chunkread_size`, `driverjobnr`, `driverstore`, `dtdriver`, `iangledeg`, `iplane`, `lchunkread`, `tdriverstart`
+
 🟠 **Warnings**:
 - `idriver` (duplicate operations: Broadcast: 2x)
-
-🔴 **Errors**:
-- `chunkread_size` (JSON: ✓, Broadcast: ✗, Schema: ✓) - No MPI broadcast
-- `driverjobnr` (JSON: ✓, Broadcast: ✗, Schema: ✓) - No MPI broadcast
-- `driverstore` (JSON: ✓, Broadcast: ✗, Schema: ✓) - No MPI broadcast
-- `dtdriver` (JSON: ✓, Broadcast: ✗, Schema: ✓) - No MPI broadcast
-- `iangledeg` (JSON: ✓, Broadcast: ✗, Schema: ✓) - No MPI broadcast
-- `iplane` (JSON: ✓, Broadcast: ✗, Schema: ✓) - No MPI broadcast
-- `lchunkread` (JSON: ✓, Broadcast: ✗, Schema: ✓) - No MPI broadcast
-- `tdriverstart` (JSON: ✓, Broadcast: ✗, Schema: ✓) - No MPI broadcast
 
 ### DYNAMICS Namelist *(defined in modstartup.f90)*
 
@@ -69,27 +53,7 @@ Additionally, 106 internal/computed variables are also broadcast (this is normal
 
 ### ENERGYBALANCE Namelist *(defined in modstartup.f90)*
 
-🔴 **Errors**:
-- `bldt` (JSON: ✓, Broadcast: ✗, Schema: ✓) - No MPI broadcast
-- `dteb` (JSON: ✓, Broadcast: ✗, Schema: ✓) - No MPI broadcast
-- `flrt` (JSON: ✓, Broadcast: ✗, Schema: ✓) - No MPI broadcast
-- `fraction` (JSON: ✓, Broadcast: ✗, Schema: ✓) - No MPI broadcast
-- `grlai` (JSON: ✓, Broadcast: ✗, Schema: ✓) - No MPI broadcast
-- `lconstw` (JSON: ✓, Broadcast: ✗, Schema: ✓) - No MPI broadcast
-- `leb` (JSON: ✓, Broadcast: ✗, Schema: ✓) - No MPI broadcast
-- `lfactlyrs` (JSON: ✓, Broadcast: ✗, Schema: ✓) - No MPI broadcast
-- `lperiodicebcorr` (JSON: ✓, Broadcast: ✗, Schema: ✓) - No MPI broadcast
-- `lvfsparse` (JSON: ✓, Broadcast: ✗, Schema: ✓) - No MPI broadcast
-- `lwriteebfiles` (JSON: ✓, Broadcast: ✗, Schema: ✓) - No MPI broadcast
-- `nfaclyrs` (JSON: ✓, Broadcast: ✗, Schema: ✓) - No MPI broadcast
-- `nnz` (JSON: ✓, Broadcast: ✗, Schema: ✓) - No MPI broadcast
-- `rsmin` (JSON: ✓, Broadcast: ✗, Schema: ✓) - No MPI broadcast
-- `sinkbase` (JSON: ✓, Broadcast: ✗, Schema: ✓) - No MPI broadcast
-- `skylw` (JSON: ✓, Broadcast: ✗, Schema: ✓) - No MPI broadcast
-- `wfc` (JSON: ✓, Broadcast: ✗, Schema: ✓) - No MPI broadcast
-- `wgrmax` (JSON: ✓, Broadcast: ✗, Schema: ✓) - No MPI broadcast
-- `wsoil` (JSON: ✓, Broadcast: ✗, Schema: ✓) - No MPI broadcast
-- `wwilt` (JSON: ✓, Broadcast: ✗, Schema: ✓) - No MPI broadcast
+🟢 **Full Support**: `bldt`, `dteb`, `flrt`, `fraction`, `grlai`, `lconstw`, `leb`, `lfactlyrs`, `lperiodicebcorr`, `lvfsparse`, `lwriteebfiles`, `nfaclyrs`, `nnz`, `rsmin`, `sinkbase`, `skylw`, `wfc`, `wgrmax`, `wsoil`, `wwilt`
 
 ### HEATPUMP Namelist *(defined in modstartup.f90)*
 
@@ -99,14 +63,11 @@ Additionally, 106 internal/computed variables are also broadcast (this is normal
 
 🟠 **Warnings**:
 - `dtin` (missing from schema)
-- `inl` (missing from schema)
 - `jgtotinl` (missing from schema)
 - `kmaxin` (missing from schema)
-- `namezinlet` (missing from schema)
 - `nprocsinl` (missing from schema)
 - `totalreadu` (missing from schema)
 - `wtop` (missing from schema)
-- `zgrid` (missing from schema)
 
 ### INLET Namelist *(defined in modstartup.f90)*
 
@@ -120,6 +81,8 @@ Additionally, 106 internal/computed variables are also broadcast (this is normal
 ### NAMSTATSDUMP Namelist *(defined in modstatsdump.f90)*
 
 🟠 **Warnings**:
+- `anymore` (missing from schema)
+- `is` (missing from schema)
 - `khigh` (missing from schema)
 - `klow` (missing from schema)
 - `lmintdump` (missing from schema)
@@ -130,6 +93,9 @@ Additionally, 106 internal/computed variables are also broadcast (this is normal
 - `lxytdump` (missing from schema)
 - `lydump` (missing from schema)
 - `lytdump` (missing from schema)
+- `maybe` (missing from schema)
+- `namstatsdump` (missing from schema)
+- `removed` (missing from schema)
 - `tsample` (missing from schema)
 - `tstatsdump` (missing from schema)
 
@@ -162,23 +128,13 @@ Additionally, 106 internal/computed variables are also broadcast (this is normal
 
 ### PHYSICS Namelist *(defined in modstartup.f90)*
 
-🟢 **Full Support**: `dpdx`, `ifixuinf`, `igrw_damp`, `lbuoyancy`, `lcoriol`, `lmoist`, `lprofforc`, `ltempeq`, `ltimedeplw`, `ltimedepnudge`, `ltimedepsurf`, `ltimedepsw`, `lvinf`, `ps`, `tscale`
+🟢 **Full Support**: `dpdx`, `ifixuinf`, `igrw_damp`, `lbuoyancy`, `lcoriol`, `lmoist`, `lnudge`, `lnudgevel`, `lprofforc`, `ltempeq`, `luoutflowr`, `luvolflowr`, `lvinf`, `lvoutflowr`, `lvvolflowr`, `nnudge`, `ntimedeplw`, `ntimedepnudge`, `ntimedepsurf`, `ntimedepsw`, `ps`, `tnudge`, `tscale`, `uflowrate`, `vflowrate`
 
-🔴 **Errors**:
-- `lnudge` (JSON: ✓, Broadcast: ✗, Schema: ✓) - No MPI broadcast
-- `lnudgevel` (JSON: ✓, Broadcast: ✗, Schema: ✓) - No MPI broadcast
-- `luoutflowr` (JSON: ✓, Broadcast: ✗, Schema: ✓) - No MPI broadcast
-- `luvolflowr` (JSON: ✓, Broadcast: ✗, Schema: ✓) - No MPI broadcast
-- `lvoutflowr` (JSON: ✓, Broadcast: ✗, Schema: ✓) - No MPI broadcast
-- `lvvolflowr` (JSON: ✓, Broadcast: ✗, Schema: ✓) - No MPI broadcast
-- `nnudge` (JSON: ✓, Broadcast: ✗, Schema: ✓) - No MPI broadcast
-- `ntimedeplw` (JSON: ✓, Broadcast: ✗, Schema: ✓) - No MPI broadcast
-- `ntimedepnudge` (JSON: ✓, Broadcast: ✗, Schema: ✓) - No MPI broadcast
-- `ntimedepsurf` (JSON: ✓, Broadcast: ✗, Schema: ✓) - No MPI broadcast
-- `ntimedepsw` (JSON: ✓, Broadcast: ✗, Schema: ✓) - No MPI broadcast
-- `tnudge` (JSON: ✓, Broadcast: ✗, Schema: ✓) - No MPI broadcast
-- `uflowrate` (JSON: ✓, Broadcast: ✗, Schema: ✓) - No MPI broadcast
-- `vflowrate` (JSON: ✓, Broadcast: ✗, Schema: ✓) - No MPI broadcast
+🟠 **Warnings**:
+- `ltimedeplw` (duplicate operations: Broadcast: 2x)
+- `ltimedepnudge` (duplicate operations: Broadcast: 2x)
+- `ltimedepsurf` (duplicate operations: Broadcast: 2x)
+- `ltimedepsw` (duplicate operations: Broadcast: 2x)
 
 ### PURIFS Namelist *(defined in modstartup.f90)*
 
@@ -189,7 +145,10 @@ Additionally, 106 internal/computed variables are also broadcast (this is normal
 
 ### RUN Namelist *(defined in modstartup.f90)*
 
-🟢 **Full Support**: `author`, `courant`, `diffnr`, `dtmax`, `iexpnr`, `irandom`, `krand`, `ladaptive`, `libm`, `lles`, `lper2inout`, `lrandomize`, `lreadmean`, `lstratstart`, `lwalldist`, `lwarmstart`, `nprocx`, `nprocy`, `randqt`, `randthl`, `randu`, `runmode`, `runtime`, `startfile`, `trestart`
+🟢 **Full Support**: `author`, `courant`, `diffnr`, `dtmax`, `iexpnr`, `irandom`, `krand`, `ladaptive`, `libm`, `lles`, `lper2inout`, `lrandomize`, `lreadmean`, `lstratstart`, `lwalldist`, `lwarmstart`, `nprocx`, `nprocy`, `randqt`, `randthl`, `randu`, `runtime`, `startfile`, `trestart`
+
+🟠 **Warnings**:
+- `runmode` (missing from schema)
 
 ### SCALARS Namelist *(defined in modstartup.f90)*
 
@@ -209,14 +168,10 @@ Additionally, 106 internal/computed variables are also broadcast (this is normal
 
 ## 📋 Recommendations
 
-### High Priority
-1. **Add JSON reading support** for variables in namelists
-2. **Add MPI broadcast calls** for JSON-read variables
-
 ### Medium Priority
 3. **Update JSON schema** to include missing namelist variables
 4. **Review schema variables** that don't correspond to namelists
 
 ### General
-5. **Improve JSON coverage**: Currently 220/249 namelist variables support JSON
-6. **Focus on namelist variables**: 21 namelist variables lack JSON support despite being broadcast
+5. **Improve JSON coverage**: Currently 245/251 namelist variables support JSON
+6. **Focus on namelist variables**: 0 namelist variables lack JSON support despite being broadcast

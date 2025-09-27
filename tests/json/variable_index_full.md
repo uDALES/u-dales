@@ -55,9 +55,9 @@ This report shows the status of variables across different aspects of the uDALES
 
 | Variable | Namelist | JSON Read | Broadcast | Schema |
 |----------|----------|-----------|-----------|--------|
-| `jno2` | ✓ | ✗ | ✗ | ✗ |
-| `k1` | ✓ | ✗ | ✗ | ✗ |
-| `lchem` | ✓ | ✗ | ✗ | ✗ |
+| `jno2` | ✓ | ✓ | ✓ | ✗ |
+| `k1` | ✓ | ✓ | ✓ | ✗ |
+| `lchem` | ✓ | ✓ | ✓ | ✗ |
 
 ## DOMAIN Namelist *(defined in modstartup.f90)*
 
@@ -78,15 +78,15 @@ This report shows the status of variables across different aspects of the uDALES
 
 | Variable | Namelist | JSON Read | Broadcast | Schema |
 |----------|----------|-----------|-----------|--------|
-| `chunkread_size` | ✓ | ✓ | ✗ | ✓ |
-| `driverjobnr` | ✓ | ✓ | ✗ | ✓ |
-| `driverstore` | ✓ | ✓ | ✗ | ✓ |
-| `dtdriver` | ✓ | ✓ | ✗ | ✓ |
-| `iangledeg` | ✓ | ✓ | ✗ | ✓ |
+| `chunkread_size` | ✓ | ✓ | ✓ | ✓ |
+| `driverjobnr` | ✓ | ✓ | ✓ | ✓ |
+| `driverstore` | ✓ | ✓ | ✓ | ✓ |
+| `dtdriver` | ✓ | ✓ | ✓ | ✓ |
+| `iangledeg` | ✓ | ✓ | ✓ | ✓ |
 | `idriver` | ✓ | ✓ | ✓ (2x) | ✓ |
-| `iplane` | ✓ | ✓ | ✗ | ✓ |
-| `lchunkread` | ✓ | ✓ | ✗ | ✓ |
-| `tdriverstart` | ✓ | ✓ | ✗ | ✓ |
+| `iplane` | ✓ | ✓ | ✓ | ✓ |
+| `lchunkread` | ✓ | ✓ | ✓ | ✓ |
+| `tdriverstart` | ✓ | ✓ | ✓ | ✓ |
 
 ## DYNAMICS Namelist *(defined in modstartup.f90)*
 
@@ -104,26 +104,26 @@ This report shows the status of variables across different aspects of the uDALES
 
 | Variable | Namelist | JSON Read | Broadcast | Schema |
 |----------|----------|-----------|-----------|--------|
-| `bldt` | ✓ | ✓ | ✗ | ✓ |
-| `dteb` | ✓ | ✓ | ✗ | ✓ |
-| `flrt` | ✓ | ✓ | ✗ | ✓ |
-| `fraction` | ✓ | ✓ | ✗ | ✓ |
-| `grlai` | ✓ | ✓ | ✗ | ✓ |
-| `lconstw` | ✓ | ✓ | ✗ | ✓ |
-| `leb` | ✓ | ✓ | ✗ | ✓ |
-| `lfactlyrs` | ✓ | ✓ | ✗ | ✓ |
-| `lperiodicebcorr` | ✓ | ✓ | ✗ | ✓ |
-| `lvfsparse` | ✓ | ✓ | ✗ | ✓ |
-| `lwriteebfiles` | ✓ | ✓ | ✗ | ✓ |
-| `nfaclyrs` | ✓ | ✓ | ✗ | ✓ |
-| `nnz` | ✓ | ✓ | ✗ | ✓ |
-| `rsmin` | ✓ | ✓ | ✗ | ✓ |
-| `sinkbase` | ✓ | ✓ | ✗ | ✓ |
-| `skylw` | ✓ | ✓ | ✗ | ✓ |
-| `wfc` | ✓ | ✓ | ✗ | ✓ |
-| `wgrmax` | ✓ | ✓ | ✗ | ✓ |
-| `wsoil` | ✓ | ✓ | ✗ | ✓ |
-| `wwilt` | ✓ | ✓ | ✗ | ✓ |
+| `bldt` | ✓ | ✓ | ✓ | ✓ |
+| `dteb` | ✓ | ✓ | ✓ | ✓ |
+| `flrt` | ✓ | ✓ | ✓ | ✓ |
+| `fraction` | ✓ | ✓ | ✓ | ✓ |
+| `grlai` | ✓ | ✓ | ✓ | ✓ |
+| `lconstw` | ✓ | ✓ | ✓ | ✓ |
+| `leb` | ✓ | ✓ | ✓ | ✓ |
+| `lfactlyrs` | ✓ | ✓ | ✓ | ✓ |
+| `lperiodicebcorr` | ✓ | ✓ | ✓ | ✓ |
+| `lvfsparse` | ✓ | ✓ | ✓ | ✓ |
+| `lwriteebfiles` | ✓ | ✓ | ✓ | ✓ |
+| `nfaclyrs` | ✓ | ✓ | ✓ | ✓ |
+| `nnz` | ✓ | ✓ | ✓ | ✓ |
+| `rsmin` | ✓ | ✓ | ✓ | ✓ |
+| `sinkbase` | ✓ | ✓ | ✓ | ✓ |
+| `skylw` | ✓ | ✓ | ✓ | ✓ |
+| `wfc` | ✓ | ✓ | ✓ | ✓ |
+| `wgrmax` | ✓ | ✓ | ✓ | ✓ |
+| `wsoil` | ✓ | ✓ | ✓ | ✓ |
+| `wwilt` | ✓ | ✓ | ✓ | ✓ |
 
 ## HEATPUMP Namelist *(defined in modstartup.f90)*
 
@@ -139,15 +139,12 @@ This report shows the status of variables across different aspects of the uDALES
 
 | Variable | Namelist | JSON Read | Broadcast | Schema |
 |----------|----------|-----------|-----------|--------|
-| `dtin` | ✓ | ✗ | ✓ | ✗ |
-| `inl` | ✓ | ✗ | ✗ | ✗ |
-| `jgtotinl` | ✓ | ✗ | ✓ | ✗ |
-| `kmaxin` | ✓ | ✗ | ✗ | ✗ |
-| `namezinlet` | ✓ | ✗ | ✗ | ✗ |
-| `nprocsinl` | ✓ | ✗ | ✓ | ✗ |
-| `totalreadu` | ✓ | ✗ | ✓ | ✗ |
-| `wtop` | ✓ | ✗ | ✓ | ✗ |
-| `zgrid` | ✓ | ✗ | ✗ | ✗ |
+| `dtin` | ✓ | ✓ | ✓ (2x) | ✗ |
+| `jgtotinl` | ✓ | ✓ | ✓ (2x) | ✗ |
+| `kmaxin` | ✓ | ✓ | ✓ | ✗ |
+| `nprocsinl` | ✓ | ✓ | ✓ (2x) | ✗ |
+| `totalreadu` | ✓ | ✓ | ✓ (2x) | ✗ |
+| `wtop` | ✓ | ✓ | ✓ (2x) | ✗ |
 
 ## INLET Namelist *(defined in modstartup.f90)*
 
@@ -165,28 +162,20 @@ This report shows the status of variables across different aspects of the uDALES
 | `uinf` | ✓ | ✓ | ✓ | ✓ |
 | `vinf` | ✓ | ✓ | ✓ | ✓ |
 
-## INPS Namelist
-
-| Variable | Namelist | JSON Read | Broadcast | Schema |
-|----------|----------|-----------|-----------|--------|
-| `fact` | ✗ | ✗ | ✓ (2x) | ✓ |
-| `qt0` | ✗ | ✗ | ✗ | ✓ |
-| `thl0` | ✗ | ✗ | ✗ | ✓ |
-| `u0` | ✗ | ✗ | ✗ | ✓ |
-| `v0` | ✗ | ✗ | ✗ | ✓ |
-
 ## NAMCHECKSIM Namelist *(defined in modchecksim.f90)*
 
 | Variable | Namelist | JSON Read | Broadcast | Schema |
 |----------|----------|-----------|-----------|--------|
-| `tcheck` | ✓ | ✗ | ✓ | ✗ |
+| `tcheck` | ✓ | ✓ | ✓ | ✗ |
 
 ## NAMSTATSDUMP Namelist *(defined in modstatsdump.f90)*
 
 | Variable | Namelist | JSON Read | Broadcast | Schema |
 |----------|----------|-----------|-----------|--------|
-| `khigh` | ✓ | ✗ | ✓ (2x) | ✗ |
-| `klow` | ✓ | ✗ | ✓ (2x) | ✗ |
+| `anymore` | ✓ | ✗ | ✗ | ✗ |
+| `is` | ✓ | ✗ | ✗ | ✗ |
+| `khigh` | ✓ | ✓ | ✓ (3x) | ✗ |
+| `klow` | ✓ | ✓ | ✓ (3x) | ✗ |
 | `lmintdump` | ✓ | ✓ | ✓ (2x) | ✗ |
 | `ltdump` | ✓ | ✓ | ✓ (2x) | ✗ |
 | `ltkedump` | ✓ | ✓ | ✓ | ✗ |
@@ -195,6 +184,9 @@ This report shows the status of variables across different aspects of the uDALES
 | `lxytdump` | ✓ | ✓ | ✓ | ✗ |
 | `lydump` | ✓ | ✓ | ✓ | ✗ |
 | `lytdump` | ✓ | ✓ | ✓ | ✗ |
+| `maybe` | ✓ | ✗ | ✗ | ✗ |
+| `namstatsdump` | ✓ | ✗ | ✗ | ✗ |
+| `removed` | ✓ | ✗ | ✗ | ✗ |
 | `tsample` | ✓ | ✓ | ✓ | ✗ |
 | `tstatsdump` | ✓ | ✓ | ✓ | ✗ |
 
@@ -202,19 +194,19 @@ This report shows the status of variables across different aspects of the uDALES
 
 | Variable | Namelist | JSON Read | Broadcast | Schema |
 |----------|----------|-----------|-----------|--------|
-| `c_vreman` | ✓ | ✗ | ✓ | ✗ |
-| `cf` | ✓ | ✗ | ✓ | ✗ |
-| `cn` | ✓ | ✗ | ✓ | ✗ |
-| `cs` | ✓ | ✗ | ✓ | ✗ |
-| `lbuoycorr` | ✓ | ✗ | ✓ | ✗ |
-| `ldelta` | ✓ | ✗ | ✓ | ✗ |
-| `lmason` | ✓ | ✗ | ✓ | ✗ |
-| `loneeqn` | ✓ | ✗ | ✓ | ✗ |
-| `lsmagorinsky` | ✓ | ✗ | ✓ | ✗ |
-| `lvreman` | ✓ | ✗ | ✓ | ✗ |
-| `nmason` | ✓ | ✗ | ✓ | ✗ |
-| `prandtl` | ✓ | ✗ | ✓ | ✗ |
-| `rigc` | ✓ | ✗ | ✓ | ✗ |
+| `c_vreman` | ✓ | ✓ | ✓ (2x) | ✗ |
+| `cf` | ✓ | ✓ | ✓ (2x) | ✗ |
+| `cn` | ✓ | ✓ | ✓ (2x) | ✗ |
+| `cs` | ✓ | ✓ | ✓ (2x) | ✗ |
+| `lbuoycorr` | ✓ | ✓ | ✓ (2x) | ✗ |
+| `ldelta` | ✓ | ✓ | ✓ (2x) | ✗ |
+| `lmason` | ✓ | ✓ | ✓ (2x) | ✗ |
+| `loneeqn` | ✓ | ✓ | ✓ (2x) | ✗ |
+| `lsmagorinsky` | ✓ | ✓ | ✓ (2x) | ✗ |
+| `lvreman` | ✓ | ✓ | ✓ (2x) | ✗ |
+| `nmason` | ✓ | ✓ | ✓ (2x) | ✗ |
+| `prandtl` | ✓ | ✓ | ✓ (2x) | ✗ |
+| `rigc` | ✓ | ✓ | ✓ (2x) | ✗ |
 
 ## OUTPUT Namelist *(defined in modstartup.f90)*
 
@@ -251,29 +243,29 @@ This report shows the status of variables across different aspects of the uDALES
 | `lbuoyancy` | ✓ | ✓ | ✓ | ✓ |
 | `lcoriol` | ✓ | ✓ | ✓ | ✓ |
 | `lmoist` | ✓ | ✓ | ✓ | ✓ |
-| `lnudge` | ✓ | ✓ | ✗ | ✓ |
-| `lnudgevel` | ✓ | ✓ | ✗ | ✓ |
+| `lnudge` | ✓ | ✓ | ✓ | ✓ |
+| `lnudgevel` | ✓ | ✓ | ✓ | ✓ |
 | `lprofforc` | ✓ | ✓ | ✓ | ✓ |
 | `ltempeq` | ✓ | ✓ | ✓ | ✓ |
-| `ltimedeplw` | ✓ | ✓ | ✓ | ✓ |
-| `ltimedepnudge` | ✓ | ✓ | ✓ | ✓ |
-| `ltimedepsurf` | ✓ | ✓ | ✓ | ✓ |
-| `ltimedepsw` | ✓ | ✓ | ✓ | ✓ |
-| `luoutflowr` | ✓ | ✓ | ✗ | ✓ |
-| `luvolflowr` | ✓ | ✓ | ✗ | ✓ |
+| `ltimedeplw` | ✓ | ✓ | ✓ (2x) | ✓ |
+| `ltimedepnudge` | ✓ | ✓ | ✓ (2x) | ✓ |
+| `ltimedepsurf` | ✓ | ✓ | ✓ (2x) | ✓ |
+| `ltimedepsw` | ✓ | ✓ | ✓ (2x) | ✓ |
+| `luoutflowr` | ✓ | ✓ | ✓ | ✓ |
+| `luvolflowr` | ✓ | ✓ | ✓ | ✓ |
 | `lvinf` | ✓ | ✓ | ✓ | ✓ |
-| `lvoutflowr` | ✓ | ✓ | ✗ | ✓ |
-| `lvvolflowr` | ✓ | ✓ | ✗ | ✓ |
-| `nnudge` | ✓ | ✓ | ✗ | ✓ |
-| `ntimedeplw` | ✓ | ✓ | ✗ | ✓ |
-| `ntimedepnudge` | ✓ | ✓ | ✗ | ✓ |
-| `ntimedepsurf` | ✓ | ✓ | ✗ | ✓ |
-| `ntimedepsw` | ✓ | ✓ | ✗ | ✓ |
+| `lvoutflowr` | ✓ | ✓ | ✓ | ✓ |
+| `lvvolflowr` | ✓ | ✓ | ✓ | ✓ |
+| `nnudge` | ✓ | ✓ | ✓ | ✓ |
+| `ntimedeplw` | ✓ | ✓ | ✓ | ✓ |
+| `ntimedepnudge` | ✓ | ✓ | ✓ | ✓ |
+| `ntimedepsurf` | ✓ | ✓ | ✓ | ✓ |
+| `ntimedepsw` | ✓ | ✓ | ✓ | ✓ |
 | `ps` | ✓ | ✓ | ✓ | ✓ |
-| `tnudge` | ✓ | ✓ | ✗ | ✓ |
+| `tnudge` | ✓ | ✓ | ✓ | ✓ |
 | `tscale` | ✓ | ✓ | ✓ | ✓ |
-| `uflowrate` | ✓ | ✓ | ✗ | ✓ |
-| `vflowrate` | ✓ | ✓ | ✗ | ✓ |
+| `uflowrate` | ✓ | ✓ | ✓ | ✓ |
+| `vflowrate` | ✓ | ✓ | ✓ | ✓ |
 
 ## PURIFS Namelist *(defined in modstartup.f90)*
 
@@ -309,7 +301,7 @@ This report shows the status of variables across different aspects of the uDALES
 | `randqt` | ✓ | ✓ | ✓ | ✓ |
 | `randthl` | ✓ | ✓ | ✓ | ✓ |
 | `randu` | ✓ | ✓ | ✓ | ✓ |
-| `runmode` | ✓ | ✓ | ✓ | ✓ |
+| `runmode` | ✓ | ✓ | ✓ | ✗ |
 | `runtime` | ✓ | ✓ | ✓ | ✓ |
 | `startfile` | ✓ | ✓ | ✓ | ✓ |
 | `trestart` | ✓ | ✓ | ✓ | ✓ |
@@ -373,11 +365,11 @@ This report shows the status of variables across different aspects of the uDALES
 
 ## Summary Statistics
 
-- **Total namelist variables**: 259
-- **Total JSON-readable variables**: 220
-- **Total broadcast variables**: 305
-- **Total schema variables**: 225
-- **Total namelists found**: 20
+- **Total namelist variables**: 261
+- **Total JSON-readable variables**: 245
+- **Total broadcast variables**: 352
+- **Total schema variables**: 224
+- **Total namelists found**: 19
 
 ## Potential Issues
 
@@ -389,12 +381,13 @@ This report shows the status of variables across different aspects of the uDALES
 - `v0`
 
 ### Variables in namelists but not in schema:
+- `anymore`
 - `c_vreman`
 - `cf`
 - `cn`
 - `cs`
 - `dtin`
-- `inl`
+- `is`
 - `jgtotinl`
 - `jno2`
 - `k1`
@@ -416,15 +409,17 @@ This report shows the status of variables across different aspects of the uDALES
 - `lxytdump`
 - `lydump`
 - `lytdump`
-- `namezinlet`
+- `maybe`
+- `namstatsdump`
 - `nmason`
 - `nprocsinl`
 - `prandtl`
+- `removed`
 - `rigc`
+- `runmode`
 - `slicevars`
 - `tcheck`
 - `totalreadu`
 - `tsample`
 - `tstatsdump`
 - `wtop`
-- `zgrid`

@@ -105,10 +105,12 @@ class UdalesVariableIndexer:
         current_namelist = None
         collecting_vars = False
         
-        for line in lines:
-            # Remove comments
-            line = re.sub(r'!.*$', '', line).strip()
-            if not line:
+        debug = bool(os.environ.get('UD_INDEXER_DEBUG'))
+        for idx, line in enumerate(lines, start=1):
+            raw_line = line.rstrip()
+            # Remove comments for parsing
+            proc_line = re.sub(r'!.*$', '', line).strip()
+            if not proc_line:
                 continue
                 
             # Check for namelist start
@@ -117,10 +119,22 @@ class UdalesVariableIndexer:
                 current_namelist = namelist_match.group(1).upper()
                 # Track which file this namelist is defined in
                 self.namelist_files[current_namelist] = filename
-                collecting_vars = True
                 var_part = namelist_match.group(2)
+                if debug:
+                    print(f"DEBUG [_extract_namelists] {filename}:{idx}: NAMELIST START -> {raw_line}")
                 if var_part:
-                    self._extract_vars_from_line(var_part, current_namelist, fortran_keywords)
+                    # show the part on the same line if present
+                    if debug:
+                        print(f"DEBUG [_extract_namelists] {filename}:{idx}: NAMELIST VARS ON START -> {var_part}")
+                    self._extract_vars_from_line(var_part, current_namelist, fortran_keywords, debug=debug)
+
+                # Check if this namelist line has continuation
+                if raw_line.endswith('&'):
+                    collecting_vars = True
+                else:
+                    # Namelist is complete on this line, don't collect from subsequent lines
+                    collecting_vars = False
+                    current_namelist = None
                 continue
                 
             # If we're collecting variables and find another namelist, stop
@@ -131,17 +145,19 @@ class UdalesVariableIndexer:
                 
             # If we're collecting variables for a namelist
             if collecting_vars and current_namelist:
-                # Remove continuation characters
-                var_line = re.sub(r'&\s*$', '', line).strip()
+                # Always process the current continuation line (strip trailing & if present)
+                var_line = re.sub(r'&\s*$', '', raw_line).strip()
                 if var_line:
-                    self._extract_vars_from_line(var_line, current_namelist, fortran_keywords)
-                    
-                # Check if this line ends the namelist (no continuation)
-                if not line.endswith('&'):
+                    if debug:
+                        print(f"DEBUG [_extract_namelists] {filename}:{idx}: NAMELIST CONT -> {var_line}")
+                    self._extract_vars_from_line(var_line, current_namelist, fortran_keywords, debug=debug)
+
+                # If this line does not end with an ampersand, the namelist ended here
+                if not raw_line.endswith('&'):
                     collecting_vars = False
                     current_namelist = None
     
-    def _extract_vars_from_line(self, line: str, namelist: str, keywords: set):
+    def _extract_vars_from_line(self, line: str, namelist: str, keywords: set, debug: bool = False):
         """Extract variable names from a line of namelist declaration."""
         # Split by comma and whitespace, filter valid identifiers
         potential_vars = re.findall(r'\b([a-zA-Z_][a-zA-Z0-9_]*)\b', line)
@@ -154,6 +170,8 @@ class UdalesVariableIndexer:
                 not var.isdigit() and
                 not re.match(r'^[a-z]$', var_lower)):  # Skip single letter variables
                 self.namelists[namelist].add(var_lower)
+                if debug:
+                    print(f"DEBUG [_extract_vars_from_line] added {var_lower} to {namelist}")
     
     def _extract_json_reads(self, content: str):
         """Extract variables that are read from JSON configuration."""
@@ -221,8 +239,8 @@ class UdalesVariableIndexer:
         report.append("- **Schema**: Variable is present in the JSON schema (✓/✗)")
         report.append("")
         
-        # Get all namelists (from both Fortran and schema)
-        all_namelists = set(self.namelists.keys()) | set(self.schema_vars.keys())
+        # Get all namelists (only from Fortran code, not schema-only namelists)
+        all_namelists = set(self.namelists.keys())
         
         for namelist in sorted(all_namelists):
             # Add file information if available
@@ -233,10 +251,11 @@ class UdalesVariableIndexer:
             report.append(f"## {namelist} Namelist{file_info}")
             report.append("")
             
-            # Get all variables for this namelist
+            # Get variables for this namelist (only include variables actually in Fortran namelists)
             namelist_vars = self.namelists.get(namelist, set())
             schema_vars = self.schema_vars.get(namelist, set())
-            all_vars = namelist_vars | schema_vars
+            # Only report variables that are actually in Fortran namelists
+            all_vars = namelist_vars
             
             if not all_vars:
                 report.append("*No variables found for this namelist.*")
