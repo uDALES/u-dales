@@ -4,8 +4,7 @@ module tests
   use modglobal  ! Import all global variables for comprehensive output
   use modmpi, only : comm3d, my_real, mpierr, myid
   use json_module
-  use modstartup, only : readnamelists, readjsonconfig, RUN, DOMAIN, PHYSICS, DYNAMICS, BC, INLET, DRIVER, WALLS, ENERGYBALANCE, SCALARS, CHEMISTRY, OUTPUT, TREES, PURIFS, HEATPUMP
-
+  use readparameters, only : readnamelists, readjsonconfig, writenamelists
   implicit none
 
   contains
@@ -74,7 +73,7 @@ module tests
       ! Last process outputs all namelist values to verify broadcast worked
       if (myid == last_proc) then
         write(*,*) '  Last process (', myid, ') received ALL JSON VALUES:'
-        call output_all_namelists
+        call writenamelists
       end if
       
       if (myid == 0) then
@@ -84,44 +83,4 @@ module tests
       end if
       
     end subroutine tests_json
-
-    subroutine output_all_namelists
-      !-----------------------------------------------------------------|
-      !     Write all namelists to file to verify broadcast worked     |
-      !-----------------------------------------------------------------|
-      
-      implicit none
-      integer :: iunit = 99
-      character(len=100) :: filename
-      
-      ! Create filename with process ID for debugging
-      write(filename,'(a,i0,a)') 'namoptions_json_test.', iexpnr
-      
-      write(*,*) '  Writing all namelists to file: ', trim(filename)
-      
-      open(unit=iunit, file=filename, status='replace', action='write')
-      
-      ! Write each namelist section using Fortran's built-in namelist write
-      write(iunit, nml=RUN)
-      write(iunit, nml=DOMAIN) 
-      write(iunit, nml=PHYSICS)
-      write(iunit, nml=DYNAMICS)
-      write(iunit, nml=BC)
-      write(iunit, nml=INLET)
-      write(iunit, nml=DRIVER)
-      write(iunit, nml=WALLS)
-      write(iunit, nml=ENERGYBALANCE)
-      write(iunit, nml=SCALARS)
-      write(iunit, nml=CHEMISTRY)
-      write(iunit, nml=OUTPUT)
-      write(iunit, nml=TREES)
-      write(iunit, nml=PURIFS)
-      write(iunit, nml=HEATPUMP)
-      
-      close(iunit)
-      
-      write(*,*) '  All namelists written to file successfully!'
-      
-    end subroutine output_all_namelists
-
 end module tests

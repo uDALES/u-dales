@@ -35,9 +35,10 @@
 module modsubgrid
   use mpi
   use modsubgriddata
+  use modglobal, only : lles, lbuoyancy
   implicit none
   save
-  public :: subgrid, initsubgrid, exitsubgrid, subgridnamelist
+  public :: subgrid, initsubgrid, exitsubgrid
 
 contains
   subroutine initsubgrid
@@ -52,7 +53,16 @@ contains
     real :: ceps, ch
     real :: mlen
 
-    call subgridnamelist
+    !call subgridnamelist
+    ! variables have been read
+    prandtli = 1./Prandtl
+
+    if ((lsmagorinsky) .or. (lvreman) .or. (loneeqn)) then
+       lles =.true.
+    endif
+
+    if (lbuoyancy) lbuoycorr = .true.
+
 
     allocate(ekm(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
     allocate(ekh(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
@@ -80,53 +90,6 @@ contains
     end if
 
   end subroutine initsubgrid
-
-  subroutine subgridnamelist
-    use modglobal, only : pi,ifnamopt,fname_options,lles,lbuoyancy
-    use modmpi,    only : myid, nprocs, comm3d, mpierr, my_real, mpi_logical, mpi_integer
-
-    implicit none
-
-    integer :: ierr
-
-    namelist/NAMSUBGRID/ &
-         ldelta,lmason, cf,cn,Rigc,Prandtl,lsmagorinsky,lvreman,loneeqn,c_vreman,cs,nmason,lbuoycorr
-
-    if(myid==0)then
-       open(ifnamopt,file=fname_options,status='old',iostat=ierr)
-       read (ifnamopt,NAMSUBGRID,iostat=ierr)
-       if (ierr > 0) then
-          write(0, *) 'ERROR: Problem in namoptions NAMSUBGRID'
-          write(0, *) 'iostat error: ', ierr
-          stop 1
-       endif
-       !write(6 ,NAMSUBGRID)
-       close(ifnamopt)
-    end if
-
-    call MPI_BCAST(ldelta     ,1,MPI_LOGICAL,0,comm3d,mpierr)
-    call MPI_BCAST(lmason     ,1,MPI_LOGICAL,0,comm3d,mpierr)
-    call MPI_BCAST(nmason     ,1,MY_REAL    ,0,comm3d,mpierr)
-    call MPI_BCAST(lsmagorinsky,1,MPI_LOGICAL,0,comm3d,mpierr)
-    call MPI_BCAST(lvreman    ,1,MPI_LOGICAL,0,comm3d,mpierr)
-    call MPI_BCAST(lbuoycorr  ,1,MPI_LOGICAL,0,comm3d,mpierr)
-    call MPI_BCAST(loneeqn    ,1,MPI_LOGICAL,0,comm3d,mpierr)
-    call MPI_BCAST(c_vreman   ,1,MY_REAL   ,0,comm3d,mpierr)
-    call MPI_BCAST(cs         ,1,MY_REAL   ,0,comm3d,mpierr)
-    call MPI_BCAST(cf         ,1,MY_REAL   ,0,comm3d,mpierr)
-    call MPI_BCAST(cn         ,1,MY_REAL   ,0,comm3d,mpierr)
-    call MPI_BCAST(Rigc       ,1,MY_REAL   ,0,comm3d,mpierr)
-    call MPI_BCAST(Prandtl    ,1,MY_REAL   ,0,comm3d,mpierr)
-    prandtli = 1./Prandtl
-
-    if ((lsmagorinsky) .or. (lvreman) .or. (loneeqn)) then
-       lles =.true.
-    endif
-
-    if (lbuoyancy) lbuoycorr = .true.
-
-
-  end subroutine subgridnamelist
 
   subroutine subgrid
 

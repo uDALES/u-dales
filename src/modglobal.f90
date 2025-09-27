@@ -397,6 +397,7 @@ module modglobal
    real :: runtime = 300. !<     * simulation time in secs
    real :: dtmax = 20. !<     * maximum time integration interval
 
+   real    :: tcheck = 1. !<    Time interval for basic logging to screen       
    real    :: trestart = 10000. !<     * each trestart sec. a restart file is written to disk. bss116: per default do not write restart files
    real    :: tfielddump = 10000. !< Time step for field outputs
    real    :: tsample = 5. !<    Sample time steps for statistics
@@ -475,6 +476,12 @@ module modglobal
    real :: dyiq !<  1/(dy*4)
    real :: dyi5 !<  1/(dy*2)
    real :: dy2i !<  (1/dy)**2
+
+   ! moved from modstartup
+   integer(KIND=selected_int_kind(6)) :: irandom = 43 !    * number to seed the randomnizer with
+   integer :: krand = huge(0)  ! returns the largest integer that is not an infinity
+   real :: randu = 0.01, randthl = 0.0, randqt = 0.0 !    * uvw,thl and qt amplitude of randomnization
+
 
    integer :: nfaclyrs = 3
    real, allocatable   :: AM(:,:), BM(:,:), CM(:,:), DM(:,:), EM(:,:), FM(:,:), GM(:,:), HM(:,:), inAM(:,:),IDM(:,:) !matrices for the facet energy balance

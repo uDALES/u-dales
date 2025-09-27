@@ -28,7 +28,7 @@
 !
 !
 module modchecksim
-  use modglobal, only : longint
+  use modglobal, only : longint, tcheck
 
   implicit none
   private
@@ -47,26 +47,10 @@ contains
     use modmpi,    only : myid,my_real,comm3d,mpierr
     implicit none
     integer :: ierr
-    namelist/NAMCHECKSIM/ &
-    tcheck
-
-    if(myid==0)then
-      open(ifnamopt,file=fname_options,status='old',iostat=ierr)
-      read (ifnamopt,NAMCHECKSIM,iostat=ierr)
-      if (ierr > 0) then
-        write(0, *) 'ERROR: Problem in namoptions NAMCHECKSIM'
-        write(0, *) 'iostat error: ', ierr
-        stop 1
-      endif
-      !write(6 ,NAMCHECKSIM)
-      close(ifnamopt)
-
-      if ((.not. ladaptive) .and. (tcheck < dtmax)) then
-        tcheck = dtmax
-      end if
+    
+    if ((.not. ladaptive) .and. (tcheck < dtmax)) then
+      tcheck = dtmax
     end if
-
-    call MPI_BCAST(tcheck     ,1,MY_REAL   ,0,comm3d,mpierr)
 !    itcheck = floor(tcheck/tres)
     tnext = tcheck+btime
 
