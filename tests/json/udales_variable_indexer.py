@@ -19,7 +19,7 @@ import json
 import os
 import re
 import sys
-from collections import defaultdict
+from collections import defaultdict, Counter
 from pathlib import Path
 from typing import Dict, List, Set, Tuple, Optional
 
@@ -38,12 +38,33 @@ class UdalesVariableIndexer:
         self.schema_vars: Dict[str, Set[str]] = defaultdict(set)  # namelist -> {variables in schema}
         
         # Duplicate tracking
-        from collections import Counter
         self.json_read_counts: Counter = Counter()  # count occurrences of JSON reads
         self.broadcast_counts: Counter = Counter()  # count occurrences of broadcasts
+        self.namelist_counts = Counter()  # count occurrences of namelist variables
+        # Temporary mapping of aliases for the current file being parsed.
+        # Maps alias_name -> original_name (both lowercased).
+        self.current_aliases = {}
         
-    def parse_fortran_files(self):
-        """Parse all Fortran files to extract namelist definitions, JSON reads, and broadcasts."""
+    def parse_fortran_files(self, file_path: Optional[str] = None):
+        """Parse Fortran files to extract namelist definitions, JSON reads, and broadcasts.
+
+        If file_path is provided, only that file will be processed. Otherwise all
+        `*.f90` files in `self.src_dir` will be scanned (existing behavior).
+        """
+        if file_path:
+            f90_file = Path(file_path)
+            print(f"Parsing single Fortran file: {f90_file}")
+            try:
+                with open(f90_file, 'r', encoding='utf-8', errors='ignore') as f:
+                    content = f.read()
+                # Extract for this single file
+                self._extract_namelists(content, f90_file.name)
+                self._extract_json_reads(content)
+                self._extract_broadcasts(content)
+            except Exception as e:
+                print(f"  Warning: Could not process {f90_file}: {e}")
+            return
+
         print("Parsing Fortran source files...")
         
         for f90_file in self.src_dir.glob("*.f90"):
@@ -170,6 +191,12 @@ class UdalesVariableIndexer:
                 not var.isdigit() and
                 not re.match(r'^[a-z]$', var_lower)):  # Skip single letter variables
                 self.namelists[namelist].add(var_lower)
+                # track counts for duplicate detection
+                try:
+                    self.namelist_counts[var_lower] += 1
+                except Exception:
+                    # If Counter not present for some reason, ignore
+                    pass
                 if debug:
                     print(f"DEBUG [_extract_vars_from_line] added {var_lower} to {namelist}")
     
@@ -243,12 +270,8 @@ class UdalesVariableIndexer:
         all_namelists = set(self.namelists.keys())
         
         for namelist in sorted(all_namelists):
-            # Add file information if available
-            file_info = ""
-            if namelist in self.namelist_files:
-                file_info = f" *(defined in {self.namelist_files[namelist]})*"
-            
-            report.append(f"## {namelist} Namelist{file_info}")
+            # Header: just the namelist name (e.g. "BC") - do not include file location or the word 'Namelist'
+            report.append(f"## {namelist}")
             report.append("")
             
             # Get variables for this namelist (only include variables actually in Fortran namelists)

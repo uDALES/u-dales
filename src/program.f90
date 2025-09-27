@@ -60,8 +60,8 @@ program DALESURBAN      !Version 48
 !     1      READ NAMELISTS,INITIALISE GRID, CONSTANTS AND FIELDS
 !----------------------------------------------------------------
   call initmpi
-  call exitmpi
-  stop
+  !call exitmpi
+  !stop
   !call startup
   call readconfig
 

@@ -1344,6 +1344,7 @@ contains
       call MPI_BCAST(tsample, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(tstatsdump, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(tstatstart, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(tcheck, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(islice, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(jslice, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(kslice, 1, MPI_INTEGER, 0, comm3d, mpierr)

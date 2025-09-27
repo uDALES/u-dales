@@ -23,7 +23,7 @@ def main():
     
     # List of scripts to run
     scripts = [
-        ("generate_reports.py", "Full & Compact Reports"),
+        ("test_sourcecode.py", "Full & Compact Reports"),
         ("generate_status_report.py", "Status Report (Color-coded)")
     ]
     
@@ -58,9 +58,9 @@ def main():
     
     # List generated files
     report_files = [
-        ("variable_index_full.md", "Full Report", "Detailed tables per namelist"),
+        ("test_sourcecode_full.md", "Full Report", "Detailed tables per namelist"),
         ("variable_index_compact.md", "Compact Report", "Executive summary"),
-        ("variable_status_report.md", "Status Report", "🟢🟠🔴 Color-coded with warnings/errors")
+        ("test_sourcecode_status.md", "Status Report", "🟢🟠🔴 Color-coded with warnings/errors")
     ]
     
     for filename, title, description in report_files:
