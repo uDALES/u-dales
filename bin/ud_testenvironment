@@ -1,0 +1,13 @@
+#!/bin/bash
+
+if [ -z $UD_TOPDIR ]; 
+then 
+  echo "the UD_TOPDIR variable is not set. exiting..."
+  exit 1
+fi
+
+if [ -z $UD_TOOLSDIR ]; 
+then 
+  echo "the UD_TOOLSDIR variable is not set. exiting..."
+  exit 1
+fi

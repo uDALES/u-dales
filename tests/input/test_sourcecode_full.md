@@ -55,9 +55,9 @@ This report shows the status of variables across different aspects of the uDALES
 
 | Variable | Namelist | JSON Read | Broadcast | Schema |
 |----------|----------|-----------|-----------|--------|
-| `jno2` | ✓ | ✓ | ✓ | ✗ |
-| `k1` | ✓ | ✓ | ✓ | ✗ |
-| `lchem` | ✓ | ✓ | ✓ | ✗ |
+| `jno2` | ✓ | ✓ | ✓ | ✓ |
+| `k1` | ✓ | ✓ | ✓ | ✓ |
+| `lchem` | ✓ | ✓ | ✓ | ✓ |
 
 ## DOMAIN
 
@@ -139,12 +139,12 @@ This report shows the status of variables across different aspects of the uDALES
 
 | Variable | Namelist | JSON Read | Broadcast | Schema |
 |----------|----------|-----------|-----------|--------|
-| `dtin` | ✓ | ✓ | ✓ | ✗ |
-| `jgtotinl` | ✓ | ✓ | ✓ | ✗ |
-| `kmaxin` | ✓ | ✓ | ✓ | ✗ |
-| `nprocsinl` | ✓ | ✓ | ✓ | ✗ |
-| `totalreadu` | ✓ | ✓ | ✓ | ✗ |
-| `wtop` | ✓ | ✓ | ✓ | ✗ |
+| `dtin` | ✓ | ✓ | ✓ | ✓ |
+| `jgtotinl` | ✓ | ✓ | ✓ | ✓ |
+| `kmaxin` | ✓ | ✓ | ✓ | ✓ |
+| `nprocsinl` | ✓ | ✓ | ✓ | ✓ |
+| `totalreadu` | ✓ | ✓ | ✓ | ✓ |
+| `wtop` | ✓ | ✓ | ✓ | ✓ |
 
 ## INLET
 
@@ -166,19 +166,19 @@ This report shows the status of variables across different aspects of the uDALES
 
 | Variable | Namelist | JSON Read | Broadcast | Schema |
 |----------|----------|-----------|-----------|--------|
-| `c_vreman` | ✓ | ✓ | ✓ | ✗ |
-| `cf` | ✓ | ✓ | ✓ | ✗ |
-| `cn` | ✓ | ✓ | ✓ | ✗ |
-| `lbuoycorr` | ✓ | ✓ | ✓ | ✗ |
-| `ldelta` | ✓ | ✓ | ✓ | ✗ |
-| `lmason` | ✓ | ✓ | ✓ | ✗ |
-| `loneeqn` | ✓ | ✓ | ✓ | ✗ |
-| `lsmagorinsky` | ✓ | ✓ | ✓ | ✗ |
-| `lvreman` | ✓ | ✓ | ✓ | ✗ |
-| `nmason` | ✓ | ✓ | ✓ | ✗ |
-| `prandtl` | ✓ | ✓ | ✓ | ✗ |
-| `rigc` | ✓ | ✓ | ✓ | ✗ |
-| `sg_cs` | ✓ | ✗ | ✗ | ✗ |
+| `c_vreman` | ✓ | ✓ | ✓ | ✓ |
+| `cf` | ✓ | ✓ | ✓ | ✓ |
+| `cn` | ✓ | ✓ | ✓ | ✓ |
+| `cs` | ✓ | ✓ | ✓ | ✓ |
+| `lbuoycorr` | ✓ | ✓ | ✓ | ✓ |
+| `ldelta` | ✓ | ✓ | ✓ | ✓ |
+| `lmason` | ✓ | ✓ | ✓ | ✓ |
+| `loneeqn` | ✓ | ✓ | ✓ | ✓ |
+| `lsmagorinsky` | ✓ | ✓ | ✓ | ✓ |
+| `lvreman` | ✓ | ✓ | ✓ | ✓ |
+| `nmason` | ✓ | ✓ | ✓ | ✓ |
+| `prandtl` | ✓ | ✓ | ✓ | ✓ |
+| `rigc` | ✓ | ✓ | ✓ | ✓ |
 
 ## OUTPUT
 
@@ -199,8 +199,8 @@ This report shows the status of variables across different aspects of the uDALES
 | `lxytdump` | ✓ | ✓ | ✓ | ✓ |
 | `lydump` | ✓ | ✓ | ✓ | ✓ |
 | `lytdump` | ✓ | ✓ | ✓ | ✓ |
-| `slicevars` | ✓ | ✓ | ✓ | ✗ |
-| `tcheck` | ✓ | ✓ | ✓ | ✗ |
+| `slicevars` | ✓ | ✓ | ✓ | ✓ |
+| `tcheck` | ✓ | ✓ | ✓ | ✓ |
 | `tfielddump` | ✓ | ✓ | ✓ | ✓ |
 | `tsample` | ✓ | ✓ | ✓ | ✓ |
 | `tstatsdump` | ✓ | ✓ | ✓ | ✓ |
@@ -262,6 +262,7 @@ This report shows the status of variables across different aspects of the uDALES
 | `krand` | ✓ | ✓ | ✓ | ✓ |
 | `ladaptive` | ✓ | ✓ | ✓ | ✓ |
 | `libm` | ✓ | ✓ | ✓ | ✓ |
+| `ljson_input` | ✓ | ✓ | ✓ | ✓ |
 | `lles` | ✓ | ✓ | ✓ | ✓ |
 | `lper2inout` | ✓ | ✓ | ✓ | ✓ |
 | `lrandomize` | ✓ | ✓ | ✓ | ✓ |
@@ -274,7 +275,7 @@ This report shows the status of variables across different aspects of the uDALES
 | `randqt` | ✓ | ✓ | ✓ | ✓ |
 | `randthl` | ✓ | ✓ | ✓ | ✓ |
 | `randu` | ✓ | ✓ | ✓ | ✓ |
-| `runmode` | ✓ | ✓ | ✓ | ✗ |
+| `runmode` | ✓ | ✓ | ✓ | ✓ |
 | `runtime` | ✓ | ✓ | ✓ | ✓ |
 | `startfile` | ✓ | ✓ | ✓ | ✓ |
 | `trestart` | ✓ | ✓ | ✓ | ✓ |
@@ -338,10 +339,10 @@ This report shows the status of variables across different aspects of the uDALES
 
 ## Summary Statistics
 
-- **Total namelist variables**: 244
-- **Total JSON-readable variables**: 244
-- **Total broadcast variables**: 244
-- **Total schema variables**: 224
+- **Total namelist variables**: 245
+- **Total JSON-readable variables**: 245
+- **Total broadcast variables**: 245
+- **Total schema variables**: 250
 - **Total namelists found**: 17
 
 ## Potential Issues
@@ -352,30 +353,3 @@ This report shows the status of variables across different aspects of the uDALES
 - `thl0`
 - `u0`
 - `v0`
-
-### Variables in namelists but not in schema:
-- `c_vreman`
-- `cf`
-- `cn`
-- `dtin`
-- `jgtotinl`
-- `jno2`
-- `k1`
-- `kmaxin`
-- `lbuoycorr`
-- `lchem`
-- `ldelta`
-- `lmason`
-- `loneeqn`
-- `lsmagorinsky`
-- `lvreman`
-- `nmason`
-- `nprocsinl`
-- `prandtl`
-- `rigc`
-- `runmode`
-- `sg_cs`
-- `slicevars`
-- `tcheck`
-- `totalreadu`
-- `wtop`

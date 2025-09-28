@@ -1,28 +1,26 @@
-!> \file modstartup.f90
-!!  Initializes the run
+!> \file readparameters.f90
+!!  Reads and broadcasts configuration parameters for uDALES
 
 !>
-!! Initializes the run.
+!! uDALES: Urbanized Dutch Atmospheric Large-Eddy Simulation
 !>
-!! Modstartup reads the namelists and initial data, sets the fields and calls
-!! the inits of the other routines where necessary. Reading of the
-!! restart files also live in this module. Also supports JSON input format
-!! when compiled with USE_JSON_INPUT.
+!! This module handles reading of configuration parameters from both
+!! legacy Fortran namelists and modern JSON files, and broadcasts them
+!! across all MPI processes. It supports modular reading and broadcasting
+!! for each configuration section, and provides routines for writing
+!! current configuration to file for verification.
 !!  \author Maarten van Reeuwijk, Imperial College London
-!!  \author Jasper Tomas, TU Delft
-!!  \author Chiel van Heerwaarden, Wageningen U.R.
-!!  \author Thijs Heus,MPI-M
-!!  \todo documentation
+!!  \author uDALES contributors
 !!  \par Revision list
 !
-!  This file is part of DALES.
+!  This file is part of uDALES.
 !
-! DALES is free software; you can redistribute it and/or modify
+! uDALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
 ! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
-! DALES is distributed in the hope that it will be useful,
+! uDALES is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU General Public License for more details.
@@ -30,7 +28,7 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
+!  Copyright 2017-2024 uDALES contributors, Imperial College London
 !
 
 module readparameters
@@ -56,12 +54,11 @@ use mpi
    use decomp_2d
    use modsubgriddata, sg_cs => cs
 
-   
    implicit none
    ! private
    ! public :: startup,trestart
 !   public :: RUN, DOMAIN, PHYSICS, DYNAMICS, BC, INLET, DRIVER, WALLS, ENERGYBALANCE, SCALARS, CHEMISTRY, OUTPUT, TREES, PURIFS, HEATPUMP
-   public :: readnamelists, readjsonconfig, broadcast_config_parameters, writenamelists
+   public :: writenamelists
    save
 
    !integer(KIND=selected_int_kind(6)) :: irandom = 43 !    * number to seed the randomnizer with
@@ -78,7 +75,7 @@ use mpi
       lper2inout, lwalldist, &
       lreadmean, &
       nprocx, nprocy, &
-      lrandomize, runmode
+      lrandomize, runmode, ljson_input
    namelist/DOMAIN/ &
       itot, jtot, ktot, xlen, ylen, &
       xlat, xlon, xday, xtime, ksp
@@ -303,26 +300,25 @@ contains
             stop 1
          endif
          !write (6, OUTPUT)
-         close (ifnamopt)
+         rewind (ifnamopt)
 
-         open(ifnamopt,file=fname_options,status='old',iostat=ierr)
          read (ifnamopt,NAMSUBGRID,iostat=ierr)
          if (ierr > 0) then
             write(0, *) 'ERROR: Problem in namoptions NAMSUBGRID'
             write(0, *) 'iostat error: ', ierr
             stop 1
          endif
+         rewind (ifnamopt)
          !write(6 ,NAMSUBGRID)
-         close(ifnamopt)
  
-         read (ifinput,INFO,iostat=ierr)
+         read (ifnamopt,INFO,iostat=ierr)
          if (ierr > 0) then
-           write(0, *) 'Problem in zgrid.inf INFO'
+           write(0, *) 'Problem in namoptions INFO'
            write(0, *) 'iostat error: ', ierr
            stop 1
          endif
          !write(6,INFO)
-         close(ifinput)
+         close(ifnamopt)
       end if
    end subroutine readnamelists
 
@@ -336,8 +332,7 @@ contains
       character(len=100) :: filename
       
       ! Create filename with process ID for debugging
-      write(filename,'(a,i0,a)') 'namoptions_json_test.', iexpnr
-      
+      write(filename,'(a)') 'namoptions_json'
       write(*,*) '  Writing all namelists to file: ', trim(filename)
       
       open(unit=iunit, file=filename, status='replace', action='write')
@@ -361,10 +356,7 @@ contains
       write(iunit, nml=INFO)
       write(iunit, nml=NAMSUBGRID)
       
-      close(iunit)
-      
-      write(*,*) '  All namelists written to file successfully!'
-      
+      close(iunit)   
     end subroutine writenamelists
 
    subroutine readjsonconfig
@@ -561,6 +553,10 @@ contains
       call json%get('RUN.runmode', temp_int, found)
       if (found) runmode = temp_int
 
+      call json%get('RUN.ljson_input', temp_logical, found)
+      if (found) ljson_input = temp_logical
+
+
    end subroutine read_run_json
 
    subroutine broadcast_run_parameters()
@@ -592,6 +588,7 @@ contains
       call MPI_BCAST(nprocy, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(lrandomize, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(runmode, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(ljson_input, 1, MPI_LOGICAL, 0, comm3d, mpierr)
    end subroutine broadcast_run_parameters
 
    subroutine read_domain_json(json)

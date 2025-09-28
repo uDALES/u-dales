@@ -6,8 +6,7 @@
 !>
 !! Modstartup reads the namelists and initial data, sets the fields and calls
 !! the inits of the other routines where necessary. Reading of the
-!! restart files also live in this module. Also supports JSON input format
-!! when compiled with USE_JSON_INPUT.
+!! restart files also live in this module. 
 !!  \author Maarten van Reeuwijk, Imperial College London
 !!  \author Jasper Tomas, TU Delft
 !!  \author Chiel van Heerwaarden, Wageningen U.R.
@@ -63,14 +62,14 @@ module modstartup
 !   public :: RUN, DOMAIN, PHYSICS, DYNAMICS, BC, INLET, DRIVER, WALLS, ENERGYBALANCE, SCALARS, CHEMISTRY, OUTPUT, TREES, PURIFS, HEATPUMP
    save
 
-   contains
+contains
 
    subroutine readconfig
-
-      if (.not. json_input) then ! FORTRAN NAMELIST
-         call readnamelists
-      else
+      ! read the input parameters and broadcast them to all processes
+      if (ljson_input) then 
          call readjsonconfig
+      else
+         call readnamelists
       end if
       call broadcast_config_parameters
 

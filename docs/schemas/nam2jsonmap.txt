@@ -1,14 +1,3 @@
+NAMSUBGRID               SUBGRID
 NAMCHECKSIM.tcheck       OUTPUT.tcheck
-NAMSUBGRID.ldelta        SUBGRID.ldelta
-NAMSUBGRID.lmason        SUBGRID.lmason
-NAMSUBGRID.cf            SUBGRID.cf
-NAMSUBGRID.cn            SUBGRID.cn
-NAMSUBGRID.Rigc          SUBGRID.Rigc
-NAMSUBGRID.Prandtl       SUBGRID.Prandt
-NAMSUBGRID.lsmagorinsky  SUBGRID.lsmagorinsky
-NAMSUBGRID.lvreman       SUBGRID.lvreman
-NAMSUBGRID.loneeqn       SUBGRID.loneeqn
-NAMSUBGRID.c_vreman      SUBGRID.c_vreman
-NAMSUBGRID.cs            SUBGRID.cs
-NAMSUBGRID.nmason        SUBGRID.nmason
-NAMSUBGRID.lbuoycorr     SUBGRID.lbuoycorr
+NAMSUBGRID.SG_CS         SUBGRID.cs

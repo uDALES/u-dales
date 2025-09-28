@@ -1,3 +1,160 @@
+"""Standalone JSON validation test.
+
+This script performs one test run and exits with 0 on success or skip,
+and non-zero on failure. It is runnable with `python3 tests/input/test_json_validation.py`.
+"""
+
+import json
+import shutil
+import subprocess
+import sys
+import tempfile
+import os
+from pathlib import Path
+
+
+def main():
+    repo_root = Path(__file__).resolve().parents[2]
+
+    # Prefer executables from PATH, fall back to UD_TOPDIR/bin, then repo_root/bin
+    udales_path = shutil.which('u-dales')
+    ud_nam2json_path = shutil.which('ud_nam2json')
+
+    ud_topdir = os.environ.get('UD_TOPDIR')
+
+    if udales_path:
+        udales_exe = Path(udales_path)
+    elif ud_topdir:
+        udales_exe = Path(ud_topdir) / 'bin' / 'u-dales'
+    else:
+        udales_exe = repo_root / 'bin' / 'u-dales'
+
+    if ud_nam2json_path:
+        ud_nam2json = Path(ud_nam2json_path)
+    elif ud_topdir:
+        ud_nam2json = Path(ud_topdir) / 'bin' / 'ud_nam2json'
+    else:
+        ud_nam2json = repo_root / 'bin' / 'ud_nam2json'
+
+    # Prefer schema and input directory from UD_TOPDIR if set
+    if ud_topdir:
+        schema_path = Path(ud_topdir) / 'docs' / 'schemas' / 'udales_input_schema.json'
+        input_dir = Path(ud_topdir) / 'tests' / 'input'
+    else:
+        schema_path = repo_root / 'docs' / 'schemas' / 'udales_input_schema.json'
+        input_dir = repo_root / 'tests' / 'input'
+
+    # Check prerequisites
+    if shutil.which('mpirun') is None:
+        print('SKIP: mpirun not available')
+        return 0
+    if not udales_exe.exists():
+        print(f'SKIP: u-DALES executable not found: {udales_exe}')
+        return 0
+    if not ud_nam2json.exists():
+        print(f'SKIP: ud_nam2json not found: {ud_nam2json}')
+        return 0
+    if not schema_path.exists():
+        print(f'SKIP: schema not found: {schema_path}')
+        return 0
+
+    # pick an input configuration from tests/input: prefer parameters.default then parameters.001
+    candidates = sorted(input_dir.glob('parameters.*'))
+    if not candidates:
+        print('SKIP: No parameters.* files in tests/input to use as input')
+        return 0
+
+    input_json = None
+    for c in candidates:
+        if c.name == 'parameters.default':
+            input_json = c
+            break
+    if input_json is None:
+        input_json = candidates[0]
+
+    with tempfile.TemporaryDirectory(prefix='udales_test_') as td:
+        workdir = Path(td)
+        work_input = workdir / input_json.name
+        shutil.copy2(input_json, work_input)
+
+        with open(schema_path, 'r') as f:
+            schema = json.load(f)
+        with open(work_input, 'r') as f:
+            input_config = json.load(f)
+
+        nprocx = int(input_config.get('RUN', {}).get('nprocx', 1))
+        nprocy = int(input_config.get('RUN', {}).get('nprocy', 1))
+        total_procs = nprocx * nprocy
+
+        # Run u-DALES with a simple shell invocation in the workdir using plain command names
+        # 1) mpirun -np X u-dales parameters.default
+        # 2) ud_nam2json namoptions_json parameters_json
+        # We run these commands in the working directory where the input file resides.
+        try:
+            cmd1 = f"mpirun -np {total_procs} u-dales {work_input.name}"
+            print('Running:', cmd1)
+            proc = subprocess.run(cmd1, cwd=str(workdir), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=300)
+        except Exception as e:
+            print('ERROR: running u-DALES failed to start:', e)
+            return 2
+
+        if proc.returncode != 0:
+            print('u-DALES failed:')
+            print(proc.stdout)
+            print(proc.stderr)
+            return 2
+
+        # Now run ud_nam2json on the expected namelist filename (plain name)
+        try:
+            cmd2 = f"ud_nam2json namoptions_json parameters_json"
+            print('Running:', cmd2, 'in', str(workdir))
+            proc2 = subprocess.run(cmd2, cwd=str(workdir), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=30)
+        except Exception as e:
+            print('ERROR: running ud_nam2json failed to start:', e)
+            return 2
+
+        if proc2.returncode != 0:
+            print('ud_nam2json failed:')
+            print(proc2.stdout)
+            print(proc2.stderr)
+            return 2
+
+        generated_json_path = workdir / 'parameters_json'
+        if not generated_json_path.exists():
+            print(f'ERROR: expected json file {generated_json_path} not found')
+            return 2
+
+        with open(generated_json_path, 'r') as f:
+            generated = json.load(f)
+
+        errors = []
+        for section, params in generated.items():
+            if not isinstance(params, dict):
+                continue
+            input_section = input_config.get(section, {})
+            schema_section = schema.get('properties', {}).get(section, {})
+            for pname, pval in params.items():
+                if pname in input_section:
+                    if input_section[pname] != pval:
+                        errors.append(f'{section}.{pname} mismatch: input {input_section[pname]} != generated {pval}')
+                else:
+                    p_schema = schema_section.get('properties', {}).get(pname, {})
+                    if 'default' in p_schema:
+                        if p_schema['default'] != pval:
+                            errors.append(f'{section}.{pname} default mismatch: schema {p_schema["default"]} != generated {pval}')
+
+        if errors:
+            print('Validation errors:')
+            for e in errors:
+                print(' -', e)
+            return 2
+
+        print('PASS: generated JSON matches input values and schema defaults')
+        return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())
 #!/usr/bin/env python3
 """
 Comprehensive unit test for u-DALES JSON input functionality.

@@ -25,7 +25,7 @@ program DALESURBAN      !Version 48
 !!     0.0    USE STATEMENTS FOR CORE MODULES
 !!----------------------------------------------------------------
   use modmpi,            only : initmpi,exitmpi,myid,starttimer
-  use modglobal,         only : initglobal,rk3step,timeleft,runmode,TEST_JSON,TEST_IO
+  use modglobal,         only : initglobal,readgrid, rk3step,timeleft,runmode,TEST_JSON,TEST_IO
   use modstartup,        only : readconfig,init2decomp,checkinitvalues,readinitfiles,exitmodules
   use modfields,         only : initfields
   use modsave,           only : writerestartfiles
@@ -60,28 +60,22 @@ program DALESURBAN      !Version 48
 !     1      READ NAMELISTS,INITIALISE GRID, CONSTANTS AND FIELDS
 !----------------------------------------------------------------
   call initmpi
-  !call exitmpi
-  !stop
-  !call startup
+  call init2decomp
+
   call readconfig
 
-  write(*,*) 'Runmode is ', myid, runmode
+  call checkinitvalues
+
+  call initglobal
+
+  ! Execute tests if needed
   select case (runmode)
-        case (TEST_JSON)
+      case (TEST_JSON)
         ! Execute JSON tests
         call tests_json
         call exitmpi
         ! Stop execution after tests (tests are standalone)
-        stop 'JSON tests completed successfully'
-  end select
-
-  call init2decomp
-
-  call checkinitvalues
-
-  ! Execute tests if needed
-   
-  select case (runmode)
+        stop 
       case (TEST_IO)
         ! Execute IO tests (placeholder for future implementation)
         write(*,*) 'TEST_IO mode not yet implemented'
@@ -92,10 +86,9 @@ program DALESURBAN      !Version 48
         call exitmpi
         stop 'Invalid runmode specified'
   end select
-  
+
   ! Perform simulations
-  
-  call initglobal
+  call readgrid
 
   call initfields
 

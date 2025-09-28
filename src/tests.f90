@@ -44,8 +44,7 @@ module tests
       !-----------------------------------------------------------------|
       !                                                                 |
       !     JSON input/output tests                                     |
-      !     1) Load namoptions file and output namelists (last proc)   |
-      !     2) Load config.json file and output namelists (last proc)  |
+      !     Loads json file and output namelists (last proc)  |
       !                                                                 |
       !-----------------------------------------------------------------|
       
@@ -60,7 +59,7 @@ module tests
       
       if (myid == 0) then
         write(*,*) '========================================='
-        write(*,*) 'JSON INPUT/OUTPUT TESTS'
+        write(*,*) 'JSON INPUT TEST'
         write(*,*) '========================================='
         write(*,*) 'Total processes:', nprocs
         write(*,*) 'Last process ID:', last_proc
@@ -74,12 +73,6 @@ module tests
       if (myid == last_proc) then
         write(*,*) '  Last process (', myid, ') received ALL JSON VALUES:'
         call writenamelists
-      end if
-      
-      if (myid == 0) then
-        write(*,*) '========================================='
-        write(*,*) 'JSON TESTS COMPLETED'
-        write(*,*) '========================================='
       end if
       
     end subroutine tests_json

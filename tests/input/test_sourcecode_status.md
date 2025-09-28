@@ -8,15 +8,15 @@ This report shows the status of variables with color coding:
 
 ## Executive Summary
 
-- **Total Namelist Variables**: 244
-- **JSON Support**: 244 variables
-- **Namelist Broadcasts**: 243 variables
-- **Non-namelist Broadcasts**: 1 variables (internal/computed)
-- **Schema Coverage**: 224 variables
+- **Total Namelist Variables**: 245
+- **JSON Support**: 245 variables
+- **Namelist Broadcasts**: 245 variables
+- **Non-namelist Broadcasts**: 0 variables (internal/computed)
+- **Schema Coverage**: 250 variables
 
 **Status Distribution:**
-- 🟢 **219 variables** with full support
-- 🟠 **25 variables** with warnings
+- 🟢 **245 variables** with full support
+- 🟠 **0 variables** with warnings
 - 🔴 **0 variables** with errors
 
 ## Variables by Namelist
@@ -28,10 +28,7 @@ This report shows the status of variables with color coding:
 
 ### CHEMISTRY
 
-🟠 **Warnings**:
-- `jno2` (missing from schema)
-- `k1` (missing from schema)
-- `lchem` (missing from schema)
+🟢 **Full Support**: `jno2`, `k1`, `lchem`
 
 ### DOMAIN
 
@@ -55,13 +52,7 @@ This report shows the status of variables with color coding:
 
 ### INFO
 
-🟠 **Warnings**:
-- `dtin` (missing from schema)
-- `jgtotinl` (missing from schema)
-- `kmaxin` (missing from schema)
-- `nprocsinl` (missing from schema)
-- `totalreadu` (missing from schema)
-- `wtop` (missing from schema)
+🟢 **Full Support**: `dtin`, `jgtotinl`, `kmaxin`, `nprocsinl`, `totalreadu`, `wtop`
 
 ### INLET
 
@@ -69,28 +60,11 @@ This report shows the status of variables with color coding:
 
 ### NAMSUBGRID
 
-🟠 **Warnings**:
-- `c_vreman` (missing from schema)
-- `cf` (missing from schema)
-- `cn` (missing from schema)
-- `lbuoycorr` (missing from schema)
-- `ldelta` (missing from schema)
-- `lmason` (missing from schema)
-- `loneeqn` (missing from schema)
-- `lsmagorinsky` (missing from schema)
-- `lvreman` (missing from schema)
-- `nmason` (missing from schema)
-- `prandtl` (missing from schema)
-- `rigc` (missing from schema)
-- `sg_cs` (missing from schema)
+🟢 **Full Support**: `c_vreman`, `cf`, `cn`, `cs`, `lbuoycorr`, `ldelta`, `lmason`, `loneeqn`, `lsmagorinsky`, `lvreman`, `nmason`, `prandtl`, `rigc`
 
 ### OUTPUT
 
-🟢 **Full Support**: `fieldvars`, `islice`, `jslice`, `kslice`, `lfielddump`, `lislicedump`, `ljslicedump`, `lkslicedump`, `lmintdump`, `ltdump`, `ltkedump`, `lxydump`, `lxytdump`, `lydump`, `lytdump`, `tfielddump`, `tsample`, `tstatsdump`, `tstatstart`
-
-🟠 **Warnings**:
-- `slicevars` (missing from schema)
-- `tcheck` (missing from schema)
+🟢 **Full Support**: `fieldvars`, `islice`, `jslice`, `kslice`, `lfielddump`, `lislicedump`, `ljslicedump`, `lkslicedump`, `lmintdump`, `ltdump`, `ltkedump`, `lxydump`, `lxytdump`, `lydump`, `lytdump`, `slicevars`, `tcheck`, `tfielddump`, `tsample`, `tstatsdump`, `tstatstart`
 
 ### PHYSICS
 
@@ -102,10 +76,7 @@ This report shows the status of variables with color coding:
 
 ### RUN
 
-🟢 **Full Support**: `author`, `courant`, `diffnr`, `dtmax`, `iexpnr`, `irandom`, `krand`, `ladaptive`, `libm`, `lles`, `lper2inout`, `lrandomize`, `lreadmean`, `lstratstart`, `lwalldist`, `lwarmstart`, `nprocx`, `nprocy`, `randqt`, `randthl`, `randu`, `runtime`, `startfile`, `trestart`
-
-🟠 **Warnings**:
-- `runmode` (missing from schema)
+🟢 **Full Support**: `author`, `courant`, `diffnr`, `dtmax`, `iexpnr`, `irandom`, `krand`, `ladaptive`, `libm`, `ljson_input`, `lles`, `lper2inout`, `lrandomize`, `lreadmean`, `lstratstart`, `lwalldist`, `lwarmstart`, `nprocx`, `nprocy`, `randqt`, `randthl`, `randu`, `runmode`, `runtime`, `startfile`, `trestart`
 
 ### SCALARS
 
@@ -121,10 +92,6 @@ This report shows the status of variables with color coding:
 
 ## Recommendations
 
-### Medium Priority
-3. **Update JSON schema** to include missing namelist variables
-4. **Review schema variables** that don't correspond to namelists
-
 ### General
-5. **Improve JSON coverage**: Currently 244/244 namelist variables support JSON
-6. **Focus on namelist variables**: 1 namelist variables lack JSON support despite being broadcast
+5. **Improve JSON coverage**: Currently 245/245 namelist variables support JSON
+6. **Focus on namelist variables**: 0 namelist variables lack JSON support despite being broadcast

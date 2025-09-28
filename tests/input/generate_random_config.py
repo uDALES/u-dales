@@ -7,6 +7,7 @@ for each parameter according to their type and constraints.
 
 import json
 import random
+import os
 import string
 from pathlib import Path
 
@@ -144,56 +145,33 @@ def add_random_params_to_config(base_config_path, schema_path, output_path):
 
 def main():
     """Main function to generate random config files."""
-    
-    # Paths
-    schema_path = "/rds/general/user/mvr/home/udales/u-dales/docs/schemas/udales_input_schema.json"
-    base_config_path = "/rds/general/user/mvr/home/udales/u-dales/tests/json_test/parameters.001"
-    output_path_500 = "/rds/general/user/mvr/home/udales/u-dales/tests/json_test/parameters.500"
-    output_path_501 = "/rds/general/user/mvr/home/udales/u-dales/tests/json_test/parameters.501"
-    output_path_800 = "/rds/general/user/mvr/home/udales/u-dales/tests/json_test/parameters.800"
-    
-    print("Generating u-DALES configuration files...")
+    # Paths (computed relative to this script)
+    # script is at <repo>/tests/input/generate_random_config.py -> repo root is parents[2]
+    repo_root = Path(__file__).resolve().parents[2]
+    schema_path = str(repo_root / "docs" / "schemas" / "udales_input_schema.json")
+    # Write output to the same directory as this script (tests/input)
+    script_dir = str(Path(__file__).resolve().parent)
+    output_dir = script_dir
+    output_path = os.path.join(output_dir, "parameters.random")
+
+    print("Generating a fully-random u-DALES configuration...")
     print(f"Schema: {schema_path}")
-    
+
     try:
-        # 1. Create parameters.500 (copy of parameters.001)
-        print("\n1. Creating parameters.500 (copy of parameters.001)...")
-        with open(base_config_path, 'r') as f:
-            base_config = json.load(f)
-        
-        with open(output_path_500, 'w') as f:
-            json.dump(base_config, f, indent=2)
-        
-        print(f"   Created: {output_path_500}")
-        
-        # 2. Create parameters.501 (enhanced with additional random parameters)
-        print("\n2. Creating parameters.501 (enhanced with additional parameters)...")
-        config_501 = add_random_params_to_config(base_config_path, schema_path, output_path_501)
-        
-        with open(output_path_501, 'w') as f:
-            json.dump(config_501, f, indent=2)
-        
-        print(f"   Created: {output_path_501}")
-        
-        # 3. Generate parameters.800 (fully random configuration)
-        print("\n3. Creating parameters.800 (fully random configuration)...")
-        config_800 = generate_random_config(schema_path)
-        
-        with open(output_path_800, 'w') as f:
-            json.dump(config_800, f, indent=2)
-        
-        print(f"   Created: {output_path_800}")
-        print(f"   Sections: {len(config_800)}")
-        
-        print("\n✅ Successfully created all configuration files!")
-        print("   - parameters.500: Baseline (copy of parameters.001)")
-        print("   - parameters.501: Enhanced (parameters.001 + random params)")
-        print("   - parameters.800: Fully random configuration")
-        
+        # Ensure output directory exists
+        os.makedirs(output_dir, exist_ok=True)
+
+        # Generate fully random configuration
+        config = generate_random_config(schema_path)
+
+        with open(output_path, 'w') as f:
+            json.dump(config, f, indent=2)
+
+        print(f"Created: {output_path} (sections: {len(config)})")
     except Exception as e:
-        print(f"Error generating configuration files: {e}")
+        print(f"Error generating configuration file: {e}")
         return 1
-    
+
     return 0
 
 if __name__ == "__main__":

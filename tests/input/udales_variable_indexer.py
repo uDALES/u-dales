@@ -57,6 +57,10 @@ class UdalesVariableIndexer:
             try:
                 with open(f90_file, 'r', encoding='utf-8', errors='ignore') as f:
                     content = f.read()
+                # Reset alias mapping for this file and extract 'use' aliases
+                self.current_aliases = {}
+                self._extract_use_aliases(content)
+
                 # Extract for this single file
                 self._extract_namelists(content, f90_file.name)
                 self._extract_json_reads(content)
@@ -75,11 +79,15 @@ class UdalesVariableIndexer:
             try:
                 with open(f90_file, 'r', encoding='utf-8', errors='ignore') as f:
                     content = f.read()
-                
+
+                # Reset alias mapping for this file and extract 'use' aliases
+                self.current_aliases = {}
+                self._extract_use_aliases(content)
+
                 self._extract_namelists(content, f90_file.name)
                 self._extract_json_reads(content)
                 self._extract_broadcasts(content)
-                
+
             except Exception as e:
                 print(f"    Warning: Could not process {f90_file}: {e}")
     
@@ -185,6 +193,9 @@ class UdalesVariableIndexer:
         
         for var in potential_vars:
             var_lower = var.lower()
+            # If this variable is an alias from a 'use' statement, map to the real name
+            if var_lower in self.current_aliases:
+                var_lower = self.current_aliases[var_lower]
             # Filter out Fortran keywords and single letters (usually loop indices)
             if (var_lower not in keywords and 
                 len(var) > 1 and 
@@ -212,6 +223,9 @@ class UdalesVariableIndexer:
             matches = re.findall(pattern, content, re.IGNORECASE)
             for namelist, var in matches:
                 var_lower = var.lower()
+                # Map alias to real name if present
+                if var_lower in self.current_aliases:
+                    var_lower = self.current_aliases[var_lower]
                 self.json_reads.add(var_lower)
                 self.json_read_counts[var_lower] += 1
     
@@ -229,8 +243,48 @@ class UdalesVariableIndexer:
                 # Filter out obvious non-variables
                 if var.lower() not in ['comm3d', 'mpierr', 'mpi_integer', 'mpi_real', 'my_real', 'mpi_logical']:
                     var_lower = var.lower()
+                    # Map alias to real name if present
+                    if var_lower in self.current_aliases:
+                        var_lower = self.current_aliases[var_lower]
                     self.broadcasts.add(var_lower)
                     self.broadcast_counts[var_lower] += 1
+
+    def _extract_use_aliases(self, content: str):
+        """Extract alias mappings from Fortran 'use' statements in the given file content.
+
+        Populates self.current_aliases with mappings: alias_name -> real_name (lowercased).
+        Handles patterns like: use modsubgriddata, sg_cs => cs, other_alias => other_real
+        """
+        # Remove comments to avoid capturing commented-out uses
+        content_no_comments = re.sub(r'!.*$', '', content, flags=re.MULTILINE)
+        lines = content_no_comments.split('\n')
+        for line in lines:
+            proc_line = line.strip()
+            if not proc_line:
+                continue
+            # Match use statements with a comma and aliasing
+            m = re.match(r'\s*use\s+\w+\s*,\s*(.*)', proc_line, re.IGNORECASE)
+            if not m:
+                continue
+            remainder = m.group(1)
+            # Split on commas but be careful about 'only:' prefix
+            parts = [p.strip() for p in remainder.split(',') if p.strip()]
+            for part in parts:
+                # Skip 'only:' specifications
+                if part.lower().startswith('only:'):
+                    # inside only: there might be a list like only: a, b, c
+                    inner = part[len('only:'):].strip()
+                    inner_vars = [v.strip() for v in inner.split(',') if v.strip()]
+                    for v in inner_vars:
+                        # no aliasing provided here, so nothing to map
+                        pass
+                    continue
+                # Look for aliasing pattern alias => real
+                alias_match = re.match(r'([a-zA-Z_]\w*)\s*=>\s*([a-zA-Z_]\w*)', part)
+                if alias_match:
+                    alias = alias_match.group(1).lower()
+                    real = alias_match.group(2).lower()
+                    self.current_aliases[alias] = real
     
     def parse_json_schema(self):
         """Parse the JSON schema to extract variable definitions."""

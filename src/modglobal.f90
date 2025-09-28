@@ -32,7 +32,7 @@ module modglobal
    ! Simulation dimensions (parconst.f90)
    integer :: itot = 96 ! Used to be called imax
    integer :: jtot = 96
-   integer :: ktot = 96 ! Rename to ktot?
+   integer :: ktot = 96 
    integer :: imax
    integer :: imax1
    integer :: imax2
@@ -81,11 +81,11 @@ module modglobal
    integer, parameter :: TEST_IO = 1002
    integer :: runmode = RUN_SIMULATION
 
-   logical :: lwarmstart = .false. !<   flag for "cold" or "warm" start
+   logical :: lwarmstart = .false.  !<   flag for "cold" or "warm" start
    logical :: lstratstart = .false.
-   logical :: lfielddump = .false. !< switch to enable the fielddump
-   logical :: lreadscal = .false. !<   flag for reading scalar pollutant field (warm start)
-   logical :: json_input = .true. !<   flag for JSON input (true) vs Fortran namelist input (false)
+   logical :: lfielddump = .false.  !< switch to enable the fielddump
+   logical :: lreadscal = .false.   !< flag for reading scalar pollutant field (warm start)
+   logical :: ljson_input = .true.  !< flag for JSON input (true) vs Fortran namelist input (false)
 
    !Switches for boundary conditions
    !momentum (m), temperature (T), humidity (q) and scalars (s)
@@ -705,6 +705,18 @@ contains
 
       rslabs = real(itot*jtot)
 
+   end subroutine initglobal
+
+   subroutine readgrid
+      use modmpi,   only : myid, comm3d, my_real, mpierr
+      use decomp_2d
+      implicit none
+
+      integer :: advarr(4)
+      real phi, colat, silat, omega, omega_gs
+      integer :: i, j, k, n
+      character(80) chmess
+
       dx = xlen/float(itot)
       dy = ylen/float(jtot)
 
@@ -869,7 +881,7 @@ contains
 !    tnextstatsdump = tstatsdump
       timeleft = runtime ! tg3315 previously btime + runtime
 
-   end subroutine initglobal
+   end subroutine readgrid
 
    !> Clean up when leaving the run
    subroutine exitglobal

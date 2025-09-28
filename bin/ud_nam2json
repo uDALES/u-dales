@@ -1,66 +1,50 @@
-#!/bin/bash
+#!/usr/bin/env python3
+"""
+ud_nam2json - wrapper that runs the existing AWK converter then applies mappings
 
-# ud_nam2json - Convert uDALES namoptions files to JSON parameters files
-# Usage: ud_nam2json namoptions.XXX [parameters.XXX]
+Behavior:
+  - Runs the AWK converter to produce typed JSON from a namoptions file
+  - Loads an embedded mapping table (with optional overrides from
+    docs/schemas/nam2jsonmap.txt)
+  - Applies simple renames (token -> newname) and qualified moves
+    (SECTION.key -> DSTSECTION.newkey) in-memory on the parsed JSON
+  - Writes the final JSON to parameters.XXX (same default naming as before)
 
-# Help and argument checking
-case "${1:-}" in
-    -h|--help|"")
-        echo "Usage: $0 <namoptions.XXX>"
-        echo "Convert uDALES namoptions (Fortran namelist) to JSON parameters"
-        echo "Output will be named parameters.XXX (where XXX is extracted from input)"
-        echo "Example: $0 namoptions.001 -> parameters.001"
-        exit ${1:+0}
-        ;;
-esac
+This file is intentionally a single self-contained script so you can copy it
+anywhere. It shells out to awk (the same program previously in use) to keep
+existing behavior.
+"""
 
-[[ -f "$1" ]] || { echo "Error: File '$1' not found" >&2; exit 1; }
+import sys
+import os
+import re
+import json
+import shutil
+import subprocess
+import tempfile
+from collections import OrderedDict
 
-# Extract extension from input filename (everything after the last dot)
-INPUT_FILE="$1"
-if [[ "$INPUT_FILE" =~ \.([^./]+)$ ]]; then
-    EXTENSION="${BASH_REMATCH[1]}"
-    # Extract directory path from input file and place output there
-    INPUT_DIR=$(dirname "$INPUT_FILE")
-    OUTPUT_FILE="$INPUT_DIR/parameters.$EXTENSION"
-else
-    echo "Error: Input file must have format 'namoptions.XXX'" >&2
-    exit 1
-fi
+# Embedded default mapping (kept here so the script is portable). Each entry is
+# (src, dst) similar to docs/schemas/nam2jsonmap.txt. The script will read
+# docs/schemas/nam2jsonmap.txt if present and append/override these entries.
+EMBEDDED_MAP_TEXT = '''
+NAMSUBGRID               SUBGRID
+NAMCHECKSIM.tcheck       OUTPUT.tcheck
+SUBGRID.sg_cs            SUBGRID.cs
+'''
 
-# AWK script to convert namoptions to JSON
-awk '
+AWK_PROGRAM = r"""
 function format_value(v) {
-    gsub(/^[ \t]+|[ \t]+$/, "", v)  # trim whitespace
-    
-    # Boolean values - check for .true./.false. patterns
-    if (match(tolower(v), /^\.?(true|t)\.?$/)) return "true"
-    if (match(tolower(v), /^\.?(false|f)\.?$/)) return "false"
-    
-    # Pure integers (including with leading zeros)
-    if (match(v, /^-?[0-9]+$/) && !match(v, /\./)) 
-        return sprintf("%d", v)  # removes leading zeros
-    
-    # Floating point numbers (including those ending with .)
-    if (match(v, /^-?[0-9]*\.[0-9]*$/)) {
-        if (match(v, /\.$/)) gsub(/\.$/, "", v)  # remove trailing dot
-        return v + 0
-    }
-    
-    # Scientific notation
-    if (match(v, /^-?[0-9]*\.?[0-9]*[eE][+-]?[0-9]+$/)) 
-        return v + 0
-    
-    # Strings - remove existing quotes and add double quotes
-    gsub(/^['\''\"]*|['\''\"]*$/, "", v)
+    gsub(/^[ \t]+|[ \t]+$/, "", v)
+    if (match(tolower(v), /^\.?([tT]rue|[tT])\.?$/)) return "true"
+    if (match(tolower(v), /^\.?([fF]alse|[fF])\.?$/)) return "false"
+    if (match(v, /^-?[0-9]+$/) && !match(v, /\./)) return sprintf("%d", v)
+    if (match(v, /^-?[0-9]*\.[0-9]*$/)) { if (match(v, /\.$/)) gsub(/\.$/, "", v); return v+0 }
+    if (match(v, /^-?[0-9]*\.?[0-9]+([eE][+-]?[0-9]+)?$/)) return v+0
+    gsub(/^['\"\']*|['\"\']*$/, "", v)
     return "\"" v "\""
 }
-
-BEGIN { 
-    print "{"
-    first_section = 1
-}
-
+BEGIN { print "{"; first_section = 1 }
 /^[ \t]*&[A-Z_]+/ {
     if (!first_section) print "  },"
     first_section = 0
@@ -69,20 +53,271 @@ BEGIN {
     first_param = 1
     next
 }
-
-/^[ \t]*\// { next }  # skip section end
-
+/^[ \t]*\// { next }
 /^[ \t]*[a-zA-Z_][a-zA-Z0-9_]*[ \t]*=/ {
     match($0, /^[ \t]*([a-zA-Z_][a-zA-Z0-9_]*)[ \t]*=[ \t]*(.*)/, arr)
     if (!first_param) print ","
     first_param = 0
     printf "    \"%s\": %s", arr[1], format_value(arr[2])
 }
+END { print ""; print "  }"; print "}" }
+"""
 
-END {
-    print ""
-    print "  }"
-    print "}"
-}' "$INPUT_FILE" > "$OUTPUT_FILE"
+def load_mappings():
+    # Start from embedded map
+    lines = EMBEDDED_MAP_TEXT.strip().splitlines()
+    simple_map = {}
+    qualified_map = {}
+    for raw in lines:
+        line = raw.strip()
+        if not line or line.startswith('#'):
+            continue
+        parts = line.split()
+        if len(parts) < 2:
+            continue
+        src = parts[0]
+        dst = parts[-1]
+        if '.' in src:
+            ssec, skey = src.split('.', 1)
+            if '.' in dst:
+                dsec, dkey = dst.split('.', 1)
+            else:
+                dsec, dkey = dst, skey
+            # store section uppercase for canonical matching, and keys lowercased
+            qualified_map[(ssec.upper(), skey.lower())] = (dsec.upper(), dkey.lower())
+        else:
+            # store simple mappings lowercased to support case-insensitive lookup
+            simple_map[src.lower()] = dst
+    return simple_map, qualified_map
 
-echo "Successfully converted '$INPUT_FILE' to '$OUTPUT_FILE'"
+def run_awk_to_json(input_path):
+    # run AWK program and capture stdout (use Popen for older Python compatibility)
+    p = subprocess.Popen(['awk', AWK_PROGRAM, input_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out, err = p.communicate()
+    if p.returncode != 0:
+        # decode for readable message
+        try:
+            serr = err.decode('utf-8', errors='replace') if isinstance(err, bytes) else str(err)
+        except Exception:
+            serr = str(err)
+        raise RuntimeError(f"AWK converter failed: {serr}")
+    try:
+        sout = out.decode('utf-8') if isinstance(out, bytes) else out
+    except Exception:
+        sout = out.decode('utf-8', errors='replace') if isinstance(out, bytes) else str(out)
+    return sout
+
+def apply_mappings(data, simple_map, qualified_map):
+    # data: dict of section -> dict
+    # simple renames: token -> newname
+    # If a simple mapping's source is an uppercase token that matches a SECTION
+    # name in the data and the destination is an uppercase token without a dot,
+    # interpret this as a section rename (move entire section contents).
+    # Otherwise, treat as key rename within sections.
+    # First handle section moves
+    for old, new in list(simple_map.items()):
+        # section move if old is uppercase and exists as a section
+        # support case-insensitive section matching for simple_map entries
+        if old.upper() in data and isinstance(data[old.upper()], dict) and '.' not in new:
+            # move section contents to new section name
+            newsec = new.upper()
+            # If destination already exists, merge keys (destination keys take precedence)
+            dst = data.get(newsec, {})
+            # left: src, right: dst; src keys only added if not present in dst
+            src = data.pop(old.upper())
+            for k, v in src.items():
+                if k not in dst:
+                    dst[k] = v
+            data[newsec] = dst
+        else:
+            # fallback: treat mapping as key rename inside sections
+            for sec, params in list(data.items()):
+                if not isinstance(params, dict):
+                    continue
+                # mapping keys are stored lowercased in simple_map; our params
+                # are lowercased by lowercase_section_params, so check lowercase
+                lok = old.lower()
+                if lok in params:
+                    params[new.lower()] = params.pop(lok)
+    # qualified moves
+    for (ssec, skey), (dsec, dkey) in qualified_map.items():
+        # ssec/dsec stored uppercase; skey/dkey stored lowercase
+        # match sections case-insensitively by uppercasing data keys
+        if ssec in data and isinstance(data[ssec], dict):
+            params = data[ssec]
+            if skey in params:
+                val = params.pop(skey)
+                # ensure destination section exists with uppercase name
+                data.setdefault(dsec, {})[dkey] = val
+        # silently ignore mappings whose source is missing
+    # No warnings generated currently; return empty list for callers that
+    # iterate `warnings` to avoid NoneType iteration errors.
+    return []
+
+
+def lowercase_section_params(data):
+    """Lowercase all parameter keys inside each top-level SECTION dict in-place.
+
+    Section names (top-level keys) are left as-is (uppercase), but their
+    parameter keys are converted to lowercase so the output JSON has
+    lowercase variable names.
+    """
+    for sec in list(data.keys()):
+        v = data.get(sec)
+        if isinstance(v, dict):
+            new = {}
+            for k, val in v.items():
+                lk = k.lower()
+                # if collision, keep existing value in new (destination precedence)
+                if lk not in new:
+                    new[lk] = val
+            data[sec] = new
+
+
+def _coerce_scalar(val):
+    """Coerce a scalar string produced by the AWK converter into bool/int/float or leave as str.
+
+    Rules:
+    - strip surrounding whitespace and trailing commas
+    - empty -> ''
+    - .true. / true / t -> True, .false. / false / f -> False (case-insensitive)
+    - integer -> int
+    - float (including Fortran E) -> float
+    - otherwise return original string (stripped)
+    """
+    if isinstance(val, bool):
+        return val
+    if isinstance(val, (int, float)):
+        return val
+    if not isinstance(val, str):
+        return val
+
+    s = val.strip()
+    # remove trailing comma
+    if s.endswith(','):
+        s = s[:-1].strip()
+
+    if s == '':
+        return ''
+
+    low = s.lower()
+    if low in ('.true.', 'true', 't'):
+        return True
+    if low in ('.false.', 'false', 'f'):
+        return False
+
+    # Handle Fortran-style replication patterns like '99*0.000000E+000'.
+    # Present the second value (the RHS) as the scalar.
+    m = re.match(r'^[+-]?\d+\s*\*\s*(.+)$', s)
+    if m:
+        # take the RHS and continue coercion
+        s = m.group(1).strip()
+        low = s.lower()
+        if s == '':
+            return ''
+        if low in ('.true.', 'true', 't'):
+            return True
+        if low in ('.false.', 'false', 'f'):
+            return False
+
+    # Try integer
+    try:
+        if re.fullmatch(r'[+-]?\d+', s):
+            return int(s)
+    except Exception:
+        pass
+
+    # Try float (handles Fortran E-format)
+    try:
+        # allow leading +/-, digits, optional decimal, optional exponent
+        if re.fullmatch(r'[+-]?(\d+\.?\d*|\d*\.\d+)([eE][+-]?\d+)?', s):
+            return float(s)
+    except Exception:
+        pass
+
+    # Fallback: return stripped string
+    return s
+
+
+def normalize_data(obj):
+    """Recursively normalize values in the parsed AWK JSON object in-place."""
+    if isinstance(obj, dict):
+        for k, v in list(obj.items()):
+            obj[k] = normalize_data(v)
+        return obj
+    if isinstance(obj, list):
+        return [normalize_data(v) for v in obj]
+    # scalar
+    return _coerce_scalar(obj)
+
+def write_output(data, output_path):
+    with open(output_path, 'w') as f:
+        json.dump(data, f, indent=2)
+
+def main(argv):
+    if len(argv) < 2 or argv[1] in ('-h', '--help'):
+        print("Usage: ud_nam2json <namoptions.XXX> [parameters.XXX]")
+        return 0
+    input_file = argv[1]
+    if not os.path.isfile(input_file):
+        print(f"Error: File '{input_file}' not found", file=sys.stderr)
+        return 2
+    out_dir = os.path.dirname(input_file) or '.'
+    if len(argv) > 2:
+        # user supplied an explicit output filename -> don't require input extension
+        out_basename = os.path.basename(argv[2])
+        output_file = os.path.join(out_dir, out_basename)
+    else:
+        # no explicit output provided: require input file to be named like namoptions.XXX
+        m = re.search(r"\.([^./]+)$", input_file)
+        if not m:
+            print("Error: input file must be named like namoptions.XXX when no output filename is given", file=sys.stderr)
+            return 3
+        ext = m.group(1)
+        output_file = os.path.join(out_dir, f'parameters.{ext}')
+
+    simple_map, qualified_map = load_mappings()
+
+    # Run AWK converter and parse its JSON
+    try:
+        awk_json = run_awk_to_json(input_file)
+    except Exception as e:
+        print(str(e), file=sys.stderr)
+        return 4
+    try:
+        data = json.loads(awk_json)
+    except Exception as e:
+        print(f"Failed to parse AWK output as JSON: {e}", file=sys.stderr)
+        return 5
+
+    # Normalize scalar types (strings -> bool/int/float where appropriate)
+    try:
+        normalize_data(data)
+    except Exception:
+        # If normalization fails, continue with original data
+        pass
+
+    # convert parameter keys inside sections to lowercase so outputs use
+    # lowercase variable names (e.g. RUN.courant)
+    try:
+        lowercase_section_params(data)
+    except Exception:
+        pass
+
+    warnings = apply_mappings(data, simple_map, qualified_map)
+    # Remove empty sections (empty dict or empty list)
+    for sec in list(data.keys()):
+        v = data.get(sec)
+        if (isinstance(v, dict) and not v) or (isinstance(v, list) and not v):
+            del data[sec]
+    write_output(data, output_file)
+
+    print(f"Successfully converted '{input_file}' to '{output_file}'")
+    if warnings:
+        print("Warnings:")
+        for w in warnings:
+            print(" -", w)
+    return 0
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv))

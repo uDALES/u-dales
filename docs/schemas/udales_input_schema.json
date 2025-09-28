@@ -33,7 +33,6 @@
         "runtime": {
           "type": "number",
           "minimum": 0,
-          "default": 300,
           "description": "Simulation time [s]"
         },
         "trestart": {
@@ -45,7 +44,6 @@
         "dtmax": {
           "type": "number",
           "minimum": 0,
-          "default": 20,
           "description": "Maximum allowed numerical integration timestep [s]"
         },
         "ladaptive": {
@@ -63,7 +61,7 @@
         "diffnr": {
           "type": "number",
           "minimum": 0,
-          "default": 0.8,
+          "default": 0.25,
           "description": "Diffusion number for numerical stability"
         },
         "author": {
@@ -131,6 +129,11 @@
           "default": false,
           "description": "Switch for reading mean variables from means files"
         },
+        "ljson_input": {
+          "type": "boolean",
+          "default": true,
+          "description": "Indicates input is provided in JSON format"
+        },
         "nprocx": {
           "type": "integer",
           "minimum": 1,
@@ -142,7 +145,7 @@
           "description": "Number of pencils in the y-direction, must be a divisor of jtot and ktot"
         }
       },
-      "required": ["nprocx", "nprocy"]
+      "required": ["runtime", "dtmax", "nprocx", "nprocy"]
     },
     "DOMAIN": {
       "type": "object",
@@ -169,13 +172,11 @@
         "xlen": {
           "type": "number",
           "minimum": 0,
-          "default": -1,
           "description": "Domain size in x-direction [m]"
         },
         "ylen": {
           "type": "number",
           "minimum": 0,
-          "default": -1,
           "description": "Domain size in y-direction [m]"
         },
         "xlat": {
@@ -189,7 +190,7 @@
           "type": "number",
           "minimum": -180,
           "maximum": 180,
-          "default": 5.0,
+          "default": 0.0,
           "description": "Longitude of domain center [degrees]"
         },
         "xday": {
@@ -203,16 +204,17 @@
           "type": "number",
           "minimum": 0,
           "maximum": 24,
-          "default": 12.0,
+          "default": 0.0,
           "description": "Time of day for simulation start [hours]"
         },
         "ksp": {
           "type": "integer",
           "minimum": 1,
-          "default": 1,
+          "default": -1,
           "description": "Index of first grid point above surface for pressure"
         }
-      }
+      },
+      "required": ["xlen", "ylen"]
     },
     "PHYSICS": {
       "type": "object",
@@ -267,7 +269,7 @@
         },
         "tscale": {
           "type": "number",
-          "default": 1.0,
+          "default": 0.0,
           "description": "Time scale factor"
         },
         "dpdx": {
@@ -297,12 +299,12 @@
         },
         "uflowrate": {
           "type": "number",
-          "default": 0.0,
+          "default": 1.0,
           "description": "Fixed u-velocity flow rate [m/s]"
         },
         "vflowrate": {
           "type": "number",
-          "default": 0.0,
+          "default": 1.0,
           "description": "Fixed v-velocity flow rate [m/s]"
         },
         "lnudge": {
@@ -312,17 +314,17 @@
         },
         "lnudgevel": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "Switch for velocity nudging"
         },
         "tnudge": {
           "type": "number",
-          "default": 3600.0,
+          "default": 60.0,
           "description": "Nudging time scale [s]"
         },
         "nnudge": {
           "type": "integer",
-          "default": 1,
+          "default": 0,
           "description": "Number of nudging points"
         },
         "ltimedepsurf": {
@@ -332,7 +334,7 @@
         },
         "ntimedepsurf": {
           "type": "integer",
-          "default": 1,
+          "default": 0,
           "description": "Number of time-dependent surface forcing points"
         },
         "ltimedepnudge": {
@@ -342,7 +344,7 @@
         },
         "ntimedepnudge": {
           "type": "integer",
-          "default": 1,
+          "default": 0,
           "description": "Number of time-dependent nudging points"
         },
         "ltimedeplw": {
@@ -352,7 +354,7 @@
         },
         "ntimedeplw": {
           "type": "integer",
-          "default": 1,
+          "default": 0,
           "description": "Number of time-dependent longwave forcing points"
         },
         "ltimedepsw": {
@@ -362,7 +364,7 @@
         },
         "ntimedepsw": {
           "type": "integer",
-          "default": 1,
+          "default": 0,
           "description": "Number of time-dependent shortwave forcing points"
         }
       }
@@ -411,6 +413,27 @@
           "enum": [1, 2, 7],
           "default": 7,
           "description": "Advection scheme for scalars"
+        }
+      }
+    },
+    "CHEMISTRY": {
+      "type": "object",
+      "description": "Basic chemistry parameters",
+      "properties": {
+        "lchem": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch for basic chemistry"
+        },
+        "k1": {
+          "type": "number",
+          "default": 0.0,
+          "description": "Reaction rate k1"
+        },
+        "jno2": {
+          "type": "integer",
+          "default": 0,
+          "description": "Photolysis rate for NO2"
         }
       }
     },
@@ -1078,6 +1101,11 @@
           "default": false,
           "description": "Switch for writing k-slice data"
         },
+        "slicevars": {
+          "type": "string",
+          "default": "",
+          "description": "Variable names for slice output"
+        },
         "kslice": {
           "type": "integer",
           "default": 1,
@@ -1102,6 +1130,11 @@
           "type": "integer",
           "default": 1,
           "description": "j-level for slice output"
+        },
+        "tcheck": {
+          "type": "number",
+          "default": 1,
+          "description": "Time interval for output log"
         },
         "ltkedump": {
           "type": "boolean",
@@ -1225,6 +1258,100 @@
           "type": "number",
           "default": 0.0,
           "description": "Heat pump heating rate [W]"
+        }
+      }
+    },
+    "SUBGRID": {
+      "type": "object",
+      "description": "Subgrid model parameters",
+      "properties": {
+        "ldelta": {
+          "type": "boolean",
+          "default": false
+        },
+        "lmason": {
+          "type": "boolean",
+          "default": false
+        },
+        "cf": {
+          "type": "number",
+          "default": 2.5
+        },
+        "cn": {
+          "type": "number",
+          "default": 0.76
+        },
+        "rigc": {
+          "type": "number",
+          "default": 0.25
+        },
+        "prandtl": {
+          "type": "number",
+          "default": 0.333
+        },
+        "lsmagorinsky": {
+          "type": "boolean",
+          "default": false
+        },
+        "lvreman": {
+          "type": "boolean",
+          "default": true
+        },
+        "loneeqn": {
+          "type": "boolean",
+          "default": false
+        },
+        "c_vreman": {
+          "type": "number",
+          "default": 0.07
+        },
+        "nmason": {
+          "type": "number",
+          "default": 2.0
+        },
+        "lbuoycorr": {
+          "type": "boolean",
+          "default": false
+        },
+        "cs": {
+          "type": "number",
+          "default": -1.0
+        }
+      }
+    },
+    "INFO": {
+      "type": "object",
+      "description": "Internal bookkeeping and input info",
+      "properties": {
+        "nprocsinl": {
+          "type": "integer",
+          "default": 0,
+          "description": "Number of processes in input list"
+        },
+        "jgtotinl": {
+          "type": "integer",
+          "default": 0,
+          "description": "Total j grid points in input list"
+        },
+        "kmaxin": {
+          "type": "integer",
+          "default": 0,
+          "description": "Maximum k index in input list"
+        },
+        "dtin": {
+          "type": "number",
+          "default": 0.0,
+          "description": "Input dt"
+        },
+        "wtop": {
+          "type": "number",
+          "default": 0.0,
+          "description": "Top boundary height for input"
+        },
+        "totalreadu": {
+          "type": "integer",
+          "default": 0,
+          "description": "Total read count"
         }
       }
     },
