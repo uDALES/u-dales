@@ -145,7 +145,12 @@
           "description": "Number of pencils in the y-direction, must be a divisor of jtot and ktot"
         }
       },
-      "required": ["runtime", "dtmax", "nprocx", "nprocy"]
+      "required": [
+        "runtime",
+        "dtmax",
+        "nprocx",
+        "nprocy"
+      ]
     },
     "DOMAIN": {
       "type": "object",
@@ -214,7 +219,10 @@
           "description": "Index of first grid point above surface for pressure"
         }
       },
-      "required": ["xlen", "ylen"]
+      "required": [
+        "xlen",
+        "ylen"
+      ]
     },
     "PHYSICS": {
       "type": "object",
@@ -228,7 +236,12 @@
         },
         "igrw_damp": {
           "type": "integer",
-          "enum": [0, 1, 2, 3],
+          "enum": [
+            0,
+            1,
+            2,
+            3
+          ],
           "default": 0,
           "description": "Integer switch to enable gravity wave damping"
         },
@@ -380,37 +393,59 @@
         },
         "ipoiss": {
           "type": "integer",
-          "enum": [0],
+          "enum": [
+            0
+          ],
           "default": 0,
           "description": "Poisson solver. 0 = using 2D Fast Fourier Transform"
         },
         "iadv_mom": {
           "type": "integer",
-          "enum": [1, 2, 7],
+          "enum": [
+            1,
+            2,
+            7
+          ],
           "default": 2,
           "description": "Advection scheme for momentum (1=upwind, 2=central, 7=kappa)"
         },
         "iadv_tke": {
           "type": "integer",
-          "enum": [1, 2, 7],
+          "enum": [
+            1,
+            2,
+            7
+          ],
           "default": 2,
           "description": "Advection scheme for TKE"
         },
         "iadv_thl": {
           "type": "integer",
-          "enum": [1, 2, 7],
+          "enum": [
+            1,
+            2,
+            7
+          ],
           "default": 2,
           "description": "Advection scheme for temperature"
         },
         "iadv_qt": {
           "type": "integer",
-          "enum": [1, 2, 7],
+          "enum": [
+            1,
+            2,
+            7
+          ],
           "default": 2,
           "description": "Advection scheme for moisture"
         },
         "iadv_sv": {
           "type": "integer",
-          "enum": [1, 2, 7],
+          "enum": [
+            1,
+            2,
+            7
+          ],
           "default": 7,
           "description": "Advection scheme for scalars"
         }
@@ -441,82 +476,82 @@
       "type": "object",
       "description": "Boundary condition parameters",
       "properties": {
-        "BCxm": {
+        "bcxm": {
           "type": "integer",
           "default": 1,
           "description": "Boundary condition for momentum in x-direction (west)"
         },
-        "BCxT": {
+        "bcxt": {
           "type": "integer",
           "default": 1,
           "description": "Boundary condition for temperature in x-direction (west)"
         },
-        "BCxq": {
+        "bcxq": {
           "type": "integer",
           "default": 1,
           "description": "Boundary condition for moisture in x-direction (west)"
         },
-        "BCxs": {
+        "bcxs": {
           "type": "integer",
           "default": 1,
           "description": "Boundary condition for scalars in x-direction (west)"
         },
-        "BCym": {
+        "bcym": {
           "type": "integer",
           "default": 1,
           "description": "Boundary condition for momentum in y-direction (south)"
         },
-        "BCyT": {
+        "bcyt": {
           "type": "integer",
           "default": 1,
           "description": "Boundary condition for temperature in y-direction (south)"
         },
-        "BCyq": {
+        "bcyq": {
           "type": "integer",
           "default": 1,
           "description": "Boundary condition for moisture in y-direction (south)"
         },
-        "BCys": {
+        "bcys": {
           "type": "integer",
           "default": 1,
           "description": "Boundary condition for scalars in y-direction (south)"
         },
-        "BCtopm": {
+        "bctopm": {
           "type": "integer",
           "default": 2,
           "description": "Boundary condition for momentum at top"
         },
-        "BCtopT": {
+        "bctopt": {
           "type": "integer",
           "default": 2,
           "description": "Boundary condition for temperature at top"
         },
-        "BCtopq": {
+        "bctopq": {
           "type": "integer",
           "default": 2,
           "description": "Boundary condition for moisture at top"
         },
-        "BCtops": {
+        "bctops": {
           "type": "integer",
           "default": 2,
           "description": "Boundary condition for scalars at top"
         },
-        "BCbotm": {
+        "bcbotm": {
           "type": "integer",
           "default": 1,
           "description": "Boundary condition for momentum at bottom"
         },
-        "BCbotT": {
+        "bcbott": {
           "type": "integer",
           "default": 1,
           "description": "Boundary condition for temperature at bottom"
         },
-        "BCbotq": {
+        "bcbotq": {
           "type": "integer",
           "default": 1,
           "description": "Boundary condition for moisture at bottom"
         },
-        "BCbots": {
+        "bcbots": {
           "type": "integer",
           "default": 1,
           "description": "Boundary condition for scalars at bottom"
@@ -593,13 +628,17 @@
         },
         "wsvsurfdum": {
           "type": "array",
-          "items": {"type": "number"},
+          "items": {
+            "type": "number"
+          },
           "default": [],
           "description": "Surface scalar fluxes [varies]"
         },
         "wsvtopdum": {
           "type": "array",
-          "items": {"type": "number"},
+          "items": {
+            "type": "number"
+          },
           "default": [],
           "description": "Top scalar fluxes [varies]"
         },
@@ -630,7 +669,7 @@
           "default": 0.01,
           "description": "Surface roughness length for heat [m]"
         },
-        "BCzp": {
+        "bczp": {
           "type": "integer",
           "default": 1,
           "description": "Boundary condition for pressure in z-direction"
@@ -646,12 +685,12 @@
       "type": "object",
       "description": "Inlet boundary condition parameters",
       "properties": {
-        "Uinf": {
+        "uinf": {
           "type": "number",
           "default": 1.0,
           "description": "Free stream velocity in x-direction [m/s]"
         },
-        "Vinf": {
+        "vinf": {
           "type": "number",
           "default": 0.0,
           "description": "Free stream velocity in y-direction [m/s]"
@@ -671,7 +710,7 @@
           "default": 600.0,
           "description": "Inlet averaging time [s]"
         },
-        "linletRA": {
+        "linletra": {
           "type": "boolean",
           "default": false,
           "description": "Switch for running average in inlet generator"
@@ -884,17 +923,17 @@
       "type": "object",
       "description": "Energy balance parameters",
       "properties": {
-        "lEB": {
+        "leb": {
           "type": "boolean",
           "default": false,
           "description": "Switch for energy balance"
         },
-        "lwriteEBfiles": {
+        "lwriteebfiles": {
           "type": "boolean",
           "default": false,
           "description": "Switch for writing energy balance files"
         },
-        "lperiodicEBcorr": {
+        "lperiodicebcorr": {
           "type": "boolean",
           "default": false,
           "description": "Switch for periodic energy balance correction"
@@ -904,22 +943,22 @@
           "default": 1,
           "description": "Sink base parameter"
         },
-        "lconstW": {
+        "lconstw": {
           "type": "boolean",
           "default": false,
           "description": "Switch for constant W"
         },
-        "dtEB": {
+        "dteb": {
           "type": "number",
           "default": 60.0,
           "description": "Energy balance time step [s]"
         },
-        "bldT": {
+        "bldt": {
           "type": "number",
           "default": 288.0,
           "description": "Building temperature [K]"
         },
-        "flrT": {
+        "flrt": {
           "type": "number",
           "default": 288.0,
           "description": "Floor temperature [K]"
@@ -944,12 +983,12 @@
           "default": 0.4,
           "description": "Field capacity moisture content [m3/m3]"
         },
-        "skyLW": {
+        "skylw": {
           "type": "number",
           "default": 400.0,
           "description": "Sky longwave radiation [W/m2]"
         },
-        "GRLAI": {
+        "grlai": {
           "type": "number",
           "default": 2.0,
           "description": "Grass leaf area index"
@@ -964,7 +1003,7 @@
           "default": 5,
           "description": "Number of facet layers"
         },
-        "lfacTlyrs": {
+        "lfactlyrs": {
           "type": "boolean",
           "default": false,
           "description": "Switch for facet temperature layers"
@@ -1013,6 +1052,7 @@
         "nsv": {
           "type": "integer",
           "minimum": 0,
+          "maximum": 100,
           "default": 0,
           "description": "Number of scalar variables"
         },
@@ -1177,12 +1217,12 @@
           "default": 0.1,
           "description": "Leaf area density [m2/m3]"
         },
-        "Qstar": {
+        "qstar": {
           "type": "number",
           "default": 0.0,
           "description": "Net radiation [W/m2]"
         },
-        "dQdt": {
+        "dqdt": {
           "type": "number",
           "default": 0.0,
           "description": "Time rate of change of net radiation [W/m2/s]"
@@ -1218,7 +1258,7 @@
           "default": 0,
           "description": "Number of purification units"
         },
-        "Qpu": {
+        "qpu": {
           "type": "number",
           "default": 0.0,
           "description": "Purification rate [m3/s]"
@@ -1249,12 +1289,12 @@
           "default": 0,
           "description": "Number of heat pump points"
         },
-        "Q_dot_hp": {
+        "q_dot_hp": {
           "type": "number",
           "default": 0.0,
           "description": "Heat pump cooling rate [W]"
         },
-        "QH_dot_hp": {
+        "qh_dot_hp": {
           "type": "number",
           "default": 0.0,
           "description": "Heat pump heating rate [W]"
@@ -1379,7 +1419,7 @@
           "default": 0,
           "description": "Specific humidity at z = 0 [kg/kg]"
         },
-        "facT": {
+        "fact": {
           "type": "number",
           "minimum": 0,
           "default": 288,

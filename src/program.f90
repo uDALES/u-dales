@@ -24,7 +24,7 @@ program DALESURBAN      !Version 48
 !!----------------------------------------------------------------
 !!     0.0    USE STATEMENTS FOR CORE MODULES
 !!----------------------------------------------------------------
-  use modmpi,            only : initmpi,exitmpi,myid,starttimer
+  use modmpi,            only : initmpi,exitmpi,myid,starttimer, stoptimer
   use modglobal,         only : initglobal,readgrid, rk3step,timeleft,runmode,TEST_JSON,TEST_IO
   use modstartup,        only : readconfig,init2decomp,checkinitvalues,readinitfiles,exitmodules
   use modfields,         only : initfields
@@ -251,8 +251,8 @@ program DALESURBAN      !Version 48
   call exitstatsdump     !tg3315
   call exit_heatpump
   call stats_exit
-  !call exitmodules
-  !call exittest
+
+  call stoptimer
   call exitmpi
 
 contains

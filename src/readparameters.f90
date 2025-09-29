@@ -1018,8 +1018,8 @@ contains
       call json%get('DRIVER.driverjobnr', temp_int, found)
       if (found) driverjobnr = temp_int
 
-      call json%get('DRIVER.driverstore', temp_logical, found)
-      if (found) driverstore = temp_logical
+      call json%get('DRIVER.driverstore', temp_int, found)
+      if (found) driverstore = temp_int
 
       call json%get('DRIVER.dtdriver', temp_real, found)
       if (found) dtdriver = temp_real
@@ -1694,7 +1694,7 @@ contains
 
    subroutine read_namsubgrid_json(json)
       !-----------------------------------------------------------------|
-      ! Read NAMSUBGRID namelist parameters from JSON
+      ! Read SUBGRID namelist parameters from JSON
       !-----------------------------------------------------------------|
       use modsubgrid, only: ldelta, lmason, cf, cn, Rigc, Prandtl, &
                                 lsmagorinsky, lvreman, loneeqn, c_vreman, &
@@ -1705,43 +1705,43 @@ contains
       logical :: temp_logical
       real :: temp_real
 
-      call json%get('NAMSUBGRID.ldelta', temp_logical, found)
+      call json%get('SUBGRID.ldelta', temp_logical, found)
       if (found) ldelta = temp_logical
 
-      call json%get('NAMSUBGRID.lmason', temp_logical, found)
+      call json%get('SUBGRID.lmason', temp_logical, found)
       if (found) lmason = temp_logical
 
-      call json%get('NAMSUBGRID.lsmagorinsky', temp_logical, found)
+      call json%get('SUBGRID.lsmagorinsky', temp_logical, found)
       if (found) lsmagorinsky = temp_logical
 
-      call json%get('NAMSUBGRID.lvreman', temp_logical, found)
+      call json%get('SUBGRID.lvreman', temp_logical, found)
       if (found) lvreman = temp_logical
 
-      call json%get('NAMSUBGRID.loneeqn', temp_logical, found)
+      call json%get('SUBGRID.loneeqn', temp_logical, found)
       if (found) loneeqn = temp_logical
 
-      call json%get('NAMSUBGRID.lbuoycorr', temp_logical, found)
+      call json%get('SUBGRID.lbuoycorr', temp_logical, found)
       if (found) lbuoycorr = temp_logical
 
-      call json%get('NAMSUBGRID.cf', temp_real, found)
+      call json%get('SUBGRID.cf', temp_real, found)
       if (found) cf = temp_real
 
-      call json%get('NAMSUBGRID.cn', temp_real, found)
+      call json%get('SUBGRID.cn', temp_real, found)
       if (found) cn = temp_real
 
-      call json%get('NAMSUBGRID.Rigc', temp_real, found)
+      call json%get('SUBGRID.Rigc', temp_real, found)
       if (found) Rigc = temp_real
 
-      call json%get('NAMSUBGRID.Prandtl', temp_real, found)
+      call json%get('SUBGRID.Prandtl', temp_real, found)
       if (found) Prandtl = temp_real
 
-      call json%get('NAMSUBGRID.c_vreman', temp_real, found)
+      call json%get('SUBGRID.c_vreman', temp_real, found)
       if (found) c_vreman = temp_real
 
-      call json%get('NAMSUBGRID.cs', temp_real, found)
+      call json%get('SUBGRID.cs', temp_real, found)
       if (found) cs = temp_real
 
-      call json%get('NAMSUBGRID.nmason', temp_real, found)
+      call json%get('SUBGRID.nmason', temp_real, found)
       if (found) nmason = temp_real
 
    end subroutine read_namsubgrid_json

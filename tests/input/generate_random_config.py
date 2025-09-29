@@ -94,13 +94,14 @@ def generate_random_config(schema_path):
         # Set domain size - make sure it's reasonable and positive
         config["DOMAIN"]["xlen"] = 100.0  # 100 meters
         config["DOMAIN"]["ylen"] = 100.0  # 100 meters
-        
-        # Set nprocx and nprocy to be different values from [2, 4]
-        # Both 2 and 4 divide 16, and both divide 32
-        proc_choices = [2, 4]
+
+        # Set nprocx and nprocy 
+        proc_choices = [1, 1]
         nprocx = random.choice(proc_choices)
-        nprocy = random.choice([p for p in proc_choices if p != nprocx])
-        
+        # choose a different value for nprocy; fallback to 1 if none
+        remaining = [p for p in proc_choices if p != nprocx]
+        nprocy = random.choice(remaining) if remaining else 1
+
         config["RUN"]["nprocx"] = nprocx
         config["RUN"]["nprocy"] = nprocy
     

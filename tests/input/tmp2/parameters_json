@@ -5,27 +5,27 @@
     "lstratstart": false,
     "startfile": "file_meUe0x.dat",
     "runtime": 0.985517,
-    "trestart": 56.939293,
     "dtmax": 65.95327,
+    "trestart": 56.939293,
     "ladaptive": false,
-    "courant": 1.315435,
-    "diffnr": 85.16944,
-    "author": "1CB69kcS",
-    "lrandomize": true,
     "irandom": 188,
     "randu": 5.705893,
     "randthl": 8.457812,
     "randqt": 30.882477,
     "krand": 792,
+    "courant": 1.315435,
+    "diffnr": 85.16944,
+    "author": "1CB69kcS",
     "libm": false,
     "lles": false,
     "lper2inout": false,
     "lwalldist": false,
     "lreadmean": false,
-    "ljson_input": true,
     "nprocx": 1,
     "nprocy": 1,
-    "runmode": 1001
+    "lrandomize": true,
+    "runmode": 1001,
+    "ljson_input": true
   },
   "DOMAIN": {
     "itot": 16,
@@ -42,10 +42,10 @@
   "PHYSICS": {
     "ps": 78.898411,
     "igrw_damp": 3,
-    "ltempeq": false,
-    "lbuoyancy": false,
     "lmoist": false,
     "lcoriol": false,
+    "lbuoyancy": false,
+    "ltempeq": false,
     "lprofforc": true,
     "ifixuinf": 122,
     "lvinf": false,
@@ -77,12 +77,7 @@
     "iadv_tke": 7,
     "iadv_thl": 1,
     "iadv_qt": 1,
-    "iadv_sv": 1
-  },
-  "CHEMISTRY": {
-    "lchem": true,
-    "k1": 33.587025,
-    "jno2": 955
+    "iadv_sv": "7, 70*1"
   },
   "BC": {
     "bcxm": 297,
@@ -115,20 +110,22 @@
     "thl_top": 43.69969,
     "qt_top": 74.935891,
     "qts": 54.348818,
+    "wsvsurfdum": 0.0,
+    "wsvtopdum": 0.0,
     "wtsurf": 12.726597,
     "wqsurf": 16.090215,
     "thls": 75.948393,
     "z0": 9.343284,
     "z0h": 68.662632,
     "bczp": 230,
-    "ds": 73.284386
+    "ds": 73.2844
   },
   "INLET": {
     "uinf": 12.543609,
     "vinf": 19.792521,
     "di": 70.343668,
     "dti": 49.243264,
-    "inletav": 93.721182,
+    "inletav": 93.0,
     "linletra": false,
     "lstoreplane": true,
     "lreadminl": true,
@@ -143,7 +140,7 @@
     "dtdriver": 30.827079,
     "driverstore": 565,
     "iplane": 755,
-    "iangledeg": 44.469594,
+    "iangledeg": 44.0,
     "lchunkread": false,
     "chunkread_size": 937
   },
@@ -171,7 +168,7 @@
     "prandtlturb": 98.213267,
     "fkar": 12.004236,
     "lwritefac": true,
-    "dtfac": 79.288644
+    "dtfac": 79.2886
   },
   "ENERGYBALANCE": {
     "leb": true,
@@ -193,7 +190,7 @@
     "lfactlyrs": true,
     "lvfsparse": false,
     "nnz": 69,
-    "fraction": 86.086908
+    "fraction": 86.0869
   },
   "SCALARS": {
     "lreadscal": true,
@@ -204,28 +201,33 @@
     "nscasrc": 581,
     "nscasrcl": 730
   },
+  "CHEMISTRY": {
+    "lchem": true,
+    "k1": 33.587025,
+    "jno2": 955
+  },
   "OUTPUT": {
     "lfielddump": false,
     "tfielddump": 23.728507,
     "fieldvars": "qLMoBmom",
-    "tsample": 87.110434,
-    "tstatsdump": 90.531794,
-    "tstatstart": 48.273833,
     "ltdump": true,
     "lydump": true,
     "lytdump": true,
     "lxydump": false,
     "lxytdump": true,
     "lmintdump": false,
-    "lkslicedump": true,
+    "ltkedump": false,
     "slicevars": "fRTzFn18",
+    "lkslicedump": true,
     "kslice": 302,
     "lislicedump": true,
     "islice": 548,
     "ljslicedump": true,
     "jslice": 274,
-    "tcheck": 57.384148,
-    "ltkedump": false
+    "tstatsdump": 90.531794,
+    "tsample": 87.110434,
+    "tstatstart": 48.273833,
+    "tcheck": 57.3841
   },
   "TREES": {
     "ltrees": true,
@@ -244,29 +246,14 @@
     "lpurif": true,
     "npurif": 232,
     "qpu": 80.733322,
-    "epu": 89.274064
+    "epu": 89.2741
   },
   "HEATPUMP": {
     "lheatpump": true,
     "lfan_hp": false,
     "nhppoints": 691,
-    "q_dot_hp": 13.192347,
-    "qh_dot_hp": 84.002751
-  },
-  "SUBGRID": {
-    "ldelta": false,
-    "lmason": true,
-    "cf": 6.096931,
-    "cn": 79.483376,
-    "rigc": 12.92601,
-    "prandtl": 87.085244,
-    "lsmagorinsky": false,
-    "lvreman": false,
-    "loneeqn": false,
-    "c_vreman": 72.146625,
-    "nmason": 85.514433,
-    "lbuoycorr": true,
-    "cs": 89.122089
+    "q_dot_hp": 0.0,
+    "qh_dot_hp": 0
   },
   "INFO": {
     "nprocsinl": 325,
@@ -276,11 +263,19 @@
     "wtop": 47.895639,
     "totalreadu": 924
   },
-  "INPS": {
-    "u0": 50.866743,
-    "v0": 25.96752,
-    "thl0": 57.071993,
-    "qt0": 26.05977,
-    "fact": 82.754273
+  "SUBGRID": {
+    "ldelta": false,
+    "lmason": true,
+    "cf": 6.096931,
+    "cn": 79.483376,
+    "rigc": 0.25,
+    "prandtl": 0.333,
+    "lsmagorinsky": false,
+    "lvreman": false,
+    "loneeqn": false,
+    "c_vreman": 72.146625,
+    "nmason": 85.514433,
+    "lbuoycorr": true,
+    "cs": 89.122089
   }
 }

@@ -76,64 +76,7 @@ contains
      myid = nrank
      nprocs = nproc
      write(cmyid,'(i3.3)') myid
-! ! Specify the # procs in each direction.
-! ! specifying a 0 means that MPI will try to find a useful # procs in
-! ! the corresponding  direction,
-!
-! ! specifying 1 means only 1 processor in this direction, meaning that
-! ! we have in fact a grid of (at most) 2 dimensions left. This is used
-! ! when we want the array index range in 1 particular direction to be
-! ! present on all processors in the grid
-!
-!     dims(1) = 0
-!
-!
-! ! directions 1 and 2 are chosen periodic
-!
-!
-!     periods(1) = .true.
-! ! Soares 20080115
-!     periods2(1) = 1
-!
-! ! find suitable # procs in each direction
-!
-!     call MPI_DIMS_CREATE( nprocs, 1, dims, mpierr )
-!
-! ! create the Cartesian communicator, denoted by the integer comm3d
-!
-!     ! BUG - Thijs, Harm
-!     !call MPI_CART_CREATE(MPI_COMM_WORLD, 1, dims, periods,.false., &
-!     !                    comm3d, ierr )
-!
-!     call MPI_CART_CREATE(MPI_COMM_WORLD, 1, dims, periods,.true., &
-!                         comm3d, mpierr )
-!
-! ! Soares 20080115
-! !     call MPI_CART_CREATE(MPI_COMM_WORLD, 1, dims, periods2,1, &
-! !                         comm3d, mpierr )
-!
-! ! Get my processor number in this communicator
-!
-!     call MPI_COMM_RANK( comm3d, myid, mpierr )
-!
-!
-! ! when applying boundary conditions, we need to know which processors
-! ! are neighbours in all 3 directions
-!
-!
-! ! these are determined with the aid of the MPI routine MPI_CART_SHIFT,
-!
-!     call MPI_CART_SHIFT( comm3d, 0,  1, nbrbottom, nbrtop,   mpierr )
-!
-! ! determine some useful MPI datatypes for sending/receiving data
-!
-!      write(cmyid,'(i3.3)') myid
-!
-     ! if(myid==0)then
-     !   CPU_program0 = MPI_Wtime()
-     ! end if
-!
-!     write(*,*)'nprocs = ', nprocs
+
   end subroutine initmpi
 
   subroutine starttimer
@@ -144,18 +87,20 @@ contains
 
   end subroutine starttimer
 
+  subroutine stoptimer
+  if(myid==0)then
+      CPU_program = MPI_Wtime() - CPU_program0
+      write(6,*)'TOTAL CPU time = ', CPU_program
+    end if
+  end subroutine stoptimer
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   subroutine exitmpi
     use decomp_2d
     implicit none
 
-    if(myid==0)then
-      CPU_program = MPI_Wtime() - CPU_program0
-      write(6,*)'TOTAL CPU time = ', CPU_program
-    end if
-
-    !call MPI_Comm_free( comm3d, mpierr )
+  !call MPI_Comm_free( comm3d, mpierr )
     !call MPI_FINALIZE(mpierr)
     call decomp_2d_finalize
     call MPI_FINALIZE(mpierr)
