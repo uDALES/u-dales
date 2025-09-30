@@ -276,6 +276,12 @@
           "default": 0,
           "description": "Switch for fixing u-velocity at infinity"
         },
+        "iinletgen": {
+          "type": "integer",
+          "enum": [0,1,2],
+          "default": 0,
+          "description": "Inlet generator option: 0=no inlet generator, 1=Lund (1998) turbulent inlet generator, 2=read inlet from file"
+        },
         "lvinf": {
           "type": "boolean",
           "default": false,
@@ -479,83 +485,99 @@
       "properties": {
         "bcxm": {
           "type": "integer",
+          "enum": [1,2,3],
           "default": 1,
-          "description": "Boundary condition for momentum in x-direction (west)"
+          "description": "Momentum BC in x-direction: 1=periodic, 2=profile (inlet profile), 3=driver (use inlet driver)"
         },
         "bcxt": {
           "type": "integer",
+          "enum": [1,2,3],
           "default": 1,
-          "description": "Boundary condition for temperature in x-direction (west)"
+          "description": "Temperature BC in x-direction: 1=periodic, 2=profile, 3=driver"
         },
         "bcxq": {
           "type": "integer",
+          "enum": [1,2,3],
           "default": 1,
-          "description": "Boundary condition for moisture in x-direction (west)"
+          "description": "Moisture BC in x-direction: 1=periodic, 2=profile, 3=driver"
         },
         "bcxs": {
           "type": "integer",
+          "enum": [1,2,3,4],
           "default": 1,
-          "description": "Boundary condition for scalars in x-direction (west)"
+          "description": "Scalars BC in x-direction: 1=periodic, 2=profile, 3=driver, 4=custom"
         },
         "bcym": {
           "type": "integer",
+          "enum": [1,2],
           "default": 1,
-          "description": "Boundary condition for momentum in y-direction (south)"
+          "description": "Momentum BC in y-direction: 1=periodic, 2=profile"
         },
         "bcyt": {
           "type": "integer",
+          "enum": [1,2],
           "default": 1,
-          "description": "Boundary condition for temperature in y-direction (south)"
+          "description": "Temperature BC in y-direction: 1=periodic, 2=profile"
         },
         "bcyq": {
           "type": "integer",
+          "enum": [1,2],
           "default": 1,
-          "description": "Boundary condition for moisture in y-direction (south)"
+          "description": "Moisture BC in y-direction: 1=periodic, 2=profile"
         },
         "bcys": {
           "type": "integer",
+          "enum": [1,2],
           "default": 1,
-          "description": "Boundary condition for scalars in y-direction (south)"
+          "description": "Scalars BC in y-direction: 1=periodic, 2=profile"
         },
         "bctopm": {
           "type": "integer",
-          "default": 2,
-          "description": "Boundary condition for momentum at top"
+          "enum": [1,2,3],
+          "default": 1,
+          "description": "Momentum BC at top: 1=freeslip (zero flux), 2=noslip (fixed velocity), 3=pressure-driven vertical velocity"
         },
         "bctopt": {
           "type": "integer",
-          "default": 2,
-          "description": "Boundary condition for temperature at top"
+          "enum": [1,2],
+          "default": 1,
+          "description": "Temperature BC at top: 1=flux (determined by wttop), 2=value (fixed thl_top)"
         },
         "bctopq": {
           "type": "integer",
-          "default": 2,
-          "description": "Boundary condition for moisture at top"
+          "enum": [1,2],
+          "default": 1,
+          "description": "Moisture BC at top: 1=flux (determined by wqtop), 2=value (fixed qt_top)"
         },
         "bctops": {
           "type": "integer",
-          "default": 2,
-          "description": "Boundary condition for scalars at top"
+          "enum": [1,2],
+          "default": 1,
+          "description": "Scalars BC at top: 1=flux (determined by wstop), 2=value (fixed sv_top)"
         },
         "bcbotm": {
           "type": "integer",
-          "default": 1,
-          "description": "Boundary condition for momentum at bottom"
+          "enum": [1,2,3],
+          "default": 2,
+          "description": "Momentum BC at bottom: 1=freeslip (do nothing), 2=wall function, 3=wall function (neutral)"
         },
         "bcbott": {
           "type": "integer",
+          "enum": [1,2],
           "default": 1,
-          "description": "Boundary condition for temperature at bottom"
+          "description": "Temperature BC at bottom: 1=flux (determined by wtsurf), 2=wall function"
         },
         "bcbotq": {
           "type": "integer",
+          "enum": [1],
           "default": 1,
-          "description": "Boundary condition for moisture at bottom"
+          "description": "Moisture BC at bottom: 1=flux (determined by wtsurf)"
         },
         "bcbots": {
           "type": "integer",
+          "enum": [1],
           "default": 1,
-          "description": "Boundary condition for scalars at bottom"
+          "description": "Scalars BC at bottom: 1=flux (zero flux)"
         },
         "bctfxm": {
           "type": "number",
@@ -672,8 +694,12 @@
         },
         "bczp": {
           "type": "integer",
+          "enum": [
+            1,
+            2
+          ],
           "default": 1,
-          "description": "Boundary condition for pressure in z-direction"
+          "description": "Pressure/Poisson option (legacy BCzp): 1=solve Poisson using GE, 2=solve using cosine transform"
         },
         "ds": {
           "type": "number",
@@ -749,8 +775,9 @@
       "properties": {
         "idriver": {
           "type": "integer",
+          "enum": [0,1,2],
           "default": 0,
-          "description": "Switch for driver inlet simulation"
+          "description": "Driver mode: 0=disabled, 1=save inlet driver data, 2=read inlet driver data from file"
         },
         "tdriverstart": {
           "type": "number",
@@ -810,23 +837,27 @@
         },
         "iwallmom": {
           "type": "integer",
+          "enum": [1,2,3],
           "default": 1,
-          "description": "Wall treatment for momentum (1=no wall function, 2=werner-wengle, 3=uno)"
+          "description": "Wall treatment for momentum: 1=no wall function, 2=werner-wengle wall function, 3=uno method"
         },
         "iwalltemp": {
           "type": "integer",
+          "enum": [1,2,3],
           "default": 1,
-          "description": "Wall treatment for temperature (1=no wall function/fixed flux, 2=no wall function/fixed value, 3=uno)"
+          "description": "Wall treatment for temperature: 1=no wall function (fixed flux), 2=no wall function (fixed value), 3=uno method"
         },
         "iwallmoist": {
           "type": "integer",
+          "enum": [1,2,3],
           "default": 1,
-          "description": "Wall treatment for moisture (1=no wall function/fixed flux, 2=no wall function/fixed value, 3=uno)"
+          "description": "Wall treatment for moisture: 1=no wall function (fixed flux), 2=no wall function (fixed value), 3=uno method"
         },
         "iwallscal": {
           "type": "integer",
+          "enum": [1,2,3],
           "default": 1,
-          "description": "Wall treatment for scalars"
+          "description": "Wall treatment for scalars (1=default/no wall function, other values may indicate alternative treatments)"
         },
         "nsolpts_u": {
           "type": "integer",
