@@ -49,6 +49,8 @@ program DALESURBAN      !Version 48
   use modstat_nc,      only : initstat_nc
   use modfielddump,    only : initfielddump,fielddump,exitfielddump
   use modstatsdump,    only : initstatsdump,statsdump,exitstatsdump    !tg3315
+  use stats,           only : stats_init,stats_main,stats_exit !DMajumdar
+  use instant_slice,   only : instant_init,instant_main !DMajumdar
   use modtimedep,      only : inittimedep,timedep
   implicit none
 
@@ -100,6 +102,8 @@ program DALESURBAN      !Version 48
   call initstat_nc ! Could be deprecated
 
   call initstatsdump
+  call stats_init
+  call instant_init
 
   call initEB
 
@@ -195,6 +199,8 @@ program DALESURBAN      !Version 48
     call fielddump
 
     call statsdump
+    call stats_main
+    call instant_main
 
     call boundary
 
@@ -222,6 +228,7 @@ program DALESURBAN      !Version 48
   call exitfielddump
   call exitstatsdump     !tg3315
   call exit_heatpump
+  call stats_exit
   !call exitmodules
   !call exittest
   call exitmpi

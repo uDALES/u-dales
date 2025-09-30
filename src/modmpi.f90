@@ -55,6 +55,11 @@ save
   character(3) :: cmyidx
   character(3) :: cmyidy
 
+  interface spatial_avg
+    module procedure spatial_avg_xy
+    module procedure spatial_avg_y
+  end interface spatial_avg
+
 contains
   subroutine initmpi
     use decomp_2d, only : nrank, nproc
@@ -705,6 +710,78 @@ subroutine excjs(a,sx,ex,sy,ey,sz,ez,ih,jh)
   endwhere
 
   end subroutine avey_ibm
+
+  
+  subroutine spatial_avg_xy(aver,var,kb,ke,II,IIs,lnan)
+    implicit none
+
+    real   , intent(out) :: aver(:)
+    real   , intent(in)  :: var(:,:,:)
+    integer, intent(in)  :: kb, ke
+    integer, intent(in)  :: II(:,:,:)
+    integer, intent(in)  :: IIs(:)
+    logical, intent(in)  :: lnan
+
+    integer, allocatable :: IId(:)
+    real,    allocatable :: averl(:)
+    real,    allocatable :: avers(:)
+    integer :: k, nk
+    
+    nk = size(aver)
+
+    allocate(averl(kb:nk), avers(kb:nk), IId(kb:nk))
+    averl = 0.
+    avers = 0.
+    IId   = IIs
+
+    do k = kb, nk
+      averl(k) = sum(var(:,:,k)*II(:,:,k))
+    enddo
+
+    ! tg3315 22.03.19 - if not calculating stats and all blocks on lowest layer...
+    ! should not be necessary but value at kb is used in modthermo so reasonable value must
+    ! be assigned. Potentially should leave as before and only account for in modthermo...
+    if ((.not. lnan) .and. (IId(kb)==0)) then
+      averl(kb) = sum(var(:,:,kb))
+      IId(kb) = IId(ke)
+    end if
+
+    call MPI_ALLREDUCE(averl, avers, nk, MY_REAL, MPI_SUM, comm3d, mpierr)
+
+    where (IId==0)
+      aver = -999.
+    elsewhere
+      aver = avers/IId
+    endwhere
+
+    deallocate(averl, avers, IId)
+  end subroutine spatial_avg_xy
+
+  subroutine spatial_avg_y(aver,var,II,IIt)
+    implicit none
+    real,    intent(out) :: aver(:,:)
+    real,    intent(in)  :: var(:,:,:)
+    integer, intent(in)  :: II(:,:,:)
+    integer, intent(in)  :: IIt(:,:)
+    real, allocatable    :: avero(:,:)
+  
+    allocate(avero(size(aver,1), size(aver,2)))
+    avero = 0.
+    aver  = 0.
+  
+    avero = sum(var*II, DIM=2)
+  
+    call MPI_ALLREDUCE(avero, aver, size(aver), MY_REAL, MPI_SUM, comm3d, mpierr)
+  
+    where (IIt==0)
+      aver = -999.
+    elsewhere
+      aver = aver/IIt
+    endwhere
+
+    deallocate(avero)
+  end subroutine spatial_avg_y
+
 
   subroutine sumy_ibm(sumy,var,ib,ie,jb,je,kb,ke,II)
     ! This routine sums up a variable over the y direction,
