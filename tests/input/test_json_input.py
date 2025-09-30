@@ -9,6 +9,7 @@ import subprocess
 import sys
 import os
 import argparse
+import tempfile
 from pathlib import Path
 import re
 from types import SimpleNamespace
@@ -180,33 +181,14 @@ def main(argv=None):
     if random_input.exists():
         inputs_to_run.append((random_input, 'random'))
 
-    # Use a persistent tmp2 directory inside tests/input so test artifacts
-    # remain available for inspection during debugging.
-    workdir = input_dir / 'tmp2'
+    # Use an ephemeral TemporaryDirectory for the workdir so it is removed
+    # automatically when this script exits. This avoids leaving stale debug
+    # artifacts behind. If you need persistent tmp2, set UD_TOPDIR and the
+    # script will continue to use tests/input/tmp2 as before.
+    tempdir = tempfile.TemporaryDirectory(prefix='udales-tmp2-')
+    workdir = Path(tempdir.name)
     # If comparator-only and args.generated points into workdir, remember to preserve it
     gen_spec = Path(args.generated).resolve() if comparator_only and args.generated else None
-
-    # Ensure tmp2 exists and clean it, but preserve provided generated JSON if present
-    if workdir.exists():
-        for p in workdir.iterdir():
-            try:
-                # If comparator-only and a generated path was provided and it's inside workdir,
-                # skip deleting that specific file.
-                if gen_spec is not None:
-                    try:
-                        if p.resolve() == gen_spec:
-                            continue
-                    except Exception:
-                        pass
-
-                if p.is_file() or p.is_symlink():
-                    p.unlink()
-                elif p.is_dir():
-                    shutil.rmtree(p)
-            except Exception:
-                pass
-    else:
-        workdir.mkdir(parents=True)
 
     # Load schema once
     with open(schema_path, 'r') as f:
@@ -291,13 +273,13 @@ def main(argv=None):
             alt = repo_root / 'tests' / 'input' / 'attic' / 'diff_generated.py'
             if alt.exists():
                 diff_generated = alt
-        # Use a per-test no-extension filename in tmp2 per request
-        diff_out_work = workdir / f'parameters_diff_{tag}'
-        # Persistent last diff artifact (no .txt) include tag
-        last_diff_repo = input_dir / f'last_parameters_diff_{tag}'
+
+        # Prepare containers in case comparator fails to set them
+        mismatches = []
+        missing_defaults = []
 
         # Run comparator in-process to keep this test self-contained
-        print('Running in-process comparator for', tag)
+        # print('Running in-process comparator for', tag)
         proc_cmp = SimpleNamespace(returncode=0, stdout='', stderr='')
         try:
             if not generated_json_path.exists():
@@ -320,13 +302,8 @@ def main(argv=None):
                     out_lines.append(f'{sec}.{name} found: {found!r}')
 
                 out_text = '\n'.join(out_lines) + '\n'
-                try:
-                    diff_out_work.write_text(out_text)
-                    proc_cmp.stdout = f'Wrote diff report to: {diff_out_work}'
-                except Exception as e:
-                    proc_cmp.returncode = 2
-                    proc_cmp.stderr = f'ERROR: could not write diff file: {e}'
-
+                # Do not write textual diff file; generate Markdown directly from mismatches/missing_defaults
+                proc_cmp.stdout = 'Generated in-memory diff report'
                 if mismatches or missing_defaults:
                     proc_cmp.returncode = 1
         except Exception as e:
@@ -340,76 +317,33 @@ def main(argv=None):
         if proc_cmp.returncode != 0:
             print('Comparator found differences or failed for', tag, '; return code:', proc_cmp.returncode)
 
-        # Inline the small table-generation logic from diff_to_table.py so we avoid a temporary .txt file.
-        # Read the textual diff produced in tmp2 and write CSV/Markdown outputs into repo tests/input and workdir.
-        out_csv = input_dir / f'parameters_diff_table_{tag}.csv'
-        out_md_repo = input_dir / f'parameters_diff_table_{tag}.md'
-        out_md_work = workdir / f'parameters_diff_table_{tag}.md'
-
-        if diff_out_work.exists():
-            try:
-                lines = diff_out_work.read_text().splitlines()
-                rows = []
-
-                # Patterns: capture source (input or default) so we can show input_value separately
-                mismatch_re = re.compile(r"^([A-Za-z0-9_]+\.[A-Za-z0-9_]+) \((default|input)\) expected: (.+?)  found: (.+)$")
-                missing_re = re.compile(r"^([A-Za-z0-9_]+\.[A-Za-z0-9_]+) found: (.+)$")
-
-                for ln in lines:
-                    ln = ln.strip()
-                    if not ln:
-                        continue
-                    m = mismatch_re.match(ln)
-                    if m:
-                        var = m.group(1)
-                        source = m.group(2)
-                        expected = m.group(3).strip()
-                        found = m.group(4).strip()
-                        section, varname = var.split('.')
-                        key = f"{section.upper()}.{varname.lower()}"
-                        if source == 'input':
-                            # expected holds the input value; schema_value empty
-                            rows.append((key, found, expected, ''))
-                        else:
-                            # source == 'default': expected holds schema default; input_value empty
-                            rows.append((key, found, '', expected))
-                        continue
-                    m2 = missing_re.match(ln)
-                    if m2 and not ln.startswith('Missing defaults') and not ln.startswith('Mismatches'):
-                        var = m2.group(1)
-                        found = m2.group(2).strip()
-                        section, varname = var.split('.')
-                        key = f"{section.upper()}.{varname.lower()}"
-                        # no input value and no schema default
-                        rows.append((key, found, '', ''))
-
-                # Merge CSV/MD generation: only write Markdown (no CSV)
-                try:
-                    with out_md_repo.open('w') as f:
-                        f.write('| variable | namoptions_value | input_value | schema_value |\n')
-                        f.write('|---|---:|---:|---:|\n')
-                        for var, found, input_val, schema_val in rows:
-                            f.write(f'| {var} | {found} | {input_val} | {schema_val} |\n')
-                    # copy to workdir
-                    try:
-                        shutil.copy2(out_md_repo, out_md_work)
-                    except Exception:
-                        # fallback: write directly
-                        with out_md_work.open('w') as f2:
-                            f2.write(out_md_repo.read_text())
-                except Exception as e:
-                    print('Warning: could not write Markdown:', e)
-            except Exception as e:
-                print('Warning: could not generate table from diff:', e)
-        else:
-            print('Warning: comparator output not found for', tag, 'skipping table generation')
-            print('Checked for:', diff_out_work)
-
-        # Also copy the textual diff (no extension) to a last_* artifact in the repo input dir for CI
+        # Generate Markdown directly from mismatches and missing_defaults (no textual diff file)
+        out_md_repo = input_dir / f'test_json_{tag}.md'
+        out_md_work = workdir / f'test_json_{tag}.md'
         try:
-            shutil.copy2(diff_out_work, last_diff_repo)
-        except Exception:
-            pass
+            rows = []
+            for sec, name, source, expected, found in mismatches:
+                key = f"{sec.upper()}.{name.lower()}"
+                if source == 'input':
+                    rows.append((key, found, expected, ''))
+                else:
+                    rows.append((key, found, '', expected))
+            for sec, name, found in missing_defaults:
+                key = f"{sec.upper()}.{name.lower()}"
+                rows.append((key, found, '', ''))
+
+            with out_md_repo.open('w') as f:
+                    f.write('| variable | input_value | namoptions_value | schema_value |\n')
+                    f.write('|---|---:|---:|---:|\n')
+                    for var, found, input_val, schema_val in rows:
+                        f.write(f'| {var} | {input_val} | {found} | {schema_val} |\n')
+            try:
+                shutil.copy2(out_md_repo, out_md_work)
+            except Exception:
+                with out_md_work.open('w') as f2:
+                    f2.write(out_md_repo.read_text())
+        except Exception as e:
+            print('Warning: could not write Markdown:', e)
 
         # Accumulate return code (non-zero indicates a failure/diff)
         if proc_cmp.returncode != 0:
@@ -421,7 +355,6 @@ def main(argv=None):
 
     print('PASS: generated JSON matches input values and schema defaults for all tests')
     return 0
-
 
 if __name__ == '__main__':
     sys.exit(main())

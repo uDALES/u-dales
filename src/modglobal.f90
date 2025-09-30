@@ -552,9 +552,9 @@ contains
       !where (iadv_sv<0)  iadv_sv  = iadv_mom
 
       !tg3315 added - only uses kappa advection scheme...
-      do n = 1, nsv
-         iadv_sv(n) = iadv_kappa
-      end do
+!      do n = 1, nsv
+!         iadv_sv(n) = iadv_kappa
+!      end do
       !ends here
 
       !timestepping

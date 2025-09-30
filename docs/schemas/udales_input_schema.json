@@ -129,11 +129,6 @@
           "default": false,
           "description": "Switch for reading mean variables from means files"
         },
-        "ljson_input": {
-          "type": "boolean",
-          "default": true,
-          "description": "Indicates input is provided in JSON format"
-        },
         "nprocx": {
           "type": "integer",
           "minimum": 1,

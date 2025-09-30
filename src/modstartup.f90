@@ -65,6 +65,20 @@ module modstartup
 contains
 
    subroutine readconfig
+      character(len=256) :: arg0
+
+      ! if input argument is namoptions.XXX then set ljson_input = .false.
+      if (myid == 0) then
+         if (command_argument_count() >= 1) then
+            call get_command_argument(1, arg0)
+            if (index(arg0, 'namoptions') > 0) then
+               ljson_input = .false.
+            elseif (index(arg0, 'parameters') > 0) then
+               ljson_input = .true.
+            end if
+         end if
+      end if
+
       ! read the input parameters and broadcast them to all processes
       if (ljson_input) then 
          call readjsonconfig
@@ -397,6 +411,11 @@ contains
           write(*, *) "Error: constant y outflow only possible for nprocy = 1."
           stop 1
        end if
+       
+       if (any(iadv_sv(1:nsv) == -1)) then
+         write(0, *) 'ERROR: iadv_sv contains -1, which is invalid. Please check your configuration.'
+         stop 1
+      end if
 
    end subroutine checkinitvalues
 

@@ -75,7 +75,7 @@ use mpi
       lper2inout, lwalldist, &
       lreadmean, &
       nprocx, nprocy, &
-      lrandomize, runmode, ljson_input
+      lrandomize, runmode
    namelist/DOMAIN/ &
       itot, jtot, ktot, xlen, ylen, &
       xlat, xlon, xday, xtime, ksp
@@ -355,9 +355,8 @@ contains
       write(iunit, nml=HEATPUMP)
       write(iunit, nml=INFO)
       write(iunit, nml=NAMSUBGRID)
-      
       close(iunit)   
-    end subroutine writenamelists
+     end subroutine writenamelists
 
    subroutine readjsonconfig
 
@@ -394,6 +393,7 @@ contains
          call read_run_json(json)
          call read_domain_json(json)
          call read_physics_json(json)
+         call read_scalars_json(json)
          call read_dynamics_json(json)
          call read_bc_json(json)
          call read_driver_json(json)
@@ -430,6 +430,7 @@ contains
       call broadcast_run_parameters()
       call broadcast_domain_parameters()
       call broadcast_physics_parameters()
+      call broadcast_scalars_parameters()
       call broadcast_dynamics_parameters()
       call broadcast_bc_parameters()
       call broadcast_driver_parameters()
@@ -438,17 +439,11 @@ contains
       call broadcast_inlet_parameters()
       call broadcast_output_parameters()
       call broadcast_purifs_parameters()
-      call broadcast_scalars_parameters()
       call broadcast_chemistry_parameters()
       call broadcast_trees_parameters()
       call broadcast_walls_parameters()
       call broadcast_info_parameters()
-      !call broadcast_namchecksim_parameters()
-      !call broadcast_namstatsdump_parameters()
       call broadcast_namsubgrid_parameters()
-      
-      ! Legacy broadcasts for remaining parameters (to be modularized)
-      ! TODO: Modularize remaining namelist broadcasts
       
    end subroutine broadcast_config_parameters
 
@@ -463,7 +458,9 @@ contains
       type(json_file), intent(inout) :: json
       logical :: found
       integer :: temp_int
-      real :: temp_real
+   real :: temp_real
+   real, allocatable :: temp_real_arr(:)
+   integer :: n, m
       logical :: temp_logical
       character(kind=CK,len=:), allocatable :: temp_string
 
@@ -553,10 +550,6 @@ contains
       call json%get('RUN.runmode', temp_int, found)
       if (found) runmode = temp_int
 
-      call json%get('RUN.ljson_input', temp_logical, found)
-      if (found) ljson_input = temp_logical
-
-
    end subroutine read_run_json
 
    subroutine broadcast_run_parameters()
@@ -588,7 +581,6 @@ contains
       call MPI_BCAST(nprocy, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(lrandomize, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(runmode, 1, MPI_INTEGER, 0, comm3d, mpierr)
-      call MPI_BCAST(ljson_input, 1, MPI_LOGICAL, 0, comm3d, mpierr)
    end subroutine broadcast_run_parameters
 
    subroutine read_domain_json(json)
@@ -790,7 +782,9 @@ contains
       type(json_file), intent(inout) :: json
       logical :: found
       integer :: temp_int
+      integer, allocatable :: temp_int_arr(:)
       logical :: temp_logical
+      integer :: len_i, ncopi
 
       call json%get('DYNAMICS.iadv_mom', temp_int, found)
       if (found) iadv_mom = temp_int
@@ -801,11 +795,23 @@ contains
       call json%get('DYNAMICS.iadv_thl', temp_int, found)
       if (found) iadv_thl = temp_int
 
-      call json%get('DYNAMICS.iadv_qt', temp_int, found)
+         call json%get('DYNAMICS.iadv_qt', temp_int, found)
       if (found) iadv_qt = temp_int
-      
-      call json%get('DYNAMICS.iadv_sv', temp_int, found)
-      if (found) iadv_sv = temp_int
+
+      call json%get('DYNAMICS.iadv_sv', temp_int_arr, found)
+      if (found .and. allocated(temp_int_arr)) then
+         len_i = size(temp_int_arr)
+         ncopi = min(len_i, max(0, nsv))
+         if (ncopi > 0) then
+            iadv_sv(1:ncopi) = temp_int_arr(1:ncopi)
+         end if
+      else
+         ! Not an array: try scalar int (fill all nsv entries)
+         call json%get('DYNAMICS.iadv_sv', temp_int, found)
+         if (found) then
+            if (nsv > 0) iadv_sv(1) = temp_int
+         end if
+      end if
 
       call json%get('DYNAMICS.ipoiss', temp_int, found)
       if (found) ipoiss = temp_int
@@ -824,7 +830,7 @@ contains
       call MPI_BCAST(iadv_tke, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(iadv_thl, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(iadv_qt, 1, MPI_INTEGER, 0, comm3d, mpierr)
-      call MPI_BCAST(iadv_sv, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(iadv_sv, size(iadv_sv), MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(ipoiss, 1, MPI_INTEGER, 0, comm3d, mpierr)
    end subroutine broadcast_dynamics_parameters
 
@@ -836,8 +842,11 @@ contains
       logical :: found
       integer :: temp_int
       real :: temp_real
+      real, allocatable :: temp_real_arr(:)
       logical :: temp_logical
-
+      integer :: n
+      integer :: len_tmp, ncop, len_tmp2, ncop2
+   
       call json%get('BC.bcbotm', temp_int, found)
       if (found) bcbotm = temp_int
 
@@ -949,11 +958,28 @@ contains
       call json%get('BC.z0h', temp_real, found)
       if (found) z0h = temp_real
       
-      call json%get('BC.wsvsurfdum', temp_real, found)
-      if (found) wsvsurfdum = temp_real
+      call json%get('BC.wsvsurfdum', temp_real_arr, found)
+      if (found) then
+         if (allocated(temp_real_arr)) then
+            ! Copy only as many entries as available and as many as nsv
+            len_tmp = size(temp_real_arr)
+            ncop = min(len_tmp, max(0, nsv))
+            if (ncop > 0) then
+               wsvsurfdum(1:ncop) = temp_real_arr(1:ncop)
+            end if
+         end if
+      end if
 
-      call json%get('BC.wsvtopdum', temp_real, found)
-      if (found) wsvtopdum = temp_real
+      call json%get('BC.wsvtopdum', temp_real_arr, found)
+      if (found) then
+         if (allocated(temp_real_arr)) then
+            len_tmp2 = size(temp_real_arr)
+            ncop2 = min(len_tmp2, max(0, nsv))
+            if (ncop2 > 0) then
+               wsvtopdum(1:ncop2) = temp_real_arr(1:ncop2)
+            end if
+         end if
+      end if
 
    end subroutine read_bc_json
 
@@ -994,8 +1020,8 @@ contains
       call MPI_BCAST(thl_top, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(thls, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(wqsurf, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(wsvsurfdum, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(wsvtopdum, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(wsvsurfdum, size(wsvsurfdum), MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(wsvtopdum, size(wsvtopdum), MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(wtsurf, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(wttop, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(z0, 1, MY_REAL, 0, comm3d, mpierr)
@@ -1024,8 +1050,8 @@ contains
       call json%get('DRIVER.dtdriver', temp_real, found)
       if (found) dtdriver = temp_real
       
-      call json%get('DRIVER.iangledeg', temp_int, found)
-      if (found) iangledeg = temp_int
+      call json%get('DRIVER.iangledeg', temp_real, found)
+      if (found) iangledeg = temp_real
 
       call json%get('DRIVER.idriver', temp_int, found)
       if (found) idriver = temp_int
@@ -1050,7 +1076,7 @@ contains
       call MPI_BCAST(driverjobnr, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(driverstore, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(dtdriver, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(iangledeg, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(iangledeg, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(iplane, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(lchunkread, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(tdriverstart, 1, MY_REAL, 0, comm3d, mpierr)
@@ -1174,11 +1200,11 @@ contains
       call json%get('HEATPUMP.nhppoints', temp_int, found)
       if (found) nhppoints = temp_int
 
-      call json%get('HEATPUMP.Q_dot_hp', temp_real, found)
-      if (found) Q_dot_hp = temp_real
+      call json%get('HEATPUMP.q_dot_hp', temp_real, found)
+      if (found) q_dot_hp = temp_real
       
-      call json%get('HEATPUMP.QH_dot_hp', temp_real, found)
-      if (found) QH_dot_hp = temp_real
+      call json%get('HEATPUMP.qh_dot_hp', temp_real, found)
+      if (found) qh_dot_hp = temp_real
 
    end subroutine read_heatpump_json
 
@@ -1209,8 +1235,8 @@ contains
       call json%get('INLET.dti', temp_real, found)
       if (found) dti = temp_real
       
-      call json%get('INLET.inletav', temp_int, found)
-      if (found) inletav = temp_int
+      call json%get('INLET.inletav', temp_real, found)
+      if (found) inletav = temp_real
 
       call json%get('INLET.lfixinlet', temp_logical, found)
       if (found) lfixinlet = temp_logical
@@ -1696,7 +1722,7 @@ contains
       !-----------------------------------------------------------------|
       ! Read SUBGRID namelist parameters from JSON
       !-----------------------------------------------------------------|
-      use modsubgrid, only: ldelta, lmason, cf, cn, Rigc, Prandtl, &
+      use modsubgrid, only: ldelta, lmason, cf, cn, rigc, prandtl, &
                                 lsmagorinsky, lvreman, loneeqn, c_vreman, &
                                 cs, nmason, lbuoycorr 
 
@@ -1729,10 +1755,10 @@ contains
       call json%get('SUBGRID.cn', temp_real, found)
       if (found) cn = temp_real
 
-      call json%get('SUBGRID.Rigc', temp_real, found)
+      call json%get('SUBGRID.rigc', temp_real, found)
       if (found) Rigc = temp_real
 
-      call json%get('SUBGRID.Prandtl', temp_real, found)
+      call json%get('SUBGRID.prandtl', temp_real, found)
       if (found) Prandtl = temp_real
 
       call json%get('SUBGRID.c_vreman', temp_real, found)

@@ -80,30 +80,31 @@ def generate_random_config(schema_path):
                 if random_value is not None:
                     config[section_name][param_name] = random_value
     
-    # Ensure runmode is set to 1001 for testing
-    if "RUN" in config:
-        config["RUN"]["runmode"] = 1001
-    
-    # Ensure required parameters are present and make sense
-    if "RUN" in config and "DOMAIN" in config:
-        # Set fixed domain dimensions
-        config["DOMAIN"]["itot"] = 16
-        config["DOMAIN"]["jtot"] = 16  
-        config["DOMAIN"]["ktot"] = 32
+    # Ensure a RUN section exists and set runmode for testing
+    config["RUN"]["runmode"] = 1001
+
+    # Set default processor counts (tests assume single-proc by default)
+    config["RUN"]["nprocx"] = 1
+    config["RUN"]["nprocy"] = 1
+
+    # Always set number of scalar variables (nsv) to 3 for tests
+    nsv = 3
+    config["SCALARS"]["nsv"] = nsv
+   
+    # Set fixed domain dimensions
+    config["DOMAIN"]["itot"] = 16
+    config["DOMAIN"]["jtot"] = 16  
+    config["DOMAIN"]["ktot"] = 32
         
-        # Set domain size - make sure it's reasonable and positive
-        config["DOMAIN"]["xlen"] = 100.0  # 100 meters
-        config["DOMAIN"]["ylen"] = 100.0  # 100 meters
+    # Set domain size - make sure it's reasonable and positive
+    config["DOMAIN"]["xlen"] = 100.0  # 100 meters
+    config["DOMAIN"]["ylen"] = 100.0  # 100 meters
 
-        # Set nprocx and nprocy 
-        proc_choices = [1, 1]
-        nprocx = random.choice(proc_choices)
-        # choose a different value for nprocy; fallback to 1 if none
-        remaining = [p for p in proc_choices if p != nprocx]
-        nprocy = random.choice(remaining) if remaining else 1
-
-        config["RUN"]["nprocx"] = nprocx
-        config["RUN"]["nprocy"] = nprocy
+    # Choose scheme ids in a reasonable range (1..10)
+    config["DYNAMICS"]["iadv_sv"] = [random.randint(1, 10) for _ in range(nsv)]
+ 
+    config["BC"]["wsvsurfdum"] = [round(random.uniform(0.0, 1.0), 6) for _ in range(nsv)]
+    config["BC"]["wsvtopdum"] = [round(random.uniform(0.0, 1.0), 6) for _ in range(nsv)]
     
     return config
 

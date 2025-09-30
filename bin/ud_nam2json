@@ -207,18 +207,31 @@ def _coerce_scalar(val):
         return False
 
     # Handle Fortran-style replication patterns like '99*0.000000E+000'.
-    # Present the second value (the RHS) as the scalar.
-    m = re.match(r'^[+-]?\d+\s*\*\s*(.+)$', s)
+    # Expand into a list of repeated coerced items (with a safe cap).
+    m = re.match(r'^\s*([+-]?\d+)\s*\*\s*(.+)$', s)
     if m:
-        # take the RHS and continue coercion
-        s = m.group(1).strip()
-        low = s.lower()
-        if s == '':
+        try:
+            count = int(m.group(1))
+        except Exception:
+            count = 0
+        item_text = m.group(2).strip()
+        if item_text == '':
             return ''
-        if low in ('.true.', 'true', 't'):
-            return True
-        if low in ('.false.', 'false', 'f'):
-            return False
+        coerced_item = _coerce_scalar(item_text)
+        # Cap expansion to avoid enormous lists
+        MAX_EXPAND = 200
+        if count > MAX_EXPAND:
+            # warn and cap
+            print(f"Warning: replication count {count} too large; capping to {MAX_EXPAND}", file=sys.stderr)
+            count = MAX_EXPAND
+        return [coerced_item for _ in range(count)]
+
+    # If this looks like a comma-separated list, split and coerce each item
+    if ',' in s:
+        parts = [p.strip() for p in s.split(',')]
+        parts = [p for p in parts if p != '']
+        if parts:
+            return [_coerce_scalar(p) for p in parts]
 
     # Try integer
     try:
@@ -253,6 +266,43 @@ def normalize_data(obj):
 def write_output(data, output_path):
     with open(output_path, 'w') as f:
         json.dump(data, f, indent=2)
+
+
+def _ensure_fixed_length(data, sec, key, nsv, default, cast_type):
+    """Ensure data[sec][key] is a list of length nsv.
+    - cast_type: function to cast elements (int/float)
+    - default: default value to pad with
+    """
+    if sec not in data or not isinstance(data[sec], dict):
+        # create section if missing
+        data.setdefault(sec, {})
+    params = data[sec]
+    val = params.get(key)
+    out = []
+    if val is None:
+        out = [default] * nsv
+    else:
+        # collect numeric items from various possible shapes
+        def collect(v, acc):
+            if isinstance(v, list):
+                for e in v:
+                    collect(e, acc)
+            else:
+                acc.append(v)
+        collected = []
+        collect(val, collected)
+        # try casting each collected element
+        for e in collected:
+            try:
+                out.append(cast_type(e))
+            except Exception:
+                # skip non-castable items
+                pass
+    # Now ensure length nsv by truncating or padding
+    if len(out) >= nsv:
+        params[key] = out[:nsv]
+    else:
+        params[key] = out + [default] * (nsv - len(out))
 
 def main(argv):
     if len(argv) < 2 or argv[1] in ('-h', '--help'):
@@ -310,6 +360,24 @@ def main(argv):
         v = data.get(sec)
         if (isinstance(v, dict) and not v) or (isinstance(v, list) and not v):
             del data[sec]
+
+    # Post-process: ensure fixed-length lists for variables that depend on nsv
+    # Determine nsv: prefer SCALARS.nsv, fallback to RUN.nsv if present
+    nsv = None
+    if 'SCALARS' in data and isinstance(data['SCALARS'], dict):
+        nsv = data['SCALARS'].get('nsv', None)
+    try:
+        if nsv is not None:
+            nsv = int(nsv)
+    except Exception:
+        nsv = None
+
+    if nsv is not None and nsv > 0:
+        # Enforce DYNAMICS.iadv_sv as integer list (default advector id 7)
+        _ensure_fixed_length(data, 'DYNAMICS', 'iadv_sv', nsv, 7, int)
+        # Enforce BC.wsvsurfdum and BC.wsvtopdum as real lists (default 0.0)
+        _ensure_fixed_length(data, 'BC', 'wsvsurfdum', nsv, 0.0, float)
+        _ensure_fixed_length(data, 'BC', 'wsvtopdum', nsv, 0.0, float)
     write_output(data, output_file)
 
     print(f"Successfully converted '{input_file}' to '{output_file}'")
