@@ -185,11 +185,18 @@ def main(argv=None):
     if args.mode == 'default':
         inputs_to_run = [(default_input, 'default')]
     else:  # random
-        if random_input.exists():
-            inputs_to_run = [(random_input, 'random')]
-        else:
-            # Fallback to default if random not present
-            inputs_to_run = [(default_input, 'default')]
+        # Always generate a new random configuration using the helper script,
+        # then run the test against parameters.random. No fallbacks performed.
+        # Unconditionally call the generator script to produce parameters.random
+        gen_script = input_dir / 'generate_random_config.py'
+        print('Generating parameters.random using generate_random_config.py')
+        proc = subprocess.run([sys.executable, str(gen_script)], cwd=str(input_dir), stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, timeout=60)
+        if proc.returncode != 0:
+            print('generate_random_config.py failed:')
+            print(proc.stdout)
+            print(proc.stderr)
+            return 2
+        inputs_to_run = [(random_input, 'random')]
 
     # Use an ephemeral TemporaryDirectory for the workdir so it is removed
     # automatically when this script exits. This avoids leaving stale debug
