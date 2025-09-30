@@ -29,6 +29,7 @@ classdef udgeom < handle
    properties (SetAccess = protected)
       stl;                     % stl of the geometry
       outline;                 % outline edges calculated using calculateOutline
+      outline2d;               % cached 2D outlines and centroids (cell array)
       buildings;               % cell array of individual building triangulations (lazy loaded)
       face_to_building_map;    % array mapping each face index to its building ID (lazy loaded)
    end   
@@ -110,6 +111,10 @@ classdef udgeom < handle
          if ~isempty(obj.stl)
              [obj.outline, ~] = udgeom.calculateOutline(obj.stl, 45);
          end
+        % invalidate cached 2D outlines and buildings mapping
+        obj.outline2d = [];
+        obj.buildings = [];
+        obj.face_to_building_map = [];
       end
       
       % -------------------------------------------------------------- %
@@ -144,9 +149,11 @@ classdef udgeom < handle
          end
          
          % Lazy load buildings if not already computed
-         if isempty(obj.buildings)
-             [obj.buildings, obj.face_to_building_map] = udgeom.splitBuildings(obj.stl);
-         end
+            if isempty(obj.buildings)
+                [obj.buildings, obj.face_to_building_map] = udgeom.splitBuildings(obj.stl);
+                % invalidate cached 2D outlines when buildings are (re)computed
+                obj.outline2d = [];
+            end
          
          building_components = obj.buildings;
       end
@@ -198,6 +205,84 @@ classdef udgeom < handle
          end
          
          [obj.outline, ~] = udgeom.calculateOutline(obj.stl, angle_threshold);
+      end
+
+      % -------------------------------------------------------------- %
+
+      function outline2d = calculate_outline2d(obj)
+         % Calculate 2D building outlines and centroids for all buildings.
+         % outlines = calculate_outline2d(obj)
+         %   Returns a cell array where each entry is a struct with fields:
+         %     boundary_points : Nx2 array (may be empty)
+         %     centroid : 1x2 array
+
+         % If we've already computed outlines, return cached value
+         if ~isempty(obj.outline2d)
+             outline2d = obj.outline2d;
+             return;
+         end
+
+         % Initialize
+         outline2d = {};
+         blds = obj.get_buildings();
+         if isempty(blds)
+             return;
+         end
+
+         num_buildings = length(blds);
+         for i = 1:num_buildings
+             b = blds{i};
+             if isempty(b)
+                 outline2d{i} = struct('boundary_points', [], 'centroid', [NaN NaN], 'points', [], 'faces', []);
+                 continue;
+             end
+
+             % Accept both new struct-wrapped triangulation and raw triangulation
+             if isstruct(b) && isfield(b, 'triangulation')
+                 TR = b.triangulation;
+             elseif isa(b, 'triangulation')
+                 TR = b;
+             else
+                 outline2d{i} = struct('boundary_points', [], 'centroid', [NaN NaN], 'points', [], 'faces', []);
+                 continue;
+             end
+
+             pts = TR.Points;
+             faces = TR.ConnectivityList;
+
+             % Basic validation
+             if isempty(pts) || size(pts,1) < 3 || isempty(faces)
+                 outline2d{i} = struct('boundary_points', [], 'centroid', mean(pts(:,1:2),1), 'points', pts, 'faces', faces);
+                 continue;
+             end
+
+             % Project to 2D and attempt to get the external boundary using freeBoundary
+             pts2 = pts(:,1:2);
+             try
+                 tri2 = triangulation(faces, pts2);
+                 boundary_edges = freeBoundary(tri2);
+
+                 if ~isempty(boundary_edges)
+                     % Use indices returned by freeBoundary to select boundary points
+                     % (matches behaviour in the last committed plot_building_ids)
+                     boundary_points = tri2.Points(boundary_edges(:,1), :);
+                     centroid = mean(boundary_points, 1);
+                 else
+                     % Fallback: no free boundary found -> use centroid of all points
+                     boundary_points = [];
+                     centroid = mean(pts2, 1);
+                 end
+             catch
+                 % On error (degenerate geometry etc.) fall back to centroid
+                 boundary_points = [];
+                 centroid = mean(pts2, 1);
+             end
+
+             outline2d{i} = struct('boundary_points', boundary_points, 'centroid', centroid, 'points', pts, 'faces', faces);
+         end
+
+         % Cache result on the object for faster repeated access
+         obj.outline2d = outline2d;
       end
       
       % -------------------------------------------------------------- %

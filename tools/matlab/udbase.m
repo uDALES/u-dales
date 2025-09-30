@@ -17,6 +17,7 @@
 
 % Aug 2024, Maarten van Reeuwijk, Jingzi Huang. first version
 % Dec 2024, Maarten van Reeuwijk, Chris Wilson. added facet functionality.
+% Sep 2025, Maarten van Reeuwijk, Chris Wilson. added facet functionality.
 
 % Copyright (C) 2016-2024 the uDALES Team.
 
@@ -309,6 +310,8 @@ classdef udbase < dynamicprops
             
             obj.gohome()
         end
+
+        
     
         % ------------------------------------------------------------- %
 
@@ -534,8 +537,19 @@ classdef udbase < dynamicprops
             %   % Convert only specific buildings
             %   fld = obj.convert_facvar_to_field(var, sim.facsec.c, [1, 5, 10]);
 
-            fld = obj.convert_facflx_to_field(var, facsec, obj.dzt, building_ids) ./
-                  obj.convert_facflx_to_field(ones(size(var)), facsec, obj.dzt, building_ids)
+            % Handle optional building_ids parameter and validate before passing on
+            if nargin < 4 || isempty(building_ids)
+                building_ids_to_use = [];
+            else
+                if ~isnumeric(building_ids) || ~all(building_ids > 0) || ~all(mod(building_ids,1) == 0)
+                    error('Building IDs must be an array of positive integers');
+                end
+                building_ids_to_use = building_ids;
+            end
+
+            norm = obj.convert_facflx_to_field(ones(size(var)), facsec, obj.dzt, building_ids_to_use);
+            norm(norm == 0) = 1; % avoid NaNs
+            fld = obj.convert_facflx_to_field(var, facsec, obj.dzt, building_ids_to_use) ./ norm;
         end
 
         % ------------------------------------------------------------- %
@@ -1013,55 +1027,31 @@ classdef udbase < dynamicprops
             % plot_building_ids(OBJ) creates a top-view plot showing buildings 
             % in different colors with building IDs at center of gravity
             %
-            % plot_building_ids(OBJ, 'FontSize', size) sets the font size 
-            % for building ID labels (default: 12)
-            %
-            % EXAMPLES:
-            %   % Basic usage
-            %   obj.plot_building_ids();
-            %
-            %   % With custom font size
-            %   obj.plot_building_ids('FontSize', 14);
+            % plot_building_ids(OBJ, 'FontSize', size) sets the font size for building ID labels (default: 12)
             %
             % SEE ALSO: udgeom.splitBuildings, plot_outline
-            
-            % Parse optional arguments (only FontSize allowed)
-            p = inputParser;
-            addParameter(p, 'FontSize', 12, @(x) isnumeric(x) && isscalar(x) && x > 0);
-            parse(p, varargin{:});
-            
-            font_size = p.Results.FontSize;
-            
-            % Get buildings from geometry object
-            if isempty(obj.geom) || isempty(obj.geom.stl)
-                error('Geometry data not available. Cannot split buildings.');
-            end
-            
-            building_triangulations = obj.geom.get_buildings();
-            
-            if isempty(building_triangulations)
-                error('No buildings found in the geometry.');
-            end
-            num_buildings = length(building_triangulations);
-            
+
+            outlines = obj.geom.calculate_outline2d();
+            num_buildings = len(outlines);
+
             % Generate distinct colors using default HSV scheme
             colors = hsv(num_buildings);
-            
+
             % Create visualization figure with default settings
             figure;
             hold on;
             view(2);
             axis equal;
             box on;
-            
-            xlabel('x [m]'); 
+
+            xlabel('x [m]');
             ylabel('x [m]');
             title(sprintf('Building Layout with IDs (Total: %d)', num_buildings));
-            
-            % Plot each building and add ID labels
-            plotted_buildings = 0;
-            
+
+            val = zeros(num_buildings,1);
+            text = cell(num_buildings,1)
             for i = 1:num_buildings
+                val(i) = max(obj.build)
                 building_data = building_triangulations{i};
                 if ~isempty(building_data)
                     % Handle both struct format (new) and triangulation format (old)
@@ -1074,80 +1064,166 @@ classdef udbase < dynamicprops
                     end
                     points = TR.Points;
                     faces = TR.ConnectivityList;
-                    
+
                     % Skip if building has no faces or points
                     if isempty(points) || size(points, 1) < 3 || isempty(faces)
                         continue;
                     end
-                    
-                    % Since triangulations are now compact, we can use them directly
+
                     % Create 2D projection by ignoring Z-coordinate
                     x_coords = points(:, 1);
                     y_coords = points(:, 2);
-                    
+
                     % Check for valid coordinate range
                     if all(isnan(x_coords)) || all(isnan(y_coords)) || isempty(x_coords)
                         continue;
                     end
-                    
-                    % Plot exact building outline using boundary edges (not internal triangles)
-                    try
-                        % Create 2D triangulation directly from compact data
-                        building_tri_2d = triangulation(faces, [x_coords, y_coords]);
-                        
-                        % Find the boundary edges (external outline only)
-                        boundary_edges = freeBoundary(building_tri_2d);
-                        
-                        if ~isempty(boundary_edges)
-                            % Get boundary points in order
-                            boundary_points = building_tri_2d.Points(boundary_edges(:,1), :);
-                            
-                            % Plot building as filled polygon using boundary
-                            fill(boundary_points(:,1), boundary_points(:,2), colors(i,:), ...
-                                 'EdgeColor', 'k', ...
-                                 'LineWidth', 0.5, ...
-                                 'FaceAlpha', 0.7);
-                            
-                            % Calculate centroid from boundary points
-                            centroid_x = mean(boundary_points(:,1));
-                            centroid_y = mean(boundary_points(:,2));
-                        else
-                            % Fallback to all points if boundary detection fails
-                            centroid_x = mean(x_coords);
-                            centroid_y = mean(y_coords);
-                            scatter(x_coords, y_coords, 100, colors(i,:), 'filled', ...
-                                   'MarkerEdgeColor', 'k', 'LineWidth', 1);
-                        end
-                        
-                    catch
-                        % Fallback: use simple centroid and scatter plot
-                        centroid_x = mean(x_coords);
-                        centroid_y = mean(y_coords);
-                        
-                        % Plot as scatter points if boundary detection fails
-                        scatter(x_coords, y_coords, 100, colors(i,:), 'filled', ...
-                               'MarkerEdgeColor', 'k', 'LineWidth', 1);
-                        
-                    end
-                    
+
+                    % Use cached outline (assumed valid)
+                    o = outlines{i};
+                    fill(o.boundary_points(:,1), o.boundary_points(:,2), colors(i,:), 'EdgeColor', 'k', 'LineWidth', 0.5, 'FaceAlpha', 0.7);
+                    centroid_x = o.centroid(1);
+                    centroid_y = o.centroid(2);
+
                     % Add building ID text at centroid with transparent white background
                     text(centroid_x, centroid_y, sprintf('%d', i), ...
-                         'HorizontalAlignment', 'center', ...
-                         'VerticalAlignment', 'middle', ...
-                         'FontSize', 8, ...
-                         'FontWeight', 'bold', ...
-                         'Color', 'black', ...
-                         'BackgroundColor', [1 1 1 0.7], ...
-                         'Margin', 1);
-                    
+                       'HorizontalAlignment', 'center', ...
+                       'VerticalAlignment', 'middle', ...
+                       'FontSize', font_size, ...
+                       'FontWeight', 'bold', ...
+                       'Color', 'black', ...
+                       'BackgroundColor', [1 1 1 0.7], ...
+                       'Margin', 1);
+
                     plotted_buildings = plotted_buildings + 1;
                 end
             end
-            
+
             hold off;
         end
 
         % ------------------------------------------------------------- %
+
+        function plot_2dmap(obj, val, text)
+            % Plot a 2D map of buildings colored by a value per building.
+            %
+            % plot_2dmap(OBJ, val)
+            %   val: numeric scalar or vector with length equal to number of buildings.
+            %
+            % plot_2dmap(OBJ, val, text)
+            %   text: optional cell or string array with labels to display at
+            %         the centroid of each building. If provided it must
+            %         match the number of buildings.
+
+            if nargin < 2
+                error('plot_2dmap requires a val argument');
+            end
+
+            % Acquire outlines
+            if isempty(obj.geom) || isempty(obj.geom.stl)
+                error('Geometry data not available. Cannot compute outlines.');
+            end
+            outlines = obj.geom.calculate_outline2d();
+            if isempty(outlines)
+                error('No building outlines found in geometry.');
+            end
+
+            n = numel(outlines);
+
+            % Normalize values to per-building vector
+            if isscalar(val)
+                vals = repmat(double(val), n, 1);
+            else
+                vals = double(val(:));
+                if numel(vals) ~= n
+                    error('Length of val (%d) must match number of buildings (%d)', numel(vals), n);
+                end
+            end
+
+            % Handle optional text labels (argument named 'text')
+            showLabels = false;
+            labels = {};
+            if nargin >= 3 && ~isempty(text)
+                if iscell(text) || isstring(text) || ischar(text)
+                    if ischar(text)
+                        % single string -> broadcast
+                        labels = repmat({text}, n, 1);
+                        showLabels = true;
+                    else
+                        if numel(text) ~= n
+                            error('Number of text labels must match number of buildings');
+                        end
+                        labels = cellstr(text);
+                        showLabels = true;
+                    end
+                else
+                    error('text must be a cell array, string array, or char array');
+                end
+            end
+
+            % Colormap and value range
+            % If values are exactly the building indices 1:n, use HSV to match plot_building_ids
+            if isequal(vals(:), (1:n)')
+                cmap = hsv(256);
+            else
+                cmap = parula(256);
+            end
+            vm = vals(~isnan(vals));
+            if isempty(vm)
+                vmin = 0; vmax = 1;
+            else
+                vmin = min(vm); vmax = max(vm);
+            end
+            if vmin == vmax
+                vmin = vmin - 0.5; vmax = vmax + 0.5;
+            end
+
+            % Plot
+            figure;
+            hold on;
+            axis equal;
+            box on;
+
+            for i = 1:n
+                o = outlines{i};
+                %outlines{i}
+                if isempty(o) || isempty(o.points)
+                    continue;
+                end
+
+                if isnan(vals(i))
+                    continue;
+                end
+
+                % map value to color index
+                idx = round( (vals(i) - vmin) / (vmax - vmin) * (size(cmap,1)-1) ) + 1;
+                idx = max(1, min(size(cmap,1), idx));
+                col = cmap(idx, :);
+
+                % Use outline from calculate_outline2d (assumed valid)
+                fill(o.boundary_points(:,1), o.boundary_points(:,2), col, 'EdgeColor', 'k', 'LineWidth', 0.5, 'FaceAlpha', 1);
+
+                if showLabels
+                    c = o.centroid;
+                    if ~any(isnan(c))
+                        htxt = text(c(1), c(2), labels{i}, ...
+                            'HorizontalAlignment', 'center', ...
+                            'VerticalAlignment', 'middle', ...
+                            'FontSize', 10, ...
+                            'FontWeight', 'normal', ...
+                            'Color', 'k', ...
+                            'BackgroundColor', [1 1 1 0.7], ...
+                            'Margin', 1, ...
+                            'BackgroundAlpha', 0.7);
+%                        % Set alpha for text background (requires R2021a+)
+%                        if isprop(htxt, 'BackgroundAlpha')
+%                            htxt.BackgroundAlpha = 0.7;
+%                        end
+                    end
+                end
+            end
+            hold off;
+        end
         
         function res = calculate_frontal_properties(obj)
             % A method to calculate the skyline, frontal areas and blockage
