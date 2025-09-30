@@ -120,6 +120,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description='Run u-DALES JSON test or comparator-only mode')
     parser.add_argument('--comparator-only', action='store_true', help='Skip running u-DALES and run comparator on existing generated JSON')
     parser.add_argument('--generated', help='Path to generated JSON to compare (overrides defaults)')
+    parser.add_argument('--mode', choices=['default', 'random'], default='default', help='Which input to run: default (parameters.default) or random (parameters.random)')
     args = parser.parse_args(argv)
 
     repo_root = Path(__file__).resolve().parents[2]
@@ -171,15 +172,24 @@ def main(argv=None):
             print(f'SKIP: ud_nam2json not found: {ud_nam2json}')
             return 0
 
-    # We'll run two tests: parameters.default (required) and parameters.random (optional)
+    # Determine which inputs exist
     default_input = input_dir / 'parameters.default'
     random_input = input_dir / 'parameters.random'
     if not default_input.exists():
         print('SKIP: parameters.default not found in tests/input')
         return 0
-    inputs_to_run = [(default_input, 'default')]
-    if random_input.exists():
-        inputs_to_run.append((random_input, 'random'))
+
+    # Select inputs to run based on --mode. 'default' runs only parameters.default.
+    # 'random' runs parameters.random if it exists, otherwise falls back to default.
+    inputs_to_run = []
+    if args.mode == 'default':
+        inputs_to_run = [(default_input, 'default')]
+    else:  # random
+        if random_input.exists():
+            inputs_to_run = [(random_input, 'random')]
+        else:
+            # Fallback to default if random not present
+            inputs_to_run = [(default_input, 'default')]
 
     # Use an ephemeral TemporaryDirectory for the workdir so it is removed
     # automatically when this script exits. This avoids leaving stale debug

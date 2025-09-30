@@ -41,6 +41,12 @@
           "default": 10000,
           "description": "Time at which restart files are written [s]"
         },
+        "runmode": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1,
+          "description": "Run mode identifier"
+        },
         "dtmax": {
           "type": "number",
           "minimum": 0,
@@ -1394,32 +1400,6 @@
       "type": "object",
       "description": "Initial conditions and input parameters",
       "properties": {
-        "u0": {
-          "type": "number",
-          "default": 0,
-          "description": "Initial u-velocity. Also applied as geostrophic term [m/s]"
-        },
-        "v0": {
-          "type": "number",
-          "default": 0,
-          "description": "Initial v-velocity. Also applied as geostrophic term [m/s]"
-        },
-        "thl0": {
-          "type": "number",
-          "default": 288,
-          "description": "Temperature at z = 0 [K]"
-        },
-        "qt0": {
-          "type": "number",
-          "default": 0,
-          "description": "Specific humidity at z = 0 [kg/kg]"
-        },
-        "fact": {
-          "type": "number",
-          "minimum": 0,
-          "default": 288,
-          "description": "Facet temperature [K]"
-        }
       }
     }
   }

@@ -162,24 +162,6 @@ This report shows the status of variables across different aspects of the uDALES
 | `uinf` | ✓ | ✓ | ✓ | ✓ |
 | `vinf` | ✓ | ✓ | ✓ | ✓ |
 
-## NAMSUBGRID
-
-| Variable | Namelist | JSON Read | Broadcast | Schema |
-|----------|----------|-----------|-----------|--------|
-| `c_vreman` | ✓ | ✓ | ✓ | ✓ |
-| `cf` | ✓ | ✓ | ✓ | ✓ |
-| `cn` | ✓ | ✓ | ✓ | ✓ |
-| `cs` | ✓ | ✓ | ✓ | ✓ |
-| `lbuoycorr` | ✓ | ✓ | ✓ | ✓ |
-| `ldelta` | ✓ | ✓ | ✓ | ✓ |
-| `lmason` | ✓ | ✓ | ✓ | ✓ |
-| `loneeqn` | ✓ | ✓ | ✓ | ✓ |
-| `lsmagorinsky` | ✓ | ✓ | ✓ | ✓ |
-| `lvreman` | ✓ | ✓ | ✓ | ✓ |
-| `nmason` | ✓ | ✓ | ✓ | ✓ |
-| `prandtl` | ✓ | ✓ | ✓ | ✓ |
-| `rigc` | ✓ | ✓ | ✓ | ✓ |
-
 ## OUTPUT
 
 | Variable | Namelist | JSON Read | Broadcast | Schema |
@@ -262,7 +244,6 @@ This report shows the status of variables across different aspects of the uDALES
 | `krand` | ✓ | ✓ | ✓ | ✓ |
 | `ladaptive` | ✓ | ✓ | ✓ | ✓ |
 | `libm` | ✓ | ✓ | ✓ | ✓ |
-| `ljson_input` | ✓ | ✓ | ✓ | ✓ |
 | `lles` | ✓ | ✓ | ✓ | ✓ |
 | `lper2inout` | ✓ | ✓ | ✓ | ✓ |
 | `lrandomize` | ✓ | ✓ | ✓ | ✓ |
@@ -291,6 +272,24 @@ This report shows the status of variables across different aspects of the uDALES
 | `nscasrc` | ✓ | ✓ | ✓ | ✓ |
 | `nscasrcl` | ✓ | ✓ | ✓ | ✓ |
 | `nsv` | ✓ | ✓ | ✓ | ✓ |
+
+## SUBGRID
+
+| Variable | Namelist | JSON Read | Broadcast | Schema |
+|----------|----------|-----------|-----------|--------|
+| `c_vreman` | ✓ | ✓ | ✓ | ✓ |
+| `cf` | ✓ | ✓ | ✓ | ✓ |
+| `cn` | ✓ | ✓ | ✓ | ✓ |
+| `cs` | ✓ | ✓ | ✓ | ✓ |
+| `lbuoycorr` | ✓ | ✓ | ✓ | ✓ |
+| `ldelta` | ✓ | ✓ | ✓ | ✓ |
+| `lmason` | ✓ | ✓ | ✓ | ✓ |
+| `loneeqn` | ✓ | ✓ | ✓ | ✓ |
+| `lsmagorinsky` | ✓ | ✓ | ✓ | ✓ |
+| `lvreman` | ✓ | ✓ | ✓ | ✓ |
+| `nmason` | ✓ | ✓ | ✓ | ✓ |
+| `prandtl` | ✓ | ✓ | ✓ | ✓ |
+| `rigc` | ✓ | ✓ | ✓ | ✓ |
 
 ## TREES
 
@@ -339,17 +338,10 @@ This report shows the status of variables across different aspects of the uDALES
 
 ## Summary Statistics
 
-- **Total namelist variables**: 245
-- **Total JSON-readable variables**: 245
-- **Total broadcast variables**: 245
-- **Total schema variables**: 250
+- **Total namelist variables**: 244
+- **Total JSON-readable variables**: 244
+- **Total broadcast variables**: 244
+- **Total schema variables**: 244
 - **Total namelists found**: 17
 
 ## Potential Issues
-
-### Variables in schema but not in namelists:
-- `fact`
-- `qt0`
-- `thl0`
-- `u0`
-- `v0`

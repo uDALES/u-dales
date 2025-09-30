@@ -8,14 +8,14 @@ This report shows the status of variables with color coding:
 
 ## Executive Summary
 
-- **Total Namelist Variables**: 245
-- **JSON Support**: 245 variables
-- **Namelist Broadcasts**: 245 variables
+- **Total Namelist Variables**: 244
+- **JSON Support**: 244 variables
+- **Namelist Broadcasts**: 244 variables
 - **Non-namelist Broadcasts**: 0 variables (internal/computed)
-- **Schema Coverage**: 250 variables
+- **Schema Coverage**: 244 variables
 
 **Status Distribution:**
-- 🟢 **245 variables** with full support
+- 🟢 **244 variables** with full support
 - 🟠 **0 variables** with warnings
 - 🔴 **0 variables** with errors
 
@@ -58,10 +58,6 @@ This report shows the status of variables with color coding:
 
 🟢 **Full Support**: `di`, `dti`, `inletav`, `lfixinlet`, `lfixutauin`, `linletra`, `lreadminl`, `lstoreplane`, `lwallfunc`, `uinf`, `vinf`
 
-### NAMSUBGRID
-
-🟢 **Full Support**: `c_vreman`, `cf`, `cn`, `cs`, `lbuoycorr`, `ldelta`, `lmason`, `loneeqn`, `lsmagorinsky`, `lvreman`, `nmason`, `prandtl`, `rigc`
-
 ### OUTPUT
 
 🟢 **Full Support**: `fieldvars`, `islice`, `jslice`, `kslice`, `lfielddump`, `lislicedump`, `ljslicedump`, `lkslicedump`, `lmintdump`, `ltdump`, `ltkedump`, `lxydump`, `lxytdump`, `lydump`, `lytdump`, `slicevars`, `tcheck`, `tfielddump`, `tsample`, `tstatsdump`, `tstatstart`
@@ -76,11 +72,15 @@ This report shows the status of variables with color coding:
 
 ### RUN
 
-🟢 **Full Support**: `author`, `courant`, `diffnr`, `dtmax`, `iexpnr`, `irandom`, `krand`, `ladaptive`, `libm`, `ljson_input`, `lles`, `lper2inout`, `lrandomize`, `lreadmean`, `lstratstart`, `lwalldist`, `lwarmstart`, `nprocx`, `nprocy`, `randqt`, `randthl`, `randu`, `runmode`, `runtime`, `startfile`, `trestart`
+🟢 **Full Support**: `author`, `courant`, `diffnr`, `dtmax`, `iexpnr`, `irandom`, `krand`, `ladaptive`, `libm`, `lles`, `lper2inout`, `lrandomize`, `lreadmean`, `lstratstart`, `lwalldist`, `lwarmstart`, `nprocx`, `nprocy`, `randqt`, `randthl`, `randu`, `runmode`, `runtime`, `startfile`, `trestart`
 
 ### SCALARS
 
 🟢 **Full Support**: `lreadscal`, `lscasrc`, `lscasrcl`, `lscasrcr`, `nscasrc`, `nscasrcl`, `nsv`
+
+### SUBGRID
+
+🟢 **Full Support**: `c_vreman`, `cf`, `cn`, `cs`, `lbuoycorr`, `ldelta`, `lmason`, `loneeqn`, `lsmagorinsky`, `lvreman`, `nmason`, `prandtl`, `rigc`
 
 ### TREES
 
@@ -89,9 +89,3 @@ This report shows the status of variables with color coding:
 ### WALLS
 
 🟢 **Full Support**: `dtfac`, `fkar`, `iwallmoist`, `iwallmom`, `iwallscal`, `iwalltemp`, `lbottom`, `lnorec`, `lwritefac`, `nblocks`, `nbndpts_c`, `nbndpts_u`, `nbndpts_v`, `nbndpts_w`, `nfcts`, `nfctsecs_c`, `nfctsecs_u`, `nfctsecs_v`, `nfctsecs_w`, `nsolpts_c`, `nsolpts_u`, `nsolpts_v`, `nsolpts_w`, `prandtlturb`
-
-## Recommendations
-
-### General
-5. **Improve JSON coverage**: Currently 245/245 namelist variables support JSON
-6. **Focus on namelist variables**: 0 namelist variables lack JSON support despite being broadcast

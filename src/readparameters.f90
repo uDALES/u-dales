@@ -805,12 +805,6 @@ contains
          if (ncopi > 0) then
             iadv_sv(1:ncopi) = temp_int_arr(1:ncopi)
          end if
-      else
-         ! Not an array: try scalar int (fill all nsv entries)
-         call json%get('DYNAMICS.iadv_sv', temp_int, found)
-         if (found) then
-            if (nsv > 0) iadv_sv(1) = temp_int
-         end if
       end if
 
       call json%get('DYNAMICS.ipoiss', temp_int, found)
