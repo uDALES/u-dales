@@ -12,7 +12,7 @@ image.sif
 monitor*.txt
 outputs/
 examples/*/blocks.*.png
-
+bin/
 # Restart and driver files
 examples/*/init*
 examples/*/*driver*

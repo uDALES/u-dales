@@ -508,12 +508,44 @@ classdef udbase < dynamicprops
 
         % ------------------------------------------------------------- %
 
-        function fld = convert_fac_to_field(obj, var, facsec, dz, building_ids)
+        function fld = convert_facvar_to_field(obj, var, facsec, building_ids)
+            % Method for transferring a facet variable onto the grid.
+            %
+            % Inputs:
+            %   var:     facet variable (e.g. from load_fac_eb, load_fac_temperature, etc)
+            %   facsec:  facet section structure (e.g. obj.facsec.u)
+            %   building_ids (optional): array of building IDs to include. If not
+            %                            specified, all buildings are included.
+            %
+            % Outputs: 
+            %   fld:     variable on the grid (itot x jtot x ktot)
+            %
+            % The facsec and dz inputs are required since the routine does not know where % on the staggered grid the variable is located.
+            %
+            % convert_facvar_to_field(OBJ, var, facsec) transfers a variable onto the grid.   
+            %
+            % convert_facvar_to_field(OBJ, var, facsec, building_ids) converts only
+            %                                facets from the specified building IDs.
+            %
+            % Examples:
+            %   % Convert all facets
+            %   fld = obj.convert_facvar_to_field(var, sim.facsec.c);
+            %
+            %   % Convert only specific buildings
+            %   fld = obj.convert_facvar_to_field(var, sim.facsec.c, [1, 5, 10]);
+
+            fld = obj.convert_facflx_to_field(var, facsec, obj.dzt, building_ids) ./
+                  obj.convert_facflx_to_field(ones(size(var)), facsec, obj.dzt, building_ids)
+        end
+
+        % ------------------------------------------------------------- %
+
+       function fld = convert_facflx_to_field(obj, var, facsec, dz, building_ids)
             % Method for converting a facet variable to a density in a 3D
             % field. 
             %
             % Inputs:
-            %   var:     facet variable (e.g. from load_fac_eb, load_fac_temperature, etc)
+            %   var:     facet flux variable (e.g. from load_fac_eb, load_fac_temperature, etc)
             %   facsec:  facet section structure (e.g. obj.facsec.u)
             %   dz:      vertical grid spacing at cell centers (obj.dzt)
             %   building_ids (optional): array of building IDs to include. If not
@@ -524,18 +556,18 @@ classdef udbase < dynamicprops
             %
             % The facsec and dz inputs are required since the routine does not know where % on the staggered grid the variable is located.
             %
-            % convert_fac_to_field(OBJ, var, facsec, dz) converts the facet variable var  
+            % convert_facflx_to_field(OBJ, var, facsec, dz) converts the facet variable var  
             %                                to a 3D field density for all facets.   
             %
-            % convert_fac_to_field(OBJ, var, facsec, dz, building_ids) converts only
+            % convert_facflx_to_field(OBJ, var, facsec, dz, building_ids) converts only
             %                                facets from the specified building IDs.
             %
             % Examples:
             %   % Convert all facets
-            %   fld = obj.convert_fac_to_field(var, sim.facsec.c, sim.dzt);
+            %   fld = obj.convert_facflx_to_field(var, sim.facsec.c, sim.dzt);
             %
             %   % Convert only specific buildings
-            %   fld = obj.convert_fac_to_field(var, sim.facsec.c, sim.dzt, [1, 5, 10]);
+            %   fld = obj.convert_facflx_to_field(var, sim.facsec.c, sim.dzt, [1, 5, 10]);
 
              % Function only works when required data has been loaded.
             if (~obj.lffacet_sections)
@@ -1147,8 +1179,8 @@ classdef udbase < dynamicprops
             phiy = -min(dot(norms, repmat([0, 1, 0], size(norms, 1), 1), 2),0);
 
             % convert to a density field
-            rhoLx = obj.convert_fac_to_field(phix,obj.facsec.c,obj.dzt);
-            rhoLy = obj.convert_fac_to_field(phiy,obj.facsec.c,obj.dzt);
+            rhoLx = obj.convert_facflx_to_field(phix,obj.facsec.c,obj.dzt);
+            rhoLy = obj.convert_facflx_to_field(phiy,obj.facsec.c,obj.dzt);
 
             % Calculate indicator functions for blockage and plot them
             Ibx = double(squeeze(sum(rhoLx,1))>0);
