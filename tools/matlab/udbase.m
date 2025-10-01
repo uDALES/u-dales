@@ -17,9 +17,9 @@
 
 % Aug 2024, Maarten van Reeuwijk, Jingzi Huang. first version
 % Dec 2024, Maarten van Reeuwijk, Chris Wilson. added facet functionality.
-% Sep 2025, Maarten van Reeuwijk, Chris Wilson. added facet functionality.
+% Sep 2025, Maarten van Reeuwijk, Jingzi Huang. Major upgrade of facet functionality
 
-% Copyright (C) 2016-2024 the uDALES Team.
+% Copyright (C) 2016-2025 the uDALES Team.
 
 classdef udbase < dynamicprops
     %  Base class for uDALES simulations
