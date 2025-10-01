@@ -19,7 +19,7 @@
 % Dec 2024, Maarten van Reeuwijk, Chris Wilson. added facet functionality.
 % Sep 2025, Maarten van Reeuwijk, Jingzi Huang. Major upgrade of facet functionality
 
-% Copyright (C) 2016-2025 the uDALES Team.
+% Copyright (C) 2016- the uDALES Team.
 
 classdef udbase < dynamicprops
     %  Base class for uDALES simulations
@@ -310,8 +310,6 @@ classdef udbase < dynamicprops
             
             obj.gohome()
         end
-
-        
     
         % ------------------------------------------------------------- %
 
@@ -411,7 +409,7 @@ classdef udbase < dynamicprops
             obj.gohome();
         end
 
-             % ------------------------------------------------------------- %
+        % ------------------------------------------------------------- %
 
         function data = load_fac_eb(obj, varargin)
             % A method to retrieve facet data of a surface energy balance
@@ -1035,8 +1033,8 @@ classdef udbase < dynamicprops
             cb.TickLabelInterpreter = 'none'; % Don't interpret surface type names as LaTeX
         end
 
+        % ------------------------------------------------------------- %
 
-        
         function plot_building_ids(obj, varargin)
             % A method for plotting building IDs from above (x,y view) with distinct colors
             %
@@ -1063,6 +1061,11 @@ classdef udbase < dynamicprops
                 % Create text label showing building ID
                 text_labels{i} = sprintf('%d', i);
             end
+
+            % randomise the order of buildings to avoid adjacent buildings having similar colors
+            rand_indices = randperm(num_buildings);
+            val = val(rand_indices);
+            text_labels = text_labels(rand_indices);
 
             % Use plot_2dmap to create the visualization
             obj.plot_2dmap(val, text_labels);
@@ -1199,6 +1202,8 @@ classdef udbase < dynamicprops
             hold off;
         end
         
+        % ------------------------------------------------------------- %
+
         function res = calculate_frontal_properties(obj)
             % A method to calculate the skyline, frontal areas and blockage
             % ratios in the x- and y-direction. 
