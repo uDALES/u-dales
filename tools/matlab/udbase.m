@@ -1029,89 +1029,60 @@ classdef udbase < dynamicprops
             %
             % plot_building_ids(OBJ, 'FontSize', size) sets the font size for building ID labels (default: 12)
             %
-            % SEE ALSO: udgeom.splitBuildings, plot_outline
+            % SEE ALSO: udgeom.splitBuildings, plot_outline, plot_2dmap
 
+            % Parse optional arguments for font size
+            p = inputParser;
+            addParameter(p, 'FontSize', 12, @isnumeric);
+            parse(p, varargin{:});
+            font_size = p.Results.FontSize;
+
+            % Get number of buildings from outlines
             outlines = obj.geom.calculate_outline2d();
-            num_buildings = len(outlines);
+            num_buildings = length(outlines);
 
-            % Generate distinct colors using default HSV scheme
-            colors = hsv(num_buildings);
-
-            % Create visualization figure with default settings
-            figure;
-            hold on;
-            view(2);
-            axis equal;
-            box on;
-
-            xlabel('x [m]');
-            ylabel('x [m]');
-            title(sprintf('Building Layout with IDs (Total: %d)', num_buildings));
-
-            val = zeros(num_buildings,1);
-            text = cell(num_buildings,1)
+            % Prepare values and text labels for each building
+            val = zeros(num_buildings, 1);
+            text_labels = cell(num_buildings, 1);
+            
             for i = 1:num_buildings
-                val(i) = max(obj.build)
-                building_data = building_triangulations{i};
-                if ~isempty(building_data)
-                    % Handle both struct format (new) and triangulation format (old)
-                    if isstruct(building_data) && isfield(building_data, 'triangulation')
-                        TR = building_data.triangulation;
-                    elseif isa(building_data, 'triangulation')
-                        TR = building_data;
-                    else
-                        continue; % Skip invalid building data
-                    end
-                    points = TR.Points;
-                    faces = TR.ConnectivityList;
-
-                    % Skip if building has no faces or points
-                    if isempty(points) || size(points, 1) < 3 || isempty(faces)
-                        continue;
-                    end
-
-                    % Create 2D projection by ignoring Z-coordinate
-                    x_coords = points(:, 1);
-                    y_coords = points(:, 2);
-
-                    % Check for valid coordinate range
-                    if all(isnan(x_coords)) || all(isnan(y_coords)) || isempty(x_coords)
-                        continue;
-                    end
-
-                    % Use cached outline (assumed valid)
-                    o = outlines{i};
-                    fill(o.boundary_points(:,1), o.boundary_points(:,2), colors(i,:), 'EdgeColor', 'k', 'LineWidth', 0.5, 'FaceAlpha', 0.7);
-                    centroid_x = o.centroid(1);
-                    centroid_y = o.centroid(2);
-
-                    % Add building ID text at centroid with transparent white background
-                    text(centroid_x, centroid_y, sprintf('%d', i), ...
-                       'HorizontalAlignment', 'center', ...
-                       'VerticalAlignment', 'middle', ...
-                       'FontSize', font_size, ...
-                       'FontWeight', 'bold', ...
-                       'Color', 'black', ...
-                       'BackgroundColor', [1 1 1 0.7], ...
-                       'Margin', 1);
-
-                    plotted_buildings = plotted_buildings + 1;
-                end
+                % Use building index as the value (for HSV coloring)
+                val(i) = i;
+                % Create text label showing building ID
+                text_labels{i} = sprintf('%d', i);
             end
 
-            hold off;
+            % Use plot_2dmap to create the visualization
+            obj.plot_2dmap(val, text_labels);
+            colormap(hsv(num_buildings)); % Distinct colors for each building
+            
+            % Format the plot with appropriate labels and title
+            xlabel('x [m]');
+            ylabel('y [m]');
+            title(sprintf('Building Layout with IDs (Total: %d)', num_buildings));
+            view(2);
+            
+            % Update text properties if custom font size was specified
+            if font_size ~= 12
+                h = findobj(gca, 'Type', 'text');
+                set(h, 'FontSize', font_size, 'FontWeight', 'bold');
+            else
+                % Set default bold font for building IDs
+                h = findobj(gca, 'Type', 'text');
+                set(h, 'FontWeight', 'bold');
+            end
         end
 
         % ------------------------------------------------------------- %
 
-        function plot_2dmap(obj, val, text)
+        function plot_2dmap(obj, val, labels)
             % Plot a 2D map of buildings colored by a value per building.
             %
             % plot_2dmap(OBJ, val)
             %   val: numeric scalar or vector with length equal to number of buildings.
             %
-            % plot_2dmap(OBJ, val, text)
-            %   text: optional cell or string array with labels to display at
+            % plot_2dmap(OBJ, val, labels)
+            %   labels: optional cell or string array with labels to display at
             %         the centroid of each building. If provided it must
             %         match the number of buildings.
 
@@ -1123,11 +1094,11 @@ classdef udbase < dynamicprops
             if isempty(obj.geom) || isempty(obj.geom.stl)
                 error('Geometry data not available. Cannot compute outlines.');
             end
+
             outlines = obj.geom.calculate_outline2d();
             if isempty(outlines)
                 error('No building outlines found in geometry.');
             end
-
             n = numel(outlines);
 
             % Normalize values to per-building vector
@@ -1140,42 +1111,18 @@ classdef udbase < dynamicprops
                 end
             end
 
-            % Handle optional text labels (argument named 'text')
-            showLabels = false;
-            labels = {};
-            if nargin >= 3 && ~isempty(text)
-                if iscell(text) || isstring(text) || ischar(text)
-                    if ischar(text)
-                        % single string -> broadcast
-                        labels = repmat({text}, n, 1);
-                        showLabels = true;
-                    else
-                        if numel(text) ~= n
-                            error('Number of text labels must match number of buildings');
-                        end
-                        labels = cellstr(text);
-                        showLabels = true;
-                    end
+            % Handle optional text labels
+            showLabels = (nargin >= 3 && ~isempty(labels));
+            if showLabels
+                % Convert to cell array if needed
+                if ischar(labels)
+                    label_array = repmat({labels}, n, 1);
                 else
-                    error('text must be a cell array, string array, or char array');
+                    label_array = cellstr(labels);
                 end
-            end
-
-            % Colormap and value range
-            % If values are exactly the building indices 1:n, use HSV to match plot_building_ids
-            if isequal(vals(:), (1:n)')
-                cmap = hsv(256);
-            else
-                cmap = parula(256);
-            end
-            vm = vals(~isnan(vals));
-            if isempty(vm)
-                vmin = 0; vmax = 1;
-            else
-                vmin = min(vm); vmax = max(vm);
-            end
-            if vmin == vmax
-                vmin = vmin - 0.5; vmax = vmax + 0.5;
+                if numel(label_array) ~= n
+                    error('Number of text labels must match number of buildings');
+                end
             end
 
             % Plot
@@ -1186,8 +1133,7 @@ classdef udbase < dynamicprops
 
             for i = 1:n
                 o = outlines{i};
-                %outlines{i}
-                if isempty(o) || isempty(o.points)
+                if isempty(o) || isempty(o.polygon)
                     continue;
                 end
 
@@ -1195,30 +1141,45 @@ classdef udbase < dynamicprops
                     continue;
                 end
 
-                % map value to color index
-                idx = round( (vals(i) - vmin) / (vmax - vmin) * (size(cmap,1)-1) ) + 1;
-                idx = max(1, min(size(cmap,1), idx));
-                col = cmap(idx, :);
+                % Use polygon from calculate_outline2d
+                fill(o.polygon(:,1), o.polygon(:,2), vals(i), 'EdgeColor', 'k', 'LineWidth', 0.5, 'FaceAlpha', 1);
 
-                % Use outline from calculate_outline2d (assumed valid)
-                fill(o.boundary_points(:,1), o.boundary_points(:,2), col, 'EdgeColor', 'k', 'LineWidth', 0.5, 'FaceAlpha', 1);
-
-                if showLabels
+                if showLabels && i <= numel(label_array)
                     c = o.centroid;
-                    if ~any(isnan(c))
-                        htxt = text(c(1), c(2), labels{i}, ...
+                    if ~isempty(c) && numel(c) >= 2 && ~any(isnan(c))
+                        x_pos = c(1);
+                        y_pos = c(2);
+                        label_text = label_array{i};
+                        font_size = 10;
+                        
+                        % Create temporary text to measure extent
+                        temp_txt = text(x_pos, y_pos, label_text, ...
                             'HorizontalAlignment', 'center', ...
                             'VerticalAlignment', 'middle', ...
-                            'FontSize', 10, ...
+                            'FontSize', font_size, ...
                             'FontWeight', 'normal', ...
-                            'Color', 'k', ...
-                            'BackgroundColor', [1 1 1 0.7], ...
-                            'Margin', 1, ...
-                            'BackgroundAlpha', 0.7);
-%                        % Set alpha for text background (requires R2021a+)
-%                        if isprop(htxt, 'BackgroundAlpha')
-%                            htxt.BackgroundAlpha = 0.7;
-%                        end
+                            'Visible', 'off');
+                        ext = get(temp_txt, 'Extent');
+                        delete(temp_txt);
+                        
+                        % Create semi-transparent patch background
+                        % Use font size (in points) as basis for margin (more consistent)
+                        margin = font_size * 0.1;  % 10% of font size in data units
+                        patch_x = [ext(1)-margin, ext(1)+ext(3)+margin, ...
+                                   ext(1)+ext(3)+margin, ext(1)-margin];
+                        patch_y = [ext(2)-margin, ext(2)-margin, ...
+                                   ext(2)+ext(4)+margin, ext(2)+ext(4)+margin];
+                        patch(patch_x, patch_y, [1 1 1], ...
+                            'FaceAlpha', 0.8, ...
+                            'EdgeColor', 'none');
+                        
+                        % Create visible text on top
+                        text(x_pos, y_pos, label_text, ...
+                            'HorizontalAlignment', 'center', ...
+                            'VerticalAlignment', 'middle', ...
+                            'FontSize', font_size, ...
+                            'FontWeight', 'normal', ...
+                            'Color', 'k');
                     end
                 end
             end

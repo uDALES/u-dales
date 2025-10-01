@@ -29,7 +29,7 @@ classdef udgeom < handle
    properties (SetAccess = protected)
       stl;                     % stl of the geometry
       outline;                 % outline edges calculated using calculateOutline
-      outline2d;               % cached 2D outlines and centroids (cell array)
+      outline2d;               % cached 2D polygon outlines and centroids (cell array of structs with 'polygon' and 'centroid' fields)
       buildings;               % cell array of individual building triangulations (lazy loaded)
       face_to_building_map;    % array mapping each face index to its building ID (lazy loaded)
    end   
@@ -213,8 +213,8 @@ classdef udgeom < handle
          % Calculate 2D building outlines and centroids for all buildings.
          % outlines = calculate_outline2d(obj)
          %   Returns a cell array where each entry is a struct with fields:
-         %     boundary_points : Nx2 array (may be empty)
-         %     centroid : 1x2 array
+         %     polygon : Nx2 array of boundary points defining the 2D polygon (may be empty)
+         %     centroid : 1x2 array of the polygon centroid
 
          % If we've already computed outlines, return cached value
          if ~isempty(obj.outline2d)
@@ -233,7 +233,7 @@ classdef udgeom < handle
          for i = 1:num_buildings
              b = blds{i};
              if isempty(b)
-                 outline2d{i} = struct('boundary_points', [], 'centroid', [NaN NaN], 'points', [], 'faces', []);
+                 outline2d{i} = struct('polygon', [], 'centroid', [NaN NaN]);
                  continue;
              end
 
@@ -243,7 +243,7 @@ classdef udgeom < handle
              elseif isa(b, 'triangulation')
                  TR = b;
              else
-                 outline2d{i} = struct('boundary_points', [], 'centroid', [NaN NaN], 'points', [], 'faces', []);
+                 outline2d{i} = struct('polygon', [], 'centroid', [NaN NaN]);
                  continue;
              end
 
@@ -252,7 +252,14 @@ classdef udgeom < handle
 
              % Basic validation
              if isempty(pts) || size(pts,1) < 3 || isempty(faces)
-                 outline2d{i} = struct('boundary_points', [], 'centroid', mean(pts(:,1:2),1), 'points', pts, 'faces', faces);
+                 % Ensure centroid is a 1x2 row vector
+                 if isempty(pts)
+                     centroid = [NaN NaN];
+                 else
+                     centroid = mean(pts(:,1:2), 1);
+                     centroid = centroid(:)';  % Force row vector
+                 end
+                 outline2d{i} = struct('polygon', [], 'centroid', centroid);
                  continue;
              end
 
@@ -265,20 +272,22 @@ classdef udgeom < handle
                  if ~isempty(boundary_edges)
                      % Use indices returned by freeBoundary to select boundary points
                      % (matches behaviour in the last committed plot_building_ids)
-                     boundary_points = tri2.Points(boundary_edges(:,1), :);
-                     centroid = mean(boundary_points, 1);
+                     polygon = tri2.Points(boundary_edges(:,1), :);
+                     centroid = mean(polygon, 1);
                  else
                      % Fallback: no free boundary found -> use centroid of all points
-                     boundary_points = [];
+                     polygon = [];
                      centroid = mean(pts2, 1);
                  end
              catch
                  % On error (degenerate geometry etc.) fall back to centroid
-                 boundary_points = [];
+                 polygon = [];
                  centroid = mean(pts2, 1);
              end
 
-             outline2d{i} = struct('boundary_points', boundary_points, 'centroid', centroid, 'points', pts, 'faces', faces);
+             % Ensure centroid is always a 1x2 row vector
+             centroid = centroid(:)';
+             outline2d{i} = struct('polygon', polygon, 'centroid', centroid);
          end
 
          % Cache result on the object for faster repeated access
