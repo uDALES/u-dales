@@ -30,6 +30,7 @@ classdef udgeom < handle
       stl;                     % stl of the geometry
       outline;                 % outline edges calculated using calculateOutline
       outline2d;               % cached 2D polygon outlines and centroids (cell array of structs with 'polygon' and 'centroid' fields)
+      building_outlines;       % cached 3D outline edges for individual buildings (cell array of edge arrays, lazy loaded)
       buildings;               % cell array of individual building triangulations (lazy loaded)
       face_to_building_map;    % array mapping each face index to its building ID (lazy loaded)
    end   
@@ -113,6 +114,7 @@ classdef udgeom < handle
          end
         % invalidate cached 2D outlines and buildings mapping
         obj.outline2d = [];
+        obj.building_outlines = [];
         obj.buildings = [];
         obj.face_to_building_map = [];
       end
@@ -151,8 +153,9 @@ classdef udgeom < handle
          % Lazy load buildings if not already computed
             if isempty(obj.buildings)
                 [obj.buildings, obj.face_to_building_map] = udgeom.splitBuildings(obj.stl);
-                % invalidate cached 2D outlines when buildings are (re)computed
+                % invalidate cached 2D and 3D outlines when buildings are (re)computed
                 obj.outline2d = [];
+                obj.building_outlines = [];
             end
          
          building_components = obj.buildings;
@@ -182,6 +185,80 @@ classdef udgeom < handle
          end
          
          face_map = obj.face_to_building_map;
+      end
+      
+      % -------------------------------------------------------------- %
+      
+      function outlines = get_building_outlines(obj, angle_threshold)
+         % Get 3D outline edges for individual buildings with lazy loading.
+         %
+         % outlines = get_building_outlines(obj)
+         %   Returns cell array of outline edge arrays, one per building
+         %   Uses default angle threshold of 45 degrees
+         %
+         % outlines = get_building_outlines(obj, angle_threshold)
+         %   Uses custom angle threshold for edge detection
+         %
+         % Each element of outlines{i} is an Nx2 array where each row contains
+         % the indices of two vertices that form an outline edge for building i.
+         %
+         % Example:
+         %   outlines = geom.get_building_outlines();
+         %   edges_building_1 = outlines{1};
+         %
+         % SEE ALSO: calculateOutline, get_buildings, calculate_outline2d
+         
+         if isempty(obj.stl)
+             warning('No STL geometry loaded. Load geometry first.');
+             outlines = {};
+             return;
+         end
+         
+         if nargin < 2
+             angle_threshold = 45; % Default angle threshold
+         end
+         
+         % Lazy load building outlines if not already computed
+         if isempty(obj.building_outlines)
+             % Get individual buildings
+             blds = obj.get_buildings();
+             if isempty(blds)
+                 outlines = {};
+                 return;
+             end
+             
+             % Calculate outline for each building
+             num_buildings = length(blds);
+             obj.building_outlines = cell(num_buildings, 1);
+             
+             for i = 1:num_buildings
+                 b = blds{i};
+                 if isempty(b)
+                     obj.building_outlines{i} = [];
+                     continue;
+                 end
+                 
+                 % Accept both new struct-wrapped triangulation and raw triangulation
+                 if isstruct(b) && isfield(b, 'triangulation')
+                     TR = b.triangulation;
+                 elseif isa(b, 'triangulation')
+                     TR = b;
+                 else
+                     obj.building_outlines{i} = [];
+                     continue;
+                 end
+                 
+                 % Calculate outline edges for this building using calculateOutline
+                 try
+                     [edges, ~] = udgeom.calculateOutline(TR, angle_threshold);
+                     obj.building_outlines{i} = edges;
+                 catch
+                     obj.building_outlines{i} = [];
+                 end
+             end
+         end
+         
+         outlines = obj.building_outlines;
       end
       
       % -------------------------------------------------------------- %

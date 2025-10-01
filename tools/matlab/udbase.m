@@ -845,13 +845,26 @@ classdef udbase < dynamicprops
 
         % ------------------------------------------------------------- %
         
-
-        
-        % ------------------------------------------------------------- %
-        
         function add_building_outlines(obj, building_ids)
             % Helper method to add building outlines to current plot
-            % If building_ids is empty, uses overall geometry outline to avoid splitBuildings
+            %
+            % add_building_outlines(OBJ, building_ids)
+            %   building_ids: Array of building IDs to outline, or [] for all buildings
+            %
+            % When building_ids is empty, uses the cached geometry outline (obj.geom.outline)
+            % to efficiently draw all building outlines without splitting buildings.
+            %
+            % When specific building IDs are provided, uses cached per-building outlines
+            % (obj.geom.building_outlines) computed via get_building_outlines() for efficiency.
+            %
+            % Examples:
+            %   % Add outlines for all buildings (most efficient)
+            %   obj.add_building_outlines([]);
+            %
+            %   % Add outlines for specific buildings
+            %   obj.add_building_outlines([1, 3, 5]);
+            %
+            % SEE ALSO: plot_fac, udgeom.get_building_outlines, udgeom.calculateOutline
             
             if ~obj.lfgeom
                 return; % Skip if no geometry loaded
@@ -884,14 +897,21 @@ classdef udbase < dynamicprops
                 return;
             end
             
-            % For specific buildings, get buildings from geometry object
+            % For specific buildings, use cached building outlines
+            building_outlines = obj.geom.get_building_outlines();
             buildings = obj.geom.get_buildings();
-            buildings_to_outline = building_ids(building_ids <= length(buildings));
+            buildings_to_outline = building_ids(building_ids <= length(building_outlines));
             
-            % Add outlines for each building
+            % Add outlines for each requested building
             for building_id = buildings_to_outline
+                if building_id > length(building_outlines)
+                    continue;
+                end
+                
+                boundary_edges = building_outlines{building_id};
                 building_data = buildings{building_id};
-                if ~isempty(building_data)
+                
+                if ~isempty(boundary_edges) && ~isempty(building_data)
                     try
                         % Handle both struct format (new) and triangulation format (old)
                         if isstruct(building_data) && isfield(building_data, 'triangulation')
@@ -902,32 +922,27 @@ classdef udbase < dynamicprops
                             continue; % Skip invalid building data
                         end
                         
-                        % Calculate outline edges for this building
-                        [boundary_edges, ~] = udgeom.calculateOutline(building_triangulation, 45);
+                        % Get points from the building triangulation
+                        building_points = building_triangulation.Points;
                         
-                        if ~isempty(boundary_edges)
-                            % Get points from the building triangulation
-                            building_points = building_triangulation.Points;
-                            
-                            % Prepare line segment coordinates
-                            n_edges = size(boundary_edges, 1);
-                            coords = nan(3*n_edges, 3);
-                            
-                            % Fill coordinate array
-                            for i = 1:n_edges
-                                idx = 3*(i-1) + 1;
-                                coords(idx,:)   = building_points(boundary_edges(i,1),:);
-                                coords(idx+1,:) = building_points(boundary_edges(i,2),:);
-                            end
-                            
-                            % Draw edge lines
-                            line(coords(:,1), coords(:,2), coords(:,3), ...
-                                 'Color', 'k', ...
-                                 'LineWidth', 0.5, ...
-                                 'LineStyle', '-');
+                        % Prepare line segment coordinates
+                        n_edges = size(boundary_edges, 1);
+                        coords = nan(3*n_edges, 3);
+                        
+                        % Fill coordinate array
+                        for i = 1:n_edges
+                            idx = 3*(i-1) + 1;
+                            coords(idx,:)   = building_points(boundary_edges(i,1),:);
+                            coords(idx+1,:) = building_points(boundary_edges(i,2),:);
                         end
+                        
+                        % Draw edge lines
+                        line(coords(:,1), coords(:,2), coords(:,3), ...
+                             'Color', 'k', ...
+                             'LineWidth', 0.5, ...
+                             'LineStyle', '-');
                     catch
-                        % Skip buildings that cause errors in outline calculation
+                        % Skip buildings that cause errors in drawing
                         continue;
                     end
                 end
@@ -1055,7 +1070,7 @@ classdef udbase < dynamicprops
             % Use plot_2dmap to create the visualization
             obj.plot_2dmap(val, text_labels);
             colormap(hsv(num_buildings)); % Distinct colors for each building
-            
+
             % Format the plot with appropriate labels and title
             xlabel('x [m]');
             ylabel('y [m]');
