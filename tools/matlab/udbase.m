@@ -852,11 +852,11 @@ classdef udbase < dynamicprops
             % add_building_outlines(OBJ, building_ids)
             %   building_ids: Array of building IDs to outline, or [] for all buildings
             %
-            % When building_ids is empty, uses the cached geometry outline (obj.geom.outline)
-            % to efficiently draw all building outlines without splitting buildings.
+            % When building_ids is empty, uses obj.geom.get_outline() method
+            % to efficiently draw the entire geometry outline.
             %
             % When specific building IDs are provided, uses cached per-building outlines
-            % (obj.geom.building_outlines) computed via get_building_outlines() for efficiency.
+            % (obj.geom.outline3d) computed via get_building_outlines() for efficiency.
             %
             % Examples:
             %   % Add outlines for all buildings (most efficient)
@@ -873,9 +873,9 @@ classdef udbase < dynamicprops
             
             % If no specific buildings requested, use overall geometry outline
             if isempty(building_ids)
-                % Use the geometry's outline property to avoid expensive splitBuildings
-                if isprop(obj.geom, 'outline') && ~isempty(obj.geom.outline)
-                    outline_edges = obj.geom.outline;
+                % Use the geometry's get_outline method to get entire geometry outline
+                outline_edges = obj.geom.get_outline();
+                if ~isempty(outline_edges)
                     geom_points = obj.geom.stl.Points;
                     
                     % Prepare line segment coordinates

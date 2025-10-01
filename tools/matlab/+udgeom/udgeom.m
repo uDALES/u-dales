@@ -28,11 +28,10 @@ classdef udgeom < handle
 
    properties (SetAccess = protected)
       stl;                     % stl of the geometry
-      outline;                 % outline edges calculated using calculateOutline
       outline2d;               % cached 2D polygon outlines and centroids (cell array of structs with 'polygon' and 'centroid' fields)
-      building_outlines;       % cached 3D outline edges for individual buildings (cell array of edge arrays, lazy loaded)
-      buildings;               % cell array of individual building triangulations (lazy loaded)
-      face_to_building_map;    % array mapping each face index to its building ID (lazy loaded)
+      outline3d;               % cached 3D outline edges for individual buildings (cell array of edge arrays)
+      buildings;               % cached cell array of individual building triangulations
+      face_to_building_map;    % cached array mapping each face index to its building ID
    end   
    
    methods
@@ -55,8 +54,6 @@ classdef udgeom < handle
                 % Check if the input argument is a triangulation object
                 elseif isa(varargin{1}, 'triangulation')
                     obj.stl = varargin{1};
-                    % Calculate and store outline edges with default angle threshold
-                    [obj.outline, ~] = udgeom.calculateOutline(obj.stl, 45);
                 else
                     error('Input must be either a string or a triangulation object.');
                 end
@@ -108,15 +105,11 @@ classdef udgeom < handle
          obj.stl = stlread(filename);
          obj.gohome()
          
-         % Calculate and store outline edges with default angle threshold
-         if ~isempty(obj.stl)
-             [obj.outline, ~] = udgeom.calculateOutline(obj.stl, 45);
-         end
-        % invalidate cached 2D outlines and buildings mapping
-        obj.outline2d = [];
-        obj.building_outlines = [];
-        obj.buildings = [];
-        obj.face_to_building_map = [];
+         % invalidate cached 2D and 3D outlines and buildings mapping
+         obj.outline2d = [];
+         obj.outline3d = [];
+         obj.buildings = [];
+         obj.face_to_building_map = [];
       end
       
       % -------------------------------------------------------------- %
@@ -155,7 +148,7 @@ classdef udgeom < handle
                 [obj.buildings, obj.face_to_building_map] = udgeom.splitBuildings(obj.stl);
                 % invalidate cached 2D and 3D outlines when buildings are (re)computed
                 obj.outline2d = [];
-                obj.building_outlines = [];
+                obj.outline3d = [];
             end
          
          building_components = obj.buildings;
@@ -219,7 +212,7 @@ classdef udgeom < handle
          end
          
          % Lazy load building outlines if not already computed
-         if isempty(obj.building_outlines)
+         if isempty(obj.outline3d)
              % Get individual buildings
              blds = obj.get_buildings();
              if isempty(blds)
@@ -229,12 +222,12 @@ classdef udgeom < handle
              
              % Calculate outline for each building
              num_buildings = length(blds);
-             obj.building_outlines = cell(num_buildings, 1);
+             obj.outline3d = cell(num_buildings, 1);
              
              for i = 1:num_buildings
                  b = blds{i};
                  if isempty(b)
-                     obj.building_outlines{i} = [];
+                     obj.outline3d{i} = [];
                      continue;
                  end
                  
@@ -244,36 +237,47 @@ classdef udgeom < handle
                  elseif isa(b, 'triangulation')
                      TR = b;
                  else
-                     obj.building_outlines{i} = [];
+                     obj.outline3d{i} = [];
                      continue;
                  end
                  
                  % Calculate outline edges for this building using calculateOutline
                  try
                      [edges, ~] = udgeom.calculateOutline(TR, angle_threshold);
-                     obj.building_outlines{i} = edges;
+                     obj.outline3d{i} = edges;
                  catch
-                     obj.building_outlines{i} = [];
+                     obj.outline3d{i} = [];
                  end
              end
          end
          
-         outlines = obj.building_outlines;
+         outlines = obj.outline3d;
       end
       
       % -------------------------------------------------------------- %
       
-      function calculate_outline_edges(obj, angle_threshold)
-         % Recalculate outline edges with a custom angle threshold.
+      function outline_entire = get_outline(obj, angle_threshold)
+         % Get 3D outline edges for the entire geometry.
          %
-         % calculate_outline_edges(obj, angle_threshold)
-         %   angle_threshold: Angle threshold in degrees for detecting sharp edges
+         % outline_entire = get_outline(obj)
+         %   Returns outline edge array for the entire geometry using default threshold
+         %
+         % outline_entire = get_outline(obj, angle_threshold)
+         %   Uses custom angle threshold for edge detection
+         %
+         % Returns Nx2 array where each row contains the indices of two vertices
+         % that form an outline edge for the entire geometry. Vertex indices
+         % refer to obj.stl.Points.
          %
          % Example:
-         %   obj.calculate_outline_edges(30);  % More aggressive edge detection
+         %   outline = geom.get_outline();
+         %   outline_30deg = geom.get_outline(30);
+         %
+         % SEE ALSO: get_building_outlines, calculateOutline
          
          if isempty(obj.stl)
              warning('No STL geometry loaded. Load geometry first.');
+             outline_entire = [];
              return;
          end
          
@@ -281,7 +285,9 @@ classdef udgeom < handle
              angle_threshold = 45; % Default angle threshold
          end
          
-         [obj.outline, ~] = udgeom.calculateOutline(obj.stl, angle_threshold);
+         % Calculate outline directly from the entire STL geometry
+         % This ensures vertex indices are consistent with obj.stl.Points
+         [outline_entire, ~] = udgeom.calculateOutline(obj.stl, angle_threshold);
       end
 
       % -------------------------------------------------------------- %
@@ -447,17 +453,13 @@ classdef udgeom < handle
              angle_threshold = [];
          end
 
-         % Determine which outline to use
+         % Get outline edges using the new get_outline method
          if isempty(angle_threshold)
-             % Use precomputed outline if available
-             if isempty(obj.outline)
-                 % Calculate with default threshold if not available
-                 obj.calculate_outline_edges(45);
-             end
-             outline_edges = obj.outline;
+             % Use default threshold
+             outline_edges = obj.get_outline();
          else
-             % Recalculate with custom threshold
-             [outline_edges, ~] = udgeom.calculateOutline(obj.stl, angle_threshold);
+             % Use custom threshold
+             outline_edges = obj.get_outline(angle_threshold);
          end
 
          if isempty(outline_edges)
