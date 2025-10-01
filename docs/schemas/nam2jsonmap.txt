@@ -1,3 +1,0 @@
-NAMSUBGRID               SUBGRID
-NAMCHECKSIM.tcheck       OUTPUT.tcheck
-NAMSUBGRID.SG_CS         SUBGRID.cs

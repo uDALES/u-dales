@@ -12,7 +12,7 @@ This report shows the status of variables with color coding:
 - **JSON Support**: 244 variables
 - **Namelist Broadcasts**: 244 variables
 - **Non-namelist Broadcasts**: 0 variables (internal/computed)
-- **Schema Coverage**: 244 variables
+- **Schema Coverage**: 245 variables
 
 **Status Distribution:**
 - 🟢 **244 variables** with full support
@@ -89,3 +89,8 @@ This report shows the status of variables with color coding:
 ### WALLS
 
 🟢 **Full Support**: `dtfac`, `fkar`, `iwallmoist`, `iwallmom`, `iwallscal`, `iwalltemp`, `lbottom`, `lnorec`, `lwritefac`, `nblocks`, `nbndpts_c`, `nbndpts_u`, `nbndpts_v`, `nbndpts_w`, `nfcts`, `nfctsecs_c`, `nfctsecs_u`, `nfctsecs_v`, `nfctsecs_w`, `nsolpts_c`, `nsolpts_u`, `nsolpts_v`, `nsolpts_w`, `prandtlturb`
+
+
+## Variables in schema but not in namelists
+
+- `iinletgen`

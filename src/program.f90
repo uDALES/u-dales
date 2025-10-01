@@ -1,31 +1,31 @@
 !> \file program.f90
-!! Main program
+!! Main program for uDALES
 
 !! \section License License
-!!  This file is part of DALES.
+!!  This file is part of uDALES.
 !!
-!!  DALES is free software; you can redistribute it and/or modify it under the
+!!  uDALES is free software; you can redistribute it and/or modify it under the
 !! terms of the GNU General Public License as published by the Free Software
 !! Foundation; either version 3 of the License, or (at your option) any later
 !! version.
 !!
-!!  DALES is distributed in the hope that it will be useful, but WITHOUT ANY
+!!  uDALES is distributed in the hope that it will be useful, but WITHOUT ANY
 !! WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 !! PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 !!
 !!  You should have received a copy of the GNU General Public License along with
 !! this program.  If not, see <http://www.gnu.org/licenses/>.
 !!
-!!  Copyright 1993-2009 Delft University of Technology, Wageningen University,
-!! Utrecht University, KNMI
+!!  Copyright 2015- Imperial College London and contributors to uDALES
 !!
-program DALESURBAN      !Version 48
+
+program uDALES
 
 !!----------------------------------------------------------------
 !!     0.0    USE STATEMENTS FOR CORE MODULES
 !!----------------------------------------------------------------
   use modmpi,            only : initmpi,exitmpi,myid,starttimer, stoptimer
-  use modglobal,         only : initglobal,readgrid, rk3step,timeleft,runmode,TEST_JSON,TEST_IO
+  use modglobal,         only : initglobal,readgrid, rk3step,timeleft,runmode,TEST_JSON,TEST_IO, RUN_SIMULATION
   use modstartup,        only : readconfig,init2decomp,checkinitvalues,readinitfiles,exitmodules
   use modfields,         only : initfields
   use modsave,           only : writerestartfiles
@@ -69,23 +69,7 @@ program DALESURBAN      !Version 48
   call initglobal
 
   ! Execute tests if needed
-  select case (runmode)
-      case (TEST_JSON)
-        ! Execute JSON tests
-        call tests_json
-        call exitmpi
-        ! Stop execution after tests (tests are standalone)
-        stop 
-      case (TEST_IO)
-        ! Execute IO tests (placeholder for future implementation)
-        write(*,*) 'TEST_IO mode not yet implemented'
-        call exitmpi
-        stop 'TEST_IO mode not implemented'
-      case default
-        write(*,*) 'Unknown runmode:', runmode
-        call exitmpi
-        stop 'Invalid runmode specified'
-  end select
+  call execute_runmode_actions
 
   ! Perform simulations
   call readgrid
@@ -256,31 +240,26 @@ program DALESURBAN      !Version 48
   call exitmpi
 
 contains
-
   subroutine execute_runmode_actions
-    use modglobal, only : runmode, RUN_COLDSTART, RUN_WARMSTART, TEST_JSON, TEST_IO
-    implicit none
-    
     select case (runmode)
-      case (RUN_COLDSTART)
-        ! Normal cold start - no special actions needed
-        continue
-      case (RUN_WARMSTART)
-        ! Normal warm start - no special actions needed
-        continue
+      case (RUN_SIMULATION)
+        ! Normal execution mode, do nothing special here
       case (TEST_JSON)
         ! Execute JSON tests
         call tests_json
+        call exitmpi
         ! Stop execution after tests (tests are standalone)
-        stop 'JSON tests completed successfully'
+        stop 
       case (TEST_IO)
         ! Execute IO tests (placeholder for future implementation)
         write(*,*) 'TEST_IO mode not yet implemented'
+        call exitmpi
         stop 'TEST_IO mode not implemented'
       case default
         write(*,*) 'Unknown runmode:', runmode
+        call exitmpi
         stop 'Invalid runmode specified'
     end select
   end subroutine execute_runmode_actions
 
-end program DALESURBAN
+end program uDALES

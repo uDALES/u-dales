@@ -341,7 +341,10 @@ This report shows the status of variables across different aspects of the uDALES
 - **Total namelist variables**: 244
 - **Total JSON-readable variables**: 244
 - **Total broadcast variables**: 244
-- **Total schema variables**: 244
+- **Total schema variables**: 245
 - **Total namelists found**: 17
 
 ## Potential Issues
+
+### Variables in schema but not in namelists:
+- `iinletgen`

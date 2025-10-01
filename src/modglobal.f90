@@ -75,8 +75,6 @@ module modglobal
    
    ! Run mode constants and variable
    integer, parameter :: RUN_SIMULATION = 1
-   integer, parameter :: RUN_COLDSTART = 1
-   integer, parameter :: RUN_WARMSTART = 2
    integer, parameter :: TEST_JSON = 1001
    integer, parameter :: TEST_IO = 1002
    integer :: runmode = RUN_SIMULATION
@@ -556,6 +554,7 @@ contains
 !         iadv_sv(n) = iadv_kappa
 !      end do
       !ends here
+      where (iadv_sv == -1) iadv_sv = iadv_kappa
 
       !timestepping
       if (courant < 0) then
