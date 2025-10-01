@@ -841,6 +841,7 @@ classdef udbase < dynamicprops
                 obj.add_building_outlines([]);
                 hold off;
             end
+            view(3)
         end 
 
         % ------------------------------------------------------------- %
@@ -1042,15 +1043,11 @@ classdef udbase < dynamicprops
             % plot_building_ids(OBJ) creates a top-view plot showing buildings 
             % in different colors with building IDs at center of gravity
             %
-            % plot_building_ids(OBJ, 'FontSize', size) sets the font size for building ID labels (default: 12)
+            % plot_building_ids(OBJ, 'FontSize', size) sets the font size for building ID labels (default: 9)
             %
             % SEE ALSO: udgeom.splitBuildings, plot_outline, plot_2dmap
 
-            % Parse optional arguments for font size
-            p = inputParser;
-            addParameter(p, 'FontSize', 12, @isnumeric);
-            parse(p, varargin{:});
-            font_size = p.Results.FontSize;
+            % No FontSize input argument: text appearance uses defaults
 
             % Get number of buildings from outlines
             outlines = obj.geom.calculate_outline2d();
@@ -1076,16 +1073,7 @@ classdef udbase < dynamicprops
             ylabel('y [m]');
             title(sprintf('Building Layout with IDs (Total: %d)', num_buildings));
             view(2);
-            
-            % Update text properties if custom font size was specified
-            if font_size ~= 12
-                h = findobj(gca, 'Type', 'text');
-                set(h, 'FontSize', font_size, 'FontWeight', 'bold');
-            else
-                % Set default bold font for building IDs
-                h = findobj(gca, 'Type', 'text');
-                set(h, 'FontWeight', 'bold');
-            end
+           
         end
 
         % ------------------------------------------------------------- %
@@ -1165,39 +1153,49 @@ classdef udbase < dynamicprops
                         x_pos = c(1);
                         y_pos = c(2);
                         label_text = label_array{i};
-                        font_size = 10;
-                        
-                        % Create temporary text to measure extent
-                        temp_txt = text(x_pos, y_pos, label_text, ...
-                            'HorizontalAlignment', 'center', ...
-                            'VerticalAlignment', 'middle', ...
-                            'FontSize', font_size, ...
-                            'FontWeight', 'normal', ...
-                            'Visible', 'off');
-                        ext = get(temp_txt, 'Extent');
-                        delete(temp_txt);
-                        
-                        % Create semi-transparent patch background
-                        % Use font size (in points) as basis for margin (more consistent)
-                        margin = font_size * 0.1;  % 10% of font size in data units
-                        patch_x = [ext(1)-margin, ext(1)+ext(3)+margin, ...
-                                   ext(1)+ext(3)+margin, ext(1)-margin];
-                        patch_y = [ext(2)-margin, ext(2)-margin, ...
-                                   ext(2)+ext(4)+margin, ext(2)+ext(4)+margin];
-                        patch(patch_x, patch_y, [1 1 1], ...
-                            'FaceAlpha', 0.8, ...
-                            'EdgeColor', 'none');
-                        
-                        % Create visible text on top
-                        text(x_pos, y_pos, label_text, ...
-                            'HorizontalAlignment', 'center', ...
-                            'VerticalAlignment', 'middle', ...
-                            'FontSize', font_size, ...
-                            'FontWeight', 'normal', ...
-                            'Color', 'k');
+                        try
+                            % Use 'BackgroundColor' and a small 'Margin' if available
+                            text(x_pos, y_pos, label_text, ...
+                                'HorizontalAlignment', 'center', ...
+                                'VerticalAlignment', 'middle', ...
+                                'FontSize', 9, ...
+                                'FontWeight', 'normal', ...
+                                'Color', 'k', ...
+                                'BackgroundColor', [1 1 1 0.8], ...
+                                'Margin', 1);
+                        catch
+                            % Older MATLAB versions may not support 'Margin' or
+                            % RGBA background; fall back to solid bg with no margin.
+                            text(x_pos, y_pos, label_text, ...
+                                'HorizontalAlignment', 'center', ...
+                                'VerticalAlignment', 'middle', ...
+                                'FontSize', font_size, ...
+                                'FontWeight', 'normal', ...
+                                'Color', 'k', ...
+                                'BackgroundColor', [1 1 1]);
+                        end
                     end
                 end
             end
+            % Tighten axes to remove large margins around geometry
+            ax = gca;
+            axis tight;
+
+            % Reduce extra whitespace using TightInset/Position
+            try
+                ti = get(ax, 'TightInset');
+                pos = get(ax, 'Position');
+                % Shrink margins by applying TightInset with a small padding
+                pad = 0.01; % small normalized padding
+                newpos = [pos(1)+ti(1)-pad, pos(2)+ti(2)-pad, pos(3)-ti(1)-ti(3)+2*pad, pos(4)-ti(2)-ti(4)+2*pad];
+                % Ensure within [0,1]
+                newpos = max(newpos, 0);
+                newpos(3:4) = min(newpos(3:4), 1);
+                set(ax, 'Position', newpos);
+            catch
+                % ignore if properties not available
+            end
+
             hold off;
         end
         
