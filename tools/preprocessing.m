@@ -671,11 +671,16 @@ classdef preprocessing < dynamicprops
                 else
                     error('Invalid stretch');
                 end
-                figure;plot(obj.dzf);
-                title('dz variation','interpreter','latex')
-                xlabel('$k$','interpreter','latex')
-                ylabel('$dz$','interpreter','latex')
-                axis tight
+
+                fig = figure('Visible', 'off');  % Create an invisible figure
+                plot(obj.dzf);
+                title('dz variation','interpreter','latex');
+                xlabel('$k$','interpreter','latex');
+                ylabel('$dz$','interpreter','latex');
+                axis tight;
+                set(fig, 'Visible', 'on');
+                savefig(fig, 'dz_variation.fig');  % Save figure
+                close(fig);  % Close the invisible figure
             end
         end
 
