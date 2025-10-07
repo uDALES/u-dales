@@ -222,11 +222,13 @@ if r.libm
             %% Calculate view factors
             % remember to build View3D in local system windows/linux
             % Add check to see if View3D exists in the tools directory.
+            tic
             if lwindows
                 view3d_exe = [DA_TOOLSDIR '/View3D/src/View3D.exe'];
             else
                 view3d_exe = [DA_TOOLSDIR '/View3D/build/src/view3d'];
             end
+            fprintf('Elapsed time by view3d: %.6f seconds\n', toc);
 
             %vf = view3d(view3d_exe, fpath_facets_view3d, fpath_vf);
             if r.calc_vf % run view3d

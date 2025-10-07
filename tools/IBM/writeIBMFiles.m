@@ -85,6 +85,7 @@ if lmypolyfortran
     fclose(fileID);
 
     % Run
+    tic
     cd(fpath)
     if lwindows
         system('pre.exe');
@@ -93,6 +94,7 @@ if lmypolyfortran
     end
     delete pre.exe inmypoly_inp_info.txt faces.txt vertices.txt zfgrid.txt zhgrid.txt;
     cd(currentPath)
+    fprintf('Elapsed time by solid-fluid determination: %.6f seconds\n', toc);
 
     %% u-grid
     solid_ijk_u = readmatrix([fpath 'solid_u.txt'],'Range', 2);
@@ -885,6 +887,7 @@ if lmatchFacetsToCellsFortran
     fprintf(fileID,'%8d %8d %8d %15.10f %15.10f %15.10f %15.10f %15.10f %15.10f\n',[TR.ConnectivityList TR.incenter TR.faceNormal]');
     fclose(fileID);
 
+    tic
     cd(fpath)
     if lwindows
         system('MFTC.exe');
@@ -893,6 +896,7 @@ if lmatchFacetsToCellsFortran
     end
     delete MFTC.exe info_matchFacetsToCells.txt faces.txt vertices.txt zfgrid.txt zhgrid.txt;
     cd(currentPath)
+    fprintf('Elapsed time by MFTC: %.6f seconds\n', toc);
 
     facet_sections_u_fromfile = readmatrix([fpath 'facet_sections_u.txt'],'Range', 2);
     facet_sections_u = NaN(size(facet_sections_u_fromfile,1), 9);
