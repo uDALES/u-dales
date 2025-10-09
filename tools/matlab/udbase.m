@@ -51,7 +51,7 @@ classdef udbase < dynamicprops
         factypes;                % structure with facet type info
         facsec;                  % structure with fecet section info
 
-        % trees file
+        % trees information
         trees;                   % indices defining the bounding box of trees
     end
     properties (Hidden = true, SetAccess = protected)
@@ -78,6 +78,7 @@ classdef udbase < dynamicprops
         ffacetarea       = 'facetarea.inp';
         ffluid_boundary  = 'fluid_boundary';
         ffacet_sections  = 'facet_sections';
+        ftrees           = 'trees.inp';
 
         % logicals for whether input files are present
         lfprof           = true;
@@ -317,6 +318,8 @@ classdef udbase < dynamicprops
             % ------ %
             % load indices of the points definig the tree volumetric
             % blocks. Reads trees.inp. file.
+            obj.addvar('ltrees', false);
+            obj.addvar('treesfile', [obj.ftrees '.' obj.expnr]);
             if obj.ltrees
                 try
                     obj.trees = obj.load_trees();
@@ -339,7 +342,7 @@ classdef udbase < dynamicprops
 
             % Function only works when required data has been loaded.
             if (~obj.ltrees || ~obj.lftrees)
-                error('This method requires a trees.inp. file.');
+                error('This method requires a trees.inp. file along with ltrees to be set as true.');
             end
 
             obj.geom.show(false,false);
