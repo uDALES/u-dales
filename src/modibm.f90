@@ -174,21 +174,9 @@ module modibm
        bound_info_v%nfctsecs = nfctsecs_v
        bound_info_w%nfctsecs = nfctsecs_w
        call initibmwallfun('fluid_boundary_u.txt', 'facet_sections_u.txt', xhat, bound_info_u)
-        if (myid==0) then
-                write(*,*) "u done" 
-        end if
-
        call initibmwallfun('fluid_boundary_v.txt', 'facet_sections_v.txt', yhat, bound_info_v)
-        if (myid==0) then
-                write(*,*) "v done"
-        end if
        call initibmwallfun('fluid_boundary_w.txt', 'facet_sections_w.txt', zhat, bound_info_w)
-        if (myid==0) then
-                write(*,*) "w done"
-        end if
      end if
-
-     ! stop 1
      
      if (ltempeq .or. lmoist .or. nsv>0 .or. lwritefac) then
        solid_info_c%nsolpts = nsolpts_c
@@ -198,9 +186,6 @@ module modibm
        bound_info_c%nfctsecs = nfctsecs_c
        call initibmwallfun('fluid_boundary_c.txt', 'facet_sections_c.txt', vec0, bound_info_c)
 
-        if (myid==0) then
-                write(*,*) "c done"
-        end if
        allocate(mask_c(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); mask_c = 1.
        mask_c(:,:,kb-kh) = 0.
        call solid(solid_info_c, mask_c, rhs, 0., ih, jh, kh)
@@ -545,73 +530,52 @@ module modibm
            ! u
            if ((bound_info%recpts(n,1) < xh(bound_info%recids_u(n,1))) .or. &
                (bound_info%recpts(n,1) > xh(bound_info%recids_u(n,1)+1))) then
-             write(*,*) "ERROR: x out of bounds u"
-           !  write(*,*) n
-           !    stop 1
+             write(*,*) "ERROR: x out of bounds"
+             stop 1
            end if
            if ((bound_info%recpts(n,2) < yf(bound_info%recids_u(n,2))) .or. &
                (bound_info%recpts(n,2) > yf(bound_info%recids_u(n,2)+1))) then
-             write(*,*) "ERROR: y out of bounds u"
-             write(*,*) n
-             write(*,*) bound_info%secfacids(n)
-             write(*,*) bound_info%secareas(n)
-             write(*,*) bound_info%secbndptids(n)
-             write(*,*) bound_info%bnddst(n)
-             !stop 1
+             write(*,*) "ERROR: y out of bounds"
+             stop 1
            end if
            if ((bound_info%recpts(n,3) < zf(bound_info%recids_u(n,3))) .or. &
                (bound_info%recpts(n,3) > zf(bound_info%recids_u(n,3)+1))) then
-             write(*,*) "ERROR: z out of bounds u"
-             !write(*,*) n
-           !  stop 1
+             write(*,*) "ERROR: z out of bounds"
+           stop 1
            end if
 
            ! v
            if ((bound_info%recpts(n,1) < xf(bound_info%recids_v(n,1))) .or. &
                (bound_info%recpts(n,1) > xf(bound_info%recids_v(n,1)+1))) then
-             write(*,*) "ERROR: x out of bounds v"
-             !write(*,*) n
-           !  stop 1
+             write(*,*) "ERROR: x out of bounds"
+           stop 1
            end if
            if ((bound_info%recpts(n,2) < yh(bound_info%recids_v(n,2))) .or. &
                (bound_info%recpts(n,2) > yh(bound_info%recids_v(n,2)+1))) then
-             write(*,*) "ERROR: y out of bounds v"
-             !write(*,*) n
-           !  stop 1
+             write(*,*) "ERROR: y out of bounds"
+           stop 1
            end if
            if ((bound_info%recpts(n,3) < zf(bound_info%recids_v(n,3))) .or. &
                (bound_info%recpts(n,3) > zf(bound_info%recids_v(n,3)+1))) then
-             write(*,*) "ERROR: z out of bounds v"
-            ! write(*,*) n
-           !    stop 1
+             write(*,*) "ERROR: z out of bounds"
+           stop 1
            end if
 
            ! w
            if ((bound_info%recpts(n,1) < xf(bound_info%recids_w(n,1))) .or. &
                (bound_info%recpts(n,1) > xf(bound_info%recids_w(n,1)+1))) then
-             write(*,*) "ERROR: x out of bounds w"
-             write(*,*) bound_info%secfacids(n)
-             write(*,*) bound_info%secareas(n)
-             write(*,*) bound_info%secbndptids(n)
-             write(*,*) bound_info%bnddst(n)
-             !write(*,*) n
-           !  stop 1
+             write(*,*) "ERROR: x out of bounds"
+           stop 1
            end if
            if ((bound_info%recpts(n,2) < yf(bound_info%recids_w(n,2))) .or. &
                (bound_info%recpts(n,2) > yf(bound_info%recids_w(n,2)+1))) then
-             write(*,*) "ERROR: y out of bounds w"
-             write(*,*) bound_info%secfacids(n)
-             write(*,*) bound_info%secareas(n)
-             write(*,*) bound_info%secbndptids(n)
-             write(*,*) bound_info%bnddst(n)
-             !write(*,*) n
-           !  stop 1
+             write(*,*) "ERROR: y out of bounds"
+           stop 1
            end if
            if ((bound_info%recpts(n,3) < zh(bound_info%recids_w(n,3))) .or. &
                (bound_info%recpts(n,3) > zh(bound_info%recids_w(n,3)+1))) then
-             !write(*,*) "ERROR: z out of bounds w"
-             write(*,*) n
-            ! stop 1
+             write(*,*) "ERROR: z out of bounds"
+            stop 1
            end if
          end if
        end do
@@ -1221,7 +1185,7 @@ module modibm
 
 
    subroutine ibmwallfun
-     use modglobal, only : libm, iwallmom, iwalltemp, xhat, yhat, zhat, ltempeq, lmoist, skip_time, &
+     use modglobal, only : libm, iwallmom, iwalltemp, xhat, yhat, zhat, ltempeq, lmoist, &
                            ib, ie, ih, ihc, jb, je, jh, jhc, kb, ke, kh, khc, nsv, totheatflux, totqflux, nfcts, rk3step, timee, nfcts, lwritefac, dt, dtfac, tfac, tnextfac
      use modfields, only : u0, v0, w0, thl0, qt0, sv0, up, vp, wp, thlp, qtp, svp, &
                            tau_x, tau_y, tau_z, thl_flux
@@ -1302,7 +1266,6 @@ module modibm
 
       deallocate(rhs)
 
-!      if (lwritefac .and. rk3step==3 .and. timee>=skip_time) then
        if (lwritefac .and. rk3step==3 ) then
         if (myid == 0) then
             fac_tau_x_av = fac_tau_x_av + dt*fac_tau_x
@@ -1314,9 +1277,7 @@ module modibm
             fac_htc_av = fac_htc_av + dt*fac_htc
             fac_cth_av = fac_cth_av + dt*fac_cth
             
-!            if (timee >= tnextfac + skip_time) then
              if (timee >= tnextfac) then                  
-!               tfac = timee - max(skip_time, tfac)
                tfac = timee - tfac
                allocate(varsfac(nfcts,nstatfac))
                varsfac(:,1) = fac_tau_x_av(1:nfcts)/tfac
@@ -1333,8 +1294,6 @@ module modibm
                deallocate(varsfac)
 
                tfac = timee
-!               tnextfac = NINT((timee + dtfac - skip_time))*1.0
-
                tnextfac = NINT((timee + dtfac))*1.0
                fac_tau_x_av = 0.
                fac_tau_y_av = 0.
