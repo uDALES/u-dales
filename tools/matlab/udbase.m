@@ -341,8 +341,8 @@ classdef udbase < dynamicprops
             %   obj.plot_trees();
 
             % Function only works when required data has been loaded.
-            if (~obj.ltrees || ~obj.lftrees)
-                error('This method requires a trees.inp. file along with ltrees to be set as true.');
+            if (~obj.lfgeom || ~obj.ltrees || ~obj.lftrees)
+                error('This method requires a geometry (STL) file, a trees.inp. file, and ltrees to be set as true.');
             end
 
             obj.geom.show(false,false);
