@@ -16,7 +16,8 @@ The **`udbase`** post-processing class reads in most important input parameters,
 
 
    -  **load_stat_xyt**. This method load the 1D slab- and time-averaged statistics from the file `xytdump.expnr.nc`. Several time-intervals may be present in the data. 
-   -  **load_stat_t**. This method loads the 3D time-averaged statistics from the file `tdump.expnr.nc`. Several time-intervals may be present in the data. 
+   -  **load_stat_t**. This method loads the 3D time-averaged statistics from the file `tdump.expnr.nc`. Several time-intervals may be present in the data.
+   -  **load_stat_tree**. This method loads the 3D time-averaged statistics of the tree source terms from the file `treedump.expnr.nc`. This method works exactly the same way as `load_stat_t`.
    -  **load_field**. This method loads instantaneous 3D data from the file `fielddump.expnr.nc`. Several output times may be present in the data. 
    -  **load_slice**. This method loads instantaneous 2D slices of instantaneous 3D data from the file `Xslicedump.expnr.nc`. Several output times may be present in the data. 
 
@@ -39,7 +40,10 @@ The **`udbase`** post-processing class reads in most important input parameters,
    -  **time_average**. This method performs time-averaging on an array; where time is assumed to be the last index of the array. 
    -  **convert_fac_to_field**. This method converts a facet variable to a density in a 3D field, so it can be used for post-processing (e.g. calculating distributed drag). 
 
+**Plotting:**
 
+
+   -  **plot_trees**. This method volumetric tree blocks along with the STL geometry.
 
 **The live matlab file of this tutorial can be found in the repository in the folder /docs/tutorial_mlx.**
 
