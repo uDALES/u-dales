@@ -172,7 +172,7 @@ classdef udbase < dynamicprops
             % load grid
 
             obj.dx = obj.xlen/obj.itot;
-            obj.dy = obj.ylen/obj.itot;
+            obj.dy = obj.ylen/obj.jtot;
             obj.xm = (0:obj.itot-1)' * obj.dx;
             obj.ym = (0:obj.jtot-1)' * obj.dy;
             obj.xt = obj.xm + 0.5 * obj.dx;
