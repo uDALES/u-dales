@@ -104,17 +104,21 @@ help geom.show
 --- help for udgeom.udgeom/show ---
 
   plot the geometry
- 
-  show(obj, colorbuildings)
-        colorbuildings (optional): boolean parameter on whether
-                                   to colour buildings. This
-                                   parameter is true by default.
-                                   Needs to be set to false for 
-                                   large geometries.
- 
-  examples:
-    obj.show();
-    obj.show(false);
+  
+  show(obj, color_buildings, plot_quiver)
+  
+    color_buildings (optional): boolean parameter on whether
+                                to color buildings. Default =
+                                true. Needs to be set to false for 
+                                large geometries.
+  
+    plot_quiver (optional): boolean parameter on whether
+                            to plot quiver arrows. Default = true.
+  
+  Examples:
+    obj.show();                   % both true
+    obj.show(false);              % color_buildings = false, plot_quiver = true
+    obj.show(true, false);        % color_buildings = true, plot_quiver = false
 ```
 
 

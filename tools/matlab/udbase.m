@@ -342,7 +342,7 @@ classdef udbase < dynamicprops
                 error('This method requires a trees.inp. file.');
             end
 
-            obj.geom.show(false);
+            obj.geom.show(false,false);
             hold on;
 
             if obj.ltrees
