@@ -177,7 +177,7 @@ module modibm
        call initibmwallfun('fluid_boundary_v.txt', 'facet_sections_v.txt', yhat, bound_info_v)
        call initibmwallfun('fluid_boundary_w.txt', 'facet_sections_w.txt', zhat, bound_info_w)
      end if
-     
+
      if (ltempeq .or. lmoist .or. nsv>0 .or. lwritefac) then
        solid_info_c%nsolpts = nsolpts_c
        call initibmnorm('solid_c.txt', solid_info_c)
@@ -1498,7 +1498,6 @@ module modibm
 
        fac_pres_loc(fac) = fac_pres_loc(fac) + pres0(i,j,k) * area ! output pressure on facets
        fac_pres2_loc(fac) = fac_pres2_loc(fac) +  pres0(i,j,k)* pres0(i,j,k) * area
-
 
        if (bound_info_c%lskipsec_loc(sec)) cycle
        !if (facz0(fac) < eps1) cycle
