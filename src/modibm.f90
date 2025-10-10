@@ -541,41 +541,41 @@ module modibm
            if ((bound_info%recpts(n,3) < zf(bound_info%recids_u(n,3))) .or. &
                (bound_info%recpts(n,3) > zf(bound_info%recids_u(n,3)+1))) then
              write(*,*) "ERROR: z out of bounds"
-           stop 1
+             stop 1
            end if
 
            ! v
            if ((bound_info%recpts(n,1) < xf(bound_info%recids_v(n,1))) .or. &
                (bound_info%recpts(n,1) > xf(bound_info%recids_v(n,1)+1))) then
              write(*,*) "ERROR: x out of bounds"
-           stop 1
+             stop 1
            end if
            if ((bound_info%recpts(n,2) < yh(bound_info%recids_v(n,2))) .or. &
                (bound_info%recpts(n,2) > yh(bound_info%recids_v(n,2)+1))) then
              write(*,*) "ERROR: y out of bounds"
-           stop 1
+             stop 1
            end if
            if ((bound_info%recpts(n,3) < zf(bound_info%recids_v(n,3))) .or. &
                (bound_info%recpts(n,3) > zf(bound_info%recids_v(n,3)+1))) then
              write(*,*) "ERROR: z out of bounds"
-           stop 1
+             stop 1
            end if
 
            ! w
            if ((bound_info%recpts(n,1) < xf(bound_info%recids_w(n,1))) .or. &
                (bound_info%recpts(n,1) > xf(bound_info%recids_w(n,1)+1))) then
              write(*,*) "ERROR: x out of bounds"
-           stop 1
+             stop 1
            end if
            if ((bound_info%recpts(n,2) < yf(bound_info%recids_w(n,2))) .or. &
                (bound_info%recpts(n,2) > yf(bound_info%recids_w(n,2)+1))) then
              write(*,*) "ERROR: y out of bounds"
-           stop 1
+             stop 1
            end if
            if ((bound_info%recpts(n,3) < zh(bound_info%recids_w(n,3))) .or. &
                (bound_info%recpts(n,3) > zh(bound_info%recids_w(n,3)+1))) then
              write(*,*) "ERROR: z out of bounds"
-            stop 1
+             stop 1
            end if
          end if
        end do
@@ -1266,18 +1266,17 @@ module modibm
 
       deallocate(rhs)
 
-       if (lwritefac .and. rk3step==3 ) then
+      if (lwritefac .and. rk3step==3) then
         if (myid == 0) then
             fac_tau_x_av = fac_tau_x_av + dt*fac_tau_x
             fac_tau_y_av = fac_tau_y_av + dt*fac_tau_y
             fac_tau_z_av = fac_tau_z_av + dt*fac_tau_z
             fac_pres_av = fac_pres_av + dt*fac_pres
             fac_pres2_av = fac_pres2_av + dt*fac_pres2
-
             fac_htc_av = fac_htc_av + dt*fac_htc
             fac_cth_av = fac_cth_av + dt*fac_cth
-            
-             if (timee >= tnextfac) then                  
+
+            if (timee >= tnextfac) then
                tfac = timee - tfac
                allocate(varsfac(nfcts,nstatfac))
                varsfac(:,1) = fac_tau_x_av(1:nfcts)/tfac
@@ -1286,15 +1285,14 @@ module modibm
                varsfac(:,4) = fac_pres_av(1:nfcts)/tfac
                varsfac(:,5) = fac_htc_av(1:nfcts)/tfac
                varsfac(:,6) = fac_cth_av(1:nfcts)/tfac
-
                varsfac(:,7) = fac_pres2_av(1:nfcts)/tfac - (fac_pres_av(1:nfcts)/dtfac * fac_pres_av(1:nfcts)/tfac)
-               
                call writestat_nc(ncidfac,1,tncstatfac,(/timee/),nrecfac,.true.)
                call writestat_1D_nc(ncidfac,nstatfac,ncstatfac,varsfac,nrecfac,nfcts)
                deallocate(varsfac)
 
                tfac = timee
                tnextfac = NINT((timee + dtfac))*1.0
+
                fac_tau_x_av = 0.
                fac_tau_y_av = 0.
                fac_tau_z_av = 0.
@@ -1302,14 +1300,10 @@ module modibm
                fac_pres2_av= 0.
                fac_htc_av = 0.
                fac_cth_av = 0.
-
             end if
-
         end if !myid
-
       end if
-
-    end subroutine ibmwallfun
+   end subroutine ibmwallfun
 
 
    subroutine wallfunmom(dir, rhs, bound_info)
