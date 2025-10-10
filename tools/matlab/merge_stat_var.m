@@ -18,13 +18,12 @@ function [Xmean, var] = merge_stat_var(X, XpXp, n)
 %   Xmean - Time-averaged X in each non-overlapping window.
 %   var   - Time-averaged total variance in each window.
 %
-% Example
-%   % Average X every 20 samples and include no instantaneous term:
+% Example:
+%   % Average X every 20 samples with no instantaneous term:
 %   [Xm, V] = merge_stat_var(X, zeros(size(X)), 20);
 %
 % See also: merge_stat_cov
 
 % Delegate to merge_stat_cov with X==Y
 [Xmean, ~, var] = merge_stat_cov(X, X, XpXp, n);
-
 end

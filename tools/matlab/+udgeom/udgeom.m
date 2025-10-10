@@ -132,9 +132,11 @@ classdef udgeom < handle
          %
          % building_components = get_buildings(obj)
          %   Returns cell array of triangulation objects, one for each building
+         %   Each building struct now includes a spatial_id field for consistent labeling
          %
          % Example:
          %   buildings = geom.get_buildings();
+         %   building_1_id = buildings{1}.spatial_id;  % Access stored spatial ID
          %   num_buildings = length(buildings);
          
          if isempty(obj.stl)
@@ -144,12 +146,16 @@ classdef udgeom < handle
          end
          
          % Lazy load buildings if not already computed
-            if isempty(obj.buildings)
-                [obj.buildings, obj.face_to_building_map] = udgeom.splitBuildings(obj.stl);
-                % invalidate cached 2D and 3D outlines when buildings are (re)computed
-                obj.outline2d = [];
-                obj.outline3d = [];
-            end
+         if isempty(obj.buildings)
+             [obj.buildings, obj.face_to_building_map] = udgeom.splitBuildings(obj.stl);
+             
+             % Sort buildings by spatial location (SW to NE) so that buildings{i} represents building ID i
+             obj.sort_buildings_by_spatial_location();
+             
+             % invalidate cached 2D and 3D outlines when buildings are (re)computed
+             obj.outline2d = [];
+             obj.outline3d = [];
+         end
          
          building_components = obj.buildings;
       end
@@ -375,6 +381,192 @@ classdef udgeom < handle
 
          % Cache result on the object for faster repeated access
          obj.outline2d = outline2d;
+      end
+      
+      % -------------------------------------------------------------- %
+      
+      function building_ids = generate_spatial_building_ids(obj)
+         % Generate building IDs ordered from southwest to northeast based on 2D centroids.
+         %
+         % building_ids = generate_spatial_building_ids(obj)
+         %   Returns array of building IDs (1, 2, 3, ...) where the index
+         %   corresponds to the building order from calculate_outline2d(),
+         %   but the values are spatially ordered from southwest to northeast.
+         %
+         % The ordering uses the same centroid calculation as calculate_outline2d
+         % to ensure consistency across all methods.
+         %
+         % Example:
+         %   ids = geom.generate_spatial_building_ids();
+         %   % ids(i) gives the spatial ID for building i in outline order
+         
+         % Get 2D outlines which contain consistent centroids
+         outlines = obj.calculate_outline2d();
+         if isempty(outlines)
+             building_ids = [];
+             return;
+         end
+         
+         num_buildings = length(outlines);
+         centroids = zeros(num_buildings, 2);
+         
+         % Extract centroids (consistent with calculate_outline2d method)
+         for i = 1:num_buildings
+             if ~isempty(outlines{i}) && isfield(outlines{i}, 'centroid')
+                 centroids(i, :) = outlines{i}.centroid;
+             else
+                 centroids(i, :) = [NaN, NaN];
+             end
+         end
+         
+         % Remove buildings with invalid centroids
+         valid_idx = ~any(isnan(centroids), 2);
+         valid_centroids = centroids(valid_idx, :);
+         valid_original_idx = find(valid_idx);
+         
+         if isempty(valid_centroids)
+             building_ids = (1:num_buildings)';  % Fallback to original order
+             return;
+         end
+         
+         % Sort from southwest to northeast: first by x (west to east), then by y (south to north)
+         % This creates a consistent spatial ordering independent of mesh connectivity order
+         [~, sort_idx] = sortrows(valid_centroids, [1, 2]);
+         
+         % Create mapping: outline_order_index -> spatial_id
+         building_ids = zeros(num_buildings, 1);
+         
+         % Assign spatial IDs to valid buildings
+         for i = 1:length(sort_idx)
+             outline_idx = valid_original_idx(sort_idx(i));
+             building_ids(outline_idx) = i;
+         end
+         
+         % Assign remaining buildings (with invalid centroids) sequential IDs
+         invalid_idx = find(~valid_idx);
+         next_id = length(sort_idx) + 1;
+         for i = 1:length(invalid_idx)
+             building_ids(invalid_idx(i)) = next_id;
+             next_id = next_id + 1;
+         end
+      end
+      
+      % -------------------------------------------------------------- %
+      
+      function sort_buildings_by_spatial_location(obj)
+         % Sort buildings array by spatial location from southwest to northeast.
+         %
+         % This method reorders obj.buildings in-place so that buildings{i} 
+         % represents the building with spatial ID i, ordered from southwest 
+         % to northeast based on building centroids.
+         
+         if isempty(obj.buildings)
+             return;
+         end
+         
+         num_buildings = length(obj.buildings);
+         centroids = zeros(num_buildings, 2);
+         
+         % Calculate centroid for each building directly from its points
+         for i = 1:num_buildings
+             bld = obj.buildings{i};
+             if isempty(bld)
+                 centroids(i, :) = [NaN, NaN];
+                 continue;
+             end
+             
+             % Get points from building data
+             if isstruct(bld) && isfield(bld, 'triangulation')
+                 points = bld.triangulation.Points;
+             elseif isstruct(bld) && isfield(bld, 'Points')
+                 points = bld.Points;
+             elseif isa(bld, 'triangulation')
+                 points = bld.Points;
+             else
+                 centroids(i, :) = [NaN, NaN];
+                 continue;
+             end
+             
+             if ~isempty(points) && size(points, 2) >= 2
+                 % Calculate 2D centroid (x, y coordinates)
+                 centroids(i, :) = mean(points(:, 1:2), 1);
+             else
+                 centroids(i, :) = [NaN, NaN];
+             end
+         end
+         
+         % Sort buildings from southwest to northeast
+         valid_idx = ~any(isnan(centroids), 2);
+         valid_centroids = centroids(valid_idx, :);
+         valid_original_idx = find(valid_idx);
+         
+         if ~isempty(valid_centroids)
+             % Sort by x (west to east), then by y (south to north)
+             [~, sort_idx] = sortrows(valid_centroids, [1, 2]);
+         end
+         
+         % Reorder buildings array according to spatial sorting
+         if ~isempty(valid_centroids)
+             % Create a new ordered buildings array
+             sorted_buildings = cell(num_buildings, 1);
+             
+             % Place spatially sorted valid buildings first
+             for i = 1:length(sort_idx)
+                 original_idx = valid_original_idx(sort_idx(i));
+                 sorted_buildings{i} = obj.buildings{original_idx};
+             end
+             
+             % Place invalid buildings at the end
+             invalid_idx = find(~valid_idx);
+             next_pos = length(sort_idx) + 1;
+             for i = 1:length(invalid_idx)
+                 sorted_buildings{next_pos} = obj.buildings{invalid_idx(i)};
+                 next_pos = next_pos + 1;
+             end
+             
+             % Replace the original buildings array
+             obj.buildings = sorted_buildings;
+             
+             % Invalidate cached outlines since building order changed
+             obj.outline2d = [];
+             obj.outline3d = [];
+         end
+      end
+      
+      % -------------------------------------------------------------- %
+      
+      function building_ids = extract_spatial_ids_from_buildings(obj)
+         % Extract spatial IDs from building structures.
+         %
+         % building_ids = extract_spatial_ids_from_buildings(obj)
+         %   Returns array of spatial IDs stored in building structures
+         %
+         % If spatial IDs are not found in structures, generates them using
+         % the generate_spatial_building_ids method.
+         
+         if isempty(obj.buildings)
+             building_ids = [];
+             return;
+         end
+         
+         building_ids = zeros(length(obj.buildings), 1);
+         has_stored_ids = true;
+         
+         % Try to extract stored spatial IDs
+         for i = 1:length(obj.buildings)
+             bld = obj.buildings{i};
+             if ~isempty(bld) && isstruct(bld) && isfield(bld, 'spatial_id')
+                 building_ids(i) = bld.spatial_id;
+             else
+                 has_stored_ids = false;
+                 break;
+             end
+         end
+         
+         % Fallback to generation if IDs not stored
+         if ~has_stored_ids
+             building_ids = obj.generate_spatial_building_ids();
+         end
       end
       
       % -------------------------------------------------------------- %

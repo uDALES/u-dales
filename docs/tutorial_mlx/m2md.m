@@ -18,12 +18,14 @@
 % - fields_tutorial.m     : Working with uDALES field data  
 % - udbase_tutorial.m     : Introduction to udbase class
 % - geometry_tutorial.m   : Working with uDALES geometry
+% - utility_tutorial.m    : Tutorial for utility functions
 %
 % OUTPUT FILES:
 % - udales-facets-tutorial.md    : Markdown version (local, anonymized)
 % - udales-fields-tutorial.md    : Markdown version (local, anonymized)
 % - udales-udbase-tutorial.md    : Markdown version (local, anonymized) 
 % - udales-geometry-tutorial.md  : Markdown version (local, anonymized)
+% - udales-utility-tutorial.md  : Markdown version (local, anonymized)
 %
 % POST-PROCESSING OPERATIONS:
 % 1. Path anonymization: Replaces specific file paths with generic placeholders
@@ -81,8 +83,7 @@ function escaped = regexpescape(str)
 end
 
 %% Configuration: Define live scripts to convert and processing parameters
-liveScripts = {'facets_tutorial.m', 'fields_tutorial.m', 'udbase_tutorial.m', 'geometry_tutorial.m'};
-
+liveScripts = {'facets_tutorial.m', 'fields_tutorial.m', 'udbase_tutorial.m', 'geometry_tutorial.m', 'utility_tutorial.m'};
 % Maximum number of references to process (e.g., [1] through [maxrefs])
 maxrefs = 10;
 

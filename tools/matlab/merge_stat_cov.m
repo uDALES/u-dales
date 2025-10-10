@@ -34,29 +34,9 @@ function [Xmean, Ymean, cov] = merge_stat_cov(X, Y, XpYp, n)
 %                 mean( (X - Xmean_window).*(Y - Ymean_window) + XpYp )
 %             where the mean is taken over the time samples in the window.
 %
-% Notes / algorithm
-%   - The function discards a small number of leading samples when the
-%     length Nt is not an integer multiple of n. Specifically, shift = rem(Nt,n)
-%     samples from the start are skipped so that the remaining data can be
-%     partitioned into exactly N = fix(Nt/n) non-overlapping windows.
-%   - The routine accepts arrays of arbitrary dimensionality as long as
-%     the last dimension is time. All non-time dimensions are preserved
-%     in the outputs.
-%   - XpYp provides flexibility to include pre-computed instantaneous
-%     contributions (for example from subgrid or facet flux terms). If
-%     no such term exists, pass zeros(size(X)).
-%   - For variance, call merge_stat_var which simply calls this routine
-%     with X == Y and XpYp = XpXp.
-%
-% Edge cases
-%   - If n >= Nt then the function returns a single averaged sample.
-%   - If a variable contains NaNs, the mean and covariance follow MATLAB's
-%     default behaviour for mean() (i.e. NaN propagates). Consider
-%     pre-filtering or using nanmean/nanvar if that is desired.
-%
-% Example
-%   % Suppose X is [Nx, Ny, Nt] and you want to average every 10 samples:
-%   %   [Xm, Ym, C] = merge_stat_cov(X, Y, zeros(size(X)), 10);
+% Example:
+%   % Merge every 10 samples:
+%   [Xm, Ym, C] = merge_stat_cov(X, Y, zeros(size(X)), 10);
 %
 % See also: merge_stat_var
 
@@ -126,5 +106,4 @@ for i = 1:N
     % Average covariance over time window
     cov(indices{:}, i) = mean(temp_cov, ndims(X));
 end
-
 end

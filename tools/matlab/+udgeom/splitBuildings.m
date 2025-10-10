@@ -213,6 +213,12 @@ function [building_components, face_to_building_map] = splitBuildings(mesh_TR, v
         end
     end
     
+    % Add spatial IDs to buildings based on centroid ordering (southwest to northeast)
+    if ~isempty(building_components)
+        % Note: Building IDs are now determined by array position,
+        % no need to add spatial_id fields
+    end
+    
     % Count valid buildings and calculate statistics
     valid_buildings = 0;
     total_building_faces = 0;

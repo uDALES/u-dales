@@ -4,8 +4,10 @@ This tutorial describes how to read and process field data output of the LES cod
 The **`udbase`** post-processing class reads in most important input parameters, and contains a number of methods to load field data:
    -  [**load_stat_xyt**](#load_stat_xyt-loading-time-and-slab-averaged-data). This method load the 1D slab- and time-averaged statistics from the file `xytdump.expnr.nc`. Several time-intervals may be present in the data. 
    -  [**load_stat_t**](#load_stat_t-loading-time-averaged-data). This method loads the 3D time-averaged statistics from the file `tdump.expnr.nc`. Several time-intervals may be present in the data. 
+   -  [**load_stat_tree**](#load_stat_tree-loading-time-average-tree-data). This method loads the 3D time-averaged statistics of the tree source terms from the file `treedump.expnr.nc`. This method works exactly the same way as `load_stat_t`. 
    -  [**load_field**](#load_field-loading-instantaneous-3d-data). This method loads instantaneous 3D data from the file `fielddump.expnr.nc`. Several output times may be present in the data. 
    -  [**load_slice**](#load_slice-loading-instantaneous-2d-slice-data). This method loads instantaneous 2D slices of instantaneous 3D data from the file `Xslicedump.expnr.nc`. Several output times may be present in the data. 
+   -  [**plot_trees**](#load_stat_tree-loading-time-average-tree-data). This method plots tree patches 
 **The live matlab file of this tutorial can be found in the repository in the folder /docs/tutorial_mlx.**
 # Initialising udbase
 The starting point of this tutorial is that you have run a simulation and have merged the output files. If the simulations were performed on a HPC system, **we assume that you have copied the output directory to your own workstation**. Some of the netCDF (\*.nc) files may be very large and you may only want to copy these if you plan to analyse the data.
@@ -498,12 +500,69 @@ colorbar
 title(['$u(x,y,z=', num2str(zm(sim.kslice), '%8.1f'), 'm, t=', num2str(t(n), '%8.0f'), 's)$'], 'Interpreter','latex')
 ```
 ![figure_7.png](udales-fields-tutorial_media/figure_7.png)
+<a id="M_8076"></a>
+# load_stat_tree: loading time-average tree data
+We next switch to a tree simulation to show the tree functions example
+```matlab
+clear variables;
+expnr = 525;
+expdir = 'path_to_experiments\525';
+sim = udbase(expnr, expdir);
+```
+```text
+Warning: One or moresolid_(u,v,w,c).525 files not found.
+```
+The trees patches can be plotted using
+```matlab
+sim.plot_trees;
+```
+![figure_8.png](udales-fields-tutorial_media/figure_8.png)
+The time-averaged tree source data is stored in the `treedump.expnr.nc` file. The variables it contains can be listed as:
+```matlab
+help sim.load_stat_tree
+```
+```text
+--- help for udbase/load_stat_tree ---
+  A method to retrieve time-averaged statistics of the tree
+  source terms from the treedump file
+ 
+  load_stat_tree(OBJ) displays the variables in the treedump file
+ 
+  load_stat_tree(OBJ, svar) retrieves a variable from the treedump file
+ 
+  Example (view contents of output):
+    obj = udbase(expnr);
+    obj.load_stat_tree();
+```
+```matlab
+sim.load_stat_tree();
+```
+```text
+Contents of treedump.525.nc:
+      Name                    Description                    Units         Size           Dimensions   
+    ________    ________________________________________    _______    ____________    ________________
+    time        Time                                        s          4               time            
+    tr_omega    Decoupling factor                           -          512x256x64x4    xt, yt, zt, time
+    tr_qt       Moisture source sink                        1/s        512x256x64x4    xt, yt, zt, time
+    tr_qtA      Moisture source sink                        1/s        512x256x64x4    xt, yt, zt, time
+    tr_qtR      Moisture source sink                        1/s        512x256x64x4    xt, yt, zt, time
+    tr_sv1      Scalar source sink                          kg/m^3s    512x256x64x4    xt, yt, zt, time
+    tr_sv2      Scalar source sink                          kg/m^3s    512x256x64x4    xt, yt, zt, time
+    tr_thl      Temp source/ sink                           K/s        512x256x64x4    xt, yt, zt, time
+    tr_u        Drag in x                                   m/s^2      512x256x64x4    xt, yt, zt, time
+    tr_v        Drag in y                                   m/s^2      512x256x64x4    xt, yt, zt, time
+    tr_w        Drag in z                                   m/s^2      512x256x64x4    xt, yt, zm, time
+    xt          West-East displacement of cell centers      m          512             xt              
+    yt          South-North displacement of cell centers    m          256             yt              
+    zm          Vertical displacement of cell edges         m          64              zm              
+    zt          Vertical displacement of cell centers       m          64              zt              
+```
 # References
 <a id="M_2D6346ED"></a>
 [1] Ferziger JH, Peric M (1999) Computational methods for fluid dynamics (3rd ed.). Springer.
 <a id="M_CA29E107"></a>
 [2] Oke TR, Mills G, Christen A, Voogt JA (2017) Urban Climates. Cambridge University Press.
 <a id="M_21A14582"></a>
-[3] Schmid M, Lawrence GA, Parlange MB, Giometto MG (2019) Volume averaging for urban canopies. Boundary-Layer Meteorol 173, 349-372.
+[3] Schmid M, Lawrence GA, Parlange MB, Giometto MG (2019) Volume averaging for urban canopies. *Bound-Lay. Met.* **173**, 349-372.
 <a id="M_5CCA5E02"></a>
-[4] Suetzl BS, Rooney GG,  van Reeuwijk M (2020) Drag Distribution in Idealized Heterogeneous Urban Environments. Boundary-Layer Meteorol 178,225-248.
+[4] Suetzl BS, Rooney GG,  van Reeuwijk M (2020) Drag Distribution in Idealized Heterogeneous Urban Environments. *Bound-Lay. Met.* **178**,225-248.

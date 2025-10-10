@@ -243,10 +243,10 @@ module modibm
        facname(5:7) = cexpnr
        allocate(ncstatfac(nstatfac,4))
        call ncinfo(tncstatfac(1,:),'t', 'Time', 's', 'time')
-       call ncinfo(ncstatfac( 1,:),'tau_x', 'tau_x', 'Pa','ft')
-       call ncinfo(ncstatfac( 2,:),'tau_y', 'tau_y', 'Pa','ft')
-       call ncinfo(ncstatfac( 3,:),'tau_z', 'tau_z', 'Pa','ft')
-       call ncinfo(ncstatfac( 4,:),'pres', 'pressure', 'Pa','ft')
+       call ncinfo(ncstatfac( 1,:),'tau_x', 'tau_x', 'm^2/s^2','ft')
+       call ncinfo(ncstatfac( 2,:),'tau_y', 'tau_y', 'm^2/s^2','ft')
+       call ncinfo(ncstatfac( 3,:),'tau_z', 'tau_z', 'm^2/s^2','ft')
+       call ncinfo(ncstatfac( 4,:),'pres', 'pressure', 'm^2/s^2','ft')
        call ncinfo(ncstatfac( 5,:),'htc', 'heat transfer coefficient', '','ft')
        call ncinfo(ncstatfac( 6,:),'cth', 'heat transfer coefficient (Ivo)', '','ft')
        call ncinfo(ncstatfac( 7,:),'pres_flc', 'pressure fluctuation', '','ft')
@@ -1302,15 +1302,13 @@ module modibm
 
       deallocate(rhs)
 
-!      if (lwritefac .and. rk3step==3 .and. timee>=skip_time) then
-       if (lwritefac .and. rk3step==3 ) then
+      if (lwritefac .and. rk3step==3) then
         if (myid == 0) then
             fac_tau_x_av = fac_tau_x_av + dt*fac_tau_x
             fac_tau_y_av = fac_tau_y_av + dt*fac_tau_y
             fac_tau_z_av = fac_tau_z_av + dt*fac_tau_z
             fac_pres_av = fac_pres_av + dt*fac_pres
             fac_pres2_av = fac_pres2_av + dt*fac_pres2
-
             fac_htc_av = fac_htc_av + dt*fac_htc
             fac_cth_av = fac_cth_av + dt*fac_cth
             
@@ -1325,9 +1323,7 @@ module modibm
                varsfac(:,4) = fac_pres_av(1:nfcts)/tfac
                varsfac(:,5) = fac_htc_av(1:nfcts)/tfac
                varsfac(:,6) = fac_cth_av(1:nfcts)/tfac
-
                varsfac(:,7) = fac_pres2_av(1:nfcts)/tfac - (fac_pres_av(1:nfcts)/dtfac * fac_pres_av(1:nfcts)/tfac)
-               
                call writestat_nc(ncidfac,1,tncstatfac,(/timee/),nrecfac,.true.)
                call writestat_1D_nc(ncidfac,nstatfac,ncstatfac,varsfac,nrecfac,nfcts)
                deallocate(varsfac)
@@ -1345,12 +1341,9 @@ module modibm
                fac_cth_av = 0.
 
             end if
-
         end if !myid
-
       end if
-
-    end subroutine ibmwallfun
+   end subroutine ibmwallfun
 
 
    subroutine wallfunmom(dir, rhs, bound_info)
@@ -1545,7 +1538,6 @@ module modibm
 
        fac_pres_loc(fac) = fac_pres_loc(fac) + pres0(i,j,k) * area ! output pressure on facets
        fac_pres2_loc(fac) = fac_pres2_loc(fac) +  pres0(i,j,k)* pres0(i,j,k) * area
-
 
        if (bound_info_c%lskipsec_loc(sec)) cycle
        !if (facz0(fac) < eps1) cycle

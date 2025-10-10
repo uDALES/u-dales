@@ -14,7 +14,6 @@ The **`udbase`** post-processing class reads in most important input parameters,
    -  [**load_fac_temperature**](#load_fac_temperature-load-temperatures-inside-facets). This method loads instantaneous facet temperature data `facT.expnr.nc`. The first index is the facet id, the second is the layer index and the third index is time. 
    -  [**area_average_seb**](#area_average_seb-perform-area-averaging-of-the-surface-energy-balance-terms). This method calculates the area-averaged surface energy balance from the facet surface energy balances obtained using `load_seb`. 
    -  [**area_average_fac**](#area_average_fac-area-averaging-over-facet-data). This method performs area-averaging over (a selection of) the facets. The facet index is assumed to be the first index of the array. 
-   -  [**time_average**](#time_average-a-method-to-time-average-data). This method performs time-averaging on an array; where time is assumed to be the last index of the array. 
    -  [**convert_facvar_to_field**](#convert_facvar_to_field-convert-facet-data-to-grid). This method transfers a facet variable onto the grid, so it can be used for post-processing. 
    -  [**convert_facflx_to_field**](#convert_facflx_to_field-convert-facet-data-to-3d-density-field). This method converts a facet variable to a density in a 3D field, so it can be used for post-processing (e.g. calculating distributed drag). 
 **The live matlab file of this tutorial can be found in the repository in the folder /docs/tutorial_mlx.**
@@ -26,11 +25,17 @@ The starting point of this tutorial is that you have run a simulation and have m
 clear variables
 close all
 % add the uDALES matlab path
+% addpath('path_to_udales\tools\matlab')
 addpath('path_to_udales\tools\matlab')
 % create an instance of the udbase class
+% expnr = 065;
+% expdir = 'path_to_experiments\065';
 expnr = 065;
 expdir = 'path_to_experiments\065';
 sim = udbase(expnr, expdir);
+```
+```text
+Warning: trees.inp files not found.
 ```
 <a id="H_7a43"></a>
 # calculate_frontal_properties: calculate skyline, blockage ratio and frontal areas
@@ -111,7 +116,7 @@ help sim.plot_building_ids
  
   SEE ALSO: udgeom.splitBuildings, plot_outline, plot_2dmap
 ```
-This method displays the ids of the individual buildings inside the domain.
+This method displays the ids of the individual buildings inside the domain, buildings are numbered from left-bottom to right-top.
 ```matlab
 figure
 sim.plot_building_ids()
@@ -149,25 +154,48 @@ help sim.plot_2dmap
     val: numeric scalar or vector with length equal to number of buildings.
  
   plot_2dmap(OBJ, val, labels)
-    labels: optional cell or string array with labels to display at
-          the centroid of each building. If provided it must
-          match the number of buildings.
+    labels: optional building IDs to mark with red text labels.
+            Can be:
+            - Numeric array: [1, 2, 5, 7]
+            - String with comma-separated IDs: '1,2,5,7'
+            - Cell array of numeric strings: {'1', '2', '5', '7'}
+ 
+  Examples:
+    % Mark buildings 1, 2, 5, 7 with numeric array
+    obj.plot_2dmap(hmax, [1, 2, 5, 7]);
+ 
+    % Mark buildings with string format
+    obj.plot_2dmap(hmax, '1,2,5,7');
 ```
 This plot creates maps showing the 2d building outline, together with some text
 ```matlab
-% get individual building information from the udgeom instance
+% get individual building information from the udgeom instance, the
+% buildings ids are ordered according to their centroid.
 buildings = sim.geom.get_buildings();
 % calculate the maximum height for each building
 hmax = zeros(size(buildings));
-lbl = cell(size(buildings));
 for i = 1:length(buildings)
     bld = buildings{i};
     hmax(i) = max(bld.Points(:,3));
-    lbl{i} = num2str(i); % building id
 end
 % plot the result
+lbl = 1:10:110; % building ids labelled
 figure
 sim.plot_2dmap(hmax, lbl)
+```
+```text
+Warning: Building index 11 is out of range [1, 2]
+Warning: Building index 21 is out of range [1, 2]
+Warning: Building index 31 is out of range [1, 2]
+Warning: Building index 41 is out of range [1, 2]
+Warning: Building index 51 is out of range [1, 2]
+Warning: Building index 61 is out of range [1, 2]
+Warning: Building index 71 is out of range [1, 2]
+Warning: Building index 81 is out of range [1, 2]
+Warning: Building index 91 is out of range [1, 2]
+Warning: Building index 101 is out of range [1, 2]
+```
+```matlab
 colorbar
 xlim([0 sim.xlen])
 ylim([0 sim.ylen])
@@ -188,14 +216,14 @@ help sim.plot_fac_type
   plot_fac_type(OBJ) plots the surface types for all buildings
  
   plot_fac_type(OBJ, building_ids) plots the surface types only for 
-  the specified building IDs (array of positive integers)
+  the specified building indices (array of positive integers)
  
   Examples:
     % Plot surface types for all buildings
     obj.plot_fac_type();
  
-    % Plot surface types only for specific buildings
-    obj.plot_fac_type([1, 5, 10]);
+    % Plot surface types for specific buildings
+    obj.plot_fac_type([1, 3, 5]);
 ```
 When working with a surface energy balance model, each facet will have a specific wall type with its own properties (albedo, emissivity, thickness etc). The wall types of the geometry can be conveniently displayed using the method `plot_fac_type`:
 ```matlab
@@ -266,13 +294,13 @@ help sim.plot_fac
   plot_fac(OBJ, var) plots variable var for all facets
  
   plot_fac(OBJ, var, building_ids) plots variable var only for 
-  the specified building IDs (array of positive integers)
+  the specified building indices (array of positive integers)
  
   Examples:
     % Plot net shortwave radiation for all buildings
     obj.plot_fac(K); 
  
-    % Plot only for specific buildings
+    % Plot only for specific buildings by index
     obj.plot_fac(K, [1, 5, 10]);
 ```
 We can now plot the albedo using the method `plot_fac`.
@@ -642,27 +670,16 @@ title('Area-averaged surface energy balance for sidewalls')
 ```
 ![figure_14.png](udales-facets-tutorial_media/figure_14.png)
 <a id="H_4d56"></a>
-# time_average: a method to time-average data
 ```matlab
-help udbase.time_average
-```
-```text
-  A method for averaging facet variables in time. The time
-  index is assumed to be the last index of the array.
-```
-This static method performs time-averaging. As an example we average the sensible heat flux across the whole time using the `time_average` method. This method can also accept `tstart` and `tstop` which specify the time range over which to average. 
-```matlab
-% average over entire time-range
-Havt = udbase.time_average(seb.H,seb.t);
+% average over entire time-range, merge short-term time average to
+% long-term
+% see utility_tutorial for functions merge_stat_var and so on
+[Havt, ~] = merge_stat_var(seb.H, zeros(size(seb.H)), length(seb.t));
 figure
 subplot(1,2,1)
 sim.plot_fac(Havt)
 format_surface_plot('$H$ [Wm$^{-2}$]')
 colorbar off
-% average over second half of the time-range
-tstart = seb.t(end)/2;
-tstop = seb.t(end);
-Havt = udbase.time_average(seb.H,seb.t,tstart,tstop);
 subplot(1,2,2)
 sim.plot_fac(Havt)
 format_surface_plot('$H$ [Wm$^{-2}$]')
@@ -681,8 +698,8 @@ help sim.convert_facvar_to_field
   Inputs:
     var:     facet variable (e.g. from load_fac_eb, load_fac_temperature, etc)
     facsec:  facet section structure (e.g. obj.facsec.u)
-    building_ids (optional): array of building IDs to include. If not
-                             specified, all buildings are included.
+    building_ids (optional): array of building indices to include. If not
+                            specified, all buildings are included.
  
   Outputs: 
     fld:     variable on the grid (itot x jtot x ktot)
@@ -692,19 +709,19 @@ help sim.convert_facvar_to_field
   convert_facvar_to_field(OBJ, var, facsec) transfers a variable onto the grid.   
  
   convert_facvar_to_field(OBJ, var, facsec, building_ids) converts only
-                                 facets from the specified building IDs.
+                                 facets from the specified building indices.
  
   Examples:
     % Convert all facets
     fld = obj.convert_facvar_to_field(var, sim.facsec.c);
  
-    % Convert only specific buildings
+    % Convert only specific buildings by index
     fld = obj.convert_facvar_to_field(var, sim.facsec.c, [1, 5, 10]);
 ```
 This function assigns facet data to the grid, which is useful for some averaging and visualisation methods. For example, we can show the time-averaged surface temperature for buildings 1 and 2 and visualise the associated 3D grid locations: 
 ```matlab
-Tsav   = sim.time_average(squeeze(T(:,1,:)), seb.t);
-Tsgrid = sim.convert_facvar_to_field(Tsav,sim.facsec.c, [1,2]);
+Tsav   = merge_stat_var(squeeze(T(:,1,:)), zeros(size(squeeze(T(:,1,:)))), length(seb.t));
+Tsgrid = sim.convert_facvar_to_field(Tsav,sim.facsec.c, 1);
 % Get the (x, y, z) coordinates of non-zero elements
 [i, j, k] = ind2sub(size(Tsgrid), find(abs(Tsgrid) > 0));
 x = sim.xt(i); y = sim.yt(j); z = sim.zt(k);
@@ -730,8 +747,8 @@ help sim.convert_facflx_to_field
     var:     facet flux variable (e.g. from load_fac_eb, load_fac_temperature, etc)
     facsec:  facet section structure (e.g. obj.facsec.u)
     dz:      vertical grid spacing at cell centers (obj.dzt)
-    building_ids (optional): array of building IDs to include. If not
-                             specified, all buildings are included.
+    building_ids (optional): array of building indices to include. If not
+                            specified, all buildings are included.
  
   Outputs: 
     fld:     3D field density (itot x jtot x ktot)
@@ -742,13 +759,13 @@ help sim.convert_facflx_to_field
                                  to a 3D field density for all facets.   
  
   convert_facflx_to_field(OBJ, var, facsec, dz, building_ids) converts only
-                                 facets from the specified building IDs.
+                                 facets from the specified building indices.
  
   Examples:
     % Convert all facets
     fld = obj.convert_facflx_to_field(var, sim.facsec.c, sim.dzt);
  
-    % Convert only specific buildings
+    % Convert only specific buildings by index
     fld = obj.convert_facflx_to_field(var, sim.facsec.c, sim.dzt, [1, 5, 10]);
 ```
 This function assigns facet data to a density in a 3D field, which is useful for assessing plane-average distributed stresses [1] as well as the multi-scale analysis proposed by Van Reeuwijk and Huang [2]. For example, we can convert the time-averaged heat flux Havt to a 3d density field as follows.
@@ -763,7 +780,7 @@ end
 abs(s - sum(Havt .* sim.facs.area)) / s
 ```
 ```text
-ans = single1.0074e-07
+ans = single9.4734e-08
 ```
 The relative error is extremely small which shows that the total amount of heat added to the domain is equivalent in both cases. Let's visualise the density field:
 ```matlab
@@ -836,4 +853,4 @@ end
 ```
 # References
 [1] Suetzl BS, Rooney GG,  van Reeuwijk M (2020). Drag Distribution in Idealized Heterogeneous Urban Environments. *Bound-Lay. Met.* **178**, 225-248.
-[2] van Reeuwijk M, Huang J. Multi-scale analysis of flow over heterogeneous urban surfaces. *Bound-Lay. Met*. (under review).
+[2] Maarten van Reeuwijk, Jingzi Huang (2025) Multi-scale Analysis of Flow over Heterogeneous Urban Environments, *Bound-Lay. Met.* **191**, 47.
