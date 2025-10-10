@@ -17,8 +17,9 @@
 
 % Aug 2024, Maarten van Reeuwijk, Jingzi Huang. first version
 % Dec 2024, Maarten van Reeuwijk, Chris Wilson. added facet functionality.
+% Sep 2025, Maarten van Reeuwijk, Jingzi Huang. Major upgrade of facet functionality
 
-% Copyright (C) 2016-2024 the uDALES Team.
+% Copyright (C) 2016- the uDALES Team.
 
 classdef udbase < dynamicprops
     %  Base class for uDALES simulations
@@ -51,6 +52,7 @@ classdef udbase < dynamicprops
         factypes;                % structure with facet type info
         facsec;                  % structure with fecet section info
 
+
         % trees information
         trees;                   % indices defining the bounding box of trees
     end
@@ -78,7 +80,7 @@ classdef udbase < dynamicprops
         ffacetarea       = 'facetarea.inp';
         ffluid_boundary  = 'fluid_boundary';
         ffacet_sections  = 'facet_sections';
-        ftrees           = 'trees.inp';
+        ftrees        = 'trees.inp';
 
         % logicals for whether input files are present
         lfprof           = true;
@@ -173,7 +175,7 @@ classdef udbase < dynamicprops
             % load grid
 
             obj.dx = obj.xlen/obj.itot;
-            obj.dy = obj.ylen/obj.jtot;
+            obj.dy = obj.ylen/obj.itot;
             obj.xm = (0:obj.itot-1)' * obj.dx;
             obj.ym = (0:obj.jtot-1)' * obj.dy;
             obj.xt = obj.xm + 0.5 * obj.dx;
@@ -254,6 +256,18 @@ classdef udbase < dynamicprops
             end
 
             % ------ %
+            % Check and set nfaclyrs parameter
+            if ~isprop(obj, 'nfaclyrs')
+                % nfaclyrs not found in namoptions, set default value
+                h = addprop(obj, 'nfaclyrs');
+                h.SetAccess = 'protected';
+                obj.nfaclyrs = 3;
+            %    fprintf('Warning: nfaclyrs not found in namoptions.%s, using default value: %d\n', expstr, obj.nfaclyrs);
+            else
+            %    fprintf('nfaclyrs found in namoptions: %d\n', obj.nfaclyrs);
+            end
+
+            % ------ %
             % Read facet type data
             try
                 factypedata = obj.load_factypes();
@@ -314,7 +328,7 @@ classdef udbase < dynamicprops
             obj.colors = colors;
             
             obj.gohome()
-
+            
             % ------ %
             % load indices of the points definig the tree volumetric
             % blocks. Reads trees.inp. file.
@@ -329,10 +343,9 @@ classdef udbase < dynamicprops
                 end
             end
         end
-
-        % ------------------------------------------------------------- %
-
-        function plot_trees(obj)
+    
+         % ------------------------------------------------------------- %
+  function plot_trees(obj)
             % A method for plotting a tree patches
             %
             % plot_trees(OBJ) plots variable var
@@ -365,7 +378,6 @@ classdef udbase < dynamicprops
                 end
             end
         end
-    
         % ------------------------------------------------------------- %
 
         function data = load_stat_xyt(obj, varargin)
@@ -433,7 +445,6 @@ classdef udbase < dynamicprops
 
             obj.gohome();
         end
-
         % ------------------------------------------------------------- %
 
         function data = load_field(obj, varargin)
@@ -487,7 +498,7 @@ classdef udbase < dynamicprops
             obj.gohome();
         end
 
-             % ------------------------------------------------------------- %
+        % ------------------------------------------------------------- %
 
         function data = load_fac_eb(obj, varargin)
             % A method to retrieve facet data of a surface energy balance
@@ -587,15 +598,77 @@ classdef udbase < dynamicprops
 
         % ------------------------------------------------------------- %
 
-        function fld = convert_fac_to_field(obj, var, facsec, dz)
+        function fld = convert_facvar_to_field(obj, var, facsec, building_ids)
+            % Method for transferring a facet variable onto the grid.
+            %
+            % Inputs:
+            %   var:     facet variable (e.g. from load_fac_eb, load_fac_temperature, etc)
+            %   facsec:  facet section structure (e.g. obj.facsec.u)
+            %   building_ids (optional): array of building indices to include. If not
+            %                           specified, all buildings are included.
+            %
+            % Outputs: 
+            %   fld:     variable on the grid (itot x jtot x ktot)
+            %
+            % The facsec and dz inputs are required since the routine does not know where % on the staggered grid the variable is located.
+            %
+            % convert_facvar_to_field(OBJ, var, facsec) transfers a variable onto the grid.   
+            %
+            % convert_facvar_to_field(OBJ, var, facsec, building_ids) converts only
+            %                                facets from the specified building indices.
+            %
+            % Examples:
+            %   % Convert all facets
+            %   fld = obj.convert_facvar_to_field(var, sim.facsec.c);
+            %
+            %   % Convert only specific buildings by index
+            %   fld = obj.convert_facvar_to_field(var, sim.facsec.c, [1, 5, 10]);
+
+            % Handle optional building_ids parameter and validate before passing on
+            if nargin < 4 || isempty(building_ids)
+                building_ids_to_use = [];
+            else
+                if ~isnumeric(building_ids) || ~all(building_ids > 0) || ~all(mod(building_ids,1) == 0)
+                    error('Building IDs must be an array of positive integers');
+                end
+                building_ids_to_use = building_ids;
+            end
+
+            norm = obj.convert_facflx_to_field(ones(size(var)), facsec, obj.dzt, building_ids_to_use);
+            norm(norm == 0) = 1; % avoid NaNs
+            fld = obj.convert_facflx_to_field(var, facsec, obj.dzt, building_ids_to_use) ./ norm;
+        end
+
+        % ------------------------------------------------------------- %
+
+       function fld = convert_facflx_to_field(obj, var, facsec, dz, building_ids)
             % Method for converting a facet variable to a density in a 3D
             % field. 
             %
-            % convert_fac_to_field(OBJ, var) converts the facet variable var  
-            %                                to a 3D field density.   
+            % Inputs:
+            %   var:     facet flux variable (e.g. from load_fac_eb, load_fac_temperature, etc)
+            %   facsec:  facet section structure (e.g. obj.facsec.u)
+            %   dz:      vertical grid spacing at cell centers (obj.dzt)
+            %   building_ids (optional): array of building indices to include. If not
+            %                           specified, all buildings are included.
             %
-            % Example:
-            %   fld = obj.convert_fac_to_field(var);
+            % Outputs: 
+            %   fld:     3D field density (itot x jtot x ktot)
+            %
+            % The facsec and dz inputs are required since the routine does not know where % on the staggered grid the variable is located.
+            %
+            % convert_facflx_to_field(OBJ, var, facsec, dz) converts the facet variable var  
+            %                                to a 3D field density for all facets.   
+            %
+            % convert_facflx_to_field(OBJ, var, facsec, dz, building_ids) converts only
+            %                                facets from the specified building indices.
+            %
+            % Examples:
+            %   % Convert all facets
+            %   fld = obj.convert_facflx_to_field(var, sim.facsec.c, sim.dzt);
+            %
+            %   % Convert only specific buildings by index
+            %   fld = obj.convert_facflx_to_field(var, sim.facsec.c, sim.dzt, [1, 5, 10]);
 
              % Function only works when required data has been loaded.
             if (~obj.lffacet_sections)
@@ -605,15 +678,84 @@ classdef udbase < dynamicprops
                        ' to execute.']);
             end
 
+            % Handle optional building_ids parameter
+            if nargin < 5
+                building_ids_to_use = [];
+            else
+                % Validate building IDs
+                if ~isnumeric(building_ids) || ~all(building_ids > 0) || ~all(mod(building_ids,1) == 0)
+                    error('Building IDs must be an array of positive integers');
+                end
+                building_ids_to_use = building_ids;
+            end
+
             fld = zeros(obj.itot, obj.jtot, obj.ktot, 'single');
             facsec_ind = sub2ind(size(fld), ...
                                  facsec.locs(:, 1), ...
                                  facsec.locs(:, 2), ...
                                  facsec.locs(:, 3));
 
+            % If building IDs specified, get face mask for filtering
+            if ~isempty(building_ids_to_use)
+                % Get buildings from geometry object
+                buildings = obj.geom.get_buildings();
+                
+                % Create face mask for specified buildings
+                cons = obj.geom.stl.ConnectivityList;
+                face_mask = false(size(cons, 1), 1);
+                
+                for building_idx = building_ids_to_use
+                    % Validate building index
+                    if building_idx < 1 || building_idx > length(buildings)
+                        warning('Building index %d is out of range [1, %d]', building_idx, length(buildings));
+                        continue;
+                    end
+                    
+                    building_data = buildings{building_idx};
+                    if ~isempty(building_data)
+                        % Handle both struct format (new) and triangulation format (old)
+                        if isstruct(building_data) && isfield(building_data, 'triangulation')
+                            building_triangulation = building_data.triangulation;
+                        elseif isa(building_data, 'triangulation')
+                            building_triangulation = building_data;
+                        else
+                            continue; % Skip invalid building data
+                        end
+                        
+                        % Check if building has stored original face indices
+                        if isstruct(building_data) && isfield(building_data, 'original_face_indices')
+                            % Use stored original face indices (efficient and reliable)
+                            original_indices = building_data.original_face_indices;
+                            face_mask(original_indices) = true;
+                        else
+                            % Fallback: try to match compact faces with original (inefficient)
+                            building_faces = building_triangulation.ConnectivityList;
+                            warning('Building with spatial_id %d: Using fallback face matching - consider updating geometry processing', spatial_id);
+                            
+                            for j = 1:size(building_faces, 1)
+                                for k = 1:size(cons, 1)
+                                    if isequal(sort(building_faces(j,:)), sort(cons(k,:)))
+                                        face_mask(k) = true;
+                                        break;
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+
             % loop over all facet sections and create density field for var
             for m = 1:length(facsec.area) 
                 facid = facsec.facid(m);
+                
+                % If building ID filtering is active, check if this face should be included
+                if ~isempty(building_ids_to_use)
+                    if ~face_mask(facid)
+                        continue; % Skip this facet if it's not in the specified buildings
+                    end
+                end
+                
                 fld(facsec_ind(m)) = fld(facsec_ind(m)) ...
                                    + var(facid) .* facsec.area(m) ...
                                    / (obj.dx * obj.dy * dz(facsec.locs(m, 3)));
@@ -692,34 +834,234 @@ classdef udbase < dynamicprops
 
         % ------------------------------------------------------------- %
 
-        function plot_fac(obj, var)
+        function plot_fac(obj, var, building_ids)
             % A method for plotting a facet variable var as a 3D surface
             %
-            % plot_fac(OBJ, var) plots variable var
+            % plot_fac(OBJ, var) plots variable var for all facets
             %
-            % Example (plot net shortwave radiation):
+            % plot_fac(OBJ, var, building_ids) plots variable var only for 
+            % the specified building indices (array of positive integers)
+            %
+            % Examples:
+            %   % Plot net shortwave radiation for all buildings
             %   obj.plot_fac(K); 
+            %
+            %   % Plot only for specific buildings by index
+            %   obj.plot_fac(K, [1, 5, 10]);
 
             % Function only works when required data has been loaded.
             if (~obj.lfgeom)
                 error('This method requires a geometry (STL) file.');
             end 
 
+            % Handle optional building_ids parameter
+            if nargin < 3
+                building_ids_to_plot = [];
+            else
+                % Validate building IDs
+                if ~isnumeric(building_ids) || ~all(building_ids > 0) || ~all(mod(building_ids,1) == 0)
+                    error('Building IDs must be an array of positive integers');
+                end
+                building_ids_to_plot = building_ids;
+            end
+
             cons = obj.geom.stl.ConnectivityList;
             points = obj.geom.stl.Points;
-            patch('Faces', cons, 'Vertices', points, 'FaceVertexCData',var,'FaceColor','flat', 'EdgeColor', 'None')
+            
+            % If spatial IDs specified, filter faces and data
+            if ~isempty(building_ids_to_plot)
+                % Get buildings from geometry object
+                buildings = obj.geom.get_buildings();
+                
+                % Create a mask for faces belonging to specified buildings
+                face_mask = false(size(cons, 1), 1);
+                building_indices_to_plot = [];
+                
+                for building_idx = building_ids_to_plot
+                    % Validate building index
+                    if building_idx < 1 || building_idx > length(buildings)
+                        warning('Building index %d is out of range [1, %d]', building_idx, length(buildings));
+                        continue;
+                    end
+                    
+                    building_indices_to_plot(end+1) = building_idx;
+                    building = buildings{building_idx};
+                    
+                    % Check if building has stored original face indices
+                    if isstruct(building) && isfield(building, 'original_face_indices')
+                        % Use stored original face indices (new format)
+                        original_indices = building.original_face_indices;
+                        
+                        % Use stored original face indices (reliable mapping)
+                        face_mask(original_indices) = true;
+                    elseif isa(building, 'triangulation')
+                        % Backward compatibility: old format, fallback to spatial matching
+                        warning('Building with spatial_id %d uses old format without stored face indices', spatial_id);
+                        % Keep the old spatial matching code as fallback...
+                    end
+                end
+                
+                if any(face_mask)
+                    % Plot only selected faces with corresponding variable values
+                    selected_faces = cons(face_mask, :);
+                    selected_var = var(face_mask);
+                    patch('Faces', selected_faces, 'Vertices', points, 'FaceVertexCData', selected_var, ...
+                          'FaceColor', 'flat', 'EdgeColor', 'None');
+                    
+                    % Add building outlines for selected buildings (pass building IDs)
+                    hold on;
+                    obj.add_building_outlines(building_ids_to_plot);
+                    hold off;
+                else
+                    warning('No valid faces found for the specified spatial IDs');
+                end
+            else
+                % Plot all facets (original behavior)
+                patch('Faces', cons, 'Vertices', points, 'FaceVertexCData', var, ...
+                      'FaceColor', 'flat', 'EdgeColor', 'None');
+                
+                % Add outlines for all buildings
+                hold on;
+                obj.add_building_outlines([]);
+                hold off;
+            end
+            view(3)
         end 
 
         % ------------------------------------------------------------- %
+        
+        function add_building_outlines(obj, spatial_ids)
+            % Helper method to add building outlines to current plot
+            %
+            % add_building_outlines(OBJ, spatial_ids)
+            %   spatial_ids: Array of spatial IDs to outline, or [] for all buildings
+            %
+            % When spatial_ids is empty, uses obj.geom.get_outline() method
+            % to efficiently draw the entire geometry outline.
+            %
+            % When specific spatial IDs are provided, uses cached per-building outlines
+            % (obj.geom.outline3d) computed via get_building_outlines() for efficiency.
+            %
+            % Examples:
+            %   % Add outlines for all buildings (most efficient)
+            %   obj.add_building_outlines([]);
+            %
+            %   % Add outlines for specific buildings by spatial ID
+            %   obj.add_building_outlines([1, 3, 5]);
+            %
+            % SEE ALSO: plot_fac, udgeom.get_building_outlines, udgeom.calculateOutline
+            
+            if ~obj.lfgeom
+                return; % Skip if no geometry loaded
+            end
+            
+            % If no specific buildings requested, use overall geometry outline
+            if isempty(spatial_ids)
+                % Use the geometry's get_outline method to get entire geometry outline
+                outline_edges = obj.geom.get_outline();
+                if ~isempty(outline_edges)
+                    geom_points = obj.geom.stl.Points;
+                    
+                    % Prepare line segment coordinates
+                    n_edges = size(outline_edges, 1);
+                    coords = nan(3*n_edges, 3);
+                    
+                    % Fill coordinate array
+                    for i = 1:n_edges
+                        idx = 3*(i-1) + 1;
+                        coords(idx,:)   = geom_points(outline_edges(i,1),:);
+                        coords(idx+1,:) = geom_points(outline_edges(i,2),:);
+                    end
+                    
+                    % Draw outline
+                    line(coords(:,1), coords(:,2), coords(:,3), ...
+                         'Color', 'k', ...
+                         'LineWidth', 0.5, ...
+                         'LineStyle', '-');
+                end
+                return;
+            end
+            
+            % For specific buildings, use cached building outlines
+            building_outlines = obj.geom.get_building_outlines();
+            buildings = obj.geom.get_buildings();
+            
+            % Add outlines for each requested building by index
+            for building_idx = spatial_ids
+                % Validate building index
+                if building_idx < 1 || building_idx > length(buildings) || building_idx > length(building_outlines)
+                    warning('Building index %d is out of range or no outline available', building_idx);
+                    continue;
+                end
+                
+                boundary_edges = building_outlines{building_idx};
+                building_data = buildings{building_idx};
+                
+                if ~isempty(boundary_edges) && ~isempty(building_data)
+                    try
+                        % Handle both struct format (new) and triangulation format (old)
+                        if isstruct(building_data) && isfield(building_data, 'triangulation')
+                            building_triangulation = building_data.triangulation;
+                        elseif isa(building_data, 'triangulation')
+                            building_triangulation = building_data;
+                        else
+                            continue; % Skip invalid building data
+                        end
+                        
+                        % Get points from the building triangulation
+                        building_points = building_triangulation.Points;
+                        
+                        % Prepare line segment coordinates
+                        n_edges = size(boundary_edges, 1);
+                        coords = nan(3*n_edges, 3);
+                        
+                        % Fill coordinate array
+                        for i = 1:n_edges
+                            idx = 3*(i-1) + 1;
+                            coords(idx,:)   = building_points(boundary_edges(i,1),:);
+                            coords(idx+1,:) = building_points(boundary_edges(i,2),:);
+                        end
+                        
+                        % Draw edge lines
+                        line(coords(:,1), coords(:,2), coords(:,3), ...
+                             'Color', 'k', ...
+                             'LineWidth', 0.5, ...
+                             'LineStyle', '-');
+                    catch
+                        % Skip buildings that cause errors in drawing
+                        continue;
+                    end
+                end
+            end
+        end
 
-        function plot_fac_type(obj)
+        % ------------------------------------------------------------- %
+
+        function plot_fac_type(obj, varargin)
             % A method for plotting the different surface types used in a
             % geometry.
             %
-            % plot_fac_types(OBJ) plots the surface types 
+            % plot_fac_type(OBJ) plots the surface types for all buildings
             %
-            % Example:
+            % plot_fac_type(OBJ, building_ids) plots the surface types only for 
+            % the specified building indices (array of positive integers)
+            %
+            % Examples:
+            %   % Plot surface types for all buildings
             %   obj.plot_fac_type();
+            %
+            %   % Plot surface types for specific buildings
+            %   obj.plot_fac_type([1, 3, 5]);
+            
+            % Handle optional building_ids parameter
+            if nargin > 1
+                building_ids = varargin{1};
+            else
+                building_ids = []; % Empty means all buildings
+            end
+            %
+            %   % Plot surface types only for specific buildings by index
+            %   obj.plot_fac_type([1, 5, 10]);
 
             % Function only works when required data has been loaded.
             if (~obj.lfgeom)
@@ -733,44 +1075,296 @@ classdef udbase < dynamicprops
                 error(['This method requires the file ', ...
                        obj.ffactypes, '.', obj.expnr])
             end
-     
-            facids = obj.facs.typeid;
+
+            % Handle optional building_ids parameter
+            % (parameter is passed through to plot_fac)
+
+            % Get facet types and surface type information
+            facet_type_var = obj.facs.typeid;
+            unique_ids = unique(facet_type_var);
             labs = obj.factypes.name;
             typeids = obj.factypes.id;
-            unique_ids = unique(facids);
-            coloursneeded = length(unique(facids));
             colors = obj.colors;
             
-            if length(colors(:,1))<coloursneeded
-                disp('Too many surfaces requested to colour uniquely.')
-                return
-            end 
-
-            cs = [];
-            for i = 1:length(facids)
-                typeid = facids(i);
-                colorind = typeid==unique_ids;
-                cs = [cs;colors(colorind,:)];
-            end 
-            cons = obj.geom.stl.ConnectivityList;
-            ps = obj.geom.stl.Points;
-            hold on
-            labels = [];
-            for m = 1:length(unique_ids)
-                id = unique_ids(m);
-                msel = facids==id;
-                n = find(id==typeids, 1);
-                labels = [labels;{labs(n)}];
-                tcons = cons(msel,:);
-                c = colors(m,:);
-                patch('Faces', tcons, 'Vertices', ps, 'FaceVertexCData',c, ...
-                      'FaceColor','flat', 'EdgeColor', 'None')
+            % Check if we have enough colors
+            if size(colors, 1) < length(unique_ids)
+                error('Not enough colors defined for the number of surface types');
             end
-            legend(labels)
+            
+            % Create a discrete colormap for the surface types
+            type_colormap = colors(1:length(unique_ids), :);
+            
+            % Map each facet's type ID to a color index (1 to N)
+            color_indices = zeros(size(facet_type_var));
+            for i = 1:length(unique_ids)
+                color_indices(facet_type_var == unique_ids(i)) = i;
+            end
+            
+            % Use plot_fac with color indices
+            obj.plot_fac(color_indices, building_ids);
+            
+            % Set discrete colormap and create colorbar with custom labels
+            colormap(type_colormap);
+            caxis([0.5, length(unique_ids) + 0.5]); % Center colors on integer values
+            
+            % Create legend labels
+            legend_labels = cell(length(unique_ids), 1);
+            for i = 1:length(unique_ids)
+                id = unique_ids(i);
+                n = find(id == typeids, 1);
+                if ~isempty(n) && n <= length(labs)
+                    legend_labels{i} = labs{n};
+                else
+                    legend_labels{i} = sprintf('Type %d', id);
+                end
+            end
+            
+            % Create custom colorbar with surface type labels
+            cb = colorbar;
+            cb.Ticks = 1:length(unique_ids);
+            cb.TickLabels = legend_labels;
+            cb.Label.String = 'Surface Type';
+            cb.Label.Interpreter = 'latex';
+            cb.TickLabelInterpreter = 'none'; % Don't interpret surface type names as LaTeX
         end
 
         % ------------------------------------------------------------- %
+
+        function plot_building_ids(obj, varargin)
+            % A method for plotting building IDs from above (x,y view) with distinct colors
+            %
+            % plot_building_ids(OBJ) creates a top-view plot showing buildings 
+            % in different colors with building IDs at center of gravity
+            %
+            % plot_building_ids(OBJ, 'FontSize', size) sets the font size for building ID labels (default: 9)
+            %
+            % SEE ALSO: udgeom.splitBuildings, plot_outline, plot_2dmap
+
+            % No FontSize input argument: text appearance uses defaults
+
+            % Get buildings with stored spatial IDs
+            buildings = obj.geom.get_buildings();
+            num_buildings = length(buildings);
+
+            % Extract spatial IDs directly from building structures
+            val = zeros(num_buildings, 1);
+            text_labels = cell(num_buildings, 1);
+            
+            for i = 1:num_buildings
+                % Use array index directly as building ID
+                val(i) = i;
+                text_labels{i} = sprintf('%d', i);
+            end
+
+            % Use plot_2dmap to create the visualization
+            obj.plot_2dmap(val, text_labels);
+            colormap(hsv(num_buildings)); % Distinct colors for each building
+
+            % Format the plot with appropriate labels and title
+            xlabel('x [m]');
+            ylabel('y [m]');
+            title(sprintf('Building Layout with IDs (Total: %d)', num_buildings));
+            view(2);
+           
+        end
+
+        % ------------------------------------------------------------- %
+
+        function plot_2dmap(obj, val, labels)
+            % Plot a 2D map of buildings colored by a value per building.
+            %
+            % plot_2dmap(OBJ, val)
+            %   val: numeric scalar or vector with length equal to number of buildings.
+            %
+            % plot_2dmap(OBJ, val, labels)
+            %   labels: optional building IDs to mark with red text labels.
+            %           Can be:
+            %           - Numeric array: [1, 2, 5, 7]
+            %           - String with comma-separated IDs: '1,2,5,7'
+            %           - Cell array of numeric strings: {'1', '2', '5', '7'}
+            %
+            % Examples:
+            %   % Mark buildings 1, 2, 5, 7 with numeric array
+            %   obj.plot_2dmap(hmax, [1, 2, 5, 7]);
+            %
+            %   % Mark buildings with string format
+            %   obj.plot_2dmap(hmax, '1,2,5,7');
+
+            if nargin < 2
+                error('plot_2dmap requires a val argument');
+            end
+
+            % Acquire outlines
+            if isempty(obj.geom) || isempty(obj.geom.stl)
+                error('Geometry data not available. Cannot compute outlines.');
+            end
+
+            outlines = obj.geom.calculate_outline2d();
+            if isempty(outlines)
+                error('No building outlines found in geometry.');
+            end
+            n = numel(outlines);
+
+            % Normalize values to per-building vector
+            if isscalar(val)
+                vals = repmat(double(val), n, 1);
+            else
+                vals = double(val(:));
+                if numel(vals) ~= n
+                    error('Length of val (%d) must match number of buildings (%d)', numel(vals), n);
+                end
+            end
+
+            % Handle optional text labels - only support marking buildings by spatial ID
+            showLabels = (nargin >= 3 && ~isempty(labels));
+            mark_ids = [];
+            
+            if showLabels
+                % Parse labels as building IDs to mark
+                
+                % Case 1: Numeric array (e.g. [1, 2, 5, 7])
+                if isnumeric(labels)
+                    ids = labels(:)'; % Convert to row vector
+                    % Validate that all values are positive integers
+                    if all(ids > 0) && all(mod(ids, 1) == 0)
+                        mark_ids = unique(ids);
+                    else
+                        error('Numeric labels must be positive integers');
+                    end
+                end
+                
+                % Case 2: Single string/scalar string with comma-separated IDs (e.g. '1' or '1,2,3')
+                if isempty(mark_ids) && (ischar(labels) || (isstring(labels) && isscalar(labels)))
+                    s = char(labels);
+                    % allow digits, commas, spaces and semicolons as separators
+                    if all(ismember(s, ['0':'9', ',', ' ', ';']))
+                        s = strrep(s, ';', ',');
+                        parts = strsplit(s, ',');
+                        ids = [];
+                        for kk = 1:numel(parts)
+                            tok = strtrim(parts{kk});
+                            if isempty(tok)
+                                continue;
+                            end
+                            v = str2double(tok);
+                            if ~isnan(v)
+                                ids(end+1) = v; %#ok<AGROW>
+                            else
+                                error('Invalid building ID: %s', tok);
+                            end
+                        end
+                        mark_ids = unique(ids);
+                    else
+                        error('String labels must contain only digits, commas, spaces, and semicolons');
+                    end
+                end
+                
+                % Case 3: Cell array or string array with numeric strings
+                if isempty(mark_ids) && (iscell(labels) || isstring(labels))
+                    label_strs = cellstr(labels);
+                    ids = [];
+                    for kk = 1:numel(label_strs)
+                        v = str2double(strtrim(label_strs{kk}));
+                        if isnan(v)
+                            error('All labels must be numeric strings, found: %s', label_strs{kk});
+                        end
+                        ids(end+1) = v; %#ok<AGROW>
+                    end
+                    mark_ids = unique(ids);
+                end
+                
+                if isempty(mark_ids)
+                    error('Unable to parse labels as building IDs. Use numeric array, string, or cell array format.');
+                end
+            end
+
+            % Plot
+            figure;
+            hold on;
+            axis equal;
+            box on;
+
+            for i = 1:n
+                o = outlines{i};
+                if isempty(o) || isempty(o.polygon)
+                    continue;
+                end
+
+                if isnan(vals(i))
+                    continue;
+                end
+
+                % Use polygon from calculate_outline2d
+                fill(o.polygon(:,1), o.polygon(:,2), vals(i), 'EdgeColor', 'k', 'LineWidth', 0.5, 'FaceAlpha', 1);
+
+
+            end
+            
+            % Mark buildings by their indices with red text
+            if showLabels && ~isempty(mark_ids)
+                buildings = obj.geom.get_buildings();
+                for idx = mark_ids
+                    if idx < 1 || idx > length(buildings)
+                        warning('Building index %d is out of range [1, %d]', idx, length(buildings));
+                        continue;
+                    end
+                    o = outlines{idx};
+                    if isempty(o) || isempty(o.centroid)
+                        % fallback to building points centroid if outline has no polygon
+                        bld = buildings{idx};
+                        if isstruct(bld) && isfield(bld, 'Points') && ~isempty(bld.Points)
+                            c = mean(bld.Points(:,1:2), 1);
+                        else
+                            continue;
+                        end
+                    else
+                        c = o.centroid;
+                    end
+                    x_pos = c(1);
+                    y_pos = c(2);
+                    label_text = num2str(idx);
+                    try
+                        text(x_pos, y_pos, label_text, ...
+                            'HorizontalAlignment', 'center', ...
+                            'VerticalAlignment', 'middle', ...
+                            'FontSize', 9, ...
+                            'FontWeight', 'bold', ...
+                            'Color', 'k', ...
+                            'BackgroundColor', [1 1 1 0.8]);
+                    catch
+                        text(x_pos, y_pos, label_text, ...
+                            'HorizontalAlignment', 'center', ...
+                            'VerticalAlignment', 'middle', ...
+                            'FontSize', font_size, ...
+                            'FontWeight', 'bold', ...
+                            'Color', 'k');
+                    end
+                end
+            end
+            % Tighten axes to remove large margins around geometry
+            ax = gca;
+            axis tight;
+
+            % Reduce extra whitespace using TightInset/Position
+            try
+                ti = get(ax, 'TightInset');
+                pos = get(ax, 'Position');
+                % Shrink margins by applying TightInset with a small padding
+                pad = 0.01; % small normalized padding
+                newpos = [pos(1)+ti(1)-pad, pos(2)+ti(2)-pad, pos(3)-ti(1)-ti(3)+2*pad, pos(4)-ti(2)-ti(4)+2*pad];
+                % Ensure within [0,1]
+                newpos = max(newpos, 0);
+                newpos(3:4) = min(newpos(3:4), 1);
+                set(ax, 'Position', newpos);
+            catch
+                % ignore if properties not available
+            end
+
+            hold off;
+        end
         
+        % ------------------------------------------------------------- %
+
         function res = calculate_frontal_properties(obj)
             % A method to calculate the skyline, frontal areas and blockage
             % ratios in the x- and y-direction. 
@@ -801,8 +1395,8 @@ classdef udbase < dynamicprops
             phiy = -min(dot(norms, repmat([0, 1, 0], size(norms, 1), 1), 2),0);
 
             % convert to a density field
-            rhoLx = obj.convert_fac_to_field(phix,obj.facsec.c,obj.dzt);
-            rhoLy = obj.convert_fac_to_field(phiy,obj.facsec.c,obj.dzt);
+            rhoLx = obj.convert_facflx_to_field(phix,obj.facsec.c,obj.dzt);
+            rhoLy = obj.convert_facflx_to_field(phiy,obj.facsec.c,obj.dzt);
 
             % Calculate indicator functions for blockage and plot them
             Ibx = double(squeeze(sum(rhoLx,1))>0);
@@ -912,11 +1506,22 @@ classdef udbase < dynamicprops
             obj.cpath = pwd;
             cd(here);
         end
+
+        % ------------------------------------------------------------- %
+
+        % coarse_graining function has been moved to standalone file coarse_graining.m
+        % Use: var_filtered = coarse_graining(var, Lflt, obj.dx, obj.xm, obj.ym);
+
+
     end
 
     % ----------------------------------------------------------------- %
 
     methods (Access = protected)
+        % apply_fft_filter function has been moved to coarse_graining.m as a helper function
+
+        % ------------------------------------------------------------- %
+
         function data = load_prof(obj)
             % A method to retrieve information from prof.inp file
 
@@ -975,7 +1580,7 @@ classdef udbase < dynamicprops
             data.locs = fluid_boundary(facsecs(:,3),:);
             data.distance = facsecs(:,4);
         end
-
+       
         % ------------------------------------------------------------- %
 
         function data = load_trees(obj)
@@ -1142,32 +1747,4 @@ classdef udbase < dynamicprops
 
     % ----------------------------------------------------------------- %
 
-    methods (Static)
-        function av = time_average(var, time, varargin)
-            % A method for averaging facet variables in time. The time
-            % index is assumed to be the last index of the array.
-
-            if isempty(varargin)            
-                indstart = 1;
-                indstop = length(time);
-            else
-                tstart = varargin{1};
-                tstop = varargin{2};
-                indstart = find(time>=tstart, 1, 'first');
-                indstop = find(time>=tstop, 1, 'first');
-            end 
-
-            av = nan;
-            if length(size(var))==2
-                av = mean(var(:,indstart:indstop),2);
-            elseif length(size(var)) == 3
-                av = mean(var(:,:,indstart:indstop),3);
-            elseif length(size(var)) == 4
-                av = mean(var(:,:,:, indstart:indstop),4);                
-            else
-                disp('Dimensions of input variable not compatible with function.')
-                return
-            end     
-        end
-    end
 end
