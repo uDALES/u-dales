@@ -70,15 +70,17 @@ popd
 
 if [ $start == "c" ]; then
 
+	cd $inputdir
+
 ###### RUN MATLAB SCRIPT through HPC job script
 cat <<EOF > pre-job.$iexpnr
-
+#!/bin/bash
 #PBS -l walltime=24:00:00
-#PBS -l select=1:ncpus=8:mem=50gb
+#PBS -l select=1:ncpus=8:mem=64gb
 
 module load tools/prod
-module load MATLAB/2023a_Update_3
-module load gcc/11.2.0
+module load MATLAB/2024b
+module load GCC/14.2.0
 
 cd $DA_TOOLSDIR
 
@@ -86,32 +88,17 @@ export DA_TOOLSDIR=$DA_TOOLSDIR
 export DA_EXPDIR=$DA_EXPDIR
 export MATLAB_USE_USERWORK=0
 
-matlab -nodesktop -nojvm -nosplash -r "expnr=$iexpnr; write_inputs; quit"
-
-cd $DA_EXPDIR
-cd ..
-
-mv pre-job.$iexpnr* $DA_EXPDIR/$iexpnr
+matlab -nodesktop -noFigureWindows -nosplash -r "expnr=$iexpnr; write_inputs; quit" > $inputdir/write_inputs.$iexpnr.log 2>&1
 
 EOF
 
 ## submit job.exp file to queue
 	qsub pre-job.$iexpnr
 	echo "pre-job.$iexpnr submitted."
-
-elif [ $start == "l" ]; then
-	module load tools/prod
-	module load MATLAB/2023a_Update_3
-	module load gcc/11.2.0
-	export MATLAB_USE_USERWORK=0
-	cd $DA_TOOLSDIR
-	matlab -nodesktop -nojvm -nosplash -r "expnr=$iexpnr; write_inputs; quit"
-	cd $DA_EXPDIR
-	cd ..
 else
 	###### RUN MATLAB SCRIPT
 	cd $DA_TOOLSDIR
-	nohup matlab -nodesktop -nojvm -nosplash -r "expnr=$iexpnr; write_inputs; quit" > $inputdir/write_inputs.$iexpnr.log 2>&1 &
+	nohup matlab -nodesktop -noFigureWindows -nosplash -r "expnr=$iexpnr; write_inputs; quit" > $inputdir/write_inputs.$iexpnr.log 2>&1 &
 	cd $DA_EXPDIR
 	cd ..
 fi

@@ -50,6 +50,9 @@ classdef udbase < dynamicprops
         facs;                    % structure with facet info
         factypes;                % structure with facet type info
         facsec;                  % structure with fecet section info
+
+        % trees information
+        trees;                   % indices defining the bounding box of trees
     end
     properties (Hidden = true, SetAccess = protected)
         path;                    % Path to simulations.
@@ -61,6 +64,7 @@ classdef udbase < dynamicprops
         fprof            = 'prof.inp'
         fxytdump         = 'xytdump';
         ftdump           = 'tdump';
+        ftreedump        = 'treedump';
         ffielddump       = 'fielddump';
         fislicedump      = 'islicedump';
         fjslicedump      = 'jslicedump';
@@ -74,6 +78,7 @@ classdef udbase < dynamicprops
         ffacetarea       = 'facetarea.inp';
         ffluid_boundary  = 'fluid_boundary';
         ffacet_sections  = 'facet_sections';
+        ftrees           = 'trees.inp';
 
         % logicals for whether input files are present
         lfprof           = true;
@@ -87,6 +92,7 @@ classdef udbase < dynamicprops
         lffluid_boundary = true;
         lffacet_sections = true;
         lfgeom           = true; % stl geometry
+        lftrees          = true;
     end
 
     methods
@@ -167,7 +173,7 @@ classdef udbase < dynamicprops
             % load grid
 
             obj.dx = obj.xlen/obj.itot;
-            obj.dy = obj.ylen/obj.itot;
+            obj.dy = obj.ylen/obj.jtot;
             obj.xm = (0:obj.itot-1)' * obj.dx;
             obj.ym = (0:obj.jtot-1)' * obj.dy;
             obj.xt = obj.xm + 0.5 * obj.dx;
@@ -308,6 +314,56 @@ classdef udbase < dynamicprops
             obj.colors = colors;
             
             obj.gohome()
+
+            % ------ %
+            % load indices of the points definig the tree volumetric
+            % blocks. Reads trees.inp. file.
+            obj.addvar('ltrees', false);
+            obj.addvar('treesfile', [obj.ftrees '.' obj.expnr]);
+            if obj.ltrees
+                try
+                    obj.trees = obj.load_trees();
+                catch
+                    warning([obj.treesfile, ' files not found.']);
+                    obj.lftrees = false;
+                end
+            end
+        end
+
+        % ------------------------------------------------------------- %
+
+        function plot_trees(obj)
+            % A method for plotting a tree patches
+            %
+            % plot_trees(OBJ) plots variable var
+            %
+            % Example (plot net shortwave radiation):
+            %   obj.plot_trees();
+
+            % Function only works when required data has been loaded.
+            if (~obj.lfgeom || ~obj.ltrees || ~obj.lftrees)
+                error('This method requires a geometry (STL) file, a trees.inp. file, and ltrees to be set as true.');
+            end
+
+            obj.geom.show(false,false);
+            hold on;
+
+            if obj.ltrees
+                clr = [0.20, 0.65, 0.15];
+                for i = 1:obj.ntrees
+                    il = obj.trees(i,1);
+                    iu = obj.trees(i,2);
+                    jl = obj.trees(i,3);
+                    ju = obj.trees(i,4);
+                    kl = obj.trees(i,5);
+                    ku = obj.trees(i,6);
+                    patch([obj.xm(il)   obj.xm(iu+1) obj.xm(iu+1) obj.xm(il)]  , [obj.ym(jl)   obj.ym(jl)   obj.ym(ju+1) obj.ym(ju+1)], [obj.zm(ku+1) obj.zm(ku+1) obj.zm(ku+1) obj.zm(ku+1)], clr)
+                    patch([obj.xm(il)   obj.xm(il)   obj.xm(iu+1) obj.xm(iu+1)], [obj.ym(jl)   obj.ym(jl)   obj.ym(jl)   obj.ym(jl)],   [obj.zm(kl)   obj.zm(ku+1) obj.zm(ku+1) obj.zm(kl)], clr)
+                    patch([obj.xm(il)   obj.xm(il)   obj.xm(iu+1) obj.xm(iu+1)], [obj.ym(ju+1) obj.ym(ju+1) obj.ym(ju+1) obj.ym(ju+1)], [obj.zm(kl)   obj.zm(ku+1) obj.zm(ku+1) obj.zm(kl)], clr)
+                    patch([obj.xm(il)   obj.xm(il)   obj.xm(il)   obj.xm(il)]  , [obj.ym(ju+1) obj.ym(ju+1) obj.ym(jl)   obj.ym(jl)],   [obj.zm(kl)   obj.zm(ku+1) obj.zm(ku+1) obj.zm(kl)], clr)
+                    patch([obj.xm(iu+1) obj.xm(iu+1) obj.xm(iu+1) obj.xm(iu+1)], [obj.ym(jl)   obj.ym(jl)   obj.ym(ju+1) obj.ym(ju+1)], [obj.zm(kl)   obj.zm(ku+1) obj.zm(ku+1) obj.zm(kl)], clr)
+                end
+            end
         end
     
         % ------------------------------------------------------------- %
@@ -349,6 +405,29 @@ classdef udbase < dynamicprops
             obj.gopath();
 
             fname = [obj.ftdump, '.', obj.expnr, '.nc'];
+            ffullname = fullfile(obj.path, fname);
+            data = udbase.load_ncdata(ffullname, varargin);
+
+            obj.gohome();
+        end
+
+        % ------------------------------------------------------------- %
+
+        function data = load_stat_tree(obj, varargin)
+            % A method to retrieve time-averaged statistics of the tree
+            % source terms from the treedump file
+            %
+            % load_stat_tree(OBJ) displays the variables in the treedump file
+            %
+            % load_stat_tree(OBJ, svar) retrieves a variable from the treedump file
+            %
+            % Example (view contents of output):
+            %   obj = udbase(expnr);
+            %   obj.load_stat_tree();
+
+            obj.gopath();
+
+            fname = [obj.ftreedump, '.', obj.expnr, '.nc'];
             ffullname = fullfile(obj.path, fname);
             data = udbase.load_ncdata(ffullname, varargin);
 
@@ -895,6 +974,15 @@ classdef udbase < dynamicprops
             data.area = facsecs(:,2);
             data.locs = fluid_boundary(facsecs(:,3),:);
             data.distance = facsecs(:,4);
+        end
+
+        % ------------------------------------------------------------- %
+
+        function data = load_trees(obj)
+            % A method to retrieve information from trees.inp file
+            fname = obj.treesfile;
+            ffullname = fullfile(obj.path, fname);
+            data = readmatrix(ffullname,'Range',[3,1], 'FileType', 'text');
         end
     end
 

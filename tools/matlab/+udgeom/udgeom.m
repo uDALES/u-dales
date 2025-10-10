@@ -121,20 +121,31 @@ classdef udgeom < handle
       function show(obj, varargin)
          % plot the geometry
          %
-         % show(obj, colorbuildings)
-         %       colorbuildings (optional): boolean parameter on whether
-         %                                  to colour buildings. This
-         %                                  parameter is true by default.
-         %                                  Needs to be set to false for 
-         %                                  large geometries.
+         % show(obj, color_buildings, plot_quiver)
          %
-         % examples:
-         %   obj.show();
-         %   obj.show(false);
-
+         %   color_buildings (optional): boolean parameter on whether
+         %                               to color buildings. Default =
+         %                               true. Needs to be set to false for 
+         %                               large geometries.
+         %
+         %   plot_quiver (optional): boolean parameter on whether
+         %                           to plot quiver arrows. Default = true.
+         %
+         % Examples:
+         %   obj.show();                   % both true
+         %   obj.show(false);              % color_buildings = false, plot_quiver = true
+         %   obj.show(true, false);        % color_buildings = true, plot_quiver = false
+    
+         % --- Default values ---
          color_buildings = true;
+         plot_quiver = true;
+
+         % --- Handle variable arguments ---
          if ~isempty(varargin)
              color_buildings = varargin{1};
+         end
+         if numel(varargin) >= 2
+             plot_quiver = varargin{2};
          end
 
          faceNormals = faceNormal(obj.stl);
@@ -157,8 +168,11 @@ classdef udgeom < handle
              end
          end
          
-         quiver3(incenters(:,1), incenters(:,2), incenters(:,3), ...
+         if (plot_quiver)
+             quiver3(incenters(:,1), incenters(:,2), incenters(:,3), ...
                  faceNormals(:,1), faceNormals(:,2), faceNormals(:,3), 0.2)
+         end
+
          view(3)
          axis equal tight
          set(gca,"Box","on")

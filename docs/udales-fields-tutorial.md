@@ -11,7 +11,8 @@ The **`udbase`** post-processing class reads in most important input parameters,
 
 
    -  [**load_stat_xyt**](#load_stat_xyt-loading-time--and-slab-averaged-data). This method load the 1D slab- and time-averaged statistics from the file `xytdump.expnr.nc`. Several time-intervals may be present in the data. 
-   -  [**load_stat_t**](#load_stat_t-loading-time-averaged-data). This method loads the 3D time-averaged statistics from the file `tdump.expnr.nc`. Several time-intervals may be present in the data. 
+   -  [**load_stat_t**](#load_stat_t-loading-time-averaged-data). This method loads the 3D time-averaged statistics from the file `tdump.expnr.nc`. Several time-intervals may be present in the data.
+   -  [**load_stat_tree**](#load_stat_tree-loading-time-averaged-data). This method loads the 3D time-averaged statistics of the tree source terms from the file `treedump.expnr.nc`. This method works exactly the same way as `load_stat_t`.
    -  [**load_field**](#load_field-loading-instantaneous-3d-data). This method loads instantaneous 3D data from the file `fielddump.expnr.nc`. Several output times may be present in the data. 
    -  [**load_slice**](#load_slice-loading-instantaneous-2d-slice-data). This method loads instantaneous 2D slices of instantaneous 3D data from the file `Xslicedump.expnr.nc`. Several output times may be present in the data. 
 
@@ -547,6 +548,38 @@ title(['$\overline u(x, y=', num2str(yt(j), '%8.1f'), 'm, z)$'], 'Interpreter','
 
 
 ![figure_4.png](fields_tutorial_media/figure_4.png)
+
+
+# load_stat_tree: loading time-averaged data
+
+```matlab
+help sim.load_stat_tree
+```
+
+
+```text
+--- help for udbase/load_stat_tree ---
+
+  A method to retrieve time-averaged statistics of the tree source terms from the treedump file
+
+  load_stat_tree(OBJ) displays the variables in the treedump file
+
+  load_stat_tree(OBJ, svar) retrieves a variable from the treedump file
+
+  Example (view contents of output):
+    obj = udbase(expnr);
+    obj.load_stat_tree();
+```
+
+
+
+The time-averaged tree source data is stored in the `treedump.expnr.nc` file. The variables it contains can be listed as:
+
+
+
+```matlab
+sim.load_stat_tree();
+```
 
 # load_field: loading instantaneous 3D data
 
