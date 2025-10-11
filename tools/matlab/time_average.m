@@ -28,37 +28,23 @@ function varargout = time_average(varargin)
 %   [X_avg, X_var] = time_average(X);
 %   [X_avg, Y_avg, XY_cov] = time_average(X, Y);
 
+% Get the number of time points and use all of them
+X = varargin{1};
+dims = size(X);
+n = dims(end);   % time is the last dimension
+
 if nargin == 1
     % Single variable case: time_average(X)
-    X = varargin{1};
-    
-    % Get the number of time points and use all of them
-    dims = size(X);
-    n = dims(end);   % time is the last dimension
-    
-    % Use merge_stat_var with zero instantaneous variance contribution
+    % Use merge_stat with zero instantaneous variance contribution
     XpXp = zeros(size(X));
-    [Xmean, var] = merge_stat_var(X, XpXp, n);
-    
-    varargout{1} = Xmean;
-    varargout{2} = var;
+    [varargout{1}, varargout{2}] = merge_stat(X, XpXp, n);
     
 elseif nargin == 2
     % Two variable case: time_average(X, Y)
-    X = varargin{1};
     Y = varargin{2};
-    
-    % Get the number of time points and use all of them
-    dims = size(X);
-    n = dims(end);   % time is the last dimension
-    
-    % Use merge_stat_cov with zero instantaneous covariance contribution
+    % Use merge_stat with zero instantaneous covariance contribution
     XpYp = zeros(size(X));
-    [Xmean, Ymean, cov] = merge_stat_cov(X, Y, XpYp, n);
-    
-    varargout{1} = Xmean;
-    varargout{2} = Ymean;
-    varargout{3} = cov;
+    [varargout{1}, varargout{2}, varargout{3}] = merge_stat(X, Y, XpYp, n);
     
 else
     error('time_average requires 1 or 2 input arguments. Usage: time_average(X) or time_average(X, Y)');
