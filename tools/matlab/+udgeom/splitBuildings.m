@@ -213,10 +213,27 @@ function [building_components, face_to_building_map] = splitBuildings(mesh_TR, v
         end
     end
     
-    % Add spatial IDs to buildings based on centroid ordering (southwest to northeast)
+    % Spatial ordering of building components from southwest -> northeast.
+    % Project building centroids onto vector [1,1] (x+y) and sort ascending.
     if ~isempty(building_components)
-        % Note: Building IDs are now determined by array position,
-        % no need to add spatial_id fields
+        ncomp = length(building_components);
+        centroids = zeros(ncomp,2);
+        for k = 1:ncomp
+            % assume building_components{k} has Points
+            centroids(k,:) = mean(building_components{k}.Points(:,1:2), 1);
+        end
+
+        % projection as dot product with vector [1,1] is simply x+y
+        proj = centroids(:,1) + centroids(:,2);
+        [~, order] = sort(proj, 'ascend');
+
+        % reorder building_components and remap component IDs
+        building_components = building_components(order);
+        newID = zeros(ncomp,1);
+        newID(order) = (1:ncomp)';
+        if exist('components','var') && ~isempty(components)
+            components = newID(components);
+        end
     end
     
     % Count valid buildings and calculate statistics
