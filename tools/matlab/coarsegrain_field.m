@@ -1,7 +1,7 @@
-function var_filtered = coarsegrain_field(var, Lflt, dx, xm, ym)
+function var_filtered = coarsegrain_field(var, Lflt, xm, ym)
 % coarsegrain_field  Apply spatial filtering to 3D field data using FFT-based convolution
 %
-%   var_filtered = coarsegrain_field(var, Lflt, dx, xm, ym)
+%   var_filtered = coarsegrain_field(var, Lflt, xm, ym)
 %
 % This function applies spatial coarse-graining filters to 3D field data.
 % Multiple filter sizes are applied simultaneously, creating a 4D output
@@ -13,7 +13,6 @@ function var_filtered = coarsegrain_field(var, Lflt, dx, xm, ym)
 %             third is vertical (z) or time
 %   Lflt    - Array of filter lengths in physical units (meters)
 %            
-%   dx      - Grid spacing in x-direction (meters)
 %   xm      - x-coordinates of grid points (meters)
 %   ym      - y-coordinates of grid points (meters)
 %
@@ -52,6 +51,12 @@ end
 
 % Convert physical filter lengths to grid cell numbers
 % Ng represents width of filter in grid cells
+dx = xm(2) -xm(1); % x-direction should be equal distance
+% dx should equal to dy for this rountine, check:
+dy = ym(2) - ym(1); % y-direction should be equal distance
+if abs(dx - dy) > 1e-6
+    error('Grid spacing in x and y directions must be equal.');
+end
 Ng = round(Lflt/2 / dx); % Round to nearest integer for grid cells
 Ng = max(Ng, 1); % Ensure minimum filter size is 1 grid cell
 

@@ -1,6 +1,11 @@
 function varargout = merge_stat(varargin)
 % merge_stat  Merge short-time statistics into longer-time averages
 %
+%   Xmean = merge_stat(X, n)
+%       Computes time-averaged mean for a single variable X.
+%       Groups the time series into non-overlapping windows of length n
+%       and computes statistics inside each window.
+%
 %   [Xmean, var] = merge_stat(X, XpXp, n)
 %       Computes time-averaged mean and variance for a single variable X.
 %       Groups the time series into non-overlapping windows of length n
@@ -25,10 +30,15 @@ function varargout = merge_stat(varargin)
 %   cov   - Time-averaged covariance in each window [two-variable case]
 %
 % Examples:
-%   [X_avg, X_var] = merge_stat(X, XpxXp, 20);
+%    X_avg = merge_stat(X, 20);
+%   [X_avg, X_var] = merge_stat(X, XpXp, 20);
 %   [X_avg, Y_avg, XY_cov] = merge_stat(X, Y, XpYp, 50);
+if nargin == 2
+    % Single-variable case: compute mean and variance
+    [Xmean, ~] = merge_stat_var(varargin{1}, zeros(size(varargin{1})), varargin{2});
+    varargout{1} = Xmean;
 
-if nargin == 3
+elseif nargin == 3
     % Single-variable case: compute mean and variance
     [Xmean, var] = merge_stat_var(varargin{1}, varargin{2}, varargin{3});
     varargout{1} = Xmean;
