@@ -1,18 +1,11 @@
 function var_filtered = coarsegrain_field(var, Lflt, xm, ym)
-% coarsegrain_field2  Apply spatial filtering to 3D field data using discrete grid cells
+% coarsegrain_field  Apply 2D spatial filter to 3D field data.
 %
-%   var_filtered = coarsegrain_field2(var, Lflt, xm, ym)
+%   var_filtered = coarsegrain_field(var, Lflt, xm, ym)
 %
-% This function applies spatial coarse-graining filters to 3D field data
-% working at the discrete level once grid cell numbers are determined.
+% This function applies 2D spatial (x-y) coarse-graining filters to 3D field data.
 % Multiple filter sizes are applied simultaneously, creating a 4D output
 % where the 4th dimension corresponds to different filter sizes.
-%
-% Key differences from coarsegrain_field:
-%   - Works at discrete level after converting physical lengths to grid cells
-%   - Proper periodic boundary condition handling  
-%   - Normalized filters that preserve mean values
-%   - Square filter kernels based on discrete grid distances
 %
 % Inputs
 %   var     - 3D field data with dimensions [itot, jtot, ktot] where
@@ -29,17 +22,12 @@ function var_filtered = coarsegrain_field(var, Lflt, xm, ym)
 % Algorithm
 %   - Converts physical filter lengths to grid cell numbers (Ng = round(Lflt/dx))
 %   - Works at discrete level with normalized periodic filters  
-%   - Creates square filters with half-width Ng for each filter size
-%   - Handles periodic boundary conditions properly
 %   - Uses FFT-based convolution for computational efficiency
-%   - Normalizes each filter to preserve mean values
 %
 % Example:
 %   % Apply multiple filter sizes to velocity field
 %   filter_lengths = [10, 20, 40, 80, 160]; % Physical lengths in meters
-%   u_filtered = coarsegrain_field2(u_data, filter_lengths, xm, ym);
-%
-% See also: coarsegrain_field, apply_fft_filter
+%   u_filtered = coarsegrain_field(u_data, filter_lengths, xm, ym);
 
 % Validate inputs
 if ~isnumeric(var) || ndims(var) ~= 3
@@ -56,14 +44,12 @@ if isempty(xm) || isempty(ym)
 end
 
 % Convert physical filter lengths to grid cell numbers
-% Ng represents half-width of filter in grid cells  
-dx = xm(2) - xm(1); % x-direction should be equal distance
-dy = ym(2) - ym(1); % y-direction should be equal distance
-% If dx ~= dy, compute separate half-widths in i- and j-directions
-Ngx = round(Lflt/2 / dx); % half-width in i (x) grid cells
-Ngy = round(Lflt/2 / dy); % half-width in j (y) grid cells
-Ngx = max(Ngx, 1);
-Ngy = max(Ngy, 1);
+dx = xm(2) - xm(1); % x-direction is assumed to be equidistant
+dy = ym(2) - ym(1); % y-direction is assumed to be equidistant
+
+% Compute half-widths in i- and j-directions
+Ngx = max(round(Lflt/2 / dx), 1); % half-width in i (x) grid cells
+Ngy = max(round(Lflt/2 / dy), 1); % half-width in j (y) grid cells
 
 % Get grid dimensions
 [itot, jtot, ktot] = size(var);
@@ -71,11 +57,8 @@ Ngy = max(Ngy, 1);
 % Initialize output array
 var_filtered = zeros(itot, jtot, ktot, length(Lflt));
 
-% Apply filtering for each filter size
-fprintf('Applying discrete coarse-graining filters...\n');
 tic;
-
-for n = 1:length(Lflt)
+for n = 1:length(Lflt) % Loop over all filter sizes
     ngx = Ngx(n);
     ngy = Ngy(n);
     actual_Lflt_x = ngx * dx * 2; % Actual physical length in x (full width)
@@ -88,12 +71,16 @@ for n = 1:length(Lflt)
     Lyg = jtot - 1;
     Dxg = min(abs(Xg), abs(Xg - Lxg));          % distance to boundaries (grid units)
     Dyg = min(abs(Yg), abs(Yg - Lyg));          % distance to boundaries (grid units)
-    % Use separate thresholds for i- and j-directions so non-square cells handled
     f2d = (Dxg < ngx) & (Dyg < ngy);
-    f2d = double(f2d); % ensure numeric for FFT
+
+    % is this better?
+    % [I, J] = ndgrid(1:itot, 1:jtot);
+    % di = min(I - 1, itot - (I - 1)); % periodic distance in i-direction
+    % dj = min(J - 1, jtot - (J - 1)); % periodic distance in j-direction
+    %f2d2 = (di <= ngx) & (dj <= ngy)   % logical mask for filter    
     
     % Normalize the filter to preserve mean values
-    f2d = f2d / sum(f2d(:));
+    f2d = double(f2d / sum(f2d(:)));
     
     % Apply FFT-based filtering using periodic convolution
     var_filtered(:, :, :, n) = apply_fft_filter_periodic(f2d, var);
