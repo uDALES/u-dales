@@ -65,19 +65,10 @@ for n = 1:length(Lflt) % Loop over all filter sizes
     actual_Lflt_y = ngy * dy * 2; % Actual physical length in y (full width)
     
     % Vectorized creation of 2D filter kernel for periodic domain
-    % Build grid-index distances (units = grid cells) similar to coarsegrain_field
-    [Xg, Yg] = ndgrid(0:itot-1, 0:jtot-1);       % cell-index coordinates
-    Lxg = itot - 1;
-    Lyg = jtot - 1;
-    Dxg = min(abs(Xg), abs(Xg - Lxg));          % distance to boundaries (grid units)
-    Dyg = min(abs(Yg), abs(Yg - Lyg));          % distance to boundaries (grid units)
-    f2d = (Dxg < ngx) & (Dyg < ngy);
-
-    % is this better?
-    % [I, J] = ndgrid(1:itot, 1:jtot);
-    % di = min(I - 1, itot - (I - 1)); % periodic distance in i-direction
-    % dj = min(J - 1, jtot - (J - 1)); % periodic distance in j-direction
-    %f2d2 = (di <= ngx) & (dj <= ngy)   % logical mask for filter    
+    [I, J] = ndgrid(1:itot, 1:jtot);
+    di = min(I - 1, itot - (I - 1)); % periodic distance in i-direction
+    dj = min(J - 1, jtot - (J - 1)); % periodic distance in j-direction
+    f2d = (di <= ngx) & (dj <= ngy); % logical mask for filter    
     
     % Normalize the filter to preserve mean values
     f2d = double(f2d / sum(f2d(:)));
