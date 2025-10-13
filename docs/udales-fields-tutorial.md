@@ -4,10 +4,10 @@ This tutorial describes how to read and process field data output of the LES cod
 The **`udbase`** post-processing class reads in most important input parameters, and contains a number of methods to load field data:
    -  [**load_stat_xyt**](#load_stat_xyt-loading-time-and-slab-averaged-data). This method load the 1D slab- and time-averaged statistics from the file `xytdump.expnr.nc`. Several time-intervals may be present in the data. 
    -  [**load_stat_t**](#load_stat_t-loading-time-averaged-data). This method loads the 3D time-averaged statistics from the file `tdump.expnr.nc`. Several time-intervals may be present in the data. 
-   -  [**load_stat_tree**](#load_stat_tree-loading-time-average-tree-data). This method loads the 3D time-averaged statistics of the tree source terms from the file `treedump.expnr.nc`. This method works exactly the same way as `load_stat_t`. 
+   -  [**load_stat_tree**](#load_stat_tree-and-plot_tree-loading-and-plotting-tree-data). This method loads the 3D time-averaged statistics of the tree source terms from the file `treedump.expnr.nc`. This method works exactly the same way as `load_stat_t`. 
    -  [**load_field**](#load_field-loading-instantaneous-3d-data). This method loads instantaneous 3D data from the file `fielddump.expnr.nc`. Several output times may be present in the data. 
    -  [**load_slice**](#load_slice-loading-instantaneous-2d-slice-data). This method loads instantaneous 2D slices of instantaneous 3D data from the file `Xslicedump.expnr.nc`. Several output times may be present in the data. 
-   -  [**plot_trees**](#load_stat_tree-loading-time-average-tree-data). This method plots tree patches 
+   -  [**plot_trees**](#load_stat_tree-and-plot_tree-loading-and-plotting-tree-data). This method plots tree patches. 
 **The live matlab file of this tutorial can be found in the repository in the folder /docs/tutorial_mlx.**
 # Initialising udbase
 The starting point of this tutorial is that you have run a simulation and have merged the output files. If the simulations were performed on a HPC system, **we assume that you have copied the output directory to your own workstation**. Some of the netCDF (\*.nc) files may be very large and you may only want to copy these if you plan to analyse the data.
@@ -501,7 +501,7 @@ title(['$u(x,y,z=', num2str(zm(sim.kslice), '%8.1f'), 'm, t=', num2str(t(n), '%8
 ```
 ![figure_7.png](udales-fields-tutorial_media/figure_7.png)
 <a id="M_8076"></a>
-# load_stat_tree: loading time-average tree data
+# load_stat_tree and plot_tree: loading and plotting tree data
 We next switch to a tree simulation to show the tree functions example
 ```matlab
 clear variables;
@@ -510,7 +510,9 @@ expdir = 'path_to_experiments\525';
 sim = udbase(expnr, expdir);
 ```
 ```text
-Warning: One or moresolid_(u,v,w,c).525 files not found.
+Warning: One or more solid_(u,v,w,c).525 files not found.
+Loading tree data from trees.inp.525
+Successfully loaded tree data from trees.inp.525.
 ```
 The trees patches can be plotted using
 ```matlab
@@ -523,10 +525,10 @@ help sim.load_stat_tree
 ```
 ```text
 --- help for udbase/load_stat_tree ---
-  A method to retrieve time-averaged statistics of the tree
+  A method to retrieve time-averaged statistics of the tree       
   source terms from the treedump file
  
-  load_stat_tree(OBJ) displays the variables in the treedump file
+  load_stat_tree(OBJ) displays the variables in the treedump file 
  
   load_stat_tree(OBJ, svar) retrieves a variable from the treedump file
  

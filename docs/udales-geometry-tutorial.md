@@ -13,7 +13,6 @@ uDALES supports several manners to create urban surfaces. It is possible to run 
 clear variables
 close all
 % add the uDALES matlab path
-%addpath('path_to_udales\tools\matlab')
 addpath('path_to_udales\tools\matlab')
 ```
 <a id="H_3c00"></a>
@@ -100,7 +99,7 @@ help geom.show_outline
  
   Examples:
     obj.show_outline();     % Use precomputed outline
-    obj.show_outline(30);   % Recalculate with 30° threshold
+    obj.show_outline(30);   % Recalculate with 30┬░ threshold
 ```
 Here is a simple example on how to use this method:
 ```matlab
@@ -227,7 +226,6 @@ geom.show;
 xlabel('x [m]'); 
 ylabel('y [m]')
 ```
-![figure_4.png](udales-geometry-tutorial_media/figure_4.png)
 <a id="H_9762"></a>
 # udgeom.createRealistic
 This function creates a realistic urban surface based on an stl file that contains the buildings. The function adds the ground surface.
@@ -266,5 +264,3 @@ geom = udgeom.createRealistic(stlfile, xsize_og, ysize_og, shift, edgelength);
 geom.show; 
 xlabel('x [m]'); 
 ylabel('y [m]')
-```
-![figure_5.png](udales-geometry-tutorial_media/figure_5.png)

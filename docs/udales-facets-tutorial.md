@@ -25,17 +25,11 @@ The starting point of this tutorial is that you have run a simulation and have m
 clear variables
 close all
 % add the uDALES matlab path
-% addpath('path_to_udales\tools\matlab')
 addpath('path_to_udales\tools\matlab')
 % create an instance of the udbase class
-% expnr = 065;
-% expdir = 'path_to_experiments\065';
 expnr = 065;
 expdir = 'path_to_experiments\065';
 sim = udbase(expnr, expdir);
-```
-```text
-Warning: trees.inp files not found.
 ```
 <a id="H_7a43"></a>
 # calculate_frontal_properties: calculate skyline, blockage ratio and frontal areas
@@ -112,8 +106,6 @@ help sim.plot_building_ids
   plot_building_ids(OBJ) creates a top-view plot showing buildings 
   in different colors with building IDs at center of gravity
  
-  plot_building_ids(OBJ, 'FontSize', size) sets the font size for building ID labels (default: 9)
- 
   SEE ALSO: udgeom.splitBuildings, plot_outline, plot_2dmap
 ```
 This method displays the ids of the individual buildings inside the domain, buildings are numbered from left-bottom to right-top.
@@ -154,18 +146,9 @@ help sim.plot_2dmap
     val: numeric scalar or vector with length equal to number of buildings.
  
   plot_2dmap(OBJ, val, labels)
-    labels: optional building IDs to mark with red text labels.
-            Can be:
-            - Numeric array: [1, 2, 5, 7]
-            - String with comma-separated IDs: '1,2,5,7'
-            - Cell array of numeric strings: {'1', '2', '5', '7'}
- 
-  Examples:
-    % Mark buildings 1, 2, 5, 7 with numeric array
-    obj.plot_2dmap(hmax, [1, 2, 5, 7]);
- 
-    % Mark buildings with string format
-    obj.plot_2dmap(hmax, '1,2,5,7');
+    labels: optional cell or string array with labels to display at
+          the centroid of each building. If provided it must
+          match the number of buildings.
 ```
 This plot creates maps showing the 2d building outline, together with some text
 ```matlab
@@ -173,29 +156,16 @@ This plot creates maps showing the 2d building outline, together with some text
 % buildings ids are ordered according to their centroid.
 buildings = sim.geom.get_buildings();
 % calculate the maximum height for each building
+ids = cell(length(buildings), 1);
 hmax = zeros(size(buildings));
 for i = 1:length(buildings)
     bld = buildings{i};
     hmax(i) = max(bld.Points(:,3));
+    ids{i} = num2str(i);
 end
 % plot the result
-lbl = 1:10:110; % building ids labelled
 figure
-sim.plot_2dmap(hmax, lbl)
-```
-```text
-Warning: Building index 11 is out of range [1, 2]
-Warning: Building index 21 is out of range [1, 2]
-Warning: Building index 31 is out of range [1, 2]
-Warning: Building index 41 is out of range [1, 2]
-Warning: Building index 51 is out of range [1, 2]
-Warning: Building index 61 is out of range [1, 2]
-Warning: Building index 71 is out of range [1, 2]
-Warning: Building index 81 is out of range [1, 2]
-Warning: Building index 91 is out of range [1, 2]
-Warning: Building index 101 is out of range [1, 2]
-```
-```matlab
+sim.plot_2dmap(hmax, ids)
 colorbar
 xlim([0 sim.xlen])
 ylim([0 sim.ylen])
@@ -216,14 +186,14 @@ help sim.plot_fac_type
   plot_fac_type(OBJ) plots the surface types for all buildings
  
   plot_fac_type(OBJ, building_ids) plots the surface types only for 
-  the specified building indices (array of positive integers)
+  the specified building IDs (array of positive integers)
  
   Examples:
     % Plot surface types for all buildings
     obj.plot_fac_type();
  
-    % Plot surface types for specific buildings
-    obj.plot_fac_type([1, 3, 5]);
+    % Plot surface types only for specific buildings
+    obj.plot_fac_type([1, 5, 10]);
 ```
 When working with a surface energy balance model, each facet will have a specific wall type with its own properties (albedo, emissivity, thickness etc). The wall types of the geometry can be conveniently displayed using the method `plot_fac_type`:
 ```matlab
@@ -294,13 +264,13 @@ help sim.plot_fac
   plot_fac(OBJ, var) plots variable var for all facets
  
   plot_fac(OBJ, var, building_ids) plots variable var only for 
-  the specified building indices (array of positive integers)
+  the specified building IDs (array of positive integers)
  
   Examples:
     % Plot net shortwave radiation for all buildings
     obj.plot_fac(K); 
  
-    % Plot only for specific buildings by index
+    % Plot only for specific buildings
     obj.plot_fac(K, [1, 5, 10]);
 ```
 We can now plot the albedo using the method `plot_fac`.
@@ -674,7 +644,7 @@ title('Area-averaged surface energy balance for sidewalls')
 % average over entire time-range, merge short-term time average to
 % long-term
 % see utility_tutorial for functions merge_stat_var and so on
-[Havt, ~] = merge_stat_var(seb.H, zeros(size(seb.H)), length(seb.t));
+[Havt, ~] = merge_stat(seb.H, zeros(size(seb.H)), length(seb.t));
 figure
 subplot(1,2,1)
 sim.plot_fac(Havt)
@@ -698,8 +668,8 @@ help sim.convert_facvar_to_field
   Inputs:
     var:     facet variable (e.g. from load_fac_eb, load_fac_temperature, etc)
     facsec:  facet section structure (e.g. obj.facsec.u)
-    building_ids (optional): array of building indices to include. If not
-                            specified, all buildings are included.
+    building_ids (optional): array of building IDs to include. If not
+                             specified, all buildings are included.
  
   Outputs: 
     fld:     variable on the grid (itot x jtot x ktot)
@@ -709,19 +679,19 @@ help sim.convert_facvar_to_field
   convert_facvar_to_field(OBJ, var, facsec) transfers a variable onto the grid.   
  
   convert_facvar_to_field(OBJ, var, facsec, building_ids) converts only
-                                 facets from the specified building indices.
+                                 facets from the specified building IDs.
  
   Examples:
     % Convert all facets
     fld = obj.convert_facvar_to_field(var, sim.facsec.c);
  
-    % Convert only specific buildings by index
+    % Convert only specific buildings
     fld = obj.convert_facvar_to_field(var, sim.facsec.c, [1, 5, 10]);
 ```
 This function assigns facet data to the grid, which is useful for some averaging and visualisation methods. For example, we can show the time-averaged surface temperature for buildings 1 and 2 and visualise the associated 3D grid locations: 
 ```matlab
-Tsav   = merge_stat_var(squeeze(T(:,1,:)), zeros(size(squeeze(T(:,1,:)))), length(seb.t));
-Tsgrid = sim.convert_facvar_to_field(Tsav,sim.facsec.c, 1);
+Tsav   = merge_stat(squeeze(T(:,1,:)), zeros(size(squeeze(T(:,1,:)))), length(seb.t));
+Tsgrid = sim.convert_facvar_to_field(Tsav,sim.facsec.c, [1 2]);
 % Get the (x, y, z) coordinates of non-zero elements
 [i, j, k] = ind2sub(size(Tsgrid), find(abs(Tsgrid) > 0));
 x = sim.xt(i); y = sim.yt(j); z = sim.zt(k);
@@ -747,8 +717,8 @@ help sim.convert_facflx_to_field
     var:     facet flux variable (e.g. from load_fac_eb, load_fac_temperature, etc)
     facsec:  facet section structure (e.g. obj.facsec.u)
     dz:      vertical grid spacing at cell centers (obj.dzt)
-    building_ids (optional): array of building indices to include. If not
-                            specified, all buildings are included.
+    building_ids (optional): array of building IDs to include. If not
+                             specified, all buildings are included.
  
   Outputs: 
     fld:     3D field density (itot x jtot x ktot)
@@ -759,13 +729,13 @@ help sim.convert_facflx_to_field
                                  to a 3D field density for all facets.   
  
   convert_facflx_to_field(OBJ, var, facsec, dz, building_ids) converts only
-                                 facets from the specified building indices.
+                                 facets from the specified building IDs.
  
   Examples:
     % Convert all facets
     fld = obj.convert_facflx_to_field(var, sim.facsec.c, sim.dzt);
  
-    % Convert only specific buildings by index
+    % Convert only specific buildings
     fld = obj.convert_facflx_to_field(var, sim.facsec.c, sim.dzt, [1, 5, 10]);
 ```
 This function assigns facet data to a density in a 3D field, which is useful for assessing plane-average distributed stresses [1] as well as the multi-scale analysis proposed by Van Reeuwijk and Huang [2]. For example, we can convert the time-averaged heat flux Havt to a 3d density field as follows.
