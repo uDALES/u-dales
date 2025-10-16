@@ -41,7 +41,7 @@ program DALESURBAN      !Version 48
   use modpois,           only : initpois,poisson
   use modibm,            only : initibm,createmasks,ibmwallfun,ibmnorm,bottom
   use modtrees,          only : createtrees,trees
-  use modpurifiers,      only : createpurifiers,purifiers
+  ! use modpurifiers,      only : createpurifiers,purifiers
   use modheatpump,       only : init_heatpump,heatpump,exit_heatpump
   use initfac,           only : readfacetfiles
   use modEB,             only : initEB,EB
@@ -122,7 +122,7 @@ program DALESURBAN      !Version 48
 
   call createtrees
 
-  call createpurifiers
+  ! call createpurifiers
 
   call init_heatpump
 
@@ -223,11 +223,11 @@ program DALESURBAN      !Version 48
 #endif
     write(6,'(A,F10.6)')'possion time = ', MPI_Wtime() - stime
 
+    ! call purifiers      !placing need to be checked; Not GPU compatible yet
+
 #if defined(_GPU)
     call updateHostAfterPoiss
 #endif
-
-    call purifiers      !placing of purifiers here may need to be checked
 
     call tstep_integrate
 
