@@ -29,7 +29,6 @@ module modboundary
    public :: initboundary, boundary, grwdamp, ksp, tqaver, halos, bcp, bcpup, closurebc, &
              xm_periodic, xT_periodic, xq_periodic, xs_periodic, ym_periodic, yT_periodic, yq_periodic, ys_periodic
    integer :: ksp = -1 !<    lowest level of sponge layer
-   real, allocatable :: tsc(:) !<   damping coefficients to be used in grwdamp.
    real :: rnu0 = 2.75e-3
 contains
    !>
@@ -38,6 +37,7 @@ contains
    subroutine initboundary
       use modglobal,    only : ib, kb, ke, kh, kmax, pi, zf, iplane
       use modinletdata, only : irecy
+      use modfields,    only : tsc
       implicit none
 
       real    :: zspb, zspt
@@ -1820,50 +1820,148 @@ contains
    !! to infinity at the bottom of the sponge layer.
    !! \endlatexonly
    subroutine grwdamp
-      use modglobal, only:ke, kmax, lcoriol, igrw_damp, geodamptime
-      use modfields, only:up, vp, wp, thlp, qtp, u0, v0, w0, thl0, qt0, ug, vg, thl0av, qt0av, u0av, v0av
-      use modmpi, only:myid
+      use modglobal, only: ke, ltempeq, lmoist, lcoriol, igrw_damp, geodamptime
+#if defined(_GPU)
+      use modcuda,   only: up_d, vp_d, wp_d, thlp_d, qtp_d, u0_d, v0_d, w0_d, thl0_d, qt0_d, ug_d, vg_d, u0av_d, v0av_d, thl0av_d, qt0av_d, tsc_d
+#else
+      use modfields, only: up, vp, wp, thlp, qtp, u0, v0, w0, thl0, qt0, ug, vg, u0av, v0av, thl0av, qt0av, tsc
+#endif
       implicit none
-
-      integer k
+      integer :: k
       select case (igrw_damp)
       case (0) !do nothing
       case (1)
+         !$acc kernels default(present)
          do k = ksp, ke
+#if defined(_GPU)
+            up_d(:, :, k) = up_d(:, :, k) - (u0_d(:, :, k) - u0av_d(k))*tsc_d(k)
+            vp_d(:, :, k) = vp_d(:, :, k) - (v0_d(:, :, k) - v0av_d(k))*tsc_d(k)
+            wp_d(:, :, k) = wp_d(:, :, k) - w0_d(:, :, k)*tsc_d(k)
+#else
             up(:, :, k) = up(:, :, k) - (u0(:, :, k) - u0av(k))*tsc(k)
             vp(:, :, k) = vp(:, :, k) - (v0(:, :, k) - v0av(k))*tsc(k)
             wp(:, :, k) = wp(:, :, k) - w0(:, :, k)*tsc(k)
-            thlp(:, :, k) = thlp(:, :, k) - (thl0(:, :, k) - thl0av(k))*tsc(k)
-            qtp(:, :, k) = qtp(:, :, k) - (qt0(:, :, k) - qt0av(k))*tsc(k)
+#endif
          end do
+         !$acc end kernels
+
+         if (ltempeq) then
+           !$acc kernels default(present)
+           do k = ksp, ke
+#if defined(_GPU)
+             thlp_d(:, :, k) = thlp_d(:, :, k) - (thl0_d(:, :, k) - thl0av_d(k))*tsc_d(k)
+#else
+             thlp(:, :, k) = thlp(:, :, k) - (thl0(:, :, k) - thl0av(k))*tsc(k)
+#endif
+           end do
+           !$acc end kernels
+         end if
+
+         if (lmoist) then
+           !$acc kernels default(present)
+           do k = ksp, ke
+#if defined(_GPU)
+              qtp_d(:, :, k) = qtp_d(:, :, k) - (qt0_d(:, :, k) - qt0av_d(k))*tsc_d(k)
+#else
+              qtp(:, :, k) = qtp(:, :, k) - (qt0(:, :, k) - qt0av(k))*tsc(k)
+#endif
+           end do
+           !$acc end kernels
+         end if
+
          if (lcoriol) then
+            !$acc kernels default(present)
             do k = ksp, ke
+#if defined(_GPU)
+               up_d(:, :, k) = up_d(:, :, k) - (u0_d(:, :, k) - ug_d(k))*((1./(geodamptime*rnu0))*tsc_d(k))
+               vp_d(:, :, k) = vp_d(:, :, k) - (v0_d(:, :, k) - vg_d(k))*((1./(geodamptime*rnu0))*tsc_d(k))
+#else
                up(:, :, k) = up(:, :, k) - (u0(:, :, k) - ug(k))*((1./(geodamptime*rnu0))*tsc(k))
                vp(:, :, k) = vp(:, :, k) - (v0(:, :, k) - vg(k))*((1./(geodamptime*rnu0))*tsc(k))
+#endif
             end do
+            !$acc end kernels
          end if
       case (2)
+         !$acc kernels default(present)
          do k = ksp, ke
+#if defined(_GPU)
+            up_d(:, :, k) = up_d(:, :, k) - (u0_d(:, :, k) - ug_d(k))*tsc_d(k)
+            vp_d(:, :, k) = vp_d(:, :, k) - (v0_d(:, :, k) - vg_d(k))*tsc_d(k)
+            wp_d(:, :, k) = wp_d(:, :, k) - w0_d(:, :, k)*tsc_d(k)
+#else
             up(:, :, k) = up(:, :, k) - (u0(:, :, k) - ug(k))*tsc(k)
             vp(:, :, k) = vp(:, :, k) - (v0(:, :, k) - vg(k))*tsc(k)
             wp(:, :, k) = wp(:, :, k) - w0(:, :, k)*tsc(k)
-            thlp(:, :, k) = thlp(:, :, k) - (thl0(:, :, k) - thl0av(k))*tsc(k)
-            qtp(:, :, k) = qtp(:, :, k) - (qt0(:, :, k) - qt0av(k))*tsc(k)
+#endif
          end do
+         !$acc end kernels
+
+         if (ltempeq) then
+           !$acc kernels default(present)
+           do k = ksp, ke
+#if defined(_GPU)
+             thlp_d(:, :, k) = thlp_d(:, :, k) - (thl0_d(:, :, k) - thl0av_d(k))*tsc_d(k)
+#else
+             thlp(:, :, k) = thlp(:, :, k) - (thl0(:, :, k) - thl0av(k))*tsc(k)
+#endif
+           end do
+           !$acc end kernels
+         end if
+
+         if (lmoist) then
+           !$acc kernels default(present)
+           do k = ksp, ke
+#if defined(_GPU)
+              qtp_d(:, :, k) = qtp_d(:, :, k) - (qt0_d(:, :, k) - qt0av_d(k))*tsc_d(k)
+#else
+              qtp(:, :, k) = qtp(:, :, k) - (qt0(:, :, k) - qt0av(k))*tsc(k)
+#endif
+           end do
+           !$acc end kernels
+         end if
       case (3)
+         !$acc kernels default(present)
          do k = ksp, ke
+#if defined(_GPU)
+            up_d(:, :, k) = up_d(:, :, k) - (u0_d(:, :, k) - u0av_d(k))*tsc_d(k)
+            vp_d(:, :, k) = vp_d(:, :, k) - (v0_d(:, :, k) - v0av_d(k))*tsc_d(k)
+            wp_d(:, :, k) = wp_d(:, :, k) - w0_d(:, :, k)*tsc_d(k)
+#else
             up(:, :, k) = up(:, :, k) - (u0(:, :, k) - u0av(k))*tsc(k)
             vp(:, :, k) = vp(:, :, k) - (v0(:, :, k) - v0av(k))*tsc(k)
             wp(:, :, k) = wp(:, :, k) - w0(:, :, k)*tsc(k)
-            thlp(:, :, k) = thlp(:, :, k) - (thl0(:, :, k) - thl0av(k))*tsc(k)
-            qtp(:, :, k) = qtp(:, :, k) - (qt0(:, :, k) - qt0av(k))*tsc(k)
+#endif
          end do
+         !$acc end kernels
+
+         if (ltempeq) then
+           !$acc kernels default(present)
+           do k = ksp, ke
+#if defined(_GPU)
+             thlp_d(:, :, k) = thlp_d(:, :, k) - (thl0_d(:, :, k) - thl0av_d(k))*tsc_d(k)
+#else
+             thlp(:, :, k) = thlp(:, :, k) - (thl0(:, :, k) - thl0av(k))*tsc(k)
+#endif
+           end do
+           !$acc end kernels
+         end if
+
+         if (lmoist) then
+           !$acc kernels default(present)
+           do k = ksp, ke
+#if defined(_GPU)
+              qtp_d(:, :, k) = qtp_d(:, :, k) - (qt0_d(:, :, k) - qt0av_d(k))*tsc_d(k)
+#else
+              qtp(:, :, k) = qtp(:, :, k) - (qt0(:, :, k) - qt0av(k))*tsc(k)
+#endif
+           end do
+           !$acc end kernels
+         end if
       case default
          write(0, *) "ERROR: no gravity wave damping option selected"
          stop 1
       end select
-
-      return
    end subroutine grwdamp
 
 

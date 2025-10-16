@@ -207,14 +207,14 @@ program DALESURBAN      !Version 48
 
     call fixuinf1
 
+#if defined(_GPU)
+    call updateDevicePriorPoiss
+#endif
+
 !-----------------------------------------------------------------------
 !   3.5  PRESSURE FLUCTUATIONS, TIME INTEGRATION AND BOUNDARY CONDITIONS
 !-----------------------------------------------------------------------
     call grwdamp        !damping at top of the model
-
-#if defined(_GPU)
-    call updateDevicePriorPoiss
-#endif
 
     stime = MPI_Wtime()
     call poisson

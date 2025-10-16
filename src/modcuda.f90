@@ -16,7 +16,7 @@ module modcuda
                              up, vp, wp, e12p, thlp, thlpc, qtp, svp, &
                              um, vm, wm, e12m, &
                              tau_x, tau_y, tau_z, thl_flux, &
-                             u0av, v0av, thl0av, qt0av, sv0av, dthvdz, ug, whls, &
+                             u0av, v0av, thl0av, qt0av, sv0av, dthvdz, ug, vg, whls, tsc, &
                              dpdxl, dpdyl, thv0h, thvh, thlpcar, &
                              dudxls, dudyls, dvdxls, dvdyls, dthldxls, dthldyls, dqtdxls, dqtdyls, dqtdtls, &
                              uprof, vprof
@@ -48,7 +48,7 @@ module modcuda
    real, device, allocatable :: dzf_d(:), dzf2_d(:), dzfi_d(:), dzfi5_d(:), dzfiq_d(:), dzh_d(:), dzhi_d(:), dzh2i_d(:), dzhiq_d(:), &
                                 dzfc_d(:), dzfci_d(:), dzhci_d(:), dxfc_d(:), dxfci_d(:), dxhci_d(:), &
                                 dxf_d(:), dxhi_d(:), &
-                                xh_d(:), u0av_d(:), v0av_d(:), ug_d(:), whls_d(:), thl0av_d(:), qt0av_d(:), &
+                                xh_d(:), u0av_d(:), v0av_d(:), ug_d(:), vg_d(:), whls_d(:), thl0av_d(:), qt0av_d(:), tsc_d(:), &
                                 dpdxl_d(:), dpdyl_d(:), thvh_d(:), thlpcar_d(:), &
                                 dudxls_d(:), dudyls_d(:), dvdxls_d(:), dvdyls_d(:), dthldxls_d(:), dthldyls_d(:), dqtdxls_d(:), dqtdyls_d(:), dqtdtls_d(:), &
                                 uprof_d(:), vprof_d(:)
@@ -177,9 +177,14 @@ module modcuda
          allocate(v0av_d(kb:ke+kh))
 
          allocate(ug_d(kb:ke+kh))
+         allocate(vg_d(kb:ke+kh))
          allocate(whls_d(kb:ke+kh))
          ug_d = ug
+         vg_d = vg
          whls_d = whls
+
+         allocate(tsc_d(kb:ke+kh))
+         tsc_d = tsc
 
          allocate(dpdxl_d(kb:ke+kh))
          allocate(dpdyl_d(kb:ke+kh))
@@ -317,7 +322,7 @@ module modcuda
          deallocate(dxf_d, dxhi_d, dzf_d, dzf2_d, dzfi_d, dzfi5_d, dzfiq_d, dzh_d, dzhi_d, dzh2i_d, dzhiq_d, delta_d)
          deallocate(u0_d, v0_d, w0_d, pres0_d, um_d, vm_d, wm_d, up_d, vp_d, wp_d)
          deallocate(tau_x_d, tau_y_d, tau_z_d)
-         deallocate(u0av_d, v0av_d, ug_d, whls_d)
+         deallocate(u0av_d, v0av_d, ug_d, vg_d, whls_d, tsc_d)
          deallocate(dpdxl_d, dpdyl_d, dudxls_d, dudyls_d, dvdxls_d, dvdyls_d)
          deallocate(uprof_d, vprof_d, u0driver_d)
          if (loneeqn) deallocate(e120_d, e12p_d, e12m_d, sbshr_d, sbbuo_d, sbdiss_d, zlt_d)
@@ -427,10 +432,10 @@ module modcuda
          um_d = um
          vm_d = vm
          wm_d = wm
+         u0_d = u0
+         v0_d = v0
+         w0_d = w0
          pres0_d = pres0
-         if (BCxm==BCxm_profile .or. BCxm==BCxm_driver) then
-            u0_d = u0
-         end if
          if (BCxm == BCxm_profile) then
            uprof_d = uprof
          end if
@@ -438,8 +443,16 @@ module modcuda
            u0driver_d = u0driver
          end if
          if (BCym == BCym_profile) then
-           v0_d = v0
            vprof_d = vprof
+         end if
+
+         if (ltempeq) then
+            thlp_d = thlp
+            thl0_d = thl0
+         end if
+         if (lmoist) then
+            qtp_d = qtp
+            qt0_d = qt0
          end if
       end subroutine updateDevicePriorPoiss
 
@@ -449,6 +462,8 @@ module modcuda
          vp = vp_d
          wp = wp_d
          pres0 = pres0_d
+         if (ltempeq) thlp = thlp_d
+         if (lmoist) qtp = qtp_d
       end subroutine updateHostAfterPoiss
 
       subroutine updateHost

@@ -422,6 +422,8 @@ module modfields
   real, allocatable, pinned :: qt0av(:)
   real, allocatable, pinned :: sv0av(:,:)
   real, allocatable, pinned :: ug(:)
+  real, allocatable, pinned :: vg(:)
+  real, allocatable, pinned :: tsc(:)
 #else
   real, allocatable :: u0av(:)          !<   slab averaged u
   real, allocatable :: v0av(:)          !<   slab averaged v
@@ -429,8 +431,9 @@ module modfields
   real, allocatable :: qt0av(:)         !<   slab averaged q_tot
   real, allocatable :: sv0av(:,:)       !<   slab average of sv(n)
   real, allocatable :: ug(:)            !<   geostrophic u-wind
-#endif
   real, allocatable :: vg(:)            !<   geostrophic v-wind
+  real, allocatable :: tsc(:)           !<   damping coefficients to be used in grwdamp.
+#endif
 
   real, allocatable :: pgx(:)            !<   driving pressure gradient in x, this is dp/dx [(\Delta p) / (\Delta x)] across one cell, already divided by \rho -> in units of [m/s^2]
   real, allocatable :: pgy(:)            !<   driving pressure gradient in y [m/s^2]
