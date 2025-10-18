@@ -4,12 +4,12 @@
 This tutorial describes how to read and process field data output of the LES code uDALES using MATLAB. In addition, it describes some important concepts, such as the [grid layout](#udales-grid-layout), [variable locations](#udales-grid-layout) and [averaging procedures](#averages-used-in-udales-output).
 The **`udbase`** post-processing class reads in most important input parameters, and contains a number of methods to load field data:
 
-- [**load_stat_xyt**](#load-stat-xyt). This method load the 1D slab- and time-averaged statistics from the file `xytdump.expnr.nc`. Several time-intervals may be present in the data.
-- [**load_stat_t**](#load-stat-t). This method loads the 3D time-averaged statistics from the file `tdump.expnr.nc`. Several time-intervals may be present in the data.
-- [**load_stat_tree**](#load-stat-tree). This method loads the 3D time-averaged statistics of the tree source terms from the file `treedump.expnr.nc`. This method works exactly the same way as `load_stat_t`.
-- [**load_field**](#load-field). This method loads instantaneous 3D data from the file `fielddump.expnr.nc`. Several output times may be present in the data.
-- [**load_slice**](#load-slice). This method loads instantaneous 2D slices of instantaneous 3D data from the file `Xslicedump.expnr.nc`. Several output times may be present in the data.
-- [**plot_trees**](#load-stat-tree). This method plots tree patches.
+- [**load_stat_xyt**](#load_stat_xyt-loading-time--and-slab-averaged-data). This method load the 1D slab- and time-averaged statistics from the file `xytdump.expnr.nc`. Several time-intervals may be present in the data.
+- [**load_stat_t**](#load_stat_t-loading-time-averaged-data). This method loads the 3D time-averaged statistics from the file `tdump.expnr.nc`. Several time-intervals may be present in the data.
+- [**load_stat_tree**](#load_stat_tree-and-plot_tree-loading-and-plotting-tree-data). This method loads the 3D time-averaged statistics of the tree source terms from the file `treedump.expnr.nc`. This method works exactly the same way as `load_stat_t`.
+- [**load_field**](#load_field-loading-instantaneous-3d-data). This method loads instantaneous 3D data from the file `fielddump.expnr.nc`. Several output times may be present in the data.
+- [**load_slice**](#load_slice-loading-instantaneous-2d-slice-data). This method loads instantaneous 2D slices of instantaneous 3D data from the file `Xslicedump.expnr.nc`. Several output times may be present in the data.
+- [**plot_trees**](#load_stat_tree-and-plot_tree-loading-and-plotting-tree-data). This method plots tree patches.
 
 **The live matlab file of this tutorial can be found in the repository in the folder /docs/tutorial_mlx.**
 
@@ -101,7 +101,7 @@ where $A_f \left(z\right)$ is the area occupied by fluid and $\Omega_f$ is the h
  $$ \langle \bar{\varphi} \rangle_C \left(z\right)=\frac{1}{A}\int_{\Omega_{f\;} } \varphi \;\mathrm{dA}=\frac{A_f }{A}\langle \bar{\varphi} \rangle \left(z\right) $$
 where $A$ is the total surface area. In many cases, it is more convenient to work with comprehensive averages than intrinsic averages, particularly when considering averaged budgets of momentum, temperature etc [3]. To convert the intrinsic-average output from uDALES into a comprehensive average, simply multiply the intrinsic average by $A_f /A$ as shown above. Time and intrinsically-averaged data is contained in the `xytdump.expnr.nc` file.
 
-## load_stat_xyt: loading time- and slab-averaged data {#load-stat-xyt}
+## load_stat_xyt: loading time- and slab-averaged data
 
 ```matlab
 help sim.load_stat_xyt
@@ -255,7 +255,7 @@ legend(leg, 'Location','northwest', 'Interpreter', 'latex')
 To interpret this data, it is easiest to start with the right-most figure which plots the sum of the dispersive and turbulent fluxes. In a steady state (and for a simulation with a constant pressure gradient of average velocity), we expect this quantity to form a straight line, which is the case for the last two time-intervals. The data are also nearly collapsing for the last two time-intervals, once more suggesting that these flows are close to a statistical steady state.
 The turbulent and dispersive fluxes show substantial variation for all three curves, showing that much longer averaging is needed to obtain reliable statistics for these quantities [4].
 
-## load_stat_t: loading time-averaged data {#load-stat-t}
+## load_stat_t: loading time-averaged data
 
 ```matlab
 help sim.load_stat_t
@@ -380,7 +380,7 @@ title(['$\overline u(x, y=', num2str(yt(j), '%8.1f'), 'm, z)$'], 'Interpreter','
 
 ![figure_4.png](udales-fields-tutorial_media/figure_4.png)
 
-## load_field: loading instantaneous 3D data {#load-field}
+## load_field: loading instantaneous 3D data
 
 ```matlab
 help sim.load_field
@@ -482,7 +482,7 @@ title(['$u(x, y, z=', num2str(zt(k), '%8.1f'), 'm, t=', num2str(t(n), '%8.0f'),'
 
 ![figure_6.png](udales-fields-tutorial_media/figure_6.png)
 
-## load_slice: loading instantaneous 2D slice data {#load-slice}
+## load_slice: loading instantaneous 2D slice data
 
 ```matlab
 help sim.load_slice
@@ -590,7 +590,7 @@ title(['$u(x,y,z=', num2str(zm(sim.kslice), '%8.1f'), 'm, t=', num2str(t(n), '%8
 
 ![figure_7.png](udales-fields-tutorial_media/figure_7.png)
 
-## load_stat_tree and plot_tree: loading and plotting tree data {#load-stat-tree}
+## load_stat_tree and plot_tree: loading and plotting tree data
 
 We next switch to a tree simulation to show the tree functions example
 

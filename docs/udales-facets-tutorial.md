@@ -5,19 +5,19 @@ In this tutorial we cover how to work with uDALES facet data. This pertains to a
 The **`udbase`** post-processing class reads in most important input parameters, and contains a number of methods to work with facet data:
 
 - [**calculate_frontal_properties**](#calculate-frontal-properties). This method calculates the skylines, frontal areas and blockage ratios in the x- and y-direction.
-- [**plot_bulding_ids**](#plot-building-ids). This method displays a 2d map with the building ids of the domain.
-- [**plot_2dmap**](#plot-2dmap). This method displays a 2d map with coloring and optional labels.
-- [**plot_fac_type**](#plot-fac-type). This method displays the type of surface for each facet.
-- [**assign_prop_to_fac**](#assign-prop-to-fac). This method assigns a property of the facet type to each of the facets, so it can be used for calculation and visualisation
-- [**plot_fac**](#plot-fac). This method displays a surface variable on the surface mesh.
-- [**load_fac_momentum**](#load-fac-momentum). This method loads instantaneous momentum surface data from `fac.expnr.nc`. The first index is the facet id and second index is time.
-- [**load_fac_eb**](#load-fac-eb). This method loads instantaneous surface energy balance data from `facEB.expnr.nc`. The first index is the facet id and second index is time.
-- [**load_seb**](#load-seb). This method loads all instantaneous surface energy balance terms. The first index is the facet id and second index is time.
-- [**load_fac_temperature**](#load-fac-temperature). This method loads instantaneous facet temperature data `facT.expnr.nc`. The first index is the facet id, the second is the layer index and the third index is time.
-- [**area_average_seb**](#area-average-seb). This method calculates the area-averaged surface energy balance from the facet surface energy balances obtained using `load_seb`.
-- [**area_average_fac**](#area-average-fac). This method performs area-averaging over (a selection of) the facets. The facet index is assumed to be the first index of the array.
-- [**convert_facvar_to_field**](#convert-facvar-to-field). This method transfers a facet variable onto the grid, so it can be used for post-processing.
-- [**convert_facflx_to_field**](#convert-facflx-to-field). This method converts a facet variable to a density in a 3D field, so it can be used for post-processing (e.g. calculating distributed drag).
+- [**plot_bulding_ids**](#plot_building_ids-display-the-building-ids-in-the-domain). This method displays a 2d map with the building ids of the domain.
+- [**plot_2dmap**](#plot_2dmap-display-2dmap). This method displays a 2d map with coloring and optional labels.
+- [**plot_fac_type**](#plot_fac_type-display-surface-types). This method displays the type of surface for each facet.
+- [**assign_prop_to_fac**](#assign_prop_to_fac-assigning-wall-properties-to-facets). This method assigns a property of the facet type to each of the facets, so it can be used for calculation and visualisation
+- [**plot_fac**](#plot_fac-plot-facet-quantities). This method displays a surface variable on the surface mesh.
+- [**load_fac_momentum**](#load_fac_momentum-load-facet-pressure-and-shear-stresses). This method loads instantaneous momentum surface data from `fac.expnr.nc`. The first index is the facet id and second index is time.
+- [**load_fac_eb**](#load_fac_eb-load-term-from-the-surface-energy-balance). This method loads instantaneous surface energy balance data from `facEB.expnr.nc`. The first index is the facet id and second index is time.
+- [**load_seb**](#load_seb-load-all-surface-energy-balance-terms). This method loads all instantaneous surface energy balance terms. The first index is the facet id and second index is time.
+- [**load_fac_temperature**](#load_fac_temperature-load-temperatures-inside-facets). This method loads instantaneous facet temperature data `facT.expnr.nc`. The first index is the facet id, the second is the layer index and the third index is time.
+- [**area_average_seb**](#area_average_seb-perform-area-averaging-of-the-surface-energy-balance-terms). This method calculates the area-averaged surface energy balance from the facet surface energy balances obtained using `load_seb`.
+- [**area_average_fac**](#area_average_fac-area-averaging-over-facet-data). This method performs area-averaging over (a selection of) the facets. The facet index is assumed to be the first index of the array.
+- [**convert_facvar_to_field**](#convert_facvar_to_field-convert-facet-data-to-grid). This method transfers a facet variable onto the grid, so it can be used for post-processing.
+- [**convert_facflx_to_field**](#convert_facflx_to_field-convert-facet-data-to-3d-density-field). This method converts a facet variable to a density in a 3D field, so it can be used for post-processing (e.g. calculating distributed drag).
 
 **The live matlab file of this tutorial can be found in the repository in the folder /docs/tutorial_mlx.**
 
@@ -111,7 +111,7 @@ title('skyline in y-direction')
 
 ![figure_0.png](udales-facets-tutorial_media/figure_0.png)
 
-## plot_building_ids: display the building ids in the domain {#plot-building-ids}
+## plot_building_ids: display the building ids in the domain
 
 ```matlab
 help sim.plot_building_ids
@@ -157,7 +157,7 @@ ylim([0 sim.ylen])
 
 ![figure_1.png](udales-facets-tutorial_media/figure_1.png)
 
-## plot_2dmap: display 2dmap {#plot-2dmap}
+## plot_2dmap: display 2dmap
 
 ```matlab
 help sim.plot_2dmap
@@ -202,7 +202,7 @@ title('maximum building height')
 ![figure_2.png](udales-facets-tutorial_media/figure_2.png)
 The function `format_surface_plot` applies a consistent layout to the surface plots. Its implementation
 
-## plot_fac_type: display surface types {#plot-fac-type}
+## plot_fac_type: display surface types
 
 ```matlab
 help sim.plot_fac_type
@@ -237,7 +237,7 @@ format_surface_plot('', 'SkipColorbar', true)
 ![figure_3.png](udales-facets-tutorial_media/figure_3.png)
 The function `format_surface_plot` applies a consistent layout to the surface plots. Its implementation is given at the end of the tutorial.
 
-## assign_prop_to_fac: assigning wall properties to facets {#assign-prop-to-fac}
+## assign_prop_to_fac: assigning wall properties to facets
 
 ```matlab
 help sim.assign_prop_to_fac
@@ -295,7 +295,7 @@ In order to assign these properties to each facet, use the method `assign_prop_t
 albs = sim.assign_prop_to_fac('al');
 ```
 
-## plot_fac: plot facet quantities {#plot-fac}
+## plot_fac: plot facet quantities
 
 ```matlab
 help sim.plot_fac
@@ -355,7 +355,7 @@ ylim([0 sim.ylen])
 
 ![figure_6.png](udales-facets-tutorial_media/figure_6.png)
 
-## load_fac_momentum: load facet pressure and shear stresses {#load-fac-momentum}
+## load_fac_momentum: load facet pressure and shear stresses
 
 ```matlab
 help sim.load_fac_momentum
@@ -406,7 +406,7 @@ format_surface_plot('$p$ [m$^{2}$s$^{-2}$]')
 
 ![figure_7.png](udales-facets-tutorial_media/figure_7.png)
 
-## load_fac_eb: load term from the surface energy balance {#load-fac-eb}
+## load_fac_eb: load term from the surface energy balance
 
 ```matlab
 help sim.load_fac_eb
@@ -458,7 +458,7 @@ format_surface_plot('$K^*$ [Wm$^{-2}$]')
 
 ![figure_8.png](udales-facets-tutorial_media/figure_8.png)
 
-## load_seb: load all surface energy balance terms {#load-seb}
+## load_seb: load all surface energy balance terms
 
 ```matlab
 help sim.load_seb
@@ -521,7 +521,7 @@ format_surface_plot('$T_{surf}$ [K]')
 
 ![figure_9.png](udales-facets-tutorial_media/figure_9.png)
 
-## load_fac_temperature: load temperatures inside facets {#load-fac-temperature}
+## load_fac_temperature: load temperatures inside facets
 
 ```matlab
 help sim.load_fac_temperature
@@ -588,7 +588,7 @@ title('Temperature inside facet 1')
 
 ![figure_10.png](udales-facets-tutorial_media/figure_10.png)
 
-## area_average_seb: perform area-averaging of the surface energy balance terms {#area-average-seb}
+## area_average_seb: perform area-averaging of the surface energy balance terms
 
 ```matlab
 help sim.area_average_seb
@@ -680,7 +680,7 @@ title('Standard surface energy balance')
 
 ![figure_12.png](udales-facets-tutorial_media/figure_12.png)
 
-## area_average_fac: area-averaging over facet data {#area-average-fac}
+## area_average_fac: area-averaging over facet data
 
 ```matlab
 help sim.area_average_fac;
@@ -760,7 +760,7 @@ colorbar off
 
 ![figure_15.png](udales-facets-tutorial_media/figure_15.png)
 
-## convert_facvar_to_field: convert facet data to grid {#convert-facvar-to-field}
+## convert_facvar_to_field: convert facet data to grid
 
 ```matlab
 help sim.convert_facvar_to_field
@@ -812,7 +812,7 @@ format_surface_plot('$T_s$ [K]');
 
 ![figure_16.png](udales-facets-tutorial_media/figure_16.png)
 
-## convert_facflx_to_field: convert facet data to 3D density field {#convert-facflx-to-field}
+## convert_facflx_to_field: convert facet data to 3D density field
 
 ```matlab
 help sim.convert_facflx_to_field
