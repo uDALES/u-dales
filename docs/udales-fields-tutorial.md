@@ -1,29 +1,33 @@
 
 # Working with uDALES field data in MATLAB
 
-This tutorial describes how to read and process field data output of the LES code uDALES using MATLAB. In addition, it describes some important concepts, such as the [grid layout](#udales-grid-layout), [variable locations](#udales-grid-layout) and [averaging procedures](#averages-used-in-udales-output).
+This tutorial describes how to read and process field data output of the LES code uDALES using MATLAB. In addition, it describes some important concepts, such as the [grid layout](#working-with-udales-field-data-in-matlab), [variable locations](#working-with-udales-field-data-in-matlab) and [averaging procedures](#working-with-udales-field-data-in-matlab).
+
 The **`udbase`** post-processing class reads in most important input parameters, and contains a number of methods to load field data:
 
-- [**load_stat_xyt**](#load_stat_xyt-loading-time--and-slab-averaged-data). This method load the 1D slab- and time-averaged statistics from the file `xytdump.expnr.nc`. Several time-intervals may be present in the data.
-- [**load_stat_t**](#load_stat_t-loading-time-averaged-data). This method loads the 3D time-averaged statistics from the file `tdump.expnr.nc`. Several time-intervals may be present in the data.
-- [**load_stat_tree**](#load_stat_tree-and-plot_tree-loading-and-plotting-tree-data). This method loads the 3D time-averaged statistics of the tree source terms from the file `treedump.expnr.nc`. This method works exactly the same way as `load_stat_t`.
-- [**load_field**](#load_field-loading-instantaneous-3d-data). This method loads instantaneous 3D data from the file `fielddump.expnr.nc`. Several output times may be present in the data.
-- [**load_slice**](#load_slice-loading-instantaneous-2d-slice-data). This method loads instantaneous 2D slices of instantaneous 3D data from the file `Xslicedump.expnr.nc`. Several output times may be present in the data.
-- [**plot_trees**](#load_stat_tree-and-plot_tree-loading-and-plotting-tree-data). This method plots tree patches.
+- [**load_stat_xyt**](#working-with-udales-field-data-in-matlab). This method load the 1D slab- and time-averaged statistics from the file `xytdump.expnr.nc`. Several time-intervals may be present in the data.
+- [**load_stat_t**](#working-with-udales-field-data-in-matlab). This method loads the 3D time-averaged statistics from the file `tdump.expnr.nc`. Several time-intervals may be present in the data.
+- [**load_stat_tree**](#initialising-udbase). This method loads the 3D time-averaged statistics of the tree source terms from the file `treedump.expnr.nc`. This method works exactly the same way as `load_stat_t`.
+- [**load_field**](#initialising-udbase). This method loads instantaneous 3D data from the file `fielddump.expnr.nc`. Several output times may be present in the data.
+- [**load_slice**](#initialising-udbase). This method loads instantaneous 2D slices of instantaneous 3D data from the file `Xslicedump.expnr.nc`. Several output times may be present in the data.
+- [**plot_trees**](#initialising-udbase). This method plots tree patches.
 
 **The live matlab file of this tutorial can be found in the repository in the folder /docs/tutorial_mlx.**
 
 ## Initialising udbase
 
 The starting point of this tutorial is that you have run a simulation and have merged the output files. If the simulations were performed on a HPC system, **we assume that you have copied the output directory to your own workstation**. Some of the netCDF (*.nc) files may be very large and you may only want to copy these if you plan to analyse the data.
+
 **Note that the uDALES/tools/matlab path must be added via the Set Path button in order to use the udbase class. Alternatively, it can be added using the addpath function inside the script (done here).**
 
 ```matlab
 % preamble
 clear variables
 close all
+
 % add the uDALES matlab path
 addpath('path_to_udales\tools\matlab')
+
 % create an instance of the udbase class
 expnr = 110;
 expdir = 'path_to_experiments\110';
@@ -82,23 +86,34 @@ The field variables are defined as follows
 - `u(i,j,k)` is the u-velocity at location `(xm(i),yt(j),zt(k))`
 - `v(i,j,k)` is the v-velocity at location `(xt(i),ym(j),zt(k))`
 - `w(i,j,k)` is the w-velocity at location `(xt(i),yt(j),zm(k))`
-- `c(i,j,k)` is a scalar quantity at location `(xt(i),yt(j),zt(k))`
+- `c(i,j,k)` is a scalar quantity at location `(xt(i),yt(j),zt(k))`  
 
 Scalars (potential temperature, specific humidity, pollutants) are always defined in the cell-centre. Fluxes are typically defined on the cell edges.
+
 **You can always look up where the variables are defined from the output variable information using the load.. methods.**
 
 ## Averages used in uDALES output
 
 Many of the outputs of uDALES have been averaged in some manner. This is advantageous as these are often the quantities we are interested in, and also require much less diskspace and memory to process.
+
 The Reynolds decomposition is used to decompose variables into mean quantities and their fluctuations [2]:
+
  $\varphi \left(x,y,z,t\right)=\bar{\varphi \;} \left(x,y,z\right)+\varphi {\;}^{\prime } \left(x,y,z,t\right)$,
+
 where the overbar denotes time-averaging. The time-averaged data is contained in the `tdump.expnr.nc` file.
+
 Often, we are interested in the quantities that are additionally averaged in the horizontal plane. This is often referred to as a **slab average**.  In this case it is common to further decompose the time-averaged quantity $\bar{\varphi}$ into a spatial average $\langle \bar{\varphi} \rangle \left(z\right)$ (i.e., average over the horizontal surface)  and its spatial variation $\bar{\varphi} \textrm{"}\left(x,y,z\right)=\bar{\varphi} \left(x,y,z\right)-\langle \bar{\varphi} \rangle \left(z\right)$. Upon substituting this expression into the equation above, we obtain the triple decomposition [3]:
+
  $\varphi \left(x,y,z,t\right)=\langle \bar{\varphi} \rangle \left(z\right)+\bar{\varphi} \textrm{"}\left(x,y,z\right)\;+\varphi^{\prime } \left(x,y,z,t\right)$.
+
 Here, $\langle \bar{\varphi \;} \rangle$ is an *intrinsic* average, defined as [3]
+
  $$ \langle \bar{\varphi} \rangle \;\left(z\right)=\frac{1}{A_f }\int_{\Omega_{f\;} } \varphi \;\mathrm{dA} $$
+
 where $A_f \left(z\right)$ is the area occupied by fluid and $\Omega_f$ is the horizontal surface that is occupied by the fluid. The quantity $\langle \bar{\varphi} \rangle$ represents the average value of $\bar{\varphi}$ inside the fluid between the buildings. Another commonly used quantity is the *comprehensive* average $\langle \bar{\varphi} \rangle_C$, which is defined as
+
  $$ \langle \bar{\varphi} \rangle_C \left(z\right)=\frac{1}{A}\int_{\Omega_{f\;} } \varphi \;\mathrm{dA}=\frac{A_f }{A}\langle \bar{\varphi} \rangle \left(z\right) $$
+
 where $A$ is the total surface area. In many cases, it is more convenient to work with comprehensive averages than intrinsic averages, particularly when considering averaged budgets of momentum, temperature etc [3]. To convert the intrinsic-average output from uDALES into a comprehensive average, simply multiply the intrinsic average by $A_f /A$ as shown above. Time and intrinsically-averaged data is contained in the `xytdump.expnr.nc` file.
 
 ## load_stat_xyt: loading time- and slab-averaged data
@@ -109,8 +124,9 @@ help sim.load_stat_xyt
 
 ```text
 --- help for udbase/load_stat_xyt ---
+
   A method to retrieve plane- and time-averaged 1D statistics
-  information from the xytdump file.
+  information from the xytdump file.  
 
   load_stat_xyt(OBJ) displays the variables in the xytdump file
 
@@ -131,6 +147,7 @@ sim.load_stat_xyt();
 Contents of xytdump.110.nc:
        Name                     Description                  Units     Size     Dimensions
     ___________    _____________________________________    _______    _____    __________
+
     pxyt           Pressure                                 kgm/s^2    256x3     zt, time
     qtxyt          Moisture                                 kg/kg      256x3     zt, time
     thlpthlptxy    Temp. variance                           K^2        256x3     zt, time
@@ -171,6 +188,7 @@ txyt = 3x1 single column vector
 2.0001
 4.0001
 6.0001
+
 ```
 
 There are three times at which output has been generated. This can be understood by considering the input parameter values
@@ -192,6 +210,7 @@ ans = 6002
 ```
 
 Therefore, the entire runtime is divided into 3 time intervals, in each of which the time average is taken.
+
 The vertical coordinate $z$ and mean streamwise velocity $\langle \bar{u} \rangle$ can be loaded as:
 
 ```matlab
@@ -219,7 +238,9 @@ legend(leg, 'Location','northwest', 'Interpreter', 'latex')
 ```
 
 ![figure_0.png](udales-fields-tutorial_media/figure_0.png)
+
 As can be seen, during the first time-interval, the flow is substantially slower than in the other two intervals, suggesting an initial transient. Although the profiles for last two time-intervals are close, they are not identical showing that either the flow has not equilibriated entirely, or the chosen averaging time-interval was too small, or both.
+
 Using the continuity equation it can be shown that for period domains $\langle \bar{w} \rangle =0$, which also implies that $\langle \bar{w} \textrm{"}\rangle =0$. This means that the dispersive momentum flux $\langle \bar{u\;} \textrm{"}\bar{w\;} \textrm{"}\rangle$ is equal to $\langle \bar{\;u} \;\bar{\;w} \rangle$. Thus, we can load the mean turbulent horizontal momentum flux $\langle \bar{u^{\prime } w^{\prime } } \rangle$ and dispersive flux $\langle \bar{u\;} \textrm{"}\bar{w\;} \textrm{"}\rangle$ can be loaded as:
 
 ```matlab
@@ -238,11 +259,13 @@ xlabel ('$\langle \overline{u^\prime w^\prime} \rangle$ [m$^2$/s$^2$]', ...
     'Interpreter', 'latex')
 ylabel ('$z$ [m]', 'Interpreter', 'latex')
 xlim([-0.5 0])
+
 subplot(1,3,2);
 plot(uwxyt, zt, 'LineWidth',1);
 xlabel (['$\langle \overline{u}^{\prime\prime} \overline{w}^{\prime\prime} \rangle$' ...
     ' [m$^2$/s$^2$]'], 'Interpreter', 'latex')
 xlim([-0.5 0])
+
 subplot(1,3,3);
 plot(uwxyt+upwpxyt, zt, 'LineWidth',1);
 xlabel (['$\langle \overline{u^\prime w^\prime} \rangle+\langle \overline{u}^{\prime\prime} \overline{w}^{\prime\prime} \rangle$' ...
@@ -252,7 +275,9 @@ legend(leg, 'Location','northwest', 'Interpreter', 'latex')
 ```
 
 ![figure_1.png](udales-fields-tutorial_media/figure_1.png)
+
 To interpret this data, it is easiest to start with the right-most figure which plots the sum of the dispersive and turbulent fluxes. In a steady state (and for a simulation with a constant pressure gradient of average velocity), we expect this quantity to form a straight line, which is the case for the last two time-intervals. The data are also nearly collapsing for the last two time-intervals, once more suggesting that these flows are close to a statistical steady state.
+
 The turbulent and dispersive fluxes show substantial variation for all three curves, showing that much longer averaging is needed to obtain reliable statistics for these quantities [4].
 
 ## load_stat_t: loading time-averaged data
@@ -263,6 +288,7 @@ help sim.load_stat_t
 
 ```text
 --- help for udbase/load_stat_t ---
+
   A method to retrieve time-averaged statistics from the tdump file
 
   load_stat_t(OBJ) displays the variables in the tdump file
@@ -284,6 +310,7 @@ sim.load_stat_t();
 Contents of tdump.110.nc:
        Name                      Description                    Units         Size            Dimensions
     ___________    ________________________________________    _______    _____________    ________________
+
     PSS            PSS defect                                  gm/s       128x128x256x3    xt, yt, zt, time
     pt             Pressure                                    kgm/s^2    128x128x256x3    xt, yt, zt, time
     qtt            Moisture                                    kg/kg      128x128x256x3    xt, yt, zt, time
@@ -330,7 +357,7 @@ We load the time-averaged streamwise velocity field u, and the coordinates it re
 ```matlab
 ut = sim.load_stat_t('ut');
 tt = sim.load_stat_t('time');
-xm = sim.load_stat_t('xm'); % we are interested in plotting u
+xm = sim.load_stat_t('xm'); % we are interested in plotting u  
 yt = sim.load_stat_t('yt');
 zt = sim.load_stat_t('zt');
 ```
@@ -341,8 +368,10 @@ We plot a horizontal slice at the mean building height `z=10m`, choosing to use 
 % find the k-index closest to z=10 m
 zloc = 10;
 k = find(abs(zt - zloc) == min(abs(zt - zloc)), 1);
+
 % choose last time interval
 n = length(tt);
+
 figure
 pcolor(xm, yt, squeeze(ut(:,:,k,n))');
 shading flat; axis equal tight; colorbar
@@ -352,11 +381,13 @@ title(['$\overline u(x, y, z=', num2str(zt(k), '%8.1f'), 'm)$; no NaNs'], 'Inter
 ```
 
 ![figure_2.png](udales-fields-tutorial_media/figure_2.png)
+
 You can see that where the buildings are, the velocity is zero. However, since this is a solid domain, you will want to remove these from the plot. You can use the arrays  `Su, Sv, Sw` and `Sc` in the sim object for this, which are 3D boolean matrices that indicate the cells contain buildings as true. There are four different arrays since the grid is staggered. We are dealing with the u-velocity, so will use the array `Su`. In order to do so, we can simply set the cells that contain solid elements to `NaN`.
 
 ```matlab
 curut = ut(:,:,:,n);
 curut(sim.Su) = NaN;
+
 figure
 pcolor(xm, yt, squeeze(curut(:,:,k))');
 shading flat; axis equal tight; colorbar
@@ -366,10 +397,12 @@ title(['$\overline u(x, y, z=', num2str(zt(k), '%8.1f'), 'm)$'], 'Interpreter','
 ```
 
 ![figure_3.png](udales-fields-tutorial_media/figure_3.png)
+
 Similarly, we can plot a vertical slice in the middle of the y-domain as follows.
 
 ```matlab
 j = sim.jtot/2+1; % select the index in the middle of the domain span
+
 figure
 pcolor(xm, zt, squeeze(curut(:,j,:))');
 shading flat; axis equal tight; colorbar
@@ -388,6 +421,7 @@ help sim.load_field
 
 ```text
 --- help for udbase/load_field ---
+
    A method to retrieve instantaneous 3D data from from the fielddump file.
 
    load_field(OBJ) displays the variables in the fielddump file
@@ -409,6 +443,7 @@ sim.load_field();
 Contents of fielddump.110.nc:
     Name                  Description                   Units        Size            Dimensions
     ____    ________________________________________    _____    _____________    ________________
+
     time    Time                                         s       3                time
     u       West-East velocity                           m/s     128x128x256x3    xm, yt, zt, time
     v       South-North velocity                         m/s     128x128x256x3    xt, ym, zt, time
@@ -433,6 +468,7 @@ t = 3x1 single column vector
 2.0000
 4.0000
 6.0000
+
 ```
 
 These times can be understood by noticing that the output interval requested in the input file is
@@ -458,9 +494,11 @@ We plot the instantaneous horizontal velocity at the same locations as in the pr
 
 ```matlab
 n = length(t); % choose last output time
+
 % set the u-value inside buildings to NaN
 curu = u(:,:,:,n);
 curu(sim.Su) = NaN;
+
 figure
 pcolor(xm, yt, squeeze(curu(:,:,k))');
 shading flat; axis equal tight; colorbar
@@ -490,6 +528,7 @@ help sim.load_slice
 
 ```text
 --- help for udbase/load_slice ---
+
   A method to retrieve instantaneous 2D slices from from the slicedump file.
 
   load_slice(obj) displays information, option chooses plane.
@@ -502,6 +541,7 @@ help sim.load_slice
 ```
 
 The instantaneous slice data is stored in the `Xslicedump.expnr.nc` file. This file contains particular slices of the 3D instantaneous data, which makes this data particularly suitable for creating animations since the output frequency can be much higher than for 3D fields as the filesize will remain much more manageable.
+
 uDALES is capable of outputting slices along the `x`, `y` or `z`-direction. In this particular simulation, we requested to output horizontal slices (fixed height in vertical direction using an index `kslice`, e.g., `zm(kslice)`) using the input parameter:
 
 ```matlab
@@ -548,6 +588,7 @@ sim.load_slice('k');
 Contents of kslicedump.110.nc:
        Name                     Description                   Units        Size         Dimensions
     __________    ________________________________________    _____    ____________    ____________
+
     qt_kslice     Specific humidity at kslice                   -      128x128x1979    xt, yt, time
     thl_kslice    Potential temperature at kslice               -      128x128x1979    xt, yt, time
     time          Time                                          s      1979            time
@@ -560,6 +601,7 @@ Contents of kslicedump.110.nc:
 ```
 
 This horizontal slice is at `z = zm(sim.kslice)` or `z = zt(sim.kslice)`, depending on the variable.
+
 To load the data, we specify the variables we wish to load:
 
 ```matlab
@@ -573,11 +615,14 @@ We plot this horizontal slice of the instantaneous velocity at the last output t
 
 ```matlab
 n = length(t); % choose the last time-step
+
 % Replace the data at building locations with NaNs
 curu = squeeze(uk(:,:,n));
 curu(squeeze(sim.Su(:,:,sim.kslice))) = NaN;
+
 % note that the squeeze command is not formally needed here, but they will
 % be needed when considering i and j slices.
+
 % plot the data
 figure
 pcolor(xm, yt, curu');
@@ -598,13 +643,12 @@ We next switch to a tree simulation to show the tree functions example
 clear variables;
 expnr = 525;
 expdir = 'path_to_experiments\525';
+
 sim = udbase(expnr, expdir);
 ```
 
 ```text
 Warning: One or more solid_(u,v,w,c).525 files not found.
-Loading tree data from trees.inp.525
-Successfully loaded tree data from trees.inp.525.
 ```
 
 The trees patches can be plotted using
@@ -614,6 +658,7 @@ sim.plot_trees;
 ```
 
 ![figure_8.png](udales-fields-tutorial_media/figure_8.png)
+
 The time-averaged tree source data is stored in the `treedump.expnr.nc` file. The variables it contains can be listed as:
 
 ```matlab
@@ -622,6 +667,7 @@ help sim.load_stat_tree
 
 ```text
 --- help for udbase/load_stat_tree ---
+
   A method to retrieve time-averaged statistics of the tree
   source terms from the treedump file
 
@@ -642,6 +688,7 @@ sim.load_stat_tree();
 Contents of treedump.525.nc:
       Name                    Description                    Units         Size           Dimensions
     ________    ________________________________________    _______    ____________    ________________
+
     time        Time                                        s          4               time
     tr_omega    Decoupling factor                           -          512x256x64x4    xt, yt, zt, time
     tr_qt       Moisture source sink                        1/s        512x256x64x4    xt, yt, zt, time
@@ -662,6 +709,9 @@ Contents of treedump.525.nc:
 ## References
 
 [1] Ferziger JH, Peric M (1999) Computational methods for fluid dynamics (3rd ed.). Springer.
+
 [2] Oke TR, Mills G, Christen A, Voogt JA (2017) Urban Climates. Cambridge University Press.
+
 [3] Schmid M, Lawrence GA, Parlange MB, Giometto MG (2019) Volume averaging for urban canopies. *Bound-Lay. Met.* **173**, 349-372.
+
 [4] Suetzl BS, Rooney GG,  van Reeuwijk M (2020) Drag Distribution in Idealized Heterogeneous Urban Environments. *Bound-Lay. Met.* **178**,225-248.

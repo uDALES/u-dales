@@ -1,12 +1,12 @@
 
 # uDALES urban surface creation
 
-uDALES supports several manners to create urban surfaces. It is possible to run uDALES without specifying an urban surface, in which case a flat terrain is assumed. In most cases however, an urban surface will be specified. uDALES contains a number of functions in the [**udgeom**](#the-udgeom-class) package that aid geometry generation:
+uDALES supports several manners to create urban surfaces. It is possible to run uDALES without specifying an urban surface, in which case a flat terrain is assumed. In most cases however, an urban surface will be specified. uDALES contains a number of functions in the [**udgeom**](#udales-urban-surface-creation) package that aid geometry generation:
 
-- [**udgeom.createFlatSurface**](#udgeomcreateflatsurface). This function creates a flat surface. The main reason for using this function is to be able to discretise the surface in as many facets as possible in case heterogeneous boundary conditions are required.
-- [**udgeom.createCanyons**](#udgeomcreatecanyons). This function creates one-dimensional street canyons.
-- [**udgeom.createCubes**](#udgeomcreatecubes). This function creates cubes, either a single one or an array of cubes.
-- [**udgeom.createRealistic**](#udgeomcreaterealistic). This function creates a realistic urban surface based on an stl file that contains the buildings. The function adds the ground surface.
+- [**udgeom.createFlatSurface**](#udales-urban-surface-creation). This function creates a flat surface. The main reason for using this function is to be able to discretise the surface in as many facets as possible in case heterogeneous boundary conditions are required.
+- [**udgeom.createCanyons**](#udales-urban-surface-creation). This function creates one-dimensional street canyons.
+- [**udgeom.createCubes**](#initialising-udbase). This function creates cubes, either a single one or an array of cubes.
+- [**udgeom.createRealistic**](#initialising-udbase). This function creates a realistic urban surface based on an stl file that contains the buildings. The function adds the ground surface.
 
 **The live matlab file of this tutorial can be found in the repository in the folder /docs/tutorial_mlx.**
 
@@ -18,6 +18,7 @@ uDALES supports several manners to create urban surfaces. It is possible to run 
 % preamble
 clear variables
 close all
+
 % add the uDALES matlab path
 addpath('path_to_udales\tools\matlab')
 ```
@@ -33,6 +34,7 @@ help udgeom.udgeom
 ```text
   udgeom Geometry class for uDALES
      The udgeom class contains the triangulated surface.
+
     Documentation for udgeom.udgeom
 ```
 
@@ -43,7 +45,9 @@ methods(geom);             % show the methods the class contains
 
 ```text
 Methods for class udgeom.udgeom:
+
 calculate_outline2d       chcpath                   get_building_outlines     get_buildings             get_face_to_building_map  get_outline               gohome                    gopath                    load                      save                      show                      show_outline              udgeom
+
 Methods of udgeom.udgeom inherited from handle.
 ```
 
@@ -55,6 +59,7 @@ help geom.load
 
 ```text
 --- help for udgeom.udgeom/load ---
+
   load an STL file.
 
   example:
@@ -67,6 +72,7 @@ help geom.save
 
 ```text
 --- help for udgeom.udgeom/save ---
+
   save an STL file.
 
   example:
@@ -79,6 +85,7 @@ help geom.show
 
 ```text
 --- help for udgeom.udgeom/show ---
+
   plot the geometry
 
   show(obj, colorbuildings)
@@ -96,6 +103,7 @@ help geom.show
 Here is a simple example on how to use this class:
 
 ```matlab
+
 geom.load('uDALES.stl')    % load an STL file from the current directory (can be changed in constructor)
 geom.show();               % show the geometry
 xlabel('x [m]');
@@ -103,6 +111,7 @@ ylabel('y [m]')
 ```
 
 ![figure_0.png](udales-geometry-tutorial_media/figure_0.png)
+
 Another way is to show the outline.
 
 ```matlab
@@ -111,6 +120,7 @@ help geom.show_outline
 
 ```text
 --- help for udgeom.udgeom/show_outline ---
+
   Plot the geometry outline edges
 
   show_outline(obj) plots the precomputed outline edges of the geometry
@@ -161,6 +171,7 @@ See below for an example how to use this function.
 xsize = 96;           % [m]
 ysize = xsize;        % [m]
 edgelength = xsize/8; % [m]
+
 geom = udgeom.createFlatSurface(xsize, ysize, edgelength);
 geom.show;
 xlabel('x [m]');
@@ -201,6 +212,7 @@ See below for an example how to use this function.
 % domain size
 xsize = 96;       % domain size in x-direction
 ysize = 96;       % domain size in y-direction
+
 % canyon properties
 B = 12;           % building width
 H = 16;           % building height
@@ -209,6 +221,7 @@ shift = 20;       % make the canyons start a distance from the west-boundary of 
                   % Note this makes the domain larger in the x-direction.
 edgelength = 6;   % facet size
 rotate90 = false; % default value
+
 geom = udgeom.createCanyons(xsize, ysize, B, W, H, shift, edgelength, rotate90);
 geom.show;
 xlabel('x [m]');
@@ -251,19 +264,25 @@ See below for an example how to use this function.
 % domain size
 xsize = 96;
 ysize = 96;
+
 % cube length in each direction
 Hx = 16;
 Hy = 16;
 Hz = 16;
+
 % canyon length in each direction
 Cx = 8;
 Cy = 8;
+
 % geometry type
 %     S: single cube
 %    AC: aligned cubes
 %    SC: staggered cubes
+
 geom_type = 'SC';
+
 edgelength = 8;
+
 geom = udgeom.createCubes(xsize, ysize, Hx, Hy, Hz, Cx, Cy, geom_type, edgelength);
 geom.show;
 xlabel('x [m]');
@@ -281,7 +300,7 @@ help udgeom.createRealistic
 ```text
   createRealistic    creates a realistic urban surface based on an stl file
                      that contains the buildings. The function adds the
-                     ground surface.
+                     ground surface.  
 
      geom = createRealistic(stlfile, xsize, ysize, shift, edgelength)
      returns a geom instance that can be saved to an stl file.
@@ -301,14 +320,19 @@ See below for an example how to use this function.
 ```matlab
 % stl file containing buildings only
 stlfile = 'uDALES.stl';
+
 % original domain size
 xsize_og = 256;
 ysize_og = 128;
+
 % example translation to make domain larger in x direction
 shift = [20 0 0];
+
 % ground facet size
 edgelength = 16;
+
 geom = udgeom.createRealistic(stlfile, xsize_og, ysize_og, shift, edgelength);
 geom.show;
 xlabel('x [m]');
 ylabel('y [m]')
+```

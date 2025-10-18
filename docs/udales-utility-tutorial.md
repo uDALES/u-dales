@@ -3,9 +3,9 @@
 
 This tutorial demonstrates how to use the uDALES MATLAB utilities for post-processing simulation data. It covers 1) time-averaging; 2) merging short-term time-averaged data to long-term averages, and 3) coarse-graining fields for Spatial filtering (coarse-graining method). The utility functions include:
 
-- [**time_average**](#time-averaged-mean-and-variance-of-instantaneous-data). This method operates similarly to merge_stat, but provide a more straightforward way to time-average variables over all available time intervals.
-- [**merge_stat**](#combine-short-term-time-average-into-a-long-term-time-average)**.** This method merges the short-term time average and (co)variance into long-term averages and associated (co)variance.
-- [**coarsegrain_field**](#coarse-graining-3d-fields)**.** This method allows you to coarse-grain a field using a planar filter in the x-y plane using a fixed lengthscale [1].
+- [**time_average**](#using-udales-utilities-in-matlab). This method operates similarly to merge_stat, but provide a more straightforward way to time-average variables over all available time intervals.
+- [**merge_stat**](#initialise-udbase-and-load-data)**.** This method merges the short-term time average and (co)variance into long-term averages and associated (co)variance.
+- [**coarsegrain_field**](#initialise-udbase-and-load-data)**.** This method allows you to coarse-grain a field using a planar filter in the x-y plane using a fixed lengthscale [1].
 
 ## Initialise udbase and load data
 
@@ -13,8 +13,10 @@ This tutorial demonstrates how to use the uDALES MATLAB utilities for post-proce
 % preamble
 clear variables
 close all
+
 % add the uDALES matlab path
 addpath('path_to_udales\tools\matlab')
+
 % create an instance of the udbase class
 expnr = 065;  % Experiment number
 expdir = 'path_to_experiments\065';
@@ -80,11 +82,13 @@ xlabel 'time'; ylabel 'pressure';
 ```
 
 ![figure_0.png](udales-utility-tutorial_media/figure_0.png)
+
 The function can also be used to calculated the time average and covariance of **two variables.** For example, let's calculate the covariance of the facet pressure and x-component shear stress $\overline{p^{\prime } \tau_x^{\prime } }$:
 
 ```matlab
 taux = sim.load_fac_momentum('tau_x');
 [pbar, tauxbar, ptauxbar] = time_average(p, taux);
+
 % check output for the first facet
 fprintf('The time-averaged pressure pbar=%.3f m2/s2, tauxbar=%.3f m2/s2 and their covariance p''taux''bar=%.3f m4/s4.\n', ...
     pbar(1), tauxbar(1), ptauxbar(1));
@@ -99,6 +103,7 @@ The value of `pbar` returned by both methods is identical. Note that this exampl
 ## Combine short-term time average into a long-term time average
 
 uDALES statistics are collected over fixed time-windows. Sometimes these time windows may be a bit too short. The functions `merge_stat_var` and `merge_stat_cov` are able to combine several of time-windows into larger ones.
+
 Let's start with loading short-term time-averaged data, for example the 1-D plane average
 
 ```matlab
@@ -113,6 +118,7 @@ Warning: prof.inp.110 not found. Assuming equidistant grid.
 ```
 
 ```matlab
+
 % load xy- and time-averaged data
 uxyt = sim.load_stat_xyt('uxyt');        % u-velocity profile (z) [m/s]
 wxyt = sim.load_stat_xyt('wxyt');        % w-velocity profile [m/s]
@@ -133,6 +139,7 @@ time = 3x1 single column vector
 2.0001
 4.0001
 6.0001
+
 ```
 
 ```matlab
@@ -162,7 +169,7 @@ help merge_stat
         Groups the time series into non-overlapping windows of length n
         and computes statistics inside each window.
 
-    [Xmean, Ymean, cov] = merge_stat(X, Y, XpYp, n)
+    [Xmean, Ymean, cov] = merge_stat(X, Y, XpYp, n)  
         Computes time-averaged means and covariance for two variables X and Y.
         Groups the time series into non-overlapping windows and computes
         statistics inside each window.
@@ -171,7 +178,7 @@ help merge_stat
     X    - First variable time series (time in final dimension)
     Y    - Second variable time series (same shape as X) [two-variable case only]
     XpXp - Instantaneous variance contribution (same shape as X) [single-variable]
-    XpYp - Instantaneous covariance contribution (same shape as X and Y) [two-variable]
+    XpYp - Instantaneous covariance contribution (same shape as X and Y) [two-variable]  
     n    - Window length (number of time samples per averaged window)
 
   Outputs:
@@ -187,10 +194,12 @@ help merge_stat
 ```
 
 This function needs all the short-term variables related as the input, plus an average time window. The long-term average is simply the average of the short-term averages, but the long-terms variance contains both contribution from variance in the short-term mean and the short term variance. Please ensure that the last dimension of the input must be the time, as the function merges on that dimension.
+
 Let's start with **two variables and their covariance**, obtaining long-term quantities for $\overline{u}$, $\bar{w}$ and their covariance $\overline{u^{\prime } w^{\prime } }$ over all three time segments:
 
 ```matlab
 Nwindow = length(time);
+
 % input all the short-term variables related
 [uxyt_longterm, wxyt_longterm, upwpxyt_longterm] = merge_stat(uxyt, wxyt, upwpxyt, Nwindow);
 ```
@@ -209,7 +218,9 @@ size(uxyt)
 
 ```text
 ans = 1x2
+
 256    3
+
 ```
 
 ```matlab
@@ -218,7 +229,9 @@ size(uxyt_longterm)
 
 ```text
 ans = 1x2
+
 256    1
+
 ```
 
 If you want an average over shorter window, you can an optional parameter to `merge_stat`::
@@ -226,12 +239,15 @@ If you want an average over shorter window, you can an optional parameter to `me
 ```matlab
 Nwindow = 2;
 [uxyt_longterm, upupxyt_longterm] = merge_stat(uxyt, upupxyt, Nwindow);
+
 size(uxyt_longterm)
 ```
 
 ```text
 ans = 1x2
+
 256    1
+
 ```
 
 There were three intervals in uxut, and the last two were used to average over. The first time-interval has been discarded.
@@ -261,14 +277,10 @@ help coarsegrain_field
   where the 4th dimension corresponds to different filter sizes.
 
   Key differences from coarsegrain_field:
-
     - Works at discrete level after converting physical lengths to grid cells
-    - Proper periodic boundary condition handling
+    - Proper periodic boundary condition handling  
     - Normalized filters that preserve mean values
     - Square filter kernels based on discrete grid distances
-
-
-
 
   Inputs
     var     - 3D field data with dimensions [itot, jtot, ktot] where
@@ -283,16 +295,12 @@ help coarsegrain_field
                    where the 4th dimension corresponds to different filter sizes
 
   Algorithm
-
     - Converts physical filter lengths to grid cell numbers (Ng = round(Lflt/dx))
-    - Works at discrete level with normalized periodic filters
+    - Works at discrete level with normalized periodic filters  
     - Creates square filters with half-width Ng for each filter size
     - Handles periodic boundary conditions properly
     - Uses FFT-based convolution for computational efficiency
     - Normalizes each filter to preserve mean values
-
-
-
 
   Example:
     % Apply multiple filter sizes to velocity field
@@ -306,6 +314,7 @@ The routine takes in multiple filter lengths simultaneously.
 
 ```matlab
 filter_lengths = [8 32 128];  % Filter widths in meters
+
 % filter the last field
 u_filtered = coarsegrain_field(ut(:,:,:,end), filter_lengths, sim.xm, sim.ym);
 ```
@@ -320,6 +329,7 @@ Coarse-graining completed in 0.39 seconds
 
 ```matlab
 % Create figure with subplots comparing original and filtered fields
+
 figure
 k_level = 10;
 % Original field (unfiltered)
@@ -329,12 +339,14 @@ shading flat; axis equal tight; colorbar;
 clim([-1 2])
 title('Original Field (Unfiltered)')
 xlabel('x [m]'); ylabel('y [m]');
+
 % Filtered fields with increasing filter lengths
 filter_titles = {
     sprintf('Filter Length = %.0f m', filter_lengths(1)),
     sprintf('Filter Length = %.0f m', filter_lengths(2)),
     sprintf('Filter Length = %.0f m', filter_lengths(3))
 };
+
 for i = 1:3
     subplot(2,2,i+1)
     pcolor(sim.xt, sim.yt, u_filtered(:,:,k_level,i)');
@@ -350,3 +362,4 @@ end
 ## References
 
 [1] Maarten van Reeuwijk, Jingzi Huang (2025) Multi-scale Analysis of Flow over Heterogeneous Urban Environments, *Bound-Lay. Met.* **191**, 47.
+

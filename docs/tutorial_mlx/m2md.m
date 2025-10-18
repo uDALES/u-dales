@@ -154,196 +154,16 @@ for i = 1:length(liveScripts)
         %    Matches any path ending with slash/backslash + number
         content = regexprep(content, 'expdir = ''[^'']*[\\\/](\d+)'';', 'expdir = ''path_to_experiments\\$1'';');
         
-        % 3. STANDARDIZE CODE BLOCKS: Convert MATLAB-specific output blocks to generic text
-        %    Converts: ```matlabTextOutput  ->  ```text
-        %    This ensures consistency with manually maintained documentation
-        content = regexprep(content, '```matlabTextOutput', '```text');
-        
-        % 4. FIX LATEX FORMATTING: Remove trailing spaces after $$ that break KaTeX compilation
-        %    Converts: $$<space><space>  ->  $$
-        content = regexprep(content, '\$\$\s+$', '$$', 'lineanchors');
-        
-        % 5. FIX 4-BACKTICK CODE BLOCKS: Convert 4 backticks to 3 for MkDocs compatibility
-        %    Converts: ````markdown  ->  ```markdown
-        %    Converts: ````text     ->  ```text
-        %    Also removes document wrapper backticks at start/end
-        content = regexprep(content, '````(\w*)', '```$1');
-        % Remove wrapping backticks at document start and end
-        content = regexprep(content, '^```markdown\s*\n', '', 'once');
-        content = regexprep(content, '\n```\s*$', '', 'once');
-        
-        % 6. REMOVE UNNECESSARY BACKSLASH ESCAPING: Clean up escaped hyphens and underscores
-        %    Converts: post\-processing  ->  post-processing
-        %    Converts: time\-averaged    ->  time-averaged
-        %    Converts: function\_name    ->  function_name
-        content = regexprep(content, '(\w)\\-(\w)', '$1-$2');
-        content = regexprep(content, '(\w)\\- ', '$1- ');
-        content = regexprep(content, '(\w)\\_(\w)', '$1_$2');
-        
-        % 7. ADD LIST INDENTATION TO MATCH MANUAL DOCS FORMAT
-        %    Converts: -<space> -> <space><space><space>-<space> (3-space indentation)
-        fprintf('  - Adding list indentation for manual docs compatibility...\n');
-        content = regexprep(content, '^- ', '   - ', 'lineanchors');
-        
-        % Save original markdown for debugging (before anchor processing)
-        % 8. MULTI-PASS ANCHOR AND HEADING PROCESSING SYSTEM
-        %    This system extracts anchors, maps them to headings, and creates descriptive anchors
-        
-        % PASS 1: Extract ToC function references and anchor tag mappings
-        
-        lines = strsplit(content, '\n');
-        tocFunctionRefs = {};  % Store {functionName, anchorId, linkText, lineNum}
-        anchorTagMap = containers.Map();  % Map anchor tag ID -> line number of tag
-        
-        for lineNum = 1:length(lines)
-            line = lines{lineNum};
-            
-            % Find ToC function links: [**function_name**](#H_xxxx)
-            funcLinkMatches = regexp(line, '\[\*\*([a-zA-Z][a-zA-Z0-9_]*)\*\*\]\(#([^)]+)\)', 'tokens');
-            for matchIdx = 1:length(funcLinkMatches)
-                functionName = funcLinkMatches{matchIdx}{1};
-                anchorId = funcLinkMatches{matchIdx}{2};
-                linkText = funcLinkMatches{matchIdx}{1}; % Use function name as link text
-                tocFunctionRefs{end+1} = {functionName, anchorId, linkText, lineNum};
-            end
-            
-            % Find anchor tags: <a id="H_xxxx"></a>
-            anchorTagMatches = regexp(line, '<a id="([^"]*)">', 'tokens');
-            for matchIdx = 1:length(anchorTagMatches)
-                tagId = anchorTagMatches{matchIdx}{1};
-                anchorTagMap(tagId) = lineNum;
-            end
-        end
-        
-        % PASS 2: Extract all headings and their line numbers
-        
-        headings = {};  % Store {headingText, lineNum, headingLevel, functionName}
-        
-        for lineNum = 1:length(lines)
-            line = lines{lineNum};
-            % Match headings: # heading text
-            headingMatch = regexp(line, '^(#+)\s*(.+)$', 'tokens', 'once');
-            if ~isempty(headingMatch)
-                headingLevel = length(headingMatch{1});
-                headingText = strtrim(headingMatch{2});
-                % Remove any existing anchor tags from heading text
-                headingText = regexprep(headingText, '\s*\{#[^}]+\}$', '');
-                
-                % Extract function name from heading (first word before colon)
-                funcMatch = regexp(headingText, '^([a-zA-Z][a-zA-Z0-9_]*)', 'tokens', 'once');
-                functionName = '';
-                if ~isempty(funcMatch)
-                    functionName = funcMatch{1};
-                end
-                
-                headings{end+1} = {headingText, lineNum, headingLevel, functionName};
-            end
-        end
-        
-        % PASS 3: Create function-to-descriptive-anchor mapping
-        
-        functionToAnchor = containers.Map();  % Dictionary: functionName -> descriptiveAnchor
-        
-        % For each ToC function reference, find the corresponding heading
-        for tocIdx = 1:length(tocFunctionRefs)
-            functionName = tocFunctionRefs{tocIdx}{1};
-            anchorId = tocFunctionRefs{tocIdx}{2};
-            
-            % Find the anchor tag line number
-            if isKey(anchorTagMap, anchorId)
-                anchorTagLineNum = anchorTagMap(anchorId);
-                
-                % Find the next heading after this anchor tag
-                bestHeading = [];
-                minDistance = inf;
-                
-                for headingIdx = 1:length(headings)
-                    headingLineNum = headings{headingIdx}{2};
-                    headingFuncName = headings{headingIdx}{4};
-                    
-                    % Must be after the anchor tag and match function name
-                    if headingLineNum > anchorTagLineNum && strcmp(headingFuncName, functionName)
-                        distance = headingLineNum - anchorTagLineNum;
-                        if distance < minDistance
-                            minDistance = distance;
-                            bestHeading = headings{headingIdx};
-                        end
-                    end
-                end
-                
-                % If we found the matching heading, create descriptive anchor
-                if ~isempty(bestHeading)
-                    headingText = bestHeading{1};
-                    
-                    % Create descriptive anchor (like manual docs format)
-                    % Convert "method_name: description text" -> "method_name-description-text"
-                    descriptiveAnchor = lower(headingText);
-                    descriptiveAnchor = regexprep(descriptiveAnchor, '[ :,()]+', '-');
-                    descriptiveAnchor = regexprep(descriptiveAnchor, '[^a-z0-9\-_]', '');
-                    descriptiveAnchor = regexprep(descriptiveAnchor, '-+', '-');
-                    descriptiveAnchor = regexprep(descriptiveAnchor, '^-+|-+$', '');
-                    
-                    functionToAnchor(anchorId) = descriptiveAnchor;
-                end
-            end
-        end
-        
-        % PASS 4: Update all anchor references to use descriptive anchors
-        
-        updatedLines = lines;  % Copy of lines to modify
-        updatedCount = 0;
-        
-        for lineNum = 1:length(updatedLines)
-            line = updatedLines{lineNum};
-            originalLine = line;
-            
-            % Find and replace all anchor references in this line
-            linkMatches = regexp(line, '\[([^\]]+)\]\(#([^)]+)\)', 'tokens');
-            for matchIdx = length(linkMatches):-1:1  % Process in reverse to maintain positions
-                linkText = linkMatches{matchIdx}{1};
-                anchorId = linkMatches{matchIdx}{2};
-                
-                if isKey(functionToAnchor, anchorId)
-                    descriptiveAnchor = functionToAnchor(anchorId);
-                    
-                    % Replace the anchor reference
-                    oldPattern = sprintf('\\[%s\\]\\(#%s\\)', regexpescape(linkText), regexpescape(anchorId));
-                    newPattern = sprintf('[%s](#%s)', linkText, descriptiveAnchor);
-                    line = regexprep(line, oldPattern, newPattern);
-                    updatedCount = updatedCount + 1;
-                end
-            end
-            
-            if ~strcmp(line, originalLine)
-                updatedLines{lineNum} = line;
-            end
-        end
-        
-        if updatedCount > 0
-            fprintf('    Updated %d anchor references to descriptive format\n', updatedCount);
-        end
-        
-        % Reconstruct content from updated lines
-        content = strjoin(updatedLines, '\n');
-        
-        % 8. FIX LATEX REFERENCE FORMATTING: Clean up escaped citation references only
-        %    Converts: \[1\]  ->  [1] (in citations, not units)
-        %    Converts: \[2\]  ->  [2] (in citations, not units)
-        %    Ultra-simple approach: literal string replacement for citations up to maxrefs
-        for refnum = 1:maxrefs
-            oldref = sprintf('\\[%d\\]', refnum);
-            newref = sprintf('[%d]', refnum);
-            content = strrep(content, oldref, newref);
-        end
-        
-        % Write the modified content back to file
+        % output the modified content back to the file
+
         fileID = fopen(outputFileName, 'w', 'n', 'UTF-8');
         if fileID == -1
-            error('Could not write to file %s', outputFileName);
+            error('Could not open file %s for writing', outputFileName);
         end
-        fwrite(fileID, content, 'char');
+
+        fwrite(fileID, content);
         fclose(fileID);
-        
+
         fprintf('Successfully post-processed: %s\n', outputFileName);
         
     catch ME
@@ -358,3 +178,29 @@ fprintf('NEXT STEPS:\n');
 fprintf('1. Review generated .md files for content accuracy\n');
 fprintf('2. Copy files to appropriate documentation directories if needed\n');
 fprintf('3. Test markdown rendering in your documentation system\n');
+fprintf('4. Run the Python post-processor to apply final linting and anchor fixes:\n');
+fprintf('   From this directory run: python convert_all_md.py\n');
+
+% Attempt to run the Python post-processor automatically. This requires
+% that a suitable Python is available on the PATH. The call is optional and
+% will not abort the MATLAB script if it fails; errors are printed for
+% diagnostics.
+try
+    fprintf('\nRunning Python post-processor: convert_all_md.py\n');
+    [status, cmdout] = system('python convert_all_md.py');
+    if status == 0
+        fprintf('convert_all_md.py completed successfully.\n');
+        if ~isempty(cmdout)
+            fprintf('%s\n', cmdout);
+        end
+    else
+        fprintf('convert_all_md.py returned non-zero exit status %d\n', status);
+        if ~isempty(cmdout)
+            fprintf('Output:\n%s\n', cmdout);
+        end
+        fprintf('You can re-run the script manually: python convert_all_md.py\n');
+    end
+catch ME
+    fprintf('Failed to run convert_all_md.py from MATLAB: %s\n', ME.message);
+    fprintf('Please run it manually from the shell: python convert_all_md.py\n');
+end

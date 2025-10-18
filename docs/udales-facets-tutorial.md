@@ -2,43 +2,49 @@
 # Working with uDALES facet data in MATLAB
 
 In this tutorial we cover how to work with uDALES facet data. This pertains to all surface quanties, e.g. shear stress, surface pressure, surface energy balance terms and the temperature inside each of the facets.
+
 The **`udbase`** post-processing class reads in most important input parameters, and contains a number of methods to work with facet data:
 
-- [**calculate_frontal_properties**](#calculate-frontal-properties). This method calculates the skylines, frontal areas and blockage ratios in the x- and y-direction.
-- [**plot_bulding_ids**](#plot_building_ids-display-the-building-ids-in-the-domain). This method displays a 2d map with the building ids of the domain.
-- [**plot_2dmap**](#plot_2dmap-display-2dmap). This method displays a 2d map with coloring and optional labels.
-- [**plot_fac_type**](#plot_fac_type-display-surface-types). This method displays the type of surface for each facet.
-- [**assign_prop_to_fac**](#assign_prop_to_fac-assigning-wall-properties-to-facets). This method assigns a property of the facet type to each of the facets, so it can be used for calculation and visualisation
-- [**plot_fac**](#plot_fac-plot-facet-quantities). This method displays a surface variable on the surface mesh.
-- [**load_fac_momentum**](#load_fac_momentum-load-facet-pressure-and-shear-stresses). This method loads instantaneous momentum surface data from `fac.expnr.nc`. The first index is the facet id and second index is time.
-- [**load_fac_eb**](#load_fac_eb-load-term-from-the-surface-energy-balance). This method loads instantaneous surface energy balance data from `facEB.expnr.nc`. The first index is the facet id and second index is time.
-- [**load_seb**](#load_seb-load-all-surface-energy-balance-terms). This method loads all instantaneous surface energy balance terms. The first index is the facet id and second index is time.
-- [**load_fac_temperature**](#load_fac_temperature-load-temperatures-inside-facets). This method loads instantaneous facet temperature data `facT.expnr.nc`. The first index is the facet id, the second is the layer index and the third index is time.
-- [**area_average_seb**](#area_average_seb-perform-area-averaging-of-the-surface-energy-balance-terms). This method calculates the area-averaged surface energy balance from the facet surface energy balances obtained using `load_seb`.
-- [**area_average_fac**](#area_average_fac-area-averaging-over-facet-data). This method performs area-averaging over (a selection of) the facets. The facet index is assumed to be the first index of the array.
-- [**convert_facvar_to_field**](#convert_facvar_to_field-convert-facet-data-to-grid). This method transfers a facet variable onto the grid, so it can be used for post-processing.
-- [**convert_facflx_to_field**](#convert_facflx_to_field-convert-facet-data-to-3d-density-field). This method converts a facet variable to a density in a 3D field, so it can be used for post-processing (e.g. calculating distributed drag).
+- [**calculate_frontal_properties**](#working-with-udales-facet-data-in-matlab). This method calculates the skylines, frontal areas and blockage ratios in the x- and y-direction.
+- [**plot_bulding_ids**](#working-with-udales-facet-data-in-matlab). This method displays a 2d map with the building ids of the domain.
+- [**plot_2dmap**](#working-with-udales-facet-data-in-matlab). This method displays a 2d map with coloring and optional labels.
+- [**plot_fac_type**](#working-with-udales-facet-data-in-matlab). This method displays the type of surface for each facet.
+- [**assign_prop_to_fac**](#working-with-udales-facet-data-in-matlab). This method assigns a property of the facet type to each of the facets, so it can be used for calculation and visualisation
+- [**plot_fac**](#working-with-udales-facet-data-in-matlab). This method displays a surface variable on the surface mesh.
+- [**load_fac_momentum**](#initialising-udbase). This method loads instantaneous momentum surface data from `fac.expnr.nc`. The first index is the facet id and second index is time.
+- [**load_fac_eb**](#initialising-udbase). This method loads instantaneous surface energy balance data from `facEB.expnr.nc`. The first index is the facet id and second index is time.
+- [**load_seb**](#initialising-udbase). This method loads all instantaneous surface energy balance terms. The first index is the facet id and second index is time.
+- [**load_fac_temperature**](#initialising-udbase). This method loads instantaneous facet temperature data `facT.expnr.nc`. The first index is the facet id, the second is the layer index and the third index is time.
+- [**area_average_seb**](#initialising-udbase). This method calculates the area-averaged surface energy balance from the facet surface energy balances obtained using `load_seb`.
+- [**area_average_fac**](#initialising-udbase). This method performs area-averaging over (a selection of) the facets. The facet index is assumed to be the first index of the array.
+- [**convert_facvar_to_field**](#initialising-udbase). This method transfers a facet variable onto the grid, so it can be used for post-processing.
+- [**convert_facflx_to_field**](#initialising-udbase). This method converts a facet variable to a density in a 3D field, so it can be used for post-processing (e.g. calculating distributed drag).
 
 **The live matlab file of this tutorial can be found in the repository in the folder /docs/tutorial_mlx.**
 
 ## Initialising udbase
 
 The starting point of this tutorial is that you have run a simulation and have merged the output files. If the simulations were performed on a HPC system, **we assume that you have copied the output directory to your own workstation**. Some of the netCDF (*.nc) files may be very large and you may only want to copy these if you plan to analyse the data.
+
 **Note that the uDALES/tools/matlab path must be added via the Set Path button in order to use the udbase class. Alternatively, it can be added using the addpath function inside the script (done here).**
 
 ```matlab
+
 % preamble
 clear variables
 close all
+
 % add the uDALES matlab path
 addpath('path_to_udales\tools\matlab')
+
 % create an instance of the udbase class
 expnr = 065;
 expdir = 'path_to_experiments\065';
+
 sim = udbase(expnr, expdir);
 ```
 
-## calculate_frontal_properties: calculate skyline, blockage ratio and frontal areas {#calculate-frontal-properties}
+## calculate_frontal_properties: calculate skyline, blockage ratio and frontal areas
 
 ```matlab
 help sim.calculate_frontal_properties;
@@ -46,6 +52,7 @@ help sim.calculate_frontal_properties;
 
 ```text
 --- help for udbase/calculate_frontal_properties ---
+
   A method to calculate the skyline, frontal areas and blockage
   ratios in the x- and y-direction.
 
@@ -81,6 +88,7 @@ res = struct with fields:
          Afy: 208
          brx: 0.0898
          bry: 0.0508
+
 ```
 
 Let's plot the skyline in the x- and y-direction
@@ -97,6 +105,7 @@ ax = gca;
 ax.TickLabelInterpreter = 'latex';
 axis equal tight
 title('skyline in x-direction')
+
 subplot(1,2,2)
 pcolor(sim.xt, sim.zt, res.skyliney')
 shading flat
@@ -119,6 +128,7 @@ help sim.plot_building_ids
 
 ```text
 --- help for udbase/plot_building_ids ---
+
   A method for plotting building IDs from above (x,y view) with distinct colors
 
   plot_building_ids(OBJ) creates a top-view plot showing buildings
@@ -139,6 +149,7 @@ Extracting individual buildings from STL geometry...
 Ground preprocessing: removing ground faces using deleteGround
 Ground preprocessing: 694 faces after deleteGround (removed 1964 ground faces)
 Ground preprocessing: direct mapping provided by deleteGround
+
 Building separation completed:
   Buildings identified: 2 separate components
   Total building faces: 694
@@ -165,6 +176,7 @@ help sim.plot_2dmap
 
 ```text
 --- help for udbase/plot_2dmap ---
+
   Plot a 2D map of buildings colored by a value per building.
 
   plot_2dmap(OBJ, val)
@@ -181,7 +193,9 @@ This plot creates maps showing the 2d building outline, together with some text
 ```matlab
 % get individual building information from the udgeom instance, the
 % buildings ids are ordered according to their centroid.
+
 buildings = sim.geom.get_buildings();
+
 % calculate the maximum height for each building
 ids = cell(length(buildings), 1);
 hmax = zeros(size(buildings));
@@ -190,6 +204,7 @@ for i = 1:length(buildings)
     hmax(i) = max(bld.Points(:,3));
     ids{i} = num2str(i);
 end
+
 % plot the result
 figure
 sim.plot_2dmap(hmax, ids)
@@ -200,6 +215,7 @@ title('maximum building height')
 ```
 
 ![figure_2.png](udales-facets-tutorial_media/figure_2.png)
+
 The function `format_surface_plot` applies a consistent layout to the surface plots. Its implementation
 
 ## plot_fac_type: display surface types
@@ -210,6 +226,7 @@ help sim.plot_fac_type
 
 ```text
 --- help for udbase/plot_fac_type ---
+
   A method for plotting the different surface types used in a
   geometry.
 
@@ -235,6 +252,7 @@ format_surface_plot('', 'SkipColorbar', true)
 ```
 
 ![figure_3.png](udales-facets-tutorial_media/figure_3.png)
+
 The function `format_surface_plot` applies a consistent layout to the surface plots. Its implementation is given at the end of the tutorial.
 
 ## assign_prop_to_fac: assigning wall properties to facets
@@ -245,6 +263,7 @@ help sim.assign_prop_to_fac
 
 ```text
 --- help for udbase/assign_prop_to_fac ---
+
   Method for assigning properties of a material (stored in
   factypes) to each facet for visualisation or calculation..
 
@@ -274,6 +293,7 @@ ans = struct with fields:
        d: [9x5 double]
        C: [9x5 double]
      lam: [9x6 double]
+
 ```
 
 Description:
@@ -281,13 +301,13 @@ Description:
 - `id`: type identifier
 - `name`: type name
 - `lGR`: boolean that indicates whether or not there is evaporation on the facet
-- `z0`: \[m\] momentum roughness length for wall-function
-- `z0h`: \[m\] heat roughness length for wall-function
-- `al`: \[\-\] surface albedo
-- `em`: \[\-\] surface emissivity
-- `d`: \[m\] thickness of each layer inside the facet
-- `C`: \[J/m3K\] volumetric heat capacity of each layer inside the facet.
-- `lam`: \[W/mK\] thermal conductivity on each cell face inside the facet.
+- `z0`: [m] momentum roughness length for wall-function
+- `z0h`: [m] heat roughness length for wall-function
+- `al`: [-] surface albedo
+- `em`: [-] surface emissivity
+- `d`: [m] thickness of each layer inside the facet
+- `C`: [J/m3K] volumetric heat capacity of each layer inside the facet.
+- `lam`: [W/mK] thermal conductivity on each cell face inside the facet.
 
 In order to assign these properties to each facet, use the method `assign_prop_to_fac`. For example, to assign the albedo to each surface facet:
 
@@ -303,6 +323,7 @@ help sim.plot_fac
 
 ```text
 --- help for udbase/plot_fac ---
+
   A method for plotting a facet variable var as a 3D surface
 
   plot_fac(OBJ, var) plots variable var for all facets
@@ -330,6 +351,7 @@ ylim([0 sim.ylen])
 ```
 
 ![figure_4.png](udales-facets-tutorial_media/figure_4.png)
+
 Note that we can also choose to plot only the information for building 1.
 
 ```matlab
@@ -342,6 +364,7 @@ ylim([0 sim.ylen])
 ```
 
 ![figure_5.png](udales-facets-tutorial_media/figure_5.png)
+
 ... or for both buildings:
 
 ```matlab
@@ -363,8 +386,9 @@ help sim.load_fac_momentum
 
 ```text
 --- help for udbase/load_fac_momentum ---
+
   A method to retrieve facet data for pressure and shear
-  information from the fac file.
+  information from the fac file.  
 
   load_fac_momentum(OBJ) displays the variables in the file
 
@@ -385,6 +409,7 @@ sim.load_fac_momentum;
 Contents of fac.065.nc:
     Name               Description              Units      Size       Dimensions
     _____    _______________________________    _____    _________    __________
+
     cth      heat transfer coefficient (Ivo)             2658x1000    fct, time
     fct      Facet number                                2658         fct
     htc      heat transfer coefficient                   2658x1000    fct, time
@@ -399,6 +424,7 @@ Now we load the pressure data using the `load_fac_momentum` method and visualise
 
 ```matlab
 pres = sim.load_fac_momentum('pres');
+
 figure
 sim.plot_fac(pres(:,end))
 format_surface_plot('$p$ [m$^{2}$s$^{-2}$]')
@@ -414,6 +440,7 @@ help sim.load_fac_eb
 
 ```text
 --- help for udbase/load_fac_eb ---
+
   A method to retrieve facet data of a surface energy balance
   term from the facEB file.
 
@@ -427,6 +454,7 @@ help sim.load_fac_eb
 ```
 
 l`oad_fac_eb` is a low-level routine that reads individual variables from the surface energy balance file `facEB.expnr.nc`. It is recommended to use the method `load_seb` which loads all surface energy balance terms at the same time.
+
 The variables in `facEB.expnr.nc` are:
 
 ```matlab
@@ -437,6 +465,7 @@ sim.load_fac_eb();
 Contents of facEB.065.nc:
     Name        Description       Units       Size       Dimensions
     _____    _________________    _____    __________    __________
+
     LWin     Incoming longwave    W/m^2    2658x10020    fct, time
     LWout    Outgoing longwave    W/m^2    2658x10020    fct, time
     WGR      Water content        ?        2658x10020    fct, time
@@ -451,6 +480,7 @@ Let's load and plot the net shortwave radiation at the end time
 
 ```matlab
 Kstar = sim.load_fac_eb('netsw');
+
 figure
 sim.plot_fac(Kstar(:,end))
 format_surface_plot('$K^*$ [Wm$^{-2}$]')
@@ -466,6 +496,7 @@ help sim.load_seb
 
 ```text
 --- help for udbase/load_seb ---
+
   A method to retrieve all surface energy balance terms on each
   of the facets as a function of time.
 
@@ -493,6 +524,7 @@ seb = struct with fields:
         G: [2658x10020 single]
     Tsurf: [2658x10020 single]
         t: [10020x1 single]
+
 ```
 
 Let's plot all components of the surface energy balance at the last timestep
@@ -529,6 +561,7 @@ help sim.load_fac_temperature
 
 ```text
 --- help for udbase/load_fac_temperature ---
+
   A method to retrieve temperature and temperature gradient
   data from the facT file.
 
@@ -549,8 +582,9 @@ sim.load_fac_temperature();
 
 ```text
 Contents of facT.065.nc:
-    Name         Description         Units        Size          Dimensions
+    Name         Description         Units        Size          Dimensions  
     ____    _____________________    _____    ____________    ______________
+
     T       Temperature               K       2658x6x10020    fct, lyr, time
     dTdz    Temperature gradient      K/m     2658x6x10020    fct, lyr, time
     fct     Facet number                      2658            fct
@@ -565,10 +599,12 @@ This data can be used to explore what goes on inside each facet. As an example, 
 t = sim.load_fac_temperature('t');
 T = sim.load_fac_temperature('T');
 d = sim.assign_prop_to_fac('d'); % retrieve facet layer thicknesses
+
 facid = 1;
 tsel = t(1:1000:end);
 Tsel = squeeze(T(facid, :, 1:1000:end));
 x = [0, cumsum(d(facid, :))]; % temperature is defined on cell faces
+
 figure
 hold on
 leg = cell(size(tsel));
@@ -596,6 +632,7 @@ help sim.area_average_seb
 
 ```text
 --- help for udbase/area_average_seb ---
+
   A method for calculating the area-averaged surface energy
   balance.
 
@@ -624,6 +661,7 @@ seb_av = struct with fields:
         E: [25.9738 16.7287 16.5153 16.3215 16.1434 15.9498 15.7488 15.5422 15.2622 15.0522 25.9738 16.7313 16.5179 16.3240 16.1458 15.9522 15.7511 15.5444 15.2642 15.0543 25.9738 16.7313 16.5179 16.3240 16.1458 15.9522 15.7511 … ] (1x10020 single)
         G: [373.2034 379.5020 375.8164 372.9749 371.8422 372.6852 373.9917 374.2121 374.2988 374.2705 373.1778 379.4739 375.7881 372.9467 371.8143 372.6568 373.9637 374.1846 374.2715 374.2426 373.1778 379.4739 375.7881 372.9467 … ] (1x10020 single)
         t: [10020x1 single]
+
 ```
 
 Check that the surface energy balance terms sum to zero:
@@ -655,14 +693,17 @@ title('Area-averaged surface energy balance')
 ```
 
 ![figure_11.png](udales-facets-tutorial_media/figure_11.png)
+
 Note that this is an average over the surface. In order to obtain the surface energy balances typically used in meteorology, we will need to project this onto a flat ground using a factor $f=A_{3D} /A_{2D}$, where $A_{3D}$ is the total surface area and $A_{2D}$ is the projected surface area (height x width of the domain).
 
 ```matlab
 % Define a factor f = A3D/A2D.
 f = sum(sim.facs.area)/(sim.xlen*sim.ylen);
+
 % Upon multiplying the area-averaged SEB with f, the SEB represents a
 % projected-area-averaged SEB term as typically presented in meteorological
-% applications.
+% applications.  
+
 figure()
 hold on
 plot(seb_av.t,f*seb_av.Kstar, seb_av.t,f*seb_av.Lstar, seb_av.t,f*seb_av.H, ...
@@ -688,8 +729,9 @@ help sim.area_average_fac;
 
 ```text
 --- help for udbase/area_average_fac ---
+
   A method for area-averaging a facet quantity, either over all
-  facets or over a selection.
+  facets or over a selection.  
 
   area_average_fac(OBJ, var) area-averages variable var over
   all facets.
@@ -702,21 +744,25 @@ help sim.area_average_fac;
 ```
 
 This method performs area-averaging, either over all facets or over a selection of facets.
+
 Below we provide a non-trivial example on how to this method can be used to obtain a surface energy balance for the sidewalls in the domain. The sidewalls will be selected by using that the z-component of the surface normal has to be zero:
 
 ```matlab
 % Select side walls
 norms = sim.geom.stl.faceNormal;
 fac_ids = find(abs(norms(:, 3)) < 1e-6);
+
 % a quick visual check
 I = zeros(size(sim.facs.area));
 I(fac_ids) = 1;
+
 figure
 sim.plot_fac(I)
 format_surface_plot('')
 ```
 
 ![figure_13.png](udales-facets-tutorial_media/figure_13.png)
+
 This looks correct. We can now calculate and plot the area-averaged surface energy balance on the side-walls.
 
 ```matlab
@@ -725,6 +771,7 @@ Lav_side = sim.area_average_fac(seb.Lstar, fac_ids);
 Hav_side = sim.area_average_fac(seb.H, fac_ids);
 Eav_side = sim.area_average_fac(seb.E, fac_ids);
 Gav_side = sim.area_average_fac(seb.G, fac_ids);
+
 figure()
 hold on
 plot(seb.t,Kav_side, seb.t,Lav_side, seb.t,Hav_side, ...
@@ -747,6 +794,7 @@ title('Area-averaged surface energy balance for sidewalls')
 % long-term
 % see utility_tutorial for functions merge_stat_var and so on
 [Havt, ~] = merge_stat(seb.H, zeros(size(seb.H)), length(seb.t));
+
 figure
 subplot(1,2,1)
 sim.plot_fac(Havt)
@@ -768,6 +816,7 @@ help sim.convert_facvar_to_field
 
 ```text
 --- help for udbase/convert_facvar_to_field ---
+
   Method for transferring a facet variable onto the grid.
 
   Inputs:
@@ -799,11 +848,14 @@ This function assigns facet data to the grid, which is useful for some averaging
 ```matlab
 Tsav   = merge_stat(squeeze(T(:,1,:)), zeros(size(squeeze(T(:,1,:)))), length(seb.t));
 Tsgrid = sim.convert_facvar_to_field(Tsav,sim.facsec.c, [1 2]);
+
 % Get the (x, y, z) coordinates of non-zero elements
 [i, j, k] = ind2sub(size(Tsgrid), find(abs(Tsgrid) > 0));
 x = sim.xt(i); y = sim.yt(j); z = sim.zt(k);
+
 % Get the corresponding values
 values = Tsgrid(abs(Tsgrid) > 0);
+
 % Plot the data using scatter3
 figure;
 scatter3(x, y, z, 24, values, 'filled');
@@ -820,6 +872,7 @@ help sim.convert_facflx_to_field
 
 ```text
 --- help for udbase/convert_facflx_to_field ---
+
   Method for converting a facet variable to a density in a 3D
   field.
 
@@ -835,7 +888,7 @@ help sim.convert_facflx_to_field
 
   The facsec and dz inputs are required since the routine does not know where % on the staggered grid the variable is located.
 
-  convert_facflx_to_field(OBJ, var, facsec, dz) converts the facet variable var
+  convert_facflx_to_field(OBJ, var, facsec, dz) converts the facet variable var  
                                  to a 3D field density for all facets.
 
   convert_facflx_to_field(OBJ, var, facsec, dz, building_ids) converts only
@@ -853,11 +906,13 @@ This function assigns facet data to a density in a 3D field, which is useful for
 
 ```matlab
 rhoH = sim.convert_facflx_to_field(Havt,sim.facsec.c,sim.dzt);
+
 % let's check whether the integrals of the 2D and 3D fields match:
 s = 0;
 for k = 1:size(rhoH, 3)
     s = s + sum(sum(rhoH(:,:,k)*sim.dx*sim.dy*sim.dzt(k)));
 end
+
 % calculate the relative error
 abs(s - sum(Havt .* sim.facs.area)) / s
 ```
@@ -872,8 +927,10 @@ The relative error is extremely small which shows that the total amount of heat 
 % Get the (x, y, z) coordinates of non-zero elements
 [i, j, k] = ind2sub(size(rhoH), find(abs(rhoH) > 0));
 x = sim.xt(i); y = sim.yt(j); z = sim.zt(k);
+
 % Get the corresponding values
 values = rhoH(abs(rhoH) > 0);
+
 % Plot the data using scatter3
 figure;
 scatter3(x, y, z, 24, values, 'filled');
@@ -881,7 +938,9 @@ format_surface_plot('$\rho_{H}$ [Wm$^{-3}$]');
 ```
 
 ![figure_17.png](udales-facets-tutorial_media/figure_17.png)
+
 Here, we note that it is a coincidence that the values of the sensible heat flux density $\rho_{H\;}$ are similar to those of the heat flux $\bar{H\;}$ itself, despite their units being different.
+
 We can also select specific buildings:
 
 ```matlab
@@ -889,8 +948,10 @@ rhoH = sim.convert_facflx_to_field(Havt,sim.facsec.c,sim.dzt, [1, 2]);
 % Get the (x, y, z) coordinates of non-zero elements
 [i, j, k] = ind2sub(size(rhoH), find(abs(rhoH) > 0));
 x = sim.xt(i); y = sim.yt(j); z = sim.zt(k);
+
 % Get the corresponding values
 values = rhoH(abs(rhoH) > 0);
+
 % Plot the data using scatter3
 figure;
 scatter3(x, y, z, 24, values, 'filled');
@@ -898,6 +959,7 @@ format_surface_plot('$\rho_{H}$ [Wm$^{-3}$]');
 ```
 
 ![figure_18.png](udales-facets-tutorial_media/figure_18.png)
+
 To calculate the horizontally-average heat flux density, we can simply average over the horizontal directions.
 
 ```matlab
@@ -948,4 +1010,6 @@ end
 ## References
 
 [1] Suetzl BS, Rooney GG,  van Reeuwijk M (2020). Drag Distribution in Idealized Heterogeneous Urban Environments. *Bound-Lay. Met.* **178**, 225-248.
+
 [2] Maarten van Reeuwijk, Jingzi Huang (2025) Multi-scale Analysis of Flow over Heterogeneous Urban Environments, *Bound-Lay. Met.* **191**, 47.
+
