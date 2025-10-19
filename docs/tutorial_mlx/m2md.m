@@ -70,12 +70,6 @@ end
 
 fprintf('✅ MATLAB %s detected - Version compatible\n\n', matlabVersion);
 
-%% Helper function to escape special regex characters
-function escaped = regexpescape(str)
-    % Escape special regex characters for literal matching
-    escaped = regexprep(str, '([\[\](){}.*+?^$|\\])', '\\$1');
-end
-
 %% Configuration: Define live scripts to convert and processing parameters
 liveScripts = {'facets_tutorial.m', 'fields_tutorial.m', 'udbase_tutorial.m', 'geometry_tutorial.m', 'utility_tutorial.m'};
 % Maximum number of references to process (e.g., [1] through [maxrefs])
