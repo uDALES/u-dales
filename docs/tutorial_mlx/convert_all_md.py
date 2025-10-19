@@ -7,11 +7,11 @@ md-convert (lint/cleanup) stage first and then runs the analyzer stage
 that removes HTML anchor-only lines and rewrites inline anchor links to
 computed header slugs.
 
-Important behavior and precautions
-- The md-convert stage overwrites the original `.md` files in-place.
-    No `.post.md` or `.bak` files are kept by default. This keeps the
-    directory clean but means the change is destructive unless you have
-    a backup (git, copy, etc.).
+    Important behavior and precautions
+    - The md-convert stage overwrites the original `.md` files in-place.
+        No `.bak` files are kept by default. This keeps the directory clean
+        but means the change is destructive unless you have a backup
+        (git, copy, etc.).
 - The analyzer stage operates on the overwritten `.md` files and will
     remove anchor-only `<a...></a>` lines and rewrite `](#ID)` links to
     `](#computed-slug)` where possible.
@@ -163,8 +163,15 @@ def unescape_selected_chars_except_matlab_text(text: str) -> str:
     return "".join(out_lines)
 
 def process_md_convert_all(root: Path) -> None:
-    """Run the md_convert stage: produce .post.md files in the same folder."""
-    files = [p for p in root.rglob("*.md") if not p.name.endswith(".post.md")]
+    """Run the md_convert stage: lint/cleanup and overwrite original .md files.
+
+    This pipeline intentionally overwrites the source `.md` files in-place
+    (no backup files are produced) to keep the tutorial folder clean. Make
+    a backup (git, copy, etc.) if you need a rollback option.
+    """
+    # process all .md files recursively under the tutorial folder and
+    # overwrite them in-place (no `.bak` files are created).
+    files = [p for p in root.rglob("*.md")]
     for p in sorted(files):
         text = p.read_text(encoding="utf-8", errors="replace")
 
@@ -352,14 +359,8 @@ def analyze_one_postmd(fp: str) -> Tuple[List[Dict], List[Dict], List[Dict]]:
     anchors = find_anchors(lines)
     headers = find_headers(lines)
 
-    # If no anchors found in .post.md, try original .md
-    if not anchors and fp.endswith('.post.md'):
-        src = fp[:-8] + '.md'
-        if os.path.exists(src):
-            with open(src, 'r', encoding='utf-8') as f2:
-                src_lines = f2.readlines()
-            anchors = find_anchors(src_lines)
-            headers = find_headers(src_lines)
+    # The analyzer operates on `.md` files that were updated by the
+    # conversion stage. If a file contains no anchors we leave it alone.
 
     mappings = []
     for a in anchors:
@@ -377,10 +378,10 @@ def analyze_one_postmd(fp: str) -> Tuple[List[Dict], List[Dict], List[Dict]]:
 
 def process_analyze_all(root: Path) -> None:
     # operate on .md files (we overwrite originals in the md-convert stage)
-    files = [os.path.join(root, name) for name in os.listdir(root) if name.endswith('.md') and not name.endswith('.post.md')]
+    files = [os.path.join(root, name) for name in os.listdir(root) if name.endswith('.md')]
     files = sorted(files)
     if not files:
-        print('No .post.md files found to analyze.')
+        print('No .md files found in the analysis directory.')
         return
     for fp in files:
         print(f"Processing: {os.path.basename(fp)}")
@@ -420,7 +421,8 @@ def main():
     print('Running md convert stage...')
     process_md_convert_all(script_dir)
 
-    # Stage 2: analyze and apply mappings to generated .post.md files
+    # Stage 2: analyze and apply mappings to `.md` files (we overwrite
+    # originals in the conversion stage)
     print('Running analyzer stage...')
     process_analyze_all(script_dir)
 

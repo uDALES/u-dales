@@ -7,7 +7,7 @@ The **`udbase`** post-processing class reads in most important input parameters,
 
 - [**calculate_frontal_properties**](#calculate_frontal_properties-calculate-skyline-blockage-ratio-and-frontal-areas). This method calculates the skylines, frontal areas and blockage ratios in the x- and y-direction.
 - [**plot_bulding_ids**](#plot_building_ids-display-the-building-ids-in-the-domain). This method displays a 2d map with the building ids of the domain.
-- [**plot_2dmap**](plot_2dmap-display-2dmap). This method displays a 2d map with coloring and optional labels.
+- [**plot_2dmap**](#plot_2dmap-display-2dmap). This method displays a 2d map with coloring and optional labels.
 - [**plot_fac_type**](#plot_fac_type-display-surface-types). This method displays the type of surface for each facet.
 - [**assign_prop_to_fac**](#assign_prop_to_fac-assigning-wall-properties-to-facets). This method assigns a property of the facet type to each of the facets, so it can be used for calculation and visualisation
 - [**plot_fac**](#plot_fac-plot-facet-quantities). This method displays a surface variable on the surface mesh.
