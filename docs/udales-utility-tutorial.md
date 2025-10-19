@@ -102,7 +102,7 @@ The value of `pbar` returned by both methods is identical. Note that this exampl
 
 ## merge_stat: combine short-term time average into a long-term time average
 
-uDALES statistics are collected over fixed time-windows. Sometimes these time windows may be a bit too short. The functions `merge_stat_var` and `merge_stat_cov` are able to combine several of time-windows into larger ones.
+uDALES statistics are collected over fixed time-windows. Sometimes these time windows may be a bit too short. The function `merge_stat` is able to combine several of time-windows into larger ones.
 
 Let's start with loading short-term time-averaged data, for example the 1-D plane average
 
@@ -311,7 +311,7 @@ u_filtered = coarsegrain_field(ut(:,:,:,end), filter_lengths, sim.xm, sim.ym);
  Filter 1/1 (Lflt_x=7.5m, Lflt_y=7.5m) completed
  Filter 2/1 (Lflt_x=32.5m, Lflt_y=32.5m) completed
  Filter 3/1 (Lflt_x=127.5m, Lflt_y=127.5m) completed
-Coarse-graining completed in 0.23 seconds
+Coarse-graining completed in 0.25 seconds
 ```
 
 ```matlab
