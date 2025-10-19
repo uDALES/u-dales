@@ -5,20 +5,20 @@ In this tutorial we cover how to work with uDALES facet data. This pertains to a
 
 The **`udbase`** post-processing class reads in most important input parameters, and contains a number of methods to work with facet data:
 
-- [**calculate_frontal_properties**](#working-with-udales-facet-data-in-matlab). This method calculates the skylines, frontal areas and blockage ratios in the x- and y-direction.
-- [**plot_bulding_ids**](#working-with-udales-facet-data-in-matlab). This method displays a 2d map with the building ids of the domain.
-- [**plot_2dmap**](#working-with-udales-facet-data-in-matlab). This method displays a 2d map with coloring and optional labels.
-- [**plot_fac_type**](#working-with-udales-facet-data-in-matlab). This method displays the type of surface for each facet.
-- [**assign_prop_to_fac**](#working-with-udales-facet-data-in-matlab). This method assigns a property of the facet type to each of the facets, so it can be used for calculation and visualisation
-- [**plot_fac**](#working-with-udales-facet-data-in-matlab). This method displays a surface variable on the surface mesh.
-- [**load_fac_momentum**](#initialising-udbase). This method loads instantaneous momentum surface data from `fac.expnr.nc`. The first index is the facet id and second index is time.
-- [**load_fac_eb**](#initialising-udbase). This method loads instantaneous surface energy balance data from `facEB.expnr.nc`. The first index is the facet id and second index is time.
-- [**load_seb**](#initialising-udbase). This method loads all instantaneous surface energy balance terms. The first index is the facet id and second index is time.
-- [**load_fac_temperature**](#initialising-udbase). This method loads instantaneous facet temperature data `facT.expnr.nc`. The first index is the facet id, the second is the layer index and the third index is time.
-- [**area_average_seb**](#initialising-udbase). This method calculates the area-averaged surface energy balance from the facet surface energy balances obtained using `load_seb`.
-- [**area_average_fac**](#initialising-udbase). This method performs area-averaging over (a selection of) the facets. The facet index is assumed to be the first index of the array.
-- [**convert_facvar_to_field**](#initialising-udbase). This method transfers a facet variable onto the grid, so it can be used for post-processing.
-- [**convert_facflx_to_field**](#initialising-udbase). This method converts a facet variable to a density in a 3D field, so it can be used for post-processing (e.g. calculating distributed drag).
+- [**calculate_frontal_properties**](#calculate_frontal_properties-calculate-skyline-blockage-ratio-and-frontal-areas). This method calculates the skylines, frontal areas and blockage ratios in the x- and y-direction.
+- [**plot_bulding_ids**](#plot_building_ids-display-the-building-ids-in-the-domain). This method displays a 2d map with the building ids of the domain.
+- [**plot_2dmap**](#plot_fac_type-display-surface-types). This method displays a 2d map with coloring and optional labels.
+- [**plot_fac_type**](#plot_fac_type-display-surface-types). This method displays the type of surface for each facet.
+- [**assign_prop_to_fac**](#assign_prop_to_fac-assigning-wall-properties-to-facets). This method assigns a property of the facet type to each of the facets, so it can be used for calculation and visualisation
+- [**plot_fac**](#plot_fac-plot-facet-quantities). This method displays a surface variable on the surface mesh.
+- [**load_fac_momentum**](#load_fac_momentum-load-facet-pressure-and-shear-stresses). This method loads instantaneous momentum surface data from `fac.expnr.nc`. The first index is the facet id and second index is time.
+- [**load_fac_eb**](#load_fac_eb-load-term-from-the-surface-energy-balance). This method loads instantaneous surface energy balance data from `facEB.expnr.nc`. The first index is the facet id and second index is time.
+- [**load_seb**](#load_seb-load-all-surface-energy-balance-terms). This method loads all instantaneous surface energy balance terms. The first index is the facet id and second index is time.
+- [**load_fac_temperature**](#load_fac_temperature-load-temperatures-inside-facets). This method loads instantaneous facet temperature data `facT.expnr.nc`. The first index is the facet id, the second is the layer index and the third index is time.
+- [**area_average_seb**](#area_average_seb-perform-area-averaging-of-the-surface-energy-balance-terms). This method calculates the area-averaged surface energy balance from the facet surface energy balances obtained using `load_seb`.
+- [**area_average_fac**](#area_average_fac-area-averaging-over-facet-data). This method performs area-averaging over (a selection of) the facets. The facet index is assumed to be the first index of the array.
+- [**convert_facvar_to_field**](#convert_facvar_to_field-convert-facet-data-to-grid). This method transfers a facet variable onto the grid, so it can be used for post-processing.
+- [**convert_facflx_to_field**](#convert_facflx_to_field-convert-facet-data-to-3d-density-field). This method converts a facet variable to a density in a 3D field, so it can be used for post-processing (e.g. calculating distributed drag).
 
 **The live matlab file of this tutorial can be found in the repository in the folder /docs/tutorial_mlx.**
 
@@ -50,7 +50,7 @@ sim = udbase(expnr, expdir);
 help sim.calculate_frontal_properties;
 ```
 
-```text
+```matlabTextOutput
 --- help for udbase/calculate_frontal_properties ---
 
   A method to calculate the skyline, frontal areas and blockage
@@ -71,7 +71,7 @@ This method calculates the frontal areas and blockage ratios in the x- and y-dir
 res = sim.calculate_frontal_properties();
 ```
 
-```text
+```matlabTextOutput
 x-direction: frontal area = 368.0 m2, blockage ratio = 0.090
 y-direction: frontal area = 208.0 m2, blockage ratio = 0.051
 ```
@@ -80,7 +80,7 @@ y-direction: frontal area = 208.0 m2, blockage ratio = 0.051
 res
 ```
 
-```text
+```matlabTextOutput
 res = struct with fields:
     skylinex: [64x64 double]
     skyliney: [64x64 double]
@@ -126,7 +126,7 @@ title('skyline in y-direction')
 help sim.plot_building_ids
 ```
 
-```text
+```matlabTextOutput
 --- help for udbase/plot_building_ids ---
 
   A method for plotting building IDs from above (x,y view) with distinct colors
@@ -144,7 +144,7 @@ figure
 sim.plot_building_ids()
 ```
 
-```text
+```matlabTextOutput
 Extracting individual buildings from STL geometry...
 Ground preprocessing: removing ground faces using deleteGround
 Ground preprocessing: 694 faces after deleteGround (removed 1964 ground faces)
@@ -174,7 +174,7 @@ ylim([0 sim.ylen])
 help sim.plot_2dmap
 ```
 
-```text
+```matlabTextOutput
 --- help for udbase/plot_2dmap ---
 
   Plot a 2D map of buildings colored by a value per building.
@@ -224,7 +224,7 @@ The function `format_surface_plot` applies a consistent layout to the surface pl
 help sim.plot_fac_type
 ```
 
-```text
+```matlabTextOutput
 --- help for udbase/plot_fac_type ---
 
   A method for plotting the different surface types used in a
@@ -261,7 +261,7 @@ The function `format_surface_plot` applies a consistent layout to the surface pl
 help sim.assign_prop_to_fac
 ```
 
-```text
+```matlabTextOutput
 --- help for udbase/assign_prop_to_fac ---
 
   Method for assigning properties of a material (stored in
@@ -281,7 +281,7 @@ The wall type of each facet assigns properties to it which are stored in the `fa
 sim.factypes
 ```
 
-```text
+```matlabTextOutput
 ans = struct with fields:
       id: [9x1 double]
     name: [9x1 string]
@@ -321,7 +321,7 @@ albs = sim.assign_prop_to_fac('al');
 help sim.plot_fac
 ```
 
-```text
+```matlabTextOutput
 --- help for udbase/plot_fac ---
 
   A method for plotting a facet variable var as a 3D surface
@@ -384,7 +384,7 @@ ylim([0 sim.ylen])
 help sim.load_fac_momentum
 ```
 
-```text
+```matlabTextOutput
 --- help for udbase/load_fac_momentum ---
 
   A method to retrieve facet data for pressure and shear
@@ -405,7 +405,7 @@ Surface information about shear and pressure can be obtained using the method `l
 sim.load_fac_momentum;
 ```
 
-```text
+```matlabTextOutput
 Contents of fac.065.nc:
     Name               Description              Units      Size       Dimensions
     _____    _______________________________    _____    _________    __________
@@ -438,7 +438,7 @@ format_surface_plot('$p$ [m$^{2}$s$^{-2}$]')
 help sim.load_fac_eb
 ```
 
-```text
+```matlabTextOutput
 --- help for udbase/load_fac_eb ---
 
   A method to retrieve facet data of a surface energy balance
@@ -461,7 +461,7 @@ The variables in `facEB.expnr.nc` are:
 sim.load_fac_eb();
 ```
 
-```text
+```matlabTextOutput
 Contents of facEB.065.nc:
     Name        Description       Units       Size       Dimensions
     _____    _________________    _____    __________    __________
@@ -494,7 +494,7 @@ format_surface_plot('$K^*$ [Wm$^{-2}$]')
 help sim.load_seb
 ```
 
-```text
+```matlabTextOutput
 --- help for udbase/load_seb ---
 
   A method to retrieve all surface energy balance terms on each
@@ -513,7 +513,7 @@ the method `load_seb` loads all energy balance terms including surface temperatu
 seb = sim.load_seb()
 ```
 
-```text
+```matlabTextOutput
 seb = struct with fields:
     Kstar: [2658x10020 single]
     Lstar: [2658x10020 single]
@@ -559,7 +559,7 @@ format_surface_plot('$T_{surf}$ [K]')
 help sim.load_fac_temperature
 ```
 
-```text
+```matlabTextOutput
 --- help for udbase/load_fac_temperature ---
 
   A method to retrieve temperature and temperature gradient
@@ -580,7 +580,7 @@ The following information is available about the temperature inside facets:
 sim.load_fac_temperature();
 ```
 
-```text
+```matlabTextOutput
 Contents of facT.065.nc:
     Name         Description         Units        Size          Dimensions  
     ____    _____________________    _____    ____________    ______________
@@ -630,7 +630,7 @@ title('Temperature inside facet 1')
 help sim.area_average_seb
 ```
 
-```text
+```matlabTextOutput
 --- help for udbase/area_average_seb ---
 
   A method for calculating the area-averaged surface energy
@@ -651,7 +651,7 @@ This method converts the facet-by-facet surface energy balance to an area-averag
 seb_av = sim.area_average_seb(seb)
 ```
 
-```text
+```matlabTextOutput
 seb_av = struct with fields:
     Kstar: [461.2403 461.2403 461.2403 461.2403 461.2403 461.2403 461.2403 461.2403 461.2403 461.2403 461.2147 461.2147 461.2147 461.2147 461.2147 461.2147 461.2147 461.2147 461.2147 461.2147 461.2147 461.2147 461.2147 461.2147 … ] (1x10020 single)
     Lstar: [-61.3138 -61.3469 -61.3852 -61.4188 -61.4530 -61.4909 -61.5253 -61.5605 -61.5961 -61.6331 -61.3138 -61.3469 -61.3852 -61.4188 -61.4530 -61.4909 -61.5252 -61.5604 -61.5961 -61.6331 -61.3138 -61.3469 -61.3852 -61.4188 … ] (1x10020 single)
@@ -670,7 +670,7 @@ Check that the surface energy balance terms sum to zero:
 max(abs(seb_av.Kstar+seb_av.Lstar-seb_av.H-seb_av.E-seb_av.G))
 ```
 
-```text
+```matlabTextOutput
 ans = single0.0313
 ```
 
@@ -727,7 +727,7 @@ title('Standard surface energy balance')
 help sim.area_average_fac;
 ```
 
-```text
+```matlabTextOutput
 --- help for udbase/area_average_fac ---
 
   A method for area-averaging a facet quantity, either over all
@@ -814,7 +814,7 @@ colorbar off
 help sim.convert_facvar_to_field
 ```
 
-```text
+```matlabTextOutput
 --- help for udbase/convert_facvar_to_field ---
 
   Method for transferring a facet variable onto the grid.
@@ -870,7 +870,7 @@ format_surface_plot('$T_s$ [K]');
 help sim.convert_facflx_to_field
 ```
 
-```text
+```matlabTextOutput
 --- help for udbase/convert_facflx_to_field ---
 
   Method for converting a facet variable to a density in a 3D
@@ -917,7 +917,7 @@ end
 abs(s - sum(Havt .* sim.facs.area)) / s
 ```
 
-```text
+```matlabTextOutput
 ans = single9.4734e-08
 ```
 
@@ -1012,4 +1012,3 @@ end
 [1] Suetzl BS, Rooney GG,  van Reeuwijk M (2020). Drag Distribution in Idealized Heterogeneous Urban Environments. *Bound-Lay. Met.* **178**, 225-248.
 
 [2] Maarten van Reeuwijk, Jingzi Huang (2025) Multi-scale Analysis of Flow over Heterogeneous Urban Environments, *Bound-Lay. Met.* **191**, 47.
-

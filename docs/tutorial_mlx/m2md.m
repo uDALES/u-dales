@@ -29,12 +29,6 @@
 %
 % POST-PROCESSING OPERATIONS:
 % 1. Path anonymization: Replaces specific file paths with generic placeholders
-% 2. Code block standardization: Converts matlabTextOutput -> text blocks
-% 3. LaTeX cleanup: Removes trailing spaces that break KaTeX compilation
-% 4. 4-backtick fix: Converts ````markdown to ```markdown and removes document wrapper backticks
-% 5. Backslash cleanup: Removes unnecessary escaping in regular text (post\-processing -> post-processing, function\_name -> function_name)
-% 6. Anchor management: Adds readable anchor IDs to headings and converts table of contents links to match
-% 7. Reference formatting: Fixes LaTeX references (\[1\] -> [1])
 %
 % USAGE:
 %   Run this script from the /docs/tutorial_mlx/ directory
@@ -186,7 +180,8 @@ fprintf('   From this directory run: python convert_all_md.py\n');
 % will not abort the MATLAB script if it fails; errors are printed for
 % diagnostics.
 try
-    fprintf('\nRunning Python post-processor: convert_all_md.py\n');
+    fprintf('\nNote: the Python post-processor will OVERWRITE the .md files in this directory\n');
+    fprintf('Running Python post-processor: convert_all_md.py\n');
     [status, cmdout] = system('python convert_all_md.py');
     if status == 0
         fprintf('convert_all_md.py completed successfully.\n');

@@ -61,7 +61,7 @@ The constructor can have a number of input parameters:
 help udbase.udbase
 ```
 
-```text
+```matlabTextOutput
   Class constructor.
 
   udbase(expnr, dapath, load_preprocdata)
@@ -96,7 +96,7 @@ To view all simulation input parameters, simply type
 sim
 ```
 
-```text
+```matlabTextOutput
 sim =
   udbase with properties:
 
@@ -229,7 +229,7 @@ To access a parameter directly, use the syntax `object.prop`. To access the doma
 sim.xlen
 ```
 
-```text
+```matlabTextOutput
 ans = 64
 ```
 

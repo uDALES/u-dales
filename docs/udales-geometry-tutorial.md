@@ -1,12 +1,12 @@
 
 # uDALES urban surface creation
 
-uDALES supports several manners to create urban surfaces. It is possible to run uDALES without specifying an urban surface, in which case a flat terrain is assumed. In most cases however, an urban surface will be specified. uDALES contains a number of functions in the [**udgeom**](#udales-urban-surface-creation) package that aid geometry generation:
+uDALES supports several manners to create urban surfaces. It is possible to run uDALES without specifying an urban surface, in which case a flat terrain is assumed. In most cases however, an urban surface will be specified. uDALES contains a number of functions in the [**udgeom**](#the-udgeom-class) package that aid geometry generation:
 
-- [**udgeom.createFlatSurface**](#udales-urban-surface-creation). This function creates a flat surface. The main reason for using this function is to be able to discretise the surface in as many facets as possible in case heterogeneous boundary conditions are required.
-- [**udgeom.createCanyons**](#udales-urban-surface-creation). This function creates one-dimensional street canyons.
-- [**udgeom.createCubes**](#initialising-udbase). This function creates cubes, either a single one or an array of cubes.
-- [**udgeom.createRealistic**](#initialising-udbase). This function creates a realistic urban surface based on an stl file that contains the buildings. The function adds the ground surface.
+- [**udgeom.createFlatSurface**](#udgeomcreateflatsurface). This function creates a flat surface. The main reason for using this function is to be able to discretise the surface in as many facets as possible in case heterogeneous boundary conditions are required.
+- [**udgeom.createCanyons**](#udgeomcreatecanyons). This function creates one-dimensional street canyons.
+- [**udgeom.createCubes**](#udgeomcreatecubes). This function creates cubes, either a single one or an array of cubes.
+- [**udgeom.createRealistic**](#udgeomcreaterealistic). This function creates a realistic urban surface based on an stl file that contains the buildings. The function adds the ground surface.
 
 **The live matlab file of this tutorial can be found in the repository in the folder /docs/tutorial_mlx.**
 
@@ -31,7 +31,7 @@ The udgeom class contains the uDALES urban surface. It is the output of the geom
 help udgeom.udgeom
 ```
 
-```text
+```matlabTextOutput
   udgeom Geometry class for uDALES
      The udgeom class contains the triangulated surface.
 
@@ -43,7 +43,7 @@ geom = udgeom.udgeom();    % create udgeom instance.
 methods(geom);             % show the methods the class contains
 ```
 
-```text
+```matlabTextOutput
 Methods for class udgeom.udgeom:
 
 calculate_outline2d       chcpath                   get_building_outlines     get_buildings             get_face_to_building_map  get_outline               gohome                    gopath                    load                      save                      show                      show_outline              udgeom
@@ -57,7 +57,7 @@ These methods can be used as follows
 help geom.load
 ```
 
-```text
+```matlabTextOutput
 --- help for udgeom.udgeom/load ---
 
   load an STL file.
@@ -70,7 +70,7 @@ help geom.load
 help geom.save
 ```
 
-```text
+```matlabTextOutput
 --- help for udgeom.udgeom/save ---
 
   save an STL file.
@@ -83,7 +83,7 @@ help geom.save
 help geom.show
 ```
 
-```text
+```matlabTextOutput
 --- help for udgeom.udgeom/show ---
 
   plot the geometry
@@ -118,7 +118,7 @@ Another way is to show the outline.
 help geom.show_outline
 ```
 
-```text
+```matlabTextOutput
 --- help for udgeom.udgeom/show_outline ---
 
   Plot the geometry outline edges
@@ -153,7 +153,7 @@ This function creates flat surfaces
 help udgeom.createFlatSurface
 ```
 
-```text
+```matlabTextOutput
   createFlatSurface    creates flat surface consisting of triangular facets
 
      geom = createFlatSurface(xsize, ysize, edgelength) returns a geom
@@ -188,7 +188,7 @@ This function creates one-dimensional street canyons
 help udgeom.createCanyons
 ```
 
-```text
+```matlabTextOutput
   createCanyons    creates one-dimensional street canyons
 
      geom = createCanyons(xsize, ysize, B, W, H, shift, edgelength) returns
@@ -238,7 +238,7 @@ This function creates cubes, either a single one or an array of cubes.
 help udgeom.createCubes
 ```
 
-```text
+```matlabTextOutput
   createCubes    creates cubes, either a single one or an array of cubes.
 
      geom = createCubes(xsize, ysize, Hx, Hy, Hz, Cx, Cy, geom_option, edgelength)
@@ -297,7 +297,7 @@ This function creates a realistic urban surface based on an stl file that contai
 help udgeom.createRealistic
 ```
 
-```text
+```matlabTextOutput
   createRealistic    creates a realistic urban surface based on an stl file
                      that contains the buildings. The function adds the
                      ground surface.  

@@ -1,16 +1,16 @@
 
 # Working with uDALES field data in MATLAB
 
-This tutorial describes how to read and process field data output of the LES code uDALES using MATLAB. In addition, it describes some important concepts, such as the [grid layout](#working-with-udales-field-data-in-matlab), [variable locations](#working-with-udales-field-data-in-matlab) and [averaging procedures](#working-with-udales-field-data-in-matlab).
+This tutorial describes how to read and process field data output of the LES code uDALES using MATLAB. In addition, it describes some important concepts, such as the [grid layout](#udales-grid-layout), [variable locations](#averages-used-in-udales-output) and [averaging procedures](#averages-used-in-udales-output).
 
 The **`udbase`** post-processing class reads in most important input parameters, and contains a number of methods to load field data:
 
-- [**load_stat_xyt**](#working-with-udales-field-data-in-matlab). This method load the 1D slab- and time-averaged statistics from the file `xytdump.expnr.nc`. Several time-intervals may be present in the data.
-- [**load_stat_t**](#working-with-udales-field-data-in-matlab). This method loads the 3D time-averaged statistics from the file `tdump.expnr.nc`. Several time-intervals may be present in the data.
-- [**load_stat_tree**](#initialising-udbase). This method loads the 3D time-averaged statistics of the tree source terms from the file `treedump.expnr.nc`. This method works exactly the same way as `load_stat_t`.
-- [**load_field**](#initialising-udbase). This method loads instantaneous 3D data from the file `fielddump.expnr.nc`. Several output times may be present in the data.
-- [**load_slice**](#initialising-udbase). This method loads instantaneous 2D slices of instantaneous 3D data from the file `Xslicedump.expnr.nc`. Several output times may be present in the data.
-- [**plot_trees**](#initialising-udbase). This method plots tree patches.
+- [**load_stat_xyt**](#load_stat_xyt-loading-time--and-slab-averaged-data). This method load the 1D slab- and time-averaged statistics from the file `xytdump.expnr.nc`. Several time-intervals may be present in the data.
+- [**load_stat_t**](#load_stat_t-loading-time-averaged-data). This method loads the 3D time-averaged statistics from the file `tdump.expnr.nc`. Several time-intervals may be present in the data.
+- [**load_stat_tree**](#load_stat_tree-and-plot_tree-loading-and-plotting-tree-data). This method loads the 3D time-averaged statistics of the tree source terms from the file `treedump.expnr.nc`. This method works exactly the same way as `load_stat_t`.
+- [**load_field**](#load_field-loading-instantaneous-3d-data). This method loads instantaneous 3D data from the file `fielddump.expnr.nc`. Several output times may be present in the data.
+- [**load_slice**](#load_slice-loading-instantaneous-2d-slice-data). This method loads instantaneous 2D slices of instantaneous 3D data from the file `Xslicedump.expnr.nc`. Several output times may be present in the data.
+- [**plot_trees**](#load_stat_tree-and-plot_tree-loading-and-plotting-tree-data). This method plots tree patches.
 
 **The live matlab file of this tutorial can be found in the repository in the folder /docs/tutorial_mlx.**
 
@@ -34,7 +34,7 @@ expdir = 'path_to_experiments\110';
 sim = udbase(expnr, expdir);
 ```
 
-```text
+```matlabTextOutput
 Warning: prof.inp.110 not found. Assuming equidistant grid.
 ```
 
@@ -122,7 +122,7 @@ where $A$ is the total surface area. In many cases, it is more convenient to wor
 help sim.load_stat_xyt
 ```
 
-```text
+```matlabTextOutput
 --- help for udbase/load_stat_xyt ---
 
   A method to retrieve plane- and time-averaged 1D statistics
@@ -143,7 +143,7 @@ This method loads a single output variable `var` at a time. In order to understa
 sim.load_stat_xyt();
 ```
 
-```text
+```matlabTextOutput
 Contents of xytdump.110.nc:
        Name                     Description                  Units     Size     Dimensions
     ___________    _____________________________________    _______    _____    __________
@@ -182,7 +182,7 @@ Before showing how to display the data, we note that the variable `'time'` has a
 txyt = sim.load_stat_xyt('time')
 ```
 
-```text
+```matlabTextOutput
 txyt = 3x1 single column vector
 1.0e+03
 2.0001
@@ -197,7 +197,7 @@ There are three times at which output has been generated. This can be understood
 sim.tstatsdump
 ```
 
-```text
+```matlabTextOutput
 ans = 2000
 ```
 
@@ -205,7 +205,7 @@ ans = 2000
 sim.runtime
 ```
 
-```text
+```matlabTextOutput
 ans = 6002
 ```
 
@@ -286,7 +286,7 @@ The turbulent and dispersive fluxes show substantial variation for all three cur
 help sim.load_stat_t
 ```
 
-```text
+```matlabTextOutput
 --- help for udbase/load_stat_t ---
 
   A method to retrieve time-averaged statistics from the tdump file
@@ -306,7 +306,7 @@ The time-averaged field data is stored in the `tdump.expnr.nc` file. The variabl
 sim.load_stat_t();
 ```
 
-```text
+```matlabTextOutput
 Contents of tdump.110.nc:
        Name                      Description                    Units         Size            Dimensions
     ___________    ________________________________________    _______    _____________    ________________
@@ -419,7 +419,7 @@ title(['$\overline u(x, y=', num2str(yt(j), '%8.1f'), 'm, z)$'], 'Interpreter','
 help sim.load_field
 ```
 
-```text
+```matlabTextOutput
 --- help for udbase/load_field ---
 
    A method to retrieve instantaneous 3D data from from the fielddump file.
@@ -439,7 +439,7 @@ The instantaneous field data is stored in the field`dump.expnr.nc` file, again, 
 sim.load_field();
 ```
 
-```text
+```matlabTextOutput
 Contents of fielddump.110.nc:
     Name                  Description                   Units        Size            Dimensions
     ____    ________________________________________    _____    _____________    ________________
@@ -462,7 +462,7 @@ The variable `time` contains the times at which output is written. Let's load th
 t = sim.load_field('time')
 ```
 
-```text
+```matlabTextOutput
 t = 3x1 single column vector
 1.0e+03
 2.0000
@@ -477,7 +477,7 @@ These times can be understood by noticing that the output interval requested in 
 sim.tfielddump
 ```
 
-```text
+```matlabTextOutput
 ans = 2000
 ```
 
@@ -526,7 +526,7 @@ title(['$u(x, y, z=', num2str(zt(k), '%8.1f'), 'm, t=', num2str(t(n), '%8.0f'),'
 help sim.load_slice
 ```
 
-```text
+```matlabTextOutput
 --- help for udbase/load_slice ---
 
   A method to retrieve instantaneous 2D slices from from the slicedump file.
@@ -548,7 +548,7 @@ uDALES is capable of outputting slices along the `x`, `y` or `z`-direction. In t
 sim.lkslicedump
 ```
 
-```text
+```matlabTextOutput
 ans = 1
 ```
 
@@ -558,7 +558,7 @@ at index
 sim.kslice
 ```
 
-```text
+```matlabTextOutput
 ans = 21
 ```
 
@@ -568,7 +568,7 @@ and output instantaneous slices at time-intervals
 sim.tsample
 ```
 
-```text
+```matlabTextOutput
 ans = 3
 ```
 
@@ -584,7 +584,7 @@ To list all the variables stored in `kslicedump.expnr.nc`, we use
 sim.load_slice('k');
 ```
 
-```text
+```matlabTextOutput
 Contents of kslicedump.110.nc:
        Name                     Description                   Units        Size         Dimensions
     __________    ________________________________________    _____    ____________    ____________
@@ -647,7 +647,7 @@ expdir = 'path_to_experiments\525';
 sim = udbase(expnr, expdir);
 ```
 
-```text
+```matlabTextOutput
 Warning: One or more solid_(u,v,w,c).525 files not found.
 ```
 
@@ -665,7 +665,7 @@ The time-averaged tree source data is stored in the `treedump.expnr.nc` file. Th
 help sim.load_stat_tree
 ```
 
-```text
+```matlabTextOutput
 --- help for udbase/load_stat_tree ---
 
   A method to retrieve time-averaged statistics of the tree
@@ -684,7 +684,7 @@ help sim.load_stat_tree
 sim.load_stat_tree();
 ```
 
-```text
+```matlabTextOutput
 Contents of treedump.525.nc:
       Name                    Description                    Units         Size           Dimensions
     ________    ________________________________________    _______    ____________    ________________

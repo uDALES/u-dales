@@ -3,9 +3,9 @@
 
 This tutorial demonstrates how to use the uDALES MATLAB utilities for post-processing simulation data. It covers 1) time-averaging; 2) merging short-term time-averaged data to long-term averages, and 3) coarse-graining fields for Spatial filtering (coarse-graining method). The utility functions include:
 
-- [**time_average**](#using-udales-utilities-in-matlab). This method operates similarly to merge_stat, but provide a more straightforward way to time-average variables over all available time intervals.
-- [**merge_stat**](#initialise-udbase-and-load-data)**.** This method merges the short-term time average and (co)variance into long-term averages and associated (co)variance.
-- [**coarsegrain_field**](#initialise-udbase-and-load-data)**.** This method allows you to coarse-grain a field using a planar filter in the x-y plane using a fixed lengthscale [1].
+- [**time_average**](#time-averaged-mean-and-variance-of-instantaneous-data). This method operates similarly to merge_stat, but provide a more straightforward way to time-average variables over all available time intervals.
+- [**merge_stat**](#combine-short-term-time-average-into-a-long-term-time-average)**.** This method merges the short-term time average and (co)variance into long-term averages and associated (co)variance.
+- [**coarsegrain_field**](#coarse-graining-3d-fields)**.** This method allows you to coarse-grain a field using a planar filter in the x-y plane using a fixed lengthscale [1].
 
 ## Initialise udbase and load data
 
@@ -31,7 +31,7 @@ sim = udbase(expnr, expdir);
 help time_average
 ```
 
-```text
+```matlabTextOutput
   time_average  Time-average variables over all available time intervals
 
     [Xmean, var] = time_average(X)
@@ -94,7 +94,7 @@ fprintf('The time-averaged pressure pbar=%.3f m2/s2, tauxbar=%.3f m2/s2 and thei
     pbar(1), tauxbar(1), ptauxbar(1));
 ```
 
-```text
+```matlabTextOutput
 The time-averaged pressure pbar=2.314 m2/s2, tauxbar=-0.032 m2/s2 and their covariance p'taux'bar=0.049 m4/s4.
 ```
 
@@ -113,7 +113,7 @@ expdir = 'path_to_experiments\110';
 sim = udbase(expnr, expdir);
 ```
 
-```text
+```matlabTextOutput
 Warning: prof.inp.110 not found. Assuming equidistant grid.
 ```
 
@@ -133,7 +133,7 @@ Check the averaging time interval
 time
 ```
 
-```text
+```matlabTextOutput
 time = 3x1 single column vector
 1.0e+03
 2.0001
@@ -146,7 +146,7 @@ time = 3x1 single column vector
 length(time)
 ```
 
-```text
+```matlabTextOutput
 ans = 3
 ```
 
@@ -156,7 +156,7 @@ So there are three time-averaging intervals. Long-term time averaging can be use
 help merge_stat
 ```
 
-```text
+```matlabTextOutput
   merge_stat  Merge short-time statistics into longer-time averages
 
     Xmean = merge_stat(X, n)
@@ -216,7 +216,7 @@ Naturally both versions return the same value for `uxyt_longterm.` Let's check t
 size(uxyt)
 ```
 
-```text
+```matlabTextOutput
 ans = 1x2
 
 256    3
@@ -227,7 +227,7 @@ ans = 1x2
 size(uxyt_longterm)
 ```
 
-```text
+```matlabTextOutput
 ans = 1x2
 
 256    1
@@ -243,7 +243,7 @@ Nwindow = 2;
 size(uxyt_longterm)
 ```
 
-```text
+```matlabTextOutput
 ans = 1x2
 
 256    1
@@ -266,7 +266,7 @@ The coarse-graining routine has the following syntax:
 help coarsegrain_field
 ```
 
-```text
+```matlabTextOutput
   coarsegrain_field2  Apply spatial filtering to 3D field data using discrete grid cells
 
     var_filtered = coarsegrain_field2(var, Lflt, xm, ym)
@@ -319,7 +319,7 @@ filter_lengths = [8 32 128];  % Filter widths in meters
 u_filtered = coarsegrain_field(ut(:,:,:,end), filter_lengths, sim.xm, sim.ym);
 ```
 
-```text
+```matlabTextOutput
 Applying discrete coarse-graining filters...
  Filter 1/1 (Lflt_x=7.5m, Lflt_y=7.5m) completed
  Filter 2/1 (Lflt_x=32.5m, Lflt_y=32.5m) completed
@@ -362,4 +362,3 @@ end
 ## References
 
 [1] Maarten van Reeuwijk, Jingzi Huang (2025) Multi-scale Analysis of Flow over Heterogeneous Urban Environments, *Bound-Lay. Met.* **191**, 47.
-
