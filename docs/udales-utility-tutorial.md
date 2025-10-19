@@ -7,22 +7,6 @@ This tutorial demonstrates how to use the uDALES MATLAB utilities for post-proce
 - [**merge_stat**](#merge_stat-combine-short-term-time-average-into-a-long-term-time-average)**.** This method merges the short-term time average and (co)variance into long-term averages and associated (co)variance.
 - [**coarsegrain_field**](#coarsegrain_field-coarse-graining-3d-fields)**.** This method allows you to coarse-grain a field using a planar filter in the x-y plane using a fixed lengthscale [1].
 
-## Initialise udbase and load data
-
-```matlab
-% preamble
-clear variables
-close all
-
-% add the uDALES matlab path
-addpath('path_to_udales\tools\matlab')
-
-% create an instance of the udbase class
-expnr = 065;  % Experiment number
-expdir = 'path_to_experiments\065';
-sim = udbase(expnr, expdir);
-```
-
 ## time_average: time-averaged mean and variance of instantaneous data
 
 `time_average` function returns the mean and variance of time-series data (fields, facets, timeseries, ...). The method assumes that time is the last array index.
@@ -65,13 +49,29 @@ help time_average
 For example, let's load instantaneous pressure data for facets:
 
 ```matlab
+% preamble
+clear variables
+close all
+
+% add the uDALES matlab path
+addpath('path_to_udales\tools\matlab')
+
+% create an instance of the udbase class
+expnr = 065;  % Experiment number
+expdir = 'path_to_experiments\065';
+sim = udbase(expnr, expdir);
+
 p = sim.load_fac_momentum('pres');
 t = sim.load_fac_momentum('t');
-% calculate pressure mean and variance
+```
+
+Now, let's calculate pressure mean and variance
+
+```matlab
 [pav, pvar] = time_average(p);
 ```
 
-Plot the time-series together with the mean and the 95% confidence interval
+Plot the time-series of $p$ together with the mean and the 95% confidence interval
 
 ```matlab
 figure
@@ -311,7 +311,7 @@ u_filtered = coarsegrain_field(ut(:,:,:,end), filter_lengths, sim.xm, sim.ym);
  Filter 1/1 (Lflt_x=7.5m, Lflt_y=7.5m) completed
  Filter 2/1 (Lflt_x=32.5m, Lflt_y=32.5m) completed
  Filter 3/1 (Lflt_x=127.5m, Lflt_y=127.5m) completed
-Coarse-graining completed in 0.93 seconds
+Coarse-graining completed in 0.35 seconds
 ```
 
 ```matlab
