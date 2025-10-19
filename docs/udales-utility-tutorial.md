@@ -3,9 +3,9 @@
 
 This tutorial demonstrates how to use the uDALES MATLAB utilities for post-processing simulation data. It covers 1) time-averaging; 2) merging short-term time-averaged data to long-term averages, and 3) coarse-graining fields for Spatial filtering (coarse-graining method). The utility functions include:
 
-- [**time_average**](#time-averaged-mean-and-variance-of-instantaneous-data). This method operates similarly to merge_stat, but provide a more straightforward way to time-average variables over all available time intervals.
-- [**merge_stat**](#combine-short-term-time-average-into-a-long-term-time-average)**.** This method merges the short-term time average and (co)variance into long-term averages and associated (co)variance.
-- [**coarsegrain_field**](#coarse-graining-3d-fields)**.** This method allows you to coarse-grain a field using a planar filter in the x-y plane using a fixed lengthscale [1].
+- [**time_average**](#time_average-time-averaged-mean-and-variance-of-instantaneous-data). This method operates similarly to merge_stat, but provide a more straightforward way to time-average variables over all available time intervals.
+- [**merge_stat**](#merge_stat-combine-short-term-time-average-into-a-long-term-time-average)**.** This method merges the short-term time average and (co)variance into long-term averages and associated (co)variance.
+- [**coarsegrain_field**](#coarsegrain_field-coarse-graining-3d-fields)**.** This method allows you to coarse-grain a field using a planar filter in the x-y plane using a fixed lengthscale [1].
 
 ## Initialise udbase and load data
 
@@ -23,7 +23,7 @@ expdir = 'path_to_experiments\065';
 sim = udbase(expnr, expdir);
 ```
 
-## Time-averaged mean and variance of instantaneous data
+## time_average: time-averaged mean and variance of instantaneous data
 
 `time_average` function returns the mean and variance of time-series data (fields, facets, timeseries, ...). The method assumes that time is the last array index.
 
@@ -100,7 +100,7 @@ The time-averaged pressure pbar=2.314 m2/s2, tauxbar=-0.032 m2/s2 and their cova
 
 The value of `pbar` returned by both methods is identical. Note that this example is quite exotic as we only had loaded facet data; more conventional covariances are $\overline{w^{\prime } u^{\prime } }$, $\overline{w^{\prime } p^{\prime } }$ etc.
 
-## Combine short-term time average into a long-term time average
+## merge_stat: combine short-term time average into a long-term time average
 
 uDALES statistics are collected over fixed time-windows. Sometimes these time windows may be a bit too short. The functions `merge_stat_var` and `merge_stat_cov` are able to combine several of time-windows into larger ones.
 
@@ -252,7 +252,7 @@ ans = 1x2
 
 There were three intervals in uxut, and the last two were used to average over. The first time-interval has been discarded.
 
-## Coarse-graining 3D fields
+## coarsegrain_field: coarse-graining 3D fields
 
 We recently developed a coarse-graining method that is computationally efficient and can be used to coarse-grain data [1]. In order to demonstrate its use, let's load the mean horizontal velocity $\overline{u}$ from the uDALES data.
 
@@ -267,20 +267,13 @@ help coarsegrain_field
 ```
 
 ```matlabTextOutput
-  coarsegrain_field2  Apply spatial filtering to 3D field data using discrete grid cells
+  coarsegrain_field  Apply 2D spatial filter to 3D field data.
 
-    var_filtered = coarsegrain_field2(var, Lflt, xm, ym)
+    var_filtered = coarsegrain_field(var, Lflt, xm, ym)
 
-  This function applies spatial coarse-graining filters to 3D field data
-  working at the discrete level once grid cell numbers are determined.
+  This function applies 2D spatial (x-y) coarse-graining filters to 3D field data.
   Multiple filter sizes are applied simultaneously, creating a 4D output
   where the 4th dimension corresponds to different filter sizes.
-
-  Key differences from coarsegrain_field:
-    - Works at discrete level after converting physical lengths to grid cells
-    - Proper periodic boundary condition handling  
-    - Normalized filters that preserve mean values
-    - Square filter kernels based on discrete grid distances
 
   Inputs
     var     - 3D field data with dimensions [itot, jtot, ktot] where
@@ -297,17 +290,12 @@ help coarsegrain_field
   Algorithm
     - Converts physical filter lengths to grid cell numbers (Ng = round(Lflt/dx))
     - Works at discrete level with normalized periodic filters  
-    - Creates square filters with half-width Ng for each filter size
-    - Handles periodic boundary conditions properly
     - Uses FFT-based convolution for computational efficiency
-    - Normalizes each filter to preserve mean values
 
   Example:
     % Apply multiple filter sizes to velocity field
     filter_lengths = [10, 20, 40, 80, 160]; % Physical lengths in meters
-    u_filtered = coarsegrain_field2(u_data, filter_lengths, xm, ym);
-
-  See also: coarsegrain_field, apply_fft_filter
+    u_filtered = coarsegrain_field(u_data, filter_lengths, xm, ym);
 ```
 
 The routine takes in multiple filter lengths simultaneously.
@@ -320,11 +308,10 @@ u_filtered = coarsegrain_field(ut(:,:,:,end), filter_lengths, sim.xm, sim.ym);
 ```
 
 ```matlabTextOutput
-Applying discrete coarse-graining filters...
  Filter 1/1 (Lflt_x=7.5m, Lflt_y=7.5m) completed
  Filter 2/1 (Lflt_x=32.5m, Lflt_y=32.5m) completed
  Filter 3/1 (Lflt_x=127.5m, Lflt_y=127.5m) completed
-Coarse-graining completed in 0.39 seconds
+Coarse-graining completed in 0.93 seconds
 ```
 
 ```matlab

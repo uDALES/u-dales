@@ -198,7 +198,11 @@ def mkdocs_slug(text: str) -> str:
     s = ''.join(ch for ch in s if not unicodedata.combining(ch))
     s = s.lower()
     s = s.replace('.', '')
+    # Replace any run of non-allowed chars with a hyphen, then collapse
+    # consecutive hyphens to a single one. Finally strip leading/trailing
+    # hyphens so the slug is clean.
     s = re.sub(r'[^a-z0-9_-]+', '-', s)
+    s = re.sub(r'-{2,}', '-', s)
     s = s.strip('-')
     return s
 

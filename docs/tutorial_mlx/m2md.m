@@ -39,8 +39,6 @@
 %% MATLAB Version Check
 % This script requires MATLAB R2025b or later for:
 % - export() function with markdown format support for live scripts
-% - Enhanced containers.Map functionality
-% - Robust string and regexp handling for post-processing
 
 fprintf('Checking MATLAB version compatibility...\n');
 matlabVersion = version('-release');
