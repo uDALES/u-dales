@@ -3,9 +3,9 @@
 
 This tutorial demonstrates how to use the uDALES MATLAB utilities for post-processing simulation data. It covers 1) time-averaging; 2) merging short-term time-averaged data to long-term averages, and 3) coarse-graining fields for Spatial filtering (coarse-graining method). The utility functions include:
 
-- [**time_average**](#time_average-time-averaged-mean-and-variance-of-instantaneous-data). This method operates similarly to merge_stat, but provide a more straightforward way to time-average variables over all available time intervals.
-- [**merge_stat**](#merge_stat-combine-short-term-time-average-into-a-long-term-time-average)**.** This method merges the short-term time average and (co)variance into long-term averages and associated (co)variance.
-- [**coarsegrain_field**](#coarsegrain_field-coarse-graining-3d-fields)**.** This method allows you to coarse-grain a field using a planar filter in the x-y plane using a fixed lengthscale [1].
+- [**time_average**](#time_average-time-averaged-mean-and-variance-of-instantaneous-data). This routine calculates the time-average of a quantity (assumes time is in the last index of the variable).
+- [**merge_stat**](#merge_stat-combine-short-term-time-average-into-a-long-term-time-average)**.** This routine merges the short-term time average and (co)variance into long-term averages and associated (co)variance.
+- [**coarsegrain_field**](#coarsegrain_field-coarse-graining-3d-fields)**.** This routine allows you to coarse-grain a field using a planar filter in the x-y plane using a fixed lengthscale [1].
 
 ## time_average: time-averaged mean and variance of instantaneous data
 
@@ -311,7 +311,7 @@ u_filtered = coarsegrain_field(ut(:,:,:,end), filter_lengths, sim.xm, sim.ym);
  Filter 1/1 (Lflt_x=7.5m, Lflt_y=7.5m) completed
  Filter 2/1 (Lflt_x=32.5m, Lflt_y=32.5m) completed
  Filter 3/1 (Lflt_x=127.5m, Lflt_y=127.5m) completed
-Coarse-graining completed in 0.35 seconds
+Coarse-graining completed in 0.23 seconds
 ```
 
 ```matlab
