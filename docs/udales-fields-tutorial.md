@@ -4,8 +4,7 @@
 This tutorial describes how to read and process field data output of the LES code uDALES using MATLAB. In addition, it describes some important concepts, such as the [grid layout](#udales-grid-layout), [variable locations](#averages-used-in-udales-output) and [averaging procedures](#averages-used-in-udales-output).
 
 The **`udbase`** post-processing class reads in most important input parameters, and contains a number of methods to load field data:
-
-- [**load_stat_xyt**](#load_stat_xyt-loading-time--and-slab-averaged-data). This method load the 1D slab- and time-averaged statistics from the file `xytdump.expnr.nc`. Several time-intervals may be present in the data.
+- [**load_stat_xyt**](#load_stat_xyt-loading-time-and-slab-averaged-data) This method loads the 1D slab- and time-averaged statistics from the file `xytdump.expnr.nc`. Several time intervals may be present in the data.
 - [**load_stat_t**](#load_stat_t-loading-time-averaged-data). This method loads the 3D time-averaged statistics from the file `tdump.expnr.nc`. Several time-intervals may be present in the data.
 - [**load_stat_tree**](#load_stat_tree-and-plot_tree-loading-and-plotting-tree-data). This method loads the 3D time-averaged statistics of the tree source terms from the file `treedump.expnr.nc`. This method works exactly the same way as `load_stat_t`.
 - [**load_field**](#load_field-loading-instantaneous-3d-data). This method loads instantaneous 3D data from the file `fielddump.expnr.nc`. Several output times may be present in the data.
