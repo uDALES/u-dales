@@ -8,7 +8,7 @@ Note that we limited the simulation time to just a few minutes for demonstration
 <!-- omit in toc -->
 ## Prerequisites
 
-All examples below assume that you have installed uDALES as per our [getting started guide](./udales-getting-started.md).
+All examples below assume that you have installed uDALES as per our [Installation and First Run](./udales-installation.md).
 
 Set up the paths and variables for running the simulation, for example with the following:
 
@@ -34,13 +34,13 @@ All examples are run using the following command:
 # top-level project directory.
 
 # General syntax: local_execute.sh exp_directory
-./u-dales/tools/local_execute.sh u-dales/examples/001
+./u-dales/tools/local_execute.sh examples/001
 ```
 
 <!-- omit in toc -->
 ## Customising simulations
 
-If you want to make any changes to the example simulations, e.g. changing the domain size, follow the [set-up steps](./udales-getting-started.md/#set-up) in the getting started guide to obtain a copy of the simulation setup and make the changes to your copy of the setup. You may need to run some pre-processing steps (see [Pre-processing](./udales-pre-processing.md)) before running the simulation. These cases are indicated as such in [Table 1](#main-simulation-set-up-options).
+If you want to make any changes to the example simulations, e.g. changing the domain size, follow the [set-up steps](./udales-installation.md/#project-setup) in the "Installation and First Run" guide to obtain a copy of the simulation setup and make the changes to your copy of the setup. You may need to run some pre-processing steps (see [Pre-processing](./udales-pre-processing.md)) before running the simulation. These cases are indicated as such in [Table 1](#main-simulation-set-up-options).
 
 <!-- omit in toc -->
 ## Main simulation set-up options
@@ -133,7 +133,6 @@ Table 1: Main setups of urban case studies and reference example simulation(s).
 
 The below setups are required for any type of simulation.
 
-
 The experiment number, run time and number of pencils in x and y (the product of which is the number of cores to be used):
 
 ```fortran
@@ -143,8 +142,6 @@ runtime      = 11.
 nprocx       = 2
 nprocy       = 2
 ```
-
-
 
 The simulation domain varies amongst the example simulations. An example is given:
 
@@ -233,7 +230,6 @@ fieldvars    = 'u0,v0,w0'
 tfielddump   = 10.
 ```
 
-
 ### 002
 
 ![blocks.002](./assets/images/blocks.002.png)
@@ -242,15 +238,14 @@ This simulation has a similar setup to `001` and additionally contains buildings
 
 #### Aligned cuboid buildings
 
-The simulation contains aligned cube-shaped buildings. 
+The simulation contains aligned cube-shaped buildings.
 
-The IBM must be turned on if buildings are included: 
+The IBM must be turned on if buildings are included:
 
 ```fortran
 &RUN
 libm         = .true.
 ```
-
 
 The corresponding number of facets, solid points (for the U, V, W and scalar grids), fluid boundary points and facet sections are automatically updated in `WALLS`  by the preprocessing routine:
 
@@ -353,6 +348,7 @@ nsv          = 1
 lscasrcl     = .true.
 nscasrcl     = 1
 ```
+
 the exact properties of the line are set as follows:
 
 ```fortran
@@ -382,7 +378,6 @@ We added the temperature and scalar concentration to the instantaneous fields:
 &OUTPUT
 fieldvars    = 'u0,v0,w0,th,s1'
 ```
-
 
 ### 102
 <!---
@@ -461,7 +456,7 @@ bctfz        = 0.01
 
 #### Passive scalars point source
 
-The simulation contains a scalar field with a scalar point source. The nature of the source is given by: 
+The simulation contains a scalar field with a scalar point source. The nature of the source is given by:
 
 ```fortran
 &SCALARS
@@ -471,11 +466,9 @@ nscasrc      = 1
 lreadscal    = .true.
 ```
 
-Here `lreadscal` is necessary as we are running a warmstart. 
-
+Here `lreadscal` is necessary as we are running a warmstart.
 
 The position, strength and standard deviation of emission of the source are set by:
-
 
 ```fortran
 &INP
@@ -485,8 +478,6 @@ zS           = 3
 SSp          = 1
 sigSp        = 0.5
 ```
-
-
 
 #### Scalar inflow-outflow BC
 
@@ -514,7 +505,6 @@ trestart     = 1000.
 
 Then, change the switches as described above, and make sure `startfile` matches the name of your restart files. --->
 
-
 ## Energy balance simulation
 
 ### 201
@@ -523,7 +513,7 @@ Then, change the switches as described above, and make sure `startfile` matches 
 
 #### Pre-defined buildings
 
-The buildings are read in by the preprocessing from a user provided STL file. 
+The buildings are read in by the preprocessing from a user provided STL file.
 
 <!---```fortran
 &INPS
@@ -633,7 +623,6 @@ tnudge       = 10800.
 nnudge       = 64
 ```
 
-
 ## Driver simulation
 
 ### 949
@@ -657,14 +646,13 @@ iplane       = 256
 
 `iplane` sets the index of the y-z plane we store (here this is equal to the outlet plane), and `(driverstore-1)*dtdriver` determines for how long you can run the driven simulation. The time when we start recording the planes should therefore be `tdriverstart` <= `runtime` - `(driverstore-1)*dtdriver`. More information on these parameters is in the documentation on [simulation setup](./udales-simulation-setup.md).
 
-
 ### 950
 
 ![blocks.502](./assets/images/uDALES_geom.png)
 
 #### Prerequisites simulation with external forcing
 
-The driver input files are included in the driver_files folder inside the 950 example folder. 
+The driver input files are included in the driver_files folder inside the 950 example folder.
 
 <!---
 ``` sh

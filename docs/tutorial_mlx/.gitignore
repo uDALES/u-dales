@@ -1,0 +1,11 @@
+# Ignore everything in this directory
+*
+
+# But track .m files (MATLAB scripts)
+!*.m
+!*.py
+# Also track uDALES.stl
+!uDALES.stl
+
+# Also track this .gitignore file itself
+!.gitignore

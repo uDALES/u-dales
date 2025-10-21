@@ -1,6 +1,7 @@
 # build directory and compiled objects
 build/
 temp/
+tmp/
 tests/outputs/
 .vscode/
 *.o
@@ -11,7 +12,7 @@ image.sif
 monitor*.txt
 outputs/
 examples/*/blocks.*.png
-
+bin/
 # Restart and driver files
 examples/*/init*
 examples/*/*driver*
