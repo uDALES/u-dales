@@ -1308,43 +1308,43 @@ contains
     end if !lxydump
 
     if (lkslicedump) then
-     allocate(varkslice(imax,jmax,nstatkslice))
-     call writestat_nc(ncidkslice,1,tncstatkslice,(/timee/),nreckslice,.true.)
-     varkslice(:,:,1) = um(ib:ie,jb:je,kslice)
-     varkslice(:,:,2) = vm(ib:ie,jb:je,kslice)
-     varkslice(:,:,3) = 0.5*(wm(ib:ie,jb:je,kslice)+wm(ib:ie,jb:je,kslice+1)) ! assumes equidistant
-     varkslice(:,:,4) = thlm(ib:ie,jb:je,kslice)
-     varkslice(:,:,5) = qtm(ib:ie,jb:je,kslice)
-     call writestat_nc(ncidkslice,nstatkslice,ncstatkslice,varkslice,nreckslice,imax,jmax)
+!     allocate(varkslice(imax,jmax,nstatkslice))
+!     call writestat_nc(ncidkslice,1,tncstatkslice,(/timee/),nreckslice,.true.)
+!     varkslice(:,:,1) = um(ib:ie,jb:je,kslice)
+!     varkslice(:,:,2) = vm(ib:ie,jb:je,kslice)
+!     varkslice(:,:,3) = 0.5*(wm(ib:ie,jb:je,kslice)+wm(ib:ie,jb:je,kslice+1)) ! assumes equidistant
+!     varkslice(:,:,4) = thlm(ib:ie,jb:je,kslice)
+!     varkslice(:,:,5) = qtm(ib:ie,jb:je,kslice)
+!     call writestat_nc(ncidkslice,nstatkslice,ncstatkslice,varkslice,nreckslice,imax,jmax)
 
     endif
 
     if (lislicedump) then
-      if (islicerank) then
-        allocate(varislice(jmax,khigh-klow+1,nstatislice))
-        call writestat_nc(ncidislice,1,tncstatislice,(/timee/),nrecislice,.true.)
-        varislice(:,:,1) = 0.5*(um(isliceloc,jb:je,kb:ke)+um(isliceloc+1,jb:je,kb:ke))
-        varislice(:,:,2) = vm(isliceloc,jb:je,kb:ke)
-        varislice(:,:,3) = wm(isliceloc,jb:je,kb:ke)
-        varislice(:,:,4) = thlm(isliceloc,jb:je,kb:ke)
-        varislice(:,:,5) = qtm(isliceloc,jb:je,kb:ke)
-        call writestat_nc(ncidislice,nstatislice,ncstatislice,varislice,nrecislice,jmax,khigh-klow+1)
-
-      endif
+!      if (islicerank) then
+!        allocate(varislice(jmax,khigh-klow+1,nstatislice))
+!        call writestat_nc(ncidislice,1,tncstatislice,(/timee/),nrecislice,.true.)
+!        varislice(:,:,1) = 0.5*(um(isliceloc,jb:je,kb:ke)+um(isliceloc+1,jb:je,kb:ke))
+!        varislice(:,:,2) = vm(isliceloc,jb:je,kb:ke)
+!        varislice(:,:,3) = wm(isliceloc,jb:je,kb:ke)
+!        varislice(:,:,4) = thlm(isliceloc,jb:je,kb:ke)
+!        varislice(:,:,5) = qtm(isliceloc,jb:je,kb:ke)
+!        call writestat_nc(ncidislice,nstatislice,ncstatislice,varislice,nrecislice,jmax,khigh-klow+1)
+!
+!      endif
     endif
 
     if (ljslicedump) then
-       if (jslicerank) then
-         allocate(varjslice(imax,khigh-klow+1,nstatjslice))
-         call writestat_nc(ncidjslice,1,tncstatjslice,(/timee/),nrecjslice,.true.)
-         varjslice(:,:,1) = um(ib:ie,jsliceloc,kb:ke)
-         varjslice(:,:,2) = 0.5*(vm(ib:ie,jsliceloc,kb:ke)+vm(ib:ie,jsliceloc+1,kb:ke))
-         varjslice(:,:,3) = wm(ib:ie,jsliceloc,kb:ke)
-         varjslice(:,:,4) = thlm(ib:ie,jsliceloc,kb:ke)
-         varjslice(:,:,5) = qtm(ib:ie,jsliceloc,kb:ke)
-         call writestat_nc(ncidjslice,nstatjslice,ncstatjslice,varjslice,nrecjslice,imax,khigh-klow+1)
-
-      endif
+!       if (jslicerank) then
+!         allocate(varjslice(imax,khigh-klow+1,nstatjslice))
+!         call writestat_nc(ncidjslice,1,tncstatjslice,(/timee/),nrecjslice,.true.)
+!         varjslice(:,:,1) = um(ib:ie,jsliceloc,kb:ke)
+!         varjslice(:,:,2) = 0.5*(vm(ib:ie,jsliceloc,kb:ke)+vm(ib:ie,jsliceloc+1,kb:ke))
+!         varjslice(:,:,3) = wm(ib:ie,jsliceloc,kb:ke)
+!         varjslice(:,:,4) = thlm(ib:ie,jsliceloc,kb:ke)
+!        varjslice(:,:,5) = qtm(ib:ie,jsliceloc,kb:ke)
+!         call writestat_nc(ncidjslice,nstatjslice,ncstatjslice,varjslice,nrecjslice,imax,khigh-klow+1)
+!
+!      endif
     endif
 
     if (ltkedump) then

@@ -77,7 +77,7 @@ module modstartup
                                     lrandomize, prandtlturb, fkar, lwritefac, dtfac, tfac, tnextfac, &
                                     ltrees,ntrees,Qstar,dQdt,lad,lsize,r_s,cd,dec,ud,ltreedump, &
                                     lpurif,npurif,Qpu,epu, &
-                                    lheatpump,lfan_hp,nhppoints,Q_dot_hp,QH_dot_hp
+                                    lheatpump,lfan_hp,nhppoints,Q_dot_hp,QH_dot_hp, runmode,nkslice, max_kslices
       use modsurfdata,       only : z0, z0h,  wtsurf, wttop, wqtop, wqsurf, wsvsurf, wsvtop, wsvsurfdum, wsvtopdum, ps, thvs, thls, thl_top, qt_top, qts
       use modfields,         only : initfields, dpdx, ncname
       use modpois,           only : initpois
@@ -114,7 +114,7 @@ module modstartup
          lper2inout, lwalldist, &
          lreadmean, &
          nprocx, nprocy, &
-         lrandomize
+         lrandomize, runmode
       namelist/DOMAIN/ &
          itot, jtot, ktot, xlen, ylen, &
          xlat, xlon, xday, xtime, ksp
@@ -319,6 +319,23 @@ module modstartup
          endif
          !write (6, OUTPUT)
          close (ifnamopt)
+
+         ! Process kslice array - count valid entries
+         nkslice = 0
+         do ierr = 1, max_kslices
+            if (kslice(ierr) > 0) then
+               nkslice = nkslice + 1
+            else if (kslice(ierr) == -1) then
+               exit  ! Stop at first -1
+            else
+               write(0, *) 'WARNING: Invalid kslice value ignored: kslice(', ierr, ') = ', kslice(ierr)
+            end if
+         end do
+
+         if (nkslice > 0) then
+            write(*, *) 'kslice output enabled for', nkslice, 'levels:'
+            write(*, '(10I6)') kslice(1:nkslice)
+         end if
       end if
 
       call MPI_BCAST(itot,1,MPI_INTEGER,0,comm3d,mpierr)
@@ -393,6 +410,7 @@ module modstartup
       call MPI_BCAST(linletRA, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for turning on/off Running Average in inletgenerator
       call MPI_BCAST(lfixinlet, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for keeping average inlet velocit and temp fixed at inlet (iinletgen=1,2)
       call MPI_BCAST(lfixutauin, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for keeping utau fixed at inlet (iinletgen=1,2)
+      call MPI_BCAST(runmode, 1, MPI_INTEGER, 0, comm3d, mpierr)
       !call MPI_BCAST(xS, 1, MY_REAL, 0, comm3d, mpierr)
       !call MPI_BCAST(yS, 1, MY_REAL, 0, comm3d, mpierr)
       !call MPI_BCAST(zS, 1, MY_REAL, 0, comm3d, mpierr)
@@ -459,7 +477,10 @@ module modstartup
       call MPI_BCAST(lkslicedump, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lislicedump, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(ljslicedump, 1, MPI_LOGICAL, 0, comm3d, mpierr)
-      call MPI_BCAST(kslice, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      ! call MPI_BCAST(kslice, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(nkslice, 1, MPI_INTEGER, 0, comm3d, mpierr)  ! Broadcast number of kslices
+      call MPI_BCAST(kslice, max_kslices, MPI_INTEGER, 0, comm3d, mpierr)  ! Broadcast kslice array
+      !
       call MPI_BCAST(islice, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(jslice, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(ltdump, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315 added switch for writing statistics files
@@ -652,13 +673,18 @@ module modstartup
    subroutine init2decomp
      use decomp_2d
      use modglobal, only : itot, jtot, ktot, BCxm, BCym, BCxm_periodic, Bcym_periodic
-     use modmpi,    only : comm3d, myid, myidx, myidy, cmyidx, cmyidy, nprocx, nprocy, &
-                           nbreast, nbrwest, nbrnorth, nbrsouth, mpierr
+     use modmpi,    only : comm3d, comm1dx, comm1dy, &
+                           myid, myidx, myidy, myid1dx, myid1dy, &
+                           cmyidx, cmyidy, nprocx, nprocy, &
+                           nbreast, nbrwest, nbrnorth, nbrsouth, &
+                           nbrbotx, nbrtopx, nbrboty, nbrtopy, &
+                           nproc_total, mpierr
      implicit none
 
      logical, dimension(3) :: periodic_bc
      integer, dimension(2) :: myids
 
+     ! Set periodic boundary conditions based on namelists
      if (BCxm .eq. BCxm_periodic .and. nprocx > 1) then
        periodic_bc(1) = .true.
      else
@@ -673,20 +699,44 @@ module modstartup
 
      periodic_bc(3) = .false.
 
+     ! Initialize 2decomp library
      call decomp_2d_init(itot,jtot,ktot,nprocx,nprocy,periodic_bc)
 
+     ! Get the 2D Cartesian communicator
      comm3d = DECOMP_2D_COMM_CART_Z
+     
+     ! Get total number of processes
+     call MPI_COMM_SIZE(comm3d, nproc_total, mpierr)
 
-     call MPI_CART_COORDS(comm3d,myid,2,myids,mpierr)
-
+     ! Get my coordinates in 2D grid
+     call MPI_CART_COORDS(comm3d, myid, 2, myids, mpierr)
      myidx = myids(1)
      myidy = myids(2)
 
+     ! Generate string IDs for file naming
      write(cmyidx,'(i3.3)') myidx
      write(cmyidy,'(i3.3)') myidy
 
-     call MPI_CART_SHIFT(comm3d, 0,  1, nbrwest,  nbreast ,   mpierr)
-     call MPI_CART_SHIFT(comm3d, 1,  1, nbrsouth, nbrnorth,   mpierr)
+     ! Get neighbors in 2D grid (x and y directions)
+     call MPI_CART_SHIFT(comm3d, 0, 1, nbrwest,  nbreast,  mpierr)
+     call MPI_CART_SHIFT(comm3d, 1, 1, nbrsouth, nbrnorth, mpierr)
+
+     ! Create 1D sub-communicators for specialized operations
+     ! comm1dx: communication in x-direction only (y is collapsed)
+     ! comm1dy: communication in y-direction only (x is collapsed)
+     call MPI_CART_SUB(comm3d, (/.true., .false./), comm1dx, mpierr)
+     call MPI_CART_SUB(comm3d, (/.false., .true./), comm1dy, mpierr)
+
+     ! Get my rank in each 1D communicator
+     call MPI_COMM_RANK(comm1dx, myid1dx, mpierr)
+     call MPI_COMM_RANK(comm1dy, myid1dy, mpierr)
+
+     ! Get neighbors in 1D directions
+     ! These should be consistent with 2D neighbors:
+     ! nbrbotx = nbrwest, nbrtopx = nbreast
+     ! nbrboty = nbrsouth, nbrtopy = nbrnorth
+     call MPI_CART_SHIFT(comm1dx, 0, 1, nbrbotx, nbrtopx, mpierr)
+     call MPI_CART_SHIFT(comm1dy, 0, 1, nbrboty, nbrtopy, mpierr)
 
    end subroutine init2decomp
 

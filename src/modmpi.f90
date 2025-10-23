@@ -55,6 +55,19 @@ save
   character(3) :: cmyidx
   character(3) :: cmyidy
 
+  integer            :: comm1dy,      &  ! 1D Cartesian communicator for y-dir
+                        comm1dx,      &  ! 1D Cartesian communicator for z-dir
+                        myid1dy,      &  ! my process number for comm1dy
+                        myid1dx,      &  ! my process number for comm1dz
+
+                        nbrboty,      &  ! my neighbor below in comm1d_y
+                        nbrtopy,      &  ! my neighbor above in comm1d_y
+                        nbrbotx,      &  ! my neighbor below in comm1d_z
+                        nbrtopx          ! my neighbor above in comm1d_z
+
+  integer, parameter :: nprocdims = 2
+  integer            :: nproc_total       ! total number of processors
+
   interface spatial_avg
     module procedure spatial_avg_xy
     module procedure spatial_avg_y
