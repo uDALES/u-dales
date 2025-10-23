@@ -29,6 +29,7 @@ program DALESURBAN      !Version 48
 #if defined(_GPU)
   use cudafor
   use modcuda,           only : initCUDA, updateDevice, updateDevicePriorPoiss, updateHost, updateHostAfterPoiss, checkCUDA, exitCUDA
+  use nvtx
 #endif
   use modglobal,         only : initglobal,rk3step,timeleft
   use modstartup,        only : readnamelists,init2decomp,checkinitvalues,readinitfiles,exitmodules
@@ -150,6 +151,10 @@ program DALESURBAN      !Version 48
 
     stime = MPI_Wtime()
 
+#if defined(_GPU)
+    call nvtxStartRange("Advection++")
+#endif
+
     call advection ! includes predicted pressure gradient term
 
     call shiftedPBCs
@@ -171,6 +176,10 @@ program DALESURBAN      !Version 48
     call forces         !remaining terms of ns equation
 
     call lstend         !large scale forcings
+
+#if defined(_GPU)
+    call nvtxEndRange
+#endif
 
 #if defined(_GPU)
     call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize in program' )
@@ -209,6 +218,7 @@ program DALESURBAN      !Version 48
 
 #if defined(_GPU)
     call updateDevicePriorPoiss
+    call nvtxStartRange("Poisson++")
 #endif
 
 !-----------------------------------------------------------------------
@@ -226,6 +236,7 @@ program DALESURBAN      !Version 48
     ! call purifiers      !placing need to be checked; Not GPU compatible yet
 
 #if defined(_GPU)
+    call nvtxEndRange
     call updateHostAfterPoiss
 #endif
 

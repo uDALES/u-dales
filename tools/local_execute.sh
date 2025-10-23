@@ -72,8 +72,8 @@ cp -r ./* $outdir
 GPU_ENABLED=false
 if ldd $DA_BUILD 2>/dev/null | grep -q "libcuda\|libcudart\|libcufft"; then
     GPU_ENABLED=true
-    echo "GPU build detected - using bind.sh for execution"
-    cp $DA_TOOLSDIR/bind.sh $outdir
+    # echo "GPU build detected - using bind.sh for execution"
+    # cp $DA_TOOLSDIR/bind.sh $outdir
 else
     echo "CPU build detected - running without bind.sh"
 fi
@@ -83,7 +83,8 @@ pushd $outdir
 
 ## execute program with mpi (conditionally use bind.sh for GPU builds)
 if [ "$GPU_ENABLED" = true ]; then
-    mpiexec -n $NCPU ./bind.sh $DA_BUILD namoptions.$exp 2>&1 | tee -a output.$exp.log
+    # mpiexec -n $NCPU ./bind.sh $DA_BUILD namoptions.$exp 2>&1 | tee -a output.$exp.log
+    mpiexec -n $NCPU nsys profile --trace=cuda,nvtx,mpi,openacc --cuda-memory-usage=true --output=Profile $DA_BUILD namoptions.$exp 2>&1 | tee -a output.$exp.log
 else
     mpiexec -n $NCPU $DA_BUILD namoptions.$exp 2>&1 | tee -a output.$exp.log
 fi
