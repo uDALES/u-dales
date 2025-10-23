@@ -442,64 +442,64 @@ contains
 
     if (lislicedump) then
 
-      islicename(12:14) = cmyidx
-      islicename(16:18) = cmyidy
-      islicename(20:22) = cexpnr
-
-      call ncinfo(tncstatislice(1,:),'time'     ,'Time'   ,'s'   ,'time')
-      call ncinfo(ncstatislice( 1,:),'u_islice'     ,'Streamwise velocity at islice', '-', '0ttt')
-      call ncinfo(ncstatislice( 2,:),'v_islice'     ,'Spanwise velocity at islice', '-', '0mtt')
-      call ncinfo(ncstatislice( 3,:),'w_islice'     ,'Vertical velocity at islice', '-', '0tmt')
-      call ncinfo(ncstatislice( 4,:),'thl_islice'   ,'Potential temperature at islice', '-', '0ttt')
-      call ncinfo(ncstatislice( 5,:),'qt_islice'    ,'Specific humidity at islice', '-', '0ttt')
-
-      if ((islice >= zstart(1)) .and. (islice <= zend(1))) then
-        islicerank = .true.
-        isliceloc = islice - zstart(1) + 1
-      else
-        islicerank = .false.
-      end if
-
-      if (islicerank) then
-        call open_nc(islicename, ncidislice, nrecislice, n2=jmax, n3=khigh-klow+1)
-        if (nrecislice==0) then
-          call define_nc( ncidislice, 1, tncstatislice)
-          call writestat_dims_nc(ncidislice)
-        end if
-        call define_nc( ncidislice, nstatislice, ncstatislice)
-      end if
+    !  islicename(12:14) = cmyidx
+    !  islicename(16:18) = cmyidy
+    !  islicename(20:22) = cexpnr
+!
+ !     call ncinfo(tncstatislice(1,:),'time'     ,'Time'   ,'s'   ,'time')
+ !     call ncinfo(ncstatislice( 1,:),'u_islice'     ,'Streamwise velocity at islice', '-', '0ttt')
+ !     call ncinfo(ncstatislice( 2,:),'v_islice'     ,'Spanwise velocity at islice', '-', '0mtt')
+ !     call ncinfo(ncstatislice( 3,:),'w_islice'     ,'Vertical velocity at islice', '-', '0tmt')
+ !     call ncinfo(ncstatislice( 4,:),'thl_islice'   ,'Potential temperature at islice', '-', '0ttt')
+ !     call ncinfo(ncstatislice( 5,:),'qt_islice'    ,'Specific humidity at islice', '-', '0ttt')
+!
+ !     if ((islice >= zstart(1)) .and. (islice <= zend(1))) then
+ !       islicerank = .true.
+ !       isliceloc = islice - zstart(1) + 1
+ !     else
+ !       islicerank = .false.
+ !     end if
+!
+ !     if (islicerank) then
+ !       call open_nc(islicename, ncidislice, nrecislice, n2=jmax, n3=khigh-klow+1)
+ !       if (nrecislice==0) then
+ !         call define_nc( ncidislice, 1, tncstatislice)
+ !         call writestat_dims_nc(ncidislice)
+ !       end if
+ !       call define_nc( ncidislice, nstatislice, ncstatislice)
+ !     end if
 
     end if
 
     if (ljslicedump) then
 
-      jslicename(12:14) = cmyidx
-      jslicename(16:18) = cmyidy
-      jslicename(20:22) = cexpnr
-
-      call ncinfo(tncstatjslice(1,:),'time'     ,'Time'   ,'s'   ,'time')
-      call ncinfo(ncstatjslice( 1,:),'u_jslice'     ,'Streamwise velocity at jslice', '-', 'm0tt')
-      call ncinfo(ncstatjslice( 2,:),'v_jslice'     ,'Spanwise velocity at jslice', '-', 't0tt')
-      call ncinfo(ncstatjslice( 3,:),'w_jslice'     ,'Vertical velocity at jslice', '-', 't0mt')
-      call ncinfo(ncstatjslice( 4,:),'thl_jslice'   ,'Potential temperature at jslice', '-', 't0tt')
-      call ncinfo(ncstatjslice( 5,:),'qt_jslice'    ,'Specific humidity at jslice', '-', 't0tt')
-
-      if ((jslice >= zstart(2)) .and. (jslice <= zend(2))) then
-        jslicerank = .true.
-        jsliceloc = jslice - zstart(2) + 1
-      else
-        jslicerank = .false.
-      end if
-
-      if (jslicerank) then
-         call open_nc(jslicename, ncidjslice, nrecjslice, n1=imax, n3=khigh-klow+1)
-         if (nrecjslice==0) then
-            call define_nc( ncidjslice, 1, tncstatjslice)
-            call writestat_dims_nc(ncidjslice)
-         end if
-         call define_nc( ncidjslice, nstatjslice, ncstatjslice)
-      end if
-
+  !    jslicename(12:14) = cmyidx
+  !    jslicename(16:18) = cmyidy
+  !    jslicename(20:22) = cexpnr
+!
+!      call ncinfo(tncstatjslice(1,:),'time'     ,'Time'   ,'s'   ,'time')
+!      call ncinfo(ncstatjslice( 1,:),'u_jslice'     ,'Streamwise velocity at jslice', '-', 'm0tt')
+!      call ncinfo(ncstatjslice( 2,:),'v_jslice'     ,'Spanwise velocity at jslice', '-', 't0tt')
+!      call ncinfo(ncstatjslice( 3,:),'w_jslice'     ,'Vertical velocity at jslice', '-', 't0mt')
+!      call ncinfo(ncstatjslice( 4,:),'thl_jslice'   ,'Potential temperature at jslice', '-', 't0tt')
+!      call ncinfo(ncstatjslice( 5,:),'qt_jslice'    ,'Specific humidity at jslice', '-', 't0tt')
+!
+!      if ((jslice >= zstart(2)) .and. (jslice <= zend(2))) then
+!        jslicerank = .true.
+!        jsliceloc = jslice - zstart(2) + 1
+!      else
+!        jslicerank = .false.
+!      end if
+!
+!      if (jslicerank) then
+!         call open_nc(jslicename, ncidjslice, nrecjslice, n1=imax, n3=khigh-klow+1)
+!         if (nrecjslice==0) then
+!            call define_nc( ncidjslice, 1, tncstatjslice)
+!            call writestat_dims_nc(ncidjslice)
+!         end if
+!         call define_nc( ncidjslice, nstatjslice, ncstatjslice)
+!      end if
+!
     end if
 
     !> Set times to zero so works for warm starts... could have issues with warmstarts here...
