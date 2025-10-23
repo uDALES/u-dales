@@ -1,24 +1,25 @@
 module instant_slice
   use modglobal,  only : cexpnr, rk3step, ltempeq, lmoist, nsv, tsample, dt, timee, runtime, &
-                         slicevars, lislicedump, islice, ljslicedump, jslice, lkslicedump, kslice, nkslice, &
+                         slicevars, lislicedump, islice, ljslicedump, jslice, lkslicedump, kslice, &
+                         nkslice, nislice, njslice, &
                          ib, ie, jb, je, kb, ke, dzfi, dzh, &
                          timee, tstatstart
   use modfields,  only : um, vm, wm, thlm, qtm, svm
   use modmpi,     only : myid, cmyidx, cmyidy
-  use decomp_2d,  only : zstart, zend
+  use decomp_2d,  only : zstart, zend, xstart, xend, ystart, yend
   use modstat_nc, only : ncinfo, open_nc, define_nc, writestat_dims_nc, writestat_nc
   implicit none
   private
   public :: instant_init, instant_main
   save
 
-  integer :: xdim, ydim, zdim, kdim  ! Added kdim for number of kslices
+  integer :: xdim, ydim, zdim, kdim, idim, jdim  ! Added kdim, idim, jdim for multiple slices
   real    :: tsampleslice
 
-  integer :: isliceloc    ! local islice on core
-  logical :: islicerank   ! cpu that islice is on
-  integer :: jsliceloc    ! local jslice on core
-  logical :: jslicerank   ! cpu that jslice is on
+  logical, allocatable :: islicerank(:)   ! array of flags for each islice on this core
+  integer, allocatable :: isliceloc(:)    ! local islice positions on this core
+  logical, allocatable :: jslicerank(:)   ! array of flags for each jslice on this core
+  integer, allocatable :: jsliceloc(:)    ! local jslice positions on this core
   
   integer                    :: nslicevars
   character(80)              :: islicename
@@ -62,27 +63,33 @@ module instant_slice
       ydim = je-jb+1
       zdim = ke-kb+1
       kdim = nkslice  ! Set kdim to number of kslices
+      idim = nislice  ! Set idim to number of islices
+      jdim = njslice  ! Set jdim to number of jslices
       tsampleslice = 0.
       call ncinfo(slicetimeVar( 1,:), 'time', 'Time', 's', 'time')
 
       if (lislicedump) then
         allocate(isliceVars(nslicevars,4))
+        allocate(islicerank(nislice))
+        allocate(isliceloc(nislice))
         call instant_ncdescription_islice
-        call instant_create_ncislice    !> Generate sliced NetCDF: islice.xxx.xxx.nc
+        call instant_create_ncislice    !> Generate sliced NetCDF: islice.xxx.xxx.xxx.nc
         deallocate(isliceVars)
       end if
       
       if (ljslicedump) then
         allocate(jsliceVars(nslicevars,4))
+        allocate(jslicerank(njslice))
+        allocate(jsliceloc(njslice))
         call instant_ncdescription_jslice
-        call instant_create_ncjslice    !> Generate sliced NetCDF: jslice.xxx.xxx.nc
+        call instant_create_ncjslice    !> Generate sliced NetCDF: jslice.xxx.xxx.xxx.nc
         deallocate(jsliceVars)
       end if
 
       if (lkslicedump) then
         allocate(ksliceVars(nslicevars,4))
         call instant_ncdescription_kslice
-        call instant_create_nckslice    !> Generate sliced NetCDF: kslice.xxx.xxx.nc
+        call instant_create_nckslice    !> Generate sliced NetCDF: kslice.xxx.xxx.xxx.nc
         deallocate(ksliceVars)
       end if
     end subroutine instant_init
@@ -95,8 +102,8 @@ module instant_slice
       if(.not.(lislicedump .or. ljslicedump .or. lkslicedump)) return
 
       if (tsampleslice > tsample) then
-        if (lislicedump .and. islicerank) call instant_write_islice
-        if (ljslicedump .and. jslicerank) call instant_write_jslice
+        if (lislicedump) call instant_write_islice
+        if (ljslicedump) call instant_write_jslice
         if (lkslicedump) call instant_write_kslice
         tsampleslice = dt
       else
@@ -111,23 +118,23 @@ module instant_slice
       do n=1,nslicevars
         select case(slicevars(3*n-2:3*n-1))
           case('u0')
-            call ncinfo( isliceVars(n,:), 'u' , 'Streamwise velocity' , 'm/s' , '0ttt' )
+            call ncinfo( isliceVars(n,:), 'u' , 'Streamwise velocity' , 'm/s' , 'tmtt' )
           case('v0')
-            call ncinfo( isliceVars(n,:), 'v' , 'Spanwise velocity'   , 'm/s' , '0mtt' )
+            call ncinfo( isliceVars(n,:), 'v' , 'Spanwise velocity'   , 'm/s' , 'tttt' )
           case('w0')
-            call ncinfo( isliceVars(n,:), 'w' , 'Vertical velocity'   , 'm/s' , '0tmt' )
+            call ncinfo( isliceVars(n,:), 'w' , 'Vertical velocity'   , 'm/s' , 'ttmt' )
           case('th')
-            if (ltempeq) call ncinfo( isliceVars(n,:), 'thl' , 'Potential temperature' , 'K'     , '0ttt' )
+            if (ltempeq) call ncinfo( isliceVars(n,:), 'thl' , 'Potential temperature' , 'K'     , 'tttt' )
           case('qt')
-            if (lmoist)  call ncinfo( isliceVars(n,:), 'qt'  , 'Specific humidity'     , 'kg/kg' , '0ttt' )
+            if (lmoist)  call ncinfo( isliceVars(n,:), 'qt'  , 'Specific humidity'     , 'kg/kg' , 'tttt' )
           case('s1')
-            if (nsv>0)   call ncinfo( isliceVars(n,:), 's1'  , 'Concentration field 1' , 'g/m^3' , '0ttt' )
+            if (nsv>0)   call ncinfo( isliceVars(n,:), 's1'  , 'Concentration field 1' , 'g/m^3' , 'tttt' )
           case('s2')
-            if (nsv>1)   call ncinfo( isliceVars(n,:), 's2'  , 'Concentration field 2' , 'g/m^3' , '0ttt' )
+            if (nsv>1)   call ncinfo( isliceVars(n,:), 's2'  , 'Concentration field 2' , 'g/m^3' , 'tttt' )
           case('s3')
-            if (nsv>2)   call ncinfo( isliceVars(n,:), 's3'  , 'Concentration field 3' , 'g/m^3' , '0ttt' )
+            if (nsv>2)   call ncinfo( isliceVars(n,:), 's3'  , 'Concentration field 3' , 'g/m^3' , 'tttt' )
           case('s4')
-            if (nsv>3)   call ncinfo( isliceVars(n,:), 's4'  , 'Concentration field 4' , 'g/m^3' , '0ttt' )
+            if (nsv>3)   call ncinfo( isliceVars(n,:), 's4'  , 'Concentration field 4' , 'g/m^3' , 'tttt' )
           case default
             print *, "Invalid slice variables name. Check namoptions variable 'slicevars'. &
                       &There should not be any space in the string."
@@ -142,23 +149,23 @@ module instant_slice
       do n=1,nslicevars
         select case(slicevars(3*n-2:3*n-1))
           case('u0')
-            call ncinfo( jsliceVars(n,:), 'u' , 'Streamwise velocity' , 'm/s' , 'm0tt' )
+            call ncinfo( jsliceVars(n,:), 'u' , 'Streamwise velocity' , 'm/s' , 'mttt' )
           case('v0')
-            call ncinfo( jsliceVars(n,:), 'v' , 'Spanwise velocity '  , 'm/s' , 't0tt' )
+            call ncinfo( jsliceVars(n,:), 'v' , 'Spanwise velocity '  , 'm/s' , 'tmtt' )
           case('w0')
-            call ncinfo( jsliceVars(n,:), 'w' , 'Vertical velocity'   , 'm/s' , 't0mt' )
+            call ncinfo( jsliceVars(n,:), 'w' , 'Vertical velocity'   , 'm/s' , 'ttmt' )
           case('th')
-            if (ltempeq) call ncinfo( jsliceVars(n,:), 'thl' , 'Potential temperature' , 'K'     , 't0tt' )
+            if (ltempeq) call ncinfo( jsliceVars(n,:), 'thl' , 'Potential temperature' , 'K'     , 'tttt' )
           case('qt')
-            if (lmoist)  call ncinfo( jsliceVars(n,:), 'qt'  , 'Specific humidity'     , 'kg/kg' , 't0tt' )
+            if (lmoist)  call ncinfo( jsliceVars(n,:), 'qt'  , 'Specific humidity'     , 'kg/kg' , 'tttt' )
           case('s1')
-            if (nsv>0)   call ncinfo( jsliceVars(n,:), 's1'  , 'Concentration field 1' , 'g/m^3' , 't0tt' )
+            if (nsv>0)   call ncinfo( jsliceVars(n,:), 's1'  , 'Concentration field 1' , 'g/m^3' , 'tttt' )
           case('s2')
-            if (nsv>1)   call ncinfo( jsliceVars(n,:), 's2'  , 'Concentration field 2' , 'g/m^3' , 't0tt' )
+            if (nsv>1)   call ncinfo( jsliceVars(n,:), 's2'  , 'Concentration field 2' , 'g/m^3' , 'tttt' )
           case('s3')
-            if (nsv>2)   call ncinfo( jsliceVars(n,:), 's3'  , 'Concentration field 3' , 'g/m^3' , 't0tt' )
+            if (nsv>2)   call ncinfo( jsliceVars(n,:), 's3'  , 'Concentration field 3' , 'g/m^3' , 'tttt' )
           case('s4')
-            if (nsv>3)   call ncinfo( jsliceVars(n,:), 's4'  , 'Concentration field 4' , 'g/m^3' , 't0tt' )
+            if (nsv>3)   call ncinfo( jsliceVars(n,:), 's4'  , 'Concentration field 4' , 'g/m^3' , 'tttt' )
           case default
             print *, "Invalid slice variables name. Check namoptions variable 'slicevars'. &
                       &There should not be any space in the string."
@@ -201,52 +208,70 @@ module instant_slice
 
     subroutine instant_create_ncislice
       implicit none
-      islicename = 'islice.xxx.xxx.xxx.nc'
-      islicename(8:10)  = cmyidx
-      islicename(12:14) = cmyidy
-      islicename(16:18) = cexpnr
-
-      if ((islice >= zstart(1)) .and. (islice <= zend(1))) then
-        islicerank = .true.
-        isliceloc = islice - zstart(1) + 1
-      else
-        islicerank = .false.
+      integer :: i
+      
+      if (nislice == 0) then
+        if (myid == 0) write(*,*) "WARNING: nislice=0, no i-slices will be output"
+        return
       end if
-
-      nrecislice = 0
-      if (islicerank) then
-        call open_nc(islicename, ncidislice, nrecislice, n2=ydim, n3=zdim)
-        if (nrecislice==0) then
-          call define_nc(ncidislice, 1, slicetimeVar)
-          call writestat_dims_nc(ncidislice)
+      
+      ! Check which islices are on this processor and store their local positions
+      do i = 1, nislice
+        if ((islice(i) >= xstart(1)) .and. (islice(i) <= xend(1))) then
+          islicerank(i) = .true.
+          isliceloc(i) = islice(i) - xstart(1) + 1
+        else
+          islicerank(i) = .false.
+          isliceloc(i) = -1
         end if
-        call define_nc(ncidislice, nslicevars, isliceVars)
+      end do
+      
+      ! All processors create one file: islice.xxx.xxx.xxx.nc
+      ! Use idim as the first dimension (number of islices)
+      islicename = 'islice.' // cmyidx // '.' // cmyidy // '.' // cexpnr // '.nc'
+      call open_nc(islicename, ncidislice, nrecislice, n1=idim, n2=ydim, n3=zdim)
+      if (nrecislice==0) then
+        call define_nc(ncidislice, 1, slicetimeVar)
+        call writestat_dims_nc(ncidislice)
       end if
+      call define_nc(ncidislice, nslicevars, isliceVars)
+      
+      ! Write x-coordinates for the islice positions
+      call write_islice_xcoord
     end subroutine instant_create_ncislice
 
     subroutine instant_create_ncjslice
       implicit none
-      jslicename = 'jslice.xxx.xxx.xxx.nc'
-      jslicename(8:10)  = cmyidx
-      jslicename(12:14) = cmyidy
-      jslicename(16:18) = cexpnr
-
-      if ((jslice >= zstart(2)) .and. (jslice <= zend(2))) then
-        jslicerank = .true.
-        jsliceloc = jslice - zstart(2) + 1
-      else
-        jslicerank = .false.
+      integer :: j
+      
+      if (njslice == 0) then
+        if (myid == 0) write(*,*) "WARNING: njslice=0, no j-slices will be output"
+        return
       end if
-
-      nrecjslice = 0
-      if (jslicerank) then
-         call open_nc(jslicename, ncidjslice, nrecjslice, n1=xdim, n3=zdim)
-         if (nrecjslice==0) then
-            call define_nc(ncidjslice, 1, slicetimeVar)
-            call writestat_dims_nc(ncidjslice)
-         end if
-         call define_nc(ncidjslice, nslicevars, jsliceVars)
+      
+      ! Check which jslices are on this processor and store their local positions
+      do j = 1, njslice
+        if ((jslice(j) >= ystart(2)) .and. (jslice(j) <= yend(2))) then
+          jslicerank(j) = .true.
+          jsliceloc(j) = jslice(j) - ystart(2) + 1
+        else
+          jslicerank(j) = .false.
+          jsliceloc(j) = -1
+        end if
+      end do
+      
+      ! All processors create one file: jslice.xxx.xxx.xxx.nc
+      ! Use jdim as the second dimension (number of jslices)
+      jslicename = 'jslice.' // cmyidx // '.' // cmyidy // '.' // cexpnr // '.nc'
+      call open_nc(jslicename, ncidjslice, nrecjslice, n1=xdim, n2=jdim, n3=zdim)
+      if (nrecjslice==0) then
+        call define_nc(ncidjslice, 1, slicetimeVar)
+        call writestat_dims_nc(ncidjslice)
       end if
+      call define_nc(ncidjslice, nslicevars, jsliceVars)
+      
+      ! Write y-coordinates for the jslice positions
+      call write_jslice_ycoord
     end subroutine instant_create_ncjslice
 
     subroutine instant_create_nckslice
@@ -278,31 +303,315 @@ module instant_slice
 
     subroutine instant_write_islice
       implicit none
+      real, allocatable :: tmp_slice(:,:,:)
+      integer :: i, ii
+      
+      if (nislice == 0) return
+      
+      ! Allocate temporary array to hold all islice levels: (nislice, y, z)
+      allocate(tmp_slice(nislice, jb:je, kb:ke))
+      
+      ! Write time variable
       call writestat_nc(ncidislice, 'time', timee, nrecislice, .true.)
-      if (present('u0')) call writestat_nc(ncidislice, 'u' , 0.5*(um(isliceloc,jb:je,kb:ke)+um(isliceloc+1,jb:je,kb:ke)) , nrecislice, ydim, zdim)
-      if (present('v0')) call writestat_nc(ncidislice, 'v' , vm(isliceloc,jb:je,kb:ke)                                   , nrecislice, ydim, zdim)
-      if (present('w0')) call writestat_nc(ncidislice, 'w' , wm(isliceloc,jb:je,kb:ke)                                   , nrecislice, ydim, zdim)
-      if (present('th') .and. ltempeq) call writestat_nc(ncidislice, 'thl' , thlm(isliceloc,jb:je,kb:ke)  , nrecislice, ydim, zdim)
-      if (present('qt') .and. lmoist)  call writestat_nc(ncidislice, 'qt'  , qtm(isliceloc,jb:je,kb:ke)   , nrecislice, ydim, zdim)
-      if (present('s1') .and. nsv>0)   call writestat_nc(ncidislice, 's1'  , svm(isliceloc,jb:je,kb:ke,1) , nrecislice, ydim, zdim)
-      if (present('s2') .and. nsv>1)   call writestat_nc(ncidislice, 's2'  , svm(isliceloc,jb:je,kb:ke,2) , nrecislice, ydim, zdim)
-      if (present('s3') .and. nsv>2)   call writestat_nc(ncidislice, 's3'  , svm(isliceloc,jb:je,kb:ke,3) , nrecislice, ydim, zdim)
-      if (present('s4') .and. nsv>3)   call writestat_nc(ncidislice, 's4'  , svm(isliceloc,jb:je,kb:ke,4) , nrecislice, ydim, zdim)
+      
+      ! u velocity (interpolated to cell centers in x-direction)
+      if (present('u0')) then
+        tmp_slice = 0.0  ! Initialize with zeros for processors without the slice
+        do i = 1, nislice
+          if (islicerank(i)) then
+            ii = isliceloc(i)
+            tmp_slice(i,:,:) = 0.5*(um(ii,jb:je,kb:ke) + um(ii+1,jb:je,kb:ke))
+          end if
+        end do
+        call writestat_nc(ncidislice, 'u', tmp_slice, nrecislice, idim, ydim, zdim)
+      end if
+      
+      ! v velocity
+      if (present('v0')) then
+        tmp_slice = 0.0
+        do i = 1, nislice
+          if (islicerank(i)) then
+            ii = isliceloc(i)
+            tmp_slice(i,:,:) = vm(ii,jb:je,kb:ke)
+          end if
+        end do
+        call writestat_nc(ncidislice, 'v', tmp_slice, nrecislice, idim, ydim, zdim)
+      end if
+      
+      ! w velocity
+      if (present('w0')) then
+        tmp_slice = 0.0
+        do i = 1, nislice
+          if (islicerank(i)) then
+            ii = isliceloc(i)
+            tmp_slice(i,:,:) = wm(ii,jb:je,kb:ke)
+          end if
+        end do
+        call writestat_nc(ncidislice, 'w', tmp_slice, nrecislice, idim, ydim, zdim)
+      end if
+      
+      ! temperature
+      if (present('th') .and. ltempeq) then
+        tmp_slice = 0.0
+        do i = 1, nislice
+          if (islicerank(i)) then
+            ii = isliceloc(i)
+            tmp_slice(i,:,:) = thlm(ii,jb:je,kb:ke)
+          end if
+        end do
+        call writestat_nc(ncidislice, 'thl', tmp_slice, nrecislice, idim, ydim, zdim)
+      end if
+      
+      ! moisture
+      if (present('qt') .and. lmoist) then
+        tmp_slice = 0.0
+        do i = 1, nislice
+          if (islicerank(i)) then
+            ii = isliceloc(i)
+            tmp_slice(i,:,:) = qtm(ii,jb:je,kb:ke)
+          end if
+        end do
+        call writestat_nc(ncidislice, 'qt', tmp_slice, nrecislice, idim, ydim, zdim)
+      end if
+      
+      ! scalars s1-s4
+      if (present('s1') .and. nsv>0) then
+        tmp_slice = 0.0
+        do i = 1, nislice
+          if (islicerank(i)) then
+            ii = isliceloc(i)
+            tmp_slice(i,:,:) = svm(ii,jb:je,kb:ke,1)
+          end if
+        end do
+        call writestat_nc(ncidislice, 's1', tmp_slice, nrecislice, idim, ydim, zdim)
+      end if
+      
+      if (present('s2') .and. nsv>1) then
+        tmp_slice = 0.0
+        do i = 1, nislice
+          if (islicerank(i)) then
+            ii = isliceloc(i)
+            tmp_slice(i,:,:) = svm(ii,jb:je,kb:ke,2)
+          end if
+        end do
+        call writestat_nc(ncidislice, 's2', tmp_slice, nrecislice, idim, ydim, zdim)
+      end if
+      
+      if (present('s3') .and. nsv>2) then
+        tmp_slice = 0.0
+        do i = 1, nislice
+          if (islicerank(i)) then
+            ii = isliceloc(i)
+            tmp_slice(i,:,:) = svm(ii,jb:je,kb:ke,3)
+          end if
+        end do
+        call writestat_nc(ncidislice, 's3', tmp_slice, nrecislice, idim, ydim, zdim)
+      end if
+      
+      if (present('s4') .and. nsv>3) then
+        tmp_slice = 0.0
+        do i = 1, nislice
+          if (islicerank(i)) then
+            ii = isliceloc(i)
+            tmp_slice(i,:,:) = svm(ii,jb:je,kb:ke,4)
+          end if
+        end do
+        call writestat_nc(ncidislice, 's4', tmp_slice, nrecislice, idim, ydim, zdim)
+      end if
+      
+      deallocate(tmp_slice)
     end subroutine instant_write_islice
 
     subroutine instant_write_jslice
       implicit none
+      real, allocatable :: tmp_slice(:,:,:)
+      integer :: j, jj
+      
+      if (njslice == 0) return
+      
+      ! Allocate temporary array to hold all jslice levels: (x, njslice, z)
+      allocate(tmp_slice(ib:ie, njslice, kb:ke))
+      
+      ! Write time variable
       call writestat_nc(ncidjslice, 'time', timee, nrecjslice, .true.)
-      if (present('u0')) call writestat_nc(ncidjslice, 'u' , um(ib:ie,jsliceloc,kb:ke)                                   , nrecjslice, xdim, zdim)
-      if (present('v0')) call writestat_nc(ncidjslice, 'v' , 0.5*(vm(ib:ie,jsliceloc,kb:ke)+vm(ib:ie,jsliceloc+1,kb:ke)) , nrecjslice, xdim, zdim)
-      if (present('w0')) call writestat_nc(ncidjslice, 'w' , wm(ib:ie,jsliceloc,kb:ke)                                   , nrecjslice, xdim, zdim)
-      if (present('th') .and. ltempeq) call writestat_nc(ncidjslice, 'thl' , thlm(ib:ie,jsliceloc,kb:ke)  , nrecjslice, xdim, zdim)
-      if (present('qt') .and. lmoist)  call writestat_nc(ncidjslice, 'qt'  , qtm(ib:ie,jsliceloc,kb:ke)   , nrecjslice, xdim, zdim)
-      if (present('s1') .and. nsv>0)   call writestat_nc(ncidjslice, 's1'  , svm(ib:ie,jsliceloc,kb:ke,1) , nrecjslice, xdim, zdim)
-      if (present('s2') .and. nsv>1)   call writestat_nc(ncidjslice, 's2'  , svm(ib:ie,jsliceloc,kb:ke,2) , nrecjslice, xdim, zdim)
-      if (present('s3') .and. nsv>2)   call writestat_nc(ncidjslice, 's3'  , svm(ib:ie,jsliceloc,kb:ke,3) , nrecjslice, xdim, zdim)
-      if (present('s4') .and. nsv>3)   call writestat_nc(ncidjslice, 's4'  , svm(ib:ie,jsliceloc,kb:ke,4) , nrecjslice, xdim, zdim)
+      
+      ! u velocity
+      if (present('u0')) then
+        tmp_slice = 0.0  ! Initialize with zeros for processors without the slice
+        do j = 1, njslice
+          if (jslicerank(j)) then
+            jj = jsliceloc(j)
+            tmp_slice(:,j,:) = um(ib:ie,jj,kb:ke)
+          end if
+        end do
+        call writestat_nc(ncidjslice, 'u', tmp_slice, nrecjslice, xdim, jdim, zdim)
+      end if
+      
+      ! v velocity (interpolated to cell centers in y-direction)
+      if (present('v0')) then
+        tmp_slice = 0.0
+        do j = 1, njslice
+          if (jslicerank(j)) then
+            jj = jsliceloc(j)
+            tmp_slice(:,j,:) = 0.5*(vm(ib:ie,jj,kb:ke) + vm(ib:ie,jj+1,kb:ke))
+          end if
+        end do
+        call writestat_nc(ncidjslice, 'v', tmp_slice, nrecjslice, xdim, jdim, zdim)
+      end if
+      
+      ! w velocity
+      if (present('w0')) then
+        tmp_slice = 0.0
+        do j = 1, njslice
+          if (jslicerank(j)) then
+            jj = jsliceloc(j)
+            tmp_slice(:,j,:) = wm(ib:ie,jj,kb:ke)
+          end if
+        end do
+        call writestat_nc(ncidjslice, 'w', tmp_slice, nrecjslice, xdim, jdim, zdim)
+      end if
+      
+      ! temperature
+      if (present('th') .and. ltempeq) then
+        tmp_slice = 0.0
+        do j = 1, njslice
+          if (jslicerank(j)) then
+            jj = jsliceloc(j)
+            tmp_slice(:,j,:) = thlm(ib:ie,jj,kb:ke)
+          end if
+        end do
+        call writestat_nc(ncidjslice, 'thl', tmp_slice, nrecjslice, xdim, jdim, zdim)
+      end if
+      
+      ! moisture
+      if (present('qt') .and. lmoist) then
+        tmp_slice = 0.0
+        do j = 1, njslice
+          if (jslicerank(j)) then
+            jj = jsliceloc(j)
+            tmp_slice(:,j,:) = qtm(ib:ie,jj,kb:ke)
+          end if
+        end do
+        call writestat_nc(ncidjslice, 'qt', tmp_slice, nrecjslice, xdim, jdim, zdim)
+      end if
+      
+      ! scalars s1-s4
+      if (present('s1') .and. nsv>0) then
+        tmp_slice = 0.0
+        do j = 1, njslice
+          if (jslicerank(j)) then
+            jj = jsliceloc(j)
+            tmp_slice(:,j,:) = svm(ib:ie,jj,kb:ke,1)
+          end if
+        end do
+        call writestat_nc(ncidjslice, 's1', tmp_slice, nrecjslice, xdim, jdim, zdim)
+      end if
+      
+      if (present('s2') .and. nsv>1) then
+        tmp_slice = 0.0
+        do j = 1, njslice
+          if (jslicerank(j)) then
+            jj = jsliceloc(j)
+            tmp_slice(:,j,:) = svm(ib:ie,jj,kb:ke,2)
+          end if
+        end do
+        call writestat_nc(ncidjslice, 's2', tmp_slice, nrecjslice, xdim, jdim, zdim)
+      end if
+      
+      if (present('s3') .and. nsv>2) then
+        tmp_slice = 0.0
+        do j = 1, njslice
+          if (jslicerank(j)) then
+            jj = jsliceloc(j)
+            tmp_slice(:,j,:) = svm(ib:ie,jj,kb:ke,3)
+          end if
+        end do
+        call writestat_nc(ncidjslice, 's3', tmp_slice, nrecjslice, xdim, jdim, zdim)
+      end if
+      
+      if (present('s4') .and. nsv>3) then
+        tmp_slice = 0.0
+        do j = 1, njslice
+          if (jslicerank(j)) then
+            jj = jsliceloc(j)
+            tmp_slice(:,j,:) = svm(ib:ie,jj,kb:ke,4)
+          end if
+        end do
+        call writestat_nc(ncidjslice, 's4', tmp_slice, nrecjslice, xdim, jdim, zdim)
+      end if
+      
+      deallocate(tmp_slice)
     end subroutine instant_write_jslice
+
+    subroutine write_islice_xcoord
+      ! Update x-coordinate to reflect islice positions
+      use modglobal, only : dx, xf
+      use netcdf
+      implicit none
+      integer :: varid, ierr, i
+      real, allocatable :: x_islice(:)
+      
+      ! Allocate and fill x coordinates for islices
+      allocate(x_islice(nislice))
+      do i = 1, nislice
+        x_islice(i) = xf(islice(i))
+      end do
+      
+      ! Find the x variable and overwrite it
+      ierr = nf90_inq_varid(ncidislice, 'xt', varid)
+      if (ierr /= nf90_noerr) then
+        if (myid == 0) write(*,*) 'WARNING: Cannot find xt variable, trying xm'
+        ierr = nf90_inq_varid(ncidislice, 'xm', varid)
+      end if
+      
+      if (ierr == nf90_noerr) then
+        ! Add attributes
+        ierr = nf90_redef(ncidislice)
+        ierr = nf90_put_att(ncidislice, varid, 'islice_indices', islice(1:nislice))
+        ierr = nf90_put_att(ncidislice, varid, 'long_name', 'x-coordinate of i-slices')
+        ierr = nf90_enddef(ncidislice)
+        
+        ! Write the islice x-coordinates
+        ierr = nf90_put_var(ncidislice, varid, x_islice)
+      end if
+      
+      deallocate(x_islice)
+    end subroutine write_islice_xcoord
+
+    subroutine write_jslice_ycoord
+      ! Update y-coordinate to reflect jslice positions
+      use modglobal, only : dy, yf
+      use netcdf
+      implicit none
+      integer :: varid, ierr, j
+      real, allocatable :: y_jslice(:)
+      
+      ! Allocate and fill y coordinates for jslices
+      allocate(y_jslice(njslice))
+      do j = 1, njslice
+        y_jslice(j) = yf(jslice(j))
+      end do
+      
+      ! Find the y variable and overwrite it
+      ierr = nf90_inq_varid(ncidjslice, 'yt', varid)
+      if (ierr /= nf90_noerr) then
+        if (myid == 0) write(*,*) 'WARNING: Cannot find yt variable, trying ym'
+        ierr = nf90_inq_varid(ncidjslice, 'ym', varid)
+      end if
+      
+      if (ierr == nf90_noerr) then
+        ! Add attributes
+        ierr = nf90_redef(ncidjslice)
+        ierr = nf90_put_att(ncidjslice, varid, 'jslice_indices', jslice(1:njslice))
+        ierr = nf90_put_att(ncidjslice, varid, 'long_name', 'y-coordinate of j-slices')
+        ierr = nf90_enddef(ncidjslice)
+        
+        ! Write the jslice y-coordinates
+        ierr = nf90_put_var(ncidjslice, varid, y_jslice)
+      end if
+      
+      deallocate(y_jslice)
+    end subroutine write_jslice_ycoord
 
     subroutine write_kslice_zcoord(ncid)
       ! Update z-coordinate to reflect kslice levels instead of full z levels
