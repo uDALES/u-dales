@@ -563,7 +563,7 @@ subroutine writeoffset(ncid, ncname, var, nrec, dim1, dim2, dim3)
   integer :: step, src
   real, dimension(dim1,dim2,dim3) :: bufin, bufout
 	
-  call MPI_BARRIER(comm3d, ierr)
+  call MPI_BARRIER(comm1dy, ierr)
 
   bufin = var
 

@@ -3,11 +3,11 @@ module instant_slice
                          slicevars, lislicedump, islice, ljslicedump, jslice, lkslicedump, kslice, &
                          nkslice, nislice, njslice, &
                          ib, ie, jb, je, kb, ke, dzfi, dzh, &
-                         timee, tstatstart
+                         timee, tstatstart, jtot, itot, kmax
   use modfields,  only : um, vm, wm, thlm, qtm, svm
   use modmpi,     only : myid, cmyidx, cmyidy
   use decomp_2d,  only : zstart, zend, xstart, xend, ystart, yend
-  use modstat_nc, only : ncinfo, open_nc, define_nc, writestat_dims_nc, writestat_nc
+  use modstat_nc, only : ncinfo, open_nc, define_nc, writestat_dims_nc, writestat_nc, writeoffset
   implicit none
   private
   public :: instant_init, instant_main
@@ -21,15 +21,20 @@ module instant_slice
   logical, allocatable :: jslicerank(:)   ! array of flags for each jslice on this core
   integer, allocatable :: jsliceloc(:)    ! local jslice positions on this core
   
+  integer :: local_nislice  ! Number of islices on this X-processor (saved from create phase)
+  integer, allocatable :: local_islice_map(:)  ! Mapping from local index to global islice index
+  
   integer                    :: nslicevars
   character(80)              :: islicename
   character(80)              :: jslicename
   character(80)              :: kslicename
+  character(80)              :: kslicename1d    ! Separate filename for 1D output
   character(80)              :: slicetimeVar(1,4)
   character(80), allocatable :: isliceVars(:,:)
   character(80), allocatable :: jsliceVars(:,:)
   character(80), allocatable :: ksliceVars(:,:)
   integer                    :: ncidislice, nrecislice, ncidjslice, nrecjslice, ncidkslice, nreckslice
+  integer                    :: ncidkslice1d, nreckslice1d    ! Separate file ID for 1D output
 
   contains
 
@@ -72,8 +77,9 @@ module instant_slice
         allocate(isliceVars(nslicevars,4))
         allocate(islicerank(nislice))
         allocate(isliceloc(nislice))
+        allocate(local_islice_map(nislice))  ! Allocate mapping array
         call instant_ncdescription_islice
-        call instant_create_ncislice    !> Generate sliced NetCDF: islice.xxx.xxx.xxx.nc
+        call instant_create_ncislice    !> Generate sliced NetCDF: islice.xxx.xxx.nc
         deallocate(isliceVars)
       end if
       
@@ -89,7 +95,7 @@ module instant_slice
       if (lkslicedump) then
         allocate(ksliceVars(nslicevars,4))
         call instant_ncdescription_kslice
-        call instant_create_nckslice    !> Generate sliced NetCDF: kslice.xxx.xxx.xxx.nc
+        call instant_create_nckslice1d    !> Generate sliced NetCDF: kslice.xxx.xxx.xxx.nc
         deallocate(ksliceVars)
       end if
     end subroutine instant_init
@@ -206,72 +212,78 @@ module instant_slice
     end subroutine instant_ncdescription_kslice
 
 
+    !! ## %% 1D parallel output creation for islice (y-direction processes only)
     subroutine instant_create_ncislice
+      use modglobal, only : jtot
+      use modmpi, only : myidy, myidx, nprocx
       implicit none
       integer :: i
+      logical :: has_islice
       
       if (nislice == 0) then
         if (myid == 0) write(*,*) "WARNING: nislice=0, no i-slices will be output"
         return
       end if
       
-      ! Check which islices are on this processor and store their local positions
+      ! Count how many islices are in this X-processor's range (save to module variable)
+      local_nislice = 0
+      has_islice = .false.
       do i = 1, nislice
-        if ((islice(i) >= xstart(1)) .and. (islice(i) <= xend(1))) then
-          islicerank(i) = .true.
-          isliceloc(i) = islice(i) - xstart(1) + 1
-        else
-          islicerank(i) = .false.
-          isliceloc(i) = -1
+        if (mod(i-1, nprocx) == myidx) then
+          local_nislice = local_nislice + 1
+          has_islice = .true.
         end if
       end do
       
-      ! All processors create one file: islice.xxx.xxx.xxx.nc
-      ! Use idim as the first dimension (number of islices)
-      islicename = 'islice.' // cmyidx // '.' // cmyidy // '.' // cexpnr // '.nc'
-      call open_nc(islicename, ncidislice, nrecislice, n1=idim, n2=ydim, n3=zdim)
-      if (nrecislice==0) then
-        call define_nc(ncidislice, 1, slicetimeVar)
-        call writestat_dims_nc(ncidislice)
+      ! Only processors with islices AND myidy==0 create files
+      if (has_islice .and. myidy == 0) then
+        islicename = 'islice.xxx.xxx.nc'
+        islicename(8:10) = cmyidx   ! X-processor ID
+        islicename(12:14) = cexpnr  ! Experiment number
+
+        nrecislice = 0
+        ! Use local_nislice (module variable) as first dimension, jtot as global y-dimension
+        call open_nc(islicename, ncidislice, nrecislice, n1=local_nislice, n2=jtot, n3=zdim)
+        if (nrecislice == 0) then
+          call define_nc(ncidislice, 1, slicetimeVar)
+          call writestat_dims_nc(ncidislice)
+          ! Add islice-specific x coordinate information
+          call write_islice_xcoord_local
+        end if
+        call define_nc(ncidislice, nslicevars, isliceVars)
+        
+        write(*,'(A,A,A,I2,A)') '  Processor (myidx=', cmyidx, ') created islice file with ', local_nislice, ' slices'
       end if
-      call define_nc(ncidislice, nslicevars, isliceVars)
-      
-      ! Write x-coordinates for the islice positions
-      call write_islice_xcoord
     end subroutine instant_create_ncislice
 
     subroutine instant_create_ncjslice
       implicit none
-      integer :: j
       
       if (njslice == 0) then
         if (myid == 0) write(*,*) "WARNING: njslice=0, no j-slices will be output"
         return
       end if
       
-      ! Check which jslices are on this processor and store their local positions
-      do j = 1, njslice
-        if ((jslice(j) >= ystart(2)) .and. (jslice(j) <= yend(2))) then
-          jslicerank(j) = .true.
-          jsliceloc(j) = jslice(j) - ystart(2) + 1
-        else
-          jslicerank(j) = .false.
-          jsliceloc(j) = -1
+      ! OPTION 1: Single file output by rank 0 only
+      ! Since Y-direction HAS decomposition, we need MPI communication
+      ! to gather data from all processors to rank 0
+      
+      if (myid == 0) then
+        jslicename = 'jslice.xxx.nc'
+        jslicename(8:10) = cexpnr   ! Experiment number
+        
+        nrecjslice = 0
+        ! Create file with xdim in x-dimension, njslice in y, zdim in z
+        call open_nc(jslicename, ncidjslice, nrecjslice, n1=xdim, n2=njslice, n3=zdim)
+        if (nrecjslice==0) then
+          call define_nc(ncidjslice, 1, slicetimeVar)
+          call writestat_dims_nc(ncidjslice)
+          call write_jslice_ycoord
         end if
-      end do
-      
-      ! All processors create one file: jslice.xxx.xxx.xxx.nc
-      ! Use jdim as the second dimension (number of jslices)
-      jslicename = 'jslice.' // cmyidx // '.' // cmyidy // '.' // cexpnr // '.nc'
-      call open_nc(jslicename, ncidjslice, nrecjslice, n1=xdim, n2=jdim, n3=zdim)
-      if (nrecjslice==0) then
-        call define_nc(ncidjslice, 1, slicetimeVar)
-        call writestat_dims_nc(ncidjslice)
+        call define_nc(ncidjslice, nslicevars, jsliceVars)
+        
+        write(*,'(A,I2,A)') '  Rank 0 created jslice file with ', njslice, ' slices'
       end if
-      call define_nc(ncidjslice, nslicevars, jsliceVars)
-      
-      ! Write y-coordinates for the jslice positions
-      call write_jslice_ycoord
     end subroutine instant_create_ncjslice
 
     subroutine instant_create_nckslice
@@ -300,366 +312,570 @@ module instant_slice
       call define_nc(ncidkslice, nslicevars, ksliceVars)
     end subroutine instant_create_nckslice
 
+    !! ## %% 1D parallel output creation (y-direction processes only)
+    subroutine instant_create_nckslice1d
+      use modglobal, only : jtot
+      use modmpi, only : myidy
+      implicit none
+      
+      if (nkslice == 0) then
+        if (myid == 0) write(*,*) "WARNING: nkslice=0, no k-slices will be output"
+        return
+      end if
+
+      if (myidy == 0) then
+        kslicename1d = 'kslice.xxx.xxx.nc'
+        kslicename1d(8:10) = cmyidx   ! Only x-processor ID
+        kslicename1d(12:14) = cexpnr  ! Experiment number
+
+        nreckslice1d = 0
+        ! Use kdim (nkslice) as the z-dimension, jtot as global y-dimension
+        call open_nc(kslicename1d, ncidkslice1d, nreckslice1d, n1=xdim, n2=jtot, n3=kdim)
+        if (nreckslice1d == 0) then
+          call define_nc(ncidkslice1d, 1, slicetimeVar)
+          call writestat_dims_nc(ncidkslice1d)
+          ! Add kslice-specific z coordinate information
+          call write_kslice_zcoord(ncidkslice1d)
+        end if
+        call define_nc(ncidkslice1d, nslicevars, ksliceVars)
+      end if
+    end subroutine instant_create_nckslice1d
 
     subroutine instant_write_islice
+      use modmpi, only : myidy, myidx, nprocx
+      use modglobal, only : jtot
       implicit none
       real, allocatable :: tmp_slice(:,:,:)
-      integer :: i, ii
+      integer :: i, ii, ii_local, local_idx
       
       if (nislice == 0) return
+      if (local_nislice == 0) return  ! No islices on this processor
       
-      ! Allocate temporary array to hold all islice levels: (nislice, y, z)
-      allocate(tmp_slice(nislice, jb:je, kb:ke))
+      ! Allocate temporary array with local_nislice (module variable)
+      allocate(tmp_slice(local_nislice, jb:je, kb:ke))
+      tmp_slice = 0.0
       
-      ! Write time variable
-      call writestat_nc(ncidislice, 'time', timee, nrecislice, .true.)
+      ! Write time variable (only myidy==0 writes)
+      if (myidy == 0) then
+        call writestat_nc(ncidislice, 'time', timee, nrecislice, .true.)
+      end if
       
       ! u velocity (interpolated to cell centers in x-direction)
       if (present('u0')) then
-        tmp_slice = 0.0  ! Initialize with zeros for processors without the slice
+        local_idx = 0
         do i = 1, nislice
-          if (islicerank(i)) then
-            ii = isliceloc(i)
-            tmp_slice(i,:,:) = 0.5*(um(ii,jb:je,kb:ke) + um(ii+1,jb:je,kb:ke))
+          if (mod(i-1, nprocx) == myidx) then
+            local_idx = local_idx + 1
+            ii = islice(i)  ! Global X-position
+            ii_local = ii - xstart(1) + ib
+            if (ii_local >= ib .and. ii_local < ie) then
+              tmp_slice(local_idx,:,:) = 0.5*(um(ii_local,:,:) + um(ii_local+1,:,:))
+            end if
           end if
         end do
-        call writestat_nc(ncidislice, 'u', tmp_slice, nrecislice, idim, ydim, zdim)
+        call writeoffset(ncidislice, 'u', tmp_slice, nrecislice, local_nislice, ydim, zdim)
       end if
       
       ! v velocity
       if (present('v0')) then
         tmp_slice = 0.0
+        local_idx = 0
         do i = 1, nislice
-          if (islicerank(i)) then
-            ii = isliceloc(i)
-            tmp_slice(i,:,:) = vm(ii,jb:je,kb:ke)
+          if (mod(i-1, nprocx) == myidx) then
+            local_idx = local_idx + 1
+            ii = islice(i)
+            ii_local = ii - xstart(1) + ib
+            if (ii_local >= ib .and. ii_local <= ie) then
+              tmp_slice(local_idx,:,:) = vm(ii_local,:,:)
+            end if
           end if
         end do
-        call writestat_nc(ncidislice, 'v', tmp_slice, nrecislice, idim, ydim, zdim)
+        call writeoffset(ncidislice, 'v', tmp_slice, nrecislice, local_nislice, ydim, zdim)
       end if
       
       ! w velocity
       if (present('w0')) then
         tmp_slice = 0.0
+        local_idx = 0
         do i = 1, nislice
-          if (islicerank(i)) then
-            ii = isliceloc(i)
-            tmp_slice(i,:,:) = wm(ii,jb:je,kb:ke)
+          if (mod(i-1, nprocx) == myidx) then
+            local_idx = local_idx + 1
+            ii = islice(i)
+            ii_local = ii - xstart(1) + ib
+            if (ii_local >= ib .and. ii_local <= ie) then
+              tmp_slice(local_idx,:,:) = wm(ii_local,:,:)
+            end if
           end if
         end do
-        call writestat_nc(ncidislice, 'w', tmp_slice, nrecislice, idim, ydim, zdim)
+        call writeoffset(ncidislice, 'w', tmp_slice, nrecislice, local_nislice, ydim, zdim)
       end if
       
       ! temperature
       if (present('th') .and. ltempeq) then
         tmp_slice = 0.0
+        local_idx = 0
         do i = 1, nislice
-          if (islicerank(i)) then
-            ii = isliceloc(i)
-            tmp_slice(i,:,:) = thlm(ii,jb:je,kb:ke)
+          if (mod(i-1, nprocx) == myidx) then
+            local_idx = local_idx + 1
+            ii = islice(i)
+            ii_local = ii - xstart(1) + ib
+            if (ii_local >= ib .and. ii_local <= ie) then
+              tmp_slice(local_idx,:,:) = thlm(ii_local,:,:)
+            end if
           end if
         end do
-        call writestat_nc(ncidislice, 'thl', tmp_slice, nrecislice, idim, ydim, zdim)
+        call writeoffset(ncidislice, 'thl', tmp_slice, nrecislice, local_nislice, ydim, zdim)
       end if
       
       ! moisture
       if (present('qt') .and. lmoist) then
         tmp_slice = 0.0
+        local_idx = 0
         do i = 1, nislice
-          if (islicerank(i)) then
-            ii = isliceloc(i)
-            tmp_slice(i,:,:) = qtm(ii,jb:je,kb:ke)
+          if (mod(i-1, nprocx) == myidx) then
+            local_idx = local_idx + 1
+            ii = islice(i)
+            ii_local = ii - xstart(1) + ib
+            if (ii_local >= ib .and. ii_local <= ie) then
+              tmp_slice(local_idx,:,:) = qtm(ii_local,:,:)
+            end if
           end if
         end do
-        call writestat_nc(ncidislice, 'qt', tmp_slice, nrecislice, idim, ydim, zdim)
+        call writeoffset(ncidislice, 'qt', tmp_slice, nrecislice, local_nislice, ydim, zdim)
       end if
       
       ! scalars s1-s4
       if (present('s1') .and. nsv>0) then
         tmp_slice = 0.0
+        local_idx = 0
         do i = 1, nislice
-          if (islicerank(i)) then
-            ii = isliceloc(i)
-            tmp_slice(i,:,:) = svm(ii,jb:je,kb:ke,1)
+          if (mod(i-1, nprocx) == myidx) then
+            local_idx = local_idx + 1
+            ii = islice(i)
+            ii_local = ii - xstart(1) + ib
+            if (ii_local >= ib .and. ii_local <= ie) then
+              tmp_slice(local_idx,:,:) = svm(ii_local,:,:,1)
+            end if
           end if
         end do
-        call writestat_nc(ncidislice, 's1', tmp_slice, nrecislice, idim, ydim, zdim)
+        call writeoffset(ncidislice, 's1', tmp_slice, nrecislice, local_nislice, ydim, zdim)
       end if
       
       if (present('s2') .and. nsv>1) then
         tmp_slice = 0.0
+        local_idx = 0
         do i = 1, nislice
-          if (islicerank(i)) then
-            ii = isliceloc(i)
-            tmp_slice(i,:,:) = svm(ii,jb:je,kb:ke,2)
+          if (mod(i-1, nprocx) == myidx) then
+            local_idx = local_idx + 1
+            ii = islice(i)
+            ii_local = ii - xstart(1) + ib
+            if (ii_local >= ib .and. ii_local <= ie) then
+              tmp_slice(local_idx,:,:) = svm(ii_local,:,:,2)
+            end if
           end if
         end do
-        call writestat_nc(ncidislice, 's2', tmp_slice, nrecislice, idim, ydim, zdim)
+        call writeoffset(ncidislice, 's2', tmp_slice, nrecislice, local_nislice, ydim, zdim)
       end if
       
       if (present('s3') .and. nsv>2) then
         tmp_slice = 0.0
+        local_idx = 0
         do i = 1, nislice
-          if (islicerank(i)) then
-            ii = isliceloc(i)
-            tmp_slice(i,:,:) = svm(ii,jb:je,kb:ke,3)
+          if (mod(i-1, nprocx) == myidx) then
+            local_idx = local_idx + 1
+            ii = islice(i)
+            ii_local = ii - xstart(1) + ib
+            if (ii_local >= ib .and. ii_local <= ie) then
+              tmp_slice(local_idx,:,:) = svm(ii_local,:,:,3)
+            end if
           end if
         end do
-        call writestat_nc(ncidislice, 's3', tmp_slice, nrecislice, idim, ydim, zdim)
+        call writeoffset(ncidislice, 's3', tmp_slice, nrecislice, local_nislice, ydim, zdim)
       end if
       
       if (present('s4') .and. nsv>3) then
         tmp_slice = 0.0
+        local_idx = 0
         do i = 1, nislice
-          if (islicerank(i)) then
-            ii = isliceloc(i)
-            tmp_slice(i,:,:) = svm(ii,jb:je,kb:ke,4)
+          if (mod(i-1, nprocx) == myidx) then
+            local_idx = local_idx + 1
+            ii = islice(i)
+            ii_local = ii - xstart(1) + ib
+            if (ii_local >= ib .and. ii_local <= ie) then
+              tmp_slice(local_idx,:,:) = svm(ii_local,:,:,4)
+            end if
           end if
         end do
-        call writestat_nc(ncidislice, 's4', tmp_slice, nrecislice, idim, ydim, zdim)
+        call writeoffset(ncidislice, 's4', tmp_slice, nrecislice, local_nislice, ydim, zdim)
       end if
       
       deallocate(tmp_slice)
     end subroutine instant_write_islice
 
     subroutine instant_write_jslice
+      use netcdf
+      use modmpi, only : comm3d, mpi_real, mpi_sum, mpierr
       implicit none
-      real, allocatable :: tmp_slice(:,:,:)
-      integer :: j, jj
+      real, allocatable :: tmp_slice(:,:,:), local_slice(:,:,:)
+      integer :: i, j, jj, jj_local, iret, varid
+      logical :: jslice_found
       
       if (njslice == 0) return
       
-      ! Allocate temporary array to hold all jslice levels: (x, njslice, z)
-      allocate(tmp_slice(ib:ie, njslice, kb:ke))
+      ! Debug output
+      if (myid == 0) then
+        write(*,*) 'DEBUG jslice: njslice=', njslice
+        write(*,*) 'DEBUG jslice: jslice positions=', jslice(1:njslice)
+        write(*,*) 'DEBUG jslice: xdim,zdim=', xdim, zdim
+        write(*,*) 'DEBUG jslice: ib:ie=', ib, ie
+        write(*,*) 'DEBUG jslice: jb:je=', jb, je
+        write(*,*) 'DEBUG jslice: kb:ke=', kb, ke
+      end if
       
-      ! Write time variable
-      call writestat_nc(ncidjslice, 'time', timee, nrecjslice, .true.)
+      ! OPTION 1: Single file output by rank 0 with MPI_Reduce
+      ! Since Y-direction has decomposition, use MPI_Reduce to gather data
+      
+      ! Allocate local array for this processor's contribution
+      allocate(local_slice(ib:ie, njslice, kb:ke))
+      
+      ! Only rank 0 allocates the full array
+      if (myid == 0) then
+        allocate(tmp_slice(ib:ie, njslice, kb:ke))
+        call writestat_nc(ncidjslice, 'time', timee, nrecjslice, .true.)
+      end if
       
       ! u velocity
       if (present('u0')) then
-        tmp_slice = 0.0  ! Initialize with zeros for processors without the slice
+        local_slice = 0.0
         do j = 1, njslice
-          if (jslicerank(j)) then
-            jj = jsliceloc(j)
-            tmp_slice(:,j,:) = um(ib:ie,jj,kb:ke)
+          jj = jslice(j)  ! Global Y-position
+          if (jj >= ystart(2) .and. jj <= yend(2)) then
+            ! This processor has this jslice - calculate local j index
+            jj_local = jj - ystart(2) + jb
+            ! Check bounds
+            if (jj_local >= jb .and. jj_local <= je) then
+              local_slice(:,j,:) = um(ib:ie, jj_local, kb:ke)
+            end if
           end if
         end do
-        call writestat_nc(ncidjslice, 'u', tmp_slice, nrecjslice, xdim, jdim, zdim)
+        if (myid == 0) tmp_slice = 0.0
+        call MPI_Reduce(local_slice, tmp_slice, xdim*njslice*zdim, mpi_real, mpi_sum, 0, comm3d, mpierr)
+        if (myid == 0) then
+          iret = nf90_inq_varid(ncidjslice, 'u', varid)
+          iret = nf90_put_var(ncidjslice, varid, tmp_slice, (/1,1,1,nrecjslice/), (/xdim,njslice,zdim,1/))
+        end if
       end if
       
       ! v velocity (interpolated to cell centers in y-direction)
       if (present('v0')) then
-        tmp_slice = 0.0
+        local_slice = 0.0
         do j = 1, njslice
-          if (jslicerank(j)) then
-            jj = jsliceloc(j)
-            tmp_slice(:,j,:) = 0.5*(vm(ib:ie,jj,kb:ke) + vm(ib:ie,jj+1,kb:ke))
+          jj = jslice(j)
+          if (jj >= ystart(2) .and. jj <= yend(2)) then
+            jj_local = jj - ystart(2) + jb
+            if (jj_local >= jb .and. jj_local < je) then  ! Need jj_local+1
+              local_slice(:,j,:) = 0.5*(vm(ib:ie, jj_local, kb:ke) + vm(ib:ie, jj_local+1, kb:ke))
+            end if
           end if
         end do
-        call writestat_nc(ncidjslice, 'v', tmp_slice, nrecjslice, xdim, jdim, zdim)
+        if (myid == 0) tmp_slice = 0.0
+        call MPI_Reduce(local_slice, tmp_slice, xdim*njslice*zdim, mpi_real, mpi_sum, 0, comm3d, mpierr)
+        if (myid == 0) then
+          iret = nf90_inq_varid(ncidjslice, 'v', varid)
+          iret = nf90_put_var(ncidjslice, varid, tmp_slice, (/1,1,1,nrecjslice/), (/xdim,njslice,zdim,1/))
+        end if
       end if
       
       ! w velocity
       if (present('w0')) then
-        tmp_slice = 0.0
+        local_slice = 0.0
         do j = 1, njslice
-          if (jslicerank(j)) then
-            jj = jsliceloc(j)
-            tmp_slice(:,j,:) = wm(ib:ie,jj,kb:ke)
+          jj = jslice(j)
+          if (jj >= ystart(2) .and. jj <= yend(2)) then
+            jj_local = jj - ystart(2) + jb
+            if (jj_local >= jb .and. jj_local <= je) then
+              local_slice(:,j,:) = wm(ib:ie, jj_local, kb:ke)
+            end if
           end if
         end do
-        call writestat_nc(ncidjslice, 'w', tmp_slice, nrecjslice, xdim, jdim, zdim)
+        if (myid == 0) tmp_slice = 0.0
+        call MPI_Reduce(local_slice, tmp_slice, xdim*njslice*zdim, mpi_real, mpi_sum, 0, comm3d, mpierr)
+        if (myid == 0) then
+          iret = nf90_inq_varid(ncidjslice, 'w', varid)
+          iret = nf90_put_var(ncidjslice, varid, tmp_slice, (/1,1,1,nrecjslice/), (/xdim,njslice,zdim,1/))
+        end if
       end if
       
       ! temperature
       if (present('th') .and. ltempeq) then
-        tmp_slice = 0.0
+        local_slice = 0.0
         do j = 1, njslice
-          if (jslicerank(j)) then
-            jj = jsliceloc(j)
-            tmp_slice(:,j,:) = thlm(ib:ie,jj,kb:ke)
+          jj = jslice(j)
+          if (jj >= ystart(2) .and. jj <= yend(2)) then
+            jj_local = jj - ystart(2) + jb
+            if (jj_local >= jb .and. jj_local <= je) then
+              local_slice(:,j,:) = thlm(ib:ie, jj_local, kb:ke)
+            end if
           end if
         end do
-        call writestat_nc(ncidjslice, 'thl', tmp_slice, nrecjslice, xdim, jdim, zdim)
+        if (myid == 0) tmp_slice = 0.0
+        call MPI_Reduce(local_slice, tmp_slice, xdim*njslice*zdim, mpi_real, mpi_sum, 0, comm3d, mpierr)
+        if (myid == 0) then
+          iret = nf90_inq_varid(ncidjslice, 'thl', varid)
+          iret = nf90_put_var(ncidjslice, varid, tmp_slice, (/1,1,1,nrecjslice/), (/xdim,njslice,zdim,1/))
+        end if
       end if
       
       ! moisture
       if (present('qt') .and. lmoist) then
-        tmp_slice = 0.0
+        local_slice = 0.0
         do j = 1, njslice
-          if (jslicerank(j)) then
-            jj = jsliceloc(j)
-            tmp_slice(:,j,:) = qtm(ib:ie,jj,kb:ke)
+          jj = jslice(j)
+          if (jj >= ystart(2) .and. jj <= yend(2)) then
+            jj_local = jj - ystart(2) + jb
+            if (jj_local >= jb .and. jj_local <= je) then
+              local_slice(:,j,:) = qtm(ib:ie, jj_local, kb:ke)
+            end if
           end if
         end do
-        call writestat_nc(ncidjslice, 'qt', tmp_slice, nrecjslice, xdim, jdim, zdim)
+        if (myid == 0) tmp_slice = 0.0
+        call MPI_Reduce(local_slice, tmp_slice, xdim*njslice*zdim, mpi_real, mpi_sum, 0, comm3d, mpierr)
+        if (myid == 0) then
+          iret = nf90_inq_varid(ncidjslice, 'qt', varid)
+          iret = nf90_put_var(ncidjslice, varid, tmp_slice, (/1,1,1,nrecjslice/), (/xdim,njslice,zdim,1/))
+        end if
       end if
       
       ! scalars s1-s4
       if (present('s1') .and. nsv>0) then
-        tmp_slice = 0.0
+        local_slice = 0.0
         do j = 1, njslice
-          if (jslicerank(j)) then
-            jj = jsliceloc(j)
-            tmp_slice(:,j,:) = svm(ib:ie,jj,kb:ke,1)
+          jj = jslice(j)
+          if (jj >= ystart(2) .and. jj <= yend(2)) then
+            jj_local = jj - ystart(2) + jb
+            if (jj_local >= jb .and. jj_local <= je) then
+              local_slice(:,j,:) = svm(ib:ie, jj_local, kb:ke, 1)
+            end if
           end if
         end do
-        call writestat_nc(ncidjslice, 's1', tmp_slice, nrecjslice, xdim, jdim, zdim)
+        if (myid == 0) tmp_slice = 0.0
+        call MPI_Reduce(local_slice, tmp_slice, xdim*njslice*zdim, mpi_real, mpi_sum, 0, comm3d, mpierr)
+        if (myid == 0) then
+          iret = nf90_inq_varid(ncidjslice, 's1', varid)
+          iret = nf90_put_var(ncidjslice, varid, tmp_slice, (/1,1,1,nrecjslice/), (/xdim,njslice,zdim,1/))
+        end if
       end if
       
       if (present('s2') .and. nsv>1) then
-        tmp_slice = 0.0
+        local_slice = 0.0
         do j = 1, njslice
-          if (jslicerank(j)) then
-            jj = jsliceloc(j)
-            tmp_slice(:,j,:) = svm(ib:ie,jj,kb:ke,2)
+          jj = jslice(j)
+          if (jj >= ystart(2) .and. jj <= yend(2)) then
+            jj_local = jj - ystart(2) + jb
+            if (jj_local >= jb .and. jj_local <= je) then
+              local_slice(:,j,:) = svm(ib:ie, jj_local, kb:ke, 2)
+            end if
           end if
         end do
-        call writestat_nc(ncidjslice, 's2', tmp_slice, nrecjslice, xdim, jdim, zdim)
+        if (myid == 0) tmp_slice = 0.0
+        call MPI_Reduce(local_slice, tmp_slice, xdim*njslice*zdim, mpi_real, mpi_sum, 0, comm3d, mpierr)
+        if (myid == 0) then
+          iret = nf90_inq_varid(ncidjslice, 's2', varid)
+          iret = nf90_put_var(ncidjslice, varid, tmp_slice, (/1,1,1,nrecjslice/), (/xdim,njslice,zdim,1/))
+        end if
       end if
       
       if (present('s3') .and. nsv>2) then
-        tmp_slice = 0.0
+        local_slice = 0.0
         do j = 1, njslice
-          if (jslicerank(j)) then
-            jj = jsliceloc(j)
-            tmp_slice(:,j,:) = svm(ib:ie,jj,kb:ke,3)
+          jj = jslice(j)
+          if (jj >= ystart(2) .and. jj <= yend(2)) then
+            jj_local = jj - ystart(2) + jb
+            if (jj_local >= jb .and. jj_local <= je) then
+              local_slice(:,j,:) = svm(ib:ie, jj_local, kb:ke, 3)
+            end if
           end if
         end do
-        call writestat_nc(ncidjslice, 's3', tmp_slice, nrecjslice, xdim, jdim, zdim)
+        if (myid == 0) tmp_slice = 0.0
+        call MPI_Reduce(local_slice, tmp_slice, xdim*njslice*zdim, mpi_real, mpi_sum, 0, comm3d, mpierr)
+        if (myid == 0) then
+          iret = nf90_inq_varid(ncidjslice, 's3', varid)
+          iret = nf90_put_var(ncidjslice, varid, tmp_slice, (/1,1,1,nrecjslice/), (/xdim,njslice,zdim,1/))
+        end if
       end if
       
       if (present('s4') .and. nsv>3) then
-        tmp_slice = 0.0
+        local_slice = 0.0
         do j = 1, njslice
-          if (jslicerank(j)) then
-            jj = jsliceloc(j)
-            tmp_slice(:,j,:) = svm(ib:ie,jj,kb:ke,4)
+          jj = jslice(j)
+          if (jj >= ystart(2) .and. jj <= yend(2)) then
+            jj_local = jj - ystart(2) + jb
+            if (jj_local >= jb .and. jj_local <= je) then
+              local_slice(:,j,:) = svm(ib:ie, jj_local, kb:ke, 4)
+            end if
           end if
         end do
-        call writestat_nc(ncidjslice, 's4', tmp_slice, nrecjslice, xdim, jdim, zdim)
+        if (myid == 0) tmp_slice = 0.0
+        call MPI_Reduce(local_slice, tmp_slice, xdim*njslice*zdim, mpi_real, mpi_sum, 0, comm3d, mpierr)
+        if (myid == 0) then
+          iret = nf90_inq_varid(ncidjslice, 's4', varid)
+          iret = nf90_put_var(ncidjslice, varid, tmp_slice, (/1,1,1,nrecjslice/), (/xdim,njslice,zdim,1/))
+        end if
       end if
       
-      deallocate(tmp_slice)
+      if (myid == 0) then
+        iret = nf90_sync(ncidjslice)
+        deallocate(tmp_slice)
+      end if
+      deallocate(local_slice)
     end subroutine instant_write_jslice
 
-    subroutine write_islice_xcoord
-      ! Update x-coordinate to reflect islice positions
-      use modglobal, only : dx, xf
+    subroutine write_islice_xcoord_local
+      ! Write x-coordinates for LOCAL islice positions only
+      use modglobal, only : xf, xh
+      use modmpi, only : myidx, nprocx
       use netcdf
       implicit none
-      integer :: varid, ierr, i
-      real, allocatable :: x_islice(:)
+      integer :: varid, ierr, i, local_idx
+      real, allocatable :: x_islice_f(:), x_islice_h(:)
+      integer, allocatable :: islice_indices(:)
       
-      ! Allocate and fill x coordinates for islices
-      allocate(x_islice(nislice))
+      ! Allocate and fill x coordinates for LOCAL islices only (use module variable)
+      allocate(x_islice_f(local_nislice))
+      allocate(x_islice_h(local_nislice))
+      allocate(islice_indices(local_nislice))
+      
+      local_idx = 0
       do i = 1, nislice
-        x_islice(i) = xf(islice(i))
+        if (mod(i-1, nprocx) == myidx) then
+          local_idx = local_idx + 1
+          x_islice_f(local_idx) = xf(islice(i))  ! full level (cell center)
+          x_islice_h(local_idx) = xh(islice(i))  ! half level (cell edge)
+          islice_indices(local_idx) = islice(i)
+        end if
       end do
       
-      ! Find the x variable and overwrite it
+      ! Write xt (full level)
       ierr = nf90_inq_varid(ncidislice, 'xt', varid)
-      if (ierr /= nf90_noerr) then
-        if (myid == 0) write(*,*) 'WARNING: Cannot find xt variable, trying xm'
-        ierr = nf90_inq_varid(ncidislice, 'xm', varid)
-      end if
-      
       if (ierr == nf90_noerr) then
-        ! Add attributes
         ierr = nf90_redef(ncidislice)
-        ierr = nf90_put_att(ncidislice, varid, 'islice_indices', islice(1:nislice))
-        ierr = nf90_put_att(ncidislice, varid, 'long_name', 'x-coordinate of i-slices')
+        ierr = nf90_put_att(ncidislice, varid, 'islice_indices', islice_indices)
+        ierr = nf90_put_att(ncidislice, varid, 'long_name', 'x-coordinate of i-slices (cell center)')
         ierr = nf90_enddef(ncidislice)
-        
-        ! Write the islice x-coordinates
-        ierr = nf90_put_var(ncidislice, varid, x_islice)
+        ierr = nf90_put_var(ncidislice, varid, x_islice_f)
       end if
       
-      deallocate(x_islice)
-    end subroutine write_islice_xcoord
+      ! Write xm (half level)
+      ierr = nf90_inq_varid(ncidislice, 'xm', varid)
+      if (ierr == nf90_noerr) then
+        ierr = nf90_redef(ncidislice)
+        ierr = nf90_put_att(ncidislice, varid, 'islice_indices', islice_indices)
+        ierr = nf90_put_att(ncidislice, varid, 'long_name', 'x-coordinate of i-slices (cell edge)')
+        ierr = nf90_enddef(ncidislice)
+        ierr = nf90_put_var(ncidislice, varid, x_islice_h)
+      end if
+      
+      deallocate(x_islice_f)
+      deallocate(x_islice_h)
+      deallocate(islice_indices)
+    end subroutine write_islice_xcoord_local
 
     subroutine write_jslice_ycoord
-      ! Update y-coordinate to reflect jslice positions
-      use modglobal, only : dy, yf
+      ! Write y-coordinates for all jslice positions
+      use modglobal, only : yf, yh
       use netcdf
       implicit none
       integer :: varid, ierr, j
-      real, allocatable :: y_jslice(:)
+      real, allocatable :: y_jslice_f(:), y_jslice_h(:)
+      integer, allocatable :: jslice_indices(:)
       
-      ! Allocate and fill y coordinates for jslices
-      allocate(y_jslice(njslice))
+      ! Allocate and fill y coordinates for ALL jslices
+      allocate(y_jslice_f(njslice))
+      allocate(y_jslice_h(njslice))
+      allocate(jslice_indices(njslice))
       do j = 1, njslice
-        y_jslice(j) = yf(jslice(j))
+        y_jslice_f(j) = yf(jslice(j))  ! full level (cell center)
+        y_jslice_h(j) = yh(jslice(j))  ! half level (cell edge)
+        jslice_indices(j) = jslice(j)
       end do
       
-      ! Find the y variable and overwrite it
+      ! Write yt (full level)
       ierr = nf90_inq_varid(ncidjslice, 'yt', varid)
-      if (ierr /= nf90_noerr) then
-        if (myid == 0) write(*,*) 'WARNING: Cannot find yt variable, trying ym'
-        ierr = nf90_inq_varid(ncidjslice, 'ym', varid)
-      end if
-      
       if (ierr == nf90_noerr) then
-        ! Add attributes
         ierr = nf90_redef(ncidjslice)
-        ierr = nf90_put_att(ncidjslice, varid, 'jslice_indices', jslice(1:njslice))
-        ierr = nf90_put_att(ncidjslice, varid, 'long_name', 'y-coordinate of j-slices')
+        ierr = nf90_put_att(ncidjslice, varid, 'jslice_indices', jslice_indices)
+        ierr = nf90_put_att(ncidjslice, varid, 'long_name', 'y-coordinate of j-slices (cell center)')
         ierr = nf90_enddef(ncidjslice)
-        
-        ! Write the jslice y-coordinates
-        ierr = nf90_put_var(ncidjslice, varid, y_jslice)
+        ierr = nf90_put_var(ncidjslice, varid, y_jslice_f)
       end if
       
-      deallocate(y_jslice)
+      ! Write ym (half level)
+      ierr = nf90_inq_varid(ncidjslice, 'ym', varid)
+      if (ierr == nf90_noerr) then
+        ierr = nf90_redef(ncidjslice)
+        ierr = nf90_put_att(ncidjslice, varid, 'jslice_indices', jslice_indices)
+        ierr = nf90_put_att(ncidjslice, varid, 'long_name', 'y-coordinate of j-slices (cell edge)')
+        ierr = nf90_enddef(ncidjslice)
+        ierr = nf90_put_var(ncidjslice, varid, y_jslice_h)
+      end if
+      
+      deallocate(y_jslice_f)
+      deallocate(y_jslice_h)
+      deallocate(jslice_indices)
     end subroutine write_jslice_ycoord
 
     subroutine write_kslice_zcoord(ncid)
       ! Update z-coordinate to reflect kslice levels instead of full z levels
-      use modglobal, only : zh
+      use modglobal, only : zf, zh
       use netcdf
       implicit none
       integer, intent(in) :: ncid
       integer :: varid, ierr, k
-      real, allocatable :: z_kslice(:)
+      real, allocatable :: z_kslice_f(:), z_kslice_h(:)
       
       ! Allocate and fill z coordinates for kslices
-      allocate(z_kslice(nkslice))
+      allocate(z_kslice_f(nkslice))
+      allocate(z_kslice_h(nkslice))
       do k = 1, nkslice
-        z_kslice(k) = zh(kslice(k))
+        z_kslice_f(k) = zf(kslice(k))  ! full level (cell center)
+        z_kslice_h(k) = zh(kslice(k))  ! half level (cell edge)
       end do
       
-      ! Find the z variable and overwrite it with kslice heights
+      ! Write zt (full level)
       ierr = nf90_inq_varid(ncid, 'zt', varid)
-      if (ierr /= nf90_noerr) then
-        if (myid == 0) write(*,*) 'WARNING: Cannot find zt variable, trying zm'
-        ierr = nf90_inq_varid(ncid, 'zm', varid)
-      end if
-      
       if (ierr == nf90_noerr) then
-        ! Add attribute to indicate these are kslice levels
         ierr = nf90_redef(ncid)
         ierr = nf90_put_att(ncid, varid, 'kslice_indices', kslice(1:nkslice))
-        ierr = nf90_put_att(ncid, varid, 'long_name', 'z-coordinate of k-slices')
+        ierr = nf90_put_att(ncid, varid, 'long_name', 'z-coordinate of k-slices (cell center)')
         ierr = nf90_enddef(ncid)
-        
-        ! Write the kslice z-coordinates
-        ierr = nf90_put_var(ncid, varid, z_kslice)
+        ierr = nf90_put_var(ncid, varid, z_kslice_f)
         
         if (ierr == nf90_noerr .and. myid == 0) then
-          write(*,*) 'Updated z-coordinates for kslices:'
-          write(*,*) '  z values (m):', z_kslice
-          write(*,*) '  k indices:', kslice(1:nkslice)
-        end if
-      else
-        if (myid == 0) then
-          write(*,*) 'ERROR: Cannot find z coordinate variable'
+          write(*,*) 'Updated zt for kslices:', z_kslice_f
         end if
       end if
       
-      deallocate(z_kslice)
+      ! Write zm (half level)
+      ierr = nf90_inq_varid(ncid, 'zm', varid)
+      if (ierr == nf90_noerr) then
+        ierr = nf90_redef(ncid)
+        ierr = nf90_put_att(ncid, varid, 'kslice_indices', kslice(1:nkslice))
+        ierr = nf90_put_att(ncid, varid, 'long_name', 'z-coordinate of k-slices (cell edge)')
+        ierr = nf90_enddef(ncid)
+        ierr = nf90_put_var(ncid, varid, z_kslice_h)
+        
+        if (ierr == nf90_noerr .and. myid == 0) then
+          write(*,*) 'Updated zm for kslices:', z_kslice_h
+        end if
+      end if
+      
+      deallocate(z_kslice_f)
+      deallocate(z_kslice_h)
     end subroutine write_kslice_zcoord
 
     subroutine instant_write_kslice
+      use modmpi, only : myidy
+      use modglobal, only : jtot
       implicit none
       real, allocatable :: tmp_slice(:,:,:)
       integer :: k, kk
@@ -669,8 +885,10 @@ module instant_slice
       ! Allocate temporary array to hold all kslice levels: (x, y, nkslice)
       allocate(tmp_slice(ib:ie, jb:je, nkslice))
       
-      ! Write time variable
-      call writestat_nc(ncidkslice, 'time', timee, nreckslice, .true.)
+      ! Write time variable (only myidy==0 writes)
+      if (myidy == 0) then
+        call writestat_nc(ncidkslice1d, 'time', timee, nreckslice1d, .true.)
+      end if
       
       ! u velocity
       if (present('u0')) then
@@ -678,7 +896,7 @@ module instant_slice
           kk = kslice(k)
           tmp_slice(:,:,k) = um(ib:ie, jb:je, kk)
         end do
-        call writestat_nc(ncidkslice, 'u', tmp_slice, nreckslice, xdim, ydim, kdim)
+        call writeoffset(ncidkslice1d, 'u', tmp_slice, nreckslice1d, xdim, ydim, kdim)
       end if
       
       ! v velocity
@@ -687,7 +905,7 @@ module instant_slice
           kk = kslice(k)
           tmp_slice(:,:,k) = vm(ib:ie, jb:je, kk)
         end do
-        call writestat_nc(ncidkslice, 'v', tmp_slice, nreckslice, xdim, ydim, kdim)
+        call writeoffset(ncidkslice1d, 'v', tmp_slice, nreckslice1d, xdim, ydim, kdim)
       end if
       
       ! w velocity (interpolated to cell centers)
@@ -696,7 +914,7 @@ module instant_slice
           kk = kslice(k)
           tmp_slice(:,:,k) = 0.5 * (wm(ib:ie, jb:je, kk) + wm(ib:ie, jb:je, kk+1))
         end do
-        call writestat_nc(ncidkslice, 'w', tmp_slice, nreckslice, xdim, ydim, kdim)
+        call writeoffset(ncidkslice1d, 'w', tmp_slice, nreckslice1d, xdim, ydim, kdim)
       end if
       
       ! temperature
@@ -705,7 +923,7 @@ module instant_slice
           kk = kslice(k)
           tmp_slice(:,:,k) = thlm(ib:ie, jb:je, kk)
         end do
-        call writestat_nc(ncidkslice, 'thl', tmp_slice, nreckslice, xdim, ydim, kdim)
+        call writeoffset(ncidkslice1d, 'thl', tmp_slice, nreckslice1d, xdim, ydim, kdim)
       end if
       
       ! moisture
@@ -714,7 +932,7 @@ module instant_slice
           kk = kslice(k)
           tmp_slice(:,:,k) = qtm(ib:ie, jb:je, kk)
         end do
-        call writestat_nc(ncidkslice, 'qt', tmp_slice, nreckslice, xdim, ydim, kdim)
+        call writeoffset(ncidkslice1d, 'qt', tmp_slice, nreckslice1d, xdim, ydim, kdim)
       end if
       
       ! scalars s1-s4
@@ -723,7 +941,7 @@ module instant_slice
           kk = kslice(k)
           tmp_slice(:,:,k) = svm(ib:ie, jb:je, kk, 1)
         end do
-        call writestat_nc(ncidkslice, 's1', tmp_slice, nreckslice, xdim, ydim, kdim)
+        call writeoffset(ncidkslice1d, 's1', tmp_slice, nreckslice1d, xdim, ydim, kdim)
       end if
       
       if (present('s2') .and. nsv>1) then
@@ -731,7 +949,7 @@ module instant_slice
           kk = kslice(k)
           tmp_slice(:,:,k) = svm(ib:ie, jb:je, kk, 2)
         end do
-        call writestat_nc(ncidkslice, 's2', tmp_slice, nreckslice, xdim, ydim, kdim)
+        call writeoffset(ncidkslice1d, 's2', tmp_slice, nreckslice1d, xdim, ydim, kdim)
       end if
       
       if (present('s3') .and. nsv>2) then
@@ -739,7 +957,7 @@ module instant_slice
           kk = kslice(k)
           tmp_slice(:,:,k) = svm(ib:ie, jb:je, kk, 3)
         end do
-        call writestat_nc(ncidkslice, 's3', tmp_slice, nreckslice, xdim, ydim, kdim)
+        call writeoffset(ncidkslice1d, 's3', tmp_slice, nreckslice1d, xdim, ydim, kdim)
       end if
       
       if (present('s4') .and. nsv>3) then
@@ -747,7 +965,7 @@ module instant_slice
           kk = kslice(k)
           tmp_slice(:,:,k) = svm(ib:ie, jb:je, kk, 4)
         end do
-        call writestat_nc(ncidkslice, 's4', tmp_slice, nreckslice, xdim, ydim, kdim)
+        call writeoffset(ncidkslice1d, 's4', tmp_slice, nreckslice1d, xdim, ydim, kdim)
       end if
       
       deallocate(tmp_slice)
@@ -760,4 +978,5 @@ module instant_slice
       pos = index(slicevars, str)   ! returns the position of the substring str in slicevars. If not found, it returns 0.
       present = (pos > 0)
     end function present
+
 end module instant_slice
