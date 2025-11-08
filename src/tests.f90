@@ -44,19 +44,36 @@ module tests
 
 
     subroutine tests_io
+      use netcdf
       implicit none
-      integer :: i, xdim, ydim, zdim, nrect, ncid, time_step
+      integer :: i, k, xdim, ydim, zdim, nrect, ncid, time_step
       real :: coord_value
       real, allocatable :: test_var(:,:,:)
       
       character(80) :: filename
       character(80) :: timeVar(1,4)
       character(80) :: varinfo(1,4)
+      
+      ! islice variables (use global islice from modglobal)
+      integer :: local_nislice, ncid_islice, nrec_islice, local_idx, ii
+      real, allocatable :: islice_data(:,:,:)
+      character(80) :: islice_filename
+      integer :: nislice_count  ! Actual number of islices
+      
+      ! kslice variables (use global kslice from modglobal)
+      integer :: ncid_kslice, nrec_kslice
+      real, allocatable :: kslice_data(:,:,:)
+      character(80) :: kslice_filename
+      integer :: nkslice_count  ! Actual number of kslices
 
       nrect = 0
       xdim = ie-ib+1
       ydim = je-jb+1
       zdim = ke-kb+1
+      
+      ! Get number of islices and kslices from modglobal
+      nislice_count = nislice
+      nkslice_count = nkslice
       
       call MPI_BARRIER(comm3d, mpierr)
 
@@ -101,27 +118,225 @@ module tests
         !write(*,*) 'Array dimensions:', xdim, 'x', ydim, 'x', zdim
       end if     
 ! ============================================= !
+! Create islice files
+! ============================================= !
+      if (nislice_count > 0) then
+        if (myid == 0) write(*,*) 'Creating islice files for ', nislice_count, ' slices at x=', islice(1:nislice_count)
+        
+        ! Count local islices
+        local_nislice = 0
+        do i = 1, nislice_count
+          if (mod(i-1, nprocx) == myidx) then
+            local_nislice = local_nislice + 1
+          end if
+        end do
+        
+        if (local_nislice > 0 .and. myidy == 0) then
+          islice_filename = 'test_islice.xxx.xxx.nc'
+          islice_filename(13:15) = cmyidx
+          islice_filename(17:19) = cexpnr
+          
+          nrec_islice = 0
+          call open_nc(islice_filename, ncid_islice, nrec_islice, n1=local_nislice, n2=jtot, n3=zdim)
+          
+          if (nrec_islice == 0) then
+            call ncinfo(timeVar(1,:), 'time', 'Time', 's', 'time')
+            call define_nc(ncid_islice, 1, timeVar)
+            call writestat_dims_nc(ncid_islice)
+            call write_islice_coords(ncid_islice, local_nislice, nislice_count, islice)
+          end if
+          
+          call ncinfo(varinfo(1,:), 'test_value', 'Test coordinate value', '1', 'tttt')
+          call define_nc(ncid_islice, 1, varinfo)
+          
+          write(*,'(A,I3,A,I2,A)') 'Processor myidx=', myidx, ' created islice file with ', local_nislice, ' slices'
+        end if
+      end if
+      
+! ============================================= !
+! Create kslice files
+! ============================================= !
+      if (nkslice_count > 0) then
+        if (myid == 0) write(*,*) 'Creating kslice files for ', nkslice_count, ' slices at k=', kslice(1:nkslice_count)
+        
+        if (myidy == 0) then
+          kslice_filename = 'test_kslice.xxx.xxx.nc'
+          kslice_filename(13:15) = cmyidx
+          kslice_filename(17:19) = cexpnr
+          
+          nrec_kslice = 0
+          call open_nc(kslice_filename, ncid_kslice, nrec_kslice, n1=xdim, n2=jtot, n3=nkslice_count)
+          
+          if (nrec_kslice == 0) then
+            call ncinfo(timeVar(1,:), 'time', 'Time', 's', 'time')
+            call define_nc(ncid_kslice, 1, timeVar)
+            call writestat_dims_nc(ncid_kslice)
+            call write_kslice_coords(ncid_kslice, nkslice_count, kslice)
+          end if
+          
+          call ncinfo(varinfo(1,:), 'test_value', 'Test coordinate value', '1', 'tttt')
+          call define_nc(ncid_kslice, 1, varinfo)
+          
+          write(*,'(A,I3,A,I2,A)') 'Processor myidx=', myidx, ' created kslice file with ', nkslice_count, ' slices'
+        end if
+      end if
+      
+      call MPI_BARRIER(comm3d, mpierr)
 
+! ============================================= !
+! Allocate and fill test data
+! ============================================= !
       allocate(test_var(ib:ie, jb:je, kb:ke))
-       coord_value = 100.0 * myidx + myidy
-       test_var = coord_value
+      coord_value = 100.0 * myidx + myidy
+      test_var = coord_value
 
+      if (nislice_count > 0 .and. local_nislice > 0) allocate(islice_data(local_nislice, jb:je, kb:ke))
+      if (nkslice_count > 0) allocate(kslice_data(ib:ie, jb:je, nkslice_count))
 
       call MPI_BARRIER(comm3d, mpierr)
 
       if (myid == 0) then
-        write(*,*) 'Writing test data with coord_value = 10*myid1dx + myid1dy + 0.1*time_step...'
+        write(*,*) 'Writing test data for 5 time steps...'
       end if
 
-      do time_step  = 1, 5
+! ============================================= !
+! Write multiple time steps
+! ============================================= !
+      do time_step = 1, 5
          nrect = time_step
-           call writeoffset(ncid, 'test_value', test_var, nrect, xdim, ydim, zdim)
-           test_var = coord_value + 0.1 * time_step
+         
+         ! Update test data
+         test_var = coord_value + 0.1 * time_step
+         
+         ! Write full 3D field
+         call writeoffset(ncid, 'test_value', test_var, nrect, xdim, ydim, zdim)
+         
+         ! Write islice
+         if (nislice_count > 0 .and. local_nislice > 0) then
+           islice_data = 0.0
+           local_idx = 0
+           do i = 1, nislice_count
+             if (mod(i-1, nprocx) == myidx) then
+               local_idx = local_idx + 1
+               ii = islice(i)
+               if (ii >= xstart(1) .and. ii <= xend(1)) then
+                 islice_data(local_idx, :, :) = test_var(ii - xstart(1) + ib, :, :)
+               end if
+             end if
+           end do
            
-           call MPI_BARRIER(comm3d, mpierr)
+           nrec_islice = time_step
+           call writeoffset(ncid_islice, 'test_value', islice_data, nrec_islice, local_nislice, ydim, zdim)
+         end if
+         
+         ! Write kslice
+         if (nkslice_count > 0) then
+           kslice_data = 0.0
+           do k = 1, nkslice_count
+             kslice_data(:, :, k) = test_var(:, :, kslice(k))
+           end do
+           
+           nrec_kslice = time_step
+           call writeoffset(ncid_kslice, 'test_value', kslice_data, nrec_kslice, xdim, ydim, nkslice_count)
+         end if
+         
+         call MPI_BARRIER(comm3d, mpierr)
       end do
+      
+      ! Cleanup
+      deallocate(test_var)
+      if (allocated(islice_data)) deallocate(islice_data)
+      if (allocated(kslice_data)) deallocate(kslice_data)
+      
+      if (myid == 0) then
+        write(*,*) 'Test completed! Files written:'
+        write(*,*) '  - tests_t_out.xxx.xxx.nc (full 3D)'
+        if (nislice_count > 0) write(*,*) '  - test_islice.xxx.xxx.nc (', nislice_count, ' islices)'
+        if (nkslice_count > 0) write(*,*) '  - test_kslice.xxx.xxx.nc (', nkslice_count, ' kslices)'
+      end if
 
     end subroutine tests_io
+
+
+    subroutine write_islice_coords(ncid, local_nislice, nislice_total, islice_positions)
+      use modglobal, only : xf, xh
+      use netcdf
+      implicit none
+      integer, intent(in) :: ncid, local_nislice, nislice_total
+      integer, dimension(nislice_total), intent(in) :: islice_positions
+      integer :: varid, ierr, i, local_idx
+      real, allocatable :: x_f(:), x_h(:)
+      integer, allocatable :: indices(:)
+      
+      allocate(x_f(local_nislice))
+      allocate(x_h(local_nislice))
+      allocate(indices(local_nislice))
+      
+      local_idx = 0
+      do i = 1, nislice_total
+        if (mod(i-1, nprocx) == myidx) then
+          local_idx = local_idx + 1
+          x_f(local_idx) = xf(islice_positions(i))
+          x_h(local_idx) = xh(islice_positions(i))
+          indices(local_idx) = islice_positions(i)
+        end if
+      end do
+      
+      ierr = nf90_inq_varid(ncid, 'xt', varid)
+      if (ierr == nf90_noerr) then
+        ierr = nf90_redef(ncid)
+        ierr = nf90_put_att(ncid, varid, 'islice_indices', indices)
+        ierr = nf90_enddef(ncid)
+        ierr = nf90_put_var(ncid, varid, x_f)
+      end if
+      
+      ierr = nf90_inq_varid(ncid, 'xm', varid)
+      if (ierr == nf90_noerr) then
+        ierr = nf90_redef(ncid)
+        ierr = nf90_put_att(ncid, varid, 'islice_indices', indices)
+        ierr = nf90_enddef(ncid)
+        ierr = nf90_put_var(ncid, varid, x_h)
+      end if
+      
+      deallocate(x_f, x_h, indices)
+    end subroutine write_islice_coords
+
+
+    subroutine write_kslice_coords(ncid, nkslice, kslice_positions)
+      use modglobal, only : zf, zh
+      use netcdf
+      implicit none
+      integer, intent(in) :: ncid, nkslice
+      integer, dimension(nkslice), intent(in) :: kslice_positions
+      integer :: varid, ierr, k
+      real, allocatable :: z_f(:), z_h(:)
+      
+      allocate(z_f(nkslice))
+      allocate(z_h(nkslice))
+      
+      do k = 1, nkslice
+        z_f(k) = zf(kslice_positions(k))
+        z_h(k) = zh(kslice_positions(k))
+      end do
+      
+      ierr = nf90_inq_varid(ncid, 'zt', varid)
+      if (ierr == nf90_noerr) then
+        ierr = nf90_redef(ncid)
+        ierr = nf90_put_att(ncid, varid, 'kslice_indices', kslice_positions)
+        ierr = nf90_enddef(ncid)
+        ierr = nf90_put_var(ncid, varid, z_f)
+      end if
+      
+      ierr = nf90_inq_varid(ncid, 'zm', varid)
+      if (ierr == nf90_noerr) then
+        ierr = nf90_redef(ncid)
+        ierr = nf90_put_att(ncid, varid, 'kslice_indices', kslice_positions)
+        ierr = nf90_enddef(ncid)
+        ierr = nf90_put_var(ncid, varid, z_h)
+      end if
+      
+      deallocate(z_f, z_h)
+    end subroutine write_kslice_coords
 
 
 end module tests
