@@ -230,7 +230,7 @@ module instant_slice
       local_nislice = 0
       has_islice = .false.
       do i = 1, nislice
-        if (mod(i-1, nprocx) == myidx) then
+        if ( (islice(i)-1)/nprocx == myidx) then
           local_nislice = local_nislice + 1
           has_islice = .true.
         end if
@@ -273,7 +273,7 @@ module instant_slice
       local_njslice = 0
       has_jslice = .false.
       do j = 1, njslice
-        if (mod(j-1, nprocy) == myidy) then
+        if ( (jslice(j)-1)/nprocy == myidy) then
           local_njslice = local_njslice + 1
           has_jslice = .true.
         end if
@@ -376,7 +376,7 @@ module instant_slice
       if (present('u0')) then
         local_idx = 0
         do i = 1, nislice
-          if (mod(i-1, nprocx) == myidx) then
+          if ( (islice(i)-1)/nprocx == myidx) then
             local_idx = local_idx + 1
             ii = islice(i)  ! Global X-position
             ii_local = ii - xstart(1) + ib
@@ -393,7 +393,7 @@ module instant_slice
         tmp_slice = 0.0
         local_idx = 0
         do i = 1, nislice
-          if (mod(i-1, nprocx) == myidx) then
+          if ( (islice(i)-1)/nprocx == myidx) then
             local_idx = local_idx + 1
             ii = islice(i)
             ii_local = ii - xstart(1) + ib
@@ -410,7 +410,7 @@ module instant_slice
         tmp_slice = 0.0
         local_idx = 0
         do i = 1, nislice
-          if (mod(i-1, nprocx) == myidx) then
+          if ( (islice(i)-1)/nprocx == myidx) then
             local_idx = local_idx + 1
             ii = islice(i)
             ii_local = ii - xstart(1) + ib
@@ -427,7 +427,7 @@ module instant_slice
         tmp_slice = 0.0
         local_idx = 0
         do i = 1, nislice
-          if (mod(i-1, nprocx) == myidx) then
+          if ( (islice(i)-1)/nprocx == myidx) then
             local_idx = local_idx + 1
             ii = islice(i)
             ii_local = ii - xstart(1) + ib
@@ -444,7 +444,7 @@ module instant_slice
         tmp_slice = 0.0
         local_idx = 0
         do i = 1, nislice
-          if (mod(i-1, nprocx) == myidx) then
+          if ( (islice(i)-1)/nprocx == myidx) then
             local_idx = local_idx + 1
             ii = islice(i)
             ii_local = ii - xstart(1) + ib
@@ -461,7 +461,7 @@ module instant_slice
         tmp_slice = 0.0
         local_idx = 0
         do i = 1, nislice
-          if (mod(i-1, nprocx) == myidx) then
+          if ( (islice(i)-1)/nprocx == myidx) then
             local_idx = local_idx + 1
             ii = islice(i)
             ii_local = ii - xstart(1) + ib
@@ -477,7 +477,7 @@ module instant_slice
         tmp_slice = 0.0
         local_idx = 0
         do i = 1, nislice
-          if (mod(i-1, nprocx) == myidx) then
+          if ( (islice(i)-1)/nprocx == myidx) then
             local_idx = local_idx + 1
             ii = islice(i)
             ii_local = ii - xstart(1) + ib
@@ -493,7 +493,7 @@ module instant_slice
         tmp_slice = 0.0
         local_idx = 0
         do i = 1, nislice
-          if (mod(i-1, nprocx) == myidx) then
+          if ( (islice(i)-1)/nprocx == myidx) then
             local_idx = local_idx + 1
             ii = islice(i)
             ii_local = ii - xstart(1) + ib
@@ -509,7 +509,7 @@ module instant_slice
         tmp_slice = 0.0
         local_idx = 0
         do i = 1, nislice
-          if (mod(i-1, nprocx) == myidx) then
+          if ( (islice(i)-1)/nprocx == myidx) then
             local_idx = local_idx + 1
             ii = islice(i)
             ii_local = ii - xstart(1) + ib
@@ -546,7 +546,7 @@ module instant_slice
       if (present('u0')) then
         local_idy = 0
         do j = 1, njslice
-          if (mod(j-1, nprocy) == myidy) then
+          if ( (jslice(j)-1)/nprocy == myidy) then
             local_idy = local_idy + 1
             jj = jslice(j)
             jj_local = jj - ystart(2) + jb
@@ -563,7 +563,7 @@ module instant_slice
         tmp_slice = 0.0
         local_idy = 0
         do j = 1, njslice
-          if (mod(j-1, nprocy) == myidy) then
+          if ( (jslice(j)-1)/nprocy == myidy) then
             local_idy = local_idy + 1
             jj = jslice(j)
             jj_local = jj - ystart(2) + jb
@@ -580,7 +580,7 @@ module instant_slice
         tmp_slice = 0.0
         local_idy = 0
         do j = 1, njslice
-          if (mod(j-1, nprocy) == myidy) then
+          if ( (jslice(j)-1)/nprocy == myidy) then
             local_idy = local_idy + 1
             jj = jslice(j)
             jj_local = jj - ystart(2) + jb
@@ -597,7 +597,7 @@ module instant_slice
         tmp_slice = 0.0
         local_idy = 0
         do j = 1, njslice
-          if (mod(j-1, nprocy) == myidy) then
+          if ( (jslice(j)-1)/nprocy == myidy) then
             local_idy = local_idy + 1
             jj = jslice(j)
             jj_local = jj - ystart(2) + jb
@@ -614,7 +614,7 @@ module instant_slice
         tmp_slice = 0.0
         local_idy = 0
         do j = 1, njslice
-          if (mod(j-1, nprocy) == myidy) then
+          if ( (jslice(j)-1)/nprocy == myidy) then
             local_idy = local_idy + 1
             jj = jslice(j)
             jj_local = jj - ystart(2) + jb
@@ -631,7 +631,7 @@ module instant_slice
         tmp_slice = 0.0
         local_idy = 0
         do j = 1, njslice
-          if (mod(j-1, nprocy) == myidy) then
+          if ( (jslice(j)-1)/nprocy == myidy) then
             local_idy = local_idy + 1
             jj = jslice(j)
             jj_local = jj - ystart(2) + jb
@@ -647,7 +647,7 @@ module instant_slice
         tmp_slice = 0.0
         local_idy = 0
         do j = 1, njslice
-          if (mod(j-1, nprocy) == myidy) then
+          if ( (jslice(j)-1)/nprocy == myidy) then
             local_idy = local_idy + 1
             jj = jslice(j)
             jj_local = jj - ystart(2) + jb
@@ -663,7 +663,7 @@ module instant_slice
         tmp_slice = 0.0
         local_idy = 0
         do j = 1, njslice
-          if (mod(j-1, nprocy) == myidy) then
+          if ( (jslice(j)-1)/nprocy == myidy) then
             local_idy = local_idy + 1
             jj = jslice(j)
             jj_local = jj - ystart(2) + jb
@@ -679,7 +679,7 @@ module instant_slice
         tmp_slice = 0.0
         local_idy = 0
         do j = 1, njslice
-          if (mod(j-1, nprocy) == myidy) then
+          if ( (jslice(j)-1)/nprocy == myidy) then
             local_idy = local_idy + 1
             jj = jslice(j)
             jj_local = jj - ystart(2) + jb
@@ -711,7 +711,7 @@ module instant_slice
       
       local_idx = 0
       do i = 1, nislice
-        if (mod(i-1, nprocx) == myidx) then
+        if ( (islice(i)-1)/nprocx == myidx) then
           local_idx = local_idx + 1
           x_islice_f(local_idx) = xf(islice(i))  ! full level (cell center)
           x_islice_h(local_idx) = xh(islice(i))  ! half level (cell edge)
@@ -760,7 +760,7 @@ module instant_slice
       
       local_idy = 0
       do j = 1, njslice
-        if (mod(j-1, nprocy) == myidy) then
+        if ( (jslice(j)-1)/nprocy == myidy) then
           local_idy = local_idy + 1
           y_jslice_f(local_idy) = yf(jslice(j))
           y_jslice_h(local_idy) = yh(jslice(j))

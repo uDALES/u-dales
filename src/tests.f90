@@ -133,7 +133,7 @@ module tests
         ! Count local islices
         local_nislice = 0
         do i = 1, nislice_count
-          if (mod(i-1, nprocx) == myidx) then
+          if ( (islice(i)-1)/nprocx == myidx) then
             local_nislice = local_nislice + 1
           end if
         end do
@@ -169,7 +169,7 @@ module tests
         ! Count local jslices (round-robin by myidy)
         local_njslice = 0
         do i = 1, njslice_count
-          if (mod(i-1, nprocy) == myidy) then
+          if ( (jslice(i)-1)/nprocy == myidy) then
             local_njslice = local_njslice + 1
           end if
         end do
@@ -260,7 +260,7 @@ module tests
            islice_data = 0.0
            local_idx = 0
            do i = 1, nislice_count
-             if (mod(i-1, nprocx) == myidx) then
+             if ( (islice(i)-1)/nprocx == myidx) then
                local_idx = local_idx + 1
                ii = islice(i)
                if (ii >= xstart(1) .and. ii <= xend(1)) then
@@ -278,7 +278,7 @@ module tests
            jslice_data = 0.0
            local_idy = 0
            do i = 1, njslice_count
-             if (mod(i-1, nprocy) == myidy) then
+             if ( (jslice(i)-1)/nprocy == myidy) then
                local_idy = local_idy + 1
                jj = jslice(i)
                if (jj >= ystart(2) .and. jj <= yend(2)) then
@@ -338,7 +338,7 @@ module tests
       
       local_idx = 0
       do i = 1, nislice_total
-        if (mod(i-1, nprocx) == myidx) then
+        if ( (islice(i)-1)/nprocx == myidx) then
           local_idx = local_idx + 1
           x_f(local_idx) = xf(islice_positions(i))
           x_h(local_idx) = xh(islice_positions(i))
@@ -419,7 +419,7 @@ module tests
       
       local_idy = 0
       do j = 1, njslice_total
-        if (mod(j-1, nprocy) == myidy) then
+        if ( (jslice(j)-1)/nprocy == myidy) then
           local_idy = local_idy + 1
           y_f(local_idy) = yf(jslice_positions(j))
           y_h(local_idy) = yh(jslice_positions(j))
